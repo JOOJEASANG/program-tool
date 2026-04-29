@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>모임·총무 관리</title>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        body { font-family: 'Noto Sans KR', sans-serif; background: #f8fafc; }
+        .tab-btn { padding: 8px 16px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.15s; color: #64748b; border: none; background: transparent; }
+        .tab-btn.active { background: #2563eb; color: white; }
+        .tab-btn:hover:not(.active) { background: #f1f5f9; }
+        .section { display: none; }
+        .section.active { display: block; }
+        .card { background: white; border-radius: 12px; border: 1px solid #e2e8f0; }
+        .inp { width: 100%; padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.875rem; outline: none; font-family: inherit; }
+        .inp:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+        .btn-primary { background: #2563eb; color: white; padding: 8px 18px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; border: none; cursor: pointer; transition: all 0.15s; }
+        .btn-primary:hover { background: #1d4ed8; }
+        .btn-danger { background: #fee2e2; color: #dc2626; padding: 5px 12px; border-radius: 6px; font-size: 0.78rem; font-weight: 600; border: none; cursor: pointer; }
+        .btn-sm { padding: 5px 12px; border-radius: 6px; font-size: 0.78rem; font-weight: 600; border: none; cursor: pointer; }
+        #toast { position: fixed; bottom: 1.5rem; left: 50%; transform: translateX(-50%); background: #1e293b; color: white; padding: 8px 20px; border-radius: 999px; font-size: 0.8rem; z-index: 999; opacity: 0; transition: opacity 0.3s; pointer-events: none; white-space: nowrap; }
+        #toast.show { opacity: 1; }
+        .badge-paid { background: #dcfce7; color: #16a34a; }
+        .badge-unpaid { background: #fee2e2; color: #dc2626; }
+        .badge-partial { background: #fef3c7; color: #d97706; }
+        .poll-option-bar { height: 8px; border-radius: 4px; background: #2563eb; transition: width 0.5s; }
+    </style>
+</head>
+<body>
+
+<!-- 헤더 -->
+<header class="bg-white border-b border-gray-200 sticky top-0 z-50" style="height:56px;">
+    <div class="max-w-5xl mx-auto px-4 h-full flex items-center justify-between">
+        <div class="flex items-center gap-3">
+            <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                <i class="fas fa-users text-white text-sm"></i>
+            </div>
+            <div>
+                <span class="font-bold text-gray-900 text-sm">모임·총무 관리</span>
+                <span id="groupNameBadge" class="ml-2 text-xs text-blue-600 font-medium hidden"></span>
+            </div>
+        </div>
+        <div id="userArea" class="flex items-center gap-2">
+            <span id="headerUserName" class="text-sm text-gray-600 hidden"></span>
+            <button onclick="handleLogout()" id="logoutBtn" class="hidden text-xs text-gray-400 hover:text-red-500 px-2 py-1 rounded hover:bg-red-50 transition-colors">
+                <i class="fas fa-sign-out-alt mr-1"></i>로그아웃
+            </button>
+        </div>
+    </div>
+</header>
+
+<!-- 로그인 화면 -->
+<div id="loginScreen" class="min-h-screen flex items-center justify-center p-4">
+    <div class="w-full max-w-sm">
+        <div class="card p-8 text-center">
+            <div class="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-users text-blue-500 text-2xl"></i>
+            </div>
+            <h1 class="text-xl font-bold text-gray-900 mb-1">모임·총무 관리</h1>
+            <p class="text-xs text-gray-400 mb-6">소소프로그램</p>
+            <div class="space-y-3 text-left">
+                <input type="email" id="loginEmail" class="inp" placeholder="이메일">
+                <input type="password" id="loginPw" class="inp" placeholder="비밀번호">
+                <p id="loginErr" class="text-xs text-red-500 hidden">이메일 또는 비밀번호가 올바르지 않습니다.</p>
+                <button onclick="doLogin()" class="btn-primary w-full py-2.5">로그인</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 앱 본체 -->
+<div id="appBody" class="hidden max-w-5xl mx-auto px-4 py-6">
+
+    <!-- 탭 네비게이션 -->
+    <div class="flex gap-1 mb-6 bg-white border border-gray-200 rounded-xl p-1.5 overflow-x-auto">
+        <button class="tab-btn active" onclick="showTab('dashboard')" id="tab-dashboard">
+            <i class="fas fa-home mr-1.5"></i>대시보드
+        </button>
+        <button class="tab-btn" onclick="showTab('members')" id="tab-members">
+            <i class="fas fa-user-friends mr-1.5"></i>회원 관리
+        </button>
+        <button class="tab-btn" onclick="showTab('fees')" id="tab-fees">
+            <i class="fas fa-won-sign mr-1.5"></i>월회비
+        </button>
+        <button class="tab-btn" onclick="showTab('accounting')" id="tab-accounting">
+            <i class="fas fa-calculator mr-1.5"></i>회계
+        </button>
+        <button class="tab-btn" onclick="showTab('polls')" id="tab-polls">
+            <i class="fas fa-poll mr-1.5"></i>의견수렴
+        </button>
+        <button class="tab-btn" onclick="showTab('settings')" id="tab-settings">
+            <i class="fas fa-cog mr-1.5"></i>설정
+        </button>
+    </div>
+
+    <!-- ══════════ 대시보드 ══════════ -->
+    <div id="section-dashboard" class="section active">
+        <div class="grid grid-cols-2 gap-4 mb-6 sm:grid-cols-4">
+            <div class="card p-4 text-center">
+                <p class="text-3xl font-bold text-blue-600" id="ds-totalMembers">0</p>
+                <p class="text-xs text-gray-500 mt-1">전체 회원</p>
+            </div>
+            <div class="card p-4 text-center">
+                <p class="text-3xl font-bold text-green-600" id="ds-paidMembers">0</p>
+                <p class="text-xs text-gray-500 mt-1">이번달 납부</p>
+            </div>
+            <div class="card p-4 text-center">
+                <p class="text-3xl font-bold text-red-500" id="ds-unpaidMembers">0</p>
+                <p class="text-xs text-gray-500 mt-1">미납</p>
+            </div>
+            <div class="card p-4 text-center">
+                <p class="text-2xl font-bold text-gray-900" id="ds-balance">₩0</p>
+                <p class="text-xs text-gray-500 mt-1">현재 잔액</p>
+            </div>
+        </div>
+
+        <!-- 최근 회계 내역 -->
+        <div class="card p-5 mb-4">
+            <h3 class="font-bold text-gray-800 text-sm mb-3"><i class="fas fa-history mr-2 text-gray-400"></i>최근 수입/지출</h3>
+            <div id="ds-recentTx" class="space-y-2 text-sm text-gray-400">로딩 중...</div>
+        </div>
+
+        <!-- 진행중인 의견수렴 -->
+        <div class="card p-5">
+            <h3 class="font-bold text-gray-800 text-sm mb-3"><i class="fas fa-poll mr-2 text-gray-400"></i>진행중인 의견수렴</h3>
+            <div id="ds-activePolls" class="text-sm text-gray-400">로딩 중...</div>
+        </div>
+    </div>
+
+    <!-- ══════════ 회원 관리 ══════════ -->
+    <div id="section-members" class="section">
+        <!-- 추가 폼 -->
+        <div class="card p-5 mb-4">
+            <h3 class="font-bold text-gray-800 text-sm mb-3">회원 추가</h3>
+            <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <input type="text" id="m-name" class="inp" placeholder="이름 *">
+                <input type="text" id="m-phone" class="inp" placeholder="연락처">
+                <select id="m-grade" class="inp">
+                    <option value="일반">일반</option>
+                    <option value="임원">임원</option>
+                    <option value="명예">명예회원</option>
+                </select>
+                <input type="date" id="m-joinDate" class="inp">
+            </div>
+            <div class="grid grid-cols-2 gap-3 mt-3">
+                <input type="text" id="m-email" class="inp" placeholder="이메일">
+                <input type="text" id="m-memo" class="inp" placeholder="메모">
+            </div>
+            <button onclick="addMember()" class="btn-primary mt-3">
+                <i class="fas fa-plus mr-1"></i>추가
+            </button>
+        </div>
+
+        <!-- 검색 + 목록 -->
+        <div class="card p-5">
+            <div class="flex items-center justify-between mb-3">
+                <h3 class="font-bold text-gray-800 text-sm">회원 목록 <span id="m-count" class="text-gray-400 font-normal ml-1"></span></h3>
+                <input type="text" id="m-search" class="inp w-40" placeholder="이름 검색" oninput="renderMembers()">
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="border-b border-gray-100 text-xs text-gray-400">
+                            <th class="text-left py-2 pr-3">이름</th>
+                            <th class="text-left py-2 pr-3">연락처</th>
+                            <th class="text-left py-2 pr-3">등급</th>
+                            <th class="text-left py-2 pr-3">가입일</th>
+                            <th class="text-left py-2 pr-3">메모</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="memberTable"></tbody>
+                </table>
+                <div id="m-empty" class="hidden text-center py-10 text-gray-300 text-sm">
+                    <i class="fas fa-users text-3xl mb-2 block"></i>등록된 회원이 없습니다.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════ 월회비 ══════════ -->
+    <div id="section-fees" class="section">
+        <div class="card p-5 mb-4">
+            <div class="flex items-center gap-4 flex-wrap">
+                <div>
+                    <p class="text-xs text-gray-500 mb-1">기준 월</p>
+                    <input type="month" id="f-month" class="inp w-40" onchange="renderFees()">
+                </div>
+                <div>
+                    <p class="text-xs text-gray-500 mb-1">기본 회비</p>
+                    <input type="number" id="f-defaultFee" class="inp w-36" placeholder="10000" value="10000">
+                </div>
+                <button onclick="generateFeeSheet()" class="btn-primary self-end">
+                    <i class="fas fa-sync mr-1"></i>회비 시트 생성
+                </button>
+            </div>
+        </div>
+
+        <!-- 납부 현황 -->
+        <div class="card p-5">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="font-bold text-gray-800 text-sm">납부 현황</h3>
+                <div class="flex gap-3 text-xs">
+                    <span class="badge-paid px-2 py-0.5 rounded-full font-semibold" id="f-paidCount">납부 0</span>
+                    <span class="badge-unpaid px-2 py-0.5 rounded-full font-semibold" id="f-unpaidCount">미납 0</span>
+                </div>
+            </div>
+            <div id="feeTable" class="space-y-2"></div>
+            <div id="f-empty" class="hidden text-center py-10 text-gray-300 text-sm">
+                회비 시트를 생성해주세요.
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════ 회계 ══════════ -->
+    <div id="section-accounting" class="section">
+        <!-- 입력 -->
+        <div class="card p-5 mb-4">
+            <h3 class="font-bold text-gray-800 text-sm mb-3">내역 추가</h3>
+            <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <select id="a-type" class="inp">
+                    <option value="income">수입</option>
+                    <option value="expense">지출</option>
+                </select>
+                <input type="text" id="a-desc" class="inp" placeholder="항목명 *">
+                <input type="number" id="a-amount" class="inp" placeholder="금액 *">
+                <input type="date" id="a-date" class="inp">
+            </div>
+            <div class="flex gap-3 mt-3">
+                <select id="a-category" class="inp">
+                    <option value="회비">회비</option>
+                    <option value="행사비">행사비</option>
+                    <option value="식비">식비</option>
+                    <option value="기타">기타</option>
+                </select>
+                <input type="text" id="a-memo" class="inp" placeholder="메모">
+                <button onclick="addTransaction()" class="btn-primary flex-shrink-0">
+                    <i class="fas fa-plus mr-1"></i>추가
+                </button>
+            </div>
+        </div>
+
+        <!-- 요약 -->
+        <div class="grid grid-cols-3 gap-4 mb-4">
+            <div class="card p-4 text-center">
+                <p class="text-xl font-bold text-green-600" id="a-totalIncome">₩0</p>
+                <p class="text-xs text-gray-500 mt-1">총 수입</p>
+            </div>
+            <div class="card p-4 text-center">
+                <p class="text-xl font-bold text-red-500" id="a-totalExpense">₩0</p>
+                <p class="text-xs text-gray-500 mt-1">총 지출</p>
+            </div>
+            <div class="card p-4 text-center">
+                <p class="text-xl font-bold text-gray-900" id="a-balance">₩0</p>
+                <p class="text-xs text-gray-500 mt-1">잔액</p>
+            </div>
+        </div>
+
+        <!-- 내역 목록 -->
+        <div class="card p-5">
+            <div class="flex items-center justify-between mb-3">
+                <h3 class="font-bold text-gray-800 text-sm">거래 내역</h3>
+                <select id="a-filterType" class="inp w-28" onchange="renderTransactions()">
+                    <option value="all">전체</option>
+                    <option value="income">수입</option>
+                    <option value="expense">지출</option>
+                </select>
+            </div>
+            <div id="txList" class="space-y-2"></div>
+            <div id="a-empty" class="hidden text-center py-10 text-gray-300 text-sm">
+                <i class="fas fa-receipt text-3xl mb-2 block"></i>내역이 없습니다.
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════ 의견수렴 ══════════ -->
+    <div id="section-polls" class="section">
+        <!-- 설문 만들기 -->
+        <div class="card p-5 mb-4" id="pollCreateBox">
+            <h3 class="font-bold text-gray-800 text-sm mb-3">의견수렴 만들기</h3>
+            <div class="space-y-3">
+                <input type="text" id="p-title" class="inp" placeholder="제목 *">
+                <textarea id="p-desc" class="inp" rows="2" placeholder="설명 (선택)"></textarea>
+                <div>
+                    <p class="text-xs text-gray-500 mb-2">선택 항목 <span class="text-gray-400">(최대 6개)</span></p>
+                    <div id="p-options" class="space-y-2">
+                        <div class="flex gap-2">
+                            <input type="text" class="inp poll-option" placeholder="항목 1">
+                            <input type="text" class="inp poll-option" placeholder="항목 2">
+                        </div>
+                    </div>
+                    <button onclick="addPollOption()" class="text-xs text-blue-500 hover:underline mt-2">
+                        <i class="fas fa-plus mr-1"></i>항목 추가
+                    </button>
+                </div>
+                <div class="flex gap-3">
+                    <div class="flex-1">
+                        <p class="text-xs text-gray-500 mb-1">마감일</p>
+                        <input type="date" id="p-deadline" class="inp">
+                    </div>
+                    <div class="flex-1">
+                        <p class="text-xs text-gray-500 mb-1">투표 방식</p>
+                        <select id="p-multi" class="inp">
+                            <option value="single">단일 선택</option>
+                            <option value="multi">복수 선택</option>
+                        </select>
+                    </div>
+                </div>
+                <button onclick="createPoll()" class="btn-primary">
+                    <i class="fas fa-poll mr-1"></i>의견수렴 시작
+                </button>
+            </div>
+        </div>
+
+        <!-- 설문 목록 -->
+        <div id="pollList" class="space-y-4"></div>
+        <div id="p-empty" class="hidden text-center py-10 text-gray-300 text-sm card p-8">
+            <i class="fas fa-poll text-3xl mb-2 block"></i>등록된 의견수렴이 없습니다.
+        </div>
+    </div>
+
+    <!-- ══════════ 설정 ══════════ -->
+    <div id="section-settings" class="section">
+        <div class="card p-5 mb-4">
+            <h3 class="font-bold text-gray-800 text-sm mb-4">모임 기본 정보</h3>
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1">모임명</label>
+                    <input type="text" id="s-groupName" class="inp" placeholder="우리 모임">
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1">대표/회장 이름</label>
+                    <input type="text" id="s-president" class="inp" placeholder="홍길동">
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1">모임 설명</label>
+                    <textarea id="s-desc" class="inp" rows="2" placeholder="모임 소개"></textarea>
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1">기본 월회비</label>
+                    <input type="number" id="s-fee" class="inp" placeholder="10000">
+                </div>
+                <button onclick="saveSettings()" class="btn-primary">
+                    <i class="fas fa-save mr-1"></i>저장
+                </button>
+            </div>
+        </div>
+
+        <div class="card p-5">
+            <h3 class="font-bold text-gray-800 text-sm mb-3">계정</h3>
+            <p id="s-email" class="text-sm text-gray-500 mb-3"></p>
+            <button onclick="handleLogout()" class="btn-sm bg-red-50 text-red-500">
+                <i class="fas fa-sign-out-alt mr-1"></i>로그아웃
+            </button>
+        </div>
+    </div>
+
+</div><!-- /appBody -->
+
+<div id="toast"></div>
+
+<script>
+// ── Firebase 설정 ──
+const FIREBASE_CONFIG = {
+    apiKey:            "AIzaSyBCNcIVCIUpX6oq2FXjVULNXwBTMV897yU",
+    authDomain:        "sosoprogram-873b1.firebaseapp.com",
+    projectId:         "sosoprogram-873b1",
+    storageBucket:     "sosoprogram-873b1.firebasestorage.app",
+    messagingSenderId: "438626208249",
+    appId:             "1:438626208249:web:811530029b6e16d12e1528"
+};
+firebase.initializeApp(FIREBASE_CONFIG);
+const auth = firebase.auth();
+const db   = firebase.firestore();
+
+let currentUser = null;
+let groupId     = null;   // Firestore 내 모임 문서 ID = uid
+let settings    = {};
+let members     = [];
+let transactions = [];
+let fees        = [];
+let polls       = [];
+
+// ── 인증 ──
+auth.onAuthStateChanged(user => {
+    if (user) {
+        currentUser = user;
+        groupId     = user.uid;
+        document.getElementById('loginScreen').classList.add('hidden');
+        document.getElementById('appBody').classList.remove('hidden');
+        document.getElementById('headerUserName').textContent = user.displayName || user.email;
+        document.getElementById('headerUserName').classList.remove('hidden');
+        document.getElementById('logoutBtn').classList.remove('hidden');
+        document.getElementById('s-email').textContent = user.email;
+        loadAll();
+    } else {
+        currentUser = null;
+        document.getElementById('loginScreen').classList.remove('hidden');
+        document.getElementById('appBody').classList.add('hidden');
+    }
+});
+
+async function doLogin() {
+    const email = document.getElementById('loginEmail').value.trim();
+    const pw    = document.getElementById('loginPw').value;
+    document.getElementById('loginErr').classList.add('hidden');
+    try {
+        await auth.signInWithEmailAndPassword(email, pw);
+    } catch {
+        document.getElementById('loginErr').classList.remove('hidden');
+    }
+}
+
+function handleLogout() {
+    auth.signOut();
+}
+
+// ── 전체 데이터 로드 ──
+async function loadAll() {
+    await Promise.all([loadSettings(), loadMembers(), loadTransactions(), loadPolls()]);
+    setDefaultDates();
+    renderDashboard();
+}
+
+function setDefaultDates() {
+    const today = new Date().toISOString().split('T')[0];
+    const month = today.slice(0, 7);
+    if (!document.getElementById('f-month').value) document.getElementById('f-month').value = month;
+    if (!document.getElementById('a-date').value)  document.getElementById('a-date').value  = today;
+    if (!document.getElementById('m-joinDate').value) document.getElementById('m-joinDate').value = today;
+}
+
+// ── 설정 ──
+async function loadSettings() {
+    try {
+        const doc = await db.collection('clubs').doc(groupId).collection('settings').doc('info').get();
+        if (doc.exists) {
+            settings = doc.data();
+            document.getElementById('s-groupName').value  = settings.groupName  || '';
+            document.getElementById('s-president').value  = settings.president  || '';
+            document.getElementById('s-desc').value       = settings.desc       || '';
+            document.getElementById('s-fee').value        = settings.defaultFee || 10000;
+            document.getElementById('f-defaultFee').value = settings.defaultFee || 10000;
+            if (settings.groupName) {
+                document.getElementById('groupNameBadge').textContent = settings.groupName;
+                document.getElementById('groupNameBadge').classList.remove('hidden');
+            }
+        }
+    } catch {}
+}
+
+async function saveSettings() {
+    const data = {
+        groupName:  document.getElementById('s-groupName').value.trim(),
+        president:  document.getElementById('s-president').value.trim(),
+        desc:       document.getElementById('s-desc').value.trim(),
+        defaultFee: parseInt(document.getElementById('s-fee').value) || 10000,
+    };
+    try {
+        await db.collection('clubs').doc(groupId).collection('settings').doc('info').set(data);
+        settings = data;
+        if (data.groupName) {
+            document.getElementById('groupNameBadge').textContent = settings.groupName;
+            document.getElementById('groupNameBadge').classList.remove('hidden');
+        }
+        showToast('설정이 저장되었습니다.');
+    } catch { showToast('저장 실패.'); }
+}
+
+// ── 회원 ──
+async function loadMembers() {
+    try {
+        const snap = await db.collection('clubs').doc(groupId).collection('members').orderBy('name').get();
+        members = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    } catch {
+        members = [];
+    }
+    renderMembers();
+}
+
+async function addMember() {
+    const name = document.getElementById('m-name').value.trim();
+    if (!name) { showToast('이름을 입력해주세요.'); return; }
+    const data = {
+        name,
+        phone:    document.getElementById('m-phone').value.trim(),
+        grade:    document.getElementById('m-grade').value,
+        joinDate: document.getElementById('m-joinDate').value,
+        email:    document.getElementById('m-email').value.trim(),
+        memo:     document.getElementById('m-memo').value.trim(),
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+    };
+    try {
+        const ref = await db.collection('clubs').doc(groupId).collection('members').add(data);
+        members.push({ id: ref.id, ...data });
+        ['m-name','m-phone','m-email','m-memo'].forEach(id => document.getElementById(id).value = '');
+        renderMembers();
+        renderDashboard();
+        showToast(`${name} 회원이 추가되었습니다.`);
+    } catch { showToast('추가 실패.'); }
+}
+
+async function deleteMember(id, name) {
+    if (!confirm(`${name} 회원을 삭제하시겠습니까?`)) return;
+    try {
+        await db.collection('clubs').doc(groupId).collection('members').doc(id).delete();
+        members = members.filter(m => m.id !== id);
+        renderMembers();
+        renderDashboard();
+        showToast('삭제되었습니다.');
+    } catch { showToast('삭제 실패.'); }
+}
+
+function renderMembers() {
+    const q = document.getElementById('m-search').value.toLowerCase();
+    const filtered = members.filter(m => m.name.toLowerCase().includes(q));
+    document.getElementById('m-count').textContent = `(${filtered.length}명)`;
+    const tbody = document.getElementById('memberTable');
+    const empty = document.getElementById('m-empty');
+    if (filtered.length === 0) { tbody.innerHTML = ''; empty.classList.remove('hidden'); return; }
+    empty.classList.add('hidden');
+    tbody.innerHTML = filtered.map(m => `
+        <tr class="border-b border-gray-50 hover:bg-gray-50">
+            <td class="py-2.5 pr-3 font-semibold text-gray-800">${escHtml(m.name)}</td>
+            <td class="py-2.5 pr-3 text-gray-500">${escHtml(m.phone||'-')}</td>
+            <td class="py-2.5 pr-3">
+                <span class="text-xs px-2 py-0.5 rounded-full font-semibold
+                    ${m.grade==='임원'?'bg-blue-100 text-blue-700':m.grade==='명예'?'bg-purple-100 text-purple-700':'bg-gray-100 text-gray-600'}">
+                    ${m.grade}
+                </span>
+            </td>
+            <td class="py-2.5 pr-3 text-gray-400 text-xs">${m.joinDate||'-'}</td>
+            <td class="py-2.5 pr-3 text-gray-400 text-xs">${escHtml(m.memo||'-')}</td>
+            <td class="py-2.5">
+                <button onclick="deleteMember('${m.id}','${escHtml(m.name)}')" class="btn-danger">삭제</button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+// ── 월회비 ──
+async function generateFeeSheet() {
+    const month = document.getElementById('f-month').value;
+    const defaultFee = parseInt(document.getElementById('f-defaultFee').value) || 10000;
+    if (!month) { showToast('기준 월을 선택해주세요.'); return; }
+    if (members.length === 0) { showToast('회원이 없습니다. 먼저 회원을 추가해주세요.'); return; }
+
+    for (const m of members) {
+        const docId = `${month}_${m.id}`;
+        const ref = db.collection('clubs').doc(groupId).collection('fees').doc(docId);
+        const existing = await ref.get();
+        if (!existing.exists) {
+            await ref.set({
+                month, memberId: m.id, memberName: m.name,
+                amount: defaultFee, paid: false, paidDate: null,
+            });
+        }
+    }
+    await loadFees(month);
+    showToast(`${month} 회비 시트가 생성되었습니다.`);
+}
+
+async function loadFees(month) {
+    if (!month) month = document.getElementById('f-month').value;
+    try {
+        const snap = await db.collection('clubs').doc(groupId).collection('fees')
+            .where('month','==',month).get();
+        fees = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    } catch { fees = []; }
+    renderFees();
+}
+
+async function toggleFee(id, currentPaid) {
+    const paidDate = currentPaid ? null : new Date().toISOString().split('T')[0];
+    try {
+        await db.collection('clubs').doc(groupId).collection('fees').doc(id).update({
+            paid: !currentPaid, paidDate
+        });
+        const fee = fees.find(f => f.id === id);
+        if (fee) { fee.paid = !currentPaid; fee.paidDate = paidDate; }
+        renderFees();
+        renderDashboard();
+    } catch { showToast('변경 실패.'); }
+}
+
+async function renderFees() {
+    const month = document.getElementById('f-month').value;
+    if (month) await loadFees(month);
+    const list  = document.getElementById('feeTable');
+    const empty = document.getElementById('f-empty');
+    if (fees.length === 0) { list.innerHTML = ''; empty.classList.remove('hidden'); return; }
+    empty.classList.add('hidden');
+    const paid   = fees.filter(f => f.paid).length;
+    const unpaid = fees.length - paid;
+    document.getElementById('f-paidCount').textContent  = `납부 ${paid}`;
+    document.getElementById('f-unpaidCount').textContent = `미납 ${unpaid}`;
+    list.innerHTML = fees.map(f => `
+        <div class="flex items-center justify-between p-3 rounded-xl border border-gray-100 hover:bg-gray-50">
+            <div class="flex items-center gap-3">
+                <span class="font-semibold text-gray-800 text-sm">${escHtml(f.memberName)}</span>
+                <span class="text-sm text-gray-500">₩${(f.amount||0).toLocaleString()}</span>
+                ${f.paidDate ? `<span class="text-xs text-gray-400">${f.paidDate}</span>` : ''}
+            </div>
+            <button onclick="toggleFee('${f.id}',${f.paid})"
+                class="btn-sm ${f.paid ? 'badge-paid' : 'badge-unpaid'}">
+                ${f.paid ? '✓ 납부완료' : '미납'}
+            </button>
+        </div>
+    `).join('');
+}
+
+// ── 회계 ──
+async function loadTransactions() {
+    try {
+        const snap = await db.collection('clubs').doc(groupId).collection('transactions')
+            .orderBy('date','desc').get();
+        transactions = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    } catch {
+        transactions = [];
+    }
+    renderTransactions();
+    updateAccountingSummary();
+}
+
+async function addTransaction() {
+    const desc   = document.getElementById('a-desc').value.trim();
+    const amount = parseInt(document.getElementById('a-amount').value);
+    if (!desc)          { showToast('항목명을 입력해주세요.'); return; }
+    if (!amount || amount <= 0) { showToast('금액을 입력해주세요.'); return; }
+    const data = {
+        type:     document.getElementById('a-type').value,
+        desc,
+        amount,
+        date:     document.getElementById('a-date').value,
+        category: document.getElementById('a-category').value,
+        memo:     document.getElementById('a-memo').value.trim(),
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+    };
+    try {
+        const ref = await db.collection('clubs').doc(groupId).collection('transactions').add(data);
+        transactions.unshift({ id: ref.id, ...data });
+        document.getElementById('a-desc').value  = '';
+        document.getElementById('a-amount').value = '';
+        document.getElementById('a-memo').value  = '';
+        renderTransactions();
+        updateAccountingSummary();
+        renderDashboard();
+        showToast('내역이 추가되었습니다.');
+    } catch { showToast('추가 실패.'); }
+}
+
+async function deleteTransaction(id) {
+    if (!confirm('삭제하시겠습니까?')) return;
+    try {
+        await db.collection('clubs').doc(groupId).collection('transactions').doc(id).delete();
+        transactions = transactions.filter(t => t.id !== id);
+        renderTransactions();
+        updateAccountingSummary();
+        renderDashboard();
+        showToast('삭제되었습니다.');
+    } catch { showToast('삭제 실패.'); }
+}
+
+function updateAccountingSummary() {
+    const income  = transactions.filter(t => t.type === 'income').reduce((s,t) => s + (t.amount||0), 0);
+    const expense = transactions.filter(t => t.type === 'expense').reduce((s,t) => s + (t.amount||0), 0);
+    document.getElementById('a-totalIncome').textContent  = '₩' + income.toLocaleString();
+    document.getElementById('a-totalExpense').textContent = '₩' + expense.toLocaleString();
+    document.getElementById('a-balance').textContent      = '₩' + (income - expense).toLocaleString();
+}
+
+function renderTransactions() {
+    const filter = document.getElementById('a-filterType').value;
+    const filtered = filter === 'all' ? transactions : transactions.filter(t => t.type === filter);
+    const list  = document.getElementById('txList');
+    const empty = document.getElementById('a-empty');
+    if (filtered.length === 0) { list.innerHTML = ''; empty.classList.remove('hidden'); return; }
+    empty.classList.add('hidden');
+    list.innerHTML = filtered.map(t => `
+        <div class="flex items-center gap-3 p-3 rounded-xl border border-gray-100 hover:bg-gray-50">
+            <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0
+                ${t.type==='income'?'bg-green-100 text-green-600':'bg-red-100 text-red-500'}">
+                <i class="fas ${t.type==='income'?'fa-arrow-down':'fa-arrow-up'} text-xs"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+                <p class="font-semibold text-sm text-gray-800">${escHtml(t.desc)}</p>
+                <p class="text-xs text-gray-400">${t.category||''} · ${t.date||''} ${t.memo?'· '+escHtml(t.memo):''}</p>
+            </div>
+            <p class="font-bold flex-shrink-0 ${t.type==='income'?'text-green-600':'text-red-500'}">
+                ${t.type==='income'?'+':'-'}₩${(t.amount||0).toLocaleString()}
+            </p>
+            <button onclick="deleteTransaction('${t.id}')" class="btn-danger flex-shrink-0">삭제</button>
+        </div>
+    `).join('');
+}
+
+// ── 의견수렴 ──
+async function loadPolls() {
+    try {
+        const snap = await db.collection('clubs').doc(groupId).collection('polls')
+            .orderBy('createdAt','desc').get();
+        polls = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    } catch {
+        polls = [];
+    }
+    renderPolls();
+}
+
+function addPollOption() {
+    const opts = document.querySelectorAll('.poll-option');
+    if (opts.length >= 6) { showToast('최대 6개까지 추가 가능합니다.'); return; }
+    const container = document.getElementById('p-options');
+    const div = document.createElement('div');
+    div.className = 'flex gap-2';
+    div.innerHTML = `<input type="text" class="inp poll-option" placeholder="항목 ${opts.length + 1}">`;
+    container.appendChild(div);
+}
+
+async function createPoll() {
+    const title   = document.getElementById('p-title').value.trim();
+    if (!title) { showToast('제목을 입력해주세요.'); return; }
+    const options = Array.from(document.querySelectorAll('.poll-option'))
+        .map(i => i.value.trim()).filter(v => v);
+    if (options.length < 2) { showToast('항목을 2개 이상 입력해주세요.'); return; }
+
+    const data = {
+        title,
+        desc:     document.getElementById('p-desc').value.trim(),
+        options:  options.map(o => ({ text: o, votes: [] })),
+        deadline: document.getElementById('p-deadline').value,
+        multi:    document.getElementById('p-multi').value === 'multi',
+        status:   'active',
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        createdBy: currentUser.email,
+    };
+    try {
+        const ref = await db.collection('clubs').doc(groupId).collection('polls').add(data);
+        polls.unshift({ id: ref.id, ...data });
+        document.getElementById('p-title').value = '';
+        document.getElementById('p-desc').value  = '';
+        document.getElementById('p-deadline').value = '';
+        document.querySelectorAll('.poll-option').forEach(i => i.value = '');
+        renderPolls();
+        renderDashboard();
+        showToast('의견수렴이 시작되었습니다.');
+    } catch { showToast('생성 실패.'); }
+}
+
+async function vote(pollId, optionIdx) {
+    const poll = polls.find(p => p.id === pollId);
+    if (!poll) return;
+    const uid = currentUser.uid;
+    const alreadyVoted = poll.options.some(o => o.votes && o.votes.includes(uid));
+
+    if (!poll.multi && alreadyVoted) {
+        showToast('이미 투표하셨습니다.'); return;
+    }
+    const alreadyThisOption = poll.options[optionIdx].votes?.includes(uid);
+    if (alreadyThisOption) {
+        showToast('이미 선택한 항목입니다.'); return;
+    }
+
+    try {
+        const ref = db.collection('clubs').doc(groupId).collection('polls').doc(pollId);
+        const updatedOptions = poll.options.map((o, i) => ({
+            ...o,
+            votes: i === optionIdx
+                ? [...(o.votes || []), uid]
+                : (o.votes || []),
+        }));
+        await ref.update({ options: updatedOptions });
+        poll.options = updatedOptions;
+        renderPolls();
+        showToast('투표가 완료되었습니다.');
+    } catch { showToast('투표 실패.'); }
+}
+
+async function closePoll(pollId) {
+    if (!confirm('의견수렴을 마감하시겠습니까?')) return;
+    try {
+        await db.collection('clubs').doc(groupId).collection('polls').doc(pollId).update({ status: 'closed' });
+        const poll = polls.find(p => p.id === pollId);
+        if (poll) poll.status = 'closed';
+        renderPolls();
+        showToast('마감되었습니다.');
+    } catch { showToast('마감 실패.'); }
+}
+
+async function deletePoll(pollId) {
+    if (!confirm('삭제하시겠습니까?')) return;
+    try {
+        await db.collection('clubs').doc(groupId).collection('polls').doc(pollId).delete();
+        polls = polls.filter(p => p.id !== pollId);
+        renderPolls();
+        showToast('삭제되었습니다.');
+    } catch { showToast('삭제 실패.'); }
+}
+
+function renderPolls() {
+    const container = document.getElementById('pollList');
+    const empty     = document.getElementById('p-empty');
+    if (polls.length === 0) { container.innerHTML = ''; empty.classList.remove('hidden'); return; }
+    empty.classList.add('hidden');
+    const uid = currentUser?.uid;
+
+    container.innerHTML = polls.map(poll => {
+        const totalVotes = poll.options.reduce((s, o) => s + (o.votes?.length || 0), 0);
+        const isActive   = poll.status === 'active';
+        const myVotes    = poll.options.map(o => o.votes?.includes(uid));
+        const iVoted     = myVotes.some(v => v);
+
+        const optionsHtml = poll.options.map((o, i) => {
+            const count = o.votes?.length || 0;
+            const pct   = totalVotes > 0 ? Math.round(count / totalVotes * 100) : 0;
+            return `
+            <div class="mb-3">
+                <div class="flex items-center justify-between mb-1">
+                    <div class="flex items-center gap-2">
+                        ${isActive && (!iVoted || poll.multi)
+                            ? `<button onclick="vote('${poll.id}',${i})"
+                                class="w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors
+                                ${myVotes[i] ? 'bg-blue-600 border-blue-600' : 'border-gray-300 hover:border-blue-400'}">
+                                ${myVotes[i] ? '<i class="fas fa-check text-white" style="font-size:0.55rem;"></i>' : ''}
+                               </button>`
+                            : `<div class="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0
+                                ${myVotes[i] ? 'bg-blue-600' : 'bg-gray-100'}">
+                                ${myVotes[i] ? '<i class="fas fa-check text-white" style="font-size:0.55rem;"></i>' : ''}
+                               </div>`
+                        }
+                        <span class="text-sm ${myVotes[i] ? 'font-bold text-blue-700' : 'text-gray-700'}">${escHtml(o.text)}</span>
+                    </div>
+                    <span class="text-xs text-gray-400">${count}표 (${pct}%)</span>
+                </div>
+                <div class="w-full bg-gray-100 rounded-full overflow-hidden" style="height:6px;">
+                    <div class="poll-option-bar" style="width:${pct}%;${myVotes[i]?'background:#2563eb;':'background:#93c5fd;'}"></div>
+                </div>
+            </div>`;
+        }).join('');
+
+        return `
+        <div class="card p-5">
+            <div class="flex items-start justify-between gap-3 mb-3">
+                <div>
+                    <div class="flex items-center gap-2 mb-1">
+                        <h3 class="font-bold text-gray-900 text-sm">${escHtml(poll.title)}</h3>
+                        <span class="text-xs px-2 py-0.5 rounded-full font-semibold
+                            ${isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}">
+                            ${isActive ? '진행중' : '마감'}
+                        </span>
+                        ${poll.multi ? '<span class="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full">복수선택</span>' : ''}
+                    </div>
+                    ${poll.desc ? `<p class="text-xs text-gray-400 mb-1">${escHtml(poll.desc)}</p>` : ''}
+                    <p class="text-xs text-gray-300">총 ${totalVotes}표 · ${poll.deadline ? '마감: '+poll.deadline : '마감일 없음'}</p>
+                </div>
+                <div class="flex gap-1 flex-shrink-0">
+                    ${isActive ? `<button onclick="closePoll('${poll.id}')" class="btn-sm bg-yellow-50 text-yellow-600">마감</button>` : ''}
+                    <button onclick="deletePoll('${poll.id}')" class="btn-danger">삭제</button>
+                </div>
+            </div>
+            ${optionsHtml}
+        </div>`;
+    }).join('');
+}
+
+// ── 대시보드 ──
+function renderDashboard() {
+    const totalMembers  = members.length;
+    const income  = transactions.filter(t => t.type === 'income').reduce((s,t) => s + (t.amount||0), 0);
+    const expense = transactions.filter(t => t.type === 'expense').reduce((s,t) => s + (t.amount||0), 0);
+    const month   = document.getElementById('f-month').value;
+    const thisMonthFees = fees.filter(f => f.month === month);
+    const paid    = thisMonthFees.filter(f => f.paid).length;
+    const unpaid  = thisMonthFees.length - paid;
+
+    document.getElementById('ds-totalMembers').textContent = totalMembers;
+    document.getElementById('ds-paidMembers').textContent  = paid;
+    document.getElementById('ds-unpaidMembers').textContent = unpaid;
+    document.getElementById('ds-balance').textContent = '₩' + (income - expense).toLocaleString();
+
+    // 최근 거래 5건
+    const recent = transactions.slice(0, 5);
+    document.getElementById('ds-recentTx').innerHTML = recent.length === 0
+        ? '<p class="text-gray-300 text-xs">내역이 없습니다.</p>'
+        : recent.map(t => `
+            <div class="flex items-center justify-between text-sm py-1 border-b border-gray-50 last:border-0">
+                <span class="text-gray-700">${escHtml(t.desc)}</span>
+                <span class="font-semibold ${t.type==='income'?'text-green-600':'text-red-500'}">
+                    ${t.type==='income'?'+':'-'}₩${(t.amount||0).toLocaleString()}
+                </span>
+            </div>`).join('');
+
+    // 진행중인 의견수렴
+    const activePolls = polls.filter(p => p.status === 'active');
+    document.getElementById('ds-activePolls').innerHTML = activePolls.length === 0
+        ? '<p class="text-gray-300 text-xs">진행중인 의견수렴이 없습니다.</p>'
+        : activePolls.map(p => `
+            <div class="flex items-center justify-between py-1.5 border-b border-gray-50 last:border-0 cursor-pointer hover:bg-gray-50 rounded px-1"
+                onclick="showTab('polls')">
+                <span class="text-sm text-gray-700">${escHtml(p.title)}</span>
+                <span class="text-xs text-gray-400">
+                    ${p.options.reduce((s,o) => s + (o.votes?.length||0), 0)}표
+                </span>
+            </div>`).join('');
+}
+
+// ── 탭 전환 ──
+function showTab(name) {
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('section-' + name).classList.add('active');
+    document.getElementById('tab-' + name).classList.add('active');
+    if (name === 'fees') renderFees();
+    if (name === 'dashboard') renderDashboard();
+}
+
+// ── 유틸 ──
+function escHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+let toastTimer;
+function showToast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
+}
+</script>
+</body>
+</html>

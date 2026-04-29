@@ -1,0 +1,1028 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>관리자 - WebApp Studio</title>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        body { font-family: 'Noto Sans KR', sans-serif; background: #f1f5f9; }
+        .page-wrap { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        .admin-body { display: flex; flex: 1; overflow: hidden; }
+        #adminSidebar { width: 220px; flex-shrink: 0; overflow-y: auto; }
+        #adminMain { flex: 1; overflow-y: auto; }
+        .nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 16px; font-size: 0.85rem; color: #64748b; cursor: pointer; border-radius: 8px; margin: 2px 8px; transition: all 0.15s; font-weight: 500; }
+        .nav-item:hover { background: #f1f5f9; color: #1e293b; }
+        .nav-item.active { background: #2563eb; color: white; }
+        .nav-item i { width: 18px; text-align: center; }
+        .tab-section { display: none; }
+        .tab-section.active { display: block; }
+        .card { background: white; border-radius: 12px; border: 1px solid #e2e8f0; }
+        .stat-card { background: white; border-radius: 12px; padding: 20px; border: 1px solid #e2e8f0; }
+        .stat-card .val { font-size: 1.75rem; font-weight: 800; color: #1e293b; }
+        .stat-card .lbl { font-size: 0.75rem; color: #94a3b8; margin-top: 2px; }
+        .stat-card .icon { width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; }
+        .tbl { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+        .tbl th { background: #f8fafc; color: #64748b; font-weight: 600; text-align: left; padding: 10px 14px; border-bottom: 1px solid #e2e8f0; white-space: nowrap; }
+        .tbl td { padding: 10px 14px; border-bottom: 1px solid #f1f5f9; color: #334155; vertical-align: middle; }
+        .tbl tr:last-child td { border-bottom: none; }
+        .tbl tr:hover td { background: #f8fafc; }
+        .b { display: inline-flex; align-items: center; font-size: 0.65rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; }
+        .b-green  { background: #dcfce7; color: #15803d; }
+        .b-red    { background: #fee2e2; color: #dc2626; }
+        .b-yellow { background: #fef9c3; color: #a16207; }
+        .b-blue   { background: #dbeafe; color: #1d4ed8; }
+        .b-gray   { background: #f1f5f9; color: #64748b; }
+        .inp { width: 100%; padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.85rem; outline: none; font-family: inherit; }
+        .inp:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+        .lbl { display: block; font-size: 0.8rem; font-weight: 600; color: #475569; margin-bottom: 5px; }
+        .btn { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 8px; font-size: 0.8rem; font-weight: 600; cursor: pointer; border: none; transition: all 0.15s; font-family: inherit; }
+        .btn-primary { background: #2563eb; color: white; }
+        .btn-primary:hover { background: #1d4ed8; }
+        .btn-danger  { background: #fee2e2; color: #dc2626; }
+        .btn-danger:hover { background: #fecaca; }
+        .btn-ghost   { background: #f1f5f9; color: #475569; }
+        .btn-ghost:hover { background: #e2e8f0; }
+        .btn-green   { background: #dcfce7; color: #15803d; }
+        .btn-green:hover { background: #bbf7d0; }
+        .btn-yellow  { background: #fef9c3; color: #a16207; }
+        .modal-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); backdrop-filter: blur(4px); z-index: 200; align-items: center; justify-content: center; }
+        .modal-bg.open { display: flex; }
+        .modal-box { background: white; border-radius: 16px; width: 100%; margin: 16px; box-shadow: 0 20px 60px rgba(0,0,0,0.2); max-height: 90vh; overflow-y: auto; }
+        #toast { position: fixed; bottom: 1.5rem; left: 50%; transform: translateX(-50%); background: #1e293b; color: white; padding: 8px 20px; border-radius: 999px; font-size: 0.8rem; z-index: 999; opacity: 0; transition: opacity 0.3s; pointer-events: none; white-space: nowrap; }
+        #toast.show { opacity: 1; }
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 4px; }
+        #loginScreen { position: fixed; inset: 0; background: #f1f5f9; display: flex; align-items: center; justify-content: center; z-index: 500; }
+    </style>
+</head>
+<body>
+
+<!-- ══ 로그인 화면 ══ -->
+<div id="loginScreen">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-lg p-8 w-full mx-4" style="max-width:380px;">
+        <div class="text-center mb-7">
+            <div class="w-14 h-14 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-shield-halved text-white text-2xl"></i>
+            </div>
+            <h1 class="text-xl font-bold text-slate-800">관리자 로그인</h1>
+            <p class="text-xs text-slate-400 mt-1">WebApp Studio 관리자 전용</p>
+        </div>
+        <form onsubmit="doAdminLogin(event)" class="space-y-4">
+            <div>
+                <label class="lbl">이메일</label>
+                <input type="email" id="adminEmail" class="inp" placeholder="admin@example.com" required>
+            </div>
+            <div>
+                <label class="lbl">비밀번호</label>
+                <input type="password" id="adminPw" class="inp" placeholder="••••••••" required>
+            </div>
+            <p id="loginErr" class="text-xs text-red-500 hidden">이메일 또는 비밀번호가 올바르지 않습니다.</p>
+            <button type="submit" class="btn btn-primary w-full justify-center py-2.5 rounded-xl text-sm">로그인</button>
+        </form>
+    </div>
+</div>
+
+<!-- ══ 관리자 앱 ══ -->
+<div id="adminApp" class="page-wrap hidden">
+
+    <!-- 헤더 -->
+    <header class="bg-white border-b border-slate-200 flex-shrink-0" style="height:56px;">
+        <div class="h-full flex items-center px-4 gap-3">
+            <div class="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center">
+                <i class="fas fa-cube text-white text-xs"></i>
+            </div>
+            <span class="font-bold text-slate-800 text-sm">WebApp<span class="text-blue-600">Studio</span> <span class="text-slate-400 font-normal text-xs">관리자</span></span>
+            <span id="adminEmailDisplay" class="text-xs text-slate-400 ml-2"></span>
+            <div class="flex-1"></div>
+            <a href="../index.html" target="_blank" class="text-xs text-slate-400 hover:text-blue-500 transition-colors mr-2">
+                <i class="fas fa-external-link-alt mr-1"></i>사이트 보기
+            </a>
+            <button onclick="doAdminLogout()" class="text-sm text-slate-400 hover:text-red-500 transition-colors">
+                <i class="fas fa-right-from-bracket"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- 본문 -->
+    <div class="admin-body">
+
+        <!-- 사이드바 -->
+        <aside id="adminSidebar" class="bg-white border-r border-slate-200 py-4">
+            <nav class="space-y-0.5">
+                <div class="nav-item active" id="nav-dashboard" onclick="showTab('dashboard')">
+                    <i class="fas fa-chart-pie"></i> 대시보드
+                </div>
+                <div class="nav-item" id="nav-products" onclick="showTab('products')">
+                    <i class="fas fa-box-open"></i> 프로그램 관리
+                </div>
+                <div class="nav-item" id="nav-categories" onclick="showTab('categories')">
+                    <i class="fas fa-tags"></i> 카테고리 관리
+                </div>
+                <div class="nav-item" id="nav-subscribers" onclick="showTab('subscribers')">
+                    <i class="fas fa-user-check"></i> 구독자 관리
+                    <span id="subBadge" class="hidden ml-auto text-xs bg-red-500 text-white rounded-full px-1.5 py-0.5 leading-none"></span>
+                </div>
+                <div class="nav-item" id="nav-users" onclick="showTab('users')">
+                    <i class="fas fa-users"></i> 회원 관리
+                </div>
+                <div class="nav-item" id="nav-inquiry" onclick="showTab('inquiry')">
+                    <i class="fas fa-comments"></i> 문의 관리
+                    <span id="inqBadge" class="hidden ml-auto text-xs bg-red-500 text-white rounded-full px-1.5 py-0.5 leading-none"></span>
+                </div>
+                <div class="nav-item" id="nav-bizinfo" onclick="showTab('bizinfo')">
+                    <i class="fas fa-building"></i> 사업자 정보
+                </div>
+            </nav>
+        </aside>
+
+        <!-- 메인 -->
+        <main id="adminMain" class="p-6">
+
+            <!-- ════ 대시보드 ════ -->
+            <div id="tab-dashboard" class="tab-section active">
+                <h2 class="text-xl font-bold text-slate-800 mb-5">대시보드</h2>
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                    <div class="stat-card">
+                        <div class="flex items-start justify-between">
+                            <div><p class="val" id="stat-subscribers">0</p><p class="lbl">구독자 수</p></div>
+                            <div class="icon bg-blue-50"><i class="fas fa-users text-blue-500"></i></div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="flex items-start justify-between">
+                            <div><p class="val" id="stat-pending">0</p><p class="lbl">승인 대기</p></div>
+                            <div class="icon bg-yellow-50"><i class="fas fa-clock text-yellow-500"></i></div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="flex items-start justify-between">
+                            <div><p class="val" id="stat-products">0</p><p class="lbl">프로그램 수</p></div>
+                            <div class="icon bg-purple-50"><i class="fas fa-box text-purple-500"></i></div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="flex items-start justify-between">
+                            <div><p class="val" id="stat-users">0</p><p class="lbl">전체 회원</p></div>
+                            <div class="icon bg-green-50"><i class="fas fa-user text-green-500"></i></div>
+                        </div>
+                    </div>
+                </div>
+                <!-- 최근 구독 신청 -->
+                <div class="card p-5 mb-4">
+                    <h3 class="font-bold text-slate-700 text-sm mb-3">최근 구독 신청</h3>
+                    <div class="overflow-x-auto">
+                        <table class="tbl">
+                            <thead><tr><th>이메일</th><th>프로그램</th><th>신청일</th><th>상태</th><th>처리</th></tr></thead>
+                            <tbody id="ds-recentSubs"><tr><td colspan="5" class="text-center text-slate-300 py-4">로딩 중...</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+                <!-- 최근 문의 -->
+                <div class="card p-5">
+                    <h3 class="font-bold text-slate-700 text-sm mb-3">최근 문의</h3>
+                    <div id="ds-recentInq" class="text-sm text-slate-300">로딩 중...</div>
+                </div>
+            </div>
+
+            <!-- ════ 프로그램 관리 ════ -->
+            <div id="tab-products" class="tab-section">
+                <div class="flex items-center justify-between mb-5">
+                    <h2 class="text-xl font-bold text-slate-800">프로그램 관리</h2>
+                    <button class="btn btn-primary" onclick="openProductModal()">
+                        <i class="fas fa-plus"></i> 프로그램 추가
+                    </button>
+                </div>
+                <div class="card overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="tbl">
+                            <thead><tr><th>아이콘</th><th>이름</th><th>카테고리</th><th>가격</th><th>구독형</th><th>상태</th><th>관리</th></tr></thead>
+                            <tbody id="productTable"><tr><td colspan="7" class="text-center text-slate-300 py-6">로딩 중...</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ════ 카테고리 관리 ════ -->
+            <div id="tab-categories" class="tab-section">
+                <div class="flex items-center justify-between mb-5">
+                    <h2 class="text-xl font-bold text-slate-800">카테고리 관리</h2>
+                </div>
+                <!-- 추가 폼 -->
+                <div class="card p-5 mb-4">
+                    <h3 class="font-bold text-slate-700 text-sm mb-3">카테고리 추가</h3>
+                    <div class="flex gap-3">
+                        <div class="flex-1">
+                            <label class="lbl">카테고리 ID <span class="text-slate-400 font-normal">(영문, 예: manage)</span></label>
+                            <input type="text" id="cat-id" class="inp" placeholder="manage">
+                        </div>
+                        <div class="flex-1">
+                            <label class="lbl">표시 이름</label>
+                            <input type="text" id="cat-label" class="inp" placeholder="업무관리">
+                        </div>
+                        <div class="flex-1">
+                            <label class="lbl">아이콘 <span class="text-slate-400 font-normal">(FontAwesome 클래스)</span></label>
+                            <input type="text" id="cat-icon" class="inp" placeholder="fa-tasks">
+                        </div>
+                        <div class="flex items-end">
+                            <button onclick="addCategory()" class="btn btn-primary">추가</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card overflow-hidden">
+                    <table class="tbl">
+                        <thead><tr><th>ID</th><th>이름</th><th>아이콘</th><th>순서</th><th>관리</th></tr></thead>
+                        <tbody id="categoryTable"><tr><td colspan="5" class="text-center text-slate-300 py-6">로딩 중...</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ════ 구독자 관리 ════ -->
+            <div id="tab-subscribers" class="tab-section">
+                <h2 class="text-xl font-bold text-slate-800 mb-5">구독자 관리</h2>
+                <!-- 필터 -->
+                <div class="flex gap-2 mb-4">
+                    <button onclick="filterSubs('all')" id="sf-all" class="btn btn-primary">전체</button>
+                    <button onclick="filterSubs('pending')" id="sf-pending" class="btn btn-ghost">대기중</button>
+                    <button onclick="filterSubs('active')" id="sf-active" class="btn btn-ghost">구독중</button>
+                    <button onclick="filterSubs('expired')" id="sf-expired" class="btn btn-ghost">만료</button>
+                </div>
+                <div class="card overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="tbl">
+                            <thead><tr><th>이메일</th><th>이름</th><th>프로그램</th><th>플랜</th><th>신청일</th><th>만료일</th><th>상태</th><th>처리</th></tr></thead>
+                            <tbody id="subscriberTable"><tr><td colspan="8" class="text-center text-slate-300 py-6">로딩 중...</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ════ 회원 관리 ════ -->
+            <div id="tab-users" class="tab-section">
+                <h2 class="text-xl font-bold text-slate-800 mb-5">회원 관리</h2>
+                <div class="card p-4 mb-4">
+                    <input type="text" id="userSearch" class="inp" placeholder="이메일 또는 이름으로 검색..." oninput="renderUsers()">
+                </div>
+                <div class="card overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="tbl">
+                            <thead><tr><th>이름</th><th>이메일</th><th>가입일</th><th>구독 상태</th><th>관리</th></tr></thead>
+                            <tbody id="userTable"><tr><td colspan="5" class="text-center text-slate-300 py-6">로딩 중...</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ════ 문의 관리 ════ -->
+            <div id="tab-inquiry" class="tab-section">
+                <h2 class="text-xl font-bold text-slate-800 mb-5">문의 관리</h2>
+                <div class="space-y-3" id="inquiryList">
+                    <div class="text-center py-10 text-slate-300">로딩 중...</div>
+                </div>
+            </div>
+
+            <!-- ════ 사업자 정보 ════ -->
+            <div id="tab-bizinfo" class="tab-section">
+                <h2 class="text-xl font-bold text-slate-800 mb-5">사업자 정보</h2>
+                <div class="card p-6 max-w-2xl">
+                    <p class="text-xs text-slate-400 mb-5">입력한 정보는 메인 페이지 하단(푸터)에 자동으로 표시됩니다.</p>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="lbl">상호명</label>
+                            <input type="text" id="biz-name" class="inp" placeholder="WebApp Studio">
+                        </div>
+                        <div>
+                            <label class="lbl">대표자 이름</label>
+                            <input type="text" id="biz-ceo" class="inp" placeholder="홍길동">
+                        </div>
+                        <div>
+                            <label class="lbl">사업자등록번호</label>
+                            <input type="text" id="biz-regnum" class="inp" placeholder="000-00-00000">
+                        </div>
+                        <div>
+                            <label class="lbl">통신판매업 신고번호</label>
+                            <input type="text" id="biz-mailorder" class="inp" placeholder="제0000-서울-00000호">
+                        </div>
+                        <div>
+                            <label class="lbl">전화번호</label>
+                            <input type="text" id="biz-tel" class="inp" placeholder="02-0000-0000">
+                        </div>
+                        <div>
+                            <label class="lbl">이메일</label>
+                            <input type="email" id="biz-email" class="inp" placeholder="contact@example.com">
+                        </div>
+                        <div class="col-span-2">
+                            <label class="lbl">주소</label>
+                            <input type="text" id="biz-addr" class="inp" placeholder="서울시 강남구 ...">
+                        </div>
+                        <div class="col-span-2">
+                            <label class="lbl">계좌 안내 <span class="text-slate-400 font-normal">(구독 신청 시 안내되는 입금 계좌)</span></label>
+                            <input type="text" id="biz-account" class="inp" placeholder="국민은행 000-0000-0000-00 홍길동">
+                        </div>
+                        <div class="col-span-2">
+                            <label class="lbl">푸터 추가 문구 <span class="text-slate-400 font-normal">(선택)</span></label>
+                            <textarea id="biz-extra" class="inp" rows="2" placeholder="이용약관 | 개인정보처리방침"></textarea>
+                        </div>
+                    </div>
+                    <button onclick="saveBizInfo()" class="btn btn-primary mt-5">
+                        <i class="fas fa-save mr-1"></i> 저장
+                    </button>
+                </div>
+            </div>
+
+        </main>
+    </div>
+</div>
+
+<!-- ══ 프로그램 추가/수정 모달 ══ -->
+<div id="productModal" class="modal-bg">
+    <div class="modal-box" style="max-width:600px;">
+        <div class="p-6">
+            <div class="flex items-center justify-between mb-5">
+                <h3 id="productModalTitle" class="text-lg font-bold text-slate-800">프로그램 추가</h3>
+                <button onclick="closeModal('productModal')" class="text-slate-400 hover:text-slate-600"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div class="col-span-2">
+                    <label class="lbl">프로그램 이름 *</label>
+                    <input type="text" id="p-name" class="inp" placeholder="모임·총무 관리">
+                </div>
+                <div>
+                    <label class="lbl">카테고리</label>
+                    <select id="p-category" class="inp"></select>
+                </div>
+                <div>
+                    <label class="lbl">아이콘 (이모지)</label>
+                    <input type="text" id="p-icon" class="inp" placeholder="👥">
+                </div>
+                <div>
+                    <label class="lbl">월 구독료 (원)</label>
+                    <input type="number" id="p-price" class="inp" placeholder="9900">
+                </div>
+                <div>
+                    <label class="lbl">버전</label>
+                    <input type="text" id="p-version" class="inp" placeholder="1.0.0">
+                </div>
+                <div class="col-span-2">
+                    <label class="lbl">설명</label>
+                    <textarea id="p-desc" class="inp" rows="2" placeholder="프로그램 설명"></textarea>
+                </div>
+                <div class="col-span-2">
+                    <label class="lbl">태그 <span class="text-slate-400 font-normal">(쉼표로 구분)</span></label>
+                    <input type="text" id="p-tags" class="inp" placeholder="회원관리, 회비관리, 회계">
+                </div>
+                <div class="col-span-2">
+                    <label class="lbl">체험 URL <span class="text-slate-400 font-normal">(programs/ 폴더 기준)</span></label>
+                    <input type="text" id="p-trialUrl" class="inp" placeholder="programs/club-manager/index.html">
+                </div>
+                <div>
+                    <label class="lbl">배지</label>
+                    <select id="p-badge" class="inp">
+                        <option value="">없음</option>
+                        <option value="NEW">NEW</option>
+                        <option value="HOT">HOT</option>
+                        <option value="BEST">BEST</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="lbl">상태</label>
+                    <select id="p-status" class="inp">
+                        <option value="active">판매중</option>
+                        <option value="coming_soon">준비중</option>
+                    </select>
+                </div>
+            </div>
+            <div class="flex gap-3 mt-5">
+                <button onclick="saveProduct()" class="btn btn-primary flex-1 justify-center">저장</button>
+                <button onclick="closeModal('productModal')" class="btn btn-ghost">취소</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ══ 구독 승인 모달 ══ -->
+<div id="subModal" class="modal-bg">
+    <div class="modal-box" style="max-width:420px;">
+        <div class="p-6">
+            <h3 class="text-lg font-bold text-slate-800 mb-4">구독 승인</h3>
+            <div id="subModalInfo" class="bg-slate-50 rounded-xl p-4 mb-4 text-sm text-slate-600"></div>
+            <div class="space-y-3">
+                <div>
+                    <label class="lbl">플랜</label>
+                    <select id="sub-plan" class="inp">
+                        <option value="monthly">월간 구독</option>
+                        <option value="yearly">연간 구독</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="lbl">구독 시작일</label>
+                    <input type="date" id="sub-start" class="inp">
+                </div>
+                <div>
+                    <label class="lbl">구독 만료일</label>
+                    <input type="date" id="sub-end" class="inp">
+                </div>
+            </div>
+            <div class="flex gap-3 mt-4">
+                <button onclick="approveSubscription()" class="btn btn-green flex-1 justify-center">승인</button>
+                <button onclick="closeModal('subModal')" class="btn btn-ghost">취소</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ── Firebase ──
+const FIREBASE_CONFIG = {
+    apiKey:            "AIzaSyBCNcIVCIUpX6oq2FXjVULNXwBTMV897yU",
+    authDomain:        "sosoprogram-873b1.firebaseapp.com",
+    projectId:         "sosoprogram-873b1",
+    storageBucket:     "sosoprogram-873b1.firebasestorage.app",
+    messagingSenderId: "438626208249",
+    appId:             "1:438626208249:web:811530029b6e16d12e1528"
+};
+firebase.initializeApp(FIREBASE_CONFIG);
+const auth = firebase.auth();
+const db   = firebase.firestore();
+
+// ── 관리자 이메일 목록 (Firebase Auth 로그인 후 이 목록에 있어야 접근 허용) ──
+const ADMIN_EMAILS = ['admin@sosoprogram.com', 'master@sosoprogram.com'];
+
+let allProducts    = [];
+let allCategories  = [];
+let allSubscribers = [];
+let allUsers       = [];
+let allInquiries   = [];
+let editingProductId = null;
+let approvingSubId   = null;
+let subFilter        = 'all';
+
+// ── 인증 ──
+auth.onAuthStateChanged(async user => {
+    if (user && ADMIN_EMAILS.includes(user.email)) {
+        document.getElementById('loginScreen').style.display = 'none';
+        document.getElementById('adminApp').classList.remove('hidden');
+        document.getElementById('adminApp').style.display = 'flex';
+        document.getElementById('adminEmailDisplay').textContent = user.email;
+        await initAdmin();
+    } else if (user) {
+        // 로그인했지만 관리자 아님
+        await auth.signOut();
+        document.getElementById('loginErr').textContent = '관리자 계정이 아닙니다.';
+        document.getElementById('loginErr').classList.remove('hidden');
+    } else {
+        document.getElementById('loginScreen').style.display = 'flex';
+        document.getElementById('adminApp').classList.add('hidden');
+    }
+});
+
+async function doAdminLogin(e) {
+    e.preventDefault();
+    const email = document.getElementById('adminEmail').value.trim();
+    const pw    = document.getElementById('adminPw').value;
+    document.getElementById('loginErr').classList.add('hidden');
+    try {
+        await auth.signInWithEmailAndPassword(email, pw);
+    } catch {
+        document.getElementById('loginErr').textContent = '이메일 또는 비밀번호가 올바르지 않습니다.';
+        document.getElementById('loginErr').classList.remove('hidden');
+    }
+}
+
+function doAdminLogout() {
+    auth.signOut();
+}
+
+// ── 초기화 ──
+async function initAdmin() {
+    await Promise.all([
+        loadCategories(),
+        loadProducts(),
+        loadSubscribers(),
+        loadUsers(),
+        loadInquiries(),
+        loadBizInfo(),
+    ]);
+    renderDashboard();
+}
+
+// ── 탭 전환 ──
+function showTab(name) {
+    document.querySelectorAll('.tab-section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.getElementById('tab-' + name).classList.add('active');
+    document.getElementById('nav-' + name).classList.add('active');
+}
+
+// ── 대시보드 ──
+function renderDashboard() {
+    const activeSubs = allSubscribers.filter(s => s.status === 'active').length;
+    const pendingSubs = allSubscribers.filter(s => s.status === 'pending').length;
+    document.getElementById('stat-subscribers').textContent = activeSubs;
+    document.getElementById('stat-pending').textContent     = pendingSubs;
+    document.getElementById('stat-products').textContent    = allProducts.length;
+    document.getElementById('stat-users').textContent       = allUsers.length;
+
+    if (pendingSubs > 0) {
+        document.getElementById('subBadge').textContent = pendingSubs;
+        document.getElementById('subBadge').classList.remove('hidden');
+    }
+
+    // 최근 구독 신청 5건
+    const recent = [...allSubscribers].sort((a,b) => (b.appliedAt||0) - (a.appliedAt||0)).slice(0, 5);
+    document.getElementById('ds-recentSubs').innerHTML = recent.length === 0
+        ? '<tr><td colspan="5" class="text-center text-slate-300 py-4">없음</td></tr>'
+        : recent.map(s => `
+            <tr>
+                <td>${escHtml(s.userEmail)}</td>
+                <td>${escHtml(s.productName||'-')}</td>
+                <td>${fmtDate(s.appliedAt)}</td>
+                <td>${statusBadge(s.status)}</td>
+                <td>${s.status==='pending'
+                    ? `<button onclick="openSubModal('${s.id}')" class="btn btn-yellow" style="padding:3px 10px;font-size:0.72rem;">승인</button>`
+                    : '-'}</td>
+            </tr>`).join('');
+
+    // 최근 문의 3건
+    const recentInq = allInquiries.slice(0, 3);
+    document.getElementById('ds-recentInq').innerHTML = recentInq.length === 0
+        ? '<p class="text-slate-300 text-xs">문의가 없습니다.</p>'
+        : recentInq.map(q => `
+            <div class="py-2 border-b border-slate-50 last:border-0">
+                <p class="text-sm font-medium text-slate-700">${escHtml(q.subject||q.title||'제목없음')}</p>
+                <p class="text-xs text-slate-400">${escHtml(q.email)} · ${fmtDate(q.createdAt)}</p>
+            </div>`).join('');
+}
+
+// ── 카테고리 ──
+async function loadCategories() {
+    try {
+        const snap = await db.collection('categories').orderBy('order').get();
+        allCategories = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        if (allCategories.length === 0) {
+            // 기본 카테고리 초기화
+            const defaults = [
+                { id:'all',    label:'전체',     icon:'fa-th-large',   order:0 },
+                { id:'manage', label:'업무관리',  icon:'fa-tasks',      order:1 },
+                { id:'sales',  label:'매출·영업', icon:'fa-chart-line', order:2 },
+                { id:'hr',     label:'인사·총무', icon:'fa-users',      order:3 },
+                { id:'doc',    label:'문서자동화',icon:'fa-file-alt',   order:4 },
+                { id:'etc',    label:'기타',      icon:'fa-ellipsis-h', order:5 },
+            ];
+            for (const c of defaults) {
+                await db.collection('categories').doc(c.id).set(c);
+            }
+            allCategories = defaults;
+        }
+    } catch { allCategories = []; }
+    renderCategories();
+    renderCategorySelect();
+}
+
+function renderCategories() {
+    const tbody = document.getElementById('categoryTable');
+    if (allCategories.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-slate-300 py-6">카테고리가 없습니다.</td></tr>';
+        return;
+    }
+    tbody.innerHTML = allCategories.map((c,i) => `
+        <tr>
+            <td><code class="bg-slate-100 px-2 py-0.5 rounded text-xs">${c.id}</code></td>
+            <td class="font-semibold">${escHtml(c.label)}</td>
+            <td><i class="fas ${c.icon} text-slate-400 mr-1"></i><span class="text-xs text-slate-400">${c.icon}</span></td>
+            <td class="text-slate-400">${c.order ?? i}</td>
+            <td>
+                <button onclick="deleteCategory('${c.id}')" class="btn btn-danger" style="padding:3px 10px;font-size:0.72rem;">삭제</button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+function renderCategorySelect() {
+    const sel = document.getElementById('p-category');
+    if (!sel) return;
+    sel.innerHTML = allCategories.filter(c => c.id !== 'all').map(c =>
+        `<option value="${c.id}">${c.label}</option>`
+    ).join('');
+}
+
+async function addCategory() {
+    const id    = document.getElementById('cat-id').value.trim().toLowerCase();
+    const label = document.getElementById('cat-label').value.trim();
+    const icon  = document.getElementById('cat-icon').value.trim() || 'fa-folder';
+    if (!id || !label) { showToast('ID와 이름을 입력해주세요.'); return; }
+    try {
+        const order = allCategories.length;
+        await db.collection('categories').doc(id).set({ id, label, icon, order });
+        allCategories.push({ id, label, icon, order });
+        document.getElementById('cat-id').value    = '';
+        document.getElementById('cat-label').value = '';
+        document.getElementById('cat-icon').value  = '';
+        renderCategories();
+        renderCategorySelect();
+        showToast('카테고리가 추가되었습니다.');
+    } catch { showToast('추가 실패.'); }
+}
+
+async function deleteCategory(id) {
+    if (!confirm('카테고리를 삭제하시겠습니까?')) return;
+    try {
+        await db.collection('categories').doc(id).delete();
+        allCategories = allCategories.filter(c => c.id !== id);
+        renderCategories();
+        renderCategorySelect();
+        showToast('삭제되었습니다.');
+    } catch { showToast('삭제 실패.'); }
+}
+
+// ── 프로그램 ──
+async function loadProducts() {
+    try {
+        const snap = await db.collection('products').get();
+        allProducts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    } catch { allProducts = []; }
+    renderProducts();
+}
+
+function renderProducts() {
+    const tbody = document.getElementById('productTable');
+    if (allProducts.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-slate-300 py-6">등록된 프로그램이 없습니다.</td></tr>';
+        return;
+    }
+    tbody.innerHTML = allProducts.map(p => `
+        <tr>
+            <td class="text-2xl">${p.icon||'🖥️'}</td>
+            <td class="font-semibold">${escHtml(p.name)}</td>
+            <td><span class="b b-blue">${escHtml(p.category||'-')}</span></td>
+            <td>₩${(p.price||0).toLocaleString()}<span class="text-slate-400 text-xs">/월</span></td>
+            <td>${p.subscription ? '<span class="b b-green">구독형</span>' : '<span class="b b-gray">일반</span>'}</td>
+            <td>${p.status==='active' ? '<span class="b b-green">판매중</span>' : '<span class="b b-gray">준비중</span>'}</td>
+            <td class="flex gap-1.5">
+                <button onclick="openProductModal('${p.id}')" class="btn btn-ghost" style="padding:3px 10px;font-size:0.72rem;">수정</button>
+                <button onclick="deleteProduct('${p.id}')" class="btn btn-danger" style="padding:3px 10px;font-size:0.72rem;">삭제</button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+function openProductModal(id) {
+    editingProductId = id || null;
+    document.getElementById('productModalTitle').textContent = id ? '프로그램 수정' : '프로그램 추가';
+    renderCategorySelect();
+    if (id) {
+        const p = allProducts.find(x => x.id === id);
+        if (!p) return;
+        document.getElementById('p-name').value     = p.name || '';
+        document.getElementById('p-category').value = p.category || '';
+        document.getElementById('p-icon').value     = p.icon || '';
+        document.getElementById('p-price').value    = p.price || '';
+        document.getElementById('p-version').value  = p.version || '';
+        document.getElementById('p-desc').value     = p.description || '';
+        document.getElementById('p-tags').value     = (p.tags||[]).join(', ');
+        document.getElementById('p-trialUrl').value = p.trialUrl || '';
+        document.getElementById('p-badge').value    = p.badge || '';
+        document.getElementById('p-status').value   = p.status || 'active';
+    } else {
+        ['p-name','p-icon','p-price','p-version','p-desc','p-tags','p-trialUrl'].forEach(id => document.getElementById(id).value = '');
+        document.getElementById('p-badge').value  = '';
+        document.getElementById('p-status').value = 'active';
+    }
+    openModal('productModal');
+}
+
+async function saveProduct() {
+    const name = document.getElementById('p-name').value.trim();
+    if (!name) { showToast('프로그램 이름을 입력해주세요.'); return; }
+    const data = {
+        name,
+        category:    document.getElementById('p-category').value,
+        icon:        document.getElementById('p-icon').value.trim(),
+        price:       parseInt(document.getElementById('p-price').value) || 0,
+        version:     document.getElementById('p-version').value.trim() || '1.0.0',
+        description: document.getElementById('p-desc').value.trim(),
+        tags:        document.getElementById('p-tags').value.split(',').map(t=>t.trim()).filter(Boolean),
+        trialUrl:    document.getElementById('p-trialUrl').value.trim(),
+        badge:       document.getElementById('p-badge').value || null,
+        status:      document.getElementById('p-status').value,
+        subscription: true,
+        updatedAt:   firebase.firestore.FieldValue.serverTimestamp(),
+    };
+    try {
+        if (editingProductId) {
+            await db.collection('products').doc(editingProductId).update(data);
+            const idx = allProducts.findIndex(p => p.id === editingProductId);
+            if (idx >= 0) allProducts[idx] = { id: editingProductId, ...data };
+        } else {
+            data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+            const ref = await db.collection('products').add(data);
+            allProducts.push({ id: ref.id, ...data });
+        }
+        renderProducts();
+        renderDashboard();
+        closeModal('productModal');
+        showToast(editingProductId ? '수정되었습니다.' : '프로그램이 추가되었습니다.');
+    } catch (e) { console.error(e); showToast('저장 실패.'); }
+}
+
+async function deleteProduct(id) {
+    if (!confirm('프로그램을 삭제하시겠습니까?')) return;
+    try {
+        await db.collection('products').doc(id).delete();
+        allProducts = allProducts.filter(p => p.id !== id);
+        renderProducts();
+        renderDashboard();
+        showToast('삭제되었습니다.');
+    } catch { showToast('삭제 실패.'); }
+}
+
+// ── 구독자 관리 ──
+async function loadSubscribers() {
+    try {
+        const snap = await db.collection('subscriptions').orderBy('appliedAt','desc').get();
+        allSubscribers = snap.docs.map(d => ({ id: d.id, ...d.data(), appliedAt: d.data().appliedAt?.toDate() }));
+    } catch {
+        try {
+            const snap = await db.collection('subscriptions').get();
+            allSubscribers = snap.docs.map(d => ({ id: d.id, ...d.data(), appliedAt: d.data().appliedAt?.toDate() }));
+        } catch { allSubscribers = []; }
+    }
+    renderSubscribers();
+}
+
+function filterSubs(f) {
+    subFilter = f;
+    ['all','pending','active','expired'].forEach(x => {
+        const btn = document.getElementById('sf-'+x);
+        btn.className = 'btn ' + (x === f ? 'btn-primary' : 'btn-ghost');
+    });
+    renderSubscribers();
+}
+
+function renderSubscribers() {
+    const filtered = subFilter === 'all' ? allSubscribers : allSubscribers.filter(s => s.status === subFilter);
+    const tbody = document.getElementById('subscriberTable');
+    if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center text-slate-300 py-6">없습니다.</td></tr>';
+        return;
+    }
+    tbody.innerHTML = filtered.map(s => `
+        <tr>
+            <td>${escHtml(s.userEmail||'-')}</td>
+            <td>${escHtml(s.userName||'-')}</td>
+            <td>${escHtml(s.productName||'-')}</td>
+            <td>${escHtml(s.plan||'-')}</td>
+            <td>${fmtDate(s.appliedAt)}</td>
+            <td>${s.expiresAt ? fmtDate(s.expiresAt?.toDate ? s.expiresAt.toDate() : s.expiresAt) : '-'}</td>
+            <td>${statusBadge(s.status)}</td>
+            <td class="flex gap-1.5">
+                ${s.status === 'pending'
+                    ? `<button onclick="openSubModal('${s.id}')" class="btn btn-yellow" style="padding:3px 10px;font-size:0.72rem;">승인</button>`
+                    : ''}
+                ${s.status === 'active'
+                    ? `<button onclick="revokeSubscription('${s.id}')" class="btn btn-danger" style="padding:3px 10px;font-size:0.72rem;">취소</button>`
+                    : ''}
+            </td>
+        </tr>
+    `).join('');
+}
+
+function openSubModal(id) {
+    approvingSubId = id;
+    const sub = allSubscribers.find(s => s.id === id);
+    if (!sub) return;
+    document.getElementById('subModalInfo').innerHTML = `
+        <p><strong>이메일:</strong> ${escHtml(sub.userEmail)}</p>
+        <p class="mt-1"><strong>프로그램:</strong> ${escHtml(sub.productName||'-')}</p>
+        <p class="mt-1"><strong>신청일:</strong> ${fmtDate(sub.appliedAt)}</p>
+    `;
+    const today = new Date().toISOString().split('T')[0];
+    const nextMonth = new Date(); nextMonth.setMonth(nextMonth.getMonth() + 1);
+    document.getElementById('sub-start').value = today;
+    document.getElementById('sub-end').value   = nextMonth.toISOString().split('T')[0];
+    openModal('subModal');
+}
+
+async function approveSubscription() {
+    if (!approvingSubId) return;
+    const start = document.getElementById('sub-start').value;
+    const end   = document.getElementById('sub-end').value;
+    const plan  = document.getElementById('sub-plan').value;
+    if (!start || !end) { showToast('시작일과 만료일을 입력해주세요.'); return; }
+    try {
+        await db.collection('subscriptions').doc(approvingSubId).update({
+            status: 'active',
+            plan,
+            startedAt:  firebase.firestore.FieldValue.serverTimestamp(),
+            expiresAt:  new Date(end),
+            approvedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+        const sub = allSubscribers.find(s => s.id === approvingSubId);
+        if (sub) { sub.status = 'active'; sub.plan = plan; sub.expiresAt = new Date(end); }
+        renderSubscribers();
+        renderDashboard();
+        closeModal('subModal');
+        showToast('구독이 승인되었습니다.');
+    } catch { showToast('승인 실패.'); }
+}
+
+async function revokeSubscription(id) {
+    if (!confirm('구독을 취소하시겠습니까?')) return;
+    try {
+        await db.collection('subscriptions').doc(id).update({ status: 'expired' });
+        const sub = allSubscribers.find(s => s.id === id);
+        if (sub) sub.status = 'expired';
+        renderSubscribers();
+        renderDashboard();
+        showToast('구독이 취소되었습니다.');
+    } catch { showToast('취소 실패.'); }
+}
+
+// ── 회원 관리 ──
+async function loadUsers() {
+    try {
+        const snap = await db.collection('users').get();
+        allUsers = snap.docs.map(d => ({ id: d.id, ...d.data(), joinedAt: d.data().joinedAt?.toDate() }));
+    } catch { allUsers = []; }
+    renderUsers();
+}
+
+function renderUsers() {
+    const q = (document.getElementById('userSearch')?.value || '').toLowerCase();
+    const filtered = allUsers.filter(u =>
+        (u.email||'').toLowerCase().includes(q) || (u.name||'').toLowerCase().includes(q)
+    );
+    const tbody = document.getElementById('userTable');
+    if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-slate-300 py-6">없습니다.</td></tr>';
+        return;
+    }
+    tbody.innerHTML = filtered.map(u => {
+        const userSubs = allSubscribers.filter(s => s.userId === u.id || s.userEmail === u.email);
+        const activeSub = userSubs.find(s => s.status === 'active');
+        return `
+        <tr>
+            <td class="font-semibold">${escHtml(u.name||'-')}</td>
+            <td>${escHtml(u.email||'-')}</td>
+            <td class="text-slate-400 text-xs">${fmtDate(u.joinedAt)}</td>
+            <td>${activeSub ? '<span class="b b-green">구독중</span>' : '<span class="b b-gray">미구독</span>'}</td>
+            <td>
+                <button onclick="deleteUser('${u.id}')" class="btn btn-danger" style="padding:3px 10px;font-size:0.72rem;">삭제</button>
+            </td>
+        </tr>`;
+    }).join('');
+}
+
+async function deleteUser(id) {
+    if (!confirm('회원을 삭제하시겠습니까?\n(Firebase Auth 계정은 별도 삭제 필요)')) return;
+    try {
+        await db.collection('users').doc(id).delete();
+        allUsers = allUsers.filter(u => u.id !== id);
+        renderUsers();
+        renderDashboard();
+        showToast('삭제되었습니다.');
+    } catch { showToast('삭제 실패.'); }
+}
+
+// ── 문의 관리 ──
+async function loadInquiries() {
+    try {
+        const snap = await db.collection('inquiries').orderBy('createdAt','desc').limit(50).get();
+        allInquiries = snap.docs.map(d => ({ id: d.id, ...d.data(), createdAt: d.data().createdAt?.toDate() }));
+    } catch {
+        try {
+            const snap = await db.collection('inquiries').get();
+            allInquiries = snap.docs.map(d => ({ id: d.id, ...d.data(), createdAt: d.data().createdAt?.toDate() }));
+        } catch { allInquiries = []; }
+    }
+    renderInquiries();
+    const unread = allInquiries.filter(q => !q.read).length;
+    if (unread > 0) {
+        document.getElementById('inqBadge').textContent = unread;
+        document.getElementById('inqBadge').classList.remove('hidden');
+    }
+}
+
+function renderInquiries() {
+    const container = document.getElementById('inquiryList');
+    if (allInquiries.length === 0) {
+        container.innerHTML = '<div class="text-center py-10 text-slate-300">문의가 없습니다.</div>';
+        return;
+    }
+    container.innerHTML = allInquiries.map(q => `
+        <div class="card p-4 ${!q.read ? 'border-l-4 border-l-blue-400' : ''}">
+            <div class="flex items-start justify-between gap-3">
+                <div class="flex-1">
+                    <div class="flex items-center gap-2 mb-1">
+                        ${!q.read ? '<span class="b b-blue">NEW</span>' : ''}
+                        <p class="font-bold text-slate-800 text-sm">${escHtml(q.subject||q.title||'제목없음')}</p>
+                    </div>
+                    <p class="text-xs text-slate-400 mb-2">${escHtml(q.email||'-')} · ${fmtDate(q.createdAt)}</p>
+                    <p class="text-sm text-slate-600 leading-relaxed">${escHtml(q.message||q.content||'-')}</p>
+                </div>
+                <div class="flex gap-1.5 flex-shrink-0">
+                    ${!q.read ? `<button onclick="markRead('${q.id}')" class="btn btn-ghost" style="padding:3px 10px;font-size:0.72rem;">읽음</button>` : ''}
+                    <button onclick="deleteInquiry('${q.id}')" class="btn btn-danger" style="padding:3px 10px;font-size:0.72rem;">삭제</button>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+async function markRead(id) {
+    try {
+        await db.collection('inquiries').doc(id).update({ read: true });
+        const q = allInquiries.find(x => x.id === id);
+        if (q) q.read = true;
+        renderInquiries();
+    } catch {}
+}
+
+async function deleteInquiry(id) {
+    if (!confirm('문의를 삭제하시겠습니까?')) return;
+    try {
+        await db.collection('inquiries').doc(id).delete();
+        allInquiries = allInquiries.filter(q => q.id !== id);
+        renderInquiries();
+        showToast('삭제되었습니다.');
+    } catch { showToast('삭제 실패.'); }
+}
+
+// ── 사업자 정보 ──
+async function loadBizInfo() {
+    try {
+        const doc = await db.collection('settings').doc('bizinfo').get();
+        if (doc.exists) {
+            const d = doc.data();
+            document.getElementById('biz-name').value      = d.name      || '';
+            document.getElementById('biz-ceo').value       = d.ceo       || '';
+            document.getElementById('biz-regnum').value    = d.regnum    || '';
+            document.getElementById('biz-mailorder').value = d.mailorder || '';
+            document.getElementById('biz-tel').value       = d.tel       || '';
+            document.getElementById('biz-email').value     = d.email     || '';
+            document.getElementById('biz-addr').value      = d.addr      || '';
+            document.getElementById('biz-account').value   = d.account   || '';
+            document.getElementById('biz-extra').value     = d.extra     || '';
+        }
+    } catch {}
+}
+
+async function saveBizInfo() {
+    const data = {
+        name:      document.getElementById('biz-name').value.trim(),
+        ceo:       document.getElementById('biz-ceo').value.trim(),
+        regnum:    document.getElementById('biz-regnum').value.trim(),
+        mailorder: document.getElementById('biz-mailorder').value.trim(),
+        tel:       document.getElementById('biz-tel').value.trim(),
+        email:     document.getElementById('biz-email').value.trim(),
+        addr:      document.getElementById('biz-addr').value.trim(),
+        account:   document.getElementById('biz-account').value.trim(),
+        extra:     document.getElementById('biz-extra').value.trim(),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    };
+    try {
+        await db.collection('settings').doc('bizinfo').set(data);
+        showToast('사업자 정보가 저장되었습니다. 메인 페이지 푸터에 반영됩니다.');
+    } catch { showToast('저장 실패.'); }
+}
+
+// ── 공통 ──
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+function statusBadge(status) {
+    const map = { pending:'대기중', active:'구독중', expired:'만료', cancelled:'취소' };
+    const cls = { pending:'b-yellow', active:'b-green', expired:'b-gray', cancelled:'b-red' };
+    return `<span class="b ${cls[status]||'b-gray'}">${map[status]||status}</span>`;
+}
+
+function escHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function fmtDate(d) {
+    if (!d) return '-';
+    const date = d instanceof Date ? d : new Date(d);
+    if (isNaN(date)) return '-';
+    return date.toLocaleDateString('ko-KR', { year:'numeric', month:'2-digit', day:'2-digit' });
+}
+
+let toastTimer;
+function showToast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('show'), 3000);
+}
+</script>
+</body>
+</html>

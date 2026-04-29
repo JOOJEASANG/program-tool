@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>마이페이지 - WebApp Studio</title>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        body { font-family: 'Noto Sans KR', sans-serif; background: #f8fafc; }
+        .inp { width: 100%; padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.875rem; outline: none; font-family: inherit; }
+        .inp:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+        #toast { position: fixed; bottom: 1.5rem; left: 50%; transform: translateX(-50%); background: #1e293b; color: white; padding: 8px 20px; border-radius: 999px; font-size: 0.8rem; z-index: 999; opacity: 0; transition: opacity 0.3s; pointer-events: none; white-space: nowrap; }
+        #toast.show { opacity: 1; }
+        .nav-link { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 8px; font-size: 0.85rem; color: #64748b; cursor: pointer; transition: all 0.15s; }
+        .nav-link:hover { background: #f1f5f9; color: #1e293b; }
+        .nav-link.active { background: #eff6ff; color: #2563eb; font-weight: 600; }
+        .tab-section { display: none; }
+        .tab-section.active { display: block; }
+        .card { background: white; border-radius: 12px; border: 1px solid #e2e8f0; }
+    </style>
+</head>
+<body>
+
+<!-- 헤더 -->
+<header class="bg-white border-b border-gray-100 sticky top-0 z-50" style="height:56px;">
+    <div class="max-w-5xl mx-auto px-4 h-full flex items-center justify-between">
+        <a href="../index.html" class="flex items-center gap-2">
+            <div class="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center">
+                <i class="fas fa-cube text-white text-xs"></i>
+            </div>
+            <span class="font-bold text-gray-900 text-sm">WebApp<span class="text-blue-600">Studio</span></span>
+        </a>
+        <div class="flex items-center gap-3">
+            <a href="../index.html" class="text-sm text-gray-500 hover:text-blue-600 transition-colors">
+                <i class="fas fa-store mr-1"></i>마켓
+            </a>
+            <button onclick="handleLogout()" class="text-sm text-gray-400 hover:text-red-500 px-3 py-1.5 rounded-lg hover:bg-red-50 transition-colors">
+                <i class="fas fa-sign-out-alt mr-1"></i>로그아웃
+            </button>
+        </div>
+    </div>
+</header>
+
+<!-- 본문 -->
+<div class="max-w-5xl mx-auto px-4 py-8">
+
+    <!-- 비로그인 -->
+    <div id="notLoggedIn" class="hidden text-center py-20">
+        <i class="fas fa-user-lock text-5xl text-gray-200 mb-4 block"></i>
+        <p class="text-gray-500 mb-4">로그인이 필요합니다.</p>
+        <a href="../index.html" class="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors">
+            <i class="fas fa-arrow-left"></i> 메인으로 이동
+        </a>
+    </div>
+
+    <!-- 로그인 상태 -->
+    <div id="myPageContent" class="hidden">
+        <div class="flex gap-6">
+
+            <!-- 사이드바 -->
+            <aside class="flex-shrink-0" style="width:180px;">
+                <div class="card p-4 mb-3 text-center">
+                    <div class="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                        <i class="fas fa-user text-blue-500 text-xl"></i>
+                    </div>
+                    <p id="profileName" class="font-bold text-gray-900 text-sm truncate"></p>
+                    <p id="profileEmail" class="text-xs text-gray-400 mt-0.5 truncate"></p>
+                </div>
+                <nav class="space-y-0.5">
+                    <div class="nav-link active" id="nav-subscriptions" onclick="showTab('subscriptions')">
+                        <i class="fas fa-star w-4 text-center"></i> 내 구독
+                    </div>
+                    <div class="nav-link" id="nav-profile" onclick="showTab('profile')">
+                        <i class="fas fa-cog w-4 text-center"></i> 계정 설정
+                    </div>
+                </nav>
+            </aside>
+
+            <!-- 메인 콘텐츠 -->
+            <main class="flex-1 min-w-0">
+
+                <!-- 내 구독 탭 -->
+                <div id="tab-subscriptions" class="tab-section active">
+                    <h2 class="text-lg font-bold text-gray-900 mb-4">내 구독</h2>
+                    <div id="subscriptionList" class="space-y-3">
+                        <div class="text-center py-10 text-gray-300">
+                            <i class="fas fa-spinner fa-spin text-3xl mb-3 block"></i>
+                            <p class="text-sm">로딩 중...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 계정 설정 탭 -->
+                <div id="tab-profile" class="tab-section">
+                    <h2 class="text-lg font-bold text-gray-900 mb-4">계정 설정</h2>
+                    <div class="card p-5 space-y-4">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1.5">이름</label>
+                            <input type="text" id="editName" class="inp" placeholder="이름">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1.5">이메일</label>
+                            <input type="email" id="editEmail" class="inp" disabled style="background:#f8fafc;color:#9ca3af;">
+                        </div>
+                        <button onclick="saveProfile()" class="px-5 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors">
+                            저장
+                        </button>
+                    </div>
+
+                    <div class="card p-5 mt-4">
+                        <h3 class="font-bold text-gray-800 text-sm mb-3">비밀번호 변경</h3>
+                        <div class="space-y-3">
+                            <input type="password" id="newPw" class="inp" placeholder="새 비밀번호 (8자 이상)">
+                            <input type="password" id="newPwConfirm" class="inp" placeholder="새 비밀번호 확인">
+                            <button onclick="changePassword()" class="px-5 py-2.5 bg-gray-700 text-white rounded-lg text-sm font-semibold hover:bg-gray-800 transition-colors">
+                                비밀번호 변경
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+            </main>
+        </div>
+    </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const FIREBASE_CONFIG = {
+    apiKey:            "AIzaSyBCNcIVCIUpX6oq2FXjVULNXwBTMV897yU",
+    authDomain:        "sosoprogram-873b1.firebaseapp.com",
+    projectId:         "sosoprogram-873b1",
+    storageBucket:     "sosoprogram-873b1.firebasestorage.app",
+    messagingSenderId: "438626208249",
+    appId:             "1:438626208249:web:811530029b6e16d12e1528"
+};
+
+firebase.initializeApp(FIREBASE_CONFIG);
+const auth = firebase.auth();
+const db   = firebase.firestore();
+let currentUser = null;
+
+const PRODUCT_ICONS = {
+    'club-manager': '👥',
+};
+
+// ── 인증 ──
+auth.onAuthStateChanged(user => {
+    if (user) {
+        currentUser = { uid: user.uid, email: user.email, name: user.displayName || user.email.split('@')[0] };
+        document.getElementById('myPageContent').classList.remove('hidden');
+        document.getElementById('profileName').textContent  = currentUser.name;
+        document.getElementById('profileEmail').textContent = currentUser.email;
+        document.getElementById('editName').value  = currentUser.name;
+        document.getElementById('editEmail').value = currentUser.email;
+        loadSubscriptions();
+    } else {
+        document.getElementById('notLoggedIn').classList.remove('hidden');
+    }
+});
+
+// ── 구독 내역 로드 ──
+async function loadSubscriptions() {
+    const el = document.getElementById('subscriptionList');
+    let subs = [];
+    try {
+        const snap = await db.collection('subscriptions')
+            .where('userId', '==', currentUser.uid).get();
+        subs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        // 클라이언트 정렬 (최신순)
+        subs.sort((a, b) => {
+            const ta = a.appliedAt?.toDate?.() || new Date(0);
+            const tb = b.appliedAt?.toDate?.() || new Date(0);
+            return tb - ta;
+        });
+    } catch (e) {
+        console.warn('구독 로드 오류:', e);
+    }
+
+    if (subs.length === 0) {
+        el.innerHTML = `
+            <div class="text-center py-14 text-gray-300">
+                <i class="fas fa-star text-4xl mb-3 block"></i>
+                <p class="text-sm text-gray-400">구독 중인 프로그램이 없습니다.</p>
+                <a href="../index.html" class="inline-block mt-3 text-sm text-blue-500 hover:underline">프로그램 둘러보기</a>
+            </div>`;
+        return;
+    }
+
+    const statusMap = { pending:'승인 대기중', active:'구독중', expired:'만료', cancelled:'취소' };
+    const statusCls = {
+        pending:   'bg-yellow-100 text-yellow-700',
+        active:    'bg-green-100 text-green-700',
+        expired:   'bg-gray-100 text-gray-500',
+        cancelled: 'bg-red-100 text-red-500',
+    };
+
+    el.innerHTML = subs.map(s => {
+        const expiresAt = s.expiresAt?.toDate ? s.expiresAt.toDate() : (s.expiresAt ? new Date(s.expiresAt) : null);
+        const appliedAt = s.appliedAt?.toDate ? s.appliedAt.toDate() : null;
+        const isExpiringSoon = expiresAt && s.status === 'active' &&
+            (expiresAt - new Date()) < 7 * 24 * 60 * 60 * 1000;
+
+        return `
+        <div class="card p-4">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center text-2xl flex-shrink-0">
+                    ${PRODUCT_ICONS[s.productId] || '🖥️'}
+                </div>
+                <div class="flex-1 min-w-0">
+                    <p class="font-bold text-gray-900 text-sm">${escHtml(s.productName || s.productId)}</p>
+                    <p class="text-xs text-gray-400 mt-0.5">신청일: ${fmtDate(appliedAt)}</p>
+                    ${expiresAt ? `<p class="text-xs ${isExpiringSoon ? 'text-orange-500 font-semibold' : 'text-gray-400'} mt-0.5">
+                        만료일: ${fmtDate(expiresAt)} ${isExpiringSoon ? '(곧 만료)' : ''}
+                    </p>` : ''}
+                </div>
+                <div class="text-right flex-shrink-0">
+                    <span class="inline-flex items-center text-xs font-semibold px-2 py-0.5 rounded-full ${statusCls[s.status] || 'bg-gray-100 text-gray-500'}">
+                        ${statusMap[s.status] || s.status}
+                    </span>
+                </div>
+            </div>
+
+            ${s.status === 'pending' ? `
+            <div class="mt-3 pt-3 border-t border-gray-100">
+                <div class="bg-yellow-50 rounded-xl p-3 text-xs text-yellow-700">
+                    <i class="fas fa-clock mr-1"></i>
+                    관리자 확인 후 승인됩니다. 입금 확인에 최대 1영업일이 소요될 수 있습니다.
+                </div>
+            </div>` : ''}
+
+            ${s.status === 'active' ? `
+            <div class="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between">
+                <span class="text-xs text-gray-400">
+                    <i class="fas fa-check-circle text-green-500 mr-1"></i>이용 가능
+                </span>
+                <a href="../programs/${s.productId}/index.html" target="_blank"
+                    class="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-semibold hover:bg-blue-700 transition-colors">
+                    <i class="fas fa-external-link-alt mr-1"></i>프로그램 열기
+                </a>
+            </div>` : ''}
+        </div>`;
+    }).join('');
+}
+
+// ── 탭 전환 ──
+function showTab(tab) {
+    document.querySelectorAll('.tab-section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.nav-link').forEach(n => n.classList.remove('active'));
+    document.getElementById('tab-' + tab).classList.add('active');
+    document.getElementById('nav-' + tab).classList.add('active');
+}
+
+// ── 프로필 저장 ──
+async function saveProfile() {
+    const name = document.getElementById('editName').value.trim();
+    if (!name) { showToast('이름을 입력해주세요.'); return; }
+    try {
+        await auth.currentUser.updateProfile({ displayName: name });
+        await db.collection('users').doc(currentUser.uid).update({ name });
+        document.getElementById('profileName').textContent = name;
+        showToast('저장되었습니다.');
+    } catch { showToast('저장 실패. 다시 시도해주세요.'); }
+}
+
+async function changePassword() {
+    const pw  = document.getElementById('newPw').value;
+    const pw2 = document.getElementById('newPwConfirm').value;
+    if (pw.length < 8) { showToast('비밀번호는 8자 이상이어야 합니다.'); return; }
+    if (pw !== pw2)    { showToast('비밀번호가 일치하지 않습니다.'); return; }
+    try {
+        await auth.currentUser.updatePassword(pw);
+        document.getElementById('newPw').value = '';
+        document.getElementById('newPwConfirm').value = '';
+        showToast('비밀번호가 변경되었습니다.');
+    } catch (e) {
+        if (e.code === 'auth/requires-recent-login') showToast('보안을 위해 재로그인 후 변경해주세요.');
+        else showToast('변경 실패. 다시 시도해주세요.');
+    }
+}
+
+// ── 로그아웃 ──
+function handleLogout() {
+    auth.signOut().then(() => window.location.href = '../index.html');
+}
+
+// ── 유틸 ──
+function escHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function fmtDate(d) {
+    if (!d) return '-';
+    const date = d instanceof Date ? d : new Date(d);
+    if (isNaN(date)) return '-';
+    return date.toLocaleDateString('ko-KR', { year:'numeric', month:'2-digit', day:'2-digit' });
+}
+
+let toastTimer;
+function showToast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
+}
+</script>
+</body>
+</html>
