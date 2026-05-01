@@ -21,13 +21,13 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Google 서비스 계정 인증
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_PROGRAM_TOOL }}
+
       - name: Firebase CLI 설치
         run: npm install -g firebase-tools
 
       - name: Firebase Hosting 배포
-        run: |
-          echo "$SERVICE_ACCOUNT_JSON" > /tmp/sa.json
-          GOOGLE_APPLICATION_CREDENTIALS=/tmp/sa.json firebase deploy --only hosting --project program-tool
-          rm /tmp/sa.json
-        env:
-          SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_PROGRAM_TOOL }}
+        run: firebase deploy --only hosting --project program-tool
