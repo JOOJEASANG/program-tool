@@ -1,0 +1,383 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Program Tool · 대시보드</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: Pretendard, "Noto Sans KR", "Malgun Gothic", sans-serif;
+      background: #f1f5f9;
+      color: #0f172a;
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    header {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      height: 60px;
+      background: #fff;
+      border-bottom: 1px solid #e2e8f0;
+      display: flex; align-items: center;
+      padding: 0 24px; gap: 16px;
+      box-shadow: 0 1px 8px rgba(0,0,0,0.06);
+    }
+    .logo {
+      display: flex; align-items: center; gap: 10px;
+      text-decoration: none; flex-shrink: 0;
+    }
+    .logo-icon {
+      width: 34px; height: 34px;
+      background: linear-gradient(135deg, #1d9bb2, #12396d);
+      border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+    }
+    .logo-text { font-size: 17px; font-weight: 900; color: #12396d; letter-spacing: -0.5px; }
+
+    .search-wrap {
+      flex: 1; max-width: 460px;
+      position: relative;
+    }
+    .search-wrap svg {
+      position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+      color: #94a3b8; pointer-events: none;
+    }
+    .search-input {
+      width: 100%;
+      border: 1.5px solid #e2e8f0; border-radius: 10px;
+      padding: 9px 13px 9px 38px;
+      font-size: 14px; font-family: inherit; outline: none;
+      background: #f8fafc; color: #0f172a;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .search-input:focus { border-color: #12396d; background: #fff; box-shadow: 0 0 0 3px rgba(18,57,109,0.08); }
+    .search-input::placeholder { color: #94a3b8; }
+
+    .header-right { margin-left: auto; display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+    .user-info {
+      display: flex; align-items: center; gap: 8px;
+      cursor: pointer; padding: 6px 10px; border-radius: 10px;
+      transition: background 0.15s; position: relative;
+    }
+    .user-info:hover { background: #f1f5f9; }
+    .avatar {
+      width: 32px; height: 32px; border-radius: 50%;
+      background: linear-gradient(135deg, #12396d, #1d9bb2);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 800; color: #fff;
+      overflow: hidden;
+    }
+    .avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .user-name { font-size: 13px; font-weight: 700; color: #1e293b; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .user-dropdown {
+      position: absolute; top: calc(100% + 6px); right: 0;
+      background: #fff; border: 1px solid #e2e8f0; border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.12); padding: 8px;
+      min-width: 180px; display: none; z-index: 200;
+    }
+    .user-info.open .user-dropdown { display: block; }
+    .dropdown-email { padding: 8px 10px; font-size: 12px; color: #64748b; border-bottom: 1px solid #f1f5f9; margin-bottom: 4px; }
+    .dropdown-btn {
+      width: 100%; display: flex; align-items: center; gap: 8px;
+      border: none; background: transparent; border-radius: 8px;
+      padding: 9px 10px; font-size: 13px; font-weight: 700; color: #374151;
+      cursor: pointer; font-family: inherit; text-align: left;
+      transition: background 0.12s;
+    }
+    .dropdown-btn:hover { background: #f1f5f9; }
+    .dropdown-btn.danger { color: #dc2626; }
+    .dropdown-btn.danger:hover { background: #fef2f2; }
+
+    /* ── Main ── */
+    main { padding: 80px 24px 40px; max-width: 1280px; margin: 0 auto; }
+
+    .hero { margin-bottom: 32px; }
+    .hero h2 { font-size: 22px; font-weight: 900; color: #0f172a; letter-spacing: -0.5px; }
+    .hero p { font-size: 14px; color: #64748b; margin-top: 4px; }
+
+    /* Category filter */
+    .filters {
+      display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 28px;
+    }
+    .filter-btn {
+      border: 1.5px solid #e2e8f0; background: #fff;
+      border-radius: 999px; padding: 7px 16px;
+      font-size: 13px; font-weight: 700; color: #64748b;
+      cursor: pointer; font-family: inherit; transition: all 0.15s;
+    }
+    .filter-btn:hover { border-color: #94a3b8; color: #374151; }
+    .filter-btn.active { background: #12396d; border-color: #12396d; color: #fff; }
+
+    /* Program grid */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 18px;
+    }
+    .card {
+      background: #fff; border-radius: 18px; padding: 24px;
+      border: 1.5px solid #e8edf3;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+      transition: transform 0.18s, box-shadow 0.18s, border-color 0.18s;
+      cursor: pointer; display: flex; flex-direction: column;
+      text-decoration: none; color: inherit;
+    }
+    .card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 12px 32px rgba(18,57,109,0.12);
+      border-color: #bfdbfe;
+    }
+    .card-icon {
+      width: 50px; height: 50px; border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 24px; margin-bottom: 14px;
+    }
+    .card-category {
+      display: inline-block;
+      font-size: 11px; font-weight: 800; letter-spacing: 0.3px;
+      padding: 3px 9px; border-radius: 999px;
+      margin-bottom: 8px;
+    }
+    .card h3 { font-size: 16px; font-weight: 900; color: #0f172a; margin-bottom: 7px; letter-spacing: -0.3px; }
+    .card p { font-size: 13px; color: #64748b; line-height: 1.55; flex: 1; }
+    .card-tags { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 14px; }
+    .tag {
+      font-size: 11px; font-weight: 700; color: #475569;
+      background: #f1f5f9; border-radius: 6px; padding: 3px 8px;
+    }
+    .card-footer { margin-top: 16px; }
+    .start-btn {
+      width: 100%; border: none; border-radius: 10px; padding: 11px;
+      font-size: 13px; font-weight: 800; cursor: pointer;
+      font-family: inherit; transition: opacity 0.15s;
+    }
+    .start-btn:hover { opacity: 0.88; }
+
+    /* Empty state */
+    .empty { text-align: center; padding: 60px 20px; color: #94a3b8; }
+    .empty-icon { font-size: 48px; margin-bottom: 12px; }
+    .empty h3 { font-size: 16px; font-weight: 700; color: #64748b; }
+    .empty p { font-size: 14px; margin-top: 4px; }
+
+    /* Loading overlay */
+    #authLoading {
+      position: fixed; inset: 0; background: #fff;
+      display: flex; align-items: center; justify-content: center;
+      z-index: 9999;
+    }
+    .loading-spinner {
+      width: 36px; height: 36px;
+      border: 3px solid #e2e8f0; border-top-color: #12396d;
+      border-radius: 50%; animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @media (max-width: 640px) {
+      header { padding: 0 16px; }
+      .logo-text { display: none; }
+      .user-name { display: none; }
+      main { padding: 76px 16px 32px; }
+      .hero h2 { font-size: 18px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Auth loading overlay -->
+  <div id="authLoading">
+    <div class="loading-spinner"></div>
+  </div>
+
+  <!-- Header -->
+  <header>
+    <a class="logo" href="dashboard.html">
+      <div class="logo-icon">🛠️</div>
+      <span class="logo-text">Program Tool</span>
+    </a>
+
+    <div class="search-wrap">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+        <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+      </svg>
+      <input class="search-input" type="search" id="searchInput" placeholder="프로그램 검색..." autocomplete="off" />
+    </div>
+
+    <div class="header-right">
+      <div class="user-info" id="userInfo">
+        <div class="avatar" id="avatar"></div>
+        <span class="user-name" id="userName">로딩 중...</span>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+        <div class="user-dropdown" id="userDropdown">
+          <div class="dropdown-email" id="dropdownEmail"></div>
+          <button class="dropdown-btn danger" id="logoutBtn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            로그아웃
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main content -->
+  <main>
+    <div class="hero">
+      <h2 id="heroTitle">안녕하세요! 👋</h2>
+      <p>아래 도구 중 원하는 프로그램을 선택해 사용해보세요.</p>
+    </div>
+
+    <div class="filters" id="filters"></div>
+
+    <div class="grid" id="programGrid"></div>
+    <div class="empty" id="emptyState" style="display:none;">
+      <div class="empty-icon">🔍</div>
+      <h3>검색 결과가 없습니다</h3>
+      <p>다른 검색어를 입력해보세요.</p>
+    </div>
+  </main>
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="js/firebase-config.js"></script>
+  <script>
+    // ── 프로그램 데이터 ──────────────────────────────────────────
+    const programs = [
+      {
+        id: 'design',
+        name: '표지 생성기',
+        desc: '보고서, 학교 교재, 문제집 등 인쇄용 표지를 AI 배경과 함께 자동 생성합니다.',
+        icon: '🎨',
+        iconBg: '#eff6ff',
+        category: '디자인',
+        categoryColor: '#1d4ed8',
+        categoryBg: '#dbeafe',
+        tags: ['인쇄', 'PDF', 'SVG', 'AI배경'],
+        btnColor: '#12396d',
+        url: 'programs/design.html',
+        new: false,
+      },
+      // 여기에 새 프로그램을 추가하세요
+      // {
+      //   id: 'example',
+      //   name: '예시 프로그램',
+      //   desc: '설명을 여기에 입력하세요.',
+      //   icon: '📄',
+      //   iconBg: '#f0fdf4',
+      //   category: '문서',
+      //   categoryColor: '#166534',
+      //   categoryBg: '#dcfce7',
+      //   tags: ['문서', 'PDF'],
+      //   btnColor: '#15803d',
+      //   url: 'programs/example.html',
+      //   new: true,
+      // },
+    ];
+
+    const allCategories = ['전체', ...new Set(programs.map(p => p.category))];
+    let activeCategory = '전체';
+    let searchQuery = '';
+
+    // ── Auth guard ───────────────────────────────────────────────
+    auth.onAuthStateChanged(user => {
+      if (!user) {
+        window.location.href = 'index.html';
+        return;
+      }
+      document.getElementById('authLoading').style.display = 'none';
+      initUser(user);
+      renderFilters();
+      renderGrid();
+    });
+
+    function initUser(user) {
+      const name = user.displayName || user.email.split('@')[0];
+      document.getElementById('heroTitle').textContent = `안녕하세요, ${name}님! 👋`;
+      document.getElementById('userName').textContent = name;
+      document.getElementById('dropdownEmail').textContent = user.email;
+
+      const avatarEl = document.getElementById('avatar');
+      if (user.photoURL) {
+        avatarEl.innerHTML = `<img src="${user.photoURL}" alt="avatar">`;
+      } else {
+        avatarEl.textContent = name.charAt(0).toUpperCase();
+      }
+    }
+
+    // ── Dropdown ─────────────────────────────────────────────────
+    document.getElementById('userInfo').addEventListener('click', function(e) {
+      e.stopPropagation();
+      this.classList.toggle('open');
+    });
+    document.addEventListener('click', () => {
+      document.getElementById('userInfo').classList.remove('open');
+    });
+    document.getElementById('logoutBtn').addEventListener('click', async () => {
+      await auth.signOut();
+      window.location.href = 'index.html';
+    });
+
+    // ── Filters ──────────────────────────────────────────────────
+    function renderFilters() {
+      const container = document.getElementById('filters');
+      container.innerHTML = allCategories.map(cat => `
+        <button class="filter-btn ${cat === activeCategory ? 'active' : ''}"
+          onclick="setCategory('${cat}')">${cat}</button>
+      `).join('');
+    }
+
+    function setCategory(cat) {
+      activeCategory = cat;
+      renderFilters();
+      renderGrid();
+    }
+
+    // ── Grid ─────────────────────────────────────────────────────
+    function renderGrid() {
+      const q = searchQuery.toLowerCase();
+      const filtered = programs.filter(p => {
+        const matchCat = activeCategory === '전체' || p.category === activeCategory;
+        const matchSearch = !q
+          || p.name.toLowerCase().includes(q)
+          || p.desc.toLowerCase().includes(q)
+          || p.tags.some(t => t.toLowerCase().includes(q))
+          || p.category.toLowerCase().includes(q);
+        return matchCat && matchSearch;
+      });
+
+      const grid = document.getElementById('programGrid');
+      const empty = document.getElementById('emptyState');
+
+      if (!filtered.length) {
+        grid.innerHTML = '';
+        empty.style.display = 'block';
+        return;
+      }
+      empty.style.display = 'none';
+
+      grid.innerHTML = filtered.map(p => `
+        <a class="card" href="${p.url}">
+          <div class="card-icon" style="background:${p.iconBg}">${p.icon}</div>
+          <span class="card-category" style="color:${p.categoryColor};background:${p.categoryBg}">${p.category}</span>
+          ${p.new ? '<span class="card-category" style="color:#854d0e;background:#fef9c3;margin-left:4px">NEW</span>' : ''}
+          <h3>${p.name}</h3>
+          <p>${p.desc}</p>
+          <div class="card-tags">${p.tags.map(t => `<span class="tag">${t}</span>`).join('')}</div>
+          <div class="card-footer">
+            <button class="start-btn" style="background:${p.btnColor};color:#fff" onclick="event.preventDefault();location.href='${p.url}'">
+              시작하기 →
+            </button>
+          </div>
+        </a>
+      `).join('');
+    }
+
+    // ── Search ───────────────────────────────────────────────────
+    document.getElementById('searchInput').addEventListener('input', e => {
+      searchQuery = e.target.value;
+      renderGrid();
+    });
+  </script>
+</body>
+</html>
