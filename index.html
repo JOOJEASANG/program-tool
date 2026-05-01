@@ -1,933 +1,248 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WebApp Studio - 프로그램 마켓</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Program Tool · 로그인</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: Pretendard, "Noto Sans KR", "Malgun Gothic", sans-serif;
+      min-height: 100vh;
+      background: linear-gradient(150deg, #0a1f3d 0%, #12396d 55%, #1a6080 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 16px;
+    }
+    .wrap { width: 100%; max-width: 420px; }
 
-    <!-- Firebase v9 compat -->
-    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+    /* Brand */
+    .brand { text-align: center; margin-bottom: 28px; }
+    .brand-icon {
+      width: 56px; height: 56px;
+      background: linear-gradient(135deg, #1d9bb2, #12396d);
+      border-radius: 16px;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 26px; margin-bottom: 14px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    }
+    .brand h1 { color: #fff; font-size: 26px; font-weight: 900; letter-spacing: -0.6px; }
+    .brand p { color: rgba(255,255,255,0.6); font-size: 13px; margin-top: 5px; }
 
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    /* Card */
+    .card {
+      background: #fff;
+      border-radius: 22px;
+      padding: 32px 28px;
+      box-shadow: 0 32px 64px rgba(0,0,0,0.28);
+    }
 
-    <style>
-        body { font-family: 'Noto Sans KR', sans-serif; }
+    /* Tabs */
+    .tabs {
+      display: grid; grid-template-columns: 1fr 1fr;
+      background: #f1f5f9; border-radius: 12px; padding: 4px;
+      margin-bottom: 24px;
+    }
+    .tab {
+      border: none; background: transparent;
+      padding: 10px; border-radius: 9px;
+      font-size: 14px; font-weight: 700; color: #64748b;
+      cursor: pointer; transition: all 0.18s; font-family: inherit;
+    }
+    .tab.active { background: #fff; color: #12396d; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
 
-        /* ── 레이아웃 ── */
-        .page-wrap { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
-        .content-area { display: flex; flex: 1; overflow: hidden; }
-        #sidebar { width: 240px; flex-shrink: 0; overflow-y: auto; }
-        #mainArea { flex: 1; overflow-y: auto; }
+    /* Google button */
+    .google-btn {
+      width: 100%;
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      border: 1.5px solid #e2e8f0; background: #fff;
+      border-radius: 12px; padding: 12px;
+      font-size: 14px; font-weight: 700; color: #1e293b;
+      cursor: pointer; transition: all 0.15s; font-family: inherit;
+      margin-bottom: 18px;
+    }
+    .google-btn:hover { background: #f8fafc; border-color: #94a3b8; }
 
-        /* ── 사이드바 카테고리 ── */
-        .cat-item {
-            display: flex; align-items: center; gap: 10px;
-            padding: 10px 18px; font-size: 0.9rem; color: #374151;
-            cursor: pointer; border-radius: 8px; margin: 2px 10px;
-            transition: all 0.15s;
-        }
-        .cat-item:hover { background: #eff6ff; color: #2563eb; }
-        .cat-item.active { background: #2563eb; color: white; font-weight: 600; }
-        .cat-item .count {
-            margin-left: auto; font-size: 0.7rem;
-            background: rgba(0,0,0,0.08); padding: 1px 6px; border-radius: 999px;
-        }
-        .cat-item.active .count { background: rgba(255,255,255,0.25); }
+    /* Divider */
+    .divider {
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 18px; color: #94a3b8; font-size: 12px; font-weight: 700;
+    }
+    .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: #e2e8f0; }
 
-        /* ── 프로그램 카드 ── */
-        .prog-card {
-            background: white; border: 1px solid #e5e7eb; border-radius: 12px;
-            overflow: hidden; cursor: pointer; transition: all 0.2s;
-            display: flex; flex-direction: column;
-        }
-        .prog-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(37,99,235,0.12); border-color: #bfdbfe; }
-        .prog-card .thumb {
-            width: 100%; aspect-ratio: 16/9;
-            display: flex; align-items: center; justify-content: center;
-            background: linear-gradient(135deg, #f0f7ff, #e8f0fe);
-            font-size: 3.2rem; position: relative; overflow: hidden;
-        }
-        .prog-card .thumb img { width: 100%; height: 100%; object-fit: cover; }
-        .prog-card .info { padding: 16px 18px; flex: 1; display: flex; flex-direction: column; gap: 8px; }
-        .prog-card .name { font-weight: 700; font-size: 1rem; color: #111827; }
-        .prog-card .desc { font-size: 0.8rem; color: #6b7280; line-height: 1.6; flex: 1; }
-        .prog-card .tags { display: flex; flex-wrap: wrap; gap: 4px; }
-        .prog-card .tag { font-size: 0.68rem; background: #f3f4f6; color: #6b7280; padding: 3px 9px; border-radius: 999px; }
-        .prog-card .footer { display: flex; align-items: center; justify-content: space-between; padding-top: 12px; border-top: 1px solid #f3f4f6; margin-top: auto; flex-wrap: nowrap; gap: 8px; }
-        .prog-card .price { font-size: 1.1rem; font-weight: 800; color: #111827; white-space: nowrap; flex-shrink: 0; }
-        .prog-card .price span { font-size: 0.7rem; font-weight: 400; color: #9ca3af; margin-left: 2px; }
+    /* Fields */
+    .field { margin-bottom: 13px; }
+    .field label { display: block; font-size: 12px; font-weight: 800; color: #374151; margin-bottom: 6px; }
+    .field input {
+      width: 100%; border: 1.5px solid #e2e8f0; border-radius: 10px;
+      padding: 11px 13px; font-size: 14px; font-family: inherit; outline: none;
+      color: #0f172a; transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .field input:focus { border-color: #12396d; box-shadow: 0 0 0 3px rgba(18,57,109,0.1); }
 
-        /* ── 배지 ── */
-        .badge { font-size: 0.6rem; font-weight: 700; padding: 2px 7px; border-radius: 999px; }
-        .badge-new  { background: #dcfce7; color: #15803d; }
-        .badge-hot  { background: #fee2e2; color: #dc2626; }
-        .badge-best { background: #fef3c7; color: #d97706; }
-        .badge-sale { background: #f3e8ff; color: #7c3aed; }
-        .badge-soon { background: #f3f4f6; color: #9ca3af; }
+    /* Submit */
+    .submit-btn {
+      width: 100%; background: #12396d; color: #fff; border: none;
+      border-radius: 12px; padding: 13px;
+      font-size: 15px; font-weight: 800; cursor: pointer;
+      font-family: inherit; margin-top: 4px; transition: background 0.15s;
+      letter-spacing: -0.2px;
+    }
+    .submit-btn:hover { background: #0f2f5c; }
+    .submit-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
-        /* ── 버튼 ── */
-        .btn-buy { background: #2563eb; color: white; font-size: 0.75rem; font-weight: 600; padding: 6px 14px; border-radius: 8px; border: none; cursor: pointer; transition: all 0.15s; white-space: nowrap; flex-shrink: 0; }
-        .btn-buy:hover { background: #1d4ed8; }
-        .btn-buy:disabled { background: #d1d5db; cursor: default; }
+    /* Error */
+    .error-box {
+      background: #fef2f2; border: 1px solid #fecaca; color: #dc2626;
+      border-radius: 10px; padding: 10px 13px;
+      font-size: 13px; margin-top: 13px; display: none;
+    }
+    .error-box.show { display: block; }
 
-        /* ── 모달 공통 ── */
-        .modal-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); backdrop-filter: blur(4px); z-index: 200; align-items: center; justify-content: center; }
-        .modal-bg.open { display: flex; }
-        .modal-box { background: white; border-radius: 16px; width: 100%; margin: 16px; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
+    /* Loading spinner */
+    .spinner {
+      display: inline-block; width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,0.4); border-top-color: #fff;
+      border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle;
+      margin-right: 6px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
 
-        /* ── 검색 하이라이트 ── */
-        .highlight { background: #fef08a; }
-
-        /* ── 토스트 ── */
-        #toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1e293b; color: white; padding: 0.6rem 1.4rem; border-radius: 999px; font-size: 0.8rem; z-index: 999; opacity: 0; transition: opacity 0.3s; pointer-events: none; white-space: nowrap; }
-        #toast.show { opacity: 1; }
-
-        /* ── 스크롤바 ── */
-        ::-webkit-scrollbar { width: 5px; }
-        ::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 4px; }
-
-        /* ── 품절/준비중 카드 ── */
-        .prog-card.coming-soon { opacity: 0.55; pointer-events: none; }
-
-        /* ── 체험 버튼 ── */
-        .btn-trial { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; font-size: 0.75rem; font-weight: 600; padding: 5px 12px; border-radius: 8px; cursor: pointer; transition: all 0.15s; white-space: nowrap; flex-shrink: 0; }
-        .btn-trial:hover { background: #dcfce7; }
-
-        /* ── 체험 배너 (프로그램 내부에 주입) ── */
-        #trialBanner {
-            position: fixed; bottom: 0; left: 0; right: 0; z-index: 9999;
-            background: linear-gradient(90deg, #1e40af, #7c3aed);
-            color: white; display: flex; align-items: center; justify-content: center;
-            gap: 16px; padding: 10px 20px; font-size: 0.85rem;
-        }
-
-        /* ── 체험 모달 ── */
-        #trialModal .modal-box { max-width: 900px; height: 85vh; display: flex; flex-direction: column; }
-        #trialFrame { flex: 1; border: none; border-radius: 0 0 16px 16px; }
-
-        /* ── 반응형 그리드 ── */
-        #productGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
-        @media (max-width: 640px) { #sidebar { display: none; } #productGrid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; } }
-
-        /* ── 상세 모달 썸네일 ── */
-        .detail-thumb { width: 100%; aspect-ratio: 16/9; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #f0f7ff, #e8f0fe); font-size: 4rem; border-radius: 10px; overflow: hidden; }
-
-        /* ── 입력 포커스 ── */
-        .inp { width: 100%; padding: 9px 12px; border: 1px solid #e5e7eb; border-radius: 10px; font-size: 0.875rem; outline: none; font-family: 'Noto Sans KR', sans-serif; }
-        .inp:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
-    </style>
+    #confirmPwField { display: none; }
+  </style>
 </head>
-<body class="bg-gray-50">
-
-<!-- ══════════════════════════════════════ 페이지 래퍼 ══════════════════════════════════════ -->
-<div class="page-wrap">
-
-    <!-- ── 헤더 ── -->
-    <header class="bg-white border-b border-gray-200 flex-shrink-0 z-10" style="height:60px;">
-        <div class="h-full flex items-center px-4 gap-4">
-
-            <!-- 로고 -->
-            <a href="index.html" class="flex items-center gap-2 flex-shrink-0">
-                <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                    <i class="fas fa-cube text-white text-sm"></i>
-                </div>
-                <span class="text-base font-bold text-gray-900 hidden sm:block">WebApp<span class="text-blue-600">Studio</span></span>
-            </a>
-
-            <!-- 검색창 -->
-            <div class="flex-1 max-w-lg">
-                <div class="relative">
-                    <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
-                    <input type="text" id="searchInput" placeholder="프로그램명, 기능 검색..."
-                        class="inp pl-9 py-2 text-sm bg-gray-50"
-                        style="max-width:100%"
-                        oninput="filterProducts()">
-                </div>
-            </div>
-
-            <!-- 우측 메뉴 -->
-            <div class="flex items-center gap-2 flex-shrink-0 ml-auto">
-                <!-- 비로그인 -->
-                <div id="guestBtns" class="flex items-center gap-2">
-                    <button onclick="openModal('loginModal')" class="text-sm text-gray-600 hover:text-blue-600 font-medium px-3 py-2 rounded-lg hover:bg-blue-50 transition-colors">로그인</button>
-                    <button onclick="openModal('registerModal')" class="text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg transition-colors">회원가입</button>
-                </div>
-                <!-- 로그인 상태 -->
-                <div id="userBtns" class="hidden items-center gap-2">
-                    <a href="mypage/index.html" class="flex items-center gap-1.5 px-3 py-2 text-sm text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
-                        <i class="fas fa-user-circle text-blue-500"></i>
-                        <span id="userNameDisplay" class="max-w-[80px] truncate hidden sm:block">사용자</span>
-                    </a>
-                    <button onclick="handleLogout()" class="text-sm text-gray-400 hover:text-red-500 px-2 py-2 rounded-lg hover:bg-red-50 transition-colors">
-                        <i class="fas fa-sign-out-alt"></i>
-                    </button>
-                </div>
-            </div>
-        </div>
-    </header>
-
-    <!-- ── 본문 (사이드바 + 메인) ── -->
-    <div class="content-area">
-
-        <!-- ── 사이드바: 카테고리 ── -->
-        <aside id="sidebar" class="bg-white border-r border-gray-200 py-4">
-            <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider px-4 mb-3">프로그램 리스트</p>
-            <div id="categoryList"></div>
-        </aside>
-
-        <!-- ── 메인 콘텐츠 ── -->
-        <main id="mainArea" class="p-6">
-
-            <!-- 상단 정렬/필터 바 -->
-            <div class="flex items-center justify-between mb-5">
-                <div>
-                    <h2 id="currentCatLabel" class="text-lg font-bold text-gray-900">전체 프로그램</h2>
-                    <p id="productCount" class="text-xs text-gray-400 mt-0.5"></p>
-                </div>
-                <div class="flex items-center gap-2">
-                    <select id="sortSelect" onchange="filterProducts()" class="text-xs border border-gray-200 rounded-lg px-2 py-1.5 outline-none focus:border-blue-400 text-gray-600">
-                        <option value="default">기본순</option>
-                        <option value="price-asc">낮은 가격순</option>
-                        <option value="price-desc">높은 가격순</option>
-                        <option value="name">이름순</option>
-                    </select>
-                </div>
-            </div>
-
-            <!-- 프로그램 그리드 -->
-            <div id="productGrid"></div>
-
-            <!-- 빈 상태 -->
-            <div id="emptyState" class="hidden text-center py-20 text-gray-300">
-                <i class="fas fa-search text-5xl mb-3 block"></i>
-                <p class="text-sm">검색 결과가 없습니다.</p>
-            </div>
-        </main>
+<body>
+  <div class="wrap">
+    <div class="brand">
+      <div class="brand-icon">🛠️</div>
+      <h1>Program Tool</h1>
+      <p>유용한 온라인 도구 모음 서비스</p>
     </div>
 
-    <!-- ── 푸터 ── -->
-    <footer class="bg-white border-t border-gray-100 flex-shrink-0">
-        <!-- 사업자 정보 -->
-        <div id="bizFooter" class="hidden border-b border-gray-100 px-6 py-4 text-xs text-gray-400">
-            <div class="max-w-5xl mx-auto flex flex-wrap gap-x-6 gap-y-1">
-                <span id="biz-f-name" class="font-semibold text-gray-500"></span>
-                <span id="biz-f-ceo"></span>
-                <span id="biz-f-regnum"></span>
-                <span id="biz-f-tel"></span>
-                <span id="biz-f-addr"></span>
-                <span id="biz-f-email"></span>
-                <span id="biz-f-mailorder"></span>
-            </div>
-            <div id="biz-f-extra" class="max-w-5xl mx-auto mt-1"></div>
-        </div>
-        <div class="text-center text-xs text-gray-400 py-3">
-            © 2025 WebApp Studio &nbsp;·&nbsp;
-            <a href="inquiry/index.html" class="hover:text-blue-500">문의하기</a>
-        </div>
-    </footer>
-</div>
+    <div class="card">
+      <div class="tabs">
+        <button class="tab active" id="tabLogin" onclick="switchTab('login')">로그인</button>
+        <button class="tab" id="tabSignup" onclick="switchTab('signup')">회원가입</button>
+      </div>
 
-<!-- ══════════════════════════════════ 모달들 ══════════════════════════════════ -->
+      <button class="google-btn" id="googleBtn">
+        <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
+          <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+          <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+          <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+          <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.34-8.16 2.34-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+        </svg>
+        Google로 계속하기
+      </button>
 
-<!-- ── 로그인 모달 ── -->
-<div id="loginModal" class="modal-bg" onclick="if(event.target===this)closeModal('loginModal')">
-    <div class="modal-box" style="max-width:400px;">
-        <div class="p-6">
-            <div class="flex items-center justify-between mb-5">
-                <h3 class="text-lg font-bold text-gray-900">로그인</h3>
-                <button onclick="closeModal('loginModal')" class="text-gray-400 hover:text-gray-600 text-lg"><i class="fas fa-times"></i></button>
-            </div>
-            <form onsubmit="handleLogin(event)" class="space-y-4">
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-1.5">이메일</label>
-                    <input type="email" id="loginEmail" class="inp" placeholder="example@email.com" required>
-                </div>
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-1.5">비밀번호</label>
-                    <input type="password" id="loginPw" class="inp" placeholder="••••••••" required>
-                </div>
-                <p id="loginErr" class="text-xs text-red-500 hidden">이메일 또는 비밀번호가 올바르지 않습니다.</p>
-                <button type="submit" class="w-full py-2.5 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-colors text-sm">로그인</button>
-            </form>
-            <p class="text-center text-xs text-gray-400 mt-4">
-                계정이 없으신가요?
-                <button onclick="switchModal('loginModal','registerModal')" class="text-blue-600 font-semibold hover:underline">회원가입</button>
-            </p>
+      <div class="divider">또는 이메일로 계속하기</div>
+
+      <form id="authForm" novalidate>
+        <div class="field">
+          <label for="email">이메일</label>
+          <input type="email" id="email" placeholder="example@email.com" autocomplete="email" />
         </div>
+        <div class="field">
+          <label for="password">비밀번호</label>
+          <input type="password" id="password" placeholder="6자리 이상" autocomplete="current-password" />
+        </div>
+        <div class="field" id="confirmPwField">
+          <label for="confirmPw">비밀번호 확인</label>
+          <input type="password" id="confirmPw" placeholder="비밀번호를 다시 입력" autocomplete="new-password" />
+        </div>
+        <button type="submit" class="submit-btn" id="submitBtn">로그인</button>
+      </form>
+
+      <div class="error-box" id="errorBox"></div>
     </div>
-</div>
+  </div>
 
-<!-- ── 회원가입 모달 ── -->
-<div id="registerModal" class="modal-bg" onclick="if(event.target===this)closeModal('registerModal')">
-    <div class="modal-box" style="max-width:400px;">
-        <div class="p-6">
-            <div class="flex items-center justify-between mb-5">
-                <h3 class="text-lg font-bold text-gray-900">회원가입</h3>
-                <button onclick="closeModal('registerModal')" class="text-gray-400 hover:text-gray-600 text-lg"><i class="fas fa-times"></i></button>
-            </div>
-            <form onsubmit="handleRegister(event)" class="space-y-4">
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-1.5">이름</label>
-                    <input type="text" id="regName" class="inp" placeholder="홍길동" required>
-                </div>
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-1.5">이메일</label>
-                    <input type="email" id="regEmail" class="inp" placeholder="example@email.com" required>
-                </div>
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-1.5">비밀번호</label>
-                    <input type="password" id="regPw" class="inp" placeholder="8자 이상" minlength="8" required>
-                </div>
-                <p id="regErr" class="text-xs text-red-500 hidden"></p>
-                <button type="submit" class="w-full py-2.5 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-colors text-sm">가입하기</button>
-            </form>
-            <p class="text-center text-xs text-gray-400 mt-4">
-                이미 계정이 있으신가요?
-                <button onclick="switchModal('registerModal','loginModal')" class="text-blue-600 font-semibold hover:underline">로그인</button>
-            </p>
-        </div>
-    </div>
-</div>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="js/firebase-config.js"></script>
+  <script>
+    let mode = 'login';
 
-<!-- ── 상품 상세 모달 ── -->
-<div id="detailModal" class="modal-bg" onclick="if(event.target===this)closeModal('detailModal')">
-    <div class="modal-box" style="max-width:520px; max-height:90vh; overflow-y:auto;">
-        <div class="p-6">
-            <div class="flex items-center justify-between mb-4">
-                <h3 id="detailName" class="text-xl font-bold text-gray-900"></h3>
-                <button onclick="closeModal('detailModal')" class="text-gray-400 hover:text-gray-600 text-lg"><i class="fas fa-times"></i></button>
-            </div>
-
-            <!-- 썸네일 -->
-            <div id="detailThumb" class="detail-thumb mb-4"></div>
-
-            <!-- 정보 -->
-            <div class="space-y-3">
-                <p id="detailDesc" class="text-sm text-gray-600 leading-relaxed"></p>
-                <div id="detailTags" class="flex flex-wrap gap-1.5"></div>
-
-                <div class="flex items-center justify-between pt-3 border-t border-gray-100">
-                    <div>
-                        <p class="text-xs text-gray-400 mb-0.5">판매가격</p>
-                        <p id="detailPrice" class="text-2xl font-extrabold text-gray-900"></p>
-                    </div>
-                    <div class="text-right">
-                        <p class="text-xs text-gray-400 mb-0.5">버전</p>
-                        <p id="detailVersion" class="text-sm font-semibold text-gray-700"></p>
-                    </div>
-                </div>
-
-                <div class="bg-blue-50 rounded-xl p-3 text-xs text-blue-700 leading-relaxed">
-                    <i class="fas fa-info-circle mr-1"></i>
-                    구매 완료 후 라이센스 키가 발급됩니다. 마이페이지에서 다운로드 및 키 확인이 가능합니다.
-                </div>
-
-                <button id="detailBuyBtn" onclick="openSubscribeFromDetail()" class="btn-buy w-full py-3 text-sm rounded-xl">
-                    <i class="fas fa-paper-plane mr-2"></i>구독 신청하기
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- ── 구독 신청 모달 ── -->
-<div id="subscribeModal" class="modal-bg" onclick="if(event.target===this)closeModal('subscribeModal')">
-    <div class="modal-box" style="max-width:440px;">
-        <div class="p-6">
-            <div class="flex items-center justify-between mb-5">
-                <h3 class="text-lg font-bold text-gray-900">구독 신청</h3>
-                <button onclick="closeModal('subscribeModal')" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
-            </div>
-
-            <div class="bg-gray-50 rounded-xl p-4 mb-4">
-                <div class="flex items-center gap-3">
-                    <div id="subIcon" class="w-12 h-12 rounded-xl flex items-center justify-center bg-blue-50 text-2xl flex-shrink-0"></div>
-                    <div>
-                        <p id="subName" class="font-bold text-gray-900 text-sm"></p>
-                        <p id="subPrice" class="text-blue-600 font-extrabold text-lg mt-0.5"></p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="space-y-2 text-xs text-gray-500 mb-5">
-                <div class="flex items-center gap-2"><i class="fas fa-check-circle text-green-500"></i> 월 구독 · 언제든 해지 가능</div>
-                <div class="flex items-center gap-2"><i class="fas fa-check-circle text-green-500"></i> 관리자 승인 후 바로 사용</div>
-                <div class="flex items-center gap-2"><i class="fas fa-check-circle text-green-500"></i> 업데이트 자동 반영</div>
-            </div>
-
-            <!-- 입금 계좌 안내 -->
-            <div id="accountGuide" class="bg-blue-50 rounded-xl p-4 mb-4 text-sm hidden">
-                <p class="font-semibold text-blue-800 mb-1"><i class="fas fa-university mr-1"></i>입금 계좌</p>
-                <p id="accountText" class="text-blue-700 font-mono"></p>
-                <p class="text-xs text-blue-500 mt-2">입금 후 아래 신청 버튼을 눌러주세요. 확인 후 승인해드립니다.</p>
-            </div>
-
-            <button onclick="applySubscription()" id="subApplyBtn" class="btn-buy w-full py-3 text-sm rounded-xl">
-                <i class="fas fa-paper-plane mr-2"></i>구독 신청하기
-            </button>
-        </div>
-    </div>
-</div>
-
-<!-- ── 구독 신청 완료 모달 ── -->
-<div id="subDoneModal" class="modal-bg">
-    <div class="modal-box" style="max-width:400px;">
-        <div class="p-6 text-center">
-            <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <i class="fas fa-check-circle text-green-500 text-3xl"></i>
-            </div>
-            <h3 class="text-xl font-bold text-gray-900 mb-2">신청 완료!</h3>
-            <p class="text-sm text-gray-500 mb-5">구독 신청이 접수되었습니다.<br>관리자 승인 후 마이페이지에서 이용 가능합니다.</p>
-            <button onclick="closeModal('subDoneModal')" class="w-full py-2.5 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 transition-colors">
-                확인
-            </button>
-        </div>
-    </div>
-</div>
-
-<!-- ── 체험 모달 ── -->
-<div id="trialModal" class="modal-bg" onclick="if(event.target===this)closeTrial()">
-    <div class="modal-box" id="trialModalBox" style="max-width:980px; height:88vh; display:flex; flex-direction:column;">
-        <!-- 체험 배너 (모달 상단) -->
-        <div style="background:linear-gradient(90deg,#1e40af,#7c3aed); color:white; padding:10px 20px; border-radius:16px 16px 0 0; display:flex; align-items:center; gap:12px; flex-shrink:0;">
-            <span style="font-size:1.1rem;">🔍</span>
-            <div style="flex:1;">
-                <strong id="trialProductName" style="font-size:0.9rem;"></strong>
-                <span style="font-size:0.75rem; opacity:0.8; margin-left:8px;">무료 체험 중 — 데이터는 저장되지 않습니다</span>
-            </div>
-            <button onclick="buyFromTrial()" style="background:white; color:#1e40af; font-size:0.75rem; font-weight:700; padding:5px 14px; border-radius:8px; border:none; cursor:pointer;">
-                구매하기 →
-            </button>
-            <button onclick="closeTrial()" style="background:rgba(255,255,255,0.2); color:white; border:none; border-radius:6px; padding:5px 10px; cursor:pointer; font-size:0.85rem;">✕</button>
-        </div>
-        <!-- 프로그램 iframe -->
-        <iframe id="trialFrame" src="" style="flex:1; border:none; border-radius:0 0 16px 16px;"></iframe>
-    </div>
-</div>
-
-<!-- ── 토스트 ── -->
-<div id="toast"></div>
-
-
-<!-- ══════════════════════════════════════ 스크립트 ══════════════════════════════════════ -->
-<script>
-// ──────────────────────────────────────────────────────────────────────
-// Firebase 설정 (firebase-config.js를 별도 파일로 분리하거나 여기에 직접 입력)
-// ──────────────────────────────────────────────────────────────────────
-const FIREBASE_CONFIG = {
-    apiKey:            "AIzaSyBCNcIVCIUpX6oq2FXjVULNXwBTMV897yU",
-    authDomain:        "sosoprogram-873b1.firebaseapp.com",
-    projectId:         "sosoprogram-873b1",
-    storageBucket:     "sosoprogram-873b1.firebasestorage.app",
-    messagingSenderId: "438626208249",
-    appId:             "1:438626208249:web:811530029b6e16d12e1528"
-};
-
-const IS_DEMO = FIREBASE_CONFIG.apiKey === "YOUR_API_KEY";
-
-let auth, db;
-if (!IS_DEMO) {
-    firebase.initializeApp(FIREBASE_CONFIG);
-    auth = firebase.auth();
-    db   = firebase.firestore();
-}
-
-// ──────────────────────────────────────────────────────────────────────
-// 상태 변수
-// ──────────────────────────────────────────────────────────────────────
-let currentUser     = null;
-let allProducts     = [];
-let selectedCat     = 'all';
-let selectedProduct = null;  // 현재 상세/구매 대상 상품
-
-// ──────────────────────────────────────────────────────────────────────
-// 카테고리 정의
-// ──────────────────────────────────────────────────────────────────────
-const CATEGORIES = [
-    { id: 'all',    label: '전체',     icon: 'fa-th-large' },
-    { id: 'sales',  label: '매출·영업', icon: 'fa-chart-line' },
-    { id: 'doc',    label: '문서자동화', icon: 'fa-file-alt' },
-    { id: 'hr',     label: '인사·총무', icon: 'fa-users' },
-    { id: 'manage', label: '업무관리',  icon: 'fa-tasks' },
-    { id: 'etc',    label: '기타',      icon: 'fa-ellipsis-h' },
-];
-
-// ──────────────────────────────────────────────────────────────────────
-// 데모용 기본 상품 데이터
-// ──────────────────────────────────────────────────────────────────────
-const DEMO_PRODUCTS = [
-    {
-        id: 'club-manager',
-        name: '모임·총무 관리',
-        description: '모임의 회원 관리, 월회비 납부 현황, 회계 내역, 의견수렴을 한 곳에서 관리합니다. 소모임·동창회·동호회에 최적화.',
-        category: 'manage',
-        price: 9900,
-        badge: 'NEW',
-        tags: ['회원관리', '월회비', '회계', '의견수렴'],
-        icon: '👥',
-        version: '1.0.0',
-        status: 'active',
-        subscription: true,
-        trialUrl: 'programs/club-manager/index.html',
-    },
-];
-
-// ──────────────────────────────────────────────────────────────────────
-// 초기화
-// ──────────────────────────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', () => {
-    renderCategories();
-    loadProducts();
-    initAuth();
-    loadBizInfo();
-});
-
-function initAuth() {
-    // 데모 모드 안내 문구 표시/숨김
-    const demoNote = document.getElementById('demoModeNote');
-    if (demoNote) demoNote.style.display = IS_DEMO ? '' : 'none';
-
-    if (IS_DEMO) {
-        const saved = localStorage.getItem('demo_user');
-        if (saved) onUserLoggedIn(JSON.parse(saved));
-        else onUserLoggedOut();
-        return;
-    }
     auth.onAuthStateChanged(user => {
-        if (user) {
-            // handleLogin/handleRegister에서 이미 직접 호출했으면 name이 반영됨
-            // onAuthStateChanged는 페이지 첫 로드 시(자동 로그인 복원)를 위해 유지
-            if (!currentUser) {
-                onUserLoggedIn({ uid: user.uid, email: user.email, name: user.displayName || user.email.split('@')[0] });
-            }
+      if (user) window.location.href = 'dashboard.html';
+    });
+
+    function switchTab(tab) {
+      mode = tab;
+      document.getElementById('tabLogin').classList.toggle('active', tab === 'login');
+      document.getElementById('tabSignup').classList.toggle('active', tab === 'signup');
+      document.getElementById('submitBtn').textContent = tab === 'login' ? '로그인' : '회원가입 하기';
+      document.getElementById('confirmPwField').style.display = tab === 'signup' ? 'block' : 'none';
+      hideError();
+    }
+
+    function showError(msg) {
+      const box = document.getElementById('errorBox');
+      box.textContent = msg;
+      box.classList.add('show');
+    }
+    function hideError() {
+      document.getElementById('errorBox').classList.remove('show');
+    }
+    function setLoading(loading) {
+      const btn = document.getElementById('submitBtn');
+      const gBtn = document.getElementById('googleBtn');
+      btn.disabled = loading;
+      gBtn.disabled = loading;
+      if (loading) {
+        const label = mode === 'login' ? '로그인 중...' : '가입 중...';
+        btn.innerHTML = `<span class="spinner"></span>${label}`;
+      } else {
+        btn.textContent = mode === 'login' ? '로그인' : '회원가입 하기';
+      }
+    }
+
+    const errMap = {
+      'auth/user-not-found': '등록되지 않은 이메일입니다.',
+      'auth/wrong-password': '비밀번호가 올바르지 않습니다.',
+      'auth/email-already-in-use': '이미 사용 중인 이메일입니다.',
+      'auth/weak-password': '비밀번호는 6자 이상이어야 합니다.',
+      'auth/invalid-email': '올바른 이메일 형식이 아닙니다.',
+      'auth/popup-closed-by-user': '로그인 창이 닫혔습니다.',
+      'auth/invalid-credential': '이메일 또는 비밀번호를 확인해주세요.',
+      'auth/too-many-requests': '잠시 후 다시 시도해주세요.',
+    };
+
+    document.getElementById('googleBtn').addEventListener('click', async () => {
+      hideError();
+      try {
+        await auth.signInWithPopup(googleProvider);
+      } catch (e) {
+        showError(errMap[e.code] || '오류가 발생했습니다. 다시 시도해주세요.');
+      }
+    });
+
+    document.getElementById('authForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      hideError();
+      const email = document.getElementById('email').value.trim();
+      const pw = document.getElementById('password').value;
+      if (!email) return showError('이메일을 입력해주세요.');
+      if (!pw) return showError('비밀번호를 입력해주세요.');
+      if (mode === 'signup') {
+        const cpw = document.getElementById('confirmPw').value;
+        if (pw !== cpw) return showError('비밀번호가 일치하지 않습니다.');
+        if (pw.length < 6) return showError('비밀번호는 6자 이상이어야 합니다.');
+      }
+      setLoading(true);
+      try {
+        if (mode === 'login') {
+          await auth.signInWithEmailAndPassword(email, pw);
         } else {
-            onUserLoggedOut();
+          await auth.createUserWithEmailAndPassword(email, pw);
         }
+      } catch (e) {
+        showError(errMap[e.code] || '오류가 발생했습니다. 다시 시도해주세요.');
+        setLoading(false);
+      }
     });
-}
-
-function onUserLoggedIn(user) {
-    currentUser = user;
-    document.getElementById('guestBtns').classList.add('hidden');
-    document.getElementById('userBtns').classList.remove('hidden');
-    document.getElementById('userBtns').style.display = 'flex';
-    document.getElementById('userNameDisplay').textContent = user.name || user.email;
-}
-
-function onUserLoggedOut() {
-    currentUser = null;
-    document.getElementById('guestBtns').classList.remove('hidden');
-    document.getElementById('guestBtns').style.display = 'flex';
-    document.getElementById('userBtns').classList.add('hidden');
-    document.getElementById('userBtns').style.display = '';
-    document.getElementById('userNameDisplay').textContent = '';
-}
-
-// ──────────────────────────────────────────────────────────────────────
-// 상품 로드
-// ──────────────────────────────────────────────────────────────────────
-async function loadProducts() {
-    if (IS_DEMO) {
-        allProducts = DEMO_PRODUCTS;
-        filterProducts();
-        return;
-    }
-    try {
-        // orderBy 없이 단순 get (인덱스 오류 방지)
-        const snap = await db.collection('products').get();
-        allProducts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-        if (allProducts.length === 0) allProducts = DEMO_PRODUCTS;
-    } catch (e) {
-        console.warn('상품 로드 오류, 기본 데이터 사용:', e);
-        allProducts = DEMO_PRODUCTS;
-    }
-    filterProducts();
-}
-
-// ──────────────────────────────────────────────────────────────────────
-// 카테고리 렌더링
-// ──────────────────────────────────────────────────────────────────────
-function renderCategories() {
-    const el = document.getElementById('categoryList');
-    el.innerHTML = CATEGORIES.map(c => `
-        <div class="cat-item ${c.id === selectedCat ? 'active' : ''}"
-             id="cat-${c.id}" onclick="selectCategory('${c.id}')">
-            <i class="fas ${c.icon} w-4 text-center"></i>
-            <span>${c.label}</span>
-            <span class="count" id="count-${c.id}">0</span>
-        </div>
-    `).join('');
-}
-
-function selectCategory(catId) {
-    selectedCat = catId;
-    CATEGORIES.forEach(c => {
-        const el = document.getElementById('cat-' + c.id);
-        if (el) el.className = 'cat-item' + (c.id === catId ? ' active' : '');
-    });
-    const label = CATEGORIES.find(c => c.id === catId)?.label || '전체';
-    document.getElementById('currentCatLabel').textContent = catId === 'all' ? '전체 프로그램' : label;
-    filterProducts();
-}
-
-// ──────────────────────────────────────────────────────────────────────
-// 상품 필터링 & 렌더링
-// ──────────────────────────────────────────────────────────────────────
-function filterProducts() {
-    const query  = document.getElementById('searchInput').value.trim().toLowerCase();
-    const sort   = document.getElementById('sortSelect').value;
-
-    // 카테고리 카운트 업데이트
-    CATEGORIES.forEach(c => {
-        const el = document.getElementById('count-' + c.id);
-        if (!el) return;
-        const cnt = c.id === 'all'
-            ? allProducts.length
-            : allProducts.filter(p => p.category === c.id).length;
-        el.textContent = cnt;
-    });
-
-    let filtered = allProducts.filter(p => {
-        const matchCat  = selectedCat === 'all' || p.category === selectedCat;
-        const matchQ    = !query
-            || p.name.toLowerCase().includes(query)
-            || (p.description || '').toLowerCase().includes(query)
-            || (p.tags || []).some(t => t.toLowerCase().includes(query));
-        return matchCat && matchQ;
-    });
-
-    // 정렬
-    if (sort === 'price-asc')  filtered.sort((a,b) => (a.price||0) - (b.price||0));
-    if (sort === 'price-desc') filtered.sort((a,b) => (b.price||0) - (a.price||0));
-    if (sort === 'name')       filtered.sort((a,b) => a.name.localeCompare(b.name, 'ko'));
-
-    renderProductGrid(filtered);
-    document.getElementById('productCount').textContent = `${filtered.length}개 프로그램`;
-    document.getElementById('emptyState').classList.toggle('hidden', filtered.length > 0);
-    document.getElementById('productGrid').classList.toggle('hidden', filtered.length === 0);
-}
-
-function renderProductGrid(products) {
-    const grid = document.getElementById('productGrid');
-    grid.innerHTML = products.map(p => buildCard(p)).join('');
-}
-
-function buildCard(p) {
-    const isSoon    = p.status === 'coming_soon';
-    const hasTrial  = !isSoon && !!p.trialUrl;
-    const badgeHtml = p.badge ? `<span class="badge badge-${p.badge.toLowerCase()}">${p.badge}</span>` : '';
-    const soonBadge = isSoon  ? `<span class="badge badge-soon">준비중</span>` : '';
-    const trialBadge = hasTrial ? `<span class="badge" style="background:#f0fdf4;color:#15803d;">체험가능</span>` : '';
-
-    const thumbHtml = p.thumbnailUrl
-        ? `<img src="${p.thumbnailUrl}" alt="${p.name}" loading="lazy">`
-        : `<span style="font-size:3rem;">${p.icon || '🖥️'}</span>`;
-
-    const tagsHtml = (p.tags || []).map(t => `<span class="tag">${t}</span>`).join('');
-
-    const priceHtml = isSoon
-        ? `<span class="text-sm font-semibold text-gray-400">출시예정</span>`
-        : `<p class="price">₩${(p.price||0).toLocaleString()}<span>/ 영구</span></p>`;
-
-    const btnsHtml = isSoon ? '' : `
-        <div class="flex gap-1.5" style="flex-shrink:0;">
-            ${hasTrial ? `<button class="btn-trial" onclick="event.stopPropagation();openTrial('${p.id}')">체험하기</button>` : ''}
-            <button class="btn-buy" onclick="event.stopPropagation();subscribeProduct('${p.id}')">구독하기</button>
-        </div>`;
-
-    return `
-    <div class="prog-card ${isSoon ? 'coming-soon' : ''}" onclick="${isSoon ? '' : `openDetail('${p.id}')`}">
-        <div class="thumb">${thumbHtml}</div>
-        <div class="info">
-            <div class="flex items-start justify-between gap-2">
-                <p class="name">${p.name}</p>
-                <div class="flex gap-1 flex-shrink-0">${trialBadge}${badgeHtml}${soonBadge}</div>
-            </div>
-            <p class="desc">${p.description || ''}</p>
-            <div class="tags">${tagsHtml}</div>
-            <div class="footer">
-                ${priceHtml}
-                ${btnsHtml}
-            </div>
-        </div>
-    </div>`;
-}
-
-// ──────────────────────────────────────────────────────────────────────
-// 상품 상세 모달
-// ──────────────────────────────────────────────────────────────────────
-function openDetail(productId) {
-    const p = allProducts.find(x => x.id === productId);
-    if (!p) return;
-    selectedProduct = p;
-
-    document.getElementById('detailName').textContent    = p.name;
-    document.getElementById('detailDesc').textContent    = p.description || '';
-    document.getElementById('detailPrice').textContent   = `₩${(p.price||0).toLocaleString()}`;
-    document.getElementById('detailVersion').textContent = `v${p.version || '1.0.0'}`;
-
-    const thumb = document.getElementById('detailThumb');
-    thumb.innerHTML = p.thumbnailUrl
-        ? `<img src="${p.thumbnailUrl}" alt="${p.name}" style="width:100%;height:100%;object-fit:cover;">`
-        : `<span style="font-size:4rem;">${p.icon || '🖥️'}</span>`;
-
-    const tags = document.getElementById('detailTags');
-    tags.innerHTML = (p.tags || []).map(t => `<span class="tag" style="font-size:0.7rem;">${t}</span>`).join('');
-
-    openModal('detailModal');
-}
-
-function openSubscribeFromDetail() {
-    closeModal('detailModal');
-    if (selectedProduct) subscribeProduct(selectedProduct.id);
-}
-
-// ──────────────────────────────────────────────────────────────────────
-// 구독 플로우
-// ──────────────────────────────────────────────────────────────────────
-function subscribeProduct(productId) {
-    if (!currentUser) {
-        openModal('loginModal');
-        showToast('로그인 후 구독 신청할 수 있습니다.');
-        return;
-    }
-    const p = allProducts.find(x => x.id === productId);
-    if (!p) return;
-    selectedProduct = p;
-
-    document.getElementById('subName').textContent  = p.name;
-    document.getElementById('subPrice').textContent = `₩${(p.price||0).toLocaleString()} / 월`;
-    document.getElementById('subIcon').textContent  = p.icon || '🖥️';
-
-    // 계좌 안내 표시
-    if (bizInfo && bizInfo.account) {
-        document.getElementById('accountText').textContent = bizInfo.account;
-        document.getElementById('accountGuide').classList.remove('hidden');
-    } else {
-        document.getElementById('accountGuide').classList.add('hidden');
-    }
-
-    openModal('subscribeModal');
-}
-
-async function applySubscription() {
-    if (!selectedProduct || !currentUser) return;
-    const btn = document.getElementById('subApplyBtn');
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>신청 중...';
-
-    try {
-        // 중복 신청 체크
-        if (!IS_DEMO) {
-            const dup = await db.collection('subscriptions')
-                .where('userId', '==', currentUser.uid)
-                .where('productId', '==', selectedProduct.id)
-                .where('status', 'in', ['pending', 'active'])
-                .limit(1).get();
-            if (!dup.empty) {
-                showToast('이미 신청 중이거나 구독 중입니다. 마이페이지에서 확인하세요.');
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fas fa-paper-plane mr-2"></i>구독 신청하기';
-                closeModal('subscribeModal');
-                return;
-            }
-            await db.collection('subscriptions').add({
-                userId:      currentUser.uid,
-                userEmail:   currentUser.email,
-                userName:    currentUser.name || currentUser.email.split('@')[0],
-                productId:   selectedProduct.id,
-                productName: selectedProduct.name,
-                status:      'pending',
-                appliedAt:   firebase.firestore.FieldValue.serverTimestamp(),
-            });
-        }
-    } catch (e) {
-        console.error(e);
-    }
-
-    btn.disabled = false;
-    btn.innerHTML = '<i class="fas fa-paper-plane mr-2"></i>구독 신청하기';
-    closeModal('subscribeModal');
-    openModal('subDoneModal');
-}
-
-// ──────────────────────────────────────────────────────────────────────
-// 로그인 / 회원가입 / 로그아웃
-// ──────────────────────────────────────────────────────────────────────
-async function handleLogin(e) {
-    e.preventDefault();
-    const email = document.getElementById('loginEmail').value.trim();
-    const pw    = document.getElementById('loginPw').value;
-    document.getElementById('loginErr').classList.add('hidden');
-
-    if (IS_DEMO) {
-        const users = JSON.parse(localStorage.getItem('demo_users') || '[]');
-        const found = users.find(u => u.email === email && u.pw === pw);
-        if (!found) { document.getElementById('loginErr').classList.remove('hidden'); return; }
-        const user = { uid: found.uid, email: found.email, name: found.name };
-        localStorage.setItem('demo_user', JSON.stringify(user));
-        onUserLoggedIn(user);
-        closeModal('loginModal');
-        showToast(`${found.name}님, 환영합니다!`);
-        return;
-    }
-
-    try {
-        const cred = await auth.signInWithEmailAndPassword(email, pw);
-        const snap = await db.collection('users').doc(cred.user.uid).get();
-        const name = (snap.exists && snap.data().name) ? snap.data().name : (cred.user.displayName || email.split('@')[0]);
-        // onAuthStateChanged보다 먼저 직접 반영
-        onUserLoggedIn({ uid: cred.user.uid, email: cred.user.email, name });
-        closeModal('loginModal');
-        showToast(`${name}님, 환영합니다!`);
-    } catch (err) {
-        document.getElementById('loginErr').classList.remove('hidden');
-    }
-}
-
-async function handleRegister(e) {
-    e.preventDefault();
-    const name  = document.getElementById('regName').value.trim();
-    const email = document.getElementById('regEmail').value.trim();
-    const pw    = document.getElementById('regPw').value;
-    const errEl = document.getElementById('regErr');
-    errEl.classList.add('hidden');
-
-    if (IS_DEMO) {
-        const users = JSON.parse(localStorage.getItem('demo_users') || '[]');
-        if (users.find(u => u.email === email)) {
-            errEl.textContent = '이미 사용 중인 이메일입니다.';
-            errEl.classList.remove('hidden');
-            return;
-        }
-        const uid = 'user_' + Date.now();
-        users.push({ uid, name, email, pw });
-        localStorage.setItem('demo_users', JSON.stringify(users));
-        const user = { uid, email, name };
-        localStorage.setItem('demo_user', JSON.stringify(user));
-        onUserLoggedIn(user);
-        closeModal('registerModal');
-        showToast(`${name}님, 가입을 환영합니다!`);
-        return;
-    }
-
-    try {
-        const cred = await auth.createUserWithEmailAndPassword(email, pw);
-        await cred.user.updateProfile({ displayName: name });
-        await db.collection('users').doc(cred.user.uid).set({
-            name, email,
-            joinedAt: firebase.firestore.FieldValue.serverTimestamp(),
-            purchases: [],
-        });
-        // updateProfile 완료 후 직접 반영 (onAuthStateChanged는 displayName 갱신 전에 발동될 수 있음)
-        onUserLoggedIn({ uid: cred.user.uid, email, name });
-        closeModal('registerModal');
-        showToast(`${name}님, 가입을 환영합니다!`);
-    } catch (err) {
-        errEl.textContent = err.code === 'auth/email-already-in-use'
-            ? '이미 사용 중인 이메일입니다.'
-            : '오류가 발생했습니다. 다시 시도해주세요.';
-        errEl.classList.remove('hidden');
-    }
-}
-
-function handleLogout() {
-    if (IS_DEMO) {
-        localStorage.removeItem('demo_user');
-        onUserLoggedOut();
-        showToast('로그아웃되었습니다.');
-        return;
-    }
-    auth.signOut().then(() => showToast('로그아웃되었습니다.'));
-}
-
-// ──────────────────────────────────────────────────────────────────────
-// 사업자 정보 로드 → 푸터 표시
-// ──────────────────────────────────────────────────────────────────────
-let bizInfo = {};
-async function loadBizInfo() {
-    if (IS_DEMO) return;
-    try {
-        const doc = await db.collection('settings').doc('bizinfo').get();
-        if (!doc.exists) return;
-        bizInfo = doc.data();
-        const footer = document.getElementById('bizFooter');
-        if (!footer) return;
-        const set = (id, prefix, val) => {
-            const el = document.getElementById(id);
-            if (el && val) { el.textContent = prefix + val; footer.classList.remove('hidden'); }
-        };
-        set('biz-f-name',      '',             bizInfo.name);
-        set('biz-f-ceo',       '대표 ',        bizInfo.ceo);
-        set('biz-f-regnum',    '사업자번호 ',  bizInfo.regnum);
-        set('biz-f-tel',       'Tel. ',        bizInfo.tel);
-        set('biz-f-addr',      '',             bizInfo.addr);
-        set('biz-f-email',     '',             bizInfo.email);
-        set('biz-f-mailorder', '통신판매업 ',  bizInfo.mailorder);
-        if (bizInfo.extra) {
-            const el = document.getElementById('biz-f-extra');
-            if (el) { el.textContent = bizInfo.extra; footer.classList.remove('hidden'); }
-        }
-    } catch {}
-}
-
-// ──────────────────────────────────────────────────────────────────────
-// 공통 모달
-// ──────────────────────────────────────────────────────────────────────
-function openModal(id) {
-    document.getElementById(id).classList.add('open');
-}
-function closeModal(id) {
-    document.getElementById(id).classList.remove('open');
-}
-function switchModal(from, to) {
-    closeModal(from);
-    openModal(to);
-}
-
-// ──────────────────────────────────────────────────────────────────────
-// 토스트
-// ──────────────────────────────────────────────────────────────────────
-let toastTimer;
-function showToast(msg) {
-    const el = document.getElementById('toast');
-    el.textContent = msg;
-    el.classList.add('show');
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
-}
-
-// ──────────────────────────────────────────────────────────────────────
-// 체험 모달
-// ──────────────────────────────────────────────────────────────────────
-let trialProductId = null;
-
-function openTrial(productId) {
-    const p = allProducts.find(x => x.id === productId);
-    if (!p || !p.trialUrl) return;
-
-    trialProductId = productId;
-    document.getElementById('trialProductName').textContent = p.name;
-    document.getElementById('trialFrame').src = p.trialUrl;
-    document.getElementById('trialModal').classList.add('open');
-}
-
-function closeTrial() {
-    document.getElementById('trialModal').classList.remove('open');
-    // iframe src를 비워 리소스 해제
-    setTimeout(() => { document.getElementById('trialFrame').src = ''; }, 300);
-    trialProductId = null;
-}
-
-function buyFromTrial() {
-    const pid = trialProductId;
-    closeTrial();
-    if (pid) setTimeout(() => buyProduct(pid), 350);
-}
-</script>
+  </script>
 </body>
 </html>
