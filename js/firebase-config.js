@@ -1,12 +1,11 @@
-// Firebase 프로젝트 설정값을 아래에 입력하세요.
-// Firebase Console(https://console.firebase.google.com) > 프로젝트 설정 > 내 앱 에서 확인
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
+  apiKey: "AIzaSyAfbBsZVWfUXyDxP-FrNdnO4r71dnmAd1U",
   authDomain: "program-tool.firebaseapp.com",
   projectId: "program-tool",
-  storageBucket: "program-tool.appspot.com",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  storageBucket: "program-tool.firebasestorage.app",
+  messagingSenderId: "660190959615",
+  appId: "1:660190959615:web:86959be41774132c84b9ca",
+  measurementId: "G-1Y1FC82J4X"
 };
 
 firebase.initializeApp(firebaseConfig);
