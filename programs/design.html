@@ -248,10 +248,14 @@
         <div class="field"><label>메인 색상</label><input id="mainColor" type="color" value="#12396d"></div>
         <div class="field"><label>포인트 색상</label><input id="accentColor" type="color" value="#1d9bb2"></div>
       </div>
+      <div class="buttons single" style="margin-bottom:10px;">
+        <button class="blue" id="generateBgBtn" onclick="generateAiBg()">✨ AI 배경 자동 생성</button>
+      </div>
+      <div id="aiGenStatus" style="display:none; font-size:12px; color:#6b7280; padding:8px 10px; background:#f0f9ff; border-radius:8px; margin-bottom:10px; text-align:center;"></div>
       <div class="field">
-        <label>AI/사용자 배경 이미지</label>
+        <label>직접 업로드 (선택)</label>
         <input id="bgFile" type="file" accept="image/*">
-        <div class="smallnote">ChatGPT에서 만든 배경 PNG/JPG를 올리면 배경으로 적용됩니다.</div>
+        <div class="smallnote">직접 만든 배경 이미지를 올릴 수도 있습니다.</div>
       </div>
       <div class="grid2">
         <div class="field">
@@ -267,12 +271,8 @@
           <div class="minirow"><span>연하게</span><span id="bgOpacityValue">35%</span><span>진하게</span></div>
         </div>
       </div>
-      <div class="field">
-        <label>ChatGPT 배경 요청 문구</label>
-        <textarea id="aiPrompt" readonly></textarea>
-      </div>
       <div class="buttons single">
-        <button class="secondary small" id="copyPrompt">배경 요청 문구 복사</button>
+        <button class="secondary small" id="clearBgBtn" onclick="clearBg()">배경 제거</button>
       </div>
     </div>
 
@@ -318,6 +318,7 @@
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="../js/firebase-config.js"></script>
 <script>
 // ── Auth guard ───────────────────────────────────
@@ -581,20 +582,72 @@ function makeSvg() {
   return {svg,w,h,mode,frontW,frontH,spineW,b};
 }
 
-function buildPrompt() {
-  const frontW=num('frontW',210), frontH=num('frontH',297), spineW=num('spineW',8), b=num('bleed',3);
+function buildDallePrompt() {
+  const frontW=num('frontW',210), frontH=num('frontH',297);
   const mode=$('mode').value;
-  const modeText = mode==='full'
-    ? `뒤표지+책등+앞표지 전체 펼침형, 앞표지 ${frontW}mm x ${frontH}mm, 책등 ${spineW}mm, 도련 ${b}mm`
-    : `앞표지 단면, ${frontW}mm x ${frontH}mm, 도련 ${b}mm`;
   const styleLabel = $('style').selectedOptions[0].textContent;
-  return `인쇄용 표지에 사용할 배경 이미지만 만들어줘. 텍스트, 로고, 글자, 숫자, 테두리, 재단선은 넣지 말고 배경만. 스타일은 ${styleLabel}. 메인 색상은 ${$('mainColor').value}, 포인트 색상은 ${$('accentColor').value}. 규격은 ${modeText}. 깔끔하고 여백이 넉넉하며, 제목이 들어갈 중앙 영역은 복잡하지 않게 비워줘.`;
+  const isPortrait = frontH >= frontW;
+  const ratio = mode==='full' ? '가로형 파노라마' : (isPortrait ? '세로형' : '가로형');
+  return `A clean, minimal background image for a printed ${ratio} document cover. Style: ${styleLabel}. Main color: ${$('mainColor').value}, accent color: ${$('accentColor').value}. No text, no letters, no numbers, no logos, no borders, no crop marks. Keep the center area clean and uncluttered for title placement. High quality, professional design.`;
+}
+
+async function generateAiBg() {
+  const btn = $('generateBgBtn');
+  const statusEl = $('aiGenStatus');
+  btn.disabled = true;
+  btn.textContent = '⏳ 생성 중...';
+  statusEl.style.display = 'block';
+  statusEl.textContent = 'AI 배경 이미지 생성 중입니다... (10~20초 소요)';
+
+  try {
+    const doc = await db.collection('settings').doc('config').get();
+    const apiKey = doc.exists ? doc.data().openaiKey : null;
+    if (!apiKey) {
+      statusEl.textContent = '⚠️ OpenAI API 키가 없습니다. 관리자 페이지에서 등록해주세요.';
+      statusEl.style.background = '#fef2f2'; statusEl.style.color = '#991b1b';
+      return;
+    }
+
+    const frontW = num('frontW',210), frontH = num('frontH',297);
+    const mode = $('mode').value;
+    const isPortrait = frontH >= frontW;
+    const size = mode === 'full' ? '1792x1024' : (isPortrait ? '1024x1792' : '1792x1024');
+
+    const res = await fetch('https://api.openai.com/v1/images/generations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+      body: JSON.stringify({ model: 'dall-e-3', prompt: buildDallePrompt(), n: 1, size, quality: 'standard', response_format: 'b64_json' })
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error?.message || res.status);
+    }
+
+    const data = await res.json();
+    bgData = 'data:image/png;base64,' + data.data[0].b64_json;
+    statusEl.textContent = '✓ AI 배경 생성 완료!';
+    statusEl.style.background = '#f0fdf4'; statusEl.style.color = '#166534';
+    render();
+    setTimeout(() => { statusEl.style.display = 'none'; statusEl.style.background=''; statusEl.style.color=''; }, 3000);
+  } catch(e) {
+    statusEl.textContent = '오류: ' + e.message;
+    statusEl.style.background = '#fef2f2'; statusEl.style.color = '#991b1b';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '✨ AI 배경 자동 생성';
+  }
+}
+
+function clearBg() {
+  bgData = '';
+  $('bgFile').value = '';
+  render();
 }
 
 function render() {
   $('bgOpacityValue').textContent = Math.round(parseFloat($('bgOpacity').value||.35)*100)+'%';
   $('previewScaleValue').textContent = $('previewScale').value+'%';
-  $('aiPrompt').value = buildPrompt();
   const data = makeSvg();
   $('previewBox').innerHTML = data.svg;
   const svgEl = $('previewBox').querySelector('svg');
@@ -645,11 +698,6 @@ $('resetBtn').addEventListener('click', () => {
   $('bgFit').value='slice'; $('bgOpacity').value=0.35; $('previewScale').value=120;
   $('showGuides').checked=true;
   renderItemList(); render();
-});
-$('copyPrompt').addEventListener('click', async () => {
-  $('aiPrompt').value = buildPrompt();
-  try { await navigator.clipboard.writeText($('aiPrompt').value); $('copyPrompt').textContent='✓ 복사 완료'; setTimeout(()=>$('copyPrompt').textContent='배경 요청 문구 복사',1200); }
-  catch(e) { $('aiPrompt').select(); document.execCommand('copy'); }
 });
 $('fitWidthBtn').addEventListener('click', fitWidth);
 $('bigPreviewBtn').addEventListener('click', () => { $('previewScale').value=Math.min(220,parseInt($('previewScale').value||120,10)+40); render(); });

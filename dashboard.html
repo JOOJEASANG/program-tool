@@ -212,6 +212,10 @@
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
         <div class="user-dropdown" id="userDropdown">
           <div class="dropdown-email" id="dropdownEmail"></div>
+          <button class="dropdown-btn" id="adminBtn" style="display:none;" onclick="location.href='admin.html'">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+            관리자 설정
+          </button>
           <button class="dropdown-btn danger" id="logoutBtn">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
             로그아웃
@@ -240,6 +244,7 @@
 
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
   <script src="js/firebase-config.js"></script>
   <script>
     // ── 프로그램 데이터 ──────────────────────────────────────────
@@ -303,6 +308,14 @@
       } else {
         avatarEl.textContent = name.charAt(0).toUpperCase();
       }
+
+      // 관리자 여부 확인 후 메뉴 표시
+      db.collection('settings').doc('admin').get().then(doc => {
+        const emails = doc.exists ? (doc.data().emails || []) : [];
+        if (emails.includes(user.email) || !doc.exists) {
+          document.getElementById('adminBtn').style.display = 'flex';
+        }
+      }).catch(() => {});
     }
 
     // ── Dropdown ─────────────────────────────────────────────────
