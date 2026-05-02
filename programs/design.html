@@ -3,1184 +3,664 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>디자인 보드 · Program Tool</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&family=Nanum+Gothic:wght@400;700;800&family=Nanum+Myeongjo:wght@400;700;800&family=Black+Han+Sans&family=Do+Hyeon&family=Jua&display=swap" rel="stylesheet" />
+  <title>표지 생성기 · Program Tool</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body { height: 100%; overflow: hidden; }
-    body {
-      font-family: Pretendard, "Noto Sans KR", sans-serif;
-      background: #1e1e2e;
-      color: #e0e0f0;
-      display: flex;
-      flex-direction: column;
-      font-size: 13px;
+    :root {
+      --bg: #f4f6f8; --panel: #ffffff; --text: #111827; --muted: #6b7280;
+      --line: #d1d5db; --primary: #12396d; --accent: #1d9bb2;
+      --shadow: 0 16px 44px rgba(15,23,42,.13); --nav-h: 52px;
     }
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; }
+    body { font-family: Pretendard, "Noto Sans KR", Arial, sans-serif; background: var(--bg); color: var(--text); padding-top: var(--nav-h); }
 
-    /* Auth overlay */
-    #authOverlay {
-      position: fixed; inset: 0;
-      background: #1e1e2e;
-      display: flex; align-items: center; justify-content: center;
-      z-index: 9999;
-    }
-    #authOverlay.hidden { display: none; }
-
-    /* TOP NAV */
-    #topNav {
-      height: 52px;
-      background: #16162a;
-      border-bottom: 1px solid #2e2e4a;
-      display: flex; align-items: center; gap: 10px;
-      padding: 0 14px;
-      flex-shrink: 0;
-      z-index: 100;
+    .top-nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 500;
+      height: var(--nav-h); background: var(--primary);
+      display: flex; align-items: center; padding: 0 16px; gap: 12px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.2);
     }
     .nav-back {
       display: flex; align-items: center; gap: 6px;
-      color: #94a3b8; text-decoration: none; font-size: 13px; font-weight: 600;
-      padding: 6px 10px; border-radius: 8px;
-      transition: background 0.15s, color 0.15s;
-      white-space: nowrap;
+      color: rgba(255,255,255,0.85); font-size: 13px; font-weight: 700;
+      text-decoration: none; padding: 7px 12px; border-radius: 8px;
+      transition: background 0.15s; white-space: nowrap; flex-shrink: 0;
+      border: 1px solid rgba(255,255,255,0.2);
     }
-    .nav-back:hover { background: #2e2e4a; color: #e0e0f0; }
-    .nav-title {
-      flex: 1;
-      font-size: 15px; font-weight: 800; color: #fff;
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    .nav-back:hover { background: rgba(255,255,255,0.15); color: #fff; }
+    .nav-title { flex: 1; text-align: center; font-size: 15px; font-weight: 800; color: #fff; }
+    .nav-user { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+    .nav-user-name { font-size: 12px; color: rgba(255,255,255,0.75); font-weight: 600; max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .nav-logout {
+      display: flex; align-items: center; gap: 5px;
+      color: rgba(255,255,255,0.75); font-size: 12px; font-weight: 700;
+      background: rgba(255,255,255,0.12); border: none; border-radius: 7px;
+      padding: 6px 10px; cursor: pointer; font-family: inherit; transition: background 0.15s;
     }
-    .nav-doc-name {
-      background: transparent; border: 1px solid #3e3e5a;
-      color: #e0e0f0; font-size: 13px; font-weight: 600;
-      padding: 5px 10px; border-radius: 8px;
-      font-family: inherit; outline: none; width: 180px;
-      transition: border-color 0.15s;
-    }
-    .nav-doc-name:focus { border-color: #7c6af5; }
-    .nav-sep { width: 1px; height: 26px; background: #2e2e4a; flex-shrink: 0; }
-    .export-group { display: flex; gap: 6px; }
-    .export-btn {
-      background: #2e2e4a; border: 1px solid #3e3e5a;
-      color: #e0e0f0; font-size: 12px; font-weight: 700;
-      padding: 6px 12px; border-radius: 8px; cursor: pointer;
-      font-family: inherit; transition: all 0.15s; white-space: nowrap;
-    }
-    .export-btn:hover { background: #3e3e5a; border-color: #5e5e7a; }
-    .export-btn.primary { background: #7c6af5; border-color: #7c6af5; color: #fff; }
-    .export-btn.primary:hover { background: #6a58e3; }
-    .nav-user { display: flex; align-items: center; gap: 8px; padding: 0 4px; }
-    .nav-avatar {
-      width: 30px; height: 30px; border-radius: 50%;
-      background: linear-gradient(135deg, #7c6af5, #4fa8d5);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 13px; font-weight: 800; color: #fff;
-    }
-    .nav-user-name { font-size: 13px; color: #94a3b8; max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .logout-btn {
-      background: transparent; border: 1px solid #3e3e5a;
-      color: #94a3b8; font-size: 12px; font-weight: 600;
-      padding: 5px 10px; border-radius: 8px; cursor: pointer;
-      font-family: inherit; transition: all 0.15s;
-    }
-    .logout-btn:hover { border-color: #e05a5a; color: #e05a5a; }
+    .nav-logout:hover { background: rgba(255,255,255,0.22); color: #fff; }
 
-    /* MAIN LAYOUT */
-    #main { flex: 1; display: flex; overflow: hidden; }
-
-    /* LEFT PANEL */
-    #leftPanel {
-      width: 58px;
-      background: #16162a;
-      border-right: 1px solid #2e2e4a;
-      display: flex; flex-direction: column;
-      align-items: center;
-      padding: 8px 0;
-      gap: 2px;
-      overflow-y: auto;
-      flex-shrink: 0;
+    .app { display: grid; grid-template-columns: 420px minmax(0,1fr); min-height: calc(100vh - var(--nav-h)); }
+    aside { background: var(--panel); border-right: 1px solid #e5e7eb; padding: 20px; overflow-y: auto; max-height: calc(100vh - var(--nav-h)); }
+    main { padding: 14px; overflow: hidden; min-width: 0; }
+    h1 { font-size: 20px; margin: 0 0 5px; letter-spacing: -0.04em; }
+    .sub { color: var(--muted); font-size: 12px; line-height: 1.45; margin-bottom: 16px; }
+    .section { border-top: 1px solid #edf0f3; padding-top: 14px; margin-top: 14px; }
+    .section h2 { font-size: 13px; font-weight: 800; margin: 0 0 10px; color: #111827; }
+    label { display: block; font-size: 11px; font-weight: 800; margin: 0 0 5px; color: #374151; }
+    input, select, textarea {
+      width: 100%; border: 1px solid var(--line); border-radius: 9px;
+      padding: 9px 10px; font-size: 13px; background: #fff;
+      outline: none; font-family: inherit;
     }
-    .tool-btn {
-      width: 42px; height: 42px;
-      background: transparent; border: none;
-      border-radius: 10px; cursor: pointer;
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      gap: 3px; color: #7a7a9a; transition: all 0.15s;
-      font-family: inherit;
+    textarea { min-height: 60px; resize: vertical; }
+    input:focus, select:focus, textarea:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,.10); }
+    input[type="range"] { padding: 0; }
+    input[type="color"] { padding: 3px 5px; height: 36px; cursor: pointer; }
+    input[type="file"] { font-size: 12px; padding: 7px 9px; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .field { margin-bottom: 10px; }
+    .checkline { display: flex; align-items: center; gap: 8px; margin: 8px 0; font-size: 12px; color: #374151; font-weight: 700; cursor: pointer; }
+    .checkline input { width: auto; cursor: pointer; }
+    .buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+    .buttons.single { grid-template-columns: 1fr; }
+    button {
+      border: 0; border-radius: 10px; padding: 10px 12px;
+      background: #111827; color: white; font-weight: 900; cursor: pointer;
+      font-size: 12px; font-family: inherit; transition: opacity 0.15s;
     }
-    .tool-btn:hover { background: #2e2e4a; color: #e0e0f0; }
-    .tool-btn.active { background: #7c6af5; color: #fff; }
-    .tool-btn svg { width: 18px; height: 18px; }
-    .tool-btn span { font-size: 9px; font-weight: 700; line-height: 1; }
-    .tool-sep { width: 30px; height: 1px; background: #2e2e4a; margin: 4px 0; }
+    button:hover { opacity: 0.85; }
+    button.secondary { background: #e5e7eb; color: #111827; }
+    button.blue { background: #164a8a; }
+    button.green { background: #0f766e; }
+    button.small { padding: 8px 10px; font-size: 11px; }
+    button.danger { background: #fee2e2; color: #991b1b; }
+    button.accent-btn { background: var(--accent); color: #fff; }
 
-    /* CANVAS AREA */
-    #canvasArea {
-      flex: 1;
-      background: #28283e;
-      display: flex; flex-direction: column;
-      align-items: center;
-      overflow: auto;
-      padding: 24px 24px 0;
+    /* Item add rows */
+    .item-list { display: flex; flex-direction: column; gap: 8px; }
+    .item-row {
+      background: #f8fafc; border: 1px solid #e5e7eb;
+      border-radius: 10px; padding: 10px 10px 8px;
       position: relative;
     }
-    #canvasWrapper {
-      position: relative;
-      box-shadow: 0 8px 40px rgba(0,0,0,0.5);
-      flex-shrink: 0;
+    .item-row-top { display: flex; gap: 6px; align-items: flex-start; margin-bottom: 7px; }
+    .item-text-wrap { flex: 1; }
+    .item-text-wrap input {
+      width: 100%; border-radius: 7px; font-size: 13px;
+      padding: 8px 10px; border: 1px solid #d1d5db;
     }
-    #designCanvas { display: block; }
+    .item-del {
+      background: transparent; border: none; color: #9ca3af;
+      font-size: 16px; cursor: pointer; padding: 4px 6px;
+      line-height: 1; font-family: inherit; transition: color 0.12s;
+      flex-shrink: 0; margin-top: 3px;
+    }
+    .item-del:hover { color: #ef4444; opacity: 1; background: transparent; }
+    .item-row-opts { display: grid; grid-template-columns: 1fr 1fr 1fr 40px 40px; gap: 5px; align-items: end; }
+    .item-opt-label { font-size: 10px; font-weight: 700; color: #6b7280; margin-bottom: 3px; }
+    .item-opt-input {
+      width: 100%; border: 1px solid #d1d5db; border-radius: 6px;
+      padding: 5px 7px; font-size: 12px; background: #fff; font-family: inherit; outline: none;
+    }
+    .item-opt-input:focus { border-color: #2563eb; }
+    .item-opt-color { padding: 2px 3px; height: 32px; cursor: pointer; }
+    .item-bold-btn, .item-center-btn {
+      background: #e5e7eb; border: 1px solid #d1d5db; color: #374151;
+      border-radius: 6px; padding: 5px; cursor: pointer; font-size: 12px;
+      font-family: inherit; height: 32px; width: 40px; font-weight: 700;
+      transition: all 0.12s; line-height: 1;
+    }
+    .item-bold-btn.on, .item-center-btn.on { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .add-item-btn {
+      width: 100%; background: #eff6ff; border: 1.5px dashed #93c5fd; color: #1d4ed8;
+      border-radius: 9px; padding: 9px; font-size: 12px; font-weight: 800;
+      cursor: pointer; font-family: inherit; transition: all 0.15s; margin-top: 4px;
+    }
+    .add-item-btn:hover { background: #dbeafe; opacity: 1; }
+    .item-drag-handle {
+      color: #9ca3af; font-size: 14px; cursor: grab; padding: 4px 2px;
+      user-select: none; margin-top: 3px; flex-shrink: 0;
+    }
+    .item-row.dragging { opacity: 0.5; }
+    .item-row.drag-over { border-color: var(--accent); background: #ecfeff; }
 
-    /* ZOOM BAR */
-    #zoomBar {
-      width: 100%;
-      background: #16162a; border-top: 1px solid #2e2e4a;
-      padding: 6px 12px;
-      display: flex; align-items: center; gap: 8px;
-      font-size: 12px; color: #7a7a9a;
-      flex-shrink: 0; margin-top: auto;
-      position: sticky; bottom: 0;
+    .preview-shell {
+      background: #e9edf2; border-radius: 18px; padding: 14px;
+      height: calc(100vh - var(--nav-h) - 28px);
+      display: flex; flex-direction: column; gap: 10px; min-width: 0;
     }
-    #zoomVal { color: #e0e0f0; font-weight: 700; min-width: 40px; text-align: center; }
-    .zoom-btn {
-      background: #2e2e4a; border: 1px solid #3e3e5a;
-      color: #e0e0f0; width: 26px; height: 26px; border-radius: 6px;
-      cursor: pointer; font-size: 16px; line-height: 1;
-      display: flex; align-items: center; justify-content: center;
-      font-family: inherit; transition: background 0.15s;
+    .info-bar {
+      width: 100%; background: rgba(255,255,255,.90); border: 1px solid #e5e7eb;
+      border-radius: 12px; padding: 10px 13px; font-size: 12px; color: #374151;
+      display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; flex: 0 0 auto;
     }
-    .zoom-btn:hover { background: #3e3e5a; }
+    .preview-scroll {
+      flex: 1 1 auto; overflow: auto;
+      background: rgba(255,255,255,.32); border-radius: 14px;
+      border: 1px solid rgba(148,163,184,.28); padding: 16px;
+    }
+    #previewBox { min-width: max-content; min-height: max-content; display: flex; justify-content: center; align-items: flex-start; }
+    #previewBox svg { background: #fff; box-shadow: var(--shadow); max-width: none; height: auto; border-radius: 4px; display: block; }
+    .smallnote { font-size: 11px; color: var(--muted); line-height: 1.45; margin-top: 6px; }
+    .minirow { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: #6b7280; font-size: 11px; font-weight: 800; margin-top: -3px; }
 
-    /* RIGHT PANEL */
-    #rightPanel {
-      width: 240px;
-      background: #16162a;
-      border-left: 1px solid #2e2e4a;
-      display: flex; flex-direction: column;
-      overflow-y: auto;
-      flex-shrink: 0;
-    }
-    .panel-section { border-bottom: 1px solid #2e2e4a; padding: 12px; }
-    .panel-section-title {
-      font-size: 10px; font-weight: 800; color: #5e5e7a;
-      text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 10px;
-    }
-    .prop-row { display: flex; align-items: center; gap: 6px; margin-bottom: 7px; }
-    .prop-row:last-child { margin-bottom: 0; }
-    .prop-label { font-size: 11px; color: #7a7a9a; font-weight: 600; min-width: 36px; flex-shrink: 0; }
-    .prop-input {
-      flex: 1; background: #1e1e2e; border: 1px solid #3e3e5a;
-      color: #e0e0f0; font-size: 12px; font-family: inherit;
-      padding: 5px 8px; border-radius: 7px; outline: none;
-      transition: border-color 0.15s; min-width: 0;
-    }
-    .prop-input:focus { border-color: #7c6af5; }
-    .prop-input[type="color"] { padding: 2px 4px; height: 30px; cursor: pointer; }
-    .prop-input[type="range"] { padding: 0; height: 4px; cursor: pointer; accent-color: #7c6af5; }
-    select.prop-input { cursor: pointer; }
-    .prop-input-sm { width: 60px; flex: none; }
-    .prop-btn-row { display: flex; gap: 5px; margin-bottom: 7px; }
-    .prop-btn-row:last-child { margin-bottom: 0; }
-    .prop-btn {
-      flex: 1; background: #1e1e2e; border: 1px solid #3e3e5a;
-      color: #94a3b8; font-size: 11px; font-weight: 700;
-      padding: 5px 4px; border-radius: 7px; cursor: pointer;
-      font-family: inherit; transition: all 0.15s; text-align: center;
-    }
-    .prop-btn:hover { background: #2e2e4a; color: #e0e0f0; }
-    .prop-btn.active { background: #7c6af5; border-color: #7c6af5; color: #fff; }
-    .prop-btn svg { width: 13px; height: 13px; vertical-align: middle; }
+    #authLoading { position: fixed; inset: 0; background: #fff; display: flex; align-items: center; justify-content: center; z-index: 9999; }
+    .spinner { width: 34px; height: 34px; border: 3px solid #e2e8f0; border-top-color: var(--primary); border-radius: 50%; animation: spin 0.7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
 
-    .doc-size-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-bottom: 8px; }
-    .doc-size-btn {
-      background: #1e1e2e; border: 1px solid #3e3e5a;
-      color: #94a3b8; font-size: 11px; font-weight: 700;
-      padding: 6px 4px; border-radius: 7px; cursor: pointer;
-      font-family: inherit; text-align: center; transition: all 0.15s;
+    @media (max-width: 1080px) {
+      .app { grid-template-columns: 1fr; }
+      aside { max-height: none; }
+      main { overflow: visible; }
+      .preview-shell { height: 75vh; }
+      .nav-user-name { display: none; }
     }
-    .doc-size-btn:hover { background: #2e2e4a; color: #e0e0f0; }
-    .doc-size-btn.active { background: #7c6af5; border-color: #7c6af5; color: #fff; }
-
-    #layerList { display: flex; flex-direction: column; gap: 4px; }
-    .layer-item {
-      display: flex; align-items: center; gap: 6px;
-      background: #1e1e2e; border: 1px solid #3e3e5a;
-      border-radius: 7px; padding: 5px 8px; cursor: pointer;
-      transition: all 0.15s;
+    @media print {
+      body { background: #fff; padding-top: 0; }
+      .top-nav, aside, .info-bar { display: none; }
+      main, .preview-shell, .preview-scroll { padding: 0; margin: 0; height: auto; overflow: visible; background: #fff; border: 0; }
+      #previewBox svg { box-shadow: none; border-radius: 0; width: 100% !important; }
     }
-    .layer-item:hover { border-color: #5e5e7a; }
-    .layer-item.selected { border-color: #7c6af5; background: #2a2040; }
-    .layer-thumb {
-      width: 22px; height: 22px; flex-shrink: 0;
-      background: #2e2e4a; border-radius: 4px;
-      display: flex; align-items: center; justify-content: center; font-size: 11px;
-    }
-    .layer-name { flex: 1; font-size: 11px; color: #c0c0d8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .layer-vis { background: transparent; border: none; color: #5e5e7a; cursor: pointer; padding: 2px; font-size: 13px; line-height: 1; transition: color 0.15s; }
-    .layer-vis:hover { color: #e0e0f0; }
-    .layer-actions { display: flex; gap: 4px; margin-top: 8px; }
-    .layer-action-btn {
-      flex: 1; background: #1e1e2e; border: 1px solid #3e3e5a;
-      color: #94a3b8; font-size: 11px; font-weight: 700;
-      padding: 5px; border-radius: 7px; cursor: pointer;
-      font-family: inherit; transition: all 0.15s; text-align: center;
-    }
-    .layer-action-btn:hover { background: #2e2e4a; color: #e0e0f0; }
-
-    .tpl-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-    .tpl-btn {
-      background: #1e1e2e; border: 1px solid #3e3e5a;
-      border-radius: 8px; padding: 8px 4px; cursor: pointer;
-      text-align: center; transition: all 0.15s; font-family: inherit;
-    }
-    .tpl-btn:hover { border-color: #7c6af5; background: #2a2040; }
-    .tpl-icon { font-size: 22px; display: block; margin-bottom: 4px; }
-    .tpl-name { font-size: 10px; color: #94a3b8; font-weight: 700; }
-
-    #imgFileInput { display: none; }
-
-    #ctxMenu {
-      position: fixed; z-index: 1000;
-      background: #1e1e2e; border: 1px solid #3e3e5a;
-      border-radius: 10px; padding: 6px;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
-      display: none; min-width: 160px;
-    }
-    .ctx-item { padding: 7px 12px; border-radius: 6px; font-size: 13px; color: #c0c0d8; cursor: pointer; transition: background 0.12s; }
-    .ctx-item:hover { background: #2e2e4a; }
-    .ctx-item.danger { color: #e05a5a; }
-    .ctx-sep { height: 1px; background: #2e2e4a; margin: 4px 0; }
-
-    #toast {
-      position: fixed; bottom: 24px; left: 50%;
-      transform: translateX(-50%) translateY(60px);
-      background: #2e2e4a; border: 1px solid #3e3e5a;
-      color: #e0e0f0; font-size: 13px; font-weight: 600;
-      padding: 10px 20px; border-radius: 10px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
-      transition: transform 0.25s ease;
-      pointer-events: none; z-index: 5000;
-    }
-    #toast.show { transform: translateX(-50%) translateY(0); }
-
-    ::-webkit-scrollbar { width: 5px; height: 5px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: #3e3e5a; border-radius: 4px; }
-    ::-webkit-scrollbar-thumb:hover { background: #5e5e7a; }
   </style>
 </head>
 <body>
 
-<div id="authOverlay">
-  <div style="text-align:center;color:#94a3b8;font-size:15px;">로그인 확인 중...</div>
-</div>
+<div id="authLoading"><div class="spinner"></div></div>
 
-<div id="ctxMenu">
-  <div class="ctx-item" onclick="ctxBringFront()">맨 앞으로</div>
-  <div class="ctx-item" onclick="ctxSendBack()">맨 뒤로</div>
-  <div class="ctx-sep"></div>
-  <div class="ctx-item" onclick="ctxDuplicate()">복제</div>
-  <div class="ctx-item" onclick="ctxGroup()">그룹</div>
-  <div class="ctx-item" onclick="ctxUngroup()">그룹 해제</div>
-  <div class="ctx-sep"></div>
-  <div class="ctx-item" onclick="ctxLock()">잠금 / 해제</div>
-  <div class="ctx-sep"></div>
-  <div class="ctx-item danger" onclick="deleteSelected()">삭제</div>
-</div>
-
-<div id="toast"></div>
-<input type="file" id="imgFileInput" accept="image/*" multiple />
-
-<div id="topNav">
+<nav class="top-nav">
   <a class="nav-back" href="../dashboard.html">
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
     목록으로
   </a>
-  <div class="nav-sep"></div>
-  <div class="nav-title">🎨 디자인 보드</div>
-  <input class="nav-doc-name" id="docName" type="text" placeholder="문서 이름 없음" />
-  <div class="nav-sep"></div>
-  <div class="export-group">
-    <button class="export-btn" onclick="exportPNG()">PNG</button>
-    <button class="export-btn" onclick="exportSVG()">SVG</button>
-    <button class="export-btn primary" onclick="exportPDF()">PDF 저장</button>
-  </div>
-  <div class="nav-sep"></div>
+  <div class="nav-title">🎨 표지 생성기</div>
   <div class="nav-user">
-    <div class="nav-avatar" id="navAvatar">?</div>
     <span class="nav-user-name" id="navUserName"></span>
-    <button class="logout-btn" id="logoutBtn">로그아웃</button>
-  </div>
-</div>
-
-<div id="main">
-
-  <!-- LEFT PANEL -->
-  <div id="leftPanel">
-    <button class="tool-btn active" id="tool-select" title="선택 (V)" onclick="setTool('select')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3l14 9-7 1-4 7z"/></svg>
-      <span>선택</span>
-    </button>
-    <div class="tool-sep"></div>
-    <button class="tool-btn" id="tool-text" title="텍스트 (T)" onclick="setTool('text')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
-      <span>텍스트</span>
-    </button>
-    <div class="tool-sep"></div>
-    <button class="tool-btn" id="tool-rect" title="사각형 (R)" onclick="setTool('rect')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
-      <span>사각형</span>
-    </button>
-    <button class="tool-btn" id="tool-circle" title="원 (C)" onclick="setTool('circle')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/></svg>
-      <span>원</span>
-    </button>
-    <button class="tool-btn" id="tool-triangle" title="삼각형" onclick="setTool('triangle')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 3 21 21 3 21"/></svg>
-      <span>삼각형</span>
-    </button>
-    <button class="tool-btn" id="tool-line" title="선" onclick="setTool('line')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="20" x2="20" y2="4"/></svg>
-      <span>선</span>
-    </button>
-    <button class="tool-btn" id="tool-star" title="별" onclick="addStar()">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-      <span>별</span>
-    </button>
-    <button class="tool-btn" id="tool-arrow" title="화살표" onclick="addArrow()">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-      <span>화살표</span>
-    </button>
-    <div class="tool-sep"></div>
-    <button class="tool-btn" title="이미지 추가" onclick="document.getElementById('imgFileInput').click()">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-      <span>이미지</span>
-    </button>
-    <div class="tool-sep"></div>
-    <button class="tool-btn" id="tool-draw" title="자유 드로잉 (D)" onclick="setTool('draw')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-      <span>펜</span>
-    </button>
-    <div class="tool-sep"></div>
-    <button class="tool-btn" title="실행취소 (Ctrl+Z)" onclick="undo()">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4"/></svg>
-      <span>취소</span>
-    </button>
-    <button class="tool-btn" title="다시실행 (Ctrl+Y)" onclick="redo()">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-.49-4"/></svg>
-      <span>다시</span>
-    </button>
-    <div class="tool-sep"></div>
-    <button class="tool-btn" title="삭제 (Delete)" onclick="deleteSelected()" style="color:#e05a5a;">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
-      <span>삭제</span>
+    <button class="nav-logout" id="navLogout">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      로그아웃
     </button>
   </div>
+</nav>
 
-  <!-- CANVAS AREA -->
-  <div id="canvasArea">
-    <div id="canvasWrapper">
-      <canvas id="designCanvas"></canvas>
-    </div>
-    <div id="zoomBar">
-      <button class="zoom-btn" onclick="zoomOut()">−</button>
-      <span id="zoomVal">100%</span>
-      <button class="zoom-btn" onclick="zoomIn()">+</button>
-      <button class="zoom-btn" style="font-size:11px;width:auto;padding:0 8px;" onclick="zoomFit()">맞춤</button>
-    </div>
-  </div>
+<div class="app">
+  <aside>
+    <h1>표지 자동 생성기</h1>
+    <div class="sub">보고서, 교재, 문제집, 안내자료 표지를 만듭니다. 항목을 추가해 원하는 내용을 자유롭게 구성하세요.</div>
 
-  <!-- RIGHT PANEL -->
-  <div id="rightPanel">
-
-    <div class="panel-section">
-      <div class="panel-section-title">문서 크기</div>
-      <div class="doc-size-grid" id="docSizeGrid">
-        <button class="doc-size-btn active" data-w="595" data-h="842" onclick="setDocSize(this)">A4 세로</button>
-        <button class="doc-size-btn" data-w="842" data-h="595" onclick="setDocSize(this)">A4 가로</button>
-        <button class="doc-size-btn" data-w="420" data-h="595" onclick="setDocSize(this)">A5 세로</button>
-        <button class="doc-size-btn" data-w="595" data-h="420" onclick="setDocSize(this)">A5 가로</button>
-        <button class="doc-size-btn" data-w="252" data-h="144" onclick="setDocSize(this)">명함</button>
-        <button class="doc-size-btn" data-w="500" data-h="500" onclick="setDocSize(this)">정사각형</button>
-        <button class="doc-size-btn" data-w="794" data-h="1123" onclick="setDocSize(this)">전단지</button>
-        <button class="doc-size-btn" data-w="1080" data-h="1080" onclick="setDocSize(this)">SNS</button>
-      </div>
-      <div class="prop-row">
-        <span class="prop-label">W</span>
-        <input class="prop-input" type="number" id="canvasW" value="595" min="100" max="3000" onchange="applyCustomSize()" />
-        <span class="prop-label" style="text-align:center;">H</span>
-        <input class="prop-input" type="number" id="canvasH" value="842" min="100" max="3000" onchange="applyCustomSize()" />
-      </div>
-    </div>
-
-    <div class="panel-section">
-      <div class="panel-section-title">배경</div>
-      <div class="prop-row">
-        <span class="prop-label">색상</span>
-        <input class="prop-input" type="color" id="bgColor" value="#ffffff" onchange="applyBgColor()" />
-        <button class="prop-btn" onclick="setBgTransparent()" style="flex:none;padding:5px 8px;font-size:10px;">투명</button>
-      </div>
-    </div>
-
-    <div class="panel-section">
-      <div class="panel-section-title">빠른 템플릿</div>
-      <div class="tpl-grid">
-        <button class="tpl-btn" onclick="applyTemplate('menu')"><span class="tpl-icon">🍽️</span><span class="tpl-name">메뉴판</span></button>
-        <button class="tpl-btn" onclick="applyTemplate('flyer')"><span class="tpl-icon">📄</span><span class="tpl-name">전단지</span></button>
-        <button class="tpl-btn" onclick="applyTemplate('card')"><span class="tpl-icon">💳</span><span class="tpl-name">명함</span></button>
-        <button class="tpl-btn" onclick="applyTemplate('cover')"><span class="tpl-icon">📚</span><span class="tpl-name">표지</span></button>
-        <button class="tpl-btn" onclick="applyTemplate('poster')"><span class="tpl-icon">🎪</span><span class="tpl-name">포스터</span></button>
-        <button class="tpl-btn" onclick="applyTemplate('sns')"><span class="tpl-icon">📸</span><span class="tpl-name">SNS</span></button>
-      </div>
-    </div>
-
-    <div class="panel-section" id="propPosition">
-      <div class="panel-section-title">위치 / 크기</div>
-      <div class="prop-row">
-        <span class="prop-label">X</span>
-        <input class="prop-input" type="number" id="propX" onchange="applyPropXY()" />
-        <span class="prop-label" style="text-align:center;">Y</span>
-        <input class="prop-input" type="number" id="propY" onchange="applyPropXY()" />
-      </div>
-      <div class="prop-row">
-        <span class="prop-label">W</span>
-        <input class="prop-input" type="number" id="propW" onchange="applyPropWH()" />
-        <span class="prop-label" style="text-align:center;">H</span>
-        <input class="prop-input" type="number" id="propH" onchange="applyPropWH()" />
-      </div>
-      <div class="prop-row">
-        <span class="prop-label">각도</span>
-        <input class="prop-input" type="number" id="propAngle" min="-360" max="360" onchange="applyPropAngle()" />
-        <span class="prop-label" style="text-align:center;">투명</span>
-        <input class="prop-input" type="number" id="propOpacity" min="0" max="100" onchange="applyPropOpacity()" />
-      </div>
-      <div class="prop-btn-row">
-        <button class="prop-btn" onclick="flipH()">↔ 반전</button>
-        <button class="prop-btn" onclick="flipV()">↕ 반전</button>
-      </div>
-    </div>
-
-    <div class="panel-section" id="propText">
-      <div class="panel-section-title">텍스트</div>
-      <div class="prop-row">
-        <span class="prop-label">폰트</span>
-        <select class="prop-input" id="propFont" onchange="applyFont()">
-          <option value="Pretendard">Pretendard</option>
-          <option value="Noto Sans KR">Noto Sans KR</option>
-          <option value="Nanum Gothic">나눔고딕</option>
-          <option value="Nanum Myeongjo">나눔명조</option>
-          <option value="Black Han Sans">블랙한산스</option>
-          <option value="Do Hyeon">도현체</option>
-          <option value="Jua">주아체</option>
-          <option value="Arial">Arial</option>
-          <option value="Georgia">Georgia</option>
+    <!-- 1. 출력 영역 -->
+    <div class="section">
+      <h2>1. 출력 영역</h2>
+      <div class="field">
+        <label>출력 모드</label>
+        <select id="mode">
+          <option value="front">앞표지만</option>
+          <option value="full">뒤표지 + 책등 + 앞표지</option>
         </select>
       </div>
-      <div class="prop-row">
-        <span class="prop-label">크기</span>
-        <input class="prop-input" type="number" id="propFontSize" min="6" max="300" onchange="applyFontSize()" />
-        <span class="prop-label" style="text-align:center;">색상</span>
-        <input class="prop-input" type="color" id="propFontColor" onchange="applyFontColor()" />
+      <div class="grid2">
+        <div class="field"><label>앞표지 가로(mm)</label><input id="frontW" type="number" placeholder="예: 210" min="80" step="1"></div>
+        <div class="field"><label>앞표지 세로(mm)</label><input id="frontH" type="number" placeholder="예: 297" min="100" step="1"></div>
+        <div class="field"><label>책등 두께(mm)</label><input id="spineW" type="number" placeholder="예: 8" min="0" step="0.5"></div>
+        <div class="field"><label>도련(mm)</label><input id="bleed" type="number" placeholder="예: 3" min="0" step="0.5"></div>
       </div>
-      <div class="prop-btn-row">
-        <button class="prop-btn" id="btnBold" onclick="toggleBold()"><b>B</b></button>
-        <button class="prop-btn" id="btnItalic" onclick="toggleItalic()"><i>I</i></button>
-        <button class="prop-btn" id="btnUnderline" onclick="toggleUnderline()"><u>U</u></button>
-        <button class="prop-btn" id="btnStrike" onclick="toggleStrike()"><s>S</s></button>
+      <label class="checkline"><input id="showGuides" type="checkbox" checked> 재단선·도련선·책등선 표시</label>
+    </div>
+
+    <!-- 2. 표지 내용 (항목 추가 방식) -->
+    <div class="section">
+      <h2>2. 표지 내용</h2>
+      <div class="item-list" id="itemList"></div>
+      <button class="add-item-btn" id="addItemBtn">+ 항목 추가</button>
+      <div class="smallnote" style="margin-top:8px;">각 항목의 Y위치(0~100%)를 조절해 배치하세요. 순서 변경은 핸들(⠿)을 드래그하세요.</div>
+    </div>
+
+    <!-- 3. 로고 / 배경 이미지 -->
+    <div class="section">
+      <h2>3. 로고 / 이미지</h2>
+      <div class="field">
+        <label>로고 이미지</label>
+        <input id="logoFile" type="file" accept="image/*">
+        <div class="smallnote">로고가 없으면 기관명 아이콘이 자동 표시됩니다.</div>
       </div>
-      <div class="prop-btn-row">
-        <button class="prop-btn" id="btnAlignL" onclick="setAlign('left')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="18" y2="18"/></svg>
-        </button>
-        <button class="prop-btn" id="btnAlignC" onclick="setAlign('center')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="6" y1="12" x2="18" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>
-        </button>
-        <button class="prop-btn" id="btnAlignR" onclick="setAlign('right')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="9" y1="12" x2="21" y2="12"/><line x1="6" y1="18" x2="21" y2="18"/></svg>
-        </button>
-      </div>
-      <div class="prop-row">
-        <span class="prop-label">줄간</span>
-        <input class="prop-input" type="range" id="propLineHeight" min="0.8" max="3" step="0.05" onchange="applyLineHeight()" />
-        <span id="lineHeightVal" style="font-size:11px;color:#94a3b8;min-width:28px;text-align:right;">1.2</span>
-      </div>
-      <div class="prop-row">
-        <span class="prop-label">자간</span>
-        <input class="prop-input" type="range" id="propCharSpacing" min="-100" max="500" step="5" onchange="applyCharSpacing()" />
-        <span id="charSpacingVal" style="font-size:11px;color:#94a3b8;min-width:28px;text-align:right;">0</span>
+      <div class="field" id="logoOrgField">
+        <label>로고 옆 기관명</label>
+        <input id="logoOrg" type="text" placeholder="기관명 또는 학교명">
       </div>
     </div>
 
-    <div class="panel-section" id="propFillStroke">
-      <div class="panel-section-title">채우기 / 테두리</div>
-      <div class="prop-row">
-        <span class="prop-label">채우기</span>
-        <input class="prop-input" type="color" id="propFill" onchange="applyFill()" />
-        <button class="prop-btn" onclick="setNoFill()" style="flex:none;padding:5px 8px;font-size:10px;">없음</button>
+    <!-- 4. 디자인 / 배경 -->
+    <div class="section">
+      <h2>4. 디자인 / AI 배경</h2>
+      <div class="field">
+        <label>스타일</label>
+        <select id="style">
+          <option value="minimalWave">깔끔한 라인 웨이브</option>
+          <option value="softBlue">공공기관 블루 미니멀</option>
+          <option value="contentGrid">콘텐츠 픽셀 포인트</option>
+          <option value="premiumNavy">고급 네이비</option>
+          <option value="paperClean">백지형 얇은 테두리</option>
+          <option value="schoolPastel">학교 교재 파스텔</option>
+          <option value="studyGrid">문제집 그리드</option>
+        </select>
       </div>
-      <div class="prop-row">
-        <span class="prop-label">테두리</span>
-        <input class="prop-input" type="color" id="propStroke" onchange="applyStroke()" />
-        <input class="prop-input prop-input-sm" type="number" id="propStrokeW" min="0" max="50" onchange="applyStrokeWidth()" placeholder="두께" />
+      <div class="grid2">
+        <div class="field"><label>메인 색상</label><input id="mainColor" type="color" value="#12396d"></div>
+        <div class="field"><label>포인트 색상</label><input id="accentColor" type="color" value="#1d9bb2"></div>
       </div>
-      <div class="prop-row">
-        <span class="prop-label">반경</span>
-        <input class="prop-input" type="number" id="propRadius" min="0" max="500" onchange="applyRadius()" />
+      <div class="field">
+        <label>AI/사용자 배경 이미지</label>
+        <input id="bgFile" type="file" accept="image/*">
+        <div class="smallnote">ChatGPT에서 만든 배경 PNG/JPG를 올리면 배경으로 적용됩니다.</div>
+      </div>
+      <div class="grid2">
+        <div class="field">
+          <label>배경 맞춤</label>
+          <select id="bgFit">
+            <option value="slice">꽉 채우기</option>
+            <option value="meet">전체 보이기</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>배경 진하기</label>
+          <input id="bgOpacity" type="range" min="0.05" max="1" step="0.05" value="0.35">
+          <div class="minirow"><span>연하게</span><span id="bgOpacityValue">35%</span><span>진하게</span></div>
+        </div>
+      </div>
+      <div class="field">
+        <label>ChatGPT 배경 요청 문구</label>
+        <textarea id="aiPrompt" readonly></textarea>
+      </div>
+      <div class="buttons single">
+        <button class="secondary small" id="copyPrompt">배경 요청 문구 복사</button>
       </div>
     </div>
 
-    <div class="panel-section" id="propShadow">
-      <div class="panel-section-title">그림자</div>
-      <div class="prop-row">
-        <span class="prop-label">색상</span>
-        <input class="prop-input" type="color" id="shadowColor" value="#000000" onchange="applyShadow()" />
-        <button class="prop-btn" onclick="removeShadow()" style="flex:none;padding:5px 8px;font-size:10px;">제거</button>
+    <!-- 5. 미리보기 -->
+    <div class="section">
+      <h2>5. 미리보기</h2>
+      <div class="field">
+        <label>확대 비율</label>
+        <input id="previewScale" type="range" min="60" max="220" step="10" value="120">
+        <div class="minirow"><span>60%</span><span id="previewScaleValue">120%</span><span>220%</span></div>
       </div>
-      <div class="prop-row">
-        <span class="prop-label">흐림</span>
-        <input class="prop-input" type="range" id="shadowBlur" min="0" max="50" step="1" value="10" onchange="applyShadow()" />
-      </div>
-      <div class="prop-row">
-        <span class="prop-label">X</span>
-        <input class="prop-input" type="number" id="shadowX" value="5" onchange="applyShadow()" />
-        <span class="prop-label" style="text-align:center;">Y</span>
-        <input class="prop-input" type="number" id="shadowY" value="5" onchange="applyShadow()" />
+      <div class="buttons">
+        <button class="secondary small" id="fitWidthBtn">화면폭 맞춤</button>
+        <button class="secondary small" id="bigPreviewBtn">크게 보기</button>
       </div>
     </div>
 
-    <div class="panel-section">
-      <div class="panel-section-title">레이어</div>
-      <div id="layerList"></div>
-      <div class="layer-actions">
-        <button class="layer-action-btn" onclick="layerUp()">↑ 위로</button>
-        <button class="layer-action-btn" onclick="layerDown()">↓ 아래로</button>
+    <!-- 6. 저장 -->
+    <div class="section">
+      <h2>6. 저장</h2>
+      <div class="buttons">
+        <button class="blue" id="downloadPng">PNG 저장</button>
+        <button class="secondary" id="downloadSvg">SVG 저장</button>
+        <button class="green" id="printPdf">PDF 저장/인쇄</button>
+        <button class="secondary" id="resetBtn">초기화</button>
+      </div>
+      <div class="smallnote">PDF는 브라우저 인쇄창에서 "PDF로 저장"을 선택하세요.</div>
+    </div>
+  </aside>
+
+  <main>
+    <div class="preview-shell">
+      <div class="info-bar">
+        <div id="sizeInfo"></div>
+        <div id="guideInfo"></div>
+      </div>
+      <div class="preview-scroll" id="previewScroll">
+        <div id="previewBox"></div>
       </div>
     </div>
-
-  </div>
+  </main>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="../js/firebase-config.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.0/fabric.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
-// AUTH
+// ── Auth guard ───────────────────────────────────
 auth.onAuthStateChanged(user => {
   if (!user) { window.location.href = '../index.html'; return; }
-  document.getElementById('authOverlay').classList.add('hidden');
-  const name = user.displayName || user.email || '사용자';
+  document.getElementById('authLoading').style.display = 'none';
+  const name = user.displayName || user.email.split('@')[0];
   document.getElementById('navUserName').textContent = name;
-  document.getElementById('navAvatar').textContent = name[0].toUpperCase();
 });
-document.getElementById('logoutBtn').addEventListener('click', () => {
-  auth.signOut().then(() => window.location.href = '../index.html');
-});
-
-// CANVAS
-let canvasW = 595, canvasH = 842;
-let zoomLevel = 1;
-let currentTool = 'select';
-let undoStack = [], redoStack = [];
-let isDrawingShape = false, shapeStartX, shapeStartY, activeShape;
-
-const canvas = new fabric.Canvas('designCanvas', {
-  width: canvasW, height: canvasH,
-  backgroundColor: '#ffffff',
-  selection: true,
-  preserveObjectStacking: true,
+document.getElementById('navLogout').addEventListener('click', async () => {
+  await auth.signOut(); window.location.href = '../index.html';
 });
 
-// ZOOM
-function updateZoom() {
-  const wrapper = document.getElementById('canvasWrapper');
-  wrapper.style.transform = `scale(${zoomLevel})`;
-  wrapper.style.transformOrigin = 'top center';
-  wrapper.style.marginBottom = (canvasH * zoomLevel - canvasH) + 'px';
-  document.getElementById('zoomVal').textContent = Math.round(zoomLevel * 100) + '%';
-}
-function zoomIn() { zoomLevel = Math.min(zoomLevel + 0.1, 4); updateZoom(); }
-function zoomOut() { zoomLevel = Math.max(zoomLevel - 0.1, 0.1); updateZoom(); }
-function zoomFit() {
-  const area = document.getElementById('canvasArea');
-  const availW = area.clientWidth - 48;
-  const availH = area.clientHeight - 80;
-  zoomLevel = Math.min(availW / canvasW, availH / canvasH, 1);
-  updateZoom();
-}
-window.addEventListener('resize', zoomFit);
-
-// UNDO/REDO
-function saveState() {
-  undoStack.push(JSON.stringify(canvas.toJSON(['locked'])));
-  if (undoStack.length > 50) undoStack.shift();
-  redoStack = [];
-}
-function undo() {
-  if (undoStack.length < 2) return;
-  redoStack.push(undoStack.pop());
-  canvas.loadFromJSON(undoStack[undoStack.length - 1], () => { canvas.renderAll(); updateLayerList(); });
-}
-function redo() {
-  if (!redoStack.length) return;
-  const next = redoStack.pop();
-  undoStack.push(next);
-  canvas.loadFromJSON(next, () => { canvas.renderAll(); updateLayerList(); });
+// ── Helpers ──────────────────────────────────────
+const $ = id => document.getElementById(id);
+function esc(s='') { return String(s).replace(/[&<>"]/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m])); }
+function num(id, fallback=0) { return Math.max(0, parseFloat($(id).value || fallback)); }
+function readFile(input, cb) {
+  const f = input.files && input.files[0];
+  if (!f) return cb('');
+  const r = new FileReader();
+  r.onload = () => cb(r.result); r.readAsDataURL(f);
 }
 
-canvas.on('object:added', () => { saveState(); updateLayerList(); });
-canvas.on('object:modified', () => { saveState(); updateLayerList(); });
-canvas.on('object:removed', () => { saveState(); updateLayerList(); });
-canvas.on('selection:created', updatePropsPanel);
-canvas.on('selection:updated', updatePropsPanel);
-canvas.on('selection:cleared', updatePropsPanel);
+// ── Items state ──────────────────────────────────
+let items = [];
+let logoData = '', bgData = '';
+let dragSrc = null;
 
-setTimeout(saveState, 100);
-
-// TOOL SWITCH
-function setTool(tool) {
-  currentTool = tool;
-  document.querySelectorAll('.tool-btn[id^="tool-"]').forEach(b => b.classList.remove('active'));
-  const btn = document.getElementById('tool-' + tool);
-  if (btn) btn.classList.add('active');
-  if (tool === 'draw') {
-    canvas.isDrawingMode = true;
-    canvas.freeDrawingBrush.color = '#333333';
-    canvas.freeDrawingBrush.width = 3;
-    canvas.selection = false;
-  } else {
-    canvas.isDrawingMode = false;
-    canvas.selection = (tool === 'select');
-    canvas.getObjects().forEach(o => { if (!o.locked) o.selectable = (tool === 'select'); });
-  }
+function makeItem() {
+  return { id: Date.now() + Math.random(), text: '', fontSize: '', color: '#111827', bold: false, align: 'center', y: 40 };
 }
 
-// SHAPE DRAWING
-canvas.on('mouse:down', function(opt) {
-  if (['rect','circle','triangle','line'].includes(currentTool)) {
-    const ptr = canvas.getPointer(opt.e);
-    shapeStartX = ptr.x; shapeStartY = ptr.y;
-    isDrawingShape = true;
-    canvas.selection = false;
-    if (currentTool === 'rect') {
-      activeShape = new fabric.Rect({ left: shapeStartX, top: shapeStartY, width: 1, height: 1, fill: '#7c6af5', stroke: 'transparent', strokeWidth: 0, selectable: false, evented: false });
-    } else if (currentTool === 'circle') {
-      activeShape = new fabric.Ellipse({ left: shapeStartX, top: shapeStartY, rx: 1, ry: 1, fill: '#7c6af5', stroke: 'transparent', strokeWidth: 0, selectable: false, evented: false });
-    } else if (currentTool === 'triangle') {
-      activeShape = new fabric.Triangle({ left: shapeStartX, top: shapeStartY, width: 1, height: 1, fill: '#7c6af5', stroke: 'transparent', strokeWidth: 0, selectable: false, evented: false });
-    } else if (currentTool === 'line') {
-      activeShape = new fabric.Line([shapeStartX, shapeStartY, shapeStartX, shapeStartY], { stroke: '#7c6af5', strokeWidth: 3, selectable: false, evented: false });
-    }
-    canvas.add(activeShape);
-  }
-  if (currentTool === 'text') {
-    const ptr = canvas.getPointer(opt.e);
-    const txt = new fabric.IText('텍스트를 입력하세요', { left: ptr.x, top: ptr.y, fontFamily: 'Noto Sans KR', fontSize: 32, fill: '#1e1e2e' });
-    canvas.add(txt);
-    canvas.setActiveObject(txt);
-    txt.enterEditing(); txt.selectAll();
-    setTool('select');
-  }
-});
-canvas.on('mouse:move', function(opt) {
-  if (!isDrawingShape || !activeShape) return;
-  const ptr = canvas.getPointer(opt.e);
-  const w = Math.abs(ptr.x - shapeStartX), h = Math.abs(ptr.y - shapeStartY);
-  const left = Math.min(ptr.x, shapeStartX), top = Math.min(ptr.y, shapeStartY);
-  if (currentTool === 'rect' || currentTool === 'triangle') {
-    activeShape.set({ left, top, width: w, height: h });
-  } else if (currentTool === 'circle') {
-    activeShape.set({ left, top, rx: w/2, ry: h/2 });
-  } else if (currentTool === 'line') {
-    activeShape.set({ x2: ptr.x, y2: ptr.y });
-  }
-  canvas.renderAll();
-});
-canvas.on('mouse:up', function() {
-  if (isDrawingShape && activeShape) {
-    isDrawingShape = false;
-    activeShape.set({ selectable: true, evented: true });
-    activeShape = null;
-    setTool('select');
-  }
-});
-
-// STAR
-function addStar() {
-  const pts = [];
-  for (let i = 0; i < 10; i++) {
-    const r = i % 2 === 0 ? 60 : 25;
-    const angle = (Math.PI / 5) * i - Math.PI / 2;
-    pts.push({ x: r * Math.cos(angle), y: r * Math.sin(angle) });
-  }
-  const star = new fabric.Polygon(pts, { left: canvasW/2 - 60, top: canvasH/2 - 60, fill: '#f5c842' });
-  canvas.add(star); canvas.setActiveObject(star); setTool('select');
-}
-
-// ARROW
-function addArrow() {
-  const group = new fabric.Group([
-    new fabric.Line([0, 0, 150, 0], { stroke: '#7c6af5', strokeWidth: 4, left: 0, top: 10 }),
-    new fabric.Triangle({ width: 20, height: 20, fill: '#7c6af5', left: 140, top: 0, angle: 90 }),
-  ], { left: canvasW/2 - 80, top: canvasH/2 });
-  canvas.add(group); canvas.setActiveObject(group); setTool('select');
-}
-
-// IMAGE UPLOAD
-document.getElementById('imgFileInput').addEventListener('change', function() {
-  Array.from(this.files).forEach(file => {
-    const reader = new FileReader();
-    reader.onload = e => {
-      fabric.Image.fromURL(e.target.result, img => {
-        const scale = Math.min(canvasW * 0.6 / img.width, canvasH * 0.6 / img.height, 1);
-        img.set({ left: canvasW/2 - (img.width*scale)/2, top: canvasH/2 - (img.height*scale)/2, scaleX: scale, scaleY: scale });
-        canvas.add(img); canvas.setActiveObject(img);
-      });
-    };
-    reader.readAsDataURL(file);
-  });
-  this.value = '';
-  setTool('select');
-});
-
-// DRAG & DROP
-document.getElementById('canvasArea').addEventListener('dragover', e => e.preventDefault());
-document.getElementById('canvasArea').addEventListener('drop', e => {
-  e.preventDefault();
-  Array.from(e.dataTransfer.files).forEach(file => {
-    if (!file.type.startsWith('image/')) return;
-    const reader = new FileReader();
-    reader.onload = ev => {
-      fabric.Image.fromURL(ev.target.result, img => {
-        const scale = Math.min(canvasW*0.5/img.width, canvasH*0.5/img.height, 1);
-        img.set({ left: canvasW/2-(img.width*scale)/2, top: canvasH/2-(img.height*scale)/2, scaleX: scale, scaleY: scale });
-        canvas.add(img); canvas.setActiveObject(img);
-      });
-    };
-    reader.readAsDataURL(file);
-  });
-});
-
-// DOC SIZE
-function setDocSize(btn) {
-  document.querySelectorAll('.doc-size-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  document.getElementById('canvasW').value = btn.dataset.w;
-  document.getElementById('canvasH').value = btn.dataset.h;
-  applyCustomSize();
-}
-function applyCustomSize() {
-  canvasW = parseInt(document.getElementById('canvasW').value) || 595;
-  canvasH = parseInt(document.getElementById('canvasH').value) || 842;
-  canvas.setWidth(canvasW); canvas.setHeight(canvasH);
-  canvas.renderAll(); zoomFit();
-}
-
-// BACKGROUND
-function applyBgColor() { canvas.setBackgroundColor(document.getElementById('bgColor').value, canvas.renderAll.bind(canvas)); }
-function setBgTransparent() { canvas.setBackgroundColor('', canvas.renderAll.bind(canvas)); }
-
-// PROPS PANEL
-function updatePropsPanel() {
-  const obj = canvas.getActiveObject();
-  if (!obj) return;
-  document.getElementById('propX').value = Math.round(obj.left);
-  document.getElementById('propY').value = Math.round(obj.top);
-  document.getElementById('propW').value = Math.round(obj.getScaledWidth());
-  document.getElementById('propH').value = Math.round(obj.getScaledHeight());
-  document.getElementById('propAngle').value = Math.round(obj.angle);
-  document.getElementById('propOpacity').value = Math.round(obj.opacity * 100);
-
-  const isText = ['i-text','text','textbox'].includes(obj.type);
-  document.getElementById('propText').style.display = isText ? 'block' : 'none';
-  if (isText) {
-    document.getElementById('propFontSize').value = obj.fontSize;
-    document.getElementById('propFontColor').value = rgbToHex(obj.fill) || '#1e1e2e';
-    document.getElementById('propFont').value = obj.fontFamily || 'Noto Sans KR';
-    document.getElementById('btnBold').classList.toggle('active', obj.fontWeight === 'bold');
-    document.getElementById('btnItalic').classList.toggle('active', obj.fontStyle === 'italic');
-    document.getElementById('btnUnderline').classList.toggle('active', !!obj.underline);
-    document.getElementById('btnStrike').classList.toggle('active', !!obj.linethrough);
-    const lh = obj.lineHeight || 1.2;
-    document.getElementById('propLineHeight').value = lh;
-    document.getElementById('lineHeightVal').textContent = lh.toFixed(2);
-    const cs = obj.charSpacing || 0;
-    document.getElementById('propCharSpacing').value = cs;
-    document.getElementById('charSpacingVal').textContent = cs;
-    ['left','center','right'].forEach(a => document.getElementById('btnAlign'+a[0].toUpperCase()).classList.toggle('active', obj.textAlign === a));
-  }
-  if (obj.fill && typeof obj.fill === 'string') {
-    const hex = rgbToHex(obj.fill);
-    if (hex) document.getElementById('propFill').value = hex;
-  }
-  if (obj.stroke && typeof obj.stroke === 'string') {
-    const hex = rgbToHex(obj.stroke);
-    if (hex) document.getElementById('propStroke').value = hex;
-  }
-  document.getElementById('propStrokeW').value = obj.strokeWidth || 0;
-  if (obj.rx !== undefined) document.getElementById('propRadius').value = obj.rx;
-  if (obj.shadow) {
-    const sh = obj.shadow;
-    const hex = rgbToHex(sh.color);
-    if (hex) document.getElementById('shadowColor').value = hex;
-    document.getElementById('shadowBlur').value = sh.blur;
-    document.getElementById('shadowX').value = sh.offsetX;
-    document.getElementById('shadowY').value = sh.offsetY;
-  }
-}
-
-function rgbToHex(color) {
-  if (!color || color === 'transparent') return null;
-  if (color.startsWith('#')) return color;
-  const m = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
-  if (!m) return null;
-  return '#' + [m[1],m[2],m[3]].map(n => parseInt(n).toString(16).padStart(2,'0')).join('');
-}
-
-// APPLY PROPS
-function applyPropXY() {
-  const o = canvas.getActiveObject(); if (!o) return;
-  o.set({ left: +document.getElementById('propX').value, top: +document.getElementById('propY').value });
-  o.setCoords(); canvas.renderAll();
-}
-function applyPropWH() {
-  const o = canvas.getActiveObject(); if (!o) return;
-  const w = +document.getElementById('propW').value, h = +document.getElementById('propH').value;
-  o.set({ scaleX: w/o.width, scaleY: h/o.height }); o.setCoords(); canvas.renderAll();
-}
-function applyPropAngle() {
-  const o = canvas.getActiveObject(); if (!o) return;
-  o.set({ angle: +document.getElementById('propAngle').value }); o.setCoords(); canvas.renderAll();
-}
-function applyPropOpacity() {
-  const o = canvas.getActiveObject(); if (!o) return;
-  o.set({ opacity: +document.getElementById('propOpacity').value/100 }); canvas.renderAll();
-}
-function applyFont() {
-  const o = canvas.getActiveObject(); if (!o) return;
-  o.set({ fontFamily: document.getElementById('propFont').value }); canvas.renderAll();
-}
-function applyFontSize() {
-  const o = canvas.getActiveObject(); if (!o) return;
-  o.set({ fontSize: +document.getElementById('propFontSize').value }); canvas.renderAll();
-}
-function applyFontColor() {
-  const o = canvas.getActiveObject(); if (!o) return;
-  o.set({ fill: document.getElementById('propFontColor').value }); canvas.renderAll();
-}
-function toggleBold() {
-  const o = canvas.getActiveObject(); if (!o) return;
-  o.set({ fontWeight: o.fontWeight === 'bold' ? 'normal' : 'bold' });
-  canvas.renderAll();
-  document.getElementById('btnBold').classList.toggle('active', o.fontWeight === 'bold');
-}
-function toggleItalic() {
-  const o = canvas.getActiveObject(); if (!o) return;
-  o.set({ fontStyle: o.fontStyle === 'italic' ? 'normal' : 'italic' });
-  canvas.renderAll();
-  document.getElementById('btnItalic').classList.toggle('active', o.fontStyle === 'italic');
-}
-function toggleUnderline() {
-  const o = canvas.getActiveObject(); if (!o) return;
-  o.set({ underline: !o.underline }); canvas.renderAll();
-  document.getElementById('btnUnderline').classList.toggle('active', o.underline);
-}
-function toggleStrike() {
-  const o = canvas.getActiveObject(); if (!o) return;
-  o.set({ linethrough: !o.linethrough }); canvas.renderAll();
-  document.getElementById('btnStrike').classList.toggle('active', o.linethrough);
-}
-function setAlign(align) {
-  const o = canvas.getActiveObject(); if (!o) return;
-  o.set({ textAlign: align }); canvas.renderAll();
-  ['left','center','right'].forEach(a => document.getElementById('btnAlign'+a[0].toUpperCase()).classList.toggle('active', align === a));
-}
-function applyLineHeight() {
-  const v = +document.getElementById('propLineHeight').value;
-  document.getElementById('lineHeightVal').textContent = v.toFixed(2);
-  const o = canvas.getActiveObject(); if (!o) return;
-  o.set({ lineHeight: v }); canvas.renderAll();
-}
-function applyCharSpacing() {
-  const v = +document.getElementById('propCharSpacing').value;
-  document.getElementById('charSpacingVal').textContent = v;
-  const o = canvas.getActiveObject(); if (!o) return;
-  o.set({ charSpacing: v }); canvas.renderAll();
-}
-function applyFill() {
-  const o = canvas.getActiveObject(); if (!o) return;
-  o.set({ fill: document.getElementById('propFill').value }); canvas.renderAll();
-}
-function setNoFill() {
-  const o = canvas.getActiveObject(); if (!o) return;
-  o.set({ fill: 'transparent' }); canvas.renderAll();
-}
-function applyStroke() {
-  const o = canvas.getActiveObject(); if (!o) return;
-  o.set({ stroke: document.getElementById('propStroke').value }); canvas.renderAll();
-}
-function applyStrokeWidth() {
-  const o = canvas.getActiveObject(); if (!o) return;
-  o.set({ strokeWidth: +document.getElementById('propStrokeW').value }); canvas.renderAll();
-}
-function applyRadius() {
-  const o = canvas.getActiveObject(); if (!o || o.type !== 'rect') return;
-  const r = +document.getElementById('propRadius').value;
-  o.set({ rx: r, ry: r }); canvas.renderAll();
-}
-function flipH() { const o = canvas.getActiveObject(); if (!o) return; o.set({ flipX: !o.flipX }); canvas.renderAll(); }
-function flipV() { const o = canvas.getActiveObject(); if (!o) return; o.set({ flipY: !o.flipY }); canvas.renderAll(); }
-
-function applyShadow() {
-  const o = canvas.getActiveObject(); if (!o) return;
-  o.set('shadow', new fabric.Shadow({
-    color: document.getElementById('shadowColor').value,
-    blur: +document.getElementById('shadowBlur').value,
-    offsetX: +document.getElementById('shadowX').value,
-    offsetY: +document.getElementById('shadowY').value,
-  })); canvas.renderAll();
-}
-function removeShadow() {
-  const o = canvas.getActiveObject(); if (!o) return;
-  o.set('shadow', null); canvas.renderAll();
-}
-
-// LAYERS
-function updateLayerList() {
-  const list = document.getElementById('layerList');
-  const objs = canvas.getObjects().slice().reverse();
-  const selected = canvas.getActiveObject();
+function renderItemList() {
+  const list = $('itemList');
   list.innerHTML = '';
-  objs.forEach((obj, i) => {
-    const realIdx = canvas.getObjects().length - 1 - i;
-    const item = document.createElement('div');
-    item.className = 'layer-item' + (obj === selected ? ' selected' : '');
-    const icon = ['i-text','text','textbox'].includes(obj.type) ? '✏️'
-      : obj.type === 'image' ? '🖼️' : obj.type === 'rect' ? '▭'
-      : (obj.type === 'circle' || obj.type === 'ellipse') ? '◯'
-      : obj.type === 'triangle' ? '△' : obj.type === 'line' ? '━'
-      : obj.type === 'group' ? '📁' : '◆';
-    const name = ['i-text','text'].includes(obj.type) ? (obj.text||'').substring(0,12) : obj.type;
-    item.innerHTML = `
-      <span class="layer-thumb">${icon}</span>
-      <span class="layer-name">${name}</span>
-      <button class="layer-vis" onclick="toggleVisible(event,${realIdx})">${obj.visible!==false?'👁':'🚫'}</button>
+  items.forEach((item, idx) => {
+    const row = document.createElement('div');
+    row.className = 'item-row';
+    row.draggable = true;
+    row.dataset.idx = idx;
+    row.innerHTML = `
+      <div class="item-row-top">
+        <span class="item-drag-handle" title="드래그하여 순서 변경">⠿</span>
+        <div class="item-text-wrap">
+          <input type="text" class="item-text" placeholder="내용 입력 (예: 제목, 기관명, 날짜 등)" value="${esc(item.text)}" />
+        </div>
+        <button class="item-del" title="삭제">×</button>
+      </div>
+      <div class="item-row-opts">
+        <div>
+          <div class="item-opt-label">글자 크기</div>
+          <input type="number" class="item-opt-input item-fs" placeholder="자동" min="4" max="100" value="${item.fontSize}" />
+        </div>
+        <div>
+          <div class="item-opt-label">Y 위치(%)</div>
+          <input type="number" class="item-opt-input item-y" placeholder="0~100" min="0" max="100" value="${item.y}" />
+        </div>
+        <div>
+          <div class="item-opt-label">색상</div>
+          <input type="color" class="item-opt-input item-opt-color item-color" value="${item.color}" />
+        </div>
+        <div>
+          <div class="item-opt-label">굵게</div>
+          <button class="item-bold-btn${item.bold ? ' on' : ''}">B</button>
+        </div>
+        <div>
+          <div class="item-opt-label">중앙</div>
+          <button class="item-center-btn${item.align==='center' ? ' on' : ''}">≡</button>
+        </div>
+      </div>
     `;
-    item.addEventListener('click', () => {
-      canvas.setActiveObject(canvas.getObjects()[realIdx]);
-      canvas.renderAll(); updateLayerList(); updatePropsPanel();
+
+    row.querySelector('.item-text').addEventListener('input', e => { items[idx].text = e.target.value; render(); });
+    row.querySelector('.item-fs').addEventListener('input', e => { items[idx].fontSize = e.target.value; render(); });
+    row.querySelector('.item-y').addEventListener('input', e => { items[idx].y = parseFloat(e.target.value)||0; render(); });
+    row.querySelector('.item-color').addEventListener('input', e => { items[idx].color = e.target.value; render(); });
+    row.querySelector('.item-del').addEventListener('click', () => { items.splice(idx,1); renderItemList(); render(); });
+    row.querySelector('.item-bold-btn').addEventListener('click', function() {
+      items[idx].bold = !items[idx].bold; this.classList.toggle('on', items[idx].bold); render();
     });
-    list.appendChild(item);
+    row.querySelector('.item-center-btn').addEventListener('click', function() {
+      items[idx].align = items[idx].align === 'center' ? 'left' : 'center';
+      this.classList.toggle('on', items[idx].align === 'center'); render();
+    });
+
+    // Drag reorder
+    row.addEventListener('dragstart', e => { dragSrc = idx; row.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; });
+    row.addEventListener('dragend', () => { row.classList.remove('dragging'); document.querySelectorAll('.item-row').forEach(r=>r.classList.remove('drag-over')); });
+    row.addEventListener('dragover', e => { e.preventDefault(); row.classList.add('drag-over'); });
+    row.addEventListener('dragleave', () => row.classList.remove('drag-over'));
+    row.addEventListener('drop', e => {
+      e.preventDefault(); row.classList.remove('drag-over');
+      if (dragSrc === null || dragSrc === idx) return;
+      const moved = items.splice(dragSrc, 1)[0];
+      items.splice(idx, 0, moved);
+      renderItemList(); render();
+    });
+
+    list.appendChild(row);
   });
 }
-function toggleVisible(e, idx) {
-  e.stopPropagation();
-  const obj = canvas.getObjects()[idx]; if (!obj) return;
-  obj.set({ visible: !obj.visible }); canvas.renderAll(); updateLayerList();
-}
-function layerUp() {
-  const o = canvas.getActiveObject(); if (!o) return;
-  canvas.bringForward(o); canvas.renderAll(); updateLayerList();
-}
-function layerDown() {
-  const o = canvas.getActiveObject(); if (!o) return;
-  canvas.sendBackwards(o); canvas.renderAll(); updateLayerList();
-}
 
-// DELETE
-function deleteSelected() {
-  canvas.getActiveObjects().forEach(o => canvas.remove(o));
-  canvas.discardActiveObject(); canvas.renderAll();
-}
-
-// CONTEXT MENU
-const ctxMenu = document.getElementById('ctxMenu');
-canvas.on('mouse:down', function(opt) {
-  if (opt.e.button === 2) {
-    opt.e.preventDefault();
-    ctxMenu.style.display = 'block';
-    ctxMenu.style.left = opt.e.clientX + 'px';
-    ctxMenu.style.top = opt.e.clientY + 'px';
-  } else {
-    ctxMenu.style.display = 'none';
-  }
+$('addItemBtn').addEventListener('click', () => {
+  items.push(makeItem());
+  renderItemList(); render();
 });
-canvas.wrapperEl.addEventListener('contextmenu', e => e.preventDefault());
-document.addEventListener('click', () => ctxMenu.style.display = 'none');
 
-function ctxBringFront() { const o = canvas.getActiveObject(); if (o) { canvas.bringToFront(o); canvas.renderAll(); updateLayerList(); } }
-function ctxSendBack() { const o = canvas.getActiveObject(); if (o) { canvas.sendToBack(o); canvas.renderAll(); updateLayerList(); } }
-function ctxDuplicate() {
-  const o = canvas.getActiveObject(); if (!o) return;
-  o.clone(clone => { clone.set({ left: o.left+20, top: o.top+20 }); canvas.add(clone); canvas.setActiveObject(clone); });
-}
-function ctxGroup() {
-  if (!canvas.getActiveObject() || canvas.getActiveObject().type !== 'activeSelection') return;
-  canvas.getActiveObject().toGroup(); canvas.renderAll(); updateLayerList();
-}
-function ctxUngroup() {
-  const o = canvas.getActiveObject(); if (!o || o.type !== 'group') return;
-  o.toActiveSelection(); canvas.renderAll(); updateLayerList();
-}
-function ctxLock() {
-  const o = canvas.getActiveObject(); if (!o) return;
-  const locked = !o.locked; o.locked = locked;
-  o.set({ selectable: !locked, evented: !locked, lockMovementX: locked, lockMovementY: locked, lockRotation: locked, lockScalingX: locked, lockScalingY: locked });
-  canvas.renderAll(); showToast(locked ? '잠금됨' : '잠금 해제됨');
+// ── SVG helpers ──────────────────────────────────
+function wrapText(text, maxChars=16) {
+  const raw = String(text||'').replace(/\r/g,'').split('\n').flatMap(line => {
+    const clean = line.trim(); if (!clean) return [];
+    const words = clean.split(/\s+/).filter(Boolean);
+    if (words.length<=1 && clean.length<=maxChars) return [clean];
+    if (words.length<=1) { const c=[]; for(let i=0;i<clean.length;i+=maxChars)c.push(clean.slice(i,i+maxChars)); return c; }
+    let lines=[], cur='';
+    words.forEach(w => { if((cur+' '+w).trim().length>maxChars&&cur){lines.push(cur);cur=w;}else cur=(cur+' '+w).trim(); });
+    if(cur)lines.push(cur); return lines;
+  }).filter(Boolean);
+  return raw.length ? raw : [''];
 }
 
-// KEYBOARD
-document.addEventListener('keydown', e => {
-  const tag = document.activeElement.tagName;
-  if (tag === 'INPUT' || tag === 'TEXTAREA' || document.activeElement.contentEditable === 'true') return;
-  if (e.key === 'Delete' || e.key === 'Backspace') deleteSelected();
-  if (!e.ctrlKey && !e.metaKey) {
-    if (e.key === 'v' || e.key === 'V') setTool('select');
-    if (e.key === 't' || e.key === 'T') setTool('text');
-    if (e.key === 'r' || e.key === 'R') setTool('rect');
-    if (e.key === 'c' || e.key === 'C') setTool('circle');
-    if (e.key === 'd' || e.key === 'D') setTool('draw');
+function guideLines(w, h, b, frontW, frontH, spineW, mode) {
+  if (!$('showGuides').checked) return '';
+  let s = '';
+  s += `<rect x="0" y="0" width="${w}" height="${h}" fill="none" stroke="#ef4444" stroke-width="0.25" stroke-dasharray="2 1" opacity=".75"/>`;
+  s += `<rect x="${b}" y="${b}" width="${w-b*2}" height="${h-b*2}" fill="none" stroke="#2563eb" stroke-width="0.25" stroke-dasharray="2 1" opacity=".7"/>`;
+  if (mode === 'full') {
+    const backEnd = b+frontW, spineEnd = b+frontW+spineW;
+    s += `<line x1="${backEnd}" y1="${b}" x2="${backEnd}" y2="${h-b}" stroke="#111827" stroke-width="0.22" stroke-dasharray="1.5 1.3" opacity=".55"/>`;
+    s += `<line x1="${spineEnd}" y1="${b}" x2="${spineEnd}" y2="${h-b}" stroke="#111827" stroke-width="0.22" stroke-dasharray="1.5 1.3" opacity=".55"/>`;
+    s += `<text x="${b+frontW/2}" y="${h-2}" font-size="3" text-anchor="middle" fill="#6b7280">뒤표지</text>`;
+    s += `<text x="${backEnd+spineW/2}" y="${h-2}" font-size="3" text-anchor="middle" fill="#6b7280">책등</text>`;
+    s += `<text x="${spineEnd+frontW/2}" y="${h-2}" font-size="3" text-anchor="middle" fill="#6b7280">앞표지</text>`;
   }
-  if ((e.ctrlKey || e.metaKey) && e.key === 'z') { e.preventDefault(); undo(); }
-  if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || e.key === 'Y')) { e.preventDefault(); redo(); }
-  if ((e.ctrlKey || e.metaKey) && e.key === 'd') { e.preventDefault(); ctxDuplicate(); }
-  if ((e.ctrlKey || e.metaKey) && e.key === 'g') { e.preventDefault(); ctxGroup(); }
-  const step = e.shiftKey ? 10 : 1;
-  if (e.key === 'ArrowLeft') nudge(-step, 0);
-  if (e.key === 'ArrowRight') nudge(step, 0);
-  if (e.key === 'ArrowUp') nudge(0, -step);
-  if (e.key === 'ArrowDown') nudge(0, step);
-});
-function nudge(dx, dy) {
-  const o = canvas.getActiveObject(); if (!o) return;
-  o.set({ left: o.left+dx, top: o.top+dy }); o.setCoords(); canvas.renderAll();
+  return s;
 }
 
-// TEMPLATES
-function applyTemplate(type) {
-  if (canvas.getObjects().length > 0 && !confirm('현재 캔버스를 지우고 템플릿을 적용할까요?')) return;
-  canvas.clear();
-  if (type === 'menu') {
-    setDocSizeVal(595, 842);
-    canvas.setBackgroundColor('#fff8f0', canvas.renderAll.bind(canvas));
-    addTplText('메뉴판', 297, 60, { fontSize:48, fontWeight:'bold', textAlign:'center', fill:'#2d1b00', originX:'center' });
-    addTplRect(40, 100, 515, 4, { fill:'#c0832a' });
-    addTplText('대표 메뉴', 297, 140, { fontSize:22, fontWeight:'bold', fill:'#c0832a', textAlign:'center', originX:'center' });
-    addTplText('메뉴 이름 1\n메뉴 이름 2\n메뉴 이름 3', 60, 180, { fontSize:18, fill:'#2d1b00', lineHeight:2 });
-    addTplText('0,000원\n0,000원\n0,000원', 535, 180, { fontSize:18, fill:'#2d1b00', textAlign:'right', originX:'right', lineHeight:2 });
-    addTplRect(40, 360, 515, 1, { fill:'#e0cdb0' });
-    addTplText('추가 메뉴', 297, 390, { fontSize:18, fontWeight:'bold', fill:'#c0832a', textAlign:'center', originX:'center' });
-    addTplText('메뉴 이름 4\n메뉴 이름 5', 60, 430, { fontSize:18, fill:'#2d1b00', lineHeight:2 });
-    addTplText('0,000원\n0,000원', 535, 430, { fontSize:18, fill:'#2d1b00', textAlign:'right', originX:'right', lineHeight:2 });
-  } else if (type === 'flyer') {
-    setDocSizeVal(794, 1123);
-    canvas.setBackgroundColor('#1a3a6b', canvas.renderAll.bind(canvas));
-    addTplRect(0, 0, 794, 420, { fill:'#12306a' });
-    addTplText('이벤트 제목', 397, 180, { fontSize:56, fontWeight:'bold', fill:'#ffffff', textAlign:'center', originX:'center' });
-    addTplText('부제목을 입력하세요', 397, 260, { fontSize:26, fill:'#a0c4ff', textAlign:'center', originX:'center' });
-    addTplRect(100, 370, 594, 3, { fill:'rgba(255,255,255,0.3)' });
-    addTplText('일시: 0000년 00월 00일', 397, 500, { fontSize:22, fill:'#ffffff', textAlign:'center', originX:'center' });
-    addTplText('장소: 장소를 입력하세요', 397, 545, { fontSize:22, fill:'#ffffff', textAlign:'center', originX:'center' });
-    addTplText('내용을 여기에 입력하세요.\n자세한 정보는 아래를 참고하세요.', 397, 650, { fontSize:18, fill:'rgba(255,255,255,0.8)', textAlign:'center', originX:'center', lineHeight:1.8 });
-    addTplText('문의: 000-0000-0000', 397, 780, { fontSize:20, fill:'#a0c4ff', textAlign:'center', originX:'center' });
-  } else if (type === 'card') {
-    setDocSizeVal(252, 144);
-    canvas.setBackgroundColor('#12396d', canvas.renderAll.bind(canvas));
-    addTplText('회사명', 20, 18, { fontSize:14, fontWeight:'bold', fill:'rgba(255,255,255,0.6)' });
-    addTplText('홍길동', 20, 42, { fontSize:24, fontWeight:'bold', fill:'#ffffff' });
-    addTplText('직함 / 부서', 20, 78, { fontSize:12, fill:'#a0c4ff' });
-    addTplText('010-0000-0000', 232, 95, { fontSize:11, fill:'#a0c4ff', textAlign:'right', originX:'right' });
-    addTplText('email@example.com', 232, 115, { fontSize:11, fill:'#a0c4ff', textAlign:'right', originX:'right' });
-    addTplRect(0, 136, 252, 8, { fill:'#4fa8d5' });
-  } else if (type === 'cover') {
-    setDocSizeVal(595, 842);
-    canvas.setBackgroundColor('#0a1f3d', canvas.renderAll.bind(canvas));
-    addTplRect(0, 0, 595, 6, { fill:'#4fa8d5' });
-    addTplRect(0, 836, 595, 6, { fill:'#4fa8d5' });
-    addTplRect(50, 200, 495, 2, { fill:'rgba(79,168,213,0.4)' });
-    addTplRect(50, 460, 495, 2, { fill:'rgba(79,168,213,0.4)' });
-    addTplText('제목을 입력하세요', 297, 280, { fontSize:42, fontWeight:'bold', fill:'#ffffff', textAlign:'center', originX:'center' });
-    addTplText('부제목을 입력하세요', 297, 380, { fontSize:22, fill:'#a0c4ff', textAlign:'center', originX:'center' });
-    addTplText('저자명', 297, 650, { fontSize:18, fill:'#94a3b8', textAlign:'center', originX:'center' });
-    addTplText('발행처 · 발행연도', 297, 690, { fontSize:15, fill:'#64748b', textAlign:'center', originX:'center' });
-  } else if (type === 'poster') {
-    setDocSizeVal(595, 842);
-    canvas.setBackgroundColor('#ffffff', canvas.renderAll.bind(canvas));
-    addTplRect(0, 0, 595, 320, { fill:'#f0e6ff' });
-    addTplText('포스터 제목', 297, 130, { fontSize:52, fontWeight:'bold', fill:'#4a1a8a', textAlign:'center', originX:'center' });
-    addTplText('부제목을 입력하세요', 297, 220, { fontSize:22, fill:'#7c4db5', textAlign:'center', originX:'center' });
-    addTplRect(60, 340, 475, 2, { fill:'#e0d0f0' });
-    addTplText('세부 내용을 여기에 입력합니다.\n다양한 내용을 추가해보세요.\n행사 일정 및 장소 정보.', 297, 400, { fontSize:17, fill:'#333', lineHeight:1.8, textAlign:'center', originX:'center' });
-    addTplText('일시: 0000년 00월 00일', 297, 580, { fontSize:16, fill:'#4a1a8a', textAlign:'center', originX:'center' });
-    addTplText('장소: 장소를 입력하세요', 297, 615, { fontSize:16, fill:'#4a1a8a', textAlign:'center', originX:'center' });
-    addTplRect(60, 680, 475, 1, { fill:'#e0d0f0' });
-    addTplText('문의처: 000-0000-0000', 297, 730, { fontSize:14, fill:'#888', textAlign:'center', originX:'center' });
-  } else if (type === 'sns') {
-    setDocSizeVal(1080, 1080);
-    canvas.setBackgroundColor('#ff6b6b', canvas.renderAll.bind(canvas));
-    addTplRect(50, 50, 980, 980, { fill:'transparent', stroke:'rgba(255,255,255,0.4)', strokeWidth:4, rx:20, ry:20 });
-    addTplText('SNS 포스팅', 540, 400, { fontSize:80, fontWeight:'bold', fill:'#ffffff', textAlign:'center', originX:'center' });
-    addTplText('내용을 입력하세요', 540, 530, { fontSize:36, fill:'rgba(255,255,255,0.85)', textAlign:'center', originX:'center' });
-    addTplText('#해시태그 #해시태그2', 540, 700, { fontSize:28, fill:'rgba(255,255,255,0.7)', textAlign:'center', originX:'center' });
+function bgPattern(style, w, h, main, accent, mode, frontX, frontW, frontH, b) {
+  const defs = `<defs>
+    <linearGradient id="soft" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#eef5f8"/></linearGradient>
+    <linearGradient id="bluegrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="${accent}" stop-opacity=".16"/></linearGradient>
+    <linearGradient id="pastelgrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff7ed"/><stop offset=".55" stop-color="#eff6ff"/><stop offset="1" stop-color="#ecfeff"/></linearGradient>
+    <pattern id="dotPattern" width="8" height="8" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r=".45" fill="${main}" opacity=".16"/></pattern>
+    <pattern id="gridPattern" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="${main}" stroke-width=".08" opacity=".20"/></pattern>
+  </defs>`;
+  let s = defs + `<rect width="${w}" height="${h}" fill="url(#soft)"/>`;
+  if (style==='minimalWave') {
+    s+=`<path d="M ${-w*.05} ${h*.70} C ${w*.18} ${h*.58}, ${w*.30} ${h*.92}, ${w*.52} ${h*.78} S ${w*.82} ${h*.48}, ${w*1.05} ${h*.63}" fill="none" stroke="${main}" stroke-width=".30" opacity=".16"/>`;
+    for(let i=0;i<18;i++) s+=`<path d="M ${-w*.05} ${h*(.70+i*.008)} C ${w*.18} ${h*(.58+i*.005)}, ${w*.30} ${h*(.92-i*.003)}, ${w*.52} ${h*(.78+i*.003)} S ${w*.82} ${h*(.48+i*.007)}, ${w*1.05} ${h*(.63+i*.005)}" fill="none" stroke="${main}" stroke-width=".13" opacity=".11"/>`;
+    s+=`<path d="M ${w*.80} 0 Q ${w*.97} ${h*.10}, ${w} ${h*.28}" fill="none" stroke="${accent}" stroke-width=".24" opacity=".18"/>`;
   }
-  canvas.renderAll(); updateLayerList();
+  if (style==='softBlue') {
+    s+=`<rect width="${w}" height="${h}" fill="url(#bluegrad)"/>`;
+    s+=`<path d="M0 ${h*.82} C ${w*.25} ${h*.72}, ${w*.38} ${h*.84}, ${w*.58} ${h*.73} C ${w*.78} ${h*.62}, ${w*.87} ${h*.78}, ${w} ${h*.70} L ${w} ${h} L 0 ${h} Z" fill="${main}" opacity=".10"/>`;
+    s+=`<path d="M0 0 L ${w*.22} 0 L 0 ${h*.20} Z" fill="${main}" opacity=".10"/>`;
+    s+=`<circle cx="${w*.88}" cy="${h*.20}" r="${Math.min(w,h)*.10}" fill="${accent}" opacity=".08"/>`;
+  }
+  if (style==='contentGrid') {
+    s+=`<rect width="${w}" height="${h}" fill="#ffffff"/>`;
+    const baseX=mode==='full'?frontX+frontW*.36:w*.44, baseY=h*.57;
+    const colors=[main,accent,'#6d5dfc','#f26464'];
+    for(let i=0;i<18;i++){const x=baseX+((i%6)-2)*13,y=baseY+Math.floor(i/6)*14+((i%2)*5),size=10+(i%3)*4;s+=`<rect x="${x}" y="${y}" width="${size}" height="${size}" fill="${colors[i%colors.length]}" opacity="${.10+(i%4)*.05}"/>`;}
+    s+=`<path d="M0 ${h*.86} C ${w*.24} ${h*.74}, ${w*.55} ${h*.98}, ${w} ${h*.77}" fill="none" stroke="${accent}" stroke-width=".18" opacity=".35"/>`;
+  }
+  if (style==='premiumNavy') {
+    s+=`<rect width="${w}" height="${h}" fill="#071b36"/>`;
+    s+=`<path d="M0 ${h*.62} C ${w*.20} ${h*.54}, ${w*.36} ${h*.75}, ${w*.62} ${h*.66} S ${w*.88} ${h*.44}, ${w} ${h*.52}" fill="none" stroke="#ffffff" stroke-width=".22" opacity=".24"/>`;
+    for(let i=0;i<20;i++) s+=`<path d="M0 ${h*(.65+i*.009)} C ${w*.20} ${h*(.57+i*.004)}, ${w*.36} ${h*(.78-i*.002)}, ${w*.62} ${h*(.69+i*.002)} S ${w*.88} ${h*(.47+i*.004)}, ${w} ${h*(.55+i*.005)}" fill="none" stroke="${accent}" stroke-width=".10" opacity=".18"/>`;
+    s+=`<path d="M ${w*.78} 0 C ${w*.93} ${h*.12}, ${w*.86} ${h*.25}, ${w} ${h*.36}" fill="none" stroke="#e4c98a" stroke-width=".20" opacity=".45"/>`;
+  }
+  if (style==='paperClean') {
+    s+=`<rect width="${w}" height="${h}" fill="#ffffff"/>`;
+    s+=`<rect x="${b+6}" y="${b+6}" width="${w-(b+6)*2}" height="${h-(b+6)*2}" fill="none" stroke="${main}" stroke-width=".25" opacity=".30"/>`;
+    s+=`<path d="M ${b+8} ${h*.18} L ${b+8} ${h*.82}" stroke="${accent}" stroke-width=".55" opacity=".40"/>`;
+  }
+  if (style==='schoolPastel') {
+    s+=`<rect width="${w}" height="${h}" fill="url(#pastelgrad)"/>`;
+    s+=`<rect width="${w}" height="${h}" fill="url(#dotPattern)" opacity=".75"/>`;
+    s+=`<circle cx="${w*.15}" cy="${h*.18}" r="${Math.min(w,h)*.08}" fill="${accent}" opacity=".13"/>`;
+    s+=`<circle cx="${w*.86}" cy="${h*.78}" r="${Math.min(w,h)*.13}" fill="${main}" opacity=".10"/>`;
+    s+=`<path d="M ${w*.03} ${h*.74} C ${w*.20} ${h*.65}, ${w*.30} ${h*.92}, ${w*.50} ${h*.78} S ${w*.78} ${h*.54}, ${w*.98} ${h*.64}" fill="none" stroke="${accent}" stroke-width=".35" opacity=".24"/>`;
+  }
+  if (style==='studyGrid') {
+    s+=`<rect width="${w}" height="${h}" fill="#ffffff"/>`;
+    s+=`<rect width="${w}" height="${h}" fill="url(#gridPattern)"/>`;
+    s+=`<rect x="${frontX+frontW*.08}" y="${b+frontH*.16}" width="${frontW*.84}" height="${frontH*.68}" rx="8" fill="#ffffff" opacity=".72" stroke="${main}" stroke-width=".18"/>`;
+    s+=`<path d="M ${frontX+frontW*.09} ${b+frontH*.25} H ${frontX+frontW*.91}" stroke="${accent}" stroke-width=".7" opacity=".45"/>`;
+    s+=`<path d="M ${frontX+frontW*.09} ${b+frontH*.74} H ${frontX+frontW*.91}" stroke="${main}" stroke-width=".32" opacity=".25"/>`;
+  }
+  if (bgData) {
+    const opacity = Math.max(0.05, Math.min(1, parseFloat($('bgOpacity').value||0.35)));
+    const fit = $('bgFit').value==='meet' ? 'xMidYMid meet' : 'xMidYMid slice';
+    s += `<image href="${bgData}" x="0" y="0" width="${w}" height="${h}" preserveAspectRatio="${fit}" opacity="${opacity}"/>`;
+    if (opacity<.75) s+=`<rect width="${w}" height="${h}" fill="#ffffff" opacity="${Math.max(0,.30-opacity*.18)}"/>`;
+  }
+  return s;
 }
 
-function setDocSizeVal(w, h) {
-  canvasW = w; canvasH = h;
-  document.getElementById('canvasW').value = w;
-  document.getElementById('canvasH').value = h;
-  canvas.setWidth(w); canvas.setHeight(h);
-  document.querySelectorAll('.doc-size-btn').forEach(b => {
-    b.classList.toggle('active', parseInt(b.dataset.w) === w && parseInt(b.dataset.h) === h);
+function coverText(mode, w, h, b, frontW, frontH, spineW, main, accent, style) {
+  const frontX = mode==='full' ? b+frontW+spineW : b;
+  const dark = style==='premiumNavy';
+  let s = '';
+
+  // Render items
+  items.forEach(item => {
+    if (!item.text.trim()) return;
+    const centerX = frontX + frontW/2;
+    const yPos = frontX + b + (item.y/100) * frontH;
+    const autoFontSize = Math.max(7, Math.min(frontW/7, 18));
+    const fs = item.fontSize ? parseFloat(item.fontSize) : autoFontSize;
+    const fw = item.bold ? '900' : '400';
+    const fill = dark && item.color === '#111827' ? '#ffffff' : item.color;
+    const textAnchor = item.align === 'center' ? 'middle' : 'start';
+    const x = item.align === 'center' ? centerX : frontX + frontW*0.1;
+
+    const lines = wrapText(item.text, Math.max(8, Math.floor(frontW/fs*1.4)));
+    lines.forEach((line, li) => {
+      s += `<text x="${x}" y="${yPos + li*fs*1.25}" font-size="${fs}" font-weight="${fw}" text-anchor="${textAnchor}" fill="${fill}" letter-spacing="-.3">${esc(line)}</text>`;
+    });
   });
-  zoomFit();
-}
-function addTplText(text, left, top, opts={}) {
-  const t = new fabric.IText(text, { left, top, fontFamily:'Noto Sans KR', fontSize:20, fill:'#1e1e2e', ...opts });
-  canvas.add(t); return t;
-}
-function addTplRect(left, top, width, height, opts={}) {
-  const r = new fabric.Rect({ left, top, width, height, fill:'#7c6af5', ...opts });
-  canvas.add(r); return r;
+
+  // Logo + org name
+  const orgName = $('logoOrg').value.trim();
+  if (orgName || logoData) {
+    const logoSize = Math.max(12, Math.min(frontW*.12, 22));
+    const centerX = frontX + frontW/2;
+    const logoY = b + frontH*.90;
+    const orgW = Math.min(frontW*.55, orgName.length*2.25);
+    const logoX = centerX - (logoSize+orgW)/2;
+    const dark2 = style==='premiumNavy';
+    if (logoData) {
+      s += `<image href="${logoData}" x="${logoX}" y="${logoY-logoSize*.72}" width="${logoSize}" height="${logoSize}" preserveAspectRatio="xMidYMid meet"/>`;
+    } else if (orgName) {
+      s += `<g transform="translate(${logoX} ${logoY-logoSize*.72})">
+        <rect x="0" y="0" width="${logoSize}" height="${logoSize}" rx="${logoSize*.12}" fill="${dark2?'#ffffff':main}"/>
+        <path d="M ${logoSize*.30} ${logoSize*.22} L ${logoSize*.78} ${logoSize*.22} L ${logoSize*.58} ${logoSize*.42} L ${logoSize*.35} ${logoSize*.42} L ${logoSize*.35} ${logoSize*.68} L ${logoSize*.58} ${logoSize*.68} L ${logoSize*.78} ${logoSize*.88} L ${logoSize*.30} ${logoSize*.88} Z" fill="${dark2?main:'#ffffff'}" opacity=".95"/>
+        <circle cx="${logoSize*.70}" cy="${logoSize*.55}" r="${logoSize*.13}" fill="${accent}"/>
+      </g>`;
+    }
+    if (orgName) {
+      const bodyColor = dark2 ? '#f3f4f6' : '#111827';
+      s += `<text x="${logoX+logoSize+5}" y="${logoY-logoSize*.20}" font-size="${Math.max(6,frontW/26)}" font-weight="900" fill="${bodyColor}">${esc(orgName)}</text>`;
+    }
+  }
+  return s;
 }
 
-// EXPORT
-function exportPNG() {
-  const link = document.createElement('a');
-  link.download = (document.getElementById('docName').value || '디자인보드') + '.png';
-  link.href = canvas.toDataURL({ format:'png', multiplier:2 });
-  link.click(); showToast('PNG 저장 완료');
-}
-function exportSVG() {
-  const blob = new Blob([canvas.toSVG()], { type:'image/svg+xml' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.download = (document.getElementById('docName').value || '디자인보드') + '.svg';
-  link.href = url; link.click();
-  URL.revokeObjectURL(url); showToast('SVG 저장 완료');
-}
-function exportPDF() {
-  const { jsPDF } = window.jspdf;
-  const pdfW = canvasW * 0.75, pdfH = canvasH * 0.75;
-  const pdf = new jsPDF({ orientation: canvasW > canvasH ? 'landscape' : 'portrait', unit:'pt', format:[pdfW,pdfH] });
-  pdf.addImage(canvas.toDataURL({ format:'jpeg', quality:0.95, multiplier:2 }), 'JPEG', 0, 0, pdfW, pdfH);
-  pdf.save((document.getElementById('docName').value || '디자인보드') + '.pdf');
-  showToast('PDF 저장 완료');
+function makeSvg() {
+  const mode = $('mode').value;
+  const frontW = num('frontW', 210), frontH = num('frontH', 297), spineW = num('spineW', 8), b = num('bleed', 3);
+  const w = mode==='full' ? frontW*2+spineW+b*2 : frontW+b*2;
+  const h = frontH + b*2;
+  const main = $('mainColor').value, accent = $('accentColor').value, style = $('style').value;
+  const frontX = mode==='full' ? b+frontW+spineW : b;
+  let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}mm" height="${h}mm" viewBox="0 0 ${w} ${h}" data-w="${w}" data-h="${h}">`;
+  svg += bgPattern(style,w,h,main,accent,mode,frontX,frontW,frontH,b);
+  svg += coverText(mode,w,h,b,frontW,frontH,spineW,main,accent,style);
+  svg += guideLines(w,h,b,frontW,frontH,spineW,mode);
+  svg += `</svg>`;
+  return {svg,w,h,mode,frontW,frontH,spineW,b};
 }
 
-// TOAST
-function showToast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg; t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 2000);
+function buildPrompt() {
+  const frontW=num('frontW',210), frontH=num('frontH',297), spineW=num('spineW',8), b=num('bleed',3);
+  const mode=$('mode').value;
+  const modeText = mode==='full'
+    ? `뒤표지+책등+앞표지 전체 펼침형, 앞표지 ${frontW}mm x ${frontH}mm, 책등 ${spineW}mm, 도련 ${b}mm`
+    : `앞표지 단면, ${frontW}mm x ${frontH}mm, 도련 ${b}mm`;
+  const styleLabel = $('style').selectedOptions[0].textContent;
+  return `인쇄용 표지에 사용할 배경 이미지만 만들어줘. 텍스트, 로고, 글자, 숫자, 테두리, 재단선은 넣지 말고 배경만. 스타일은 ${styleLabel}. 메인 색상은 ${$('mainColor').value}, 포인트 색상은 ${$('accentColor').value}. 규격은 ${modeText}. 깔끔하고 여백이 넉넉하며, 제목이 들어갈 중앙 영역은 복잡하지 않게 비워줘.`;
 }
 
-// INIT
-setTimeout(zoomFit, 50);
+function render() {
+  $('bgOpacityValue').textContent = Math.round(parseFloat($('bgOpacity').value||.35)*100)+'%';
+  $('previewScaleValue').textContent = $('previewScale').value+'%';
+  $('aiPrompt').value = buildPrompt();
+  const data = makeSvg();
+  $('previewBox').innerHTML = data.svg;
+  const svgEl = $('previewBox').querySelector('svg');
+  const pxPerMm = 3.35;
+  const scale = parseFloat($('previewScale').value||120)/100;
+  svgEl.style.width = `${Math.max(260, data.w*pxPerMm*scale)}px`;
+  $('sizeInfo').textContent = data.mode==='full'
+    ? `전체 ${data.w}×${data.h}mm / 뒤 ${data.frontW} + 책등 ${data.spineW} + 앞 ${data.frontW} / 도련 ${data.b}mm`
+    : `앞표지 ${data.w}×${data.h}mm / 재단 후 ${data.frontW}×${data.frontH}mm / 도련 ${data.b}mm`;
+  $('guideInfo').textContent = `항목 ${items.filter(i=>i.text.trim()).length}개`;
+}
+
+function download(name, blob) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click();
+  setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);
+}
+function fitWidth() {
+  const data = makeSvg();
+  const available = Math.max(300, $('previewScroll').clientWidth - 40);
+  const targetScale = Math.max(60, Math.min(220, Math.round((available/(data.w*3.35))*100)));
+  $('previewScale').value = targetScale; render();
+}
+
+$('downloadSvg').addEventListener('click', () => { const {svg,mode}=makeSvg(); download(`cover-${mode}.svg`, new Blob([svg],{type:'image/svg+xml;charset=utf-8'})); });
+$('downloadPng').addEventListener('click', () => {
+  const {svg,w,h,mode}=makeSvg();
+  const scale=300/25.4;
+  const canvas=document.createElement('canvas');
+  canvas.width=Math.round(w*scale); canvas.height=Math.round(h*scale);
+  const ctx=canvas.getContext('2d'), img=new Image();
+  const url=URL.createObjectURL(new Blob([svg],{type:'image/svg+xml;charset=utf-8'}));
+  img.onload=()=>{ctx.fillStyle='#fff';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(img,0,0,canvas.width,canvas.height);canvas.toBlob(blob=>download(`cover-${mode}-300dpi.png`,blob),'image/png');URL.revokeObjectURL(url);};
+  img.src=url;
+});
+$('printPdf').addEventListener('click', () => {
+  const {svg,w,h}=makeSvg();
+  const win=window.open('','_blank');
+  win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>PDF 저장</title><style>@page{size:${w}mm ${h}mm;margin:0}html,body{margin:0;padding:0;width:${w}mm;height:${h}mm}svg{display:block;width:${w}mm;height:${h}mm}</style></head><body>${svg}<script>window.onload=()=>setTimeout(()=>window.print(),250)<\/script></body></html>`);
+  win.document.close();
+});
+$('resetBtn').addEventListener('click', () => {
+  items=[]; logoData=''; bgData='';
+  $('logoFile').value=''; $('bgFile').value=''; $('logoOrg').value='';
+  $('mode').value='front'; $('style').value='minimalWave';
+  $('mainColor').value='#12396d'; $('accentColor').value='#1d9bb2';
+  $('bgFit').value='slice'; $('bgOpacity').value=0.35; $('previewScale').value=120;
+  $('showGuides').checked=true;
+  renderItemList(); render();
+});
+$('copyPrompt').addEventListener('click', async () => {
+  $('aiPrompt').value = buildPrompt();
+  try { await navigator.clipboard.writeText($('aiPrompt').value); $('copyPrompt').textContent='✓ 복사 완료'; setTimeout(()=>$('copyPrompt').textContent='배경 요청 문구 복사',1200); }
+  catch(e) { $('aiPrompt').select(); document.execCommand('copy'); }
+});
+$('fitWidthBtn').addEventListener('click', fitWidth);
+$('bigPreviewBtn').addEventListener('click', () => { $('previewScale').value=Math.min(220,parseInt($('previewScale').value||120,10)+40); render(); });
+$('logoFile').addEventListener('change', e => readFile(e.target, data=>{logoData=data; render();}));
+$('bgFile').addEventListener('change', e => readFile(e.target, data=>{bgData=data; render();}));
+document.querySelectorAll('aside input:not([type=file]), aside select, aside textarea').forEach(el => {
+  if (el.id!=='aiPrompt') el.addEventListener('input', render);
+});
+window.addEventListener('resize', ()=>{ if(parseInt($('previewScale').value||0,10)<80) fitWidth(); });
+
+render();
 </script>
 </body>
 </html>
