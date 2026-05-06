@@ -42,7 +42,6 @@
 
     .app { display: grid; grid-template-columns: 340px minmax(0,1fr); min-height: calc(100vh - var(--nav-h)); }
 
-    /* ── Left panel ── */
     aside {
       background: var(--panel); border-right: 1px solid #e5e7eb;
       padding: 16px; overflow-y: auto; max-height: calc(100vh - var(--nav-h));
@@ -52,19 +51,20 @@
     .section { border-top: 1px solid #edf0f3; padding-top: 12px; margin-top: 12px; }
     .section h2 { font-size: 12px; font-weight: 800; margin: 0 0 10px; color: #374151; text-transform: uppercase; letter-spacing: 0.4px; }
     label { display: block; font-size: 11px; font-weight: 800; margin: 0 0 4px; color: #374151; }
-    input[type="text"], input[type="number"], select {
+    input[type="text"], input[type="number"], select, textarea {
       width: 100%; border: 1px solid var(--line); border-radius: 8px;
       padding: 8px 10px; font-size: 13px; background: #fff;
       outline: none; font-family: inherit; transition: border-color 0.15s;
     }
-    input:focus, select:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,.08); }
+    textarea { resize: vertical; min-height: 72px; line-height: 1.5; }
+    input:focus, select:focus, textarea:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,.08); }
     input[type="color"] { padding: 2px 4px; height: 34px; cursor: pointer; border-radius: 8px; }
     input[type="file"] { font-size: 12px; padding: 6px 8px; }
     input[type="range"] { padding: 0; accent-color: var(--primary); }
     .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
     .field { margin-bottom: 8px; }
     .checkline { display: flex; align-items: center; gap: 7px; margin: 6px 0; font-size: 12px; color: #374151; font-weight: 700; cursor: pointer; }
-    .checkline input { width: auto; }
+    .checkline input[type="checkbox"] { width: auto; cursor: pointer; }
     .minirow { display: flex; align-items: center; justify-content: space-between; font-size: 10px; color: #9ca3af; font-weight: 700; margin-top: 2px; }
     .smallnote { font-size: 11px; color: var(--muted); line-height: 1.45; margin-top: 4px; }
 
@@ -83,11 +83,20 @@
       color: #fff; font-size: 13px; padding: 11px;
       display: flex; align-items: center; justify-content: center; gap: 8px;
     }
-    button.ai-btn:hover { opacity: 0.9; }
     .btns { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-top: 8px; }
-    .btns.single { grid-template-columns: 1fr; }
 
-    /* ── Items ── */
+    /* View tabs */
+    .view-tabs { display: flex; gap: 4px; margin-bottom: 10px; }
+    .view-tab {
+      flex: 1; padding: 7px 0; font-size: 12px; font-weight: 800;
+      border: 1.5px solid var(--line); border-radius: 8px;
+      background: #f8fafc; color: #6b7280; cursor: pointer; font-family: inherit;
+      transition: all 0.15s;
+    }
+    .view-tab.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .view-tab:hover:not(.active) { background: #eff6ff; border-color: #93c5fd; color: #1d4ed8; opacity: 1; }
+
+    /* Items */
     .item-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 6px; }
     .item-row {
       background: #f8fafc; border: 1.5px solid #e5e7eb;
@@ -99,15 +108,16 @@
     .item-text-input {
       flex: 1; border: 1px solid #d1d5db; border-radius: 7px;
       padding: 7px 9px; font-size: 13px; font-family: inherit; outline: none;
+      background: #fff;
     }
-    .item-text-input:focus { border-color: #2563eb; }
-    .item-del { background: none; border: none; color: #9ca3af; font-size: 16px; cursor: pointer; padding: 2px 5px; line-height: 1; font-family: inherit; }
+    .item-text-input:focus { border-color: #2563eb; box-shadow: 0 0 0 2px rgba(37,99,235,.1); }
+    .item-del { background: none; border: none; color: #9ca3af; font-size: 16px; cursor: pointer; padding: 2px 5px; line-height: 1; font-family: inherit; flex-shrink: 0; }
     .item-del:hover { color: #ef4444; opacity: 1; background: none; }
     .item-row-opts { display: grid; grid-template-columns: 70px 34px 34px; gap: 6px; align-items: center; }
     .item-opt-label { font-size: 10px; color: #6b7280; font-weight: 700; margin-bottom: 2px; }
     .item-fs-input {
       width: 100%; border: 1px solid #d1d5db; border-radius: 6px;
-      padding: 5px 6px; font-size: 12px; font-family: inherit; outline: none; text-align: center;
+      padding: 5px 6px; font-size: 12px; font-family: inherit; outline: none; text-align: center; background: #fff;
     }
     .item-fs-input:focus { border-color: #2563eb; }
     .item-color-input { width: 34px; height: 34px; padding: 2px 3px; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; }
@@ -133,48 +143,22 @@
     .ai-status.success { display: block; background: #f0fdf4; color: #166534; }
     .ai-status.error { display: block; background: #fef2f2; color: #991b1b; }
 
-    /* ── Canvas area ── */
+    /* Canvas area */
     main { padding: 14px; overflow: hidden; min-width: 0; display: flex; flex-direction: column; }
-    .canvas-hint {
-      font-size: 11px; color: #94a3b8; text-align: center;
-      padding: 5px; flex-shrink: 0; margin-bottom: 4px;
-    }
-    .preview-shell {
-      background: #e9edf2; border-radius: 16px; padding: 12px;
-      flex: 1; display: flex; flex-direction: column; gap: 8px; min-height: 0;
-    }
-    .info-bar {
-      background: rgba(255,255,255,.90); border: 1px solid #e5e7eb;
-      border-radius: 10px; padding: 8px 12px; font-size: 11px; color: #374151;
-      display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; flex-shrink: 0;
-    }
-    .preview-scroll {
-      flex: 1; overflow: auto; background: rgba(255,255,255,.32);
-      border-radius: 12px; border: 1px solid rgba(148,163,184,.28); padding: 14px;
-    }
+    .canvas-hint { font-size: 11px; color: #94a3b8; text-align: center; padding: 5px; flex-shrink: 0; margin-bottom: 4px; }
+    .preview-shell { background: #e9edf2; border-radius: 16px; padding: 12px; flex: 1; display: flex; flex-direction: column; gap: 8px; min-height: 0; }
+    .info-bar { background: rgba(255,255,255,.90); border: 1px solid #e5e7eb; border-radius: 10px; padding: 8px 12px; font-size: 11px; color: #374151; display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; flex-shrink: 0; }
+    .preview-scroll { flex: 1; overflow: auto; background: rgba(255,255,255,.32); border-radius: 12px; border: 1px solid rgba(148,163,184,.28); padding: 14px; }
     #previewBox { min-width: max-content; display: flex; justify-content: center; align-items: flex-start; }
-    #previewBox svg {
-      background: #fff; box-shadow: var(--shadow);
-      max-width: none; height: auto; border-radius: 3px; display: block;
-    }
-    /* SVG text items interactive styles */
+    #previewBox svg { background: #fff; box-shadow: var(--shadow); max-width: none; height: auto; border-radius: 3px; display: block; }
     .text-item { cursor: move; }
     .text-item text { user-select: none; }
     .text-item:hover .item-hover-rect { display: block; }
     .item-hover-rect { display: none; }
 
-    .zoom-bar {
-      display: flex; align-items: center; gap: 6px;
-      padding: 5px 8px; background: rgba(255,255,255,.7); border-radius: 8px;
-      align-self: flex-end; flex-shrink: 0;
-    }
+    .zoom-bar { display: flex; align-items: center; gap: 6px; padding: 5px 8px; background: rgba(255,255,255,.7); border-radius: 8px; align-self: flex-end; flex-shrink: 0; }
     .zoom-bar span { font-size: 11px; color: #374151; font-weight: 700; min-width: 36px; text-align: center; }
-    .zoom-btn {
-      background: #fff; border: 1px solid #e5e7eb; color: #374151;
-      width: 24px; height: 24px; border-radius: 6px; cursor: pointer;
-      font-size: 14px; display: flex; align-items: center; justify-content: center;
-      font-family: inherit; padding: 0;
-    }
+    .zoom-btn { background: #fff; border: 1px solid #e5e7eb; color: #374151; width: 24px; height: 24px; border-radius: 6px; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; font-family: inherit; padding: 0; }
     .zoom-btn:hover { background: #f1f5f9; opacity: 1; }
 
     #authLoading { position: fixed; inset: 0; background: #fff; display: flex; align-items: center; justify-content: center; z-index: 9999; }
@@ -217,7 +201,7 @@
 <div class="app">
   <aside>
     <h1>표지 생성기</h1>
-    <div class="sub">텍스트를 추가하고 캔버스에서 직접 위치를 조정하세요. AI가 배경 디자인을 자동으로 생성합니다.</div>
+    <div class="sub">항목을 추가하고 캔버스에서 드래그해 위치를 조정하세요. AI가 배경을 자동 디자인합니다.</div>
 
     <!-- 1. 출력 영역 -->
     <div class="section">
@@ -230,24 +214,46 @@
         </select>
       </div>
       <div class="grid2">
-        <div class="field"><label>가로(mm)</label><input id="frontW" type="number" placeholder="210" min="80" step="1"></div>
-        <div class="field"><label>세로(mm)</label><input id="frontH" type="number" placeholder="297" min="100" step="1"></div>
-        <div class="field"><label>책등 두께(mm)</label><input id="spineW" type="number" placeholder="8" min="0" step="0.5"></div>
-        <div class="field"><label>도련(mm)</label><input id="bleed" type="number" placeholder="3" min="0" step="0.5"></div>
+        <div class="field"><label>가로(mm)</label><input id="frontW" type="number" placeholder="210" min="80" step="1" value="210"></div>
+        <div class="field"><label>세로(mm)</label><input id="frontH" type="number" placeholder="297" min="100" step="1" value="297"></div>
+        <div class="field"><label>도련(mm)</label><input id="bleed" type="number" placeholder="3" min="0" step="0.5" value="3"></div>
       </div>
-      <div id="spineTextWrap" style="display:none;" class="field">
-        <label>책등 문구</label>
-        <input id="spineText" type="text" placeholder="책등에 들어갈 텍스트">
+
+      <!-- 책등 -->
+      <div id="spineSection" style="display:none;">
+        <label class="checkline" style="margin-bottom:6px;">
+          <input id="noSpine" type="checkbox"> 책등 없음
+        </label>
+        <div id="spineDetails">
+          <div class="field"><label>책등 두께(mm)</label><input id="spineW" type="number" placeholder="8" min="0" step="0.5" value="8"></div>
+          <div class="field">
+            <label>책등 문구</label>
+            <div style="display:flex;gap:6px;align-items:center;margin-bottom:5px;">
+              <label class="checkline" style="margin:0;flex:1;">
+                <input id="spineVertical" type="checkbox"> 세로 배치
+              </label>
+            </div>
+            <input id="spineText" type="text" placeholder="책등에 들어갈 텍스트">
+          </div>
+        </div>
       </div>
+
       <label class="checkline"><input id="showGuides" type="checkbox" checked> 재단선·도련선 표시</label>
     </div>
 
     <!-- 2. 표지 내용 -->
     <div class="section">
       <h2>표지 내용</h2>
+
+      <!-- 앞/뒤 탭 (full 모드일 때만 표시) -->
+      <div class="view-tabs" id="contentTabs" style="display:none;">
+        <button class="view-tab active" data-view="front">앞표지</button>
+        <button class="view-tab" data-view="back">뒤표지</button>
+      </div>
+
       <div class="item-list" id="itemList"></div>
       <button class="add-item-btn" id="addItemBtn">+ 항목 추가</button>
-      <div class="smallnote" style="margin-top:6px;">캔버스에서 텍스트를 드래그해 위치를 조정하고, 마우스 휠로 크기를 바꾸세요.</div>
+      <div class="smallnote" style="margin-top:6px;">캔버스에서 드래그해 위치 조정 · 마우스 휠로 크기 조절</div>
 
       <div style="margin-top:12px; border-top:1px solid #f0f0f0; padding-top:10px;">
         <div class="field">
@@ -264,9 +270,16 @@
     <!-- 3. AI 배경 -->
     <div class="section">
       <h2>AI 배경 디자인</h2>
+
+      <!-- 앞/뒤 탭 (full 모드일 때만 표시) -->
+      <div class="view-tabs" id="bgTabs" style="display:none;">
+        <button class="view-tab active" data-view="front">앞표지 배경</button>
+        <button class="view-tab" data-view="back">뒤표지 배경</button>
+      </div>
+
       <div class="field">
-        <label>색상 힌트 (AI 참고용)</label>
-        <input id="colorHint" type="color" value="#12396d" style="width:100%;">
+        <label>디자인 설명 <span style="font-weight:400;color:#9ca3af;">(AI에게 원하는 스타일 설명)</span></label>
+        <textarea id="aiDesc" placeholder="예) 파란 계열의 심플한 학술 자료 표지, 기하학적 패턴, 깔끔하고 전문적인 느낌"></textarea>
       </div>
       <button class="ai-btn" id="generateBgBtn" onclick="generateAiBg()">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
@@ -302,7 +315,7 @@
   </aside>
 
   <main>
-    <div class="canvas-hint">💡 텍스트를 드래그하여 위치 조정 · 마우스 휠로 크기 조절 · 클릭하여 선택</div>
+    <div class="canvas-hint">💡 텍스트 드래그로 위치 이동 · 마우스 휠로 크기 조절 · 클릭하여 선택</div>
     <div class="preview-shell">
       <div class="info-bar">
         <span id="sizeInfo"></span>
@@ -326,117 +339,254 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="../js/firebase-config.js"></script>
 <script>
-// ── Auth ─────────────────────────────────────────
+// ── Auth ───────────────────────────────────────────────────────────
 auth.onAuthStateChanged(user => {
   if (!user) { window.location.href = '../index.html'; return; }
   document.getElementById('authLoading').style.display = 'none';
   document.getElementById('navUserName').textContent = user.displayName || user.email.split('@')[0];
 });
-document.getElementById('navLogout').addEventListener('click', () => auth.signOut().then(() => location.href = '../index.html'));
+document.getElementById('navLogout').addEventListener('click', () =>
+  auth.signOut().then(() => location.href = '../index.html'));
 
-// ── State ─────────────────────────────────────────
+// ── State ──────────────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
-let items = [];
-let logoData = '', bgData = '';
-let selectedId = null;
-let zoomLevel = 1;
-let isDragging = false;
-let dragData = {};
 
-function num(id, fb = 0) { return Math.max(0, parseFloat($(id).value || fb)); }
+// Per-view state (front / back)
+const views = {
+  front: { items: [], bgData: '', bgOpacity: 1 },
+  back:  { items: [], bgData: '', bgOpacity: 1 },
+};
+let activeView = 'front';  // 'front' | 'back'
+let selectedId = null;
+let logoData = '';
+let zoomLevel = 1;
+let isDragging = false, dragData = {};
+
+function cv() { return views[activeView]; }
+
+// ── Helpers ────────────────────────────────────────────────────────
+function num(id, fb = 0) { return Math.max(0, parseFloat($(id).value) || fb); }
 function readFile(input, cb) {
   const f = input.files?.[0]; if (!f) return cb('');
   const r = new FileReader(); r.onload = () => cb(r.result); r.readAsDataURL(f);
 }
+function escAttr(s) { return String(s||'').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+function escSvg(s)  { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function getSpineW() { return $('noSpine').checked ? 0 : num('spineW', 8); }
 
-// ── Items ─────────────────────────────────────────
-function makeItem(idx) {
-  const frontW = num('frontW', 210), frontH = num('frontH', 297), b = num('bleed', 3);
-  const spineW = num('spineW', 8);
+// ── Items ──────────────────────────────────────────────────────────
+function makeItem(idx, view) {
+  const frontW = num('frontW', 210), frontH = num('frontH', 297);
+  const spineW = getSpineW(), b = num('bleed', 3);
   const mode = $('mode').value;
-  const frontX = mode === 'full' ? b + frontW + spineW : b;
+  const v = view || activeView;
+  let cx;
+  if (v === 'front') {
+    cx = mode === 'full' ? b + frontW + spineW + frontW / 2 : b + frontW / 2;
+  } else {
+    cx = b + frontW / 2;
+  }
   return {
     id: Date.now() + Math.random(),
-    text: '',
-    fontSize: 24,
-    color: '#111827',
-    bold: false,
-    x: frontX + frontW / 2,
-    y: b + frontH * (0.28 + idx * 0.14),
+    text: '', fontSize: 24, color: '#111827', bold: false,
+    x: cx, y: b + frontH * (0.28 + idx * 0.14),
+    view: v,
   };
+}
+
+function findItemGlobal(id) {
+  return views.front.items.find(i => i.id === id) ||
+         views.back.items.find(i => i.id === id) || null;
+}
+
+function itemViewOf(id) {
+  if (views.front.items.find(i => i.id === id)) return 'front';
+  if (views.back.items.find(i => i.id === id)) return 'back';
+  return null;
+}
+
+// Select item — only updates CSS, does NOT rebuild DOM
+function selectItem(id) {
+  selectedId = id;
+  if (id !== null) {
+    const v = itemViewOf(id);
+    if (v && v !== activeView) { activeView = v; renderItemList(); return; }
+  }
+  $('itemList').querySelectorAll('.item-row[data-item-id]').forEach(row => {
+    const rid = parseFloat(row.dataset.itemId);
+    row.classList.toggle('is-selected', rid === id);
+  });
+  highlightSelected();
 }
 
 function renderItemList() {
   const list = $('itemList');
+  const prevFocus = document.activeElement;
+  const prevFocusId = prevFocus?.dataset?.itemId;
+  const prevFocusType = prevFocus?.dataset?.inputType;
+
   list.innerHTML = '';
-  items.forEach((item, idx) => {
+  const viewItems = cv().items;
+  viewItems.forEach((item, idx) => {
     const row = document.createElement('div');
     row.className = 'item-row' + (item.id === selectedId ? ' is-selected' : '');
+    row.dataset.itemId = item.id;
     row.innerHTML = `
       <div class="item-row-top">
-        <input class="item-text-input" type="text" placeholder="텍스트 입력..." value="${escAttr(item.text)}" />
-        <button class="item-del" title="삭제">×</button>
+        <input class="item-text-input" type="text" data-input-type="text" data-item-id="${item.id}"
+          placeholder="텍스트 입력..." value="${escAttr(item.text)}" autocomplete="off" />
+        <button class="item-del" title="삭제" data-del="${item.id}">×</button>
       </div>
       <div class="item-row-opts">
         <div>
           <div class="item-opt-label">글자 크기</div>
-          <input class="item-fs-input" type="number" min="4" max="200" value="${item.fontSize}" />
+          <input class="item-fs-input" type="number" data-input-type="fs" data-item-id="${item.id}" min="4" max="200" value="${item.fontSize}" />
         </div>
         <div>
           <div class="item-opt-label">색상</div>
-          <input type="color" class="item-color-input" value="${item.color}" />
+          <input type="color" class="item-color-input" data-item-id="${item.id}" value="${item.color}" />
         </div>
         <div>
           <div class="item-opt-label">굵기</div>
-          <button class="item-bold-btn${item.bold ? ' on' : ''}">B</button>
+          <button class="item-bold-btn${item.bold ? ' on' : ''}" data-bold="${item.id}">B</button>
         </div>
       </div>
     `;
-    row.querySelector('.item-text-input').addEventListener('input', e => { item.text = e.target.value; render(); });
-    row.querySelector('.item-fs-input').addEventListener('input', e => { item.fontSize = Math.max(4, +e.target.value || 4); render(); });
+
+    // Text input — update item directly, no DOM rebuild
+    const textInput = row.querySelector('.item-text-input');
+    textInput.addEventListener('input', e => { item.text = e.target.value; render(); });
+    textInput.addEventListener('focus', () => { selectItem(item.id); });
+
+    // Font size
+    const fsInput = row.querySelector('.item-fs-input');
+    fsInput.addEventListener('input', e => { item.fontSize = Math.max(4, +e.target.value || 4); render(); });
+    fsInput.addEventListener('focus', () => { selectItem(item.id); });
+
+    // Color
     row.querySelector('.item-color-input').addEventListener('input', e => { item.color = e.target.value; render(); });
-    row.querySelector('.item-del').addEventListener('click', () => { items.splice(idx, 1); if (selectedId === item.id) selectedId = null; renderItemList(); render(); });
-    row.querySelector('.item-bold-btn').addEventListener('click', function() { item.bold = !item.bold; this.classList.toggle('on', item.bold); render(); });
-    row.addEventListener('click', () => { selectedId = item.id; renderItemList(); highlightSelected(); });
+
+    // Delete
+    row.querySelector('.item-del').addEventListener('click', e => {
+      e.stopPropagation();
+      const vi = cv().items.indexOf(item);
+      if (vi !== -1) cv().items.splice(vi, 1);
+      if (selectedId === item.id) selectedId = null;
+      renderItemList();
+      render();
+    });
+
+    // Bold
+    row.querySelector('.item-bold-btn').addEventListener('click', function(e) {
+      e.stopPropagation();
+      item.bold = !item.bold;
+      this.classList.toggle('on', item.bold);
+      render();
+    });
+
+    // Row click to select (not on inputs/buttons)
+    row.addEventListener('mousedown', e => {
+      if (e.target.closest('input') || e.target.closest('button')) return;
+      selectItem(item.id);
+    });
+
     list.appendChild(row);
+  });
+
+  // Restore focus if possible
+  if (prevFocusId && prevFocusType) {
+    const restored = list.querySelector(
+      `input[data-item-id="${prevFocusId}"][data-input-type="${prevFocusType}"]`
+    );
+    if (restored) {
+      requestAnimationFrame(() => {
+        restored.focus();
+        if (restored.type === 'text' && restored.selectionStart !== undefined) {
+          const len = restored.value.length;
+          restored.setSelectionRange(len, len);
+        }
+      });
+    }
+  }
+}
+
+// ── Mode/tab UI helpers ────────────────────────────────────────────
+function syncModeUI() {
+  const full = $('mode').value === 'full';
+  $('spineSection').style.display = full ? 'block' : 'none';
+  $('contentTabs').style.display = full ? 'flex' : 'none';
+  $('bgTabs').style.display = full ? 'flex' : 'none';
+  if (!full) activeView = 'front';
+  syncTabButtons();
+}
+
+function syncTabButtons() {
+  ['contentTabs', 'bgTabs'].forEach(tabsId => {
+    const tabs = $(tabsId);
+    if (!tabs) return;
+    tabs.querySelectorAll('.view-tab').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.view === activeView);
+    });
   });
 }
 
-function escAttr(s) { return String(s||'').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
-function escSvg(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function switchView(v) {
+  activeView = v;
+  selectedId = null;
+  syncTabButtons();
+  renderItemList();
+  syncBgControls();
+  render();
+}
 
-$('addItemBtn').addEventListener('click', () => {
-  const item = makeItem(items.length);
-  items.push(item);
-  selectedId = item.id;
-  renderItemList(); render();
-});
+function syncBgControls() {
+  const hasBg = !!cv().bgData;
+  $('bgOpacityWrap').style.display = hasBg ? 'block' : 'none';
+  $('clearBgBtn').style.display = hasBg ? 'block' : 'none';
+  $('bgOpacity').value = cv().bgOpacity;
+  $('bgOpacityVal').textContent = Math.round(cv().bgOpacity * 100) + '%';
+  // Keep aiDesc in sync per view
+  $('aiDesc').dataset.boundView = activeView;
+}
 
-$('mode').addEventListener('change', () => {
-  $('spineTextWrap').style.display = $('mode').value === 'full' ? 'block' : 'none';
-});
-
-// ── SVG generation ────────────────────────────────
+// ── SVG generation ─────────────────────────────────────────────────
 function makeSvg() {
   const mode = $('mode').value;
   const frontW = num('frontW', 210), frontH = num('frontH', 297);
-  const spineW = num('spineW', 8), b = num('bleed', 3);
+  const spineW = getSpineW(), b = num('bleed', 3);
   const w = mode === 'full' ? frontW * 2 + spineW + b * 2 : frontW + b * 2;
   const h = frontH + b * 2;
   const frontX = mode === 'full' ? b + frontW + spineW : b;
+  const backX  = b;
 
   let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}mm" height="${h}mm" viewBox="0 0 ${w} ${h}">`;
+  svg += `<defs>`;
+  if (mode === 'full') {
+    svg += `<clipPath id="cpFront"><rect x="${frontX}" y="0" width="${frontW + b}" height="${h}"/></clipPath>`;
+    svg += `<clipPath id="cpBack"><rect x="0" y="0" width="${backX + frontW + (spineW > 0 ? spineW / 2 : 0)}" height="${h}"/></clipPath>`;
+  }
+  svg += `</defs>`;
 
-  // Background
+  // White base
   svg += `<rect width="${w}" height="${h}" fill="#ffffff"/>`;
-  if (bgData) {
-    const opacity = parseFloat($('bgOpacity').value || 1);
-    const fit = $('bgFit') ? ($('bgFit').value === 'meet' ? 'xMidYMid meet' : 'xMidYMid slice') : 'xMidYMid slice';
-    svg += `<image href="${bgData}" x="0" y="0" width="${w}" height="${h}" preserveAspectRatio="${fit}" opacity="${opacity}"/>`;
+
+  // Backgrounds
+  if (mode === 'full') {
+    if (views.back.bgData) {
+      svg += `<image href="${views.back.bgData}" x="0" y="0" width="${b + frontW + spineW / 2}" height="${h}" preserveAspectRatio="xMidYMid slice" clip-path="url(#cpBack)" opacity="${views.back.bgOpacity}"/>`;
+    }
+    if (views.front.bgData) {
+      svg += `<image href="${views.front.bgData}" x="${frontX - b}" y="0" width="${frontW + b * 2}" height="${h}" preserveAspectRatio="xMidYMid slice" clip-path="url(#cpFront)" opacity="${views.front.bgOpacity}"/>`;
+    }
+  } else {
+    if (views.front.bgData) {
+      svg += `<image href="${views.front.bgData}" x="0" y="0" width="${w}" height="${h}" preserveAspectRatio="xMidYMid slice" opacity="${views.front.bgOpacity}"/>`;
+    }
   }
 
-  // Text items
-  items.forEach(item => {
+  // All text items (front + back)
+  const allItems = [...views.front.items, ...views.back.items];
+  allItems.forEach(item => {
     if (!item.text.trim()) return;
     const fw = item.bold ? '900' : '400';
     const isSelected = item.id === selectedId;
@@ -445,15 +595,15 @@ function makeSvg() {
 
     svg += `<g class="text-item" data-item-id="${item.id}" style="cursor:move;">`;
     if (isSelected) {
-      svg += `<rect x="${item.x - approxW/2 - 3}" y="${item.y - approxH + 3}" width="${approxW + 6}" height="${approxH + 6}" fill="rgba(37,99,235,0.06)" stroke="#2563eb" stroke-width="0.6" stroke-dasharray="2 1.5" rx="2" pointer-events="none"/>`;
+      svg += `<rect x="${item.x - approxW/2 - 4}" y="${item.y - approxH + 2}" width="${approxW + 8}" height="${approxH + 6}" fill="rgba(37,99,235,0.07)" stroke="#2563eb" stroke-width="0.6" stroke-dasharray="2 1.5" rx="2" pointer-events="none"/>`;
     } else {
-      svg += `<rect class="item-hover-rect" x="${item.x - approxW/2 - 3}" y="${item.y - approxH + 3}" width="${approxW + 6}" height="${approxH + 6}" fill="transparent" stroke="#94a3b8" stroke-width="0.4" stroke-dasharray="2 1.5" rx="2" pointer-events="none"/>`;
+      svg += `<rect class="item-hover-rect" x="${item.x - approxW/2 - 4}" y="${item.y - approxH + 2}" width="${approxW + 8}" height="${approxH + 6}" fill="transparent" stroke="#94a3b8" stroke-width="0.4" stroke-dasharray="2 1.5" rx="2" pointer-events="none"/>`;
     }
-    svg += `<text x="${item.x}" y="${item.y}" font-size="${item.fontSize}" font-weight="${fw}" text-anchor="middle" fill="${item.color}" font-family="Pretendard, 'Noto Sans KR', Arial, sans-serif" letter-spacing="-0.4">${escSvg(item.text)}</text>`;
+    svg += `<text x="${item.x}" y="${item.y}" font-size="${item.fontSize}" font-weight="${fw}" text-anchor="middle" fill="${item.color}" font-family="Pretendard,'Noto Sans KR',Arial,sans-serif" letter-spacing="-0.4">${escSvg(item.text)}</text>`;
     svg += `</g>`;
   });
 
-  // Logo + org
+  // Logo + org (front cover)
   const orgName = $('logoOrg').value.trim();
   if (orgName || logoData) {
     const centerX = frontX + frontW / 2;
@@ -462,7 +612,7 @@ function makeSvg() {
     const orgW = orgName.length * 2.3;
     const logoX = centerX - (logoSize + orgW) / 2;
     if (logoData) {
-      svg += `<image href="${logoData}" x="${logoX}" y="${logoY - logoSize * .72}" width="${logoSize}" height="${logoSize}" preserveAspectRatio="xMidYMid meet"/>`;
+      svg += `<image href="${logoData}" x="${logoX}" y="${logoY - logoSize*.72}" width="${logoSize}" height="${logoSize}" preserveAspectRatio="xMidYMid meet"/>`;
     } else {
       svg += `<rect x="${logoX}" y="${logoY - logoSize*.72}" width="${logoSize}" height="${logoSize}" rx="${logoSize*.12}" fill="#12396d"/>`;
       svg += `<text x="${logoX + logoSize/2}" y="${logoY - logoSize*.22}" font-size="${logoSize*.45}" font-weight="900" text-anchor="middle" fill="#fff">P</text>`;
@@ -477,7 +627,22 @@ function makeSvg() {
     const spineVal = $('spineText').value.trim();
     if (spineVal) {
       const sx = b + frontW + spineW / 2;
-      svg += `<text transform="translate(${sx} ${h/2}) rotate(90)" font-size="${Math.max(3.2, Math.min(6, spineW*.55))}" font-weight="900" text-anchor="middle" dominant-baseline="middle" fill="#12396d">${escSvg(spineVal)}</text>`;
+      const isVertical = $('spineVertical').checked;
+      if (isVertical) {
+        // Stack each character vertically
+        const chars = spineVal.split('');
+        const charSize = Math.max(3, Math.min(spineW * 0.65, 9));
+        const lineH = charSize * 1.25;
+        const totalH = chars.length * lineH;
+        const startY = h / 2 - totalH / 2 + charSize * 0.8;
+        chars.forEach((ch, i) => {
+          svg += `<text x="${sx}" y="${startY + i * lineH}" font-size="${charSize}" font-weight="900" text-anchor="middle" fill="#12396d" font-family="Pretendard,'Noto Sans KR',Arial,sans-serif">${escSvg(ch)}</text>`;
+        });
+      } else {
+        // Rotated (reads top→bottom on spine)
+        const fs = Math.max(3.2, Math.min(6, spineW * .55));
+        svg += `<text transform="translate(${sx} ${h/2}) rotate(90)" font-size="${fs}" font-weight="900" text-anchor="middle" dominant-baseline="middle" fill="#12396d" font-family="Pretendard,'Noto Sans KR',Arial,sans-serif">${escSvg(spineVal)}</text>`;
+      }
     }
   }
 
@@ -487,11 +652,15 @@ function makeSvg() {
     svg += `<rect x="${b}" y="${b}" width="${w-b*2}" height="${h-b*2}" fill="none" stroke="#2563eb" stroke-width="0.25" stroke-dasharray="2 1" opacity=".65"/>`;
     if (mode === 'full') {
       const backEnd = b + frontW, spineEnd = b + frontW + spineW;
-      svg += `<line x1="${backEnd}" y1="${b}" x2="${backEnd}" y2="${h-b}" stroke="#111827" stroke-width="0.2" stroke-dasharray="1.5 1.3" opacity=".5"/>`;
-      svg += `<line x1="${spineEnd}" y1="${b}" x2="${spineEnd}" y2="${h-b}" stroke="#111827" stroke-width="0.2" stroke-dasharray="1.5 1.3" opacity=".5"/>`;
-      svg += `<text x="${b+frontW/2}" y="${h-1.5}" font-size="2.8" text-anchor="middle" fill="#6b7280">뒤표지</text>`;
-      svg += `<text x="${backEnd+spineW/2}" y="${h-1.5}" font-size="2.8" text-anchor="middle" fill="#6b7280">책등</text>`;
-      svg += `<text x="${spineEnd+frontW/2}" y="${h-1.5}" font-size="2.8" text-anchor="middle" fill="#6b7280">앞표지</text>`;
+      if (spineW > 0) {
+        svg += `<line x1="${backEnd}" y1="${b}" x2="${backEnd}" y2="${h-b}" stroke="#111827" stroke-width="0.2" stroke-dasharray="1.5 1.3" opacity=".5"/>`;
+        svg += `<line x1="${spineEnd}" y1="${b}" x2="${spineEnd}" y2="${h-b}" stroke="#111827" stroke-width="0.2" stroke-dasharray="1.5 1.3" opacity=".5"/>`;
+        svg += `<text x="${backEnd + spineW/2}" y="${h-1.5}" font-size="2.8" text-anchor="middle" fill="#6b7280">책등</text>`;
+      } else {
+        svg += `<line x1="${backEnd}" y1="${b}" x2="${backEnd}" y2="${h-b}" stroke="#111827" stroke-width="0.2" stroke-dasharray="1.5 1.3" opacity=".5"/>`;
+      }
+      svg += `<text x="${b + frontW/2}" y="${h-1.5}" font-size="2.8" text-anchor="middle" fill="#6b7280">뒤표지</text>`;
+      svg += `<text x="${spineEnd + frontW/2}" y="${h-1.5}" font-size="2.8" text-anchor="middle" fill="#6b7280">앞표지</text>`;
     }
   }
 
@@ -499,7 +668,7 @@ function makeSvg() {
   return { svg, w, h, mode, frontW, frontH, spineW, b };
 }
 
-// ── Render & attach listeners ─────────────────────
+// ── Render ─────────────────────────────────────────────────────────
 function render() {
   const data = makeSvg();
   const pxPerMm = 3.35;
@@ -508,17 +677,14 @@ function render() {
   svgEl.style.width = `${Math.max(200, data.w * pxPerMm * zoomLevel)}px`;
 
   $('sizeInfo').textContent = data.mode === 'full'
-    ? `전체 ${data.w}×${data.h}mm`
+    ? `전체 ${data.w}×${data.h}mm  (앞/뒤 각 ${data.frontW}×${data.frontH}mm)`
     : `${data.w}×${data.h}mm / 재단 후 ${data.frontW}×${data.frontH}mm`;
 
   attachSvgListeners(svgEl);
   highlightSelected();
-  $('bgOpacityWrap').style.display = bgData ? 'block' : 'none';
-  $('clearBgBtn').style.display = bgData ? 'block' : 'none';
-  $('bgOpacityVal').textContent = Math.round(parseFloat($('bgOpacity').value || 1) * 100) + '%';
 }
 
-// ── SVG interaction ───────────────────────────────
+// ── SVG interaction ────────────────────────────────────────────────
 function screenToSvg(svgEl, clientX, clientY) {
   const pt = svgEl.createSVGPoint();
   pt.x = clientX; pt.y = clientY;
@@ -527,33 +693,26 @@ function screenToSvg(svgEl, clientX, clientY) {
 
 function attachSvgListeners(svgEl) {
   svgEl.querySelectorAll('[data-item-id]').forEach(g => {
-    g.style.cursor = 'move';
     g.addEventListener('mousedown', e => {
       e.stopPropagation();
       const id = parseFloat(g.dataset.itemId);
-      selectedId = id;
-      const item = items.find(i => i.id === id);
+      selectItem(id);
+      const item = findItemGlobal(id);
       if (!item) return;
-
       const svgPt = screenToSvg(svgEl, e.clientX, e.clientY);
       isDragging = true;
       dragData = {
-        id,
-        offsetX: svgPt.x - item.x,
-        offsetY: svgPt.y - item.y,
-        g,
-        textEl: g.querySelector('text'),
+        id, offsetX: svgPt.x - item.x, offsetY: svgPt.y - item.y,
+        g, textEl: g.querySelector('text'),
       };
-      renderItemList();
       e.preventDefault();
     });
   });
 
   svgEl.addEventListener('mousedown', e => {
     if (!e.target.closest('[data-item-id]')) {
-      selectedId = null;
-      renderItemList();
-      highlightSelected();
+      selectItem(null);
+      $('itemList').querySelectorAll('.item-row').forEach(r => r.classList.remove('is-selected'));
     }
   });
 
@@ -562,62 +721,47 @@ function attachSvgListeners(svgEl) {
     const svgPt = screenToSvg(svgEl, e.clientX, e.clientY);
     const newX = svgPt.x - dragData.offsetX;
     const newY = svgPt.y - dragData.offsetY;
-
-    // Move text element directly for smooth UX
     if (dragData.textEl) {
       dragData.textEl.setAttribute('x', newX);
       dragData.textEl.setAttribute('y', newY);
     }
-    // Move selection rect too
     const selRect = dragData.g.querySelector('rect');
     if (selRect && selectedId) {
-      const item = items.find(i => i.id === dragData.id);
+      const item = findItemGlobal(dragData.id);
       if (item) {
-        const approxW = item.text.length * item.fontSize * 0.58;
-        const approxH = item.fontSize * 1.3;
-        selRect.setAttribute('x', newX - approxW/2 - 3);
-        selRect.setAttribute('y', newY - approxH + 3);
+        const aw = item.text.length * item.fontSize * 0.58;
+        const ah = item.fontSize * 1.3;
+        selRect.setAttribute('x', newX - aw/2 - 4);
+        selRect.setAttribute('y', newY - ah + 2);
       }
     }
-    dragData.currentX = newX;
-    dragData.currentY = newY;
+    dragData.currentX = newX; dragData.currentY = newY;
     $('selInfo').textContent = `X: ${Math.round(newX)}  Y: ${Math.round(newY)}`;
   });
 
-  svgEl.addEventListener('mouseup', () => {
+  function endDrag() {
     if (!isDragging) return;
     isDragging = false;
     if (dragData.id && dragData.currentX !== undefined) {
-      const item = items.find(i => i.id === dragData.id);
+      const item = findItemGlobal(dragData.id);
       if (item) { item.x = dragData.currentX; item.y = dragData.currentY; }
     }
     dragData = {};
     render();
     $('selInfo').textContent = '';
-  });
+  }
 
-  svgEl.addEventListener('mouseleave', () => {
-    if (isDragging) {
-      isDragging = false;
-      if (dragData.id && dragData.currentX !== undefined) {
-        const item = items.find(i => i.id === dragData.id);
-        if (item) { item.x = dragData.currentX; item.y = dragData.currentY; }
-      }
-      dragData = {};
-      render();
-    }
-  });
+  svgEl.addEventListener('mouseup', endDrag);
+  svgEl.addEventListener('mouseleave', endDrag);
 
-  // Scroll to resize
   svgEl.addEventListener('wheel', e => {
     if (!selectedId) return;
     e.preventDefault();
-    const item = items.find(i => i.id === selectedId);
+    const item = findItemGlobal(selectedId);
     if (!item) return;
     const delta = e.deltaY < 0 ? 1 : -1;
     item.fontSize = Math.max(4, Math.min(200, item.fontSize + delta));
-    // Update panel input
-    const fsInput = $('itemList').querySelectorAll('.item-fs-input')[items.indexOf(item)];
+    const fsInput = $('itemList').querySelector(`input[data-item-id="${selectedId}"][data-input-type="fs"]`);
     if (fsInput) fsInput.value = item.fontSize;
     render();
   }, { passive: false });
@@ -631,51 +775,51 @@ function highlightSelected() {
   if (!g) return;
   const textEl = g.querySelector('text');
   if (!textEl) return;
-  // Use getBBox for accurate highlight
   try {
     const bbox = textEl.getBBox();
     const rect = g.querySelector('rect');
     if (rect && bbox.width > 0) {
-      rect.setAttribute('x', bbox.x - 3);
+      rect.setAttribute('x', bbox.x - 4);
       rect.setAttribute('y', bbox.y - 3);
-      rect.setAttribute('width', bbox.width + 6);
+      rect.setAttribute('width', bbox.width + 8);
       rect.setAttribute('height', bbox.height + 6);
     }
   } catch(e) {}
 }
 
-// ── Zoom ─────────────────────────────────────────
-function zoomIn() { zoomLevel = Math.min(zoomLevel + 0.15, 4); updateZoom(); }
+// ── Zoom ───────────────────────────────────────────────────────────
+function zoomIn()  { zoomLevel = Math.min(zoomLevel + 0.15, 4); updateZoom(); }
 function zoomOut() { zoomLevel = Math.max(zoomLevel - 0.15, 0.1); updateZoom(); }
 function zoomFit() {
-  const scroll = $('previewScroll');
-  const data = makeSvg();
-  zoomLevel = Math.min((scroll.clientWidth - 30) / (data.w * 3.35), (scroll.clientHeight - 30) / (data.h * 3.35), 1);
+  const scroll = $('previewScroll'), data = makeSvg();
+  zoomLevel = Math.min(
+    (scroll.clientWidth - 30) / (data.w * 3.35),
+    (scroll.clientHeight - 30) / (data.h * 3.35), 1
+  );
   updateZoom();
 }
-function updateZoom() {
-  $('zoomVal').textContent = Math.round(zoomLevel * 100) + '%';
-  render();
-}
+function updateZoom() { $('zoomVal').textContent = Math.round(zoomLevel * 100) + '%'; render(); }
 window.addEventListener('resize', zoomFit);
 
-// ── AI background ─────────────────────────────────
+// ── AI background ──────────────────────────────────────────────────
 function buildAiPrompt() {
-  const texts = items.filter(i => i.text.trim()).map(i => i.text.trim());
+  const userDesc = $('aiDesc').value.trim();
+  const texts = cv().items.filter(i => i.text.trim()).map(i => i.text.trim());
   const org = $('logoOrg').value.trim();
   if (org) texts.push(org);
   const frontW = num('frontW', 210), frontH = num('frontH', 297);
   const isPortrait = frontH >= frontW;
   const mode = $('mode').value;
-  const orientation = mode === 'full' ? 'wide panoramic (front + spine + back cover)' : (isPortrait ? 'portrait' : 'landscape');
-  const colorHex = $('colorHint').value;
-  const contentHint = texts.length > 0 ? `The cover text includes: "${texts.join('", "')}"` : '';
-  return `Design a professional, elegant background for a printed ${orientation} document cover. ${contentHint} Use a color scheme based on ${colorHex}. Create a sophisticated, modern design with subtle patterns or gradients. No text, letters, numbers, logos, borders, or crop marks in the image. Keep the central area clean and uncluttered for title placement. High quality, print-ready, visually impactful.`;
+  const orientLabel = mode === 'full'
+    ? (activeView === 'front' ? 'portrait front cover' : 'portrait back cover')
+    : (isPortrait ? 'portrait' : 'landscape');
+  const contentHint = texts.length > 0 ? `Cover text includes: "${texts.join('", "')}"` : '';
+  const descPart = userDesc ? userDesc + '. ' : '';
+  return `${descPart}Design a professional background for a printed ${orientLabel} document cover. ${contentHint} No text, letters, numbers, logos, borders, or crop marks. Central area should be clean for title placement. High quality, print-ready.`;
 }
 
 async function generateAiBg() {
-  const btn = $('generateBgBtn');
-  const status = $('aiStatus');
+  const btn = $('generateBgBtn'), status = $('aiStatus');
   btn.disabled = true;
   status.className = 'ai-status loading';
   status.textContent = '⏳ AI가 배경을 디자인하는 중... (10~30초)';
@@ -691,19 +835,12 @@ async function generateAiBg() {
 
     const frontW = num('frontW', 210), frontH = num('frontH', 297);
     const isPortrait = frontH >= frontW;
-    const mode = $('mode').value;
-    const size = mode === 'full' ? '1536x1024' : (isPortrait ? '1024x1536' : '1536x1024');
+    const size = isPortrait ? '1024x1536' : '1536x1024';
 
     const res = await fetch('https://api.openai.com/v1/images/generations', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-      body: JSON.stringify({
-        model: 'gpt-image-1',
-        prompt: buildAiPrompt(),
-        n: 1,
-        size,
-        quality: 'high',
-      })
+      body: JSON.stringify({ model: 'gpt-image-1', prompt: buildAiPrompt(), n: 1, size, quality: 'high' })
     });
 
     if (!res.ok) {
@@ -712,9 +849,11 @@ async function generateAiBg() {
     }
 
     const data = await res.json();
-    bgData = 'data:image/png;base64,' + data.data[0].b64_json;
+    cv().bgData = 'data:image/png;base64,' + data.data[0].b64_json;
+    cv().bgOpacity = 1;
     status.className = 'ai-status success';
-    status.textContent = '✓ 배경 생성 완료!';
+    status.textContent = `✓ ${activeView === 'front' ? '앞표지' : '뒤표지'} 배경 생성 완료!`;
+    syncBgControls();
     render();
     setTimeout(() => { status.className = 'ai-status'; }, 3000);
   } catch(e) {
@@ -726,10 +865,13 @@ async function generateAiBg() {
 }
 
 function clearBg() {
-  bgData = ''; $('bgFile').value = ''; render();
+  cv().bgData = '';
+  $('bgFile').value = '';
+  syncBgControls();
+  render();
 }
 
-// ── Export ────────────────────────────────────────
+// ── Export ─────────────────────────────────────────────────────────
 function download(name, blob) {
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob); a.download = name;
@@ -762,21 +904,73 @@ $('printPdf').addEventListener('click', () => {
   win.document.close();
 });
 $('resetBtn').addEventListener('click', () => {
-  items = []; selectedId = null; logoData = ''; bgData = '';
-  $('logoFile').value = ''; $('bgFile').value = ''; $('logoOrg').value = ''; $('spineText').value = '';
-  $('mode').value = 'front'; $('showGuides').checked = true; $('bgOpacity').value = 1;
-  renderItemList(); render();
+  views.front.items = []; views.front.bgData = ''; views.front.bgOpacity = 1;
+  views.back.items  = []; views.back.bgData  = ''; views.back.bgOpacity  = 1;
+  selectedId = null; logoData = '';
+  activeView = 'front';
+  $('logoFile').value = ''; $('bgFile').value = ''; $('logoOrg').value = '';
+  $('spineText').value = ''; $('aiDesc').value = '';
+  $('mode').value = 'front'; $('showGuides').checked = true;
+  $('noSpine').checked = false; $('spineVertical').checked = false;
+  syncModeUI(); renderItemList(); syncBgControls(); render();
 });
 
-// ── Event listeners ───────────────────────────────
-$('bgFile').addEventListener('change', e => readFile(e.target, d => { bgData = d; render(); }));
+// ── Event listeners ────────────────────────────────────────────────
+$('addItemBtn').addEventListener('click', () => {
+  const item = makeItem(cv().items.length);
+  cv().items.push(item);
+  selectedId = item.id;
+  renderItemList();
+  render();
+});
+
+$('mode').addEventListener('change', () => {
+  syncModeUI();
+  renderItemList();
+  syncBgControls();
+  render();
+});
+
+$('noSpine').addEventListener('change', () => {
+  $('spineDetails').style.display = $('noSpine').checked ? 'none' : 'block';
+  render();
+});
+
+// Tab switching — content tabs
+$('contentTabs').querySelectorAll('.view-tab').forEach(btn => {
+  btn.addEventListener('click', () => switchView(btn.dataset.view));
+});
+
+// Tab switching — bg tabs
+$('bgTabs').querySelectorAll('.view-tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    activeView = btn.dataset.view;
+    syncTabButtons();
+    syncBgControls();
+    render();
+  });
+});
+
+// Background opacity per active view
+$('bgOpacity').addEventListener('input', () => {
+  cv().bgOpacity = parseFloat($('bgOpacity').value);
+  $('bgOpacityVal').textContent = Math.round(cv().bgOpacity * 100) + '%';
+  render();
+});
+
+$('bgFile').addEventListener('change', e => readFile(e.target, d => {
+  cv().bgData = d; cv().bgOpacity = 1; syncBgControls(); render();
+}));
 $('logoFile').addEventListener('change', e => readFile(e.target, d => { logoData = d; render(); }));
-['frontW','frontH','spineW','bleed','showGuides','bgOpacity','colorHint','logoOrg','spineText'].forEach(id => {
+
+['frontW','frontH','bleed','spineW','showGuides','logoOrg','spineText','spineVertical'].forEach(id => {
   const el = $(id); if (el) el.addEventListener('input', render);
 });
-$('mode').addEventListener('input', render);
 
-// ── Init ─────────────────────────────────────────
+// ── Init ───────────────────────────────────────────────────────────
+syncModeUI();
+renderItemList();
+syncBgControls();
 setTimeout(zoomFit, 100);
 render();
 </script>
