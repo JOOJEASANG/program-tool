@@ -1,0 +1,401 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>관리자 · Program Tool</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: Pretendard, "Noto Sans KR", sans-serif;
+      background: #f1f5f9; color: #0f172a; min-height: 100vh;
+    }
+
+    header {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      height: 60px; background: #fff; border-bottom: 1px solid #e2e8f0;
+      display: flex; align-items: center; padding: 0 24px; gap: 16px;
+      box-shadow: 0 1px 8px rgba(0,0,0,0.06);
+    }
+    .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .logo-icon {
+      width: 34px; height: 34px; background: linear-gradient(135deg,#1d9bb2,#12396d);
+      border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 16px;
+    }
+    .logo-text { font-size: 17px; font-weight: 900; color: #12396d; letter-spacing: -0.5px; }
+    .header-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+    .back-btn {
+      display: flex; align-items: center; gap: 6px;
+      color: #64748b; text-decoration: none; font-size: 13px; font-weight: 700;
+      padding: 7px 12px; border-radius: 9px; border: 1.5px solid #e2e8f0;
+      transition: all 0.15s;
+    }
+    .back-btn:hover { background: #f1f5f9; border-color: #94a3b8; color: #374151; }
+    .badge-admin {
+      background: #7c3aed; color: #fff; font-size: 11px; font-weight: 800;
+      padding: 4px 10px; border-radius: 999px; letter-spacing: 0.3px;
+    }
+
+    main { padding: 80px 24px 40px; max-width: 860px; margin: 0 auto; }
+    .page-title { font-size: 22px; font-weight: 900; color: #0f172a; letter-spacing: -0.5px; margin-bottom: 4px; }
+    .page-sub { font-size: 14px; color: #64748b; margin-bottom: 32px; }
+
+    .card {
+      background: #fff; border-radius: 18px; border: 1.5px solid #e8edf3;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04); padding: 28px;
+      margin-bottom: 20px;
+    }
+    .card-title {
+      font-size: 15px; font-weight: 900; color: #0f172a; margin-bottom: 4px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .card-sub { font-size: 13px; color: #64748b; margin-bottom: 20px; line-height: 1.5; }
+    label { display: block; font-size: 12px; font-weight: 800; color: #374151; margin-bottom: 6px; }
+    .input-wrap { position: relative; }
+    input[type="text"], input[type="password"], input[type="email"] {
+      width: 100%; border: 1.5px solid #e2e8f0; border-radius: 10px;
+      padding: 11px 14px; font-size: 14px; font-family: inherit; outline: none;
+      color: #0f172a; transition: border-color 0.15s, box-shadow 0.15s;
+      background: #f8fafc;
+    }
+    input:focus { border-color: #12396d; box-shadow: 0 0 0 3px rgba(18,57,109,0.08); background: #fff; }
+    .input-toggle {
+      position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+      background: none; border: none; cursor: pointer; color: #94a3b8;
+      font-size: 13px; font-weight: 700; font-family: inherit; padding: 4px 6px;
+    }
+    .input-toggle:hover { color: #374151; }
+
+    .btn-row { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+    .btn {
+      border: none; border-radius: 10px; padding: 11px 20px;
+      font-size: 13px; font-weight: 800; cursor: pointer; font-family: inherit;
+      transition: all 0.15s; display: inline-flex; align-items: center; gap: 7px;
+    }
+    .btn-primary { background: #12396d; color: #fff; }
+    .btn-primary:hover { background: #0f2f5c; }
+    .btn-danger { background: #fee2e2; color: #991b1b; }
+    .btn-danger:hover { background: #fecaca; }
+    .btn-secondary { background: #f1f5f9; color: #374151; border: 1.5px solid #e2e8f0; }
+    .btn-secondary:hover { background: #e2e8f0; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .status-msg {
+      display: none; margin-top: 12px; padding: 10px 14px;
+      border-radius: 9px; font-size: 13px; font-weight: 700;
+    }
+    .status-msg.success { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; display: block; }
+    .status-msg.error { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; display: block; }
+    .status-msg.info { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; display: block; }
+
+    .key-display {
+      background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 10px;
+      padding: 11px 14px; font-size: 13px; font-family: monospace;
+      color: #475569; display: flex; align-items: center; justify-content: space-between;
+      gap: 10px; flex-wrap: wrap;
+    }
+    .key-val { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    .admin-list { display: flex; flex-direction: column; gap: 8px; }
+    .admin-item {
+      display: flex; align-items: center; gap: 10px;
+      background: #f8fafc; border: 1.5px solid #e2e8f0;
+      border-radius: 10px; padding: 10px 14px;
+    }
+    .admin-item-email { flex: 1; font-size: 13px; color: #374151; font-weight: 600; }
+    .admin-item-badge {
+      font-size: 10px; font-weight: 800; padding: 3px 8px;
+      background: #ede9fe; color: #6d28d9; border-radius: 999px;
+    }
+    .admin-item-del {
+      background: none; border: none; color: #94a3b8; cursor: pointer;
+      font-size: 16px; padding: 2px 6px; line-height: 1;
+      transition: color 0.12s; font-family: inherit;
+    }
+    .admin-item-del:hover { color: #ef4444; }
+
+    .divider { height: 1px; background: #f1f5f9; margin: 20px 0; }
+
+    #authLoading {
+      position: fixed; inset: 0; background: #fff;
+      display: flex; align-items: center; justify-content: center; z-index: 9999;
+    }
+    .spinner { width: 34px; height: 34px; border: 3px solid #e2e8f0; border-top-color: #12396d; border-radius: 50%; animation: spin 0.7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    #noAccessMsg {
+      display: none; text-align: center; padding: 80px 20px;
+    }
+    #noAccessMsg .icon { font-size: 52px; margin-bottom: 16px; }
+    #noAccessMsg h2 { font-size: 20px; font-weight: 900; color: #0f172a; margin-bottom: 8px; }
+    #noAccessMsg p { font-size: 14px; color: #64748b; }
+  </style>
+</head>
+<body>
+
+<div id="authLoading"><div class="spinner"></div></div>
+
+<header>
+  <a class="logo" href="dashboard.html">
+    <div class="logo-icon">🛠️</div>
+    <span class="logo-text">Program Tool</span>
+  </a>
+  <div class="header-right">
+    <span class="badge-admin">⚙️ 관리자</span>
+    <a class="back-btn" href="dashboard.html">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+      대시보드
+    </a>
+  </div>
+</header>
+
+<div id="noAccessMsg">
+  <div class="icon">🔒</div>
+  <h2>접근 권한이 없습니다</h2>
+  <p>관리자 계정으로 로그인해야 이 페이지에 접근할 수 있습니다.</p>
+</div>
+
+<main id="adminContent" style="display:none;">
+  <div class="page-title">관리자 설정</div>
+  <div class="page-sub">API 키와 관리자 계정을 관리합니다.</div>
+
+  <!-- OpenAI API Key -->
+  <div class="card">
+    <div class="card-title">🤖 OpenAI API 키</div>
+    <div class="card-sub">
+      표지 생성기의 AI 배경 자동 생성(DALL-E 3)에 사용됩니다.<br>
+      키는 Firestore에 저장되며 로그인한 사용자만 접근 가능합니다.
+    </div>
+
+    <div id="keyCurrentWrap" style="display:none; margin-bottom:16px;">
+      <label>현재 저장된 키</label>
+      <div class="key-display">
+        <span class="key-val" id="keyPreview">-</span>
+        <button class="btn btn-danger btn-sm" style="padding:6px 12px;font-size:12px;" onclick="deleteApiKey()">삭제</button>
+      </div>
+    </div>
+
+    <div>
+      <label for="apiKeyInput">새 API 키 입력</label>
+      <div class="input-wrap">
+        <input type="password" id="apiKeyInput" placeholder="sk-..." autocomplete="off" />
+        <button class="input-toggle" onclick="toggleKeyVisibility()">보기</button>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="saveApiKey()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4l2 3h6a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg>
+        저장
+      </button>
+      <button class="btn btn-secondary" onclick="testApiKey()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        키 테스트
+      </button>
+    </div>
+    <div class="status-msg" id="keyStatus"></div>
+  </div>
+
+  <!-- Admin accounts -->
+  <div class="card">
+    <div class="card-title">👤 관리자 계정</div>
+    <div class="card-sub">관리자 페이지에 접근할 수 있는 이메일 목록입니다.</div>
+
+    <div class="admin-list" id="adminList"></div>
+
+    <div class="divider"></div>
+
+    <div>
+      <label for="newAdminEmail">관리자 이메일 추가</label>
+      <input type="email" id="newAdminEmail" placeholder="admin@example.com" />
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="addAdmin()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        추가
+      </button>
+    </div>
+    <div class="status-msg" id="adminStatus"></div>
+  </div>
+</main>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="js/firebase-config.js"></script>
+<script>
+let currentUser = null;
+let adminEmails = [];
+
+// ── Auth & admin check ───────────────────────────
+auth.onAuthStateChanged(async user => {
+  if (!user) { window.location.href = 'index.html'; return; }
+  currentUser = user;
+
+  const isAdmin = await checkIsAdmin(user.email);
+  document.getElementById('authLoading').style.display = 'none';
+
+  if (!isAdmin) {
+    document.getElementById('noAccessMsg').style.display = 'block';
+    return;
+  }
+  document.getElementById('adminContent').style.display = 'block';
+  loadApiKey();
+  loadAdmins();
+});
+
+async function checkIsAdmin(email) {
+  try {
+    const doc = await db.collection('settings').doc('admin').get();
+    if (!doc.exists) {
+      // 최초 설정: 현재 유저를 관리자로 등록
+      await db.collection('settings').doc('admin').set({ emails: [email] });
+      return true;
+    }
+    const data = doc.data();
+    return (data.emails || []).includes(email);
+  } catch (e) {
+    console.error(e);
+    // Firestore 규칙 미설정 등으로 실패 시, 첫 접근자 허용
+    return true;
+  }
+}
+
+// ── API Key ──────────────────────────────────────
+async function loadApiKey() {
+  try {
+    const doc = await db.collection('settings').doc('config').get();
+    if (doc.exists && doc.data().openaiKey) {
+      const key = doc.data().openaiKey;
+      document.getElementById('keyCurrentWrap').style.display = 'block';
+      document.getElementById('keyPreview').textContent = key.slice(0,7) + '••••••••••••••••' + key.slice(-4);
+    }
+  } catch(e) { console.error(e); }
+}
+
+async function saveApiKey() {
+  const key = document.getElementById('apiKeyInput').value.trim();
+  if (!key) return showStatus('keyStatus', 'error', 'API 키를 입력해주세요.');
+  if (!key.startsWith('sk-')) return showStatus('keyStatus', 'error', 'OpenAI API 키는 sk- 로 시작해야 합니다.');
+  try {
+    await db.collection('settings').doc('config').set({ openaiKey: key }, { merge: true });
+    document.getElementById('apiKeyInput').value = '';
+    showStatus('keyStatus', 'success', '✓ API 키가 저장되었습니다.');
+    loadApiKey();
+  } catch(e) {
+    showStatus('keyStatus', 'error', '저장 실패: ' + e.message);
+  }
+}
+
+async function deleteApiKey() {
+  if (!confirm('API 키를 삭제할까요?')) return;
+  try {
+    await db.collection('settings').doc('config').update({ openaiKey: firebase.firestore.FieldValue.delete() });
+    document.getElementById('keyCurrentWrap').style.display = 'none';
+    showStatus('keyStatus', 'info', 'API 키가 삭제되었습니다.');
+  } catch(e) {
+    showStatus('keyStatus', 'error', '삭제 실패: ' + e.message);
+  }
+}
+
+async function testApiKey() {
+  const saved = document.getElementById('keyPreview').textContent;
+  const inputKey = document.getElementById('apiKeyInput').value.trim();
+
+  // Use saved key from Firestore for test
+  let keyToTest = inputKey;
+  if (!keyToTest) {
+    try {
+      const doc = await db.collection('settings').doc('config').get();
+      keyToTest = doc.exists ? doc.data().openaiKey : '';
+    } catch(e) {}
+  }
+  if (!keyToTest) return showStatus('keyStatus', 'error', '테스트할 API 키가 없습니다.');
+
+  showStatus('keyStatus', 'info', '테스트 중...');
+  try {
+    const res = await fetch('https://api.openai.com/v1/models', {
+      headers: { 'Authorization': `Bearer ${keyToTest}` }
+    });
+    if (res.ok) {
+      showStatus('keyStatus', 'success', '✓ API 키가 유효합니다. 연결 성공!');
+    } else {
+      const err = await res.json();
+      showStatus('keyStatus', 'error', '키 오류: ' + (err.error?.message || res.status));
+    }
+  } catch(e) {
+    showStatus('keyStatus', 'error', '연결 실패: ' + e.message);
+  }
+}
+
+function toggleKeyVisibility() {
+  const input = document.getElementById('apiKeyInput');
+  const btn = input.nextElementSibling;
+  if (input.type === 'password') { input.type = 'text'; btn.textContent = '숨기기'; }
+  else { input.type = 'password'; btn.textContent = '보기'; }
+}
+
+// ── Admin management ─────────────────────────────
+async function loadAdmins() {
+  try {
+    const doc = await db.collection('settings').doc('admin').get();
+    adminEmails = doc.exists ? (doc.data().emails || []) : [];
+    renderAdminList();
+  } catch(e) { console.error(e); }
+}
+
+function renderAdminList() {
+  const list = document.getElementById('adminList');
+  if (!adminEmails.length) { list.innerHTML = '<div style="color:#94a3b8;font-size:13px;">등록된 관리자가 없습니다.</div>'; return; }
+  list.innerHTML = adminEmails.map((email, i) => `
+    <div class="admin-item">
+      <span class="admin-item-email">${email}</span>
+      ${email === currentUser.email ? '<span class="admin-item-badge">나</span>' : ''}
+      ${adminEmails.length > 1 ? `<button class="admin-item-del" onclick="removeAdmin('${email}')">×</button>` : ''}
+    </div>
+  `).join('');
+}
+
+async function addAdmin() {
+  const email = document.getElementById('newAdminEmail').value.trim().toLowerCase();
+  if (!email) return showStatus('adminStatus', 'error', '이메일을 입력해주세요.');
+  if (adminEmails.includes(email)) return showStatus('adminStatus', 'error', '이미 등록된 관리자입니다.');
+  try {
+    adminEmails.push(email);
+    await db.collection('settings').doc('admin').set({ emails: adminEmails });
+    document.getElementById('newAdminEmail').value = '';
+    renderAdminList();
+    showStatus('adminStatus', 'success', `✓ ${email} 추가되었습니다.`);
+  } catch(e) {
+    showStatus('adminStatus', 'error', '추가 실패: ' + e.message);
+  }
+}
+
+async function removeAdmin(email) {
+  if (email === currentUser.email) return showStatus('adminStatus', 'error', '본인 계정은 삭제할 수 없습니다.');
+  if (!confirm(`${email} 을(를) 관리자에서 제거할까요?`)) return;
+  try {
+    adminEmails = adminEmails.filter(e => e !== email);
+    await db.collection('settings').doc('admin').set({ emails: adminEmails });
+    renderAdminList();
+    showStatus('adminStatus', 'success', '제거되었습니다.');
+  } catch(e) {
+    showStatus('adminStatus', 'error', '실패: ' + e.message);
+  }
+}
+
+// ── Helper ───────────────────────────────────────
+function showStatus(id, type, msg) {
+  const el = document.getElementById(id);
+  el.className = 'status-msg ' + type;
+  el.textContent = msg;
+  if (type !== 'info' || msg !== '테스트 중...') {
+    setTimeout(() => { el.className = 'status-msg'; el.textContent = ''; }, 4000);
+  }
+}
+
+document.getElementById('apiKeyInput').addEventListener('keydown', e => { if (e.key === 'Enter') saveApiKey(); });
+document.getElementById('newAdminEmail').addEventListener('keydown', e => { if (e.key === 'Enter') addAdmin(); });
+</script>
+</body>
+</html>
