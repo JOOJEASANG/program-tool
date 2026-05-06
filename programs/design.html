@@ -315,7 +315,7 @@
   </aside>
 
   <main>
-    <div class="canvas-hint">💡 텍스트 드래그로 위치 이동 · 마우스 휠로 크기 조절 · 클릭하여 선택</div>
+    <div class="canvas-hint">💡 드래그로 이동 · 휠로 크기 조절 · 방향키로 미세 조정 · Delete로 삭제</div>
     <div class="preview-shell">
       <div class="info-bar">
         <span id="sizeInfo"></span>
@@ -341,20 +341,20 @@
 <script>
 // ── Auth ───────────────────────────────────────────────────────────
 auth.onAuthStateChanged(user => {
-  if (!user) { window.location.href = '../index.html'; return; }
+  if (!user) { window.location.href = '../login.html'; return; }
   document.getElementById('authLoading').style.display = 'none';
   document.getElementById('navUserName').textContent = user.displayName || user.email.split('@')[0];
 });
 document.getElementById('navLogout').addEventListener('click', () =>
-  auth.signOut().then(() => location.href = '../index.html'));
+  auth.signOut().then(() => location.href = '../login.html'));
 
 // ── State ──────────────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
 
 // Per-view state (front / back)
 const views = {
-  front: { items: [], bgData: '', bgOpacity: 1 },
-  back:  { items: [], bgData: '', bgOpacity: 1 },
+  front: { items: [], bgData: '', bgOpacity: 1, aiDesc: '' },
+  back:  { items: [], bgData: '', bgOpacity: 1, aiDesc: '' },
 };
 let activeView = 'front';  // 'front' | 'back'
 let selectedId = null;
@@ -545,8 +545,8 @@ function syncBgControls() {
   $('clearBgBtn').style.display = hasBg ? 'block' : 'none';
   $('bgOpacity').value = cv().bgOpacity;
   $('bgOpacityVal').textContent = Math.round(cv().bgOpacity * 100) + '%';
-  // Keep aiDesc in sync per view
-  $('aiDesc').dataset.boundView = activeView;
+  // Per-view AI description
+  $('aiDesc').value = cv().aiDesc;
 }
 
 // ── SVG generation ─────────────────────────────────────────────────
@@ -681,7 +681,9 @@ function render() {
     : `${data.w}×${data.h}mm / 재단 후 ${data.frontW}×${data.frontH}mm`;
 
   attachSvgListeners(svgEl);
+  attachTouchListeners(svgEl);
   highlightSelected();
+  saveState();
 }
 
 // ── SVG interaction ────────────────────────────────────────────────
@@ -803,7 +805,7 @@ window.addEventListener('resize', zoomFit);
 
 // ── AI background ──────────────────────────────────────────────────
 function buildAiPrompt() {
-  const userDesc = $('aiDesc').value.trim();
+  const userDesc = cv().aiDesc.trim();
   const texts = cv().items.filter(i => i.text.trim()).map(i => i.text.trim());
   const org = $('logoOrg').value.trim();
   if (org) texts.push(org);
@@ -904,14 +906,15 @@ $('printPdf').addEventListener('click', () => {
   win.document.close();
 });
 $('resetBtn').addEventListener('click', () => {
-  views.front.items = []; views.front.bgData = ''; views.front.bgOpacity = 1;
-  views.back.items  = []; views.back.bgData  = ''; views.back.bgOpacity  = 1;
+  views.front.items = []; views.front.bgData = ''; views.front.bgOpacity = 1; views.front.aiDesc = '';
+  views.back.items  = []; views.back.bgData  = ''; views.back.bgOpacity  = 1; views.back.aiDesc  = '';
   selectedId = null; logoData = '';
   activeView = 'front';
   $('logoFile').value = ''; $('bgFile').value = ''; $('logoOrg').value = '';
-  $('spineText').value = ''; $('aiDesc').value = '';
+  $('spineText').value = '';
   $('mode').value = 'front'; $('showGuides').checked = true;
   $('noSpine').checked = false; $('spineVertical').checked = false;
+  localStorage.removeItem('designTool_v3');
   syncModeUI(); renderItemList(); syncBgControls(); render();
 });
 
@@ -941,11 +944,13 @@ $('contentTabs').querySelectorAll('.view-tab').forEach(btn => {
   btn.addEventListener('click', () => switchView(btn.dataset.view));
 });
 
-// Tab switching — bg tabs
+// Tab switching — bg tabs (keeps content/bg tabs in sync)
 $('bgTabs').querySelectorAll('.view-tab').forEach(btn => {
   btn.addEventListener('click', () => {
     activeView = btn.dataset.view;
+    selectedId = null;
     syncTabButtons();
+    renderItemList();
     syncBgControls();
     render();
   });
@@ -967,8 +972,146 @@ $('logoFile').addEventListener('change', e => readFile(e.target, d => { logoData
   const el = $(id); if (el) el.addEventListener('input', render);
 });
 
+// Per-view aiDesc save
+$('aiDesc').addEventListener('input', () => { cv().aiDesc = $('aiDesc').value; });
+
+// ── Keyboard shortcuts ─────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  const tag = document.activeElement?.tagName;
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+
+  // Delete / Backspace → remove selected item
+  if ((e.key === 'Delete' || e.key === 'Backspace') && selectedId) {
+    e.preventDefault();
+    const v = itemViewOf(selectedId);
+    if (v) {
+      views[v].items = views[v].items.filter(i => i.id !== selectedId);
+      selectedId = null;
+      renderItemList();
+      render();
+    }
+    return;
+  }
+
+  // Arrow keys → nudge selected item
+  if (selectedId && ['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)) {
+    e.preventDefault();
+    const item = findItemGlobal(selectedId);
+    if (!item) return;
+    const step = e.shiftKey ? 5 : 1;
+    if (e.key === 'ArrowUp')    item.y -= step;
+    if (e.key === 'ArrowDown')  item.y += step;
+    if (e.key === 'ArrowLeft')  item.x -= step;
+    if (e.key === 'ArrowRight') item.x += step;
+    render();
+    return;
+  }
+
+  // Escape → deselect
+  if (e.key === 'Escape') {
+    selectedId = null;
+    $('itemList').querySelectorAll('.item-row').forEach(r => r.classList.remove('is-selected'));
+    render();
+  }
+});
+
+// ── Touch drag support ─────────────────────────────────────────────
+function attachTouchListeners(svgEl) {
+  svgEl.addEventListener('touchstart', e => {
+    if (e.touches.length !== 1) return;
+    const t = e.touches[0];
+    const target = t.target.closest('[data-item-id]');
+    if (!target) { selectItem(null); return; }
+    e.preventDefault();
+    const id = parseFloat(target.dataset.itemId);
+    selectItem(id);
+    const item = findItemGlobal(id);
+    if (!item) return;
+    const svgPt = screenToSvg(svgEl, t.clientX, t.clientY);
+    isDragging = true;
+    dragData = {
+      id, offsetX: svgPt.x - item.x, offsetY: svgPt.y - item.y,
+      g: target, textEl: target.querySelector('text'),
+    };
+  }, { passive: false });
+
+  svgEl.addEventListener('touchmove', e => {
+    if (!isDragging || e.touches.length !== 1) return;
+    e.preventDefault();
+    const t = e.touches[0];
+    const svgPt = screenToSvg(svgEl, t.clientX, t.clientY);
+    const newX = svgPt.x - dragData.offsetX;
+    const newY = svgPt.y - dragData.offsetY;
+    if (dragData.textEl) {
+      dragData.textEl.setAttribute('x', newX);
+      dragData.textEl.setAttribute('y', newY);
+    }
+    dragData.currentX = newX; dragData.currentY = newY;
+  }, { passive: false });
+
+  svgEl.addEventListener('touchend', () => {
+    if (!isDragging) return;
+    isDragging = false;
+    if (dragData.id && dragData.currentX !== undefined) {
+      const item = findItemGlobal(dragData.id);
+      if (item) { item.x = dragData.currentX; item.y = dragData.currentY; }
+    }
+    dragData = {};
+    render();
+  });
+}
+
+
+// ── LocalStorage auto-save ─────────────────────────────────────────
+let _saveTimer;
+function saveState() {
+  clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(() => {
+    try {
+      const s = {
+        mode: $('mode').value,
+        frontW: $('frontW').value, frontH: $('frontH').value,
+        spineW: $('spineW').value, bleed: $('bleed').value,
+        noSpine: $('noSpine').checked, spineVertical: $('spineVertical').checked,
+        spineText: $('spineText').value, logoOrg: $('logoOrg').value,
+        showGuides: $('showGuides').checked,
+        views: {
+          front: { items: views.front.items, aiDesc: views.front.aiDesc },
+          back:  { items: views.back.items,  aiDesc: views.back.aiDesc  },
+        },
+      };
+      localStorage.setItem('designTool_v3', JSON.stringify(s));
+    } catch(e) {}
+  }, 800);
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem('designTool_v3');
+    if (!raw) return false;
+    const s = JSON.parse(raw);
+    if (s.mode)   $('mode').value = s.mode;
+    if (s.frontW) $('frontW').value = s.frontW;
+    if (s.frontH) $('frontH').value = s.frontH;
+    if (s.spineW) $('spineW').value = s.spineW;
+    if (s.bleed)  $('bleed').value  = s.bleed;
+    if (s.spineText) $('spineText').value = s.spineText;
+    if (s.logoOrg)   $('logoOrg').value   = s.logoOrg;
+    $('noSpine').checked      = !!s.noSpine;
+    $('spineVertical').checked = !!s.spineVertical;
+    $('showGuides').checked   = s.showGuides !== false;
+    if (s.views?.front?.items) views.front.items = s.views.front.items;
+    if (s.views?.back?.items)  views.back.items  = s.views.back.items;
+    if (s.views?.front?.aiDesc) views.front.aiDesc = s.views.front.aiDesc;
+    if (s.views?.back?.aiDesc)  views.back.aiDesc  = s.views.back.aiDesc;
+    return true;
+  } catch(e) { return false; }
+}
+
 // ── Init ───────────────────────────────────────────────────────────
+loadState();
 syncModeUI();
+if ($('noSpine').checked) $('spineDetails').style.display = 'none';
 renderItemList();
 syncBgControls();
 setTimeout(zoomFit, 100);
