@@ -201,18 +201,11 @@
 <div class="app">
   <aside>
     <h1>표지 생성기</h1>
-    <div class="sub">항목을 추가하고 캔버스에서 드래그해 위치를 조정하세요. AI가 배경을 자동 디자인합니다.</div>
+    <div class="sub">뒤표지·책등·앞표지 전체를 하나의 펼침면으로 디자인합니다. AI 배경은 전체 면에 한 번에 생성됩니다.</div>
 
     <!-- 1. 출력 영역 -->
     <div class="section">
-      <h2>출력 영역</h2>
-      <div class="field">
-        <label>출력 모드</label>
-        <select id="mode">
-          <option value="front">앞표지만</option>
-          <option value="full">뒤표지 + 책등 + 앞표지</option>
-        </select>
-      </div>
+      <h2>출력 영역 · 뒤표지 + 책등 + 앞표지</h2>
       <div class="grid2">
         <div class="field"><label>가로(mm)</label><input id="frontW" type="number" placeholder="210" min="80" step="1" value="210"></div>
         <div class="field"><label>세로(mm)</label><input id="frontH" type="number" placeholder="297" min="100" step="1" value="297"></div>
@@ -220,21 +213,19 @@
       </div>
 
       <!-- 책등 -->
-      <div id="spineSection" style="display:none;">
-        <label class="checkline" style="margin-bottom:6px;">
-          <input id="noSpine" type="checkbox"> 책등 없음
-        </label>
-        <div id="spineDetails">
-          <div class="field"><label>책등 두께(mm)</label><input id="spineW" type="number" placeholder="8" min="0" step="0.5" value="8"></div>
-          <div class="field">
-            <label>책등 문구</label>
-            <div style="display:flex;gap:6px;align-items:center;margin-bottom:5px;">
-              <label class="checkline" style="margin:0;flex:1;">
-                <input id="spineVertical" type="checkbox"> 세로 배치
-              </label>
-            </div>
-            <input id="spineText" type="text" placeholder="책등에 들어갈 텍스트">
+      <label class="checkline" style="margin-bottom:6px;">
+        <input id="noSpine" type="checkbox"> 책등 없음
+      </label>
+      <div id="spineDetails">
+        <div class="field"><label>책등 두께(mm)</label><input id="spineW" type="number" placeholder="8" min="0" step="0.5" value="8"></div>
+        <div class="field">
+          <label>책등 문구</label>
+          <div style="display:flex;gap:6px;align-items:center;margin-bottom:5px;">
+            <label class="checkline" style="margin:0;flex:1;">
+              <input id="spineVertical" type="checkbox"> 세로 배치
+            </label>
           </div>
+          <input id="spineText" type="text" placeholder="책등에 들어갈 텍스트">
         </div>
       </div>
 
@@ -245,8 +236,8 @@
     <div class="section">
       <h2>표지 내용</h2>
 
-      <!-- 앞/뒤 탭 (full 모드일 때만 표시) -->
-      <div class="view-tabs" id="contentTabs" style="display:none;">
+      <!-- 앞/뒤 탭 -->
+      <div class="view-tabs" id="contentTabs">
         <button class="view-tab active" data-view="front">앞표지</button>
         <button class="view-tab" data-view="back">뒤표지</button>
       </div>
@@ -269,13 +260,7 @@
 
     <!-- 3. AI 배경 -->
     <div class="section">
-      <h2>AI 배경 디자인</h2>
-
-      <!-- 앞/뒤 탭 (full 모드일 때만 표시) -->
-      <div class="view-tabs" id="bgTabs" style="display:none;">
-        <button class="view-tab active" data-view="front">앞표지 배경</button>
-        <button class="view-tab" data-view="back">뒤표지 배경</button>
-      </div>
+      <h2>AI 배경 디자인 <span style="font-size:10px;font-weight:400;color:#9ca3af;">· 전체 펼침면 통합 생성</span></h2>
 
       <div class="field">
         <label>디자인 설명 <span style="font-weight:400;color:#9ca3af;">(AI에게 원하는 스타일 설명)</span></label>
@@ -283,13 +268,13 @@
       </div>
       <button class="ai-btn" id="generateBgBtn" onclick="generateAiBg()">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-        AI 배경 자동 생성
+        AI 배경 자동 생성 (전체 펼침면)
       </button>
       <div class="ai-status" id="aiStatus"></div>
 
       <div style="margin-top:10px; border-top:1px solid #f0f0f0; padding-top:10px;">
         <div class="field">
-          <label>직접 업로드</label>
+          <label>직접 업로드 <span style="font-weight:400;color:#9ca3af;">(전체 펼침면 이미지)</span></label>
           <input id="bgFile" type="file" accept="image/*">
         </div>
         <div id="bgOpacityWrap" style="display:none;">
@@ -351,11 +336,16 @@ document.getElementById('navLogout').addEventListener('click', () =>
 // ── State ──────────────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
 
-// Per-view state (front / back)
+// Per-view items (front / back text)
 const views = {
-  front: { items: [], bgData: '', bgOpacity: 1, aiDesc: '' },
-  back:  { items: [], bgData: '', bgOpacity: 1, aiDesc: '' },
+  front: { items: [] },
+  back:  { items: [] },
 };
+// Single shared background for entire spread
+let bgData = '';
+let bgOpacity = 1;
+let aiDesc = '';
+
 let activeView = 'front';  // 'front' | 'back'
 let selectedId = null;
 let logoData = '';
@@ -375,22 +365,18 @@ function escSvg(s)  { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&
 function getSpineW() { return $('noSpine').checked ? 0 : num('spineW', 8); }
 
 // ── Items ──────────────────────────────────────────────────────────
-function makeItem(idx, view) {
+function makeItem(idx) {
   const frontW = num('frontW', 210), frontH = num('frontH', 297);
   const spineW = getSpineW(), b = num('bleed', 3);
-  const mode = $('mode').value;
-  const v = view || activeView;
-  let cx;
-  if (v === 'front') {
-    cx = mode === 'full' ? b + frontW + spineW + frontW / 2 : b + frontW / 2;
-  } else {
-    cx = b + frontW / 2;
-  }
+  // Items placed in their respective panel
+  const cx = activeView === 'front'
+    ? b + frontW + spineW + frontW / 2
+    : b + frontW / 2;
   return {
     id: Date.now() + Math.random(),
     text: '', fontSize: 24, color: '#111827', bold: false,
     x: cx, y: b + frontH * (0.28 + idx * 0.14),
-    view: v,
+    view: activeView,
   };
 }
 
@@ -405,12 +391,11 @@ function itemViewOf(id) {
   return null;
 }
 
-// Select item — only updates CSS, does NOT rebuild DOM
 function selectItem(id) {
   selectedId = id;
   if (id !== null) {
     const v = itemViewOf(id);
-    if (v && v !== activeView) { activeView = v; renderItemList(); return; }
+    if (v && v !== activeView) { activeView = v; syncTabButtons(); renderItemList(); return; }
   }
   $('itemList').querySelectorAll('.item-row[data-item-id]').forEach(row => {
     const rid = parseFloat(row.dataset.itemId);
@@ -453,20 +438,16 @@ function renderItemList() {
       </div>
     `;
 
-    // Text input — update item directly, no DOM rebuild
     const textInput = row.querySelector('.item-text-input');
     textInput.addEventListener('input', e => { item.text = e.target.value; render(); });
     textInput.addEventListener('focus', () => { selectItem(item.id); });
 
-    // Font size
     const fsInput = row.querySelector('.item-fs-input');
     fsInput.addEventListener('input', e => { item.fontSize = Math.max(4, +e.target.value || 4); render(); });
     fsInput.addEventListener('focus', () => { selectItem(item.id); });
 
-    // Color
     row.querySelector('.item-color-input').addEventListener('input', e => { item.color = e.target.value; render(); });
 
-    // Delete
     row.querySelector('.item-del').addEventListener('click', e => {
       e.stopPropagation();
       const vi = cv().items.indexOf(item);
@@ -476,7 +457,6 @@ function renderItemList() {
       render();
     });
 
-    // Bold
     row.querySelector('.item-bold-btn').addEventListener('click', function(e) {
       e.stopPropagation();
       item.bold = !item.bold;
@@ -484,7 +464,6 @@ function renderItemList() {
       render();
     });
 
-    // Row click to select (not on inputs/buttons)
     row.addEventListener('mousedown', e => {
       if (e.target.closest('input') || e.target.closest('button')) return;
       selectItem(item.id);
@@ -493,7 +472,6 @@ function renderItemList() {
     list.appendChild(row);
   });
 
-  // Restore focus if possible
   if (prevFocusId && prevFocusType) {
     const restored = list.querySelector(
       `input[data-item-id="${prevFocusId}"][data-input-type="${prevFocusType}"]`
@@ -510,23 +488,10 @@ function renderItemList() {
   }
 }
 
-// ── Mode/tab UI helpers ────────────────────────────────────────────
-function syncModeUI() {
-  const full = $('mode').value === 'full';
-  $('spineSection').style.display = full ? 'block' : 'none';
-  $('contentTabs').style.display = full ? 'flex' : 'none';
-  $('bgTabs').style.display = full ? 'flex' : 'none';
-  if (!full) activeView = 'front';
-  syncTabButtons();
-}
-
+// ── Tab helpers ────────────────────────────────────────────────────
 function syncTabButtons() {
-  ['contentTabs', 'bgTabs'].forEach(tabsId => {
-    const tabs = $(tabsId);
-    if (!tabs) return;
-    tabs.querySelectorAll('.view-tab').forEach(btn => {
-      btn.classList.toggle('active', btn.dataset.view === activeView);
-    });
+  $('contentTabs').querySelectorAll('.view-tab').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.view === activeView);
   });
 }
 
@@ -535,53 +500,35 @@ function switchView(v) {
   selectedId = null;
   syncTabButtons();
   renderItemList();
-  syncBgControls();
   render();
 }
 
+// ── Background controls ────────────────────────────────────────────
 function syncBgControls() {
-  const hasBg = !!cv().bgData;
-  $('bgOpacityWrap').style.display = hasBg ? 'block' : 'none';
-  $('clearBgBtn').style.display = hasBg ? 'block' : 'none';
-  $('bgOpacity').value = cv().bgOpacity;
-  $('bgOpacityVal').textContent = Math.round(cv().bgOpacity * 100) + '%';
-  // Per-view AI description
-  $('aiDesc').value = cv().aiDesc;
+  $('bgOpacityWrap').style.display = bgData ? 'block' : 'none';
+  $('clearBgBtn').style.display = bgData ? 'block' : 'none';
+  $('bgOpacity').value = bgOpacity;
+  $('bgOpacityVal').textContent = Math.round(bgOpacity * 100) + '%';
+  $('aiDesc').value = aiDesc;
 }
 
 // ── SVG generation ─────────────────────────────────────────────────
 function makeSvg() {
-  const mode = $('mode').value;
   const frontW = num('frontW', 210), frontH = num('frontH', 297);
   const spineW = getSpineW(), b = num('bleed', 3);
-  const w = mode === 'full' ? frontW * 2 + spineW + b * 2 : frontW + b * 2;
+  const w = frontW * 2 + spineW + b * 2;
   const h = frontH + b * 2;
-  const frontX = mode === 'full' ? b + frontW + spineW : b;
-  const backX  = b;
+  const frontX = b + frontW + spineW;  // X position of front cover panel
+  const backX  = b;                    // X position of back cover panel
 
   let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}mm" height="${h}mm" viewBox="0 0 ${w} ${h}">`;
-  svg += `<defs>`;
-  if (mode === 'full') {
-    svg += `<clipPath id="cpFront"><rect x="${frontX}" y="0" width="${frontW + b}" height="${h}"/></clipPath>`;
-    svg += `<clipPath id="cpBack"><rect x="0" y="0" width="${backX + frontW + (spineW > 0 ? spineW / 2 : 0)}" height="${h}"/></clipPath>`;
-  }
-  svg += `</defs>`;
 
   // White base
   svg += `<rect width="${w}" height="${h}" fill="#ffffff"/>`;
 
-  // Backgrounds
-  if (mode === 'full') {
-    if (views.back.bgData) {
-      svg += `<image href="${views.back.bgData}" x="0" y="0" width="${b + frontW + spineW / 2}" height="${h}" preserveAspectRatio="xMidYMid slice" clip-path="url(#cpBack)" opacity="${views.back.bgOpacity}"/>`;
-    }
-    if (views.front.bgData) {
-      svg += `<image href="${views.front.bgData}" x="${frontX - b}" y="0" width="${frontW + b * 2}" height="${h}" preserveAspectRatio="xMidYMid slice" clip-path="url(#cpFront)" opacity="${views.front.bgOpacity}"/>`;
-    }
-  } else {
-    if (views.front.bgData) {
-      svg += `<image href="${views.front.bgData}" x="0" y="0" width="${w}" height="${h}" preserveAspectRatio="xMidYMid slice" opacity="${views.front.bgOpacity}"/>`;
-    }
+  // Single background spanning entire spread
+  if (bgData) {
+    svg += `<image href="${bgData}" x="0" y="0" width="${w}" height="${h}" preserveAspectRatio="xMidYMid slice" opacity="${bgOpacity}"/>`;
   }
 
   // All text items (front + back)
@@ -623,13 +570,12 @@ function makeSvg() {
   }
 
   // Spine text
-  if (mode === 'full' && spineW > 2) {
+  if (spineW > 2) {
     const spineVal = $('spineText').value.trim();
     if (spineVal) {
       const sx = b + frontW + spineW / 2;
       const isVertical = $('spineVertical').checked;
       if (isVertical) {
-        // Stack each character vertically
         const chars = spineVal.split('');
         const charSize = Math.max(3, Math.min(spineW * 0.65, 9));
         const lineH = charSize * 1.25;
@@ -639,7 +585,6 @@ function makeSvg() {
           svg += `<text x="${sx}" y="${startY + i * lineH}" font-size="${charSize}" font-weight="900" text-anchor="middle" fill="#12396d" font-family="Pretendard,'Noto Sans KR',Arial,sans-serif">${escSvg(ch)}</text>`;
         });
       } else {
-        // Rotated (reads top→bottom on spine)
         const fs = Math.max(3.2, Math.min(6, spineW * .55));
         svg += `<text transform="translate(${sx} ${h/2}) rotate(90)" font-size="${fs}" font-weight="900" text-anchor="middle" dominant-baseline="middle" fill="#12396d" font-family="Pretendard,'Noto Sans KR',Arial,sans-serif">${escSvg(spineVal)}</text>`;
       }
@@ -650,22 +595,20 @@ function makeSvg() {
   if ($('showGuides').checked) {
     svg += `<rect x="0" y="0" width="${w}" height="${h}" fill="none" stroke="#ef4444" stroke-width="0.25" stroke-dasharray="2 1" opacity=".7"/>`;
     svg += `<rect x="${b}" y="${b}" width="${w-b*2}" height="${h-b*2}" fill="none" stroke="#2563eb" stroke-width="0.25" stroke-dasharray="2 1" opacity=".65"/>`;
-    if (mode === 'full') {
-      const backEnd = b + frontW, spineEnd = b + frontW + spineW;
-      if (spineW > 0) {
-        svg += `<line x1="${backEnd}" y1="${b}" x2="${backEnd}" y2="${h-b}" stroke="#111827" stroke-width="0.2" stroke-dasharray="1.5 1.3" opacity=".5"/>`;
-        svg += `<line x1="${spineEnd}" y1="${b}" x2="${spineEnd}" y2="${h-b}" stroke="#111827" stroke-width="0.2" stroke-dasharray="1.5 1.3" opacity=".5"/>`;
-        svg += `<text x="${backEnd + spineW/2}" y="${h-1.5}" font-size="2.8" text-anchor="middle" fill="#6b7280">책등</text>`;
-      } else {
-        svg += `<line x1="${backEnd}" y1="${b}" x2="${backEnd}" y2="${h-b}" stroke="#111827" stroke-width="0.2" stroke-dasharray="1.5 1.3" opacity=".5"/>`;
-      }
-      svg += `<text x="${b + frontW/2}" y="${h-1.5}" font-size="2.8" text-anchor="middle" fill="#6b7280">뒤표지</text>`;
-      svg += `<text x="${spineEnd + frontW/2}" y="${h-1.5}" font-size="2.8" text-anchor="middle" fill="#6b7280">앞표지</text>`;
+    const backEnd = b + frontW, spineEnd = b + frontW + spineW;
+    if (spineW > 0) {
+      svg += `<line x1="${backEnd}" y1="${b}" x2="${backEnd}" y2="${h-b}" stroke="#111827" stroke-width="0.2" stroke-dasharray="1.5 1.3" opacity=".5"/>`;
+      svg += `<line x1="${spineEnd}" y1="${b}" x2="${spineEnd}" y2="${h-b}" stroke="#111827" stroke-width="0.2" stroke-dasharray="1.5 1.3" opacity=".5"/>`;
+      svg += `<text x="${backEnd + spineW/2}" y="${h-1.5}" font-size="2.8" text-anchor="middle" fill="#6b7280">책등</text>`;
+    } else {
+      svg += `<line x1="${backEnd}" y1="${b}" x2="${backEnd}" y2="${h-b}" stroke="#111827" stroke-width="0.2" stroke-dasharray="1.5 1.3" opacity=".5"/>`;
     }
+    svg += `<text x="${b + frontW/2}" y="${h-1.5}" font-size="2.8" text-anchor="middle" fill="#6b7280">뒤표지</text>`;
+    svg += `<text x="${spineEnd + frontW/2}" y="${h-1.5}" font-size="2.8" text-anchor="middle" fill="#6b7280">앞표지</text>`;
   }
 
   svg += `</svg>`;
-  return { svg, w, h, mode, frontW, frontH, spineW, b };
+  return { svg, w, h, frontW, frontH, spineW, b };
 }
 
 // ── Render ─────────────────────────────────────────────────────────
@@ -676,9 +619,7 @@ function render() {
   const svgEl = $('previewBox').querySelector('svg');
   svgEl.style.width = `${Math.max(200, data.w * pxPerMm * zoomLevel)}px`;
 
-  $('sizeInfo').textContent = data.mode === 'full'
-    ? `전체 ${data.w}×${data.h}mm  (앞/뒤 각 ${data.frontW}×${data.frontH}mm)`
-    : `${data.w}×${data.h}mm / 재단 후 ${data.frontW}×${data.frontH}mm`;
+  $('sizeInfo').textContent = `전체 ${data.w}×${data.h}mm  (앞/뒤 각 ${data.frontW}×${data.frontH}mm · 책등 ${data.spineW}mm)`;
 
   attachSvgListeners(svgEl);
   attachTouchListeners(svgEl);
@@ -805,26 +746,21 @@ window.addEventListener('resize', zoomFit);
 
 // ── AI background ──────────────────────────────────────────────────
 function buildAiPrompt() {
-  const userDesc = cv().aiDesc.trim();
-  const texts = cv().items.filter(i => i.text.trim()).map(i => i.text.trim());
+  const userDesc = aiDesc.trim();
+  const allTexts = [...views.front.items, ...views.back.items]
+    .filter(i => i.text.trim()).map(i => i.text.trim());
   const org = $('logoOrg').value.trim();
-  if (org) texts.push(org);
-  const frontW = num('frontW', 210), frontH = num('frontH', 297);
-  const isPortrait = frontH >= frontW;
-  const mode = $('mode').value;
-  const orientLabel = mode === 'full'
-    ? (activeView === 'front' ? 'portrait front cover' : 'portrait back cover')
-    : (isPortrait ? 'portrait' : 'landscape');
-  const contentHint = texts.length > 0 ? `Cover text includes: "${texts.join('", "')}"` : '';
+  if (org) allTexts.push(org);
+  const contentHint = allTexts.length > 0 ? `Cover text includes: "${allTexts.join('", "')}"` : '';
   const descPart = userDesc ? userDesc + '. ' : '';
-  return `${descPart}Design a professional background for a printed ${orientLabel} document cover. ${contentHint} No text, letters, numbers, logos, borders, or crop marks. Central area should be clean for title placement. High quality, print-ready.`;
+  return `${descPart}Design a professional background for a full book cover spread (back cover + spine + front cover) in one unified panoramic image. ${contentHint} No text, letters, numbers, logos, borders, or crop marks. The design should flow seamlessly across the entire spread. High quality, print-ready.`;
 }
 
 async function generateAiBg() {
   const btn = $('generateBgBtn'), status = $('aiStatus');
   btn.disabled = true;
   status.className = 'ai-status loading';
-  status.textContent = '⏳ AI가 배경을 디자인하는 중... (10~30초)';
+  status.textContent = '⏳ AI가 전체 펼침면 배경을 디자인하는 중... (10~30초)';
 
   try {
     const doc = await db.collection('settings').doc('config').get();
@@ -835,14 +771,11 @@ async function generateAiBg() {
       return;
     }
 
-    const frontW = num('frontW', 210), frontH = num('frontH', 297);
-    const isPortrait = frontH >= frontW;
-    const size = isPortrait ? '1024x1536' : '1536x1024';
-
+    // Full spread is always landscape (2×width + spine)
     const res = await fetch('https://api.openai.com/v1/images/generations', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-      body: JSON.stringify({ model: 'gpt-image-1', prompt: buildAiPrompt(), n: 1, size, quality: 'high' })
+      body: JSON.stringify({ model: 'gpt-image-1', prompt: buildAiPrompt(), n: 1, size: '1536x1024', quality: 'high' })
     });
 
     if (!res.ok) {
@@ -851,10 +784,10 @@ async function generateAiBg() {
     }
 
     const data = await res.json();
-    cv().bgData = 'data:image/png;base64,' + data.data[0].b64_json;
-    cv().bgOpacity = 1;
+    bgData = 'data:image/png;base64,' + data.data[0].b64_json;
+    bgOpacity = 1;
     status.className = 'ai-status success';
-    status.textContent = `✓ ${activeView === 'front' ? '앞표지' : '뒤표지'} 배경 생성 완료!`;
+    status.textContent = '✓ 전체 펼침면 배경 생성 완료!';
     syncBgControls();
     render();
     setTimeout(() => { status.className = 'ai-status'; }, 3000);
@@ -867,7 +800,7 @@ async function generateAiBg() {
 }
 
 function clearBg() {
-  cv().bgData = '';
+  bgData = '';
   $('bgFile').value = '';
   syncBgControls();
   render();
@@ -881,11 +814,11 @@ function download(name, blob) {
   setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
 }
 $('downloadSvg').addEventListener('click', () => {
-  const { svg, mode } = makeSvg();
-  download(`cover-${mode}.svg`, new Blob([svg], { type: 'image/svg+xml;charset=utf-8' }));
+  const { svg } = makeSvg();
+  download('cover-full.svg', new Blob([svg], { type: 'image/svg+xml;charset=utf-8' }));
 });
 $('downloadPng').addEventListener('click', () => {
-  const { svg, w, h, mode } = makeSvg();
+  const { svg, w, h } = makeSvg();
   const scale = 300 / 25.4;
   const canvas = document.createElement('canvas');
   canvas.width = Math.round(w * scale); canvas.height = Math.round(h * scale);
@@ -894,7 +827,7 @@ $('downloadPng').addEventListener('click', () => {
   img.onload = () => {
     ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-    canvas.toBlob(blob => download(`cover-${mode}-300dpi.png`, blob), 'image/png');
+    canvas.toBlob(blob => download('cover-full-300dpi.png', blob), 'image/png');
     URL.revokeObjectURL(url);
   };
   img.src = url;
@@ -906,16 +839,17 @@ $('printPdf').addEventListener('click', () => {
   win.document.close();
 });
 $('resetBtn').addEventListener('click', () => {
-  views.front.items = []; views.front.bgData = ''; views.front.bgOpacity = 1; views.front.aiDesc = '';
-  views.back.items  = []; views.back.bgData  = ''; views.back.bgOpacity  = 1; views.back.aiDesc  = '';
+  views.front.items = []; views.back.items = [];
+  bgData = ''; bgOpacity = 1; aiDesc = '';
   selectedId = null; logoData = '';
   activeView = 'front';
   $('logoFile').value = ''; $('bgFile').value = ''; $('logoOrg').value = '';
-  $('spineText').value = '';
-  $('mode').value = 'front'; $('showGuides').checked = true;
+  $('spineText').value = ''; $('aiDesc').value = '';
+  $('showGuides').checked = true;
   $('noSpine').checked = false; $('spineVertical').checked = false;
-  localStorage.removeItem('designTool_v3');
-  syncModeUI(); renderItemList(); syncBgControls(); render();
+  $('spineDetails').style.display = 'block';
+  localStorage.removeItem('designTool_v4');
+  syncTabButtons(); renderItemList(); syncBgControls(); render();
 });
 
 // ── Event listeners ────────────────────────────────────────────────
@@ -927,44 +861,23 @@ $('addItemBtn').addEventListener('click', () => {
   render();
 });
 
-$('mode').addEventListener('change', () => {
-  syncModeUI();
-  renderItemList();
-  syncBgControls();
-  render();
-});
-
 $('noSpine').addEventListener('change', () => {
   $('spineDetails').style.display = $('noSpine').checked ? 'none' : 'block';
   render();
 });
 
-// Tab switching — content tabs
 $('contentTabs').querySelectorAll('.view-tab').forEach(btn => {
   btn.addEventListener('click', () => switchView(btn.dataset.view));
 });
 
-// Tab switching — bg tabs (keeps content/bg tabs in sync)
-$('bgTabs').querySelectorAll('.view-tab').forEach(btn => {
-  btn.addEventListener('click', () => {
-    activeView = btn.dataset.view;
-    selectedId = null;
-    syncTabButtons();
-    renderItemList();
-    syncBgControls();
-    render();
-  });
-});
-
-// Background opacity per active view
 $('bgOpacity').addEventListener('input', () => {
-  cv().bgOpacity = parseFloat($('bgOpacity').value);
-  $('bgOpacityVal').textContent = Math.round(cv().bgOpacity * 100) + '%';
+  bgOpacity = parseFloat($('bgOpacity').value);
+  $('bgOpacityVal').textContent = Math.round(bgOpacity * 100) + '%';
   render();
 });
 
 $('bgFile').addEventListener('change', e => readFile(e.target, d => {
-  cv().bgData = d; cv().bgOpacity = 1; syncBgControls(); render();
+  bgData = d; bgOpacity = 1; syncBgControls(); render();
 }));
 $('logoFile').addEventListener('change', e => readFile(e.target, d => { logoData = d; render(); }));
 
@@ -972,15 +885,13 @@ $('logoFile').addEventListener('change', e => readFile(e.target, d => { logoData
   const el = $(id); if (el) el.addEventListener('input', render);
 });
 
-// Per-view aiDesc save
-$('aiDesc').addEventListener('input', () => { cv().aiDesc = $('aiDesc').value; });
+$('aiDesc').addEventListener('input', () => { aiDesc = $('aiDesc').value; });
 
 // ── Keyboard shortcuts ─────────────────────────────────────────────
 document.addEventListener('keydown', e => {
   const tag = document.activeElement?.tagName;
   if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
 
-  // Delete / Backspace → remove selected item
   if ((e.key === 'Delete' || e.key === 'Backspace') && selectedId) {
     e.preventDefault();
     const v = itemViewOf(selectedId);
@@ -993,7 +904,6 @@ document.addEventListener('keydown', e => {
     return;
   }
 
-  // Arrow keys → nudge selected item
   if (selectedId && ['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)) {
     e.preventDefault();
     const item = findItemGlobal(selectedId);
@@ -1007,7 +917,6 @@ document.addEventListener('keydown', e => {
     return;
   }
 
-  // Escape → deselect
   if (e.key === 'Escape') {
     selectedId = null;
     $('itemList').querySelectorAll('.item-row').forEach(r => r.classList.remove('is-selected'));
@@ -1061,7 +970,6 @@ function attachTouchListeners(svgEl) {
   });
 }
 
-
 // ── LocalStorage auto-save ─────────────────────────────────────────
 let _saveTimer;
 function saveState() {
@@ -1069,28 +977,27 @@ function saveState() {
   _saveTimer = setTimeout(() => {
     try {
       const s = {
-        mode: $('mode').value,
         frontW: $('frontW').value, frontH: $('frontH').value,
         spineW: $('spineW').value, bleed: $('bleed').value,
         noSpine: $('noSpine').checked, spineVertical: $('spineVertical').checked,
         spineText: $('spineText').value, logoOrg: $('logoOrg').value,
         showGuides: $('showGuides').checked,
+        aiDesc,
         views: {
-          front: { items: views.front.items, aiDesc: views.front.aiDesc },
-          back:  { items: views.back.items,  aiDesc: views.back.aiDesc  },
+          front: { items: views.front.items },
+          back:  { items: views.back.items  },
         },
       };
-      localStorage.setItem('designTool_v3', JSON.stringify(s));
+      localStorage.setItem('designTool_v4', JSON.stringify(s));
     } catch(e) {}
   }, 800);
 }
 
 function loadState() {
   try {
-    const raw = localStorage.getItem('designTool_v3');
+    const raw = localStorage.getItem('designTool_v4');
     if (!raw) return false;
     const s = JSON.parse(raw);
-    if (s.mode)   $('mode').value = s.mode;
     if (s.frontW) $('frontW').value = s.frontW;
     if (s.frontH) $('frontH').value = s.frontH;
     if (s.spineW) $('spineW').value = s.spineW;
@@ -1100,18 +1007,17 @@ function loadState() {
     $('noSpine').checked      = !!s.noSpine;
     $('spineVertical').checked = !!s.spineVertical;
     $('showGuides').checked   = s.showGuides !== false;
+    if (s.aiDesc) { aiDesc = s.aiDesc; $('aiDesc').value = aiDesc; }
     if (s.views?.front?.items) views.front.items = s.views.front.items;
     if (s.views?.back?.items)  views.back.items  = s.views.back.items;
-    if (s.views?.front?.aiDesc) views.front.aiDesc = s.views.front.aiDesc;
-    if (s.views?.back?.aiDesc)  views.back.aiDesc  = s.views.back.aiDesc;
     return true;
   } catch(e) { return false; }
 }
 
 // ── Init ───────────────────────────────────────────────────────────
 loadState();
-syncModeUI();
 if ($('noSpine').checked) $('spineDetails').style.display = 'none';
+syncTabButtons();
 renderItemList();
 syncBgControls();
 setTimeout(zoomFit, 100);
