@@ -5,7 +5,8 @@
       "firebase.json",
       "**/.*",
       "**/node_modules/**",
-      "design_program.html"
+      "design_program.html",
+      "backend/**"
     ],
     "cleanUrls": true,
     "trailingSlash": false,
