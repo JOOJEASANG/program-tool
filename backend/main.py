@@ -4,11 +4,13 @@ firebase_admin.initialize_app()
 from flask import Flask
 from routers.pdf import pdf_bp
 from routers.preflight import preflight_bp
+from routers.ai import ai_bp
 from firebase_functions import https_fn, options
 
 flask_app = Flask(__name__)
 flask_app.register_blueprint(pdf_bp, url_prefix="/api/pdf")
 flask_app.register_blueprint(preflight_bp, url_prefix="/api/preflight")
+flask_app.register_blueprint(ai_bp, url_prefix="/api/ai")
 
 @flask_app.route("/health")
 def health():

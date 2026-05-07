@@ -3,13 +3,17 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Program Tool · 업종별 스마트 도구</title>
-  <meta name="description" content="인쇄소·소규모 사업체를 위한 업무 자동화 도구. 표지 생성, 견적서, 재고관리를 AI와 함께.">
+  <title>Program Tool · 업무 자동화 도구</title>
+  <meta name="description" content="인쇄·소규모 사업체를 위한 업무 자동화 도구 모음. 표지 디자인부터 PDF 편집까지 AI와 함께.">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html { scroll-behavior: smooth; }
-    body { font-family: Pretendard, "Noto Sans KR", Arial, sans-serif; color: #111827; background: #fff; }
+    body {
+      font-family: Pretendard, "Noto Sans KR", Arial, sans-serif;
+      color: #111827; background: #fff;
+      min-height: 100vh;
+    }
 
     /* ── NAV ─── */
     .nav {
@@ -17,8 +21,7 @@
       height: 60px; background: rgba(255,255,255,0.95);
       backdrop-filter: blur(12px);
       border-bottom: 1px solid #e5e7eb;
-      display: flex; align-items: center; padding: 0 5%;
-      gap: 24px;
+      display: flex; align-items: center; padding: 0 5%; gap: 24px;
     }
     .nav-logo {
       display: flex; align-items: center; gap: 10px;
@@ -30,17 +33,11 @@
       border-radius: 8px; display: flex; align-items: center; justify-content: center;
       font-size: 16px;
     }
-    .nav-links { display: flex; align-items: center; gap: 4px; margin-left: 8px; }
-    .nav-links a {
-      text-decoration: none; color: #6b7280; font-size: 14px; font-weight: 600;
-      padding: 6px 12px; border-radius: 7px; transition: all 0.15s;
-    }
-    .nav-links a:hover { color: #12396d; background: #f0f4ff; }
-    .nav-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+    .nav-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
     .nav-btn-ghost {
       text-decoration: none; color: #374151; font-size: 13px; font-weight: 700;
       padding: 8px 16px; border-radius: 9px; border: 1.5px solid #e5e7eb;
-      transition: all 0.15s;
+      transition: all 0.15s; cursor: pointer; font-family: inherit; background: #fff;
     }
     .nav-btn-ghost:hover { border-color: #12396d; color: #12396d; background: #f0f4ff; }
     .nav-btn-primary {
@@ -50,202 +47,279 @@
       transition: opacity 0.15s; white-space: nowrap;
     }
     .nav-btn-primary:hover { opacity: 0.88; }
-    #navDashBtn { display: none; }
 
-    /* ── HERO ─── */
-    .hero {
-      padding: 140px 5% 90px;
-      background: linear-gradient(165deg, #0a1f3d 0%, #12396d 50%, #1a5f80 100%);
-      text-align: center; position: relative; overflow: hidden;
+    /* User chip */
+    .user-chip {
+      display: flex; align-items: center; gap: 8px;
+      cursor: pointer; padding: 5px 10px 5px 5px; border-radius: 999px;
+      border: 1.5px solid #e5e7eb; background: #fff;
+      transition: all 0.15s; position: relative;
     }
-    .hero::before {
-      content: '';
-      position: absolute; inset: 0;
-      background: radial-gradient(ellipse 80% 60% at 50% 120%, rgba(29,155,178,0.35) 0%, transparent 70%);
+    .user-chip:hover { border-color: #1d9bb2; }
+    .user-avatar {
+      width: 28px; height: 28px; border-radius: 50%;
+      background: linear-gradient(135deg,#12396d,#1d9bb2);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 800; color: #fff; overflow: hidden;
+    }
+    .user-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .user-chip-name {
+      font-size: 13px; font-weight: 700; color: #1e293b;
+      max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .user-dropdown {
+      position: absolute; top: calc(100% + 6px); right: 0;
+      background: #fff; border: 1px solid #e2e8f0; border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.12); padding: 8px;
+      min-width: 180px; display: none; z-index: 200;
+    }
+    .user-chip.open .user-dropdown { display: block; }
+    .dropdown-email {
+      padding: 8px 10px; font-size: 12px; color: #64748b;
+      border-bottom: 1px solid #f1f5f9; margin-bottom: 4px;
+    }
+    .dropdown-btn {
+      width: 100%; display: flex; align-items: center; gap: 8px;
+      border: none; background: transparent; border-radius: 8px;
+      padding: 9px 10px; font-size: 13px; font-weight: 700; color: #374151;
+      cursor: pointer; font-family: inherit; text-align: left;
+      transition: background 0.12s;
+    }
+    .dropdown-btn:hover { background: #f1f5f9; }
+    .dropdown-btn.danger { color: #dc2626; }
+    .dropdown-btn.danger:hover { background: #fef2f2; }
+
+    main { padding-top: 60px; }
+
+    /* ── HERO (logged out) ── */
+    .hero {
+      padding: 80px 5% 50px;
+      text-align: center;
+      background: linear-gradient(180deg, #f0f9ff 0%, #fff 100%);
     }
     .hero-badge {
       display: inline-flex; align-items: center; gap: 6px;
-      background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2);
-      color: rgba(255,255,255,0.85); font-size: 12px; font-weight: 700;
-      padding: 5px 12px; border-radius: 20px; margin-bottom: 24px;
-      backdrop-filter: blur(4px);
+      background: rgba(29,155,178,0.1); color: #1d9bb2;
+      padding: 6px 14px; border-radius: 999px; font-size: 12px; font-weight: 700;
+      margin-bottom: 18px;
     }
     .hero h1 {
-      font-size: clamp(32px, 5.5vw, 62px); font-weight: 900;
-      color: #fff; line-height: 1.12; letter-spacing: -1.5px;
-      margin-bottom: 20px; position: relative;
+      font-size: clamp(32px, 5vw, 52px); font-weight: 900;
+      letter-spacing: -1.5px; line-height: 1.15; margin-bottom: 16px; color: #0f172a;
     }
-    .hero h1 span { color: #5de0f5; }
+    .hero h1 span {
+      background: linear-gradient(135deg,#12396d,#1d9bb2);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
     .hero p {
-      font-size: clamp(15px, 2vw, 18px); color: rgba(255,255,255,0.72);
-      line-height: 1.7; max-width: 560px; margin: 0 auto 38px; position: relative;
+      font-size: 16px; color: #64748b; max-width: 560px;
+      margin: 0 auto 28px; line-height: 1.65;
     }
-    .hero-ctas { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; position: relative; }
+    .hero-ctas { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; }
     .cta-primary {
       display: inline-flex; align-items: center; gap: 8px;
-      background: #fff; color: #12396d;
-      font-size: 15px; font-weight: 900; padding: 14px 28px;
-      border-radius: 12px; text-decoration: none;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.25); transition: transform 0.15s, box-shadow 0.15s;
-    }
-    .cta-primary:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(0,0,0,0.3); }
-    .cta-secondary {
-      display: inline-flex; align-items: center; gap: 8px;
-      border: 2px solid rgba(255,255,255,0.35); color: rgba(255,255,255,0.88);
-      font-size: 15px; font-weight: 800; padding: 14px 28px;
-      border-radius: 12px; text-decoration: none; transition: all 0.15s;
-    }
-    .cta-secondary:hover { border-color: rgba(255,255,255,0.7); color: #fff; background: rgba(255,255,255,0.08); }
-    .hero-stats {
-      display: flex; justify-content: center; gap: 40px; margin-top: 60px;
-      flex-wrap: wrap; position: relative;
-    }
-    .hero-stat { text-align: center; }
-    .hero-stat-num { font-size: 28px; font-weight: 900; color: #fff; letter-spacing: -1px; }
-    .hero-stat-label { font-size: 12px; color: rgba(255,255,255,0.55); margin-top: 2px; font-weight: 600; }
-
-    /* ── SECTION BASE ─── */
-    section { padding: 80px 5%; }
-    .section-badge {
-      display: inline-block; background: #eff6ff; color: #2563eb;
-      font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 6px;
-      letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 12px;
-    }
-    .section-title { font-size: clamp(24px,4vw,38px); font-weight: 900; color: #0f172a; letter-spacing: -0.8px; margin-bottom: 12px; }
-    .section-sub { font-size: 16px; color: #6b7280; line-height: 1.65; max-width: 540px; }
-    .section-header { margin-bottom: 48px; }
-
-    /* ── PROGRAMS ─── */
-    .programs-section { background: #f8fafc; }
-    .programs-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px,1fr)); gap: 20px; }
-    .prog-card {
-      background: #fff; border: 1.5px solid #e5e7eb;
-      border-radius: 16px; padding: 24px;
-      transition: all 0.2s; text-decoration: none; color: inherit;
-      display: flex; flex-direction: column; gap: 12px;
-      position: relative; overflow: hidden;
-    }
-    .prog-card:not(.coming-soon):hover {
-      border-color: #2563eb; box-shadow: 0 8px 32px rgba(37,99,235,0.12);
-      transform: translateY(-3px);
-    }
-    .prog-card.coming-soon { opacity: 0.65; cursor: default; }
-    .prog-card-top { display: flex; align-items: flex-start; justify-content: space-between; }
-    .prog-icon {
-      width: 48px; height: 48px; border-radius: 12px;
-      display: flex; align-items: center; justify-content: center; font-size: 22px;
-      flex-shrink: 0;
-    }
-    .prog-tier-badge {
-      font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 5px;
-      text-transform: uppercase; letter-spacing: 0.3px;
-    }
-    .tier-free { background: #dcfce7; color: #166534; }
-    .tier-standard { background: #dbeafe; color: #1d4ed8; }
-    .tier-pro { background: #f3e8ff; color: #6d28d9; }
-    .prog-name { font-size: 16px; font-weight: 800; color: #111827; }
-    .prog-desc { font-size: 13px; color: #6b7280; line-height: 1.55; flex: 1; }
-    .prog-cta {
-      display: inline-flex; align-items: center; gap: 5px;
-      font-size: 12px; font-weight: 800; color: #12396d;
-      padding: 7px 12px; background: #eff6ff; border-radius: 7px;
-      align-self: flex-start; transition: background 0.15s;
-    }
-    .prog-card:not(.coming-soon):hover .prog-cta { background: #dbeafe; }
-    .coming-tag {
-      position: absolute; top: 14px; right: 14px;
-      background: #f1f5f9; color: #94a3b8; font-size: 10px; font-weight: 800;
-      padding: 3px 8px; border-radius: 5px; text-transform: uppercase;
-    }
-
-    /* ── HOW IT WORKS ─── */
-    .how-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px,1fr)); gap: 32px; margin-top: 48px; }
-    .how-step { text-align: center; }
-    .how-num {
-      width: 48px; height: 48px; border-radius: 50%;
       background: linear-gradient(135deg,#12396d,#1d9bb2);
-      color: #fff; font-size: 20px; font-weight: 900;
+      color: #fff; padding: 13px 26px; border-radius: 11px;
+      font-size: 15px; font-weight: 800; text-decoration: none;
+      transition: opacity 0.15s;
+    }
+    .cta-primary:hover { opacity: 0.9; }
+    .cta-secondary {
+      display: inline-flex; align-items: center;
+      color: #12396d; padding: 13px 22px; border-radius: 11px;
+      font-size: 15px; font-weight: 700; text-decoration: none;
+      border: 1.5px solid #cbd5e1; transition: all 0.15s;
+    }
+    .cta-secondary:hover { border-color: #12396d; background: #f0f4ff; }
+
+    /* ── DASHBOARD GREETING (logged in) ── */
+    .dashboard-greeting {
+      padding: 50px 5% 24px;
+      background: linear-gradient(180deg, #f0f9ff 0%, #fff 100%);
+    }
+    .dashboard-greeting h2 {
+      font-size: 28px; font-weight: 900; color: #0f172a;
+      letter-spacing: -0.8px; margin-bottom: 6px;
+    }
+    .dashboard-greeting p { font-size: 14px; color: #64748b; }
+
+    /* ── PROGRAMS SLIDER ── */
+    .programs-section {
+      padding: 30px 0 70px;
+    }
+    .programs-header {
+      max-width: 1280px; margin: 0 auto 22px;
+      padding: 0 5%;
+      display: flex; align-items: end; justify-content: space-between; gap: 16px;
+    }
+    .programs-header h3 {
+      font-size: 22px; font-weight: 900; color: #0f172a;
+      letter-spacing: -0.5px;
+    }
+    .programs-header .count {
+      font-size: 13px; color: #64748b; font-weight: 600; margin-top: 2px;
+    }
+    .slider-controls { display: flex; gap: 6px; }
+    .slider-btn {
+      width: 36px; height: 36px; border-radius: 50%;
+      border: 1.5px solid #e2e8f0; background: #fff;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      color: #475569; transition: all 0.15s;
+    }
+    .slider-btn:hover { border-color: #12396d; color: #12396d; background: #f0f4ff; }
+    .slider-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .slider-wrap {
+      max-width: 1280px; margin: 0 auto;
+      padding: 0 5%;
+      position: relative;
+    }
+    .slider {
+      display: flex; gap: 16px;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      scroll-behavior: smooth;
+      padding: 6px 2px 24px;
+      scrollbar-width: thin;
+      scrollbar-color: #cbd5e1 transparent;
+    }
+    .slider::-webkit-scrollbar { height: 6px; }
+    .slider::-webkit-scrollbar-track { background: transparent; }
+    .slider::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+
+    .prog-card {
+      flex: 0 0 320px;
+      scroll-snap-align: start;
+      background: #fff; border: 1.5px solid #e8edf3;
+      border-radius: 18px; padding: 24px;
+      text-decoration: none; color: inherit;
+      transition: all 0.2s; position: relative;
+      display: flex; flex-direction: column; gap: 12px;
+      min-height: 240px;
+      cursor: pointer;
+    }
+    .prog-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 14px 32px rgba(18,57,109,0.13);
+      border-color: #bfdbfe;
+    }
+    .prog-card.coming-soon {
+      cursor: not-allowed; opacity: 0.7;
+    }
+    .prog-card.coming-soon:hover { transform: none; box-shadow: none; border-color: #e8edf3; }
+    .coming-tag {
+      position: absolute; top: 12px; right: 12px;
+      background: #f1f5f9; color: #64748b;
+      font-size: 10px; font-weight: 800;
+      padding: 3px 8px; border-radius: 6px;
+      letter-spacing: 0.3px;
+    }
+    .new-tag {
+      position: absolute; top: 12px; right: 12px;
+      background: linear-gradient(135deg,#fbbf24,#f59e0b);
+      color: #fff;
+      font-size: 10px; font-weight: 800;
+      padding: 3px 8px; border-radius: 6px;
+      letter-spacing: 0.3px;
+    }
+    .prog-icon {
+      width: 56px; height: 56px; border-radius: 14px;
       display: flex; align-items: center; justify-content: center;
-      margin: 0 auto 16px;
+      font-size: 28px;
     }
-    .how-title { font-size: 16px; font-weight: 800; color: #111827; margin-bottom: 8px; }
-    .how-desc { font-size: 14px; color: #6b7280; line-height: 1.6; }
+    .prog-name {
+      font-size: 17px; font-weight: 900; color: #0f172a;
+      letter-spacing: -0.3px;
+    }
+    .prog-desc {
+      font-size: 13px; color: #64748b; line-height: 1.55;
+      flex: 1;
+      display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .prog-tags { display: flex; gap: 5px; flex-wrap: wrap; }
+    .prog-tag {
+      font-size: 11px; font-weight: 700; color: #475569;
+      background: #f1f5f9; border-radius: 5px; padding: 3px 7px;
+    }
+    .prog-cta {
+      display: inline-flex; align-items: center; gap: 6px;
+      color: #1d9bb2; font-size: 13px; font-weight: 800;
+      margin-top: 4px;
+    }
 
-    /* ── PRICING ─── */
-    .pricing-section { background: #f8fafc; }
-    .pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px,1fr)); gap: 20px; max-width: 940px; }
-    .price-card {
-      background: #fff; border: 1.5px solid #e5e7eb;
-      border-radius: 20px; padding: 32px 28px;
-      display: flex; flex-direction: column; gap: 20px;
-      position: relative; transition: box-shadow 0.2s;
+    /* ── HOW IT WORKS (logged out only) ── */
+    .how-section {
+      padding: 60px 5%; background: #f8fafc;
     }
-    .price-card:hover { box-shadow: 0 8px 40px rgba(0,0,0,0.1); }
-    .price-card.popular {
-      border-color: #12396d;
-      box-shadow: 0 8px 40px rgba(18,57,109,0.15);
+    .section-header { text-align: center; margin-bottom: 36px; }
+    .section-badge {
+      display: inline-block; background: rgba(29,155,178,0.1); color: #1d9bb2;
+      padding: 5px 12px; border-radius: 999px;
+      font-size: 11px; font-weight: 800; letter-spacing: 0.4px;
+      margin-bottom: 12px; text-transform: uppercase;
     }
-    .popular-badge {
-      position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
-      background: linear-gradient(135deg,#12396d,#1d9bb2); color: #fff;
-      font-size: 11px; font-weight: 800; padding: 4px 14px; border-radius: 20px;
-      white-space: nowrap;
+    .section-title {
+      font-size: clamp(24px, 3.5vw, 36px); font-weight: 900;
+      color: #0f172a; letter-spacing: -0.8px;
     }
-    .price-name { font-size: 16px; font-weight: 800; color: #374151; }
-    .price-amount { display: flex; align-items: baseline; gap: 4px; }
-    .price-num { font-size: 36px; font-weight: 900; color: #0f172a; letter-spacing: -1.5px; }
-    .price-period { font-size: 13px; color: #9ca3af; font-weight: 600; }
-    .price-desc { font-size: 13px; color: #6b7280; line-height: 1.55; }
-    .price-features { display: flex; flex-direction: column; gap: 10px; flex: 1; }
-    .price-feat {
-      display: flex; align-items: center; gap: 8px;
-      font-size: 13px; color: #374151; font-weight: 600;
+    .how-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 24px; max-width: 1100px; margin: 0 auto;
     }
-    .price-feat svg { flex-shrink: 0; }
-    .price-feat.dim { color: #9ca3af; }
-    .price-btn {
-      display: block; text-align: center; text-decoration: none;
-      padding: 13px; border-radius: 11px; font-size: 14px; font-weight: 800;
-      transition: all 0.15s;
+    .how-step {
+      background: #fff; border-radius: 16px; padding: 28px 24px;
+      border: 1px solid #e5e7eb;
     }
-    .price-btn-outline {
-      border: 2px solid #e5e7eb; color: #374151;
+    .how-num {
+      width: 36px; height: 36px; background: linear-gradient(135deg,#12396d,#1d9bb2);
+      color: #fff; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 17px; font-weight: 900; margin-bottom: 14px;
     }
-    .price-btn-outline:hover { border-color: #12396d; color: #12396d; background: #f0f4ff; }
-    .price-btn-primary {
-      background: linear-gradient(135deg,#12396d,#1d9bb2); color: #fff;
-    }
-    .price-btn-primary:hover { opacity: 0.88; }
+    .how-title { font-size: 17px; font-weight: 800; color: #0f172a; margin-bottom: 8px; }
+    .how-desc { font-size: 13px; color: #64748b; line-height: 1.65; }
 
-    /* ── CTA BOTTOM ─── */
-    .cta-section {
-      background: linear-gradient(135deg,#0a1f3d,#12396d);
-      text-align: center; padding: 80px 5%;
-    }
-    .cta-section h2 { font-size: clamp(24px,4vw,38px); font-weight: 900; color: #fff; letter-spacing: -0.8px; margin-bottom: 14px; }
-    .cta-section p { color: rgba(255,255,255,0.65); font-size: 16px; margin-bottom: 32px; }
-
-    /* ── FOOTER ─── */
+    /* ── FOOTER ── */
     footer {
-      background: #0f172a; padding: 40px 5%;
+      background: #0f172a; padding: 32px 5%;
       display: flex; justify-content: space-between; align-items: center;
       flex-wrap: wrap; gap: 16px;
     }
     .footer-logo { display: flex; align-items: center; gap: 8px; color: rgba(255,255,255,0.7); font-weight: 800; font-size: 14px; }
-    .footer-links { display: flex; gap: 20px; }
-    .footer-links a { color: rgba(255,255,255,0.45); font-size: 12px; text-decoration: none; font-weight: 600; transition: color 0.15s; }
-    .footer-links a:hover { color: rgba(255,255,255,0.8); }
-    .footer-copy { color: rgba(255,255,255,0.3); font-size: 12px; width: 100%; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.08); text-align: center; }
+    .footer-copy { color: rgba(255,255,255,0.3); font-size: 12px; }
+
+    /* Loading */
+    #authLoading {
+      position: fixed; inset: 0; background: #fff;
+      display: flex; align-items: center; justify-content: center;
+      z-index: 9999;
+    }
+    .loading-spinner {
+      width: 36px; height: 36px;
+      border: 3px solid #e2e8f0; border-top-color: #12396d;
+      border-radius: 50%; animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .hidden { display: none !important; }
 
     @media (max-width: 640px) {
-      .nav-links { display: none; }
-      section { padding: 60px 4%; }
-      .pricing-grid { grid-template-columns: 1fr; }
-      .hero-stats { gap: 24px; }
+      .nav { padding: 0 4%; gap: 8px; }
+      .nav-btn-ghost { display: none; }
+      .user-chip-name { display: none; }
+      .programs-header { padding: 0 4%; }
+      .slider-wrap { padding: 0 4%; }
+      .prog-card { flex-basis: 280px; }
+      .how-section { padding: 50px 4%; }
     }
   </style>
 </head>
 <body>
+
+<div id="authLoading">
+  <div class="loading-spinner"></div>
+</div>
 
 <!-- NAV -->
 <nav class="nav">
@@ -253,141 +327,189 @@
     <div class="nav-logo-icon">🛠️</div>
     Program Tool
   </a>
-  <div class="nav-links">
-    <a href="#programs">도구</a>
-  </div>
   <div class="nav-right">
+    <!-- Logged out -->
     <a class="nav-btn-ghost" href="login.html" id="navLoginBtn">로그인</a>
     <a class="nav-btn-primary" href="login.html" id="navStartBtn">무료 시작하기</a>
-    <a class="nav-btn-primary" href="dashboard.html" id="navDashBtn">대시보드 →</a>
+
+    <!-- Logged in -->
+    <div class="user-chip hidden" id="userChip">
+      <div class="user-avatar" id="userAvatar"></div>
+      <span class="user-chip-name" id="userName"></span>
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+      <div class="user-dropdown" id="userDropdown">
+        <div class="dropdown-email" id="userEmail"></div>
+        <button class="dropdown-btn" id="adminBtn" style="display:none;" onclick="location.href='admin.html'">
+          ⚙️ 관리자 설정
+        </button>
+        <button class="dropdown-btn danger" id="logoutBtn">🚪 로그아웃</button>
+      </div>
+    </div>
   </div>
 </nav>
 
-<!-- HERO -->
-<section class="hero">
-  <div class="hero-badge">
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="#5de0f5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-    AI 탑재 · 업무 자동화
-  </div>
-  <h1>인쇄·소규모 사업의<br><span>스마트 업무 도구</span></h1>
-  <p>복잡한 프로그램 없이, 브라우저에서 바로. 표지 디자인부터 견적서·재고관리까지 업종에 꼭 맞는 도구를 제공합니다.</p>
-  <div class="hero-ctas">
-    <a class="cta-primary" href="login.html" id="heroCta">
-      무료로 시작하기
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-    </a>
-    <a class="cta-secondary" href="#programs">
-      도구 둘러보기
-    </a>
-  </div>
-  <div class="hero-stats">
-    <div class="hero-stat">
-      <div class="hero-stat-num">5+</div>
-      <div class="hero-stat-label">업종별 도구 (출시 예정)</div>
+<main>
+  <!-- Hero (logged out) -->
+  <section class="hero" id="heroSection">
+    <div class="hero-badge">✨ AI 탑재 · 업무 자동화</div>
+    <h1>인쇄·소규모 사업의<br><span>스마트 업무 도구</span></h1>
+    <p>복잡한 프로그램 없이, 브라우저에서 바로. 표지 디자인부터 PDF 편집·인쇄 검수까지 업종에 꼭 맞는 도구를 한 곳에서.</p>
+    <div class="hero-ctas">
+      <a class="cta-primary" href="login.html">
+        무료로 시작하기
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </a>
+      <a class="cta-secondary" href="#programs">도구 둘러보기</a>
     </div>
-    <div class="hero-stat">
-      <div class="hero-stat-num">AI</div>
-      <div class="hero-stat-label">자동 디자인 생성</div>
-    </div>
-    <div class="hero-stat">
-      <div class="hero-stat-num">무료</div>
-      <div class="hero-stat-label">기본 사용</div>
-    </div>
-  </div>
-</section>
+  </section>
 
-<!-- PROGRAMS -->
-<section id="programs" class="programs-section">
-  <div class="section-header">
-    <div class="section-badge">도구 모음</div>
-    <h2 class="section-title">지금 바로 사용할 수 있는 도구</h2>
-    <p class="section-sub">업종에서 실제로 필요한 기능에 집중합니다. 불필요한 기능 없이 핵심만.</p>
-  </div>
-  <div class="programs-grid" id="programsGrid"></div>
-</section>
+  <!-- Dashboard greeting (logged in) -->
+  <section class="dashboard-greeting hidden" id="greetingSection">
+    <h2 id="greetingText">안녕하세요! 👋</h2>
+    <p>아래 도구 중 원하는 프로그램을 선택해 시작하세요.</p>
+  </section>
 
-<!-- HOW IT WORKS -->
-<section>
-  <div class="section-header">
-    <div class="section-badge">사용 방법</div>
-    <h2 class="section-title">3단계로 끝나는 간단한 사용법</h2>
-  </div>
-  <div class="how-grid">
-    <div class="how-step">
-      <div class="how-num">1</div>
-      <div class="how-title">로그인</div>
-      <div class="how-desc">Google 계정 또는 이메일로 5초 만에 가입하세요. 설치가 필요 없습니다.</div>
+  <!-- PROGRAMS SLIDER -->
+  <section id="programs" class="programs-section">
+    <div class="programs-header">
+      <div>
+        <h3>📦 도구 모음</h3>
+        <div class="count" id="progCount"></div>
+      </div>
+      <div class="slider-controls">
+        <button class="slider-btn" id="prevBtn" aria-label="이전">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+        <button class="slider-btn" id="nextBtn" aria-label="다음">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
+        </button>
+      </div>
     </div>
-    <div class="how-step">
-      <div class="how-num">2</div>
-      <div class="how-title">도구 선택</div>
-      <div class="how-desc">필요한 도구를 선택하고, 내용을 입력하기만 하면 됩니다.</div>
+    <div class="slider-wrap">
+      <div class="slider" id="slider"></div>
     </div>
-    <div class="how-step">
-      <div class="how-num">3</div>
-      <div class="how-title">저장·출력</div>
-      <div class="how-desc">PDF, PNG, SVG로 저장하거나 바로 인쇄하세요. AI가 디자인을 대신 해드립니다.</div>
+  </section>
+
+  <!-- How it works (logged out only) -->
+  <section class="how-section" id="howSection">
+    <div class="section-header">
+      <div class="section-badge">사용 방법</div>
+      <div class="section-title">3단계로 끝나는 간단한 사용법</div>
     </div>
-  </div>
-</section>
+    <div class="how-grid">
+      <div class="how-step">
+        <div class="how-num">1</div>
+        <div class="how-title">로그인</div>
+        <div class="how-desc">Google 계정 또는 이메일로 5초 만에 시작. 설치가 필요 없습니다.</div>
+      </div>
+      <div class="how-step">
+        <div class="how-num">2</div>
+        <div class="how-title">도구 선택</div>
+        <div class="how-desc">필요한 도구를 선택하고 내용을 입력하기만 하면 됩니다.</div>
+      </div>
+      <div class="how-step">
+        <div class="how-num">3</div>
+        <div class="how-title">저장·출력</div>
+        <div class="how-desc">PDF, PNG로 저장하거나 바로 인쇄. AI가 디자인을 대신 해드립니다.</div>
+      </div>
+    </div>
+  </section>
+</main>
 
-
-<!-- CTA BOTTOM -->
-<section class="cta-section">
-  <h2>지금 바로 무료로 시작해보세요</h2>
-  <p>설치 없이 브라우저에서 바로 사용. 신용카드 불필요.</p>
-  <a class="cta-primary" href="login.html" id="bottomCta" style="display:inline-flex;">
-    무료로 시작하기
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-  </a>
-</section>
-
-<!-- FOOTER -->
 <footer>
   <div class="footer-logo">
     <div style="width:24px;height:24px;background:linear-gradient(135deg,#12396d,#1d9bb2);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;">🛠️</div>
     Program Tool
-  </div>
-  <div class="footer-links">
-    <a href="#programs">도구</a>
-    <a href="login.html">로그인</a>
-    <a href="admin.html">관리자</a>
   </div>
   <div class="footer-copy">© 2025 Program Tool. All rights reserved.</div>
 </footer>
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="js/firebase-config.js"></script>
 <script>
-  // If already logged in, show dashboard button instead of login buttons
-  auth.onAuthStateChanged(user => {
-    if (user) {
-      document.getElementById('navLoginBtn').style.display = 'none';
-      document.getElementById('navStartBtn').style.display = 'none';
-      document.getElementById('navDashBtn').style.display = 'inline-flex';
-      ['heroCta','bottomCta'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) { el.href = 'dashboard.html'; el.childNodes[0].textContent = '대시보드로 이동'; }
-      });
-    }
-  });
-
-  // Programs data — add new programs here
   const PROGRAMS = [
+    // ── 디자인 도구 ──
     {
       name: '표지 디자인',
       icon: '🎨', iconBg: '#eff6ff',
-      desc: '보고서·학교 교재·문제집 표지를 디자인합니다. 앞/뒤 표지 전체 펼침면 편집 가능.',
+      desc: '보고서·학교 교재·문제집 표지를 AI 배경과 함께 디자인. 앞/뒤 표지 펼침면 편집 가능.',
       url: 'tools/cover-design.html', available: true,
-      tags: ['PDF', '디자인', '인쇄'],
+      tags: ['디자인', 'AI', 'PDF'], category: '디자인',
     },
+    {
+      name: '명함 디자인',
+      icon: '💳', iconBg: '#f0f9ff',
+      desc: '90×54mm 표준 규격 명함을 AI 배경과 함께 디자인. PNG·PDF 출력 지원.',
+      url: 'tools/design-studio.html?template=business-card', available: true,
+      tags: ['디자인', '명함', 'AI'], category: '디자인', isNew: true,
+    },
+    {
+      name: '전단지 디자인',
+      icon: '📄', iconBg: '#fef3c7',
+      desc: 'A4 전단지를 AI 배경 + 텍스트로 빠르게 제작. 이벤트·홍보용에 최적화.',
+      url: 'tools/design-studio.html?template=flyer', available: true,
+      tags: ['디자인', '전단지', 'AI'], category: '디자인', isNew: true,
+    },
+    {
+      name: '리플렛 (3단)',
+      icon: '📋', iconBg: '#ecfeff',
+      desc: 'A4 가로 3단 접지 리플렛 디자인. 브로슈어·소개서 제작에 적합.',
+      url: 'tools/design-studio.html?template=leaflet', available: true,
+      tags: ['디자인', '리플렛', '브로슈어'], category: '디자인', isNew: true,
+    },
+    {
+      name: '초대장 디자인',
+      icon: '💌', iconBg: '#fef9c3',
+      desc: '결혼식·개업식·돌잔치 초대장을 우아하게. AI 배경으로 분위기 연출.',
+      url: 'tools/design-studio.html?template=invitation', available: true,
+      tags: ['디자인', '초대장', 'AI'], category: '디자인', isNew: true,
+    },
+    {
+      name: '포스터 (A3)',
+      icon: '🖼️', iconBg: '#fce7f3',
+      desc: 'A3 대형 포스터 디자인. 이벤트·공연·전시 홍보물 제작.',
+      url: 'tools/design-studio.html?template=poster', available: true,
+      tags: ['디자인', '포스터', 'AI'], category: '디자인', isNew: true,
+    },
+    {
+      name: '상장/수료증',
+      icon: '🏆', iconBg: '#fef3c7',
+      desc: '학교·기관·교육과정용 상장과 수료증 디자인. A4 가로 양식.',
+      url: 'tools/design-studio.html?template=certificate', available: true,
+      tags: ['디자인', '상장', '수료증'], category: '디자인', isNew: true,
+    },
+    {
+      name: '메뉴판 디자인',
+      icon: '🍽️', iconBg: '#fed7aa',
+      desc: '카페·레스토랑 메뉴판 디자인. 깔끔한 레이아웃과 가격 표시.',
+      url: 'tools/design-studio.html?template=menu', available: true,
+      tags: ['디자인', '메뉴판'], category: '디자인', isNew: true,
+    },
+
+    // ── PDF 도구 ──
     {
       name: 'PDF 문서 편집기',
       icon: '📝', iconBg: '#fff7ed',
-      desc: 'PDF 편집·N-up 인쇄·간지 삽입·머리말·워터마크·페이지번호 등 다양한 문서 편집 기능을 제공합니다.',
+      desc: 'N-up 인쇄·간지 삽입·머리말·꼬리말·워터마크·페이지번호 등 다양한 PDF 편집 기능.',
       url: 'tools/pdf-editor.html', available: true,
-      tags: ['PDF', '인쇄'],
+      tags: ['PDF', '인쇄'], category: 'PDF',
+    },
+    {
+      name: '인쇄 사전 검수기',
+      icon: '🔍', iconBg: '#f0fdf4',
+      desc: '해상도·도련·폰트 임베딩·색상 모드를 자동 검수하고 AI 시각 분석으로 인쇄 품질 점검.',
+      url: 'tools/preflight.html', available: true,
+      tags: ['검수', 'AI', 'GPT-4.1'], category: 'PDF',
+    },
+
+    // ── 준비중 ──
+    {
+      name: '카탈로그 (다페이지)',
+      icon: '📚', iconBg: '#fdf4ff',
+      desc: '여러 페이지의 제품 카탈로그·소개책자를 디자인합니다. 페이지별 레이아웃 지원.',
+      url: '#', available: false, tags: ['디자인', '카탈로그'], category: '디자인',
     },
     {
       name: '인쇄 사전 검수기',
@@ -399,48 +521,114 @@
     {
       name: '견적서 생성기',
       icon: '📋', iconBg: '#f0fdf4',
-      desc: '전문 견적서와 영수증을 즉시 발행하세요. 품목 자동완성, PDF 출력.',
-      url: '#', available: false,
-      tags: ['PDF', '업무', '문서'],
+      desc: '전문 견적서와 영수증을 즉시 발행. 품목 자동완성, PDF 출력 지원.',
+      url: '#', available: false, tags: ['업무', '문서'], category: '업무',
     },
     {
       name: '작업 지시서',
-      icon: '📝', iconBg: '#fff7ed',
+      icon: '📑', iconBg: '#fef3c7',
       desc: '인쇄 작업 지시 내용을 정리하고 공정별 진행 상황을 관리합니다.',
-      url: '#', available: false,
-      tags: ['공정관리', '인쇄'],
+      url: '#', available: false, tags: ['공정', '인쇄'], category: '업무',
     },
     {
       name: '재고 관리',
       icon: '📦', iconBg: '#fdf4ff',
       desc: '용지·잉크·소모품 재고를 추적하고 부족 시 알림을 받으세요.',
-      url: '#', available: false,
-      tags: ['재고', '알림'],
-    },
-    {
-      name: '더 많은 도구 준비 중',
-      icon: '✨', iconBg: '#fff',
-      desc: '업종별 특화 도구를 지속적으로 출시합니다. 필요한 기능을 요청해주세요.',
-      url: '#', available: false, placeholder: true,
-      tags: [],
+      url: '#', available: false, tags: ['재고', '알림'], category: '업무',
     },
   ];
 
-  const grid = document.getElementById('programsGrid');
+  // Render slider
+  const slider = document.getElementById('slider');
   PROGRAMS.forEach(p => {
     const card = document.createElement(p.available ? 'a' : 'div');
     card.className = 'prog-card' + (!p.available ? ' coming-soon' : '');
-    if (p.available) { card.href = p.url; }
+    if (p.available) card.href = p.url;
+
+    const tag = !p.available
+      ? '<div class="coming-tag">준비 중</div>'
+      : (p.isNew ? '<div class="new-tag">NEW</div>' : '');
+
     card.innerHTML = `
-      ${!p.available ? '<div class="coming-tag">준비 중</div>' : ''}
-      <div class="prog-card-top">
-        <div class="prog-icon" style="background:${p.iconBg}">${p.icon}</div>
-      </div>
+      ${tag}
+      <div class="prog-icon" style="background:${p.iconBg}">${p.icon}</div>
       <div class="prog-name">${p.name}</div>
       <div class="prog-desc">${p.desc}</div>
+      <div class="prog-tags">${p.tags.map(t => `<span class="prog-tag">${t}</span>`).join('')}</div>
       ${p.available ? `<div class="prog-cta">시작하기 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>` : ''}
     `;
-    grid.appendChild(card);
+    slider.appendChild(card);
+  });
+
+  // Slider controls
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  const SCROLL_STEP = 336; // card width + gap
+  prevBtn.addEventListener('click', () => slider.scrollBy({ left: -SCROLL_STEP, behavior: 'smooth' }));
+  nextBtn.addEventListener('click', () => slider.scrollBy({ left: SCROLL_STEP, behavior: 'smooth' }));
+
+  function updateSliderBtns() {
+    prevBtn.disabled = slider.scrollLeft <= 0;
+    nextBtn.disabled = slider.scrollLeft >= slider.scrollWidth - slider.clientWidth - 4;
+  }
+  slider.addEventListener('scroll', updateSliderBtns);
+  window.addEventListener('resize', updateSliderBtns);
+
+  const availableCount = PROGRAMS.filter(p => p.available).length;
+  document.getElementById('progCount').textContent = `사용 가능 ${availableCount}개 · 준비중 ${PROGRAMS.length - availableCount}개`;
+
+  // Auth state
+  auth.onAuthStateChanged(user => {
+    document.getElementById('authLoading').style.display = 'none';
+    const navLogin = document.getElementById('navLoginBtn');
+    const navStart = document.getElementById('navStartBtn');
+    const userChip = document.getElementById('userChip');
+    const heroSection = document.getElementById('heroSection');
+    const greetingSection = document.getElementById('greetingSection');
+    const howSection = document.getElementById('howSection');
+
+    if (user) {
+      // Logged in: hide hero/how, show greeting
+      navLogin.classList.add('hidden');
+      navStart.classList.add('hidden');
+      userChip.classList.remove('hidden');
+      heroSection.classList.add('hidden');
+      howSection.classList.add('hidden');
+      greetingSection.classList.remove('hidden');
+
+      const name = user.displayName || (user.email || '').split('@')[0];
+      document.getElementById('greetingText').textContent = `안녕하세요, ${name}님! 👋`;
+      document.getElementById('userName').textContent = name;
+      document.getElementById('userEmail').textContent = user.email || '';
+      const av = document.getElementById('userAvatar');
+      if (user.photoURL) av.innerHTML = `<img src="${user.photoURL}" alt="">`;
+      else av.textContent = name.charAt(0).toUpperCase();
+
+      // Admin check
+      if (typeof db !== 'undefined') {
+        db.collection('settings').doc('admin').get().then(doc => {
+          const emails = doc.exists ? (doc.data().emails || []) : [];
+          if (emails.includes(user.email) || !doc.exists) {
+            document.getElementById('adminBtn').style.display = 'flex';
+          }
+        }).catch(() => {});
+      }
+    }
+    setTimeout(updateSliderBtns, 50);
+  });
+
+  // User dropdown
+  document.getElementById('userChip').addEventListener('click', e => {
+    e.stopPropagation();
+    e.currentTarget.classList.toggle('open');
+  });
+  document.addEventListener('click', () => {
+    document.getElementById('userChip').classList.remove('open');
+  });
+  document.getElementById('logoutBtn').addEventListener('click', async e => {
+    e.stopPropagation();
+    await auth.signOut();
+    location.reload();
   });
 </script>
 </body>
