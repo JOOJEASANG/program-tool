@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>PPT N-up 변환기 · Program Tool</title>
+  <title>PDF N-up 변환기 · Program Tool</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
   <style>
     :root {
@@ -14,17 +14,12 @@
     html, body { height: 100%; }
     body { font-family: Pretendard, "Noto Sans KR", Arial, sans-serif; background: var(--bg); color: #111827; padding-top: var(--nav-h); }
 
-    /* NAV */
     .top-nav {
       position: fixed; top: 0; left: 0; right: 0; z-index: 500; height: var(--nav-h);
       background: var(--primary); display: flex; align-items: center; padding: 0 16px; gap: 12px;
       box-shadow: 0 2px 12px rgba(0,0,0,0.2);
     }
-    .nav-back {
-      display: flex; align-items: center; gap: 6px; color: rgba(255,255,255,0.85);
-      font-size: 13px; font-weight: 700; text-decoration: none; padding: 7px 12px;
-      border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); transition: background 0.15s;
-    }
+    .nav-back { display: flex; align-items: center; gap: 6px; color: rgba(255,255,255,0.85); font-size: 13px; font-weight: 700; text-decoration: none; padding: 7px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); transition: background 0.15s; }
     .nav-back:hover { background: rgba(255,255,255,0.15); }
     .nav-title { flex: 1; text-align: center; font-size: 15px; font-weight: 800; color: #fff; }
     .nav-user { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
@@ -32,7 +27,6 @@
     .nav-logout { display: flex; align-items: center; gap: 5px; color: rgba(255,255,255,0.75); font-size: 12px; font-weight: 700; background: rgba(255,255,255,0.12); border: none; border-radius: 7px; padding: 6px 10px; cursor: pointer; font-family: inherit; }
     .nav-logout:hover { background: rgba(255,255,255,0.22); color: #fff; }
 
-    /* LAYOUT */
     .app { display: grid; grid-template-columns: 320px minmax(0,1fr); min-height: calc(100vh - var(--nav-h)); }
     aside { background: var(--panel); border-right: 1px solid var(--line); padding: 18px; overflow-y: auto; max-height: calc(100vh - var(--nav-h)); }
     main { padding: 14px; display: flex; flex-direction: column; gap: 10px; overflow: hidden; }
@@ -42,97 +36,57 @@
     .section { border-top: 1px solid #edf0f3; padding-top: 14px; margin-top: 14px; }
     .section-title { font-size: 11px; font-weight: 800; color: #374151; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 10px; }
     label { display: block; font-size: 11px; font-weight: 800; color: #374151; margin-bottom: 4px; }
-    select, input[type="number"] {
-      width: 100%; border: 1px solid var(--line); border-radius: 8px;
-      padding: 8px 10px; font-size: 13px; font-family: inherit; outline: none; background: #fff;
-    }
+    select, input[type="number"] { width: 100%; border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 13px; font-family: inherit; outline: none; background: #fff; }
     select:focus, input:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,.08); }
     .field { margin-bottom: 10px; }
     .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-    .smallnote { font-size: 11px; color: var(--muted); line-height: 1.5; margin-top: 5px; }
 
-    /* UPLOAD ZONE */
-    .upload-zone {
-      border: 2px dashed #93c5fd; border-radius: 12px; padding: 28px 16px;
-      text-align: center; cursor: pointer; transition: all 0.2s; background: #f0f7ff;
-    }
+    .upload-zone { border: 2px dashed #93c5fd; border-radius: 12px; padding: 28px 16px; text-align: center; cursor: pointer; transition: all 0.2s; background: #f0f7ff; }
     .upload-zone:hover, .upload-zone.drag-over { border-color: var(--primary); background: #dbeafe; }
     .upload-icon { font-size: 32px; margin-bottom: 8px; }
     .upload-text { font-size: 14px; font-weight: 800; color: var(--primary); margin-bottom: 4px; }
     .upload-sub { font-size: 12px; color: var(--muted); }
     #fileInput { display: none; }
 
-    /* N-UP SELECTOR */
-    .nup-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px; }
-    .nup-btn {
-      border: 2px solid var(--line); border-radius: 9px; padding: 8px 4px;
-      cursor: pointer; font-family: inherit; font-size: 11px; font-weight: 800;
-      color: #374151; background: #fff; transition: all 0.15s; text-align: center;
-    }
-    .nup-btn .nup-icon { font-size: 18px; display: block; margin-bottom: 3px; }
+    .nup-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
+    .nup-btn { border: 2px solid var(--line); border-radius: 9px; padding: 8px 4px; cursor: pointer; font-family: inherit; font-size: 11px; font-weight: 800; color: #374151; background: #fff; transition: all 0.15s; text-align: center; }
+    .nup-btn .nup-icon { font-size: 16px; display: block; margin-bottom: 3px; }
     .nup-btn.active { border-color: var(--primary); background: #eff6ff; color: var(--primary); }
     .nup-btn:hover:not(.active) { border-color: #93c5fd; background: #f0f7ff; }
 
-    /* ORIENTATION */
     .orient-row { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
-    .orient-btn {
-      border: 2px solid var(--line); border-radius: 9px; padding: 10px 8px;
-      cursor: pointer; font-family: inherit; font-size: 12px; font-weight: 800;
-      color: #374151; background: #fff; transition: all 0.15s; text-align: center;
-      display: flex; align-items: center; justify-content: center; gap: 5px;
-    }
+    .orient-btn { border: 2px solid var(--line); border-radius: 9px; padding: 10px 8px; cursor: pointer; font-family: inherit; font-size: 12px; font-weight: 800; color: #374151; background: #fff; transition: all 0.15s; text-align: center; display: flex; align-items: center; justify-content: center; gap: 5px; }
     .orient-btn.active { border-color: var(--primary); background: #eff6ff; color: var(--primary); }
 
-    /* BUTTONS */
-    .btn {
-      border: 0; border-radius: 9px; padding: 10px 14px; font-weight: 800;
-      cursor: pointer; font-size: 13px; font-family: inherit; transition: opacity 0.15s; width: 100%;
-    }
+    .btn { border: 0; border-radius: 9px; padding: 10px 14px; font-weight: 800; cursor: pointer; font-size: 13px; font-family: inherit; transition: opacity 0.15s; width: 100%; }
     .btn:hover { opacity: 0.85; }
     .btn:disabled { opacity: 0.45; cursor: not-allowed; }
     .btn-primary { background: var(--primary); color: #fff; }
     .btn-green { background: #0f766e; color: #fff; }
     .btn-secondary { background: #e5e7eb; color: #111827; }
 
-    /* SLIDE THUMBS */
     .slides-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
     .slide-count { font-size: 12px; color: var(--muted); font-weight: 700; }
-    .thumb-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 6px; }
-    .thumb-wrap {
-      position: relative; background: #fff; border: 2px solid var(--line); border-radius: 7px; overflow: hidden;
-      cursor: pointer; transition: border-color 0.15s; aspect-ratio: auto;
-    }
+    .thumb-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 6px; }
+    .thumb-wrap { position: relative; background: #fff; border: 2px solid var(--line); border-radius: 7px; overflow: hidden; cursor: pointer; transition: border-color 0.15s; }
     .thumb-wrap:hover { border-color: #93c5fd; }
-    .thumb-wrap.excluded { opacity: 0.4; border-color: #fca5a5; }
+    .thumb-wrap.excluded { opacity: 0.35; border-color: #fca5a5; }
     .thumb-wrap canvas { width: 100%; display: block; }
-    .thumb-num {
-      position: absolute; bottom: 2px; right: 4px;
-      font-size: 9px; font-weight: 800; color: #fff;
-      background: rgba(0,0,0,0.5); border-radius: 3px; padding: 1px 4px;
-    }
-    .thumb-ex {
-      position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
-      background: rgba(255,0,0,0.15); font-size: 18px;
-    }
+    .thumb-num { position: absolute; bottom: 2px; right: 4px; font-size: 9px; font-weight: 800; color: #fff; background: rgba(0,0,0,0.5); border-radius: 3px; padding: 1px 4px; }
+    .thumb-ex { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(220,38,38,0.15); font-size: 20px; }
     .thumb-hint { font-size: 10px; color: var(--muted); text-align: center; margin-top: 5px; }
 
-    /* PREVIEW AREA */
+    /* layout badge on nup button */
+    .nup-badge { font-size: 9px; color: var(--muted); margin-top: 2px; display: block; }
+
     .preview-shell { background: #e0e5ec; border-radius: 14px; padding: 12px; flex: 1; display: flex; flex-direction: column; gap: 8px; min-height: 0; }
     .preview-info { background: rgba(255,255,255,.9); border: 1px solid var(--line); border-radius: 9px; padding: 8px 12px; font-size: 11px; color: #374151; display: flex; justify-content: space-between; flex-shrink: 0; }
     .preview-scroll { flex: 1; overflow: auto; background: rgba(255,255,255,.3); border-radius: 10px; padding: 12px; display: flex; flex-wrap: wrap; gap: 10px; align-content: flex-start; justify-content: center; }
-    .page-preview {
-      background: #fff; box-shadow: 0 4px 16px rgba(0,0,0,0.15); border-radius: 3px;
-      position: relative; flex-shrink: 0;
-    }
+    .page-preview { background: #fff; box-shadow: 0 4px 16px rgba(0,0,0,0.15); border-radius: 3px; position: relative; flex-shrink: 0; }
     .page-preview canvas { display: block; width: 100%; }
     .page-label { text-align: center; font-size: 10px; color: var(--muted); margin-top: 4px; font-weight: 700; }
 
-    /* STATUS */
-    .status-bar {
-      background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 9px;
-      padding: 10px 14px; font-size: 12px; font-weight: 700; color: #1e40af;
-      display: flex; align-items: center; gap: 8px; flex-shrink: 0;
-    }
+    .status-bar { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 9px; padding: 10px 14px; font-size: 12px; font-weight: 700; color: #1e40af; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
     .status-bar.error { background: #fef2f2; border-color: #fecaca; color: #991b1b; }
     .status-bar.success { background: #f0fdf4; border-color: #bbf7d0; color: #166534; }
     .spinner { width: 14px; height: 14px; border: 2px solid rgba(30,64,175,0.3); border-top-color: #1e40af; border-radius: 50%; animation: spin 0.7s linear infinite; flex-shrink: 0; }
@@ -144,6 +98,8 @@
     .empty-state { text-align: center; padding: 60px 20px; color: var(--muted); }
     .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
     .empty-state p { font-size: 14px; line-height: 1.6; }
+
+    .rotate-badge { display: inline-block; font-size: 9px; font-weight: 800; background: #fef3c7; color: #92400e; border-radius: 4px; padding: 1px 5px; margin-left: 4px; vertical-align: middle; }
 
     @media (max-width: 900px) {
       .app { grid-template-columns: 1fr; }
@@ -160,7 +116,7 @@
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
     목록으로
   </a>
-  <div class="nav-title">📄 PPT N-up 변환기</div>
+  <div class="nav-title">📄 PDF N-up 변환기</div>
   <div class="nav-user">
     <span class="nav-user-name" id="navUserName"></span>
     <button class="nav-logout" id="navLogout">
@@ -172,40 +128,37 @@
 
 <div class="app">
   <aside>
-    <h1>PPT N-up 변환기</h1>
-    <div class="sub">PPTX 파일을 업로드하면 슬라이드 크기에 관계없이 자동으로 배치하여 PDF로 출력합니다.</div>
+    <h1>PDF N-up 변환기</h1>
+    <div class="sub">PDF 파일을 업로드하면 원본 그대로 여러 페이지를 한 장에 배치해 인쇄용 PDF로 저장합니다.</div>
 
-    <!-- 파일 업로드 -->
     <div class="upload-zone" id="uploadZone">
       <div class="upload-icon">📂</div>
-      <div class="upload-text">PPTX 파일 클릭 또는 드래그</div>
-      <div class="upload-sub">PowerPoint 파일(.pptx)만 지원</div>
-      <input type="file" id="fileInput" accept=".pptx,application/vnd.openxmlformats-officedocument.presentationml.presentation">
+      <div class="upload-text">PDF 파일 클릭 또는 드래그</div>
+      <div class="upload-sub">PowerPoint → 파일 → PDF로 저장 후 업로드</div>
+      <input type="file" id="fileInput" accept=".pdf,application/pdf">
     </div>
 
-    <!-- 슬라이드 목록 -->
     <div id="thumbSection" style="display:none;" class="section">
       <div class="slides-header">
-        <div class="section-title">슬라이드 목록</div>
+        <div class="section-title">페이지 목록</div>
         <span class="slide-count" id="slideCount"></span>
       </div>
       <div class="thumb-grid" id="thumbGrid"></div>
-      <div class="thumb-hint">슬라이드 클릭 → 제외/포함 토글</div>
+      <div class="thumb-hint">페이지 클릭 → 제외/포함 토글</div>
     </div>
 
-    <!-- 배치 설정 -->
     <div class="section">
       <div class="section-title">배치 설정</div>
 
       <div class="field">
         <label>1페이지당 슬라이드 수</label>
-        <div class="nup-grid">
-          <button class="nup-btn" data-nup="1"><span class="nup-icon">▭</span>1장</button>
-          <button class="nup-btn active" data-nup="2"><span class="nup-icon">⬛⬛</span>2장</button>
-          <button class="nup-btn" data-nup="4"><span class="nup-icon">▪▪<br>▪▪</span>4장</button>
-          <button class="nup-btn" data-nup="6"><span class="nup-icon">▪▪▪<br>▪▪▪</span>6장</button>
-          <button class="nup-btn" data-nup="8"><span class="nup-icon">▪▪▪▪<br>▪▪▪▪</span>8장</button>
-          <button class="nup-btn" data-nup="9"><span class="nup-icon">▪▪▪<br>▪▪▪<br>▪▪▪</span>9장</button>
+        <div class="nup-grid" id="nupGrid">
+          <button class="nup-btn" data-nup="1"><span class="nup-icon">▭</span>1장<span class="nup-badge" id="badge1">1×1</span></button>
+          <button class="nup-btn active" data-nup="2"><span class="nup-icon">⬛⬛</span>2장<span class="nup-badge" id="badge2">1×2</span></button>
+          <button class="nup-btn" data-nup="4"><span class="nup-icon">▪▪▪▪</span>4장<span class="nup-badge" id="badge4">2×2</span></button>
+          <button class="nup-btn" data-nup="6"><span class="nup-icon">▪▪▪▪▪▪</span>6장<span class="nup-badge" id="badge6">2×3</span></button>
+          <button class="nup-btn" data-nup="8"><span class="nup-icon">▪▪▪▪▪▪▪▪</span>8장<span class="nup-badge" id="badge8">2×4</span></button>
+          <button class="nup-btn" data-nup="9"><span class="nup-icon">▪▪▪▪▪▪▪▪▪</span>9장<span class="nup-badge" id="badge9">3×3</span></button>
         </div>
       </div>
 
@@ -224,7 +177,6 @@
       </div>
     </div>
 
-    <!-- 용지 설정 -->
     <div class="section">
       <div class="section-title">용지 설정</div>
       <div class="field">
@@ -257,11 +209,10 @@
       </div>
     </div>
 
-    <!-- 액션 버튼 -->
     <div class="section">
       <button class="btn btn-primary" id="previewBtn" disabled>미리보기 생성</button>
       <div style="height:7px;"></div>
-      <button class="btn btn-green" id="downloadBtn" disabled>PDF 다운로드</button>
+      <button class="btn btn-green" id="downloadBtn" disabled>PDF 다운로드 (300 DPI)</button>
       <div style="height:7px;"></div>
       <button class="btn btn-secondary" id="resetBtn">초기화</button>
     </div>
@@ -271,26 +222,30 @@
     <div id="statusBar" class="status-bar" style="display:none;"></div>
     <div class="preview-shell">
       <div class="preview-info">
-        <span id="previewInfo">파일을 업로드하면 미리보기가 표시됩니다.</span>
+        <span id="previewInfo">PDF 파일을 업로드하면 미리보기가 표시됩니다.</span>
         <span id="previewPages" style="color:#2563eb;font-weight:800;"></span>
       </div>
       <div class="preview-scroll" id="previewScroll">
         <div class="empty-state">
           <div class="icon">📑</div>
-          <p>PPTX 파일을 업로드하고<br>설정을 선택한 후 <b>미리보기 생성</b>을 클릭하세요.</p>
+          <p>PDF 파일을 업로드하고<br>설정 후 <b>미리보기 생성</b>을 클릭하세요.</p>
         </div>
       </div>
     </div>
   </main>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="../js/firebase-config.js"></script>
 <script>
-// ── Auth ────────────────────────────────────────────────────────────
+// pdf.js worker
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+  'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+
+// ── Auth ─────────────────────────────────────────────────────────────
 auth.onAuthStateChanged(user => {
   if (!user) { location.href = '../login.html'; return; }
   document.getElementById('authLoading').style.display = 'none';
@@ -301,31 +256,50 @@ document.getElementById('navLogout').addEventListener('click', () =>
 
 const $ = id => document.getElementById(id);
 
-// ── State ────────────────────────────────────────────────────────────
-let parsedSlides = [];     // {canvas, widthEMU, heightEMU, index}
-let excludedSlides = new Set();
+// ── State ─────────────────────────────────────────────────────────────
+let pdfDoc = null;
+let parsedPages = [];    // { pdfPage, thumbCanvas }
+let excludedSet = new Set();
 let nup = 2;
-let orderLR = true;        // true=가로우선, false=세로우선
+let orderLR = true;
 let landscape = false;
-let renderedCanvases = []; // final page canvases for PDF
+let previewCanvases = [];
 
-// ── Paper sizes (mm) ────────────────────────────────────────────────
-const PAPER = {
-  a4:     [210, 297],
-  a3:     [297, 420],
-  b4:     [250, 354],
-  b5:     [176, 250],
-  letter: [216, 279],
+// ── N-up layout table ─────────────────────────────────────────────────
+// port/land: [cols, rows, autoRotate]
+// autoRotate=true: page content is rotated 90° to better fill the cell
+const NUP_LAYOUTS = {
+  1: { port:[1,1,false], land:[1,1,false] },
+  2: { port:[1,2,false], land:[2,1,true]  },
+  4: { port:[2,2,false], land:[2,2,false] },
+  6: { port:[2,3,false], land:[3,2,false] },
+  8: { port:[2,4,false], land:[4,2,true]  },
+  9: { port:[3,3,false], land:[3,3,false] },
 };
-const NUP_COLS = { 1:[1,1], 4:[2,2], 6:[3,2], 8:[4,2], 9:[3,3] };
 
-// 2-up: 세로 용지 → 상하(1×2), 가로 용지 → 좌우(2×1)
-function getNupLayout(n, isLandscape) {
-  if (n === 2) return isLandscape ? [2, 1] : [1, 2];
-  return NUP_COLS[n] || [2, 1];
+function getLayout() {
+  const cfg = NUP_LAYOUTS[nup] || NUP_LAYOUTS[2];
+  const [cols, rows, rotate] = landscape ? cfg.land : cfg.port;
+  return { cols, rows, rotate };
 }
 
-// ── Status helper ────────────────────────────────────────────────────
+// ── Paper sizes (mm) ──────────────────────────────────────────────────
+const PAPER = { a4:[210,297], a3:[297,420], b4:[250,354], b5:[176,250], letter:[216,279] };
+
+function getSettings() {
+  const [pw0, ph0] = PAPER[$('paperSize').value || 'a4'];
+  const pw = landscape ? ph0 : pw0;
+  const ph = landscape ? pw0 : ph0;
+  return {
+    pw, ph,
+    mh: parseFloat($('marginH').value) || 10,
+    mv: parseFloat($('marginV').value) || 10,
+    gp: parseFloat($('gap').value) || 5,
+    ...getLayout(),
+  };
+}
+
+// ── Status ────────────────────────────────────────────────────────────
 function showStatus(msg, type = 'info') {
   const el = $('statusBar');
   el.style.display = 'flex';
@@ -336,460 +310,76 @@ function showStatus(msg, type = 'info') {
 }
 function hideStatus() { $('statusBar').style.display = 'none'; }
 
-// ── Upload / parse ───────────────────────────────────────────────────
+// ── Upload ────────────────────────────────────────────────────────────
 $('uploadZone').addEventListener('click', () => $('fileInput').click());
 $('fileInput').addEventListener('change', e => handleFile(e.target.files[0]));
-
 $('uploadZone').addEventListener('dragover', e => { e.preventDefault(); $('uploadZone').classList.add('drag-over'); });
 $('uploadZone').addEventListener('dragleave', () => $('uploadZone').classList.remove('drag-over'));
 $('uploadZone').addEventListener('drop', e => {
   e.preventDefault(); $('uploadZone').classList.remove('drag-over');
-  const f = e.dataTransfer.files[0];
-  if (f) handleFile(f);
+  const f = e.dataTransfer.files[0]; if (f) handleFile(f);
 });
 
 async function handleFile(file) {
-  if (!file || !file.name.endsWith('.pptx')) {
-    showStatus('.pptx 파일만 업로드할 수 있습니다.', 'error'); return;
+  if (!file || file.type !== 'application/pdf') {
+    showStatus('PDF 파일만 업로드할 수 있습니다.', 'error'); return;
   }
-  showStatus(`"${file.name}" 파싱 중...`);
+  showStatus(`"${file.name}" 로딩 중...`);
   $('previewBtn').disabled = true;
   $('downloadBtn').disabled = true;
-  parsedSlides = [];
-  excludedSlides.clear();
+  parsedPages = []; excludedSet.clear();
   $('thumbGrid').innerHTML = '';
   $('thumbSection').style.display = 'none';
-  $('previewScroll').innerHTML = '<div class="empty-state"><div class="icon">⏳</div><p>슬라이드 렌더링 중...</p></div>';
+  $('previewScroll').innerHTML = '<div class="empty-state"><div class="icon">⏳</div><p>페이지 렌더링 중...</p></div>';
 
   try {
     const buf = await file.arrayBuffer();
-    const pptx = await parsePptx(buf);
-    parsedSlides = pptx;
+    pdfDoc = await pdfjsLib.getDocument({ data: buf }).promise;
+    const total = pdfDoc.numPages;
+
+    parsedPages = [];
+    for (let i = 1; i <= total; i++) {
+      showStatus(`페이지 렌더링 중... (${i} / ${total})`);
+      const page = await pdfDoc.getPage(i);
+      const thumb = await renderPage(page, 1.0);  // thumbnail scale
+      parsedPages.push({ pdfPage: page, thumbCanvas: thumb });
+      await new Promise(r => setTimeout(r, 0));
+    }
+
     renderThumbs();
-    showStatus(`${parsedSlides.length}개 슬라이드 로드 완료. 설정 후 미리보기 생성을 클릭하세요.`, 'success');
-    $('previewBtn').disabled = false;
     $('thumbSection').style.display = 'block';
-    $('slideCount').textContent = `총 ${parsedSlides.length}장`;
+    $('slideCount').textContent = `총 ${total}페이지`;
+    $('previewBtn').disabled = false;
+    showStatus(`${total}페이지 로드 완료. 미리보기 생성을 클릭하세요.`, 'success');
     setTimeout(hideStatus, 3000);
   } catch(e) {
     console.error(e);
-    showStatus('파일 파싱 실패: ' + e.message, 'error');
+    showStatus('파일 로딩 실패: ' + e.message, 'error');
   }
 }
 
-// ── PPTX Parser ──────────────────────────────────────────────────────
-async function parsePptx(arrayBuffer) {
-  const zip = await JSZip.loadAsync(arrayBuffer);
-
-  // Get slide dimensions from presentation.xml
-  const presXml = await zip.file('ppt/presentation.xml').async('text');
-  const presDoc = parsXml(presXml);
-  const sldSz = presDoc.querySelector('sldSz');
-  const slideWidthEMU  = parseInt(sldSz?.getAttribute('cx') || '9144000');
-  const slideHeightEMU = parseInt(sldSz?.getAttribute('cy') || '6858000');
-
-  // Get ordered slide list from relationships
-  const presRelsXml = await zip.file('ppt/_rels/presentation.xml.rels').async('text');
-  const presRelsDoc = parsXml(presRelsXml);
-  const slideRels = Array.from(presRelsDoc.querySelectorAll('Relationship'))
-    .filter(r => {
-      const t = r.getAttribute('Type') || '';
-      return t.includes('/slide') && !t.includes('Layout') && !t.includes('Master') && !t.includes('notesMaster');
-    })
-    .sort((a, b) => {
-      const numA = parseInt((a.getAttribute('Target') || '').match(/slide(\d+)/)?.[1] || '0');
-      const numB = parseInt((b.getAttribute('Target') || '').match(/slide(\d+)/)?.[1] || '0');
-      return numA - numB;
-    });
-
-  const slides = [];
-  for (let i = 0; i < slideRels.length; i++) {
-    const target = slideRels[i].getAttribute('Target') || '';
-    const slidePath = target.startsWith('/') ? target.slice(1) : 'ppt/' + target.replace(/^\.\.\//, '');
-
-    const slideXml = await zip.file(slidePath)?.async('text');
-    if (!slideXml) continue;
-
-    // Load slide relationships (images)
-    const slideDir = slidePath.substring(0, slidePath.lastIndexOf('/'));
-    const slideName = slidePath.substring(slidePath.lastIndexOf('/') + 1);
-    const relsPath = `${slideDir}/_rels/${slideName}.rels`;
-    const relsXml = await zip.file(relsPath)?.async('text');
-    const imageMap = {};
-
-    if (relsXml) {
-      const relsDoc = parsXml(relsXml);
-      for (const rel of relsDoc.querySelectorAll('Relationship')) {
-        const rTarget = rel.getAttribute('Target') || '';
-        const rId = rel.getAttribute('Id') || '';
-        if (rTarget.match(/\.(png|jpg|jpeg|gif|bmp|tiff?|wmf|emf|svg)/i)) {
-          const imgPath = rTarget.startsWith('/') ? rTarget.slice(1)
-            : (slideDir + '/' + rTarget).replace(/\/[^/]+\/\.\.\//g, '/');
-          try {
-            const b64 = await zip.file(imgPath)?.async('base64');
-            if (b64) {
-              const ext = imgPath.split('.').pop()?.toLowerCase();
-              const mime = ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' : ext === 'png' ? 'image/png' : ext === 'gif' ? 'image/gif' : 'image/png';
-              imageMap[rId] = `data:${mime};base64,${b64}`;
-            }
-          } catch(e) {}
-        }
-      }
-    }
-
-    // Also get slide layout/master background if available
-    const slideObj = { xml: slideXml, imageMap, widthEMU: slideWidthEMU, heightEMU: slideHeightEMU, index: i };
-    const canvas = await renderSlide(slideObj);
-    slides.push({ canvas, widthEMU: slideWidthEMU, heightEMU: slideHeightEMU, index: i });
-  }
-  return slides;
-}
-
-function parsXml(xmlStr) {
-  // Strip namespace prefixes for easier querySelector usage
-  const clean = xmlStr
-    .replace(/\s+xmlns(?::[a-zA-Z0-9]+)?="[^"]*"/g, '')
-    .replace(/<(\/?)([a-zA-Z0-9]+:)/g, '<$1')
-    .replace(/\s([a-zA-Z0-9]+):([a-zA-Z])/g, ' $2');  // attr namespaces
-  return new DOMParser().parseFromString(clean, 'text/xml');
-}
-
-// ── Slide Renderer ───────────────────────────────────────────────────
-const RENDER_W = 2560;  // px — 300 DPI급 출력에 충분한 슬라이드 렌더 해상도
-
-async function renderSlide(slide) {
+// ── PDF page renderer ─────────────────────────────────────────────────
+async function renderPage(pdfPage, scale) {
+  const viewport = pdfPage.getViewport({ scale });
   const canvas = document.createElement('canvas');
-  const ratio = slide.heightEMU / slide.widthEMU;
-  canvas.width  = RENDER_W;
-  canvas.height = Math.round(RENDER_W * ratio);
-  const ctx = canvas.getContext('2d');
-  const sx = canvas.width  / slide.widthEMU;
-  const sy = canvas.height / slide.heightEMU;
-
-  // White base
-  ctx.fillStyle = '#FFFFFF';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  const doc = parsXml(slide.xml);
-
-  // --- Background ---
-  const bgPr = doc.querySelector('bg bgPr');
-  if (bgPr) {
-    await applyFill(ctx, bgPr, sx, sy, 0, 0, canvas.width, canvas.height, slide.imageMap);
-  }
-
-  // --- Shapes ---
-  const spTree = doc.querySelector('spTree');
-  if (spTree) {
-    for (const el of Array.from(spTree.children)) {
-      await renderElement(ctx, el, sx, sy, slide.imageMap);
-    }
-  }
-
+  canvas.width  = Math.floor(viewport.width);
+  canvas.height = Math.floor(viewport.height);
+  await pdfPage.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
   return canvas;
 }
 
-async function renderElement(ctx, el, sx, sy, imageMap) {
-  const tag = el.tagName;
-  if (tag === 'sp')    await renderSp(ctx, el, sx, sy, imageMap);
-  else if (tag === 'pic')   await renderPic(ctx, el, sx, sy, imageMap);
-  else if (tag === 'grpSp') await renderGrpSp(ctx, el, sx, sy, imageMap);
-  else if (tag === 'graphicFrame') await renderGraphicFrame(ctx, el, sx, sy);
-}
-
-function getXfrm(el) {
-  const xfrm = el.querySelector('xfrm, off')?.closest('xfrm') || el.querySelector('xfrm');
-  if (!xfrm) return null;
-  const off = xfrm.querySelector('off');
-  const ext = xfrm.querySelector('ext');
-  if (!off || !ext) return null;
-  return {
-    x: parseInt(off.getAttribute('x') || '0'),
-    y: parseInt(off.getAttribute('y') || '0'),
-    cx: parseInt(ext.getAttribute('cx') || '0'),
-    cy: parseInt(ext.getAttribute('cy') || '0'),
-    rot: parseInt(xfrm.getAttribute('rot') || '0'),
-    flipH: xfrm.getAttribute('flipH') === '1',
-    flipV: xfrm.getAttribute('flipV') === '1',
-  };
-}
-
-async function applyFill(ctx, el, sx, sy, x, y, w, h, imageMap) {
-  const solidFill = el.querySelector('solidFill');
-  if (solidFill) {
-    const srgb = solidFill.querySelector('srgbClr');
-    const prst = solidFill.querySelector('prstClr');
-    let color = '#FFFFFF';
-    if (srgb) color = '#' + (srgb.getAttribute('val') || 'FFFFFF');
-    else if (prst) color = prstToHex(prst.getAttribute('val') || 'white');
-    ctx.fillStyle = color;
-    ctx.fillRect(x, y, w, h);
-    return true;
-  }
-
-  const gradFill = el.querySelector('gradFill');
-  if (gradFill) {
-    const stops = Array.from(gradFill.querySelectorAll('gs'));
-    if (stops.length >= 2) {
-      const grad = ctx.createLinearGradient(x, y, x + w, y + h);
-      stops.forEach(s => {
-        const pos = parseInt(s.getAttribute('pos') || '0') / 100000;
-        const srgb = s.querySelector('srgbClr');
-        if (srgb) grad.addColorStop(pos, '#' + (srgb.getAttribute('val') || '888888'));
-      });
-      ctx.fillStyle = grad;
-      ctx.fillRect(x, y, w, h);
-    }
-    return true;
-  }
-
-  const blipFill = el.querySelector('blipFill');
-  if (blipFill) {
-    const blip = blipFill.querySelector('blip');
-    const rId = blip?.getAttribute('embed') || blip?.getAttribute('link');
-    if (rId && imageMap?.[rId]) {
-      await drawImageFit(ctx, imageMap[rId], x, y, w, h, 'cover');
-    }
-    return true;
-  }
-
-  return false;
-}
-
-async function renderSp(ctx, el, sx, sy, imageMap) {
-  const xfrm = getXfrm(el.querySelector('spPr'));
-  if (!xfrm) return;
-
-  const x = xfrm.x * sx, y = xfrm.y * sy;
-  const w = xfrm.cx * sx, h = xfrm.cy * sy;
-  if (w <= 0 || h <= 0) return;
-
-  ctx.save();
-  if (xfrm.rot) {
-    ctx.translate(x + w/2, y + h/2);
-    ctx.rotate(xfrm.rot * Math.PI / 10800000);
-    ctx.translate(-w/2, -h/2);
-  } else {
-    ctx.translate(x, y);
-  }
-
-  // Fill
-  const spPr = el.querySelector('spPr');
-  if (spPr) {
-    const noFill = spPr.querySelector('noFill');
-    if (!noFill) {
-      const filled = await applyFill(ctx, spPr, sx, sy, 0, 0, w, h, imageMap);
-      if (!filled) {
-        // Default: check if it's a text box (transparent) or shape
-        const prstGeom = spPr.querySelector('prstGeom');
-        if (prstGeom && prstGeom.getAttribute('prst') !== 'rect') {
-          // Shape placeholder — light grey
-        }
-      }
-    }
-  }
-
-  // Text
-  const txBody = el.querySelector('txBody');
-  if (txBody) renderText(ctx, txBody, w, h, xfrm);
-
-  ctx.restore();
-}
-
-async function renderPic(ctx, el, sx, sy, imageMap) {
-  const xfrm = getXfrm(el.querySelector('spPr'));
-  if (!xfrm) return;
-  const x = xfrm.x * sx, y = xfrm.y * sy;
-  const w = xfrm.cx * sx, h = xfrm.cy * sy;
-  if (w <= 0 || h <= 0) return;
-
-  const blip = el.querySelector('blip');
-  const rId = blip?.getAttribute('embed') || blip?.getAttribute('link');
-  if (!rId || !imageMap?.[rId]) return;
-
-  ctx.save();
-  if (xfrm.rot) {
-    ctx.translate(x + w/2, y + h/2);
-    ctx.rotate(xfrm.rot * Math.PI / 10800000);
-    ctx.translate(-w/2, -h/2);
-    await drawImageFit(ctx, imageMap[rId], -w/2, -h/2, w, h, 'contain');
-  } else {
-    await drawImageFit(ctx, imageMap[rId], x, y, w, h, 'contain');
-  }
-  ctx.restore();
-}
-
-async function renderGrpSp(ctx, el, sx, sy, imageMap) {
-  for (const child of Array.from(el.children)) {
-    await renderElement(ctx, child, sx, sy, imageMap);
-  }
-}
-
-async function renderGraphicFrame(ctx, el, sx, sy) {
-  // Tables, charts — draw a placeholder box
-  const xfrm = getXfrm(el.querySelector('xfrm'));
-  if (!xfrm) return;
-  const x = xfrm.x * sx, y = xfrm.y * sy;
-  const w = xfrm.cx * sx, h = xfrm.cy * sy;
-  ctx.save();
-  ctx.strokeStyle = '#d1d5db';
-  ctx.lineWidth = 1;
-  ctx.fillStyle = '#f9fafb';
-  ctx.fillRect(x, y, w, h);
-  ctx.strokeRect(x, y, w, h);
-  ctx.fillStyle = '#9ca3af';
-  ctx.font = `${Math.min(14, h*0.3)}px Pretendard, Arial`;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText('차트/표', x + w/2, y + h/2);
-  ctx.restore();
-}
-
-function renderText(ctx, txBody, boxW, boxH, xfrm) {
-  const paras = Array.from(txBody.querySelectorAll('p'));
-  if (!paras.length) return;
-
-  // Body properties
-  const bodyPr = txBody.querySelector('bodyPr');
-  const anchor = bodyPr?.getAttribute('anchor') || 't'; // t=top, ctr=center, b=bottom
-  const insetL = parseInt(bodyPr?.getAttribute('lIns') || '91440') / 914400 * 96;
-  const insetR = parseInt(bodyPr?.getAttribute('rIns') || '91440') / 914400 * 96;
-  const insetT = parseInt(bodyPr?.getAttribute('tIns') || '45720') / 914400 * 96;
-
-  const textX = Math.max(0, insetL);
-  const textW = Math.max(0, boxW - insetL - insetR);
-
-  // Collect all runs for each paragraph
-  const lineGroups = paras.map(p => {
-    const align = p.querySelector('pPr')?.getAttribute('algn') || 'l';
-    const runs = Array.from(p.querySelectorAll('r')).map(r => {
-      const rPr = r.querySelector('rPr');
-      const t = r.querySelector('t');
-      const sz = parseInt(rPr?.getAttribute('sz') || '1800') / 100;  // hundredths of pt
-      const bold = rPr?.getAttribute('b') === '1';
-      const italic = rPr?.getAttribute('i') === '1';
-      const srgb = rPr?.querySelector('solidFill srgbClr, solidFill > srgbClr');
-      const color = srgb ? '#' + (srgb.getAttribute('val') || '000000') : '#000000';
-      return { text: t?.textContent || '', sz, bold, italic, color };
-    });
-    // Handle fld elements (slide number, date)
-    Array.from(p.querySelectorAll('fld')).forEach(fld => {
-      const rPr = fld.querySelector('rPr');
-      runs.push({ text: fld.querySelector('t')?.textContent || '', sz: 12, bold: false, italic: false, color: '#666666' });
-    });
-    return { runs, align };
-  });
-
-  // Scale font size based on box width
-  const fontScale = Math.min(1, textW / 200);
-
-  // Calculate total text height
-  let totalH = 0;
-  const lineHeights = lineGroups.map(pg => {
-    const maxSz = Math.max(...pg.runs.map(r => r.sz * fontScale), 12);
-    const lh = maxSz * 1.3;
-    totalH += lh;
-    return lh;
-  });
-
-  let startY;
-  if (anchor === 'ctr') startY = insetT + (boxH - insetT - totalH) / 2;
-  else if (anchor === 'b')  startY = boxH - totalH - 5;
-  else startY = insetT;
-
-  let curY = startY;
-  lineGroups.forEach((pg, pi) => {
-    const lh = lineHeights[pi];
-    const baseline = curY + lh * 0.85;
-    curY += lh;
-
-    if (baseline < 0 || baseline > boxH) return;
-
-    // Calculate total width of paragraph for alignment
-    let curX = textX;
-
-    if (pg.align === 'r') {
-      // Right align: measure total, set start
-      let totalW = 0;
-      pg.runs.forEach(r => {
-        const sz = Math.max(6, r.sz * fontScale);
-        ctx.font = `${r.italic ? 'italic ' : ''}${r.bold ? '900' : '400'} ${sz}px Pretendard, Arial, sans-serif`;
-        totalW += ctx.measureText(r.text).width;
-      });
-      curX = textX + textW - totalW;
-    } else if (pg.align === 'ctr') {
-      let totalW = 0;
-      pg.runs.forEach(r => {
-        const sz = Math.max(6, r.sz * fontScale);
-        ctx.font = `${r.italic ? 'italic ' : ''}${r.bold ? '900' : '400'} ${sz}px Pretendard, Arial, sans-serif`;
-        totalW += ctx.measureText(r.text).width;
-      });
-      curX = textX + (textW - totalW) / 2;
-    }
-
-    pg.runs.forEach(r => {
-      if (!r.text) return;
-      const sz = Math.max(6, r.sz * fontScale);
-      ctx.font = `${r.italic ? 'italic ' : ''}${r.bold ? '900' : '400'} ${sz}px Pretendard, Arial, sans-serif`;
-      ctx.fillStyle = r.color;
-      ctx.textBaseline = 'alphabetic';
-      // Clip to box
-      const drawX = Math.max(textX, curX);
-      if (drawX < textX + textW) ctx.fillText(r.text, drawX, baseline);
-      curX += ctx.measureText(r.text).width;
-    });
-  });
-}
-
-// ── Image helpers ────────────────────────────────────────────────────
-const imgCache = {};
-function loadImg(src) {
-  if (imgCache[src]) return Promise.resolve(imgCache[src]);
-  return new Promise((res, rej) => {
-    const img = new Image();
-    img.onload = () => { imgCache[src] = img; res(img); };
-    img.onerror = rej;
-    img.src = src;
-  });
-}
-
-async function drawImageFit(ctx, src, x, y, w, h, mode = 'contain') {
-  try {
-    const img = await loadImg(src);
-    const imgRatio = img.width / img.height;
-    const boxRatio = w / h;
-    let dw, dh, dx, dy;
-    if (mode === 'cover') {
-      if (imgRatio > boxRatio) { dh = h; dw = h * imgRatio; dx = x - (dw-w)/2; dy = y; }
-      else { dw = w; dh = w / imgRatio; dx = x; dy = y - (dh-h)/2; }
-    } else {
-      if (imgRatio > boxRatio) { dw = w; dh = w / imgRatio; dx = x; dy = y + (h-dh)/2; }
-      else { dh = h; dw = h * imgRatio; dx = x + (w-dw)/2; dy = y; }
-    }
-    const prevClip = ctx.save();
-    ctx.rect(x, y, w, h);
-    ctx.clip();
-    ctx.drawImage(img, dx, dy, dw, dh);
-    ctx.restore();
-  } catch(e) {}
-}
-
-// ── Preset color map (partial) ───────────────────────────────────────
-const PRST_COLORS = { white:'#FFFFFF', black:'#000000', red:'#FF0000', green:'#00FF00', blue:'#0000FF', yellow:'#FFFF00', gray:'#808080', grey:'#808080', darkBlue:'#00008B', darkGreen:'#006400', darkRed:'#8B0000', orange:'#FFA500' };
-function prstToHex(name) { return PRST_COLORS[name] || '#FFFFFF'; }
-
-// ── Thumbnails ───────────────────────────────────────────────────────
+// ── Thumbnails ────────────────────────────────────────────────────────
 function renderThumbs() {
   const grid = $('thumbGrid');
   grid.innerHTML = '';
-  parsedSlides.forEach((slide, i) => {
+  parsedPages.forEach((p, i) => {
     const wrap = document.createElement('div');
     wrap.className = 'thumb-wrap';
-    wrap.dataset.idx = i;
-    const c = slide.canvas.cloneNode(false);
-    c.width  = slide.canvas.width;
-    c.height = slide.canvas.height;
-    c.getContext('2d').drawImage(slide.canvas, 0, 0);
+    // Clone thumb canvas
+    const c = document.createElement('canvas');
+    c.width  = p.thumbCanvas.width;
+    c.height = p.thumbCanvas.height;
+    c.getContext('2d').drawImage(p.thumbCanvas, 0, 0);
     wrap.appendChild(c);
     const num = document.createElement('div');
     num.className = 'thumb-num';
@@ -801,48 +391,66 @@ function renderThumbs() {
 }
 
 function toggleExclude(idx, wrap) {
-  if (excludedSlides.has(idx)) {
-    excludedSlides.delete(idx);
+  if (excludedSet.has(idx)) {
+    excludedSet.delete(idx);
     wrap.classList.remove('excluded');
     wrap.querySelector('.thumb-ex')?.remove();
   } else {
-    excludedSlides.add(idx);
+    excludedSet.add(idx);
     wrap.classList.add('excluded');
     const ex = document.createElement('div');
-    ex.className = 'thumb-ex';
-    ex.textContent = '✕';
+    ex.className = 'thumb-ex'; ex.textContent = '✕';
     wrap.appendChild(ex);
   }
 }
 
-// ── N-up layout ──────────────────────────────────────────────────────
-function getSettings() {
-  const [pw, ph] = PAPER[$('paperSize').value || 'a4'];
-  const mh = parseFloat($('marginH').value) || 10;
-  const mv = parseFloat($('marginV').value) || 10;
-  const gp = parseFloat($('gap').value) || 5;
-  const [cols, rows] = getNupLayout(nup, landscape);
-  const W = landscape ? ph : pw;
-  const H = landscape ? pw : ph;
-  return { pw: W, ph: H, mh, mv, gp, cols, rows };
+// ── Core: draw one page into a cell ──────────────────────────────────
+function drawPageInCell(ctx, srcCanvas, cellX, cellY, cellW, cellH, rotate) {
+  const pw = srcCanvas.width, ph = srcCanvas.height;
+  let dw, dh, dx, dy;
+
+  if (rotate) {
+    // Rotated 90° CW: visual footprint becomes ph (wide) × pw (tall)
+    const s = Math.min(cellW / ph, cellH / pw);
+    dw = ph * s; dh = pw * s;
+    dx = cellX + (cellW - dw) / 2;
+    dy = cellY + (cellH - dh) / 2;
+    // Translate to top-right corner of dest, rotate CW
+    ctx.save();
+    ctx.translate(dx + dw, dy);
+    ctx.rotate(Math.PI / 2);
+    ctx.drawImage(srcCanvas, 0, 0, dh, dw);
+    ctx.restore();
+  } else {
+    const s = Math.min(cellW / pw, cellH / ph);
+    dw = pw * s; dh = ph * s;
+    dx = cellX + (cellW - dw) / 2;
+    dy = cellY + (cellH - dh) / 2;
+    ctx.drawImage(srcCanvas, dx, dy, dw, dh);
+  }
+
+  // Thin border
+  ctx.strokeStyle = 'rgba(0,0,0,0.15)';
+  ctx.lineWidth = Math.max(0.4, cellW * 0.002);
+  ctx.strokeRect(dx, dy, dw, dh);
 }
 
-function buildOnePage(activeSlides, pageIdx, cols, rows, pw, ph, mh, mv, gp, mm2px) {
+// ── Build one output page ─────────────────────────────────────────────
+function buildOnePage(activePages, pageIdx, cols, rows, rotate, pw, ph, mh, mv, gp, mm2px, highRes) {
   const perPage = cols * rows;
-  const cellW = (pw - mh*2 - gp*(cols-1)) / cols;
-  const cellH = (ph - mv*2 - gp*(rows-1)) / rows;
+  const cellW = (pw - mh * 2 - gp * (cols - 1)) / cols;
+  const cellH = (ph - mv * 2 - gp * (rows - 1)) / rows;
 
-  const pageCanvas = document.createElement('canvas');
-  pageCanvas.width  = Math.round(pw * mm2px);
-  pageCanvas.height = Math.round(ph * mm2px);
-  const ctx = pageCanvas.getContext('2d');
-  ctx.fillStyle = '#FFFFFF';
-  ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
+  const outCanvas = document.createElement('canvas');
+  outCanvas.width  = Math.round(pw * mm2px);
+  outCanvas.height = Math.round(ph * mm2px);
+  const ctx = outCanvas.getContext('2d');
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, outCanvas.width, outCanvas.height);
 
   for (let s = 0; s < perPage; s++) {
     const slideIdx = pageIdx * perPage + s;
-    if (slideIdx >= activeSlides.length) break;
-    const slide = activeSlides[slideIdx];
+    if (slideIdx >= activePages.length) break;
 
     let col, row;
     if (orderLR) { col = s % cols; row = Math.floor(s / cols); }
@@ -853,59 +461,46 @@ function buildOnePage(activeSlides, pageIdx, cols, rows, pw, ph, mh, mv, gp, mm2
     const cellPxW = cellW * mm2px;
     const cellPxH = cellH * mm2px;
 
-    const slideRatio = slide.canvas.width / slide.canvas.height;
-    const cellRatio  = cellPxW / cellPxH;
-    let dw, dh, dx, dy;
-    if (slideRatio > cellRatio) {
-      dw = cellPxW; dh = cellPxW / slideRatio;
-      dx = cellX;   dy = cellY + (cellPxH - dh) / 2;
-    } else {
-      dh = cellPxH; dw = cellPxH * slideRatio;
-      dx = cellX + (cellPxW - dw) / 2; dy = cellY;
-    }
-    ctx.drawImage(slide.canvas, dx, dy, dw, dh);
-    ctx.strokeStyle = 'rgba(0,0,0,0.12)';
-    ctx.lineWidth = Math.max(0.5, mm2px * 0.1);
-    ctx.strokeRect(dx, dy, dw, dh);
+    // Use high-res canvas for PDF output, thumbCanvas for preview
+    const src = highRes
+      ? activePages[slideIdx].hiCanvas
+      : activePages[slideIdx].thumbCanvas;
+    drawPageInCell(ctx, src, cellX, cellY, cellPxW, cellPxH, rotate);
   }
-  return pageCanvas;
-}
-
-async function buildPages(dpi = 96) {
-  const { pw, ph, mh, mv, gp, cols, rows } = getSettings();
-  const perPage = cols * rows;
-  const mm2px = dpi / 25.4;
-
-  const activeSlides = parsedSlides.filter((_, i) => !excludedSlides.has(i));
-  const totalPages = Math.ceil(activeSlides.length / perPage);
-  const pages = [];
-
-  for (let p = 0; p < totalPages; p++) {
-    pages.push(buildOnePage(activeSlides, p, cols, rows, pw, ph, mh, mv, gp, mm2px));
-    await new Promise(r => setTimeout(r, 0));  // yield to keep UI responsive
-  }
-  return pages;
+  return outCanvas;
 }
 
 // ── Preview ───────────────────────────────────────────────────────────
 $('previewBtn').addEventListener('click', async () => {
-  if (!parsedSlides.length) return;
-  showStatus('페이지 배치 중...');
+  if (!parsedPages.length) return;
+  showStatus('미리보기 생성 중...');
   $('previewBtn').disabled = true;
   $('downloadBtn').disabled = true;
   await new Promise(r => setTimeout(r, 10));
 
   try {
-    renderedCanvases = await buildPages(96);
-    displayPreview(renderedCanvases);
-    const active = parsedSlides.length - excludedSlides.size;
-    $('previewInfo').textContent = `슬라이드 ${active}장 · ${nup}장/페이지 · ${$('paperSize').value.toUpperCase()} ${landscape ? '가로' : '세로'}`;
-    $('previewPages').textContent = `총 ${renderedCanvases.length}페이지`;
-    showStatus(`미리보기 완료 (${renderedCanvases.length}페이지)`, 'success');
+    const { pw, ph, mh, mv, gp, cols, rows, rotate } = getSettings();
+    const mm2px = 96 / 25.4;   // preview at 96 DPI
+    const activePages = parsedPages.filter((_, i) => !excludedSet.has(i));
+    const perPage = cols * rows;
+    const totalOutputPages = Math.ceil(activePages.length / perPage);
+
+    previewCanvases = [];
+    for (let p = 0; p < totalOutputPages; p++) {
+      previewCanvases.push(buildOnePage(activePages, p, cols, rows, rotate, pw, ph, mh, mv, gp, mm2px, false));
+      await new Promise(r => setTimeout(r, 0));
+    }
+
+    displayPreview(previewCanvases);
+    const activeCount = activePages.length;
+    const rotateLabel = rotate ? ' · 자동회전' : '';
+    $('previewInfo').textContent = `${activeCount}페이지 · ${nup}장/페이지 · ${$('paperSize').value.toUpperCase()} ${landscape ? '가로' : '세로'}${rotateLabel}`;
+    $('previewPages').textContent = `총 ${totalOutputPages}페이지`;
+    showStatus(`미리보기 완료 (${totalOutputPages}페이지)`, 'success');
     $('downloadBtn').disabled = false;
     setTimeout(hideStatus, 2000);
   } catch(e) {
-    showStatus('배치 오류: ' + e.message, 'error');
+    showStatus('미리보기 오류: ' + e.message, 'error');
   }
   $('previewBtn').disabled = false;
 });
@@ -913,11 +508,11 @@ $('previewBtn').addEventListener('click', async () => {
 function displayPreview(pages) {
   const scroll = $('previewScroll');
   scroll.innerHTML = '';
-  const previewH = Math.min(300, scroll.clientHeight - 30);
+  const previewH = Math.min(320, scroll.clientHeight - 30);
   pages.forEach((canvas, i) => {
     const wrap = document.createElement('div');
     const ratio = canvas.height / canvas.width;
-    const previewW = previewH / ratio;
+    const previewW = Math.round(previewH / ratio);
     wrap.className = 'page-preview';
     wrap.style.width = previewW + 'px';
     const c = document.createElement('canvas');
@@ -926,45 +521,64 @@ function displayPreview(pages) {
     wrap.appendChild(c);
     const lbl = document.createElement('div');
     lbl.className = 'page-label';
-    lbl.textContent = `${i+1} / ${pages.length}`;
+    lbl.textContent = `${i + 1} / ${pages.length}`;
     wrap.appendChild(lbl);
     scroll.appendChild(wrap);
   });
 }
 
-// ── PDF Download ──────────────────────────────────────────────────────
+// ── PDF Download (300 DPI) ────────────────────────────────────────────
 $('downloadBtn').addEventListener('click', async () => {
-  if (!renderedCanvases.length) return;
-  showStatus('PDF 생성 중...');
+  if (!parsedPages.length) return;
+  showStatus('고해상도 렌더링 중... (300 DPI)');
   $('downloadBtn').disabled = true;
   await new Promise(r => setTimeout(r, 10));
 
   try {
-    const { pw, ph, mh, mv, gp, cols, rows } = getSettings();
-    const orient = landscape ? 'landscape' : 'portrait';
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({ orientation: orient, unit: 'mm', format: [Math.min(pw,ph), Math.max(pw,ph)] });
+    const { pw, ph, mh, mv, gp, cols, rows, rotate } = getSettings();
+    const PDF_DPI   = 300;
+    const mm2px     = PDF_DPI / 25.4;
+    const RENDER_SC = 3;   // pdf.js render scale for high quality
 
-    const PDF_DPI = 300;
-    const mm2px = PDF_DPI / 25.4;
+    // Determine cell pixel size to decide render scale
+    const cellW_px = ((pw - mh * 2 - gp * (cols - 1)) / cols) * mm2px;
+    const activePages = parsedPages.filter((_, i) => !excludedSet.has(i));
     const perPage = cols * rows;
-    const activeSlides = parsedSlides.filter((_, i) => !excludedSlides.has(i));
-    const totalPages = Math.ceil(activeSlides.length / perPage);
+    const totalOutputPages = Math.ceil(activePages.length / perPage);
 
-    // 페이지별 300 DPI 렌더링 → 메모리 절약
-    for (let p = 0; p < totalPages; p++) {
-      showStatus(`PDF 생성 중... (${p + 1} / ${totalPages} 페이지, 300 DPI)`);
-      await new Promise(r => setTimeout(r, 0));
+    // Pre-render pages needed at high resolution
+    const neededIndices = new Set();
+    for (let i = 0; i < activePages.length; i++) neededIndices.add(i);
 
-      const pageCanvas = buildOnePage(activeSlides, p, cols, rows, pw, ph, mh, mv, gp, mm2px);
-      const imgData = pageCanvas.toDataURL('image/jpeg', 0.95);
-
-      if (p > 0) doc.addPage([Math.min(pw,ph), Math.max(pw,ph)], orient);
-      doc.addImage(imgData, 'JPEG', 0, 0, pw, ph);
+    showStatus(`고해상도 렌더링 중... (0 / ${activePages.length}페이지)`);
+    let rendered = 0;
+    for (const p of activePages) {
+      p.hiCanvas = await renderPage(p.pdfPage, RENDER_SC);
+      rendered++;
+      if (rendered % 3 === 0 || rendered === activePages.length) {
+        showStatus(`고해상도 렌더링 중... (${rendered} / ${activePages.length}페이지)`);
+        await new Promise(r => setTimeout(r, 0));
+      }
     }
 
+    // Build PDF
+    const { jsPDF } = window.jspdf;
+    const orient = landscape ? 'landscape' : 'portrait';
+    const doc = new jsPDF({ orientation: orient, unit: 'mm', format: [Math.min(pw,ph), Math.max(pw,ph)] });
+
+    for (let p = 0; p < totalOutputPages; p++) {
+      showStatus(`PDF 생성 중... (${p + 1} / ${totalOutputPages})`);
+      await new Promise(r => setTimeout(r, 0));
+      const pageCanvas = buildOnePage(activePages, p, cols, rows, rotate, pw, ph, mh, mv, gp, mm2px, true);
+      if (p > 0) doc.addPage([Math.min(pw,ph), Math.max(pw,ph)], orient);
+      doc.addImage(pageCanvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, pw, ph);
+    }
+
+    // Cleanup hi-res canvases
+    activePages.forEach(p => { p.hiCanvas = null; });
+
     const ts = new Date().toISOString().slice(0,16).replace('T','_').replace(':','-');
-    doc.save(`slides_${nup}up_${ts}.pdf`);
+    doc.save(`nup_${nup}up_${ts}.pdf`);
     showStatus('PDF 저장 완료! (300 DPI)', 'success');
     setTimeout(hideStatus, 3000);
   } catch(e) {
@@ -974,6 +588,25 @@ $('downloadBtn').addEventListener('click', async () => {
 });
 
 // ── UI controls ────────────────────────────────────────────────────────
+function updateNupBadges() {
+  [1, 2, 4, 6, 8, 9].forEach(n => {
+    const cfg = NUP_LAYOUTS[n];
+    const [cols, rows, rot] = landscape ? cfg.land : cfg.port;
+    const badge = $(`badge${n}`);
+    if (badge) {
+      badge.textContent = `${cols}×${rows}`;
+      // Show rotate indicator
+      let rotEl = badge.nextSibling;
+      if (rotEl && rotEl.classList?.contains('rotate-badge')) rotEl.remove();
+      if (rot) {
+        const span = document.createElement('span');
+        span.className = 'rotate-badge'; span.textContent = '↻';
+        badge.after(span);
+      }
+    }
+  });
+}
+
 document.querySelectorAll('.nup-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.nup-btn').forEach(b => b.classList.remove('active'));
@@ -984,36 +617,39 @@ document.querySelectorAll('.nup-btn').forEach(btn => {
 
 $('orderLR').addEventListener('click', () => {
   orderLR = true;
-  $('orderLR').classList.add('active');
-  $('orderTB').classList.remove('active');
+  $('orderLR').classList.add('active'); $('orderTB').classList.remove('active');
 });
 $('orderTB').addEventListener('click', () => {
   orderLR = false;
-  $('orderTB').classList.add('active');
-  $('orderLR').classList.remove('active');
+  $('orderTB').classList.add('active'); $('orderLR').classList.remove('active');
 });
 
 $('orientPort').addEventListener('click', () => {
   landscape = false;
-  $('orientPort').classList.add('active');
-  $('orientLand').classList.remove('active');
+  $('orientPort').classList.add('active'); $('orientLand').classList.remove('active');
+  updateNupBadges();
 });
 $('orientLand').addEventListener('click', () => {
   landscape = true;
-  $('orientLand').classList.add('active');
-  $('orientPort').classList.remove('active');
+  $('orientLand').classList.add('active'); $('orientPort').classList.remove('active');
+  updateNupBadges();
 });
 
+$('paperSize').addEventListener('change', updateNupBadges);
+
 $('resetBtn').addEventListener('click', () => {
-  parsedSlides = []; excludedSlides.clear(); renderedCanvases = [];
+  pdfDoc = null; parsedPages = []; excludedSet.clear(); previewCanvases = [];
   $('thumbGrid').innerHTML = ''; $('thumbSection').style.display = 'none';
   $('fileInput').value = '';
   $('previewBtn').disabled = true; $('downloadBtn').disabled = true;
-  $('previewInfo').textContent = '파일을 업로드하면 미리보기가 표시됩니다.';
+  $('previewInfo').textContent = 'PDF 파일을 업로드하면 미리보기가 표시됩니다.';
   $('previewPages').textContent = '';
-  $('previewScroll').innerHTML = '<div class="empty-state"><div class="icon">📑</div><p>PPTX 파일을 업로드하고<br>설정을 선택한 후 <b>미리보기 생성</b>을 클릭하세요.</p></div>';
+  $('previewScroll').innerHTML = '<div class="empty-state"><div class="icon">📑</div><p>PDF 파일을 업로드하고<br>설정 후 <b>미리보기 생성</b>을 클릭하세요.</p></div>';
   hideStatus();
 });
+
+// Init
+updateNupBadges();
 </script>
 </body>
 </html>
