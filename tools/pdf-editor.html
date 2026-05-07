@@ -482,7 +482,7 @@
       <div class="sec-body">
         <button class="btn btn-primary" id="previewBtn" disabled>미리보기 생성</button>
         <div style="height:6px;"></div>
-        <button class="btn btn-green" id="downloadBtn" disabled>PDF 저장 (300 DPI)</button>
+        <button class="btn btn-green" id="downloadBtn" disabled>PDF 저장</button>
         <div style="height:6px;"></div>
         <button class="btn btn-secondary" id="resetBtn">전체 초기화</button>
       </div>
@@ -543,6 +543,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="../js/firebase-config.js"></script>
+<script src="../js/api.js"></script>
 <script>
 pdfjsLib.GlobalWorkerOptions.workerSrc =
   'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
@@ -560,8 +561,10 @@ const $ = id => document.getElementById(id);
 
 // ── State ─────────────────────────────────────────────────────────────
 // page: { id, pdfPage(null=blank/divider), thumbCanvas, excluded, nupOverride,
-//         nupDisabled, sourceFile, groupBreak, rotation, pageType, dividerContent }
+//         nupDisabled, sourceFile, groupBreak, rotation, pageType, dividerContent,
+//         file_index (index into uploadedFiles), page_index (0-based) }
 let parsedPages = [];
+let uploadedFiles = []; // original File objects, indexed by file_index
 let nup = 2;
 let orderLR = true;
 let landscape = false;
@@ -674,11 +677,15 @@ async function handleFile(file) {
 
   if (isNew) {
     parsedPages = [];
+    uploadedFiles = [];
     previewCanvases = [];
     $('previewBtn').disabled = true;
     $('downloadBtn').disabled = true;
     $('previewScroll').innerHTML = '<div class="empty-state"><div class="icon">⏳</div><p>페이지 렌더링 중...</p></div>';
   }
+
+  const fileIdx = uploadedFiles.length;
+  uploadedFiles.push(file);
 
   showStatus(`"${file.name}" 로딩 중...`);
   const shortName = file.name.length > 28 ? file.name.slice(0, 26) + '…' : file.name;
@@ -697,6 +704,7 @@ async function handleFile(file) {
         id: makeId(), pdfPage, thumbCanvas,
         excluded: false, nupOverride: null, nupDisabled: nupDisable,
         sourceFile: shortName, groupBreak, rotation: 0, pageType: 'pdf',
+        file_index: fileIdx, page_index: i - 1,
       });
       await new Promise(r => setTimeout(r, 0));
     }
@@ -1341,40 +1349,69 @@ function displayPreview(pages) {
   });
 }
 
-// ── PDF Download (300 DPI) ────────────────────────────────────────────
+// ── PDF Download (via backend — vector quality) ───────────────────────
 $('downloadBtn').addEventListener('click', async () => {
-  if (!parsedPages.length) return;
-  showStatus('고화질 렌더링 시작... (300 DPI)');
+  if (!parsedPages.length || !uploadedFiles.length) return;
+  showStatus('서버에서 PDF 생성 중...');
   $('downloadBtn').disabled = true;
-  await new Promise(r => setTimeout(r, 10));
   try {
-    const active = parsedPages.filter(p => !p.excluded);
-    const SCALE = 3;
-    let done = 0;
-    for (const page of active) {
-      if (page.pdfPage) {
-        page.hiCanvas = await renderPdfPage(page.pdfPage, SCALE, page.rotation);
-      }
-      done++;
-      if (done % 4 === 0 || done === active.length) {
-        showStatus(`고화질 렌더링 중... (${done} / ${active.length})`);
-        await new Promise(r => setTimeout(r, 0));
-      }
-    }
-    const pdfPages = await buildAllPages(300 / 25.4, true);
     const { pw, ph } = getSettings();
-    const orient = landscape ? 'landscape' : 'portrait';
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({ orientation: orient, unit: 'mm', format: [Math.min(pw,ph), Math.max(pw,ph)] });
-    pdfPages.forEach((canvas, i) => {
-      if (i > 0) doc.addPage([Math.min(pw,ph), Math.max(pw,ph)], orient);
-      showStatus(`PDF 생성 중... (${i + 1} / ${pdfPages.length})`);
-      doc.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, pw, ph);
-    });
-    active.forEach(p => { p.hiCanvas = null; });
+
+    // Map pnFormat string to backend enum
+    const pnFormatMap = { number: '1', 'number-total': '1/N', dash: '-1-', 'dash-total': '-1/N-' };
+
+    const settings = {
+      pages: parsedPages.map(p => ({
+        file_index: p.file_index ?? 0,
+        page_index: p.page_index ?? 0,
+        rotation: p.rotation || 0,
+        nup_override: p.nupOverride || null,
+        nup_disabled: !!p.nupDisabled,
+        group_break: !!p.groupBreak,
+        excluded: !!p.excluded,
+        page_type: (p.pageType === 'pdf') ? 'normal' : (p.pageType === 'blank' ? 'divider' : p.pageType),
+        divider_content: (p.pageType === 'divider' || p.pageType === 'blank')
+          ? JSON.stringify(p.dividerContent || {})
+          : null,
+        divider_style: p.dividerContent?.style || 'simple',
+      })),
+      nup_default: nup,
+      paper: { width_mm: pw, height_mm: ph },
+      fit_to_paper: true,
+      add_border: showBorder,
+      watermark: {
+        enabled: wmEnabled,
+        text: wmText,
+        opacity: wmOpacity,
+        angle: wmAngle,
+        color: wmColor,
+      },
+      header_footer: {
+        enabled: hfEnabled,
+        header_left: hfHL, header_center: hfHC, header_right: hfHR,
+        footer_left: hfFL, footer_center: hfFC, footer_right: hfFR,
+        font_size: hfFontSize,
+        color: hfColor,
+      },
+      page_numbers: {
+        enabled: pnEnabled,
+        position: pnPosition,
+        format: pnFormatMap[pnFormat] || '1',
+        start: pnStart,
+        font_size: pnFontSize,
+        color: pnColor,
+        exclude_first: pnExcludeFirst,
+      },
+    };
+
+    const blob = await apiProcessPdf(uploadedFiles, settings);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
     const ts = new Date().toISOString().slice(0,16).replace('T','_').replace(':','-');
-    doc.save(`pdf_edit_${ts}.pdf`);
-    showStatus(`PDF 저장 완료! (${pdfPages.length}페이지, 300 DPI)`, 'success');
+    a.href = url; a.download = `pdf_edit_${ts}.pdf`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showStatus('PDF 저장 완료!', 'success');
     setTimeout(hideStatus, 3000);
   } catch(e) { showStatus('PDF 오류: ' + e.message, 'error'); }
   $('downloadBtn').disabled = false;

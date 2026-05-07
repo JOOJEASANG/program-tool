@@ -5,10 +5,17 @@
       "firebase.json",
       "**/.*",
       "**/node_modules/**",
-      "design_program.html"
+      "design_program.html",
+      "backend/**"
     ],
     "cleanUrls": true,
     "trailingSlash": false,
+    "rewrites": [
+      {
+        "source": "/api/**",
+        "function": "api"
+      }
+    ],
     "headers": [
       {
         "source": "**/*.@(js|css|html)",
@@ -20,5 +27,18 @@
         ]
       }
     ]
-  }
+  },
+  "functions": [
+    {
+      "source": "backend",
+      "codebase": "default",
+      "runtime": "python311",
+      "ignore": [
+        "venv",
+        ".venv",
+        "__pycache__",
+        "*.pyc"
+      ]
+    }
+  ]
 }
