@@ -1,0 +1,826 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>디자인 스튜디오 · Program Tool</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+  <style>
+    :root {
+      --bg: #f4f6f8; --panel: #ffffff; --text: #111827; --muted: #6b7280;
+      --line: #d1d5db; --primary: #12396d; --accent: #1d9bb2;
+      --shadow: 0 16px 44px rgba(15,23,42,.13); --nav-h: 52px;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; }
+    body { font-family: Pretendard, "Noto Sans KR", Arial, sans-serif; background: var(--bg); color: var(--text); padding-top: var(--nav-h); }
+
+    .top-nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 500;
+      height: var(--nav-h); background: var(--primary);
+      display: flex; align-items: center; padding: 0 16px; gap: 12px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.2);
+    }
+    .nav-back {
+      display: flex; align-items: center; gap: 6px;
+      color: rgba(255,255,255,0.85); font-size: 13px; font-weight: 700;
+      text-decoration: none; padding: 7px 12px; border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.2);
+      transition: background 0.15s; white-space: nowrap;
+    }
+    .nav-back:hover { background: rgba(255,255,255,0.15); color: #fff; }
+    .nav-title { flex: 1; text-align: center; font-size: 15px; font-weight: 800; color: #fff; }
+    .nav-user { display: flex; align-items: center; gap: 8px; }
+    .nav-user-name { font-size: 12px; color: rgba(255,255,255,0.75); font-weight: 600; max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .nav-logout {
+      color: rgba(255,255,255,0.75); font-size: 12px; font-weight: 700;
+      background: rgba(255,255,255,0.12); border: none; border-radius: 7px;
+      padding: 6px 10px; cursor: pointer; font-family: inherit; transition: background 0.15s;
+    }
+    .nav-logout:hover { background: rgba(255,255,255,0.22); color: #fff; }
+
+    .app { display: grid; grid-template-columns: 320px minmax(0,1fr); min-height: calc(100vh - var(--nav-h)); }
+
+    aside {
+      background: var(--panel); border-right: 1px solid #e5e7eb;
+      padding: 16px; overflow-y: auto; max-height: calc(100vh - var(--nav-h));
+    }
+
+    h1 { font-size: 18px; margin: 0 0 4px; letter-spacing: -0.04em; }
+    .sub { color: var(--muted); font-size: 12px; line-height: 1.45; margin-bottom: 14px; }
+    .section { border-top: 1px solid #edf0f3; padding-top: 12px; margin-top: 12px; }
+    .section h2 { font-size: 12px; font-weight: 800; margin: 0 0 10px; color: #374151; text-transform: uppercase; letter-spacing: 0.4px; }
+    label { display: block; font-size: 11px; font-weight: 800; margin: 0 0 4px; color: #374151; }
+
+    input[type="text"], input[type="number"], select, textarea {
+      width: 100%; border: 1px solid var(--line); border-radius: 8px;
+      padding: 8px 10px; font-size: 13px; background: #fff;
+      outline: none; font-family: inherit; transition: border-color 0.15s;
+    }
+    textarea { resize: vertical; min-height: 60px; }
+    input:focus, select:focus, textarea:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,.08); }
+    input[type="color"] { padding: 2px 4px; height: 34px; cursor: pointer; }
+    input[type="file"] { font-size: 12px; padding: 6px 8px; }
+    input[type="range"] { padding: 0; accent-color: var(--primary); }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .field { margin-bottom: 8px; }
+    .minirow { display: flex; align-items: center; justify-content: space-between; font-size: 10px; color: #9ca3af; font-weight: 700; margin-top: 2px; }
+    .smallnote { font-size: 11px; color: var(--muted); line-height: 1.45; margin-top: 4px; }
+
+    button {
+      border: 0; border-radius: 9px; padding: 9px 12px;
+      background: #111827; color: white; font-weight: 900;
+      cursor: pointer; font-size: 12px; font-family: inherit; transition: opacity 0.15s;
+    }
+    button:hover { opacity: 0.85; }
+    button:disabled { opacity: 0.45; cursor: not-allowed; }
+    button.secondary { background: #e5e7eb; color: #111827; }
+    button.blue { background: #164a8a; }
+    button.green { background: #0f766e; }
+    button.ai-btn {
+      width: 100%; background: linear-gradient(135deg, #7c3aed, #2563eb);
+      color: #fff; font-size: 13px; padding: 11px;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .btns { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-top: 8px; }
+
+    /* Template selector */
+    .tpl-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px; }
+    .tpl-btn {
+      padding: 9px 6px; border: 1.5px solid #e5e7eb; background: #f8fafc;
+      color: #374151; border-radius: 9px; font-size: 11px; font-weight: 700;
+      cursor: pointer; font-family: inherit; transition: all 0.12s;
+      display: flex; flex-direction: column; align-items: center; gap: 3px;
+    }
+    .tpl-btn:hover { border-color: var(--accent); background: #f0f9ff; opacity: 1; }
+    .tpl-btn.active { border-color: var(--primary); background: #eff6ff; color: var(--primary); }
+    .tpl-btn .ico { font-size: 18px; }
+
+    /* Item list */
+    .item-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 6px; }
+    .item-row {
+      background: #f8fafc; border: 1.5px solid #e5e7eb;
+      border-radius: 9px; padding: 8px 10px;
+      transition: border-color 0.15s;
+    }
+    .item-row.is-selected { border-color: #2563eb; background: #eff6ff; }
+    .item-row-top { display: flex; gap: 6px; align-items: center; margin-bottom: 7px; }
+    .item-text-input {
+      flex: 1; border: 1px solid #d1d5db; border-radius: 7px;
+      padding: 7px 9px; font-size: 13px; font-family: inherit; outline: none;
+      background: #fff;
+    }
+    .item-del { background: none; border: none; color: #9ca3af; font-size: 16px; cursor: pointer; padding: 2px 5px; line-height: 1; flex-shrink: 0; }
+    .item-del:hover { color: #ef4444; opacity: 1; background: none; }
+    .item-row-opts { display: grid; grid-template-columns: 70px 34px 34px; gap: 6px; align-items: center; }
+    .item-opt-label { font-size: 10px; color: #6b7280; font-weight: 700; margin-bottom: 2px; }
+    .item-fs-input { width: 100%; border: 1px solid #d1d5db; border-radius: 6px; padding: 5px 6px; font-size: 12px; font-family: inherit; outline: none; text-align: center; background: #fff; }
+    .item-color-input { width: 34px; height: 34px; padding: 2px 3px; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; }
+    .item-bold-btn { width: 34px; height: 34px; background: #e5e7eb; border: 1px solid #d1d5db; color: #374151; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 900; font-family: inherit; transition: all 0.12s; }
+    .item-bold-btn.on { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .add-item-btn { width: 100%; background: #eff6ff; border: 1.5px dashed #93c5fd; color: #1d4ed8; border-radius: 8px; padding: 8px; font-size: 12px; font-weight: 800; cursor: pointer; font-family: inherit; }
+
+    /* AI status */
+    .ai-status { font-size: 12px; padding: 8px 10px; border-radius: 7px; margin-top: 8px; display: none; }
+    .ai-status.loading { display: block; background: #eff6ff; color: #1e40af; }
+    .ai-status.success { display: block; background: #f0fdf4; color: #166534; }
+    .ai-status.error { display: block; background: #fef2f2; color: #991b1b; }
+
+    /* Main canvas area */
+    main { padding: 16px; overflow: auto; max-height: calc(100vh - var(--nav-h)); display: flex; flex-direction: column; }
+    .canvas-hint { font-size: 12px; color: var(--muted); margin-bottom: 8px; padding: 6px 10px; background: rgba(29,155,178,0.08); border-radius: 8px; display: inline-block; }
+    .preview-shell { flex: 1; display: flex; align-items: flex-start; justify-content: center; padding: 8px; }
+    .preview-wrap { background: #fff; box-shadow: var(--shadow); position: relative; }
+    .preview-canvas {
+      cursor: default; user-select: none;
+    }
+    .selection-box {
+      position: absolute; border: 2px dashed #2563eb;
+      pointer-events: none; box-sizing: border-box;
+    }
+    .zoom-controls { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .zoom-controls button { padding: 6px 10px; font-size: 12px; }
+
+    @media (max-width: 900px) {
+      .app { grid-template-columns: 1fr; }
+      aside { max-height: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="top-nav">
+    <a class="nav-back" href="../index.html">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+      도구 목록
+    </a>
+    <div class="nav-title" id="navTitle">🎨 디자인 스튜디오</div>
+    <div class="nav-user">
+      <span class="nav-user-name" id="userName">로딩 중...</span>
+      <button class="nav-logout" onclick="doLogout()">로그아웃</button>
+    </div>
+  </div>
+
+  <div class="app">
+    <aside>
+      <h1 id="toolTitle">디자인 스튜디오</h1>
+      <div class="sub" id="toolDesc">템플릿을 선택하고 텍스트와 배경을 추가해 디자인을 완성하세요.</div>
+
+      <!-- Template selection -->
+      <div class="section">
+        <h2>📐 템플릿</h2>
+        <div class="tpl-grid" id="tplGrid"></div>
+        <div class="smallnote" id="paperInfo"></div>
+      </div>
+
+      <!-- Paper size override -->
+      <div class="section">
+        <h2>용지 크기</h2>
+        <div class="grid2">
+          <div>
+            <label>가로 (mm)</label>
+            <input id="paperW" type="number" min="10" step="1">
+          </div>
+          <div>
+            <label>세로 (mm)</label>
+            <input id="paperH" type="number" min="10" step="1">
+          </div>
+        </div>
+        <label style="margin-top:8px;display:flex;gap:6px;align-items:center;font-size:12px;cursor:pointer;">
+          <input id="orientToggle" type="checkbox"> 가로 방향
+        </label>
+      </div>
+
+      <!-- Items -->
+      <div class="section">
+        <h2>✏️ 텍스트</h2>
+        <div class="item-list" id="itemList"></div>
+        <button class="add-item-btn" onclick="addItem()">+ 텍스트 추가</button>
+      </div>
+
+      <!-- Background -->
+      <div class="section">
+        <h2>🎨 배경</h2>
+        <div class="field">
+          <label>배경색</label>
+          <input id="bgColor" type="color" value="#ffffff">
+        </div>
+        <div class="field">
+          <label>AI 배경 설명 <span style="color:#9ca3af;font-weight:400;">(원하는 분위기)</span></label>
+          <textarea id="aiDesc" rows="2" placeholder="예: 차분한 파란색 그라데이션, 따뜻한 빈티지 느낌..."></textarea>
+        </div>
+        <button class="ai-btn" id="generateBgBtn" onclick="generateAiBg()">✨ AI 배경 생성</button>
+        <div class="ai-status" id="aiStatus"></div>
+
+        <div class="field" style="margin-top:10px;">
+          <label>또는 이미지 직접 업로드</label>
+          <input id="bgFile" type="file" accept="image/*">
+        </div>
+        <div id="bgOpacityWrap" style="display:none;">
+          <label>배경 투명도</label>
+          <input id="bgOpacity" type="range" min="0.1" max="1" step="0.05" value="1">
+          <div class="minirow"><span>투명</span><span id="bgOpacityVal">100%</span><span>진하게</span></div>
+        </div>
+        <button class="secondary" id="clearBgBtn" onclick="clearBg()" style="width:100%;margin-top:6px;display:none;">배경 제거</button>
+      </div>
+
+      <!-- Save -->
+      <div class="section">
+        <h2>💾 저장</h2>
+        <div class="btns">
+          <button class="blue" id="downloadPng">PNG 저장</button>
+          <button class="green" id="downloadPdf">PDF 저장</button>
+        </div>
+        <button class="secondary" id="resetBtn" style="width:100%;margin-top:7px;">초기화</button>
+        <div class="smallnote" style="margin-top:6px;">PDF는 인쇄 미리보기에서 "PDF로 저장"을 선택하세요.</div>
+      </div>
+    </aside>
+
+    <main>
+      <div>
+        <div class="canvas-hint">💡 드래그로 이동 · 휠로 크기 조절 · 방향키로 미세 조정 · Delete로 삭제</div>
+        <div class="zoom-controls">
+          <button class="secondary" onclick="setZoom(zoomLevel - 0.1)">−</button>
+          <span style="font-size:12px;font-weight:700;color:#374151;min-width:50px;text-align:center;" id="zoomVal">100%</span>
+          <button class="secondary" onclick="setZoom(zoomLevel + 0.1)">+</button>
+          <button class="secondary" onclick="zoomFit()" style="margin-left:6px;">화면 맞춤</button>
+        </div>
+      </div>
+      <div class="preview-shell">
+        <div class="preview-wrap" id="previewWrap">
+          <canvas class="preview-canvas" id="previewCanvas"></canvas>
+          <div class="selection-box" id="selectionBox" style="display:none;"></div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="../js/firebase-config.js"></script>
+  <script>
+    // ── Templates ──────────────────────────────────────────────────────
+    const TEMPLATES = {
+      'business-card': {
+        name: '명함', icon: '💳', size: [90, 54], orient: 'landscape',
+        bg: '#ffffff',
+        items: [
+          { text: '홍길동', fontSize: 20, color: '#0f172a', bold: true, x: 0.06, y: 0.32 },
+          { text: '대표 / Designer', fontSize: 9, color: '#64748b', bold: false, x: 0.06, y: 0.50 },
+          { text: '010-1234-5678', fontSize: 9, color: '#0f172a', bold: false, x: 0.06, y: 0.72 },
+          { text: 'hello@email.com', fontSize: 9, color: '#0f172a', bold: false, x: 0.06, y: 0.84 },
+        ],
+      },
+      'flyer': {
+        name: '전단지', icon: '📄', size: [210, 297], orient: 'portrait',
+        bg: '#ffffff',
+        items: [
+          { text: '특별 이벤트', fontSize: 60, color: '#dc2626', bold: true, x: 0.5, y: 0.18, align: 'center' },
+          { text: '~50% 할인', fontSize: 80, color: '#0f172a', bold: true, x: 0.5, y: 0.38, align: 'center' },
+          { text: '기간: 2026.05.01 ~ 05.31', fontSize: 22, color: '#374151', bold: false, x: 0.5, y: 0.65, align: 'center' },
+          { text: '문의: 02-1234-5678', fontSize: 18, color: '#64748b', bold: false, x: 0.5, y: 0.85, align: 'center' },
+        ],
+      },
+      'leaflet': {
+        name: '리플렛 (3단)', icon: '📋', size: [297, 210], orient: 'landscape',
+        bg: '#ffffff',
+        items: [
+          { text: '브랜드 소개', fontSize: 30, color: '#0f172a', bold: true, x: 0.83, y: 0.20, align: 'center' },
+          { text: '— Brochure', fontSize: 12, color: '#94a3b8', bold: false, x: 0.83, y: 0.30, align: 'center' },
+          { text: '서비스 안내', fontSize: 22, color: '#0f172a', bold: true, x: 0.50, y: 0.20, align: 'center' },
+          { text: '연락처', fontSize: 22, color: '#0f172a', bold: true, x: 0.17, y: 0.20, align: 'center' },
+        ],
+      },
+      'invitation': {
+        name: '초대장', icon: '💌', size: [100, 148], orient: 'portrait',
+        bg: '#fefce8',
+        items: [
+          { text: 'INVITATION', fontSize: 11, color: '#92400e', bold: true, x: 0.5, y: 0.15, align: 'center' },
+          { text: '소중한 자리에 초대합니다', fontSize: 14, color: '#0f172a', bold: false, x: 0.5, y: 0.30, align: 'center' },
+          { text: '홍길동 & 김영희', fontSize: 22, color: '#92400e', bold: true, x: 0.5, y: 0.50, align: 'center' },
+          { text: '2026년 6월 15일 (토) 14시', fontSize: 12, color: '#374151', bold: false, x: 0.5, y: 0.70, align: 'center' },
+          { text: '서울특별시 강남구', fontSize: 11, color: '#64748b', bold: false, x: 0.5, y: 0.80, align: 'center' },
+        ],
+      },
+      'poster': {
+        name: '포스터 (A3)', icon: '🖼️', size: [297, 420], orient: 'portrait',
+        bg: '#0f172a',
+        items: [
+          { text: 'CONCERT', fontSize: 90, color: '#fbbf24', bold: true, x: 0.5, y: 0.15, align: 'center' },
+          { text: '2026.07.20', fontSize: 50, color: '#ffffff', bold: true, x: 0.5, y: 0.45, align: 'center' },
+          { text: 'Live at Olympic Hall', fontSize: 28, color: '#cbd5e1', bold: false, x: 0.5, y: 0.78, align: 'center' },
+          { text: 'Tickets: www.example.com', fontSize: 18, color: '#94a3b8', bold: false, x: 0.5, y: 0.92, align: 'center' },
+        ],
+      },
+      'certificate': {
+        name: '상장/수료증', icon: '🏆', size: [297, 210], orient: 'landscape',
+        bg: '#fefce8',
+        items: [
+          { text: '수 료 증', fontSize: 50, color: '#0f172a', bold: true, x: 0.5, y: 0.18, align: 'center' },
+          { text: '제 2026-001 호', fontSize: 11, color: '#94a3b8', bold: false, x: 0.5, y: 0.28, align: 'center' },
+          { text: '성  명: 홍길동', fontSize: 18, color: '#0f172a', bold: false, x: 0.5, y: 0.45, align: 'center' },
+          { text: '위 사람은 상기 과정을 성실히 수료하였기에', fontSize: 14, color: '#374151', bold: false, x: 0.5, y: 0.60, align: 'center' },
+          { text: '이 증서를 수여합니다.', fontSize: 14, color: '#374151', bold: false, x: 0.5, y: 0.68, align: 'center' },
+          { text: '2026년 5월 7일', fontSize: 14, color: '#0f172a', bold: false, x: 0.5, y: 0.84, align: 'center' },
+          { text: 'Program Tool Academy', fontSize: 16, color: '#0f172a', bold: true, x: 0.5, y: 0.92, align: 'center' },
+        ],
+      },
+      'menu': {
+        name: '메뉴판', icon: '🍽️', size: [210, 297], orient: 'portrait',
+        bg: '#fafaf9',
+        items: [
+          { text: 'MENU', fontSize: 50, color: '#92400e', bold: true, x: 0.5, y: 0.10, align: 'center' },
+          { text: 'Signature Pasta — 18,000', fontSize: 18, color: '#0f172a', bold: false, x: 0.5, y: 0.30, align: 'center' },
+          { text: 'Truffle Pizza — 22,000', fontSize: 18, color: '#0f172a', bold: false, x: 0.5, y: 0.40, align: 'center' },
+          { text: 'Steak Set — 35,000', fontSize: 18, color: '#0f172a', bold: false, x: 0.5, y: 0.50, align: 'center' },
+          { text: 'Dessert Plate — 8,000', fontSize: 18, color: '#0f172a', bold: false, x: 0.5, y: 0.60, align: 'center' },
+          { text: '— Open 11:00 ~ 22:00 —', fontSize: 13, color: '#94a3b8', bold: false, x: 0.5, y: 0.85, align: 'center' },
+        ],
+      },
+    };
+
+    // ── State ──────────────────────────────────────────────────────────
+    const $ = id => document.getElementById(id);
+    const params = new URLSearchParams(location.search);
+    let currentTpl = params.get('template') && TEMPLATES[params.get('template')] ? params.get('template') : 'business-card';
+    let paperW = TEMPLATES[currentTpl].size[0];
+    let paperH = TEMPLATES[currentTpl].size[1];
+    let landscape = TEMPLATES[currentTpl].orient === 'landscape';
+    let bgColor = TEMPLATES[currentTpl].bg || '#ffffff';
+    let bgData = '';
+    let bgOpacity = 1;
+    let aiDesc = '';
+    let items = [];
+    let selectedId = null;
+    let zoomLevel = 1;
+    let isDragging = false; let dragData = {};
+
+    function loadTemplate(tplId) {
+      const tpl = TEMPLATES[tplId];
+      if (!tpl) return;
+      currentTpl = tplId;
+      paperW = tpl.size[0]; paperH = tpl.size[1];
+      landscape = tpl.orient === 'landscape';
+      bgColor = tpl.bg || '#ffffff';
+      bgData = ''; bgOpacity = 1; aiDesc = '';
+      // Convert template items (relative coords) to absolute mm
+      const realW = landscape ? Math.max(paperW, paperH) : Math.min(paperW, paperH);
+      const realH = landscape ? Math.min(paperW, paperH) : Math.max(paperW, paperH);
+      items = tpl.items.map(it => ({
+        id: Date.now() + Math.random() * 1000,
+        text: it.text, fontSize: it.fontSize, color: it.color, bold: it.bold,
+        align: it.align || 'left',
+        x: it.x * realW, y: it.y * realH,
+      }));
+      selectedId = null;
+      $('navTitle').textContent = `${tpl.icon} ${tpl.name}`;
+      $('toolTitle').textContent = tpl.name;
+      document.title = `${tpl.name} · Program Tool`;
+      syncControls();
+      renderTplButtons();
+      renderItemList();
+      zoomFit();
+    }
+
+    function syncControls() {
+      $('paperW').value = landscape ? Math.max(paperW, paperH) : Math.min(paperW, paperH);
+      $('paperH').value = landscape ? Math.min(paperW, paperH) : Math.max(paperW, paperH);
+      $('orientToggle').checked = landscape;
+      $('bgColor').value = bgColor;
+      $('aiDesc').value = aiDesc;
+      $('paperInfo').textContent = `${$('paperW').value} × ${$('paperH').value} mm (${landscape ? '가로' : '세로'})`;
+      syncBgControls();
+    }
+
+    function renderTplButtons() {
+      const grid = $('tplGrid');
+      grid.innerHTML = '';
+      Object.entries(TEMPLATES).forEach(([id, tpl]) => {
+        const btn = document.createElement('button');
+        btn.className = 'tpl-btn' + (id === currentTpl ? ' active' : '');
+        btn.innerHTML = `<span class="ico">${tpl.icon}</span><span>${tpl.name}</span>`;
+        btn.onclick = () => loadTemplate(id);
+        grid.appendChild(btn);
+      });
+    }
+
+    // ── Item management ────────────────────────────────────────────────
+    function addItem() {
+      const realW = landscape ? Math.max(paperW, paperH) : Math.min(paperW, paperH);
+      const realH = landscape ? Math.min(paperW, paperH) : Math.max(paperW, paperH);
+      items.push({
+        id: Date.now() + Math.random() * 1000,
+        text: '새 텍스트', fontSize: 18, color: '#0f172a', bold: false, align: 'left',
+        x: realW / 2, y: realH / 2,
+      });
+      renderItemList();
+      render();
+    }
+
+    function escAttr(s) { return String(s||'').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+
+    function renderItemList() {
+      const list = $('itemList');
+      const prevFocus = document.activeElement;
+      const prevId = prevFocus?.dataset?.itemId;
+      const prevType = prevFocus?.dataset?.inputType;
+
+      list.innerHTML = '';
+      items.forEach(item => {
+        const row = document.createElement('div');
+        row.className = 'item-row' + (item.id === selectedId ? ' is-selected' : '');
+        row.innerHTML = `
+          <div class="item-row-top">
+            <input class="item-text-input" type="text" data-input-type="text" data-item-id="${item.id}"
+              placeholder="텍스트" value="${escAttr(item.text)}" autocomplete="off" />
+            <button class="item-del" data-del="${item.id}">×</button>
+          </div>
+          <div class="item-row-opts">
+            <div>
+              <div class="item-opt-label">크기</div>
+              <input class="item-fs-input" type="number" data-input-type="fs" data-item-id="${item.id}" min="4" max="200" value="${item.fontSize}">
+            </div>
+            <div>
+              <div class="item-opt-label">색</div>
+              <input type="color" class="item-color-input" value="${item.color}">
+            </div>
+            <div>
+              <div class="item-opt-label">B</div>
+              <button class="item-bold-btn${item.bold ? ' on' : ''}">B</button>
+            </div>
+          </div>
+        `;
+        const ti = row.querySelector('.item-text-input');
+        ti.addEventListener('input', e => { item.text = e.target.value; render(); });
+        ti.addEventListener('focus', () => { selectedId = item.id; renderItemList(); render(); });
+
+        const fs = row.querySelector('.item-fs-input');
+        fs.addEventListener('input', e => { item.fontSize = Math.max(4, +e.target.value || 4); render(); });
+        fs.addEventListener('focus', () => { selectedId = item.id; renderItemList(); render(); });
+
+        row.querySelector('.item-color-input').addEventListener('input', e => { item.color = e.target.value; render(); });
+
+        row.querySelector('.item-del').addEventListener('click', e => {
+          e.stopPropagation();
+          items = items.filter(i => i.id !== item.id);
+          if (selectedId === item.id) selectedId = null;
+          renderItemList(); render();
+        });
+
+        row.querySelector('.item-bold-btn').addEventListener('click', function(e) {
+          e.stopPropagation();
+          item.bold = !item.bold;
+          this.classList.toggle('on', item.bold);
+          render();
+        });
+
+        row.addEventListener('mousedown', e => {
+          if (e.target.closest('input') || e.target.closest('button')) return;
+          selectedId = item.id; renderItemList(); render();
+        });
+
+        list.appendChild(row);
+      });
+
+      if (prevId && prevType) {
+        const r = list.querySelector(`input[data-item-id="${prevId}"][data-input-type="${prevType}"]`);
+        if (r) requestAnimationFrame(() => {
+          r.focus();
+          if (r.type === 'text') r.setSelectionRange(r.value.length, r.value.length);
+        });
+      }
+    }
+
+    // ── Canvas rendering ───────────────────────────────────────────────
+    const MM2PX_PRINT = 11.811; // 300 DPI
+    function getPaperSize() {
+      const w = parseFloat($('paperW').value) || 100;
+      const h = parseFloat($('paperH').value) || 100;
+      return { w, h };
+    }
+
+    function render() {
+      const { w, h } = getPaperSize();
+      const canvas = $('previewCanvas');
+      const wrap = $('previewWrap');
+      const scale = zoomLevel * 4; // ~4px per mm at 100% zoom
+      const cw = Math.round(w * scale);
+      const ch = Math.round(h * scale);
+      canvas.width = cw; canvas.height = ch;
+      wrap.style.width = cw + 'px'; wrap.style.height = ch + 'px';
+
+      const ctx = canvas.getContext('2d');
+      ctx.imageSmoothingQuality = 'high';
+
+      // background color
+      ctx.fillStyle = bgColor;
+      ctx.fillRect(0, 0, cw, ch);
+
+      // background image
+      if (bgImg) {
+        ctx.globalAlpha = bgOpacity;
+        const r = Math.max(cw / bgImg.width, ch / bgImg.height);
+        const iw = bgImg.width * r;
+        const ih = bgImg.height * r;
+        ctx.drawImage(bgImg, (cw - iw) / 2, (ch - ih) / 2, iw, ih);
+        ctx.globalAlpha = 1;
+      }
+
+      // text items
+      items.forEach(item => {
+        const fs = item.fontSize * scale;
+        const weight = item.bold ? '900' : '500';
+        ctx.font = `${weight} ${fs}px Pretendard, "Noto Sans KR", sans-serif`;
+        ctx.fillStyle = item.color;
+        ctx.textAlign = item.align || 'left';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(item.text, item.x * scale, item.y * scale);
+      });
+
+      // selection box
+      const sb = $('selectionBox');
+      if (selectedId) {
+        const sel = items.find(i => i.id === selectedId);
+        if (sel) {
+          const fs = sel.fontSize * scale;
+          ctx.font = `${sel.bold ? '900' : '500'} ${fs}px Pretendard, sans-serif`;
+          const m = ctx.measureText(sel.text || ' ');
+          const tw = m.width;
+          let bx = sel.x * scale;
+          if (sel.align === 'center') bx -= tw / 2;
+          else if (sel.align === 'right') bx -= tw;
+          const by = sel.y * scale - fs / 2;
+          sb.style.display = 'block';
+          sb.style.left = (bx - 4) + 'px';
+          sb.style.top = (by - 2) + 'px';
+          sb.style.width = (tw + 8) + 'px';
+          sb.style.height = (fs + 4) + 'px';
+        } else { sb.style.display = 'none'; }
+      } else { sb.style.display = 'none'; }
+    }
+
+    let bgImg = null;
+    function loadBgImage(src) {
+      if (!src) { bgImg = null; render(); return; }
+      const img = new Image();
+      img.onload = () => { bgImg = img; render(); };
+      img.src = src;
+    }
+
+    // ── Mouse drag ─────────────────────────────────────────────────────
+    function getCanvasMm(e) {
+      const canvas = $('previewCanvas');
+      const rect = canvas.getBoundingClientRect();
+      const scale = (canvas.width / rect.width) / 4 / zoomLevel * zoomLevel * 4 / (canvas.width / rect.width);
+      // simpler: rect → mm
+      const px = (e.clientX - rect.left) * (canvas.width / rect.width);
+      const py = (e.clientY - rect.top) * (canvas.height / rect.height);
+      const fs_scale = zoomLevel * 4;
+      return { x: px / fs_scale, y: py / fs_scale };
+    }
+
+    function hitTest(mm) {
+      const scale = zoomLevel * 4;
+      const ctx = $('previewCanvas').getContext('2d');
+      for (let i = items.length - 1; i >= 0; i--) {
+        const it = items[i];
+        const fs = it.fontSize * scale;
+        ctx.font = `${it.bold ? '900' : '500'} ${fs}px Pretendard, sans-serif`;
+        const m = ctx.measureText(it.text || ' ');
+        const tw = m.width / scale;
+        let bx = it.x;
+        if (it.align === 'center') bx -= tw / 2;
+        else if (it.align === 'right') bx -= tw;
+        const by = it.y - it.fontSize / 2;
+        if (mm.x >= bx - 1 && mm.x <= bx + tw + 1 && mm.y >= by - 1 && mm.y <= by + it.fontSize + 1) {
+          return it;
+        }
+      }
+      return null;
+    }
+
+    $('previewCanvas').addEventListener('mousedown', e => {
+      const mm = getCanvasMm(e);
+      const hit = hitTest(mm);
+      if (hit) {
+        selectedId = hit.id;
+        isDragging = true;
+        dragData = { startX: mm.x, startY: mm.y, itemX: hit.x, itemY: hit.y };
+        renderItemList(); render();
+      } else {
+        selectedId = null; renderItemList(); render();
+      }
+    });
+    document.addEventListener('mousemove', e => {
+      if (!isDragging || !selectedId) return;
+      const mm = getCanvasMm(e);
+      const sel = items.find(i => i.id === selectedId);
+      if (!sel) return;
+      sel.x = dragData.itemX + (mm.x - dragData.startX);
+      sel.y = dragData.itemY + (mm.y - dragData.startY);
+      render();
+    });
+    document.addEventListener('mouseup', () => { isDragging = false; });
+
+    // Wheel: resize selected item
+    $('previewCanvas').addEventListener('wheel', e => {
+      if (!selectedId) return;
+      e.preventDefault();
+      const sel = items.find(i => i.id === selectedId);
+      if (!sel) return;
+      sel.fontSize = Math.max(4, Math.min(200, sel.fontSize + (e.deltaY < 0 ? 1 : -1)));
+      renderItemList(); render();
+    }, { passive: false });
+
+    // Keyboard
+    document.addEventListener('keydown', e => {
+      if (!selectedId) return;
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      const sel = items.find(i => i.id === selectedId);
+      if (!sel) return;
+      const step = e.shiftKey ? 5 : 0.5;
+      if (e.key === 'ArrowLeft') { sel.x -= step; render(); e.preventDefault(); }
+      else if (e.key === 'ArrowRight') { sel.x += step; render(); e.preventDefault(); }
+      else if (e.key === 'ArrowUp') { sel.y -= step; render(); e.preventDefault(); }
+      else if (e.key === 'ArrowDown') { sel.y += step; render(); e.preventDefault(); }
+      else if (e.key === 'Delete' || e.key === 'Backspace') {
+        items = items.filter(i => i.id !== selectedId);
+        selectedId = null;
+        renderItemList(); render();
+        e.preventDefault();
+      }
+    });
+
+    // ── Background controls ────────────────────────────────────────────
+    function syncBgControls() {
+      $('bgOpacityWrap').style.display = bgData ? 'block' : 'none';
+      $('clearBgBtn').style.display = bgData ? 'block' : 'none';
+      $('bgOpacity').value = bgOpacity;
+      $('bgOpacityVal').textContent = Math.round(bgOpacity * 100) + '%';
+    }
+    $('bgColor').addEventListener('input', e => { bgColor = e.target.value; render(); });
+    $('bgFile').addEventListener('change', e => {
+      const f = e.target.files?.[0]; if (!f) return;
+      const r = new FileReader();
+      r.onload = () => { bgData = r.result; bgOpacity = 1; loadBgImage(bgData); syncBgControls(); };
+      r.readAsDataURL(f);
+    });
+    $('bgOpacity').addEventListener('input', e => {
+      bgOpacity = +e.target.value;
+      $('bgOpacityVal').textContent = Math.round(bgOpacity * 100) + '%';
+      render();
+    });
+    $('aiDesc').addEventListener('input', e => { aiDesc = e.target.value; });
+
+    function clearBg() {
+      bgData = ''; bgImg = null; bgOpacity = 1;
+      $('bgFile').value = '';
+      syncBgControls(); render();
+    }
+
+    async function generateAiBg() {
+      const btn = $('generateBgBtn'), status = $('aiStatus');
+      btn.disabled = true;
+      status.className = 'ai-status loading';
+      status.textContent = '⏳ AI가 배경 디자인 중... (10~30초)';
+      try {
+        const tplName = TEMPLATES[currentTpl].name;
+        const userDesc = aiDesc.trim();
+        const itemTexts = items.filter(i => i.text.trim()).map(i => i.text).slice(0, 5).join(', ');
+        const prompt = `${userDesc ? userDesc + '. ' : ''}Design a professional background for a ${tplName}. ${itemTexts ? `Content includes: ${itemTexts}.` : ''} No text, letters, numbers, logos, borders, or watermarks. High quality, print-ready, clean composition.`;
+
+        const token = await auth.currentUser.getIdToken();
+        const res = await fetch('/api/ai/generate-bg', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ prompt }),
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.detail || `HTTP ${res.status}`);
+        }
+        const data = await res.json();
+        bgData = 'data:image/png;base64,' + data.b64_json;
+        bgOpacity = 1;
+        loadBgImage(bgData);
+        status.className = 'ai-status success';
+        status.textContent = '✓ AI 배경 생성 완료!';
+        syncBgControls();
+        setTimeout(() => { status.className = 'ai-status'; }, 3000);
+      } catch (e) {
+        status.className = 'ai-status error';
+        status.textContent = '오류: ' + e.message;
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    // ── Paper size controls ────────────────────────────────────────────
+    function applyPaperFromInputs() {
+      const w = parseFloat($('paperW').value) || 100;
+      const h = parseFloat($('paperH').value) || 100;
+      paperW = Math.min(w, h);
+      paperH = Math.max(w, h);
+      landscape = $('orientToggle').checked;
+      $('paperInfo').textContent = `${w} × ${h} mm (${landscape ? '가로' : '세로'})`;
+      zoomFit();
+    }
+    $('paperW').addEventListener('input', applyPaperFromInputs);
+    $('paperH').addEventListener('input', applyPaperFromInputs);
+    $('orientToggle').addEventListener('change', () => {
+      const cw = parseFloat($('paperW').value);
+      const ch = parseFloat($('paperH').value);
+      $('paperW').value = ch; $('paperH').value = cw;
+      applyPaperFromInputs();
+    });
+
+    // ── Zoom ───────────────────────────────────────────────────────────
+    function setZoom(level) {
+      zoomLevel = Math.max(0.2, Math.min(3, level));
+      $('zoomVal').textContent = Math.round(zoomLevel * 100) + '%';
+      render();
+    }
+    function zoomFit() {
+      const main = document.querySelector('main');
+      const availW = main.clientWidth - 40;
+      const availH = main.clientHeight - 100;
+      const { w, h } = getPaperSize();
+      const baseScale = 4;
+      const fit = Math.min(availW / (w * baseScale), availH / (h * baseScale));
+      setZoom(Math.max(0.2, fit * 0.95));
+    }
+    window.addEventListener('resize', zoomFit);
+
+    // ── Save ───────────────────────────────────────────────────────────
+    function buildHiResCanvas() {
+      const { w, h } = getPaperSize();
+      const c = document.createElement('canvas');
+      const scale = MM2PX_PRINT;
+      c.width = Math.round(w * scale);
+      c.height = Math.round(h * scale);
+      const ctx = c.getContext('2d');
+      ctx.imageSmoothingQuality = 'high';
+      ctx.fillStyle = bgColor;
+      ctx.fillRect(0, 0, c.width, c.height);
+      if (bgImg) {
+        ctx.globalAlpha = bgOpacity;
+        const r = Math.max(c.width / bgImg.width, c.height / bgImg.height);
+        const iw = bgImg.width * r, ih = bgImg.height * r;
+        ctx.drawImage(bgImg, (c.width - iw) / 2, (c.height - ih) / 2, iw, ih);
+        ctx.globalAlpha = 1;
+      }
+      items.forEach(item => {
+        const fs = item.fontSize * scale;
+        ctx.font = `${item.bold ? '900' : '500'} ${fs}px Pretendard, "Noto Sans KR", sans-serif`;
+        ctx.fillStyle = item.color;
+        ctx.textAlign = item.align || 'left';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(item.text, item.x * scale, item.y * scale);
+      });
+      return c;
+    }
+
+    $('downloadPng').addEventListener('click', () => {
+      const c = buildHiResCanvas();
+      const a = document.createElement('a');
+      a.download = `${TEMPLATES[currentTpl].name}_${new Date().toISOString().slice(0,10)}.png`;
+      a.href = c.toDataURL('image/png');
+      a.click();
+    });
+
+    $('downloadPdf').addEventListener('click', () => {
+      const { w, h } = getPaperSize();
+      const c = buildHiResCanvas();
+      const dataUrl = c.toDataURL('image/jpeg', 0.95);
+      const win = window.open('', '_blank');
+      win.document.write(`
+        <html><head><title>${TEMPLATES[currentTpl].name} PDF</title>
+        <style>
+          @page { size: ${w}mm ${h}mm; margin: 0; }
+          body { margin: 0; padding: 0; }
+          img { width: ${w}mm; height: ${h}mm; display: block; }
+        </style></head>
+        <body><img src="${dataUrl}" onload="setTimeout(()=>window.print(), 200)"></body></html>
+      `);
+      win.document.close();
+    });
+
+    $('resetBtn').addEventListener('click', () => {
+      if (!confirm('초기 템플릿으로 되돌릴까요? 모든 변경사항이 사라집니다.')) return;
+      loadTemplate(currentTpl);
+    });
+
+    // ── Auth ───────────────────────────────────────────────────────────
+    auth.onAuthStateChanged(user => {
+      if (!user) { location.href = '../login.html'; return; }
+      const name = user.displayName || (user.email || '').split('@')[0];
+      $('userName').textContent = name;
+    });
+    function doLogout() {
+      auth.signOut().then(() => location.href = '../index.html');
+    }
+
+    // ── Init ───────────────────────────────────────────────────────────
+    loadTemplate(currentTpl);
+  </script>
+</body>
+</html>

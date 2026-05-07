@@ -430,44 +430,104 @@
 <script src="js/firebase-config.js"></script>
 <script>
   const PROGRAMS = [
+    // ── 디자인 도구 ──
     {
       name: '표지 디자인',
       icon: '🎨', iconBg: '#eff6ff',
-      desc: '보고서·학교 교재·문제집 표지를 AI 배경과 함께 디자인합니다. 앞/뒤 표지 펼침면 편집 가능.',
+      desc: '보고서·학교 교재·문제집 표지를 AI 배경과 함께 디자인. 앞/뒤 표지 펼침면 편집 가능.',
       url: 'tools/cover-design.html', available: true,
-      tags: ['디자인', 'AI', 'PDF'],
+      tags: ['디자인', 'AI', 'PDF'], category: '디자인',
     },
+    {
+      name: '명함 디자인',
+      icon: '💳', iconBg: '#f0f9ff',
+      desc: '90×54mm 표준 규격 명함을 AI 배경과 함께 디자인. PNG·PDF 출력 지원.',
+      url: 'tools/design-studio.html?template=business-card', available: true,
+      tags: ['디자인', '명함', 'AI'], category: '디자인', isNew: true,
+    },
+    {
+      name: '전단지 디자인',
+      icon: '📄', iconBg: '#fef3c7',
+      desc: 'A4 전단지를 AI 배경 + 텍스트로 빠르게 제작. 이벤트·홍보용에 최적화.',
+      url: 'tools/design-studio.html?template=flyer', available: true,
+      tags: ['디자인', '전단지', 'AI'], category: '디자인', isNew: true,
+    },
+    {
+      name: '리플렛 (3단)',
+      icon: '📋', iconBg: '#ecfeff',
+      desc: 'A4 가로 3단 접지 리플렛 디자인. 브로슈어·소개서 제작에 적합.',
+      url: 'tools/design-studio.html?template=leaflet', available: true,
+      tags: ['디자인', '리플렛', '브로슈어'], category: '디자인', isNew: true,
+    },
+    {
+      name: '초대장 디자인',
+      icon: '💌', iconBg: '#fef9c3',
+      desc: '결혼식·개업식·돌잔치 초대장을 우아하게. AI 배경으로 분위기 연출.',
+      url: 'tools/design-studio.html?template=invitation', available: true,
+      tags: ['디자인', '초대장', 'AI'], category: '디자인', isNew: true,
+    },
+    {
+      name: '포스터 (A3)',
+      icon: '🖼️', iconBg: '#fce7f3',
+      desc: 'A3 대형 포스터 디자인. 이벤트·공연·전시 홍보물 제작.',
+      url: 'tools/design-studio.html?template=poster', available: true,
+      tags: ['디자인', '포스터', 'AI'], category: '디자인', isNew: true,
+    },
+    {
+      name: '상장/수료증',
+      icon: '🏆', iconBg: '#fef3c7',
+      desc: '학교·기관·교육과정용 상장과 수료증 디자인. A4 가로 양식.',
+      url: 'tools/design-studio.html?template=certificate', available: true,
+      tags: ['디자인', '상장', '수료증'], category: '디자인', isNew: true,
+    },
+    {
+      name: '메뉴판 디자인',
+      icon: '🍽️', iconBg: '#fed7aa',
+      desc: '카페·레스토랑 메뉴판 디자인. 깔끔한 레이아웃과 가격 표시.',
+      url: 'tools/design-studio.html?template=menu', available: true,
+      tags: ['디자인', '메뉴판'], category: '디자인', isNew: true,
+    },
+
+    // ── PDF 도구 ──
     {
       name: 'PDF 문서 편집기',
       icon: '📝', iconBg: '#fff7ed',
       desc: 'N-up 인쇄·간지 삽입·머리말·꼬리말·워터마크·페이지번호 등 다양한 PDF 편집 기능.',
       url: 'tools/pdf-editor.html', available: true,
-      tags: ['PDF', '인쇄'],
+      tags: ['PDF', '인쇄'], category: 'PDF',
     },
     {
       name: '인쇄 사전 검수기',
       icon: '🔍', iconBg: '#f0fdf4',
-      desc: '해상도·도련·폰트 임베딩·색상 모드를 자동 검수하고 AI 시각 분석으로 인쇄 품질을 점검합니다.',
+      desc: '해상도·도련·폰트 임베딩·색상 모드를 자동 검수하고 AI 시각 분석으로 인쇄 품질 점검.',
       url: 'tools/preflight.html', available: true,
-      tags: ['검수', 'AI', 'GPT-4.1'], isNew: true,
+      tags: ['검수', 'AI', 'GPT-4.1'], category: 'PDF',
+    },
+
+    // ── 준비중 ──
+    {
+      name: '카탈로그 (다페이지)',
+      icon: '📚', iconBg: '#fdf4ff',
+      desc: '여러 페이지의 제품 카탈로그·소개책자를 디자인합니다. 페이지별 레이아웃 지원.',
+      url: '#', available: false, tags: ['디자인', '카탈로그'], category: '디자인',
     },
     {
       name: '견적서 생성기',
       icon: '📋', iconBg: '#f0fdf4',
-      desc: '전문 견적서와 영수증을 즉시 발행하세요. 품목 자동완성, PDF 출력 지원.',
-      url: '#', available: false, tags: ['업무', '문서'],
+      desc: '전문 견적서와 영수증을 즉시 발행. 품목 자동완성, PDF 출력 지원.',
+      url: '#', available: false, tags: ['업무', '문서'], category: '업무',
     },
     {
       name: '작업 지시서',
       icon: '📑', iconBg: '#fef3c7',
       desc: '인쇄 작업 지시 내용을 정리하고 공정별 진행 상황을 관리합니다.',
-      url: '#', available: false, tags: ['공정', '인쇄'],
+      url: '#', available: false, tags: ['공정', '인쇄'], category: '업무',
     },
     {
       name: '재고 관리',
       icon: '📦', iconBg: '#fdf4ff',
       desc: '용지·잉크·소모품 재고를 추적하고 부족 시 알림을 받으세요.',
-      url: '#', available: false, tags: ['재고', '알림'],
+      url: '#', available: false, tags: ['재고', '알림'], category: '업무',
     },
   ];
 
