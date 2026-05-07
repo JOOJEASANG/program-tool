@@ -285,9 +285,23 @@
       </div>
     </div>
 
-    <!-- 4. 저장 -->
+    <!-- 4. 화면 배율 -->
+    <div class="section">
+      <h2>화면 확대/축소</h2>
+      <div style="display:flex;align-items:center;gap:6px;">
+        <button class="secondary" style="padding:6px 12px;flex:1;" onclick="zoomOut()">−</button>
+        <span id="zoomVal" style="font-size:12px;font-weight:700;color:#374151;min-width:44px;text-align:center;">100%</span>
+        <button class="secondary" style="padding:6px 12px;flex:1;" onclick="zoomIn()">+</button>
+        <button class="secondary" style="padding:6px 10px;" onclick="zoomFit()">맞춤</button>
+      </div>
+    </div>
+
+    <!-- 5. 저장 -->
     <div class="section">
       <h2>저장</h2>
+      <label class="checkline" style="margin-bottom:8px;">
+        <input id="noBgPrint" type="checkbox"> 배경 없이 출력 (투명/흰색)
+      </label>
       <div class="btns">
         <button class="blue" id="downloadPng">PNG 저장</button>
         <button class="secondary" id="downloadSvg">SVG 저장</button>
@@ -307,12 +321,6 @@
       </div>
       <div class="preview-scroll" id="previewScroll">
         <div id="previewBox"></div>
-      </div>
-      <div class="zoom-bar">
-        <button class="zoom-btn" onclick="zoomOut()">−</button>
-        <span id="zoomVal">100%</span>
-        <button class="zoom-btn" onclick="zoomIn()">+</button>
-        <button class="zoom-btn" style="font-size:10px;width:auto;padding:0 7px;" onclick="zoomFit()">맞춤</button>
       </div>
     </div>
   </main>
@@ -522,11 +530,13 @@ function makeSvg() {
 
   let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}mm" height="${h}mm" viewBox="0 0 ${w} ${h}">`;
 
+  const skipBg = $('noBgPrint') && $('noBgPrint').checked;
+
   // White base
   svg += `<rect width="${w}" height="${h}" fill="#ffffff"/>`;
 
   // Single background spanning entire spread
-  if (bgData) {
+  if (bgData && !skipBg) {
     svg += `<image href="${bgData}" x="0" y="0" width="${w}" height="${h}" preserveAspectRatio="xMidYMid slice" opacity="${bgOpacity}"/>`;
   }
 
@@ -837,6 +847,7 @@ $('resetBtn').addEventListener('click', () => {
   $('logoFile').value = ''; $('bgFile').value = ''; $('logoOrg').value = '';
   $('spineText').value = ''; $('aiDesc').value = '';
   $('showGuides').checked = true;
+  $('noBgPrint').checked = false;
   $('noSpine').checked = false; $('spineVertical').checked = false;
   $('spineDetails').style.display = 'block';
   localStorage.removeItem('designTool_v4');

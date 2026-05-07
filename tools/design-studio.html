@@ -138,8 +138,6 @@
       position: absolute; border: 2px dashed #2563eb;
       pointer-events: none; box-sizing: border-box;
     }
-    .zoom-controls { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
-    .zoom-controls button { padding: 6px 10px; font-size: 12px; }
 
     @media (max-width: 900px) {
       .app { grid-template-columns: 1fr; }
@@ -200,6 +198,10 @@
       <!-- Background -->
       <div class="section">
         <h2>🎨 배경</h2>
+        <label style="display:flex;align-items:center;gap:7px;font-size:12px;font-weight:700;color:#374151;cursor:pointer;margin-bottom:8px;">
+          <input id="noBgCheck" type="checkbox"> 배경 없이 출력 (투명/흰색)
+        </label>
+        <div id="bgControls">
         <div class="field">
           <label>배경색</label>
           <input id="bgColor" type="color" value="#ffffff">
@@ -221,6 +223,21 @@
           <div class="minirow"><span>투명</span><span id="bgOpacityVal">100%</span><span>진하게</span></div>
         </div>
         <button class="secondary" id="clearBgBtn" onclick="clearBg()" style="width:100%;margin-top:6px;display:none;">배경 제거</button>
+        </div><!-- /bgControls -->
+      </div>
+
+      <!-- Zoom & Bleed -->
+      <div class="section">
+        <h2>🔍 화면 확대/축소</h2>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <button class="secondary" style="padding:6px 12px;flex:1;" onclick="setZoom(zoomLevel - 0.1)">−</button>
+          <span id="zoomVal" style="font-size:12px;font-weight:700;color:#374151;min-width:44px;text-align:center;">100%</span>
+          <button class="secondary" style="padding:6px 12px;flex:1;" onclick="setZoom(zoomLevel + 0.1)">+</button>
+          <button class="secondary" style="padding:6px 10px;" onclick="zoomFit()">맞춤</button>
+        </div>
+        <label style="display:flex;align-items:center;gap:7px;font-size:12px;font-weight:700;color:#374151;cursor:pointer;margin-top:8px;">
+          <input id="showBleed" type="checkbox" checked> 도련선 표시 (3mm)
+        </label>
       </div>
 
       <!-- Save -->
@@ -238,12 +255,6 @@
     <main>
       <div>
         <div class="canvas-hint">💡 드래그로 이동 · 휠로 크기 조절 · 방향키로 미세 조정 · Delete로 삭제</div>
-        <div class="zoom-controls">
-          <button class="secondary" onclick="setZoom(zoomLevel - 0.1)">−</button>
-          <span style="font-size:12px;font-weight:700;color:#374151;min-width:50px;text-align:center;" id="zoomVal">100%</span>
-          <button class="secondary" onclick="setZoom(zoomLevel + 0.1)">+</button>
-          <button class="secondary" onclick="zoomFit()" style="margin-left:6px;">화면 맞춤</button>
-        </div>
       </div>
       <div class="preview-shell">
         <div class="preview-wrap" id="previewWrap">
@@ -260,16 +271,6 @@
   <script>
     // ── Templates ──────────────────────────────────────────────────────
     const TEMPLATES = {
-      'business-card': {
-        name: '명함', icon: '💳', size: [90, 54], orient: 'landscape',
-        bg: '#ffffff',
-        items: [
-          { text: '홍길동', fontSize: 20, color: '#0f172a', bold: true, x: 0.06, y: 0.32 },
-          { text: '대표 / Designer', fontSize: 9, color: '#64748b', bold: false, x: 0.06, y: 0.50 },
-          { text: '010-1234-5678', fontSize: 9, color: '#0f172a', bold: false, x: 0.06, y: 0.72 },
-          { text: 'hello@email.com', fontSize: 9, color: '#0f172a', bold: false, x: 0.06, y: 0.84 },
-        ],
-      },
       'flyer': {
         name: '전단지', icon: '📄', size: [210, 297], orient: 'portrait',
         bg: '#ffffff',
@@ -311,19 +312,6 @@
           { text: 'Tickets: www.example.com', fontSize: 18, color: '#94a3b8', bold: false, x: 0.5, y: 0.92, align: 'center' },
         ],
       },
-      'certificate': {
-        name: '상장/수료증', icon: '🏆', size: [297, 210], orient: 'landscape',
-        bg: '#fefce8',
-        items: [
-          { text: '수 료 증', fontSize: 50, color: '#0f172a', bold: true, x: 0.5, y: 0.18, align: 'center' },
-          { text: '제 2026-001 호', fontSize: 11, color: '#94a3b8', bold: false, x: 0.5, y: 0.28, align: 'center' },
-          { text: '성  명: 홍길동', fontSize: 18, color: '#0f172a', bold: false, x: 0.5, y: 0.45, align: 'center' },
-          { text: '위 사람은 상기 과정을 성실히 수료하였기에', fontSize: 14, color: '#374151', bold: false, x: 0.5, y: 0.60, align: 'center' },
-          { text: '이 증서를 수여합니다.', fontSize: 14, color: '#374151', bold: false, x: 0.5, y: 0.68, align: 'center' },
-          { text: '2026년 5월 7일', fontSize: 14, color: '#0f172a', bold: false, x: 0.5, y: 0.84, align: 'center' },
-          { text: 'Program Tool Academy', fontSize: 16, color: '#0f172a', bold: true, x: 0.5, y: 0.92, align: 'center' },
-        ],
-      },
       'menu': {
         name: '메뉴판', icon: '🍽️', size: [210, 297], orient: 'portrait',
         bg: '#fafaf9',
@@ -341,13 +329,14 @@
     // ── State ──────────────────────────────────────────────────────────
     const $ = id => document.getElementById(id);
     const params = new URLSearchParams(location.search);
-    let currentTpl = params.get('template') && TEMPLATES[params.get('template')] ? params.get('template') : 'business-card';
+    let currentTpl = params.get('template') && TEMPLATES[params.get('template')] ? params.get('template') : 'flyer';
     let paperW = TEMPLATES[currentTpl].size[0];
     let paperH = TEMPLATES[currentTpl].size[1];
     let landscape = TEMPLATES[currentTpl].orient === 'landscape';
     let bgColor = TEMPLATES[currentTpl].bg || '#ffffff';
     let bgData = '';
     let bgOpacity = 1;
+    let noBg = false;
     let aiDesc = '';
     let items = [];
     let selectedId = null;
@@ -361,7 +350,7 @@
       paperW = tpl.size[0]; paperH = tpl.size[1];
       landscape = tpl.orient === 'landscape';
       bgColor = tpl.bg || '#ffffff';
-      bgData = ''; bgOpacity = 1; aiDesc = '';
+      bgData = ''; bgOpacity = 1; noBg = false; aiDesc = '';
       // Convert template items (relative coords) to absolute mm
       const realW = landscape ? Math.max(paperW, paperH) : Math.min(paperW, paperH);
       const realH = landscape ? Math.min(paperW, paperH) : Math.max(paperW, paperH);
@@ -387,6 +376,8 @@
       $('orientToggle').checked = landscape;
       $('bgColor').value = bgColor;
       $('aiDesc').value = aiDesc;
+      $('noBgCheck').checked = false;
+      $('bgControls').style.display = '';
       $('paperInfo').textContent = `${$('paperW').value} × ${$('paperH').value} mm (${landscape ? '가로' : '세로'})`;
       syncBgControls();
     }
@@ -512,11 +503,11 @@
       ctx.imageSmoothingQuality = 'high';
 
       // background color
-      ctx.fillStyle = bgColor;
+      ctx.fillStyle = noBg ? '#ffffff' : bgColor;
       ctx.fillRect(0, 0, cw, ch);
 
       // background image
-      if (bgImg) {
+      if (bgImg && !noBg) {
         ctx.globalAlpha = bgOpacity;
         const r = Math.max(cw / bgImg.width, ch / bgImg.height);
         const iw = bgImg.width * r;
@@ -556,6 +547,18 @@
           sb.style.height = (fs + 4) + 'px';
         } else { sb.style.display = 'none'; }
       } else { sb.style.display = 'none'; }
+
+      // Bleed marks (도련선) — 3mm safety zone
+      if ($('showBleed') && $('showBleed').checked) {
+        const BLEED_MM = 3;
+        const bleedPx = BLEED_MM * scale;
+        ctx.save();
+        ctx.strokeStyle = 'rgba(220, 38, 38, 0.55)';
+        ctx.lineWidth = Math.max(0.5, scale * 0.25);
+        ctx.setLineDash([scale * 1.5, scale * 1]);
+        ctx.strokeRect(bleedPx, bleedPx, cw - bleedPx * 2, ch - bleedPx * 2);
+        ctx.restore();
+      }
     }
 
     let bgImg = null;
@@ -657,6 +660,12 @@
       $('bgOpacity').value = bgOpacity;
       $('bgOpacityVal').textContent = Math.round(bgOpacity * 100) + '%';
     }
+    $('noBgCheck').addEventListener('change', e => {
+      noBg = e.target.checked;
+      $('bgControls').style.display = noBg ? 'none' : '';
+      render();
+    });
+    $('showBleed').addEventListener('change', () => render());
     $('bgColor').addEventListener('input', e => { bgColor = e.target.value; render(); });
     $('bgFile').addEventListener('change', e => {
       const f = e.target.files?.[0]; if (!f) return;
@@ -759,9 +768,9 @@
       c.height = Math.round(h * scale);
       const ctx = c.getContext('2d');
       ctx.imageSmoothingQuality = 'high';
-      ctx.fillStyle = bgColor;
+      ctx.fillStyle = noBg ? '#ffffff' : bgColor;
       ctx.fillRect(0, 0, c.width, c.height);
-      if (bgImg) {
+      if (bgImg && !noBg) {
         ctx.globalAlpha = bgOpacity;
         const r = Math.max(c.width / bgImg.width, c.height / bgImg.height);
         const iw = bgImg.width * r, ih = bgImg.height * r;

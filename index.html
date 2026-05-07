@@ -13,7 +13,9 @@
       font-family: Pretendard, "Noto Sans KR", Arial, sans-serif;
       color: #111827; background: #fff;
       min-height: 100vh;
+      display: flex; flex-direction: column;
     }
+    main { flex: 1; }
 
     /* ── NAV ─── */
     .nav {
@@ -132,10 +134,33 @@
     }
     .cta-secondary:hover { border-color: #12396d; background: #f0f4ff; }
 
+    /* ── SEARCH ── */
+    .nav-search {
+      flex: 1; max-width: 320px;
+      position: relative;
+    }
+    .nav-search-input {
+      width: 100%; height: 36px;
+      padding: 0 12px 0 36px;
+      border: 1.5px solid #e5e7eb; border-radius: 9px;
+      background: #f8fafc; font-size: 13px; font-family: inherit;
+      outline: none; color: #111827; transition: all 0.15s;
+    }
+    .nav-search-input:focus { border-color: #1d9bb2; background: #fff; box-shadow: 0 0 0 3px rgba(29,155,178,0.1); }
+    .nav-search-icon {
+      position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+      pointer-events: none; color: #94a3b8;
+    }
+    .search-no-result {
+      display: none; padding: 32px; text-align: center;
+      color: #64748b; font-size: 14px;
+    }
+
     /* ── DASHBOARD GREETING (logged in) ── */
     .dashboard-greeting {
       padding: 50px 5% 24px;
       background: linear-gradient(180deg, #f0f9ff 0%, #fff 100%);
+      text-align: center;
     }
     .dashboard-greeting h2 {
       font-size: 28px; font-weight: 900; color: #0f172a;
@@ -307,6 +332,7 @@
     @media (max-width: 640px) {
       .nav { padding: 0 4%; gap: 8px; }
       .nav-btn-ghost { display: none; }
+      .nav-search { display: none; }
       .user-chip-name { display: none; }
       .programs-header { padding: 0 4%; }
       .slider-wrap { padding: 0 4%; }
@@ -327,6 +353,10 @@
     <div class="nav-logo-icon">🛠️</div>
     Program Tool
   </a>
+  <div class="nav-search">
+    <svg class="nav-search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+    <input class="nav-search-input" id="searchInput" type="text" placeholder="도구 검색..." autocomplete="off" />
+  </div>
   <div class="nav-right">
     <!-- Logged out -->
     <a class="nav-btn-ghost" href="login.html" id="navLoginBtn">로그인</a>
@@ -387,6 +417,7 @@
     </div>
     <div class="slider-wrap">
       <div class="slider" id="slider"></div>
+      <div class="search-no-result" id="noResult">검색 결과가 없습니다.</div>
     </div>
   </section>
 
@@ -439,13 +470,6 @@
       tags: ['디자인', 'AI', 'PDF'], category: '디자인',
     },
     {
-      name: '명함 디자인',
-      icon: '💳', iconBg: '#f0f9ff',
-      desc: '90×54mm 표준 규격 명함을 AI 배경과 함께 디자인. PNG·PDF 출력 지원.',
-      url: 'tools/design-studio.html?template=business-card', available: true,
-      tags: ['디자인', '명함', 'AI'], category: '디자인', isNew: true,
-    },
-    {
       name: '전단지 디자인',
       icon: '📄', iconBg: '#fef3c7',
       desc: 'A4 전단지를 AI 배경 + 텍스트로 빠르게 제작. 이벤트·홍보용에 최적화.',
@@ -472,13 +496,6 @@
       desc: 'A3 대형 포스터 디자인. 이벤트·공연·전시 홍보물 제작.',
       url: 'tools/design-studio.html?template=poster', available: true,
       tags: ['디자인', '포스터', 'AI'], category: '디자인', isNew: true,
-    },
-    {
-      name: '상장/수료증',
-      icon: '🏆', iconBg: '#fef3c7',
-      desc: '학교·기관·교육과정용 상장과 수료증 디자인. A4 가로 양식.',
-      url: 'tools/design-studio.html?template=certificate', available: true,
-      tags: ['디자인', '상장', '수료증'], category: '디자인', isNew: true,
     },
     {
       name: '메뉴판 디자인',
@@ -576,6 +593,27 @@
 
   const availableCount = PROGRAMS.filter(p => p.available).length;
   document.getElementById('progCount').textContent = `사용 가능 ${availableCount}개 · 준비중 ${PROGRAMS.length - availableCount}개`;
+
+  // Search
+  document.getElementById('searchInput').addEventListener('input', function() {
+    const q = this.value.trim().toLowerCase();
+    const cards = slider.querySelectorAll('.prog-card');
+    let visibleCount = 0;
+    cards.forEach((card, i) => {
+      const p = PROGRAMS[i];
+      const match = !q ||
+        p.name.toLowerCase().includes(q) ||
+        p.desc.toLowerCase().includes(q) ||
+        p.tags.some(t => t.toLowerCase().includes(q)) ||
+        (p.category || '').toLowerCase().includes(q);
+      card.style.display = match ? '' : 'none';
+      if (match) visibleCount++;
+    });
+    document.getElementById('noResult').style.display = visibleCount === 0 ? 'block' : 'none';
+    document.getElementById('progCount').textContent = q
+      ? `검색 결과 ${visibleCount}개`
+      : `사용 가능 ${availableCount}개 · 준비중 ${PROGRAMS.length - availableCount}개`;
+  });
 
   // Auth state
   auth.onAuthStateChanged(user => {
