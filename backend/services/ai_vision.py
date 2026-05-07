@@ -1,9 +1,7 @@
 """
-Claude Vision-based pre-flight analysis.
-Renders first N pages as images and asks Claude to evaluate print readiness.
+Claude Vision-based pre-flight analysis (sync version for Firebase Functions).
 """
 import base64
-import io
 import os
 import fitz
 import anthropic
@@ -32,37 +30,30 @@ def _render_page_to_base64(page: fitz.Page, dpi: int = RENDER_DPI) -> str:
     return base64.standard_b64encode(img_bytes).decode("utf-8")
 
 
-async def analyze_with_vision(doc: fitz.Document) -> str:
+def analyze_with_vision(doc: fitz.Document) -> str:
     api_key = os.getenv("ANTHROPIC_API_KEY")
     if not api_key:
         return "AI 분석을 사용하려면 ANTHROPIC_API_KEY 환경변수를 설정해주세요."
 
-    client = anthropic.AsyncAnthropic(api_key=api_key)
+    client = anthropic.Anthropic(api_key=api_key)
     pages_to_check = min(len(doc), MAX_PAGES_TO_ANALYZE)
 
     content: list[dict] = []
     for i in range(pages_to_check):
         page = doc[i]
         b64 = _render_page_to_base64(page)
-        content.append({
-            "type": "text",
-            "text": f"=== 페이지 {i + 1} ==="
-        })
+        content.append({"type": "text", "text": f"=== 페이지 {i + 1} ==="})
         content.append({
             "type": "image",
-            "source": {
-                "type": "base64",
-                "media_type": "image/jpeg",
-                "data": b64,
-            }
+            "source": {"type": "base64", "media_type": "image/jpeg", "data": b64},
         })
 
     content.append({
         "type": "text",
-        "text": f"총 {len(doc)}페이지 문서입니다. 위 {pages_to_check}개 페이지를 분석하여 인쇄 품질을 평가해주세요."
+        "text": f"총 {len(doc)}페이지 문서입니다. 위 {pages_to_check}개 페이지를 분석하여 인쇄 품질을 평가해주세요.",
     })
 
-    response = await client.messages.create(
+    response = client.messages.create(
         model="claude-haiku-4-5",
         max_tokens=1024,
         system=SYSTEM_PROMPT,

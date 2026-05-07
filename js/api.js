@@ -1,9 +1,7 @@
 /**
- * API client for Program Tool backend.
- * Reads BACKEND_URL from window._ENV (injected at runtime or set in firebase-config.js).
+ * API client — calls /api/** on the same domain.
+ * Firebase Hosting rewrites /api/** → Cloud Function "api".
  */
-
-const API_BASE = window._ENV?.BACKEND_URL || 'https://program-tool-backend-REPLACE.a.run.app';
 
 async function _getToken() {
   const user = auth.currentUser;
@@ -28,7 +26,7 @@ async function apiProcessPdf(files, settings) {
   files.forEach(f => form.append('files', f));
   form.append('settings', JSON.stringify(settings));
 
-  const resp = await fetch(`${API_BASE}/api/pdf/process`, {
+  const resp = await fetch('/api/pdf/process', {
     method: 'POST',
     headers,
     body: form,
@@ -53,7 +51,7 @@ async function apiPreflightCheck(file, useAi = false) {
   form.append('file', file);
   form.append('use_ai', String(useAi));
 
-  const resp = await fetch(`${API_BASE}/api/preflight/check`, {
+  const resp = await fetch('/api/preflight/check', {
     method: 'POST',
     headers,
     body: form,
