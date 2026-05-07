@@ -50,6 +50,9 @@
     .upload-add-row { display: flex; gap: 7px; margin-top: 8px; }
     .upload-add-btn { flex: 1; border: 1.5px solid var(--primary); border-radius: 9px; padding: 8px; font-size: 12px; font-weight: 800; color: var(--primary); background: #fff; cursor: pointer; font-family: inherit; transition: all 0.15s; text-align: center; }
     .upload-add-btn:hover { background: #eff6ff; }
+    .upload-add-btn.break-btn { border-color: #7c3aed; color: #7c3aed; }
+    .upload-add-btn.break-btn:hover { background: #f5f3ff; }
+    .file-divider.break { border-left: 3px solid #7c3aed; background: #f5f3ff; color: #5b21b6; }
 
     /* N-up */
     .nup-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
@@ -167,7 +170,8 @@
       <input type="file" id="fileInput" accept=".pdf,application/pdf">
     </div>
     <div class="upload-add-row">
-      <button class="upload-add-btn" id="addFileBtn">➕ 파일 추가 (이어붙이기)</button>
+      <button class="upload-add-btn" id="addFileContBtn">➕ 연속 추가</button>
+      <button class="upload-add-btn break-btn" id="addFileBreakBtn">📌 비연속 추가</button>
       <input type="file" id="fileInputAdd" accept=".pdf,application/pdf">
     </div>
 
@@ -224,7 +228,12 @@
           <option value="b4">B4 (250×354mm)</option>
           <option value="b5">B5 (176×250mm)</option>
           <option value="letter">Letter (216×279mm)</option>
+          <option value="custom">직접 입력...</option>
         </select>
+      </div>
+      <div id="customSizeRow" class="grid2" style="display:none;">
+        <div class="field"><label>너비 (mm)</label><input id="customW" type="number" value="210" min="50" max="1200" step="1"></div>
+        <div class="field"><label>높이 (mm)</label><input id="customH" type="number" value="297" min="50" max="1200" step="1"></div>
       </div>
       <div class="field">
         <label>용지 방향</label>
@@ -308,6 +317,7 @@ let previewCanvases = [];
 let _dragSrcId = null;
 let _nupPopup = null;
 let _nextId = 1;
+let _addMode = 'continuous'; // 'continuous' | 'break'
 
 function makeId() { return _nextId++; }
 
@@ -328,7 +338,13 @@ function getLayoutForNup(n) {
 
 const PAPER = { a4:[210,297], a3:[297,420], b4:[250,354], b5:[176,250], letter:[216,279] };
 function getSettings() {
-  const [pw0, ph0] = PAPER[$('paperSize').value || 'a4'];
+  let pw0, ph0;
+  if ($('paperSize').value === 'custom') {
+    pw0 = parseFloat($('customW').value) || 210;
+    ph0 = parseFloat($('customH').value) || 297;
+  } else {
+    [pw0, ph0] = PAPER[$('paperSize').value || 'a4'];
+  }
   return {
     pw: landscape ? ph0 : pw0,
     ph: landscape ? pw0 : ph0,
@@ -351,9 +367,10 @@ function hideStatus() { $('statusBar').style.display = 'none'; }
 
 // ── Upload ────────────────────────────────────────────────────────────
 $('uploadZone').addEventListener('click', () => $('fileInput').click());
-$('fileInput').addEventListener('change', e => { if (e.target.files[0]) handleFile(e.target.files[0], false); e.target.value = ''; });
-$('addFileBtn').addEventListener('click', () => $('fileInputAdd').click());
-$('fileInputAdd').addEventListener('change', e => { if (e.target.files[0]) handleFile(e.target.files[0], true); e.target.value = ''; });
+$('fileInput').addEventListener('change', e => { if (e.target.files[0]) handleFile(e.target.files[0], false, false); e.target.value = ''; });
+$('addFileContBtn').addEventListener('click', () => { _addMode = 'continuous'; $('fileInputAdd').click(); });
+$('addFileBreakBtn').addEventListener('click', () => { _addMode = 'break'; $('fileInputAdd').click(); });
+$('fileInputAdd').addEventListener('change', e => { if (e.target.files[0]) handleFile(e.target.files[0], true, _addMode === 'break'); e.target.value = ''; });
 
 $('uploadZone').addEventListener('dragover', e => { e.preventDefault(); $('uploadZone').classList.add('drag-over'); });
 $('uploadZone').addEventListener('dragleave', () => $('uploadZone').classList.remove('drag-over'));
@@ -362,7 +379,7 @@ $('uploadZone').addEventListener('drop', e => {
   const f = e.dataTransfer.files[0]; if (f) handleFile(f, false);
 });
 
-async function handleFile(file, append) {
+async function handleFile(file, append, forceBreak = false) {
   if (!file || file.type !== 'application/pdf') {
     showStatus('PDF 파일만 업로드할 수 있습니다.', 'error'); return;
   }
@@ -387,7 +404,8 @@ async function handleFile(file, append) {
       showStatus(`"${shortName}" 렌더링 중... (${i} / ${total})`);
       const pdfPage = await pdfDoc.getPage(i);
       const thumbCanvas = await renderPage(pdfPage, 0.9);
-      parsedPages.push({ id: makeId(), pdfPage, thumbCanvas, excluded: false, nupOverride: null, sourceFile: shortName });
+      const groupBreak = append && forceBreak && i === 1;
+      parsedPages.push({ id: makeId(), pdfPage, thumbCanvas, excluded: false, nupOverride: null, sourceFile: shortName, groupBreak });
       await new Promise(r => setTimeout(r, 0));
     }
 
@@ -442,12 +460,12 @@ function renderThumbs() {
   let currentRow = null;
 
   parsedPages.forEach((page, i) => {
-    // File divider when source changes
-    if (page.sourceFile !== currentFile) {
+    // File divider when source changes or group break
+    if (page.sourceFile !== currentFile || page.groupBreak) {
       currentFile = page.sourceFile;
       const div = document.createElement('div');
-      div.className = 'file-divider';
-      div.textContent = `📄 ${currentFile}`;
+      div.className = 'file-divider' + (page.groupBreak ? ' break' : '');
+      div.textContent = (page.groupBreak ? '📌 비연속 · ' : '📄 ') + currentFile;
       area.appendChild(div);
       currentRow = document.createElement('div');
       currentRow.className = 'thumb-row';
@@ -581,11 +599,11 @@ function showNupPopup(btn, page) {
 function groupByNup(pages) {
   if (!pages.length) return [];
   const groups = [];
-  let group = { n: pages[0].nupOverride || nup, pages: [pages[0]] };
+  let group = { n: pages[0].nupOverride || nup, pages: [pages[0]], hasBreak: !!pages[0].groupBreak };
   for (let i = 1; i < pages.length; i++) {
     const n = pages[i].nupOverride || nup;
-    if (n === group.n) { group.pages.push(pages[i]); }
-    else { groups.push(group); group = { n, pages: [pages[i]] }; }
+    if (n === group.n && !pages[i].groupBreak) { group.pages.push(pages[i]); }
+    else { groups.push(group); group = { n, pages: [pages[i]], hasBreak: !!pages[i].groupBreak }; }
   }
   groups.push(group);
   return groups;
@@ -790,7 +808,10 @@ $('orientPort').addEventListener('click', () => { landscape = false; $('orientPo
 $('orientLand').addEventListener('click', () => { landscape = true; $('orientLand').classList.add('active'); $('orientPort').classList.remove('active'); updateNupBadges(); });
 
 $('showBorder').addEventListener('change', () => { showBorder = $('showBorder').checked; });
-$('paperSize').addEventListener('change', updateNupBadges);
+$('paperSize').addEventListener('change', () => {
+  $('customSizeRow').style.display = $('paperSize').value === 'custom' ? 'grid' : 'none';
+  updateNupBadges();
+});
 
 $('resetBtn').addEventListener('click', () => {
   parsedPages = []; previewCanvases = []; _nextId = 1;
