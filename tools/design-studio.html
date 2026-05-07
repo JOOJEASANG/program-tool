@@ -63,7 +63,10 @@
     input[type="file"] { font-size: 12px; padding: 6px 8px; }
     input[type="range"] { padding: 0; accent-color: var(--primary); }
     .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
     .field { margin-bottom: 8px; }
+    .checkline { display: flex; align-items: center; gap: 7px; margin: 6px 0; font-size: 12px; color: #374151; font-weight: 700; cursor: pointer; }
+    .checkline input[type="checkbox"] { width: auto; cursor: pointer; }
     .minirow { display: flex; align-items: center; justify-content: space-between; font-size: 10px; color: #9ca3af; font-weight: 700; margin-top: 2px; }
     .smallnote { font-size: 11px; color: var(--muted); line-height: 1.45; margin-top: 4px; }
 
@@ -95,6 +98,28 @@
     .tpl-btn:hover { border-color: var(--accent); background: #f0f9ff; opacity: 1; }
     .tpl-btn.active { border-color: var(--primary); background: #eff6ff; color: var(--primary); }
     .tpl-btn .ico { font-size: 18px; }
+
+    /* Side tabs */
+    .side-tabs { display: flex; gap: 4px; margin-bottom: 10px; }
+    .side-tab {
+      flex: 1; padding: 7px 0; font-size: 12px; font-weight: 800;
+      border: 1.5px solid var(--line); border-radius: 8px;
+      background: #f8fafc; color: #6b7280; cursor: pointer; font-family: inherit;
+      transition: all 0.15s;
+    }
+    .side-tab.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .side-tab:hover:not(.active) { background: #eff6ff; border-color: #93c5fd; color: #1d4ed8; opacity: 1; }
+
+    /* Fold count buttons */
+    .fold-btns { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
+    .fold-btn {
+      padding: 8px 0; font-size: 12px; font-weight: 800;
+      border: 1.5px solid var(--line); background: #f8fafc; color: #6b7280;
+      border-radius: 8px; cursor: pointer; font-family: inherit;
+      transition: all 0.12s;
+    }
+    .fold-btn.active { border-color: var(--primary); background: #eff6ff; color: var(--primary); }
+    .fold-btn:hover:not(.active) { border-color: var(--accent); opacity: 1; }
 
     /* Item list */
     .item-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 6px; }
@@ -131,15 +156,11 @@
     .canvas-hint { font-size: 12px; color: var(--muted); margin-bottom: 8px; padding: 6px 10px; background: rgba(29,155,178,0.08); border-radius: 8px; display: inline-block; }
     .preview-shell { flex: 1; display: flex; align-items: flex-start; justify-content: center; padding: 8px; }
     .preview-wrap { background: #fff; box-shadow: var(--shadow); position: relative; }
-    .preview-canvas {
-      cursor: default; user-select: none;
-    }
+    .preview-canvas { cursor: default; user-select: none; display: block; }
     .selection-box {
       position: absolute; border: 2px dashed #2563eb;
       pointer-events: none; box-sizing: border-box;
     }
-    .zoom-controls { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
-    .zoom-controls button { padding: 6px 10px; font-size: 12px; }
 
     @media (max-width: 900px) {
       .app { grid-template-columns: 1fr; }
@@ -185,42 +206,110 @@
             <input id="paperH" type="number" min="10" step="1">
           </div>
         </div>
-        <label style="margin-top:8px;display:flex;gap:6px;align-items:center;font-size:12px;cursor:pointer;">
+        <label class="checkline" style="margin-top:6px;">
           <input id="orientToggle" type="checkbox"> 가로 방향
         </label>
+        <div class="field" style="margin-top:6px;">
+          <label>도련 (mm)</label>
+          <input id="bleedInput" type="number" min="0" step="0.5" value="3">
+        </div>
+      </div>
+
+      <!-- Cover-specific -->
+      <div class="section" id="coverSection" style="display:none;">
+        <h2>📕 표지 옵션</h2>
+        <label class="checkline" style="margin-bottom:6px;">
+          <input id="noSpine" type="checkbox"> 책등 없음
+        </label>
+        <div id="spineDetails">
+          <div class="field"><label>책등 두께 (mm)</label><input id="spineW" type="number" min="0" step="0.5" value="8"></div>
+          <div class="field">
+            <label>책등 문구</label>
+            <input id="spineText" type="text" placeholder="책등 텍스트">
+          </div>
+          <label class="checkline">
+            <input id="spineVertical" type="checkbox"> 책등 세로 배치
+          </label>
+        </div>
+      </div>
+
+      <!-- Leaflet-specific -->
+      <div class="section" id="leafletSection" style="display:none;">
+        <h2>📋 리플렛 접지</h2>
+        <label>접지 단수</label>
+        <div class="fold-btns" id="foldBtns">
+          <button type="button" class="fold-btn" data-fold="2">2단</button>
+          <button type="button" class="fold-btn active" data-fold="3">3단</button>
+          <button type="button" class="fold-btn" data-fold="4">4단</button>
+        </div>
+        <label class="checkline" style="margin-top:8px;">
+          <input id="showFoldLines" type="checkbox" checked> 접지선 표시 (점선·음영)
+        </label>
+      </div>
+
+      <!-- Side tabs (양면) -->
+      <div class="section">
+        <h2 id="sideHeader">📄 면 선택</h2>
+        <div class="side-tabs" id="sideTabs">
+          <button type="button" class="side-tab active" data-side="front" id="sideTabFront">앞면</button>
+          <button type="button" class="side-tab" data-side="back" id="sideTabBack">뒷면</button>
+        </div>
+        <label class="checkline">
+          <input id="duplexToggle" type="checkbox"> 양면 인쇄 사용
+        </label>
+        <div class="smallnote">양면을 끄면 뒷면은 저장에서 제외됩니다.</div>
       </div>
 
       <!-- Items -->
       <div class="section">
-        <h2>✏️ 텍스트</h2>
+        <h2>✏️ 텍스트 (<span id="sideName">앞면</span>)</h2>
         <div class="item-list" id="itemList"></div>
         <button class="add-item-btn" onclick="addItem()">+ 텍스트 추가</button>
       </div>
 
       <!-- Background -->
       <div class="section">
-        <h2>🎨 배경</h2>
-        <div class="field">
-          <label>배경색</label>
-          <input id="bgColor" type="color" value="#ffffff">
-        </div>
-        <div class="field">
-          <label>AI 배경 설명 <span style="color:#9ca3af;font-weight:400;">(원하는 분위기)</span></label>
-          <textarea id="aiDesc" rows="2" placeholder="예: 차분한 파란색 그라데이션, 따뜻한 빈티지 느낌..."></textarea>
-        </div>
-        <button class="ai-btn" id="generateBgBtn" onclick="generateAiBg()">✨ AI 배경 생성</button>
-        <div class="ai-status" id="aiStatus"></div>
+        <h2>🎨 배경 (<span id="sideName2">앞면</span>)</h2>
+        <label class="checkline" style="margin-bottom:8px;">
+          <input id="noBgCheck" type="checkbox"> 배경 없이 출력 (투명/흰색)
+        </label>
+        <div id="bgControls">
+          <div class="field">
+            <label>배경색</label>
+            <input id="bgColor" type="color" value="#ffffff">
+          </div>
+          <div class="field">
+            <label>AI 배경 설명 <span style="color:#9ca3af;font-weight:400;">(원하는 분위기)</span></label>
+            <textarea id="aiDesc" rows="2" placeholder="예: 차분한 파란색 그라데이션, 따뜻한 빈티지 느낌..."></textarea>
+          </div>
+          <button class="ai-btn" id="generateBgBtn" onclick="generateAiBg()">✨ AI 배경 생성</button>
+          <div class="ai-status" id="aiStatus"></div>
 
-        <div class="field" style="margin-top:10px;">
-          <label>또는 이미지 직접 업로드</label>
-          <input id="bgFile" type="file" accept="image/*">
+          <div class="field" style="margin-top:10px;">
+            <label>또는 이미지 직접 업로드</label>
+            <input id="bgFile" type="file" accept="image/*">
+          </div>
+          <div id="bgOpacityWrap" style="display:none;">
+            <label>배경 투명도</label>
+            <input id="bgOpacity" type="range" min="0.1" max="1" step="0.05" value="1">
+            <div class="minirow"><span>투명</span><span id="bgOpacityVal">100%</span><span>진하게</span></div>
+          </div>
+          <button class="secondary" id="clearBgBtn" onclick="clearBg()" style="width:100%;margin-top:6px;display:none;">배경 제거</button>
         </div>
-        <div id="bgOpacityWrap" style="display:none;">
-          <label>배경 투명도</label>
-          <input id="bgOpacity" type="range" min="0.1" max="1" step="0.05" value="1">
-          <div class="minirow"><span>투명</span><span id="bgOpacityVal">100%</span><span>진하게</span></div>
+      </div>
+
+      <!-- Display options -->
+      <div class="section">
+        <h2>🔍 화면 표시</h2>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <button class="secondary" style="padding:6px 12px;flex:1;" onclick="setZoom(zoomLevel - 0.1)">−</button>
+          <span id="zoomVal" style="font-size:12px;font-weight:700;color:#374151;min-width:44px;text-align:center;">100%</span>
+          <button class="secondary" style="padding:6px 12px;flex:1;" onclick="setZoom(zoomLevel + 0.1)">+</button>
+          <button class="secondary" style="padding:6px 10px;" onclick="zoomFit()">맞춤</button>
         </div>
-        <button class="secondary" id="clearBgBtn" onclick="clearBg()" style="width:100%;margin-top:6px;display:none;">배경 제거</button>
+        <label class="checkline" style="margin-top:8px;">
+          <input id="showBleed" type="checkbox" checked> 도련선 표시
+        </label>
       </div>
 
       <!-- Save -->
@@ -231,19 +320,13 @@
           <button class="green" id="downloadPdf">PDF 저장</button>
         </div>
         <button class="secondary" id="resetBtn" style="width:100%;margin-top:7px;">초기화</button>
-        <div class="smallnote" style="margin-top:6px;">PDF는 인쇄 미리보기에서 "PDF로 저장"을 선택하세요.</div>
+        <div class="smallnote" style="margin-top:6px;">양면일 경우 두 면이 함께 저장됩니다. PDF는 인쇄 미리보기에서 "PDF로 저장"을 선택하세요.</div>
       </div>
     </aside>
 
     <main>
       <div>
         <div class="canvas-hint">💡 드래그로 이동 · 휠로 크기 조절 · 방향키로 미세 조정 · Delete로 삭제</div>
-        <div class="zoom-controls">
-          <button class="secondary" onclick="setZoom(zoomLevel - 0.1)">−</button>
-          <span style="font-size:12px;font-weight:700;color:#374151;min-width:50px;text-align:center;" id="zoomVal">100%</span>
-          <button class="secondary" onclick="setZoom(zoomLevel + 0.1)">+</button>
-          <button class="secondary" onclick="zoomFit()" style="margin-left:6px;">화면 맞춤</button>
-        </div>
       </div>
       <div class="preview-shell">
         <div class="preview-wrap" id="previewWrap">
@@ -259,75 +342,71 @@
   <script src="../js/firebase-config.js"></script>
   <script>
     // ── Templates ──────────────────────────────────────────────────────
+    // Each template defines: name, icon, size [w,h] (single page), orient,
+    // initial bg color, default items per side (front/back), and feature flags.
+    // 'cover' is special: width auto-expanded by spine + 2 panels.
     const TEMPLATES = {
-      'business-card': {
-        name: '명함', icon: '💳', size: [90, 54], orient: 'landscape',
-        bg: '#ffffff',
-        items: [
-          { text: '홍길동', fontSize: 20, color: '#0f172a', bold: true, x: 0.06, y: 0.32 },
-          { text: '대표 / Designer', fontSize: 9, color: '#64748b', bold: false, x: 0.06, y: 0.50 },
-          { text: '010-1234-5678', fontSize: 9, color: '#0f172a', bold: false, x: 0.06, y: 0.72 },
-          { text: 'hello@email.com', fontSize: 9, color: '#0f172a', bold: false, x: 0.06, y: 0.84 },
+      'cover': {
+        name: '표지', icon: '📕', size: [210, 297], orient: 'portrait',
+        bg: '#ffffff', isSpread: true, hasSpine: true,
+        backLabel: '내지', frontLabel: '외지',
+        front: [
+          { text: '도서 제목', fontSize: 36, color: '#0f172a', bold: true, x: 0.78, y: 0.30, align: 'center' },
+          { text: '부제 / Subtitle', fontSize: 16, color: '#475569', bold: false, x: 0.78, y: 0.40, align: 'center' },
+          { text: '저자 이름', fontSize: 14, color: '#64748b', bold: false, x: 0.78, y: 0.86, align: 'center' },
+          { text: '뒤표지 문구', fontSize: 14, color: '#475569', bold: false, x: 0.22, y: 0.50, align: 'center' },
         ],
+        back: [],
       },
       'flyer': {
         name: '전단지', icon: '📄', size: [210, 297], orient: 'portrait',
         bg: '#ffffff',
-        items: [
+        front: [
           { text: '특별 이벤트', fontSize: 60, color: '#dc2626', bold: true, x: 0.5, y: 0.18, align: 'center' },
           { text: '~50% 할인', fontSize: 80, color: '#0f172a', bold: true, x: 0.5, y: 0.38, align: 'center' },
           { text: '기간: 2026.05.01 ~ 05.31', fontSize: 22, color: '#374151', bold: false, x: 0.5, y: 0.65, align: 'center' },
           { text: '문의: 02-1234-5678', fontSize: 18, color: '#64748b', bold: false, x: 0.5, y: 0.85, align: 'center' },
         ],
+        back: [],
       },
       'leaflet': {
-        name: '리플렛 (3단)', icon: '📋', size: [297, 210], orient: 'landscape',
-        bg: '#ffffff',
-        items: [
+        name: '리플렛', icon: '📋', size: [297, 210], orient: 'landscape',
+        bg: '#ffffff', hasFold: true, defaultFold: 3, isDuplex: true,
+        front: [
           { text: '브랜드 소개', fontSize: 30, color: '#0f172a', bold: true, x: 0.83, y: 0.20, align: 'center' },
           { text: '— Brochure', fontSize: 12, color: '#94a3b8', bold: false, x: 0.83, y: 0.30, align: 'center' },
           { text: '서비스 안내', fontSize: 22, color: '#0f172a', bold: true, x: 0.50, y: 0.20, align: 'center' },
           { text: '연락처', fontSize: 22, color: '#0f172a', bold: true, x: 0.17, y: 0.20, align: 'center' },
         ],
+        back: [],
       },
       'invitation': {
         name: '초대장', icon: '💌', size: [100, 148], orient: 'portrait',
         bg: '#fefce8',
-        items: [
+        front: [
           { text: 'INVITATION', fontSize: 11, color: '#92400e', bold: true, x: 0.5, y: 0.15, align: 'center' },
           { text: '소중한 자리에 초대합니다', fontSize: 14, color: '#0f172a', bold: false, x: 0.5, y: 0.30, align: 'center' },
           { text: '홍길동 & 김영희', fontSize: 22, color: '#92400e', bold: true, x: 0.5, y: 0.50, align: 'center' },
           { text: '2026년 6월 15일 (토) 14시', fontSize: 12, color: '#374151', bold: false, x: 0.5, y: 0.70, align: 'center' },
           { text: '서울특별시 강남구', fontSize: 11, color: '#64748b', bold: false, x: 0.5, y: 0.80, align: 'center' },
         ],
+        back: [],
       },
       'poster': {
         name: '포스터 (A3)', icon: '🖼️', size: [297, 420], orient: 'portrait',
         bg: '#0f172a',
-        items: [
+        front: [
           { text: 'CONCERT', fontSize: 90, color: '#fbbf24', bold: true, x: 0.5, y: 0.15, align: 'center' },
           { text: '2026.07.20', fontSize: 50, color: '#ffffff', bold: true, x: 0.5, y: 0.45, align: 'center' },
           { text: 'Live at Olympic Hall', fontSize: 28, color: '#cbd5e1', bold: false, x: 0.5, y: 0.78, align: 'center' },
           { text: 'Tickets: www.example.com', fontSize: 18, color: '#94a3b8', bold: false, x: 0.5, y: 0.92, align: 'center' },
         ],
-      },
-      'certificate': {
-        name: '상장/수료증', icon: '🏆', size: [297, 210], orient: 'landscape',
-        bg: '#fefce8',
-        items: [
-          { text: '수 료 증', fontSize: 50, color: '#0f172a', bold: true, x: 0.5, y: 0.18, align: 'center' },
-          { text: '제 2026-001 호', fontSize: 11, color: '#94a3b8', bold: false, x: 0.5, y: 0.28, align: 'center' },
-          { text: '성  명: 홍길동', fontSize: 18, color: '#0f172a', bold: false, x: 0.5, y: 0.45, align: 'center' },
-          { text: '위 사람은 상기 과정을 성실히 수료하였기에', fontSize: 14, color: '#374151', bold: false, x: 0.5, y: 0.60, align: 'center' },
-          { text: '이 증서를 수여합니다.', fontSize: 14, color: '#374151', bold: false, x: 0.5, y: 0.68, align: 'center' },
-          { text: '2026년 5월 7일', fontSize: 14, color: '#0f172a', bold: false, x: 0.5, y: 0.84, align: 'center' },
-          { text: 'Program Tool Academy', fontSize: 16, color: '#0f172a', bold: true, x: 0.5, y: 0.92, align: 'center' },
-        ],
+        back: [],
       },
       'menu': {
         name: '메뉴판', icon: '🍽️', size: [210, 297], orient: 'portrait',
         bg: '#fafaf9',
-        items: [
+        front: [
           { text: 'MENU', fontSize: 50, color: '#92400e', bold: true, x: 0.5, y: 0.10, align: 'center' },
           { text: 'Signature Pasta — 18,000', fontSize: 18, color: '#0f172a', bold: false, x: 0.5, y: 0.30, align: 'center' },
           { text: 'Truffle Pizza — 22,000', fontSize: 18, color: '#0f172a', bold: false, x: 0.5, y: 0.40, align: 'center' },
@@ -335,60 +414,146 @@
           { text: 'Dessert Plate — 8,000', fontSize: 18, color: '#0f172a', bold: false, x: 0.5, y: 0.60, align: 'center' },
           { text: '— Open 11:00 ~ 22:00 —', fontSize: 13, color: '#94a3b8', bold: false, x: 0.5, y: 0.85, align: 'center' },
         ],
+        back: [],
       },
     };
 
     // ── State ──────────────────────────────────────────────────────────
     const $ = id => document.getElementById(id);
     const params = new URLSearchParams(location.search);
-    let currentTpl = params.get('template') && TEMPLATES[params.get('template')] ? params.get('template') : 'business-card';
-    let paperW = TEMPLATES[currentTpl].size[0];
-    let paperH = TEMPLATES[currentTpl].size[1];
-    let landscape = TEMPLATES[currentTpl].orient === 'landscape';
-    let bgColor = TEMPLATES[currentTpl].bg || '#ffffff';
-    let bgData = '';
-    let bgOpacity = 1;
-    let aiDesc = '';
-    let items = [];
-    let selectedId = null;
-    let zoomLevel = 1;
-    let isDragging = false; let dragData = {};
+    const initialTpl = params.get('template') && TEMPLATES[params.get('template')] ? params.get('template') : 'flyer';
 
+    // Single source of truth for design state
+    const state = {
+      tplId: initialTpl,
+      paperW: 210, paperH: 297, landscape: false, bleed: 3,
+      // cover-specific
+      spineW: 8, spineText: '', spineVertical: false, noSpine: false,
+      // leaflet-specific
+      foldCount: 3, showFoldLines: true,
+      // common
+      activeSide: 'front', isDuplex: false,
+      showBleed: true,
+      sides: {
+        front: { items: [], bgColor: '#ffffff', bgData: '', bgOpacity: 1, noBg: false, aiDesc: '' },
+        back:  { items: [], bgColor: '#ffffff', bgData: '', bgOpacity: 1, noBg: false, aiDesc: '' },
+      },
+      selectedId: null,
+      zoomLevel: 1,
+    };
+
+    // bgImg objects per side (held outside `state` since they're DOM Image objects)
+    const bgImgs = { front: null, back: null };
+
+    let isDragging = false, dragData = {};
+
+    function curSide() { return state.sides[state.activeSide]; }
+
+    // ── Template loading ───────────────────────────────────────────────
     function loadTemplate(tplId) {
       const tpl = TEMPLATES[tplId];
       if (!tpl) return;
-      currentTpl = tplId;
-      paperW = tpl.size[0]; paperH = tpl.size[1];
-      landscape = tpl.orient === 'landscape';
-      bgColor = tpl.bg || '#ffffff';
-      bgData = ''; bgOpacity = 1; aiDesc = '';
-      // Convert template items (relative coords) to absolute mm
-      const realW = landscape ? Math.max(paperW, paperH) : Math.min(paperW, paperH);
-      const realH = landscape ? Math.min(paperW, paperH) : Math.max(paperW, paperH);
-      items = tpl.items.map(it => ({
-        id: Date.now() + Math.random() * 1000,
-        text: it.text, fontSize: it.fontSize, color: it.color, bold: it.bold,
-        align: it.align || 'left',
-        x: it.x * realW, y: it.y * realH,
-      }));
-      selectedId = null;
+      state.tplId = tplId;
+      state.paperW = tpl.size[0]; state.paperH = tpl.size[1];
+      state.landscape = tpl.orient === 'landscape';
+      state.bleed = 3;
+      state.spineW = 8; state.spineText = ''; state.spineVertical = false; state.noSpine = false;
+      state.foldCount = tpl.defaultFold || 3;
+      state.showFoldLines = true;
+      state.activeSide = 'front';
+      state.isDuplex = !!tpl.isDuplex;
+
+      const realW = state.landscape ? Math.max(tpl.size[0], tpl.size[1]) : Math.min(tpl.size[0], tpl.size[1]);
+      const realH = state.landscape ? Math.min(tpl.size[0], tpl.size[1]) : Math.max(tpl.size[0], tpl.size[1]);
+
+      ['front', 'back'].forEach(side => {
+        state.sides[side] = {
+          bgColor: tpl.bg || '#ffffff',
+          bgData: '', bgOpacity: 1, noBg: false, aiDesc: '',
+          items: (tpl[side] || []).map(it => ({
+            id: Date.now() + Math.random() * 1000,
+            text: it.text, fontSize: it.fontSize, color: it.color, bold: it.bold,
+            align: it.align || 'left',
+            x: it.x * (tpl.isSpread ? coverSpreadW(tpl, realW) : realW),
+            y: it.y * realH,
+          })),
+        };
+        bgImgs[side] = null;
+      });
+
+      state.selectedId = null;
       $('navTitle').textContent = `${tpl.icon} ${tpl.name}`;
       $('toolTitle').textContent = tpl.name;
       document.title = `${tpl.name} · Program Tool`;
+
       syncControls();
       renderTplButtons();
       renderItemList();
       zoomFit();
     }
 
+    function coverSpreadW(tpl, frontW) {
+      // For cover: total width = back panel + spine + front panel
+      return frontW * 2 + (state.noSpine ? 0 : state.spineW);
+    }
+
     function syncControls() {
-      $('paperW').value = landscape ? Math.max(paperW, paperH) : Math.min(paperW, paperH);
-      $('paperH').value = landscape ? Math.min(paperW, paperH) : Math.max(paperW, paperH);
-      $('orientToggle').checked = landscape;
-      $('bgColor').value = bgColor;
-      $('aiDesc').value = aiDesc;
-      $('paperInfo').textContent = `${$('paperW').value} × ${$('paperH').value} mm (${landscape ? '가로' : '세로'})`;
-      syncBgControls();
+      const tpl = TEMPLATES[state.tplId];
+      $('paperW').value = state.landscape ? Math.max(state.paperW, state.paperH) : Math.min(state.paperW, state.paperH);
+      $('paperH').value = state.landscape ? Math.min(state.paperW, state.paperH) : Math.max(state.paperW, state.paperH);
+      $('orientToggle').checked = state.landscape;
+      $('bleedInput').value = state.bleed;
+
+      // Cover section
+      $('coverSection').style.display = tpl.hasSpine ? '' : 'none';
+      $('noSpine').checked = state.noSpine;
+      $('spineW').value = state.spineW;
+      $('spineText').value = state.spineText;
+      $('spineVertical').checked = state.spineVertical;
+      $('spineDetails').style.display = state.noSpine ? 'none' : '';
+
+      // Leaflet section
+      $('leafletSection').style.display = tpl.hasFold ? '' : 'none';
+      $('foldBtns').querySelectorAll('.fold-btn').forEach(b => {
+        b.classList.toggle('active', +b.dataset.fold === state.foldCount);
+      });
+      $('showFoldLines').checked = state.showFoldLines;
+
+      // Side tabs labels
+      const fLabel = tpl.frontLabel || '앞면';
+      const bLabel = tpl.backLabel || '뒷면';
+      $('sideTabFront').textContent = fLabel;
+      $('sideTabBack').textContent = bLabel;
+      $('duplexToggle').checked = state.isDuplex;
+      $('sideTabBack').disabled = !state.isDuplex;
+      $('sideTabBack').style.opacity = state.isDuplex ? '1' : '0.4';
+      $('sideTabBack').style.cursor = state.isDuplex ? 'pointer' : 'not-allowed';
+      $('sideHeader').innerHTML = state.isDuplex ? '📄 면 선택 (양면)' : '📄 면 선택';
+      updateSideTabs();
+
+      // Bg controls
+      const s = curSide();
+      $('bgColor').value = s.bgColor;
+      $('aiDesc').value = s.aiDesc;
+      $('noBgCheck').checked = s.noBg;
+      $('bgControls').style.display = s.noBg ? 'none' : '';
+      $('bgOpacity').value = s.bgOpacity;
+      $('bgOpacityVal').textContent = Math.round(s.bgOpacity * 100) + '%';
+      $('bgOpacityWrap').style.display = s.bgData ? '' : 'none';
+      $('clearBgBtn').style.display = s.bgData ? '' : 'none';
+
+      $('showBleed').checked = state.showBleed;
+      updatePaperInfo();
+    }
+
+    function updatePaperInfo() {
+      const tpl = TEMPLATES[state.tplId];
+      const w = +$('paperW').value, h = +$('paperH').value;
+      let info = `${w} × ${h} mm (${state.landscape ? '가로' : '세로'})`;
+      if (tpl.hasSpine && !state.noSpine) info += ` · 책등 ${state.spineW}mm`;
+      if (tpl.hasFold) info += ` · ${state.foldCount}단 접지`;
+      if (state.isDuplex) info += ' · 양면';
+      $('paperInfo').textContent = info;
     }
 
     function renderTplButtons() {
@@ -396,21 +561,41 @@
       grid.innerHTML = '';
       Object.entries(TEMPLATES).forEach(([id, tpl]) => {
         const btn = document.createElement('button');
-        btn.className = 'tpl-btn' + (id === currentTpl ? ' active' : '');
+        btn.type = 'button';
+        btn.className = 'tpl-btn' + (id === state.tplId ? ' active' : '');
         btn.innerHTML = `<span class="ico">${tpl.icon}</span><span>${tpl.name}</span>`;
         btn.onclick = () => loadTemplate(id);
         grid.appendChild(btn);
       });
     }
 
+    function updateSideTabs() {
+      $('sideTabs').querySelectorAll('.side-tab').forEach(t => {
+        t.classList.toggle('active', t.dataset.side === state.activeSide);
+      });
+      const tpl = TEMPLATES[state.tplId];
+      const fLabel = tpl.frontLabel || '앞면';
+      const bLabel = tpl.backLabel || '뒷면';
+      $('sideName').textContent = state.activeSide === 'front' ? fLabel : bLabel;
+      $('sideName2').textContent = state.activeSide === 'front' ? fLabel : bLabel;
+    }
+
     // ── Item management ────────────────────────────────────────────────
+    function getCanvasMm() {
+      const tpl = TEMPLATES[state.tplId];
+      const w = +$('paperW').value || 100;
+      const h = +$('paperH').value || 100;
+      let cw = w, ch = h;
+      if (tpl.isSpread) cw = w * 2 + (state.noSpine ? 0 : state.spineW);
+      return { w: cw, h: ch };
+    }
+
     function addItem() {
-      const realW = landscape ? Math.max(paperW, paperH) : Math.min(paperW, paperH);
-      const realH = landscape ? Math.min(paperW, paperH) : Math.max(paperW, paperH);
-      items.push({
+      const { w, h } = getCanvasMm();
+      curSide().items.push({
         id: Date.now() + Math.random() * 1000,
         text: '새 텍스트', fontSize: 18, color: '#0f172a', bold: false, align: 'left',
-        x: realW / 2, y: realH / 2,
+        x: w / 2, y: h / 2,
       });
       renderItemList();
       render();
@@ -425,9 +610,9 @@
       const prevType = prevFocus?.dataset?.inputType;
 
       list.innerHTML = '';
-      items.forEach(item => {
+      curSide().items.forEach(item => {
         const row = document.createElement('div');
-        row.className = 'item-row' + (item.id === selectedId ? ' is-selected' : '');
+        row.className = 'item-row' + (item.id === state.selectedId ? ' is-selected' : '');
         row.innerHTML = `
           <div class="item-row-top">
             <input class="item-text-input" type="text" data-input-type="text" data-item-id="${item.id}"
@@ -451,18 +636,18 @@
         `;
         const ti = row.querySelector('.item-text-input');
         ti.addEventListener('input', e => { item.text = e.target.value; render(); });
-        ti.addEventListener('focus', () => { selectedId = item.id; renderItemList(); render(); });
+        ti.addEventListener('focus', () => { state.selectedId = item.id; renderItemList(); render(); });
 
         const fs = row.querySelector('.item-fs-input');
         fs.addEventListener('input', e => { item.fontSize = Math.max(4, +e.target.value || 4); render(); });
-        fs.addEventListener('focus', () => { selectedId = item.id; renderItemList(); render(); });
+        fs.addEventListener('focus', () => { state.selectedId = item.id; renderItemList(); render(); });
 
         row.querySelector('.item-color-input').addEventListener('input', e => { item.color = e.target.value; render(); });
 
         row.querySelector('.item-del').addEventListener('click', e => {
           e.stopPropagation();
-          items = items.filter(i => i.id !== item.id);
-          if (selectedId === item.id) selectedId = null;
+          curSide().items = curSide().items.filter(i => i.id !== item.id);
+          if (state.selectedId === item.id) state.selectedId = null;
           renderItemList(); render();
         });
 
@@ -475,7 +660,7 @@
 
         row.addEventListener('mousedown', e => {
           if (e.target.closest('input') || e.target.closest('button')) return;
-          selectedId = item.id; renderItemList(); render();
+          state.selectedId = item.id; renderItemList(); render();
         });
 
         list.appendChild(row);
@@ -492,17 +677,13 @@
 
     // ── Canvas rendering ───────────────────────────────────────────────
     const MM2PX_PRINT = 11.811; // 300 DPI
-    function getPaperSize() {
-      const w = parseFloat($('paperW').value) || 100;
-      const h = parseFloat($('paperH').value) || 100;
-      return { w, h };
-    }
 
     function render() {
-      const { w, h } = getPaperSize();
+      const tpl = TEMPLATES[state.tplId];
+      const { w, h } = getCanvasMm();
       const canvas = $('previewCanvas');
       const wrap = $('previewWrap');
-      const scale = zoomLevel * 4; // ~4px per mm at 100% zoom
+      const scale = state.zoomLevel * 4;
       const cw = Math.round(w * scale);
       const ch = Math.round(h * scale);
       canvas.width = cw; canvas.height = ch;
@@ -511,13 +692,21 @@
       const ctx = canvas.getContext('2d');
       ctx.imageSmoothingQuality = 'high';
 
-      // background color
-      ctx.fillStyle = bgColor;
+      drawSide(ctx, scale, cw, ch, state.activeSide, true);
+    }
+
+    // Draw a single side onto a given context
+    function drawSide(ctx, scale, cw, ch, side, isPreview) {
+      const tpl = TEMPLATES[state.tplId];
+      const s = state.sides[side];
+      const bgImg = bgImgs[side];
+
+      // Background
+      ctx.fillStyle = s.noBg ? '#ffffff' : s.bgColor;
       ctx.fillRect(0, 0, cw, ch);
 
-      // background image
-      if (bgImg) {
-        ctx.globalAlpha = bgOpacity;
+      if (bgImg && !s.noBg) {
+        ctx.globalAlpha = s.bgOpacity;
         const r = Math.max(cw / bgImg.width, ch / bgImg.height);
         const iw = bgImg.width * r;
         const ih = bgImg.height * r;
@@ -525,8 +714,8 @@
         ctx.globalAlpha = 1;
       }
 
-      // text items
-      items.forEach(item => {
+      // Text items
+      s.items.forEach(item => {
         const fs = item.fontSize * scale;
         const weight = item.bold ? '900' : '500';
         ctx.font = `${weight} ${fs}px Pretendard, "Noto Sans KR", sans-serif`;
@@ -536,10 +725,41 @@
         ctx.fillText(item.text, item.x * scale, item.y * scale);
       });
 
-      // selection box
+      // Cover spine text
+      if (tpl.hasSpine && !state.noSpine && state.spineText.trim()) {
+        const paperW = +$('paperW').value;
+        const spineW = state.spineW;
+        const sx = (paperW + spineW / 2) * scale;
+        ctx.fillStyle = '#12396d';
+        if (state.spineVertical) {
+          const chars = state.spineText.split('');
+          const charSize = Math.max(3, Math.min(spineW * 0.65, 9)) * scale;
+          const lineH = charSize * 1.25;
+          const totalH = chars.length * lineH;
+          const startY = ch / 2 - totalH / 2 + charSize * 0.5;
+          ctx.font = `900 ${charSize}px Pretendard, sans-serif`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          chars.forEach((c, i) => ctx.fillText(c, sx, startY + i * lineH));
+        } else {
+          const fs = Math.max(3.2, Math.min(6, spineW * 0.55)) * scale;
+          ctx.save();
+          ctx.translate(sx, ch / 2);
+          ctx.rotate(Math.PI / 2);
+          ctx.font = `900 ${fs}px Pretendard, sans-serif`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(state.spineText, 0, 0);
+          ctx.restore();
+        }
+      }
+
+      if (!isPreview) return; // overlays only on preview
+
+      // Selection box
       const sb = $('selectionBox');
-      if (selectedId) {
-        const sel = items.find(i => i.id === selectedId);
+      if (state.selectedId) {
+        const sel = s.items.find(i => i.id === state.selectedId);
         if (sel) {
           const fs = sel.fontSize * scale;
           ctx.font = `${sel.bold ? '900' : '500'} ${fs}px Pretendard, sans-serif`;
@@ -556,31 +776,97 @@
           sb.style.height = (fs + 4) + 'px';
         } else { sb.style.display = 'none'; }
       } else { sb.style.display = 'none'; }
+
+      // Cover spine guide lines
+      if (tpl.hasSpine && !state.noSpine) {
+        const paperW = +$('paperW').value;
+        const x1 = paperW * scale;
+        const x2 = (paperW + state.spineW) * scale;
+        ctx.save();
+        ctx.strokeStyle = 'rgba(15,23,42,0.45)';
+        ctx.setLineDash([scale * 1.2, scale * 0.8]);
+        ctx.lineWidth = Math.max(0.5, scale * 0.18);
+        ctx.beginPath();
+        ctx.moveTo(x1, 0); ctx.lineTo(x1, ch);
+        ctx.moveTo(x2, 0); ctx.lineTo(x2, ch);
+        ctx.stroke();
+        ctx.restore();
+        // Panel labels
+        ctx.fillStyle = 'rgba(100,116,139,0.65)';
+        ctx.font = `700 ${10 * Math.max(1, scale/4)}px Pretendard, sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'bottom';
+        ctx.fillText('뒤표지', paperW / 2 * scale, ch - 4);
+        ctx.fillText('앞표지', (paperW + state.spineW + paperW / 2) * scale, ch - 4);
+      }
+
+      // Leaflet fold lines
+      if (tpl.hasFold && state.showFoldLines) {
+        const folds = state.foldCount;
+        const panelW = (cw / folds);
+        ctx.save();
+        // Tinted alternating panels
+        for (let i = 0; i < folds; i++) {
+          if (i % 2 === 1) {
+            ctx.fillStyle = 'rgba(29,155,178,0.05)';
+            ctx.fillRect(i * panelW, 0, panelW, ch);
+          }
+        }
+        // Fold lines
+        ctx.strokeStyle = 'rgba(15,23,42,0.4)';
+        ctx.setLineDash([scale * 1.5, scale * 1]);
+        ctx.lineWidth = Math.max(0.5, scale * 0.2);
+        for (let i = 1; i < folds; i++) {
+          ctx.beginPath();
+          ctx.moveTo(i * panelW, 0);
+          ctx.lineTo(i * panelW, ch);
+          ctx.stroke();
+        }
+        // Panel numbers
+        ctx.setLineDash([]);
+        ctx.fillStyle = 'rgba(100,116,139,0.7)';
+        ctx.font = `800 ${11 * Math.max(1, scale/4)}px Pretendard, sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        for (let i = 0; i < folds; i++) {
+          ctx.fillText(`${i + 1}`, (i + 0.5) * panelW, 6);
+        }
+        ctx.restore();
+      }
+
+      // Bleed marks
+      if (state.showBleed) {
+        const bleedPx = state.bleed * scale;
+        ctx.save();
+        ctx.strokeStyle = 'rgba(220, 38, 38, 0.55)';
+        ctx.lineWidth = Math.max(0.5, scale * 0.25);
+        ctx.setLineDash([scale * 1.5, scale * 1]);
+        ctx.strokeRect(bleedPx, bleedPx, cw - bleedPx * 2, ch - bleedPx * 2);
+        ctx.restore();
+      }
     }
 
-    let bgImg = null;
-    function loadBgImage(src) {
-      if (!src) { bgImg = null; render(); return; }
+    function loadBgImage(side, src) {
+      if (!src) { bgImgs[side] = null; render(); return; }
       const img = new Image();
-      img.onload = () => { bgImg = img; render(); };
+      img.onload = () => { bgImgs[side] = img; render(); };
       img.src = src;
     }
 
-    // ── Mouse drag ─────────────────────────────────────────────────────
-    function getCanvasMm(e) {
+    // ── Mouse/keyboard ─────────────────────────────────────────────────
+    function getMouseMm(e) {
       const canvas = $('previewCanvas');
       const rect = canvas.getBoundingClientRect();
-      const scale = (canvas.width / rect.width) / 4 / zoomLevel * zoomLevel * 4 / (canvas.width / rect.width);
-      // simpler: rect → mm
       const px = (e.clientX - rect.left) * (canvas.width / rect.width);
       const py = (e.clientY - rect.top) * (canvas.height / rect.height);
-      const fs_scale = zoomLevel * 4;
-      return { x: px / fs_scale, y: py / fs_scale };
+      const scale = state.zoomLevel * 4;
+      return { x: px / scale, y: py / scale };
     }
 
     function hitTest(mm) {
-      const scale = zoomLevel * 4;
+      const scale = state.zoomLevel * 4;
       const ctx = $('previewCanvas').getContext('2d');
+      const items = curSide().items;
       for (let i = items.length - 1; i >= 0; i--) {
         const it = items[i];
         const fs = it.fontSize * scale;
@@ -599,21 +885,21 @@
     }
 
     $('previewCanvas').addEventListener('mousedown', e => {
-      const mm = getCanvasMm(e);
+      const mm = getMouseMm(e);
       const hit = hitTest(mm);
       if (hit) {
-        selectedId = hit.id;
+        state.selectedId = hit.id;
         isDragging = true;
         dragData = { startX: mm.x, startY: mm.y, itemX: hit.x, itemY: hit.y };
         renderItemList(); render();
       } else {
-        selectedId = null; renderItemList(); render();
+        state.selectedId = null; renderItemList(); render();
       }
     });
     document.addEventListener('mousemove', e => {
-      if (!isDragging || !selectedId) return;
-      const mm = getCanvasMm(e);
-      const sel = items.find(i => i.id === selectedId);
+      if (!isDragging || !state.selectedId) return;
+      const mm = getMouseMm(e);
+      const sel = curSide().items.find(i => i.id === state.selectedId);
       if (!sel) return;
       sel.x = dragData.itemX + (mm.x - dragData.startX);
       sel.y = dragData.itemY + (mm.y - dragData.startY);
@@ -621,60 +907,66 @@
     });
     document.addEventListener('mouseup', () => { isDragging = false; });
 
-    // Wheel: resize selected item
     $('previewCanvas').addEventListener('wheel', e => {
-      if (!selectedId) return;
+      if (!state.selectedId) return;
       e.preventDefault();
-      const sel = items.find(i => i.id === selectedId);
+      const sel = curSide().items.find(i => i.id === state.selectedId);
       if (!sel) return;
       sel.fontSize = Math.max(4, Math.min(200, sel.fontSize + (e.deltaY < 0 ? 1 : -1)));
       renderItemList(); render();
     }, { passive: false });
 
-    // Keyboard
     document.addEventListener('keydown', e => {
-      if (!selectedId) return;
+      if (!state.selectedId) return;
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-      const sel = items.find(i => i.id === selectedId);
+      const sel = curSide().items.find(i => i.id === state.selectedId);
       if (!sel) return;
       const step = e.shiftKey ? 5 : 0.5;
-      if (e.key === 'ArrowLeft') { sel.x -= step; render(); e.preventDefault(); }
+      if (e.key === 'ArrowLeft')  { sel.x -= step; render(); e.preventDefault(); }
       else if (e.key === 'ArrowRight') { sel.x += step; render(); e.preventDefault(); }
-      else if (e.key === 'ArrowUp') { sel.y -= step; render(); e.preventDefault(); }
-      else if (e.key === 'ArrowDown') { sel.y += step; render(); e.preventDefault(); }
+      else if (e.key === 'ArrowUp')    { sel.y -= step; render(); e.preventDefault(); }
+      else if (e.key === 'ArrowDown')  { sel.y += step; render(); e.preventDefault(); }
       else if (e.key === 'Delete' || e.key === 'Backspace') {
-        items = items.filter(i => i.id !== selectedId);
-        selectedId = null;
+        curSide().items = curSide().items.filter(i => i.id !== state.selectedId);
+        state.selectedId = null;
         renderItemList(); render();
         e.preventDefault();
       }
     });
 
     // ── Background controls ────────────────────────────────────────────
-    function syncBgControls() {
-      $('bgOpacityWrap').style.display = bgData ? 'block' : 'none';
-      $('clearBgBtn').style.display = bgData ? 'block' : 'none';
-      $('bgOpacity').value = bgOpacity;
-      $('bgOpacityVal').textContent = Math.round(bgOpacity * 100) + '%';
-    }
-    $('bgColor').addEventListener('input', e => { bgColor = e.target.value; render(); });
+    $('noBgCheck').addEventListener('change', e => {
+      curSide().noBg = e.target.checked;
+      $('bgControls').style.display = e.target.checked ? 'none' : '';
+      render();
+    });
+    $('bgColor').addEventListener('input', e => { curSide().bgColor = e.target.value; render(); });
     $('bgFile').addEventListener('change', e => {
       const f = e.target.files?.[0]; if (!f) return;
       const r = new FileReader();
-      r.onload = () => { bgData = r.result; bgOpacity = 1; loadBgImage(bgData); syncBgControls(); };
+      r.onload = () => {
+        curSide().bgData = r.result; curSide().bgOpacity = 1;
+        loadBgImage(state.activeSide, r.result);
+        $('bgOpacityWrap').style.display = '';
+        $('clearBgBtn').style.display = '';
+      };
       r.readAsDataURL(f);
     });
     $('bgOpacity').addEventListener('input', e => {
-      bgOpacity = +e.target.value;
-      $('bgOpacityVal').textContent = Math.round(bgOpacity * 100) + '%';
+      curSide().bgOpacity = +e.target.value;
+      $('bgOpacityVal').textContent = Math.round(curSide().bgOpacity * 100) + '%';
       render();
     });
-    $('aiDesc').addEventListener('input', e => { aiDesc = e.target.value; });
+    $('aiDesc').addEventListener('input', e => { curSide().aiDesc = e.target.value; });
 
     function clearBg() {
-      bgData = ''; bgImg = null; bgOpacity = 1;
+      const s = curSide();
+      s.bgData = ''; s.bgOpacity = 1;
+      bgImgs[state.activeSide] = null;
       $('bgFile').value = '';
-      syncBgControls(); render();
+      $('bgOpacityWrap').style.display = 'none';
+      $('clearBgBtn').style.display = 'none';
+      render();
     }
 
     async function generateAiBg() {
@@ -683,10 +975,14 @@
       status.className = 'ai-status loading';
       status.textContent = '⏳ AI가 배경 디자인 중... (10~30초)';
       try {
-        const tplName = TEMPLATES[currentTpl].name;
-        const userDesc = aiDesc.trim();
-        const itemTexts = items.filter(i => i.text.trim()).map(i => i.text).slice(0, 5).join(', ');
-        const prompt = `${userDesc ? userDesc + '. ' : ''}Design a professional background for a ${tplName}. ${itemTexts ? `Content includes: ${itemTexts}.` : ''} No text, letters, numbers, logos, borders, or watermarks. High quality, print-ready, clean composition.`;
+        const tpl = TEMPLATES[state.tplId];
+        const userDesc = curSide().aiDesc.trim();
+        const itemTexts = curSide().items.filter(i => i.text.trim()).map(i => i.text).slice(0, 5).join(', ');
+        let layoutHint = '';
+        if (tpl.isSpread) layoutHint = 'full book cover spread (back cover + spine + front cover) in one panoramic image';
+        else if (tpl.hasFold) layoutHint = `${state.foldCount}-panel folded ${tpl.name}`;
+        else layoutHint = `${tpl.name}`;
+        const prompt = `${userDesc ? userDesc + '. ' : ''}Design a professional background for a ${layoutHint}. ${itemTexts ? `Content includes: ${itemTexts}.` : ''} No text, letters, numbers, logos, borders, or watermarks. High quality, print-ready, clean composition.`;
 
         const token = await auth.currentUser.getIdToken();
         const res = await fetch('/api/ai/generate-bg', {
@@ -699,12 +995,13 @@
           throw new Error(err.detail || `HTTP ${res.status}`);
         }
         const data = await res.json();
-        bgData = 'data:image/png;base64,' + data.b64_json;
-        bgOpacity = 1;
-        loadBgImage(bgData);
+        curSide().bgData = 'data:image/png;base64,' + data.b64_json;
+        curSide().bgOpacity = 1;
+        loadBgImage(state.activeSide, curSide().bgData);
+        $('bgOpacityWrap').style.display = '';
+        $('clearBgBtn').style.display = '';
         status.className = 'ai-status success';
         status.textContent = '✓ AI 배경 생성 완료!';
-        syncBgControls();
         setTimeout(() => { status.className = 'ai-status'; }, 3000);
       } catch (e) {
         status.className = 'ai-status error';
@@ -714,99 +1011,142 @@
       }
     }
 
-    // ── Paper size controls ────────────────────────────────────────────
+    // ── Side tabs / Duplex ─────────────────────────────────────────────
+    $('sideTabs').querySelectorAll('.side-tab').forEach(t => {
+      t.addEventListener('click', () => {
+        if (t.dataset.side === 'back' && !state.isDuplex) return;
+        state.activeSide = t.dataset.side;
+        state.selectedId = null;
+        syncControls();
+        renderItemList();
+        render();
+      });
+    });
+    $('duplexToggle').addEventListener('change', e => {
+      state.isDuplex = e.target.checked;
+      if (!state.isDuplex && state.activeSide === 'back') state.activeSide = 'front';
+      syncControls();
+      renderItemList();
+      render();
+    });
+
+    // ── Cover controls ─────────────────────────────────────────────────
+    $('noSpine').addEventListener('change', e => {
+      state.noSpine = e.target.checked;
+      $('spineDetails').style.display = state.noSpine ? 'none' : '';
+      updatePaperInfo();
+      zoomFit();
+    });
+    $('spineW').addEventListener('input', e => { state.spineW = +e.target.value || 0; updatePaperInfo(); zoomFit(); });
+    $('spineText').addEventListener('input', e => { state.spineText = e.target.value; render(); });
+    $('spineVertical').addEventListener('change', e => { state.spineVertical = e.target.checked; render(); });
+
+    // ── Leaflet controls ───────────────────────────────────────────────
+    $('foldBtns').querySelectorAll('.fold-btn').forEach(b => {
+      b.addEventListener('click', () => {
+        state.foldCount = +b.dataset.fold;
+        $('foldBtns').querySelectorAll('.fold-btn').forEach(x => x.classList.remove('active'));
+        b.classList.add('active');
+        updatePaperInfo();
+        render();
+      });
+    });
+    $('showFoldLines').addEventListener('change', e => { state.showFoldLines = e.target.checked; render(); });
+
+    // ── Paper / Bleed / Display ────────────────────────────────────────
     function applyPaperFromInputs() {
-      const w = parseFloat($('paperW').value) || 100;
-      const h = parseFloat($('paperH').value) || 100;
-      paperW = Math.min(w, h);
-      paperH = Math.max(w, h);
-      landscape = $('orientToggle').checked;
-      $('paperInfo').textContent = `${w} × ${h} mm (${landscape ? '가로' : '세로'})`;
+      const w = +$('paperW').value || 100;
+      const h = +$('paperH').value || 100;
+      state.paperW = Math.min(w, h);
+      state.paperH = Math.max(w, h);
+      state.landscape = $('orientToggle').checked;
+      updatePaperInfo();
       zoomFit();
     }
     $('paperW').addEventListener('input', applyPaperFromInputs);
     $('paperH').addEventListener('input', applyPaperFromInputs);
     $('orientToggle').addEventListener('change', () => {
-      const cw = parseFloat($('paperW').value);
-      const ch = parseFloat($('paperH').value);
-      $('paperW').value = ch; $('paperH').value = cw;
+      const w = +$('paperW').value, h = +$('paperH').value;
+      $('paperW').value = h; $('paperH').value = w;
       applyPaperFromInputs();
     });
+    $('bleedInput').addEventListener('input', e => { state.bleed = +e.target.value || 0; render(); });
+    $('showBleed').addEventListener('change', e => { state.showBleed = e.target.checked; render(); });
 
     // ── Zoom ───────────────────────────────────────────────────────────
     function setZoom(level) {
-      zoomLevel = Math.max(0.2, Math.min(3, level));
-      $('zoomVal').textContent = Math.round(zoomLevel * 100) + '%';
+      state.zoomLevel = Math.max(0.1, Math.min(3, level));
+      $('zoomVal').textContent = Math.round(state.zoomLevel * 100) + '%';
       render();
     }
     function zoomFit() {
       const main = document.querySelector('main');
       const availW = main.clientWidth - 40;
-      const availH = main.clientHeight - 100;
-      const { w, h } = getPaperSize();
+      const availH = main.clientHeight - 80;
+      const { w, h } = getCanvasMm();
       const baseScale = 4;
       const fit = Math.min(availW / (w * baseScale), availH / (h * baseScale));
-      setZoom(Math.max(0.2, fit * 0.95));
+      setZoom(Math.max(0.15, fit * 0.95));
     }
     window.addEventListener('resize', zoomFit);
+    Object.defineProperty(window, 'zoomLevel', { get: () => state.zoomLevel });
 
     // ── Save ───────────────────────────────────────────────────────────
-    function buildHiResCanvas() {
-      const { w, h } = getPaperSize();
+    function buildSideCanvas(side) {
+      const { w, h } = getCanvasMm();
       const c = document.createElement('canvas');
       const scale = MM2PX_PRINT;
       c.width = Math.round(w * scale);
       c.height = Math.round(h * scale);
       const ctx = c.getContext('2d');
       ctx.imageSmoothingQuality = 'high';
-      ctx.fillStyle = bgColor;
-      ctx.fillRect(0, 0, c.width, c.height);
-      if (bgImg) {
-        ctx.globalAlpha = bgOpacity;
-        const r = Math.max(c.width / bgImg.width, c.height / bgImg.height);
-        const iw = bgImg.width * r, ih = bgImg.height * r;
-        ctx.drawImage(bgImg, (c.width - iw) / 2, (c.height - ih) / 2, iw, ih);
-        ctx.globalAlpha = 1;
-      }
-      items.forEach(item => {
-        const fs = item.fontSize * scale;
-        ctx.font = `${item.bold ? '900' : '500'} ${fs}px Pretendard, "Noto Sans KR", sans-serif`;
-        ctx.fillStyle = item.color;
-        ctx.textAlign = item.align || 'left';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(item.text, item.x * scale, item.y * scale);
-      });
+      drawSide(ctx, scale, c.width, c.height, side, false);
       return c;
     }
 
+    function sidesToExport() {
+      return state.isDuplex ? ['front', 'back'] : ['front'];
+    }
+
     $('downloadPng').addEventListener('click', () => {
-      const c = buildHiResCanvas();
-      const a = document.createElement('a');
-      a.download = `${TEMPLATES[currentTpl].name}_${new Date().toISOString().slice(0,10)}.png`;
-      a.href = c.toDataURL('image/png');
-      a.click();
+      const tpl = TEMPLATES[state.tplId];
+      sidesToExport().forEach((side, idx) => {
+        const c = buildSideCanvas(side);
+        const a = document.createElement('a');
+        const sideName = state.isDuplex ? `_${side === 'front' ? (tpl.frontLabel || '앞면') : (tpl.backLabel || '뒷면')}` : '';
+        a.download = `${tpl.name}${sideName}_${new Date().toISOString().slice(0,10)}.png`;
+        a.href = c.toDataURL('image/png');
+        setTimeout(() => a.click(), idx * 200);
+      });
     });
 
     $('downloadPdf').addEventListener('click', () => {
-      const { w, h } = getPaperSize();
-      const c = buildHiResCanvas();
-      const dataUrl = c.toDataURL('image/jpeg', 0.95);
+      const tpl = TEMPLATES[state.tplId];
+      const { w, h } = getCanvasMm();
+      const sides = sidesToExport();
+      const pages = sides.map(side => {
+        const c = buildSideCanvas(side);
+        return c.toDataURL('image/jpeg', 0.95);
+      });
       const win = window.open('', '_blank');
+      const pageHtml = pages.map(url => `<div class="page"><img src="${url}"></div>`).join('');
       win.document.write(`
-        <html><head><title>${TEMPLATES[currentTpl].name} PDF</title>
+        <html><head><title>${tpl.name} PDF</title>
         <style>
           @page { size: ${w}mm ${h}mm; margin: 0; }
-          body { margin: 0; padding: 0; }
+          html, body { margin: 0; padding: 0; }
+          .page { width: ${w}mm; height: ${h}mm; page-break-after: always; overflow: hidden; }
+          .page:last-child { page-break-after: auto; }
           img { width: ${w}mm; height: ${h}mm; display: block; }
         </style></head>
-        <body><img src="${dataUrl}" onload="setTimeout(()=>window.print(), 200)"></body></html>
+        <body>${pageHtml}<script>window.addEventListener('load',()=>setTimeout(()=>window.print(),300))<\/script></body></html>
       `);
       win.document.close();
     });
 
     $('resetBtn').addEventListener('click', () => {
       if (!confirm('초기 템플릿으로 되돌릴까요? 모든 변경사항이 사라집니다.')) return;
-      loadTemplate(currentTpl);
+      loadTemplate(state.tplId);
     });
 
     // ── Auth ───────────────────────────────────────────────────────────
@@ -820,7 +1160,7 @@
     }
 
     // ── Init ───────────────────────────────────────────────────────────
-    loadTemplate(currentTpl);
+    loadTemplate(state.tplId);
   </script>
 </body>
 </html>
