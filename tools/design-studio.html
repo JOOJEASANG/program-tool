@@ -314,13 +314,24 @@
 
       <!-- Save -->
       <div class="section">
-        <h2>💾 저장</h2>
+        <h2>💾 내보내기</h2>
         <div class="btns">
           <button class="blue" id="downloadPng">PNG 저장</button>
           <button class="green" id="downloadPdf">PDF 저장</button>
         </div>
-        <button class="secondary" id="resetBtn" style="width:100%;margin-top:7px;">초기화</button>
         <div class="smallnote" style="margin-top:6px;">양면일 경우 두 면이 함께 저장됩니다. PDF는 인쇄 미리보기에서 "PDF로 저장"을 선택하세요.</div>
+      </div>
+
+      <!-- Project save/load -->
+      <div class="section">
+        <h2>📂 프로젝트</h2>
+        <div class="btns">
+          <button id="saveProjectBtn" style="background:#7c3aed;">💾 저장</button>
+          <button id="loadProjectBtn" class="secondary">📂 불러오기</button>
+        </div>
+        <input type="file" id="loadProjectFile" accept=".json" style="display:none;">
+        <div id="autosaveInfo" class="smallnote" style="margin-top:6px;"></div>
+        <button class="secondary" id="resetBtn" style="width:100%;margin-top:7px;">초기화</button>
       </div>
     </aside>
 
@@ -636,14 +647,20 @@
           </div>
         `;
         const ti = row.querySelector('.item-text-input');
-        ti.addEventListener('input', e => { item.text = e.target.value; render(); });
-        ti.addEventListener('focus', () => { state.selectedId = item.id; renderItemList(); render(); });
+        ti.addEventListener('input', e => { item.text = e.target.value; render(); scheduleSave(); });
+        ti.addEventListener('focus', () => {
+          if (state.selectedId === item.id) return;
+          state.selectedId = item.id; renderItemList(); render();
+        });
 
         const fs = row.querySelector('.item-fs-input');
-        fs.addEventListener('input', e => { item.fontSize = Math.max(4, +e.target.value || 4); render(); });
-        fs.addEventListener('focus', () => { state.selectedId = item.id; renderItemList(); render(); });
+        fs.addEventListener('input', e => { item.fontSize = Math.max(4, +e.target.value || 4); render(); scheduleSave(); });
+        fs.addEventListener('focus', () => {
+          if (state.selectedId === item.id) return;
+          state.selectedId = item.id; renderItemList(); render();
+        });
 
-        row.querySelector('.item-color-input').addEventListener('input', e => { item.color = e.target.value; render(); });
+        row.querySelector('.item-color-input').addEventListener('input', e => { item.color = e.target.value; render(); scheduleSave(); });
 
         row.querySelector('.item-del').addEventListener('click', e => {
           e.stopPropagation();
@@ -939,9 +956,9 @@
     $('noBgCheck').addEventListener('change', e => {
       curSide().noBg = e.target.checked;
       $('bgControls').style.display = e.target.checked ? 'none' : '';
-      render();
+      render(); scheduleSave();
     });
-    $('bgColor').addEventListener('input', e => { curSide().bgColor = e.target.value; render(); });
+    $('bgColor').addEventListener('input', e => { curSide().bgColor = e.target.value; render(); scheduleSave(); });
     $('bgFile').addEventListener('change', e => {
       const f = e.target.files?.[0]; if (!f) return;
       const r = new FileReader();
@@ -1150,6 +1167,128 @@
       loadTemplate(state.tplId);
     });
 
+    // ── Project save / load ────────────────────────────────────────────
+    function autosaveKey() { return `ds-project-${state.tplId}`; }
+
+    function stateToJson() {
+      return JSON.stringify({
+        version: 1,
+        tplId: state.tplId,
+        paperW: state.paperW, paperH: state.paperH,
+        landscape: state.landscape, bleed: state.bleed, showBleed: state.showBleed,
+        spineW: state.spineW, spineText: state.spineText,
+        spineVertical: state.spineVertical, noSpine: state.noSpine,
+        foldCount: state.foldCount, showFoldLines: state.showFoldLines,
+        isDuplex: state.isDuplex,
+        sides: {
+          front: { ...state.sides.front },
+          back: { ...state.sides.back },
+        },
+        savedAt: new Date().toISOString(),
+      });
+    }
+
+    function applyProjectJson(json) {
+      let d;
+      try { d = JSON.parse(json); } catch { alert('올바른 프로젝트 파일이 아닙니다.'); return; }
+      if (!d.tplId || !TEMPLATES[d.tplId]) { alert('템플릿 정보가 없습니다.'); return; }
+
+      loadTemplate(d.tplId);
+      state.paperW = d.paperW || state.paperW;
+      state.paperH = d.paperH || state.paperH;
+      state.landscape = !!d.landscape;
+      state.bleed = d.bleed ?? state.bleed;
+      state.showBleed = d.showBleed ?? true;
+      state.spineW = d.spineW ?? state.spineW;
+      state.spineText = d.spineText ?? '';
+      state.spineVertical = !!d.spineVertical;
+      state.noSpine = !!d.noSpine;
+      state.foldCount = d.foldCount || 3;
+      state.showFoldLines = d.showFoldLines ?? true;
+      state.isDuplex = !!d.isDuplex;
+
+      ['front', 'back'].forEach(side => {
+        if (d.sides?.[side]) {
+          state.sides[side] = {
+            items: d.sides[side].items || [],
+            bgColor: d.sides[side].bgColor || '#ffffff',
+            bgData: d.sides[side].bgData || null,
+            bgOpacity: d.sides[side].bgOpacity ?? 1,
+            noBg: !!d.sides[side].noBg,
+            aiDesc: d.sides[side].aiDesc || '',
+          };
+          if (state.sides[side].bgData) loadBgImage(side, state.sides[side].bgData);
+        }
+      });
+
+      // Sync UI controls
+      $('paperW').value = state.paperW;
+      $('paperH').value = state.paperH;
+      $('orientToggle').checked = state.landscape;
+      $('bleedInput').value = state.bleed;
+      $('showBleed').checked = state.showBleed;
+      if (TEMPLATES[state.tplId].hasSpine) {
+        $('noSpine').checked = state.noSpine;
+        $('spineW').value = state.spineW;
+        $('spineText').value = state.spineText;
+        $('spineVertical').checked = state.spineVertical;
+        $('spineDetails').style.display = state.noSpine ? 'none' : '';
+      }
+      $('duplexToggle').checked = state.isDuplex;
+      $('sideTabBack').disabled = !state.isDuplex;
+      $('sideTabBack').style.opacity = state.isDuplex ? '1' : '0.4';
+      $('sideTabBack').style.cursor = state.isDuplex ? 'pointer' : 'not-allowed';
+
+      switchSide('front');
+      updatePaperInfo();
+      zoomFit();
+    }
+
+    let saveTimer = null;
+    function scheduleSave() {
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(() => {
+        try {
+          localStorage.setItem(autosaveKey(), stateToJson());
+          const now = new Date();
+          $('autosaveInfo').textContent = `자동저장됨 ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
+        } catch {}
+      }, 1000);
+    }
+
+    function tryAutoload() {
+      try {
+        const saved = localStorage.getItem(autosaveKey());
+        if (!saved) return;
+        const d = JSON.parse(saved);
+        if (!d.savedAt) return;
+        const ago = Math.round((Date.now() - new Date(d.savedAt)) / 60000);
+        const label = ago < 60 ? `${ago}분 전` : `${Math.round(ago/60)}시간 전`;
+        if (confirm(`저장된 작업이 있습니다 (${label}). 이어서 작업하시겠습니까?`)) {
+          applyProjectJson(saved);
+        }
+      } catch {}
+    }
+
+    $('saveProjectBtn').addEventListener('click', () => {
+      const json = stateToJson();
+      localStorage.setItem(autosaveKey(), json);
+      const tpl = TEMPLATES[state.tplId];
+      const a = document.createElement('a');
+      a.download = `${tpl.name}_프로젝트_${new Date().toISOString().slice(0,10)}.json`;
+      a.href = 'data:application/json;charset=utf-8,' + encodeURIComponent(json);
+      a.click();
+      $('autosaveInfo').textContent = '저장 완료';
+    });
+
+    $('loadProjectBtn').addEventListener('click', () => $('loadProjectFile').click());
+    $('loadProjectFile').addEventListener('change', e => {
+      const f = e.target.files?.[0]; if (!f) return;
+      const r = new FileReader();
+      r.onload = () => { applyProjectJson(r.result); e.target.value = ''; };
+      r.readAsText(f);
+    });
+
     // ── Auth ───────────────────────────────────────────────────────────
     auth.onAuthStateChanged(user => {
       if (!user) { location.href = '../login.html'; return; }
@@ -1162,6 +1301,7 @@
 
     // ── Init ───────────────────────────────────────────────────────────
     loadTemplate(state.tplId);
+    tryAutoload();
   </script>
 </body>
 </html>
