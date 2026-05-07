@@ -1,10 +1,10 @@
 """
-Claude Vision-based pre-flight analysis (sync version for Firebase Functions).
+OpenAI Vision-based pre-flight analysis.
 """
 import base64
 import os
 import fitz
-import anthropic
+from openai import OpenAI
 
 RENDER_DPI = 150
 MAX_PAGES_TO_ANALYZE = 3
@@ -31,11 +31,11 @@ def _render_page_to_base64(page: fitz.Page, dpi: int = RENDER_DPI) -> str:
 
 
 def analyze_with_vision(doc: fitz.Document) -> str:
-    api_key = os.getenv("ANTHROPIC_API_KEY")
+    api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
-        return "AI 분석을 사용하려면 ANTHROPIC_API_KEY 환경변수를 설정해주세요."
+        return "AI 분석을 사용하려면 OPENAI_API_KEY 환경변수를 설정해주세요."
 
-    client = anthropic.Anthropic(api_key=api_key)
+    client = OpenAI(api_key=api_key)
     pages_to_check = min(len(doc), MAX_PAGES_TO_ANALYZE)
 
     content: list[dict] = []
@@ -44,8 +44,8 @@ def analyze_with_vision(doc: fitz.Document) -> str:
         b64 = _render_page_to_base64(page)
         content.append({"type": "text", "text": f"=== 페이지 {i + 1} ==="})
         content.append({
-            "type": "image",
-            "source": {"type": "base64", "media_type": "image/jpeg", "data": b64},
+            "type": "image_url",
+            "image_url": {"url": f"data:image/jpeg;base64,{b64}"},
         })
 
     content.append({
@@ -53,11 +53,13 @@ def analyze_with_vision(doc: fitz.Document) -> str:
         "text": f"총 {len(doc)}페이지 문서입니다. 위 {pages_to_check}개 페이지를 분석하여 인쇄 품질을 평가해주세요.",
     })
 
-    response = client.messages.create(
-        model="claude-haiku-4-5",
+    response = client.chat.completions.create(
+        model="gpt-4.1",
+        messages=[
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": content},
+        ],
         max_tokens=1024,
-        system=SYSTEM_PROMPT,
-        messages=[{"role": "user", "content": content}],
     )
 
-    return response.content[0].text
+    return response.choices[0].message.content
