@@ -263,21 +263,20 @@
         url: 'programs/design.html',
         new: false,
       },
-      // 여기에 새 프로그램을 추가하세요
-      // {
-      //   id: 'example',
-      //   name: '예시 프로그램',
-      //   desc: '설명을 여기에 입력하세요.',
-      //   icon: '📄',
-      //   iconBg: '#f0fdf4',
-      //   category: '문서',
-      //   categoryColor: '#166534',
-      //   categoryBg: '#dcfce7',
-      //   tags: ['문서', 'PDF'],
-      //   btnColor: '#15803d',
-      //   url: 'programs/example.html',
-      //   new: true,
-      // },
+      {
+        id: 'ppt-nup',
+        name: 'PPT N-up 변환기',
+        desc: 'PPTX 파일을 2장·4장·9장씩 한 페이지에 배치하여 인쇄용 PDF로 변환합니다.',
+        icon: '📄',
+        iconBg: '#fff7ed',
+        category: '인쇄',
+        categoryColor: '#c2410c',
+        categoryBg: '#ffedd5',
+        tags: ['PPT', 'PDF', '인쇄'],
+        btnColor: '#9a3412',
+        url: 'programs/ppt-nup.html',
+        new: true,
+      },
     ];
 
     const allCategories = ['전체', ...new Set(programs.map(p => p.category))];
