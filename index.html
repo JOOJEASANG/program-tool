@@ -158,15 +158,20 @@
 
     /* ── DASHBOARD GREETING (logged in) ── */
     .dashboard-greeting {
-      padding: 50px 5% 24px;
+      padding: 64px 5% 32px;
       background: linear-gradient(180deg, #f0f9ff 0%, #fff 100%);
       text-align: center;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
     }
     .dashboard-greeting h2 {
-      font-size: 28px; font-weight: 900; color: #0f172a;
-      letter-spacing: -0.8px; margin-bottom: 6px;
+      font-size: 32px; font-weight: 900; color: #0f172a;
+      letter-spacing: -0.8px; margin-bottom: 8px;
+      max-width: 640px;
     }
-    .dashboard-greeting p { font-size: 14px; color: #64748b; }
+    .dashboard-greeting p {
+      font-size: 15px; color: #64748b;
+      max-width: 560px;
+    }
 
     /* ── PROGRAMS SLIDER ── */
     .programs-section {
