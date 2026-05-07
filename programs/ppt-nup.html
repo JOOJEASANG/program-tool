@@ -317,7 +317,13 @@ const PAPER = {
   b5:     [176, 250],
   letter: [216, 279],
 };
-const NUP_COLS = { 1:[1,1], 2:[2,1], 4:[2,2], 6:[3,2], 8:[4,2], 9:[3,3] };
+const NUP_COLS = { 1:[1,1], 4:[2,2], 6:[3,2], 8:[4,2], 9:[3,3] };
+
+// 2-up: 세로 용지 → 상하(1×2), 가로 용지 → 좌우(2×1)
+function getNupLayout(n, isLandscape) {
+  if (n === 2) return isLandscape ? [2, 1] : [1, 2];
+  return NUP_COLS[n] || [2, 1];
+}
 
 // ── Status helper ────────────────────────────────────────────────────
 function showStatus(msg, type = 'info') {
@@ -449,7 +455,7 @@ function parsXml(xmlStr) {
 }
 
 // ── Slide Renderer ───────────────────────────────────────────────────
-const RENDER_W = 1280;  // px, high resolution for quality
+const RENDER_W = 2560;  // px — 300 DPI급 출력에 충분한 슬라이드 렌더 해상도
 
 async function renderSlide(slide) {
   const canvas = document.createElement('canvas');
@@ -815,65 +821,68 @@ function getSettings() {
   const mh = parseFloat($('marginH').value) || 10;
   const mv = parseFloat($('marginV').value) || 10;
   const gp = parseFloat($('gap').value) || 5;
-  const [cols, rows] = NUP_COLS[nup] || [2,1];
+  const [cols, rows] = getNupLayout(nup, landscape);
   const W = landscape ? ph : pw;
   const H = landscape ? pw : ph;
   return { pw: W, ph: H, mh, mv, gp, cols, rows };
 }
 
-async function buildPages() {
-  const { pw, ph, mh, mv, gp, cols, rows } = getSettings();
+function buildOnePage(activeSlides, pageIdx, cols, rows, pw, ph, mh, mv, gp, mm2px) {
   const perPage = cols * rows;
-  const MM2PX = 3.7795;  // mm to px at 96dpi
-
-  // Cell dimensions in mm
   const cellW = (pw - mh*2 - gp*(cols-1)) / cols;
   const cellH = (ph - mv*2 - gp*(rows-1)) / rows;
 
+  const pageCanvas = document.createElement('canvas');
+  pageCanvas.width  = Math.round(pw * mm2px);
+  pageCanvas.height = Math.round(ph * mm2px);
+  const ctx = pageCanvas.getContext('2d');
+  ctx.fillStyle = '#FFFFFF';
+  ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
+
+  for (let s = 0; s < perPage; s++) {
+    const slideIdx = pageIdx * perPage + s;
+    if (slideIdx >= activeSlides.length) break;
+    const slide = activeSlides[slideIdx];
+
+    let col, row;
+    if (orderLR) { col = s % cols; row = Math.floor(s / cols); }
+    else          { col = Math.floor(s / rows); row = s % rows; }
+
+    const cellX = (mh + col * (cellW + gp)) * mm2px;
+    const cellY = (mv + row * (cellH + gp)) * mm2px;
+    const cellPxW = cellW * mm2px;
+    const cellPxH = cellH * mm2px;
+
+    const slideRatio = slide.canvas.width / slide.canvas.height;
+    const cellRatio  = cellPxW / cellPxH;
+    let dw, dh, dx, dy;
+    if (slideRatio > cellRatio) {
+      dw = cellPxW; dh = cellPxW / slideRatio;
+      dx = cellX;   dy = cellY + (cellPxH - dh) / 2;
+    } else {
+      dh = cellPxH; dw = cellPxH * slideRatio;
+      dx = cellX + (cellPxW - dw) / 2; dy = cellY;
+    }
+    ctx.drawImage(slide.canvas, dx, dy, dw, dh);
+    ctx.strokeStyle = 'rgba(0,0,0,0.12)';
+    ctx.lineWidth = Math.max(0.5, mm2px * 0.1);
+    ctx.strokeRect(dx, dy, dw, dh);
+  }
+  return pageCanvas;
+}
+
+async function buildPages(dpi = 96) {
+  const { pw, ph, mh, mv, gp, cols, rows } = getSettings();
+  const perPage = cols * rows;
+  const mm2px = dpi / 25.4;
+
   const activeSlides = parsedSlides.filter((_, i) => !excludedSlides.has(i));
+  const totalPages = Math.ceil(activeSlides.length / perPage);
   const pages = [];
 
-  for (let p = 0; p < Math.ceil(activeSlides.length / perPage); p++) {
-    const pageCanvas = document.createElement('canvas');
-    pageCanvas.width  = Math.round(pw * MM2PX);
-    pageCanvas.height = Math.round(ph * MM2PX);
-    const ctx = pageCanvas.getContext('2d');
-    ctx.fillStyle = '#FFFFFF';
-    ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
-
-    for (let s = 0; s < perPage; s++) {
-      const slideIdx = p * perPage + s;
-      if (slideIdx >= activeSlides.length) break;
-      const slide = activeSlides[slideIdx];
-
-      let col, row;
-      if (orderLR) { col = s % cols; row = Math.floor(s / cols); }
-      else          { col = Math.floor(s / rows); row = s % rows; }
-
-      const cellX = (mh + col * (cellW + gp)) * MM2PX;
-      const cellY = (mv + row * (cellH + gp)) * MM2PX;
-      const cellPxW = cellW * MM2PX;
-      const cellPxH = cellH * MM2PX;
-
-      // Scale slide to fit cell (maintain aspect ratio)
-      const slideRatio = slide.canvas.width / slide.canvas.height;
-      const cellRatio  = cellPxW / cellPxH;
-      let dw, dh, dx, dy;
-      if (slideRatio > cellRatio) {
-        dw = cellPxW; dh = cellPxW / slideRatio;
-        dx = cellX; dy = cellY + (cellPxH - dh) / 2;
-      } else {
-        dh = cellPxH; dw = cellPxH * slideRatio;
-        dx = cellX + (cellPxW - dw) / 2; dy = cellY;
-      }
-      ctx.drawImage(slide.canvas, dx, dy, dw, dh);
-
-      // Optional: thin border around each slide
-      ctx.strokeStyle = 'rgba(0,0,0,0.12)';
-      ctx.lineWidth = 0.5;
-      ctx.strokeRect(dx, dy, dw, dh);
-    }
-    pages.push(pageCanvas);
+  for (let p = 0; p < totalPages; p++) {
+    pages.push(buildOnePage(activeSlides, p, cols, rows, pw, ph, mh, mv, gp, mm2px));
+    await new Promise(r => setTimeout(r, 0));  // yield to keep UI responsive
   }
   return pages;
 }
@@ -887,7 +896,7 @@ $('previewBtn').addEventListener('click', async () => {
   await new Promise(r => setTimeout(r, 10));
 
   try {
-    renderedCanvases = await buildPages();
+    renderedCanvases = await buildPages(96);
     displayPreview(renderedCanvases);
     const active = parsedSlides.length - excludedSlides.size;
     $('previewInfo').textContent = `슬라이드 ${active}장 · ${nup}장/페이지 · ${$('paperSize').value.toUpperCase()} ${landscape ? '가로' : '세로'}`;
@@ -931,20 +940,32 @@ $('downloadBtn').addEventListener('click', async () => {
   await new Promise(r => setTimeout(r, 10));
 
   try {
-    const { pw, ph } = getSettings();
+    const { pw, ph, mh, mv, gp, cols, rows } = getSettings();
     const orient = landscape ? 'landscape' : 'portrait';
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ orientation: orient, unit: 'mm', format: [Math.min(pw,ph), Math.max(pw,ph)] });
 
-    renderedCanvases.forEach((canvas, i) => {
-      if (i > 0) doc.addPage([Math.min(pw,ph), Math.max(pw,ph)], orient);
-      const imgData = canvas.toDataURL('image/jpeg', 0.92);
+    const PDF_DPI = 300;
+    const mm2px = PDF_DPI / 25.4;
+    const perPage = cols * rows;
+    const activeSlides = parsedSlides.filter((_, i) => !excludedSlides.has(i));
+    const totalPages = Math.ceil(activeSlides.length / perPage);
+
+    // 페이지별 300 DPI 렌더링 → 메모리 절약
+    for (let p = 0; p < totalPages; p++) {
+      showStatus(`PDF 생성 중... (${p + 1} / ${totalPages} 페이지, 300 DPI)`);
+      await new Promise(r => setTimeout(r, 0));
+
+      const pageCanvas = buildOnePage(activeSlides, p, cols, rows, pw, ph, mh, mv, gp, mm2px);
+      const imgData = pageCanvas.toDataURL('image/jpeg', 0.95);
+
+      if (p > 0) doc.addPage([Math.min(pw,ph), Math.max(pw,ph)], orient);
       doc.addImage(imgData, 'JPEG', 0, 0, pw, ph);
-    });
+    }
 
     const ts = new Date().toISOString().slice(0,16).replace('T','_').replace(':','-');
     doc.save(`slides_${nup}up_${ts}.pdf`);
-    showStatus('PDF 저장 완료!', 'success');
+    showStatus('PDF 저장 완료! (300 DPI)', 'success');
     setTimeout(hideStatus, 3000);
   } catch(e) {
     showStatus('PDF 오류: ' + e.message, 'error');
