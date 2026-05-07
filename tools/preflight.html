@@ -8,180 +8,103 @@
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
-      --bg: #f0f4f8;
-      --sidebar-bg: #0f2244;
-      --sidebar-w: 260px;
+      --bg: #f4f6f8;
+      --primary: #12396d;
       --accent: #1d9bb2;
-      --text: #0f172a;
-      --text2: #64748b;
-      --border: #e2e8f0;
-      --card: #fff;
       --pass: #16a34a;
       --warn: #d97706;
       --fail: #dc2626;
+      --nav-h: 52px;
     }
     body {
       font-family: Pretendard, "Noto Sans KR", sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      display: flex;
+      background: var(--bg); color: #0f172a;
       min-height: 100vh;
+      padding-top: var(--nav-h);
     }
 
-    /* Sidebar */
-    .sidebar {
-      width: var(--sidebar-w);
-      background: var(--sidebar-bg);
-      display: flex;
-      flex-direction: column;
-      position: fixed;
-      top: 0; left: 0; bottom: 0;
-      z-index: 100;
+    .top-nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 500;
+      height: var(--nav-h); background: var(--primary);
+      display: flex; align-items: center; padding: 0 16px; gap: 12px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.2);
     }
-    .sidebar-header {
-      padding: 20px 18px 16px;
-      border-bottom: 1px solid rgba(255,255,255,0.08);
+    .nav-back {
+      display: flex; align-items: center; gap: 6px;
+      color: rgba(255,255,255,0.85); font-size: 13px; font-weight: 700;
+      text-decoration: none; padding: 7px 12px; border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.2);
+      transition: background 0.15s; white-space: nowrap;
     }
-    .brand-link {
-      display: flex; align-items: center; gap: 10px;
-      text-decoration: none;
+    .nav-back:hover { background: rgba(255,255,255,0.15); color: #fff; }
+    .nav-title { flex: 1; text-align: center; font-size: 15px; font-weight: 800; color: #fff; }
+    .nav-user { display: flex; align-items: center; gap: 8px; }
+    .nav-user-name {
+      font-size: 12px; color: rgba(255,255,255,0.75); font-weight: 600;
+      max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
-    .brand-icon {
-      width: 36px; height: 36px;
-      background: linear-gradient(135deg, #1d9bb2, #12396d);
-      border-radius: 10px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 18px;
+    .nav-logout {
+      color: rgba(255,255,255,0.75); font-size: 12px; font-weight: 700;
+      background: rgba(255,255,255,0.12); border: none; border-radius: 7px;
+      padding: 6px 10px; cursor: pointer; font-family: inherit; transition: background 0.15s;
     }
-    .brand-name { color: #fff; font-size: 16px; font-weight: 900; }
-    .tool-title {
-      padding: 14px 18px 10px;
-      color: rgba(255,255,255,0.5);
-      font-size: 10px;
-      font-weight: 800;
-      letter-spacing: 0.8px;
-      text-transform: uppercase;
-    }
-    .sidebar-nav { flex: 1; padding: 0 10px; overflow-y: auto; }
-    .nav-item {
-      display: flex; align-items: center; gap: 9px;
-      padding: 9px 10px;
-      border-radius: 9px;
-      color: rgba(255,255,255,0.7);
-      font-size: 13px; font-weight: 600;
-      cursor: pointer;
-      transition: all 0.15s;
-      margin-bottom: 2px;
-      text-decoration: none;
-    }
-    .nav-item:hover { background: rgba(255,255,255,0.07); color: #fff; }
-    .nav-item.active { background: rgba(29,155,178,0.2); color: var(--accent); }
-    .nav-item .icon { font-size: 16px; width: 20px; text-align: center; }
+    .nav-logout:hover { background: rgba(255,255,255,0.22); color: #fff; }
 
-    .sidebar-footer {
-      padding: 14px 18px;
-      border-top: 1px solid rgba(255,255,255,0.08);
+    .container {
+      max-width: 920px; margin: 0 auto; padding: 28px 20px 60px;
     }
-    .user-row {
-      display: flex; align-items: center; gap: 9px;
+    .page-head { margin-bottom: 22px; }
+    .page-head h1 {
+      font-size: 24px; font-weight: 900; color: #0f172a;
+      letter-spacing: -0.5px;
     }
-    .user-avatar {
-      width: 32px; height: 32px; border-radius: 50%;
-      background: var(--accent);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 14px; color: #fff; font-weight: 800;
-      flex-shrink: 0;
-    }
-    .user-info { flex: 1; min-width: 0; }
-    .user-email {
-      color: rgba(255,255,255,0.8);
-      font-size: 11px; font-weight: 600;
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    }
-    .logout-btn {
-      background: none; border: none;
-      color: rgba(255,255,255,0.4);
-      font-size: 11px; cursor: pointer;
-      padding: 0; font-family: inherit;
-      font-weight: 600;
-      transition: color 0.15s;
-    }
-    .logout-btn:hover { color: rgba(255,255,255,0.8); }
+    .page-head p { font-size: 13px; color: #64748b; margin-top: 4px; }
 
-    /* Main */
-    .main { margin-left: var(--sidebar-w); flex: 1; display: flex; flex-direction: column; min-height: 100vh; }
-    .topbar {
-      background: var(--card);
-      border-bottom: 1px solid var(--border);
-      padding: 14px 28px;
-      display: flex; align-items: center; justify-content: space-between;
-    }
-    .page-title { font-size: 18px; font-weight: 900; }
-    .page-subtitle { font-size: 12px; color: var(--text2); margin-top: 2px; }
-
-    .content { padding: 24px 28px; flex: 1; }
-
-    /* Upload zone */
     .upload-zone {
-      border: 2px dashed var(--border);
-      border-radius: 16px;
-      background: var(--card);
-      padding: 40px 24px;
-      text-align: center;
-      cursor: pointer;
-      transition: all 0.2s;
-      margin-bottom: 20px;
+      border: 2px dashed #cbd5e1;
+      border-radius: 16px; background: #fff;
+      padding: 40px 24px; text-align: center;
+      cursor: pointer; transition: all 0.2s;
+      margin-bottom: 16px;
     }
     .upload-zone:hover, .upload-zone.dragover {
-      border-color: var(--accent);
-      background: rgba(29,155,178,0.04);
+      border-color: var(--accent); background: rgba(29,155,178,0.04);
     }
     .upload-zone.has-file { border-style: solid; border-color: var(--accent); background: rgba(29,155,178,0.06); }
     .upload-icon { font-size: 40px; margin-bottom: 12px; }
     .upload-title { font-size: 16px; font-weight: 800; margin-bottom: 6px; }
-    .upload-sub { font-size: 13px; color: var(--text2); }
+    .upload-sub { font-size: 13px; color: #64748b; }
     .upload-filename { font-size: 14px; font-weight: 700; color: var(--accent); margin-top: 8px; }
     #fileInput { display: none; }
 
-    /* Options row */
     .options-row {
-      display: flex; align-items: center; gap: 16px;
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 14px 18px;
+      display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+      background: #fff; border: 1px solid #e2e8f0;
+      border-radius: 12px; padding: 14px 18px;
       margin-bottom: 20px;
     }
     .opt-label { font-size: 13px; font-weight: 700; }
-    .toggle-wrap {
-      display: flex; align-items: center; gap: 8px;
-    }
-    .toggle {
-      position: relative; width: 36px; height: 20px;
-    }
+    .toggle-wrap { display: flex; align-items: center; gap: 8px; }
+    .toggle { position: relative; width: 36px; height: 20px; }
     .toggle input { opacity: 0; width: 0; height: 0; }
     .toggle-slider {
-      position: absolute; cursor: pointer;
-      inset: 0; background: #cbd5e1;
+      position: absolute; cursor: pointer; inset: 0; background: #cbd5e1;
       border-radius: 20px; transition: 0.2s;
     }
     .toggle-slider::before {
-      content: ''; position: absolute;
-      width: 14px; height: 14px;
-      left: 3px; bottom: 3px;
-      background: #fff; border-radius: 50%;
+      content: ''; position: absolute; width: 14px; height: 14px;
+      left: 3px; bottom: 3px; background: #fff; border-radius: 50%;
       transition: 0.2s;
     }
     .toggle input:checked + .toggle-slider { background: var(--accent); }
     .toggle input:checked + .toggle-slider::before { transform: translateX(16px); }
-    .toggle-text { font-size: 12px; color: var(--text2); }
+    .toggle-text { font-size: 12px; color: #64748b; }
 
     .run-btn {
       margin-left: auto;
       background: #12396d; color: #fff;
       border: none; border-radius: 10px;
-      padding: 10px 22px;
-      font-size: 14px; font-weight: 800;
+      padding: 10px 22px; font-size: 14px; font-weight: 800;
       cursor: pointer; font-family: inherit;
       transition: background 0.15s;
       display: flex; align-items: center; gap: 8px;
@@ -189,7 +112,6 @@
     .run-btn:hover { background: #0f2f5c; }
     .run-btn:disabled { opacity: 0.55; cursor: not-allowed; }
 
-    /* Spinner */
     .spinner {
       display: inline-block; width: 14px; height: 14px;
       border: 2px solid rgba(255,255,255,0.4); border-top-color: #fff;
@@ -197,43 +119,33 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* Results */
     #results { display: none; }
     .results-header {
       display: flex; align-items: center; gap: 16px;
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 18px 22px;
-      margin-bottom: 16px;
+      background: #fff; border: 1px solid #e2e8f0;
+      border-radius: 14px; padding: 18px 22px; margin-bottom: 16px;
     }
     .score-ring {
-      width: 72px; height: 72px;
-      border-radius: 50%;
+      width: 72px; height: 72px; border-radius: 50%;
       display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0;
-      font-size: 22px; font-weight: 900;
+      flex-shrink: 0; font-size: 22px; font-weight: 900;
     }
     .score-ring.green { background: #dcfce7; color: var(--pass); }
     .score-ring.yellow { background: #fef9c3; color: var(--warn); }
     .score-ring.red { background: #fee2e2; color: var(--fail); }
     .results-meta { flex: 1; }
     .results-filename { font-size: 16px; font-weight: 800; }
-    .results-pages { font-size: 13px; color: var(--text2); margin-top: 4px; }
-    .results-summary { font-size: 13px; color: var(--text2); margin-top: 6px; }
+    .results-pages { font-size: 13px; color: #64748b; margin-top: 4px; }
+    .results-summary { font-size: 13px; color: #64748b; margin-top: 6px; }
 
-    /* Check list */
     .checks-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-      gap: 12px;
-      margin-bottom: 20px;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 12px; margin-bottom: 20px;
     }
     .check-card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 16px 18px;
+      background: #fff; border: 1px solid #e2e8f0;
+      border-radius: 12px; padding: 16px 18px;
       display: flex; gap: 12px;
     }
     .check-badge {
@@ -245,23 +157,17 @@
     .check-badge.warning { background: #fef9c3; }
     .check-badge.fail { background: #fee2e2; }
     .check-label { font-size: 13px; font-weight: 800; margin-bottom: 4px; }
-    .check-detail { font-size: 12px; color: var(--text2); line-height: 1.5; }
-    .check-pages {
-      display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px;
-    }
+    .check-detail { font-size: 12px; color: #64748b; line-height: 1.5; }
+    .check-pages { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
     .page-tag {
-      background: #f1f5f9; color: var(--text2);
+      background: #f1f5f9; color: #64748b;
       font-size: 11px; font-weight: 700;
       padding: 2px 7px; border-radius: 5px;
     }
 
-    /* AI feedback */
     .ai-section {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 20px 22px;
-      margin-bottom: 20px;
+      background: #fff; border: 1px solid #e2e8f0;
+      border-radius: 14px; padding: 20px 22px; margin-bottom: 20px;
     }
     .ai-title {
       display: flex; align-items: center; gap: 8px;
@@ -273,11 +179,10 @@
       padding: 2px 7px; border-radius: 6px; letter-spacing: 0.3px;
     }
     .ai-content {
-      font-size: 13px; color: var(--text); line-height: 1.7;
+      font-size: 13px; color: #0f172a; line-height: 1.7;
       white-space: pre-wrap;
     }
 
-    /* Error box */
     .error-box {
       background: #fef2f2; border: 1px solid #fecaca; color: #dc2626;
       border-radius: 10px; padding: 12px 16px;
@@ -287,99 +192,65 @@
   </style>
 </head>
 <body>
-  <!-- Sidebar -->
-  <aside class="sidebar">
-    <div class="sidebar-header">
-      <a href="../index.html" class="brand-link">
-        <div class="brand-icon">🛠️</div>
-        <span class="brand-name">Program Tool</span>
-      </a>
+  <div class="top-nav">
+    <a class="nav-back" href="../index.html">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+      도구 목록
+    </a>
+    <div class="nav-title">🔍 인쇄 사전 검수기</div>
+    <div class="nav-user">
+      <span class="nav-user-name" id="userName">로딩 중...</span>
+      <button class="nav-logout" onclick="doLogout()">로그아웃</button>
     </div>
-    <div class="tool-title">도구</div>
-    <nav class="sidebar-nav">
-      <a href="../dashboard.html" class="nav-item">
-        <span class="icon">🏠</span> 대시보드
-      </a>
-      <a href="cover-design.html" class="nav-item">
-        <span class="icon">🎨</span> 표지 디자인
-      </a>
-      <a href="pdf-editor.html" class="nav-item">
-        <span class="icon">📄</span> PDF 문서 편집기
-      </a>
-      <a href="preflight.html" class="nav-item active">
-        <span class="icon">🔍</span> 인쇄 사전 검수기
-      </a>
-    </nav>
-    <div class="sidebar-footer">
-      <div class="user-row">
-        <div class="user-avatar" id="userAvatar">?</div>
-        <div class="user-info">
-          <div class="user-email" id="userEmail">로딩 중...</div>
-          <button class="logout-btn" onclick="doLogout()">로그아웃</button>
-        </div>
-      </div>
-    </div>
-  </aside>
+  </div>
 
-  <!-- Main -->
-  <main class="main">
-    <div class="topbar">
-      <div>
-        <div class="page-title">🔍 인쇄 사전 검수기</div>
-        <div class="page-subtitle">Pre-flight Checker — 인쇄 전 PDF 품질을 자동으로 검수합니다</div>
-      </div>
+  <div class="container">
+    <div class="page-head">
+      <h1>Pre-flight Checker</h1>
+      <p>인쇄 전 PDF의 해상도·도련·폰트·색상 모드를 자동 검수하고, AI 시각 분석으로 인쇄 품질을 점검합니다.</p>
     </div>
 
-    <div class="content">
-      <!-- Upload zone -->
-      <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
-        <div class="upload-icon">📂</div>
-        <div class="upload-title">PDF 파일을 드래그하거나 클릭하여 업로드</div>
-        <div class="upload-sub">최대 200 MB · PDF만 지원</div>
-        <div class="upload-filename" id="uploadFilename" style="display:none;"></div>
-      </div>
-      <input type="file" id="fileInput" accept=".pdf,application/pdf" />
+    <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+      <div class="upload-icon">📂</div>
+      <div class="upload-title">PDF 파일을 드래그하거나 클릭하여 업로드</div>
+      <div class="upload-sub">최대 200 MB · PDF만 지원</div>
+      <div class="upload-filename" id="uploadFilename" style="display:none;"></div>
+    </div>
+    <input type="file" id="fileInput" accept=".pdf,application/pdf" />
 
-      <!-- Options -->
-      <div class="options-row">
-        <span class="opt-label">검수 옵션</span>
-        <label class="toggle-wrap">
-          <label class="toggle">
-            <input type="checkbox" id="useAiToggle" />
-            <span class="toggle-slider"></span>
-          </label>
-          <span class="toggle-text">AI 시각 분석 포함 <span style="color:#6366f1;font-weight:700;">Beta</span></span>
+    <div class="options-row">
+      <span class="opt-label">검수 옵션</span>
+      <label class="toggle-wrap">
+        <label class="toggle">
+          <input type="checkbox" id="useAiToggle" />
+          <span class="toggle-slider"></span>
         </label>
-        <button class="run-btn" id="runBtn" onclick="runCheck()" disabled>
-          검수 시작
-        </button>
+        <span class="toggle-text">AI 시각 분석 포함 <span style="color:#6366f1;font-weight:700;">GPT-4.1</span></span>
+      </label>
+      <button class="run-btn" id="runBtn" onclick="runCheck()" disabled>검수 시작</button>
+    </div>
+
+    <div class="error-box" id="errorBox"></div>
+
+    <div id="results">
+      <div class="results-header">
+        <div class="score-ring" id="scoreRing">–</div>
+        <div class="results-meta">
+          <div class="results-filename" id="resFilename"></div>
+          <div class="results-pages" id="resPages"></div>
+          <div class="results-summary" id="resSummary"></div>
+        </div>
       </div>
-
-      <div class="error-box" id="errorBox"></div>
-
-      <!-- Results -->
-      <div id="results">
-        <div class="results-header">
-          <div class="score-ring" id="scoreRing">–</div>
-          <div class="results-meta">
-            <div class="results-filename" id="resFilename"></div>
-            <div class="results-pages" id="resPages"></div>
-            <div class="results-summary" id="resSummary"></div>
-          </div>
+      <div class="checks-grid" id="checksGrid"></div>
+      <div class="ai-section" id="aiSection" style="display:none;">
+        <div class="ai-title">
+          <span>AI 시각 분석 결과</span>
+          <span class="ai-badge">GPT-4.1</span>
         </div>
-
-        <div class="checks-grid" id="checksGrid"></div>
-
-        <div class="ai-section" id="aiSection" style="display:none;">
-          <div class="ai-title">
-            <span>AI 시각 분석 결과</span>
-            <span class="ai-badge">Claude Vision</span>
-          </div>
-          <div class="ai-content" id="aiContent"></div>
-        </div>
+        <div class="ai-content" id="aiContent"></div>
       </div>
     </div>
-  </main>
+  </div>
 
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -389,13 +260,10 @@
     let selectedFile = null;
 
     auth.onAuthStateChanged(user => {
-      if (!user) {
-        window.location.href = '../login.html';
-        return;
-      }
+      if (!user) { window.location.href = '../login.html'; return; }
       const email = user.email || '';
-      document.getElementById('userEmail').textContent = email;
-      document.getElementById('userAvatar').textContent = email[0]?.toUpperCase() || '?';
+      const name = user.displayName || email.split('@')[0];
+      document.getElementById('userName').textContent = name;
     });
 
     async function doLogout() {
@@ -403,28 +271,19 @@
       window.location.href = '../index.html';
     }
 
-    // File input
     document.getElementById('fileInput').addEventListener('change', e => {
-      const f = e.target.files[0];
-      if (f) selectFile(f);
+      const f = e.target.files[0]; if (f) selectFile(f);
     });
-
-    // Drag-and-drop
     const zone = document.getElementById('uploadZone');
     zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
     zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
     zone.addEventListener('drop', e => {
-      e.preventDefault();
-      zone.classList.remove('dragover');
-      const f = e.dataTransfer.files[0];
-      if (f) selectFile(f);
+      e.preventDefault(); zone.classList.remove('dragover');
+      const f = e.dataTransfer.files[0]; if (f) selectFile(f);
     });
 
     function selectFile(f) {
-      if (!f.name.toLowerCase().endsWith('.pdf')) {
-        showError('PDF 파일만 업로드 가능합니다.');
-        return;
-      }
+      if (!f.name.toLowerCase().endsWith('.pdf')) { showError('PDF 파일만 업로드 가능합니다.'); return; }
       selectedFile = f;
       zone.classList.add('has-file');
       const fn = document.getElementById('uploadFilename');
@@ -437,25 +296,20 @@
 
     function showError(msg) {
       const box = document.getElementById('errorBox');
-      box.textContent = msg;
-      box.classList.add('show');
+      box.textContent = msg; box.classList.add('show');
     }
     function hideError() { document.getElementById('errorBox').classList.remove('show'); }
 
     function setRunning(running) {
       const btn = document.getElementById('runBtn');
       btn.disabled = running;
-      btn.innerHTML = running
-        ? '<span class="spinner"></span> 검수 중...'
-        : '검수 시작';
+      btn.innerHTML = running ? '<span class="spinner"></span> 검수 중...' : '검수 시작';
     }
 
     async function runCheck() {
       if (!selectedFile) return;
-      hideError();
-      setRunning(true);
+      hideError(); setRunning(true);
       document.getElementById('results').style.display = 'none';
-
       try {
         const useAi = document.getElementById('useAiToggle').checked;
         const report = await apiPreflightCheck(selectedFile, useAi);
@@ -472,17 +326,14 @@
       const warnCount = report.checks.filter(c => c.severity === 'warning').length;
       const passCount = report.checks.filter(c => c.severity === 'pass').length;
 
-      // Score ring
       const ring = document.getElementById('scoreRing');
       ring.textContent = report.score;
       ring.className = 'score-ring ' + (report.score >= 80 ? 'green' : report.score >= 50 ? 'yellow' : 'red');
 
       document.getElementById('resFilename').textContent = report.filename;
       document.getElementById('resPages').textContent = `총 ${report.page_count}페이지`;
-      document.getElementById('resSummary').textContent =
-        `통과 ${passCount}개 · 경고 ${warnCount}개 · 불량 ${failCount}개`;
+      document.getElementById('resSummary').textContent = `통과 ${passCount}개 · 경고 ${warnCount}개 · 불량 ${failCount}개`;
 
-      // Check cards
       const grid = document.getElementById('checksGrid');
       grid.innerHTML = '';
       for (const c of report.checks) {
@@ -503,7 +354,6 @@
         `);
       }
 
-      // AI section
       const aiSection = document.getElementById('aiSection');
       if (report.ai_feedback) {
         document.getElementById('aiContent').textContent = report.ai_feedback;
@@ -511,7 +361,6 @@
       } else {
         aiSection.style.display = 'none';
       }
-
       document.getElementById('results').style.display = 'block';
     }
   </script>
