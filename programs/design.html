@@ -327,7 +327,7 @@ auth.onAuthStateChanged(user => {
   document.getElementById('navUserName').textContent = user.displayName || user.email.split('@')[0];
 });
 document.getElementById('navLogout').addEventListener('click', () =>
-  auth.signOut().then(() => location.href = '../login.html'));
+  auth.signOut().then(() => location.href = '../index.html'));
 
 // ── State ──────────────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
