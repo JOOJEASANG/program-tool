@@ -1,0 +1,519 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>인쇄 사전 검수기 · Program Tool</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #f0f4f8;
+      --sidebar-bg: #0f2244;
+      --sidebar-w: 260px;
+      --accent: #1d9bb2;
+      --text: #0f172a;
+      --text2: #64748b;
+      --border: #e2e8f0;
+      --card: #fff;
+      --pass: #16a34a;
+      --warn: #d97706;
+      --fail: #dc2626;
+    }
+    body {
+      font-family: Pretendard, "Noto Sans KR", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: var(--sidebar-w);
+      background: var(--sidebar-bg);
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      top: 0; left: 0; bottom: 0;
+      z-index: 100;
+    }
+    .sidebar-header {
+      padding: 20px 18px 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .brand-link {
+      display: flex; align-items: center; gap: 10px;
+      text-decoration: none;
+    }
+    .brand-icon {
+      width: 36px; height: 36px;
+      background: linear-gradient(135deg, #1d9bb2, #12396d);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+    }
+    .brand-name { color: #fff; font-size: 16px; font-weight: 900; }
+    .tool-title {
+      padding: 14px 18px 10px;
+      color: rgba(255,255,255,0.5);
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+    }
+    .sidebar-nav { flex: 1; padding: 0 10px; overflow-y: auto; }
+    .nav-item {
+      display: flex; align-items: center; gap: 9px;
+      padding: 9px 10px;
+      border-radius: 9px;
+      color: rgba(255,255,255,0.7);
+      font-size: 13px; font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      margin-bottom: 2px;
+      text-decoration: none;
+    }
+    .nav-item:hover { background: rgba(255,255,255,0.07); color: #fff; }
+    .nav-item.active { background: rgba(29,155,178,0.2); color: var(--accent); }
+    .nav-item .icon { font-size: 16px; width: 20px; text-align: center; }
+
+    .sidebar-footer {
+      padding: 14px 18px;
+      border-top: 1px solid rgba(255,255,255,0.08);
+    }
+    .user-row {
+      display: flex; align-items: center; gap: 9px;
+    }
+    .user-avatar {
+      width: 32px; height: 32px; border-radius: 50%;
+      background: var(--accent);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; color: #fff; font-weight: 800;
+      flex-shrink: 0;
+    }
+    .user-info { flex: 1; min-width: 0; }
+    .user-email {
+      color: rgba(255,255,255,0.8);
+      font-size: 11px; font-weight: 600;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .logout-btn {
+      background: none; border: none;
+      color: rgba(255,255,255,0.4);
+      font-size: 11px; cursor: pointer;
+      padding: 0; font-family: inherit;
+      font-weight: 600;
+      transition: color 0.15s;
+    }
+    .logout-btn:hover { color: rgba(255,255,255,0.8); }
+
+    /* Main */
+    .main { margin-left: var(--sidebar-w); flex: 1; display: flex; flex-direction: column; min-height: 100vh; }
+    .topbar {
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 28px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .page-title { font-size: 18px; font-weight: 900; }
+    .page-subtitle { font-size: 12px; color: var(--text2); margin-top: 2px; }
+
+    .content { padding: 24px 28px; flex: 1; }
+
+    /* Upload zone */
+    .upload-zone {
+      border: 2px dashed var(--border);
+      border-radius: 16px;
+      background: var(--card);
+      padding: 40px 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-bottom: 20px;
+    }
+    .upload-zone:hover, .upload-zone.dragover {
+      border-color: var(--accent);
+      background: rgba(29,155,178,0.04);
+    }
+    .upload-zone.has-file { border-style: solid; border-color: var(--accent); background: rgba(29,155,178,0.06); }
+    .upload-icon { font-size: 40px; margin-bottom: 12px; }
+    .upload-title { font-size: 16px; font-weight: 800; margin-bottom: 6px; }
+    .upload-sub { font-size: 13px; color: var(--text2); }
+    .upload-filename { font-size: 14px; font-weight: 700; color: var(--accent); margin-top: 8px; }
+    #fileInput { display: none; }
+
+    /* Options row */
+    .options-row {
+      display: flex; align-items: center; gap: 16px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 18px;
+      margin-bottom: 20px;
+    }
+    .opt-label { font-size: 13px; font-weight: 700; }
+    .toggle-wrap {
+      display: flex; align-items: center; gap: 8px;
+    }
+    .toggle {
+      position: relative; width: 36px; height: 20px;
+    }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider {
+      position: absolute; cursor: pointer;
+      inset: 0; background: #cbd5e1;
+      border-radius: 20px; transition: 0.2s;
+    }
+    .toggle-slider::before {
+      content: ''; position: absolute;
+      width: 14px; height: 14px;
+      left: 3px; bottom: 3px;
+      background: #fff; border-radius: 50%;
+      transition: 0.2s;
+    }
+    .toggle input:checked + .toggle-slider { background: var(--accent); }
+    .toggle input:checked + .toggle-slider::before { transform: translateX(16px); }
+    .toggle-text { font-size: 12px; color: var(--text2); }
+
+    .run-btn {
+      margin-left: auto;
+      background: #12396d; color: #fff;
+      border: none; border-radius: 10px;
+      padding: 10px 22px;
+      font-size: 14px; font-weight: 800;
+      cursor: pointer; font-family: inherit;
+      transition: background 0.15s;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .run-btn:hover { background: #0f2f5c; }
+    .run-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+    /* Spinner */
+    .spinner {
+      display: inline-block; width: 14px; height: 14px;
+      border: 2px solid rgba(255,255,255,0.4); border-top-color: #fff;
+      border-radius: 50%; animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Results */
+    #results { display: none; }
+    .results-header {
+      display: flex; align-items: center; gap: 16px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 18px 22px;
+      margin-bottom: 16px;
+    }
+    .score-ring {
+      width: 72px; height: 72px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      font-size: 22px; font-weight: 900;
+    }
+    .score-ring.green { background: #dcfce7; color: var(--pass); }
+    .score-ring.yellow { background: #fef9c3; color: var(--warn); }
+    .score-ring.red { background: #fee2e2; color: var(--fail); }
+    .results-meta { flex: 1; }
+    .results-filename { font-size: 16px; font-weight: 800; }
+    .results-pages { font-size: 13px; color: var(--text2); margin-top: 4px; }
+    .results-summary { font-size: 13px; color: var(--text2); margin-top: 6px; }
+
+    /* Check list */
+    .checks-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .check-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 18px;
+      display: flex; gap: 12px;
+    }
+    .check-badge {
+      width: 28px; height: 28px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; flex-shrink: 0; margin-top: 1px;
+    }
+    .check-badge.pass { background: #dcfce7; }
+    .check-badge.warning { background: #fef9c3; }
+    .check-badge.fail { background: #fee2e2; }
+    .check-label { font-size: 13px; font-weight: 800; margin-bottom: 4px; }
+    .check-detail { font-size: 12px; color: var(--text2); line-height: 1.5; }
+    .check-pages {
+      display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px;
+    }
+    .page-tag {
+      background: #f1f5f9; color: var(--text2);
+      font-size: 11px; font-weight: 700;
+      padding: 2px 7px; border-radius: 5px;
+    }
+
+    /* AI feedback */
+    .ai-section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px 22px;
+      margin-bottom: 20px;
+    }
+    .ai-title {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 14px; font-weight: 800; margin-bottom: 14px;
+    }
+    .ai-badge {
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: #fff; font-size: 10px; font-weight: 800;
+      padding: 2px 7px; border-radius: 6px; letter-spacing: 0.3px;
+    }
+    .ai-content {
+      font-size: 13px; color: var(--text); line-height: 1.7;
+      white-space: pre-wrap;
+    }
+
+    /* Error box */
+    .error-box {
+      background: #fef2f2; border: 1px solid #fecaca; color: #dc2626;
+      border-radius: 10px; padding: 12px 16px;
+      font-size: 13px; margin-bottom: 16px; display: none;
+    }
+    .error-box.show { display: block; }
+  </style>
+</head>
+<body>
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <a href="../index.html" class="brand-link">
+        <div class="brand-icon">🛠️</div>
+        <span class="brand-name">Program Tool</span>
+      </a>
+    </div>
+    <div class="tool-title">도구</div>
+    <nav class="sidebar-nav">
+      <a href="../dashboard.html" class="nav-item">
+        <span class="icon">🏠</span> 대시보드
+      </a>
+      <a href="cover-design.html" class="nav-item">
+        <span class="icon">🎨</span> 표지 디자인
+      </a>
+      <a href="pdf-editor.html" class="nav-item">
+        <span class="icon">📄</span> PDF 문서 편집기
+      </a>
+      <a href="preflight.html" class="nav-item active">
+        <span class="icon">🔍</span> 인쇄 사전 검수기
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-row">
+        <div class="user-avatar" id="userAvatar">?</div>
+        <div class="user-info">
+          <div class="user-email" id="userEmail">로딩 중...</div>
+          <button class="logout-btn" onclick="doLogout()">로그아웃</button>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <div class="page-title">🔍 인쇄 사전 검수기</div>
+        <div class="page-subtitle">Pre-flight Checker — 인쇄 전 PDF 품질을 자동으로 검수합니다</div>
+      </div>
+    </div>
+
+    <div class="content">
+      <!-- Upload zone -->
+      <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+        <div class="upload-icon">📂</div>
+        <div class="upload-title">PDF 파일을 드래그하거나 클릭하여 업로드</div>
+        <div class="upload-sub">최대 200 MB · PDF만 지원</div>
+        <div class="upload-filename" id="uploadFilename" style="display:none;"></div>
+      </div>
+      <input type="file" id="fileInput" accept=".pdf,application/pdf" />
+
+      <!-- Options -->
+      <div class="options-row">
+        <span class="opt-label">검수 옵션</span>
+        <label class="toggle-wrap">
+          <label class="toggle">
+            <input type="checkbox" id="useAiToggle" />
+            <span class="toggle-slider"></span>
+          </label>
+          <span class="toggle-text">AI 시각 분석 포함 <span style="color:#6366f1;font-weight:700;">Beta</span></span>
+        </label>
+        <button class="run-btn" id="runBtn" onclick="runCheck()" disabled>
+          검수 시작
+        </button>
+      </div>
+
+      <div class="error-box" id="errorBox"></div>
+
+      <!-- Results -->
+      <div id="results">
+        <div class="results-header">
+          <div class="score-ring" id="scoreRing">–</div>
+          <div class="results-meta">
+            <div class="results-filename" id="resFilename"></div>
+            <div class="results-pages" id="resPages"></div>
+            <div class="results-summary" id="resSummary"></div>
+          </div>
+        </div>
+
+        <div class="checks-grid" id="checksGrid"></div>
+
+        <div class="ai-section" id="aiSection" style="display:none;">
+          <div class="ai-title">
+            <span>AI 시각 분석 결과</span>
+            <span class="ai-badge">Claude Vision</span>
+          </div>
+          <div class="ai-content" id="aiContent"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="../js/firebase-config.js"></script>
+  <script src="../js/api.js"></script>
+  <script>
+    let selectedFile = null;
+
+    auth.onAuthStateChanged(user => {
+      if (!user) {
+        window.location.href = '../login.html';
+        return;
+      }
+      const email = user.email || '';
+      document.getElementById('userEmail').textContent = email;
+      document.getElementById('userAvatar').textContent = email[0]?.toUpperCase() || '?';
+    });
+
+    async function doLogout() {
+      await auth.signOut();
+      window.location.href = '../index.html';
+    }
+
+    // File input
+    document.getElementById('fileInput').addEventListener('change', e => {
+      const f = e.target.files[0];
+      if (f) selectFile(f);
+    });
+
+    // Drag-and-drop
+    const zone = document.getElementById('uploadZone');
+    zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
+    zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+    zone.addEventListener('drop', e => {
+      e.preventDefault();
+      zone.classList.remove('dragover');
+      const f = e.dataTransfer.files[0];
+      if (f) selectFile(f);
+    });
+
+    function selectFile(f) {
+      if (!f.name.toLowerCase().endsWith('.pdf')) {
+        showError('PDF 파일만 업로드 가능합니다.');
+        return;
+      }
+      selectedFile = f;
+      zone.classList.add('has-file');
+      const fn = document.getElementById('uploadFilename');
+      fn.textContent = `${f.name} (${(f.size / 1024 / 1024).toFixed(1)} MB)`;
+      fn.style.display = 'block';
+      document.getElementById('runBtn').disabled = false;
+      hideError();
+      document.getElementById('results').style.display = 'none';
+    }
+
+    function showError(msg) {
+      const box = document.getElementById('errorBox');
+      box.textContent = msg;
+      box.classList.add('show');
+    }
+    function hideError() { document.getElementById('errorBox').classList.remove('show'); }
+
+    function setRunning(running) {
+      const btn = document.getElementById('runBtn');
+      btn.disabled = running;
+      btn.innerHTML = running
+        ? '<span class="spinner"></span> 검수 중...'
+        : '검수 시작';
+    }
+
+    async function runCheck() {
+      if (!selectedFile) return;
+      hideError();
+      setRunning(true);
+      document.getElementById('results').style.display = 'none';
+
+      try {
+        const useAi = document.getElementById('useAiToggle').checked;
+        const report = await apiPreflightCheck(selectedFile, useAi);
+        renderResults(report);
+      } catch (e) {
+        showError(e.message || '검수 중 오류가 발생했습니다.');
+      } finally {
+        setRunning(false);
+      }
+    }
+
+    function renderResults(report) {
+      const failCount = report.checks.filter(c => c.severity === 'fail').length;
+      const warnCount = report.checks.filter(c => c.severity === 'warning').length;
+      const passCount = report.checks.filter(c => c.severity === 'pass').length;
+
+      // Score ring
+      const ring = document.getElementById('scoreRing');
+      ring.textContent = report.score;
+      ring.className = 'score-ring ' + (report.score >= 80 ? 'green' : report.score >= 50 ? 'yellow' : 'red');
+
+      document.getElementById('resFilename').textContent = report.filename;
+      document.getElementById('resPages').textContent = `총 ${report.page_count}페이지`;
+      document.getElementById('resSummary').textContent =
+        `통과 ${passCount}개 · 경고 ${warnCount}개 · 불량 ${failCount}개`;
+
+      // Check cards
+      const grid = document.getElementById('checksGrid');
+      grid.innerHTML = '';
+      for (const c of report.checks) {
+        const icon = c.severity === 'pass' ? '✅' : c.severity === 'warning' ? '⚠️' : '❌';
+        const badgeClass = c.severity === 'pass' ? 'pass' : c.severity === 'warning' ? 'warning' : 'fail';
+        const pageTagsHtml = c.page_refs?.length
+          ? `<div class="check-pages">${c.page_refs.slice(0, 8).map(p => `<span class="page-tag">${p}p</span>`).join('')}${c.page_refs.length > 8 ? `<span class="page-tag">+${c.page_refs.length - 8}</span>` : ''}</div>`
+          : '';
+        grid.insertAdjacentHTML('beforeend', `
+          <div class="check-card">
+            <div class="check-badge ${badgeClass}">${icon}</div>
+            <div>
+              <div class="check-label">${c.label}</div>
+              <div class="check-detail">${c.detail}</div>
+              ${pageTagsHtml}
+            </div>
+          </div>
+        `);
+      }
+
+      // AI section
+      const aiSection = document.getElementById('aiSection');
+      if (report.ai_feedback) {
+        document.getElementById('aiContent').textContent = report.ai_feedback;
+        aiSection.style.display = 'block';
+      } else {
+        aiSection.style.display = 'none';
+      }
+
+      document.getElementById('results').style.display = 'block';
+    }
+  </script>
+</body>
+</html>

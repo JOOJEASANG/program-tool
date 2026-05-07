@@ -1,0 +1,7 @@
+fastapi==0.115.5
+uvicorn[standard]==0.32.1
+python-multipart==0.0.12
+PyMuPDF==1.25.3
+anthropic==0.40.0
+firebase-admin==6.6.0
+pydantic==2.10.3
