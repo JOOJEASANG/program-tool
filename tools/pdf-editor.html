@@ -161,14 +161,14 @@
     /* Thumbnails */
     .slides-header { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; flex-wrap: wrap; }
     .slide-count { font-size: 10px; color: var(--muted); font-weight: 700; margin-left: auto; }
-    .thumb-area { display: flex; flex-direction: column; gap: 4px; }
+    .thumb-area { display: flex; flex-wrap: wrap; gap: 5px; padding: 4px 0; }
     .file-divider { font-size: 10px; font-weight: 800; color: var(--primary); background: #eff6ff; border-radius: 5px; padding: 3px 8px; }
     .file-divider.break { border-left: 3px solid #7c3aed; background: #f5f3ff; color: #5b21b6; }
     .thumb-row { display: flex; flex-wrap: wrap; gap: 5px; }
-    .thumb-item { display: flex; flex-direction: column; align-items: center; width: 68px; cursor: grab; }
+    .thumb-item { display: flex; flex-direction: column; align-items: center; width: 60px; cursor: grab; }
     .thumb-item.dragging { opacity: 0.35; }
     .thumb-item.drag-target { outline: 2px dashed var(--primary); outline-offset: 2px; border-radius: 6px; }
-    .thumb-wrap { position: relative; background: #fff; border: 2px solid var(--line); border-radius: 6px; overflow: hidden; width: 68px; }
+    .thumb-wrap { position: relative; background: #fff; border: 2px solid var(--line); border-radius: 6px; overflow: hidden; width: 60px; }
     .thumb-wrap:hover { border-color: #93c5fd; }
     .thumb-wrap.excluded { opacity: 0.35; border-color: #fca5a5; }
     .thumb-wrap canvas { width: 100%; display: block; }
@@ -178,23 +178,7 @@
     .thumb-num { position: absolute; bottom: 2px; right: 3px; font-size: 8px; font-weight: 800; color: #fff; background: rgba(0,0,0,0.5); border-radius: 3px; padding: 1px 3px; }
     .thumb-ex { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(220,38,38,0.12); font-size: 18px; }
     .thumb-badge-tl { position: absolute; top: 2px; left: 2px; background: rgba(0,0,0,0.55); color: #fff; font-size: 7px; font-weight: 800; border-radius: 3px; padding: 1px 3px; }
-    .thumb-badge-tr { position: absolute; top: 2px; right: 2px; background: #7c3aed; color: #fff; font-size: 7px; font-weight: 800; border-radius: 3px; padding: 1px 3px; }
-    .thumb-actions { display: flex; gap: 2px; margin-top: 2px; width: 68px; }
-    .thumb-act { flex: 1; border: 1px solid var(--line); border-radius: 3px; padding: 2px 0; font-size: 8px; font-weight: 800; color: #6b7280; background: #f8fafc; cursor: pointer; font-family: inherit; text-align: center; transition: all 0.1s; }
-    .thumb-act:hover { background: #eff6ff; color: var(--primary); border-color: #93c5fd; }
-    .thumb-act.overridden { border-color: var(--primary); color: var(--primary); background: #eff6ff; }
-    .thumb-act.nodis { border-color: #7c3aed; color: #7c3aed; background: #f5f3ff; }
-    .thumb-act.edit-div { border-color: #0f766e; color: #0f766e; background: #f0fdf4; }
     .thumb-hint { font-size: 10px; color: var(--muted); text-align: center; margin-top: 4px; line-height: 1.4; }
-    .insert-zone { height: 28px; display: flex; align-items: center; justify-content: center; position: relative; cursor: pointer; margin: 2px 0; opacity: 0; transition: opacity 0.15s; }
-    .insert-zone:hover { opacity: 1; }
-    .thumb-area:hover .insert-zone { opacity: 0.35; }
-    .thumb-area:hover .insert-zone:hover { opacity: 1; }
-    .insert-line { position: absolute; left: 0; right: 0; height: 2px; background: #93c5fd; border-radius: 1px; }
-    .insert-btns { display: flex; gap: 4px; z-index: 1; background: #fff; padding: 0 6px; border-radius: 12px; border: 1.5px solid #93c5fd; }
-    .insert-btn { border: none; background: none; font-size: 10px; font-weight: 800; color: #2563eb; cursor: pointer; padding: 3px 6px; font-family: inherit; }
-    .insert-btn.divider { color: #7c3aed; }
-    .insert-btn:hover { text-decoration: underline; }
 
     /* Per-page N-up popup */
     .nup-popup { position: fixed; z-index: 1000; background: #fff; border: 1px solid var(--line); border-radius: 9px; padding: 6px; box-shadow: 0 8px 24px rgba(0,0,0,0.14); display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; min-width: 160px; }
@@ -221,10 +205,20 @@
     /* Preview */
     .preview-shell { background: #e0e5ec; border-radius: 14px; padding: 12px; flex: 1; display: flex; flex-direction: column; gap: 8px; min-height: 0; }
     .preview-info { background: rgba(255,255,255,.9); border: 1px solid var(--line); border-radius: 9px; padding: 7px 12px; font-size: 11px; color: #374151; display: flex; justify-content: space-between; flex-shrink: 0; gap: 8px; flex-wrap: wrap; }
-    .preview-scroll { flex: 1; overflow: auto; background: rgba(255,255,255,.3); border-radius: 10px; padding: 12px; display: flex; flex-wrap: wrap; gap: 10px; align-content: flex-start; justify-content: center; }
+    .preview-scroll { flex: 1; overflow: auto; background: rgba(255,255,255,.3); border-radius: 10px; padding: 12px; display: flex; flex-direction: column; align-items: center; }
     .page-preview { background: #fff; box-shadow: 0 4px 16px rgba(0,0,0,0.15); border-radius: 3px; flex-shrink: 0; }
     .page-preview canvas { display: block; width: 100%; }
     .page-label { text-align: center; font-size: 10px; color: var(--muted); margin-top: 4px; font-weight: 700; }
+    /* Preview insert zones */
+    .prev-ins-zone { width: 100%; height: 32px; display: flex; align-items: center; justify-content: center; position: relative; cursor: default; opacity: 0; transition: opacity 0.15s; flex-shrink: 0; }
+    .prev-ins-zone:hover { opacity: 1; }
+    .preview-scroll:hover .prev-ins-zone { opacity: 0.35; }
+    .preview-scroll:hover .prev-ins-zone:hover { opacity: 1; }
+    .prev-ins-line { position: absolute; left: 0; right: 0; height: 2px; background: #60a5fa; border-radius: 1px; }
+    .prev-ins-btns { display: flex; gap: 4px; z-index: 1; background: #fff; padding: 2px 8px; border-radius: 12px; border: 1.5px solid #60a5fa; }
+    .prev-ins-btn { border: none; background: none; font-size: 11px; font-weight: 800; color: #2563eb; cursor: pointer; padding: 3px 8px; font-family: inherit; }
+    .prev-ins-btn.divider { color: #7c3aed; }
+    .prev-ins-btn:hover { text-decoration: underline; }
 
     /* Status */
     .status-bar { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 9px; padding: 9px 14px; font-size: 12px; font-weight: 700; color: #1e40af; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
@@ -1147,9 +1141,12 @@ $('dividerConfirmBtn').addEventListener('click', () => {
     _editingDividerPage.dividerContent = { ...content };
     _editingDividerPage.thumbCanvas = renderDividerCanvas(content, 200, 283);
     renderThumbs();
+    if (previewCanvases.length > 0) triggerPreview();
   } else {
     const idx = _insertIndex >= 0 ? _insertIndex : parsedPages.length;
-    insertAt(idx, makeDividerPageObj(content));
+    parsedPages.splice(idx, 0, makeDividerPageObj(content));
+    renderThumbs();
+    if (previewCanvases.length > 0) triggerPreview();
   }
   closeDividerModal();
 });
@@ -1170,54 +1167,22 @@ function editDivider(page) {
   setTimeout(updateDividerPreview, 50);
 }
 
-// ── Insert zones ──────────────────────────────────────────────────────
-let _insertIndex = -1;
+// ── Insert index for divider modal ────────────────────────────────────
+let _insertIndex = -1; // parsedPages splice index (-1 = append)
 
-function makeInsertZone(index) {
-  const zone = document.createElement('div');
-  zone.className = 'insert-zone';
-  const line = document.createElement('div');
-  line.className = 'insert-line';
-  const btns = document.createElement('div');
-  btns.className = 'insert-btns';
-
-  const blankBtn = document.createElement('button');
-  blankBtn.className = 'insert-btn';
-  blankBtn.textContent = '+ 빈 페이지';
-  blankBtn.addEventListener('click', e => {
-    e.stopPropagation();
-    insertAt(index, makeBlankPage());
-  });
-
-  const divBtn = document.createElement('button');
-  divBtn.className = 'insert-btn divider';
-  divBtn.textContent = '+ 간지';
-  divBtn.addEventListener('click', e => {
-    e.stopPropagation();
-    _insertIndex = index;
-    _editingDividerPage = null;
-    $('dividerTitle').value = '';
-    $('dividerSubtitle').value = '';
-    $('dividerNote').value = '';
-    $('dividerBg').value = '#1a365d';
-    $('dividerFg').value = '#ffffff';
-    _dividerStyle = 'simple';
-    document.querySelectorAll('.style-btn').forEach(b => b.classList.toggle('active', b.dataset.style === 'simple'));
-    $('dividerConfirmBtn').textContent = '삽입';
-    $('dividerModal').style.display = 'flex';
-    setTimeout(updateDividerPreview, 50);
-  });
-
-  btns.appendChild(blankBtn);
-  btns.appendChild(divBtn);
-  zone.appendChild(line);
-  zone.appendChild(btns);
-  return zone;
-}
-
-function insertAt(index, page) {
-  parsedPages.splice(index, 0, page);
-  renderThumbs();
+function openDividerInsert(spliceIdx) {
+  _insertIndex = spliceIdx;
+  _editingDividerPage = null;
+  $('dividerTitle').value = '';
+  $('dividerSubtitle').value = '';
+  $('dividerNote').value = '';
+  $('dividerBg').value = '#1a365d';
+  $('dividerFg').value = '#ffffff';
+  _dividerStyle = 'simple';
+  document.querySelectorAll('.style-btn').forEach(b => b.classList.toggle('active', b.dataset.style === 'simple'));
+  $('dividerConfirmBtn').textContent = '삽입';
+  $('dividerModal').style.display = 'flex';
+  setTimeout(updateDividerPreview, 50);
 }
 
 // ── Thumbnails ────────────────────────────────────────────────────────
@@ -1225,28 +1190,15 @@ function renderThumbs() {
   const area = $('thumbArea');
   area.innerHTML = '';
 
-  // Insert zone before first page
-  if (parsedPages.length > 0) area.appendChild(makeInsertZone(0));
-
   parsedPages.forEach((page, i) => {
-    // Thumbnail item
     const item = document.createElement('div');
     item.className = 'thumb-item';
     item.dataset.id = page.id;
     item.draggable = true;
-    item.style.cssText = 'display:flex;flex-direction:row;align-items:center;gap:6px;width:100%;';
-
-    // Page number label on left
-    const numLbl = document.createElement('div');
-    numLbl.style.cssText = 'font-size:10px;font-weight:800;color:#9ca3af;min-width:18px;text-align:right;flex-shrink:0;';
-    numLbl.textContent = i + 1;
-    item.appendChild(numLbl);
 
     const wrap = document.createElement('div');
     wrap.className = 'thumb-wrap' + (page.excluded ? ' excluded' : '');
-    wrap.style.width = '60px';
 
-    // Thumb content
     if (page.pageType === 'divider') {
       const inner = document.createElement('div');
       inner.className = 'divider-thumb';
@@ -1279,73 +1231,12 @@ function renderThumbs() {
       rb.className = 'thumb-badge-tl'; rb.textContent = page.rotation + '°';
       wrap.appendChild(rb);
     }
-    if (page.nupDisabled) {
-      const nb = document.createElement('div');
-      nb.className = 'thumb-badge-tr'; nb.textContent = '1:1';
-      wrap.appendChild(nb);
-    }
     if (page.excluded) {
       const ex = document.createElement('div');
       ex.className = 'thumb-ex'; ex.textContent = '✕';
       wrap.appendChild(ex);
     }
 
-    // Actions row (column layout)
-    const actions = document.createElement('div');
-    actions.style.cssText = 'display:flex;flex-direction:column;gap:2px;flex-shrink:0;';
-
-    const nupAct = document.createElement('button');
-    nupAct.className = 'thumb-act' + (page.nupOverride ? ' overridden' : '');
-    nupAct.textContent = page.nupOverride ? page.nupOverride + 'up' : 'N-up';
-    nupAct.title = 'N-up 개별 설정';
-    nupAct.style.fontSize = '9px';
-    nupAct.addEventListener('click', e => { e.stopPropagation(); showNupPopup(nupAct, page); });
-    actions.appendChild(nupAct);
-
-    const rotAct = document.createElement('button');
-    rotAct.className = 'thumb-act';
-    rotAct.textContent = '↻90°';
-    rotAct.title = '90° 회전';
-    rotAct.style.fontSize = '9px';
-    rotAct.addEventListener('click', async e => { e.stopPropagation(); await rotatePage(page); });
-    actions.appendChild(rotAct);
-
-    const disAct = document.createElement('button');
-    disAct.className = 'thumb-act' + (page.nupDisabled ? ' nodis' : '');
-    disAct.textContent = '1:1';
-    disAct.title = 'N-up 해제';
-    disAct.style.fontSize = '9px';
-    disAct.addEventListener('click', e => {
-      e.stopPropagation();
-      page.nupDisabled = !page.nupDisabled;
-      renderThumbs();
-    });
-    actions.appendChild(disAct);
-
-    if (page.pageType === 'divider') {
-      const editAct = document.createElement('button');
-      editAct.className = 'thumb-act edit-div';
-      editAct.textContent = '✏️편집';
-      editAct.title = '간지 편집';
-      editAct.style.fontSize = '9px';
-      editAct.addEventListener('click', e => { e.stopPropagation(); editDivider(page); });
-      actions.appendChild(editAct);
-    }
-
-    // Delete button
-    const delAct = document.createElement('button');
-    delAct.className = 'thumb-act';
-    delAct.textContent = '🗑';
-    delAct.title = '삭제';
-    delAct.style.fontSize = '9px';
-    delAct.addEventListener('click', e => {
-      e.stopPropagation();
-      parsedPages.splice(i, 1);
-      renderThumbs();
-    });
-    actions.appendChild(delAct);
-
-    // Click = exclude toggle
     wrap.addEventListener('click', () => {
       page.excluded = !page.excluded;
       wrap.classList.toggle('excluded', page.excluded);
@@ -1357,7 +1248,6 @@ function renderThumbs() {
       } else { wrap.querySelector('.thumb-ex')?.remove(); }
     });
 
-    // Drag-and-drop
     item.addEventListener('dragstart', e => {
       _dragSrcId = page.id;
       e.dataTransfer.effectAllowed = 'move';
@@ -1379,26 +1269,13 @@ function renderThumbs() {
     });
 
     item.appendChild(wrap);
-    item.appendChild(actions);
     area.appendChild(item);
-
-    // Insert zone after each page
-    area.appendChild(makeInsertZone(i + 1));
   });
 
   const total = parsedPages.length;
   const active = parsedPages.filter(p => !p.excluded).length;
   $('slideCount').textContent = `${active}/${total}p`;
   $('thumbSection').style.display = total ? 'block' : 'none';
-}
-
-// ── Rotate page ───────────────────────────────────────────────────────
-async function rotatePage(page) {
-  page.rotation = (page.rotation + 90) % 360;
-  if (page.pdfPage) {
-    page.thumbCanvas = await renderPdfPage(page.pdfPage, 0.9, page.rotation);
-  }
-  renderThumbs();
 }
 
 // ── Per-page N-up popup ───────────────────────────────────────────────
@@ -1608,7 +1485,59 @@ async function buildAllPages(mm2px, useHi) {
 }
 
 // ── Preview ───────────────────────────────────────────────────────────
-$('previewBtn').addEventListener('click', async () => {
+let _previewInsertPoints = []; // [zoneIdx] = parsedPages splice index
+
+function buildPreviewInsertPoints() {
+  const active = parsedPages.filter(p => !p.excluded);
+  if (!active.length) return [0];
+  const groups = groupByNup(active);
+  const points = [parsedPages.indexOf(active[0])];
+  for (const grp of groups) {
+    const { cols, rows } = getLayout(grp.n);
+    const perPage = cols * rows;
+    for (let p = 0; p < Math.ceil(grp.pages.length / perPage); p++) {
+      const lastInGroup = Math.min((p + 1) * perPage - 1, grp.pages.length - 1);
+      points.push(parsedPages.indexOf(grp.pages[lastInGroup]) + 1);
+    }
+  }
+  return points;
+}
+
+function makePreviewInsertZone(zoneIdx) {
+  const zone = document.createElement('div');
+  zone.className = 'prev-ins-zone';
+  const line = document.createElement('div');
+  line.className = 'prev-ins-line';
+  const btns = document.createElement('div');
+  btns.className = 'prev-ins-btns';
+
+  const blankBtn = document.createElement('button');
+  blankBtn.className = 'prev-ins-btn';
+  blankBtn.textContent = '+ 빈 페이지';
+  blankBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    const idx = _previewInsertPoints[zoneIdx] ?? parsedPages.length;
+    parsedPages.splice(idx, 0, makeBlankPage());
+    renderThumbs();
+    triggerPreview();
+  });
+
+  const divBtn = document.createElement('button');
+  divBtn.className = 'prev-ins-btn divider';
+  divBtn.textContent = '+ 간지';
+  divBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    openDividerInsert(_previewInsertPoints[zoneIdx] ?? parsedPages.length);
+  });
+
+  btns.appendChild(blankBtn);
+  btns.appendChild(divBtn);
+  zone.appendChild(line);
+  zone.appendChild(btns);
+  return zone;
+}
+
+async function triggerPreview() {
   if (!parsedPages.length) return;
   showStatus('미리보기 생성 중...');
   $('previewBtn').disabled = true; $('downloadBtn').disabled = true;
@@ -1629,12 +1558,16 @@ $('previewBtn').addEventListener('click', async () => {
     setTimeout(hideStatus, 2000);
   } catch(e) { showStatus('오류: ' + e.message, 'error'); }
   $('previewBtn').disabled = false;
-});
+}
+
+$('previewBtn').addEventListener('click', triggerPreview);
 
 function displayPreview(pages) {
+  _previewInsertPoints = buildPreviewInsertPoints();
   const scroll = $('previewScroll');
   scroll.innerHTML = '';
-  const previewH = Math.min(320, scroll.clientHeight - 30);
+  const previewH = Math.min(280, (scroll.clientHeight || 400) - 40);
+  if (pages.length > 0) scroll.appendChild(makePreviewInsertZone(0));
   pages.forEach((canvas, i) => {
     const wrap = document.createElement('div');
     wrap.className = 'page-preview';
@@ -1644,6 +1577,7 @@ function displayPreview(pages) {
     c.getContext('2d').drawImage(canvas, 0, 0);
     wrap.appendChild(c);
     scroll.appendChild(wrap);
+    scroll.appendChild(makePreviewInsertZone(i + 1));
   });
 }
 
