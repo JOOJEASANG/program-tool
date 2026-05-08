@@ -1678,7 +1678,7 @@ function displayPreview(pages) {
   const perRow = _previewPerRow;
   const numRows = pages.length === 0 ? 0 : Math.ceil(pages.length / perRow);
 
-  if (pages.length > 0) scroll.appendChild(makePreviewInsertZone(0));
+  if (pages.length > 0 && perRow === 1) scroll.appendChild(makePreviewInsertZone(0));
 
   for (let row = 0; row < numRows; row++) {
     const rowDiv = document.createElement('div');
@@ -1701,7 +1701,8 @@ function displayPreview(pages) {
       }
     }
     scroll.appendChild(rowDiv);
-    scroll.appendChild(makePreviewInsertZone(end)); // horizontal zone after this row
+    // Horizontal zone after each row only when perRow === 1
+    if (perRow === 1) scroll.appendChild(makePreviewInsertZone(end));
   }
   updateZoomLabel();
 }
