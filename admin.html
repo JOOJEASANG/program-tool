@@ -117,6 +117,51 @@
 
     .divider { height: 1px; background: #f1f5f9; margin: 20px 0; }
 
+    /* User permission management */
+    .user-card {
+      background: #f8fafc; border: 1.5px solid #e2e8f0;
+      border-radius: 14px; padding: 16px 18px; margin-bottom: 12px;
+    }
+    .user-card-header {
+      display: flex; align-items: center; gap: 12px; margin-bottom: 14px;
+      flex-wrap: wrap;
+    }
+    .user-card-info { flex: 1; min-width: 0; }
+    .user-card-name { font-size: 14px; font-weight: 800; color: #0f172a; }
+    .user-card-email { font-size: 12px; color: #64748b; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .user-card-date { font-size: 11px; color: #94a3b8; font-weight: 600; white-space: nowrap; }
+    .user-card-actions { display: flex; gap: 6px; }
+    .user-card-actions .btn { padding: 6px 10px; font-size: 11px; }
+    .perm-list { display: flex; flex-direction: column; gap: 8px; }
+    .perm-row {
+      display: flex; align-items: center; justify-content: space-between;
+      background: #fff; border: 1.5px solid #e8edf3; border-radius: 10px;
+      padding: 10px 14px; gap: 10px;
+    }
+    .perm-row-label { font-size: 13px; font-weight: 700; color: #374151; flex: 1; }
+    .perm-status {
+      font-size: 11px; font-weight: 800; padding: 3px 9px; border-radius: 999px;
+    }
+    .perm-status.approved { background: #dcfce7; color: #166534; }
+    .perm-status.pending { background: #fef3c7; color: #92400e; }
+    /* Toggle switch */
+    .toggle-label { position: relative; display: inline-block; width: 44px; height: 24px; cursor: pointer; }
+    .toggle-label input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider {
+      position: absolute; inset: 0; background: #e2e8f0; border-radius: 12px;
+      transition: background 0.2s;
+    }
+    .toggle-slider::before {
+      content: ''; position: absolute;
+      width: 18px; height: 18px; left: 3px; top: 3px;
+      background: #fff; border-radius: 50%;
+      transition: transform 0.2s;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+    }
+    .toggle-label input:checked + .toggle-slider { background: #22c55e; }
+    .toggle-label input:checked + .toggle-slider::before { transform: translateX(20px); }
+    .empty-users { text-align: center; padding: 32px 16px; color: #94a3b8; font-size: 14px; }
+
     #authLoading {
       position: fixed; inset: 0; background: #fff;
       display: flex; align-items: center; justify-content: center; z-index: 9999;
@@ -160,12 +205,23 @@
   <div class="page-title">관리자 설정</div>
   <div class="page-sub">API 키와 관리자 계정을 관리합니다.</div>
 
+  <!-- User program management -->
+  <div class="card">
+    <div class="card-title">👥 회원 프로그램 관리</div>
+    <div class="card-sub">
+      가입한 회원별로 프로그램 사용 승인을 관리합니다.<br>
+      승인해야 해당 도구를 사용할 수 있습니다. 관리자 계정은 자동으로 모든 프로그램에 접근 가능합니다.
+    </div>
+    <div id="userList"><div class="empty-users">로딩 중...</div></div>
+    <div class="status-msg" id="permStatus"></div>
+  </div>
+
   <!-- OpenAI API Key -->
   <div class="card">
-    <div class="card-title">🤖 OpenAI API 키</div>
+    <div class="card-title">🤖 Google AI API 키</div>
     <div class="card-sub">
-      표지 생성기의 AI 배경 자동 생성(DALL-E 3)에 사용됩니다.<br>
-      키는 Firestore에 저장되며 로그인한 사용자만 접근 가능합니다.
+      디자인 스튜디오 AI 배경 생성(Imagen 3)과 인쇄 검수 AI 분석(Gemini)에 사용됩니다.<br>
+      키는 Firestore에 저장되며 로그인한 관리자만 접근 가능합니다.
     </div>
 
     <div id="keyCurrentWrap" style="display:none; margin-bottom:16px;">
@@ -243,6 +299,7 @@ auth.onAuthStateChanged(async user => {
   document.getElementById('adminContent').style.display = 'block';
   loadApiKey();
   loadAdmins();
+  loadUsers();
 });
 
 async function checkIsAdmin(email) {
@@ -277,7 +334,6 @@ async function loadApiKey() {
 async function saveApiKey() {
   const key = document.getElementById('apiKeyInput').value.trim();
   if (!key) return showStatus('keyStatus', 'error', 'API 키를 입력해주세요.');
-  if (!key.startsWith('sk-')) return showStatus('keyStatus', 'error', 'OpenAI API 키는 sk- 로 시작해야 합니다.');
   try {
     await db.collection('settings').doc('config').set({ openaiKey: key }, { merge: true });
     document.getElementById('apiKeyInput').value = '';
@@ -397,6 +453,103 @@ function showStatus(id, type, msg) {
 
 document.getElementById('apiKeyInput').addEventListener('keydown', e => { if (e.key === 'Enter') saveApiKey(); });
 document.getElementById('newAdminEmail').addEventListener('keydown', e => { if (e.key === 'Enter') addAdmin(); });
+
+// ── Program permission management ────────────────
+const MANAGED_PROGRAMS = [
+  { id: 'design-studio', name: '디자인 스튜디오', icon: '🎨' },
+  { id: 'pdf-editor', name: 'PDF 편집기', icon: '📝' },
+  { id: 'preflight', name: '인쇄 검수기', icon: '🔍' },
+];
+
+async function loadUsers() {
+  try {
+    const snap = await db.collection('user_permissions').orderBy('createdAt', 'desc').get();
+    const users = snap.docs.map(d => ({ uid: d.id, ...d.data() }));
+    renderUsers(users);
+  } catch(e) {
+    document.getElementById('userList').innerHTML = '<div class="empty-users">불러오기 실패: ' + e.message + '</div>';
+  }
+}
+
+function renderUsers(users) {
+  const list = document.getElementById('userList');
+  if (!users.length) {
+    list.innerHTML = '<div class="empty-users">아직 가입한 회원이 없습니다.</div>';
+    return;
+  }
+  list.innerHTML = users.map(u => {
+    const date = u.createdAt?.toDate?.()?.toLocaleDateString('ko-KR') || '-';
+    const progs = u.programs || {};
+    return `
+      <div class="user-card" id="ucard-${u.uid}">
+        <div class="user-card-header">
+          <div class="user-card-info">
+            <div class="user-card-name">${u.displayName || '이름 없음'}</div>
+            <div class="user-card-email">${u.email || '-'}</div>
+          </div>
+          <div class="user-card-date">${date}</div>
+          <div class="user-card-actions">
+            <button class="btn btn-primary" onclick="grantAll('${u.uid}')">전체 승인</button>
+            <button class="btn btn-danger" onclick="revokeAll('${u.uid}')">전체 취소</button>
+          </div>
+        </div>
+        <div class="perm-list">
+          ${MANAGED_PROGRAMS.map(p => {
+            const approved = !!progs[p.id];
+            return `
+              <div class="perm-row">
+                <span class="perm-row-label">${p.icon} ${p.name}</span>
+                <span class="perm-status ${approved ? 'approved' : 'pending'}" id="perm-status-${u.uid}-${p.id}">
+                  ${approved ? '✓ 승인됨' : '대기중'}
+                </span>
+                <label class="toggle-label">
+                  <input type="checkbox" ${approved ? 'checked' : ''}
+                    onchange="togglePerm('${u.uid}', '${p.id}', this.checked)">
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>`;
+          }).join('')}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+async function togglePerm(uid, programId, approved) {
+  try {
+    await db.collection('user_permissions').doc(uid).update({
+      [`programs.${programId}`]: approved,
+    });
+    const statusEl = document.getElementById(`perm-status-${uid}-${programId}`);
+    if (statusEl) {
+      statusEl.className = 'perm-status ' + (approved ? 'approved' : 'pending');
+      statusEl.textContent = approved ? '✓ 승인됨' : '대기중';
+    }
+    showStatus('permStatus', 'success', `${approved ? '승인' : '취소'}되었습니다.`);
+  } catch(e) {
+    showStatus('permStatus', 'error', '실패: ' + e.message);
+  }
+}
+
+async function grantAll(uid) {
+  const updates = {};
+  MANAGED_PROGRAMS.forEach(p => { updates[`programs.${p.id}`] = true; });
+  try {
+    await db.collection('user_permissions').doc(uid).update(updates);
+    loadUsers();
+    showStatus('permStatus', 'success', '전체 승인 완료.');
+  } catch(e) { showStatus('permStatus', 'error', '실패: ' + e.message); }
+}
+
+async function revokeAll(uid) {
+  if (!confirm('이 회원의 모든 프로그램 권한을 취소할까요?')) return;
+  const updates = {};
+  MANAGED_PROGRAMS.forEach(p => { updates[`programs.${p.id}`] = false; });
+  try {
+    await db.collection('user_permissions').doc(uid).update(updates);
+    loadUsers();
+    showStatus('permStatus', 'info', '전체 취소되었습니다.');
+  } catch(e) { showStatus('permStatus', 'error', '실패: ' + e.message); }
+}
 </script>
 </body>
 </html>

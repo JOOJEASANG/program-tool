@@ -237,6 +237,14 @@
       cursor: not-allowed; opacity: 0.7;
     }
     .prog-card.coming-soon:hover { transform: none; box-shadow: none; border-color: #e8edf3; }
+    .prog-card.locked { cursor: default; }
+    .prog-card.locked:hover { transform: none; box-shadow: none; border-color: #e8edf3; }
+    .lock-badge {
+      position: absolute; top: 10px; right: 10px;
+      background: #fef3c7; color: #92400e;
+      font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 999px;
+    }
+    .prog-card { position: relative; }
     .coming-tag {
       position: absolute; top: 12px; right: 12px;
       background: #f1f5f9; color: #64748b;
@@ -470,6 +478,7 @@
     // ── 디자인 도구 ──
     {
       name: '디자인 스튜디오',
+      id: 'design-studio',
       icon: '🎨', iconBg: '#eff6ff',
       desc: '표지·전단지·리플렛·초대장·포스터·메뉴판을 하나의 통합 디자인 프로그램에서. AI 배경 생성·양면 인쇄·접지선 지원.',
       url: 'tools/design-studio.html', available: true,
@@ -479,6 +488,7 @@
     // ── PDF 도구 ──
     {
       name: 'PDF 문서 편집기',
+      id: 'pdf-editor',
       icon: '📝', iconBg: '#fff7ed',
       desc: 'N-up 인쇄·간지 삽입·머리말·꼬리말·워터마크·페이지번호 등 다양한 PDF 편집 기능.',
       url: 'tools/pdf-editor.html', available: true,
@@ -486,6 +496,7 @@
     },
     {
       name: '인쇄 사전 검수기',
+      id: 'preflight',
       icon: '🔍', iconBg: '#f0fdf4',
       desc: '해상도·도련·폰트 임베딩·색상 모드를 자동 검수하고 AI 시각 분석으로 인쇄 품질 점검.',
       url: 'tools/preflight.html', available: true,
@@ -528,25 +539,40 @@
 
   // Render slider
   const slider = document.getElementById('slider');
-  PROGRAMS.forEach(p => {
-    const card = document.createElement(p.available ? 'a' : 'div');
-    card.className = 'prog-card' + (!p.available ? ' coming-soon' : '');
-    if (p.available) card.href = p.url;
+  let userPermissions = null; // { 'design-studio': true, ... }
+  let isAdmin = false;
 
-    const tag = !p.available
-      ? '<div class="coming-tag">준비 중</div>'
-      : (p.isNew ? '<div class="new-tag">NEW</div>' : '');
+  function renderCards() {
+    slider.innerHTML = '';
+    PROGRAMS.forEach(p => {
+      const locked = p.available && p.id && !isAdmin && userPermissions !== null && !userPermissions[p.id];
+      const card = document.createElement((p.available && !locked) ? 'a' : 'div');
+      card.className = 'prog-card' + (!p.available ? ' coming-soon' : '') + (locked ? ' locked' : '');
+      if (p.available && !locked) card.href = p.url;
+      if (locked) {
+        card.addEventListener('click', () => {
+          alert(`"${p.name}" 프로그램은 관리자 승인이 필요합니다.\n승인 후 사용 가능합니다.`);
+        });
+      }
 
-    card.innerHTML = `
-      ${tag}
-      <div class="prog-icon" style="background:${p.iconBg}">${p.icon}</div>
-      <div class="prog-name">${p.name}</div>
-      <div class="prog-desc">${p.desc}</div>
-      <div class="prog-tags">${p.tags.map(t => `<span class="prog-tag">${t}</span>`).join('')}</div>
-      ${p.available ? `<div class="prog-cta">시작하기 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>` : ''}
-    `;
-    slider.appendChild(card);
-  });
+      const tag = !p.available
+        ? '<div class="coming-tag">준비 중</div>'
+        : (locked ? '<div class="lock-badge">🔒 승인 대기</div>' : (p.isNew ? '<div class="new-tag">NEW</div>' : ''));
+
+      card.innerHTML = `
+        ${tag}
+        <div class="prog-icon" style="background:${p.iconBg}${locked ? ';opacity:0.6' : ''}">${p.icon}</div>
+        <div class="prog-name" style="${locked ? 'opacity:0.6' : ''}">${p.name}</div>
+        <div class="prog-desc" style="${locked ? 'opacity:0.5' : ''}">${p.desc}</div>
+        <div class="prog-tags">${p.tags.map(t => `<span class="prog-tag">${t}</span>`).join('')}</div>
+        ${(p.available && !locked) ? `<div class="prog-cta">시작하기 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>` : ''}
+      `;
+      slider.appendChild(card);
+    });
+    setTimeout(updateSliderBtns, 50);
+  }
+
+  renderCards(); // Initial render (no permissions loaded yet)
 
   // Slider controls
   const prevBtn = document.getElementById('prevBtn');
@@ -618,12 +644,35 @@
         db.collection('settings').doc('admin').get().then(doc => {
           const emails = doc.exists ? (doc.data().emails || []) : [];
           if (emails.includes(user.email) || !doc.exists) {
+            isAdmin = true;
             document.getElementById('adminBtn').style.display = 'flex';
+            renderCards();
           }
         }).catch(() => {});
       }
+
+      // Load user permissions and re-render cards
+      if (typeof db !== 'undefined') {
+        db.collection('user_permissions').doc(user.uid).get().then(async permDoc => {
+          if (!permDoc.exists) {
+            // First login: register user
+            const programs = {};
+            ['design-studio', 'pdf-editor', 'preflight'].forEach(id => programs[id] = false);
+            await db.collection('user_permissions').doc(user.uid).set({
+              uid: user.uid,
+              email: user.email || '',
+              displayName: user.displayName || '',
+              programs,
+              createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            });
+            userPermissions = programs;
+          } else {
+            userPermissions = permDoc.data().programs || {};
+          }
+          renderCards();
+        }).catch(() => {});
+      }
     }
-    setTimeout(updateSliderBtns, 50);
   });
 
   // User dropdown
