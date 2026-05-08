@@ -551,29 +551,45 @@ pdfjsLib.GlobalWorkerOptions.workerSrc =
   'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
 
 // ── Auth ─────────────────────────────────────────────────────────────
+function denyPdfAccess(msg) {
+  document.getElementById('authLoading').style.display = 'none';
+  document.body.replaceChildren();
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;gap:16px;text-align:center;padding:24px;font-family:sans-serif;';
+  wrap.innerHTML = '<div style="font-size:52px;">🔒</div>'
+    + '<div style="font-size:20px;font-weight:900;color:#0f172a;">접근 권한이 없습니다</div>'
+    + '<div class="msg" style="font-size:14px;color:#64748b;max-width:320px;line-height:1.6;"></div>'
+    + '<a href="../index.html" style="margin-top:8px;padding:10px 24px;background:#12396d;color:#fff;border-radius:10px;text-decoration:none;font-weight:800;font-size:14px;">← 홈으로</a>';
+  wrap.querySelector('.msg').textContent = msg;
+  document.body.appendChild(wrap);
+}
+
 auth.onAuthStateChanged(async user => {
   if (!user) { location.href = '../login.html'; return; }
   document.getElementById('navUserName').textContent = user.displayName || user.email.split('@')[0];
 
   try {
-    const adminDoc = await db.collection('settings').doc('admin').get();
-    const adminEmails = adminDoc.exists ? (adminDoc.data().emails || []) : [];
-    if (!adminEmails.includes(user.email)) {
-      const permDoc = await db.collection('user_permissions').doc(user.uid).get();
-      const hasAccess = permDoc.exists && permDoc.data().programs?.['pdf-editor'] === true;
-      if (!hasAccess) {
-        document.getElementById('authLoading').style.display = 'none';
-        document.body.innerHTML = `
-          <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;gap:16px;text-align:center;padding:24px;font-family:sans-serif;">
-            <div style="font-size:52px;">🔒</div>
-            <div style="font-size:20px;font-weight:900;color:#0f172a;">접근 권한이 없습니다</div>
-            <div style="font-size:14px;color:#64748b;max-width:320px;line-height:1.6;">PDF 편집기는 관리자 승인 후 사용할 수 있습니다.</div>
-            <a href="../index.html" style="margin-top:8px;padding:10px 24px;background:#12396d;color:#fff;border-radius:10px;text-decoration:none;font-weight:800;font-size:14px;">← 홈으로</a>
-          </div>`;
-        return;
-      }
+    const userEmail = String(user.email || '').trim().toLowerCase();
+    const [adminDoc, programsDoc, permDoc] = await Promise.all([
+      db.collection('settings').doc('admin').get(),
+      db.collection('settings').doc('programs').get(),
+      db.collection('user_permissions').doc(user.uid).get(),
+    ]);
+    const adminEmails = (adminDoc.exists ? (adminDoc.data().emails || []) : [])
+      .map(e => String(e).trim().toLowerCase());
+    const isAdmin = adminEmails.includes(userEmail);
+    const isPublic = !!(programsDoc.exists && programsDoc.data().public?.['pdf-editor']);
+    const isApproved = permDoc.exists && permDoc.data().programs?.['pdf-editor'] === true;
+
+    if (!isAdmin && !isPublic && !isApproved) {
+      denyPdfAccess('PDF 편집기는 관리자 승인 후 사용할 수 있습니다.');
+      return;
     }
-  } catch(e) { /* allow on error */ }
+  } catch(e) {
+    console.error('Permission check failed', e);
+    denyPdfAccess('권한 확인 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.');
+    return;
+  }
 
   document.getElementById('authLoading').style.display = 'none';
 });

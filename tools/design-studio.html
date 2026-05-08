@@ -1291,32 +1291,46 @@
     });
 
     // ── Auth ───────────────────────────────────────────────────────────
+    function denyAccess(msg) {
+      document.querySelector('.app').style.display = 'none';
+      const div = document.createElement('div');
+      div.style.cssText = 'display:flex;flex-direction:column;align-items:center;justify-content:center;height:calc(100vh - 52px);gap:16px;text-align:center;padding:24px;';
+      div.innerHTML = '<div style="font-size:52px;">🔒</div>'
+        + '<div style="font-size:20px;font-weight:900;color:#0f172a;">접근 권한이 없습니다</div>'
+        + '<div style="font-size:14px;color:#64748b;max-width:320px;line-height:1.6;"></div>'
+        + '<a href="../index.html" style="margin-top:8px;padding:10px 24px;background:#12396d;color:#fff;border-radius:10px;text-decoration:none;font-weight:800;font-size:14px;">← 홈으로</a>';
+      div.querySelector('div:nth-child(3)').textContent = msg;
+      document.body.appendChild(div);
+    }
+
     auth.onAuthStateChanged(async user => {
       if (!user) { location.href = '../login.html'; return; }
       const name = user.displayName || (user.email || '').split('@')[0];
       $('userName').textContent = name;
 
-      // Check program permission (admins bypass)
+      // Permission gate: public access OR admin OR user-approved
       try {
-        const adminDoc = await db.collection('settings').doc('admin').get();
-        const adminEmails = adminDoc.exists ? (adminDoc.data().emails || []) : [];
-        if (!adminEmails.includes(user.email)) {
-          const permDoc = await db.collection('user_permissions').doc(user.uid).get();
-          const hasAccess = permDoc.exists && permDoc.data().programs?.['design-studio'] === true;
-          if (!hasAccess) {
-            document.querySelector('.app').style.display = 'none';
-            document.body.insertAdjacentHTML('beforeend', `
-              <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:calc(100vh - 52px);gap:16px;text-align:center;padding:24px;">
-                <div style="font-size:52px;">🔒</div>
-                <div style="font-size:20px;font-weight:900;color:#0f172a;">접근 권한이 없습니다</div>
-                <div style="font-size:14px;color:#64748b;max-width:320px;line-height:1.6;">디자인 스튜디오는 관리자 승인 후 사용할 수 있습니다.<br>관리자에게 승인을 요청해 주세요.</div>
-                <a href="../index.html" style="margin-top:8px;padding:10px 24px;background:#12396d;color:#fff;border-radius:10px;text-decoration:none;font-weight:800;font-size:14px;">← 홈으로</a>
-              </div>
-            `);
-            return;
-          }
+        const userEmail = String(user.email || '').trim().toLowerCase();
+        const [adminDoc, programsDoc, permDoc] = await Promise.all([
+          db.collection('settings').doc('admin').get(),
+          db.collection('settings').doc('programs').get(),
+          db.collection('user_permissions').doc(user.uid).get(),
+        ]);
+        const adminEmails = (adminDoc.exists ? (adminDoc.data().emails || []) : [])
+          .map(e => String(e).trim().toLowerCase());
+        const isAdmin = adminEmails.includes(userEmail);
+        const isPublic = !!(programsDoc.exists && programsDoc.data().public?.['design-studio']);
+        const isApproved = permDoc.exists && permDoc.data().programs?.['design-studio'] === true;
+
+        if (!isAdmin && !isPublic && !isApproved) {
+          denyAccess('디자인 스튜디오는 관리자 승인 후 사용할 수 있습니다. 관리자에게 승인을 요청해 주세요.');
+          return;
         }
-      } catch(e) { /* permission check failed silently — allow access */ }
+      } catch(e) {
+        console.error('Permission check failed', e);
+        denyAccess('권한 확인 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.');
+        return;
+      }
     });
     function doLogout() {
       auth.signOut().then(() => location.href = '../index.html');

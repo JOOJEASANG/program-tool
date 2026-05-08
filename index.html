@@ -540,12 +540,14 @@
   // Render slider
   const slider = document.getElementById('slider');
   let userPermissions = null; // { 'design-studio': true, ... }
+  let publicAccess = {};
   let isAdmin = false;
 
   function renderCards() {
     slider.innerHTML = '';
     PROGRAMS.forEach(p => {
-      const locked = p.available && p.id && !isAdmin && userPermissions !== null && !userPermissions[p.id];
+      const isPublic = !!(p.id && publicAccess[p.id]);
+      const locked = p.available && p.id && !isAdmin && !isPublic && userPermissions !== null && !userPermissions[p.id];
       const card = document.createElement((p.available && !locked) ? 'a' : 'div');
       card.className = 'prog-card' + (!p.available ? ' coming-soon' : '') + (locked ? ' locked' : '');
       if (p.available && !locked) card.href = p.url;
@@ -636,14 +638,23 @@
       document.getElementById('userName').textContent = name;
       document.getElementById('userEmail').textContent = user.email || '';
       const av = document.getElementById('userAvatar');
-      if (user.photoURL) av.innerHTML = `<img src="${user.photoURL}" alt="">`;
-      else av.textContent = name.charAt(0).toUpperCase();
+      if (user.photoURL) {
+        const img = document.createElement('img');
+        img.src = user.photoURL;
+        img.alt = '';
+        av.replaceChildren(img);
+      } else {
+        av.textContent = name.charAt(0).toUpperCase();
+      }
+
+      const normalizeEmail = e => String(e || '').trim().toLowerCase();
+      const userEmailLc = normalizeEmail(user.email);
 
       // Admin check — auto-redirect to admin page
       if (typeof db !== 'undefined') {
         db.collection('settings').doc('admin').get().then(doc => {
-          const emails = doc.exists ? (doc.data().emails || []) : [];
-          if (emails.includes(user.email)) {
+          const emails = (doc.exists ? (doc.data().emails || []) : []).map(normalizeEmail);
+          if (emails.includes(userEmailLc)) {
             // Skip redirect if URL has ?stay=1 (allow admin to view main page intentionally)
             if (!new URLSearchParams(location.search).has('stay')) {
               window.location.href = 'admin.html';
@@ -657,6 +668,12 @@
             document.getElementById('adminBtn').style.display = 'flex';
             renderCards();
           }
+        }).catch(() => {});
+
+        // Load program public access
+        db.collection('settings').doc('programs').get().then(doc => {
+          publicAccess = doc.exists ? (doc.data().public || {}) : {};
+          renderCards();
         }).catch(() => {});
       }
 

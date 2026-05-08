@@ -186,8 +186,10 @@
       if (!user) return;
       try {
         const doc = await db.collection('settings').doc('admin').get();
-        const emails = doc.exists ? (doc.data().emails || []) : [];
-        if (emails.includes(user.email)) {
+        const emails = (doc.exists ? (doc.data().emails || []) : [])
+          .map(e => String(e).trim().toLowerCase());
+        const userEmail = String(user.email || '').trim().toLowerCase();
+        if (emails.includes(userEmail)) {
           window.location.href = 'admin.html';
           return;
         }

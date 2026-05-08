@@ -205,12 +205,23 @@
   <div class="page-title">관리자 설정</div>
   <div class="page-sub">API 키와 관리자 계정을 관리합니다.</div>
 
+  <!-- Program public access -->
+  <div class="card">
+    <div class="card-title">🌐 프로그램 공개 설정</div>
+    <div class="card-sub">
+      <strong>전체 공개</strong>로 설정하면 모든 회원이 개별 승인 없이 해당 프로그램을 즉시 사용할 수 있습니다.<br>
+      개별 회원 승인이 필요하면 <strong>비공개</strong>로 두세요.
+    </div>
+    <div id="publicList"><div class="empty-users">로딩 중...</div></div>
+    <div class="status-msg" id="publicStatus"></div>
+  </div>
+
   <!-- User program management -->
   <div class="card">
     <div class="card-title">👥 회원 프로그램 관리</div>
     <div class="card-sub">
-      가입한 회원별로 프로그램 사용 승인을 관리합니다.<br>
-      승인해야 해당 도구를 사용할 수 있습니다. 관리자 계정은 자동으로 모든 프로그램에 접근 가능합니다.
+      가입한 회원별로 프로그램 사용 승인을 관리합니다 (비공개 프로그램에만 적용됨).<br>
+      관리자 계정은 자동으로 모든 프로그램에 접근 가능합니다.
     </div>
     <div id="userList"><div class="empty-users">로딩 중...</div></div>
     <div class="status-msg" id="permStatus"></div>
@@ -283,6 +294,11 @@
 <script>
 let currentUser = null;
 let adminEmails = [];
+let publicAccess = {};
+
+// ── Helpers ──────────────────────────────────────
+const escapeHtml = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const normalizeEmail = e => String(e || '').trim().toLowerCase();
 
 // ── Auth & admin check ───────────────────────────
 auth.onAuthStateChanged(async user => {
@@ -299,19 +315,21 @@ auth.onAuthStateChanged(async user => {
   document.getElementById('adminContent').style.display = 'block';
   loadApiKey();
   loadAdmins();
+  loadPublicAccess();
   loadUsers();
 });
 
 async function checkIsAdmin(email) {
+  const normalized = normalizeEmail(email);
   try {
     const doc = await db.collection('settings').doc('admin').get();
     if (!doc.exists) {
       // 최초 설정: 현재 유저를 관리자로 등록
-      await db.collection('settings').doc('admin').set({ emails: [email] });
+      await db.collection('settings').doc('admin').set({ emails: [normalized] });
       return true;
     }
     const data = doc.data();
-    return (data.emails || []).includes(email);
+    return (data.emails || []).map(normalizeEmail).includes(normalized);
   } catch (e) {
     console.error(e);
     // Firestore 규칙 미설정 등으로 실패 시, 첫 접근자 허용
@@ -404,19 +422,30 @@ async function loadAdmins() {
 function renderAdminList() {
   const list = document.getElementById('adminList');
   if (!adminEmails.length) { list.innerHTML = '<div style="color:#94a3b8;font-size:13px;">등록된 관리자가 없습니다.</div>'; return; }
-  list.innerHTML = adminEmails.map((email, i) => `
-    <div class="admin-item">
-      <span class="admin-item-email">${email}</span>
-      ${email === currentUser.email ? '<span class="admin-item-badge">나</span>' : ''}
-      ${adminEmails.length > 1 ? `<button class="admin-item-del" onclick="removeAdmin('${email}')">×</button>` : ''}
-    </div>
-  `).join('');
+  const meEmail = normalizeEmail(currentUser.email);
+  list.innerHTML = adminEmails.map(email => {
+    const isMe = normalizeEmail(email) === meEmail;
+    const safeEmail = escapeHtml(email);
+    return `
+      <div class="admin-item">
+        <span class="admin-item-email">${safeEmail}</span>
+        ${isMe ? '<span class="admin-item-badge">나</span>' : ''}
+        ${adminEmails.length > 1 ? `<button class="admin-item-del" data-action="remove-admin" data-email="${safeEmail}">×</button>` : ''}
+      </div>
+    `;
+  }).join('');
 }
 
+document.getElementById('adminList').addEventListener('click', e => {
+  const btn = e.target.closest('[data-action="remove-admin"]');
+  if (btn) removeAdmin(btn.dataset.email);
+});
+
 async function addAdmin() {
-  const email = document.getElementById('newAdminEmail').value.trim().toLowerCase();
+  const email = normalizeEmail(document.getElementById('newAdminEmail').value);
   if (!email) return showStatus('adminStatus', 'error', '이메일을 입력해주세요.');
-  if (adminEmails.includes(email)) return showStatus('adminStatus', 'error', '이미 등록된 관리자입니다.');
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return showStatus('adminStatus', 'error', '올바른 이메일 형식이 아닙니다.');
+  if (adminEmails.map(normalizeEmail).includes(email)) return showStatus('adminStatus', 'error', '이미 등록된 관리자입니다.');
   try {
     adminEmails.push(email);
     await db.collection('settings').doc('admin').set({ emails: adminEmails });
@@ -429,10 +458,10 @@ async function addAdmin() {
 }
 
 async function removeAdmin(email) {
-  if (email === currentUser.email) return showStatus('adminStatus', 'error', '본인 계정은 삭제할 수 없습니다.');
+  if (normalizeEmail(email) === normalizeEmail(currentUser.email)) return showStatus('adminStatus', 'error', '본인 계정은 삭제할 수 없습니다.');
   if (!confirm(`${email} 을(를) 관리자에서 제거할까요?`)) return;
   try {
-    adminEmails = adminEmails.filter(e => e !== email);
+    adminEmails = adminEmails.filter(e => normalizeEmail(e) !== normalizeEmail(email));
     await db.collection('settings').doc('admin').set({ emails: adminEmails });
     renderAdminList();
     showStatus('adminStatus', 'success', '제거되었습니다.');
@@ -480,31 +509,35 @@ function renderUsers(users) {
   list.innerHTML = users.map(u => {
     const date = u.createdAt?.toDate?.()?.toLocaleDateString('ko-KR') || '-';
     const progs = u.programs || {};
+    const safeUid = escapeHtml(u.uid);
+    const safeName = escapeHtml(u.displayName || '이름 없음');
+    const safeEmail = escapeHtml(u.email || '-');
     return `
-      <div class="user-card" id="ucard-${u.uid}">
+      <div class="user-card" id="ucard-${safeUid}">
         <div class="user-card-header">
           <div class="user-card-info">
-            <div class="user-card-name">${u.displayName || '이름 없음'}</div>
-            <div class="user-card-email">${u.email || '-'}</div>
+            <div class="user-card-name">${safeName}</div>
+            <div class="user-card-email">${safeEmail}</div>
           </div>
-          <div class="user-card-date">${date}</div>
+          <div class="user-card-date">${escapeHtml(date)}</div>
           <div class="user-card-actions">
-            <button class="btn btn-primary" onclick="grantAll('${u.uid}')">전체 승인</button>
-            <button class="btn btn-danger" onclick="revokeAll('${u.uid}')">전체 취소</button>
+            <button class="btn btn-primary" data-action="grant-all" data-uid="${safeUid}">전체 승인</button>
+            <button class="btn btn-danger" data-action="revoke-all" data-uid="${safeUid}">전체 취소</button>
           </div>
         </div>
         <div class="perm-list">
           ${MANAGED_PROGRAMS.map(p => {
-            const approved = !!progs[p.id];
+            const isPublic = !!publicAccess[p.id];
+            const approved = isPublic || !!progs[p.id];
             return `
               <div class="perm-row">
-                <span class="perm-row-label">${p.icon} ${p.name}</span>
-                <span class="perm-status ${approved ? 'approved' : 'pending'}" id="perm-status-${u.uid}-${p.id}">
+                <span class="perm-row-label">${p.icon} ${escapeHtml(p.name)}${isPublic ? ' <span style="color:#16a34a;font-weight:700;font-size:11px;">(전체공개)</span>' : ''}</span>
+                <span class="perm-status ${approved ? 'approved' : 'pending'}" id="perm-status-${safeUid}-${p.id}">
                   ${approved ? '✓ 승인됨' : '대기중'}
                 </span>
                 <label class="toggle-label">
-                  <input type="checkbox" ${approved ? 'checked' : ''}
-                    onchange="togglePerm('${u.uid}', '${p.id}', this.checked)">
+                  <input type="checkbox" ${approved ? 'checked' : ''} ${isPublic ? 'disabled' : ''}
+                    data-action="toggle-perm" data-uid="${safeUid}" data-prog="${p.id}">
                   <span class="toggle-slider"></span>
                 </label>
               </div>`;
@@ -513,6 +546,62 @@ function renderUsers(users) {
       </div>`;
   }).join('');
 }
+
+document.getElementById('userList').addEventListener('click', e => {
+  const btn = e.target.closest('[data-action]');
+  if (!btn) return;
+  const { action, uid } = btn.dataset;
+  if (action === 'grant-all') grantAll(uid);
+  else if (action === 'revoke-all') revokeAll(uid);
+});
+document.getElementById('userList').addEventListener('change', e => {
+  const t = e.target.closest('[data-action="toggle-perm"]');
+  if (t) togglePerm(t.dataset.uid, t.dataset.prog, t.checked);
+});
+
+// ── Program public access ────────────────────────
+async function loadPublicAccess() {
+  try {
+    const doc = await db.collection('settings').doc('programs').get();
+    publicAccess = doc.exists ? (doc.data().public || {}) : {};
+    renderPublicAccess();
+  } catch(e) {
+    document.getElementById('publicList').innerHTML = '<div class="empty-users">불러오기 실패: ' + escapeHtml(e.message) + '</div>';
+  }
+}
+
+function renderPublicAccess() {
+  const list = document.getElementById('publicList');
+  list.innerHTML = MANAGED_PROGRAMS.map(p => {
+    const checked = !!publicAccess[p.id];
+    return `
+      <div class="perm-row" style="background:#f8fafc;border-radius:10px;padding:10px 12px;margin-bottom:6px;">
+        <span class="perm-row-label" style="flex:1;">${p.icon} ${escapeHtml(p.name)}</span>
+        <span class="perm-status ${checked ? 'approved' : 'pending'}">${checked ? '🌐 전체 공개' : '🔒 비공개'}</span>
+        <label class="toggle-label">
+          <input type="checkbox" ${checked ? 'checked' : ''} data-action="toggle-public" data-prog="${p.id}">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>`;
+  }).join('');
+}
+
+document.getElementById('publicList').addEventListener('change', async e => {
+  const t = e.target.closest('[data-action="toggle-public"]');
+  if (!t) return;
+  const programId = t.dataset.prog;
+  publicAccess[programId] = t.checked;
+  try {
+    await db.collection('settings').doc('programs').set({ public: publicAccess }, { merge: true });
+    showStatus('publicStatus', 'success', `${t.checked ? '전체 공개' : '비공개'}로 설정되었습니다.`);
+    renderPublicAccess();
+    loadUsers(); // refresh user view to reflect public flag
+  } catch(err) {
+    showStatus('publicStatus', 'error', '실패: ' + err.message);
+    publicAccess[programId] = !t.checked;
+    renderPublicAccess();
+  }
+});
 
 async function togglePerm(uid, programId, approved) {
   try {
