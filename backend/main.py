@@ -20,7 +20,7 @@ def health():
 
 
 @https_fn.on_request(
-    memory=options.MemoryOption.GB_1,
+    memory=options.MemoryOption.GB_2,
     timeout_sec=300,
     max_instances=10,
 )

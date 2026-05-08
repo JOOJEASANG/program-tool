@@ -8,6 +8,7 @@ class NupValue(int, Enum):
     two = 2
     four = 4
     six = 6
+    eight = 8
     nine = 9
 
 
@@ -19,7 +20,7 @@ class PageInfo(BaseModel):
     nup_disabled: bool = False
     group_break: bool = False
     excluded: bool = False
-    page_type: Literal["normal", "divider"] = "normal"
+    page_type: Literal["normal", "divider", "blank"] = "normal"
     divider_content: Optional[str] = None
     divider_style: Optional[Literal["simple", "lines", "band"]] = "simple"
 

@@ -1120,7 +1120,8 @@ function makeBlankPage() {
   ctx.strokeRect(4, 4, c.width-8, c.height-8);
   return { id: makeId(), pdfPage: null, thumbCanvas: c,
     excluded: false, nupOverride: null, nupDisabled: true,
-    sourceFile: '빈 페이지', groupBreak: false, rotation: 0, pageType: 'blank' };
+    sourceFile: '빈 페이지', groupBreak: false, rotation: 0, pageType: 'blank',
+    dividerContent: { noBg: true, title: '', subtitle: '', bg: '#ffffff', fg: '#111827', style: 'simple' } };
 }
 
 function makeDividerPageObj(content) {
@@ -1710,7 +1711,13 @@ function displayPreview(pages) {
 // ── PDF Download (via backend — vector quality) ───────────────────────
 $('downloadBtn').addEventListener('click', async () => {
   if (!parsedPages.length || !uploadedFiles.length) return;
-  showStatus('서버에서 PDF 생성 중...');
+  // Warn if total file size may exceed server limit (~28MB safety margin)
+  const totalBytes = uploadedFiles.reduce((s, f) => s + f.size, 0);
+  if (totalBytes > 28 * 1024 * 1024) {
+    const mb = (totalBytes / 1024 / 1024).toFixed(1);
+    if (!confirm(`업로드 파일 총 크기가 ${mb}MB입니다. 파일이 크면 서버 한도 초과로 실패할 수 있습니다. 계속하시겠습니까?`)) return;
+  }
+  showStatus('서버에서 PDF 생성 중... (페이지가 많으면 1~2분 소요될 수 있습니다)');
   $('downloadBtn').disabled = true;
   try {
     const { pw, ph } = getSettings();
@@ -1727,7 +1734,7 @@ $('downloadBtn').addEventListener('click', async () => {
         nup_disabled: !!p.nupDisabled,
         group_break: !!p.groupBreak,
         excluded: !!p.excluded,
-        page_type: (p.pageType === 'pdf') ? 'normal' : (p.pageType === 'blank' ? 'divider' : p.pageType),
+        page_type: p.pageType === 'pdf' ? 'normal' : p.pageType,
         divider_content: (p.pageType === 'divider' || p.pageType === 'blank')
           ? JSON.stringify(p.dividerContent || {})
           : null,

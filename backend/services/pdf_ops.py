@@ -23,6 +23,7 @@ NUP_LAYOUT: dict[int, tuple[int, int]] = {
     2: (1, 2),
     4: (2, 2),
     6: (2, 3),
+    8: (2, 4),
     9: (3, 3),
 }
 
@@ -110,18 +111,23 @@ def _render_divider_page(out_doc: fitz.Document, content_raw: str, style: str,
     content = _parse_divider_content(content_raw)
     title = content.get("title", "")
     subtitle = content.get("subtitle", "")
+    no_bg = bool(content.get("noBg", False))
     bg_hex = content.get("bg", "#1a365d")
     fg_hex = content.get("fg", "#ffffff")
     resolved_style = content.get("style", style or "simple")
 
-    try:
-        bg = _hex_to_rgb(bg_hex)
-    except Exception:
-        bg = (0.1, 0.22, 0.43)
-    try:
-        fg = _hex_to_rgb(fg_hex)
-    except Exception:
-        fg = (1.0, 1.0, 1.0)
+    if no_bg:
+        bg = (1.0, 1.0, 1.0)
+        fg = _hex_to_rgb(content.get("fg", "#111827")) if content.get("fg") else (0.067, 0.094, 0.153)
+    else:
+        try:
+            bg = _hex_to_rgb(bg_hex)
+        except Exception:
+            bg = (0.1, 0.22, 0.43)
+        try:
+            fg = _hex_to_rgb(fg_hex)
+        except Exception:
+            fg = (1.0, 1.0, 1.0)
 
     page = out_doc.new_page(width=paper_w_pt, height=paper_h_pt)
 
@@ -131,11 +137,11 @@ def _render_divider_page(out_doc: fitz.Document, content_raw: str, style: str,
     shape.finish(fill=bg, color=None)
     shape.commit()
 
-    cx = paper_w_pt / 2
     cy = paper_h_pt / 2
     title_y = cy + (-paper_h_pt * 0.06 if subtitle else 0)
+    pad = 40
 
-    if resolved_style == "band":
+    if not no_bg and resolved_style == "band":
         shape = page.new_shape()
         darker = tuple(max(0.0, c - 0.16) for c in bg)
         shape.draw_rect(fitz.Rect(0, 0, paper_w_pt * 0.07, paper_h_pt))
@@ -143,32 +149,21 @@ def _render_divider_page(out_doc: fitz.Document, content_raw: str, style: str,
         shape.finish(fill=darker, color=None)
         shape.commit()
 
-    elif resolved_style == "lines":
+    elif not no_bg and resolved_style == "lines":
         shape = page.new_shape()
-        shape.draw_line(fitz.Point(40, title_y - paper_h_pt * 0.09), fitz.Point(paper_w_pt - 40, title_y - paper_h_pt * 0.09))
-        shape.draw_line(fitz.Point(40, title_y + paper_h_pt * 0.09), fitz.Point(paper_w_pt - 40, title_y + paper_h_pt * 0.09))
+        shape.draw_line(fitz.Point(pad, title_y - paper_h_pt * 0.09), fitz.Point(paper_w_pt - pad, title_y - paper_h_pt * 0.09))
+        shape.draw_line(fitz.Point(pad, title_y + paper_h_pt * 0.09), fitz.Point(paper_w_pt - pad, title_y + paper_h_pt * 0.09))
         shape.finish(color=fg, width=1.5)
         shape.commit()
 
     if title:
-        page.insert_text(
-            fitz.Point(cx, title_y),
-            title,
-            fontsize=28,
-            fontname="helv",
-            color=fg,
-            render_mode=0,
-        )
+        title_rect = fitz.Rect(pad, title_y - 36, paper_w_pt - pad, title_y + 4)
+        page.insert_textbox(title_rect, title, fontsize=28, fontname="helv", color=fg, align=fitz.TEXT_ALIGN_CENTER)
 
     if subtitle:
-        page.insert_text(
-            fitz.Point(cx, cy + paper_h_pt * 0.06),
-            subtitle,
-            fontsize=18,
-            fontname="helv",
-            color=(*fg, 0.75) if len(fg) == 3 else fg,
-            render_mode=0,
-        )
+        sub_y = cy + paper_h_pt * 0.06
+        sub_rect = fitz.Rect(pad, sub_y - 24, paper_w_pt - pad, sub_y + 4)
+        page.insert_textbox(sub_rect, subtitle, fontsize=18, fontname="helv", color=fg, align=fitz.TEXT_ALIGN_CENTER)
 
 
 def _apply_watermark(page: fitz.Page, settings: WatermarkSettings):
@@ -349,7 +344,7 @@ def process_pdf(
     for group in groups:
         first = group[0]
 
-        if first.page_type == "divider":
+        if first.page_type in ("divider", "blank"):
             _render_divider_page(
                 out_doc, first.divider_content or "",
                 first.divider_style or "simple",
@@ -364,6 +359,9 @@ def process_pdf(
 
         effective_nup = 1 if first.nup_disabled else (first.nup_override or request.nup_default)
         cols, rows = NUP_LAYOUT.get(effective_nup, (1, 1))
+        # Swap cols/rows for landscape orientation so layout fills the paper correctly
+        if paper_w_pt > paper_h_pt and cols != rows:
+            cols, rows = rows, cols
 
         out_page = out_doc.new_page(width=paper_w_pt, height=paper_h_pt)
 

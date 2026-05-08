@@ -26,17 +26,30 @@ async function apiProcessPdf(files, settings) {
   files.forEach(f => form.append('files', f));
   form.append('settings', JSON.stringify(settings));
 
-  const resp = await fetch('/api/pdf/process', {
-    method: 'POST',
-    headers,
-    body: form,
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 310000); // slightly over server 300s
 
-  if (!resp.ok) {
-    const err = await resp.json().catch(() => ({ detail: resp.statusText }));
-    throw new Error(err.detail || 'PDF 처리 중 오류가 발생했습니다.');
+  try {
+    const resp = await fetch('/api/pdf/process', {
+      method: 'POST',
+      headers,
+      body: form,
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({ detail: `서버 오류 (${resp.status})` }));
+      throw new Error(err.detail || 'PDF 처리 중 오류가 발생했습니다.');
+    }
+    return resp.blob();
+  } catch (e) {
+    clearTimeout(timeoutId);
+    if (e.name === 'AbortError') {
+      throw new Error('처리 시간 초과 (5분). 페이지 수를 줄이거나 파일 크기를 줄여 다시 시도하세요.');
+    }
+    throw e;
   }
-  return resp.blob();
 }
 
 /**
