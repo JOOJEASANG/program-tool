@@ -129,6 +129,16 @@ def _render_divider_page(out_doc: fitz.Document, content_raw: str, style: str,
         except Exception:
             fg = (1.0, 1.0, 1.0)
 
+    v_align = content.get("textVAlign", "center")
+    v_offset_pct = float(content.get("textVOffset", 0)) / 100
+    if v_align == "top":
+        base_y = paper_h_pt * 0.22
+    elif v_align == "bottom":
+        base_y = paper_h_pt * 0.78
+    else:
+        base_y = paper_h_pt * 0.5
+    cy = base_y + paper_h_pt * v_offset_pct
+
     page = out_doc.new_page(width=paper_w_pt, height=paper_h_pt)
 
     # Background fill
@@ -137,7 +147,6 @@ def _render_divider_page(out_doc: fitz.Document, content_raw: str, style: str,
     shape.finish(fill=bg, color=None)
     shape.commit()
 
-    cy = paper_h_pt / 2
     title_y = cy + (-paper_h_pt * 0.06 if subtitle else 0)
     pad = 40
 

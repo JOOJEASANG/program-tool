@@ -210,7 +210,7 @@
     .zoom-btn:hover { background: #eff6ff; border-color: #93c5fd; color: var(--primary); }
     .zoom-label { font-size: 11px; font-weight: 800; color: #6b7280; min-width: 36px; text-align: center; }
     .preview-scroll { flex: 1; overflow: auto; background: rgba(255,255,255,.3); border-radius: 10px; padding: 12px; display: flex; flex-direction: column; align-items: center; gap: 0; }
-    .preview-row { display: flex; flex-wrap: nowrap; align-items: flex-start; justify-content: center; gap: 8px; }
+    .preview-row { display: flex; flex-wrap: nowrap; align-items: flex-start; justify-content: center; gap: 8px; margin: 10px 0; }
     .page-preview { background: #fff; box-shadow: 0 4px 16px rgba(0,0,0,0.15); border-radius: 3px; flex-shrink: 0; }
     .page-preview canvas { display: block; width: 100%; }
     .page-label { text-align: center; font-size: 10px; color: var(--muted); margin-top: 4px; font-weight: 700; }
@@ -687,6 +687,19 @@
         <button class="style-btn" data-style="band">사이드밴드</button>
       </div>
     </div>
+    <div class="field">
+      <label>텍스트 위치</label>
+      <div class="style-row" id="dividerVAlignRow">
+        <button class="style-btn" data-valign="top">상단</button>
+        <button class="style-btn active" data-valign="center">중앙</button>
+        <button class="style-btn" data-valign="bottom">하단</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:7px;">
+        <span style="font-size:10px;font-weight:800;color:#6b7280;white-space:nowrap;">세부조정</span>
+        <input type="range" id="dividerVOffset" min="-40" max="40" value="0" step="1" style="flex:1;">
+        <span id="dividerVOffsetVal" style="font-size:11px;font-weight:800;color:#374151;min-width:32px;text-align:right;">0%</span>
+      </div>
+    </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" id="dividerCancelBtn">취소</button>
       <button class="btn btn-primary" id="dividerConfirmBtn">삽입</button>
@@ -863,6 +876,7 @@ let _nextId = 1;
 let _uploadMode = 'new'; // 'new' | 'cont' | 'break'
 let _editingDividerPage = null; // null = insert new, else = editing existing
 let _dividerStyle = 'simple';
+let _dividerVAlign = 'center';
 
 // Watermark
 let wmEnabled = false, wmText = '사본', wmOpacity = 0.15, wmAngle = -45, wmColor = '#ff0000';
@@ -1048,7 +1062,11 @@ function renderDividerCanvas(content, w, h) {
     ctx.fillRect(w * 0.93, 0, w * 0.07, h);
   }
 
-  const cy = h / 2;
+  const vAlign = content.textVAlign || 'center';
+  const vOffsetPct = (content.textVOffset || 0) / 100;
+  let baseY = vAlign === 'top' ? h * 0.22 : vAlign === 'bottom' ? h * 0.78 : h * 0.5;
+  baseY += h * vOffsetPct;
+  const cy = baseY;
   const titleOffset = content.subtitle ? -h * 0.06 : 0;
   const drawFg = noBg ? '#111827' : fg;
 
@@ -1150,6 +1168,8 @@ function getDividerContent() {
     fg: $('dividerFg').value,
     style: _dividerStyle,
     noBg: $('dividerNoBg').checked,
+    textVAlign: _dividerVAlign,
+    textVOffset: parseInt($('dividerVOffset').value, 10) || 0,
   };
 }
 
@@ -1172,13 +1192,27 @@ $('dividerNoBg').addEventListener('change', () => {
   updateDividerPreview();
 });
 
-document.querySelectorAll('.style-btn').forEach(btn => {
+document.querySelectorAll('#dividerStyleRow .style-btn').forEach(btn => {
   btn.addEventListener('click', () => {
-    document.querySelectorAll('.style-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('#dividerStyleRow .style-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     _dividerStyle = btn.dataset.style;
     updateDividerPreview();
   });
+});
+
+document.querySelectorAll('#dividerVAlignRow .style-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#dividerVAlignRow .style-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    _dividerVAlign = btn.dataset.valign;
+    updateDividerPreview();
+  });
+});
+
+$('dividerVOffset').addEventListener('input', () => {
+  $('dividerVOffsetVal').textContent = $('dividerVOffset').value + '%';
+  updateDividerPreview();
 });
 
 $('dividerModalClose').addEventListener('click', closeDividerModal);
@@ -1213,6 +1247,10 @@ function editDivider(page) {
   $('dividerNoBg').checked = !!c.noBg;
   _dividerStyle = c.style || 'simple';
   document.querySelectorAll('.style-btn').forEach(b => b.classList.toggle('active', b.dataset.style === _dividerStyle));
+  _dividerVAlign = c.textVAlign || 'center';
+  document.querySelectorAll('[data-valign]').forEach(b => b.classList.toggle('active', b.dataset.valign === _dividerVAlign));
+  $('dividerVOffset').value = c.textVOffset ?? 0;
+  $('dividerVOffsetVal').textContent = (c.textVOffset ?? 0) + '%';
   $('dividerConfirmBtn').textContent = '저장';
   $('dividerModal').style.display = 'flex';
   setTimeout(updateDividerPreview, 50);
@@ -1233,6 +1271,10 @@ function openDividerInsert(spliceIdx) {
   $('dividerNoBg').checked = false;
   _dividerStyle = 'simple';
   document.querySelectorAll('.style-btn').forEach(b => b.classList.toggle('active', b.dataset.style === 'simple'));
+  _dividerVAlign = 'center';
+  document.querySelectorAll('[data-valign]').forEach(b => b.classList.toggle('active', b.dataset.valign === 'center'));
+  $('dividerVOffset').value = 0;
+  $('dividerVOffsetVal').textContent = '0%';
   $('dividerConfirmBtn').textContent = '삽입';
   $('dividerModal').style.display = 'flex';
   setTimeout(updateDividerPreview, 50);
