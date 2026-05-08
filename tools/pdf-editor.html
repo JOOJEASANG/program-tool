@@ -186,6 +186,15 @@
     .thumb-act.nodis { border-color: #7c3aed; color: #7c3aed; background: #f5f3ff; }
     .thumb-act.edit-div { border-color: #0f766e; color: #0f766e; background: #f0fdf4; }
     .thumb-hint { font-size: 10px; color: var(--muted); text-align: center; margin-top: 4px; line-height: 1.4; }
+    .insert-zone { height: 28px; display: flex; align-items: center; justify-content: center; position: relative; cursor: pointer; margin: 2px 0; opacity: 0; transition: opacity 0.15s; }
+    .insert-zone:hover { opacity: 1; }
+    .thumb-area:hover .insert-zone { opacity: 0.35; }
+    .thumb-area:hover .insert-zone:hover { opacity: 1; }
+    .insert-line { position: absolute; left: 0; right: 0; height: 2px; background: #93c5fd; border-radius: 1px; }
+    .insert-btns { display: flex; gap: 4px; z-index: 1; background: #fff; padding: 0 6px; border-radius: 12px; border: 1.5px solid #93c5fd; }
+    .insert-btn { border: none; background: none; font-size: 10px; font-weight: 800; color: #2563eb; cursor: pointer; padding: 3px 6px; font-family: inherit; }
+    .insert-btn.divider { color: #7c3aed; }
+    .insert-btn:hover { text-decoration: underline; }
 
     /* Per-page N-up popup */
     .nup-popup { position: fixed; z-index: 1000; background: #fff; border: 1px solid var(--line); border-radius: 9px; padding: 6px; box-shadow: 0 8px 24px rgba(0,0,0,0.14); display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; min-width: 160px; }
@@ -295,21 +304,6 @@
       <div class="sec-body" id="sb-pages">
         <div class="thumb-area" id="thumbArea"></div>
         <div class="thumb-hint">클릭=제외 · 드래그=순서변경 · 배지=개별설정</div>
-      </div>
-    </div>
-
-    <!-- 삽입 -->
-    <div class="sec" id="insertSection" style="display:none">
-      <div class="sec-head" data-sec="insert">
-        <span class="sec-title">페이지 삽입</span>
-        <span class="sec-arrow">▾</span>
-      </div>
-      <div class="sec-body" id="sb-insert">
-        <div class="grid2">
-          <button class="btn-sm" id="insertBlankBtn">빈 페이지</button>
-          <button class="btn-sm purple" id="insertDividerBtn">간지 페이지</button>
-        </div>
-        <div style="font-size:10px;color:#9ca3af;margin-top:4px;">선택(체크)한 페이지 뒤에 삽입 · 없으면 맨 뒤</div>
       </div>
     </div>
 
@@ -972,8 +966,6 @@ function insertAfterLastSelected(page) {
   renderThumbs();
 }
 
-$('insertBlankBtn').addEventListener('click', () => insertAfterLastSelected(makeBlankPage()));
-
 // ── Divider modal ─────────────────────────────────────────────────────
 function getDividerContent() {
   return {
@@ -996,20 +988,6 @@ function updateDividerPreview() {
   canvas.getContext('2d').drawImage(tmp, 0, 0);
 }
 
-$('insertDividerBtn').addEventListener('click', () => {
-  _editingDividerPage = null;
-  $('dividerTitle').value = '';
-  $('dividerSubtitle').value = '';
-  $('dividerNote').value = '';
-  $('dividerBg').value = '#1a365d';
-  $('dividerFg').value = '#ffffff';
-  _dividerStyle = 'simple';
-  document.querySelectorAll('.style-btn').forEach(b => b.classList.toggle('active', b.dataset.style === 'simple'));
-  $('dividerConfirmBtn').textContent = '삽입';
-  $('dividerModal').style.display = 'flex';
-  setTimeout(updateDividerPreview, 50);
-});
-
 ['dividerTitle','dividerSubtitle','dividerNote'].forEach(id =>
   $(id).addEventListener('input', updateDividerPreview));
 ['dividerBg','dividerFg'].forEach(id =>
@@ -1026,7 +1004,7 @@ document.querySelectorAll('.style-btn').forEach(btn => {
 
 $('dividerModalClose').addEventListener('click', closeDividerModal);
 $('dividerCancelBtn').addEventListener('click', closeDividerModal);
-function closeDividerModal() { $('dividerModal').style.display = 'none'; _editingDividerPage = null; }
+function closeDividerModal() { $('dividerModal').style.display = 'none'; _editingDividerPage = null; _insertIndex = -1; }
 
 $('dividerConfirmBtn').addEventListener('click', () => {
   const content = getDividerContent();
@@ -1035,7 +1013,8 @@ $('dividerConfirmBtn').addEventListener('click', () => {
     _editingDividerPage.thumbCanvas = renderDividerCanvas(content, 200, 283);
     renderThumbs();
   } else {
-    insertAfterLastSelected(makeDividerPageObj(content));
+    const idx = _insertIndex >= 0 ? _insertIndex : parsedPages.length;
+    insertAt(idx, makeDividerPageObj(content));
   }
   closeDividerModal();
 });
@@ -1056,36 +1035,81 @@ function editDivider(page) {
   setTimeout(updateDividerPreview, 50);
 }
 
+// ── Insert zones ──────────────────────────────────────────────────────
+let _insertIndex = -1;
+
+function makeInsertZone(index) {
+  const zone = document.createElement('div');
+  zone.className = 'insert-zone';
+  const line = document.createElement('div');
+  line.className = 'insert-line';
+  const btns = document.createElement('div');
+  btns.className = 'insert-btns';
+
+  const blankBtn = document.createElement('button');
+  blankBtn.className = 'insert-btn';
+  blankBtn.textContent = '+ 빈 페이지';
+  blankBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    insertAt(index, makeBlankPage());
+  });
+
+  const divBtn = document.createElement('button');
+  divBtn.className = 'insert-btn divider';
+  divBtn.textContent = '+ 간지';
+  divBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    _insertIndex = index;
+    _editingDividerPage = null;
+    $('dividerTitle').value = '';
+    $('dividerSubtitle').value = '';
+    $('dividerNote').value = '';
+    $('dividerBg').value = '#1a365d';
+    $('dividerFg').value = '#ffffff';
+    _dividerStyle = 'simple';
+    document.querySelectorAll('.style-btn').forEach(b => b.classList.toggle('active', b.dataset.style === 'simple'));
+    $('dividerConfirmBtn').textContent = '삽입';
+    $('dividerModal').style.display = 'flex';
+    setTimeout(updateDividerPreview, 50);
+  });
+
+  btns.appendChild(blankBtn);
+  btns.appendChild(divBtn);
+  zone.appendChild(line);
+  zone.appendChild(btns);
+  return zone;
+}
+
+function insertAt(index, page) {
+  parsedPages.splice(index, 0, page);
+  renderThumbs();
+}
+
 // ── Thumbnails ────────────────────────────────────────────────────────
 function renderThumbs() {
   const area = $('thumbArea');
   area.innerHTML = '';
-  let curFile = null, curRow = null;
+
+  // Insert zone before first page
+  if (parsedPages.length > 0) area.appendChild(makeInsertZone(0));
 
   parsedPages.forEach((page, i) => {
-    if (page.sourceFile !== curFile || page.groupBreak) {
-      curFile = page.sourceFile;
-      const div = document.createElement('div');
-      div.className = 'file-divider' + (page.groupBreak ? ' break' : '');
-      div.textContent = (page.groupBreak ? '📌 비연속 · ' : (page.pageType === 'divider' ? '📑 ' : '📄 ')) + curFile;
-      area.appendChild(div);
-      curRow = document.createElement('div');
-      curRow.className = 'thumb-row';
-      area.appendChild(curRow);
-    }
-    if (!curRow) {
-      curRow = document.createElement('div');
-      curRow.className = 'thumb-row';
-      area.appendChild(curRow);
-    }
-
+    // Thumbnail item
     const item = document.createElement('div');
     item.className = 'thumb-item';
     item.dataset.id = page.id;
     item.draggable = true;
+    item.style.cssText = 'display:flex;flex-direction:row;align-items:center;gap:6px;width:100%;';
+
+    // Page number label on left
+    const numLbl = document.createElement('div');
+    numLbl.style.cssText = 'font-size:10px;font-weight:800;color:#9ca3af;min-width:18px;text-align:right;flex-shrink:0;';
+    numLbl.textContent = i + 1;
+    item.appendChild(numLbl);
 
     const wrap = document.createElement('div');
     wrap.className = 'thumb-wrap' + (page.excluded ? ' excluded' : '');
+    wrap.style.width = '60px';
 
     // Thumb content
     if (page.pageType === 'divider') {
@@ -1131,31 +1155,31 @@ function renderThumbs() {
       wrap.appendChild(ex);
     }
 
-    // Actions row
+    // Actions row (column layout)
     const actions = document.createElement('div');
-    actions.className = 'thumb-actions';
+    actions.style.cssText = 'display:flex;flex-direction:column;gap:2px;flex-shrink:0;';
 
-    // N-up badge
     const nupAct = document.createElement('button');
     nupAct.className = 'thumb-act' + (page.nupOverride ? ' overridden' : '');
     nupAct.textContent = page.nupOverride ? page.nupOverride + 'up' : 'N-up';
     nupAct.title = 'N-up 개별 설정';
+    nupAct.style.fontSize = '9px';
     nupAct.addEventListener('click', e => { e.stopPropagation(); showNupPopup(nupAct, page); });
     actions.appendChild(nupAct);
 
-    // Rotate button
     const rotAct = document.createElement('button');
     rotAct.className = 'thumb-act';
-    rotAct.textContent = '↻';
+    rotAct.textContent = '↻90°';
     rotAct.title = '90° 회전';
+    rotAct.style.fontSize = '9px';
     rotAct.addEventListener('click', async e => { e.stopPropagation(); await rotatePage(page); });
     actions.appendChild(rotAct);
 
-    // 1:1 toggle
     const disAct = document.createElement('button');
     disAct.className = 'thumb-act' + (page.nupDisabled ? ' nodis' : '');
     disAct.textContent = '1:1';
-    disAct.title = 'N-up 해제 (전체 페이지)';
+    disAct.title = 'N-up 해제';
+    disAct.style.fontSize = '9px';
     disAct.addEventListener('click', e => {
       e.stopPropagation();
       page.nupDisabled = !page.nupDisabled;
@@ -1163,15 +1187,28 @@ function renderThumbs() {
     });
     actions.appendChild(disAct);
 
-    // Edit divider button
     if (page.pageType === 'divider') {
       const editAct = document.createElement('button');
       editAct.className = 'thumb-act edit-div';
-      editAct.textContent = '✏️';
+      editAct.textContent = '✏️편집';
       editAct.title = '간지 편집';
+      editAct.style.fontSize = '9px';
       editAct.addEventListener('click', e => { e.stopPropagation(); editDivider(page); });
       actions.appendChild(editAct);
     }
+
+    // Delete button
+    const delAct = document.createElement('button');
+    delAct.className = 'thumb-act';
+    delAct.textContent = '🗑';
+    delAct.title = '삭제';
+    delAct.style.fontSize = '9px';
+    delAct.addEventListener('click', e => {
+      e.stopPropagation();
+      parsedPages.splice(i, 1);
+      renderThumbs();
+    });
+    actions.appendChild(delAct);
 
     // Click = exclude toggle
     wrap.addEventListener('click', () => {
@@ -1208,14 +1245,16 @@ function renderThumbs() {
 
     item.appendChild(wrap);
     item.appendChild(actions);
-    curRow.appendChild(item);
+    area.appendChild(item);
+
+    // Insert zone after each page
+    area.appendChild(makeInsertZone(i + 1));
   });
 
   const total = parsedPages.length;
   const active = parsedPages.filter(p => !p.excluded).length;
   $('slideCount').textContent = `${active}/${total}p`;
   $('thumbSection').style.display = total ? 'block' : 'none';
-  $('insertSection').style.display = total ? 'block' : 'none';
 }
 
 // ── Rotate page ───────────────────────────────────────────────────────
@@ -1469,10 +1508,6 @@ function displayPreview(pages) {
     c.width = canvas.width; c.height = canvas.height;
     c.getContext('2d').drawImage(canvas, 0, 0);
     wrap.appendChild(c);
-    const lbl = document.createElement('div');
-    lbl.className = 'page-label';
-    lbl.textContent = `${i + 1} / ${pages.length}`;
-    wrap.appendChild(lbl);
     scroll.appendChild(wrap);
   });
 }
@@ -1706,7 +1741,6 @@ $('resetBtn').addEventListener('click', () => {
   $('previewPages').textContent = '';
   $('thumbArea').innerHTML = '';
   $('thumbSection').style.display = 'none';
-  $('insertSection').style.display = 'none';
   $('previewScroll').innerHTML = '<div class="empty-state"><div class="icon">📝</div><p>PDF 파일을 업로드하고<br>설정 후 <b>미리보기 생성</b>을 클릭하세요.</p></div>';
   // Reset to new mode
   document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active','break-active'));
