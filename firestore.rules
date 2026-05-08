@@ -38,6 +38,11 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
 
+    // settings/business (business info): admin-only read & write
+    match /settings/business {
+      allow read, write: if isAdmin();
+    }
+
     // user_permissions/{uid}:
     //   - Each user can read their own document.
     //   - Each user can create their own document on first login (programs all false).

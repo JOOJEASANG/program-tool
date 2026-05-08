@@ -5,6 +5,7 @@ from models.schemas import PreflightReport
 from services.preflight_svc import run_all_checks, compute_score
 from services.ai_vision import analyze_with_vision
 from utils.auth import require_auth
+from utils.ai_logger import log_ai_usage
 
 preflight_bp = Blueprint("preflight", __name__)
 
@@ -36,6 +37,7 @@ def check(uid):
         if use_ai:
             try:
                 ai_feedback = analyze_with_vision(doc)
+                log_ai_usage(uid, "preflight")
             except Exception as e:
                 ai_feedback = f"AI 분석 중 오류: {str(e)}"
 

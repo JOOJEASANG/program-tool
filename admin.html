@@ -154,7 +154,7 @@
     }
     .user-row-head, .user-row {
       display: grid;
-      grid-template-columns: minmax(180px, 2fr) repeat(3, 64px) 130px;
+      grid-template-columns: minmax(180px, 2fr) repeat(3, 64px) 80px 130px;
       align-items: center; gap: 10px; padding: 10px 14px;
     }
     .user-row-head {
@@ -184,9 +184,16 @@
     .perm-status.approved { background: #dcfce7; color: #166534; }
     .perm-status.pending { background: #fef3c7; color: #92400e; }
 
+    .ai-usage-badge {
+      display: inline-flex; align-items: center; justify-content: center;
+      background: #eff6ff; color: #1d4ed8; font-size: 11px; font-weight: 800;
+      padding: 3px 8px; border-radius: 999px; white-space: nowrap;
+      cursor: help;
+    }
+    .ai-usage-badge.has-usage { background: #dbeafe; color: #1e40af; }
     @media (max-width: 720px) {
       .user-row-head, .user-row {
-        grid-template-columns: minmax(150px, 1fr) repeat(3, 50px) 110px;
+        grid-template-columns: minmax(150px, 1fr) repeat(3, 50px) 55px 110px;
         font-size: 12px; padding: 10px;
       }
     }
@@ -305,6 +312,61 @@
         <div class="status-msg" id="keyStatus"></div>
       </div>
 
+      <!-- Business Info -->
+      <div class="card">
+        <div class="card-title">🏢 사업자 정보</div>
+        <div class="card-sub">견적서·납품서에 자동으로 채워지는 사업자 정보를 관리합니다.</div>
+
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <div>
+            <label for="bizName">상호명</label>
+            <input type="text" id="bizName" placeholder="예) 인쇄마당" />
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div>
+              <label for="bizRegNo">사업자등록번호</label>
+              <input type="text" id="bizRegNo" placeholder="000-00-00000" maxlength="12" />
+            </div>
+            <div>
+              <label for="bizOwner">대표자명</label>
+              <input type="text" id="bizOwner" placeholder="홍길동" />
+            </div>
+          </div>
+          <div>
+            <label for="bizAddr">사업장 주소</label>
+            <input type="text" id="bizAddr" placeholder="서울시 종로구..." />
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div>
+              <label for="bizPhone">대표 전화</label>
+              <input type="text" id="bizPhone" placeholder="02-0000-0000" />
+            </div>
+            <div>
+              <label for="bizEmail">이메일</label>
+              <input type="email" id="bizEmail" placeholder="info@example.com" />
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div>
+              <label for="bizType">업태</label>
+              <input type="text" id="bizType" placeholder="제조, 서비스 등" />
+            </div>
+            <div>
+              <label for="bizItem">종목</label>
+              <input type="text" id="bizItem" placeholder="인쇄업, 디자인 등" />
+            </div>
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="saveBizInfo()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4l2 3h6a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg>
+            저장
+          </button>
+        </div>
+        <div class="status-msg" id="bizStatus"></div>
+      </div>
+
       <!-- Admin accounts -->
       <div class="card">
         <div class="card-title">👤 관리자 계정</div>
@@ -381,6 +443,7 @@ auth.onAuthStateChanged(async user => {
   loadAdmins();
   loadPublicAccess();
   loadUsers();
+  loadBizInfo();
 });
 
 async function checkIsAdmin(email) {
@@ -616,19 +679,23 @@ function renderUsers() {
     return;
   }
 
-  // Dynamic grid columns: info | (each visible prog) | bulk actions
-  const gridStyle = `grid-template-columns: minmax(180px, 2fr) repeat(${progs.length}, 64px) 130px;`;
+  // Dynamic grid columns: info | (each visible prog) | AI usage | bulk actions
+  const gridStyle = `grid-template-columns: minmax(180px, 2fr) repeat(${progs.length}, 64px) 80px 130px;`;
 
   const head = `
     <div class="user-row-head" style="${gridStyle}">
       <div>회원 정보</div>
       ${progs.map(p => `<div class="col-prog" title="${escapeHtml(p.name)}">${p.icon}</div>`).join('')}
+      <div class="col-prog" title="AI 사용 횟수 (이미지생성/OCR/검수)">🤖</div>
       <div style="text-align:right;">일괄</div>
     </div>`;
 
   const rows = filtered.map(u => {
     const date = u.createdAt?.toDate?.()?.toLocaleDateString('ko-KR') || '-';
     const userProgs = u.programs || {};
+    const aiUsage = u.aiUsage || {};
+    const aiTotal = aiUsage.total || 0;
+    const aiTip = `이미지생성: ${aiUsage.imagen||0}회 · OCR: ${aiUsage.ocr||0}회 · 검수AI: ${aiUsage.preflight||0}회`;
     const safeUid = escapeHtml(u.uid);
     const safeName = escapeHtml(u.displayName || '이름 없음');
     const safeEmail = escapeHtml(u.email || '-');
@@ -649,6 +716,9 @@ function renderUsers() {
               </label>
             </div>`;
         }).join('')}
+        <div class="user-cell-prog">
+          <span class="ai-usage-badge${aiTotal > 0 ? ' has-usage' : ''}" title="${escapeHtml(aiTip)}">${aiTotal}회</span>
+        </div>
         <div class="user-cell-actions">
           <button class="btn btn-primary" data-action="grant-all" data-uid="${safeUid}" title="전체 승인">✓</button>
           <button class="btn btn-danger" data-action="revoke-all" data-uid="${safeUid}" title="전체 취소">✗</button>
@@ -766,6 +836,35 @@ async function revokeAll(uid) {
     renderUsers();
     showStatus('permStatus', 'info', '전체 취소되었습니다.');
   } catch(e) { showStatus('permStatus', 'error', '실패: ' + e.message); }
+}
+
+// ── Business Info ─────────────────────────────────
+const BIZ_FIELDS = ['bizName','bizRegNo','bizOwner','bizAddr','bizPhone','bizEmail','bizType','bizItem'];
+const BIZ_KEYS   = ['name',   'regNo',  'owner',  'addr',  'phone',  'email',  'type',  'item'];
+
+async function loadBizInfo() {
+  try {
+    const doc = await db.collection('settings').doc('business').get();
+    if (!doc.exists) return;
+    const data = doc.data();
+    BIZ_FIELDS.forEach((fid, i) => {
+      const el = document.getElementById(fid);
+      if (el) el.value = data[BIZ_KEYS[i]] || '';
+    });
+  } catch(e) { console.error(e); }
+}
+
+async function saveBizInfo() {
+  const data = {};
+  BIZ_FIELDS.forEach((fid, i) => {
+    data[BIZ_KEYS[i]] = (document.getElementById(fid)?.value || '').trim();
+  });
+  try {
+    await db.collection('settings').doc('business').set(data);
+    showStatus('bizStatus', 'success', '✓ 사업자 정보가 저장되었습니다.');
+  } catch(e) {
+    showStatus('bizStatus', 'error', '저장 실패: ' + e.message);
+  }
 }
 </script>
 </body>

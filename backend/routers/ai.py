@@ -4,6 +4,7 @@ from google import genai
 from google.genai import types
 from utils.auth import require_auth
 from utils.api_key import get_google_api_key
+from utils.ai_logger import log_ai_usage
 
 ai_bp = Blueprint("ai", __name__)
 
@@ -34,6 +35,7 @@ def generate_bg(uid):
         )
         img_bytes = response.generated_images[0].image.image_bytes
         b64 = base64.b64encode(img_bytes).decode("utf-8")
+        log_ai_usage(uid, "imagen")
         return jsonify({"b64_json": b64})
     except Exception as e:
         return jsonify({"detail": str(e)}), 500

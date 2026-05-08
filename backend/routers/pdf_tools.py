@@ -5,6 +5,7 @@ from typing import Optional
 import fitz  # PyMuPDF
 from flask import Blueprint, request, jsonify, Response
 from utils.auth import require_auth
+from utils.ai_logger import log_ai_usage
 
 pdf_tools_bp = Blueprint("pdf_tools", __name__)
 
@@ -294,6 +295,7 @@ def ocr(uid):
 
         buf = io.BytesIO()
         out.save(buf)
+        log_ai_usage(uid, "ocr")
         return _pdf_response(buf.getvalue(), "ocr.pdf")
     except Exception as e:
         return jsonify({"detail": f"OCR 실패: {e}"}), 500
