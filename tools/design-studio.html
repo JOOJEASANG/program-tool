@@ -1568,8 +1568,10 @@
       status.textContent = '⏳ AI가 배경 디자인 중... (10~30초)';
       try {
         const tpl = TEMPLATES[state.tplId];
-        const userDesc = curSide().aiDesc.trim();
-        const itemTexts = curSide().items.filter(i => i.text.trim()).map(i => i.text).slice(0, 5).join(', ');
+        const userDesc = (curSide().aiDesc || '').trim();
+        const itemTexts = curSide().items
+          .filter(i => (i.type || 'text') === 'text' && (i.text || '').trim())
+          .map(i => i.text).slice(0, 5).join(', ');
         let layoutHint = '';
         if (tpl.isSpread) layoutHint = 'full book cover spread (back cover + spine + front cover) in one panoramic image';
         else if (tpl.hasFold) layoutHint = `${state.foldCount}-panel folded ${tpl.name}`;
