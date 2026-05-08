@@ -209,7 +209,8 @@
     .zoom-btn { border: 1px solid var(--line); border-radius: 6px; padding: 3px 8px; font-size: 13px; font-weight: 800; color: #374151; background: #fff; cursor: pointer; font-family: inherit; line-height: 1; transition: all 0.1s; }
     .zoom-btn:hover { background: #eff6ff; border-color: #93c5fd; color: var(--primary); }
     .zoom-label { font-size: 11px; font-weight: 800; color: #6b7280; min-width: 36px; text-align: center; }
-    .preview-scroll { flex: 1; overflow: auto; background: rgba(255,255,255,.3); border-radius: 10px; padding: 12px; display: flex; flex-direction: column; align-items: center; }
+    .preview-scroll { flex: 1; overflow: auto; background: rgba(255,255,255,.3); border-radius: 10px; padding: 12px; display: flex; flex-direction: column; align-items: center; gap: 0; }
+    .preview-row { display: flex; flex-wrap: nowrap; align-items: flex-start; justify-content: center; gap: 8px; }
     .page-preview { background: #fff; box-shadow: 0 4px 16px rgba(0,0,0,0.15); border-radius: 3px; flex-shrink: 0; }
     .page-preview canvas { display: block; width: 100%; }
     .page-label { text-align: center; font-size: 10px; color: var(--muted); margin-top: 4px; font-weight: 700; }
@@ -601,6 +602,16 @@
         <span id="previewInfo">PDF 파일을 업로드하면 미리보기가 표시됩니다.</span>
         <span id="previewPages" style="color:#2563eb;font-weight:800;"></span>
         <div class="preview-zoom">
+          <span style="font-size:10px;font-weight:800;color:#6b7280;margin-right:2px;">줄당</span>
+          <select id="perRowSelect" style="border:1px solid var(--line);border-radius:6px;padding:2px 4px;font-size:11px;font-weight:800;font-family:inherit;color:#374151;background:#fff;cursor:pointer;">
+            <option value="1">1장</option>
+            <option value="2">2장</option>
+            <option value="3">3장</option>
+            <option value="4">4장</option>
+            <option value="5">5장</option>
+            <option value="6">6장</option>
+          </select>
+          <span style="width:1px;background:#e5e7eb;align-self:stretch;margin:0 4px;"></span>
           <button class="zoom-btn" id="zoomOutBtn" title="축소">−</button>
           <span class="zoom-label" id="zoomLabel">100%</span>
           <button class="zoom-btn" id="zoomInBtn" title="확대">＋</button>
@@ -647,7 +658,15 @@
     <div class="field"><label>부제목</label><input type="text" id="dividerSubtitle" placeholder="예) 개요 및 배경"></div>
     <div class="field"><label>하단 메모</label><input type="text" id="dividerNote" placeholder="선택사항"></div>
     <div class="grid2">
-      <div class="field"><label>배경색</label><input type="color" id="dividerBg" value="#1a365d"></div>
+      <div class="field">
+        <label>배경색</label>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <input type="color" id="dividerBg" value="#1a365d" style="flex:1;">
+          <label style="display:flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color:#374151;cursor:pointer;white-space:nowrap;margin:0;">
+            <input type="checkbox" id="dividerNoBg" style="width:auto;">없음
+          </label>
+        </div>
+      </div>
       <div class="field"><label>글자색</label><input type="color" id="dividerFg" value="#ffffff"></div>
     </div>
     <div class="field">
@@ -1004,11 +1023,16 @@ function renderDividerCanvas(content, w, h) {
   const bg = content.bg || '#1a365d';
   const fg = content.fg || '#ffffff';
   const style = content.style || 'simple';
+  const noBg = !!content.noBg;
 
-  ctx.fillStyle = bg;
-  ctx.fillRect(0, 0, w, h);
+  if (noBg) {
+    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, w, h);
+  } else {
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, w, h);
+  }
 
-  if (style === 'band') {
+  if (!noBg && style === 'band') {
     const darker = shiftColor(bg, -40);
     ctx.fillStyle = darker;
     ctx.fillRect(0, 0, w * 0.07, h);
@@ -1017,10 +1041,11 @@ function renderDividerCanvas(content, w, h) {
 
   const cy = h / 2;
   const titleOffset = content.subtitle ? -h * 0.06 : 0;
+  const drawFg = noBg ? '#111827' : fg;
 
   if (style === 'lines') {
     ctx.save();
-    ctx.strokeStyle = fg; ctx.globalAlpha = 0.4;
+    ctx.strokeStyle = drawFg; ctx.globalAlpha = 0.4;
     ctx.lineWidth = Math.max(1, h * 0.003);
     ctx.beginPath();
     ctx.moveTo(w * 0.1, cy + titleOffset - h * 0.09);
@@ -1031,7 +1056,7 @@ function renderDividerCanvas(content, w, h) {
 
   if (content.title) {
     const fs = Math.min(w * 0.1, h * 0.1, 90);
-    ctx.fillStyle = fg;
+    ctx.fillStyle = drawFg;
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.font = `bold ${fs}px "Pretendard", "Malgun Gothic", serif`;
     ctx.fillText(content.title, w/2, cy + titleOffset);
@@ -1039,7 +1064,7 @@ function renderDividerCanvas(content, w, h) {
 
   if (style === 'lines') {
     ctx.save();
-    ctx.strokeStyle = fg; ctx.globalAlpha = 0.4;
+    ctx.strokeStyle = drawFg; ctx.globalAlpha = 0.4;
     ctx.lineWidth = Math.max(1, h * 0.003);
     ctx.beginPath();
     ctx.moveTo(w * 0.1, cy + titleOffset + h * 0.09);
@@ -1050,7 +1075,7 @@ function renderDividerCanvas(content, w, h) {
 
   if (content.subtitle) {
     const fs2 = Math.min(w * 0.055, h * 0.055, 50);
-    ctx.fillStyle = fg; ctx.globalAlpha = 0.8;
+    ctx.fillStyle = drawFg; ctx.globalAlpha = 0.8;
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.font = `${fs2}px "Pretendard", "Malgun Gothic", sans-serif`;
     ctx.fillText(content.subtitle, w/2, cy + h * 0.08);
@@ -1059,7 +1084,7 @@ function renderDividerCanvas(content, w, h) {
 
   if (content.note) {
     const fs3 = Math.min(w * 0.035, h * 0.035, 30);
-    ctx.fillStyle = fg; ctx.globalAlpha = 0.55;
+    ctx.fillStyle = drawFg; ctx.globalAlpha = 0.55;
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.font = `${fs3}px "Pretendard", "Malgun Gothic", sans-serif`;
     ctx.fillText(content.note, w/2, h * 0.88);
@@ -1085,14 +1110,14 @@ function makeBlankPage() {
   ctx.strokeStyle = '#e5e7eb'; ctx.lineWidth = 2;
   ctx.strokeRect(4, 4, c.width-8, c.height-8);
   return { id: makeId(), pdfPage: null, thumbCanvas: c,
-    excluded: false, nupOverride: null, nupDisabled: false,
+    excluded: false, nupOverride: null, nupDisabled: true,
     sourceFile: '빈 페이지', groupBreak: false, rotation: 0, pageType: 'blank' };
 }
 
 function makeDividerPageObj(content) {
   const thumb = renderDividerCanvas(content, 200, 283);
   return { id: makeId(), pdfPage: null, thumbCanvas: thumb,
-    excluded: false, nupOverride: null, nupDisabled: false,
+    excluded: false, nupOverride: null, nupDisabled: true,
     sourceFile: '간지', groupBreak: false, rotation: 0,
     pageType: 'divider', dividerContent: { ...content } };
 }
@@ -1114,6 +1139,7 @@ function getDividerContent() {
     bg: $('dividerBg').value,
     fg: $('dividerFg').value,
     style: _dividerStyle,
+    noBg: $('dividerNoBg').checked,
   };
 }
 
@@ -1131,6 +1157,10 @@ function updateDividerPreview() {
   $(id).addEventListener('input', updateDividerPreview));
 ['dividerBg','dividerFg'].forEach(id =>
   $(id).addEventListener('input', updateDividerPreview));
+$('dividerNoBg').addEventListener('change', () => {
+  $('dividerBg').disabled = $('dividerNoBg').checked;
+  updateDividerPreview();
+});
 
 document.querySelectorAll('.style-btn').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -1170,6 +1200,7 @@ function editDivider(page) {
   $('dividerNote').value = c.note || '';
   $('dividerBg').value = c.bg || '#1a365d';
   $('dividerFg').value = c.fg || '#ffffff';
+  $('dividerNoBg').checked = !!c.noBg;
   _dividerStyle = c.style || 'simple';
   document.querySelectorAll('.style-btn').forEach(b => b.classList.toggle('active', b.dataset.style === _dividerStyle));
   $('dividerConfirmBtn').textContent = '저장';
@@ -1187,7 +1218,9 @@ function openDividerInsert(spliceIdx) {
   $('dividerSubtitle').value = '';
   $('dividerNote').value = '';
   $('dividerBg').value = '#1a365d';
+  $('dividerBg').disabled = false;
   $('dividerFg').value = '#ffffff';
+  $('dividerNoBg').checked = false;
   _dividerStyle = 'simple';
   document.querySelectorAll('.style-btn').forEach(b => b.classList.toggle('active', b.dataset.style === 'simple'));
   $('dividerConfirmBtn').textContent = '삽입';
@@ -1497,6 +1530,7 @@ async function buildAllPages(mm2px, useHi) {
 // ── Preview ───────────────────────────────────────────────────────────
 let _previewInsertPoints = []; // [zoneIdx] = parsedPages splice index
 let _previewZoom = 1.0; // zoom multiplier
+let _previewPerRow = 1; // pages per row
 const ZOOM_STEPS = [0.5, 0.6, 0.75, 1.0, 1.25, 1.5, 2.0, 2.5, 3.0];
 const ZOOM_BASE_H = 280; // base page height in px at 100%
 
@@ -1584,18 +1618,30 @@ function displayPreview(pages) {
   const scroll = $('previewScroll');
   scroll.innerHTML = '';
   const previewH = Math.round(ZOOM_BASE_H * _previewZoom);
+  const perRow = _previewPerRow;
+  const numRows = pages.length === 0 ? 0 : Math.ceil(pages.length / perRow);
+
   if (pages.length > 0) scroll.appendChild(makePreviewInsertZone(0));
-  pages.forEach((canvas, i) => {
-    const wrap = document.createElement('div');
-    wrap.className = 'page-preview';
-    wrap.style.width = Math.round(previewH * canvas.width / canvas.height) + 'px';
-    const c = document.createElement('canvas');
-    c.width = canvas.width; c.height = canvas.height;
-    c.getContext('2d').drawImage(canvas, 0, 0);
-    wrap.appendChild(c);
-    scroll.appendChild(wrap);
-    scroll.appendChild(makePreviewInsertZone(i + 1));
-  });
+
+  for (let row = 0; row < numRows; row++) {
+    const rowDiv = document.createElement('div');
+    rowDiv.className = 'preview-row';
+    const start = row * perRow;
+    const end = Math.min(start + perRow, pages.length);
+    for (let i = start; i < end; i++) {
+      const canvas = pages[i];
+      const wrap = document.createElement('div');
+      wrap.className = 'page-preview';
+      wrap.style.width = Math.round(previewH * canvas.width / canvas.height) + 'px';
+      const c = document.createElement('canvas');
+      c.width = canvas.width; c.height = canvas.height;
+      c.getContext('2d').drawImage(canvas, 0, 0);
+      wrap.appendChild(c);
+      rowDiv.appendChild(wrap);
+    }
+    scroll.appendChild(rowDiv);
+    scroll.appendChild(makePreviewInsertZone(end)); // zone after last page in this row
+  }
   updateZoomLabel();
 }
 
@@ -2020,7 +2066,11 @@ $('toolRunBtn').addEventListener('click', async () => {
   }
 });
 
-// ── Preview zoom controls ─────────────────────────────────────────────
+// ── Preview per-row & zoom controls ──────────────────────────────────
+$('perRowSelect').addEventListener('change', () => {
+  _previewPerRow = parseInt($('perRowSelect').value, 10) || 1;
+  if (previewCanvases.length > 0) displayPreview(previewCanvases);
+});
 $('zoomInBtn').addEventListener('click', () => {
   const idx = ZOOM_STEPS.indexOf(_previewZoom);
   const next = idx < 0
