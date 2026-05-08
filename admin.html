@@ -353,8 +353,40 @@
             </div>
             <div>
               <label for="bizItem">종목</label>
-              <input type="text" id="bizItem" placeholder="인쇄업, 디자인 등" />
+              <input type="text" id="bizItem" placeholder="소프트웨어 개발 및 공급업 등" />
             </div>
+          </div>
+
+          <div class="divider" style="margin: 4px 0;"></div>
+          <div style="font-size:13px;font-weight:700;color:#374151;">💰 입금 계좌 정보 <span style="font-weight:400;color:#9ca3af;">(AI 사용료 청구용)</span></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div>
+              <label for="bizBankName">은행명</label>
+              <input type="text" id="bizBankName" placeholder="국민은행" />
+            </div>
+            <div>
+              <label for="bizBankHolder">예금주</label>
+              <input type="text" id="bizBankHolder" placeholder="홍길동" />
+            </div>
+          </div>
+          <div>
+            <label for="bizBankAccount">계좌번호</label>
+            <input type="text" id="bizBankAccount" placeholder="000-00-000000" />
+          </div>
+
+          <div class="divider" style="margin: 4px 0;"></div>
+          <div style="font-size:13px;font-weight:700;color:#374151;">📄 약관용 추가 정보</div>
+          <div>
+            <label for="bizSiteName">서비스명</label>
+            <input type="text" id="bizSiteName" placeholder="Program Tool" />
+          </div>
+          <div>
+            <label for="bizPrivacyOfficer">개인정보 보호책임자</label>
+            <input type="text" id="bizPrivacyOfficer" placeholder="홍길동" />
+          </div>
+          <div>
+            <label for="bizTermsEffective">약관 시행일</label>
+            <input type="date" id="bizTermsEffective" />
           </div>
         </div>
 
@@ -839,7 +871,9 @@ async function revokeAll(uid) {
 }
 
 // ── Business Info ─────────────────────────────────
-const BIZ_FIELDS = ['bizName','bizRegNo','bizOwner','bizAddr','bizPhone','bizEmail','bizType','bizItem'];
+const BIZ_FIELDS = ['bizName','bizRegNo','bizOwner','bizAddr','bizPhone','bizEmail','bizType','bizItem',
+  'bizBankName','bizBankHolder','bizBankAccount',
+  'bizSiteName','bizPrivacyOfficer','bizTermsEffective'];
 const BIZ_KEYS   = ['name',   'regNo',  'owner',  'addr',  'phone',  'email',  'type',  'item'];
 
 async function loadBizInfo() {

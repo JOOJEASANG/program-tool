@@ -38,9 +38,10 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
 
-    // settings/business (business info): admin-only read & write
+    // settings/business (business info): public read (for legal pages/footer); admin-only write.
     match /settings/business {
-      allow read, write: if isAdmin();
+      allow read: if true;
+      allow write: if isAdmin();
     }
 
     // user_permissions/{uid}:

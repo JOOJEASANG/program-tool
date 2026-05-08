@@ -276,7 +276,7 @@ def ocr(uid):
             pix = page.get_pixmap(dpi=200)
             img_bytes = pix.tobytes("jpeg", jpg_quality=85)
             response = client.models.generate_content(
-                model="gemini-2.0-flash",
+                model="gemini-2.5-flash",
                 contents=[
                     "이 이미지에 있는 모든 텍스트를 정확히 추출해서 줄바꿈을 그대로 유지해 출력해 주세요. 텍스트만 출력하고 다른 설명은 하지 마세요.",
                     gtypes.Part.from_bytes(data=img_bytes, mime_type="image/jpeg"),

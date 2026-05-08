@@ -287,9 +287,9 @@
         </div>
       </div>
 
-      <!-- Leaflet-specific -->
+      <!-- Fold lines (leaflet/invitation) -->
       <div class="section" id="leafletSection" style="display:none;">
-        <h2>📋 리플렛 접지</h2>
+        <h2>📐 접지선 설정</h2>
         <label>접지 단수</label>
         <div class="fold-btns" id="foldBtns">
           <button type="button" class="fold-btn" data-fold="2">2단</button>
@@ -411,11 +411,15 @@
           <input id="showBleed" type="checkbox" checked> 도련선 표시
         </label>
       </div>
-      <div class="canvas-hint" style="margin: 0 auto 8px; max-width: max-content;">💡 드래그로 이동 · 휠로 크기 조절 · 방향키로 미세 조정 · Delete로 삭제</div>
+      <div class="canvas-hint" style="margin: 0 auto 8px; max-width: max-content;">💡 드래그로 이동 · 더블클릭으로 텍스트 편집 · 휠로 크기 조절 · 방향키로 미세 조정 · Delete로 삭제</div>
       <div class="preview-shell">
         <div class="preview-wrap" id="previewWrap">
           <canvas class="preview-canvas" id="previewCanvas"></canvas>
           <div class="selection-box" id="selectionBox" style="display:none;"></div>
+          <input id="inlineTextEdit" type="text" autocomplete="off" spellcheck="false"
+            style="display:none;position:absolute;z-index:20;border:2px solid #2563eb;border-radius:4px;
+                   background:rgba(255,255,255,0.93);outline:none;padding:1px 4px;line-height:1;
+                   box-shadow:0 2px 8px rgba(37,99,235,.2);">
         </div>
       </div>
     </main>
@@ -467,8 +471,8 @@
         back: [],
       },
       'invitation': {
-        name: '초대장', icon: '💌', size: [100, 148], orient: 'portrait',
-        bg: '#fefce8',
+        name: '초대장', icon: '💌', size: [148, 210], orient: 'portrait',
+        bg: '#fefce8', hasFold: true, defaultFold: 2,
         front: [
           { text: 'INVITATION', fontSize: 11, color: '#92400e', bold: true, x: 0.5, y: 0.15, align: 'center' },
           { text: '소중한 자리에 초대합니다', fontSize: 14, color: '#0f172a', bold: false, x: 0.5, y: 0.30, align: 'center' },
@@ -514,7 +518,7 @@
       tplId: initialTpl,
       paperW: 210, paperH: 297, landscape: false, bleed: 3,
       // cover-specific
-      spineW: 8, spineText: '', spineVertical: false, noSpine: false,
+      spineW: 8, spineText: '', spineVertical: false, noSpine: false, spineOffsetY: 0,
       // leaflet-specific
       foldCount: 3, showFoldLines: true,
       // common
@@ -543,7 +547,7 @@
       state.paperW = tpl.size[0]; state.paperH = tpl.size[1];
       state.landscape = tpl.orient === 'landscape';
       state.bleed = 3;
-      state.spineW = 8; state.spineText = ''; state.spineVertical = false; state.noSpine = false;
+      state.spineW = 8; state.spineText = ''; state.spineVertical = false; state.noSpine = false; state.spineOffsetY = 0;
       state.foldCount = tpl.defaultFold || 3;
       state.showFoldLines = true;
       state.activeSide = 'front';
@@ -791,6 +795,7 @@
         sides: state.sides,
         spineW: state.spineW, spineText: state.spineText,
         spineVertical: state.spineVertical, noSpine: state.noSpine,
+        spineOffsetY: state.spineOffsetY || 0,
       }));
     }
     function pushHistory() {
@@ -806,6 +811,7 @@
       state.sides = JSON.parse(JSON.stringify(snap.sides));
       state.spineW = snap.spineW; state.spineText = snap.spineText;
       state.spineVertical = snap.spineVertical; state.noSpine = snap.noSpine;
+      state.spineOffsetY = snap.spineOffsetY || 0;
       // Reload image elements for image items
       loadedImgs.clear();
       ['front', 'back'].forEach(side => {
@@ -1072,13 +1078,15 @@
         const paperW = +$('paperW').value;
         const spineW = state.spineW;
         const sx = (paperW + spineW / 2) * scale;
-        ctx.fillStyle = '#12396d';
+        const spineOffPx = (state.spineOffsetY || 0) * scale;
+        const spineCy = ch / 2 + spineOffPx;
+        ctx.fillStyle = state.selectedId === '__spine__' ? '#1d9bb2' : '#12396d';
         if (state.spineVertical) {
           const chars = state.spineText.split('');
           const charSize = Math.max(3, Math.min(spineW * 0.65, 9)) * scale;
           const lineH = charSize * 1.25;
           const totalH = chars.length * lineH;
-          const startY = ch / 2 - totalH / 2 + charSize * 0.5;
+          const startY = spineCy - totalH / 2 + charSize * 0.5;
           ctx.font = `900 ${charSize}px Pretendard, sans-serif`;
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
@@ -1086,7 +1094,7 @@
         } else {
           const fs = Math.max(3.2, Math.min(6, spineW * 0.55)) * scale;
           ctx.save();
-          ctx.translate(sx, ch / 2);
+          ctx.translate(sx, spineCy);
           ctx.rotate(Math.PI / 2);
           ctx.font = `900 ${fs}px Pretendard, sans-serif`;
           ctx.textAlign = 'center';
@@ -1100,7 +1108,18 @@
 
       // Selection box
       const sb = $('selectionBox');
-      if (state.selectedId) {
+      if (state.selectedId === '__spine__') {
+        const paperW = +$('paperW').value;
+        const spineW = state.spineW;
+        const spineOffPx = (state.spineOffsetY || 0) * scale;
+        const spineCy = ch / 2 + spineOffPx;
+        const sbh = spineW * scale;
+        sb.style.display = 'block';
+        sb.style.left = (paperW * scale - 4) + 'px';
+        sb.style.top = (spineCy - sbh / 2 - 4) + 'px';
+        sb.style.width = (spineW * scale + 8) + 'px';
+        sb.style.height = (sbh + 8) + 'px';
+      } else if (state.selectedId) {
         const sel = s.items.find(i => i.id === state.selectedId);
         if (sel) {
           const type = sel.type || 'text';
@@ -1234,6 +1253,17 @@
     function hitTest(mm) {
       const scale = state.zoomLevel * 4;
       const ctx = $('previewCanvas').getContext('2d');
+      // Spine text hit test (cover template)
+      const tplHit = TEMPLATES[state.tplId];
+      if (tplHit.hasSpine && !state.noSpine && state.spineText.trim()) {
+        const paperW = +$('paperW').value;
+        const spineW = state.spineW;
+        if (mm.x >= paperW - 1 && mm.x <= paperW + spineW + 1) {
+          const paperH = +$('paperH').value;
+          const spineCy = paperH / 2 + (state.spineOffsetY || 0);
+          return { id: '__spine__', x: paperW + spineW / 2, y: spineCy, _isSpine: true };
+        }
+      }
       const items = curSide().items;
       for (let i = items.length - 1; i >= 0; i--) {
         const it = items[i];
@@ -1368,6 +1398,7 @@
     }
 
     $('previewCanvas').addEventListener('mousedown', e => {
+      stopInlineEdit();
       const mm = getMouseMm(e);
       const hit = hitTest(mm);
       if (hit) {
@@ -1382,6 +1413,13 @@
     document.addEventListener('mousemove', e => {
       if (!isDragging || !state.selectedId) return;
       const mm = getMouseMm(e);
+      if (state.selectedId === '__spine__') {
+        const paperH = +$('paperH').value;
+        const newCy = dragData.itemY + (mm.y - dragData.startY);
+        state.spineOffsetY = newCy - paperH / 2;
+        render();
+        return;
+      }
       const sel = curSide().items.find(i => i.id === state.selectedId);
       if (!sel) return;
       sel.x = dragData.itemX + (mm.x - dragData.startX);
@@ -1391,6 +1429,61 @@
     });
     document.addEventListener('mouseup', () => {
       if (isDragging) { isDragging = false; snapGuides = []; pushHistory(); render(); scheduleSave(); }
+    });
+
+    // ── Inline text editing (double-click on canvas) ──────────────────
+    function startInlineEdit(item) {
+      const scale = state.zoomLevel * 4;
+      const editor = $('inlineTextEdit');
+      const ctx = $('previewCanvas').getContext('2d');
+      const fs = item.fontSize * scale;
+      ctx.font = `${item.bold ? '900' : '500'} ${fs}px ${fontCss(item.font)}`;
+      const tw = Math.max(ctx.measureText(item.text || ' ').width, 40);
+      let bx = item.x * scale;
+      if (item.align === 'center') bx -= tw / 2;
+      else if (item.align === 'right') bx -= tw;
+      const by = item.y * scale - fs / 2;
+      editor.style.cssText += `left:${bx - 4}px;top:${by}px;width:${tw + 24}px;height:${fs + 4}px;` +
+        `font-size:${fs}px;font-weight:${item.bold ? '900' : '500'};color:${item.color || '#000'};` +
+        `font-family:${fontCss(item.font)};text-align:${item.align || 'left'};display:block;`;
+      editor._itemId = item.id;
+      editor.value = item.text || '';
+      editor.focus();
+      editor.select();
+    }
+    function stopInlineEdit() {
+      const editor = $('inlineTextEdit');
+      if (!editor || editor.style.display === 'none') return;
+      const id = editor._itemId;
+      if (id) {
+        const item = curSide().items.find(i => i.id === id);
+        if (item && item.text !== editor.value) {
+          item.text = editor.value;
+          pushHistory(); renderItemList(); scheduleSave();
+        }
+      }
+      editor.style.display = 'none';
+      editor._itemId = null;
+      render();
+    }
+    $('inlineTextEdit').addEventListener('input', e => {
+      const id = e.target._itemId;
+      if (!id) return;
+      const item = curSide().items.find(i => i.id === id);
+      if (item) { item.text = e.target.value; render(); }
+    });
+    $('inlineTextEdit').addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === 'Escape') { stopInlineEdit(); e.preventDefault(); }
+    });
+    $('inlineTextEdit').addEventListener('blur', () => stopInlineEdit());
+
+    $('previewCanvas').addEventListener('dblclick', e => {
+      const mm = getMouseMm(e);
+      const hit = hitTest(mm);
+      if (!hit || hit._isSpine) return;
+      const item = curSide().items.find(i => i.id === hit.id);
+      if (!item || (item.type || 'text') !== 'text') return;
+      startInlineEdit(item);
     });
 
     $('previewCanvas').addEventListener('wheel', e => {
@@ -1413,9 +1506,14 @@
     document.addEventListener('keydown', e => {
       if (!state.selectedId) return;
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      const step = e.shiftKey ? 5 : 0.5;
+      if (state.selectedId === '__spine__') {
+        if (e.key === 'ArrowUp')        { state.spineOffsetY -= step; render(); e.preventDefault(); }
+        else if (e.key === 'ArrowDown') { state.spineOffsetY += step; render(); e.preventDefault(); }
+        return;
+      }
       const sel = curSide().items.find(i => i.id === state.selectedId);
       if (!sel) return;
-      const step = e.shiftKey ? 5 : 0.5;
       if (e.key === 'ArrowLeft')  { sel.x -= step; render(); e.preventDefault(); }
       else if (e.key === 'ArrowRight') { sel.x += step; render(); e.preventDefault(); }
       else if (e.key === 'ArrowUp')    { sel.y -= step; render(); e.preventDefault(); }
@@ -1656,7 +1754,7 @@
         paperW: state.paperW, paperH: state.paperH,
         landscape: state.landscape, bleed: state.bleed, showBleed: state.showBleed,
         spineW: state.spineW, spineText: state.spineText,
-        spineVertical: state.spineVertical, noSpine: state.noSpine,
+        spineVertical: state.spineVertical, noSpine: state.noSpine, spineOffsetY: state.spineOffsetY || 0,
         foldCount: state.foldCount, showFoldLines: state.showFoldLines,
         isDuplex: state.isDuplex,
         sides: {
@@ -1682,6 +1780,7 @@
       state.spineText = d.spineText ?? '';
       state.spineVertical = !!d.spineVertical;
       state.noSpine = !!d.noSpine;
+      state.spineOffsetY = d.spineOffsetY ?? 0;
       state.foldCount = d.foldCount || 3;
       state.showFoldLines = d.showFoldLines ?? true;
       state.isDuplex = !!d.isDuplex;
