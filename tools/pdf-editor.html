@@ -487,7 +487,47 @@
         <button class="btn btn-secondary" id="resetBtn">전체 초기화</button>
       </div>
     </div>
+
+    <!-- PDF Tools -->
+    <div class="sec">
+      <div class="sec-head" data-sec="tools">
+        <span class="sec-title">🛠️ PDF 추가 도구</span>
+        <span class="sec-arrow">▼</span>
+      </div>
+      <div class="sec-body" id="sb-tools">
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <button class="btn btn-secondary tool-btn" data-tool="extract">✂️ 페이지 추출 (분할)</button>
+          <button class="btn btn-secondary tool-btn" data-tool="from-images">🖼️ 이미지 → PDF</button>
+          <button class="btn btn-secondary tool-btn" data-tool="compress">🗜️ 용량 압축</button>
+          <button class="btn btn-secondary tool-btn" data-tool="encrypt">🔒 암호 설정</button>
+          <button class="btn btn-secondary tool-btn" data-tool="decrypt">🔓 암호 해제</button>
+          <button class="btn btn-secondary tool-btn" data-tool="remove-blank">🚫 빈 페이지 제거</button>
+          <button class="btn btn-secondary tool-btn" data-tool="ocr">🔍 OCR (텍스트 인식)</button>
+        </div>
+        <div style="font-size:10px;color:#94a3b8;margin-top:8px;line-height:1.5;">
+          ※ 위 도구들은 별도로 동작하는 1회성 도구입니다.<br>
+          파일 선택 → 옵션 입력 → 결과 PDF 자동 다운로드
+        </div>
+      </div>
+    </div>
   </aside>
+
+  <!-- PDF Tools Modal -->
+  <div id="toolModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.55);z-index:1000;align-items:center;justify-content:center;padding:20px;">
+    <div style="background:#fff;border-radius:14px;max-width:460px;width:100%;max-height:90vh;overflow-y:auto;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+        <h2 id="toolModalTitle" style="font-size:18px;font-weight:900;margin:0;flex:1;">도구</h2>
+        <button id="toolModalClose" style="background:none;border:0;font-size:22px;cursor:pointer;color:#64748b;">×</button>
+      </div>
+      <div id="toolModalDesc" style="font-size:13px;color:#64748b;margin-bottom:14px;line-height:1.5;"></div>
+      <div id="toolModalBody"></div>
+      <div style="margin-top:16px;display:flex;gap:8px;justify-content:flex-end;">
+        <button id="toolCancelBtn" class="btn btn-secondary">취소</button>
+        <button id="toolRunBtn" class="btn btn-primary">실행</button>
+      </div>
+      <div id="toolStatus" style="margin-top:10px;font-size:13px;font-weight:700;"></div>
+    </div>
+  </div>
 
   <main>
     <div id="statusBar" class="status-bar" style="display:none;"></div>
@@ -1568,6 +1608,191 @@ $('resetBtn').addEventListener('click', () => {
 
 // Init
 updateNupBadges();
+
+// ── PDF Tools ─────────────────────────────────────────────────────────
+const TOOL_DEFS = {
+  'extract': {
+    title: '✂️ 페이지 추출 (분할)',
+    desc: '지정한 페이지만 새 PDF로 저장합니다. 예: 1-3,5,7-9',
+    body: `
+      <label style="font-size:11px;font-weight:800;color:#374151;display:block;margin-bottom:6px;">PDF 파일</label>
+      <input type="file" id="tm-file" accept=".pdf" style="margin-bottom:12px;">
+      <label style="font-size:11px;font-weight:800;color:#374151;display:block;margin-bottom:6px;">페이지 범위</label>
+      <input type="text" id="tm-ranges" placeholder="예: 1-3,5,7-9" style="width:100%;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-family:inherit;">
+    `,
+    run: async () => {
+      const f = $('tm-file').files[0];
+      const ranges = $('tm-ranges').value.trim();
+      if (!f) throw new Error('PDF 파일을 선택하세요.');
+      if (!ranges) throw new Error('페이지 범위를 입력하세요.');
+      return apiPdfTool('extract', f, { ranges });
+    },
+  },
+  'from-images': {
+    title: '🖼️ 이미지 → PDF',
+    desc: 'JPG, PNG 등 이미지 여러 장을 PDF 한 권으로 묶습니다.',
+    body: `
+      <label style="font-size:11px;font-weight:800;color:#374151;display:block;margin-bottom:6px;">이미지 파일 (여러 장 선택)</label>
+      <input type="file" id="tm-files" accept="image/*" multiple style="margin-bottom:12px;">
+      <label style="font-size:11px;font-weight:800;color:#374151;display:block;margin-bottom:6px;">페이지 크기</label>
+      <select id="tm-size" style="width:100%;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-family:inherit;">
+        <option value="fit">이미지 크기 그대로</option>
+        <option value="a4">A4로 통일 (가운데 정렬)</option>
+      </select>
+    `,
+    run: async () => {
+      const files = Array.from($('tm-files').files);
+      if (!files.length) throw new Error('이미지를 선택하세요.');
+      const size = $('tm-size').value;
+      return apiPdfTool('from-images', files, { size });
+    },
+  },
+  'compress': {
+    title: '🗜️ PDF 용량 압축',
+    desc: '이미지를 재압축해 파일 크기를 줄입니다. 텍스트 PDF는 효과 작을 수 있습니다.',
+    body: `
+      <label style="font-size:11px;font-weight:800;color:#374151;display:block;margin-bottom:6px;">PDF 파일</label>
+      <input type="file" id="tm-file" accept=".pdf" style="margin-bottom:12px;">
+      <label style="font-size:11px;font-weight:800;color:#374151;display:block;margin-bottom:6px;">품질</label>
+      <select id="tm-quality" style="width:100%;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-family:inherit;">
+        <option value="low">낮음 (가장 작은 용량 · 100 DPI)</option>
+        <option value="medium" selected>중간 (권장 · 150 DPI)</option>
+        <option value="high">높음 (200 DPI)</option>
+      </select>
+    `,
+    run: async () => {
+      const f = $('tm-file').files[0];
+      if (!f) throw new Error('PDF 파일을 선택하세요.');
+      return apiPdfTool('compress', f, { quality: $('tm-quality').value });
+    },
+  },
+  'encrypt': {
+    title: '🔒 PDF 암호 설정',
+    desc: '비밀번호로 PDF를 보호합니다 (AES-256). 비밀번호는 안전하게 보관하세요.',
+    body: `
+      <label style="font-size:11px;font-weight:800;color:#374151;display:block;margin-bottom:6px;">PDF 파일</label>
+      <input type="file" id="tm-file" accept=".pdf" style="margin-bottom:12px;">
+      <label style="font-size:11px;font-weight:800;color:#374151;display:block;margin-bottom:6px;">새 비밀번호</label>
+      <input type="password" id="tm-pw" placeholder="32자 이내" maxlength="32" style="width:100%;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-family:inherit;">
+    `,
+    run: async () => {
+      const f = $('tm-file').files[0];
+      if (!f) throw new Error('PDF 파일을 선택하세요.');
+      const pw = $('tm-pw').value.trim();
+      if (!pw) throw new Error('비밀번호를 입력하세요.');
+      return apiPdfTool('encrypt', f, { password: pw });
+    },
+  },
+  'decrypt': {
+    title: '🔓 PDF 암호 해제',
+    desc: '비밀번호 보호된 PDF에서 암호를 제거합니다. 정확한 비밀번호가 필요합니다.',
+    body: `
+      <label style="font-size:11px;font-weight:800;color:#374151;display:block;margin-bottom:6px;">PDF 파일</label>
+      <input type="file" id="tm-file" accept=".pdf" style="margin-bottom:12px;">
+      <label style="font-size:11px;font-weight:800;color:#374151;display:block;margin-bottom:6px;">현재 비밀번호</label>
+      <input type="password" id="tm-pw" style="width:100%;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-family:inherit;">
+    `,
+    run: async () => {
+      const f = $('tm-file').files[0];
+      if (!f) throw new Error('PDF 파일을 선택하세요.');
+      return apiPdfTool('decrypt', f, { password: $('tm-pw').value });
+    },
+  },
+  'remove-blank': {
+    title: '🚫 빈 페이지 자동 제거',
+    desc: '텍스트가 없고 거의 흰 페이지를 자동 감지해 제거합니다. 스캔 PDF 정리에 유용.',
+    body: `
+      <label style="font-size:11px;font-weight:800;color:#374151;display:block;margin-bottom:6px;">PDF 파일</label>
+      <input type="file" id="tm-file" accept=".pdf">
+    `,
+    run: async () => {
+      const f = $('tm-file').files[0];
+      if (!f) throw new Error('PDF 파일을 선택하세요.');
+      return apiPdfTool('remove-blank', f);
+    },
+  },
+  'ocr': {
+    title: '🔍 OCR 텍스트 인식',
+    desc: '스캔 PDF에 검색 가능한 텍스트 레이어를 추가합니다 (Google Gemini 사용 · 30페이지 이내).',
+    body: `
+      <label style="font-size:11px;font-weight:800;color:#374151;display:block;margin-bottom:6px;">PDF 파일</label>
+      <input type="file" id="tm-file" accept=".pdf">
+      <div style="font-size:11px;color:#92400e;margin-top:8px;background:#fef3c7;padding:8px 10px;border-radius:8px;">
+        ⏱ 페이지당 약 3~5초 소요됩니다. AI 사용량이 발생합니다.
+      </div>
+    `,
+    run: async () => {
+      const f = $('tm-file').files[0];
+      if (!f) throw new Error('PDF 파일을 선택하세요.');
+      return apiPdfTool('ocr', f);
+    },
+  },
+};
+
+let currentTool = null;
+
+function openTool(toolId) {
+  const def = TOOL_DEFS[toolId];
+  if (!def) return;
+  currentTool = toolId;
+  $('toolModalTitle').textContent = def.title;
+  $('toolModalDesc').textContent = def.desc;
+  $('toolModalBody').innerHTML = def.body;
+  $('toolStatus').textContent = '';
+  $('toolStatus').style.color = '';
+  $('toolModal').style.display = 'flex';
+}
+function closeTool() {
+  $('toolModal').style.display = 'none';
+  currentTool = null;
+}
+
+document.querySelectorAll('.tool-btn').forEach(btn => {
+  btn.addEventListener('click', () => openTool(btn.dataset.tool));
+});
+$('toolModalClose').addEventListener('click', closeTool);
+$('toolCancelBtn').addEventListener('click', closeTool);
+$('toolModal').addEventListener('click', e => { if (e.target.id === 'toolModal') closeTool(); });
+
+$('toolRunBtn').addEventListener('click', async () => {
+  if (!currentTool) return;
+  const def = TOOL_DEFS[currentTool];
+  const status = $('toolStatus');
+  const runBtn = $('toolRunBtn');
+  status.style.color = '#2563eb';
+  status.textContent = '처리 중...';
+  runBtn.disabled = true;
+  try {
+    const { blob, meta } = await def.run();
+    // Trigger download
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const stamp = new Date().toISOString().slice(0, 10);
+    a.download = `${currentTool}_${stamp}.pdf`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    status.style.color = '#15803d';
+    let msg = '✓ 완료! 다운로드되었습니다.';
+    if (meta?.removed != null) msg += ` (${meta.removed}개 페이지 제거됨)`;
+    status.textContent = msg;
+    setTimeout(() => closeTool(), 1500);
+  } catch (e) {
+    status.style.color = '#dc2626';
+    status.textContent = '❌ ' + e.message;
+  } finally {
+    runBtn.disabled = false;
+  }
+});
+
+// Make 추가 도구 section collapsible
+document.querySelector('[data-sec="tools"]').addEventListener('click', e => {
+  e.currentTarget.classList.toggle('collapsed');
+  $('sb-tools').classList.toggle('hidden');
+});
+// Start collapsed by default to keep sidebar clean
+document.querySelector('[data-sec="tools"]').classList.add('collapsed');
+$('sb-tools').classList.add('hidden');
 </script>
 </body>
 </html>
