@@ -29,8 +29,12 @@ def check(uid):
         return jsonify({"detail": "PDF 파일을 열 수 없습니다"}), 400
 
     try:
-        checks = run_all_checks(doc)
-        score = compute_score(checks)
+        try:
+            checks = run_all_checks(doc)
+            score = compute_score(checks)
+        except Exception as e:
+            import traceback; traceback.print_exc()
+            return jsonify({"detail": f"검수 처리 실패: {type(e).__name__}: {e}"}), 500
 
         use_ai = request.form.get("use_ai", "false").lower() == "true"
         ai_feedback = None
@@ -41,13 +45,17 @@ def check(uid):
             except Exception as e:
                 ai_feedback = f"AI 분석 중 오류: {str(e)}"
 
-        report = PreflightReport(
-            filename=file.filename or "document.pdf",
-            page_count=len(doc),
-            checks=checks,
-            ai_feedback=ai_feedback,
-            score=score,
-        )
-        return jsonify(report.model_dump())
+        try:
+            report = PreflightReport(
+                filename=file.filename or "document.pdf",
+                page_count=len(doc),
+                checks=checks,
+                ai_feedback=ai_feedback,
+                score=score,
+            )
+            return jsonify(report.model_dump())
+        except Exception as e:
+            import traceback; traceback.print_exc()
+            return jsonify({"detail": f"리포트 생성 실패: {type(e).__name__}: {e}"}), 500
     finally:
         doc.close()

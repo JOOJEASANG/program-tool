@@ -34,16 +34,37 @@ def check_image_dpi(doc: fitz.Document) -> CheckItem:
 
     for page_num in range(len(doc)):
         page = doc[page_num]
-        for img in page.get_images(full=True):
+        try:
+            images = page.get_images(full=True)
+        except Exception:
+            images = []
+        for img in images:
             xref = img[0]
-            base_image = doc.extract_image(xref)
-            pix_w = base_image["width"]
-            pix_h = base_image["height"]
+            try:
+                base_image = doc.extract_image(xref)
+            except Exception:
+                continue
+            pix_w = base_image.get("width", 0)
+            pix_h = base_image.get("height", 0)
+            if not pix_w or not pix_h:
+                continue
 
             # Get image placement rect to compute effective DPI
-            for item in page.get_image_info(hashes=False):
+            try:
+                infos = page.get_image_info(hashes=False)
+            except TypeError:
+                try:
+                    infos = page.get_image_info()
+                except Exception:
+                    infos = []
+            except Exception:
+                infos = []
+            for item in infos:
                 if item.get("xref") == xref:
-                    bbox = fitz.Rect(item["bbox"])
+                    try:
+                        bbox = fitz.Rect(item["bbox"])
+                    except Exception:
+                        break
                     render_w_pt = bbox.width
                     render_h_pt = bbox.height
                     if render_w_pt > 0 and render_h_pt > 0:
@@ -121,9 +142,16 @@ def check_color_mode(doc: fitz.Document) -> CheckItem:
 
     for page_num in range(len(doc)):
         page = doc[page_num]
-        for img in page.get_images(full=True):
+        try:
+            images = page.get_images(full=True)
+        except Exception:
+            images = []
+        for img in images:
             xref = img[0]
-            base_image = doc.extract_image(xref)
+            try:
+                base_image = doc.extract_image(xref)
+            except Exception:
+                continue
             colorspace = base_image.get("colorspace", 3)
             # 3 = RGB, 4 = CMYK
             if colorspace == 3:
@@ -152,10 +180,22 @@ def check_font_embedding(doc: fitz.Document) -> CheckItem:
 
     for page_num in range(len(doc)):
         page = doc[page_num]
-        for font in page.get_fonts(full=True):
-            # font[7] is 'embedded' flag in some versions; check name patterns
-            font_name = font[3] or font[4] or "Unknown"
-            embedded = font[7] if len(font) > 7 else True
+        try:
+            fonts = page.get_fonts(full=True)
+        except Exception:
+            fonts = []
+        for font in fonts:
+            try:
+                font_name = font[3] or font[4] or "Unknown"
+            except Exception:
+                font_name = "Unknown"
+            # In PyMuPDF, get_fonts returns tuples: (xref, ext, type, basefont, name, encoding, ...).
+            # Embedded status is reflected by `ext` being non-empty (e.g. 'ttf', 'otf', 'cff').
+            try:
+                ext = (font[1] or "").strip().lower() if len(font) > 1 else ""
+            except Exception:
+                ext = ""
+            embedded = bool(ext) and ext not in ("n/a", "none")
             if not embedded:
                 not_embedded.append((font_name, page_num + 1))
 
@@ -219,7 +259,15 @@ def check_transparency(doc: fitz.Document) -> CheckItem:
     pages_with_transparency: list[int] = []
     for page_num in range(len(doc)):
         page = doc[page_num]
-        if "/Transparency" in page.xobject_names():
+        # `xobject_names()` is unavailable in newer PyMuPDF builds; gracefully skip.
+        try:
+            names_fn = getattr(page, "xobject_names", None)
+            if not callable(names_fn):
+                continue
+            names = names_fn() or []
+        except Exception:
+            continue
+        if any("Transparency" in (n or "") for n in names):
             if page_num + 1 not in pages_with_transparency:
                 pages_with_transparency.append(page_num + 1)
 
@@ -239,14 +287,25 @@ def check_transparency(doc: fitz.Document) -> CheckItem:
     )
 
 
+def _safe_run(check_fn, fn_id: str, label: str, doc: fitz.Document) -> CheckItem:
+    try:
+        return check_fn(doc)
+    except Exception as e:
+        return CheckItem(
+            id=fn_id, label=label,
+            severity=CheckSeverity.warning,
+            detail=f"검사 실행 중 오류로 건너뜀: {type(e).__name__}: {str(e)[:120]}",
+        )
+
+
 def run_all_checks(doc: fitz.Document) -> list[CheckItem]:
     return [
-        check_image_dpi(doc),
-        check_bleed(doc),
-        check_color_mode(doc),
-        check_font_embedding(doc),
-        check_page_size_consistency(doc),
-        check_transparency(doc),
+        _safe_run(check_image_dpi,            "dpi",          "이미지 해상도",   doc),
+        _safe_run(check_bleed,                "bleed",        "재단 여백 (도련)", doc),
+        _safe_run(check_color_mode,           "color_mode",   "색상 모드",       doc),
+        _safe_run(check_font_embedding,       "font_embed",   "폰트 임베딩",     doc),
+        _safe_run(check_page_size_consistency,"page_size",    "페이지 규격",     doc),
+        _safe_run(check_transparency,         "transparency", "투명도",         doc),
     ]
 
 
