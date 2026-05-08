@@ -45,6 +45,29 @@ async function apiProcessPdf(files, settings) {
  * @param {boolean} useAi - whether to include AI visual analysis
  * @returns {Promise<object>} PreflightReport JSON
  */
+/**
+ * Generic call to /api/pdf-tools/<op>. Returns Blob (or throws with detail).
+ */
+async function apiPdfTool(op, fileOrFiles, params = {}) {
+  const headers = await _authHeaders();
+  const form = new FormData();
+  if (Array.isArray(fileOrFiles)) {
+    fileOrFiles.forEach(f => form.append('files', f));
+  } else if (fileOrFiles) {
+    form.append('file', fileOrFiles);
+  }
+  Object.entries(params).forEach(([k, v]) => form.append(k, v));
+
+  const resp = await fetch(`/api/pdf-tools/${op}`, { method: 'POST', headers, body: form });
+  if (!resp.ok) {
+    const err = await resp.json().catch(() => ({ detail: resp.statusText }));
+    throw new Error(err.detail || `${op} 실패`);
+  }
+  const removed = resp.headers.get('X-Removed-Count');
+  const blob = await resp.blob();
+  return { blob, meta: { removed: removed ? Number(removed) : null } };
+}
+
 async function apiPreflightCheck(file, useAi = false) {
   const headers = await _authHeaders();
   const form = new FormData();

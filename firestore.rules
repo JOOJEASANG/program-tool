@@ -1,0 +1,78 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function adminEmails() {
+      return get(/databases/$(database)/documents/settings/admin).data.emails;
+    }
+
+    function isAdmin() {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/settings/admin)
+        && request.auth.token.email != null
+        && adminEmails().hasAny([request.auth.token.email, request.auth.token.email.lower()]);
+    }
+
+    // settings/admin: any signed-in user can read (needed for admin check on every page).
+    // First-time bootstrap: writable when document does not yet exist OR by existing admins.
+    match /settings/admin {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn()
+        && request.resource.data.keys().hasOnly(['emails'])
+        && request.resource.data.emails is list;
+      allow update, delete: if isAdmin();
+    }
+
+    // settings/programs: read by anyone signed in, write by admins only
+    match /settings/programs {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // settings/config (API key etc): admin-only read & write
+    match /settings/config {
+      allow read, write: if isAdmin();
+    }
+
+    // settings/business (business info): public read (for legal pages/footer); admin-only write.
+    match /settings/business {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // user_permissions/{uid}:
+    //   - Each user can read their own document.
+    //   - Each user can create their own document on first login (programs all false).
+    //   - Only admins can update permissions (programs.* fields).
+    //   - Admins can read everyone for the user-management UI.
+    match /user_permissions/{uid} {
+      allow read: if isSignedIn() && (request.auth.uid == uid || isAdmin());
+
+      allow create: if isSignedIn()
+        && request.auth.uid == uid
+        && request.resource.data.uid == uid
+        && request.resource.data.programs is map
+        && (
+          // All program flags must start false on self-creation
+          !('design-studio' in request.resource.data.programs) || request.resource.data.programs['design-studio'] == false
+        )
+        && (
+          !('pdf-editor' in request.resource.data.programs) || request.resource.data.programs['pdf-editor'] == false
+        )
+        && (
+          !('preflight' in request.resource.data.programs) || request.resource.data.programs['preflight'] == false
+        );
+
+      allow update, delete: if isAdmin();
+    }
+
+    // Default deny everything else
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

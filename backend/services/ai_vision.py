@@ -1,10 +1,10 @@
 """
-OpenAI Vision-based pre-flight analysis.
+Google Gemini Vision-based pre-flight analysis.
 """
-import base64
-import os
 import fitz
-from openai import OpenAI
+from google import genai
+from google.genai import types
+from utils.api_key import get_google_api_key
 
 RENDER_DPI = 150
 MAX_PAGES_TO_ANALYZE = 3
@@ -22,44 +22,33 @@ SYSTEM_PROMPT = """당신은 인쇄 품질 전문가입니다. 제공된 PDF 페
 마지막에 종합 의견을 2-3문장으로 작성하세요."""
 
 
-def _render_page_to_base64(page: fitz.Page, dpi: int = RENDER_DPI) -> str:
+def _render_page_to_bytes(page: fitz.Page, dpi: int = RENDER_DPI) -> bytes:
     zoom = dpi / 72
     mat = fitz.Matrix(zoom, zoom)
     pix = page.get_pixmap(matrix=mat, alpha=False)
-    img_bytes = pix.tobytes("jpeg", jpg_quality=85)
-    return base64.standard_b64encode(img_bytes).decode("utf-8")
+    return pix.tobytes("jpeg", jpg_quality=85)
 
 
 def analyze_with_vision(doc: fitz.Document) -> str:
-    api_key = os.getenv("OPENAI_API_KEY")
+    api_key = get_google_api_key()
     if not api_key:
-        return "AI 분석을 사용하려면 OPENAI_API_KEY 환경변수를 설정해주세요."
+        return "AI 분석을 사용하려면 관리자 페이지에서 Google API 키를 등록해주세요."
 
-    client = OpenAI(api_key=api_key)
+    client = genai.Client(api_key=api_key)
     pages_to_check = min(len(doc), MAX_PAGES_TO_ANALYZE)
 
-    content: list[dict] = []
+    contents = [SYSTEM_PROMPT]
     for i in range(pages_to_check):
-        page = doc[i]
-        b64 = _render_page_to_base64(page)
-        content.append({"type": "text", "text": f"=== 페이지 {i + 1} ==="})
-        content.append({
-            "type": "image_url",
-            "image_url": {"url": f"data:image/jpeg;base64,{b64}"},
-        })
+        img_bytes = _render_page_to_bytes(doc[i])
+        contents.append(f"=== 페이지 {i + 1} ===")
+        contents.append(types.Part.from_bytes(data=img_bytes, mime_type="image/jpeg"))
 
-    content.append({
-        "type": "text",
-        "text": f"총 {len(doc)}페이지 문서입니다. 위 {pages_to_check}개 페이지를 분석하여 인쇄 품질을 평가해주세요.",
-    })
-
-    response = client.chat.completions.create(
-        model="gpt-4.1",
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": content},
-        ],
-        max_tokens=1024,
+    contents.append(
+        f"총 {len(doc)}페이지 문서입니다. 위 {pages_to_check}개 페이지를 분석하여 인쇄 품질을 평가해주세요."
     )
 
-    return response.choices[0].message.content
+    response = client.models.generate_content(
+        model="gemini-2.5-flash",
+        contents=contents,
+    )
+    return response.text

@@ -255,16 +255,51 @@
   <script src="../js/sw-register.js" defer></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
   <script src="../js/firebase-config.js"></script>
   <script src="../js/api.js"></script>
   <script>
     let selectedFile = null;
 
-    auth.onAuthStateChanged(user => {
+    function denyPreflightAccess(msg) {
+      document.body.replaceChildren();
+      const wrap = document.createElement('div');
+      wrap.style.cssText = 'display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;gap:16px;text-align:center;padding:24px;font-family:sans-serif;';
+      wrap.innerHTML = '<div style="font-size:52px;">🔒</div>'
+        + '<div style="font-size:20px;font-weight:900;color:#0f172a;">접근 권한이 없습니다</div>'
+        + '<div class="msg" style="font-size:14px;color:#64748b;max-width:320px;line-height:1.6;"></div>'
+        + '<a href="../index.html" style="margin-top:8px;padding:10px 24px;background:#12396d;color:#fff;border-radius:10px;text-decoration:none;font-weight:800;font-size:14px;">← 홈으로</a>';
+      wrap.querySelector('.msg').textContent = msg;
+      document.body.appendChild(wrap);
+    }
+
+    auth.onAuthStateChanged(async user => {
       if (!user) { window.location.href = '../login.html'; return; }
-      const email = user.email || '';
-      const name = user.displayName || email.split('@')[0];
+      const name = user.displayName || (user.email || '').split('@')[0];
       document.getElementById('userName').textContent = name;
+
+      try {
+        const userEmail = String(user.email || '').trim().toLowerCase();
+        const [adminDoc, programsDoc, permDoc] = await Promise.all([
+          db.collection('settings').doc('admin').get(),
+          db.collection('settings').doc('programs').get(),
+          db.collection('user_permissions').doc(user.uid).get(),
+        ]);
+        const adminEmails = (adminDoc.exists ? (adminDoc.data().emails || []) : [])
+          .map(e => String(e).trim().toLowerCase());
+        const isAdmin = adminEmails.includes(userEmail);
+        const isPublic = !!(programsDoc.exists && programsDoc.data().public?.['preflight']);
+        const isApproved = permDoc.exists && permDoc.data().programs?.['preflight'] === true;
+
+        if (!isAdmin && !isPublic && !isApproved) {
+          denyPreflightAccess('인쇄 검수기는 관리자 승인 후 사용할 수 있습니다.');
+          return;
+        }
+      } catch(e) {
+        console.error('Permission check failed', e);
+        denyPreflightAccess('권한 확인 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.');
+        return;
+      }
     });
 
     async function doLogout() {

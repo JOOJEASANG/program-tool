@@ -287,9 +287,9 @@
         </div>
       </div>
 
-      <!-- Leaflet-specific -->
+      <!-- Fold lines (leaflet/invitation) -->
       <div class="section" id="leafletSection" style="display:none;">
-        <h2>📋 리플렛 접지</h2>
+        <h2>📐 접지선 설정</h2>
         <label>접지 단수</label>
         <div class="fold-btns" id="foldBtns">
           <button type="button" class="fold-btn" data-fold="2">2단</button>
@@ -471,8 +471,8 @@
         back: [],
       },
       'invitation': {
-        name: '초대장', icon: '💌', size: [100, 148], orient: 'portrait',
-        bg: '#fefce8',
+        name: '초대장', icon: '💌', size: [148, 210], orient: 'portrait',
+        bg: '#fefce8', hasFold: true, defaultFold: 2,
         front: [
           { text: 'INVITATION', fontSize: 11, color: '#92400e', bold: true, x: 0.5, y: 0.15, align: 'center' },
           { text: '소중한 자리에 초대합니다', fontSize: 14, color: '#0f172a', bold: false, x: 0.5, y: 0.30, align: 'center' },
@@ -1434,9 +1434,8 @@
     // ── Inline text editing (double-click on canvas) ──────────────────
     function startInlineEdit(item) {
       const scale = state.zoomLevel * 4;
-      const canvas = $('previewCanvas');
       const editor = $('inlineTextEdit');
-      const ctx = canvas.getContext('2d');
+      const ctx = $('previewCanvas').getContext('2d');
       const fs = item.fontSize * scale;
       ctx.font = `${item.bold ? '900' : '500'} ${fs}px ${fontCss(item.font)}`;
       const tw = Math.max(ctx.measureText(item.text || ' ').width, 40);

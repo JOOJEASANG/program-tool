@@ -37,13 +37,27 @@
       padding: 4px 10px; border-radius: 999px; letter-spacing: 0.3px;
     }
 
-    main { padding: 80px 24px 40px; max-width: 860px; margin: 0 auto; }
+    main { padding: 80px 32px 40px; max-width: 1480px; margin: 0 auto; }
     .page-title { font-size: 22px; font-weight: 900; color: #0f172a; letter-spacing: -0.5px; margin-bottom: 4px; }
-    .page-sub { font-size: 14px; color: #64748b; margin-bottom: 32px; }
+    .page-sub { font-size: 14px; color: #64748b; margin-bottom: 28px; }
+
+    .admin-grid {
+      display: grid; grid-template-columns: 380px 1fr; gap: 24px;
+      align-items: start;
+    }
+    .admin-col-left, .admin-col-right { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+    .admin-col-right > .card { margin-bottom: 0; }
+    .admin-col-left > .card { margin-bottom: 0; }
+    .admin-col-right .card { padding-bottom: 24px; }
+
+    @media (max-width: 1100px) {
+      .admin-grid { grid-template-columns: 1fr; }
+      main { padding: 80px 20px 40px; }
+    }
 
     .card {
       background: #fff; border-radius: 18px; border: 1.5px solid #e8edf3;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.04); padding: 28px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04); padding: 24px;
       margin-bottom: 20px;
     }
     .card-title {
@@ -117,6 +131,90 @@
 
     .divider { height: 1px; background: #f1f5f9; margin: 20px 0; }
 
+    /* User permission management */
+    .user-toolbar {
+      display: flex; gap: 10px; align-items: center; margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+    .user-search {
+      flex: 1; min-width: 200px;
+      padding: 9px 14px; border: 1.5px solid #e2e8f0; border-radius: 10px;
+      font-size: 13px; font-family: inherit; outline: none; transition: border 0.15s;
+      background: #fff;
+    }
+    .user-search:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,.1); }
+    .user-stats {
+      display: flex; gap: 14px; font-size: 12px; color: #475569; font-weight: 700;
+      background: #f1f5f9; padding: 8px 14px; border-radius: 10px; white-space: nowrap;
+    }
+    .user-stats b { color: #0f172a; font-weight: 900; }
+
+    .user-table {
+      border: 1.5px solid #e2e8f0; border-radius: 12px; overflow: hidden; background: #fff;
+    }
+    .user-row-head, .user-row {
+      display: grid;
+      grid-template-columns: minmax(180px, 2fr) repeat(3, 64px) 80px 130px;
+      align-items: center; gap: 10px; padding: 10px 14px;
+    }
+    .user-row-head {
+      background: #f8fafc; border-bottom: 1.5px solid #e2e8f0;
+      font-size: 11px; color: #64748b; font-weight: 800; text-transform: uppercase; letter-spacing: 0.4px;
+    }
+    .user-row-head .col-prog {
+      text-align: center; cursor: help;
+    }
+    .user-row { border-bottom: 1px solid #f1f5f9; transition: background 0.1s; }
+    .user-row:last-child { border-bottom: none; }
+    .user-row:hover { background: #f8fafc; }
+    .user-cell-info { min-width: 0; }
+    .user-cell-name { font-size: 13px; font-weight: 800; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .user-cell-meta { font-size: 11px; color: #64748b; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .user-cell-prog { display: flex; justify-content: center; align-items: center; }
+    .user-cell-prog.public-cell .toggle-label { opacity: 0.5; }
+    .public-mark {
+      font-size: 9px; font-weight: 800; color: #15803d; background: #dcfce7;
+      padding: 1px 5px; border-radius: 4px; margin-top: 3px; display: inline-block;
+    }
+    .user-cell-actions { display: flex; gap: 5px; justify-content: flex-end; }
+    .user-cell-actions .btn { padding: 5px 9px; font-size: 11px; }
+    .perm-status {
+      font-size: 11px; font-weight: 800; padding: 3px 9px; border-radius: 999px;
+    }
+    .perm-status.approved { background: #dcfce7; color: #166534; }
+    .perm-status.pending { background: #fef3c7; color: #92400e; }
+
+    .ai-usage-badge {
+      display: inline-flex; align-items: center; justify-content: center;
+      background: #eff6ff; color: #1d4ed8; font-size: 11px; font-weight: 800;
+      padding: 3px 8px; border-radius: 999px; white-space: nowrap;
+      cursor: help;
+    }
+    .ai-usage-badge.has-usage { background: #dbeafe; color: #1e40af; }
+    @media (max-width: 720px) {
+      .user-row-head, .user-row {
+        grid-template-columns: minmax(150px, 1fr) repeat(3, 50px) 55px 110px;
+        font-size: 12px; padding: 10px;
+      }
+    }
+    /* Toggle switch */
+    .toggle-label { position: relative; display: inline-block; width: 44px; height: 24px; cursor: pointer; }
+    .toggle-label input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider {
+      position: absolute; inset: 0; background: #e2e8f0; border-radius: 12px;
+      transition: background 0.2s;
+    }
+    .toggle-slider::before {
+      content: ''; position: absolute;
+      width: 18px; height: 18px; left: 3px; top: 3px;
+      background: #fff; border-radius: 50%;
+      transition: transform 0.2s;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+    }
+    .toggle-label input:checked + .toggle-slider { background: #22c55e; }
+    .toggle-label input:checked + .toggle-slider::before { transform: translateX(20px); }
+    .empty-users { text-align: center; padding: 32px 16px; color: #94a3b8; font-size: 14px; }
+
     #authLoading {
       position: fixed; inset: 0; background: #fff;
       display: flex; align-items: center; justify-content: center; z-index: 9999;
@@ -137,16 +235,20 @@
 <div id="authLoading"><div class="spinner"></div></div>
 
 <header>
-  <a class="logo" href="dashboard.html">
+  <a class="logo" href="index.html?stay=1">
     <div class="logo-icon">🛠️</div>
     <span class="logo-text">Program Tool</span>
   </a>
   <div class="header-right">
     <span class="badge-admin">⚙️ 관리자</span>
-    <a class="back-btn" href="dashboard.html">
+    <a class="back-btn" href="index.html?stay=1">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
-      대시보드
+      메인 페이지
     </a>
+    <button class="back-btn" id="logoutBtn" style="background:#fef2f2;color:#dc2626;border-color:#fecaca;cursor:pointer;font-family:inherit;">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+      로그아웃
+    </button>
   </div>
 </header>
 
@@ -158,64 +260,187 @@
 
 <main id="adminContent" style="display:none;">
   <div class="page-title">관리자 설정</div>
-  <div class="page-sub">API 키와 관리자 계정을 관리합니다.</div>
+  <div class="page-sub">프로그램·회원·API 키를 관리합니다.</div>
 
-  <!-- OpenAI API Key -->
-  <div class="card">
-    <div class="card-title">🤖 OpenAI API 키</div>
-    <div class="card-sub">
-      표지 생성기의 AI 배경 자동 생성(DALL-E 3)에 사용됩니다.<br>
-      키는 Firestore에 저장되며 로그인한 사용자만 접근 가능합니다.
-    </div>
+  <div class="admin-grid">
 
-    <div id="keyCurrentWrap" style="display:none; margin-bottom:16px;">
-      <label>현재 저장된 키</label>
-      <div class="key-display">
-        <span class="key-val" id="keyPreview">-</span>
-        <button class="btn btn-danger btn-sm" style="padding:6px 12px;font-size:12px;" onclick="deleteApiKey()">삭제</button>
+    <!-- LEFT COLUMN: Settings -->
+    <div class="admin-col-left">
+
+      <!-- Program public access -->
+      <div class="card">
+        <div class="card-title">🌐 프로그램 공개 설정</div>
+        <div class="card-sub">
+          <strong>전체 공개</strong>로 설정하면 모든 회원이 개별 승인 없이 해당 프로그램을 사용할 수 있습니다.
+        </div>
+        <div id="publicList"><div class="empty-users">로딩 중...</div></div>
+        <div class="status-msg" id="publicStatus"></div>
       </div>
-    </div>
 
-    <div>
-      <label for="apiKeyInput">새 API 키 입력</label>
-      <div class="input-wrap">
-        <input type="password" id="apiKeyInput" placeholder="sk-..." autocomplete="off" />
-        <button class="input-toggle" onclick="toggleKeyVisibility()">보기</button>
+      <!-- Google AI API Key -->
+      <div class="card">
+        <div class="card-title">🤖 Google AI API 키</div>
+        <div class="card-sub">
+          디자인 스튜디오 AI 배경 생성(Imagen 3)과 인쇄 검수 AI 분석(Gemini)에 사용됩니다.
+        </div>
+
+        <div id="keyCurrentWrap" style="display:none; margin-bottom:16px;">
+          <label>현재 저장된 키</label>
+          <div class="key-display">
+            <span class="key-val" id="keyPreview">-</span>
+            <button class="btn btn-danger btn-sm" style="padding:6px 12px;font-size:12px;" onclick="deleteApiKey()">삭제</button>
+          </div>
+        </div>
+
+        <div>
+          <label for="apiKeyInput">새 API 키 입력</label>
+          <div class="input-wrap">
+            <input type="password" id="apiKeyInput" placeholder="AIzaSy..." autocomplete="off" />
+            <button class="input-toggle" onclick="toggleKeyVisibility()">보기</button>
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="saveApiKey()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4l2 3h6a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg>
+            저장
+          </button>
+          <button class="btn btn-secondary" onclick="testApiKey()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            키 테스트
+          </button>
+        </div>
+        <div class="status-msg" id="keyStatus"></div>
       </div>
-    </div>
-    <div class="btn-row">
-      <button class="btn btn-primary" onclick="saveApiKey()">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4l2 3h6a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg>
-        저장
-      </button>
-      <button class="btn btn-secondary" onclick="testApiKey()">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-        키 테스트
-      </button>
-    </div>
-    <div class="status-msg" id="keyStatus"></div>
-  </div>
 
-  <!-- Admin accounts -->
-  <div class="card">
-    <div class="card-title">👤 관리자 계정</div>
-    <div class="card-sub">관리자 페이지에 접근할 수 있는 이메일 목록입니다.</div>
+      <!-- Business Info -->
+      <div class="card">
+        <div class="card-title">🏢 사업자 정보</div>
+        <div class="card-sub">견적서·납품서에 자동으로 채워지는 사업자 정보를 관리합니다.</div>
 
-    <div class="admin-list" id="adminList"></div>
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <div>
+            <label for="bizName">상호명</label>
+            <input type="text" id="bizName" placeholder="예) 인쇄마당" />
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div>
+              <label for="bizRegNo">사업자등록번호</label>
+              <input type="text" id="bizRegNo" placeholder="000-00-00000" maxlength="12" />
+            </div>
+            <div>
+              <label for="bizOwner">대표자명</label>
+              <input type="text" id="bizOwner" placeholder="홍길동" />
+            </div>
+          </div>
+          <div>
+            <label for="bizAddr">사업장 주소</label>
+            <input type="text" id="bizAddr" placeholder="서울시 종로구..." />
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div>
+              <label for="bizPhone">대표 전화</label>
+              <input type="text" id="bizPhone" placeholder="02-0000-0000" />
+            </div>
+            <div>
+              <label for="bizEmail">이메일</label>
+              <input type="email" id="bizEmail" placeholder="info@example.com" />
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div>
+              <label for="bizType">업태</label>
+              <input type="text" id="bizType" placeholder="제조, 서비스 등" />
+            </div>
+            <div>
+              <label for="bizItem">종목</label>
+              <input type="text" id="bizItem" placeholder="소프트웨어 개발 및 공급업 등" />
+            </div>
+          </div>
 
-    <div class="divider"></div>
+          <div class="divider" style="margin: 4px 0;"></div>
+          <div style="font-size:13px;font-weight:700;color:#374151;">💰 입금 계좌 정보 <span style="font-weight:400;color:#9ca3af;">(AI 사용료 청구용)</span></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div>
+              <label for="bizBankName">은행명</label>
+              <input type="text" id="bizBankName" placeholder="국민은행" />
+            </div>
+            <div>
+              <label for="bizBankHolder">예금주</label>
+              <input type="text" id="bizBankHolder" placeholder="홍길동" />
+            </div>
+          </div>
+          <div>
+            <label for="bizBankAccount">계좌번호</label>
+            <input type="text" id="bizBankAccount" placeholder="000-00-000000" />
+          </div>
 
-    <div>
-      <label for="newAdminEmail">관리자 이메일 추가</label>
-      <input type="email" id="newAdminEmail" placeholder="admin@example.com" />
+          <div class="divider" style="margin: 4px 0;"></div>
+          <div style="font-size:13px;font-weight:700;color:#374151;">📄 약관용 추가 정보</div>
+          <div>
+            <label for="bizSiteName">서비스명</label>
+            <input type="text" id="bizSiteName" placeholder="Program Tool" />
+          </div>
+          <div>
+            <label for="bizPrivacyOfficer">개인정보 보호책임자</label>
+            <input type="text" id="bizPrivacyOfficer" placeholder="홍길동" />
+          </div>
+          <div>
+            <label for="bizTermsEffective">약관 시행일</label>
+            <input type="date" id="bizTermsEffective" />
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="saveBizInfo()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4l2 3h6a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg>
+            저장
+          </button>
+        </div>
+        <div class="status-msg" id="bizStatus"></div>
+      </div>
+
+      <!-- Admin accounts -->
+      <div class="card">
+        <div class="card-title">👤 관리자 계정</div>
+        <div class="card-sub">관리자 페이지에 접근할 수 있는 이메일 목록입니다.</div>
+
+        <div class="admin-list" id="adminList"></div>
+
+        <div class="divider"></div>
+
+        <div>
+          <label for="newAdminEmail">관리자 이메일 추가</label>
+          <input type="email" id="newAdminEmail" placeholder="admin@example.com" />
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="addAdmin()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            추가
+          </button>
+        </div>
+        <div class="status-msg" id="adminStatus"></div>
+      </div>
+
     </div>
-    <div class="btn-row">
-      <button class="btn btn-primary" onclick="addAdmin()">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        추가
-      </button>
+
+    <!-- RIGHT COLUMN: User management -->
+    <div class="admin-col-right">
+
+      <div class="card">
+        <div class="card-title">👥 회원 프로그램 관리</div>
+        <div class="card-sub">
+          가입한 회원별로 프로그램 사용 승인을 관리합니다 (비공개 프로그램에만 적용됨). 관리자 계정은 목록에서 제외됩니다.
+        </div>
+        <div class="user-toolbar">
+          <input class="user-search" id="userSearch" type="text" placeholder="🔍 이름 또는 이메일 검색..." autocomplete="off">
+          <div class="user-stats" id="userStats">전체 <b>0</b>명</div>
+        </div>
+        <div id="userList"><div class="empty-users">로딩 중...</div></div>
+        <div class="status-msg" id="permStatus"></div>
+      </div>
+
     </div>
-    <div class="status-msg" id="adminStatus"></div>
+
   </div>
 </main>
 
@@ -227,6 +452,11 @@
 <script>
 let currentUser = null;
 let adminEmails = [];
+let publicAccess = {};
+
+// ── Helpers ──────────────────────────────────────
+const escapeHtml = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const normalizeEmail = e => String(e || '').trim().toLowerCase();
 
 // ── Auth & admin check ───────────────────────────
 auth.onAuthStateChanged(async user => {
@@ -243,18 +473,22 @@ auth.onAuthStateChanged(async user => {
   document.getElementById('adminContent').style.display = 'block';
   loadApiKey();
   loadAdmins();
+  loadPublicAccess();
+  loadUsers();
+  loadBizInfo();
 });
 
 async function checkIsAdmin(email) {
+  const normalized = normalizeEmail(email);
   try {
     const doc = await db.collection('settings').doc('admin').get();
     if (!doc.exists) {
       // 최초 설정: 현재 유저를 관리자로 등록
-      await db.collection('settings').doc('admin').set({ emails: [email] });
+      await db.collection('settings').doc('admin').set({ emails: [normalized] });
       return true;
     }
     const data = doc.data();
-    return (data.emails || []).includes(email);
+    return (data.emails || []).map(normalizeEmail).includes(normalized);
   } catch (e) {
     console.error(e);
     // Firestore 규칙 미설정 등으로 실패 시, 첫 접근자 허용
@@ -266,10 +500,13 @@ async function checkIsAdmin(email) {
 async function loadApiKey() {
   try {
     const doc = await db.collection('settings').doc('config').get();
-    if (doc.exists && doc.data().openaiKey) {
-      const key = doc.data().openaiKey;
+    const data = doc.exists ? doc.data() : {};
+    const key = data.googleApiKey || data.openaiKey; // backward compat
+    if (key) {
       document.getElementById('keyCurrentWrap').style.display = 'block';
       document.getElementById('keyPreview').textContent = key.slice(0,7) + '••••••••••••••••' + key.slice(-4);
+    } else {
+      document.getElementById('keyCurrentWrap').style.display = 'none';
     }
   } catch(e) { console.error(e); }
 }
@@ -277,9 +514,12 @@ async function loadApiKey() {
 async function saveApiKey() {
   const key = document.getElementById('apiKeyInput').value.trim();
   if (!key) return showStatus('keyStatus', 'error', 'API 키를 입력해주세요.');
-  if (!key.startsWith('sk-')) return showStatus('keyStatus', 'error', 'OpenAI API 키는 sk- 로 시작해야 합니다.');
   try {
-    await db.collection('settings').doc('config').set({ openaiKey: key }, { merge: true });
+    // Save under googleApiKey and clear legacy openaiKey field
+    await db.collection('settings').doc('config').set({
+      googleApiKey: key,
+      openaiKey: firebase.firestore.FieldValue.delete(),
+    }, { merge: true });
     document.getElementById('apiKeyInput').value = '';
     showStatus('keyStatus', 'success', '✓ API 키가 저장되었습니다.');
     loadApiKey();
@@ -291,7 +531,10 @@ async function saveApiKey() {
 async function deleteApiKey() {
   if (!confirm('API 키를 삭제할까요?')) return;
   try {
-    await db.collection('settings').doc('config').update({ openaiKey: firebase.firestore.FieldValue.delete() });
+    await db.collection('settings').doc('config').update({
+      googleApiKey: firebase.firestore.FieldValue.delete(),
+      openaiKey: firebase.firestore.FieldValue.delete(),
+    });
     document.getElementById('keyCurrentWrap').style.display = 'none';
     showStatus('keyStatus', 'info', 'API 키가 삭제되었습니다.');
   } catch(e) {
@@ -308,20 +551,19 @@ async function testApiKey() {
   if (!keyToTest) {
     try {
       const doc = await db.collection('settings').doc('config').get();
-      keyToTest = doc.exists ? doc.data().openaiKey : '';
+      const data = doc.exists ? doc.data() : {};
+      keyToTest = data.googleApiKey || data.openaiKey || '';
     } catch(e) {}
   }
   if (!keyToTest) return showStatus('keyStatus', 'error', '테스트할 API 키가 없습니다.');
 
   showStatus('keyStatus', 'info', '테스트 중...');
   try {
-    const res = await fetch('https://api.openai.com/v1/models', {
-      headers: { 'Authorization': `Bearer ${keyToTest}` }
-    });
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(keyToTest)}`);
     if (res.ok) {
-      showStatus('keyStatus', 'success', '✓ API 키가 유효합니다. 연결 성공!');
+      showStatus('keyStatus', 'success', '✓ Google API 키가 유효합니다. 연결 성공!');
     } else {
-      const err = await res.json();
+      const err = await res.json().catch(() => ({}));
       showStatus('keyStatus', 'error', '키 오류: ' + (err.error?.message || res.status));
     }
   } catch(e) {
@@ -342,25 +584,37 @@ async function loadAdmins() {
     const doc = await db.collection('settings').doc('admin').get();
     adminEmails = doc.exists ? (doc.data().emails || []) : [];
     renderAdminList();
+    if (allUsers.length) renderUsers(); // refresh filter (exclude admins)
   } catch(e) { console.error(e); }
 }
 
 function renderAdminList() {
   const list = document.getElementById('adminList');
   if (!adminEmails.length) { list.innerHTML = '<div style="color:#94a3b8;font-size:13px;">등록된 관리자가 없습니다.</div>'; return; }
-  list.innerHTML = adminEmails.map((email, i) => `
-    <div class="admin-item">
-      <span class="admin-item-email">${email}</span>
-      ${email === currentUser.email ? '<span class="admin-item-badge">나</span>' : ''}
-      ${adminEmails.length > 1 ? `<button class="admin-item-del" onclick="removeAdmin('${email}')">×</button>` : ''}
-    </div>
-  `).join('');
+  const meEmail = normalizeEmail(currentUser.email);
+  list.innerHTML = adminEmails.map(email => {
+    const isMe = normalizeEmail(email) === meEmail;
+    const safeEmail = escapeHtml(email);
+    return `
+      <div class="admin-item">
+        <span class="admin-item-email">${safeEmail}</span>
+        ${isMe ? '<span class="admin-item-badge">나</span>' : ''}
+        ${adminEmails.length > 1 ? `<button class="admin-item-del" data-action="remove-admin" data-email="${safeEmail}">×</button>` : ''}
+      </div>
+    `;
+  }).join('');
 }
 
+document.getElementById('adminList').addEventListener('click', e => {
+  const btn = e.target.closest('[data-action="remove-admin"]');
+  if (btn) removeAdmin(btn.dataset.email);
+});
+
 async function addAdmin() {
-  const email = document.getElementById('newAdminEmail').value.trim().toLowerCase();
+  const email = normalizeEmail(document.getElementById('newAdminEmail').value);
   if (!email) return showStatus('adminStatus', 'error', '이메일을 입력해주세요.');
-  if (adminEmails.includes(email)) return showStatus('adminStatus', 'error', '이미 등록된 관리자입니다.');
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return showStatus('adminStatus', 'error', '올바른 이메일 형식이 아닙니다.');
+  if (adminEmails.map(normalizeEmail).includes(email)) return showStatus('adminStatus', 'error', '이미 등록된 관리자입니다.');
   try {
     adminEmails.push(email);
     await db.collection('settings').doc('admin').set({ emails: adminEmails });
@@ -373,10 +627,10 @@ async function addAdmin() {
 }
 
 async function removeAdmin(email) {
-  if (email === currentUser.email) return showStatus('adminStatus', 'error', '본인 계정은 삭제할 수 없습니다.');
+  if (normalizeEmail(email) === normalizeEmail(currentUser.email)) return showStatus('adminStatus', 'error', '본인 계정은 삭제할 수 없습니다.');
   if (!confirm(`${email} 을(를) 관리자에서 제거할까요?`)) return;
   try {
-    adminEmails = adminEmails.filter(e => e !== email);
+    adminEmails = adminEmails.filter(e => normalizeEmail(e) !== normalizeEmail(email));
     await db.collection('settings').doc('admin').set({ emails: adminEmails });
     renderAdminList();
     showStatus('adminStatus', 'success', '제거되었습니다.');
@@ -396,7 +650,256 @@ function showStatus(id, type, msg) {
 }
 
 document.getElementById('apiKeyInput').addEventListener('keydown', e => { if (e.key === 'Enter') saveApiKey(); });
+document.getElementById('logoutBtn').addEventListener('click', () => {
+  auth.signOut().then(() => window.location.href = 'login.html');
+});
 document.getElementById('newAdminEmail').addEventListener('keydown', e => { if (e.key === 'Enter') addAdmin(); });
+
+// ── Program permission management ────────────────
+const MANAGED_PROGRAMS = [
+  { id: 'design-studio', name: '디자인 스튜디오', icon: '🎨' },
+  { id: 'pdf-editor', name: 'PDF 편집기', icon: '📝' },
+  { id: 'preflight', name: '인쇄 검수기', icon: '🔍' },
+];
+
+let allUsers = [];
+
+async function loadUsers() {
+  try {
+    const snap = await db.collection('user_permissions').orderBy('createdAt', 'desc').get();
+    allUsers = snap.docs.map(d => ({ uid: d.id, ...d.data() }));
+    renderUsers();
+  } catch(e) {
+    document.getElementById('userList').innerHTML = '<div class="empty-users">불러오기 실패: ' + escapeHtml(e.message) + '</div>';
+  }
+}
+
+function visiblePrograms() {
+  // Hide programs that are publicly accessible — individual approval is moot
+  return MANAGED_PROGRAMS.filter(p => !publicAccess[p.id]);
+}
+
+function renderUsers() {
+  const list = document.getElementById('userList');
+  const adminSet = new Set(adminEmails.map(normalizeEmail));
+  const query = document.getElementById('userSearch').value.trim().toLowerCase();
+
+  // Exclude admins
+  let filtered = allUsers.filter(u => !adminSet.has(normalizeEmail(u.email)));
+  const total = filtered.length;
+
+  if (query) {
+    filtered = filtered.filter(u =>
+      (u.displayName || '').toLowerCase().includes(query)
+      || (u.email || '').toLowerCase().includes(query)
+    );
+  }
+
+  document.getElementById('userStats').innerHTML =
+    query ? `검색결과 <b>${filtered.length}</b>명 / 전체 <b>${total}</b>명` : `전체 <b>${total}</b>명`;
+
+  if (!filtered.length) {
+    list.innerHTML = `<div class="empty-users">${query ? '검색 결과가 없습니다.' : '아직 가입한 회원이 없습니다.'}</div>`;
+    return;
+  }
+
+  const progs = visiblePrograms();
+
+  // If all programs are public, no need for the table at all
+  if (!progs.length) {
+    list.innerHTML = `<div class="empty-users">모든 프로그램이 전체공개 상태입니다. 개별 승인 관리가 필요 없습니다.</div>`;
+    return;
+  }
+
+  // Dynamic grid columns: info | (each visible prog) | AI usage | bulk actions
+  const gridStyle = `grid-template-columns: minmax(180px, 2fr) repeat(${progs.length}, 64px) 80px 130px;`;
+
+  const head = `
+    <div class="user-row-head" style="${gridStyle}">
+      <div>회원 정보</div>
+      ${progs.map(p => `<div class="col-prog" title="${escapeHtml(p.name)}">${p.icon}</div>`).join('')}
+      <div class="col-prog" title="AI 사용 횟수 (이미지생성/OCR/검수)">🤖</div>
+      <div style="text-align:right;">일괄</div>
+    </div>`;
+
+  const rows = filtered.map(u => {
+    const date = u.createdAt?.toDate?.()?.toLocaleDateString('ko-KR') || '-';
+    const userProgs = u.programs || {};
+    const aiUsage = u.aiUsage || {};
+    const aiTotal = aiUsage.total || 0;
+    const aiTip = `이미지생성: ${aiUsage.imagen||0}회 · OCR: ${aiUsage.ocr||0}회 · 검수AI: ${aiUsage.preflight||0}회`;
+    const safeUid = escapeHtml(u.uid);
+    const safeName = escapeHtml(u.displayName || '이름 없음');
+    const safeEmail = escapeHtml(u.email || '-');
+    return `
+      <div class="user-row" id="urow-${safeUid}" style="${gridStyle}">
+        <div class="user-cell-info">
+          <div class="user-cell-name">${safeName}</div>
+          <div class="user-cell-meta">${safeEmail} · ${escapeHtml(date)}</div>
+        </div>
+        ${progs.map(p => {
+          const approved = !!userProgs[p.id];
+          return `
+            <div class="user-cell-prog" title="${escapeHtml(p.name)}">
+              <label class="toggle-label">
+                <input type="checkbox" ${approved ? 'checked' : ''}
+                  data-action="toggle-perm" data-uid="${safeUid}" data-prog="${p.id}">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>`;
+        }).join('')}
+        <div class="user-cell-prog">
+          <span class="ai-usage-badge${aiTotal > 0 ? ' has-usage' : ''}" title="${escapeHtml(aiTip)}">${aiTotal}회</span>
+        </div>
+        <div class="user-cell-actions">
+          <button class="btn btn-primary" data-action="grant-all" data-uid="${safeUid}" title="전체 승인">✓</button>
+          <button class="btn btn-danger" data-action="revoke-all" data-uid="${safeUid}" title="전체 취소">✗</button>
+        </div>
+      </div>`;
+  }).join('');
+
+  list.innerHTML = `<div class="user-table">${head}${rows}</div>`;
+}
+
+document.getElementById('userSearch').addEventListener('input', () => renderUsers());
+
+document.getElementById('userList').addEventListener('click', e => {
+  const btn = e.target.closest('[data-action]');
+  if (!btn) return;
+  const { action, uid } = btn.dataset;
+  if (action === 'grant-all') grantAll(uid);
+  else if (action === 'revoke-all') revokeAll(uid);
+});
+document.getElementById('userList').addEventListener('change', e => {
+  const t = e.target.closest('[data-action="toggle-perm"]');
+  if (t) togglePerm(t.dataset.uid, t.dataset.prog, t.checked);
+});
+
+// ── Program public access ────────────────────────
+async function loadPublicAccess() {
+  try {
+    const doc = await db.collection('settings').doc('programs').get();
+    publicAccess = doc.exists ? (doc.data().public || {}) : {};
+    renderPublicAccess();
+  } catch(e) {
+    document.getElementById('publicList').innerHTML = '<div class="empty-users">불러오기 실패: ' + escapeHtml(e.message) + '</div>';
+  }
+}
+
+function renderPublicAccess() {
+  const list = document.getElementById('publicList');
+  list.innerHTML = MANAGED_PROGRAMS.map(p => {
+    const checked = !!publicAccess[p.id];
+    return `
+      <div class="perm-row" style="background:#f8fafc;border-radius:10px;padding:10px 12px;margin-bottom:6px;">
+        <span class="perm-row-label" style="flex:1;">${p.icon} ${escapeHtml(p.name)}</span>
+        <span class="perm-status ${checked ? 'approved' : 'pending'}">${checked ? '🌐 전체 공개' : '🔒 비공개'}</span>
+        <label class="toggle-label">
+          <input type="checkbox" ${checked ? 'checked' : ''} data-action="toggle-public" data-prog="${p.id}">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>`;
+  }).join('');
+}
+
+document.getElementById('publicList').addEventListener('change', async e => {
+  const t = e.target.closest('[data-action="toggle-public"]');
+  if (!t) return;
+  const programId = t.dataset.prog;
+  publicAccess[programId] = t.checked;
+  try {
+    await db.collection('settings').doc('programs').set({ public: publicAccess }, { merge: true });
+    showStatus('publicStatus', 'success', `${t.checked ? '전체 공개' : '비공개'}로 설정되었습니다.`);
+    renderPublicAccess();
+    loadUsers(); // refresh user view to reflect public flag
+  } catch(err) {
+    showStatus('publicStatus', 'error', '실패: ' + err.message);
+    publicAccess[programId] = !t.checked;
+    renderPublicAccess();
+  }
+});
+
+function findUser(uid) { return allUsers.find(u => u.uid === uid); }
+
+async function togglePerm(uid, programId, approved) {
+  try {
+    await db.collection('user_permissions').doc(uid).update({
+      [`programs.${programId}`]: approved,
+    });
+    const u = findUser(uid);
+    if (u) { u.programs = { ...(u.programs || {}), [programId]: approved }; }
+    showStatus('permStatus', 'success', `${approved ? '승인' : '취소'}되었습니다.`);
+  } catch(e) {
+    showStatus('permStatus', 'error', '실패: ' + e.message);
+    renderUsers(); // revert UI
+  }
+}
+
+async function grantAll(uid) {
+  const targets = visiblePrograms();
+  if (!targets.length) return;
+  const updates = {};
+  targets.forEach(p => { updates[`programs.${p.id}`] = true; });
+  try {
+    await db.collection('user_permissions').doc(uid).update(updates);
+    const u = findUser(uid);
+    if (u) {
+      u.programs = u.programs || {};
+      targets.forEach(p => { u.programs[p.id] = true; });
+    }
+    renderUsers();
+    showStatus('permStatus', 'success', '전체 승인 완료.');
+  } catch(e) { showStatus('permStatus', 'error', '실패: ' + e.message); }
+}
+
+async function revokeAll(uid) {
+  const targets = visiblePrograms();
+  if (!targets.length) return;
+  if (!confirm('이 회원의 모든 프로그램 권한을 취소할까요?')) return;
+  const updates = {};
+  targets.forEach(p => { updates[`programs.${p.id}`] = false; });
+  try {
+    await db.collection('user_permissions').doc(uid).update(updates);
+    const u = findUser(uid);
+    if (u) {
+      u.programs = u.programs || {};
+      targets.forEach(p => { u.programs[p.id] = false; });
+    }
+    renderUsers();
+    showStatus('permStatus', 'info', '전체 취소되었습니다.');
+  } catch(e) { showStatus('permStatus', 'error', '실패: ' + e.message); }
+}
+
+// ── Business Info ─────────────────────────────────
+const BIZ_FIELDS = ['bizName','bizRegNo','bizOwner','bizAddr','bizPhone','bizEmail','bizType','bizItem',
+  'bizBankName','bizBankHolder','bizBankAccount',
+  'bizSiteName','bizPrivacyOfficer','bizTermsEffective'];
+const BIZ_KEYS   = ['name',   'regNo',  'owner',  'addr',  'phone',  'email',  'type',  'item'];
+
+async function loadBizInfo() {
+  try {
+    const doc = await db.collection('settings').doc('business').get();
+    if (!doc.exists) return;
+    const data = doc.data();
+    BIZ_FIELDS.forEach((fid, i) => {
+      const el = document.getElementById(fid);
+      if (el) el.value = data[BIZ_KEYS[i]] || '';
+    });
+  } catch(e) { console.error(e); }
+}
+
+async function saveBizInfo() {
+  const data = {};
+  BIZ_FIELDS.forEach((fid, i) => {
+    data[BIZ_KEYS[i]] = (document.getElementById(fid)?.value || '').trim();
+  });
+  try {
+    await db.collection('settings').doc('business').set(data);
+    showStatus('bizStatus', 'success', '✓ 사업자 정보가 저장되었습니다.');
+  } catch(e) {
+    showStatus('bizStatus', 'error', '저장 실패: ' + e.message);
+  }
+}
 </script>
 </body>
 </html>

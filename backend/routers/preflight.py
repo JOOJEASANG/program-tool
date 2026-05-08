@@ -5,6 +5,7 @@ from models.schemas import PreflightReport
 from services.preflight_svc import run_all_checks, compute_score
 from services.ai_vision import analyze_with_vision
 from utils.auth import require_auth
+from utils.ai_logger import log_ai_usage
 
 preflight_bp = Blueprint("preflight", __name__)
 
@@ -28,24 +29,33 @@ def check(uid):
         return jsonify({"detail": "PDF 파일을 열 수 없습니다"}), 400
 
     try:
-        checks = run_all_checks(doc)
-        score = compute_score(checks)
+        try:
+            checks = run_all_checks(doc)
+            score = compute_score(checks)
+        except Exception as e:
+            import traceback; traceback.print_exc()
+            return jsonify({"detail": f"검수 처리 실패: {type(e).__name__}: {e}"}), 500
 
         use_ai = request.form.get("use_ai", "false").lower() == "true"
         ai_feedback = None
         if use_ai:
             try:
                 ai_feedback = analyze_with_vision(doc)
+                log_ai_usage(uid, "preflight")
             except Exception as e:
                 ai_feedback = f"AI 분석 중 오류: {str(e)}"
 
-        report = PreflightReport(
-            filename=file.filename or "document.pdf",
-            page_count=len(doc),
-            checks=checks,
-            ai_feedback=ai_feedback,
-            score=score,
-        )
-        return jsonify(report.model_dump())
+        try:
+            report = PreflightReport(
+                filename=file.filename or "document.pdf",
+                page_count=len(doc),
+                checks=checks,
+                ai_feedback=ai_feedback,
+                score=score,
+            )
+            return jsonify(report.model_dump())
+        except Exception as e:
+            import traceback; traceback.print_exc()
+            return jsonify({"detail": f"리포트 생성 실패: {type(e).__name__}: {e}"}), 500
     finally:
         doc.close()
