@@ -263,6 +263,28 @@
             <input id="spineVertical" type="checkbox"> 책등 세로 배치
           </label>
         </div>
+
+        <!-- Panel alignment -->
+        <div style="margin-top:12px;padding-top:12px;border-top:1px solid #edf0f3;">
+          <div style="font-size:12px;font-weight:800;color:#374151;margin-bottom:8px;">📐 패널 가운데 정렬 <span style="font-size:10px;font-weight:600;color:#9ca3af;">(선택 아이템)</span></div>
+          <div style="display:flex;flex-direction:column;gap:5px;">
+            <div style="display:grid;grid-template-columns:1fr 34px 34px;gap:4px;">
+              <button class="secondary" style="font-size:11px;padding:7px 4px;" onclick="alignToPanel('front','both')">앞표지 가운데</button>
+              <button class="secondary" style="font-size:12px;padding:7px 0;" onclick="alignToPanel('front','h')" title="가로 중앙">↔</button>
+              <button class="secondary" style="font-size:12px;padding:7px 0;" onclick="alignToPanel('front','v')" title="세로 중앙">↕</button>
+            </div>
+            <div id="spineAlignRow" style="display:grid;grid-template-columns:1fr 34px 34px;gap:4px;">
+              <button class="secondary" style="font-size:11px;padding:7px 4px;" onclick="alignToPanel('spine','both')">책등 가운데</button>
+              <button class="secondary" style="font-size:12px;padding:7px 0;" onclick="alignToPanel('spine','h')" title="가로 중앙">↔</button>
+              <button class="secondary" style="font-size:12px;padding:7px 0;" onclick="alignToPanel('spine','v')" title="세로 중앙">↕</button>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 34px 34px;gap:4px;">
+              <button class="secondary" style="font-size:11px;padding:7px 4px;" onclick="alignToPanel('back','both')">뒷표지 가운데</button>
+              <button class="secondary" style="font-size:12px;padding:7px 0;" onclick="alignToPanel('back','h')" title="가로 중앙">↔</button>
+              <button class="secondary" style="font-size:12px;padding:7px 0;" onclick="alignToPanel('back','v')" title="세로 중앙">↕</button>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Leaflet-specific -->
@@ -1234,6 +1256,39 @@
       return null;
     }
 
+    // Returns panel boundaries in mm for the current template
+    function getPanelBounds() {
+      const tpl = TEMPLATES[state.tplId];
+      const paperW = +$('paperW').value || 100;
+      const paperH = +$('paperH').value || 100;
+      const spineW = state.noSpine ? 0 : state.spineW;
+      if (!tpl.isSpread) {
+        return { front: { l:0, r:paperW, t:0, b:paperH, cx:paperW/2, cy:paperH/2 } };
+      }
+      return {
+        back:  { l:0,             r:paperW,            t:0, b:paperH, cx:paperW/2,             cy:paperH/2 },
+        spine: state.noSpine ? null :
+               { l:paperW,        r:paperW+spineW,     t:0, b:paperH, cx:paperW+spineW/2,      cy:paperH/2 },
+        front: { l:paperW+spineW, r:2*paperW+spineW,   t:0, b:paperH, cx:1.5*paperW+spineW,   cy:paperH/2 },
+      };
+    }
+
+    // Align selected item's center to a panel center (axis: 'h'|'v'|'both')
+    function alignToPanel(panel, axis) {
+      if (!state.selectedId) { alert('먼저 아이템을 선택하세요.'); return; }
+      const sel = curSide().items.find(i => i.id === state.selectedId);
+      if (!sel) return;
+      const panels = getPanelBounds();
+      const pb = panels[panel];
+      if (!pb) return;
+      const ib = getItemBounds(sel);
+      const itemCx = ib.x + ib.w / 2;
+      const itemCy = ib.y + ib.h / 2;
+      if (axis === 'h' || axis === 'both') sel.x += pb.cx - itemCx;
+      if (axis === 'v' || axis === 'both') sel.y += pb.cy - itemCy;
+      pushHistory(); render(); scheduleSave();
+    }
+
     function getItemBounds(it) {
       const type = it.type || 'text';
       if (type === 'text') {
@@ -1263,9 +1318,16 @@
       const selL = sb.x, selR = sb.x + sb.w, selCx = sb.x + sb.w / 2;
       const selT = sb.y, selB = sb.y + sb.h, selCy = sb.y + sb.h / 2;
 
-      // Candidate target X lines (canvas edges/center + other items' edges/centers)
+      // Candidate target X lines: canvas edges/center + panel edges/centers + other items
       const targetX = [0, pageW, pageW / 2];
       const targetY = [0, pageH, pageH / 2];
+      // Add panel boundary lines for cover spreads
+      const panels = getPanelBounds();
+      Object.values(panels).forEach(pb => {
+        if (!pb) return;
+        targetX.push(pb.l, pb.r, pb.cx);
+        targetY.push(pb.cy);
+      });
       for (const other of curSide().items) {
         if (other.id === sel.id) continue;
         const ob = getItemBounds(other);
@@ -1466,6 +1528,7 @@
     $('noSpine').addEventListener('change', e => {
       state.noSpine = e.target.checked;
       $('spineDetails').style.display = state.noSpine ? 'none' : '';
+      const sar = $('spineAlignRow'); if (sar) sar.style.display = state.noSpine ? 'none' : '';
       updatePaperInfo();
       zoomFit();
     });
