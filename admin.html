@@ -67,13 +67,34 @@
     .card-sub { font-size: 13px; color: #64748b; margin-bottom: 20px; line-height: 1.5; }
     label { display: block; font-size: 12px; font-weight: 800; color: #374151; margin-bottom: 6px; }
     .input-wrap { position: relative; }
-    input[type="text"], input[type="password"], input[type="email"] {
+    input[type="text"], input[type="password"], input[type="email"],
+    input[type="number"], input[type="date"], select, textarea {
       width: 100%; border: 1.5px solid #e2e8f0; border-radius: 10px;
       padding: 11px 14px; font-size: 14px; font-family: inherit; outline: none;
       color: #0f172a; transition: border-color 0.15s, box-shadow 0.15s;
       background: #f8fafc;
     }
-    input:focus { border-color: #12396d; box-shadow: 0 0 0 3px rgba(18,57,109,0.08); background: #fff; }
+    select { appearance: none; background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2312396d' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>"); background-repeat:no-repeat; background-position: right 12px center; padding-right: 36px; cursor: pointer; }
+    input:focus, select:focus, textarea:focus { border-color: #12396d; box-shadow: 0 0 0 3px rgba(18,57,109,0.08); background: #fff; }
+
+    /* Segmented toggle (used for AI provider selection) */
+    .seg-group { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    .seg-btn {
+      border: 1.5px solid #e2e8f0; background: #f8fafc; color: #475569;
+      border-radius: 10px; padding: 12px 12px; font-size: 13px; font-weight: 700;
+      cursor: pointer; font-family: inherit; transition: all 0.15s;
+      display: flex; flex-direction: column; align-items: center; gap: 4px; line-height: 1.3;
+    }
+    .seg-btn:hover { border-color: #93c5fd; background: #eff6ff; color: #1e40af; }
+    .seg-btn.active {
+      border-color: #12396d; background: linear-gradient(135deg, #12396d, #1d9bb2);
+      color: #fff; box-shadow: 0 4px 12px rgba(18,57,109,0.18);
+    }
+    .seg-btn .seg-name { font-weight: 900; font-size: 13px; }
+    .seg-btn .seg-model { font-size: 11px; opacity: 0.85; font-weight: 600; }
+    .seg-btn.active .seg-model { opacity: 0.95; }
+    .ai-feature-label { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 800; color: #1f2937; margin: 4px 0 8px; }
+    .ai-feature-label .ai-feature-ico { font-size: 16px; }
     .input-toggle {
       position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
       background: none; border: none; cursor: pointer; color: #94a3b8;
@@ -351,27 +372,39 @@
       <div class="card">
         <div class="card-title">⚙️ AI 제공자 설정</div>
         <div class="card-sub">기능별로 사용할 AI 모델을 선택합니다. (각 키가 등록되어 있어야 동작)</div>
-        <div style="display:flex;flex-direction:column;gap:12px;">
+        <div style="display:flex;flex-direction:column;gap:18px;">
           <div>
-            <label for="aiProviderImage">🎨 이미지 생성 (디자인 스튜디오 배경)</label>
-            <select id="aiProviderImage">
-              <option value="google">Google · Imagen 4</option>
-              <option value="openai">OpenAI · gpt-image-1</option>
-            </select>
+            <div class="ai-feature-label"><span class="ai-feature-ico">🎨</span> 이미지 생성 <span style="color:#94a3b8;font-weight:600;font-size:11px;">(디자인 스튜디오 배경)</span></div>
+            <div class="seg-group" data-feature="image">
+              <button type="button" class="seg-btn" data-value="google">
+                <span class="seg-name">Google</span><span class="seg-model">Imagen 4</span>
+              </button>
+              <button type="button" class="seg-btn" data-value="openai">
+                <span class="seg-name">OpenAI</span><span class="seg-model">gpt-image-1</span>
+              </button>
+            </div>
           </div>
           <div>
-            <label for="aiProviderVision">🔍 비전 분석 (인쇄 사전 검수)</label>
-            <select id="aiProviderVision">
-              <option value="google">Google · Gemini 2.5 Flash</option>
-              <option value="openai">OpenAI · GPT-4o-mini</option>
-            </select>
+            <div class="ai-feature-label"><span class="ai-feature-ico">🔍</span> 비전 분석 <span style="color:#94a3b8;font-weight:600;font-size:11px;">(인쇄 사전 검수)</span></div>
+            <div class="seg-group" data-feature="vision">
+              <button type="button" class="seg-btn" data-value="google">
+                <span class="seg-name">Google</span><span class="seg-model">Gemini 2.5 Flash</span>
+              </button>
+              <button type="button" class="seg-btn" data-value="openai">
+                <span class="seg-name">OpenAI</span><span class="seg-model">GPT-4o-mini</span>
+              </button>
+            </div>
           </div>
           <div>
-            <label for="aiProviderOcr">📝 OCR (PDF 텍스트 추출)</label>
-            <select id="aiProviderOcr">
-              <option value="google">Google · Gemini 2.5 Flash</option>
-              <option value="openai">OpenAI · GPT-4o-mini</option>
-            </select>
+            <div class="ai-feature-label"><span class="ai-feature-ico">📝</span> OCR <span style="color:#94a3b8;font-weight:600;font-size:11px;">(PDF 텍스트 추출)</span></div>
+            <div class="seg-group" data-feature="ocr">
+              <button type="button" class="seg-btn" data-value="google">
+                <span class="seg-name">Google</span><span class="seg-model">Gemini 2.5 Flash</span>
+              </button>
+              <button type="button" class="seg-btn" data-value="openai">
+                <span class="seg-name">OpenAI</span><span class="seg-model">GPT-4o-mini</span>
+              </button>
+            </div>
           </div>
         </div>
         <div class="btn-row">
@@ -720,21 +753,32 @@ async function testOpenaiKey() {
 }
 
 // ── AI provider preferences ──────────────────────
+function _setSegActive(feature, value) {
+  document.querySelectorAll(`.seg-group[data-feature="${feature}"] .seg-btn`).forEach(b => {
+    b.classList.toggle('active', b.dataset.value === value);
+  });
+}
+
+function _getSegValue(feature) {
+  const active = document.querySelector(`.seg-group[data-feature="${feature}"] .seg-btn.active`);
+  return active ? active.dataset.value : 'google';
+}
+
 async function loadAiProviders() {
   try {
     const doc = await db.collection('settings').doc('config').get();
     const p = (doc.exists && doc.data().aiProviders) || {};
-    document.getElementById('aiProviderImage').value = p.image || 'google';
-    document.getElementById('aiProviderVision').value = p.vision || 'google';
-    document.getElementById('aiProviderOcr').value = p.ocr || 'google';
+    _setSegActive('image', p.image || 'google');
+    _setSegActive('vision', p.vision || 'google');
+    _setSegActive('ocr', p.ocr || 'google');
   } catch(e) { console.error(e); }
 }
 
 async function saveAiProviders() {
   const aiProviders = {
-    image: document.getElementById('aiProviderImage').value,
-    vision: document.getElementById('aiProviderVision').value,
-    ocr: document.getElementById('aiProviderOcr').value,
+    image: _getSegValue('image'),
+    vision: _getSegValue('vision'),
+    ocr: _getSegValue('ocr'),
   };
   try {
     await db.collection('settings').doc('config').set({ aiProviders }, { merge: true });
@@ -743,6 +787,16 @@ async function saveAiProviders() {
     showStatus('aiProviderStatus', 'error', '저장 실패: ' + e.message);
   }
 }
+
+// Wire up segmented button clicks
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('.seg-btn');
+  if (!btn) return;
+  const group = btn.closest('.seg-group');
+  if (!group) return;
+  group.querySelectorAll('.seg-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+});
 
 // ── Admin management ─────────────────────────────
 async function loadAdmins() {
