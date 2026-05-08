@@ -354,6 +354,7 @@
             <label>배경색</label>
             <input id="bgColor" type="color" value="#ffffff">
           </div>
+          <div style="font-size:11px;font-weight:800;color:#6b7280;text-transform:uppercase;letter-spacing:0.4px;margin:14px 0 6px;">방법 ① AI 자동 생성</div>
           <div class="field">
             <label>AI 배경 설명 <span style="color:#9ca3af;font-weight:400;">(원하는 분위기)</span></label>
             <textarea id="aiDesc" rows="2" placeholder="예: 차분한 파란색 그라데이션, 따뜻한 빈티지 느낌..."></textarea>
@@ -361,9 +362,11 @@
           <button class="ai-btn" id="generateBgBtn" onclick="generateAiBg()">✨ AI 배경 생성</button>
           <div class="ai-status" id="aiStatus"></div>
 
-          <div class="field" style="margin-top:10px;">
-            <label>또는 이미지 직접 업로드</label>
-            <input id="bgFile" type="file" accept="image/*">
+          <div style="font-size:11px;font-weight:800;color:#6b7280;text-transform:uppercase;letter-spacing:0.4px;margin:18px 0 6px;">방법 ② 직접 이미지 업로드</div>
+          <div class="field">
+            <button class="secondary" type="button" onclick="$('bgFile').click()" style="width:100%;padding:10px;background:#eff6ff;border:1.5px dashed #93c5fd;color:#1e40af;font-weight:800;">📁 배경 이미지 파일 선택</button>
+            <input id="bgFile" type="file" accept="image/*" style="display:none;">
+            <div class="smallnote" style="margin-top:4px;">JPG · PNG · WebP 등 일반 이미지 파일</div>
           </div>
           <div id="bgOpacityWrap" style="display:none;">
             <label>배경 투명도</label>
@@ -1535,14 +1538,22 @@
     $('bgColor').addEventListener('input', e => { curSide().bgColor = e.target.value; render(); scheduleSave(); });
     $('bgFile').addEventListener('change', e => {
       const f = e.target.files?.[0]; if (!f) return;
+      if (f.size > 10 * 1024 * 1024) {
+        alert('이미지가 너무 큽니다 (10MB 이하 권장).');
+        e.target.value = '';
+        return;
+      }
       const r = new FileReader();
       r.onload = () => {
         curSide().bgData = r.result; curSide().bgOpacity = 1;
         loadBgImage(state.activeSide, r.result);
         $('bgOpacityWrap').style.display = '';
         $('clearBgBtn').style.display = '';
+        pushHistory();
+        scheduleSave();
       };
       r.readAsDataURL(f);
+      e.target.value = '';
     });
     $('bgOpacity').addEventListener('input', e => {
       curSide().bgOpacity = +e.target.value;
@@ -1572,17 +1583,43 @@
         const itemTexts = curSide().items
           .filter(i => (i.type || 'text') === 'text' && (i.text || '').trim())
           .map(i => i.text).slice(0, 5).join(', ');
-        let layoutHint = '';
-        if (tpl.isSpread) layoutHint = 'full book cover spread (back cover + spine + front cover) in one panoramic image';
-        else if (tpl.hasFold) layoutHint = `${state.foldCount}-panel folded ${tpl.name}`;
-        else layoutHint = `${tpl.name}`;
-        const prompt = `${userDesc ? userDesc + '. ' : ''}Design a professional background for a ${layoutHint}. ${itemTexts ? `Content includes: ${itemTexts}.` : ''} No text, letters, numbers, logos, borders, or watermarks. High quality, print-ready, clean composition.`;
+
+        let prompt;
+        if (tpl.isSpread) {
+          // Cover spread: back cover (left) + spine (center, narrow) + front cover (right)
+          const paperW = +$('paperW').value || 210;
+          const spineW = state.noSpine ? 0 : (state.spineW || 0);
+          const totalW = paperW * 2 + spineW;
+          const backPct = Math.round((paperW / totalW) * 100);
+          const spinePct = Math.round((spineW / totalW) * 100);
+          const frontPct = 100 - backPct - spinePct;
+          prompt =
+            `Wide panoramic book cover spread background, single seamless image laid out left-to-right as: ` +
+            `BACK COVER (left ${backPct}% of width) — calm, clean, minimal area suitable for blurb text and barcode; ` +
+            (spineW > 0 ? `SPINE (center ${spinePct}% — a thin vertical strip about ${spineW}mm wide) — solid or subtly textured color that bridges back and front; ` : '') +
+            `FRONT COVER (right ${frontPct}% of width) — strongest visual focus and rich detail, but keep the central area uncluttered to leave room for the title. ` +
+            `Style and color must flow continuously across the entire spread (no hard boundary between panels). ` +
+            `Aspect ratio approximately ${(totalW / +$('paperH').value).toFixed(2)}:1 wide. ` +
+            (userDesc ? `Mood/style: ${userDesc}. ` : '') +
+            (itemTexts ? `Theme keywords (do NOT render as text): ${itemTexts}. ` : '') +
+            `Strictly NO text, letters, numbers, logos, frames, borders, or watermarks anywhere. ` +
+            `Print-ready, high quality, professional book cover design.`;
+        } else {
+          let layoutHint;
+          if (tpl.hasFold) layoutHint = `${state.foldCount}-panel folded ${tpl.name}`;
+          else layoutHint = tpl.name;
+          prompt = `${userDesc ? userDesc + '. ' : ''}Design a professional background for a ${layoutHint}. ${itemTexts ? `Content theme: ${itemTexts}. ` : ''}Strictly NO text, letters, numbers, logos, borders, or watermarks. High quality, print-ready, clean composition.`;
+        }
+
+        // Compute aspect ratio hint for the backend
+        const cw = getCanvasMm().w, chMm = getCanvasMm().h;
+        const aspect = cw >= chMm ? 'wide' : 'tall';
 
         const token = await auth.currentUser.getIdToken();
         const res = await fetch('/api/ai/generate-bg', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-          body: JSON.stringify({ prompt }),
+          body: JSON.stringify({ prompt, aspect }),
         });
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
