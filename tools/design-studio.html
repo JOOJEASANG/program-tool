@@ -1234,21 +1234,73 @@
       return null;
     }
 
-    function applySnap(sel) {
-      const { w, h } = getCanvasMm();
-      const guides = [];
-      const threshold = 1.5; // mm
-      const cxMm = w / 2, cyMm = h / 2;
-      const scale = state.zoomLevel * 4;
-      // center horizontal
-      if (Math.abs(sel.x - cxMm) < threshold) {
-        sel.x = cxMm;
-        guides.push({ type: 'v', x: cxMm * scale });
+    function getItemBounds(it) {
+      const type = it.type || 'text';
+      if (type === 'text') {
+        const scale = state.zoomLevel * 4;
+        const ctx = $('previewCanvas').getContext('2d');
+        const fs = it.fontSize * scale;
+        ctx.font = `${it.bold ? '900' : '500'} ${fs}px ${fontCss(it.font)}`;
+        const tw = ctx.measureText(it.text || ' ').width / scale;
+        let bx = it.x;
+        if (it.align === 'center') bx -= tw / 2;
+        else if (it.align === 'right') bx -= tw;
+        return { x: bx, y: it.y - it.fontSize / 2, w: tw, h: it.fontSize };
       }
-      // center vertical
-      if (Math.abs(sel.y - cyMm) < threshold) {
-        sel.y = cyMm;
-        guides.push({ type: 'h', y: cyMm * scale });
+      if (type === 'shape' && it.shape === 'line') {
+        const sw = Math.max(0.1, it.strokeWidth || 1);
+        return { x: it.x - it.w / 2, y: it.y - sw / 2, w: it.w, h: sw };
+      }
+      return { x: it.x - it.w / 2, y: it.y - it.h / 2, w: it.w, h: it.h };
+    }
+
+    function applySnap(sel) {
+      const { w: pageW, h: pageH } = getCanvasMm();
+      const scale = state.zoomLevel * 4;
+      const threshold = 1.5; // mm
+
+      const sb = getItemBounds(sel);
+      const selL = sb.x, selR = sb.x + sb.w, selCx = sb.x + sb.w / 2;
+      const selT = sb.y, selB = sb.y + sb.h, selCy = sb.y + sb.h / 2;
+
+      // Candidate target X lines (canvas edges/center + other items' edges/centers)
+      const targetX = [0, pageW, pageW / 2];
+      const targetY = [0, pageH, pageH / 2];
+      for (const other of curSide().items) {
+        if (other.id === sel.id) continue;
+        const ob = getItemBounds(other);
+        targetX.push(ob.x, ob.x + ob.w, ob.x + ob.w / 2);
+        targetY.push(ob.y, ob.y + ob.h, ob.y + ob.h / 2);
+      }
+
+      // For each axis, find smallest delta that aligns a ref (left/center/right) to a target
+      let bestX = null;  // { dx, line }
+      for (const tx of targetX) {
+        for (const ref of [selL, selCx, selR]) {
+          const dist = tx - ref;
+          if (Math.abs(dist) < threshold && (bestX === null || Math.abs(dist) < Math.abs(bestX.dx))) {
+            bestX = { dx: dist, line: tx };
+          }
+        }
+      }
+      let bestY = null;
+      for (const ty of targetY) {
+        for (const ref of [selT, selCy, selB]) {
+          const dist = ty - ref;
+          if (Math.abs(dist) < threshold && (bestY === null || Math.abs(dist) < Math.abs(bestY.dy))) {
+            bestY = { dy: dist, line: ty };
+          }
+        }
+      }
+
+      const guides = [];
+      if (bestX) {
+        sel.x += bestX.dx;
+        guides.push({ type: 'v', x: bestX.line * scale });
+      }
+      if (bestY) {
+        sel.y += bestY.dy;
+        guides.push({ type: 'h', y: bestY.line * scale });
       }
       snapGuides = guides;
     }
