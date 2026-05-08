@@ -5,6 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>디자인 스튜디오 · Program Tool</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&family=Noto+Serif+KR:wght@400;700;900&family=Black+Han+Sans&family=Nanum+Pen+Script&family=Nanum+Myeongjo:wght@400;700;800&family=Gowun+Dodum&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
   <style>
     :root {
       --bg: #f4f6f8; --panel: #ffffff; --text: #111827; --muted: #6b7280;
@@ -39,7 +43,7 @@
     }
     .nav-logout:hover { background: rgba(255,255,255,0.22); color: #fff; }
 
-    .app { display: grid; grid-template-columns: 320px minmax(0,1fr); min-height: calc(100vh - var(--nav-h)); }
+    .app { display: grid; grid-template-columns: 360px minmax(0,1fr); min-height: calc(100vh - var(--nav-h)); }
 
     aside {
       background: var(--panel); border-right: 1px solid #e5e7eb;
@@ -137,11 +141,39 @@
     }
     .item-del { background: none; border: none; color: #9ca3af; font-size: 16px; cursor: pointer; padding: 2px 5px; line-height: 1; flex-shrink: 0; }
     .item-del:hover { color: #ef4444; opacity: 1; background: none; }
-    .item-row-opts { display: grid; grid-template-columns: 70px 34px 34px; gap: 6px; align-items: center; }
-    .item-opt-label { font-size: 10px; color: #6b7280; font-weight: 700; margin-bottom: 2px; }
+    .item-row-opts { display: grid; grid-template-columns: 70px 34px 34px; gap: 8px; align-items: center; }
+    .item-row-opts.shape-opts { grid-template-columns: 1fr 1fr 90px; gap: 10px; }
+    .item-row-opts.shape-opts.line-opts { grid-template-columns: 1fr 100px; }
+    .item-row-opts.shape-opts input[type="color"] { width: 100%; height: 32px; }
+    .item-row-opts.shape-opts .item-sw-wrap { display: flex; align-items: center; gap: 4px; }
+    .item-row-opts.shape-opts .item-sw-input { flex: 1; min-width: 0; text-align: center; padding: 6px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 12px; font-family: inherit; outline: none; background: #fff; height: 32px; }
+    .item-row-opts.shape-opts .item-sw-unit { font-size: 10px; color: #6b7280; font-weight: 700; }
+    .item-opt-label { font-size: 10px; color: #6b7280; font-weight: 700; margin-bottom: 3px; }
     .item-fs-input { width: 100%; border: 1px solid #d1d5db; border-radius: 6px; padding: 5px 6px; font-size: 12px; font-family: inherit; outline: none; text-align: center; background: #fff; }
     .item-color-input { width: 34px; height: 34px; padding: 2px 3px; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; }
     .item-bold-btn { width: 34px; height: 34px; background: #e5e7eb; border: 1px solid #d1d5db; color: #374151; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 900; font-family: inherit; transition: all 0.12s; }
+
+    /* Canvas top toolbar (zoom + bleed) */
+    .canvas-toolbar {
+      display: flex; justify-content: center; align-items: center; gap: 10px;
+      padding: 6px 10px; margin-bottom: 8px;
+      background: #fff; border: 1px solid #e5e7eb; border-radius: 10px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+      max-width: max-content; margin-left: auto; margin-right: auto;
+    }
+    .canvas-toolbar .ct-group { display: flex; align-items: center; gap: 4px; }
+    .canvas-toolbar .ct-divider { width: 1px; height: 18px; background: #e5e7eb; }
+    .canvas-toolbar button {
+      background: #f1f5f9; color: #374151; padding: 5px 10px; font-size: 12px;
+      border: 1px solid #e2e8f0; border-radius: 7px; font-weight: 800;
+    }
+    .canvas-toolbar button:hover { background: #e2e8f0; opacity: 1; }
+    .canvas-toolbar #zoomVal2 { font-size: 12px; font-weight: 700; color: #374151; min-width: 44px; text-align: center; }
+    .canvas-toolbar .ct-check {
+      display: flex; align-items: center; gap: 6px; font-size: 12px;
+      font-weight: 700; color: #374151; cursor: pointer;
+    }
+    .canvas-toolbar .ct-check input { cursor: pointer; }
     .item-bold-btn.on { background: var(--primary); border-color: var(--primary); color: #fff; }
     .add-item-btn { width: 100%; background: #eff6ff; border: 1.5px dashed #93c5fd; color: #1d4ed8; border-radius: 8px; padding: 8px; font-size: 12px; font-weight: 800; cursor: pointer; font-family: inherit; }
 
@@ -231,6 +263,28 @@
             <input id="spineVertical" type="checkbox"> 책등 세로 배치
           </label>
         </div>
+
+        <!-- Panel alignment -->
+        <div style="margin-top:12px;padding-top:12px;border-top:1px solid #edf0f3;">
+          <div style="font-size:12px;font-weight:800;color:#374151;margin-bottom:8px;">📐 패널 가운데 정렬 <span style="font-size:10px;font-weight:600;color:#9ca3af;">(선택 아이템)</span></div>
+          <div style="display:flex;flex-direction:column;gap:5px;">
+            <div style="display:grid;grid-template-columns:1fr 34px 34px;gap:4px;">
+              <button class="secondary" style="font-size:11px;padding:7px 4px;" onclick="alignToPanel('front','both')">앞표지 가운데</button>
+              <button class="secondary" style="font-size:12px;padding:7px 0;" onclick="alignToPanel('front','h')" title="가로 중앙">↔</button>
+              <button class="secondary" style="font-size:12px;padding:7px 0;" onclick="alignToPanel('front','v')" title="세로 중앙">↕</button>
+            </div>
+            <div id="spineAlignRow" style="display:grid;grid-template-columns:1fr 34px 34px;gap:4px;">
+              <button class="secondary" style="font-size:11px;padding:7px 4px;" onclick="alignToPanel('spine','both')">책등 가운데</button>
+              <button class="secondary" style="font-size:12px;padding:7px 0;" onclick="alignToPanel('spine','h')" title="가로 중앙">↔</button>
+              <button class="secondary" style="font-size:12px;padding:7px 0;" onclick="alignToPanel('spine','v')" title="세로 중앙">↕</button>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 34px 34px;gap:4px;">
+              <button class="secondary" style="font-size:11px;padding:7px 4px;" onclick="alignToPanel('back','both')">뒷표지 가운데</button>
+              <button class="secondary" style="font-size:12px;padding:7px 0;" onclick="alignToPanel('back','h')" title="가로 중앙">↔</button>
+              <button class="secondary" style="font-size:12px;padding:7px 0;" onclick="alignToPanel('back','v')" title="세로 중앙">↕</button>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Leaflet-specific -->
@@ -262,9 +316,31 @@
 
       <!-- Items -->
       <div class="section">
-        <h2>✏️ 텍스트 (<span id="sideName">앞면</span>)</h2>
+        <h2>✏️ 콘텐츠 (<span id="sideName">앞면</span>)</h2>
         <div class="item-list" id="itemList"></div>
-        <button class="add-item-btn" onclick="addItem()">+ 텍스트 추가</button>
+        <div class="grid3" style="margin-top:6px;gap:5px;">
+          <button class="add-item-btn" onclick="addItem()">+ 텍스트</button>
+          <button class="add-item-btn" onclick="$('imageFile').click()">+ 이미지</button>
+          <button class="add-item-btn" id="addQrBtn">+ QR</button>
+        </div>
+        <div class="grid3" style="margin-top:5px;gap:5px;">
+          <button class="add-item-btn" onclick="addShape('rect')">+ 사각형</button>
+          <button class="add-item-btn" onclick="addShape('circle')">+ 원</button>
+          <button class="add-item-btn" onclick="addShape('line')">+ 선</button>
+        </div>
+        <input type="file" id="imageFile" accept="image/*" style="display:none;">
+        <div id="qrPanel" style="display:none;margin-top:8px;padding:10px;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:10px;">
+          <label>URL · 텍스트</label>
+          <input type="text" id="qrInput" placeholder="https://example.com" autocomplete="off">
+          <div class="btns" style="margin-top:6px;">
+            <button class="blue" id="qrCreateBtn" style="padding:7px;font-size:12px;">생성</button>
+            <button class="secondary" id="qrCancelBtn" style="padding:7px;font-size:12px;">취소</button>
+          </div>
+        </div>
+        <div class="btns" style="margin-top:8px;">
+          <button class="secondary" id="undoBtn" title="되돌리기 (Ctrl+Z)" disabled>↶ 되돌리기</button>
+          <button class="secondary" id="redoBtn" title="다시 실행 (Ctrl+Y)" disabled>↷ 다시 실행</button>
+        </div>
       </div>
 
       <!-- Background -->
@@ -298,40 +374,52 @@
         </div>
       </div>
 
-      <!-- Display options -->
-      <div class="section">
-        <h2>🔍 화면 표시</h2>
-        <div style="display:flex;align-items:center;gap:6px;">
-          <button class="secondary" style="padding:6px 12px;flex:1;" onclick="setZoom(zoomLevel - 0.1)">−</button>
-          <span id="zoomVal" style="font-size:12px;font-weight:700;color:#374151;min-width:44px;text-align:center;">100%</span>
-          <button class="secondary" style="padding:6px 12px;flex:1;" onclick="setZoom(zoomLevel + 0.1)">+</button>
-          <button class="secondary" style="padding:6px 10px;" onclick="zoomFit()">맞춤</button>
-        </div>
-        <label class="checkline" style="margin-top:8px;">
-          <input id="showBleed" type="checkbox" checked> 도련선 표시
-        </label>
-      </div>
-
       <!-- Save -->
       <div class="section">
-        <h2>💾 저장</h2>
+        <h2>💾 내보내기</h2>
         <div class="btns">
           <button class="blue" id="downloadPng">PNG 저장</button>
           <button class="green" id="downloadPdf">PDF 저장</button>
         </div>
-        <button class="secondary" id="resetBtn" style="width:100%;margin-top:7px;">초기화</button>
         <div class="smallnote" style="margin-top:6px;">양면일 경우 두 면이 함께 저장됩니다. PDF는 인쇄 미리보기에서 "PDF로 저장"을 선택하세요.</div>
+      </div>
+
+      <!-- Project save/load -->
+      <div class="section">
+        <h2>📂 프로젝트</h2>
+        <div class="btns">
+          <button id="saveProjectBtn" style="background:#7c3aed;">💾 저장</button>
+          <button id="loadProjectBtn" class="secondary">📂 불러오기</button>
+        </div>
+        <input type="file" id="loadProjectFile" accept=".json" style="display:none;">
+        <div id="autosaveInfo" class="smallnote" style="margin-top:6px;"></div>
+        <button class="secondary" id="resetBtn" style="width:100%;margin-top:7px;">초기화</button>
       </div>
     </aside>
 
     <main>
-      <div>
-        <div class="canvas-hint">💡 드래그로 이동 · 휠로 크기 조절 · 방향키로 미세 조정 · Delete로 삭제</div>
+      <div class="canvas-toolbar">
+        <div class="ct-group">
+          <button onclick="setZoom(zoomLevel - 0.1)" title="축소">−</button>
+          <span id="zoomVal2">100%</span>
+          <span id="zoomVal" style="display:none;">100%</span>
+          <button onclick="setZoom(zoomLevel + 0.1)" title="확대">+</button>
+          <button onclick="zoomFit()" title="화면에 맞춤">맞춤</button>
+        </div>
+        <div class="ct-divider"></div>
+        <label class="ct-check">
+          <input id="showBleed" type="checkbox" checked> 도련선 표시
+        </label>
       </div>
+      <div class="canvas-hint" style="margin: 0 auto 8px; max-width: max-content;">💡 드래그로 이동 · 더블클릭으로 텍스트 편집 · 휠로 크기 조절 · 방향키로 미세 조정 · Delete로 삭제</div>
       <div class="preview-shell">
         <div class="preview-wrap" id="previewWrap">
           <canvas class="preview-canvas" id="previewCanvas"></canvas>
           <div class="selection-box" id="selectionBox" style="display:none;"></div>
+          <input id="inlineTextEdit" type="text" autocomplete="off" spellcheck="false"
+            style="display:none;position:absolute;z-index:20;border:2px solid #2563eb;border-radius:4px;
+                   background:rgba(255,255,255,0.93);outline:none;padding:1px 4px;line-height:1;
+                   box-shadow:0 2px 8px rgba(37,99,235,.2);">
         </div>
       </div>
     </main>
@@ -340,6 +428,7 @@
   <script src="../js/sw-register.js" defer></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
   <script src="../js/firebase-config.js"></script>
   <script>
     // ── Templates ──────────────────────────────────────────────────────
@@ -429,7 +518,7 @@
       tplId: initialTpl,
       paperW: 210, paperH: 297, landscape: false, bleed: 3,
       // cover-specific
-      spineW: 8, spineText: '', spineVertical: false, noSpine: false,
+      spineW: 8, spineText: '', spineVertical: false, noSpine: false, spineOffsetY: 0,
       // leaflet-specific
       foldCount: 3, showFoldLines: true,
       // common
@@ -458,7 +547,7 @@
       state.paperW = tpl.size[0]; state.paperH = tpl.size[1];
       state.landscape = tpl.orient === 'landscape';
       state.bleed = 3;
-      state.spineW = 8; state.spineText = ''; state.spineVertical = false; state.noSpine = false;
+      state.spineW = 8; state.spineText = ''; state.spineVertical = false; state.noSpine = false; state.spineOffsetY = 0;
       state.foldCount = tpl.defaultFold || 3;
       state.showFoldLines = true;
       state.activeSide = 'front';
@@ -472,7 +561,7 @@
           bgColor: tpl.bg || '#ffffff',
           bgData: '', bgOpacity: 1, noBg: false, aiDesc: '',
           items: (tpl[side] || []).map(it => ({
-            id: Date.now() + Math.random() * 1000,
+            id: newId(), type: 'text', font: 'pretendard',
             text: it.text, fontSize: it.fontSize, color: it.color, bold: it.bold,
             align: it.align || 'left',
             x: it.x * (tpl.isSpread ? coverSpreadW(tpl, realW) : realW),
@@ -491,6 +580,21 @@
       renderTplButtons();
       renderItemList();
       zoomFit();
+
+      // Reset history & rehydrate image elements
+      loadedImgs.clear();
+      ['front', 'back'].forEach(side => {
+        state.sides[side].items.forEach(it => {
+          if ((it.type || 'text') === 'image' && it.dataUrl) {
+            const img = new Image();
+            img.onload = () => render();
+            img.src = it.dataUrl;
+            loadedImgs.set(it.id, img);
+          }
+        });
+      });
+      history = []; historyIndex = -1;
+      pushHistory();
     }
 
     function coverSpreadW(tpl, frontW) {
@@ -591,16 +695,166 @@
       return { w: cw, h: ch };
     }
 
+    const FONTS = [
+      { id: 'pretendard', name: 'Pretendard', css: 'Pretendard, sans-serif' },
+      { id: 'noto-sans', name: '본고딕', css: '"Noto Sans KR", sans-serif' },
+      { id: 'noto-serif', name: '본명조', css: '"Noto Serif KR", serif' },
+      { id: 'nanum-myeongjo', name: '나눔명조', css: '"Nanum Myeongjo", serif' },
+      { id: 'black-han', name: '블랙한산스', css: '"Black Han Sans", sans-serif' },
+      { id: 'nanum-pen', name: '나눔손글씨', css: '"Nanum Pen Script", cursive' },
+      { id: 'gowun', name: '고운돋움', css: '"Gowun Dodum", sans-serif' },
+    ];
+    function fontCss(id) { return (FONTS.find(f => f.id === id) || FONTS[0]).css; }
+
+    function newId() { return Date.now() + Math.random() * 1000; }
+
     function addItem() {
       const { w, h } = getCanvasMm();
       curSide().items.push({
-        id: Date.now() + Math.random() * 1000,
+        id: newId(), type: 'text',
         text: '새 텍스트', fontSize: 18, color: '#0f172a', bold: false, align: 'left',
+        font: 'pretendard',
         x: w / 2, y: h / 2,
       });
-      renderItemList();
-      render();
+      pushHistory();
+      renderItemList(); render();
     }
+
+    function addShape(shape) {
+      const { w, h } = getCanvasMm();
+      const size = Math.min(w, h) * 0.2;
+      const it = {
+        id: newId(), type: 'shape', shape,
+        x: w / 2, y: h / 2,
+        w: size, h: shape === 'line' ? 0 : size,
+        fill: shape === 'line' ? 'transparent' : '#1d9bb2',
+        stroke: '#0f172a', strokeWidth: shape === 'line' ? 1 : 0,
+      };
+      curSide().items.push(it);
+      pushHistory();
+      renderItemList(); render();
+    }
+
+    function addImageFromDataUrl(dataUrl) {
+      const img = new Image();
+      img.onload = () => {
+        const { w, h } = getCanvasMm();
+        const targetW = w * 0.4;
+        const aspectH = (img.height / img.width) * targetW;
+        const it = {
+          id: newId(), type: 'image',
+          dataUrl, x: w / 2, y: h / 2, w: targetW, h: aspectH,
+          imgW: img.width, imgH: img.height,
+        };
+        curSide().items.push(it);
+        loadedImgs.set(it.id, img);
+        pushHistory();
+        renderItemList(); render();
+      };
+      img.src = dataUrl;
+    }
+
+    const loadedImgs = new Map(); // id -> Image element
+
+    // ── Image upload ───────────────────────────────────────────────────
+    $('imageFile').addEventListener('change', e => {
+      const f = e.target.files?.[0]; if (!f) return;
+      const r = new FileReader();
+      r.onload = () => addImageFromDataUrl(r.result);
+      r.readAsDataURL(f);
+      e.target.value = '';
+    });
+
+    // ── QR code ────────────────────────────────────────────────────────
+    $('addQrBtn').addEventListener('click', () => {
+      const p = $('qrPanel');
+      p.style.display = p.style.display === 'none' ? '' : 'none';
+      if (p.style.display === '') $('qrInput').focus();
+    });
+    $('qrCancelBtn').addEventListener('click', () => { $('qrPanel').style.display = 'none'; });
+    $('qrCreateBtn').addEventListener('click', async () => {
+      const text = $('qrInput').value.trim();
+      if (!text) return;
+      try {
+        const dataUrl = await QRCode.toDataURL(text, { width: 600, margin: 2, errorCorrectionLevel: 'M' });
+        addImageFromDataUrl(dataUrl);
+        $('qrPanel').style.display = 'none';
+        $('qrInput').value = '';
+      } catch(e) { alert('QR 생성 실패: ' + e.message); }
+    });
+    $('qrInput').addEventListener('keydown', e => { if (e.key === 'Enter') $('qrCreateBtn').click(); });
+
+    // ── History (Undo/Redo) ────────────────────────────────────────────
+    let history = [];
+    let historyIndex = -1;
+    let historyMuted = false;
+    const HISTORY_LIMIT = 50;
+
+    function snapshotState() {
+      return JSON.parse(JSON.stringify({
+        sides: state.sides,
+        spineW: state.spineW, spineText: state.spineText,
+        spineVertical: state.spineVertical, noSpine: state.noSpine,
+        spineOffsetY: state.spineOffsetY || 0,
+      }));
+    }
+    function pushHistory() {
+      if (historyMuted) return;
+      history = history.slice(0, historyIndex + 1);
+      history.push(snapshotState());
+      if (history.length > HISTORY_LIMIT) history.shift();
+      historyIndex = history.length - 1;
+      updateHistoryButtons();
+    }
+    function applySnapshot(snap) {
+      historyMuted = true;
+      state.sides = JSON.parse(JSON.stringify(snap.sides));
+      state.spineW = snap.spineW; state.spineText = snap.spineText;
+      state.spineVertical = snap.spineVertical; state.noSpine = snap.noSpine;
+      state.spineOffsetY = snap.spineOffsetY || 0;
+      // Reload image elements for image items
+      loadedImgs.clear();
+      ['front', 'back'].forEach(side => {
+        state.sides[side].items.forEach(it => {
+          if (it.type === 'image' && it.dataUrl) {
+            const img = new Image();
+            img.onload = () => render();
+            img.src = it.dataUrl;
+            loadedImgs.set(it.id, img);
+          }
+        });
+      });
+      renderItemList(); render();
+      historyMuted = false;
+    }
+    function undo() {
+      if (historyIndex <= 0) return;
+      historyIndex--;
+      applySnapshot(history[historyIndex]);
+      updateHistoryButtons();
+    }
+    function redo() {
+      if (historyIndex >= history.length - 1) return;
+      historyIndex++;
+      applySnapshot(history[historyIndex]);
+      updateHistoryButtons();
+    }
+    function updateHistoryButtons() {
+      $('undoBtn').disabled = historyIndex <= 0;
+      $('redoBtn').disabled = historyIndex >= history.length - 1;
+    }
+    $('undoBtn').addEventListener('click', undo);
+    $('redoBtn').addEventListener('click', redo);
+    document.addEventListener('keydown', e => {
+      if (!(e.ctrlKey || e.metaKey)) return;
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      if (e.key === 'z' || e.key === 'Z') {
+        if (e.shiftKey) redo(); else undo();
+        e.preventDefault();
+      } else if (e.key === 'y' || e.key === 'Y') {
+        redo(); e.preventDefault();
+      }
+    });
 
     function escAttr(s) { return String(s||'').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
 
@@ -612,55 +866,118 @@
 
       list.innerHTML = '';
       curSide().items.forEach(item => {
+        const type = item.type || 'text';
         const row = document.createElement('div');
         row.className = 'item-row' + (item.id === state.selectedId ? ' is-selected' : '');
-        row.innerHTML = `
-          <div class="item-row-top">
-            <input class="item-text-input" type="text" data-input-type="text" data-item-id="${item.id}"
-              placeholder="텍스트" value="${escAttr(item.text)}" autocomplete="off" />
-            <button class="item-del" data-del="${item.id}">×</button>
-          </div>
-          <div class="item-row-opts">
-            <div>
-              <div class="item-opt-label">크기</div>
-              <input class="item-fs-input" type="number" data-input-type="fs" data-item-id="${item.id}" min="4" max="200" value="${item.fontSize}">
-            </div>
-            <div>
-              <div class="item-opt-label">색</div>
-              <input type="color" class="item-color-input" value="${item.color}">
-            </div>
-            <div>
-              <div class="item-opt-label">B</div>
-              <button class="item-bold-btn${item.bold ? ' on' : ''}">B</button>
-            </div>
-          </div>
-        `;
-        const ti = row.querySelector('.item-text-input');
-        ti.addEventListener('input', e => { item.text = e.target.value; render(); });
-        ti.addEventListener('focus', () => { state.selectedId = item.id; renderItemList(); render(); });
 
-        const fs = row.querySelector('.item-fs-input');
-        fs.addEventListener('input', e => { item.fontSize = Math.max(4, +e.target.value || 4); render(); });
-        fs.addEventListener('focus', () => { state.selectedId = item.id; renderItemList(); render(); });
+        if (type === 'text') {
+          const fontOpts = FONTS.map(f => `<option value="${f.id}" ${item.font === f.id ? 'selected' : ''}>${f.name}</option>`).join('');
+          row.innerHTML = `
+            <div class="item-row-top">
+              <input class="item-text-input" type="text" data-input-type="text" data-item-id="${item.id}"
+                placeholder="텍스트" value="${escAttr(item.text)}" autocomplete="off" />
+              <button class="item-del" data-del="${item.id}">×</button>
+            </div>
+            <div class="item-row-opts">
+              <div>
+                <div class="item-opt-label">크기</div>
+                <input class="item-fs-input" type="number" data-input-type="fs" data-item-id="${item.id}" min="4" max="200" value="${item.fontSize}">
+              </div>
+              <div>
+                <div class="item-opt-label">색</div>
+                <input type="color" class="item-color-input" value="${item.color}">
+              </div>
+              <div>
+                <div class="item-opt-label">B</div>
+                <button class="item-bold-btn${item.bold ? ' on' : ''}">B</button>
+              </div>
+            </div>
+            <div style="margin-top:6px;">
+              <div class="item-opt-label">폰트</div>
+              <select class="item-font-input">${fontOpts}</select>
+            </div>
+          `;
+          const ti = row.querySelector('.item-text-input');
+          ti.addEventListener('input', e => { item.text = e.target.value; render(); scheduleSave(); });
+          ti.addEventListener('change', () => pushHistory());
+          ti.addEventListener('focus', () => {
+            if (state.selectedId === item.id) return;
+            state.selectedId = item.id; renderItemList(); render();
+          });
 
-        row.querySelector('.item-color-input').addEventListener('input', e => { item.color = e.target.value; render(); });
+          const fs = row.querySelector('.item-fs-input');
+          fs.addEventListener('input', e => { item.fontSize = Math.max(4, +e.target.value || 4); render(); scheduleSave(); });
+          fs.addEventListener('change', () => pushHistory());
+          fs.addEventListener('focus', () => {
+            if (state.selectedId === item.id) return;
+            state.selectedId = item.id; renderItemList(); render();
+          });
+
+          row.querySelector('.item-color-input').addEventListener('input', e => { item.color = e.target.value; render(); scheduleSave(); });
+          row.querySelector('.item-color-input').addEventListener('change', () => pushHistory());
+          row.querySelector('.item-font-input').addEventListener('change', e => { item.font = e.target.value; render(); pushHistory(); scheduleSave(); });
+          row.querySelector('.item-bold-btn').addEventListener('click', function(e) {
+            e.stopPropagation();
+            item.bold = !item.bold;
+            this.classList.toggle('on', item.bold);
+            render(); pushHistory();
+          });
+        } else if (type === 'image') {
+          row.innerHTML = `
+            <div class="item-row-top">
+              <div style="flex:1;font-size:12px;font-weight:700;color:#374151;display:flex;align-items:center;gap:6px;">
+                <span style="display:inline-block;width:24px;height:24px;background-image:url('${escAttr(item.dataUrl)}');background-size:cover;background-position:center;border-radius:4px;border:1px solid #e5e7eb;"></span>
+                <span>이미지</span>
+              </div>
+              <button class="item-del" data-del="${item.id}">×</button>
+            </div>
+            <div class="minirow">크기 ${item.w.toFixed(1)} × ${item.h.toFixed(1)} mm · 휠로 조절</div>
+          `;
+        } else if (type === 'shape') {
+          const isLine = item.shape === 'line';
+          row.innerHTML = `
+            <div class="item-row-top">
+              <div style="flex:1;font-size:12px;font-weight:700;color:#374151;">
+                ${isLine ? '➖ 선' : (item.shape === 'circle' ? '⭕ 원' : '⬛ 사각형')}
+              </div>
+              <button class="item-del" data-del="${item.id}">×</button>
+            </div>
+            <div class="item-row-opts shape-opts${isLine ? ' line-opts' : ''}">
+              ${isLine ? '' : `
+                <div>
+                  <div class="item-opt-label">채움 색</div>
+                  <input type="color" class="item-fill-input" value="${item.fill === 'transparent' ? '#1d9bb2' : item.fill}">
+                </div>
+              `}
+              <div>
+                <div class="item-opt-label">테두리 색</div>
+                <input type="color" class="item-stroke-input" value="${item.stroke}">
+              </div>
+              <div>
+                <div class="item-opt-label">두께 (mm)</div>
+                <div class="item-sw-wrap">
+                  <input type="number" class="item-sw-input" min="0" max="20" step="0.5" value="${item.strokeWidth || 0}">
+                </div>
+              </div>
+            </div>
+          `;
+          const fillEl = row.querySelector('.item-fill-input');
+          if (fillEl) fillEl.addEventListener('input', e => { item.fill = e.target.value; render(); scheduleSave(); });
+          row.querySelector('.item-stroke-input').addEventListener('input', e => { item.stroke = e.target.value; render(); scheduleSave(); });
+          row.querySelector('.item-sw-input').addEventListener('input', e => { item.strokeWidth = +e.target.value || 0; render(); scheduleSave(); });
+        }
 
         row.querySelector('.item-del').addEventListener('click', e => {
           e.stopPropagation();
           curSide().items = curSide().items.filter(i => i.id !== item.id);
+          loadedImgs.delete(item.id);
           if (state.selectedId === item.id) state.selectedId = null;
+          pushHistory();
           renderItemList(); render();
         });
 
-        row.querySelector('.item-bold-btn').addEventListener('click', function(e) {
-          e.stopPropagation();
-          item.bold = !item.bold;
-          this.classList.toggle('on', item.bold);
-          render();
-        });
-
         row.addEventListener('mousedown', e => {
-          if (e.target.closest('input') || e.target.closest('button')) return;
+          if (e.target.closest('input, button, select')) return;
           state.selectedId = item.id; renderItemList(); render();
         });
 
@@ -715,15 +1032,45 @@
         ctx.globalAlpha = 1;
       }
 
-      // Text items
+      // Items (text / image / shape)
       s.items.forEach(item => {
-        const fs = item.fontSize * scale;
-        const weight = item.bold ? '900' : '500';
-        ctx.font = `${weight} ${fs}px Pretendard, "Noto Sans KR", sans-serif`;
-        ctx.fillStyle = item.color;
-        ctx.textAlign = item.align || 'left';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(item.text, item.x * scale, item.y * scale);
+        const type = item.type || 'text';
+        if (type === 'text') {
+          const fs = item.fontSize * scale;
+          const weight = item.bold ? '900' : '500';
+          ctx.font = `${weight} ${fs}px ${fontCss(item.font)}`;
+          ctx.fillStyle = item.color;
+          ctx.textAlign = item.align || 'left';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(item.text, item.x * scale, item.y * scale);
+        } else if (type === 'image') {
+          const img = loadedImgs.get(item.id);
+          if (img && img.complete) {
+            const w = item.w * scale, h = item.h * scale;
+            ctx.drawImage(img, item.x * scale - w/2, item.y * scale - h/2, w, h);
+          }
+        } else if (type === 'shape') {
+          const w = item.w * scale, h = item.h * scale;
+          const cx = item.x * scale, cy = item.y * scale;
+          ctx.lineWidth = (item.strokeWidth || 0) * scale;
+          ctx.strokeStyle = item.stroke || '#0f172a';
+          ctx.fillStyle = item.fill || '#1d9bb2';
+          if (item.shape === 'rect') {
+            if (item.fill && item.fill !== 'transparent') ctx.fillRect(cx - w/2, cy - h/2, w, h);
+            if (ctx.lineWidth > 0) ctx.strokeRect(cx - w/2, cy - h/2, w, h);
+          } else if (item.shape === 'circle') {
+            ctx.beginPath();
+            ctx.ellipse(cx, cy, w/2, h/2, 0, 0, Math.PI * 2);
+            if (item.fill && item.fill !== 'transparent') ctx.fill();
+            if (ctx.lineWidth > 0) ctx.stroke();
+          } else if (item.shape === 'line') {
+            ctx.lineWidth = Math.max(1, (item.strokeWidth || 1) * scale);
+            ctx.beginPath();
+            ctx.moveTo(cx - w/2, cy);
+            ctx.lineTo(cx + w/2, cy);
+            ctx.stroke();
+          }
+        }
       });
 
       // Cover spine text
@@ -731,13 +1078,15 @@
         const paperW = +$('paperW').value;
         const spineW = state.spineW;
         const sx = (paperW + spineW / 2) * scale;
-        ctx.fillStyle = '#12396d';
+        const spineOffPx = (state.spineOffsetY || 0) * scale;
+        const spineCy = ch / 2 + spineOffPx;
+        ctx.fillStyle = state.selectedId === '__spine__' ? '#1d9bb2' : '#12396d';
         if (state.spineVertical) {
           const chars = state.spineText.split('');
           const charSize = Math.max(3, Math.min(spineW * 0.65, 9)) * scale;
           const lineH = charSize * 1.25;
           const totalH = chars.length * lineH;
-          const startY = ch / 2 - totalH / 2 + charSize * 0.5;
+          const startY = spineCy - totalH / 2 + charSize * 0.5;
           ctx.font = `900 ${charSize}px Pretendard, sans-serif`;
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
@@ -745,7 +1094,7 @@
         } else {
           const fs = Math.max(3.2, Math.min(6, spineW * 0.55)) * scale;
           ctx.save();
-          ctx.translate(sx, ch / 2);
+          ctx.translate(sx, spineCy);
           ctx.rotate(Math.PI / 2);
           ctx.font = `900 ${fs}px Pretendard, sans-serif`;
           ctx.textAlign = 'center';
@@ -759,24 +1108,59 @@
 
       // Selection box
       const sb = $('selectionBox');
-      if (state.selectedId) {
+      if (state.selectedId === '__spine__') {
+        const paperW = +$('paperW').value;
+        const spineW = state.spineW;
+        const spineOffPx = (state.spineOffsetY || 0) * scale;
+        const spineCy = ch / 2 + spineOffPx;
+        const sbh = spineW * scale;
+        sb.style.display = 'block';
+        sb.style.left = (paperW * scale - 4) + 'px';
+        sb.style.top = (spineCy - sbh / 2 - 4) + 'px';
+        sb.style.width = (spineW * scale + 8) + 'px';
+        sb.style.height = (sbh + 8) + 'px';
+      } else if (state.selectedId) {
         const sel = s.items.find(i => i.id === state.selectedId);
         if (sel) {
-          const fs = sel.fontSize * scale;
-          ctx.font = `${sel.bold ? '900' : '500'} ${fs}px Pretendard, sans-serif`;
-          const m = ctx.measureText(sel.text || ' ');
-          const tw = m.width;
-          let bx = sel.x * scale;
-          if (sel.align === 'center') bx -= tw / 2;
-          else if (sel.align === 'right') bx -= tw;
-          const by = sel.y * scale - fs / 2;
+          const type = sel.type || 'text';
+          let bx, by, bw, bh;
+          if (type === 'text') {
+            const fs = sel.fontSize * scale;
+            ctx.font = `${sel.bold ? '900' : '500'} ${fs}px ${fontCss(sel.font)}`;
+            const tw = ctx.measureText(sel.text || ' ').width;
+            bx = sel.x * scale;
+            if (sel.align === 'center') bx -= tw / 2;
+            else if (sel.align === 'right') bx -= tw;
+            by = sel.y * scale - fs / 2;
+            bw = tw; bh = fs;
+          } else {
+            const w = sel.w * scale, h = (sel.shape === 'line' ? Math.max(2, sel.strokeWidth || 1) * scale : sel.h * scale);
+            bx = sel.x * scale - w / 2;
+            by = sel.y * scale - h / 2;
+            bw = w; bh = h;
+          }
           sb.style.display = 'block';
           sb.style.left = (bx - 4) + 'px';
           sb.style.top = (by - 2) + 'px';
-          sb.style.width = (tw + 8) + 'px';
-          sb.style.height = (fs + 4) + 'px';
+          sb.style.width = (bw + 8) + 'px';
+          sb.style.height = (bh + 4) + 'px';
         } else { sb.style.display = 'none'; }
       } else { sb.style.display = 'none'; }
+
+      // Snap guides (during drag)
+      if (snapGuides.length) {
+        ctx.save();
+        ctx.strokeStyle = 'rgba(220,38,38,0.7)';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([4, 3]);
+        snapGuides.forEach(g => {
+          ctx.beginPath();
+          if (g.type === 'v') { ctx.moveTo(g.x, 0); ctx.lineTo(g.x, ch); }
+          else { ctx.moveTo(0, g.y); ctx.lineTo(cw, g.y); }
+          ctx.stroke();
+        });
+        ctx.restore();
+      }
 
       // Cover spine guide lines
       if (tpl.hasSpine && !state.noSpine) {
@@ -864,28 +1248,157 @@
       return { x: px / scale, y: py / scale };
     }
 
+    let snapGuides = []; // [{type: 'v'|'h', x?, y?}]
+
     function hitTest(mm) {
       const scale = state.zoomLevel * 4;
       const ctx = $('previewCanvas').getContext('2d');
+      // Spine text hit test (cover template)
+      const tplHit = TEMPLATES[state.tplId];
+      if (tplHit.hasSpine && !state.noSpine && state.spineText.trim()) {
+        const paperW = +$('paperW').value;
+        const spineW = state.spineW;
+        if (mm.x >= paperW - 1 && mm.x <= paperW + spineW + 1) {
+          const paperH = +$('paperH').value;
+          const spineCy = paperH / 2 + (state.spineOffsetY || 0);
+          return { id: '__spine__', x: paperW + spineW / 2, y: spineCy, _isSpine: true };
+        }
+      }
       const items = curSide().items;
       for (let i = items.length - 1; i >= 0; i--) {
         const it = items[i];
-        const fs = it.fontSize * scale;
-        ctx.font = `${it.bold ? '900' : '500'} ${fs}px Pretendard, sans-serif`;
-        const m = ctx.measureText(it.text || ' ');
-        const tw = m.width / scale;
-        let bx = it.x;
-        if (it.align === 'center') bx -= tw / 2;
-        else if (it.align === 'right') bx -= tw;
-        const by = it.y - it.fontSize / 2;
-        if (mm.x >= bx - 1 && mm.x <= bx + tw + 1 && mm.y >= by - 1 && mm.y <= by + it.fontSize + 1) {
-          return it;
+        const type = it.type || 'text';
+        if (type === 'text') {
+          const fs = it.fontSize * scale;
+          ctx.font = `${it.bold ? '900' : '500'} ${fs}px ${fontCss(it.font)}`;
+          const tw = ctx.measureText(it.text || ' ').width / scale;
+          let bx = it.x;
+          if (it.align === 'center') bx -= tw / 2;
+          else if (it.align === 'right') bx -= tw;
+          const by = it.y - it.fontSize / 2;
+          if (mm.x >= bx - 1 && mm.x <= bx + tw + 1 && mm.y >= by - 1 && mm.y <= by + it.fontSize + 1) return it;
+        } else {
+          const halfW = it.w / 2;
+          const halfH = (type === 'shape' && it.shape === 'line') ? Math.max(1, it.strokeWidth || 1) : it.h / 2;
+          if (Math.abs(mm.x - it.x) <= halfW + 0.5 && Math.abs(mm.y - it.y) <= halfH + 0.5) return it;
         }
       }
       return null;
     }
 
+    // Returns panel boundaries in mm for the current template
+    function getPanelBounds() {
+      const tpl = TEMPLATES[state.tplId];
+      const paperW = +$('paperW').value || 100;
+      const paperH = +$('paperH').value || 100;
+      const spineW = state.noSpine ? 0 : state.spineW;
+      if (!tpl.isSpread) {
+        return { front: { l:0, r:paperW, t:0, b:paperH, cx:paperW/2, cy:paperH/2 } };
+      }
+      return {
+        back:  { l:0,             r:paperW,            t:0, b:paperH, cx:paperW/2,             cy:paperH/2 },
+        spine: state.noSpine ? null :
+               { l:paperW,        r:paperW+spineW,     t:0, b:paperH, cx:paperW+spineW/2,      cy:paperH/2 },
+        front: { l:paperW+spineW, r:2*paperW+spineW,   t:0, b:paperH, cx:1.5*paperW+spineW,   cy:paperH/2 },
+      };
+    }
+
+    // Align selected item's center to a panel center (axis: 'h'|'v'|'both')
+    function alignToPanel(panel, axis) {
+      if (!state.selectedId) { alert('먼저 아이템을 선택하세요.'); return; }
+      const sel = curSide().items.find(i => i.id === state.selectedId);
+      if (!sel) return;
+      const panels = getPanelBounds();
+      const pb = panels[panel];
+      if (!pb) return;
+      const ib = getItemBounds(sel);
+      const itemCx = ib.x + ib.w / 2;
+      const itemCy = ib.y + ib.h / 2;
+      if (axis === 'h' || axis === 'both') sel.x += pb.cx - itemCx;
+      if (axis === 'v' || axis === 'both') sel.y += pb.cy - itemCy;
+      pushHistory(); render(); scheduleSave();
+    }
+
+    function getItemBounds(it) {
+      const type = it.type || 'text';
+      if (type === 'text') {
+        const scale = state.zoomLevel * 4;
+        const ctx = $('previewCanvas').getContext('2d');
+        const fs = it.fontSize * scale;
+        ctx.font = `${it.bold ? '900' : '500'} ${fs}px ${fontCss(it.font)}`;
+        const tw = ctx.measureText(it.text || ' ').width / scale;
+        let bx = it.x;
+        if (it.align === 'center') bx -= tw / 2;
+        else if (it.align === 'right') bx -= tw;
+        return { x: bx, y: it.y - it.fontSize / 2, w: tw, h: it.fontSize };
+      }
+      if (type === 'shape' && it.shape === 'line') {
+        const sw = Math.max(0.1, it.strokeWidth || 1);
+        return { x: it.x - it.w / 2, y: it.y - sw / 2, w: it.w, h: sw };
+      }
+      return { x: it.x - it.w / 2, y: it.y - it.h / 2, w: it.w, h: it.h };
+    }
+
+    function applySnap(sel) {
+      const { w: pageW, h: pageH } = getCanvasMm();
+      const scale = state.zoomLevel * 4;
+      const threshold = 1.5; // mm
+
+      const sb = getItemBounds(sel);
+      const selL = sb.x, selR = sb.x + sb.w, selCx = sb.x + sb.w / 2;
+      const selT = sb.y, selB = sb.y + sb.h, selCy = sb.y + sb.h / 2;
+
+      // Candidate target X lines: canvas edges/center + panel edges/centers + other items
+      const targetX = [0, pageW, pageW / 2];
+      const targetY = [0, pageH, pageH / 2];
+      // Add panel boundary lines for cover spreads
+      const panels = getPanelBounds();
+      Object.values(panels).forEach(pb => {
+        if (!pb) return;
+        targetX.push(pb.l, pb.r, pb.cx);
+        targetY.push(pb.cy);
+      });
+      for (const other of curSide().items) {
+        if (other.id === sel.id) continue;
+        const ob = getItemBounds(other);
+        targetX.push(ob.x, ob.x + ob.w, ob.x + ob.w / 2);
+        targetY.push(ob.y, ob.y + ob.h, ob.y + ob.h / 2);
+      }
+
+      // For each axis, find smallest delta that aligns a ref (left/center/right) to a target
+      let bestX = null;  // { dx, line }
+      for (const tx of targetX) {
+        for (const ref of [selL, selCx, selR]) {
+          const dist = tx - ref;
+          if (Math.abs(dist) < threshold && (bestX === null || Math.abs(dist) < Math.abs(bestX.dx))) {
+            bestX = { dx: dist, line: tx };
+          }
+        }
+      }
+      let bestY = null;
+      for (const ty of targetY) {
+        for (const ref of [selT, selCy, selB]) {
+          const dist = ty - ref;
+          if (Math.abs(dist) < threshold && (bestY === null || Math.abs(dist) < Math.abs(bestY.dy))) {
+            bestY = { dy: dist, line: ty };
+          }
+        }
+      }
+
+      const guides = [];
+      if (bestX) {
+        sel.x += bestX.dx;
+        guides.push({ type: 'v', x: bestX.line * scale });
+      }
+      if (bestY) {
+        sel.y += bestY.dy;
+        guides.push({ type: 'h', y: bestY.line * scale });
+      }
+      snapGuides = guides;
+    }
+
     $('previewCanvas').addEventListener('mousedown', e => {
+      stopInlineEdit();
       const mm = getMouseMm(e);
       const hit = hitTest(mm);
       if (hit) {
@@ -900,29 +1413,108 @@
     document.addEventListener('mousemove', e => {
       if (!isDragging || !state.selectedId) return;
       const mm = getMouseMm(e);
+      if (state.selectedId === '__spine__') {
+        const paperH = +$('paperH').value;
+        const newCy = dragData.itemY + (mm.y - dragData.startY);
+        state.spineOffsetY = newCy - paperH / 2;
+        render();
+        return;
+      }
       const sel = curSide().items.find(i => i.id === state.selectedId);
       if (!sel) return;
       sel.x = dragData.itemX + (mm.x - dragData.startX);
       sel.y = dragData.itemY + (mm.y - dragData.startY);
+      applySnap(sel);
       render();
     });
-    document.addEventListener('mouseup', () => { isDragging = false; });
+    document.addEventListener('mouseup', () => {
+      if (isDragging) { isDragging = false; snapGuides = []; pushHistory(); render(); scheduleSave(); }
+    });
+
+    // ── Inline text editing (double-click on canvas) ──────────────────
+    function startInlineEdit(item) {
+      const scale = state.zoomLevel * 4;
+      const canvas = $('previewCanvas');
+      const editor = $('inlineTextEdit');
+      const ctx = canvas.getContext('2d');
+      const fs = item.fontSize * scale;
+      ctx.font = `${item.bold ? '900' : '500'} ${fs}px ${fontCss(item.font)}`;
+      const tw = Math.max(ctx.measureText(item.text || ' ').width, 40);
+      let bx = item.x * scale;
+      if (item.align === 'center') bx -= tw / 2;
+      else if (item.align === 'right') bx -= tw;
+      const by = item.y * scale - fs / 2;
+      editor.style.cssText += `left:${bx - 4}px;top:${by}px;width:${tw + 24}px;height:${fs + 4}px;` +
+        `font-size:${fs}px;font-weight:${item.bold ? '900' : '500'};color:${item.color || '#000'};` +
+        `font-family:${fontCss(item.font)};text-align:${item.align || 'left'};display:block;`;
+      editor._itemId = item.id;
+      editor.value = item.text || '';
+      editor.focus();
+      editor.select();
+    }
+    function stopInlineEdit() {
+      const editor = $('inlineTextEdit');
+      if (!editor || editor.style.display === 'none') return;
+      const id = editor._itemId;
+      if (id) {
+        const item = curSide().items.find(i => i.id === id);
+        if (item && item.text !== editor.value) {
+          item.text = editor.value;
+          pushHistory(); renderItemList(); scheduleSave();
+        }
+      }
+      editor.style.display = 'none';
+      editor._itemId = null;
+      render();
+    }
+    $('inlineTextEdit').addEventListener('input', e => {
+      const id = e.target._itemId;
+      if (!id) return;
+      const item = curSide().items.find(i => i.id === id);
+      if (item) { item.text = e.target.value; render(); }
+    });
+    $('inlineTextEdit').addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === 'Escape') { stopInlineEdit(); e.preventDefault(); }
+    });
+    $('inlineTextEdit').addEventListener('blur', () => stopInlineEdit());
+
+    $('previewCanvas').addEventListener('dblclick', e => {
+      const mm = getMouseMm(e);
+      const hit = hitTest(mm);
+      if (!hit || hit._isSpine) return;
+      const item = curSide().items.find(i => i.id === hit.id);
+      if (!item || (item.type || 'text') !== 'text') return;
+      startInlineEdit(item);
+    });
 
     $('previewCanvas').addEventListener('wheel', e => {
       if (!state.selectedId) return;
       e.preventDefault();
       const sel = curSide().items.find(i => i.id === state.selectedId);
       if (!sel) return;
-      sel.fontSize = Math.max(4, Math.min(200, sel.fontSize + (e.deltaY < 0 ? 1 : -1)));
-      renderItemList(); render();
+      const type = sel.type || 'text';
+      const dir = e.deltaY < 0 ? 1 : -1;
+      if (type === 'text') {
+        sel.fontSize = Math.max(4, Math.min(200, sel.fontSize + dir));
+      } else {
+        const factor = dir > 0 ? 1.05 : 0.95;
+        sel.w = Math.max(2, sel.w * factor);
+        if (sel.shape !== 'line') sel.h = Math.max(2, (sel.h || sel.w) * factor);
+      }
+      renderItemList(); render(); scheduleSave();
     }, { passive: false });
 
     document.addEventListener('keydown', e => {
       if (!state.selectedId) return;
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      const step = e.shiftKey ? 5 : 0.5;
+      if (state.selectedId === '__spine__') {
+        if (e.key === 'ArrowUp')        { state.spineOffsetY -= step; render(); e.preventDefault(); }
+        else if (e.key === 'ArrowDown') { state.spineOffsetY += step; render(); e.preventDefault(); }
+        return;
+      }
       const sel = curSide().items.find(i => i.id === state.selectedId);
       if (!sel) return;
-      const step = e.shiftKey ? 5 : 0.5;
       if (e.key === 'ArrowLeft')  { sel.x -= step; render(); e.preventDefault(); }
       else if (e.key === 'ArrowRight') { sel.x += step; render(); e.preventDefault(); }
       else if (e.key === 'ArrowUp')    { sel.y -= step; render(); e.preventDefault(); }
@@ -939,9 +1531,9 @@
     $('noBgCheck').addEventListener('change', e => {
       curSide().noBg = e.target.checked;
       $('bgControls').style.display = e.target.checked ? 'none' : '';
-      render();
+      render(); scheduleSave();
     });
-    $('bgColor').addEventListener('input', e => { curSide().bgColor = e.target.value; render(); });
+    $('bgColor').addEventListener('input', e => { curSide().bgColor = e.target.value; render(); scheduleSave(); });
     $('bgFile').addEventListener('change', e => {
       const f = e.target.files?.[0]; if (!f) return;
       const r = new FileReader();
@@ -1035,6 +1627,7 @@
     $('noSpine').addEventListener('change', e => {
       state.noSpine = e.target.checked;
       $('spineDetails').style.display = state.noSpine ? 'none' : '';
+      const sar = $('spineAlignRow'); if (sar) sar.style.display = state.noSpine ? 'none' : '';
       updatePaperInfo();
       zoomFit();
     });
@@ -1077,7 +1670,9 @@
     // ── Zoom ───────────────────────────────────────────────────────────
     function setZoom(level) {
       state.zoomLevel = Math.max(0.1, Math.min(3, level));
-      $('zoomVal').textContent = Math.round(state.zoomLevel * 100) + '%';
+      const pct = Math.round(state.zoomLevel * 100) + '%';
+      $('zoomVal').textContent = pct;
+      const z2 = $('zoomVal2'); if (z2) z2.textContent = pct;
       render();
     }
     function zoomFit() {
@@ -1150,11 +1745,187 @@
       loadTemplate(state.tplId);
     });
 
+    // ── Project save / load ────────────────────────────────────────────
+    function autosaveKey() { return `ds-project-${state.tplId}`; }
+
+    function stateToJson() {
+      return JSON.stringify({
+        version: 1,
+        tplId: state.tplId,
+        paperW: state.paperW, paperH: state.paperH,
+        landscape: state.landscape, bleed: state.bleed, showBleed: state.showBleed,
+        spineW: state.spineW, spineText: state.spineText,
+        spineVertical: state.spineVertical, noSpine: state.noSpine, spineOffsetY: state.spineOffsetY || 0,
+        foldCount: state.foldCount, showFoldLines: state.showFoldLines,
+        isDuplex: state.isDuplex,
+        sides: {
+          front: { ...state.sides.front },
+          back: { ...state.sides.back },
+        },
+        savedAt: new Date().toISOString(),
+      });
+    }
+
+    function applyProjectJson(json) {
+      let d;
+      try { d = JSON.parse(json); } catch { alert('올바른 프로젝트 파일이 아닙니다.'); return; }
+      if (!d.tplId || !TEMPLATES[d.tplId]) { alert('템플릿 정보가 없습니다.'); return; }
+
+      loadTemplate(d.tplId);
+      state.paperW = d.paperW || state.paperW;
+      state.paperH = d.paperH || state.paperH;
+      state.landscape = !!d.landscape;
+      state.bleed = d.bleed ?? state.bleed;
+      state.showBleed = d.showBleed ?? true;
+      state.spineW = d.spineW ?? state.spineW;
+      state.spineText = d.spineText ?? '';
+      state.spineVertical = !!d.spineVertical;
+      state.noSpine = !!d.noSpine;
+      state.spineOffsetY = d.spineOffsetY ?? 0;
+      state.foldCount = d.foldCount || 3;
+      state.showFoldLines = d.showFoldLines ?? true;
+      state.isDuplex = !!d.isDuplex;
+
+      ['front', 'back'].forEach(side => {
+        if (d.sides?.[side]) {
+          state.sides[side] = {
+            items: d.sides[side].items || [],
+            bgColor: d.sides[side].bgColor || '#ffffff',
+            bgData: d.sides[side].bgData || null,
+            bgOpacity: d.sides[side].bgOpacity ?? 1,
+            noBg: !!d.sides[side].noBg,
+            aiDesc: d.sides[side].aiDesc || '',
+          };
+          if (state.sides[side].bgData) loadBgImage(side, state.sides[side].bgData);
+        }
+      });
+
+      // Sync UI controls
+      $('paperW').value = state.paperW;
+      $('paperH').value = state.paperH;
+      $('orientToggle').checked = state.landscape;
+      $('bleedInput').value = state.bleed;
+      $('showBleed').checked = state.showBleed;
+      if (TEMPLATES[state.tplId].hasSpine) {
+        $('noSpine').checked = state.noSpine;
+        $('spineW').value = state.spineW;
+        $('spineText').value = state.spineText;
+        $('spineVertical').checked = state.spineVertical;
+        $('spineDetails').style.display = state.noSpine ? 'none' : '';
+      }
+      $('duplexToggle').checked = state.isDuplex;
+      $('sideTabBack').disabled = !state.isDuplex;
+      $('sideTabBack').style.opacity = state.isDuplex ? '1' : '0.4';
+      $('sideTabBack').style.cursor = state.isDuplex ? 'pointer' : 'not-allowed';
+
+      // Rehydrate image elements
+      loadedImgs.clear();
+      ['front', 'back'].forEach(side => {
+        state.sides[side].items.forEach(it => {
+          if ((it.type || 'text') === 'image' && it.dataUrl) {
+            const img = new Image();
+            img.onload = () => render();
+            img.src = it.dataUrl;
+            loadedImgs.set(it.id, img);
+          }
+        });
+      });
+
+      switchSide('front');
+      updatePaperInfo();
+      zoomFit();
+
+      // Reset history with loaded snapshot
+      history = []; historyIndex = -1;
+      pushHistory();
+    }
+
+    let saveTimer = null;
+    function scheduleSave() {
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(() => {
+        try {
+          localStorage.setItem(autosaveKey(), stateToJson());
+          const now = new Date();
+          $('autosaveInfo').textContent = `자동저장됨 ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
+        } catch {}
+      }, 1000);
+    }
+
+    function tryAutoload() {
+      try {
+        const saved = localStorage.getItem(autosaveKey());
+        if (!saved) return;
+        const d = JSON.parse(saved);
+        if (!d.savedAt) return;
+        const ago = Math.round((Date.now() - new Date(d.savedAt)) / 60000);
+        const label = ago < 60 ? `${ago}분 전` : `${Math.round(ago/60)}시간 전`;
+        if (confirm(`저장된 작업이 있습니다 (${label}). 이어서 작업하시겠습니까?`)) {
+          applyProjectJson(saved);
+        }
+      } catch {}
+    }
+
+    $('saveProjectBtn').addEventListener('click', () => {
+      const json = stateToJson();
+      localStorage.setItem(autosaveKey(), json);
+      const tpl = TEMPLATES[state.tplId];
+      const a = document.createElement('a');
+      a.download = `${tpl.name}_프로젝트_${new Date().toISOString().slice(0,10)}.json`;
+      a.href = 'data:application/json;charset=utf-8,' + encodeURIComponent(json);
+      a.click();
+      $('autosaveInfo').textContent = '저장 완료';
+    });
+
+    $('loadProjectBtn').addEventListener('click', () => $('loadProjectFile').click());
+    $('loadProjectFile').addEventListener('change', e => {
+      const f = e.target.files?.[0]; if (!f) return;
+      const r = new FileReader();
+      r.onload = () => { applyProjectJson(r.result); e.target.value = ''; };
+      r.readAsText(f);
+    });
+
     // ── Auth ───────────────────────────────────────────────────────────
-    auth.onAuthStateChanged(user => {
+    function denyAccess(msg) {
+      document.querySelector('.app').style.display = 'none';
+      const div = document.createElement('div');
+      div.style.cssText = 'display:flex;flex-direction:column;align-items:center;justify-content:center;height:calc(100vh - 52px);gap:16px;text-align:center;padding:24px;';
+      div.innerHTML = '<div style="font-size:52px;">🔒</div>'
+        + '<div style="font-size:20px;font-weight:900;color:#0f172a;">접근 권한이 없습니다</div>'
+        + '<div style="font-size:14px;color:#64748b;max-width:320px;line-height:1.6;"></div>'
+        + '<a href="../index.html" style="margin-top:8px;padding:10px 24px;background:#12396d;color:#fff;border-radius:10px;text-decoration:none;font-weight:800;font-size:14px;">← 홈으로</a>';
+      div.querySelector('div:nth-child(3)').textContent = msg;
+      document.body.appendChild(div);
+    }
+
+    auth.onAuthStateChanged(async user => {
       if (!user) { location.href = '../login.html'; return; }
       const name = user.displayName || (user.email || '').split('@')[0];
       $('userName').textContent = name;
+
+      // Permission gate: public access OR admin OR user-approved
+      try {
+        const userEmail = String(user.email || '').trim().toLowerCase();
+        const [adminDoc, programsDoc, permDoc] = await Promise.all([
+          db.collection('settings').doc('admin').get(),
+          db.collection('settings').doc('programs').get(),
+          db.collection('user_permissions').doc(user.uid).get(),
+        ]);
+        const adminEmails = (adminDoc.exists ? (adminDoc.data().emails || []) : [])
+          .map(e => String(e).trim().toLowerCase());
+        const isAdmin = adminEmails.includes(userEmail);
+        const isPublic = !!(programsDoc.exists && programsDoc.data().public?.['design-studio']);
+        const isApproved = permDoc.exists && permDoc.data().programs?.['design-studio'] === true;
+
+        if (!isAdmin && !isPublic && !isApproved) {
+          denyAccess('디자인 스튜디오는 관리자 승인 후 사용할 수 있습니다. 관리자에게 승인을 요청해 주세요.');
+          return;
+        }
+      } catch(e) {
+        console.error('Permission check failed', e);
+        denyAccess('권한 확인 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.');
+        return;
+      }
     });
     function doLogout() {
       auth.signOut().then(() => location.href = '../index.html');
@@ -1162,6 +1933,7 @@
 
     // ── Init ───────────────────────────────────────────────────────────
     loadTemplate(state.tplId);
+    tryAutoload();
   </script>
 </body>
 </html>
