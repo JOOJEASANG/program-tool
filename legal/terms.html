@@ -102,9 +102,14 @@
   <script src="../js/firebase-config.js"></script>
   <script>
     (async () => {
+      const showErr = (msg) => {
+        const card = document.querySelector('.biz-card');
+        if (card) card.insertAdjacentHTML('afterbegin',
+          `<div style="background:#fef2f2;border:1px solid #fecaca;color:#991b1b;padding:10px 14px;border-radius:8px;margin-bottom:12px;font-size:13px;">⚠️ ${msg}</div>`);
+      };
       try {
         const snap = await db.collection('settings').doc('business').get();
-        if (!snap.exists) return;
+        if (!snap.exists) { showErr('관리자 페이지에서 사업자 정보를 저장해주세요.'); return; }
         const d = snap.data();
         const set = (id, v) => { const el = document.getElementById(id); if (el && v) el.textContent = v; };
         set('siteName', d.bizSiteName || d.bizName || 'Program Tool');
@@ -117,7 +122,10 @@
         set('effDate', d.bizTermsEffective || '-');
         const ti = [d.bizType, d.bizItem].filter(Boolean).join(' / ');
         if (ti) set('bizTypeItem', ti);
-      } catch (e) { console.warn(e); }
+      } catch (e) {
+        console.error(e);
+        showErr('사업자 정보를 불러올 수 없습니다: ' + (e.code || e.message));
+      }
     })();
   </script>
 </body>
