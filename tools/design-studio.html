@@ -5,6 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>디자인 스튜디오 · Program Tool</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&family=Noto+Serif+KR:wght@400;700;900&family=Black+Han+Sans&family=Nanum+Pen+Script&family=Nanum+Myeongjo:wght@400;700;800&family=Gowun+Dodum&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
   <style>
     :root {
       --bg: #f4f6f8; --panel: #ffffff; --text: #111827; --muted: #6b7280;
@@ -262,9 +266,31 @@
 
       <!-- Items -->
       <div class="section">
-        <h2>✏️ 텍스트 (<span id="sideName">앞면</span>)</h2>
+        <h2>✏️ 콘텐츠 (<span id="sideName">앞면</span>)</h2>
         <div class="item-list" id="itemList"></div>
-        <button class="add-item-btn" onclick="addItem()">+ 텍스트 추가</button>
+        <div class="grid3" style="margin-top:6px;gap:5px;">
+          <button class="add-item-btn" onclick="addItem()">+ 텍스트</button>
+          <button class="add-item-btn" onclick="$('imageFile').click()">+ 이미지</button>
+          <button class="add-item-btn" id="addQrBtn">+ QR</button>
+        </div>
+        <div class="grid3" style="margin-top:5px;gap:5px;">
+          <button class="add-item-btn" onclick="addShape('rect')">+ 사각형</button>
+          <button class="add-item-btn" onclick="addShape('circle')">+ 원</button>
+          <button class="add-item-btn" onclick="addShape('line')">+ 선</button>
+        </div>
+        <input type="file" id="imageFile" accept="image/*" style="display:none;">
+        <div id="qrPanel" style="display:none;margin-top:8px;padding:10px;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:10px;">
+          <label>URL · 텍스트</label>
+          <input type="text" id="qrInput" placeholder="https://example.com" autocomplete="off">
+          <div class="btns" style="margin-top:6px;">
+            <button class="blue" id="qrCreateBtn" style="padding:7px;font-size:12px;">생성</button>
+            <button class="secondary" id="qrCancelBtn" style="padding:7px;font-size:12px;">취소</button>
+          </div>
+        </div>
+        <div class="btns" style="margin-top:8px;">
+          <button class="secondary" id="undoBtn" title="되돌리기 (Ctrl+Z)" disabled>↶ 되돌리기</button>
+          <button class="secondary" id="redoBtn" title="다시 실행 (Ctrl+Y)" disabled>↷ 다시 실행</button>
+        </div>
       </div>
 
       <!-- Background -->
@@ -484,7 +510,7 @@
           bgColor: tpl.bg || '#ffffff',
           bgData: '', bgOpacity: 1, noBg: false, aiDesc: '',
           items: (tpl[side] || []).map(it => ({
-            id: Date.now() + Math.random() * 1000,
+            id: newId(), type: 'text', font: 'pretendard',
             text: it.text, fontSize: it.fontSize, color: it.color, bold: it.bold,
             align: it.align || 'left',
             x: it.x * (tpl.isSpread ? coverSpreadW(tpl, realW) : realW),
@@ -503,6 +529,21 @@
       renderTplButtons();
       renderItemList();
       zoomFit();
+
+      // Reset history & rehydrate image elements
+      loadedImgs.clear();
+      ['front', 'back'].forEach(side => {
+        state.sides[side].items.forEach(it => {
+          if ((it.type || 'text') === 'image' && it.dataUrl) {
+            const img = new Image();
+            img.onload = () => render();
+            img.src = it.dataUrl;
+            loadedImgs.set(it.id, img);
+          }
+        });
+      });
+      history = []; historyIndex = -1;
+      pushHistory();
     }
 
     function coverSpreadW(tpl, frontW) {
@@ -603,16 +644,164 @@
       return { w: cw, h: ch };
     }
 
+    const FONTS = [
+      { id: 'pretendard', name: 'Pretendard', css: 'Pretendard, sans-serif' },
+      { id: 'noto-sans', name: '본고딕', css: '"Noto Sans KR", sans-serif' },
+      { id: 'noto-serif', name: '본명조', css: '"Noto Serif KR", serif' },
+      { id: 'nanum-myeongjo', name: '나눔명조', css: '"Nanum Myeongjo", serif' },
+      { id: 'black-han', name: '블랙한산스', css: '"Black Han Sans", sans-serif' },
+      { id: 'nanum-pen', name: '나눔손글씨', css: '"Nanum Pen Script", cursive' },
+      { id: 'gowun', name: '고운돋움', css: '"Gowun Dodum", sans-serif' },
+    ];
+    function fontCss(id) { return (FONTS.find(f => f.id === id) || FONTS[0]).css; }
+
+    function newId() { return Date.now() + Math.random() * 1000; }
+
     function addItem() {
       const { w, h } = getCanvasMm();
       curSide().items.push({
-        id: Date.now() + Math.random() * 1000,
+        id: newId(), type: 'text',
         text: '새 텍스트', fontSize: 18, color: '#0f172a', bold: false, align: 'left',
+        font: 'pretendard',
         x: w / 2, y: h / 2,
       });
-      renderItemList();
-      render();
+      pushHistory();
+      renderItemList(); render();
     }
+
+    function addShape(shape) {
+      const { w, h } = getCanvasMm();
+      const size = Math.min(w, h) * 0.2;
+      const it = {
+        id: newId(), type: 'shape', shape,
+        x: w / 2, y: h / 2,
+        w: size, h: shape === 'line' ? 0 : size,
+        fill: shape === 'line' ? 'transparent' : '#1d9bb2',
+        stroke: '#0f172a', strokeWidth: shape === 'line' ? 1 : 0,
+      };
+      curSide().items.push(it);
+      pushHistory();
+      renderItemList(); render();
+    }
+
+    function addImageFromDataUrl(dataUrl) {
+      const img = new Image();
+      img.onload = () => {
+        const { w, h } = getCanvasMm();
+        const targetW = w * 0.4;
+        const aspectH = (img.height / img.width) * targetW;
+        const it = {
+          id: newId(), type: 'image',
+          dataUrl, x: w / 2, y: h / 2, w: targetW, h: aspectH,
+          imgW: img.width, imgH: img.height,
+        };
+        curSide().items.push(it);
+        loadedImgs.set(it.id, img);
+        pushHistory();
+        renderItemList(); render();
+      };
+      img.src = dataUrl;
+    }
+
+    const loadedImgs = new Map(); // id -> Image element
+
+    // ── Image upload ───────────────────────────────────────────────────
+    $('imageFile').addEventListener('change', e => {
+      const f = e.target.files?.[0]; if (!f) return;
+      const r = new FileReader();
+      r.onload = () => addImageFromDataUrl(r.result);
+      r.readAsDataURL(f);
+      e.target.value = '';
+    });
+
+    // ── QR code ────────────────────────────────────────────────────────
+    $('addQrBtn').addEventListener('click', () => {
+      const p = $('qrPanel');
+      p.style.display = p.style.display === 'none' ? '' : 'none';
+      if (p.style.display === '') $('qrInput').focus();
+    });
+    $('qrCancelBtn').addEventListener('click', () => { $('qrPanel').style.display = 'none'; });
+    $('qrCreateBtn').addEventListener('click', async () => {
+      const text = $('qrInput').value.trim();
+      if (!text) return;
+      try {
+        const dataUrl = await QRCode.toDataURL(text, { width: 600, margin: 2, errorCorrectionLevel: 'M' });
+        addImageFromDataUrl(dataUrl);
+        $('qrPanel').style.display = 'none';
+        $('qrInput').value = '';
+      } catch(e) { alert('QR 생성 실패: ' + e.message); }
+    });
+    $('qrInput').addEventListener('keydown', e => { if (e.key === 'Enter') $('qrCreateBtn').click(); });
+
+    // ── History (Undo/Redo) ────────────────────────────────────────────
+    let history = [];
+    let historyIndex = -1;
+    let historyMuted = false;
+    const HISTORY_LIMIT = 50;
+
+    function snapshotState() {
+      return JSON.parse(JSON.stringify({
+        sides: state.sides,
+        spineW: state.spineW, spineText: state.spineText,
+        spineVertical: state.spineVertical, noSpine: state.noSpine,
+      }));
+    }
+    function pushHistory() {
+      if (historyMuted) return;
+      history = history.slice(0, historyIndex + 1);
+      history.push(snapshotState());
+      if (history.length > HISTORY_LIMIT) history.shift();
+      historyIndex = history.length - 1;
+      updateHistoryButtons();
+    }
+    function applySnapshot(snap) {
+      historyMuted = true;
+      state.sides = JSON.parse(JSON.stringify(snap.sides));
+      state.spineW = snap.spineW; state.spineText = snap.spineText;
+      state.spineVertical = snap.spineVertical; state.noSpine = snap.noSpine;
+      // Reload image elements for image items
+      loadedImgs.clear();
+      ['front', 'back'].forEach(side => {
+        state.sides[side].items.forEach(it => {
+          if (it.type === 'image' && it.dataUrl) {
+            const img = new Image();
+            img.onload = () => render();
+            img.src = it.dataUrl;
+            loadedImgs.set(it.id, img);
+          }
+        });
+      });
+      renderItemList(); render();
+      historyMuted = false;
+    }
+    function undo() {
+      if (historyIndex <= 0) return;
+      historyIndex--;
+      applySnapshot(history[historyIndex]);
+      updateHistoryButtons();
+    }
+    function redo() {
+      if (historyIndex >= history.length - 1) return;
+      historyIndex++;
+      applySnapshot(history[historyIndex]);
+      updateHistoryButtons();
+    }
+    function updateHistoryButtons() {
+      $('undoBtn').disabled = historyIndex <= 0;
+      $('redoBtn').disabled = historyIndex >= history.length - 1;
+    }
+    $('undoBtn').addEventListener('click', undo);
+    $('redoBtn').addEventListener('click', redo);
+    document.addEventListener('keydown', e => {
+      if (!(e.ctrlKey || e.metaKey)) return;
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      if (e.key === 'z' || e.key === 'Z') {
+        if (e.shiftKey) redo(); else undo();
+        e.preventDefault();
+      } else if (e.key === 'y' || e.key === 'Y') {
+        redo(); e.preventDefault();
+      }
+    });
 
     function escAttr(s) { return String(s||'').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
 
@@ -624,61 +813,116 @@
 
       list.innerHTML = '';
       curSide().items.forEach(item => {
+        const type = item.type || 'text';
         const row = document.createElement('div');
         row.className = 'item-row' + (item.id === state.selectedId ? ' is-selected' : '');
-        row.innerHTML = `
-          <div class="item-row-top">
-            <input class="item-text-input" type="text" data-input-type="text" data-item-id="${item.id}"
-              placeholder="텍스트" value="${escAttr(item.text)}" autocomplete="off" />
-            <button class="item-del" data-del="${item.id}">×</button>
-          </div>
-          <div class="item-row-opts">
-            <div>
-              <div class="item-opt-label">크기</div>
-              <input class="item-fs-input" type="number" data-input-type="fs" data-item-id="${item.id}" min="4" max="200" value="${item.fontSize}">
-            </div>
-            <div>
-              <div class="item-opt-label">색</div>
-              <input type="color" class="item-color-input" value="${item.color}">
-            </div>
-            <div>
-              <div class="item-opt-label">B</div>
-              <button class="item-bold-btn${item.bold ? ' on' : ''}">B</button>
-            </div>
-          </div>
-        `;
-        const ti = row.querySelector('.item-text-input');
-        ti.addEventListener('input', e => { item.text = e.target.value; render(); scheduleSave(); });
-        ti.addEventListener('focus', () => {
-          if (state.selectedId === item.id) return;
-          state.selectedId = item.id; renderItemList(); render();
-        });
 
-        const fs = row.querySelector('.item-fs-input');
-        fs.addEventListener('input', e => { item.fontSize = Math.max(4, +e.target.value || 4); render(); scheduleSave(); });
-        fs.addEventListener('focus', () => {
-          if (state.selectedId === item.id) return;
-          state.selectedId = item.id; renderItemList(); render();
-        });
+        if (type === 'text') {
+          const fontOpts = FONTS.map(f => `<option value="${f.id}" ${item.font === f.id ? 'selected' : ''}>${f.name}</option>`).join('');
+          row.innerHTML = `
+            <div class="item-row-top">
+              <input class="item-text-input" type="text" data-input-type="text" data-item-id="${item.id}"
+                placeholder="텍스트" value="${escAttr(item.text)}" autocomplete="off" />
+              <button class="item-del" data-del="${item.id}">×</button>
+            </div>
+            <div class="item-row-opts">
+              <div>
+                <div class="item-opt-label">크기</div>
+                <input class="item-fs-input" type="number" data-input-type="fs" data-item-id="${item.id}" min="4" max="200" value="${item.fontSize}">
+              </div>
+              <div>
+                <div class="item-opt-label">색</div>
+                <input type="color" class="item-color-input" value="${item.color}">
+              </div>
+              <div>
+                <div class="item-opt-label">B</div>
+                <button class="item-bold-btn${item.bold ? ' on' : ''}">B</button>
+              </div>
+            </div>
+            <div style="margin-top:6px;">
+              <div class="item-opt-label">폰트</div>
+              <select class="item-font-input">${fontOpts}</select>
+            </div>
+          `;
+          const ti = row.querySelector('.item-text-input');
+          ti.addEventListener('input', e => { item.text = e.target.value; render(); scheduleSave(); });
+          ti.addEventListener('change', () => pushHistory());
+          ti.addEventListener('focus', () => {
+            if (state.selectedId === item.id) return;
+            state.selectedId = item.id; renderItemList(); render();
+          });
 
-        row.querySelector('.item-color-input').addEventListener('input', e => { item.color = e.target.value; render(); scheduleSave(); });
+          const fs = row.querySelector('.item-fs-input');
+          fs.addEventListener('input', e => { item.fontSize = Math.max(4, +e.target.value || 4); render(); scheduleSave(); });
+          fs.addEventListener('change', () => pushHistory());
+          fs.addEventListener('focus', () => {
+            if (state.selectedId === item.id) return;
+            state.selectedId = item.id; renderItemList(); render();
+          });
+
+          row.querySelector('.item-color-input').addEventListener('input', e => { item.color = e.target.value; render(); scheduleSave(); });
+          row.querySelector('.item-color-input').addEventListener('change', () => pushHistory());
+          row.querySelector('.item-font-input').addEventListener('change', e => { item.font = e.target.value; render(); pushHistory(); scheduleSave(); });
+          row.querySelector('.item-bold-btn').addEventListener('click', function(e) {
+            e.stopPropagation();
+            item.bold = !item.bold;
+            this.classList.toggle('on', item.bold);
+            render(); pushHistory();
+          });
+        } else if (type === 'image') {
+          row.innerHTML = `
+            <div class="item-row-top">
+              <div style="flex:1;font-size:12px;font-weight:700;color:#374151;display:flex;align-items:center;gap:6px;">
+                <span style="display:inline-block;width:24px;height:24px;background-image:url('${escAttr(item.dataUrl)}');background-size:cover;background-position:center;border-radius:4px;border:1px solid #e5e7eb;"></span>
+                <span>이미지</span>
+              </div>
+              <button class="item-del" data-del="${item.id}">×</button>
+            </div>
+            <div class="minirow">크기 ${item.w.toFixed(1)} × ${item.h.toFixed(1)} mm · 휠로 조절</div>
+          `;
+        } else if (type === 'shape') {
+          const isLine = item.shape === 'line';
+          row.innerHTML = `
+            <div class="item-row-top">
+              <div style="flex:1;font-size:12px;font-weight:700;color:#374151;">
+                ${isLine ? '➖ 선' : (item.shape === 'circle' ? '⭕ 원' : '⬛ 사각형')}
+              </div>
+              <button class="item-del" data-del="${item.id}">×</button>
+            </div>
+            <div class="item-row-opts">
+              ${isLine ? '' : `
+                <div>
+                  <div class="item-opt-label">채움</div>
+                  <input type="color" class="item-fill-input" value="${item.fill === 'transparent' ? '#1d9bb2' : item.fill}">
+                </div>
+              `}
+              <div>
+                <div class="item-opt-label">테두리</div>
+                <input type="color" class="item-stroke-input" value="${item.stroke}">
+              </div>
+              <div>
+                <div class="item-opt-label">두께</div>
+                <input type="number" class="item-sw-input" min="0" max="20" step="0.5" value="${item.strokeWidth || 0}">
+              </div>
+            </div>
+          `;
+          const fillEl = row.querySelector('.item-fill-input');
+          if (fillEl) fillEl.addEventListener('input', e => { item.fill = e.target.value; render(); scheduleSave(); });
+          row.querySelector('.item-stroke-input').addEventListener('input', e => { item.stroke = e.target.value; render(); scheduleSave(); });
+          row.querySelector('.item-sw-input').addEventListener('input', e => { item.strokeWidth = +e.target.value || 0; render(); scheduleSave(); });
+        }
 
         row.querySelector('.item-del').addEventListener('click', e => {
           e.stopPropagation();
           curSide().items = curSide().items.filter(i => i.id !== item.id);
+          loadedImgs.delete(item.id);
           if (state.selectedId === item.id) state.selectedId = null;
+          pushHistory();
           renderItemList(); render();
         });
 
-        row.querySelector('.item-bold-btn').addEventListener('click', function(e) {
-          e.stopPropagation();
-          item.bold = !item.bold;
-          this.classList.toggle('on', item.bold);
-          render();
-        });
-
         row.addEventListener('mousedown', e => {
-          if (e.target.closest('input') || e.target.closest('button')) return;
+          if (e.target.closest('input, button, select')) return;
           state.selectedId = item.id; renderItemList(); render();
         });
 
@@ -733,15 +977,45 @@
         ctx.globalAlpha = 1;
       }
 
-      // Text items
+      // Items (text / image / shape)
       s.items.forEach(item => {
-        const fs = item.fontSize * scale;
-        const weight = item.bold ? '900' : '500';
-        ctx.font = `${weight} ${fs}px Pretendard, "Noto Sans KR", sans-serif`;
-        ctx.fillStyle = item.color;
-        ctx.textAlign = item.align || 'left';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(item.text, item.x * scale, item.y * scale);
+        const type = item.type || 'text';
+        if (type === 'text') {
+          const fs = item.fontSize * scale;
+          const weight = item.bold ? '900' : '500';
+          ctx.font = `${weight} ${fs}px ${fontCss(item.font)}`;
+          ctx.fillStyle = item.color;
+          ctx.textAlign = item.align || 'left';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(item.text, item.x * scale, item.y * scale);
+        } else if (type === 'image') {
+          const img = loadedImgs.get(item.id);
+          if (img && img.complete) {
+            const w = item.w * scale, h = item.h * scale;
+            ctx.drawImage(img, item.x * scale - w/2, item.y * scale - h/2, w, h);
+          }
+        } else if (type === 'shape') {
+          const w = item.w * scale, h = item.h * scale;
+          const cx = item.x * scale, cy = item.y * scale;
+          ctx.lineWidth = (item.strokeWidth || 0) * scale;
+          ctx.strokeStyle = item.stroke || '#0f172a';
+          ctx.fillStyle = item.fill || '#1d9bb2';
+          if (item.shape === 'rect') {
+            if (item.fill && item.fill !== 'transparent') ctx.fillRect(cx - w/2, cy - h/2, w, h);
+            if (ctx.lineWidth > 0) ctx.strokeRect(cx - w/2, cy - h/2, w, h);
+          } else if (item.shape === 'circle') {
+            ctx.beginPath();
+            ctx.ellipse(cx, cy, w/2, h/2, 0, 0, Math.PI * 2);
+            if (item.fill && item.fill !== 'transparent') ctx.fill();
+            if (ctx.lineWidth > 0) ctx.stroke();
+          } else if (item.shape === 'line') {
+            ctx.lineWidth = Math.max(1, (item.strokeWidth || 1) * scale);
+            ctx.beginPath();
+            ctx.moveTo(cx - w/2, cy);
+            ctx.lineTo(cx + w/2, cy);
+            ctx.stroke();
+          }
+        }
       });
 
       // Cover spine text
@@ -780,21 +1054,45 @@
       if (state.selectedId) {
         const sel = s.items.find(i => i.id === state.selectedId);
         if (sel) {
-          const fs = sel.fontSize * scale;
-          ctx.font = `${sel.bold ? '900' : '500'} ${fs}px Pretendard, sans-serif`;
-          const m = ctx.measureText(sel.text || ' ');
-          const tw = m.width;
-          let bx = sel.x * scale;
-          if (sel.align === 'center') bx -= tw / 2;
-          else if (sel.align === 'right') bx -= tw;
-          const by = sel.y * scale - fs / 2;
+          const type = sel.type || 'text';
+          let bx, by, bw, bh;
+          if (type === 'text') {
+            const fs = sel.fontSize * scale;
+            ctx.font = `${sel.bold ? '900' : '500'} ${fs}px ${fontCss(sel.font)}`;
+            const tw = ctx.measureText(sel.text || ' ').width;
+            bx = sel.x * scale;
+            if (sel.align === 'center') bx -= tw / 2;
+            else if (sel.align === 'right') bx -= tw;
+            by = sel.y * scale - fs / 2;
+            bw = tw; bh = fs;
+          } else {
+            const w = sel.w * scale, h = (sel.shape === 'line' ? Math.max(2, sel.strokeWidth || 1) * scale : sel.h * scale);
+            bx = sel.x * scale - w / 2;
+            by = sel.y * scale - h / 2;
+            bw = w; bh = h;
+          }
           sb.style.display = 'block';
           sb.style.left = (bx - 4) + 'px';
           sb.style.top = (by - 2) + 'px';
-          sb.style.width = (tw + 8) + 'px';
-          sb.style.height = (fs + 4) + 'px';
+          sb.style.width = (bw + 8) + 'px';
+          sb.style.height = (bh + 4) + 'px';
         } else { sb.style.display = 'none'; }
       } else { sb.style.display = 'none'; }
+
+      // Snap guides (during drag)
+      if (snapGuides.length) {
+        ctx.save();
+        ctx.strokeStyle = 'rgba(220,38,38,0.7)';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([4, 3]);
+        snapGuides.forEach(g => {
+          ctx.beginPath();
+          if (g.type === 'v') { ctx.moveTo(g.x, 0); ctx.lineTo(g.x, ch); }
+          else { ctx.moveTo(0, g.y); ctx.lineTo(cw, g.y); }
+          ctx.stroke();
+        });
+        ctx.restore();
+      }
 
       // Cover spine guide lines
       if (tpl.hasSpine && !state.noSpine) {
@@ -882,25 +1180,50 @@
       return { x: px / scale, y: py / scale };
     }
 
+    let snapGuides = []; // [{type: 'v'|'h', x?, y?}]
+
     function hitTest(mm) {
       const scale = state.zoomLevel * 4;
       const ctx = $('previewCanvas').getContext('2d');
       const items = curSide().items;
       for (let i = items.length - 1; i >= 0; i--) {
         const it = items[i];
-        const fs = it.fontSize * scale;
-        ctx.font = `${it.bold ? '900' : '500'} ${fs}px Pretendard, sans-serif`;
-        const m = ctx.measureText(it.text || ' ');
-        const tw = m.width / scale;
-        let bx = it.x;
-        if (it.align === 'center') bx -= tw / 2;
-        else if (it.align === 'right') bx -= tw;
-        const by = it.y - it.fontSize / 2;
-        if (mm.x >= bx - 1 && mm.x <= bx + tw + 1 && mm.y >= by - 1 && mm.y <= by + it.fontSize + 1) {
-          return it;
+        const type = it.type || 'text';
+        if (type === 'text') {
+          const fs = it.fontSize * scale;
+          ctx.font = `${it.bold ? '900' : '500'} ${fs}px ${fontCss(it.font)}`;
+          const tw = ctx.measureText(it.text || ' ').width / scale;
+          let bx = it.x;
+          if (it.align === 'center') bx -= tw / 2;
+          else if (it.align === 'right') bx -= tw;
+          const by = it.y - it.fontSize / 2;
+          if (mm.x >= bx - 1 && mm.x <= bx + tw + 1 && mm.y >= by - 1 && mm.y <= by + it.fontSize + 1) return it;
+        } else {
+          const halfW = it.w / 2;
+          const halfH = (type === 'shape' && it.shape === 'line') ? Math.max(1, it.strokeWidth || 1) : it.h / 2;
+          if (Math.abs(mm.x - it.x) <= halfW + 0.5 && Math.abs(mm.y - it.y) <= halfH + 0.5) return it;
         }
       }
       return null;
+    }
+
+    function applySnap(sel) {
+      const { w, h } = getCanvasMm();
+      const guides = [];
+      const threshold = 1.5; // mm
+      const cxMm = w / 2, cyMm = h / 2;
+      const scale = state.zoomLevel * 4;
+      // center horizontal
+      if (Math.abs(sel.x - cxMm) < threshold) {
+        sel.x = cxMm;
+        guides.push({ type: 'v', x: cxMm * scale });
+      }
+      // center vertical
+      if (Math.abs(sel.y - cyMm) < threshold) {
+        sel.y = cyMm;
+        guides.push({ type: 'h', y: cyMm * scale });
+      }
+      snapGuides = guides;
     }
 
     $('previewCanvas').addEventListener('mousedown', e => {
@@ -922,17 +1245,28 @@
       if (!sel) return;
       sel.x = dragData.itemX + (mm.x - dragData.startX);
       sel.y = dragData.itemY + (mm.y - dragData.startY);
+      applySnap(sel);
       render();
     });
-    document.addEventListener('mouseup', () => { isDragging = false; });
+    document.addEventListener('mouseup', () => {
+      if (isDragging) { isDragging = false; snapGuides = []; pushHistory(); render(); scheduleSave(); }
+    });
 
     $('previewCanvas').addEventListener('wheel', e => {
       if (!state.selectedId) return;
       e.preventDefault();
       const sel = curSide().items.find(i => i.id === state.selectedId);
       if (!sel) return;
-      sel.fontSize = Math.max(4, Math.min(200, sel.fontSize + (e.deltaY < 0 ? 1 : -1)));
-      renderItemList(); render();
+      const type = sel.type || 'text';
+      const dir = e.deltaY < 0 ? 1 : -1;
+      if (type === 'text') {
+        sel.fontSize = Math.max(4, Math.min(200, sel.fontSize + dir));
+      } else {
+        const factor = dir > 0 ? 1.05 : 0.95;
+        sel.w = Math.max(2, sel.w * factor);
+        if (sel.shape !== 'line') sel.h = Math.max(2, (sel.h || sel.w) * factor);
+      }
+      renderItemList(); render(); scheduleSave();
     }, { passive: false });
 
     document.addEventListener('keydown', e => {
@@ -1240,9 +1574,26 @@
       $('sideTabBack').style.opacity = state.isDuplex ? '1' : '0.4';
       $('sideTabBack').style.cursor = state.isDuplex ? 'pointer' : 'not-allowed';
 
+      // Rehydrate image elements
+      loadedImgs.clear();
+      ['front', 'back'].forEach(side => {
+        state.sides[side].items.forEach(it => {
+          if ((it.type || 'text') === 'image' && it.dataUrl) {
+            const img = new Image();
+            img.onload = () => render();
+            img.src = it.dataUrl;
+            loadedImgs.set(it.id, img);
+          }
+        });
+      });
+
       switchSide('front');
       updatePaperInfo();
       zoomFit();
+
+      // Reset history with loaded snapshot
+      history = []; historyIndex = -1;
+      pushHistory();
     }
 
     let saveTimer = null;
