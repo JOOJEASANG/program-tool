@@ -296,6 +296,11 @@
           <button type="button" class="fold-btn active" data-fold="3">3단</button>
           <button type="button" class="fold-btn" data-fold="4">4단</button>
         </div>
+        <label style="margin-top:10px;">분할 방향</label>
+        <div class="fold-btns" id="foldDirBtns">
+          <button type="button" class="fold-btn active" data-dir="h">↔ 좌우 단</button>
+          <button type="button" class="fold-btn" data-dir="v">↕ 상하 단</button>
+        </div>
         <label class="checkline" style="margin-top:8px;">
           <input id="showFoldLines" type="checkbox" checked> 접지선 표시 (점선·음영)
         </label>
@@ -523,7 +528,7 @@
       // cover-specific
       spineW: 8, spineText: '', spineVertical: false, noSpine: false, spineOffsetY: 0,
       // leaflet-specific
-      foldCount: 3, showFoldLines: true,
+      foldCount: 3, showFoldLines: true, foldDirection: 'h',
       // common
       activeSide: 'front', isDuplex: false,
       showBleed: true,
@@ -553,6 +558,7 @@
       state.spineW = 8; state.spineText = ''; state.spineVertical = false; state.noSpine = false; state.spineOffsetY = 0;
       state.foldCount = tpl.defaultFold || 3;
       state.showFoldLines = true;
+      state.foldDirection = tpl.defaultFoldDir || 'h';
       state.activeSide = 'front';
       state.isDuplex = !!tpl.isDuplex;
 
@@ -624,6 +630,9 @@
       $('leafletSection').style.display = tpl.hasFold ? '' : 'none';
       $('foldBtns').querySelectorAll('.fold-btn').forEach(b => {
         b.classList.toggle('active', +b.dataset.fold === state.foldCount);
+      });
+      $('foldDirBtns').querySelectorAll('.fold-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.dir === (state.foldDirection || 'h'));
       });
       $('showFoldLines').checked = state.showFoldLines;
 
@@ -1188,16 +1197,18 @@
         ctx.fillText('앞표지', (paperW + state.spineW + paperW / 2) * scale, ch - 4);
       }
 
-      // Leaflet fold lines
+      // Leaflet/invitation fold lines (horizontal=좌우 단, vertical=상하 단)
       if (tpl.hasFold && state.showFoldLines) {
         const folds = state.foldCount;
-        const panelW = (cw / folds);
+        const dir = state.foldDirection || 'h';
+        const panelLen = (dir === 'h' ? cw : ch) / folds;
         ctx.save();
         // Tinted alternating panels
         for (let i = 0; i < folds; i++) {
           if (i % 2 === 1) {
             ctx.fillStyle = 'rgba(29,155,178,0.05)';
-            ctx.fillRect(i * panelW, 0, panelW, ch);
+            if (dir === 'h') ctx.fillRect(i * panelLen, 0, panelLen, ch);
+            else            ctx.fillRect(0, i * panelLen, cw, panelLen);
           }
         }
         // Fold lines
@@ -1206,8 +1217,8 @@
         ctx.lineWidth = Math.max(0.5, scale * 0.2);
         for (let i = 1; i < folds; i++) {
           ctx.beginPath();
-          ctx.moveTo(i * panelW, 0);
-          ctx.lineTo(i * panelW, ch);
+          if (dir === 'h') { ctx.moveTo(i * panelLen, 0); ctx.lineTo(i * panelLen, ch); }
+          else             { ctx.moveTo(0, i * panelLen); ctx.lineTo(cw, i * panelLen); }
           ctx.stroke();
         }
         // Panel numbers
@@ -1217,7 +1228,8 @@
         ctx.textAlign = 'center';
         ctx.textBaseline = 'top';
         for (let i = 0; i < folds; i++) {
-          ctx.fillText(`${i + 1}`, (i + 0.5) * panelW, 6);
+          if (dir === 'h') ctx.fillText(`${i + 1}`, (i + 0.5) * panelLen, 6);
+          else             ctx.fillText(`${i + 1}`, 14, (i + 0.5) * panelLen);
         }
         ctx.restore();
       }
@@ -1684,6 +1696,15 @@
       });
     });
     $('showFoldLines').addEventListener('change', e => { state.showFoldLines = e.target.checked; render(); });
+    $('foldDirBtns').querySelectorAll('.fold-btn').forEach(b => {
+      b.addEventListener('click', () => {
+        state.foldDirection = b.dataset.dir;
+        $('foldDirBtns').querySelectorAll('.fold-btn').forEach(x => x.classList.remove('active'));
+        b.classList.add('active');
+        render();
+        scheduleSave();
+      });
+    });
 
     // ── Paper / Bleed / Display ────────────────────────────────────────
     function applyPaperFromInputs() {
@@ -1794,7 +1815,7 @@
         landscape: state.landscape, bleed: state.bleed, showBleed: state.showBleed,
         spineW: state.spineW, spineText: state.spineText,
         spineVertical: state.spineVertical, noSpine: state.noSpine, spineOffsetY: state.spineOffsetY || 0,
-        foldCount: state.foldCount, showFoldLines: state.showFoldLines,
+        foldCount: state.foldCount, showFoldLines: state.showFoldLines, foldDirection: state.foldDirection || 'h',
         isDuplex: state.isDuplex,
         sides: {
           front: { ...state.sides.front },
@@ -1822,6 +1843,7 @@
       state.spineOffsetY = d.spineOffsetY ?? 0;
       state.foldCount = d.foldCount || 3;
       state.showFoldLines = d.showFoldLines ?? true;
+      state.foldDirection = d.foldDirection || 'h';
       state.isDuplex = !!d.isDuplex;
 
       ['front', 'back'].forEach(side => {
