@@ -118,32 +118,64 @@
     .divider { height: 1px; background: #f1f5f9; margin: 20px 0; }
 
     /* User permission management */
-    .user-card {
-      background: #f8fafc; border: 1.5px solid #e2e8f0;
-      border-radius: 14px; padding: 16px 18px; margin-bottom: 12px;
-    }
-    .user-card-header {
-      display: flex; align-items: center; gap: 12px; margin-bottom: 14px;
+    .user-toolbar {
+      display: flex; gap: 10px; align-items: center; margin-bottom: 12px;
       flex-wrap: wrap;
     }
-    .user-card-info { flex: 1; min-width: 0; }
-    .user-card-name { font-size: 14px; font-weight: 800; color: #0f172a; }
-    .user-card-email { font-size: 12px; color: #64748b; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .user-card-date { font-size: 11px; color: #94a3b8; font-weight: 600; white-space: nowrap; }
-    .user-card-actions { display: flex; gap: 6px; }
-    .user-card-actions .btn { padding: 6px 10px; font-size: 11px; }
-    .perm-list { display: flex; flex-direction: column; gap: 8px; }
-    .perm-row {
-      display: flex; align-items: center; justify-content: space-between;
-      background: #fff; border: 1.5px solid #e8edf3; border-radius: 10px;
-      padding: 10px 14px; gap: 10px;
+    .user-search {
+      flex: 1; min-width: 200px;
+      padding: 9px 14px; border: 1.5px solid #e2e8f0; border-radius: 10px;
+      font-size: 13px; font-family: inherit; outline: none; transition: border 0.15s;
+      background: #fff;
     }
-    .perm-row-label { font-size: 13px; font-weight: 700; color: #374151; flex: 1; }
+    .user-search:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,.1); }
+    .user-stats {
+      display: flex; gap: 14px; font-size: 12px; color: #475569; font-weight: 700;
+      background: #f1f5f9; padding: 8px 14px; border-radius: 10px; white-space: nowrap;
+    }
+    .user-stats b { color: #0f172a; font-weight: 900; }
+
+    .user-table {
+      border: 1.5px solid #e2e8f0; border-radius: 12px; overflow: hidden; background: #fff;
+    }
+    .user-row-head, .user-row {
+      display: grid;
+      grid-template-columns: minmax(180px, 2fr) repeat(3, 64px) 130px;
+      align-items: center; gap: 10px; padding: 10px 14px;
+    }
+    .user-row-head {
+      background: #f8fafc; border-bottom: 1.5px solid #e2e8f0;
+      font-size: 11px; color: #64748b; font-weight: 800; text-transform: uppercase; letter-spacing: 0.4px;
+    }
+    .user-row-head .col-prog {
+      text-align: center; cursor: help;
+    }
+    .user-row { border-bottom: 1px solid #f1f5f9; transition: background 0.1s; }
+    .user-row:last-child { border-bottom: none; }
+    .user-row:hover { background: #f8fafc; }
+    .user-cell-info { min-width: 0; }
+    .user-cell-name { font-size: 13px; font-weight: 800; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .user-cell-meta { font-size: 11px; color: #64748b; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .user-cell-prog { display: flex; justify-content: center; align-items: center; }
+    .user-cell-prog.public-cell .toggle-label { opacity: 0.5; }
+    .public-mark {
+      font-size: 9px; font-weight: 800; color: #15803d; background: #dcfce7;
+      padding: 1px 5px; border-radius: 4px; margin-top: 3px; display: inline-block;
+    }
+    .user-cell-actions { display: flex; gap: 5px; justify-content: flex-end; }
+    .user-cell-actions .btn { padding: 5px 9px; font-size: 11px; }
     .perm-status {
       font-size: 11px; font-weight: 800; padding: 3px 9px; border-radius: 999px;
     }
     .perm-status.approved { background: #dcfce7; color: #166534; }
     .perm-status.pending { background: #fef3c7; color: #92400e; }
+
+    @media (max-width: 720px) {
+      .user-row-head, .user-row {
+        grid-template-columns: minmax(150px, 1fr) repeat(3, 50px) 110px;
+        font-size: 12px; padding: 10px;
+      }
+    }
     /* Toggle switch */
     .toggle-label { position: relative; display: inline-block; width: 44px; height: 24px; cursor: pointer; }
     .toggle-label input { opacity: 0; width: 0; height: 0; }
@@ -224,8 +256,11 @@
   <div class="card">
     <div class="card-title">👥 회원 프로그램 관리</div>
     <div class="card-sub">
-      가입한 회원별로 프로그램 사용 승인을 관리합니다 (비공개 프로그램에만 적용됨).<br>
-      관리자 계정은 자동으로 모든 프로그램에 접근 가능합니다.
+      가입한 회원별로 프로그램 사용 승인을 관리합니다 (비공개 프로그램에만 적용됨). 관리자 계정은 목록에서 제외됩니다.
+    </div>
+    <div class="user-toolbar">
+      <input class="user-search" id="userSearch" type="text" placeholder="🔍 이름 또는 이메일 검색..." autocomplete="off">
+      <div class="user-stats" id="userStats">전체 <b>0</b>명</div>
     </div>
     <div id="userList"><div class="empty-users">로딩 중...</div></div>
     <div class="status-msg" id="permStatus"></div>
@@ -429,6 +464,7 @@ async function loadAdmins() {
     const doc = await db.collection('settings').doc('admin').get();
     adminEmails = doc.exists ? (doc.data().emails || []) : [];
     renderAdminList();
+    if (allUsers.length) renderUsers(); // refresh filter (exclude admins)
   } catch(e) { console.error(e); }
 }
 
@@ -506,62 +542,84 @@ const MANAGED_PROGRAMS = [
   { id: 'preflight', name: '인쇄 검수기', icon: '🔍' },
 ];
 
+let allUsers = [];
+
 async function loadUsers() {
   try {
     const snap = await db.collection('user_permissions').orderBy('createdAt', 'desc').get();
-    const users = snap.docs.map(d => ({ uid: d.id, ...d.data() }));
-    renderUsers(users);
+    allUsers = snap.docs.map(d => ({ uid: d.id, ...d.data() }));
+    renderUsers();
   } catch(e) {
-    document.getElementById('userList').innerHTML = '<div class="empty-users">불러오기 실패: ' + e.message + '</div>';
+    document.getElementById('userList').innerHTML = '<div class="empty-users">불러오기 실패: ' + escapeHtml(e.message) + '</div>';
   }
 }
 
-function renderUsers(users) {
+function renderUsers() {
   const list = document.getElementById('userList');
-  if (!users.length) {
-    list.innerHTML = '<div class="empty-users">아직 가입한 회원이 없습니다.</div>';
+  const adminSet = new Set(adminEmails.map(normalizeEmail));
+  const query = document.getElementById('userSearch').value.trim().toLowerCase();
+
+  // Exclude admins
+  let filtered = allUsers.filter(u => !adminSet.has(normalizeEmail(u.email)));
+  const total = filtered.length;
+
+  if (query) {
+    filtered = filtered.filter(u =>
+      (u.displayName || '').toLowerCase().includes(query)
+      || (u.email || '').toLowerCase().includes(query)
+    );
+  }
+
+  document.getElementById('userStats').innerHTML =
+    query ? `검색결과 <b>${filtered.length}</b>명 / 전체 <b>${total}</b>명` : `전체 <b>${total}</b>명`;
+
+  if (!filtered.length) {
+    list.innerHTML = `<div class="empty-users">${query ? '검색 결과가 없습니다.' : '아직 가입한 회원이 없습니다.'}</div>`;
     return;
   }
-  list.innerHTML = users.map(u => {
+
+  const head = `
+    <div class="user-row-head">
+      <div>회원 정보</div>
+      ${MANAGED_PROGRAMS.map(p => `<div class="col-prog" title="${escapeHtml(p.name)}">${p.icon}</div>`).join('')}
+      <div style="text-align:right;">일괄</div>
+    </div>`;
+
+  const rows = filtered.map(u => {
     const date = u.createdAt?.toDate?.()?.toLocaleDateString('ko-KR') || '-';
     const progs = u.programs || {};
     const safeUid = escapeHtml(u.uid);
     const safeName = escapeHtml(u.displayName || '이름 없음');
     const safeEmail = escapeHtml(u.email || '-');
     return `
-      <div class="user-card" id="ucard-${safeUid}">
-        <div class="user-card-header">
-          <div class="user-card-info">
-            <div class="user-card-name">${safeName}</div>
-            <div class="user-card-email">${safeEmail}</div>
-          </div>
-          <div class="user-card-date">${escapeHtml(date)}</div>
-          <div class="user-card-actions">
-            <button class="btn btn-primary" data-action="grant-all" data-uid="${safeUid}">전체 승인</button>
-            <button class="btn btn-danger" data-action="revoke-all" data-uid="${safeUid}">전체 취소</button>
-          </div>
+      <div class="user-row" id="urow-${safeUid}">
+        <div class="user-cell-info">
+          <div class="user-cell-name">${safeName}</div>
+          <div class="user-cell-meta">${safeEmail} · ${escapeHtml(date)}</div>
         </div>
-        <div class="perm-list">
-          ${MANAGED_PROGRAMS.map(p => {
-            const isPublic = !!publicAccess[p.id];
-            const approved = isPublic || !!progs[p.id];
-            return `
-              <div class="perm-row">
-                <span class="perm-row-label">${p.icon} ${escapeHtml(p.name)}${isPublic ? ' <span style="color:#16a34a;font-weight:700;font-size:11px;">(전체공개)</span>' : ''}</span>
-                <span class="perm-status ${approved ? 'approved' : 'pending'}" id="perm-status-${safeUid}-${p.id}">
-                  ${approved ? '✓ 승인됨' : '대기중'}
-                </span>
-                <label class="toggle-label">
-                  <input type="checkbox" ${approved ? 'checked' : ''} ${isPublic ? 'disabled' : ''}
-                    data-action="toggle-perm" data-uid="${safeUid}" data-prog="${p.id}">
-                  <span class="toggle-slider"></span>
-                </label>
-              </div>`;
-          }).join('')}
+        ${MANAGED_PROGRAMS.map(p => {
+          const isPublic = !!publicAccess[p.id];
+          const approved = isPublic || !!progs[p.id];
+          return `
+            <div class="user-cell-prog ${isPublic ? 'public-cell' : ''}" title="${escapeHtml(p.name)}${isPublic ? ' (전체공개)' : ''}">
+              <label class="toggle-label">
+                <input type="checkbox" ${approved ? 'checked' : ''} ${isPublic ? 'disabled' : ''}
+                  data-action="toggle-perm" data-uid="${safeUid}" data-prog="${p.id}">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>`;
+        }).join('')}
+        <div class="user-cell-actions">
+          <button class="btn btn-primary" data-action="grant-all" data-uid="${safeUid}" title="전체 승인">✓</button>
+          <button class="btn btn-danger" data-action="revoke-all" data-uid="${safeUid}" title="전체 취소">✗</button>
         </div>
       </div>`;
   }).join('');
+
+  list.innerHTML = `<div class="user-table">${head}${rows}</div>`;
 }
+
+document.getElementById('userSearch').addEventListener('input', () => renderUsers());
 
 document.getElementById('userList').addEventListener('click', e => {
   const btn = e.target.closest('[data-action]');
@@ -619,19 +677,19 @@ document.getElementById('publicList').addEventListener('change', async e => {
   }
 });
 
+function findUser(uid) { return allUsers.find(u => u.uid === uid); }
+
 async function togglePerm(uid, programId, approved) {
   try {
     await db.collection('user_permissions').doc(uid).update({
       [`programs.${programId}`]: approved,
     });
-    const statusEl = document.getElementById(`perm-status-${uid}-${programId}`);
-    if (statusEl) {
-      statusEl.className = 'perm-status ' + (approved ? 'approved' : 'pending');
-      statusEl.textContent = approved ? '✓ 승인됨' : '대기중';
-    }
+    const u = findUser(uid);
+    if (u) { u.programs = { ...(u.programs || {}), [programId]: approved }; }
     showStatus('permStatus', 'success', `${approved ? '승인' : '취소'}되었습니다.`);
   } catch(e) {
     showStatus('permStatus', 'error', '실패: ' + e.message);
+    renderUsers(); // revert UI
   }
 }
 
@@ -640,7 +698,12 @@ async function grantAll(uid) {
   MANAGED_PROGRAMS.forEach(p => { updates[`programs.${p.id}`] = true; });
   try {
     await db.collection('user_permissions').doc(uid).update(updates);
-    loadUsers();
+    const u = findUser(uid);
+    if (u) {
+      u.programs = u.programs || {};
+      MANAGED_PROGRAMS.forEach(p => { u.programs[p.id] = true; });
+    }
+    renderUsers();
     showStatus('permStatus', 'success', '전체 승인 완료.');
   } catch(e) { showStatus('permStatus', 'error', '실패: ' + e.message); }
 }
@@ -651,7 +714,12 @@ async function revokeAll(uid) {
   MANAGED_PROGRAMS.forEach(p => { updates[`programs.${p.id}`] = false; });
   try {
     await db.collection('user_permissions').doc(uid).update(updates);
-    loadUsers();
+    const u = findUser(uid);
+    if (u) {
+      u.programs = u.programs || {};
+      MANAGED_PROGRAMS.forEach(p => { u.programs[p.id] = false; });
+    }
+    renderUsers();
     showStatus('permStatus', 'info', '전체 취소되었습니다.');
   } catch(e) { showStatus('permStatus', 'error', '실패: ' + e.message); }
 }
