@@ -366,8 +366,30 @@
           </div>
           <div style="font-size:11px;font-weight:800;color:#6b7280;text-transform:uppercase;letter-spacing:0.4px;margin:14px 0 6px;">방법 ① AI 자동 생성</div>
           <div class="field">
-            <label>AI 배경 설명 <span style="color:#9ca3af;font-weight:400;">(원하는 분위기)</span></label>
-            <textarea id="aiDesc" rows="2" placeholder="예: 차분한 파란색 그라데이션, 따뜻한 빈티지 느낌..."></textarea>
+            <label>표지 종류</label>
+            <select id="coverType" style="width:100%;border:1px solid #e2e8f0;border-radius:8px;padding:7px 10px;font-size:13px;font-family:inherit;background:#fff;">
+              <option value="일반">일반</option>
+              <option value="보고서">보고서</option>
+              <option value="제안서">제안서</option>
+              <option value="기획서">기획서</option>
+              <option value="학교교재">학교교재</option>
+              <option value="학원교재">학원교재</option>
+              <option value="논문/연구보고서">논문/연구보고서</option>
+              <option value="소설/문학">소설/문학</option>
+              <option value="잡지/브로슈어">잡지/브로슈어</option>
+              <option value="아동도서">아동도서</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>배경 분위기 설명 <span style="color:#9ca3af;font-weight:400;">(선택)</span></label>
+            <textarea id="aiDesc" rows="2" placeholder="예: 차분한 네이비 계열, 깔끔하고 전문적인 느낌..."></textarea>
+          </div>
+          <div style="display:flex;gap:6px;margin-bottom:8px;align-items:center;">
+            <span style="font-size:11px;font-weight:800;color:#6b7280;">AI 모델</span>
+            <div style="display:flex;border:1.5px solid #e2e8f0;border-radius:8px;overflow:hidden;flex:1;">
+              <button id="aiProviderGemini" onclick="setAiProvider('google')" style="flex:1;border:none;padding:6px 4px;font-size:11px;font-weight:800;cursor:pointer;font-family:inherit;background:#eff6ff;color:#1d4ed8;">Gemini</button>
+              <button id="aiProviderGpt" onclick="setAiProvider('openai')" style="flex:1;border:none;border-left:1.5px solid #e2e8f0;padding:6px 4px;font-size:11px;font-weight:800;cursor:pointer;font-family:inherit;background:#fff;color:#6b7280;">GPT</button>
+            </div>
           </div>
           <button class="ai-btn" id="generateBgBtn" onclick="generateAiBg()">✨ AI 배경 생성</button>
           <div class="ai-status" id="aiStatus"></div>
@@ -377,11 +399,6 @@
             <button class="secondary" type="button" onclick="$('bgFile').click()" style="width:100%;padding:10px;background:#eff6ff;border:1.5px dashed #93c5fd;color:#1e40af;font-weight:800;">📁 배경 이미지 파일 선택</button>
             <input id="bgFile" type="file" accept="image/*" style="display:none;">
             <div class="smallnote" style="margin-top:4px;">JPG · PNG · WebP 등 일반 이미지 파일</div>
-          </div>
-          <div id="bgOpacityWrap" style="display:none;">
-            <label>배경 투명도</label>
-            <input id="bgOpacity" type="range" min="0.1" max="1" step="0.05" value="1">
-            <div class="minirow"><span>투명</span><span id="bgOpacityVal">100%</span><span>진하게</span></div>
           </div>
           <button class="secondary" id="clearBgBtn" onclick="clearBg()" style="width:100%;margin-top:6px;display:none;">배경 제거</button>
         </div>
@@ -540,6 +557,7 @@
       sides: {
         front: { items: [], bgColor: '#ffffff', bgData: '', bgOpacity: 1, noBg: false, aiDesc: '' },
         back:  { items: [], bgColor: '#ffffff', bgData: '', bgOpacity: 1, noBg: false, aiDesc: '' },
+        coverType: '일반',
       },
       selectedId: null,
       zoomLevel: 1,
@@ -657,12 +675,10 @@
       // Bg controls
       const s = curSide();
       $('bgColor').value = s.bgColor;
-      $('aiDesc').value = s.aiDesc;
+      $('aiDesc').value = s.aiDesc || '';
+      $('coverType').value = state.coverType || '일반';
       $('noBgCheck').checked = s.noBg;
       $('bgControls').style.display = s.noBg ? 'none' : '';
-      $('bgOpacity').value = s.bgOpacity;
-      $('bgOpacityVal').textContent = Math.round(s.bgOpacity * 100) + '%';
-      $('bgOpacityWrap').style.display = s.bgData ? '' : 'none';
       $('clearBgBtn').style.display = s.bgData ? '' : 'none';
 
       $('showBleed').checked = state.showBleed;
@@ -1050,7 +1066,7 @@
       ctx.fillRect(0, 0, cw, ch);
 
       if (bgImg && !s.noBg) {
-        ctx.globalAlpha = s.bgOpacity;
+        ctx.globalAlpha = 1;
         const r = Math.max(cw / bgImg.width, ch / bgImg.height);
         const iw = bgImg.width * r;
         const ih = bgImg.height * r;
@@ -1188,8 +1204,8 @@
         ctx.restore();
       }
 
-      // Cover spine guide lines
-      if (tpl.hasSpine && !state.noSpine) {
+      // Cover spine guide lines (hidden when background image is applied)
+      if (tpl.hasSpine && !state.noSpine && !state.sides.front.bgData) {
         const paperW = +$('paperW').value;
         const x1 = paperW * scale;
         const x2 = (paperW + state.spineW) * scale;
@@ -1571,9 +1587,8 @@
       }
       const r = new FileReader();
       r.onload = () => {
-        curSide().bgData = r.result; curSide().bgOpacity = 1;
+        curSide().bgData = r.result;
         loadBgImage(state.activeSide, r.result);
-        $('bgOpacityWrap').style.display = '';
         $('clearBgBtn').style.display = '';
         pushHistory();
         scheduleSave();
@@ -1581,13 +1596,8 @@
       r.readAsDataURL(f);
       e.target.value = '';
     });
-    $('bgOpacity').addEventListener('input', e => {
-      curSide().bgOpacity = +e.target.value;
-      $('bgOpacityVal').textContent = Math.round(curSide().bgOpacity * 100) + '%';
-      render();
-    });
-    $('bgOpacity').addEventListener('change', () => { pushHistory(); scheduleSave(); });
     $('aiDesc').addEventListener('input', e => { curSide().aiDesc = e.target.value; });
+    $('coverType').addEventListener('change', e => { state.coverType = e.target.value; });
 
     // ── Clear all items (start blank) ─────────────────────────────────
     function clearAllItems() {
@@ -1604,15 +1614,38 @@
 
     function clearBg() {
       const s = curSide();
-      s.bgData = ''; s.bgOpacity = 1;
+      s.bgData = '';
       bgImgs[state.activeSide] = null;
       $('bgFile').value = '';
-      $('bgOpacityWrap').style.display = 'none';
       $('clearBgBtn').style.display = 'none';
       pushHistory();
       render();
       scheduleSave();
     }
+
+    // ── AI provider selection ─────────────────────────────────────────
+    let _aiProvider = 'google'; // 'google' | 'openai'
+    function setAiProvider(p) {
+      _aiProvider = p;
+      $('aiProviderGemini').style.background = p === 'google' ? '#eff6ff' : '#fff';
+      $('aiProviderGemini').style.color = p === 'google' ? '#1d4ed8' : '#6b7280';
+      $('aiProviderGpt').style.background = p === 'openai' ? '#f0fdf4' : '#fff';
+      $('aiProviderGpt').style.color = p === 'openai' ? '#166534' : '#6b7280';
+    }
+
+    // Cover type → English descriptor for prompt
+    const COVER_TYPE_PROMPT = {
+      '일반': 'general document',
+      '보고서': 'formal corporate report',
+      '제안서': 'business proposal',
+      '기획서': 'business plan / project proposal',
+      '학교교재': 'school textbook',
+      '학원교재': 'private-academy workbook',
+      '논문/연구보고서': 'academic research paper',
+      '소설/문학': 'literary fiction novel',
+      '잡지/브로슈어': 'magazine or brochure',
+      '아동도서': 'children\'s book',
+    };
 
     async function generateAiBg() {
       const btn = $('generateBgBtn'), status = $('aiStatus');
@@ -1621,39 +1654,45 @@
       status.textContent = '⏳ AI가 배경 디자인 중... (10~30초)';
       try {
         const tpl = TEMPLATES[state.tplId];
-        const userDesc = (curSide().aiDesc || '').trim();
+        const userDesc = ($('aiDesc').value || '').trim();
+        const coverType = $('coverType').value || '일반';
+        const coverTypeEn = COVER_TYPE_PROMPT[coverType] || coverType;
         const itemTexts = curSide().items
           .filter(i => (i.type || 'text') === 'text' && (i.text || '').trim())
           .map(i => i.text).slice(0, 5).join(', ');
 
+        const noTextRule = `CRITICAL: Generate ONLY a pure graphic/visual background design — absolutely NO text, letters, numbers, words, titles, logos, watermarks, frames, borders, or any typographic elements anywhere in the image. The image must be entirely design-only, ready for text to be overlaid separately.`;
+
         let prompt;
         if (tpl.isSpread) {
-          // Cover spread: back cover (left) + spine (center, narrow) + front cover (right)
           const paperW = +$('paperW').value || 210;
+          const paperH = +$('paperH').value || 297;
+          const bleed = +(($('bleedInput') || {}).value) || 3;
           const spineW = state.noSpine ? 0 : (state.spineW || 0);
           const totalW = paperW * 2 + spineW;
           const backPct = Math.round((paperW / totalW) * 100);
-          const spinePct = Math.round((spineW / totalW) * 100);
-          const frontPct = 100 - backPct - spinePct;
+          const frontPct = 100 - backPct - Math.round((spineW / totalW) * 100);
           prompt =
-            `Wide panoramic book cover spread background, single seamless image laid out left-to-right as: ` +
-            `BACK COVER (left ${backPct}% of width) — calm, clean, minimal area suitable for blurb text and barcode; ` +
-            (spineW > 0 ? `SPINE (center ${spinePct}% — a thin vertical strip about ${spineW}mm wide) — solid or subtly textured color that bridges back and front; ` : '') +
-            `FRONT COVER (right ${frontPct}% of width) — strongest visual focus and rich detail, but keep the central area uncluttered to leave room for the title. ` +
-            `Style and color must flow continuously across the entire spread (no hard boundary between panels). ` +
-            `Aspect ratio approximately ${(totalW / +$('paperH').value).toFixed(2)}:1 wide. ` +
-            (userDesc ? `Mood/style: ${userDesc}. ` : '') +
-            (itemTexts ? `Theme keywords (do NOT render as text): ${itemTexts}. ` : '') +
-            `Strictly NO text, letters, numbers, logos, frames, borders, or watermarks anywhere. ` +
-            `Print-ready, high quality, professional book cover design.`;
+            `Professional ${coverTypeEn} book cover spread — full bleed background design filling the entire canvas edge-to-edge including bleed area (${bleed}mm bleed on all sides, total canvas ${totalW + bleed*2}×${paperH + bleed*2}mm). ` +
+            `Single seamless image: BACK COVER (left ${backPct}%) calm minimal area; FRONT COVER (right ${frontPct}%) visually strong focal design. ` +
+            `Colors and style flow continuously across the full spread with no hard dividing lines. ` +
+            (userDesc ? `Visual style: ${userDesc}. ` : '') +
+            (itemTexts ? `Theme (do NOT render as text): ${itemTexts}. ` : '') +
+            `Design should feel polished, sophisticated, and appropriate for a ${coverTypeEn}. ` +
+            noTextRule;
         } else {
-          let layoutHint;
-          if (tpl.hasFold) layoutHint = `${state.foldCount}-panel folded ${tpl.name}`;
-          else layoutHint = tpl.name;
-          prompt = `${userDesc ? userDesc + '. ' : ''}Design a professional background for a ${layoutHint}. ${itemTexts ? `Content theme: ${itemTexts}. ` : ''}Strictly NO text, letters, numbers, logos, borders, or watermarks. High quality, print-ready, clean composition.`;
+          const cw = getCanvasMm().w, ch = getCanvasMm().h;
+          const bleed = +(($('bleedInput') || {}).value) || 3;
+          let layoutHint = tpl.hasFold ? `${state.foldCount}-panel folded leaflet` : coverTypeEn;
+          prompt =
+            `Professional ${coverTypeEn} background design — full bleed, filling the entire canvas edge-to-edge (${cw + bleed*2}×${ch + bleed*2}mm including ${bleed}mm bleed). ` +
+            `Layout: ${layoutHint}. ` +
+            (userDesc ? `Visual style: ${userDesc}. ` : '') +
+            (itemTexts ? `Theme (do NOT render as text): ${itemTexts}. ` : '') +
+            `Design should be clean, modern, and appropriate for a ${coverTypeEn}. ` +
+            noTextRule;
         }
 
-        // Compute aspect ratio hint for the backend
         const cw = getCanvasMm().w, chMm = getCanvasMm().h;
         const aspect = cw >= chMm ? 'wide' : 'tall';
 
@@ -1661,7 +1700,7 @@
         const res = await fetch('/api/ai/generate-bg', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-          body: JSON.stringify({ prompt, aspect }),
+          body: JSON.stringify({ prompt, aspect, provider: _aiProvider }),
         });
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
@@ -1669,14 +1708,12 @@
         }
         const data = await res.json();
         curSide().bgData = 'data:image/png;base64,' + data.b64_json;
-        curSide().bgOpacity = 1;
         loadBgImage(state.activeSide, curSide().bgData);
-        $('bgOpacityWrap').style.display = '';
         $('clearBgBtn').style.display = '';
         pushHistory();
         scheduleSave();
         status.className = 'ai-status success';
-        status.textContent = '✓ AI 배경 생성 완료!';
+        status.textContent = '✓ AI 배경 생성 완료! (' + (data.provider === 'openai' ? 'GPT' : 'Gemini') + ')';
         setTimeout(() => { status.className = 'ai-status'; }, 3000);
       } catch (e) {
         status.className = 'ai-status error';
@@ -1851,6 +1888,7 @@
         spineW: state.spineW, spineText: state.spineText,
         spineVertical: state.spineVertical, noSpine: state.noSpine, spineOffsetY: state.spineOffsetY || 0, spineColor: state.spineColor || '#12396d',
         foldCount: state.foldCount, showFoldLines: state.showFoldLines, foldDirection: state.foldDirection || 'h',
+        coverType: state.coverType || '일반',
         isDuplex: state.isDuplex,
         sides: {
           front: { ...state.sides.front },
@@ -1880,6 +1918,7 @@
       state.foldCount = d.foldCount || 3;
       state.showFoldLines = d.showFoldLines ?? true;
       state.foldDirection = d.foldDirection || 'h';
+      state.coverType = d.coverType || '일반';
       state.isDuplex = !!d.isDuplex;
 
       ['front', 'back'].forEach(side => {

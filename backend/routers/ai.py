@@ -50,10 +50,12 @@ def generate_bg(uid):
     data = request.get_json() or {}
     prompt = (data.get("prompt") or "").strip()
     aspect = (data.get("aspect") or "").strip().lower()
+    provider_req = (data.get("provider") or "").strip().lower()
     if not prompt:
         return jsonify({"detail": "프롬프트가 없습니다."}), 400
 
-    provider = get_ai_provider("image")
+    # Allow per-request provider override; fall back to system setting
+    provider = provider_req if provider_req in ("google", "openai") else get_ai_provider("image")
     try:
         if provider == "openai":
             img_bytes = _generate_with_openai(prompt, aspect)
