@@ -260,6 +260,10 @@
             <label>책등 문구</label>
             <input id="spineText" type="text" placeholder="책등 텍스트">
           </div>
+          <div class="field">
+            <label>책등 글씨 색상</label>
+            <input id="spineColor" type="color" value="#12396d" style="width:100%;height:34px;border:1.5px solid #e2e8f0;border-radius:8px;cursor:pointer;padding:2px 4px;">
+          </div>
           <label class="checkline">
             <input id="spineVertical" type="checkbox"> 책등 세로 배치
           </label>
@@ -534,7 +538,7 @@
       tplId: initialTpl,
       paperW: 210, paperH: 297, landscape: false, bleed: 3,
       // cover-specific
-      spineW: 8, spineText: '', spineVertical: false, noSpine: false, spineOffsetY: 0,
+      spineW: 8, spineText: '', spineVertical: false, noSpine: false, spineOffsetY: 0, spineColor: '#12396d',
       // leaflet-specific
       foldCount: 3, showFoldLines: true, foldDirection: 'h',
       // common
@@ -563,7 +567,7 @@
       state.paperW = tpl.size[0]; state.paperH = tpl.size[1];
       state.landscape = tpl.orient === 'landscape';
       state.bleed = 3;
-      state.spineW = 8; state.spineText = ''; state.spineVertical = false; state.noSpine = false; state.spineOffsetY = 0;
+      state.spineW = 8; state.spineText = ''; state.spineVertical = false; state.noSpine = false; state.spineOffsetY = 0; state.spineColor = '#12396d';
       state.foldCount = tpl.defaultFold || 3;
       state.showFoldLines = true;
       state.foldDirection = tpl.defaultFoldDir || 'h';
@@ -632,6 +636,7 @@
       $('noSpine').checked = state.noSpine;
       $('spineW').value = state.spineW;
       $('spineText').value = state.spineText;
+      $('spineColor').value = state.spineColor || '#12396d';
       $('spineVertical').checked = state.spineVertical;
       $('spineDetails').style.display = state.noSpine ? 'none' : '';
 
@@ -817,6 +822,7 @@
         spineW: state.spineW, spineText: state.spineText,
         spineVertical: state.spineVertical, noSpine: state.noSpine,
         spineOffsetY: state.spineOffsetY || 0,
+        spineColor: state.spineColor || '#12396d',
         foldDirection: state.foldDirection || 'h',
         foldCount: state.foldCount,
         showFoldLines: state.showFoldLines,
@@ -836,6 +842,7 @@
       state.spineW = snap.spineW; state.spineText = snap.spineText;
       state.spineVertical = snap.spineVertical; state.noSpine = snap.noSpine;
       state.spineOffsetY = snap.spineOffsetY || 0;
+      state.spineColor = snap.spineColor || '#12396d';
       if (snap.foldDirection !== undefined) state.foldDirection = snap.foldDirection;
       if (snap.foldCount !== undefined) state.foldCount = snap.foldCount;
       if (snap.showFoldLines !== undefined) state.showFoldLines = snap.showFoldLines;
@@ -1107,7 +1114,7 @@
         const sx = (paperW + spineW / 2) * scale;
         const spineOffPx = (state.spineOffsetY || 0) * scale;
         const spineCy = ch / 2 + spineOffPx;
-        ctx.fillStyle = state.selectedId === '__spine__' ? '#1d9bb2' : '#12396d';
+        ctx.fillStyle = state.selectedId === '__spine__' ? '#1d9bb2' : (state.spineColor || '#12396d');
         if (state.spineVertical) {
           const chars = state.spineText.split('');
           const charSize = Math.max(3, Math.min(spineW * 0.65, 9)) * scale;
@@ -1903,6 +1910,8 @@
     });
     $('spineW').addEventListener('input', e => { state.spineW = +e.target.value || 0; updatePaperInfo(); zoomFit(); });
     $('spineText').addEventListener('input', e => { state.spineText = e.target.value; render(); });
+    $('spineColor').addEventListener('input', e => { state.spineColor = e.target.value; render(); });
+    $('spineColor').addEventListener('change', () => { pushHistory(); scheduleSave(); });
     $('spineVertical').addEventListener('change', e => { state.spineVertical = e.target.checked; render(); });
 
     // ── Leaflet controls ───────────────────────────────────────────────
@@ -2035,7 +2044,7 @@
         paperW: state.paperW, paperH: state.paperH,
         landscape: state.landscape, bleed: state.bleed, showBleed: state.showBleed,
         spineW: state.spineW, spineText: state.spineText,
-        spineVertical: state.spineVertical, noSpine: state.noSpine, spineOffsetY: state.spineOffsetY || 0,
+        spineVertical: state.spineVertical, noSpine: state.noSpine, spineOffsetY: state.spineOffsetY || 0, spineColor: state.spineColor || '#12396d',
         foldCount: state.foldCount, showFoldLines: state.showFoldLines, foldDirection: state.foldDirection || 'h',
         isDuplex: state.isDuplex,
         sides: {
@@ -2062,6 +2071,7 @@
       state.spineVertical = !!d.spineVertical;
       state.noSpine = !!d.noSpine;
       state.spineOffsetY = d.spineOffsetY ?? 0;
+      state.spineColor = d.spineColor || '#12396d';
       state.foldCount = d.foldCount || 3;
       state.showFoldLines = d.showFoldLines ?? true;
       state.foldDirection = d.foldDirection || 'h';
