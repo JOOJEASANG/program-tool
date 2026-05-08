@@ -253,49 +253,71 @@ def remove_blank(uid):
 @pdf_tools_bp.route("/ocr", methods=["POST"])
 @require_auth
 def ocr(uid):
-    """Use Gemini to extract text from each page; embed as invisible text layer."""
+    """Extract text from each page (Gemini or GPT-4o); embed as invisible text layer."""
     try:
-        from utils.api_key import get_google_api_key
-        from google import genai
-        from google.genai import types as gtypes
-
-        api_key = get_google_api_key()
-        if not api_key:
-            return jsonify({"detail": "Google API 키가 없습니다. 관리자 페이지에서 등록해 주세요."}), 500
+        from utils.api_key import get_google_api_key, get_openai_api_key, get_ai_provider
 
         data = _read_pdf()
         src = fitz.open(stream=data, filetype="pdf")
         if len(src) > 30:
             return jsonify({"detail": "OCR은 30페이지 이하 PDF만 지원합니다."}), 413
 
-        client = genai.Client(api_key=api_key)
+        provider = get_ai_provider("ocr")
+        OCR_PROMPT = "이 이미지에 있는 모든 텍스트를 정확히 추출해서 줄바꿈을 그대로 유지해 출력해 주세요. 텍스트만 출력하고 다른 설명은 하지 마세요."
+
+        if provider == "openai":
+            from openai import OpenAI
+            api_key = get_openai_api_key()
+            if not api_key:
+                return jsonify({"detail": "OpenAI API 키가 없습니다. 관리자 페이지에서 등록해 주세요."}), 500
+            oai = OpenAI(api_key=api_key)
+
+            def _extract(img_bytes: bytes) -> str:
+                import base64 as _b64
+                b64 = _b64.b64encode(img_bytes).decode("utf-8")
+                r = oai.chat.completions.create(
+                    model="gpt-4o-mini",
+                    messages=[{"role": "user", "content": [
+                        {"type": "text", "text": OCR_PROMPT},
+                        {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{b64}"}},
+                    ]}],
+                    max_tokens=2048,
+                )
+                return r.choices[0].message.content or ""
+        else:
+            from google import genai
+            from google.genai import types as gtypes
+            api_key = get_google_api_key()
+            if not api_key:
+                return jsonify({"detail": "Google API 키가 없습니다. 관리자 페이지에서 등록해 주세요."}), 500
+            gclient = genai.Client(api_key=api_key)
+
+            def _extract(img_bytes: bytes) -> str:
+                r = gclient.models.generate_content(
+                    model="gemini-2.5-flash",
+                    contents=[OCR_PROMPT, gtypes.Part.from_bytes(data=img_bytes, mime_type="image/jpeg")],
+                )
+                return r.text or ""
+
         out = fitz.open(stream=data, filetype="pdf")
         for i, page in enumerate(out):
             if page.get_text("text").strip():
                 continue  # already has selectable text
             pix = page.get_pixmap(dpi=200)
             img_bytes = pix.tobytes("jpeg", jpg_quality=85)
-            response = client.models.generate_content(
-                model="gemini-2.5-flash",
-                contents=[
-                    "이 이미지에 있는 모든 텍스트를 정확히 추출해서 줄바꿈을 그대로 유지해 출력해 주세요. 텍스트만 출력하고 다른 설명은 하지 마세요.",
-                    gtypes.Part.from_bytes(data=img_bytes, mime_type="image/jpeg"),
-                ],
-            )
-            extracted = (response.text or "").strip()
+            extracted = _extract(img_bytes).strip()
             if not extracted:
                 continue
-            # Insert as invisible text covering the page so it's searchable
             page.insert_textbox(
                 page.rect, extracted,
                 fontsize=8, fontname="helv",
-                color=(0, 0, 0), render_mode=3,  # render_mode 3 = invisible
+                color=(0, 0, 0), render_mode=3,
                 align=0,
             )
 
         buf = io.BytesIO()
         out.save(buf)
-        log_ai_usage(uid, "ocr")
+        log_ai_usage(uid, f"ocr_{provider}")
         return _pdf_response(buf.getvalue(), "ocr.pdf")
     except Exception as e:
         return jsonify({"detail": f"OCR 실패: {e}"}), 500

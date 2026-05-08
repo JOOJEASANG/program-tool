@@ -281,7 +281,7 @@
       <div class="card">
         <div class="card-title">🤖 Google AI API 키</div>
         <div class="card-sub">
-          디자인 스튜디오 AI 배경 생성(Imagen 3)과 인쇄 검수 AI 분석(Gemini)에 사용됩니다.
+          Gemini · Imagen 모델 사용 시 필요. (디자인 스튜디오 AI 배경, 인쇄 검수, OCR 등)
         </div>
 
         <div id="keyCurrentWrap" style="display:none; margin-bottom:16px;">
@@ -296,7 +296,7 @@
           <label for="apiKeyInput">새 API 키 입력</label>
           <div class="input-wrap">
             <input type="password" id="apiKeyInput" placeholder="AIzaSy..." autocomplete="off" />
-            <button class="input-toggle" onclick="toggleKeyVisibility()">보기</button>
+            <button class="input-toggle" onclick="toggleKeyVisibility('apiKeyInput')">보기</button>
           </div>
         </div>
         <div class="btn-row">
@@ -310,6 +310,77 @@
           </button>
         </div>
         <div class="status-msg" id="keyStatus"></div>
+      </div>
+
+      <!-- OpenAI API Key -->
+      <div class="card">
+        <div class="card-title">🧠 OpenAI (GPT) API 키</div>
+        <div class="card-sub">
+          GPT · DALL·E 모델 사용 시 필요. 아래 'AI 제공자' 설정에서 OpenAI를 선택한 기능에서 사용됩니다.
+        </div>
+
+        <div id="openaiKeyCurrentWrap" style="display:none; margin-bottom:16px;">
+          <label>현재 저장된 키</label>
+          <div class="key-display">
+            <span class="key-val" id="openaiKeyPreview">-</span>
+            <button class="btn btn-danger btn-sm" style="padding:6px 12px;font-size:12px;" onclick="deleteOpenaiKey()">삭제</button>
+          </div>
+        </div>
+
+        <div>
+          <label for="openaiKeyInput">새 API 키 입력</label>
+          <div class="input-wrap">
+            <input type="password" id="openaiKeyInput" placeholder="sk-..." autocomplete="off" />
+            <button class="input-toggle" onclick="toggleKeyVisibility('openaiKeyInput')">보기</button>
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="saveOpenaiKey()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4l2 3h6a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg>
+            저장
+          </button>
+          <button class="btn btn-secondary" onclick="testOpenaiKey()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            키 테스트
+          </button>
+        </div>
+        <div class="status-msg" id="openaiKeyStatus"></div>
+      </div>
+
+      <!-- AI Provider selection -->
+      <div class="card">
+        <div class="card-title">⚙️ AI 제공자 설정</div>
+        <div class="card-sub">기능별로 사용할 AI 모델을 선택합니다. (각 키가 등록되어 있어야 동작)</div>
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <div>
+            <label for="aiProviderImage">🎨 이미지 생성 (디자인 스튜디오 배경)</label>
+            <select id="aiProviderImage">
+              <option value="google">Google · Imagen 4</option>
+              <option value="openai">OpenAI · gpt-image-1</option>
+            </select>
+          </div>
+          <div>
+            <label for="aiProviderVision">🔍 비전 분석 (인쇄 사전 검수)</label>
+            <select id="aiProviderVision">
+              <option value="google">Google · Gemini 2.5 Flash</option>
+              <option value="openai">OpenAI · GPT-4o-mini</option>
+            </select>
+          </div>
+          <div>
+            <label for="aiProviderOcr">📝 OCR (PDF 텍스트 추출)</label>
+            <select id="aiProviderOcr">
+              <option value="google">Google · Gemini 2.5 Flash</option>
+              <option value="openai">OpenAI · GPT-4o-mini</option>
+            </select>
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="saveAiProviders()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4l2 3h6a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg>
+            저장
+          </button>
+        </div>
+        <div class="status-msg" id="aiProviderStatus"></div>
       </div>
 
       <!-- Business Info -->
@@ -472,6 +543,8 @@ auth.onAuthStateChanged(async user => {
   }
   document.getElementById('adminContent').style.display = 'block';
   loadApiKey();
+  loadOpenaiKey();
+  loadAiProviders();
   loadAdmins();
   loadPublicAccess();
   loadUsers();
@@ -571,11 +644,104 @@ async function testApiKey() {
   }
 }
 
-function toggleKeyVisibility() {
-  const input = document.getElementById('apiKeyInput');
+function toggleKeyVisibility(inputId) {
+  // Backwards compat: if no arg, default to apiKeyInput
+  const input = document.getElementById(inputId || 'apiKeyInput');
   const btn = input.nextElementSibling;
   if (input.type === 'password') { input.type = 'text'; btn.textContent = '숨기기'; }
   else { input.type = 'password'; btn.textContent = '보기'; }
+}
+
+// ── OpenAI API key ───────────────────────────────
+async function loadOpenaiKey() {
+  try {
+    const doc = await db.collection('settings').doc('config').get();
+    const data = doc.exists ? doc.data() : {};
+    const key = data.openaiApiKey;
+    if (key) {
+      document.getElementById('openaiKeyCurrentWrap').style.display = 'block';
+      document.getElementById('openaiKeyPreview').textContent = key.slice(0,7) + '••••••••••••••••' + key.slice(-4);
+    } else {
+      document.getElementById('openaiKeyCurrentWrap').style.display = 'none';
+    }
+  } catch(e) { console.error(e); }
+}
+
+async function saveOpenaiKey() {
+  const key = document.getElementById('openaiKeyInput').value.trim();
+  if (!key) return showStatus('openaiKeyStatus', 'error', 'API 키를 입력해주세요.');
+  if (!key.startsWith('sk-')) return showStatus('openaiKeyStatus', 'error', 'OpenAI 키는 보통 "sk-"로 시작합니다.');
+  try {
+    await db.collection('settings').doc('config').set({ openaiApiKey: key }, { merge: true });
+    document.getElementById('openaiKeyInput').value = '';
+    showStatus('openaiKeyStatus', 'success', '✓ OpenAI 키가 저장되었습니다.');
+    loadOpenaiKey();
+  } catch(e) {
+    showStatus('openaiKeyStatus', 'error', '저장 실패: ' + e.message);
+  }
+}
+
+async function deleteOpenaiKey() {
+  if (!confirm('OpenAI 키를 삭제할까요?')) return;
+  try {
+    await db.collection('settings').doc('config').update({
+      openaiApiKey: firebase.firestore.FieldValue.delete(),
+    });
+    document.getElementById('openaiKeyCurrentWrap').style.display = 'none';
+    showStatus('openaiKeyStatus', 'info', 'OpenAI 키가 삭제되었습니다.');
+  } catch(e) {
+    showStatus('openaiKeyStatus', 'error', '삭제 실패: ' + e.message);
+  }
+}
+
+async function testOpenaiKey() {
+  const inputKey = document.getElementById('openaiKeyInput').value.trim();
+  let keyToTest = inputKey;
+  if (!keyToTest) {
+    try {
+      const doc = await db.collection('settings').doc('config').get();
+      keyToTest = (doc.exists ? doc.data() : {}).openaiApiKey || '';
+    } catch(e) {}
+  }
+  if (!keyToTest) return showStatus('openaiKeyStatus', 'error', '테스트할 키가 없습니다.');
+  showStatus('openaiKeyStatus', 'info', '테스트 중...');
+  try {
+    const res = await fetch('https://api.openai.com/v1/models', {
+      headers: { 'Authorization': 'Bearer ' + keyToTest }
+    });
+    if (res.ok) showStatus('openaiKeyStatus', 'success', '✓ OpenAI 키가 유효합니다.');
+    else {
+      const err = await res.json().catch(() => ({}));
+      showStatus('openaiKeyStatus', 'error', '키 오류: ' + (err.error?.message || res.status));
+    }
+  } catch(e) {
+    showStatus('openaiKeyStatus', 'error', '연결 실패: ' + e.message);
+  }
+}
+
+// ── AI provider preferences ──────────────────────
+async function loadAiProviders() {
+  try {
+    const doc = await db.collection('settings').doc('config').get();
+    const p = (doc.exists && doc.data().aiProviders) || {};
+    document.getElementById('aiProviderImage').value = p.image || 'google';
+    document.getElementById('aiProviderVision').value = p.vision || 'google';
+    document.getElementById('aiProviderOcr').value = p.ocr || 'google';
+  } catch(e) { console.error(e); }
+}
+
+async function saveAiProviders() {
+  const aiProviders = {
+    image: document.getElementById('aiProviderImage').value,
+    vision: document.getElementById('aiProviderVision').value,
+    ocr: document.getElementById('aiProviderOcr').value,
+  };
+  try {
+    await db.collection('settings').doc('config').set({ aiProviders }, { merge: true });
+    showStatus('aiProviderStatus', 'success', '✓ AI 제공자 설정이 저장되었습니다.');
+  } catch(e) {
+    showStatus('aiProviderStatus', 'error', '저장 실패: ' + e.message);
+  }
 }
 
 // ── Admin management ─────────────────────────────
