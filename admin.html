@@ -37,13 +37,27 @@
       padding: 4px 10px; border-radius: 999px; letter-spacing: 0.3px;
     }
 
-    main { padding: 80px 24px 40px; max-width: 860px; margin: 0 auto; }
+    main { padding: 80px 32px 40px; max-width: 1480px; margin: 0 auto; }
     .page-title { font-size: 22px; font-weight: 900; color: #0f172a; letter-spacing: -0.5px; margin-bottom: 4px; }
-    .page-sub { font-size: 14px; color: #64748b; margin-bottom: 32px; }
+    .page-sub { font-size: 14px; color: #64748b; margin-bottom: 28px; }
+
+    .admin-grid {
+      display: grid; grid-template-columns: 380px 1fr; gap: 24px;
+      align-items: start;
+    }
+    .admin-col-left, .admin-col-right { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+    .admin-col-right > .card { margin-bottom: 0; }
+    .admin-col-left > .card { margin-bottom: 0; }
+    .admin-col-right .card { padding-bottom: 24px; }
+
+    @media (max-width: 1100px) {
+      .admin-grid { grid-template-columns: 1fr; }
+      main { padding: 80px 20px 40px; }
+    }
 
     .card {
       background: #fff; border-radius: 18px; border: 1.5px solid #e8edf3;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.04); padding: 28px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04); padding: 24px;
       margin-bottom: 20px;
     }
     .card-title {
@@ -239,89 +253,100 @@
 
 <main id="adminContent" style="display:none;">
   <div class="page-title">관리자 설정</div>
-  <div class="page-sub">API 키와 관리자 계정을 관리합니다.</div>
+  <div class="page-sub">프로그램·회원·API 키를 관리합니다.</div>
 
-  <!-- Program public access -->
-  <div class="card">
-    <div class="card-title">🌐 프로그램 공개 설정</div>
-    <div class="card-sub">
-      <strong>전체 공개</strong>로 설정하면 모든 회원이 개별 승인 없이 해당 프로그램을 즉시 사용할 수 있습니다.<br>
-      개별 회원 승인이 필요하면 <strong>비공개</strong>로 두세요.
-    </div>
-    <div id="publicList"><div class="empty-users">로딩 중...</div></div>
-    <div class="status-msg" id="publicStatus"></div>
-  </div>
+  <div class="admin-grid">
 
-  <!-- User program management -->
-  <div class="card">
-    <div class="card-title">👥 회원 프로그램 관리</div>
-    <div class="card-sub">
-      가입한 회원별로 프로그램 사용 승인을 관리합니다 (비공개 프로그램에만 적용됨). 관리자 계정은 목록에서 제외됩니다.
-    </div>
-    <div class="user-toolbar">
-      <input class="user-search" id="userSearch" type="text" placeholder="🔍 이름 또는 이메일 검색..." autocomplete="off">
-      <div class="user-stats" id="userStats">전체 <b>0</b>명</div>
-    </div>
-    <div id="userList"><div class="empty-users">로딩 중...</div></div>
-    <div class="status-msg" id="permStatus"></div>
-  </div>
+    <!-- LEFT COLUMN: Settings -->
+    <div class="admin-col-left">
 
-  <!-- OpenAI API Key -->
-  <div class="card">
-    <div class="card-title">🤖 Google AI API 키</div>
-    <div class="card-sub">
-      디자인 스튜디오 AI 배경 생성(Imagen 3)과 인쇄 검수 AI 분석(Gemini)에 사용됩니다.<br>
-      키는 Firestore에 저장되며 로그인한 관리자만 접근 가능합니다.
-    </div>
-
-    <div id="keyCurrentWrap" style="display:none; margin-bottom:16px;">
-      <label>현재 저장된 키</label>
-      <div class="key-display">
-        <span class="key-val" id="keyPreview">-</span>
-        <button class="btn btn-danger btn-sm" style="padding:6px 12px;font-size:12px;" onclick="deleteApiKey()">삭제</button>
+      <!-- Program public access -->
+      <div class="card">
+        <div class="card-title">🌐 프로그램 공개 설정</div>
+        <div class="card-sub">
+          <strong>전체 공개</strong>로 설정하면 모든 회원이 개별 승인 없이 해당 프로그램을 사용할 수 있습니다.
+        </div>
+        <div id="publicList"><div class="empty-users">로딩 중...</div></div>
+        <div class="status-msg" id="publicStatus"></div>
       </div>
-    </div>
 
-    <div>
-      <label for="apiKeyInput">새 API 키 입력</label>
-      <div class="input-wrap">
-        <input type="password" id="apiKeyInput" placeholder="AIzaSy..." autocomplete="off" />
-        <button class="input-toggle" onclick="toggleKeyVisibility()">보기</button>
+      <!-- Google AI API Key -->
+      <div class="card">
+        <div class="card-title">🤖 Google AI API 키</div>
+        <div class="card-sub">
+          디자인 스튜디오 AI 배경 생성(Imagen 3)과 인쇄 검수 AI 분석(Gemini)에 사용됩니다.
+        </div>
+
+        <div id="keyCurrentWrap" style="display:none; margin-bottom:16px;">
+          <label>현재 저장된 키</label>
+          <div class="key-display">
+            <span class="key-val" id="keyPreview">-</span>
+            <button class="btn btn-danger btn-sm" style="padding:6px 12px;font-size:12px;" onclick="deleteApiKey()">삭제</button>
+          </div>
+        </div>
+
+        <div>
+          <label for="apiKeyInput">새 API 키 입력</label>
+          <div class="input-wrap">
+            <input type="password" id="apiKeyInput" placeholder="AIzaSy..." autocomplete="off" />
+            <button class="input-toggle" onclick="toggleKeyVisibility()">보기</button>
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="saveApiKey()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4l2 3h6a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg>
+            저장
+          </button>
+          <button class="btn btn-secondary" onclick="testApiKey()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            키 테스트
+          </button>
+        </div>
+        <div class="status-msg" id="keyStatus"></div>
       </div>
-    </div>
-    <div class="btn-row">
-      <button class="btn btn-primary" onclick="saveApiKey()">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4l2 3h6a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg>
-        저장
-      </button>
-      <button class="btn btn-secondary" onclick="testApiKey()">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-        키 테스트
-      </button>
-    </div>
-    <div class="status-msg" id="keyStatus"></div>
-  </div>
 
-  <!-- Admin accounts -->
-  <div class="card">
-    <div class="card-title">👤 관리자 계정</div>
-    <div class="card-sub">관리자 페이지에 접근할 수 있는 이메일 목록입니다.</div>
+      <!-- Admin accounts -->
+      <div class="card">
+        <div class="card-title">👤 관리자 계정</div>
+        <div class="card-sub">관리자 페이지에 접근할 수 있는 이메일 목록입니다.</div>
 
-    <div class="admin-list" id="adminList"></div>
+        <div class="admin-list" id="adminList"></div>
 
-    <div class="divider"></div>
+        <div class="divider"></div>
 
-    <div>
-      <label for="newAdminEmail">관리자 이메일 추가</label>
-      <input type="email" id="newAdminEmail" placeholder="admin@example.com" />
+        <div>
+          <label for="newAdminEmail">관리자 이메일 추가</label>
+          <input type="email" id="newAdminEmail" placeholder="admin@example.com" />
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="addAdmin()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            추가
+          </button>
+        </div>
+        <div class="status-msg" id="adminStatus"></div>
+      </div>
+
     </div>
-    <div class="btn-row">
-      <button class="btn btn-primary" onclick="addAdmin()">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        추가
-      </button>
+
+    <!-- RIGHT COLUMN: User management -->
+    <div class="admin-col-right">
+
+      <div class="card">
+        <div class="card-title">👥 회원 프로그램 관리</div>
+        <div class="card-sub">
+          가입한 회원별로 프로그램 사용 승인을 관리합니다 (비공개 프로그램에만 적용됨). 관리자 계정은 목록에서 제외됩니다.
+        </div>
+        <div class="user-toolbar">
+          <input class="user-search" id="userSearch" type="text" placeholder="🔍 이름 또는 이메일 검색..." autocomplete="off">
+          <div class="user-stats" id="userStats">전체 <b>0</b>명</div>
+        </div>
+        <div id="userList"><div class="empty-users">로딩 중...</div></div>
+        <div class="status-msg" id="permStatus"></div>
+      </div>
+
     </div>
-    <div class="status-msg" id="adminStatus"></div>
+
   </div>
 </main>
 
