@@ -1,9 +1,9 @@
-import os
 import base64
 from flask import Blueprint, request, jsonify
 from google import genai
 from google.genai import types
 from utils.auth import require_auth
+from utils.api_key import get_google_api_key
 
 ai_bp = Blueprint("ai", __name__)
 
@@ -11,9 +11,9 @@ ai_bp = Blueprint("ai", __name__)
 @ai_bp.route("/generate-bg", methods=["POST"])
 @require_auth
 def generate_bg(uid):
-    api_key = os.getenv("GOOGLE_API_KEY")
+    api_key = get_google_api_key()
     if not api_key:
-        return jsonify({"detail": "GOOGLE_API_KEY가 설정되지 않았습니다."}), 500
+        return jsonify({"detail": "Google API 키가 설정되지 않았습니다. 관리자 페이지에서 키를 등록해 주세요."}), 500
 
     data = request.get_json()
     prompt = data.get("prompt", "").strip()

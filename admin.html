@@ -182,16 +182,20 @@
 <div id="authLoading"><div class="spinner"></div></div>
 
 <header>
-  <a class="logo" href="dashboard.html">
+  <a class="logo" href="index.html?stay=1">
     <div class="logo-icon">🛠️</div>
     <span class="logo-text">Program Tool</span>
   </a>
   <div class="header-right">
     <span class="badge-admin">⚙️ 관리자</span>
-    <a class="back-btn" href="dashboard.html">
+    <a class="back-btn" href="index.html?stay=1">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
-      대시보드
+      메인 페이지
     </a>
+    <button class="back-btn" id="logoutBtn" style="background:#fef2f2;color:#dc2626;border-color:#fecaca;cursor:pointer;font-family:inherit;">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+      로그아웃
+    </button>
   </div>
 </header>
 
@@ -246,7 +250,7 @@
     <div>
       <label for="apiKeyInput">새 API 키 입력</label>
       <div class="input-wrap">
-        <input type="password" id="apiKeyInput" placeholder="sk-..." autocomplete="off" />
+        <input type="password" id="apiKeyInput" placeholder="AIzaSy..." autocomplete="off" />
         <button class="input-toggle" onclick="toggleKeyVisibility()">보기</button>
       </div>
     </div>
@@ -341,10 +345,13 @@ async function checkIsAdmin(email) {
 async function loadApiKey() {
   try {
     const doc = await db.collection('settings').doc('config').get();
-    if (doc.exists && doc.data().openaiKey) {
-      const key = doc.data().openaiKey;
+    const data = doc.exists ? doc.data() : {};
+    const key = data.googleApiKey || data.openaiKey; // backward compat
+    if (key) {
       document.getElementById('keyCurrentWrap').style.display = 'block';
       document.getElementById('keyPreview').textContent = key.slice(0,7) + '••••••••••••••••' + key.slice(-4);
+    } else {
+      document.getElementById('keyCurrentWrap').style.display = 'none';
     }
   } catch(e) { console.error(e); }
 }
@@ -353,7 +360,11 @@ async function saveApiKey() {
   const key = document.getElementById('apiKeyInput').value.trim();
   if (!key) return showStatus('keyStatus', 'error', 'API 키를 입력해주세요.');
   try {
-    await db.collection('settings').doc('config').set({ openaiKey: key }, { merge: true });
+    // Save under googleApiKey and clear legacy openaiKey field
+    await db.collection('settings').doc('config').set({
+      googleApiKey: key,
+      openaiKey: firebase.firestore.FieldValue.delete(),
+    }, { merge: true });
     document.getElementById('apiKeyInput').value = '';
     showStatus('keyStatus', 'success', '✓ API 키가 저장되었습니다.');
     loadApiKey();
@@ -365,7 +376,10 @@ async function saveApiKey() {
 async function deleteApiKey() {
   if (!confirm('API 키를 삭제할까요?')) return;
   try {
-    await db.collection('settings').doc('config').update({ openaiKey: firebase.firestore.FieldValue.delete() });
+    await db.collection('settings').doc('config').update({
+      googleApiKey: firebase.firestore.FieldValue.delete(),
+      openaiKey: firebase.firestore.FieldValue.delete(),
+    });
     document.getElementById('keyCurrentWrap').style.display = 'none';
     showStatus('keyStatus', 'info', 'API 키가 삭제되었습니다.');
   } catch(e) {
@@ -382,20 +396,19 @@ async function testApiKey() {
   if (!keyToTest) {
     try {
       const doc = await db.collection('settings').doc('config').get();
-      keyToTest = doc.exists ? doc.data().openaiKey : '';
+      const data = doc.exists ? doc.data() : {};
+      keyToTest = data.googleApiKey || data.openaiKey || '';
     } catch(e) {}
   }
   if (!keyToTest) return showStatus('keyStatus', 'error', '테스트할 API 키가 없습니다.');
 
   showStatus('keyStatus', 'info', '테스트 중...');
   try {
-    const res = await fetch('https://api.openai.com/v1/models', {
-      headers: { 'Authorization': `Bearer ${keyToTest}` }
-    });
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(keyToTest)}`);
     if (res.ok) {
-      showStatus('keyStatus', 'success', '✓ API 키가 유효합니다. 연결 성공!');
+      showStatus('keyStatus', 'success', '✓ Google API 키가 유효합니다. 연결 성공!');
     } else {
-      const err = await res.json();
+      const err = await res.json().catch(() => ({}));
       showStatus('keyStatus', 'error', '키 오류: ' + (err.error?.message || res.status));
     }
   } catch(e) {
@@ -481,6 +494,9 @@ function showStatus(id, type, msg) {
 }
 
 document.getElementById('apiKeyInput').addEventListener('keydown', e => { if (e.key === 'Enter') saveApiKey(); });
+document.getElementById('logoutBtn').addEventListener('click', () => {
+  auth.signOut().then(() => window.location.href = 'login.html');
+});
 document.getElementById('newAdminEmail').addEventListener('keydown', e => { if (e.key === 'Enter') addAdmin(); });
 
 // ── Program permission management ────────────────

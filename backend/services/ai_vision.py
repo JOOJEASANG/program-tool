@@ -1,11 +1,10 @@
 """
 Google Gemini Vision-based pre-flight analysis.
 """
-import base64
-import os
 import fitz
 from google import genai
 from google.genai import types
+from utils.api_key import get_google_api_key
 
 RENDER_DPI = 150
 MAX_PAGES_TO_ANALYZE = 3
@@ -31,9 +30,9 @@ def _render_page_to_bytes(page: fitz.Page, dpi: int = RENDER_DPI) -> bytes:
 
 
 def analyze_with_vision(doc: fitz.Document) -> str:
-    api_key = os.getenv("GOOGLE_API_KEY")
+    api_key = get_google_api_key()
     if not api_key:
-        return "AI 분석을 사용하려면 GOOGLE_API_KEY 환경변수를 설정해주세요."
+        return "AI 분석을 사용하려면 관리자 페이지에서 Google API 키를 등록해주세요."
 
     client = genai.Client(api_key=api_key)
     pages_to_check = min(len(doc), MAX_PAGES_TO_ANALYZE)
