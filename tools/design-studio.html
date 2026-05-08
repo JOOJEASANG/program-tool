@@ -364,14 +364,7 @@
             <label>배경색</label>
             <input id="bgColor" type="color" value="#ffffff">
           </div>
-          <div style="font-size:11px;font-weight:800;color:#6b7280;text-transform:uppercase;letter-spacing:0.4px;margin:14px 0 6px;">방법 ① 무늬 패턴 (자동 적용)</div>
-          <div>
-            <label>패턴 색상</label>
-            <input id="patternColor" type="color" value="#1d9bb2" style="height:30px;">
-          </div>
-          <div id="patternGrid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-top:6px;"></div>
-
-          <div style="font-size:11px;font-weight:800;color:#6b7280;text-transform:uppercase;letter-spacing:0.4px;margin:18px 0 6px;">방법 ② AI 자동 생성</div>
+          <div style="font-size:11px;font-weight:800;color:#6b7280;text-transform:uppercase;letter-spacing:0.4px;margin:14px 0 6px;">방법 ① AI 자동 생성</div>
           <div class="field">
             <label>AI 배경 설명 <span style="color:#9ca3af;font-weight:400;">(원하는 분위기)</span></label>
             <textarea id="aiDesc" rows="2" placeholder="예: 차분한 파란색 그라데이션, 따뜻한 빈티지 느낌..."></textarea>
@@ -379,7 +372,7 @@
           <button class="ai-btn" id="generateBgBtn" onclick="generateAiBg()">✨ AI 배경 생성</button>
           <div class="ai-status" id="aiStatus"></div>
 
-          <div style="font-size:11px;font-weight:800;color:#6b7280;text-transform:uppercase;letter-spacing:0.4px;margin:18px 0 6px;">방법 ③ 직접 이미지 업로드</div>
+          <div style="font-size:11px;font-weight:800;color:#6b7280;text-transform:uppercase;letter-spacing:0.4px;margin:18px 0 6px;">방법 ② 직접 이미지 업로드</div>
           <div class="field">
             <button class="secondary" type="button" onclick="$('bgFile').click()" style="width:100%;padding:10px;background:#eff6ff;border:1.5px dashed #93c5fd;color:#1e40af;font-weight:800;">📁 배경 이미지 파일 선택</button>
             <input id="bgFile" type="file" accept="image/*" style="display:none;">
@@ -629,7 +622,6 @@
       $('paperH').value = state.landscape ? Math.min(state.paperW, state.paperH) : Math.max(state.paperW, state.paperH);
       $('orientToggle').checked = state.landscape;
       $('bleedInput').value = state.bleed;
-      renderPatternGrid();
 
       // Cover section
       $('coverSection').style.display = tpl.hasSpine ? '' : 'none';
@@ -1569,8 +1561,7 @@
       $('bgControls').style.display = e.target.checked ? 'none' : '';
       render(); scheduleSave();
     });
-    $('bgColor').addEventListener('input', e => { curSide().bgColor = e.target.value; renderPatternGrid(); render(); scheduleSave(); });
-    $('patternColor').addEventListener('input', () => renderPatternGrid());
+    $('bgColor').addEventListener('input', e => { curSide().bgColor = e.target.value; render(); scheduleSave(); });
     $('bgFile').addEventListener('change', e => {
       const f = e.target.files?.[0]; if (!f) return;
       if (f.size > 10 * 1024 * 1024) {
@@ -1609,192 +1600,6 @@
       renderItemList();
       render();
       scheduleSave();
-    }
-
-    // ── Background pattern presets ───────────────────────────────────
-    const BG_PATTERNS = [
-      { id: 'none',     name: '없음' },
-      { id: 'dots',     name: '점무늬' },
-      { id: 'grid',     name: '격자' },
-      { id: 'lines-h',  name: '가로줄' },
-      { id: 'lines-v',  name: '세로줄' },
-      { id: 'diag',     name: '사선' },
-      { id: 'check',    name: '체크' },
-      { id: 'cross',    name: '십자' },
-      { id: 'wave',     name: '물결' },
-      { id: 'triangle', name: '삼각' },
-      { id: 'gradient', name: '그라데' },
-      { id: 'radial',   name: '원형' },
-    ];
-
-    function generatePatternDataUrl(patternId, fgColor, bgColor) {
-      // Render a small tile and let drawImage tile it across the bg layer
-      const tile = document.createElement('canvas');
-      tile.width = 80; tile.height = 80;
-      const ctx = tile.getContext('2d');
-      ctx.fillStyle = bgColor || '#ffffff';
-      ctx.fillRect(0, 0, 80, 80);
-      ctx.fillStyle = fgColor || '#1d9bb2';
-      ctx.strokeStyle = fgColor || '#1d9bb2';
-      ctx.lineWidth = 1;
-      switch (patternId) {
-        case 'dots':
-          for (let y = 10; y < 80; y += 20)
-            for (let x = 10; x < 80; x += 20) {
-              ctx.beginPath(); ctx.arc(x, y, 2, 0, Math.PI * 2); ctx.fill();
-            }
-          break;
-        case 'grid':
-          ctx.beginPath();
-          for (let i = 0; i <= 80; i += 20) { ctx.moveTo(0, i); ctx.lineTo(80, i); ctx.moveTo(i, 0); ctx.lineTo(i, 80); }
-          ctx.stroke();
-          break;
-        case 'lines-h':
-          ctx.beginPath();
-          for (let i = 0; i <= 80; i += 12) { ctx.moveTo(0, i); ctx.lineTo(80, i); }
-          ctx.stroke();
-          break;
-        case 'lines-v':
-          ctx.beginPath();
-          for (let i = 0; i <= 80; i += 12) { ctx.moveTo(i, 0); ctx.lineTo(i, 80); }
-          ctx.stroke();
-          break;
-        case 'diag':
-          ctx.lineWidth = 1.5;
-          ctx.beginPath();
-          for (let i = -80; i <= 160; i += 14) { ctx.moveTo(i, 0); ctx.lineTo(i + 80, 80); }
-          ctx.stroke();
-          break;
-        case 'check':
-          ctx.fillRect(0, 0, 40, 40);
-          ctx.fillRect(40, 40, 40, 40);
-          break;
-        case 'cross':
-          ctx.lineWidth = 2;
-          for (let y = 20; y <= 60; y += 40)
-            for (let x = 20; x <= 60; x += 40) {
-              ctx.beginPath();
-              ctx.moveTo(x - 4, y); ctx.lineTo(x + 4, y);
-              ctx.moveTo(x, y - 4); ctx.lineTo(x, y + 4);
-              ctx.stroke();
-            }
-          break;
-        case 'wave':
-          ctx.lineWidth = 1.5;
-          for (let yo = 0; yo < 80; yo += 16) {
-            ctx.beginPath();
-            for (let x = 0; x <= 80; x++) {
-              const y = yo + Math.sin(x * Math.PI / 20) * 3;
-              if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-            }
-            ctx.stroke();
-          }
-          break;
-        case 'triangle':
-          for (let y = 0; y < 80; y += 20)
-            for (let x = 0; x < 80; x += 20) {
-              ctx.beginPath();
-              ctx.moveTo(x + 10, y + 4);
-              ctx.lineTo(x + 16, y + 14);
-              ctx.lineTo(x + 4, y + 14);
-              ctx.closePath();
-              ctx.fill();
-            }
-          break;
-      }
-      return tile.toDataURL('image/png');
-    }
-
-    function generateGradientDataUrl(kind, fgColor, bgColor) {
-      // Full-canvas gradient sized to current canvas
-      const { w: pw, h: ph } = getCanvasMm();
-      const cv = document.createElement('canvas');
-      const px = 800;
-      cv.width = px; cv.height = Math.round(px * ph / pw);
-      const ctx = cv.getContext('2d');
-      let g;
-      if (kind === 'radial') {
-        g = ctx.createRadialGradient(cv.width / 2, cv.height / 2, 0, cv.width / 2, cv.height / 2, Math.max(cv.width, cv.height) / 1.2);
-        g.addColorStop(0, fgColor); g.addColorStop(1, bgColor);
-      } else { // linear
-        g = ctx.createLinearGradient(0, 0, cv.width, cv.height);
-        g.addColorStop(0, fgColor); g.addColorStop(1, bgColor);
-      }
-      ctx.fillStyle = g;
-      ctx.fillRect(0, 0, cv.width, cv.height);
-      return cv.toDataURL('image/png');
-    }
-
-    function applyPattern(patternId) {
-      const fg = $('patternColor').value || '#1d9bb2';
-      const bg = curSide().bgColor || '#ffffff';
-      if (patternId === 'none') {
-        clearBg();
-        return;
-      }
-      let dataUrl;
-      if (patternId === 'gradient' || patternId === 'radial') {
-        dataUrl = generateGradientDataUrl(patternId, fg, bg);
-      } else {
-        // Tile the pattern across a canvas-sized image
-        const tileSrc = generatePatternDataUrl(patternId, fg, bg);
-        const { w: pw, h: ph } = getCanvasMm();
-        const cv = document.createElement('canvas');
-        const px = 1200;
-        cv.width = px; cv.height = Math.round(px * ph / pw);
-        const ctx = cv.getContext('2d');
-        const img = new Image();
-        img.onload = () => {
-          const pat = ctx.createPattern(img, 'repeat');
-          ctx.fillStyle = bg; ctx.fillRect(0, 0, cv.width, cv.height);
-          ctx.fillStyle = pat;
-          ctx.fillRect(0, 0, cv.width, cv.height);
-          curSide().bgData = cv.toDataURL('image/png');
-          curSide().bgOpacity = 1;
-          loadBgImage(state.activeSide, curSide().bgData);
-          $('bgOpacityWrap').style.display = '';
-          $('clearBgBtn').style.display = '';
-          pushHistory();
-          scheduleSave();
-        };
-        img.src = tileSrc;
-        return;
-      }
-      curSide().bgData = dataUrl;
-      curSide().bgOpacity = 1;
-      loadBgImage(state.activeSide, dataUrl);
-      $('bgOpacityWrap').style.display = '';
-      $('clearBgBtn').style.display = '';
-      pushHistory();
-      scheduleSave();
-    }
-
-    function renderPatternGrid() {
-      const grid = $('patternGrid');
-      if (!grid) return;
-      const fg = $('patternColor').value || '#1d9bb2';
-      const bg = curSide().bgColor || '#ffffff';
-      grid.innerHTML = '';
-      BG_PATTERNS.forEach(p => {
-        let preview = '';
-        if (p.id === 'none') {
-          preview = `background:repeating-linear-gradient(45deg,#fee2e2 0 4px,#fff 4px 8px);`;
-        } else if (p.id === 'gradient') {
-          preview = `background:linear-gradient(135deg,${fg},${bg});`;
-        } else if (p.id === 'radial') {
-          preview = `background:radial-gradient(circle at center,${fg},${bg});`;
-        } else {
-          const url = generatePatternDataUrl(p.id, fg, bg);
-          preview = `background:${bg} url(${url}) repeat;background-size:32px;`;
-        }
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.title = p.name;
-        btn.style.cssText = `border:1.5px solid #e5e7eb;border-radius:8px;height:42px;padding:0;cursor:pointer;${preview};font-size:9px;color:#374151;font-weight:700;display:flex;align-items:flex-end;justify-content:center;padding-bottom:2px;`;
-        btn.textContent = p.name;
-        btn.addEventListener('click', () => applyPattern(p.id));
-        grid.appendChild(btn);
-      });
     }
 
     function clearBg() {
