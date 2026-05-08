@@ -32,8 +32,20 @@ class WatermarkSettings(BaseModel):
     color: str = "#cccccc"
 
 
+class HeaderFooterSection(BaseModel):
+    """Per-range header/footer override. ranges is e.g. '1-3,5'; empty = all pages."""
+    ranges: str = ""
+    header_left: str = ""
+    header_center: str = ""
+    header_right: str = ""
+    footer_left: str = ""
+    footer_center: str = ""
+    footer_right: str = ""
+
+
 class HeaderFooterSettings(BaseModel):
     enabled: bool = False
+    # Default fields apply to pages not covered by any section
     header_left: str = ""
     header_center: str = ""
     header_right: str = ""
@@ -42,6 +54,7 @@ class HeaderFooterSettings(BaseModel):
     footer_right: str = ""
     font_size: float = 10.0
     color: str = "#333333"
+    sections: list[HeaderFooterSection] = []
 
 
 class PageNumberSettings(BaseModel):

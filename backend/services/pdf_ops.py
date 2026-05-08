@@ -4,6 +4,8 @@ All operations preserve PDF vector/text quality — no rasterization of source p
 """
 import io
 import math
+import re
+from datetime import date
 from typing import Optional
 import fitz  # PyMuPDF
 
@@ -197,9 +199,57 @@ def _apply_watermark(page: fitz.Page, settings: WatermarkSettings):
     shape.commit()
 
 
-def _apply_header_footer(page: fitz.Page, settings: HeaderFooterSettings, page_width: float, page_height: float):
+def _parse_page_ranges(spec: str, total_pages: int) -> set[int]:
+    """Parse '1-3,5,7-9' → {1,2,3,5,7,8,9} (1-indexed). Empty = all pages."""
+    if not spec or not spec.strip():
+        return set(range(1, total_pages + 1))
+    pages: set[int] = set()
+    for chunk in re.split(r"[,\s]+", spec.strip()):
+        if not chunk:
+            continue
+        m = re.match(r"^(\d+)\s*-\s*(\d+)$", chunk)
+        if m:
+            a, b = int(m.group(1)), int(m.group(2))
+            for p in range(min(a, b), max(a, b) + 1):
+                if 1 <= p <= total_pages:
+                    pages.add(p)
+        else:
+            try:
+                p = int(chunk)
+                if 1 <= p <= total_pages:
+                    pages.add(p)
+            except ValueError:
+                pass
+    return pages
+
+
+def _resolve_hf_fields(settings: HeaderFooterSettings, page_num: int, total_pages: int):
+    """Pick the section that applies to page_num (last match wins). Falls back to top-level fields."""
+    if settings.sections:
+        for s in reversed(settings.sections):
+            if page_num in _parse_page_ranges(s.ranges, total_pages):
+                return s
+    return settings  # top-level fields as default
+
+
+def _hf_substitute(text: str, page_num: int, total_pages: int) -> str:
+    if not text:
+        return text
+    return (
+        text.replace("{n}", str(page_num))
+        .replace("{total}", str(total_pages))
+        .replace("{date}", date.today().isoformat())
+    )
+
+
+def _apply_header_footer(
+    page: fitz.Page, settings: HeaderFooterSettings,
+    page_width: float, page_height: float,
+    output_page_num: int = 1, total_pages: int = 1,
+):
     if not settings.enabled:
         return
+    fields = _resolve_hf_fields(settings, output_page_num, total_pages)
     color = _hex_to_rgb(settings.color)
     fs = settings.font_size
     left_x = HF_MARGIN_PT
@@ -207,6 +257,7 @@ def _apply_header_footer(page: fitz.Page, settings: HeaderFooterSettings, page_w
     right_x = page_width - HF_MARGIN_PT
 
     def insert(text: str, x: float, y: float, align: int):
+        text = _hf_substitute(text, output_page_num, total_pages)
         if not text:
             return
         page.insert_text(
@@ -221,12 +272,12 @@ def _apply_header_footer(page: fitz.Page, settings: HeaderFooterSettings, page_w
     header_y = HF_MARGIN_PT + fs
     footer_y = page_height - HF_MARGIN_PT
 
-    insert(settings.header_left, left_x, header_y, 0)
-    insert(settings.header_center, center_x, header_y, 1)
-    insert(settings.header_right, right_x, header_y, 2)
-    insert(settings.footer_left, left_x, footer_y, 0)
-    insert(settings.footer_center, center_x, footer_y, 1)
-    insert(settings.footer_right, right_x, footer_y, 2)
+    insert(fields.header_left, left_x, header_y, 0)
+    insert(fields.header_center, center_x, header_y, 1)
+    insert(fields.header_right, right_x, header_y, 2)
+    insert(fields.footer_left, left_x, footer_y, 0)
+    insert(fields.footer_center, center_x, footer_y, 1)
+    insert(fields.footer_right, right_x, footer_y, 2)
 
 
 def _apply_page_numbers(page: fitz.Page, settings: PageNumberSettings,
@@ -306,7 +357,7 @@ def process_pdf(
             )
             out_page = out_doc[-1]
             _apply_watermark(out_page, request.watermark)
-            _apply_header_footer(out_page, request.header_footer, paper_w_pt, paper_h_pt)
+            _apply_header_footer(out_page, request.header_footer, paper_w_pt, paper_h_pt, output_page_idx + 1, total_output_pages)
             _apply_page_numbers(out_page, request.page_numbers, output_page_idx, total_output_pages, paper_w_pt, paper_h_pt)
             output_page_idx += 1
             continue
@@ -349,7 +400,7 @@ def process_pdf(
                 shape.commit()
 
         _apply_watermark(out_page, request.watermark)
-        _apply_header_footer(out_page, request.header_footer, paper_w_pt, paper_h_pt)
+        _apply_header_footer(out_page, request.header_footer, paper_w_pt, paper_h_pt, output_page_idx + 1, total_output_pages)
         _apply_page_numbers(out_page, request.page_numbers, output_page_idx, total_output_pages, paper_w_pt, paper_h_pt)
         output_page_idx += 1
 

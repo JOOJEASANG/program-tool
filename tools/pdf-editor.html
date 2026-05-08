@@ -114,6 +114,39 @@
     .hf-row-label { font-size: 10px; color: #374151; font-weight: 800; margin: 5px 0 3px; }
     .hf-var-hint { font-size: 10px; color: #9ca3af; margin-bottom: 5px; line-height: 1.4; }
 
+    /* Header/footer sections (per-range overrides) */
+    .hf-section-card {
+      border: 1px solid #e2e8f0; border-radius: 9px;
+      background: #f8fafc; padding: 9px 10px; margin-bottom: 6px;
+    }
+    .hf-section-head {
+      display: flex; align-items: center; gap: 6px; margin-bottom: 6px;
+    }
+    .hf-section-head .hf-range-input {
+      flex: 1; border: 1px solid #d1d5db; border-radius: 6px;
+      padding: 5px 8px; font-size: 11px; font-family: inherit; outline: none; background: #fff;
+    }
+    .hf-section-head .hf-range-input:focus { border-color: #2563eb; }
+    .hf-section-head .hf-section-label {
+      font-size: 10px; font-weight: 800; color: #64748b; white-space: nowrap;
+    }
+    .hf-section-del {
+      background: none; border: none; color: #94a3b8; font-size: 14px;
+      cursor: pointer; padding: 2px 6px; line-height: 1; font-family: inherit;
+    }
+    .hf-section-del:hover { color: #ef4444; }
+    .hf-add-section-btn {
+      width: 100%; background: #eff6ff; border: 1.5px dashed #93c5fd;
+      color: #1d4ed8; border-radius: 8px; padding: 7px;
+      font-size: 11px; font-weight: 800; cursor: pointer; font-family: inherit;
+      margin-top: 4px; margin-bottom: 8px;
+    }
+    .hf-add-section-btn:hover { background: #dbeafe; }
+    .hf-default-label {
+      font-size: 10px; font-weight: 800; color: #15803d; background: #dcfce7;
+      padding: 2px 7px; border-radius: 4px;
+    }
+
     /* Page number position */
     .pn-pos-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-bottom: 8px; }
     .pn-pos-btn { border: 1.5px solid var(--line); border-radius: 6px; padding: 5px 2px; font-size: 9px; font-weight: 800; color: #374151; background: #fff; cursor: pointer; font-family: inherit; text-align: center; transition: all 0.12s; }
@@ -408,24 +441,37 @@
           머리말/꼬리말 표시
         </label>
         <div id="hfSettings" style="display:none;">
-          <div class="hf-var-hint">변수: {n}=페이지번호 · {total}=전체 · {date}=날짜</div>
-          <div class="grid3" style="margin-bottom:2px;">
-            <div class="hf-col-label">좌</div>
-            <div class="hf-col-label">가운데</div>
-            <div class="hf-col-label">우</div>
+          <div class="hf-var-hint">변수: {n}=페이지번호 · {total}=전체 · {date}=날짜<br>구간을 추가하면 해당 페이지에는 구간 설정이 우선 적용됩니다.</div>
+
+          <!-- Default section (전체 페이지) -->
+          <div class="hf-section-card">
+            <div class="hf-section-head">
+              <span class="hf-default-label">전체 페이지 (기본)</span>
+              <span class="hf-section-label" style="margin-left:auto;">구간 미지정 시 적용</span>
+            </div>
+            <div class="grid3" style="margin-bottom:2px;">
+              <div class="hf-col-label">좌</div>
+              <div class="hf-col-label">가운데</div>
+              <div class="hf-col-label">우</div>
+            </div>
+            <div class="hf-row-label">머리말</div>
+            <div class="hf-grid" style="margin-bottom:5px;">
+              <input class="hf-input" id="hfHL" placeholder="좌">
+              <input class="hf-input" id="hfHC" placeholder="가운데">
+              <input class="hf-input" id="hfHR" placeholder="우">
+            </div>
+            <div class="hf-row-label">꼬리말</div>
+            <div class="hf-grid">
+              <input class="hf-input" id="hfFL" placeholder="좌">
+              <input class="hf-input" id="hfFC" placeholder="가운데">
+              <input class="hf-input" id="hfFR" placeholder="우">
+            </div>
           </div>
-          <div class="hf-row-label">머리말</div>
-          <div class="hf-grid" style="margin-bottom:5px;">
-            <input class="hf-input" id="hfHL" placeholder="좌">
-            <input class="hf-input" id="hfHC" placeholder="가운데">
-            <input class="hf-input" id="hfHR" placeholder="우">
-          </div>
-          <div class="hf-row-label">꼬리말</div>
-          <div class="hf-grid" style="margin-bottom:6px;">
-            <input class="hf-input" id="hfFL" placeholder="좌">
-            <input class="hf-input" id="hfFC" placeholder="가운데">
-            <input class="hf-input" id="hfFR" placeholder="우">
-          </div>
+
+          <!-- Per-range sections list -->
+          <div id="hfSectionsList"></div>
+          <button type="button" class="hf-add-section-btn" id="hfAddSectionBtn">+ 구간별 다르게 설정</button>
+
           <div class="grid2">
             <div class="field"><label>글자크기(pt)</label><input type="number" id="hfFontSize" value="9" min="6" max="18"></div>
             <div class="field"><label>색상</label><input type="color" id="hfColor" value="#555555"></div>
@@ -662,6 +708,9 @@ let wmEnabled = false, wmText = '사본', wmOpacity = 0.15, wmAngle = -45, wmCol
 let hfEnabled = false;
 let hfHL = '', hfHC = '', hfHR = '', hfFL = '', hfFC = '', hfFR = '';
 let hfFontSize = 9, hfColor = '#555555';
+// Per-range HF sections: [{ranges, header_left, header_center, header_right, footer_left, footer_center, footer_right}]
+let hfSections = [];
+let _hfSecId = 1;
 // Page number
 let pnEnabled = false, pnPosition = 'bottom-center', pnFormat = 'number';
 let pnStart = 1, pnFontSize = 10, pnColor = '#333333', pnExcludeFirst = false;
@@ -1471,6 +1520,11 @@ $('downloadBtn').addEventListener('click', async () => {
         footer_left: hfFL, footer_center: hfFC, footer_right: hfFR,
         font_size: hfFontSize,
         color: hfColor,
+        sections: hfSections.map(s => ({
+          ranges: s.ranges || '',
+          header_left: s.header_left || '', header_center: s.header_center || '', header_right: s.header_right || '',
+          footer_left: s.footer_left || '', footer_center: s.footer_center || '', footer_right: s.footer_right || '',
+        })),
       },
       page_numbers: {
         enabled: pnEnabled,
@@ -1569,6 +1623,61 @@ $('hfFC').addEventListener('input', () => { hfFC = $('hfFC').value; });
 $('hfFR').addEventListener('input', () => { hfFR = $('hfFR').value; });
 $('hfFontSize').addEventListener('input', () => { hfFontSize = parseFloat($('hfFontSize').value) || 9; });
 $('hfColor').addEventListener('input', () => { hfColor = $('hfColor').value; });
+
+// HF Sections (per-range overrides)
+function renderHfSections() {
+  const list = $('hfSectionsList');
+  list.innerHTML = hfSections.map(s => `
+    <div class="hf-section-card" data-sid="${s._id}">
+      <div class="hf-section-head">
+        <span class="hf-section-label">구간</span>
+        <input class="hf-range-input" placeholder="페이지 범위 (예: 1-5,7,9-12)" value="${(s.ranges||'').replace(/"/g,'&quot;')}">
+        <button type="button" class="hf-section-del" title="구간 삭제">×</button>
+      </div>
+      <div class="grid3" style="margin-bottom:2px;">
+        <div class="hf-col-label">좌</div>
+        <div class="hf-col-label">가운데</div>
+        <div class="hf-col-label">우</div>
+      </div>
+      <div class="hf-row-label">머리말</div>
+      <div class="hf-grid" style="margin-bottom:5px;">
+        <input class="hf-input" data-fld="header_left"   placeholder="좌"      value="${(s.header_left||'').replace(/"/g,'&quot;')}">
+        <input class="hf-input" data-fld="header_center" placeholder="가운데"  value="${(s.header_center||'').replace(/"/g,'&quot;')}">
+        <input class="hf-input" data-fld="header_right"  placeholder="우"      value="${(s.header_right||'').replace(/"/g,'&quot;')}">
+      </div>
+      <div class="hf-row-label">꼬리말</div>
+      <div class="hf-grid">
+        <input class="hf-input" data-fld="footer_left"   placeholder="좌"      value="${(s.footer_left||'').replace(/"/g,'&quot;')}">
+        <input class="hf-input" data-fld="footer_center" placeholder="가운데"  value="${(s.footer_center||'').replace(/"/g,'&quot;')}">
+        <input class="hf-input" data-fld="footer_right"  placeholder="우"      value="${(s.footer_right||'').replace(/"/g,'&quot;')}">
+      </div>
+    </div>
+  `).join('');
+
+  list.querySelectorAll('.hf-section-card').forEach(card => {
+    const sid = +card.dataset.sid;
+    const sec = hfSections.find(x => x._id === sid);
+    if (!sec) return;
+    card.querySelector('.hf-range-input').addEventListener('input', e => { sec.ranges = e.target.value; });
+    card.querySelectorAll('input[data-fld]').forEach(inp => {
+      inp.addEventListener('input', e => { sec[e.target.dataset.fld] = e.target.value; });
+    });
+    card.querySelector('.hf-section-del').addEventListener('click', () => {
+      hfSections = hfSections.filter(x => x._id !== sid);
+      renderHfSections();
+    });
+  });
+}
+
+$('hfAddSectionBtn').addEventListener('click', () => {
+  hfSections.push({
+    _id: _hfSecId++,
+    ranges: '',
+    header_left: '', header_center: '', header_right: '',
+    footer_left: '', footer_center: '', footer_right: '',
+  });
+  renderHfSections();
+});
 
 // PN controls
 $('pnEnabled').addEventListener('change', () => {
