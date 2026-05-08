@@ -639,11 +639,20 @@
       if (user.photoURL) av.innerHTML = `<img src="${user.photoURL}" alt="">`;
       else av.textContent = name.charAt(0).toUpperCase();
 
-      // Admin check
+      // Admin check — auto-redirect to admin page
       if (typeof db !== 'undefined') {
         db.collection('settings').doc('admin').get().then(doc => {
           const emails = doc.exists ? (doc.data().emails || []) : [];
-          if (emails.includes(user.email) || !doc.exists) {
+          if (emails.includes(user.email)) {
+            // Skip redirect if URL has ?stay=1 (allow admin to view main page intentionally)
+            if (!new URLSearchParams(location.search).has('stay')) {
+              window.location.href = 'admin.html';
+              return;
+            }
+            isAdmin = true;
+            document.getElementById('adminBtn').style.display = 'flex';
+            renderCards();
+          } else if (!doc.exists) {
             isAdmin = true;
             document.getElementById('adminBtn').style.display = 'flex';
             renderCards();
