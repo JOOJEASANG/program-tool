@@ -554,6 +554,11 @@ async function loadUsers() {
   }
 }
 
+function visiblePrograms() {
+  // Hide programs that are publicly accessible — individual approval is moot
+  return MANAGED_PROGRAMS.filter(p => !publicAccess[p.id]);
+}
+
 function renderUsers() {
   const list = document.getElementById('userList');
   const adminSet = new Set(adminEmails.map(normalizeEmail));
@@ -578,32 +583,42 @@ function renderUsers() {
     return;
   }
 
+  const progs = visiblePrograms();
+
+  // If all programs are public, no need for the table at all
+  if (!progs.length) {
+    list.innerHTML = `<div class="empty-users">모든 프로그램이 전체공개 상태입니다. 개별 승인 관리가 필요 없습니다.</div>`;
+    return;
+  }
+
+  // Dynamic grid columns: info | (each visible prog) | bulk actions
+  const gridStyle = `grid-template-columns: minmax(180px, 2fr) repeat(${progs.length}, 64px) 130px;`;
+
   const head = `
-    <div class="user-row-head">
+    <div class="user-row-head" style="${gridStyle}">
       <div>회원 정보</div>
-      ${MANAGED_PROGRAMS.map(p => `<div class="col-prog" title="${escapeHtml(p.name)}">${p.icon}</div>`).join('')}
+      ${progs.map(p => `<div class="col-prog" title="${escapeHtml(p.name)}">${p.icon}</div>`).join('')}
       <div style="text-align:right;">일괄</div>
     </div>`;
 
   const rows = filtered.map(u => {
     const date = u.createdAt?.toDate?.()?.toLocaleDateString('ko-KR') || '-';
-    const progs = u.programs || {};
+    const userProgs = u.programs || {};
     const safeUid = escapeHtml(u.uid);
     const safeName = escapeHtml(u.displayName || '이름 없음');
     const safeEmail = escapeHtml(u.email || '-');
     return `
-      <div class="user-row" id="urow-${safeUid}">
+      <div class="user-row" id="urow-${safeUid}" style="${gridStyle}">
         <div class="user-cell-info">
           <div class="user-cell-name">${safeName}</div>
           <div class="user-cell-meta">${safeEmail} · ${escapeHtml(date)}</div>
         </div>
-        ${MANAGED_PROGRAMS.map(p => {
-          const isPublic = !!publicAccess[p.id];
-          const approved = isPublic || !!progs[p.id];
+        ${progs.map(p => {
+          const approved = !!userProgs[p.id];
           return `
-            <div class="user-cell-prog ${isPublic ? 'public-cell' : ''}" title="${escapeHtml(p.name)}${isPublic ? ' (전체공개)' : ''}">
+            <div class="user-cell-prog" title="${escapeHtml(p.name)}">
               <label class="toggle-label">
-                <input type="checkbox" ${approved ? 'checked' : ''} ${isPublic ? 'disabled' : ''}
+                <input type="checkbox" ${approved ? 'checked' : ''}
                   data-action="toggle-perm" data-uid="${safeUid}" data-prog="${p.id}">
                 <span class="toggle-slider"></span>
               </label>
@@ -694,14 +709,16 @@ async function togglePerm(uid, programId, approved) {
 }
 
 async function grantAll(uid) {
+  const targets = visiblePrograms();
+  if (!targets.length) return;
   const updates = {};
-  MANAGED_PROGRAMS.forEach(p => { updates[`programs.${p.id}`] = true; });
+  targets.forEach(p => { updates[`programs.${p.id}`] = true; });
   try {
     await db.collection('user_permissions').doc(uid).update(updates);
     const u = findUser(uid);
     if (u) {
       u.programs = u.programs || {};
-      MANAGED_PROGRAMS.forEach(p => { u.programs[p.id] = true; });
+      targets.forEach(p => { u.programs[p.id] = true; });
     }
     renderUsers();
     showStatus('permStatus', 'success', '전체 승인 완료.');
@@ -709,15 +726,17 @@ async function grantAll(uid) {
 }
 
 async function revokeAll(uid) {
+  const targets = visiblePrograms();
+  if (!targets.length) return;
   if (!confirm('이 회원의 모든 프로그램 권한을 취소할까요?')) return;
   const updates = {};
-  MANAGED_PROGRAMS.forEach(p => { updates[`programs.${p.id}`] = false; });
+  targets.forEach(p => { updates[`programs.${p.id}`] = false; });
   try {
     await db.collection('user_permissions').doc(uid).update(updates);
     const u = findUser(uid);
     if (u) {
       u.programs = u.programs || {};
-      MANAGED_PROGRAMS.forEach(p => { u.programs[p.id] = false; });
+      targets.forEach(p => { u.programs[p.id] = false; });
     }
     renderUsers();
     showStatus('permStatus', 'info', '전체 취소되었습니다.');
