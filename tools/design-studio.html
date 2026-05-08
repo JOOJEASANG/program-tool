@@ -817,6 +817,9 @@
         spineW: state.spineW, spineText: state.spineText,
         spineVertical: state.spineVertical, noSpine: state.noSpine,
         spineOffsetY: state.spineOffsetY || 0,
+        foldDirection: state.foldDirection || 'h',
+        foldCount: state.foldCount,
+        showFoldLines: state.showFoldLines,
       }));
     }
     function pushHistory() {
@@ -833,6 +836,9 @@
       state.spineW = snap.spineW; state.spineText = snap.spineText;
       state.spineVertical = snap.spineVertical; state.noSpine = snap.noSpine;
       state.spineOffsetY = snap.spineOffsetY || 0;
+      if (snap.foldDirection !== undefined) state.foldDirection = snap.foldDirection;
+      if (snap.foldCount !== undefined) state.foldCount = snap.foldCount;
+      if (snap.showFoldLines !== undefined) state.showFoldLines = snap.showFoldLines;
       // Reload image elements for image items
       loadedImgs.clear();
       ['front', 'back'].forEach(side => {
@@ -845,7 +851,7 @@
           }
         });
       });
-      renderItemList(); render();
+      renderItemList(); syncControls(); render();
       historyMuted = false;
     }
     function undo() {
@@ -1582,6 +1588,7 @@
       $('bgOpacityVal').textContent = Math.round(curSide().bgOpacity * 100) + '%';
       render();
     });
+    $('bgOpacity').addEventListener('change', () => { pushHistory(); scheduleSave(); });
     $('aiDesc').addEventListener('input', e => { curSide().aiDesc = e.target.value; });
 
     // ── Clear all items (start blank) ─────────────────────────────────
@@ -1790,7 +1797,9 @@
       $('bgFile').value = '';
       $('bgOpacityWrap').style.display = 'none';
       $('clearBgBtn').style.display = 'none';
+      pushHistory();
       render();
+      scheduleSave();
     }
 
     async function generateAiBg() {
@@ -1852,6 +1861,8 @@
         loadBgImage(state.activeSide, curSide().bgData);
         $('bgOpacityWrap').style.display = '';
         $('clearBgBtn').style.display = '';
+        pushHistory();
+        scheduleSave();
         status.className = 'ai-status success';
         status.textContent = '✓ AI 배경 생성 완료!';
         setTimeout(() => { status.className = 'ai-status'; }, 3000);
@@ -1911,6 +1922,7 @@
         $('foldDirBtns').querySelectorAll('.fold-btn').forEach(x => x.classList.remove('active'));
         b.classList.add('active');
         render();
+        pushHistory();
         scheduleSave();
       });
     });

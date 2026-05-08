@@ -1094,24 +1094,23 @@ async function revokeAll(uid) {
 const BIZ_FIELDS = ['bizName','bizRegNo','bizOwner','bizAddr','bizPhone','bizEmail','bizType','bizItem',
   'bizBankName','bizBankHolder','bizBankAccount',
   'bizSiteName','bizPrivacyOfficer','bizTermsEffective'];
-const BIZ_KEYS   = ['name',   'regNo',  'owner',  'addr',  'phone',  'email',  'type',  'item'];
 
 async function loadBizInfo() {
   try {
     const doc = await db.collection('settings').doc('business').get();
     if (!doc.exists) return;
     const data = doc.data();
-    BIZ_FIELDS.forEach((fid, i) => {
+    BIZ_FIELDS.forEach(fid => {
       const el = document.getElementById(fid);
-      if (el) el.value = data[BIZ_KEYS[i]] || '';
+      if (el) el.value = data[fid] || '';
     });
   } catch(e) { console.error(e); }
 }
 
 async function saveBizInfo() {
   const data = {};
-  BIZ_FIELDS.forEach((fid, i) => {
-    data[BIZ_KEYS[i]] = (document.getElementById(fid)?.value || '').trim();
+  BIZ_FIELDS.forEach(fid => {
+    data[fid] = (document.getElementById(fid)?.value || '').trim();
   });
   try {
     await db.collection('settings').doc('business').set(data);
