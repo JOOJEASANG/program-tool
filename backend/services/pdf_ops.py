@@ -27,14 +27,31 @@ NUP_LAYOUT: dict[int, tuple[int, int]] = {
     9: (3, 3),
 }
 
-HF_MARGIN_PT = 8  # distance from edge to HF text
+HF_SIDE_MARGIN_PT = 8
 PN_MARGIN_PT = 8
 
 
-def _hex_to_rgb(hex_color: str) -> tuple[float, float, float]:
-    hex_color = hex_color.lstrip("#")
-    r, g, b = int(hex_color[0:2], 16), int(hex_color[2:4], 16), int(hex_color[4:6], 16)
-    return r / 255, g / 255, b / 255
+def _hex_to_rgb(hex_color: str, fallback: tuple[float, float, float] = (0, 0, 0)) -> tuple[float, float, float]:
+    """Convert #rrggbb or #rgb to PyMuPDF RGB tuple. Invalid values fall back safely."""
+    try:
+        raw = (hex_color or "").strip().lstrip("#")
+        if len(raw) == 3:
+            raw = "".join(ch * 2 for ch in raw)
+        if len(raw) != 6 or not re.fullmatch(r"[0-9a-fA-F]{6}", raw):
+            return fallback
+        r, g, b = int(raw[0:2], 16), int(raw[2:4], 16), int(raw[4:6], 16)
+        return r / 255, g / 255, b / 255
+    except Exception:
+        return fallback
+
+
+def _mm_to_pt_safe(value: float, fallback_mm: float = 8.0, min_mm: float = 0.0, max_mm: float = 50.0) -> float:
+    try:
+        mm = float(value)
+    except Exception:
+        mm = fallback_mm
+    mm = min(max(mm, min_mm), max_mm)
+    return mm * MM_TO_PT
 
 
 def _group_by_nup(pages: list[PageInfo], default_nup: int) -> list[list[PageInfo]]:
@@ -106,31 +123,30 @@ def _parse_divider_content(raw: Optional[str]) -> dict:
     return {"title": raw}
 
 
+def _render_blank_page(out_doc: fitz.Document, paper_w_pt: float, paper_h_pt: float):
+    """Insert a truly blank white page."""
+    out_doc.new_page(width=paper_w_pt, height=paper_h_pt)
+
+
 def _render_divider_page(out_doc: fitz.Document, content_raw: str, style: str,
                           paper_w_pt: float, paper_h_pt: float):
+    """Render divider page without custom background color.
+
+    The previous divider implementation supported a colored background. That option has
+    been intentionally disabled so divider pages are always clean white pages with text
+    and optional line accents only.
+    """
     content = _parse_divider_content(content_raw)
     title = content.get("title", "")
     subtitle = content.get("subtitle", "")
-    no_bg = bool(content.get("noBg", False))
-    bg_hex = content.get("bg", "#1a365d")
-    fg_hex = content.get("fg", "#ffffff")
+    fg = _hex_to_rgb(content.get("fg", "#111827"), (0.067, 0.094, 0.153))
     resolved_style = content.get("style", style or "simple")
 
-    if no_bg:
-        bg = (1.0, 1.0, 1.0)
-        fg = _hex_to_rgb(content.get("fg", "#111827")) if content.get("fg") else (0.067, 0.094, 0.153)
-    else:
-        try:
-            bg = _hex_to_rgb(bg_hex)
-        except Exception:
-            bg = (0.1, 0.22, 0.43)
-        try:
-            fg = _hex_to_rgb(fg_hex)
-        except Exception:
-            fg = (1.0, 1.0, 1.0)
-
     v_align = content.get("textVAlign", "center")
-    v_offset_pct = float(content.get("textVOffset", 0)) / 100
+    try:
+        v_offset_pct = float(content.get("textVOffset", 0)) / 100
+    except Exception:
+        v_offset_pct = 0
     if v_align == "top":
         base_y = paper_h_pt * 0.22
     elif v_align == "bottom":
@@ -141,44 +157,30 @@ def _render_divider_page(out_doc: fitz.Document, content_raw: str, style: str,
 
     page = out_doc.new_page(width=paper_w_pt, height=paper_h_pt)
 
-    # Background fill
-    shape = page.new_shape()
-    shape.draw_rect(fitz.Rect(0, 0, paper_w_pt, paper_h_pt))
-    shape.finish(fill=bg, color=None)
-    shape.commit()
-
     title_y = cy + (-paper_h_pt * 0.06 if subtitle else 0)
     pad = 40
 
-    if not no_bg and resolved_style == "band":
-        shape = page.new_shape()
-        darker = tuple(max(0.0, c - 0.16) for c in bg)
-        shape.draw_rect(fitz.Rect(0, 0, paper_w_pt * 0.07, paper_h_pt))
-        shape.draw_rect(fitz.Rect(paper_w_pt * 0.93, 0, paper_w_pt, paper_h_pt))
-        shape.finish(fill=darker, color=None)
-        shape.commit()
-
-    elif not no_bg and resolved_style == "lines":
+    if resolved_style in ("lines", "band"):
         shape = page.new_shape()
         shape.draw_line(fitz.Point(pad, title_y - paper_h_pt * 0.09), fitz.Point(paper_w_pt - pad, title_y - paper_h_pt * 0.09))
         shape.draw_line(fitz.Point(pad, title_y + paper_h_pt * 0.09), fitz.Point(paper_w_pt - pad, title_y + paper_h_pt * 0.09))
-        shape.finish(color=fg, width=1.5)
+        shape.finish(color=fg, width=1.2)
         shape.commit()
 
     if title:
-        title_rect = fitz.Rect(pad, title_y - 36, paper_w_pt - pad, title_y + 4)
+        title_rect = fitz.Rect(pad, title_y - 36, paper_w_pt - pad, title_y + 6)
         page.insert_textbox(title_rect, title, fontsize=28, fontname="helv", color=fg, align=fitz.TEXT_ALIGN_CENTER)
 
     if subtitle:
         sub_y = cy + paper_h_pt * 0.06
-        sub_rect = fitz.Rect(pad, sub_y - 24, paper_w_pt - pad, sub_y + 4)
+        sub_rect = fitz.Rect(pad, sub_y - 24, paper_w_pt - pad, sub_y + 6)
         page.insert_textbox(sub_rect, subtitle, fontsize=18, fontname="helv", color=fg, align=fitz.TEXT_ALIGN_CENTER)
 
 
 def _apply_watermark(page: fitz.Page, settings: WatermarkSettings):
     if not settings.enabled or not settings.text:
         return
-    color = _hex_to_rgb(settings.color)
+    color = _hex_to_rgb(settings.color, (0.8, 0.8, 0.8))
     w, h = page.rect.width, page.rect.height
     text = settings.text
     fontsize = 48
@@ -233,7 +235,7 @@ def _resolve_hf_fields(settings: HeaderFooterSettings, page_num: int, total_page
         for s in reversed(settings.sections):
             if page_num in _parse_page_ranges(s.ranges, total_pages):
                 return s
-    return settings  # top-level fields as default
+    return settings
 
 
 def _hf_substitute(text: str, page_num: int, total_pages: int) -> str:
@@ -254,34 +256,32 @@ def _apply_header_footer(
     if not settings.enabled:
         return
     fields = _resolve_hf_fields(settings, output_page_num, total_pages)
-    color = _hex_to_rgb(settings.color)
+    color = _hex_to_rgb(settings.color, (0.2, 0.2, 0.2))
     fs = settings.font_size
-    left_x = HF_MARGIN_PT
-    center_x = page_width / 2
-    right_x = page_width - HF_MARGIN_PT
+    side_margin = HF_SIDE_MARGIN_PT
+    header_margin = _mm_to_pt_safe(getattr(settings, "header_margin_mm", 8.0), 8.0)
+    footer_margin = _mm_to_pt_safe(getattr(settings, "footer_margin_mm", 8.0), 8.0)
 
-    def insert(text: str, x: float, y: float, align: int):
+    left_rect = fitz.Rect(side_margin, 0, page_width * 0.36, page_height)
+    center_rect = fitz.Rect(page_width * 0.25, 0, page_width * 0.75, page_height)
+    right_rect = fitz.Rect(page_width * 0.64, 0, page_width - side_margin, page_height)
+
+    def insert(text: str, base_rect: fitz.Rect, y: float, align: int):
         text = _hf_substitute(text, output_page_num, total_pages)
         if not text:
             return
-        page.insert_text(
-            fitz.Point(x, y),
-            text,
-            fontsize=fs,
-            fontname="helv",
-            color=color,
-            render_mode=0,
-        )
+        rect = fitz.Rect(base_rect.x0, y, base_rect.x1, y + fs * 1.8)
+        page.insert_textbox(rect, text, fontsize=fs, fontname="helv", color=color, align=align)
 
-    header_y = HF_MARGIN_PT + fs
-    footer_y = page_height - HF_MARGIN_PT
+    header_y = header_margin
+    footer_y = max(0, page_height - footer_margin - fs * 1.6)
 
-    insert(fields.header_left, left_x, header_y, 0)
-    insert(fields.header_center, center_x, header_y, 1)
-    insert(fields.header_right, right_x, header_y, 2)
-    insert(fields.footer_left, left_x, footer_y, 0)
-    insert(fields.footer_center, center_x, footer_y, 1)
-    insert(fields.footer_right, right_x, footer_y, 2)
+    insert(fields.header_left, left_rect, header_y, fitz.TEXT_ALIGN_LEFT)
+    insert(fields.header_center, center_rect, header_y, fitz.TEXT_ALIGN_CENTER)
+    insert(fields.header_right, right_rect, header_y, fitz.TEXT_ALIGN_RIGHT)
+    insert(fields.footer_left, left_rect, footer_y, fitz.TEXT_ALIGN_LEFT)
+    insert(fields.footer_center, center_rect, footer_y, fitz.TEXT_ALIGN_CENTER)
+    insert(fields.footer_right, right_rect, footer_y, fitz.TEXT_ALIGN_RIGHT)
 
 
 def _apply_page_numbers(page: fitz.Page, settings: PageNumberSettings,
@@ -301,30 +301,27 @@ def _apply_page_numbers(page: fitz.Page, settings: PageNumberSettings,
     else:
         text = f"- {num}/{total_pages} -"
 
-    color = _hex_to_rgb(settings.color)
+    color = _hex_to_rgb(settings.color, (0.2, 0.2, 0.2))
     pos = settings.position
-    margin = PN_MARGIN_PT + settings.font_size
+    fs = settings.font_size
+    margin = PN_MARGIN_PT
 
     if "bottom" in pos:
-        y = page_height - PN_MARGIN_PT
+        y = page_height - margin - fs * 1.6
     else:
         y = margin
 
     if "center" in pos:
-        x = page_width / 2
+        rect = fitz.Rect(page_width * 0.25, y, page_width * 0.75, y + fs * 1.8)
+        align = fitz.TEXT_ALIGN_CENTER
     elif "right" in pos:
-        x = page_width - PN_MARGIN_PT
+        rect = fitz.Rect(page_width * 0.55, y, page_width - margin, y + fs * 1.8)
+        align = fitz.TEXT_ALIGN_RIGHT
     else:
-        x = PN_MARGIN_PT
+        rect = fitz.Rect(margin, y, page_width * 0.45, y + fs * 1.8)
+        align = fitz.TEXT_ALIGN_LEFT
 
-    page.insert_text(
-        fitz.Point(x, y),
-        text,
-        fontsize=settings.font_size,
-        fontname="helv",
-        color=color,
-        render_mode=0,
-    )
+    page.insert_textbox(rect, text, fontsize=fs, fontname="helv", color=color, align=align)
 
 
 def process_pdf(
@@ -345,15 +342,21 @@ def process_pdf(
 
     out_doc = fitz.open()
     output_page_idx = 0
-    total_output_pages = sum(1 for g in groups for _ in [g])  # will recalculate below
-
-    # First pass: count output pages
     total_output_pages = len(groups)
 
     for group in groups:
         first = group[0]
 
-        if first.page_type in ("divider", "blank"):
+        if first.page_type == "blank":
+            _render_blank_page(out_doc, paper_w_pt, paper_h_pt)
+            out_page = out_doc[-1]
+            _apply_watermark(out_page, request.watermark)
+            _apply_header_footer(out_page, request.header_footer, paper_w_pt, paper_h_pt, output_page_idx + 1, total_output_pages)
+            _apply_page_numbers(out_page, request.page_numbers, output_page_idx, total_output_pages, paper_w_pt, paper_h_pt)
+            output_page_idx += 1
+            continue
+
+        if first.page_type == "divider":
             _render_divider_page(
                 out_doc, first.divider_content or "",
                 first.divider_style or "simple",
@@ -368,7 +371,6 @@ def process_pdf(
 
         effective_nup = 1 if first.nup_disabled else (first.nup_override or request.nup_default)
         cols, rows = NUP_LAYOUT.get(effective_nup, (1, 1))
-        # Swap cols/rows for landscape orientation so layout fills the paper correctly
         if paper_w_pt > paper_h_pt and cols != rows:
             cols, rows = rows, cols
 
