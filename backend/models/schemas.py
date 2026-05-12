@@ -55,7 +55,9 @@ class HeaderFooterSettings(BaseModel):
     footer_right: str = ""
     font_size: float = 10.0
     color: str = "#333333"
-    sections: list[HeaderFooterSection] = []
+    header_margin_mm: float = 8.0
+    footer_margin_mm: float = 8.0
+    sections: list[HeaderFooterSection] = Field(default_factory=list)
 
 
 class PageNumberSettings(BaseModel):
@@ -95,7 +97,7 @@ class CheckItem(BaseModel):
     label: str
     severity: CheckSeverity
     detail: str
-    page_refs: list[int] = []
+    page_refs: list[int] = Field(default_factory=list)
 
 
 class PreflightReport(BaseModel):
