@@ -53,12 +53,6 @@ async function apiProcessPdf(files, settings) {
 }
 
 /**
- * Run pre-flight check.
- * @param {File} file - PDF file
- * @param {boolean} useAi - whether to include AI visual analysis
- * @returns {Promise<object>} PreflightReport JSON
- */
-/**
  * Generic call to /api/pdf-tools/<op>. Returns Blob (or throws with detail).
  */
 async function apiPdfTool(op, fileOrFiles, params = {}) {
@@ -81,11 +75,17 @@ async function apiPdfTool(op, fileOrFiles, params = {}) {
   return { blob, meta: { removed: removed ? Number(removed) : null } };
 }
 
-async function apiPreflightCheck(file, useAi = false) {
+/**
+ * Run free rule-based pre-flight check.
+ * AI visual analysis was removed so all tools can run without paid API usage.
+ * @param {File} file - PDF file
+ * @returns {Promise<object>} PreflightReport JSON
+ */
+async function apiPreflightCheck(file) {
   const headers = await _authHeaders();
   const form = new FormData();
   form.append('file', file);
-  form.append('use_ai', String(useAi));
+  form.append('use_ai', 'false');
 
   const resp = await fetch('/api/preflight/check', {
     method: 'POST',
