@@ -3,9 +3,7 @@ from flask import Blueprint, request, jsonify
 
 from models.schemas import PreflightReport
 from services.preflight_svc import run_all_checks, compute_score
-from services.ai_vision import analyze_with_vision
 from utils.auth import require_auth
-from utils.ai_logger import log_ai_usage
 
 preflight_bp = Blueprint("preflight", __name__)
 
@@ -36,14 +34,9 @@ def check(uid):
             import traceback; traceback.print_exc()
             return jsonify({"detail": f"검수 처리 실패: {type(e).__name__}: {e}"}), 500
 
-        use_ai = request.form.get("use_ai", "false").lower() == "true"
+        # AI vision analysis has been intentionally removed so PDF preflight can run free.
+        # The frontend may still send use_ai=true from older cached pages, but it is ignored.
         ai_feedback = None
-        if use_ai:
-            try:
-                ai_feedback = analyze_with_vision(doc)
-                log_ai_usage(uid, "preflight")
-            except Exception as e:
-                ai_feedback = f"AI 분석 중 오류: {str(e)}"
 
         try:
             report = PreflightReport(
