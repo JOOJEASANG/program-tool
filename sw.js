@@ -1,5 +1,5 @@
 // Program Tool — auto-updating service worker + cover-spread AI prompt patch
-const APP_VERSION = '2026-05-12-cover-spread-v2';
+const APP_VERSION = '2026-05-12-cover-spread-v5';
 
 self.addEventListener('install', () => {
   self.skipWaiting();
@@ -28,7 +28,7 @@ function shouldPatchCoverAiRequest(req) {
 
 function looksCoverRelated(text) {
   const s = String(text || '').toLowerCase();
-  return ['표지', '책등', '앞표지', '뒷표지', '앞면', '뒷면', 'cover', 'spine', 'book cover'].some((word) => s.includes(word));
+  return ['표지', '책등', '앞표지', '뒷표지', '앞면', '뒷면', 'cover', 'spine', 'book cover', '포스터', 'poster', '전단', 'flyer', '메뉴', 'menu', '리플렛', 'leaflet', '브로슈어', 'brochure', '초대', 'invitation'].some((word) => s.includes(word));
 }
 
 function buildCoverSpreadPrompt(prompt, body) {
@@ -39,11 +39,14 @@ function buildCoverSpreadPrompt(prompt, body) {
   const bleed = metrics.bleed || metrics.bleedMm || metrics.bleed_mm || 'bleed';
 
   return [
-    'Create one continuous full book-cover spread background image.',
-    'The layout must be: back cover on the left, spine in the center, front cover on the right.',
+    'Create a premium professional print design background with refined composition, elegant color harmony, balanced spacing, sophisticated visual rhythm, and high-end commercial design quality.',
+    'Create one continuous full book-cover spread background image when this is a cover design.',
+    'For posters, flyers, menus, leaflets, brochures, and invitation cards, create a polished expert-level background suitable for the selected design purpose.',
+    'The layout must be: back cover on the left, spine in the center, front cover on the right when this is a cover design.',
     'The back cover, spine, front cover, and bleed area must feel like one seamless connected scene, not separate panels.',
     'Generate background only. Do not include text, letters, logos, watermarks, labels, mockups, or page guides.',
-    'Make the front cover visually focused, let the spine continue the same pattern, gradient, or texture, and let the back cover extend the same atmosphere with clean usable space.',
+    'Make the design visually focused, modern, refined, premium, and suitable for real print production.',
+    'For Gemini generation, fill the whole canvas edge-to-edge with no weak empty border areas.',
     'Keep important subjects and faces away from the spine area so they are not split by the book spine.',
     'Include enough bleed-safe continuation around the edges for trimming.',
     `Size context: front/back width ${paperW}, cover height ${paperH}, spine ${spine}, bleed ${bleed}.`,
@@ -59,7 +62,7 @@ async function patchCoverAiRequest(req) {
     if (!body.cover_spread && !looksCoverRelated(prompt)) return fetch(req);
 
     body.prompt = buildCoverSpreadPrompt(prompt, body);
-    body.aspect = 'wide';
+    body.aspect = body.aspect || 'wide';
     body.cover_spread = true;
 
     const headers = new Headers(req.headers);
