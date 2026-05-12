@@ -7,6 +7,12 @@ from utils.ai_logger import log_ai_usage
 ai_bp = Blueprint("ai", __name__)
 
 
+def _is_cover_request(prompt: str, data: dict) -> bool:
+    text = f"{prompt} {data.get('template', '')} {data.get('design_type', '')}".lower()
+    cover_words = ("표지", "책등", "앞표지", "뒷표지", "cover", "spine", "book cover")
+    return bool(data.get("cover_spread")) or any(word in text for word in cover_words)
+
+
 def _generate_with_google(prompt: str, aspect: str) -> bytes:
     from google import genai
     from google.genai import types
@@ -53,6 +59,11 @@ def generate_bg(uid):
     provider_req = (data.get("provider") or "").strip().lower()
     if not prompt:
         return jsonify({"detail": "프롬프트가 없습니다."}), 400
+
+    if _is_cover_request(prompt, data):
+        return jsonify({
+            "detail": "표지 디자인 AI 배경 생성 기능은 제거되었습니다. 배경 이미지를 업로드해서 사용하세요."
+        }), 410
 
     # Allow per-request provider override; fall back to system setting
     provider = provider_req if provider_req in ("google", "openai") else get_ai_provider("image")
