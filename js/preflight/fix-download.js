@@ -1,8 +1,8 @@
 // Preflight adjustment download helper.
 // Adds a free rule-based adjustment PDF download button after inspection.
 (function () {
-  if (window.__preflightFixDownloadV3) return;
-  window.__preflightFixDownloadV3 = true;
+  if (window.__preflightFixDownloadV4) return;
+  window.__preflightFixDownloadV4 = true;
 
   const PROGRAM_NAME = 'PDF 사전검수기';
   const ADJUST_BUTTON_TEXT = '조정 가능한 부분만 처리 후 다운로드';
@@ -11,6 +11,28 @@
   function $(id) { return document.getElementById(id); }
   function hasIssues(report) {
     return !!(report && Array.isArray(report.checks) && report.checks.some((c) => c.severity === 'warning' || c.severity === 'fail'));
+  }
+  function safeText(value) {
+    return String(value ?? '').replace(/[<>&"']/g, (ch) => ({
+      '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&#39;'
+    }[ch]));
+  }
+  function sanitizeReport(report) {
+    if (!report || typeof report !== 'object') return report;
+    return {
+      ...report,
+      filename: safeText(report.filename),
+      checks: Array.isArray(report.checks) ? report.checks.map((c) => ({
+        ...c,
+        id: safeText(c.id),
+        label: safeText(c.label),
+        detail: safeText(c.detail),
+        severity: ['pass', 'warning', 'fail'].includes(c.severity) ? c.severity : 'warning',
+        page_refs: Array.isArray(c.page_refs)
+          ? c.page_refs.map((p) => Number.parseInt(p, 10)).filter((p) => Number.isFinite(p) && p > 0)
+          : []
+      })) : []
+    };
   }
   function replaceTextNode(root, from, to) {
     try {
@@ -80,21 +102,22 @@
     }
   }
   function wrapRenderResults() {
-    if (window.__preflightRenderWrappedV3 || typeof window.renderResults !== 'function') return;
+    if (window.__preflightRenderWrappedV4 || typeof window.renderResults !== 'function') return;
     const original = window.renderResults;
     window.renderResults = function wrappedRenderResults(report) {
-      const result = original.apply(this, arguments);
+      const safeReport = sanitizeReport(report);
+      const result = original.call(this, safeReport);
       setTimeout(() => {
         localizeProgramName();
         const btn = ensureButton();
         const note = $('preflightFixNote');
-        const show = hasIssues(report);
+        const show = hasIssues(safeReport);
         if (btn) btn.style.display = show ? 'inline-flex' : 'none';
         if (note) note.style.display = show ? 'block' : 'none';
       }, 0);
       return result;
     };
-    window.__preflightRenderWrappedV3 = true;
+    window.__preflightRenderWrappedV4 = true;
   }
   function boot() { localizeProgramName(); wrapRenderResults(); ensureButton(); }
   document.addEventListener('DOMContentLoaded', boot);
