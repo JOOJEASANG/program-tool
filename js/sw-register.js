@@ -24,10 +24,13 @@
 
   function loadHelpers() {
     if (location.pathname.endsWith('/tools/pdf-editor.html')) {
-      loadScript('pdfEditorModuleLoaderScript', '/js/pdf-editor/loader.js?v=20260518-1');
+      loadScript('pdfEditorModuleLoaderScript', '/js/pdf-editor/loader.js?v=20260518-2');
     }
     if (location.pathname.endsWith('/tools/design-studio.html')) {
       loadScript('designStudioHelperScript', '/js/design-studio/helper-loader.js?v=20260518-1');
+    }
+    if (location.pathname.endsWith('/tools/preflight.html')) {
+      loadScript('preflightFixDownloadScript', '/js/preflight/fix-download.js?v=20260518-1');
     }
   }
 
