@@ -15,8 +15,8 @@ from models.schemas import (
 )
 
 MM_TO_PT = 72 / 25.4
-MARGIN_PT = 10  # margin around N-up grid
-CELL_GAP_PT = 6  # gap between cells in N-up grid
+MARGIN_PT = 10  # legacy fallback only
+CELL_GAP_PT = 6  # legacy fallback only
 
 NUP_LAYOUT: dict[int, tuple[int, int]] = {
     1: (1, 1),
@@ -130,51 +130,38 @@ def _render_blank_page(out_doc: fitz.Document, paper_w_pt: float, paper_h_pt: fl
 
 def _render_divider_page(out_doc: fitz.Document, content_raw: str, style: str,
                           paper_w_pt: float, paper_h_pt: float):
-    """Render divider page without custom background color.
-
-    The previous divider implementation supported a colored background. That option has
-    been intentionally disabled so divider pages are always clean white pages with text
-    and optional line accents only.
-    """
+    """Render divider page without custom background color."""
     content = _parse_divider_content(content_raw)
     title = content.get("title", "")
     subtitle = content.get("subtitle", "")
-    fg = _hex_to_rgb(content.get("fg", "#111827"), (0.067, 0.094, 0.153))
+    note = content.get("note", "")
+    fg = (0.067, 0.094, 0.153)
     resolved_style = content.get("style", style or "simple")
-
-    v_align = content.get("textVAlign", "center")
-    try:
-        v_offset_pct = float(content.get("textVOffset", 0)) / 100
-    except Exception:
-        v_offset_pct = 0
-    if v_align == "top":
-        base_y = paper_h_pt * 0.22
-    elif v_align == "bottom":
-        base_y = paper_h_pt * 0.78
-    else:
-        base_y = paper_h_pt * 0.5
-    cy = base_y + paper_h_pt * v_offset_pct
-
+    title_y = paper_h_pt * _safe_float(content.get("titleY", 45), 45, 5, 95) / 100
+    subtitle_y = paper_h_pt * _safe_float(content.get("subtitleY", 55), 55, 5, 95) / 100
+    note_y = paper_h_pt * _safe_float(content.get("noteY", 88), 88, 5, 95) / 100
     page = out_doc.new_page(width=paper_w_pt, height=paper_h_pt)
-
-    title_y = cy + (-paper_h_pt * 0.06 if subtitle else 0)
     pad = 40
-
     if resolved_style in ("lines", "band"):
         shape = page.new_shape()
         shape.draw_line(fitz.Point(pad, title_y - paper_h_pt * 0.09), fitz.Point(paper_w_pt - pad, title_y - paper_h_pt * 0.09))
         shape.draw_line(fitz.Point(pad, title_y + paper_h_pt * 0.09), fitz.Point(paper_w_pt - pad, title_y + paper_h_pt * 0.09))
-        shape.finish(color=fg, width=1.2)
+        shape.finish(color=fg, width=1.0)
         shape.commit()
-
     if title:
-        title_rect = fitz.Rect(pad, title_y - 36, paper_w_pt - pad, title_y + 6)
-        page.insert_textbox(title_rect, title, fontsize=28, fontname="helv", color=fg, align=fitz.TEXT_ALIGN_CENTER)
-
+        page.insert_textbox(fitz.Rect(pad, title_y - 32, paper_w_pt - pad, title_y + 14), title, fontsize=28, fontname="helv", color=fg, align=fitz.TEXT_ALIGN_CENTER)
     if subtitle:
-        sub_y = cy + paper_h_pt * 0.06
-        sub_rect = fitz.Rect(pad, sub_y - 24, paper_w_pt - pad, sub_y + 6)
-        page.insert_textbox(sub_rect, subtitle, fontsize=18, fontname="helv", color=fg, align=fitz.TEXT_ALIGN_CENTER)
+        page.insert_textbox(fitz.Rect(pad, subtitle_y - 24, paper_w_pt - pad, subtitle_y + 12), subtitle, fontsize=18, fontname="helv", color=fg, align=fitz.TEXT_ALIGN_CENTER)
+    if note:
+        page.insert_textbox(fitz.Rect(pad, note_y - 18, paper_w_pt - pad, note_y + 10), note, fontsize=11, fontname="helv", color=fg, align=fitz.TEXT_ALIGN_CENTER)
+
+
+def _safe_float(value, fallback, min_value=0.0, max_value=100.0):
+    try:
+        n = float(value)
+    except Exception:
+        n = fallback
+    return max(min_value, min(max_value, n))
 
 
 def _apply_watermark(page: fitz.Page, settings: WatermarkSettings):
@@ -206,7 +193,6 @@ def _apply_watermark(page: fitz.Page, settings: WatermarkSettings):
 
 
 def _parse_page_ranges(spec: str, total_pages: int) -> set[int]:
-    """Parse '1-3,5,7-9' → {1,2,3,5,7,8,9} (1-indexed). Empty = all pages."""
     if not spec or not spec.strip():
         return set(range(1, total_pages + 1))
     pages: set[int] = set()
@@ -230,7 +216,6 @@ def _parse_page_ranges(spec: str, total_pages: int) -> set[int]:
 
 
 def _resolve_hf_fields(settings: HeaderFooterSettings, page_num: int, total_pages: int):
-    """Pick the section that applies to page_num (last match wins). Falls back to top-level fields."""
     if settings.sections:
         for s in reversed(settings.sections):
             if page_num in _parse_page_ranges(s.ranges, total_pages):
@@ -336,6 +321,9 @@ def process_pdf(
 
     paper_w_pt = request.paper.width_mm * MM_TO_PT
     paper_h_pt = request.paper.height_mm * MM_TO_PT
+    margin_h_pt = _mm_to_pt_safe(getattr(request, "margin_h_mm", 10.0), 10.0, 0.0, 80.0)
+    margin_v_pt = _mm_to_pt_safe(getattr(request, "margin_v_mm", 10.0), 10.0, 0.0, 80.0)
+    gap_pt = _mm_to_pt_safe(getattr(request, "gap_mm", 5.0), 5.0, 0.0, 50.0)
 
     active_pages = [p for p in request.pages if not p.excluded]
     groups = _group_by_nup(active_pages, request.nup_default)
@@ -376,16 +364,22 @@ def process_pdf(
 
         out_page = out_doc.new_page(width=paper_w_pt, height=paper_h_pt)
 
-        usable_w = paper_w_pt - 2 * MARGIN_PT - (cols - 1) * CELL_GAP_PT
-        usable_h = paper_h_pt - 2 * MARGIN_PT - (rows - 1) * CELL_GAP_PT
+        usable_w = paper_w_pt - 2 * margin_h_pt - (cols - 1) * gap_pt
+        usable_h = paper_h_pt - 2 * margin_v_pt - (rows - 1) * gap_pt
+        if usable_w <= 1 or usable_h <= 1:
+            usable_w = paper_w_pt - 2 * MARGIN_PT - (cols - 1) * CELL_GAP_PT
+            usable_h = paper_h_pt - 2 * MARGIN_PT - (rows - 1) * CELL_GAP_PT
+            margin_h_use, margin_v_use, gap_use = MARGIN_PT, MARGIN_PT, CELL_GAP_PT
+        else:
+            margin_h_use, margin_v_use, gap_use = margin_h_pt, margin_v_pt, gap_pt
         cell_w = usable_w / cols
         cell_h = usable_h / rows
 
         for slot_idx, page_info in enumerate(group):
             col = slot_idx % cols
             row = slot_idx // cols
-            cell_x0 = MARGIN_PT + col * (cell_w + CELL_GAP_PT)
-            cell_y0 = MARGIN_PT + row * (cell_h + CELL_GAP_PT)
+            cell_x0 = margin_h_use + col * (cell_w + gap_use)
+            cell_y0 = margin_v_use + row * (cell_h + gap_use)
             cell_rect = fitz.Rect(cell_x0, cell_y0, cell_x0 + cell_w, cell_y0 + cell_h)
 
             src_doc = src_docs[page_info.file_index]
