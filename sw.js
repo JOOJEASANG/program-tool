@@ -1,4 +1,4 @@
-const APP_VERSION = '2026-05-18-no-ai-pdf-checker-v3';
+const APP_VERSION = '2026-05-18-pdf-nup-checker-tools-v4';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
