@@ -1,10 +1,11 @@
 // PDF editor module loader.
 // Add new PDF editor modules here instead of growing tools/pdf-editor.html.
 (function () {
-  if (window.__pdfEditorModuleLoaderV2) return;
-  window.__pdfEditorModuleLoaderV2 = true;
+  if (window.__pdfEditorModuleLoaderV3) return;
+  window.__pdfEditorModuleLoaderV3 = true;
 
   const MODULES = [
+    '/js/pdf-editor/live-preview.js?v=20260518-1',
     '/js/pdf-editor/layout-export.js?v=20260518-1',
     '/js/pdf-editor/nup-helper.js?v=20260518-2',
     '/js/pdf-editor/divider-helper.js?v=20260518-2',
