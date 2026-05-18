@@ -37,6 +37,7 @@
       loadScript('designStudioHelperScript', '/js/design-studio/helper-loader.js?v=20260518-1');
     }
     if (location.pathname.endsWith('/tools/preflight.html')) {
+      loadScript('preflightLabelScript', '/js/preflight/labels.js?v=20260518-1');
       loadScript('preflightFixDownloadScript', '/js/preflight/fix-download.js?v=20260518-2');
     }
   }
