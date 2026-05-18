@@ -1,5 +1,5 @@
 {
-  "version": "2026-05-18-preview-row-six-v5",
-  "label": "PDF 미리보기 줄당 6장 기본 표시",
-  "updatedAt": "2026-05-18T13:25:00+09:00"
+  "version": "2026-05-18-per-file-nup-v6",
+  "label": "PDF 파일별 N-UP 배치 수정",
+  "updatedAt": "2026-05-18T13:45:00+09:00"
 }
