@@ -1,8 +1,8 @@
 // PDF editor module loader.
 // Add new PDF editor modules here instead of growing tools/pdf-editor.html.
 (function () {
-  if (window.__pdfEditorModuleLoaderV6) return;
-  window.__pdfEditorModuleLoaderV6 = true;
+  if (window.__pdfEditorModuleLoaderV7) return;
+  window.__pdfEditorModuleLoaderV7 = true;
 
   const MODULES = [
     '/js/pdf-editor/upload-fix.js?v=20260518-1',
@@ -10,6 +10,7 @@
     '/js/pdf-editor/layout-export.js?v=20260518-1',
     '/js/pdf-editor/page-count-hint.js?v=20260518-1',
     '/js/pdf-editor/nup-helper.js?v=20260518-3',
+    '/js/pdf-editor/preview-row-default.js?v=20260518-1',
     '/js/pdf-editor/divider-helper.js?v=20260518-2',
     '/js/pdf-editor/storage-cleanup.js?v=20260518-1',
     '/js/pdf-editor/history-policy.js?v=20260518-1'
