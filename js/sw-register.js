@@ -1,5 +1,5 @@
 // Service worker registration disabled.
-// Loads safe page helpers without intercepting navigation.
+// Loads per-program module loaders without intercepting navigation.
 (function () {
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.getRegistrations()
@@ -15,16 +15,16 @@
 
   function loadScript(id, src) {
     if (document.getElementById(id)) return;
-    const s = document.createElement('script');
-    s.id = id;
-    s.src = src;
-    s.defer = true;
-    document.head.appendChild(s);
+    const script = document.createElement('script');
+    script.id = id;
+    script.src = src;
+    script.defer = true;
+    document.head.appendChild(script);
   }
 
   function loadHelpers() {
     if (location.pathname.endsWith('/tools/pdf-editor.html')) {
-      loadScript('pdfEditorHelperScript', '/js/pdf-editor-helper.js?v=20260518-5');
+      loadScript('pdfEditorModuleLoaderScript', '/js/pdf-editor/loader.js?v=20260518-1');
     }
     if (location.pathname.endsWith('/tools/design-studio.html')) {
       loadScript('designStudioHelperScript', '/js/design-studio/helper-loader.js?v=20260518-1');
