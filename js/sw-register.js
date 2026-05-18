@@ -26,7 +26,7 @@
   function loadHelpers() {
     loadScript('appVersionHelperScript', '/js/app-version.js?v=20260518-1');
     if (location.pathname === '/' || location.pathname.endsWith('/index.html')) {
-      loadScript('homeCleanupScript', '/js/home-cleanup.js?v=20260518-1');
+      loadScript('homeCleanupScript', '/js/home-cleanup.js?v=20260518-2');
     }
     if (location.pathname.endsWith('/tools/pdf-editor.html')) {
       loadScript('pdfEditorModuleLoaderScript', '/js/pdf-editor/loader.js?v=20260518-3');
@@ -34,9 +34,8 @@
     if (location.pathname.endsWith('/tools/design-studio.html')) {
       loadScript('designStudioHelperScript', '/js/design-studio/helper-loader.js?v=20260518-1');
     }
-    if (location.pathname.endsWith('/tools/preflight.html')) {
-      loadScript('preflightLabelScript', '/js/preflight/labels.js?v=20260518-1');
-      loadScript('preflightFixDownloadScript', '/js/preflight/fix-download.js?v=20260518-2');
+    if (location.pathname.endsWith('/tools/pdf-Checker.html') || location.pathname.endsWith('/tools/preflight.html')) {
+      loadScript('preflightFixDownloadScript', '/js/preflight/fix-download.js?v=20260518-4');
     }
   }
   async function boot() {
