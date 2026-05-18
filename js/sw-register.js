@@ -14,15 +14,19 @@
   }
 
   if (location.pathname.endsWith('/tools/pdf-editor.html')) {
-    const loadHelper = () => {
-      if (document.getElementById('pdfEditorHelperScript')) return;
+    const loadScript = (id, src) => {
+      if (document.getElementById(id)) return;
       const s = document.createElement('script');
-      s.id = 'pdfEditorHelperScript';
-      s.src = '/js/pdf-editor-helper.js?v=20260518-3';
+      s.id = id;
+      s.src = src;
       s.defer = true;
       document.head.appendChild(s);
     };
-    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', loadHelper);
-    else loadHelper();
+    const loadHelpers = () => {
+      loadScript('pdfEditorHelperScript', '/js/pdf-editor-helper.js?v=20260518-4');
+      loadScript('pdfEditorCleanupScript', '/js/pdf-editor-cleanup.js?v=20260518-1');
+    };
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', loadHelpers);
+    else loadHelpers();
   }
 })();
