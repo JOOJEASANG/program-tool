@@ -1,4 +1,4 @@
-const APP_VERSION = '2026-05-18-preview-row-six-v5';
+const APP_VERSION = '2026-05-18-per-file-nup-v6';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
