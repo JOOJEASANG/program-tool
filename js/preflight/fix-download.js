@@ -1,9 +1,10 @@
 // Preflight adjustment download helper.
 // Adds a free rule-based adjustment PDF download button after inspection.
 (function () {
-  if (window.__preflightFixDownloadV2) return;
-  window.__preflightFixDownloadV2 = true;
+  if (window.__preflightFixDownloadV3) return;
+  window.__preflightFixDownloadV3 = true;
 
+  const PROGRAM_NAME = 'PDF 사전검수기';
   const ADJUST_BUTTON_TEXT = '조정 가능한 부분만 처리 후 다운로드';
   const ADJUSTING_TEXT = '조정 중...';
 
@@ -11,11 +12,25 @@
   function hasIssues(report) {
     return !!(report && Array.isArray(report.checks) && report.checks.some((c) => c.severity === 'warning' || c.severity === 'fail'));
   }
+  function replaceTextNode(root, from, to) {
+    try {
+      const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+      const nodes = [];
+      while (walker.nextNode()) nodes.push(walker.currentNode);
+      nodes.forEach((node) => {
+        if ((node.nodeValue || '').includes(from)) node.nodeValue = node.nodeValue.replaceAll(from, to);
+      });
+    } catch (_) {}
+  }
   function localizeProgramName() {
+    document.title = `${PROGRAM_NAME} · Program Tool`;
     const h1 = document.querySelector('.page-head h1');
-    if (h1 && /Pre-flight|Checker/i.test(h1.textContent || '')) h1.textContent = '인쇄 사전 검수기';
-    const title = document.querySelector('title');
-    if (title) title.textContent = '인쇄 사전 검수기 · Program Tool';
+    if (h1) h1.textContent = PROGRAM_NAME;
+    const nav = document.querySelector('.nav-title');
+    if (nav) nav.textContent = `🔍 ${PROGRAM_NAME}`;
+    replaceTextNode(document.body, '인쇄 사전 검수기', PROGRAM_NAME);
+    replaceTextNode(document.body, '인쇄 검수기', PROGRAM_NAME);
+    replaceTextNode(document.body, 'Pre-flight Checker', PROGRAM_NAME);
   }
   function ensureButton() {
     if ($('preflightFixBtn')) return $('preflightFixBtn');
@@ -65,7 +80,7 @@
     }
   }
   function wrapRenderResults() {
-    if (window.__preflightRenderWrappedV2 || typeof window.renderResults !== 'function') return;
+    if (window.__preflightRenderWrappedV3 || typeof window.renderResults !== 'function') return;
     const original = window.renderResults;
     window.renderResults = function wrappedRenderResults(report) {
       const result = original.apply(this, arguments);
@@ -79,7 +94,7 @@
       }, 0);
       return result;
     };
-    window.__preflightRenderWrappedV2 = true;
+    window.__preflightRenderWrappedV3 = true;
   }
   function boot() { localizeProgramName(); wrapRenderResults(); ensureButton(); }
   document.addEventListener('DOMContentLoaded', boot);
