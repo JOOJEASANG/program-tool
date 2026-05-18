@@ -1,28 +1,38 @@
 // Design studio free-mode module.
 // Hides paid AI generation controls and guides users to upload background files instead.
 (function () {
-  if (window.__designStudioFreeModeV1) return;
-  window.__designStudioFreeModeV1 = true;
+  if (window.__designStudioFreeModeV2) return;
+  window.__designStudioFreeModeV2 = true;
 
   function isAiText(text) {
     return /AI|GPT|Gemini|제미나이|OpenAI|자동\s*생성|배경\s*생성/i.test(text || '');
   }
 
   function hideAiControls() {
-    document.querySelectorAll('button,label,textarea,select,input,div,section').forEach((el) => {
+    const selectors = [
+      'button', 'label', 'textarea', 'select', 'input',
+      '[id*="ai" i]', '[class*="ai" i]',
+      '[id*="gpt" i]', '[class*="gpt" i]',
+      '[id*="gemini" i]', '[class*="gemini" i]'
+    ].join(',');
+
+    document.querySelectorAll(selectors).forEach((el) => {
+      if (el.id === 'freeModeNotice') return;
       const text = (el.textContent || '').trim();
       const id = el.id || '';
-      const cls = el.className || '';
-      if (isAiText(text) || isAiText(id) || isAiText(String(cls))) {
-        const block = el.closest('.field,.section,.sec,.control-group,div') || el;
-        if (block && !block.id?.includes('freeModeNotice')) block.style.display = 'none';
+      const cls = String(el.className || '');
+      if (!isAiText(text) && !isAiText(id) && !isAiText(cls)) return;
+
+      const block = el.closest('.field,.control-group,.form-row,.option-row') || el;
+      if (block && block.id !== 'freeModeNotice') {
+        block.style.display = 'none';
       }
     });
   }
 
   function installNotice() {
     if (document.getElementById('freeModeNotice')) return;
-    const aside = document.querySelector('aside') || document.body;
+    const aside = document.querySelector('aside') || document.querySelector('.sidebar') || document.body;
     const box = document.createElement('div');
     box.id = 'freeModeNotice';
     box.style.cssText = 'padding:10px;border:1.5px dashed #16a34a;border-radius:10px;background:#f0fdf4;color:#166534;font-size:12px;font-weight:800;line-height:1.5;margin:8px 0;';
