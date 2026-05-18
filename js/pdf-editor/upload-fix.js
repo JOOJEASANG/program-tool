@@ -1,14 +1,22 @@
 // PDF editor upload/render stability patch.
 // Replaces the original handleFile() inside the page's global lexical scope so parsedPages/uploadedFiles are updated correctly.
 (function () {
-  if (window.__pdfEditorUploadFixV1) return;
-  window.__pdfEditorUploadFixV1 = true;
+  if (window.__pdfEditorUploadFixV2) return;
+  window.__pdfEditorUploadFixV2 = true;
 
   function install() {
     try {
       window.eval(`
-        if (!window.__pdfEditorInternalUploadFixV1) {
-          window.__pdfEditorInternalUploadFixV1 = true;
+        if (!window.__pdfEditorInternalUploadFixV2) {
+          window.__pdfEditorInternalUploadFixV2 = true;
+
+          function __clearNupSessionState() {
+            try {
+              localStorage.removeItem('programToolPdfFileNupOverridesV1');
+              localStorage.removeItem('programToolPdfPageNupOverridesV1');
+              localStorage.removeItem('programToolPdfSelectedPageOrdinalV1');
+            } catch (_) {}
+          }
 
           async function __safePdfGetDocument(buf) {
             try {
@@ -40,6 +48,7 @@
             const isBreak = _uploadMode === 'break';
 
             if (isNew) {
+              __clearNupSessionState();
               parsedPages = [];
               uploadedFiles = [];
               previewCanvases = [];
