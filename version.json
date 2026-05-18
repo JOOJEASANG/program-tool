@@ -1,4 +1,5 @@
 {
-  "version": "2026-05-13-force-redeploy-1",
-  "note": "Force Firebase Hosting redeploy after restoring service worker and page access."
+  "version": "2026-05-18-cache-strong-v1",
+  "label": "캐시 강화 / 업데이트 확인",
+  "updatedAt": "2026-05-18T00:00:00+09:00"
 }
