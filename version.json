@@ -1,5 +1,5 @@
 {
-  "version": "2026-05-18-cleanup-v2",
-  "label": "파일 정리 / 보안 안정화",
-  "updatedAt": "2026-05-18T12:00:00+09:00"
+  "version": "2026-05-18-no-ai-pdf-checker-v3",
+  "label": "AI 기능 제거 / PDF파일검수기 이름 변경",
+  "updatedAt": "2026-05-18T12:30:00+09:00"
 }
