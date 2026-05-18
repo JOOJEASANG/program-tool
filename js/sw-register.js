@@ -15,23 +15,39 @@
 
   if (!location.pathname.endsWith('/tools/pdf-editor.html')) return;
 
-  const STORAGE_KEY = 'programToolPdfFileNupOverridesV1';
+  const FILE_NUP_KEY = 'programToolPdfFileNupOverridesV1';
+  const PAGE_NUP_KEY = 'programToolPdfPageNupOverridesV1';
+  const SELECTED_PAGE_KEY = 'programToolPdfSelectedPageOrdinalV1';
   const NUP_VALUES = [1, 2, 4, 6, 8, 9];
   let apiWrapped = false;
   let fetchWrapped = false;
   let autoPreviewTimer = null;
   let lastPageSignature = '';
+  let selectedPageOrdinal = Number(localStorage.getItem(SELECTED_PAGE_KEY) || -1);
 
-  function loadMap() {
+  function loadJson(key) {
     try {
-      return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}') || {};
+      return JSON.parse(localStorage.getItem(key) || '{}') || {};
     } catch (_) {
       return {};
     }
   }
 
-  function saveMap(map) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(map || {}));
+  function saveJson(key, value) {
+    localStorage.setItem(key, JSON.stringify(value || {}));
+  }
+
+  function loadFileMap() { return loadJson(FILE_NUP_KEY); }
+  function saveFileMap(map) { saveJson(FILE_NUP_KEY, map); }
+  function loadPageMap() { return loadJson(PAGE_NUP_KEY); }
+  function savePageMap(map) { saveJson(PAGE_NUP_KEY, map); }
+
+  function setSelectedPageOrdinal(value) {
+    selectedPageOrdinal = Number.isInteger(value) && value >= 0 ? value : -1;
+    if (selectedPageOrdinal >= 0) localStorage.setItem(SELECTED_PAGE_KEY, String(selectedPageOrdinal));
+    else localStorage.removeItem(SELECTED_PAGE_KEY);
+    renderSelectedPageUi();
+    markSelectedThumb();
   }
 
   function isBreakMode() {
@@ -98,30 +114,37 @@
 
   function patchSettings(settings) {
     if (!settings || !Array.isArray(settings.pages)) return settings;
-    const map = loadMap();
+    const fileMap = loadFileMap();
+    const pageMap = loadPageMap();
     const breakMode = isBreakMode();
-    const seen = new Set();
+    const seenFiles = new Set();
+    let normalOrdinal = -1;
 
     for (const page of settings.pages) {
       if (!page || !isNormalPage(page)) continue;
+      normalOrdinal += 1;
       const fileIndex = normalizeFileIndex(page);
       if (fileIndex === null) continue;
 
-      const nup = effectiveNupForFile(fileIndex, map);
+      const pageNup = Number(pageMap[normalOrdinal]);
+      const fileNup = effectiveNupForFile(fileIndex, fileMap);
+      const nup = NUP_VALUES.includes(pageNup) ? pageNup : fileNup;
+
       if (NUP_VALUES.includes(nup)) {
         page.nup_override = nup;
         page.nup_disabled = false;
       } else if (!breakMode) {
-        // In continuous mode, do not force per-file grouping when no explicit per-file N-UP exists.
-        if (page.group_break) page.group_break = false;
+        page.group_break = false;
       }
 
-      if (breakMode && !seen.has(fileIndex)) {
-        // Non-continuous mode: every file starts a fresh N-UP group, so file 1 can be 2-up and file 2 can be 6-up.
+      if (NUP_VALUES.includes(pageNup)) {
+        // A selected page override always starts a new output slide/group.
+        // If the previous group has empty slots, PyMuPDF output naturally leaves them blank.
         page.group_break = true;
-        seen.add(fileIndex);
-      } else if (!breakMode && seen.size > 0 && !NUP_VALUES.includes(nup)) {
-        // Continuous mode: keep pages flowing from previous file unless N-UP itself changes explicitly.
+      } else if (breakMode && !seenFiles.has(fileIndex)) {
+        page.group_break = true;
+        seenFiles.add(fileIndex);
+      } else if (!breakMode && !NUP_VALUES.includes(fileNup)) {
         page.group_break = false;
       }
     }
@@ -129,18 +152,23 @@
   }
 
   function patchKnownPageArrays() {
-    const map = loadMap();
+    const fileMap = loadFileMap();
+    const pageMap = loadPageMap();
     const breakMode = isBreakMode();
 
     function patchArray(arr) {
       if (!Array.isArray(arr)) return false;
       let changed = false;
-      const seen = new Set();
+      const seenFiles = new Set();
+      let normalOrdinal = -1;
       for (const page of arr) {
         if (!page || typeof page !== 'object' || !isNormalPage(page)) continue;
+        normalOrdinal += 1;
         const fileIndex = normalizeFileIndex(page);
         if (fileIndex === null) continue;
-        const nup = effectiveNupForFile(fileIndex, map);
+        const pageNup = Number(pageMap[normalOrdinal]);
+        const fileNup = effectiveNupForFile(fileIndex, fileMap);
+        const nup = NUP_VALUES.includes(pageNup) ? pageNup : fileNup;
 
         if (NUP_VALUES.includes(nup)) {
           page.nup_override = nup;
@@ -150,10 +178,14 @@
           changed = true;
         }
 
-        if (breakMode && !seen.has(fileIndex)) {
+        if (NUP_VALUES.includes(pageNup)) {
           page.group_break = true;
           page.groupBreak = true;
-          seen.add(fileIndex);
+          changed = true;
+        } else if (breakMode && !seenFiles.has(fileIndex)) {
+          page.group_break = true;
+          page.groupBreak = true;
+          seenFiles.add(fileIndex);
           changed = true;
         } else if (!breakMode) {
           page.group_break = false;
@@ -186,10 +218,7 @@
         text.includes('미리보기') && text.includes('생성')
       );
     });
-    if (btn) {
-      btn.click();
-      return true;
-    }
+    if (btn) { btn.click(); return true; }
     return false;
   }
 
@@ -197,10 +226,7 @@
     let called = false;
     ['renderPreview', 'generatePreview', 'updatePreview', 'refreshPreview', 'renderOutputPreview', 'renderThumbnails', 'renderThumbs', 'saveState'].forEach((name) => {
       try {
-        if (typeof window[name] === 'function') {
-          window[name]();
-          called = true;
-        }
+        if (typeof window[name] === 'function') { window[name](); called = true; }
       } catch (_) {}
     });
     return called;
@@ -213,6 +239,8 @@
       const called = callPreviewFunctions();
       if (!called) clickPreviewButton();
       renderFileNupRows();
+      renderSelectedPageUi();
+      markSelectedThumb();
     }, reason === 'file-change' ? 900 : 250);
   }
 
@@ -239,7 +267,7 @@
           }
         }
       } catch (e) {
-        console.warn('파일별 N-UP 설정 적용 실패', e);
+        console.warn('N-UP 설정 적용 실패', e);
       }
       return originalFetch(input, init);
     };
@@ -250,7 +278,7 @@
     const list = document.getElementById('fileNupOverrideList');
     if (!list) return;
     const count = getFileCountFromDom();
-    const map = loadMap();
+    const map = loadFileMap();
     const breakMode = isBreakMode();
 
     const modeText = document.getElementById('fileNupModeText');
@@ -282,20 +310,57 @@
 
     list.querySelectorAll('.file-nup-select').forEach((sel) => {
       sel.onchange = () => {
-        const next = loadMap();
+        const next = loadFileMap();
         const idx = String(sel.dataset.fileIndex);
         const value = Number(sel.value);
         if (NUP_VALUES.includes(value)) next[idx] = value;
         else delete next[idx];
-        saveMap(next);
+        saveFileMap(next);
         schedulePreview('nup-change');
       };
     });
   }
 
+  function getPageThumbs() {
+    const raw = [...document.querySelectorAll('.thumb-item,.page-preview')];
+    return raw.filter((el) => !(el.textContent || '').includes('간지') && !el.querySelector('.divider-thumb'));
+  }
+
+  function markSelectedThumb() {
+    getPageThumbs().forEach((el, idx) => {
+      if (idx === selectedPageOrdinal) {
+        el.style.outline = '3px solid #7c3aed';
+        el.style.outlineOffset = '2px';
+        el.style.borderRadius = '8px';
+      } else if (el.style.outline && el.style.outline.includes('7c3aed')) {
+        el.style.outline = '';
+        el.style.outlineOffset = '';
+      }
+    });
+  }
+
+  function renderSelectedPageUi() {
+    const panel = document.getElementById('selectedPageNupPanel');
+    if (!panel) return;
+    const pageMap = loadPageMap();
+    const current = Number(pageMap[selectedPageOrdinal] || 0);
+    const label = document.getElementById('selectedPageLabel');
+    const select = document.getElementById('selectedPageNupSelect');
+    if (label) {
+      label.textContent = selectedPageOrdinal >= 0
+        ? `선택 페이지: ${selectedPageOrdinal + 1}번째 페이지`
+        : '썸네일 또는 오른쪽 미리보기 페이지를 클릭하세요.';
+    }
+    if (select) {
+      select.disabled = selectedPageOrdinal < 0;
+      select.value = NUP_VALUES.includes(current) ? String(current) : '';
+    }
+  }
+
   function installUi() {
     if (document.getElementById('fileNupOverridePanel')) {
       renderFileNupRows();
+      renderSelectedPageUi();
       return;
     }
 
@@ -310,11 +375,30 @@
       <label style="font-size:11px;font-weight:900;color:#5b21b6;margin-bottom:6px;display:block;">파일별 N-UP 배치</label>
       <div id="fileNupModeText" style="font-size:10px;color:#6b7280;line-height:1.45;margin-bottom:8px;"></div>
       <div id="fileNupOverrideList"></div>
-      <button type="button" id="fileNupRefreshBtn" class="btn-sm purple" style="margin-top:6px;">지금 미리보기 갱신</button>
+      <div id="selectedPageNupPanel" style="margin-top:10px;padding-top:8px;border-top:1px dashed #c4b5fd;">
+        <label style="font-size:11px;font-weight:900;color:#5b21b6;margin-bottom:5px;display:block;">선택 페이지 배치 변경</label>
+        <div id="selectedPageLabel" style="font-size:10px;color:#6b7280;line-height:1.45;margin-bottom:6px;">썸네일 또는 오른쪽 미리보기 페이지를 클릭하세요.</div>
+        <select id="selectedPageNupSelect" disabled style="width:100%;border:1px solid #e5e7eb;border-radius:8px;padding:6px 8px;font-size:12px;font-family:inherit;background:#fff;">
+          <option value="">파일/전체 기본값 사용</option>
+          ${NUP_VALUES.map((v) => `<option value="${v}">${v}장 배치로 새 묶음 시작</option>`).join('')}
+        </select>
+        <div style="font-size:10px;color:#6b7280;line-height:1.45;margin-top:6px;">선택 페이지부터 새 배치 묶음이 시작됩니다. 앞 묶음에 남는 칸은 자동으로 빈 칸 처리됩니다.</div>
+      </div>
+      <button type="button" id="fileNupRefreshBtn" class="btn-sm purple" style="margin-top:8px;">지금 미리보기 갱신</button>
     `;
     nupGrid.insertAdjacentElement('afterend', panel);
     document.getElementById('fileNupRefreshBtn').onclick = () => schedulePreview('manual');
+    document.getElementById('selectedPageNupSelect').onchange = (event) => {
+      if (selectedPageOrdinal < 0) return;
+      const next = loadPageMap();
+      const value = Number(event.target.value);
+      if (NUP_VALUES.includes(value)) next[selectedPageOrdinal] = value;
+      else delete next[selectedPageOrdinal];
+      savePageMap(next);
+      schedulePreview('page-nup-change');
+    };
     renderFileNupRows();
+    renderSelectedPageUi();
   }
 
   function installAutoPreviewListeners() {
@@ -325,40 +409,46 @@
       const target = event.target;
       if (!target) return;
       if (target.id === 'fileInput' || target.matches('input[type="file"]')) {
-        setTimeout(() => {
-          renderFileNupRows();
-          schedulePreview('file-change');
-        }, 500);
+        setTimeout(() => { renderFileNupRows(); schedulePreview('file-change'); }, 500);
       }
       if (target.classList && target.classList.contains('file-nup-select')) return;
+      if (target.id === 'selectedPageNupSelect') return;
       if (target.matches && (target.matches('select') || target.matches('input[type="number"]') || target.matches('input[type="checkbox"]'))) {
         schedulePreview('option-change');
       }
     }, true);
 
     document.addEventListener('click', (event) => {
+      const pageEl = event.target && event.target.closest ? event.target.closest('.thumb-item,.page-preview') : null;
+      if (pageEl && !pageEl.querySelector('.divider-thumb')) {
+        const thumbs = getPageThumbs();
+        const idx = thumbs.indexOf(pageEl);
+        if (idx >= 0) setSelectedPageOrdinal(idx);
+      }
+
       const btn = event.target && event.target.closest ? event.target.closest('button,.mode-btn,.nup-btn,.orient-btn') : null;
       if (!btn) return;
       const text = (btn.textContent || '').replace(/\s+/g, '');
       if (btn.classList.contains('nup-btn') || btn.classList.contains('mode-btn') || text.includes('연속') || text.includes('비연속') || text.includes('장')) {
-        setTimeout(() => {
-          renderFileNupRows();
-          schedulePreview('button-change');
-        }, 120);
+        setTimeout(() => { renderFileNupRows(); schedulePreview('button-change'); }, 120);
       }
     }, true);
   }
 
   function watchPageChanges() {
     const count = getFileCountFromDom();
-    const map = JSON.stringify(loadMap());
+    const fileMap = JSON.stringify(loadFileMap());
+    const pageMap = JSON.stringify(loadPageMap());
     const mode = isBreakMode() ? 'break' : 'continuous';
     const globalNup = getGlobalNup();
-    const sig = `${count}|${mode}|${globalNup}|${map}`;
+    const thumbCount = getPageThumbs().length;
+    const sig = `${count}|${thumbCount}|${mode}|${globalNup}|${fileMap}|${pageMap}|${selectedPageOrdinal}`;
     if (sig !== lastPageSignature) {
       lastPageSignature = sig;
       renderFileNupRows();
-      if (count > 0) schedulePreview('page-change');
+      renderSelectedPageUi();
+      markSelectedThumb();
+      if (count > 0 || thumbCount > 0) schedulePreview('page-change');
     }
   }
 
