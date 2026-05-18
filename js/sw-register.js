@@ -1,18 +1,5 @@
-// Service worker registration disabled.
-// Loads per-program module loaders without intercepting navigation.
+// App bootstrap: service worker refresh + per-program module loaders.
 (function () {
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.getRegistrations()
-      .then((regs) => Promise.all(regs.map((reg) => reg.unregister())))
-      .catch(() => {});
-  }
-
-  if ('caches' in window) {
-    caches.keys()
-      .then((keys) => Promise.all(keys.map((key) => caches.delete(key))))
-      .catch(() => {});
-  }
-
   function loadScript(id, src) {
     if (document.getElementById(id)) return;
     const script = document.createElement('script');
@@ -22,18 +9,44 @@
     document.head.appendChild(script);
   }
 
+  async function clearOldCaches() {
+    try {
+      if ('caches' in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map((key) => caches.delete(key)));
+      }
+    } catch (_) {}
+  }
+
+  async function registerFreshServiceWorker() {
+    if (!('serviceWorker' in navigator)) return;
+    try {
+      const reg = await navigator.serviceWorker.register('/sw.js?ts=' + Date.now(), { updateViaCache: 'none' });
+      await reg.update().catch(() => {});
+      if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+    } catch (_) {}
+  }
+
   function loadHelpers() {
+    loadScript('appVersionHelperScript', '/js/app-version.js?v=20260518-1');
+
     if (location.pathname.endsWith('/tools/pdf-editor.html')) {
-      loadScript('pdfEditorModuleLoaderScript', '/js/pdf-editor/loader.js?v=20260518-2');
+      loadScript('pdfEditorModuleLoaderScript', '/js/pdf-editor/loader.js?v=20260518-3');
     }
     if (location.pathname.endsWith('/tools/design-studio.html')) {
       loadScript('designStudioHelperScript', '/js/design-studio/helper-loader.js?v=20260518-1');
     }
     if (location.pathname.endsWith('/tools/preflight.html')) {
-      loadScript('preflightFixDownloadScript', '/js/preflight/fix-download.js?v=20260518-1');
+      loadScript('preflightFixDownloadScript', '/js/preflight/fix-download.js?v=20260518-2');
     }
   }
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', loadHelpers);
-  else loadHelpers();
+  async function boot() {
+    await clearOldCaches();
+    await registerFreshServiceWorker();
+    loadHelpers();
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+  else boot();
 })();
