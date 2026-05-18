@@ -27,7 +27,7 @@ async function apiProcessPdf(files, settings) {
   form.append('settings', JSON.stringify(settings));
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 310000); // slightly over server 300s
+  const timeoutId = setTimeout(() => controller.abort(), 310000);
 
   try {
     const resp = await fetch('/api/pdf/process', {
@@ -52,9 +52,6 @@ async function apiProcessPdf(files, settings) {
   }
 }
 
-/**
- * Generic call to /api/pdf-tools/<op>. Returns Blob (or throws with detail).
- */
 async function apiPdfTool(op, fileOrFiles, params = {}) {
   const headers = await _authHeaders();
   const form = new FormData();
@@ -75,12 +72,6 @@ async function apiPdfTool(op, fileOrFiles, params = {}) {
   return { blob, meta: { removed: removed ? Number(removed) : null } };
 }
 
-/**
- * Run free rule-based pre-flight check.
- * AI visual analysis was removed so all tools can run without paid API usage.
- * @param {File} file - PDF file
- * @returns {Promise<object>} PreflightReport JSON
- */
 async function apiPreflightCheck(file) {
   const headers = await _authHeaders();
   const form = new FormData();
@@ -98,4 +89,22 @@ async function apiPreflightCheck(file) {
     throw new Error(err.detail || '검수 중 오류가 발생했습니다.');
   }
   return resp.json();
+}
+
+async function apiPreflightFix(file) {
+  const headers = await _authHeaders();
+  const form = new FormData();
+  form.append('file', file);
+
+  const resp = await fetch('/api/preflight/fix', {
+    method: 'POST',
+    headers,
+    body: form,
+  });
+
+  if (!resp.ok) {
+    const err = await resp.json().catch(() => ({ detail: resp.statusText }));
+    throw new Error(err.detail || 'PDF 보정 중 오류가 발생했습니다.');
+  }
+  return resp.blob();
 }
