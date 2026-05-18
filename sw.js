@@ -1,4 +1,4 @@
-const APP_VERSION = '2026-05-18-pdf-nup-checker-tools-v4';
+const APP_VERSION = '2026-05-18-preview-row-six-v5';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
