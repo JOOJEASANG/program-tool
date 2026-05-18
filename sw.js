@@ -1,4 +1,4 @@
-const APP_VERSION = '2026-05-18-cache-strong-v1';
+const APP_VERSION = '2026-05-18-cleanup-v2';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
