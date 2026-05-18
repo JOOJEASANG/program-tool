@@ -1,4 +1,4 @@
-const APP_VERSION = '2026-05-18-cleanup-v2';
+const APP_VERSION = '2026-05-18-no-ai-pdf-checker-v3';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
