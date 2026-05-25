@@ -27,7 +27,7 @@ async function apiProcessPdf(files, settings) {
   form.append('settings', JSON.stringify(settings));
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 310000);
+  const timeoutId = setTimeout(() => controller.abort(), 290000);
 
   try {
     const resp = await fetch('/api/pdf/process', {
@@ -46,7 +46,7 @@ async function apiProcessPdf(files, settings) {
   } catch (e) {
     clearTimeout(timeoutId);
     if (e.name === 'AbortError') {
-      throw new Error('처리 시간 초과 (5분). 페이지 수를 줄이거나 파일 크기를 줄여 다시 시도하세요.');
+      throw new Error('처리 시간 초과 (약 5분). 페이지 수를 줄이거나 파일 크기를 줄여 다시 시도하세요.');
     }
     throw e;
   }

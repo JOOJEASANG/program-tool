@@ -37,6 +37,13 @@ self.addEventListener('fetch', (event) => {
   const isHtml = req.mode === 'navigate' || accept.includes('text/html');
   const isSource = /\.(js|css|json)$/i.test(url.pathname) || url.pathname === '/' || url.pathname.endsWith('.html');
   if (isHtml || isSource) {
-    event.respondWith(fetch(req, { cache: 'no-store' }).catch(() => fetch(req)));
+    event.respondWith(
+      fetch(req, { cache: 'no-store' }).catch(() =>
+        new Response('오프라인 상태입니다. 네트워크 연결 후 새로고침하세요.', {
+          status: 503,
+          headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+        })
+      )
+    );
   }
 });

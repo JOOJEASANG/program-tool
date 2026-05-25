@@ -149,11 +149,26 @@ def _render_divider_page(out_doc: fitz.Document, content_raw: str, style: str,
         shape.finish(color=fg, width=1.0)
         shape.commit()
     if title:
-        page.insert_textbox(fitz.Rect(pad, title_y - 32, paper_w_pt - pad, title_y + 14), title, fontsize=28, fontname="helv", color=fg, align=fitz.TEXT_ALIGN_CENTER)
+        _insert_text_safe(page, fitz.Rect(pad, title_y - 32, paper_w_pt - pad, title_y + 14), title, fontsize=28, color=fg, align=fitz.TEXT_ALIGN_CENTER)
     if subtitle:
-        page.insert_textbox(fitz.Rect(pad, subtitle_y - 24, paper_w_pt - pad, subtitle_y + 12), subtitle, fontsize=18, fontname="helv", color=fg, align=fitz.TEXT_ALIGN_CENTER)
+        _insert_text_safe(page, fitz.Rect(pad, subtitle_y - 24, paper_w_pt - pad, subtitle_y + 12), subtitle, fontsize=18, color=fg, align=fitz.TEXT_ALIGN_CENTER)
     if note:
-        page.insert_textbox(fitz.Rect(pad, note_y - 18, paper_w_pt - pad, note_y + 10), note, fontsize=11, fontname="helv", color=fg, align=fitz.TEXT_ALIGN_CENTER)
+        _insert_text_safe(page, fitz.Rect(pad, note_y - 18, paper_w_pt - pad, note_y + 10), note, fontsize=11, color=fg, align=fitz.TEXT_ALIGN_CENTER)
+
+
+def _insert_text_safe(page: fitz.Page, rect: fitz.Rect, text: str,
+                      fontsize: float, color: tuple, align: int) -> None:
+    """Insert text with Latin font; fall back to CJK-capable font for non-Latin characters."""
+    res = page.insert_textbox(rect, text, fontsize=fontsize, fontname="helv", color=color, align=align)
+    if res < 0:
+        # helv could not fit/render the text — likely CJK characters; try a built-in CJK font.
+        for cjk_font in ("china-s", "japan", "korea"):
+            try:
+                r = page.insert_textbox(rect, text, fontsize=fontsize, fontname=cjk_font, color=color, align=align)
+                if r >= 0:
+                    break
+            except Exception:
+                continue
 
 
 def _safe_float(value, fallback, min_value=0.0, max_value=100.0):

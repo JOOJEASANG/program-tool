@@ -76,14 +76,21 @@ def process(uid):
     if not files:
         return jsonify({"detail": "No files provided"}), 400
 
+    errors = []
     file_bytes_list = []
     for f in files:
         if not (f.filename or "").lower().endswith(".pdf"):
-            return jsonify({"detail": f"File '{f.filename}' is not a PDF"}), 400
+            errors.append(f"'{f.filename}' — PDF 파일이 아닙니다")
+            continue
         data = f.read()
         if len(data) > 100 * 1024 * 1024:
-            return jsonify({"detail": f"File '{f.filename}' exceeds 100 MB"}), 413
+            errors.append(f"'{f.filename}' — 100 MB를 초과합니다")
+            continue
         file_bytes_list.append(data)
+    if errors:
+        return jsonify({"detail": "파일 검증 실패", "errors": errors}), 400
+    if not file_bytes_list:
+        return jsonify({"detail": "유효한 PDF 파일이 없습니다."}), 400
 
     try:
         _patch_divider_renderer()

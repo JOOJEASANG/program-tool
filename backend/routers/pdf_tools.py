@@ -5,6 +5,27 @@ import fitz  # PyMuPDF
 from flask import Blueprint, request, jsonify, Response
 from utils.auth import require_auth
 
+_MIME_TO_EXT = {
+    "image/jpeg": "jpeg",
+    "image/jpg": "jpeg",
+    "image/png": "png",
+    "image/gif": "gif",
+    "image/bmp": "bmp",
+    "image/tiff": "tiff",
+    "image/webp": "webp",
+}
+_SAFE_EXTS = {"jpeg", "jpg", "png", "gif", "bmp", "tiff", "tif", "webp"}
+
+
+def _image_filetype(f) -> str:
+    """Derive a safe filetype string from MIME type or filename extension."""
+    mime = (f.mimetype or "").lower().split(";")[0].strip()
+    if mime in _MIME_TO_EXT:
+        return _MIME_TO_EXT[mime]
+    name = f.filename or ""
+    ext = name.rsplit(".", 1)[-1].lower() if "." in name else ""
+    return ext if ext in _SAFE_EXTS else "jpeg"
+
 pdf_tools_bp = Blueprint("pdf_tools", __name__)
 
 MAX_FILE = 100 * 1024 * 1024  # 100 MB
@@ -33,6 +54,8 @@ def _pdf_response(data: bytes, filename: str) -> Response:
 
 def _parse_ranges(spec: str, total: int) -> list[int]:
     """Parse '1-3,5,7-9' → [0,1,2,4,6,7,8] (0-indexed)."""
+    if len(spec) > 200:
+        raise ValueError("페이지 범위 입력이 너무 깁니다 (최대 200자).")
     pages: set[int] = set()
     for chunk in re.split(r"[,\s]+", spec.strip()):
         if not chunk:
@@ -96,7 +119,7 @@ def from_images(uid):
             if len(data) > MAX_FILE:
                 return jsonify({"detail": f"{f.filename}이(가) 100MB를 초과합니다."}), 413
             try:
-                img_doc = fitz.open(stream=data, filetype=(f.filename.split(".")[-1].lower() if "." in f.filename else "jpg"))
+                img_doc = fitz.open(stream=data, filetype=_image_filetype(f))
             except Exception:
                 pix = fitz.Pixmap(data)
                 rect = fitz.Rect(0, 0, pix.width, pix.height)
@@ -209,18 +232,20 @@ def _is_blank(page: fitz.Page, threshold: float = 0.005) -> bool:
     """A page is blank if it has no text and its rendered pixmap is mostly white."""
     if page.get_text("text").strip():
         return False
-    pix = page.get_pixmap(dpi=72)
+    # Early exit: pages with drawings are never blank.
+    if page.get_drawings():
+        return False
+    pix = page.get_pixmap(dpi=72, colorspace=fitz.csRGB)
     samples = pix.samples
     n = pix.width * pix.height
     if n == 0:
         return True
     non_white = 0
     step = max(1, n // 5000)
-    bytes_per_pixel = pix.n
+    # csRGB forces 3 bytes/pixel — safe to hard-code here.
     for i in range(0, n, step):
-        off = i * bytes_per_pixel
-        r, g, b = samples[off], samples[off + 1], samples[off + 2]
-        if r < 240 or g < 240 or b < 240:
+        off = i * 3
+        if samples[off] < 240 or samples[off + 1] < 240 or samples[off + 2] < 240:
             non_white += 1
     sampled = max(1, n // step)
     return (non_white / sampled) < threshold

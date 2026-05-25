@@ -16,8 +16,8 @@ def _read_pdf_from_request():
     if not (file.filename or "").lower().endswith(".pdf"):
         return None, None, (jsonify({"detail": "PDF 파일만 업로드 가능합니다"}), 400)
     data = file.read()
-    if len(data) > 200 * 1024 * 1024:
-        return None, None, (jsonify({"detail": "파일이 200 MB 제한을 초과합니다"}), 413)
+    if len(data) > 100 * 1024 * 1024:
+        return None, None, (jsonify({"detail": "파일이 100 MB 제한을 초과합니다"}), 413)
     return file, data, None
 
 

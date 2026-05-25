@@ -43,8 +43,13 @@
   async function checkVersion() {
     try {
       const res = await fetch('/version.json?ts=' + Date.now(), { cache: 'no-store' });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
-      const version = data.version || 'unknown';
+      const version = (data.version && data.version !== 'unknown') ? data.version : null;
+      if (!version) {
+        makeBadge('확인 실패', false);
+        return;
+      }
       const prev = localStorage.getItem(LOCAL_KEY);
       const changed = !!prev && prev !== version;
       localStorage.setItem(LOCAL_KEY, version);

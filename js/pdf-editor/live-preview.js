@@ -128,12 +128,20 @@
     previewInfo.parentElement.appendChild(hint);
   }
 
+  let booted = false;
   function boot() {
+    if (booted) return;
     installEvents();
     installObserver();
     installStatusHint();
+    booted = true;
   }
 
   document.addEventListener('DOMContentLoaded', boot);
-  setInterval(boot, 1500);
+  // Poll only until first successful boot; stop after 10 seconds.
+  let bootAttempts = 0;
+  const bootTimer = setInterval(() => {
+    boot();
+    if (booted || ++bootAttempts >= 7) clearInterval(bootTimer);
+  }, 1500);
 })();

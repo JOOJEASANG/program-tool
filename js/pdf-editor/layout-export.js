@@ -24,13 +24,21 @@
     };
     window.__pdfLayoutApiWrapped = true;
   }
+  function _isSameOriginApiPath(url) {
+    try {
+      const parsed = new URL(url, location.origin);
+      return parsed.origin === location.origin && parsed.pathname === '/api/pdf/process';
+    } catch (_) {
+      return false;
+    }
+  }
   function wrapFetch() {
     if (window.__pdfLayoutFetchWrapped) return;
     const originalFetch = window.fetch.bind(window);
     window.fetch = function layoutPatchedFetch(input, init) {
       try {
         const url = typeof input === 'string' ? input : (input && input.url) || '';
-        if (url.includes('/api/pdf/process') && init && init.body instanceof FormData) {
+        if (_isSameOriginApiPath(url) && init && init.body instanceof FormData) {
           const raw = init.body.get('settings');
           if (raw) init.body.set('settings', JSON.stringify(patchSettings(JSON.parse(raw))));
         }
