@@ -84,10 +84,11 @@ def _group_by_nup(pages: list[PageInfo], default_nup: int) -> list[list[PageInfo
             current_nup = effective_nup
         else:
             current.append(p)
-            if len(current) >= effective_nup:
-                groups.append(current)
-                current = []
-                current_nup = None
+
+        if len(current) >= effective_nup:
+            groups.append(current)
+            current = []
+            current_nup = None
 
     if current:
         groups.append(current)
