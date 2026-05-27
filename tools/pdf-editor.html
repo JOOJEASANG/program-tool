@@ -612,14 +612,13 @@
         <span id="previewInfo">PDF 파일을 업로드하면 미리보기가 표시됩니다.</span>
         <span id="previewPages" style="color:#2563eb;font-weight:800;"></span>
         <div class="preview-zoom">
-          <span style="font-size:10px;font-weight:800;color:#6b7280;margin-right:2px;">줄당</span>
           <select id="perRowSelect" style="border:1px solid var(--line);border-radius:6px;padding:2px 4px;font-size:11px;font-weight:800;font-family:inherit;color:#374151;background:#fff;cursor:pointer;">
-            <option value="1">1장</option>
-            <option value="2">2장</option>
-            <option value="3">3장</option>
-            <option value="4">4장</option>
-            <option value="5">5장</option>
-            <option value="6">6장</option>
+            <option value="1">줄당 1장</option>
+            <option value="2">줄당 2장</option>
+            <option value="3">줄당 3장</option>
+            <option value="4">줄당 4장</option>
+            <option value="5">줄당 5장</option>
+            <option value="6" selected>줄당 6장</option>
           </select>
           <span style="width:1px;background:#e5e7eb;align-self:stretch;margin:0 4px;"></span>
           <button class="zoom-btn" id="zoomOutBtn" title="축소">−</button>
@@ -1604,7 +1603,7 @@ async function buildAllPages(mm2px, useHi) {
 // ── Preview ───────────────────────────────────────────────────────────
 let _previewInsertPoints = []; // [zoneIdx] = parsedPages splice index
 let _previewZoom = 1.0; // zoom multiplier
-let _previewPerRow = 1; // pages per row
+let _previewPerRow = 6; // pages per row
 const ZOOM_STEPS = [0.5, 0.6, 0.75, 1.0, 1.25, 1.5, 2.0, 2.5, 3.0];
 const ZOOM_BASE_H = 280; // base page height in px at 100%
 
