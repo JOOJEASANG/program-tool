@@ -159,14 +159,14 @@
     /* Thumbnails */
     .slides-header { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; flex-wrap: wrap; }
     .slide-count { font-size: 10px; color: var(--muted); font-weight: 700; margin-left: auto; }
-    .thumb-area { display: flex; flex-wrap: wrap; gap: 5px; padding: 4px 0; }
+    .thumb-area { display: grid; grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)); gap: 5px; padding: 4px 0; }
     .file-divider { font-size: 10px; font-weight: 800; color: var(--primary); background: #eff6ff; border-radius: 5px; padding: 3px 8px; }
     .file-divider.break { border-left: 3px solid #7c3aed; background: #f5f3ff; color: #5b21b6; }
     .thumb-row { display: flex; flex-wrap: wrap; gap: 5px; }
-    .thumb-item { display: flex; flex-direction: column; align-items: center; width: 60px; cursor: grab; }
+    .thumb-item { display: flex; flex-direction: column; align-items: center; width: 100%; cursor: grab; }
     .thumb-item.dragging { opacity: 0.35; }
     .thumb-item.drag-target { outline: 2px dashed var(--primary); outline-offset: 2px; border-radius: 6px; }
-    .thumb-wrap { position: relative; background: #fff; border: 2px solid var(--line); border-radius: 6px; overflow: hidden; width: 60px; }
+    .thumb-wrap { position: relative; background: #fff; border: 2px solid var(--line); border-radius: 6px; overflow: hidden; width: 100%; }
     .thumb-wrap:hover { border-color: #93c5fd; }
     .thumb-wrap.excluded { opacity: 0.35; border-color: #fca5a5; }
     .thumb-wrap canvas { width: 100%; display: block; }
@@ -235,7 +235,7 @@
     .prev-ins-btn-v.divider { color: #7c3aed; }
     .prev-ins-btn-v:hover { text-decoration: underline; }
     /* Thumb file separator (break mode) */
-    .thumb-file-sep { width: 100%; display: flex; align-items: center; gap: 4px; padding: 4px 0 2px; flex-basis: 100%; }
+    .thumb-file-sep { grid-column: 1 / -1; width: 100%; display: flex; align-items: center; gap: 4px; padding: 4px 0 2px; }
     .thumb-file-sep-line { flex: 1; height: 1.5px; background: #c4b5fd; border-radius: 1px; }
     .thumb-file-sep-label { font-size: 9px; font-weight: 800; color: #7c3aed; white-space: nowrap; }
 
