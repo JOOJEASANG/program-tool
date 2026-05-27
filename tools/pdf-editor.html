@@ -874,6 +874,7 @@ document.getElementById('fileHistoryModal').addEventListener('click', e => {
 //         file_index (index into uploadedFiles), page_index (0-based) }
 let parsedPages = [];
 let uploadedFiles = []; // original File objects, indexed by file_index
+let fileNupMap = {};    // file_index → nup override (undefined = use global nup)
 let nup = 2;
 let orderLR = true;
 let landscape = false;
@@ -991,6 +992,7 @@ async function handleFile(file) {
     parsedPages = [];
     uploadedFiles = [];
     previewCanvases = [];
+    fileNupMap = {};
     $('previewBtn').disabled = true;
     $('downloadBtn').disabled = true;
     $('previewScroll').innerHTML = '<div class="empty-state"><div class="icon">⏳</div><p>페이지 렌더링 중...</p></div>';
@@ -1289,22 +1291,59 @@ function openDividerInsert(spliceIdx) {
   setTimeout(updateDividerPreview, 50);
 }
 
+// ── File separator with per-file N-up selector ────────────────────────
+function makeFileSep(fileIdx, label) {
+  const sep = document.createElement('div');
+  sep.className = 'thumb-file-sep';
+
+  const l1 = document.createElement('div'); l1.className = 'thumb-file-sep-line';
+  const lbl = document.createElement('div');
+  lbl.className = 'thumb-file-sep-label';
+  lbl.textContent = label || '파일';
+
+  // N-up selector for this file
+  const selWrap = document.createElement('div');
+  selWrap.style.cssText = 'display:flex;align-items:center;gap:3px;flex-shrink:0;margin-left:4px;';
+  const selLbl = document.createElement('span');
+  selLbl.style.cssText = 'font-size:8px;font-weight:800;color:#64748b;white-space:nowrap;';
+  selLbl.textContent = '배치:';
+  const sel = document.createElement('select');
+  sel.style.cssText = 'border:1px solid #c4b5fd;border-radius:4px;padding:1px 4px;font-size:9px;font-weight:800;font-family:inherit;color:#5b21b6;background:#f5f3ff;cursor:pointer;';
+  [['', '기본'], ['1','1장'], ['2','2장'], ['4','4장'], ['6','6장'], ['8','8장'], ['9','9장']].forEach(([val, txt]) => {
+    const opt = document.createElement('option');
+    opt.value = val; opt.textContent = txt;
+    const cur = fileNupMap[fileIdx];
+    if ((val === '' && cur === undefined) || (val !== '' && Number(val) === cur)) opt.selected = true;
+    sel.appendChild(opt);
+  });
+  sel.addEventListener('change', () => {
+    if (sel.value === '') { delete fileNupMap[fileIdx]; }
+    else { fileNupMap[fileIdx] = parseInt(sel.value); }
+    if (previewCanvases.length > 0) triggerPreview();
+  });
+  selWrap.appendChild(selLbl); selWrap.appendChild(sel);
+
+  const l2 = document.createElement('div'); l2.className = 'thumb-file-sep-line';
+  sep.appendChild(l1); sep.appendChild(lbl); sep.appendChild(selWrap); sep.appendChild(l2);
+  return sep;
+}
+
 // ── Thumbnails ────────────────────────────────────────────────────────
 function renderThumbs() {
   const area = $('thumbArea');
   area.innerHTML = '';
 
+  // Detect multiple files to show per-file N-up selectors
+  const fileIndices = [...new Set(parsedPages.map(p => p.file_index).filter(i => i !== undefined))];
+  const multiFile = fileIndices.length > 1;
+  let firstFileSepAdded = false;
+
   parsedPages.forEach((page, i) => {
     if (page.groupBreak) {
-      const sep = document.createElement('div');
-      sep.className = 'thumb-file-sep';
-      const l1 = document.createElement('div'); l1.className = 'thumb-file-sep-line';
-      const lbl = document.createElement('div');
-      lbl.className = 'thumb-file-sep-label';
-      lbl.textContent = page.sourceFile || '파일 구분';
-      const l2 = document.createElement('div'); l2.className = 'thumb-file-sep-line';
-      sep.appendChild(l1); sep.appendChild(lbl); sep.appendChild(l2);
-      area.appendChild(sep);
+      area.appendChild(makeFileSep(page.file_index, page.sourceFile || '파일 구분'));
+    } else if (multiFile && !firstFileSepAdded && page.file_index !== undefined) {
+      firstFileSepAdded = true;
+      area.appendChild(makeFileSep(page.file_index, page.sourceFile || '파일'));
     }
 
     const item = document.createElement('div');
@@ -1427,7 +1466,8 @@ function groupByNup(pages) {
     if (page.nupDisabled) {
       groups.push({ n: 1, pages: [page] });
     } else {
-      const n = page.nupOverride || nup;
+      const fileNup = (page.file_index !== undefined) ? fileNupMap[page.file_index] : undefined;
+      const n = page.nupOverride ?? fileNup ?? nup;
       const last = groups[groups.length - 1];
       if (last && !last.pages[0].nupDisabled && last.n === n && !page.groupBreak) {
         last.pages.push(page);
@@ -1775,7 +1815,7 @@ $('downloadBtn').addEventListener('click', async () => {
         file_index: p.file_index ?? 0,
         page_index: p.page_index ?? 0,
         rotation: p.rotation || 0,
-        nup_override: p.nupOverride || null,
+        nup_override: p.nupOverride ?? (p.file_index !== undefined ? (fileNupMap[p.file_index] ?? null) : null),
         nup_disabled: !!p.nupDisabled,
         group_break: !!p.groupBreak,
         excluded: !!p.excluded,
