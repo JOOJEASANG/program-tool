@@ -506,6 +506,10 @@
             <div class="field"><label>글자크기(pt)</label><input type="number" id="hfFontSize" value="9" min="6" max="18"></div>
             <div class="field"><label>색상</label><input type="color" id="hfColor" value="#555555"></div>
           </div>
+          <div class="grid2">
+            <div class="field"><label>여백(mm)</label><input type="number" id="hfMarginMm" value="5" min="2" max="30"></div>
+            <div class="field"><label>적용 페이지</label><select id="hfApplyTo" style="width:100%;padding:5px 6px;border:1.5px solid var(--line);border-radius:7px;font-family:inherit;font-size:11px;font-weight:700;color:#374151;background:#fff;"><option value="all">전체</option><option value="odd">홀수만</option><option value="even">짝수만</option></select></div>
+          </div>
         </div>
 
         <!-- 페이지 번호 -->
@@ -544,6 +548,14 @@
           <label class="checkline">
             <input type="checkbox" id="pnExcludeFirst">
             첫 페이지 번호 제외 (표지)
+          </label>
+          <div class="grid2">
+            <div class="field"><label>여백(mm)</label><input type="number" id="pnMarginMm" value="5" min="2" max="30"></div>
+            <div class="field"><label>적용 페이지</label><select id="pnApplyTo" style="width:100%;padding:5px 6px;border:1.5px solid var(--line);border-radius:7px;font-family:inherit;font-size:11px;font-weight:700;color:#374151;background:#fff;"><option value="all">전체</option><option value="odd">홀수만</option><option value="even">짝수만</option></select></div>
+          </div>
+          <label class="checkline">
+            <input type="checkbox" id="facingPages">
+            양면 마주보기 (짝수 페이지 좌우 반전)
           </label>
         </div>
 
@@ -894,12 +906,14 @@ let wmEnabled = false, wmText = '사본', wmOpacity = 0.15, wmAngle = -45, wmCol
 let hfEnabled = false;
 let hfHL = '', hfHC = '', hfHR = '', hfFL = '', hfFC = '', hfFR = '';
 let hfFontSize = 9, hfColor = '#555555';
+let hfApplyTo = 'all', hfMarginMm = 5;
 // Per-range HF sections: [{ranges, header_left, header_center, header_right, footer_left, footer_center, footer_right}]
 let hfSections = [];
 let _hfSecId = 1;
 // Page number
 let pnEnabled = false, pnPosition = 'bottom-center', pnFormat = 'number';
 let pnStart = 1, pnFontSize = 10, pnColor = '#333333', pnExcludeFirst = false;
+let pnApplyTo = 'all', pnMarginMm = 5, facingPages = false;
 
 function makeId() { return _nextId++; }
 
@@ -1553,8 +1567,11 @@ function buildOutputPage(groupPages, pageIdx, cols, rows, layoutRotate, mm2px, u
 function applyDocEdits(canvas, outputIdx, totalPages, mm2px) {
   const ctx = canvas.getContext('2d');
   const w = canvas.width, h = canvas.height;
-  const margin = 8 * mm2px;
   const today = new Date().toLocaleDateString('ko-KR');
+
+  // Page parity: outputIdx=0 → page 1 = odd
+  const isOddPage = outputIdx % 2 === 0;
+  const isMirror = facingPages && !isOddPage;
 
   // Visible page number (accounting for excluded first)
   const visibleNum = (pnExcludeFirst && outputIdx === 0)
@@ -1582,35 +1599,54 @@ function applyDocEdits(canvas, outputIdx, totalPages, mm2px) {
     ctx.restore();
   }
 
+  // HF apply-to check
+  const hfShouldApply = hfApplyTo === 'all' ||
+    (hfApplyTo === 'odd' && isOddPage) ||
+    (hfApplyTo === 'even' && !isOddPage);
+
   // Header/footer helper
+  const hfMarginPx = (hfMarginMm || 5) * mm2px;
   function drawHFLine(y, left, center, right) {
+    const l = isMirror ? right : left;
+    const r = isMirror ? left : right;
     const fs = hfFontSize * 0.353 * mm2px;
     ctx.save();
     ctx.fillStyle = hfColor;
     ctx.font = `${fs}px "Pretendard","Malgun Gothic",Arial,sans-serif`;
     ctx.textBaseline = 'middle';
-    if (left)   { ctx.textAlign = 'left';   ctx.fillText(resolveVars(left),   margin, y); }
-    if (center) { ctx.textAlign = 'center'; ctx.fillText(resolveVars(center), w / 2,  y); }
-    if (right)  { ctx.textAlign = 'right';  ctx.fillText(resolveVars(right),  w - margin, y); }
+    if (l)      { ctx.textAlign = 'left';   ctx.fillText(resolveVars(l),      hfMarginPx, y); }
+    if (center) { ctx.textAlign = 'center'; ctx.fillText(resolveVars(center), w / 2, y); }
+    if (r)      { ctx.textAlign = 'right';  ctx.fillText(resolveVars(r),      w - hfMarginPx, y); }
     ctx.restore();
   }
 
-  if (hfEnabled) {
-    if (hfHL || hfHC || hfHR) drawHFLine(margin * 0.65, hfHL, hfHC, hfHR);
-    if (hfFL || hfFC || hfFR) drawHFLine(h - margin * 0.45, hfFL, hfFC, hfFR);
+  if (hfEnabled && hfShouldApply) {
+    if (hfHL || hfHC || hfHR) drawHFLine(hfMarginPx, hfHL, hfHC, hfHR);
+    if (hfFL || hfFC || hfFR) drawHFLine(h - hfMarginPx, hfFL, hfFC, hfFR);
   }
 
+  // PN apply-to check
+  const pnShouldApply = pnApplyTo === 'all' ||
+    (pnApplyTo === 'odd' && isOddPage) ||
+    (pnApplyTo === 'even' && !isOddPage);
+
   // Page number
-  if (pnEnabled && visibleNum !== null) {
+  if (pnEnabled && pnShouldApply && visibleNum !== null) {
     let numText;
     const total2 = pnExcludeFirst ? totalPages - 1 : totalPages;
-    if (pnFormat === 'number')   numText = String(visibleNum);
+    if (pnFormat === 'number')    numText = String(visibleNum);
     else if (pnFormat === 'dash') numText = `- ${visibleNum} -`;
-    else                         numText = `${visibleNum} / ${total2 + pnStart - 1}`;
+    else                          numText = `${visibleNum} / ${total2 + pnStart - 1}`;
 
-    const [vert, horiz] = pnPosition.split('-');
-    const y = vert === 'top' ? margin * 0.65 : h - margin * 0.45;
-    const x = horiz === 'center' ? w/2 : (horiz === 'right' ? w - margin : margin);
+    // Mirror position for facing pages on even pages
+    let [vert, horiz] = pnPosition.split('-');
+    if (isMirror) {
+      if (horiz === 'left') horiz = 'right';
+      else if (horiz === 'right') horiz = 'left';
+    }
+    const pnMarginPx = (pnMarginMm || 5) * mm2px;
+    const y = vert === 'top' ? pnMarginPx : h - pnMarginPx;
+    const x = horiz === 'center' ? w / 2 : (horiz === 'right' ? w - pnMarginPx : pnMarginPx);
     const fs = pnFontSize * 0.353 * mm2px;
     ctx.save();
     ctx.fillStyle = pnColor;
@@ -1842,6 +1878,8 @@ $('downloadBtn').addEventListener('click', async () => {
         footer_left: hfFL, footer_center: hfFC, footer_right: hfFR,
         font_size: hfFontSize,
         color: hfColor,
+        apply_to: hfApplyTo,
+        margin_mm: parseFloat($('hfMarginMm').value) || 5,
         sections: hfSections.map(s => ({
           ranges: s.ranges || '',
           header_left: s.header_left || '', header_center: s.header_center || '', header_right: s.header_right || '',
@@ -1856,7 +1894,10 @@ $('downloadBtn').addEventListener('click', async () => {
         font_size: pnFontSize,
         color: pnColor,
         exclude_first: pnExcludeFirst,
+        apply_to: pnApplyTo,
+        margin_mm: parseFloat($('pnMarginMm').value) || 5,
       },
+      facing_pages: facingPages,
     };
 
     const blob = await apiProcessPdf(uploadedFiles, settings, { onStatus: msg => showStatus(msg) });
@@ -1954,6 +1995,8 @@ $('hfFC').addEventListener('input', () => { hfFC = $('hfFC').value; });
 $('hfFR').addEventListener('input', () => { hfFR = $('hfFR').value; });
 $('hfFontSize').addEventListener('input', () => { hfFontSize = parseFloat($('hfFontSize').value) || 9; });
 $('hfColor').addEventListener('input', () => { hfColor = $('hfColor').value; });
+$('hfMarginMm').addEventListener('input', () => { hfMarginMm = parseFloat($('hfMarginMm').value) || 5; });
+$('hfApplyTo').addEventListener('change', () => { hfApplyTo = $('hfApplyTo').value; });
 
 // HF Sections (per-range overrides)
 function renderHfSections() {
@@ -2027,6 +2070,9 @@ $('pnStart').addEventListener('input', () => { pnStart = parseInt($('pnStart').v
 $('pnFontSize').addEventListener('input', () => { pnFontSize = parseFloat($('pnFontSize').value) || 10; });
 $('pnColor').addEventListener('input', () => { pnColor = $('pnColor').value; });
 $('pnExcludeFirst').addEventListener('change', () => { pnExcludeFirst = $('pnExcludeFirst').checked; });
+$('pnMarginMm').addEventListener('input', () => { pnMarginMm = parseFloat($('pnMarginMm').value) || 5; });
+$('pnApplyTo').addEventListener('change', () => { pnApplyTo = $('pnApplyTo').value; });
+$('facingPages').addEventListener('change', () => { facingPages = $('facingPages').checked; });
 
 // Reset
 $('resetBtn').addEventListener('click', () => {

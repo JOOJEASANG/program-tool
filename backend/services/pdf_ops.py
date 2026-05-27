@@ -238,15 +238,45 @@ def _apply_header_footer(
     page: fitz.Page, settings: HeaderFooterSettings,
     page_width: float, page_height: float,
     output_page_num: int = 1, total_pages: int = 1,
+    facing_pages: bool = False,
 ):
     if not settings.enabled:
         return
+
+    # apply_to check
+    is_odd = output_page_num % 2 == 1
+    apply_to = getattr(settings, "apply_to", "all")
+    if apply_to == "odd" and not is_odd:
+        return
+    if apply_to == "even" and is_odd:
+        return
+
     fields = _resolve_hf_fields(settings, output_page_num, total_pages)
+
+    # Mirror left/right for facing pages on even pages
+    if facing_pages and not is_odd:
+        from types import SimpleNamespace
+        fields = SimpleNamespace(
+            header_left=fields.header_right,
+            header_center=fields.header_center,
+            header_right=fields.header_left,
+            footer_left=fields.footer_right,
+            footer_center=fields.footer_center,
+            footer_right=fields.footer_left,
+        )
+
     color = _hex_to_rgb(settings.color, (0.2, 0.2, 0.2))
     fs = settings.font_size
-    side_margin = HF_SIDE_MARGIN_PT
-    header_margin = _mm_to_pt_safe(getattr(settings, "header_margin_mm", 8.0), 8.0)
-    footer_margin = _mm_to_pt_safe(getattr(settings, "footer_margin_mm", 8.0), 8.0)
+
+    margin_mm_val = getattr(settings, "margin_mm", None)
+    if margin_mm_val is not None:
+        header_margin = _mm_to_pt_safe(margin_mm_val, 5.0)
+        footer_margin = header_margin
+    else:
+        header_margin = _mm_to_pt_safe(getattr(settings, "header_margin_mm", 8.0), 8.0)
+        footer_margin = _mm_to_pt_safe(getattr(settings, "footer_margin_mm", 8.0), 8.0)
+
+    side_margin = header_margin
 
     left_rect = fitz.Rect(side_margin, 0, page_width * 0.36, page_height)
     center_rect = fitz.Rect(page_width * 0.25, 0, page_width * 0.75, page_height)
@@ -271,10 +301,20 @@ def _apply_header_footer(
 
 
 def _apply_page_numbers(page: fitz.Page, settings: PageNumberSettings,
-                        output_idx: int, total_pages: int, page_width: float, page_height: float):
+                        output_idx: int, total_pages: int, page_width: float, page_height: float,
+                        facing_pages: bool = False):
     if not settings.enabled:
         return
     if settings.exclude_first and output_idx == 0:
+        return
+
+    # apply_to check
+    page_1based = output_idx + 1
+    is_odd = page_1based % 2 == 1
+    apply_to = getattr(settings, "apply_to", "all")
+    if apply_to == "odd" and not is_odd:
+        return
+    if apply_to == "even" and is_odd:
         return
 
     num = output_idx + settings.start
@@ -288,9 +328,18 @@ def _apply_page_numbers(page: fitz.Page, settings: PageNumberSettings,
         text = f"- {num}/{total_pages} -"
 
     color = _hex_to_rgb(settings.color, (0.2, 0.2, 0.2))
-    pos = settings.position
     fs = settings.font_size
-    margin = PN_MARGIN_PT
+
+    # Mirror position for facing pages on even pages
+    pos = settings.position
+    if facing_pages and not is_odd:
+        if "left" in pos:
+            pos = pos.replace("left", "right")
+        elif "right" in pos:
+            pos = pos.replace("right", "left")
+
+    margin_mm_val = getattr(settings, "margin_mm", None)
+    margin = _mm_to_pt_safe(margin_mm_val, 5.0) if margin_mm_val is not None else PN_MARGIN_PT
 
     if "bottom" in pos:
         y = page_height - margin - fs * 1.6
@@ -332,6 +381,7 @@ def process_pdf(
     out_doc = fitz.open()
     output_page_idx = 0
     total_output_pages = len(groups)
+    facing = getattr(request, "facing_pages", False)
 
     for group in groups:
         first = group[0]
@@ -340,8 +390,8 @@ def process_pdf(
             _render_blank_page(out_doc, paper_w_pt, paper_h_pt)
             out_page = out_doc[-1]
             _apply_watermark(out_page, request.watermark)
-            _apply_header_footer(out_page, request.header_footer, paper_w_pt, paper_h_pt, output_page_idx + 1, total_output_pages)
-            _apply_page_numbers(out_page, request.page_numbers, output_page_idx, total_output_pages, paper_w_pt, paper_h_pt)
+            _apply_header_footer(out_page, request.header_footer, paper_w_pt, paper_h_pt, output_page_idx + 1, total_output_pages, facing)
+            _apply_page_numbers(out_page, request.page_numbers, output_page_idx, total_output_pages, paper_w_pt, paper_h_pt, facing)
             output_page_idx += 1
             continue
 
@@ -353,8 +403,8 @@ def process_pdf(
             )
             out_page = out_doc[-1]
             _apply_watermark(out_page, request.watermark)
-            _apply_header_footer(out_page, request.header_footer, paper_w_pt, paper_h_pt, output_page_idx + 1, total_output_pages)
-            _apply_page_numbers(out_page, request.page_numbers, output_page_idx, total_output_pages, paper_w_pt, paper_h_pt)
+            _apply_header_footer(out_page, request.header_footer, paper_w_pt, paper_h_pt, output_page_idx + 1, total_output_pages, facing)
+            _apply_page_numbers(out_page, request.page_numbers, output_page_idx, total_output_pages, paper_w_pt, paper_h_pt, facing)
             output_page_idx += 1
             continue
 
@@ -404,8 +454,8 @@ def process_pdf(
                 shape.commit()
 
         _apply_watermark(out_page, request.watermark)
-        _apply_header_footer(out_page, request.header_footer, paper_w_pt, paper_h_pt, output_page_idx + 1, total_output_pages)
-        _apply_page_numbers(out_page, request.page_numbers, output_page_idx, total_output_pages, paper_w_pt, paper_h_pt)
+        _apply_header_footer(out_page, request.header_footer, paper_w_pt, paper_h_pt, output_page_idx + 1, total_output_pages, facing)
+        _apply_page_numbers(out_page, request.page_numbers, output_page_idx, total_output_pages, paper_w_pt, paper_h_pt, facing)
         output_page_idx += 1
 
     for src_doc in src_docs:

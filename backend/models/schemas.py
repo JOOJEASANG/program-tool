@@ -57,6 +57,8 @@ class HeaderFooterSettings(BaseModel):
     color: str = "#333333"
     header_margin_mm: float = 8.0
     footer_margin_mm: float = 8.0
+    margin_mm: Optional[float] = None  # overrides header/footer margin when set
+    apply_to: Literal["all", "odd", "even"] = "all"
     sections: list[HeaderFooterSection] = Field(default_factory=list)
 
 
@@ -68,6 +70,8 @@ class PageNumberSettings(BaseModel):
     font_size: float = 10.0
     color: str = "#333333"
     exclude_first: bool = False
+    apply_to: Literal["all", "odd", "even"] = "all"
+    margin_mm: Optional[float] = None
 
 
 class PaperSize(BaseModel):
@@ -88,6 +92,7 @@ class PdfProcessRequest(BaseModel):
     watermark: WatermarkSettings = Field(default_factory=WatermarkSettings)
     header_footer: HeaderFooterSettings = Field(default_factory=HeaderFooterSettings)
     page_numbers: PageNumberSettings = Field(default_factory=PageNumberSettings)
+    facing_pages: bool = False
 
 
 class CheckSeverity(str, Enum):
