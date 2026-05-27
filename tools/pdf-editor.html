@@ -780,17 +780,27 @@ function formatBytes(b) {
 async function saveToStorage(blob, filename) {
   const user = auth.currentUser;
   if (!user) return;
+  const col = db.collection('users').doc(user.uid).collection('pdf_history');
+
+  // 최대 10개 제한 — 초과 시 오래된 파일부터 삭제
+  const existing = await col.orderBy('createdAt', 'asc').get();
+  if (existing.size >= 10) {
+    const toDelete = existing.docs.slice(0, existing.size - 9);
+    for (const d of toDelete) {
+      await storage.ref(d.data().storagePath).delete().catch(() => {});
+      await col.doc(d.id).delete();
+    }
+  }
+
   const ts = new Date().toISOString().replace(/[:.]/g, '-');
   const storagePath = `pdf_history/${user.uid}/${ts}_${filename}`;
-  const ref = storage.ref(storagePath);
-  await ref.put(blob, { contentType: 'application/pdf' });
-  await db.collection('users').doc(user.uid)
-    .collection('pdf_history').add({
-      name: filename,
-      storagePath,
-      size: blob.size,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-    });
+  await storage.ref(storagePath).put(blob, { contentType: 'application/pdf' });
+  await col.add({
+    name: filename,
+    storagePath,
+    size: blob.size,
+    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+  });
 }
 
 async function openFileHistory() {
@@ -834,7 +844,7 @@ async function openFileHistory() {
         } catch(e) { alert('다운로드 오류: ' + e.message); }
       });
       item.querySelector('[data-action="del"]').addEventListener('click', async () => {
-        if (!confirm(`"${d.name}" 파일을 삭제하시겠습니까?`)) return;
+        if (!confirm(`"${d.name}" 파일을 삭제하시겠습니까?\n(내 파일함 및 Firebase에서 영구 삭제됩니다)`)) return;
         try {
           await storage.ref(d.storagePath).delete().catch(() => {});
           await db.collection('users').doc(user.uid).collection('pdf_history').doc(doc.id).delete();
@@ -1824,10 +1834,16 @@ $('downloadBtn').addEventListener('click', async () => {
     a.href = url; a.download = filename;
     a.click();
     URL.revokeObjectURL(url);
-    showStatus('PDF 저장 완료! ☁️ Storage에 업로드 중...', 'success');
+    showStatus('PDF 저장 완료! ☁️ 내 파일함에 업로드 중...', 'success');
     saveToStorage(blob, filename)
-      .then(() => { showStatus('PDF 저장 완료! ✓ Storage에 저장됨', 'success'); setTimeout(hideStatus, 3000); })
-      .catch(err => { console.error('Storage upload failed', err); showStatus('PDF 저장 완료! (Storage 업로드 실패)', 'success'); setTimeout(hideStatus, 3000); });
+      .then(() => {
+        const el = $('statusBar');
+        el.style.display = 'flex';
+        el.className = 'status-bar success';
+        el.innerHTML = `<span>✅ 내 파일함에 저장 완료!</span><button onclick="openFileHistory()" style="margin-left:auto;border:1px solid #166534;border-radius:6px;padding:4px 12px;font-size:11px;font-weight:800;background:#dcfce7;color:#166534;cursor:pointer;font-family:inherit;">📂 내 파일함 보기</button>`;
+        setTimeout(hideStatus, 6000);
+      })
+      .catch(err => { console.error('Storage upload failed', err); showStatus('PDF 저장 완료! (파일함 업로드 실패)', 'success'); setTimeout(hideStatus, 3000); });
   } catch(e) { showStatus('PDF 오류: ' + e.message, 'error'); }
   $('downloadBtn').disabled = false;
 });
