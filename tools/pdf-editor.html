@@ -1762,13 +1762,7 @@ function displayPreview(pages) {
 // ── PDF Download (via backend — vector quality) ───────────────────────
 $('downloadBtn').addEventListener('click', async () => {
   if (!parsedPages.length || !uploadedFiles.length) return;
-  // Warn if total file size may exceed server limit (~28MB safety margin)
-  const totalBytes = uploadedFiles.reduce((s, f) => s + f.size, 0);
-  if (totalBytes > 28 * 1024 * 1024) {
-    const mb = (totalBytes / 1024 / 1024).toFixed(1);
-    if (!confirm(`업로드 파일 총 크기가 ${mb}MB입니다. 파일이 크면 서버 한도 초과로 실패할 수 있습니다. 계속하시겠습니까?`)) return;
-  }
-  showStatus('서버에서 PDF 생성 중... (페이지가 많으면 1~2분 소요될 수 있습니다)');
+  showStatus('파일 업로드 중...');
   $('downloadBtn').disabled = true;
   try {
     const { pw, ph } = getSettings();
@@ -1825,7 +1819,7 @@ $('downloadBtn').addEventListener('click', async () => {
       },
     };
 
-    const blob = await apiProcessPdf(uploadedFiles, settings);
+    const blob = await apiProcessPdf(uploadedFiles, settings, { onStatus: msg => showStatus(msg) });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     const ts = new Date().toISOString().slice(0,16).replace('T','_').replace(':','-');

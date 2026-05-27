@@ -1,6 +1,7 @@
 import json
 from flask import Blueprint, request, jsonify, Response
 import fitz
+import firebase_admin.storage as fa_storage
 
 from models.schemas import PdfProcessRequest
 import services.pdf_ops as pdf_ops
@@ -90,6 +91,53 @@ def process(uid):
         output_bytes = pdf_ops.process_pdf(file_bytes_list, req)
     except Exception as e:
         return jsonify({"detail": f"PDF processing failed: {e}"}), 500
+
+    return Response(
+        output_bytes,
+        status=200,
+        mimetype="application/pdf",
+        headers={"Content-Disposition": "attachment; filename=output.pdf"},
+    )
+
+
+@pdf_bp.route("/process-storage", methods=["POST"])
+@require_auth
+def process_storage(uid):
+    """Storage-based endpoint: reads source PDFs from Firebase Storage, no HTTP body size limit."""
+    try:
+        body = request.get_json(force=True) or {}
+        storage_paths = body.get("storage_paths", [])
+        req = PdfProcessRequest.model_validate(body.get("settings", {}))
+    except Exception as e:
+        return jsonify({"detail": f"Invalid request: {e}"}), 422
+
+    if not storage_paths:
+        return jsonify({"detail": "No files provided"}), 400
+
+    # Download source PDFs from Storage
+    try:
+        bucket = fa_storage.bucket()
+        file_bytes_list = []
+        for path in storage_paths:
+            data = bucket.blob(path).download_as_bytes()
+            file_bytes_list.append(data)
+    except Exception as e:
+        return jsonify({"detail": f"Storage 다운로드 실패: {e}"}), 500
+
+    # Process
+    try:
+        _patch_divider_renderer()
+        output_bytes = pdf_ops.process_pdf(file_bytes_list, req)
+    except Exception as e:
+        return jsonify({"detail": f"PDF 처리 실패: {e}"}), 500
+
+    # Clean up temp files (best-effort)
+    bucket_ref = fa_storage.bucket()
+    for path in storage_paths:
+        try:
+            bucket_ref.blob(path).delete()
+        except Exception:
+            pass
 
     return Response(
         output_bytes,
