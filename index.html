@@ -652,8 +652,10 @@
         db.collection('settings').doc('admin').get().then(doc => {
           const emails = (doc.exists ? (doc.data().emails || []) : []).map(normalizeEmail);
           if (emails.includes(userEmailLc)) {
-            // Skip redirect if URL has ?stay=1 (allow admin to view main page intentionally)
-            if (!new URLSearchParams(location.search).has('stay')) {
+            // adminStay 플래그가 있으면 메인 페이지 유지 (관리자 페이지 → 메인 이동 시)
+            const stayFlag = sessionStorage.getItem('adminStay');
+            if (stayFlag) sessionStorage.removeItem('adminStay');
+            if (!stayFlag) {
               window.location.href = 'admin.html';
               return;
             }
