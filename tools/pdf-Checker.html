@@ -17,6 +17,18 @@
     .options-row{display:flex;align-items:center;gap:16px;flex-wrap:wrap;background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:14px 18px;margin-bottom:20px}.opt-label{font-size:13px;font-weight:800;color:#334155}.run-btn{margin-left:auto;background:#12396d;color:#fff;border:none;border-radius:10px;padding:10px 22px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:8px}.run-btn:hover{background:#0f2f5c}.run-btn:disabled{opacity:.55;cursor:not-allowed}.spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
     #results{display:none}.results-header{display:flex;align-items:center;gap:16px;background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:18px 22px;margin-bottom:16px}.score-ring{width:72px;height:72px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:22px;font-weight:900}.score-ring.green{background:#dcfce7;color:var(--pass)}.score-ring.yellow{background:#fef9c3;color:var(--warn)}.score-ring.red{background:#fee2e2;color:var(--fail)}.results-meta{flex:1}.results-filename{font-size:16px;font-weight:800}.results-pages,.results-summary{font-size:13px;color:#64748b;margin-top:5px}.checks-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;margin-bottom:20px}.check-card{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:16px 18px;display:flex;gap:12px}.check-badge{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;margin-top:1px}.check-badge.pass{background:#dcfce7}.check-badge.warning{background:#fef9c3}.check-badge.fail{background:#fee2e2}.check-label{font-size:13px;font-weight:800;margin-bottom:4px}.check-detail{font-size:12px;color:#64748b;line-height:1.5}.check-pages{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}.page-tag{background:#f1f5f9;color:#64748b;font-size:11px;font-weight:700;padding:2px 7px;border-radius:5px}.error-box{background:#fef2f2;border:1px solid #fecaca;color:#dc2626;border-radius:10px;padding:12px 16px;font-size:13px;margin-bottom:16px;display:none}.error-box.show{display:block}
     .reset-btn{display:block;margin:24px auto 0;background:#f1f5f9;color:#334155;border:1px solid #e2e8f0;border-radius:10px;padding:10px 28px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit}.reset-btn:hover{background:#e2e8f0}
+    .progress-box{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:20px 22px;margin-bottom:16px;display:none}
+    .progress-step-row{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+    .progress-step-icon{width:28px;height:28px;border-radius:50%;background:#eff6ff;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+    .progress-step-text{font-size:13px;font-weight:800;color:#1e293b}
+    .progress-track{background:#e2e8f0;border-radius:999px;height:8px;overflow:hidden;margin-bottom:8px}
+    .progress-fill{height:100%;background:linear-gradient(90deg,#12396d,#1d9bb2);border-radius:999px;transition:width .5s cubic-bezier(.4,0,.2,1);width:0%}
+    .progress-meta{display:flex;justify-content:space-between;align-items:center}
+    .progress-pct{font-size:12px;font-weight:900;color:#12396d}
+    .progress-steps-list{display:flex;gap:4px;flex-wrap:wrap}
+    .progress-dot{width:7px;height:7px;border-radius:50%;background:#e2e8f0;transition:background .3s}
+    .progress-dot.done{background:#1d9bb2}
+    .progress-dot.active{background:#12396d;box-shadow:0 0 0 2px rgba(18,57,109,.2)}
     @media(max-width:640px){.nav-user-name{display:none}.container{padding:20px 14px 48px}.results-header{align-items:flex-start}.run-btn{margin-left:0;width:100%;justify-content:center}}
   </style>
 </head>
@@ -31,6 +43,17 @@
     <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()"><div class="upload-icon">📂</div><div class="upload-title">PDF 파일을 드래그하거나 클릭하여 업로드</div><div class="upload-sub">최대 200 MB · PDF만 지원</div><div class="upload-filename" id="uploadFilename" style="display:none;"></div></div>
     <input type="file" id="fileInput" accept=".pdf,application/pdf" />
     <div class="options-row"><span class="opt-label">무료 기본 검수</span><button class="run-btn" id="runBtn" onclick="runCheck()" disabled>검수 시작</button></div>
+    <div class="progress-box" id="progressBox">
+      <div class="progress-step-row">
+        <div class="progress-step-icon" id="progressIcon">📤</div>
+        <div class="progress-step-text" id="progressStep">준비 중...</div>
+      </div>
+      <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+      <div class="progress-meta">
+        <div class="progress-steps-list" id="progressDots"></div>
+        <div class="progress-pct" id="progressPct">0%</div>
+      </div>
+    </div>
     <div class="error-box" id="errorBox"></div>
     <div id="results"><div class="results-header"><div class="score-ring" id="scoreRing">–</div><div class="results-meta"><div class="results-filename" id="resFilename"></div><div class="results-pages" id="resPages"></div><div class="results-summary" id="resSummary"></div></div></div><div class="checks-grid" id="checksGrid"></div><button class="reset-btn" onclick="resetCheck()">↩ 다른 파일 검수하기</button></div>
   </div>
@@ -49,7 +72,72 @@
     document.getElementById('fileInput').addEventListener('change',e=>{const f=e.target.files[0];if(f)selectFile(f)});const zone=document.getElementById('uploadZone');zone.addEventListener('dragover',e=>{e.preventDefault();zone.classList.add('dragover')});zone.addEventListener('dragleave',()=>zone.classList.remove('dragover'));zone.addEventListener('drop',e=>{e.preventDefault();zone.classList.remove('dragover');const f=e.dataTransfer.files[0];if(f)selectFile(f)});
     function selectFile(f){if(!f.name.toLowerCase().endsWith('.pdf')){showError('PDF 파일만 업로드 가능합니다.');return}selectedFile=f;window.selectedFile=f;zone.classList.add('has-file');const fn=document.getElementById('uploadFilename');fn.textContent=`${f.name} (${(f.size/1024/1024).toFixed(1)} MB)`;fn.style.display='block';document.getElementById('runBtn').disabled=false;hideError();document.getElementById('results').style.display='none'}
     function showError(msg){const box=document.getElementById('errorBox');box.textContent=msg;box.classList.add('show')}function hideError(){document.getElementById('errorBox').classList.remove('show')}function setRunning(r){const btn=document.getElementById('runBtn');btn.disabled=r;btn.innerHTML=r?'<span class="spinner"></span> 검수 중...':'검수 시작'}
-    async function runCheck(){if(!selectedFile)return;hideError();setRunning(true);document.getElementById('results').style.display='none';try{const report=await apiPreflightCheck(selectedFile);renderResults(report)}catch(e){showError(e.message||'검수 중 오류가 발생했습니다.')}finally{setRunning(false)}}
+
+    const PROGRESS_STEPS=[
+      {pct:8,  icon:'📤', text:'파일 업로드 중...'},
+      {pct:22, icon:'📖', text:'PDF 구조 분석 중...'},
+      {pct:38, icon:'🔍', text:'해상도 검사 중...'},
+      {pct:52, icon:'🔤', text:'폰트 임베딩 확인 중...'},
+      {pct:66, icon:'🎨', text:'색상 모드 검사 중...'},
+      {pct:80, icon:'📐', text:'페이지 규격 검사 중...'},
+      {pct:91, icon:'📊', text:'결과 정리 중...'},
+    ];
+    let _progTimer=null, _progIdx=0;
+
+    function _initDots(){
+      const el=document.getElementById('progressDots');
+      el.innerHTML=PROGRESS_STEPS.map((_,i)=>`<div class="progress-dot" id="pd${i}"></div>`).join('');
+    }
+    function _setProgress(pct,icon,text){
+      document.getElementById('progressFill').style.width=pct+'%';
+      document.getElementById('progressPct').textContent=pct+'%';
+      document.getElementById('progressIcon').textContent=icon;
+      document.getElementById('progressStep').textContent=text;
+    }
+    function _updateDots(activeIdx){
+      PROGRESS_STEPS.forEach((_,i)=>{
+        const d=document.getElementById('pd'+i);
+        if(!d)return;
+        d.className='progress-dot'+(i<activeIdx?' done':i===activeIdx?' active':'');
+      });
+    }
+    function startProgress(){
+      _progIdx=0; _initDots();
+      document.getElementById('progressBox').style.display='block';
+      _setProgress(0,'📤','준비 중...');
+      _progTimer=setInterval(()=>{
+        if(_progIdx>=PROGRESS_STEPS.length){clearInterval(_progTimer);return;}
+        const s=PROGRESS_STEPS[_progIdx];
+        _setProgress(s.pct,s.icon,s.text);
+        _updateDots(_progIdx);
+        _progIdx++;
+      },650);
+    }
+    function finishProgress(){
+      clearInterval(_progTimer);
+      _setProgress(100,'✅','검수 완료!');
+      _updateDots(PROGRESS_STEPS.length);
+      setTimeout(()=>{document.getElementById('progressBox').style.display='none';},700);
+    }
+    function stopProgress(){
+      clearInterval(_progTimer);
+      document.getElementById('progressBox').style.display='none';
+    }
+
+    async function runCheck(){
+      if(!selectedFile)return;
+      hideError();setRunning(true);
+      document.getElementById('results').style.display='none';
+      startProgress();
+      try{
+        const report=await apiPreflightCheck(selectedFile);
+        finishProgress();
+        setTimeout(()=>renderResults(report),400);
+      }catch(e){
+        stopProgress();
+        showError(e.message||'검수 중 오류가 발생했습니다.');
+      }finally{setRunning(false);}
+    }
     function esc(v){return String(v??'').replace(/[<>&"']/g,ch=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;'}[ch]))}
     function renderResults(report){const checks=Array.isArray(report.checks)?report.checks:[];const failCount=checks.filter(c=>c.severity==='fail').length;const warnCount=checks.filter(c=>c.severity==='warning').length;const passCount=checks.filter(c=>c.severity==='pass').length;const ring=document.getElementById('scoreRing');ring.textContent=report.score;ring.className='score-ring '+(report.score>=80?'green':report.score>=50?'yellow':'red');document.getElementById('resFilename').textContent=report.filename;document.getElementById('resPages').textContent=`총 ${report.page_count}페이지`;document.getElementById('resSummary').textContent=`통과 ${passCount}개 · 경고 ${warnCount}개 · 불량 ${failCount}개`;const grid=document.getElementById('checksGrid');grid.innerHTML='';for(const c of checks){const severity=['pass','warning','fail'].includes(c.severity)?c.severity:'warning';const icon=severity==='pass'?'✅':severity==='warning'?'⚠️':'❌';const refs=Array.isArray(c.page_refs)?c.page_refs:[];const pageTagsHtml=refs.length?`<div class="check-pages">${refs.slice(0,8).map(p=>`<span class="page-tag">${Number(p)}p</span>`).join('')}${refs.length>8?`<span class="page-tag">+${refs.length-8}</span>`:''}</div>`:'';grid.insertAdjacentHTML('beforeend',`<div class="check-card"><div class="check-badge ${severity}">${icon}</div><div><div class="check-label">${esc(c.label)}</div><div class="check-detail">${esc(c.detail)}</div>${pageTagsHtml}</div></div>`)}document.getElementById('results').style.display='block'}
   </script>
