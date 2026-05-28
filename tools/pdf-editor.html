@@ -920,10 +920,10 @@ function makeId() { return _nextId++; }
 // ── N-up layout table ─────────────────────────────────────────────────
 const NUP_LAYOUTS = {
   1: { port:[1,1,false], land:[1,1,false] },
-  2: { port:[1,2,false], land:[2,1,true]  },
+  2: { port:[1,2,false], land:[2,1,false] },
   4: { port:[2,2,false], land:[2,2,false] },
   6: { port:[2,3,false], land:[3,2,false] },
-  8: { port:[2,4,false], land:[4,2,true]  },
+  8: { port:[2,4,false], land:[4,2,false] },
   9: { port:[3,3,false], land:[3,3,false] },
 };
 function getLayout(n) {
@@ -1494,26 +1494,13 @@ function groupByNup(pages) {
 }
 
 // ── Draw one page into a cell ─────────────────────────────────────────
-function drawPageInCell(ctx, src, cellX, cellY, cellW, cellH, layoutRotate) {
+function drawPageInCell(ctx, src, cellX, cellY, cellW, cellH) {
   const pw = src.width, ph = src.height;
-  let dw, dh, dx, dy;
-  if (layoutRotate) {
-    const s = Math.min(cellW / ph, cellH / pw);
-    dw = ph * s; dh = pw * s;
-    dx = cellX + (cellW - dw) / 2;
-    dy = cellY + (cellH - dh) / 2;
-    ctx.save();
-    ctx.translate(dx + dw, dy);
-    ctx.rotate(Math.PI / 2);
-    ctx.drawImage(src, 0, 0, dh, dw);
-    ctx.restore();
-  } else {
-    const s = Math.min(cellW / pw, cellH / ph);
-    dw = pw * s; dh = ph * s;
-    dx = cellX + (cellW - dw) / 2;
-    dy = cellY + (cellH - dh) / 2;
-    ctx.drawImage(src, dx, dy, dw, dh);
-  }
+  const s = Math.min(cellW / pw, cellH / ph);
+  const dw = pw * s, dh = ph * s;
+  const dx = cellX + (cellW - dw) / 2;
+  const dy = cellY + (cellH - dh) / 2;
+  ctx.drawImage(src, dx, dy, dw, dh);
   if (showBorder) {
     ctx.strokeStyle = 'rgba(0,0,0,0.15)';
     ctx.lineWidth = Math.max(0.4, cellW * 0.002);
@@ -1539,7 +1526,7 @@ function getPageSrc(page, mm2px, useHi) {
 }
 
 // ── Build one output page ─────────────────────────────────────────────
-function buildOutputPage(groupPages, pageIdx, cols, rows, layoutRotate, mm2px, useHi) {
+function buildOutputPage(groupPages, pageIdx, cols, rows, mm2px, useHi) {
   const { pw, ph, mh, mv, gp } = getSettings();
   const perPage = cols * rows;
   const cellW = (pw - mh * 2 - gp * (cols - 1)) / cols;
@@ -1558,7 +1545,7 @@ function buildOutputPage(groupPages, pageIdx, cols, rows, layoutRotate, mm2px, u
     const cellX = (mh + col * (cellW + gp)) * mm2px;
     const cellY = (mv + row * (cellH + gp)) * mm2px;
     const src = getPageSrc(groupPages[idx], mm2px, useHi);
-    drawPageInCell(ctx, src, cellX, cellY, cellW * mm2px, cellH * mm2px, layoutRotate);
+    drawPageInCell(ctx, src, cellX, cellY, cellW * mm2px, cellH * mm2px);
   }
   return out;
 }
@@ -1664,10 +1651,10 @@ async function buildAllPages(mm2px, useHi) {
   const groups = groupByNup(active);
   const out = [];
   for (const grp of groups) {
-    const { cols, rows, rotate } = getLayout(grp.n);
+    const { cols, rows } = getLayout(grp.n);
     const perPage = cols * rows;
     for (let p = 0; p < Math.ceil(grp.pages.length / perPage); p++) {
-      out.push(buildOutputPage(grp.pages, p, cols, rows, rotate, mm2px, useHi));
+      out.push(buildOutputPage(grp.pages, p, cols, rows, mm2px, useHi));
       await new Promise(r => setTimeout(r, 0));
     }
   }
@@ -1926,15 +1913,10 @@ $('downloadBtn').addEventListener('click', async () => {
 function updateNupBadges() {
   [1,2,4,6,8,9].forEach(n => {
     const cfg = NUP_LAYOUTS[n];
-    const [cols, rows, rot] = landscape ? cfg.land : cfg.port;
+    const [cols, rows] = landscape ? cfg.land : cfg.port;
     const badge = $(`b${n}`); if (!badge) return;
     badge.textContent = `${cols}×${rows}`;
     badge.parentNode.querySelector('.nup-rot')?.remove();
-    if (rot) {
-      const s = document.createElement('span');
-      s.className = 'nup-rot'; s.textContent = '↻회전';
-      badge.after(s);
-    }
   });
 }
 
