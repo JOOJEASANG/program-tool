@@ -9,6 +9,9 @@ BLEED_MM = 3.0
 MIN_DPI_PASS = 300
 MIN_DPI_WARN = 150
 
+# For large documents, image-heavy checks are capped to avoid Cloud Run timeouts.
+MAX_IMAGE_CHECK_PAGES = 50
+
 STANDARD_SIZES_PT = {
     "A4":  (595.28, 841.89),
     "A3":  (841.89, 1190.55),
@@ -31,8 +34,11 @@ def _size_label(w: float, h: float) -> str:
 def check_image_dpi(doc: fitz.Document) -> CheckItem:
     low_dpi_pages: list[int] = []
     warn_dpi_pages: list[int] = []
+    total_pages = len(doc)
+    check_limit = min(total_pages, MAX_IMAGE_CHECK_PAGES)
+    sampled = total_pages > MAX_IMAGE_CHECK_PAGES
 
-    for page_num in range(len(doc)):
+    for page_num in range(check_limit):
         page = doc[page_num]
         try:
             images = page.get_images(full=True)
@@ -79,12 +85,13 @@ def check_image_dpi(doc: fitz.Document) -> CheckItem:
                                 warn_dpi_pages.append(page_num + 1)
                     break
 
+    sample_note = f" (앞 {check_limit}페이지 검사, 전체 {total_pages}p)" if sampled else ""
     if low_dpi_pages:
         return CheckItem(
             id="dpi",
             label="이미지 해상도",
             severity=CheckSeverity.fail,
-            detail=f"150 DPI 미만 이미지가 {len(low_dpi_pages)}페이지에서 발견되었습니다. 인쇄 품질이 저하될 수 있습니다.",
+            detail=f"150 DPI 미만 이미지가 {len(low_dpi_pages)}페이지에서 발견되었습니다. 인쇄 품질이 저하될 수 있습니다.{sample_note}",
             page_refs=low_dpi_pages,
         )
     if warn_dpi_pages:
@@ -92,23 +99,28 @@ def check_image_dpi(doc: fitz.Document) -> CheckItem:
             id="dpi",
             label="이미지 해상도",
             severity=CheckSeverity.warning,
-            detail=f"300 DPI 미만 이미지가 {len(warn_dpi_pages)}페이지에서 발견되었습니다. 고품질 인쇄를 위해 300 DPI 이상을 권장합니다.",
+            detail=f"300 DPI 미만 이미지가 {len(warn_dpi_pages)}페이지에서 발견되었습니다. 고품질 인쇄를 위해 300 DPI 이상을 권장합니다.{sample_note}",
             page_refs=warn_dpi_pages,
         )
     return CheckItem(
         id="dpi",
         label="이미지 해상도",
         severity=CheckSeverity.pass_,
-        detail="모든 이미지 해상도가 300 DPI 이상입니다.",
+        detail=f"이미지 해상도가 300 DPI 이상입니다.{sample_note}",
     )
 
+
+MAX_TEXT_CHECK_PAGES = 200  # bleed/font checks are cheaper but still cap for safety
 
 def check_bleed(doc: fitz.Document) -> CheckItem:
     """Check if pages have sufficient bleed margin (3mm)."""
     bleed_pt = BLEED_MM / PT_TO_MM
     pages_with_content_at_edge: list[int] = []
+    total_pages = len(doc)
+    check_limit = min(total_pages, MAX_TEXT_CHECK_PAGES)
+    sampled = total_pages > MAX_TEXT_CHECK_PAGES
 
-    for page_num in range(len(doc)):
+    for page_num in range(check_limit):
         page = doc[page_num]
         rect = page.rect
         # Check if any drawing or text touches the edge within bleed margin
@@ -121,26 +133,30 @@ def check_bleed(doc: fitz.Document) -> CheckItem:
                     pages_with_content_at_edge.append(page_num + 1)
                 break
 
+    sample_note = f" (앞 {check_limit}페이지 검사, 전체 {total_pages}p)" if sampled else ""
     if pages_with_content_at_edge:
         return CheckItem(
             id="bleed",
             label="재단 여백 (도련)",
             severity=CheckSeverity.warning,
-            detail=f"{len(pages_with_content_at_edge)}페이지에서 텍스트/이미지가 재단선 3mm 이내에 있습니다. 재단 시 내용이 잘릴 수 있습니다.",
+            detail=f"{len(pages_with_content_at_edge)}페이지에서 텍스트/이미지가 재단선 3mm 이내에 있습니다. 재단 시 내용이 잘릴 수 있습니다.{sample_note}",
             page_refs=pages_with_content_at_edge,
         )
     return CheckItem(
         id="bleed",
         label="재단 여백 (도련)",
         severity=CheckSeverity.pass_,
-        detail="모든 페이지의 재단 여백이 적절합니다.",
+        detail=f"재단 여백이 적절합니다.{sample_note}",
     )
 
 
 def check_color_mode(doc: fitz.Document) -> CheckItem:
     rgb_pages: list[int] = []
+    total_pages = len(doc)
+    check_limit = min(total_pages, MAX_IMAGE_CHECK_PAGES)
+    sampled = total_pages > MAX_IMAGE_CHECK_PAGES
 
-    for page_num in range(len(doc)):
+    for page_num in range(check_limit):
         page = doc[page_num]
         try:
             images = page.get_images(full=True)
@@ -159,26 +175,30 @@ def check_color_mode(doc: fitz.Document) -> CheckItem:
                     rgb_pages.append(page_num + 1)
                 break
 
+    sample_note = f" (앞 {check_limit}페이지 검사, 전체 {total_pages}p)" if sampled else ""
     if rgb_pages:
         return CheckItem(
             id="color_mode",
             label="색상 모드",
             severity=CheckSeverity.warning,
-            detail=f"{len(rgb_pages)}페이지에 RGB 이미지가 포함되어 있습니다. 오프셋 인쇄는 CMYK를 권장합니다.",
+            detail=f"{len(rgb_pages)}페이지에 RGB 이미지가 포함되어 있습니다. 오프셋 인쇄는 CMYK를 권장합니다.{sample_note}",
             page_refs=rgb_pages,
         )
     return CheckItem(
         id="color_mode",
         label="색상 모드",
         severity=CheckSeverity.pass_,
-        detail="모든 이미지가 CMYK 색상 모드입니다.",
+        detail=f"모든 이미지가 CMYK 색상 모드입니다.{sample_note}",
     )
 
 
 def check_font_embedding(doc: fitz.Document) -> CheckItem:
     not_embedded: list[tuple[str, int]] = []
+    total_pages = len(doc)
+    check_limit = min(total_pages, MAX_TEXT_CHECK_PAGES)
+    sampled = total_pages > MAX_TEXT_CHECK_PAGES
 
-    for page_num in range(len(doc)):
+    for page_num in range(check_limit):
         page = doc[page_num]
         try:
             fonts = page.get_fonts(full=True)
@@ -199,6 +219,7 @@ def check_font_embedding(doc: fitz.Document) -> CheckItem:
             if not embedded:
                 not_embedded.append((font_name, page_num + 1))
 
+    sample_note = f" (앞 {check_limit}페이지 검사, 전체 {total_pages}p)" if sampled else ""
     if not_embedded:
         font_names = list(set(f[0] for f in not_embedded))
         pages = list(set(f[1] for f in not_embedded))
@@ -206,14 +227,14 @@ def check_font_embedding(doc: fitz.Document) -> CheckItem:
             id="font_embed",
             label="폰트 임베딩",
             severity=CheckSeverity.fail,
-            detail=f"미임베딩 폰트: {', '.join(font_names[:3])}{'...' if len(font_names) > 3 else ''}. 다른 환경에서 폰트가 대체될 수 있습니다.",
+            detail=f"미임베딩 폰트: {', '.join(font_names[:3])}{'...' if len(font_names) > 3 else ''}. 다른 환경에서 폰트가 대체될 수 있습니다.{sample_note}",
             page_refs=sorted(pages),
         )
     return CheckItem(
         id="font_embed",
         label="폰트 임베딩",
         severity=CheckSeverity.pass_,
-        detail="모든 폰트가 PDF에 임베딩되어 있습니다.",
+        detail=f"모든 폰트가 PDF에 임베딩되어 있습니다.{sample_note}",
     )
 
 
