@@ -189,43 +189,31 @@
     .programs-header .count {
       font-size: 13px; color: #64748b; font-weight: 600; margin-top: 2px;
     }
-    .slider-controls { display: flex; gap: 6px; }
-    .slider-btn {
-      width: 36px; height: 36px; border-radius: 50%;
-      border: 1.5px solid #e2e8f0; background: #fff;
-      cursor: pointer; display: flex; align-items: center; justify-content: center;
-      color: #475569; transition: all 0.15s;
-    }
-    .slider-btn:hover { border-color: #12396d; color: #12396d; background: #f0f4ff; }
-    .slider-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .slider-controls { display: none; }
 
     .slider-wrap {
-      max-width: 1280px; margin: 0 auto;
+      max-width: 1100px; margin: 0 auto;
       padding: 0 5%;
       position: relative;
     }
     .slider {
-      display: flex; gap: 16px;
-      overflow-x: auto;
-      scroll-snap-type: x mandatory;
-      scroll-behavior: smooth;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
       padding: 6px 2px 24px;
-      scrollbar-width: thin;
-      scrollbar-color: #cbd5e1 transparent;
+    }
     }
     .slider::-webkit-scrollbar { height: 6px; }
     .slider::-webkit-scrollbar-track { background: transparent; }
     .slider::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
 
     .prog-card {
-      flex: 0 0 320px;
-      scroll-snap-align: start;
       background: #fff; border: 1.5px solid #e8edf3;
       border-radius: 18px; padding: 24px;
       text-decoration: none; color: inherit;
       transition: all 0.2s; position: relative;
       display: flex; flex-direction: column; gap: 12px;
-      min-height: 240px;
+      min-height: 230px;
       cursor: pointer;
     }
     .prog-card:hover {
@@ -342,6 +330,9 @@
 
     .hidden { display: none !important; }
 
+    @media (max-width: 900px) {
+      .slider { grid-template-columns: repeat(2, 1fr); }
+    }
     @media (max-width: 640px) {
       .nav { padding: 0 4%; gap: 8px; }
       .nav-btn-ghost { display: none; }
@@ -349,7 +340,7 @@
       .user-chip-name { display: none; }
       .programs-header { padding: 0 4%; }
       .slider-wrap { padding: 0 4%; }
-      .prog-card { flex-basis: 280px; }
+      .slider { grid-template-columns: 1fr; }
       .how-section { padding: 50px 4%; }
     }
   </style>
@@ -419,14 +410,7 @@
         <h3>📦 도구 모음</h3>
         <div class="count" id="progCount"></div>
       </div>
-      <div class="slider-controls">
-        <button class="slider-btn" id="prevBtn" aria-label="이전">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
-        </button>
-        <button class="slider-btn" id="nextBtn" aria-label="다음">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
-        </button>
-      </div>
+      <div class="slider-controls"></div>
     </div>
     <div class="slider-wrap">
       <div class="slider" id="slider"></div>
@@ -582,20 +566,6 @@
   }
 
   renderCards(); // Initial render (no permissions loaded yet)
-
-  // Slider controls
-  const prevBtn = document.getElementById('prevBtn');
-  const nextBtn = document.getElementById('nextBtn');
-  const SCROLL_STEP = 336; // card width + gap
-  prevBtn.addEventListener('click', () => slider.scrollBy({ left: -SCROLL_STEP, behavior: 'smooth' }));
-  nextBtn.addEventListener('click', () => slider.scrollBy({ left: SCROLL_STEP, behavior: 'smooth' }));
-
-  function updateSliderBtns() {
-    prevBtn.disabled = slider.scrollLeft <= 0;
-    nextBtn.disabled = slider.scrollLeft >= slider.scrollWidth - slider.clientWidth - 4;
-  }
-  slider.addEventListener('scroll', updateSliderBtns);
-  window.addEventListener('resize', updateSliderBtns);
 
   const availableCount = PROGRAMS.filter(p => p.available).length;
   document.getElementById('progCount').textContent = `사용 가능 ${availableCount}개 · 준비중 ${PROGRAMS.length - availableCount}개`;
