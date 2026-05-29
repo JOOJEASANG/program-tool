@@ -93,6 +93,7 @@ class PdfProcessRequest(BaseModel):
     header_footer: HeaderFooterSettings = Field(default_factory=HeaderFooterSettings)
     page_numbers: PageNumberSettings = Field(default_factory=PageNumberSettings)
     facing_pages: bool = False
+    booklet: bool = False
 
 
 class CheckSeverity(str, Enum):

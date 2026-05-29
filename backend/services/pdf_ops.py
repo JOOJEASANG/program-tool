@@ -359,6 +359,55 @@ def _apply_page_numbers(page: fitz.Page, settings: PageNumberSettings,
     page.insert_textbox(rect, text, fontsize=fs, fontname="helv", color=color, align=align)
 
 
+def _booklet_reorder(page_infos: list, nup: int, is_landscape: bool = False) -> list:
+    """
+    Reorder pages for saddle-stitch booklet imposition.
+    One independent booklet per row of the N-up grid.
+    For nup=4 (2×2): 2 horizontal-strip booklets per A4.
+    For nup=8 (2×4): 4 horizontal-strip booklets per A4.
+    After printing double-sided, cut each A4 into horizontal strips,
+    fold each strip along vertical center → correct reading order.
+    """
+    cols, rows = NUP_LAYOUT.get(nup, (1, 1))
+    if is_landscape and cols != rows:
+        cols, rows = rows, cols
+    if cols < 2:
+        return list(page_infos)
+
+    n_booklets = rows
+    n = len(page_infos)
+    per_booklet = math.ceil(n / n_booklets)
+    pad_unit = cols * 2  # = 4 for cols=2
+    padded_per = math.ceil(per_booklet / pad_unit) * pad_unit
+
+    blank = PageInfo(file_index=0, page_index=0, page_type="blank")
+
+    sections: list[list] = []
+    for b in range(n_booklets):
+        start = b * per_booklet
+        end = min(start + per_booklet, n)
+        sec = list(page_infos[start:end])
+        while len(sec) < padded_per:
+            sec.append(blank)
+        sections.append(sec)
+
+    n_output = padded_per // 2  # output A4 pages
+    result = []
+    for op in range(n_output):
+        for b in range(n_booklets):
+            N_b = padded_per
+            if op % 2 == 0:
+                left_idx = N_b - 1 - op
+                right_idx = op
+            else:
+                left_idx = op
+                right_idx = N_b - 1 - op
+            result.append(sections[b][left_idx])
+            result.append(sections[b][right_idx])
+
+    return result
+
+
 def process_pdf(
     file_bytes_list: list[bytes],
     request: PdfProcessRequest,
@@ -377,6 +426,10 @@ def process_pdf(
 
     active_pages = [p for p in request.pages if not p.excluded]
     groups = _group_by_nup(active_pages, request.nup_default)
+    if getattr(request, 'booklet', False) and request.nup_default in (4, 8):
+        is_landscape = paper_w_pt > paper_h_pt
+        active_pages = _booklet_reorder(active_pages, int(request.nup_default), is_landscape)
+        groups = _group_by_nup(active_pages, request.nup_default)
 
     out_doc = fitz.open()
     output_page_idx = 0
@@ -427,6 +480,8 @@ def process_pdf(
         cell_h = usable_h / rows
 
         for slot_idx, page_info in enumerate(group):
+            if page_info.page_type == "blank":
+                continue
             col = slot_idx % cols
             row = slot_idx // cols
             cell_x0 = margin_h_use + col * (cell_w + gap_use)

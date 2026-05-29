@@ -361,6 +361,13 @@
             <button class="nup-btn" data-nup="8"><span class="nup-label">8장</span><span class="nup-badge" id="b8">2×4</span></button>
             <button class="nup-btn" data-nup="9"><span class="nup-label">9장</span><span class="nup-badge" id="b9">3×3</span></button>
           </div>
+          <div id="bookletRow" class="opt-row" style="display:none; margin-top:4px;">
+            <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#374151;cursor:pointer;">
+              <input type="checkbox" id="bookletCheck" style="cursor:pointer;">
+              <span style="font-weight:700;">소책자 배치</span>
+              <span style="color:#9ca3af;font-size:10px;">인쇄→행절단→접기=소책자</span>
+            </label>
+          </div>
         </div>
         <div class="field">
           <label>슬라이드 순서</label>
@@ -1922,6 +1929,7 @@ $('downloadBtn').addEventListener('click', async () => {
         margin_mm: parseFloat($('pnMarginMm').value) || 5,
       },
       facing_pages: facingPages,
+      booklet: document.getElementById('bookletCheck')?.checked ?? false,
     };
 
     const blob = await apiProcessPdf(uploadedFiles, settings, { onStatus: msg => showStatus(msg) });
@@ -1962,6 +1970,14 @@ document.querySelectorAll('.nup-btn').forEach(btn => {
     document.querySelectorAll('.nup-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     nup = parseInt(btn.dataset.nup);
+    const bookletRow = document.getElementById('bookletRow');
+    if (bookletRow) {
+      bookletRow.style.display = (nup === 4 || nup === 8) ? '' : 'none';
+      if (nup !== 4 && nup !== 8) {
+        const bc = document.getElementById('bookletCheck');
+        if (bc) bc.checked = false;
+      }
+    }
     schedulePreview(300);
   });
 });
@@ -2104,6 +2120,7 @@ $('pnExcludeFirst').addEventListener('change', () => { pnExcludeFirst = $('pnExc
 $('pnMarginMm').addEventListener('input', () => { pnMarginMm = parseFloat($('pnMarginMm').value) || 5; schedulePreview(500); });
 $('pnApplyTo').addEventListener('change', () => { pnApplyTo = $('pnApplyTo').value; schedulePreview(300); });
 $('facingPages').addEventListener('change', () => { facingPages = $('facingPages').checked; schedulePreview(300); });
+document.getElementById('bookletCheck')?.addEventListener('change', () => schedulePreview());
 
 // Reset
 $('resetBtn').addEventListener('click', () => {
