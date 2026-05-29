@@ -26,7 +26,7 @@
   function loadHelpers() {
     loadScript('appVersionHelperScript', '/js/app-version.js?v=20260518-1');
     if (location.pathname === '/' || location.pathname.endsWith('/index.html')) {
-      loadScript('homeCleanupScript', '/js/home-cleanup.js?v=20260518-2');
+      loadScript('homeCleanupScript', '/js/home-cleanup.js?v=20260529-1');
     }
     if (location.pathname.endsWith('/tools/pdf-editor.html')) {
       loadScript('pdfEditorModuleLoaderScript', '/js/pdf-editor/loader.js?v=20260518-4');
