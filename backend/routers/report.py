@@ -2,6 +2,7 @@ import io
 import json
 import math
 from datetime import datetime
+from urllib.parse import quote
 
 import fitz
 import matplotlib
@@ -405,12 +406,13 @@ def generate(uid):
 
     safe_title = report_title.replace(" ", "_")[:40]
     filename = f"{safe_title}_report.pdf"
+    encoded_filename = quote(filename, safe="-._~")
 
     return Response(
         out_buf.getvalue(),
         status=200,
         mimetype="application/pdf",
         headers={
-            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Content-Disposition": f"attachment; filename*=UTF-8''{encoded_filename}",
         },
     )

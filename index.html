@@ -666,6 +666,14 @@
             userPermissions = programs;
           } else {
             userPermissions = permDoc.data().programs || {};
+            // Migrate existing users: add keys for new programs if missing
+            const newPrograms = ['invoice', 'report', 'writing'];
+            const missing = newPrograms.filter(id => !(id in userPermissions));
+            if (missing.length > 0) {
+              const update = {};
+              missing.forEach(id => { update[`programs.${id}`] = false; userPermissions[id] = false; });
+              db.collection('user_permissions').doc(user.uid).update(update).catch(() => {});
+            }
           }
           renderCards();
         }).catch(() => {});

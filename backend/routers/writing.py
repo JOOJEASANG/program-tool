@@ -35,11 +35,18 @@ def generate(uid):
 
 바로 본문만 작성해주세요. 설명이나 제목 없이 내용만 작성합니다."""
 
-    client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
-    message = client.messages.create(
-        model="claude-haiku-4-5-20251001",
-        max_tokens=1500,
-        messages=[{"role": "user", "content": prompt}],
-    )
-    result = message.content[0].text
-    return jsonify({"result": result})
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    if not api_key:
+        return jsonify({"detail": "AI 서비스 설정이 필요합니다. 관리자에게 문의하세요."}), 503
+
+    try:
+        client = anthropic.Anthropic(api_key=api_key)
+        message = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=1500,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        result = message.content[0].text
+        return jsonify({"result": result})
+    except anthropic.APIError as e:
+        return jsonify({"detail": f"AI 생성 실패: {e}"}), 502

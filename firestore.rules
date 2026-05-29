@@ -65,9 +65,37 @@ service cloud.firestore {
         )
         && (
           !('preflight' in request.resource.data.programs) || request.resource.data.programs['preflight'] == false
+        )
+        && (
+          !('invoice' in request.resource.data.programs) || request.resource.data.programs['invoice'] == false
+        )
+        && (
+          !('report' in request.resource.data.programs) || request.resource.data.programs['report'] == false
+        )
+        && (
+          !('writing' in request.resource.data.programs) || request.resource.data.programs['writing'] == false
         );
 
-      allow update, delete: if isAdmin();
+      // Users can update their own doc only to add missing program keys (set to false)
+      allow update: if isAdmin()
+        || (
+          isSignedIn()
+          && request.auth.uid == uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['programs'])
+          && request.resource.data.programs.diff(resource.data.programs).addedKeys().size() > 0
+          && request.resource.data.programs.diff(resource.data.programs).changedKeys().size() == 0
+          && request.resource.data.programs.diff(resource.data.programs).removedKeys().size() == 0
+          && request.resource.data.programs.diff(resource.data.programs).addedKeys()
+               .hasOnly(['invoice', 'report', 'writing'])
+          && (!('invoice' in request.resource.data.programs.diff(resource.data.programs).addedKeys())
+               || request.resource.data.programs['invoice'] == false)
+          && (!('report' in request.resource.data.programs.diff(resource.data.programs).addedKeys())
+               || request.resource.data.programs['report'] == false)
+          && (!('writing' in request.resource.data.programs.diff(resource.data.programs).addedKeys())
+               || request.resource.data.programs['writing'] == false)
+        );
+
+      allow delete: if isAdmin();
     }
 
     // Default deny everything else

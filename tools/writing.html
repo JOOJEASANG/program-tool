@@ -243,10 +243,10 @@
         const isAdmin = adminEmails.includes(userEmail) || !adminDoc.exists;
         const isPublic = !!(programsDoc.exists && programsDoc.data().public?.['writing']);
         const isApproved = permDoc.exists && permDoc.data().programs?.['writing'] === true;
-        if (!isAdmin && !isPublic && !isApproved) denyAccess('AI 글쓰기 어시스턴트는 관리자 승인 후 사용할 수 있습니다.');
+        if (!isAdmin && !isPublic && !isApproved) { denyAccess('AI 글쓰기 어시스턴트는 관리자 승인 후 사용할 수 있습니다.'); return; }
       } catch (e) {
         console.error('Permission check failed', e);
-        denyAccess('권한 확인 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.');
+        denyAccess('권한 확인 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.'); return;
       }
     });
 

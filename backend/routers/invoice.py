@@ -6,6 +6,7 @@ import io
 import base64
 import math
 from datetime import date
+from urllib.parse import quote
 
 import fitz
 from flask import Blueprint, request, jsonify, Response
@@ -365,10 +366,11 @@ def generate(uid):
     client_name = data.get("client", {}).get("name", "unknown")
     issue_date = (data.get("issue_date") or "").replace("-", "")
     filename = f"{doc_type}_{client_name}_{issue_date}.pdf"
+    encoded_filename = quote(filename, safe="-._~")
 
     return Response(
         pdf_bytes,
         status=200,
         mimetype="application/pdf",
-        headers={"Content-Disposition": f"attachment; filename*=UTF-8''{filename}"},
+        headers={"Content-Disposition": f"attachment; filename*=UTF-8''{encoded_filename}"},
     )
