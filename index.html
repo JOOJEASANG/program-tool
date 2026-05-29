@@ -528,9 +528,19 @@
     },
     {
       name: '견적서·청구서 생성기',
+      id: 'invoice',
       icon: '📋', iconBg: '#f0fdf4',
-      desc: '전문 견적서·청구서를 즉시 발행. 사업자 정보 자동 채움, PDF 출력, 항목 자동완성.',
-      url: '#', available: false, tags: ['견적서', '청구서', '문서'], category: '업무',
+      desc: '견적서·거래명세서·청구서를 즉시 발행. 품목 자동 계산(VAT 포함), 로고 삽입, PDF 다운로드.',
+      url: 'tools/invoice.html', available: true,
+      tags: ['견적서', '청구서', '거래명세서', '업무'], category: '업무',
+    },
+    {
+      name: '데이터 리포트 생성기',
+      id: 'report',
+      icon: '📊', iconBg: '#eff6ff',
+      desc: 'CSV·엑셀 파일 업로드 → 표·차트·통계가 포함된 PDF 보고서 자동 생성. 컬러 테마·가로/세로 방향 선택.',
+      url: 'tools/report.html', available: true,
+      tags: ['엑셀', 'CSV', '보고서', '차트'], category: '업무',
     },
   ];
 

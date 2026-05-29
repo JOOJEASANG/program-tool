@@ -1,0 +1,493 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>데이터 리포트 생성기 · Program Tool</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --bg:#f4f6f8;--primary:#12396d;--accent:#1d9bb2;
+      --nav-h:52px;--sidebar-w:320px;
+    }
+    body{font-family:Pretendard,"Noto Sans KR",sans-serif;background:var(--bg);color:#0f172a;min-height:100vh;padding-top:var(--nav-h)}
+
+    /* ── nav ── */
+    .top-nav{position:fixed;top:0;left:0;right:0;z-index:500;height:var(--nav-h);background:var(--primary);display:flex;align-items:center;padding:0 16px;gap:12px;box-shadow:0 2px 12px rgba(0,0,0,.2)}
+    .nav-back{display:flex;align-items:center;gap:6px;color:rgba(255,255,255,.85);font-size:13px;font-weight:700;text-decoration:none;padding:7px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.2);white-space:nowrap}
+    .nav-back:hover{background:rgba(255,255,255,.15);color:#fff}
+    .nav-title{flex:1;text-align:center;font-size:15px;font-weight:800;color:#fff}
+    .nav-user{display:flex;align-items:center;gap:8px}
+    .nav-user-name{font-size:12px;color:rgba(255,255,255,.75);font-weight:600;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .nav-logout{color:rgba(255,255,255,.75);font-size:12px;font-weight:700;background:rgba(255,255,255,.12);border:none;border-radius:7px;padding:6px 10px;cursor:pointer;font-family:inherit}
+    .nav-logout:hover{background:rgba(255,255,255,.22);color:#fff}
+
+    /* ── layout ── */
+    .layout{display:flex;min-height:calc(100vh - var(--nav-h));align-items:flex-start}
+    .sidebar{width:var(--sidebar-w);flex-shrink:0;background:#fff;border-right:1px solid #e2e8f0;padding:20px 18px 48px;position:sticky;top:var(--nav-h);height:calc(100vh - var(--nav-h));overflow-y:auto}
+    .main{flex:1;padding:24px 24px 60px;min-width:0}
+
+    /* ── sidebar ── */
+    .sidebar-title{font-size:13px;font-weight:900;color:var(--primary);text-transform:uppercase;letter-spacing:.5px;margin-bottom:16px}
+    .field-group{margin-bottom:14px}
+    .field-label{font-size:12px;font-weight:800;color:#334155;margin-bottom:5px;display:block}
+    .field-input{width:100%;border:1px solid #e2e8f0;border-radius:8px;padding:8px 10px;font-size:13px;font-family:inherit;color:#0f172a;background:#fafafa;transition:border-color .15s}
+    .field-input:focus{outline:none;border-color:var(--accent);background:#fff}
+    .toggle-row{display:flex;align-items:center;gap:10px}
+    .toggle{position:relative;width:38px;height:22px;flex-shrink:0}
+    .toggle input{opacity:0;width:0;height:0;position:absolute}
+    .toggle-slider{position:absolute;inset:0;background:#cbd5e1;border-radius:99px;cursor:pointer;transition:background .2s}
+    .toggle-slider::before{content:'';position:absolute;width:16px;height:16px;left:3px;top:3px;background:#fff;border-radius:50%;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+    .toggle input:checked+.toggle-slider{background:var(--accent)}
+    .toggle input:checked+.toggle-slider::before{transform:translateX(16px)}
+    .toggle-label{font-size:13px;font-weight:600;color:#334155}
+    .radio-group{display:flex;gap:8px;flex-wrap:wrap}
+    .radio-btn{position:relative}
+    .radio-btn input{position:absolute;opacity:0;width:0;height:0}
+    .radio-btn label{display:block;padding:6px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:12px;font-weight:700;color:#334155;cursor:pointer;transition:all .15s;background:#fafafa}
+    .radio-btn input:checked+label{border-color:var(--accent);background:rgba(29,155,178,.1);color:var(--accent)}
+    .radio-btn label:hover{border-color:var(--accent)}
+    .divider{border:none;border-top:1px solid #f1f5f9;margin:16px 0}
+    .gen-btn{width:100%;background:var(--primary);color:#fff;border:none;border-radius:10px;padding:12px 0;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px;transition:background .15s;margin-top:4px}
+    .gen-btn:hover{background:#0f2f5c}
+    .gen-btn:disabled{opacity:.55;cursor:not-allowed}
+    .spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    /* ── status bar ── */
+    .status-bar{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:12px 16px;margin-bottom:16px;display:none}
+    .status-bar.show{display:block}
+    .status-track{background:#e2e8f0;border-radius:999px;height:7px;overflow:hidden;margin-bottom:8px}
+    .status-fill{height:100%;background:linear-gradient(90deg,var(--primary),var(--accent));border-radius:999px;transition:width .4s cubic-bezier(.4,0,.2,1);width:0}
+    .status-meta{display:flex;justify-content:space-between;align-items:center}
+    .status-text{font-size:12px;font-weight:700;color:#334155}
+    .status-pct{font-size:12px;font-weight:900;color:var(--primary)}
+
+    /* ── error ── */
+    .error-box{background:#fef2f2;border:1px solid #fecaca;color:#dc2626;border-radius:10px;padding:12px 16px;font-size:13px;margin-bottom:16px;display:none}
+    .error-box.show{display:block}
+
+    /* ── upload zone ── */
+    .upload-zone{border:2px dashed #cbd5e1;border-radius:16px;background:#fff;padding:48px 24px;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:20px}
+    .upload-zone:hover,.upload-zone.dragover{border-color:var(--accent);background:rgba(29,155,178,.04)}
+    .upload-zone.has-file{border-style:solid;border-color:var(--accent);background:rgba(29,155,178,.06);padding:28px 24px}
+    .upload-icon{font-size:42px;margin-bottom:12px}
+    .upload-title{font-size:16px;font-weight:800;margin-bottom:6px}
+    .upload-sub{font-size:13px;color:#64748b}
+    .upload-filename{font-size:13px;font-weight:700;color:var(--accent);margin-top:8px}
+    .upload-change{font-size:12px;color:#94a3b8;margin-top:4px;cursor:pointer}
+    .upload-change:hover{color:var(--accent)}
+    #fileInput{display:none}
+
+    /* ── preview table ── */
+    .preview-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+    .preview-header h2{font-size:15px;font-weight:800;color:#1e293b}
+    .preview-meta{font-size:12px;color:#64748b;font-weight:600}
+    .table-wrap{overflow-x:auto;background:#fff;border:1px solid #e2e8f0;border-radius:12px;margin-bottom:20px}
+    .data-table{width:100%;border-collapse:collapse;font-size:12px}
+    .data-table thead th{background:var(--primary);color:#fff;padding:9px 10px;text-align:left;font-weight:800;white-space:nowrap;position:sticky;top:0}
+    .data-table thead th:first-child{border-radius:12px 0 0 0}
+    .data-table thead th:last-child{border-radius:0 12px 0 0}
+    .data-table tbody tr:nth-child(even){background:#f8fafc}
+    .data-table tbody tr:hover{background:#eff6ff}
+    .data-table tbody td{padding:7px 10px;border-bottom:1px solid #f1f5f9;color:#334155;white-space:nowrap;max-width:180px;overflow:hidden;text-overflow:ellipsis}
+    .truncated-note{font-size:12px;color:#94a3b8;margin-top:8px;font-style:italic}
+
+    /* ── empty state ── */
+    .empty-state{background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:64px 24px;text-align:center}
+    .empty-icon{font-size:52px;margin-bottom:16px}
+    .empty-title{font-size:18px;font-weight:800;color:#1e293b;margin-bottom:8px}
+    .empty-sub{font-size:13px;color:#64748b;line-height:1.6}
+
+    /* ── responsive ── */
+    @media(max-width:800px){
+      .layout{flex-direction:column}
+      .sidebar{width:100%;position:static;height:auto;border-right:none;border-bottom:1px solid #e2e8f0}
+      .nav-user-name{display:none}
+      .main{padding:16px 14px 48px}
+    }
+  </style>
+</head>
+<body>
+  <!-- nav -->
+  <div class="top-nav">
+    <a class="nav-back" href="../index.html">← 도구 목록</a>
+    <div class="nav-title">📊 데이터 리포트 생성기</div>
+    <div class="nav-user">
+      <span class="nav-user-name" id="userName">로딩 중...</span>
+      <button class="nav-logout" onclick="doLogout()">로그아웃</button>
+    </div>
+  </div>
+
+  <div class="layout">
+    <!-- ── sidebar ── -->
+    <aside class="sidebar">
+      <div class="sidebar-title">리포트 설정</div>
+
+      <div class="field-group">
+        <label class="field-label" for="inputTitle">리포트 제목</label>
+        <input class="field-input" id="inputTitle" type="text" placeholder="데이터 리포트" maxlength="80" />
+      </div>
+
+      <div class="field-group">
+        <label class="field-label" for="inputCompany">회사 / 기관명</label>
+        <input class="field-input" id="inputCompany" type="text" placeholder="회사명 (선택)" maxlength="60" />
+      </div>
+
+      <hr class="divider" />
+
+      <div class="field-group">
+        <span class="field-label">컬러 테마</span>
+        <div class="radio-group">
+          <div class="radio-btn">
+            <input type="radio" name="theme" id="themeBlue" value="blue" checked />
+            <label for="themeBlue">기본(블루)</label>
+          </div>
+          <div class="radio-btn">
+            <input type="radio" name="theme" id="themeDark" value="dark" />
+            <label for="themeDark">다크</label>
+          </div>
+          <div class="radio-btn">
+            <input type="radio" name="theme" id="themeGreen" value="green" />
+            <label for="themeGreen">그린</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="field-group">
+        <span class="field-label">페이지 방향</span>
+        <div class="radio-group">
+          <div class="radio-btn">
+            <input type="radio" name="orientation" id="orientPortrait" value="portrait" checked />
+            <label for="orientPortrait">세로 (A4)</label>
+          </div>
+          <div class="radio-btn">
+            <input type="radio" name="orientation" id="orientLandscape" value="landscape" />
+            <label for="orientLandscape">가로 (A4)</label>
+          </div>
+        </div>
+      </div>
+
+      <hr class="divider" />
+
+      <div class="field-group">
+        <div class="toggle-row">
+          <label class="toggle">
+            <input type="checkbox" id="toggleStats" />
+            <span class="toggle-slider"></span>
+          </label>
+          <span class="toggle-label">요약 통계 포함</span>
+        </div>
+        <div style="font-size:11px;color:#94a3b8;margin-top:5px;line-height:1.5">평균, 최대, 최소, 합계 (숫자 컬럼)</div>
+      </div>
+
+      <div class="field-group">
+        <div class="toggle-row">
+          <label class="toggle">
+            <input type="checkbox" id="toggleChart" onchange="onChartToggle()" />
+            <span class="toggle-slider"></span>
+          </label>
+          <span class="toggle-label">바 차트 포함</span>
+        </div>
+      </div>
+
+      <div class="field-group" id="chartColGroup" style="display:none">
+        <label class="field-label" for="selectChartCol">차트 컬럼 선택</label>
+        <select class="field-input" id="selectChartCol">
+          <option value="">-- 컬럼을 선택하세요 --</option>
+        </select>
+      </div>
+
+      <hr class="divider" />
+
+      <button class="gen-btn" id="genBtn" onclick="generatePDF()" disabled>
+        📄 PDF 생성
+      </button>
+    </aside>
+
+    <!-- ── main ── -->
+    <main class="main">
+      <div class="status-bar" id="statusBar">
+        <div class="status-track"><div class="status-fill" id="statusFill"></div></div>
+        <div class="status-meta">
+          <span class="status-text" id="statusText">준비 중...</span>
+          <span class="status-pct" id="statusPct">0%</span>
+        </div>
+      </div>
+
+      <div class="error-box" id="errorBox"></div>
+
+      <!-- upload zone -->
+      <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+        <div class="upload-icon">📂</div>
+        <div class="upload-title">CSV 또는 Excel 파일을 드래그하거나 클릭하여 업로드</div>
+        <div class="upload-sub">최대 10 MB · .csv, .xlsx, .xls 지원</div>
+        <div class="upload-filename" id="uploadFilename" style="display:none"></div>
+        <div class="upload-change" id="uploadChange" style="display:none">다른 파일 선택</div>
+      </div>
+      <input type="file" id="fileInput" accept=".csv,.xlsx,.xls" />
+
+      <!-- empty state / preview -->
+      <div id="emptyState" class="empty-state">
+        <div class="empty-icon">📊</div>
+        <div class="empty-title">파일을 업로드하면 미리보기가 표시됩니다</div>
+        <div class="empty-sub">CSV 또는 Excel 파일을 업로드하여<br>데이터를 확인하고 PDF 리포트를 생성하세요.</div>
+      </div>
+
+      <div id="previewSection" style="display:none">
+        <div class="preview-header">
+          <h2>데이터 미리보기</h2>
+          <span class="preview-meta" id="previewMeta"></span>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table" id="previewTable">
+            <thead id="previewHead"></thead>
+            <tbody id="previewBody"></tbody>
+          </table>
+        </div>
+        <div class="truncated-note" id="truncatedNote"></div>
+      </div>
+    </main>
+  </div>
+
+  <script src="../js/sw-register.js" defer></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="../js/firebase-config.js"></script>
+  <script src="../js/api.js"></script>
+
+  <!-- SheetJS for client-side Excel parsing -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+  <script>
+    /* ── auth ────────────────────────────────────────────────────────── */
+    function denyAccess(msg){
+      document.body.replaceChildren();
+      const wrap=document.createElement('div');
+      wrap.style.cssText='display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;gap:16px;text-align:center;padding:24px;font-family:sans-serif;';
+      wrap.innerHTML='<div style="font-size:52px;">🔒</div><div style="font-size:20px;font-weight:900;color:#0f172a;">접근 권한이 없습니다</div><div class="msg" style="font-size:14px;color:#64748b;max-width:320px;line-height:1.6;"></div><a href="../index.html" style="margin-top:8px;padding:10px 24px;background:#12396d;color:#fff;border-radius:10px;text-decoration:none;font-weight:800;font-size:14px;">← 홈으로</a>';
+      wrap.querySelector('.msg').textContent=msg;
+      document.body.appendChild(wrap);
+    }
+
+    auth.onAuthStateChanged(async user=>{
+      if(!user){window.location.href='../login.html';return}
+      const name=user.displayName||(user.email||'').split('@')[0];
+      document.getElementById('userName').textContent=name;
+      try{
+        const userEmail=String(user.email||'').trim().toLowerCase();
+        const [adminDoc,programsDoc,permDoc]=await Promise.all([
+          db.collection('settings').doc('admin').get(),
+          db.collection('settings').doc('programs').get(),
+          db.collection('user_permissions').doc(user.uid).get()
+        ]);
+        const adminEmails=(adminDoc.exists?(adminDoc.data().emails||[]):[]).map(e=>String(e).trim().toLowerCase());
+        const isAdmin=adminEmails.includes(userEmail)||!adminDoc.exists;
+        const isPublic=!!(programsDoc.exists&&programsDoc.data().public?.['report']);
+        const isApproved=permDoc.exists&&permDoc.data().programs?.['report']===true;
+        if(!isAdmin&&!isPublic&&!isApproved)denyAccess('데이터 리포트 생성기는 관리자 승인 후 사용할 수 있습니다.');
+      }catch(e){
+        console.error('Permission check failed',e);
+        denyAccess('권한 확인 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.');
+      }
+    });
+
+    async function doLogout(){await auth.signOut();window.location.href='../index.html'}
+
+    /* ── state ────────────────────────────────────────────────────────── */
+    let selectedFile = null;
+    let parsedColumns = [];
+    let parsedNumericCols = [];
+    let totalRows = 0;
+
+    /* ── upload zone ──────────────────────────────────────────────────── */
+    const zone = document.getElementById('uploadZone');
+    const fileInput = document.getElementById('fileInput');
+
+    zone.addEventListener('dragover', e=>{e.preventDefault();zone.classList.add('dragover')});
+    zone.addEventListener('dragleave', ()=>zone.classList.remove('dragover'));
+    zone.addEventListener('drop', e=>{
+      e.preventDefault();zone.classList.remove('dragover');
+      const f=e.dataTransfer.files[0];if(f)selectFile(f);
+    });
+    fileInput.addEventListener('change', e=>{const f=e.target.files[0];if(f)selectFile(f)});
+
+    function selectFile(f){
+      const name=f.name.toLowerCase();
+      if(!name.endsWith('.csv')&&!name.endsWith('.xlsx')&&!name.endsWith('.xls')){
+        showError('CSV 또는 Excel 파일(.csv, .xlsx, .xls)만 업로드 가능합니다.');return;
+      }
+      if(f.size>10*1024*1024){showError('파일 크기가 10 MB 제한을 초과합니다.');return;}
+      selectedFile=f;
+      zone.classList.add('has-file');
+      const fn=document.getElementById('uploadFilename');
+      fn.textContent=`${f.name}  (${(f.size/1024).toFixed(0)} KB)`;
+      fn.style.display='block';
+      document.getElementById('uploadChange').style.display='block';
+      hideError();
+      parseAndPreview(f);
+    }
+
+    /* ── client-side parse & preview ─────────────────────────────────── */
+    function parseAndPreview(file){
+      const reader=new FileReader();
+      reader.onload=e=>{
+        try{
+          let data;
+          const name=file.name.toLowerCase();
+          if(name.endsWith('.csv')){
+            data=parseCSV(e.target.result);
+          } else {
+            const wb=XLSX.read(e.target.result,{type:'array'});
+            const ws=wb.Sheets[wb.SheetNames[0]];
+            data=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+          }
+          if(!data||data.length<2){showError('데이터를 읽을 수 없습니다. 파일 형식을 확인하세요.');return;}
+          renderPreview(data);
+        }catch(err){showError('파일 파싱 중 오류: '+err.message);}
+      };
+      if(file.name.toLowerCase().endsWith('.csv')){
+        reader.readAsText(file,'utf-8');
+      } else {
+        reader.readAsArrayBuffer(file);
+      }
+    }
+
+    function parseCSV(text){
+      const lines=text.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n').filter(l=>l.trim()!=='');
+      return lines.map(line=>{
+        const row=[];let cur='';let inQ=false;
+        for(let i=0;i<line.length;i++){
+          const ch=line[i];
+          if(ch==='"'){inQ=!inQ;}
+          else if(ch===','&&!inQ){row.push(cur.trim());cur='';}
+          else{cur+=ch;}
+        }
+        row.push(cur.trim());
+        return row;
+      });
+    }
+
+    function renderPreview(data){
+      const headers=data[0].map(h=>String(h));
+      const rows=data.slice(1);
+      totalRows=rows.length;
+      parsedColumns=headers;
+
+      // detect numeric columns
+      parsedNumericCols=headers.filter((h,ci)=>{
+        const sample=rows.slice(0,20).map(r=>r[ci]).filter(v=>v!==''&&v!=null);
+        return sample.length>0&&sample.every(v=>!isNaN(parseFloat(v)));
+      });
+
+      // update chart col dropdown
+      const sel=document.getElementById('selectChartCol');
+      sel.innerHTML='<option value="">-- 컬럼을 선택하세요 --</option>';
+      parsedNumericCols.forEach(c=>{
+        const opt=document.createElement('option');opt.value=c;opt.textContent=c;sel.appendChild(opt);
+      });
+
+      // enable gen button
+      document.getElementById('genBtn').disabled=false;
+
+      // render table (first 10 rows)
+      const previewRows=rows.slice(0,10);
+      const head=document.getElementById('previewHead');
+      const body=document.getElementById('previewBody');
+      head.innerHTML='<tr>'+headers.map(h=>`<th>${esc(h)}</th>`).join('')+'</tr>';
+      body.innerHTML=previewRows.map(row=>
+        '<tr>'+headers.map((_,ci)=>`<td title="${esc(String(row[ci]??''))}">${esc(String(row[ci]??''))}</td>`).join('')+'</tr>'
+      ).join('');
+
+      document.getElementById('previewMeta').textContent=`총 ${totalRows.toLocaleString()}행 × ${headers.length}열`;
+      document.getElementById('truncatedNote').textContent=totalRows>10?`처음 10행만 미리보기로 표시됩니다. PDF에는 전체 ${totalRows.toLocaleString()}행이 포함됩니다.`:'';
+      document.getElementById('emptyState').style.display='none';
+      document.getElementById('previewSection').style.display='block';
+    }
+
+    /* ── chart toggle ─────────────────────────────────────────────────── */
+    function onChartToggle(){
+      const on=document.getElementById('toggleChart').checked;
+      document.getElementById('chartColGroup').style.display=on?'block':'none';
+    }
+
+    /* ── PDF generation ───────────────────────────────────────────────── */
+    async function generatePDF(){
+      if(!selectedFile)return;
+      hideError();
+      setGenerating(true);
+      showStatus('파일 업로드 및 PDF 생성 중...', 20);
+
+      const settings={
+        title: document.getElementById('inputTitle').value.trim()||'데이터 리포트',
+        company: document.getElementById('inputCompany').value.trim(),
+        include_chart: document.getElementById('toggleChart').checked,
+        chart_col: document.getElementById('selectChartCol').value||null,
+        theme: document.querySelector('input[name="theme"]:checked').value,
+        orientation: document.querySelector('input[name="orientation"]:checked').value,
+        include_stats: document.getElementById('toggleStats').checked,
+      };
+
+      try{
+        const token=await auth.currentUser.getIdToken();
+        const form=new FormData();
+        form.append('file',selectedFile);
+        form.append('settings',JSON.stringify(settings));
+
+        setStatus('서버에서 PDF 렌더링 중...', 55);
+
+        const resp=await fetch('/api/report/generate',{
+          method:'POST',
+          headers:{Authorization:`Bearer ${token}`},
+          body:form,
+        });
+
+        setStatus('PDF 다운로드 준비 중...', 85);
+
+        if(!resp.ok){
+          const err=await resp.json().catch(()=>({detail:`서버 오류 (${resp.status})`}));
+          throw new Error(err.detail||'PDF 생성 중 오류가 발생했습니다.');
+        }
+
+        const blob=await resp.blob();
+        const url=URL.createObjectURL(blob);
+        const a=document.createElement('a');
+        const fname=(settings.title.replace(/\s+/g,'_')||'report')+'_report.pdf';
+        a.href=url;a.download=fname;a.click();
+        URL.revokeObjectURL(url);
+
+        setStatus('PDF 생성 완료!', 100);
+        setTimeout(()=>hideStatus(),2000);
+      }catch(e){
+        hideStatus();
+        showError(e.message||'PDF 생성 중 오류가 발생했습니다.');
+      }finally{
+        setGenerating(false);
+      }
+    }
+
+    /* ── ui helpers ───────────────────────────────────────────────────── */
+    function showStatus(text,pct){
+      const bar=document.getElementById('statusBar');
+      bar.classList.add('show');
+      setStatus(text,pct);
+    }
+    function setStatus(text,pct){
+      document.getElementById('statusFill').style.width=pct+'%';
+      document.getElementById('statusPct').textContent=pct+'%';
+      document.getElementById('statusText').textContent=text;
+    }
+    function hideStatus(){document.getElementById('statusBar').classList.remove('show');}
+    function showError(msg){const b=document.getElementById('errorBox');b.textContent=msg;b.classList.add('show');b.scrollIntoView({behavior:'smooth',block:'nearest'});}
+    function hideError(){document.getElementById('errorBox').classList.remove('show');}
+    function setGenerating(r){
+      const btn=document.getElementById('genBtn');
+      btn.disabled=r;
+      btn.innerHTML=r?'<span class="spinner"></span> 생성 중...':'📄 PDF 생성';
+    }
+    function esc(v){return String(v??'').replace(/[<>&"']/g,ch=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;'}[ch]));}
+  </script>
+</body>
+</html>
