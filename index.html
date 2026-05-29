@@ -581,9 +581,13 @@
       : `사용 가능 ${availableCount}개 · 준비중 ${PROGRAMS.length - availableCount}개`;
   });
 
-  // Auth state
+  // Auth state — hide loading overlay (with 5s timeout fallback)
+  const _hideLoading = () => { document.getElementById('authLoading').style.display = 'none'; };
+  const _loadingTimeout = setTimeout(_hideLoading, 5000);
+
   auth.onAuthStateChanged(user => {
-    document.getElementById('authLoading').style.display = 'none';
+    clearTimeout(_loadingTimeout);
+    _hideLoading();
     const navLogin = document.getElementById('navLoginBtn');
     const navStart = document.getElementById('navStartBtn');
     const userChip = document.getElementById('userChip');
@@ -652,7 +656,7 @@
           if (!permDoc.exists) {
             // First login: register user
             const programs = {};
-            ['design-studio', 'pdf-editor', 'preflight'].forEach(id => programs[id] = false);
+            ['design-studio', 'pdf-editor', 'preflight', 'invoice', 'report', 'writing'].forEach(id => programs[id] = false);
             await db.collection('user_permissions').doc(user.uid).set({
               uid: user.uid,
               email: user.email || '',
