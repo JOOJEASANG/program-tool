@@ -7,6 +7,7 @@ from routers.pdf_tools import pdf_tools_bp
 from routers.preflight import preflight_bp
 from routers.report import report_bp
 from routers.invoice import invoice_bp
+from routers.writing import writing_bp
 from firebase_functions import https_fn, options
 
 flask_app = Flask(__name__)
@@ -15,6 +16,7 @@ flask_app.register_blueprint(pdf_tools_bp, url_prefix="/api/pdf-tools")
 flask_app.register_blueprint(preflight_bp, url_prefix="/api/preflight")
 flask_app.register_blueprint(report_bp, url_prefix="/api/report")
 flask_app.register_blueprint(invoice_bp, url_prefix="/api/invoice")
+flask_app.register_blueprint(writing_bp, url_prefix="/api/writing")
 
 @flask_app.route("/health")
 def health():
