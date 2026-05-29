@@ -568,7 +568,7 @@
         <span class="sec-title">출력</span>
       </div>
       <div class="sec-body">
-        <button class="btn btn-primary" id="previewBtn" disabled>미리보기 생성</button>
+        <button class="btn btn-primary" id="previewBtn" disabled>미리보기 새로고침</button>
         <div style="height:6px;"></div>
         <button class="btn btn-green" id="downloadBtn" disabled>PDF 저장</button>
         <div style="height:6px;"></div>
@@ -642,7 +642,7 @@
       <div class="preview-scroll" id="previewScroll">
         <div class="empty-state">
           <div class="icon">📝</div>
-          <p>PDF 파일을 업로드하고<br>설정 후 <b>미리보기 생성</b>을 클릭하세요.</p>
+          <p>PDF 파일을 업로드하면<br>설정에 따라 <b>자동으로 미리보기</b>가 생성됩니다.</p>
         </div>
       </div>
     </div>
@@ -1041,6 +1041,7 @@ async function handleFile(file) {
     $('previewBtn').disabled = false;
     showStatus(`"${shortName}" ${total}페이지 로드 완료`, 'success');
     setTimeout(hideStatus, 2500);
+    triggerPreview();
     // Switch mode to 연속 after first upload
     if (isNew) {
       document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active','break-active'));
@@ -1415,6 +1416,7 @@ function renderThumbs() {
           wrap.appendChild(ex);
         }
       } else { wrap.querySelector('.thumb-ex')?.remove(); }
+      schedulePreview(300);
     });
 
     item.addEventListener('dragstart', e => {
@@ -1435,6 +1437,7 @@ function renderThumbs() {
       parsedPages.splice(si < ti ? ti - 1 : ti, 0, moved);
       _dragSrcId = null;
       renderThumbs();
+      schedulePreview(300);
     });
 
     item.appendChild(wrap);
@@ -1460,6 +1463,7 @@ function showNupPopup(btn, page) {
       e.stopPropagation();
       page.nupOverride = n; popup.remove(); _nupPopup = null;
       renderThumbs();
+      schedulePreview(300);
     });
     popup.appendChild(b);
   });
@@ -1781,6 +1785,14 @@ async function triggerPreview() {
 
 $('previewBtn').addEventListener('click', triggerPreview);
 
+// ── Auto-preview (debounced) ──────────────────────────────────────────
+let _autoPreviewTimer = null;
+function schedulePreview(delay = 500) {
+  if (!parsedPages.length) return;
+  clearTimeout(_autoPreviewTimer);
+  _autoPreviewTimer = setTimeout(() => triggerPreview(), delay);
+}
+
 function updateZoomLabel() {
   $('zoomLabel').textContent = Math.round(_previewZoom * 100) + '%';
 }
@@ -1925,32 +1937,40 @@ document.querySelectorAll('.nup-btn').forEach(btn => {
     document.querySelectorAll('.nup-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     nup = parseInt(btn.dataset.nup);
+    schedulePreview(300);
   });
 });
-$('orderLR').addEventListener('click', () => { orderLR=true; $('orderLR').classList.add('active'); $('orderTB').classList.remove('active'); });
-$('orderTB').addEventListener('click', () => { orderLR=false; $('orderTB').classList.add('active'); $('orderLR').classList.remove('active'); });
-$('orientPort').addEventListener('click', () => { landscape=false; $('orientPort').classList.add('active'); $('orientLand').classList.remove('active'); updateNupBadges(); });
-$('orientLand').addEventListener('click', () => { landscape=true; $('orientLand').classList.add('active'); $('orientPort').classList.remove('active'); updateNupBadges(); });
-$('showBorder').addEventListener('change', () => { showBorder = $('showBorder').checked; });
+$('orderLR').addEventListener('click', () => { orderLR=true; $('orderLR').classList.add('active'); $('orderTB').classList.remove('active'); schedulePreview(300); });
+$('orderTB').addEventListener('click', () => { orderLR=false; $('orderTB').classList.add('active'); $('orderLR').classList.remove('active'); schedulePreview(300); });
+$('orientPort').addEventListener('click', () => { landscape=false; $('orientPort').classList.add('active'); $('orientLand').classList.remove('active'); updateNupBadges(); schedulePreview(300); });
+$('orientLand').addEventListener('click', () => { landscape=true; $('orientLand').classList.add('active'); $('orientPort').classList.remove('active'); updateNupBadges(); schedulePreview(300); });
+$('showBorder').addEventListener('change', () => { showBorder = $('showBorder').checked; schedulePreview(300); });
 $('paperSize').addEventListener('change', () => {
   $('customSizeRow').style.display = $('paperSize').value === 'custom' ? 'grid' : 'none';
   updateNupBadges();
+  schedulePreview(500);
+});
+['customW','customH','marginH','marginV','gap'].forEach(id => {
+  $(id).addEventListener('input', () => schedulePreview(600));
 });
 
 // Watermark controls
 $('wmEnabled').addEventListener('change', () => {
   wmEnabled = $('wmEnabled').checked;
   $('wmSettings').style.display = wmEnabled ? 'block' : 'none';
+  schedulePreview(300);
 });
-$('wmText').addEventListener('input', () => { wmText = $('wmText').value; });
-$('wmColor').addEventListener('input', () => { wmColor = $('wmColor').value; });
+$('wmText').addEventListener('input', () => { wmText = $('wmText').value; schedulePreview(500); });
+$('wmColor').addEventListener('input', () => { wmColor = $('wmColor').value; schedulePreview(500); });
 $('wmOpacity').addEventListener('input', () => {
   wmOpacity = parseFloat($('wmOpacity').value);
   $('wmOpacityVal').textContent = Math.round(wmOpacity * 100) + '%';
+  schedulePreview(500);
 });
 $('wmAngle').addEventListener('input', () => {
   wmAngle = parseFloat($('wmAngle').value);
   $('wmAngleVal').textContent = wmAngle + '°';
+  schedulePreview(500);
 });
 document.querySelectorAll('.wm-preset').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -1958,6 +1978,7 @@ document.querySelectorAll('.wm-preset').forEach(btn => {
     btn.classList.add('active');
     wmText = btn.dataset.text;
     $('wmText').value = wmText;
+    schedulePreview(300);
   });
 });
 
@@ -1965,20 +1986,21 @@ document.querySelectorAll('.wm-preset').forEach(btn => {
 $('hfEnabled').addEventListener('change', () => {
   hfEnabled = $('hfEnabled').checked;
   $('hfSettings').style.display = hfEnabled ? 'block' : 'none';
+  schedulePreview(300);
 });
 ['hfHL','hfHC','hfHR','hfFL','hfFC','hfFR'].forEach(id =>
   $(id).addEventListener('input', () => { eval(id.replace('hf','hf') + " = $('" + id + "').value"); })
 );
-$('hfHL').addEventListener('input', () => { hfHL = $('hfHL').value; });
-$('hfHC').addEventListener('input', () => { hfHC = $('hfHC').value; });
-$('hfHR').addEventListener('input', () => { hfHR = $('hfHR').value; });
-$('hfFL').addEventListener('input', () => { hfFL = $('hfFL').value; });
-$('hfFC').addEventListener('input', () => { hfFC = $('hfFC').value; });
-$('hfFR').addEventListener('input', () => { hfFR = $('hfFR').value; });
-$('hfFontSize').addEventListener('input', () => { hfFontSize = parseFloat($('hfFontSize').value) || 9; });
-$('hfColor').addEventListener('input', () => { hfColor = $('hfColor').value; });
-$('hfMarginMm').addEventListener('input', () => { hfMarginMm = parseFloat($('hfMarginMm').value) || 5; });
-$('hfApplyTo').addEventListener('change', () => { hfApplyTo = $('hfApplyTo').value; });
+$('hfHL').addEventListener('input', () => { hfHL = $('hfHL').value; schedulePreview(500); });
+$('hfHC').addEventListener('input', () => { hfHC = $('hfHC').value; schedulePreview(500); });
+$('hfHR').addEventListener('input', () => { hfHR = $('hfHR').value; schedulePreview(500); });
+$('hfFL').addEventListener('input', () => { hfFL = $('hfFL').value; schedulePreview(500); });
+$('hfFC').addEventListener('input', () => { hfFC = $('hfFC').value; schedulePreview(500); });
+$('hfFR').addEventListener('input', () => { hfFR = $('hfFR').value; schedulePreview(500); });
+$('hfFontSize').addEventListener('input', () => { hfFontSize = parseFloat($('hfFontSize').value) || 9; schedulePreview(500); });
+$('hfColor').addEventListener('input', () => { hfColor = $('hfColor').value; schedulePreview(500); });
+$('hfMarginMm').addEventListener('input', () => { hfMarginMm = parseFloat($('hfMarginMm').value) || 5; schedulePreview(500); });
+$('hfApplyTo').addEventListener('change', () => { hfApplyTo = $('hfApplyTo').value; schedulePreview(300); });
 
 // HF Sections (per-range overrides)
 function renderHfSections() {
@@ -2039,22 +2061,24 @@ $('hfAddSectionBtn').addEventListener('click', () => {
 $('pnEnabled').addEventListener('change', () => {
   pnEnabled = $('pnEnabled').checked;
   $('pnSettings').style.display = pnEnabled ? 'block' : 'none';
+  schedulePreview(300);
 });
 document.querySelectorAll('.pn-pos-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.pn-pos-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     pnPosition = btn.dataset.pos;
+    schedulePreview(300);
   });
 });
-$('pnFormat').addEventListener('change', () => { pnFormat = $('pnFormat').value; });
-$('pnStart').addEventListener('input', () => { pnStart = parseInt($('pnStart').value) || 1; });
-$('pnFontSize').addEventListener('input', () => { pnFontSize = parseFloat($('pnFontSize').value) || 10; });
-$('pnColor').addEventListener('input', () => { pnColor = $('pnColor').value; });
-$('pnExcludeFirst').addEventListener('change', () => { pnExcludeFirst = $('pnExcludeFirst').checked; });
-$('pnMarginMm').addEventListener('input', () => { pnMarginMm = parseFloat($('pnMarginMm').value) || 5; });
-$('pnApplyTo').addEventListener('change', () => { pnApplyTo = $('pnApplyTo').value; });
-$('facingPages').addEventListener('change', () => { facingPages = $('facingPages').checked; });
+$('pnFormat').addEventListener('change', () => { pnFormat = $('pnFormat').value; schedulePreview(300); });
+$('pnStart').addEventListener('input', () => { pnStart = parseInt($('pnStart').value) || 1; schedulePreview(500); });
+$('pnFontSize').addEventListener('input', () => { pnFontSize = parseFloat($('pnFontSize').value) || 10; schedulePreview(500); });
+$('pnColor').addEventListener('input', () => { pnColor = $('pnColor').value; schedulePreview(500); });
+$('pnExcludeFirst').addEventListener('change', () => { pnExcludeFirst = $('pnExcludeFirst').checked; schedulePreview(300); });
+$('pnMarginMm').addEventListener('input', () => { pnMarginMm = parseFloat($('pnMarginMm').value) || 5; schedulePreview(500); });
+$('pnApplyTo').addEventListener('change', () => { pnApplyTo = $('pnApplyTo').value; schedulePreview(300); });
+$('facingPages').addEventListener('change', () => { facingPages = $('facingPages').checked; schedulePreview(300); });
 
 // Reset
 $('resetBtn').addEventListener('click', () => {
@@ -2065,7 +2089,7 @@ $('resetBtn').addEventListener('click', () => {
   $('previewPages').textContent = '';
   $('thumbArea').innerHTML = '';
   $('thumbSection').style.display = 'none';
-  $('previewScroll').innerHTML = '<div class="empty-state"><div class="icon">📝</div><p>PDF 파일을 업로드하고<br>설정 후 <b>미리보기 생성</b>을 클릭하세요.</p></div>';
+  $('previewScroll').innerHTML = '<div class="empty-state"><div class="icon">📝</div><p>PDF 파일을 업로드하면<br>설정에 따라 <b>자동으로 미리보기</b>가 생성됩니다.</p></div>';
   // Reset to new mode
   document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active','break-active'));
   document.querySelector('.mode-btn[data-mode="new"]').classList.add('active');
