@@ -1,5 +1,5 @@
 {
-  "version": "2026-05-18-per-file-nup-v6",
-  "label": "PDF 파일별 N-UP 배치 수정",
-  "updatedAt": "2026-05-18T13:45:00+09:00"
+  "version": "2026-05-29-loading-fix",
+  "label": "메인 페이지 로딩 버그 수정",
+  "updatedAt": "2026-05-29T00:00:00+09:00"
 }
