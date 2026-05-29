@@ -2331,12 +2331,7 @@ $('zoomResetBtn').addEventListener('click', () => {
   else updateZoomLabel();
 });
 
-// Make 추가 도구 section collapsible
-document.querySelector('[data-sec="tools"]').addEventListener('click', e => {
-  e.currentTarget.classList.toggle('collapsed');
-  $('sb-tools').classList.toggle('hidden');
-});
-// Start collapsed by default to keep sidebar clean
+// Start collapsed by default
 document.querySelector('[data-sec="tools"]').classList.add('collapsed');
 $('sb-tools').classList.add('hidden');
 </script>
