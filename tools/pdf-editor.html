@@ -25,9 +25,10 @@
     .nav-logout:hover { background: rgba(255,255,255,0.22); color: #fff; }
 
     /* Layout */
-    .app { display: grid; grid-template-columns: 360px minmax(0,1fr); min-height: calc(100vh - var(--nav-h)); }
-    aside { background: var(--panel); border-right: 1px solid var(--line); padding: 16px; overflow-y: auto; max-height: calc(100vh - var(--nav-h)); }
-    main { padding: 14px; display: flex; flex-direction: column; gap: 10px; overflow: hidden; }
+    body { overflow: hidden; }
+    .app { display: grid; grid-template-columns: 360px minmax(0,1fr); height: calc(100vh - var(--nav-h)); }
+    aside { background: var(--panel); border-right: 1px solid var(--line); padding: 16px; overflow-y: auto; height: 100%; position: sticky; top: 0; }
+    main { padding: 14px; display: flex; flex-direction: column; gap: 10px; overflow: hidden; height: 100%; }
 
     h1 { font-size: 16px; font-weight: 900; margin-bottom: 3px; letter-spacing: -0.4px; }
     .sub { color: var(--muted); font-size: 11px; line-height: 1.5; margin-bottom: 12px; }
@@ -626,11 +627,11 @@
         <div class="preview-zoom">
           <select id="perRowSelect" style="border:1px solid var(--line);border-radius:6px;padding:2px 4px;font-size:11px;font-weight:800;font-family:inherit;color:#374151;background:#fff;cursor:pointer;">
             <option value="1">줄당 1장</option>
-            <option value="2">줄당 2장</option>
+            <option value="2" selected>줄당 2장</option>
             <option value="3">줄당 3장</option>
             <option value="4">줄당 4장</option>
             <option value="5">줄당 5장</option>
-            <option value="6" selected>줄당 6장</option>
+            <option value="6">줄당 6장</option>
           </select>
           <span style="width:1px;background:#e5e7eb;align-self:stretch;margin:0 4px;"></span>
           <button class="zoom-btn" id="zoomOutBtn" title="축소">−</button>
@@ -1670,7 +1671,7 @@ async function buildAllPages(mm2px, useHi) {
 // ── Preview ───────────────────────────────────────────────────────────
 let _previewInsertPoints = []; // [zoneIdx] = parsedPages splice index
 let _previewZoom = 1.0; // zoom multiplier
-let _previewPerRow = 6; // pages per row
+let _previewPerRow = 2; // pages per row
 const ZOOM_STEPS = [0.5, 0.6, 0.75, 1.0, 1.25, 1.5, 2.0, 2.5, 3.0];
 const ZOOM_BASE_H = 280; // base page height in px at 100%
 
@@ -1767,7 +1768,7 @@ async function triggerPreview() {
   await new Promise(r => setTimeout(r, 10));
   try {
     previewCanvases = await buildAllPages(96 / 25.4, false);
-    displayPreview(previewCanvases);
+    displayPreview(previewCanvases, true);
     const active = parsedPages.filter(p => !p.excluded);
     const groups = groupByNup(active);
     const summary = groups.length > 1
@@ -1797,12 +1798,36 @@ function updateZoomLabel() {
   $('zoomLabel').textContent = Math.round(_previewZoom * 100) + '%';
 }
 
-function displayPreview(pages) {
+function computeAutoZoom(perRow, canvas) {
+  const scroll = $('previewScroll');
+  const scrollW = scroll.clientWidth;
+  if (!scrollW || !canvas) return null;
+  const availW = scrollW - 24; // 12px padding each side
+  let pageSlotW;
+  if (perRow <= 1) {
+    pageSlotW = availW;
+  } else {
+    // flex row: perRow pages + (perRow-1) vertical insert zones (28px each), gap:8px between all items
+    const totalInsert = (perRow - 1) * 28;
+    const totalGap = (2 * perRow - 2) * 8;
+    pageSlotW = (availW - totalInsert - totalGap) / perRow;
+  }
+  if (pageSlotW <= 0) return null;
+  const aspectRatio = canvas.width / canvas.height;
+  const basePageW = ZOOM_BASE_H * aspectRatio;
+  return pageSlotW / basePageW;
+}
+
+function displayPreview(pages, autoFit = false) {
   _previewInsertPoints = buildPreviewInsertPoints();
   const scroll = $('previewScroll');
   scroll.innerHTML = '';
-  const previewH = Math.round(ZOOM_BASE_H * _previewZoom);
   const perRow = _previewPerRow;
+  if (autoFit && pages.length > 0) {
+    const z = computeAutoZoom(perRow, pages[0]);
+    if (z !== null && isFinite(z)) _previewZoom = z;
+  }
+  const previewH = Math.round(ZOOM_BASE_H * _previewZoom);
   const numRows = pages.length === 0 ? 0 : Math.ceil(pages.length / perRow);
 
   if (pages.length > 0 && perRow === 1) scroll.appendChild(makePreviewInsertZone(0));
@@ -2281,31 +2306,28 @@ $('toolRunBtn').addEventListener('click', async () => {
 // ── Preview per-row & zoom controls ──────────────────────────────────
 $('perRowSelect').addEventListener('change', () => {
   _previewPerRow = parseInt($('perRowSelect').value, 10) || 1;
-  if (previewCanvases.length > 0) displayPreview(previewCanvases);
+  if (previewCanvases.length > 0) displayPreview(previewCanvases, true); // auto-fit on column change
 });
 $('zoomInBtn').addEventListener('click', () => {
-  const idx = ZOOM_STEPS.indexOf(_previewZoom);
-  const next = idx < 0
-    ? ZOOM_STEPS.find(z => z > _previewZoom) ?? ZOOM_STEPS[ZOOM_STEPS.length - 1]
-    : ZOOM_STEPS[Math.min(idx + 1, ZOOM_STEPS.length - 1)];
-  if (next === _previewZoom) return;
+  const cur = _previewZoom;
+  const next = ZOOM_STEPS.find(z => z > cur + 0.01) ?? ZOOM_STEPS[ZOOM_STEPS.length - 1];
+  if (next === cur) return;
   _previewZoom = next;
   if (previewCanvases.length > 0) displayPreview(previewCanvases);
+  else updateZoomLabel();
 });
 
 $('zoomOutBtn').addEventListener('click', () => {
-  const idx = ZOOM_STEPS.indexOf(_previewZoom);
-  const prev = idx < 0
-    ? [...ZOOM_STEPS].reverse().find(z => z < _previewZoom) ?? ZOOM_STEPS[0]
-    : ZOOM_STEPS[Math.max(idx - 1, 0)];
-  if (prev === _previewZoom) return;
+  const cur = _previewZoom;
+  const prev = [...ZOOM_STEPS].reverse().find(z => z < cur - 0.01) ?? ZOOM_STEPS[0];
+  if (prev === cur) return;
   _previewZoom = prev;
   if (previewCanvases.length > 0) displayPreview(previewCanvases);
+  else updateZoomLabel();
 });
 
 $('zoomResetBtn').addEventListener('click', () => {
-  _previewZoom = 1.0;
-  if (previewCanvases.length > 0) displayPreview(previewCanvases);
+  if (previewCanvases.length > 0) displayPreview(previewCanvases, true); // auto-fit
   else updateZoomLabel();
 });
 
