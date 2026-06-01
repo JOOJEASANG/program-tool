@@ -1813,7 +1813,6 @@ async function triggerPreview() {
     const previewPages = useBooklet ? bookletReorderPreview(active, nup) : null;
     previewCanvases = await buildAllPages(96 / 25.4, false, previewPages);
     displayPreview(previewCanvases, true);
-    const active = parsedPages.filter(p => !p.excluded);
     const groups = groupByNup(active);
     const summary = groups.length > 1
       ? groups.map(g => `${g.n}장×${g.pages.length}`).join(', ')
