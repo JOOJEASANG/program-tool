@@ -365,8 +365,9 @@
             <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#374151;cursor:pointer;">
               <input type="checkbox" id="bookletCheck" style="cursor:pointer;">
               <span style="font-weight:700;">소책자 배치</span>
-              <span style="color:#9ca3af;font-size:10px;">인쇄→행절단→접기=소책자</span>
+              <span style="color:#9ca3af;font-size:10px;">양면인쇄→절단→접기=소책자</span>
             </label>
+            <div id="bookletPadInfo" style="display:none;margin-top:3px;font-size:10px;color:#2563eb;font-weight:700;padding-left:18px;"></div>
           </div>
         </div>
         <div class="field">
@@ -1657,16 +1658,16 @@ function applyDocEdits(canvas, outputIdx, totalPages, mm2px) {
   }
 }
 
+// Booklet imposition strips per nup (cols always 2, pad_unit always 4)
+const BOOKLET_STRIPS = { 2: 1, 4: 2, 6: 3, 8: 4 };
+
 // ── Booklet saddle-stitch reorder (mirrors backend _booklet_reorder) ──
 function bookletReorderPreview(pages, nupVal) {
-  const NUP_LAYOUT = { 4: [2, 2], 8: [2, 4] };
-  let [cols, rows] = NUP_LAYOUT[nupVal] || [1, 1];
-  if (landscape && cols !== rows) { [cols, rows] = [rows, cols]; }
-  if (cols < 2) return [...pages];
-  const n_booklets = rows;
+  const n_booklets = BOOKLET_STRIPS[nupVal];
+  if (!n_booklets) return [...pages];
+  const pad_unit = 4; // 2 cols × 2 sides
   const n = pages.length;
   const per_booklet = Math.ceil(n / n_booklets);
-  const pad_unit = cols * 2;
   const padded_per = Math.ceil(per_booklet / pad_unit) * pad_unit;
   const blank = { pageType: 'blank', _bookletBlank: true };
   const sections = [];
@@ -1689,6 +1690,25 @@ function bookletReorderPreview(pages, nupVal) {
     }
   }
   return result;
+}
+
+function updateBookletPadInfo() {
+  const info = document.getElementById('bookletPadInfo');
+  if (!info) return;
+  const checked = document.getElementById('bookletCheck')?.checked;
+  const n_booklets = BOOKLET_STRIPS[nup];
+  if (!checked || !n_booklets) { info.style.display = 'none'; return; }
+  const active = parsedPages.filter(p => !p.excluded).length;
+  const per_booklet = Math.ceil(active / n_booklets);
+  const padded_per = Math.ceil(per_booklet / 4) * 4;
+  const total = padded_per * n_booklets;
+  const added = total - active;
+  if (added > 0) {
+    info.textContent = `빈 페이지 ${added}장 추가 → 총 ${total}페이지`;
+    info.style.display = '';
+  } else {
+    info.style.display = 'none';
+  }
 }
 
 // ── Build all output pages ────────────────────────────────────────────
@@ -1809,7 +1829,7 @@ async function triggerPreview() {
   await new Promise(r => setTimeout(r, 10));
   try {
     const active = parsedPages.filter(p => !p.excluded);
-    const useBooklet = (document.getElementById('bookletCheck')?.checked) && (nup === 4 || nup === 8);
+    const useBooklet = (document.getElementById('bookletCheck')?.checked) && (nup in BOOKLET_STRIPS);
     const previewPages = useBooklet ? bookletReorderPreview(active, nup) : null;
     previewCanvases = await buildAllPages(96 / 25.4, false, previewPages);
     displayPreview(previewCanvases, true);
@@ -1821,6 +1841,7 @@ async function triggerPreview() {
     $('previewInfo').textContent = `활성 ${active.length}페이지 · ${summary} · ${pw}×${ph}mm ${landscape ? '가로' : '세로'}`;
     $('previewPages').textContent = `총 ${previewCanvases.length}페이지`;
     showStatus(`미리보기 완료 (${previewCanvases.length}페이지)`, 'success');
+    updateBookletPadInfo();
     $('downloadBtn').disabled = false;
     setTimeout(hideStatus, 2000);
   } catch(e) { showStatus('오류: ' + e.message, 'error'); }
@@ -2008,12 +2029,14 @@ document.querySelectorAll('.nup-btn').forEach(btn => {
     nup = parseInt(btn.dataset.nup);
     const bookletRow = document.getElementById('bookletRow');
     if (bookletRow) {
-      bookletRow.style.display = (nup === 4 || nup === 8) ? '' : 'none';
-      if (nup !== 4 && nup !== 8) {
+      const supportsBooklet = nup in BOOKLET_STRIPS;
+      bookletRow.style.display = supportsBooklet ? '' : 'none';
+      if (!supportsBooklet) {
         const bc = document.getElementById('bookletCheck');
         if (bc) bc.checked = false;
       }
     }
+    updateBookletPadInfo();
     schedulePreview(300);
   });
 });
@@ -2156,7 +2179,7 @@ $('pnExcludeFirst').addEventListener('change', () => { pnExcludeFirst = $('pnExc
 $('pnMarginMm').addEventListener('input', () => { pnMarginMm = parseFloat($('pnMarginMm').value) || 5; schedulePreview(500); });
 $('pnApplyTo').addEventListener('change', () => { pnApplyTo = $('pnApplyTo').value; schedulePreview(300); });
 $('facingPages').addEventListener('change', () => { facingPages = $('facingPages').checked; schedulePreview(300); });
-document.getElementById('bookletCheck')?.addEventListener('change', () => schedulePreview());
+document.getElementById('bookletCheck')?.addEventListener('change', () => { updateBookletPadInfo(); schedulePreview(); });
 
 // Reset
 $('resetBtn').addEventListener('click', () => {

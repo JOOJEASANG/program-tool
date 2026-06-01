@@ -27,6 +27,10 @@ NUP_LAYOUT: dict[int, tuple[int, int]] = {
     9: (3, 3),
 }
 
+# Booklet imposition: always 2 cols (left/right pairs), n_strips rows.
+# Supports 2, 4, 6, 8-up. pad_unit = 2*2 = 4 per strip (always).
+BOOKLET_STRIPS: dict[int, int] = {2: 1, 4: 2, 6: 3, 8: 4}
+
 HF_SIDE_MARGIN_PT = 8
 PN_MARGIN_PT = 8
 
@@ -362,22 +366,18 @@ def _apply_page_numbers(page: fitz.Page, settings: PageNumberSettings,
 def _booklet_reorder(page_infos: list, nup: int, is_landscape: bool = False) -> list:
     """
     Reorder pages for saddle-stitch booklet imposition.
-    One independent booklet per row of the N-up grid.
-    For nup=4 (2×2): 2 horizontal-strip booklets per A4.
-    For nup=8 (2×4): 4 horizontal-strip booklets per A4.
-    After printing double-sided, cut each A4 into horizontal strips,
-    fold each strip along vertical center → correct reading order.
+    Always uses 2-column left/right pairing (cols fixed at 2).
+    n_booklets = BOOKLET_STRIPS[nup] (number of horizontal strips per page).
+    pad_unit = 4 always (2 cols × 2 sides).
+    Supports nup in {2, 4, 6, 8}.
+    After printing double-sided, cut into strips, fold → correct reading order.
     """
-    cols, rows = NUP_LAYOUT.get(nup, (1, 1))
-    if is_landscape and cols != rows:
-        cols, rows = rows, cols
-    if cols < 2:
+    n_booklets = BOOKLET_STRIPS.get(nup)
+    if n_booklets is None:
         return list(page_infos)
-
-    n_booklets = rows
     n = len(page_infos)
     per_booklet = math.ceil(n / n_booklets)
-    pad_unit = cols * 2  # = 4 for cols=2
+    pad_unit = 4  # 2 cols × 2 sides
     padded_per = math.ceil(per_booklet / pad_unit) * pad_unit
 
     blank = PageInfo(file_index=0, page_index=0, page_type="blank")
@@ -426,7 +426,7 @@ def process_pdf(
 
     active_pages = [p for p in request.pages if not p.excluded]
     groups = _group_by_nup(active_pages, request.nup_default)
-    if getattr(request, 'booklet', False) and request.nup_default in (4, 8):
+    if getattr(request, 'booklet', False) and request.nup_default in BOOKLET_STRIPS:
         is_landscape = paper_w_pt > paper_h_pt
         active_pages = _booklet_reorder(active_pages, int(request.nup_default), is_landscape)
         groups = _group_by_nup(active_pages, request.nup_default)
