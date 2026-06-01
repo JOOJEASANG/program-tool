@@ -17,6 +17,10 @@
     .options-row{display:flex;align-items:center;gap:16px;flex-wrap:wrap;background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:14px 18px;margin-bottom:20px}.opt-label{font-size:13px;font-weight:800;color:#334155}.run-btn{margin-left:auto;background:#12396d;color:#fff;border:none;border-radius:10px;padding:10px 22px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:8px}.run-btn:hover{background:#0f2f5c}.run-btn:disabled{opacity:.55;cursor:not-allowed}.spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
     #results{display:none}.results-header{display:flex;align-items:center;gap:16px;background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:18px 22px;margin-bottom:16px}.score-ring{width:72px;height:72px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:22px;font-weight:900}.score-ring.green{background:#dcfce7;color:var(--pass)}.score-ring.yellow{background:#fef9c3;color:var(--warn)}.score-ring.red{background:#fee2e2;color:var(--fail)}.results-meta{flex:1}.results-filename{font-size:16px;font-weight:800}.results-pages,.results-summary{font-size:13px;color:#64748b;margin-top:5px}.checks-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;margin-bottom:20px}.check-card{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:16px 18px;display:flex;gap:12px}.check-badge{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;margin-top:1px}.check-badge.pass{background:#dcfce7}.check-badge.warning{background:#fef9c3}.check-badge.fail{background:#fee2e2}.check-label{font-size:13px;font-weight:800;margin-bottom:4px}.check-detail{font-size:12px;color:#64748b;line-height:1.5}.check-pages{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}.page-tag{background:#f1f5f9;color:#64748b;font-size:11px;font-weight:700;padding:2px 7px;border-radius:5px}.error-box{background:#fef2f2;border:1px solid #fecaca;color:#dc2626;border-radius:10px;padding:12px 16px;font-size:13px;margin-bottom:16px;display:none}.error-box.show{display:block}
     .reset-btn{display:block;margin:24px auto 0;background:#f1f5f9;color:#334155;border:1px solid #e2e8f0;border-radius:10px;padding:10px 28px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit}.reset-btn:hover{background:#e2e8f0}
+    .tools-section{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:18px 20px;margin-top:24px}.tools-section-title{font-size:14px;font-weight:900;color:#334155;margin-bottom:12px}.tools-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px}.tool-btn{background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:10px;padding:12px 14px;font-size:13px;font-weight:800;color:#334155;cursor:pointer;font-family:inherit;text-align:left;transition:all .15s}.tool-btn:hover{border-color:#1d9bb2;background:#f0fdff;color:#0f7490}.tool-btn .t-icon{font-size:18px;display:block;margin-bottom:4px}.tool-btn .t-desc{font-size:10px;font-weight:600;color:#94a3b8;display:block;margin-top:2px}
+    .tool-modal-overlay{display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:1000;align-items:center;justify-content:center;padding:20px}.tool-modal-overlay.open{display:flex}.tool-modal-box{background:#fff;border-radius:14px;max-width:460px;width:100%;max-height:90vh;overflow-y:auto;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,.3)}.tool-modal-head{display:flex;align-items:center;gap:10px;margin-bottom:14px}.tool-modal-title{font-size:18px;font-weight:900;margin:0;flex:1}.tool-modal-close{background:none;border:0;font-size:22px;cursor:pointer;color:#64748b}.tool-modal-desc{font-size:13px;color:#64748b;margin-bottom:14px;line-height:1.5}.tool-modal-footer{margin-top:16px;display:flex;gap:8px;justify-content:flex-end}.tool-modal-status{margin-top:10px;font-size:13px;font-weight:700}
+    .tool-field-label{font-size:11px;font-weight:800;color:#374151;display:block;margin-bottom:6px}.tool-field-label+*{margin-bottom:12px}.tool-input{width:100%;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-family:inherit;font-size:13px}.tool-select{width:100%;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-family:inherit;font-size:13px}
+    .tm-run-btn{background:#12396d;color:#fff;border:none;border-radius:8px;padding:9px 20px;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit}.tm-run-btn:disabled{opacity:.55;cursor:not-allowed}.tm-cancel-btn{background:#f1f5f9;color:#334155;border:1px solid #e2e8f0;border-radius:8px;padding:9px 20px;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit}
     .progress-box{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:20px 22px;margin-bottom:16px;display:none}
     .progress-step-row{display:flex;align-items:center;gap:10px;margin-bottom:12px}
     .progress-step-icon{width:28px;height:28px;border-radius:50%;background:#eff6ff;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
@@ -56,6 +60,47 @@
     </div>
     <div class="error-box" id="errorBox"></div>
     <div id="results"><div class="results-header"><div class="score-ring" id="scoreRing">–</div><div class="results-meta"><div class="results-filename" id="resFilename"></div><div class="results-pages" id="resPages"></div><div class="results-summary" id="resSummary"></div></div></div><div class="checks-grid" id="checksGrid"></div><button class="reset-btn" onclick="resetCheck()">↩ 다른 파일 검수하기</button></div>
+
+    <!-- PDF 추가 도구 -->
+    <div class="tools-section">
+      <div class="tools-section-title">🛠️ PDF 추가 도구</div>
+      <div class="tools-grid">
+        <button class="tool-btn" onclick="openTool('from-images')">
+          <span class="t-icon">🖼️</span>이미지 → PDF
+          <span class="t-desc">JPG·PNG를 PDF로 묶기</span>
+        </button>
+        <button class="tool-btn" onclick="openTool('encrypt')">
+          <span class="t-icon">🔒</span>암호 설정
+          <span class="t-desc">AES-256 비밀번호 보호</span>
+        </button>
+        <button class="tool-btn" onclick="openTool('decrypt')">
+          <span class="t-icon">🔓</span>암호 해제
+          <span class="t-desc">비밀번호 보호 제거</span>
+        </button>
+        <button class="tool-btn" onclick="openTool('ocr')">
+          <span class="t-icon">🔍</span>OCR 텍스트 인식
+          <span class="t-desc">스캔 PDF에 텍스트 레이어 추가</span>
+        </button>
+      </div>
+      <div style="font-size:10px;color:#94a3b8;margin-top:10px;">※ 파일 선택 → 옵션 → 결과 PDF 자동 다운로드</div>
+    </div>
+  </div>
+
+  <!-- Tool Modal -->
+  <div id="toolModalOverlay" class="tool-modal-overlay" onclick="if(event.target===this)closeTool()">
+    <div class="tool-modal-box">
+      <div class="tool-modal-head">
+        <h2 id="toolModalTitle" class="tool-modal-title">도구</h2>
+        <button class="tool-modal-close" onclick="closeTool()">×</button>
+      </div>
+      <div id="toolModalDesc" class="tool-modal-desc"></div>
+      <div id="toolModalBody"></div>
+      <div class="tool-modal-footer">
+        <button class="tm-cancel-btn" onclick="closeTool()">취소</button>
+        <button id="toolRunBtn" class="tm-run-btn" onclick="runTool()">실행</button>
+      </div>
+      <div id="toolStatus" class="tool-modal-status"></div>
+    </div>
   </div>
   <script src="../js/sw-register.js" defer></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -139,6 +184,114 @@
       }finally{setRunning(false);}
     }
     function esc(v){return String(v??'').replace(/[<>&"']/g,ch=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;'}[ch]))}
+    // ── PDF 추가 도구 ────────────────────────────────────────────────────
+    const TOOL_DEFS = {
+      'from-images': {
+        title: '🖼️ 이미지 → PDF',
+        desc: 'JPG, PNG 등 이미지 여러 장을 PDF 한 권으로 묶습니다.',
+        body: `
+          <label class="tool-field-label">이미지 파일 (여러 장 선택)</label>
+          <input type="file" id="tm-files" accept="image/*" multiple class="tool-input" style="margin-bottom:12px;">
+          <label class="tool-field-label">페이지 크기</label>
+          <select id="tm-size" class="tool-select">
+            <option value="fit">이미지 크기 그대로</option>
+            <option value="a4">A4로 통일 (가운데 정렬)</option>
+          </select>`,
+        run: async () => {
+          const files = Array.from(document.getElementById('tm-files').files);
+          if (!files.length) throw new Error('이미지를 선택하세요.');
+          return apiPdfTool('from-images', files, { size: document.getElementById('tm-size').value });
+        },
+      },
+      'encrypt': {
+        title: '🔒 PDF 암호 설정',
+        desc: '비밀번호로 PDF를 보호합니다 (AES-256). 비밀번호는 안전하게 보관하세요.',
+        body: `
+          <label class="tool-field-label">PDF 파일</label>
+          <input type="file" id="tm-file" accept=".pdf" class="tool-input" style="margin-bottom:12px;">
+          <label class="tool-field-label">새 비밀번호</label>
+          <input type="password" id="tm-pw" placeholder="32자 이내" maxlength="32" class="tool-input">`,
+        run: async () => {
+          const f = document.getElementById('tm-file').files[0];
+          if (!f) throw new Error('PDF 파일을 선택하세요.');
+          const pw = document.getElementById('tm-pw').value.trim();
+          if (!pw) throw new Error('비밀번호를 입력하세요.');
+          return apiPdfTool('encrypt', f, { password: pw });
+        },
+      },
+      'decrypt': {
+        title: '🔓 PDF 암호 해제',
+        desc: '비밀번호 보호된 PDF에서 암호를 제거합니다. 정확한 비밀번호가 필요합니다.',
+        body: `
+          <label class="tool-field-label">PDF 파일</label>
+          <input type="file" id="tm-file" accept=".pdf" class="tool-input" style="margin-bottom:12px;">
+          <label class="tool-field-label">현재 비밀번호</label>
+          <input type="password" id="tm-pw" class="tool-input">`,
+        run: async () => {
+          const f = document.getElementById('tm-file').files[0];
+          if (!f) throw new Error('PDF 파일을 선택하세요.');
+          return apiPdfTool('decrypt', f, { password: document.getElementById('tm-pw').value });
+        },
+      },
+      'ocr': {
+        title: '🔍 OCR 텍스트 인식',
+        desc: '스캔 PDF에 검색 가능한 텍스트 레이어를 추가합니다 (Google Gemini · 30페이지 이내).',
+        body: `
+          <label class="tool-field-label">PDF 파일</label>
+          <input type="file" id="tm-file" accept=".pdf" class="tool-input">
+          <div style="font-size:11px;color:#92400e;margin-top:10px;background:#fef3c7;padding:8px 10px;border-radius:8px;">⏱ 페이지당 약 3~5초 소요됩니다. AI 사용량이 발생합니다.</div>`,
+        run: async () => {
+          const f = document.getElementById('tm-file').files[0];
+          if (!f) throw new Error('PDF 파일을 선택하세요.');
+          return apiPdfTool('ocr', f);
+        },
+      },
+    };
+
+    let currentTool = null;
+    function openTool(id) {
+      const def = TOOL_DEFS[id];
+      if (!def) return;
+      currentTool = id;
+      document.getElementById('toolModalTitle').textContent = def.title;
+      document.getElementById('toolModalDesc').textContent = def.desc;
+      document.getElementById('toolModalBody').innerHTML = def.body;
+      document.getElementById('toolStatus').textContent = '';
+      document.getElementById('toolStatus').style.color = '';
+      document.getElementById('toolRunBtn').disabled = false;
+      document.getElementById('toolModalOverlay').classList.add('open');
+    }
+    function closeTool() {
+      document.getElementById('toolModalOverlay').classList.remove('open');
+      currentTool = null;
+    }
+    async function runTool() {
+      if (!currentTool) return;
+      const def = TOOL_DEFS[currentTool];
+      const status = document.getElementById('toolStatus');
+      const runBtn = document.getElementById('toolRunBtn');
+      status.style.color = '#2563eb';
+      status.textContent = '처리 중...';
+      runBtn.disabled = true;
+      try {
+        const { blob } = await def.run();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${currentTool}_${new Date().toISOString().slice(0,10)}.pdf`;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        status.style.color = '#15803d';
+        status.textContent = '✓ 완료! 다운로드되었습니다.';
+        setTimeout(closeTool, 1500);
+      } catch (e) {
+        status.style.color = '#dc2626';
+        status.textContent = '❌ ' + e.message;
+        runBtn.disabled = false;
+      }
+    }
+    // ────────────────────────────────────────────────────────────────────
+
     function renderResults(report){const checks=Array.isArray(report.checks)?report.checks:[];const failCount=checks.filter(c=>c.severity==='fail').length;const warnCount=checks.filter(c=>c.severity==='warning').length;const passCount=checks.filter(c=>c.severity==='pass').length;const ring=document.getElementById('scoreRing');ring.textContent=report.score;ring.className='score-ring '+(report.score>=80?'green':report.score>=50?'yellow':'red');document.getElementById('resFilename').textContent=report.filename;document.getElementById('resPages').textContent=`총 ${report.page_count}페이지`;document.getElementById('resSummary').textContent=`통과 ${passCount}개 · 경고 ${warnCount}개 · 불량 ${failCount}개`;const grid=document.getElementById('checksGrid');grid.innerHTML='';for(const c of checks){const severity=['pass','warning','fail'].includes(c.severity)?c.severity:'warning';const icon=severity==='pass'?'✅':severity==='warning'?'⚠️':'❌';const refs=Array.isArray(c.page_refs)?c.page_refs:[];const pageTagsHtml=refs.length?`<div class="check-pages">${refs.slice(0,8).map(p=>`<span class="page-tag">${Number(p)}p</span>`).join('')}${refs.length>8?`<span class="page-tag">+${refs.length-8}</span>`:''}</div>`:'';grid.insertAdjacentHTML('beforeend',`<div class="check-card"><div class="check-badge ${severity}">${icon}</div><div><div class="check-label">${esc(c.label)}</div><div class="check-detail">${esc(c.detail)}</div>${pageTagsHtml}</div></div>`)}document.getElementById('results').style.display='block'}
   </script>
 </body>
