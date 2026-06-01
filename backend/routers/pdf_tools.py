@@ -255,4 +255,28 @@ def remove_blank(uid):
 @pdf_tools_bp.route("/ocr", methods=["POST"])
 @require_auth
 def ocr(uid):
-    return jsonify({"detail": "OCR 기능은 AI 기능 제거 정책에 따라 비활성화되었습니다."}), 410
+    try:
+        pdf_data = _read_pdf()
+    except ValueError as e:
+        return jsonify({"detail": str(e)}), 400
+    try:
+        import pytesseract
+        from PIL import Image
+
+        src = fitz.open(stream=pdf_data, filetype="pdf")
+        out = fitz.open()
+        for page_num in range(len(src)):
+            page = src[page_num]
+            pix = page.get_pixmap(matrix=fitz.Matrix(300 / 72, 300 / 72))
+            img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+            pdf_bytes = pytesseract.image_to_pdf_or_hocr(img, extension="pdf", lang="kor+eng")
+            ocr_page = fitz.open(stream=pdf_bytes, filetype="pdf")
+            out.insert_pdf(ocr_page)
+            ocr_page.close()
+        src.close()
+        buf = io.BytesIO()
+        out.save(buf)
+        out.close()
+        return _pdf_response(buf.getvalue(), "ocr_output.pdf")
+    except Exception as e:
+        return jsonify({"detail": f"OCR 실패: {e}"}), 500

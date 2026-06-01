@@ -78,6 +78,10 @@
           <span class="t-icon">🔓</span>암호 해제
           <span class="t-desc">비밀번호 보호 제거</span>
         </button>
+        <button class="tool-btn" onclick="openTool('ocr')">
+          <span class="t-icon">🔍</span>OCR 텍스트 인식
+          <span class="t-desc">스캔 PDF → 검색 가능 PDF</span>
+        </button>
       </div>
       <div style="font-size:10px;color:#94a3b8;margin-top:10px;">※ 파일 선택 → 옵션 → 결과 PDF 자동 다운로드</div>
     </div>
@@ -231,6 +235,17 @@
           const f = document.getElementById('tm-file').files[0];
           if (!f) throw new Error('PDF 파일을 선택하세요.');
           return apiPdfTool('decrypt', f, { password: document.getElementById('tm-pw').value });
+        },
+      },
+      'ocr': {
+        title: '🔍 OCR 텍스트 인식',
+        desc: '스캔·이미지 기반 PDF에 검색 가능한 텍스트 레이어를 추가합니다 (한국어·영어 지원).',
+        body: dzHtml('tm-file','.pdf',false,'📄','PDF를 드래그하거나 클릭') + `
+          <div style="font-size:11px;color:#475569;margin-top:2px;background:#f1f5f9;padding:8px 10px;border-radius:8px;">⏱ 페이지당 약 2~5초 소요됩니다. 결과물은 텍스트 검색·복사가 가능한 PDF입니다.</div>`,
+        run: async () => {
+          const f = document.getElementById('tm-file').files[0];
+          if (!f) throw new Error('PDF 파일을 선택하세요.');
+          return apiPdfTool('ocr', f);
         },
       },
     };
