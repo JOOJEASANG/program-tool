@@ -1657,9 +1657,43 @@ function applyDocEdits(canvas, outputIdx, totalPages, mm2px) {
   }
 }
 
+// ── Booklet saddle-stitch reorder (mirrors backend _booklet_reorder) ──
+function bookletReorderPreview(pages, nupVal) {
+  const NUP_LAYOUT = { 4: [2, 2], 8: [2, 4] };
+  let [cols, rows] = NUP_LAYOUT[nupVal] || [1, 1];
+  if (landscape && cols !== rows) { [cols, rows] = [rows, cols]; }
+  if (cols < 2) return [...pages];
+  const n_booklets = rows;
+  const n = pages.length;
+  const per_booklet = Math.ceil(n / n_booklets);
+  const pad_unit = cols * 2;
+  const padded_per = Math.ceil(per_booklet / pad_unit) * pad_unit;
+  const blank = { pageType: 'blank', _bookletBlank: true };
+  const sections = [];
+  for (let b = 0; b < n_booklets; b++) {
+    const start = b * per_booklet;
+    const end = Math.min(start + per_booklet, n);
+    const sec = pages.slice(start, end);
+    while (sec.length < padded_per) sec.push(blank);
+    sections.push(sec);
+  }
+  const n_output = padded_per / 2;
+  const result = [];
+  for (let op = 0; op < n_output; op++) {
+    for (let b = 0; b < n_booklets; b++) {
+      const N_b = padded_per;
+      const left_idx  = op % 2 === 0 ? N_b - 1 - op : op;
+      const right_idx = op % 2 === 0 ? op : N_b - 1 - op;
+      result.push(sections[b][left_idx]);
+      result.push(sections[b][right_idx]);
+    }
+  }
+  return result;
+}
+
 // ── Build all output pages ────────────────────────────────────────────
-async function buildAllPages(mm2px, useHi) {
-  const active = parsedPages.filter(p => !p.excluded);
+async function buildAllPages(mm2px, useHi, overridePages = null) {
+  const active = overridePages || parsedPages.filter(p => !p.excluded);
   const groups = groupByNup(active);
   const out = [];
   for (const grp of groups) {
@@ -1774,7 +1808,10 @@ async function triggerPreview() {
   $('previewBtn').disabled = true; $('downloadBtn').disabled = true;
   await new Promise(r => setTimeout(r, 10));
   try {
-    previewCanvases = await buildAllPages(96 / 25.4, false);
+    const active = parsedPages.filter(p => !p.excluded);
+    const useBooklet = (document.getElementById('bookletCheck')?.checked) && (nup === 4 || nup === 8);
+    const previewPages = useBooklet ? bookletReorderPreview(active, nup) : null;
+    previewCanvases = await buildAllPages(96 / 25.4, false, previewPages);
     displayPreview(previewCanvases, true);
     const active = parsedPages.filter(p => !p.excluded);
     const groups = groupByNup(active);
