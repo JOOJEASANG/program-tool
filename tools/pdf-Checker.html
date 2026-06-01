@@ -21,6 +21,7 @@
     .tool-modal-overlay{display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:1000;align-items:center;justify-content:center;padding:20px}.tool-modal-overlay.open{display:flex}.tool-modal-box{background:#fff;border-radius:14px;max-width:460px;width:100%;max-height:90vh;overflow-y:auto;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,.3)}.tool-modal-head{display:flex;align-items:center;gap:10px;margin-bottom:14px}.tool-modal-title{font-size:18px;font-weight:900;margin:0;flex:1}.tool-modal-close{background:none;border:0;font-size:22px;cursor:pointer;color:#64748b}.tool-modal-desc{font-size:13px;color:#64748b;margin-bottom:14px;line-height:1.5}.tool-modal-footer{margin-top:16px;display:flex;gap:8px;justify-content:flex-end}.tool-modal-status{margin-top:10px;font-size:13px;font-weight:700}
     .tool-field-label{font-size:11px;font-weight:800;color:#374151;display:block;margin-bottom:6px}.tool-field-label+*{margin-bottom:12px}.tool-input{width:100%;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-family:inherit;font-size:13px}.tool-select{width:100%;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-family:inherit;font-size:13px}
     .tm-run-btn{background:#12396d;color:#fff;border:none;border-radius:8px;padding:9px 20px;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit}.tm-run-btn:disabled{opacity:.55;cursor:not-allowed}.tm-cancel-btn{background:#f1f5f9;color:#334155;border:1px solid #e2e8f0;border-radius:8px;padding:9px 20px;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit}
+    .tool-dz{border:2px dashed #cbd5e1;border-radius:12px;background:#f8fafc;padding:18px 16px;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:12px;user-select:none}.tool-dz:hover,.tool-dz.dragover{border-color:#1d9bb2;background:rgba(29,155,178,.05)}.tool-dz.has-file{border-style:solid;border-color:#1d9bb2;background:rgba(29,155,178,.06)}.tool-dz .dz-icon{font-size:24px;margin-bottom:6px}.tool-dz .dz-label{font-size:12px;font-weight:700;color:#64748b}.tool-dz.has-file .dz-label{color:#0f7490}
     .progress-box{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:20px 22px;margin-bottom:16px;display:none}
     .progress-step-row{display:flex;align-items:center;gap:10px;margin-bottom:12px}
     .progress-step-icon{width:28px;height:28px;border-radius:50%;background:#eff6ff;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
@@ -76,10 +77,6 @@
         <button class="tool-btn" onclick="openTool('decrypt')">
           <span class="t-icon">🔓</span>암호 해제
           <span class="t-desc">비밀번호 보호 제거</span>
-        </button>
-        <button class="tool-btn" onclick="openTool('ocr')">
-          <span class="t-icon">🔍</span>OCR 텍스트 인식
-          <span class="t-desc">스캔 PDF에 텍스트 레이어 추가</span>
         </button>
       </div>
       <div style="font-size:10px;color:#94a3b8;margin-top:10px;">※ 파일 선택 → 옵션 → 결과 PDF 자동 다운로드</div>
@@ -185,14 +182,21 @@
     }
     function esc(v){return String(v??'').replace(/[<>&"']/g,ch=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;'}[ch]))}
     // ── PDF 추가 도구 ────────────────────────────────────────────────────
+    function dzHtml(inputId, accept, multiple, icon, label) {
+      const mul = multiple ? ' multiple' : '';
+      return `<div class="tool-dz" id="dz-${inputId}">
+        <div class="dz-icon">${icon}</div>
+        <div class="dz-label">${label}</div>
+        <input type="file" id="${inputId}" accept="${accept}"${mul} style="display:none;">
+      </div>`;
+    }
+
     const TOOL_DEFS = {
       'from-images': {
         title: '🖼️ 이미지 → PDF',
         desc: 'JPG, PNG 등 이미지 여러 장을 PDF 한 권으로 묶습니다.',
-        body: `
-          <label class="tool-field-label">이미지 파일 (여러 장 선택)</label>
-          <input type="file" id="tm-files" accept="image/*" multiple class="tool-input" style="margin-bottom:12px;">
-          <label class="tool-field-label">페이지 크기</label>
+        body: dzHtml('tm-files','image/*',true,'🖼️','이미지를 드래그하거나 클릭 (여러 장 가능)') + `
+          <label class="tool-field-label" style="margin-top:4px;">페이지 크기</label>
           <select id="tm-size" class="tool-select">
             <option value="fit">이미지 크기 그대로</option>
             <option value="a4">A4로 통일 (가운데 정렬)</option>
@@ -206,9 +210,7 @@
       'encrypt': {
         title: '🔒 PDF 암호 설정',
         desc: '비밀번호로 PDF를 보호합니다 (AES-256). 비밀번호는 안전하게 보관하세요.',
-        body: `
-          <label class="tool-field-label">PDF 파일</label>
-          <input type="file" id="tm-file" accept=".pdf" class="tool-input" style="margin-bottom:12px;">
+        body: dzHtml('tm-file','.pdf',false,'📄','PDF를 드래그하거나 클릭') + `
           <label class="tool-field-label">새 비밀번호</label>
           <input type="password" id="tm-pw" placeholder="32자 이내" maxlength="32" class="tool-input">`,
         run: async () => {
@@ -222,9 +224,7 @@
       'decrypt': {
         title: '🔓 PDF 암호 해제',
         desc: '비밀번호 보호된 PDF에서 암호를 제거합니다. 정확한 비밀번호가 필요합니다.',
-        body: `
-          <label class="tool-field-label">PDF 파일</label>
-          <input type="file" id="tm-file" accept=".pdf" class="tool-input" style="margin-bottom:12px;">
+        body: dzHtml('tm-file','.pdf',false,'📄','PDF를 드래그하거나 클릭') + `
           <label class="tool-field-label">현재 비밀번호</label>
           <input type="password" id="tm-pw" class="tool-input">`,
         run: async () => {
@@ -233,20 +233,32 @@
           return apiPdfTool('decrypt', f, { password: document.getElementById('tm-pw').value });
         },
       },
-      'ocr': {
-        title: '🔍 OCR 텍스트 인식',
-        desc: '스캔 PDF에 검색 가능한 텍스트 레이어를 추가합니다 (Google Gemini · 30페이지 이내).',
-        body: `
-          <label class="tool-field-label">PDF 파일</label>
-          <input type="file" id="tm-file" accept=".pdf" class="tool-input">
-          <div style="font-size:11px;color:#92400e;margin-top:10px;background:#fef3c7;padding:8px 10px;border-radius:8px;">⏱ 페이지당 약 3~5초 소요됩니다. AI 사용량이 발생합니다.</div>`,
-        run: async () => {
-          const f = document.getElementById('tm-file').files[0];
-          if (!f) throw new Error('PDF 파일을 선택하세요.');
-          return apiPdfTool('ocr', f);
-        },
-      },
     };
+
+    function initDz() {
+      document.querySelectorAll('#toolModalBody .tool-dz').forEach(zone => {
+        const input = zone.querySelector('input[type="file"]');
+        if (!input) return;
+        zone.addEventListener('click', () => input.click());
+        zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
+        zone.addEventListener('dragleave', e => { if (!zone.contains(e.relatedTarget)) zone.classList.remove('dragover'); });
+        zone.addEventListener('drop', e => {
+          e.preventDefault(); zone.classList.remove('dragover');
+          const dt = new DataTransfer();
+          Array.from(e.dataTransfer.files).forEach(f => dt.items.add(f));
+          input.files = dt.files;
+          updateDzLabel(zone, input);
+        });
+        input.addEventListener('change', () => updateDzLabel(zone, input));
+      });
+    }
+    function updateDzLabel(zone, input) {
+      const lbl = zone.querySelector('.dz-label');
+      if (!lbl) return;
+      const n = input.files.length;
+      lbl.textContent = n === 1 ? input.files[0].name : n > 1 ? `${n}개 파일 선택됨` : lbl.textContent;
+      if (n) zone.classList.add('has-file');
+    }
 
     let currentTool = null;
     function openTool(id) {
@@ -260,6 +272,7 @@
       document.getElementById('toolStatus').style.color = '';
       document.getElementById('toolRunBtn').disabled = false;
       document.getElementById('toolModalOverlay').classList.add('open');
+      initDz();
     }
     function closeTool() {
       document.getElementById('toolModalOverlay').classList.remove('open');
