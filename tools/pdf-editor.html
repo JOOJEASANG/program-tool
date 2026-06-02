@@ -1028,7 +1028,7 @@ async function handleFile(file) {
     $('previewBtn').disabled = false;
     showStatus(`"${shortName}" ${total}페이지 로드 완료`, 'success');
     setTimeout(hideStatus, 2500);
-    triggerPreview();
+    setTimeout(triggerPreview, 80);
     // Switch mode to 연속 after first upload
     if (isNew) {
       document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active','break-active'));
@@ -2015,13 +2015,13 @@ document.querySelectorAll('.nup-btn').forEach(btn => {
       }
     }
     updateBookletPadInfo();
-    schedulePreview(300);
+    if (parsedPages.length) setTimeout(triggerPreview, 50);
   });
 });
-$('orderLR').addEventListener('click', () => { orderLR=true; $('orderLR').classList.add('active'); $('orderTB').classList.remove('active'); schedulePreview(300); });
-$('orderTB').addEventListener('click', () => { orderLR=false; $('orderTB').classList.add('active'); $('orderLR').classList.remove('active'); schedulePreview(300); });
-$('orientPort').addEventListener('click', () => { landscape=false; $('orientPort').classList.add('active'); $('orientLand').classList.remove('active'); updateNupBadges(); schedulePreview(300); });
-$('orientLand').addEventListener('click', () => { landscape=true; $('orientLand').classList.add('active'); $('orientPort').classList.remove('active'); updateNupBadges(); schedulePreview(300); });
+$('orderLR').addEventListener('click', () => { orderLR=true; $('orderLR').classList.add('active'); $('orderTB').classList.remove('active'); schedulePreview(200); });
+$('orderTB').addEventListener('click', () => { orderLR=false; $('orderTB').classList.add('active'); $('orderLR').classList.remove('active'); schedulePreview(200); });
+$('orientPort').addEventListener('click', () => { landscape=false; $('orientPort').classList.add('active'); $('orientLand').classList.remove('active'); updateNupBadges(); schedulePreview(200); });
+$('orientLand').addEventListener('click', () => { landscape=true; $('orientLand').classList.add('active'); $('orientPort').classList.remove('active'); updateNupBadges(); schedulePreview(200); });
 $('showBorder').addEventListener('change', () => { showBorder = $('showBorder').checked; schedulePreview(300); });
 $('paperSize').addEventListener('change', () => {
   $('customSizeRow').style.display = $('paperSize').value === 'custom' ? 'grid' : 'none';
@@ -2178,6 +2178,25 @@ $('resetBtn').addEventListener('click', () => {
 
 // Init
 updateNupBadges();
+
+// ── Auto-preview: watch thumbArea for thumbnail changes ───────────────
+(function () {
+  let _obsTmr = null;
+  let _obsLastCount = 0;
+  const area = document.getElementById('thumbArea');
+  if (!area) return;
+  new MutationObserver(() => {
+    const count = area.children.length;
+    if (count === _obsLastCount) return;
+    _obsLastCount = count;
+    clearTimeout(_obsTmr);
+    _obsTmr = setTimeout(() => {
+      if (!parsedPages.length) return;
+      if ($('previewBtn') && $('previewBtn').disabled) return; // already running
+      if (!previewCanvases.length) triggerPreview();           // first preview after upload
+    }, 700);
+  }).observe(area, { childList: true });
+})();
 
 // ── Preview per-row & zoom controls ──────────────────────────────────
 $('perRowSelect').addEventListener('change', () => {
