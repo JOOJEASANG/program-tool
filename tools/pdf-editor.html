@@ -966,8 +966,24 @@ $('uploadZone').addEventListener('drop', e => {
   const f = e.dataTransfer.files[0]; if (f) handleFile(f);
 });
 
+// Allow dropping PDF anywhere on the page (main preview area or sidebar)
+document.addEventListener('dragover', e => {
+  if (e.dataTransfer && e.dataTransfer.types && e.dataTransfer.types.includes('Files')) e.preventDefault();
+});
+document.addEventListener('drop', e => {
+  if (!e.dataTransfer || !e.dataTransfer.files.length) return;
+  const f = e.dataTransfer.files[0];
+  const isPdf = (f.type || '').includes('pdf') || /\.pdf$/i.test(f.name || '');
+  if (!isPdf) return;
+  if (!e.target.closest('#uploadZone')) {
+    e.preventDefault();
+    handleFile(f);
+  }
+});
+
 async function handleFile(file) {
-  if (!file || file.type !== 'application/pdf') {
+  const isPdf = file && ((file.type || '').includes('pdf') || /\.pdf$/i.test(file.name || ''));
+  if (!isPdf) {
     showStatus('PDF 파일만 업로드할 수 있습니다.', 'error'); return;
   }
   const isNew = _uploadMode === 'new';
