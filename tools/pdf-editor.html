@@ -2179,23 +2179,23 @@ $('resetBtn').addEventListener('click', () => {
 // Init
 updateNupBadges();
 
-// ── Auto-preview: watch thumbArea for thumbnail changes ───────────────
+// ── Auto-preview watchdog ─────────────────────────────────────────────
+// Reliably generates the preview after an upload, independent of any
+// external helper module. Polls: if pages exist but no preview yet and the
+// preview isn't already being built, trigger it once per page set.
 (function () {
-  let _obsTmr = null;
-  let _obsLastCount = 0;
-  const area = document.getElementById('thumbArea');
-  if (!area) return;
-  new MutationObserver(() => {
-    const count = area.children.length;
-    if (count === _obsLastCount) return;
-    _obsLastCount = count;
-    clearTimeout(_obsTmr);
-    _obsTmr = setTimeout(() => {
-      if (!parsedPages.length) return;
-      if ($('previewBtn') && $('previewBtn').disabled) return; // already running
-      if (!previewCanvases.length) triggerPreview();           // first preview after upload
-    }, 700);
-  }).observe(area, { childList: true });
+  let triedForCount = -1;       // last parsedPages.length we auto-triggered for
+  let running = false;
+  setInterval(async () => {
+    if (running) return;
+    if (!parsedPages.length) { triedForCount = -1; return; }
+    if (previewCanvases.length) { triedForCount = parsedPages.length; return; } // already shown
+    if (triedForCount === parsedPages.length) return;  // already attempted this set
+    if ($('previewBtn') && $('previewBtn').disabled) return; // build in progress
+    triedForCount = parsedPages.length;
+    running = true;
+    try { await triggerPreview(); } catch (_) {} finally { running = false; }
+  }, 500);
 })();
 
 // ── Preview per-row & zoom controls ──────────────────────────────────

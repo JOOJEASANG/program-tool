@@ -1,8 +1,8 @@
 // PDF editor preview row default helper.
-// Keeps the preview toolbar compact and sets the default pages-per-row to 6.
+// Keeps the preview toolbar compact and sets the default pages-per-row to 2.
 (function () {
-  if (window.__pdfEditorPreviewRowDefaultV1) return;
-  window.__pdfEditorPreviewRowDefaultV1 = true;
+  if (window.__pdfEditorPreviewRowDefaultV2) return;
+  window.__pdfEditorPreviewRowDefaultV2 = true;
 
   function applyToolbarStyle() {
     const toolbar = document.querySelector('.preview-zoom');
@@ -31,9 +31,9 @@
 
   function setDefaultPerRow() {
     const select = document.getElementById('perRowSelect');
-    if (!select || select.dataset.defaultSixApplied === '1') return;
-    select.value = '6';
-    select.dataset.defaultSixApplied = '1';
+    if (!select || select.dataset.defaultRowApplied === '1') return;
+    select.value = '2';
+    select.dataset.defaultRowApplied = '1';
     select.dispatchEvent(new Event('change', { bubbles: true }));
   }
 
