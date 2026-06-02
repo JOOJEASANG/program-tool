@@ -1702,8 +1702,11 @@ async function buildAllPages(mm2px, useHi, overridePages = null) {
       await new Promise(r => setTimeout(r, 0));
     }
   }
-  // Apply doc edits
-  out.forEach((canvas, idx) => applyDocEdits(canvas, idx, out.length, mm2px));
+  // Apply doc edits (a single page failing must not wipe the whole preview)
+  out.forEach((canvas, idx) => {
+    try { applyDocEdits(canvas, idx, out.length, mm2px); }
+    catch (e) { console.warn('[preview] applyDocEdits failed on page', idx, e); }
+  });
   return out;
 }
 
@@ -1800,17 +1803,50 @@ function makeVerticalInsertZone(zoneIdx) {
   return zone;
 }
 
+function showPreviewError(stage, err) {
+  const msg = (err && (err.stack || err.message)) ? (err.message || String(err)) : String(err);
+  console.error('[preview] failed at', stage, err);
+  const scroll = $('previewScroll');
+  if (scroll) {
+    scroll.innerHTML =
+      '<div style="margin:auto;max-width:420px;padding:20px;text-align:center;color:#991b1b;">' +
+      '<div style="font-size:32px;">⚠️</div>' +
+      '<div style="font-weight:900;font-size:14px;margin:8px 0;">미리보기 생성 실패</div>' +
+      '<div style="font-size:12px;color:#374151;">단계: <b>' + stage + '</b></div>' +
+      '<div style="font-size:12px;color:#374151;margin-top:6px;word-break:break-word;">' + (msg || '(메시지 없음)') + '</div>' +
+      '</div>';
+  }
+  showStatus('미리보기 오류(' + stage + '): ' + (msg || ''), 'error');
+}
+
 async function triggerPreview() {
   if (!parsedPages.length) return;
   showStatus('미리보기 생성 중...');
   $('previewBtn').disabled = true; $('downloadBtn').disabled = true;
   await new Promise(r => setTimeout(r, 10));
+  let stage = 'init';
   try {
+    stage = 'filter';
     const active = parsedPages.filter(p => !p.excluded);
+    if (!active.length) {
+      $('previewScroll').innerHTML = '<div class="empty-state"><div class="icon">🚫</div><p>활성 페이지가 없습니다.<br>제외된 페이지를 다시 포함해 주세요.</p></div>';
+      showStatus('활성 페이지가 없습니다.', 'error');
+      $('previewBtn').disabled = false;
+      return;
+    }
+    stage = 'booklet-reorder';
     const useBooklet = (document.getElementById('bookletCheck')?.checked) && (nup in BOOKLET_STRIPS);
     const previewPages = useBooklet ? bookletReorderPreview(active, nup) : null;
+    stage = 'build-pages';
     previewCanvases = await buildAllPages(96 / 25.4, false, previewPages);
+    if (!previewCanvases || !previewCanvases.length) {
+      showPreviewError('build-pages', new Error('출력 페이지가 0개 생성됨 (활성 ' + active.length + '페이지)'));
+      $('previewBtn').disabled = false;
+      return;
+    }
+    stage = 'display';
     displayPreview(previewCanvases, true);
+    stage = 'labels';
     const groups = groupByNup(active);
     const summary = groups.length > 1
       ? groups.map(g => `${g.n}장×${g.pages.length}`).join(', ')
@@ -1822,7 +1858,9 @@ async function triggerPreview() {
     updateBookletPadInfo();
     $('downloadBtn').disabled = false;
     setTimeout(hideStatus, 2000);
-  } catch(e) { showStatus('오류: ' + e.message, 'error'); }
+  } catch(e) {
+    showPreviewError(stage, e);
+  }
   $('previewBtn').disabled = false;
 }
 
