@@ -280,6 +280,26 @@
       .app { grid-template-columns: 1fr; }
       aside { max-height: none; }
     }
+
+    /* ── Thumbnail context menu ───────────────────────────── */
+    #thumbCtxMenu {
+      position: fixed; z-index: 9999;
+      background: #fff; border: 1px solid #e2e8f0;
+      border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+      padding: 4px 0; min-width: 170px; display: none;
+      font-size: 13px;
+    }
+    #thumbCtxMenu.open { display: block; }
+    .ctx-item {
+      display: flex; align-items: center; gap: 8px;
+      padding: 7px 14px; cursor: pointer; color: #1e293b;
+      white-space: nowrap; user-select: none;
+    }
+    .ctx-item:hover { background: #f1f5f9; }
+    .ctx-item.danger { color: #dc2626; }
+    .ctx-item.danger:hover { background: #fef2f2; }
+    .ctx-sep { height: 1px; background: #e2e8f0; margin: 3px 0; }
+    .ctx-icon { font-size: 15px; width: 18px; text-align: center; }
   </style>
 </head>
 <body>
@@ -1406,6 +1426,10 @@ function renderThumbs() {
       schedulePreview(300);
     });
 
+    wrap.addEventListener('contextmenu', e => {
+      if (window._openThumbCtxMenu) window._openThumbCtxMenu(e, page, i);
+    });
+
     item.addEventListener('dragstart', e => {
       _dragSrcId = page.id;
       e.dataTransfer.effectAllowed = 'move';
@@ -2265,6 +2289,87 @@ $('zoomResetBtn').addEventListener('click', () => {
 });
 
 
+// ── Thumbnail right-click context menu ────────────────────────────────
+(function() {
+  const menu = document.createElement('div');
+  menu.id = 'thumbCtxMenu';
+  document.body.appendChild(menu);
+
+  let _ctxPage = null;
+  let _ctxPageIdx = -1;
+
+  function closeMenu() {
+    menu.classList.remove('open');
+    _ctxPage = null;
+    _ctxPageIdx = -1;
+  }
+
+  document.addEventListener('click', closeMenu);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMenu(); });
+  document.addEventListener('contextmenu', e => {
+    if (!e.target.closest('#thumbCtxMenu')) closeMenu();
+  });
+
+  function item(icon, label, cls, fn) {
+    const el = document.createElement('div');
+    el.className = 'ctx-item' + (cls ? ' ' + cls : '');
+    el.innerHTML = `<span class="ctx-icon">${icon}</span>${label}`;
+    el.addEventListener('click', e => { e.stopPropagation(); closeMenu(); fn(); });
+    return el;
+  }
+
+  function sep() {
+    const el = document.createElement('div');
+    el.className = 'ctx-sep';
+    return el;
+  }
+
+  async function rotateAndRefresh(page, deg) {
+    page.rotation = ((page.rotation || 0) + deg + 360) % 360;
+    if (page.pdfPage) {
+      page.thumbCanvas = await renderPdfPage(page.pdfPage, 0.9, page.rotation);
+      page.hiCanvas = null;
+    }
+    renderThumbs();
+    schedulePreview(300);
+  }
+
+  window._openThumbCtxMenu = async function(e, page, idx) {
+    e.preventDefault();
+    e.stopPropagation();
+    _ctxPage = page;
+    _ctxPageIdx = idx;
+
+    menu.innerHTML = '';
+    menu.appendChild(item('↻', '시계방향 90° 회전',   '', () => rotateAndRefresh(page, 90)));
+    menu.appendChild(item('↺', '시계반대방향 90° 회전', '', () => rotateAndRefresh(page, -90)));
+    menu.appendChild(item('⇅', '180° 회전',           '', () => rotateAndRefresh(page, 180)));
+    menu.appendChild(sep());
+    menu.appendChild(item('⬆', '위에 빈 페이지 삽입', '', () => {
+      parsedPages.splice(idx, 0, makeBlankPage());
+      renderThumbs(); schedulePreview(300);
+    }));
+    menu.appendChild(item('⬇', '아래에 빈 페이지 삽입', '', () => {
+      parsedPages.splice(idx + 1, 0, makeBlankPage());
+      renderThumbs(); schedulePreview(300);
+    }));
+    menu.appendChild(sep());
+    menu.appendChild(item('🗑', '페이지 삭제', 'danger', () => {
+      parsedPages.splice(idx, 1);
+      renderThumbs(); schedulePreview(300);
+    }));
+
+    // Position menu, keep inside viewport
+    menu.classList.add('open');
+    const vw = window.innerWidth, vh = window.innerHeight;
+    const mw = menu.offsetWidth, mh = menu.offsetHeight;
+    let x = e.clientX, y = e.clientY;
+    if (x + mw > vw) x = vw - mw - 6;
+    if (y + mh > vh) y = vh - mh - 6;
+    menu.style.left = x + 'px';
+    menu.style.top  = y + 'px';
+  };
+})();
 </script>
 </body>
 </html>
