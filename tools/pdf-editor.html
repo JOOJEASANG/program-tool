@@ -1096,6 +1096,7 @@ async function loadEditorSession(d, docId) {
     hideStatus();
     showStatus(`"${d.name}" 불러오기 완료!`, 'success');
     setTimeout(hideStatus, 2500);
+    schedulePreview(300);
   } catch(e) {
     showStatus('불러오기 실패: ' + e.message, 'error');
   }
@@ -1365,7 +1366,7 @@ async function handleFile(file) {
     $('previewBtn').disabled = false;
     showStatus(`"${shortName}" ${total}페이지 로드 완료`, 'success');
     setTimeout(hideStatus, 2500);
-    setTimeout(triggerPreview, 80);
+    schedulePreview(100);
     // Switch mode to 연속 after first upload
     if (isNew) {
       document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active','break-active'));
@@ -2187,6 +2188,7 @@ async function triggerPreview() {
     }
     stage = 'display';
     displayPreview(previewCanvases, true);
+    window._markPreviewShown && window._markPreviewShown(parsedPages.length);
     stage = 'labels';
     const groups = groupByNup(active);
     const summary = groups.length > 1
@@ -2560,16 +2562,22 @@ updateNupBadges();
 
 // ── Auto-preview watchdog ─────────────────────────────────────────────
 // Reliably generates the preview after an upload, independent of any
-// external helper module. Polls: if pages exist but no preview yet and the
-// preview isn't already being built, trigger it once per page set.
+// external helper module. Polls: if pages exist but preview is missing or
+// stale, trigger it once per page set.
 (function () {
-  let triedForCount = -1;       // last parsedPages.length we auto-triggered for
+  let triedForCount = -1;       // last parsedPages.length we triggered for
+  let shownForCount = -1;       // last parsedPages.length preview was ACTUALLY built for
   let running = false;
+
+  window._markPreviewShown = function(n) { shownForCount = n; };
+
   setInterval(async () => {
     if (running) return;
-    if (!parsedPages.length) { triedForCount = -1; return; }
-    if (previewCanvases.length) { triedForCount = parsedPages.length; return; } // already shown
-    if (triedForCount === parsedPages.length) return;  // already attempted this set
+    if (!parsedPages.length) { triedForCount = -1; shownForCount = -1; return; }
+    // Preview is current — nothing to do
+    if (previewCanvases.length && shownForCount === parsedPages.length) return;
+    // Already attempted this count and failed — don't retry endlessly
+    if (triedForCount === parsedPages.length) return;
     if ($('previewBtn') && $('previewBtn').disabled) return; // build in progress
     triedForCount = parsedPages.length;
     running = true;
