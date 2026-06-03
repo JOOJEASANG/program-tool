@@ -13,7 +13,12 @@
       badge.style.cssText = 'position:fixed;right:10px;bottom:10px;z-index:99999;background:#0f172a;color:#fff;border-radius:10px;padding:7px 10px;font-size:11px;font-weight:800;box-shadow:0 8px 24px rgba(15,23,42,.22);display:flex;gap:8px;align-items:center;max-width:calc(100vw - 20px);';
       document.body.appendChild(badge);
     }
-    badge.innerHTML = `<span>버전 ${version}</span>` + (changed ? '<button id="appVersionReloadBtn" style="border:0;border-radius:7px;background:#22c55e;color:#052e16;font-size:11px;font-weight:900;padding:4px 7px;cursor:pointer;">업데이트 적용</button>' : '');
+    if (!changed) {
+      badge.style.display = 'none';
+      return;
+    }
+    badge.style.display = 'flex';
+    badge.innerHTML = '업데이트가 있습니다. <button id="appVersionReloadBtn" style="border:0;border-radius:7px;background:#22c55e;color:#052e16;font-size:11px;font-weight:900;padding:4px 7px;cursor:pointer;">업데이트 적용</button>';
     const btn = document.getElementById('appVersionReloadBtn');
     if (btn) btn.onclick = forceReload;
   }
