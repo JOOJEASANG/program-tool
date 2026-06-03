@@ -1366,13 +1366,16 @@ async function handleFile(file) {
     $('previewBtn').disabled = false;
     showStatus(`"${shortName}" ${total}페이지 로드 완료`, 'success');
     setTimeout(hideStatus, 2500);
-    schedulePreview(100);
     // Switch mode to 연속 after first upload
     if (isNew) {
       document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active','break-active'));
       document.querySelector('.mode-btn[data-mode="cont"]').classList.add('active');
       _uploadMode = 'cont';
     }
+    // Build the preview directly in this call stack — no timer dependency
+    // (mobile/background tabs can throttle setTimeout/setInterval). The
+    // watchdog below is only a backstop if this somehow doesn't run.
+    try { await triggerPreview(); } catch (_) {}
   } catch(e) {
     console.error(e);
     showStatus('파일 로딩 실패: ' + e.message, 'error');
@@ -2565,21 +2568,24 @@ updateNupBadges();
 // external helper module. Polls: if pages exist but preview is missing or
 // stale, trigger it once per page set.
 (function () {
-  let triedForCount = -1;       // last parsedPages.length we triggered for
-  let shownForCount = -1;       // last parsedPages.length preview was ACTUALLY built for
+  let shownForCount = -1;       // page count the preview was ACTUALLY built for
+  let attemptsForCount = 0;     // retry attempts for the current stale count
+  let lastCount = -1;
   let running = false;
 
-  window._markPreviewShown = function(n) { shownForCount = n; };
+  window._markPreviewShown = function(n) { shownForCount = n; attemptsForCount = 0; };
 
   setInterval(async () => {
     if (running) return;
-    if (!parsedPages.length) { triedForCount = -1; shownForCount = -1; return; }
-    // Preview is current — nothing to do
+    if (!parsedPages.length) { shownForCount = -1; attemptsForCount = 0; lastCount = -1; return; }
+    // Preview already reflects the current page set — nothing to do
     if (previewCanvases.length && shownForCount === parsedPages.length) return;
-    // Already attempted this count and failed — don't retry endlessly
-    if (triedForCount === parsedPages.length) return;
+    // Reset retry budget whenever the page count changes
+    if (parsedPages.length !== lastCount) { lastCount = parsedPages.length; attemptsForCount = 0; }
+    // Give up after a few tries so a genuine build error isn't retried forever
+    if (attemptsForCount >= 5) return;
     if ($('previewBtn') && $('previewBtn').disabled) return; // build in progress
-    triedForCount = parsedPages.length;
+    attemptsForCount++;
     running = true;
     try { await triggerPreview(); } catch (_) {} finally { running = false; }
   }, 500);

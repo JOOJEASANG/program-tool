@@ -1,5 +1,5 @@
 {
-  "version": "2026-06-03-preview-autofix",
-  "label": "드래그앤드롭 업로드 후 미리보기 자동 생성 개선",
-  "updatedAt": "2026-06-03T00:00:00+09:00"
+  "version": "2026-06-03-preview-direct-trigger",
+  "label": "업로드 직후 미리보기 직접 생성(타이머 비의존) + 워치독 재시도",
+  "updatedAt": "2026-06-03T18:10:00+09:00"
 }
