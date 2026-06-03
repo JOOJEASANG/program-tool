@@ -98,6 +98,14 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // Per-user subcollections: pdf_history and pdf_sessions
+    match /users/{uid}/pdf_history/{docId} {
+      allow read, write: if isSignedIn() && request.auth.uid == uid;
+    }
+    match /users/{uid}/pdf_sessions/{docId} {
+      allow read, write: if isSignedIn() && request.auth.uid == uid;
+    }
+
     // Default deny everything else
     match /{document=**} {
       allow read, write: if false;

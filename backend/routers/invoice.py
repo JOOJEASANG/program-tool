@@ -5,6 +5,7 @@ Accepts JSON from the frontend and returns a print-ready A4 PDF.
 import io
 import base64
 import math
+import traceback
 from datetime import date
 from urllib.parse import quote
 
@@ -359,7 +360,7 @@ def generate(uid):
     try:
         pdf_bytes = build_pdf(data)
     except Exception as e:
-        import traceback; traceback.print_exc()
+        traceback.print_exc()
         return jsonify({"detail": f"PDF 생성 실패: {type(e).__name__}: {e}"}), 500
 
     doc_type = data.get("doc_type", "견적서")

@@ -1,4 +1,5 @@
 import io
+import traceback
 import fitz
 from flask import Blueprint, request, jsonify, Response
 
@@ -38,7 +39,7 @@ def check(uid):
             checks = run_all_checks(doc)
             score = compute_score(checks)
         except Exception as e:
-            import traceback; traceback.print_exc()
+            traceback.print_exc()
             return jsonify({"detail": f"검수 처리 실패: {type(e).__name__}: {e}"}), 500
 
         ai_feedback = None
@@ -53,7 +54,7 @@ def check(uid):
             )
             return jsonify(report.model_dump())
         except Exception as e:
-            import traceback; traceback.print_exc()
+            traceback.print_exc()
             return jsonify({"detail": f"리포트 생성 실패: {type(e).__name__}: {e}"}), 500
     finally:
         doc.close()
