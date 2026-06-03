@@ -313,6 +313,14 @@
   </a>
   <div class="nav-title">📝 PDF 문서 편집기</div>
   <div class="nav-user">
+    <button class="nav-history-btn" id="navSessionBtn" style="display:none;">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+      편집 저장
+    </button>
+    <button class="nav-history-btn" id="navSessionLoadBtn" style="display:none;">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+      편집 불러오기
+    </button>
     <button class="nav-history-btn" id="navHistoryBtn" style="display:none;">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
       내 파일함
@@ -657,6 +665,44 @@
   </div>
 </div>
 
+<!-- 편집 저장 / 불러오기 모달 -->
+<div id="sessionSaveModal" class="fh-modal" style="display:none;">
+  <div class="fh-box" style="max-width:400px;">
+    <div class="fh-head">
+      <div>
+        <h2>편집 상태 저장</h2>
+        <div class="fh-head-sub">원본 파일과 모든 설정을 저장합니다</div>
+      </div>
+      <button class="modal-close" id="sessionSaveClose">✕</button>
+    </div>
+    <div class="fh-body" style="padding:18px 20px;">
+      <label style="font-size:12px;font-weight:700;color:#374151;display:block;margin-bottom:6px;">저장 이름</label>
+      <input id="sessionNameInput" type="text" placeholder="예: 카탈로그 편집 중" maxlength="40"
+        style="width:100%;border:1.5px solid #d1d5db;border-radius:8px;padding:9px 12px;font-size:13px;font-family:inherit;outline:none;box-sizing:border-box;">
+      <div id="sessionSaveStatus" style="font-size:12px;color:#6b7280;margin-top:8px;min-height:16px;"></div>
+      <div style="display:flex;gap:8px;margin-top:16px;">
+        <button id="sessionSaveConfirm" class="btn btn-primary" style="flex:1;">💾 저장하기</button>
+        <button id="sessionSaveCancel" class="btn" style="flex:0 0 auto;">취소</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="sessionListModal" class="fh-modal" style="display:none;">
+  <div class="fh-box">
+    <div class="fh-head">
+      <div>
+        <h2>저장된 편집 불러오기</h2>
+        <div class="fh-head-sub">저장된 편집 상태 목록 (최대 10개)</div>
+      </div>
+      <button class="modal-close" id="sessionListClose">✕</button>
+    </div>
+    <div class="fh-body" id="sessionListBody">
+      <div class="fh-loading">불러오는 중...</div>
+    </div>
+  </div>
+</div>
+
 <div id="dividerModal" class="modal-overlay" style="display:none;">
   <div class="modal-box">
     <div class="modal-head">
@@ -766,6 +812,8 @@ auth.onAuthStateChanged(async user => {
 
   document.getElementById('authLoading').style.display = 'none';
   document.getElementById('navHistoryBtn').style.display = 'flex';
+  document.getElementById('navSessionBtn').style.display = 'flex';
+  document.getElementById('navSessionLoadBtn').style.display = 'flex';
 });
 document.getElementById('navLogout').addEventListener('click', () =>
   auth.signOut().then(() => location.href = '../index.html'));
@@ -804,6 +852,275 @@ async function saveToStorage(blob, filename) {
     createdAt: firebase.firestore.FieldValue.serverTimestamp(),
   });
 }
+
+// ── Editor session save / load ────────────────────────────────────────
+function collectEditorState() {
+  return {
+    nup,
+    landscape,
+    showBorder,
+    paperSize: $('paperSize').value,
+    customW: parseFloat($('customW').value) || 210,
+    customH: parseFloat($('customH').value) || 297,
+    marginH: parseFloat($('marginH').value) || 10,
+    marginV: parseFloat($('marginV').value) || 10,
+    gap: parseFloat($('gap').value) || 5,
+    fileNupMap,
+    wmEnabled, wmText, wmOpacity, wmAngle, wmColor,
+    hfEnabled, hfHL, hfHC, hfHR, hfFL, hfFC, hfFR,
+    hfFontSize, hfColor, hfApplyTo,
+    hfMarginMm: parseFloat($('hfMarginMm')?.value) || 5,
+    hfSections,
+    pnEnabled, pnPosition, pnFormat, pnStart,
+    pnFontSize, pnColor, pnExcludeFirst, pnApplyTo,
+    pnMarginMm: parseFloat($('pnMarginMm')?.value) || 5,
+    facingPages,
+    booklet: document.getElementById('bookletCheck')?.checked ?? false,
+    pages: parsedPages.map(p => ({
+      file_index: p.file_index ?? 0,
+      page_index: p.page_index ?? 0,
+      rotation: p.rotation || 0,
+      excluded: !!p.excluded,
+      nupOverride: p.nupOverride ?? null,
+      nupDisabled: !!p.nupDisabled,
+      groupBreak: !!p.groupBreak,
+      pageType: p.pageType || 'pdf',
+      dividerContent: p.dividerContent ? { ...p.dividerContent } : null,
+      sourceFile: p.sourceFile || '',
+    })),
+  };
+}
+
+async function saveEditorSession() {
+  const user = auth.currentUser;
+  if (!user || !uploadedFiles.length) return;
+
+  const name = ($('sessionNameInput').value || '').trim() || '편집 세션';
+  const statusEl = $('sessionSaveStatus');
+  statusEl.style.color = '#6b7280';
+  statusEl.textContent = '파일 업로드 중...';
+  $('sessionSaveConfirm').disabled = true;
+
+  try {
+    const sessionId = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    const col = db.collection('users').doc(user.uid).collection('pdf_sessions');
+
+    // 최대 10개 제한
+    const existing = await col.orderBy('createdAt', 'asc').get();
+    if (existing.size >= 10) {
+      const toDelete = existing.docs.slice(0, existing.size - 9);
+      for (const d of toDelete) {
+        for (const sp of (d.data().storagePaths || [])) {
+          await storage.ref(sp).delete().catch(() => {});
+        }
+        await col.doc(d.id).delete();
+      }
+    }
+
+    // Upload source files
+    const storagePaths = [];
+    for (let i = 0; i < uploadedFiles.length; i++) {
+      statusEl.textContent = `파일 업로드 중... (${i + 1}/${uploadedFiles.length})`;
+      const sp = `pdf_sessions/${user.uid}/${sessionId}/src_${i}.pdf`;
+      await storage.ref(sp).put(uploadedFiles[i], { contentType: 'application/pdf' });
+      storagePaths.push(sp);
+    }
+
+    statusEl.textContent = '상태 저장 중...';
+    const state = collectEditorState();
+    await col.add({
+      name,
+      sessionId,
+      storagePaths,
+      fileCount: uploadedFiles.length,
+      pageCount: parsedPages.length,
+      state: JSON.stringify(state),
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+
+    statusEl.style.color = '#166534';
+    statusEl.textContent = '✅ 저장 완료!';
+    setTimeout(() => { $('sessionSaveModal').style.display = 'none'; }, 1200);
+  } catch (e) {
+    statusEl.style.color = '#dc2626';
+    statusEl.textContent = '저장 실패: ' + e.message;
+  }
+  $('sessionSaveConfirm').disabled = false;
+}
+
+async function openSessionList() {
+  const user = auth.currentUser;
+  if (!user) return;
+  $('sessionListModal').style.display = 'flex';
+  const body = $('sessionListBody');
+  body.innerHTML = '<div class="fh-loading">불러오는 중...</div>';
+  try {
+    const snap = await db.collection('users').doc(user.uid)
+      .collection('pdf_sessions')
+      .orderBy('createdAt', 'desc')
+      .limit(20)
+      .get();
+    if (snap.empty) {
+      body.innerHTML = '<div class="fh-empty">📂 저장된 편집이 없습니다.</div>';
+      return;
+    }
+    body.innerHTML = '';
+    snap.forEach(doc => {
+      const d = doc.data();
+      const dateStr = d.createdAt?.toDate ? d.createdAt.toDate().toLocaleString('ko-KR') : '-';
+      const item = document.createElement('div');
+      item.className = 'fh-item';
+      item.innerHTML = `
+        <div class="fh-icon">🗂</div>
+        <div class="fh-info">
+          <div class="fh-name">${d.name || '편집 세션'}</div>
+          <div class="fh-meta">${dateStr} · ${d.pageCount || 0}p · 파일 ${d.fileCount || 0}개</div>
+        </div>
+        <div class="fh-actions">
+          <button class="fh-btn" data-action="load">📂 불러오기</button>
+          <button class="fh-btn del" data-action="del">🗑</button>
+        </div>`;
+      item.querySelector('[data-action="load"]').addEventListener('click', () =>
+        loadEditorSession(d, doc.id));
+      item.querySelector('[data-action="del"]').addEventListener('click', async () => {
+        if (!confirm(`"${d.name}" 세션을 삭제할까요?`)) return;
+        try {
+          for (const sp of (d.storagePaths || [])) await storage.ref(sp).delete().catch(() => {});
+          await db.collection('users').doc(user.uid).collection('pdf_sessions').doc(doc.id).delete();
+          item.remove();
+          if (!body.querySelector('.fh-item')) body.innerHTML = '<div class="fh-empty">📂 저장된 편집이 없습니다.</div>';
+        } catch(e) { alert('삭제 오류: ' + e.message); }
+      });
+      body.appendChild(item);
+    });
+  } catch(e) {
+    body.innerHTML = `<div class="fh-empty">오류: ${e.message}</div>`;
+  }
+}
+
+async function loadEditorSession(d, docId) {
+  if (!confirm(`"${d.name}" 편집을 불러올까요?\n현재 작업 중인 내용은 사라집니다.`)) return;
+  $('sessionListModal').style.display = 'none';
+  showStatus('세션 불러오는 중...');
+  try {
+    const state = JSON.parse(d.state || '{}');
+
+    // Download source files from storage
+    const files = [];
+    for (let i = 0; i < (d.storagePaths || []).length; i++) {
+      showStatus(`원본 파일 다운로드 중... (${i + 1}/${d.storagePaths.length})`);
+      const url = await storage.ref(d.storagePaths[i]).getDownloadURL();
+      const resp = await fetch(url);
+      const buf = await resp.arrayBuffer();
+      const fname = (d.storagePaths[i].split('/').pop()) || `file_${i}.pdf`;
+      files.push(new File([buf], fname, { type: 'application/pdf' }));
+    }
+
+    // Reset state and reload all files
+    parsedPages = [];
+    uploadedFiles = [];
+    previewCanvases = [];
+    fileNupMap = {};
+    _nextId = 1;
+
+    for (let fi = 0; fi < files.length; fi++) {
+      showStatus(`페이지 렌더링 중... (파일 ${fi + 1}/${files.length})`);
+      uploadedFiles.push(files[fi]);
+      const buf = await files[fi].arrayBuffer();
+      const pdfDoc = await pdfjsLib.getDocument({ data: buf }).promise;
+      for (let pi = 1; pi <= pdfDoc.numPages; pi++) {
+        const pdfPage = await pdfDoc.getPage(pi);
+        const thumbCanvas = await renderPdfPage(pdfPage, 0.9, 0);
+        parsedPages.push({
+          id: makeId(), pdfPage, thumbCanvas,
+          excluded: false, nupOverride: null, nupDisabled: false,
+          file_index: fi, page_index: pi - 1,
+          sourceFile: files[fi].name, groupBreak: false,
+          rotation: 0, pageType: 'pdf',
+        });
+        await new Promise(r => setTimeout(r, 0));
+      }
+    }
+
+    // Apply saved page metadata
+    const savedPages = state.pages || [];
+    for (let i = 0; i < Math.min(parsedPages.length, savedPages.length); i++) {
+      const s = savedPages[i];
+      const p = parsedPages[i];
+      p.rotation = s.rotation || 0;
+      p.excluded = !!s.excluded;
+      p.nupOverride = s.nupOverride ?? null;
+      p.nupDisabled = !!s.nupDisabled;
+      p.groupBreak = !!s.groupBreak;
+      if (s.rotation) p.thumbCanvas = await renderPdfPage(p.pdfPage, 0.9, s.rotation);
+    }
+
+    // Add back divider/blank pages (they have no source file)
+    for (const s of savedPages) {
+      if (s.pageType === 'blank') parsedPages.push(makeBlankPage());
+      if (s.pageType === 'divider' && s.dividerContent) parsedPages.push(makeDividerPageObj(s.dividerContent));
+    }
+
+    // Restore settings
+    fileNupMap = state.fileNupMap || {};
+    nup = state.nup ?? 2;
+    landscape = state.landscape ?? false;
+    showBorder = state.showBorder ?? true;
+    if ($('paperSize') && state.paperSize) $('paperSize').value = state.paperSize;
+    if ($('customW') && state.customW) $('customW').value = state.customW;
+    if ($('customH') && state.customH) $('customH').value = state.customH;
+    if ($('marginH')) $('marginH').value = state.marginH ?? 10;
+    if ($('marginV')) $('marginV').value = state.marginV ?? 10;
+    if ($('gap')) $('gap').value = state.gap ?? 5;
+    wmEnabled = state.wmEnabled ?? false; wmText = state.wmText ?? '사본';
+    wmOpacity = state.wmOpacity ?? 0.15; wmAngle = state.wmAngle ?? -45; wmColor = state.wmColor ?? '#ff0000';
+    hfEnabled = state.hfEnabled ?? false;
+    hfHL = state.hfHL ?? ''; hfHC = state.hfHC ?? ''; hfHR = state.hfHR ?? '';
+    hfFL = state.hfFL ?? ''; hfFC = state.hfFC ?? ''; hfFR = state.hfFR ?? '';
+    hfFontSize = state.hfFontSize ?? 9; hfColor = state.hfColor ?? '#555555';
+    hfApplyTo = state.hfApplyTo ?? 'all'; hfSections = state.hfSections ?? [];
+    pnEnabled = state.pnEnabled ?? false; pnPosition = state.pnPosition ?? 'bottom-center';
+    pnFormat = state.pnFormat ?? 'number'; pnStart = state.pnStart ?? 1;
+    pnFontSize = state.pnFontSize ?? 10; pnColor = state.pnColor ?? '#333333';
+    pnExcludeFirst = state.pnExcludeFirst ?? false; pnApplyTo = state.pnApplyTo ?? 'all';
+    facingPages = state.facingPages ?? false;
+    if (document.getElementById('bookletCheck')) document.getElementById('bookletCheck').checked = state.booklet ?? false;
+
+    // Sync N-up button UI
+    document.querySelectorAll('.nup-btn').forEach(b => b.classList.toggle('active', parseInt(b.dataset.n) === nup));
+    updateNupBadges?.();
+
+    renderThumbs();
+    $('previewBtn').disabled = false;
+    $('downloadBtn').disabled = false;
+    hideStatus();
+    showStatus(`"${d.name}" 불러오기 완료!`, 'success');
+    setTimeout(hideStatus, 2500);
+  } catch(e) {
+    showStatus('불러오기 실패: ' + e.message, 'error');
+  }
+}
+
+// Session modal events
+$('navSessionBtn').addEventListener('click', () => {
+  if (!uploadedFiles.length) { alert('불러온 파일이 없습니다.'); return; }
+  $('sessionNameInput').value = '';
+  $('sessionSaveStatus').textContent = '';
+  $('sessionSaveModal').style.display = 'flex';
+  setTimeout(() => $('sessionNameInput').focus(), 80);
+});
+$('sessionSaveClose').addEventListener('click', () => $('sessionSaveModal').style.display = 'none');
+$('sessionSaveCancel').addEventListener('click', () => $('sessionSaveModal').style.display = 'none');
+$('sessionSaveConfirm').addEventListener('click', saveEditorSession);
+$('sessionNameInput').addEventListener('keydown', e => { if (e.key === 'Enter') saveEditorSession(); });
+document.getElementById('sessionSaveModal').addEventListener('click', e => {
+  if (e.target.id === 'sessionSaveModal') $('sessionSaveModal').style.display = 'none';
+});
+$('sessionListClose').addEventListener('click', () => $('sessionListModal').style.display = 'none');
+document.getElementById('sessionListModal').addEventListener('click', e => {
+  if (e.target.id === 'sessionListModal') $('sessionListModal').style.display = 'none';
+});
+$('navSessionLoadBtn').addEventListener('click', openSessionList);
 
 async function openFileHistory() {
   const user = auth.currentUser;
