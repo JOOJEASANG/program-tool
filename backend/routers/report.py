@@ -31,11 +31,6 @@ ROWS_PER_PAGE = 40
 
 # ── helpers ───────────────────────────────────────────────────────────────────
 
-def _rgb(t):
-    """Convert (r,g,b) 0-1 tuple to fitz.Color."""
-    return t  # fitz accepts tuples directly
-
-
 def _read_file(file_storage):
     """Return pandas DataFrame from uploaded CSV/Excel file."""
     name = (file_storage.filename or "").lower()
