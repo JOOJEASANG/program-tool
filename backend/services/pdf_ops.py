@@ -3,9 +3,11 @@ PDF processing with PyMuPDF.
 All operations preserve PDF vector/text quality — no rasterization of source pages.
 """
 import io
+import json
 import math
 import re
 from datetime import date
+from types import SimpleNamespace
 from typing import Optional
 import fitz  # PyMuPDF
 
@@ -119,7 +121,6 @@ def _parse_divider_content(raw: Optional[str]) -> dict:
     if not raw:
         return {}
     try:
-        import json
         data = json.loads(raw)
         if isinstance(data, dict):
             return data
@@ -259,7 +260,6 @@ def _apply_header_footer(
 
     # Mirror left/right for facing pages on even pages
     if facing_pages and not is_odd:
-        from types import SimpleNamespace
         fields = SimpleNamespace(
             header_left=fields.header_right,
             header_center=fields.header_center,
