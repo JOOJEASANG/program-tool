@@ -1369,19 +1369,23 @@ async function handleFile(file) {
       // Auto-detect paper size from the first page of a brand-new import
       if (isNew && i === 1 && $('autoDetectSize')?.checked) {
         const vp = pdfPage.getViewport({ scale: 1 });
-        const wMm = Math.round(vp.width * 25.4 / 72);
-        const hMm = Math.round(vp.height * 25.4 / 72);
-        const detected = detectPaperSizeMm(wMm, hMm);
-        $('paperSize').value = detected.name;
-        $('customSizeRow').style.display = detected.name === 'custom' ? 'grid' : 'none';
-        if (detected.name === 'custom') {
-          $('customW').value = Math.min(wMm, hMm);
-          $('customH').value = Math.max(wMm, hMm);
-        }
+        const srcW = vp.width * 25.4 / 72;
+        const srcH = vp.height * 25.4 / 72;
         const isLandscape = vp.width > vp.height;
         landscape = isLandscape;
         $('orientLand').classList.toggle('active', isLandscape);
         $('orientPort').classList.toggle('active', !isLandscape);
+        // Calculate paper = source × N-UP cells + margins/gaps for 1:1 scale
+        const { cols, rows } = getLayout(nup);
+        const mhVal = parseFloat($('marginH').value) || 10;
+        const mvVal = parseFloat($('marginV').value) || 10;
+        const gpVal = parseFloat($('gap').value) || 5;
+        const finalW = srcW * cols + mhVal * 2 + gpVal * Math.max(0, cols - 1);
+        const finalH = srcH * rows + mvVal * 2 + gpVal * Math.max(0, rows - 1);
+        $('paperSize').value = 'custom';
+        $('customSizeRow').style.display = 'grid';
+        $('customW').value = Math.round(Math.min(finalW, finalH));
+        $('customH').value = Math.round(Math.max(finalW, finalH));
       }
 
       const groupBreak = !isNew && isBreak && i === 1;
@@ -2322,7 +2326,7 @@ $('downloadBtn').addEventListener('click', async () => {
   showStatus('파일 업로드 중...');
   $('downloadBtn').disabled = true;
   try {
-    const { pw, ph } = getSettings();
+    const { pw, ph, mh, mv, gp } = getSettings();
 
     // Map pnFormat string to backend enum
     const pnFormatMap = { number: '1', 'number-total': '1/N', dash: '-1-', 'dash-total': '-1/N-' };
@@ -2344,6 +2348,9 @@ $('downloadBtn').addEventListener('click', async () => {
       })),
       nup_default: nup,
       paper: { width_mm: pw, height_mm: ph },
+      margin_h_mm: mh,
+      margin_v_mm: mv,
+      gap_mm: gp,
       fit_to_paper: true,
       add_border: showBorder,
       watermark: {

@@ -1,5 +1,5 @@
 {
-  "version": "2026-06-04-rotate-all-per-file-nup-autosize",
-  "label": "전체 페이지 회전 / 파일별 N-UP 선택 / 용지 크기 자동 감지 추가",
-  "updatedAt": "2026-06-04T11:30:00+09:00"
+  "version": "2026-06-04-margin-sync-autosize-1to1",
+  "label": "여백 백엔드 동기화 / 용지 자동계산(N-UP 1:1 배치) 수정",
+  "updatedAt": "2026-06-04T14:00:00+09:00"
 }
