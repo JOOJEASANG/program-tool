@@ -102,6 +102,18 @@ def _group_by_nup(pages: list[PageInfo], default_nup: int) -> list[list[PageInfo
     return groups
 
 
+def _best_fit_rotation(cell_w: float, cell_h: float, src_w: float, src_h: float, rotation: int) -> int:
+    """Return rotation (original or +90°) that maximises the fit scale by ≥10%."""
+    ew  = src_h if rotation in (90, 270) else src_w
+    eh  = src_w if rotation in (90, 270) else src_h
+    s0  = min(cell_w / ew, cell_h / eh) if ew > 0 and eh > 0 else 0
+    r90 = (rotation + 90) % 360
+    ew2 = src_h if r90 in (90, 270) else src_w
+    eh2 = src_w if r90 in (90, 270) else src_h
+    s90 = min(cell_w / ew2, cell_h / eh2) if ew2 > 0 and eh2 > 0 else 0
+    return r90 if s90 > s0 * 1.10 else rotation
+
+
 def _calc_fit_rect(cell_rect: fitz.Rect, src_w: float, src_h: float, rotation: int) -> fitz.Rect:
     if rotation in (90, 270):
         src_w, src_h = src_h, src_w
@@ -492,13 +504,14 @@ def process_pdf(
             src_page = src_doc[page_info.page_index]
             src_rect = src_page.rect
 
-            fit_rect = _calc_fit_rect(cell_rect, src_rect.width, src_rect.height, page_info.rotation)
+            rotation = _best_fit_rotation(cell_w, cell_h, src_rect.width, src_rect.height, page_info.rotation)
+            fit_rect = _calc_fit_rect(cell_rect, src_rect.width, src_rect.height, rotation)
 
             out_page.show_pdf_page(
                 fit_rect,
                 src_doc,
                 page_info.page_index,
-                rotate=page_info.rotation,
+                rotate=rotation,
                 keep_proportion=True,
             )
 

@@ -1369,23 +1369,19 @@ async function handleFile(file) {
       // Auto-detect paper size from the first page of a brand-new import
       if (isNew && i === 1 && $('autoDetectSize')?.checked) {
         const vp = pdfPage.getViewport({ scale: 1 });
-        const srcW = vp.width * 25.4 / 72;
-        const srcH = vp.height * 25.4 / 72;
+        const wMm = Math.round(vp.width * 25.4 / 72);
+        const hMm = Math.round(vp.height * 25.4 / 72);
+        const detected = detectPaperSizeMm(wMm, hMm);
+        $('paperSize').value = detected.name;
+        $('customSizeRow').style.display = detected.name === 'custom' ? 'grid' : 'none';
+        if (detected.name === 'custom') {
+          $('customW').value = Math.min(wMm, hMm);
+          $('customH').value = Math.max(wMm, hMm);
+        }
         const isLandscape = vp.width > vp.height;
         landscape = isLandscape;
         $('orientLand').classList.toggle('active', isLandscape);
         $('orientPort').classList.toggle('active', !isLandscape);
-        // Calculate paper = source × N-UP cells + margins/gaps for 1:1 scale
-        const { cols, rows } = getLayout(nup);
-        const mhVal = parseFloat($('marginH').value) || 10;
-        const mvVal = parseFloat($('marginV').value) || 10;
-        const gpVal = parseFloat($('gap').value) || 5;
-        const finalW = srcW * cols + mhVal * 2 + gpVal * Math.max(0, cols - 1);
-        const finalH = srcH * rows + mvVal * 2 + gpVal * Math.max(0, rows - 1);
-        $('paperSize').value = 'custom';
-        $('customSizeRow').style.display = 'grid';
-        $('customW').value = Math.round(Math.min(finalW, finalH));
-        $('customH').value = Math.round(Math.max(finalW, finalH));
       }
 
       const groupBreak = !isNew && isBreak && i === 1;
@@ -1864,18 +1860,39 @@ function groupByNup(pages) {
   return groups;
 }
 
-// ── Draw one page into a cell ─────────────────────────────────────────
+// ── Draw one page into a cell (auto-rotates 90° when it gives ≥10% better fit) ──
 function drawPageInCell(ctx, src, cellX, cellY, cellW, cellH) {
   const pw = src.width, ph = src.height;
-  const s = Math.min(cellW / pw, cellH / ph);
-  const dw = pw * s, dh = ph * s;
-  const dx = cellX + (cellW - dw) / 2;
-  const dy = cellY + (cellH - dh) / 2;
-  ctx.drawImage(src, dx, dy, dw, dh);
-  if (showBorder) {
-    ctx.strokeStyle = 'rgba(0,0,0,0.15)';
-    ctx.lineWidth = Math.max(0.4, cellW * 0.002);
-    ctx.strokeRect(dx, dy, dw, dh);
+  const s0  = Math.min(cellW / pw, cellH / ph);
+  const s90 = Math.min(cellW / ph, cellH / pw);
+  const rot = s90 > s0 * 1.10;  // auto-rotate if 10%+ gain
+
+  if (rot) {
+    const s = s90;
+    const dw = ph * s, dh = pw * s;
+    const dx = cellX + (cellW - dw) / 2;
+    const dy = cellY + (cellH - dh) / 2;
+    ctx.save();
+    ctx.translate(dx + dw / 2, dy + dh / 2);
+    ctx.rotate(Math.PI / 2);
+    ctx.drawImage(src, -pw * s / 2, -ph * s / 2, pw * s, ph * s);
+    ctx.restore();
+    if (showBorder) {
+      ctx.strokeStyle = 'rgba(0,0,0,0.15)';
+      ctx.lineWidth = Math.max(0.4, cellW * 0.002);
+      ctx.strokeRect(dx, dy, dw, dh);
+    }
+  } else {
+    const s = s0;
+    const dw = pw * s, dh = ph * s;
+    const dx = cellX + (cellW - dw) / 2;
+    const dy = cellY + (cellH - dh) / 2;
+    ctx.drawImage(src, dx, dy, dw, dh);
+    if (showBorder) {
+      ctx.strokeStyle = 'rgba(0,0,0,0.15)';
+      ctx.lineWidth = Math.max(0.4, cellW * 0.002);
+      ctx.strokeRect(dx, dy, dw, dh);
+    }
   }
 }
 
