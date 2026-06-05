@@ -357,7 +357,7 @@
           <button class="mode-btn" data-mode="cont">➕ 연속 추가</button>
           <button class="mode-btn" data-mode="break">📌 비연속 추가</button>
         </div>
-        <input type="file" id="fileInput" accept=".pdf,application/pdf">
+        <input type="file" id="fileInput" accept=".pdf,application/pdf" multiple>
       </div>
     </div>
 
@@ -461,7 +461,7 @@
           슬라이드 테두리 표시
         </label>
         <label class="checkline">
-          <input type="checkbox" id="autoDetectSize" checked>
+          <input type="checkbox" id="autoDetectSize">
           새 파일 가져올 때 용지 크기 자동 감지
         </label>
       </div>
@@ -686,8 +686,8 @@
         style="width:100%;border:1.5px solid #d1d5db;border-radius:8px;padding:9px 12px;font-size:13px;font-family:inherit;outline:none;box-sizing:border-box;">
       <div id="sessionSaveStatus" style="font-size:12px;color:#6b7280;margin-top:8px;min-height:16px;"></div>
       <div style="display:flex;gap:8px;margin-top:16px;">
-        <button id="sessionSaveConfirm" class="btn btn-primary" style="flex:1;">💾 저장하기</button>
-        <button id="sessionSaveCancel" class="btn" style="flex:0 0 auto;">취소</button>
+        <button id="sessionSaveConfirm" type="button" class="btn btn-primary" style="flex:1;">💾 저장하기</button>
+        <button id="sessionSaveCancel" type="button" class="btn" style="flex:1;">취소</button>
       </div>
     </div>
   </div>
@@ -1306,29 +1306,36 @@ document.querySelectorAll('.mode-btn').forEach(btn => {
 
 // ── Upload zone ───────────────────────────────────────────────────────
 $('uploadZone').addEventListener('click', () => $('fileInput').click());
-$('fileInput').addEventListener('change', e => {
-  if (e.target.files[0]) handleFile(e.target.files[0]);
+$('fileInput').addEventListener('change', async e => {
+  const files = Array.from(e.target.files).filter(f =>
+    (f.type || '').includes('pdf') || /\.pdf$/i.test(f.name || '')
+  );
   e.target.value = '';
+  for (const f of files) await handleFile(f);
 });
 $('uploadZone').addEventListener('dragover', e => { e.preventDefault(); $('uploadZone').classList.add('drag-over'); });
 $('uploadZone').addEventListener('dragleave', () => $('uploadZone').classList.remove('drag-over'));
-$('uploadZone').addEventListener('drop', e => {
+$('uploadZone').addEventListener('drop', async e => {
   e.preventDefault(); $('uploadZone').classList.remove('drag-over');
-  const f = e.dataTransfer.files[0]; if (f) handleFile(f);
+  const files = Array.from(e.dataTransfer.files).filter(f =>
+    (f.type || '').includes('pdf') || /\.pdf$/i.test(f.name || '')
+  );
+  for (const f of files) await handleFile(f);
 });
 
 // Allow dropping PDF anywhere on the page (main preview area or sidebar)
 document.addEventListener('dragover', e => {
   if (e.dataTransfer && e.dataTransfer.types && e.dataTransfer.types.includes('Files')) e.preventDefault();
 });
-document.addEventListener('drop', e => {
+document.addEventListener('drop', async e => {
   if (!e.dataTransfer || !e.dataTransfer.files.length) return;
-  const f = e.dataTransfer.files[0];
-  const isPdf = (f.type || '').includes('pdf') || /\.pdf$/i.test(f.name || '');
-  if (!isPdf) return;
+  const pdfFiles = Array.from(e.dataTransfer.files).filter(f =>
+    (f.type || '').includes('pdf') || /\.pdf$/i.test(f.name || '')
+  );
+  if (!pdfFiles.length) return;
   if (!e.target.closest('#uploadZone')) {
     e.preventDefault();
-    handleFile(f);
+    for (const f of pdfFiles) await handleFile(f);
   }
 });
 
