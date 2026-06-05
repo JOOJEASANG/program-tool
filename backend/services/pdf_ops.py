@@ -529,6 +529,10 @@ def process_pdf(
     for src_doc in src_docs:
         src_doc.close()
 
+    if out_doc.page_count == 0:
+        out_doc.close()
+        raise ValueError("출력할 페이지가 없습니다. 모든 페이지가 제외되었거나 내용이 없습니다.")
+
     buf = io.BytesIO()
     out_doc.save(buf, garbage=4, deflate=True)
     out_doc.close()

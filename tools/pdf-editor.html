@@ -2391,6 +2391,14 @@ function displayPreview(pages, autoFit = false) {
 // ── PDF Download (via backend — vector quality) ───────────────────────
 $('downloadBtn').addEventListener('click', async () => {
   if (!parsedPages.length || !uploadedFiles.length) return;
+
+  // Check that at least one page is not excluded
+  const hasVisible = parsedPages.some(p => !p.excluded);
+  if (!hasVisible) {
+    showStatus('모든 페이지가 제외되어 있습니다. 최소 하나의 페이지를 포함해야 합니다.', 'error');
+    return;
+  }
+
   showStatus('파일 업로드 중...');
   $('downloadBtn').disabled = true;
   try {
@@ -2399,21 +2407,27 @@ $('downloadBtn').addEventListener('click', async () => {
     // Map pnFormat string to backend enum
     const pnFormatMap = { number: '1', 'number-total': '1/N', dash: '-1-', 'dash-total': '-1/N-' };
 
+    const VALID_NUP = new Set([1, 2, 4, 6, 8, 9]);
     const settings = {
-      pages: parsedPages.map(p => ({
-        file_index: p.file_index ?? 0,
-        page_index: p.page_index ?? 0,
-        rotation: p.rotation || 0,
-        nup_override: p.nupOverride ?? (p.file_index !== undefined ? (fileNupMap[p.file_index] ?? null) : null),
-        nup_disabled: !!p.nupDisabled,
-        group_break: !!p.groupBreak,
-        excluded: !!p.excluded,
-        page_type: p.pageType === 'pdf' ? 'normal' : p.pageType,
-        divider_content: (p.pageType === 'divider' || p.pageType === 'blank')
-          ? JSON.stringify(p.dividerContent || {})
-          : null,
-        divider_style: p.dividerContent?.style || 'simple',
-      })),
+      pages: parsedPages.map(p => {
+        const rawNup = p.nupOverride ?? (p.file_index !== undefined ? (fileNupMap[p.file_index] ?? null) : null);
+        const nupOvr = (rawNup !== null && VALID_NUP.has(Number(rawNup))) ? Number(rawNup) : null;
+        const pageType = p.pageType === 'pdf' ? 'normal' : (p.pageType || 'normal');
+        return {
+          file_index: p.file_index ?? 0,
+          page_index: p.page_index ?? 0,
+          rotation: p.rotation || 0,
+          nup_override: nupOvr,
+          nup_disabled: !!p.nupDisabled,
+          group_break: !!p.groupBreak,
+          excluded: !!p.excluded,
+          page_type: pageType,
+          divider_content: (p.pageType === 'divider' || p.pageType === 'blank')
+            ? JSON.stringify(p.dividerContent || {})
+            : null,
+          divider_style: p.dividerContent?.style || 'simple',
+        };
+      }),
       nup_default: nup,
       paper: { width_mm: pw, height_mm: ph },
       margin_h_mm: mh,
