@@ -1007,6 +1007,12 @@ async function loadEditorSession(d, docId) {
   if (!confirm(`"${d.name}" 편집을 불러올까요?\n현재 작업 중인 내용은 사라집니다.`)) return;
   $('sessionListModal').style.display = 'none';
   showStatus('세션 불러오는 중...');
+
+  // Snapshot previous state for rollback on error
+  const prevParsedPages = parsedPages;
+  const prevUploadedFiles = uploadedFiles;
+  const prevFileNupMap = fileNupMap;
+
   try {
     const state = JSON.parse(d.state || '{}');
 
@@ -1101,12 +1107,19 @@ async function loadEditorSession(d, docId) {
     hfFL = state.hfFL ?? ''; hfFC = state.hfFC ?? ''; hfFR = state.hfFR ?? '';
     hfFontSize = state.hfFontSize ?? 9; hfColor = state.hfColor ?? '#555555';
     hfApplyTo = state.hfApplyTo ?? 'all'; hfSections = state.hfSections ?? [];
+    hfMarginMm = state.hfMarginMm ?? 5;
+    if ($('hfMarginMm')) $('hfMarginMm').value = hfMarginMm;
     pnEnabled = state.pnEnabled ?? false; pnPosition = state.pnPosition ?? 'bottom-center';
     pnFormat = state.pnFormat ?? 'number'; pnStart = state.pnStart ?? 1;
     pnFontSize = state.pnFontSize ?? 10; pnColor = state.pnColor ?? '#333333';
     pnExcludeFirst = state.pnExcludeFirst ?? false; pnApplyTo = state.pnApplyTo ?? 'all';
+    pnMarginMm = state.pnMarginMm ?? 5;
+    if ($('pnMarginMm')) $('pnMarginMm').value = pnMarginMm;
     facingPages = state.facingPages ?? false;
     if (document.getElementById('bookletCheck')) document.getElementById('bookletCheck').checked = state.booklet ?? false;
+    // Sync HF section ID counter to avoid collisions with restored section IDs
+    if (hfSections.length) _hfSecId = Math.max(...hfSections.map(s => s._id || 0)) + 1;
+    renderHfSections();
 
     // Sync orientation UI
     $('orientLand').classList.toggle('active', landscape);
@@ -1129,6 +1142,11 @@ async function loadEditorSession(d, docId) {
     setTimeout(hideStatus, 2500);
     schedulePreview(300);
   } catch(e) {
+    // Rollback to the previous session state so the editor isn't left empty
+    parsedPages = prevParsedPages;
+    uploadedFiles = prevUploadedFiles;
+    fileNupMap = prevFileNupMap;
+    if (parsedPages.length) { renderThumbs(); $('previewBtn').disabled = false; $('downloadBtn').disabled = false; }
     showStatus('불러오기 실패: ' + e.message, 'error');
   }
 }
