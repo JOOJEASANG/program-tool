@@ -1010,24 +1010,27 @@ async function loadEditorSession(d, docId) {
   try {
     const state = JSON.parse(d.state || '{}');
 
-    // Download source files from storage
+    // Download source files from Storage
     const files = [];
     for (let i = 0; i < (d.storagePaths || []).length; i++) {
       showStatus(`원본 파일 다운로드 중... (${i + 1}/${d.storagePaths.length})`);
       const url = await storage.ref(d.storagePaths[i]).getDownloadURL();
       const resp = await fetch(url);
+      if (!resp.ok) throw new Error(`파일 다운로드 실패 (${resp.status})`);
       const buf = await resp.arrayBuffer();
       const fname = (d.storagePaths[i].split('/').pop()) || `file_${i}.pdf`;
       files.push(new File([buf], fname, { type: 'application/pdf' }));
     }
 
-    // Reset state and reload all files
+    // Reset state
     parsedPages = [];
     uploadedFiles = [];
     previewCanvases = [];
     fileNupMap = {};
     _nextId = 1;
 
+    // Render all source pages into a lookup map keyed by "fileIdx_pageIdx"
+    const renderedMap = new Map();
     for (let fi = 0; fi < files.length; fi++) {
       showStatus(`페이지 렌더링 중... (파일 ${fi + 1}/${files.length})`);
       uploadedFiles.push(files[fi]);
@@ -1036,7 +1039,7 @@ async function loadEditorSession(d, docId) {
       for (let pi = 1; pi <= pdfDoc.numPages; pi++) {
         const pdfPage = await pdfDoc.getPage(pi);
         const thumbCanvas = await renderPdfPage(pdfPage, 0.9, 0);
-        parsedPages.push({
+        renderedMap.set(`${fi}_${pi - 1}`, {
           id: makeId(), pdfPage, thumbCanvas,
           excluded: false, nupOverride: null, nupDisabled: false,
           file_index: fi, page_index: pi - 1,
@@ -1047,24 +1050,37 @@ async function loadEditorSession(d, docId) {
       }
     }
 
-    // Apply saved page metadata
+    // Reconstruct pages in saved order (preserves positions of blank/divider pages)
     const savedPages = state.pages || [];
-    for (let i = 0; i < Math.min(parsedPages.length, savedPages.length); i++) {
-      const s = savedPages[i];
-      const p = parsedPages[i];
-      p.rotation = s.rotation || 0;
-      p.excluded = !!s.excluded;
-      p.nupOverride = s.nupOverride ?? null;
-      p.nupDisabled = !!s.nupDisabled;
-      p.groupBreak = !!s.groupBreak;
-      if (s.rotation) p.thumbCanvas = await renderPdfPage(p.pdfPage, 0.9, s.rotation);
+    for (const s of savedPages) {
+      if (s.pageType === 'blank') {
+        const p = makeBlankPage();
+        p.groupBreak = !!s.groupBreak;
+        p.excluded = !!s.excluded;
+        parsedPages.push(p);
+      } else if (s.pageType === 'divider' && s.dividerContent) {
+        const p = makeDividerPageObj(s.dividerContent);
+        p.groupBreak = !!s.groupBreak;
+        p.excluded = !!s.excluded;
+        parsedPages.push(p);
+      } else {
+        // Normal PDF page — look up by file_index + page_index
+        const key = `${s.file_index ?? 0}_${s.page_index ?? 0}`;
+        const p = renderedMap.get(key);
+        if (!p) continue;
+        renderedMap.delete(key);
+        p.rotation = s.rotation || 0;
+        p.excluded = !!s.excluded;
+        p.nupOverride = s.nupOverride ?? null;
+        p.nupDisabled = !!s.nupDisabled;
+        p.groupBreak = !!s.groupBreak;
+        if (p.rotation) p.thumbCanvas = await renderPdfPage(p.pdfPage, 0.9, p.rotation);
+        parsedPages.push(p);
+      }
     }
 
-    // Add back divider/blank pages (they have no source file)
-    for (const s of savedPages) {
-      if (s.pageType === 'blank') parsedPages.push(makeBlankPage());
-      if (s.pageType === 'divider' && s.dividerContent) parsedPages.push(makeDividerPageObj(s.dividerContent));
-    }
+    // Append any rendered pages not referenced in savedPages (fallback for older sessions)
+    for (const p of renderedMap.values()) parsedPages.push(p);
 
     // Restore settings
     fileNupMap = state.fileNupMap || {};
@@ -1072,6 +1088,7 @@ async function loadEditorSession(d, docId) {
     landscape = state.landscape ?? false;
     showBorder = state.showBorder ?? true;
     if ($('paperSize') && state.paperSize) $('paperSize').value = state.paperSize;
+    if ($('customSizeRow')) $('customSizeRow').style.display = state.paperSize === 'custom' ? 'grid' : 'none';
     if ($('customW') && state.customW) $('customW').value = state.customW;
     if ($('customH') && state.customH) $('customH').value = state.customH;
     if ($('marginH')) $('marginH').value = state.marginH ?? 10;
@@ -1091,9 +1108,18 @@ async function loadEditorSession(d, docId) {
     facingPages = state.facingPages ?? false;
     if (document.getElementById('bookletCheck')) document.getElementById('bookletCheck').checked = state.booklet ?? false;
 
-    // Sync N-up button UI
-    document.querySelectorAll('.nup-btn').forEach(b => b.classList.toggle('active', parseInt(b.dataset.n) === nup));
+    // Sync orientation UI
+    $('orientLand').classList.toggle('active', landscape);
+    $('orientPort').classList.toggle('active', !landscape);
+
+    // Sync N-up button UI (data-nup attribute)
+    document.querySelectorAll('.nup-btn').forEach(b => b.classList.toggle('active', parseInt(b.dataset.nup) === nup));
     updateNupBadges?.();
+
+    // Switch upload mode to 연속 after session load
+    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active', 'break-active'));
+    document.querySelector('.mode-btn[data-mode="cont"]')?.classList.add('active');
+    _uploadMode = 'cont';
 
     renderThumbs();
     $('previewBtn').disabled = false;
