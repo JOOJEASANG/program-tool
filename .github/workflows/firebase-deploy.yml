@@ -35,6 +35,11 @@ jobs:
           venv/bin/pip install --upgrade pip
           venv/bin/pip install -r requirements.txt
 
+      - name: 백엔드 문법 검사
+        run: |
+          cd backend
+          venv/bin/python -m compileall .
+
       - name: Firebase CLI 설치
         run: npm install -g firebase-tools
 
