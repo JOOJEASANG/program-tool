@@ -24,6 +24,35 @@ async function _readApiError(resp, fallback) {
   return text?.trim() || fallback;
 }
 
+function _loadScriptOnce(id, src) {
+  return new Promise((resolve, reject) => {
+    const existing = document.getElementById(id);
+    if (existing) {
+      existing.addEventListener('load', resolve, { once: true });
+      existing.addEventListener('error', reject, { once: true });
+      if (existing.dataset.loaded === 'true') resolve();
+      return;
+    }
+    const script = document.createElement('script');
+    script.id = id;
+    script.src = src;
+    script.async = true;
+    script.onload = () => { script.dataset.loaded = 'true'; resolve(); };
+    script.onerror = () => reject(new Error('Firebase Storage SDK 로드 실패'));
+    document.head.appendChild(script);
+  });
+}
+
+async function _ensureStorage() {
+  if (typeof storage !== 'undefined' && storage && storage.ref) return storage;
+  if (!firebase.storage) {
+    await _loadScriptOnce('firebaseStorageCompatSdk', 'https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js');
+  }
+  if (!firebase.storage) throw new Error('Firebase Storage를 초기화할 수 없습니다.');
+  window.storage = firebase.storage();
+  return window.storage;
+}
+
 async function _processPdfDirect(files, settings, token, signal, onStatus) {
   onStatus && onStatus('임시 업로드 방식 실패 → 직접 업로드 방식으로 재시도 중...');
   const form = new FormData();
@@ -58,6 +87,7 @@ async function apiProcessPdf(files, settings, { onStatus } = {}) {
   if (!user) throw new Error('로그인이 필요합니다.');
   if (!Array.isArray(files) || !files.length) throw new Error('처리할 PDF 파일이 없습니다.');
 
+  const st = await _ensureStorage();
   const uid = user.uid;
   const sessionId = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
   const storagePaths = [];
@@ -65,14 +95,14 @@ async function apiProcessPdf(files, settings, { onStatus } = {}) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 310000);
 
-  const cleanup = () => storagePaths.forEach(p => storage.ref(p).delete().catch(() => {}));
+  const cleanup = () => storagePaths.forEach(p => st.ref(p).delete().catch(() => {}));
 
   try {
     // 1. Upload source files to Storage (no HTTP body size limit)
     for (let i = 0; i < files.length; i++) {
       onStatus && onStatus(`파일 업로드 중... (${i + 1}/${files.length})`);
       const path = `pdf_temp/${uid}/${sessionId}/${i}.pdf`;
-      await storage.ref(path).put(files[i], { contentType: 'application/pdf' });
+      await st.ref(path).put(files[i], { contentType: 'application/pdf' });
       storagePaths.push(path);
     }
 
@@ -139,7 +169,56 @@ async function apiPdfTool(op, fileOrFiles, params = {}) {
   return { blob, meta: { removed: removed ? Number(removed) : null } };
 }
 
-async function apiPreflightCheck(file) {
+let __preflightTemp = null;
+
+function _samePreflightFile(file) {
+  return __preflightTemp
+    && __preflightTemp.file === file
+    && __preflightTemp.name === file.name
+    && __preflightTemp.size === file.size
+    && __preflightTemp.lastModified === file.lastModified;
+}
+
+async function _ensurePreflightStoragePath(file, onStatus) {
+  const user = auth.currentUser;
+  if (!user) throw new Error('로그인이 필요합니다.');
+  if (!file) throw new Error('PDF 파일을 먼저 선택하세요.');
+  if (_samePreflightFile(file) && __preflightTemp.path) return __preflightTemp.path;
+  if (_samePreflightFile(file) && __preflightTemp.uploadPromise) return __preflightTemp.uploadPromise;
+
+  const st = await _ensureStorage();
+  const uid = user.uid;
+  const sessionId = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  const safeName = (file.name || 'document.pdf').replace(/[^a-zA-Z0-9_.-]/g, '_').slice(0, 80) || 'document.pdf';
+  const path = `preflight_temp/${uid}/${sessionId}/${safeName.toLowerCase().endsWith('.pdf') ? safeName : safeName + '.pdf'}`;
+
+  const uploadPromise = (async () => {
+    onStatus && onStatus('대용량 PDF 임시 업로드 중...');
+    await st.ref(path).put(file, { contentType: 'application/pdf' });
+    __preflightTemp = { file, name: file.name, size: file.size, lastModified: file.lastModified, path };
+    return path;
+  })();
+  __preflightTemp = { file, name: file.name, size: file.size, lastModified: file.lastModified, path: null, uploadPromise };
+  return uploadPromise;
+}
+
+async function _preflightStorageRequest(endpoint, file, { expectBlob = false, onStatus } = {}) {
+  const token = await _getToken();
+  const path = await _ensurePreflightStoragePath(file, onStatus);
+  onStatus && onStatus(endpoint.includes('check') ? '서버에서 PDF 검수 중...' : '서버에서 PDF 복구/정상화 중...');
+  const resp = await fetch(`/api/preflight/${endpoint}`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ storage_path: path, filename: file.name || 'document.pdf' }),
+  });
+  if (!resp.ok) {
+    const msg = await _readApiError(resp, `서버 오류 (${resp.status})`);
+    throw new Error(msg || 'PDF 처리 중 오류가 발생했습니다.');
+  }
+  return expectBlob ? resp.blob() : resp.json();
+}
+
+async function _preflightDirectCheck(file) {
   const headers = await _authHeaders();
   const form = new FormData();
   form.append('file', file);
@@ -152,13 +231,28 @@ async function apiPreflightCheck(file) {
   });
 
   if (!resp.ok) {
-    const err = await resp.json().catch(() => ({ detail: resp.statusText }));
-    throw new Error(err.detail || '검수 중 오류가 발생했습니다.');
+    const msg = await _readApiError(resp, resp.statusText || '검수 중 오류가 발생했습니다.');
+    throw new Error(msg || '검수 중 오류가 발생했습니다.');
   }
   return resp.json();
 }
 
-async function apiPreflightFix(file) {
+async function apiPreflightCheck(file, opts = {}) {
+  const useStorage = (file?.size || 0) > 20 * 1024 * 1024;
+  if (useStorage) return _preflightStorageRequest('check-storage', file, opts);
+  try {
+    return await _preflightDirectCheck(file);
+  } catch (directErr) {
+    return _preflightStorageRequest('check-storage', file, {
+      ...opts,
+      onStatus: opts.onStatus || (() => {})
+    }).catch(storageErr => {
+      throw new Error((storageErr?.message || '검수 실패') + (directErr?.message ? ` / 직접 업로드 오류: ${directErr.message}` : ''));
+    });
+  }
+}
+
+async function _preflightDirectFix(file) {
   const headers = await _authHeaders();
   const form = new FormData();
   form.append('file', file);
@@ -170,8 +264,20 @@ async function apiPreflightFix(file) {
   });
 
   if (!resp.ok) {
-    const err = await resp.json().catch(() => ({ detail: resp.statusText }));
-    throw new Error(err.detail || 'PDF 보정 중 오류가 발생했습니다.');
+    const msg = await _readApiError(resp, resp.statusText || 'PDF 보정 중 오류가 발생했습니다.');
+    throw new Error(msg || 'PDF 보정 중 오류가 발생했습니다.');
   }
   return resp.blob();
+}
+
+async function apiPreflightFix(file, opts = {}) {
+  const useStorage = (file?.size || 0) > 20 * 1024 * 1024 || _samePreflightFile(file);
+  if (useStorage) return _preflightStorageRequest('fix-storage', file, { ...opts, expectBlob: true });
+  try {
+    return await _preflightDirectFix(file);
+  } catch (directErr) {
+    return _preflightStorageRequest('fix-storage', file, { ...opts, expectBlob: true }).catch(storageErr => {
+      throw new Error((storageErr?.message || 'PDF 보정 실패') + (directErr?.message ? ` / 직접 업로드 오류: ${directErr.message}` : ''));
+    });
+  }
 }
