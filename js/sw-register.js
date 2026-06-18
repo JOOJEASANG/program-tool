@@ -36,7 +36,7 @@
     }
     if (location.pathname.endsWith('/tools/pdf-Checker.html') || location.pathname.endsWith('/tools/preflight.html')) {
       loadScript('preflightFixDownloadScript', '/js/preflight/fix-download.js?v=20260618-3');
-      loadScript('preflightCompressHelperScript', '/js/preflight/compress-helper.js?v=20260618-1');
+      loadScript('preflightCompressHelperScript', '/js/preflight/compress-helper.js?v=20260618-2');
       loadScript('pdfCheckerReportHelperScript', '/js/preflight/report-helper.js?v=20260518-1');
     }
   }
