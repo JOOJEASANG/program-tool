@@ -10,6 +10,7 @@ from utils.auth import require_auth
 
 preflight_bp = Blueprint("preflight", __name__)
 MAX_PDF_BYTES = 200 * 1024 * 1024
+MAX_COMPRESS_PAGES = 2000
 
 
 def _read_pdf_from_request():
@@ -66,6 +67,23 @@ def _safe_pdf_name(filename: str | None, suffix: str) -> str:
     base = (filename or "document.pdf").rsplit(".", 1)[0]
     base = base.strip() or "document"
     return f"{base}_{suffix}.pdf"
+
+
+def _json_params() -> dict:
+    payload = request.get_json(silent=True) or {}
+    params = payload.get("params") or {}
+    return params if isinstance(params, dict) else {}
+
+
+def _compress_options() -> tuple[int, int, str]:
+    params = _json_params()
+    quality = (request.form.get("quality") or params.get("quality") or "balanced").strip().lower()
+    presets = {
+        "small": (120, 62, "small"),
+        "balanced": (150, 72, "balanced"),
+        "clear": (180, 82, "clear"),
+    }
+    return presets.get(quality, presets["balanced"])
 
 
 def _run_check_response(filename: str, data: bytes):
@@ -163,8 +181,6 @@ def _fix_pdf_response(filename: str, data: bytes):
                     new_page.show_pdf_page(target_rect, src, i, keep_proportion=True)
                     copied_pages += 1
                 except Exception:
-                    # Some PDFs contain malformed vector resources. Preserve a usable
-                    # page by rasterizing only that failed page instead of aborting.
                     pix = page.get_pixmap(dpi=180, alpha=False, annots=True)
                     img_rect = fitz.Rect(0, 0, pix.width, pix.height)
                     scale = min(target_w / img_rect.width, target_h / img_rect.height)
@@ -206,6 +222,74 @@ def _fix_pdf_response(filename: str, data: bytes):
         out.close()
 
 
+def _compress_pdf_response(filename: str, data: bytes):
+    """Rasterize each page to JPEG at a controlled DPI to make image/effect-heavy PDFs lighter."""
+    try:
+        src = _open_pdf(data)
+    except Exception as e:
+        return jsonify({
+            "detail": "PDF 파일을 열 수 없어 경량화를 진행할 수 없습니다. 먼저 PDF 복구/정상화를 실행해 보세요.",
+            "error": f"{type(e).__name__}: {e}",
+        }), 400
+
+    out = fitz.open()
+    dpi, jpg_q, quality = _compress_options()
+    skipped_pages: list[int] = []
+    try:
+        if len(src) == 0:
+            return jsonify({"detail": "페이지가 없습니다"}), 400
+        if len(src) > MAX_COMPRESS_PAGES:
+            return jsonify({"detail": f"경량화는 최대 {MAX_COMPRESS_PAGES}페이지까지 처리할 수 있습니다"}), 413
+        if src.is_encrypted:
+            src.close()
+            return jsonify({"detail": "암호화된 PDF는 먼저 암호 해제를 실행한 뒤 경량화를 진행하세요."}), 400
+
+        zoom = dpi / 72.0
+        matrix = fitz.Matrix(zoom, zoom)
+        for i in range(len(src)):
+            try:
+                page = src[i]
+                rect = page.rect
+                if rect.width <= 0 or rect.height <= 0:
+                    raise ValueError("페이지 크기가 비정상입니다")
+                pix = page.get_pixmap(matrix=matrix, alpha=False, annots=True)
+                jpg_bytes = pix.tobytes("jpeg", jpg_quality=jpg_q)
+                new_page = out.new_page(width=rect.width, height=rect.height)
+                new_page.insert_image(new_page.rect, stream=jpg_bytes)
+                pix = None
+            except Exception:
+                skipped_pages.append(i + 1)
+                continue
+
+        if len(out) == 0:
+            return jsonify({"detail": "경량화 가능한 페이지가 없습니다."}), 400
+
+        buf = io.BytesIO()
+        out.save(buf, garbage=4, deflate=True, deflate_images=True, clean=True)
+        out_bytes = buf.getvalue()
+        out_name = _safe_pdf_name(filename, f"light_{quality}")
+        note = f"rasterized-jpeg;quality={quality};dpi={dpi};jpg={jpg_q};input={len(data)};output={len(out_bytes)};skipped={','.join(map(str, skipped_pages))}"
+        return Response(
+            out_bytes,
+            status=200,
+            mimetype="application/pdf",
+            headers={
+                "Content-Disposition": f"attachment; filename={out_name}",
+                "X-Compress-Note": note,
+                "Access-Control-Expose-Headers": "X-Compress-Note, Content-Disposition",
+            },
+        )
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"detail": f"PDF 경량화 실패: {type(e).__name__}: {e}"}), 500
+    finally:
+        try:
+            src.close()
+        except Exception:
+            pass
+        out.close()
+
+
 @preflight_bp.route("/fix", methods=["POST"])
 @require_auth
 def fix(uid):
@@ -223,3 +307,21 @@ def fix_storage(uid):
     if err:
         return err
     return _fix_pdf_response(filename or "document.pdf", data)
+
+
+@preflight_bp.route("/compress", methods=["POST"])
+@require_auth
+def compress(uid):
+    file, data, err = _read_pdf_from_request()
+    if err:
+        return err
+    return _compress_pdf_response(file.filename or "document.pdf", data)
+
+
+@preflight_bp.route("/compress-storage", methods=["POST"])
+@require_auth
+def compress_storage(uid):
+    filename, data, _path, err = _read_pdf_from_storage(uid)
+    if err:
+        return err
+    return _compress_pdf_response(filename or "document.pdf", data)
