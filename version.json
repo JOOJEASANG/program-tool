@@ -1,5 +1,5 @@
 {
-  "version": "2026-06-18-large-preflight-storage-v1",
-  "label": "PDF 검수기 대용량 파일 안정화 · Storage 업로드 방식 적용",
-  "updatedAt": "2026-06-18T12:20:00+09:00"
+  "version": "2026-06-18-pdf-editor-extreme-mode-v1",
+  "label": "PDF 문서편집기 초대용량 모드 · 500페이지급 placeholder 편집 · 200MB 저장 한도",
+  "updatedAt": "2026-06-18T12:40:00+09:00"
 }
