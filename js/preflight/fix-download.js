@@ -1,8 +1,8 @@
 // Preflight adjustment download helper.
-// Adds a free rule-based adjustment PDF download button after inspection.
+// Adds one-upload PDF reuse, repair/normalization, and safer report rendering.
 (function () {
-  if (window.__preflightFixDownloadV5) return;
-  window.__preflightFixDownloadV5 = true;
+  if (window.__preflightFixDownloadV6) return;
+  window.__preflightFixDownloadV6 = true;
 
   const PROGRAM_NAME = 'PDF 사전검수기';
   const ADJUST_BUTTON_TEXT = '조정 가능한 부분만 처리 후 다운로드';
@@ -54,6 +54,27 @@
     replaceTextNode(document.body, '인쇄 검수기', PROGRAM_NAME);
     replaceTextNode(document.body, 'Pre-flight Checker', PROGRAM_NAME);
   }
+  function getSelectedPdf() {
+    if (window.selectedFile) return window.selectedFile;
+    const input = $('fileInput');
+    if (input && input.files && input.files[0]) {
+      window.selectedFile = input.files[0];
+      return input.files[0];
+    }
+    return null;
+  }
+  function basePdfName(file) {
+    return (file?.name || 'document.pdf').replace(/\.pdf$/i, '');
+  }
+  function downloadBlob(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
   function ensureButton() {
     if ($('preflightFixBtn')) return $('preflightFixBtn');
     const resultsHeader = document.querySelector('.results-header');
@@ -75,15 +96,7 @@
     btn.onclick = runFix;
     return btn;
   }
-  function getSelectedPdf() {
-    if (window.selectedFile) return window.selectedFile;
-    const input = $('fileInput');
-    if (input && input.files && input.files[0]) {
-      window.selectedFile = input.files[0];
-      return input.files[0];
-    }
-    return null;
-  }
+
   async function runFix() {
     try {
       const pdf = getSelectedPdf();
@@ -101,19 +114,9 @@
       if (btn) { btn.disabled = false; btn.textContent = ADJUST_BUTTON_TEXT; }
     }
   }
-  function basePdfName(file) {
-    return (file?.name || 'document.pdf').replace(/\.pdf$/i, '');
-  }
-  function downloadBlob(blob, filename) {
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-  }
+
   function wrapRenderResults() {
-    if (window.__preflightRenderWrappedV5 || typeof window.renderResults !== 'function') return;
+    if (window.__preflightRenderWrappedV6 || typeof window.renderResults !== 'function') return;
     const original = window.renderResults;
     window.renderResults = function wrappedRenderResults(report) {
       const safeReport = sanitizeReport(report);
@@ -128,15 +131,15 @@
       }, 0);
       return result;
     };
-    window.__preflightRenderWrappedV5 = true;
+    window.__preflightRenderWrappedV6 = true;
   }
 
   function installSharedPdfTools() {
-    if (window.__preflightSharedPdfToolsInstalled) return;
+    if (window.__preflightSharedPdfToolsInstalledV6) return;
     try {
       window.eval(`
-        if (!window.__preflightSharedPdfToolsInstalled) {
-          window.__preflightSharedPdfToolsInstalled = true;
+        if (!window.__preflightSharedPdfToolsInstalledV6) {
+          window.__preflightSharedPdfToolsInstalledV6 = true;
 
           function __pfEsc(v){return String(v??'').replace(/[<>&"']/g,ch=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;'}[ch]))}
           function __pfGetSelectedPdf(){
@@ -171,15 +174,14 @@
             const blob=await apiPreflightFix(f);
             return {blob, filename: __pfBasePdfName(f)+'_repaired.pdf'};
           }
-
-          if (typeof TOOL_DEFS !== 'undefined') {
+          function __pfRefreshToolDef(id){
+            if (typeof TOOL_DEFS === 'undefined') return;
             TOOL_DEFS.repair = {
               title: '🧰 PDF 복구/정상화',
               desc: '열림 오류, 깨진 구조, 비정상 객체가 있는 PDF를 가능한 범위에서 다시 정리해 다운로드합니다.',
               body: __pfSharedPdfBox('PDF 복구/정상화') + '<div style="font-size:11px;color:#64748b;line-height:1.6;background:#f8fafc;border-radius:8px;padding:9px 10px;">파일 구조를 재정리하고 페이지를 새 PDF로 다시 구성합니다. 심하게 손상되어 열 수 없는 파일은 복구가 제한될 수 있습니다.</div>',
               run: __pfRunRepair,
             };
-
             if (TOOL_DEFS.encrypt) {
               TOOL_DEFS.encrypt.body = __pfSharedPdfBox('암호 설정') + '<label class="tool-field-label">새 비밀번호</label><input type="password" id="tm-pw" placeholder="32자 이내" maxlength="32" class="tool-input">';
               TOOL_DEFS.encrypt.run = async () => {
@@ -208,6 +210,8 @@
             }
           }
 
+          __pfRefreshToolDef('boot');
+
           if (!document.getElementById('repairPdfToolBtn')) {
             const grid=document.querySelector('.tools-grid');
             if(grid){
@@ -222,19 +226,28 @@
             }
           }
 
+          if (typeof selectFile === 'function' && !window.__preflightSelectFileWrapped) {
+            const __oldSelectFile=selectFile;
+            selectFile=function patchedSelectFile(f){
+              const result=__oldSelectFile.apply(this, arguments);
+              window.selectedFile=f;
+              __pfRefreshToolDef('select');
+              return result;
+            };
+            window.__preflightSelectFileWrapped=true;
+          }
+
           if (typeof openTool === 'function' && !window.__preflightOpenToolWrapped) {
             const __oldOpenTool=openTool;
             openTool=function patchedOpenTool(id){
+              __pfRefreshToolDef(id);
               const result=__oldOpenTool.apply(this, arguments);
               setTimeout(()=>{
                 try{
-                  const body=document.getElementById('toolModalBody');
-                  if(body && ['repair','encrypt','decrypt','ocr'].includes(id)){
+                  if(['repair','encrypt','decrypt','ocr'].includes(id)){
                     const f=__pfGetSelectedPdf();
-                    if(!f){
-                      const run=document.getElementById('toolRunBtn');
-                      if(run) run.disabled=true;
-                    }
+                    const run=document.getElementById('toolRunBtn');
+                    if(run) run.disabled=!f;
                   }
                 }catch(_){ }
               },0);
@@ -244,9 +257,9 @@
           }
 
           if (typeof runTool === 'function' && !window.__preflightRunToolWrapped) {
-            const __oldRunTool=runTool;
             runTool=async function patchedRunTool(){
               if(!currentTool) return;
+              __pfRefreshToolDef(currentTool);
               const def=TOOL_DEFS[currentTool];
               const status=document.getElementById('toolStatus');
               const runBtn=document.getElementById('toolRunBtn');
