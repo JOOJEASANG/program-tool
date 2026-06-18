@@ -1,5 +1,5 @@
 {
-  "version": "2026-06-18-pdf-export-storage-fix",
-  "label": "PDF 저장 오류 수정 · Storage 버킷 명시 · 임시파일 조회 안정화",
-  "updatedAt": "2026-06-18T10:45:00+09:00"
+  "version": "2026-06-18-pdf-export-fallback-v2",
+  "label": "PDF 저장 재시도 로직 추가 · Storage 실패 시 직접 업로드 방식 자동 전환",
+  "updatedAt": "2026-06-18T11:05:00+09:00"
 }
