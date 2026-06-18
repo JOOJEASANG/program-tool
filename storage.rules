@@ -19,6 +19,10 @@ service firebase.storage {
       allow read, delete: if isOwner(userId);
       allow create, update: if isOwner(userId) && isPdfUpload();
     }
+    match /preflight_temp/{userId}/{allPaths=**} {
+      allow read, delete: if isOwner(userId);
+      allow create, update: if isOwner(userId) && isPdfUpload();
+    }
     match /pdf_sessions/{userId}/{allPaths=**} {
       allow read, delete: if isOwner(userId);
       allow create, update: if isOwner(userId) && isPdfUpload();
