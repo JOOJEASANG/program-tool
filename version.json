@@ -1,5 +1,5 @@
 {
-  "version": "2026-06-18-pdf-export-fallback-v2",
-  "label": "PDF 저장 재시도 로직 추가 · Storage 실패 시 직접 업로드 방식 자동 전환",
-  "updatedAt": "2026-06-18T11:05:00+09:00"
+  "version": "2026-06-18-home-programs-one-row",
+  "label": "메인페이지 프로그램 카드 확대 · 데스크톱 한 줄 배치",
+  "updatedAt": "2026-06-18T11:20:00+09:00"
 }
