@@ -1,4 +1,5 @@
 import json
+import os
 from flask import Blueprint, request, jsonify, Response
 import fitz
 import firebase_admin.storage as fa_storage
@@ -12,6 +13,17 @@ pdf_bp = Blueprint("pdf", __name__)
 MAX_PDF_FILE_BYTES = 100 * 1024 * 1024
 MAX_PDF_FILES = 50
 MAX_REQUEST_PAGES = 2000
+DEFAULT_STORAGE_BUCKET = os.environ.get("FIREBASE_STORAGE_BUCKET", "program-tool.firebasestorage.app")
+
+
+def _bucket():
+    """Return the same Firebase Storage bucket used by the web client.
+
+    Cloud Functions can default to a legacy bucket name in some projects. The PDF
+    editor uploads temp files from the browser, so the backend must read from the
+    configured Firebase Storage bucket explicitly.
+    """
+    return fa_storage.bucket(DEFAULT_STORAGE_BUCKET)
 
 
 def _safe_float(value, fallback, min_value=0.0, max_value=100.0):
@@ -185,14 +197,14 @@ def process_storage(uid):
 
     # Download source PDFs from Storage
     try:
-        bucket = fa_storage.bucket()
+        bucket = _bucket()
         file_bytes_list = []
         for path in storage_paths:
             blob = bucket.blob(path)
             try:
                 blob.reload()
-            except Exception:
-                return jsonify({"detail": "업로드된 파일을 찾을 수 없습니다"}), 404
+            except Exception as e:
+                return jsonify({"detail": f"업로드된 임시 파일을 찾을 수 없습니다. 다시 저장을 눌러주세요. ({path})"}), 404
             if blob.size is not None and blob.size > MAX_PDF_FILE_BYTES:
                 return jsonify({"detail": "파일이 100 MB를 초과합니다"}), 413
             data = blob.download_as_bytes()
@@ -213,7 +225,7 @@ def process_storage(uid):
         return jsonify({"detail": f"PDF 처리 실패: {e}"}), 500
 
     # Clean up temp files (best-effort)
-    bucket_ref = fa_storage.bucket()
+    bucket_ref = _bucket()
     for path in storage_paths:
         try:
             bucket_ref.blob(path).delete()
