@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify
 from utils.auth import require_auth
+from utils.ai_logger import log_ai_usage
 import anthropic
 import os
 
@@ -10,11 +11,11 @@ writing_bp = Blueprint("writing", __name__)
 @require_auth
 def generate(uid):
     data = request.get_json(silent=True) or {}
-    content_type = data.get("content_type", "이메일")
-    tone = data.get("tone", "전문적")
+    content_type = str(data.get("content_type", "이메일"))[:80]
+    tone = str(data.get("tone", "전문적"))[:80]
     length = data.get("length", "medium")
-    topic = data.get("topic", "")
-    context = data.get("context", "")
+    topic = str(data.get("topic", ""))[:1000]
+    context = str(data.get("context", ""))[:4000]
 
     if not topic.strip():
         return jsonify({"detail": "주제/키워드를 입력해주세요"}), 400
@@ -47,6 +48,9 @@ def generate(uid):
             messages=[{"role": "user", "content": prompt}],
         )
         result = message.content[0].text
+        log_ai_usage(uid, "writing")
         return jsonify({"result": result})
     except anthropic.APIError as e:
         return jsonify({"detail": f"AI 생성 실패: {e}"}), 502
+    except Exception as e:
+        return jsonify({"detail": f"AI 생성 중 오류가 발생했습니다: {type(e).__name__}"}), 500
