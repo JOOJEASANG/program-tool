@@ -1,7 +1,7 @@
 import firebase_admin
 firebase_admin.initialize_app()
 
-from flask import Flask
+from flask import Flask, jsonify
 from routers.pdf import pdf_bp
 from routers.pdf_tools import pdf_tools_bp
 from routers.preflight import preflight_bp
@@ -9,14 +9,25 @@ from routers.report import report_bp
 from routers.invoice import invoice_bp
 from routers.writing import writing_bp
 from firebase_functions import https_fn, options
+from utils.permissions import AccessError, require_program_access_for_request
 
 flask_app = Flask(__name__)
+flask_app.config["MAX_CONTENT_LENGTH"] = 210 * 1024 * 1024
 flask_app.register_blueprint(pdf_bp, url_prefix="/api/pdf")
 flask_app.register_blueprint(pdf_tools_bp, url_prefix="/api/pdf-tools")
 flask_app.register_blueprint(preflight_bp, url_prefix="/api/preflight")
 flask_app.register_blueprint(report_bp, url_prefix="/api/report")
 flask_app.register_blueprint(invoice_bp, url_prefix="/api/invoice")
 flask_app.register_blueprint(writing_bp, url_prefix="/api/writing")
+
+
+@flask_app.before_request
+def enforce_program_permissions():
+    try:
+        require_program_access_for_request()
+    except AccessError as e:
+        return jsonify({"detail": str(e)}), e.status_code
+
 
 @flask_app.route("/health")
 def health():
