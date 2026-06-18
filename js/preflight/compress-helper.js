@@ -1,14 +1,14 @@
 // PDF checker compression helper.
-// Adds a shared-file PDF lightening tool without requiring another upload.
+// Adds a shared-file PDF lightening tool and a direct result download button.
 (function () {
-  if (window.__preflightCompressHelperV1) return;
-  window.__preflightCompressHelperV1 = true;
+  if (window.__preflightCompressHelperV2) return;
+  window.__preflightCompressHelperV2 = true;
 
   function install() {
     try {
       window.eval(`
-        if (!window.__preflightCompressToolInstalledV1) {
-          window.__preflightCompressToolInstalledV1 = true;
+        if (!window.__preflightCompressToolInstalledV2) {
+          window.__preflightCompressToolInstalledV2 = true;
           window.__preflightCompressTemp = window.__preflightCompressTemp || null;
 
           function __pfCompressEsc(v){return String(v??'').replace(/[<>&"']/g,ch=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;'}[ch]))}
@@ -50,10 +50,16 @@
             const mb=(f.size/1024/1024).toFixed(1);
             return '<div style="background:#ecfeff;border:1px solid #a5f3fc;color:#0f7490;border-radius:10px;padding:12px 14px;font-size:12px;line-height:1.5;margin-bottom:12px;"><div style="font-weight:900;margin-bottom:4px;">현재 업로드한 PDF 사용</div><div style="font-weight:700;color:#155e75;word-break:break-all;">'+__pfCompressEsc(f.name)+' · '+mb+' MB</div><div style="font-size:11px;color:#64748b;margin-top:4px;">이 파일을 다시 업로드하지 않고 바로 경량화합니다.</div></div>';
           }
-          async function __pfRunCompress(){
+          function __pfDownload(blob, filename){
+            const url=URL.createObjectURL(blob);
+            const a=document.createElement('a');
+            a.href=url; a.download=filename; a.click();
+            setTimeout(()=>URL.revokeObjectURL(url),1000);
+          }
+          async function __pfRunCompress(quality){
             const f=__pfCompressFile();
             if(!f) throw new Error('먼저 PDF 파일을 업로드하세요.');
-            const q=(document.getElementById('tm-quality')?.value||'balanced');
+            const q=quality||(document.getElementById('tm-quality')?.value||'balanced');
             const path=await __pfCompressPath(f);
             const token=await auth.currentUser.getIdToken(true);
             const resp=await fetch('/api/preflight/compress-storage',{
@@ -69,13 +75,54 @@
             const blob=await resp.blob();
             return {blob, filename: __pfCompressBase(f)+'_light_'+q+'.pdf'};
           }
+          async function __pfDirectCompressDownload(btn){
+            const old=btn?btn.textContent:'';
+            try{
+              if(btn){btn.disabled=true;btn.textContent='경량화 처리 중...';}
+              const result=await __pfRunCompress('balanced');
+              __pfDownload(result.blob,result.filename);
+              if(btn) btn.textContent='완료 · 다시 다운로드';
+            }catch(e){
+              alert('PDF 경량화 실패: '+(e.message||e));
+              if(btn) btn.textContent=old||'경량화 후 다운로드';
+            }finally{
+              if(btn) btn.disabled=false;
+            }
+          }
+          function __pfNeedsCompress(){
+            const f=__pfCompressFile();
+            if(!f) return false;
+            if(f.size>=20*1024*1024) return true;
+            const txt=(document.body.textContent||'');
+            return txt.includes('파일 용량/복잡도')||txt.includes('대용량 PDF')||txt.includes('페이지당 평균');
+          }
+          function __pfAddResultCompressButton(){
+            if(!__pfNeedsCompress()) return;
+            if(document.getElementById('resultCompressDownloadBtn')) return;
+            const summary=document.querySelector('.summary-card,.score-card,.result-summary,.results-summary,.results-header')||document.querySelector('.results-panel')||document.querySelector('main')||document.body;
+            if(!summary) return;
+            const wrap=document.createElement('div');
+            wrap.id='resultCompressDownloadBox';
+            wrap.style.cssText='margin:14px 0 8px;padding:13px 14px;border:1px solid #fed7aa;background:#fff7ed;border-radius:12px;color:#9a3412;font-size:12px;line-height:1.55;';
+            wrap.innerHTML='<div style="font-weight:900;margin-bottom:7px;">이 PDF는 용량이 커서 경량화가 권장됩니다.</div><div style="color:#64748b;margin-bottom:10px;">버튼을 누르면 현재 업로드한 파일을 다시 업로드하지 않고, 권장 품질로 가볍게 만든 PDF를 다운로드합니다.</div>';
+            const btn=document.createElement('button');
+            btn.id='resultCompressDownloadBtn';
+            btn.type='button';
+            btn.className='run-btn';
+            btn.style.cssText='min-height:38px;padding:0 16px;border-radius:10px;background:#1d4ed8;color:#fff;border:0;font-weight:900;cursor:pointer;';
+            btn.textContent='PDF 경량화 후 다운로드';
+            btn.onclick=function(){__pfDirectCompressDownload(btn);};
+            wrap.appendChild(btn);
+            if(summary.parentElement) summary.parentElement.insertBefore(wrap, summary.nextSibling);
+            else document.body.appendChild(wrap);
+          }
           function __pfInstallCompressDef(){
             if(typeof TOOL_DEFS==='undefined') return;
             TOOL_DEFS.compress = {
               title:'🪶 PDF 경량화/압축',
               desc:'용량이 큰 PDF를 적정 해상도 이미지 PDF로 다시 만들어 파일을 가볍게 합니다.',
               body:__pfCompressBox()+'<label class="tool-field-label">압축 강도</label><select id="tm-quality" class="tool-select"><option value="small">강하게 줄이기 · 화면확인용</option><option value="balanced" selected>권장 · 균형</option><option value="clear">선명도 우선 · 용량 조금 큼</option></select><div style="font-size:11px;color:#92400e;margin-top:8px;background:#fffbeb;border:1px solid #fde68a;padding:8px 10px;border-radius:8px;line-height:1.6;">※ 이미지/효과가 무거운 PDF를 가볍게 만드는 기능입니다. 페이지가 이미지화되므로 텍스트 검색·복사는 제한될 수 있습니다.</div>',
-              run:__pfRunCompress,
+              run:function(){return __pfRunCompress();},
             };
           }
           function __pfAddCompressButton(){
@@ -90,6 +137,15 @@
             btn.innerHTML='<span class="t-icon">🪶</span>PDF 경량화/압축<span class="t-desc">무거운 PDF 줄이기</span>';
             const ref=[...grid.querySelectorAll('.tool-btn')].find(b=>(b.textContent||'').includes('PDF 복구')||(b.textContent||'').includes('암호 설정'));
             if(ref) grid.insertBefore(btn,ref); else grid.appendChild(btn);
+          }
+          if(typeof renderResults==='function'&&!window.__preflightCompressRenderWrapped){
+            const oldRenderResults=renderResults;
+            renderResults=function(report){
+              const r=oldRenderResults.apply(this,arguments);
+              setTimeout(__pfAddResultCompressButton,80);
+              return r;
+            };
+            window.__preflightCompressRenderWrapped=true;
           }
           if(typeof openTool==='function'&&!window.__preflightCompressOpenWrapped){
             const oldOpenTool=openTool;
@@ -106,6 +162,8 @@
             selectFile=function(f){
               const r=oldSelectFile.apply(this,arguments);
               window.__preflightCompressTemp=null;
+              const oldBox=document.getElementById('resultCompressDownloadBox');
+              if(oldBox) oldBox.remove();
               __pfInstallCompressDef();
               return r;
             };
@@ -113,6 +171,7 @@
           }
           __pfInstallCompressDef();
           __pfAddCompressButton();
+          __pfAddResultCompressButton();
         }
       `);
     } catch (e) {
