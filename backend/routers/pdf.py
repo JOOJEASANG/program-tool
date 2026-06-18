@@ -10,7 +10,7 @@ from utils.auth import require_auth
 
 pdf_bp = Blueprint("pdf", __name__)
 
-MAX_PDF_FILE_BYTES = 100 * 1024 * 1024
+MAX_PDF_FILE_BYTES = 200 * 1024 * 1024
 MAX_PDF_FILES = 50
 MAX_REQUEST_PAGES = 2000
 DEFAULT_STORAGE_BUCKET = os.environ.get("FIREBASE_STORAGE_BUCKET", "program-tool.firebasestorage.app")
@@ -24,6 +24,10 @@ def _bucket():
     configured Firebase Storage bucket explicitly.
     """
     return fa_storage.bucket(DEFAULT_STORAGE_BUCKET)
+
+
+def _max_file_mb() -> int:
+    return MAX_PDF_FILE_BYTES // (1024 * 1024)
 
 
 def _safe_float(value, fallback, min_value=0.0, max_value=100.0):
@@ -53,7 +57,7 @@ def _validate_pdf_request(req: PdfProcessRequest, file_bytes_list: list[bytes]) 
     try:
         for data in file_bytes_list:
             if len(data) > MAX_PDF_FILE_BYTES:
-                raise ValueError("파일이 100 MB를 초과합니다")
+                raise ValueError(f"파일이 {_max_file_mb()} MB를 초과합니다")
             docs.append(fitz.open(stream=data, filetype="pdf"))
 
         for p in req.pages:
@@ -149,7 +153,7 @@ def process(uid):
             return jsonify({"detail": f"File '{f.filename}' is not a PDF"}), 400
         data = f.read()
         if len(data) > MAX_PDF_FILE_BYTES:
-            return jsonify({"detail": f"File '{f.filename}' exceeds 100 MB"}), 413
+            return jsonify({"detail": f"File '{f.filename}' exceeds {_max_file_mb()} MB"}), 413
         file_bytes_list.append(data)
 
     try:
@@ -206,10 +210,10 @@ def process_storage(uid):
             except Exception as e:
                 return jsonify({"detail": f"업로드된 임시 파일을 찾을 수 없습니다. 다시 저장을 눌러주세요. ({path})"}), 404
             if blob.size is not None and blob.size > MAX_PDF_FILE_BYTES:
-                return jsonify({"detail": "파일이 100 MB를 초과합니다"}), 413
+                return jsonify({"detail": f"파일이 {_max_file_mb()} MB를 초과합니다"}), 413
             data = blob.download_as_bytes()
             if len(data) > MAX_PDF_FILE_BYTES:
-                return jsonify({"detail": "파일이 100 MB를 초과합니다"}), 413
+                return jsonify({"detail": f"파일이 {_max_file_mb()} MB를 초과합니다"}), 413
             file_bytes_list.append(data)
     except Exception as e:
         return jsonify({"detail": f"Storage 다운로드 실패: {e}"}), 500
