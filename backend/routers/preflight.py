@@ -46,11 +46,11 @@ def check(uid):
 
     try:
         try:
-            checks = run_all_checks(doc)
+            checks = run_all_checks(doc, len(data))
             score = compute_score(checks)
         except Exception as e:
             traceback.print_exc()
-            return jsonify({"detail": f"검수 처리 실패: {type(e).__name__}: {e}"}), 500
+            return jsonify({"detail": f"검수 처리 실패: {type(e).__name__}: {e}. PDF 복구/정상화 후 다시 검수해 보세요."}), 500
 
         ai_feedback = None
 
