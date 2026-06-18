@@ -17,13 +17,11 @@ service cloud.firestore {
         && adminEmails().hasAny([request.auth.token.email, request.auth.token.email.lower()]);
     }
 
-    // settings/admin: any signed-in user can read (needed for admin check on every page).
-    // First-time bootstrap: writable when document does not yet exist OR by existing admins.
+    // settings/admin: signed-in users may read the admin list for UI checks.
+    // Admin bootstrap must be done outside the client app (Firebase Console/Admin SDK).
     match /settings/admin {
       allow read: if isSignedIn();
-      allow create: if isSignedIn()
-        && request.resource.data.keys().hasOnly(['emails'])
-        && request.resource.data.emails is list;
+      allow create: if false;
       allow update, delete: if isAdmin();
     }
 
@@ -54,6 +52,7 @@ service cloud.firestore {
 
       allow create: if isSignedIn()
         && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['uid', 'email', 'displayName', 'programs', 'createdAt'])
         && request.resource.data.uid == uid
         && request.resource.data.programs is map
         && (
