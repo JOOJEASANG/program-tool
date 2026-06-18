@@ -1,5 +1,5 @@
 {
-  "version": "2026-06-18-security-hardening",
-  "label": "서버 권한검사 강화 · Storage 경로검증 · 보안 규칙 보강 · OCR 오류 안내 개선",
-  "updatedAt": "2026-06-18T00:00:00+09:00"
+  "version": "2026-06-18-pdf-export-storage-fix",
+  "label": "PDF 저장 오류 수정 · Storage 버킷 명시 · 임시파일 조회 안정화",
+  "updatedAt": "2026-06-18T10:45:00+09:00"
 }
