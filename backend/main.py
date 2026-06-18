@@ -1,5 +1,9 @@
+import os
 import firebase_admin
-firebase_admin.initialize_app()
+
+firebase_admin.initialize_app(options={
+    "storageBucket": os.environ.get("FIREBASE_STORAGE_BUCKET", "program-tool.firebasestorage.app"),
+})
 
 from flask import Flask, jsonify
 from routers.pdf import pdf_bp
