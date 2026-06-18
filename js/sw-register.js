@@ -29,7 +29,7 @@
       loadScript('homeCleanupScript', '/js/home-cleanup.js?v=20260618-1');
     }
     if (location.pathname.endsWith('/tools/pdf-editor.html')) {
-      loadScript('pdfEditorModuleLoaderScript', '/js/pdf-editor/loader.js?v=20260618-2');
+      loadScript('pdfEditorModuleLoaderScript', '/js/pdf-editor/loader.js?v=20260618-3');
     }
     if (location.pathname.endsWith('/tools/design-studio.html')) {
       loadScript('designStudioHelperScript', '/js/design-studio/helper-loader.js?v=20260518-1');
