@@ -9,6 +9,10 @@ from utils.auth import require_auth
 
 pdf_bp = Blueprint("pdf", __name__)
 
+MAX_PDF_FILE_BYTES = 100 * 1024 * 1024
+MAX_PDF_FILES = 50
+MAX_REQUEST_PAGES = 2000
+
 
 def _safe_float(value, fallback, min_value=0.0, max_value=100.0):
     try:
@@ -16,6 +20,54 @@ def _safe_float(value, fallback, min_value=0.0, max_value=100.0):
     except Exception:
         n = fallback
     return max(min_value, min(max_value, n))
+
+
+def _validate_pdf_request(req: PdfProcessRequest, file_bytes_list: list[bytes]) -> None:
+    """Validate page references before handing work to PyMuPDF.
+
+    Pydantic validates shape, but actual file/page indexes must be checked against
+    the uploaded documents to avoid 500s and accidental out-of-range access.
+    """
+    if not file_bytes_list:
+        raise ValueError("파일이 없습니다")
+    if len(file_bytes_list) > MAX_PDF_FILES:
+        raise ValueError(f"파일은 최대 {MAX_PDF_FILES}개까지 처리할 수 있습니다")
+    if not req.pages:
+        raise ValueError("출력할 페이지가 없습니다")
+    if len(req.pages) > MAX_REQUEST_PAGES:
+        raise ValueError(f"페이지는 최대 {MAX_REQUEST_PAGES}개까지 처리할 수 있습니다")
+
+    docs = []
+    try:
+        for data in file_bytes_list:
+            if len(data) > MAX_PDF_FILE_BYTES:
+                raise ValueError("파일이 100 MB를 초과합니다")
+            docs.append(fitz.open(stream=data, filetype="pdf"))
+
+        for p in req.pages:
+            if p.excluded or p.page_type in ("divider", "blank"):
+                continue
+            if p.file_index < 0 or p.file_index >= len(docs):
+                raise ValueError("페이지 정보의 파일 번호가 올바르지 않습니다")
+            if p.page_index < 0 or p.page_index >= len(docs[p.file_index]):
+                raise ValueError("페이지 정보의 페이지 번호가 올바르지 않습니다")
+    finally:
+        for doc in docs:
+            try:
+                doc.close()
+            except Exception:
+                pass
+
+
+def _validate_storage_path(uid: str, path: str) -> None:
+    if not isinstance(path, str) or not path:
+        raise ValueError("잘못된 파일 경로입니다")
+    if ".." in path or path.startswith("/"):
+        raise PermissionError("허용되지 않은 파일 경로입니다")
+    if not path.startswith(f"pdf_temp/{uid}/"):
+        raise PermissionError("허용되지 않은 파일 경로입니다")
+    if not path.lower().endswith(".pdf"):
+        raise ValueError("PDF 파일만 처리할 수 있습니다")
 
 
 def _patch_divider_renderer():
@@ -76,19 +128,24 @@ def process(uid):
     files = request.files.getlist("files")
     if not files:
         return jsonify({"detail": "No files provided"}), 400
+    if len(files) > MAX_PDF_FILES:
+        return jsonify({"detail": f"파일은 최대 {MAX_PDF_FILES}개까지 처리할 수 있습니다"}), 400
 
     file_bytes_list = []
     for f in files:
         if not (f.filename or "").lower().endswith(".pdf"):
             return jsonify({"detail": f"File '{f.filename}' is not a PDF"}), 400
         data = f.read()
-        if len(data) > 100 * 1024 * 1024:
+        if len(data) > MAX_PDF_FILE_BYTES:
             return jsonify({"detail": f"File '{f.filename}' exceeds 100 MB"}), 413
         file_bytes_list.append(data)
 
     try:
+        _validate_pdf_request(req, file_bytes_list)
         _patch_divider_renderer()
         output_bytes = pdf_ops.process_pdf(file_bytes_list, req)
+    except ValueError as e:
+        return jsonify({"detail": str(e)}), 400
     except Exception as e:
         return jsonify({"detail": f"PDF processing failed: {e}"}), 500
 
@@ -113,21 +170,45 @@ def process_storage(uid):
 
     if not storage_paths:
         return jsonify({"detail": "No files provided"}), 400
+    if not isinstance(storage_paths, list):
+        return jsonify({"detail": "storage_paths 형식이 올바르지 않습니다"}), 400
+    if len(storage_paths) > MAX_PDF_FILES:
+        return jsonify({"detail": f"파일은 최대 {MAX_PDF_FILES}개까지 처리할 수 있습니다"}), 400
+
+    try:
+        for path in storage_paths:
+            _validate_storage_path(uid, path)
+    except PermissionError as e:
+        return jsonify({"detail": str(e)}), 403
+    except ValueError as e:
+        return jsonify({"detail": str(e)}), 400
 
     # Download source PDFs from Storage
     try:
         bucket = fa_storage.bucket()
         file_bytes_list = []
         for path in storage_paths:
-            data = bucket.blob(path).download_as_bytes()
+            blob = bucket.blob(path)
+            try:
+                blob.reload()
+            except Exception:
+                return jsonify({"detail": "업로드된 파일을 찾을 수 없습니다"}), 404
+            if blob.size is not None and blob.size > MAX_PDF_FILE_BYTES:
+                return jsonify({"detail": "파일이 100 MB를 초과합니다"}), 413
+            data = blob.download_as_bytes()
+            if len(data) > MAX_PDF_FILE_BYTES:
+                return jsonify({"detail": "파일이 100 MB를 초과합니다"}), 413
             file_bytes_list.append(data)
     except Exception as e:
         return jsonify({"detail": f"Storage 다운로드 실패: {e}"}), 500
 
     # Process
     try:
+        _validate_pdf_request(req, file_bytes_list)
         _patch_divider_renderer()
         output_bytes = pdf_ops.process_pdf(file_bytes_list, req)
+    except ValueError as e:
+        return jsonify({"detail": str(e)}), 400
     except Exception as e:
         return jsonify({"detail": f"PDF 처리 실패: {e}"}), 500
 

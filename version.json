@@ -1,5 +1,5 @@
 {
-  "version": "2026-06-05-multi-file-default-a4",
-  "label": "기본 A4 용지 고정 · 여러 파일 동시 선택 지원 · 저장 버튼 균등 비율",
-  "updatedAt": "2026-06-05T10:00:00+09:00"
+  "version": "2026-06-18-security-hardening",
+  "label": "서버 권한검사 강화 · Storage 경로검증 · 보안 규칙 보강 · OCR 오류 안내 개선",
+  "updatedAt": "2026-06-18T00:00:00+09:00"
 }

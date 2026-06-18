@@ -1,4 +1,28 @@
 .claude/
+
+# Python
 __pycache__/
 *.pyc
+*.pyo
+.venv/
+venv/
+backend/.venv/
 backend/venv/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+firebase-service-account.json
+backend/firebase-service-account.json
+*.service-account.json
+
+# Node / Firebase local state
+node_modules/
+.firebase/
+.firebaserc.local
+
+# Logs and OS files
+*.log
+.DS_Store
+Thumbs.db

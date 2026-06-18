@@ -8,6 +8,7 @@ from utils.auth import require_auth
 pdf_tools_bp = Blueprint("pdf_tools", __name__)
 
 MAX_FILE = 100 * 1024 * 1024  # 100 MB
+MAX_OCR_PAGES = 30
 
 
 def _read_pdf(files_key: str = "file") -> bytes:
@@ -146,7 +147,7 @@ def compress(uid):
         src = fitz.open(stream=data, filetype="pdf")
         out = fitz.open()
         for page in src:
-            pix = page.get_pixmap(dpi=dpi)
+            pix = page.get_pixmap(dpi=dpi, alpha=False)
             jpg_bytes = pix.tobytes("jpeg", jpg_quality=jpg_q)
             new_page = out.new_page(width=page.rect.width, height=page.rect.height)
             new_page.insert_image(page.rect, stream=jpg_bytes)
@@ -209,7 +210,7 @@ def _is_blank(page: fitz.Page, threshold: float = 0.005) -> bool:
     """A page is blank if it has no text and its rendered pixmap is mostly white."""
     if page.get_text("text").strip():
         return False
-    pix = page.get_pixmap(dpi=72)
+    pix = page.get_pixmap(dpi=72, alpha=False)
     samples = pix.samples
     n = pix.width * pix.height
     if n == 0:
@@ -259,21 +260,38 @@ def ocr(uid):
         pdf_data = _read_pdf()
     except ValueError as e:
         return jsonify({"detail": str(e)}), 400
+
     try:
         import pytesseract
         from PIL import Image
+        try:
+            pytesseract.get_tesseract_version()
+        except Exception:
+            return jsonify({"detail": "OCR 실행 파일(Tesseract)이 서버에 설치되어 있지 않습니다. 관리자에게 문의하세요."}), 501
 
         src = fitz.open(stream=pdf_data, filetype="pdf")
+        if len(src) > MAX_OCR_PAGES:
+            src.close()
+            return jsonify({"detail": f"OCR은 최대 {MAX_OCR_PAGES}페이지까지 처리할 수 있습니다."}), 413
+
         out = fitz.open()
-        for page_num in range(len(src)):
-            page = src[page_num]
-            pix = page.get_pixmap(matrix=fitz.Matrix(300 / 72, 300 / 72))
-            img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
-            pdf_bytes = pytesseract.image_to_pdf_or_hocr(img, extension="pdf", lang="kor+eng")
-            ocr_page = fitz.open(stream=pdf_bytes, filetype="pdf")
-            out.insert_pdf(ocr_page)
-            ocr_page.close()
-        src.close()
+        try:
+            for page_num in range(len(src)):
+                page = src[page_num]
+                pix = page.get_pixmap(matrix=fitz.Matrix(300 / 72, 300 / 72), alpha=False)
+                img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+                try:
+                    pdf_bytes = pytesseract.image_to_pdf_or_hocr(img, extension="pdf", lang="kor+eng")
+                except pytesseract.TesseractError as e:
+                    out.close()
+                    src.close()
+                    return jsonify({"detail": f"OCR 언어 데이터(kor+eng) 또는 실행 환경 오류: {e}"}), 501
+                ocr_page = fitz.open(stream=pdf_bytes, filetype="pdf")
+                out.insert_pdf(ocr_page)
+                ocr_page.close()
+        finally:
+            src.close()
+
         buf = io.BytesIO()
         out.save(buf)
         out.close()
