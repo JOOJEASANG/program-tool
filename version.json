@@ -1,5 +1,5 @@
 {
-  "version": "2026-06-18-preflight-compress-tool-v1",
-  "label": "PDF 검수기 경량화/압축 다운로드 추가 · 무거운 이미지 PDF 용량 줄이기",
-  "updatedAt": "2026-06-18T12:55:00+09:00"
+  "version": "2026-06-18-preflight-result-compress-v2",
+  "label": "PDF 검수 결과 화면에서 경량화 후 다운로드 버튼 자동 생성",
+  "updatedAt": "2026-06-18T13:05:00+09:00"
 }
