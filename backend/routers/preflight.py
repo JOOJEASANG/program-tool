@@ -1,6 +1,7 @@
 import io
 import traceback
 import fitz
+import firebase_admin.storage as fa_storage
 from flask import Blueprint, request, jsonify, Response
 
 from models.schemas import PreflightReport
@@ -8,6 +9,7 @@ from services.preflight_svc import run_all_checks, compute_score
 from utils.auth import require_auth
 
 preflight_bp = Blueprint("preflight", __name__)
+MAX_PDF_BYTES = 200 * 1024 * 1024
 
 
 def _read_pdf_from_request():
@@ -17,9 +19,43 @@ def _read_pdf_from_request():
     if not (file.filename or "").lower().endswith(".pdf"):
         return None, None, (jsonify({"detail": "PDF 파일만 업로드 가능합니다"}), 400)
     data = file.read()
-    if len(data) > 200 * 1024 * 1024:
+    if len(data) > MAX_PDF_BYTES:
         return None, None, (jsonify({"detail": "파일이 200 MB 제한을 초과합니다"}), 413)
     return file, data, None
+
+
+def _validate_storage_path(uid: str, path: str | None):
+    if not path or not isinstance(path, str):
+        return jsonify({"detail": "Storage 파일 경로가 없습니다"}), 400
+    if ".." in path or path.startswith("/"):
+        return jsonify({"detail": "잘못된 Storage 파일 경로입니다"}), 400
+    if not path.startswith(f"preflight_temp/{uid}/"):
+        return jsonify({"detail": "이 파일에 접근할 권한이 없습니다"}), 403
+    if not path.lower().endswith(".pdf"):
+        return jsonify({"detail": "PDF 파일만 처리할 수 있습니다"}), 400
+    return None
+
+
+def _read_pdf_from_storage(uid: str):
+    payload = request.get_json(silent=True) or {}
+    path = payload.get("storage_path")
+    filename = (payload.get("filename") or "document.pdf").strip() or "document.pdf"
+    err = _validate_storage_path(uid, path)
+    if err:
+        return None, None, None, err
+    try:
+        bucket = fa_storage.bucket()
+        blob = bucket.blob(path)
+        blob.reload()
+        size = int(blob.size or 0)
+        if size > MAX_PDF_BYTES:
+            return None, None, None, (jsonify({"detail": "파일이 200 MB 제한을 초과합니다"}), 413)
+        data = blob.download_as_bytes()
+        if len(data) > MAX_PDF_BYTES:
+            return None, None, None, (jsonify({"detail": "파일이 200 MB 제한을 초과합니다"}), 413)
+        return filename, data, path, None
+    except Exception as e:
+        return None, None, path, (jsonify({"detail": f"Storage에서 PDF 파일을 읽지 못했습니다: {type(e).__name__}: {e}"}), 404)
 
 
 def _open_pdf(data: bytes) -> fitz.Document:
@@ -32,13 +68,7 @@ def _safe_pdf_name(filename: str | None, suffix: str) -> str:
     return f"{base}_{suffix}.pdf"
 
 
-@preflight_bp.route("/check", methods=["POST"])
-@require_auth
-def check(uid):
-    file, data, err = _read_pdf_from_request()
-    if err:
-        return err
-
+def _run_check_response(filename: str, data: bytes):
     try:
         doc = _open_pdf(data)
     except Exception:
@@ -52,14 +82,12 @@ def check(uid):
             traceback.print_exc()
             return jsonify({"detail": f"검수 처리 실패: {type(e).__name__}: {e}. PDF 복구/정상화 후 다시 검수해 보세요."}), 500
 
-        ai_feedback = None
-
         try:
             report = PreflightReport(
-                filename=file.filename or "document.pdf",
+                filename=filename or "document.pdf",
                 page_count=len(doc),
                 checks=checks,
-                ai_feedback=ai_feedback,
+                ai_feedback=None,
                 score=score,
             )
             return jsonify(report.model_dump())
@@ -70,21 +98,25 @@ def check(uid):
         doc.close()
 
 
-@preflight_bp.route("/fix", methods=["POST"])
+@preflight_bp.route("/check", methods=["POST"])
 @require_auth
-def fix(uid):
-    """Create a safer normalized PDF after preflight.
-
-    This is a rule-based free fixer. It rebuilds the PDF structure, normalizes page
-    boxes to the first valid page size, deflates streams, removes broken garbage,
-    and falls back to rasterizing individual pages when vector placement fails.
-    It cannot restore missing image detail, unknown passwords, or fonts that were
-    never embedded in the source file.
-    """
+def check(uid):
     file, data, err = _read_pdf_from_request()
     if err:
         return err
+    return _run_check_response(file.filename or "document.pdf", data)
 
+
+@preflight_bp.route("/check-storage", methods=["POST"])
+@require_auth
+def check_storage(uid):
+    filename, data, _path, err = _read_pdf_from_storage(uid)
+    if err:
+        return err
+    return _run_check_response(filename or "document.pdf", data)
+
+
+def _fix_pdf_response(filename: str, data: bytes):
     try:
         src = _open_pdf(data)
     except Exception as e:
@@ -151,7 +183,7 @@ def fix(uid):
 
         buf = io.BytesIO()
         out.save(buf, garbage=4, deflate=True, deflate_images=True, deflate_fonts=True, clean=True)
-        fixed_name = _safe_pdf_name(file.filename, "repaired")
+        fixed_name = _safe_pdf_name(filename, "repaired")
         note = f"rebuilt-clean;copied={copied_pages};rasterized={rasterized_pages};skipped={','.join(map(str, skipped_pages))}"
         return Response(
             buf.getvalue(),
@@ -172,3 +204,22 @@ def fix(uid):
         except Exception:
             pass
         out.close()
+
+
+@preflight_bp.route("/fix", methods=["POST"])
+@require_auth
+def fix(uid):
+    """Create a safer normalized PDF after preflight."""
+    file, data, err = _read_pdf_from_request()
+    if err:
+        return err
+    return _fix_pdf_response(file.filename or "document.pdf", data)
+
+
+@preflight_bp.route("/fix-storage", methods=["POST"])
+@require_auth
+def fix_storage(uid):
+    filename, data, _path, err = _read_pdf_from_storage(uid)
+    if err:
+        return err
+    return _fix_pdf_response(filename or "document.pdf", data)
