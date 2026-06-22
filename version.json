@@ -1,5 +1,5 @@
 {
-  "version": "2026-06-18-preflight-result-compress-v3",
-  "label": "PDF 검수 결과 경량화 다운로드 버튼 직접 감시 적용",
-  "updatedAt": "2026-06-18T13:15:00+09:00"
+  "version": "2026-06-18-pdf-font-render-v1",
+  "label": "PDF 편집기 글꼴 표시 안정화",
+  "updatedAt": "2026-06-18T13:25:00+09:00"
 }
