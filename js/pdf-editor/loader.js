@@ -1,10 +1,11 @@
 // PDF editor module loader.
 // Add new PDF editor modules here instead of growing tools/pdf-editor.html.
 (function () {
-  if (window.__pdfEditorModuleLoaderV11) return;
-  window.__pdfEditorModuleLoaderV11 = true;
+  if (window.__pdfEditorModuleLoaderV12) return;
+  window.__pdfEditorModuleLoaderV12 = true;
 
   const MODULES = [
+    '/js/pdf-editor/font-render-fix.js?v=20260618-1',
     '/js/pdf-editor/upload-fix.js?v=20260618-3',
     '/js/pdf-editor/live-preview.js?v=20260618-2',
     '/js/pdf-editor/layout-export.js?v=20260518-1',
@@ -21,7 +22,9 @@
     if ([...document.scripts].some((script) => script.src && script.src.includes(clean))) return;
     const script = document.createElement('script');
     script.src = src;
-    script.defer = true;
+    // Dynamic scripts are async by default. Keep module execution order so the
+    // PDF.js font patch is installed before upload-fix opens a document.
+    script.async = false;
     document.head.appendChild(script);
   }
 
