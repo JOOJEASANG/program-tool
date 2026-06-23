@@ -19,6 +19,7 @@ PROGRAM_BY_PREFIX: tuple[tuple[str, str], ...] = (
     ("/api/invoice", "invoice"),
     ("/api/report", "report"),
     ("/api/writing", "writing"),
+    ("/api/ai", "design-studio"),
 )
 
 
