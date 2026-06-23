@@ -1,5 +1,5 @@
 {
-  "version": "2026-06-18-pdf-font-render-v1",
-  "label": "PDF 편집기 글꼴 표시 안정화",
-  "updatedAt": "2026-06-18T13:25:00+09:00"
+  "version": "2026-06-23-design-studio-ai-bg-v1",
+  "label": "디자인스튜디오 AI 배경생성 API 복구 · Gemini/GPT 연동",
+  "updatedAt": "2026-06-23T00:00:00+09:00"
 }
