@@ -6,8 +6,10 @@ import socket
 import urllib.error
 import urllib.parse
 import urllib.request
+from functools import lru_cache
 from typing import Any
 
+from firebase_admin import firestore
 from flask import Blueprint, jsonify, request
 
 from utils.ai_logger import log_ai_usage
@@ -27,14 +29,45 @@ class UpstreamError(Exception):
         self.message = message
 
 
-def _provider_key(provider: str) -> str | None:
+@lru_cache(maxsize=1)
+def _db():
+    return firestore.client()
+
+
+def _admin_ai_config() -> dict[str, Any]:
+    """Read the AI keys and provider choices saved by admin.html.
+
+    Admin settings are stored in Firestore at settings/config:
+      - googleApiKey
+      - openaiApiKey
+      - aiProviders.image
+    Environment variables remain as a deployment fallback only.
+    """
+    try:
+        snap = _db().collection("settings").document("config").get()
+        return (snap.to_dict() or {}) if snap.exists else {}
+    except Exception:
+        return {}
+
+
+def _provider_key(provider: str, config: dict[str, Any]) -> str | None:
     if provider == "openai":
-        return os.environ.get("OPENAI_API_KEY")
+        return str(config.get("openaiApiKey") or "").strip() or os.environ.get("OPENAI_API_KEY")
     return (
-        os.environ.get("GEMINI_API_KEY")
+        str(config.get("googleApiKey") or config.get("openaiKey") or "").strip()
+        or os.environ.get("GEMINI_API_KEY")
         or os.environ.get("GOOGLE_GENAI_API_KEY")
         or os.environ.get("GOOGLE_API_KEY")
     )
+
+
+def _admin_image_provider(config: dict[str, Any]) -> str:
+    providers = config.get("aiProviders") or {}
+    if isinstance(providers, dict):
+        value = str(providers.get("image") or "").strip().lower()
+        if value in ("google", "openai"):
+            return value
+    return "google"
 
 
 def _extract_error_message(raw: bytes, fallback: str) -> str:
@@ -85,7 +118,7 @@ def _openai_size(aspect: str) -> str:
 
 
 def _generate_openai(prompt: str, aspect: str, api_key: str) -> tuple[str, str]:
-    model = os.environ.get("OPENAI_IMAGE_MODEL", "gpt-image-2")
+    model = os.environ.get("OPENAI_IMAGE_MODEL", "gpt-image-1")
     payload = {
         "model": model,
         "prompt": prompt,
@@ -105,37 +138,32 @@ def _generate_openai(prompt: str, aspect: str, api_key: str) -> tuple[str, str]:
     return str(images[0]["b64_json"]), "image/png"
 
 
-def _generate_gemini(prompt: str, aspect: str, api_key: str) -> tuple[str, str]:
-    model = os.environ.get("GEMINI_IMAGE_MODEL", "gemini-3.1-flash-image")
+def _generate_google(prompt: str, aspect: str, api_key: str) -> tuple[str, str]:
+    """Generate an image with the Imagen model selected by the admin page."""
+    model = os.environ.get("GOOGLE_IMAGE_MODEL", "imagen-4.0-generate-001")
     encoded_model = urllib.parse.quote(model, safe=".-_")
     payload = {
-        "contents": [{"parts": [{"text": prompt}]}],
-        "generationConfig": {
-            "responseModalities": ["IMAGE"],
-            "responseFormat": {
-                "image": {
-                    "aspectRatio": _aspect_ratio(aspect),
-                    "imageSize": os.environ.get("GEMINI_IMAGE_SIZE", "1K"),
-                }
-            },
+        "instances": [{"prompt": prompt}],
+        "parameters": {
+            "sampleCount": 1,
+            "aspectRatio": _aspect_ratio(aspect),
+            "personGeneration": "allow_adult",
         },
     }
     data = _post_json(
-        "Gemini",
-        f"https://generativelanguage.googleapis.com/v1/models/{encoded_model}:generateContent",
+        "Google Imagen",
+        f"https://generativelanguage.googleapis.com/v1beta/models/{encoded_model}:predict",
         payload,
         {"x-goog-api-key": api_key},
     )
-    for candidate in data.get("candidates") or []:
-        content = candidate.get("content") if isinstance(candidate, dict) else None
-        for part in (content or {}).get("parts") or []:
-            if not isinstance(part, dict):
-                continue
-            inline = part.get("inlineData") or part.get("inline_data")
-            if isinstance(inline, dict) and inline.get("data"):
-                mime_type = inline.get("mimeType") or inline.get("mime_type") or "image/png"
-                return str(inline["data"]), str(mime_type)
-    raise UpstreamError("Gemini", 502, "Gemini 응답에 생성된 이미지가 없습니다")
+    predictions = data.get("predictions") or []
+    for prediction in predictions:
+        if not isinstance(prediction, dict):
+            continue
+        image = prediction.get("bytesBase64Encoded") or prediction.get("bytes_base64_encoded")
+        if image:
+            return str(image), str(prediction.get("mimeType") or prediction.get("mime_type") or "image/png")
+    raise UpstreamError("Google Imagen", 502, "Google Imagen 응답에 생성된 이미지가 없습니다")
 
 
 @ai_image_bp.route("/generate-bg", methods=["POST"])
@@ -143,43 +171,52 @@ def _generate_gemini(prompt: str, aspect: str, api_key: str) -> tuple[str, str]:
 def generate_background(uid: str):
     data = request.get_json(silent=True) or {}
     prompt = str(data.get("prompt") or "").strip()
-    provider = str(data.get("provider") or "google").strip().lower()
+    requested_provider = str(data.get("provider") or "").strip().lower()
     aspect = str(data.get("aspect") or "square").strip().lower()
 
     if not prompt:
         return jsonify({"detail": "배경 분위기 또는 디자인 설명을 입력해주세요"}), 400
     if len(prompt) > MAX_PROMPT_CHARS:
         return jsonify({"detail": f"AI 배경 요청 문구는 {MAX_PROMPT_CHARS:,}자 이하여야 합니다"}), 400
-    if provider not in ("google", "openai"):
+    if requested_provider and requested_provider not in ("google", "openai"):
         return jsonify({"detail": "지원하지 않는 AI 모델입니다"}), 400
     if aspect not in ("wide", "tall", "square"):
         aspect = "square"
 
-    requested_provider = provider
-    api_key = _provider_key(provider)
+    config = _admin_ai_config()
+    admin_provider = _admin_image_provider(config)
+    provider = requested_provider or admin_provider
+    api_key = _provider_key(provider, config)
 
-    # Keep the feature usable when only one image provider is configured.
+    # If the requested UI provider has no key, first use the provider selected on
+    # the admin page, then try the remaining configured provider.
+    if not api_key and provider != admin_provider:
+        admin_key = _provider_key(admin_provider, config)
+        if admin_key:
+            provider, api_key = admin_provider, admin_key
     if not api_key:
         fallback = "openai" if provider == "google" else "google"
-        fallback_key = _provider_key(fallback)
+        fallback_key = _provider_key(fallback, config)
         if fallback_key:
             provider, api_key = fallback, fallback_key
-        else:
-            return jsonify({
-                "detail": "AI 배경 생성 API 키가 설정되지 않았습니다. GEMINI_API_KEY 또는 OPENAI_API_KEY를 Functions 환경에 등록해주세요."
-            }), 503
+
+    if not api_key:
+        return jsonify({
+            "detail": "관리자페이지에 Google 또는 OpenAI API 키가 등록되어 있지 않습니다. 관리자 설정의 AI API 키를 확인해주세요."
+        }), 503
 
     try:
         if provider == "openai":
             b64_json, mime_type = _generate_openai(prompt, aspect, api_key)
         else:
-            b64_json, mime_type = _generate_gemini(prompt, aspect, api_key)
+            b64_json, mime_type = _generate_google(prompt, aspect, api_key)
         log_ai_usage(uid, "design_studio_background")
         return jsonify({
             "b64_json": b64_json,
             "mime_type": mime_type,
             "provider": provider,
-            "requested_provider": requested_provider,
+            "requested_provider": requested_provider or admin_provider,
+            "admin_provider": admin_provider,
         })
     except UpstreamError as exc:
         status = 429 if exc.status == 429 else 502 if exc.status < 500 else min(exc.status, 504)
