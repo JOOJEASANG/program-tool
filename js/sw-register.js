@@ -32,7 +32,7 @@
       loadScript('pdfEditorModuleLoaderScript', '/js/pdf-editor/loader.js?v=20260618-4');
     }
     if (location.pathname.endsWith('/tools/design-studio.html')) {
-      loadScript('designStudioHelperScript', '/js/design-studio/helper-loader.js?v=20260518-1');
+      loadScript('designStudioHelperScript', '/js/design-studio/helper-loader.js?v=20260623-1');
     }
     if (location.pathname.endsWith('/tools/pdf-Checker.html') || location.pathname.endsWith('/tools/preflight.html')) {
       loadScript('preflightFixDownloadScript', '/js/preflight/fix-download.js?v=20260618-3');
