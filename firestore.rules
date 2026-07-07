@@ -18,10 +18,21 @@ service cloud.firestore {
     }
 
     // settings/admin: signed-in users may read the admin list for UI checks.
-    // Admin bootstrap must be done outside the client app (Firebase Console/Admin SDK).
+    // Initial bootstrap is allowed only when the admin document does not exist,
+    // and only for the current signed-in email as the single first admin.
     match /settings/admin {
       allow read: if isSignedIn();
-      allow create: if false;
+      allow create: if isSignedIn()
+        && !exists(/databases/$(database)/documents/settings/admin)
+        && request.auth.token.email != null
+        && request.resource.data.keys().hasOnly(['emails'])
+        && request.resource.data.emails is list
+        && request.resource.data.emails.size() == 1
+        && request.resource.data.emails[0] is string
+        && (
+          request.resource.data.emails[0] == request.auth.token.email
+          || request.resource.data.emails[0] == request.auth.token.email.lower()
+        );
       allow update, delete: if isAdmin();
     }
 
