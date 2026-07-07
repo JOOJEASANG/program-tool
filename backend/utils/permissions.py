@@ -1,7 +1,7 @@
 """Server-side program access checks for API routes.
 
-Frontend permission checks are useful for UX, but every paid/restricted API must also
-be protected on the backend because users can call /api/** directly.
+All signed-in members may use non-AI programs. AI routes remain controlled by the
+admin AI feature switch stored at settings/programs.aiEnabled.
 """
 from __future__ import annotations
 
@@ -67,42 +67,22 @@ def verify_bearer_token() -> dict:
         raise AccessError("로그인 정보가 유효하지 않습니다.", 401)
 
 
-def _lower_list(values) -> list[str]:
-    if not isinstance(values, list):
-        return []
-    return [str(v).strip().lower() for v in values if str(v).strip()]
+def ai_enabled() -> bool:
+    """Read the global AI feature switch. Missing settings default to enabled."""
+    try:
+        programs_doc = _db().collection("settings").document("programs").get()
+        programs_data = (programs_doc.to_dict() or {}) if programs_doc.exists else {}
+        return programs_data.get("aiEnabled") is not False
+    except Exception:
+        # Do not accidentally lock normal members out because of a transient read issue.
+        return True
 
 
 def has_program_access(uid: str, email: str, program_id: str) -> bool:
-    """Check admin, public flag, or per-user permission for a program."""
-    db = _db()
-    email_lc = (email or "").strip().lower()
-
-    programs_doc = db.collection("settings").document("programs").get()
-    programs_data = (programs_doc.to_dict() or {}) if programs_doc.exists else {}
-
-    # Global AI switch. When disabled in admin, AI routes are unavailable
-    # regardless of admin/public/user program permission.
-    if is_ai_feature_path(request.path) and programs_data.get("aiEnabled") is False:
-        return False
-
-    admin_doc = db.collection("settings").document("admin").get()
-    if admin_doc.exists:
-        admin_emails = _lower_list((admin_doc.to_dict() or {}).get("emails"))
-        if email_lc and email_lc in admin_emails:
-            return True
-
-    public_flags = programs_data.get("public") or {}
-    if isinstance(public_flags, dict) and public_flags.get(program_id) is True:
-        return True
-
-    perm_doc = db.collection("user_permissions").document(uid).get()
-    if perm_doc.exists:
-        programs = (perm_doc.to_dict() or {}).get("programs") or {}
-        if isinstance(programs, dict) and programs.get(program_id) is True:
-            return True
-
-    return False
+    """All signed-in members can use free programs; AI obeys the global switch."""
+    if is_ai_feature_path(request.path):
+        return ai_enabled()
+    return True
 
 
 def require_program_access_for_request():
@@ -120,6 +100,6 @@ def require_program_access_for_request():
     if not has_program_access(uid, email, program_id):
         if is_ai_feature_path(request.path):
             raise AccessError("AI 기능이 관리자 설정에서 비활성화되어 있습니다.", 403)
-        raise AccessError("이 프로그램 사용 권한이 없습니다. 관리자 승인 후 이용할 수 있습니다.", 403)
+        raise AccessError("로그인한 회원만 사용할 수 있습니다.", 403)
 
     return decoded
