@@ -1,12 +1,31 @@
 import os
+from functools import lru_cache
 
 import anthropic
+from firebase_admin import firestore
 from flask import Blueprint, jsonify, request
 
 from utils.ai_logger import log_ai_usage
 from utils.auth import require_auth
 
 writing_bp = Blueprint("writing", __name__)
+
+
+@lru_cache(maxsize=1)
+def _db():
+    return firestore.client()
+
+
+def get_writing_api_key():
+    try:
+        doc = _db().collection("settings").document("config").get()
+        data = doc.to_dict() if doc.exists else {}
+        key = str((data or {}).get("anthropicApiKey") or "").strip()
+        if key:
+            return key
+    except Exception:
+        pass
+    return os.environ.get("ANTHROPIC_API_KEY")
 
 
 @writing_bp.route("/generate", methods=["POST"])
@@ -22,9 +41,9 @@ def generate(uid):
     if not topic.strip():
         return jsonify({"detail": "주제/키워드를 입력해주세요"}), 400
 
-    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    api_key = get_writing_api_key()
     if not api_key:
-        return jsonify({"detail": "AI 글쓰기 API 키가 설정되지 않았습니다. 관리자에게 문의해주세요."}), 500
+        return jsonify({"detail": "AI 글쓰기 API 키가 설정되지 않았습니다. 관리자 설정을 확인해주세요."}), 500
 
     length_guide = {
         "short": "200자 이내",
