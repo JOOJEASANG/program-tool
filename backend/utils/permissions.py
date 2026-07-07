@@ -22,6 +22,11 @@ PROGRAM_BY_PREFIX: tuple[tuple[str, str], ...] = (
     ("/api/ai", "design-studio"),
 )
 
+AI_FEATURE_PREFIXES: tuple[str, ...] = (
+    "/api/ai",
+    "/api/writing",
+)
+
 
 class AccessError(Exception):
     """Raised when a request is authenticated but not authorized."""
@@ -42,6 +47,11 @@ def program_for_path(path: str) -> Optional[str]:
         if path == prefix or path.startswith(prefix + "/"):
             return program_id
     return None
+
+
+def is_ai_feature_path(path: str) -> bool:
+    """Return True when a request targets a globally toggleable AI feature."""
+    return any(path == prefix or path.startswith(prefix + "/") for prefix in AI_FEATURE_PREFIXES)
 
 
 def verify_bearer_token() -> dict:
@@ -68,17 +78,23 @@ def has_program_access(uid: str, email: str, program_id: str) -> bool:
     db = _db()
     email_lc = (email or "").strip().lower()
 
+    programs_doc = db.collection("settings").document("programs").get()
+    programs_data = (programs_doc.to_dict() or {}) if programs_doc.exists else {}
+
+    # Global AI switch. When disabled in admin, AI routes are unavailable
+    # regardless of admin/public/user program permission.
+    if is_ai_feature_path(request.path) and programs_data.get("aiEnabled") is False:
+        return False
+
     admin_doc = db.collection("settings").document("admin").get()
     if admin_doc.exists:
         admin_emails = _lower_list((admin_doc.to_dict() or {}).get("emails"))
         if email_lc and email_lc in admin_emails:
             return True
 
-    programs_doc = db.collection("settings").document("programs").get()
-    if programs_doc.exists:
-        public_flags = (programs_doc.to_dict() or {}).get("public") or {}
-        if isinstance(public_flags, dict) and public_flags.get(program_id) is True:
-            return True
+    public_flags = programs_data.get("public") or {}
+    if isinstance(public_flags, dict) and public_flags.get(program_id) is True:
+        return True
 
     perm_doc = db.collection("user_permissions").document(uid).get()
     if perm_doc.exists:
@@ -102,6 +118,8 @@ def require_program_access_for_request():
         raise AccessError("로그인 정보가 유효하지 않습니다.", 401)
 
     if not has_program_access(uid, email, program_id):
+        if is_ai_feature_path(request.path):
+            raise AccessError("AI 기능이 관리자 설정에서 비활성화되어 있습니다.", 403)
         raise AccessError("이 프로그램 사용 권한이 없습니다. 관리자 승인 후 이용할 수 있습니다.", 403)
 
     return decoded
