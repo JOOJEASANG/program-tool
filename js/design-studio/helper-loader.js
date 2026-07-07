@@ -1,12 +1,11 @@
-// Design studio helper loader.
-// New design-studio features should be added as separate modules in this folder.
 (function () {
-  if (window.__designStudioHelperLoaderV3) return;
-  window.__designStudioHelperLoaderV3 = true;
+  if (window.__designStudioHelperLoaderV4) return;
+  window.__designStudioHelperLoaderV4 = true;
 
   const modules = [
     '/js/design-studio/cover-upload-only.js?v=20260518-2',
-    '/js/design-studio/defaults-ai-layout.js?v=20260623-1'
+    '/js/design-studio/defaults-ai-layout.js?v=20260623-1',
+    '/js/design-studio/ai-visibility.js?v=20260707-1'
   ];
 
   function load(src) {
