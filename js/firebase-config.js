@@ -12,12 +12,3 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const googleProvider = new firebase.auth.GoogleAuthProvider();
 const db = firebase.firestore();
-
-(function loadProgramToolAiToggle() {
-  if (document.getElementById('aiFeatureToggleScript')) return;
-  const script = document.createElement('script');
-  script.id = 'aiFeatureToggleScript';
-  script.src = '/js/ai-feature-toggle.js?v=20260707-1';
-  script.defer = true;
-  document.head.appendChild(script);
-})();
