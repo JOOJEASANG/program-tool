@@ -11,6 +11,28 @@
     if (closeBtn) closeBtn.disabled = disabled;
   }
 
+  function placeResetBelowActions() {
+    const navReset = document.getElementById('navResetBtn');
+    if (navReset) navReset.style.display = 'none';
+
+    const resetBtn = document.getElementById('inlineResetBtn');
+    const actionGrid = document.querySelector('.action-grid');
+    if (!resetBtn || !actionGrid) return;
+
+    resetBtn.textContent = '↻ 화면 전체 초기화';
+    resetBtn.style.width = '100%';
+    resetBtn.style.marginTop = '14px';
+    resetBtn.style.padding = '12px 16px';
+    resetBtn.style.borderRadius = '12px';
+    resetBtn.style.border = '1px solid #dbe4ee';
+    resetBtn.style.background = '#f8fafc';
+    resetBtn.style.color = '#475569';
+    resetBtn.style.fontSize = '12px';
+    resetBtn.style.fontWeight = '900';
+    resetBtn.style.cursor = 'pointer';
+    actionGrid.insertAdjacentElement('afterend', resetBtn);
+  }
+
   function install() {
     if (installed) return;
     if (
@@ -25,6 +47,8 @@
       return;
     }
     installed = true;
+
+    placeResetBelowActions();
 
     const uploadSub = document.querySelector('.upload-sub');
     if (uploadSub) {
