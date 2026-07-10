@@ -1,4 +1,4 @@
-const APP_VERSION = '2026-07-10-browser-ocr-v1';
+const APP_VERSION = '2026-07-10-ocr-removed-v1';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
