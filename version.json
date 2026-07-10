@@ -1,5 +1,5 @@
 {
-  "version": "2026-07-10-browser-ocr-v1",
-  "label": "PDF 문서 도구 브라우저 OCR 전환",
+  "version": "2026-07-10-ocr-removed-v1",
+  "label": "PDF 문서 도구 OCR 기능 제거",
   "updatedAt": "2026-07-10T00:00:00+09:00"
 }
