@@ -142,15 +142,31 @@
       encrypt:{
         title:'🔒 PDF 암호 설정',
         desc:'현재 업로드한 PDF에 새 비밀번호를 설정합니다. 비밀번호를 잊으면 해제할 수 없으니 별도로 보관하세요.',
+        runLabel:'암호 설정',
         runningText:'암호를 설정하는 중...',
         body:()=>selectedNote()+`<label class="tool-field-label">새 비밀번호</label><input type="password" id="tm-pw" placeholder="4~32자" maxlength="32" class="tool-input"><label class="tool-field-label">비밀번호 확인</label><input type="password" id="tm-pw2" placeholder="한 번 더 입력" maxlength="32" class="tool-input"><div class="tool-help">비밀번호는 4자 이상을 권장합니다. 처리 완료 후 암호가 적용된 PDF가 자동 다운로드됩니다.</div>`,
         run:async()=>{if(!selectedFile)throw new Error('먼저 PDF 파일을 업로드하세요.');const pw=document.getElementById('tm-pw').value.trim();const pw2=document.getElementById('tm-pw2').value.trim();if(!pw)throw new Error('비밀번호를 입력하세요.');if(pw.length<4)throw new Error('비밀번호는 4자 이상으로 입력하세요.');if(pw!==pw2)throw new Error('비밀번호 확인이 일치하지 않습니다.');return apiPdfTool('encrypt',selectedFile,{password:pw})}
       },
-      decrypt:{title:'🔓 PDF 암호 해제',desc:'현재 업로드한 PDF의 비밀번호 보호를 제거합니다.',runningText:'암호를 해제하는 중...',body:()=>selectedNote()+`<label class="tool-field-label">현재 비밀번호</label><input type="password" id="tm-pw" class="tool-input">`,run:async()=>{if(!selectedFile)throw new Error('먼저 PDF 파일을 업로드하세요.');return apiPdfTool('decrypt',selectedFile,{password:document.getElementById('tm-pw').value})}},
-      ocr:{title:'📝 OCR 텍스트 인식',desc:'현재 업로드한 PDF에 검색 가능한 텍스트 레이어를 추가합니다.',runningText:'OCR 처리 중...',body:()=>selectedNote()+`<div style="font-size:11px;color:#475569;background:#f1f5f9;padding:8px 10px;border-radius:8px;line-height:1.5;">⏱ 페이지당 약 2~5초 소요됩니다. 결과물은 텍스트 검색·복사가 가능한 PDF입니다.</div>`,run:async()=>{if(!selectedFile)throw new Error('먼저 PDF 파일을 업로드하세요.');return apiPdfTool('ocr',selectedFile)}}
+      decrypt:{
+        title:'🔓 PDF 암호 해제',
+        desc:'현재 업로드한 PDF의 비밀번호 보호를 제거합니다. 정확한 현재 비밀번호가 필요합니다.',
+        runLabel:'암호 해제',
+        runningText:'암호를 해제하는 중...',
+        body:()=>selectedNote()+`<label class="tool-field-label">현재 비밀번호</label><input type="password" id="tm-pw" class="tool-input" placeholder="PDF에 설정된 비밀번호"><div class="tool-help">비밀번호가 틀리면 암호 해제가 실패합니다. 성공하면 암호가 제거된 PDF가 자동 다운로드됩니다.</div>`,
+        run:async()=>{if(!selectedFile)throw new Error('먼저 PDF 파일을 업로드하세요.');const pw=document.getElementById('tm-pw').value.trim();if(!pw)throw new Error('현재 비밀번호를 입력하세요.');return apiPdfTool('decrypt',selectedFile,{password:pw})}
+      },
+      ocr:{
+        title:'📝 OCR 텍스트 인식',
+        desc:'현재 업로드한 PDF에 검색 가능한 텍스트 레이어를 추가합니다.',
+        runLabel:'OCR 실행',
+        runningText:'OCR 처리 중...',
+        body:()=>selectedNote()+`<div style="font-size:11px;color:#475569;background:#f1f5f9;padding:8px 10px;border-radius:8px;line-height:1.5;">⏱ 페이지당 약 2~5초 소요됩니다. 결과물은 텍스트 검색·복사가 가능한 PDF입니다.</div>`,
+        run:async()=>{if(!selectedFile)throw new Error('먼저 PDF 파일을 업로드하세요.');return apiPdfTool('ocr',selectedFile)}
+      }
     };
-    function openTool(id){if(!selectedFile){showError('먼저 PDF 파일을 업로드하세요.');return}const def=TOOL_DEFS[id];if(!def)return;currentTool=id;document.getElementById('toolModalTitle').textContent=def.title;document.getElementById('toolModalDesc').textContent=def.desc;document.getElementById('toolModalBody').innerHTML=typeof def.body==='function'?def.body():def.body;document.getElementById('toolStatus').textContent='';document.getElementById('toolStatus').style.color='';document.getElementById('toolRunBtn').disabled=false;document.getElementById('toolModalOverlay').classList.add('open')}
-    function closeTool(){document.getElementById('toolModalOverlay').classList.remove('open');currentTool=null}
+    function openTool(id){if(!selectedFile){showError('먼저 PDF 파일을 업로드하세요.');return}const def=TOOL_DEFS[id];if(!def)return;currentTool=id;document.getElementById('toolModalTitle').textContent=def.title;document.getElementById('toolModalDesc').textContent=def.desc;document.getElementById('toolModalBody').innerHTML=typeof def.body==='function'?def.body():def.body;const runBtn=document.getElementById('toolRunBtn');runBtn.textContent=def.runLabel||'실행';runBtn.disabled=false;document.getElementById('toolStatus').textContent='';document.getElementById('toolStatus').style.color='';document.getElementById('toolModalOverlay').classList.add('open');setTimeout(()=>document.getElementById('tm-pw')?.focus(),80)}
+    function closeTool(){document.getElementById('toolModalOverlay').classList.remove('open');currentTool=null;document.getElementById('toolRunBtn').textContent='실행'}
+    document.addEventListener('keydown',e=>{if(e.key==='Enter'&&document.getElementById('toolModalOverlay').classList.contains('open'))runTool()});
     async function runTool(){if(!currentTool)return;const def=TOOL_DEFS[currentTool];const status=document.getElementById('toolStatus');const runBtn=document.getElementById('toolRunBtn');status.style.color='#2563eb';status.textContent=def.runningText||'처리 중...';runBtn.disabled=true;document.querySelectorAll('.file-action').forEach(btn=>btn.disabled=true);try{const {blob}=await def.run();const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=downloadName(currentTool);a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);status.style.color='#15803d';status.textContent='✓ 완료! 다운로드되었습니다.';setTimeout(closeTool,1500)}catch(e){status.style.color='#dc2626';status.textContent='❌ '+(e.message||'처리 중 오류가 발생했습니다.');runBtn.disabled=false}finally{document.querySelectorAll('.file-action').forEach(btn=>btn.disabled=!selectedFile)}}
 
     function renderResults(report){const checks=Array.isArray(report.checks)?report.checks:[];const failCount=checks.filter(c=>c.severity==='fail').length;const warnCount=checks.filter(c=>c.severity==='warning').length;const passCount=checks.filter(c=>c.severity==='pass').length;const ring=document.getElementById('scoreRing');ring.textContent=report.score;ring.className='score-ring '+(report.score>=80?'green':report.score>=50?'yellow':'red');document.getElementById('resFilename').textContent=report.filename;document.getElementById('resPages').textContent=`총 ${report.page_count}페이지`;document.getElementById('resSummary').textContent=`통과 ${passCount}개 · 경고 ${warnCount}개 · 불량 ${failCount}개`;const grid=document.getElementById('checksGrid');grid.innerHTML='';for(const c of checks){const severity=['pass','warning','fail'].includes(c.severity)?c.severity:'warning';const icon=severity==='pass'?'✅':severity==='warning'?'⚠️':'❌';const refs=Array.isArray(c.page_refs)?c.page_refs:[];const pageTagsHtml=refs.length?`<div class="check-pages">${refs.slice(0,8).map(p=>`<span class="page-tag">${Number(p)}p</span>`).join('')}${refs.length>8?`<span class="page-tag">+${refs.length-8}</span>`:''}</div>`:'';grid.insertAdjacentHTML('beforeend',`<div class="check-card"><div class="check-badge ${severity}">${icon}</div><div><div class="check-label">${esc(c.label)}</div><div class="check-detail">${esc(c.detail)}</div>${pageTagsHtml}</div></div>`)}document.getElementById('results').style.display='block'}
