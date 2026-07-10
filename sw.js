@@ -1,4 +1,4 @@
-const APP_VERSION = '2026-07-09-pdf-checker-decrypt-v1';
+const APP_VERSION = '2026-07-09-pdf-checker-ocr-v1';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
