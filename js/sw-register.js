@@ -38,7 +38,8 @@
     }
 
     if (location.pathname.endsWith('/tools/pdf-Checker.html') || location.pathname.endsWith('/tools/preflight.html')) {
-      loadScript('pdfCheckerFinalGuardScript', '/js/pdf-checker-final-guard.js?v=20260710-3');
+      loadScript('browserPdfOcrScript', '/js/browser-ocr.js?v=20260710-1');
+      loadScript('pdfCheckerFinalGuardScript', '/js/pdf-checker-final-guard.js?v=20260710-4');
     }
   }
 
