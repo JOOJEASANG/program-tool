@@ -1,4 +1,4 @@
-const APP_VERSION = '2026-07-09-pdf-only-v1';
+const APP_VERSION = '2026-07-09-pdf-checker-single-upload-v1';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
