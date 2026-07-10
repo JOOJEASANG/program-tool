@@ -11,26 +11,23 @@
     if (closeBtn) closeBtn.disabled = disabled;
   }
 
-  function placeResetBelowActions() {
+  function placeResetAsActionCard() {
     const navReset = document.getElementById('navResetBtn');
-    if (navReset) navReset.style.display = 'none';
+    if (navReset) navReset.remove();
 
     const resetBtn = document.getElementById('inlineResetBtn');
     const actionGrid = document.querySelector('.action-grid');
     if (!resetBtn || !actionGrid) return;
 
-    resetBtn.textContent = '↻ 화면 전체 초기화';
-    resetBtn.style.width = '100%';
-    resetBtn.style.marginTop = '14px';
-    resetBtn.style.padding = '12px 16px';
-    resetBtn.style.borderRadius = '12px';
-    resetBtn.style.border = '1px solid #dbe4ee';
-    resetBtn.style.background = '#f8fafc';
-    resetBtn.style.color = '#475569';
-    resetBtn.style.fontSize = '12px';
-    resetBtn.style.fontWeight = '900';
-    resetBtn.style.cursor = 'pointer';
-    actionGrid.insertAdjacentElement('afterend', resetBtn);
+    resetBtn.className = 'action-btn reset-action';
+    resetBtn.disabled = false;
+    resetBtn.removeAttribute('style');
+    resetBtn.innerHTML = '<span class="action-chip chip-reset">초기화</span>'
+      + '<div class="action-icon reset-icon">↻</div>'
+      + '<div class="action-name">화면 초기화</div>'
+      + '<div class="action-desc">선택한 파일과 검수 결과, 진행 상태를 모두 지웁니다.</div>';
+    resetBtn.onclick = () => window.resetAll?.();
+    actionGrid.appendChild(resetBtn);
   }
 
   function removeOcrFeature() {
@@ -60,11 +57,15 @@
       uploadSub.textContent = '검수·암호 기능 최대 100 MB · PDF만 지원 · 업로드 후 아래 기능 버튼을 선택';
     }
 
-    if (!document.getElementById('pdfToolsThreeColumnStyle')) {
+    if (!document.getElementById('pdfToolsFourCardStyle')) {
       const style = document.createElement('style');
-      style.id = 'pdfToolsThreeColumnStyle';
+      style.id = 'pdfToolsFourCardStyle';
       style.textContent = `
-        .action-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+        .action-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+        .reset-action{background:linear-gradient(180deg,#f8fafc,#f1f5f9)!important;border-style:dashed!important}
+        .reset-action:hover:not(:disabled){border-color:#94a3b8!important;box-shadow:0 12px 25px rgba(71,85,105,.12)!important}
+        .reset-icon{background:#e2e8f0;color:#475569;font-size:25px}
+        .chip-reset{background:#e2e8f0;color:#475569}
         @media(max-width:820px){.action-grid{grid-template-columns:1fr!important}}
       `;
       document.head.appendChild(style);
@@ -87,7 +88,7 @@
     installed = true;
 
     removeOcrFeature();
-    placeResetBelowActions();
+    placeResetAsActionCard();
 
     const originalSelectFile = window.selectFile;
     window.selectFile = function selectFileWithLimit(file) {
