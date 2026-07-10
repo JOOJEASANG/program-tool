@@ -30,7 +30,7 @@
     loadScript('appVersionHelperScript', '/js/app-version.js?v=20260518-1');
 
     if (location.pathname === '/' || location.pathname.endsWith('/index.html')) {
-      loadScript('homeCleanupScript', '/js/home-cleanup.js?v=20260618-1');
+      loadScript('homeCleanupScript', '/js/home-cleanup.js?v=20260710-2');
     }
 
     if (location.pathname.endsWith('/tools/pdf-editor.html')) {
@@ -38,7 +38,7 @@
     }
 
     if (location.pathname.endsWith('/tools/pdf-Checker.html') || location.pathname.endsWith('/tools/preflight.html')) {
-      loadScript('pdfCheckerFinalGuardScript', '/js/pdf-checker-final-guard.js?v=20260710-1');
+      loadScript('pdfCheckerFinalGuardScript', '/js/pdf-checker-final-guard.js?v=20260710-2');
     }
   }
 
