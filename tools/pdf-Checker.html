@@ -10,31 +10,17 @@
     :root{--bg:#f4f6f8;--primary:#12396d;--accent:#1d9bb2;--pass:#16a34a;--warn:#d97706;--fail:#dc2626;--nav-h:52px}
     body{font-family:Pretendard,"Noto Sans KR",sans-serif;background:var(--bg);color:#0f172a;min-height:100vh;padding-top:var(--nav-h)}
     .top-nav{position:fixed;top:0;left:0;right:0;z-index:500;height:var(--nav-h);background:var(--primary);display:flex;align-items:center;padding:0 16px;gap:12px;box-shadow:0 2px 12px rgba(0,0,0,.2)}
-    .nav-back{display:flex;align-items:center;gap:6px;color:rgba(255,255,255,.85);font-size:13px;font-weight:700;text-decoration:none;padding:7px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.2);white-space:nowrap}
-    .nav-back:hover{background:rgba(255,255,255,.15);color:#fff}.nav-title{flex:1;text-align:center;font-size:15px;font-weight:800;color:#fff}.nav-user{display:flex;align-items:center;gap:8px}.nav-user-name{font-size:12px;color:rgba(255,255,255,.75);font-weight:600;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.nav-logout{color:rgba(255,255,255,.75);font-size:12px;font-weight:700;background:rgba(255,255,255,.12);border:none;border-radius:7px;padding:6px 10px;cursor:pointer;font-family:inherit}.nav-logout:hover{background:rgba(255,255,255,.22);color:#fff}
-    .container{max-width:920px;margin:0 auto;padding:28px 20px 60px}.page-head{margin-bottom:22px}.page-head h1{font-size:24px;font-weight:900;letter-spacing:-.5px}.page-head p{font-size:13px;color:#64748b;margin-top:4px;line-height:1.6}.free-note{background:#ecfdf5;border:1px solid #bbf7d0;color:#166534;border-radius:12px;padding:12px 16px;font-size:13px;font-weight:700;margin-bottom:16px;line-height:1.5}
+    .nav-back{display:flex;align-items:center;gap:6px;color:rgba(255,255,255,.85);font-size:13px;font-weight:700;text-decoration:none;padding:7px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.2);white-space:nowrap}.nav-back:hover{background:rgba(255,255,255,.15);color:#fff}
+    .nav-title{flex:1;text-align:center;font-size:15px;font-weight:800;color:#fff}.nav-user{display:flex;align-items:center;gap:8px}.nav-user-name{font-size:12px;color:rgba(255,255,255,.75);font-weight:600;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.nav-logout{color:rgba(255,255,255,.75);font-size:12px;font-weight:700;background:rgba(255,255,255,.12);border:none;border-radius:7px;padding:6px 10px;cursor:pointer;font-family:inherit}.nav-logout:hover{background:rgba(255,255,255,.22);color:#fff}
+    .container{max-width:920px;margin:0 auto;padding:28px 20px 60px}.page-head{margin-bottom:22px}.page-head h1{font-size:24px;font-weight:900;letter-spacing:-.5px}.page-head p{font-size:13px;color:#64748b;margin-top:4px;line-height:1.6}
     .upload-zone{border:2px dashed #cbd5e1;border-radius:16px;background:#fff;padding:40px 24px;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:16px}.upload-zone:hover,.upload-zone.dragover{border-color:var(--accent);background:rgba(29,155,178,.04)}.upload-zone.has-file{border-style:solid;border-color:var(--accent);background:rgba(29,155,178,.06)}.upload-icon{font-size:40px;margin-bottom:12px}.upload-title{font-size:16px;font-weight:800;margin-bottom:6px}.upload-sub{font-size:13px;color:#64748b}.upload-filename{font-size:14px;font-weight:700;color:var(--accent);margin-top:8px}#fileInput{display:none}
-    .options-row{display:flex;align-items:center;gap:16px;flex-wrap:wrap;background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:14px 18px;margin-bottom:20px}.opt-label{font-size:13px;font-weight:800;color:#334155}.run-btn{margin-left:auto;background:#12396d;color:#fff;border:none;border-radius:10px;padding:10px 22px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:8px}.run-btn:hover{background:#0f2f5c}.run-btn:disabled{opacity:.55;cursor:not-allowed}.spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
-    #results{display:none}.results-header{display:flex;align-items:center;gap:16px;background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:18px 22px;margin-bottom:16px}.score-ring{width:72px;height:72px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:22px;font-weight:900}.score-ring.green{background:#dcfce7;color:var(--pass)}.score-ring.yellow{background:#fef9c3;color:var(--warn)}.score-ring.red{background:#fee2e2;color:var(--fail)}.results-meta{flex:1}.results-filename{font-size:16px;font-weight:800}.results-pages,.results-summary{font-size:13px;color:#64748b;margin-top:5px}.checks-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;margin-bottom:20px}.check-card{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:16px 18px;display:flex;gap:12px}.check-badge{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;margin-top:1px}.check-badge.pass{background:#dcfce7}.check-badge.warning{background:#fef9c3}.check-badge.fail{background:#fee2e2}.check-label{font-size:13px;font-weight:800;margin-bottom:4px}.check-detail{font-size:12px;color:#64748b;line-height:1.5}.check-pages{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}.page-tag{background:#f1f5f9;color:#64748b;font-size:11px;font-weight:700;padding:2px 7px;border-radius:5px}.error-box{background:#fef2f2;border:1px solid #fecaca;color:#dc2626;border-radius:10px;padding:12px 16px;font-size:13px;margin-bottom:16px;display:none}.error-box.show{display:block}
-    .reset-btn{display:block;margin:24px auto 0;background:#f1f5f9;color:#334155;border:1px solid #e2e8f0;border-radius:10px;padding:10px 28px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit}.reset-btn:hover{background:#e2e8f0}
-    .tools-section{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:18px 20px;margin-top:24px}.tools-section-title{font-size:14px;font-weight:900;color:#334155;margin-bottom:12px}.tools-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px}.tool-btn{background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:10px;padding:12px 14px;font-size:13px;font-weight:800;color:#334155;cursor:pointer;font-family:inherit;text-align:left;transition:all .15s}.tool-btn:hover{border-color:#1d9bb2;background:#f0fdff;color:#0f7490}.tool-btn .t-icon{font-size:18px;display:block;margin-bottom:4px}.tool-btn .t-desc{font-size:10px;font-weight:600;color:#94a3b8;display:block;margin-top:2px}
-    .tool-modal-overlay{display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:1000;align-items:center;justify-content:center;padding:20px}.tool-modal-overlay.open{display:flex}.tool-modal-box{background:#fff;border-radius:14px;max-width:460px;width:100%;max-height:90vh;overflow-y:auto;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,.3)}.tool-modal-head{display:flex;align-items:center;gap:10px;margin-bottom:14px}.tool-modal-title{font-size:18px;font-weight:900;margin:0;flex:1}.tool-modal-close{background:none;border:0;font-size:22px;cursor:pointer;color:#64748b}.tool-modal-desc{font-size:13px;color:#64748b;margin-bottom:14px;line-height:1.5}.tool-modal-footer{margin-top:16px;display:flex;gap:8px;justify-content:flex-end}.tool-modal-status{margin-top:10px;font-size:13px;font-weight:700}
-    .tool-field-label{font-size:11px;font-weight:800;color:#374151;display:block;margin-bottom:6px}.tool-field-label+*{margin-bottom:12px}.tool-input{width:100%;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-family:inherit;font-size:13px}.tool-select{width:100%;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-family:inherit;font-size:13px}
-    .tm-run-btn{background:#12396d;color:#fff;border:none;border-radius:8px;padding:9px 20px;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit}.tm-run-btn:disabled{opacity:.55;cursor:not-allowed}.tm-cancel-btn{background:#f1f5f9;color:#334155;border:1px solid #e2e8f0;border-radius:8px;padding:9px 20px;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit}
-    .tool-dz{border:2px dashed #cbd5e1;border-radius:12px;background:#f8fafc;padding:18px 16px;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:12px;user-select:none}.tool-dz:hover,.tool-dz.dragover{border-color:#1d9bb2;background:rgba(29,155,178,.05)}.tool-dz.has-file{border-style:solid;border-color:#1d9bb2;background:rgba(29,155,178,.06)}.tool-dz .dz-icon{font-size:24px;margin-bottom:6px}.tool-dz .dz-label{font-size:12px;font-weight:700;color:#64748b}.tool-dz.has-file .dz-label{color:#0f7490}
-    .progress-box{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:20px 22px;margin-bottom:16px;display:none}
-    .progress-step-row{display:flex;align-items:center;gap:10px;margin-bottom:12px}
-    .progress-step-icon{width:28px;height:28px;border-radius:50%;background:#eff6ff;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
-    .progress-step-text{font-size:13px;font-weight:800;color:#1e293b}
-    .progress-track{background:#e2e8f0;border-radius:999px;height:8px;overflow:hidden;margin-bottom:8px}
-    .progress-fill{height:100%;background:linear-gradient(90deg,#12396d,#1d9bb2);border-radius:999px;transition:width .5s cubic-bezier(.4,0,.2,1);width:0%}
-    .progress-meta{display:flex;justify-content:space-between;align-items:center}
-    .progress-pct{font-size:12px;font-weight:900;color:#12396d}
-    .progress-steps-list{display:flex;gap:4px;flex-wrap:wrap}
-    .progress-dot{width:7px;height:7px;border-radius:50%;background:#e2e8f0;transition:background .3s}
-    .progress-dot.done{background:#1d9bb2}
-    .progress-dot.active{background:#12396d;box-shadow:0 0 0 2px rgba(18,57,109,.2)}
-    @media(max-width:640px){.nav-user-name{display:none}.container{padding:20px 14px 48px}.results-header{align-items:flex-start}.run-btn{margin-left:0;width:100%;justify-content:center}}
+    .actions-section{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:18px 20px;margin-bottom:20px}.actions-title{font-size:14px;font-weight:900;color:#334155;margin-bottom:4px}.actions-desc{font-size:12px;color:#64748b;margin-bottom:14px;line-height:1.5}.action-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.action-btn{background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:11px;padding:13px 14px;font-size:13px;font-weight:900;color:#334155;cursor:pointer;font-family:inherit;text-align:left;transition:all .15s}.action-btn:hover{border-color:#1d9bb2;background:#f0fdff;color:#0f7490}.action-btn:disabled{opacity:.45;cursor:not-allowed;background:#f1f5f9;color:#94a3b8;border-color:#e2e8f0}.action-btn .t-icon{font-size:19px;display:block;margin-bottom:5px}.action-btn .t-desc{font-size:10px;font-weight:600;color:#94a3b8;display:block;margin-top:2px}
+    .spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
+    .progress-box{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:20px 22px;margin-bottom:16px;display:none}.progress-step-row{display:flex;align-items:center;gap:10px;margin-bottom:12px}.progress-step-icon{width:28px;height:28px;border-radius:50%;background:#eff6ff;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}.progress-step-text{font-size:13px;font-weight:800;color:#1e293b}.progress-track{background:#e2e8f0;border-radius:999px;height:8px;overflow:hidden;margin-bottom:8px}.progress-fill{height:100%;background:linear-gradient(90deg,#12396d,#1d9bb2);border-radius:999px;transition:width .5s cubic-bezier(.4,0,.2,1);width:0%}.progress-meta{display:flex;justify-content:space-between;align-items:center}.progress-pct{font-size:12px;font-weight:900;color:#12396d}.progress-steps-list{display:flex;gap:4px;flex-wrap:wrap}.progress-dot{width:7px;height:7px;border-radius:50%;background:#e2e8f0;transition:background .3s}.progress-dot.done{background:#1d9bb2}.progress-dot.active{background:#12396d;box-shadow:0 0 0 2px rgba(18,57,109,.2)}
+    .error-box{background:#fef2f2;border:1px solid #fecaca;color:#dc2626;border-radius:10px;padding:12px 16px;font-size:13px;margin-bottom:16px;display:none}.error-box.show{display:block}
+    #results{display:none}.results-header{display:flex;align-items:center;gap:16px;background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:18px 22px;margin-bottom:16px}.score-ring{width:72px;height:72px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:22px;font-weight:900}.score-ring.green{background:#dcfce7;color:var(--pass)}.score-ring.yellow{background:#fef9c3;color:var(--warn)}.score-ring.red{background:#fee2e2;color:var(--fail)}.results-meta{flex:1}.results-filename{font-size:16px;font-weight:800}.results-pages,.results-summary{font-size:13px;color:#64748b;margin-top:5px}.checks-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;margin-bottom:20px}.check-card{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:16px 18px;display:flex;gap:12px}.check-badge{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;margin-top:1px}.check-badge.pass{background:#dcfce7}.check-badge.warning{background:#fef9c3}.check-badge.fail{background:#fee2e2}.check-label{font-size:13px;font-weight:800;margin-bottom:4px}.check-detail{font-size:12px;color:#64748b;line-height:1.5}.check-pages{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}.page-tag{background:#f1f5f9;color:#64748b;font-size:11px;font-weight:700;padding:2px 7px;border-radius:5px}.reset-btn{display:block;margin:24px auto 0;background:#f1f5f9;color:#334155;border:1px solid #e2e8f0;border-radius:10px;padding:10px 28px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit}.reset-btn:hover{background:#e2e8f0}
+    .tool-modal-overlay{display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:1000;align-items:center;justify-content:center;padding:20px}.tool-modal-overlay.open{display:flex}.tool-modal-box{background:#fff;border-radius:14px;max-width:460px;width:100%;max-height:90vh;overflow-y:auto;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,.3)}.tool-modal-head{display:flex;align-items:center;gap:10px;margin-bottom:14px}.tool-modal-title{font-size:18px;font-weight:900;margin:0;flex:1}.tool-modal-close{background:none;border:0;font-size:22px;cursor:pointer;color:#64748b}.tool-modal-desc{font-size:13px;color:#64748b;margin-bottom:14px;line-height:1.5}.tool-modal-footer{margin-top:16px;display:flex;gap:8px;justify-content:flex-end}.tool-modal-status{margin-top:10px;font-size:13px;font-weight:700}.tool-field-label{font-size:11px;font-weight:800;color:#374151;display:block;margin-bottom:6px}.tool-input{width:100%;padding:9px 11px;border:1.5px solid #e2e8f0;border-radius:8px;font-family:inherit;font-size:13px;margin-bottom:12px}.tm-run-btn{background:#12396d;color:#fff;border:none;border-radius:8px;padding:9px 20px;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit}.tm-run-btn:disabled{opacity:.55;cursor:not-allowed}.tm-cancel-btn{background:#f1f5f9;color:#334155;border:1px solid #e2e8f0;border-radius:8px;padding:9px 20px;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit}.selected-file-note{font-size:12px;color:#0f7490;background:#f0fdff;border:1px solid #bae6fd;border-radius:10px;padding:10px 12px;margin-bottom:12px;line-height:1.5;font-weight:700}
+    @media(max-width:760px){.action-grid{grid-template-columns:repeat(2,1fr)}}@media(max-width:640px){.nav-user-name{display:none}.container{padding:20px 14px 48px}.results-header{align-items:flex-start}.action-grid{grid-template-columns:1fr}}
   </style>
 </head>
 <body>
@@ -43,66 +29,49 @@
     <div class="nav-title">🔍 PDF파일검수기</div>
     <div class="nav-user"><span class="nav-user-name" id="userName">로딩 중...</span><button class="nav-logout" onclick="doLogout()">로그아웃</button></div>
   </div>
-  <div class="container">
-    <div class="page-head"><h1>PDF파일검수기</h1><p>PDF 파일의 해상도·도련·폰트·색상 모드·페이지 규격 등을 무료 규칙 기반으로 검수합니다.</p></div>
-    <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()"><div class="upload-icon">📂</div><div class="upload-title">PDF 파일을 드래그하거나 클릭하여 업로드</div><div class="upload-sub">최대 200 MB · PDF만 지원</div><div class="upload-filename" id="uploadFilename" style="display:none;"></div></div>
-    <input type="file" id="fileInput" accept=".pdf,application/pdf" />
-    <div class="options-row"><span class="opt-label">무료 기본 검수</span><button class="run-btn" id="runBtn" onclick="runCheck()" disabled>검수 시작</button></div>
-    <div class="progress-box" id="progressBox">
-      <div class="progress-step-row">
-        <div class="progress-step-icon" id="progressIcon">📤</div>
-        <div class="progress-step-text" id="progressStep">준비 중...</div>
-      </div>
-      <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
-      <div class="progress-meta">
-        <div class="progress-steps-list" id="progressDots"></div>
-        <div class="progress-pct" id="progressPct">0%</div>
-      </div>
-    </div>
-    <div class="error-box" id="errorBox"></div>
-    <div id="results"><div class="results-header"><div class="score-ring" id="scoreRing">–</div><div class="results-meta"><div class="results-filename" id="resFilename"></div><div class="results-pages" id="resPages"></div><div class="results-summary" id="resSummary"></div></div></div><div class="checks-grid" id="checksGrid"></div><button class="reset-btn" onclick="resetCheck()">↩ 다른 파일 검수하기</button></div>
 
-    <!-- PDF 추가 도구 -->
-    <div class="tools-section">
-      <div class="tools-section-title">🛠️ PDF 추가 도구</div>
-      <div class="tools-grid">
-        <button class="tool-btn" onclick="openTool('from-images')">
-          <span class="t-icon">🖼️</span>이미지 → PDF
-          <span class="t-desc">JPG·PNG를 PDF로 묶기</span>
-        </button>
-        <button class="tool-btn" onclick="openTool('encrypt')">
-          <span class="t-icon">🔒</span>암호 설정
-          <span class="t-desc">AES-256 비밀번호 보호</span>
-        </button>
-        <button class="tool-btn" onclick="openTool('decrypt')">
-          <span class="t-icon">🔓</span>암호 해제
-          <span class="t-desc">비밀번호 보호 제거</span>
-        </button>
-        <button class="tool-btn" onclick="openTool('ocr')">
-          <span class="t-icon">🔍</span>OCR 텍스트 인식
-          <span class="t-desc">스캔 PDF → 검색 가능 PDF</span>
-        </button>
-      </div>
-      <div style="font-size:10px;color:#94a3b8;margin-top:10px;">※ 파일 선택 → 옵션 → 결과 PDF 자동 다운로드</div>
+  <div class="container">
+    <div class="page-head"><h1>PDF파일검수기</h1><p>PDF 파일을 한 번 업로드한 뒤 검수하기, 암호 설정, 암호 해제, OCR 중 원하는 기능을 선택하세요.</p></div>
+
+    <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+      <div class="upload-icon">📂</div>
+      <div class="upload-title">PDF 파일을 드래그하거나 클릭하여 업로드</div>
+      <div class="upload-sub">최대 200 MB · PDF만 지원 · 업로드 후 아래 기능 버튼을 선택</div>
+      <div class="upload-filename" id="uploadFilename" style="display:none;"></div>
     </div>
+    <input type="file" id="fileInput" accept=".pdf,application/pdf" />
+
+    <div class="actions-section">
+      <div class="actions-title">🛠️ 사용할 기능 선택</div>
+      <div class="actions-desc">파일 업로드는 한 번만 하고, 필요한 작업 버튼을 누르면 됩니다.</div>
+      <div class="action-grid">
+        <button class="action-btn file-action" id="checkBtn" onclick="runCheck()" disabled><span class="t-icon">🔍</span>검수하기<span class="t-desc">해상도·폰트·색상 검사</span></button>
+        <button class="action-btn file-action" onclick="openTool('encrypt')" disabled><span class="t-icon">🔒</span>암호 설정<span class="t-desc">비밀번호 보호 PDF</span></button>
+        <button class="action-btn file-action" onclick="openTool('decrypt')" disabled><span class="t-icon">🔓</span>암호 해제<span class="t-desc">보호 제거</span></button>
+        <button class="action-btn file-action" onclick="openTool('ocr')" disabled><span class="t-icon">📝</span>OCR<span class="t-desc">검색 가능 PDF</span></button>
+      </div>
+    </div>
+
+    <div class="progress-box" id="progressBox">
+      <div class="progress-step-row"><div class="progress-step-icon" id="progressIcon">📤</div><div class="progress-step-text" id="progressStep">준비 중...</div></div>
+      <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+      <div class="progress-meta"><div class="progress-steps-list" id="progressDots"></div><div class="progress-pct" id="progressPct">0%</div></div>
+    </div>
+
+    <div class="error-box" id="errorBox"></div>
+    <div id="results"><div class="results-header"><div class="score-ring" id="scoreRing">–</div><div class="results-meta"><div class="results-filename" id="resFilename"></div><div class="results-pages" id="resPages"></div><div class="results-summary" id="resSummary"></div></div></div><div class="checks-grid" id="checksGrid"></div><button class="reset-btn" onclick="resetCheck()">↩ 다른 파일 선택하기</button></div>
   </div>
 
-  <!-- Tool Modal -->
   <div id="toolModalOverlay" class="tool-modal-overlay" onclick="if(event.target===this)closeTool()">
     <div class="tool-modal-box">
-      <div class="tool-modal-head">
-        <h2 id="toolModalTitle" class="tool-modal-title">도구</h2>
-        <button class="tool-modal-close" onclick="closeTool()">×</button>
-      </div>
+      <div class="tool-modal-head"><h2 id="toolModalTitle" class="tool-modal-title">도구</h2><button class="tool-modal-close" onclick="closeTool()">×</button></div>
       <div id="toolModalDesc" class="tool-modal-desc"></div>
       <div id="toolModalBody"></div>
-      <div class="tool-modal-footer">
-        <button class="tm-cancel-btn" onclick="closeTool()">취소</button>
-        <button id="toolRunBtn" class="tm-run-btn" onclick="runTool()">실행</button>
-      </div>
+      <div class="tool-modal-footer"><button class="tm-cancel-btn" onclick="closeTool()">취소</button><button id="toolRunBtn" class="tm-run-btn" onclick="runTool()">실행</button></div>
       <div id="toolStatus" class="tool-modal-status"></div>
     </div>
   </div>
+
   <script src="../js/sw-register.js" defer></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -111,214 +80,52 @@
   <script src="../js/api.js"></script>
   <script>
     let selectedFile=null;
+    let currentTool=null;
+
     function denyAccess(msg){document.body.replaceChildren();const wrap=document.createElement('div');wrap.style.cssText='display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;gap:16px;text-align:center;padding:24px;font-family:sans-serif;';wrap.innerHTML='<div style="font-size:52px;">🔒</div><div style="font-size:20px;font-weight:900;color:#0f172a;">접근 권한이 없습니다</div><div class="msg" style="font-size:14px;color:#64748b;max-width:320px;line-height:1.6;"></div><a href="../index.html" style="margin-top:8px;padding:10px 24px;background:#12396d;color:#fff;border-radius:10px;text-decoration:none;font-weight:800;font-size:14px;">← 홈으로</a>';wrap.querySelector('.msg').textContent=msg;document.body.appendChild(wrap)}
-    auth.onAuthStateChanged(async user=>{if(!user){window.location.href='../login.html';return}const name=user.displayName||(user.email||'').split('@')[0];document.getElementById('userName').textContent=name;try{const userEmail=String(user.email||'').trim().toLowerCase();const [adminDoc,programsDoc,permDoc]=await Promise.all([db.collection('settings').doc('admin').get(),db.collection('settings').doc('programs').get(),db.collection('user_permissions').doc(user.uid).get()]);const adminEmails=(adminDoc.exists?(adminDoc.data().emails||[]):[]).map(e=>String(e).trim().toLowerCase());const isAdmin=adminEmails.includes(userEmail)||!adminDoc.exists;const isPublic=!!(programsDoc.exists&&programsDoc.data().public?.['preflight']);const isApproved=permDoc.exists&&permDoc.data().programs?.['preflight']===true;if(!isAdmin&&!isPublic&&!isApproved)denyAccess('PDF파일검수기는 관리자 승인 후 사용할 수 있습니다.')}catch(e){console.error('Permission check failed',e);denyAccess('권한 확인 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.')}});
+    auth.onAuthStateChanged(user=>{if(!user){window.location.href='../login.html';return}const name=user.displayName||(user.email||'').split('@')[0];document.getElementById('userName').textContent=name;});
     async function doLogout(){await auth.signOut();window.location.href='../index.html'}
-    function resetCheck(){selectedFile=null;window.selectedFile=null;const zone=document.getElementById('uploadZone');zone.classList.remove('has-file');const fn=document.getElementById('uploadFilename');fn.style.display='none';fn.textContent='';document.getElementById('fileInput').value='';document.getElementById('runBtn').disabled=true;document.getElementById('results').style.display='none';hideError()}
-    document.getElementById('fileInput').addEventListener('change',e=>{const f=e.target.files[0];if(f)selectFile(f)});const zone=document.getElementById('uploadZone');zone.addEventListener('dragover',e=>{e.preventDefault();zone.classList.add('dragover')});zone.addEventListener('dragleave',()=>zone.classList.remove('dragover'));zone.addEventListener('drop',e=>{e.preventDefault();zone.classList.remove('dragover');const f=e.dataTransfer.files[0];if(f)selectFile(f)});
-    function selectFile(f){if(!f.name.toLowerCase().endsWith('.pdf')){showError('PDF 파일만 업로드 가능합니다.');return}selectedFile=f;window.selectedFile=f;zone.classList.add('has-file');const fn=document.getElementById('uploadFilename');fn.textContent=`${f.name} (${(f.size/1024/1024).toFixed(1)} MB)`;fn.style.display='block';document.getElementById('runBtn').disabled=false;hideError();document.getElementById('results').style.display='none'}
-    function showError(msg){const box=document.getElementById('errorBox');box.textContent=msg;box.classList.add('show')}function hideError(){document.getElementById('errorBox').classList.remove('show')}function setRunning(r){const btn=document.getElementById('runBtn');btn.disabled=r;btn.innerHTML=r?'<span class="spinner"></span> 검수 중...':'검수 시작'}
 
-    const PROGRESS_STEPS=[
-      {pct:8,  icon:'📤', text:'파일 업로드 중...'},
-      {pct:22, icon:'📖', text:'PDF 구조 분석 중...'},
-      {pct:38, icon:'🔍', text:'해상도 검사 중...'},
-      {pct:52, icon:'🔤', text:'폰트 임베딩 확인 중...'},
-      {pct:66, icon:'🎨', text:'색상 모드 검사 중...'},
-      {pct:80, icon:'📐', text:'페이지 규격 검사 중...'},
-      {pct:91, icon:'📊', text:'결과 정리 중...'},
-    ];
-    let _progTimer=null, _progIdx=0;
+    const zone=document.getElementById('uploadZone');
+    document.getElementById('fileInput').addEventListener('change',e=>{const f=e.target.files[0];if(f)selectFile(f)});
+    zone.addEventListener('dragover',e=>{e.preventDefault();zone.classList.add('dragover')});
+    zone.addEventListener('dragleave',()=>zone.classList.remove('dragover'));
+    zone.addEventListener('drop',e=>{e.preventDefault();zone.classList.remove('dragover');const f=e.dataTransfer.files[0];if(f)selectFile(f)});
 
-    function _initDots(){
-      const el=document.getElementById('progressDots');
-      el.innerHTML=PROGRESS_STEPS.map((_,i)=>`<div class="progress-dot" id="pd${i}"></div>`).join('');
+    function selectFile(f){
+      if(!f.name.toLowerCase().endsWith('.pdf')){showError('PDF 파일만 업로드 가능합니다.');return}
+      selectedFile=f;window.selectedFile=f;zone.classList.add('has-file');
+      const fn=document.getElementById('uploadFilename');
+      fn.textContent=`${f.name} (${(f.size/1024/1024).toFixed(1)} MB)`;fn.style.display='block';
+      document.querySelectorAll('.file-action').forEach(btn=>btn.disabled=false);
+      hideError();document.getElementById('results').style.display='none';
     }
-    function _setProgress(pct,icon,text){
-      document.getElementById('progressFill').style.width=pct+'%';
-      document.getElementById('progressPct').textContent=pct+'%';
-      document.getElementById('progressIcon').textContent=icon;
-      document.getElementById('progressStep').textContent=text;
-    }
-    function _updateDots(activeIdx){
-      PROGRESS_STEPS.forEach((_,i)=>{
-        const d=document.getElementById('pd'+i);
-        if(!d)return;
-        d.className='progress-dot'+(i<activeIdx?' done':i===activeIdx?' active':'');
-      });
-    }
-    function startProgress(){
-      _progIdx=0; _initDots();
-      document.getElementById('progressBox').style.display='block';
-      _setProgress(0,'📤','준비 중...');
-      _progTimer=setInterval(()=>{
-        if(_progIdx>=PROGRESS_STEPS.length){clearInterval(_progTimer);return;}
-        const s=PROGRESS_STEPS[_progIdx];
-        _setProgress(s.pct,s.icon,s.text);
-        _updateDots(_progIdx);
-        _progIdx++;
-      },650);
-    }
-    function finishProgress(){
-      clearInterval(_progTimer);
-      _setProgress(100,'✅','검수 완료!');
-      _updateDots(PROGRESS_STEPS.length);
-      setTimeout(()=>{document.getElementById('progressBox').style.display='none';},700);
-    }
-    function stopProgress(){
-      clearInterval(_progTimer);
-      document.getElementById('progressBox').style.display='none';
-    }
+    function resetCheck(){selectedFile=null;window.selectedFile=null;zone.classList.remove('has-file');const fn=document.getElementById('uploadFilename');fn.style.display='none';fn.textContent='';document.getElementById('fileInput').value='';document.querySelectorAll('.file-action').forEach(btn=>btn.disabled=true);document.getElementById('results').style.display='none';hideError()}
+    function showError(msg){const box=document.getElementById('errorBox');box.textContent=msg;box.classList.add('show')}
+    function hideError(){document.getElementById('errorBox').classList.remove('show')}
+    function setRunning(r){const btn=document.getElementById('checkBtn');btn.disabled=r||!selectedFile;btn.innerHTML=r?'<span class="spinner"></span> 검수 중...':'<span class="t-icon">🔍</span>검수하기<span class="t-desc">해상도·폰트·색상 검사</span>';document.querySelectorAll('.file-action').forEach(b=>{if(b!==btn)b.disabled=r||!selectedFile})}
 
-    async function runCheck(){
-      if(!selectedFile)return;
-      hideError();setRunning(true);
-      document.getElementById('results').style.display='none';
-      startProgress();
-      try{
-        const report=await apiPreflightCheck(selectedFile);
-        finishProgress();
-        setTimeout(()=>renderResults(report),400);
-      }catch(e){
-        stopProgress();
-        showError(e.message||'검수 중 오류가 발생했습니다.');
-      }finally{setRunning(false);}
-    }
+    const PROGRESS_STEPS=[{pct:8,icon:'📤',text:'파일 업로드 중...'},{pct:22,icon:'📖',text:'PDF 구조 분석 중...'},{pct:38,icon:'🔍',text:'해상도 검사 중...'},{pct:52,icon:'🔤',text:'폰트 임베딩 확인 중...'},{pct:66,icon:'🎨',text:'색상 모드 검사 중...'},{pct:80,icon:'📐',text:'페이지 규격 검사 중...'},{pct:91,icon:'📊',text:'결과 정리 중...'}];
+    let _progTimer=null,_progIdx=0;
+    function _initDots(){document.getElementById('progressDots').innerHTML=PROGRESS_STEPS.map((_,i)=>`<div class="progress-dot" id="pd${i}"></div>`).join('')}
+    function _setProgress(pct,icon,text){document.getElementById('progressFill').style.width=pct+'%';document.getElementById('progressPct').textContent=pct+'%';document.getElementById('progressIcon').textContent=icon;document.getElementById('progressStep').textContent=text}
+    function _updateDots(activeIdx){PROGRESS_STEPS.forEach((_,i)=>{const d=document.getElementById('pd'+i);if(!d)return;d.className='progress-dot'+(i<activeIdx?' done':i===activeIdx?' active':'')})}
+    function startProgress(){_progIdx=0;_initDots();document.getElementById('progressBox').style.display='block';_setProgress(0,'📤','준비 중...');_progTimer=setInterval(()=>{if(_progIdx>=PROGRESS_STEPS.length){clearInterval(_progTimer);return}const s=PROGRESS_STEPS[_progIdx];_setProgress(s.pct,s.icon,s.text);_updateDots(_progIdx);_progIdx++},650)}
+    function finishProgress(){clearInterval(_progTimer);_setProgress(100,'✅','검수 완료!');_updateDots(PROGRESS_STEPS.length);setTimeout(()=>{document.getElementById('progressBox').style.display='none'},700)}
+    function stopProgress(){clearInterval(_progTimer);document.getElementById('progressBox').style.display='none'}
+
+    async function runCheck(){if(!selectedFile){showError('먼저 PDF 파일을 업로드하세요.');return}hideError();setRunning(true);document.getElementById('results').style.display='none';startProgress();try{const report=await apiPreflightCheck(selectedFile);finishProgress();setTimeout(()=>renderResults(report),400)}catch(e){stopProgress();showError(e.message||'검수 중 오류가 발생했습니다.')}finally{setRunning(false)}}
     function esc(v){return String(v??'').replace(/[<>&"']/g,ch=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;'}[ch]))}
-    // ── PDF 추가 도구 ────────────────────────────────────────────────────
-    function dzHtml(inputId, accept, multiple, icon, label) {
-      const mul = multiple ? ' multiple' : '';
-      return `<div class="tool-dz" id="dz-${inputId}">
-        <div class="dz-icon">${icon}</div>
-        <div class="dz-label">${label}</div>
-        <input type="file" id="${inputId}" accept="${accept}"${mul} style="display:none;">
-      </div>`;
-    }
 
-    const TOOL_DEFS = {
-      'from-images': {
-        title: '🖼️ 이미지 → PDF',
-        desc: 'JPG, PNG 등 이미지 여러 장을 PDF 한 권으로 묶습니다.',
-        body: dzHtml('tm-files','image/*',true,'🖼️','이미지를 드래그하거나 클릭 (여러 장 가능)') + `
-          <label class="tool-field-label" style="margin-top:4px;">페이지 크기</label>
-          <select id="tm-size" class="tool-select">
-            <option value="fit">이미지 크기 그대로</option>
-            <option value="a4">A4로 통일 (가운데 정렬)</option>
-          </select>`,
-        run: async () => {
-          const files = Array.from(document.getElementById('tm-files').files);
-          if (!files.length) throw new Error('이미지를 선택하세요.');
-          return apiPdfTool('from-images', files, { size: document.getElementById('tm-size').value });
-        },
-      },
-      'encrypt': {
-        title: '🔒 PDF 암호 설정',
-        desc: '비밀번호로 PDF를 보호합니다 (AES-256). 비밀번호는 안전하게 보관하세요.',
-        body: dzHtml('tm-file','.pdf',false,'📄','PDF를 드래그하거나 클릭') + `
-          <label class="tool-field-label">새 비밀번호</label>
-          <input type="password" id="tm-pw" placeholder="32자 이내" maxlength="32" class="tool-input">`,
-        run: async () => {
-          const f = document.getElementById('tm-file').files[0];
-          if (!f) throw new Error('PDF 파일을 선택하세요.');
-          const pw = document.getElementById('tm-pw').value.trim();
-          if (!pw) throw new Error('비밀번호를 입력하세요.');
-          return apiPdfTool('encrypt', f, { password: pw });
-        },
-      },
-      'decrypt': {
-        title: '🔓 PDF 암호 해제',
-        desc: '비밀번호 보호된 PDF에서 암호를 제거합니다. 정확한 비밀번호가 필요합니다.',
-        body: dzHtml('tm-file','.pdf',false,'📄','PDF를 드래그하거나 클릭') + `
-          <label class="tool-field-label">현재 비밀번호</label>
-          <input type="password" id="tm-pw" class="tool-input">`,
-        run: async () => {
-          const f = document.getElementById('tm-file').files[0];
-          if (!f) throw new Error('PDF 파일을 선택하세요.');
-          return apiPdfTool('decrypt', f, { password: document.getElementById('tm-pw').value });
-        },
-      },
-      'ocr': {
-        title: '🔍 OCR 텍스트 인식',
-        desc: '스캔·이미지 기반 PDF에 검색 가능한 텍스트 레이어를 추가합니다 (한국어·영어 지원).',
-        body: dzHtml('tm-file','.pdf',false,'📄','PDF를 드래그하거나 클릭') + `
-          <div style="font-size:11px;color:#475569;margin-top:2px;background:#f1f5f9;padding:8px 10px;border-radius:8px;">⏱ 페이지당 약 2~5초 소요됩니다. 결과물은 텍스트 검색·복사가 가능한 PDF입니다.</div>`,
-        run: async () => {
-          const f = document.getElementById('tm-file').files[0];
-          if (!f) throw new Error('PDF 파일을 선택하세요.');
-          return apiPdfTool('ocr', f);
-        },
-      },
+    const TOOL_DEFS={
+      encrypt:{title:'🔒 PDF 암호 설정',desc:'현재 업로드한 PDF에 비밀번호를 설정합니다.',body:()=>selectedNote()+`<label class="tool-field-label">새 비밀번호</label><input type="password" id="tm-pw" placeholder="32자 이내" maxlength="32" class="tool-input">`,run:async()=>{if(!selectedFile)throw new Error('먼저 PDF 파일을 업로드하세요.');const pw=document.getElementById('tm-pw').value.trim();if(!pw)throw new Error('비밀번호를 입력하세요.');return apiPdfTool('encrypt',selectedFile,{password:pw})}},
+      decrypt:{title:'🔓 PDF 암호 해제',desc:'현재 업로드한 PDF의 비밀번호 보호를 제거합니다.',body:()=>selectedNote()+`<label class="tool-field-label">현재 비밀번호</label><input type="password" id="tm-pw" class="tool-input">`,run:async()=>{if(!selectedFile)throw new Error('먼저 PDF 파일을 업로드하세요.');return apiPdfTool('decrypt',selectedFile,{password:document.getElementById('tm-pw').value})}},
+      ocr:{title:'📝 OCR 텍스트 인식',desc:'현재 업로드한 PDF에 검색 가능한 텍스트 레이어를 추가합니다.',body:()=>selectedNote()+`<div style="font-size:11px;color:#475569;background:#f1f5f9;padding:8px 10px;border-radius:8px;line-height:1.5;">⏱ 페이지당 약 2~5초 소요됩니다. 결과물은 텍스트 검색·복사가 가능한 PDF입니다.</div>`,run:async()=>{if(!selectedFile)throw new Error('먼저 PDF 파일을 업로드하세요.');return apiPdfTool('ocr',selectedFile)}}
     };
-
-    function initDz() {
-      document.querySelectorAll('#toolModalBody .tool-dz').forEach(zone => {
-        const input = zone.querySelector('input[type="file"]');
-        if (!input) return;
-        zone.addEventListener('click', () => input.click());
-        zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
-        zone.addEventListener('dragleave', e => { if (!zone.contains(e.relatedTarget)) zone.classList.remove('dragover'); });
-        zone.addEventListener('drop', e => {
-          e.preventDefault(); zone.classList.remove('dragover');
-          const dt = new DataTransfer();
-          Array.from(e.dataTransfer.files).forEach(f => dt.items.add(f));
-          input.files = dt.files;
-          updateDzLabel(zone, input);
-        });
-        input.addEventListener('change', () => updateDzLabel(zone, input));
-      });
-    }
-    function updateDzLabel(zone, input) {
-      const lbl = zone.querySelector('.dz-label');
-      if (!lbl) return;
-      const n = input.files.length;
-      lbl.textContent = n === 1 ? input.files[0].name : n > 1 ? `${n}개 파일 선택됨` : lbl.textContent;
-      if (n) zone.classList.add('has-file');
-    }
-
-    let currentTool = null;
-    function openTool(id) {
-      const def = TOOL_DEFS[id];
-      if (!def) return;
-      currentTool = id;
-      document.getElementById('toolModalTitle').textContent = def.title;
-      document.getElementById('toolModalDesc').textContent = def.desc;
-      document.getElementById('toolModalBody').innerHTML = def.body;
-      document.getElementById('toolStatus').textContent = '';
-      document.getElementById('toolStatus').style.color = '';
-      document.getElementById('toolRunBtn').disabled = false;
-      document.getElementById('toolModalOverlay').classList.add('open');
-      initDz();
-    }
-    function closeTool() {
-      document.getElementById('toolModalOverlay').classList.remove('open');
-      currentTool = null;
-    }
-    async function runTool() {
-      if (!currentTool) return;
-      const def = TOOL_DEFS[currentTool];
-      const status = document.getElementById('toolStatus');
-      const runBtn = document.getElementById('toolRunBtn');
-      status.style.color = '#2563eb';
-      status.textContent = '처리 중...';
-      runBtn.disabled = true;
-      try {
-        const { blob } = await def.run();
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${currentTool}_${new Date().toISOString().slice(0,10)}.pdf`;
-        a.click();
-        setTimeout(() => URL.revokeObjectURL(url), 1000);
-        status.style.color = '#15803d';
-        status.textContent = '✓ 완료! 다운로드되었습니다.';
-        setTimeout(closeTool, 1500);
-      } catch (e) {
-        status.style.color = '#dc2626';
-        status.textContent = '❌ ' + e.message;
-        runBtn.disabled = false;
-      }
-    }
-    // ────────────────────────────────────────────────────────────────────
+    function selectedNote(){return `<div class="selected-file-note">사용 파일: ${esc(selectedFile?.name||'선택된 파일 없음')}</div>`}
+    function openTool(id){if(!selectedFile){showError('먼저 PDF 파일을 업로드하세요.');return}const def=TOOL_DEFS[id];if(!def)return;currentTool=id;document.getElementById('toolModalTitle').textContent=def.title;document.getElementById('toolModalDesc').textContent=def.desc;document.getElementById('toolModalBody').innerHTML=typeof def.body==='function'?def.body():def.body;document.getElementById('toolStatus').textContent='';document.getElementById('toolStatus').style.color='';document.getElementById('toolRunBtn').disabled=false;document.getElementById('toolModalOverlay').classList.add('open')}
+    function closeTool(){document.getElementById('toolModalOverlay').classList.remove('open');currentTool=null}
+    async function runTool(){if(!currentTool)return;const def=TOOL_DEFS[currentTool];const status=document.getElementById('toolStatus');const runBtn=document.getElementById('toolRunBtn');status.style.color='#2563eb';status.textContent='처리 중...';runBtn.disabled=true;try{const {blob}=await def.run();const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`${currentTool}_${new Date().toISOString().slice(0,10)}.pdf`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);status.style.color='#15803d';status.textContent='✓ 완료! 다운로드되었습니다.';setTimeout(closeTool,1500)}catch(e){status.style.color='#dc2626';status.textContent='❌ '+(e.message||'처리 중 오류가 발생했습니다.');runBtn.disabled=false}}
 
     function renderResults(report){const checks=Array.isArray(report.checks)?report.checks:[];const failCount=checks.filter(c=>c.severity==='fail').length;const warnCount=checks.filter(c=>c.severity==='warning').length;const passCount=checks.filter(c=>c.severity==='pass').length;const ring=document.getElementById('scoreRing');ring.textContent=report.score;ring.className='score-ring '+(report.score>=80?'green':report.score>=50?'yellow':'red');document.getElementById('resFilename').textContent=report.filename;document.getElementById('resPages').textContent=`총 ${report.page_count}페이지`;document.getElementById('resSummary').textContent=`통과 ${passCount}개 · 경고 ${warnCount}개 · 불량 ${failCount}개`;const grid=document.getElementById('checksGrid');grid.innerHTML='';for(const c of checks){const severity=['pass','warning','fail'].includes(c.severity)?c.severity:'warning';const icon=severity==='pass'?'✅':severity==='warning'?'⚠️':'❌';const refs=Array.isArray(c.page_refs)?c.page_refs:[];const pageTagsHtml=refs.length?`<div class="check-pages">${refs.slice(0,8).map(p=>`<span class="page-tag">${Number(p)}p</span>`).join('')}${refs.length>8?`<span class="page-tag">+${refs.length-8}</span>`:''}</div>`:'';grid.insertAdjacentHTML('beforeend',`<div class="check-card"><div class="check-badge ${severity}">${icon}</div><div><div class="check-label">${esc(c.label)}</div><div class="check-detail">${esc(c.detail)}</div>${pageTagsHtml}</div></div>`)}document.getElementById('results').style.display='block'}
   </script>
