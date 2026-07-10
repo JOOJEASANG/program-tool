@@ -1,5 +1,5 @@
 {
-  "version": "2026-07-09-pdf-checker-single-upload-v1",
-  "label": "PDF 검수기 단일 업로드 1단계 적용",
+  "version": "2026-07-09-pdf-checker-check-action-v2",
+  "label": "PDF 검수기 검수하기 버튼 안정화",
   "updatedAt": "2026-07-09T00:00:00+09:00"
 }
