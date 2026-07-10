@@ -1,4 +1,4 @@
-const APP_VERSION = '2026-07-10-pdf-document-tools-v1';
+const APP_VERSION = '2026-07-10-browser-ocr-v1';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
