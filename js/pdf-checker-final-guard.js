@@ -33,50 +33,42 @@
     actionGrid.insertAdjacentElement('afterend', resetBtn);
   }
 
-  function escapeText(value) {
-    return String(value ?? '').replace(/[<>&"']/g, (ch) => ({
-      '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&#39;'
-    }[ch]));
-  }
+  function removeOcrFeature() {
+    document.querySelectorAll('.action-btn').forEach((button) => {
+      const click = button.getAttribute('onclick') || '';
+      const text = button.textContent || '';
+      if (/ocr/i.test(click) || /OCR/i.test(text)) button.remove();
+    });
 
-  async function waitForBrowserOcr() {
-    for (let i = 0; i < 100; i += 1) {
-      if (typeof window.runBrowserPdfOcr === 'function') return window.runBrowserPdfOcr;
-      await new Promise((resolve) => setTimeout(resolve, 100));
+    if (typeof TOOL_DEFS !== 'undefined' && TOOL_DEFS.ocr) delete TOOL_DEFS.ocr;
+
+    const browserOcrScript = document.getElementById('browserPdfOcrScript');
+    if (browserOcrScript) browserOcrScript.remove();
+
+    const heroText = document.querySelector('.hero p');
+    if (heroText) {
+      heroText.textContent = 'PDF 파일을 한 번만 업로드한 뒤 문서 검수, 암호 설정, 자동 암호 해제 기능을 필요한 순서대로 실행하세요.';
     }
-    throw new Error('브라우저 OCR 모듈을 불러오지 못했습니다. 인터넷 연결 후 새로고침하세요.');
-  }
 
-  function patchBrowserOcr() {
-    if (typeof TOOL_DEFS === 'undefined' || !TOOL_DEFS.ocr) return;
+    const description = document.querySelector('meta[name="description"]');
+    if (description) {
+      description.content = 'PDF 검수와 암호 설정·해제를 한 번의 파일 업로드로 처리하는 PDF 문서 도구입니다.';
+    }
 
-    TOOL_DEFS.ocr.title = 'PDF OCR 변환';
-    TOOL_DEFS.ocr.desc = '서버 업로드 없이 이 브라우저에서 한국어·영어 문자를 인식해 검색 가능한 PDF를 만듭니다.';
-    TOOL_DEFS.ocr.runLabel = '브라우저 OCR 실행';
-    TOOL_DEFS.ocr.runningText = '브라우저 OCR을 준비하는 중...';
-    TOOL_DEFS.ocr.body = () => {
-      const file = window.selectedFile;
-      return `<div class="selected-file-note">사용 파일: ${escapeText(file?.name || '선택된 파일 없음')}</div>`
-        + '<div class="tool-warn">OCR은 현재 브라우저에서 직접 실행됩니다. 파일이 외부 OCR 서버로 전송되지 않으며, 최초 실행 시 한국어·영어 인식 데이터를 내려받습니다.</div>'
-        + '<div class="tool-help">최대 30페이지까지 처리합니다. 페이지 수와 컴퓨터 성능에 따라 시간이 오래 걸릴 수 있으니 처리 중에는 이 탭을 닫지 마세요.</div>'
-        + '<label class="tool-check"><input type="checkbox" id="tm-ocr-confirm"> 브라우저 OCR 처리 안내를 확인했습니다.</label>';
-    };
-    TOOL_DEFS.ocr.run = async () => {
-      if (!document.getElementById('tm-ocr-confirm')?.checked) {
-        throw new Error('브라우저 OCR 처리 안내를 확인해 주세요.');
-      }
-      const file = window.selectedFile;
-      if (!file) throw new Error('먼저 PDF 파일을 업로드하세요.');
-      const runBrowserPdfOcr = await waitForBrowserOcr();
-      const status = document.getElementById('toolStatus');
-      const blob = await runBrowserPdfOcr(file, (message) => {
-        if (status) {
-          status.style.color = '#2563eb';
-          status.textContent = message;
-        }
-      });
-      return { blob };
-    };
+    const uploadSub = document.querySelector('.upload-sub');
+    if (uploadSub) {
+      uploadSub.textContent = '검수·암호 기능 최대 100 MB · PDF만 지원 · 업로드 후 아래 기능 버튼을 선택';
+    }
+
+    if (!document.getElementById('pdfToolsThreeColumnStyle')) {
+      const style = document.createElement('style');
+      style.id = 'pdfToolsThreeColumnStyle';
+      style.textContent = `
+        .action-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+        @media(max-width:820px){.action-grid{grid-template-columns:1fr!important}}
+      `;
+      document.head.appendChild(style);
+    }
   }
 
   function install() {
@@ -94,13 +86,8 @@
     }
     installed = true;
 
+    removeOcrFeature();
     placeResetBelowActions();
-    patchBrowserOcr();
-
-    const uploadSub = document.querySelector('.upload-sub');
-    if (uploadSub) {
-      uploadSub.textContent = '공통 기능 최대 100 MB · PDF만 지원 · 업로드 후 아래 기능 버튼을 선택';
-    }
 
     const originalSelectFile = window.selectFile;
     window.selectFile = function selectFileWithLimit(file) {
@@ -108,7 +95,7 @@
         const input = document.getElementById('fileInput');
         if (input) input.value = '';
         if (typeof window.showError === 'function') {
-          window.showError('검수·암호·OCR 공통 사용 파일은 최대 100 MB까지 지원합니다.');
+          window.showError('검수·암호 공통 사용 파일은 최대 100 MB까지 지원합니다.');
         }
         return;
       }
@@ -128,8 +115,8 @@
 
     const originalOpenTool = window.openTool;
     window.openTool = function guardedOpenTool(id) {
+      if (id === 'ocr') return;
       if (toolBusy || checkBusy) return;
-      if (id === 'ocr') patchBrowserOcr();
       return originalOpenTool(id);
     };
 
