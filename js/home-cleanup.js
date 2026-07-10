@@ -1,6 +1,6 @@
 (function(){
-  if(window.__homeCleanupPdfOnlyV1)return;
-  window.__homeCleanupPdfOnlyV1=true;
+  if(window.__homeCleanupPdfOnlyV2)return;
+  window.__homeCleanupPdfOnlyV2=true;
 
   function injectStyle(){
     if(document.getElementById('homePdfOnlyStyle'))return;
@@ -31,9 +31,9 @@
       if(/preflight\.html|pdf-Checker\.html/i.test(href)){
         card.setAttribute('href','tools/preflight.html');
         if(name)name.textContent='PDF 문서 도구';
-        if(desc)desc.textContent='PDF 문서 검수, 암호 설정·자동 해제, OCR 변환을 한 번의 파일 업로드로 처리합니다.';
+        if(desc)desc.textContent='PDF 문서 검수와 암호 설정·자동 해제를 한 번의 파일 업로드로 처리합니다.';
         const tags=card.querySelector('.prog-tags');
-        if(tags)tags.innerHTML='<span class="prog-tag">문서 검수</span><span class="prog-tag">암호</span><span class="prog-tag">OCR</span>';
+        if(tags)tags.innerHTML='<span class="prog-tag">문서 검수</span><span class="prog-tag">암호 설정</span><span class="prog-tag">암호 해제</span>';
       }
     });
 
