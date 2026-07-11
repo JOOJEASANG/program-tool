@@ -1,0 +1,29 @@
+name: Backup before unified print workspace
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/backup-before-unified-print.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout current main
+        uses: actions/checkout@v4
+      - name: Create repository ZIP
+        run: |
+          mkdir -p backup
+          zip -r backup/program-tool-before-unified-print-20260711.zip . \
+            -x '.git/*' 'backup/*'
+      - name: Upload backup artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: program-tool-before-unified-print-20260711
+          path: backup/program-tool-before-unified-print-20260711.zip
+          retention-days: 90
