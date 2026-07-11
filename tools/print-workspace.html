@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>인쇄파일 완성기 · Program Tool</title>
+  <meta name="description" content="PDF 편집, 배치, 문서 검수와 보안 작업을 하나의 화면에서 처리하는 인쇄파일 통합 작업공간입니다." />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{--navy:#12396d;--cyan:#1d9bb2;--ink:#0f172a;--muted:#64748b;--line:#dce5ee;--bg:#eef4f8;--top-h:58px;--tool-h:72px}
+    html,body{height:100%;overflow:hidden}
+    body{font-family:Pretendard,"Noto Sans KR",sans-serif;background:var(--bg);color:var(--ink)}
+    button,input{font:inherit}
+    .topbar{height:var(--top-h);display:flex;align-items:center;gap:12px;padding:0 16px;background:linear-gradient(135deg,#102f5b,#126783);color:#fff;box-shadow:0 5px 20px rgba(15,23,42,.22);position:relative;z-index:30}
+    .back{display:inline-flex;align-items:center;text-decoration:none;color:rgba(255,255,255,.9);border:1px solid rgba(255,255,255,.2);border-radius:9px;padding:7px 11px;font-size:12px;font-weight:850;white-space:nowrap}.back:hover{background:rgba(255,255,255,.12)}
+    .brand{display:flex;align-items:center;gap:10px;min-width:0}.brand-icon{width:35px;height:35px;border-radius:10px;background:rgba(255,255,255,.14);display:grid;place-items:center;font-size:19px}.brand-copy{min-width:0}.brand-title{font-size:16px;font-weight:950;letter-spacing:-.4px;white-space:nowrap}.brand-sub{font-size:10px;color:rgba(255,255,255,.65);margin-top:2px;white-space:nowrap}
+    .beta{border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.12);border-radius:999px;padding:4px 8px;font-size:9px;font-weight:900}
+    .top-spacer{flex:1}.user{display:flex;align-items:center;gap:8px}.user-name{font-size:11px;color:rgba(255,255,255,.78);font-weight:750;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.logout{border:0;border-radius:8px;background:rgba(255,255,255,.12);color:#fff;padding:7px 10px;font-size:11px;font-weight:850;cursor:pointer}.logout:hover{background:rgba(255,255,255,.22)}
+    .toolstrip{height:var(--tool-h);display:grid;grid-template-columns:minmax(300px,1.1fr) minmax(440px,1.6fr);gap:14px;align-items:center;padding:10px 16px;background:rgba(255,255,255,.97);border-bottom:1px solid var(--line);position:relative;z-index:20;box-shadow:0 5px 18px rgba(15,23,42,.06)}
+    .shared-file{display:flex;align-items:center;gap:9px;min-width:0}.file-label{flex-shrink:0;font-size:10px;font-weight:900;color:var(--cyan);background:#ecfeff;border:1px solid #b6edf4;border-radius:999px;padding:5px 8px}.file-name{min-width:0;flex:1;font-size:12px;font-weight:850;color:#334155;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.file-name.empty{font-weight:650;color:#94a3b8}.pick-btn,.clear-btn{border-radius:9px;padding:8px 11px;font-size:11px;font-weight:900;cursor:pointer;white-space:nowrap}.pick-btn{border:0;color:#fff;background:linear-gradient(135deg,var(--navy),var(--cyan))}.clear-btn{border:1px solid var(--line);background:#f8fafc;color:#64748b}.clear-btn:disabled{opacity:.4;cursor:not-allowed}#sharedFileInput{display:none}
+    .module-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}.tab{position:relative;border:1.5px solid var(--line);background:#f8fafc;color:#475569;border-radius:11px;padding:9px 10px;cursor:pointer;text-align:left;min-width:0;transition:.15s}.tab:hover{border-color:#9bd8e2;background:#f0fdff}.tab.active{border-color:var(--cyan);background:#ecfeff;box-shadow:inset 0 0 0 1px rgba(29,155,178,.1)}.tab-num{font-size:9px;font-weight:900;color:var(--cyan)}.tab-name{font-size:12px;font-weight:950;color:#0f172a;margin-top:2px}.tab-desc{font-size:9px;color:#64748b;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.tab-soon{position:absolute;right:7px;top:6px;font-size:8px;font-weight:900;background:#e2e8f0;color:#64748b;padding:3px 5px;border-radius:999px}
+    .workspace{height:calc(100vh - var(--top-h) - var(--tool-h));position:relative;background:#e8eff5}.module-view{position:absolute;inset:0;display:none}.module-view.active{display:block}.module-frame{width:100%;height:100%;border:0;background:#fff;display:block}
+    .loading-cover{position:absolute;inset:0;z-index:5;background:#f8fafc;display:grid;place-items:center;color:#64748b;font-size:12px;font-weight:800}.spinner{width:30px;height:30px;border:3px solid #dbe5ee;border-top-color:var(--navy);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 10px}@keyframes spin{to{transform:rotate(360deg)}}
+    .future{height:100%;overflow:auto;padding:26px;background:radial-gradient(circle at 10% 0,#dff6fb 0,transparent 28%),linear-gradient(180deg,#f8fbff,#eef4f8)}.future-wrap{max-width:1060px;margin:0 auto}.future-hero{background:linear-gradient(135deg,#12396d,#126783 62%,#1d9bb2);color:#fff;border-radius:22px;padding:27px;box-shadow:0 18px 44px rgba(18,57,109,.18)}.future-kicker{font-size:10px;font-weight:900;letter-spacing:.5px;color:#a5f3fc}.future h2{font-size:25px;font-weight:950;letter-spacing:-.8px;margin-top:8px}.future-hero p{font-size:12px;color:rgba(255,255,255,.78);line-height:1.65;margin-top:8px;max-width:700px}.flow{display:flex;gap:7px;flex-wrap:wrap;margin-top:16px}.flow span{font-size:10px;font-weight:850;padding:7px 9px;border:1px solid rgba(255,255,255,.17);background:rgba(255,255,255,.1);border-radius:8px}
+    .future-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px;margin-top:18px}.future-card{background:#fff;border:1px solid #dbe5ee;border-radius:17px;padding:18px;min-height:176px;box-shadow:0 9px 25px rgba(15,23,42,.05)}.future-card.ready{cursor:pointer}.future-card.ready:hover{border-color:#7dd3e0;transform:translateY(-2px)}.future-icon{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;font-size:21px;background:#eff6ff}.future-name{font-size:14px;font-weight:950;margin-top:12px}.future-desc{font-size:10px;line-height:1.55;color:#64748b;margin-top:6px}.state{display:inline-block;margin-top:12px;border-radius:999px;padding:4px 7px;font-size:8px;font-weight:900;background:#e2e8f0;color:#64748b}.state.now{background:#dcfce7;color:#15803d}
+    .notice{max-width:1060px;margin:14px auto 0;background:#fff;border:1px solid #dbe5ee;border-radius:14px;padding:14px 16px;font-size:11px;color:#64748b;line-height:1.6}.notice strong{color:#334155}
+    .toast{position:fixed;left:50%;bottom:18px;z-index:100;transform:translate(-50%,20px);opacity:0;pointer-events:none;background:#0f172a;color:#fff;border-radius:10px;padding:10px 14px;font-size:11px;font-weight:800;box-shadow:0 12px 30px rgba(15,23,42,.25);transition:.2s}.toast.show{opacity:1;transform:translate(-50%,0)}
+    #authLoading{position:fixed;inset:0;z-index:999;background:#fff;display:grid;place-items:center}
+    @media(max-width:900px){:root{--tool-h:118px}.toolstrip{grid-template-columns:1fr;gap:8px}.future-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.brand-sub,.beta{display:none}}
+    @media(max-width:560px){:root{--top-h:54px;--tool-h:132px}.topbar{padding:0 9px;gap:7px}.back{padding:7px 8px}.brand-icon{display:none}.brand-title{font-size:14px}.user-name{display:none}.toolstrip{padding:8px 9px}.shared-file{display:grid;grid-template-columns:auto 1fr auto auto;gap:6px}.file-label{display:none}.pick-btn,.clear-btn{padding:7px 8px}.module-tabs{gap:4px}.tab{padding:8px 6px}.tab-desc{display:none}.tab-name{font-size:10px}.future{padding:14px}.future-grid{grid-template-columns:1fr}.future-hero{padding:20px}.future h2{font-size:21px}}
+  </style>
+</head>
+<body>
+  <div id="authLoading"><div><div class="spinner"></div><div style="font-size:12px;font-weight:800;color:#64748b">로그인 확인 중...</div></div></div>
+  <header class="topbar">
+    <a class="back" href="../index.html">← 홈</a>
+    <div class="brand"><div class="brand-icon">🖨️</div><div class="brand-copy"><div class="brand-title">인쇄파일 완성기</div><div class="brand-sub">편집 · 배치 · 검수 · 보안을 한 작업공간에서</div></div></div>
+    <span class="beta">통합 베타</span>
+    <div class="top-spacer"></div>
+    <div class="user"><span class="user-name" id="userName">사용자</span><button class="logout" id="logoutBtn">로그아웃</button></div>
+  </header>
+
+  <section class="toolstrip">
+    <div class="shared-file">
+      <span class="file-label">공통 PDF</span>
+      <span class="file-name empty" id="sharedFileName">PDF를 한 번 선택하면 현재 작업 탭에 자동 전달됩니다.</span>
+      <input type="file" id="sharedFileInput" accept=".pdf,application/pdf" />
+      <button class="pick-btn" id="pickBtn">PDF 선택</button>
+      <button class="clear-btn" id="clearBtn" disabled>해제</button>
+    </div>
+    <div class="module-tabs" role="tablist">
+      <button class="tab active" data-module="editor"><div class="tab-num">STEP 1</div><div class="tab-name">편집·배치</div><div class="tab-desc">페이지 정리, N-up, 소책자, 워터마크</div></button>
+      <button class="tab" data-module="checker"><div class="tab-num">STEP 2</div><div class="tab-name">검수·보안</div><div class="tab-desc">문서 점검, 암호 설정과 해제</div></button>
+      <button class="tab" data-module="future"><span class="tab-soon">확장</span><div class="tab-num">STEP 3</div><div class="tab-name">인쇄 완성</div><div class="tab-desc">표지, 면배치, 엑셀 문서 생성</div></button>
+    </div>
+  </section>
+
+  <main class="workspace">
+    <section class="module-view active" id="view-editor">
+      <div class="loading-cover" id="loading-editor"><div><div class="spinner"></div>PDF 편집기를 불러오는 중...</div></div>
+      <iframe class="module-frame" id="frame-editor" title="PDF 편집·배치" src="pdf-editor.html?embed=1&v=20260711-1"></iframe>
+    </section>
+    <section class="module-view" id="view-checker">
+      <div class="loading-cover" id="loading-checker"><div><div class="spinner"></div>PDF 문서 도구를 불러오는 중...</div></div>
+      <iframe class="module-frame" id="frame-checker" title="PDF 검수·보안" src="pdf-Checker.html?embed=1&v=20260711-1"></iframe>
+    </section>
+    <section class="module-view" id="view-future">
+      <div class="future">
+        <div class="future-wrap">
+          <div class="future-hero">
+            <div class="future-kicker">PRINT PRODUCTION WORKFLOW</div>
+            <h2>인쇄소 출력용 PDF까지 한 흐름으로 완성</h2>
+            <p>현재 편집·배치와 검수·보안 기능을 먼저 통합했습니다. 다음 기능도 별도 사이트가 아니라 이 작업공간 안에 순서대로 추가됩니다.</p>
+            <div class="flow"><span>① 파일 선택</span><span>② 편집·배치</span><span>③ 품질 검수</span><span>④ 인쇄 규격 적용</span><span>⑤ 최종 PDF 저장</span></div>
+          </div>
+          <div class="future-grid">
+            <article class="future-card ready" data-go="editor"><div class="future-icon">📄</div><div class="future-name">일반 출력 문서</div><div class="future-desc">페이지 순서, 크기, 회전, 여백과 여러 페이지 배치를 정리합니다.</div><span class="state now">현재 사용 가능</span></article>
+            <article class="future-card ready" data-go="editor"><div class="future-icon">📖</div><div class="future-name">중철·소책자</div><div class="future-desc">현재 편집기의 소책자 기능을 이용해 출력 순서를 자동 배치합니다.</div><span class="state now">현재 사용 가능</span></article>
+            <article class="future-card"><div class="future-icon">📚</div><div class="future-name">무선제본 표지</div><div class="future-desc">앞표지·책등·뒤표지와 재단 여백을 한 장의 인쇄용 PDF로 만듭니다.</div><span class="state">다음 개발</span></article>
+            <article class="future-card"><div class="future-icon">📊</div><div class="future-name">엑셀 자동 문서</div><div class="future-desc">엑셀 명단으로 수료증, 명찰, 라벨과 표지를 대량 생성합니다.</div><span class="state">개발 예정</span></article>
+          </div>
+          <div class="notice"><strong>현재 1차 통합 방식:</strong> 한 URL 안에서 기존 두 프로그램을 이동하며 사용하고, 공통 PDF를 각 작업 탭으로 전달합니다. 편집기에서 새로 저장한 결과물을 곧바로 검수하려면 현재는 저장된 결과 PDF를 공통 파일에서 다시 선택해야 합니다. 다음 단계에서 편집 결과를 검수 단계로 직접 넘기는 기능을 연결할 수 있습니다.</div>
+        </div>
+      </div>
+    </section>
+  </main>
+  <div class="toast" id="toast"></div>
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="../js/firebase-config.js"></script>
+  <script>
+    let sharedFile = null;
+    let activeModule = 'editor';
+    const delivered = { editor: '', checker: '' };
+    const frames = {
+      editor: document.getElementById('frame-editor'),
+      checker: document.getElementById('frame-checker')
+    };
+
+    function fileKey(file){return file ? [file.name,file.size,file.lastModified].join('|') : ''}
+    function toast(message){const el=document.getElementById('toast');el.textContent=message;el.classList.add('show');clearTimeout(toast.timer);toast.timer=setTimeout(()=>el.classList.remove('show'),2600)}
+
+    function tuneFrame(id){
+      const frame=frames[id];
+      try{
+        const doc=frame.contentDocument;
+        if(!doc)return;
+        let style=doc.getElementById('unifiedWorkspaceEmbedStyle');
+        if(!style){
+          style=doc.createElement('style');
+          style.id='unifiedWorkspaceEmbedStyle';
+          style.textContent=id==='editor'
+            ? '.top-nav{display:none!important}:root{--nav-h:0px!important}body{padding-top:0!important}.app{height:100vh!important}'
+            : '.top-nav{display:none!important}:root{--nav-h:0px!important}body{padding-top:0!important}.container{padding-top:22px!important;padding-bottom:45px!important}';
+          doc.head.appendChild(style);
+        }
+      }catch(e){console.warn('Frame style injection failed',e)}
+      const cover=document.getElementById('loading-'+id);if(cover)cover.style.display='none';
+      if(sharedFile && activeModule===id)deliverTo(id);
+    }
+
+    async function waitForFunction(frame,name,limit=50){
+      for(let i=0;i<limit;i++){
+        try{if(typeof frame.contentWindow?.[name]==='function')return frame.contentWindow[name]}catch(_){ }
+        await new Promise(r=>setTimeout(r,160));
+      }
+      throw new Error('작업 화면이 아직 준비되지 않았습니다.');
+    }
+
+    async function deliverTo(id,force=false){
+      if(!sharedFile||id==='future')return;
+      const key=fileKey(sharedFile);
+      if(!force&&delivered[id]===key)return;
+      toast(id==='editor'?'편집기로 PDF를 전달하고 있습니다.':'검수 도구로 PDF를 전달하고 있습니다.');
+      try{
+        if(id==='editor'){
+          const fn=await waitForFunction(frames.editor,'handleFile');
+          await fn.call(frames.editor.contentWindow,sharedFile);
+        }else{
+          const fn=await waitForFunction(frames.checker,'selectFile');
+          await fn.call(frames.checker.contentWindow,sharedFile);
+        }
+        delivered[id]=key;
+        toast(id==='editor'?'편집기에 PDF를 불러왔습니다.':'검수·보안 도구에 PDF를 불러왔습니다.');
+      }catch(e){toast(e.message||'PDF 전달에 실패했습니다. 각 화면에서 직접 업로드해 주세요.')}
+    }
+
+    function switchModule(id){
+      activeModule=id;
+      document.querySelectorAll('.tab').forEach(btn=>btn.classList.toggle('active',btn.dataset.module===id));
+      document.querySelectorAll('.module-view').forEach(view=>view.classList.toggle('active',view.id==='view-'+id));
+      if(sharedFile&&id!=='future')deliverTo(id);
+    }
+
+    document.querySelectorAll('.tab').forEach(btn=>btn.addEventListener('click',()=>switchModule(btn.dataset.module)));
+    document.querySelectorAll('[data-go]').forEach(card=>card.addEventListener('click',()=>switchModule(card.dataset.go)));
+    Object.entries(frames).forEach(([id,frame])=>frame.addEventListener('load',()=>tuneFrame(id)));
+
+    const input=document.getElementById('sharedFileInput');
+    document.getElementById('pickBtn').addEventListener('click',()=>input.click());
+    input.addEventListener('change',()=>{
+      const file=input.files?.[0];
+      input.value='';
+      if(!file)return;
+      if(!/\.pdf$/i.test(file.name||'')&&!String(file.type||'').includes('pdf'))return toast('PDF 파일만 선택할 수 있습니다.');
+      if(file.size>100*1024*1024)return toast('공통 PDF는 최대 100MB까지 선택할 수 있습니다.');
+      sharedFile=file;delivered.editor='';delivered.checker='';
+      const name=document.getElementById('sharedFileName');name.textContent=`${file.name} · ${(file.size/1024/1024).toFixed(1)}MB`;name.classList.remove('empty');
+      document.getElementById('clearBtn').disabled=false;
+      if(activeModule==='future')switchModule('editor');else deliverTo(activeModule,true);
+    });
+    document.getElementById('clearBtn').addEventListener('click',()=>{
+      sharedFile=null;delivered.editor='';delivered.checker='';
+      const name=document.getElementById('sharedFileName');name.textContent='PDF를 한 번 선택하면 현재 작업 탭에 자동 전달됩니다.';name.classList.add('empty');
+      document.getElementById('clearBtn').disabled=true;toast('공통 PDF 연결을 해제했습니다. 각 작업 화면의 기존 내용은 유지됩니다.');
+    });
+
+    auth.onAuthStateChanged(user=>{
+      if(!user){location.href='../login.html';return}
+      document.getElementById('userName').textContent=user.displayName||(user.email||'').split('@')[0];
+      document.getElementById('authLoading').style.display='none';
+    });
+    document.getElementById('logoutBtn').addEventListener('click',async()=>{await auth.signOut();location.href='../index.html'});
+  </script>
+</body>
+</html>
