@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   backup:
@@ -16,14 +16,24 @@ jobs:
     steps:
       - name: Checkout current main
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
       - name: Create repository ZIP
         run: |
-          mkdir -p backup
-          zip -r backup/program-tool-before-unified-print-20260711.zip . \
-            -x '.git/*' 'backup/*'
+          mkdir -p backup-tmp backups
+          zip -r backup-tmp/program-tool-before-unified-print-20260711.zip . \
+            -x '.git/*' 'backup-tmp/*' 'backups/*'
+          cp backup-tmp/program-tool-before-unified-print-20260711.zip backups/
       - name: Upload backup artifact
         uses: actions/upload-artifact@v4
         with:
           name: program-tool-before-unified-print-20260711
-          path: backup/program-tool-before-unified-print-20260711.zip
+          path: backup-tmp/program-tool-before-unified-print-20260711.zip
           retention-days: 90
+      - name: Commit backup ZIP to repository
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add backups/program-tool-before-unified-print-20260711.zip
+          git diff --cached --quiet || git commit -m "backup: snapshot before unified print workspace"
+          git push
