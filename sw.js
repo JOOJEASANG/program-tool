@@ -1,4 +1,4 @@
-const APP_VERSION = '2026-07-11-unified-print-workspace-v1';
+const APP_VERSION = '2026-07-12-pdf-frame-hotfix-v2';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
