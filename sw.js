@@ -1,4 +1,4 @@
-const APP_VERSION = '2026-07-10-pdf-reset-below-actions-v1';
+const APP_VERSION = '2026-07-11-unified-print-workspace-v1';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
