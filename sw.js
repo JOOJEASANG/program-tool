@@ -1,4 +1,4 @@
-const APP_VERSION = '2026-07-12-divider-font-cover-layout-v3';
+const APP_VERSION = '2026-07-12-cover-editor-stable-v4';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
