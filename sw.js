@@ -1,4 +1,4 @@
-const APP_VERSION = '2026-07-12-cover-fine-controls-v6';
+const APP_VERSION = '2026-07-12-pdf-editor-layout-restore-v7';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
