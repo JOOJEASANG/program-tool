@@ -8,6 +8,11 @@
     document.head.appendChild(script);
   }
 
+  function isToolPath(name) {
+    const path = location.pathname.replace(/\/+$/, '');
+    return path.endsWith(`/tools/${name}`) || path.endsWith(`/tools/${name}.html`);
+  }
+
   async function clearOldCaches() {
     try {
       if ('caches' in window) {
@@ -33,16 +38,16 @@
       loadScript('homeCleanupScript', '/js/home-cleanup.js?v=20260712-cover-maker-1');
     }
 
-    if (location.pathname.endsWith('/tools/pdf-editor.html')) {
+    if (isToolPath('pdf-editor')) {
       loadScript('pdfEditorModuleLoaderScript', '/js/pdf-editor/loader.js?v=20260618-4');
     }
 
-    if (location.pathname.endsWith('/tools/pdf-Checker.html') || location.pathname.endsWith('/tools/preflight.html')) {
+    if (isToolPath('pdf-Checker') || isToolPath('preflight')) {
       loadScript('pdfCheckerFinalGuardScript', '/js/pdf-checker-final-guard.js?v=20260710-6');
     }
 
-    if (location.pathname.endsWith('/tools/perfect-binding-cover.html')) {
-      loadScript('perfectBindingFineControlsScript', '/js/perfect-binding-cover-fine-controls.js?v=20260712-5');
+    if (isToolPath('perfect-binding-cover')) {
+      loadScript('perfectBindingFineControlsScript', '/js/perfect-binding-cover-fine-controls.js?v=20260712-6');
     }
   }
 
