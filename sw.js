@@ -1,4 +1,4 @@
-const APP_VERSION = '2026-07-12-perfect-binding-cover-v2';
+const APP_VERSION = '2026-07-12-divider-font-cover-layout-v3';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
