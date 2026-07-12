@@ -1,4 +1,4 @@
-const APP_VERSION = '2026-07-12-pdf-frame-hotfix-v2';
+const APP_VERSION = '2026-07-12-editor-checker-handoff-v3';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();

@@ -12,3 +12,10 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const googleProvider = new firebase.auth.GoogleAuthProvider();
 const db = firebase.firestore();
+
+if (/\/tools\/print-workspace(?:\.html)?\/?$/.test(location.pathname)) {
+  const handoffBridge = document.createElement('script');
+  handoffBridge.src = '../js/print-workspace-handoff.js?v=20260712-3';
+  handoffBridge.async = false;
+  document.head.appendChild(handoffBridge);
+}
