@@ -1,4 +1,4 @@
-const APP_VERSION = '2026-07-12-cover-fine-controls-v5';
+const APP_VERSION = '2026-07-12-cover-fine-controls-v6';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
