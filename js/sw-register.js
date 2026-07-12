@@ -40,6 +40,10 @@
     if (location.pathname.endsWith('/tools/pdf-Checker.html') || location.pathname.endsWith('/tools/preflight.html')) {
       loadScript('pdfCheckerFinalGuardScript', '/js/pdf-checker-final-guard.js?v=20260710-6');
     }
+
+    if (location.pathname.endsWith('/tools/perfect-binding-cover.html')) {
+      loadScript('perfectBindingFineControlsScript', '/js/perfect-binding-cover-fine-controls.js?v=20260712-5');
+    }
   }
 
   async function boot() {
