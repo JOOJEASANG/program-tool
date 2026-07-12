@@ -38,14 +38,18 @@
       loadScript('homeCleanupScript', '/js/home-cleanup.js?v=20260712-cover-maker-1');
     }
 
-    if (isToolPath('pdf-editor')) {
+    // Keep the PDF editor and checker on their original loading behavior.
+    // Firebase clean URLs may expose extensionless paths; loading the optional
+    // editor modules there changes the established editor layout unexpectedly.
+    if (location.pathname.endsWith('/tools/pdf-editor.html')) {
       loadScript('pdfEditorModuleLoaderScript', '/js/pdf-editor/loader.js?v=20260618-4');
     }
 
-    if (isToolPath('pdf-Checker') || isToolPath('preflight')) {
+    if (location.pathname.endsWith('/tools/pdf-Checker.html') || location.pathname.endsWith('/tools/preflight.html')) {
       loadScript('pdfCheckerFinalGuardScript', '/js/pdf-checker-final-guard.js?v=20260710-6');
     }
 
+    // Only the new cover editor needs extensionless clean-URL support.
     if (isToolPath('perfect-binding-cover')) {
       loadScript('perfectBindingFineControlsScript', '/js/perfect-binding-cover-fine-controls.js?v=20260712-6');
     }
