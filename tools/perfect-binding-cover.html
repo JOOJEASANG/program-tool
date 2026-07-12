@@ -76,7 +76,7 @@
         <input class="upload-input" id="backInput" type="file" accept="image/jpeg,image/png,image/webp">
         <input class="upload-input" id="frontInput" type="file" accept="image/jpeg,image/png,image/webp">
         <div class="grid2" style="margin-top:9px"><button class="mini-btn" id="copyFrontBtn" type="button">앞표지를 뒤표지에 복사</button><button class="mini-btn" id="clearImagesBtn" type="button">이미지 삭제</button></div>
-        <div class="field" style="margin-top:9px"><label>이미지 맞춤</label><select id="imageFit"><option value="cover">영역 채우기</option><option value="contain">전체 보이기</option></select></div>
+        <div class="field" style="margin-top:9px"><label>이미지 맞춤</label><select id="imageFit"><option value="cover">자동 채우기 · 원본 비율 유지</option><option value="contain">전체 보이기 · 원본 비율 유지</option></select></div>
         <div class="color-row">
           <div class="color-field"><label>뒤표지</label><input type="color" id="backColor" value="#eef4f8"></div>
           <div class="color-field"><label>책등</label><input type="color" id="spineColor" value="#12396d"></div>
@@ -96,7 +96,7 @@
           <div class="field"><label>책등 크기</label><div class="unit-wrap"><input id="spineTextSize" type="number" min="5" max="30" value="11"><span class="unit">pt</span></div></div>
           <div class="field"><label>글자색</label><input id="textColor" type="color" value="#12396d" style="width:100%;height:33px;border:1px solid var(--line);border-radius:7px;padding:3px;background:#fff"></div>
         </div>
-        <div class="grid2"><div class="field"><label>제목 위치</label><select id="titlePosition"><option value="top">위쪽</option><option value="center" selected>가운데</option><option value="bottom">아래쪽</option></select></div><div class="field"><label>책등 방향</label><select id="spineDirection"><option value="bottomToTop">아래에서 위로</option><option value="topToBottom">위에서 아래로</option><option value="vertical">한 글자씩 세로</option></select></div></div>
+        <div class="grid2"><div class="field"><label>제목 자동 위치</label><select id="titlePosition"><option value="top">상단 정렬</option><option value="center" selected>중앙 정렬</option><option value="bottom">하단 정렬</option></select></div><div class="field"><label>책등 방향</label><select id="spineDirection"><option value="bottomToTop">아래에서 위로</option><option value="topToBottom">위에서 아래로</option><option value="vertical">한 글자씩 세로</option></select></div></div>
       </section>
     </aside>
 
@@ -174,5 +174,6 @@
     window.addEventListener('resize',()=>{clearTimeout(state.resizeTimer);state.resizeTimer=setTimeout(()=>{fitPreview();requestRender()},100)});
     updateCalculation();
   </script>
+  <script src="../js/perfect-binding-cover-controls.js?v=20260712-1"></script>
 </body>
 </html>
