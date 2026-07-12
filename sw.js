@@ -1,4 +1,4 @@
-const APP_VERSION = '2026-07-12-cover-editor-stable-v4';
+const APP_VERSION = '2026-07-12-cover-fine-controls-v5';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
