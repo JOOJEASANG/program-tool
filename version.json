@@ -1,5 +1,5 @@
 {
-  "version": "2026-07-12-pdf-editor-layout-restore-v7",
-  "label": "PDF 편집기 기존 구조 복원 및 표지 정밀 조작 유지",
-  "updatedAt": "2026-07-12T12:45:00+09:00"
+  "version": "2026-07-17-pdf-export-recovery-v8",
+  "label": "PDF 저장 백엔드 복구 및 내보내기 안정화",
+  "updatedAt": "2026-07-17T20:10:00+09:00"
 }
