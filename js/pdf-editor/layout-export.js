@@ -1,8 +1,8 @@
 // PDF editor layout export module.
 // Ensures paper margins and page gaps from the UI are sent to backend export.
 (function () {
-  if (window.__pdfEditorLayoutExportV1) return;
-  window.__pdfEditorLayoutExportV1 = true;
+  if (window.__pdfEditorLayoutExportV2) return;
+  window.__pdfEditorLayoutExportV2 = true;
 
   function $(id) { return document.getElementById(id); }
   function num(id, fallback) {
@@ -19,8 +19,8 @@
   function wrapApiProcessPdf() {
     if (window.__pdfLayoutApiWrapped || typeof window.apiProcessPdf !== 'function') return;
     const original = window.apiProcessPdf;
-    window.apiProcessPdf = function layoutPatchedApiProcessPdf(files, settings) {
-      return original.call(this, files, patchSettings(settings));
+    window.apiProcessPdf = function layoutPatchedApiProcessPdf(files, settings, options) {
+      return original.call(this, files, patchSettings(settings), options);
     };
     window.__pdfLayoutApiWrapped = true;
   }
