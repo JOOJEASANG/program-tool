@@ -87,14 +87,12 @@ def _validate_storage_path(uid: str, path: str) -> None:
 
 
 def _patch_divider_renderer():
-    """Patch divider output so Korean/CJK text is embedded correctly.
+    """Patch divider output so it matches the free white-background editor behavior.
 
-    PyMuPDF's Base-14 Helvetica font does not contain Korean glyphs. The reserved
-    CJK font name ``korea`` embeds MuPDF's universal CJK font, so divider titles,
-    subtitles and notes remain readable in exported PDFs. Optional titleY,
-    subtitleY, and noteY values are percentages from top and are honored.
+    Divider pages now always use a white background and black text. Optional titleY,
+    subtitleY, and noteY values are percentages from top and are honored in exported PDFs.
     """
-    if getattr(pdf_ops, "_divider_renderer_patched_v3", False):
+    if getattr(pdf_ops, "_divider_renderer_patched_v2", False):
         return
 
     def render_divider_page(out_doc, content_raw, style, paper_w_pt, paper_h_pt):
@@ -121,18 +119,18 @@ def _patch_divider_renderer():
 
         if title:
             rect = fitz.Rect(pad, title_y - 32, paper_w_pt - pad, title_y + 14)
-            page.insert_textbox(rect, title, fontsize=28, fontname="korea", color=fg, align=fitz.TEXT_ALIGN_CENTER)
+            page.insert_textbox(rect, title, fontsize=28, fontname="helv", color=fg, align=fitz.TEXT_ALIGN_CENTER)
 
         if subtitle:
             rect = fitz.Rect(pad, subtitle_y - 24, paper_w_pt - pad, subtitle_y + 12)
-            page.insert_textbox(rect, subtitle, fontsize=18, fontname="korea", color=fg, align=fitz.TEXT_ALIGN_CENTER)
+            page.insert_textbox(rect, subtitle, fontsize=18, fontname="helv", color=fg, align=fitz.TEXT_ALIGN_CENTER)
 
         if note:
             rect = fitz.Rect(pad, note_y - 18, paper_w_pt - pad, note_y + 10)
-            page.insert_textbox(rect, note, fontsize=11, fontname="korea", color=fg, align=fitz.TEXT_ALIGN_CENTER)
+            page.insert_textbox(rect, note, fontsize=11, fontname="helv", color=fg, align=fitz.TEXT_ALIGN_CENTER)
 
     pdf_ops._render_divider_page = render_divider_page
-    pdf_ops._divider_renderer_patched_v3 = True
+    pdf_ops._divider_renderer_patched_v2 = True
 
 
 @pdf_bp.route("/process", methods=["POST"])
@@ -209,7 +207,7 @@ def process_storage(uid):
             blob = bucket.blob(path)
             try:
                 blob.reload()
-            except Exception:
+            except Exception as e:
                 return jsonify({"detail": f"업로드된 임시 파일을 찾을 수 없습니다. 다시 저장을 눌러주세요. ({path})"}), 404
             if blob.size is not None and blob.size > MAX_PDF_FILE_BYTES:
                 return jsonify({"detail": f"파일이 {_max_file_mb()} MB를 초과합니다"}), 413
