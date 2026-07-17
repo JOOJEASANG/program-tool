@@ -42,7 +42,7 @@
     // Firebase clean URLs may expose extensionless paths; loading the optional
     // editor modules there changes the established editor layout unexpectedly.
     if (location.pathname.endsWith('/tools/pdf-editor.html')) {
-      loadScript('pdfEditorModuleLoaderScript', '/js/pdf-editor/loader.js?v=20260618-4');
+      loadScript('pdfEditorModuleLoaderScript', '/js/pdf-editor/loader.js?v=20260712-13');
     }
 
     if (location.pathname.endsWith('/tools/pdf-Checker.html') || location.pathname.endsWith('/tools/preflight.html')) {
