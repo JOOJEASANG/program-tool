@@ -1,10 +1,10 @@
-// Restores administrator navigation while keeping the server as the primary authority.
+// Shows the administrator link and restores the original administrator redirect.
 (function () {
-  if (window.__programToolAdminLinkV2) return;
-  window.__programToolAdminLinkV2 = true;
+  if (window.__programToolAdminLinkV3) return;
+  window.__programToolAdminLinkV3 = true;
 
   async function waitForCompat() {
-    for (let i = 0; i < 60; i += 1) {
+    for (let i = 0; i < 80; i += 1) {
       if (window.ProgramToolCompat) return window.ProgramToolCompat;
       await new Promise(resolve => setTimeout(resolve, 50));
     }
@@ -29,11 +29,7 @@
         const status = await compat.adminStatus();
         if (!status.isAdmin) return;
         button.style.display = 'block';
-        const cameFromLogin = document.referrer && /\/login(?:\.html)?(?:[?#]|$)/i.test(document.referrer);
-        if (cameFromLogin && !sessionStorage.getItem('programToolAdminRedirected')) {
-          sessionStorage.setItem('programToolAdminRedirected', '1');
-          location.replace('admin.html');
-        }
+        location.replace('admin.html');
       } catch (error) {
         console.warn('[admin-link] administrator check failed', error);
       }
