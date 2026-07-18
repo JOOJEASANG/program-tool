@@ -6,8 +6,16 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function hasEmail() {
+      return isSignedIn()
+        && ('email' in request.auth.token)
+        && request.auth.token.email != null;
+    }
+
     function hasAdminClaim() {
-      return isSignedIn() && request.auth.token.admin == true;
+      return isSignedIn()
+        && ('admin' in request.auth.token)
+        && request.auth.token.admin == true;
     }
 
     function adminEmails() {
@@ -17,9 +25,8 @@ service cloud.firestore {
     function isAdmin() {
       return hasAdminClaim()
         || (
-          isSignedIn()
+          hasEmail()
           && exists(/databases/$(database)/documents/settings/admin)
-          && request.auth.token.email != null
           && adminEmails().hasAny([request.auth.token.email, request.auth.token.email.lower()])
         );
     }
@@ -52,7 +59,7 @@ service cloud.firestore {
 
       allow create: if isSignedIn()
         && request.auth.uid == uid
-        && request.auth.token.email != null
+        && hasEmail()
         && request.resource.data.keys().hasOnly(['uid', 'email', 'displayName', 'programs', 'createdAt'])
         && request.resource.data.uid == uid
         && request.resource.data.email == request.auth.token.email
