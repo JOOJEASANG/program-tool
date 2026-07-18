@@ -1,4 +1,4 @@
-const APP_VERSION = '2026-07-18-access-regression-v2';
+const APP_VERSION = '2026-07-18-access-regression-v3';
 const CACHE_PREFIX = 'program-tool-';
 const STATIC_CACHE = CACHE_PREFIX + APP_VERSION;
 const CORE_ASSETS = [
