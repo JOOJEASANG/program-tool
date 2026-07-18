@@ -6,7 +6,7 @@
 
   const PROGRAM_IDS = ['pdf-editor', 'preflight', 'perfect-binding-cover'];
   const DEFAULT_PUBLIC = {
-    'pdf-editor': false,
+    'pdf-editor': true,
     preflight: true,
     'perfect-binding-cover': true,
   };
