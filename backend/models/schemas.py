@@ -1,6 +1,7 @@
-from pydantic import BaseModel, Field
-from typing import Optional, Literal
 from enum import Enum
+from typing import Literal, Optional
+
+from pydantic import BaseModel, Field
 
 
 class NupValue(int, Enum):
@@ -13,82 +14,80 @@ class NupValue(int, Enum):
 
 
 class PageInfo(BaseModel):
-    file_index: int
-    page_index: int
-    rotation: int = 0
+    file_index: int = Field(ge=0, le=49)
+    page_index: int = Field(ge=0, le=99999)
+    rotation: Literal[0, 90, 180, 270] = 0
     nup_override: Optional[NupValue] = None
     nup_disabled: bool = False
     group_break: bool = False
     excluded: bool = False
     page_type: Literal["normal", "divider", "blank"] = "normal"
-    divider_content: Optional[str] = None
+    divider_content: Optional[str] = Field(default=None, max_length=4000)
     divider_style: Optional[Literal["simple", "lines", "band"]] = "simple"
 
 
 class WatermarkSettings(BaseModel):
     enabled: bool = False
-    text: str = ""
-    opacity: float = 0.2
-    angle: float = 45.0
-    color: str = "#cccccc"
+    text: str = Field(default="", max_length=200)
+    opacity: float = Field(default=0.2, ge=0.0, le=1.0)
+    angle: float = Field(default=45.0, ge=-360.0, le=360.0)
+    color: str = Field(default="#cccccc", pattern=r"^#[0-9a-fA-F]{6}$")
 
 
 class HeaderFooterSection(BaseModel):
     """Per-range header/footer override. ranges is e.g. '1-3,5'; empty = all pages."""
-    ranges: str = ""
-    header_left: str = ""
-    header_center: str = ""
-    header_right: str = ""
-    footer_left: str = ""
-    footer_center: str = ""
-    footer_right: str = ""
+    ranges: str = Field(default="", max_length=500)
+    header_left: str = Field(default="", max_length=300)
+    header_center: str = Field(default="", max_length=300)
+    header_right: str = Field(default="", max_length=300)
+    footer_left: str = Field(default="", max_length=300)
+    footer_center: str = Field(default="", max_length=300)
+    footer_right: str = Field(default="", max_length=300)
 
 
 class HeaderFooterSettings(BaseModel):
     enabled: bool = False
-    # Default fields apply to pages not covered by any section
-    header_left: str = ""
-    header_center: str = ""
-    header_right: str = ""
-    footer_left: str = ""
-    footer_center: str = ""
-    footer_right: str = ""
-    font_size: float = 10.0
-    color: str = "#333333"
-    header_margin_mm: float = 8.0
-    footer_margin_mm: float = 8.0
-    margin_mm: Optional[float] = None  # overrides header/footer margin when set
+    header_left: str = Field(default="", max_length=300)
+    header_center: str = Field(default="", max_length=300)
+    header_right: str = Field(default="", max_length=300)
+    footer_left: str = Field(default="", max_length=300)
+    footer_center: str = Field(default="", max_length=300)
+    footer_right: str = Field(default="", max_length=300)
+    font_size: float = Field(default=10.0, ge=4.0, le=72.0)
+    color: str = Field(default="#333333", pattern=r"^#[0-9a-fA-F]{6}$")
+    header_margin_mm: float = Field(default=8.0, ge=0.0, le=50.0)
+    footer_margin_mm: float = Field(default=8.0, ge=0.0, le=50.0)
+    margin_mm: Optional[float] = Field(default=None, ge=0.0, le=50.0)
     apply_to: Literal["all", "odd", "even"] = "all"
-    sections: list[HeaderFooterSection] = Field(default_factory=list)
+    sections: list[HeaderFooterSection] = Field(default_factory=list, max_length=50)
 
 
 class PageNumberSettings(BaseModel):
     enabled: bool = False
     position: Literal["bottom-center", "bottom-right", "bottom-left", "top-center", "top-right", "top-left"] = "bottom-center"
     format: Literal["1", "1/N", "-1-", "-1/N-"] = "1"
-    start: int = 1
-    font_size: float = 10.0
-    color: str = "#333333"
+    start: int = Field(default=1, ge=-999999, le=999999)
+    font_size: float = Field(default=10.0, ge=4.0, le=72.0)
+    color: str = Field(default="#333333", pattern=r"^#[0-9a-fA-F]{6}$")
     exclude_first: bool = False
     apply_to: Literal["all", "odd", "even"] = "all"
-    margin_mm: Optional[float] = None
+    margin_mm: Optional[float] = Field(default=None, ge=0.0, le=50.0)
 
 
 class PaperSize(BaseModel):
-    width_mm: float = 210.0
-    height_mm: float = 297.0
+    width_mm: float = Field(default=210.0, ge=50.0, le=1500.0)
+    height_mm: float = Field(default=297.0, ge=50.0, le=1500.0)
 
 
 class PdfProcessRequest(BaseModel):
-    pages: list[PageInfo]
+    pages: list[PageInfo] = Field(min_length=1, max_length=2000)
     nup_default: NupValue = NupValue.one
     paper: PaperSize = Field(default_factory=PaperSize)
     fit_to_paper: bool = True
     add_border: bool = False
-    # N-UP output layout controls, in millimeters. These are used by the backend exporter.
-    margin_h_mm: float = 10.0
-    margin_v_mm: float = 10.0
-    gap_mm: float = 5.0
+    margin_h_mm: float = Field(default=10.0, ge=0.0, le=80.0)
+    margin_v_mm: float = Field(default=10.0, ge=0.0, le=80.0)
+    gap_mm: float = Field(default=5.0, ge=0.0, le=50.0)
     watermark: WatermarkSettings = Field(default_factory=WatermarkSettings)
     header_footer: HeaderFooterSettings = Field(default_factory=HeaderFooterSettings)
     page_numbers: PageNumberSettings = Field(default_factory=PageNumberSettings)
@@ -103,16 +102,16 @@ class CheckSeverity(str, Enum):
 
 
 class CheckItem(BaseModel):
-    id: str
-    label: str
+    id: str = Field(max_length=100)
+    label: str = Field(max_length=200)
     severity: CheckSeverity
-    detail: str
-    page_refs: list[int] = Field(default_factory=list)
+    detail: str = Field(max_length=4000)
+    page_refs: list[int] = Field(default_factory=list, max_length=2000)
 
 
 class PreflightReport(BaseModel):
-    filename: str
-    page_count: int
-    checks: list[CheckItem]
-    ai_feedback: Optional[str] = None
-    score: int  # 0-100
+    filename: str = Field(max_length=255)
+    page_count: int = Field(ge=0, le=100000)
+    checks: list[CheckItem] = Field(max_length=100)
+    ai_feedback: Optional[str] = Field(default=None, max_length=10000)
+    score: int = Field(ge=0, le=100)
