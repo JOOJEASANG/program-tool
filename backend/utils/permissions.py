@@ -92,6 +92,49 @@ def is_admin_identity(decoded: dict) -> bool:
     return email in _initial_admin_emails() or email in _admin_document_emails()
 
 
+def _permission_data(decoded: dict, db) -> dict:
+    """Read or initialize the current user's permission record.
+
+    The Admin SDK write avoids relying on a separate signup-page write and
+    guarantees that administrators have a user list to approve later.
+    """
+    uid = str(decoded.get("uid") or "")
+    ref = db.collection("user_permissions").document(uid)
+    snap = ref.get()
+    defaults = {program_id: False for program_id in PROGRAM_IDS}
+    if not snap.exists:
+        data = {
+            "uid": uid,
+            "email": normalize_email(decoded.get("email")),
+            "displayName": str(decoded.get("name") or decoded.get("email") or "사용자")[:120],
+            "programs": defaults,
+            "createdAt": firestore.SERVER_TIMESTAMP,
+        }
+        ref.set(data)
+        return data
+
+    data = snap.to_dict() or {}
+    programs = data.get("programs") if isinstance(data.get("programs"), dict) else {}
+    missing = {program_id: False for program_id in PROGRAM_IDS if program_id not in programs}
+    updates = {}
+    if missing:
+        for program_id, value in missing.items():
+            updates[f"programs.{program_id}"] = value
+            programs[program_id] = value
+    token_email = normalize_email(decoded.get("email"))
+    if token_email and normalize_email(data.get("email")) != token_email:
+        updates["email"] = token_email
+        data["email"] = token_email
+    token_name = str(decoded.get("name") or "").strip()[:120]
+    if token_name and data.get("displayName") != token_name:
+        updates["displayName"] = token_name
+        data["displayName"] = token_name
+    if updates:
+        ref.update(updates)
+    data["programs"] = {**defaults, **programs}
+    return data
+
+
 def get_program_access(decoded: dict, program_id: str) -> dict:
     """Resolve admin/public/per-user access for one program."""
     if program_id not in PROGRAM_IDS:
@@ -100,7 +143,6 @@ def get_program_access(decoded: dict, program_id: str) -> dict:
     is_admin = is_admin_identity(decoded)
     is_public = DEFAULT_PUBLIC_PROGRAMS.get(program_id, False)
     is_approved = False
-    uid = str(decoded.get("uid") or "")
 
     try:
         db = firestore.client()
@@ -110,10 +152,9 @@ def get_program_access(decoded: dict, program_id: str) -> dict:
             if isinstance(public_map, dict) and program_id in public_map:
                 is_public = public_map.get(program_id) is True
 
-        permission_snap = db.collection("user_permissions").document(uid).get()
-        if permission_snap.exists:
-            programs = permission_snap.to_dict().get("programs") or {}
-            is_approved = isinstance(programs, dict) and programs.get(program_id) is True
+        permission = _permission_data(decoded, db)
+        programs = permission.get("programs") or {}
+        is_approved = isinstance(programs, dict) and programs.get(program_id) is True
     except Exception as exc:
         # Admin claims remain usable during a Firestore outage, but normal
         # users are denied rather than accidentally granted access.
