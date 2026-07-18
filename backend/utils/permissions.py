@@ -15,10 +15,10 @@ PROGRAM_BY_PREFIX: tuple[tuple[str, str], ...] = (
 
 PROGRAM_IDS = frozenset({"pdf-editor", "preflight", "perfect-binding-cover"})
 
-# Preserve the site's existing behavior unless an administrator explicitly
-# changes settings/programs.public in Firestore.
+# Keep every tool available to signed-in members unless an administrator
+# explicitly changes settings/programs.public in Firestore.
 DEFAULT_PUBLIC_PROGRAMS: dict[str, bool] = {
-    "pdf-editor": False,
+    "pdf-editor": True,
     "preflight": True,
     "perfect-binding-cover": True,
 }
