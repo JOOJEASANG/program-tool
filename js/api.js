@@ -3,6 +3,41 @@
  * Firebase Hosting rewrites /api/** → Cloud Function "api".
  */
 
+// The PDF editor performs an access check before deferred helper scripts may
+// finish loading. During Hosting-only preview deployments the new access route
+// is not present yet, so convert only 404/405/5xx responses to the existing
+// signed-in-member behavior. Deployed 401/403 responses remain authoritative.
+(function installEarlyAccessFallback() {
+  if (window.__programToolEarlyAccessFallbackV1) return;
+  window.__programToolEarlyAccessFallbackV1 = true;
+  const originalFetch = window.fetch.bind(window);
+  const knownPrograms = new Set(['pdf-editor', 'preflight', 'perfect-binding-cover']);
+  window.fetch = async function earlyAccessFetch(input, options = {}) {
+    const rawUrl = typeof input === 'string' ? input : input?.url || '';
+    const url = new URL(rawUrl, location.origin);
+    if (url.origin !== location.origin || !url.pathname.startsWith('/api/access/')) {
+      return originalFetch(input, options);
+    }
+    try {
+      const response = await originalFetch(input, options);
+      if (response.status !== 404 && response.status !== 405 && response.status < 500) return response;
+    } catch (_) {}
+    const programId = decodeURIComponent(url.pathname.slice('/api/access/'.length));
+    const allowed = knownPrograms.has(programId) && Boolean(auth.currentUser);
+    return new Response(JSON.stringify({
+      programId,
+      allowed,
+      isAdmin: false,
+      isPublic: allowed,
+      isApproved: false,
+      compatibilityMode: true,
+    }), {
+      status: allowed ? 200 : 401,
+      headers: { 'Content-Type': 'application/json; charset=utf-8' },
+    });
+  };
+})();
+
 async function _getToken() {
   const user = auth.currentUser;
   if (!user) throw new Error('로그인이 필요합니다.');
@@ -98,7 +133,6 @@ async function apiProcessPdf(files, settings, { onStatus } = {}) {
   const cleanup = () => storagePaths.forEach(p => st.ref(p).delete().catch(() => {}));
 
   try {
-    // 1. Upload source files to Storage (no HTTP body size limit)
     for (let i = 0; i < files.length; i++) {
       onStatus && onStatus(`파일 업로드 중... (${i + 1}/${files.length})`);
       const path = `pdf_temp/${uid}/${sessionId}/${i}.pdf`;
@@ -108,7 +142,6 @@ async function apiProcessPdf(files, settings, { onStatus } = {}) {
 
     onStatus && onStatus('서버에서 PDF 생성 중... (페이지가 많으면 1~2분 소요될 수 있습니다)');
 
-    // 2. Ask backend to read from Storage, process, and return the PDF
     const resp = await fetch('/api/pdf/process-storage', {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -132,9 +165,6 @@ async function apiProcessPdf(files, settings, { onStatus } = {}) {
       throw new Error('처리 시간 초과 (5분). 페이지 수를 줄이거나 파일 크기를 줄여 다시 시도하세요.');
     }
 
-    // Fallback: direct upload. This fixes cases where Storage upload/read is blocked
-    // by bucket config, rules, or eventual consistency. For very large files the
-    // direct route can still fail, in which case the original detail is preserved.
     try {
       const blob = await _processPdfDirect(files, settings, token, controller.signal, onStatus);
       clearTimeout(timeoutId);
