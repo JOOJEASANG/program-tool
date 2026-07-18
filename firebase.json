@@ -3,10 +3,23 @@
     "public": ".",
     "ignore": [
       "firebase.json",
+      ".firebaserc",
+      ".git/**",
+      ".github/**",
       "**/.*",
       "**/node_modules/**",
-      "design_program.html",
-      "backend/**"
+      "**/__pycache__/**",
+      "**/*.py",
+      "**/*.pyc",
+      "**/*.zip",
+      "**/*.md",
+      "backend/**",
+      "backups/**",
+      "scripts/**",
+      "tests/**",
+      "firestore.rules",
+      "storage.rules",
+      "design_program.html"
     ],
     "cleanUrls": true,
     "trailingSlash": false,
@@ -23,7 +36,8 @@
           { "key": "X-Content-Type-Options", "value": "nosniff" },
           { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
           { "key": "X-Frame-Options", "value": "DENY" },
-          { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=()" }
+          { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=(), payment=(), usb=()" },
+          { "key": "Cross-Origin-Resource-Policy", "value": "same-origin" }
         ]
       },
       {
@@ -68,7 +82,8 @@
         "venv",
         ".venv",
         "__pycache__",
-        "*.pyc"
+        "*.pyc",
+        "tests"
       ]
     }
   ],
