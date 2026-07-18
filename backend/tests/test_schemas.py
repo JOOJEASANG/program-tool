@@ -42,8 +42,8 @@ class PermissionMappingTests(unittest.TestCase):
         self.assertEqual(program_for_path("/api/preflight/check"), "preflight")
         self.assertIsNone(program_for_path("/api/admin/me"))
 
-    def test_default_public_policy_preserves_current_site_behavior(self):
-        self.assertFalse(DEFAULT_PUBLIC_PROGRAMS["pdf-editor"])
+    def test_all_tools_are_public_until_admin_changes_policy(self):
+        self.assertTrue(DEFAULT_PUBLIC_PROGRAMS["pdf-editor"])
         self.assertTrue(DEFAULT_PUBLIC_PROGRAMS["preflight"])
         self.assertTrue(DEFAULT_PUBLIC_PROGRAMS["perfect-binding-cover"])
 
