@@ -4,6 +4,7 @@
 (function () {
   if (window.ProgramToolCompat) return;
 
+  const originalFetch = window.fetch.bind(window);
   const PROGRAM_IDS = ['pdf-editor', 'preflight', 'perfect-binding-cover'];
   const DEFAULT_PUBLIC = {
     'pdf-editor': true,
@@ -45,12 +46,19 @@
     return response.status === 404 || response.status === 405 || response.status >= 500;
   }
 
+  function jsonResponse(data, status = 200) {
+    return new Response(JSON.stringify(data), {
+      status,
+      headers: { 'Content-Type': 'application/json; charset=utf-8' },
+    });
+  }
+
   async function serverJson(path, options = {}) {
     const user = await currentUser();
     const token = await user.getIdToken();
     const headers = { Authorization: 'Bearer ' + token, ...(options.headers || {}) };
     if (options.body != null && !headers['Content-Type']) headers['Content-Type'] = 'application/json';
-    const response = await fetch(path, { cache: 'no-store', ...options, headers });
+    const response = await originalFetch(path, { cache: 'no-store', ...options, headers });
     const data = await response.json().catch(() => ({}));
     return { response, data, user };
   }
@@ -69,15 +77,9 @@
     };
   }
 
-  async function programAccess(programId) {
+  async function legacyProgramAccess(programId, suppliedUser = null) {
     if (!PROGRAM_IDS.includes(programId)) throw new Error('알 수 없는 프로그램입니다.');
-    const result = await serverJson('/api/access/' + encodeURIComponent(programId)).catch(() => null);
-    if (result && !shouldUseLegacy(result.response)) {
-      if (!result.response.ok) throw new Error(result.data.detail || `서버 오류 (${result.response.status})`);
-      return result.data;
-    }
-
-    const user = result ? result.user : await currentUser();
+    const user = suppliedUser || await currentUser();
     let isAdmin = false;
     let isPublic = DEFAULT_PUBLIC[programId] === true;
     let isApproved = false;
@@ -103,6 +105,16 @@
       isApproved,
       compatibilityMode: true,
     };
+  }
+
+  async function programAccess(programId) {
+    if (!PROGRAM_IDS.includes(programId)) throw new Error('알 수 없는 프로그램입니다.');
+    const result = await serverJson('/api/access/' + encodeURIComponent(programId)).catch(() => null);
+    if (result && !shouldUseLegacy(result.response)) {
+      if (!result.response.ok) throw new Error(result.data.detail || `서버 오류 (${result.response.status})`);
+      return result.data;
+    }
+    return legacyProgramAccess(programId, result?.user || null);
   }
 
   async function assertLegacyAdmin() {
@@ -180,13 +192,13 @@
     const userMatch = url.pathname.match(/^\/api\/admin\/users\/([^/]+)$/);
     if (userMatch && method === 'PUT') {
       const uid = decodeURIComponent(userMatch[1]);
-      const programs = body.programs || {};
-      const updates = {};
+      const incoming = body.programs || {};
+      const programs = {};
       PROGRAM_IDS.forEach(id => {
-        if (Object.prototype.hasOwnProperty.call(programs, id)) updates['programs.' + id] = programs[id] === true;
+        if (Object.prototype.hasOwnProperty.call(incoming, id)) programs[id] = incoming[id] === true;
       });
-      if (!Object.keys(updates).length) throw new Error('변경할 권한이 없습니다.');
-      await db.collection('user_permissions').doc(uid).set(updates, { merge: true });
+      if (!Object.keys(programs).length) throw new Error('변경할 권한이 없습니다.');
+      await db.collection('user_permissions').doc(uid).set({ programs }, { merge: true });
       return { ok: true, compatibilityMode: true };
     }
 
@@ -207,5 +219,29 @@
     programAccess,
     adminRequest,
     legacyIsAdmin,
+  };
+
+  // Some legacy pages call /api/access directly inside their inline script.
+  // Convert only a missing/unavailable endpoint to the Firestore compatibility
+  // result. Real 401/403 responses from deployed Functions remain authoritative.
+  window.fetch = async function accessPreviewFetch(input, options = {}) {
+    const rawUrl = typeof input === 'string' ? input : input?.url || '';
+    const url = new URL(rawUrl, location.origin);
+    if (url.origin !== location.origin || !url.pathname.startsWith('/api/access/')) {
+      return originalFetch(input, options);
+    }
+
+    try {
+      const response = await originalFetch(input, options);
+      if (!shouldUseLegacy(response)) return response;
+    } catch (_) {}
+
+    try {
+      const programId = decodeURIComponent(url.pathname.slice('/api/access/'.length));
+      return jsonResponse(await legacyProgramAccess(programId));
+    } catch (error) {
+      const status = /로그인/.test(error.message || '') ? 401 : 403;
+      return jsonResponse({ detail: error.message || '권한을 확인할 수 없습니다.' }, status);
+    }
   };
 })();
