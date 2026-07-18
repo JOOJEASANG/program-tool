@@ -1,7 +1,7 @@
 // Shared client-side access guard. Server APIs independently enforce the same rule.
 (function () {
-  if (window.__programToolAccessGuardV1) return;
-  window.__programToolAccessGuardV1 = true;
+  if (window.__programToolAccessGuardV2) return;
+  window.__programToolAccessGuardV2 = true;
 
   function programForPath() {
     const path = location.pathname.replace(/\/+$/, '').toLowerCase();
@@ -68,15 +68,19 @@
     overlay.appendChild(box);
   }
 
-  async function check(user) {
-    const token = await user.getIdToken();
-    const response = await fetch('/api/access/' + encodeURIComponent(programId), {
-      headers: { Authorization: 'Bearer ' + token },
-      cache: 'no-store',
-    });
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok || !data.allowed) throw new Error(data.detail || '이 프로그램을 사용할 권한이 없습니다.');
-    allow(data);
+  async function waitForCompat() {
+    for (let i = 0; i < 60; i += 1) {
+      if (window.ProgramToolCompat) return window.ProgramToolCompat;
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }
+    throw new Error('권한 확인 모듈을 불러오지 못했습니다.');
+  }
+
+  async function check() {
+    const compat = await waitForCompat();
+    const access = await compat.programAccess(programId);
+    if (!access.allowed) throw new Error('이 프로그램을 사용할 권한이 없습니다.');
+    allow(access);
   }
 
   function boot() {
@@ -90,7 +94,7 @@
         location.href = '../login.html';
         return;
       }
-      check(user).catch(error => deny(error.message));
+      check().catch(error => deny(error.message));
     });
   }
 
