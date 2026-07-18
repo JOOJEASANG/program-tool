@@ -1,5 +1,5 @@
 {
-  "version": "2026-07-18-access-regression-v2",
-  "label": "관리자 자동 이동 및 일반회원 프로그램 접근 복구",
-  "updatedAt": "2026-07-18T15:50:00+09:00"
+  "version": "2026-07-18-access-regression-v3",
+  "label": "관리자 자동 이동과 일반회원 전체 프로그램 접근 복구",
+  "updatedAt": "2026-07-18T16:05:00+09:00"
 }
