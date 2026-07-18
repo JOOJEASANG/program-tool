@@ -33,6 +33,7 @@
     if (isToolPath('pdf-checker') || isToolPath('preflight')) {
       loadScript('programAccessScript', '/js/program-access.js?v=20260718-1');
       loadScript('pdfCheckerFinalGuardScript', '/js/pdf-checker-final-guard.js?v=20260710-6');
+      loadScript('preflightTempClientScript', '/js/preflight-temp-client.js?v=20260718-1');
     }
 
     if (isToolPath('perfect-binding-cover')) {
