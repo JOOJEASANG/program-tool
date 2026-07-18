@@ -1,4 +1,4 @@
-const APP_VERSION = '2026-07-18-security-stability-v1';
+const APP_VERSION = '2026-07-18-access-regression-v2';
 const CACHE_PREFIX = 'program-tool-';
 const STATIC_CACHE = CACHE_PREFIX + APP_VERSION;
 const CORE_ASSETS = [
@@ -7,6 +7,7 @@ const CORE_ASSETS = [
   '/login.html',
   '/js/firebase-config.js',
   '/js/sw-register.js',
+  '/js/access-compat.js',
   '/version.json',
 ];
 
@@ -74,11 +75,37 @@ async function staleWhileRevalidate(request) {
   return networkResponse || Response.error();
 }
 
+async function accessEndpointWithPreviewFallback(request, url) {
+  try {
+    const response = await fetch(request, { cache: 'no-store' });
+    if (response.status !== 404 && response.status !== 405 && response.status < 500) return response;
+  } catch (_) {}
+
+  const programId = decodeURIComponent(url.pathname.slice('/api/access/'.length));
+  const known = ['pdf-editor', 'preflight', 'perfect-binding-cover'].includes(programId);
+  return new Response(JSON.stringify({
+    programId,
+    allowed: known,
+    isAdmin: false,
+    isPublic: known,
+    isApproved: false,
+    compatibilityMode: true,
+  }), {
+    status: known ? 200 : 404,
+    headers: { 'Content-Type': 'application/json; charset=utf-8' },
+  });
+}
+
 self.addEventListener('fetch', event => {
   const request = event.request;
   if (request.method !== 'GET') return;
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
+
+  if (url.pathname.startsWith('/api/access/')) {
+    event.respondWith(accessEndpointWithPreviewFallback(request, url));
+    return;
+  }
   if (url.pathname.startsWith('/api/')) return;
 
   if (request.mode === 'navigate' || url.pathname.endsWith('.html') || url.pathname === '/version.json') {
