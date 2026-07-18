@@ -793,24 +793,18 @@ auth.onAuthStateChanged(async user => {
   document.getElementById('navUserName').textContent = user.displayName || user.email.split('@')[0];
 
   try {
-    const userEmail = String(user.email || '').trim().toLowerCase();
-    const [adminDoc, programsDoc, permDoc] = await Promise.all([
-      db.collection('settings').doc('admin').get(),
-      db.collection('settings').doc('programs').get(),
-      db.collection('user_permissions').doc(user.uid).get(),
-    ]);
-    const adminEmails = (adminDoc.exists ? (adminDoc.data().emails || []) : [])
-      .map(e => String(e).trim().toLowerCase());
-    const isAdmin = adminEmails.includes(userEmail);
-    const isPublic = !!(programsDoc.exists && programsDoc.data().public?.['pdf-editor']);
-    const isApproved = permDoc.exists && permDoc.data().programs?.['pdf-editor'] === true;
-
-    if (!isAdmin && !isPublic && !isApproved) {
-      denyPdfAccess('PDF 편집기는 관리자 승인 후 사용할 수 있습니다.');
+    const token = await user.getIdToken();
+    const response = await fetch('/api/access/pdf-editor', {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: 'no-store',
+    });
+    const access = await response.json().catch(() => ({}));
+    if (!response.ok || !access.allowed) {
+      denyPdfAccess(access.detail || 'PDF 편집기는 관리자 승인 후 사용할 수 있습니다.');
       return;
     }
-  } catch(e) {
-    console.error('Permission check failed', e);
+  } catch (error) {
+    console.error('Permission check failed', error);
     denyPdfAccess('권한 확인 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.');
     return;
   }
