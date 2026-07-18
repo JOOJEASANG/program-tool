@@ -1,66 +1,63 @@
+// Registers one stable service worker and loads page-specific helpers.
 (function () {
+  if (window.__programToolBootstrapV1) return;
+  window.__programToolBootstrapV1 = true;
+
   function loadScript(id, src) {
     if (document.getElementById(id)) return;
     const script = document.createElement('script');
     script.id = id;
     script.src = src;
-    script.defer = true;
+    script.async = false;
     document.head.appendChild(script);
   }
 
   function isToolPath(name) {
-    const path = location.pathname.replace(/\/+$/, '');
-    return path.endsWith(`/tools/${name}`) || path.endsWith(`/tools/${name}.html`);
-  }
-
-  async function clearOldCaches() {
-    try {
-      if ('caches' in window) {
-        const keys = await caches.keys();
-        await Promise.all(keys.map((key) => caches.delete(key)));
-      }
-    } catch (_) {}
-  }
-
-  async function registerFreshServiceWorker() {
-    if (!('serviceWorker' in navigator)) return;
-    try {
-      const reg = await navigator.serviceWorker.register('/sw.js?ts=' + Date.now(), { updateViaCache: 'none' });
-      await reg.update().catch(() => {});
-      if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
-    } catch (_) {}
+    const path = location.pathname.replace(/\/+$/, '').toLowerCase();
+    return path.endsWith('/tools/' + name.toLowerCase()) || path.endsWith('/tools/' + name.toLowerCase() + '.html');
   }
 
   function loadHelpers() {
-    loadScript('appVersionHelperScript', '/js/app-version.js?v=20260518-1');
+    loadScript('appVersionHelperScript', '/js/app-version.js?v=20260718-security-1');
 
     if (location.pathname === '/' || location.pathname.endsWith('/index.html')) {
       loadScript('homeCleanupScript', '/js/home-cleanup.js?v=20260712-cover-maker-1');
+      loadScript('adminLinkScript', '/js/admin-link.js?v=20260718-1');
     }
 
-    // Keep the PDF editor and checker on their original loading behavior.
-    // Firebase clean URLs may expose extensionless paths; loading the optional
-    // editor modules there changes the established editor layout unexpectedly.
-    if (location.pathname.endsWith('/tools/pdf-editor.html')) {
+    if (isToolPath('pdf-editor')) {
+      loadScript('programAccessScript', '/js/program-access.js?v=20260718-1');
       loadScript('pdfEditorModuleLoaderScript', '/js/pdf-editor/loader.js?v=20260712-13');
     }
 
-    if (location.pathname.endsWith('/tools/pdf-Checker.html') || location.pathname.endsWith('/tools/preflight.html')) {
+    if (isToolPath('pdf-checker') || isToolPath('preflight')) {
+      loadScript('programAccessScript', '/js/program-access.js?v=20260718-1');
       loadScript('pdfCheckerFinalGuardScript', '/js/pdf-checker-final-guard.js?v=20260710-6');
     }
 
-    // Only the new cover editor needs extensionless clean-URL support.
     if (isToolPath('perfect-binding-cover')) {
+      loadScript('programAccessScript', '/js/program-access.js?v=20260718-1');
       loadScript('perfectBindingFineControlsScript', '/js/perfect-binding-cover-fine-controls.js?v=20260712-6');
+      loadScript('perfectBindingProjectsScript', '/js/perfect-binding-cover-projects.js?v=20260718-1');
     }
   }
 
-  async function boot() {
-    await clearOldCaches();
-    await registerFreshServiceWorker();
-    loadHelpers();
+  async function registerServiceWorker() {
+    if (!('serviceWorker' in navigator)) return;
+    try {
+      const registration = await navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' });
+      registration.update().catch(() => {});
+      if (registration.waiting) registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+    } catch (error) {
+      console.warn('[service-worker] registration failed', error);
+    }
   }
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+  function boot() {
+    loadHelpers();
+    registerServiceWorker();
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, { once: true });
   else boot();
 })();
