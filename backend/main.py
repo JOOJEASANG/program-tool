@@ -39,13 +39,18 @@ def add_security_headers(response):
     return response
 
 
-@flask_app.route("/health")
-def health():
+def _health_payload():
     return {
         "status": "ok",
         "service": "program-tool-api",
         "maxRequestMb": flask_app.config["MAX_CONTENT_LENGTH"] // (1024 * 1024),
     }
+
+
+@flask_app.route("/health")
+@flask_app.route("/api/health")
+def health():
+    return _health_payload()
 
 
 @https_fn.on_request(
