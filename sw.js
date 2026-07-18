@@ -61,11 +61,17 @@ async function networkFirst(request) {
 async function staleWhileRevalidate(request) {
   const cache = await caches.open(STATIC_CACHE);
   const cached = await cache.match(request);
-  const network = fetch(request).then(response => {
+  const networkPromise = fetch(request).then(response => {
     if (response.ok) cache.put(request, response.clone()).catch(() => {});
     return response;
   }).catch(() => null);
-  return cached || network || Response.error();
+
+  if (cached) {
+    networkPromise.catch(() => {});
+    return cached;
+  }
+  const networkResponse = await networkPromise;
+  return networkResponse || Response.error();
 }
 
 self.addEventListener('fetch', event => {
