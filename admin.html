@@ -13,16 +13,17 @@
     .top{height:58px;background:linear-gradient(135deg,#12396d,#126783);color:#fff;display:flex;align-items:center;padding:0 24px;gap:12px;box-shadow:0 2px 12px rgba(0,0,0,.18)}
     .back{color:rgba(255,255,255,.9);text-decoration:none;font-size:13px;font-weight:800;border:1px solid rgba(255,255,255,.22);padding:8px 12px;border-radius:9px}.back:hover{background:rgba(255,255,255,.14)}
     .title{font-size:16px;font-weight:900;flex:1;text-align:center}.logout{border:0;background:rgba(255,255,255,.14);color:#fff;border-radius:8px;padding:8px 12px;font-size:12px;font-weight:800;cursor:pointer}
-    .wrap{max-width:1080px;margin:0 auto;padding:34px 20px 60px}.hero{background:linear-gradient(135deg,#12396d,#1d9bb2);color:#fff;border-radius:20px;padding:30px 28px;box-shadow:0 18px 42px rgba(18,57,109,.18);margin-bottom:20px}.hero h1{font-size:28px;font-weight:900;margin-bottom:8px}.hero p{font-size:14px;line-height:1.65;color:rgba(255,255,255,.86)}
+    .wrap{max-width:1120px;margin:0 auto;padding:34px 20px 60px}.hero{background:linear-gradient(135deg,#12396d,#1d9bb2);color:#fff;border-radius:20px;padding:30px 28px;box-shadow:0 18px 42px rgba(18,57,109,.18);margin-bottom:20px}.hero h1{font-size:28px;font-weight:900;margin-bottom:8px}.hero p{font-size:14px;line-height:1.65;color:rgba(255,255,255,.86)}
     .grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}.card{background:#fff;border:1px solid #e5e7eb;border-radius:18px;padding:22px;box-shadow:0 8px 28px rgba(15,23,42,.06)}.wide{grid-column:1/-1}.card-title{font-size:17px;font-weight:900;color:#0f172a;margin-bottom:6px}.card-sub{font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:16px}
-    .program-list,.admin-list{display:flex;flex-direction:column;gap:9px}.program-row,.admin-item{display:flex;align-items:center;gap:12px;padding:12px;border:1px solid #e5e7eb;border-radius:13px;background:#f8fafc}.program-icon{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;font-size:20px}.program-copy{flex:1}.program-copy strong{display:block;font-size:14px}.program-copy span{display:block;font-size:11px;color:var(--muted);margin-top:3px;line-height:1.45}
-    .switch{position:relative;width:46px;height:26px;flex:0 0 auto}.switch input{opacity:0;width:0;height:0}.slider{position:absolute;inset:0;border-radius:999px;background:#cbd5e1;cursor:pointer;transition:.2s}.slider:before{content:"";position:absolute;width:20px;height:20px;left:3px;top:3px;border-radius:50%;background:#fff;box-shadow:0 2px 7px rgba(0,0,0,.2);transition:.2s}.switch input:checked+.slider{background:#1d9bb2}.switch input:checked+.slider:before{transform:translateX(20px)}
-    label.field-label{display:block;font-size:12px;font-weight:900;color:#374151;margin-bottom:6px}input[type=email]{width:100%;border:1.5px solid #d1d5db;border-radius:10px;padding:11px 12px;font-size:14px;outline:none}input:focus{border-color:#1d9bb2;box-shadow:0 0 0 3px rgba(29,155,178,.1)}
+    .program-list,.admin-list,.user-list{display:flex;flex-direction:column;gap:9px}.program-row,.admin-item,.user-row{display:flex;align-items:center;gap:12px;padding:12px;border:1px solid #e5e7eb;border-radius:13px;background:#f8fafc}.program-icon{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;font-size:20px}.program-copy{flex:1}.program-copy strong{display:block;font-size:14px}.program-copy span{display:block;font-size:11px;color:var(--muted);margin-top:3px;line-height:1.45}
+    .switch{position:relative;width:46px;height:26px;flex:0 0 auto}.switch input{opacity:0;width:0;height:0}.slider{position:absolute;inset:0;border-radius:999px;background:#cbd5e1;cursor:pointer;transition:.2s}.slider:before{content:"";position:absolute;width:20px;height:20px;left:3px;top:3px;border-radius:50%;background:#fff;box-shadow:0 2px 7px rgba(0,0,0,.2);transition:.2s}.switch input:checked+.slider{background:#1d9bb2}.switch input:checked+.slider:before{transform:translateX(20px)}.switch input:disabled+.slider{opacity:.55;cursor:not-allowed}
+    label.field-label{display:block;font-size:12px;font-weight:900;color:#374151;margin-bottom:6px}input[type=email],input[type=search]{width:100%;border:1.5px solid #d1d5db;border-radius:10px;padding:11px 12px;font-size:14px;outline:none}input:focus{border-color:#1d9bb2;box-shadow:0 0 0 3px rgba(29,155,178,.1)}
     .btn-row{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}.btn{border:0;border-radius:10px;padding:10px 14px;font-size:12px;font-weight:900;cursor:pointer}.primary{background:#12396d;color:#fff}.secondary{background:#e5e7eb;color:#111827}.danger{background:#fee2e2;color:#991b1b}.btn:disabled{opacity:.5;cursor:not-allowed}
     .admin-item{justify-content:space-between;font-size:13px;font-weight:700;color:#334155}.admin-email{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.current{font-size:9px;color:#0e7490;background:#cffafe;padding:3px 6px;border-radius:999px;margin-left:6px}
+    .user-tools{display:grid;grid-template-columns:1fr auto;gap:8px;margin-bottom:12px}.user-row{align-items:flex-start}.user-copy{min-width:180px;flex:1}.user-copy strong{display:block;font-size:13px;word-break:break-all}.user-copy span{display:block;font-size:10px;color:var(--muted);margin-top:4px}.approval-grid{display:grid;grid-template-columns:repeat(3,minmax(92px,1fr));gap:7px;flex:1}.approval{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:7px 8px;border:1px solid #e2e8f0;border-radius:9px;background:#fff;font-size:10px;font-weight:850;color:#475569}.approval.public{background:#ecfeff;color:#0e7490}.empty{padding:26px;text-align:center;color:var(--muted);font-size:12px;border:1px dashed #cbd5e1;border-radius:12px}
     .diag-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}.diag{padding:13px;border:1px solid #e5e7eb;border-radius:12px;background:#f8fafc}.diag span{display:block;font-size:10px;color:var(--muted);font-weight:800}.diag strong{display:block;font-size:13px;margin-top:5px;word-break:break-word}.ok{color:var(--ok)}.err{color:var(--err)}.status{min-height:18px;margin-top:12px;font-size:12px;font-weight:800}
     #authLoading{position:fixed;inset:0;background:#fff;display:grid;place-items:center;z-index:9999}.spinner{width:36px;height:36px;border:3px solid #e2e8f0;border-top-color:#12396d;border-radius:50%;animation:spin .7s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
-    @media(max-width:760px){.grid{grid-template-columns:1fr}.wide{grid-column:auto}.title{text-align:left}.wrap{padding:22px 14px 48px}.diag-grid{grid-template-columns:1fr}.top{padding:0 12px}}
+    @media(max-width:840px){.grid{grid-template-columns:1fr}.wide{grid-column:auto}.title{text-align:left}.wrap{padding:22px 14px 48px}.diag-grid{grid-template-columns:1fr}.top{padding:0 12px}.user-row{display:block}.user-copy{margin-bottom:10px}.approval-grid{grid-template-columns:1fr}}
   </style>
 </head>
 <body>
@@ -30,11 +31,11 @@
 <nav class="top"><a class="back" href="index.html">← 홈으로</a><div class="title">관리자 설정</div><button class="logout" id="logoutBtn">로그아웃</button></nav>
 
 <div class="wrap hidden" id="adminContent">
-  <section class="hero"><h1>Program Tool 운영 관리</h1><p>관리자 정보는 서버에서만 확인·변경하며, 프로그램 공개 여부도 여기에서 통합 관리합니다.</p></section>
+  <section class="hero"><h1>Program Tool 운영 관리</h1><p>관리자 정보와 회원별 프로그램 승인은 서버에서만 처리하며, 프로그램 전체 공개 여부도 여기에서 통합 관리합니다.</p></section>
   <div class="grid">
     <section class="card">
       <div class="card-title">📦 프로그램 공개 설정</div>
-      <div class="card-sub">공개로 설정하면 로그인한 모든 회원이 사용할 수 있습니다. 비공개 프로그램은 개별 승인 또는 관리자만 사용할 수 있습니다.</div>
+      <div class="card-sub">공개로 설정하면 로그인한 모든 회원이 사용할 수 있습니다. 비공개 프로그램은 아래 회원별 승인 또는 관리자만 사용할 수 있습니다.</div>
       <div class="program-list">
         <div class="program-row"><div class="program-icon" style="background:#fff7ed">📝</div><div class="program-copy"><strong>PDF 문서 편집기</strong><span>편집 · N-up · 소책자 · 간지 · 워터마크</span></div><label class="switch"><input type="checkbox" data-program="pdf-editor"><span class="slider"></span></label></div>
         <div class="program-row"><div class="program-icon" style="background:#f0fdf4">🔍</div><div class="program-copy"><strong>PDF 문서 도구</strong><span>문서 검수 · 암호 설정 · 암호 해제</span></div><label class="switch"><input type="checkbox" data-program="preflight"><span class="slider"></span></label></div>
@@ -51,6 +52,14 @@
       <div style="margin-top:14px"><label class="field-label" for="newAdminEmail">관리자 이메일 추가</label><input type="email" id="newAdminEmail" placeholder="admin@example.com" maxlength="254" /></div>
       <div class="btn-row"><button class="btn primary" id="addAdminBtn">관리자 추가</button></div>
       <div class="status" id="adminStatus"></div>
+    </section>
+
+    <section class="card wide">
+      <div class="card-title">✅ 회원별 프로그램 승인</div>
+      <div class="card-sub">회원이 프로그램 페이지에 처음 접근하면 목록에 자동 등록됩니다. 전체 공개된 프로그램은 별도 승인 없이 사용할 수 있습니다.</div>
+      <div class="user-tools"><input type="search" id="userSearch" placeholder="이메일 또는 이름 검색"><button class="btn secondary" id="refreshUsersBtn">새로고침</button></div>
+      <div class="user-list" id="userList"><div class="empty">회원 정보를 불러오는 중...</div></div>
+      <div class="status" id="userStatus"></div>
     </section>
 
     <section class="card wide">
@@ -73,7 +82,8 @@
 <script src="js/firebase-config.js"></script>
 <script src="js/sw-register.js" defer></script>
 <script>
-  let currentEmail='';
+  let currentEmail='',currentPublic={},allUsers=[];
+  const PROGRAM_LABELS={'pdf-editor':'PDF 편집','preflight':'문서 도구','perfect-binding-cover':'표지 제작'};
   const $=id=>document.getElementById(id);
   const setStatus=(id,msg,type='ok')=>{const el=$(id);el.textContent=msg;el.className='status '+type;if(msg)setTimeout(()=>{if(el.textContent===msg)el.textContent=''},4000)};
 
@@ -98,25 +108,58 @@
     });
   }
 
+  function renderUsers(){
+    const query=$('userSearch').value.trim().toLowerCase();
+    const filtered=allUsers.filter(user=>!query||String(user.email||'').toLowerCase().includes(query)||String(user.displayName||'').toLowerCase().includes(query));
+    const list=$('userList');list.replaceChildren();
+    if(!filtered.length){const empty=document.createElement('div');empty.className='empty';empty.textContent=query?'검색 결과가 없습니다.':'등록된 회원이 없습니다. 회원이 프로그램에 처음 접근하면 자동 등록됩니다.';list.appendChild(empty);return}
+    filtered.forEach(user=>{
+      const row=document.createElement('div');row.className='user-row';
+      const copy=document.createElement('div');copy.className='user-copy';
+      const email=document.createElement('strong');email.textContent=user.email||user.uid;
+      const name=document.createElement('span');name.textContent=(user.displayName||'이름 없음')+(user.createdAt?' · '+new Date(user.createdAt).toLocaleDateString('ko-KR'):'');
+      copy.append(email,name);
+      const approvals=document.createElement('div');approvals.className='approval-grid';
+      Object.keys(PROGRAM_LABELS).forEach(programId=>{
+        const label=document.createElement('label');label.className='approval'+(currentPublic[programId]?' public':'');
+        const text=document.createElement('span');text.textContent=PROGRAM_LABELS[programId]+(currentPublic[programId]?' · 전체공개':'');
+        const toggle=document.createElement('input');toggle.type='checkbox';toggle.checked=currentPublic[programId]||user.programs?.[programId]===true;toggle.disabled=currentPublic[programId];
+        toggle.addEventListener('change',()=>updateUserPermission(user,programId,toggle.checked,toggle));
+        label.append(text,toggle);approvals.appendChild(label);
+      });
+      row.append(copy,approvals);list.appendChild(row);
+    });
+  }
+
+  async function loadUsers(){
+    try{const data=await api('/api/admin/users?limit=200');allUsers=data.users||[];currentPublic=data.public||currentPublic;renderUsers()}catch(e){$('userList').innerHTML='<div class="empty">회원 목록을 불러오지 못했습니다.</div>';setStatus('userStatus',e.message,'err')}
+  }
+
+  async function updateUserPermission(user,programId,value,input){
+    input.disabled=true;
+    try{await api('/api/admin/users/'+encodeURIComponent(user.uid),{method:'PUT',body:JSON.stringify({programs:{[programId]:value}})});user.programs={...(user.programs||{}),[programId]:value};setStatus('userStatus',`${user.email||user.displayName} 권한을 변경했습니다.`)}catch(e){input.checked=!value;setStatus('userStatus',e.message,'err')}finally{input.disabled=!!currentPublic[programId]}
+  }
+
   async function loadAdminData(){
     const [admins,programs]=await Promise.all([api('/api/admin/admins'),api('/api/admin/programs')]);
-    renderAdmins(admins);
-    document.querySelectorAll('[data-program]').forEach(input=>input.checked=programs.public?.[input.dataset.program]===true);
+    renderAdmins(admins);currentPublic=programs.public||{};
+    document.querySelectorAll('[data-program]').forEach(input=>input.checked=currentPublic[input.dataset.program]===true);
+    await loadUsers();
   }
 
   async function addAdmin(){
     const email=$('newAdminEmail').value.trim();if(!email)return setStatus('adminStatus','이메일을 입력하세요.','err');
-    try{const data=await api('/api/admin/admins',{method:'POST',body:JSON.stringify({email})});$('newAdminEmail').value='';renderAdmins({...data,currentEmail});setStatus('adminStatus','관리자를 추가했습니다.')}catch(e){setStatus('adminStatus',e.message,'err')}
+    try{const data=await api('/api/admin/admins',{method:'POST',body:JSON.stringify({email})});$('newAdminEmail').value='';renderAdmins(data);setStatus('adminStatus','관리자를 추가했습니다.')}catch(e){setStatus('adminStatus',e.message,'err')}
   }
 
   async function removeAdmin(email){
     if(!confirm(email+' 관리자를 삭제할까요?'))return;
-    try{const data=await api('/api/admin/admins',{method:'DELETE',body:JSON.stringify({email})});renderAdmins({...data,currentEmail});setStatus('adminStatus','관리자를 삭제했습니다.')}catch(e){setStatus('adminStatus',e.message,'err')}
+    try{const data=await api('/api/admin/admins',{method:'DELETE',body:JSON.stringify({email})});renderAdmins(data);setStatus('adminStatus','관리자를 삭제했습니다.')}catch(e){setStatus('adminStatus',e.message,'err')}
   }
 
   async function savePrograms(){
     const publicMap={};document.querySelectorAll('[data-program]').forEach(input=>publicMap[input.dataset.program]=input.checked);
-    try{await api('/api/admin/programs',{method:'PUT',body:JSON.stringify({public:publicMap})});setStatus('programStatus','프로그램 공개 설정을 저장했습니다.')}catch(e){setStatus('programStatus',e.message,'err')}
+    try{const data=await api('/api/admin/programs',{method:'PUT',body:JSON.stringify({public:publicMap})});currentPublic=data.public||publicMap;setStatus('programStatus','프로그램 공개 설정을 저장했습니다.');renderUsers()}catch(e){setStatus('programStatus',e.message,'err')}
   }
 
   async function checkHealth(){
@@ -138,6 +181,8 @@
   $('addAdminBtn').addEventListener('click',addAdmin);
   $('newAdminEmail').addEventListener('keydown',e=>{if(e.key==='Enter')addAdmin()});
   $('saveProgramsBtn').addEventListener('click',savePrograms);
+  $('refreshUsersBtn').addEventListener('click',loadUsers);
+  $('userSearch').addEventListener('input',renderUsers);
   $('logoutBtn').addEventListener('click',async()=>{await auth.signOut();location.href='index.html'});
 </script>
 </body>
