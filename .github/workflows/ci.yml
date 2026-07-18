@@ -29,5 +29,7 @@ jobs:
         run: python -m unittest discover -s tests -p 'test_*.py' -v
       - name: Check JavaScript syntax
         run: find js -name '*.js' -print0 | xargs -0 -n1 node --check
+      - name: Check inline JavaScript syntax
+        run: python scripts/check_inline_js.py
       - name: Run deployment safety checks
         run: python scripts/check_static.py
