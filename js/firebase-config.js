@@ -23,14 +23,13 @@ window.ProgramAccess={
   },
   async ensureUserDocument(user){
     if(!user)return null;
-    const ref=db.collection('users').doc(user.uid);
+    const ref=db.collection('user_permissions').doc(user.uid);
     const snap=await ref.get();
-    const common={email:this.normalizeEmail(user.email),displayName:user.displayName||'',photoURL:user.photoURL||'',lastLoginAt:firebase.firestore.FieldValue.serverTimestamp()};
     if(!snap.exists){
-      await ref.set({...common,status:'pending',createdAt:firebase.firestore.FieldValue.serverTimestamp(),approvedAt:null,approvedBy:null});
-      return {...common,status:'pending'};
+      const data={uid:user.uid,email:this.normalizeEmail(user.email),displayName:user.displayName||'',status:'pending',programs:{'pdf-editor':false,preflight:false,'design-studio':false},createdAt:firebase.firestore.FieldValue.serverTimestamp()};
+      await ref.set(data);
+      return data;
     }
-    await ref.set(common,{merge:true});
     return snap.data();
   },
   async getAccess(user){
@@ -48,7 +47,7 @@ window.ProgramAccess={
       try{
         const access=await this.getAccess(user);
         if(!access.approved){location.replace(`${waitingUrl}?status=${encodeURIComponent(access.status||'pending')}`);return;}
-        document.documentElement.dataset.accessReady='true'; resolve(access);
+        document.documentElement.dataset.accessReady='true';resolve(access);
       }catch(e){console.error(e);location.replace(`${waitingUrl}?status=error`);}
     }));
   }
