@@ -7,9 +7,9 @@
     spineCenter:{label:'책등 중앙',field:'spineCenter',x:50,y:50,scale:100},
     spineBottom:{label:'책등 하단',field:'spineBottom',x:50,y:86,scale:100}
   };
-  let active='spineCenter',drag=null,hitBoxes={};
+  let active='spineCenter',drag=null,hitBoxes={},spineArea=null;
 
-  function request(){try{window.requestRender?.()}catch(_){}}
+  function request(){try{window.requestRender?.()}catch(_){} }
   function dispatch(el){el?.dispatchEvent(new Event('input',{bubbles:true}));el?.dispatchEvent(new Event('change',{bubbles:true}))}
   function replaceWithTextarea(id,rows=2){
     const old=$(id);if(!old||old.tagName==='TEXTAREA')return old;
@@ -42,7 +42,7 @@
         <label style="font-size:11px;font-weight:800">글자 크기<input id="spinePartScale" type="range" min="50" max="200" step="1"></label>
       </div>
       <div style="display:flex;gap:6px;margin-top:9px"><button type="button" id="spinePartCenter" class="btn secondary">가운데 맞춤</button><button type="button" id="spinePartReset" class="btn secondary">선택 초기화</button></div>
-      <div id="spinePartHint" style="font-size:10px;color:#64748b;margin-top:7px">미리보기에서 각 책등 글자를 직접 드래그할 수 있습니다.</div>`;
+      <div id="spinePartHint" style="font-size:10px;color:#64748b;margin-top:7px">책등 글자를 각각 클릭하거나 버튼으로 선택한 뒤 이동하세요.</div>`;
     anchor.after(panel);
     const buttons=$('spinePartButtons');
     Object.entries(parts).forEach(([key,p])=>{const b=document.createElement('button');b.type='button';b.dataset.key=key;b.className='btn secondary';b.textContent=p.label;b.onclick=()=>select(key);buttons.appendChild(b)});
@@ -51,13 +51,13 @@
     $('spinePartReset').onclick=()=>{const defaults={spineTop:[50,14,100],spineCenter:[50,50,100],spineBottom:[50,86,100]}[active];Object.assign(parts[active],{x:defaults[0],y:defaults[1],scale:defaults[2]});syncControls();request()};
     select(active);
   }
-  function select(key){active=key;syncControls();request()}
+  function select(key){if(!parts[key])return;active=key;syncControls();request()}
   function syncControls(){
     const p=parts[active];if(!p)return;
     if($('spinePartX'))$('spinePartX').value=p.x;
     if($('spinePartY'))$('spinePartY').value=p.y;
     if($('spinePartScale'))$('spinePartScale').value=p.scale;
-    document.querySelectorAll('#spinePartButtons button').forEach(b=>b.classList.toggle('primary',b.dataset.key===active));
+    document.querySelectorAll('#spinePartButtons button').forEach(b=>{b.classList.toggle('primary',b.dataset.key===active);b.classList.toggle('secondary',b.dataset.key!==active)});
     if($('spinePartHint'))$('spinePartHint').textContent=`${p.label} 선택 · X ${Math.round(p.x)}% · Y ${Math.round(p.y)}% · 크기 ${Math.round(p.scale)}%`;
   }
   function drawPart(ctx,key,s,pxPerMm,spineX,bleed,trimH){
@@ -66,14 +66,19 @@
     const basePt=Math.min(clamp(parseFloat($('spineTextSize')?.value||11),5,30),Math.max(5,s.spine/(25.4/72)*.56));
     let fontPx=basePt*pxPerMm*25.4/72*clamp(p.scale/100,.5,2),dir=$('spineDirection')?.value||'bottomToTop';
     const lines=value.split(/\n/);ctx.save();ctx.fillStyle='#fff';ctx.textAlign='center';ctx.textBaseline='middle';ctx.font=`${key==='spineCenter'?900:700} ${fontPx}px Pretendard,"Malgun Gothic",sans-serif`;
+    let visualLength=fontPx*2;
     if(dir==='vertical'){
-      const chars=[...value.replace(/\s+/g,'')],gap=fontPx*1.05,total=Math.max(fontPx,chars.length*gap);chars.forEach((ch,i)=>ctx.fillText(ch,cx,cy+(i-(chars.length-1)/2)*gap));hitBoxes[key]={x:cx-spine/2,y:cy-total/2,w:spine,h:total};
+      const chars=[...value.replace(/\s+/g,'')],gap=fontPx*1.05,total=Math.max(fontPx,chars.length*gap);visualLength=total;
+      chars.forEach((ch,i)=>ctx.fillText(ch,cx,cy+(i-(chars.length-1)/2)*gap));
     }else{
       ctx.translate(cx,cy);ctx.rotate(dir==='topToBottom'?Math.PI/2:-Math.PI/2);
-      const gap=fontPx*1.18,maxWidth=trimH*.30;let widest=0;lines.forEach(line=>widest=Math.max(widest,ctx.measureText(line).width));while(widest>maxWidth&&fontPx>pxPerMm*1.5){fontPx*=.95;ctx.font=`${key==='spineCenter'?900:700} ${fontPx}px Pretendard,"Malgun Gothic",sans-serif`;widest=Math.max(...lines.map(l=>ctx.measureText(l).width),0)}
-      lines.forEach((line,i)=>ctx.fillText(line,0,(i-(lines.length-1)/2)*gap));hitBoxes[key]={x:cx-spine/2,y:cy-widest/2-8,w:spine,h:widest+16};
+      const gap=fontPx*1.18,maxWidth=trimH*.28;let widest=0;lines.forEach(line=>widest=Math.max(widest,ctx.measureText(line).width));
+      while(widest>maxWidth&&fontPx>pxPerMm*1.5){fontPx*=.95;ctx.font=`${key==='spineCenter'?900:700} ${fontPx}px Pretendard,"Malgun Gothic",sans-serif`;widest=Math.max(...lines.map(l=>ctx.measureText(l).width),0)}
+      visualLength=Math.max(fontPx*2,widest);lines.forEach((line,i)=>ctx.fillText(line,0,(i-(lines.length-1)/2)*gap));
     }
     ctx.restore();
+    const zoneHeight=Math.min(trimH*.26,Math.max(fontPx*3,visualLength+pxPerMm*4));
+    hitBoxes[key]={x:spineX,y:clamp(cy-zoneHeight/2,bleed,bleed+trimH-zoneHeight),w:Math.max(spine,pxPerMm*3),h:zoneHeight,cx,cy};
     if(key===active){const b=hitBoxes[key];ctx.save();ctx.strokeStyle='#f59e0b';ctx.lineWidth=Math.max(2,pxPerMm*.45);ctx.setLineDash([6,4]);ctx.strokeRect(b.x,b.y,b.w,b.h);ctx.restore()}
   }
   function installRenderer(){
@@ -82,17 +87,24 @@
     window.renderCover=function(canvas,dpi=110,withGuides,interactive){
       const fields=['spineTop','spineCenter','spineBottom','spineTitle'],saved={};fields.forEach(id=>{const el=$(id);if(el){saved[id]=el.value;el.value=''}});
       const s=original.apply(this,arguments);fields.forEach(id=>{const el=$(id);if(el&&id in saved)el.value=saved[id]});
-      const ctx=canvas.getContext('2d'),pxPerMm=dpi/25.4,spineX=(s.bleed+s.trimW)*pxPerMm,bleed=s.bleed*pxPerMm,trimH=s.trimH*pxPerMm;hitBoxes={};
+      const ctx=canvas.getContext('2d'),pxPerMm=dpi/25.4,spineX=(s.bleed+s.trimW)*pxPerMm,bleed=s.bleed*pxPerMm,trimH=s.trimH*pxPerMm;
+      spineArea={x:spineX,y:bleed,w:Math.max(s.spine*pxPerMm,pxPerMm*3),h:trimH};hitBoxes={};
       drawPart(ctx,'spineTop',s,pxPerMm,spineX,bleed,trimH);drawPart(ctx,'spineCenter',s,pxPerMm,spineX,bleed,trimH);drawPart(ctx,'spineBottom',s,pxPerMm,spineX,bleed,trimH);return s;
     };
   }
   function canvasPoint(e,c){const r=c.getBoundingClientRect();return{x:(e.clientX-r.left)*c.width/r.width,y:(e.clientY-r.top)*c.height/r.height}}
-  function hit(p,b){return b&&p.x>=b.x-8&&p.x<=b.x+b.w+8&&p.y>=b.y-8&&p.y<=b.y+b.h+8}
+  function inBox(p,b,pad=0){return b&&p.x>=b.x-pad&&p.x<=b.x+b.w+pad&&p.y>=b.y-pad&&p.y<=b.y+b.h+pad}
+  function nearestPart(pt){
+    const candidates=Object.keys(parts).filter(k=>hitBoxes[k]);if(!candidates.length)return null;
+    const directly=candidates.filter(k=>inBox(pt,hitBoxes[k],6));
+    const pool=directly.length?directly:candidates;
+    return pool.sort((a,b)=>Math.hypot(pt.x-hitBoxes[a].cx,pt.y-hitBoxes[a].cy)-Math.hypot(pt.x-hitBoxes[b].cx,pt.y-hitBoxes[b].cy))[0]||null;
+  }
   function bindCanvas(){const c=$('previewCanvas');if(!c||c.dataset.spineUx)return;c.dataset.spineUx='1';
-    c.addEventListener('pointerdown',e=>{if(e.button!==0)return;const pt=canvasPoint(e,c),key=Object.keys(parts).find(k=>hit(pt,hitBoxes[k]));if(!key)return;e.preventDefault();e.stopImmediatePropagation();select(key);drag={id:e.pointerId,key,start:pt,x:parts[key].x,y:parts[key].y};c.setPointerCapture(e.pointerId)},true);
-    c.addEventListener('pointermove',e=>{if(!drag||drag.id!==e.pointerId)return;const pt=canvasPoint(e,c),p=parts[drag.key],box=hitBoxes[drag.key];p.x=clamp(drag.x+(pt.x-drag.start.x)/Math.max(1,box.w)*100,0,100);p.y=clamp(drag.y+(pt.y-drag.start.y)/Math.max(1,c.height)*100,3,97);syncControls();request();e.preventDefault();e.stopImmediatePropagation()},true);
+    c.addEventListener('pointerdown',e=>{if(e.button!==0)return;const pt=canvasPoint(e,c);if(!inBox(pt,spineArea,10))return;const key=nearestPart(pt);if(!key)return;e.preventDefault();e.stopImmediatePropagation();select(key);drag={id:e.pointerId,key,start:pt,x:parts[key].x,y:parts[key].y};c.setPointerCapture(e.pointerId)},true);
+    c.addEventListener('pointermove',e=>{if(!drag||drag.id!==e.pointerId)return;const pt=canvasPoint(e,c),p=parts[drag.key];p.x=clamp(drag.x+(pt.x-drag.start.x)/Math.max(1,spineArea.w)*100,0,100);p.y=clamp(drag.y+(pt.y-drag.start.y)/Math.max(1,spineArea.h)*100,3,97);syncControls();request();e.preventDefault();e.stopImmediatePropagation()},true);
     const end=e=>{if(drag&&drag.id===e.pointerId){drag=null;try{c.releasePointerCapture(e.pointerId)}catch(_){}}};c.addEventListener('pointerup',end,true);c.addEventListener('pointercancel',end,true);
-    c.addEventListener('wheel',e=>{const pt=canvasPoint(e,c),key=Object.keys(parts).find(k=>hit(pt,hitBoxes[k]));if(!key)return;e.preventDefault();e.stopImmediatePropagation();select(key);parts[key].scale=clamp(parts[key].scale+(e.deltaY<0?5:-5),50,200);syncControls();request()},{passive:false,capture:true});
+    c.addEventListener('wheel',e=>{const pt=canvasPoint(e,c);if(!inBox(pt,spineArea,10))return;const key=nearestPart(pt);if(!key)return;e.preventDefault();e.stopImmediatePropagation();select(key);parts[key].scale=clamp(parts[key].scale+(e.deltaY<0?5:-5),50,200);syncControls();request()},{passive:false,capture:true});
   }
   function init(){
     ['frontTitle','frontSubtitle','institutionName','issuerName','backTitleExtra','backBodyExtra'].forEach(id=>replaceWithTextarea(id,id==='backBodyExtra'?4:2));
