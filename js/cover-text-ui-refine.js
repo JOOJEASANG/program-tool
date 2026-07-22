@@ -1,12 +1,14 @@
 // Refine cover text inputs and color palettes without replacing the renderer.
 (function () {
   'use strict';
-  if (window.__coverTextUiRefineV1) return;
-  window.__coverTextUiRefineV1 = true;
+  if (window.__coverTextUiRefineV2) return;
+  window.__coverTextUiRefineV2 = true;
   if (!location.pathname.includes('perfect-binding-cover')) return;
 
   const COLORS = ['#ffffff','#f8fafc','#e2e8f0','#94a3b8','#475569','#111827','#000000','#12396d','#1d4ed8','#0ea5e9','#0f766e','#16a34a','#65a30d','#ca8a04','#ea580c','#dc2626','#be123c','#9333ea','#7c3aed','#6d4c41'];
   const DEFAULT_TITLE = '2026학년도 방과후학교 운영 계획서';
+  const ZONES = ['top', 'center', 'bottom'];
+  const Y = { top: 18, center: 50, bottom: 84 };
   const $ = (selector, root = document) => root.querySelector(selector);
 
   function dispatchInput(input, color) {
@@ -48,14 +50,26 @@
       .cover-color-swatches{display:grid;grid-template-columns:repeat(10,1fr);gap:4px}
       .cover-color-swatch{width:100%;aspect-ratio:1;border:1px solid #cbd5e1;border-radius:5px;cursor:pointer;box-shadow:inset 0 0 0 1px rgba(255,255,255,.35)}
       .cover-color-swatch:hover{outline:2px solid #1d9bb2;outline-offset:1px}
-      .cover-spine-simple .cover-zone-head{display:none!important}
-      .cover-spine-simple .cover-zone{border:0!important;background:transparent!important;margin:0!important}
-      .cover-spine-simple .cover-zone-list{padding:0!important}
-      .cover-spine-simple .cover-text-row{grid-template-columns:minmax(0,1fr) 58px!important;margin:0!important}
-      .cover-spine-simple .cover-text-delete{display:none!important}
-      .cover-spine-simple .cover-zone-empty{display:none!important}
+      .cover-spine-fixed .cover-zone-add{display:none!important}
+      .cover-spine-fixed .cover-text-row{grid-template-columns:minmax(0,1fr) 58px!important}
+      .cover-spine-fixed .cover-text-delete{display:none!important}
     `;
     document.head.appendChild(style);
+  }
+
+  function makeSpineItem(zone, source) {
+    const item = source || {
+      id: `coverText_spine_${zone}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2,7)}`,
+      text: '', size: 10, color: '#ffffff', weight: 700, x: 50, scale: 100
+    };
+    item.side = 'spine';
+    item.zone = zone;
+    item.y = Y[zone];
+    item.x = 50;
+    item.size = Number(item.size) || 10;
+    item.color = item.color || '#ffffff';
+    item.scale = Number(item.scale) || 100;
+    return item;
   }
 
   function normalizeData() {
@@ -63,7 +77,7 @@
     if (!api?.data) return;
 
     for (const side of ['front', 'back']) {
-      for (const zone of ['top', 'center', 'bottom']) {
+      for (const zone of ZONES) {
         for (const item of api.data[side]?.[zone] || []) {
           if (item.text === DEFAULT_TITLE) item.text = '';
         }
@@ -72,14 +86,10 @@
 
     const spine = api.data.spine;
     if (spine) {
-      const existing = [...(spine.center || []), ...(spine.top || []), ...(spine.bottom || [])][0];
-      const item = existing || {
-        id: `coverText_spine_${Date.now().toString(36)}`,
-        side: 'spine', zone: 'center', text: '', size: 10, color: '#ffffff', weight: 700,
-        x: 50, y: 50, scale: 100
-      };
-      item.side = 'spine'; item.zone = 'center'; item.y = Number.isFinite(Number(item.y)) ? Number(item.y) : 50;
-      spine.top = []; spine.center = [item]; spine.bottom = [];
+      const oldCenter = spine.center?.[0] || spine.top?.[0] || spine.bottom?.[0] || null;
+      spine.top = [makeSpineItem('top', spine.top?.[0])];
+      spine.center = [makeSpineItem('center', spine.center?.[0] || oldCenter)];
+      spine.bottom = [makeSpineItem('bottom', spine.bottom?.[0])];
     }
     api.save?.();
   }
@@ -88,58 +98,54 @@
     const panel = $('#coverTextZonePanel');
     if (!panel) return;
     const active = $('.cover-text-side-tab.active', panel)?.dataset.side;
-    panel.classList.toggle('cover-spine-simple', active === 'spine');
+    panel.classList.toggle('cover-spine-fixed', active === 'spine');
 
-    const zones = [...panel.querySelectorAll('.cover-zone')];
-    zones.forEach((zone, index) => {
-      if (active === 'spine' && index !== 1) zone.style.display = 'none';
-      else zone.style.display = '';
-    });
-
+    panel.querySelectorAll('.cover-zone').forEach(zone => { zone.style.display = ''; });
     panel.querySelectorAll('.cover-text-row input[type="text"]').forEach(input => {
-      input.placeholder = active === 'spine' ? '책등 제목을 입력하세요' : '제목을 입력하세요';
+      input.placeholder = active === 'spine' ? '책등 글자를 입력하세요' : '제목을 입력하세요';
       if (input.value === DEFAULT_TITLE) {
         input.value = '';
         input.dispatchEvent(new Event('input', { bubbles: true }));
       }
     });
 
+    const note = $('.card-note', panel);
     if (active === 'spine') {
       panel.querySelectorAll('.cover-zone-add').forEach(button => button.style.display = 'none');
-      const note = $('.card-note', panel);
-      if (note) note.textContent = '앞·뒤표지는 위치별로 추가하고, 책등은 기본 제목 한 개만 입력합니다.';
+      panel.querySelectorAll('.cover-text-delete').forEach(button => button.style.display = 'none');
+      if (note) note.textContent = '책등은 상단·중앙·하단에 각각 한 개씩 입력합니다.';
     } else {
       panel.querySelectorAll('.cover-zone-add').forEach(button => button.style.display = '');
+      panel.querySelectorAll('.cover-text-delete').forEach(button => button.style.display = '');
+      if (note) note.textContent = '앞·뒤표지는 상단·중앙·하단에 필요한 만큼 글자를 추가합니다.';
     }
   }
 
   function addPalettes() {
     const selected = $('#coverSelectedTextColor');
     if (selected) palette(selected, 'coverSelectedTextPalette', '글자색 빠른 선택');
-
-    const candidates = [
+    [
       ['#coverColor', 'coverMainColorPalette', '표지색 빠른 선택'],
       ['#bgColor', 'coverBgColorPalette', '배경색 빠른 선택'],
       ['#spineColor', 'coverSpineColorPalette', '책등색 빠른 선택'],
       ['#textColor', 'coverLegacyTextPalette', '기본 글자색 빠른 선택']
-    ];
-    candidates.forEach(([selector, id, label]) => palette($(selector), id, label));
+    ].forEach(([selector, id, label]) => palette($(selector), id, label));
   }
 
-  function run() {
+  function boot() {
     installStyles();
     normalizeData();
     refineInputs();
     addPalettes();
-  }
-
-  function boot() {
-    run();
     let scheduled = false;
     const observer = new MutationObserver(() => {
       if (scheduled) return;
       scheduled = true;
-      requestAnimationFrame(() => { scheduled = false; refineInputs(); addPalettes(); });
+      requestAnimationFrame(() => {
+        scheduled = false;
+        refineInputs();
+        addPalettes();
+      });
     });
     observer.observe(document.querySelector('.settings') || document.body, { childList: true, subtree: true });
   }
