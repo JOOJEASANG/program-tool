@@ -63,6 +63,8 @@ def inject_cover_templates(path: Path):
         text = text.replace(marker, marker + '<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>', 1)
     if "cover-template-manager.js" not in text:
         text = text.replace("</body>", '<script src="../js/cover-template-manager.js"></script></body>')
+    if "cover-editor-ux-upgrade.js" not in text:
+        text = text.replace("</body>", '<script src="../js/cover-editor-ux-upgrade.js"></script></body>')
     if text != original:
         path.write_text(text, encoding="utf-8")
 
@@ -95,15 +97,6 @@ def patch_cover(path: Path):
     text = text.replace(
         "이미지 선택 중에는 마우스 휠로도 확대·축소할 수 있습니다.",
         "이미지와 글자를 선택한 뒤 마우스 휠로 크기를 조절할 수 있습니다. 오른쪽 클릭 메뉴에서 정렬·확대·축소·초기화를 사용할 수 있습니다.")
-    spine_fn = '''function drawSpine(ctx,s,pxPerMm,spineX,bleed,trimH){
-      const top=($('spineTop')?.value||'').trim(),center=($('spineCenter')?.value||$('spineTitle').value||'').trim(),bottom=($('spineBottom')?.value||'').trim();
-      if((!top&&!center&&!bottom)||s.spine<2.2)return;
-      const mm=v=>v*pxPerMm,spine=s.spine*pxPerMm,cx=spineX+spine/2,direction=$('spineDirection').value;
-      let fontPt=Math.min(clamp(num('spineTextSize',11),5,30),Math.max(5,s.spine/MM_PER_PT*.56)),fontPx=fontPt*pxPerMm*25.4/72;
-      const drawPart=(value,ratio,weight=800)=>{if(!value)return;ctx.save();ctx.fillStyle='#fff';ctx.textAlign='center';ctx.textBaseline='middle';ctx.font=`${weight} ${fontPx}px Pretendard,"Malgun Gothic",sans-serif`;const cy=bleed+trimH*ratio;if(direction==='vertical'){const chars=[...value.replace(/\\s+/g,'')],maxHeight=trimH*.24,gap=Math.min(fontPx*1.08,maxHeight/Math.max(1,chars.length));chars.forEach((ch,i)=>ctx.fillText(ch,cx,cy-(chars.length-1)*gap/2+i*gap))}else{ctx.translate(cx,cy);ctx.rotate(direction==='topToBottom'?Math.PI/2:-Math.PI/2);const maxWidth=trimH*.25;let local=fontPx;while(ctx.measureText(value).width>maxWidth&&local>mm(1.5)){local*=.95;ctx.font=`${weight} ${local}px Pretendard,"Malgun Gothic",sans-serif`}ctx.fillText(value,0,0)}ctx.restore()};
-      drawPart(top,.14,700);drawPart(center,.50,900);drawPart(bottom,.86,700);
-    }'''
-    text = re.sub(r'function drawSpine\(ctx,s,pxPerMm,spineX,bleed,trimH\)\{.*?\}(?=function drawSelection)', spine_fn, text, count=1, flags=re.S)
     if text != original:
         path.write_text(text, encoding="utf-8")
 
