@@ -16,10 +16,13 @@ window.ProgramAccess={
   normalizeEmail:v=>String(v||'').trim().toLowerCase(),
   async isAdmin(user){
     if(!user)return false;
-    const doc=await db.collection('settings').doc('admin').get();
-    if(!doc.exists)return false;
     const email=this.normalizeEmail(user.email);
-    return (doc.data().emails||[]).map(this.normalizeEmail).includes(email);
+    const [legacy,direct]=await Promise.all([
+      db.collection('settings').doc('admin').get().catch(()=>null),
+      db.collection('admins').doc(email).get().catch(()=>null)
+    ]);
+    const legacyMatch=!!(legacy&&legacy.exists&&(legacy.data().emails||[]).map(this.normalizeEmail).includes(email));
+    return legacyMatch||!!(direct&&direct.exists);
   },
   async ensureUserDocument(user){
     if(!user)return null;
@@ -61,7 +64,7 @@ window.addEventListener('DOMContentLoaded',async()=>{
   const footer=document.querySelector('footer');
   if(!footer)return;
   footer.innerHTML=footer.innerHTML.replace(/©\s*\d{4}/g,`© ${year}`);
-  let shell=footer.querySelector('.footer-inner')||footer;
+  const shell=footer.querySelector('.footer-inner')||footer;
   if(!shell.querySelector('.footer-legal')){
     const style=document.createElement('style');style.textContent='.footer-legal{display:flex;gap:12px;flex-wrap:wrap;align-items:center}.footer-legal a{color:inherit;text-decoration:none}.footer-business{margin-top:8px;font-size:10px;line-height:1.65;opacity:.72;max-width:900px}@media(max-width:650px){.footer-legal{margin-top:12px}}';document.head.appendChild(style);
     const legal=document.createElement('div');legal.className='footer-legal';legal.innerHTML='<a href="guide.html">이용안내</a><a href="terms.html">이용약관</a><a href="privacy.html">개인정보처리방침</a>';
