@@ -4,6 +4,7 @@ if(!location.pathname.includes('perfect-binding-cover'))return;
 const $=id=>document.getElementById(id);
 let enabled=true,threshold=3,hideTimer=null,lastSide='front';
 const num=(id,fallback)=>{const v=Number($(id)?.value);return Number.isFinite(v)?v:fallback};
+const fire=el=>{el?.dispatchEvent(new Event('input',{bubbles:true}));el?.dispatchEvent(new Event('change',{bubbles:true}))};
 function selectedSide(){
   const sel=$('editTarget'),opt=sel?.selectedOptions?.[0],text=((opt?.textContent||'')+' '+(opt?.value||'')).toLowerCase();
   if(/back|뒤표지/.test(text))return'back';
@@ -32,6 +33,10 @@ function showCenter(side){
   clearTimeout(hideTimer);hideTimer=setTimeout(clearGuide,700);
 }
 function setStatus(text){if($('smartGuideStatus'))$('smartGuideStatus').textContent=text}
+function snapCurrent(){
+  if(!enabled)return false;const x=$('posX');if(!x)return false;const value=Number(x.value);if(!Number.isFinite(value)||Math.abs(value-50)>threshold)return false;
+  const side=selectedSide();lastSide=side;if(value!==50){x.value=50;fire(x)}showCenter(side);setStatus(`${side==='front'?'앞표지':'뒤표지'} 가운데 정렬됨`);return true;
+}
 function buildPanel(){
   document.getElementById('coverLayerPanel')?.remove();document.getElementById('coverMultiPanel')?.remove();document.getElementById('coverLayerStylePanel')?.remove();
   if($('coverSmartGuidePanel'))return;
@@ -43,8 +48,9 @@ function buildPanel(){
   $('smartGuideRange').oninput=e=>{threshold=Number(e.target.value);$('smartGuideThreshold').textContent=threshold+'%'};
 }
 function bind(){
-  const x=$('posX');if(x&&!x.dataset.coverSideSnap){x.dataset.coverSideSnap='1';x.addEventListener('input',()=>{if(!enabled||x.dataset.snapping)return;const side=selectedSide();lastSide=side;const value=Number(x.value);if(!Number.isFinite(value)||Math.abs(value-50)>threshold)return;x.dataset.snapping='1';x.value=50;setTimeout(()=>delete x.dataset.snapping,0);showCenter(side);setStatus(`${side==='front'?'앞표지':'뒤표지'} 가운데 정렬됨`)},true)}
+  const x=$('posX');if(x&&!x.dataset.coverSideSnap){x.dataset.coverSideSnap='1';x.addEventListener('input',()=>{if(x.dataset.snapping)return;x.dataset.snapping='1';snapCurrent();setTimeout(()=>delete x.dataset.snapping,0)},true)}
   $('editTarget')?.addEventListener('change',()=>{lastSide=selectedSide();clearGuide()});
+  const c=$('previewCanvas');if(c&&!c.dataset.coverDragSnap){c.dataset.coverDragSnap='1';c.addEventListener('pointermove',e=>{if(!enabled||!(e.buttons&1))return;requestAnimationFrame(snapCurrent)},false);c.addEventListener('pointerup',()=>{snapCurrent();setTimeout(clearGuide,250)},false);c.addEventListener('pointercancel',clearGuide,false)}
 }
 function fixSpinePanel(){
   const p=$('spineIndependentPanel');if(!p)return;p.style.background='#fff';p.style.border='1px solid #dbe5ee';p.style.borderRadius='10px';p.style.padding='10px';
