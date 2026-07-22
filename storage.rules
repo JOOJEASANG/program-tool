@@ -1,14 +1,26 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
-    function isOwner(userId) {
-      return request.auth != null && request.auth.uid == userId;
+    function signedIn() { return request.auth != null; }
+    function isOwner(userId) { return signedIn() && request.auth.uid == userId; }
+    function isAdmin() {
+      return signedIn()
+        && request.auth.token.email != null
+        && firestore.exists(/databases/(default)/documents/settings/admin)
+        && firestore.get(/databases/(default)/documents/settings/admin).data.emails.hasAny([
+          request.auth.token.email,
+          request.auth.token.email.lower()
+        ]);
     }
-
     function isPdfUpload() {
       return request.resource != null
         && request.resource.size <= 209715200
         && request.resource.contentType == 'application/pdf';
+    }
+    function isCoverImage() {
+      return request.resource != null
+        && request.resource.size <= 15728640
+        && request.resource.contentType.matches('image/(jpeg|png|webp)');
     }
 
     match /pdf_history/{userId}/{allPaths=**} {
@@ -26,6 +38,11 @@ service firebase.storage {
     match /pdf_sessions/{userId}/{allPaths=**} {
       allow read, delete: if isOwner(userId);
       allow create, update: if isOwner(userId) && isPdfUpload();
+    }
+    match /cover_templates/{templateId}/{fileName} {
+      allow read: if signedIn();
+      allow create, update: if isAdmin() && isCoverImage();
+      allow delete: if isAdmin();
     }
   }
 }
