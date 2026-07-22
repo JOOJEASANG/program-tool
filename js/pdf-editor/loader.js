@@ -1,8 +1,8 @@
 // PDF editor module loader.
 // Add new PDF editor modules here instead of growing tools/pdf-editor.html.
 (function () {
-  if (window.__pdfEditorModuleLoaderV14) return;
-  window.__pdfEditorModuleLoaderV14 = true;
+  if (window.__pdfEditorModuleLoaderV15) return;
+  window.__pdfEditorModuleLoaderV15 = true;
 
   const MODULES = [
     '/js/pdf-editor/font-render-fix.js?v=20260618-1',
@@ -14,7 +14,8 @@
     '/js/pdf-editor/preview-row-default.js?v=20260602-1',
     '/js/pdf-editor/divider-helper.js?v=20260722-2',
     '/js/pdf-editor/storage-cleanup.js?v=20260518-1',
-    '/js/pdf-editor/history-policy.js?v=20260518-1'
+    '/js/pdf-editor/history-policy.js?v=20260518-1',
+    '/js/pdf-editor/multifile-interaction-fix.js?v=20260722-1'
   ];
 
   function loadScript(src) {
