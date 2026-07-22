@@ -1,8 +1,8 @@
 // Refine cover text inputs and color palettes without replacing the renderer.
 (function () {
   'use strict';
-  if (window.__coverTextUiRefineV3) return;
-  window.__coverTextUiRefineV3 = true;
+  if (window.__coverTextUiRefineV4) return;
+  window.__coverTextUiRefineV4 = true;
   if (!location.pathname.includes('perfect-binding-cover')) return;
 
   const COLORS = ['#ffffff','#f8fafc','#e2e8f0','#94a3b8','#475569','#111827','#000000','#12396d','#1d4ed8','#0ea5e9','#0f766e','#16a34a','#65a30d','#ca8a04','#ea580c','#dc2626','#be123c','#9333ea','#7c3aed','#6d4c41'];
@@ -10,8 +10,11 @@
     '2026학년도 방과후학교 운영 계획서',
     '2026학년도 방과후학교운영 계획서',
     '2026학년도 방과후학교 운영계획서',
-    '2026학년도 방과후학교운영계획서'
+    '2026학년도 방과후학교운영계획서',
+    '제목을 입력하세요',
+    '책등 글자를 입력하세요'
   ];
+  const SPINE_MIGRATION_KEY = 'programTool.coverTextZones.spineClean.v4';
   const ZONES = ['top', 'center', 'bottom'];
   const Y = { top: 18, center: 50, bottom: 84 };
   const $ = (selector, root = document) => root.querySelector(selector);
@@ -81,6 +84,17 @@
     return item;
   }
 
+  function disableLegacySpine() {
+    const legacy = document.getElementById('spineTitle');
+    if (!legacy) return;
+    legacy.value = '';
+    legacy.defaultValue = '';
+    legacy.removeAttribute('value');
+    legacy.setAttribute('autocomplete', 'off');
+    const field = legacy.closest('.field');
+    if (field) field.style.display = 'none';
+  }
+
   function normalizeData() {
     const api = window.CoverTextZones;
     if (!api?.data) return;
@@ -99,14 +113,22 @@
       spine.top = [makeSpineItem('top', spine.top?.[0])];
       spine.center = [makeSpineItem('center', spine.center?.[0] || oldCenter)];
       spine.bottom = [makeSpineItem('bottom', spine.bottom?.[0])];
+
+      let firstCleanup = false;
+      try { firstCleanup = localStorage.getItem(SPINE_MIGRATION_KEY) !== 'done'; } catch (_) {}
       for (const zone of ZONES) {
-        if (isSampleTitle(spine[zone][0].text)) spine[zone][0].text = '';
+        const item = spine[zone][0];
+        if (firstCleanup || isSampleTitle(item.text)) item.text = '';
+      }
+      if (firstCleanup) {
+        try { localStorage.setItem(SPINE_MIGRATION_KEY, 'done'); } catch (_) {}
       }
     }
     api.save?.();
   }
 
   function refineInputs() {
+    disableLegacySpine();
     const panel = $('#coverTextZonePanel');
     if (!panel) return;
     const active = $('.cover-text-side-tab.active', panel)?.dataset.side;
@@ -149,10 +171,12 @@
     [
       'programTool.coverTextZones.v3',
       'programTool.coverTextZones.v2',
-      'programTool.coverTextZones.v1'
+      'programTool.coverTextZones.v1',
+      SPINE_MIGRATION_KEY
     ].forEach(key => {
       try { localStorage.removeItem(key); } catch (_) {}
     });
+    disableLegacySpine();
     location.reload();
   }
 
@@ -168,6 +192,7 @@
 
   function boot() {
     installStyles();
+    disableLegacySpine();
     normalizeData();
     refineInputs();
     addPalettes();
@@ -178,6 +203,7 @@
       scheduled = true;
       requestAnimationFrame(() => {
         scheduled = false;
+        disableLegacySpine();
         refineInputs();
         addPalettes();
         addResetButton();
