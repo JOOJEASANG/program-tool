@@ -12,7 +12,6 @@ function decorate(input){
   const paint=()=>{[...box.children].forEach(b=>{const on=b.title.toLowerCase()===String(input.value).toLowerCase();b.style.outline=on?'2px solid #1d9bb2':'none';b.style.outlineOffset=on?'1px':'0'})};
   input.after(box);input.addEventListener('input',paint);paint();
 }
-function loadSmartGuides(){if(!location.pathname.includes('perfect-binding-cover')||document.querySelector('script[data-cover-smart-guides]'))return;const script=document.createElement('script');script.src='../js/cover-smart-guides.js?v=20260722-6';script.dataset.coverSmartGuides='1';document.head.appendChild(script)}
-document.addEventListener('DOMContentLoaded',()=>{document.querySelectorAll('input[type=color]').forEach(decorate);loadSmartGuides()});
+document.addEventListener('DOMContentLoaded',()=>{document.querySelectorAll('input[type=color]').forEach(decorate)});
 window.CMYKColor={decorate};
 })();
