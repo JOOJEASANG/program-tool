@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>PDF 문서 도구 · Program Tool</title>
-  <meta name="description" content="PDF 검수와 암호 설정·해제를 한 번의 파일 업로드로 처리하는 PDF 문서 도구입니다." />
+  <title>PDF 검사 · Program Tool</title>
+  <meta name="description" content="PDF 검수와 암호 설정·해제를 한 번의 파일 업로드로 처리하는 PDF 검사입니다." />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -31,14 +31,14 @@
 <body>
   <nav class="top-nav">
     <a class="nav-back" href="../index.html">← 도구 목록</a>
-    <div class="nav-title">PDF 문서 도구</div>
+    <div class="nav-title">PDF 검사</div>
     <div class="nav-user"><span class="nav-user-name" id="userName">로딩 중...</span><button class="nav-logout" onclick="doLogout()">로그아웃</button></div>
   </nav>
 
   <main class="container">
     <section class="hero">
       <div class="hero-badge">📄 PDF CHECK & SECURITY</div>
-      <h1>PDF 문서 도구</h1>
+      <h1>PDF 검사</h1>
       <p>PDF 파일을 한 번만 업로드한 뒤 문서 검수, 암호 설정, 자동 암호 해제 기능을 필요한 순서대로 실행하세요.</p>
       <div class="hero-steps"><span class="hero-step">1. PDF 업로드</span><span class="hero-step">2. 기능 선택</span><span class="hero-step">3. 결과 확인·다운로드</span></div>
     </section>
@@ -159,5 +159,5 @@
     function escapeHtml(v){return String(v??'').replace(/[<>&"']/g,ch=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;'}[ch]))}
     function renderResults(report){const checks=Array.isArray(report?.checks)?report.checks:[],fail=checks.filter(c=>c.severity==='fail').length,warn=checks.filter(c=>c.severity==='warning').length,pass=checks.filter(c=>c.severity==='pass').length,score=Number(report?.score||0),ring=document.getElementById('scoreRing');ring.textContent=score;ring.className='score-ring '+(score>=80?'green':score>=50?'yellow':'red');document.getElementById('resFilename').textContent=report?.filename||selectedFile?.name||'';document.getElementById('resPages').textContent=`총 ${report?.page_count||0}페이지`;document.getElementById('resSummary').textContent=`통과 ${pass} · 경고 ${warn} · 불량 ${fail}`;const grid=document.getElementById('checksGrid');grid.innerHTML='';checks.forEach(c=>{const severity=['pass','warning','fail'].includes(c.severity)?c.severity:'warning',icon=severity==='pass'?'✅':severity==='warning'?'⚠️':'❌',refs=Array.isArray(c.page_refs)?c.page_refs:[],tags=refs.length?`<div class="check-pages">${refs.slice(0,8).map(p=>`<span class="page-tag">${Number(p)}p</span>`).join('')}${refs.length>8?`<span class="page-tag">+${refs.length-8}</span>`:''}</div>`:'';grid.insertAdjacentHTML('beforeend',`<article class="check-card"><div class="check-badge ${severity}">${icon}</div><div><div class="check-label">${escapeHtml(c.label)}</div><div class="check-detail">${escapeHtml(c.detail)}</div>${tags}</div></article>`)});document.getElementById('results').style.display='block';document.getElementById('results').scrollIntoView({behavior:'smooth',block:'start'})}
   </script>
-</body>
+<script src="../js/common-context-menu.js"></script><script src="../js/editor-enhancements.js"></script></body>
 </html>

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>PDF 문서 편집기 · Program Tool</title>
+  <title>PDF 편집 · Program Tool</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
   <style>
     :root {
@@ -313,7 +313,7 @@
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
     목록으로
   </a>
-  <div class="nav-title">📝 PDF 문서 편집기</div>
+  <div class="nav-title">📝 PDF 편집</div>
   <div class="nav-user">
     <button class="nav-history-btn" id="navSessionBtn" style="display:none;">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
@@ -337,7 +337,7 @@
 
 <div class="app">
   <aside>
-    <h1>PDF 문서 편집기</h1>
+    <h1>PDF 편집</h1>
     <div class="sub">PDF 업로드 · 페이지 편집 · 간지 삽입 · 머리말/꼬리말 · 워터마크 · N-up 인쇄</div>
 
     <!-- 업로드 -->
@@ -724,7 +724,7 @@
       <div class="field">
         <label>배경색</label>
         <div style="display:flex;align-items:center;gap:6px;">
-          <input type="color" id="dividerBg" value="#1a365d" style="flex:1;">
+          <input type="color" id="dividerBg" value="#ffffff" style="flex:1;">
           <label style="display:flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color:#374151;cursor:pointer;white-space:nowrap;margin:0;">
             <input type="checkbox" id="dividerNoBg" style="width:auto;">없음
           </label>
@@ -1284,6 +1284,7 @@ const NUP_LAYOUTS = {
   8: { port:[2,4,false], land:[4,2,false] },
   9: { port:[3,3,false], land:[3,3,false] },
 };
+function refreshGlobalNupInheritance(){Object.keys(fileNupMap).forEach(k=>{if(fileNupMap[k]===null||fileNupMap[k]===undefined)delete fileNupMap[k]});try{renderPreview?.()}catch(_){}}
 function getLayout(n) {
   const cfg = NUP_LAYOUTS[n] || NUP_LAYOUTS[2];
   const [cols, rows, rotate] = landscape ? cfg.land : cfg.port;
@@ -2840,5 +2841,5 @@ $('zoomResetBtn').addEventListener('click', () => {
   };
 })();
 </script>
-</body>
+<script src="../js/common-context-menu.js"></script><script src="../js/editor-enhancements.js"></script></body>
 </html>

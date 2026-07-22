@@ -1,0 +1,14 @@
+(()=>{
+  const clamp=(v)=>Math.max(0,Math.min(100,Number(v)||0));
+  const rgbToCmyk=(r,g,b)=>{r/=255;g/=255;b/=255;const k=1-Math.max(r,g,b);if(k>=.999)return{c:0,m:0,y:0,k:100};return{c:Math.round((1-r-k)/(1-k)*100),m:Math.round((1-g-k)/(1-k)*100),y:Math.round((1-b-k)/(1-k)*100),k:Math.round(k*100)}};
+  const cmykToRgb=(c,m,y,k)=>{c=clamp(c)/100;m=clamp(m)/100;y=clamp(y)/100;k=clamp(k)/100;return{r:Math.round(255*(1-c)*(1-k)),g:Math.round(255*(1-m)*(1-k)),b:Math.round(255*(1-y)*(1-k))}};
+  const hexToRgb=h=>{h=String(h||'#000000').replace('#','');if(h.length===3)h=[...h].map(x=>x+x).join('');return{r:parseInt(h.slice(0,2),16)||0,g:parseInt(h.slice(2,4),16)||0,b:parseInt(h.slice(4,6),16)||0}};
+  const rgbToHex=({r,g,b})=>'#'+[r,g,b].map(v=>Math.max(0,Math.min(255,v)).toString(16).padStart(2,'0')).join('');
+  function decorate(input){if(input.dataset.cmykReady)return;input.dataset.cmykReady='1';input.style.display='none';const rgb=hexToRgb(input.value),val=rgbToCmyk(rgb.r,rgb.g,rgb.b);const box=document.createElement('div');box.className='cmyk-control';box.style.cssText='display:grid;grid-template-columns:repeat(4,minmax(45px,1fr)) 38px;gap:5px;align-items:end';box.innerHTML=['C','M','Y','K'].map(k=>`<label style="font-size:9px;font-weight:850;color:#64748b">${k}<input data-cmyk="${k.toLowerCase()}" type="number" min="0" max="100" value="${val[k.toLowerCase()]}" style="width:100%;margin-top:3px;padding:6px;border:1px solid #dbe5ee;border-radius:6px;font-size:10px"></label>`).join('')+`<span data-swatch style="height:31px;border:1px solid #cbd5e1;border-radius:7px;background:${input.value}"></span>`;input.after(box);
+    const sync=()=>{const get=k=>box.querySelector(`[data-cmyk=${k}]`).value;const hex=rgbToHex(cmykToRgb(get('c'),get('m'),get('y'),get('k')));input.value=hex;box.querySelector('[data-swatch]').style.background=hex;input.dispatchEvent(new Event('input',{bubbles:true}));input.dispatchEvent(new Event('change',{bubbles:true}))};
+    box.querySelectorAll('input').forEach(el=>el.addEventListener('input',sync));
+    input.addEventListener('input',()=>{const x=hexToRgb(input.value),v=rgbToCmyk(x.r,x.g,x.b);Object.entries(v).forEach(([k,n])=>box.querySelector(`[data-cmyk=${k}]`).value=n);box.querySelector('[data-swatch]').style.background=input.value});
+  }
+  document.addEventListener('DOMContentLoaded',()=>document.querySelectorAll('input[type=color]').forEach(decorate));
+  window.CMYKColor={rgbToCmyk,cmykToRgb,hexToRgb,rgbToHex,decorate};
+})();

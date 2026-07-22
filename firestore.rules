@@ -28,6 +28,17 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    match /cover_templates/{templateId} {
+      allow read: if signedIn() && (isAdmin() || (approved(request.auth.uid) && resource.data.isPublic == true));
+      allow create: if isAdmin()
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 80
+        && request.resource.data.isPublic is bool
+        && request.resource.data.createdBy == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+
     match /users/{uid}/pdf_history/{docId} { allow read, write: if signedIn() && request.auth.uid == uid && approved(uid); }
     match /users/{uid}/pdf_sessions/{docId} { allow read, write: if signedIn() && request.auth.uid == uid && approved(uid); }
 

@@ -1,0 +1,43 @@
+name: Apply editor improvements
+
+on:
+  push:
+    branches:
+      - agent/shared-editor-improvements
+    paths:
+      - scripts/apply_editor_improvements.py
+      - js/common-context-menu.js
+      - js/editor-enhancements.js
+      - .github/workflows/apply-editor-improvements.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/shared-editor-improvements
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Apply patches
+        run: python scripts/apply_editor_improvements.py
+      - name: Validate JavaScript
+        run: |
+          node --check js/common-context-menu.js
+          node --check js/editor-enhancements.js
+      - name: Commit generated changes
+        run: |
+          if git diff --quiet; then
+            echo "No generated changes"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html admin.html tools/pdf-editor.html tools/pdf-Checker.html tools/preflight.html tools/perfect-binding-cover.html
+          git commit -m "apply shared editor improvements"
+          git push
