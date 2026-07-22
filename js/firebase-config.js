@@ -8,8 +8,8 @@ const firebaseConfig = {
   measurementId: "G-1Y1FC82J4X"
 };
 firebase.initializeApp(firebaseConfig);
-const auth=firebase.auth();
-const googleProvider=new firebase.auth.GoogleAuthProvider();
+const auth=typeof firebase.auth==='function'?firebase.auth():null;
+const googleProvider=auth?new firebase.auth.GoogleAuthProvider():null;
 const db=firebase.firestore();
 
 window.ProgramAccess={
@@ -26,9 +26,8 @@ window.ProgramAccess={
     const ref=db.collection('user_permissions').doc(user.uid);
     const snap=await ref.get();
     if(!snap.exists){
-      const data={uid:user.uid,email:this.normalizeEmail(user.email),displayName:user.displayName||'',status:'pending',programs:{'pdf-editor':false,preflight:false,'design-studio':false},createdAt:firebase.firestore.FieldValue.serverTimestamp()};
-      await ref.set(data);
-      return data;
+      const data={uid:user.uid,email:this.normalizeEmail(user.email),displayName:user.displayName||'',status:'pending',plan:'free',programs:{'pdf-editor':false,preflight:false,'design-studio':false},createdAt:firebase.firestore.FieldValue.serverTimestamp()};
+      await ref.set(data);return data;
     }
     return snap.data();
   },
@@ -42,13 +41,10 @@ window.ProgramAccess={
   async guardTool(options={}){
     const loginUrl=options.loginUrl||'../login.html';
     const waitingUrl=options.waitingUrl||'../approval-waiting.html';
+    if(!auth){location.replace(loginUrl);return;}
     return new Promise(resolve=>auth.onAuthStateChanged(async user=>{
       if(!user){location.replace(loginUrl);return;}
-      try{
-        const access=await this.getAccess(user);
-        if(!access.approved){location.replace(`${waitingUrl}?status=${encodeURIComponent(access.status||'pending')}`);return;}
-        document.documentElement.dataset.accessReady='true';resolve(access);
-      }catch(e){console.error(e);location.replace(`${waitingUrl}?status=error`);}
+      try{const access=await this.getAccess(user);if(!access.approved){location.replace(`${waitingUrl}?status=${encodeURIComponent(access.status||'pending')}`);return;}document.documentElement.dataset.accessReady='true';resolve(access)}catch(e){console.error(e);location.replace(`${waitingUrl}?status=error`)}
     }));
   }
 };
@@ -56,8 +52,21 @@ window.ProgramAccess={
 (()=>{
   const path=location.pathname.replace(/\\/g,'/');
   const protectedTools=['/tools/pdf-editor.html','/tools/preflight.html','/tools/perfect-binding-cover.html'];
-  if(protectedTools.some(item=>path.endsWith(item))){
-    document.documentElement.style.visibility='hidden';
-    ProgramAccess.guardTool().then(()=>document.documentElement.style.visibility='');
-  }
+  if(auth&&protectedTools.some(item=>path.endsWith(item))){document.documentElement.style.visibility='hidden';ProgramAccess.guardTool().then(()=>document.documentElement.style.visibility='')}
 })();
+
+window.addEventListener('DOMContentLoaded',async()=>{
+  const year=new Date().getFullYear();
+  document.querySelectorAll('[data-current-year],#copyrightYear').forEach(el=>el.textContent=year);
+  const footer=document.querySelector('footer');
+  if(!footer)return;
+  footer.innerHTML=footer.innerHTML.replace(/©\s*\d{4}/g,`© ${year}`);
+  let shell=footer.querySelector('.footer-inner')||footer;
+  if(!shell.querySelector('.footer-legal')){
+    const style=document.createElement('style');style.textContent='.footer-legal{display:flex;gap:12px;flex-wrap:wrap;align-items:center}.footer-legal a{color:inherit;text-decoration:none}.footer-business{margin-top:8px;font-size:10px;line-height:1.65;opacity:.72;max-width:900px}@media(max-width:650px){.footer-legal{margin-top:12px}}';document.head.appendChild(style);
+    const legal=document.createElement('div');legal.className='footer-legal';legal.innerHTML='<a href="guide.html">이용안내</a><a href="terms.html">이용약관</a><a href="privacy.html">개인정보처리방침</a>';
+    shell.appendChild(legal);
+    const info=document.createElement('div');info.className='footer-business';footer.appendChild(info);
+    try{const snap=await db.collection('site_settings').doc('business').get();const b=snap.exists?snap.data():{};const p=[b.bizName,b.bizOwner&&`대표 ${b.bizOwner}`,b.bizNumber&&`사업자등록번호 ${b.bizNumber}`,b.bizMailOrder&&`통신판매업 ${b.bizMailOrder}`,b.bizAddress,b.bizPhone,b.bizEmail].filter(Boolean);info.textContent=p.join(' · ')}catch(e){info.remove()}
+  }
+});
