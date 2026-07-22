@@ -38,9 +38,6 @@
       loadScript('homeCleanupScript', '/js/home-cleanup.js?v=20260712-cover-maker-1');
     }
 
-    // Keep the PDF editor and checker on their original loading behavior.
-    // Firebase clean URLs may expose extensionless paths; loading the optional
-    // editor modules there changes the established editor layout unexpectedly.
     if (location.pathname.endsWith('/tools/pdf-editor.html')) {
       loadScript('pdfEditorModuleLoaderScript', '/js/pdf-editor/loader.js?v=20260722-14');
     }
@@ -49,9 +46,9 @@
       loadScript('pdfCheckerFinalGuardScript', '/js/pdf-checker-final-guard.js?v=20260710-6');
     }
 
-    // Only the new cover editor needs extensionless clean-URL support.
     if (isToolPath('perfect-binding-cover')) {
-      loadScript('perfectBindingFineControlsScript', '/js/perfect-binding-cover-fine-controls.js?v=20260712-6');
+      loadScript('perfectBindingFineControlsScript', '/js/perfect-binding-cover-fine-controls.js?v=20260722-7');
+      loadScript('coverTextZonesScript', '/js/cover-editor-text-zones.js?v=20260722-1');
     }
   }
 
