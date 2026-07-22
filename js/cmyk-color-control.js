@@ -9,6 +9,7 @@
     box.querySelectorAll('input').forEach(el=>el.addEventListener('input',sync));
     input.addEventListener('input',()=>{const x=hexToRgb(input.value),v=rgbToCmyk(x.r,x.g,x.b);Object.entries(v).forEach(([k,n])=>box.querySelector(`[data-cmyk=${k}]`).value=n);box.querySelector('[data-swatch]').style.background=input.value});
   }
-  document.addEventListener('DOMContentLoaded',()=>document.querySelectorAll('input[type=color]').forEach(decorate));
+  function loadCoverSmartGuides(){if(!location.pathname.includes('perfect-binding-cover')||document.querySelector('script[data-cover-smart-guides]'))return;const script=document.createElement('script');script.src='../js/cover-smart-guides.js?v=20260722-3';script.dataset.coverSmartGuides='1';document.head.appendChild(script)}
+  document.addEventListener('DOMContentLoaded',()=>{document.querySelectorAll('input[type=color]').forEach(decorate);loadCoverSmartGuides()});
   window.CMYKColor={rgbToCmyk,cmykToRgb,hexToRgb,rgbToHex,decorate};
 })();
