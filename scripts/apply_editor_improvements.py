@@ -25,7 +25,7 @@ REPLACEMENTS = {
     "tools/perfect-binding-cover.html": [("무선제본 표지 제작기", "표지 제작")],
 }
 
-SCRIPT_TAGS = '<script src="../js/common-context-menu.js"></script><script src="../js/editor-enhancements.js"></script>'
+SCRIPT_TAGS = '<script src="../js/common-context-menu.js"></script><script src="../js/editor-enhancements.js"></script><script src="../js/cmyk-color-control.js"></script>'
 
 
 def replace_all(path: Path, replacements):
@@ -39,8 +39,19 @@ def replace_all(path: Path, replacements):
 
 def inject_scripts(path: Path):
     text = path.read_text(encoding="utf-8")
+    original = text
     if "common-context-menu.js" not in text:
         text = text.replace("</body>", SCRIPT_TAGS + "</body>")
+    elif "cmyk-color-control.js" not in text:
+        text = text.replace("</body>", '<script src="../js/cmyk-color-control.js"></script></body>')
+    if text != original:
+        path.write_text(text, encoding="utf-8")
+
+
+def inject_home_registry(path: Path):
+    text = path.read_text(encoding="utf-8")
+    if "program-registry.js" not in text:
+        text = text.replace("</body>", '<script src="js/program-registry.js"></script></body>')
         path.write_text(text, encoding="utf-8")
 
 
@@ -106,6 +117,9 @@ def main():
         path = ROOT / rel
         if path.exists():
             inject_scripts(path)
+    index = ROOT / "index.html"
+    if index.exists():
+        inject_home_registry(index)
     pdf_editor = ROOT / "tools/pdf-editor.html"
     if pdf_editor.exists():
         patch_pdf_editor(pdf_editor)
