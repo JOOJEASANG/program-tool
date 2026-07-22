@@ -1,15 +1,21 @@
 // Refine cover text inputs and color palettes without replacing the renderer.
 (function () {
   'use strict';
-  if (window.__coverTextUiRefineV2) return;
-  window.__coverTextUiRefineV2 = true;
+  if (window.__coverTextUiRefineV3) return;
+  window.__coverTextUiRefineV3 = true;
   if (!location.pathname.includes('perfect-binding-cover')) return;
 
   const COLORS = ['#ffffff','#f8fafc','#e2e8f0','#94a3b8','#475569','#111827','#000000','#12396d','#1d4ed8','#0ea5e9','#0f766e','#16a34a','#65a30d','#ca8a04','#ea580c','#dc2626','#be123c','#9333ea','#7c3aed','#6d4c41'];
-  const DEFAULT_TITLE = '2026학년도 방과후학교 운영 계획서';
+  const SAMPLE_TITLES = [
+    '2026학년도 방과후학교 운영 계획서',
+    '2026학년도 방과후학교운영 계획서',
+    '2026학년도 방과후학교 운영계획서',
+    '2026학년도 방과후학교운영계획서'
+  ];
   const ZONES = ['top', 'center', 'bottom'];
   const Y = { top: 18, center: 50, bottom: 84 };
   const $ = (selector, root = document) => root.querySelector(selector);
+  const isSampleTitle = value => SAMPLE_TITLES.includes(String(value || '').trim());
 
   function dispatchInput(input, color) {
     input.value = color;
@@ -53,6 +59,9 @@
       .cover-spine-fixed .cover-zone-add{display:none!important}
       .cover-spine-fixed .cover-text-row{grid-template-columns:minmax(0,1fr) 58px!important}
       .cover-spine-fixed .cover-text-delete{display:none!important}
+      .cover-reset-row{margin-top:7px}
+      .cover-reset-btn{width:100%;border:1px solid #fecaca;background:#fff;color:#b91c1c;border-radius:8px;padding:8px 10px;font-size:9px;font-weight:900;cursor:pointer}
+      .cover-reset-btn:hover{background:#fff1f2;border-color:#fca5a5}
     `;
     document.head.appendChild(style);
   }
@@ -79,7 +88,7 @@
     for (const side of ['front', 'back']) {
       for (const zone of ZONES) {
         for (const item of api.data[side]?.[zone] || []) {
-          if (item.text === DEFAULT_TITLE) item.text = '';
+          if (isSampleTitle(item.text)) item.text = '';
         }
       }
     }
@@ -90,6 +99,9 @@
       spine.top = [makeSpineItem('top', spine.top?.[0])];
       spine.center = [makeSpineItem('center', spine.center?.[0] || oldCenter)];
       spine.bottom = [makeSpineItem('bottom', spine.bottom?.[0])];
+      for (const zone of ZONES) {
+        if (isSampleTitle(spine[zone][0].text)) spine[zone][0].text = '';
+      }
     }
     api.save?.();
   }
@@ -103,7 +115,7 @@
     panel.querySelectorAll('.cover-zone').forEach(zone => { zone.style.display = ''; });
     panel.querySelectorAll('.cover-text-row input[type="text"]').forEach(input => {
       input.placeholder = active === 'spine' ? '책등 글자를 입력하세요' : '제목을 입력하세요';
-      if (input.value === DEFAULT_TITLE) {
+      if (isSampleTitle(input.value)) {
         input.value = '';
         input.dispatchEvent(new Event('input', { bubbles: true }));
       }
@@ -132,11 +144,34 @@
     ].forEach(([selector, id, label]) => palette($(selector), id, label));
   }
 
+  function resetCover() {
+    if (!window.confirm('표지 제작 내용을 모두 초기화하시겠습니까?')) return;
+    [
+      'programTool.coverTextZones.v3',
+      'programTool.coverTextZones.v2',
+      'programTool.coverTextZones.v1'
+    ].forEach(key => {
+      try { localStorage.removeItem(key); } catch (_) {}
+    });
+    location.reload();
+  }
+
+  function addResetButton() {
+    const card = $('.download-card');
+    if (!card || $('#coverResetBtn')) return;
+    const row = document.createElement('div');
+    row.className = 'cover-reset-row';
+    row.innerHTML = '<button type="button" class="cover-reset-btn" id="coverResetBtn">표지 제작 초기화</button>';
+    card.appendChild(row);
+    $('#coverResetBtn')?.addEventListener('click', resetCover);
+  }
+
   function boot() {
     installStyles();
     normalizeData();
     refineInputs();
     addPalettes();
+    addResetButton();
     let scheduled = false;
     const observer = new MutationObserver(() => {
       if (scheduled) return;
@@ -145,6 +180,7 @@
         scheduled = false;
         refineInputs();
         addPalettes();
+        addResetButton();
       });
     });
     observer.observe(document.querySelector('.settings') || document.body, { childList: true, subtree: true });
