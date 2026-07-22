@@ -49,6 +49,7 @@
     if (isToolPath('perfect-binding-cover')) {
       loadScript('perfectBindingFineControlsScript', '/js/perfect-binding-cover-fine-controls.js?v=20260722-7');
       loadScript('coverTextZonesScriptV3', '/js/cover-editor-text-zones-v2.js?v=20260722-3');
+      loadScript('coverPreviewWorkspaceScript', '/js/cover-preview-workspace.js?v=20260722-1');
     }
   }
 
