@@ -1,0 +1,25 @@
+name: Audit game wording
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    name: Find site game wording
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Find user-facing game wording
+        shell: bash
+        run: |
+          echo '=== Matches for 게임 in site-facing text files ==='
+          grep -RIn --exclude-dir=.git --exclude-dir=node_modules --exclude-dir=venv --exclude-dir=.venv \
+            --include='*.html' --include='*.js' --include='*.json' --include='*.md' \
+            '게임' . || true
