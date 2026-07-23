@@ -27,13 +27,6 @@ def _color(value, fallback=(0.0, 0.0, 0.0)):
     return pdf_ops._hex_to_rgb(str(value or ""), fallback)
 
 
-def _alignment(value: str) -> int:
-    return {
-        "left": fitz.TEXT_ALIGN_LEFT,
-        "right": fitz.TEXT_ALIGN_RIGHT,
-    }.get(str(value or "").lower(), fitz.TEXT_ALIGN_CENTER)
-
-
 def _alignment_for_x(x_pct: float) -> int:
     if x_pct <= 20:
         return fitz.TEXT_ALIGN_LEFT
@@ -51,11 +44,27 @@ def _text_rect(page_w: float, x_pct: float, y0: float, y1: float, pad: float):
     return fitz.Rect(pad, y0, page_w - pad, y1), align
 
 
-def _insert_textbox(page: fitz.Page, text: str, x_pct: float, y: float, size: float,
-                    color, opacity: float = 1.0):
+def _insert_textbox(
+    page: fitz.Page,
+    text: str,
+    x_pct: float,
+    y: float,
+    size: float,
+    color,
+    opacity: float = 1.0,
+):
     if not text:
         return
-    rect, align = _text_rect(page.rect.width, x_pct, y - size * 0.72, y + size * 0.58, 40)
+
+    # Built-in CJK fonts have a taller line box than Helvetica. A narrow box makes
+    # insert_textbox return a negative value and silently omit large title text.
+    rect, align = _text_rect(
+        page.rect.width,
+        x_pct,
+        max(0, y - size),
+        min(page.rect.height, y + size),
+        40,
+    )
     page.insert_textbox(
         rect,
         text,
@@ -115,8 +124,13 @@ def _draw_extra_text(page: fitz.Page, item: dict):
     )
 
 
-def _render_divider_page(out_doc: fitz.Document, content_raw: str, style: str,
-                           paper_w_pt: float, paper_h_pt: float):
+def _render_divider_page(
+    out_doc: fitz.Document,
+    content_raw: str,
+    style: str,
+    paper_w_pt: float,
+    paper_h_pt: float,
+):
     content = pdf_ops._parse_divider_content(content_raw)
     title = _text(content.get("title"))
     subtitle = _text(content.get("subtitle"))
@@ -160,7 +174,11 @@ def _render_divider_page(out_doc: fitz.Document, content_raw: str, style: str,
             fitz.Point(paper_w_pt * 0.14, paper_h_pt * 0.64),
             fitz.Point(paper_w_pt * 0.86, paper_h_pt * 0.64),
         )
-        shape.finish(color=fg, width=max(1, paper_w_pt * 0.002), stroke_opacity=0.28)
+        shape.finish(
+            color=fg,
+            width=max(1, paper_w_pt * 0.002),
+            stroke_opacity=0.28,
+        )
         shape.commit(overlay=True)
 
     _insert_textbox(page, title, title_x_pct, title_y, 42, fg, 1)
