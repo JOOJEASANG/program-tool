@@ -2,6 +2,7 @@ name: Repository quality gate
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened]
   push:
     branches:
       - 'agent/**'
