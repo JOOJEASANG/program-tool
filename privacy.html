@@ -26,37 +26,10 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
   <script src="js/firebase-config.js"></script>
+  <script src="js/business-info-loader.js"></script>
   <script>
     document.getElementById('year').textContent=new Date().getFullYear();
-    (async()=>{
-      const text=document.getElementById('bizText');
-      try{
-        let snapshot=await db.collection('settings').doc('business').get().catch(()=>null);
-        if(!snapshot||!snapshot.exists)snapshot=await db.collection('site_settings').doc('business').get().catch(()=>null);
-        const business=snapshot&&snapshot.exists?snapshot.data():{};
-        document.getElementById('effectiveDate').textContent=business.bizTermsEffective||'2026.07.23';
-        const values=[
-          business.bizName&&`상호: ${business.bizName}`,
-          business.bizOwner&&`대표자: ${business.bizOwner}`,
-          business.bizNumber&&`사업자등록번호: ${business.bizNumber}`,
-          business.bizMailOrder&&`통신판매업 신고번호: ${business.bizMailOrder}`,
-          business.bizAddress&&`주소: ${business.bizAddress}`,
-          business.bizPhone&&`전화: ${business.bizPhone}`,
-          business.bizEmail&&`이메일: ${business.bizEmail}`,
-          business.bizPrivacyOfficer&&`개인정보 보호책임자: ${business.bizPrivacyOfficer}`
-        ].filter(Boolean);
-        text.replaceChildren();
-        if(values.length){
-          values.forEach((value,index)=>{if(index)text.appendChild(document.createElement('br'));text.appendChild(document.createTextNode(value));});
-        }else{
-          text.textContent='관리자 페이지에서 사업자 정보를 입력해 주세요.';
-        }
-        if(business.stampData){const image=document.createElement('img');image.src=business.stampData;image.alt='사업자 직인';document.getElementById('stamp').replaceChildren(image);}
-      }catch(error){
-        console.error(error);
-        text.textContent='사업자 정보를 불러오지 못했습니다.';
-      }
-    })();
+    ProgramBusinessInfo.render({includePrivacyOfficer:true,defaultEffectiveDate:'2026.07.23'});
   </script>
 </body>
 </html>
