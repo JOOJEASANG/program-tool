@@ -9,7 +9,9 @@ service cloud.firestore {
 
     match /settings/admin {
       allow read: if signedIn();
-      allow create: if signedIn() && !exists(/databases/$(database)/documents/settings/admin) && request.auth.token.email != null && request.resource.data.keys().hasOnly(['emails']) && request.resource.data.emails is list && request.resource.data.emails.size() == 1 && request.resource.data.emails.hasAny([request.auth.token.email, request.auth.token.email.lower()]);
+      // The first administrator must be provisioned through Firebase Console or Admin SDK.
+      // Never allow an arbitrary first signed-in user to claim administrator access.
+      allow create: if false;
       allow update, delete: if isAdmin();
     }
 
