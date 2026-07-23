@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 
@@ -40,3 +41,11 @@ def test_cover_text_module_has_no_infinite_interval():
 
     assert "setInterval(" not in source
     assert "attempt < 20" in source
+
+
+def test_cache_versions_stay_synchronized():
+    version = json.loads(_read("version.json"))["version"]
+
+    assert f"const VERSION='{version}'" in _read("js/sw-register.js")
+    assert f"sw-register.js?v={version}" in _read("js/firebase-config.js")
+    assert f"const APP_VERSION='{version}'" in _read("sw.js")
