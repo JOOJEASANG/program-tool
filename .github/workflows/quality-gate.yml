@@ -23,7 +23,9 @@ jobs:
         with:
           python-version: '3.11'
           cache: pip
-          cache-dependency-path: backend/requirements-dev.txt
+          cache-dependency-path: |
+            backend/requirements.txt
+            backend/requirements-dev.txt
 
       - name: Install backend dependencies
         run: python -m pip install -r backend/requirements-dev.txt
@@ -33,7 +35,19 @@ jobs:
 
       - name: Run PDF regression tests
         working-directory: backend
-        run: pytest -q
+        shell: bash
+        run: |
+          set -o pipefail
+          pytest -q --tb=short 2>&1 | tee pytest.log
+
+      - name: Upload pytest diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pytest-diagnostics
+          path: backend/pytest.log
+          retention-days: 7
+          if-no-files-found: ignore
 
   frontend-static:
     name: Frontend and repository checks
@@ -67,7 +81,7 @@ jobs:
 
       - name: Reject stale generated workflow targets
         run: |
-          if grep -R "git add tools/perfect-binding-cover.html" .github/workflows; then
+          if grep -R "git add tools/perfect-binding-cover.html" .github/workflows --exclude=quality-gate.yml; then
             echo "Obsolete generated HTML target remains in a workflow."
             exit 1
           fi
