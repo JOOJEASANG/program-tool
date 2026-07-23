@@ -5,8 +5,9 @@ firebase_admin.initialize_app(options={
     "storageBucket": os.environ.get("FIREBASE_STORAGE_BUCKET", "program-tool.firebasestorage.app"),
 })
 
-# Apply divider text alignment before PDF routes import the renderer.
+# Apply PDF text renderers before the route modules import and use pdf_ops.
 from services import pdf_divider_alignment_patch  # noqa: F401,E402
+from services import pdf_text_font_patch  # noqa: F401,E402
 
 from flask import Flask, jsonify
 from routers.pdf import pdf_bp
