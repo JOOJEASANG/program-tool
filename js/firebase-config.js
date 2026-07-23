@@ -17,12 +17,17 @@ window.ProgramAccess={
   async isAdmin(user){
     if(!user)return false;
     const email=this.normalizeEmail(user.email);
-    const [legacy,direct]=await Promise.all([
+    const [legacy,direct,profile]=await Promise.all([
       db.collection('settings').doc('admin').get().catch(()=>null),
-      db.collection('admins').doc(email).get().catch(()=>null)
+      db.collection('admins').doc(email).get().catch(()=>null),
+      db.collection('user_permissions').doc(user.uid).get().catch(()=>null)
     ]);
-    const legacyMatch=!!(legacy&&legacy.exists&&(legacy.data().emails||[]).map(this.normalizeEmail).includes(email));
-    return legacyMatch||!!(direct&&direct.exists);
+    const legacyEmails=legacy&&legacy.exists?legacy.data().emails||[]:[];
+    const legacyMatch=legacyEmails.map(v=>this.normalizeEmail(v)).includes(email);
+    const directMatch=!!(direct&&direct.exists);
+    const profileData=profile&&profile.exists?profile.data():{};
+    const profileMatch=profileData.role==='admin'||profileData.isAdmin===true||profileData.admin===true;
+    return legacyMatch||directMatch||profileMatch;
   },
   async ensureUserDocument(user){
     if(!user)return null;
@@ -37,7 +42,11 @@ window.ProgramAccess={
   async getAccess(user){
     if(!user)return{loggedIn:false,admin:false,approved:false,status:'signed_out'};
     const admin=await this.isAdmin(user).catch(()=>false);
-    const profile=await this.ensureUserDocument(user);
+    let profile=null;
+    try{profile=await this.ensureUserDocument(user)}catch(e){
+      console.warn('User profile could not be loaded or created.',e);
+      try{const snap=await db.collection('user_permissions').doc(user.uid).get();profile=snap.exists?snap.data():null}catch(_){profile=null}
+    }
     const status=admin?'approved':String(profile?.status||'pending');
     return{loggedIn:true,admin,approved:admin||status==='approved',status,profile};
   },
