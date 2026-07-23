@@ -22,4 +22,11 @@ jobs:
           echo '=== Matches for 게임 in site-facing text files ==='
           grep -RIn --exclude-dir=.git --exclude-dir=node_modules --exclude-dir=venv --exclude-dir=.venv \
             --include='*.html' --include='*.js' --include='*.json' --include='*.md' \
-            '게임' . || true
+            '게임' . | tee game-wording-report.txt || true
+      - name: Upload wording audit report
+        uses: actions/upload-artifact@v4
+        with:
+          name: game-wording-report
+          path: game-wording-report.txt
+          retention-days: 1
+          if-no-files-found: error
