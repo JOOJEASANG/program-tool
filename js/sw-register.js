@@ -6,7 +6,9 @@
   function isPath(...parts){const path=location.pathname.replace(/\/+$/,'');return parts.some(p=>path.endsWith(p))}
   async function clearLegacyCaches(){try{if('caches'in window){const keys=await caches.keys();await Promise.all(keys.filter(k=>!k.includes(VERSION)).map(k=>caches.delete(k)))}}catch(_){}}
   async function register(){if(!('serviceWorker'in navigator))return;try{const reg=await navigator.serviceWorker.register('/sw.js?v='+encodeURIComponent(VERSION),{updateViaCache:'none'});await reg.update().catch(()=>{});if(reg.waiting)reg.waiting.postMessage({type:'SKIP_WAITING'})}catch(e){console.warn('Service worker registration failed',e)}}
-  function helpers(){load('appVersionHelperScript','/js/app-version.js?v='+VERSION);
+  function helpers(){
+    load('appVersionHelperScript','/js/app-version.js?v='+VERSION);
+    load('programPathMapperScript','/js/program-paths.js?v='+VERSION);
     if(location.pathname==='/'||location.pathname.endsWith('/index.html'))load('homeCleanupScript','/js/home-cleanup.js?v='+VERSION);
     if(isPath('/tools/pdf-editor.html','/pdf-editor','/pdf-editor/index.html'))load('pdfEditorModuleLoaderScript','/js/pdf-editor/loader.js?v='+VERSION);
     if(isPath('/tools/pdf-Checker.html','/tools/preflight.html','/pdf-preflight','/pdf-preflight/index.html'))load('pdfCheckerFinalGuardScript','/js/pdf-checker-final-guard.js?v='+VERSION);
