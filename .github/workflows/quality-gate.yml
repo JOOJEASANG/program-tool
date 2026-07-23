@@ -36,9 +36,11 @@ jobs:
       - name: Run PDF regression tests
         working-directory: backend
         shell: bash
+        env:
+          PYTHONPATH: ${{ github.workspace }}/backend
         run: |
           set -o pipefail
-          pytest -q --tb=short 2>&1 | tee pytest.log
+          python -m pytest -q --tb=short 2>&1 | tee pytest.log
 
       - name: Upload pytest diagnostics
         if: always()
@@ -81,10 +83,20 @@ jobs:
 
       - name: Reject stale generated workflow targets
         run: |
-          if grep -R "git add tools/perfect-binding-cover.html" .github/workflows --exclude=quality-gate.yml; then
-            echo "Obsolete generated HTML target remains in a workflow."
-            exit 1
-          fi
+          python - <<'PY'
+          from pathlib import Path
+
+          needle = 'git add ' + 'tools/perfect-binding-cover.html'
+          failures = []
+          for path in Path('.github/workflows').glob('*'):
+              if path.name == 'quality-gate.yml' or not path.is_file():
+                  continue
+              if needle in path.read_text(encoding='utf-8'):
+                  failures.append(str(path))
+          if failures:
+              raise SystemExit('Obsolete generated HTML target remains in: ' + ', '.join(failures))
+          print('No stale generated workflow targets found.')
+          PY
 
   firebase-rules:
     name: Firebase rules compile
