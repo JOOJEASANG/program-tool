@@ -11,6 +11,7 @@ from utils.auth import require_auth
 pdf_bp = Blueprint("pdf", __name__)
 
 MAX_PDF_FILE_BYTES = 200 * 1024 * 1024
+MAX_TOTAL_PDF_BYTES = 300 * 1024 * 1024
 MAX_PDF_FILES = 50
 MAX_REQUEST_PAGES = 2000
 DEFAULT_STORAGE_BUCKET = os.environ.get("FIREBASE_STORAGE_BUCKET", "program-tool.firebasestorage.app")
@@ -30,12 +31,27 @@ def _max_file_mb() -> int:
     return MAX_PDF_FILE_BYTES // (1024 * 1024)
 
 
+def _max_total_mb() -> int:
+    return MAX_TOTAL_PDF_BYTES // (1024 * 1024)
+
+
 def _safe_float(value, fallback, min_value=0.0, max_value=100.0):
     try:
         n = float(value)
     except Exception:
         n = fallback
     return max(min_value, min(max_value, n))
+
+
+def _cleanup_storage_paths(bucket, storage_paths: list[str]) -> None:
+    """Delete validated temporary uploads without hiding the original response."""
+    if bucket is None:
+        return
+    for path in storage_paths:
+        try:
+            bucket.blob(path).delete()
+        except Exception:
+            pass
 
 
 def _validate_pdf_request(req: PdfProcessRequest, file_bytes_list: list[bytes]) -> None:
@@ -54,10 +70,14 @@ def _validate_pdf_request(req: PdfProcessRequest, file_bytes_list: list[bytes]) 
         raise ValueError(f"페이지는 최대 {MAX_REQUEST_PAGES}개까지 처리할 수 있습니다")
 
     docs = []
+    total_bytes = 0
     try:
         for data in file_bytes_list:
             if len(data) > MAX_PDF_FILE_BYTES:
                 raise ValueError(f"파일이 {_max_file_mb()} MB를 초과합니다")
+            total_bytes += len(data)
+            if total_bytes > MAX_TOTAL_PDF_BYTES:
+                raise ValueError(f"전체 파일 용량은 최대 {_max_total_mb()} MB까지 처리할 수 있습니다")
             docs.append(fitz.open(stream=data, filetype="pdf"))
 
         for p in req.pages:
@@ -148,12 +168,16 @@ def process(uid):
         return jsonify({"detail": f"파일은 최대 {MAX_PDF_FILES}개까지 처리할 수 있습니다"}), 400
 
     file_bytes_list = []
+    total_bytes = 0
     for f in files:
         if not (f.filename or "").lower().endswith(".pdf"):
             return jsonify({"detail": f"File '{f.filename}' is not a PDF"}), 400
         data = f.read()
         if len(data) > MAX_PDF_FILE_BYTES:
             return jsonify({"detail": f"File '{f.filename}' exceeds {_max_file_mb()} MB"}), 413
+        total_bytes += len(data)
+        if total_bytes > MAX_TOTAL_PDF_BYTES:
+            return jsonify({"detail": f"전체 파일 용량은 최대 {_max_total_mb()} MB까지 처리할 수 있습니다"}), 413
         file_bytes_list.append(data)
 
     try:
@@ -176,7 +200,7 @@ def process(uid):
 @pdf_bp.route("/process-storage", methods=["POST"])
 @require_auth
 def process_storage(uid):
-    """Storage-based endpoint: reads source PDFs from Firebase Storage, no HTTP body size limit."""
+    """Storage-based endpoint with bounded aggregate memory use and guaranteed cleanup."""
     try:
         body = request.get_json(force=True) or {}
         storage_paths = body.get("storage_paths", [])
@@ -199,27 +223,39 @@ def process_storage(uid):
     except ValueError as e:
         return jsonify({"detail": str(e)}), 400
 
-    # Download source PDFs from Storage
+    bucket = None
+    file_bytes_list: list[bytes] = []
     try:
         bucket = _bucket()
-        file_bytes_list = []
+        blobs = []
+        declared_total = 0
+
+        # Validate metadata first so oversized batches are rejected before download.
         for path in storage_paths:
             blob = bucket.blob(path)
             try:
                 blob.reload()
-            except Exception as e:
+            except Exception:
                 return jsonify({"detail": f"업로드된 임시 파일을 찾을 수 없습니다. 다시 저장을 눌러주세요. ({path})"}), 404
-            if blob.size is not None and blob.size > MAX_PDF_FILE_BYTES:
+
+            size = int(blob.size or 0)
+            if size > MAX_PDF_FILE_BYTES:
                 return jsonify({"detail": f"파일이 {_max_file_mb()} MB를 초과합니다"}), 413
+            declared_total += size
+            if declared_total > MAX_TOTAL_PDF_BYTES:
+                return jsonify({"detail": f"전체 파일 용량은 최대 {_max_total_mb()} MB까지 처리할 수 있습니다"}), 413
+            blobs.append(blob)
+
+        actual_total = 0
+        for blob in blobs:
             data = blob.download_as_bytes()
             if len(data) > MAX_PDF_FILE_BYTES:
                 return jsonify({"detail": f"파일이 {_max_file_mb()} MB를 초과합니다"}), 413
+            actual_total += len(data)
+            if actual_total > MAX_TOTAL_PDF_BYTES:
+                return jsonify({"detail": f"전체 파일 용량은 최대 {_max_total_mb()} MB까지 처리할 수 있습니다"}), 413
             file_bytes_list.append(data)
-    except Exception as e:
-        return jsonify({"detail": f"Storage 다운로드 실패: {e}"}), 500
 
-    # Process
-    try:
         _validate_pdf_request(req, file_bytes_list)
         _patch_divider_renderer()
         output_bytes = pdf_ops.process_pdf(file_bytes_list, req)
@@ -227,14 +263,8 @@ def process_storage(uid):
         return jsonify({"detail": str(e)}), 400
     except Exception as e:
         return jsonify({"detail": f"PDF 처리 실패: {e}"}), 500
-
-    # Clean up temp files (best-effort)
-    bucket_ref = _bucket()
-    for path in storage_paths:
-        try:
-            bucket_ref.blob(path).delete()
-        except Exception:
-            pass
+    finally:
+        _cleanup_storage_paths(bucket, storage_paths)
 
     return Response(
         output_bytes,
