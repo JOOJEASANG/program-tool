@@ -6,7 +6,8 @@
       "**/.*",
       "**/node_modules/**",
       "design_program.html",
-      "backend/**"
+      "backend/**",
+      "backups/**"
     ],
     "cleanUrls": true,
     "trailingSlash": false,
