@@ -3,6 +3,7 @@ name: Repository quality gate
 on:
   pull_request:
   workflow_dispatch:
+  workflow_call:
 
 concurrency:
   group: quality-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
