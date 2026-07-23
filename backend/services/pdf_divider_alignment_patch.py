@@ -88,7 +88,7 @@ def _fit_extra_text(text: str, size: float, page_width: float) -> tuple[float, f
     max_width = page_width * EXTRA_TEXT_MAX_WIDTH_RATIO
     text_width = _measure_text(text, size)
     if text_width > max_width and text_width > 0:
-        size = max(6.0, size * max_width / text_width)
+        size = max(1.0, size * max_width / text_width)
         text_width = _measure_text(text, size)
     return size, text_width
 
