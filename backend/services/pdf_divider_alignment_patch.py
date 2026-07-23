@@ -9,6 +9,8 @@ from services import pdf_ops
 CJK_FONT_NAME = "korea"
 MAX_EXTRA_TEXTS = 30
 MAX_TEXT_LENGTH = 500
+EXTRA_TEXT_MAX_WIDTH_RATIO = 0.88
+ITALIC_SHEAR = -0.20
 
 
 def _number(value, fallback: float, minimum: float, maximum: float) -> float:
@@ -56,8 +58,6 @@ def _insert_textbox(
     if not text:
         return
 
-    # Built-in CJK fonts have a taller line box than Helvetica. A narrow box makes
-    # insert_textbox return a negative value and silently omit large title text.
     rect, align = _text_rect(
         page.rect.width,
         x_pct,
@@ -77,6 +77,31 @@ def _insert_textbox(
     )
 
 
+def _measure_text(text: str, size: float) -> float:
+    try:
+        return fitz.Font(CJK_FONT_NAME).text_length(text, fontsize=size)
+    except Exception:
+        return len(text) * size * 0.6
+
+
+def _fit_extra_text(text: str, size: float, page_width: float) -> tuple[float, float]:
+    max_width = page_width * EXTRA_TEXT_MAX_WIDTH_RATIO
+    text_width = _measure_text(text, size)
+    if text_width > max_width and text_width > 0:
+        size = max(6.0, size * max_width / text_width)
+        text_width = _measure_text(text, size)
+    return size, text_width
+
+
+def _text_morph(anchor: fitz.Point, italic: bool, rotation: float):
+    if not italic and not rotation:
+        return None
+    matrix = fitz.Matrix(1, 0, ITALIC_SHEAR if italic else 0, 1, 0, 0)
+    if rotation:
+        matrix.prerotate(rotation)
+    return anchor, matrix
+
+
 def _draw_extra_text(page: fitz.Page, item: dict):
     text = _text(item.get("text"))
     if not text or item.get("hidden") is True:
@@ -89,17 +114,13 @@ def _draw_extra_text(page: fitz.Page, item: dict):
     size = _number(item.get("size"), 18, 6, 96)
     opacity = _number(item.get("opacity"), 1, 0.05, 1)
     rotation = _number(item.get("rotation"), 0, -180, 180)
+    italic = bool(item.get("italic"))
     align_name = str(item.get("align") or "center").lower()
     color = _color(item.get("color"), (0.0, 0.0, 0.0))
     weight = _number(item.get("weight"), 400, 100, 900)
 
+    size, text_width = _fit_extra_text(text, size, width)
     anchor = fitz.Point(width * x_pct / 100, height * y_pct / 100)
-    try:
-        font = fitz.Font(CJK_FONT_NAME)
-        text_width = font.text_length(text, fontsize=size)
-    except Exception:
-        text_width = len(text) * size * 0.6
-
     start_x = anchor.x
     if align_name == "center":
         start_x -= text_width / 2
@@ -119,7 +140,7 @@ def _draw_extra_text(page: fitz.Page, item: dict):
         stroke_opacity=opacity,
         render_mode=render_mode,
         border_width=0.25 if render_mode else 1,
-        morph=(anchor, fitz.Matrix(rotation)) if rotation else None,
+        morph=_text_morph(anchor, italic, rotation),
         overlay=True,
     )
 
@@ -192,8 +213,6 @@ def _render_divider_page(
                 _draw_extra_text(page, item)
 
 
-# The router contains a legacy fallback patch. Mark this implementation as final so
-# that fallback does not replace the richer renderer at request time.
 pdf_ops._render_divider_page = _render_divider_page
 pdf_ops._divider_renderer_patched_v2 = True
 pdf_ops._program_studio_divider_renderer = True
