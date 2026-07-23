@@ -1,86 +1,16 @@
-// App version badge + update helper.
-(function () {
-  if (window.__appVersionHelperV1) return;
-  window.__appVersionHelperV1 = true;
-
-  const LOCAL_KEY = 'programToolAppVersion';
-
-  function makeBadge(version, changed) {
-    let badge = document.getElementById('appVersionBadge');
-    if (!badge) {
-      badge = document.createElement('div');
-      badge.id = 'appVersionBadge';
-      badge.style.cssText = 'position:fixed;right:10px;bottom:10px;z-index:99999;background:#0f172a;color:#fff;border-radius:10px;padding:7px 10px;font-size:11px;font-weight:800;box-shadow:0 8px 24px rgba(15,23,42,.22);display:flex;gap:8px;align-items:center;max-width:calc(100vw - 20px);';
-      document.body.appendChild(badge);
-    }
-    if (!changed) {
-      badge.style.display = 'none';
-      return;
-    }
-    badge.style.display = 'flex';
-    badge.innerHTML = '업데이트가 있습니다. <button id="appVersionReloadBtn" style="border:0;border-radius:7px;background:#22c55e;color:#052e16;font-size:11px;font-weight:900;padding:4px 7px;cursor:pointer;">업데이트 적용</button>';
-    const btn = document.getElementById('appVersionReloadBtn');
-    if (btn) btn.onclick = forceReload;
+// Program Studio version display and one-time cache refresh.
+(function(){
+  if(window.__appVersionHelperV2)return;
+  window.__appVersionHelperV2=true;
+  const LOCAL_KEY='programStudioVersion';
+  const RELOAD_KEY='programStudioVersionReloaded';
+  let currentVersion='확인 중';
+  function badge(mode){let el=document.getElementById('appVersionBadge');if(!el){el=document.createElement('div');el.id='appVersionBadge';el.style.cssText='position:fixed;right:10px;bottom:10px;z-index:99999;background:rgba(15,23,42,.92);color:#fff;border-radius:9px;padding:6px 9px;font:800 10px Pretendard,sans-serif;box-shadow:0 8px 24px rgba(15,23,42,.2);display:flex;gap:7px;align-items:center;';document.body.appendChild(el)}
+    el.innerHTML=mode==='update'?`새 버전 ${currentVersion}<button id="appVersionReloadBtn" style="border:0;border-radius:6px;background:#72e5d7;color:#063b36;font-size:10px;font-weight:900;padding:4px 7px;cursor:pointer">바로 적용</button>`:`버전 ${currentVersion}`;
+    const b=document.getElementById('appVersionReloadBtn');if(b)b.onclick=()=>refresh(true);
   }
-
-  async function clearCaches() {
-    try {
-      if ('serviceWorker' in navigator) {
-        const reg = await navigator.serviceWorker.getRegistration();
-        if (reg && reg.active) reg.active.postMessage({ type: 'CLEAR_CACHES' });
-      }
-    } catch (_) {}
-    try {
-      if ('caches' in window) {
-        const keys = await caches.keys();
-        await Promise.all(keys.map((key) => caches.delete(key)));
-      }
-    } catch (_) {}
-  }
-
-  async function forceReload() {
-    await clearCaches();
-    const url = new URL(location.href);
-    url.searchParams.set('v', Date.now().toString());
-    location.replace(url.toString());
-  }
-
-  async function checkVersion() {
-    try {
-      const res = await fetch('/version.json?ts=' + Date.now(), { cache: 'no-store' });
-      const data = await res.json();
-      const version = data.version || 'unknown';
-      const prev = localStorage.getItem(LOCAL_KEY);
-      const changed = !!prev && prev !== version;
-      localStorage.setItem(LOCAL_KEY, version);
-      makeBadge(version, changed);
-      if (changed) await clearCaches();
-    } catch (_) {
-      makeBadge('확인 실패', false);
-    }
-  }
-
-  async function registerFreshServiceWorker() {
-    if (!('serviceWorker' in navigator)) return;
-    try {
-      const reg = await navigator.serviceWorker.register('/sw.js?ts=' + Date.now(), { updateViaCache: 'none' });
-      reg.update().catch(() => {});
-      if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
-    } catch (_) {}
-  }
-
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.addEventListener('message', (event) => {
-      if (event.data && event.data.type === 'APP_VERSION') {
-        makeBadge(event.data.version, false);
-      }
-    });
-  }
-
-  async function boot() {
-    await registerFreshServiceWorker();
-    await checkVersion();
-  }
-
-  document.addEventListener('DOMContentLoaded', boot);
+  async function clear(){try{if('serviceWorker'in navigator){const regs=await navigator.serviceWorker.getRegistrations();for(const r of regs){if(r.active)r.active.postMessage({type:'CLEAR_CACHES'})}}}catch(_){}try{if('caches'in window){const keys=await caches.keys();await Promise.all(keys.map(k=>caches.delete(k)))}}catch(_){}}
+  async function refresh(manual){await clear();if(manual)sessionStorage.setItem(RELOAD_KEY,currentVersion);const u=new URL(location.href);u.searchParams.set('appv',currentVersion);location.replace(u.toString())}
+  async function check(){try{const r=await fetch('/version.json?t='+Date.now(),{cache:'no-store',headers:{'Cache-Control':'no-cache'}});const data=await r.json();currentVersion=String(data.version||'unknown');const prev=localStorage.getItem(LOCAL_KEY);const already=sessionStorage.getItem(RELOAD_KEY)===currentVersion;localStorage.setItem(LOCAL_KEY,currentVersion);if(prev&&prev!==currentVersion&&!already){badge('update');await refresh(false);return}badge('normal')}catch(e){currentVersion='확인 실패';badge('normal')}}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',check,{once:true});else check();
 })();
