@@ -55,6 +55,9 @@ def _insert_textbox(
 ):
     if not text:
         return
+
+    # Built-in CJK fonts have a taller line box than Helvetica. A narrow box makes
+    # insert_textbox return a negative value and silently omit large title text.
     rect, align = _text_rect(
         page.rect.width,
         x_pct,
@@ -78,6 +81,7 @@ def _draw_extra_text(page: fitz.Page, item: dict):
     text = _text(item.get("text"))
     if not text or item.get("hidden") is True:
         return
+
     width = page.rect.width
     height = page.rect.height
     x_pct = _number(item.get("x"), 50, 0, 100)
@@ -88,17 +92,20 @@ def _draw_extra_text(page: fitz.Page, item: dict):
     align_name = str(item.get("align") or "center").lower()
     color = _color(item.get("color"), (0.0, 0.0, 0.0))
     weight = _number(item.get("weight"), 400, 100, 900)
+
     anchor = fitz.Point(width * x_pct / 100, height * y_pct / 100)
     try:
         font = fitz.Font(CJK_FONT_NAME)
         text_width = font.text_length(text, fontsize=size)
     except Exception:
         text_width = len(text) * size * 0.6
+
     start_x = anchor.x
     if align_name == "center":
         start_x -= text_width / 2
     elif align_name == "right":
         start_x -= text_width
+
     baseline = anchor.y + size * 0.34
     render_mode = 2 if weight >= 700 else 0
     page.insert_text(
@@ -132,6 +139,7 @@ def _render_divider_page(
     no_bg = content.get("noBg") is not False
     fg = _color(content.get("fg"), (0.0, 0.0, 0.0))
     bg = _color(content.get("bg"), (1.0, 1.0, 1.0))
+
     offset = _number(content.get("textVOffset"), 0, -40, 40)
     title_y_pct = _number(content.get("titleY"), 45, 5, 95) + offset
     subtitle_y_pct = _number(content.get("subtitleY"), 55, 5, 95) + offset
@@ -139,12 +147,15 @@ def _render_divider_page(
     title_x_pct = _number(content.get("titleX"), 50, 5, 95)
     subtitle_x_pct = _number(content.get("subtitleX"), 50, 5, 95)
     note_x_pct = _number(content.get("noteX"), 50, 5, 95)
+
     title_y = paper_h_pt * _number(title_y_pct, 45, 0, 100) / 100
     subtitle_y = paper_h_pt * _number(subtitle_y_pct, 55, 0, 100) / 100
     note_y = paper_h_pt * _number(note_y_pct, 88, 0, 100) / 100
+
     page = out_doc.new_page(width=paper_w_pt, height=paper_h_pt)
     if not no_bg:
         page.draw_rect(page.rect, color=None, fill=bg, overlay=True)
+
     if not no_bg and resolved_style == "band":
         page.draw_rect(
             fitz.Rect(0, paper_h_pt * 0.34, paper_w_pt, paper_h_pt * 0.66),
@@ -155,13 +166,25 @@ def _render_divider_page(
         )
     elif resolved_style == "lines":
         shape = page.new_shape()
-        shape.draw_line(fitz.Point(paper_w_pt * 0.14, paper_h_pt * 0.38), fitz.Point(paper_w_pt * 0.86, paper_h_pt * 0.38))
-        shape.draw_line(fitz.Point(paper_w_pt * 0.14, paper_h_pt * 0.64), fitz.Point(paper_w_pt * 0.86, paper_h_pt * 0.64))
-        shape.finish(color=fg, width=max(1, paper_w_pt * 0.002), stroke_opacity=0.28)
+        shape.draw_line(
+            fitz.Point(paper_w_pt * 0.14, paper_h_pt * 0.38),
+            fitz.Point(paper_w_pt * 0.86, paper_h_pt * 0.38),
+        )
+        shape.draw_line(
+            fitz.Point(paper_w_pt * 0.14, paper_h_pt * 0.64),
+            fitz.Point(paper_w_pt * 0.86, paper_h_pt * 0.64),
+        )
+        shape.finish(
+            color=fg,
+            width=max(1, paper_w_pt * 0.002),
+            stroke_opacity=0.28,
+        )
         shape.commit(overlay=True)
+
     _insert_textbox(page, title, title_x_pct, title_y, 42, fg, 1)
     _insert_textbox(page, subtitle, subtitle_x_pct, subtitle_y, 24, fg, 0.82)
     _insert_textbox(page, note, note_x_pct, note_y, 15, fg, 0.68)
+
     extra_texts = content.get("extraTexts")
     if isinstance(extra_texts, list):
         for item in extra_texts[:MAX_EXTRA_TEXTS]:
@@ -169,6 +192,8 @@ def _render_divider_page(
                 _draw_extra_text(page, item)
 
 
+# The router contains a legacy fallback patch. Mark this implementation as final so
+# that fallback does not replace the richer renderer at request time.
 pdf_ops._render_divider_page = _render_divider_page
 pdf_ops._divider_renderer_patched_v2 = True
 pdf_ops._program_studio_divider_renderer = True
