@@ -89,53 +89,197 @@ def _validate_storage_path(uid: str, path: str) -> None:
         raise ValueError("PDF 파일만 처리할 수 있습니다")
 
 
+def _hex_color(value, fallback=(0.0, 0.0, 0.0)) -> tuple[float, float, float]:
+    """Convert CSS #RGB / #RRGGBB colors to PyMuPDF RGB tuples."""
+    text = str(value or "").strip().lower()
+    if text.startswith("#"):
+        text = text[1:]
+    if len(text) == 3:
+        text = "".join(ch * 2 for ch in text)
+    if len(text) != 6:
+        return fallback
+    try:
+        return tuple(int(text[index:index + 2], 16) / 255 for index in (0, 2, 4))
+    except ValueError:
+        return fallback
+
+
+def _divider_align(value, x_pct: float) -> str:
+    if value in ("left", "center", "right"):
+        return value
+    if x_pct <= 20:
+        return "left"
+    if x_pct >= 80:
+        return "right"
+    return "center"
+
+
+def _draw_divider_text(
+    page,
+    text,
+    *,
+    x_pct,
+    y_pct,
+    font_size,
+    color,
+    align="center",
+    weight=400,
+    italic=False,
+    opacity=1.0,
+    rotation=0.0,
+    paper_w_pt,
+    paper_h_pt,
+):
+    """Draw one divider text layer using the same anchor model as the browser canvas."""
+    if text is None or str(text) == "":
+        return
+
+    text = str(text)
+    x_pct = _safe_float(x_pct, 50, 0, 100)
+    y_pct = _safe_float(y_pct, 50, 0, 100)
+    font_size = _safe_float(font_size, 18, 4, 240)
+    opacity = _safe_float(opacity, 1, 0.05, 1)
+    rotation = _safe_float(rotation, 0, -180, 180)
+    align = _divider_align(align, x_pct)
+
+    fontname = "korea"
+    try:
+        text_width = fitz.get_text_length(text, fontname=fontname, fontsize=font_size)
+    except Exception:
+        text_width = max(font_size, len(text) * font_size * 0.65)
+
+    anchor_x = paper_w_pt * x_pct / 100
+    anchor_y = paper_h_pt * y_pct / 100
+    if align == "left":
+        origin_x = anchor_x
+    elif align == "right":
+        origin_x = anchor_x - text_width
+    else:
+        origin_x = anchor_x - text_width / 2
+    origin_y = anchor_y + font_size * 0.35
+
+    max_width = paper_w_pt * 0.88
+    horizontal_scale = min(1.0, max_width / text_width) if text_width > 0 else 1.0
+    matrix = fitz.Matrix(horizontal_scale, 1)
+    if italic:
+        matrix.preshear(12, 0)
+    if rotation:
+        matrix.prerotate(rotation)
+
+    kwargs = {
+        "fontsize": font_size,
+        "fontname": fontname,
+        "set_simple": False,
+        "color": color,
+        "fill_opacity": opacity,
+        "morph": (fitz.Point(anchor_x, anchor_y), matrix),
+        "overlay": True,
+    }
+    page.insert_text(fitz.Point(origin_x, origin_y), text, **kwargs)
+    if _safe_float(weight, 400, 100, 900) >= 700:
+        page.insert_text(fitz.Point(origin_x + 0.35, origin_y), text, **kwargs)
+
+
 def _patch_divider_renderer():
-    """Patch divider output so it matches the free white-background editor behavior."""
-    if getattr(pdf_ops, "_divider_renderer_patched_v2", False):
+    """Make exported divider pages match the final browser renderer."""
+    if getattr(pdf_ops, "_divider_renderer_patched_v3", False):
         return
 
     def render_divider_page(out_doc, content_raw, style, paper_w_pt, paper_h_pt):
         content = pdf_ops._parse_divider_content(content_raw)
-        title = content.get("title", "") or ""
-        subtitle = content.get("subtitle", "") or ""
-        note = content.get("note", "") or ""
         resolved_style = content.get("style", style or "simple")
-        fg = (0.067, 0.094, 0.153)
-        pad = 40
-
-        title_y = paper_h_pt * _safe_float(content.get("titleY", 45), 45, 5, 95) / 100
-        subtitle_y = paper_h_pt * _safe_float(content.get("subtitleY", 55), 55, 5, 95) / 100
-        note_y = paper_h_pt * _safe_float(content.get("noteY", 88), 88, 5, 95) / 100
+        no_bg = content.get("noBg", True) is not False
+        bg = (1.0, 1.0, 1.0) if no_bg else _hex_color(content.get("bg"), (1.0, 1.0, 1.0))
+        fg = _hex_color(content.get("fg"), (0.0, 0.0, 0.0))
 
         page = out_doc.new_page(width=paper_w_pt, height=paper_h_pt)
+        page.draw_rect(page.rect, color=None, fill=bg, overlay=True)
 
-        if resolved_style in ("lines", "band"):
+        if not no_bg and resolved_style == "band":
+            page.draw_rect(
+                fitz.Rect(0, paper_h_pt * 0.34, paper_w_pt, paper_h_pt * 0.66),
+                color=None,
+                fill=fg,
+                fill_opacity=0.16,
+                overlay=True,
+            )
+        elif resolved_style == "lines":
             shape = page.new_shape()
-            shape.draw_line(
-                fitz.Point(pad, max(12, title_y - paper_h_pt * 0.09)),
-                fitz.Point(paper_w_pt - pad, max(12, title_y - paper_h_pt * 0.09)),
-            )
-            shape.draw_line(
-                fitz.Point(pad, min(paper_h_pt - 12, title_y + paper_h_pt * 0.09)),
-                fitz.Point(paper_w_pt - pad, min(paper_h_pt - 12, title_y + paper_h_pt * 0.09)),
-            )
-            shape.finish(color=fg, width=1.0)
-            shape.commit()
+            for y_pct in (38, 64):
+                y = paper_h_pt * y_pct / 100
+                shape.draw_line(fitz.Point(paper_w_pt * 0.14, y), fitz.Point(paper_w_pt * 0.86, y))
+            shape.finish(color=fg, width=max(0.8, paper_w_pt * 0.002), stroke_opacity=0.28)
+            shape.commit(overlay=True)
 
-        if title:
-            rect = fitz.Rect(pad, title_y - 32, paper_w_pt - pad, title_y + 14)
-            page.insert_textbox(rect, title, fontsize=28, fontname="helv", color=fg, align=fitz.TEXT_ALIGN_CENTER)
+        offset = _safe_float(content.get("textVOffset", 0), 0, -50, 50)
+        title_x = _safe_float(content.get("titleX", 50), 50, 0, 100)
+        subtitle_x = _safe_float(content.get("subtitleX", 50), 50, 0, 100)
+        note_x = _safe_float(content.get("noteX", 50), 50, 0, 100)
 
-        if subtitle:
-            rect = fitz.Rect(pad, subtitle_y - 24, paper_w_pt - pad, subtitle_y + 12)
-            page.insert_textbox(rect, subtitle, fontsize=18, fontname="helv", color=fg, align=fitz.TEXT_ALIGN_CENTER)
+        _draw_divider_text(
+            page,
+            content.get("title", ""),
+            x_pct=title_x,
+            y_pct=_safe_float(content.get("titleY", 45), 45, 0, 100) + offset,
+            font_size=42,
+            color=fg,
+            align=_divider_align(None, title_x),
+            weight=700,
+            opacity=1,
+            paper_w_pt=paper_w_pt,
+            paper_h_pt=paper_h_pt,
+        )
+        _draw_divider_text(
+            page,
+            content.get("subtitle", ""),
+            x_pct=subtitle_x,
+            y_pct=_safe_float(content.get("subtitleY", 55), 55, 0, 100) + offset,
+            font_size=24,
+            color=fg,
+            align=_divider_align(None, subtitle_x),
+            weight=400,
+            opacity=0.82,
+            paper_w_pt=paper_w_pt,
+            paper_h_pt=paper_h_pt,
+        )
+        _draw_divider_text(
+            page,
+            content.get("note", ""),
+            x_pct=note_x,
+            y_pct=_safe_float(content.get("noteY", 88), 88, 0, 100) + offset,
+            font_size=15,
+            color=fg,
+            align=_divider_align(None, note_x),
+            weight=400,
+            opacity=0.68,
+            paper_w_pt=paper_w_pt,
+            paper_h_pt=paper_h_pt,
+        )
 
-        if note:
-            rect = fitz.Rect(pad, note_y - 18, paper_w_pt - pad, note_y + 10)
-            page.insert_textbox(rect, note, fontsize=11, fontname="helv", color=fg, align=fitz.TEXT_ALIGN_CENTER)
+        page_scale = min(paper_w_pt / 595, paper_h_pt / 842)
+        extras = content.get("extraTexts", [])
+        if isinstance(extras, list):
+            for item in extras:
+                if not isinstance(item, dict) or item.get("hidden"):
+                    continue
+                _draw_divider_text(
+                    page,
+                    item.get("text", ""),
+                    x_pct=item.get("x", 50),
+                    y_pct=item.get("y", 70),
+                    font_size=_safe_float(item.get("size", 18), 18, 6, 96) * page_scale,
+                    color=_hex_color(item.get("color"), (0.0, 0.0, 0.0)),
+                    align=item.get("align", "center"),
+                    weight=item.get("weight", 400),
+                    italic=bool(item.get("italic")),
+                    opacity=item.get("opacity", 1),
+                    rotation=item.get("rotation", 0),
+                    paper_w_pt=paper_w_pt,
+                    paper_h_pt=paper_h_pt,
+                )
 
     pdf_ops._render_divider_page = render_divider_page
-    pdf_ops._divider_renderer_patched_v2 = True
+    pdf_ops._divider_renderer_patched_v3 = True
 
 
 def _cleanup_temp_files(bucket, storage_paths: list[str]) -> None:
