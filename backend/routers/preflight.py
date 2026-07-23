@@ -1,4 +1,5 @@
 import io
+import os
 import traceback
 import fitz
 import firebase_admin.storage as fa_storage
@@ -11,6 +12,21 @@ from utils.auth import require_auth
 preflight_bp = Blueprint("preflight", __name__)
 MAX_PDF_BYTES = 200 * 1024 * 1024
 MAX_COMPRESS_PAGES = 2000
+DEFAULT_STORAGE_BUCKET = os.environ.get("FIREBASE_STORAGE_BUCKET", "program-tool.firebasestorage.app")
+
+
+def _bucket():
+    return fa_storage.bucket(DEFAULT_STORAGE_BUCKET)
+
+
+def _delete_storage_path(path: str | None) -> None:
+    """Best-effort deletion for validated preflight temporary uploads."""
+    if not path:
+        return
+    try:
+        _bucket().blob(path).delete()
+    except Exception:
+        pass
 
 
 def _read_pdf_from_request():
@@ -45,15 +61,14 @@ def _read_pdf_from_storage(uid: str):
     if err:
         return None, None, None, err
     try:
-        bucket = fa_storage.bucket()
-        blob = bucket.blob(path)
+        blob = _bucket().blob(path)
         blob.reload()
         size = int(blob.size or 0)
         if size > MAX_PDF_BYTES:
-            return None, None, None, (jsonify({"detail": "파일이 200 MB 제한을 초과합니다"}), 413)
+            return None, None, path, (jsonify({"detail": "파일이 200 MB 제한을 초과합니다"}), 413)
         data = blob.download_as_bytes()
         if len(data) > MAX_PDF_BYTES:
-            return None, None, None, (jsonify({"detail": "파일이 200 MB 제한을 초과합니다"}), 413)
+            return None, None, path, (jsonify({"detail": "파일이 200 MB 제한을 초과합니다"}), 413)
         return filename, data, path, None
     except Exception as e:
         return None, None, path, (jsonify({"detail": f"Storage에서 PDF 파일을 읽지 못했습니다: {type(e).__name__}: {e}"}), 404)
@@ -128,10 +143,13 @@ def check(uid):
 @preflight_bp.route("/check-storage", methods=["POST"])
 @require_auth
 def check_storage(uid):
-    filename, data, _path, err = _read_pdf_from_storage(uid)
-    if err:
-        return err
-    return _run_check_response(filename or "document.pdf", data)
+    filename, data, path, err = _read_pdf_from_storage(uid)
+    try:
+        if err:
+            return err
+        return _run_check_response(filename or "document.pdf", data)
+    finally:
+        _delete_storage_path(path)
 
 
 def _fix_pdf_response(filename: str, data: bytes):
@@ -303,10 +321,13 @@ def fix(uid):
 @preflight_bp.route("/fix-storage", methods=["POST"])
 @require_auth
 def fix_storage(uid):
-    filename, data, _path, err = _read_pdf_from_storage(uid)
-    if err:
-        return err
-    return _fix_pdf_response(filename or "document.pdf", data)
+    filename, data, path, err = _read_pdf_from_storage(uid)
+    try:
+        if err:
+            return err
+        return _fix_pdf_response(filename or "document.pdf", data)
+    finally:
+        _delete_storage_path(path)
 
 
 @preflight_bp.route("/compress", methods=["POST"])
@@ -321,7 +342,10 @@ def compress(uid):
 @preflight_bp.route("/compress-storage", methods=["POST"])
 @require_auth
 def compress_storage(uid):
-    filename, data, _path, err = _read_pdf_from_storage(uid)
-    if err:
-        return err
-    return _compress_pdf_response(filename or "document.pdf", data)
+    filename, data, path, err = _read_pdf_from_storage(uid)
+    try:
+        if err:
+            return err
+        return _compress_pdf_response(filename or "document.pdf", data)
+    finally:
+        _delete_storage_path(path)
