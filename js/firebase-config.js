@@ -7,10 +7,14 @@ const firebaseConfig = {
   appId: "1:660190959615:web:86959be41774132c84b9ca",
   measurementId: "G-1Y1FC82J4X"
 };
-firebase.initializeApp(firebaseConfig);
+if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 const auth=typeof firebase.auth==='function'?firebase.auth():null;
 const googleProvider=auth?new firebase.auth.GoogleAuthProvider():null;
 const db=firebase.firestore();
+window.auth=auth;
+window.db=db;
+window.googleProvider=googleProvider;
+window.firebaseConfig=firebaseConfig;
 
 window.ProgramAccess={
   normalizeEmail:v=>String(v||'').trim().toLowerCase(),
