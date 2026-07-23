@@ -1,39 +1,31 @@
-name: Backup before unified print workspace
+name: Manual repository backup
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/backup-before-unified-print.yml'
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   backup:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout current main
+      - name: Checkout current branch
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
+
       - name: Create repository ZIP
         run: |
-          mkdir -p backup-tmp backups
-          zip -r backup-tmp/program-tool-before-unified-print-20260711.zip . \
-            -x '.git/*' 'backup-tmp/*' 'backups/*'
-          cp backup-tmp/program-tool-before-unified-print-20260711.zip backups/
+          mkdir -p backup-tmp
+          stamp="$(date -u +%Y%m%d-%H%M%S)"
+          zip -r "backup-tmp/program-tool-${stamp}.zip" . \
+            -x '.git/*' 'backup-tmp/*' 'backups/*' 'backend/venv/*' 'backend/.venv/*' '**/node_modules/*'
+
       - name: Upload backup artifact
         uses: actions/upload-artifact@v4
         with:
-          name: program-tool-before-unified-print-20260711
-          path: backup-tmp/program-tool-before-unified-print-20260711.zip
-          retention-days: 90
-      - name: Commit backup ZIP to repository
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add backups/program-tool-before-unified-print-20260711.zip
-          git diff --cached --quiet || git commit -m "backup: snapshot before unified print workspace"
-          git push
+          name: program-tool-backup
+          path: backup-tmp/*.zip
+          retention-days: 30
+          if-no-files-found: error
