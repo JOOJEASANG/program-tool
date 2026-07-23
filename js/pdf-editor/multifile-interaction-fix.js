@@ -1,7 +1,8 @@
 // Stabilize PDF editor controls after adding multiple files.
 (function () {
   'use strict';
-  if (window.__pdfEditorMultiFileInteractionFixV1) return;
+  if (window.__pdfEditorMultiFileInteractionFixV2) return;
+  window.__pdfEditorMultiFileInteractionFixV2 = true;
   window.__pdfEditorMultiFileInteractionFixV1 = true;
 
   const NUPS = [1, 2, 4, 6, 8, 9];
@@ -9,7 +10,7 @@
 
   function editorReady() {
     try {
-      return Array.isArray(parsedPages) && Array.isArray(uploadedFiles);
+      return Array.isArray(parsedPages) && Array.isArray(uploadedFiles) && typeof fileNupMap === 'object';
     } catch (_) {
       return false;
     }
@@ -40,51 +41,48 @@
   function dockOutputButtons() {
     const preview = byId('previewBtn');
     const section = preview && preview.closest('.sec');
-    if (!section) return;
-    section.classList.add('pdf-output-dock');
+    if (section) section.classList.add('pdf-output-dock');
   }
 
   function fileIndicesInPageOrder() {
     if (!editorReady()) return [];
     const result = [];
     parsedPages.forEach((page) => {
-      const fi = Number(page && (page.file_index ?? page.fileIndex));
-      if (Number.isInteger(fi) && fi >= 0 && !result.includes(fi)) result.push(fi);
+      const index = Number(page && (page.file_index ?? page.fileIndex));
+      if (Number.isInteger(index) && index >= 0 && !result.includes(index)) result.push(index);
     });
     return result;
   }
 
   function annotateFileSelectors() {
     const indices = fileIndicesInPageOrder();
-    document.querySelectorAll('#thumbArea .thumb-file-sep').forEach((sep, order) => {
-      const select = sep.querySelector('select');
-      const fi = indices[order];
-      if (select && Number.isInteger(fi)) select.dataset.fileIndex = String(fi);
+    document.querySelectorAll('#thumbArea .thumb-file-sep').forEach((separator, order) => {
+      const select = separator.querySelector('select');
+      const fileIndex = indices[order];
+      if (select && Number.isInteger(fileIndex)) select.dataset.fileIndex = String(fileIndex);
     });
   }
 
-  function syncFileNup(fileIndex, value) {
-    if (!editorReady()) return;
-    const n = Number(value);
-    if (!Number.isInteger(fileIndex) || fileIndex < 0 || !NUPS.includes(n)) return;
+  function setFileNup(fileIndex, rawValue) {
+    if (!editorReady() || !Number.isInteger(fileIndex) || fileIndex < 0) return;
+    const isDefault = rawValue === '' || rawValue === null || rawValue === undefined;
+    const value = Number(rawValue);
 
-    try { fileNupMap[fileIndex] = n; } catch (_) {}
-    try {
-      const helperMap = window.__pdfEditorFileNupMapV5;
-      if (helperMap) helperMap[fileIndex] = n;
-    } catch (_) {}
+    if (isDefault) {
+      delete fileNupMap[fileIndex];
+    } else if (NUPS.includes(value)) {
+      fileNupMap[fileIndex] = value;
+    } else {
+      return;
+    }
 
-    parsedPages.forEach((page) => {
-      const fi = Number(page && (page.file_index ?? page.fileIndex));
-      if (fi !== fileIndex) return;
-      page.nupOverride = n;
-      page.nup_override = n;
-      page.nupDisabled = false;
-      page.nup_disabled = false;
-    });
+    // Expose the same map to compatibility modules. Do not copy the value into
+    // individual pages: page-level overrides must remain independent.
+    window.__pdfEditorFileNupMapV5 = fileNupMap;
 
-    document.querySelectorAll('#thumbArea select[data-file-index="' + fileIndex + '"]').forEach((select) => {
-      if (select.value !== String(n)) select.value = String(n);
+    document.querySelectorAll(`#thumbArea select[data-file-index="${fileIndex}"]`).forEach((select) => {
+      const expected = isDefault ? '' : String(value);
+      if (select.value !== expected) select.value = expected;
     });
 
     try {
@@ -97,91 +95,52 @@
 
   function installSelectorDelegation() {
     const area = byId('thumbArea');
-    if (!area || area.dataset.multiFileNupDelegatedV1) return;
-    area.dataset.multiFileNupDelegatedV1 = '1';
+    if (!area || area.dataset.multiFileNupDelegatedV2) return;
+    area.dataset.multiFileNupDelegatedV2 = '1';
 
     area.addEventListener('change', (event) => {
       const select = event.target && event.target.closest
-        ? event.target.closest('.file-nup-select-v5, .thumb-file-sep select')
+        ? event.target.closest('.thumb-file-sep select')
         : null;
       if (!select) return;
       annotateFileSelectors();
-      const fi = Number(select.dataset.fileIndex);
-      if (!Number.isInteger(fi)) return;
+      const fileIndex = Number(select.dataset.fileIndex);
+      if (!Number.isInteger(fileIndex)) return;
       event.stopImmediatePropagation();
-      syncFileNup(fi, select.value);
-    }, true);
-  }
-
-  function refreshSlideCount() {
-    try {
-      const total = parsedPages.length;
-      const active = parsedPages.filter((page) => !page.excluded).length;
-      if (byId('slideCount')) byId('slideCount').textContent = active + '/' + total + 'p';
-    } catch (_) {}
-  }
-
-  function installPageHideDelegation() {
-    const area = byId('thumbArea');
-    if (!area || area.dataset.pageHideDelegatedV1) return;
-    area.dataset.pageHideDelegatedV1 = '1';
-
-    area.addEventListener('click', (event) => {
-      const wrap = event.target && event.target.closest ? event.target.closest('.thumb-wrap') : null;
-      if (!wrap || !area.contains(wrap)) return;
-      const item = wrap.closest('.thumb-item');
-      const id = item ? Number(item.dataset.id) : NaN;
-      if (!Number.isFinite(id) || !editorReady()) return;
-      const page = parsedPages.find((entry) => Number(entry.id) === id);
-      if (!page) return;
-
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      page.excluded = !page.excluded;
-      wrap.classList.toggle('excluded', page.excluded);
-      let mark = wrap.querySelector('.thumb-ex');
-      if (page.excluded && !mark) {
-        mark = document.createElement('div');
-        mark.className = 'thumb-ex';
-        mark.textContent = '✕';
-        wrap.appendChild(mark);
-      } else if (!page.excluded && mark) {
-        mark.remove();
-      }
-      refreshSlideCount();
-      try { if (typeof schedulePreview === 'function') schedulePreview(120); } catch (_) {}
+      setFileNup(fileIndex, select.value);
     }, true);
   }
 
   function patchRenderThumbs() {
     try {
-      if (typeof renderThumbs !== 'function' || renderThumbs.__multiFileInteractionPatchedV1) return;
+      if (typeof renderThumbs !== 'function' || renderThumbs.__multiFileInteractionPatchedV2) return;
       const original = renderThumbs;
-      const wrapped = function () {
+      const wrapped = function renderThumbsWithStableFileSelectors() {
         const result = original.apply(this, arguments);
         setTimeout(() => {
           annotateFileSelectors();
           installSelectorDelegation();
-          installPageHideDelegation();
         }, 0);
         return result;
       };
-      wrapped.__multiFileInteractionPatchedV1 = true;
+      wrapped.__multiFileInteractionPatchedV2 = true;
       renderThumbs = wrapped;
-    } catch (_) {}
+    } catch (error) {
+      console.warn('[pdf-multifile-fix] render patch failed', error);
+    }
   }
 
   function boot() {
     installStyles();
     dockOutputButtons();
     if (!editorReady()) return;
+    window.__pdfEditorFileNupMapV5 = fileNupMap;
     patchRenderThumbs();
     annotateFileSelectors();
     installSelectorDelegation();
-    installPageHideDelegation();
   }
 
   document.addEventListener('DOMContentLoaded', boot);
   setTimeout(boot, 700);
-  setInterval(boot, 1200);
+  setInterval(boot, 1500);
 })();
