@@ -1,1 +1,35 @@
-<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>개인정보처리방침 · Program Studio</title><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css"><style>*{box-sizing:border-box}body{margin:0;font-family:Pretendard,"Noto Sans KR",sans-serif;color:#172033;background:#f5f7fa}.top{background:#fff;border-bottom:1px solid #e5eaf0;padding:18px 24px}.topin{max-width:980px;margin:auto;display:flex;justify-content:space-between}.brand{font-weight:950;color:#0b2a55}.top a{font-size:12px;text-decoration:none;color:#1769e0;font-weight:850}main{max-width:980px;margin:34px auto;padding:0 20px 70px}.paper{background:#fff;border:1px solid #e4eaf1;border-radius:18px;padding:38px;box-shadow:0 12px 40px #0f172a0d}h1{font-size:30px;margin:0 0 10px}.updated{font-size:11px;color:#7b8799;margin-bottom:30px}h2{font-size:17px;margin:28px 0 10px;color:#0b2a55}p,li{font-size:13px;line-height:1.8;color:#475467}ul{padding-left:20px}.biz{margin-top:36px;padding:20px;background:#f8fafc;border:1px solid #e4eaf1;border-radius:13px;display:grid;grid-template-columns:1fr auto;gap:18px}.biztext{font-size:11px;line-height:1.8;color:#667085}.stamp{width:110px;height:110px;display:grid;place-items:center}.stamp img{max-width:100%;max-height:100%}footer{text-align:center;font-size:11px;color:#98a2b3;padding:24px}@media(max-width:600px){.paper{padding:24px}.biz{grid-template-columns:1fr}}</style></head><body><header class="top"><div class="topin"><div class="brand">Program Studio</div><a href="index.html">홈으로</a></div></header><main><article class="paper"><h1>개인정보처리방침</h1><div class="updated">시행일: <span id="effectiveDate"></span></div><h2>1. 수집하는 개인정보</h2><p>서비스는 로그인과 회원 관리를 위해 이메일, 표시 이름, 프로필 이미지, 가입일, 승인 상태, 구독 등급을 처리할 수 있습니다. 고객 문의나 결제 기능 도입 시 필요한 최소 정보가 추가될 수 있습니다.</p><h2>2. 이용 목적</h2><ul><li>회원 식별, 로그인, 승인 및 계정 관리</li><li>서비스 제공, 장애 대응, 보안 및 부정 이용 방지</li><li>구독·결제·환불 처리와 고객 지원</li></ul><h2>3. 보유 기간</h2><p>회원 탈퇴 또는 처리 목적 달성 시 지체 없이 파기합니다. 다만 전자상거래법, 통신비밀보호법 등 관계 법령에 따라 보존이 필요한 정보는 해당 기간 동안 분리 보관합니다.</p><h2>4. 제3자 제공 및 처리위탁</h2><p>법령상 근거가 있거나 이용자 동의를 받은 경우를 제외하고 개인정보를 제3자에게 제공하지 않습니다. 인증, 호스팅, 결제 등 외부 서비스를 이용할 경우 위탁업체와 처리 내용을 별도 공개합니다.</p><h2>5. 이용자의 권리</h2><p>이용자는 자신의 개인정보 열람, 정정, 삭제, 처리정지를 요청할 수 있습니다. 요청은 관리자에게 이메일로 접수할 수 있습니다.</p><h2>6. 안전성 확보조치</h2><p>접근권한 최소화, 인증 적용, 관리자 권한 분리, 전송 구간 보호와 필요한 기술적·관리적 보호조치를 시행합니다.</p><section class="biz"><div><strong>사업자 정보</strong><div class="biztext" id="bizText">사업자 정보를 불러오는 중입니다.</div></div><div class="stamp" id="stamp"></div></section></article></main><footer>© <span id="year"></span> Program Studio. All rights reserved.</footer><script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script><script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script><script src="js/firebase-config.js"></script><script>document.getElementById('year').textContent=new Date().getFullYear();document.getElementById('effectiveDate').textContent=new Date().toLocaleDateString('ko-KR');(async()=>{try{const d=await db.collection('site_settings').doc('business').get(),b=d.exists?d.data():{};const p=[b.bizName&&`상호: ${b.bizName}`,b.bizOwner&&`대표자: ${b.bizOwner}`,b.bizNumber&&`사업자등록번호: ${b.bizNumber}`,b.bizMailOrder&&`통신판매업 신고번호: ${b.bizMailOrder}`,b.bizAddress&&`주소: ${b.bizAddress}`,b.bizPhone&&`전화: ${b.bizPhone}`,b.bizEmail&&`이메일: ${b.bizEmail}`,b.bizPrivacyOfficer&&`개인정보 보호책임자: ${b.bizPrivacyOfficer}`].filter(Boolean);document.getElementById('bizText').innerHTML=p.length?p.join('<br>'):'관리자 페이지에서 사업자 정보를 입력해 주세요.';if(b.stampData)document.getElementById('stamp').innerHTML=`<img src="${b.stampData}" alt="사업자 직인">`}catch(e){document.getElementById('bizText').textContent='사업자 정보를 불러오지 못했습니다.'}})();</script></body></html>
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>개인정보처리방침 · Program Studio</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+  <style>
+    *{box-sizing:border-box}body{margin:0;font-family:Pretendard,"Noto Sans KR",sans-serif;color:#172033;background:#f5f7fa}.top{background:#fff;border-bottom:1px solid #e5eaf0;padding:18px 24px}.topin{max-width:980px;margin:auto;display:flex;justify-content:space-between}.brand{font-weight:950;color:#0b2a55}.top a{font-size:12px;text-decoration:none;color:#1769e0;font-weight:850}main{max-width:980px;margin:34px auto;padding:0 20px 70px}.paper{background:#fff;border:1px solid #e4eaf1;border-radius:18px;padding:38px;box-shadow:0 12px 40px #0f172a0d}h1{font-size:30px;margin:0 0 10px}.updated{font-size:11px;color:#7b8799;margin-bottom:30px}h2{font-size:17px;margin:28px 0 10px;color:#0b2a55}p,li{font-size:13px;line-height:1.8;color:#475467}ul{padding-left:20px}.biz{margin-top:36px;padding:20px;background:#f8fafc;border:1px solid #e4eaf1;border-radius:13px;display:grid;grid-template-columns:1fr auto;gap:18px}.biztext{font-size:11px;line-height:1.8;color:#667085}.stamp{width:110px;height:110px;display:grid;place-items:center}.stamp img{max-width:100%;max-height:100%}footer{text-align:center;font-size:11px;color:#98a2b3;padding:24px}@media(max-width:600px){.paper{padding:24px}.biz{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <header class="top"><div class="topin"><div class="brand">Program Studio</div><a href="index.html">홈으로</a></div></header>
+  <main><article class="paper">
+    <h1>개인정보처리방침</h1>
+    <div class="updated">시행일: <span id="effectiveDate">-</span></div>
+    <h2>1. 수집하는 개인정보</h2><p>서비스는 로그인과 회원 관리를 위해 이메일, 표시 이름, 프로필 이미지, 가입일, 승인 상태, 구독 등급을 처리할 수 있습니다. 고객 문의나 결제 기능 도입 시 필요한 최소 정보가 추가될 수 있습니다.</p>
+    <h2>2. 이용 목적</h2><ul><li>회원 식별, 로그인, 승인 및 계정 관리</li><li>서비스 제공, 장애 대응, 보안 및 부정 이용 방지</li><li>구독·결제·환불 처리와 고객 지원</li></ul>
+    <h2>3. 보유 기간</h2><p>회원 탈퇴 또는 처리 목적 달성 시 지체 없이 파기합니다. 다만 전자상거래법, 통신비밀보호법 등 관계 법령에 따라 보존이 필요한 정보는 해당 기간 동안 분리 보관합니다.</p>
+    <h2>4. 제3자 제공 및 처리위탁</h2><p>법령상 근거가 있거나 이용자 동의를 받은 경우를 제외하고 개인정보를 제3자에게 제공하지 않습니다. 인증, 호스팅, 결제 등 외부 서비스를 이용할 경우 위탁업체와 처리 내용을 별도 공개합니다.</p>
+    <h2>5. 이용자의 권리</h2><p>이용자는 자신의 개인정보 열람, 정정, 삭제, 처리정지를 요청할 수 있습니다. 요청은 관리자에게 이메일로 접수할 수 있습니다.</p>
+    <h2>6. 안전성 확보조치</h2><p>접근권한 최소화, 인증 적용, 관리자 권한 분리, 전송 구간 보호와 필요한 기술적·관리적 보호조치를 시행합니다.</p>
+    <section class="biz"><div><strong>사업자 정보</strong><div class="biztext" id="bizText">사업자 정보를 불러오는 중입니다.</div></div><div class="stamp" id="stamp"></div></section>
+  </article></main>
+  <footer>© <span id="year"></span> Program Studio. All rights reserved.</footer>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="js/firebase-config.js"></script>
+  <script src="js/business-info-loader.js"></script>
+  <script>
+    document.getElementById('year').textContent=new Date().getFullYear();
+    ProgramBusinessInfo.render({includePrivacyOfficer:true,defaultEffectiveDate:'2026.07.23'});
+  </script>
+</body>
+</html>

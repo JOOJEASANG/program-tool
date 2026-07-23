@@ -12,6 +12,15 @@ service firebase.storage {
           request.auth.token.email.lower()
         ]);
     }
+    function isApproved() {
+      return signedIn()
+        && firestore.exists(/databases/(default)/documents/user_permissions/$(request.auth.uid))
+        && firestore.get(/databases/(default)/documents/user_permissions/$(request.auth.uid)).data.status == 'approved';
+    }
+    function isPublicCoverTemplate(templateId) {
+      return firestore.exists(/databases/(default)/documents/cover_templates/$(templateId))
+        && firestore.get(/databases/(default)/documents/cover_templates/$(templateId)).data.isPublic == true;
+    }
     function isPdfUpload() {
       return request.resource != null
         && request.resource.size <= 209715200
@@ -40,7 +49,7 @@ service firebase.storage {
       allow create, update: if isOwner(userId) && isPdfUpload();
     }
     match /cover_templates/{templateId}/{fileName} {
-      allow read: if signedIn();
+      allow read: if isAdmin() || (isApproved() && isPublicCoverTemplate(templateId));
       allow create, update: if isAdmin() && isCoverImage();
       allow delete: if isAdmin();
     }

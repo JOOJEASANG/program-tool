@@ -4,14 +4,22 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 permissions:
   checks: write
   contents: read
 
 jobs:
+  quality:
+    name: 배포 전 품질 검사
+    uses: ./.github/workflows/quality-gate.yml
+
   deploy:
+    name: Firebase 배포
+    needs: quality
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - name: 코드 체크아웃
         uses: actions/checkout@v4
@@ -25,7 +33,7 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-          cache: 'pip'
+          cache: pip
           cache-dependency-path: backend/requirements.txt
 
       - name: 백엔드 패키지 설치
@@ -35,13 +43,8 @@ jobs:
           venv/bin/pip install --upgrade pip
           venv/bin/pip install -r requirements.txt
 
-      - name: 백엔드 문법 검사
-        run: |
-          cd backend
-          venv/bin/python -m compileall .
-
       - name: Firebase CLI 설치
-        run: npm install -g firebase-tools
+        run: npm install -g firebase-tools@14
 
       - name: Firebase 전체 배포 (Hosting + Functions + Rules)
         run: firebase deploy --project program-tool --token "$FIREBASE_TOKEN" --force --non-interactive

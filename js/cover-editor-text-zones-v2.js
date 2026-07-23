@@ -164,6 +164,30 @@
     const end=e=>{if(!drag||drag.id!==e.pointerId)return;e.stopImmediatePropagation();drag=null;try{canvas.releasePointerCapture(e.pointerId)}catch(_){}save();request();};parent.addEventListener('pointerup',end,true);parent.addEventListener('pointercancel',end,true);
   }
 
-  function boot(){load();buildUi();allItems().forEach(ensureLayout);wrapRenderer();bindCanvas();removeLayerPropertyPanels();request();const observer=new MutationObserver(removeLayerPropertyPanels);observer.observe(document.querySelector('.settings')||document.body,{childList:true,subtree:true});setInterval(()=>{wrapRenderer();bindCanvas();removeLayerPropertyPanels();const legacy=$('spineTitle')?.closest('.field');if(legacy)legacy.style.display='none';},700);window.CoverTextZones={data,allItems,findItem,select,save};}
+  function stabilize(attempt = 0) {
+    const rendererReady = wrapRenderer();
+    bindCanvas();
+    removeLayerPropertyPanels();
+    const legacy = $('spineTitle')?.closest('.field');
+    if (legacy) legacy.style.display = 'none';
+    const canvasReady = document.querySelector('#previewCanvas')?.parentElement?.dataset.coverTextZonesV3 === '1';
+    if ((!rendererReady || !canvasReady) && attempt < 20) {
+      setTimeout(() => stabilize(attempt + 1), 150);
+    }
+  }
+
+  function boot(){
+    load();
+    buildUi();
+    allItems().forEach(ensureLayout);
+    stabilize();
+    request();
+    const observer = new MutationObserver(() => {
+      removeLayerPropertyPanels();
+      bindCanvas();
+    });
+    observer.observe(document.querySelector('.settings') || document.body, { childList: true, subtree: true });
+    window.CoverTextZones = { data, allItems, findItem, select, save };
+  }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(boot,500));else setTimeout(boot,500);
 })();

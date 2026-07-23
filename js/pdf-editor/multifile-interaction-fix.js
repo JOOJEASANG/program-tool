@@ -1,8 +1,8 @@
 // Stabilize PDF editor controls after adding multiple files.
 (function () {
   'use strict';
-  if (window.__pdfEditorMultiFileInteractionFixV1) return;
-  window.__pdfEditorMultiFileInteractionFixV1 = true;
+  if (window.__pdfEditorMultiFileInteractionFixV2) return;
+  window.__pdfEditorMultiFileInteractionFixV2 = true;
 
   const NUPS = [1, 2, 4, 6, 8, 9];
   const byId = (id) => document.getElementById(id);
@@ -63,42 +63,35 @@
     });
   }
 
-  function syncFileNup(fileIndex, value) {
-    if (!editorReady()) return;
-    const n = Number(value);
-    if (!Number.isInteger(fileIndex) || fileIndex < 0 || !NUPS.includes(n)) return;
-
-    try { fileNupMap[fileIndex] = n; } catch (_) {}
+  function explicitFileNup(fileIndex) {
     try {
-      const helperMap = window.__pdfEditorFileNupMapV5;
-      if (helperMap) helperMap[fileIndex] = n;
-    } catch (_) {}
-
-    parsedPages.forEach((page) => {
-      const fi = Number(page && (page.file_index ?? page.fileIndex));
-      if (fi !== fileIndex) return;
-      page.nupOverride = n;
-      page.nup_override = n;
-      page.nupDisabled = false;
-      page.nup_disabled = false;
-    });
-
-    document.querySelectorAll('#thumbArea select[data-file-index="' + fileIndex + '"]').forEach((select) => {
-      if (select.value !== String(n)) select.value = String(n);
-    });
-
-    try {
-      if (typeof schedulePreview === 'function') schedulePreview(80);
-      else if (typeof triggerPreview === 'function') triggerPreview();
-    } catch (error) {
-      console.warn('[pdf-multifile-fix] preview refresh failed', error);
+      const value = Number(fileNupMap[fileIndex]);
+      return NUPS.includes(value) ? value : null;
+    } catch (_) {
+      return null;
     }
+  }
+
+  function mirrorFileNup(fileIndex) {
+    if (!Number.isInteger(fileIndex) || fileIndex < 0) return;
+    const explicit = explicitFileNup(fileIndex);
+    const helperMap = window.__pdfEditorFileNupMapV5;
+
+    if (helperMap) {
+      if (explicit === null) delete helperMap[fileIndex];
+      else helperMap[fileIndex] = explicit;
+    }
+
+    document.querySelectorAll('#thumbArea .file-nup-select-v5[data-file-index="' + fileIndex + '"]').forEach((select) => {
+      const next = explicit === null ? '' : String(explicit);
+      if (select.value !== next) select.value = next;
+    });
   }
 
   function installSelectorDelegation() {
     const area = byId('thumbArea');
-    if (!area || area.dataset.multiFileNupDelegatedV1) return;
-    area.dataset.multiFileNupDelegatedV1 = '1';
+    if (!area || area.dataset.multiFileNupDelegatedV2) return;
+    area.dataset.multiFileNupDelegatedV2 = '1';
 
     area.addEventListener('change', (event) => {
       const select = event.target && event.target.closest
@@ -108,9 +101,10 @@
       annotateFileSelectors();
       const fi = Number(select.dataset.fileIndex);
       if (!Number.isInteger(fi)) return;
-      event.stopImmediatePropagation();
-      syncFileNup(fi, select.value);
-    }, true);
+
+      // Let the editor/helper's own change handler update fileNupMap first.
+      setTimeout(() => mirrorFileNup(fi), 0);
+    });
   }
 
   function refreshSlideCount() {
@@ -155,18 +149,19 @@
 
   function patchRenderThumbs() {
     try {
-      if (typeof renderThumbs !== 'function' || renderThumbs.__multiFileInteractionPatchedV1) return;
+      if (typeof renderThumbs !== 'function' || renderThumbs.__multiFileInteractionPatchedV2) return;
       const original = renderThumbs;
       const wrapped = function () {
         const result = original.apply(this, arguments);
         setTimeout(() => {
           annotateFileSelectors();
+          fileIndicesInPageOrder().forEach(mirrorFileNup);
           installSelectorDelegation();
           installPageHideDelegation();
         }, 0);
         return result;
       };
-      wrapped.__multiFileInteractionPatchedV1 = true;
+      wrapped.__multiFileInteractionPatchedV2 = true;
       renderThumbs = wrapped;
     } catch (_) {}
   }
@@ -177,6 +172,7 @@
     if (!editorReady()) return;
     patchRenderThumbs();
     annotateFileSelectors();
+    fileIndicesInPageOrder().forEach(mirrorFileNup);
     installSelectorDelegation();
     installPageHideDelegation();
   }
