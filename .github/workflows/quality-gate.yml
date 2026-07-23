@@ -74,7 +74,10 @@ jobs:
           node --check sw.js
 
       - name: Validate inline JavaScript
-        run: python scripts/check_inline_js.py
+        shell: bash
+        run: |
+          set -o pipefail
+          python scripts/check_inline_js.py 2>&1 | tee inline-js.log
 
       - name: Validate JSON files
         run: |
@@ -111,7 +114,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: frontend-diagnostics
-          path: stale-workflows.log
+          path: |
+            inline-js.log
+            stale-workflows.log
           retention-days: 7
           if-no-files-found: ignore
 
