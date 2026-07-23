@@ -58,8 +58,6 @@ def _insert_textbox(
     if not text:
         return
 
-    # Built-in CJK fonts have a taller line box than Helvetica. A narrow box makes
-    # insert_textbox return a negative value and silently omit large title text.
     rect, align = _text_rect(
         page.rect.width,
         x_pct,
@@ -215,8 +213,6 @@ def _render_divider_page(
                 _draw_extra_text(page, item)
 
 
-# The router contains a legacy fallback patch. Mark this implementation as final so
-# that fallback does not replace the richer renderer at request time.
 pdf_ops._render_divider_page = _render_divider_page
 pdf_ops._divider_renderer_patched_v2 = True
 pdf_ops._program_studio_divider_renderer = True
