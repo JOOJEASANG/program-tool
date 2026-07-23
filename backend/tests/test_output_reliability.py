@@ -17,9 +17,20 @@ def _pdf_bytes(document: fitz.Document) -> bytes:
     return buffer.getvalue()
 
 
-def test_divider_export_keeps_korean_and_extra_text():
+def _render_divider(content: dict) -> fitz.Document:
     document = fitz.open()
-    content = {
+    pdf_divider_alignment_patch._render_divider_page(
+        document,
+        json.dumps(content, ensure_ascii=False),
+        content.get("style", "simple"),
+        595.28,
+        841.89,
+    )
+    return fitz.open(stream=_pdf_bytes(document), filetype="pdf")
+
+
+def test_divider_export_keeps_korean_and_extra_text():
+    reopened = _render_divider({
         "title": "운영 계획서",
         "subtitle": "2026학년도",
         "titleX": 10,
@@ -39,22 +50,53 @@ def test_divider_export_keeps_korean_and_extra_text():
                 "weight": 700,
             }
         ],
-    }
-    pdf_divider_alignment_patch._render_divider_page(
-        document,
-        json.dumps(content, ensure_ascii=False),
-        "simple",
-        595.28,
-        841.89,
-    )
-
-    reopened = fitz.open(stream=_pdf_bytes(document), filetype="pdf")
+    })
     text = reopened[0].get_text()
     reopened.close()
 
     assert "운영 계획서" in text
     assert "2026학년도" in text
     assert "추가 문구" in text
+
+
+def test_divider_supports_band_italic_hidden_and_long_text():
+    long_text = "매우 긴 추가 안내 문구 " * 12
+    fitted_size, fitted_width = pdf_divider_alignment_patch._fit_extra_text(
+        long_text, 42, 595.28
+    )
+    assert fitted_size < 42
+    assert fitted_width <= 595.28 * pdf_divider_alignment_patch.EXTRA_TEXT_MAX_WIDTH_RATIO + 1
+
+    reopened = _render_divider({
+        "title": "컬러 간지",
+        "noBg": False,
+        "bg": "#fef3c7",
+        "fg": "#7c2d12",
+        "style": "band",
+        "extraTexts": [
+            {
+                "text": long_text,
+                "x": 50,
+                "y": 70,
+                "size": 42,
+                "color": "#b91c1c",
+                "weight": 700,
+                "italic": True,
+                "align": "center",
+                "opacity": 0.7,
+                "rotation": 12,
+            },
+            {"text": "숨김 문구", "hidden": True},
+        ],
+    })
+    text = reopened[0].get_text()
+    drawings = reopened[0].get_drawings()
+    reopened.close()
+
+    assert "컬러 간지" in text
+    assert "매우 긴 추가 안내 문구" in text
+    assert "숨김 문구" not in text
+    assert len(drawings) >= 2
 
 
 def test_header_footer_uses_korean_capable_font():
