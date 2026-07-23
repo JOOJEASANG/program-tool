@@ -12,6 +12,17 @@ service firebase.storage {
           request.auth.token.email.lower()
         ]);
     }
+    function approved() {
+      return isAdmin() || (
+        signedIn()
+        && firestore.exists(/databases/(default)/documents/user_permissions/$(request.auth.uid))
+        && firestore.get(/databases/(default)/documents/user_permissions/$(request.auth.uid)).data.status == 'approved'
+      );
+    }
+    function publicCoverTemplate(templateId) {
+      return firestore.exists(/databases/(default)/documents/cover_templates/$(templateId))
+        && firestore.get(/databases/(default)/documents/cover_templates/$(templateId)).data.isPublic == true;
+    }
     function isPdfUpload() {
       return request.resource != null
         && request.resource.size <= 209715200
@@ -25,22 +36,22 @@ service firebase.storage {
 
     match /pdf_history/{userId}/{allPaths=**} {
       allow read, delete: if isOwner(userId);
-      allow create, update: if isOwner(userId) && isPdfUpload();
+      allow create, update: if isOwner(userId) && approved() && isPdfUpload();
     }
     match /pdf_temp/{userId}/{allPaths=**} {
       allow read, delete: if isOwner(userId);
-      allow create, update: if isOwner(userId) && isPdfUpload();
+      allow create, update: if isOwner(userId) && approved() && isPdfUpload();
     }
     match /preflight_temp/{userId}/{allPaths=**} {
       allow read, delete: if isOwner(userId);
-      allow create, update: if isOwner(userId) && isPdfUpload();
+      allow create, update: if isOwner(userId) && approved() && isPdfUpload();
     }
     match /pdf_sessions/{userId}/{allPaths=**} {
       allow read, delete: if isOwner(userId);
-      allow create, update: if isOwner(userId) && isPdfUpload();
+      allow create, update: if isOwner(userId) && approved() && isPdfUpload();
     }
     match /cover_templates/{templateId}/{fileName} {
-      allow read: if signedIn();
+      allow read: if isAdmin() || (approved() && publicCoverTemplate(templateId));
       allow create, update: if isAdmin() && isCoverImage();
       allow delete: if isAdmin();
     }
