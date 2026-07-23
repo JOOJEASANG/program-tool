@@ -93,10 +93,20 @@ jobs:
                   continue
               if needle in path.read_text(encoding='utf-8'):
                   failures.append(str(path))
+          Path('stale-workflows.txt').write_text('\n'.join(failures), encoding='utf-8')
           if failures:
               raise SystemExit('Obsolete generated HTML target remains in: ' + ', '.join(failures))
           print('No stale generated workflow targets found.')
           PY
+
+      - name: Upload stale workflow diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stale-workflow-diagnostics
+          path: stale-workflows.txt
+          retention-days: 7
+          if-no-files-found: ignore
 
   firebase-rules:
     name: Firebase rules compile
