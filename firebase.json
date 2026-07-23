@@ -7,7 +7,14 @@
       "**/node_modules/**",
       "design_program.html",
       "backend/**",
-      "backups/**"
+      "backups/**",
+      ".github/**",
+      "scripts/**",
+      "docs/**",
+      "tests/**",
+      "**/*.md",
+      "**/*.py",
+      "**/__pycache__/**"
     ],
     "cleanUrls": true,
     "trailingSlash": false,
