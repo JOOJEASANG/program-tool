@@ -20,7 +20,7 @@ from flask import (
 )
 
 from models.schemas import PdfProcessRequest
-import services.pdf_ops as pdf_ops
+from services.pdf_engine import process_pdf_bytes
 from services.pdf_disk_ops import process_pdf_files
 from utils.auth import require_auth
 
@@ -252,7 +252,7 @@ def process(uid):
 
     try:
         _validate_pdf_request(req, file_bytes_list)
-        output_bytes = pdf_ops.process_pdf(file_bytes_list, req)
+        output_bytes = process_pdf_bytes(file_bytes_list, req)
     except ValueError as exc:
         return _error_response(str(exc), 400, "PDF_VALIDATION_FAILED")
     except Exception:
