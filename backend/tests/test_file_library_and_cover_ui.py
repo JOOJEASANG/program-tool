@@ -39,7 +39,13 @@ def test_cover_product_name_is_consistent():
     cover = COVER_HTML.read_text(encoding="utf-8")
     assert "<title>책표지제작 · Program Tool</title>" in cover
     assert '<div class="nav-title">책표지제작</div>' in cover
-    old_names = ("무선제본 표지제작기", "무선제본 표지 제작기", "무선제본용 표지 제작기", "무선제본 표지 제작")
+    binding = "무선" + "제본"
+    old_names = (
+        binding + " 표지제작기",
+        binding + " 표지 제작기",
+        binding + "용 표지 제작기",
+        binding + " 표지 제작",
+    )
     for path in ROOT.rglob("*"):
         if not path.is_file() or path.suffix.lower() not in {".html", ".js", ".json", ".md", ".py", ".yml", ".yaml"}:
             continue
