@@ -25,19 +25,20 @@ def test_legacy_file_nup_row_is_removed_from_thumbnail_grid():
     assert "renderFileRowsUnderPageList" not in helper
 
 
-def test_output_controls_use_floating_dock():
+def test_legacy_repair_module_still_exposes_output_controls():
     text = REPAIR.read_text(encoding="utf-8")
     assert "pdf-output-floating" in text
-    assert "bottom:12px!important" in text
-    assert "border-radius:16px!important" in text
     assert "화면 고정" in text
 
 
-def test_floating_dock_matches_sidebar_content_width():
+def test_flat_dock_matches_sidebar_full_width_and_padding():
     text = DOCK_ALIGN.read_text(encoding="utf-8")
-    assert "aside.clientWidth - paddingLeft - paddingRight" in text
-    assert "rect.left + paddingLeft" in text
+    assert "aside.clientWidth" in text
+    assert "rect.left" in text
+    assert "padding-left" in text
+    assert "padding-right" in text
     assert "dock.style.setProperty('right', 'auto', 'important')" in text
+    assert "dock.style.setProperty('bottom', '0', 'important')" in text
     assert "ResizeObserver" in text
     assert "setInterval(" not in text
 

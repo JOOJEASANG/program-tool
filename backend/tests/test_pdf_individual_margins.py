@@ -129,18 +129,16 @@ def test_frontend_margin_selection_and_export_modules_are_connected():
     assert "fontMm * 1.8" in reserve_v2
 
 
-def test_pdf_dock_matches_cover_creator_layout():
+def test_pdf_dock_uses_flat_sidebar_section_with_cover_color_divider():
     pdf_dock = (ROOT / "js" / "pdf-editor" / "dock-width-align.js").read_text(encoding="utf-8")
     cover_dock = (ROOT / "js" / "cover-floating-action-dock.js").read_text(encoding="utf-8")
-    for shared in (
-        "border-radius:16px",
-        "box-shadow:0 18px 48px",
-        "backdrop-filter:blur(16px)",
-        "linear-gradient(90deg,#12396d,#2563eb,#1d9bb2)",
-        "화면 고정",
-    ):
-        assert shared in pdf_dock
-        assert shared in cover_dock
+
+    assert "linear-gradient(90deg,#12396d,#2563eb,#1d9bb2)" in pdf_dock
+    assert "linear-gradient(90deg,#12396d,#2563eb,#1d9bb2)" in cover_dock
+    assert "border-radius:0!important" in pdf_dock
+    assert "box-shadow:none!important" in pdf_dock
+    assert "backdrop-filter:none!important" in pdf_dock
+    assert "bottom:0!important" in pdf_dock
     assert "#downloadBtn{grid-column:1/-1" in pdf_dock
 
 
