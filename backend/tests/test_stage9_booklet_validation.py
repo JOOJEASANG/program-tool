@@ -20,7 +20,7 @@ def _request(**overrides):
     return payload
 
 
-def test_booklet_accepts_supported_uniform_nup():
+def test_booklet_accepts_supported_nup():
     request = PdfProcessRequest.model_validate(_request())
     assert request.booklet is True
     assert int(request.nup_default) == 2
@@ -40,11 +40,18 @@ def test_booklet_rejects_unsupported_nup(nup):
         {"group_break": True},
     ],
 )
-def test_booklet_rejects_per_page_layout_exceptions(page_change):
+def test_booklet_keeps_existing_per_page_metadata(page_change):
     payload = _request()
     payload["pages"][1].update(page_change)
-    with pytest.raises(ValidationError, match="페이지별 N-up 설정과 그룹 나누기"):
-        PdfProcessRequest.model_validate(payload)
+    request = PdfProcessRequest.model_validate(payload)
+
+    page = request.pages[1]
+    if "nup_override" in page_change:
+        assert int(page.nup_override) == page_change["nup_override"]
+    if "nup_disabled" in page_change:
+        assert page.nup_disabled is True
+    if "group_break" in page_change:
+        assert page.group_break is True
 
 
 def test_non_booklet_keeps_existing_page_overrides():
