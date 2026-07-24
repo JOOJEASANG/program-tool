@@ -22,10 +22,18 @@ service cloud.firestore {
     match /user_permissions/{uid} {
       allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
       allow create: if signedIn() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['uid','email','displayName','status','plan','programs','createdAt'])
         && request.resource.data.uid == uid
         && request.resource.data.email == request.auth.token.email.lower()
+        && request.resource.data.displayName is string
         && request.resource.data.status == 'pending'
-        && request.resource.data.programs is map;
+        && request.resource.data.plan == 'free'
+        && request.resource.data.programs is map
+        && request.resource.data.programs.keys().hasOnly(['pdf-editor','preflight','design-studio'])
+        && request.resource.data.programs['pdf-editor'] == false
+        && request.resource.data.programs.preflight == false
+        && request.resource.data.programs['design-studio'] == false
+        && request.resource.data.createdAt is timestamp;
       allow update: if isAdmin();
       allow delete: if isAdmin();
     }

@@ -17,24 +17,17 @@ window.googleProvider=googleProvider;
 window.firebaseConfig=firebaseConfig;
 
 // 모든 주요 페이지에서 동일한 캐시·버전 관리 모듈을 한 번만 실행합니다.
-(()=>{if(document.getElementById('programStudioCacheBootstrap'))return;const s=document.createElement('script');s.id='programStudioCacheBootstrap';s.src='/js/sw-register.js?v=2026.07.24.013';s.defer=true;document.head.appendChild(s)})();
+(()=>{if(document.getElementById('programStudioCacheBootstrap'))return;const s=document.createElement('script');s.id='programStudioCacheBootstrap';s.src='/js/sw-register.js?v=2026.07.24.014';s.defer=true;document.head.appendChild(s)})();
 
 window.ProgramAccess={
   normalizeEmail:v=>String(v||'').trim().toLowerCase(),
   async isAdmin(user){
     if(!user)return false;
     const email=this.normalizeEmail(user.email);
-    const [legacy,direct,profile]=await Promise.all([
-      db.collection('settings').doc('admin').get().catch(()=>null),
-      db.collection('admins').doc(email).get().catch(()=>null),
-      db.collection('user_permissions').doc(user.uid).get().catch(()=>null)
-    ]);
-    const legacyEmails=legacy&&legacy.exists?legacy.data().emails||[]:[];
-    const legacyMatch=legacyEmails.map(v=>this.normalizeEmail(v)).includes(email);
-    const directMatch=!!(direct&&direct.exists);
-    const profileData=profile&&profile.exists?profile.data():{};
-    const profileMatch=profileData.role==='admin'||profileData.isAdmin===true||profileData.admin===true;
-    return legacyMatch||directMatch||profileMatch;
+    if(!email)return false;
+    const snap=await db.collection('settings').doc('admin').get();
+    const emails=snap.exists&&Array.isArray(snap.data().emails)?snap.data().emails:[];
+    return emails.map(value=>this.normalizeEmail(value)).includes(email);
   },
   async ensureUserDocument(user){
     if(!user)return null;
@@ -46,8 +39,13 @@ window.ProgramAccess={
     }
     return snap.data();
   },
+  async getPublicPrograms(){
+    const snap=await db.collection('settings').doc('programs').get().catch(()=>null);
+    const data=snap&&snap.exists?snap.data():{};
+    return data&&typeof data.public==='object'&&data.public?data.public:{};
+  },
   async getAccess(user){
-    if(!user)return{loggedIn:false,admin:false,approved:false,status:'signed_out'};
+    if(!user)return{loggedIn:false,admin:false,approved:false,status:'signed_out',profile:null};
     const admin=await this.isAdmin(user).catch(()=>false);
     let profile=null;
     try{profile=await this.ensureUserDocument(user)}catch(e){
@@ -57,21 +55,53 @@ window.ProgramAccess={
     const status=admin?'approved':String(profile?.status||'pending');
     return{loggedIn:true,admin,approved:admin||status==='approved',status,profile};
   },
+  async canUseProgram(user,programId){
+    if(!user||!programId)return{allowed:false,status:'signed_out',admin:false,public:false,profile:null};
+    const [access,publicPrograms]=await Promise.all([this.getAccess(user),this.getPublicPrograms()]);
+    const publicAccess=publicPrograms?.[programId]===true;
+    const assigned=access.profile?.programs?.[programId]===true;
+    const allowed=access.admin||publicAccess||(access.status==='approved'&&assigned);
+    return{...access,allowed,public:publicAccess,assigned,programId};
+  },
+  programForPath(pathname){
+    const path=String(pathname||'').replace(/\\/g,'/').replace(/\/+$/,'');
+    if(['/tools/pdf-editor.html','/pdf-editor','/pdf-editor/index.html'].some(item=>path.endsWith(item)))return'pdf-editor';
+    if(['/tools/preflight.html','/tools/pdf-Checker.html','/pdf-preflight','/pdf-preflight/index.html'].some(item=>path.endsWith(item)))return'preflight';
+    if(['/tools/perfect-binding-cover.html','/perfect-binding-cover','/perfect-binding-cover/index.html'].some(item=>path.endsWith(item)))return'design-studio';
+    return'';
+  },
   async guardTool(options={}){
     const loginUrl=options.loginUrl||'../login.html';
     const waitingUrl=options.waitingUrl||'../approval-waiting.html';
+    const programId=options.programId||this.programForPath(location.pathname);
     if(!auth){location.replace(loginUrl);return;}
     return new Promise(resolve=>auth.onAuthStateChanged(async user=>{
       if(!user){location.replace(loginUrl);return;}
-      try{const access=await this.getAccess(user);if(!access.approved){location.replace(`${waitingUrl}?status=${encodeURIComponent(access.status||'pending')}`);return;}document.documentElement.dataset.accessReady='true';resolve(access)}catch(e){console.error(e);location.replace(`${waitingUrl}?status=error`)}
+      try{
+        const access=programId?await this.canUseProgram(user,programId):await this.getAccess(user);
+        const allowed=programId?access.allowed:access.approved;
+        if(!allowed){
+          const status=access.status==='approved'?'forbidden':(access.status||'pending');
+          location.replace(`${waitingUrl}?status=${encodeURIComponent(status)}&program=${encodeURIComponent(programId||'')}`);
+          return;
+        }
+        document.documentElement.dataset.accessReady='true';
+        document.documentElement.dataset.programAccess=programId||'approved';
+        resolve(access);
+      }catch(e){
+        console.error(e);
+        location.replace(`${waitingUrl}?status=error&program=${encodeURIComponent(programId||'')}`);
+      }
     }));
   }
 };
 
 (()=>{
-  const path=location.pathname.replace(/\\/g,'/').replace(/\/+$/,'');
-  const protectedTools=['/tools/pdf-editor.html','/tools/preflight.html','/tools/pdf-Checker.html','/tools/perfect-binding-cover.html','/pdf-editor','/pdf-editor/index.html','/pdf-preflight','/pdf-preflight/index.html','/perfect-binding-cover','/perfect-binding-cover/index.html'];
-  if(auth&&protectedTools.some(item=>path.endsWith(item))){document.documentElement.style.visibility='hidden';ProgramAccess.guardTool().then(()=>document.documentElement.style.visibility='')}
+  const programId=ProgramAccess.programForPath(location.pathname);
+  if(auth&&programId){
+    document.documentElement.style.visibility='hidden';
+    ProgramAccess.guardTool({programId}).then(()=>document.documentElement.style.visibility='');
+  }
 })();
 
 window.addEventListener('DOMContentLoaded',async()=>{
@@ -81,7 +111,6 @@ window.addEventListener('DOMContentLoaded',async()=>{
   if(!footer)return;
   footer.innerHTML=footer.innerHTML.replace(/©\s*\d{4}/g,`© ${year}`);
   const shell=footer.querySelector('.footer-inner')||footer;
-  // 메인 페이지가 자체 레이어형 약관 메뉴를 제공하면 중복 링크를 만들지 않습니다.
   const hasLegalUi=!!footer.querySelector('.footer-links,.footer-legal,[data-legal]');
   if(!hasLegalUi){
     const style=document.createElement('style');style.textContent='.footer-legal{display:flex;gap:12px;flex-wrap:wrap;align-items:center}.footer-legal a{color:inherit;text-decoration:none}.footer-business-name{font-size:10px;line-height:1.5;opacity:.72}@media(max-width:650px){.footer-legal{margin-top:12px}}';document.head.appendChild(style);
@@ -101,6 +130,6 @@ window.addEventListener('DOMContentLoaded',async()=>{
         const copyright=[...footer.querySelectorAll('span')].find(el=>(el.textContent||'').includes('©'));
         if(copyright)copyright.insertAdjacentElement('afterend',info);else shell.appendChild(info);
       }
-    }catch(_){}
+    }catch(_){ }
   }
 });
