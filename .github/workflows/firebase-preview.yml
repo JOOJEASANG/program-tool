@@ -42,6 +42,9 @@ jobs:
           cd backend
           venv/bin/python -m compileall .
 
+      - name: 배포 HTML 렌더링 가드 삽입
+        run: python3 scripts/inject_boot_guard.py
+
       - name: Firebase CLI 설치
         run: npm install -g firebase-tools
 
