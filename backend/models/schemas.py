@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from typing import Optional, Literal
 from enum import Enum
 
@@ -22,7 +22,7 @@ class PageInfo(BaseModel):
     excluded: bool = False
     page_type: Literal["normal", "divider", "blank"] = "normal"
     divider_content: Optional[str] = Field(default=None, max_length=20_000)
-    divider_style: Optional[Literal["simple", "lines", "band"]] = "simple"
+    divider_style: Optional[Literal["simple", "lines", "band"] = "simple"
 
 
 class WatermarkSettings(BaseModel):
@@ -115,6 +115,26 @@ class PdfProcessRequest(BaseModel):
     print_marks: PrintMarkSettings = Field(default_factory=PrintMarkSettings)
     facing_pages: bool = False
     booklet: bool = False
+
+    @model_validator(mode="after")
+    def validate_booklet_imposition(self):
+        if not self.booklet:
+            return self
+        if self.nup_default not in {
+            NupValue.two,
+            NupValue.four,
+            NupValue.six,
+            NupValue.eight,
+        }:
+            raise ValueError("소책자 모드는 2, 4, 6, 8-up만 지원합니다")
+        if any(
+            page.nup_override is not None or page.nup_disabled or page.group_break
+            for page in self.pages
+        ):
+            raise ValueError(
+                "소책자 모드에서는 페이지별 N-up 설정과 그룹 나누기를 사용할 수 없습니다"
+            )
+        return self
 
 
 class CheckSeverity(str, Enum):
