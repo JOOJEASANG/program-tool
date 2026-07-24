@@ -1,10 +1,12 @@
-// PDF editor page count hint module.
-// Explains the difference between source/work pages and exported PDF sheets when N-UP is used.
+// PDF editor page-count hint module.
+// Keeps work-page and output-sheet counts inside the preview information area.
 (function () {
-  if (window.__pdfEditorPageCountHintV1) return;
-  window.__pdfEditorPageCountHintV1 = true;
+  'use strict';
+  if (window.__pdfEditorPageCountHintV2) return;
+  window.__pdfEditorPageCountHintV2 = true;
 
   const NUP_VALUES = [1, 2, 4, 6, 8, 9];
+  let timer = null;
 
   function $(id) { return document.getElementById(id); }
   function getActiveNup() {
@@ -14,11 +16,11 @@
     return NUP_VALUES.includes(n) ? n : 1;
   }
   function getWorkPageCount() {
-    const txt = ($('slideCount') && $('slideCount').textContent) || '';
-    const m = txt.match(/(\d+)\s*\/\s*(\d+)/);
-    if (m) return Number(m[1]);
-    const thumbs = [...document.querySelectorAll('.thumb-item')].filter((el) => !el.textContent.includes('✕'));
-    return thumbs.length;
+    const text = ($('slideCount') && $('slideCount').textContent) || '';
+    const match = text.match(/(\d+)\s*\/\s*(\d+)/);
+    if (match) return Number(match[1]);
+    return [...document.querySelectorAll('.thumb-item')]
+      .filter((element) => !element.textContent.includes('✕')).length;
   }
   function estimateOutputPages() {
     const work = getWorkPageCount();
@@ -28,27 +30,43 @@
   function ensureHint() {
     let hint = $('pdfPageCountHint');
     if (hint) return hint;
-    const target = $('previewInfo') || $('slideCount') || document.querySelector('.preview-head,.thumb-head');
-    if (!target || !target.parentElement) return null;
-    hint = document.createElement('div');
+    const previewInfo = $('previewInfo');
+    if (!previewInfo || !previewInfo.parentElement) return null;
+    hint = document.createElement('span');
     hint.id = 'pdfPageCountHint';
-    hint.style.cssText = 'font-size:11px;color:#475569;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:6px 8px;margin-top:6px;line-height:1.45;';
-    target.parentElement.appendChild(hint);
+    hint.className = 'preview-page-count-hint';
+    previewInfo.insertAdjacentElement('afterend', hint);
     return hint;
   }
   function renderHint() {
     const hint = ensureHint();
-    if (!hint) return;
+    if (!hint) return false;
     const { work, nup, output } = estimateOutputPages();
-    if (!work) {
-      hint.textContent = '작업 페이지와 출력 PDF 페이지 수를 이곳에서 확인할 수 있습니다.';
-      return;
-    }
-    hint.textContent = `작업 페이지 ${work}쪽 · 현재 ${nup}장 배치 → 다운로드 PDF 예상 ${output}쪽` + (nup > 1 ? ' (페이지가 줄어든 것이 아니라 한 장에 여러 페이지가 배치됩니다.)' : '');
+    hint.textContent = work
+      ? `작업 ${work}쪽 · ${nup}장 배치 · 출력 예상 ${output}쪽`
+      : '작업 페이지와 출력 PDF 쪽수를 이곳에서 확인합니다.';
+    hint.title = nup > 1
+      ? '페이지가 줄어든 것이 아니라 한 장에 여러 페이지가 배치됩니다.'
+      : '';
+    return true;
   }
-  function boot() { renderHint(); }
-  document.addEventListener('DOMContentLoaded', boot);
-  document.addEventListener('click', () => setTimeout(renderHint, 200), true);
-  document.addEventListener('change', () => setTimeout(renderHint, 200), true);
-  setInterval(renderHint, 1200);
+  function schedule() {
+    clearTimeout(timer);
+    timer = setTimeout(renderHint, 140);
+  }
+  function installEvents() {
+    if (window.__pdfPageCountEventsV2) return;
+    window.__pdfPageCountEventsV2 = true;
+    document.addEventListener('click', schedule, true);
+    document.addEventListener('change', schedule, true);
+    const area = $('thumbArea');
+    if (area) new MutationObserver(schedule).observe(area, { childList: true, subtree: true, attributes: true });
+  }
+  function boot(attempt) {
+    installEvents();
+    const ready = renderHint();
+    if (!ready && attempt < 10) setTimeout(() => boot(attempt + 1), 180 + attempt * 70);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => boot(0), { once: true });
+  else boot(0);
 })();
