@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import re
 import shutil
 import tempfile
 import uuid
@@ -8,7 +9,7 @@ from pathlib import Path
 
 import firebase_admin.storage as fa_storage
 import fitz
-from flask import Blueprint, Response, jsonify, request, send_file
+from flask import Blueprint, Response, g, jsonify, request, send_file
 
 from models.schemas import PdfProcessRequest
 import services.pdf_ops as pdf_ops
@@ -26,10 +27,38 @@ MAX_REQUEST_PAGES = 2000
 DEFAULT_STORAGE_BUCKET = os.environ.get(
     "FIREBASE_STORAGE_BUCKET", "program-tool.firebasestorage.app"
 )
+REQUEST_ID_PATTERN = re.compile(r"^[A-Za-z0-9._-]{8,64}$")
 
 
 def _bucket():
     return fa_storage.bucket(DEFAULT_STORAGE_BUCKET)
+
+
+def _request_id() -> str:
+    cached = getattr(g, "pdf_request_id", None)
+    if isinstance(cached, str) and cached:
+        return cached
+    supplied = request.headers.get("X-Request-ID", "").strip()
+    request_id = supplied if REQUEST_ID_PATTERN.fullmatch(supplied) else uuid.uuid4().hex[:16]
+    g.pdf_request_id = request_id
+    return request_id
+
+
+def _error_response(detail: str, status: int, code: str):
+    request_id = _request_id()
+    response = jsonify({
+        "detail": detail,
+        "code": code,
+        "request_id": request_id,
+    })
+    response.status_code = status
+    response.headers["X-Request-ID"] = request_id
+    return response
+
+
+def _attach_request_id(response):
+    response.headers["X-Request-ID"] = _request_id()
+    return response
 
 
 def _max_file_mb() -> int:
@@ -51,7 +80,12 @@ def _cleanup_storage_paths(bucket, storage_paths: list[str]) -> None:
         try:
             bucket.blob(path).delete()
         except Exception:
-            logger.warning("Temporary PDF cleanup failed for %s", path, exc_info=True)
+            logger.warning(
+                "Temporary PDF cleanup failed path=%s request_id=%s",
+                path,
+                _request_id(),
+                exc_info=True,
+            )
 
 
 def _cleanup_local_directory(path: str | Path) -> None:
@@ -60,7 +94,12 @@ def _cleanup_local_directory(path: str | Path) -> None:
     except FileNotFoundError:
         pass
     except Exception:
-        logger.warning("Local PDF temp cleanup failed for %s", path, exc_info=True)
+        logger.warning(
+            "Local PDF temp cleanup failed path=%s request_id=%s",
+            path,
+            _request_id(),
+            exc_info=True,
+        )
 
 
 def _validate_request_shape(req: PdfProcessRequest, file_count: int) -> None:
@@ -143,11 +182,13 @@ def _validate_storage_path(uid: str, path: str) -> None:
 
 
 def _internal_error_response(message: str):
-    error_id = uuid.uuid4().hex[:12]
-    logger.exception("%s error_id=%s", message, error_id)
-    return jsonify(
-        {"detail": "PDF 처리 중 오류가 발생했습니다.", "error_id": error_id}
-    ), 500
+    request_id = _request_id()
+    logger.exception("%s request_id=%s", message, request_id)
+    return _error_response(
+        "PDF 처리 중 오류가 발생했습니다.",
+        500,
+        "PDF_INTERNAL_ERROR",
+    )
 
 
 @pdf_bp.route("/process", methods=["POST"])
@@ -157,55 +198,59 @@ def process(uid):
         req = PdfProcessRequest.model_validate(
             json.loads(request.form.get("settings", "{}"))
         )
-    except Exception as exc:
-        return jsonify({"detail": f"Invalid settings: {exc}"}), 422
+    except Exception:
+        return _error_response("PDF 처리 설정이 올바르지 않습니다.", 422, "PDF_INVALID_SETTINGS")
 
     files = request.files.getlist("files")
     if not files:
-        return jsonify({"detail": "No files provided"}), 400
+        return _error_response("PDF 파일이 없습니다.", 400, "PDF_FILES_REQUIRED")
     if len(files) > MAX_PDF_FILES:
-        return jsonify(
-            {"detail": f"파일은 최대 {MAX_PDF_FILES}개까지 처리할 수 있습니다"}
-        ), 400
+        return _error_response(
+            f"파일은 최대 {MAX_PDF_FILES}개까지 처리할 수 있습니다",
+            400,
+            "PDF_TOO_MANY_FILES",
+        )
 
     file_bytes_list: list[bytes] = []
     total_bytes = 0
     for uploaded in files:
-        if not (uploaded.filename or "").lower().endswith(".pdf"):
-            return jsonify(
-                {"detail": f"File '{uploaded.filename}' is not a PDF"}
-            ), 400
+        filename = uploaded.filename or ""
+        if not filename.lower().endswith(".pdf"):
+            return _error_response(
+                f"PDF 파일만 처리할 수 있습니다. ({filename})",
+                400,
+                "PDF_INVALID_FILE_TYPE",
+            )
         data = uploaded.read()
         if len(data) > MAX_PDF_FILE_BYTES:
-            return jsonify(
-                {"detail": f"File '{uploaded.filename}' exceeds {_max_file_mb()} MB"}
-            ), 413
+            return _error_response(
+                f"파일이 {_max_file_mb()} MB를 초과합니다. ({filename})",
+                413,
+                "PDF_FILE_TOO_LARGE",
+            )
         total_bytes += len(data)
         if total_bytes > MAX_DIRECT_TOTAL_PDF_BYTES:
-            return jsonify(
-                {
-                    "detail": (
-                        "직접 업로드 전체 용량은 최대 "
-                        f"{_max_direct_total_mb()} MB까지 처리할 수 있습니다"
-                    )
-                }
-            ), 413
+            return _error_response(
+                f"직접 업로드 전체 용량은 최대 {_max_direct_total_mb()} MB까지 처리할 수 있습니다",
+                413,
+                "PDF_TOTAL_TOO_LARGE",
+            )
         file_bytes_list.append(data)
 
     try:
         _validate_pdf_request(req, file_bytes_list)
         output_bytes = pdf_ops.process_pdf(file_bytes_list, req)
     except ValueError as exc:
-        return jsonify({"detail": str(exc)}), 400
+        return _error_response(str(exc), 400, "PDF_VALIDATION_FAILED")
     except Exception:
         return _internal_error_response("Direct PDF processing failed")
 
-    return Response(
+    return _attach_request_id(Response(
         output_bytes,
         status=200,
         mimetype="application/pdf",
         headers={"Content-Disposition": "attachment; filename=output.pdf"},
-    )
+    ))
 
 
 @pdf_bp.route("/process-storage", methods=["POST"])
@@ -215,27 +260,37 @@ def process_storage(uid):
         body = request.get_json(force=True) or {}
         storage_paths = body.get("storage_paths", [])
         req = PdfProcessRequest.model_validate(body.get("settings", {}))
-    except Exception as exc:
-        return jsonify({"detail": f"Invalid request: {exc}"}), 422
+    except Exception:
+        return _error_response("PDF 처리 요청이 올바르지 않습니다.", 422, "PDF_INVALID_REQUEST")
 
-    if not storage_paths:
-        return jsonify({"detail": "No files provided"}), 400
     if not isinstance(storage_paths, list):
-        return jsonify({"detail": "storage_paths 형식이 올바르지 않습니다"}), 400
+        return _error_response(
+            "storage_paths 형식이 올바르지 않습니다",
+            400,
+            "PDF_INVALID_STORAGE_PATHS",
+        )
+    if not storage_paths:
+        return _error_response("PDF 파일이 없습니다.", 400, "PDF_FILES_REQUIRED")
     if len(storage_paths) > MAX_PDF_FILES:
-        return jsonify(
-            {"detail": f"파일은 최대 {MAX_PDF_FILES}개까지 처리할 수 있습니다"}
-        ), 400
+        return _error_response(
+            f"파일은 최대 {MAX_PDF_FILES}개까지 처리할 수 있습니다",
+            400,
+            "PDF_TOO_MANY_FILES",
+        )
     if len(storage_paths) != len(set(storage_paths)):
-        return jsonify({"detail": "중복된 파일 경로가 있습니다"}), 400
+        return _error_response(
+            "중복된 파일 경로가 있습니다",
+            400,
+            "PDF_DUPLICATE_STORAGE_PATH",
+        )
 
     try:
         for path in storage_paths:
             _validate_storage_path(uid, path)
     except PermissionError as exc:
-        return jsonify({"detail": str(exc)}), 403
+        return _error_response(str(exc), 403, "PDF_STORAGE_PATH_FORBIDDEN")
     except ValueError as exc:
-        return jsonify({"detail": str(exc)}), 400
+        return _error_response(str(exc), 400, "PDF_INVALID_STORAGE_PATH")
 
     bucket = None
     temp_dir = tempfile.mkdtemp(prefix="pdf-job-")
@@ -249,29 +304,25 @@ def process_storage(uid):
             try:
                 blob.reload()
             except Exception:
-                return jsonify(
-                    {
-                        "detail": (
-                            "업로드된 임시 파일을 찾을 수 없습니다. "
-                            f"다시 저장을 눌러주세요. ({path})"
-                        )
-                    }
-                ), 404
+                return _error_response(
+                    "업로드된 임시 파일을 찾을 수 없습니다. 다시 저장을 눌러주세요.",
+                    404,
+                    "PDF_STORAGE_FILE_NOT_FOUND",
+                )
             size = int(blob.size or 0)
             if size > MAX_PDF_FILE_BYTES:
-                return jsonify(
-                    {"detail": f"파일이 {_max_file_mb()} MB를 초과합니다"}
-                ), 413
+                return _error_response(
+                    f"파일이 {_max_file_mb()} MB를 초과합니다",
+                    413,
+                    "PDF_FILE_TOO_LARGE",
+                )
             declared_total += size
             if declared_total > MAX_TOTAL_PDF_BYTES:
-                return jsonify(
-                    {
-                        "detail": (
-                            "전체 파일 용량은 최대 "
-                            f"{_max_total_mb()} MB까지 처리할 수 있습니다"
-                        )
-                    }
-                ), 413
+                return _error_response(
+                    f"전체 파일 용량은 최대 {_max_total_mb()} MB까지 처리할 수 있습니다",
+                    413,
+                    "PDF_TOTAL_TOO_LARGE",
+                )
             blobs.append(blob)
 
         source_paths: list[Path] = []
@@ -281,26 +332,25 @@ def process_storage(uid):
             blob.download_to_filename(str(local_path))
             size = local_path.stat().st_size
             if size > MAX_PDF_FILE_BYTES:
-                return jsonify(
-                    {"detail": f"파일이 {_max_file_mb()} MB를 초과합니다"}
-                ), 413
+                return _error_response(
+                    f"파일이 {_max_file_mb()} MB를 초과합니다",
+                    413,
+                    "PDF_FILE_TOO_LARGE",
+                )
             actual_total += size
             if actual_total > MAX_TOTAL_PDF_BYTES:
-                return jsonify(
-                    {
-                        "detail": (
-                            "전체 파일 용량은 최대 "
-                            f"{_max_total_mb()} MB까지 처리할 수 있습니다"
-                        )
-                    }
-                ), 413
+                return _error_response(
+                    f"전체 파일 용량은 최대 {_max_total_mb()} MB까지 처리할 수 있습니다",
+                    413,
+                    "PDF_TOTAL_TOO_LARGE",
+                )
             source_paths.append(local_path)
 
         _validate_pdf_paths(req, source_paths)
         process_pdf_files(source_paths, req, output_path)
     except ValueError as exc:
         _cleanup_local_directory(temp_dir)
-        return jsonify({"detail": str(exc)}), 400
+        return _error_response(str(exc), 400, "PDF_VALIDATION_FAILED")
     except Exception:
         _cleanup_local_directory(temp_dir)
         return _internal_error_response("Storage PDF processing failed")
@@ -315,4 +365,4 @@ def process_storage(uid):
         conditional=True,
     )
     response.call_on_close(lambda: _cleanup_local_directory(temp_dir))
-    return response
+    return _attach_request_id(response)
