@@ -52,7 +52,8 @@ def test_direct_and_storage_aggregate_limits_are_explicit():
 
 def test_internal_exception_details_are_not_returned_to_clients():
     text = PDF_ROUTER.read_text(encoding="utf-8")
-    assert '"error_id": error_id' in text
+    assert '"request_id": request_id' in text
+    assert '"PDF_INTERNAL_ERROR"' in text
     assert '"PDF 처리 중 오류가 발생했습니다."' in text
     assert "PDF processing failed: {e}" not in text
     assert "PDF 처리 실패: {e}" not in text
