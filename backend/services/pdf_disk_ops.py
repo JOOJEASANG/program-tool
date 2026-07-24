@@ -107,13 +107,17 @@ def process_pdf_files(
                         src_rect.height,
                         rotation,
                     )
-                    out_page.show_pdf_page(
-                        fit_rect,
-                        src_doc,
-                        page_info.page_index,
-                        rotate=rotation,
-                        keep_proportion=True,
-                    )
+                    try:
+                        out_page.show_pdf_page(
+                            fit_rect,
+                            src_doc,
+                            page_info.page_index,
+                            rotate=rotation,
+                            keep_proportion=True,
+                        )
+                    except ValueError as exc:
+                        if "nothing to show - source page empty" not in str(exc):
+                            raise
                     if request.add_border:
                         shape = out_page.new_shape()
                         shape.draw_rect(fit_rect)
