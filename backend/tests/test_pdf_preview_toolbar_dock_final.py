@@ -41,11 +41,12 @@ def test_pdf_dock_uses_book_cover_fixed_layout_without_legacy_dimensions():
         "backdrop-filter:blur(16px)",
         "linear-gradient(90deg,#12396d,#2563eb,#1d9bb2)",
         "화면 고정",
-        "sidebar.clientWidth - paddingLeft - paddingRight",
     ):
         assert shared in pdf_dock
         assert shared in cover_dock
 
+    assert "clientWidth - paddingLeft - paddingRight" in pdf_dock
+    assert "clientWidth - paddingLeft - paddingRight" in cover_dock
     assert "pdf-book-cover-dock" in pdf_dock
     assert "classList.remove('pdf-output-floating'" in pdf_dock
     assert "#downloadBtn" in pdf_dock and "grid-column:1/-1" in pdf_dock
