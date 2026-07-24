@@ -22,6 +22,7 @@
       load('coverTextUiRefineScriptV4','/js/cover-text-ui-refine.js?v='+VERSION);
       load('coverPreviewWorkspaceScriptV2','/js/cover-preview-workspace.js?v='+VERSION);
       load('coverProjectStateBridgeScriptV1','/js/cover-project-state-bridge.js?v='+VERSION);
+      load('coverFloatingActionDockScriptV1','/js/cover-floating-action-dock.js?v='+VERSION);
     }
   }
   async function boot(){await clearLegacyCaches();await register();helpers()}
