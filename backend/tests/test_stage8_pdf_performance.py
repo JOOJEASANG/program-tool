@@ -18,7 +18,7 @@ def _request(page_count: int = 8) -> PdfProcessRequest:
     return PdfProcessRequest.model_validate({
         "paper": {"width_mm": 210, "height_mm": 297},
         "pages": [
-            {"file_index": 0, "page_index": index, "page_type": "source"}
+            {"file_index": 0, "page_index": index, "page_type": "normal"}
             for index in range(page_count)
         ],
         "nup_default": 2,
