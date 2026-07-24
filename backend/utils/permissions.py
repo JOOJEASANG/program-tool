@@ -48,8 +48,13 @@ def _normalized_email(decoded: dict) -> str:
     return email.strip().lower() if isinstance(email, str) else ""
 
 
-def _is_admin(db: firestore.Client, email: str) -> bool:
-    """Use the same trusted administrator source as Firestore rules and clients."""
+def _has_admin_claim(decoded: dict) -> bool:
+    """Return True only for the trusted Firebase custom claim."""
+    return decoded.get("admin") is True
+
+
+def _is_legacy_admin(db: firestore.Client, email: str) -> bool:
+    """Temporary migration fallback for administrators without a custom claim yet."""
     if not email:
         return False
     snapshot = db.collection("settings").document("admin").get()
@@ -66,27 +71,36 @@ def _is_admin(db: firestore.Client, email: str) -> bool:
     }
 
 
-def _is_program_public(db: firestore.Client, program_id: str) -> bool:
-    """Return whether a signed-in user may use the program without per-user approval."""
-    snapshot = db.collection("settings").document("programs").get()
-    if not snapshot.exists:
+def _snapshot_data(snapshot) -> dict:
+    if snapshot is None or not getattr(snapshot, "exists", False):
+        return {}
+    return snapshot.to_dict() or {}
+
+
+def _program_access_from_snapshots(program_snapshot, permission_snapshot, program_id: str) -> bool:
+    """Evaluate public and per-user access from one batched Firestore response."""
+    public = _snapshot_data(program_snapshot).get("public")
+    if isinstance(public, dict) and public.get(program_id) is True:
+        return True
+
+    permission_data = _snapshot_data(permission_snapshot)
+    if permission_data.get("status") != "approved":
         return False
-    data = snapshot.to_dict() or {}
-    public = data.get("public")
-    return isinstance(public, dict) and public.get(program_id) is True
+    programs = permission_data.get("programs")
+    return isinstance(programs, dict) and programs.get(program_id) is True
 
 
 def _has_program_access(db: firestore.Client, uid: str, program_id: str) -> bool:
-    snapshot = db.collection("user_permissions").document(uid).get()
-    if not snapshot.exists:
-        return False
-
-    data = snapshot.to_dict() or {}
-    if data.get("status") != "approved":
-        return False
-
-    programs = data.get("programs")
-    return isinstance(programs, dict) and programs.get(program_id) is True
+    """Read public-program and user-permission documents in one Firestore RPC."""
+    program_ref = db.collection("settings").document("programs")
+    permission_ref = db.collection("user_permissions").document(uid)
+    snapshots = list(db.get_all([program_ref, permission_ref]))
+    by_path = {snapshot.reference.path: snapshot for snapshot in snapshots}
+    return _program_access_from_snapshots(
+        by_path.get(program_ref.path),
+        by_path.get(permission_ref.path),
+        program_id,
+    )
 
 
 def require_program_access_for_request():
@@ -106,19 +120,18 @@ def require_program_access_for_request():
 
     try:
         db = firestore.client()
-        if not (
-            _is_admin(db, _normalized_email(decoded))
-            or _is_program_public(db, program_id)
-            or _has_program_access(db, uid, program_id)
-        ):
+        is_admin = _has_admin_claim(decoded)
+        if not is_admin:
+            is_admin = _is_legacy_admin(db, _normalized_email(decoded))
+        if not is_admin and not _has_program_access(db, uid, program_id):
             raise AccessError("이 프로그램을 사용할 권한이 없습니다.", 403)
     except AccessError:
         raise
     except Exception as exc:
-        # Authorization must fail closed when Firestore is unavailable.
         raise AccessError("권한 정보를 확인할 수 없습니다. 잠시 후 다시 시도해 주세요.", 503) from exc
 
     g.auth_user = decoded
     g.uid = uid
     g.program_id = program_id
+    g.is_admin = is_admin
     return decoded
