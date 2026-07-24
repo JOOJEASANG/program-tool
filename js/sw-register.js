@@ -1,7 +1,7 @@
 (function(){
   if(window.__programStudioCacheBoot)return;
   window.__programStudioCacheBoot=true;
-  const VERSION='2026.07.24.012';
+  const VERSION='2026.07.24.013';
   const currentPath=location.pathname.replace(/\/+$/,'')||'/';
   const reveal=()=>{
     if(window.ProgramStudioBoot&&typeof window.ProgramStudioBoot.reveal==='function')window.ProgramStudioBoot.reveal();
