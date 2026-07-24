@@ -76,14 +76,8 @@
         box-shadow:none!important;
         margin:0!important;
       }
-      .pdf-output-dock.pdf-book-cover-dock #downloadBtn{
-        grid-column:1/-1!important;
-        grid-row:1!important;
-      }
-      .pdf-output-dock.pdf-book-cover-dock #previewBtn{
-        grid-column:1!important;
-        grid-row:2!important;
-      }
+      .pdf-output-dock.pdf-book-cover-dock #downloadBtn{grid-column:1/-1!important;grid-row:1!important}
+      .pdf-output-dock.pdf-book-cover-dock #previewBtn{grid-column:1!important;grid-row:2!important}
       .pdf-output-dock.pdf-book-cover-dock #resetBtn{
         grid-column:2!important;
         grid-row:2!important;
@@ -132,16 +126,16 @@
   function syncDock() {
     cancelAnimationFrame(frame);
     frame = requestAnimationFrame(() => {
-      const sidebar = document.querySelector('.app > aside') || document.querySelector('aside');
+      const aside = document.querySelector('.app > aside') || document.querySelector('aside');
       const dock = document.querySelector('.pdf-output-dock.pdf-book-cover-dock');
-      if (!sidebar || !dock) return;
+      if (!aside || !dock) return;
 
       dock.classList.remove('pdf-output-floating', 'pdf-cover-style-dock');
-      const rect = sidebar.getBoundingClientRect();
-      const style = getComputedStyle(sidebar);
+      const rect = aside.getBoundingClientRect();
+      const style = getComputedStyle(aside);
       const paddingLeft = parseFloat(style.paddingLeft) || 0;
       const paddingRight = parseFloat(style.paddingRight) || 0;
-      const width = Math.max(0, sidebar.clientWidth - paddingLeft - paddingRight);
+      const width = Math.max(0, aside.clientWidth - paddingLeft - paddingRight);
       if (!width) return;
 
       dock.style.setProperty('left', `${Math.round(rect.left + paddingLeft)}px`, 'important');
@@ -152,14 +146,14 @@
     });
   }
 
-  function installObservers(sidebar, dock) {
+  function installObservers(aside, dock) {
     if (!resizeObserver && typeof ResizeObserver === 'function') {
       resizeObserver = new ResizeObserver(syncDock);
-      resizeObserver.observe(sidebar);
+      resizeObserver.observe(aside);
     }
     if (!sidebarObserver) {
       sidebarObserver = new MutationObserver(syncDock);
-      sidebarObserver.observe(sidebar, { childList: true, subtree: true });
+      sidebarObserver.observe(aside, { childList: true, subtree: true });
     }
     if (!dockObserver) {
       dockObserver = new MutationObserver(() => {
@@ -174,11 +168,11 @@
 
   function install() {
     installStyles();
-    const sidebar = document.querySelector('.app > aside') || document.querySelector('aside');
+    const aside = document.querySelector('.app > aside') || document.querySelector('aside');
     const dock = prepareDock();
-    if (!sidebar || !dock) return false;
+    if (!aside || !dock) return false;
     syncDock();
-    installObservers(sidebar, dock);
+    installObservers(aside, dock);
 
     if (!window.__pdfBookCoverDockResizeHookV3) {
       window.__pdfBookCoverDockResizeHookV3 = true;
