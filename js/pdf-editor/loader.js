@@ -1,8 +1,8 @@
 // PDF editor module loader.
 // Add new PDF editor modules here instead of growing tools/pdf-editor.html.
 (function () {
-  if (window.__pdfEditorModuleLoaderV30) return;
-  window.__pdfEditorModuleLoaderV30 = true;
+  if (window.__pdfEditorModuleLoaderV31) return;
+  window.__pdfEditorModuleLoaderV31 = true;
 
   const MODULES = [
     '/js/pdf-editor/font-render-fix.js?v=20260618-1',
@@ -27,6 +27,7 @@
     '/js/pdf-editor/preview-controller.js?v=20260724-1',
     '/js/pdf-editor/source-ui-normalization.js?v=20260724-1',
     '/js/pdf-editor/operation-progress-summary.js?v=20260724-1',
+    '/js/pdf-editor/booklet-print-guide.js?v=20260724-1',
     '/js/pdf-editor/dock-width-align.js?v=20260724-5',
     '/js/pdf-editor/preview-toolbar-layout-fix.js?v=20260724-2'
   ];
