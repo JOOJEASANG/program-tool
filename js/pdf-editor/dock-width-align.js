@@ -1,8 +1,8 @@
 // PDF editor flat action area, fixed to the bottom of the settings sidebar.
 (function () {
   'use strict';
-  if (window.__pdfEditorDockWidthAlignV4) return;
-  window.__pdfEditorDockWidthAlignV4 = true;
+  if (window.__pdfEditorDockWidthAlignV5) return;
+  window.__pdfEditorDockWidthAlignV5 = true;
 
   let frame = 0;
   let resizeObserver = null;
@@ -14,7 +14,7 @@
     const style = document.createElement('style');
     style.id = 'pdfFlatFixedDockStyles';
     style.textContent = `
-      aside{padding-bottom:176px!important}
+      aside{padding-bottom:86px!important}
       .pdf-output-dock.pdf-flat-fixed-dock{
         position:fixed!important;
         bottom:0!important;
@@ -38,57 +38,57 @@
         height:3px;
         background:linear-gradient(90deg,#12396d,#2563eb,#1d9bb2);
       }
-      .pdf-output-dock.pdf-flat-fixed-dock>.sec-head{display:none!important}
-      .pdf-flat-fixed-dock-head{
-        display:flex!important;
-        align-items:center!important;
-        gap:8px!important;
-        padding:3px 0 8px!important;
-      }
-      .pdf-flat-fixed-dock-title{
-        font-size:11px!important;
-        font-weight:900!important;
-        color:#0f172a!important;
-        letter-spacing:.02em!important;
-      }
-      .pdf-flat-fixed-dock-state{
-        margin-left:auto!important;
-        font-size:9px!important;
-        font-weight:900!important;
-        color:#2563eb!important;
-        background:#eff6ff!important;
-        border:1px solid #bfdbfe!important;
-        border-radius:999px!important;
-        padding:3px 7px!important;
-      }
+      .pdf-output-dock.pdf-flat-fixed-dock>.sec-head,
+      .pdf-output-dock.pdf-flat-fixed-dock .pdf-book-cover-dock-head,
+      .pdf-output-dock.pdf-flat-fixed-dock .pdf-flat-fixed-dock-head,
+      .pdf-output-dock.pdf-flat-fixed-dock .pdf-dock-state{display:none!important}
       .pdf-output-dock.pdf-flat-fixed-dock .sec-body{
         display:grid!important;
-        grid-template-columns:1fr 1fr!important;
+        grid-template-columns:repeat(3,minmax(0,1fr))!important;
         gap:8px!important;
         padding:0!important;
       }
       .pdf-output-dock.pdf-flat-fixed-dock .sec-body>div[style*="height"]{display:none!important}
       .pdf-output-dock.pdf-flat-fixed-dock .btn{
-        min-height:39px!important;
-        border-radius:10px!important;
-        padding:9px 10px!important;
+        grid-row:1!important;
+        min-width:0!important;
+        min-height:40px!important;
+        border-radius:9px!important;
+        padding:9px 8px!important;
         font-size:11px!important;
+        font-weight:800!important;
+        line-height:1.2!important;
         box-shadow:none!important;
         margin:0!important;
       }
-      .pdf-output-dock.pdf-flat-fixed-dock #downloadBtn{grid-column:1/-1!important;grid-row:1!important}
-      .pdf-output-dock.pdf-flat-fixed-dock #previewBtn{grid-column:1!important;grid-row:2!important}
-      .pdf-output-dock.pdf-flat-fixed-dock #resetBtn{
+      .pdf-output-dock.pdf-flat-fixed-dock #previewBtn{
+        grid-column:1!important;
+        background:#eff6ff!important;
+        color:#1d4ed8!important;
+        border:1px solid #bfdbfe!important;
+      }
+      .pdf-output-dock.pdf-flat-fixed-dock #downloadBtn{
         grid-column:2!important;
-        grid-row:2!important;
-        min-height:39px!important;
+        background:linear-gradient(135deg,#2563eb,#1d4ed8)!important;
+        color:#fff!important;
+        border:1px solid #1d4ed8!important;
+      }
+      .pdf-output-dock.pdf-flat-fixed-dock #resetBtn{
+        grid-column:3!important;
         background:#f8fafc!important;
-        color:#64748b!important;
-        border:1px solid #e2e8f0!important;
+        color:#475569!important;
+        border:1px solid #dbe3ee!important;
+      }
+      .pdf-output-dock.pdf-flat-fixed-dock .btn:disabled{
+        opacity:.48!important;
+        cursor:not-allowed!important;
+        filter:saturate(.7)!important;
       }
       @media(max-width:900px){
-        aside{padding-bottom:176px!important}
+        aside{padding-bottom:86px!important}
         .pdf-output-dock.pdf-flat-fixed-dock{bottom:0!important}
+        .pdf-output-dock.pdf-flat-fixed-dock .sec-body{gap:6px!important}
+        .pdf-output-dock.pdf-flat-fixed-dock .btn{font-size:10px!important;padding:8px 5px!important}
       }
     `;
     document.head.appendChild(style);
@@ -102,24 +102,14 @@
     dock.classList.remove('pdf-output-floating', 'pdf-cover-style-dock', 'pdf-book-cover-dock');
     dock.classList.add('pdf-output-dock', 'pdf-flat-fixed-dock');
 
-    dock.querySelectorAll('.pdf-book-cover-dock-head,.pdf-flat-fixed-dock-head').forEach((head, index) => {
-      if (index > 0 || head.classList.contains('pdf-book-cover-dock-head')) head.remove();
-    });
-
-    let head = dock.querySelector('.pdf-flat-fixed-dock-head');
-    if (!head) {
-      head = document.createElement('div');
-      head.className = 'pdf-flat-fixed-dock-head';
-      head.innerHTML = '<span class="pdf-flat-fixed-dock-title">작업 메뉴</span><span class="pdf-flat-fixed-dock-state">화면 고정</span>';
-      dock.insertBefore(head, dock.firstChild);
-    }
+    dock.querySelectorAll('.sec-head,.pdf-book-cover-dock-head,.pdf-flat-fixed-dock-head,.pdf-dock-state').forEach((element) => element.remove());
 
     const body = dock.querySelector('.sec-body');
     const download = document.getElementById('downloadBtn');
     const reset = document.getElementById('resetBtn');
     if (body && download && preview && reset) {
-      body.appendChild(download);
       body.appendChild(preview);
+      body.appendChild(download);
       body.appendChild(reset);
     }
     return dock;
@@ -169,9 +159,10 @@
           dock.classList.remove('pdf-output-floating', 'pdf-cover-style-dock', 'pdf-book-cover-dock');
           dock.classList.add('pdf-flat-fixed-dock');
         }
+        dock.querySelectorAll('.sec-head,.pdf-book-cover-dock-head,.pdf-flat-fixed-dock-head,.pdf-dock-state').forEach((element) => element.remove());
         syncDock();
       });
-      dockObserver.observe(dock, { attributes: true, attributeFilter: ['class'] });
+      dockObserver.observe(dock, { attributes: true, childList: true, subtree: true, attributeFilter: ['class'] });
     }
   }
 
@@ -183,8 +174,8 @@
     syncDock();
     installObservers(aside, dock);
 
-    if (!window.__pdfFlatFixedDockResizeHookV4) {
-      window.__pdfFlatFixedDockResizeHookV4 = true;
+    if (!window.__pdfFlatFixedDockResizeHookV5) {
+      window.__pdfFlatFixedDockResizeHookV5 = true;
       window.addEventListener('resize', syncDock, { passive: true });
     }
     return true;

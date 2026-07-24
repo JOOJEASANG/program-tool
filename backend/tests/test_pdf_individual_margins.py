@@ -139,7 +139,10 @@ def test_pdf_dock_uses_flat_sidebar_section_with_cover_color_divider():
     assert "box-shadow:none!important" in pdf_dock
     assert "backdrop-filter:none!important" in pdf_dock
     assert "bottom:0!important" in pdf_dock
-    assert "#downloadBtn{grid-column:1/-1" in pdf_dock
+    assert "grid-template-columns:repeat(3,minmax(0,1fr))" in pdf_dock
+    assert "#previewBtn" in pdf_dock
+    assert "#downloadBtn" in pdf_dock
+    assert "#resetBtn" in pdf_dock
 
 
 def test_interaction_modules_have_no_unbounded_polling():
