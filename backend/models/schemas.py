@@ -85,9 +85,14 @@ class PdfProcessRequest(BaseModel):
     paper: PaperSize = Field(default_factory=PaperSize)
     fit_to_paper: bool = True
     add_border: bool = False
-    # N-UP output layout controls, in millimeters. These are used by the backend exporter.
+    # Legacy paired margins remain for older clients and saved projects.
     margin_h_mm: float = 10.0
     margin_v_mm: float = 10.0
+    # New independent margins. None falls back to the paired legacy value.
+    margin_left_mm: Optional[float] = None
+    margin_right_mm: Optional[float] = None
+    margin_top_mm: Optional[float] = None
+    margin_bottom_mm: Optional[float] = None
     gap_mm: float = 5.0
     watermark: WatermarkSettings = Field(default_factory=WatermarkSettings)
     header_footer: HeaderFooterSettings = Field(default_factory=HeaderFooterSettings)

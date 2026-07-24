@@ -1,7 +1,7 @@
 (function(){
   if(window.__programStudioCacheBoot)return;
   window.__programStudioCacheBoot=true;
-  const VERSION='2026.07.24.006';
+  const VERSION='2026.07.24.007';
   const currentPath=location.pathname.replace(/\/+$/,'')||'/';
   const reveal=()=>{
     if(window.ProgramStudioBoot&&typeof window.ProgramStudioBoot.reveal==='function')window.ProgramStudioBoot.reveal();
@@ -33,7 +33,7 @@
   }
   function isPath(...parts){return parts.some(path=>currentPath===path||currentPath.endsWith(path))}
   function isHome(){return currentPath==='/'||currentPath==='/index.html'}
-  async function clearLegacyCaches(){try{if('caches'in window){const keys=await caches.keys();await Promise.all(keys.filter(k=>!k.includes(VERSION)).map(k=>caches.delete(k)))}}catch(_){}}
+  async function clearLegacyCaches(){try{if('caches'in window){const keys=await caches.keys();await Promise.all(keys.filter(k=>!k.includes(VERSION)).map(k=>caches.delete(k)))}}catch(_){} }
   async function register(){if(!('serviceWorker'in navigator))return;try{const reg=await navigator.serviceWorker.register('/sw.js?v='+encodeURIComponent(VERSION),{updateViaCache:'none'});await reg.update().catch(()=>{});if(reg.waiting)reg.waiting.postMessage({type:'SKIP_WAITING'})}catch(e){console.warn('Service worker registration failed',e)}}
   function helpers(){
     const tasks=[];

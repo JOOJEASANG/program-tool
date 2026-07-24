@@ -1,8 +1,9 @@
 // PDF editor live preview module.
-// Clicks the real preview button after upload/render/layout changes, so it uses the editor's internal state.
+// Uses the editor's real preview action after upload and layout changes.
 (function () {
-  if (window.__pdfEditorLivePreviewV2) return;
-  window.__pdfEditorLivePreviewV2 = true;
+  'use strict';
+  if (window.__pdfEditorLivePreviewV3) return;
+  window.__pdfEditorLivePreviewV3 = true;
 
   let timer = null;
   let lastThumbCount = 0;
@@ -10,14 +11,9 @@
   let isAutoClicking = false;
 
   function $(id) { return document.getElementById(id); }
-
-  function getThumbCount() {
-    return document.querySelectorAll('.thumb-item').length;
-  }
-
-  function isFastMode() {
-    return !!window.__pdfEditorFastMode;
-  }
+  function getThumbCount() { return document.querySelectorAll('.thumb-item').length; }
+  function isFastMode() { return !!window.__pdfEditorFastMode; }
+  function value(id) { return $(id) ? $(id).value : ''; }
 
   function getSignature() {
     const activeNup = document.querySelector('.nup-btn.active');
@@ -27,20 +23,23 @@
       getThumbCount(),
       activeNup ? (activeNup.dataset.nup || activeNup.textContent || '') : '',
       activeMode ? (activeMode.dataset.mode || activeMode.textContent || '') : '',
-      $('paperSize') ? $('paperSize').value : '',
-      $('marginH') ? $('marginH').value : '',
-      $('marginV') ? $('marginV').value : '',
-      $('gap') ? $('gap').value : '',
+      value('paperSize'),
+      value('marginLeft') || value('marginH'),
+      value('marginRight') || value('marginH'),
+      value('marginTop') || value('marginV'),
+      value('marginBottom') || value('marginV'),
+      value('gap'),
+      $('facingPages') ? String($('facingPages').checked) : 'false',
       previewBtn ? String(previewBtn.disabled) : 'no-btn',
-      isFastMode() ? 'fast' : 'normal'
+      isFastMode() ? 'fast' : 'normal',
     ].join('|');
   }
 
   function clickPreview() {
     if (isFastMode()) return false;
-    const btn = $('previewBtn') || [...document.querySelectorAll('button,.btn')].find((el) => {
-      const t = (el.textContent || '').replace(/\s+/g, '');
-      return t.includes('미리보기') && (t.includes('생성') || t.includes('갱신'));
+    const btn = $('previewBtn') || [...document.querySelectorAll('button,.btn')].find((element) => {
+      const text = (element.textContent || '').replace(/\s+/g, '');
+      return text.includes('미리보기') && (text.includes('생성') || text.includes('갱신'));
     });
     if (!btn || btn.disabled || isAutoClicking) return false;
     isAutoClicking = true;
@@ -49,104 +48,93 @@
     return true;
   }
 
-  function schedule(reason, delay) {
+  function schedule(delay) {
     if (isFastMode()) return;
     clearTimeout(timer);
     timer = setTimeout(() => {
       if (isFastMode()) return;
-      const sig = getSignature();
-      lastSig = sig;
+      lastSig = getSignature();
       clickPreview();
     }, delay == null ? 350 : delay);
   }
 
   function installEvents() {
-    if (window.__pdfLivePreviewEventsInstalledV2) return;
-    window.__pdfLivePreviewEventsInstalledV2 = true;
+    if (window.__pdfLivePreviewEventsInstalledV3) return;
+    window.__pdfLivePreviewEventsInstalledV3 = true;
 
     document.addEventListener('click', (event) => {
       const btn = event.target && event.target.closest ? event.target.closest('button,.nup-btn,.mode-btn,.orient-btn') : null;
       if (!btn) return;
-      const t = (btn.textContent || '').replace(/\s+/g, '');
+      const text = (btn.textContent || '').replace(/\s+/g, '');
       if (
         btn.id === 'previewBtn' ||
         btn.id === 'downloadBtn' ||
-        btn.closest('#fileHistoryModal') ||
         btn.closest('#dividerModal')
       ) return;
       if (
         btn.classList.contains('nup-btn') ||
         btn.classList.contains('mode-btn') ||
         btn.classList.contains('orient-btn') ||
-        t.includes('장') || t.includes('연속') || t.includes('비연속') || t.includes('세로') || t.includes('가로')
-      ) {
-        schedule('button', isFastMode() ? 1500 : 450);
-      }
+        text.includes('장') || text.includes('연속') || text.includes('비연속') ||
+        text.includes('세로') || text.includes('가로')
+      ) schedule(isFastMode() ? 1500 : 450);
     }, true);
 
     document.addEventListener('change', (event) => {
       const target = event.target;
       if (!target) return;
-      if (target.matches('input[type="file"]')) {
-        // Upload/render may take several seconds, so also rely on MutationObserver below.
-        schedule('file-change', isFastMode() ? 3000 : 1800);
-      } else if (target.matches('select,input[type="number"],input[type="checkbox"]')) {
-        schedule('option-change', isFastMode() ? 1500 : 450);
-      }
+      if (target.matches('input[type="file"]')) schedule(isFastMode() ? 3000 : 1800);
+      else if (target.matches('select,input[type="number"],input[type="checkbox"]')) schedule(isFastMode() ? 1500 : 450);
     }, true);
 
     document.addEventListener('input', (event) => {
       const target = event.target;
-      if (!target) return;
-      if (target.matches('#marginH,#marginV,#gap,#customW,#customH')) schedule('layout-input', isFastMode() ? 2000 : 550);
+      if (target && target.matches('#marginH,#marginV,#marginLeft,#marginRight,#marginTop,#marginBottom,#gap,#customW,#customH')) {
+        schedule(isFastMode() ? 2000 : 550);
+      }
     }, true);
   }
 
   function installObserver() {
-    if (window.__pdfLivePreviewObserverInstalledV2) return;
-    window.__pdfLivePreviewObserverInstalledV2 = true;
+    if (window.__pdfLivePreviewObserverInstalledV3) return;
+    window.__pdfLivePreviewObserverInstalledV3 = true;
+    const area = $('thumbArea');
+    if (!area) return;
     const observer = new MutationObserver(() => {
       const count = getThumbCount();
       const sig = getSignature();
       if (count > 0 && (count !== lastThumbCount || sig !== lastSig)) {
         lastThumbCount = count;
         lastSig = sig;
-        // Wait a little so pdf.js page rendering and renderThumbs() can finish.
-        schedule('thumb-change', isFastMode() ? 2500 : 900);
+        schedule(isFastMode() ? 2500 : 900);
       }
     });
-    const start = () => {
-      const area = $('thumbArea') || document.body;
-      observer.observe(area, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'disabled'] });
-      lastThumbCount = getThumbCount();
-      lastSig = getSignature();
-    };
-    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
-    else start();
+    observer.observe(area, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'disabled'] });
+    lastThumbCount = getThumbCount();
+    lastSig = getSignature();
   }
 
   function installStatusHint() {
-    if (document.getElementById('livePreviewHint')) return;
+    let hint = $('livePreviewHint');
     const previewInfo = $('previewInfo');
-    if (!previewInfo || !previewInfo.parentElement) return;
-    const hint = document.createElement('span');
-    hint.id = 'livePreviewHint';
+    if (!previewInfo || !previewInfo.parentElement) return false;
+    if (!hint) {
+      hint = document.createElement('span');
+      hint.id = 'livePreviewHint';
+      previewInfo.insertAdjacentElement('afterend', hint);
+    }
     hint.style.cssText = 'font-size:10px;color:#64748b;font-weight:800;white-space:nowrap;';
-    hint.textContent = isFastMode() ? '빠른 편집 모드 ON' : '실시간 미리보기 ON';
-    previewInfo.parentElement.appendChild(hint);
+    hint.textContent = isFastMode() ? '대용량 문서 · 수동 미리보기' : '실시간 미리보기 ON';
+    return true;
   }
 
-  function boot() {
+  function boot(attempt) {
     installEvents();
     installObserver();
-    installStatusHint();
-    const hint = $('livePreviewHint');
-    if (hint) {
-      hint.textContent = isFastMode() ? '빠른 편집 모드 ON' : '실시간 미리보기 ON';
-      hint.style.color = isFastMode() ? '#b45309' : '#64748b';
-    }
+    const ready = installStatusHint();
+    if (!ready && attempt < 10) setTimeout(() => boot(attempt + 1), 180 + attempt * 70);
   }
 
-  document.addEventListener('DOMContentLoaded', boot);
-  setInterval(boot, 1500);
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => boot(0), { once: true });
+  else boot(0);
 })();
