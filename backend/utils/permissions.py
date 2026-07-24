@@ -4,7 +4,7 @@ from __future__ import annotations
 from typing import Optional
 
 from firebase_admin import auth, firestore
-from flask import request
+from flask import g, request
 
 
 PROGRAM_BY_PREFIX: tuple[tuple[str, str], ...] = (
@@ -90,7 +90,11 @@ def _has_program_access(db: firestore.Client, uid: str, program_id: str) -> bool
 
 
 def require_program_access_for_request():
-    """Flask before_request hook enforcing one shared program-access policy."""
+    """Flask before_request hook enforcing one shared program-access policy.
+
+    The verified identity is stored on ``flask.g`` so route decorators can reuse
+    it instead of verifying the same Firebase ID token a second time.
+    """
     program_id = program_for_path(request.path)
     if not program_id:
         return None
@@ -102,11 +106,11 @@ def require_program_access_for_request():
 
     try:
         db = firestore.client()
-        if _is_admin(db, _normalized_email(decoded)):
-            return decoded
-        if _is_program_public(db, program_id):
-            return decoded
-        if not _has_program_access(db, uid, program_id):
+        if not (
+            _is_admin(db, _normalized_email(decoded))
+            or _is_program_public(db, program_id)
+            or _has_program_access(db, uid, program_id)
+        ):
             raise AccessError("이 프로그램을 사용할 권한이 없습니다.", 403)
     except AccessError:
         raise
@@ -114,4 +118,7 @@ def require_program_access_for_request():
         # Authorization must fail closed when Firestore is unavailable.
         raise AccessError("권한 정보를 확인할 수 없습니다. 잠시 후 다시 시도해 주세요.", 503) from exc
 
+    g.auth_user = decoded
+    g.uid = uid
+    g.program_id = program_id
     return decoded
