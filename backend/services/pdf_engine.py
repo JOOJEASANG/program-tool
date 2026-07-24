@@ -6,6 +6,7 @@ for opening and closing sources and for choosing memory or disk output.
 from __future__ import annotations
 
 import io
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
 
@@ -16,6 +17,53 @@ import services.pdf_ops as pdf_ops
 
 
 EMPTY_SOURCE_PAGE_ERROR = "nothing to show - source page empty"
+
+
+@dataclass(frozen=True)
+class _PageLayout:
+    cols: int
+    rows: int
+    cell_w: float
+    cell_h: float
+    cell_rects: tuple[fitz.Rect, ...]
+
+
+def _build_page_layout(
+    effective_nup: int,
+    paper_w_pt: float,
+    paper_h_pt: float,
+    margin_h_pt: float,
+    margin_v_pt: float,
+    gap_pt: float,
+) -> _PageLayout:
+    """Calculate immutable cell geometry once for a repeated N-up layout."""
+    cols, rows = pdf_ops.NUP_LAYOUT.get(effective_nup, (1, 1))
+    if paper_w_pt > paper_h_pt and cols != rows:
+        cols, rows = rows, cols
+
+    usable_w = paper_w_pt - 2 * margin_h_pt - (cols - 1) * gap_pt
+    usable_h = paper_h_pt - 2 * margin_v_pt - (rows - 1) * gap_pt
+    if usable_w <= 1 or usable_h <= 1:
+        usable_w = paper_w_pt - 2 * pdf_ops.MARGIN_PT - (cols - 1) * pdf_ops.CELL_GAP_PT
+        usable_h = paper_h_pt - 2 * pdf_ops.MARGIN_PT - (rows - 1) * pdf_ops.CELL_GAP_PT
+        margin_h_use = margin_v_use = pdf_ops.MARGIN_PT
+        gap_use = pdf_ops.CELL_GAP_PT
+    else:
+        margin_h_use = margin_h_pt
+        margin_v_use = margin_v_pt
+        gap_use = gap_pt
+
+    cell_w = usable_w / cols
+    cell_h = usable_h / rows
+    rects = []
+    for slot_idx in range(cols * rows):
+        col = slot_idx % cols
+        row = slot_idx // cols
+        cell_x0 = margin_h_use + col * (cell_w + gap_use)
+        cell_y0 = margin_v_use + row * (cell_h + gap_use)
+        rects.append(fitz.Rect(cell_x0, cell_y0, cell_x0 + cell_w, cell_y0 + cell_h))
+
+    return _PageLayout(cols, rows, cell_w, cell_h, tuple(rects))
 
 
 def _render_source_page(
@@ -96,6 +144,7 @@ def build_pdf_document(
     out_doc = fitz.open()
     total_output_pages = len(groups)
     facing = getattr(request, "facing_pages", False)
+    layout_cache: dict[int, _PageLayout] = {}
 
     try:
         for output_page_idx, group in enumerate(groups):
@@ -116,51 +165,29 @@ def build_pdf_document(
                 effective_nup = 1 if first.nup_disabled else (
                     first.nup_override or request.nup_default
                 )
-                cols, rows = pdf_ops.NUP_LAYOUT.get(effective_nup, (1, 1))
-                if paper_w_pt > paper_h_pt and cols != rows:
-                    cols, rows = rows, cols
+                layout = layout_cache.get(effective_nup)
+                if layout is None:
+                    layout = _build_page_layout(
+                        effective_nup,
+                        paper_w_pt,
+                        paper_h_pt,
+                        margin_h_pt,
+                        margin_v_pt,
+                        gap_pt,
+                    )
+                    layout_cache[effective_nup] = layout
 
                 out_page = out_doc.new_page(width=paper_w_pt, height=paper_h_pt)
-                usable_w = paper_w_pt - 2 * margin_h_pt - (cols - 1) * gap_pt
-                usable_h = paper_h_pt - 2 * margin_v_pt - (rows - 1) * gap_pt
-                if usable_w <= 1 or usable_h <= 1:
-                    usable_w = (
-                        paper_w_pt - 2 * pdf_ops.MARGIN_PT
-                        - (cols - 1) * pdf_ops.CELL_GAP_PT
-                    )
-                    usable_h = (
-                        paper_h_pt - 2 * pdf_ops.MARGIN_PT
-                        - (rows - 1) * pdf_ops.CELL_GAP_PT
-                    )
-                    margin_h_use = margin_v_use = pdf_ops.MARGIN_PT
-                    gap_use = pdf_ops.CELL_GAP_PT
-                else:
-                    margin_h_use = margin_h_pt
-                    margin_v_use = margin_v_pt
-                    gap_use = gap_pt
-
-                cell_w = usable_w / cols
-                cell_h = usable_h / rows
                 for slot_idx, page_info in enumerate(group):
                     if page_info.page_type == "blank":
                         continue
-                    col = slot_idx % cols
-                    row = slot_idx // cols
-                    cell_x0 = margin_h_use + col * (cell_w + gap_use)
-                    cell_y0 = margin_v_use + row * (cell_h + gap_use)
-                    cell_rect = fitz.Rect(
-                        cell_x0,
-                        cell_y0,
-                        cell_x0 + cell_w,
-                        cell_y0 + cell_h,
-                    )
                     _render_source_page(
                         out_page,
                         sources,
                         page_info,
-                        cell_rect,
-                        cell_w,
-                        cell_h,
+                        layout.cell_rects[slot_idx],
+                        layout.cell_w,
+                        layout.cell_h,
                         request.add_border,
                     )
 
