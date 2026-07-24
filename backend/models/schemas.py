@@ -72,6 +72,7 @@ class PageNumberSettings(BaseModel):
     exclude_first: bool = False
     apply_to: Literal["all", "odd", "even"] = "all"
     margin_mm: Optional[float] = None
+    auto_reserve_space: bool = True
 
 
 class PaperSize(BaseModel):

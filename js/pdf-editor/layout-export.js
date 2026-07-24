@@ -1,9 +1,9 @@
 // PDF editor layout export module.
-// Sends independent paper margins and facing-page options to backend export.
+// Sends independent paper margins, facing-page options, and page-number spacing to backend export.
 (function () {
   'use strict';
-  if (window.__pdfEditorLayoutExportV3) return;
-  window.__pdfEditorLayoutExportV3 = true;
+  if (window.__pdfEditorLayoutExportV4) return;
+  window.__pdfEditorLayoutExportV4 = true;
 
   function $(id) { return document.getElementById(id); }
   function num(id, fallback) {
@@ -32,19 +32,21 @@
     settings.margin_v_mm = (margins.top + margins.bottom) / 2;
     settings.gap_mm = num('gap', 5);
     settings.facing_pages = !!($('facingPages') && $('facingPages').checked);
+    settings.page_numbers = settings.page_numbers || {};
+    settings.page_numbers.auto_reserve_space = !($('pnAutoReserve') && !$('pnAutoReserve').checked);
     return settings;
   }
   function wrapApiProcessPdf() {
-    if (window.__pdfLayoutApiWrappedV3 || typeof window.apiProcessPdf !== 'function') return false;
+    if (window.__pdfLayoutApiWrappedV4 || typeof window.apiProcessPdf !== 'function') return false;
     const original = window.apiProcessPdf;
     window.apiProcessPdf = function layoutPatchedApiProcessPdf(files, settings, options) {
       return original.call(this, files, patchSettings(settings), options);
     };
-    window.__pdfLayoutApiWrappedV3 = true;
+    window.__pdfLayoutApiWrappedV4 = true;
     return true;
   }
   function wrapFetch() {
-    if (window.__pdfLayoutFetchWrappedV3) return true;
+    if (window.__pdfLayoutFetchWrappedV4) return true;
     const originalFetch = window.fetch.bind(window);
     window.fetch = function layoutPatchedFetch(input, init) {
       try {
@@ -64,7 +66,7 @@
       }
       return originalFetch(input, init);
     };
-    window.__pdfLayoutFetchWrappedV3 = true;
+    window.__pdfLayoutFetchWrappedV4 = true;
     return true;
   }
   function boot(attempt) {
