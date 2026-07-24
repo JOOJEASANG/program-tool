@@ -1,4 +1,4 @@
-"""Patch PDF export to support independent margins, facing pages, and page-number space."""
+"""Patch PDF export to support independent margins, facing pages, page-number space, and reliable booklet output."""
 from __future__ import annotations
 
 import io
@@ -66,6 +66,19 @@ def _page_number_value(settings, output_idx: int, total_pages: int) -> tuple[int
     return visible, visible_total
 
 
+def _group_booklet_pages(page_infos: list, nup: int) -> list[list]:
+    """Chunk imposed booklet pages strictly by the selected global N-up.
+
+    Per-page/file overrides, standalone-page flags, and group breaks are intentionally
+    ignored in booklet mode. The imposition order already contains the exact blank
+    slots required for duplex printing, cutting, and folding.
+    """
+    size = int(nup)
+    if size not in pdf_ops.BOOKLET_STRIPS:
+        return pdf_ops._group_by_nup(page_infos, size)
+    return [list(page_infos[index:index + size]) for index in range(0, len(page_infos), size)]
+
+
 def _apply_page_numbers_with_layout(
     page: fitz.Page,
     settings,
@@ -126,8 +139,30 @@ def _apply_page_numbers_with_layout(
     page.insert_textbox(rect, text, fontsize=fs, fontname="helv", color=color, align=align)
 
 
+def _show_divider_in_cell(
+    out_page: fitz.Page,
+    page_info,
+    cell_rect: fitz.Rect,
+    paper_w_pt: float,
+    paper_h_pt: float,
+) -> None:
+    """Render a divider as a logical booklet page inside one imposed cell."""
+    temp_doc = fitz.open()
+    try:
+        pdf_ops._render_divider_page(
+            temp_doc,
+            page_info.divider_content or "",
+            page_info.divider_style or "simple",
+            paper_w_pt,
+            paper_h_pt,
+        )
+        out_page.show_pdf_page(cell_rect, temp_doc, 0, keep_proportion=True)
+    finally:
+        temp_doc.close()
+
+
 def process_pdf_with_individual_margins(file_bytes_list: list[bytes], request) -> bytes:
-    """Build output PDF using independent margins and reserved page-number space."""
+    """Build output PDF using independent margins and reliable booklet imposition."""
     src_docs = [fitz.open(stream=data, filetype="pdf") for data in file_bytes_list]
     try:
         paper_w_pt = request.paper.width_mm * pdf_ops.MM_TO_PT
@@ -135,13 +170,15 @@ def process_pdf_with_individual_margins(file_bytes_list: list[bytes], request) -
         gap_pt = pdf_ops._mm_to_pt_safe(getattr(request, "gap_mm", 5.0), 5.0, 0.0, 50.0)
 
         active_pages = [page for page in request.pages if not page.excluded]
-        groups = pdf_ops._group_by_nup(active_pages, request.nup_default)
-        if getattr(request, "booklet", False) and request.nup_default in pdf_ops.BOOKLET_STRIPS:
+        booklet_enabled = bool(getattr(request, "booklet", False)) and request.nup_default in pdf_ops.BOOKLET_STRIPS
+        if booklet_enabled:
             active_pages = pdf_ops._booklet_reorder(
                 active_pages,
                 int(request.nup_default),
                 paper_w_pt > paper_h_pt,
             )
+            groups = _group_booklet_pages(active_pages, int(request.nup_default))
+        else:
             groups = pdf_ops._group_by_nup(active_pages, request.nup_default)
 
         out_doc = fitz.open()
@@ -150,14 +187,17 @@ def process_pdf_with_individual_margins(file_bytes_list: list[bytes], request) -
         facing = bool(getattr(request, "facing_pages", False))
 
         for group in groups:
+            if not group:
+                continue
             first = group[0]
             paper_margins = _base_layout_margins(request, output_page_idx)
             margins = _resolve_layout_margins(request, output_page_idx)
+            standalone_special = len(group) == 1 and bool(getattr(first, "nup_disabled", False))
 
-            if first.page_type == "blank":
+            if first.page_type == "blank" and standalone_special:
                 pdf_ops._render_blank_page(out_doc, paper_w_pt, paper_h_pt)
                 out_page = out_doc[-1]
-            elif first.page_type == "divider":
+            elif first.page_type == "divider" and standalone_special:
                 pdf_ops._render_divider_page(
                     out_doc,
                     first.divider_content or "",
@@ -167,7 +207,9 @@ def process_pdf_with_individual_margins(file_bytes_list: list[bytes], request) -
                 )
                 out_page = out_doc[-1]
             else:
-                effective_nup = 1 if first.nup_disabled else (first.nup_override or request.nup_default)
+                effective_nup = int(request.nup_default) if booklet_enabled else (
+                    1 if first.nup_disabled else (first.nup_override or request.nup_default)
+                )
                 cols, rows = pdf_ops.NUP_LAYOUT.get(effective_nup, (1, 1))
                 if paper_w_pt > paper_h_pt and cols != rows:
                     cols, rows = rows, cols
@@ -188,13 +230,17 @@ def process_pdf_with_individual_margins(file_bytes_list: list[bytes], request) -
                 cell_w = usable_w / cols
                 cell_h = usable_h / rows
                 for slot_idx, page_info in enumerate(group):
-                    if page_info.page_type == "blank":
-                        continue
                     col = slot_idx % cols
                     row = slot_idx // cols
                     cell_x0 = left + col * (cell_w + gap_use)
                     cell_y0 = top + row * (cell_h + gap_use)
                     cell_rect = fitz.Rect(cell_x0, cell_y0, cell_x0 + cell_w, cell_y0 + cell_h)
+
+                    if page_info.page_type == "blank":
+                        continue
+                    if page_info.page_type == "divider":
+                        _show_divider_in_cell(out_page, page_info, cell_rect, paper_w_pt, paper_h_pt)
+                        continue
 
                     src_doc = src_docs[page_info.file_index]
                     src_page = src_doc[page_info.page_index]
@@ -255,7 +301,10 @@ def process_pdf_with_individual_margins(file_bytes_list: list[bytes], request) -
             src_doc.close()
 
 
-if not getattr(pdf_ops, "_individual_margin_patch_v2", False):
+pdf_ops._group_booklet_pages = _group_booklet_pages
+
+if not getattr(pdf_ops, "_individual_margin_patch_v3", False):
     pdf_ops.process_pdf = process_pdf_with_individual_margins
     pdf_ops._individual_margin_patch_v1 = True
     pdf_ops._individual_margin_patch_v2 = True
+    pdf_ops._individual_margin_patch_v3 = True
