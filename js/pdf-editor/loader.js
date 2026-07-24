@@ -10,7 +10,7 @@
     '/js/pdf-editor/live-preview.js?v=20260618-2',
     '/js/pdf-editor/layout-export.js?v=20260712-2',
     '/js/pdf-editor/page-count-hint.js?v=20260518-1',
-    '/js/pdf-editor/nup-helper.js?v=20260518-5',
+    '/js/pdf-editor/nup-helper.js?v=20260724-2',
     '/js/pdf-editor/preview-row-default.js?v=20260602-1',
     '/js/pdf-editor/divider-helper.js?v=20260722-2',
     '/js/pdf-editor/divider-studio.js?v=20260722-1',
