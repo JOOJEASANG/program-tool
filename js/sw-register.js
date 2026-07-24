@@ -60,12 +60,11 @@
   }
   async function boot(){
     try{
-      await clearLegacyCaches();
-      await register();
       await helpers();
       await nextPaint();
     }finally{
       reveal();
+      Promise.allSettled([clearLegacyCaches(),register()]);
     }
   }
   setTimeout(reveal,5000);
