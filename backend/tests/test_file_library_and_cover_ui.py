@@ -24,6 +24,13 @@ def test_pdf_file_library_is_fully_removed():
     assert not (ROOT / "js" / "pdf-editor" / "history-policy.js").exists()
     assert not (ROOT / "js" / "pdf-editor" / "storage-cleanup.js").exists()
 
+    for path in ROOT.rglob("*"):
+        if not path.is_file() or path.suffix.lower() not in {".html", ".js"}:
+            continue
+        site_text = path.read_text(encoding="utf-8")
+        assert "내 파일함" not in site_text, f"file library wording remains in {path}"
+        assert "pdf_history" not in site_text, f"file library code remains in {path}"
+
 
 def test_pdf_download_remains_local_and_large_preview_is_explained():
     html = PDF_HTML.read_text(encoding="utf-8")
