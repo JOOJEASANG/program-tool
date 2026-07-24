@@ -1,5 +1,8 @@
 import json
+import logging
 import os
+import uuid
+
 from flask import Blueprint, request, jsonify, Response
 import fitz
 import firebase_admin.storage as fa_storage
@@ -9,8 +12,10 @@ import services.pdf_ops as pdf_ops
 from utils.auth import require_auth
 
 pdf_bp = Blueprint("pdf", __name__)
+logger = logging.getLogger(__name__)
 
 MAX_PDF_FILE_BYTES = 200 * 1024 * 1024
+MAX_DIRECT_TOTAL_PDF_BYTES = 200 * 1024 * 1024
 MAX_TOTAL_PDF_BYTES = 300 * 1024 * 1024
 MAX_PDF_FILES = 50
 MAX_REQUEST_PAGES = 2000
@@ -29,6 +34,10 @@ def _bucket():
 
 def _max_file_mb() -> int:
     return MAX_PDF_FILE_BYTES // (1024 * 1024)
+
+
+def _max_direct_total_mb() -> int:
+    return MAX_DIRECT_TOTAL_PDF_BYTES // (1024 * 1024)
 
 
 def _max_total_mb() -> int:
@@ -51,7 +60,7 @@ def _cleanup_storage_paths(bucket, storage_paths: list[str]) -> None:
         try:
             bucket.blob(path).delete()
         except Exception:
-            pass
+            logger.warning("Temporary PDF cleanup failed for %s", path, exc_info=True)
 
 
 def _validate_pdf_request(req: PdfProcessRequest, file_bytes_list: list[bytes]) -> None:
@@ -78,7 +87,10 @@ def _validate_pdf_request(req: PdfProcessRequest, file_bytes_list: list[bytes]) 
             total_bytes += len(data)
             if total_bytes > MAX_TOTAL_PDF_BYTES:
                 raise ValueError(f"전체 파일 용량은 최대 {_max_total_mb()} MB까지 처리할 수 있습니다")
-            docs.append(fitz.open(stream=data, filetype="pdf"))
+            try:
+                docs.append(fitz.open(stream=data, filetype="pdf"))
+            except Exception as exc:
+                raise ValueError("유효한 PDF 파일이 아닙니다") from exc
 
         for p in req.pages:
             if p.excluded or p.page_type in ("divider", "blank"):
@@ -153,6 +165,15 @@ def _patch_divider_renderer():
     pdf_ops._divider_renderer_patched_v2 = True
 
 
+def _internal_error_response(message: str):
+    error_id = uuid.uuid4().hex[:12]
+    logger.exception("%s error_id=%s", message, error_id)
+    return jsonify({
+        "detail": "PDF 처리 중 오류가 발생했습니다.",
+        "error_id": error_id,
+    }), 500
+
+
 @pdf_bp.route("/process", methods=["POST"])
 @require_auth
 def process(uid):
@@ -176,8 +197,8 @@ def process(uid):
         if len(data) > MAX_PDF_FILE_BYTES:
             return jsonify({"detail": f"File '{f.filename}' exceeds {_max_file_mb()} MB"}), 413
         total_bytes += len(data)
-        if total_bytes > MAX_TOTAL_PDF_BYTES:
-            return jsonify({"detail": f"전체 파일 용량은 최대 {_max_total_mb()} MB까지 처리할 수 있습니다"}), 413
+        if total_bytes > MAX_DIRECT_TOTAL_PDF_BYTES:
+            return jsonify({"detail": f"직접 업로드 전체 용량은 최대 {_max_direct_total_mb()} MB까지 처리할 수 있습니다"}), 413
         file_bytes_list.append(data)
 
     try:
@@ -186,8 +207,8 @@ def process(uid):
         output_bytes = pdf_ops.process_pdf(file_bytes_list, req)
     except ValueError as e:
         return jsonify({"detail": str(e)}), 400
-    except Exception as e:
-        return jsonify({"detail": f"PDF processing failed: {e}"}), 500
+    except Exception:
+        return _internal_error_response("Direct PDF processing failed")
 
     return Response(
         output_bytes,
@@ -214,6 +235,8 @@ def process_storage(uid):
         return jsonify({"detail": "storage_paths 형식이 올바르지 않습니다"}), 400
     if len(storage_paths) > MAX_PDF_FILES:
         return jsonify({"detail": f"파일은 최대 {MAX_PDF_FILES}개까지 처리할 수 있습니다"}), 400
+    if len(storage_paths) != len(set(storage_paths)):
+        return jsonify({"detail": "중복된 파일 경로가 있습니다"}), 400
 
     try:
         for path in storage_paths:
@@ -261,8 +284,8 @@ def process_storage(uid):
         output_bytes = pdf_ops.process_pdf(file_bytes_list, req)
     except ValueError as e:
         return jsonify({"detail": str(e)}), 400
-    except Exception as e:
-        return jsonify({"detail": f"PDF 처리 실패: {e}"}), 500
+    except Exception:
+        return _internal_error_response("Storage PDF processing failed")
     finally:
         _cleanup_storage_paths(bucket, storage_paths)
 
