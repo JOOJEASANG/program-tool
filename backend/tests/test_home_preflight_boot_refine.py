@@ -65,8 +65,16 @@ def test_preview_and_production_deploy_run_boot_guard_injection():
 
 def test_helpers_finish_before_the_layout_is_revealed():
     register = read("js/sw-register.js")
-    assert "await helpers();" in register
-    assert "await nextPaint();" in register
-    assert register.index("await helpers();") < register.index("reveal();")
-    assert "Promise.allSettled([clearLegacyCaches(),register()])" in register
+    boot = register[register.index("async function boot()") :]
+    assert "await helpers();" in boot
+    assert "await nextPaint();" in boot
+    assert boot.index("await helpers();") < boot.index("reveal();")
+    assert "Promise.allSettled([clearLegacyCaches(),register()])" in boot
     assert "setTimeout(reveal,5000)" in register
+
+
+def test_home_helpers_run_only_on_the_root_home_page():
+    register = read("js/sw-register.js")
+    assert "function isHome(){return currentPath==='/'||currentPath==='/index.html'}" in register
+    assert "location.pathname.endsWith('/index.html')" not in register
+    assert "if(isHome())" in register
