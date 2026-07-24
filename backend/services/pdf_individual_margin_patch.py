@@ -79,6 +79,19 @@ def _group_booklet_pages(page_infos: list, nup: int) -> list[list]:
     return [list(page_infos[index:index + size]) for index in range(0, len(page_infos), size)]
 
 
+def _booklet_layout(nup: int) -> tuple[int, int]:
+    """Return the fixed left/right booklet grid for one imposed output side.
+
+    Booklet reordering emits pairs in row-major order: left page, right page, then
+    the next strip. Rotating the sheet must not change this logical grid.
+    """
+    size = int(nup)
+    strips = pdf_ops.BOOKLET_STRIPS.get(size)
+    if strips is None:
+        return pdf_ops.NUP_LAYOUT.get(size, (1, 1))
+    return 2, strips
+
+
 def _apply_page_numbers_with_layout(
     page: fitz.Page,
     settings,
@@ -210,9 +223,12 @@ def process_pdf_with_individual_margins(file_bytes_list: list[bytes], request) -
                 effective_nup = int(request.nup_default) if booklet_enabled else (
                     1 if first.nup_disabled else (first.nup_override or request.nup_default)
                 )
-                cols, rows = pdf_ops.NUP_LAYOUT.get(effective_nup, (1, 1))
-                if paper_w_pt > paper_h_pt and cols != rows:
-                    cols, rows = rows, cols
+                if booklet_enabled:
+                    cols, rows = _booklet_layout(effective_nup)
+                else:
+                    cols, rows = pdf_ops.NUP_LAYOUT.get(effective_nup, (1, 1))
+                    if paper_w_pt > paper_h_pt and cols != rows:
+                        cols, rows = rows, cols
 
                 out_page = out_doc.new_page(width=paper_w_pt, height=paper_h_pt)
                 left, right, top, bottom = margins
@@ -302,9 +318,11 @@ def process_pdf_with_individual_margins(file_bytes_list: list[bytes], request) -
 
 
 pdf_ops._group_booklet_pages = _group_booklet_pages
+pdf_ops._booklet_layout = _booklet_layout
 
-if not getattr(pdf_ops, "_individual_margin_patch_v3", False):
+if not getattr(pdf_ops, "_individual_margin_patch_v4", False):
     pdf_ops.process_pdf = process_pdf_with_individual_margins
     pdf_ops._individual_margin_patch_v1 = True
     pdf_ops._individual_margin_patch_v2 = True
     pdf_ops._individual_margin_patch_v3 = True
+    pdf_ops._individual_margin_patch_v4 = True

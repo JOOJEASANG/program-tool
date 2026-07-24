@@ -5,10 +5,11 @@ import pytest
 
 from models.schemas import PageInfo, PdfProcessRequest
 from services.pdf_individual_margin_patch import (
+    _booklet_layout,
     _group_booklet_pages,
     process_pdf_with_individual_margins,
 )
-from services.pdf_ops import BOOKLET_STRIPS, _booklet_reorder
+from services.pdf_ops import BOOKLET_STRIPS, MM_TO_PT, _booklet_reorder
 
 
 def _logical_pages(count: int, *, conflicting_overrides: bool = False) -> list[PageInfo]:
@@ -36,7 +37,23 @@ def _source_pdf(page_count: int) -> bytes:
     return data
 
 
-def _request(page_count: int, nup: int, pages: list[dict] | None = None) -> PdfProcessRequest:
+def _layout_source_pdf(page_count: int) -> bytes:
+    """Create square source pages with a centered token for cell-position checks."""
+    doc = fitz.open()
+    for index in range(page_count):
+        page = doc.new_page(width=200, height=200)
+        page.insert_text((78, 106), f"P{index + 1:02d}", fontsize=18)
+    data = doc.tobytes()
+    doc.close()
+    return data
+
+
+def _request(
+    page_count: int,
+    nup: int,
+    pages: list[dict] | None = None,
+    paper: tuple[float, float] = (210, 297),
+) -> PdfProcessRequest:
     return PdfProcessRequest.model_validate(
         {
             "pages": pages
@@ -46,7 +63,7 @@ def _request(page_count: int, nup: int, pages: list[dict] | None = None) -> PdfP
             ],
             "nup_default": nup,
             "booklet": True,
-            "paper": {"width_mm": 210, "height_mm": 297},
+            "paper": {"width_mm": paper[0], "height_mm": paper[1]},
             "margin_h_mm": 8,
             "margin_v_mm": 8,
             "gap_mm": 3,
@@ -71,6 +88,72 @@ def test_booklet_imposition_is_complete_for_page_counts_1_to_20(nup: int):
             if page.page_type != "blank"
         )
         assert original_indexes == list(range(page_count))
+
+
+@pytest.mark.parametrize(
+    ("nup", "expected"),
+    [
+        (2, (2, 1)),
+        (4, (2, 2)),
+        (6, (2, 3)),
+        (8, (2, 4)),
+    ],
+)
+def test_booklet_layout_is_fixed_to_left_right_pairs(nup: int, expected: tuple[int, int]):
+    assert _booklet_layout(nup) == expected
+
+
+@pytest.mark.parametrize("paper", [(210, 297), (297, 210)])
+@pytest.mark.parametrize("nup", sorted(BOOKLET_STRIPS))
+def test_booklet_first_side_keeps_two_column_row_major_pairs_for_any_orientation(
+    paper: tuple[float, float],
+    nup: int,
+):
+    page_count = nup * 2
+    output = process_pdf_with_individual_margins(
+        [_layout_source_pdf(page_count)],
+        _request(page_count, nup, paper=paper),
+    )
+    result = fitz.open(stream=output, filetype="pdf")
+    try:
+        page = result[0]
+        words = {
+            word[4]: fitz.Rect(word[0], word[1], word[2], word[3])
+            for word in page.get_text("words")
+            if str(word[4]).startswith("P")
+        }
+        expected_labels = []
+        for strip_index in range(nup // 2):
+            expected_labels.extend(
+                [f"P{(strip_index + 1) * 4:02d}", f"P{strip_index * 4 + 1:02d}"]
+            )
+
+        cols, rows = _booklet_layout(nup)
+        margin = 8 * MM_TO_PT
+        gap = 3 * MM_TO_PT
+        cell_width = (page.rect.width - margin * 2 - gap * (cols - 1)) / cols
+        cell_height = (page.rect.height - margin * 2 - gap * (rows - 1)) / rows
+
+        assert set(expected_labels).issubset(words)
+        for slot_index, label in enumerate(expected_labels):
+            col = slot_index % cols
+            row = slot_index // cols
+            cell = fitz.Rect(
+                margin + col * (cell_width + gap),
+                margin + row * (cell_height + gap),
+                margin + col * (cell_width + gap) + cell_width,
+                margin + row * (cell_height + gap) + cell_height,
+            )
+            center = fitz.Point(
+                (words[label].x0 + words[label].x1) / 2,
+                (words[label].y0 + words[label].y1) / 2,
+            )
+            assert cell.contains(center), (
+                f"{paper=} {nup=} {label=} expected slot {slot_index} "
+                f"but word center {center} was outside {cell}"
+            )
+    finally:
+        result.close()
 
 
 def test_booklet_blank_in_first_slot_does_not_hide_real_page():
