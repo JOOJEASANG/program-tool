@@ -10,6 +10,7 @@ from services import pdf_divider_alignment_patch  # noqa: F401,E402
 from services import pdf_text_font_patch  # noqa: F401,E402
 from services import pdf_individual_margin_patch  # noqa: F401,E402
 from services import pdf_page_number_reserve_patch  # noqa: F401,E402
+from services import pdf_print_marks_patch  # noqa: F401,E402
 from services import pdf_range_guard_patch  # noqa: F401,E402
 from services import preflight_reliability_patch  # noqa: F401,E402
 
