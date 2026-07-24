@@ -20,14 +20,14 @@
       });
     }
     return new Promise(resolve=>{
-      const script=document.createElement('script');
-      script.id=id;
-      script.src=src;
-      script.async=false;
-      const done=()=>{script.dataset.loaded='true';resolve()};
-      script.addEventListener('load',done,{once:true});
-      script.addEventListener('error',done,{once:true});
-      document.head.appendChild(script);
+      const s=document.createElement('script');
+      s.id=id;
+      s.src=src;
+      s.async=false;
+      const done=()=>{s.dataset.loaded='true';resolve()};
+      s.addEventListener('load',done,{once:true});
+      s.addEventListener('error',done,{once:true});
+      document.head.appendChild(s);
       setTimeout(done,2500);
     });
   }
