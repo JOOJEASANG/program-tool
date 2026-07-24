@@ -21,8 +21,9 @@
       const paddingRight = parseFloat(style.paddingRight) || 0;
       // clientWidth excludes the vertical scrollbar, so the dock follows the
       // exact visible width of the sidebar controls on every browser.
-      const contentWidth = Math.max(240, aside.clientWidth - paddingLeft - paddingRight);
+      const contentWidth = Math.max(0, aside.clientWidth - paddingLeft - paddingRight);
       const contentLeft = rect.left + paddingLeft;
+      if (!contentWidth) return;
 
       dock.style.setProperty('left', `${Math.round(contentLeft)}px`, 'important');
       dock.style.setProperty('right', 'auto', 'important');
@@ -43,7 +44,9 @@
 
     if (!mutationObserver) {
       mutationObserver = new MutationObserver(syncDockWidth);
-      mutationObserver.observe(aside, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'style'] });
+      // Child changes can make the sidebar scrollbar appear or disappear.
+      // Do not observe style attributes because this module changes dock styles itself.
+      mutationObserver.observe(aside, { childList: true, subtree: true });
     }
 
     if (!window.__pdfEditorDockResizeHookV1) {
