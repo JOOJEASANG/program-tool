@@ -4,6 +4,7 @@ from types import SimpleNamespace
 import pytest
 
 from models.schemas import PdfProcessRequest
+from services import pdf_page_number_reserve_patch  # noqa: F401
 from services.pdf_individual_margin_patch import (
     _base_layout_margins,
     _page_number_value,
@@ -62,16 +63,16 @@ def test_legacy_paired_margins_remain_compatible():
     )
 
 
-def test_page_number_auto_reserve_expands_only_the_number_edge():
+def test_page_number_auto_reserve_expands_from_actual_number_anchor():
     request = _request(
         facing_pages=False,
         margin_top_mm=6,
-        margin_bottom_mm=7,
+        margin_bottom_mm=25,
         page_numbers={
             "enabled": True,
             "position": "bottom-right",
             "font_size": 12,
-            "margin_mm": 20,
+            "margin_mm": 5,
             "auto_reserve_space": True,
         },
     )
@@ -80,7 +81,7 @@ def test_page_number_auto_reserve_expands_only_the_number_edge():
     assert resolved[0] == pytest.approx(base[0])
     assert resolved[1] == pytest.approx(base[1])
     assert resolved[2] == pytest.approx(6 * MM_TO_PT)
-    assert resolved[3] > 20 * MM_TO_PT
+    assert resolved[3] > 25 * MM_TO_PT
 
 
 def test_page_number_auto_reserve_can_be_disabled():
@@ -110,10 +111,12 @@ def test_frontend_margin_selection_and_export_modules_are_connected():
     export_module = (ROOT / "js" / "pdf-editor" / "layout-export.js").read_text(encoding="utf-8")
     selection_module = (ROOT / "js" / "pdf-editor" / "page-selection-preview-focus.js").read_text(encoding="utf-8")
     reserve_module = (ROOT / "js" / "pdf-editor" / "page-number-auto-reserve.js").read_text(encoding="utf-8")
+    reserve_v2 = (ROOT / "js" / "pdf-editor" / "page-number-auto-reserve-layout-v2.js").read_text(encoding="utf-8")
 
     assert "individual-margins-facing-pages.js" in loader
     assert loader.rfind("page-number-auto-reserve.js") > loader.rfind("individual-margins-facing-pages.js")
-    assert loader.rfind("page-selection-preview-focus.js") > loader.rfind("page-number-auto-reserve.js")
+    assert loader.rfind("page-number-auto-reserve-layout-v2.js") > loader.rfind("page-number-auto-reserve.js")
+    assert loader.rfind("page-selection-preview-focus.js") > loader.rfind("page-number-auto-reserve-layout-v2.js")
     for field in ("marginLeft", "marginRight", "marginTop", "marginBottom"):
         assert field in margin_module
     for field in ("margin_left_mm", "margin_right_mm", "margin_top_mm", "margin_bottom_mm"):
@@ -123,6 +126,7 @@ def test_frontend_margin_selection_and_export_modules_are_connected():
     assert "선택 페이지 숨기기" in selection_module
     assert "displayPreviewKeepingFocus" in selection_module
     assert "페이지 번호 공간 자동 확보" in reserve_module
+    assert "fontMm * 1.8" in reserve_v2
 
 
 def test_pdf_dock_matches_cover_creator_layout():
@@ -146,10 +150,12 @@ def test_interaction_modules_have_no_unbounded_polling():
     multi = (ROOT / "js" / "pdf-editor" / "multifile-interaction-fix.js").read_text(encoding="utf-8")
     selection = (ROOT / "js" / "pdf-editor" / "page-selection-preview-focus.js").read_text(encoding="utf-8")
     reserve = (ROOT / "js" / "pdf-editor" / "page-number-auto-reserve.js").read_text(encoding="utf-8")
+    reserve_v2 = (ROOT / "js" / "pdf-editor" / "page-number-auto-reserve-layout-v2.js").read_text(encoding="utf-8")
 
     assert "setInterval(" not in live
     assert "setInterval(" not in count
     assert "setInterval(" not in multi
     assert "setInterval(" not in selection
     assert "setInterval(" not in reserve
+    assert "setInterval(" not in reserve_v2
     assert "removeAttribute('title')" in count
