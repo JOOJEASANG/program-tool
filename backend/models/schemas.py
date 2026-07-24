@@ -22,7 +22,7 @@ class PageInfo(BaseModel):
     excluded: bool = False
     page_type: Literal["normal", "divider", "blank"] = "normal"
     divider_content: Optional[str] = Field(default=None, max_length=20_000)
-    divider_style: Optional[Literal["simple", "lines", "band"] = "simple"
+    divider_style: Optional[Literal["simple", "lines", "band"]] = "simple"
 
 
 class WatermarkSettings(BaseModel):
