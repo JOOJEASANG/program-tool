@@ -1,4 +1,4 @@
-"""Patch PDF export to support four independent margins and facing-page mirroring."""
+"""Patch PDF export to support independent margins, facing pages, and page-number space."""
 from __future__ import annotations
 
 import io
@@ -15,16 +15,46 @@ def _margin_value(request, name: str, legacy_name: str, fallback: float) -> floa
     return pdf_ops._mm_to_pt_safe(value, fallback, 0.0, 80.0)
 
 
-def _resolve_layout_margins(request, output_page_idx: int) -> tuple[float, float, float, float]:
-    """Return left, right, top, bottom margins in points for one output page."""
+def _base_layout_margins(request, output_page_idx: int) -> tuple[float, float, float, float]:
+    """Return user-entered left, right, top, and bottom margins for one output page."""
     left = _margin_value(request, "margin_left_mm", "margin_h_mm", 10.0)
     right = _margin_value(request, "margin_right_mm", "margin_h_mm", 10.0)
     top = _margin_value(request, "margin_top_mm", "margin_v_mm", 10.0)
     bottom = _margin_value(request, "margin_bottom_mm", "margin_v_mm", 10.0)
-
-    # output_page_idx is zero-based. Page 2, 4, 6... swaps binding/outer margins.
     if bool(getattr(request, "facing_pages", False)) and output_page_idx % 2 == 1:
         left, right = right, left
+    return left, right, top, bottom
+
+
+def _page_number_applies(settings, output_page_idx: int) -> bool:
+    if not bool(getattr(settings, "enabled", False)):
+        return False
+    if bool(getattr(settings, "exclude_first", False)) and output_page_idx == 0:
+        return False
+    is_odd = output_page_idx % 2 == 0
+    apply_to = getattr(settings, "apply_to", "all")
+    return apply_to == "all" or (apply_to == "odd" and is_odd) or (apply_to == "even" and not is_odd)
+
+
+def _required_page_number_space(settings) -> float:
+    """Return content space required around the number in points."""
+    margin_mm = getattr(settings, "margin_mm", None)
+    edge = pdf_ops._mm_to_pt_safe(margin_mm, 5.0) if margin_mm is not None else pdf_ops.PN_MARGIN_PT
+    font_size = max(6.0, min(72.0, float(getattr(settings, "font_size", 10.0) or 10.0)))
+    return min(80.0 * pdf_ops.MM_TO_PT, edge + font_size * 0.8 + 2.0 * pdf_ops.MM_TO_PT)
+
+
+def _resolve_layout_margins(request, output_page_idx: int) -> tuple[float, float, float, float]:
+    """Return content margins, expanding top/bottom when page numbers need room."""
+    left, right, top, bottom = _base_layout_margins(request, output_page_idx)
+    settings = request.page_numbers
+    if bool(getattr(settings, "auto_reserve_space", True)) and _page_number_applies(settings, output_page_idx):
+        required = _required_page_number_space(settings)
+        position = str(getattr(settings, "position", "bottom-center"))
+        if position.startswith("top-"):
+            top = max(top, required)
+        else:
+            bottom = max(bottom, required)
     return left, right, top, bottom
 
 
@@ -44,21 +74,13 @@ def _apply_page_numbers_with_layout(
     page_width: float,
     page_height: float,
     facing_pages: bool,
-    layout_margins: tuple[float, float, float, float],
+    paper_margins: tuple[float, float, float, float],
 ) -> None:
-    if not settings.enabled:
-        return
-    if settings.exclude_first and output_idx == 0:
+    if not _page_number_applies(settings, output_idx):
         return
 
     page_1based = output_idx + 1
     is_odd = page_1based % 2 == 1
-    apply_to = getattr(settings, "apply_to", "all")
-    if apply_to == "odd" and not is_odd:
-        return
-    if apply_to == "even" and is_odd:
-        return
-
     num, number_total = _page_number_value(settings, output_idx, total_pages)
     if settings.format == "1":
         text = str(num)
@@ -71,33 +93,30 @@ def _apply_page_numbers_with_layout(
 
     color = pdf_ops._hex_to_rgb(settings.color, (0.2, 0.2, 0.2))
     fs = settings.font_size
-    pos = settings.position
+    position = settings.position
     if facing_pages and not is_odd:
-        if "left" in pos:
-            pos = pos.replace("left", "right")
-        elif "right" in pos:
-            pos = pos.replace("right", "left")
+        if "left" in position:
+            position = position.replace("left", "right")
+        elif "right" in position:
+            position = position.replace("right", "left")
 
-    left_margin, right_margin, top_margin, bottom_margin = layout_margins
+    left_margin, right_margin, top_margin, bottom_margin = paper_margins
     extra_mm = getattr(settings, "margin_mm", None)
     extra = pdf_ops._mm_to_pt_safe(extra_mm, 5.0) if extra_mm is not None else pdf_ops.PN_MARGIN_PT
-
-    # Page numbers never cross the paper margin line. A larger dedicated number
-    # margin may still move them farther inward.
     left_anchor = max(left_margin, extra)
     right_anchor = max(right_margin, extra)
     top_anchor = max(top_margin, extra)
     bottom_anchor = max(bottom_margin, extra)
 
-    if "bottom" in pos:
+    if "bottom" in position:
         y = page_height - bottom_anchor - fs * 1.6
     else:
         y = top_anchor
 
-    if "center" in pos:
+    if "center" in position:
         rect = fitz.Rect(page_width * 0.25, y, page_width * 0.75, y + fs * 1.8)
         align = fitz.TEXT_ALIGN_CENTER
-    elif "right" in pos:
+    elif "right" in position:
         rect = fitz.Rect(page_width * 0.55, y, page_width - right_anchor, y + fs * 1.8)
         align = fitz.TEXT_ALIGN_RIGHT
     else:
@@ -108,7 +127,7 @@ def _apply_page_numbers_with_layout(
 
 
 def process_pdf_with_individual_margins(file_bytes_list: list[bytes], request) -> bytes:
-    """Build output PDF using independent left/right/top/bottom margins."""
+    """Build output PDF using independent margins and reserved page-number space."""
     src_docs = [fitz.open(stream=data, filetype="pdf") for data in file_bytes_list]
     try:
         paper_w_pt = request.paper.width_mm * pdf_ops.MM_TO_PT
@@ -132,6 +151,7 @@ def process_pdf_with_individual_margins(file_bytes_list: list[bytes], request) -
 
         for group in groups:
             first = group[0]
+            paper_margins = _base_layout_margins(request, output_page_idx)
             margins = _resolve_layout_margins(request, output_page_idx)
 
             if first.page_type == "blank":
@@ -218,7 +238,7 @@ def process_pdf_with_individual_margins(file_bytes_list: list[bytes], request) -
                 paper_w_pt,
                 paper_h_pt,
                 facing,
-                margins,
+                paper_margins,
             )
             output_page_idx += 1
 
@@ -235,6 +255,7 @@ def process_pdf_with_individual_margins(file_bytes_list: list[bytes], request) -
             src_doc.close()
 
 
-if not getattr(pdf_ops, "_individual_margin_patch_v1", False):
+if not getattr(pdf_ops, "_individual_margin_patch_v2", False):
     pdf_ops.process_pdf = process_pdf_with_individual_margins
     pdf_ops._individual_margin_patch_v1 = True
+    pdf_ops._individual_margin_patch_v2 = True
