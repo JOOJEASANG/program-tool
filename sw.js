@@ -1,4 +1,4 @@
-const APP_VERSION='2026.07.24.018';
+const APP_VERSION='2026.07.24.019';
 const CACHE_PREFIX='program-studio-';
 const CACHE_NAME=CACHE_PREFIX+APP_VERSION;
 async function clearOldCaches(){const keys=await caches.keys();await Promise.all(keys.filter(k=>k.startsWith(CACHE_PREFIX)&&k!==CACHE_NAME).map(k=>caches.delete(k)))}
