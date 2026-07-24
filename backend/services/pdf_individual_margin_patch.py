@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import io
-from types import SimpleNamespace
 
 import fitz
 
@@ -29,6 +28,14 @@ def _resolve_layout_margins(request, output_page_idx: int) -> tuple[float, float
     return left, right, top, bottom
 
 
+def _page_number_value(settings, output_idx: int, total_pages: int) -> tuple[int, int]:
+    """Match the browser preview's numbering, including cover exclusion."""
+    offset = 1 if settings.exclude_first else 0
+    visible = output_idx + settings.start - offset
+    visible_total = max(0, total_pages - offset) + settings.start - 1
+    return visible, visible_total
+
+
 def _apply_page_numbers_with_layout(
     page: fitz.Page,
     settings,
@@ -52,16 +59,15 @@ def _apply_page_numbers_with_layout(
     if apply_to == "even" and is_odd:
         return
 
-    # Keep existing numbering behavior for compatibility with saved projects.
-    num = output_idx + settings.start
+    num, number_total = _page_number_value(settings, output_idx, total_pages)
     if settings.format == "1":
         text = str(num)
     elif settings.format == "1/N":
-        text = f"{num}/{total_pages}"
+        text = f"{num}/{number_total}"
     elif settings.format == "-1-":
         text = f"- {num} -"
     else:
-        text = f"- {num}/{total_pages} -"
+        text = f"- {num}/{number_total} -"
 
     color = pdf_ops._hex_to_rgb(settings.color, (0.2, 0.2, 0.2))
     fs = settings.font_size
