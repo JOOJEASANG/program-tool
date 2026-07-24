@@ -9,7 +9,15 @@ from pathlib import Path
 
 import firebase_admin.storage as fa_storage
 import fitz
-from flask import Blueprint, Response, g, jsonify, request, send_file
+from flask import (
+    Blueprint,
+    Response,
+    g,
+    has_request_context,
+    jsonify,
+    request,
+    send_file,
+)
 
 from models.schemas import PdfProcessRequest
 import services.pdf_ops as pdf_ops
@@ -35,9 +43,14 @@ def _bucket():
 
 
 def _request_id() -> str:
+    """Return a stable request id inside Flask requests and a safe fallback elsewhere."""
+    if not has_request_context():
+        return uuid.uuid4().hex[:16]
+
     cached = getattr(g, "pdf_request_id", None)
     if isinstance(cached, str) and cached:
         return cached
+
     supplied = request.headers.get("X-Request-ID", "").strip()
     request_id = supplied if REQUEST_ID_PATTERN.fullmatch(supplied) else uuid.uuid4().hex[:16]
     g.pdf_request_id = request_id
