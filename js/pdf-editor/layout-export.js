@@ -2,8 +2,8 @@
 // Sends independent paper margins, facing-page options, and page-number spacing to backend export.
 (function () {
   'use strict';
-  if (window.__pdfEditorLayoutExportV4) return;
-  window.__pdfEditorLayoutExportV4 = true;
+  if (window.__pdfEditorLayoutExportV5) return;
+  window.__pdfEditorLayoutExportV5 = true;
 
   function $(id) { return document.getElementById(id); }
   function num(id, fallback) {
@@ -36,25 +36,39 @@
     settings.page_numbers.auto_reserve_space = !($('pnAutoReserve') && !$('pnAutoReserve').checked);
     return settings;
   }
+  function endpointPath(input) {
+    try {
+      const raw = typeof input === 'string' ? input : input?.url;
+      if (!raw) return '';
+      const url = new URL(raw, location.href);
+      if (url.origin !== location.origin) return '';
+      return url.pathname.replace(/\/+$/, '');
+    } catch (_) {
+      return '';
+    }
+  }
   function wrapApiProcessPdf() {
-    if (window.__pdfLayoutApiWrappedV4 || typeof window.apiProcessPdf !== 'function') return false;
+    if (window.__pdfLayoutApiWrappedV5 || typeof window.apiProcessPdf !== 'function') return false;
     const original = window.apiProcessPdf;
-    window.apiProcessPdf = function layoutPatchedApiProcessPdf(files, settings, options) {
+    const wrapped = function layoutPatchedApiProcessPdf(files, settings, options) {
       return original.call(this, files, patchSettings(settings), options);
     };
-    window.__pdfLayoutApiWrappedV4 = true;
+    wrapped.__pdfLayoutApiWrappedV5 = true;
+    window.apiProcessPdf = wrapped;
+    try { apiProcessPdf = wrapped; } catch (_) {}
+    window.__pdfLayoutApiWrappedV5 = true;
     return true;
   }
   function wrapFetch() {
-    if (window.__pdfLayoutFetchWrappedV4) return true;
+    if (window.__pdfLayoutFetchWrappedV5) return true;
     const originalFetch = window.fetch.bind(window);
     window.fetch = function layoutPatchedFetch(input, init) {
       try {
-        const url = typeof input === 'string' ? input : (input && input.url) || '';
-        if (url.includes('/api/pdf/process') && init && init.body instanceof FormData) {
+        const path = endpointPath(input);
+        if (path === '/api/pdf/process' && init && init.body instanceof FormData) {
           const raw = init.body.get('settings');
           if (raw) init.body.set('settings', JSON.stringify(patchSettings(JSON.parse(raw))));
-        } else if (url.includes('/api/pdf/process-storage') && init && typeof init.body === 'string') {
+        } else if (path === '/api/pdf/process-storage' && init && typeof init.body === 'string') {
           const body = JSON.parse(init.body);
           if (body && body.settings) {
             body.settings = patchSettings(body.settings);
@@ -66,7 +80,7 @@
       }
       return originalFetch(input, init);
     };
-    window.__pdfLayoutFetchWrappedV4 = true;
+    window.__pdfLayoutFetchWrappedV5 = true;
     return true;
   }
   function boot(attempt) {
@@ -74,7 +88,7 @@
     wrapFetch();
     if (!ready && attempt < 10) setTimeout(() => boot(attempt + 1), 180 + attempt * 80);
   }
-  window.PdfEditorLayoutExport = { patchSettings, marginValues };
+  window.PdfEditorLayoutExport = { patchSettings, marginValues, endpointPath };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => boot(0), { once: true });
   else boot(0);
 })();
