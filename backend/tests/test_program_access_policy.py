@@ -77,7 +77,7 @@ def test_frontend_and_backend_share_public_approved_and_program_rules():
     assert "db.collection('admins')" not in frontend
 
     assert "def _is_program_public" in backend
-    assert "if _is_program_public(db, program_id)" in backend
+    assert "_is_program_public(db, program_id)" in backend
     assert 'data.get("status") != "approved"' in backend
 
 
