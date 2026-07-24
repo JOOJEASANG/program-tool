@@ -1,14 +1,14 @@
 // PDF editor module loader.
 // Add new PDF editor modules here instead of growing tools/pdf-editor.html.
 (function () {
-  if (window.__pdfEditorModuleLoaderV33) return;
-  window.__pdfEditorModuleLoaderV33 = true;
+  if (window.__pdfEditorModuleLoaderV34) return;
+  window.__pdfEditorModuleLoaderV34 = true;
 
   const MODULES = [
     '/js/pdf-editor/font-render-fix.js?v=20260618-1',
-    '/js/pdf-editor/upload-fix.js?v=20260724-4',
+    '/js/pdf-editor/upload-fix.js?v=20260724-5',
     '/js/pdf-editor/live-preview.js?v=20260724-4',
-    '/js/pdf-editor/layout-export.js?v=20260724-4',
+    '/js/pdf-editor/layout-export.js?v=20260724-5',
     '/js/pdf-editor/page-count-hint.js?v=20260724-2',
     '/js/pdf-editor/nup-helper.js?v=20260724-2',
     '/js/pdf-editor/preview-row-default.js?v=20260602-1',
@@ -22,9 +22,12 @@
     '/js/pdf-editor/page-number-auto-reserve-layout-v2.js?v=20260724-1',
     '/js/pdf-editor/page-selection-preview-focus.js?v=20260724-1',
     '/js/pdf-editor/page-productivity.js?v=20260724-1',
+    '/js/pdf-editor/thumbnail-integrity.js?v=20260724-1',
     '/js/pdf-editor/booklet-reliability.js?v=20260724-2',
     '/js/pdf-editor/hf-input-cleanup.js?v=20260724-1',
-    '/js/pdf-editor/preview-controller.js?v=20260724-1',
+    '/js/pdf-editor/page-number-preview-parity.js?v=20260724-1',
+    '/js/pdf-editor/runtime-integrity.js?v=20260724-1',
+    '/js/pdf-editor/preview-controller.js?v=20260724-2',
     '/js/pdf-editor/source-ui-normalization.js?v=20260724-1',
     '/js/pdf-editor/operation-progress-summary.js?v=20260724-1',
     '/js/pdf-editor/booklet-print-guide.js?v=20260724-1',
@@ -39,7 +42,7 @@
     const script = document.createElement('script');
     script.src = src;
     // Dynamic scripts are async by default. Keep module execution order so the
-    // PDF.js font patch is installed before upload-fix opens a document.
+    // PDF.js font and core-layout patches are installed before dependent modules.
     script.async = false;
     document.head.appendChild(script);
   }

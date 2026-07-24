@@ -17,7 +17,7 @@ window.googleProvider=googleProvider;
 window.firebaseConfig=firebaseConfig;
 
 // 모든 주요 페이지에서 동일한 캐시·버전 관리 모듈을 한 번만 실행합니다.
-(()=>{if(document.getElementById('programStudioCacheBootstrap'))return;const s=document.createElement('script');s.id='programStudioCacheBootstrap';s.src='/js/sw-register.js?v=2026.07.24.019';s.defer=true;document.head.appendChild(s)})();
+(()=>{if(document.getElementById('programStudioCacheBootstrap'))return;const s=document.createElement('script');s.id='programStudioCacheBootstrap';s.src='/js/sw-register.js?v=2026.07.24.020';s.defer=true;document.head.appendChild(s)})();
 
 window.ProgramAccess={
   normalizeEmail:v=>String(v||'').trim().toLowerCase(),
