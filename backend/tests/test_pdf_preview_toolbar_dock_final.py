@@ -19,12 +19,14 @@ def test_preview_toolbar_has_compact_non_overlapping_layout():
     toolbar = TOOLBAR.read_text(encoding="utf-8")
     assert 'grid-template-areas:"copy controls"' in toolbar
     assert 'grid-template-areas:"copy" "controls"' in toolbar
-    assert "preview-copy-primary" in toolbar
-    assert "preview-copy-secondary" in toolbar
+    assert 'grid-template-areas:"info pages live" "count count count"' in toolbar
+    assert 'grid-template-areas:"info pages" "live live" "count count"' in toolbar
     assert "bar.clientWidth < 760" in toolbar
     assert "width:96px!important" in toolbar
     assert "max-width:96px!important" in toolbar
     assert "position:static!important" in toolbar
+    assert "preview-copy-primary" not in toolbar
+    assert "preview-copy-secondary" not in toolbar
     assert "setInterval(" not in toolbar
 
 
