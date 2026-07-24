@@ -166,8 +166,8 @@
 
     const previewButton = byId('previewBtn');
     const statusText = (byId('statusBar') && byId('statusBar').textContent) || '';
-    if (previewButton && previewButton.disabled && statusText.includes('미리보기 생성 중')) {
-      if (retryCount < 6) {
+    if (previewButton && previewButton.disabled) {
+      if (statusText.includes('미리보기 생성 중') && retryCount < 6) {
         retryCount += 1;
         schedulePreview(350, force);
       }
@@ -181,7 +181,7 @@
       if (typeof triggerPreview === 'function') {
         await triggerPreview();
         lastPreviewSignature = signature;
-      } else if (previewButton && !previewButton.disabled) {
+      } else if (previewButton) {
         previewButton.click();
         lastPreviewSignature = signature;
       }
@@ -254,9 +254,8 @@
 
     document.addEventListener('change', (event) => {
       const target = event.target;
-      if (!target) return;
-      if (target.matches('input[type="file"]')) schedulePreview(900, true);
-      else if (target.matches('select,input[type="number"],input[type="checkbox"]')) schedulePreview(420, true);
+      if (!target || target.matches('input[type="file"]')) return;
+      if (target.matches('select,input[type="number"],input[type="checkbox"]')) schedulePreview(420, true);
     }, true);
 
     document.addEventListener('input', (event) => {
