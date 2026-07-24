@@ -31,11 +31,6 @@ service firebase.storage {
         && request.resource.size <= 15728640
         && request.resource.contentType.matches('image/(jpeg|png|webp)');
     }
-
-    match /pdf_history/{userId}/{allPaths=**} {
-      allow read, delete: if isOwner(userId);
-      allow create, update: if isOwner(userId) && isPdfUpload();
-    }
     match /pdf_temp/{userId}/{allPaths=**} {
       allow read, delete: if isOwner(userId);
       allow create, update: if isOwner(userId) && isPdfUpload();

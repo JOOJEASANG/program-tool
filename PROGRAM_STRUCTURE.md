@@ -6,7 +6,7 @@
 
 - `pdf-editor/index.html` — PDF 편집기
 - `pdf-preflight/index.html` — PDF 인쇄 검수
-- `perfect-binding-cover/index.html` — 무선제본 표지 제작기
+- `perfect-binding-cover/index.html` — 책표지제작
 
 기존 `tools/*.html` 주소는 사용자의 북마크와 이전 링크를 위해 새 폴더로 이동시키는 호환 페이지로만 유지합니다. 실제 기능 수정은 반드시 위 프로그램 폴더의 `index.html`에서 진행합니다.
 

@@ -64,16 +64,20 @@
       if (extreme) {
         hint.textContent = '초대용량 목록 모드';
         hint.style.color = '#b45309';
-        hint.title = '페이지가 매우 많은 PDF는 브라우저 멈춤을 막기 위해 페이지 목록만 먼저 표시합니다.';
+        hint.title = '페이지가 매우 많은 PDF는 브라우저 보호를 위해 목록과 배치 중심으로 표시합니다. 저장 결과는 원본 PDF를 기준으로 처리됩니다.';
       } else if (optimized) {
-        hint.textContent = '대용량 최적화 · 미리보기 수동';
+        hint.textContent = '대용량 문서 · 수동 미리보기';
         hint.style.color = '#b45309';
-        hint.title = '페이지 수나 파일 크기가 매우 클 때 자동 미리보기를 줄여 브라우저 멈춤을 방지합니다. 미리보기 새로고침 버튼으로 확인할 수 있습니다.';
+        hint.title = '대용량 PDF도 미리볼 수 있습니다. 브라우저 멈춤을 막기 위해 자동 갱신만 중지되며, 미리보기 새로고침 버튼으로 실제 내용을 확인합니다.';
       } else {
         hint.textContent = '실시간 미리보기 ON';
         hint.style.color = '#64748b';
         hint.title = '업로드와 주요 편집 설정 변경 후 미리보기가 자동 갱신됩니다.';
       }
+    }
+    const previewButton = byId('previewBtn');
+    if (previewButton) {
+      previewButton.textContent = extreme ? '레이아웃 미리보기' : (optimized ? '대용량 미리보기 생성' : '미리보기 새로고침');
     }
     [byId('statusBar'), byId('previewInfo'), byId('previewScroll')].forEach(replaceModeTerms);
   }

@@ -15,8 +15,6 @@
     '/js/pdf-editor/divider-helper.js?v=20260722-2',
     '/js/pdf-editor/divider-studio.js?v=20260722-1',
     '/js/pdf-editor/divider-studio-render-fix.js?v=20260722-1',
-    '/js/pdf-editor/storage-cleanup.js?v=20260518-1',
-    '/js/pdf-editor/history-policy.js?v=20260518-1',
     '/js/pdf-editor/multifile-interaction-fix.js?v=20260722-1',
     '/js/pdf-editor/ux-repair.js?v=20260724-1',
     '/js/pdf-editor/dock-width-align.js?v=20260724-1'
