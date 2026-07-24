@@ -1,6 +1,10 @@
 from pathlib import Path
 
-from utils.permissions import _has_program_access, _is_admin, _is_program_public
+from utils.permissions import (
+    _has_admin_claim,
+    _is_legacy_admin,
+    _program_access_from_snapshots,
+)
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -39,46 +43,46 @@ class FakeDb:
         return FakeCollection(self.collections.get(name, {}))
 
 
-def test_admin_source_is_settings_admin_email_list_only():
+def test_admin_claim_requires_exact_boolean_true():
+    assert _has_admin_claim({"admin": True}) is True
+    assert _has_admin_claim({"admin": "true"}) is False
+    assert _has_admin_claim({}) is False
+
+
+def test_legacy_admin_fallback_uses_normalized_email_list():
     db = FakeDb({"settings": {"admin": {"emails": ["Admin@Example.com"]}}})
-    assert _is_admin(db, "admin@example.com") is True
-    assert _is_admin(db, "other@example.com") is False
+    assert _is_legacy_admin(db, "admin@example.com") is True
+    assert _is_legacy_admin(db, "other@example.com") is False
 
 
-def test_public_program_allows_signed_in_users_without_assignment():
-    db = FakeDb({"settings": {"programs": {"public": {"pdf-editor": True}}}})
-    assert _is_program_public(db, "pdf-editor") is True
-    assert _is_program_public(db, "preflight") is False
+def test_public_program_allows_without_user_assignment():
+    program = FakeSnapshot({"public": {"pdf-editor": True}})
+    permission = FakeSnapshot(None)
+    assert _program_access_from_snapshots(program, permission, "pdf-editor") is True
+    assert _program_access_from_snapshots(program, permission, "preflight") is False
 
 
 def test_private_program_requires_approved_status_and_exact_flag():
-    db = FakeDb(
-        {
-            "user_permissions": {
-                "approved": {"status": "approved", "programs": {"pdf-editor": True}},
-                "pending": {"status": "pending", "programs": {"pdf-editor": True}},
-                "missing": {"status": "approved", "programs": {"pdf-editor": False}},
-            }
-        }
-    )
-    assert _has_program_access(db, "approved", "pdf-editor") is True
-    assert _has_program_access(db, "pending", "pdf-editor") is False
-    assert _has_program_access(db, "missing", "pdf-editor") is False
+    private = FakeSnapshot({"public": {"pdf-editor": False}})
+    approved = FakeSnapshot({"status": "approved", "programs": {"pdf-editor": True}})
+    pending = FakeSnapshot({"status": "pending", "programs": {"pdf-editor": True}})
+    denied = FakeSnapshot({"status": "approved", "programs": {"pdf-editor": False}})
+    assert _program_access_from_snapshots(private, approved, "pdf-editor") is True
+    assert _program_access_from_snapshots(private, pending, "pdf-editor") is False
+    assert _program_access_from_snapshots(private, denied, "pdf-editor") is False
 
 
-def test_frontend_and_backend_share_public_approved_and_program_rules():
+def test_frontend_and_backend_share_claim_public_and_assignment_policy():
     frontend = (ROOT / "js" / "firebase-config.js").read_text(encoding="utf-8")
     backend = (ROOT / "backend" / "utils" / "permissions.py").read_text(encoding="utf-8")
-
-    assert "async canUseProgram(user,programId)" in frontend
+    assert "getIdTokenResult" in frontend
+    assert "claims?.admin===true" in frontend
     assert "publicPrograms?.[programId]===true" in frontend
     assert "access.status==='approved'&&assigned" in frontend
-    assert "profileData.role==='admin'" not in frontend
-    assert "db.collection('admins')" not in frontend
-
-    assert "def _is_program_public" in backend
-    assert "if _is_program_public(db, program_id)" in backend
-    assert 'data.get("status") != "approved"' in backend
+    assert "def _has_admin_claim" in backend
+    assert "def _is_legacy_admin" in backend
+    assert "def _program_access_from_snapshots" in backend
+    assert 'permission_data.get("status") != "approved"' in backend
 
 
 def test_guard_maps_each_protected_page_to_one_program_id():

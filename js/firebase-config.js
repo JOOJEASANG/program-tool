@@ -16,18 +16,31 @@ window.db=db;
 window.googleProvider=googleProvider;
 window.firebaseConfig=firebaseConfig;
 
-// 모든 주요 페이지에서 동일한 캐시·버전 관리 모듈을 한 번만 실행합니다.
-(()=>{if(document.getElementById('programStudioCacheBootstrap'))return;const s=document.createElement('script');s.id='programStudioCacheBootstrap';s.src='/js/sw-register.js?v=2026.07.24.020';s.defer=true;document.head.appendChild(s)})();
+(()=>{if(document.getElementById('programStudioCacheBootstrap'))return;const s=document.createElement('script');s.id='programStudioCacheBootstrap';s.src='/js/sw-register.js?v=2026.07.25.030';s.defer=true;document.head.appendChild(s)})();
 
 window.ProgramAccess={
+  _cache:new Map(),
+  _cacheTtlMs:30000,
   normalizeEmail:v=>String(v||'').trim().toLowerCase(),
+  _cacheGet(key){const item=this._cache.get(key);if(!item||Date.now()-item.time>this._cacheTtlMs){this._cache.delete(key);return undefined}return item.value},
+  _cacheSet(key,value){this._cache.set(key,{value,time:Date.now()});return value},
+  clearCache(user){const uid=typeof user==='string'?user:user?.uid;if(!uid){this._cache.clear();return}for(const key of this._cache.keys())if(key.includes(`:${uid}`))this._cache.delete(key)},
   async isAdmin(user){
     if(!user)return false;
+    const cacheKey=`admin:${user.uid}`;
+    const cached=this._cacheGet(cacheKey);
+    if(cached!==undefined)return cached;
+    try{
+      const tokenResult=await user.getIdTokenResult(false);
+      if(tokenResult?.claims?.admin===true)return this._cacheSet(cacheKey,true);
+    }catch(e){console.warn('Admin claim could not be read.',e)}
     const email=this.normalizeEmail(user.email);
-    if(!email)return false;
-    const snap=await db.collection('settings').doc('admin').get();
-    const emails=snap.exists&&Array.isArray(snap.data().emails)?snap.data().emails:[];
-    return emails.map(value=>this.normalizeEmail(value)).includes(email);
+    if(!email)return this._cacheSet(cacheKey,false);
+    try{
+      const snap=await db.collection('settings').doc('admin').get();
+      const emails=snap.exists&&Array.isArray(snap.data().emails)?snap.data().emails:[];
+      return this._cacheSet(cacheKey,emails.map(value=>this.normalizeEmail(value)).includes(email));
+    }catch(_){return this._cacheSet(cacheKey,false)}
   },
   async ensureUserDocument(user){
     if(!user)return null;
@@ -40,12 +53,17 @@ window.ProgramAccess={
     return snap.data();
   },
   async getPublicPrograms(){
+    const cached=this._cacheGet('public-programs');
+    if(cached!==undefined)return cached;
     const snap=await db.collection('settings').doc('programs').get().catch(()=>null);
     const data=snap&&snap.exists?snap.data():{};
-    return data&&typeof data.public==='object'&&data.public?data.public:{};
+    return this._cacheSet('public-programs',data&&typeof data.public==='object'&&data.public?data.public:{});
   },
   async getAccess(user){
     if(!user)return{loggedIn:false,admin:false,approved:false,status:'signed_out',profile:null};
+    const cacheKey=`access:${user.uid}`;
+    const cached=this._cacheGet(cacheKey);
+    if(cached!==undefined)return cached;
     const admin=await this.isAdmin(user).catch(()=>false);
     let profile=null;
     try{profile=await this.ensureUserDocument(user)}catch(e){
@@ -53,7 +71,7 @@ window.ProgramAccess={
       try{const snap=await db.collection('user_permissions').doc(user.uid).get();profile=snap.exists?snap.data():null}catch(_){profile=null}
     }
     const status=admin?'approved':String(profile?.status||'pending');
-    return{loggedIn:true,admin,approved:admin||status==='approved',status,profile};
+    return this._cacheSet(cacheKey,{loggedIn:true,admin,approved:admin||status==='approved',status,profile});
   },
   async canUseProgram(user,programId){
     if(!user||!programId)return{allowed:false,status:'signed_out',admin:false,public:false,profile:null};
@@ -75,24 +93,25 @@ window.ProgramAccess={
     const waitingUrl=options.waitingUrl||'../approval-waiting.html';
     const programId=options.programId||this.programForPath(location.pathname);
     if(!auth){location.replace(loginUrl);return;}
-    return new Promise(resolve=>auth.onAuthStateChanged(async user=>{
-      if(!user){location.replace(loginUrl);return;}
+    return new Promise(resolve=>{const unsubscribe=auth.onAuthStateChanged(async user=>{
+      if(!user){unsubscribe();location.replace(loginUrl);return;}
       try{
         const access=programId?await this.canUseProgram(user,programId):await this.getAccess(user);
         const allowed=programId?access.allowed:access.approved;
         if(!allowed){
+          unsubscribe();
           const status=access.status==='approved'?'forbidden':(access.status||'pending');
           location.replace(`${waitingUrl}?status=${encodeURIComponent(status)}&program=${encodeURIComponent(programId||'')}`);
           return;
         }
         document.documentElement.dataset.accessReady='true';
         document.documentElement.dataset.programAccess=programId||'approved';
-        resolve(access);
+        unsubscribe();resolve(access);
       }catch(e){
-        console.error(e);
+        unsubscribe();console.error(e);
         location.replace(`${waitingUrl}?status=error&program=${encodeURIComponent(programId||'')}`);
       }
-    }));
+    })});
   }
 };
 
@@ -109,7 +128,7 @@ window.addEventListener('DOMContentLoaded',async()=>{
   document.querySelectorAll('[data-current-year],#copyrightYear').forEach(el=>el.textContent=year);
   const footer=document.querySelector('footer');
   if(!footer)return;
-  footer.innerHTML=footer.innerHTML.replace(/©\s*\d{4}/g,`© ${year}`);
+  footer.querySelectorAll('span').forEach(el=>{if(/©\s*\d{4}/.test(el.textContent||''))el.textContent=el.textContent.replace(/©\s*\d{4}/g,`© ${year}`)});
   const shell=footer.querySelector('.footer-inner')||footer;
   const hasLegalUi=!!footer.querySelector('.footer-links,.footer-legal,[data-legal]');
   if(!hasLegalUi){

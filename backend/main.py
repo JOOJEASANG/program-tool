@@ -1,9 +1,10 @@
 import os
 import firebase_admin
 
-firebase_admin.initialize_app(options={
-    "storageBucket": os.environ.get("FIREBASE_STORAGE_BUCKET", "program-tool.firebasestorage.app"),
-})
+if not firebase_admin._apps:
+    firebase_admin.initialize_app(options={
+        "storageBucket": os.environ.get("FIREBASE_STORAGE_BUCKET", "program-tool.firebasestorage.app"),
+    })
 
 # Apply PDF text renderers and result guards before route imports.
 from services import pdf_divider_alignment_patch  # noqa: F401,E402
@@ -27,6 +28,9 @@ from firebase_functions import https_fn, options
 from utils.permissions import AccessError, require_program_access_for_request
 
 flask_app = Flask(__name__)
+# Multipart direct uploads are intentionally limited below the Storage-based
+# processing ceiling. The PDF router enforces a 200 MB aggregate direct-upload
+# limit, while this small allowance covers multipart boundaries and settings.
 flask_app.config["MAX_CONTENT_LENGTH"] = 210 * 1024 * 1024
 flask_app.register_blueprint(pdf_bp, url_prefix="/api/pdf")
 flask_app.register_blueprint(pdf_tools_bp, url_prefix="/api/pdf-tools")
