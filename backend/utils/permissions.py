@@ -49,6 +49,7 @@ def _normalized_email(decoded: dict) -> str:
 
 
 def _is_admin(db: firestore.Client, email: str) -> bool:
+    """Use the same trusted administrator source as Firestore rules and clients."""
     if not email:
         return False
     snapshot = db.collection("settings").document("admin").get()
@@ -65,6 +66,16 @@ def _is_admin(db: firestore.Client, email: str) -> bool:
     }
 
 
+def _is_program_public(db: firestore.Client, program_id: str) -> bool:
+    """Return whether a signed-in user may use the program without per-user approval."""
+    snapshot = db.collection("settings").document("programs").get()
+    if not snapshot.exists:
+        return False
+    data = snapshot.to_dict() or {}
+    public = data.get("public")
+    return isinstance(public, dict) and public.get(program_id) is True
+
+
 def _has_program_access(db: firestore.Client, uid: str, program_id: str) -> bool:
     snapshot = db.collection("user_permissions").document(uid).get()
     if not snapshot.exists:
@@ -79,7 +90,7 @@ def _has_program_access(db: firestore.Client, uid: str, program_id: str) -> bool
 
 
 def require_program_access_for_request():
-    """Flask before_request hook enforcing approval and per-program access."""
+    """Flask before_request hook enforcing one shared program-access policy."""
     program_id = program_for_path(request.path)
     if not program_id:
         return None
@@ -92,6 +103,8 @@ def require_program_access_for_request():
     try:
         db = firestore.client()
         if _is_admin(db, _normalized_email(decoded)):
+            return decoded
+        if _is_program_public(db, program_id):
             return decoded
         if not _has_program_access(db, uid, program_id):
             raise AccessError("이 프로그램을 사용할 권한이 없습니다.", 403)
