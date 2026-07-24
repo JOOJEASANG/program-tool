@@ -1,9 +1,10 @@
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
 from models.schemas import PdfProcessRequest
-from services.pdf_individual_margin_patch import _resolve_layout_margins
+from services.pdf_individual_margin_patch import _page_number_value, _resolve_layout_margins
 from services.pdf_ops import MM_TO_PT
 
 
@@ -57,6 +58,12 @@ def test_legacy_paired_margins_remain_compatible():
     )
 
 
+def test_cover_exclusion_numbering_matches_browser_preview():
+    settings = SimpleNamespace(exclude_first=True, start=1)
+    assert _page_number_value(settings, 1, 6) == (1, 5)
+    assert _page_number_value(settings, 5, 6) == (5, 5)
+
+
 def test_frontend_margin_module_and_export_payload_are_connected():
     loader = (ROOT / "js" / "pdf-editor" / "loader.js").read_text(encoding="utf-8")
     module = (ROOT / "js" / "pdf-editor" / "individual-margins-facing-pages.js").read_text(encoding="utf-8")
@@ -78,6 +85,7 @@ def test_preview_header_hints_do_not_use_infinite_polling_or_full_width_cards():
 
     assert "setInterval(" not in live
     assert "setInterval(" not in count
+    assert "removeAttribute('title')" in count
     assert "pdf-preview-toolbar" in module
     assert "preview-copy-group" in module
     assert "grid-template-columns:minmax(0,1fr) auto" in module
