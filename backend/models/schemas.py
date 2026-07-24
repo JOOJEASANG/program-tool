@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from typing import Optional, Literal
 from enum import Enum
 
@@ -115,6 +115,17 @@ class PdfProcessRequest(BaseModel):
     print_marks: PrintMarkSettings = Field(default_factory=PrintMarkSettings)
     facing_pages: bool = False
     booklet: bool = False
+
+    @model_validator(mode="after")
+    def validate_booklet_imposition(self):
+        if self.booklet and self.nup_default not in {
+            NupValue.two,
+            NupValue.four,
+            NupValue.six,
+            NupValue.eight,
+        }:
+            raise ValueError("소책자 모드는 2, 4, 6, 8-up만 지원합니다")
+        return self
 
 
 class CheckSeverity(str, Enum):
