@@ -1,8 +1,8 @@
 // Keep the PDF preview toolbar compact and prevent status/controls from overlapping.
 (function () {
   'use strict';
-  if (window.__pdfPreviewToolbarLayoutFixV1) return;
-  window.__pdfPreviewToolbarLayoutFixV1 = true;
+  if (window.__pdfPreviewToolbarLayoutFixV2) return;
+  window.__pdfPreviewToolbarLayoutFixV2 = true;
 
   let resizeObserver = null;
   let mutationObserver = null;
@@ -26,26 +26,18 @@
       }
       .preview-info.pdf-toolbar-final .preview-copy-group{
         grid-area:copy!important;
-        display:flex!important;
-        flex-direction:column!important;
-        align-items:stretch!important;
-        gap:4px!important;
+        display:grid!important;
+        grid-template-columns:minmax(120px,1fr) auto auto!important;
+        grid-template-areas:"info pages live" "count count count"!important;
+        align-items:center!important;
+        gap:4px 7px!important;
         min-width:0!important;
         width:100%!important;
         position:static!important;
         overflow:visible!important;
       }
-      .preview-info.pdf-toolbar-final .preview-copy-primary,
-      .preview-info.pdf-toolbar-final .preview-copy-secondary{
-        display:flex!important;
-        align-items:center!important;
-        flex-wrap:wrap!important;
-        gap:4px 7px!important;
-        min-width:0!important;
-        position:static!important;
-      }
-      .preview-info.pdf-toolbar-final .preview-copy-primary #previewInfo{
-        flex:1 1 220px!important;
+      .preview-info.pdf-toolbar-final #previewInfo{
+        grid-area:info!important;
         min-width:120px!important;
         white-space:normal!important;
         overflow:visible!important;
@@ -53,11 +45,11 @@
         line-height:1.35!important;
       }
       .preview-info.pdf-toolbar-final #previewPages{
-        flex:0 0 auto!important;
+        grid-area:pages!important;
         white-space:nowrap!important;
       }
       .preview-info.pdf-toolbar-final #livePreviewHint{
-        flex:0 0 auto!important;
+        grid-area:live!important;
         position:static!important;
         inset:auto!important;
         transform:none!important;
@@ -65,10 +57,11 @@
         white-space:nowrap!important;
         line-height:1.2!important;
         padding:3px 7px!important;
+        justify-self:start!important;
       }
       .preview-info.pdf-toolbar-final #pdfPageCountHint{
-        flex:1 1 220px!important;
-        min-width:160px!important;
+        grid-area:count!important;
+        min-width:0!important;
         position:static!important;
         margin:0!important;
         padding:0!important;
@@ -103,6 +96,10 @@
         grid-template-columns:minmax(0,1fr)!important;
         grid-template-areas:"copy" "controls"!important;
       }
+      .preview-info.pdf-toolbar-final.pdf-toolbar-compact .preview-copy-group{
+        grid-template-columns:minmax(0,1fr) auto!important;
+        grid-template-areas:"info pages" "live live" "count count"!important;
+      }
       .preview-info.pdf-toolbar-final.pdf-toolbar-compact .preview-zoom{
         justify-self:end!important;
       }
@@ -131,26 +128,9 @@
         bar.insertBefore(group, bar.firstChild);
       }
 
-      let primary = group.querySelector('.preview-copy-primary');
-      if (!primary) {
-        primary = document.createElement('div');
-        primary.className = 'preview-copy-primary';
-        group.appendChild(primary);
-      }
-      let secondary = group.querySelector('.preview-copy-secondary');
-      if (!secondary) {
-        secondary = document.createElement('div');
-        secondary.className = 'preview-copy-secondary';
-        group.appendChild(secondary);
-      }
-
-      ['previewInfo', 'previewPages'].forEach((id) => {
+      ['previewInfo', 'previewPages', 'livePreviewHint', 'pdfPageCountHint'].forEach((id) => {
         const element = document.getElementById(id);
-        if (element && element.parentElement !== primary) primary.appendChild(element);
-      });
-      ['livePreviewHint', 'pdfPageCountHint'].forEach((id) => {
-        const element = document.getElementById(id);
-        if (element && element.parentElement !== secondary) secondary.appendChild(element);
+        if (element && element.parentElement !== group) group.appendChild(element);
       });
 
       const zoom = bar.querySelector('.preview-zoom');
