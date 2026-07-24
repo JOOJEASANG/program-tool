@@ -7,14 +7,14 @@ REPLACEMENTS = {
     "index.html": [
         ("PDF문서 편집기", "PDF 편집"),
         ("PDF 문서 도구", "PDF 검사"),
-        ("무선제본 표지 제작기", "표지 제작"),
+        ("책표지제작", "표지 제작"),
         ("무선제본 표지 편집기 테스트", "표지 제작 테스트"),
         ("표지 제작를", "표지 제작을"),
     ],
     "admin.html": [
         ("PDF문서 편집기", "PDF 편집"),
         ("PDF 문서 도구", "PDF 검사"),
-        ("무선제본 표지 제작기", "표지 제작"),
+        ("책표지제작", "표지 제작"),
     ],
     "tools/pdf-editor.html": [
         ("PDF 문서 편집기", "PDF 편집"),
@@ -22,7 +22,7 @@ REPLACEMENTS = {
     ],
     "tools/pdf-Checker.html": [("PDF 문서 도구", "PDF 검사")],
     "tools/preflight.html": [("PDF 문서 도구", "PDF 검사")],
-    "tools/perfect-binding-cover.html": [("무선제본 표지 제작기", "표지 제작")],
+    "tools/perfect-binding-cover.html": [("책표지제작", "표지 제작")],
 }
 
 SCRIPT_TAGS = '<script src="../js/common-context-menu.js"></script><script src="../js/editor-enhancements.js"></script><script src="../js/cmyk-color-control.js"></script>'

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>표지 제작 · Program Tool</title>
+  <title>책표지제작 · Program Tool</title>
   <meta name="description" content="책등 폭을 계산하고 앞표지·책등·뒤표지를 자유 배치해 인쇄용 PDF로 만드는 도구입니다." />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
   <style>
@@ -36,7 +36,7 @@
 </head>
 <body>
   <div id="authLoading"><div><div class="spinner"></div><div style="font-size:11px;font-weight:800;color:#64748b">로그인 확인 중...</div></div></div>
-  <nav class="top-nav"><a class="nav-back" href="../index.html">← 도구 목록</a><div class="nav-title">표지 제작</div><div class="nav-user"><span class="nav-user-name" id="navUserName">사용자</span><button class="nav-logout" id="logoutBtn">로그아웃</button></div></nav>
+  <nav class="top-nav"><a class="nav-back" href="../index.html">← 도구 목록</a><div class="nav-title">책표지제작</div><div class="nav-user"><span class="nav-user-name" id="navUserName">사용자</span><button class="nav-logout" id="logoutBtn">로그아웃</button></div></nav>
   <main class="workspace">
     <aside class="settings">
       <section class="card"><div class="card-head"><span class="step">1</span><div class="card-title">완성 규격과 재단 여백</div></div><div class="field"><label for="sizePreset">완성 규격</label><select id="sizePreset"><option value="a4">A4 · 210 × 297mm</option><option value="b5jis">B5(JIS) · 182 × 257mm</option><option value="b5iso">B5(ISO) · 176 × 250mm</option><option value="a5">A5 · 148 × 210mm</option><option value="custom">직접 입력</option></select></div><div class="grid3"><div class="field"><label>가로</label><div class="unit-wrap"><input id="trimW" type="number" min="80" max="300" step="0.1" value="210"><span class="unit">mm</span></div></div><div class="field"><label>세로</label><div class="unit-wrap"><input id="trimH" type="number" min="100" max="450" step="0.1" value="297"><span class="unit">mm</span></div></div><div class="field"><label>재단 여백</label><div class="unit-wrap"><input id="bleed" type="number" min="0" max="10" step="0.5" value="3"><span class="unit">mm</span></div></div></div><div class="field"><label>안전 여백</label><div class="unit-wrap"><input id="safeMargin" type="number" min="3" max="30" step="1" value="10"><span class="unit">mm</span></div></div></section>

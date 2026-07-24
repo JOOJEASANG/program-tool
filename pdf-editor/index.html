@@ -323,10 +323,6 @@
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
       편집 불러오기
     </button>
-    <button class="nav-history-btn" id="navHistoryBtn" style="display:none;">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-      내 파일함
-    </button>
     <span class="nav-user-name" id="navUserName"></span>
     <button class="nav-logout" id="navLogout">
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
@@ -654,21 +650,6 @@
 </div>
 
 <!-- Divider Page Modal -->
-<!-- File History Modal -->
-<div id="fileHistoryModal" class="fh-modal" style="display:none;">
-  <div class="fh-box">
-    <div class="fh-head">
-      <div>
-        <h2>내 파일함</h2>
-        <div class="fh-head-sub">Storage에 저장된 PDF 파일 목록</div>
-      </div>
-      <button class="modal-close" id="fhModalClose">✕</button>
-    </div>
-    <div class="fh-body" id="fhBody">
-      <div class="fh-loading">불러오는 중...</div>
-    </div>
-  </div>
-</div>
 
 <!-- 편집 저장 / 불러오기 모달 -->
 <div id="sessionSaveModal" class="fh-modal" style="display:none;">
@@ -816,7 +797,6 @@ auth.onAuthStateChanged(async user => {
   }
 
   document.getElementById('authLoading').style.display = 'none';
-  document.getElementById('navHistoryBtn').style.display = 'flex';
   document.getElementById('navSessionBtn').style.display = 'flex';
   document.getElementById('navSessionLoadBtn').style.display = 'flex';
 });
@@ -824,39 +804,6 @@ document.getElementById('navLogout').addEventListener('click', () =>
   auth.signOut().then(() => location.href = '../index.html'));
 
 const $ = id => document.getElementById(id);
-
-// ── Firebase Storage helpers ───────────────────────────────────────────
-function formatBytes(b) {
-  if (b < 1024) return b + ' B';
-  if (b < 1024 * 1024) return (b / 1024).toFixed(1) + ' KB';
-  return (b / 1024 / 1024).toFixed(2) + ' MB';
-}
-
-async function saveToStorage(blob, filename) {
-  const user = auth.currentUser;
-  if (!user) return;
-  const col = db.collection('users').doc(user.uid).collection('pdf_history');
-
-  // 최대 10개 제한 — 초과 시 오래된 파일부터 삭제
-  const existing = await col.orderBy('createdAt', 'asc').get();
-  if (existing.size >= 10) {
-    const toDelete = existing.docs.slice(0, existing.size - 9);
-    for (const d of toDelete) {
-      await storage.ref(d.data().storagePath).delete().catch(() => {});
-      await col.doc(d.id).delete();
-    }
-  }
-
-  const ts = new Date().toISOString().replace(/[:.]/g, '-');
-  const storagePath = `pdf_history/${user.uid}/${ts}_${filename}`;
-  await storage.ref(storagePath).put(blob, { contentType: 'application/pdf' });
-  await col.add({
-    name: filename,
-    storagePath,
-    size: blob.size,
-    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-  });
-}
 
 // ── Editor session save / load ────────────────────────────────────────
 function collectEditorState() {
@@ -1172,71 +1119,6 @@ document.getElementById('sessionListModal').addEventListener('click', e => {
 });
 $('navSessionLoadBtn').addEventListener('click', openSessionList);
 
-async function openFileHistory() {
-  const user = auth.currentUser;
-  if (!user) return;
-  $('fileHistoryModal').style.display = 'flex';
-  const body = $('fhBody');
-  body.innerHTML = '<div class="fh-loading">불러오는 중...</div>';
-  try {
-    const snap = await db.collection('users').doc(user.uid)
-      .collection('pdf_history')
-      .orderBy('createdAt', 'desc')
-      .limit(50)
-      .get();
-    if (snap.empty) {
-      body.innerHTML = '<div class="fh-empty">📂 저장된 파일이 없습니다.<br><span style="font-size:11px;color:#9ca3af;">PDF를 생성하면 자동으로 저장됩니다.</span></div>';
-      return;
-    }
-    body.innerHTML = '';
-    snap.forEach(doc => {
-      const d = doc.data();
-      const date = d.createdAt?.toDate ? d.createdAt.toDate().toLocaleString('ko-KR') : '-';
-      const item = document.createElement('div');
-      item.className = 'fh-item';
-      item.innerHTML = `
-        <div class="fh-icon">📄</div>
-        <div class="fh-info">
-          <div class="fh-name">${d.name || '파일'}</div>
-          <div class="fh-meta">${date} · ${formatBytes(d.size || 0)}</div>
-        </div>
-        <div class="fh-actions">
-          <button class="fh-btn" data-action="dl">⬇ 다운로드</button>
-          <button class="fh-btn del" data-action="del">🗑</button>
-        </div>`;
-      item.querySelector('[data-action="dl"]').addEventListener('click', async () => {
-        try {
-          const url = await storage.ref(d.storagePath).getDownloadURL();
-          const a = document.createElement('a');
-          a.href = url; a.download = d.name || 'download.pdf'; a.target = '_blank';
-          a.click();
-        } catch(e) { alert('다운로드 오류: ' + e.message); }
-      });
-      item.querySelector('[data-action="del"]').addEventListener('click', async () => {
-        if (!confirm(`"${d.name}" 파일을 삭제하시겠습니까?\n(내 파일함 및 Firebase에서 영구 삭제됩니다)`)) return;
-        try {
-          await storage.ref(d.storagePath).delete().catch(() => {});
-          await db.collection('users').doc(user.uid).collection('pdf_history').doc(doc.id).delete();
-          item.remove();
-          if (!body.querySelector('.fh-item')) {
-            body.innerHTML = '<div class="fh-empty">📂 저장된 파일이 없습니다.</div>';
-          }
-        } catch(e) { alert('삭제 오류: ' + e.message); }
-      });
-      body.appendChild(item);
-    });
-  } catch(e) {
-    body.innerHTML = `<div class="fh-empty">오류: ${e.message}</div>`;
-  }
-}
-
-document.getElementById('navHistoryBtn').addEventListener('click', openFileHistory);
-document.getElementById('fhModalClose').addEventListener('click', () => {
-  $('fileHistoryModal').style.display = 'none';
-});
-document.getElementById('fileHistoryModal').addEventListener('click', e => {
-  if (e.target.id === 'fileHistoryModal') $('fileHistoryModal').style.display = 'none';
-});
 
 // ── State ─────────────────────────────────────────────────────────────
 // page: { id, pdfPage(null=blank/divider), thumbCanvas, excluded, nupOverride,
@@ -2480,16 +2362,8 @@ $('downloadBtn').addEventListener('click', async () => {
     a.href = url; a.download = filename;
     a.click();
     URL.revokeObjectURL(url);
-    showStatus('PDF 저장 완료! ☁️ 내 파일함에 업로드 중...', 'success');
-    saveToStorage(blob, filename)
-      .then(() => {
-        const el = $('statusBar');
-        el.style.display = 'flex';
-        el.className = 'status-bar success';
-        el.innerHTML = `<span>✅ 내 파일함에 저장 완료!</span><button onclick="openFileHistory()" style="margin-left:auto;border:1px solid #166534;border-radius:6px;padding:4px 12px;font-size:11px;font-weight:800;background:#dcfce7;color:#166534;cursor:pointer;font-family:inherit;">📂 내 파일함 보기</button>`;
-        setTimeout(hideStatus, 6000);
-      })
-      .catch(err => { console.error('Storage upload failed', err); showStatus('PDF 저장 완료! (파일함 업로드 실패)', 'success'); setTimeout(hideStatus, 3000); });
+    showStatus('PDF 저장 완료!', 'success');
+    setTimeout(hideStatus, 3000);
   } catch(e) { showStatus('PDF 오류: ' + e.message, 'error'); }
   $('downloadBtn').disabled = false;
 });
