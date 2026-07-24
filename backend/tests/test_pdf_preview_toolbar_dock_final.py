@@ -5,7 +5,6 @@ ROOT = Path(__file__).resolve().parents[2]
 LOADER = ROOT / "js" / "pdf-editor" / "loader.js"
 TOOLBAR = ROOT / "js" / "pdf-editor" / "preview-toolbar-layout-fix.js"
 PDF_DOCK = ROOT / "js" / "pdf-editor" / "dock-width-align.js"
-COVER_DOCK = ROOT / "js" / "cover-floating-action-dock.js"
 
 
 def test_preview_toolbar_fix_loads_after_all_pdf_layout_modules():
@@ -30,24 +29,19 @@ def test_preview_toolbar_has_compact_non_overlapping_layout():
     assert "setInterval(" not in toolbar
 
 
-def test_pdf_dock_uses_book_cover_fixed_layout_without_legacy_dimensions():
+def test_pdf_dock_is_flat_sidebar_bottom_area_with_colored_divider():
     pdf_dock = PDF_DOCK.read_text(encoding="utf-8")
-    cover_dock = COVER_DOCK.read_text(encoding="utf-8")
 
-    for shared in (
-        "bottom:12px!important",
-        "border-radius:16px!important",
-        "box-shadow:0 18px 48px",
-        "backdrop-filter:blur(16px)",
-        "linear-gradient(90deg,#12396d,#2563eb,#1d9bb2)",
-        "화면 고정",
-    ):
-        assert shared in pdf_dock
-        assert shared in cover_dock
-
-    assert "clientWidth - paddingLeft - paddingRight" in pdf_dock
-    assert "clientWidth - paddingLeft - paddingRight" in cover_dock
-    assert "pdf-book-cover-dock" in pdf_dock
+    assert "pdf-flat-fixed-dock" in pdf_dock
+    assert "bottom:0!important" in pdf_dock
+    assert "border:0!important" in pdf_dock
+    assert "border-radius:0!important" in pdf_dock
+    assert "box-shadow:none!important" in pdf_dock
+    assert "backdrop-filter:none!important" in pdf_dock
+    assert "background:#fff!important" in pdf_dock
+    assert "linear-gradient(90deg,#12396d,#2563eb,#1d9bb2)" in pdf_dock
+    assert "aside.clientWidth" in pdf_dock
+    assert "padding-left" in pdf_dock and "padding-right" in pdf_dock
     assert "classList.remove('pdf-output-floating'" in pdf_dock
     assert "#downloadBtn" in pdf_dock and "grid-column:1/-1" in pdf_dock
     assert "setInterval(" not in pdf_dock
