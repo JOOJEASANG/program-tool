@@ -75,6 +75,20 @@ class PageNumberSettings(BaseModel):
     auto_reserve_space: bool = True
 
 
+class PrintMarkSettings(BaseModel):
+    """Crop marks and reserved bleed workspace around the finished page size.
+
+    This does not invent or stretch artwork into the bleed area. Source artwork
+    must already contain the required edge content when a real bleed is needed.
+    """
+
+    enabled: bool = False
+    bleed_mm: float = Field(default=3.0, ge=0.0, le=15.0)
+    mark_length_mm: float = Field(default=5.0, ge=2.0, le=15.0)
+    mark_offset_mm: float = Field(default=2.0, ge=0.0, le=10.0)
+    edge_padding_mm: float = Field(default=2.0, ge=0.0, le=10.0)
+
+
 class PaperSize(BaseModel):
     width_mm: float = 210.0
     height_mm: float = 297.0
@@ -98,6 +112,7 @@ class PdfProcessRequest(BaseModel):
     watermark: WatermarkSettings = Field(default_factory=WatermarkSettings)
     header_footer: HeaderFooterSettings = Field(default_factory=HeaderFooterSettings)
     page_numbers: PageNumberSettings = Field(default_factory=PageNumberSettings)
+    print_marks: PrintMarkSettings = Field(default_factory=PrintMarkSettings)
     facing_pages: bool = False
     booklet: bool = False
 
