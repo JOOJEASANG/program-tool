@@ -45,9 +45,7 @@
     hint.textContent = work
       ? `작업 ${work}쪽 · ${nup}장 배치 · 출력 예상 ${output}쪽`
       : '작업 페이지와 출력 PDF 쪽수를 이곳에서 확인합니다.';
-    hint.title = nup > 1
-      ? '페이지가 줄어든 것이 아니라 한 장에 여러 페이지가 배치됩니다.'
-      : '';
+    hint.removeAttribute('title');
     return true;
   }
   function schedule() {
