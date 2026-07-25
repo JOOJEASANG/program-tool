@@ -9,7 +9,6 @@ if not firebase_admin._apps:
 # Apply PDF text renderers and result guards before route imports.
 from services import pdf_divider_alignment_patch  # noqa: F401,E402
 from services import pdf_text_font_patch  # noqa: F401,E402
-from services import pdf_page_number_reserve_patch  # noqa: F401,E402
 from services import pdf_range_guard_patch  # noqa: F401,E402
 from services import preflight_reliability_patch  # noqa: F401,E402
 
