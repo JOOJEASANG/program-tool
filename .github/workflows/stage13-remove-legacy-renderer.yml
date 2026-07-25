@@ -1,0 +1,51 @@
+name: Stage13 remove legacy renderer
+
+on:
+  push:
+    branches:
+      - agent/stage13-remove-legacy-renderer
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/stage13-remove-legacy-renderer
+          fetch-depth: 0
+
+      - name: Remove unreachable legacy renderer
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('backend/services/pdf_ops.py')
+          source = path.read_text(encoding='utf-8')
+          marker = '\n\ndef process_pdf(\n'
+          if marker not in source:
+              raise SystemExit('legacy process_pdf function marker not found')
+          prefix, legacy = source.split(marker, 1)
+          if 'Build output PDF from uploaded file bytes' not in legacy:
+              raise SystemExit('unexpected process_pdf body; refusing cleanup')
+          path.write_text(prefix.rstrip() + '\n', encoding='utf-8')
+
+          test_path = Path('backend/tests/test_stage13_legacy_renderer_removed.py')
+          test_path.write_text(
+              '''import ast\nfrom pathlib import Path\n\n\ndef test_pdf_ops_no_longer_defines_legacy_process_pdf():\n    source = Path("services/pdf_ops.py").read_text(encoding="utf-8")\n    tree = ast.parse(source)\n    names = {node.name for node in tree.body if isinstance(node, ast.FunctionDef)}\n    assert "process_pdf" not in names\n\n\ndef test_compatibility_entrypoint_is_installed_from_services_package():\n    from services import pdf_ops\n\n    assert pdf_ops.process_pdf.__module__ == "services"\n''',
+              encoding='utf-8',
+          )
+
+          Path('.github/workflows/stage13-remove-legacy-renderer.yml').unlink()
+          PY
+
+      - name: Commit cleanup
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add backend/services/pdf_ops.py backend/tests/test_stage13_legacy_renderer_removed.py .github/workflows/stage13-remove-legacy-renderer.yml
+          git commit -m "refactor: remove unreachable legacy PDF renderer"
+          git push origin HEAD:agent/stage13-remove-legacy-renderer
