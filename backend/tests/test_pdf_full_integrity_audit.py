@@ -4,10 +4,6 @@ import pytest
 from pydantic import ValidationError
 
 from models.schemas import PdfProcessRequest
-from routers import pdf as pdf_router
-from services import pdf_divider_alignment_patch as divider_patch
-from services import pdf_ops
-from services import pdf_route_integrity_patch  # noqa: F401
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -18,6 +14,8 @@ THUMBNAILS = ROOT / "js" / "pdf-editor" / "thumbnail-integrity.js"
 LAYOUT_EXPORT = ROOT / "js" / "pdf-editor" / "layout-export.js"
 RUNTIME = ROOT / "js" / "pdf-editor" / "runtime-integrity.js"
 PAGE_NUMBER = ROOT / "js" / "pdf-editor" / "page-number-preview-parity.js"
+BACKEND_MAIN = ROOT / "backend" / "main.py"
+PDF_ROUTER = ROOT / "backend" / "routers" / "pdf.py"
 
 
 def _text(path: Path) -> str:
@@ -120,8 +118,9 @@ def test_pdf_request_schema_rejects_invalid_geometry_and_rotation():
         PdfProcessRequest.model_validate({**base, "watermark": {"text": "x" * 501}})
 
 
-def test_route_request_hook_preserves_current_korean_divider_renderer():
-    pdf_ops._render_divider_page = lambda *args, **kwargs: None
-    pdf_router._patch_divider_renderer()
-    assert pdf_ops._render_divider_page is divider_patch._render_divider_page
-    assert pdf_ops._program_studio_divider_renderer is True
+def test_pdf_route_has_no_legacy_divider_request_hook():
+    main = _text(BACKEND_MAIN)
+    router = _text(PDF_ROUTER)
+    assert "pdf_route_integrity_patch" not in main
+    assert "_patch_divider_renderer" not in router
+    assert "from services.pdf_engine import process_pdf_bytes" in router
