@@ -36,12 +36,13 @@ def _page_number_applies(settings, output_page_idx: int) -> bool:
     return apply_to == "all" or (apply_to == "odd" and is_odd) or (apply_to == "even" and not is_odd)
 
 
-def _required_page_number_space(settings) -> float:
-    """Return content space required around the number in points."""
+def _required_page_number_space(settings, paper_edge_pt: float) -> float:
+    """Return reserved edge space required by the actual page-number anchor and text height."""
     margin_mm = getattr(settings, "margin_mm", None)
-    edge = pdf_ops._mm_to_pt_safe(margin_mm, 5.0) if margin_mm is not None else pdf_ops.PN_MARGIN_PT
+    dedicated = pdf_ops._mm_to_pt_safe(margin_mm, 5.0) if margin_mm is not None else pdf_ops.PN_MARGIN_PT
+    anchor = max(paper_edge_pt, dedicated)
     font_size = max(6.0, min(72.0, float(getattr(settings, "font_size", 10.0) or 10.0)))
-    return min(80.0 * pdf_ops.MM_TO_PT, edge + font_size * 0.8 + 2.0 * pdf_ops.MM_TO_PT)
+    return min(80.0 * pdf_ops.MM_TO_PT, anchor + font_size * 1.8 + 2.0 * pdf_ops.MM_TO_PT)
 
 
 def _resolve_layout_margins(request, output_page_idx: int) -> tuple[float, float, float, float]:
@@ -49,12 +50,11 @@ def _resolve_layout_margins(request, output_page_idx: int) -> tuple[float, float
     left, right, top, bottom = _base_layout_margins(request, output_page_idx)
     settings = request.page_numbers
     if bool(getattr(settings, "auto_reserve_space", True)) and _page_number_applies(settings, output_page_idx):
-        required = _required_page_number_space(settings)
         position = str(getattr(settings, "position", "bottom-center"))
         if position.startswith("top-"):
-            top = max(top, required)
+            top = max(top, _required_page_number_space(settings, top))
         else:
-            bottom = max(bottom, required)
+            bottom = max(bottom, _required_page_number_space(settings, bottom))
     return left, right, top, bottom
 
 

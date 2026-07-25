@@ -4,7 +4,6 @@ from types import SimpleNamespace
 import pytest
 
 from models.schemas import PdfProcessRequest
-from services import pdf_page_number_reserve_patch  # noqa: F401
 from services.pdf_layout_implementation import (
     _base_layout_margins,
     _page_number_value,
