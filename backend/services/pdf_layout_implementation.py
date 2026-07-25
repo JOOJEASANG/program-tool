@@ -1,4 +1,4 @@
-"""Patch PDF export to support independent margins, facing pages, page-number space, and reliable booklet output."""
+"""Render PDF layouts with independent margins, facing pages, page-number space, and booklet output."""
 from __future__ import annotations
 
 import io
@@ -315,14 +315,3 @@ def process_pdf_with_individual_margins(file_bytes_list: list[bytes], request) -
     finally:
         for src_doc in src_docs:
             src_doc.close()
-
-
-pdf_ops._group_booklet_pages = _group_booklet_pages
-pdf_ops._booklet_layout = _booklet_layout
-
-if not getattr(pdf_ops, "_individual_margin_patch_v4", False):
-    pdf_ops.process_pdf = process_pdf_with_individual_margins
-    pdf_ops._individual_margin_patch_v1 = True
-    pdf_ops._individual_margin_patch_v2 = True
-    pdf_ops._individual_margin_patch_v3 = True
-    pdf_ops._individual_margin_patch_v4 = True

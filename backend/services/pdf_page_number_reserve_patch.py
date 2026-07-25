@@ -1,7 +1,7 @@
 """Ensure page-number auto-reserve includes the actual edge anchor and full text height."""
 from __future__ import annotations
 
-from services import pdf_individual_margin_patch as margin_patch
+from services import pdf_layout_implementation as layout_implementation
 from services import pdf_ops
 
 
@@ -14,9 +14,9 @@ def _required_space(settings, paper_edge_pt: float) -> float:
 
 
 def _resolve_layout_margins(request, output_page_idx: int) -> tuple[float, float, float, float]:
-    left, right, top, bottom = margin_patch._base_layout_margins(request, output_page_idx)
+    left, right, top, bottom = layout_implementation._base_layout_margins(request, output_page_idx)
     settings = request.page_numbers
-    if bool(getattr(settings, "auto_reserve_space", True)) and margin_patch._page_number_applies(settings, output_page_idx):
+    if bool(getattr(settings, "auto_reserve_space", True)) and layout_implementation._page_number_applies(settings, output_page_idx):
         position = str(getattr(settings, "position", "bottom-center"))
         if position.startswith("top-"):
             top = max(top, _required_space(settings, top))
@@ -25,4 +25,4 @@ def _resolve_layout_margins(request, output_page_idx: int) -> tuple[float, float
     return left, right, top, bottom
 
 
-margin_patch._resolve_layout_margins = _resolve_layout_margins
+layout_implementation._resolve_layout_margins = _resolve_layout_margins
