@@ -5,7 +5,7 @@ ROOT = Path(__file__).resolve().parents[2]
 LOADER = ROOT / "js" / "pdf-editor" / "loader.js"
 MODULE = ROOT / "js" / "pdf-editor" / "print-marks-bleed.js"
 SCHEMAS = ROOT / "backend" / "models" / "schemas.py"
-MAIN = ROOT / "backend" / "main.py"
+ENGINE = ROOT / "backend" / "services" / "pdf_engine.py"
 
 
 def test_print_marks_module_loads_after_summary_and_booklet_guides():
@@ -51,10 +51,11 @@ def test_print_mark_settings_are_saved_and_shown_in_summary():
     assert "출력 용지 확대" in text
 
 
-def test_backend_patch_is_imported_after_layout_patches():
-    main = MAIN.read_text(encoding="utf-8")
-    assert "from services import pdf_print_marks_patch" in main
-    assert main.index("pdf_print_marks_patch") > main.index("pdf_page_number_reserve_patch")
+def test_common_engine_applies_validated_print_mark_settings():
+    engine = ENGINE.read_text(encoding="utf-8")
+    assert "from services.pdf_print_marks import" in engine
+    assert "apply_print_marks_if_enabled(buffer.getvalue(), request)" in engine
+    assert "rewrite_path_with_print_marks(destination, request)" in engine
     schema = SCHEMAS.read_text(encoding="utf-8")
     assert "class PrintMarkSettings" in schema
     assert "print_marks: PrintMarkSettings" in schema
