@@ -1,0 +1,56 @@
+name: Stage14 print marks migration
+
+on:
+  push:
+    branches:
+      - agent/stage14-integrate-print-marks
+
+permissions:
+  contents: write
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Integrate print marks into common engine
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          engine_path = Path('backend/services/pdf_engine.py')
+          engine = engine_path.read_text(encoding='utf-8')
+          engine = engine.replace(
+              'import services.pdf_ops as pdf_ops\n',
+              'import services.pdf_ops as pdf_ops\nfrom services.pdf_print_marks import apply_print_marks_if_enabled, rewrite_path_with_print_marks\n',
+              1,
+          )
+          engine = engine.replace(
+              '        out_doc.save(buffer, garbage=4, deflate=True)\n        return buffer.getvalue()\n',
+              '        out_doc.save(buffer, garbage=4, deflate=True)\n        return apply_print_marks_if_enabled(buffer.getvalue(), request)\n',
+              1,
+          )
+          engine = engine.replace(
+              '        out_doc.save(str(destination), garbage=4, deflate=True)\n        return destination\n',
+              '        out_doc.save(str(destination), garbage=4, deflate=True)\n        return rewrite_path_with_print_marks(destination, request)\n',
+              1,
+          )
+          engine_path.write_text(engine, encoding='utf-8')
+
+          main_path = Path('backend/main.py')
+          main = main_path.read_text(encoding='utf-8')
+          main = main.replace('from services import pdf_print_marks_patch  # noqa: F401,E402\n', '')
+          main_path.write_text(main, encoding='utf-8')
+
+          Path('backend/services/pdf_print_marks_patch.py').unlink()
+
+          test = '''import fitz\n\nfrom models.schemas import PdfProcessRequest\nfrom services.pdf_engine import process_pdf_bytes\n\n\ndef _source_pdf() -> bytes:\n    doc = fitz.open()\n    page = doc.new_page(width=200, height=300)\n    page.insert_text((30, 50), "print marks")\n    data = doc.tobytes()\n    doc.close()\n    return data\n\n\ndef test_common_engine_applies_print_marks():\n    request = PdfProcessRequest.model_validate({\n        "pages": [{"file_index": 0, "page_index": 0, "page_type": "normal"}],\n        "print_marks": {"enabled": True, "bleed_mm": 3, "mark_length_mm": 5, "mark_offset_mm": 2, "edge_padding_mm": 2},\n    })\n    result = process_pdf_bytes([_source_pdf()], request)\n    doc = fitz.open(stream=result, filetype="pdf")\n    try:\n        assert doc.page_count == 1\n        assert doc[0].rect.width > request.paper.width_mm * 72 / 25.4\n        assert doc[0].rect.height > request.paper.height_mm * 72 / 25.4\n    finally:\n        doc.close()\n\n\ndef test_legacy_print_marks_patch_is_removed():\n    from pathlib import Path\n    assert not Path("services/pdf_print_marks_patch.py").exists()\n'''\n          Path('backend/tests/test_stage14_print_marks_common_engine.py').write_text(test, encoding='utf-8')
+          Path('.github/workflows/stage14-migrate-print-marks.yml').unlink()
+          PY
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -A
+          git commit -m "refactor: integrate print marks into common PDF engine"
+          git push
