@@ -1,8 +1,8 @@
 """Service package compatibility wiring.
 
-All PDF rendering must pass through the common engine.  ``pdf_ops`` still owns
+All PDF rendering must pass through the common engine. ``pdf_ops`` still owns
 shared layout and decoration helpers, but its historical byte-rendering entry
-point is replaced here so older imports cannot execute the duplicate renderer.
+point is replaced so older imports cannot execute the duplicate renderer.
 """
 from __future__ import annotations
 
@@ -21,4 +21,9 @@ def _process_pdf_via_common_engine(
     return process_pdf_bytes(file_bytes_list, request)
 
 
-_pdf_ops.process_pdf = _process_pdf_via_common_engine
+def install_common_engine_entrypoint() -> None:
+    """Install the common engine after any legacy patch modules have loaded."""
+    _pdf_ops.process_pdf = _process_pdf_via_common_engine
+
+
+install_common_engine_entrypoint()
