@@ -4,7 +4,7 @@ import fitz
 import pytest
 
 from models.schemas import PageInfo, PdfProcessRequest
-from services.pdf_individual_margin_patch import (
+from services.pdf_layout_implementation import (
     _booklet_layout,
     _group_booklet_pages,
     process_pdf_with_individual_margins,
