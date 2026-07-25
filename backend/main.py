@@ -9,7 +9,6 @@ if not firebase_admin._apps:
 # Apply PDF text renderers and result guards before route imports.
 from services import pdf_divider_alignment_patch  # noqa: F401,E402
 from services import pdf_text_font_patch  # noqa: F401,E402
-from services import pdf_individual_margin_patch  # noqa: F401,E402
 from services import pdf_page_number_reserve_patch  # noqa: F401,E402
 from services import pdf_range_guard_patch  # noqa: F401,E402
 from services import preflight_reliability_patch  # noqa: F401,E402
@@ -23,8 +22,8 @@ from routers.preflight import preflight_bp
 from services import pdf_route_integrity_patch  # noqa: F401,E402
 # The repair patch replaces the route module's normalizer after that module is loaded.
 from services import preflight_repair_patch  # noqa: F401,E402
-# Legacy PDF patch modules may replace pdf_ops.process_pdf while importing. Reapply
-# the common engine only after all patches and routes have completed initialization.
+# Reapply the explicit PDF engine only after all compatibility modules and routes
+# have completed initialization.
 from services import install_common_engine_entrypoint  # noqa: E402
 
 install_common_engine_entrypoint()
