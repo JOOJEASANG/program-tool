@@ -1,6 +1,6 @@
 from models.schemas import PdfProcessRequest
-from services import install_common_engine_entrypoint, pdf_engine, pdf_ops
-from services import pdf_individual_margin_patch  # noqa: F401
+from services import install_common_engine_entrypoint, pdf_ops
+from services import pdf_layout_engine
 
 
 def test_legacy_process_pdf_delegates_to_common_engine(monkeypatch):
@@ -18,10 +18,8 @@ def test_legacy_process_pdf_delegates_to_common_engine(monkeypatch):
         calls.append((file_bytes_list, received_request))
         return expected
 
-    monkeypatch.setattr(pdf_engine, "process_pdf_bytes", fake_process_pdf_bytes)
+    monkeypatch.setattr(pdf_layout_engine, "process_pdf_bytes", fake_process_pdf_bytes)
 
-    # Remaining legacy patch modules may replace the compatibility entry point.
-    # Application startup must reinstall the common engine after those imports.
     install_common_engine_entrypoint()
     result = pdf_ops.process_pdf([b"source"], request)
 
