@@ -24,6 +24,12 @@ from routers.preflight import preflight_bp
 from services import pdf_route_integrity_patch  # noqa: F401,E402
 # The repair patch replaces the route module's normalizer after that module is loaded.
 from services import preflight_repair_patch  # noqa: F401,E402
+# Legacy PDF patch modules may replace pdf_ops.process_pdf while importing. Reapply
+# the common engine only after all patches and routes have completed initialization.
+from services import install_common_engine_entrypoint  # noqa: E402
+
+install_common_engine_entrypoint()
+
 from firebase_functions import https_fn, options
 from utils.permissions import AccessError, require_program_access_for_request
 
