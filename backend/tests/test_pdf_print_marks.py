@@ -4,7 +4,7 @@ from pydantic import ValidationError
 
 from models.schemas import PdfProcessRequest, PrintMarkSettings
 from services.pdf_ops import MM_TO_PT
-from services.pdf_print_marks_patch import add_print_marks
+from services.pdf_print_marks import add_print_marks
 
 
 def _trim_pdf() -> bytes:
