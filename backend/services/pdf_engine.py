@@ -14,6 +14,7 @@ import fitz
 
 from models.schemas import PdfProcessRequest
 import services.pdf_ops as pdf_ops
+from services.pdf_print_marks import apply_print_marks_if_enabled, rewrite_path_with_print_marks
 
 
 EMPTY_SOURCE_PAGE_ERROR = "nothing to show - source page empty"
@@ -102,7 +103,6 @@ def _render_source_page(
     except ValueError as exc:
         if EMPTY_SOURCE_PAGE_ERROR not in str(exc):
             raise
-
     if add_border:
         shape = out_page.new_shape()
         shape.draw_rect(fit_rect)
@@ -233,7 +233,7 @@ def process_pdf_bytes(
         out_doc = build_pdf_document(src_docs, request)
         buffer = io.BytesIO()
         out_doc.save(buffer, garbage=4, deflate=True)
-        return buffer.getvalue()
+        return apply_print_marks_if_enabled(buffer.getvalue(), request)
     finally:
         if out_doc is not None:
             out_doc.close()
@@ -255,7 +255,7 @@ def process_pdf_paths(
         out_doc = build_pdf_document(src_docs, request)
         destination.parent.mkdir(parents=True, exist_ok=True)
         out_doc.save(str(destination), garbage=4, deflate=True)
-        return destination
+        return rewrite_path_with_print_marks(destination, request)
     finally:
         if out_doc is not None:
             out_doc.close()
