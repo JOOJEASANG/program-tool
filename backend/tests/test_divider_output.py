@@ -6,8 +6,9 @@ import fitz
 
 from models.schemas import HeaderFooterSettings, WatermarkSettings
 from services import pdf_divider_alignment_patch
-from services import pdf_text_font_patch
+from services import pdf_engine
 from services import pdf_ops
+from services import pdf_text_renderer
 
 
 PAGE_WIDTH = 595.28
@@ -121,7 +122,7 @@ class DividerOutputTests(unittest.TestCase):
             color="#777777",
         )
 
-        pdf_text_font_patch._apply_header_footer(
+        pdf_text_renderer.apply_header_footer(
             page,
             header_footer,
             page.rect.width,
@@ -129,7 +130,7 @@ class DividerOutputTests(unittest.TestCase):
             output_page_num=2,
             total_pages=5,
         )
-        pdf_text_font_patch._apply_watermark(page, watermark)
+        pdf_text_renderer.apply_watermark(page, watermark)
         reopened = fitz.open(stream=_pdf_bytes(document), filetype="pdf")
         try:
             text = reopened[0].get_text()
@@ -139,6 +140,10 @@ class DividerOutputTests(unittest.TestCase):
         self.assertIn("한글 머리말 2/5", text)
         self.assertIn("출력 확인", text)
         self.assertIn("내부용", text)
+
+    def test_pdf_engine_uses_explicit_text_renderer(self):
+        self.assertIs(pdf_engine.pdf_text_renderer, pdf_text_renderer)
+        self.assertFalse(hasattr(pdf_ops, "_korean_overlay_patch_v1"))
 
     def test_router_fallback_cannot_replace_rich_renderer(self):
         self.assertTrue(getattr(pdf_ops, "_divider_renderer_patched_v2", False))
