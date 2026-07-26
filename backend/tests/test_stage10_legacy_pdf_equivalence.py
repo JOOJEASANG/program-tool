@@ -1,7 +1,7 @@
 import fitz
 
 from models.schemas import PdfProcessRequest
-from services import pdf_engine, pdf_ops
+from services import pdf_engine, pdf_layout_engine
 
 
 def _source_pdf(page_count: int = 4) -> bytes:
@@ -51,11 +51,11 @@ def _snapshot(pdf_bytes: bytes) -> tuple[int, list[tuple[float, float]], list[st
         document.close()
 
 
-def test_legacy_entrypoint_matches_shared_engine_output():
+def test_explicit_pdf_engines_produce_equivalent_output():
     source = _source_pdf()
     request = _request()
 
-    legacy_output = pdf_ops.process_pdf([source], request)
-    shared_output = pdf_engine.process_pdf_bytes([source], request)
+    direct_output = pdf_engine.process_pdf_bytes([source], request)
+    layout_output = pdf_layout_engine.process_pdf_bytes([source], request)
 
-    assert _snapshot(legacy_output) == _snapshot(shared_output)
+    assert _snapshot(direct_output) == _snapshot(layout_output)
