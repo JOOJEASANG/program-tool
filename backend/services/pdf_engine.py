@@ -14,6 +14,7 @@ import fitz
 
 from models.schemas import PdfProcessRequest
 import services.pdf_ops as pdf_ops
+from services import pdf_text_renderer
 from services.pdf_print_marks import apply_print_marks_if_enabled, rewrite_path_with_print_marks
 
 
@@ -191,8 +192,8 @@ def build_pdf_document(
                         request.add_border,
                     )
 
-            pdf_ops._apply_watermark(out_page, request.watermark)
-            pdf_ops._apply_header_footer(
+            pdf_text_renderer.apply_watermark(out_page, request.watermark)
+            pdf_text_renderer.apply_header_footer(
                 out_page,
                 request.header_footer,
                 paper_w_pt,
@@ -201,7 +202,7 @@ def build_pdf_document(
                 total_output_pages,
                 facing,
             )
-            pdf_ops._apply_page_numbers(
+            pdf_text_renderer.apply_page_numbers(
                 out_page,
                 request.page_numbers,
                 output_page_idx,
