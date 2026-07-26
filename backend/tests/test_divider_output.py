@@ -5,7 +5,7 @@ import unittest
 import fitz
 
 from models.schemas import HeaderFooterSettings, WatermarkSettings
-from services import pdf_divider_alignment_patch
+from services import pdf_divider_renderer
 from services import pdf_engine
 from services import pdf_ops
 from services import pdf_text_renderer
@@ -24,7 +24,7 @@ def _pdf_bytes(document: fitz.Document) -> bytes:
 
 def _render_divider(content: dict) -> fitz.Document:
     document = fitz.open()
-    pdf_divider_alignment_patch._render_divider_page(
+    pdf_divider_renderer.render_divider_page(
         document,
         json.dumps(content, ensure_ascii=False),
         content.get("style", "simple"),
@@ -79,13 +79,13 @@ class DividerOutputTests(unittest.TestCase):
 
     def test_hidden_extra_text_is_omitted_and_long_text_is_fitted(self):
         long_text = "매우 긴 추가 안내 문구 " * 12
-        fitted_size, fitted_width = pdf_divider_alignment_patch._fit_extra_text(
+        fitted_size, fitted_width = pdf_divider_renderer.fit_extra_text(
             long_text, 42, PAGE_WIDTH
         )
         self.assertLess(fitted_size, 42)
         self.assertLessEqual(
             fitted_width,
-            PAGE_WIDTH * pdf_divider_alignment_patch.EXTRA_TEXT_MAX_WIDTH_RATIO + 1,
+            PAGE_WIDTH * pdf_divider_renderer.EXTRA_TEXT_MAX_WIDTH_RATIO + 1,
         )
 
         reopened = _render_divider({
@@ -141,14 +141,12 @@ class DividerOutputTests(unittest.TestCase):
         self.assertIn("출력 확인", text)
         self.assertIn("내부용", text)
 
-    def test_pdf_engine_uses_explicit_text_renderer(self):
+    def test_pdf_engine_uses_explicit_renderers(self):
         self.assertIs(pdf_engine.pdf_text_renderer, pdf_text_renderer)
+        self.assertIs(pdf_engine.pdf_divider_renderer, pdf_divider_renderer)
         self.assertFalse(hasattr(pdf_ops, "_korean_overlay_patch_v1"))
-
-    def test_router_fallback_cannot_replace_rich_renderer(self):
-        self.assertTrue(getattr(pdf_ops, "_divider_renderer_patched_v2", False))
-        self.assertTrue(getattr(pdf_ops, "_program_studio_divider_renderer", False))
-        self.assertIs(pdf_ops._render_divider_page, pdf_divider_alignment_patch._render_divider_page)
+        self.assertFalse(hasattr(pdf_ops, "_divider_renderer_patched_v2"))
+        self.assertFalse(hasattr(pdf_ops, "_program_studio_divider_renderer"))
 
 
 if __name__ == "__main__":
