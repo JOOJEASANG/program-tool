@@ -9,11 +9,13 @@ def _read(path: str) -> str:
 
 
 def test_pdf_repair_uses_blank_page_safe_copy_path():
-    source = _read("backend/services/preflight_repair_patch.py")
+    source = _read("backend/services/preflight_repair.py")
+    router = _read("backend/routers/preflight.py")
 
     assert "output.insert_pdf(" in source
     assert "page-sizes=preserved" in source
     assert "json.dumps(payload, ensure_ascii=False)" in source
+    assert "from services.preflight_repair import fix_pdf_response" in router
 
 
 def test_inline_javascript_checker_preserves_module_mode():
