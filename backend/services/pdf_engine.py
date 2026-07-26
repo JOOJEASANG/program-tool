@@ -14,7 +14,7 @@ import fitz
 
 from models.schemas import PdfProcessRequest
 import services.pdf_ops as pdf_ops
-from services import pdf_text_renderer
+from services import pdf_divider_renderer, pdf_text_renderer
 from services.pdf_print_marks import apply_print_marks_if_enabled, rewrite_path_with_print_marks
 
 
@@ -154,7 +154,7 @@ def build_pdf_document(
                 pdf_ops._render_blank_page(out_doc, paper_w_pt, paper_h_pt)
                 out_page = out_doc[-1]
             elif first.page_type == "divider":
-                pdf_ops._render_divider_page(
+                pdf_divider_renderer.render_divider_page(
                     out_doc,
                     first.divider_content or "",
                     first.divider_style or "simple",
