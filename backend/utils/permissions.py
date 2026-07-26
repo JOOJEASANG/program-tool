@@ -78,7 +78,14 @@ def _snapshot_data(snapshot) -> dict:
 
 
 def _program_access_from_snapshots(program_snapshot, permission_snapshot, program_id: str) -> bool:
-    """Evaluate public and per-user access from one batched Firestore response."""
+    """Evaluate public and per-user access from one batched Firestore response.
+
+    Older approvals only changed ``status`` and left the signup-time program map
+    with every value set to ``False``. Because the current admin screen exposes
+    account approval rather than per-program switches, that legacy shape means
+    the account is approved for all managed programs. Once at least one program
+    is explicitly enabled, the map is treated as a selective allow-list.
+    """
     public = _snapshot_data(program_snapshot).get("public")
     if isinstance(public, dict) and public.get(program_id) is True:
         return True
@@ -86,8 +93,15 @@ def _program_access_from_snapshots(program_snapshot, permission_snapshot, progra
     permission_data = _snapshot_data(permission_snapshot)
     if permission_data.get("status") != "approved":
         return False
+
     programs = permission_data.get("programs")
-    return isinstance(programs, dict) and programs.get(program_id) is True
+    if not isinstance(programs, dict):
+        return True
+
+    explicit_enabled = any(value is True for value in programs.values())
+    if not explicit_enabled:
+        return True
+    return programs.get(program_id) is True
 
 
 def _has_program_access(db: firestore.Client, uid: str, program_id: str) -> bool:
