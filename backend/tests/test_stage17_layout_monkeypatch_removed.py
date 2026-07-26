@@ -17,8 +17,8 @@ def test_services_package_has_no_legacy_layout_module_alias():
     assert "sys.modules" not in source
 
 
-def test_importing_layout_implementation_does_not_replace_process_entrypoint():
-    before = pdf_ops.process_pdf
+def test_importing_layout_implementation_does_not_create_process_entrypoint():
+    assert not hasattr(pdf_ops, "process_pdf")
     from services import pdf_layout_implementation  # noqa: F401
 
-    assert pdf_ops.process_pdf is before
+    assert not hasattr(pdf_ops, "process_pdf")

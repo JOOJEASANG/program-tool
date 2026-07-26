@@ -1,28 +1,18 @@
-from models.schemas import PdfProcessRequest
-from services import install_common_engine_entrypoint, pdf_ops
-from services import pdf_layout_engine
+from pathlib import Path
 
 
-def test_legacy_process_pdf_delegates_to_common_engine(monkeypatch):
-    request = PdfProcessRequest.model_validate(
-        {
-            "pages": [
-                {"file_index": 0, "page_index": 0, "page_type": "normal"}
-            ]
-        }
-    )
-    expected = b"COMMON-ENGINE"
-    calls = []
 
-    def fake_process_pdf_bytes(file_bytes_list, received_request):
-        calls.append((file_bytes_list, received_request))
-        return expected
+def test_legacy_process_pdf_monkeypatch_is_removed():
+    services_init = Path("services/__init__.py").read_text(encoding="utf-8")
+    main = Path("main.py").read_text(encoding="utf-8")
 
-    monkeypatch.setattr(pdf_layout_engine, "process_pdf_bytes", fake_process_pdf_bytes)
+    assert "install_common_engine_entrypoint" not in services_init
+    assert "pdf_ops.process_pdf" not in services_init
+    assert "install_common_engine_entrypoint" not in main
 
-    install_common_engine_entrypoint()
-    result = pdf_ops.process_pdf([b"source"], request)
 
-    assert result == expected
-    assert calls == [([b"source"], request)]
-    assert pdf_ops.process_pdf.__module__ == "services"
+def test_pdf_router_imports_explicit_engine():
+    router = Path("routers/pdf.py").read_text(encoding="utf-8")
+
+    assert "from services.pdf_engine import process_pdf_bytes" in router
+    assert "output_bytes = process_pdf_bytes(file_bytes_list, req)" in router
