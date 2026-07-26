@@ -6,7 +6,8 @@ import firebase_admin.storage as fa_storage
 from flask import Blueprint, request, jsonify, Response
 
 from models.schemas import PreflightReport
-from services.preflight_svc import run_all_checks, compute_score
+from services.preflight_reliability import run_reliable_checks
+from services.preflight_svc import compute_score
 from utils.auth import require_auth
 
 preflight_bp = Blueprint("preflight", __name__)
@@ -109,7 +110,7 @@ def _run_check_response(filename: str, data: bytes):
 
     try:
         try:
-            checks = run_all_checks(doc, len(data))
+            checks = run_reliable_checks(doc, len(data))
             score = compute_score(checks)
         except Exception as e:
             traceback.print_exc()
