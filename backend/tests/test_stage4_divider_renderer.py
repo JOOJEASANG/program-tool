@@ -5,7 +5,7 @@ import fitz
 
 from models.schemas import PdfProcessRequest
 from routers import pdf as pdf_router
-from services import pdf_ops
+from services import pdf_divider_renderer, pdf_engine
 from services.pdf_disk_ops import process_pdf_files
 
 
@@ -42,7 +42,7 @@ def test_router_has_no_runtime_divider_patch():
 
 
 def test_service_divider_renderer_creates_one_page():
-    output = pdf_ops.process_pdf([_blank_source_bytes()], _divider_request())
+    output = pdf_engine.process_pdf_bytes([_blank_source_bytes()], _divider_request())
     with fitz.open(stream=output, filetype="pdf") as document:
         assert document.page_count == 1
         assert document[0].rect.width > 0
@@ -53,7 +53,7 @@ def test_direct_and_disk_paths_use_same_divider_renderer(tmp_path):
     source_path = tmp_path / "source.pdf"
     output_path = tmp_path / "output.pdf"
     source_path.write_bytes(_blank_source_bytes())
-    memory_output = pdf_ops.process_pdf([source_path.read_bytes()], _divider_request())
+    memory_output = pdf_engine.process_pdf_bytes([source_path.read_bytes()], _divider_request())
     process_pdf_files([source_path], _divider_request(), output_path)
     with fitz.open(stream=memory_output, filetype="pdf") as memory_doc:
         with fitz.open(output_path) as disk_doc:
@@ -64,7 +64,7 @@ def test_direct_and_disk_paths_use_same_divider_renderer(tmp_path):
 def test_divider_renderer_does_not_require_router_initialization():
     output = io.BytesIO()
     document = fitz.open()
-    pdf_ops._render_divider_page(
+    pdf_divider_renderer.render_divider_page(
         document,
         '{"title":"Standalone","titleY":45}',
         "simple",
