@@ -1,4 +1,4 @@
-"""Preserve each source page size while rebuilding a damaged PDF."""
+"""Rebuild damaged PDFs while preserving each source page size."""
 from __future__ import annotations
 
 import io
@@ -7,8 +7,6 @@ import traceback
 
 import fitz
 from flask import Response
-
-from routers import preflight as preflight_router
 
 
 def _json_error(detail: str, status: int, *, error: str | None = None) -> Response:
@@ -22,14 +20,21 @@ def _json_error(detail: str, status: int, *, error: str | None = None) -> Respon
     )
 
 
+def _safe_pdf_name(filename: str | None, suffix: str) -> str:
+    base = (filename or "document.pdf").rsplit(".", 1)[0]
+    base = base.strip() or "document"
+    return f"{base}_{suffix}.pdf"
+
+
 def _remove_failed_output_pages(document: fitz.Document, page_count_before: int) -> None:
     while len(document) > page_count_before:
         document.delete_page(page_count_before)
 
 
-def _fix_pdf_response_preserve_sizes(filename: str, data: bytes):
+def fix_pdf_response(filename: str, data: bytes) -> Response:
+    """Return a normalized PDF without forcing all pages to the first page size."""
     try:
-        source = preflight_router._open_pdf(data)
+        source = fitz.open(stream=data, filetype="pdf")
     except Exception as exc:
         return _json_error(
             "PDF 파일을 열 수 없어 자동 복구가 제한됩니다. 원본 프로그램에서 'PDF로 다시 저장/인쇄' 후 재시도하세요.",
@@ -103,7 +108,6 @@ def _fix_pdf_response_preserve_sizes(filename: str, data: bytes):
             deflate_fonts=True,
             clean=True,
         )
-        fixed_name = preflight_router._safe_pdf_name(filename, "repaired")
         note = (
             "rebuilt-clean;page-sizes=preserved;"
             f"copied={copied_pages};rasterized={rasterized_pages};"
@@ -114,7 +118,7 @@ def _fix_pdf_response_preserve_sizes(filename: str, data: bytes):
             status=200,
             mimetype="application/pdf",
             headers={
-                "Content-Disposition": f"attachment; filename={fixed_name}",
+                "Content-Disposition": f"attachment; filename={_safe_pdf_name(filename, 'repaired')}",
                 "X-Fix-Note": note,
                 "Access-Control-Expose-Headers": "X-Fix-Note, Content-Disposition",
             },
@@ -131,8 +135,3 @@ def _fix_pdf_response_preserve_sizes(filename: str, data: bytes):
         except Exception:
             pass
         output.close()
-
-
-if not getattr(preflight_router, "_preserve_page_sizes_patch_v2", False):
-    preflight_router._fix_pdf_response = _fix_pdf_response_preserve_sizes
-    preflight_router._preserve_page_sizes_patch_v2 = True

@@ -10,8 +10,6 @@ from flask import Flask, jsonify
 from routers.pdf import pdf_bp
 from routers.pdf_tools import pdf_tools_bp
 from routers.preflight import preflight_bp
-# The repair patch replaces the route module's normalizer after that module is loaded.
-from services import preflight_repair_patch  # noqa: F401,E402
 
 from firebase_functions import https_fn, options
 from utils.permissions import AccessError, require_program_access_for_request
