@@ -4,7 +4,7 @@ import fitz
 
 from models.schemas import CheckItem, CheckSeverity
 from services import preflight_reliability
-from services import preflight_repair_patch
+from services import preflight_repair
 
 
 def _pdf_bytes(document: fitz.Document) -> bytes:
@@ -62,15 +62,19 @@ def test_preflight_router_uses_explicit_reliability_runner():
     assert preflight_router.run_reliable_checks is preflight_reliability.run_reliable_checks
 
 
+def test_preflight_router_uses_explicit_repair_service():
+    from routers import preflight as preflight_router
+
+    assert preflight_router.fix_pdf_response is preflight_repair.fix_pdf_response
+
+
 def test_pdf_repair_preserves_mixed_page_sizes():
     source = fitz.open()
     source.new_page(width=595.28, height=841.89)
     source.new_page(width=841.89, height=1190.55)
     source_bytes = _pdf_bytes(source)
 
-    response = preflight_repair_patch._fix_pdf_response_preserve_sizes(
-        "mixed.pdf", source_bytes
-    )
+    response = preflight_repair.fix_pdf_response("mixed.pdf", source_bytes)
 
     assert response.status_code == 200
     assert "page-sizes=preserved" in response.headers["X-Fix-Note"]
