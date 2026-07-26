@@ -3,7 +3,7 @@ import io
 import fitz
 
 from models.schemas import CheckItem, CheckSeverity
-from services import preflight_reliability_patch
+from services import preflight_reliability
 from services import preflight_repair_patch
 
 
@@ -22,10 +22,10 @@ def test_sampled_pass_is_changed_to_warning():
         detail="문제가 발견되지 않았습니다. (앞 8페이지 검사, 전체 100p)",
     )
 
-    patched = preflight_reliability_patch._mark_partial(item)
+    result = preflight_reliability.mark_sampled_pass_as_warning(item)
 
-    assert patched.severity == CheckSeverity.warning
-    assert "전체 문서 통과를 의미하지 않습니다" in patched.detail
+    assert result.severity == CheckSeverity.warning
+    assert "전체 문서 통과를 의미하지 않습니다" in result.detail
 
 
 def test_complete_pass_stays_pass():
@@ -36,10 +36,10 @@ def test_complete_pass_stays_pass():
         detail="전체 8페이지에서 문제가 발견되지 않았습니다.",
     )
 
-    patched = preflight_reliability_patch._mark_partial(item)
+    result = preflight_reliability.mark_sampled_pass_as_warning(item)
 
-    assert patched.severity == CheckSeverity.pass_
-    assert patched.detail == item.detail
+    assert result.severity == CheckSeverity.pass_
+    assert result.detail == item.detail
 
 
 def test_sampled_failure_is_not_downgraded():
@@ -50,10 +50,16 @@ def test_sampled_failure_is_not_downgraded():
         detail="저해상도 이미지가 발견되었습니다. (앞 8페이지 검사, 전체 100p)",
     )
 
-    patched = preflight_reliability_patch._mark_partial(item)
+    result = preflight_reliability.mark_sampled_pass_as_warning(item)
 
-    assert patched.severity == CheckSeverity.fail
-    assert patched.detail == item.detail
+    assert result.severity == CheckSeverity.fail
+    assert result.detail == item.detail
+
+
+def test_preflight_router_uses_explicit_reliability_runner():
+    from routers import preflight as preflight_router
+
+    assert preflight_router.run_reliable_checks is preflight_reliability.run_reliable_checks
 
 
 def test_pdf_repair_preserves_mixed_page_sizes():
