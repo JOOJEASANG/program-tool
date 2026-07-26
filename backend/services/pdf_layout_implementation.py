@@ -5,7 +5,7 @@ import io
 
 import fitz
 
-from services import pdf_ops
+from services import pdf_divider_renderer, pdf_ops
 
 
 def _margin_value(request, name: str, legacy_name: str, fallback: float) -> float:
@@ -67,12 +67,7 @@ def _page_number_value(settings, output_idx: int, total_pages: int) -> tuple[int
 
 
 def _group_booklet_pages(page_infos: list, nup: int) -> list[list]:
-    """Chunk imposed booklet pages strictly by the selected global N-up.
-
-    Per-page/file overrides, standalone-page flags, and group breaks are intentionally
-    ignored in booklet mode. The imposition order already contains the exact blank
-    slots required for duplex printing, cutting, and folding.
-    """
+    """Chunk imposed booklet pages strictly by the selected global N-up."""
     size = int(nup)
     if size not in pdf_ops.BOOKLET_STRIPS:
         return pdf_ops._group_by_nup(page_infos, size)
@@ -80,11 +75,7 @@ def _group_booklet_pages(page_infos: list, nup: int) -> list[list]:
 
 
 def _booklet_layout(nup: int) -> tuple[int, int]:
-    """Return the fixed left/right booklet grid for one imposed output side.
-
-    Booklet reordering emits pairs in row-major order: left page, right page, then
-    the next strip. Rotating the sheet must not change this logical grid.
-    """
+    """Return the fixed left/right booklet grid for one imposed output side."""
     size = int(nup)
     strips = pdf_ops.BOOKLET_STRIPS.get(size)
     if strips is None:
@@ -134,11 +125,7 @@ def _apply_page_numbers_with_layout(
     top_anchor = max(top_margin, extra)
     bottom_anchor = max(bottom_margin, extra)
 
-    if "bottom" in position:
-        y = page_height - bottom_anchor - fs * 1.6
-    else:
-        y = top_anchor
-
+    y = page_height - bottom_anchor - fs * 1.6 if "bottom" in position else top_anchor
     if "center" in position:
         rect = fitz.Rect(page_width * 0.25, y, page_width * 0.75, y + fs * 1.8)
         align = fitz.TEXT_ALIGN_CENTER
@@ -148,7 +135,6 @@ def _apply_page_numbers_with_layout(
     else:
         rect = fitz.Rect(left_anchor, y, page_width * 0.45, y + fs * 1.8)
         align = fitz.TEXT_ALIGN_LEFT
-
     page.insert_textbox(rect, text, fontsize=fs, fontname="helv", color=color, align=align)
 
 
@@ -162,7 +148,7 @@ def _show_divider_in_cell(
     """Render a divider as a logical booklet page inside one imposed cell."""
     temp_doc = fitz.open()
     try:
-        pdf_ops._render_divider_page(
+        pdf_divider_renderer.render_divider_page(
             temp_doc,
             page_info.divider_content or "",
             page_info.divider_style or "simple",
@@ -185,11 +171,7 @@ def process_pdf_with_individual_margins(file_bytes_list: list[bytes], request) -
         active_pages = [page for page in request.pages if not page.excluded]
         booklet_enabled = bool(getattr(request, "booklet", False)) and request.nup_default in pdf_ops.BOOKLET_STRIPS
         if booklet_enabled:
-            active_pages = pdf_ops._booklet_reorder(
-                active_pages,
-                int(request.nup_default),
-                paper_w_pt > paper_h_pt,
-            )
+            active_pages = pdf_ops._booklet_reorder(active_pages, int(request.nup_default), paper_w_pt > paper_h_pt)
             groups = _group_booklet_pages(active_pages, int(request.nup_default))
         else:
             groups = pdf_ops._group_by_nup(active_pages, request.nup_default)
@@ -211,7 +193,7 @@ def process_pdf_with_individual_margins(file_bytes_list: list[bytes], request) -
                 pdf_ops._render_blank_page(out_doc, paper_w_pt, paper_h_pt)
                 out_page = out_doc[-1]
             elif first.page_type == "divider" and standalone_special:
-                pdf_ops._render_divider_page(
+                pdf_divider_renderer.render_divider_page(
                     out_doc,
                     first.divider_content or "",
                     first.divider_style or "simple",
@@ -261,21 +243,9 @@ def process_pdf_with_individual_margins(file_bytes_list: list[bytes], request) -
                     src_doc = src_docs[page_info.file_index]
                     src_page = src_doc[page_info.page_index]
                     src_rect = src_page.rect
-                    rotation = pdf_ops._best_fit_rotation(
-                        cell_w,
-                        cell_h,
-                        src_rect.width,
-                        src_rect.height,
-                        page_info.rotation,
-                    )
+                    rotation = pdf_ops._best_fit_rotation(cell_w, cell_h, src_rect.width, src_rect.height, page_info.rotation)
                     fit_rect = pdf_ops._calc_fit_rect(cell_rect, src_rect.width, src_rect.height, rotation)
-                    out_page.show_pdf_page(
-                        fit_rect,
-                        src_doc,
-                        page_info.page_index,
-                        rotate=rotation,
-                        keep_proportion=True,
-                    )
+                    out_page.show_pdf_page(fit_rect, src_doc, page_info.page_index, rotate=rotation, keep_proportion=True)
                     if request.add_border:
                         shape = out_page.new_shape()
                         shape.draw_rect(fit_rect)
