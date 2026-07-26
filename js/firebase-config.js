@@ -77,7 +77,9 @@ window.ProgramAccess={
     if(!user||!programId)return{allowed:false,status:'signed_out',admin:false,public:false,profile:null};
     const [access,publicPrograms]=await Promise.all([this.getAccess(user),this.getPublicPrograms()]);
     const publicAccess=publicPrograms?.[programId]===true;
-    const assigned=access.profile?.programs?.[programId]===true;
+    const programs=access.profile?.programs;
+    const hasExplicitSelection=programs&&typeof programs==='object'&&Object.values(programs).some(value=>value===true);
+    const assigned=hasExplicitSelection?programs?.[programId]===true:access.status==='approved';
     const allowed=access.admin||publicAccess||(access.status==='approved'&&assigned);
     return{...access,allowed,public:publicAccess,assigned,programId};
   },
