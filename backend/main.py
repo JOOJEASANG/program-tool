@@ -6,9 +6,8 @@ if not firebase_admin._apps:
         "storageBucket": os.environ.get("FIREBASE_STORAGE_BUCKET", "program-tool.firebasestorage.app"),
     })
 
-# Apply PDF text renderers before route imports.
+# Apply the remaining divider renderer before route imports.
 from services import pdf_divider_alignment_patch  # noqa: F401,E402
-from services import pdf_text_font_patch  # noqa: F401,E402
 from services import preflight_reliability_patch  # noqa: F401,E402
 
 from flask import Flask, jsonify
