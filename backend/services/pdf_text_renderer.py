@@ -1,4 +1,4 @@
-"""Use a Korean-capable built-in CJK font for PDF text overlays."""
+"""Render Korean-capable PDF text overlays without runtime monkeypatching."""
 from __future__ import annotations
 
 from types import SimpleNamespace
@@ -6,7 +6,6 @@ from types import SimpleNamespace
 import fitz
 
 from services import pdf_ops
-
 
 CJK_FONT_NAME = "korea"
 MAX_OVERLAY_TEXT_LENGTH = 500
@@ -16,7 +15,7 @@ def _safe_text(value) -> str:
     return str(value or "")[:MAX_OVERLAY_TEXT_LENGTH]
 
 
-def _apply_watermark(page: fitz.Page, settings):
+def apply_watermark(page: fitz.Page, settings) -> None:
     if not settings.enabled or not settings.text:
         return
     text = _safe_text(settings.text)
@@ -51,7 +50,7 @@ def _apply_watermark(page: fitz.Page, settings):
     shape.commit(overlay=True)
 
 
-def _apply_header_footer(
+def apply_header_footer(
     page: fitz.Page,
     settings,
     page_width: float,
@@ -59,7 +58,7 @@ def _apply_header_footer(
     output_page_num: int = 1,
     total_pages: int = 1,
     facing_pages: bool = False,
-):
+) -> None:
     if not settings.enabled:
         return
 
@@ -127,7 +126,7 @@ def _apply_header_footer(
     insert(fields.footer_right, right_rect, footer_y, fitz.TEXT_ALIGN_RIGHT)
 
 
-def _apply_page_numbers(
+def apply_page_numbers(
     page: fitz.Page,
     settings,
     output_idx: int,
@@ -135,7 +134,7 @@ def _apply_page_numbers(
     page_width: float,
     page_height: float,
     facing_pages: bool = False,
-):
+) -> None:
     if not settings.enabled:
         return
     if settings.exclude_first and output_idx == 0:
@@ -195,10 +194,3 @@ def _apply_page_numbers(
         align=align,
         overlay=True,
     )
-
-
-if not getattr(pdf_ops, "_korean_overlay_patch_v1", False):
-    pdf_ops._apply_watermark = _apply_watermark
-    pdf_ops._apply_header_footer = _apply_header_footer
-    pdf_ops._apply_page_numbers = _apply_page_numbers
-    pdf_ops._korean_overlay_patch_v1 = True
