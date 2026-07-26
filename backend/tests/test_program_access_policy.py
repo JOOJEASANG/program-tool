@@ -62,14 +62,23 @@ def test_public_program_allows_without_user_assignment():
     assert _program_access_from_snapshots(program, permission, "preflight") is False
 
 
-def test_private_program_requires_approved_status_and_exact_flag():
+def test_private_program_supports_legacy_approval_and_explicit_selection():
     private = FakeSnapshot({"public": {"pdf-editor": False}})
-    approved = FakeSnapshot({"status": "approved", "programs": {"pdf-editor": True}})
+    legacy_approved = FakeSnapshot({
+        "status": "approved",
+        "programs": {"pdf-editor": False, "preflight": False},
+    })
+    explicit_approved = FakeSnapshot({
+        "status": "approved",
+        "programs": {"pdf-editor": True, "preflight": False},
+    })
     pending = FakeSnapshot({"status": "pending", "programs": {"pdf-editor": True}})
-    denied = FakeSnapshot({"status": "approved", "programs": {"pdf-editor": False}})
-    assert _program_access_from_snapshots(private, approved, "pdf-editor") is True
+
+    assert _program_access_from_snapshots(private, legacy_approved, "pdf-editor") is True
+    assert _program_access_from_snapshots(private, legacy_approved, "preflight") is True
+    assert _program_access_from_snapshots(private, explicit_approved, "pdf-editor") is True
+    assert _program_access_from_snapshots(private, explicit_approved, "preflight") is False
     assert _program_access_from_snapshots(private, pending, "pdf-editor") is False
-    assert _program_access_from_snapshots(private, denied, "pdf-editor") is False
 
 
 def test_frontend_and_backend_share_claim_public_and_assignment_policy():
@@ -78,11 +87,13 @@ def test_frontend_and_backend_share_claim_public_and_assignment_policy():
     assert "getIdTokenResult" in frontend
     assert "claims?.admin===true" in frontend
     assert "publicPrograms?.[programId]===true" in frontend
-    assert "access.status==='approved'&&assigned" in frontend
+    assert "Object.values(programs).some(value=>value===true)" in frontend
+    assert "access.status==='approved'" in frontend
     assert "def _has_admin_claim" in backend
     assert "def _is_legacy_admin" in backend
     assert "def _program_access_from_snapshots" in backend
     assert 'permission_data.get("status") != "approved"' in backend
+    assert "explicit_enabled = any(value is True for value in programs.values())" in backend
 
 
 def test_guard_maps_each_protected_page_to_one_program_id():
