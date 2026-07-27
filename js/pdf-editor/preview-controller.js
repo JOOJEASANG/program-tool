@@ -1,8 +1,8 @@
 // Single-flight preview controller for all PDF editor modules.
 (function () {
   'use strict';
-  if (window.__pdfPreviewControllerV2) return;
-  window.__pdfPreviewControllerV2 = true;
+  if (window.__pdfPreviewControllerV3) return;
+  window.__pdfPreviewControllerV3 = true;
 
   let installed = false;
   let timer = null;
@@ -11,6 +11,7 @@
   let rerunForced = false;
   let currentPromise = null;
   let lastSignature = '';
+  let activeSignature = '';
   let thumbObserver = null;
   let originalTrigger = null;
 
@@ -115,25 +116,35 @@
     if (!force && signature === lastSignature && previewVisible()) return;
 
     if (running) {
-      rerunRequested = true;
-      rerunForced = rerunForced || !!force;
+      // The legacy watchdog calls triggerPreview every 500 ms while a long preview
+      // is still being built. Do not queue the same state again. Only a real state
+      // change or an explicit manual request may schedule one follow-up pass.
+      if (force) {
+        rerunRequested = true;
+        rerunForced = true;
+      } else if (signature !== activeSignature) {
+        rerunRequested = true;
+      }
       return currentPromise;
     }
 
     running = true;
+    activeSignature = signature;
     currentPromise = (async () => {
       let nextForce = !!force;
+      let passCount = 0;
       do {
         rerunRequested = false;
         rerunForced = false;
-        if (nextForce) window.__pdfEditorManualPreviewRequest = true;
         const startedSignature = stateSignature();
+        activeSignature = startedSignature;
         await originalTrigger();
         const finishedSignature = stateSignature();
         lastSignature = finishedSignature;
-        if (finishedSignature !== startedSignature) rerunRequested = true;
+        passCount += 1;
+        if (finishedSignature !== startedSignature && passCount < 2) rerunRequested = true;
         nextForce = rerunForced;
-      } while (rerunRequested && (!fastMode() || nextForce));
+      } while (rerunRequested && passCount < 2 && (!fastMode() || nextForce));
     })();
 
     try {
@@ -143,6 +154,9 @@
     } finally {
       running = false;
       currentPromise = null;
+      activeSignature = '';
+      rerunRequested = false;
+      rerunForced = false;
     }
   }
 
@@ -157,8 +171,8 @@
   }
 
   function installEvents() {
-    if (window.__pdfPreviewControllerEventsV2) return;
-    window.__pdfPreviewControllerEventsV2 = true;
+    if (window.__pdfPreviewControllerEventsV3) return;
+    window.__pdfPreviewControllerEventsV3 = true;
 
     const previewButton = byId('previewBtn');
     if (previewButton) {
@@ -203,13 +217,17 @@
 
     originalTrigger = triggerPreview;
     const controlledTrigger = function controlledTriggerPreview() {
-      return execute(!!window.__pdfEditorManualPreviewRequest);
+      const force = !!window.__pdfEditorManualPreviewRequest;
+      // Manual force is one-shot. Leaving this flag set made every watchdog call a
+      // forced render after the first manual preview.
+      window.__pdfEditorManualPreviewRequest = false;
+      return execute(force);
     };
     const controlledSchedule = function controlledSchedulePreview(delay) {
       request(delay, false);
     };
-    controlledTrigger.__pdfPreviewControllerV2 = true;
-    controlledSchedule.__pdfPreviewControllerV2 = true;
+    controlledTrigger.__pdfPreviewControllerV3 = true;
+    controlledSchedule.__pdfPreviewControllerV3 = true;
 
     triggerPreview = controlledTrigger;
     schedulePreview = controlledSchedule;
