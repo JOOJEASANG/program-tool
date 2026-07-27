@@ -3,7 +3,10 @@ service firebase.storage {
   match /b/{bucket}/o {
     function signedIn() { return request.auth != null; }
     function isOwner(userId) { return signedIn() && request.auth.uid == userId; }
-    function isAdmin() {
+    function hasAdminClaim() {
+      return signedIn() && request.auth.token.admin == true;
+    }
+    function legacyAdmin() {
       return signedIn()
         && request.auth.token.email != null
         && firestore.exists(/databases/(default)/documents/settings/admin)
@@ -12,10 +15,14 @@ service firebase.storage {
           request.auth.token.email.lower()
         ]);
     }
+    function isAdmin() { return hasAdminClaim() || legacyAdmin(); }
     function isApproved() {
-      return signedIn()
-        && firestore.exists(/databases/(default)/documents/user_permissions/$(request.auth.uid))
-        && firestore.get(/databases/(default)/documents/user_permissions/$(request.auth.uid)).data.status == 'approved';
+      return isAdmin()
+        || (
+          signedIn()
+          && firestore.exists(/databases/(default)/documents/user_permissions/$(request.auth.uid))
+          && firestore.get(/databases/(default)/documents/user_permissions/$(request.auth.uid)).data.status == 'approved'
+        );
     }
     function isPublicCoverTemplate(templateId) {
       return firestore.exists(/databases/(default)/documents/cover_templates/$(templateId))
@@ -31,17 +38,18 @@ service firebase.storage {
         && request.resource.size <= 15728640
         && request.resource.contentType.matches('image/(jpeg|png|webp)');
     }
+
     match /pdf_temp/{userId}/{allPaths=**} {
-      allow read, delete: if isOwner(userId);
-      allow create, update: if isOwner(userId) && isPdfUpload();
+      allow read, delete: if isOwner(userId) && isApproved();
+      allow create, update: if isOwner(userId) && isApproved() && isPdfUpload();
     }
     match /preflight_temp/{userId}/{allPaths=**} {
-      allow read, delete: if isOwner(userId);
-      allow create, update: if isOwner(userId) && isPdfUpload();
+      allow read, delete: if isOwner(userId) && isApproved();
+      allow create, update: if isOwner(userId) && isApproved() && isPdfUpload();
     }
     match /pdf_sessions/{userId}/{allPaths=**} {
-      allow read, delete: if isOwner(userId);
-      allow create, update: if isOwner(userId) && isPdfUpload();
+      allow read, delete: if isOwner(userId) && isApproved();
+      allow create, update: if isOwner(userId) && isApproved() && isPdfUpload();
     }
     match /cover_templates/{templateId}/{fileName} {
       allow read: if isAdmin() || (isApproved() && isPublicCoverTemplate(templateId));
