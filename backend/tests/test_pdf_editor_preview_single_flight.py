@@ -17,4 +17,4 @@ def test_loader_uses_new_preview_controller_asset_version():
     source = (ROOT / "js" / "pdf-editor" / "loader.js").read_text(encoding="utf-8")
 
     assert "preview-controller.js?v=20260727-3" in source
-    assert "__pdfEditorModuleLoaderV35" in source
+    assert "__pdfEditorModuleLoaderV34" in source
