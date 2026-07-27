@@ -76,7 +76,8 @@ def _required_page_number_space(settings, paper_edge_pt: float) -> float:
     )
     anchor = max(paper_edge_pt, dedicated)
     font_size = max(
-        5.0, min(72.0, float(getattr(settings, "font_size", 10.0) or 10.0))
+        5.0,
+        min(72.0, float(getattr(settings, "font_size", 10.0) or 10.0)),
     )
     return min(
         80.0 * pdf_ops.MM_TO_PT,
@@ -113,12 +114,28 @@ def _build_page_layout(
     effective_nup: int,
     paper_w_pt: float,
     paper_h_pt: float,
-    margins: tuple[float, float, float, float],
+    margins: tuple[float, float, float, float] | float,
     gap_pt: float,
-    page_order: str = "row-major",
+    page_order: str | float = "row-major",
     booklet: bool = False,
 ) -> _PageLayout:
-    """Calculate immutable cell geometry for one output page."""
+    """Calculate immutable cell geometry for one output page.
+
+    The historical internal signature was ``(nup, w, h, margin_h, margin_v,
+    gap)``. Numeric ``margins`` keeps that call shape working while new callers
+    pass a four-value margin tuple and an explicit page order.
+    """
+    if isinstance(margins, (tuple, list)) and len(margins) == 4:
+        resolved_margins = tuple(float(value) for value in margins)
+        resolved_gap = float(gap_pt)
+        resolved_order = str(page_order)
+    else:
+        margin_h = float(margins)
+        margin_v = float(gap_pt)
+        resolved_gap = float(page_order)
+        resolved_margins = (margin_h, margin_h, margin_v, margin_v)
+        resolved_order = "row-major"
+
     if booklet:
         cols, rows = _booklet_layout(effective_nup)
     else:
@@ -126,21 +143,21 @@ def _build_page_layout(
         if paper_w_pt > paper_h_pt and cols != rows:
             cols, rows = rows, cols
 
-    left, right, top, bottom = margins
-    usable_w = paper_w_pt - left - right - (cols - 1) * gap_pt
-    usable_h = paper_h_pt - top - bottom - (rows - 1) * gap_pt
+    left, right, top, bottom = resolved_margins
+    usable_w = paper_w_pt - left - right - (cols - 1) * resolved_gap
+    usable_h = paper_h_pt - top - bottom - (rows - 1) * resolved_gap
     if usable_w <= 1 or usable_h <= 1:
         left = right = top = bottom = pdf_ops.MARGIN_PT
         gap_use = pdf_ops.CELL_GAP_PT
         usable_w = paper_w_pt - left - right - (cols - 1) * gap_use
         usable_h = paper_h_pt - top - bottom - (rows - 1) * gap_use
     else:
-        gap_use = gap_pt
+        gap_use = resolved_gap
 
     cell_w = usable_w / cols
     cell_h = usable_h / rows
     rects: list[fitz.Rect] = []
-    column_major = page_order == "column-major" and not booklet
+    column_major = resolved_order == "column-major" and not booklet
     for slot_idx in range(cols * rows):
         if column_major:
             col = slot_idx // rows
@@ -223,7 +240,26 @@ def _render_divider_in_cell(
 
 def _booklet_groups(active_pages: list, nup: int) -> list[list]:
     imposed = pdf_ops._booklet_reorder(active_pages, nup)
-    return [imposed[index:index + nup] for index in range(0, len(imposed), nup)]
+    return [
+        imposed[index:index + nup]
+        for index in range(0, len(imposed), nup)
+    ]
+
+
+def _layout_cache_key(
+    effective_nup: int,
+    margins: tuple[float, float, float, float],
+    gap_pt: float,
+    page_order: str,
+    booklet: bool,
+) -> tuple:
+    return (
+        int(effective_nup),
+        tuple(round(float(value), 6) for value in margins),
+        round(float(gap_pt), 6),
+        page_order,
+        bool(booklet),
+    )
 
 
 def build_pdf_document(
@@ -252,6 +288,7 @@ def build_pdf_document(
     total_output_pages = len(groups)
     facing = bool(getattr(request, "facing_pages", False))
     page_order = str(getattr(request, "page_order", "row-major"))
+    layout_cache: dict[tuple, _PageLayout] = {}
 
     try:
         for output_page_idx, group in enumerate(groups):
@@ -286,17 +323,30 @@ def build_pdf_document(
                         else int(first.nup_override or request.nup_default)
                     )
                 )
-                layout = _build_page_layout(
+                cache_key = _layout_cache_key(
                     effective_nup,
-                    paper_w_pt,
-                    paper_h_pt,
                     content_margins,
                     gap_pt,
-                    page_order=page_order,
-                    booklet=booklet_enabled,
+                    page_order,
+                    booklet_enabled,
                 )
+                layout = layout_cache.get(cache_key)
+                if layout is None:
+                    layout = _build_page_layout(
+                        effective_nup,
+                        paper_w_pt,
+                        paper_h_pt,
+                        content_margins,
+                        gap_pt,
+                        page_order=page_order,
+                        booklet=booklet_enabled,
+                    )
+                    layout_cache[cache_key] = layout
 
-                out_page = out_doc.new_page(width=paper_w_pt, height=paper_h_pt)
+                out_page = out_doc.new_page(
+                    width=paper_w_pt,
+                    height=paper_h_pt,
+                )
                 for slot_idx, page_info in enumerate(group):
                     if slot_idx >= len(layout.cell_rects):
                         break
@@ -362,7 +412,8 @@ def process_pdf_bytes(
     out_doc: fitz.Document | None = None
     try:
         src_docs = [
-            fitz.open(stream=data, filetype="pdf") for data in file_bytes_list
+            fitz.open(stream=data, filetype="pdf")
+            for data in file_bytes_list
         ]
         out_doc = build_pdf_document(src_docs, request)
         buffer = io.BytesIO()
