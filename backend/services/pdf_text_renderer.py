@@ -126,6 +126,28 @@ def apply_header_footer(
     insert(fields.footer_right, right_rect, footer_y, fitz.TEXT_ALIGN_RIGHT)
 
 
+def _page_number_applies(settings, output_idx: int) -> bool:
+    if not settings.enabled:
+        return False
+    if settings.exclude_first and output_idx == 0:
+        return False
+    is_odd = output_idx % 2 == 0
+    apply_to = getattr(settings, "apply_to", "all")
+    return (
+        apply_to == "all"
+        or (apply_to == "odd" and is_odd)
+        or (apply_to == "even" and not is_odd)
+    )
+
+
+def page_number_value(settings, output_idx: int, total_pages: int) -> tuple[int, int]:
+    """Return visible number and visible total, including cover exclusion."""
+    offset = 1 if settings.exclude_first else 0
+    visible = output_idx + settings.start - offset
+    visible_total = max(0, total_pages - offset) + settings.start - 1
+    return visible, visible_total
+
+
 def apply_page_numbers(
     page: fitz.Page,
     settings,
@@ -134,29 +156,22 @@ def apply_page_numbers(
     page_width: float,
     page_height: float,
     facing_pages: bool = False,
+    paper_margins: tuple[float, float, float, float] | None = None,
 ) -> None:
-    if not settings.enabled:
-        return
-    if settings.exclude_first and output_idx == 0:
+    if not _page_number_applies(settings, output_idx):
         return
 
     page_number = output_idx + 1
     is_odd = page_number % 2 == 1
-    apply_to = getattr(settings, "apply_to", "all")
-    if apply_to == "odd" and not is_odd:
-        return
-    if apply_to == "even" and is_odd:
-        return
-
-    number = output_idx + settings.start
+    number, number_total = page_number_value(settings, output_idx, total_pages)
     if settings.format == "1":
         text = str(number)
     elif settings.format == "1/N":
-        text = f"{number}/{total_pages}"
+        text = f"{number}/{number_total}"
     elif settings.format == "-1-":
         text = f"- {number} -"
     else:
-        text = f"- {number}/{total_pages} -"
+        text = f"- {number}/{number_total} -"
 
     color = pdf_ops._hex_to_rgb(settings.color, (0.2, 0.2, 0.2))
     fontsize = max(5.0, min(72.0, float(settings.font_size)))
@@ -168,21 +183,46 @@ def apply_page_numbers(
             position = position.replace("right", "left")
 
     margin_mm = getattr(settings, "margin_mm", None)
-    margin = (
+    extra = (
         pdf_ops._mm_to_pt_safe(margin_mm, 5.0)
         if margin_mm is not None
         else pdf_ops.PN_MARGIN_PT
     )
-    y = page_height - margin - fontsize * 1.6 if "bottom" in position else margin
+    if paper_margins is None:
+        left_anchor = right_anchor = top_anchor = bottom_anchor = extra
+    else:
+        left, right, top, bottom = paper_margins
+        left_anchor = max(left, extra)
+        right_anchor = max(right, extra)
+        top_anchor = max(top, extra)
+        bottom_anchor = max(bottom, extra)
+
+    y = (
+        page_height - bottom_anchor - fontsize * 1.6
+        if "bottom" in position
+        else top_anchor
+    )
 
     if "center" in position:
-        rect = fitz.Rect(page_width * 0.25, y, page_width * 0.75, y + fontsize * 1.8)
+        rect = fitz.Rect(
+            page_width * 0.25, y, page_width * 0.75, y + fontsize * 1.8
+        )
         align = fitz.TEXT_ALIGN_CENTER
     elif "right" in position:
-        rect = fitz.Rect(page_width * 0.55, y, page_width - margin, y + fontsize * 1.8)
+        rect = fitz.Rect(
+            page_width * 0.55,
+            y,
+            page_width - right_anchor,
+            y + fontsize * 1.8,
+        )
         align = fitz.TEXT_ALIGN_RIGHT
     else:
-        rect = fitz.Rect(margin, y, page_width * 0.45, y + fontsize * 1.8)
+        rect = fitz.Rect(
+            left_anchor,
+            y,
+            page_width * 0.45,
+            y + fontsize * 1.8,
+        )
         align = fitz.TEXT_ALIGN_LEFT
 
     page.insert_textbox(
