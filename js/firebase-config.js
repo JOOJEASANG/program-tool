@@ -16,6 +16,28 @@ window.db=db;
 window.googleProvider=googleProvider;
 window.firebaseConfig=firebaseConfig;
 
+// The legacy PDF editor performs one Promise.all() over admin, public-program,
+// and user-permission documents. A permission-denied response for either settings
+// document used to abort the whole check before the approved user document could
+// be evaluated. On the PDF editor only, treat denied optional settings reads as
+// unavailable snapshots. Authentication and user_permissions checks remain real.
+(()=>{
+  const isPdfEditor=/\/(?:tools\/pdf-editor\.html|pdf-editor(?:\/index\.html)?)\/?$/.test(location.pathname);
+  const proto=firebase.firestore?.DocumentReference?.prototype;
+  if(!isPdfEditor||!proto||proto.__programStudioPdfEditorSettingsFallback)return;
+  const originalGet=proto.get;
+  if(typeof originalGet!=='function')return;
+  Object.defineProperty(proto,'__programStudioPdfEditorSettingsFallback',{value:true});
+  proto.get=async function(...args){
+    try{return await originalGet.apply(this,args)}catch(error){
+      const isOptionalSettingsDoc=this.parent?.id==='settings'&&['admin','programs'].includes(this.id);
+      const code=String(error?.code||'').toLowerCase();
+      if(!isOptionalSettingsDoc||!(code.includes('permission-denied')||code.includes('permission_denied')))throw error;
+      return{exists:false,id:this.id,ref:this,data:()=>undefined};
+    }
+  };
+})();
+
 // Legacy PDF editor pages read programs['pdf-editor'] directly instead of using
 // ProgramAccess. Normalize approved permission snapshots at the shared Firebase
 // boundary so account-level approval remains authoritative until those pages are
@@ -33,7 +55,7 @@ window.firebaseConfig=firebaseConfig;
   };
 })();
 
-(()=>{if(document.getElementById('programStudioCacheBootstrap'))return;const s=document.createElement('script');s.id='programStudioCacheBootstrap';s.src='/js/sw-register.js?v=2026.07.27.002';s.defer=true;document.head.appendChild(s)})();
+(()=>{if(document.getElementById('programStudioCacheBootstrap'))return;const s=document.createElement('script');s.id='programStudioCacheBootstrap';s.src='/js/sw-register.js?v=2026.07.27.003';s.defer=true;document.head.appendChild(s)})();
 
 window.ProgramAccess={
   _cache:new Map(),
