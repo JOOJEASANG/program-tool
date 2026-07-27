@@ -3,6 +3,8 @@
 (function () {
   if (window.__pdfEditorModuleLoaderV35) return;
   window.__pdfEditorModuleLoaderV35 = true;
+  // Backward-compatible marker retained for existing diagnostics and cached pages.
+  window.__pdfEditorModuleLoaderV34 = true;
 
   const MODULES = [
     '/js/pdf-editor/font-render-fix.js?v=20260618-1',
