@@ -13,8 +13,9 @@ logger = logging.getLogger(__name__)
 
 
 def _json_error(detail: str, status: int) -> Response:
+    payload = {"detail": detail}
     return Response(
-        json.dumps({"detail": detail}, ensure_ascii=False),
+        json.dumps(payload, ensure_ascii=False),
         status=status,
         mimetype="application/json",
     )
