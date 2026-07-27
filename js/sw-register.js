@@ -1,12 +1,13 @@
 (function(){
   if(window.__programStudioCacheBoot)return;
   window.__programStudioCacheBoot=true;
-  const VERSION='2026.07.27.005';
+  const VERSION='2026.07.28.001';
   const currentPath=location.pathname.replace(/\/+$/,'')||'/';
   const reveal=()=>{
     if(window.ProgramStudioBoot&&typeof window.ProgramStudioBoot.reveal==='function')window.ProgramStudioBoot.reveal();
     else document.documentElement.classList.remove('app-booting');
   };
+  const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
   const nextPaint=()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
   function load(id,src){
     const existing=document.getElementById(id);
@@ -16,7 +17,7 @@
         const done=()=>resolve();
         existing.addEventListener('load',done,{once:true});
         existing.addEventListener('error',done,{once:true});
-        setTimeout(done,2500);
+        setTimeout(done,1200);
       });
     }
     return new Promise(resolve=>{
@@ -28,13 +29,19 @@
       s.addEventListener('load',done,{once:true});
       s.addEventListener('error',done,{once:true});
       document.head.appendChild(s);
-      setTimeout(done,2500);
+      setTimeout(done,1200);
     });
   }
   function isPath(...parts){return parts.some(path=>currentPath===path||currentPath.endsWith(path))}
   function isHome(){return currentPath==='/'||currentPath==='/index.html'}
-  async function clearLegacyCaches(){try{if('caches'in window){const keys=await caches.keys();await Promise.all(keys.filter(k=>!k.includes(VERSION)).map(k=>caches.delete(k)))}}catch(_){} }
-  async function register(){if(!('serviceWorker'in navigator))return;try{const reg=await navigator.serviceWorker.register('/sw.js?v='+encodeURIComponent(VERSION),{updateViaCache:'none'});await reg.update().catch(()=>{});if(reg.waiting)reg.waiting.postMessage({type:'SKIP_WAITING'})}catch(e){console.warn('Service worker registration failed',e)}}
+  async function register(){
+    if(!('serviceWorker'in navigator))return;
+    try{
+      const reg=await navigator.serviceWorker.register('/sw.js?v='+encodeURIComponent(VERSION),{updateViaCache:'none'});
+      await reg.update().catch(()=>{});
+      if(reg.waiting)reg.waiting.postMessage({type:'SKIP_WAITING'});
+    }catch(e){console.warn('Service worker registration failed',e)}
+  }
   function helpers(){
     const tasks=[];
     tasks.push(load('siteWordingCleanupScript','/js/site-wording-cleanup.js?v='+VERSION));
@@ -61,14 +68,15 @@
     return Promise.all(tasks);
   }
   async function boot(){
+    const helpersPromise=helpers();
     try{
-      await helpers();
+      await Promise.race([helpersPromise,delay(900)]);
       await nextPaint();
     }finally{
       reveal();
-      Promise.allSettled([clearLegacyCaches(),register()]);
+      Promise.allSettled([helpersPromise,register()]);
     }
   }
-  setTimeout(reveal,5000);
+  setTimeout(reveal,1800);
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
