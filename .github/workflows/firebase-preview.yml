@@ -65,31 +65,26 @@ jobs:
 
           current = sys.argv[1]
           data = json.loads(Path('/tmp/firebase-channels.json').read_text())
-          found = {}
+          channels = (data.get('result') or {}).get('channels') or []
+          candidates = []
+          for channel in channels:
+              if not isinstance(channel, dict):
+                  continue
+              name = str(channel.get('name') or '')
+              if '/channels/' not in name:
+                  continue
+              channel_id = name.rsplit('/channels/', 1)[-1].split('/', 1)[0]
+              if not channel_id.startswith('pr-') or channel_id == current:
+                  continue
+              timestamp = str(
+                  channel.get('expireTime')
+                  or channel.get('updateTime')
+                  or channel.get('createTime')
+                  or ''
+              )
+              candidates.append((timestamp, channel_id))
 
-          def visit(value):
-              if isinstance(value, dict):
-                  name = str(value.get('name') or '')
-                  channel_id = str(value.get('channelId') or value.get('id') or '')
-                  if '/channels/' in name:
-                      channel_id = name.rsplit('/channels/', 1)[-1]
-                  if channel_id.startswith('pr-') and channel_id != current:
-                      timestamp = str(
-                          value.get('expireTime')
-                          or value.get('updateTime')
-                          or value.get('createTime')
-                          or ''
-                      )
-                      found[channel_id] = min(found.get(channel_id, timestamp), timestamp)
-                  for child in value.values():
-                      visit(child)
-              elif isinstance(value, list):
-                  for child in value:
-                      visit(child)
-
-          visit(data)
-          ordered = sorted(found.items(), key=lambda item: (item[1], item[0]))
-          for channel_id, _ in ordered[:10]:
+          for _, channel_id in sorted(candidates)[:10]:
               print(channel_id)
           PY
           while IFS= read -r CHANNEL; do
@@ -98,7 +93,7 @@ jobs:
             firebase hosting:channel:delete "$CHANNEL" \
               --project program-tool \
               --token "$FIREBASE_TOKEN" \
-              --force || true
+              --force
           done < /tmp/firebase-stale-channels.txt
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
