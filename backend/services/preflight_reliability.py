@@ -7,6 +7,7 @@ from __future__ import annotations
 import re
 
 from models.schemas import CheckItem, CheckSeverity
+from services.preflight_geometry import run_geometry_checks
 from services.preflight_svc import run_all_checks
 
 
@@ -41,8 +42,11 @@ def mark_sampled_pass_as_warning(item: CheckItem) -> CheckItem:
 
 
 def run_reliable_checks(doc, file_size_bytes: int | None = None) -> list[CheckItem]:
-    """Run the normal checks and make sampled-pass semantics explicit."""
-    return [
-        mark_sampled_pass_as_warning(item)
+    """Run normal checks and replace the legacy text-only bleed heuristic."""
+    checks = [
+        item
         for item in run_all_checks(doc, file_size_bytes)
+        if item.id != "bleed"
     ]
+    checks.extend(run_geometry_checks(doc, file_size_bytes))
+    return [mark_sampled_pass_as_warning(item) for item in checks]
