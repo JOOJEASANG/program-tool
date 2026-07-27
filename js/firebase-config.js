@@ -16,7 +16,24 @@ window.db=db;
 window.googleProvider=googleProvider;
 window.firebaseConfig=firebaseConfig;
 
-(()=>{if(document.getElementById('programStudioCacheBootstrap'))return;const s=document.createElement('script');s.id='programStudioCacheBootstrap';s.src='/js/sw-register.js?v=2026.07.27.001';s.defer=true;document.head.appendChild(s)})();
+// Legacy PDF editor pages read programs['pdf-editor'] directly instead of using
+// ProgramAccess. Normalize approved permission snapshots at the shared Firebase
+// boundary so account-level approval remains authoritative until those pages are
+// fully migrated to the common guard.
+(()=>{
+  const proto=firebase.firestore?.DocumentSnapshot?.prototype;
+  if(!proto||proto.__programStudioApprovedAccessNormalized)return;
+  const originalData=proto.data;
+  if(typeof originalData!=='function')return;
+  Object.defineProperty(proto,'__programStudioApprovedAccessNormalized',{value:true});
+  proto.data=function(...args){
+    const data=originalData.apply(this,args);
+    if(this.ref?.parent?.id!=='user_permissions'||!data||data.status!=='approved')return data;
+    return{...data,programs:{...(data.programs||{}),'pdf-editor':true,preflight:true,'design-studio':true}};
+  };
+})();
+
+(()=>{if(document.getElementById('programStudioCacheBootstrap'))return;const s=document.createElement('script');s.id='programStudioCacheBootstrap';s.src='/js/sw-register.js?v=2026.07.27.002';s.defer=true;document.head.appendChild(s)})();
 
 window.ProgramAccess={
   _cache:new Map(),
