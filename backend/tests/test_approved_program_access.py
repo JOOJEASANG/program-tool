@@ -12,7 +12,7 @@ class _Snapshot:
         return self.data
 
 
-def test_approved_legacy_all_false_programs_grants_access():
+def test_approved_all_false_programs_grants_access():
     permission = _Snapshot({
         "status": "approved",
         "programs": {
@@ -32,7 +32,7 @@ def test_approved_missing_program_map_grants_access():
     assert _program_access_from_snapshots(None, permission, "pdf-editor") is True
 
 
-def test_explicit_program_selection_is_still_enforced():
+def test_approved_explicit_program_map_cannot_hide_other_programs():
     permission = _Snapshot({
         "status": "approved",
         "programs": {
@@ -42,13 +42,13 @@ def test_explicit_program_selection_is_still_enforced():
     })
 
     assert _program_access_from_snapshots(None, permission, "pdf-editor") is True
-    assert _program_access_from_snapshots(None, permission, "preflight") is False
+    assert _program_access_from_snapshots(None, permission, "preflight") is True
 
 
-def test_non_approved_account_is_denied():
-    permission = _Snapshot({
-        "status": "pending",
-        "programs": {"pdf-editor": True},
-    })
-
-    assert _program_access_from_snapshots(None, permission, "pdf-editor") is False
+def test_non_approved_accounts_are_denied():
+    for status in ("pending", "suspended", ""):
+        permission = _Snapshot({
+            "status": status,
+            "programs": {"pdf-editor": True},
+        })
+        assert _program_access_from_snapshots(None, permission, "pdf-editor") is False
