@@ -1,8 +1,8 @@
 // PDF editor module loader.
 // Add new PDF editor modules here instead of growing tools/pdf-editor.html.
 (function () {
-  if (window.__pdfEditorModuleLoaderV35) return;
-  window.__pdfEditorModuleLoaderV35 = true;
+  if (window.__pdfEditorModuleLoaderV34) return;
+  window.__pdfEditorModuleLoaderV34 = true;
 
   const MODULES = [
     '/js/pdf-editor/font-render-fix.js?v=20260618-1',
