@@ -55,45 +55,41 @@ def test_legacy_admin_fallback_uses_normalized_email_list():
     assert _is_legacy_admin(db, "other@example.com") is False
 
 
-def test_public_program_allows_without_user_assignment():
+def test_public_program_allows_without_user_approval():
     program = FakeSnapshot({"public": {"pdf-editor": True}})
     permission = FakeSnapshot(None)
     assert _program_access_from_snapshots(program, permission, "pdf-editor") is True
     assert _program_access_from_snapshots(program, permission, "preflight") is False
 
 
-def test_private_program_supports_legacy_approval_and_explicit_selection():
-    private = FakeSnapshot({"public": {"pdf-editor": False}})
-    legacy_approved = FakeSnapshot({
-        "status": "approved",
-        "programs": {"pdf-editor": False, "preflight": False},
-    })
-    explicit_approved = FakeSnapshot({
+def test_approved_account_can_use_every_managed_program():
+    private = FakeSnapshot({"public": {"pdf-editor": False, "preflight": False}})
+    approved = FakeSnapshot({
         "status": "approved",
         "programs": {"pdf-editor": True, "preflight": False},
     })
     pending = FakeSnapshot({"status": "pending", "programs": {"pdf-editor": True}})
+    suspended = FakeSnapshot({"status": "suspended", "programs": {"preflight": True}})
 
-    assert _program_access_from_snapshots(private, legacy_approved, "pdf-editor") is True
-    assert _program_access_from_snapshots(private, legacy_approved, "preflight") is True
-    assert _program_access_from_snapshots(private, explicit_approved, "pdf-editor") is True
-    assert _program_access_from_snapshots(private, explicit_approved, "preflight") is False
+    assert _program_access_from_snapshots(private, approved, "pdf-editor") is True
+    assert _program_access_from_snapshots(private, approved, "preflight") is True
     assert _program_access_from_snapshots(private, pending, "pdf-editor") is False
+    assert _program_access_from_snapshots(private, suspended, "preflight") is False
 
 
-def test_frontend_and_backend_share_claim_public_and_assignment_policy():
+def test_frontend_and_backend_share_account_approval_policy():
     frontend = (ROOT / "js" / "firebase-config.js").read_text(encoding="utf-8")
     backend = (ROOT / "backend" / "utils" / "permissions.py").read_text(encoding="utf-8")
     assert "getIdTokenResult" in frontend
     assert "claims?.admin===true" in frontend
     assert "publicPrograms?.[programId]===true" in frontend
-    assert "Object.values(programs).some(value=>value===true)" in frontend
-    assert "access.status==='approved'" in frontend
+    assert "const assigned=access.status==='approved'" in frontend
+    assert "access.admin||publicAccess||access.status==='approved'" in frontend
+    assert "this.clearCache(user)" in frontend
     assert "def _has_admin_claim" in backend
     assert "def _is_legacy_admin" in backend
     assert "def _program_access_from_snapshots" in backend
-    assert 'permission_data.get("status") != "approved"' in backend
-    assert "explicit_enabled = any(value is True for value in programs.values())" in backend
+    assert 'return permission_data.get("status") == "approved"' in backend
 
 
 def test_guard_maps_each_protected_page_to_one_program_id():
