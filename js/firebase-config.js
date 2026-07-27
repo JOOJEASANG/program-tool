@@ -16,7 +16,7 @@ window.db=db;
 window.googleProvider=googleProvider;
 window.firebaseConfig=firebaseConfig;
 
-(()=>{if(document.getElementById('programStudioCacheBootstrap'))return;const s=document.createElement('script');s.id='programStudioCacheBootstrap';s.src='/js/sw-register.js?v=2026.07.25.030';s.defer=true;document.head.appendChild(s)})();
+(()=>{if(document.getElementById('programStudioCacheBootstrap'))return;const s=document.createElement('script');s.id='programStudioCacheBootstrap';s.src='/js/sw-register.js?v=2026.07.27.001';s.defer=true;document.head.appendChild(s)})();
 
 window.ProgramAccess={
   _cache:new Map(),
@@ -77,10 +77,8 @@ window.ProgramAccess={
     if(!user||!programId)return{allowed:false,status:'signed_out',admin:false,public:false,profile:null};
     const [access,publicPrograms]=await Promise.all([this.getAccess(user),this.getPublicPrograms()]);
     const publicAccess=publicPrograms?.[programId]===true;
-    const programs=access.profile?.programs;
-    const hasExplicitSelection=programs&&typeof programs==='object'&&Object.values(programs).some(value=>value===true);
-    const assigned=hasExplicitSelection?programs?.[programId]===true:access.status==='approved';
-    const allowed=access.admin||publicAccess||(access.status==='approved'&&assigned);
+    const assigned=access.status==='approved';
+    const allowed=access.admin||publicAccess||access.status==='approved';
     return{...access,allowed,public:publicAccess,assigned,programId};
   },
   programForPath(pathname){
@@ -98,6 +96,7 @@ window.ProgramAccess={
     return new Promise(resolve=>{const unsubscribe=auth.onAuthStateChanged(async user=>{
       if(!user){unsubscribe();location.replace(loginUrl);return;}
       try{
+        this.clearCache(user);
         const access=programId?await this.canUseProgram(user,programId):await this.getAccess(user);
         const allowed=programId?access.allowed:access.approved;
         if(!allowed){
