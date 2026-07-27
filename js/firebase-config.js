@@ -55,7 +55,7 @@ window.firebaseConfig=firebaseConfig;
   };
 })();
 
-(()=>{if(document.getElementById('programStudioCacheBootstrap'))return;const s=document.createElement('script');s.id='programStudioCacheBootstrap';s.src='/js/sw-register.js?v=2026.07.27.005';s.defer=true;document.head.appendChild(s)})();
+(()=>{if(document.getElementById('programStudioCacheBootstrap'))return;const s=document.createElement('script');s.id='programStudioCacheBootstrap';s.src='/js/sw-register.js?v=2026.07.28.001';s.defer=true;document.head.appendChild(s)})();
 
 window.ProgramAccess={
   _cache:new Map(),
@@ -103,12 +103,14 @@ window.ProgramAccess={
     const cacheKey=`access:${user.uid}`;
     const cached=this._cacheGet(cacheKey);
     if(cached!==undefined)return cached;
-    const admin=await this.isAdmin(user).catch(()=>false);
-    let profile=null;
-    try{profile=await this.ensureUserDocument(user)}catch(e){
-      console.warn('User profile could not be loaded or created.',e);
-      try{const snap=await db.collection('user_permissions').doc(user.uid).get();profile=snap.exists?snap.data():null}catch(_){profile=null}
-    }
+    const adminPromise=this.isAdmin(user).catch(()=>false);
+    const profilePromise=(async()=>{
+      try{return await this.ensureUserDocument(user)}catch(e){
+        console.warn('User profile could not be loaded or created.',e);
+        try{const snap=await db.collection('user_permissions').doc(user.uid).get();return snap.exists?snap.data():null}catch(_){return null}
+      }
+    })();
+    const [admin,profile]=await Promise.all([adminPromise,profilePromise]);
     const status=admin?'approved':String(profile?.status||'pending');
     return this._cacheSet(cacheKey,{loggedIn:true,admin,approved:admin||status==='approved',status,profile});
   },
@@ -131,35 +133,69 @@ window.ProgramAccess={
     const loginUrl=options.loginUrl||'../login.html';
     const waitingUrl=options.waitingUrl||'../approval-waiting.html';
     const programId=options.programId||this.programForPath(location.pathname);
-    if(!auth){location.replace(loginUrl);return;}
-    return new Promise(resolve=>{const unsubscribe=auth.onAuthStateChanged(async user=>{
-      if(!user){unsubscribe();location.replace(loginUrl);return;}
-      try{
-        this.clearCache(user);
-        const access=programId?await this.canUseProgram(user,programId):await this.getAccess(user);
-        const allowed=programId?access.allowed:access.approved;
-        if(!allowed){
-          unsubscribe();
-          const status=access.status==='approved'?'forbidden':(access.status||'pending');
-          location.replace(`${waitingUrl}?status=${encodeURIComponent(status)}&program=${encodeURIComponent(programId||'')}`);
-          return;
+    const timeoutMs=Math.max(3000,Number(options.timeoutMs)||8000);
+    if(!auth){document.documentElement.style.visibility='';location.replace(loginUrl);return null;}
+    return new Promise(resolve=>{
+      let settled=false;
+      let unsubscribe=()=>{};
+      const root=document.documentElement;
+      const finish=value=>{
+        if(settled)return;
+        settled=true;
+        clearTimeout(timer);
+        try{unsubscribe()}catch(_){}
+        root.style.visibility='';
+        delete root.dataset.accessChecking;
+        resolve(value);
+      };
+      const redirect=url=>{finish(null);location.replace(url)};
+      const timer=setTimeout(()=>{
+        console.warn('Program access check timed out.');
+        redirect(`${waitingUrl}?status=timeout&program=${encodeURIComponent(programId||'')}`);
+      },timeoutMs);
+      unsubscribe=auth.onAuthStateChanged(async user=>{
+        if(settled)return;
+        if(!user){redirect(loginUrl);return;}
+        try{
+          this.clearCache(user);
+          const access=programId?await this.canUseProgram(user,programId):await this.getAccess(user);
+          if(settled)return;
+          const allowed=programId?access.allowed:access.approved;
+          if(!allowed){
+            const status=access.status==='approved'?'forbidden':(access.status||'pending');
+            redirect(`${waitingUrl}?status=${encodeURIComponent(status)}&program=${encodeURIComponent(programId||'')}`);
+            return;
+          }
+          root.dataset.accessReady='true';
+          root.dataset.programAccess=programId||'approved';
+          finish(access);
+        }catch(e){
+          console.error(e);
+          redirect(`${waitingUrl}?status=error&program=${encodeURIComponent(programId||'')}`);
         }
-        document.documentElement.dataset.accessReady='true';
-        document.documentElement.dataset.programAccess=programId||'approved';
-        unsubscribe();resolve(access);
-      }catch(e){
-        unsubscribe();console.error(e);
-        location.replace(`${waitingUrl}?status=error&program=${encodeURIComponent(programId||'')}`);
-      }
-    })});
+      },error=>{
+        console.error('Authentication state could not be read.',error);
+        redirect(`${waitingUrl}?status=error&program=${encodeURIComponent(programId||'')}`);
+      });
+    });
   }
 };
 
 (()=>{
   const programId=ProgramAccess.programForPath(location.pathname);
   if(auth&&programId){
-    document.documentElement.style.visibility='hidden';
-    ProgramAccess.guardTool({programId}).then(()=>document.documentElement.style.visibility='');
+    const root=document.documentElement;
+    root.style.visibility='hidden';
+    root.dataset.accessChecking='true';
+    const watchdog=setTimeout(()=>{
+      root.style.visibility='';
+      root.dataset.accessWatchdog='released';
+    },8500);
+    ProgramAccess.guardTool({programId,timeoutMs:8000}).finally(()=>{
+      clearTimeout(watchdog);
+      root.style.visibility='';
+      delete root.dataset.accessChecking;
+    });
   }
 })();
 
@@ -189,6 +225,6 @@ window.addEventListener('DOMContentLoaded',async()=>{
         const copyright=[...footer.querySelectorAll('span')].find(el=>(el.textContent||'').includes('©'));
         if(copyright)copyright.insertAdjacentElement('afterend',info);else shell.appendChild(info);
       }
-    }catch(_){ }
+    }catch(_){}
   }
 });
