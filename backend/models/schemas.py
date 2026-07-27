@@ -46,7 +46,6 @@ class HeaderFooterSection(BaseModel):
 
 class HeaderFooterSettings(BaseModel):
     enabled: bool = False
-    # Default fields apply to pages not covered by any section
     header_left: str = Field(default="", max_length=500)
     header_center: str = Field(default="", max_length=500)
     header_right: str = Field(default="", max_length=500)
@@ -64,7 +63,10 @@ class HeaderFooterSettings(BaseModel):
 
 class PageNumberSettings(BaseModel):
     enabled: bool = False
-    position: Literal["bottom-center", "bottom-right", "bottom-left", "top-center", "top-right", "top-left"] = "bottom-center"
+    position: Literal[
+        "bottom-center", "bottom-right", "bottom-left",
+        "top-center", "top-right", "top-left",
+    ] = "bottom-center"
     format: Literal["1", "1/N", "-1-", "-1/N-"] = "1"
     start: int = Field(default=1, ge=-1_000_000, le=1_000_000)
     font_size: float = Field(default=10.0, ge=5.0, le=72.0)
@@ -100,15 +102,14 @@ class PdfProcessRequest(BaseModel):
     paper: PaperSize = Field(default_factory=PaperSize)
     fit_to_paper: bool = True
     add_border: bool = False
-    # Legacy paired margins remain for older clients and saved projects.
     margin_h_mm: float = Field(default=10.0, ge=0.0, le=80.0)
     margin_v_mm: float = Field(default=10.0, ge=0.0, le=80.0)
-    # New independent margins. None falls back to the paired legacy value.
     margin_left_mm: Optional[float] = Field(default=None, ge=0.0, le=80.0)
     margin_right_mm: Optional[float] = Field(default=None, ge=0.0, le=80.0)
     margin_top_mm: Optional[float] = Field(default=None, ge=0.0, le=80.0)
     margin_bottom_mm: Optional[float] = Field(default=None, ge=0.0, le=80.0)
     gap_mm: float = Field(default=5.0, ge=0.0, le=50.0)
+    page_order: Literal["row-major", "column-major"] = "row-major"
     watermark: WatermarkSettings = Field(default_factory=WatermarkSettings)
     header_footer: HeaderFooterSettings = Field(default_factory=HeaderFooterSettings)
     page_numbers: PageNumberSettings = Field(default_factory=PageNumberSettings)
@@ -147,4 +148,4 @@ class PreflightReport(BaseModel):
     page_count: int
     checks: list[CheckItem]
     ai_feedback: Optional[str] = None
-    score: int  # 0-100
+    score: int

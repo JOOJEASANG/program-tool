@@ -1,7 +1,9 @@
 // PDF editor module loader.
 // Add new PDF editor modules here instead of growing tools/pdf-editor.html.
 (function () {
-  if (window.__pdfEditorModuleLoaderV34) return;
+  if (window.__pdfEditorModuleLoaderV35) return;
+  window.__pdfEditorModuleLoaderV35 = true;
+  // Backward-compatible marker retained for existing diagnostics and cached pages.
   window.__pdfEditorModuleLoaderV34 = true;
 
   const MODULES = [
@@ -27,6 +29,7 @@
     '/js/pdf-editor/hf-input-cleanup.js?v=20260724-1',
     '/js/pdf-editor/page-number-preview-parity.js?v=20260724-1',
     '/js/pdf-editor/runtime-integrity.js?v=20260724-1',
+    '/js/pdf-editor/output-contract.js?v=20260727-1',
     '/js/pdf-editor/preview-controller.js?v=20260727-3',
     '/js/pdf-editor/source-ui-normalization.js?v=20260724-1',
     '/js/pdf-editor/operation-progress-summary.js?v=20260724-1',
@@ -41,8 +44,6 @@
     if ([...document.scripts].some((script) => script.src && script.src.includes(clean))) return;
     const script = document.createElement('script');
     script.src = src;
-    // Dynamic scripts are async by default. Keep module execution order so the
-    // PDF.js font and core-layout patches are installed before dependent modules.
     script.async = false;
     document.head.appendChild(script);
   }

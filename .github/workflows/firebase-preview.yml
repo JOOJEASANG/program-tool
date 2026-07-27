@@ -14,6 +14,7 @@ permissions:
 jobs:
   preview:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - name: 코드 체크아웃
         uses: actions/checkout@v4
@@ -36,6 +37,7 @@ jobs:
           python3.11 -m venv venv
           venv/bin/pip install --upgrade pip
           venv/bin/pip install -r requirements.txt
+          venv/bin/pip check
 
       - name: 백엔드 문법 검사
         run: |
@@ -46,21 +48,101 @@ jobs:
         run: python3 scripts/inject_boot_guard.py
 
       - name: Firebase CLI 설치
-        run: npm install -g firebase-tools
+        run: npm install -g firebase-tools@14
+
+      - name: 오래된 PR 미리보기 채널 정리
+        shell: bash
+        run: |
+          CURRENT_CHANNEL="pr-${{ github.event.pull_request.number }}"
+          firebase hosting:channel:list \
+            --project program-tool \
+            --token "$FIREBASE_TOKEN" \
+            --json > /tmp/firebase-channels.json
+          python3 - "$CURRENT_CHANNEL" <<'PY' > /tmp/firebase-stale-channels.txt
+          import json
+          import sys
+          from pathlib import Path
+
+          current = sys.argv[1]
+          data = json.loads(Path('/tmp/firebase-channels.json').read_text())
+          channels = (data.get('result') or {}).get('channels') or []
+          candidates = []
+          for channel in channels:
+              if not isinstance(channel, dict):
+                  continue
+              name = str(channel.get('name') or '')
+              if '/channels/' not in name:
+                  continue
+              channel_id = name.rsplit('/channels/', 1)[-1].split('/', 1)[0]
+              if not channel_id.startswith('pr-') or channel_id == current:
+                  continue
+              timestamp = str(
+                  channel.get('expireTime')
+                  or channel.get('updateTime')
+                  or channel.get('createTime')
+                  or ''
+              )
+              candidates.append((timestamp, channel_id))
+
+          for _, channel_id in sorted(candidates)[:10]:
+              print(channel_id)
+          PY
+          while IFS= read -r CHANNEL; do
+            [ -z "$CHANNEL" ] && continue
+            echo "Deleting stale Firebase preview channel: $CHANNEL"
+            firebase hosting:channel:delete "$CHANNEL" \
+              --project program-tool \
+              --token "$FIREBASE_TOKEN" \
+              --force
+          done < /tmp/firebase-stale-channels.txt
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
 
       - name: Firebase 미리보기 채널 배포
         id: deploy
+        shell: bash
         run: |
           CHANNEL="pr-${{ github.event.pull_request.number }}"
+          set +e
           firebase hosting:channel:deploy "$CHANNEL" \
             --project program-tool \
             --token "$FIREBASE_TOKEN" \
             --expires 7d \
-            --json > /tmp/deploy_result.json
-          URL=$(cat /tmp/deploy_result.json | python3 -c "import sys,json; d=json.load(sys.stdin); print(list(d.get('result',{}).values())[0].get('url',''))" 2>/dev/null || echo "")
-          echo "preview_url=$URL" >> $GITHUB_OUTPUT
+            --json > /tmp/deploy_result.json \
+            2> >(tee /tmp/firebase-preview.log >&2)
+          STATUS=$?
+          set -e
+          if [ "$STATUS" -ne 0 ]; then
+            echo "--- firebase JSON output ---" >> /tmp/firebase-preview.log
+            cat /tmp/deploy_result.json >> /tmp/firebase-preview.log 2>/dev/null || true
+            exit "$STATUS"
+          fi
+          URL=$(python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          data = json.loads(Path('/tmp/deploy_result.json').read_text())
+          result = data.get('result') or {}
+          urls = [value.get('url', '') for value in result.values() if isinstance(value, dict)]
+          print(next((url for url in urls if url), ''))
+          PY
+          )
+          echo "preview_url=$URL" >> "$GITHUB_OUTPUT"
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+
+      - name: Firebase 배포 진단 업로드
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: firebase-preview-diagnostics
+          path: |
+            /tmp/firebase-preview.log
+            /tmp/deploy_result.json
+            /tmp/firebase-channels.json
+            /tmp/firebase-stale-channels.txt
+          retention-days: 7
+          if-no-files-found: ignore
 
       - name: PR에 미리보기 URL 댓글 작성
         uses: actions/github-script@v7

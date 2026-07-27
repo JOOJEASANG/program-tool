@@ -3,16 +3,17 @@ from __future__ import annotations
 
 import io
 import json
-import traceback
+import logging
+import re
 
 import fitz
 from flask import Response
 
+logger = logging.getLogger(__name__)
 
-def _json_error(detail: str, status: int, *, error: str | None = None) -> Response:
+
+def _json_error(detail: str, status: int) -> Response:
     payload = {"detail": detail}
-    if error:
-        payload["error"] = error
     return Response(
         json.dumps(payload, ensure_ascii=False),
         status=status,
@@ -22,11 +23,13 @@ def _json_error(detail: str, status: int, *, error: str | None = None) -> Respon
 
 def _safe_pdf_name(filename: str | None, suffix: str) -> str:
     base = (filename or "document.pdf").rsplit(".", 1)[0]
-    base = base.strip() or "document"
-    return f"{base}_{suffix}.pdf"
+    base = re.sub(r"[^A-Za-z0-9._-]+", "_", base).strip("._-")[:80]
+    return f"{base or 'document'}_{suffix}.pdf"
 
 
-def _remove_failed_output_pages(document: fitz.Document, page_count_before: int) -> None:
+def _remove_failed_output_pages(
+    document: fitz.Document, page_count_before: int
+) -> None:
     while len(document) > page_count_before:
         document.delete_page(page_count_before)
 
@@ -35,11 +38,11 @@ def fix_pdf_response(filename: str, data: bytes) -> Response:
     """Return a normalized PDF without forcing all pages to the first page size."""
     try:
         source = fitz.open(stream=data, filetype="pdf")
-    except Exception as exc:
+    except Exception:
+        logger.warning("PDF repair could not open source", exc_info=True)
         return _json_error(
             "PDF 파일을 열 수 없어 자동 복구가 제한됩니다. 원본 프로그램에서 'PDF로 다시 저장/인쇄' 후 재시도하세요.",
             400,
-            error=f"{type(exc).__name__}: {exc}",
         )
 
     output = fitz.open()
@@ -49,10 +52,10 @@ def fix_pdf_response(filename: str, data: bytes) -> Response:
 
     try:
         if len(source) == 0:
-            return _json_error("페이지가 없습니다", 400)
+            return _json_error("페이지가 없습니다.", 400)
         if source.is_encrypted:
             return _json_error(
-                "암호화된 PDF는 먼저 암호 해제를 실행한 뒤 복구/정상화를 진행하세요.",
+                "암호화된 PDF는 먼저 암호를 해제한 뒤 복구/정상화를 진행하세요.",
                 400,
             )
 
@@ -64,7 +67,7 @@ def fix_pdf_response(filename: str, data: bytes) -> Response:
                 page_width = float(source_rect.width)
                 page_height = float(source_rect.height)
                 if page_width <= 0 or page_height <= 0:
-                    raise ValueError("페이지 크기가 비정상입니다")
+                    raise ValueError("invalid page size")
 
                 try:
                     output.insert_pdf(
@@ -81,16 +84,20 @@ def fix_pdf_response(filename: str, data: bytes) -> Response:
                 except Exception:
                     _remove_failed_output_pages(output, page_count_before)
 
-                rebuilt_page = output.new_page(width=page_width, height=page_height)
-                pixmap = page.get_pixmap(dpi=180, alpha=False, annots=True)
-                try:
-                    rebuilt_page.insert_image(
-                        rebuilt_page.rect,
-                        pixmap=pixmap,
-                        keep_proportion=True,
-                    )
-                finally:
-                    pixmap = None
+                rebuilt_page = output.new_page(
+                    width=page_width,
+                    height=page_height,
+                )
+                pixmap = page.get_pixmap(
+                    dpi=180,
+                    alpha=False,
+                    annots=True,
+                )
+                rebuilt_page.insert_image(
+                    rebuilt_page.rect,
+                    pixmap=pixmap,
+                    keep_proportion=True,
+                )
                 rasterized_pages += 1
             except Exception:
                 _remove_failed_output_pages(output, page_count_before)
@@ -113,25 +120,25 @@ def fix_pdf_response(filename: str, data: bytes) -> Response:
             f"copied={copied_pages};rasterized={rasterized_pages};"
             f"skipped={','.join(map(str, skipped_pages))}"
         )
+        safe_name = _safe_pdf_name(filename, "repaired")
         return Response(
             buffer.getvalue(),
             status=200,
             mimetype="application/pdf",
             headers={
-                "Content-Disposition": f"attachment; filename={_safe_pdf_name(filename, 'repaired')}",
+                "Content-Disposition": f'attachment; filename="{safe_name}"',
                 "X-Fix-Note": note,
-                "Access-Control-Expose-Headers": "X-Fix-Note, Content-Disposition",
+                "Access-Control-Expose-Headers": (
+                    "X-Fix-Note, Content-Disposition"
+                ),
             },
         )
-    except Exception as exc:
-        traceback.print_exc()
+    except Exception:
+        logger.exception("PDF repair failed")
         return _json_error(
-            f"PDF 보정 실패: {type(exc).__name__}: {exc}",
+            "PDF 보정 중 오류가 발생했습니다. 원본 프로그램에서 다시 저장한 뒤 재시도하세요.",
             500,
         )
     finally:
-        try:
-            source.close()
-        except Exception:
-            pass
+        source.close()
         output.close()
