@@ -38,6 +38,6 @@ jobs:
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add index.html admin.html tools/pdf-editor.html tools/pdf-Checker.html tools/preflight.html tools/perfect-binding-cover.html
+          git add index.html admin.html tools/pdf-editor.html tools/pdf-Checker.html tools/preflight.html perfect-binding-cover/index.html
           git commit -m "apply shared editor improvements"
           git push
