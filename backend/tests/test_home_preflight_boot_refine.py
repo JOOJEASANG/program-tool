@@ -63,14 +63,16 @@ def test_preview_and_production_deploy_run_boot_guard_injection():
     assert deploy.index(command) < deploy.index("firebase deploy")
 
 
-def test_helpers_finish_before_the_layout_is_revealed():
+def test_optional_helpers_do_not_block_layout_reveal():
     register = read("js/sw-register.js")
     boot = register[register.index("async function boot()") :]
-    assert "await helpers();" in boot
+    assert "const helpersPromise=helpers();" in boot
+    assert "Promise.race([helpersPromise,delay(900)])" in boot
     assert "await nextPaint();" in boot
-    assert boot.index("await helpers();") < boot.index("reveal();")
-    assert "Promise.allSettled([clearLegacyCaches(),register()])" in boot
-    assert "setTimeout(reveal,5000)" in register
+    assert boot.index("Promise.race([helpersPromise,delay(900)])") < boot.index("reveal();")
+    assert "Promise.allSettled([helpersPromise,register()])" in boot
+    assert "clearLegacyCaches" not in register
+    assert "setTimeout(reveal,1800)" in register
 
 
 def test_home_helpers_run_only_on_the_root_home_page():
