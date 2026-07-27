@@ -50,6 +50,59 @@ jobs:
       - name: Firebase CLI 설치
         run: npm install -g firebase-tools@14
 
+      - name: 오래된 PR 미리보기 채널 정리
+        shell: bash
+        run: |
+          CURRENT_CHANNEL="pr-${{ github.event.pull_request.number }}"
+          firebase hosting:channel:list \
+            --project program-tool \
+            --token "$FIREBASE_TOKEN" \
+            --json > /tmp/firebase-channels.json
+          python3 - "$CURRENT_CHANNEL" <<'PY' > /tmp/firebase-stale-channels.txt
+          import json
+          import sys
+          from pathlib import Path
+
+          current = sys.argv[1]
+          data = json.loads(Path('/tmp/firebase-channels.json').read_text())
+          found = {}
+
+          def visit(value):
+              if isinstance(value, dict):
+                  name = str(value.get('name') or '')
+                  channel_id = str(value.get('channelId') or value.get('id') or '')
+                  if '/channels/' in name:
+                      channel_id = name.rsplit('/channels/', 1)[-1]
+                  if channel_id.startswith('pr-') and channel_id != current:
+                      timestamp = str(
+                          value.get('expireTime')
+                          or value.get('updateTime')
+                          or value.get('createTime')
+                          or ''
+                      )
+                      found[channel_id] = min(found.get(channel_id, timestamp), timestamp)
+                  for child in value.values():
+                      visit(child)
+              elif isinstance(value, list):
+                  for child in value:
+                      visit(child)
+
+          visit(data)
+          ordered = sorted(found.items(), key=lambda item: (item[1], item[0]))
+          for channel_id, _ in ordered[:10]:
+              print(channel_id)
+          PY
+          while IFS= read -r CHANNEL; do
+            [ -z "$CHANNEL" ] && continue
+            echo "Deleting stale Firebase preview channel: $CHANNEL"
+            firebase hosting:channel:delete "$CHANNEL" \
+              --project program-tool \
+              --token "$FIREBASE_TOKEN" \
+              --force || true
+          done < /tmp/firebase-stale-channels.txt
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+
       - name: Firebase 미리보기 채널 배포
         id: deploy
         shell: bash
@@ -91,6 +144,8 @@ jobs:
           path: |
             /tmp/firebase-preview.log
             /tmp/deploy_result.json
+            /tmp/firebase-channels.json
+            /tmp/firebase-stale-channels.txt
           retention-days: 7
           if-no-files-found: ignore
 
