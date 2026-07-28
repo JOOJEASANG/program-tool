@@ -14,7 +14,7 @@ permissions:
 jobs:
   preview:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 35
     steps:
       - name: 코드 체크아웃
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -129,9 +129,22 @@ jobs:
           print(next((url for url in urls if url), ''))
           PY
           )
+          if [ -z "$URL" ]; then
+            echo "Firebase preview URL was not returned." >&2
+            exit 1
+          fi
           echo "preview_url=$URL" >> "$GITHUB_OUTPUT"
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+
+      - name: 미리보기 사용자 경로 검증
+        run: |
+          python3 scripts/smoke_deployment.py \
+            --base-url "${{ steps.deploy.outputs.preview_url }}" \
+            --skip-api \
+            --attempts 8 \
+            --delay-seconds 5 \
+            --timeout 20
 
       - name: Firebase 배포 진단 업로드
         if: always()
@@ -153,7 +166,7 @@ jobs:
           script: |
             const url = '${{ steps.deploy.outputs.preview_url }}';
             const prNumber = context.payload.pull_request.number;
-            const body = `🔥 **Firebase 미리보기 배포 완료**\n\n👉 [미리보기 열기](${url})\n\n> 이 채널은 7일 후 자동 삭제됩니다.`;
+            const body = `🔥 **Firebase 미리보기 배포 및 스모크 검사 완료**\n\n👉 [미리보기 열기](${url})\n\n> 홈·로그인·버전·보안 헤더 검사를 통과했습니다. 이 채널은 7일 후 자동 삭제됩니다.`;
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
