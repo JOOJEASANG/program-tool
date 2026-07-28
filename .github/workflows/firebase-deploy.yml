@@ -13,6 +13,7 @@ concurrency:
 permissions:
   checks: write
   contents: read
+  statuses: write
 
 jobs:
   quality:
@@ -69,3 +70,29 @@ jobs:
             --attempts 10 \
             --delay-seconds 6 \
             --timeout 25
+
+  production-status:
+    name: 운영 배포 상태 기록
+    needs: [quality, deploy]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: production-smoke 커밋 상태 기록
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        with:
+          script: |
+            const quality = '${{ needs.quality.result }}';
+            const deploy = '${{ needs.deploy.result }}';
+            const success = quality === 'success' && deploy === 'success';
+            const targetUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: context.sha,
+              state: success ? 'success' : 'failure',
+              context: 'production-smoke',
+              description: success
+                ? 'Firebase 운영 배포와 사용자 경로 검증 통과'
+                : `운영 배포 실패 (quality=${quality}, deploy=${deploy})`,
+              target_url: targetUrl,
+            });
