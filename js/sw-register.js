@@ -1,16 +1,22 @@
 (function(){
-  if(window.__programStudioCacheBoot)return;
-  window.__programStudioCacheBoot=true;
-  const VERSION='2026.07.29.004';
+  if(window.__programStudioRuntimeBoot)return;
+  window.__programStudioRuntimeBoot=true;
+
+  const VERSION='2026.07.29.005';
   const CACHE_PREFIX='program-studio-';
-  const RECOVERY_KEY='program-studio-sw-recovery-'+VERSION;
+  const CLEANUP_KEY='program-studio-legacy-runtime-cleanup-'+VERSION;
   const currentPath=location.pathname.replace(/\/+$/,'')||'/';
+
   const reveal=()=>{
-    if(window.ProgramStudioBoot&&typeof window.ProgramStudioBoot.reveal==='function')window.ProgramStudioBoot.reveal();
-    else document.documentElement.classList.remove('app-booting');
+    if(window.ProgramStudioBoot&&typeof window.ProgramStudioBoot.reveal==='function'){
+      window.ProgramStudioBoot.reveal();
+    }else{
+      document.documentElement.classList.remove('app-booting');
+    }
   };
   const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
   const nextPaint=()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+
   function load(id,src){
     const existing=document.getElementById(id);
     if(existing){
@@ -23,43 +29,52 @@
       });
     }
     return new Promise(resolve=>{
-      const s=document.createElement('script');
-      s.id=id;
-      s.src=src;
-      s.async=false;
-      const done=()=>{s.dataset.loaded='true';resolve()};
-      s.addEventListener('load',done,{once:true});
-      s.addEventListener('error',done,{once:true});
-      document.head.appendChild(s);
+      const script=document.createElement('script');
+      script.id=id;
+      script.src=src;
+      script.async=false;
+      const done=()=>{script.dataset.loaded='true';resolve()};
+      script.addEventListener('load',done,{once:true});
+      script.addEventListener('error',done,{once:true});
+      document.head.appendChild(script);
       setTimeout(done,1200);
     });
   }
-  function isPath(...parts){return parts.some(path=>currentPath===path||currentPath.endsWith(path))}
+
+  function isPath(...parts){
+    return parts.some(path=>currentPath===path||currentPath.endsWith(path));
+  }
   function isHome(){return currentPath==='/'||currentPath==='/index.html'}
   function isAuthPage(){return isPath('/login','/login.html')}
-  async function recoverServiceWorker(){
-    let hadController=false;
+
+  async function cleanupLegacyRuntime(){
     try{
-      if('serviceWorker'in navigator){
-        hadController=!!navigator.serviceWorker.controller;
-        const registrations=typeof navigator.serviceWorker.getRegistrations==='function'
-          ?await navigator.serviceWorker.getRegistrations()
-          :[];
-        await Promise.all(registrations.map(registration=>registration.unregister()));
+      if(localStorage.getItem(CLEANUP_KEY)==='done')return;
+    }catch(_){}
+
+    try{
+      if('serviceWorker'in navigator&&typeof navigator.serviceWorker.getRegistrations==='function'){
+        const registrations=await navigator.serviceWorker.getRegistrations();
+        await Promise.allSettled(registrations.map(registration=>registration.unregister()));
       }
     }catch(error){
-      console.warn('Service worker cleanup failed',error);
+      console.warn('Legacy service worker cleanup failed',error);
     }
+
     try{
       if('caches'in window){
         const keys=await caches.keys();
-        await Promise.all(keys.filter(key=>key.startsWith(CACHE_PREFIX)).map(key=>caches.delete(key)));
+        await Promise.allSettled(
+          keys.filter(key=>key.startsWith(CACHE_PREFIX)).map(key=>caches.delete(key))
+        );
       }
     }catch(error){
-      console.warn('Program cache cleanup failed',error);
+      console.warn('Legacy Program Studio cache cleanup failed',error);
     }
-    return hadController;
+
+    try{localStorage.setItem(CLEANUP_KEY,'done')}catch(_){}
   }
+
   function helpers(){
     const tasks=[];
     tasks.push(load('siteWordingCleanupScript','/js/site-wording-cleanup.js?v='+VERSION));
@@ -70,7 +85,9 @@
       tasks.push(load('homeHeroUpgradeScript','/js/home-hero-upgrade.js?v='+VERSION));
       tasks.push(load('homeHeaderFooterRefineScript','/js/home-header-footer-refine.js?v='+VERSION));
     }
-    if(isPath('/tools/pdf-editor.html','/pdf-editor','/pdf-editor/index.html'))tasks.push(load('pdfEditorModuleLoaderScript','/js/pdf-editor/loader.js?v='+VERSION));
+    if(isPath('/tools/pdf-editor.html','/pdf-editor','/pdf-editor/index.html')){
+      tasks.push(load('pdfEditorModuleLoaderScript','/js/pdf-editor/loader.js?v='+VERSION));
+    }
     if(isPath('/tools/pdf-Checker.html','/tools/preflight.html','/pdf-preflight','/pdf-preflight/index.html')){
       tasks.push(load('pdfCheckerFinalGuardScript','/js/pdf-checker-final-guard.js?v='+VERSION));
       tasks.push(load('pdfPreflightPanelBalanceScript','/js/pdf-preflight-panel-balance.js?v='+VERSION));
@@ -83,34 +100,25 @@
       tasks.push(load('coverProjectStateBridgeScriptV1','/js/cover-project-state-bridge.js?v='+VERSION));
       tasks.push(load('coverFloatingActionDockScriptV1','/js/cover-floating-action-dock.js?v='+VERSION));
     }
-    return Promise.all(tasks);
+    return Promise.allSettled(tasks);
   }
-  function scheduleCleanReload(hadController){
-    if(!hadController||isAuthPage())return;
-    setTimeout(()=>location.reload(),120);
-  }
+
   async function boot(){
     const helpersPromise=helpers();
-    let recovered=false;
-    try{recovered=localStorage.getItem(RECOVERY_KEY)==='done'}catch(_){}
-    const recoveryPromise=recovered
-      ?Promise.resolve(false)
-      :recoverServiceWorker().then(hadController=>{
-        try{localStorage.setItem(RECOVERY_KEY,'done')}catch(_){}
-        return hadController;
-      });
+    cleanupLegacyRuntime().catch(error=>console.warn('Legacy runtime cleanup failed',error));
     try{
-      await Promise.all([
-        Promise.race([helpersPromise,delay(900)]),
-        Promise.race([recoveryPromise,delay(1500)])
-      ]);
+      await Promise.race([helpersPromise,delay(1000)]);
       await nextPaint();
     }finally{
       reveal();
-      recoveryPromise.then(scheduleCleanReload).catch(error=>console.warn('Recovery reload scheduling failed',error));
-      Promise.allSettled([helpersPromise,recoveryPromise]);
+      helpersPromise.catch(error=>console.warn('Runtime helper loading failed',error));
     }
   }
-  setTimeout(reveal,1800);
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+
+  setTimeout(reveal,1600);
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded',boot,{once:true});
+  }else{
+    boot();
+  }
 })();
