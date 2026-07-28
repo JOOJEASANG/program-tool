@@ -43,9 +43,6 @@ jobs:
           venv/bin/pip install --upgrade pip
           venv/bin/pip install -r requirements.txt
 
-      - name: PDF 편집기 로컬 런타임 준비
-        run: node scripts/prepare_pdf_runtime.mjs
-
       - name: 배포 HTML 렌더링 가드 삽입
         run: python3 scripts/inject_boot_guard.py
 

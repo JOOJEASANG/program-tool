@@ -1,8 +1,5 @@
 {
   "hosting": {
-    "predeploy": [
-      "node scripts/prepare_pdf_runtime.mjs"
-    ],
     "public": ".",
     "ignore": [
       "firebase.json",
