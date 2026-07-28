@@ -6,6 +6,10 @@ on:
       - main
   workflow_dispatch:
 
+concurrency:
+  group: firebase-production-deploy
+  cancel-in-progress: false
+
 permissions:
   checks: write
   contents: read
@@ -16,10 +20,11 @@ jobs:
     uses: ./.github/workflows/quality-gate.yml
 
   deploy:
-    name: Firebase 배포
+    name: Firebase 배포 및 운영 검증
     needs: quality
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 35
+    environment: production
     steps:
       - name: 코드 체크아웃
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -44,6 +49,7 @@ jobs:
           python3.11 -m venv venv
           venv/bin/pip install --upgrade pip
           venv/bin/pip install -r requirements.txt
+          venv/bin/pip check
 
       - name: 배포 HTML 렌더링 가드 삽입
         run: python3 scripts/inject_boot_guard.py
@@ -55,3 +61,11 @@ jobs:
         run: firebase deploy --project program-tool --token "$FIREBASE_TOKEN" --force --non-interactive
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+
+      - name: 운영 배포 사용자 경로 검증
+        run: |
+          python3 scripts/smoke_deployment.py \
+            --base-url https://program-tool.web.app \
+            --attempts 10 \
+            --delay-seconds 6 \
+            --timeout 25
