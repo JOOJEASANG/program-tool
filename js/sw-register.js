@@ -2,6 +2,8 @@
   if(window.__programStudioCacheBoot)return;
   window.__programStudioCacheBoot=true;
   const VERSION='2026.07.28.001';
+  const CACHE_PREFIX='program-studio-';
+  const RECOVERY_KEY='program-studio-sw-recovery-'+VERSION;
   const currentPath=location.pathname.replace(/\/+$/,'')||'/';
   const reveal=()=>{
     if(window.ProgramStudioBoot&&typeof window.ProgramStudioBoot.reveal==='function')window.ProgramStudioBoot.reveal();
@@ -34,13 +36,28 @@
   }
   function isPath(...parts){return parts.some(path=>currentPath===path||currentPath.endsWith(path))}
   function isHome(){return currentPath==='/'||currentPath==='/index.html'}
-  async function register(){
-    if(!('serviceWorker'in navigator))return;
+  async function recoverServiceWorker(){
+    let hadController=false;
     try{
-      const reg=await navigator.serviceWorker.register('/sw.js?v='+encodeURIComponent(VERSION),{updateViaCache:'none'});
-      await reg.update().catch(()=>{});
-      if(reg.waiting)reg.waiting.postMessage({type:'SKIP_WAITING'});
-    }catch(e){console.warn('Service worker registration failed',e)}
+      if('serviceWorker'in navigator){
+        hadController=!!navigator.serviceWorker.controller;
+        const registrations=typeof navigator.serviceWorker.getRegistrations==='function'
+          ?await navigator.serviceWorker.getRegistrations()
+          :[];
+        await Promise.all(registrations.map(registration=>registration.unregister()));
+      }
+    }catch(error){
+      console.warn('Service worker cleanup failed',error);
+    }
+    try{
+      if('caches'in window){
+        const keys=await caches.keys();
+        await Promise.all(keys.filter(key=>key.startsWith(CACHE_PREFIX)).map(key=>caches.delete(key)));
+      }
+    }catch(error){
+      console.warn('Program cache cleanup failed',error);
+    }
+    return hadController;
   }
   function helpers(){
     const tasks=[];
@@ -67,14 +84,27 @@
     }
     return Promise.all(tasks);
   }
+  function scheduleCleanReload(hadController){
+    if(!hadController)return;
+    try{
+      if(sessionStorage.getItem(RECOVERY_KEY)==='done')return;
+      sessionStorage.setItem(RECOVERY_KEY,'done');
+      setTimeout(()=>location.reload(),120);
+    }catch(_){/* Storage can be unavailable in private browsing. */}
+  }
   async function boot(){
     const helpersPromise=helpers();
+    const recoveryPromise=recoverServiceWorker();
+    let hadController=false;
     try{
+      const recoveryResult=await Promise.race([recoveryPromise,delay(1500)]);
+      hadController=recoveryResult===true;
       await Promise.race([helpersPromise,delay(900)]);
       await nextPaint();
     }finally{
       reveal();
-      Promise.allSettled([helpersPromise,register()]);
+      Promise.allSettled([helpersPromise,recoveryPromise]);
+      scheduleCleanReload(hadController);
     }
   }
   setTimeout(reveal,1800);
