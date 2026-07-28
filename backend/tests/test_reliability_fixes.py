@@ -37,6 +37,26 @@ def test_csp_is_enforced_and_runtime_eval_is_absent() -> None:
     assert "eval(" not in editor
 
 
+def test_google_auth_dependencies_are_allowed_by_csp() -> None:
+    firebase = _read("firebase.json")
+    assert "https://apis.google.com" in firebase
+    assert "https://accounts.google.com" in firebase
+    assert "https://*.googleapis.com" in firebase
+    assert "https://*.firebaseapp.com" in firebase
+
+
+def test_google_login_uses_mobile_redirect_and_actionable_errors() -> None:
+    source = _read("login.html")
+    assert "auth.signInWithPopup(googleProvider)" in source
+    assert "auth.signInWithRedirect(googleProvider)" in source
+    assert "auth.getRedirectResult()" in source
+    assert "Android|iPhone|iPad|iPod|Mobile" in source
+    assert "auth/unauthorized-domain" in source
+    assert "auth/operation-not-allowed" in source
+    assert "auth/network-request-failed" in source
+    assert "console.error(`[auth] ${context} failed`" in source
+
+
 def test_guide_uses_shared_safe_business_renderer() -> None:
     source = _read("guide.html")
     assert 'src="js/business-info-loader.js"' in source
