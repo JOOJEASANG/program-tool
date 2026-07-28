@@ -4,38 +4,43 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 
 
-def test_legacy_pdf_editor_bridge_is_scoped_and_avoids_sdk_prototype_mutation():
+def test_firebase_config_does_not_patch_firestore_instances_or_prototypes():
     source = (ROOT / "js" / "firebase-config.js").read_text(encoding="utf-8")
 
-    assert "__programStudioLegacyPdfEditorBridge" in source
-    assert "db.collection = function(collectionName)" in source
+    assert "__programStudioLegacyPdfEditorBridge" not in source
+    assert "db.collection = function(collectionName)" not in source
     assert "DocumentSnapshot?.prototype" not in source
     assert "DocumentReference?.prototype" not in source
 
 
-def test_approved_account_is_normalized_only_for_legacy_editor_reads():
+def test_protected_pages_share_one_program_access_promise():
     source = (ROOT / "js" / "firebase-config.js").read_text(encoding="utf-8")
 
-    assert "collectionName !== 'user_permissions'" in source
-    assert "data.status !== 'approved'" in source
-    assert "'pdf-editor': true" in source
-    assert "preflight: true" in source
-    assert "'design-studio': true" in source
+    assert "window.ProgramAccessReady = Promise.resolve(null)" in source
+    assert "const accessPromise = ProgramAccess.guardTool({ programId, timeoutMs: 8000 })" in source
+    assert "window.ProgramAccessReady = accessPromise" in source
+    assert "accessPromise.finally" in source
 
 
-def test_optional_settings_permission_denial_is_scoped_to_legacy_editor():
-    source = (ROOT / "js" / "firebase-config.js").read_text(encoding="utf-8")
-
-    assert "optionalSettingsRead" in source
-    assert "['admin', 'programs'].includes(documentId)" in source
-    assert "permission-denied" in source
-    assert "return { exists: false" in source
-
-
-def test_pdf_editor_legacy_check_can_continue_to_user_permission_document():
+def test_pdf_editor_uses_shared_access_result_without_direct_firestore_reads():
     source = (ROOT / "pdf-editor" / "index.html").read_text(encoding="utf-8")
+    auth_start = source.index("async function initializePdfEditorAccess()")
+    auth_end = source.index("const $ = id =>", auth_start)
+    auth_source = source[auth_start:auth_end]
 
-    assert "Promise.all" in source
-    assert "db.collection('user_permissions').doc(user.uid).get()" in source
-    assert "permDoc.data().programs?.['pdf-editor'] === true" in source
-    assert "../js/firebase-config.js" in source
+    assert "await window.ProgramAccessReady" in auth_source
+    assert "const user = auth.currentUser" in auth_source
+    assert "db.collection(" not in auth_source
+    assert "user_permissions" not in auth_source
+    assert "settings').doc('admin')" not in auth_source
+    assert "permDoc.data().programs" not in source
+
+
+def test_approved_account_policy_is_defined_only_by_program_access():
+    source = (ROOT / "js" / "firebase-config.js").read_text(encoding="utf-8")
+
+    assert "const assigned = access.status === 'approved'" in source
+    assert "allowed: access.admin || publicAccess || assigned" in source
+    assert "'pdf-editor': true" not in source
+    assert "preflight: true" not in source
+    assert "'design-studio': true" not in source
