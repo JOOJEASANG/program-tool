@@ -63,21 +63,17 @@ def test_preview_and_production_deploy_run_boot_guard_injection():
     assert deploy.index(command) < deploy.index("firebase deploy")
 
 
-def test_optional_helpers_do_not_block_layout_reveal():
+def test_optional_helpers_do_not_reload_or_block_layout_reveal():
     register = read("js/sw-register.js")
     boot = register[register.index("async function boot()") :]
     assert "const helpersPromise=helpers();" in boot
-    assert "localStorage.getItem(RECOVERY_KEY)==='done'" in boot
-    assert ":recoverServiceWorker().then(hadController=>" in boot
-    assert "localStorage.setItem(RECOVERY_KEY,'done')" in boot
-    assert "Promise.race([helpersPromise,delay(900)])" in boot
-    assert "Promise.race([recoveryPromise,delay(1500)])" in boot
+    assert "cleanupLegacyRuntime()" in boot
+    assert "Promise.race([helpersPromise,delay(1000)])" in boot
     assert "await nextPaint();" in boot
-    assert boot.index("Promise.race([helpersPromise,delay(900)])") < boot.index("reveal();")
-    assert "Promise.allSettled([helpersPromise,recoveryPromise])" in boot
-    assert "recoveryPromise.then(scheduleCleanReload)" in boot
-    assert boot.index("reveal();") < boot.index("recoveryPromise.then(scheduleCleanReload)")
-    assert "setTimeout(reveal,1800)" in register
+    assert boot.index("Promise.race([helpersPromise,delay(1000)])") < boot.index("reveal();")
+    assert "location.reload()" not in register
+    assert "location.replace(" not in register
+    assert "setTimeout(reveal,1600)" in register
 
 
 def test_home_helpers_run_only_on_the_root_home_page():
