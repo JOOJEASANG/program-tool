@@ -25,6 +25,59 @@ window.db = db;
 window.googleProvider = googleProvider;
 window.firebaseConfig = firebaseConfig;
 
+// Temporary bridge for the legacy PDF editor's inline permission check.
+// It is scoped to that page and avoids mutating Firebase SDK prototypes.
+(() => {
+  const isPdfEditor = /\/(?:tools\/pdf-editor\.html|pdf-editor(?:\/index\.html)?)\/?$/.test(location.pathname);
+  if (!isPdfEditor || db.__programStudioLegacyPdfEditorBridge) return;
+
+  const originalCollection = db.collection.bind(db);
+  Object.defineProperty(db, '__programStudioLegacyPdfEditorBridge', { value: true });
+
+  db.collection = function(collectionName) {
+    const collection = originalCollection(collectionName);
+    if (!['settings', 'user_permissions'].includes(collectionName)) return collection;
+
+    const originalDocument = collection.doc.bind(collection);
+    collection.doc = function(documentId) {
+      const reference = originalDocument(documentId);
+      const originalGet = reference.get.bind(reference);
+      reference.get = async function(...args) {
+        try {
+          const snapshot = await originalGet(...args);
+          if (collectionName !== 'user_permissions' || !snapshot.exists) return snapshot;
+          const data = snapshot.data();
+          if (!data || data.status !== 'approved') return snapshot;
+          return {
+            exists: true,
+            id: snapshot.id,
+            ref: snapshot.ref,
+            data: () => ({
+              ...data,
+              programs: {
+                ...(data.programs || {}),
+                'pdf-editor': true,
+                preflight: true,
+                'design-studio': true
+              }
+            })
+          };
+        } catch (error) {
+          const optionalSettingsRead = collectionName === 'settings'
+            && ['admin', 'programs'].includes(documentId);
+          const code = String(error?.code || '').toLowerCase();
+          if (optionalSettingsRead && (code.includes('permission-denied') || code.includes('permission_denied'))) {
+            return { exists: false, id: documentId, ref: reference, data: () => undefined };
+          }
+          throw error;
+        }
+      };
+      return reference;
+    };
+    return collection;
+  };
+})();
+
 (() => {
   if (document.getElementById('programStudioCacheBootstrap')) return;
   const script = document.createElement('script');
