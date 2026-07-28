@@ -743,7 +743,6 @@
 
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-<script src="../js/sw-register.js" defer></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
@@ -2316,7 +2315,6 @@ $('downloadBtn').addEventListener('click', async () => {
       margin_h_mm: mh,
       margin_v_mm: mv,
       gap_mm: gp,
-      fit_to_paper: true,
       add_border: showBorder,
       watermark: {
         enabled: wmEnabled,
@@ -2445,9 +2443,6 @@ $('hfEnabled').addEventListener('change', () => {
   $('hfSettings').style.display = hfEnabled ? 'block' : 'none';
   schedulePreview(300);
 });
-['hfHL','hfHC','hfHR','hfFL','hfFC','hfFR'].forEach(id =>
-  $(id).addEventListener('input', () => { eval(id.replace('hf','hf') + " = $('" + id + "').value"); })
-);
 $('hfHL').addEventListener('input', () => { hfHL = $('hfHL').value; schedulePreview(500); });
 $('hfHC').addEventListener('input', () => { hfHC = $('hfHC').value; schedulePreview(500); });
 $('hfHR').addEventListener('input', () => { hfHR = $('hfHR').value; schedulePreview(500); });

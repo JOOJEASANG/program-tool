@@ -1,7 +1,7 @@
 (function(){
   if(window.__programStudioCacheBoot)return;
   window.__programStudioCacheBoot=true;
-  const VERSION='2026.07.28.001';
+  const VERSION='2026.07.28.002';
   const CACHE_PREFIX='program-studio-';
   const RECOVERY_KEY='program-studio-sw-recovery-'+VERSION;
   const currentPath=location.pathname.replace(/\/+$/,'')||'/';
@@ -86,15 +86,18 @@
   }
   function scheduleCleanReload(hadController){
     if(!hadController)return;
-    try{
-      if(sessionStorage.getItem(RECOVERY_KEY)==='done')return;
-      sessionStorage.setItem(RECOVERY_KEY,'done');
-      setTimeout(()=>location.reload(),120);
-    }catch(_){/* Storage can be unavailable in private browsing. */}
+    setTimeout(()=>location.reload(),120);
   }
   async function boot(){
     const helpersPromise=helpers();
-    const recoveryPromise=recoverServiceWorker();
+    let recovered=false;
+    try{recovered=localStorage.getItem(RECOVERY_KEY)==='done'}catch(_){}
+    const recoveryPromise=recovered
+      ?Promise.resolve(false)
+      :recoverServiceWorker().then(hadController=>{
+        try{localStorage.setItem(RECOVERY_KEY,'done')}catch(_){}
+        return hadController;
+      });
     try{
       await Promise.all([
         Promise.race([helpersPromise,delay(900)]),

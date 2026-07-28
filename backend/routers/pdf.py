@@ -16,19 +16,20 @@ from flask import (
     has_request_context,
     jsonify,
     request,
-    send_file,
 )
 
 from models.schemas import PdfProcessRequest
 from services.pdf_engine import process_pdf_bytes
 from services.pdf_disk_ops import process_pdf_files
 from utils.auth import require_auth
+from utils.storage_delivery import upload_pdf_result
 
 pdf_bp = Blueprint("pdf", __name__)
 logger = logging.getLogger(__name__)
 
 MAX_PDF_FILE_BYTES = 200 * 1024 * 1024
-MAX_DIRECT_TOTAL_PDF_BYTES = 200 * 1024 * 1024
+MAX_DIRECT_TOTAL_PDF_BYTES = 20 * 1024 * 1024
+MAX_DIRECT_RESPONSE_BYTES = 20 * 1024 * 1024
 MAX_TOTAL_PDF_BYTES = 300 * 1024 * 1024
 MAX_PDF_FILES = 50
 MAX_REQUEST_PAGES = 2000
@@ -258,12 +259,29 @@ def process(uid):
     except Exception:
         return _internal_error_response("Direct PDF processing failed")
 
-    return _attach_request_id(Response(
-        output_bytes,
-        status=200,
-        mimetype="application/pdf",
-        headers={"Content-Disposition": "attachment; filename=output.pdf"},
-    ))
+    if len(output_bytes) > MAX_DIRECT_RESPONSE_BYTES:
+        try:
+            delivery = upload_pdf_result(
+                _bucket(),
+                uid,
+                filename="output.pdf",
+                data=output_bytes,
+                metadata={"source": "pdf-process-direct"},
+            )
+            response = jsonify(delivery)
+            response.headers["Cache-Control"] = "no-store"
+            return _attach_request_id(response)
+        except Exception:
+            return _internal_error_response("Direct PDF result upload failed")
+
+    return _attach_request_id(
+        Response(
+            output_bytes,
+            status=200,
+            mimetype="application/pdf",
+            headers={"Content-Disposition": "attachment; filename=output.pdf"},
+        )
+    )
 
 
 @pdf_bp.route("/process-storage", methods=["POST"])
@@ -361,21 +379,20 @@ def process_storage(uid):
 
         _validate_pdf_paths(req, source_paths)
         process_pdf_files(source_paths, req, output_path)
+        delivery = upload_pdf_result(
+            bucket,
+            uid,
+            filename="output.pdf",
+            source_path=output_path,
+            metadata={"source": "pdf-process"},
+        )
+        response = jsonify(delivery)
+        response.headers["Cache-Control"] = "no-store"
+        return _attach_request_id(response)
     except ValueError as exc:
-        _cleanup_local_directory(temp_dir)
         return _error_response(str(exc), 400, "PDF_VALIDATION_FAILED")
     except Exception:
-        _cleanup_local_directory(temp_dir)
         return _internal_error_response("Storage PDF processing failed")
     finally:
         _cleanup_storage_paths(bucket, storage_paths)
-
-    response = send_file(
-        output_path,
-        mimetype="application/pdf",
-        as_attachment=True,
-        download_name="output.pdf",
-        conditional=True,
-    )
-    response.call_on_close(lambda: _cleanup_local_directory(temp_dir))
-    return _attach_request_id(response)
+        _cleanup_local_directory(temp_dir)

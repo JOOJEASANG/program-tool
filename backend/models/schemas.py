@@ -100,7 +100,6 @@ class PdfProcessRequest(BaseModel):
     pages: list[PageInfo] = Field(min_length=1, max_length=2000)
     nup_default: NupValue = NupValue.one
     paper: PaperSize = Field(default_factory=PaperSize)
-    fit_to_paper: bool = True
     add_border: bool = False
     margin_h_mm: float = Field(default=10.0, ge=0.0, le=80.0)
     margin_v_mm: float = Field(default=10.0, ge=0.0, le=80.0)

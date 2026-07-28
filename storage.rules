@@ -39,17 +39,21 @@ service firebase.storage {
         && request.resource.contentType.matches('image/(jpeg|png|webp)');
     }
 
-    match /pdf_temp/{userId}/{allPaths=**} {
+    match /pdf_temp/{userId}/{sessionId}/{fileName} {
       allow read, delete: if isOwner(userId) && isApproved();
       allow create, update: if isOwner(userId) && isApproved() && isPdfUpload();
     }
-    match /preflight_temp/{userId}/{allPaths=**} {
+    match /preflight_temp/{userId}/{sessionId}/{fileName} {
       allow read, delete: if isOwner(userId) && isApproved();
       allow create, update: if isOwner(userId) && isApproved() && isPdfUpload();
     }
-    match /pdf_sessions/{userId}/{allPaths=**} {
+    match /pdf_sessions/{userId}/{sessionId}/{fileName} {
       allow read, delete: if isOwner(userId) && isApproved();
       allow create, update: if isOwner(userId) && isApproved() && isPdfUpload();
+    }
+    match /pdf_results/{userId}/{resultId}/{fileName} {
+      allow read, delete: if isOwner(userId) && isApproved();
+      allow create, update: if false;
     }
     match /cover_templates/{templateId}/{fileName} {
       allow read: if isAdmin() || (isApproved() && isPublicCoverTemplate(templateId));

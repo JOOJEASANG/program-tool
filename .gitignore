@@ -8,6 +8,8 @@ __pycache__/
 venv/
 backend/.venv/
 backend/venv/
+**/pytest-of-root/
+/pip-*/
 
 # Environment and secrets
 .env
@@ -21,8 +23,12 @@ backend/firebase-service-account.json
 node_modules/
 .firebase/
 .firebaserc.local
+.emulator-tmp/
 
 # Logs and OS files
 *.log
 .DS_Store
 Thumbs.db
+
+# Repository backup archives belong in GitHub Actions artifacts
+backups/*.zip

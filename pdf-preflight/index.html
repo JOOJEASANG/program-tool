@@ -49,7 +49,7 @@
         <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
           <div class="upload-icon">📂</div>
           <div class="upload-title">PDF 파일을 올려주세요</div>
-          <div class="upload-sub">클릭하거나 파일을 끌어다 놓으세요.<br>검수·암호 기능 최대 100MB · PDF 형식만 지원</div>
+          <div class="upload-sub">클릭하거나 파일을 끌어다 놓으세요.<br>검수 최대 200MB · 암호 기능 최대 20MB · PDF 형식만 지원</div>
           <div class="upload-filename" id="uploadFilename"></div>
         </div>
         <input type="file" id="fileInput" accept=".pdf,application/pdf" />
@@ -65,7 +65,7 @@
         <div class="panel-head"><div><div class="panel-kicker">STEP 2</div><h2 class="panel-title">작업 선택</h2><p class="panel-desc">원하는 기능을 누르면 현재 PDF로 바로 실행합니다.</p></div></div>
         <div class="action-grid">
           <button class="action-btn file-action" id="checkBtn" onclick="runCheck()" disabled><span class="action-chip chip-blue">점검</span><div class="action-icon" style="background:#dbeafe">🔍</div><div class="action-name">문서 검수</div><div class="action-desc">해상도·폰트·색상·페이지 상태를 확인합니다.</div></button>
-          <button class="action-btn file-action" onclick="openTool('encrypt')" disabled><span class="action-chip chip-green">보안</span><div class="action-icon" style="background:#dcfce7">🔒</div><div class="action-name">암호 설정</div><div class="action-desc">PDF에 새 비밀번호를 적용해 보호합니다.</div></button>
+          <button class="action-btn file-action" id="encryptBtn" onclick="openTool('encrypt')" disabled><span class="action-chip chip-green">보안</span><div class="action-icon" style="background:#dcfce7">🔒</div><div class="action-name">암호 설정</div><div class="action-desc">PDF에 새 비밀번호를 적용해 보호합니다.</div></button>
           <button class="action-btn file-action" id="decryptBtn" onclick="runAutoDecrypt()" disabled><span class="action-chip chip-amber">자동 시도</span><div class="action-icon" style="background:#fef3c7">🔓</div><div class="action-name">암호 해제</div><div class="action-desc">먼저 자동 해제를 시도하고 필요할 때만 암호를 묻습니다.</div></button>
         </div>
         <button class="reset-bar-btn" id="inlineResetBtn" onclick="resetAll()"><span class="reset-bar-icon">↻</span><span><strong>화면 전체 초기화</strong><small>선택한 파일과 검수 결과, 진행 상태를 모두 지웁니다.</small></span></button>
@@ -79,7 +79,6 @@
     <div class="tool-modal-box"><div class="tool-modal-head"><h2 id="toolModalTitle" class="tool-modal-title">PDF 작업</h2><button class="tool-modal-close" onclick="closeTool()">×</button></div><div id="toolModalDesc" class="tool-modal-desc"></div><div id="toolModalBody"></div><div class="tool-modal-footer"><button class="tm-cancel-btn" onclick="closeTool()">취소</button><button id="toolRunBtn" class="tm-run-btn" onclick="runTool()">실행</button></div><div id="toolStatus" class="tool-modal-status"></div></div>
   </div>
 
-  <script src="../js/sw-register.js" defer></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
@@ -99,10 +98,10 @@
     function selectFile(file){
       hideError();
       if(!file?.name?.toLowerCase().endsWith('.pdf'))return showError('PDF 파일만 업로드할 수 있습니다.');
-      if(file.size>100*1024*1024)return showError('파일 크기는 최대 100MB까지 지원합니다.');
+      if(file.size>200*1024*1024)return showError('문서 검수 파일은 최대 200MB까지 지원합니다.');
       selectedFile=file;window.selectedFile=file;zone.classList.add('has-file');
       const fn=document.getElementById('uploadFilename');fn.textContent=`✓ ${file.name} · ${(file.size/1024/1024).toFixed(1)}MB`;fn.style.display='block';
-      document.querySelectorAll('.file-action').forEach(btn=>btn.disabled=false);
+      syncFileActionAvailability();
       document.getElementById('results').style.display='none';hideCheckStatus();stopProgress();
     }
     function resetAll(){
@@ -116,7 +115,8 @@
     function hideError(){const box=document.getElementById('errorBox');box.textContent='';box.classList.remove('show')}
     function showCheckStatus(msg,type='info'){const el=document.getElementById('checkStatus');el.className='check-status show'+(type==='ok'?' ok':type==='err'?' err':'');el.textContent=msg}
     function hideCheckStatus(){const el=document.getElementById('checkStatus');el.className='check-status';el.textContent=''}
-    function setPageBusy(busy,label='처리 중...'){pageBusy=busy;document.querySelectorAll('.file-action').forEach(btn=>btn.disabled=busy||!selectedFile);const reset=document.getElementById('inlineResetBtn');if(reset)reset.disabled=busy;const btn=document.getElementById('checkBtn');if(btn)btn.querySelector('.action-name').textContent=busy&&label.includes('검수')?'검수 중...':'문서 검수'}
+    function syncFileActionAvailability(){const unavailable=pageBusy||!selectedFile;document.querySelectorAll('.file-action').forEach(btn=>btn.disabled=unavailable);const securityUnavailable=unavailable||selectedFile.size>20*1024*1024;['encryptBtn','decryptBtn'].forEach(id=>{const btn=document.getElementById(id);if(btn){btn.disabled=securityUnavailable;btn.title=selectedFile&&selectedFile.size>20*1024*1024?'암호 설정·해제는 20MB 이하 PDF만 지원합니다.':''}})}
+    function setPageBusy(busy,label='처리 중...'){pageBusy=busy;syncFileActionAvailability();const reset=document.getElementById('inlineResetBtn');if(reset)reset.disabled=busy;const btn=document.getElementById('checkBtn');if(btn)btn.querySelector('.action-name').textContent=busy&&label.includes('검수')?'검수 중...':'문서 검수'}
 
     const PROGRESS_STEPS=[{pct:8,icon:'📤',text:'파일 업로드 중...'},{pct:24,icon:'📖',text:'PDF 구조 분석 중...'},{pct:42,icon:'🔍',text:'해상도 검사 중...'},{pct:58,icon:'🔤',text:'폰트 확인 중...'},{pct:72,icon:'🎨',text:'색상 모드 검사 중...'},{pct:86,icon:'📐',text:'페이지 규격 검사 중...'},{pct:94,icon:'📊',text:'결과 정리 중...'}];
     let progressTimer=null,progressIndex=0;
@@ -145,14 +145,14 @@
     };
 
     async function runAutoDecrypt(){
-      if(pageBusy)return;if(!selectedFile)return showError('먼저 PDF 파일을 업로드하세요.');
+      if(pageBusy)return;if(!selectedFile)return showError('먼저 PDF 파일을 업로드하세요.');if(selectedFile.size>20*1024*1024)return showError('암호 설정·해제는 20MB 이하 PDF만 지원합니다.');
       hideError();hideCheckStatus();setPageBusy(true,'암호 해제');showCheckStatus('비밀번호 없이 자동 암호 해제를 시도합니다.');
       try{const {blob}=await apiPdfTool('decrypt',selectedFile,{password:''});downloadBlob(blob,`${safeBaseName(selectedFile)}_암호해제.pdf`);showCheckStatus('암호 해제가 완료되어 파일을 다운로드했습니다.','ok')}
       catch(e){const msg=e.message||'';if(/비밀번호|암호|password|403/i.test(msg)){showCheckStatus('자동 해제가 되지 않아 현재 비밀번호 입력이 필요합니다.');setPageBusy(false);openTool('decrypt');return}showError(msg||'암호 해제 중 오류가 발생했습니다.');showCheckStatus(msg||'암호 해제 실패','err')}
       finally{if(!document.getElementById('toolModalOverlay').classList.contains('open'))setPageBusy(false)}
     }
 
-    function openTool(id){if(pageBusy||!selectedFile){if(!selectedFile)showError('먼저 PDF 파일을 업로드하세요.');return}const def=TOOL_DEFS[id];if(!def)return;currentTool=id;document.getElementById('toolModalTitle').textContent=def.title;document.getElementById('toolModalDesc').textContent=def.desc;document.getElementById('toolModalBody').innerHTML=def.body();document.getElementById('toolRunBtn').textContent=def.runLabel;document.getElementById('toolRunBtn').disabled=false;document.getElementById('toolStatus').textContent='';document.getElementById('toolModalOverlay').classList.add('open');setTimeout(()=>document.getElementById('tm-pw')?.focus(),80)}
+    function openTool(id){if(pageBusy||!selectedFile){if(!selectedFile)showError('먼저 PDF 파일을 업로드하세요.');return}if((id==='encrypt'||id==='decrypt')&&selectedFile.size>20*1024*1024)return showError('암호 설정·해제는 20MB 이하 PDF만 지원합니다.');const def=TOOL_DEFS[id];if(!def)return;currentTool=id;document.getElementById('toolModalTitle').textContent=def.title;document.getElementById('toolModalDesc').textContent=def.desc;document.getElementById('toolModalBody').innerHTML=def.body();document.getElementById('toolRunBtn').textContent=def.runLabel;document.getElementById('toolRunBtn').disabled=false;document.getElementById('toolStatus').textContent='';document.getElementById('toolModalOverlay').classList.add('open');setTimeout(()=>document.getElementById('tm-pw')?.focus(),80)}
     function closeTool(force=false){if(pageBusy&&!force)return;document.getElementById('toolModalOverlay').classList.remove('open');currentTool=null;document.getElementById('toolRunBtn').textContent='실행';document.getElementById('toolStatus').textContent=''}
     async function runTool(){if(pageBusy||!currentTool)return;const def=TOOL_DEFS[currentTool],status=document.getElementById('toolStatus'),runBtn=document.getElementById('toolRunBtn');setPageBusy(true,def.runningText);runBtn.disabled=true;status.style.color='#2563eb';status.textContent=def.runningText;const started=Date.now();try{const {blob}=await def.run();const suffix={encrypt:'암호설정',decrypt:'암호해제'}[currentTool];downloadBlob(blob,`${safeBaseName(selectedFile)}_${suffix}.pdf`);status.style.color='#15803d';status.textContent=`완료 · ${Math.max(1,Math.round((Date.now()-started)/1000))}초`;setTimeout(()=>{setPageBusy(false);closeTool()},1100)}catch(e){status.style.color='#dc2626';status.textContent=e.message||'처리 중 오류가 발생했습니다.';runBtn.disabled=false;setPageBusy(false)}}
 

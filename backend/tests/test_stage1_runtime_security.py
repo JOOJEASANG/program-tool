@@ -45,7 +45,7 @@ def test_invalid_pdf_bytes_are_reported_as_client_input_error():
 
 
 def test_direct_and_storage_aggregate_limits_are_explicit():
-    assert pdf_router.MAX_DIRECT_TOTAL_PDF_BYTES == 200 * 1024 * 1024
+    assert pdf_router.MAX_DIRECT_TOTAL_PDF_BYTES == 20 * 1024 * 1024
     assert pdf_router.MAX_TOTAL_PDF_BYTES == 300 * 1024 * 1024
     assert pdf_router.MAX_DIRECT_TOTAL_PDF_BYTES < pdf_router.MAX_TOTAL_PDF_BYTES
 

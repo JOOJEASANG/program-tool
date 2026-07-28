@@ -5,19 +5,37 @@ import io
 import json
 import logging
 import re
+import uuid
 
 import fitz
-from flask import Response
+from flask import Response, g, has_request_context, request
 
 logger = logging.getLogger(__name__)
 
 
-def _json_error(detail: str, status: int) -> Response:
-    payload = {"detail": detail}
+REQUEST_ID_PATTERN = re.compile(r"^[A-Za-z0-9._-]{8,64}$")
+
+
+def _request_id() -> str:
+    if not has_request_context():
+        return uuid.uuid4().hex[:16]
+    cached = getattr(g, "preflight_request_id", None)
+    if isinstance(cached, str) and cached:
+        return cached
+    supplied = (request.headers.get("X-Request-ID") or "").strip()
+    request_id = supplied if REQUEST_ID_PATTERN.fullmatch(supplied) else uuid.uuid4().hex[:16]
+    g.preflight_request_id = request_id
+    return request_id
+
+
+def _json_error(detail: str, status: int, code: str) -> Response:
+    request_id = _request_id()
+    payload = {"detail": detail, "code": code, "request_id": request_id}
     return Response(
         json.dumps(payload, ensure_ascii=False),
         status=status,
         mimetype="application/json",
+        headers={"X-Request-ID": request_id},
     )
 
 
@@ -43,6 +61,7 @@ def fix_pdf_response(filename: str, data: bytes) -> Response:
         return _json_error(
             "PDF 파일을 열 수 없어 자동 복구가 제한됩니다. 원본 프로그램에서 'PDF로 다시 저장/인쇄' 후 재시도하세요.",
             400,
+            "PDF_REPAIR_SOURCE_INVALID",
         )
 
     output = fitz.open()
@@ -52,11 +71,12 @@ def fix_pdf_response(filename: str, data: bytes) -> Response:
 
     try:
         if len(source) == 0:
-            return _json_error("페이지가 없습니다.", 400)
+            return _json_error("페이지가 없습니다.", 400, "PDF_REPAIR_PAGE_EMPTY")
         if source.is_encrypted:
             return _json_error(
                 "암호화된 PDF는 먼저 암호를 해제한 뒤 복구/정상화를 진행하세요.",
                 400,
+                "PDF_REPAIR_ENCRYPTED",
             )
 
         for page_index in range(len(source)):
@@ -104,7 +124,17 @@ def fix_pdf_response(filename: str, data: bytes) -> Response:
                 skipped_pages.append(page_index + 1)
 
         if len(output) == 0:
-            return _json_error("복구 가능한 페이지가 없습니다.", 400)
+            return _json_error(
+                "복구 가능한 페이지가 없습니다.",
+                400,
+                "PDF_REPAIR_OUTPUT_EMPTY",
+            )
+        if skipped_pages or len(output) != len(source):
+            return _json_error(
+                "일부 페이지를 복구하지 못해 결과 파일을 만들지 않았습니다. 원본 프로그램에서 PDF로 다시 저장한 뒤 재시도하세요.",
+                422,
+                "PDF_REPAIR_INCOMPLETE",
+            )
 
         buffer = io.BytesIO()
         output.save(
@@ -129,8 +159,9 @@ def fix_pdf_response(filename: str, data: bytes) -> Response:
                 "Content-Disposition": f'attachment; filename="{safe_name}"',
                 "X-Fix-Note": note,
                 "Access-Control-Expose-Headers": (
-                    "X-Fix-Note, Content-Disposition"
+                    "X-Fix-Note, Content-Disposition, X-Request-ID"
                 ),
+                "X-Request-ID": _request_id(),
             },
         )
     except Exception:
@@ -138,6 +169,7 @@ def fix_pdf_response(filename: str, data: bytes) -> Response:
         return _json_error(
             "PDF 보정 중 오류가 발생했습니다. 원본 프로그램에서 다시 저장한 뒤 재시도하세요.",
             500,
+            "PDF_REPAIR_INTERNAL_ERROR",
         )
     finally:
         source.close()

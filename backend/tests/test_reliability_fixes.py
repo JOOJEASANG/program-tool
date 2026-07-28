@@ -1,0 +1,89 @@
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[2]
+
+
+def _read(path: str) -> str:
+    return (ROOT / path).read_text(encoding="utf-8")
+
+
+def test_cover_image_effects_use_the_shared_lexical_state() -> None:
+    source = _read("js/cover-editor-image-tools.js")
+    assert "typeof state==='undefined'" in source
+    assert "typeof window.state==='undefined'" not in source
+
+
+def test_public_template_query_matches_firestore_rules() -> None:
+    source = _read("js/cover-template-manager.js")
+    assert "collection.where('isPublic','==',true).orderBy('name')" in source
+    assert (ROOT / "firestore.indexes.json").exists()
+
+
+def test_cover_output_is_lossless_and_described_as_rgb_raster() -> None:
+    source = _read("perfect-binding-cover/index.html")
+    assert "300DPI RGB PDF" in source
+    assert "RGB 래스터 PDF" in source
+    assert "doc.addImage(out,'PNG'" in source
+    assert "toDataURL('image/jpeg'" not in source
+    assert "인쇄용 PDF 만들기" not in source
+
+
+def test_csp_is_enforced_and_runtime_eval_is_absent() -> None:
+    firebase = _read("firebase.json")
+    editor = _read("pdf-editor/index.html")
+    assert '"key": "Content-Security-Policy"' in firebase
+    assert "Content-Security-Policy-Report-Only" not in firebase
+    assert "eval(" not in editor
+
+
+def test_guide_uses_shared_safe_business_renderer() -> None:
+    source = _read("guide.html")
+    assert 'src="js/business-info-loader.js"' in source
+    assert "ProgramBusinessInfo.render(" in source
+    assert "bizText').innerHTML" not in source
+
+
+def test_program_registry_does_not_render_firestore_html() -> None:
+    source = _read("js/program-registry.js")
+    assert ".innerHTML" not in source
+    assert "textContent" in source
+    assert "safeUrl" in source
+
+
+def test_obsolete_generated_editor_workflow_is_removed() -> None:
+    assert not (ROOT / "scripts" / "apply_editor_improvements.py").exists()
+    assert not (
+        ROOT / ".github" / "workflows" / "apply-editor-improvements.yml"
+    ).exists()
+
+
+def test_large_output_and_cleanup_contract_is_present() -> None:
+    router = _read("backend/routers/pdf.py")
+    main = _read("backend/main.py")
+    rules = _read("storage.rules")
+    assert "MAX_DIRECT_TOTAL_PDF_BYTES = 20 * 1024 * 1024" in router
+    assert "upload_pdf_result" in router
+    assert (
+        "finally:\n"
+        "        _cleanup_storage_paths(bucket, storage_paths)\n"
+        "        _cleanup_local_directory(temp_dir)"
+    ) in router
+    assert "cleanup_temporary_pdfs" in main
+    assert "match /pdf_results/{userId}/{resultId}/{fileName}" in rules
+    assert (ROOT / "storage-lifecycle.json").exists()
+
+
+def test_large_preflight_files_do_not_enable_direct_security_tools() -> None:
+    source = _read("pdf-preflight/index.html")
+    assert 'id="encryptBtn"' in source
+    assert 'id="decryptBtn"' in source
+    assert "selectedFile.size>20*1024*1024" in source
+    assert "암호 설정·해제는 20MB 이하 PDF만 지원합니다." in source
+
+
+def test_partial_page_repair_and_compression_fail_closed() -> None:
+    repair = _read("backend/services/preflight_repair.py")
+    preflight = _read("backend/routers/preflight.py")
+    assert "PDF_REPAIR_INCOMPLETE" in repair
+    assert "PDF_COMPRESS_INCOMPLETE" in preflight

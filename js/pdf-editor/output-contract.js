@@ -27,19 +27,6 @@
     return settings;
   }
 
-  function wrapApi() {
-    if (window.__pdfOutputApiWrappedV1 || typeof window.apiProcessPdf !== 'function') return false;
-    const original = window.apiProcessPdf;
-    const wrapped = function outputContractApi(files, settings, options) {
-      return original.call(this, files, enrichSettings(settings), options);
-    };
-    wrapped.__pdfOutputContractV1 = true;
-    window.apiProcessPdf = wrapped;
-    try { apiProcessPdf = wrapped; } catch (_) {}
-    window.__pdfOutputApiWrappedV1 = true;
-    return true;
-  }
-
   function enrichEditorState(state) {
     const next = state && typeof state === 'object' ? state : {};
     next.pageOrder = currentOrder();
@@ -209,11 +196,10 @@
   }
 
   function boot(attempt) {
-    const apiReady = wrapApi();
     const loadReady = wrapSessionLoad();
     const saveReady = installSafeSessionSave();
     installHeaderFooterInputGuard();
-    if ((!apiReady || !loadReady || !saveReady) && attempt < 16) {
+    if ((!loadReady || !saveReady) && attempt < 16) {
       setTimeout(() => boot(attempt + 1), 120 + attempt * 50);
     }
   }

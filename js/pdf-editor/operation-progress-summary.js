@@ -7,7 +7,6 @@
   const byId = (id) => document.getElementById(id);
   let activeOperation = null;
   let downloadBypass = false;
-  let apiPatched = false;
   let previewBuildPatched = false;
   let displayPatched = false;
   let errorPatched = false;
@@ -274,46 +273,6 @@
     return true;
   }
 
-  function patchApiProcessPdf() {
-    if (apiPatched) return true;
-    if (typeof apiProcessPdf !== 'function') return false;
-    if (apiProcessPdf.__operationUiPatchedV1) {
-      apiPatched = true;
-      return true;
-    }
-    const original = apiProcessPdf;
-    const wrapped = async function apiProcessPdfWithOperationUi(files, settings, options = {}) {
-      const managed = apiOptions();
-      const callerStatus = options.onStatus;
-      const callerProgress = options.onProgress;
-      const merged = managed ? {
-        ...options,
-        signal: managed.signal,
-        onStatus: message => {
-          callerStatus?.(message);
-          managed.onStatus(message);
-        },
-        onProgress: progress => {
-          callerProgress?.(progress);
-          managed.onProgress(progress);
-        },
-      } : options;
-      try {
-        const result = await original(files, settings, merged);
-        if (managed) finishOperation('success', 'PDF 생성이 완료되었습니다.');
-        return result;
-      } catch (error) {
-        if (managed) finishOperation(error?.name === 'AbortError' ? 'canceled' : 'error', error?.message);
-        throw error;
-      }
-    };
-    wrapped.__operationUiPatchedV1 = true;
-    apiProcessPdf = wrapped;
-    window.apiProcessPdf = wrapped;
-    apiPatched = true;
-    return true;
-  }
-
   function previewOutputCount(pages) {
     let total = 0;
     for (const group of groupByNup(pages)) {
@@ -417,11 +376,10 @@
     ensureSummaryModal();
     const ready = editorReady();
     const downloadReady = installDownloadGuard();
-    const apiReady = patchApiProcessPdf();
     const buildReady = ready && patchBuildAllPages();
     const displayReady = ready && patchDisplayPreview();
     const errorReady = ready && patchPreviewError();
-    if ((!ready || !downloadReady || !apiReady || !buildReady || !displayReady || !errorReady) && attempts < 14) {
+    if ((!ready || !downloadReady || !buildReady || !displayReady || !errorReady) && attempts < 14) {
       attempts += 1;
       setTimeout(boot, 170 + attempts * 60);
     }

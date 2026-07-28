@@ -1,0 +1,17 @@
+{
+  "rule": [
+    {
+      "action": {
+        "type": "Delete"
+      },
+      "condition": {
+        "age": 1,
+        "matchesPrefix": [
+          "pdf_temp/",
+          "preflight_temp/",
+          "pdf_results/"
+        ]
+      }
+    }
+  ]
+}

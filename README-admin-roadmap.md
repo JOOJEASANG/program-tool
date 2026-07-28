@@ -1,8 +1,10 @@
-# Program Tool 운영 확장 메모
+# 관리자 운영 메모
 
-- 관리자 콘솔: 회원, 프로그램, 표지 템플릿, 구독 상태, 관리자 계정
 - 프로그램 목록: Firestore `settings/programs.items`
-- 권장 규모: 20개 이상 프로그램 등록 가능
+- 사용자 승인: `user_permissions/{uid}`의 `status == "approved"`
 - 구독 준비 필드: `plan`, `subscriptionStatus`, `expiresAt`
-- 색상 입력: CMYK 입력값을 브라우저 미리보기용 RGB로 변환
-- 실제 인쇄용 CMYK PDF는 ICC 프로파일 및 서버 변환 단계가 추가로 필요
+- 관리자 판정: Firebase custom claim `admin: true` 우선
+- 이메일 목록 기반 관리자 판정: 이전 데이터와의 호환 전용
+- 표지 템플릿: 관리자가 생성·수정·삭제하고 승인 사용자는 공개 템플릿만 조회
+
+표지 제작의 CMYK 입력값은 미리보기용 RGB로 환산됩니다. 실제 인쇄용 CMYK 납품에는 ICC 프로파일과 별도 서버 변환이 필요합니다.

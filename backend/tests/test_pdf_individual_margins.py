@@ -4,12 +4,12 @@ from types import SimpleNamespace
 import pytest
 
 from models.schemas import PdfProcessRequest
-from services.pdf_layout_implementation import (
+from services.pdf_engine import (
     _base_layout_margins,
-    _page_number_value,
     _resolve_layout_margins,
 )
 from services.pdf_ops import MM_TO_PT
+from services.pdf_text_renderer import page_number_value
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -100,8 +100,8 @@ def test_page_number_auto_reserve_can_be_disabled():
 
 def test_cover_exclusion_numbering_matches_browser_preview():
     settings = SimpleNamespace(exclude_first=True, start=1)
-    assert _page_number_value(settings, 1, 6) == (1, 5)
-    assert _page_number_value(settings, 5, 6) == (5, 5)
+    assert page_number_value(settings, 1, 6) == (1, 5)
+    assert page_number_value(settings, 5, 6) == (5, 5)
 
 
 def test_frontend_margin_selection_and_export_modules_are_connected():

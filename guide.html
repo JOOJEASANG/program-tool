@@ -1,1 +1,58 @@
-<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>이용안내 · Program Studio</title><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css"><style>*{box-sizing:border-box}body{margin:0;font-family:Pretendard,"Noto Sans KR",sans-serif;color:#172033;background:#f5f7fa}.top{background:#fff;border-bottom:1px solid #e5eaf0;padding:18px 24px}.topin{max-width:980px;margin:auto;display:flex;justify-content:space-between}.brand{font-weight:950;color:#0b2a55}.top a{font-size:12px;text-decoration:none;color:#1769e0;font-weight:850}main{max-width:980px;margin:34px auto;padding:0 20px 70px}.paper{background:#fff;border:1px solid #e4eaf1;border-radius:18px;padding:38px;box-shadow:0 12px 40px #0f172a0d}h1{font-size:30px;margin:0 0 10px}.updated{font-size:11px;color:#7b8799;margin-bottom:30px}h2{font-size:17px;margin:28px 0 10px;color:#0b2a55}p,li{font-size:13px;line-height:1.8;color:#475467}ul{padding-left:20px}.biz{margin-top:36px;padding:20px;background:#f8fafc;border:1px solid #e4eaf1;border-radius:13px;display:grid;grid-template-columns:1fr auto;gap:18px}.biztext{font-size:11px;line-height:1.8;color:#667085}.stamp{width:110px;height:110px;display:grid;place-items:center}.stamp img{max-width:100%;max-height:100%}footer{text-align:center;font-size:11px;color:#98a2b3;padding:24px}@media(max-width:600px){.paper{padding:24px}.biz{grid-template-columns:1fr}}</style></head><body><header class="top"><div class="topin"><div class="brand">Program Studio</div><a href="index.html">홈으로</a></div></header><main><article class="paper"><h1>이용안내</h1><div class="updated">시행일: <span id="effectiveDate"></span></div><h2>1. 가입과 승인</h2><p>로그인 후 가입 정보가 등록되며, 운영 정책에 따라 관리자 승인이 필요한 프로그램은 승인 완료 후 이용할 수 있습니다.</p><h2>2. 프로그램 이용</h2><ul><li>상단 카테고리에서 필요한 프로그램을 선택합니다.</li><li>파일 업로드 전 개인정보와 저작권 포함 여부를 확인합니다.</li><li>완성 파일은 반드시 미리보기와 실제 출력 규격을 점검합니다.</li></ul><h2>3. 구독 등급</h2><p>FREE와 PRO 등급에 따라 제공 기능, 저장 한도, 처리 횟수가 달라질 수 있습니다. 유료 구독 도입 시 가격과 갱신 조건을 결제 전에 안내합니다.</p><h2>4. 문의 및 장애</h2><p>서비스 오류가 발생하면 사용 브라우저, 작업 프로그램, 오류 시점과 화면 내용을 함께 전달해 주세요. 민감한 원본 파일은 문의 과정에서 불필요하게 공유하지 마세요.</p><h2>5. 결과물 확인 책임</h2><p>자동 편집 및 AI 기능은 작업을 보조합니다. 인쇄, 제출, 납품 전 문구·페이지 순서·재단 여백·해상도·개인정보를 이용자가 최종 확인해야 합니다.</p><section class="biz"><div><strong>사업자 정보</strong><div class="biztext" id="bizText">사업자 정보를 불러오는 중입니다.</div></div><div class="stamp" id="stamp"></div></section></article></main><footer>© <span id="year"></span> Program Studio. All rights reserved.</footer><script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script><script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script><script src="js/firebase-config.js"></script><script>document.getElementById('year').textContent=new Date().getFullYear();document.getElementById('effectiveDate').textContent=new Date().toLocaleDateString('ko-KR');(async()=>{try{const d=await db.collection('site_settings').doc('business').get(),b=d.exists?d.data():{};const p=[b.bizName&&`상호: ${b.bizName}`,b.bizOwner&&`대표자: ${b.bizOwner}`,b.bizNumber&&`사업자등록번호: ${b.bizNumber}`,b.bizMailOrder&&`통신판매업 신고번호: ${b.bizMailOrder}`,b.bizAddress&&`주소: ${b.bizAddress}`,b.bizPhone&&`전화: ${b.bizPhone}`,b.bizEmail&&`이메일: ${b.bizEmail}`].filter(Boolean);document.getElementById('bizText').innerHTML=p.length?p.join('<br>'):'관리자 페이지에서 사업자 정보를 입력해 주세요.';if(b.stampData)document.getElementById('stamp').innerHTML=`<img src="${b.stampData}" alt="사업자 직인">`}catch(e){document.getElementById('bizText').textContent='사업자 정보를 불러오지 못했습니다.'}})();</script></body></html>
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>이용안내 · Program Studio</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+  <style>
+    *{box-sizing:border-box}body{margin:0;font-family:Pretendard,"Noto Sans KR",sans-serif;color:#172033;background:#f5f7fa}
+    .top{background:#fff;border-bottom:1px solid #e5eaf0;padding:18px 24px}.topin{max-width:980px;margin:auto;display:flex;justify-content:space-between}
+    .brand{font-weight:950;color:#0b2a55}.top a{font-size:12px;text-decoration:none;color:#1769e0;font-weight:850}
+    main{max-width:980px;margin:34px auto;padding:0 20px 70px}.paper{background:#fff;border:1px solid #e4eaf1;border-radius:18px;padding:38px;box-shadow:0 12px 40px #0f172a0d}
+    h1{font-size:30px;margin:0 0 10px}.updated{font-size:11px;color:#7b8799;margin-bottom:30px}
+    h2{font-size:17px;margin:28px 0 10px;color:#0b2a55}p,li{font-size:13px;line-height:1.8;color:#475467}ul{padding-left:20px}
+    .biz{margin-top:36px;padding:20px;background:#f8fafc;border:1px solid #e4eaf1;border-radius:13px;display:grid;grid-template-columns:1fr auto;gap:18px}
+    .biztext{font-size:11px;line-height:1.8;color:#667085}.stamp{width:110px;height:110px;display:grid;place-items:center}.stamp img{max-width:100%;max-height:100%}
+    footer{text-align:center;font-size:11px;color:#98a2b3;padding:24px}@media(max-width:600px){.paper{padding:24px}.biz{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <header class="top"><div class="topin"><div class="brand">Program Studio</div><a href="index.html">홈으로</a></div></header>
+  <main>
+    <article class="paper">
+      <h1>이용안내</h1>
+      <div class="updated">시행일: <span id="effectiveDate"></span></div>
+      <h2>1. 가입과 승인</h2>
+      <p>로그인 후 가입 정보가 등록되며, 운영 정책에 따라 관리자 승인이 필요한 프로그램은 승인 완료 후 이용할 수 있습니다.</p>
+      <h2>2. 프로그램 이용</h2>
+      <ul>
+        <li>상단 카테고리에서 필요한 프로그램을 선택합니다.</li>
+        <li>파일 업로드 전 개인정보와 저작권 포함 여부를 확인합니다.</li>
+        <li>완성 파일은 반드시 미리보기와 실제 출력 규격을 점검합니다.</li>
+      </ul>
+      <h2>3. 구독 등급</h2>
+      <p>FREE와 PRO 등급에 따라 제공 기능, 저장 한도, 처리 횟수가 달라질 수 있습니다. 유료 구독 도입 시 가격과 갱신 조건을 결제 전에 안내합니다.</p>
+      <h2>4. 문의 및 장애</h2>
+      <p>서비스 오류가 발생하면 사용 브라우저, 작업 프로그램, 오류 시점과 화면 내용을 함께 전달해 주세요. 민감한 원본 파일은 문의 과정에서 불필요하게 공유하지 마세요.</p>
+      <h2>5. 결과물 확인 책임</h2>
+      <p>자동 편집 기능은 작업을 보조합니다. 인쇄, 제출, 납품 전 문구·페이지 순서·재단 여백·해상도·개인정보를 이용자가 최종 확인해야 합니다.</p>
+      <section class="biz">
+        <div><strong>사업자 정보</strong><div class="biztext" id="bizText">사업자 정보를 불러오는 중입니다.</div></div>
+        <div class="stamp" id="stamp"></div>
+      </section>
+    </article>
+  </main>
+  <footer>© <span id="year"></span> Program Studio. All rights reserved.</footer>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="js/firebase-config.js"></script>
+  <script src="js/business-info-loader.js"></script>
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+    ProgramBusinessInfo.render({
+      defaultEffectiveDate: new Date().toLocaleDateString('ko-KR')
+    });
+  </script>
+</body>
+</html>

@@ -1,6 +1,8 @@
 """
 Pre-flight PDF checks: DPI, bleed, color mode, font embedding, page size consistency.
 """
+import re
+
 import fitz
 from models.schemas import CheckItem, CheckSeverity
 
@@ -18,6 +20,7 @@ MAX_TEXT_CHECK_PAGES = 200
 HEAVY_PDF_BYTES = 50 * 1024 * 1024
 HUGE_PDF_BYTES = 120 * 1024 * 1024
 HEAVY_AVG_PAGE_BYTES = 3 * 1024 * 1024
+MAX_RESOURCE_XREFS_PER_PAGE = 2048
 
 STANDARD_SIZES_PT = {
     "A4":  (595.28, 841.89),
@@ -117,6 +120,149 @@ def _info_is_rgb(info: dict) -> bool:
         return colorspace == 3
     except Exception:
         return False
+
+
+_XREF_RE = re.compile(r"(?<!\d)(\d+)\s+\d+\s+R\b")
+_RGB_OPERATOR_RE = re.compile(
+    rb"(?<!\S)(?:[-+]?(?:\d+(?:\.\d*)?|\.\d+)\s+){3}(?:rg|RG)(?!\S)"
+)
+_NON_NORMAL_BLEND_RE = re.compile(r"/BM\s+/(?!Normal\b)[A-Za-z0-9#]+")
+_ALPHA_RE = re.compile(r"/(?:ca|CA)\s+([-+]?(?:\d+(?:\.\d*)?|\.\d+))")
+
+
+def _referenced_xrefs(value: str) -> set[int]:
+    return {int(match.group(1)) for match in _XREF_RE.finditer(value or "")}
+
+
+def _page_resource_objects(
+    doc: fitz.Document,
+    page: fitz.Page,
+) -> tuple[list[str], bool]:
+    """Read the page resource graph without extracting embedded image streams."""
+    pending: list[int] = []
+    inspected: set[int] = set()
+    objects: list[str] = []
+    incomplete = False
+
+    try:
+        resource_type, resource_value = doc.xref_get_key(page.xref, "Resources")
+        if resource_type == "xref":
+            pending.extend(_referenced_xrefs(resource_value))
+        elif resource_value:
+            objects.append(resource_value)
+            pending.extend(_referenced_xrefs(resource_value))
+    except Exception:
+        return objects, True
+
+    while pending:
+        xref = pending.pop()
+        if xref in inspected or xref <= 0:
+            continue
+        if len(inspected) >= MAX_RESOURCE_XREFS_PER_PAGE:
+            incomplete = True
+            break
+        inspected.add(xref)
+        try:
+            value = doc.xref_object(xref, compressed=False) or ""
+        except Exception:
+            incomplete = True
+            continue
+        objects.append(value)
+        pending.extend(_referenced_xrefs(value) - inspected)
+    return objects, incomplete
+
+
+def _decoded_page_contents(doc: fitz.Document, page: fitz.Page) -> tuple[list[bytes], bool]:
+    streams: list[bytes] = []
+    incomplete = False
+    try:
+        content_xrefs = page.get_contents() or []
+    except Exception:
+        return streams, True
+    for xref in content_xrefs:
+        try:
+            streams.append(doc.xref_stream(xref) or b"")
+        except Exception:
+            incomplete = True
+    return streams, incomplete
+
+
+def _resource_objects_use_rgb(objects: list[str]) -> bool:
+    for value in objects:
+        if re.search(r"/(?:DeviceRGB|CalRGB)\b", value):
+            return True
+        if "/ICCBased" in value and re.search(r"/N\s+3\b", value):
+            return True
+    return False
+
+
+def _page_uses_rgb_vectors(
+    doc: fitz.Document,
+    page: fitz.Page,
+) -> tuple[bool, bool]:
+    objects, resources_incomplete = _page_resource_objects(doc, page)
+    streams, contents_incomplete = _decoded_page_contents(doc, page)
+    if _resource_objects_use_rgb(objects):
+        return True, resources_incomplete or contents_incomplete
+    if any(_RGB_OPERATOR_RE.search(stream) for stream in streams):
+        return True, resources_incomplete or contents_incomplete
+    return False, resources_incomplete or contents_incomplete
+
+
+def _resource_objects_use_transparency(objects: list[str]) -> bool:
+    for value in objects:
+        if re.search(r"/SMask\s+(?!/None\b)", value):
+            return True
+        if re.search(r"/S\s*/Transparency\b", value):
+            return True
+        if _NON_NORMAL_BLEND_RE.search(value):
+            return True
+        for match in _ALPHA_RE.finditer(value):
+            try:
+                if float(match.group(1)) < 0.999:
+                    return True
+            except ValueError:
+                continue
+    return False
+
+
+def _page_uses_transparency(
+    doc: fitz.Document,
+    page: fitz.Page,
+) -> tuple[bool, bool]:
+    incomplete = False
+    try:
+        for drawing in page.get_drawings(extended=True):
+            if float(drawing.get("fill_opacity", 1) or 1) < 0.999:
+                return True, incomplete
+            if float(drawing.get("stroke_opacity", 1) or 1) < 0.999:
+                return True, incomplete
+            blend = str(drawing.get("blendmode") or "Normal")
+            if blend not in {"Normal", "/Normal"}:
+                return True, incomplete
+    except TypeError:
+        try:
+            for drawing in page.get_drawings():
+                if float(drawing.get("fill_opacity", 1) or 1) < 0.999:
+                    return True, incomplete
+                if float(drawing.get("stroke_opacity", 1) or 1) < 0.999:
+                    return True, incomplete
+        except Exception:
+            incomplete = True
+    except Exception:
+        incomplete = True
+
+    try:
+        for image in page.get_images(full=True):
+            if len(image) > 1 and int(image[1] or 0) > 0:
+                return True, incomplete
+    except Exception:
+        incomplete = True
+
+    objects, resources_incomplete = _page_resource_objects(doc, page)
+    if _resource_objects_use_transparency(objects):
+        return True, incomplete or resources_incomplete
+    return False, incomplete or resources_incomplete
 
 
 def check_image_dpi(doc: fitz.Document, file_size_bytes: int | None = None) -> CheckItem:
@@ -224,8 +370,6 @@ def check_color_mode(doc: fitz.Document, file_size_bytes: int | None = None) -> 
     for page_num in range(check_limit):
         page = doc[page_num]
         infos = _safe_page_image_info(page)
-        if not infos:
-            continue
         known = False
         for item in infos:
             cs_name = str(item.get("cs-name") or item.get("colorspace") or "").lower()
@@ -235,7 +379,10 @@ def check_color_mode(doc: fitz.Document, file_size_bytes: int | None = None) -> 
                 if page_num + 1 not in rgb_pages:
                     rgb_pages.append(page_num + 1)
                 break
-        if not known and page_num + 1 not in rgb_pages:
+        vector_rgb, inspection_incomplete = _page_uses_rgb_vectors(doc, page)
+        if vector_rgb and page_num + 1 not in rgb_pages:
+            rgb_pages.append(page_num + 1)
+        elif inspection_incomplete and not known:
             unknown_pages.append(page_num + 1)
 
     sample_note = _sample_note(total_pages, check_limit, sampled, heavy)
@@ -244,7 +391,7 @@ def check_color_mode(doc: fitz.Document, file_size_bytes: int | None = None) -> 
             id="color_mode",
             label="색상 모드",
             severity=CheckSeverity.warning,
-            detail=f"{len(rgb_pages)}페이지에 RGB 이미지가 포함되어 있습니다. 오프셋 인쇄는 CMYK를 권장합니다.{sample_note}",
+            detail=f"{len(rgb_pages)}페이지에 RGB 이미지 또는 벡터 색상이 포함되어 있습니다. 오프셋 인쇄는 CMYK를 권장합니다.{sample_note}",
             page_refs=rgb_pages,
         )
     if unknown_pages:
@@ -259,7 +406,7 @@ def check_color_mode(doc: fitz.Document, file_size_bytes: int | None = None) -> 
         id="color_mode",
         label="색상 모드",
         severity=CheckSeverity.pass_,
-        detail=f"이미지 색상 모드 메타정보 기준으로 RGB 문제가 발견되지 않았습니다.{sample_note}",
+        detail=f"이미지와 벡터 색상 기준으로 RGB 문제가 발견되지 않았습니다.{sample_note}",
     )
 
 
@@ -361,20 +508,17 @@ def check_page_size_consistency(doc: fitz.Document, file_size_bytes: int | None 
 
 def check_transparency(doc: fitz.Document, file_size_bytes: int | None = None) -> CheckItem:
     pages_with_transparency: list[int] = []
+    unknown_pages: list[int] = []
     total_pages = len(doc)
     check_limit, sampled, heavy = _image_check_limit(doc, file_size_bytes)
     for page_num in range(check_limit):
         page = doc[page_num]
-        try:
-            names_fn = getattr(page, "xobject_names", None)
-            if not callable(names_fn):
-                continue
-            names = names_fn() or []
-        except Exception:
-            continue
-        if any("Transparency" in (n or "") for n in names):
+        has_transparency, incomplete = _page_uses_transparency(doc, page)
+        if has_transparency:
             if page_num + 1 not in pages_with_transparency:
                 pages_with_transparency.append(page_num + 1)
+        elif incomplete:
+            unknown_pages.append(page_num + 1)
 
     sample_note = _sample_note(total_pages, check_limit, sampled, heavy)
     if pages_with_transparency:
@@ -384,6 +528,14 @@ def check_transparency(doc: fitz.Document, file_size_bytes: int | None = None) -
             severity=CheckSeverity.warning,
             detail=f"{len(pages_with_transparency)}페이지에 투명도 효과가 있습니다. 일부 인쇄 환경에서 렌더링 문제가 발생할 수 있습니다.{sample_note}",
             page_refs=pages_with_transparency,
+        )
+    if unknown_pages:
+        return CheckItem(
+            id="transparency",
+            label="투명도",
+            severity=CheckSeverity.warning,
+            detail=f"일부 페이지의 투명도 리소스를 완전히 확인하지 못했습니다. 출력 전 샘플 확인을 권장합니다.{sample_note}",
+            page_refs=unknown_pages[:20],
         )
     return CheckItem(
         id="transparency",

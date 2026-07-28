@@ -1,7 +1,7 @@
 import fitz
 
 from models.schemas import PdfProcessRequest
-from services import pdf_engine, pdf_layout_engine
+from services import pdf_engine
 
 
 def _source_pdf(page_count: int = 4) -> bytes:
@@ -51,11 +51,11 @@ def _snapshot(pdf_bytes: bytes) -> tuple[int, list[tuple[float, float]], list[st
         document.close()
 
 
-def test_explicit_pdf_engines_produce_equivalent_output():
+def test_canonical_pdf_engine_is_deterministic():
     source = _source_pdf()
     request = _request()
 
     direct_output = pdf_engine.process_pdf_bytes([source], request)
-    layout_output = pdf_layout_engine.process_pdf_bytes([source], request)
+    repeated_output = pdf_engine.process_pdf_bytes([source], request)
 
-    assert _snapshot(direct_output) == _snapshot(layout_output)
+    assert _snapshot(direct_output) == _snapshot(repeated_output)

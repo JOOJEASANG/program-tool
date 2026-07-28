@@ -12,7 +12,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout current branch
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 1
 
@@ -24,7 +24,7 @@ jobs:
             -x '.git/*' 'backup-tmp/*' 'backups/*' 'backend/venv/*' 'backend/.venv/*' '**/node_modules/*'
 
       - name: Upload backup artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: program-tool-backup
           path: backup-tmp/*.zip

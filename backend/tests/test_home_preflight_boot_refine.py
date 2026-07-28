@@ -67,7 +67,9 @@ def test_optional_helpers_do_not_block_layout_reveal():
     register = read("js/sw-register.js")
     boot = register[register.index("async function boot()") :]
     assert "const helpersPromise=helpers();" in boot
-    assert "const recoveryPromise=recoverServiceWorker();" in boot
+    assert "localStorage.getItem(RECOVERY_KEY)==='done'" in boot
+    assert ":recoverServiceWorker().then(hadController=>" in boot
+    assert "localStorage.setItem(RECOVERY_KEY,'done')" in boot
     assert "Promise.race([helpersPromise,delay(900)])" in boot
     assert "Promise.race([recoveryPromise,delay(1500)])" in boot
     assert "await nextPaint();" in boot

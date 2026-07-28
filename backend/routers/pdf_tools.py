@@ -3,35 +3,54 @@ from __future__ import annotations
 
 import io
 import logging
+import os
 import re
 import uuid
 
+import firebase_admin.storage as fa_storage
 import fitz
-from flask import Blueprint, Response, jsonify, request
+from flask import Blueprint, Response, g, has_request_context, jsonify, request
 
 from utils.auth import require_auth
+from utils.storage_delivery import upload_pdf_result
 
 pdf_tools_bp = Blueprint("pdf_tools", __name__)
 logger = logging.getLogger(__name__)
 
-MAX_FILE = 100 * 1024 * 1024
+MAX_FILE = 20 * 1024 * 1024
 MAX_IMAGE_FILES = 30
-MAX_IMAGE_TOTAL_BYTES = 150 * 1024 * 1024
+MAX_IMAGE_TOTAL_BYTES = 20 * 1024 * 1024
 MAX_IMAGE_PIXELS_PER_FILE = 40_000_000
 MAX_IMAGE_PIXELS_TOTAL = 120_000_000
+MAX_DIRECT_RESPONSE_BYTES = 20 * 1024 * 1024
 MAX_COMPRESS_PAGES = 200
 MAX_COMPRESS_PIXELS_TOTAL = 180_000_000
 MAX_REMOVE_BLANK_PAGES = 500
-MAX_OCR_PAGES = 30
 MAX_RANGE_SPEC_LENGTH = 4096
 MAX_RANGE_TOKENS = 512
+DEFAULT_STORAGE_BUCKET = os.environ.get(
+    "FIREBASE_STORAGE_BUCKET", "program-tool.firebasestorage.app"
+)
+
+
+def _bucket():
+    return fa_storage.bucket(DEFAULT_STORAGE_BUCKET)
 
 
 def _request_id() -> str:
+    if not has_request_context():
+        return uuid.uuid4().hex[:16]
+    cached = getattr(g, "pdf_tool_request_id", None)
+    if isinstance(cached, str) and cached:
+        return cached
     supplied = (request.headers.get("X-Request-ID") or "").strip()
-    if re.fullmatch(r"[A-Za-z0-9._-]{8,64}", supplied):
-        return supplied
-    return uuid.uuid4().hex[:16]
+    request_id = (
+        supplied
+        if re.fullmatch(r"[A-Za-z0-9._-]{8,64}", supplied)
+        else uuid.uuid4().hex[:16]
+    )
+    g.pdf_tool_request_id = request_id
+    return request_id
 
 
 def _error(detail: str, status: int, code: str):
@@ -62,7 +81,7 @@ def _read_pdf(files_key: str = "file") -> bytes:
         raise ValueError("PDF 파일만 처리할 수 있습니다.")
     data = uploaded.read(MAX_FILE + 1)
     if len(data) > MAX_FILE:
-        raise ValueError("파일이 100MB를 초과합니다.")
+        raise ValueError("파일이 20MB를 초과합니다.")
     return data
 
 
@@ -77,7 +96,19 @@ def _open_pdf(data: bytes) -> fitz.Document:
     return document
 
 
-def _pdf_response(data: bytes, filename: str) -> Response:
+def _pdf_response(data: bytes, filename: str, uid: str) -> Response:
+    if len(data) > MAX_DIRECT_RESPONSE_BYTES:
+        delivery = upload_pdf_result(
+            _bucket(),
+            uid,
+            filename=filename,
+            data=data,
+            metadata={"source": "pdf-tool"},
+        )
+        response = jsonify(delivery)
+        response.headers["Cache-Control"] = "no-store"
+        response.headers["X-Request-ID"] = _request_id()
+        return response
     response = Response(
         data,
         status=200,
@@ -136,7 +167,7 @@ def extract(uid):
             output.insert_pdf(source, from_page=index, to_page=index)
         buffer = io.BytesIO()
         output.save(buffer, garbage=4, deflate=True)
-        return _pdf_response(buffer.getvalue(), "extracted.pdf")
+        return _pdf_response(buffer.getvalue(), "extracted.pdf", uid)
     except ValueError as exc:
         return _error(str(exc), 400, "PDF_TOOL_VALIDATION_FAILED")
     except Exception:
@@ -146,7 +177,6 @@ def extract(uid):
             output.close()
         if source is not None:
             source.close()
-
 
 def _image_filetype(filename: str) -> str:
     extension = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
@@ -178,14 +208,14 @@ def from_images(uid):
             data = uploaded.read(MAX_FILE + 1)
             if len(data) > MAX_FILE:
                 return _error(
-                    "이미지 한 개의 크기는 100MB 이하여야 합니다.",
+                    "이미지 한 개의 크기는 20MB 이하여야 합니다.",
                     413,
                     "IMAGE_FILE_TOO_LARGE",
                 )
             total_bytes += len(data)
             if total_bytes > MAX_IMAGE_TOTAL_BYTES:
                 return _error(
-                    "이미지 전체 용량은 150MB 이하여야 합니다.",
+                    "이미지 전체 용량은 20MB 이하여야 합니다.",
                     413,
                     "IMAGE_TOTAL_TOO_LARGE",
                 )
@@ -200,6 +230,14 @@ def from_images(uid):
                     raise ValueError("페이지가 없는 이미지입니다.")
                 for image_page in image_doc:
                     source_rect = image_page.rect
+                    projected_pixels = int(
+                        source_rect.width * 200 / 72
+                        * source_rect.height * 200 / 72
+                    )
+                    if projected_pixels > MAX_IMAGE_PIXELS_PER_FILE:
+                        raise ValueError("이미지 해상도가 너무 큽니다.")
+                    if total_pixels + projected_pixels > MAX_IMAGE_PIXELS_TOTAL:
+                        raise ValueError("전체 이미지 해상도가 처리 한도를 초과합니다.")
                     pixmap = image_page.get_pixmap(dpi=200, alpha=False)
                     pixels = pixmap.width * pixmap.height
                     if pixels > MAX_IMAGE_PIXELS_PER_FILE:
@@ -241,7 +279,7 @@ def from_images(uid):
             return _error("변환할 이미지 페이지가 없습니다.", 400, "IMAGE_OUTPUT_EMPTY")
         buffer = io.BytesIO()
         output.save(buffer, garbage=4, deflate=True, deflate_images=True)
-        return _pdf_response(buffer.getvalue(), "from_images.pdf")
+        return _pdf_response(buffer.getvalue(), "from_images.pdf", uid)
     except ValueError as exc:
         return _error(str(exc), 413, "IMAGE_LIMIT_EXCEEDED")
     except Exception:
@@ -301,7 +339,7 @@ def compress(uid):
             deflate_images=True,
             deflate_fonts=True,
         )
-        return _pdf_response(buffer.getvalue(), "compressed.pdf")
+        return _pdf_response(buffer.getvalue(), "compressed.pdf", uid)
     except ValueError as exc:
         return _error(str(exc), 400, "PDF_TOOL_VALIDATION_FAILED")
     except Exception:
@@ -342,7 +380,7 @@ def encrypt(uid):
             user_pw=password,
             permissions=permissions,
         )
-        return _pdf_response(buffer.getvalue(), "encrypted.pdf")
+        return _pdf_response(buffer.getvalue(), "encrypted.pdf", uid)
     except ValueError as exc:
         return _error(str(exc), 400, "PDF_TOOL_VALIDATION_FAILED")
     except Exception:
@@ -367,7 +405,7 @@ def decrypt(uid):
             return _error("비밀번호가 올바르지 않습니다.", 403, "PASSWORD_INVALID")
         buffer = io.BytesIO()
         source.save(buffer, encryption=fitz.PDF_ENCRYPT_NONE)
-        return _pdf_response(buffer.getvalue(), "decrypted.pdf")
+        return _pdf_response(buffer.getvalue(), "decrypted.pdf", uid)
     except ValueError as exc:
         return _error(str(exc), 400, "PDF_TOOL_VALIDATION_FAILED")
     except Exception:
@@ -423,7 +461,7 @@ def remove_blank(uid):
         buffer = io.BytesIO()
         output.save(buffer, garbage=4, deflate=True)
         removed = len(source) - len(keep)
-        response = _pdf_response(buffer.getvalue(), "no_blanks.pdf")
+        response = _pdf_response(buffer.getvalue(), "no_blanks.pdf", uid)
         response.headers["X-Removed-Count"] = str(removed)
         response.headers["Access-Control-Expose-Headers"] = (
             "X-Removed-Count, Content-Disposition, X-Request-ID"
@@ -433,81 +471,6 @@ def remove_blank(uid):
         return _error(str(exc), 400, "PDF_TOOL_VALIDATION_FAILED")
     except Exception:
         return _internal_error("Blank page removal")
-    finally:
-        if output is not None:
-            output.close()
-        if source is not None:
-            source.close()
-
-
-@pdf_tools_bp.route("/ocr", methods=["POST"])
-@require_auth
-def ocr(uid):
-    source = output = None
-    try:
-        pdf_data = _read_pdf()
-        try:
-            import pytesseract
-            from PIL import Image
-        except ImportError:
-            return _error(
-                "OCR 기능이 현재 서버에 설치되어 있지 않습니다.",
-                501,
-                "OCR_UNAVAILABLE",
-            )
-        try:
-            pytesseract.get_tesseract_version()
-        except Exception:
-            return _error(
-                "OCR 실행 환경이 준비되지 않았습니다.",
-                501,
-                "OCR_UNAVAILABLE",
-            )
-
-        source = _open_pdf(pdf_data)
-        if len(source) > MAX_OCR_PAGES:
-            return _error(
-                f"OCR은 최대 {MAX_OCR_PAGES}페이지까지 처리할 수 있습니다.",
-                413,
-                "OCR_PAGE_LIMIT",
-            )
-
-        output = fitz.open()
-        for page in source:
-            pixmap = page.get_pixmap(
-                matrix=fitz.Matrix(300 / 72, 300 / 72),
-                alpha=False,
-            )
-            image = Image.frombytes(
-                "RGB",
-                [pixmap.width, pixmap.height],
-                pixmap.samples,
-            )
-            try:
-                pdf_bytes = pytesseract.image_to_pdf_or_hocr(
-                    image,
-                    extension="pdf",
-                    lang="kor+eng",
-                )
-            except pytesseract.TesseractError:
-                return _error(
-                    "OCR 한국어·영어 언어 데이터가 준비되지 않았습니다.",
-                    501,
-                    "OCR_LANGUAGE_UNAVAILABLE",
-                )
-            ocr_page = fitz.open(stream=pdf_bytes, filetype="pdf")
-            try:
-                output.insert_pdf(ocr_page)
-            finally:
-                ocr_page.close()
-
-        buffer = io.BytesIO()
-        output.save(buffer, garbage=4, deflate=True)
-        return _pdf_response(buffer.getvalue(), "ocr_output.pdf")
-    except ValueError as exc:
-        return _error(str(exc), 400, "PDF_TOOL_VALIDATION_FAILED")
-    except Exception:
-        return _internal_error("PDF OCR")
     finally:
         if output is not None:
             output.close()

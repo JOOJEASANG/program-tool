@@ -81,12 +81,11 @@ def test_thumbnail_integrity_repairs_rotation_and_divider_state():
     assert "PdfPreviewController?.invalidate" in text
 
 
-def test_layout_export_intercepts_only_exact_same_origin_pdf_routes():
+def test_layout_export_exposes_settings_without_global_fetch_monkeypatch():
     text = _text(LAYOUT_EXPORT)
-    assert "url.origin !== location.origin" in text
-    assert "path === '/api/pdf/process'" in text
-    assert "path === '/api/pdf/process-storage'" in text
-    assert "includes('/api/pdf/process')" not in text
+    assert "window.PdfEditorLayoutExport = { patchSettings, marginValues }" in text
+    assert "window.fetch =" not in text
+    assert "window.apiProcessPdf =" not in text
 
 
 def test_runtime_messages_and_session_names_are_rendered_as_text():

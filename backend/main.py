@@ -1,5 +1,9 @@
 import os
+import logging
+from datetime import datetime, timedelta, timezone
+
 import firebase_admin
+import firebase_admin.storage as fa_storage
 
 if not firebase_admin._apps:
     firebase_admin.initialize_app(options={
@@ -11,14 +15,14 @@ from routers.pdf import pdf_bp
 from routers.pdf_tools import pdf_tools_bp
 from routers.preflight import preflight_bp
 
-from firebase_functions import https_fn, options
+from firebase_functions import https_fn, options, scheduler_fn
 from utils.permissions import AccessError, require_program_access_for_request
 
 flask_app = Flask(__name__)
-# Multipart direct uploads are intentionally limited below the Storage-based
-# processing ceiling. The PDF router enforces a 200 MB aggregate direct-upload
-# limit, while this small allowance covers multipart boundaries and settings.
-flask_app.config["MAX_CONTENT_LENGTH"] = 210 * 1024 * 1024
+logger = logging.getLogger(__name__)
+# Large PDFs use Firebase Storage. Direct multipart requests remain below the
+# Cloud Functions request/response quota with a small boundary allowance.
+flask_app.config["MAX_CONTENT_LENGTH"] = 25 * 1024 * 1024
 flask_app.register_blueprint(pdf_bp, url_prefix="/api/pdf")
 flask_app.register_blueprint(pdf_tools_bp, url_prefix="/api/pdf-tools")
 flask_app.register_blueprint(preflight_bp, url_prefix="/api/preflight")
@@ -33,6 +37,7 @@ def enforce_program_permissions():
 
 
 @flask_app.route("/health")
+@flask_app.route("/api/health")
 def health():
     return {"status": "ok"}
 
@@ -45,3 +50,36 @@ def health():
 def api(req: https_fn.Request) -> https_fn.Response:
     with flask_app.request_context(req.environ):
         return flask_app.full_dispatch_request()
+
+
+@scheduler_fn.on_schedule(schedule="every 6 hours")
+def cleanup_temporary_pdfs(event: scheduler_fn.ScheduledEvent) -> None:
+    """Delete abandoned PDF inputs and generated results after 24 hours."""
+    del event
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
+    bucket = fa_storage.bucket(
+        os.environ.get(
+            "FIREBASE_STORAGE_BUCKET",
+            "program-tool.firebasestorage.app",
+        )
+    )
+    for prefix in ("pdf_temp/", "preflight_temp/", "pdf_results/"):
+        try:
+            blobs = bucket.list_blobs(prefix=prefix)
+            for blob in blobs:
+                try:
+                    updated = blob.updated
+                    if updated is not None and updated <= cutoff:
+                        blob.delete()
+                except Exception:
+                    logger.warning(
+                        "Temporary object cleanup failed path=%s",
+                        getattr(blob, "name", "unknown"),
+                        exc_info=True,
+                    )
+        except Exception:
+            logger.warning(
+                "Temporary prefix cleanup failed prefix=%s",
+                prefix,
+                exc_info=True,
+            )

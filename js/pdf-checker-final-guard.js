@@ -1,5 +1,5 @@
 (() => {
-  const COMMON_MAX_BYTES = 100 * 1024 * 1024;
+  const PREFLIGHT_MAX_BYTES = 200 * 1024 * 1024;
   let toolBusy = false;
   let checkBusy = false;
   let installed = false;
@@ -52,7 +52,7 @@
 
     const uploadSub = document.querySelector('.upload-sub');
     if (uploadSub) {
-      uploadSub.textContent = '검수·암호 기능 최대 100 MB · PDF만 지원 · 업로드 후 아래 기능 버튼을 선택';
+      uploadSub.textContent = '문서 검수 최대 200MB · 암호 설정·해제 최대 20MB · PDF만 지원';
     }
 
     if (!document.getElementById('pdfToolsResetBelowStyle')) {
@@ -92,11 +92,11 @@
 
     const originalSelectFile = window.selectFile;
     window.selectFile = function selectFileWithLimit(file) {
-      if (file && file.size > COMMON_MAX_BYTES) {
+      if (file && file.size > PREFLIGHT_MAX_BYTES) {
         const input = document.getElementById('fileInput');
         if (input) input.value = '';
         if (typeof window.showError === 'function') {
-          window.showError('검수·암호 공통 사용 파일은 최대 100 MB까지 지원합니다.');
+          window.showError('문서 검수 파일은 최대 200MB까지 지원합니다.');
         }
         return;
       }

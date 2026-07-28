@@ -6,7 +6,6 @@
 
   const byId = (id) => document.getElementById(id);
   let buildPatched = false;
-  let apiPatched = false;
   let sessionPatched = false;
   let summaryObserver = null;
   let attempts = 0;
@@ -196,24 +195,6 @@
     return true;
   }
 
-  function patchApiProcessPdf() {
-    if (apiPatched) return true;
-    if (typeof apiProcessPdf !== 'function') return false;
-    if (apiProcessPdf.__printMarksPatchedV1) {
-      apiPatched = true;
-      return true;
-    }
-    const original = apiProcessPdf;
-    const wrapped = function apiProcessPdfWithPrintMarks(files, requestSettings, options) {
-      return original(files, { ...requestSettings, print_marks: settings() }, options);
-    };
-    wrapped.__printMarksPatchedV1 = true;
-    apiProcessPdf = wrapped;
-    window.apiProcessPdf = wrapped;
-    apiPatched = true;
-    return true;
-  }
-
   function patchSessionState() {
     if (sessionPatched) return true;
     if (typeof collectEditorState !== 'function' || typeof loadEditorSession !== 'function') return false;
@@ -299,12 +280,11 @@
     const uiReady = ensureUi();
     const ready = editorReady();
     const buildReady = ready && patchBuildAllPages();
-    const apiReady = patchApiProcessPdf();
     const sessionReady = ready && patchSessionState();
     observeSummary();
     installPreviewObserver();
     annotatePreviewWrappers();
-    if ((!uiReady || !ready || !buildReady || !apiReady || !sessionReady || !byId('pdfSaveSummaryOverlay')) && attempts < 14) {
+    if ((!uiReady || !ready || !buildReady || !sessionReady || !byId('pdfSaveSummaryOverlay')) && attempts < 14) {
       attempts += 1;
       setTimeout(boot, 170 + attempts * 60);
     }

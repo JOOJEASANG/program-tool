@@ -44,13 +44,14 @@ def test_validate_pdf_paths_rejects_invalid_pdf(tmp_path):
         raise AssertionError("invalid PDF must be rejected")
 
 
-def test_storage_route_uses_filename_download_and_send_file():
+def test_storage_route_uses_disk_processing_and_temporary_result_delivery():
     source = Path(pdf_router.__file__).read_text(encoding="utf-8")
 
     assert "download_to_filename" in source
     assert "download_as_bytes" not in source
     assert "process_pdf_files" in source
-    assert "send_file" in source
+    assert "upload_pdf_result" in source
+    assert "send_file" not in source
 
 
 def test_local_temp_cleanup_removes_job_directory(tmp_path):

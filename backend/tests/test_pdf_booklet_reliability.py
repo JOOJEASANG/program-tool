@@ -4,10 +4,10 @@ import fitz
 import pytest
 
 from models.schemas import PageInfo, PdfProcessRequest
-from services.pdf_layout_implementation import (
+from services.pdf_engine import (
     _booklet_layout,
-    _group_booklet_pages,
-    process_pdf_with_individual_margins,
+    _booklet_groups as _group_booklet_pages,
+    process_pdf_bytes as process_pdf_with_individual_margins,
 )
 from services.pdf_ops import BOOKLET_STRIPS, MM_TO_PT, _booklet_reorder
 

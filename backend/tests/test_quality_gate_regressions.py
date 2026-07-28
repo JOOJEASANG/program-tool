@@ -31,4 +31,4 @@ def test_frontend_failure_logs_are_uploaded():
 
     assert "python scripts/check_inline_js.py 2>&1 | tee inline-js.log" in source
     assert "inline-js.log" in source
-    assert "stale-workflows.log" in source
+    assert "stale-workflows.log" not in source

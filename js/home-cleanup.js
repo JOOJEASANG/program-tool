@@ -28,8 +28,8 @@
     card.href='tools/perfect-binding-cover.html';
     card.innerHTML='<div class="prog-icon" style="background:#eef2ff">📚</div>'
       +'<div class="prog-name">책표지제작</div>'
-      +'<div class="prog-desc">완성 규격과 페이지 수, 종이 두께로 책등 폭을 계산하고 앞표지·책등·뒤표지를 연결한 300DPI 인쇄용 PDF를 만듭니다.</div>'
-      +'<div class="prog-tags"><span class="prog-tag">책등 계산</span><span class="prog-tag">재단 여백</span><span class="prog-tag">전체 표지</span><span class="prog-tag">인쇄용 PDF</span></div>'
+      +'<div class="prog-desc">완성 규격과 페이지 수, 종이 두께로 책등 폭을 계산하고 앞표지·책등·뒤표지를 연결한 300DPI RGB 래스터 PDF를 만듭니다.</div>'
+      +'<div class="prog-tags"><span class="prog-tag">책등 계산</span><span class="prog-tag">재단 여백</span><span class="prog-tag">전체 표지</span><span class="prog-tag">RGB PDF</span></div>'
       +'<div class="prog-cta">시작하기 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>';
     slider.appendChild(card);
   }

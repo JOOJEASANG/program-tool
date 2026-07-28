@@ -36,7 +36,8 @@ def test_preview_draws_crop_trim_and_bleed_guides():
 
 def test_export_injects_validated_print_mark_settings():
     text = MODULE.read_text(encoding="utf-8")
-    assert "print_marks: settings()" in text
+    api = (ROOT / "js" / "api.js").read_text(encoding="utf-8")
+    assert "next.print_marks = window.PdfPrintMarks.settings()" in api
     assert "bleed_mm" in text
     assert "mark_length_mm" in text
     assert "mark_offset_mm" in text

@@ -53,6 +53,59 @@ async function _ensureStorage() {
   return window.storage;
 }
 
+async function _readPdfDelivery(resp) {
+  const contentType = resp.headers.get('content-type') || '';
+  if (!contentType.includes('application/json')) return resp.blob();
+  const delivery = await resp.json();
+  if (delivery?.delivery !== 'storage' || !delivery.download_url) {
+    throw new Error('PDF 다운로드 정보가 올바르지 않습니다.');
+  }
+  const resultResp = await fetch(delivery.download_url, { cache: 'no-store' });
+  if (!resultResp.ok) throw new Error('완성 PDF를 내려받지 못했습니다.');
+  const blob = await resultResp.blob();
+  if (delivery.storage_path) {
+    try {
+      const st = await _ensureStorage();
+      await st.ref(delivery.storage_path).delete();
+    } catch (error) {
+      console.warn('[pdf] temporary result cleanup failed', error);
+    }
+  }
+  return blob;
+}
+
+function _preparePdfSettings(settings) {
+  let next = settings && typeof settings === 'object' ? { ...settings } : {};
+  next = window.PdfOutputContract?.enrichSettings?.(next) || next;
+  next = window.PdfEditorLayoutExport?.patchSettings?.(next) || next;
+  if (window.PdfPrintMarks?.settings) {
+    next.print_marks = window.PdfPrintMarks.settings();
+  }
+  return next;
+}
+
+function _preparePdfOptions(options = {}) {
+  const managed = window.PdfOperationManager?.apiOptions?.();
+  if (!managed) return { ...options, __managedOperation: false };
+  return {
+    ...options,
+    signal: managed.signal,
+    onStatus: message => {
+      options.onStatus?.(message);
+      managed.onStatus?.(message);
+    },
+    onProgress: progress => {
+      options.onProgress?.(progress);
+      managed.onProgress?.(progress);
+    },
+    __managedOperation: true,
+  };
+}
+
+function _finishManagedPdfOperation(managed, result, message) {
+  if (managed) window.PdfOperationManager?.finishOperation?.(result, message);
+}
+
 function _makeAbortError(message = '작업이 취소되었습니다.') {
   try { return new DOMException(message, 'AbortError'); }
   catch (_) { const error = new Error(message); error.name = 'AbortError'; return error; }
@@ -120,7 +173,7 @@ async function _processPdfDirect(files, settings, token, signal, onStatus, onPro
     throw new Error(msg || 'PDF 처리 중 오류가 발생했습니다.');
   }
   _reportProgress(onProgress, 'download', 92, '완성 PDF 내려받는 중');
-  return resp.blob();
+  return _readPdfDelivery(resp);
 }
 
 /**
@@ -130,7 +183,10 @@ async function _processPdfDirect(files, settings, token, signal, onStatus, onPro
  * @param {{ onStatus?: Function, onProgress?: Function, signal?: AbortSignal }} [opts]
  * @returns {Promise<Blob>}
  */
-async function apiProcessPdf(files, settings, { onStatus, onProgress, signal } = {}) {
+async function apiProcessPdf(files, settings, options = {}) {
+  const preparedOptions = _preparePdfOptions(options);
+  const { onStatus, onProgress, signal, __managedOperation } = preparedOptions;
+  settings = _preparePdfSettings(settings);
   const user = auth.currentUser;
   if (!user) throw new Error('로그인이 필요합니다.');
   if (!Array.isArray(files) || !files.length) throw new Error('처리할 PDF 파일이 없습니다.');
@@ -180,20 +236,32 @@ async function apiProcessPdf(files, settings, { onStatus, onProgress, signal } =
     }
 
     _reportProgress(onProgress, 'download', 92, '완성 PDF 내려받는 중');
-    const blob = await resp.blob();
+    const blob = await _readPdfDelivery(resp);
     _reportProgress(onProgress, 'complete', 100, 'PDF 생성 완료');
+    _finishManagedPdfOperation(__managedOperation, 'success', 'PDF 생성이 완료되었습니다.');
     return blob;
   } catch (storageErr) {
     if (storageErr?.name === 'AbortError' || signal?.aborted || controller.signal.aborted) {
+      _finishManagedPdfOperation(__managedOperation, 'canceled', '작업이 취소되었습니다.');
       throw _makeAbortError(signal?.aborted ? '작업이 취소되었습니다.' : '처리 시간이 초과되었습니다. 페이지 수나 파일 크기를 줄여 다시 시도하세요.');
     }
 
+    const directBytes = files.reduce((sum, file) => sum + Number(file?.size || 0), 0);
+    if (directBytes > 20 * 1024 * 1024) {
+      _finishManagedPdfOperation(__managedOperation, 'error', storageErr?.message);
+      throw new Error('대용량 PDF 저장에 실패했습니다. 잠시 후 다시 시도하세요: ' + (storageErr?.message || '임시 업로드 오류'));
+    }
     try {
       const blob = await _processPdfDirect(files, settings, token, controller.signal, onStatus, onProgress);
       _reportProgress(onProgress, 'complete', 100, 'PDF 생성 완료');
+      _finishManagedPdfOperation(__managedOperation, 'success', 'PDF 생성이 완료되었습니다.');
       return blob;
     } catch (directErr) {
-      if (directErr?.name === 'AbortError' || signal?.aborted || controller.signal.aborted) throw _makeAbortError();
+      if (directErr?.name === 'AbortError' || signal?.aborted || controller.signal.aborted) {
+        _finishManagedPdfOperation(__managedOperation, 'canceled', '작업이 취소되었습니다.');
+        throw _makeAbortError();
+      }
+      _finishManagedPdfOperation(__managedOperation, 'error', directErr?.message);
       throw new Error(
         'PDF 저장 실패: ' + (directErr?.message || storageErr?.message || '알 수 없는 오류')
         + (storageErr?.message ? ` / 임시 업로드 오류: ${storageErr.message}` : '')
@@ -210,8 +278,11 @@ async function apiPdfTool(op, fileOrFiles, params = {}) {
   const headers = await _authHeaders();
   const form = new FormData();
   if (Array.isArray(fileOrFiles)) {
+    const totalBytes = fileOrFiles.reduce((sum, file) => sum + Number(file?.size || 0), 0);
+    if (totalBytes > 20 * 1024 * 1024) throw new Error('PDF 도구의 전체 파일 용량은 20MB 이하여야 합니다.');
     fileOrFiles.forEach(f => form.append('files', f));
   } else if (fileOrFiles) {
+    if (Number(fileOrFiles.size || 0) > 20 * 1024 * 1024) throw new Error('PDF 도구는 20MB 이하 파일만 지원합니다.');
     form.append('file', fileOrFiles);
   }
   Object.entries(params).forEach(([k, v]) => form.append(k, v));
@@ -222,7 +293,7 @@ async function apiPdfTool(op, fileOrFiles, params = {}) {
     throw new Error(err.detail || `${op} 실패`);
   }
   const removed = resp.headers.get('X-Removed-Count');
-  const blob = await resp.blob();
+  const blob = await _readPdfDelivery(resp);
   return { blob, meta: { removed: removed ? Number(removed) : null } };
 }
 
@@ -273,7 +344,7 @@ async function _preflightStorageRequest(endpoint, file, { expectBlob = false, on
       const msg = await _readApiError(resp, `서버 오류 (${resp.status})`);
       throw new Error(msg || 'PDF 처리 중 오류가 발생했습니다.');
     }
-    return expectBlob ? resp.blob() : resp.json();
+    return expectBlob ? _readPdfDelivery(resp) : resp.json();
   } finally {
     // Storage-backed endpoints delete the object server-side. Never reuse that path.
     __preflightTemp = null;
@@ -329,7 +400,7 @@ async function _preflightDirectFix(file) {
     const msg = await _readApiError(resp, resp.statusText || 'PDF 보정 중 오류가 발생했습니다.');
     throw new Error(msg || 'PDF 보정 중 오류가 발생했습니다.');
   }
-  return resp.blob();
+  return _readPdfDelivery(resp);
 }
 
 async function apiPreflightFix(file, opts = {}) {

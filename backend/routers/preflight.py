@@ -6,18 +6,21 @@ import uuid
 
 import firebase_admin.storage as fa_storage
 import fitz
-from flask import Blueprint, Response, jsonify, request
+from flask import Blueprint, Response, g, has_request_context, jsonify, request
 
 from models.schemas import PreflightReport
 from services.preflight_reliability import run_reliable_checks
 from services.preflight_repair import fix_pdf_response
 from services.preflight_svc import compute_score
 from utils.auth import require_auth
+from utils.storage_delivery import upload_pdf_result
 
 preflight_bp = Blueprint("preflight", __name__)
 logger = logging.getLogger(__name__)
 
-MAX_PDF_BYTES = 200 * 1024 * 1024
+MAX_DIRECT_PDF_BYTES = 20 * 1024 * 1024
+MAX_STORAGE_PDF_BYTES = 200 * 1024 * 1024
+MAX_DIRECT_RESPONSE_BYTES = 20 * 1024 * 1024
 MAX_COMPRESS_PAGES = 200
 MAX_COMPRESS_PIXELS_TOTAL = 180_000_000
 DEFAULT_STORAGE_BUCKET = os.environ.get(
@@ -26,10 +29,19 @@ DEFAULT_STORAGE_BUCKET = os.environ.get(
 
 
 def _request_id() -> str:
+    if not has_request_context():
+        return uuid.uuid4().hex[:16]
+    cached = getattr(g, "preflight_request_id", None)
+    if isinstance(cached, str) and cached:
+        return cached
     supplied = (request.headers.get("X-Request-ID") or "").strip()
-    if re.fullmatch(r"[A-Za-z0-9._-]{8,64}", supplied):
-        return supplied
-    return uuid.uuid4().hex[:16]
+    request_id = (
+        supplied
+        if re.fullmatch(r"[A-Za-z0-9._-]{8,64}", supplied)
+        else uuid.uuid4().hex[:16]
+    )
+    g.preflight_request_id = request_id
+    return request_id
 
 
 def _error(detail: str, status: int, code: str):
@@ -80,10 +92,10 @@ def _read_pdf_from_request():
             400,
             "PDF_FILE_TYPE_INVALID",
         )
-    data = uploaded.read(MAX_PDF_BYTES + 1)
-    if len(data) > MAX_PDF_BYTES:
+    data = uploaded.read(MAX_DIRECT_PDF_BYTES + 1)
+    if len(data) > MAX_DIRECT_PDF_BYTES:
         return None, None, _error(
-            "파일이 200MB 제한을 초과합니다.",
+            "직접 업로드는 20MB까지 지원합니다. 대용량 업로드로 다시 시도해 주세요.",
             413,
             "PDF_FILE_TOO_LARGE",
         )
@@ -119,14 +131,14 @@ def _read_pdf_from_storage(uid: str):
         blob = _bucket().blob(path)
         blob.reload()
         size = int(blob.size or 0)
-        if size > MAX_PDF_BYTES:
+        if size > MAX_STORAGE_PDF_BYTES:
             return None, None, path, _error(
                 "파일이 200MB 제한을 초과합니다.",
                 413,
                 "PDF_FILE_TOO_LARGE",
             )
         data = blob.download_as_bytes()
-        if len(data) > MAX_PDF_BYTES:
+        if len(data) > MAX_STORAGE_PDF_BYTES:
             return None, None, path, _error(
                 "파일이 200MB 제한을 초과합니다.",
                 413,
@@ -203,6 +215,35 @@ def _run_check_response(filename: str, data: bytes):
             return _internal_error("Preflight check")
     finally:
         document.close()
+
+
+def _deliver_pdf_response(
+    uid: str,
+    response: Response,
+    *,
+    filename: str,
+    source: str,
+    force_storage: bool = False,
+):
+    if response.status_code >= 400 or response.mimetype != "application/pdf":
+        return response
+    data = response.get_data()
+    if not force_storage and len(data) <= MAX_DIRECT_RESPONSE_BYTES:
+        return response
+    try:
+        delivery = upload_pdf_result(
+            _bucket(),
+            uid,
+            filename=filename,
+            data=data,
+            metadata={"source": source},
+        )
+        result = jsonify(delivery)
+        result.headers["Cache-Control"] = "no-store"
+        result.headers["X-Request-ID"] = _request_id()
+        return result
+    except Exception:
+        return _internal_error("Preflight result upload")
 
 
 @preflight_bp.route("/check", methods=["POST"])
@@ -297,6 +338,12 @@ def _compress_pdf_response(filename: str, data: bytes):
                 400,
                 "COMPRESS_OUTPUT_EMPTY",
             )
+        if skipped_pages or len(output) != len(source):
+            return _error(
+                "일부 페이지를 경량화하지 못해 결과 파일을 만들지 않았습니다.",
+                422,
+                "PDF_COMPRESS_INCOMPLETE",
+            )
 
         buffer = io.BytesIO()
         output.save(
@@ -340,7 +387,14 @@ def fix(uid):
     uploaded, data, error = _read_pdf_from_request()
     if error:
         return error
-    return fix_pdf_response(uploaded.filename or "document.pdf", data)
+    filename = uploaded.filename or "document.pdf"
+    response = fix_pdf_response(filename, data)
+    return _deliver_pdf_response(
+        uid,
+        response,
+        filename=_safe_pdf_name(filename, "repaired"),
+        source="preflight-fix-direct",
+    )
 
 
 @preflight_bp.route("/fix-storage", methods=["POST"])
@@ -350,7 +404,15 @@ def fix_storage(uid):
     try:
         if error:
             return error
-        return fix_pdf_response(filename or "document.pdf", data)
+        source_name = filename or "document.pdf"
+        response = fix_pdf_response(source_name, data)
+        return _deliver_pdf_response(
+            uid,
+            response,
+            filename=_safe_pdf_name(source_name, "repaired"),
+            source="preflight-fix",
+            force_storage=True,
+        )
     finally:
         _delete_storage_path(path)
 
@@ -361,7 +423,14 @@ def compress(uid):
     uploaded, data, error = _read_pdf_from_request()
     if error:
         return error
-    return _compress_pdf_response(uploaded.filename or "document.pdf", data)
+    filename = uploaded.filename or "document.pdf"
+    response = _compress_pdf_response(filename, data)
+    return _deliver_pdf_response(
+        uid,
+        response,
+        filename=_safe_pdf_name(filename, "light"),
+        source="preflight-compress-direct",
+    )
 
 
 @preflight_bp.route("/compress-storage", methods=["POST"])
@@ -371,6 +440,14 @@ def compress_storage(uid):
     try:
         if error:
             return error
-        return _compress_pdf_response(filename or "document.pdf", data)
+        source_name = filename or "document.pdf"
+        response = _compress_pdf_response(source_name, data)
+        return _deliver_pdf_response(
+            uid,
+            response,
+            filename=_safe_pdf_name(source_name, "light"),
+            source="preflight-compress",
+            force_storage=True,
+        )
     finally:
         _delete_storage_path(path)
