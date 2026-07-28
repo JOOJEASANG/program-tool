@@ -8,17 +8,16 @@ def source(relative: str) -> str:
     return (ROOT / relative).read_text(encoding="utf-8")
 
 
-def test_navigation_failure_never_substitutes_home_for_tool_page() -> None:
+def test_recovery_worker_never_intercepts_page_requests() -> None:
     worker = source("sw.js")
-    assert "matchNavigationFallback" in worker
-    assert "url.pathname==='/'||url.pathname==='/index.html'" in worker
-    assert "caches.match('/index.html'))||" not in worker
-    assert "/tools/pdf-editor.html" in worker
-    assert "/tools/preflight.html" in worker
-    assert "/tools/perfect-binding-cover.html" in worker
+    assert "self.addEventListener('fetch'" not in worker
+    assert "respondWith" not in worker
+    assert "purgeProgramStudioCaches" in worker
+    assert "CACHE_PREFIX='program-studio-'" in worker
+    assert "self.registration.unregister()" in worker
 
 
-def test_old_cache_is_removed_only_after_new_worker_installs() -> None:
+def test_recovery_worker_purges_cache_before_unregistering() -> None:
     worker = source("sw.js")
     install_block = worker.split("self.addEventListener('install'", 1)[1].split(
         "self.addEventListener('activate'", 1
@@ -26,18 +25,25 @@ def test_old_cache_is_removed_only_after_new_worker_installs() -> None:
     activate_block = worker.split("self.addEventListener('activate'", 1)[1].split(
         "self.addEventListener('message'", 1
     )[0]
-    assert "precacheCore" in install_block
-    assert "clearOldCaches" not in install_block
-    assert "clearOldCaches" in activate_block
-    assert "Promise.all(CORE_ASSETS" in worker
+    disable_block = worker.split("async function disableServiceWorker()", 1)[1].split(
+        "self.addEventListener('install'", 1
+    )[0]
+    assert "self.skipWaiting()" in install_block
+    assert "self.clients.claim()" in activate_block
+    assert "disableServiceWorker" in activate_block
+    assert disable_block.index("purgeProgramStudioCaches") < disable_block.index(
+        "self.registration.unregister()"
+    )
 
 
 def test_optional_boot_helpers_do_not_block_page_for_five_seconds() -> None:
     register = source("js/sw-register.js")
     guard = source("js/app-boot-guard.js")
     assert "Promise.race([helpersPromise,delay(900)])" in register
+    assert "Promise.race([recoveryPromise,delay(1500)])" in register
     assert "setTimeout(reveal,1800)" in register
-    assert "clearLegacyCaches" not in register
+    assert "navigator.serviceWorker.getRegistrations" in register
+    assert "registration.unregister()" in register
     assert "opacity:0" not in guard
     assert "setTimeout(reveal,1800)" in guard
 
