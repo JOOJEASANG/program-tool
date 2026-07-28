@@ -81,10 +81,10 @@ def test_frontend_and_backend_share_account_approval_policy():
     frontend = (ROOT / "js" / "firebase-config.js").read_text(encoding="utf-8")
     backend = (ROOT / "backend" / "utils" / "permissions.py").read_text(encoding="utf-8")
     assert "getIdTokenResult" in frontend
-    assert "claims?.admin===true" in frontend
-    assert "publicPrograms?.[programId]===true" in frontend
-    assert "const assigned=access.status==='approved'" in frontend
-    assert "access.admin||publicAccess||access.status==='approved'" in frontend
+    assert "claims?.admin === true" in frontend
+    assert "publicPrograms?.[programId] === true" in frontend
+    assert "const assigned = access.status === 'approved'" in frontend
+    assert "allowed: access.admin || publicAccess || assigned" in frontend
     assert "this.clearCache(user)" in frontend
     assert "def _has_admin_claim" in backend
     assert "def _is_legacy_admin" in backend
@@ -94,10 +94,10 @@ def test_frontend_and_backend_share_account_approval_policy():
 
 def test_guard_maps_each_protected_page_to_one_program_id():
     frontend = (ROOT / "js" / "firebase-config.js").read_text(encoding="utf-8")
-    assert "return'pdf-editor'" in frontend
-    assert "return'preflight'" in frontend
-    assert "return'design-studio'" in frontend
-    assert "ProgramAccess.guardTool({programId,timeoutMs:8000})" in frontend
+    assert "return 'pdf-editor'" in frontend
+    assert "return 'preflight'" in frontend
+    assert "return 'design-studio'" in frontend
+    assert "ProgramAccess.guardTool({ programId, timeoutMs: 8000 })" in frontend
 
 
 def test_new_user_document_rules_reject_privilege_fields_and_true_programs():
