@@ -1,7 +1,7 @@
 (function(){
   if(window.__programStudioCacheBoot)return;
   window.__programStudioCacheBoot=true;
-  const VERSION='2026.07.29.003';
+  const VERSION='2026.07.29.004';
   const CACHE_PREFIX='program-studio-';
   const RECOVERY_KEY='program-studio-sw-recovery-'+VERSION;
   const currentPath=location.pathname.replace(/\/+$/,'')||'/';

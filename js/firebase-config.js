@@ -1,6 +1,6 @@
 const firebaseConfig = {
   apiKey: "AIzaSyAfbBsZVWfUXyDxP-FrNdnO4r71dnmAd1U",
-  authDomain: "program-tool.web.app",
+  authDomain: "program-tool.firebaseapp.com",
   projectId: "program-tool",
   storageBucket: "program-tool.firebasestorage.app",
   messagingSenderId: "660190959615",
@@ -61,7 +61,7 @@ window.firebaseConfig=firebaseConfig;
   };
 })();
 
-(()=>{if(document.getElementById('programStudioCacheBootstrap'))return;const s=document.createElement('script');s.id='programStudioCacheBootstrap';s.src='/js/sw-register.js?v=2026.07.29.003';s.defer=true;document.head.appendChild(s)})();
+(()=>{if(document.getElementById('programStudioCacheBootstrap'))return;const s=document.createElement('script');s.id='programStudioCacheBootstrap';s.src='/js/sw-register.js?v=2026.07.29.004';s.defer=true;document.head.appendChild(s)})();
 
 window.ProgramAccess={
   _cache:new Map(),

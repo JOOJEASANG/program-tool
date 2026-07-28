@@ -251,6 +251,7 @@
       'auth/operation-not-allowed': 'Google 로그인이 아직 활성화되지 않았습니다. 관리자에게 문의해주세요.',
       'auth/network-request-failed': '네트워크 연결을 확인한 뒤 다시 시도해주세요.',
       'auth/web-storage-unsupported': '브라우저의 쿠키 또는 저장소가 차단되어 로그인할 수 없습니다.',
+      'auth/operation-not-supported-in-this-environment': '현재 브라우저에서는 Google 로그인 창을 열 수 없습니다. 기본 브라우저에서 다시 시도해주세요.',
       'auth/account-exists-with-different-credential': '같은 이메일로 가입된 계정이 있습니다. 기존 로그인 방식을 이용해주세요.',
       'auth/internal-error': 'Google 인증 서버 연결에 실패했습니다. 잠시 후 다시 시도해주세요.',
       'auth/invalid-credential': '이메일 또는 비밀번호를 확인해주세요.',
@@ -266,23 +267,6 @@
       showError(errMap[code] || '로그인 연결에 실패했습니다. 잠시 후 다시 시도해주세요.');
     }
 
-    function prefersGoogleRedirect() {
-      return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
-    }
-
-    // Complete the redirect before any cache/version helper can reload this page.
-    window.__programStudioAuthRedirectPending = true;
-    window.authPersistenceReady
-      .then(() => auth.getRedirectResult())
-      .then(result => {
-        if (result && result.user) return routeAuthenticatedUser(result.user);
-      })
-      .catch(error => reportAuthError(error, 'Google redirect'))
-      .finally(() => {
-        window.__programStudioAuthRedirectPending = false;
-        window.dispatchEvent(new Event('program-studio-auth-redirect-complete'));
-      });
-
     document.getElementById('googleBtn').addEventListener('click', async () => {
       hideError();
       if (!auth || !googleProvider) {
@@ -292,22 +276,9 @@
       setGoogleLoading(true);
       try {
         await window.authPersistenceReady;
-        if (prefersGoogleRedirect()) {
-          await auth.signInWithRedirect(googleProvider);
-        } else {
-          await auth.signInWithPopup(googleProvider);
-        }
+        await auth.signInWithPopup(googleProvider);
       } catch (error) {
-        if (!prefersGoogleRedirect() && error && error.code === 'auth/popup-blocked') {
-          try {
-            await auth.signInWithRedirect(googleProvider);
-            return;
-          } catch (redirectError) {
-            reportAuthError(redirectError, 'Google popup fallback');
-          }
-        } else {
-          reportAuthError(error, 'Google sign-in');
-        }
+        reportAuthError(error, 'Google popup sign-in');
         setGoogleLoading(false);
       }
     });

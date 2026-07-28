@@ -65,15 +65,13 @@ def test_google_login_uses_mobile_redirect_and_actionable_errors() -> None:
     firebase = _read("js/firebase-config.js")
     cache_boot = _read("js/sw-register.js")
     version_helper = _read("js/app-version.js")
-    assert 'authDomain: "program-tool.web.app"' in firebase
+    assert 'authDomain: "program-tool.firebaseapp.com"' in firebase
     assert "firebase.auth.Auth.Persistence.LOCAL" in firebase
     assert "window.authPersistenceReady" in firebase
     assert "auth.signInWithPopup(googleProvider)" in source
-    assert "auth.signInWithRedirect(googleProvider)" in source
-    assert "auth.getRedirectResult()" in source
-    assert "routeAuthenticatedUser(result.user)" in source
-    assert "window.__programStudioAuthRedirectPending = true" in source
-    assert "Android|iPhone|iPad|iPod|Mobile" in source
+    assert "auth.signInWithRedirect" not in source
+    assert "auth.getRedirectResult" not in source
+    assert "routeAuthenticatedUser(user)" in source
     assert "auth/unauthorized-domain" in source
     assert "auth/operation-not-allowed" in source
     assert "auth/network-request-failed" in source
