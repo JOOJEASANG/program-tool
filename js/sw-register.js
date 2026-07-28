@@ -95,16 +95,16 @@
   async function boot(){
     const helpersPromise=helpers();
     const recoveryPromise=recoverServiceWorker();
-    let hadController=false;
     try{
-      const recoveryResult=await Promise.race([recoveryPromise,delay(1500)]);
-      hadController=recoveryResult===true;
-      await Promise.race([helpersPromise,delay(900)]);
+      await Promise.all([
+        Promise.race([helpersPromise,delay(900)]),
+        Promise.race([recoveryPromise,delay(1500)])
+      ]);
       await nextPaint();
     }finally{
       reveal();
+      recoveryPromise.then(scheduleCleanReload).catch(error=>console.warn('Recovery reload scheduling failed',error));
       Promise.allSettled([helpersPromise,recoveryPromise]);
-      scheduleCleanReload(hadController);
     }
   }
   setTimeout(reveal,1800);
