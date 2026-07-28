@@ -1,6 +1,6 @@
 const firebaseConfig = {
   apiKey: "AIzaSyAfbBsZVWfUXyDxP-FrNdnO4r71dnmAd1U",
-  authDomain: "program-tool.firebaseapp.com",
+  authDomain: "program-tool.web.app",
   projectId: "program-tool",
   storageBucket: "program-tool.firebasestorage.app",
   messagingSenderId: "660190959615",
@@ -10,8 +10,14 @@ const firebaseConfig = {
 if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 const auth=typeof firebase.auth==='function'?firebase.auth():null;
 const googleProvider=auth?new firebase.auth.GoogleAuthProvider():null;
+const authPersistenceReady=auth
+  ?auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(error=>{
+    console.warn('Firebase auth persistence could not be initialized.',error);
+  })
+  :Promise.resolve();
 const db=firebase.firestore();
 window.auth=auth;
+window.authPersistenceReady=authPersistenceReady;
 window.db=db;
 window.googleProvider=googleProvider;
 window.firebaseConfig=firebaseConfig;
@@ -55,7 +61,7 @@ window.firebaseConfig=firebaseConfig;
   };
 })();
 
-(()=>{if(document.getElementById('programStudioCacheBootstrap'))return;const s=document.createElement('script');s.id='programStudioCacheBootstrap';s.src='/js/sw-register.js?v=2026.07.29.002';s.defer=true;document.head.appendChild(s)})();
+(()=>{if(document.getElementById('programStudioCacheBootstrap'))return;const s=document.createElement('script');s.id='programStudioCacheBootstrap';s.src='/js/sw-register.js?v=2026.07.29.003';s.defer=true;document.head.appendChild(s)})();
 
 window.ProgramAccess={
   _cache:new Map(),

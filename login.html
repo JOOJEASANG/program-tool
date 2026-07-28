@@ -181,21 +181,25 @@
   <script src="js/firebase-config.js"></script>
   <script>
     let mode = 'login';
+    let authRoutingStarted = false;
 
-    auth.onAuthStateChanged(async user => {
-      if (!user) return;
+    async function routeAuthenticatedUser(user) {
+      if (!user || authRoutingStarted) return;
+      authRoutingStarted = true;
       try {
         const doc = await db.collection('settings').doc('admin').get();
         const emails = (doc.exists ? (doc.data().emails || []) : [])
           .map(e => String(e).trim().toLowerCase());
         const userEmail = String(user.email || '').trim().toLowerCase();
         if (emails.includes(userEmail)) {
-          window.location.href = 'admin.html';
+          window.location.replace('admin.html');
           return;
         }
       } catch (e) {}
-      window.location.href = 'index.html';
-    });
+      window.location.replace('index.html');
+    }
+
+    auth.onAuthStateChanged(user => routeAuthenticatedUser(user));
 
     function switchTab(tab) {
       mode = tab;
@@ -266,8 +270,18 @@
       return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
     }
 
-    // Redirect sign-in failures occur after this page is loaded again.
-    auth.getRedirectResult().catch(error => reportAuthError(error, 'Google redirect'));
+    // Complete the redirect before any cache/version helper can reload this page.
+    window.__programStudioAuthRedirectPending = true;
+    window.authPersistenceReady
+      .then(() => auth.getRedirectResult())
+      .then(result => {
+        if (result && result.user) return routeAuthenticatedUser(result.user);
+      })
+      .catch(error => reportAuthError(error, 'Google redirect'))
+      .finally(() => {
+        window.__programStudioAuthRedirectPending = false;
+        window.dispatchEvent(new Event('program-studio-auth-redirect-complete'));
+      });
 
     document.getElementById('googleBtn').addEventListener('click', async () => {
       hideError();
@@ -277,6 +291,7 @@
       }
       setGoogleLoading(true);
       try {
+        await window.authPersistenceReady;
         if (prefersGoogleRedirect()) {
           await auth.signInWithRedirect(googleProvider);
         } else {
@@ -311,6 +326,7 @@
       }
       setLoading(true);
       try {
+        await window.authPersistenceReady;
         if (mode === 'login') {
           await auth.signInWithEmailAndPassword(email, pw);
         } else {

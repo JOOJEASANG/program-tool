@@ -1,7 +1,7 @@
 (function(){
   if(window.__programStudioCacheBoot)return;
   window.__programStudioCacheBoot=true;
-  const VERSION='2026.07.29.002';
+  const VERSION='2026.07.29.003';
   const CACHE_PREFIX='program-studio-';
   const RECOVERY_KEY='program-studio-sw-recovery-'+VERSION;
   const currentPath=location.pathname.replace(/\/+$/,'')||'/';
@@ -36,6 +36,7 @@
   }
   function isPath(...parts){return parts.some(path=>currentPath===path||currentPath.endsWith(path))}
   function isHome(){return currentPath==='/'||currentPath==='/index.html'}
+  function isAuthPage(){return isPath('/login','/login.html')}
   async function recoverServiceWorker(){
     let hadController=false;
     try{
@@ -62,7 +63,7 @@
   function helpers(){
     const tasks=[];
     tasks.push(load('siteWordingCleanupScript','/js/site-wording-cleanup.js?v='+VERSION));
-    tasks.push(load('appVersionHelperScript','/js/app-version.js?v='+VERSION));
+    if(!isAuthPage())tasks.push(load('appVersionHelperScript','/js/app-version.js?v='+VERSION));
     tasks.push(load('programPathMapperScript','/js/program-paths.js?v='+VERSION));
     if(isHome()){
       tasks.push(load('homeCleanupScript','/js/home-cleanup.js?v='+VERSION));
@@ -85,7 +86,7 @@
     return Promise.all(tasks);
   }
   function scheduleCleanReload(hadController){
-    if(!hadController)return;
+    if(!hadController||isAuthPage())return;
     setTimeout(()=>location.reload(),120);
   }
   async function boot(){

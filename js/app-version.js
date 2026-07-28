@@ -2,6 +2,7 @@
 (function(){
   if(window.__appVersionHelperV3)return;
   window.__appVersionHelperV3=true;
+  if(/^\/login(?:\.html)?\/?$/.test(location.pathname))return;
   const LOCAL_KEY='programStudioVersion';
   const RELOAD_KEY='programStudioVersionReloaded';
   let currentVersion='';

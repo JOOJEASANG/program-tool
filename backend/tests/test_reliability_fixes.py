@@ -44,6 +44,7 @@ def test_google_auth_dependencies_are_allowed_by_csp() -> None:
     assert "https://accounts.google.com" in firebase
     assert "https://*.googleapis.com" in firebase
     assert "https://*.firebaseapp.com" in firebase
+    assert "frame-src 'self'" in firebase
 
 
 def test_clean_urls_revalidate_after_each_deployment() -> None:
@@ -61,14 +62,25 @@ def test_clean_urls_revalidate_after_each_deployment() -> None:
 
 def test_google_login_uses_mobile_redirect_and_actionable_errors() -> None:
     source = _read("login.html")
+    firebase = _read("js/firebase-config.js")
+    cache_boot = _read("js/sw-register.js")
+    version_helper = _read("js/app-version.js")
+    assert 'authDomain: "program-tool.web.app"' in firebase
+    assert "firebase.auth.Auth.Persistence.LOCAL" in firebase
+    assert "window.authPersistenceReady" in firebase
     assert "auth.signInWithPopup(googleProvider)" in source
     assert "auth.signInWithRedirect(googleProvider)" in source
     assert "auth.getRedirectResult()" in source
+    assert "routeAuthenticatedUser(result.user)" in source
+    assert "window.__programStudioAuthRedirectPending = true" in source
     assert "Android|iPhone|iPad|iPod|Mobile" in source
     assert "auth/unauthorized-domain" in source
     assert "auth/operation-not-allowed" in source
     assert "auth/network-request-failed" in source
     assert "console.error(`[auth] ${context} failed`" in source
+    assert "if(!isAuthPage())tasks.push(load('appVersionHelperScript'" in cache_boot
+    assert "if(!hadController||isAuthPage())return" in cache_boot
+    assert r"/^\/login(?:\.html)?\/?$/" in version_helper
 
 
 def test_guide_uses_shared_safe_business_renderer() -> None:
