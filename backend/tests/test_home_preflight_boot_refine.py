@@ -73,7 +73,8 @@ def test_optional_helpers_do_not_block_layout_reveal():
     assert "await nextPaint();" in boot
     assert boot.index("Promise.race([helpersPromise,delay(900)])") < boot.index("reveal();")
     assert "Promise.allSettled([helpersPromise,recoveryPromise])" in boot
-    assert "scheduleCleanReload(hadController);" in boot
+    assert "recoveryPromise.then(scheduleCleanReload)" in boot
+    assert boot.index("reveal();") < boot.index("recoveryPromise.then(scheduleCleanReload)")
     assert "setTimeout(reveal,1800)" in register
 
 
