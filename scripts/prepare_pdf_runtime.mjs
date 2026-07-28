@@ -59,8 +59,10 @@ try {
   }
   writeFileSync(editorPath, html, 'utf8');
 
-  console.log('PDF editor runtime prepared with same-origin vendor assets.');
-  for (const [, destination] of generated) console.log(`${path.relative(root, destination)}: ${statSync(destination).size} bytes`);
+  // Firebase --json writes machine-readable output to stdout. Keep predeploy
+  // diagnostics on stderr so the JSON stream remains valid for CI parsers.
+  console.error('PDF editor runtime prepared with same-origin vendor assets.');
+  for (const [, destination] of generated) console.error(`${path.relative(root, destination)}: ${statSync(destination).size} bytes`);
 } finally {
   rmSync(temp, { recursive: true, force: true });
 }
