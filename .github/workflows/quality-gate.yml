@@ -57,7 +57,7 @@ jobs:
   frontend-static:
     name: Frontend and repository checks
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
 
@@ -69,10 +69,17 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: Prepare local PDF runtime
+        run: |
+          bash scripts/prepare_pdf_vendor.sh
+          python scripts/prepare_pdf_editor_runtime.py
+
       - name: Validate JavaScript files
         run: |
           find js -type f -name '*.js' -print0 | xargs -0 -n1 node --check
           node --check sw.js
+          node --check vendor/pdf.min.js
+          node --check vendor/jspdf.umd.min.js
 
       - name: Validate inline JavaScript
         shell: bash
