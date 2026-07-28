@@ -60,25 +60,41 @@ def test_clean_urls_revalidate_after_each_deployment() -> None:
     } in global_headers
 
 
-def test_google_login_uses_mobile_redirect_and_actionable_errors() -> None:
+def test_google_login_supports_redirect_fallback_without_forced_reload() -> None:
     source = _read("login.html")
     firebase = _read("js/firebase-config.js")
     cache_boot = _read("js/sw-register.js")
     version_helper = _read("js/app-version.js")
+
     assert 'authDomain: "program-tool.firebaseapp.com"' in firebase
     assert "firebase.auth.Auth.Persistence.LOCAL" in firebase
     assert "window.authPersistenceReady" in firebase
+    assert "routeAfterLogin" in firebase
+    assert "DocumentReference?.prototype" not in firebase
+    assert "DocumentSnapshot?.prototype" not in firebase
+
     assert "auth.signInWithPopup(googleProvider)" in source
-    assert "auth.signInWithRedirect" not in source
-    assert "auth.getRedirectResult" not in source
-    assert "routeAuthenticatedUser(user)" in source
-    assert "auth/unauthorized-domain" in source
-    assert "auth/operation-not-allowed" in source
-    assert "auth/network-request-failed" in source
+    assert "auth.signInWithRedirect(googleProvider)" in source
+    assert "auth.getRedirectResult()" in source
+    assert "auth/popup-blocked" in source
+    assert "auth/operation-not-supported-in-this-environment" in source
+    assert "window.ProgramAccess.routeAfterLogin" in source
     assert "console.error(`[auth] ${context} failed`" in source
-    assert "if(!isAuthPage())tasks.push(load('appVersionHelperScript'" in cache_boot
-    assert "if(!hadController||isAuthPage())return" in cache_boot
-    assert r"/^\/login(?:\.html)?\/?$/" in version_helper
+
+    assert "cleanupLegacyRuntime" in cache_boot
+    assert "location.reload()" not in cache_boot
+    assert "location.replace(" not in cache_boot
+    assert "program-studio-version-changed" in version_helper
+    assert "location.replace(" not in version_helper
+    assert "caches.delete" not in version_helper
+
+
+def test_deploy_html_transform_is_checked_by_quality_gate() -> None:
+    workflow = _read(".github/workflows/quality-gate.yml")
+    transform = workflow.index("python scripts/inject_boot_guard.py")
+    js_check = workflow.index("find js -type f -name '*.js'")
+    inline_check = workflow.index("python scripts/check_inline_js.py")
+    assert transform < js_check < inline_check
 
 
 def test_guide_uses_shared_safe_business_renderer() -> None:
