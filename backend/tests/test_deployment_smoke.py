@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import sys
 from pathlib import Path
 
 import pytest
@@ -12,6 +13,7 @@ SCRIPT = ROOT / "scripts" / "smoke_deployment.py"
 SPEC = importlib.util.spec_from_file_location("smoke_deployment", SCRIPT)
 assert SPEC and SPEC.loader
 smoke = importlib.util.module_from_spec(SPEC)
+sys.modules[SPEC.name] = smoke
 SPEC.loader.exec_module(smoke)
 
 
@@ -113,3 +115,16 @@ def test_retry_reports_final_failure_without_sleep(monkeypatch):
         smoke._retry("test", fail, attempts=3, delay_seconds=0)
 
     assert attempts == 3
+
+
+def test_preview_and_production_workflows_run_smoke_checks():
+    preview = (ROOT / ".github/workflows/firebase-preview.yml").read_text(encoding="utf-8")
+    production = (ROOT / ".github/workflows/firebase-deploy.yml").read_text(encoding="utf-8")
+
+    assert "scripts/smoke_deployment.py" in preview
+    assert "--skip-api" in preview
+    assert "steps.deploy.outputs.preview_url" in preview
+    assert "scripts/smoke_deployment.py" in production
+    assert "https://program-tool.web.app" in production
+    assert "--skip-api" not in production
+    assert "cancel-in-progress: false" in production
