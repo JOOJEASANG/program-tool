@@ -70,9 +70,7 @@ jobs:
           python-version: '3.11'
 
       - name: Prepare local PDF runtime
-        run: |
-          bash scripts/prepare_pdf_vendor.sh
-          python scripts/prepare_pdf_editor_runtime.py
+        run: node scripts/prepare_pdf_runtime.mjs
 
       - name: Validate JavaScript files
         run: |
