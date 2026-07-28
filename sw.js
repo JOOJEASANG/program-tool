@@ -1,4 +1,4 @@
-const APP_VERSION='2026.07.29.004';
+const APP_VERSION='2026.07.29.005';
 const CACHE_PREFIX='program-studio-';
 
 async function purgeProgramStudioCaches(){
