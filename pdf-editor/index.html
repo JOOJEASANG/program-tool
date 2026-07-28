@@ -768,37 +768,23 @@ function denyPdfAccess(msg) {
   document.body.appendChild(wrap);
 }
 
-auth.onAuthStateChanged(async user => {
-  if (!user) { location.href = '../login.html'; return; }
-  document.getElementById('navUserName').textContent = user.displayName || user.email.split('@')[0];
-
+async function initializePdfEditorAccess() {
   try {
-    const userEmail = String(user.email || '').trim().toLowerCase();
-    const [adminDoc, programsDoc, permDoc] = await Promise.all([
-      db.collection('settings').doc('admin').get(),
-      db.collection('settings').doc('programs').get(),
-      db.collection('user_permissions').doc(user.uid).get(),
-    ]);
-    const adminEmails = (adminDoc.exists ? (adminDoc.data().emails || []) : [])
-      .map(e => String(e).trim().toLowerCase());
-    const isAdmin = adminEmails.includes(userEmail);
-    const isPublic = !!(programsDoc.exists && programsDoc.data().public?.['pdf-editor']);
-    const isApproved = permDoc.exists && permDoc.data().programs?.['pdf-editor'] === true;
+    const access = await window.ProgramAccessReady;
+    const user = auth.currentUser;
+    if (!access || !user) return;
 
-    if (!isAdmin && !isPublic && !isApproved) {
-      denyPdfAccess('PDF 편집기는 관리자 승인 후 사용할 수 있습니다.');
-      return;
-    }
-  } catch(e) {
-    console.error('Permission check failed', e);
+    document.getElementById('navUserName').textContent =
+      user.displayName || String(user.email || '').split('@')[0];
+    document.getElementById('authLoading').style.display = 'none';
+    document.getElementById('navSessionBtn').style.display = 'flex';
+    document.getElementById('navSessionLoadBtn').style.display = 'flex';
+  } catch (error) {
+    console.error('Shared permission check failed', error);
     denyPdfAccess('권한 확인 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.');
-    return;
   }
-
-  document.getElementById('authLoading').style.display = 'none';
-  document.getElementById('navSessionBtn').style.display = 'flex';
-  document.getElementById('navSessionLoadBtn').style.display = 'flex';
-});
+}
+initializePdfEditorAccess();
 document.getElementById('navLogout').addEventListener('click', () =>
   auth.signOut().then(() => location.href = '../index.html'));
 
