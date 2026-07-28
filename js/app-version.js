@@ -1,46 +1,45 @@
-// Program Studio silent version check and one-time cache refresh.
+// Program Studio version observer. Version changes are recorded without forcing a reload.
 (function(){
-  if(window.__appVersionHelperV3)return;
-  window.__appVersionHelperV3=true;
+  if(window.__appVersionObserverV4)return;
+  window.__appVersionObserverV4=true;
   if(/^\/login(?:\.html)?\/?$/.test(location.pathname))return;
+
   const LOCAL_KEY='programStudioVersion';
-  const RELOAD_KEY='programStudioVersionReloaded';
-  let currentVersion='';
-
-  async function clear(){
-    try{
-      if('serviceWorker'in navigator){
-        const regs=await navigator.serviceWorker.getRegistrations();
-        for(const r of regs){if(r.active)r.active.postMessage({type:'CLEAR_CACHES'})}
-      }
-    }catch(_){}
-    try{
-      if('caches'in window){
-        const keys=await caches.keys();
-        await Promise.all(keys.map(k=>caches.delete(k)));
-      }
-    }catch(_){}
-  }
-
-  async function refresh(){
-    await clear();
-    sessionStorage.setItem(RELOAD_KEY,currentVersion);
-    const url=new URL(location.href);
-    url.searchParams.set('appv',currentVersion);
-    location.replace(url.toString());
-  }
 
   async function check(){
     try{
-      const response=await fetch('/version.json?t='+Date.now(),{cache:'no-store',headers:{'Cache-Control':'no-cache'}});
+      const response=await fetch('/version.json?t='+Date.now(),{
+        cache:'no-store',
+        headers:{'Cache-Control':'no-cache'}
+      });
+      if(!response.ok)return;
       const data=await response.json();
-      currentVersion=String(data.version||'unknown');
-      const previous=localStorage.getItem(LOCAL_KEY);
-      const alreadyReloaded=sessionStorage.getItem(RELOAD_KEY)===currentVersion;
+      const currentVersion=String(data.version||'').trim();
+      if(!currentVersion||currentVersion==='unknown')return;
+
+      const previousVersion=localStorage.getItem(LOCAL_KEY)||'';
       localStorage.setItem(LOCAL_KEY,currentVersion);
-      if(previous&&previous!==currentVersion&&!alreadyReloaded)await refresh();
-    }catch(_){}
+      window.ProgramStudioVersion={
+        version:currentVersion,
+        previousVersion,
+        changed:Boolean(previousVersion&&previousVersion!==currentVersion),
+        label:String(data.label||''),
+        updatedAt:String(data.updatedAt||'')
+      };
+
+      if(previousVersion&&previousVersion!==currentVersion){
+        window.dispatchEvent(new CustomEvent('program-studio-version-changed',{
+          detail:window.ProgramStudioVersion
+        }));
+      }
+    }catch(error){
+      console.warn('Program Studio version check failed',error);
+    }
   }
 
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',check,{once:true});else check();
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded',check,{once:true});
+  }else{
+    check();
+  }
 })();

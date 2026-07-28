@@ -29,7 +29,7 @@ def test_cover_state_bridge_covers_text_and_image_modules():
 def test_cover_helper_loading_is_ordered_and_bridge_is_last():
     source = _read("js/sw-register.js")
 
-    assert "s.async=false" in source
+    assert "script.async=false" in source
     text_index = source.index("coverTextZonesScriptV3")
     preview_index = source.index("coverPreviewWorkspaceScriptV2")
     bridge_index = source.index("coverProjectStateBridgeScriptV1")

@@ -17,8 +17,6 @@
       padding: 24px 16px;
     }
     .wrap { width: 100%; max-width: 420px; }
-
-    /* Brand */
     .brand { text-align: center; margin-bottom: 28px; }
     .brand-icon {
       width: 56px; height: 56px;
@@ -37,16 +35,12 @@
       transition: color 0.15s;
     }
     .back-link:hover { color: rgba(255,255,255,0.9); }
-
-    /* Card */
     .card {
       background: #fff;
       border-radius: 22px;
       padding: 32px 28px;
       box-shadow: 0 32px 64px rgba(0,0,0,0.28);
     }
-
-    /* Tabs */
     .tabs {
       display: grid; grid-template-columns: 1fr 1fr;
       background: #f1f5f9; border-radius: 12px; padding: 4px;
@@ -59,8 +53,6 @@
       cursor: pointer; transition: all 0.18s; font-family: inherit;
     }
     .tab.active { background: #fff; color: #12396d; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-
-    /* Google button */
     .google-btn {
       width: 100%;
       display: flex; align-items: center; justify-content: center; gap: 10px;
@@ -72,15 +64,11 @@
     }
     .google-btn:hover { background: #f8fafc; border-color: #94a3b8; }
     .google-btn:disabled { opacity: 0.65; cursor: wait; }
-
-    /* Divider */
     .divider {
       display: flex; align-items: center; gap: 12px;
       margin-bottom: 18px; color: #94a3b8; font-size: 12px; font-weight: 700;
     }
     .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: #e2e8f0; }
-
-    /* Fields */
     .field { margin-bottom: 13px; }
     .field label { display: block; font-size: 12px; font-weight: 800; color: #374151; margin-bottom: 6px; }
     .field input {
@@ -89,8 +77,6 @@
       color: #0f172a; transition: border-color 0.15s, box-shadow 0.15s;
     }
     .field input:focus { border-color: #12396d; box-shadow: 0 0 0 3px rgba(18,57,109,0.1); }
-
-    /* Submit */
     .submit-btn {
       width: 100%; background: #12396d; color: #fff; border: none;
       border-radius: 12px; padding: 13px;
@@ -100,16 +86,12 @@
     }
     .submit-btn:hover { background: #0f2f5c; }
     .submit-btn:disabled { opacity: 0.6; cursor: not-allowed; }
-
-    /* Error */
     .error-box {
       background: #fef2f2; border: 1px solid #fecaca; color: #dc2626;
       border-radius: 10px; padding: 10px 13px;
       font-size: 13px; margin-top: 13px; display: none;
     }
     .error-box.show { display: block; }
-
-    /* Loading spinner */
     .spinner {
       display: inline-block; width: 16px; height: 16px;
       border: 2px solid rgba(255,255,255,0.4); border-top-color: #fff;
@@ -117,7 +99,6 @@
       margin-right: 6px;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
-
     #confirmPwField { display: none; }
   </style>
 </head>
@@ -165,7 +146,7 @@
         <button type="submit" class="submit-btn" id="submitBtn">로그인</button>
       </form>
 
-      <div class="error-box" id="errorBox"></div>
+      <div class="error-box" id="errorBox" role="alert" aria-live="polite"></div>
     </div>
     <div style="text-align:center;">
       <a class="back-link" href="index.html">
@@ -182,59 +163,36 @@
   <script>
     let mode = 'login';
     let authRoutingStarted = false;
+    let authBootstrapComplete = false;
 
-    async function routeAuthenticatedUser(user) {
-      if (!user || authRoutingStarted) return;
-      authRoutingStarted = true;
-      try {
-        const doc = await db.collection('settings').doc('admin').get();
-        const emails = (doc.exists ? (doc.data().emails || []) : [])
-          .map(e => String(e).trim().toLowerCase());
-        const userEmail = String(user.email || '').trim().toLowerCase();
-        if (emails.includes(userEmail)) {
-          window.location.replace('admin.html');
-          return;
-        }
-      } catch (e) {}
-      window.location.replace('index.html');
-    }
-
-    auth.onAuthStateChanged(user => routeAuthenticatedUser(user));
-
-    function switchTab(tab) {
-      mode = tab;
-      document.getElementById('tabLogin').classList.toggle('active', tab === 'login');
-      document.getElementById('tabSignup').classList.toggle('active', tab === 'signup');
-      document.getElementById('submitBtn').textContent = tab === 'login' ? '로그인' : '회원가입 하기';
-      document.getElementById('confirmPwField').style.display = tab === 'signup' ? 'block' : 'none';
-      hideError();
-    }
-
-    function showError(msg) {
+    function showError(message) {
       const box = document.getElementById('errorBox');
-      box.textContent = msg;
+      box.textContent = message;
       box.classList.add('show');
     }
+
     function hideError() {
       document.getElementById('errorBox').classList.remove('show');
     }
+
     function setLoading(loading) {
-      const btn = document.getElementById('submitBtn');
-      const gBtn = document.getElementById('googleBtn');
-      btn.disabled = loading;
-      gBtn.disabled = loading;
+      const button = document.getElementById('submitBtn');
+      const googleButton = document.getElementById('googleBtn');
+      button.disabled = loading;
+      googleButton.disabled = loading;
       if (loading) {
         const label = mode === 'login' ? '로그인 중...' : '가입 중...';
-        btn.innerHTML = `<span class="spinner"></span>${label}`;
+        button.innerHTML = `<span class="spinner"></span>${label}`;
       } else {
-        btn.textContent = mode === 'login' ? '로그인' : '회원가입 하기';
+        button.textContent = mode === 'login' ? '로그인' : '회원가입 하기';
       }
     }
+
     function setGoogleLoading(loading) {
-      const btn = document.getElementById('googleBtn');
+      const button = document.getElementById('googleBtn');
       const label = document.getElementById('googleBtnLabel');
-      btn.disabled = loading;
-      btn.setAttribute('aria-busy', String(loading));
+      button.disabled = loading;
+      button.setAttribute('aria-busy', String(loading));
       label.textContent = loading ? 'Google 로그인 연결 중...' : 'Google로 계속하기';
     }
 
@@ -245,26 +203,77 @@
       'auth/weak-password': '비밀번호는 6자 이상이어야 합니다.',
       'auth/invalid-email': '올바른 이메일 형식이 아닙니다.',
       'auth/popup-closed-by-user': '로그인 창이 닫혔습니다.',
-      'auth/popup-blocked': '브라우저가 로그인 창을 차단했습니다. 팝업 허용 후 다시 시도해주세요.',
+      'auth/popup-blocked': '브라우저가 로그인 창을 차단했습니다. 리디렉션 방식으로 다시 연결합니다.',
       'auth/cancelled-popup-request': '이미 다른 로그인 창을 여는 중입니다.',
       'auth/unauthorized-domain': '현재 사이트 주소가 Google 로그인 허용 목록에 없습니다. 관리자에게 문의해주세요.',
       'auth/operation-not-allowed': 'Google 로그인이 아직 활성화되지 않았습니다. 관리자에게 문의해주세요.',
       'auth/network-request-failed': '네트워크 연결을 확인한 뒤 다시 시도해주세요.',
       'auth/web-storage-unsupported': '브라우저의 쿠키 또는 저장소가 차단되어 로그인할 수 없습니다.',
-      'auth/operation-not-supported-in-this-environment': '현재 브라우저에서는 Google 로그인 창을 열 수 없습니다. 기본 브라우저에서 다시 시도해주세요.',
+      'auth/operation-not-supported-in-this-environment': '현재 브라우저에서는 팝업 로그인을 지원하지 않아 리디렉션 방식으로 연결합니다.',
       'auth/account-exists-with-different-credential': '같은 이메일로 가입된 계정이 있습니다. 기존 로그인 방식을 이용해주세요.',
       'auth/internal-error': 'Google 인증 서버 연결에 실패했습니다. 잠시 후 다시 시도해주세요.',
       'auth/invalid-credential': '이메일 또는 비밀번호를 확인해주세요.',
-      'auth/too-many-requests': '잠시 후 다시 시도해주세요.',
+      'auth/too-many-requests': '잠시 후 다시 시도해주세요.'
     };
 
     function reportAuthError(error, context) {
       const code = String(error && error.code || '');
       console.error(`[auth] ${context} failed`, {
         code: code || 'unknown',
-        message: String(error && error.message || error || 'Unknown error'),
+        message: String(error && error.message || error || 'Unknown error')
       });
       showError(errMap[code] || '로그인 연결에 실패했습니다. 잠시 후 다시 시도해주세요.');
+    }
+
+    async function routeAuthenticatedUser(user) {
+      if (!user || authRoutingStarted) return;
+      authRoutingStarted = true;
+      try {
+        if (window.ProgramAccess?.routeAfterLogin) {
+          await window.ProgramAccess.routeAfterLogin(user, {
+            adminUrl: 'admin.html',
+            homeUrl: 'index.html'
+          });
+          return;
+        }
+        window.location.replace('index.html');
+      } catch (error) {
+        authRoutingStarted = false;
+        reportAuthError(error, 'post-login routing');
+        setLoading(false);
+        setGoogleLoading(false);
+      }
+    }
+
+    async function completeRedirectSignIn() {
+      if (!auth) {
+        showError('로그인 기능을 초기화하지 못했습니다. 페이지를 새로고침해주세요.');
+        return;
+      }
+      try {
+        await window.authPersistenceReady;
+        const result = await auth.getRedirectResult();
+        if (result && result.user) await routeAuthenticatedUser(result.user);
+      } catch (error) {
+        reportAuthError(error, 'Google redirect result');
+      } finally {
+        authBootstrapComplete = true;
+        if (auth.currentUser) routeAuthenticatedUser(auth.currentUser);
+      }
+    }
+
+    auth.onAuthStateChanged(user => {
+      if (authBootstrapComplete) routeAuthenticatedUser(user);
+    });
+    completeRedirectSignIn();
+
+    function switchTab(tab) {
+      mode = tab;
+      document.getElementById('tabLogin').classList.toggle('active', tab === 'login');
+      document.getElementById('tabSignup').classList.toggle('active', tab === 'signup');
+      document.getElementById('submitBtn').textContent = tab === 'login' ? '로그인' : '회원가입 하기';
+      document.getElementById('confirmPwField').style.display = tab === 'signup' ? 'block' : 'none';
+      hideError();
     }
 
     document.getElementById('googleBtn').addEventListener('click', async () => {
@@ -273,38 +282,53 @@
         showError('로그인 기능을 초기화하지 못했습니다. 페이지를 새로고침해주세요.');
         return;
       }
+
       setGoogleLoading(true);
       try {
         await window.authPersistenceReady;
-        await auth.signInWithPopup(googleProvider);
+        const result = await auth.signInWithPopup(googleProvider);
+        if (result && result.user) await routeAuthenticatedUser(result.user);
       } catch (error) {
-        reportAuthError(error, 'Google popup sign-in');
+        const fallbackCodes = new Set([
+          'auth/popup-blocked',
+          'auth/operation-not-supported-in-this-environment'
+        ]);
+        if (fallbackCodes.has(String(error && error.code || ''))) {
+          try {
+            await auth.signInWithRedirect(googleProvider);
+            return;
+          } catch (redirectError) {
+            reportAuthError(redirectError, 'Google redirect fallback');
+          }
+        } else {
+          reportAuthError(error, 'Google popup sign-in');
+        }
         setGoogleLoading(false);
       }
     });
 
-    document.getElementById('authForm').addEventListener('submit', async e => {
-      e.preventDefault();
+    document.getElementById('authForm').addEventListener('submit', async event => {
+      event.preventDefault();
       hideError();
       const email = document.getElementById('email').value.trim();
-      const pw = document.getElementById('password').value;
+      const password = document.getElementById('password').value;
       if (!email) return showError('이메일을 입력해주세요.');
-      if (!pw) return showError('비밀번호를 입력해주세요.');
+      if (!password) return showError('비밀번호를 입력해주세요.');
       if (mode === 'signup') {
-        const cpw = document.getElementById('confirmPw').value;
-        if (pw !== cpw) return showError('비밀번호가 일치하지 않습니다.');
-        if (pw.length < 6) return showError('비밀번호는 6자 이상이어야 합니다.');
+        const confirmation = document.getElementById('confirmPw').value;
+        if (password !== confirmation) return showError('비밀번호가 일치하지 않습니다.');
+        if (password.length < 6) return showError('비밀번호는 6자 이상이어야 합니다.');
       }
+
       setLoading(true);
       try {
         await window.authPersistenceReady;
-        if (mode === 'login') {
-          await auth.signInWithEmailAndPassword(email, pw);
-        } else {
-          await auth.createUserWithEmailAndPassword(email, pw);
-        }
-      } catch (e) {
-        showError(errMap[e.code] || '오류가 발생했습니다. 다시 시도해주세요.');
+        const result = mode === 'login'
+          ? await auth.signInWithEmailAndPassword(email, password)
+          : await auth.createUserWithEmailAndPassword(email, password);
+        if (result && result.user) await routeAuthenticatedUser(result.user);
+      } catch (error) {
+        showError(errMap[error.code] || '오류가 발생했습니다. 다시 시도해주세요.');
         setLoading(false);
       }
     });

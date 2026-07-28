@@ -72,6 +72,9 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: Build deployment HTML
+        run: python scripts/inject_boot_guard.py
+
       - name: Validate JavaScript files
         run: |
           find js -type f -name '*.js' -print0 | xargs -0 -n1 node --check

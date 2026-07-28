@@ -4,23 +4,32 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 
 
-def test_shared_firebase_layer_normalizes_approved_legacy_program_flags():
+def test_legacy_pdf_editor_bridge_is_scoped_and_avoids_sdk_prototype_mutation():
     source = (ROOT / "js" / "firebase-config.js").read_text(encoding="utf-8")
 
-    assert "DocumentSnapshot?.prototype" in source
-    assert "this.ref?.parent?.id!=='user_permissions'" in source
-    assert "data.status!=='approved'" in source
-    assert "'pdf-editor':true" in source
+    assert "__programStudioLegacyPdfEditorBridge" in source
+    assert "db.collection = function(collectionName)" in source
+    assert "DocumentSnapshot?.prototype" not in source
+    assert "DocumentReference?.prototype" not in source
 
 
-def test_pdf_editor_optional_settings_permission_denial_does_not_abort_access_check():
+def test_approved_account_is_normalized_only_for_legacy_editor_reads():
     source = (ROOT / "js" / "firebase-config.js").read_text(encoding="utf-8")
 
-    assert "DocumentReference?.prototype" in source
-    assert "this.parent?.id==='settings'" in source
-    assert "['admin','programs'].includes(this.id)" in source
+    assert "collectionName !== 'user_permissions'" in source
+    assert "data.status !== 'approved'" in source
+    assert "'pdf-editor': true" in source
+    assert "preflight: true" in source
+    assert "'design-studio': true" in source
+
+
+def test_optional_settings_permission_denial_is_scoped_to_legacy_editor():
+    source = (ROOT / "js" / "firebase-config.js").read_text(encoding="utf-8")
+
+    assert "optionalSettingsRead" in source
+    assert "['admin', 'programs'].includes(documentId)" in source
     assert "permission-denied" in source
-    assert "return{exists:false,id:this.id,ref:this,data:()=>undefined}" in source
+    assert "return { exists: false" in source
 
 
 def test_pdf_editor_legacy_check_can_continue_to_user_permission_document():

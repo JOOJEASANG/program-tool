@@ -36,22 +36,24 @@ def test_recovery_worker_purges_cache_before_unregistering() -> None:
     )
 
 
-def test_optional_boot_helpers_do_not_block_page_for_five_seconds() -> None:
+def test_optional_boot_helpers_reveal_without_reload() -> None:
     register = source("js/sw-register.js")
     guard = source("js/app-boot-guard.js")
-    assert "Promise.race([helpersPromise,delay(900)])" in register
-    assert "Promise.race([recoveryPromise,delay(1500)])" in register
-    assert "setTimeout(reveal,1800)" in register
+    assert "Promise.race([helpersPromise,delay(1000)])" in register
+    assert "setTimeout(reveal,1600)" in register
+    assert "cleanupLegacyRuntime" in register
     assert "navigator.serviceWorker.getRegistrations" in register
     assert "registration.unregister()" in register
+    assert "location.reload()" not in register
+    assert "location.replace(" not in register
     assert "opacity:0" not in guard
     assert "setTimeout(reveal,1800)" in guard
 
 
 def test_access_guard_has_timeout_parallel_reads_and_visibility_watchdog() -> None:
     firebase = source("js/firebase-config.js")
-    assert "Promise.all([adminPromise,profilePromise])" in firebase
-    assert "const timeoutMs=Math.max(3000,Number(options.timeoutMs)||8000)" in firebase
+    assert "Promise.all([adminPromise, profilePromise])" in firebase
+    assert "const timeoutMs = Math.max(3000, Number(options.timeoutMs) || 8000)" in firebase
     assert "status=timeout" in firebase
-    assert "const watchdog=setTimeout" in firebase
-    assert "root.style.visibility=''" in firebase
+    assert "const watchdog = setTimeout" in firebase
+    assert "root.style.visibility = ''" in firebase
