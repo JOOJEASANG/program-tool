@@ -97,7 +97,7 @@ def test_guard_maps_each_protected_page_to_one_program_id():
     assert "return'pdf-editor'" in frontend
     assert "return'preflight'" in frontend
     assert "return'design-studio'" in frontend
-    assert "ProgramAccess.guardTool({programId})" in frontend
+    assert "ProgramAccess.guardTool({programId,timeoutMs:8000})" in frontend
 
 
 def test_new_user_document_rules_reject_privilege_fields_and_true_programs():
