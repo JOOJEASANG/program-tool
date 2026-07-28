@@ -55,7 +55,7 @@ window.firebaseConfig=firebaseConfig;
   };
 })();
 
-(()=>{if(document.getElementById('programStudioCacheBootstrap'))return;const s=document.createElement('script');s.id='programStudioCacheBootstrap';s.src='/js/sw-register.js?v=2026.07.29.001';s.defer=true;document.head.appendChild(s)})();
+(()=>{if(document.getElementById('programStudioCacheBootstrap'))return;const s=document.createElement('script');s.id='programStudioCacheBootstrap';s.src='/js/sw-register.js?v=2026.07.29.002';s.defer=true;document.head.appendChild(s)})();
 
 window.ProgramAccess={
   _cache:new Map(),

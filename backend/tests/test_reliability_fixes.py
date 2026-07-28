@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 
@@ -43,6 +44,19 @@ def test_google_auth_dependencies_are_allowed_by_csp() -> None:
     assert "https://accounts.google.com" in firebase
     assert "https://*.googleapis.com" in firebase
     assert "https://*.firebaseapp.com" in firebase
+
+
+def test_clean_urls_revalidate_after_each_deployment() -> None:
+    config = json.loads(_read("firebase.json"))
+    global_headers = next(
+        entry["headers"]
+        for entry in config["hosting"]["headers"]
+        if entry["source"] == "**"
+    )
+    assert {
+        "key": "Cache-Control",
+        "value": "no-cache, must-revalidate",
+    } in global_headers
 
 
 def test_google_login_uses_mobile_redirect_and_actionable_errors() -> None:
