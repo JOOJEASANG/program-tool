@@ -1,0 +1,82 @@
+name: One-time PDF performance patch
+
+on:
+  push:
+    branches:
+      - agent/pdf-editor-performance
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: agent/pdf-editor-performance
+          fetch-depth: 0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.11'
+      - name: Apply performance patch
+        run: python scripts/patch_pdf_editor_performance.py
+      - name: Add regression tests
+        run: |
+          cat > backend/tests/test_pdf_editor_performance_guards.py <<'PY'
+          from pathlib import Path
+
+          ROOT = Path(__file__).resolve().parents[2]
+
+
+          def source():
+              return (ROOT / 'pdf-editor' / 'index.html').read_text(encoding='utf-8')
+
+
+          def test_preview_generation_is_serialized_and_stale_work_is_canceled():
+              text = source()
+              assert '_previewRunnerPromise' in text
+              assert '_previewRequestId' in text
+              assert 'assertPreviewRequest(requestId)' in text
+              assert "error?.name !== 'AbortError'" in text
+
+
+          def test_large_preview_is_resolution_and_page_capped():
+              text = source()
+              assert 'const PREVIEW_DPI = 56' in text
+              assert 'const MAX_PREVIEW_OUTPUT_PAGES = 60' in text
+              assert 'const THUMB_MAX_EDGE = 360' in text
+              assert 'out.truncated = totalOutputPages > out.length' in text
+
+
+          def test_canvas_clones_and_repeating_watchdog_are_removed():
+              text = source()
+              assert "wrap.appendChild(page.thumbCanvas)" in text
+              assert "wrap.appendChild(canvas)" in text
+              assert "setInterval(async () =>" not in text
+              assert "drawImage(page.thumbCanvas, 0, 0)" not in text
+              assert "c.getContext('2d').drawImage(canvas, 0, 0)" not in text
+
+
+          def test_reset_releases_pdf_and_canvas_memory():
+              text = source()
+              assert 'clearLoadedDocumentMemory()' in text
+              assert 'releaseCanvasList(previewCanvases)' in text
+              assert 'releasePageMemory(parsedPages)' in text
+              assert 'destroyPdfDocuments(loadedPdfDocs)' in text
+              assert 'uploadedFiles = []' in text
+          PY
+      - name: Validate patch syntax
+        run: |
+          python -m py_compile scripts/patch_pdf_editor_performance.py
+          python scripts/inject_boot_guard.py
+          node scripts/check-inline-js.js
+          python -m pytest backend/tests/test_pdf_editor_performance_guards.py -q
+      - name: Commit patch
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add pdf-editor/index.html js/firebase-config.js sw.js version.json backend/tests/test_pdf_editor_performance_guards.py
+          git commit -m "PDF 편집기 메모리와 미리보기 과부하 개선"
+          git push origin HEAD:agent/pdf-editor-performance
