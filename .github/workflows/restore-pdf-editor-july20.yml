@@ -113,3 +113,5 @@ jobs:
           git add tools/pdf-editor.html pdf-editor/index.html js/pdf-editor js/firebase-config.js js/sw-register.js sw.js version.json backend/tests/test_pdf_editor_july20_runtime.py .github/workflows/restore-pdf-editor-july20.yml
           git commit -m "PDF 편집기를 7월 20일 정상 동작본으로 복원"
           git push origin HEAD:agent/restore-pdf-editor-july20
+
+# retrigger: 2026-07-29T11:00:00+09:00
