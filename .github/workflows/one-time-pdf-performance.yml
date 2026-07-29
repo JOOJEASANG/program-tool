@@ -8,6 +8,10 @@ on:
     branches:
       - main
 
+concurrency:
+  group: one-time-pdf-performance
+  cancel-in-progress: true
+
 permissions:
   contents: write
 
@@ -97,4 +101,5 @@ jobs:
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           git add pdf-editor/index.html backend/tests/test_pdf_editor_performance_guards.py
           git commit -m "PDF 편집기 대용량 작업 롤백과 메모리 정리 보강"
+          git pull --rebase origin agent/pdf-editor-performance
           git push origin HEAD:agent/pdf-editor-performance
