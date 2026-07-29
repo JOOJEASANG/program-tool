@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="ko">
-<head><script data-program-studio-boot-guard src="/js/app-boot-guard.js?v=2026.07.29.006"></script>
+<head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>PDF 편집 · Program Tool</title>
@@ -972,11 +972,17 @@ async function loadEditorSession(d, docId) {
 
     // Render all source pages into a lookup map keyed by "fileIdx_pageIdx"
     const renderedMap = new Map();
+    let sessionPageCount = 0;
     for (let fi = 0; fi < files.length; fi++) {
       showStatus(`페이지 렌더링 중... (파일 ${fi + 1}/${files.length})`);
       uploadedFiles.push(files[fi]);
       const buf = await files[fi].arrayBuffer();
       const pdfDoc = await pdfjsLib.getDocument({ data: buf }).promise;
+      sessionPageCount += pdfDoc.numPages;
+      if (sessionPageCount > MAX_IMPORT_PAGES) {
+        try { await pdfDoc.destroy(); } catch (_) {}
+        throw new Error(`저장된 작업이 ${MAX_IMPORT_PAGES}페이지 제한을 초과합니다.`);
+      }
       loadedPdfDocs.push(pdfDoc);
       for (let pi = 1; pi <= pdfDoc.numPages; pi++) {
         const pdfPage = await pdfDoc.getPage(pi);
@@ -1016,7 +1022,11 @@ async function loadEditorSession(d, docId) {
         p.nupOverride = s.nupOverride ?? null;
         p.nupDisabled = !!s.nupDisabled;
         p.groupBreak = !!s.groupBreak;
-        if (p.rotation) p.thumbCanvas = await renderPdfPage(p.pdfPage, 0.9, p.rotation);
+        if (p.rotation) {
+          const previousThumb = p.thumbCanvas;
+          p.thumbCanvas = await renderPdfPage(p.pdfPage, 0.9, p.rotation);
+          releaseCanvas(previousThumb);
+        }
         parsedPages.push(p);
       }
     }
@@ -1342,47 +1352,71 @@ document.addEventListener('drop', async e => {
 async function handleFile(file) {
   const isPdf = file && ((file.type || '').includes('pdf') || /\.pdf$/i.test(file.name || ''));
   if (!isPdf) {
-    showStatus('PDF 파일만 업로드할 수 있습니다.', 'error'); return;
+    showStatus('PDF 파일만 업로드할 수 있습니다.', 'error');
+    return;
   }
-  const isNew = _uploadMode === 'new';
-  const isBreak = _uploadMode === 'break';
-
-  if (isNew) {
-    clearLoadedDocumentMemory();
-    $('previewBtn').disabled = true;
-    $('downloadBtn').disabled = true;
-    $('previewScroll').innerHTML = '<div class="empty-state"><div class="icon">⏳</div><p>페이지 렌더링 중...</p></div>';
-  }
-
   if (file.size > MAX_IMPORT_BYTES) {
     showStatus('PDF 파일은 300MB 이하만 불러올 수 있습니다.', 'error');
     return;
   }
 
+  const isNew = _uploadMode === 'new';
+  const isBreak = _uploadMode === 'break';
+  const previous = isNew ? {
+    parsedPages,
+    uploadedFiles,
+    previewCanvases,
+    fileNupMap,
+    loadedPdfDocs,
+    nextId: _nextId,
+  } : null;
+
+  if (isNew) {
+    _previewRequestId++;
+    _previewPending = false;
+    if (_autoPreviewTimer) {
+      clearTimeout(_autoPreviewTimer);
+      _autoPreviewTimer = null;
+    }
+    parsedPages = [];
+    uploadedFiles = [];
+    previewCanvases = [];
+    fileNupMap = {};
+    loadedPdfDocs = [];
+    _nextId = 1;
+    $('previewBtn').disabled = true;
+    $('downloadBtn').disabled = true;
+    $('previewScroll').innerHTML = '<div class="empty-state"><div class="icon">⏳</div><p>페이지 렌더링 중...</p></div>';
+  }
+
+  const startPageCount = parsedPages.length;
+  const startFileCount = uploadedFiles.length;
+  const startDocCount = loadedPdfDocs.length;
   const fileIdx = uploadedFiles.length;
-  uploadedFiles.push(file);
+  let openedPdfDoc = null;
 
   showStatus(`"${file.name}" 로딩 중...`);
   const shortName = file.name.length > 28 ? file.name.slice(0, 26) + '…' : file.name;
 
   try {
     const buf = await file.arrayBuffer();
-    const pdfDoc = await pdfjsLib.getDocument({ data: buf }).promise;
-      loadedPdfDocs.push(pdfDoc);
-    const total = pdfDoc.numPages;
-    if (total > MAX_IMPORT_PAGES) {
-      throw new Error(`페이지가 너무 많습니다. 한 번에 최대 ${MAX_IMPORT_PAGES}페이지까지 불러올 수 있습니다.`);
+    openedPdfDoc = await pdfjsLib.getDocument({ data: buf }).promise;
+    const total = openedPdfDoc.numPages;
+    if (parsedPages.length + total > MAX_IMPORT_PAGES) {
+      throw new Error(`한 작업에서 최대 ${MAX_IMPORT_PAGES}페이지까지 불러올 수 있습니다. 현재 ${parsedPages.length}페이지입니다.`);
     }
     if (total > 200) {
       showStatus(`대용량 PDF ${total}페이지를 불러오는 중입니다. 미리보기는 최대 ${MAX_PREVIEW_OUTPUT_PAGES}출력 페이지만 표시됩니다.`);
     }
 
+    loadedPdfDocs.push(openedPdfDoc);
+    uploadedFiles.push(file);
+
     for (let i = 1; i <= total; i++) {
       showStatus(`"${shortName}" 렌더링 중... (${i} / ${total})`);
-      const pdfPage = await pdfDoc.getPage(i);
+      const pdfPage = await openedPdfDoc.getPage(i);
       const thumbCanvas = await renderPdfPage(pdfPage, 0.9, 0);
 
-      // Auto-detect paper size from the first page of a brand-new import
       if (isNew && i === 1 && $('autoDetectSize')?.checked) {
         const vp = pdfPage.getViewport({ scale: 1 });
         const wMm = Math.round(vp.width * 25.4 / 72);
@@ -1407,26 +1441,47 @@ async function handleFile(file) {
         sourceFile: shortName, groupBreak, rotation: 0, pageType: 'pdf',
         file_index: fileIdx, page_index: i - 1,
       });
-      await new Promise(r => setTimeout(r, 0));
+      await yieldToBrowser();
+    }
+
+    if (previous) {
+      releaseCanvasList(previous.previewCanvases);
+      releasePageMemory(previous.parsedPages);
+      destroyPdfDocuments(previous.loadedPdfDocs);
     }
 
     renderThumbs();
     $('previewBtn').disabled = false;
     showStatus(`"${shortName}" ${total}페이지 로드 완료`, 'success');
-    setTimeout(hideStatus, 2500);
-    // Switch mode to 연속 after first upload
     if (isNew) {
       document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active','break-active'));
-      document.querySelector('.mode-btn[data-mode="cont"]').classList.add('active');
+      document.querySelector('.mode-btn[data-mode="cont"]')?.classList.add('active');
       _uploadMode = 'cont';
     }
-    // Build the preview directly in this call stack — no timer dependency
-    // (mobile/background tabs can throttle setTimeout/setInterval). The
-    // watchdog below is only a backstop if this somehow doesn't run.
     try { await triggerPreview(); } catch (_) {}
-  } catch(e) {
-    console.error(e);
-    showStatus('파일 로딩 실패: ' + e.message, 'error');
+  } catch (error) {
+    console.error(error);
+    const addedPages = parsedPages.splice(startPageCount);
+    releasePageMemory(addedPages);
+    uploadedFiles.splice(startFileCount);
+    const addedDocuments = loadedPdfDocs.splice(startDocCount);
+    destroyPdfDocuments(addedDocuments);
+    if (openedPdfDoc && !addedDocuments.includes(openedPdfDoc)) destroyPdfDocuments([openedPdfDoc]);
+
+    if (previous) {
+      releaseCanvasList(previewCanvases);
+      parsedPages = previous.parsedPages;
+      uploadedFiles = previous.uploadedFiles;
+      previewCanvases = previous.previewCanvases;
+      fileNupMap = previous.fileNupMap;
+      loadedPdfDocs = previous.loadedPdfDocs;
+      _nextId = previous.nextId;
+      renderThumbs();
+      if (previewCanvases.length) displayPreview(previewCanvases, true);
+      $('previewBtn').disabled = !parsedPages.length;
+      $('downloadBtn').disabled = !previewCanvases.length;
+    }
+    showStatus('파일 로딩 실패: ' + error.message, 'error');
   }
 }
 
@@ -1636,7 +1691,9 @@ $('dividerConfirmBtn').addEventListener('click', () => {
   const content = getDividerContent();
   if (_editingDividerPage) {
     _editingDividerPage.dividerContent = { ...content };
+    const previousThumb = _editingDividerPage.thumbCanvas;
     _editingDividerPage.thumbCanvas = renderDividerCanvas(content, 200, 283);
+    releaseCanvas(previousThumb);
     renderThumbs();
     if (previewCanvases.length > 0) triggerPreview();
   } else {
@@ -2766,7 +2823,10 @@ $('zoomResetBtn').addEventListener('click', () => {
   async function rotateAndRefresh(page, deg) {
     page.rotation = ((page.rotation || 0) + deg + 360) % 360;
     if (page.pdfPage) {
+      const previousThumb = page.thumbCanvas;
       page.thumbCanvas = await renderPdfPage(page.pdfPage, 0.9, page.rotation);
+      releaseCanvas(previousThumb);
+      releaseCanvas(page.hiCanvas);
       page.hiCanvas = null;
     }
     renderThumbs();
@@ -2779,7 +2839,10 @@ $('zoomResetBtn').addEventListener('click', () => {
     showStatus(`전체 ${targets.length}페이지 회전 중...`);
     for (const p of targets) {
       p.rotation = ((p.rotation || 0) + deg + 360) % 360;
+      const previousThumb = p.thumbCanvas;
       p.thumbCanvas = await renderPdfPage(p.pdfPage, 0.9, p.rotation);
+      releaseCanvas(previousThumb);
+      releaseCanvas(p.hiCanvas);
       p.hiCanvas = null;
     }
     hideStatus();
@@ -2812,7 +2875,8 @@ $('zoomResetBtn').addEventListener('click', () => {
     }));
     menu.appendChild(sep());
     menu.appendChild(item('🗑', '페이지 삭제', 'danger', () => {
-      parsedPages.splice(idx, 1);
+      const [removed] = parsedPages.splice(idx, 1);
+      releasePageMemory([removed]);
       renderThumbs(); schedulePreview(300);
     }));
 

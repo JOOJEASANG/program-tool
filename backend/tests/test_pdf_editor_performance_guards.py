@@ -32,10 +32,25 @@ def test_canvas_clones_and_repeating_watchdog_are_removed():
     assert "c.getContext('2d').drawImage(canvas, 0, 0)" not in text
 
 
-def test_reset_releases_pdf_and_canvas_memory():
+def test_reset_and_rotation_release_pdf_and_canvas_memory():
     text = source()
     assert 'clearLoadedDocumentMemory()' in text
     assert 'releaseCanvasList(previewCanvases)' in text
     assert 'releasePageMemory(parsedPages)' in text
     assert 'destroyPdfDocuments(loadedPdfDocs)' in text
-    assert 'uploadedFiles = []' in text
+    assert 'releaseCanvas(previousThumb)' in text
+
+
+def test_import_failure_rolls_back_without_erasing_current_work():
+    text = source()
+    assert 'const previous = isNew ? {' in text
+    assert 'const addedPages = parsedPages.splice(startPageCount)' in text
+    assert 'parsedPages = previous.parsedPages' in text
+    assert 'previewCanvases = previous.previewCanvases' in text
+    assert 'parsedPages.length + total > MAX_IMPORT_PAGES' in text
+
+
+def test_deployment_boot_guard_is_not_committed_to_source_html():
+    text = source()
+    assert '<head><script data-program-studio-boot-guard' not in text
+    assert text.startswith('<!doctype html>\n<html lang="ko">\n<head>\n')
