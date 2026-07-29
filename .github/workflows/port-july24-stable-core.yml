@@ -1,0 +1,227 @@
+name: Port July 24 stable PDF core
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  port:
+    if: github.actor != 'github-actions[bot]' && github.head_ref == 'agent/port-july24-stable-core'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: agent/port-july24-stable-core
+          fetch-depth: 0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.11'
+      - name: Install test runner
+        run: python -m pip install pytest
+      - name: Port the verified July 24 core modules
+        run: |
+          git checkout 44e88dfd8b7da63dea6dff114a96942727b815c9 -- \
+            js/pdf-editor/upload-fix.js \
+            js/pdf-editor/live-preview.js \
+            js/pdf-editor/layout-export.js \
+            js/pdf-editor/page-count-hint.js \
+            js/pdf-editor/nup-helper.js \
+            js/pdf-editor/divider-helper.js
+      - name: Keep the ten-module stable runtime
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          loader_path = Path('js/pdf-editor/loader.js')
+          loader = loader_path.read_text(encoding='utf-8')
+          replacements = {
+              '__pdfEditorModuleLoaderV13': '__pdfEditorModuleLoaderV14',
+              'upload-fix.js?v=20260618-3': 'upload-fix.js?v=20260724-5',
+              'live-preview.js?v=20260618-2': 'live-preview.js?v=20260724-4',
+              'layout-export.js?v=20260712-2': 'layout-export.js?v=20260724-5',
+              'page-count-hint.js?v=20260518-1': 'page-count-hint.js?v=20260724-2',
+              'nup-helper.js?v=20260518-5': 'nup-helper.js?v=20260724-2',
+              'divider-helper.js?v=20260518-2': 'divider-helper.js?v=20260724-2-safe1',
+          }
+          for old, new in replacements.items():
+              if old not in loader:
+                  raise SystemExit(f'{old} not found in loader')
+              loader = loader.replace(old, new)
+          if loader.count("'/js/pdf-editor/") != 10:
+              raise SystemExit('Stable loader must keep exactly 10 modules')
+          forbidden = (
+              'preview-controller.js', 'runtime-integrity.js', 'ux-repair.js',
+              'dock-width-align.js', 'thumbnail-integrity.js',
+          )
+          for name in forbidden:
+              if name in loader:
+                  raise SystemExit(f'Forbidden wrapper re-enabled: {name}')
+          loader_path.write_text(loader, encoding='utf-8')
+
+          divider_path = Path('js/pdf-editor/divider-helper.js')
+          divider = divider_path.read_text(encoding='utf-8')
+          old_tail = """  function boot() { installDefaultsUi(); wrapFunctions(); bindDrag(); }
+  document.addEventListener('DOMContentLoaded', boot);
+  setInterval(boot, 700);
+})();
+"""
+          new_tail = """  function boot(attempt = 0) {
+    installDefaultsUi();
+    wrapFunctions();
+    bindDrag();
+    const ready = !!$('dividerModal') && !!$('dividerPrevCanvas');
+    if (!ready && attempt < 10) setTimeout(() => boot(attempt + 1), 160 + attempt * 60);
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => boot(0), { once: true });
+  } else {
+    boot(0);
+  }
+})();
+"""
+          if old_tail not in divider:
+              raise SystemExit('Expected July 24 divider boot block not found')
+          divider = divider.replace(old_tail, new_tail)
+          divider_path.write_text(divider, encoding='utf-8')
+          PY
+      - name: Update stable runtime regression guards
+        run: |
+          cat > backend/tests/test_pdf_editor_july20_runtime.py <<'PY'
+          from pathlib import Path
+
+          ROOT = Path(__file__).resolve().parents[2]
+          LOADER = ROOT / "js" / "pdf-editor" / "loader.js"
+          TOOL = ROOT / "tools" / "pdf-editor.html"
+          ROUTE = ROOT / "pdf-editor" / "index.html"
+          JULY20_BASELINE_COMMIT = "7a6fa3d1bbad1dcfa8e2acd62cf12057532d5b66"
+          JULY24_CORE_COMMIT = "44e88dfd8b7da63dea6dff114a96942727b815c9"
+
+          STABLE_MODULES = [
+              "/js/pdf-editor/font-render-fix.js",
+              "/js/pdf-editor/upload-fix.js",
+              "/js/pdf-editor/live-preview.js",
+              "/js/pdf-editor/layout-export.js",
+              "/js/pdf-editor/page-count-hint.js",
+              "/js/pdf-editor/nup-helper.js",
+              "/js/pdf-editor/preview-row-default.js",
+              "/js/pdf-editor/divider-helper.js",
+              "/js/pdf-editor/storage-cleanup.js",
+              "/js/pdf-editor/history-policy.js",
+          ]
+
+          def test_loader_keeps_the_ten_module_stable_runtime():
+              text = LOADER.read_text(encoding="utf-8")
+              assert JULY20_BASELINE_COMMIT and JULY24_CORE_COMMIT
+              assert "__pdfEditorModuleLoaderV14" in text
+              for module in STABLE_MODULES:
+                  assert module in text
+              assert text.count("'/js/pdf-editor/") == len(STABLE_MODULES)
+              for forbidden in (
+                  "preview-controller.js", "runtime-integrity.js", "ux-repair.js",
+                  "dock-width-align.js", "thumbnail-integrity.js",
+              ):
+                  assert forbidden not in text
+
+          def test_both_public_entrypoints_use_the_same_restored_editor():
+              assert TOOL.read_bytes() == ROUTE.read_bytes()
+          PY
+
+          cat > backend/tests/test_pdf_editor_july24_core_port.py <<'PY'
+          from pathlib import Path
+
+          ROOT = Path(__file__).resolve().parents[2]
+          PDF_JS = ROOT / "js" / "pdf-editor"
+
+          def text(name: str) -> str:
+              return (PDF_JS / name).read_text(encoding="utf-8")
+
+          def test_upload_core_uses_july24_transactional_large_pdf_handling():
+              source = text("upload-fix.js")
+              for marker in (
+                  "__pdfEditorUploadFixV6", "OPTIMIZED_PAGE_LIMIT = 120",
+                  "aggregateStats", "syncAggregateMode", "previous.parsedPages",
+                  "restorePaperState", "applyDetectedPaperSize",
+                  "EXTREME_PREVIEW_OUTPUT_LIMIT = 24",
+              ):
+                  assert marker in source
+              assert "window.eval(" not in source
+              assert "setInterval(" not in source
+
+          def test_core_preview_helpers_use_bounded_bootstraps():
+              for name in (
+                  "live-preview.js", "layout-export.js", "page-count-hint.js",
+                  "nup-helper.js", "divider-helper.js",
+              ):
+                  assert "setInterval(" not in text(name)
+
+          def test_layout_export_only_patches_exact_same_origin_pdf_routes():
+              source = text("layout-export.js")
+              assert "url.origin !== location.origin" in source
+              assert "path === '/api/pdf/process'" in source
+              assert "path === '/api/pdf/process-storage'" in source
+              assert "includes('/api/pdf/process')" not in source
+
+          def test_live_preview_remains_compatible_without_preview_controller():
+              source = text("live-preview.js")
+              assert "if (window.PdfPreviewController)" in source
+              assert "typeof schedulePreview === 'function'" in source
+              assert "typeof triggerPreview === 'function'" in source
+
+          def test_divider_keeps_magnetic_alignment_without_background_polling():
+              source = text("divider-helper.js")
+              assert "dividerGuideX" in source
+              assert "setPartX" in source
+              assert "attempt < 10" in source
+          PY
+      - name: Bump deployment cache version
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          old = '2026.07.29.008'
+          new = '2026.07.29.009'
+          for name in ('js/firebase-config.js', 'js/sw-register.js', 'sw.js'):
+              path = Path(name)
+              source = path.read_text(encoding='utf-8')
+              if old not in source:
+                  raise SystemExit(f'{old} not found in {name}')
+              path.write_text(source.replace(old, new), encoding='utf-8')
+          Path('version.json').write_text(json.dumps({
+              'version': new,
+              'label': 'PDF 편집기 7월 24일 안정 코어 선별 반영',
+              'updatedAt': '2026-07-29T12:20:00+09:00',
+          }, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+          PY
+      - name: Remove one-time workflow and validate
+        run: |
+          rm .github/workflows/port-july24-stable-core.yml
+          python scripts/check_inline_js.py
+          python scripts/check_version_sync.py
+          python scripts/validate_static_references.py
+          python -m pytest \
+            backend/tests/test_pdf_editor_july20_runtime.py \
+            backend/tests/test_pdf_editor_july24_core_port.py \
+            backend/tests/test_pdf_editor_approved_access_compat.py -q
+      - name: Commit selected stable core
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add \
+            js/pdf-editor/upload-fix.js \
+            js/pdf-editor/live-preview.js \
+            js/pdf-editor/layout-export.js \
+            js/pdf-editor/page-count-hint.js \
+            js/pdf-editor/nup-helper.js \
+            js/pdf-editor/divider-helper.js \
+            js/pdf-editor/loader.js \
+            js/firebase-config.js js/sw-register.js sw.js version.json \
+            backend/tests/test_pdf_editor_july20_runtime.py \
+            backend/tests/test_pdf_editor_july24_core_port.py \
+            .github/workflows/port-july24-stable-core.yml
+          git commit -m "7월 24일 안정 PDF 코어를 선별 반영"
+          git push origin HEAD:agent/port-july24-stable-core
