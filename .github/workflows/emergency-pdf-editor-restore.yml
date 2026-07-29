@@ -1,0 +1,67 @@
+name: Emergency PDF editor restore
+
+on:
+  push:
+    branches:
+      - agent/emergency-restore-pdf-editor
+
+permissions:
+  contents: write
+
+jobs:
+  restore:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: agent/emergency-restore-pdf-editor
+          fetch-depth: 0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.11'
+      - name: Restore last known working PDF editor
+        run: |
+          git checkout e3b09fd44881058ad6df7fe1ea798e4fadfc8394 -- \
+            pdf-editor/index.html \
+            js/firebase-config.js \
+            js/sw-register.js \
+            sw.js \
+            version.json
+          git rm -f backend/tests/test_pdf_editor_performance_guards.py
+          python - <<'PY'
+          import json
+          from datetime import datetime
+          from pathlib import Path
+          from zoneinfo import ZoneInfo
+
+          old = '2026.07.29.005'
+          new = '2026.07.29.007'
+          for name in ('js/firebase-config.js', 'js/sw-register.js', 'sw.js'):
+              path = Path(name)
+              text = path.read_text(encoding='utf-8')
+              if old not in text:
+                  raise SystemExit(f'{name}: expected version not found')
+              path.write_text(text.replace(old, new), encoding='utf-8')
+
+          Path('version.json').write_text(
+              json.dumps({
+                  'version': new,
+                  'label': 'PDF 편집기 긴급 정상화',
+                  'updatedAt': datetime.now(ZoneInfo('Asia/Seoul')).isoformat(timespec='seconds'),
+              }, ensure_ascii=False, indent=2) + '\n',
+              encoding='utf-8',
+          )
+          PY
+      - name: Validate restored source
+        run: |
+          python scripts/check_inline_js.py
+          python scripts/check_version_sync.py
+          python scripts/validate_static_references.py
+      - name: Commit emergency restore
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add pdf-editor/index.html js/firebase-config.js js/sw-register.js sw.js version.json
+          git commit -m "PDF 편집기 정상 동작 버전으로 긴급 복구"
+          git push origin HEAD:agent/emergency-restore-pdf-editor
