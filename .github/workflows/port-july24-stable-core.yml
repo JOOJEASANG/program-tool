@@ -1,6 +1,9 @@
 name: Port July 24 stable PDF core
 
 on:
+  push:
+    branches:
+      - agent/port-july24-stable-core
   pull_request:
     branches:
       - main
@@ -10,7 +13,7 @@ permissions:
 
 jobs:
   port:
-    if: github.actor != 'github-actions[bot]' && github.head_ref == 'agent/port-july24-stable-core'
+    if: github.actor != 'github-actions[bot]' && (github.event_name == 'push' || github.head_ref == 'agent/port-july24-stable-core')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
@@ -225,5 +228,3 @@ jobs:
             .github/workflows/port-july24-stable-core.yml
           git commit -m "7월 24일 안정 PDF 코어를 선별 반영"
           git push origin HEAD:agent/port-july24-stable-core
-
-# retrigger after PR creation
