@@ -225,3 +225,5 @@ jobs:
             .github/workflows/port-july24-stable-core.yml
           git commit -m "7월 24일 안정 PDF 코어를 선별 반영"
           git push origin HEAD:agent/port-july24-stable-core
+
+# retrigger after PR creation
