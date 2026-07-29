@@ -1,2 +1,2831 @@
 <!doctype html>
-<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="refresh" content="0;url=../pdf-editor/"><title>PDF 편집기 이동</title><script>location.replace('../pdf-editor/'+location.search+location.hash);</script></head><body><p>새 프로그램 주소로 이동합니다. <a href="../pdf-editor/">PDF 편집기 열기</a></p></body></html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PDF 문서 편집기 · Program Tool</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+  <style>
+    :root {
+      --primary: #12396d; --accent: #1d9bb2; --bg: #f4f6f8;
+      --panel: #fff; --line: #e5e7eb; --muted: #6b7280; --nav-h: 52px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body { font-family: Pretendard, "Noto Sans KR", Arial, sans-serif; background: var(--bg); color: #111827; padding-top: var(--nav-h); }
+
+    /* Nav */
+    .top-nav { position: fixed; top: 0; left: 0; right: 0; z-index: 500; height: var(--nav-h); background: var(--primary); display: flex; align-items: center; padding: 0 16px; gap: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.2); }
+    .nav-back { display: flex; align-items: center; gap: 6px; color: rgba(255,255,255,0.85); font-size: 13px; font-weight: 700; text-decoration: none; padding: 7px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); transition: background 0.15s; }
+    .nav-back:hover { background: rgba(255,255,255,0.15); }
+    .nav-title { flex: 1; text-align: center; font-size: 15px; font-weight: 800; color: #fff; }
+    .nav-user { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+    .nav-user-name { font-size: 12px; color: rgba(255,255,255,0.75); font-weight: 600; max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .nav-logout { display: flex; align-items: center; gap: 5px; color: rgba(255,255,255,0.75); font-size: 12px; font-weight: 700; background: rgba(255,255,255,0.12); border: none; border-radius: 7px; padding: 6px 10px; cursor: pointer; font-family: inherit; }
+    .nav-logout:hover { background: rgba(255,255,255,0.22); color: #fff; }
+
+    /* Layout */
+    body { overflow: hidden; }
+    .app { display: grid; grid-template-columns: 360px minmax(0,1fr); height: calc(100vh - var(--nav-h)); }
+    aside { background: var(--panel); border-right: 1px solid var(--line); padding: 16px; overflow-y: auto; height: 100%; position: sticky; top: 0; }
+    main { padding: 14px; display: flex; flex-direction: column; gap: 10px; overflow: hidden; height: 100%; }
+
+    h1 { font-size: 16px; font-weight: 900; margin-bottom: 3px; letter-spacing: -0.4px; }
+    .sub { color: var(--muted); font-size: 11px; line-height: 1.5; margin-bottom: 12px; }
+
+    /* Collapsible sections */
+    .sec { border-top: 1px solid #edf0f3; }
+    .sec-head { display: flex; align-items: center; gap: 6px; padding: 10px 0 8px; cursor: pointer; user-select: none; }
+    .sec-head .sec-title { font-size: 11px; font-weight: 800; color: #374151; text-transform: uppercase; letter-spacing: 0.4px; flex: 1; }
+    .sec-head .sec-arrow { font-size: 9px; color: #9ca3af; transition: transform 0.2s; }
+    .sec-head.collapsed .sec-arrow { transform: rotate(-90deg); }
+    .sec-head .sec-badge { font-size: 9px; font-weight: 800; padding: 1px 5px; border-radius: 4px; background: #eff6ff; color: #2563eb; }
+    .sec-body { padding-bottom: 12px; }
+    .sec-body.hidden { display: none; }
+
+    /* Form elements */
+    label { display: block; font-size: 11px; font-weight: 800; color: #374151; margin-bottom: 4px; }
+    select, input[type="number"], input[type="text"] { width: 100%; border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px; font-size: 13px; font-family: inherit; outline: none; background: #fff; }
+    input[type="color"] { width: 100%; border: 1px solid var(--line); border-radius: 8px; padding: 3px; height: 36px; cursor: pointer; }
+    select:focus, input:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,.08); }
+    .field { margin-bottom: 9px; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; }
+    .checkline { display: flex; align-items: center; gap: 7px; font-size: 12px; color: #374151; font-weight: 700; cursor: pointer; margin-bottom: 6px; }
+    .checkline input[type="checkbox"] { width: auto; }
+    .range-row { display: flex; align-items: center; gap: 6px; }
+    .range-row input[type="range"] { flex: 1; }
+    .range-val { font-size: 11px; font-weight: 800; color: var(--primary); min-width: 32px; text-align: right; }
+
+    /* Upload */
+    .upload-zone { border: 2px dashed #93c5fd; border-radius: 12px; padding: 18px 12px; text-align: center; cursor: pointer; transition: all 0.2s; background: #f0f7ff; }
+    .upload-zone:hover, .upload-zone.drag-over { border-color: var(--primary); background: #dbeafe; }
+    .upload-zone .upload-icon { font-size: 24px; margin-bottom: 4px; }
+    .upload-zone .upload-text { font-size: 13px; font-weight: 800; color: var(--primary); margin-bottom: 2px; }
+    .upload-zone .upload-sub { font-size: 10px; color: var(--muted); }
+    .upload-zone.compact { padding: 10px 12px; }
+    .upload-zone.compact .upload-icon { font-size: 16px; margin-bottom: 2px; }
+    .upload-zone.compact .upload-text { font-size: 11px; }
+    #fileInput { display: none; }
+
+    /* Upload mode buttons */
+    .mode-row { display: flex; gap: 5px; margin-top: 7px; }
+    .mode-btn { flex: 1; border: 1.5px solid var(--line); border-radius: 8px; padding: 6px 3px; font-size: 10px; font-weight: 800; color: #6b7280; background: #fff; cursor: pointer; font-family: inherit; transition: all 0.15s; text-align: center; line-height: 1.3; }
+    .mode-btn.active { border-color: var(--primary); color: var(--primary); background: #eff6ff; }
+    .mode-btn.break-active { border-color: #7c3aed; color: #7c3aed; background: #f5f3ff; }
+    .mode-btn:hover:not(.active):not(.break-active) { border-color: #94a3b8; color: #374151; }
+
+    /* N-up grid */
+    .nup-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
+    .nup-btn { border: 2px solid var(--line); border-radius: 9px; padding: 6px 3px; cursor: pointer; font-family: inherit; font-size: 10px; font-weight: 800; color: #374151; background: #fff; transition: all 0.15s; text-align: center; }
+    .nup-btn .nup-label { display: block; margin-bottom: 1px; font-size: 11px; }
+    .nup-btn .nup-badge { font-size: 9px; color: var(--muted); display: block; }
+    .nup-btn .nup-rot { font-size: 8px; color: #92400e; background: #fef3c7; border-radius: 3px; padding: 0 3px; display: inline-block; margin-top: 1px; }
+    .nup-btn.active { border-color: var(--primary); background: #eff6ff; color: var(--primary); }
+    .nup-btn.active .nup-badge { color: #3b82f6; }
+    .nup-btn:hover:not(.active) { border-color: #93c5fd; background: #f0f7ff; }
+
+    /* Orient buttons */
+    .orient-row { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+    .orient-btn { border: 2px solid var(--line); border-radius: 9px; padding: 8px 6px; cursor: pointer; font-family: inherit; font-size: 11px; font-weight: 800; color: #374151; background: #fff; transition: all 0.15s; text-align: center; display: flex; align-items: center; justify-content: center; gap: 4px; }
+    .orient-btn.active { border-color: var(--primary); background: #eff6ff; color: var(--primary); }
+
+    /* Buttons */
+    .btn { border: 0; border-radius: 9px; padding: 9px 12px; font-weight: 800; cursor: pointer; font-size: 13px; font-family: inherit; transition: opacity 0.15s; width: 100%; }
+    .btn:hover { opacity: 0.85; }
+    .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-green { background: #0f766e; color: #fff; }
+    .btn-secondary { background: #e5e7eb; color: #111827; }
+    .btn-sm { border: 1px solid var(--line); border-radius: 7px; padding: 7px 8px; font-size: 11px; font-weight: 800; color: #374151; background: #fff; cursor: pointer; font-family: inherit; transition: all 0.12s; text-align: center; width: 100%; }
+    .btn-sm:hover { background: #f1f5f9; border-color: #94a3b8; }
+    .btn-sm.purple { border-color: #7c3aed; color: #7c3aed; }
+    .btn-sm.purple:hover { background: #f5f3ff; }
+
+    /* Subsection header */
+    .subsec { font-size: 10px; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 0.3px; margin: 10px 0 6px; padding-bottom: 4px; border-bottom: 1px solid #f1f5f9; }
+
+    /* HF */
+    .hf-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; }
+    .hf-input { width: 100%; border: 1px solid var(--line); border-radius: 6px; padding: 5px 6px; font-size: 11px; font-family: inherit; outline: none; background: #fff; }
+    .hf-input:focus { border-color: #2563eb; }
+    .hf-col-label { font-size: 9px; color: #9ca3af; font-weight: 700; text-align: center; margin-bottom: 2px; }
+    .hf-row-label { font-size: 10px; color: #374151; font-weight: 800; margin: 5px 0 3px; }
+    .hf-var-hint { font-size: 10px; color: #9ca3af; margin-bottom: 5px; line-height: 1.4; }
+
+    /* Header/footer sections (per-range overrides) */
+    .hf-section-card {
+      border: 1px solid #e2e8f0; border-radius: 9px;
+      background: #f8fafc; padding: 9px 10px; margin-bottom: 6px;
+    }
+    .hf-section-head {
+      display: flex; align-items: center; gap: 6px; margin-bottom: 6px;
+    }
+    .hf-section-head .hf-range-input {
+      flex: 1; border: 1px solid #d1d5db; border-radius: 6px;
+      padding: 5px 8px; font-size: 11px; font-family: inherit; outline: none; background: #fff;
+    }
+    .hf-section-head .hf-range-input:focus { border-color: #2563eb; }
+    .hf-section-head .hf-section-label {
+      font-size: 10px; font-weight: 800; color: #64748b; white-space: nowrap;
+    }
+    .hf-section-del {
+      background: none; border: none; color: #94a3b8; font-size: 14px;
+      cursor: pointer; padding: 2px 6px; line-height: 1; font-family: inherit;
+    }
+    .hf-section-del:hover { color: #ef4444; }
+    .hf-add-section-btn {
+      width: 100%; background: #eff6ff; border: 1.5px dashed #93c5fd;
+      color: #1d4ed8; border-radius: 8px; padding: 7px;
+      font-size: 11px; font-weight: 800; cursor: pointer; font-family: inherit;
+      margin-top: 4px; margin-bottom: 8px;
+    }
+    .hf-add-section-btn:hover { background: #dbeafe; }
+    .hf-default-label {
+      font-size: 10px; font-weight: 800; color: #15803d; background: #dcfce7;
+      padding: 2px 7px; border-radius: 4px;
+    }
+
+    /* Page number position */
+    .pn-pos-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-bottom: 8px; }
+    .pn-pos-btn { border: 1.5px solid var(--line); border-radius: 6px; padding: 5px 2px; font-size: 9px; font-weight: 800; color: #374151; background: #fff; cursor: pointer; font-family: inherit; text-align: center; transition: all 0.12s; }
+    .pn-pos-btn.active { border-color: var(--primary); background: #eff6ff; color: var(--primary); }
+
+    /* Watermark presets */
+    .wm-presets { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 6px; }
+    .wm-preset { border: 1px solid var(--line); border-radius: 5px; padding: 3px 8px; font-size: 10px; font-weight: 800; color: #374151; background: #fff; cursor: pointer; font-family: inherit; transition: all 0.12s; }
+    .wm-preset:hover { background: #f1f5f9; }
+    .wm-preset.active { border-color: var(--primary); color: var(--primary); background: #eff6ff; }
+
+    /* Thumbnails */
+    .slides-header { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; flex-wrap: wrap; }
+    .slide-count { font-size: 10px; color: var(--muted); font-weight: 700; margin-left: auto; }
+    .thumb-area { display: grid; grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)); gap: 5px; padding: 4px 0; }
+    .file-divider { font-size: 10px; font-weight: 800; color: var(--primary); background: #eff6ff; border-radius: 5px; padding: 3px 8px; }
+    .file-divider.break { border-left: 3px solid #7c3aed; background: #f5f3ff; color: #5b21b6; }
+    .thumb-row { display: flex; flex-wrap: wrap; gap: 5px; }
+    .thumb-item { display: flex; flex-direction: column; align-items: center; width: 100%; cursor: grab; }
+    .thumb-item.dragging { opacity: 0.35; }
+    .thumb-item.drag-target { outline: 2px dashed var(--primary); outline-offset: 2px; border-radius: 6px; }
+    .thumb-wrap { position: relative; background: #fff; border: 2px solid var(--line); border-radius: 6px; overflow: hidden; width: 100%; }
+    .thumb-wrap:hover { border-color: #93c5fd; }
+    .thumb-wrap.excluded { opacity: 0.35; border-color: #fca5a5; }
+    .thumb-wrap canvas { width: 100%; display: block; }
+    .thumb-wrap .divider-thumb { width: 100%; aspect-ratio: 0.707; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 4px; text-align: center; }
+    .thumb-wrap .divider-thumb .dth-title { font-size: 8px; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+    .thumb-wrap .divider-thumb .dth-sub { font-size: 7px; opacity: 0.7; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; margin-top: 2px; }
+    .thumb-num { position: absolute; bottom: 2px; right: 3px; font-size: 8px; font-weight: 800; color: #fff; background: rgba(0,0,0,0.5); border-radius: 3px; padding: 1px 3px; }
+    .thumb-ex { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(220,38,38,0.12); font-size: 18px; }
+    .thumb-badge-tl { position: absolute; top: 2px; left: 2px; background: rgba(0,0,0,0.55); color: #fff; font-size: 7px; font-weight: 800; border-radius: 3px; padding: 1px 3px; }
+    .thumb-hint { font-size: 10px; color: var(--muted); text-align: center; margin-top: 4px; line-height: 1.4; }
+
+    /* Per-page N-up popup */
+    .nup-popup { position: fixed; z-index: 1000; background: #fff; border: 1px solid var(--line); border-radius: 9px; padding: 6px; box-shadow: 0 8px 24px rgba(0,0,0,0.14); display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; min-width: 160px; }
+    .nup-popup button { border: 1px solid var(--line); border-radius: 6px; padding: 5px 6px; font-size: 11px; font-weight: 800; cursor: pointer; background: #fff; font-family: inherit; color: #374151; transition: all 0.1s; }
+    .nup-popup button:hover { background: #eff6ff; }
+    .nup-popup button.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+    /* Style picker */
+    .style-row { display: flex; gap: 5px; }
+    .style-btn { flex: 1; border: 1.5px solid var(--line); border-radius: 7px; padding: 6px 3px; font-size: 10px; font-weight: 800; color: #374151; background: #fff; cursor: pointer; font-family: inherit; text-align: center; transition: all 0.12s; }
+    .style-btn.active { border-color: var(--primary); background: #eff6ff; color: var(--primary); }
+
+    /* Divider modal */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 20px; }
+    .modal-box { background: #fff; border-radius: 16px; padding: 22px; max-width: 380px; width: 100%; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+    .modal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; font-size: 15px; font-weight: 900; color: #111827; }
+    .modal-close { border: none; background: #f1f5f9; border-radius: 6px; padding: 4px 9px; cursor: pointer; font-size: 14px; font-family: inherit; color: #6b7280; }
+    .modal-close:hover { background: #fee2e2; color: #dc2626; }
+    .modal-footer { display: flex; gap: 8px; margin-top: 14px; }
+    .modal-footer .btn { flex: 1; }
+    .divider-prev-wrap { width: 100%; aspect-ratio: 0.707; border-radius: 8px; overflow: hidden; margin-bottom: 12px; border: 1px solid #e5e7eb; }
+    .divider-prev-wrap canvas { width: 100%; display: block; }
+
+    /* Preview */
+    .preview-shell { background: #e0e5ec; border-radius: 14px; padding: 12px; flex: 1; display: flex; flex-direction: column; gap: 8px; min-height: 0; }
+    .preview-info { background: rgba(255,255,255,.9); border: 1px solid var(--line); border-radius: 9px; padding: 6px 10px; font-size: 11px; color: #374151; display: flex; align-items: center; flex-shrink: 0; gap: 8px; min-width: 0; }
+    #previewInfo { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    #previewPages { flex-shrink: 0; }
+    .preview-zoom { display: flex; align-items: center; gap: 4px; margin-left: auto; flex-shrink: 0; }
+    .zoom-btn { border: 1px solid var(--line); border-radius: 6px; padding: 3px 8px; font-size: 13px; font-weight: 800; color: #374151; background: #fff; cursor: pointer; font-family: inherit; line-height: 1; transition: all 0.1s; }
+    .zoom-btn:hover { background: #eff6ff; border-color: #93c5fd; color: var(--primary); }
+    .zoom-label { font-size: 11px; font-weight: 800; color: #6b7280; min-width: 36px; text-align: center; }
+    .preview-scroll { flex: 1; overflow: auto; background: rgba(255,255,255,.3); border-radius: 10px; padding: 12px; display: flex; flex-direction: column; align-items: center; gap: 0; }
+    .preview-row { display: flex; flex-wrap: nowrap; align-items: flex-start; justify-content: center; gap: 8px; margin: 10px 0; }
+    .page-preview { background: #fff; box-shadow: 0 4px 16px rgba(0,0,0,0.15); border-radius: 3px; flex-shrink: 0; }
+    .page-preview canvas { display: block; width: 100%; }
+    .page-label { text-align: center; font-size: 10px; color: var(--muted); margin-top: 4px; font-weight: 700; }
+    /* Preview insert zones */
+    .prev-ins-zone { width: 100%; height: 32px; display: flex; align-items: center; justify-content: center; position: relative; cursor: default; opacity: 0; transition: opacity 0.15s; flex-shrink: 0; }
+    .prev-ins-zone:hover { opacity: 1; }
+    .preview-scroll:hover .prev-ins-zone { opacity: 0.35; }
+    .preview-scroll:hover .prev-ins-zone:hover { opacity: 1; }
+    .prev-ins-line { position: absolute; left: 0; right: 0; height: 2px; background: #60a5fa; border-radius: 1px; }
+    .prev-ins-btns { display: flex; gap: 4px; z-index: 1; background: #fff; padding: 2px 8px; border-radius: 12px; border: 1.5px solid #60a5fa; }
+    .prev-ins-btn { border: none; background: none; font-size: 11px; font-weight: 800; color: #2563eb; cursor: pointer; padding: 3px 8px; font-family: inherit; }
+    .prev-ins-btn.divider { color: #7c3aed; }
+    .prev-ins-btn:hover { text-decoration: underline; }
+    /* Vertical insert zones (between pages within a row) */
+    .prev-ins-zone-v { width: 28px; align-self: stretch; display: flex; align-items: center; justify-content: center; position: relative; cursor: default; opacity: 0; transition: opacity 0.15s; flex-shrink: 0; }
+    .prev-ins-zone-v:hover { opacity: 1; }
+    .preview-row:hover .prev-ins-zone-v { opacity: 0.35; }
+    .preview-row:hover .prev-ins-zone-v:hover { opacity: 1; }
+    .prev-ins-line-v { position: absolute; top: 0; bottom: 0; width: 2px; background: #60a5fa; border-radius: 1px; }
+    .prev-ins-btns-v { display: flex; flex-direction: column; gap: 2px; z-index: 1; background: #fff; padding: 4px 3px; border-radius: 10px; border: 1.5px solid #60a5fa; }
+    .prev-ins-btn-v { border: none; background: none; font-size: 9px; font-weight: 800; color: #2563eb; cursor: pointer; padding: 2px 3px; font-family: inherit; white-space: nowrap; line-height: 1.2; }
+    .prev-ins-btn-v.divider { color: #7c3aed; }
+    .prev-ins-btn-v:hover { text-decoration: underline; }
+    /* Thumb file separator (break mode) */
+    .thumb-file-sep { grid-column: 1 / -1; width: 100%; display: flex; align-items: center; gap: 4px; padding: 4px 0 2px; }
+    .thumb-file-sep-line { flex: 1; height: 1.5px; background: #c4b5fd; border-radius: 1px; }
+    .thumb-file-sep-label { font-size: 9px; font-weight: 800; color: #7c3aed; white-space: nowrap; }
+
+    /* Status */
+    .status-bar { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 9px; padding: 9px 14px; font-size: 12px; font-weight: 700; color: #1e40af; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+    .status-bar.error { background: #fef2f2; border-color: #fecaca; color: #991b1b; }
+    .status-bar.success { background: #f0fdf4; border-color: #bbf7d0; color: #166534; }
+    .spinner { width: 14px; height: 14px; border: 2px solid rgba(30,64,175,0.3); border-top-color: #1e40af; border-radius: 50%; animation: spin 0.7s linear infinite; flex-shrink: 0; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    #authLoading { position: fixed; inset: 0; background: #fff; display: flex; align-items: center; justify-content: center; z-index: 9999; }
+    .big-spinner { width: 36px; height: 36px; border: 3px solid #e2e8f0; border-top-color: var(--primary); border-radius: 50%; animation: spin 0.7s linear infinite; }
+    .empty-state { text-align: center; padding: 50px 20px; color: var(--muted); }
+    .empty-state .icon { font-size: 44px; margin-bottom: 10px; }
+    .empty-state p { font-size: 13px; line-height: 1.6; }
+
+    /* File history modal */
+    .fh-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 3000; display: flex; align-items: center; justify-content: center; padding: 20px; }
+    .fh-box { background: #fff; border-radius: 16px; width: 100%; max-width: 560px; max-height: 82vh; display: flex; flex-direction: column; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+    .fh-head { padding: 18px 20px 14px; border-bottom: 1px solid #e5e7eb; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+    .fh-head h2 { font-size: 16px; font-weight: 900; color: #0f172a; }
+    .fh-head-sub { font-size: 11px; color: #6b7280; font-weight: 600; margin-top: 2px; }
+    .fh-body { overflow-y: auto; flex: 1; padding: 12px 16px; }
+    .fh-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid #e5e7eb; border-radius: 10px; margin-bottom: 7px; background: #fafafa; transition: background 0.1s; }
+    .fh-item:hover { background: #f0f7ff; border-color: #93c5fd; }
+    .fh-icon { font-size: 22px; flex-shrink: 0; }
+    .fh-info { flex: 1; min-width: 0; }
+    .fh-name { font-size: 13px; font-weight: 800; color: #111827; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .fh-meta { font-size: 10px; color: #6b7280; margin-top: 1px; }
+    .fh-actions { display: flex; gap: 5px; flex-shrink: 0; }
+    .fh-btn { border: 1px solid var(--line); border-radius: 7px; padding: 5px 10px; font-size: 11px; font-weight: 800; cursor: pointer; font-family: inherit; background: #fff; transition: all 0.12s; }
+    .fh-btn:hover { background: #eff6ff; border-color: #93c5fd; color: var(--primary); }
+    .fh-btn.del { color: #991b1b; border-color: #fca5a5; }
+    .fh-btn.del:hover { background: #fef2f2; border-color: #f87171; }
+    .fh-empty { text-align: center; padding: 40px 20px; color: #6b7280; font-size: 13px; }
+    .fh-loading { text-align: center; padding: 30px; color: #6b7280; font-size: 13px; }
+    .nav-history-btn { display: flex; align-items: center; gap: 5px; color: rgba(255,255,255,0.85); font-size: 12px; font-weight: 700; background: rgba(255,255,255,0.12); border: none; border-radius: 7px; padding: 6px 10px; cursor: pointer; font-family: inherit; margin-right: 4px; }
+    .nav-history-btn:hover { background: rgba(255,255,255,0.22); color: #fff; }
+
+    @media (max-width: 900px) {
+      .app { grid-template-columns: 1fr; }
+      aside { max-height: none; }
+    }
+
+    /* ── Thumbnail context menu ───────────────────────────── */
+    #thumbCtxMenu {
+      position: fixed; z-index: 9999;
+      background: #fff; border: 1px solid #e2e8f0;
+      border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+      padding: 4px 0; min-width: 170px; display: none;
+      font-size: 13px;
+    }
+    #thumbCtxMenu.open { display: block; }
+    .ctx-item {
+      display: flex; align-items: center; gap: 8px;
+      padding: 7px 14px; cursor: pointer; color: #1e293b;
+      white-space: nowrap; user-select: none;
+    }
+    .ctx-item:hover { background: #f1f5f9; }
+    .ctx-item.danger { color: #dc2626; }
+    .ctx-item.danger:hover { background: #fef2f2; }
+    .ctx-item.all-rotate { color: #7c3aed; }
+    .ctx-item.all-rotate:hover { background: #f5f3ff; }
+    .ctx-sep { height: 1px; background: #e2e8f0; margin: 3px 0; }
+    .ctx-icon { font-size: 15px; width: 18px; text-align: center; }
+  </style>
+</head>
+<body>
+
+<div id="authLoading"><div class="big-spinner"></div></div>
+
+<nav class="top-nav">
+  <a class="nav-back" href="../index.html">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+    목록으로
+  </a>
+  <div class="nav-title">📝 PDF 문서 편집기</div>
+  <div class="nav-user">
+    <button class="nav-history-btn" id="navSessionBtn" style="display:none;">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+      편집 저장
+    </button>
+    <button class="nav-history-btn" id="navSessionLoadBtn" style="display:none;">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+      편집 불러오기
+    </button>
+    <button class="nav-history-btn" id="navHistoryBtn" style="display:none;">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      내 파일함
+    </button>
+    <span class="nav-user-name" id="navUserName"></span>
+    <button class="nav-logout" id="navLogout">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      로그아웃
+    </button>
+  </div>
+</nav>
+
+<div class="app">
+  <aside>
+    <h1>PDF 문서 편집기</h1>
+    <div class="sub">PDF 업로드 · 페이지 편집 · 간지 삽입 · 머리말/꼬리말 · 워터마크 · N-up 인쇄</div>
+
+    <!-- 업로드 -->
+    <div class="sec">
+      <div class="sec-head" data-sec="upload">
+        <span class="sec-title">파일 업로드</span>
+        <span class="sec-arrow">▾</span>
+      </div>
+      <div class="sec-body" id="sb-upload">
+        <div class="upload-zone" id="uploadZone">
+          <div class="upload-icon">📂</div>
+          <div class="upload-text" id="uploadZoneText">PDF 파일 클릭 또는 드래그</div>
+          <div class="upload-sub" id="uploadZoneSub">여러 파일을 연속으로 추가할 수 있습니다</div>
+        </div>
+        <div class="mode-row">
+          <button class="mode-btn active" data-mode="new">📄 새 파일</button>
+          <button class="mode-btn" data-mode="cont">➕ 연속 추가</button>
+          <button class="mode-btn" data-mode="break">📌 비연속 추가</button>
+        </div>
+        <input type="file" id="fileInput" accept=".pdf,application/pdf" multiple>
+      </div>
+    </div>
+
+    <!-- 페이지 목록 -->
+    <div class="sec" id="thumbSection" style="display:none">
+      <div class="sec-head" data-sec="pages">
+        <span class="sec-title">페이지 목록</span>
+        <span class="slide-count" id="slideCount"></span>
+        <span class="sec-arrow">▾</span>
+      </div>
+      <div class="sec-body" id="sb-pages">
+        <div class="thumb-area" id="thumbArea"></div>
+        <div class="thumb-hint">클릭=제외 · 드래그=순서변경 · 배지=개별설정</div>
+      </div>
+    </div>
+
+    <!-- N-up 배치 -->
+    <div class="sec">
+      <div class="sec-head" data-sec="nup">
+        <span class="sec-title">N-up 배치</span>
+        <span class="sec-arrow">▾</span>
+      </div>
+      <div class="sec-body" id="sb-nup">
+        <div class="field">
+          <label>기본 N-up (페이지당 슬라이드 수)</label>
+          <div class="nup-grid" id="nupGrid">
+            <button class="nup-btn" data-nup="1"><span class="nup-label">1장</span><span class="nup-badge" id="b1">1×1</span></button>
+            <button class="nup-btn active" data-nup="2"><span class="nup-label">2장</span><span class="nup-badge" id="b2">1×2</span></button>
+            <button class="nup-btn" data-nup="4"><span class="nup-label">4장</span><span class="nup-badge" id="b4">2×2</span></button>
+            <button class="nup-btn" data-nup="6"><span class="nup-label">6장</span><span class="nup-badge" id="b6">2×3</span></button>
+            <button class="nup-btn" data-nup="8"><span class="nup-label">8장</span><span class="nup-badge" id="b8">2×4</span></button>
+            <button class="nup-btn" data-nup="9"><span class="nup-label">9장</span><span class="nup-badge" id="b9">3×3</span></button>
+          </div>
+          <div id="bookletRow" class="opt-row" style="display:none; margin-top:4px;">
+            <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#374151;cursor:pointer;">
+              <input type="checkbox" id="bookletCheck" style="cursor:pointer;">
+              <span style="font-weight:700;">소책자 배치</span>
+              <span style="color:#9ca3af;font-size:10px;">양면인쇄→절단→접기=소책자</span>
+            </label>
+            <div id="bookletPadInfo" style="display:none;margin-top:3px;font-size:10px;color:#2563eb;font-weight:700;padding-left:18px;"></div>
+          </div>
+        </div>
+        <div class="field">
+          <label>슬라이드 순서</label>
+          <div class="orient-row">
+            <button class="orient-btn active" id="orderLR">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+              가로 우선
+            </button>
+            <button class="orient-btn" id="orderTB">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+              세로 우선
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 용지 -->
+    <div class="sec">
+      <div class="sec-head" data-sec="paper">
+        <span class="sec-title">용지 설정</span>
+        <span class="sec-arrow">▾</span>
+      </div>
+      <div class="sec-body" id="sb-paper">
+        <div class="field">
+          <label>용지 규격</label>
+          <select id="paperSize">
+            <option value="a4">A4 (210×297mm)</option>
+            <option value="a3">A3 (297×420mm)</option>
+            <option value="b4">B4 (250×354mm)</option>
+            <option value="b5">B5 (176×250mm)</option>
+            <option value="letter">Letter (216×279mm)</option>
+            <option value="custom">직접 입력...</option>
+          </select>
+        </div>
+        <div id="customSizeRow" class="grid2" style="display:none;">
+          <div class="field"><label>너비(mm)</label><input id="customW" type="number" value="210" min="50" max="1200"></div>
+          <div class="field"><label>높이(mm)</label><input id="customH" type="number" value="297" min="50" max="1200"></div>
+        </div>
+        <div class="field">
+          <label>용지 방향</label>
+          <div class="orient-row">
+            <button class="orient-btn active" id="orientPort">
+              <svg width="9" height="12" viewBox="0 0 9 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="0.5" y="0.5" width="8" height="11"/></svg>
+              세로
+            </button>
+            <button class="orient-btn" id="orientLand">
+              <svg width="12" height="9" viewBox="0 0 12 9" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="0.5" y="0.5" width="11" height="8"/></svg>
+              가로
+            </button>
+          </div>
+        </div>
+        <div class="grid2">
+          <div class="field"><label>좌우 여백(mm)</label><input id="marginH" type="number" value="10" min="0" max="50"></div>
+          <div class="field"><label>상하 여백(mm)</label><input id="marginV" type="number" value="10" min="0" max="50"></div>
+          <div class="field"><label>슬라이드 간격(mm)</label><input id="gap" type="number" value="5" min="0" max="30"></div>
+        </div>
+        <label class="checkline">
+          <input type="checkbox" id="showBorder" checked>
+          슬라이드 테두리 표시
+        </label>
+        <label class="checkline">
+          <input type="checkbox" id="autoDetectSize">
+          새 파일 가져올 때 용지 크기 자동 감지
+        </label>
+      </div>
+    </div>
+
+    <!-- 문서 편집 -->
+    <div class="sec">
+      <div class="sec-head collapsed" data-sec="edit">
+        <span class="sec-title">문서 편집</span>
+        <span class="sec-badge">워터마크·머리말·페이지번호</span>
+        <span class="sec-arrow">▾</span>
+      </div>
+      <div class="sec-body hidden" id="sb-edit">
+
+        <!-- 워터마크 -->
+        <div class="subsec">워터마크 / 도장</div>
+        <label class="checkline">
+          <input type="checkbox" id="wmEnabled">
+          워터마크 표시
+        </label>
+        <div id="wmSettings" style="display:none;">
+          <div class="field">
+            <label>텍스트 프리셋</label>
+            <div class="wm-presets">
+              <button class="wm-preset" data-text="사본">사본</button>
+              <button class="wm-preset" data-text="기밀">기밀</button>
+              <button class="wm-preset" data-text="결재">결재</button>
+              <button class="wm-preset" data-text="DRAFT">DRAFT</button>
+              <button class="wm-preset" data-text="참고용">참고용</button>
+            </div>
+            <input type="text" id="wmText" value="사본" placeholder="워터마크 텍스트">
+          </div>
+          <div class="grid2">
+            <div class="field"><label>색상</label><input type="color" id="wmColor" value="#ff0000"></div>
+            <div class="field">
+              <label>투명도 <span id="wmOpacityVal" style="color:var(--primary)">15%</span></label>
+              <input type="range" id="wmOpacity" min="0.05" max="0.5" step="0.05" value="0.15">
+            </div>
+          </div>
+          <div class="field">
+            <label>기울기 <span id="wmAngleVal" style="color:var(--primary)">-45°</span></label>
+            <input type="range" id="wmAngle" min="-90" max="0" step="5" value="-45">
+          </div>
+        </div>
+
+        <!-- 머리말/꼬리말 -->
+        <div class="subsec">머리말 / 꼬리말</div>
+        <label class="checkline">
+          <input type="checkbox" id="hfEnabled">
+          머리말/꼬리말 표시
+        </label>
+        <div id="hfSettings" style="display:none;">
+          <div class="hf-var-hint">변수: {n}=페이지번호 · {total}=전체 · {date}=날짜<br>구간을 추가하면 해당 페이지에는 구간 설정이 우선 적용됩니다.</div>
+
+          <!-- Default section (전체 페이지) -->
+          <div class="hf-section-card">
+            <div class="hf-section-head">
+              <span class="hf-default-label">전체 페이지 (기본)</span>
+              <span class="hf-section-label" style="margin-left:auto;">구간 미지정 시 적용</span>
+            </div>
+            <div class="grid3" style="margin-bottom:2px;">
+              <div class="hf-col-label">좌</div>
+              <div class="hf-col-label">가운데</div>
+              <div class="hf-col-label">우</div>
+            </div>
+            <div class="hf-row-label">머리말</div>
+            <div class="hf-grid" style="margin-bottom:5px;">
+              <input class="hf-input" id="hfHL" placeholder="좌">
+              <input class="hf-input" id="hfHC" placeholder="가운데">
+              <input class="hf-input" id="hfHR" placeholder="우">
+            </div>
+            <div class="hf-row-label">꼬리말</div>
+            <div class="hf-grid">
+              <input class="hf-input" id="hfFL" placeholder="좌">
+              <input class="hf-input" id="hfFC" placeholder="가운데">
+              <input class="hf-input" id="hfFR" placeholder="우">
+            </div>
+          </div>
+
+          <!-- Per-range sections list -->
+          <div id="hfSectionsList"></div>
+          <button type="button" class="hf-add-section-btn" id="hfAddSectionBtn">+ 구간별 다르게 설정</button>
+
+          <div class="grid2">
+            <div class="field"><label>글자크기(pt)</label><input type="number" id="hfFontSize" value="9" min="6" max="18"></div>
+            <div class="field"><label>색상</label><input type="color" id="hfColor" value="#555555"></div>
+          </div>
+          <div class="grid2">
+            <div class="field"><label>여백(mm)</label><input type="number" id="hfMarginMm" value="5" min="2" max="30"></div>
+            <div class="field"><label>적용 페이지</label><select id="hfApplyTo" style="width:100%;padding:5px 6px;border:1.5px solid var(--line);border-radius:7px;font-family:inherit;font-size:11px;font-weight:700;color:#374151;background:#fff;"><option value="all">전체</option><option value="odd">홀수만</option><option value="even">짝수만</option></select></div>
+          </div>
+        </div>
+
+        <!-- 페이지 번호 -->
+        <div class="subsec">페이지 번호</div>
+        <label class="checkline">
+          <input type="checkbox" id="pnEnabled">
+          페이지 번호 삽입
+        </label>
+        <div id="pnSettings" style="display:none;">
+          <div class="field">
+            <label>위치</label>
+            <div class="pn-pos-grid">
+              <button class="pn-pos-btn" data-pos="top-left">↖ 좌상</button>
+              <button class="pn-pos-btn" data-pos="top-center">↑ 중상</button>
+              <button class="pn-pos-btn" data-pos="top-right">↗ 우상</button>
+              <button class="pn-pos-btn" data-pos="bottom-left">↙ 좌하</button>
+              <button class="pn-pos-btn active" data-pos="bottom-center">↓ 중하</button>
+              <button class="pn-pos-btn" data-pos="bottom-right">↘ 우하</button>
+            </div>
+          </div>
+          <div class="field">
+            <label>형식</label>
+            <select id="pnFormat">
+              <option value="number">1, 2, 3 ...</option>
+              <option value="dash">- 1 -, - 2 - ...</option>
+              <option value="page-of">1 / 전체, 2 / 전체 ...</option>
+            </select>
+          </div>
+          <div class="grid2">
+            <div class="field"><label>시작 번호</label><input type="number" id="pnStart" value="1" min="0" max="999"></div>
+            <div class="field"><label>글자크기(pt)</label><input type="number" id="pnFontSize" value="10" min="6" max="18"></div>
+          </div>
+          <div class="grid2">
+            <div class="field"><label>색상</label><input type="color" id="pnColor" value="#333333"></div>
+          </div>
+          <label class="checkline">
+            <input type="checkbox" id="pnExcludeFirst">
+            첫 페이지 번호 제외 (표지)
+          </label>
+          <div class="grid2">
+            <div class="field"><label>여백(mm)</label><input type="number" id="pnMarginMm" value="5" min="2" max="30"></div>
+            <div class="field"><label>적용 페이지</label><select id="pnApplyTo" style="width:100%;padding:5px 6px;border:1.5px solid var(--line);border-radius:7px;font-family:inherit;font-size:11px;font-weight:700;color:#374151;background:#fff;"><option value="all">전체</option><option value="odd">홀수만</option><option value="even">짝수만</option></select></div>
+          </div>
+          <label class="checkline">
+            <input type="checkbox" id="facingPages">
+            양면 마주보기 (짝수 페이지 좌우 반전)
+          </label>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- 출력 -->
+    <div class="sec">
+      <div class="sec-head" style="cursor:default;pointer-events:none;">
+        <span class="sec-title">출력</span>
+      </div>
+      <div class="sec-body">
+        <button class="btn btn-primary" id="previewBtn" disabled>미리보기 새로고침</button>
+        <div style="height:6px;"></div>
+        <button class="btn btn-green" id="downloadBtn" disabled>PDF 저장</button>
+        <div style="height:6px;"></div>
+        <button class="btn btn-secondary" id="resetBtn">전체 초기화</button>
+      </div>
+    </div>
+
+  </aside>
+
+  <main>
+    <div id="statusBar" class="status-bar" style="display:none;"></div>
+    <div class="preview-shell">
+      <div class="preview-info">
+        <span id="previewInfo">PDF 파일을 업로드하면 미리보기가 표시됩니다.</span>
+        <span id="previewPages" style="color:#2563eb;font-weight:800;"></span>
+        <div class="preview-zoom">
+          <select id="perRowSelect" style="border:1px solid var(--line);border-radius:6px;padding:2px 4px;font-size:11px;font-weight:800;font-family:inherit;color:#374151;background:#fff;cursor:pointer;">
+            <option value="1">줄당 1장</option>
+            <option value="2" selected>줄당 2장</option>
+            <option value="3">줄당 3장</option>
+            <option value="4">줄당 4장</option>
+            <option value="5">줄당 5장</option>
+            <option value="6">줄당 6장</option>
+          </select>
+          <span style="width:1px;background:#e5e7eb;align-self:stretch;margin:0 4px;"></span>
+          <button class="zoom-btn" id="zoomOutBtn" title="축소">−</button>
+          <span class="zoom-label" id="zoomLabel">100%</span>
+          <button class="zoom-btn" id="zoomInBtn" title="확대">＋</button>
+          <button class="zoom-btn" id="zoomResetBtn" title="원래 크기" style="font-size:10px;padding:3px 6px;">↺</button>
+        </div>
+      </div>
+      <div class="preview-scroll" id="previewScroll">
+        <div class="empty-state">
+          <div class="icon">📝</div>
+          <p>PDF 파일을 업로드하면<br>설정에 따라 <b>자동으로 미리보기</b>가 생성됩니다.</p>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Divider Page Modal -->
+<!-- File History Modal -->
+<div id="fileHistoryModal" class="fh-modal" style="display:none;">
+  <div class="fh-box">
+    <div class="fh-head">
+      <div>
+        <h2>내 파일함</h2>
+        <div class="fh-head-sub">Storage에 저장된 PDF 파일 목록</div>
+      </div>
+      <button class="modal-close" id="fhModalClose">✕</button>
+    </div>
+    <div class="fh-body" id="fhBody">
+      <div class="fh-loading">불러오는 중...</div>
+    </div>
+  </div>
+</div>
+
+<!-- 편집 저장 / 불러오기 모달 -->
+<div id="sessionSaveModal" class="fh-modal" style="display:none;">
+  <div class="fh-box" style="max-width:400px;">
+    <div class="fh-head">
+      <div>
+        <h2>편집 상태 저장</h2>
+        <div class="fh-head-sub">원본 파일과 모든 설정을 저장합니다</div>
+      </div>
+      <button class="modal-close" id="sessionSaveClose">✕</button>
+    </div>
+    <div class="fh-body" style="padding:18px 20px;">
+      <label style="font-size:12px;font-weight:700;color:#374151;display:block;margin-bottom:6px;">저장 이름</label>
+      <input id="sessionNameInput" type="text" placeholder="예: 카탈로그 편집 중" maxlength="40"
+        style="width:100%;border:1.5px solid #d1d5db;border-radius:8px;padding:9px 12px;font-size:13px;font-family:inherit;outline:none;box-sizing:border-box;">
+      <div id="sessionSaveStatus" style="font-size:12px;color:#6b7280;margin-top:8px;min-height:16px;"></div>
+      <div style="display:flex;gap:8px;margin-top:16px;">
+        <button id="sessionSaveConfirm" type="button" class="btn btn-primary" style="flex:1;">💾 저장하기</button>
+        <button id="sessionSaveCancel" type="button" class="btn" style="flex:1;">취소</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="sessionListModal" class="fh-modal" style="display:none;">
+  <div class="fh-box">
+    <div class="fh-head">
+      <div>
+        <h2>저장된 편집 불러오기</h2>
+        <div class="fh-head-sub">저장된 편집 상태 목록 (최대 10개)</div>
+      </div>
+      <button class="modal-close" id="sessionListClose">✕</button>
+    </div>
+    <div class="fh-body" id="sessionListBody">
+      <div class="fh-loading">불러오는 중...</div>
+    </div>
+  </div>
+</div>
+
+<div id="dividerModal" class="modal-overlay" style="display:none;">
+  <div class="modal-box">
+    <div class="modal-head">
+      간지 페이지 편집
+      <button class="modal-close" id="dividerModalClose">✕</button>
+    </div>
+    <div class="divider-prev-wrap">
+      <canvas id="dividerPrevCanvas"></canvas>
+    </div>
+    <div class="field"><label>제목</label><input type="text" id="dividerTitle" placeholder="예) 제1장"></div>
+    <div class="field"><label>부제목</label><input type="text" id="dividerSubtitle" placeholder="예) 개요 및 배경"></div>
+    <div class="field"><label>하단 메모</label><input type="text" id="dividerNote" placeholder="선택사항"></div>
+    <div class="grid2">
+      <div class="field">
+        <label>배경색</label>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <input type="color" id="dividerBg" value="#1a365d" style="flex:1;">
+          <label style="display:flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color:#374151;cursor:pointer;white-space:nowrap;margin:0;">
+            <input type="checkbox" id="dividerNoBg" style="width:auto;">없음
+          </label>
+        </div>
+      </div>
+      <div class="field"><label>글자색</label><input type="color" id="dividerFg" value="#ffffff"></div>
+    </div>
+    <div class="field">
+      <label>스타일</label>
+      <div class="style-row" id="dividerStyleRow">
+        <button class="style-btn active" data-style="simple">심플</button>
+        <button class="style-btn" data-style="lines">구분선</button>
+        <button class="style-btn" data-style="band">사이드밴드</button>
+      </div>
+    </div>
+    <div class="field">
+      <label>텍스트 위치</label>
+      <div class="style-row" id="dividerVAlignRow">
+        <button class="style-btn" data-valign="top">상단</button>
+        <button class="style-btn active" data-valign="center">중앙</button>
+        <button class="style-btn" data-valign="bottom">하단</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:7px;">
+        <span style="font-size:10px;font-weight:800;color:#6b7280;white-space:nowrap;">세부조정</span>
+        <input type="range" id="dividerVOffset" min="-40" max="40" value="0" step="1" style="flex:1;">
+        <span id="dividerVOffsetVal" style="font-size:11px;font-weight:800;color:#374151;min-width:32px;text-align:right;">0%</span>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" id="dividerCancelBtn">취소</button>
+      <button class="btn btn-primary" id="dividerConfirmBtn">삽입</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="../js/sw-register.js" defer></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+<script src="../js/firebase-config.js"></script>
+<script>const storage = firebase.storage();</script>
+<script src="../js/api.js"></script>
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+  'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+
+// ── Auth ─────────────────────────────────────────────────────────────
+function denyPdfAccess(msg) {
+  document.getElementById('authLoading').style.display = 'none';
+  document.body.replaceChildren();
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;gap:16px;text-align:center;padding:24px;font-family:sans-serif;';
+  wrap.innerHTML = '<div style="font-size:52px;">🔒</div>'
+    + '<div style="font-size:20px;font-weight:900;color:#0f172a;">접근 권한이 없습니다</div>'
+    + '<div class="msg" style="font-size:14px;color:#64748b;max-width:320px;line-height:1.6;"></div>'
+    + '<a href="../index.html" style="margin-top:8px;padding:10px 24px;background:#12396d;color:#fff;border-radius:10px;text-decoration:none;font-weight:800;font-size:14px;">← 홈으로</a>';
+  wrap.querySelector('.msg').textContent = msg;
+  document.body.appendChild(wrap);
+}
+
+async function initializePdfEditorAccess() {
+  try {
+    const access = await window.ProgramAccessReady;
+    const user = auth.currentUser;
+    if (!access || !user) return;
+
+    document.getElementById('navUserName').textContent =
+      user.displayName || String(user.email || '').split('@')[0];
+    document.getElementById('authLoading').style.display = 'none';
+    const historyButton = document.getElementById('navHistoryBtn');
+    if (historyButton) historyButton.style.display = 'flex';
+    document.getElementById('navSessionBtn').style.display = 'flex';
+    document.getElementById('navSessionLoadBtn').style.display = 'flex';
+  } catch (error) {
+    console.error('Shared permission check failed', error);
+    denyPdfAccess('권한 확인 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.');
+  }
+}
+initializePdfEditorAccess();
+document.getElementById('navLogout').addEventListener('click', () =>
+  auth.signOut().then(() => location.href = '../index.html'));
+
+const $ = id => document.getElementById(id);
+
+// ── Firebase Storage helpers ───────────────────────────────────────────
+function formatBytes(b) {
+  if (b < 1024) return b + ' B';
+  if (b < 1024 * 1024) return (b / 1024).toFixed(1) + ' KB';
+  return (b / 1024 / 1024).toFixed(2) + ' MB';
+}
+
+async function saveToStorage(blob, filename) {
+  const user = auth.currentUser;
+  if (!user) return;
+  const col = db.collection('users').doc(user.uid).collection('pdf_history');
+
+  // 최대 10개 제한 — 초과 시 오래된 파일부터 삭제
+  const existing = await col.orderBy('createdAt', 'asc').get();
+  if (existing.size >= 10) {
+    const toDelete = existing.docs.slice(0, existing.size - 9);
+    for (const d of toDelete) {
+      await storage.ref(d.data().storagePath).delete().catch(() => {});
+      await col.doc(d.id).delete();
+    }
+  }
+
+  const ts = new Date().toISOString().replace(/[:.]/g, '-');
+  const storagePath = `pdf_history/${user.uid}/${ts}_${filename}`;
+  await storage.ref(storagePath).put(blob, { contentType: 'application/pdf' });
+  await col.add({
+    name: filename,
+    storagePath,
+    size: blob.size,
+    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+  });
+}
+
+// ── Editor session save / load ────────────────────────────────────────
+function collectEditorState() {
+  return {
+    nup,
+    landscape,
+    showBorder,
+    paperSize: $('paperSize').value,
+    customW: parseFloat($('customW').value) || 210,
+    customH: parseFloat($('customH').value) || 297,
+    marginH: parseFloat($('marginH').value) || 10,
+    marginV: parseFloat($('marginV').value) || 10,
+    gap: parseFloat($('gap').value) || 5,
+    fileNupMap,
+    wmEnabled, wmText, wmOpacity, wmAngle, wmColor,
+    hfEnabled, hfHL, hfHC, hfHR, hfFL, hfFC, hfFR,
+    hfFontSize, hfColor, hfApplyTo,
+    hfMarginMm: parseFloat($('hfMarginMm')?.value) || 5,
+    hfSections,
+    pnEnabled, pnPosition, pnFormat, pnStart,
+    pnFontSize, pnColor, pnExcludeFirst, pnApplyTo,
+    pnMarginMm: parseFloat($('pnMarginMm')?.value) || 5,
+    facingPages,
+    booklet: document.getElementById('bookletCheck')?.checked ?? false,
+    pages: parsedPages.map(p => ({
+      file_index: p.file_index ?? 0,
+      page_index: p.page_index ?? 0,
+      rotation: p.rotation || 0,
+      excluded: !!p.excluded,
+      nupOverride: p.nupOverride ?? null,
+      nupDisabled: !!p.nupDisabled,
+      groupBreak: !!p.groupBreak,
+      pageType: p.pageType || 'pdf',
+      dividerContent: p.dividerContent ? { ...p.dividerContent } : null,
+      sourceFile: p.sourceFile || '',
+    })),
+  };
+}
+
+async function saveEditorSession() {
+  const user = auth.currentUser;
+  if (!user || !uploadedFiles.length) return;
+
+  const name = ($('sessionNameInput').value || '').trim() || '편집 세션';
+  const statusEl = $('sessionSaveStatus');
+  statusEl.style.color = '#6b7280';
+  statusEl.textContent = '파일 업로드 중...';
+  $('sessionSaveConfirm').disabled = true;
+
+  try {
+    const sessionId = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    const col = db.collection('users').doc(user.uid).collection('pdf_sessions');
+
+    // 최대 10개 제한
+    const existing = await col.orderBy('createdAt', 'asc').get();
+    if (existing.size >= 10) {
+      const toDelete = existing.docs.slice(0, existing.size - 9);
+      for (const d of toDelete) {
+        for (const sp of (d.data().storagePaths || [])) {
+          await storage.ref(sp).delete().catch(() => {});
+        }
+        await col.doc(d.id).delete();
+      }
+    }
+
+    // Upload source files
+    const storagePaths = [];
+    for (let i = 0; i < uploadedFiles.length; i++) {
+      statusEl.textContent = `파일 업로드 중... (${i + 1}/${uploadedFiles.length})`;
+      const sp = `pdf_sessions/${user.uid}/${sessionId}/src_${i}.pdf`;
+      await storage.ref(sp).put(uploadedFiles[i], { contentType: 'application/pdf' });
+      storagePaths.push(sp);
+    }
+
+    statusEl.textContent = '상태 저장 중...';
+    const state = collectEditorState();
+    await col.add({
+      name,
+      sessionId,
+      storagePaths,
+      fileCount: uploadedFiles.length,
+      pageCount: parsedPages.length,
+      state: JSON.stringify(state),
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+
+    statusEl.style.color = '#166534';
+    statusEl.textContent = '✅ 저장 완료!';
+    setTimeout(() => { $('sessionSaveModal').style.display = 'none'; }, 1200);
+  } catch (e) {
+    statusEl.style.color = '#dc2626';
+    statusEl.textContent = '저장 실패: ' + e.message;
+  }
+  $('sessionSaveConfirm').disabled = false;
+}
+
+async function openSessionList() {
+  const user = auth.currentUser;
+  if (!user) return;
+  $('sessionListModal').style.display = 'flex';
+  const body = $('sessionListBody');
+  body.innerHTML = '<div class="fh-loading">불러오는 중...</div>';
+  try {
+    const snap = await db.collection('users').doc(user.uid)
+      .collection('pdf_sessions')
+      .orderBy('createdAt', 'desc')
+      .limit(20)
+      .get();
+    if (snap.empty) {
+      body.innerHTML = '<div class="fh-empty">📂 저장된 편집이 없습니다.</div>';
+      return;
+    }
+    body.innerHTML = '';
+    snap.forEach(doc => {
+      const d = doc.data();
+      const dateStr = d.createdAt?.toDate ? d.createdAt.toDate().toLocaleString('ko-KR') : '-';
+      const item = document.createElement('div');
+      item.className = 'fh-item';
+      item.innerHTML = `
+        <div class="fh-icon">🗂</div>
+        <div class="fh-info">
+          <div class="fh-name">${d.name || '편집 세션'}</div>
+          <div class="fh-meta">${dateStr} · ${d.pageCount || 0}p · 파일 ${d.fileCount || 0}개</div>
+        </div>
+        <div class="fh-actions">
+          <button class="fh-btn" data-action="load">📂 불러오기</button>
+          <button class="fh-btn del" data-action="del">🗑</button>
+        </div>`;
+      item.querySelector('[data-action="load"]').addEventListener('click', () =>
+        loadEditorSession(d, doc.id));
+      item.querySelector('[data-action="del"]').addEventListener('click', async () => {
+        if (!confirm(`"${d.name}" 세션을 삭제할까요?`)) return;
+        try {
+          for (const sp of (d.storagePaths || [])) await storage.ref(sp).delete().catch(() => {});
+          await db.collection('users').doc(user.uid).collection('pdf_sessions').doc(doc.id).delete();
+          item.remove();
+          if (!body.querySelector('.fh-item')) body.innerHTML = '<div class="fh-empty">📂 저장된 편집이 없습니다.</div>';
+        } catch(e) { alert('삭제 오류: ' + e.message); }
+      });
+      body.appendChild(item);
+    });
+  } catch(e) {
+    body.innerHTML = `<div class="fh-empty">오류: ${e.message}</div>`;
+  }
+}
+
+async function loadEditorSession(d, docId) {
+  if (!confirm(`"${d.name}" 편집을 불러올까요?\n현재 작업 중인 내용은 사라집니다.`)) return;
+  $('sessionListModal').style.display = 'none';
+  showStatus('세션 불러오는 중...');
+
+  // Snapshot previous state for rollback on error
+  const prevParsedPages = parsedPages;
+  const prevUploadedFiles = uploadedFiles;
+  const prevFileNupMap = fileNupMap;
+
+  try {
+    const state = JSON.parse(d.state || '{}');
+
+    // Download source files from Storage
+    const files = [];
+    for (let i = 0; i < (d.storagePaths || []).length; i++) {
+      showStatus(`원본 파일 다운로드 중... (${i + 1}/${d.storagePaths.length})`);
+      const url = await storage.ref(d.storagePaths[i]).getDownloadURL();
+      const resp = await fetch(url);
+      if (!resp.ok) throw new Error(`파일 다운로드 실패 (${resp.status})`);
+      const buf = await resp.arrayBuffer();
+      const fname = (d.storagePaths[i].split('/').pop()) || `file_${i}.pdf`;
+      files.push(new File([buf], fname, { type: 'application/pdf' }));
+    }
+
+    // Reset state
+    parsedPages = [];
+    uploadedFiles = [];
+    previewCanvases = [];
+    fileNupMap = {};
+    _nextId = 1;
+
+    // Render all source pages into a lookup map keyed by "fileIdx_pageIdx"
+    const renderedMap = new Map();
+    for (let fi = 0; fi < files.length; fi++) {
+      showStatus(`페이지 렌더링 중... (파일 ${fi + 1}/${files.length})`);
+      uploadedFiles.push(files[fi]);
+      const buf = await files[fi].arrayBuffer();
+      const pdfDoc = await pdfjsLib.getDocument({ data: buf }).promise;
+      for (let pi = 1; pi <= pdfDoc.numPages; pi++) {
+        const pdfPage = await pdfDoc.getPage(pi);
+        const thumbCanvas = await renderPdfPage(pdfPage, 0.9, 0);
+        renderedMap.set(`${fi}_${pi - 1}`, {
+          id: makeId(), pdfPage, thumbCanvas,
+          excluded: false, nupOverride: null, nupDisabled: false,
+          file_index: fi, page_index: pi - 1,
+          sourceFile: files[fi].name, groupBreak: false,
+          rotation: 0, pageType: 'pdf',
+        });
+        await new Promise(r => setTimeout(r, 0));
+      }
+    }
+
+    // Reconstruct pages in saved order (preserves positions of blank/divider pages)
+    const savedPages = state.pages || [];
+    for (const s of savedPages) {
+      if (s.pageType === 'blank') {
+        const p = makeBlankPage();
+        p.groupBreak = !!s.groupBreak;
+        p.excluded = !!s.excluded;
+        parsedPages.push(p);
+      } else if (s.pageType === 'divider' && s.dividerContent) {
+        const p = makeDividerPageObj(s.dividerContent);
+        p.groupBreak = !!s.groupBreak;
+        p.excluded = !!s.excluded;
+        parsedPages.push(p);
+      } else {
+        // Normal PDF page — look up by file_index + page_index
+        const key = `${s.file_index ?? 0}_${s.page_index ?? 0}`;
+        const p = renderedMap.get(key);
+        if (!p) continue;
+        renderedMap.delete(key);
+        p.rotation = s.rotation || 0;
+        p.excluded = !!s.excluded;
+        p.nupOverride = s.nupOverride ?? null;
+        p.nupDisabled = !!s.nupDisabled;
+        p.groupBreak = !!s.groupBreak;
+        if (p.rotation) p.thumbCanvas = await renderPdfPage(p.pdfPage, 0.9, p.rotation);
+        parsedPages.push(p);
+      }
+    }
+
+    // Append any rendered pages not referenced in savedPages (fallback for older sessions)
+    for (const p of renderedMap.values()) parsedPages.push(p);
+
+    // Restore settings
+    fileNupMap = state.fileNupMap || {};
+    nup = state.nup ?? 2;
+    landscape = state.landscape ?? false;
+    showBorder = state.showBorder ?? true;
+    if ($('paperSize') && state.paperSize) $('paperSize').value = state.paperSize;
+    if ($('customSizeRow')) $('customSizeRow').style.display = state.paperSize === 'custom' ? 'grid' : 'none';
+    if ($('customW') && state.customW) $('customW').value = state.customW;
+    if ($('customH') && state.customH) $('customH').value = state.customH;
+    if ($('marginH')) $('marginH').value = state.marginH ?? 10;
+    if ($('marginV')) $('marginV').value = state.marginV ?? 10;
+    if ($('gap')) $('gap').value = state.gap ?? 5;
+    wmEnabled = state.wmEnabled ?? false; wmText = state.wmText ?? '사본';
+    wmOpacity = state.wmOpacity ?? 0.15; wmAngle = state.wmAngle ?? -45; wmColor = state.wmColor ?? '#ff0000';
+    hfEnabled = state.hfEnabled ?? false;
+    hfHL = state.hfHL ?? ''; hfHC = state.hfHC ?? ''; hfHR = state.hfHR ?? '';
+    hfFL = state.hfFL ?? ''; hfFC = state.hfFC ?? ''; hfFR = state.hfFR ?? '';
+    hfFontSize = state.hfFontSize ?? 9; hfColor = state.hfColor ?? '#555555';
+    hfApplyTo = state.hfApplyTo ?? 'all'; hfSections = state.hfSections ?? [];
+    hfMarginMm = state.hfMarginMm ?? 5;
+    if ($('hfMarginMm')) $('hfMarginMm').value = hfMarginMm;
+    pnEnabled = state.pnEnabled ?? false; pnPosition = state.pnPosition ?? 'bottom-center';
+    pnFormat = state.pnFormat ?? 'number'; pnStart = state.pnStart ?? 1;
+    pnFontSize = state.pnFontSize ?? 10; pnColor = state.pnColor ?? '#333333';
+    pnExcludeFirst = state.pnExcludeFirst ?? false; pnApplyTo = state.pnApplyTo ?? 'all';
+    pnMarginMm = state.pnMarginMm ?? 5;
+    if ($('pnMarginMm')) $('pnMarginMm').value = pnMarginMm;
+    facingPages = state.facingPages ?? false;
+    if (document.getElementById('bookletCheck')) document.getElementById('bookletCheck').checked = state.booklet ?? false;
+    // Sync HF section ID counter to avoid collisions with restored section IDs
+    if (hfSections.length) _hfSecId = Math.max(...hfSections.map(s => s._id || 0)) + 1;
+    renderHfSections();
+
+    // Sync orientation UI
+    $('orientLand').classList.toggle('active', landscape);
+    $('orientPort').classList.toggle('active', !landscape);
+
+    // Sync N-up button UI (data-nup attribute)
+    document.querySelectorAll('.nup-btn').forEach(b => b.classList.toggle('active', parseInt(b.dataset.nup) === nup));
+    updateNupBadges?.();
+
+    // Switch upload mode to 연속 after session load
+    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active', 'break-active'));
+    document.querySelector('.mode-btn[data-mode="cont"]')?.classList.add('active');
+    _uploadMode = 'cont';
+
+    renderThumbs();
+    $('previewBtn').disabled = false;
+    $('downloadBtn').disabled = false;
+    hideStatus();
+    showStatus(`"${d.name}" 불러오기 완료!`, 'success');
+    setTimeout(hideStatus, 2500);
+    schedulePreview(300);
+  } catch(e) {
+    // Rollback to the previous session state so the editor isn't left empty
+    parsedPages = prevParsedPages;
+    uploadedFiles = prevUploadedFiles;
+    fileNupMap = prevFileNupMap;
+    if (parsedPages.length) { renderThumbs(); $('previewBtn').disabled = false; $('downloadBtn').disabled = false; }
+    showStatus('불러오기 실패: ' + e.message, 'error');
+  }
+}
+
+// Session modal events
+$('navSessionBtn').addEventListener('click', () => {
+  if (!uploadedFiles.length) { alert('불러온 파일이 없습니다.'); return; }
+  $('sessionNameInput').value = '';
+  $('sessionSaveStatus').textContent = '';
+  $('sessionSaveModal').style.display = 'flex';
+  setTimeout(() => $('sessionNameInput').focus(), 80);
+});
+$('sessionSaveClose').addEventListener('click', () => $('sessionSaveModal').style.display = 'none');
+$('sessionSaveCancel').addEventListener('click', () => $('sessionSaveModal').style.display = 'none');
+$('sessionSaveConfirm').addEventListener('click', saveEditorSession);
+$('sessionNameInput').addEventListener('keydown', e => { if (e.key === 'Enter') saveEditorSession(); });
+document.getElementById('sessionSaveModal').addEventListener('click', e => {
+  if (e.target.id === 'sessionSaveModal') $('sessionSaveModal').style.display = 'none';
+});
+$('sessionListClose').addEventListener('click', () => $('sessionListModal').style.display = 'none');
+document.getElementById('sessionListModal').addEventListener('click', e => {
+  if (e.target.id === 'sessionListModal') $('sessionListModal').style.display = 'none';
+});
+$('navSessionLoadBtn').addEventListener('click', openSessionList);
+
+async function openFileHistory() {
+  const user = auth.currentUser;
+  if (!user) return;
+  $('fileHistoryModal').style.display = 'flex';
+  const body = $('fhBody');
+  body.innerHTML = '<div class="fh-loading">불러오는 중...</div>';
+  try {
+    const snap = await db.collection('users').doc(user.uid)
+      .collection('pdf_history')
+      .orderBy('createdAt', 'desc')
+      .limit(50)
+      .get();
+    if (snap.empty) {
+      body.innerHTML = '<div class="fh-empty">📂 저장된 파일이 없습니다.<br><span style="font-size:11px;color:#9ca3af;">PDF를 생성하면 자동으로 저장됩니다.</span></div>';
+      return;
+    }
+    body.innerHTML = '';
+    snap.forEach(doc => {
+      const d = doc.data();
+      const date = d.createdAt?.toDate ? d.createdAt.toDate().toLocaleString('ko-KR') : '-';
+      const item = document.createElement('div');
+      item.className = 'fh-item';
+      item.innerHTML = `
+        <div class="fh-icon">📄</div>
+        <div class="fh-info">
+          <div class="fh-name">${d.name || '파일'}</div>
+          <div class="fh-meta">${date} · ${formatBytes(d.size || 0)}</div>
+        </div>
+        <div class="fh-actions">
+          <button class="fh-btn" data-action="dl">⬇ 다운로드</button>
+          <button class="fh-btn del" data-action="del">🗑</button>
+        </div>`;
+      item.querySelector('[data-action="dl"]').addEventListener('click', async () => {
+        try {
+          const url = await storage.ref(d.storagePath).getDownloadURL();
+          const a = document.createElement('a');
+          a.href = url; a.download = d.name || 'download.pdf'; a.target = '_blank';
+          a.click();
+        } catch(e) { alert('다운로드 오류: ' + e.message); }
+      });
+      item.querySelector('[data-action="del"]').addEventListener('click', async () => {
+        if (!confirm(`"${d.name}" 파일을 삭제하시겠습니까?\n(내 파일함 및 Firebase에서 영구 삭제됩니다)`)) return;
+        try {
+          await storage.ref(d.storagePath).delete().catch(() => {});
+          await db.collection('users').doc(user.uid).collection('pdf_history').doc(doc.id).delete();
+          item.remove();
+          if (!body.querySelector('.fh-item')) {
+            body.innerHTML = '<div class="fh-empty">📂 저장된 파일이 없습니다.</div>';
+          }
+        } catch(e) { alert('삭제 오류: ' + e.message); }
+      });
+      body.appendChild(item);
+    });
+  } catch(e) {
+    body.innerHTML = `<div class="fh-empty">오류: ${e.message}</div>`;
+  }
+}
+
+document.getElementById('navHistoryBtn').addEventListener('click', openFileHistory);
+document.getElementById('fhModalClose').addEventListener('click', () => {
+  $('fileHistoryModal').style.display = 'none';
+});
+document.getElementById('fileHistoryModal').addEventListener('click', e => {
+  if (e.target.id === 'fileHistoryModal') $('fileHistoryModal').style.display = 'none';
+});
+
+// ── State ─────────────────────────────────────────────────────────────
+// page: { id, pdfPage(null=blank/divider), thumbCanvas, excluded, nupOverride,
+//         nupDisabled, sourceFile, groupBreak, rotation, pageType, dividerContent,
+//         file_index (index into uploadedFiles), page_index (0-based) }
+let parsedPages = [];
+let uploadedFiles = []; // original File objects, indexed by file_index
+let fileNupMap = {};    // file_index → nup override (undefined = use global nup)
+let nup = 2;
+let orderLR = true;
+let landscape = false;
+let showBorder = true;
+let previewCanvases = [];
+let _dragSrcId = null;
+let _nupPopup = null;
+let _nextId = 1;
+let _uploadMode = 'new'; // 'new' | 'cont' | 'break'
+let _editingDividerPage = null; // null = insert new, else = editing existing
+let _dividerStyle = 'simple';
+let _dividerVAlign = 'center';
+
+// Watermark
+let wmEnabled = false, wmText = '사본', wmOpacity = 0.15, wmAngle = -45, wmColor = '#ff0000';
+// Header/footer
+let hfEnabled = false;
+let hfHL = '', hfHC = '', hfHR = '', hfFL = '', hfFC = '', hfFR = '';
+let hfFontSize = 9, hfColor = '#555555';
+let hfApplyTo = 'all', hfMarginMm = 5;
+// Per-range HF sections: [{ranges, header_left, header_center, header_right, footer_left, footer_center, footer_right}]
+let hfSections = [];
+let _hfSecId = 1;
+// Page number
+let pnEnabled = false, pnPosition = 'bottom-center', pnFormat = 'number';
+let pnStart = 1, pnFontSize = 10, pnColor = '#333333', pnExcludeFirst = false;
+let pnApplyTo = 'all', pnMarginMm = 5, facingPages = false;
+
+function makeId() { return _nextId++; }
+
+// ── N-up layout table ─────────────────────────────────────────────────
+const NUP_LAYOUTS = {
+  1: { port:[1,1,false], land:[1,1,false] },
+  2: { port:[1,2,false], land:[2,1,false] },
+  4: { port:[2,2,false], land:[2,2,false] },
+  6: { port:[2,3,false], land:[3,2,false] },
+  8: { port:[2,4,false], land:[4,2,false] },
+  9: { port:[3,3,false], land:[3,3,false] },
+};
+function getLayout(n) {
+  const cfg = NUP_LAYOUTS[n] || NUP_LAYOUTS[2];
+  const [cols, rows, rotate] = landscape ? cfg.land : cfg.port;
+  return { cols, rows, rotate };
+}
+
+const PAPER = { a4:[210,297], a3:[297,420], b4:[250,354], b5:[176,250], letter:[216,279] };
+
+function detectPaperSizeMm(wMm, hMm) {
+  const nw = Math.min(wMm, hMm), nh = Math.max(wMm, hMm);
+  for (const [name, [pw, ph]] of Object.entries(PAPER)) {
+    if (Math.abs(nw - pw) <= 3 && Math.abs(nh - ph) <= 3) return { name };
+  }
+  return { name: 'custom' };
+}
+function getSettings() {
+  let pw0, ph0;
+  if ($('paperSize').value === 'custom') {
+    pw0 = parseFloat($('customW').value) || 210;
+    ph0 = parseFloat($('customH').value) || 297;
+  } else {
+    [pw0, ph0] = PAPER[$('paperSize').value || 'a4'];
+  }
+  return {
+    pw: landscape ? ph0 : pw0,
+    ph: landscape ? pw0 : ph0,
+    mh: parseFloat($('marginH').value) || 10,
+    mv: parseFloat($('marginV').value) || 10,
+    gp: parseFloat($('gap').value) || 5,
+  };
+}
+
+// ── Status ────────────────────────────────────────────────────────────
+function showStatus(msg, type='info') {
+  const el = $('statusBar'); el.style.display = 'flex';
+  el.className = 'status-bar' + (type==='error' ? ' error' : type==='success' ? ' success' : '');
+  el.innerHTML = type==='info'
+    ? `<div class="spinner"></div><span>${msg}</span>`
+    : `<span>${type==='error' ? '❌' : '✅'} ${msg}</span>`;
+}
+function hideStatus() { $('statusBar').style.display = 'none'; }
+
+// ── Section collapse ─────────────────────────────────────────────────
+document.querySelectorAll('.sec-head[data-sec]').forEach(head => {
+  head.addEventListener('click', () => {
+    const body = $('sb-' + head.dataset.sec);
+    if (!body) return;
+    head.classList.toggle('collapsed');
+    body.classList.toggle('hidden');
+  });
+});
+
+// ── Upload mode ───────────────────────────────────────────────────────
+document.querySelectorAll('.mode-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.mode-btn').forEach(b => {
+      b.classList.remove('active','break-active');
+    });
+    _uploadMode = btn.dataset.mode;
+    if (_uploadMode === 'break') btn.classList.add('break-active');
+    else btn.classList.add('active');
+  });
+});
+
+// ── Upload zone ───────────────────────────────────────────────────────
+$('uploadZone').addEventListener('click', () => $('fileInput').click());
+$('fileInput').addEventListener('change', async e => {
+  const files = Array.from(e.target.files).filter(f =>
+    (f.type || '').includes('pdf') || /\.pdf$/i.test(f.name || '')
+  );
+  e.target.value = '';
+  for (const f of files) await handleFile(f);
+});
+$('uploadZone').addEventListener('dragover', e => { e.preventDefault(); $('uploadZone').classList.add('drag-over'); });
+$('uploadZone').addEventListener('dragleave', () => $('uploadZone').classList.remove('drag-over'));
+$('uploadZone').addEventListener('drop', async e => {
+  e.preventDefault(); $('uploadZone').classList.remove('drag-over');
+  const files = Array.from(e.dataTransfer.files).filter(f =>
+    (f.type || '').includes('pdf') || /\.pdf$/i.test(f.name || '')
+  );
+  for (const f of files) await handleFile(f);
+});
+
+// Allow dropping PDF anywhere on the page (main preview area or sidebar)
+document.addEventListener('dragover', e => {
+  if (e.dataTransfer && e.dataTransfer.types && e.dataTransfer.types.includes('Files')) e.preventDefault();
+});
+document.addEventListener('drop', async e => {
+  if (!e.dataTransfer || !e.dataTransfer.files.length) return;
+  const pdfFiles = Array.from(e.dataTransfer.files).filter(f =>
+    (f.type || '').includes('pdf') || /\.pdf$/i.test(f.name || '')
+  );
+  if (!pdfFiles.length) return;
+  if (!e.target.closest('#uploadZone')) {
+    e.preventDefault();
+    for (const f of pdfFiles) await handleFile(f);
+  }
+});
+
+async function handleFile(file) {
+  const isPdf = file && ((file.type || '').includes('pdf') || /\.pdf$/i.test(file.name || ''));
+  if (!isPdf) {
+    showStatus('PDF 파일만 업로드할 수 있습니다.', 'error'); return;
+  }
+  const isNew = _uploadMode === 'new';
+  const isBreak = _uploadMode === 'break';
+
+  if (isNew) {
+    parsedPages = [];
+    uploadedFiles = [];
+    previewCanvases = [];
+    fileNupMap = {};
+    $('previewBtn').disabled = true;
+    $('downloadBtn').disabled = true;
+    $('previewScroll').innerHTML = '<div class="empty-state"><div class="icon">⏳</div><p>페이지 렌더링 중...</p></div>';
+  }
+
+  const fileIdx = uploadedFiles.length;
+  uploadedFiles.push(file);
+
+  showStatus(`"${file.name}" 로딩 중...`);
+  const shortName = file.name.length > 28 ? file.name.slice(0, 26) + '…' : file.name;
+
+  try {
+    const buf = await file.arrayBuffer();
+    const pdfDoc = await pdfjsLib.getDocument({ data: buf }).promise;
+    const total = pdfDoc.numPages;
+
+    for (let i = 1; i <= total; i++) {
+      showStatus(`"${shortName}" 렌더링 중... (${i} / ${total})`);
+      const pdfPage = await pdfDoc.getPage(i);
+      const thumbCanvas = await renderPdfPage(pdfPage, 0.9, 0);
+
+      // Auto-detect paper size from the first page of a brand-new import
+      if (isNew && i === 1 && $('autoDetectSize')?.checked) {
+        const vp = pdfPage.getViewport({ scale: 1 });
+        const wMm = Math.round(vp.width * 25.4 / 72);
+        const hMm = Math.round(vp.height * 25.4 / 72);
+        const detected = detectPaperSizeMm(wMm, hMm);
+        $('paperSize').value = detected.name;
+        $('customSizeRow').style.display = detected.name === 'custom' ? 'grid' : 'none';
+        if (detected.name === 'custom') {
+          $('customW').value = Math.min(wMm, hMm);
+          $('customH').value = Math.max(wMm, hMm);
+        }
+        const isLandscape = vp.width > vp.height;
+        landscape = isLandscape;
+        $('orientLand').classList.toggle('active', isLandscape);
+        $('orientPort').classList.toggle('active', !isLandscape);
+      }
+
+      const groupBreak = !isNew && isBreak && i === 1;
+      parsedPages.push({
+        id: makeId(), pdfPage, thumbCanvas,
+        excluded: false, nupOverride: null, nupDisabled: false,
+        sourceFile: shortName, groupBreak, rotation: 0, pageType: 'pdf',
+        file_index: fileIdx, page_index: i - 1,
+      });
+      await new Promise(r => setTimeout(r, 0));
+    }
+
+    renderThumbs();
+    $('previewBtn').disabled = false;
+    showStatus(`"${shortName}" ${total}페이지 로드 완료`, 'success');
+    setTimeout(hideStatus, 2500);
+    // Switch mode to 연속 after first upload
+    if (isNew) {
+      document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active','break-active'));
+      document.querySelector('.mode-btn[data-mode="cont"]').classList.add('active');
+      _uploadMode = 'cont';
+    }
+    // Build the preview directly in this call stack — no timer dependency
+    // (mobile/background tabs can throttle setTimeout/setInterval). The
+    // watchdog below is only a backstop if this somehow doesn't run.
+    try { await triggerPreview(); } catch (_) {}
+  } catch(e) {
+    console.error(e);
+    showStatus('파일 로딩 실패: ' + e.message, 'error');
+  }
+}
+
+// ── PDF page renderer ─────────────────────────────────────────────────
+async function renderPdfPage(pdfPage, scale, rotation) {
+  const viewport = pdfPage.getViewport({ scale, rotation });
+  const canvas = document.createElement('canvas');
+  canvas.width  = Math.floor(viewport.width);
+  canvas.height = Math.floor(viewport.height);
+  await pdfPage.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+  return canvas;
+}
+
+// ── Divider canvas renderer ───────────────────────────────────────────
+function renderDividerCanvas(content, w, h) {
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  const ctx = c.getContext('2d');
+  const bg = content.bg || '#1a365d';
+  const fg = content.fg || '#ffffff';
+  const style = content.style || 'simple';
+  const noBg = !!content.noBg;
+
+  if (noBg) {
+    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, w, h);
+  } else {
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, w, h);
+  }
+
+  if (!noBg && style === 'band') {
+    const darker = shiftColor(bg, -40);
+    ctx.fillStyle = darker;
+    ctx.fillRect(0, 0, w * 0.07, h);
+    ctx.fillRect(w * 0.93, 0, w * 0.07, h);
+  }
+
+  const vAlign = content.textVAlign || 'center';
+  const vOffsetPct = (content.textVOffset || 0) / 100;
+  let baseY = vAlign === 'top' ? h * 0.22 : vAlign === 'bottom' ? h * 0.78 : h * 0.5;
+  baseY += h * vOffsetPct;
+  const cy = baseY;
+  const titleOffset = content.subtitle ? -h * 0.06 : 0;
+  const drawFg = noBg ? '#111827' : fg;
+
+  if (style === 'lines') {
+    ctx.save();
+    ctx.strokeStyle = drawFg; ctx.globalAlpha = 0.4;
+    ctx.lineWidth = Math.max(1, h * 0.003);
+    ctx.beginPath();
+    ctx.moveTo(w * 0.1, cy + titleOffset - h * 0.09);
+    ctx.lineTo(w * 0.9, cy + titleOffset - h * 0.09);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  if (content.title) {
+    const fs = Math.min(w * 0.1, h * 0.1, 90);
+    ctx.fillStyle = drawFg;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.font = `bold ${fs}px "Pretendard", "Malgun Gothic", serif`;
+    ctx.fillText(content.title, w/2, cy + titleOffset);
+  }
+
+  if (style === 'lines') {
+    ctx.save();
+    ctx.strokeStyle = drawFg; ctx.globalAlpha = 0.4;
+    ctx.lineWidth = Math.max(1, h * 0.003);
+    ctx.beginPath();
+    ctx.moveTo(w * 0.1, cy + titleOffset + h * 0.09);
+    ctx.lineTo(w * 0.9, cy + titleOffset + h * 0.09);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  if (content.subtitle) {
+    const fs2 = Math.min(w * 0.055, h * 0.055, 50);
+    ctx.fillStyle = drawFg; ctx.globalAlpha = 0.8;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.font = `${fs2}px "Pretendard", "Malgun Gothic", sans-serif`;
+    ctx.fillText(content.subtitle, w/2, cy + h * 0.08);
+    ctx.globalAlpha = 1;
+  }
+
+  if (content.note) {
+    const fs3 = Math.min(w * 0.035, h * 0.035, 30);
+    ctx.fillStyle = drawFg; ctx.globalAlpha = 0.55;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.font = `${fs3}px "Pretendard", "Malgun Gothic", sans-serif`;
+    ctx.fillText(content.note, w/2, h * 0.88);
+    ctx.globalAlpha = 1;
+  }
+  return c;
+}
+
+function shiftColor(hex, amount) {
+  const n = parseInt(hex.replace('#',''), 16);
+  const r = Math.max(0, Math.min(255, (n >> 16) + amount));
+  const g = Math.max(0, Math.min(255, ((n >> 8) & 0xff) + amount));
+  const b = Math.max(0, Math.min(255, (n & 0xff) + amount));
+  return '#' + [r,g,b].map(v => v.toString(16).padStart(2,'0')).join('');
+}
+
+// ── Blank / divider page objects ──────────────────────────────────────
+function makeBlankPage() {
+  const c = document.createElement('canvas');
+  c.width = 595; c.height = 842;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#fff'; ctx.fillRect(0,0,c.width,c.height);
+  ctx.strokeStyle = '#e5e7eb'; ctx.lineWidth = 2;
+  ctx.strokeRect(4, 4, c.width-8, c.height-8);
+  return { id: makeId(), pdfPage: null, thumbCanvas: c,
+    excluded: false, nupOverride: null, nupDisabled: true,
+    sourceFile: '빈 페이지', groupBreak: false, rotation: 0, pageType: 'blank',
+    dividerContent: { noBg: true, title: '', subtitle: '', bg: '#ffffff', fg: '#111827', style: 'simple' } };
+}
+
+function makeDividerPageObj(content) {
+  const thumb = renderDividerCanvas(content, 200, 283);
+  return { id: makeId(), pdfPage: null, thumbCanvas: thumb,
+    excluded: false, nupOverride: null, nupDisabled: true,
+    sourceFile: '간지', groupBreak: false, rotation: 0,
+    pageType: 'divider', dividerContent: { ...content } };
+}
+
+function insertAfterLastSelected(page) {
+  const lastExcluded = [...parsedPages].map((p,i) => p.excluded ? -1 : i).filter(i => i >= 0);
+  // Find insertion point: after last non-excluded or append
+  const insertAfter = lastExcluded.length ? lastExcluded[lastExcluded.length - 1] : parsedPages.length - 1;
+  parsedPages.splice(insertAfter + 1, 0, page);
+  renderThumbs();
+}
+
+// ── Divider modal ─────────────────────────────────────────────────────
+function getDividerContent() {
+  return {
+    title: $('dividerTitle').value,
+    subtitle: $('dividerSubtitle').value,
+    note: $('dividerNote').value,
+    bg: $('dividerBg').value,
+    fg: $('dividerFg').value,
+    style: _dividerStyle,
+    noBg: $('dividerNoBg').checked,
+    textVAlign: _dividerVAlign,
+    textVOffset: parseInt($('dividerVOffset').value, 10) || 0,
+  };
+}
+
+function updateDividerPreview() {
+  const canvas = $('dividerPrevCanvas');
+  const wrap = canvas.parentElement;
+  const w = wrap.clientWidth || 300;
+  const h = Math.round(w / 0.707);
+  canvas.width = w; canvas.height = h;
+  const tmp = renderDividerCanvas(getDividerContent(), w, h);
+  canvas.getContext('2d').drawImage(tmp, 0, 0);
+}
+
+['dividerTitle','dividerSubtitle','dividerNote'].forEach(id =>
+  $(id).addEventListener('input', updateDividerPreview));
+['dividerBg','dividerFg'].forEach(id =>
+  $(id).addEventListener('input', updateDividerPreview));
+$('dividerNoBg').addEventListener('change', () => {
+  $('dividerBg').disabled = $('dividerNoBg').checked;
+  updateDividerPreview();
+});
+
+document.querySelectorAll('#dividerStyleRow .style-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#dividerStyleRow .style-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    _dividerStyle = btn.dataset.style;
+    updateDividerPreview();
+  });
+});
+
+document.querySelectorAll('#dividerVAlignRow .style-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#dividerVAlignRow .style-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    _dividerVAlign = btn.dataset.valign;
+    updateDividerPreview();
+  });
+});
+
+$('dividerVOffset').addEventListener('input', () => {
+  $('dividerVOffsetVal').textContent = $('dividerVOffset').value + '%';
+  updateDividerPreview();
+});
+
+$('dividerModalClose').addEventListener('click', closeDividerModal);
+$('dividerCancelBtn').addEventListener('click', closeDividerModal);
+function closeDividerModal() { $('dividerModal').style.display = 'none'; _editingDividerPage = null; _insertIndex = -1; }
+
+$('dividerConfirmBtn').addEventListener('click', () => {
+  const content = getDividerContent();
+  if (_editingDividerPage) {
+    _editingDividerPage.dividerContent = { ...content };
+    _editingDividerPage.thumbCanvas = renderDividerCanvas(content, 200, 283);
+    renderThumbs();
+    if (previewCanvases.length > 0) triggerPreview();
+  } else {
+    const idx = _insertIndex >= 0 ? _insertIndex : parsedPages.length;
+    parsedPages.splice(idx, 0, makeDividerPageObj(content));
+    renderThumbs();
+    if (previewCanvases.length > 0) triggerPreview();
+  }
+  closeDividerModal();
+});
+
+// Edit existing divider
+function editDivider(page) {
+  _editingDividerPage = page;
+  const c = page.dividerContent;
+  $('dividerTitle').value = c.title || '';
+  $('dividerSubtitle').value = c.subtitle || '';
+  $('dividerNote').value = c.note || '';
+  $('dividerBg').value = c.bg || '#1a365d';
+  $('dividerFg').value = c.fg || '#ffffff';
+  $('dividerNoBg').checked = !!c.noBg;
+  _dividerStyle = c.style || 'simple';
+  document.querySelectorAll('.style-btn').forEach(b => b.classList.toggle('active', b.dataset.style === _dividerStyle));
+  _dividerVAlign = c.textVAlign || 'center';
+  document.querySelectorAll('[data-valign]').forEach(b => b.classList.toggle('active', b.dataset.valign === _dividerVAlign));
+  $('dividerVOffset').value = c.textVOffset ?? 0;
+  $('dividerVOffsetVal').textContent = (c.textVOffset ?? 0) + '%';
+  $('dividerConfirmBtn').textContent = '저장';
+  $('dividerModal').style.display = 'flex';
+  setTimeout(updateDividerPreview, 50);
+}
+
+// ── Insert index for divider modal ────────────────────────────────────
+let _insertIndex = -1; // parsedPages splice index (-1 = append)
+
+function openDividerInsert(spliceIdx) {
+  _insertIndex = spliceIdx;
+  _editingDividerPage = null;
+  $('dividerTitle').value = '';
+  $('dividerSubtitle').value = '';
+  $('dividerNote').value = '';
+  $('dividerBg').value = '#1a365d';
+  $('dividerBg').disabled = false;
+  $('dividerFg').value = '#ffffff';
+  $('dividerNoBg').checked = false;
+  _dividerStyle = 'simple';
+  document.querySelectorAll('.style-btn').forEach(b => b.classList.toggle('active', b.dataset.style === 'simple'));
+  _dividerVAlign = 'center';
+  document.querySelectorAll('[data-valign]').forEach(b => b.classList.toggle('active', b.dataset.valign === 'center'));
+  $('dividerVOffset').value = 0;
+  $('dividerVOffsetVal').textContent = '0%';
+  $('dividerConfirmBtn').textContent = '삽입';
+  $('dividerModal').style.display = 'flex';
+  setTimeout(updateDividerPreview, 50);
+}
+
+// ── File separator with per-file N-up selector ────────────────────────
+function makeFileSep(fileIdx, label) {
+  const sep = document.createElement('div');
+  sep.className = 'thumb-file-sep';
+
+  const l1 = document.createElement('div'); l1.className = 'thumb-file-sep-line';
+  const lbl = document.createElement('div');
+  lbl.className = 'thumb-file-sep-label';
+  lbl.textContent = label || '파일';
+
+  // N-up selector for this file
+  const selWrap = document.createElement('div');
+  selWrap.style.cssText = 'display:flex;align-items:center;gap:3px;flex-shrink:0;margin-left:4px;';
+  const selLbl = document.createElement('span');
+  selLbl.style.cssText = 'font-size:8px;font-weight:800;color:#64748b;white-space:nowrap;';
+  selLbl.textContent = '배치:';
+  const sel = document.createElement('select');
+  sel.style.cssText = 'border:1px solid #c4b5fd;border-radius:4px;padding:1px 4px;font-size:9px;font-weight:800;font-family:inherit;color:#5b21b6;background:#f5f3ff;cursor:pointer;';
+  [['', '기본'], ['1','1장'], ['2','2장'], ['4','4장'], ['6','6장'], ['8','8장'], ['9','9장']].forEach(([val, txt]) => {
+    const opt = document.createElement('option');
+    opt.value = val; opt.textContent = txt;
+    const cur = fileNupMap[fileIdx];
+    if ((val === '' && cur === undefined) || (val !== '' && Number(val) === cur)) opt.selected = true;
+    sel.appendChild(opt);
+  });
+  sel.addEventListener('change', () => {
+    if (sel.value === '') { delete fileNupMap[fileIdx]; }
+    else { fileNupMap[fileIdx] = parseInt(sel.value); }
+    if (previewCanvases.length > 0) triggerPreview();
+  });
+  selWrap.appendChild(selLbl); selWrap.appendChild(sel);
+
+  const l2 = document.createElement('div'); l2.className = 'thumb-file-sep-line';
+  sep.appendChild(l1); sep.appendChild(lbl); sep.appendChild(selWrap); sep.appendChild(l2);
+  return sep;
+}
+
+// ── Thumbnails ────────────────────────────────────────────────────────
+function renderThumbs() {
+  const area = $('thumbArea');
+  area.innerHTML = '';
+
+  // Detect multiple files to show per-file N-up selectors
+  const fileIndices = [...new Set(parsedPages.map(p => p.file_index).filter(i => i !== undefined))];
+  const multiFile = fileIndices.length > 1;
+  let lastSeenFileIdx = undefined;
+
+  parsedPages.forEach((page, i) => {
+    // Add a file separator at the start of each file's pages when multiple files are loaded
+    if (multiFile && page.file_index !== undefined && page.file_index !== lastSeenFileIdx) {
+      lastSeenFileIdx = page.file_index;
+      area.appendChild(makeFileSep(page.file_index, page.sourceFile || '파일'));
+    }
+
+    const item = document.createElement('div');
+    item.className = 'thumb-item';
+    item.dataset.id = page.id;
+    item.draggable = true;
+
+    const wrap = document.createElement('div');
+    wrap.className = 'thumb-wrap' + (page.excluded ? ' excluded' : '');
+
+    if (page.pageType === 'divider') {
+      const inner = document.createElement('div');
+      inner.className = 'divider-thumb';
+      inner.style.background = page.dividerContent.bg || '#1a365d';
+      inner.style.color = page.dividerContent.fg || '#fff';
+      if (page.dividerContent.title) {
+        const t = document.createElement('div');
+        t.className = 'dth-title'; t.textContent = page.dividerContent.title;
+        inner.appendChild(t);
+      }
+      if (page.dividerContent.subtitle) {
+        const s = document.createElement('div');
+        s.className = 'dth-sub'; s.textContent = page.dividerContent.subtitle;
+        inner.appendChild(s);
+      }
+      wrap.appendChild(inner);
+    } else {
+      const c = document.createElement('canvas');
+      c.width = page.thumbCanvas.width; c.height = page.thumbCanvas.height;
+      c.getContext('2d').drawImage(page.thumbCanvas, 0, 0);
+      wrap.appendChild(c);
+    }
+
+    const num = document.createElement('div');
+    num.className = 'thumb-num'; num.textContent = i + 1;
+    wrap.appendChild(num);
+
+    if (page.rotation) {
+      const rb = document.createElement('div');
+      rb.className = 'thumb-badge-tl'; rb.textContent = page.rotation + '°';
+      wrap.appendChild(rb);
+    }
+    if (page.excluded) {
+      const ex = document.createElement('div');
+      ex.className = 'thumb-ex'; ex.textContent = '✕';
+      wrap.appendChild(ex);
+    }
+
+    wrap.addEventListener('click', () => {
+      page.excluded = !page.excluded;
+      wrap.classList.toggle('excluded', page.excluded);
+      if (page.excluded) {
+        if (!wrap.querySelector('.thumb-ex')) {
+          const ex = document.createElement('div'); ex.className = 'thumb-ex'; ex.textContent = '✕';
+          wrap.appendChild(ex);
+        }
+      } else { wrap.querySelector('.thumb-ex')?.remove(); }
+      schedulePreview(300);
+    });
+
+    wrap.addEventListener('contextmenu', e => {
+      if (window._openThumbCtxMenu) window._openThumbCtxMenu(e, page, i);
+    });
+
+    item.addEventListener('dragstart', e => {
+      _dragSrcId = page.id;
+      e.dataTransfer.effectAllowed = 'move';
+      setTimeout(() => item.classList.add('dragging'), 0);
+    });
+    item.addEventListener('dragend', () => item.classList.remove('dragging'));
+    item.addEventListener('dragover', e => { e.preventDefault(); item.classList.add('drag-target'); });
+    item.addEventListener('dragleave', () => item.classList.remove('drag-target'));
+    item.addEventListener('drop', e => {
+      e.preventDefault(); item.classList.remove('drag-target');
+      if (!_dragSrcId || _dragSrcId === page.id) return;
+      const si = parsedPages.findIndex(p => p.id === _dragSrcId);
+      const ti = parsedPages.findIndex(p => p.id === page.id);
+      if (si < 0 || ti < 0) return;
+      const [moved] = parsedPages.splice(si, 1);
+      parsedPages.splice(si < ti ? ti - 1 : ti, 0, moved);
+      _dragSrcId = null;
+      renderThumbs();
+      schedulePreview(300);
+    });
+
+    item.appendChild(wrap);
+    area.appendChild(item);
+  });
+
+  const total = parsedPages.length;
+  const active = parsedPages.filter(p => !p.excluded).length;
+  $('slideCount').textContent = `${active}/${total}p`;
+  $('thumbSection').style.display = total ? 'block' : 'none';
+}
+
+// ── Per-page N-up popup ───────────────────────────────────────────────
+function showNupPopup(btn, page) {
+  _nupPopup?.remove();
+  const popup = document.createElement('div');
+  popup.className = 'nup-popup'; _nupPopup = popup;
+  [null, 1, 2, 4, 6, 8, 9].forEach(n => {
+    const b = document.createElement('button');
+    b.textContent = n === null ? '기본' : n + '장';
+    if (page.nupOverride === n) b.classList.add('active');
+    b.addEventListener('click', e => {
+      e.stopPropagation();
+      page.nupOverride = n; popup.remove(); _nupPopup = null;
+      renderThumbs();
+      schedulePreview(300);
+    });
+    popup.appendChild(b);
+  });
+  document.body.appendChild(popup);
+  const rect = btn.getBoundingClientRect();
+  popup.style.top  = (rect.bottom + window.scrollY + 4) + 'px';
+  popup.style.left = Math.min(rect.left, window.innerWidth - 180) + 'px';
+  setTimeout(() => {
+    document.addEventListener('click', () => { popup.remove(); _nupPopup = null; }, { once: true });
+  }, 0);
+}
+
+// ── Group pages by N-up ───────────────────────────────────────────────
+function groupByNup(pages) {
+  if (!pages.length) return [];
+  const groups = [];
+  for (const page of pages) {
+    if (page.nupDisabled) {
+      groups.push({ n: 1, pages: [page] });
+    } else {
+      const fileNup = (page.file_index !== undefined) ? fileNupMap[page.file_index] : undefined;
+      const n = page.nupOverride ?? fileNup ?? nup;
+      const last = groups[groups.length - 1];
+      if (last && !last.pages[0].nupDisabled && last.n === n && !page.groupBreak) {
+        last.pages.push(page);
+      } else {
+        groups.push({ n, pages: [page] });
+      }
+    }
+  }
+  return groups;
+}
+
+// ── Draw one page into a cell (auto-rotates 90° when it gives ≥10% better fit) ──
+function drawPageInCell(ctx, src, cellX, cellY, cellW, cellH) {
+  const pw = src.width, ph = src.height;
+  const s0  = Math.min(cellW / pw, cellH / ph);
+  const s90 = Math.min(cellW / ph, cellH / pw);
+  const rot = s90 > s0 * 1.10;  // auto-rotate if 10%+ gain
+
+  if (rot) {
+    const s = s90;
+    const dw = ph * s, dh = pw * s;
+    const dx = cellX + (cellW - dw) / 2;
+    const dy = cellY + (cellH - dh) / 2;
+    ctx.save();
+    ctx.translate(dx + dw / 2, dy + dh / 2);
+    ctx.rotate(Math.PI / 2);
+    ctx.drawImage(src, -pw * s / 2, -ph * s / 2, pw * s, ph * s);
+    ctx.restore();
+    if (showBorder) {
+      ctx.strokeStyle = 'rgba(0,0,0,0.15)';
+      ctx.lineWidth = Math.max(0.4, cellW * 0.002);
+      ctx.strokeRect(dx, dy, dw, dh);
+    }
+  } else {
+    const s = s0;
+    const dw = pw * s, dh = ph * s;
+    const dx = cellX + (cellW - dw) / 2;
+    const dy = cellY + (cellH - dh) / 2;
+    ctx.drawImage(src, dx, dy, dw, dh);
+    if (showBorder) {
+      ctx.strokeStyle = 'rgba(0,0,0,0.15)';
+      ctx.lineWidth = Math.max(0.4, cellW * 0.002);
+      ctx.strokeRect(dx, dy, dw, dh);
+    }
+  }
+}
+
+// ── Get canvas for a page at given resolution ─────────────────────────
+function getPageSrc(page, mm2px, useHi) {
+  if (page.pageType === 'divider') {
+    const { pw, ph } = getSettings();
+    return renderDividerCanvas(page.dividerContent, Math.round(pw * mm2px), Math.round(ph * mm2px));
+  }
+  if (page.pageType === 'blank') {
+    const { pw, ph } = getSettings();
+    const c = document.createElement('canvas');
+    c.width = Math.round(pw * mm2px); c.height = Math.round(ph * mm2px);
+    c.getContext('2d').fillStyle = '#fff';
+    c.getContext('2d').fillRect(0, 0, c.width, c.height);
+    return c;
+  }
+  return (useHi && page.hiCanvas) ? page.hiCanvas : page.thumbCanvas;
+}
+
+// ── Build one output page ─────────────────────────────────────────────
+function buildOutputPage(groupPages, pageIdx, cols, rows, mm2px, useHi) {
+  const { pw, ph, mh, mv, gp } = getSettings();
+  const perPage = cols * rows;
+  const cellW = (pw - mh * 2 - gp * (cols - 1)) / cols;
+  const cellH = (ph - mv * 2 - gp * (rows - 1)) / rows;
+  const out = document.createElement('canvas');
+  out.width  = Math.round(pw * mm2px);
+  out.height = Math.round(ph * mm2px);
+  const ctx = out.getContext('2d');
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, out.width, out.height);
+  for (let s = 0; s < perPage; s++) {
+    const idx = pageIdx * perPage + s;
+    if (idx >= groupPages.length) break;
+    let col, row;
+    if (orderLR) { col = s % cols; row = Math.floor(s / cols); }
+    else          { col = Math.floor(s / rows); row = s % rows; }
+    const cellX = (mh + col * (cellW + gp)) * mm2px;
+    const cellY = (mv + row * (cellH + gp)) * mm2px;
+    const src = getPageSrc(groupPages[idx], mm2px, useHi);
+    drawPageInCell(ctx, src, cellX, cellY, cellW * mm2px, cellH * mm2px);
+  }
+  return out;
+}
+
+// ── Apply doc edits overlay ───────────────────────────────────────────
+function applyDocEdits(canvas, outputIdx, totalPages, mm2px) {
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width, h = canvas.height;
+  const today = new Date().toLocaleDateString('ko-KR');
+
+  // Page parity: outputIdx=0 → page 1 = odd
+  const isOddPage = outputIdx % 2 === 0;
+  const isMirror = facingPages && !isOddPage;
+
+  // Visible page number (accounting for excluded first)
+  const visibleNum = (pnExcludeFirst && outputIdx === 0)
+    ? null
+    : outputIdx + pnStart - (pnExcludeFirst ? 1 : 0);
+
+  function resolveVars(text) {
+    return text
+      .replace(/\{n\}/g, visibleNum !== null ? String(visibleNum) : '')
+      .replace(/\{total\}/g, String(totalPages))
+      .replace(/\{date\}/g, today);
+  }
+
+  // Watermark
+  if (wmEnabled && wmText.trim()) {
+    ctx.save();
+    ctx.globalAlpha = wmOpacity;
+    ctx.translate(w / 2, h / 2);
+    ctx.rotate(wmAngle * Math.PI / 180);
+    const fs = Math.min(w, h) * 0.15;
+    ctx.font = `bold ${fs}px "Pretendard","Malgun Gothic",Arial,sans-serif`;
+    ctx.fillStyle = wmColor;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(wmText, 0, 0);
+    ctx.restore();
+  }
+
+  // HF apply-to check
+  const hfShouldApply = hfApplyTo === 'all' ||
+    (hfApplyTo === 'odd' && isOddPage) ||
+    (hfApplyTo === 'even' && !isOddPage);
+
+  // Header/footer helper
+  const hfMarginPx = (hfMarginMm || 5) * mm2px;
+  function drawHFLine(y, left, center, right) {
+    const l = isMirror ? right : left;
+    const r = isMirror ? left : right;
+    const fs = hfFontSize * 0.353 * mm2px;
+    ctx.save();
+    ctx.fillStyle = hfColor;
+    ctx.font = `${fs}px "Pretendard","Malgun Gothic",Arial,sans-serif`;
+    ctx.textBaseline = 'middle';
+    if (l)      { ctx.textAlign = 'left';   ctx.fillText(resolveVars(l),      hfMarginPx, y); }
+    if (center) { ctx.textAlign = 'center'; ctx.fillText(resolveVars(center), w / 2, y); }
+    if (r)      { ctx.textAlign = 'right';  ctx.fillText(resolveVars(r),      w - hfMarginPx, y); }
+    ctx.restore();
+  }
+
+  if (hfEnabled && hfShouldApply) {
+    if (hfHL || hfHC || hfHR) drawHFLine(hfMarginPx, hfHL, hfHC, hfHR);
+    if (hfFL || hfFC || hfFR) drawHFLine(h - hfMarginPx, hfFL, hfFC, hfFR);
+  }
+
+  // PN apply-to check
+  const pnShouldApply = pnApplyTo === 'all' ||
+    (pnApplyTo === 'odd' && isOddPage) ||
+    (pnApplyTo === 'even' && !isOddPage);
+
+  // Page number
+  if (pnEnabled && pnShouldApply && visibleNum !== null) {
+    let numText;
+    const total2 = pnExcludeFirst ? totalPages - 1 : totalPages;
+    if (pnFormat === 'number')    numText = String(visibleNum);
+    else if (pnFormat === 'dash') numText = `- ${visibleNum} -`;
+    else                          numText = `${visibleNum} / ${total2 + pnStart - 1}`;
+
+    // Mirror position for facing pages on even pages
+    let [vert, horiz] = pnPosition.split('-');
+    if (isMirror) {
+      if (horiz === 'left') horiz = 'right';
+      else if (horiz === 'right') horiz = 'left';
+    }
+    const pnMarginPx = (pnMarginMm || 5) * mm2px;
+    const y = vert === 'top' ? pnMarginPx : h - pnMarginPx;
+    const x = horiz === 'center' ? w / 2 : (horiz === 'right' ? w - pnMarginPx : pnMarginPx);
+    const fs = pnFontSize * 0.353 * mm2px;
+    ctx.save();
+    ctx.fillStyle = pnColor;
+    ctx.font = `${fs}px "Pretendard","Malgun Gothic",Arial,sans-serif`;
+    ctx.textAlign = horiz === 'center' ? 'center' : (horiz === 'right' ? 'right' : 'left');
+    ctx.textBaseline = 'middle';
+    ctx.fillText(numText, x, y);
+    ctx.restore();
+  }
+}
+
+// Booklet imposition strips per nup (cols always 2, pad_unit always 4)
+const BOOKLET_STRIPS = { 2: 1, 4: 2, 6: 3, 8: 4 };
+
+// ── Booklet saddle-stitch reorder (mirrors backend _booklet_reorder) ──
+function bookletReorderPreview(pages, nupVal) {
+  const n_booklets = BOOKLET_STRIPS[nupVal];
+  if (!n_booklets) return [...pages];
+  const pad_unit = 4; // 2 cols × 2 sides
+  const n = pages.length;
+  const per_booklet = Math.ceil(n / n_booklets);
+  const padded_per = Math.ceil(per_booklet / pad_unit) * pad_unit;
+  const blank = { pageType: 'blank', _bookletBlank: true };
+  const sections = [];
+  for (let b = 0; b < n_booklets; b++) {
+    const start = b * per_booklet;
+    const end = Math.min(start + per_booklet, n);
+    const sec = pages.slice(start, end);
+    while (sec.length < padded_per) sec.push(blank);
+    sections.push(sec);
+  }
+  const n_output = padded_per / 2;
+  const result = [];
+  for (let op = 0; op < n_output; op++) {
+    for (let b = 0; b < n_booklets; b++) {
+      const N_b = padded_per;
+      const left_idx  = op % 2 === 0 ? N_b - 1 - op : op;
+      const right_idx = op % 2 === 0 ? op : N_b - 1 - op;
+      result.push(sections[b][left_idx]);
+      result.push(sections[b][right_idx]);
+    }
+  }
+  return result;
+}
+
+function updateBookletPadInfo() {
+  const info = document.getElementById('bookletPadInfo');
+  if (!info) return;
+  const checked = document.getElementById('bookletCheck')?.checked;
+  const n_booklets = BOOKLET_STRIPS[nup];
+  if (!checked || !n_booklets) { info.style.display = 'none'; return; }
+  const active = parsedPages.filter(p => !p.excluded).length;
+  const per_booklet = Math.ceil(active / n_booklets);
+  const padded_per = Math.ceil(per_booklet / 4) * 4;
+  const total = padded_per * n_booklets;
+  const added = total - active;
+  if (added > 0) {
+    info.textContent = `빈 페이지 ${added}장 추가 → 총 ${total}페이지`;
+    info.style.display = '';
+  } else {
+    info.style.display = 'none';
+  }
+}
+
+// ── Build all output pages ────────────────────────────────────────────
+async function buildAllPages(mm2px, useHi, overridePages = null) {
+  const active = overridePages || parsedPages.filter(p => !p.excluded);
+  const groups = groupByNup(active);
+  const out = [];
+  for (const grp of groups) {
+    const { cols, rows } = getLayout(grp.n);
+    const perPage = cols * rows;
+    for (let p = 0; p < Math.ceil(grp.pages.length / perPage); p++) {
+      out.push(buildOutputPage(grp.pages, p, cols, rows, mm2px, useHi));
+      await new Promise(r => setTimeout(r, 0));
+    }
+  }
+  // Apply doc edits (a single page failing must not wipe the whole preview)
+  out.forEach((canvas, idx) => {
+    try { applyDocEdits(canvas, idx, out.length, mm2px); }
+    catch (e) { console.warn('[preview] applyDocEdits failed on page', idx, e); }
+  });
+  return out;
+}
+
+// ── Preview ───────────────────────────────────────────────────────────
+let _previewInsertPoints = []; // [zoneIdx] = parsedPages splice index
+let _previewZoom = 1.0; // zoom multiplier
+let _previewPerRow = 2; // pages per row
+const ZOOM_STEPS = [0.5, 0.6, 0.75, 1.0, 1.25, 1.5, 2.0, 2.5, 3.0];
+const ZOOM_BASE_H = 280; // base page height in px at 100%
+
+function buildPreviewInsertPoints() {
+  const active = parsedPages.filter(p => !p.excluded);
+  if (!active.length) return [0];
+  const groups = groupByNup(active);
+  const points = [parsedPages.indexOf(active[0])];
+  for (const grp of groups) {
+    const { cols, rows } = getLayout(grp.n);
+    const perPage = cols * rows;
+    for (let p = 0; p < Math.ceil(grp.pages.length / perPage); p++) {
+      const lastInGroup = Math.min((p + 1) * perPage - 1, grp.pages.length - 1);
+      points.push(parsedPages.indexOf(grp.pages[lastInGroup]) + 1);
+    }
+  }
+  return points;
+}
+
+function makePreviewInsertZone(zoneIdx) {
+  const zone = document.createElement('div');
+  zone.className = 'prev-ins-zone';
+  const line = document.createElement('div');
+  line.className = 'prev-ins-line';
+  const btns = document.createElement('div');
+  btns.className = 'prev-ins-btns';
+
+  const blankBtn = document.createElement('button');
+  blankBtn.className = 'prev-ins-btn';
+  blankBtn.textContent = '+ 빈 페이지';
+  blankBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    const idx = _previewInsertPoints[zoneIdx] ?? parsedPages.length;
+    parsedPages.splice(idx, 0, makeBlankPage());
+    renderThumbs();
+    triggerPreview();
+  });
+
+  const divBtn = document.createElement('button');
+  divBtn.className = 'prev-ins-btn divider';
+  divBtn.textContent = '+ 간지';
+  divBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    openDividerInsert(_previewInsertPoints[zoneIdx] ?? parsedPages.length);
+  });
+
+  btns.appendChild(blankBtn);
+  btns.appendChild(divBtn);
+  zone.appendChild(line);
+  zone.appendChild(btns);
+  return zone;
+}
+
+function makeVerticalInsertZone(zoneIdx) {
+  const zone = document.createElement('div');
+  zone.className = 'prev-ins-zone-v';
+  const line = document.createElement('div');
+  line.className = 'prev-ins-line-v';
+  const btns = document.createElement('div');
+  btns.className = 'prev-ins-btns-v';
+
+  const blankBtn = document.createElement('button');
+  blankBtn.className = 'prev-ins-btn-v';
+  blankBtn.textContent = '+빈';
+  blankBtn.title = '빈 페이지 삽입';
+  blankBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    const idx = _previewInsertPoints[zoneIdx] ?? parsedPages.length;
+    parsedPages.splice(idx, 0, makeBlankPage());
+    renderThumbs();
+    triggerPreview();
+  });
+
+  const divBtn = document.createElement('button');
+  divBtn.className = 'prev-ins-btn-v divider';
+  divBtn.textContent = '+간지';
+  divBtn.title = '간지 삽입';
+  divBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    openDividerInsert(_previewInsertPoints[zoneIdx] ?? parsedPages.length);
+  });
+
+  btns.appendChild(blankBtn);
+  btns.appendChild(divBtn);
+  zone.appendChild(line);
+  zone.appendChild(btns);
+  return zone;
+}
+
+function showPreviewError(stage, err) {
+  const msg = (err && (err.stack || err.message)) ? (err.message || String(err)) : String(err);
+  console.error('[preview] failed at', stage, err);
+  const scroll = $('previewScroll');
+  if (scroll) {
+    scroll.innerHTML =
+      '<div style="margin:auto;max-width:420px;padding:20px;text-align:center;color:#991b1b;">' +
+      '<div style="font-size:32px;">⚠️</div>' +
+      '<div style="font-weight:900;font-size:14px;margin:8px 0;">미리보기 생성 실패</div>' +
+      '<div style="font-size:12px;color:#374151;">단계: <b>' + stage + '</b></div>' +
+      '<div style="font-size:12px;color:#374151;margin-top:6px;word-break:break-word;">' + (msg || '(메시지 없음)') + '</div>' +
+      '</div>';
+  }
+  showStatus('미리보기 오류(' + stage + '): ' + (msg || ''), 'error');
+}
+
+async function triggerPreview() {
+  if (!parsedPages.length) return;
+  showStatus('미리보기 생성 중...');
+  $('previewBtn').disabled = true; $('downloadBtn').disabled = true;
+  await new Promise(r => setTimeout(r, 10));
+  let stage = 'init';
+  try {
+    stage = 'filter';
+    const active = parsedPages.filter(p => !p.excluded);
+    if (!active.length) {
+      $('previewScroll').innerHTML = '<div class="empty-state"><div class="icon">🚫</div><p>활성 페이지가 없습니다.<br>제외된 페이지를 다시 포함해 주세요.</p></div>';
+      showStatus('활성 페이지가 없습니다.', 'error');
+      $('previewBtn').disabled = false;
+      return;
+    }
+    stage = 'booklet-reorder';
+    const useBooklet = (document.getElementById('bookletCheck')?.checked) && (nup in BOOKLET_STRIPS);
+    const previewPages = useBooklet ? bookletReorderPreview(active, nup) : null;
+    stage = 'build-pages';
+    previewCanvases = await buildAllPages(96 / 25.4, false, previewPages);
+    if (!previewCanvases || !previewCanvases.length) {
+      showPreviewError('build-pages', new Error('출력 페이지가 0개 생성됨 (활성 ' + active.length + '페이지)'));
+      $('previewBtn').disabled = false;
+      return;
+    }
+    stage = 'display';
+    displayPreview(previewCanvases, true);
+    window._markPreviewShown && window._markPreviewShown(parsedPages.length);
+    stage = 'labels';
+    const groups = groupByNup(active);
+    const summary = groups.length > 1
+      ? groups.map(g => `${g.n}장×${g.pages.length}`).join(', ')
+      : `${nup}장/페이지`;
+    const { pw, ph } = getSettings();
+    $('previewInfo').textContent = `활성 ${active.length}페이지 · ${summary} · ${pw}×${ph}mm ${landscape ? '가로' : '세로'}`;
+    $('previewPages').textContent = `총 ${previewCanvases.length}페이지`;
+    showStatus(`미리보기 완료 (${previewCanvases.length}페이지)`, 'success');
+    updateBookletPadInfo();
+    $('downloadBtn').disabled = false;
+    setTimeout(hideStatus, 2000);
+  } catch(e) {
+    showPreviewError(stage, e);
+  }
+  $('previewBtn').disabled = false;
+}
+
+$('previewBtn').addEventListener('click', triggerPreview);
+
+// ── Auto-preview (debounced) ──────────────────────────────────────────
+let _autoPreviewTimer = null;
+function schedulePreview(delay = 500) {
+  if (!parsedPages.length) return;
+  clearTimeout(_autoPreviewTimer);
+  _autoPreviewTimer = setTimeout(() => triggerPreview(), delay);
+}
+
+function updateZoomLabel() {
+  $('zoomLabel').textContent = Math.round(_previewZoom * 100) + '%';
+}
+
+function computeAutoZoom(perRow, canvas) {
+  const scroll = $('previewScroll');
+  const scrollW = scroll.clientWidth;
+  if (!scrollW || !canvas) return null;
+  const availW = scrollW - 24; // 12px padding each side
+  let pageSlotW;
+  if (perRow <= 1) {
+    pageSlotW = availW;
+  } else {
+    // flex row: perRow pages + (perRow-1) vertical insert zones (28px each), gap:8px between all items
+    const totalInsert = (perRow - 1) * 28;
+    const totalGap = (2 * perRow - 2) * 8;
+    pageSlotW = (availW - totalInsert - totalGap) / perRow;
+  }
+  if (pageSlotW <= 0) return null;
+  const aspectRatio = canvas.width / canvas.height;
+  const basePageW = ZOOM_BASE_H * aspectRatio;
+  return pageSlotW / basePageW;
+}
+
+function displayPreview(pages, autoFit = false) {
+  _previewInsertPoints = buildPreviewInsertPoints();
+  const scroll = $('previewScroll');
+  scroll.innerHTML = '';
+  const perRow = _previewPerRow;
+  if (autoFit && pages.length > 0) {
+    const z = computeAutoZoom(perRow, pages[0]);
+    if (z !== null && isFinite(z)) _previewZoom = z;
+  }
+  const previewH = Math.round(ZOOM_BASE_H * _previewZoom);
+  const numRows = pages.length === 0 ? 0 : Math.ceil(pages.length / perRow);
+
+  if (pages.length > 0 && perRow === 1) scroll.appendChild(makePreviewInsertZone(0));
+
+  for (let row = 0; row < numRows; row++) {
+    const rowDiv = document.createElement('div');
+    rowDiv.className = 'preview-row';
+    const start = row * perRow;
+    const end = Math.min(start + perRow, pages.length);
+    for (let i = start; i < end; i++) {
+      const canvas = pages[i];
+      const wrap = document.createElement('div');
+      wrap.className = 'page-preview';
+      wrap.style.width = Math.round(previewH * canvas.width / canvas.height) + 'px';
+      const c = document.createElement('canvas');
+      c.width = canvas.width; c.height = canvas.height;
+      c.getContext('2d').drawImage(canvas, 0, 0);
+      wrap.appendChild(c);
+      rowDiv.appendChild(wrap);
+      // Vertical insert zone between pages within the row (perRow >= 2)
+      if (perRow >= 2 && i < end - 1) {
+        rowDiv.appendChild(makeVerticalInsertZone(i + 1));
+      }
+    }
+    scroll.appendChild(rowDiv);
+    // Horizontal zone after each row only when perRow === 1
+    if (perRow === 1) scroll.appendChild(makePreviewInsertZone(end));
+  }
+  updateZoomLabel();
+}
+
+// ── PDF Download (via backend — vector quality) ───────────────────────
+$('downloadBtn').addEventListener('click', async () => {
+  if (!parsedPages.length || !uploadedFiles.length) return;
+
+  // Check that at least one page is not excluded
+  const hasVisible = parsedPages.some(p => !p.excluded);
+  if (!hasVisible) {
+    showStatus('모든 페이지가 제외되어 있습니다. 최소 하나의 페이지를 포함해야 합니다.', 'error');
+    return;
+  }
+
+  showStatus('파일 업로드 중...');
+  $('downloadBtn').disabled = true;
+  try {
+    const { pw, ph, mh, mv, gp } = getSettings();
+
+    // Map pnFormat string to backend enum
+    const pnFormatMap = { number: '1', 'number-total': '1/N', dash: '-1-', 'dash-total': '-1/N-' };
+
+    const VALID_NUP = new Set([1, 2, 4, 6, 8, 9]);
+    const settings = {
+      pages: parsedPages.map(p => {
+        const rawNup = p.nupOverride ?? (p.file_index !== undefined ? (fileNupMap[p.file_index] ?? null) : null);
+        const nupOvr = (rawNup !== null && VALID_NUP.has(Number(rawNup))) ? Number(rawNup) : null;
+        const pageType = p.pageType === 'pdf' ? 'normal' : (p.pageType || 'normal');
+        return {
+          file_index: p.file_index ?? 0,
+          page_index: p.page_index ?? 0,
+          rotation: p.rotation || 0,
+          nup_override: nupOvr,
+          nup_disabled: !!p.nupDisabled,
+          group_break: !!p.groupBreak,
+          excluded: !!p.excluded,
+          page_type: pageType,
+          divider_content: (p.pageType === 'divider' || p.pageType === 'blank')
+            ? JSON.stringify(p.dividerContent || {})
+            : null,
+          divider_style: p.dividerContent?.style || 'simple',
+        };
+      }),
+      nup_default: nup,
+      paper: { width_mm: pw, height_mm: ph },
+      margin_h_mm: mh,
+      margin_v_mm: mv,
+      gap_mm: gp,
+      fit_to_paper: true,
+      add_border: showBorder,
+      watermark: {
+        enabled: wmEnabled,
+        text: wmText,
+        opacity: wmOpacity,
+        angle: wmAngle,
+        color: wmColor,
+      },
+      header_footer: {
+        enabled: hfEnabled,
+        header_left: hfHL, header_center: hfHC, header_right: hfHR,
+        footer_left: hfFL, footer_center: hfFC, footer_right: hfFR,
+        font_size: hfFontSize,
+        color: hfColor,
+        apply_to: hfApplyTo,
+        margin_mm: parseFloat($('hfMarginMm').value) || 5,
+        sections: hfSections.map(s => ({
+          ranges: s.ranges || '',
+          header_left: s.header_left || '', header_center: s.header_center || '', header_right: s.header_right || '',
+          footer_left: s.footer_left || '', footer_center: s.footer_center || '', footer_right: s.footer_right || '',
+        })),
+      },
+      page_numbers: {
+        enabled: pnEnabled,
+        position: pnPosition,
+        format: pnFormatMap[pnFormat] || '1',
+        start: pnStart,
+        font_size: pnFontSize,
+        color: pnColor,
+        exclude_first: pnExcludeFirst,
+        apply_to: pnApplyTo,
+        margin_mm: parseFloat($('pnMarginMm').value) || 5,
+      },
+      facing_pages: facingPages,
+      booklet: document.getElementById('bookletCheck')?.checked ?? false,
+    };
+
+    const blob = await apiProcessPdf(uploadedFiles, settings, { onStatus: msg => showStatus(msg) });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const ts = new Date().toISOString().slice(0,16).replace('T','_').replace(':','-');
+    const filename = `pdf_edit_${ts}.pdf`;
+    a.href = url; a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+    showStatus('PDF 저장 완료! ☁️ 내 파일함에 업로드 중...', 'success');
+    saveToStorage(blob, filename)
+      .then(() => {
+        const el = $('statusBar');
+        el.style.display = 'flex';
+        el.className = 'status-bar success';
+        el.innerHTML = `<span>✅ 내 파일함에 저장 완료!</span><button onclick="openFileHistory()" style="margin-left:auto;border:1px solid #166534;border-radius:6px;padding:4px 12px;font-size:11px;font-weight:800;background:#dcfce7;color:#166534;cursor:pointer;font-family:inherit;">📂 내 파일함 보기</button>`;
+        setTimeout(hideStatus, 6000);
+      })
+      .catch(err => { console.error('Storage upload failed', err); showStatus('PDF 저장 완료! (파일함 업로드 실패)', 'success'); setTimeout(hideStatus, 3000); });
+  } catch(e) { showStatus('PDF 오류: ' + e.message, 'error'); }
+  $('downloadBtn').disabled = false;
+});
+
+// ── UI Controls ────────────────────────────────────────────────────────
+function updateNupBadges() {
+  [1,2,4,6,8,9].forEach(n => {
+    const cfg = NUP_LAYOUTS[n];
+    const [cols, rows] = landscape ? cfg.land : cfg.port;
+    const badge = $(`b${n}`); if (!badge) return;
+    badge.textContent = `${cols}×${rows}`;
+    badge.parentNode.querySelector('.nup-rot')?.remove();
+  });
+}
+
+document.querySelectorAll('.nup-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.nup-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    nup = parseInt(btn.dataset.nup);
+    const bookletRow = document.getElementById('bookletRow');
+    if (bookletRow) {
+      const supportsBooklet = nup in BOOKLET_STRIPS;
+      bookletRow.style.display = supportsBooklet ? '' : 'none';
+      if (!supportsBooklet) {
+        const bc = document.getElementById('bookletCheck');
+        if (bc) bc.checked = false;
+      }
+    }
+    updateBookletPadInfo();
+    if (parsedPages.length) setTimeout(triggerPreview, 50);
+  });
+});
+$('orderLR').addEventListener('click', () => { orderLR=true; $('orderLR').classList.add('active'); $('orderTB').classList.remove('active'); schedulePreview(200); });
+$('orderTB').addEventListener('click', () => { orderLR=false; $('orderTB').classList.add('active'); $('orderLR').classList.remove('active'); schedulePreview(200); });
+$('orientPort').addEventListener('click', () => { landscape=false; $('orientPort').classList.add('active'); $('orientLand').classList.remove('active'); updateNupBadges(); schedulePreview(200); });
+$('orientLand').addEventListener('click', () => { landscape=true; $('orientLand').classList.add('active'); $('orientPort').classList.remove('active'); updateNupBadges(); schedulePreview(200); });
+$('showBorder').addEventListener('change', () => { showBorder = $('showBorder').checked; schedulePreview(300); });
+$('paperSize').addEventListener('change', () => {
+  $('customSizeRow').style.display = $('paperSize').value === 'custom' ? 'grid' : 'none';
+  updateNupBadges();
+  schedulePreview(500);
+});
+['customW','customH','marginH','marginV','gap'].forEach(id => {
+  $(id).addEventListener('input', () => schedulePreview(600));
+});
+
+// Watermark controls
+$('wmEnabled').addEventListener('change', () => {
+  wmEnabled = $('wmEnabled').checked;
+  $('wmSettings').style.display = wmEnabled ? 'block' : 'none';
+  schedulePreview(300);
+});
+$('wmText').addEventListener('input', () => { wmText = $('wmText').value; schedulePreview(500); });
+$('wmColor').addEventListener('input', () => { wmColor = $('wmColor').value; schedulePreview(500); });
+$('wmOpacity').addEventListener('input', () => {
+  wmOpacity = parseFloat($('wmOpacity').value);
+  $('wmOpacityVal').textContent = Math.round(wmOpacity * 100) + '%';
+  schedulePreview(500);
+});
+$('wmAngle').addEventListener('input', () => {
+  wmAngle = parseFloat($('wmAngle').value);
+  $('wmAngleVal').textContent = wmAngle + '°';
+  schedulePreview(500);
+});
+document.querySelectorAll('.wm-preset').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.wm-preset').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    wmText = btn.dataset.text;
+    $('wmText').value = wmText;
+    schedulePreview(300);
+  });
+});
+
+// HF controls
+$('hfEnabled').addEventListener('change', () => {
+  hfEnabled = $('hfEnabled').checked;
+  $('hfSettings').style.display = hfEnabled ? 'block' : 'none';
+  schedulePreview(300);
+});
+['hfHL','hfHC','hfHR','hfFL','hfFC','hfFR'].forEach(id =>
+  $(id).addEventListener('input', () => { eval(id.replace('hf','hf') + " = $('" + id + "').value"); })
+);
+$('hfHL').addEventListener('input', () => { hfHL = $('hfHL').value; schedulePreview(500); });
+$('hfHC').addEventListener('input', () => { hfHC = $('hfHC').value; schedulePreview(500); });
+$('hfHR').addEventListener('input', () => { hfHR = $('hfHR').value; schedulePreview(500); });
+$('hfFL').addEventListener('input', () => { hfFL = $('hfFL').value; schedulePreview(500); });
+$('hfFC').addEventListener('input', () => { hfFC = $('hfFC').value; schedulePreview(500); });
+$('hfFR').addEventListener('input', () => { hfFR = $('hfFR').value; schedulePreview(500); });
+$('hfFontSize').addEventListener('input', () => { hfFontSize = parseFloat($('hfFontSize').value) || 9; schedulePreview(500); });
+$('hfColor').addEventListener('input', () => { hfColor = $('hfColor').value; schedulePreview(500); });
+$('hfMarginMm').addEventListener('input', () => { hfMarginMm = parseFloat($('hfMarginMm').value) || 5; schedulePreview(500); });
+$('hfApplyTo').addEventListener('change', () => { hfApplyTo = $('hfApplyTo').value; schedulePreview(300); });
+
+// HF Sections (per-range overrides)
+function renderHfSections() {
+  const list = $('hfSectionsList');
+  list.innerHTML = hfSections.map(s => `
+    <div class="hf-section-card" data-sid="${s._id}">
+      <div class="hf-section-head">
+        <span class="hf-section-label">구간</span>
+        <input class="hf-range-input" placeholder="페이지 범위 (예: 1-5,7,9-12)" value="${(s.ranges||'').replace(/"/g,'&quot;')}">
+        <button type="button" class="hf-section-del" title="구간 삭제">×</button>
+      </div>
+      <div class="grid3" style="margin-bottom:2px;">
+        <div class="hf-col-label">좌</div>
+        <div class="hf-col-label">가운데</div>
+        <div class="hf-col-label">우</div>
+      </div>
+      <div class="hf-row-label">머리말</div>
+      <div class="hf-grid" style="margin-bottom:5px;">
+        <input class="hf-input" data-fld="header_left"   placeholder="좌"      value="${(s.header_left||'').replace(/"/g,'&quot;')}">
+        <input class="hf-input" data-fld="header_center" placeholder="가운데"  value="${(s.header_center||'').replace(/"/g,'&quot;')}">
+        <input class="hf-input" data-fld="header_right"  placeholder="우"      value="${(s.header_right||'').replace(/"/g,'&quot;')}">
+      </div>
+      <div class="hf-row-label">꼬리말</div>
+      <div class="hf-grid">
+        <input class="hf-input" data-fld="footer_left"   placeholder="좌"      value="${(s.footer_left||'').replace(/"/g,'&quot;')}">
+        <input class="hf-input" data-fld="footer_center" placeholder="가운데"  value="${(s.footer_center||'').replace(/"/g,'&quot;')}">
+        <input class="hf-input" data-fld="footer_right"  placeholder="우"      value="${(s.footer_right||'').replace(/"/g,'&quot;')}">
+      </div>
+    </div>
+  `).join('');
+
+  list.querySelectorAll('.hf-section-card').forEach(card => {
+    const sid = +card.dataset.sid;
+    const sec = hfSections.find(x => x._id === sid);
+    if (!sec) return;
+    card.querySelector('.hf-range-input').addEventListener('input', e => { sec.ranges = e.target.value; });
+    card.querySelectorAll('input[data-fld]').forEach(inp => {
+      inp.addEventListener('input', e => { sec[e.target.dataset.fld] = e.target.value; });
+    });
+    card.querySelector('.hf-section-del').addEventListener('click', () => {
+      hfSections = hfSections.filter(x => x._id !== sid);
+      renderHfSections();
+    });
+  });
+}
+
+$('hfAddSectionBtn').addEventListener('click', () => {
+  hfSections.push({
+    _id: _hfSecId++,
+    ranges: '',
+    header_left: '', header_center: '', header_right: '',
+    footer_left: '', footer_center: '', footer_right: '',
+  });
+  renderHfSections();
+});
+
+// PN controls
+$('pnEnabled').addEventListener('change', () => {
+  pnEnabled = $('pnEnabled').checked;
+  $('pnSettings').style.display = pnEnabled ? 'block' : 'none';
+  schedulePreview(300);
+});
+document.querySelectorAll('.pn-pos-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.pn-pos-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    pnPosition = btn.dataset.pos;
+    schedulePreview(300);
+  });
+});
+$('pnFormat').addEventListener('change', () => { pnFormat = $('pnFormat').value; schedulePreview(300); });
+$('pnStart').addEventListener('input', () => { pnStart = parseInt($('pnStart').value) || 1; schedulePreview(500); });
+$('pnFontSize').addEventListener('input', () => { pnFontSize = parseFloat($('pnFontSize').value) || 10; schedulePreview(500); });
+$('pnColor').addEventListener('input', () => { pnColor = $('pnColor').value; schedulePreview(500); });
+$('pnExcludeFirst').addEventListener('change', () => { pnExcludeFirst = $('pnExcludeFirst').checked; schedulePreview(300); });
+$('pnMarginMm').addEventListener('input', () => { pnMarginMm = parseFloat($('pnMarginMm').value) || 5; schedulePreview(500); });
+$('pnApplyTo').addEventListener('change', () => { pnApplyTo = $('pnApplyTo').value; schedulePreview(300); });
+$('facingPages').addEventListener('change', () => { facingPages = $('facingPages').checked; schedulePreview(300); });
+document.getElementById('bookletCheck')?.addEventListener('change', () => { updateBookletPadInfo(); schedulePreview(); });
+
+// Reset
+$('resetBtn').addEventListener('click', () => {
+  parsedPages = []; previewCanvases = []; _nextId = 1;
+  $('fileInput').value = '';
+  $('previewBtn').disabled = true; $('downloadBtn').disabled = true;
+  $('previewInfo').textContent = 'PDF 파일을 업로드하면 미리보기가 표시됩니다.';
+  $('previewPages').textContent = '';
+  $('thumbArea').innerHTML = '';
+  $('thumbSection').style.display = 'none';
+  $('previewScroll').innerHTML = '<div class="empty-state"><div class="icon">📝</div><p>PDF 파일을 업로드하면<br>설정에 따라 <b>자동으로 미리보기</b>가 생성됩니다.</p></div>';
+  // Reset to new mode
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active','break-active'));
+  document.querySelector('.mode-btn[data-mode="new"]').classList.add('active');
+  _uploadMode = 'new';
+  hideStatus();
+});
+
+// Init
+updateNupBadges();
+
+// ── Auto-preview watchdog ─────────────────────────────────────────────
+// Reliably generates the preview after an upload, independent of any
+// external helper module. Polls: if pages exist but preview is missing or
+// stale, trigger it once per page set.
+(function () {
+  let shownForCount = -1;       // page count the preview was ACTUALLY built for
+  let attemptsForCount = 0;     // retry attempts for the current stale count
+  let lastCount = -1;
+  let running = false;
+
+  window._markPreviewShown = function(n) { shownForCount = n; attemptsForCount = 0; };
+
+  setInterval(async () => {
+    if (running) return;
+    if (!parsedPages.length) { shownForCount = -1; attemptsForCount = 0; lastCount = -1; return; }
+    // Preview already reflects the current page set — nothing to do
+    if (previewCanvases.length && shownForCount === parsedPages.length) return;
+    // Reset retry budget whenever the page count changes
+    if (parsedPages.length !== lastCount) { lastCount = parsedPages.length; attemptsForCount = 0; }
+    // Give up after a few tries so a genuine build error isn't retried forever
+    if (attemptsForCount >= 5) return;
+    if ($('previewBtn') && $('previewBtn').disabled) return; // build in progress
+    attemptsForCount++;
+    running = true;
+    try { await triggerPreview(); } catch (_) {} finally { running = false; }
+  }, 500);
+})();
+
+// ── Preview per-row & zoom controls ──────────────────────────────────
+$('perRowSelect').addEventListener('change', () => {
+  _previewPerRow = parseInt($('perRowSelect').value, 10) || 1;
+  if (previewCanvases.length > 0) displayPreview(previewCanvases, true); // auto-fit on column change
+});
+$('zoomInBtn').addEventListener('click', () => {
+  const cur = _previewZoom;
+  const next = ZOOM_STEPS.find(z => z > cur + 0.01) ?? ZOOM_STEPS[ZOOM_STEPS.length - 1];
+  if (next === cur) return;
+  _previewZoom = next;
+  if (previewCanvases.length > 0) displayPreview(previewCanvases);
+  else updateZoomLabel();
+});
+
+$('zoomOutBtn').addEventListener('click', () => {
+  const cur = _previewZoom;
+  const prev = [...ZOOM_STEPS].reverse().find(z => z < cur - 0.01) ?? ZOOM_STEPS[0];
+  if (prev === cur) return;
+  _previewZoom = prev;
+  if (previewCanvases.length > 0) displayPreview(previewCanvases);
+  else updateZoomLabel();
+});
+
+$('zoomResetBtn').addEventListener('click', () => {
+  if (previewCanvases.length > 0) displayPreview(previewCanvases, true); // auto-fit
+  else updateZoomLabel();
+});
+
+
+// ── Thumbnail right-click context menu ────────────────────────────────
+(function() {
+  const menu = document.createElement('div');
+  menu.id = 'thumbCtxMenu';
+  document.body.appendChild(menu);
+
+  let _ctxPage = null;
+  let _ctxPageIdx = -1;
+
+  function closeMenu() {
+    menu.classList.remove('open');
+    _ctxPage = null;
+    _ctxPageIdx = -1;
+  }
+
+  document.addEventListener('click', closeMenu);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMenu(); });
+  document.addEventListener('contextmenu', e => {
+    if (!e.target.closest('#thumbCtxMenu')) closeMenu();
+  });
+
+  function item(icon, label, cls, fn) {
+    const el = document.createElement('div');
+    el.className = 'ctx-item' + (cls ? ' ' + cls : '');
+    el.innerHTML = `<span class="ctx-icon">${icon}</span>${label}`;
+    el.addEventListener('click', e => { e.stopPropagation(); closeMenu(); fn(); });
+    return el;
+  }
+
+  function sep() {
+    const el = document.createElement('div');
+    el.className = 'ctx-sep';
+    return el;
+  }
+
+  async function rotateAndRefresh(page, deg) {
+    page.rotation = ((page.rotation || 0) + deg + 360) % 360;
+    if (page.pdfPage) {
+      page.thumbCanvas = await renderPdfPage(page.pdfPage, 0.9, page.rotation);
+      page.hiCanvas = null;
+    }
+    renderThumbs();
+    schedulePreview(300);
+  }
+
+  async function rotateAllAndRefresh(deg) {
+    const targets = parsedPages.filter(p => p.pageType === 'pdf' && p.pdfPage);
+    if (!targets.length) return;
+    showStatus(`전체 ${targets.length}페이지 회전 중...`);
+    for (const p of targets) {
+      p.rotation = ((p.rotation || 0) + deg + 360) % 360;
+      p.thumbCanvas = await renderPdfPage(p.pdfPage, 0.9, p.rotation);
+      p.hiCanvas = null;
+    }
+    hideStatus();
+    renderThumbs();
+    schedulePreview(300);
+  }
+
+  window._openThumbCtxMenu = async function(e, page, idx) {
+    e.preventDefault();
+    e.stopPropagation();
+    _ctxPage = page;
+    _ctxPageIdx = idx;
+
+    menu.innerHTML = '';
+    menu.appendChild(item('↻', '시계방향 90° 회전',   '', () => rotateAndRefresh(page, 90)));
+    menu.appendChild(item('↺', '시계반대방향 90° 회전', '', () => rotateAndRefresh(page, -90)));
+    menu.appendChild(item('⇅', '180° 회전',           '', () => rotateAndRefresh(page, 180)));
+    menu.appendChild(sep());
+    menu.appendChild(item('↻', '전체 시계방향 90° 회전',   'all-rotate', () => rotateAllAndRefresh(90)));
+    menu.appendChild(item('↺', '전체 시계반대방향 90° 회전', 'all-rotate', () => rotateAllAndRefresh(-90)));
+    menu.appendChild(item('⇅', '전체 180° 회전',           'all-rotate', () => rotateAllAndRefresh(180)));
+    menu.appendChild(sep());
+    menu.appendChild(item('⬆', '위에 빈 페이지 삽입', '', () => {
+      parsedPages.splice(idx, 0, makeBlankPage());
+      renderThumbs(); schedulePreview(300);
+    }));
+    menu.appendChild(item('⬇', '아래에 빈 페이지 삽입', '', () => {
+      parsedPages.splice(idx + 1, 0, makeBlankPage());
+      renderThumbs(); schedulePreview(300);
+    }));
+    menu.appendChild(sep());
+    menu.appendChild(item('🗑', '페이지 삭제', 'danger', () => {
+      parsedPages.splice(idx, 1);
+      renderThumbs(); schedulePreview(300);
+    }));
+
+    // Position menu, keep inside viewport
+    menu.classList.add('open');
+    const vw = window.innerWidth, vh = window.innerHeight;
+    const mw = menu.offsetWidth, mh = menu.offsetHeight;
+    let x = e.clientX, y = e.clientY;
+    if (x + mw > vw) x = vw - mw - 6;
+    if (y + mh > vh) y = vh - mh - 6;
+    menu.style.left = x + 'px';
+    menu.style.top  = y + 'px';
+  };
+})();
+</script>
+</body>
+</html>

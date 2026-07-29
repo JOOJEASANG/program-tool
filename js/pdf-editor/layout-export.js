@@ -1,40 +1,45 @@
 // PDF editor layout export module.
-// Sends independent paper margins, facing-page options, and page-number spacing to backend export.
+// Ensures paper margins and page gaps from the UI are sent to backend export.
 (function () {
-  'use strict';
-  if (window.__pdfEditorLayoutExportV5) return;
-  window.__pdfEditorLayoutExportV5 = true;
+  if (window.__pdfEditorLayoutExportV2) return;
+  window.__pdfEditorLayoutExportV2 = true;
 
   function $(id) { return document.getElementById(id); }
   function num(id, fallback) {
-    const value = Number($(id) && $(id).value);
-    return Number.isFinite(value) ? Math.max(0, Math.min(80, value)) : fallback;
-  }
-  function marginValues() {
-    const horizontal = num('marginH', 10);
-    const vertical = num('marginV', 10);
-    return {
-      left: num('marginLeft', horizontal),
-      right: num('marginRight', horizontal),
-      top: num('marginTop', vertical),
-      bottom: num('marginBottom', vertical),
-    };
+    const v = Number($(id) && $(id).value);
+    return Number.isFinite(v) ? v : fallback;
   }
   function patchSettings(settings) {
     if (!settings || typeof settings !== 'object') return settings;
-    const margins = marginValues();
-    settings.margin_left_mm = margins.left;
-    settings.margin_right_mm = margins.right;
-    settings.margin_top_mm = margins.top;
-    settings.margin_bottom_mm = margins.bottom;
-    // Keep paired values for backward compatibility with older Functions revisions.
-    settings.margin_h_mm = (margins.left + margins.right) / 2;
-    settings.margin_v_mm = (margins.top + margins.bottom) / 2;
+    settings.margin_h_mm = num('marginH', 10);
+    settings.margin_v_mm = num('marginV', 10);
     settings.gap_mm = num('gap', 5);
-    settings.facing_pages = !!($('facingPages') && $('facingPages').checked);
-    settings.page_numbers = settings.page_numbers || {};
-    settings.page_numbers.auto_reserve_space = !($('pnAutoReserve') && !$('pnAutoReserve').checked);
     return settings;
   }
-  window.PdfEditorLayoutExport = { patchSettings, marginValues };
+  function wrapApiProcessPdf() {
+    if (window.__pdfLayoutApiWrapped || typeof window.apiProcessPdf !== 'function') return;
+    const original = window.apiProcessPdf;
+    window.apiProcessPdf = function layoutPatchedApiProcessPdf(files, settings, options) {
+      return original.call(this, files, patchSettings(settings), options);
+    };
+    window.__pdfLayoutApiWrapped = true;
+  }
+  function wrapFetch() {
+    if (window.__pdfLayoutFetchWrapped) return;
+    const originalFetch = window.fetch.bind(window);
+    window.fetch = function layoutPatchedFetch(input, init) {
+      try {
+        const url = typeof input === 'string' ? input : (input && input.url) || '';
+        if (url.includes('/api/pdf/process') && init && init.body instanceof FormData) {
+          const raw = init.body.get('settings');
+          if (raw) init.body.set('settings', JSON.stringify(patchSettings(JSON.parse(raw))));
+        }
+      } catch (e) { console.warn('[pdf-layout] settings patch failed', e); }
+      return originalFetch(input, init);
+    };
+    window.__pdfLayoutFetchWrapped = true;
+  }
+  function boot() { wrapApiProcessPdf(); wrapFetch(); }
+  document.addEventListener('DOMContentLoaded', boot);
+  setInterval(boot, 1000);
 })();
