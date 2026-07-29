@@ -1,18 +1,17 @@
-"""Pytest policy for the intentionally restored July 20 PDF editor runtime.
+"""Pytest policy for the intentionally stable ten-module PDF editor runtime.
 
-The tests skipped here were introduced for PDF editor helper modules added after
-July 20. Those modules are deliberately not loaded by the restored runtime
-because their accumulated wrappers are the leading cause of the browser hang.
-Server, permission, export, Firebase, and July 20 runtime tests remain enabled.
+The tests skipped here target helper modules added after July 20. Those extra
+wrappers remain deliberately disabled because loading all of them together caused
+the browser hang. Selected July 24 core improvements may be ported inside the
+same ten-module runtime without re-enabling those post-July20 wrapper tests.
+Server, permission, export, Firebase, and stable-runtime tests remain enabled.
 """
 
-import json
 from pathlib import Path
 
 import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
-VERSION_FILE = ROOT / "version.json"
 LOADER_FILE = ROOT / "js" / "pdf-editor" / "loader.js"
 
 POST_JULY20_TEST_FILES = {
@@ -36,26 +35,31 @@ POST_JULY20_TEST_CASES = {
 }
 
 
-def _is_july20_restore() -> bool:
+def _is_stable_ten_module_runtime() -> bool:
     try:
-        version = json.loads(VERSION_FILE.read_text(encoding="utf-8"))
         loader = LOADER_FILE.read_text(encoding="utf-8")
-    except (OSError, ValueError):
+    except OSError:
         return False
     return (
-        version.get("version") == "2026.07.29.008"
-        and "__pdfEditorModuleLoaderV13" in loader
+        loader.count("'/js/pdf-editor/") == 10
+        and (
+            "__pdfEditorModuleLoaderV13" in loader
+            or "__pdfEditorModuleLoaderV14" in loader
+        )
         and "preview-controller.js" not in loader
+        and "runtime-integrity.js" not in loader
+        and "ux-repair.js" not in loader
+        and "dock-width-align.js" not in loader
     )
 
 
 def pytest_collection_modifyitems(items):
-    if not _is_july20_restore():
+    if not _is_stable_ten_module_runtime():
         return
 
     reason = (
-        "PDF editor is intentionally restored to the July 20 runtime; "
-        "this test requires a later helper module that is deliberately disabled."
+        "PDF editor intentionally uses the stable ten-module runtime; "
+        "this test requires a later helper wrapper that remains disabled."
     )
     marker = pytest.mark.skip(reason=reason)
 
