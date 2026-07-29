@@ -1,0 +1,115 @@
+name: Restore PDF editor to July 20
+
+on:
+  push:
+    branches:
+      - agent/restore-pdf-editor-july20
+
+permissions:
+  contents: write
+
+jobs:
+  restore:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: agent/restore-pdf-editor-july20
+          fetch-depth: 0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.11'
+      - name: Restore the exact July 20 PDF editor runtime
+        run: |
+          git checkout 7a6fa3d1bbad1dcfa8e2acd62cf12057532d5b66 -- \
+            tools/pdf-editor.html \
+            js/pdf-editor/loader.js \
+            js/pdf-editor/font-render-fix.js \
+            js/pdf-editor/upload-fix.js \
+            js/pdf-editor/live-preview.js \
+            js/pdf-editor/layout-export.js \
+            js/pdf-editor/page-count-hint.js \
+            js/pdf-editor/nup-helper.js \
+            js/pdf-editor/preview-row-default.js \
+            js/pdf-editor/divider-helper.js \
+            js/pdf-editor/storage-cleanup.js \
+            js/pdf-editor/history-policy.js
+          cp tools/pdf-editor.html pdf-editor/index.html
+      - name: Force browsers to receive the restored runtime
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          version = '2026.07.29.008'
+          replacements = {
+              Path('js/firebase-config.js'): [('2026.07.29.007', version)],
+              Path('js/sw-register.js'): [('2026.07.29.007', version)],
+              Path('sw.js'): [('2026.07.29.007', version)],
+          }
+          for path, pairs in replacements.items():
+              text = path.read_text(encoding='utf-8')
+              for old, new in pairs:
+                  if old not in text:
+                      raise SystemExit(f'{old} not found in {path}')
+                  text = text.replace(old, new)
+              path.write_text(text, encoding='utf-8')
+
+          Path('version.json').write_text(json.dumps({
+              'version': version,
+              'label': 'PDF 편집기 7월 20일 정상본 복원',
+              'updatedAt': '2026-07-29T10:55:00+09:00',
+          }, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+          PY
+      - name: Add regression guard for the restored runtime
+        run: |
+          cat > backend/tests/test_pdf_editor_july20_runtime.py <<'PY'
+          from pathlib import Path
+
+          ROOT = Path(__file__).resolve().parents[2]
+          LOADER = ROOT / 'js' / 'pdf-editor' / 'loader.js'
+          TOOL = ROOT / 'tools' / 'pdf-editor.html'
+          ROUTE = ROOT / 'pdf-editor' / 'index.html'
+
+          JULY20_MODULES = [
+              '/js/pdf-editor/font-render-fix.js',
+              '/js/pdf-editor/upload-fix.js',
+              '/js/pdf-editor/live-preview.js',
+              '/js/pdf-editor/layout-export.js',
+              '/js/pdf-editor/page-count-hint.js',
+              '/js/pdf-editor/nup-helper.js',
+              '/js/pdf-editor/preview-row-default.js',
+              '/js/pdf-editor/divider-helper.js',
+              '/js/pdf-editor/storage-cleanup.js',
+              '/js/pdf-editor/history-policy.js',
+          ]
+
+          def test_loader_is_exact_july20_runtime():
+              text = LOADER.read_text(encoding='utf-8')
+              assert '__pdfEditorModuleLoaderV13' in text
+              for module in JULY20_MODULES:
+                  assert module in text
+              assert text.count("'/js/pdf-editor/") == len(JULY20_MODULES)
+              assert 'preview-controller.js' not in text
+              assert 'runtime-integrity.js' not in text
+              assert 'ux-repair.js' not in text
+              assert 'dock-width-align.js' not in text
+
+          def test_both_public_entrypoints_use_the_same_restored_editor():
+              assert TOOL.read_bytes() == ROUTE.read_bytes()
+          PY
+      - name: Remove one-time workflow and validate
+        run: |
+          rm .github/workflows/restore-pdf-editor-july20.yml
+          python scripts/check_inline_js.py
+          python scripts/check_version_sync.py
+          python scripts/validate_static_references.py
+          python -m pytest backend/tests/test_pdf_editor_july20_runtime.py backend/tests/test_pdf_editor_approved_access_compat.py -q
+      - name: Commit restored editor
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add tools/pdf-editor.html pdf-editor/index.html js/pdf-editor js/firebase-config.js js/sw-register.js sw.js version.json backend/tests/test_pdf_editor_july20_runtime.py .github/workflows/restore-pdf-editor-july20.yml
+          git commit -m "PDF 편집기를 7월 20일 정상 동작본으로 복원"
+          git push origin HEAD:agent/restore-pdf-editor-july20
