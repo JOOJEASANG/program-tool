@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>PDF 편집 · Program Tool</title>
+  <title>PDF 문서 편집기 · Program Tool</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
   <style>
     :root {
@@ -313,7 +313,7 @@
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
     목록으로
   </a>
-  <div class="nav-title">📝 PDF 편집</div>
+  <div class="nav-title">📝 PDF 문서 편집기</div>
   <div class="nav-user">
     <button class="nav-history-btn" id="navSessionBtn" style="display:none;">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
@@ -322,6 +322,10 @@
     <button class="nav-history-btn" id="navSessionLoadBtn" style="display:none;">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
       편집 불러오기
+    </button>
+    <button class="nav-history-btn" id="navHistoryBtn" style="display:none;">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      내 파일함
     </button>
     <span class="nav-user-name" id="navUserName"></span>
     <button class="nav-logout" id="navLogout">
@@ -333,7 +337,7 @@
 
 <div class="app">
   <aside>
-    <h1>PDF 편집</h1>
+    <h1>PDF 문서 편집기</h1>
     <div class="sub">PDF 업로드 · 페이지 편집 · 간지 삽입 · 머리말/꼬리말 · 워터마크 · N-up 인쇄</div>
 
     <!-- 업로드 -->
@@ -650,6 +654,21 @@
 </div>
 
 <!-- Divider Page Modal -->
+<!-- File History Modal -->
+<div id="fileHistoryModal" class="fh-modal" style="display:none;">
+  <div class="fh-box">
+    <div class="fh-head">
+      <div>
+        <h2>내 파일함</h2>
+        <div class="fh-head-sub">Storage에 저장된 PDF 파일 목록</div>
+      </div>
+      <button class="modal-close" id="fhModalClose">✕</button>
+    </div>
+    <div class="fh-body" id="fhBody">
+      <div class="fh-loading">불러오는 중...</div>
+    </div>
+  </div>
+</div>
 
 <!-- 편집 저장 / 불러오기 모달 -->
 <div id="sessionSaveModal" class="fh-modal" style="display:none;">
@@ -705,7 +724,7 @@
       <div class="field">
         <label>배경색</label>
         <div style="display:flex;align-items:center;gap:6px;">
-          <input type="color" id="dividerBg" value="#ffffff" style="flex:1;">
+          <input type="color" id="dividerBg" value="#1a365d" style="flex:1;">
           <label style="display:flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color:#374151;cursor:pointer;white-space:nowrap;margin:0;">
             <input type="checkbox" id="dividerNoBg" style="width:auto;">없음
           </label>
@@ -743,6 +762,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="../js/sw-register.js" defer></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
@@ -777,6 +797,8 @@ async function initializePdfEditorAccess() {
     document.getElementById('navUserName').textContent =
       user.displayName || String(user.email || '').split('@')[0];
     document.getElementById('authLoading').style.display = 'none';
+    const historyButton = document.getElementById('navHistoryBtn');
+    if (historyButton) historyButton.style.display = 'flex';
     document.getElementById('navSessionBtn').style.display = 'flex';
     document.getElementById('navSessionLoadBtn').style.display = 'flex';
   } catch (error) {
@@ -789,6 +811,39 @@ document.getElementById('navLogout').addEventListener('click', () =>
   auth.signOut().then(() => location.href = '../index.html'));
 
 const $ = id => document.getElementById(id);
+
+// ── Firebase Storage helpers ───────────────────────────────────────────
+function formatBytes(b) {
+  if (b < 1024) return b + ' B';
+  if (b < 1024 * 1024) return (b / 1024).toFixed(1) + ' KB';
+  return (b / 1024 / 1024).toFixed(2) + ' MB';
+}
+
+async function saveToStorage(blob, filename) {
+  const user = auth.currentUser;
+  if (!user) return;
+  const col = db.collection('users').doc(user.uid).collection('pdf_history');
+
+  // 최대 10개 제한 — 초과 시 오래된 파일부터 삭제
+  const existing = await col.orderBy('createdAt', 'asc').get();
+  if (existing.size >= 10) {
+    const toDelete = existing.docs.slice(0, existing.size - 9);
+    for (const d of toDelete) {
+      await storage.ref(d.data().storagePath).delete().catch(() => {});
+      await col.doc(d.id).delete();
+    }
+  }
+
+  const ts = new Date().toISOString().replace(/[:.]/g, '-');
+  const storagePath = `pdf_history/${user.uid}/${ts}_${filename}`;
+  await storage.ref(storagePath).put(blob, { contentType: 'application/pdf' });
+  await col.add({
+    name: filename,
+    storagePath,
+    size: blob.size,
+    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+  });
+}
 
 // ── Editor session save / load ────────────────────────────────────────
 function collectEditorState() {
@@ -1104,6 +1159,71 @@ document.getElementById('sessionListModal').addEventListener('click', e => {
 });
 $('navSessionLoadBtn').addEventListener('click', openSessionList);
 
+async function openFileHistory() {
+  const user = auth.currentUser;
+  if (!user) return;
+  $('fileHistoryModal').style.display = 'flex';
+  const body = $('fhBody');
+  body.innerHTML = '<div class="fh-loading">불러오는 중...</div>';
+  try {
+    const snap = await db.collection('users').doc(user.uid)
+      .collection('pdf_history')
+      .orderBy('createdAt', 'desc')
+      .limit(50)
+      .get();
+    if (snap.empty) {
+      body.innerHTML = '<div class="fh-empty">📂 저장된 파일이 없습니다.<br><span style="font-size:11px;color:#9ca3af;">PDF를 생성하면 자동으로 저장됩니다.</span></div>';
+      return;
+    }
+    body.innerHTML = '';
+    snap.forEach(doc => {
+      const d = doc.data();
+      const date = d.createdAt?.toDate ? d.createdAt.toDate().toLocaleString('ko-KR') : '-';
+      const item = document.createElement('div');
+      item.className = 'fh-item';
+      item.innerHTML = `
+        <div class="fh-icon">📄</div>
+        <div class="fh-info">
+          <div class="fh-name">${d.name || '파일'}</div>
+          <div class="fh-meta">${date} · ${formatBytes(d.size || 0)}</div>
+        </div>
+        <div class="fh-actions">
+          <button class="fh-btn" data-action="dl">⬇ 다운로드</button>
+          <button class="fh-btn del" data-action="del">🗑</button>
+        </div>`;
+      item.querySelector('[data-action="dl"]').addEventListener('click', async () => {
+        try {
+          const url = await storage.ref(d.storagePath).getDownloadURL();
+          const a = document.createElement('a');
+          a.href = url; a.download = d.name || 'download.pdf'; a.target = '_blank';
+          a.click();
+        } catch(e) { alert('다운로드 오류: ' + e.message); }
+      });
+      item.querySelector('[data-action="del"]').addEventListener('click', async () => {
+        if (!confirm(`"${d.name}" 파일을 삭제하시겠습니까?\n(내 파일함 및 Firebase에서 영구 삭제됩니다)`)) return;
+        try {
+          await storage.ref(d.storagePath).delete().catch(() => {});
+          await db.collection('users').doc(user.uid).collection('pdf_history').doc(doc.id).delete();
+          item.remove();
+          if (!body.querySelector('.fh-item')) {
+            body.innerHTML = '<div class="fh-empty">📂 저장된 파일이 없습니다.</div>';
+          }
+        } catch(e) { alert('삭제 오류: ' + e.message); }
+      });
+      body.appendChild(item);
+    });
+  } catch(e) {
+    body.innerHTML = `<div class="fh-empty">오류: ${e.message}</div>`;
+  }
+}
+
+document.getElementById('navHistoryBtn').addEventListener('click', openFileHistory);
+document.getElementById('fhModalClose').addEventListener('click', () => {
+  $('fileHistoryModal').style.display = 'none';
+});
+document.getElementById('fileHistoryModal').addEventListener('click', e => {
+  if (e.target.id === 'fileHistoryModal') $('fileHistoryModal').style.display = 'none';
+});
 
 // ── State ─────────────────────────────────────────────────────────────
 // page: { id, pdfPage(null=blank/divider), thumbCanvas, excluded, nupOverride,
@@ -1151,7 +1271,6 @@ const NUP_LAYOUTS = {
   8: { port:[2,4,false], land:[4,2,false] },
   9: { port:[3,3,false], land:[3,3,false] },
 };
-function refreshGlobalNupInheritance(){Object.keys(fileNupMap).forEach(k=>{if(fileNupMap[k]===null||fileNupMap[k]===undefined)delete fileNupMap[k]});try{renderPreview?.()}catch(_){}}
 function getLayout(n) {
   const cfg = NUP_LAYOUTS[n] || NUP_LAYOUTS[2];
   const [cols, rows, rotate] = landscape ? cfg.land : cfg.port;
@@ -2301,6 +2420,7 @@ $('downloadBtn').addEventListener('click', async () => {
       margin_h_mm: mh,
       margin_v_mm: mv,
       gap_mm: gp,
+      fit_to_paper: true,
       add_border: showBorder,
       watermark: {
         enabled: wmEnabled,
@@ -2346,8 +2466,16 @@ $('downloadBtn').addEventListener('click', async () => {
     a.href = url; a.download = filename;
     a.click();
     URL.revokeObjectURL(url);
-    showStatus('PDF 저장 완료!', 'success');
-    setTimeout(hideStatus, 3000);
+    showStatus('PDF 저장 완료! ☁️ 내 파일함에 업로드 중...', 'success');
+    saveToStorage(blob, filename)
+      .then(() => {
+        const el = $('statusBar');
+        el.style.display = 'flex';
+        el.className = 'status-bar success';
+        el.innerHTML = `<span>✅ 내 파일함에 저장 완료!</span><button onclick="openFileHistory()" style="margin-left:auto;border:1px solid #166534;border-radius:6px;padding:4px 12px;font-size:11px;font-weight:800;background:#dcfce7;color:#166534;cursor:pointer;font-family:inherit;">📂 내 파일함 보기</button>`;
+        setTimeout(hideStatus, 6000);
+      })
+      .catch(err => { console.error('Storage upload failed', err); showStatus('PDF 저장 완료! (파일함 업로드 실패)', 'success'); setTimeout(hideStatus, 3000); });
   } catch(e) { showStatus('PDF 오류: ' + e.message, 'error'); }
   $('downloadBtn').disabled = false;
 });
@@ -2429,6 +2557,9 @@ $('hfEnabled').addEventListener('change', () => {
   $('hfSettings').style.display = hfEnabled ? 'block' : 'none';
   schedulePreview(300);
 });
+['hfHL','hfHC','hfHR','hfFL','hfFC','hfFR'].forEach(id =>
+  $(id).addEventListener('input', () => { eval(id.replace('hf','hf') + " = $('" + id + "').value"); })
+);
 $('hfHL').addEventListener('input', () => { hfHL = $('hfHL').value; schedulePreview(500); });
 $('hfHC').addEventListener('input', () => { hfHC = $('hfHC').value; schedulePreview(500); });
 $('hfHR').addEventListener('input', () => { hfHR = $('hfHR').value; schedulePreview(500); });
@@ -2696,5 +2827,5 @@ $('zoomResetBtn').addEventListener('click', () => {
   };
 })();
 </script>
-<script src="../js/common-context-menu.js"></script><script src="../js/editor-enhancements.js"></script></body>
+</body>
 </html>
