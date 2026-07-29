@@ -74,7 +74,7 @@ jobs:
         run: |
           python -m py_compile scripts/patch_pdf_editor_performance.py
           python scripts/inject_boot_guard.py
-          node scripts/check-inline-js.js
+          python scripts/check_inline_js.py
           python -m pytest backend/tests/test_pdf_editor_performance_guards.py -q
       - name: Commit patch
         run: |
