@@ -114,7 +114,7 @@ jobs:
         run: |
           mkdir -p layout-audit
           python -m http.server 4173 >layout-audit/server.log 2>&1 &
-          cat > /tmp/layout-audit.mjs <<'JS'
+          cat > layout-audit.mjs <<'JS'
           import { chromium } from 'playwright';
           import fs from 'node:fs';
 
@@ -163,7 +163,7 @@ jobs:
           console.log(JSON.stringify(report, null, 2));
           if (failed) process.exit(1);
           JS
-          node /tmp/layout-audit.mjs
+          node layout-audit.mjs
       - name: Upload layout audit
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
