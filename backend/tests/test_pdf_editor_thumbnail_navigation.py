@@ -56,14 +56,20 @@ def test_non_extreme_count_mismatch_forces_preview_refresh():
     assert "if (staleOrdinaryPreview) target = null;" in source
 
 
-def test_preview_refreshes_share_one_in_flight_render_and_recheck_state():
-    source = LOADER.read_text(encoding="utf-8")
-    assert "function installPreviewSingleFlight(attempt = 0)" in source
-    assert "if (inFlight) return inFlight;" in source
-    assert "originalTriggerPreview.apply(this, args)" in source
-    assert "async function refreshPreviewForNavigation()" in source
-    assert "const stillStaleAfterAwait = Boolean(location)" in source
-    assert source.count("await refreshPreviewForNavigation();") >= 2
+def test_preview_refreshes_are_queued_by_the_final_upload_guard():
+    loader = LOADER.read_text(encoding="utf-8")
+    upload = (ROOT / "js" / "pdf-editor" / "upload-fix.js").read_text(encoding="utf-8")
+    assert "installPreviewSingleFlight" not in loader
+    assert "async function refreshPreviewForNavigation()" in loader
+    assert loader.count("await refreshPreviewForNavigation();") >= 2
+    assert "__pdfEditorFastPreviewGuardInstalledV7" in upload
+    assert "let previewInFlight = null;" in upload
+    assert "if (previewInFlight)" in upload
+    assert "rerenderQueued = true;" in upload
+    assert "queuedManual = queuedManual || manual;" in upload
+    assert "do {" in upload and "} while (rerenderQueued);" in upload
+    assert "return buildExtremeLayoutPreview();" in upload
+    assert "window.__pdfEditorPreviewQueueV7" in upload
 
 
 def test_stable_editor_surface_and_module_count_are_unchanged():

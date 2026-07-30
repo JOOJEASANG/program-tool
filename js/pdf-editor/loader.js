@@ -130,31 +130,6 @@
     });
   }
 
-  function installPreviewSingleFlight(attempt = 0) {
-    if (window.__pdfEditorPreviewSingleFlightV1) return true;
-    if (typeof triggerPreview !== 'function') {
-      if (attempt < 20) setTimeout(() => installPreviewSingleFlight(attempt + 1), 100 + attempt * 25);
-      return false;
-    }
-
-    const originalTriggerPreview = triggerPreview;
-    let inFlight = null;
-    const serializedTriggerPreview = function(...args) {
-      if (inFlight) return inFlight;
-      inFlight = Promise.resolve()
-        .then(() => originalTriggerPreview.apply(this, args))
-        .finally(() => { inFlight = null; });
-      return inFlight;
-    };
-    serializedTriggerPreview.__pdfEditorSingleFlightWrapped = true;
-    window.__pdfEditorPreviewSingleFlightV1 = {
-      getInFlight: () => inFlight,
-    };
-    triggerPreview = serializedTriggerPreview;
-    window.triggerPreview = serializedTriggerPreview;
-    return true;
-  }
-
   async function refreshPreviewForNavigation() {
     if (typeof triggerPreview !== 'function') return;
     window.__pdfEditorManualPreviewRequest = true;
@@ -332,7 +307,6 @@
 
   function bootEditorEnhancements() {
     installPreviewToolbarLayoutFix();
-    installPreviewSingleFlight(0);
     installThumbnailPageBehavior(0);
   }
 
