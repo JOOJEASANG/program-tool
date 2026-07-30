@@ -138,6 +138,11 @@ jobs:
             for (const size of sizes) {
               const context = await browser.newContext({ viewport: size, javaScriptEnabled: false });
               const page = await context.newPage();
+              await page.route('**/*', route => {
+                const url = new URL(route.request().url());
+                if (url.hostname === '127.0.0.1' || url.hostname === 'localhost') return route.continue();
+                return route.abort();
+              });
               await page.goto(`http://127.0.0.1:4173/${target.path}`, { waitUntil: 'domcontentloaded', timeout: 10000 });
               if (target.css) await page.addStyleTag({ content: target.css });
               const metrics = await page.evaluate(() => ({
@@ -151,7 +156,7 @@ jobs:
               const overflow = metrics.bodyWidth - metrics.viewportWidth;
               if (overflow > 4) failed = true;
               const file = `layout-audit/${target.name}-${size.name}.png`;
-              await page.screenshot({ path: file });
+              await page.screenshot({ path: file, timeout: 10000 });
               report.push({ page: target.name, viewport: size.name, overflow, ...metrics, screenshot: file });
               await context.close();
             }
