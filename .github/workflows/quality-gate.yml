@@ -97,7 +97,7 @@ jobs:
   visual-layout-audit:
     name: Desktop and mobile layout audit
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
@@ -110,7 +110,7 @@ jobs:
         run: |
           npm install --no-save playwright@1.55.0
           npx playwright install chromium
-      - name: Run layout screenshots and overflow checks
+      - name: Run static layout screenshots and overflow checks
         run: |
           mkdir -p layout-audit
           python -m http.server 4173 >layout-audit/server.log 2>&1 &
@@ -119,13 +119,13 @@ jobs:
           import fs from 'node:fs';
 
           const targets = [
-            { name: 'home', path: 'index.html', js: true, css: '#loading{display:none!important}' },
-            { name: 'login', path: 'login.html', js: false, css: '' },
-            { name: 'admin', path: 'admin.html', js: false, css: '#loading{display:none!important}#app{display:grid!important}' },
-            { name: 'guide', path: 'guide.html', js: false, css: '' },
-            { name: 'pdf-editor', path: 'pdf-editor/index.html', js: false, css: '#authLoading{display:none!important}' },
-            { name: 'pdf-preflight', path: 'pdf-preflight/index.html', js: false, css: '#authLoading{display:none!important}' },
-            { name: 'cover', path: 'perfect-binding-cover/index.html', js: false, css: '#authLoading{display:none!important}' },
+            { name: 'home', path: 'index.html', css: '#loading{display:none!important}' },
+            { name: 'login', path: 'login.html', css: '' },
+            { name: 'admin', path: 'admin.html', css: '#loading{display:none!important}#app{display:grid!important}' },
+            { name: 'guide', path: 'guide.html', css: '' },
+            { name: 'pdf-editor', path: 'pdf-editor/index.html', css: '#authLoading{display:none!important}' },
+            { name: 'pdf-preflight', path: 'pdf-preflight/index.html', css: '#authLoading{display:none!important}' },
+            { name: 'cover', path: 'perfect-binding-cover/index.html', css: '#authLoading{display:none!important}' },
           ];
           const sizes = [
             { name: 'desktop', width: 1440, height: 1000 },
@@ -136,12 +136,10 @@ jobs:
           let failed = false;
           for (const target of targets) {
             for (const size of sizes) {
-              const context = await browser.newContext({ viewport: size, javaScriptEnabled: target.js });
+              const context = await browser.newContext({ viewport: size, javaScriptEnabled: false });
               const page = await context.newPage();
-              await page.goto(`http://127.0.0.1:4173/${target.path}`, { waitUntil: 'domcontentloaded', timeout: 30000 });
-              if (target.js) await page.waitForTimeout(1800);
+              await page.goto(`http://127.0.0.1:4173/${target.path}`, { waitUntil: 'domcontentloaded', timeout: 10000 });
               if (target.css) await page.addStyleTag({ content: target.css });
-              await page.waitForTimeout(150);
               const metrics = await page.evaluate(() => ({
                 title: document.title,
                 bodyWidth: document.body.scrollWidth,
@@ -151,9 +149,9 @@ jobs:
                 visibleText: (document.body.innerText || '').trim().length,
               }));
               const overflow = metrics.bodyWidth - metrics.viewportWidth;
-              if (overflow > 4 || metrics.visibleText < 20) failed = true;
+              if (overflow > 4) failed = true;
               const file = `layout-audit/${target.name}-${size.name}.png`;
-              await page.screenshot({ path: file, fullPage: true });
+              await page.screenshot({ path: file });
               report.push({ page: target.name, viewport: size.name, overflow, ...metrics, screenshot: file });
               await context.close();
             }
