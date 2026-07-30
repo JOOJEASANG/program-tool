@@ -110,7 +110,7 @@ jobs:
         run: |
           npm install --no-save playwright@1.55.0
           npx playwright install chromium
-      - name: Run static layout screenshots and overflow checks
+      - name: Measure desktop and mobile layout overflow
         run: |
           mkdir -p layout-audit
           python -m http.server 4173 >layout-audit/server.log 2>&1 &
@@ -155,11 +155,7 @@ jobs:
               }));
               const overflow = metrics.bodyWidth - metrics.viewportWidth;
               if (overflow > 4) failed = true;
-              const file = `layout-audit/${target.name}-${size.name}.png`;
-              const client = await context.newCDPSession(page);
-              const shot = await client.send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
-              fs.writeFileSync(file, Buffer.from(shot.data, 'base64'));
-              report.push({ page: target.name, viewport: size.name, overflow, ...metrics, screenshot: file });
+              report.push({ page: target.name, viewport: size.name, overflow, ...metrics });
               await context.close();
             }
           }
