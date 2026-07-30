@@ -37,12 +37,17 @@
     select.dispatchEvent(new Event('change', { bubbles: true }));
   }
 
-  function boot() {
+  function boot(attempt = 0) {
     applyToolbarStyle();
     setDefaultPerRow();
+    if ((!document.querySelector('.preview-zoom') || !document.getElementById('perRowSelect')) && attempt < 8) {
+      setTimeout(() => boot(attempt + 1), 140 + attempt * 60);
+    }
   }
 
-  document.addEventListener('DOMContentLoaded', boot);
-  setTimeout(boot, 300);
-  setInterval(applyToolbarStyle, 1500);
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => boot(0), { once: true });
+  } else {
+    boot(0);
+  }
 })();

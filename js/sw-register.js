@@ -2,7 +2,7 @@
   if(window.__programStudioRuntimeBoot)return;
   window.__programStudioRuntimeBoot=true;
 
-  const VERSION='2026.07.29.008';
+  const VERSION='2026.07.30.001';
   const CACHE_PREFIX='program-studio-';
   const CLEANUP_KEY='program-studio-legacy-runtime-cleanup-'+VERSION;
   const currentPath=location.pathname.replace(/\/+$/,'')||'/';
@@ -77,11 +77,8 @@
 
   function helpers(){
     const tasks=[];
-    tasks.push(load('siteWordingCleanupScript','/js/site-wording-cleanup.js?v='+VERSION));
     if(!isAuthPage())tasks.push(load('appVersionHelperScript','/js/app-version.js?v='+VERSION));
-    tasks.push(load('programPathMapperScript','/js/program-paths.js?v='+VERSION));
     if(isHome()){
-      tasks.push(load('homeCleanupScript','/js/home-cleanup.js?v='+VERSION));
       tasks.push(load('homeHeroUpgradeScript','/js/home-hero-upgrade.js?v='+VERSION));
       tasks.push(load('homeHeaderFooterRefineScript','/js/home-header-footer-refine.js?v='+VERSION));
     }

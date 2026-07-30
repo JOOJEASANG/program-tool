@@ -1,9 +1,9 @@
-"""Pytest policy for the intentionally stable ten-module PDF editor runtime.
+"""Pytest policy for the intentionally stable eight-module PDF editor runtime.
 
 The tests skipped here target helper modules added after July 20. Those extra
 wrappers remain deliberately disabled because loading all of them together caused
 the browser hang. Selected July 24 core improvements may be ported inside the
-same ten-module runtime without re-enabling those post-July20 wrapper tests.
+same eight-module runtime without re-enabling those post-July20 wrapper tests.
 Server, permission, export, Firebase, and stable-runtime tests remain enabled.
 """
 
@@ -28,23 +28,21 @@ POST_JULY20_TEST_FILES = {
 }
 
 POST_JULY20_TEST_CASES = {
-    "tests/test_file_library_and_cover_ui.py::test_pdf_file_library_is_fully_removed",
-    "tests/test_file_library_and_cover_ui.py::test_pdf_download_remains_local_and_large_preview_is_explained",
-    "tests/test_reliability_fixes.py::test_csp_is_enforced_and_runtime_eval_is_absent",
     "tests/test_repository_hardening.py::test_frontend_and_rules_use_hardened_contract",
 }
 
 
-def _is_stable_ten_module_runtime() -> bool:
+def _is_stable_eight_module_runtime() -> bool:
     try:
         loader = LOADER_FILE.read_text(encoding="utf-8")
     except OSError:
         return False
     return (
-        loader.count("'/js/pdf-editor/") == 10
+        loader.count("'/js/pdf-editor/") == 8
         and (
             "__pdfEditorModuleLoaderV13" in loader
             or "__pdfEditorModuleLoaderV14" in loader
+            or "__pdfEditorModuleLoaderV15" in loader
         )
         and "preview-controller.js" not in loader
         and "runtime-integrity.js" not in loader
@@ -54,11 +52,11 @@ def _is_stable_ten_module_runtime() -> bool:
 
 
 def pytest_collection_modifyitems(items):
-    if not _is_stable_ten_module_runtime():
+    if not _is_stable_eight_module_runtime():
         return
 
     reason = (
-        "PDF editor intentionally uses the stable ten-module runtime; "
+        "PDF editor intentionally uses the stable eight-module runtime; "
         "this test requires a later helper wrapper that remains disabled."
     )
     marker = pytest.mark.skip(reason=reason)
