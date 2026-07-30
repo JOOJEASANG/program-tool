@@ -4,7 +4,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 PDF_HTML = ROOT / "pdf-editor" / "index.html"
 PDF_LOADER = ROOT / "js" / "pdf-editor" / "loader.js"
-PDF_UX = ROOT / "js" / "pdf-editor" / "ux-repair.js"
+PDF_UPLOAD = ROOT / "js" / "pdf-editor" / "upload-fix.js"
 COVER_HTML = ROOT / "perfect-binding-cover" / "index.html"
 COVER_DOCK = ROOT / "js" / "cover-floating-action-dock.js"
 SW_REGISTER = ROOT / "js" / "sw-register.js"
@@ -34,17 +34,17 @@ def test_pdf_file_library_is_fully_removed():
 
 def test_pdf_download_remains_local_and_large_preview_is_explained():
     html = PDF_HTML.read_text(encoding="utf-8")
-    ux = PDF_UX.read_text(encoding="utf-8")
+    upload = PDF_UPLOAD.read_text(encoding="utf-8")
     assert "a.download = filename" in html
     assert "showStatus('PDF 저장 완료!'" in html
-    assert "대용량 미리보기 생성" in ux
-    assert "대용량 PDF도 미리볼 수 있습니다" in ux
-    assert "자동 갱신만 중지" in ux
+    assert "대용량 PDF라 자동 미리보기를 줄였습니다" in upload
+    assert "EXTREME_PREVIEW_OUTPUT_LIMIT" in upload
+    assert "pdf_history" not in html
 
 
 def test_cover_product_name_is_consistent():
     cover = COVER_HTML.read_text(encoding="utf-8")
-    assert "<title>책표지제작 · Program Tool</title>" in cover
+    assert "<title>책표지제작 · Program Studio</title>" in cover
     assert '<div class="nav-title">책표지제작</div>' in cover
     binding = "무선" + "제본"
     old_names = (

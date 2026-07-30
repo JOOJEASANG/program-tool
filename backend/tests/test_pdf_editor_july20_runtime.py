@@ -16,15 +16,13 @@ STABLE_MODULES = [
     "/js/pdf-editor/nup-helper.js",
     "/js/pdf-editor/preview-row-default.js",
     "/js/pdf-editor/divider-helper.js",
-    "/js/pdf-editor/storage-cleanup.js",
-    "/js/pdf-editor/history-policy.js",
-]
+    ]
 
 
-def test_loader_keeps_the_ten_module_stable_runtime():
+def test_loader_keeps_the_eight_module_stable_runtime():
     text = LOADER.read_text(encoding="utf-8")
     assert JULY20_BASELINE_COMMIT and JULY24_CORE_COMMIT
-    assert "__pdfEditorModuleLoaderV14" in text
+    assert "__pdfEditorModuleLoaderV15" in text
     for module in STABLE_MODULES:
         assert module in text
     assert text.count("'/js/pdf-editor/") == len(STABLE_MODULES)
