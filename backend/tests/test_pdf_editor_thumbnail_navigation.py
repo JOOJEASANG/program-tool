@@ -63,10 +63,14 @@ def test_preview_requests_share_one_coordinator_before_and_after_upload_fix():
     assert "window.__pdfEditorEnsurePreviewCoordinatorV8" in loader
     assert "if (inFlight)" in loader
     assert "rerenderQueued = true;" in loader
+    assert "queuedManual = queuedManual || manual;" in loader
     assert "while (true)" in loader
+    assert "pendingError = error;" in loader
+    assert "if (!rerenderQueued)" in loader
     assert "if (pendingError) throw pendingError;" in loader
     assert "installPreviewCoordinator(0);" in loader
     assert "__pdfEditorFastPreviewGuardInstalledV8" in upload
+    assert "coordinator.getOriginal()" in upload
     assert "coordinator.setDelegate" in upload
     assert "return buildExtremeLayoutPreview();" in upload
     assert "triggerPreview = coordinator.request;" in upload
