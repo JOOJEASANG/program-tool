@@ -156,7 +156,9 @@ jobs:
               const overflow = metrics.bodyWidth - metrics.viewportWidth;
               if (overflow > 4) failed = true;
               const file = `layout-audit/${target.name}-${size.name}.png`;
-              await page.screenshot({ path: file, timeout: 10000 });
+              const client = await context.newCDPSession(page);
+              const shot = await client.send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
+              fs.writeFileSync(file, Buffer.from(shot.data, 'base64'));
               report.push({ page: target.name, viewport: size.name, overflow, ...metrics, screenshot: file });
               await context.close();
             }
