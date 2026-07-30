@@ -79,11 +79,12 @@ def test_pdf_editor_mobile_layout_releases_fixed_desktop_height():
     assert "main { height: auto; min-height:" in editor
     assert ".preview-zoom { width: 100%;" in editor
 
+
 def test_home_and_admin_mobile_layout_remain_readable():
     home = read("index.html")
     assert ".programs-head{display:block}" in home
     assert ".programs h2{word-break:keep-all}" in home
     admin = read("admin.html")
     assert "grid-template-columns:auto repeat(4,minmax(0,1fr))" in admin
+    assert ".navbtn{display:flex;flex-direction:column" in admin
     assert ".sidefoot{display:contents}" in admin
-
