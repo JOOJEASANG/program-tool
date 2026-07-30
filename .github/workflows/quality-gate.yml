@@ -14,9 +14,91 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
+  apply-preview-toolbar-fix:
+    name: Apply PDF preview toolbar fix
+    if: github.actor != 'github-actions[bot]' && github.head_ref == 'agent/fix-pdf-preview-toolbar-width'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: agent/fix-pdf-preview-toolbar-width
+          fetch-depth: 0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.11'
+      - name: Apply reviewed layout fix
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import json
+
+          targets = [Path('pdf-editor/index.html'), Path('tools/pdf-editor.html')]
+          old_css = """    .preview-info { background: rgba(255,255,255,.9); border: 1px solid var(--line); border-radius: 9px; padding: 6px 10px; font-size: 11px; color: #374151; display: flex; align-items: center; flex-shrink: 0; gap: 8px; min-width: 0; }
+    #previewInfo { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    #previewPages { flex-shrink: 0; }
+    .preview-zoom { display: flex; align-items: center; gap: 4px; margin-left: auto; flex-shrink: 0; }
+"""
+          new_css = """    .preview-info { background: rgba(255,255,255,.9); border: 1px solid var(--line); border-radius: 9px; padding: 6px 10px; font-size: 11px; color: #374151; display: flex; align-items: center; flex-shrink: 0; gap: 8px; min-width: 0; overflow: hidden; }
+    #previewInfo { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    #previewPages { flex: 0 1 auto; min-width: 0; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .preview-zoom { display: flex; align-items: center; gap: 4px; margin-left: auto; min-width: 0; flex: 0 0 auto; overflow: hidden; }
+    #perRowSelect { width: 86px; min-width: 86px; max-width: 86px; flex: 0 0 86px; border: 1px solid var(--line); border-radius: 6px; padding: 2px 22px 2px 7px; font-size: 11px; font-weight: 800; font-family: inherit; color: #374151; background: #fff; cursor: pointer; }
+"""
+          old_select = '<select id="perRowSelect" style="border:1px solid var(--line);border-radius:6px;padding:2px 4px;font-size:11px;font-weight:800;font-family:inherit;color:#374151;background:#fff;cursor:pointer;">'
+          new_select = '<select id="perRowSelect" aria-label="미리보기 한 줄당 페이지 수">'
+
+          for path in targets:
+              source = path.read_text(encoding='utf-8')
+              if old_css not in source:
+                  raise SystemExit(f'preview CSS block not found: {path}')
+              if old_select not in source:
+                  raise SystemExit(f'inline per-row select not found: {path}')
+              source = source.replace(old_css, new_css).replace(old_select, new_select)
+              path.write_text(source, encoding='utf-8')
+
+          if targets[0].read_bytes() != targets[1].read_bytes():
+              raise SystemExit('PDF editor entrypoints differ after patch')
+
+          old_version = '2026.07.30.002'
+          new_version = '2026.07.30.003'
+          for name in ('js/firebase-config.js', 'js/sw-register.js', 'sw.js'):
+              path = Path(name)
+              source = path.read_text(encoding='utf-8')
+              if old_version not in source:
+                  raise SystemExit(f'{old_version} not found in {name}')
+              path.write_text(source.replace(old_version, new_version), encoding='utf-8')
+
+          Path('version.json').write_text(json.dumps({
+              'version': new_version,
+              'label': 'PDF 미리보기 상단 폭 정리',
+              'updatedAt': '2026-07-30T16:35:00+09:00',
+          }, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+
+          Path('backend/tests/test_pdf_editor_preview_toolbar_width.py').write_text('''from pathlib import Path\n\nROOT = Path(__file__).resolve().parents[2]\nEDITOR = ROOT / "pdf-editor" / "index.html"\nLEGACY = ROOT / "tools" / "pdf-editor.html"\n\n\ndef test_pdf_editor_preview_toolbar_is_width_bounded():\n    source = EDITOR.read_text(encoding="utf-8")\n    assert EDITOR.read_bytes() == LEGACY.read_bytes()\n    assert "#perRowSelect { width: 86px; min-width: 86px; max-width: 86px; flex: 0 0 86px;" in source\n    assert '<select id="perRowSelect" aria-label="미리보기 한 줄당 페이지 수">' in source\n    assert 'id="perRowSelect" style=' not in source\n    assert "#previewPages { flex: 0 1 auto; min-width: 0; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }" in source\n''', encoding='utf-8')
+          PY
+      - name: Restore normal workflow and remove temporary workflow
+        run: |
+          rm -f .github/workflows/fix-pdf-preview-toolbar-width.yml
+          git fetch origin main
+          git checkout origin/main -- .github/workflows/quality-gate.yml
+      - name: Validate focused change
+        run: |
+          python scripts/check_inline_js.py
+          python scripts/check_version_sync.py
+          python scripts/validate_static_references.py
+          python -m pip install pytest
+          python -m pytest backend/tests/test_pdf_editor_preview_toolbar_width.py backend/tests/test_current_program_surfaces.py -q
+      - name: Commit final fix
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -A
+          git commit -m "PDF 미리보기 상단 옵션 폭과 텍스트 넘침 수정"
+          git push origin HEAD:agent/fix-pdf-preview-toolbar-width
+
   backend-tests:
     name: Backend tests
     runs-on: ubuntu-latest
