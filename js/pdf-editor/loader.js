@@ -150,9 +150,17 @@
     let location = getPreviewLocationForPage(page);
     let previews = [...document.querySelectorAll('#previewScroll .page-preview')];
     let target = location ? previews[location.index] : null;
+    const intentionallyLimitedExtreme = Boolean(window.__pdfEditorExtremeMode)
+      && previews.length > 0
+      && location
+      && previews.length < location.total;
+    const staleOrdinaryPreview = Boolean(location)
+      && previews.length !== location.total
+      && !intentionallyLimitedExtreme;
+    if (staleOrdinaryPreview) target = null;
 
     if (!target) {
-      if (window.__pdfEditorExtremeMode && previews.length > 0 && location?.index >= previews.length) {
+      if (intentionallyLimitedExtreme && location?.index >= previews.length) {
         showLimitedPreviewNotice(previews);
         return;
       }
