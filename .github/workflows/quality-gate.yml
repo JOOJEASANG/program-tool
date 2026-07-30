@@ -132,17 +132,18 @@ jobs:
             { name: 'mobile', width: 390, height: 844 },
           ];
           const browser = await chromium.launch({ headless: true });
+          const context = await browser.newContext({ javaScriptEnabled: false });
+          const page = await context.newPage();
+          await page.route('**/*', route => {
+            const url = new URL(route.request().url());
+            if (url.hostname === '127.0.0.1' || url.hostname === 'localhost') return route.continue();
+            return route.abort();
+          });
           const report = [];
           let failed = false;
           for (const target of targets) {
             for (const size of sizes) {
-              const context = await browser.newContext({ viewport: size, javaScriptEnabled: false });
-              const page = await context.newPage();
-              await page.route('**/*', route => {
-                const url = new URL(route.request().url());
-                if (url.hostname === '127.0.0.1' || url.hostname === 'localhost') return route.continue();
-                return route.abort();
-              });
+              await page.setViewportSize({ width: size.width, height: size.height });
               await page.goto(`http://127.0.0.1:4173/${target.path}`, { waitUntil: 'domcontentloaded', timeout: 10000 });
               if (target.css) await page.addStyleTag({ content: target.css });
               const metrics = await page.evaluate(() => ({
@@ -156,13 +157,11 @@ jobs:
               const overflow = metrics.bodyWidth - metrics.viewportWidth;
               if (overflow > 4) failed = true;
               report.push({ page: target.name, viewport: size.name, overflow, ...metrics });
-              await context.close();
             }
           }
-          await browser.close();
           fs.writeFileSync('layout-audit/report.json', JSON.stringify(report, null, 2));
           console.log(JSON.stringify(report, null, 2));
-          if (failed) process.exit(1);
+          process.exit(failed ? 1 : 0);
           JS
           node layout-audit.mjs
       - name: Upload layout audit
