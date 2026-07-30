@@ -44,6 +44,14 @@
         .preview-zoom > * {
           flex-shrink: 0;
         }
+        #thumbArea .thumb-wrap[data-sidebar-current="true"] {
+          border-color: #2563eb !important;
+          box-shadow: 0 0 0 2px rgba(37,99,235,.18);
+        }
+        #previewScroll .page-preview[data-sidebar-focus="true"] {
+          outline: 3px solid #2563eb;
+          outline-offset: 3px;
+        }
       `;
       document.head.appendChild(style);
     }
@@ -54,10 +62,196 @@
     }
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', installPreviewToolbarLayoutFix, { once: true });
-  } else {
+  let focusedPageId = '';
+  let focusClearTimer = null;
+  let thumbnailObserver = null;
+
+  function getParsedPageFromWrap(wrap) {
+    const id = wrap?.closest('.thumb-item')?.dataset?.id;
+    if (!id || typeof parsedPages === 'undefined') return null;
+    return parsedPages.find(page => page.id === id) || null;
+  }
+
+  function decorateThumbnailWraps() {
+    document.querySelectorAll('#thumbArea .thumb-wrap').forEach(wrap => {
+      const page = getParsedPageFromWrap(wrap);
+      if (!page) return;
+      wrap.tabIndex = 0;
+      wrap.setAttribute('role', 'button');
+      wrap.setAttribute('aria-label', `${wrap.querySelector('.thumb-num')?.textContent || ''}페이지 미리보기로 이동`);
+      wrap.title = '클릭: 미리보기 이동 · 마우스 오른쪽 클릭: 페이지 메뉴';
+      wrap.style.cursor = 'pointer';
+      if (page.id === focusedPageId) wrap.dataset.sidebarCurrent = 'true';
+      else delete wrap.dataset.sidebarCurrent;
+    });
+  }
+
+  function getPreviewLocationForPage(page) {
+    if (!page || page.excluded || typeof parsedPages === 'undefined') return null;
+    const active = parsedPages.filter(item => !item.excluded);
+    let ordered = active;
+
+    try {
+      const bookletEnabled = Boolean(document.getElementById('bookletCheck')?.checked)
+        && typeof BOOKLET_STRIPS !== 'undefined'
+        && typeof nup !== 'undefined'
+        && nup in BOOKLET_STRIPS;
+      if (bookletEnabled && typeof bookletReorderPreview === 'function') {
+        ordered = bookletReorderPreview(active, nup) || active;
+      }
+    } catch (error) {
+      console.warn('[thumbnail] booklet preview order could not be read', error);
+    }
+
+    if (typeof groupByNup !== 'function' || typeof getLayout !== 'function') {
+      const fallbackIndex = active.indexOf(page);
+      return fallbackIndex < 0 ? null : { index: fallbackIndex, total: active.length };
+    }
+
+    const outputGroups = [];
+    for (const group of groupByNup(ordered)) {
+      const layout = getLayout(group.n);
+      const perPage = Math.max(1, Number(layout?.cols || 1) * Number(layout?.rows || 1));
+      for (let start = 0; start < group.pages.length; start += perPage) {
+        outputGroups.push(group.pages.slice(start, start + perPage));
+      }
+    }
+
+    const index = outputGroups.findIndex(group => group.includes(page));
+    return index < 0 ? null : { index, total: outputGroups.length };
+  }
+
+  function markFocusedThumbnail(page) {
+    focusedPageId = page.id;
+    document.querySelectorAll('#thumbArea .thumb-wrap').forEach(wrap => {
+      const selected = getParsedPageFromWrap(wrap)?.id === page.id;
+      if (selected) wrap.dataset.sidebarCurrent = 'true';
+      else delete wrap.dataset.sidebarCurrent;
+    });
+  }
+
+  async function focusPageInPreview(page) {
+    if (!page) return;
+    if (page.excluded) {
+      if (typeof showStatus === 'function') {
+        showStatus('숨김 페이지입니다. 마우스 오른쪽 메뉴에서 숨김 해제를 선택하세요.', 'error');
+      }
+      return;
+    }
+
+    markFocusedThumbnail(page);
+    let location = getPreviewLocationForPage(page);
+    let previews = [...document.querySelectorAll('#previewScroll .page-preview')];
+
+    if (!location || previews.length !== location.total || !previews[location.index]) {
+      if (typeof triggerPreview === 'function') await triggerPreview();
+      location = getPreviewLocationForPage(page);
+      previews = [...document.querySelectorAll('#previewScroll .page-preview')];
+    }
+
+    const target = location ? previews[location.index] : null;
+    if (!target) {
+      if (typeof showStatus === 'function') showStatus('선택한 페이지의 미리보기를 찾지 못했습니다.', 'error');
+      return;
+    }
+
+    previews.forEach(node => delete node.dataset.sidebarFocus);
+    target.dataset.sidebarFocus = 'true';
+    target.scrollIntoView({ behavior: 'auto', block: 'center', inline: 'center' });
+    clearTimeout(focusClearTimer);
+    focusClearTimer = setTimeout(() => delete target.dataset.sidebarFocus, 1600);
+  }
+
+  function togglePageHiddenFromContextMenu(page) {
+    if (!page) return;
+    page.excluded = !page.excluded;
+    if (page.excluded && focusedPageId === page.id) focusedPageId = '';
+    if (typeof renderThumbs === 'function') renderThumbs();
+    if (typeof schedulePreview === 'function') schedulePreview(80);
+    if (typeof showStatus === 'function') {
+      showStatus(page.excluded ? '페이지를 숨겼습니다.' : '페이지 숨김을 해제했습니다.', 'success');
+      if (typeof hideStatus === 'function') setTimeout(hideStatus, 1200);
+    }
+  }
+
+  function addHideActionToContextMenu(page) {
+    const menu = document.getElementById('thumbCtxMenu');
+    const danger = menu?.querySelector('.ctx-item.danger');
+    if (!menu || !danger || menu.querySelector('[data-page-hidden-action="true"]')) return;
+
+    const action = document.createElement('div');
+    action.className = 'ctx-item';
+    action.dataset.pageHiddenAction = 'true';
+    action.innerHTML = `<span class="ctx-icon">${page.excluded ? '👁' : '🙈'}</span>${page.excluded ? '페이지 숨김 해제' : '페이지 숨기기'}`;
+    action.addEventListener('click', event => {
+      event.preventDefault();
+      event.stopPropagation();
+      menu.classList.remove('open');
+      togglePageHiddenFromContextMenu(page);
+    });
+
+    const separator = document.createElement('div');
+    separator.className = 'ctx-sep';
+    menu.insertBefore(action, danger);
+    menu.insertBefore(separator, danger);
+  }
+
+  function installThumbnailPageBehavior(attempt = 0) {
+    const area = document.getElementById('thumbArea');
+    const originalMenu = window._openThumbCtxMenu;
+
+    if (area && area.dataset.sidebarClickNavigation !== 'true') {
+      area.dataset.sidebarClickNavigation = 'true';
+      area.addEventListener('click', event => {
+        const wrap = event.target.closest('.thumb-wrap');
+        if (!wrap || !area.contains(wrap)) return;
+        const page = getParsedPageFromWrap(wrap);
+        if (!page) return;
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        focusPageInPreview(page).catch(error => {
+          console.error('[thumbnail] preview navigation failed', error);
+          if (typeof showStatus === 'function') showStatus('선택한 페이지로 이동하지 못했습니다.', 'error');
+        });
+      }, true);
+      area.addEventListener('keydown', event => {
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        const wrap = event.target.closest('.thumb-wrap');
+        if (!wrap || !area.contains(wrap)) return;
+        const page = getParsedPageFromWrap(wrap);
+        if (!page) return;
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        focusPageInPreview(page).catch(error => console.error('[thumbnail] keyboard navigation failed', error));
+      }, true);
+      thumbnailObserver = new MutationObserver(decorateThumbnailWraps);
+      thumbnailObserver.observe(area, { childList: true, subtree: true });
+      decorateThumbnailWraps();
+    }
+
+    if (typeof originalMenu === 'function' && !window.__pdfEditorHiddenContextActionV1) {
+      window.__pdfEditorHiddenContextActionV1 = true;
+      window._openThumbCtxMenu = function(event, page, index) {
+        const result = originalMenu.call(this, event, page, index);
+        addHideActionToContextMenu(page);
+        return result;
+      };
+    }
+
+    if ((!area || typeof window._openThumbCtxMenu !== 'function') && attempt < 20) {
+      setTimeout(() => installThumbnailPageBehavior(attempt + 1), 100 + attempt * 25);
+    }
+  }
+
+  function bootEditorEnhancements() {
     installPreviewToolbarLayoutFix();
+    installThumbnailPageBehavior(0);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bootEditorEnhancements, { once: true });
+  } else {
+    bootEditorEnhancements();
   }
 
   const MODULES = [
@@ -73,7 +267,7 @@
 
   function loadScript(src) {
     const clean = src.split('?')[0];
-    if ([...document.scripts].some((script) => script.src && script.src.includes(clean))) return;
+    if ([...document.scripts].some(script => script.src && script.src.includes(clean))) return;
     const script = document.createElement('script');
     script.src = src;
     script.async = false;
