@@ -22,3 +22,5 @@ def test_preview_toolbar_controls_are_width_bounded():
 def test_stable_pdf_module_count_is_unchanged():
     source = LOADER.read_text(encoding="utf-8")
     assert source.count("'/js/pdf-editor/") == 8
+    assert "preview-controller.js" not in source
+    assert "runtime-integrity.js" not in source
