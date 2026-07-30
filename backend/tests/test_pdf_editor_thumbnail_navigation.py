@@ -23,12 +23,29 @@ def test_context_menu_contains_explicit_hide_and_unhide_action():
     assert "schedulePreview(80)" in source
 
 
+def test_context_menu_is_repositioned_after_the_new_action_is_inserted():
+    source = LOADER.read_text(encoding="utf-8")
+    assert "function repositionContextMenu(menu, event)" in source
+    assert "const menuHeight = menu.offsetHeight;" in source
+    assert "viewportHeight - menuHeight - 6" in source
+    assert "repositionContextMenu(menu, event);" in source
+
+
 def test_navigation_maps_source_pages_to_nup_and_booklet_outputs():
     source = LOADER.read_text(encoding="utf-8")
     assert "getPreviewLocationForPage" in source
     assert "bookletReorderPreview(active, nup)" in source
     assert "groupByNup(ordered)" in source
     assert "outputGroups.findIndex(group => group.includes(page))" in source
+
+
+def test_extreme_limited_preview_is_preserved_during_navigation():
+    source = LOADER.read_text(encoding="utf-8")
+    assert "previews.length !== location.total" not in source
+    assert "window.__pdfEditorManualPreviewRequest = true;" in source
+    assert "window.__pdfEditorExtremeMode && previews.length > 0" in source
+    assert "showLimitedPreviewNotice(previews);" in source
+    assert "선택한 페이지는 최종 저장에는 정상 반영됩니다." in source
 
 
 def test_stable_editor_surface_and_module_count_are_unchanged():

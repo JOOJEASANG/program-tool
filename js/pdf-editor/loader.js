@@ -130,6 +130,13 @@
     });
   }
 
+  function showLimitedPreviewNotice(previews) {
+    const visibleCount = Math.max(0, previews.length);
+    if (typeof showStatus === 'function') {
+      showStatus(`초대용량 문서는 앞 ${visibleCount}개 출력면까지만 미리보기로 표시됩니다. 선택한 페이지는 최종 저장에는 정상 반영됩니다.`, 'error');
+    }
+  }
+
   async function focusPageInPreview(page) {
     if (!page) return;
     if (page.excluded) {
@@ -142,16 +149,29 @@
     markFocusedThumbnail(page);
     let location = getPreviewLocationForPage(page);
     let previews = [...document.querySelectorAll('#previewScroll .page-preview')];
+    let target = location ? previews[location.index] : null;
 
-    if (!location || previews.length !== location.total || !previews[location.index]) {
-      if (typeof triggerPreview === 'function') await triggerPreview();
+    if (!target) {
+      if (window.__pdfEditorExtremeMode && previews.length > 0 && location?.index >= previews.length) {
+        showLimitedPreviewNotice(previews);
+        return;
+      }
+
+      if (typeof triggerPreview === 'function') {
+        window.__pdfEditorManualPreviewRequest = true;
+        await triggerPreview();
+      }
       location = getPreviewLocationForPage(page);
       previews = [...document.querySelectorAll('#previewScroll .page-preview')];
+      target = location ? previews[location.index] : null;
     }
 
-    const target = location ? previews[location.index] : null;
     if (!target) {
-      if (typeof showStatus === 'function') showStatus('선택한 페이지의 미리보기를 찾지 못했습니다.', 'error');
+      if (window.__pdfEditorExtremeMode && previews.length > 0) {
+        showLimitedPreviewNotice(previews);
+      } else if (typeof showStatus === 'function') {
+        showStatus('선택한 페이지의 미리보기를 찾지 못했습니다.', 'error');
+      }
       return;
     }
 
@@ -174,7 +194,23 @@
     }
   }
 
-  function addHideActionToContextMenu(page) {
+  function repositionContextMenu(menu, event) {
+    if (!menu) return;
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const menuWidth = menu.offsetWidth;
+    const menuHeight = menu.offsetHeight;
+    const fallbackLeft = Number.parseFloat(menu.style.left) || 6;
+    const fallbackTop = Number.parseFloat(menu.style.top) || 6;
+    const anchorX = Number.isFinite(event?.clientX) ? event.clientX : fallbackLeft;
+    const anchorY = Number.isFinite(event?.clientY) ? event.clientY : fallbackTop;
+    const maxX = Math.max(6, viewportWidth - menuWidth - 6);
+    const maxY = Math.max(6, viewportHeight - menuHeight - 6);
+    menu.style.left = Math.min(Math.max(6, anchorX), maxX) + 'px';
+    menu.style.top = Math.min(Math.max(6, anchorY), maxY) + 'px';
+  }
+
+  function addHideActionToContextMenu(page, event) {
     const menu = document.getElementById('thumbCtxMenu');
     const danger = menu?.querySelector('.ctx-item.danger');
     if (!menu || !danger || menu.querySelector('[data-page-hidden-action="true"]')) return;
@@ -183,9 +219,9 @@
     action.className = 'ctx-item';
     action.dataset.pageHiddenAction = 'true';
     action.innerHTML = `<span class="ctx-icon">${page.excluded ? '👁' : '🙈'}</span>${page.excluded ? '페이지 숨김 해제' : '페이지 숨기기'}`;
-    action.addEventListener('click', event => {
-      event.preventDefault();
-      event.stopPropagation();
+    action.addEventListener('click', clickEvent => {
+      clickEvent.preventDefault();
+      clickEvent.stopPropagation();
       menu.classList.remove('open');
       togglePageHiddenFromContextMenu(page);
     });
@@ -194,6 +230,7 @@
     separator.className = 'ctx-sep';
     menu.insertBefore(action, danger);
     menu.insertBefore(separator, danger);
+    repositionContextMenu(menu, event);
   }
 
   function installThumbnailPageBehavior(attempt = 0) {
@@ -233,7 +270,7 @@
       window.__pdfEditorHiddenContextActionV1 = true;
       window._openThumbCtxMenu = function(event, page, index) {
         const result = originalMenu.call(this, event, page, index);
-        addHideActionToContextMenu(page);
+        addHideActionToContextMenu(page, event);
         return result;
       };
     }
