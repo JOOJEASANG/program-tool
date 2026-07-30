@@ -130,30 +130,90 @@
     });
   }
 
-  function installPreviewSingleFlight(attempt = 0) {
-    if (window.__pdfEditorPreviewSingleFlightV1) return true;
+  function installPreviewCoordinator(attempt = 0) {
+    if (window.__pdfEditorPreviewCoordinatorV8) return window.__pdfEditorPreviewCoordinatorV8;
     if (typeof triggerPreview !== 'function') {
-      if (attempt < 20) setTimeout(() => installPreviewSingleFlight(attempt + 1), 100 + attempt * 25);
-      return false;
+      if (attempt < 20) setTimeout(() => installPreviewCoordinator(attempt + 1), 100 + attempt * 25);
+      return null;
     }
 
     const originalTriggerPreview = triggerPreview;
+    let delegate = (context, args) => originalTriggerPreview.apply(context, args);
     let inFlight = null;
-    const serializedTriggerPreview = function(...args) {
-      if (inFlight) return inFlight;
-      inFlight = Promise.resolve()
-        .then(() => originalTriggerPreview.apply(this, args))
-        .finally(() => { inFlight = null; });
+    let rerenderQueued = false;
+    let queuedManual = false;
+    let queuedContext = null;
+    let queuedArgs = [];
+
+    const request = function coordinatedPreviewRequest(...args) {
+      const manual = !!window.__pdfEditorManualPreviewRequest;
+      window.__pdfEditorManualPreviewRequest = false;
+
+      if (inFlight) {
+        rerenderQueued = true;
+        queuedManual = queuedManual || manual;
+        queuedContext = this;
+        queuedArgs = args;
+        return inFlight;
+      }
+
+      const initialContext = this;
+      const initialArgs = args;
+      inFlight = (async () => {
+        let nextManual = manual;
+        let nextContext = initialContext;
+        let nextArgs = initialArgs;
+        let result;
+        let pendingError = null;
+
+        while (true) {
+          rerenderQueued = false;
+          pendingError = null;
+          try {
+            result = await delegate(nextContext, nextArgs, nextManual);
+          } catch (error) {
+            pendingError = error;
+          }
+
+          if (!rerenderQueued) {
+            if (pendingError) throw pendingError;
+            return result;
+          }
+
+          nextManual = queuedManual;
+          nextContext = queuedContext;
+          nextArgs = queuedArgs;
+          queuedManual = false;
+          queuedContext = null;
+          queuedArgs = [];
+        }
+      })().finally(() => {
+        inFlight = null;
+        rerenderQueued = false;
+        queuedManual = false;
+        queuedContext = null;
+        queuedArgs = [];
+        window.__pdfEditorManualPreviewRequest = false;
+      });
       return inFlight;
     };
-    serializedTriggerPreview.__pdfEditorSingleFlightWrapped = true;
-    window.__pdfEditorPreviewSingleFlightV1 = {
+
+    const coordinator = {
+      request,
+      setDelegate(nextDelegate) {
+        if (typeof nextDelegate === 'function') delegate = nextDelegate;
+      },
+      getOriginal: () => originalTriggerPreview,
       getInFlight: () => inFlight,
+      hasQueuedRerender: () => rerenderQueued,
     };
-    triggerPreview = serializedTriggerPreview;
-    window.triggerPreview = serializedTriggerPreview;
-    return true;
+    window.__pdfEditorPreviewCoordinatorV8 = coordinator;
+    triggerPreview = request;
+    window.triggerPreview = request;
+    return coordinator;
   }
+
+  window.__pdfEditorEnsurePreviewCoordinatorV8 = installPreviewCoordinator;
 
   async function refreshPreviewForNavigation() {
     if (typeof triggerPreview !== 'function') return;
@@ -332,7 +392,7 @@
 
   function bootEditorEnhancements() {
     installPreviewToolbarLayoutFix();
-    installPreviewSingleFlight(0);
+    installPreviewCoordinator(0);
     installThumbnailPageBehavior(0);
   }
 

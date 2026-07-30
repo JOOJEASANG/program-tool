@@ -278,35 +278,35 @@
   }
 
   function installFastPreviewGuard() {
-    if (window.__pdfEditorFastPreviewGuardInstalledV6 || typeof triggerPreview !== 'function') return;
-    window.__pdfEditorFastPreviewGuardInstalledV6 = true;
-    const originalTriggerPreview = triggerPreview;
-    const guarded = async function guardedTriggerPreview() {
-      const manual = !!window.__pdfEditorManualPreviewRequest;
+    if (window.__pdfEditorFastPreviewGuardInstalledV8 || typeof triggerPreview !== 'function') return;
+    const ensureCoordinator = window.__pdfEditorEnsurePreviewCoordinatorV8;
+    const coordinator = window.__pdfEditorPreviewCoordinatorV8
+      || (typeof ensureCoordinator === 'function' ? ensureCoordinator(0) : null);
+    if (!coordinator) return;
+
+    window.__pdfEditorFastPreviewGuardInstalledV8 = true;
+    const originalTriggerPreview = coordinator.getOriginal();
+    coordinator.setDelegate(async (context, args, manual) => {
       if (window.__pdfEditorFastMode && !manual) {
         const stats = aggregateStats();
         showFastModePlaceholder(stats.pages, stats.bytes);
         document.getElementById('previewBtn').disabled = false;
         document.getElementById('downloadBtn').disabled = parsedPages.length === 0;
-        window.__pdfEditorManualPreviewRequest = false;
         return;
       }
       if (window.__pdfEditorExtremeMode && manual) {
-        try { return await buildExtremeLayoutPreview(); }
-        finally { window.__pdfEditorManualPreviewRequest = false; }
+        return buildExtremeLayoutPreview();
       }
-      try {
-        return await originalTriggerPreview.apply(this, arguments);
-      } finally {
-        window.__pdfEditorManualPreviewRequest = false;
-      }
-    };
-    triggerPreview = guarded;
-    window.triggerPreview = guarded;
+      return originalTriggerPreview.apply(context, args);
+    });
+
+    triggerPreview = coordinator.request;
+    window.triggerPreview = coordinator.request;
     document.addEventListener('click', (event) => {
       if (event.target?.closest('#previewBtn')) window.__pdfEditorManualPreviewRequest = true;
     }, true);
   }
+
 
   async function patchedHandleFile(file) {
     const isPdf = !!file && ((file.type || '').includes('pdf') || /\.pdf$/i.test(file.name || ''));
