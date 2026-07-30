@@ -99,6 +99,35 @@ jobs:
       - name: Validate static asset paths
         run: python scripts/validate_static_references.py
 
+      - name: Build repository audit bundle
+        run: |
+          python - <<'PY'
+          import shutil
+          from pathlib import Path
+
+          root = Path.cwd()
+          staging = root / '_repository_audit_source'
+          staging.mkdir()
+          keep = [
+              '.github', 'backend', 'js', 'pdf-editor', 'pdf-preflight',
+              'perfect-binding-cover', 'scripts', 'tests', 'tools',
+              'admin.html', 'guide.html', 'index.html', 'login.html',
+              'firebase.json', 'firestore.rules', 'storage.rules',
+              'sw.js', 'version.json', 'PROGRAM_STRUCTURE.md', 'README.md',
+          ]
+          for entry in keep:
+              source = root / entry
+              if not source.exists():
+                  continue
+              target = staging / entry
+              if source.is_dir():
+                  shutil.copytree(source, target, dirs_exist_ok=True)
+              else:
+                  target.parent.mkdir(parents=True, exist_ok=True)
+                  shutil.copy2(source, target)
+          shutil.make_archive('repository-audit-source', 'zip', staging)
+          PY
+
       - name: Upload frontend diagnostics
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -108,6 +137,14 @@ jobs:
             inline-js.log
           retention-days: 7
           if-no-files-found: ignore
+
+      - name: Upload repository audit bundle
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: repository-audit-source
+          path: repository-audit-source.zip
+          retention-days: 1
+          if-no-files-found: error
 
   firebase-rules:
     name: Firebase rules compile
