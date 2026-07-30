@@ -130,6 +130,37 @@
     });
   }
 
+  function installPreviewSingleFlight(attempt = 0) {
+    if (window.__pdfEditorPreviewSingleFlightV1) return true;
+    if (typeof triggerPreview !== 'function') {
+      if (attempt < 20) setTimeout(() => installPreviewSingleFlight(attempt + 1), 100 + attempt * 25);
+      return false;
+    }
+
+    const originalTriggerPreview = triggerPreview;
+    let inFlight = null;
+    const serializedTriggerPreview = function(...args) {
+      if (inFlight) return inFlight;
+      inFlight = Promise.resolve()
+        .then(() => originalTriggerPreview.apply(this, args))
+        .finally(() => { inFlight = null; });
+      return inFlight;
+    };
+    serializedTriggerPreview.__pdfEditorSingleFlightWrapped = true;
+    window.__pdfEditorPreviewSingleFlightV1 = {
+      getInFlight: () => inFlight,
+    };
+    triggerPreview = serializedTriggerPreview;
+    window.triggerPreview = serializedTriggerPreview;
+    return true;
+  }
+
+  async function refreshPreviewForNavigation() {
+    if (typeof triggerPreview !== 'function') return;
+    window.__pdfEditorManualPreviewRequest = true;
+    await triggerPreview();
+  }
+
   function showLimitedPreviewNotice(previews) {
     const visibleCount = Math.max(0, previews.length);
     if (typeof showStatus === 'function') {
@@ -165,13 +196,24 @@
         return;
       }
 
-      if (typeof triggerPreview === 'function') {
-        window.__pdfEditorManualPreviewRequest = true;
-        await triggerPreview();
-      }
+      await refreshPreviewForNavigation();
       location = getPreviewLocationForPage(page);
       previews = [...document.querySelectorAll('#previewScroll .page-preview')];
       target = location ? previews[location.index] : null;
+
+      const refreshedLimitedExtreme = Boolean(window.__pdfEditorExtremeMode)
+        && previews.length > 0
+        && location
+        && previews.length < location.total;
+      const stillStaleAfterAwait = Boolean(location)
+        && previews.length !== location.total
+        && !refreshedLimitedExtreme;
+      if (stillStaleAfterAwait) {
+        await refreshPreviewForNavigation();
+        location = getPreviewLocationForPage(page);
+        previews = [...document.querySelectorAll('#previewScroll .page-preview')];
+        target = location ? previews[location.index] : null;
+      }
     }
 
     if (!target) {
@@ -290,6 +332,7 @@
 
   function bootEditorEnhancements() {
     installPreviewToolbarLayoutFix();
+    installPreviewSingleFlight(0);
     installThumbnailPageBehavior(0);
   }
 
