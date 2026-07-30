@@ -278,16 +278,15 @@
   }
 
   function installFastPreviewGuard() {
-    if (window.__pdfEditorFastPreviewGuardInstalledV7 || typeof triggerPreview !== 'function') return;
-    window.__pdfEditorFastPreviewGuardInstalledV7 = true;
-    const originalTriggerPreview = triggerPreview;
-    let previewInFlight = null;
-    let rerenderQueued = false;
-    let queuedManual = false;
-    let queuedContext = null;
-    let queuedArgs = [];
+    if (window.__pdfEditorFastPreviewGuardInstalledV8 || typeof triggerPreview !== 'function') return;
+    const ensureCoordinator = window.__pdfEditorEnsurePreviewCoordinatorV8;
+    const coordinator = window.__pdfEditorPreviewCoordinatorV8
+      || (typeof ensureCoordinator === 'function' ? ensureCoordinator(0) : null);
+    if (!coordinator) return;
 
-    async function runPreviewOnce(context, args, manual) {
+    window.__pdfEditorFastPreviewGuardInstalledV8 = true;
+    const originalTriggerPreview = coordinator.getOriginal();
+    coordinator.setDelegate(async (context, args, manual) => {
       if (window.__pdfEditorFastMode && !manual) {
         const stats = aggregateStats();
         showFastModePlaceholder(stats.pages, stats.bytes);
@@ -299,57 +298,15 @@
         return buildExtremeLayoutPreview();
       }
       return originalTriggerPreview.apply(context, args);
-    }
+    });
 
-    const guarded = function guardedTriggerPreview(...args) {
-      const manual = !!window.__pdfEditorManualPreviewRequest;
-      window.__pdfEditorManualPreviewRequest = false;
-
-      if (previewInFlight) {
-        rerenderQueued = true;
-        queuedManual = queuedManual || manual;
-        queuedContext = this;
-        queuedArgs = args;
-        return previewInFlight;
-      }
-
-      const initialContext = this;
-      const initialArgs = args;
-      previewInFlight = (async () => {
-        let nextManual = manual;
-        let nextContext = initialContext;
-        let nextArgs = initialArgs;
-        let result;
-        do {
-          rerenderQueued = false;
-          result = await runPreviewOnce(nextContext, nextArgs, nextManual);
-          if (rerenderQueued) {
-            nextManual = queuedManual;
-            nextContext = queuedContext;
-            nextArgs = queuedArgs;
-            queuedManual = false;
-            queuedContext = null;
-            queuedArgs = [];
-          }
-        } while (rerenderQueued);
-        return result;
-      })().finally(() => {
-        previewInFlight = null;
-        window.__pdfEditorManualPreviewRequest = false;
-      });
-      return previewInFlight;
-    };
-
-    window.__pdfEditorPreviewQueueV7 = {
-      getInFlight: () => previewInFlight,
-      hasQueuedRerender: () => rerenderQueued,
-    };
-    triggerPreview = guarded;
-    window.triggerPreview = guarded;
+    triggerPreview = coordinator.request;
+    window.triggerPreview = coordinator.request;
     document.addEventListener('click', (event) => {
       if (event.target?.closest('#previewBtn')) window.__pdfEditorManualPreviewRequest = true;
     }, true);
   }
+
 
   async function patchedHandleFile(file) {
     const isPdf = !!file && ((file.type || '').includes('pdf') || /\.pdf$/i.test(file.name || ''));
