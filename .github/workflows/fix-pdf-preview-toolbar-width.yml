@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - agent/fix-pdf-preview-toolbar-width
+  pull_request:
+    branches:
+      - main
 
 permissions:
   contents: write
