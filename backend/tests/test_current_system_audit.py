@@ -18,6 +18,18 @@ def test_home_uses_canonical_program_routes_without_obsolete_runtime_mutators():
         assert not (ROOT / "js" / name).exists()
 
 
+def test_obsolete_compatibility_helpers_are_removed():
+    for path in (
+        "js/pdf-editor-helper.js",
+        "js/pdf-editor-cleanup.js",
+        "js/cover-editor-text-zones.js",
+        "js/preflight/labels.js",
+        "js/pdf-editor/storage-cleanup.js",
+        "js/pdf-editor/history-policy.js",
+    ):
+        assert not (ROOT / path).exists()
+
+
 def test_branding_is_consistent_on_current_public_pages():
     for path in (
         "index.html", "login.html", "admin.html", "guide.html",
@@ -37,6 +49,15 @@ def test_pdf_editor_has_no_dead_cloud_file_library_or_eval():
         assert token not in editor
     assert "eval(" not in editor
     assert "PDF 저장 완료!" in editor
+
+
+def test_upload_surfaces_are_keyboard_accessible():
+    editor = read("pdf-editor/index.html")
+    preflight = read("pdf-preflight/index.html")
+    assert 'id="uploadZone" role="button" tabindex="0"' in editor
+    assert "e.key === 'Enter' || e.key === ' '" in editor
+    assert 'id="uploadZone" role="button" tabindex="0"' in preflight
+    assert "event.key==='Enter'||event.key===' '" in preflight
 
 
 def test_pdf_editor_stable_loader_is_small_and_polling_is_bounded():
