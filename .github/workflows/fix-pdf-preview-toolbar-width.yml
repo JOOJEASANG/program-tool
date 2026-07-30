@@ -88,3 +88,5 @@ jobs:
           git add pdf-editor/index.html tools/pdf-editor.html js/firebase-config.js js/sw-register.js sw.js version.json backend/tests/test_pdf_editor_preview_toolbar_width.py .github/workflows/fix-pdf-preview-toolbar-width.yml
           git commit -m "PDF 미리보기 상단 옵션 폭과 텍스트 넘침 수정"
           git push origin HEAD:agent/fix-pdf-preview-toolbar-width
+
+# ready-for-review retrigger
