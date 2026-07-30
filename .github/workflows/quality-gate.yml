@@ -14,42 +14,121 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  apply-final-layout-audit:
-    name: Apply final mobile layout fixes
-    if: github.actor != 'github-actions[bot]' && github.event_name == 'pull_request' && github.head_ref == 'agent/full-system-audit'
+  backend-tests:
+    name: Backend tests
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-        with:
-          ref: agent/full-system-audit
-          fetch-depth: 0
+
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: '3.11'
-      - name: Apply reviewed responsive fixes
-        run: python scripts/apply_final_layout_audit_fixes.py
-      - name: Remove audit-only files and restore normal quality gate
+          cache: pip
+          cache-dependency-path: |
+            backend/requirements.txt
+            backend/requirements-dev.txt
+            backend/constraints.txt
+
+      - name: Install backend dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -r backend/requirements-dev.txt
+
+      - name: Compile Python sources
+        run: python -m compileall -q backend scripts
+
+      - name: Run regression tests
+        working-directory: backend
+        shell: bash
+        env:
+          PYTHONPATH: ${{ github.workspace }}/backend
         run: |
-          rm -f scripts/apply_final_layout_audit_fixes.py
-          git checkout origin/main -- .github/workflows/quality-gate.yml
-      - name: Run focused validation
+          set -o pipefail
+          python -m pytest -q --tb=short 2>&1 | tee pytest.log
+
+      - name: Upload pytest diagnostics
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: pytest-diagnostics
+          path: backend/pytest.log
+          retention-days: 7
+          if-no-files-found: ignore
+
+  frontend-static:
+    name: Frontend and repository checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '20'
+
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.11'
+
+      - name: Build deployment HTML
+        run: python scripts/inject_boot_guard.py
+
+      - name: Validate JavaScript files
         run: |
-          python -m pip install pytest
-          python scripts/check_inline_js.py
-          python scripts/check_version_sync.py
-          python scripts/validate_static_references.py
           find js -type f -name '*.js' -print0 | xargs -0 -n1 node --check
           node --check sw.js
-          cd backend
-          python -m pytest -q tests/test_current_system_audit.py tests/test_file_library_and_cover_ui.py tests/test_pdf_editor_july20_runtime.py
-      - name: Commit final audit fixes
+
+      - name: Validate inline JavaScript
+        shell: bash
         run: |
-          git config user.name github-actions[bot]
-          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add -A
-          git commit -m "모바일 홈·관리자 레이아웃 최종 보완"
-          git push origin HEAD:agent/full-system-audit
+          set -o pipefail
+          python scripts/check_inline_js.py 2>&1 | tee inline-js.log
+
+      - name: Validate JSON files
+        run: |
+          python -m json.tool firebase.json >/dev/null
+          python -m json.tool firestore.indexes.json >/dev/null
+          python -m json.tool storage-lifecycle.json >/dev/null
+          python -m json.tool version.json >/dev/null
+
+      - name: Validate deployment version
+        run: python scripts/check_version_sync.py
+
+      - name: Validate static asset paths
+        run: python scripts/validate_static_references.py
+
+      - name: Upload frontend diagnostics
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: frontend-diagnostics
+          path: |
+            inline-js.log
+          retention-days: 7
+          if-no-files-found: ignore
+
+  firebase-rules:
+    name: Firebase rules compile
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '20'
+
+      - uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Install Firebase CLI
+        run: |
+          npm ci
+          npm install -g firebase-tools@14.27.0
+
+      - name: Test Firestore and Storage rules
+        run: firebase emulators:exec --only firestore,storage --project demo-program-tool "npm run test:rules"
