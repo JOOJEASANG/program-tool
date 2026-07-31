@@ -83,7 +83,8 @@ def test_stable_editor_surface_module_count_and_cache_versions():
     source = LOADER.read_text(encoding="utf-8")
     assert EDITOR.read_bytes() == LEGACY.read_bytes()
     assert source.count("'/js/pdf-editor/") == 8
-    assert "__pdfEditorModuleLoaderV17" in source
+    assert "__pdfEditorModuleLoaderV18" in source
     assert "page-count-hint.js?v=20260731-1" in source
     assert "nup-helper.js?v=20260731-1" in source
     assert "preview-row-default.js?v=20260731-1" in source
+    assert "divider-helper.js?v=20260731-2" in source
