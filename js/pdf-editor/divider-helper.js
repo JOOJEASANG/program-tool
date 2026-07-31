@@ -1,7 +1,7 @@
 // PDF editor divider helper module.
 (function () {
-  if (window.__pdfEditorDividerHelperV3) return;
-  window.__pdfEditorDividerHelperV3 = true;
+  if (window.__pdfEditorDividerHelperV4) return;
+  window.__pdfEditorDividerHelperV4 = true;
 
   function $(id) { return document.getElementById(id); }
   const snapPoints = [
@@ -162,16 +162,16 @@
   }
 
   function wrapFunctions() {
-    if (!window.__dividerContentWrappedV3 && typeof window.getDividerContent === 'function') {
+    if (!window.__dividerContentWrappedV4 && typeof window.getDividerContent === 'function') {
       const originalGet = window.getDividerContent;
       window.getDividerContent = function () { return patchContent(originalGet.call(this)); };
-      window.__dividerContentWrappedV3 = true;
+      window.__dividerContentWrappedV4 = true;
     }
-    if (!window.__dividerCanvasWrappedV3 && typeof window.renderDividerCanvas === 'function') {
+    if (!window.__dividerCanvasWrappedV4 && typeof window.renderDividerCanvas === 'function') {
       window.renderDividerCanvas = function (content, width, height) { return renderPatched(content, width, height); };
-      window.__dividerCanvasWrappedV3 = true;
+      window.__dividerCanvasWrappedV4 = true;
     }
-    if (!window.__dividerOpenWrappedV3 && typeof window.editDivider === 'function' && typeof window.openDividerInsert === 'function') {
+    if (!window.__dividerOpenWrappedV4 && typeof window.editDivider === 'function' && typeof window.openDividerInsert === 'function') {
       const oldEdit = window.editDivider;
       const oldOpen = window.openDividerInsert;
       window.editDivider = function (page) {
@@ -182,12 +182,18 @@
         setPositions({ titleX: 50, subtitleX: 50, noteX: 50, titleY: 45, subtitleY: 55, noteY: 88 });
         return oldOpen.apply(this, arguments);
       };
-      window.__dividerOpenWrappedV3 = true;
+      window.__dividerOpenWrappedV4 = true;
     }
   }
 
   function partAt(y, height) {
-    const points = [['title', n('dividerTitleY', 45)], ['subtitle', n('dividerSubtitleY', 55)], ['note', n('dividerNoteY', 88)]];
+    const offset = n('dividerVOffset', 0);
+    const shifted = (value) => Math.max(0, Math.min(100, value + offset));
+    const points = [
+      ['title', shifted(n('dividerTitleY', 45))],
+      ['subtitle', shifted(n('dividerSubtitleY', 55))],
+      ['note', shifted(n('dividerNoteY', 88))],
+    ];
     points.sort((a, b) => Math.abs(y / height * 100 - a[1]) - Math.abs(y / height * 100 - b[1]));
     return points[0][0];
   }

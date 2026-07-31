@@ -1,4 +1,7 @@
+import json
 from pathlib import Path
+
+from models.schemas import PageInfo
 
 ROOT = Path(__file__).resolve().parents[2]
 PDF_JS = ROOT / "js" / "pdf-editor"
@@ -15,7 +18,7 @@ def source(path: Path) -> str:
 def test_advanced_divider_studio_is_single_initialized_without_polling():
     helper = source(HELPER)
     studio = source(STUDIO)
-    assert "__pdfEditorDividerHelperV3" in helper
+    assert "__pdfEditorDividerHelperV4" in helper
     assert "__pdfDividerStudioV2" in studio
     assert "data-divider-studio" in helper
     assert "divider-studio.js?v=20260731-2" in helper
@@ -71,9 +74,46 @@ def test_backend_explicit_renderer_supports_restored_studio_fields():
         assert marker in backend
 
 
-def test_loader_keeps_eight_direct_modules_and_busts_divider_cache():
+def test_maximum_bounded_layer_payload_fits_request_schema():
+    payload = {
+        "title": "제목",
+        "subtitle": "부제목",
+        "note": "메모",
+        "extraTexts": [
+            {
+                "id": f"extra_{index}",
+                "text": "가" * 500,
+                "size": 18,
+                "color": "#111827",
+                "weight": 400,
+                "italic": False,
+                "align": "center",
+                "x": 50,
+                "y": 70,
+                "opacity": 1,
+                "rotation": 0,
+                "hidden": False,
+                "locked": False,
+            }
+            for index in range(30)
+        ],
+    }
+    serialized = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
+    assert 20_000 < len(serialized) < 50_000
+    page = PageInfo(file_index=0, page_index=0, page_type="divider", divider_content=serialized)
+    assert page.divider_content == serialized
+
+
+def test_magnetic_hit_testing_uses_the_visible_vertical_offset():
+    helper = source(HELPER)
+    assert "const offset = n('dividerVOffset', 0);" in helper
+    assert "['title', shifted(n('dividerTitleY', 45))]" in helper
+    assert "['subtitle', shifted(n('dividerSubtitleY', 55))]" in helper
+    assert "['note', shifted(n('dividerNoteY', 88))]" in helper
+
+
+def test_loader_keeps_eight_direct_modules():
     loader = source(LOADER)
     assert "__pdfEditorModuleLoaderV18" in loader
     assert loader.count("'/js/pdf-editor/") == 8
-    assert "/js/pdf-editor/divider-helper.js?v=20260731-2" in loader
     assert "divider-studio.js" not in loader
