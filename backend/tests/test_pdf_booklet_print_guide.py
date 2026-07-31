@@ -4,6 +4,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 LOADER = ROOT / "js" / "pdf-editor" / "loader.js"
 NUP_HELPER = ROOT / "js" / "pdf-editor" / "nup-helper.js"
+PREVIEW_ROW = ROOT / "js" / "pdf-editor" / "preview-row-default.js"
 EDITOR = ROOT / "pdf-editor" / "index.html"
 LEGACY = ROOT / "tools" / "pdf-editor.html"
 
@@ -51,13 +52,19 @@ def test_print_guide_counts_output_faces_and_physical_sheets():
     assert "groupByNup(pages)" in text
 
 
-def test_booklet_flip_is_preserved_in_browser_and_editor_sessions():
+def test_booklet_flip_is_preserved_in_browser_and_successful_editor_sessions():
     text = source()
+    guard = PREVIEW_ROW.read_text(encoding="utf-8")
     assert "state.bookletFlip" in text
     assert "collectWithBookletGuide" in text
     assert "loadWithBookletGuide" in text
     assert "localStorage.setItem(STORAGE_KEY, value)" in text
     assert "__bookletGuideStateV2" in text
+    assert "installBookletSessionResultGuard" in guard
+    assert "modalWasOpen && modalStillOpen" in guard
+    assert "statusText.includes('불러오기 완료!')" in guard
+    assert "if (!sessionApplied)" in guard
+    assert "restoreStoredBookletFlip(previousStoredValue)" in guard
 
 
 def test_preview_annotation_uses_observer_without_render_function_wrapping():
@@ -78,5 +85,8 @@ def test_old_click_to_exclude_hint_is_replaced():
 
 def test_booklet_guide_has_no_eval_or_unbounded_polling():
     text = source()
+    guard = PREVIEW_ROW.read_text(encoding="utf-8")
     assert "eval(" not in text
     assert "setInterval(" not in text
+    assert "eval(" not in guard
+    assert "setInterval(" not in guard
