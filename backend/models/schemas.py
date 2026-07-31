@@ -58,6 +58,8 @@ class HeaderFooterSettings(BaseModel):
     header_margin_mm: float = Field(default=8.0, ge=0.0, le=80.0)
     footer_margin_mm: float = Field(default=8.0, ge=0.0, le=80.0)
     margin_mm: Optional[float] = Field(default=None, ge=0.0, le=80.0)
+    margin_left_mm: Optional[float] = Field(default=None, ge=0.0, le=80.0)
+    margin_right_mm: Optional[float] = Field(default=None, ge=0.0, le=80.0)
     apply_to: Literal["all", "odd", "even"] = "all"
     sections: list[HeaderFooterSection] = Field(default_factory=list, max_length=100)
 
@@ -119,6 +121,14 @@ class PdfProcessRequest(BaseModel):
 
     @model_validator(mode="after")
     def validate_booklet_imposition(self):
+        if self.header_footer.margin_left_mm is None:
+            self.header_footer.margin_left_mm = (
+                self.margin_left_mm if self.margin_left_mm is not None else self.margin_h_mm
+            )
+        if self.header_footer.margin_right_mm is None:
+            self.header_footer.margin_right_mm = (
+                self.margin_right_mm if self.margin_right_mm is not None else self.margin_h_mm
+            )
         if self.booklet and self.nup_default not in {
             NupValue.two,
             NupValue.four,
