@@ -1,12 +1,14 @@
-// Crop marks only: no bleed expansion or artwork stretching.
+// Crop marks plus bounded PDF editor UI and margin-alignment refinements.
 (function () {
   'use strict';
-  if (window.__pdfCropMarksV1) return;
-  window.__pdfCropMarksV1 = true;
+  if (window.__pdfCropMarksV2) return;
+  window.__pdfCropMarksV2 = true;
 
   const $ = (id) => document.getElementById(id);
+  const GUIDE_TEXT = 'PDF 업로드 · 페이지 편집 · 간지 삽입 · 머리말/꼬리말 · 워터마크 · N-up 인쇄';
   let buildPatched = false;
   let sessionPatched = false;
+  let overlayPatched = false;
   let attempts = 0;
 
   function numberValue(id, fallback, min, max) {
@@ -33,7 +35,174 @@
     } catch (_) {}
   }
 
-  function installUi() {
+  function installEditorStyles() {
+    if ($('pdfEditorStickyUploadMarginStylesV2')) return;
+    const style = document.createElement('style');
+    style.id = 'pdfEditorStickyUploadMarginStylesV2';
+    style.textContent = `
+      .pdf-upload-sticky-v2{
+        position:sticky;top:-16px;z-index:90;
+        margin:0 -16px 5px;padding:16px 16px 11px;
+        background:rgba(255,255,255,.985);
+        border-bottom:1px solid #e5e7eb;
+        box-shadow:0 8px 18px rgba(15,23,42,.07);
+      }
+      .pdf-upload-sticky-v2>.sec-head{background:transparent}
+      #pdfUploadCompactGuideV2{
+        margin-top:7px;padding-top:6px;border-top:1px dashed #bfdbfe;
+        color:#64748b;font-size:8.5px;font-weight:600;line-height:1.45;
+        letter-spacing:-.12px;word-break:keep-all;
+      }
+      #individualPaperMarginsV2 input[type="number"]{
+        font-size:13px!important;font-weight:400!important;color:#111827!important;
+      }
+      .pdf-margin-facing-row-v2{
+        display:flex;align-items:flex-start;gap:7px;margin-top:8px;padding:8px 9px;
+        border:1px solid #c7d2fe;border-radius:9px;background:#eef2ff;
+        color:#3730a3;font-size:10px;font-weight:750;line-height:1.45;cursor:pointer;
+      }
+      .pdf-margin-facing-row-v2[hidden]{display:none!important}
+      .pdf-margin-facing-row-v2 input{flex:0 0 auto;margin-top:2px}
+      .pdf-margin-facing-row-v2 small{display:block;margin-top:2px;color:#64748b;font-size:8.5px;font-weight:650}
+    `;
+    document.head.appendChild(style);
+  }
+
+  function installUploadLayout() {
+    const uploadBody = $('sb-upload');
+    const uploadZone = $('uploadZone');
+    const uploadSection = uploadBody?.closest('.sec');
+    const aside = uploadSection?.closest('aside');
+    if (!uploadBody || !uploadZone || !uploadSection || !aside) return false;
+
+    uploadSection.classList.add('pdf-upload-sticky-v2');
+    let guide = $('pdfUploadCompactGuideV2');
+    if (!guide) {
+      guide = document.createElement('div');
+      guide.id = 'pdfUploadCompactGuideV2';
+      guide.textContent = GUIDE_TEXT;
+      uploadZone.appendChild(guide);
+    }
+
+    const oldGuide = [...aside.children].find((node) => node.classList?.contains('sub'));
+    if (oldGuide) oldGuide.style.display = 'none';
+    return true;
+  }
+
+  function facingEnabled() {
+    try { return !!facingPages; }
+    catch (_) { return !!$('facingPages')?.checked; }
+  }
+
+  function horizontalMargins(outputIndex) {
+    let left = numberValue('marginLeft', numberValue('marginH', 10, 0, 80), 0, 80);
+    let right = numberValue('marginRight', numberValue('marginH', 10, 0, 80), 0, 80);
+    if (facingEnabled() && Number(outputIndex) % 2 === 1) [left, right] = [right, left];
+    return { left, right };
+  }
+
+  function syncMarginFacingControl() {
+    const row = $('marginFacingPagesRowV2');
+    const mirror = $('marginFacingPagesV2');
+    if (!row || !mirror) return;
+    const left = numberValue('marginLeft', 10, 0, 80);
+    const right = numberValue('marginRight', 10, 0, 80);
+    const different = Math.abs(left - right) > 0.001;
+    row.hidden = !different;
+    mirror.checked = !!$('facingPages')?.checked || facingEnabled();
+    const note = $('marginFacingPagesNoteV2');
+    if (note) note.textContent = different
+      ? `홀수면 ${left} / ${right}mm · 짝수면 ${right} / ${left}mm로 교환합니다.`
+      : '좌·우 여백이 다를 때 짝수 출력면에서 자동 교환합니다.';
+  }
+
+  function installMarginFacingControl() {
+    const panel = $('individualPaperMarginsV2');
+    const original = $('facingPages');
+    if (!panel || !original) return false;
+
+    if (!$('marginFacingPagesRowV2')) {
+      const row = document.createElement('label');
+      row.id = 'marginFacingPagesRowV2';
+      row.className = 'pdf-margin-facing-row-v2';
+      row.hidden = true;
+      row.innerHTML = `
+        <input type="checkbox" id="marginFacingPagesV2">
+        <span><strong>좌·우 여백 마주보기</strong><small id="marginFacingPagesNoteV2"></small></span>`;
+      panel.appendChild(row);
+    }
+
+    const mirror = $('marginFacingPagesV2');
+    if (mirror && !mirror.dataset.boundV2) {
+      mirror.dataset.boundV2 = '1';
+      mirror.addEventListener('change', () => {
+        original.checked = mirror.checked;
+        try { facingPages = mirror.checked; } catch (_) {}
+        original.dispatchEvent(new Event('change', { bubbles: true }));
+        syncMarginFacingControl();
+        requestPreview();
+      });
+    }
+
+    if (!original.dataset.marginMirrorBoundV2) {
+      original.dataset.marginMirrorBoundV2 = '1';
+      original.addEventListener('change', syncMarginFacingControl);
+    }
+
+    ['marginLeft', 'marginRight'].forEach((id) => {
+      const input = $(id);
+      if (!input || input.dataset.marginFacingBoundV2) return;
+      input.dataset.marginFacingBoundV2 = '1';
+      input.addEventListener('input', syncMarginFacingControl);
+      input.addEventListener('change', syncMarginFacingControl);
+    });
+
+    syncMarginFacingControl();
+    return true;
+  }
+
+  function patchDocumentOverlays() {
+    if (overlayPatched) return true;
+    if (typeof applyDocEdits !== 'function') return false;
+    const original = applyDocEdits;
+    if (original.__paperMarginOverlayV2) {
+      overlayPatched = true;
+      return true;
+    }
+
+    const wrapped = function paperMarginAwareOverlays(canvas, outputIndex, totalPages, mm2px) {
+      const context = canvas?.getContext?.('2d');
+      if (!context) return original.apply(this, arguments);
+      const originalFillText = context.fillText;
+      const margins = horizontalMargins(outputIndex);
+      const leftPx = margins.left * mm2px;
+      const rightPx = margins.right * mm2px;
+      const centerPx = (leftPx + canvas.width - rightPx) / 2;
+
+      context.fillText = function marginAwareFillText(text, x, y, maxWidth) {
+        let adjustedX = Number(x) || 0;
+        const isDocumentOverlay = this.globalAlpha >= 0.999 && this.textBaseline === 'middle';
+        if (isDocumentOverlay) {
+          if (this.textAlign === 'left') adjustedX = Math.max(adjustedX, leftPx);
+          else if (this.textAlign === 'right') adjustedX = Math.min(adjustedX, canvas.width - rightPx);
+          else if (this.textAlign === 'center') adjustedX = centerPx;
+        }
+        return arguments.length >= 4
+          ? originalFillText.call(this, text, adjustedX, y, maxWidth)
+          : originalFillText.call(this, text, adjustedX, y);
+      };
+
+      try { return original.apply(this, arguments); }
+      finally { context.fillText = originalFillText; }
+    };
+    wrapped.__paperMarginOverlayV2 = true;
+    applyDocEdits = wrapped;
+    window.applyDocEdits = wrapped;
+    overlayPatched = true;
+    return true;
+  }
+
+  function installCropMarkUi() {
     const paperBody = $('sb-paper');
     if (!paperBody) return false;
     if (!$('cropMarksPanel')) {
@@ -137,6 +306,7 @@
         if (Number.isFinite(Number(config.mark_offset_mm))) $('cropMarkOffsetMm').value = String(config.mark_offset_mm);
         $('cropMarksSettings').style.display = config.enabled ? 'block' : 'none';
       } catch (_) {}
+      syncMarginFacingControl();
       requestPreview();
       return result;
     };
@@ -147,16 +317,26 @@
   }
 
   function boot() {
-    const ui = installUi();
+    installEditorStyles();
+    const upload = installUploadLayout();
+    const margins = installMarginFacingControl();
+    const overlay = patchDocumentOverlays();
+    const ui = installCropMarkUi();
     const build = patchBuild();
     const session = patchSession();
-    if ((!ui || !build || !session) && attempts < 12) {
+    if ((!upload || !margins || !overlay || !ui || !build || !session) && attempts < 16) {
       attempts += 1;
       setTimeout(boot, 180 + attempts * 60);
     }
   }
 
-  window.PdfPrintMarks = { settings, enabled, addMarksToCanvas: addMarks, refresh: requestPreview };
+  window.PdfPrintMarks = {
+    settings,
+    enabled,
+    addMarksToCanvas: addMarks,
+    refresh: requestPreview,
+    horizontalMargins,
+  };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, { once: true });
   else boot();
 })();
