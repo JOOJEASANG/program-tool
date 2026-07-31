@@ -1,0 +1,161 @@
+name: One-off fix individual margin review
+
+on:
+  push:
+    branches:
+      - agent/fix-individual-margin-review
+    paths:
+      - .github/workflows/oneoff-fix-individual-margin-review.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply-fixes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/fix-individual-margin-review
+          fetch-depth: 0
+      - name: Apply reviewed margin fixes
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          layout_path = Path('js/pdf-editor/layout-export.js')
+          source = layout_path.read_text(encoding='utf-8')
+
+          source = source.replace('__pdfEditorLayoutExportV6', '__pdfEditorLayoutExportV7')
+          source = source.replace('__pdfLayoutApiWrappedV6', '__pdfLayoutApiWrappedV7')
+          source = source.replace('__pdfLayoutFetchWrappedV6', '__pdfLayoutFetchWrappedV7')
+
+          old = "  const MARGIN_IDS = ['marginLeft', 'marginRight', 'marginTop', 'marginBottom'];\n"
+          new = old + "  const PT_TO_MM = 25.4 / 72;\n  const FALLBACK_MARGIN_MM = 10 * PT_TO_MM;\n  const FALLBACK_GAP_MM = 6 * PT_TO_MM;\n"
+          if old not in source:
+              raise SystemExit('margin constants anchor missing')
+          source = source.replace(old, new, 1)
+
+          old = """        const { pw, ph, gp } = patchedGetSettings();
+        let margins = effectiveMargins(Number.isInteger(outputPageIndex) ? outputPageIndex : pageIdx);
+        let usableWidth = pw - margins.left - margins.right - gp * (cols - 1);
+        let usableHeight = ph - margins.top - margins.bottom - gp * (rows - 1);
+        if (usableWidth <= 1 || usableHeight <= 1) {
+          margins = { left: 10, right: 10, top: 10, bottom: 10 };
+          usableWidth = pw - 20 - gp * (cols - 1);
+          usableHeight = ph - 20 - gp * (rows - 1);
+        }
+"""
+          new = """        const { pw, ph, gp } = patchedGetSettings();
+        let margins = effectiveMargins(Number.isInteger(outputPageIndex) ? outputPageIndex : pageIdx);
+        let layoutGap = gp;
+        let usableWidth = pw - margins.left - margins.right - layoutGap * (cols - 1);
+        let usableHeight = ph - margins.top - margins.bottom - layoutGap * (rows - 1);
+        if (usableWidth <= 1 || usableHeight <= 1) {
+          margins = {
+            left: FALLBACK_MARGIN_MM,
+            right: FALLBACK_MARGIN_MM,
+            top: FALLBACK_MARGIN_MM,
+            bottom: FALLBACK_MARGIN_MM,
+          };
+          layoutGap = FALLBACK_GAP_MM;
+          usableWidth = pw - margins.left - margins.right - layoutGap * (cols - 1);
+          usableHeight = ph - margins.top - margins.bottom - layoutGap * (rows - 1);
+        }
+"""
+          if old not in source:
+              raise SystemExit('preview fallback block missing')
+          source = source.replace(old, new, 1)
+
+          source = source.replace(
+              "        output.dataset.marginBottomMm = String(margins.bottom);\n",
+              "        output.dataset.marginBottomMm = String(margins.bottom);\n        output.dataset.gapMm = String(layoutGap);\n",
+              1,
+          )
+          source = source.replace(
+              "          const cellX = (margins.left + column * (cellW + gp)) * mm2px;\n          const cellY = (margins.top + row * (cellH + gp)) * mm2px;\n",
+              "          const cellX = (margins.left + column * (cellW + layoutGap)) * mm2px;\n          const cellY = (margins.top + row * (cellH + layoutGap)) * mm2px;\n",
+              1,
+          )
+
+          old = """    Object.entries(values).forEach(([id, value]) => {
+      const input = $(id);
+      if (input && Number.isFinite(Number(value))) input.value = String(value);
+    });
+    syncLegacyMargins();
+    updateFacingNote();
+"""
+          new = """    Object.entries(values).forEach(([id, value]) => {
+      const input = $(id);
+      if (input && Number.isFinite(Number(value))) input.value = String(value);
+    });
+    const savedFacing = state.facingPages ?? state.facing_pages;
+    if (typeof savedFacing === 'boolean') {
+      const facingInput = $('facingPages');
+      if (facingInput) facingInput.checked = savedFacing;
+      try { facingPages = savedFacing; } catch (_) {}
+    }
+    syncLegacyMargins();
+    updateFacingNote();
+"""
+          if old not in source:
+              raise SystemExit('session margin restore block missing')
+          source = source.replace(old, new, 1)
+          layout_path.write_text(source, encoding='utf-8')
+
+          test_path = Path('backend/tests/test_pdf_individual_margins.py')
+          tests = test_path.read_text(encoding='utf-8')
+          addition = r'''
+
+
+def test_preview_invalid_geometry_fallback_matches_backend_point_constants():
+    source = LAYOUT_EXPORT.read_text(encoding="utf-8")
+
+    assert "const PT_TO_MM = 25.4 / 72" in source
+    assert "const FALLBACK_MARGIN_MM = 10 * PT_TO_MM" in source
+    assert "const FALLBACK_GAP_MM = 6 * PT_TO_MM" in source
+    assert "let layoutGap = gp" in source
+    assert "layoutGap = FALLBACK_GAP_MM" in source
+    assert "cellW + layoutGap" in source
+    assert "cellH + layoutGap" in source
+    assert "output.dataset.gapMm = String(layoutGap)" in source
+
+
+def test_session_restore_synchronizes_facing_state_and_checkbox():
+    source = LAYOUT_EXPORT.read_text(encoding="utf-8")
+
+    assert "const savedFacing = state.facingPages ?? state.facing_pages" in source
+    assert "facingInput.checked = savedFacing" in source
+    assert "facingPages = savedFacing" in source
+    assert source.index("facingInput.checked = savedFacing") < source.index("updateFacingNote();", source.index("function applyStateMargins"))
+'''
+          if 'test_preview_invalid_geometry_fallback_matches_backend_point_constants' not in tests:
+              tests += addition
+          test_path.write_text(tests, encoding='utf-8')
+
+          loader_path = Path('js/pdf-editor/loader.js')
+          loader = loader_path.read_text(encoding='utf-8')
+          old_loader = 'layout-export.js?v=20260731-2'
+          new_loader = 'layout-export.js?v=20260731-3'
+          if old_loader not in loader:
+              raise SystemExit('layout export cache marker missing')
+          loader_path.write_text(loader.replace(old_loader, new_loader), encoding='utf-8')
+
+          version_path = Path('version.json')
+          version_path.write_text('''{\n  "version": "2026.07.31.004",\n  "label": "PDF 개별 여백 경계조건 보완",\n  "updatedAt": "2026-07-31T14:22:00+09:00"\n}\n''', encoding='utf-8')
+
+          for path in (Path('js/firebase-config.js'), Path('js/sw-register.js'), Path('sw.js')):
+              text = path.read_text(encoding='utf-8')
+              if '2026.07.31.003' not in text:
+                  raise SystemExit(f'old deployment version missing in {path}')
+              path.write_text(text.replace('2026.07.31.003', '2026.07.31.004'), encoding='utf-8')
+          PY
+      - name: Validate changed JavaScript
+        run: node --check js/pdf-editor/layout-export.js
+      - name: Commit reviewed fixes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add js/pdf-editor/layout-export.js js/pdf-editor/loader.js backend/tests/test_pdf_individual_margins.py version.json js/firebase-config.js js/sw-register.js sw.js
+          git commit -m "개별 여백 대체 레이아웃과 세션 양면 상태 보완"
+          git push origin HEAD:agent/fix-individual-margin-review
