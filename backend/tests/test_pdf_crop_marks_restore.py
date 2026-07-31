@@ -45,6 +45,9 @@ def test_sidebar_upload_and_margin_controls_are_bounded_and_integrated():
     assert "marginFacingPagesV2" in source
     assert "좌·우 여백 마주보기" in source
     assert "original.dispatchEvent(new Event('change'" in source
+    assert "node.tagName === 'H1'" in source
+    assert "node.textContent?.trim() === 'PDF 문서 편집기'" in source
+    assert "sidebarTitle.remove()" in source
 
 
 def test_preview_document_overlays_use_independent_horizontal_margins():
