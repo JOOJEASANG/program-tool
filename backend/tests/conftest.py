@@ -45,6 +45,7 @@ def _is_stable_eight_module_runtime() -> bool:
                 "__pdfEditorModuleLoaderV15",
                 "__pdfEditorModuleLoaderV16",
                 "__pdfEditorModuleLoaderV17",
+                "__pdfEditorModuleLoaderV18",
             )
         )
         and "preview-controller.js" not in loader
