@@ -128,8 +128,8 @@ def test_independent_margin_ui_is_integrated_into_the_existing_export_module():
 
     assert loader.count("'/js/pdf-editor/") == 8
     assert "individual-margins-facing-pages.js" not in loader
-    assert "layout-export.js?v=20260731-2" in loader
-    assert "__pdfEditorLayoutExportV6" in source
+    assert "layout-export.js?v=20260731-3" in loader
+    assert "__pdfEditorLayoutExportV7" in source
     assert "individualPaperMarginsV2" in source
     for field in ("marginLeft", "marginRight", "marginTop", "marginBottom"):
         assert field in source
@@ -159,6 +159,31 @@ def test_export_and_saved_sessions_keep_all_four_margin_values():
     assert "collectWithMargins.__individualMarginsV2" in source
     assert "loadWithMargins.__individualMarginsV2" in source
     assert "parsedPages !== previousPages" in source
+
+
+def test_preview_invalid_geometry_fallback_matches_backend_point_constants():
+    source = LAYOUT_EXPORT.read_text(encoding="utf-8")
+
+    assert "const PT_TO_MM = 25.4 / 72" in source
+    assert "const FALLBACK_MARGIN_MM = 10 * PT_TO_MM" in source
+    assert "const FALLBACK_GAP_MM = 6 * PT_TO_MM" in source
+    assert "let layoutGap = gp" in source
+    assert "layoutGap = FALLBACK_GAP_MM" in source
+    assert "cellW + layoutGap" in source
+    assert "cellH + layoutGap" in source
+    assert "output.dataset.gapMm = String(layoutGap)" in source
+
+
+def test_session_restore_synchronizes_facing_state_and_checkbox():
+    source = LAYOUT_EXPORT.read_text(encoding="utf-8")
+
+    assert "const savedFacing = state.facingPages ?? state.facing_pages" in source
+    assert "facingInput.checked = savedFacing" in source
+    assert "facingPages = savedFacing" in source
+    apply_start = source.index("function applyStateMargins")
+    assert source.index("facingInput.checked = savedFacing", apply_start) < source.index(
+        "updateFacingNote();", apply_start
+    )
 
 
 def test_public_pdf_editor_entrypoints_remain_identical():
