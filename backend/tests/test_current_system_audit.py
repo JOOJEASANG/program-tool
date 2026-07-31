@@ -62,7 +62,7 @@ def test_upload_surfaces_are_keyboard_accessible():
 
 def test_pdf_editor_stable_loader_is_small_and_polling_is_bounded():
     loader = read("js/pdf-editor/loader.js")
-    assert "__pdfEditorModuleLoaderV16" in loader
+    assert "__pdfEditorModuleLoaderV17" in loader
     assert loader.count("'/js/pdf-editor/") == 8
     assert "storage-cleanup.js" not in loader
     assert "history-policy.js" not in loader
