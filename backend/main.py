@@ -22,6 +22,7 @@ from werkzeug.exceptions import MethodNotAllowed, NotFound, RequestEntityTooLarg
 from routers.pdf import pdf_bp
 from routers.pdf_tools import pdf_tools_bp
 from routers.preflight import preflight_bp
+from services import pdf_overlay_margin_patch  # noqa: F401,E402
 from utils.permissions import AccessError, require_program_access_for_request
 
 
