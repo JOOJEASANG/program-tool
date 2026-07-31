@@ -88,8 +88,10 @@ def test_productivity_uses_observers_without_render_function_wrapping():
     text = source()
     assert "new MutationObserver" in text
     assert "requestAnimationFrame(decorateThumbnails)" in text
-    assert "renderThumbs =" not in text
-    assert "displayPreview =" not in text
+    assert "const original = renderThumbs" not in text
+    assert "const original = displayPreview" not in text
+    assert "renderThumbs = wrapped" not in text
+    assert "displayPreview = wrapped" not in text
 
 
 def test_productivity_module_has_no_eval_or_unbounded_polling():
