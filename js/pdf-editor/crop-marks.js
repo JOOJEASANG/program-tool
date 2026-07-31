@@ -1,8 +1,8 @@
-// Crop marks plus bounded PDF editor UI and margin-alignment refinements.
+// Crop marks, reserved bleed workspace, and bounded PDF editor refinements.
 (function () {
   'use strict';
-  if (window.__pdfCropMarksV2) return;
-  window.__pdfCropMarksV2 = true;
+  if (window.__pdfCropMarksV3) return;
+  window.__pdfCropMarksV3 = true;
 
   const $ = (id) => document.getElementById(id);
   const GUIDE_TEXT = 'PDF 업로드 · 페이지 편집 · 간지 삽입 · 머리말/꼬리말 · 워터마크 · N-up 인쇄';
@@ -21,7 +21,7 @@
   function settings() {
     return {
       enabled: enabled(),
-      bleed_mm: 0,
+      bleed_mm: numberValue('printBleedMm', 3, 0, 15),
       mark_length_mm: numberValue('cropMarkLengthMm', 5, 2, 15),
       mark_offset_mm: numberValue('cropMarkOffsetMm', 2, 0, 10),
       edge_padding_mm: 2,
@@ -217,14 +217,15 @@
       panel.innerHTML = `
         <label class="checkline" style="display:flex;align-items:flex-start;gap:7px;margin:0">
           <input type="checkbox" id="cropMarksEnabled">
-          <span><strong style="display:block;font-size:11px;color:#334155">재단선 추가</strong><small style="font-size:9px;color:#64748b">완성 규격 바깥에 인쇄용 재단선만 추가합니다.</small></span>
+          <span><strong style="display:block;font-size:11px;color:#334155">재단선·도련 작업영역 추가</strong><small style="font-size:9px;color:#64748b">완성 규격 바깥에 지정한 도련 영역과 인쇄용 재단선을 추가합니다.</small></span>
         </label>
         <div id="cropMarksSettings" style="display:none;margin-top:9px;padding-top:9px;border-top:1px solid #e5e7eb">
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+          <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px">
+            <div class="field" style="margin:0"><label for="printBleedMm">도련 영역(mm)</label><input id="printBleedMm" type="number" value="3" min="0" max="15" step="0.5"></div>
             <div class="field" style="margin:0"><label for="cropMarkLengthMm">재단선 길이(mm)</label><input id="cropMarkLengthMm" type="number" value="5" min="2" max="15" step="0.5"></div>
-            <div class="field" style="margin:0"><label for="cropMarkOffsetMm">완성선과 간격(mm)</label><input id="cropMarkOffsetMm" type="number" value="2" min="0" max="10" step="0.5"></div>
+            <div class="field" style="margin:0"><label for="cropMarkOffsetMm">도련 밖 간격(mm)</label><input id="cropMarkOffsetMm" type="number" value="2" min="0" max="10" step="0.5"></div>
           </div>
-          <div style="margin-top:8px;padding:7px 8px;border:1px solid #bfdbfe;border-radius:8px;background:#eff6ff;color:#1e40af;font-size:9px;font-weight:700;line-height:1.5">이번 단계는 재단선만 추가합니다. 도련 작업영역과 원본 그림 확장은 적용하지 않습니다.</div>
+          <div style="margin-top:8px;padding:7px 8px;border:1px solid #fcd34d;border-radius:8px;background:#fffbeb;color:#92400e;font-size:9px;font-weight:700;line-height:1.5">도련 작업영역만 확보하며 원본 그림이나 배경을 자동으로 늘리지 않습니다. 원본 PDF에 도련 이미지가 없으면 확보된 영역은 흰색으로 남습니다.</div>
         </div>`;
       paperBody.appendChild(panel);
     }
@@ -236,7 +237,7 @@
         requestPreview();
       });
     }
-    ['cropMarkLengthMm', 'cropMarkOffsetMm'].forEach((id) => {
+    ['printBleedMm', 'cropMarkLengthMm', 'cropMarkOffsetMm'].forEach((id) => {
       const input = $(id);
       if (!input || input.dataset.bound) return;
       input.dataset.bound = '1';
@@ -249,10 +250,11 @@
   function addMarks(source, mm2px) {
     if (!enabled()) return source;
     const config = settings();
+    const bleed = config.bleed_mm * mm2px;
     const length = config.mark_length_mm * mm2px;
     const offset = config.mark_offset_mm * mm2px;
     const padding = config.edge_padding_mm * mm2px;
-    const outer = length + offset + padding;
+    const outer = bleed + length + offset + padding;
     const output = document.createElement('canvas');
     output.width = Math.max(1, Math.round(source.width + outer * 2));
     output.height = Math.max(1, Math.round(source.height + outer * 2));
@@ -265,13 +267,17 @@
     ctx.strokeStyle = '#111827';
     ctx.lineWidth = Math.max(0.7, length * 0.035);
     ctx.beginPath();
-    const left = x0 - offset, right = x1 + offset, top = y0 - offset, bottom = y1 + offset;
+    const left = x0 - bleed - offset;
+    const right = x1 + bleed + offset;
+    const top = y0 - bleed - offset;
+    const bottom = y1 + bleed + offset;
     [[left-length,y0,left,y0],[right,y0,right+length,y0],[left-length,y1,left,y1],[right,y1,right+length,y1],
      [x0,top-length,x0,top],[x1,top-length,x1,top],[x0,bottom,x0,bottom+length],[x1,bottom,x1,bottom+length]]
       .forEach(([ax,ay,bx,by]) => { ctx.moveTo(ax,ay); ctx.lineTo(bx,by); });
     ctx.stroke();
     ctx.restore();
     output.dataset.cropMarksPreview = '1';
+    output.dataset.bleedMm = String(config.bleed_mm);
     return output;
   }
 
@@ -279,12 +285,12 @@
     if (buildPatched) return true;
     if (typeof buildAllPages !== 'function') return false;
     const original = buildAllPages;
-    if (original.__cropMarksV1) { buildPatched = true; return true; }
+    if (original.__cropMarksV2) { buildPatched = true; return true; }
     const wrapped = async function cropMarkedPages(mm2px) {
       const pages = await original.apply(this, arguments);
       return enabled() ? pages.map((canvas) => addMarks(canvas, mm2px)) : pages;
     };
-    wrapped.__cropMarksV1 = true;
+    wrapped.__cropMarksV2 = true;
     buildAllPages = wrapped;
     window.buildAllPages = wrapped;
     buildPatched = true;
@@ -307,6 +313,7 @@
         const state = typeof data?.state === 'string' ? JSON.parse(data.state) : (data?.state || {});
         const config = state.cropMarks || {};
         $('cropMarksEnabled').checked = !!config.enabled;
+        if (Number.isFinite(Number(config.bleed_mm))) $('printBleedMm').value = String(config.bleed_mm);
         if (Number.isFinite(Number(config.mark_length_mm))) $('cropMarkLengthMm').value = String(config.mark_length_mm);
         if (Number.isFinite(Number(config.mark_offset_mm))) $('cropMarkOffsetMm').value = String(config.mark_offset_mm);
         $('cropMarksSettings').style.display = config.enabled ? 'block' : 'none';
