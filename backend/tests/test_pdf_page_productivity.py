@@ -28,9 +28,18 @@ def test_explicit_checkbox_selection_does_not_replace_thumbnail_navigation():
     assert "pageSelectionModeBtnV3" in text
     assert "page-select-check" in text
     assert "item.appendChild(checkbox)" in text
-    assert "toggleSelectedPage(id, checkbox.checked, event.shiftKey)" in text
+    assert "toggleSelectedPage(rawId, checkbox.checked, event.shiftKey)" in text
     assert "일반 클릭 미리보기 이동은 유지" in text
     assert "event.stopImmediatePropagation" not in text
+
+
+def test_thumbnail_string_ids_are_normalized_to_editor_page_ids():
+    text = source()
+    assert "String(page.id) === String(id)" in text
+    assert "function canonicalPageId(id)" in text
+    assert "const canonicalId = parsedPages[index].id" in text
+    assert "const id = canonicalPageId(rawId)" in text
+    assert "selectedIds.has(id)" in text
 
 
 def test_batch_actions_are_available_for_selected_pages():
@@ -76,9 +85,11 @@ def test_keyboard_shortcuts_and_page_jump_are_available():
     assert "parsedPages[ordinal - 1]" in text
 
 
-def test_history_is_cleared_when_source_files_change():
+def test_history_is_cleared_when_source_file_objects_change():
     text = source()
-    assert "function fileSignature()" in text
+    assert "const fileIdentityMap = new WeakMap()" in text
+    assert "function fileIdentity(file)" in text
+    assert "fileIdentity(file)" in text
     assert "signature !== lastFileSignature" in text
     assert "undoStack.length = 0" in text
     assert "redoStack.length = 0" in text
