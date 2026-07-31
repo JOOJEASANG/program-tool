@@ -37,11 +37,15 @@ def _is_stable_eight_module_runtime() -> bool:
         return False
     return (
         loader.count("'/js/pdf-editor/") == 8
-        and (
-            "__pdfEditorModuleLoaderV13" in loader
-            or "__pdfEditorModuleLoaderV14" in loader
-            or "__pdfEditorModuleLoaderV15" in loader
-            or "__pdfEditorModuleLoaderV16" in loader
+        and any(
+            marker in loader
+            for marker in (
+                "__pdfEditorModuleLoaderV13",
+                "__pdfEditorModuleLoaderV14",
+                "__pdfEditorModuleLoaderV15",
+                "__pdfEditorModuleLoaderV16",
+                "__pdfEditorModuleLoaderV17",
+            )
         )
         and "preview-controller.js" not in loader
         and "runtime-integrity.js" not in loader
