@@ -84,6 +84,11 @@
       uploadZone.appendChild(guide);
     }
 
+    const sidebarTitle = [...aside.children].find(
+      (node) => node.tagName === 'H1' && node.textContent?.trim() === 'PDF 문서 편집기'
+    );
+    if (sidebarTitle) sidebarTitle.remove();
+
     const oldGuide = [...aside.children].find((node) => node.classList?.contains('sub'));
     if (oldGuide) oldGuide.style.display = 'none';
     return true;
