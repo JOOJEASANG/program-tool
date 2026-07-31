@@ -2,10 +2,13 @@
 // Keeps the stable eight-module runtime while aligning preview, sessions, and export.
 (function () {
   'use strict';
-  if (window.__pdfEditorLayoutExportV6) return;
-  window.__pdfEditorLayoutExportV6 = true;
+  if (window.__pdfEditorLayoutExportV7) return;
+  window.__pdfEditorLayoutExportV7 = true;
 
   const MARGIN_IDS = ['marginLeft', 'marginRight', 'marginTop', 'marginBottom'];
+  const PT_TO_MM = 25.4 / 72;
+  const FALLBACK_MARGIN_MM = 10 * PT_TO_MM;
+  const FALLBACK_GAP_MM = 6 * PT_TO_MM;
   let previewCorePatched = false;
   let sessionBridgePatched = false;
 
@@ -195,12 +198,19 @@
       ) {
         const { pw, ph, gp } = patchedGetSettings();
         let margins = effectiveMargins(Number.isInteger(outputPageIndex) ? outputPageIndex : pageIdx);
-        let usableWidth = pw - margins.left - margins.right - gp * (cols - 1);
-        let usableHeight = ph - margins.top - margins.bottom - gp * (rows - 1);
+        let layoutGap = gp;
+        let usableWidth = pw - margins.left - margins.right - layoutGap * (cols - 1);
+        let usableHeight = ph - margins.top - margins.bottom - layoutGap * (rows - 1);
         if (usableWidth <= 1 || usableHeight <= 1) {
-          margins = { left: 10, right: 10, top: 10, bottom: 10 };
-          usableWidth = pw - 20 - gp * (cols - 1);
-          usableHeight = ph - 20 - gp * (rows - 1);
+          margins = {
+            left: FALLBACK_MARGIN_MM,
+            right: FALLBACK_MARGIN_MM,
+            top: FALLBACK_MARGIN_MM,
+            bottom: FALLBACK_MARGIN_MM,
+          };
+          layoutGap = FALLBACK_GAP_MM;
+          usableWidth = pw - margins.left - margins.right - layoutGap * (cols - 1);
+          usableHeight = ph - margins.top - margins.bottom - layoutGap * (rows - 1);
         }
 
         const cellW = usableWidth / cols;
@@ -213,6 +223,7 @@
         output.dataset.marginRightMm = String(margins.right);
         output.dataset.marginTopMm = String(margins.top);
         output.dataset.marginBottomMm = String(margins.bottom);
+        output.dataset.gapMm = String(layoutGap);
         const context = output.getContext('2d');
         context.fillStyle = '#fff';
         context.fillRect(0, 0, output.width, output.height);
@@ -230,8 +241,8 @@
             column = Math.floor(slot / rows);
             row = slot % rows;
           }
-          const cellX = (margins.left + column * (cellW + gp)) * mm2px;
-          const cellY = (margins.top + row * (cellH + gp)) * mm2px;
+          const cellX = (margins.left + column * (cellW + layoutGap)) * mm2px;
+          const cellY = (margins.top + row * (cellH + layoutGap)) * mm2px;
           const source = getPageSrc(groupPages[sourceIndex], mm2px, useHi);
           drawPageInCell(context, source, cellX, cellY, cellW * mm2px, cellH * mm2px);
         }
@@ -292,6 +303,12 @@
       const input = $(id);
       if (input && Number.isFinite(Number(value))) input.value = String(value);
     });
+    const savedFacing = state.facingPages ?? state.facing_pages;
+    if (typeof savedFacing === 'boolean') {
+      const facingInput = $('facingPages');
+      if (facingInput) facingInput.checked = savedFacing;
+      try { facingPages = savedFacing; } catch (_) {}
+    }
     syncLegacyMargins();
     updateFacingNote();
   }
@@ -367,20 +384,20 @@
   }
 
   function wrapApiProcessPdf() {
-    if (window.__pdfLayoutApiWrappedV6 || typeof window.apiProcessPdf !== 'function') return false;
+    if (window.__pdfLayoutApiWrappedV7 || typeof window.apiProcessPdf !== 'function') return false;
     const original = window.apiProcessPdf;
     const wrapped = function layoutPatchedApiProcessPdf(files, settings, options) {
       return original.call(this, files, patchSettings(settings), options);
     };
-    wrapped.__pdfLayoutApiWrappedV6 = true;
+    wrapped.__pdfLayoutApiWrappedV7 = true;
     window.apiProcessPdf = wrapped;
     try { apiProcessPdf = wrapped; } catch (_) {}
-    window.__pdfLayoutApiWrappedV6 = true;
+    window.__pdfLayoutApiWrappedV7 = true;
     return true;
   }
 
   function wrapFetch() {
-    if (window.__pdfLayoutFetchWrappedV6) return true;
+    if (window.__pdfLayoutFetchWrappedV7) return true;
     const originalFetch = window.fetch.bind(window);
     window.fetch = function layoutPatchedFetch(input, init) {
       try {
@@ -400,7 +417,7 @@
       }
       return originalFetch(input, init);
     };
-    window.__pdfLayoutFetchWrappedV6 = true;
+    window.__pdfLayoutFetchWrappedV7 = true;
     return true;
   }
 
