@@ -78,5 +78,6 @@ def test_integrated_runtime_features_remain_present():
     assert "원본 그림이나 배경을 자동으로 늘리지 않습니다." in crop
     assert "PDF 문서 편집기" in crop
     assert "PDF 저장 설정 최종 확인" in save
-    assert "stage: 'summary-progress'" in save
-    assert "stage: 'progress-only'" in save
+    assert "stage: 'summary-progress-cancel'" in save
+    assert "stage: 'progress-cancel'" in save
+    assert "activeOperation.controller.abort()" in save

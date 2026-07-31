@@ -7,27 +7,23 @@ REGISTER = ROOT / "js" / "sw-register.js"
 LOADER = ROOT / "js" / "pdf-editor" / "loader.js"
 
 
-
 def test_save_summary_is_loaded_only_for_pdf_editor():
     register = REGISTER.read_text(encoding="utf-8")
     assert "pdfSaveOperationScript" in register
-    assert "/js/pdf-editor/save-operation.js?v=20260731-2" in register
+    assert "/js/pdf-editor/save-operation.js?v=20260731-3" in register
     assert register.count("pdfSaveOperationScript") == 1
     assert LOADER.read_text(encoding="utf-8").count("'/js/pdf-editor/") == 8
 
 
-
-def test_summary_progress_stage_does_not_wrap_preview_or_api_functions():
+def test_summary_progress_cancel_stage_does_not_wrap_core_functions():
     source = MODULE.read_text(encoding="utf-8")
-    assert "stage: 'summary-progress'" in source
+    assert "stage: 'summary-progress-cancel'" in source
     assert "apiProcessPdf =" not in source
     assert "buildAllPages =" not in source
     assert "displayPreview =" not in source
     assert "window.fetch =" not in source
-    assert "AbortController" not in source
     assert "setInterval(" not in source
     assert "eval(" not in source
-
 
 
 def test_download_guard_is_bounded_and_requires_explicit_confirmation():
@@ -38,7 +34,6 @@ def test_download_guard_is_bounded_and_requires_explicit_confirmation():
     assert "button.click()" in source
     assert "attempts < 14" in source
     assert "setTimeout(boot, 170 + attempts * 60)" in source
-
 
 
 def test_summary_uses_current_output_settings_and_safe_text_rendering():
@@ -57,7 +52,6 @@ def test_summary_uses_current_output_settings_and_safe_text_rendering():
     ):
         assert marker in source
     assert "원본 그림을 자동 확대하지 않으므로" in source
-
 
 
 def test_summary_modal_has_accessible_controls():
