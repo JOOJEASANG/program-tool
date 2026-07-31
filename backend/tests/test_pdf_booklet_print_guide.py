@@ -3,49 +3,80 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 LOADER = ROOT / "js" / "pdf-editor" / "loader.js"
-GUIDE = ROOT / "js" / "pdf-editor" / "booklet-print-guide.js"
+NUP_HELPER = ROOT / "js" / "pdf-editor" / "nup-helper.js"
+EDITOR = ROOT / "pdf-editor" / "index.html"
+LEGACY = ROOT / "tools" / "pdf-editor.html"
 
 
-def test_booklet_print_guide_loads_after_operation_summary():
+def source() -> str:
+    return NUP_HELPER.read_text(encoding="utf-8")
+
+
+def test_booklet_guide_is_integrated_without_adding_runtime_modules():
     loader = LOADER.read_text(encoding="utf-8")
-    assert "/js/pdf-editor/booklet-print-guide.js" in loader
-    assert loader.rfind("booklet-print-guide.js") > loader.rfind("operation-progress-summary.js")
-    assert loader.rfind("booklet-print-guide.js") < loader.rfind("dock-width-align.js")
+    text = source()
+    assert "__pdfEditorNupHelperV8" in text
+    assert "/js/pdf-editor/nup-helper.js" in loader
+    assert "/js/pdf-editor/booklet-print-guide.js" not in loader
+    assert loader.count("'/js/pdf-editor/") == 8
+    assert EDITOR.read_bytes() == LEGACY.read_bytes()
 
 
 def test_duplex_flip_guide_has_long_and_short_edge_options():
-    text = GUIDE.read_text(encoding="utf-8")
+    text = source()
     assert "짧은쪽 넘김" in text
     assert "긴쪽 넘김" in text
     assert "paperIsLandscape() ? 'short' : 'long'" in text
     assert "첫 용지 한 장" in text
     assert "실제 크기 또는 100%" in text
+    assert "소책자 양면 인쇄 안내" in text
 
 
 def test_preview_labels_include_sheet_side_and_source_pages():
-    text = GUIDE.read_text(encoding="utf-8")
-    assert "booklet-output-label" in text
+    text = source()
+    assert "pdf-output-source-label" in text
     assert "Math.floor(index / 2) + 1" in text
-    assert "index % 2 === 0 ? '앞면' : '뒷면'" in text
+    assert "index % 2 === 1" in text
     assert "원본 ${sourceText}" in text
-    assert "pageTitle" in text
+    assert "pageDetail" in text
+    assert "파일 내 ${Number(page.page_index || 0) + 1}페이지" in text
 
 
 def test_print_guide_counts_output_faces_and_physical_sheets():
-    text = GUIDE.read_text(encoding="utf-8")
-    assert "outputPageGroups" in text
-    assert "Math.ceil(outputs / 2)" in text
-    assert "${outputs}면 · 용지 ${sheets}장" in text
+    text = source()
+    assert "function outputPageGroups()" in text
+    assert "Math.ceil(outputCount / 2)" in text
+    assert "${outputCount}면 · 용지 ${physicalSheets}장" in text
+    assert "bookletReorderPreview(active, currentNup())" in text
+    assert "groupByNup(pages)" in text
 
 
-def test_booklet_flip_is_preserved_in_saved_editor_sessions():
-    text = GUIDE.read_text(encoding="utf-8")
+def test_booklet_flip_is_preserved_in_browser_and_editor_sessions():
+    text = source()
     assert "state.bookletFlip" in text
-    assert "loadStateWithBookletPrintGuide" in text
-    assert "localStorage.setItem(STORAGE_KEY" in text
+    assert "collectWithBookletGuide" in text
+    assert "loadWithBookletGuide" in text
+    assert "localStorage.setItem(STORAGE_KEY, value)" in text
+    assert "__bookletGuideStateV2" in text
+
+
+def test_preview_annotation_uses_observer_without_render_function_wrapping():
+    text = source()
+    assert "new MutationObserver" in text
+    assert "requestAnimationFrame(annotatePreview)" in text
+    assert "previewObserver.disconnect()" in text
+    assert "patchDisplayPreview" not in text
+    assert "displayPreview =" not in text
+    assert "renderThumbs =" not in text
+
+
+def test_old_click_to_exclude_hint_is_replaced():
+    text = source()
+    assert "클릭=미리보기 이동" in text
+    assert "우클릭=페이지 메뉴" in text
 
 
 def test_booklet_guide_has_no_eval_or_unbounded_polling():
-    text = GUIDE.read_text(encoding="utf-8")
+    text = source()
     assert "eval(" not in text
     assert "setInterval(" not in text
