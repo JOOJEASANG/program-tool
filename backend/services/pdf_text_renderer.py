@@ -242,27 +242,21 @@ def apply_page_numbers(
         else top_anchor
     )
 
+    left_rect, center_rect, right_rect = _horizontal_overlay_rects(
+        page_width,
+        left_anchor,
+        right_anchor,
+    )
     if "center" in position:
-        rect = fitz.Rect(
-            page_width * 0.25, y, page_width * 0.75, y + fontsize * 1.8
-        )
+        base_rect = center_rect
         align = fitz.TEXT_ALIGN_CENTER
     elif "right" in position:
-        rect = fitz.Rect(
-            page_width * 0.55,
-            y,
-            page_width - right_anchor,
-            y + fontsize * 1.8,
-        )
+        base_rect = right_rect
         align = fitz.TEXT_ALIGN_RIGHT
     else:
-        rect = fitz.Rect(
-            left_anchor,
-            y,
-            page_width * 0.45,
-            y + fontsize * 1.8,
-        )
+        base_rect = left_rect
         align = fitz.TEXT_ALIGN_LEFT
+    rect = fitz.Rect(base_rect.x0, y, base_rect.x1, y + fontsize * 1.8)
 
     page.insert_textbox(
         rect,
