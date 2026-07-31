@@ -10,6 +10,7 @@
   const selectedIds = new Set();
   const undoStack = [];
   const redoStack = [];
+  const fileIdentityMap = new WeakMap();
 
   let selectionMode = false;
   let lastAnchorIndex = -1;
@@ -18,6 +19,7 @@
   let thumbObserver = null;
   let lastFileSignature = '';
   let internalMutation = false;
+  let nextFileIdentity = 1;
 
   const byId = (id) => document.getElementById(id);
 
@@ -29,9 +31,20 @@
     }
   }
 
+  function fileIdentity(file) {
+    if (!file || (typeof file !== 'object' && typeof file !== 'function')) return 'none';
+    if (!fileIdentityMap.has(file)) fileIdentityMap.set(file, nextFileIdentity++);
+    return fileIdentityMap.get(file);
+  }
+
   function fileSignature() {
     if (!editorReady()) return '';
-    return uploadedFiles.map((file) => [file?.name || '', file?.size || 0, file?.lastModified || 0].join(':')).join('|');
+    return uploadedFiles.map((file) => [
+      fileIdentity(file),
+      file?.name || '',
+      file?.size || 0,
+      file?.lastModified || 0,
+    ].join(':')).join('|');
   }
 
   function activePages() {
@@ -213,7 +226,12 @@
 
   function pageIndexById(id) {
     if (!editorReady()) return -1;
-    return parsedPages.findIndex((page) => page.id === id);
+    return parsedPages.findIndex((page) => String(page.id) === String(id));
+  }
+
+  function canonicalPageId(id) {
+    const index = pageIndexById(id);
+    return index >= 0 ? parsedPages[index].id : null;
   }
 
   function setSelectionMode(enabled) {
@@ -242,19 +260,20 @@
   function toggleSelectedPage(id, checked, shiftKey) {
     const index = pageIndexById(id);
     if (index < 0) return;
+    const canonicalId = parsedPages[index].id;
     if (shiftKey && lastAnchorIndex >= 0) {
       const start = Math.min(lastAnchorIndex, index);
       const end = Math.max(lastAnchorIndex, index);
       for (let position = start; position <= end; position += 1) {
         const pageId = parsedPages[position]?.id;
-        if (!pageId) continue;
+        if (pageId === undefined || pageId === null) continue;
         if (checked) selectedIds.add(pageId);
         else selectedIds.delete(pageId);
       }
     } else if (checked) {
-      selectedIds.add(id);
+      selectedIds.add(canonicalId);
     } else {
-      selectedIds.delete(id);
+      selectedIds.delete(canonicalId);
     }
     lastAnchorIndex = index;
     updatePanelState();
@@ -268,8 +287,9 @@
     area.classList.toggle('selection-mode', selectionMode);
 
     document.querySelectorAll('#thumbArea .thumb-item').forEach((item) => {
-      const id = item.dataset.id;
-      if (!id) return;
+      const rawId = item.dataset.id;
+      const id = canonicalPageId(rawId);
+      if (id === null) return;
       let checkbox = item.querySelector(':scope > .page-select-check');
       if (!checkbox) {
         checkbox = document.createElement('input');
@@ -278,13 +298,14 @@
         checkbox.setAttribute('aria-label', '일괄 작업 페이지 선택');
         checkbox.addEventListener('click', (event) => {
           event.stopPropagation();
-          toggleSelectedPage(id, checkbox.checked, event.shiftKey);
+          toggleSelectedPage(rawId, checkbox.checked, event.shiftKey);
         });
         item.appendChild(checkbox);
       }
-      checkbox.checked = selectedIds.has(id);
+      const selected = selectedIds.has(id);
+      checkbox.checked = selected;
       checkbox.tabIndex = selectionMode ? 0 : -1;
-      item.dataset.batchSelected = selectedIds.has(id) ? 'true' : 'false';
+      item.dataset.batchSelected = selected ? 'true' : 'false';
     });
   }
 
