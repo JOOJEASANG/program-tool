@@ -3,56 +3,96 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 LOADER = ROOT / "js" / "pdf-editor" / "loader.js"
-PRODUCTIVITY = ROOT / "js" / "pdf-editor" / "page-productivity.js"
+PRODUCTIVITY = ROOT / "js" / "pdf-editor" / "page-count-hint.js"
+EDITOR = ROOT / "pdf-editor" / "index.html"
+LEGACY = ROOT / "tools" / "pdf-editor.html"
 
 
-def test_page_productivity_module_loads_after_selection_module():
+def source() -> str:
+    return PRODUCTIVITY.read_text(encoding="utf-8")
+
+
+def test_productivity_is_integrated_without_adding_runtime_modules():
     loader = LOADER.read_text(encoding="utf-8")
-    assert "/js/pdf-editor/page-productivity.js" in loader
-    assert loader.rfind("page-productivity.js") > loader.rfind("page-selection-preview-focus.js")
-    assert loader.rfind("page-productivity.js") < loader.rfind("booklet-reliability.js")
+    text = source()
+    assert "__pdfEditorPageProductivityV3" in text
+    assert "/js/pdf-editor/page-count-hint.js" in loader
+    assert "/js/pdf-editor/page-productivity.js" not in loader
+    assert "/js/pdf-editor/page-selection-preview-focus.js" not in loader
+    assert loader.count("'/js/pdf-editor/") == 8
+    assert EDITOR.read_bytes() == LEGACY.read_bytes()
+
+
+def test_explicit_checkbox_selection_does_not_replace_thumbnail_navigation():
+    text = source()
+    assert "pageSelectionModeBtnV3" in text
+    assert "page-select-check" in text
+    assert "item.appendChild(checkbox)" in text
+    assert "toggleSelectedPage(id, checkbox.checked, event.shiftKey)" in text
+    assert "일반 클릭 미리보기 이동은 유지" in text
+    assert "event.stopImmediatePropagation" not in text
+
+
+def test_batch_actions_are_available_for_selected_pages():
+    text = source()
+    for marker in (
+        "rotateSelected(-90)",
+        "rotateSelected(90)",
+        "setSelectedHidden(true)",
+        "setSelectedHidden(false)",
+        "duplicateSelected",
+        "moveSelected(true)",
+        "moveSelected(false)",
+        "deleteSelected",
+    ):
+        assert marker in text
+    assert "선택 페이지 맨 앞으로 이동" in text
+    assert "선택 페이지 맨 뒤로 이동" in text
 
 
 def test_undo_redo_uses_bounded_reference_snapshots():
-    text = PRODUCTIVITY.read_text(encoding="utf-8")
+    text = source()
     assert "HISTORY_LIMIT = 30" in text
     assert "const undoStack = []" in text
     assert "const redoStack = []" in text
     assert "captureSnapshot" in text
     assert "restoreSnapshot" in text
     assert "undoStack.shift()" in text
-    assert "files !== fileSignature()" in text
+    assert "page," in text
+    assert "thumbCanvas" not in text.split("function captureSnapshot", 1)[1].split("function restoreSnapshot", 1)[0]
 
 
-def test_keyboard_shortcuts_and_toolbar_are_available():
-    text = PRODUCTIVITY.read_text(encoding="utf-8")
-    assert "pageUndoBtn" in text
-    assert "pageRedoBtn" in text
-    assert "pageJumpInput" in text
-    assert "Ctrl+Z" in text
+def test_keyboard_shortcuts_and_page_jump_are_available():
+    text = source()
+    assert "pageUndoBtnV3" in text
+    assert "pageRedoBtnV3" in text
+    assert "pageJumpInputV3" in text
     assert "event.key.toLowerCase()" in text
     assert "key === 'y'" in text
-
-
-def test_page_jump_selects_and_focuses_the_requested_thumbnail():
-    text = PRODUCTIVITY.read_text(encoding="utf-8")
+    assert "event.shiftKey" in text
     assert "jumpToOrdinal" in text
     assert "scrollIntoView" in text
     assert "new MouseEvent('click'" in text
     assert "parsedPages[ordinal - 1]" in text
 
 
-def test_selected_pages_can_be_duplicated_and_moved_as_a_group():
-    text = PRODUCTIVITY.read_text(encoding="utf-8")
-    assert "duplicateSelected" in text
-    assert "moveSelected" in text
-    assert "선택 페이지 복제" in text
-    assert "선택 페이지 맨 앞으로 이동" in text
-    assert "선택 페이지 맨 뒤로 이동" in text
-    assert "parsedPages.splice(insertIndex, 0, ...copies)" in text
+def test_history_is_cleared_when_source_files_change():
+    text = source()
+    assert "function fileSignature()" in text
+    assert "signature !== lastFileSignature" in text
+    assert "undoStack.length = 0" in text
+    assert "redoStack.length = 0" in text
+
+
+def test_productivity_uses_observers_without_render_function_wrapping():
+    text = source()
+    assert "new MutationObserver" in text
+    assert "requestAnimationFrame(decorateThumbnails)" in text
+    assert "renderThumbs =" not in text
+    assert "displayPreview =" not in text
 
 
 def test_productivity_module_has_no_eval_or_unbounded_polling():
-    text = PRODUCTIVITY.read_text(encoding="utf-8")
+    text = source()
     assert "eval(" not in text
     assert "setInterval(" not in text
