@@ -1,8 +1,8 @@
 // PDF editor module loader.
 // Keep the stable July 20 runtime, with selected July 24 core upgrades.
 (function () {
-  if (window.__pdfEditorModuleLoaderV17) return;
-  window.__pdfEditorModuleLoaderV17 = true;
+  if (window.__pdfEditorModuleLoaderV18) return;
+  window.__pdfEditorModuleLoaderV18 = true;
 
   function installPreviewToolbarLayoutFix() {
     if (!document.getElementById('pdfEditorPreviewToolbarWidthFix')) {
@@ -410,7 +410,7 @@
     '/js/pdf-editor/page-count-hint.js?v=20260731-1',
     '/js/pdf-editor/nup-helper.js?v=20260731-1',
     '/js/pdf-editor/preview-row-default.js?v=20260731-1',
-    '/js/pdf-editor/divider-helper.js?v=20260724-2-safe1'
+    '/js/pdf-editor/divider-helper.js?v=20260731-2'
   ];
 
   function loadScript(src) {
