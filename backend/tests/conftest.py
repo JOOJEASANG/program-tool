@@ -19,7 +19,6 @@ POST_JULY20_TEST_FILES = {
     "tests/test_pdf_editor_preview_single_flight.py",
     "tests/test_pdf_editor_ux_repair.py",
     "tests/test_pdf_full_integrity_audit.py",
-    "tests/test_pdf_individual_margins.py",
     "tests/test_pdf_operation_progress_summary.py",
     "tests/test_pdf_preview_toolbar_dock_final.py",
     "tests/test_pdf_print_marks_frontend.py",
