@@ -2,8 +2,8 @@
 // Adds explicit multi-selection without changing ordinary thumbnail click navigation.
 (function () {
   'use strict';
-  if (window.__pdfEditorPageProductivityV3) return;
-  window.__pdfEditorPageProductivityV3 = true;
+  if (window.__pdfEditorPageProductivityV4) return;
+  window.__pdfEditorPageProductivityV4 = true;
 
   const HISTORY_LIMIT = 30;
   const NUP_VALUES = [1, 2, 4, 6, 8, 9];
@@ -19,6 +19,8 @@
   let thumbObserver = null;
   let lastFileSignature = '';
   let internalMutation = false;
+  let ownThumbRender = false;
+  let batchInFlight = false;
   let nextFileIdentity = 1;
 
   const byId = (id) => document.getElementById(id);
@@ -100,9 +102,9 @@
   }
 
   function installStyles() {
-    if (byId('pdfPageProductivityStylesV3')) return;
+    if (byId('pdfPageProductivityStylesV4')) return;
     const style = document.createElement('style');
-    style.id = 'pdfPageProductivityStylesV3';
+    style.id = 'pdfPageProductivityStylesV4';
     style.textContent = `
       .page-productivity-panel{margin-bottom:8px;padding:8px;border:1px solid #dbe3ef;border-radius:10px;background:#f8fafc}
       .page-productivity-top{display:flex;align-items:center;gap:5px;min-width:0}
@@ -339,9 +341,22 @@
     };
   }
 
-  function restoreSnapshot(snapshot) {
+  async function rerenderRotatedPdfPages(pages) {
+    for (const page of pages) {
+      if (!page?.pdfPage || typeof renderPdfPage !== 'function') continue;
+      page.thumbCanvas = await renderPdfPage(page.pdfPage, 0.9, Number(page.rotation || 0));
+      page.hiCanvas = null;
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    }
+  }
+
+  async function restoreSnapshot(snapshot) {
+    const rotationChangedPages = [];
     internalMutation = true;
     snapshot.pages.forEach((entry) => {
+      if (entry.page.pdfPage && Number(entry.page.rotation || 0) !== Number(entry.rotation || 0)) {
+        rotationChangedPages.push(entry.page);
+      }
       entry.page.excluded = entry.excluded;
       entry.page.rotation = entry.rotation;
       entry.page.nupOverride = entry.nupOverride;
@@ -354,6 +369,7 @@
     snapshot.selected.forEach((id) => {
       if (parsedPages.some((page) => page.id === id)) selectedIds.add(id);
     });
+    await rerenderRotatedPdfPages(rotationChangedPages);
     internalMutation = false;
     refreshAfterMutation(snapshot.label || '작업 복원');
   }
@@ -364,14 +380,20 @@
     redoStack.length = 0;
   }
 
-  function commitBatchAction(label, mutator) {
-    if (!editorReady() || !selectedIds.size) return;
+  async function commitBatchAction(label, mutator) {
+    if (!editorReady() || !selectedIds.size || batchInFlight) return;
     pushUndoSnapshot(label);
+    batchInFlight = true;
     internalMutation = true;
+    updatePanelState();
     try {
-      mutator();
+      await mutator();
+    } catch (error) {
+      undoStack.pop();
+      throw error;
     } finally {
       internalMutation = false;
+      batchInFlight = false;
     }
     refreshAfterMutation(label);
   }
@@ -380,22 +402,25 @@
     return editorReady() ? parsedPages.filter((page) => selectedIds.has(page.id)) : [];
   }
 
-  function rotateSelected(delta) {
-    commitBatchAction('선택 페이지 회전', () => {
-      selectedPagesInOrder().forEach((page) => {
+  async function rotateSelected(delta) {
+    const targets = selectedPagesInOrder();
+    await commitBatchAction('선택 페이지 회전', async () => {
+      if (typeof showStatus === 'function') showStatus(`선택 ${targets.length}페이지 회전 중...`);
+      targets.forEach((page) => {
         page.rotation = ((Number(page.rotation || 0) + delta) % 360 + 360) % 360;
       });
+      await rerenderRotatedPdfPages(targets);
     });
   }
 
   function setSelectedHidden(hidden) {
-    commitBatchAction(hidden ? '선택 페이지 숨김' : '선택 페이지 표시', () => {
+    return commitBatchAction(hidden ? '선택 페이지 숨김' : '선택 페이지 표시', async () => {
       selectedPagesInOrder().forEach((page) => { page.excluded = hidden; });
     });
   }
 
   function duplicateSelected() {
-    commitBatchAction('선택 페이지 복제', () => {
+    return commitBatchAction('선택 페이지 복제', async () => {
       const nextPages = [];
       const copiedIds = [];
       parsedPages.forEach((page) => {
@@ -417,7 +442,7 @@
   }
 
   function moveSelected(toFront) {
-    commitBatchAction(toFront ? '선택 페이지 맨 앞으로 이동' : '선택 페이지 맨 뒤로 이동', () => {
+    return commitBatchAction(toFront ? '선택 페이지 맨 앞으로 이동' : '선택 페이지 맨 뒤로 이동', async () => {
       const chosen = selectedPagesInOrder();
       const remaining = parsedPages.filter((page) => !selectedIds.has(page.id));
       parsedPages = toFront ? [...chosen, ...remaining] : [...remaining, ...chosen];
@@ -425,44 +450,97 @@
   }
 
   function deleteSelected() {
-    commitBatchAction('선택 페이지 삭제', () => {
+    return commitBatchAction('선택 페이지 삭제', async () => {
       parsedPages = parsedPages.filter((page) => !selectedIds.has(page.id));
       selectedIds.clear();
     });
   }
 
-  function undo() {
-    if (!undoStack.length || !editorReady()) return;
-    redoStack.push(captureSnapshot('다시 실행'));
+  async function undo() {
+    if (!undoStack.length || !editorReady() || batchInFlight) return;
+    batchInFlight = true;
+    updatePanelState();
     const snapshot = undoStack.pop();
-    restoreSnapshot(snapshot);
+    redoStack.push(captureSnapshot('다시 실행'));
+    try {
+      await restoreSnapshot(snapshot);
+    } finally {
+      batchInFlight = false;
+      updatePanelState();
+    }
   }
 
-  function redo() {
-    if (!redoStack.length || !editorReady()) return;
+  async function redo() {
+    if (!redoStack.length || !editorReady() || batchInFlight) return;
+    batchInFlight = true;
+    updatePanelState();
+    const snapshot = redoStack.pop();
     undoStack.push(captureSnapshot('실행 취소'));
     while (undoStack.length > HISTORY_LIMIT) undoStack.shift();
-    const snapshot = redoStack.pop();
-    restoreSnapshot(snapshot);
+    try {
+      await restoreSnapshot(snapshot);
+    } finally {
+      batchInFlight = false;
+      updatePanelState();
+    }
+  }
+
+  function clearHistory() {
+    undoStack.length = 0;
+    redoStack.length = 0;
+    updatePanelState();
   }
 
   function resetHistoryForNewFiles() {
     const signature = fileSignature();
     if (!lastFileSignature) {
       lastFileSignature = signature;
-      return;
+      return false;
     }
-    if (!internalMutation && signature !== lastFileSignature) {
-      undoStack.length = 0;
-      redoStack.length = 0;
+    const changed = !internalMutation && signature !== lastFileSignature;
+    if (changed) {
+      clearHistory();
       selectedIds.clear();
       lastAnchorIndex = -1;
     }
     lastFileSignature = signature;
+    return changed;
+  }
+
+  function isPageStructureNode(node) {
+    if (!node || node.nodeType !== 1) return false;
+    return node.matches?.('.thumb-item,.thumb-file-sep')
+      || Boolean(node.querySelector?.('.thumb-item,.thumb-file-sep'));
+  }
+
+  function containsPageStructureMutation(mutations) {
+    return mutations.some((mutation) => [
+      ...mutation.addedNodes,
+      ...mutation.removedNodes,
+    ].some(isPageStructureNode));
+  }
+
+  function invalidateHistoryAfterExternalEdit(mutations) {
+    const filesChanged = resetHistoryForNewFiles();
+    if (filesChanged || ownThumbRender || internalMutation || batchInFlight) return;
+    if (!containsPageStructureMutation(mutations)) return;
+    if (!undoStack.length && !redoStack.length) return;
+    clearHistory();
+    if (typeof showStatus === 'function') {
+      showStatus('기존 단일 페이지 작업이 반영되어 일괄 작업 실행 취소 기록을 초기화했습니다.', 'success');
+      if (typeof hideStatus === 'function') setTimeout(hideStatus, 1500);
+    }
+  }
+
+  function renderThumbsFromProductivity() {
+    if (typeof renderThumbs !== 'function') return;
+    ownThumbRender = true;
+    renderThumbs();
+    queueMicrotask(() => { ownThumbRender = false; });
   }
 
   function refreshAfterMutation(label) {
-    if (typeof renderThumbs === 'function') renderThumbs();
+    renderThumbsFromProductivity();
     if (parsedPages.length) {
       if (byId('previewBtn')) byId('previewBtn').disabled = false;
       if (byId('downloadBtn')) byId('downloadBtn').disabled = false;
@@ -490,16 +568,17 @@
     if (modeButton) {
       modeButton.classList.toggle('active', selectionMode);
       modeButton.textContent = selectionMode ? '선택 종료' : '다중 선택';
+      modeButton.disabled = batchInFlight;
     }
     const count = byId('pageSelectionCountV3');
-    if (count) count.textContent = `선택 ${selectedIds.size}`;
+    if (count) count.textContent = batchInFlight ? '처리 중' : `선택 ${selectedIds.size}`;
     panel.querySelectorAll('[data-batch-action="true"]').forEach((button) => {
-      button.disabled = selectedIds.size === 0;
+      button.disabled = selectedIds.size === 0 || batchInFlight;
     });
     const undoButton = byId('pageUndoBtnV3');
     const redoButton = byId('pageRedoBtnV3');
-    if (undoButton) undoButton.disabled = undoStack.length === 0;
-    if (redoButton) redoButton.disabled = redoStack.length === 0;
+    if (undoButton) undoButton.disabled = undoStack.length === 0 || batchInFlight;
+    if (redoButton) redoButton.disabled = redoStack.length === 0 || batchInFlight;
   }
 
   function jumpToOrdinal(ordinal) {
@@ -515,8 +594,8 @@
   }
 
   function installKeyboardShortcuts() {
-    if (window.__pdfPageProductivityKeyboardV3) return;
-    window.__pdfPageProductivityKeyboardV3 = true;
+    if (window.__pdfPageProductivityKeyboardV4) return;
+    window.__pdfPageProductivityKeyboardV4 = true;
     document.addEventListener('keydown', (event) => {
       const target = event.target;
       if (target?.matches?.('input,textarea,select') || target?.isContentEditable) return;
@@ -538,8 +617,8 @@
   function installObserver() {
     const area = byId('thumbArea');
     if (!area || thumbObserver) return;
-    thumbObserver = new MutationObserver(() => {
-      resetHistoryForNewFiles();
+    thumbObserver = new MutationObserver((mutations) => {
+      invalidateHistoryAfterExternalEdit(mutations);
       queueDecorateThumbnails();
       scheduleCountHint();
       updatePanelState();
@@ -548,8 +627,8 @@
   }
 
   function installEvents() {
-    if (window.__pdfPageProductivityEventsV3) return;
-    window.__pdfPageProductivityEventsV3 = true;
+    if (window.__pdfPageProductivityEventsV4) return;
+    window.__pdfPageProductivityEventsV4 = true;
     document.addEventListener('change', scheduleCountHint, true);
     document.addEventListener('click', (event) => {
       if (event.target?.closest('.nup-btn,.orient-btn,#bookletCheck')) scheduleCountHint();
@@ -578,6 +657,7 @@
     undo,
     redo,
     jumpToOrdinal,
+    clearHistory,
   };
 
   if (document.readyState === 'loading') {
