@@ -6,7 +6,7 @@ LOADER = ROOT / "js" / "pdf-editor" / "loader.js"
 
 def test_preview_toolbar_controls_are_width_bounded():
     source = LOADER.read_text(encoding="utf-8")
-    assert "__pdfEditorModuleLoaderV17" in source
+    assert "__pdfEditorModuleLoaderV18" in source
     assert "#perRowSelect" in source
     assert "width: 86px !important" in source
     assert "min-width: 86px !important" in source
