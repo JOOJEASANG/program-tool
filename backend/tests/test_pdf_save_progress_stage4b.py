@@ -6,7 +6,7 @@ MODULE = ROOT / "js" / "pdf-editor" / "save-operation.js"
 API = ROOT / "js" / "api.js"
 
 
-def test_progress_manager_uses_existing_api_callbacks_only():
+def test_progress_manager_uses_existing_api_callbacks():
     source = MODULE.read_text(encoding="utf-8")
     api = API.read_text(encoding="utf-8")
     assert "window.PdfOperationManager =" in source
@@ -18,7 +18,7 @@ def test_progress_manager_uses_existing_api_callbacks_only():
     assert "_finishManagedPdfOperation" in api
 
 
-def test_progress_panel_covers_api_stages_without_cancellation():
+def test_progress_panel_covers_api_stages_and_accessibility():
     source = MODULE.read_text(encoding="utf-8")
     assert "pdfSaveProgressPanelV2" in source
     assert "panel.setAttribute('role', 'status')" in source
@@ -26,9 +26,6 @@ def test_progress_panel_covers_api_stages_without_cancellation():
     assert "PDF 생성 중" in source
     assert "PDF 생성 완료" in source
     assert "PDF 생성 실패" in source
-    assert "AbortController" not in source
-    assert "작업 취소" not in source
-    assert "controller.abort" not in source
 
 
 def test_progress_is_monotonic_and_has_bounded_completion_monitor():
