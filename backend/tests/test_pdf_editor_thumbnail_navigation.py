@@ -13,6 +13,7 @@ def test_thumbnail_click_is_captured_for_preview_navigation():
     assert "focusPageInPreview(page).catch" in source
     assert "target.scrollIntoView({ behavior: 'auto', block: 'center', inline: 'center' });" in source
     assert "숨김 페이지입니다. 마우스 오른쪽 메뉴에서 숨김 해제를 선택하세요." in source
+    assert "String(page.id) === String(id)" in source
 
 
 def test_context_menu_contains_explicit_hide_and_unhide_action():
@@ -78,8 +79,11 @@ def test_preview_requests_share_one_coordinator_before_and_after_upload_fix():
     assert loader.count("await refreshPreviewForNavigation();") >= 2
 
 
-def test_stable_editor_surface_and_module_count_are_unchanged():
+def test_stable_editor_surface_module_count_and_cache_versions():
     source = LOADER.read_text(encoding="utf-8")
     assert EDITOR.read_bytes() == LEGACY.read_bytes()
     assert source.count("'/js/pdf-editor/") == 8
-    assert "__pdfEditorModuleLoaderV16" in source
+    assert "__pdfEditorModuleLoaderV17" in source
+    assert "page-count-hint.js?v=20260731-1" in source
+    assert "nup-helper.js?v=20260731-1" in source
+    assert "preview-row-default.js?v=20260731-1" in source
