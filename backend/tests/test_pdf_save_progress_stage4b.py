@@ -21,8 +21,8 @@ def test_progress_manager_uses_existing_api_callbacks_only():
 def test_progress_panel_covers_api_stages_without_cancellation():
     source = MODULE.read_text(encoding="utf-8")
     assert "pdfSaveProgressPanelV2" in source
-    assert 'role', 'status'
-    assert "aria-live" in source
+    assert "panel.setAttribute('role', 'status')" in source
+    assert "panel.setAttribute('aria-live', 'polite')" in source
     assert "PDF 생성 중" in source
     assert "PDF 생성 완료" in source
     assert "PDF 생성 실패" in source
