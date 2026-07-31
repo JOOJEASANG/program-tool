@@ -129,7 +129,7 @@ def test_independent_margin_ui_is_integrated_into_the_existing_export_module():
     assert loader.count("'/js/pdf-editor/") == 8
     assert "individual-margins-facing-pages.js" not in loader
     assert "layout-export.js?v=20260731-3" in loader
-    assert "__pdfEditorLayoutExportV7" in source
+    assert "__pdfEditorLayoutExportV8" in source
     assert "individualPaperMarginsV2" in source
     for field in ("marginLeft", "marginRight", "marginTop", "marginBottom"):
         assert field in source
@@ -147,6 +147,56 @@ def test_preview_uses_output_index_for_facing_page_margin_swapping():
     assert "output.length," in source
     assert "buildOutputPage = patchedBuildOutputPage" in source
     assert "buildAllPages = patchedBuildAllPages" in source
+
+
+def test_preview_page_number_reserve_matches_backend_formula_contract():
+    source = LAYOUT_EXPORT.read_text(encoding="utf-8")
+
+    assert "const PT_TO_MM = 25.4 / 72" in source
+    assert "const PAGE_NUMBER_MIN_FONT_PT = 5" in source
+    assert "const PAGE_NUMBER_MAX_FONT_PT = 72" in source
+    assert "const PAGE_NUMBER_HEIGHT_FACTOR = 1.8" in source
+    assert "const PAGE_NUMBER_PADDING_MM = 2" in source
+    assert "function requiredPageNumberSpaceMm(edgeMargin)" in source
+    assert "const anchor = Math.max(paperEdge, dedicated)" in source
+    assert "fontSize * PT_TO_MM * PAGE_NUMBER_HEIGHT_FACTOR + PAGE_NUMBER_PADDING_MM" in source
+    assert "Math.min(\n      80," in source
+
+
+def test_preview_reserves_only_for_the_same_output_pages_as_backend():
+    source = LAYOUT_EXPORT.read_text(encoding="utf-8")
+
+    assert "function pageNumberApplies(outputPageIndex)" in source
+    assert "excludeFirst && index === 0" in source
+    assert "applyTo === 'odd' && isOddPage" in source
+    assert "applyTo === 'even' && !isOddPage" in source
+    assert "pageNumberPosition().startsWith('top-')" in source
+    assert "margins.top = requiredPageNumberSpaceMm(margins.top)" in source
+    assert "margins.bottom = requiredPageNumberSpaceMm(margins.bottom)" in source
+    assert "let margins = layoutMargins(resolvedOutputIndex)" in source
+    assert "output.dataset.pageNumberAutoReserve" in source
+
+
+def test_page_number_auto_reserve_ui_export_and_session_share_one_setting():
+    source = LAYOUT_EXPORT.read_text(encoding="utf-8")
+
+    assert "id=\"pnAutoReserve\" checked" in source
+    assert "페이지 번호 공간 자동 확보" in source
+    assert "settings.page_numbers.auto_reserve_space = pageNumberAutoReserveEnabled()" in source
+    assert "state.pnAutoReserve = pageNumberAutoReserveEnabled()" in source
+    assert "const savedReserve = state.pnAutoReserve ?? state.page_numbers?.auto_reserve_space" in source
+    assert "reserveInput.checked = savedReserve !== false" in source
+
+
+def test_page_number_reserve_does_not_reactivate_legacy_wrapper_modules():
+    loader = LOADER.read_text(encoding="utf-8")
+    source = LAYOUT_EXPORT.read_text(encoding="utf-8")
+
+    assert loader.count("'/js/pdf-editor/") == 8
+    assert "page-number-auto-reserve.js" not in loader
+    assert "page-number-auto-reserve-layout-v2.js" not in loader
+    assert "setInterval(" not in source
+    assert "eval(" not in source
 
 
 def test_export_and_saved_sessions_keep_all_four_margin_values():

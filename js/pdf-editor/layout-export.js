@@ -1,22 +1,30 @@
-// PDF editor layout export and independent paper-margin module.
+// PDF editor layout export, independent margins, and page-number space module.
 // Keeps the stable eight-module runtime while aligning preview, sessions, and export.
 (function () {
   'use strict';
-  if (window.__pdfEditorLayoutExportV7) return;
-  window.__pdfEditorLayoutExportV7 = true;
+  if (window.__pdfEditorLayoutExportV8) return;
+  window.__pdfEditorLayoutExportV8 = true;
 
   const MARGIN_IDS = ['marginLeft', 'marginRight', 'marginTop', 'marginBottom'];
   const PT_TO_MM = 25.4 / 72;
   const FALLBACK_MARGIN_MM = 10 * PT_TO_MM;
   const FALLBACK_GAP_MM = 6 * PT_TO_MM;
+  const PAGE_NUMBER_MIN_FONT_PT = 5;
+  const PAGE_NUMBER_MAX_FONT_PT = 72;
+  const PAGE_NUMBER_HEIGHT_FACTOR = 1.8;
+  const PAGE_NUMBER_PADDING_MM = 2;
   let previewCorePatched = false;
   let sessionBridgePatched = false;
 
   function $(id) { return document.getElementById(id); }
 
-  function num(id, fallback) {
+  function boundedNumber(id, fallback, min, max) {
     const value = Number($(id) && $(id).value);
-    return Number.isFinite(value) ? Math.max(0, Math.min(80, value)) : fallback;
+    return Number.isFinite(value) ? Math.max(min, Math.min(max, value)) : fallback;
+  }
+
+  function num(id, fallback) {
+    return boundedNumber(id, fallback, 0, 80);
   }
 
   function marginValues() {
@@ -43,14 +51,97 @@
     return margins;
   }
 
+  function pageNumbersEnabled() {
+    try { return !!pnEnabled; }
+    catch (_) { return !!$('pnEnabled')?.checked; }
+  }
+
+  function pageNumberPosition() {
+    try { return String(pnPosition || 'bottom-center'); }
+    catch (_) {
+      return document.querySelector('.pn-pos-btn.active')?.dataset?.pos || 'bottom-center';
+    }
+  }
+
+  function pageNumberAutoReserveEnabled() {
+    const checkbox = $('pnAutoReserve');
+    return !checkbox || checkbox.checked;
+  }
+
+  function pageNumberApplies(outputPageIndex) {
+    if (!pageNumbersEnabled()) return false;
+    const index = Number.isInteger(Number(outputPageIndex)) ? Number(outputPageIndex) : 0;
+    let excludeFirst = false;
+    let applyTo = 'all';
+    try {
+      excludeFirst = !!pnExcludeFirst;
+      applyTo = String(pnApplyTo || 'all');
+    } catch (_) {
+      excludeFirst = !!$('pnExcludeFirst')?.checked;
+      applyTo = String($('pnApplyTo')?.value || 'all');
+    }
+    if (excludeFirst && index === 0) return false;
+    const isOddPage = index % 2 === 0;
+    return applyTo === 'all'
+      || (applyTo === 'odd' && isOddPage)
+      || (applyTo === 'even' && !isOddPage);
+  }
+
+  function requiredPageNumberSpaceMm(edgeMargin) {
+    const paperEdge = Math.max(0, Number(edgeMargin) || 0);
+    const dedicated = boundedNumber('pnMarginMm', 5, 0, 80);
+    const anchor = Math.max(paperEdge, dedicated);
+    const fontSize = boundedNumber(
+      'pnFontSize',
+      10,
+      PAGE_NUMBER_MIN_FONT_PT,
+      PAGE_NUMBER_MAX_FONT_PT,
+    );
+    return Math.min(
+      80,
+      anchor + fontSize * PT_TO_MM * PAGE_NUMBER_HEIGHT_FACTOR + PAGE_NUMBER_PADDING_MM,
+    );
+  }
+
+  function layoutMargins(outputPageIndex) {
+    const index = Number.isInteger(Number(outputPageIndex)) ? Number(outputPageIndex) : 0;
+    const margins = effectiveMargins(index);
+    if (!pageNumberAutoReserveEnabled() || !pageNumberApplies(index)) return margins;
+    if (pageNumberPosition().startsWith('top-')) {
+      margins.top = requiredPageNumberSpaceMm(margins.top);
+    } else {
+      margins.bottom = requiredPageNumberSpaceMm(margins.bottom);
+    }
+    return margins;
+  }
+
   function syncLegacyMargins() {
     const margins = marginValues();
     if ($('marginH')) $('marginH').value = String((margins.left + margins.right) / 2);
     if ($('marginV')) $('marginV').value = String((margins.top + margins.bottom) / 2);
   }
 
+  function updatePageNumberReserveHint() {
+    const hint = $('pnAutoReserveHint');
+    if (!hint) return;
+    if (!pageNumbersEnabled()) {
+      hint.textContent = '페이지 번호를 켜면 번호와 본문 사이의 필요한 공간을 자동 계산합니다.';
+      return;
+    }
+    if (!pageNumberAutoReserveEnabled()) {
+      hint.textContent = '자동 확보가 꺼져 있어 페이지 번호가 본문과 겹칠 수 있습니다.';
+      return;
+    }
+    const sampleIndex = [0, 1, 2, 3].find((index) => pageNumberApplies(index)) ?? 0;
+    const margins = layoutMargins(sampleIndex);
+    const top = pageNumberPosition().startsWith('top-');
+    const value = top ? margins.top : margins.bottom;
+    hint.textContent = `${top ? '상단' : '하단'} 본문 여백을 최소 ${value.toFixed(1)}mm로 확보합니다.`;
+  }
+
   function requestPreview() {
     syncLegacyMargins();
+    updatePageNumberReserveHint();
     try {
       if (window.PdfLivePreview && typeof window.PdfLivePreview.request === 'function') {
         window.PdfLivePreview.request(180, false);
@@ -77,6 +168,10 @@
       .pdf-margin-grid-v2 input{padding:7px 5px!important;text-align:center;font-weight:800}
       .pdf-margin-facing-note{margin-top:8px;padding-top:7px;border-top:1px solid #e5eaf0;color:#64748b;font-size:9px;font-weight:700;line-height:1.5}
       .pdf-paper-spacing-grid-v2>.field:not(.pdf-legacy-paired-margin){grid-column:1/-1}
+      .pdf-page-number-reserve-row{display:flex;align-items:flex-start;gap:7px;margin:7px 0 2px;padding:8px 9px;border:1px solid #dbeafe;border-radius:9px;background:#eff6ff;line-height:1.45}
+      .pdf-page-number-reserve-row input{flex:0 0 auto;margin-top:2px}
+      .pdf-page-number-reserve-row strong{display:block;font-size:11px;color:#1e3a8a}
+      .pdf-page-number-reserve-row small{display:block;margin-top:2px;font-size:9px;font-weight:650;color:#64748b}
       @media(max-width:900px){.pdf-margin-grid-v2{grid-template-columns:repeat(2,minmax(0,1fr))}}
     `;
     document.head.appendChild(style);
@@ -140,6 +235,42 @@
     return true;
   }
 
+  function installPageNumberReserveUi() {
+    const settings = $('pnSettings');
+    if (!settings) return false;
+    let row = $('pnAutoReserveRow');
+    if (!row) {
+      row = document.createElement('label');
+      row.id = 'pnAutoReserveRow';
+      row.className = 'checkline pdf-page-number-reserve-row';
+      row.innerHTML = '<input type="checkbox" id="pnAutoReserve" checked><span><strong>페이지 번호 공간 자동 확보</strong><small id="pnAutoReserveHint"></small></span>';
+      const target = $('pnMarginMm')?.closest('.grid2');
+      if (target) target.insertAdjacentElement('afterend', row);
+      else settings.appendChild(row);
+    }
+
+    const checkbox = $('pnAutoReserve');
+    if (checkbox && !checkbox.dataset.layoutReserveBoundV8) {
+      checkbox.dataset.layoutReserveBoundV8 = 'true';
+      checkbox.addEventListener('change', requestPreview);
+    }
+    ['pnEnabled', 'pnMarginMm', 'pnFontSize', 'pnApplyTo', 'pnExcludeFirst'].forEach((id) => {
+      const input = $(id);
+      if (!input || input.dataset.layoutReserveInputBoundV8) return;
+      input.dataset.layoutReserveInputBoundV8 = 'true';
+      input.addEventListener('input', requestPreview);
+      input.addEventListener('change', requestPreview);
+    });
+    if (!window.__pdfPageNumberPositionBoundV8) {
+      window.__pdfPageNumberPositionBoundV8 = true;
+      document.addEventListener('click', (event) => {
+        if (event.target.closest('.pn-pos-btn')) setTimeout(requestPreview, 0);
+      }, true);
+    }
+    updatePageNumberReserveHint();
+    return true;
+  }
+
   function patchSettings(settings) {
     if (!settings || typeof settings !== 'object') return settings;
     const margins = marginValues();
@@ -153,7 +284,7 @@
     settings.gap_mm = num('gap', 5);
     settings.facing_pages = facingEnabled();
     settings.page_numbers = settings.page_numbers || {};
-    settings.page_numbers.auto_reserve_space = !($('pnAutoReserve') && !$('pnAutoReserve').checked);
+    settings.page_numbers.auto_reserve_space = pageNumberAutoReserveEnabled();
     return settings;
   }
 
@@ -197,7 +328,10 @@
         outputPageIndex,
       ) {
         const { pw, ph, gp } = patchedGetSettings();
-        let margins = effectiveMargins(Number.isInteger(outputPageIndex) ? outputPageIndex : pageIdx);
+        const resolvedOutputIndex = Number.isInteger(outputPageIndex) ? outputPageIndex : pageIdx;
+        const numberSpaceRequested = pageNumberAutoReserveEnabled()
+          && pageNumberApplies(resolvedOutputIndex);
+        let margins = layoutMargins(resolvedOutputIndex);
         let layoutGap = gp;
         let usableWidth = pw - margins.left - margins.right - layoutGap * (cols - 1);
         let usableHeight = ph - margins.top - margins.bottom - layoutGap * (rows - 1);
@@ -224,6 +358,7 @@
         output.dataset.marginTopMm = String(margins.top);
         output.dataset.marginBottomMm = String(margins.bottom);
         output.dataset.gapMm = String(layoutGap);
+        output.dataset.pageNumberAutoReserve = numberSpaceRequested ? 'true' : 'false';
         const context = output.getContext('2d');
         context.fillStyle = '#fff';
         context.fillRect(0, 0, output.width, output.height);
@@ -309,8 +444,14 @@
       if (facingInput) facingInput.checked = savedFacing;
       try { facingPages = savedFacing; } catch (_) {}
     }
+    const reserveInput = $('pnAutoReserve');
+    if (reserveInput) {
+      const savedReserve = state.pnAutoReserve ?? state.page_numbers?.auto_reserve_space;
+      reserveInput.checked = savedReserve !== false;
+    }
     syncLegacyMargins();
     updateFacingNote();
+    updatePageNumberReserveHint();
   }
 
   function patchSessionBridge() {
@@ -336,6 +477,7 @@
         state.margin_right_mm = margins.right;
         state.margin_top_mm = margins.top;
         state.margin_bottom_mm = margins.bottom;
+        state.pnAutoReserve = pageNumberAutoReserveEnabled();
         return state;
       };
       collectWithMargins.__individualMarginsV2 = true;
@@ -384,20 +526,20 @@
   }
 
   function wrapApiProcessPdf() {
-    if (window.__pdfLayoutApiWrappedV7 || typeof window.apiProcessPdf !== 'function') return false;
+    if (window.__pdfLayoutApiWrappedV8 || typeof window.apiProcessPdf !== 'function') return false;
     const original = window.apiProcessPdf;
     const wrapped = function layoutPatchedApiProcessPdf(files, settings, options) {
       return original.call(this, files, patchSettings(settings), options);
     };
-    wrapped.__pdfLayoutApiWrappedV7 = true;
+    wrapped.__pdfLayoutApiWrappedV8 = true;
     window.apiProcessPdf = wrapped;
     try { apiProcessPdf = wrapped; } catch (_) {}
-    window.__pdfLayoutApiWrappedV7 = true;
+    window.__pdfLayoutApiWrappedV8 = true;
     return true;
   }
 
   function wrapFetch() {
-    if (window.__pdfLayoutFetchWrappedV7) return true;
+    if (window.__pdfLayoutFetchWrappedV8) return true;
     const originalFetch = window.fetch.bind(window);
     window.fetch = function layoutPatchedFetch(input, init) {
       try {
@@ -417,18 +559,19 @@
       }
       return originalFetch(input, init);
     };
-    window.__pdfLayoutFetchWrappedV7 = true;
+    window.__pdfLayoutFetchWrappedV8 = true;
     return true;
   }
 
   function boot(attempt) {
     installMarginStyles();
-    const uiReady = installMarginUi();
+    const marginUiReady = installMarginUi();
+    const pageNumberUiReady = installPageNumberReserveUi();
     const previewReady = patchPreviewCore();
     const sessionReady = patchSessionBridge();
     const apiReady = wrapApiProcessPdf();
     wrapFetch();
-    if ((!uiReady || !previewReady || !sessionReady || !apiReady) && attempt < 12) {
+    if ((!marginUiReady || !pageNumberUiReady || !previewReady || !sessionReady || !apiReady) && attempt < 12) {
       setTimeout(() => boot(attempt + 1), 180 + attempt * 70);
     }
   }
@@ -437,6 +580,10 @@
     patchSettings,
     marginValues,
     effectiveMargins,
+    layoutMargins,
+    pageNumberApplies,
+    requiredPageNumberSpaceMm,
+    pageNumberAutoReserveEnabled,
     applyStateMargins,
     endpointPath,
     refresh: requestPreview,
