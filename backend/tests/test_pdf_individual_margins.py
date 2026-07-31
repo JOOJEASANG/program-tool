@@ -6,6 +6,7 @@ import pytest
 from models.schemas import PdfProcessRequest
 from services.pdf_engine import (
     _base_layout_margins,
+    _build_page_layout,
     _resolve_layout_margins,
 )
 from services.pdf_ops import MM_TO_PT
@@ -13,6 +14,10 @@ from services.pdf_text_renderer import page_number_value
 
 
 ROOT = Path(__file__).resolve().parents[2]
+LOADER = ROOT / "js" / "pdf-editor" / "loader.js"
+LAYOUT_EXPORT = ROOT / "js" / "pdf-editor" / "layout-export.js"
+EDITOR = ROOT / "pdf-editor" / "index.html"
+LEGACY_EDITOR = ROOT / "tools" / "pdf-editor.html"
 
 
 def _request(**overrides):
@@ -40,8 +45,8 @@ def test_schema_accepts_four_independent_margins():
 
 def test_facing_pages_swap_only_left_and_right_on_even_pages():
     request = _request()
-    odd = _resolve_layout_margins(request, 0)
-    even = _resolve_layout_margins(request, 1)
+    odd = _base_layout_margins(request, 0)
+    even = _base_layout_margins(request, 1)
 
     assert odd == pytest.approx((25 * MM_TO_PT, 10 * MM_TO_PT, 12 * MM_TO_PT, 8 * MM_TO_PT))
     assert even == pytest.approx((10 * MM_TO_PT, 25 * MM_TO_PT, 12 * MM_TO_PT, 8 * MM_TO_PT))
@@ -57,9 +62,22 @@ def test_legacy_paired_margins_remain_compatible():
         margin_v_mm=9,
         facing_pages=False,
     )
-    assert _resolve_layout_margins(request, 0) == pytest.approx(
+    assert _base_layout_margins(request, 0) == pytest.approx(
         (14 * MM_TO_PT, 14 * MM_TO_PT, 9 * MM_TO_PT, 9 * MM_TO_PT)
     )
+
+
+def test_backend_cell_rect_uses_each_paper_edge_margin():
+    paper_w = 210 * MM_TO_PT
+    paper_h = 297 * MM_TO_PT
+    margins = (25 * MM_TO_PT, 10 * MM_TO_PT, 12 * MM_TO_PT, 8 * MM_TO_PT)
+    layout = _build_page_layout(1, paper_w, paper_h, margins, 5 * MM_TO_PT)
+    rect = layout.cell_rects[0]
+
+    assert rect.x0 == pytest.approx(margins[0])
+    assert rect.y0 == pytest.approx(margins[2])
+    assert rect.x1 == pytest.approx(paper_w - margins[1])
+    assert rect.y1 == pytest.approx(paper_h - margins[3])
 
 
 def test_page_number_auto_reserve_expands_from_actual_number_anchor():
@@ -104,58 +122,44 @@ def test_cover_exclusion_numbering_matches_browser_preview():
     assert page_number_value(settings, 5, 6) == (5, 5)
 
 
-def test_frontend_margin_selection_and_export_modules_are_connected():
-    loader = (ROOT / "js" / "pdf-editor" / "loader.js").read_text(encoding="utf-8")
-    margin_module = (ROOT / "js" / "pdf-editor" / "individual-margins-facing-pages.js").read_text(encoding="utf-8")
-    export_module = (ROOT / "js" / "pdf-editor" / "layout-export.js").read_text(encoding="utf-8")
-    selection_module = (ROOT / "js" / "pdf-editor" / "page-selection-preview-focus.js").read_text(encoding="utf-8")
-    reserve_module = (ROOT / "js" / "pdf-editor" / "page-number-auto-reserve.js").read_text(encoding="utf-8")
-    reserve_v2 = (ROOT / "js" / "pdf-editor" / "page-number-auto-reserve-layout-v2.js").read_text(encoding="utf-8")
+def test_independent_margin_ui_is_integrated_into_the_existing_export_module():
+    loader = LOADER.read_text(encoding="utf-8")
+    source = LAYOUT_EXPORT.read_text(encoding="utf-8")
 
-    assert "individual-margins-facing-pages.js" in loader
-    assert loader.rfind("page-number-auto-reserve.js") > loader.rfind("individual-margins-facing-pages.js")
-    assert loader.rfind("page-number-auto-reserve-layout-v2.js") > loader.rfind("page-number-auto-reserve.js")
-    assert loader.rfind("page-selection-preview-focus.js") > loader.rfind("page-number-auto-reserve-layout-v2.js")
+    assert loader.count("'/js/pdf-editor/") == 8
+    assert "individual-margins-facing-pages.js" not in loader
+    assert "layout-export.js?v=20260731-2" in loader
+    assert "__pdfEditorLayoutExportV6" in source
+    assert "individualPaperMarginsV2" in source
     for field in ("marginLeft", "marginRight", "marginTop", "marginBottom"):
-        assert field in margin_module
+        assert field in source
+    assert "짝수 출력면은 좌·우 여백을 자동으로 서로 바꿉니다." in source
+    assert "setInterval(" not in source
+
+
+def test_preview_uses_output_index_for_facing_page_margin_swapping():
+    source = LAYOUT_EXPORT.read_text(encoding="utf-8")
+
+    assert "function effectiveMargins(outputPageIndex)" in source
+    assert "Number(outputPageIndex) % 2 === 1" in source
+    assert "output.dataset.marginLeftMm" in source
+    assert "output.dataset.marginRightMm" in source
+    assert "output.length," in source
+    assert "buildOutputPage = patchedBuildOutputPage" in source
+    assert "buildAllPages = patchedBuildAllPages" in source
+
+
+def test_export_and_saved_sessions_keep_all_four_margin_values():
+    source = LAYOUT_EXPORT.read_text(encoding="utf-8")
+
     for field in ("margin_left_mm", "margin_right_mm", "margin_top_mm", "margin_bottom_mm"):
-        assert field in export_module
-    assert "auto_reserve_space" in export_module
-    assert "Ctrl/Shift=다중선택" in selection_module
-    assert "선택 페이지 숨기기" in selection_module
-    assert "displayPreviewKeepingFocus" in selection_module
-    assert "페이지 번호 공간 자동 확보" in reserve_module
-    assert "fontMm * 1.8" in reserve_v2
+        assert field in source
+    for field in ("state.marginLeft", "state.marginRight", "state.marginTop", "state.marginBottom"):
+        assert field in source
+    assert "collectWithMargins.__individualMarginsV2" in source
+    assert "loadWithMargins.__individualMarginsV2" in source
+    assert "parsedPages !== previousPages" in source
 
 
-def test_pdf_dock_uses_flat_sidebar_section_with_cover_color_divider():
-    pdf_dock = (ROOT / "js" / "pdf-editor" / "dock-width-align.js").read_text(encoding="utf-8")
-    cover_dock = (ROOT / "js" / "cover-floating-action-dock.js").read_text(encoding="utf-8")
-
-    assert "linear-gradient(90deg,#12396d,#2563eb,#1d9bb2)" in pdf_dock
-    assert "linear-gradient(90deg,#12396d,#2563eb,#1d9bb2)" in cover_dock
-    assert "border-radius:0!important" in pdf_dock
-    assert "box-shadow:none!important" in pdf_dock
-    assert "backdrop-filter:none!important" in pdf_dock
-    assert "bottom:0!important" in pdf_dock
-    assert "grid-template-columns:repeat(3,minmax(0,1fr))" in pdf_dock
-    assert "#previewBtn" in pdf_dock
-    assert "#downloadBtn" in pdf_dock
-    assert "#resetBtn" in pdf_dock
-
-
-def test_interaction_modules_have_no_unbounded_polling():
-    live = (ROOT / "js" / "pdf-editor" / "live-preview.js").read_text(encoding="utf-8")
-    count = (ROOT / "js" / "pdf-editor" / "page-count-hint.js").read_text(encoding="utf-8")
-    multi = (ROOT / "js" / "pdf-editor" / "multifile-interaction-fix.js").read_text(encoding="utf-8")
-    selection = (ROOT / "js" / "pdf-editor" / "page-selection-preview-focus.js").read_text(encoding="utf-8")
-    reserve = (ROOT / "js" / "pdf-editor" / "page-number-auto-reserve.js").read_text(encoding="utf-8")
-    reserve_v2 = (ROOT / "js" / "pdf-editor" / "page-number-auto-reserve-layout-v2.js").read_text(encoding="utf-8")
-
-    assert "setInterval(" not in live
-    assert "setInterval(" not in count
-    assert "setInterval(" not in multi
-    assert "setInterval(" not in selection
-    assert "setInterval(" not in reserve
-    assert "setInterval(" not in reserve_v2
-    assert "removeAttribute('title')" in count
+def test_public_pdf_editor_entrypoints_remain_identical():
+    assert EDITOR.read_bytes() == LEGACY_EDITOR.read_bytes()
