@@ -2,9 +2,9 @@
 
 The tests skipped here target helper modules added after July 20. Those extra
 wrappers remain deliberately disabled because loading all of them together caused
-the browser hang. Selected July 24 core improvements may be ported inside the
-same eight-module runtime without re-enabling those post-July20 wrapper tests.
-Server, permission, export, Firebase, and stable-runtime tests remain enabled.
+the browser hang. Selected features may be integrated into the existing eight
+modules without re-enabling those post-July20 wrapper tests.
+Server, permission, export, Firebase, and restored-feature tests remain enabled.
 """
 
 from pathlib import Path
@@ -16,7 +16,6 @@ LOADER_FILE = ROOT / "js" / "pdf-editor" / "loader.js"
 
 POST_JULY20_TEST_FILES = {
     "tests/test_pdf_booklet_frontend.py",
-    "tests/test_pdf_booklet_print_guide.py",
     "tests/test_pdf_editor_preview_single_flight.py",
     "tests/test_pdf_editor_ux_repair.py",
     "tests/test_pdf_full_integrity_audit.py",
