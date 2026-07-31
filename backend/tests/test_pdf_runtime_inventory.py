@@ -22,7 +22,6 @@ DEFERRED_MODULES = [
     "page-number-auto-reserve-layout-v2.js",
     "page-number-preview-parity.js",
     "operation-progress-summary.js",
-    "print-marks-bleed.js",
 ]
 
 
@@ -81,10 +80,13 @@ def test_integrated_runtime_features_remain_present():
         "margin_right_mm",
         "margin_top_mm",
         "margin_bottom_mm",
+        "pageNumberAutoReserveEnabled",
+        "requiredPageNumberSpaceMm",
     ):
         assert marker in layout
 
     assert "PdfDividerHelper" in divider
     assert "extraTexts" in divider
-    assert "bleed_mm: 0" in crop
+    assert "bleed_mm: numberValue('printBleedMm', 3, 0, 15)" in crop
+    assert "원본 그림이나 배경을 자동으로 늘리지 않습니다." in crop
     assert "PDF 문서 편집기" in crop
