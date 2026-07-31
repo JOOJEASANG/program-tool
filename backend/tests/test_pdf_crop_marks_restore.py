@@ -10,17 +10,18 @@ API = ROOT / "js" / "api.js"
 def test_crop_marks_are_loaded_only_for_pdf_editor():
     register = REGISTER.read_text(encoding="utf-8")
     assert "pdfCropMarksScript" in register
-    assert "/js/pdf-editor/crop-marks.js?v=20260731-3" in register
+    assert "/js/pdf-editor/crop-marks.js?v=20260731-4" in register
     assert register.count("pdfCropMarksScript") == 1
     assert LOADER.read_text(encoding="utf-8").count("'/js/pdf-editor/") == 8
 
 
-def test_crop_marks_module_does_not_enable_bleed():
+def test_crop_marks_module_enables_bounded_reserved_bleed_workspace():
     source = MODULE.read_text(encoding="utf-8")
-    assert "재단선 추가" in source
-    assert "bleed_mm: 0" in source
-    assert "도련 작업영역과 원본 그림 확장은 적용하지 않습니다." in source
-    assert "printBleedMm" not in source
+    assert "재단선·도련 작업영역 추가" in source
+    assert "bleed_mm: numberValue('printBleedMm', 3, 0, 15)" in source
+    assert 'id="printBleedMm"' in source
+    assert "원본 그림이나 배경을 자동으로 늘리지 않습니다." in source
+    assert "확보된 영역은 흰색으로 남습니다." in source
     assert "setInterval(" not in source
     assert "eval(" not in source
 
@@ -34,6 +35,18 @@ def test_crop_mark_preview_and_export_share_settings():
     assert "next.print_marks = window.PdfPrintMarks.settings()" in api
     assert "mark_length_mm" in source
     assert "mark_offset_mm" in source
+    assert "const bleed = config.bleed_mm * mm2px" in source
+    assert "const outer = bleed + length + offset + padding" in source
+    assert "x0 - bleed - offset" in source
+    assert "x1 + bleed + offset" in source
+    assert "output.dataset.bleedMm" in source
+
+
+def test_bleed_setting_is_saved_and_restored_with_editor_session():
+    source = MODULE.read_text(encoding="utf-8")
+    assert "state.cropMarks = settings()" in source
+    assert "Number(config.bleed_mm)" in source
+    assert "$('printBleedMm').value = String(config.bleed_mm)" in source
 
 
 def test_sidebar_upload_and_margin_controls_are_bounded_and_integrated():
