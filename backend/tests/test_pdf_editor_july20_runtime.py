@@ -22,7 +22,7 @@ STABLE_MODULES = [
 def test_loader_keeps_the_eight_module_stable_runtime():
     text = LOADER.read_text(encoding="utf-8")
     assert JULY20_BASELINE_COMMIT and JULY24_CORE_COMMIT
-    assert "__pdfEditorModuleLoaderV16" in text
+    assert "__pdfEditorModuleLoaderV17" in text
     for module in STABLE_MODULES:
         assert module in text
     assert text.count("'/js/pdf-editor/") == len(STABLE_MODULES)
