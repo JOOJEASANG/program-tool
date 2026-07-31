@@ -1,13 +1,15 @@
-// PDF save preflight summary only. Progress and cancellation are integrated in later stages.
+// PDF save summary and API-backed progress display. Cancellation is integrated in the next stage.
 (function () {
   'use strict';
-  if (window.__pdfSaveOperationV1) return;
-  window.__pdfSaveOperationV1 = true;
+  if (window.__pdfSaveOperationV2) return;
+  window.__pdfSaveOperationV2 = true;
 
   const $ = (id) => document.getElementById(id);
   let bypassNextDownload = false;
   let attempts = 0;
   let previousFocus = null;
+  let activeOperation = null;
+  let operationSequence = 0;
 
   function editorReady() {
     try {
@@ -109,9 +111,9 @@
   }
 
   function installStyles() {
-    if ($('pdfSaveSummaryStylesV1')) return;
+    if ($('pdfSaveOperationStylesV2')) return;
     const style = document.createElement('style');
-    style.id = 'pdfSaveSummaryStylesV1';
+    style.id = 'pdfSaveOperationStylesV2';
     style.textContent = `
       .pdf-save-summary-overlay{position:fixed;inset:0;z-index:1550;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(15,23,42,.54)}
       .pdf-save-summary-overlay.open{display:flex}
@@ -129,7 +131,17 @@
       .pdf-save-summary-button{min-height:40px;border-radius:10px;font:850 12px Pretendard,"Noto Sans KR",sans-serif;cursor:pointer}
       .pdf-save-summary-button.cancel{border:1px solid #cbd5e1;background:#f8fafc;color:#475569}
       .pdf-save-summary-button.confirm{border:0;background:linear-gradient(135deg,#12396d,#2563eb);color:#fff}
-      @media(max-width:520px){.pdf-save-summary-grid{grid-template-columns:1fr}.pdf-save-summary-actions{grid-template-columns:1fr}}
+      .pdf-save-progress-panel{position:fixed;left:50%;bottom:22px;z-index:1600;display:none;width:min(460px,calc(100vw - 28px));padding:13px 14px;transform:translateX(-50%);border:1px solid #cbd5e1;border-radius:13px;background:rgba(255,255,255,.985);box-shadow:0 18px 50px rgba(15,23,42,.24)}
+      .pdf-save-progress-panel.open{display:block}
+      .pdf-save-progress-head{display:flex;align-items:center;gap:10px;margin-bottom:9px}
+      .pdf-save-progress-title{flex:1;color:#0f172a;font-size:12px;font-weight:900}
+      .pdf-save-progress-percent{min-width:38px;color:#2563eb;font-size:11px;font-weight:900;text-align:right}
+      .pdf-save-progress-track{height:7px;overflow:hidden;border-radius:999px;background:#e2e8f0}
+      .pdf-save-progress-fill{height:100%;width:0;background:linear-gradient(90deg,#12396d,#2563eb,#1d9bb2);transition:width .18s ease}
+      .pdf-save-progress-message{min-height:15px;margin-top:7px;color:#64748b;font-size:10px;font-weight:700;line-height:1.45}
+      .pdf-save-progress-panel.success .pdf-save-progress-percent{color:#047857}
+      .pdf-save-progress-panel.error .pdf-save-progress-percent{color:#b91c1c}
+      @media(max-width:520px){.pdf-save-summary-grid{grid-template-columns:1fr}.pdf-save-summary-actions{grid-template-columns:1fr}.pdf-save-progress-panel{bottom:10px}}
     `;
     document.head.appendChild(style);
   }
@@ -164,6 +176,25 @@
     return overlay;
   }
 
+  function ensureProgressPanel() {
+    let panel = $('pdfSaveProgressPanelV2');
+    if (panel) return panel;
+    panel = document.createElement('div');
+    panel.id = 'pdfSaveProgressPanelV2';
+    panel.className = 'pdf-save-progress-panel';
+    panel.setAttribute('role', 'status');
+    panel.setAttribute('aria-live', 'polite');
+    panel.innerHTML = `
+      <div class="pdf-save-progress-head">
+        <span class="pdf-save-progress-title" id="pdfSaveProgressTitleV2">PDF 생성 중</span>
+        <span class="pdf-save-progress-percent" id="pdfSaveProgressPercentV2">0%</span>
+      </div>
+      <div class="pdf-save-progress-track"><div class="pdf-save-progress-fill" id="pdfSaveProgressFillV2"></div></div>
+      <div class="pdf-save-progress-message" id="pdfSaveProgressMessageV2">저장 작업을 준비하고 있습니다...</div>`;
+    document.body.appendChild(panel);
+    return panel;
+  }
+
   function renderSummary(data) {
     const items = [
       ['원본 파일', `${data.files}개 · ${formatBytes(data.totalBytes)}`],
@@ -195,12 +226,16 @@
     const warnings = [];
     if (data.booklet) warnings.push('소책자는 프린터 양면 넘김 방향과 첫 용지 시험 출력을 확인하세요.');
     if (data.cropMarks && data.bleedMm > 0) warnings.push('도련 영역은 원본 그림을 자동 확대하지 않으므로 원본에 도련 이미지가 없으면 바깥쪽이 흰색일 수 있습니다.');
-    if (data.outputPages > 100 || data.totalBytes > 150 * 1024 * 1024) warnings.push('대용량 작업은 생성 시간이 길어질 수 있습니다.');
-    if (!warnings.length) warnings.push('설정이 맞으면 PDF 생성을 누르세요.');
+    if (data.outputPages > 100 || data.totalBytes > 150 * 1024 * 1024) warnings.push('대용량 작업은 생성 시간이 길어질 수 있습니다. 진행 상태는 저장 패널에서 확인할 수 있습니다.');
+    if (!warnings.length) warnings.push('설정이 맞으면 PDF 생성을 누르세요. 생성 단계가 화면에 표시됩니다.');
     $('pdfSaveSummaryWarningV1').textContent = warnings.join(' ');
   }
 
   function openSummary() {
+    if (activeOperation) {
+      ensureProgressPanel().focus?.();
+      return false;
+    }
     if (!editorReady() || !uploadedFiles.length || !parsedPages.length) return false;
     if (!parsedPages.some((page) => !page.excluded)) return false;
     previousFocus = document.activeElement;
@@ -215,9 +250,83 @@
     if (previousFocus && typeof previousFocus.focus === 'function') previousFocus.focus();
   }
 
+  function updateProgress(progress = {}) {
+    if (!activeOperation) return;
+    const next = Number(progress.percent);
+    const percent = Number.isFinite(next)
+      ? Math.max(activeOperation.percent, Math.max(0, Math.min(100, next)))
+      : activeOperation.percent;
+    activeOperation.percent = percent;
+    $('pdfSaveProgressFillV2').style.width = `${percent}%`;
+    $('pdfSaveProgressPercentV2').textContent = `${Math.round(percent)}%`;
+    if (progress.message) $('pdfSaveProgressMessageV2').textContent = progress.message;
+  }
+
+  function monitorDownloadButton(sequence, attempt = 0) {
+    if (!activeOperation || activeOperation.sequence !== sequence) return;
+    const button = $('downloadBtn');
+    if (attempt > 0 && button && !button.disabled) {
+      finishOperation(
+        activeOperation.percent >= 100 ? 'success' : 'error',
+        activeOperation.percent >= 100
+          ? 'PDF 생성이 완료되었습니다.'
+          : 'PDF 생성을 완료하지 못했습니다. 화면의 오류 메시지를 확인하세요.',
+      );
+      return;
+    }
+    if (attempt >= 620) {
+      finishOperation('error', '저장 작업 상태를 확인하지 못했습니다. 다시 시도하세요.');
+      return;
+    }
+    setTimeout(() => monitorDownloadButton(sequence, attempt + 1), 500);
+  }
+
+  function beginSaveOperation() {
+    if (activeOperation) return false;
+    const panel = ensureProgressPanel();
+    panel.classList.remove('success', 'error');
+    panel.classList.add('open');
+    operationSequence += 1;
+    activeOperation = {
+      type: 'save',
+      sequence: operationSequence,
+      percent: 0,
+      startedAt: Date.now(),
+    };
+    $('pdfSaveProgressTitleV2').textContent = 'PDF 생성 중';
+    $('pdfSaveProgressFillV2').style.width = '0%';
+    $('pdfSaveProgressPercentV2').textContent = '0%';
+    $('pdfSaveProgressMessageV2').textContent = '저장 작업을 준비하고 있습니다...';
+    setTimeout(() => monitorDownloadButton(activeOperation?.sequence || 0), 250);
+    return true;
+  }
+
+  function finishOperation(result, message) {
+    if (!activeOperation) return;
+    const panel = ensureProgressPanel();
+    const success = result === 'success';
+    const canceled = result === 'canceled';
+    if (success) updateProgress({ percent: 100, message: message || 'PDF 생성이 완료되었습니다.' });
+    else updateProgress({ message: message || (canceled ? '작업이 중단되었습니다.' : 'PDF 생성에 실패했습니다.') });
+    panel.classList.toggle('success', success);
+    panel.classList.toggle('error', !success);
+    $('pdfSaveProgressTitleV2').textContent = success ? 'PDF 생성 완료' : canceled ? 'PDF 작업 중단' : 'PDF 생성 실패';
+    const hideDelay = success ? 900 : 2200;
+    activeOperation = null;
+    setTimeout(() => panel.classList.remove('open', 'success', 'error'), hideDelay);
+  }
+
+  function apiOptions() {
+    if (!activeOperation || activeOperation.type !== 'save') return null;
+    return {
+      onProgress: updateProgress,
+      onStatus: (message) => updateProgress({ message }),
+    };
+  }
+
   function confirmSave() {
     const button = $('downloadBtn');
-    if (!button || button.disabled) return;
+    if (!button || button.disabled || !beginSaveOperation()) return;
     closeSummary();
     bypassNextDownload = true;
     button.click();
@@ -225,14 +334,18 @@
 
   function installDownloadGuard() {
     const button = $('downloadBtn');
-    if (!button || button.dataset.saveSummaryGuardV1) return !!button;
-    button.dataset.saveSummaryGuardV1 = '1';
+    if (!button || button.dataset.saveSummaryGuardV2) return !!button;
+    button.dataset.saveSummaryGuardV2 = '1';
     button.addEventListener('click', (event) => {
       if (bypassNextDownload) {
         bypassNextDownload = false;
         return;
       }
-      if (button.disabled) return;
+      if (button.disabled || activeOperation) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        return;
+      }
       event.preventDefault();
       event.stopImmediatePropagation();
       openSummary();
@@ -243,6 +356,7 @@
   function boot() {
     installStyles();
     ensureModal();
+    ensureProgressPanel();
     const ready = editorReady();
     const guardReady = installDownloadGuard();
     if ((!ready || !guardReady) && attempts < 14) {
@@ -259,7 +373,15 @@
     openSummary,
     closeSummary,
     summaryData,
-    stage: 'summary-only',
+    active: () => activeOperation,
+    stage: 'summary-progress',
+  };
+  window.PdfOperationManager = {
+    apiOptions,
+    updateProgress,
+    finishOperation,
+    active: () => activeOperation,
+    stage: 'progress-only',
   };
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, { once: true });

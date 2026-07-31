@@ -11,15 +11,15 @@ LOADER = ROOT / "js" / "pdf-editor" / "loader.js"
 def test_save_summary_is_loaded_only_for_pdf_editor():
     register = REGISTER.read_text(encoding="utf-8")
     assert "pdfSaveOperationScript" in register
-    assert "/js/pdf-editor/save-operation.js?v=20260731-1" in register
+    assert "/js/pdf-editor/save-operation.js?v=20260731-2" in register
     assert register.count("pdfSaveOperationScript") == 1
     assert LOADER.read_text(encoding="utf-8").count("'/js/pdf-editor/") == 8
 
 
 
-def test_summary_stage_does_not_wrap_preview_or_api_functions():
+def test_summary_progress_stage_does_not_wrap_preview_or_api_functions():
     source = MODULE.read_text(encoding="utf-8")
-    assert "stage: 'summary-only'" in source
+    assert "stage: 'summary-progress'" in source
     assert "apiProcessPdf =" not in source
     assert "buildAllPages =" not in source
     assert "displayPreview =" not in source
