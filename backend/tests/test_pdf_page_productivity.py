@@ -15,7 +15,7 @@ def source() -> str:
 def test_productivity_is_integrated_without_adding_runtime_modules():
     loader = LOADER.read_text(encoding="utf-8")
     text = source()
-    assert "__pdfEditorPageProductivityV3" in text
+    assert "__pdfEditorPageProductivityV4" in text
     assert "/js/pdf-editor/page-count-hint.js" in loader
     assert "/js/pdf-editor/page-productivity.js" not in loader
     assert "/js/pdf-editor/page-selection-preview-focus.js" not in loader
@@ -59,6 +59,16 @@ def test_batch_actions_are_available_for_selected_pages():
     assert "선택 페이지 맨 뒤로 이동" in text
 
 
+def test_batch_rotation_regenerates_thumbnails_and_clears_high_resolution_cache():
+    text = source()
+    assert "async function rerenderRotatedPdfPages(pages)" in text
+    assert "page.thumbCanvas = await renderPdfPage" in text
+    assert "page.hiCanvas = null" in text
+    assert "await rerenderRotatedPdfPages(targets)" in text
+    assert "rotationChangedPages" in text
+    assert "await rerenderRotatedPdfPages(rotationChangedPages)" in text
+
+
 def test_undo_redo_uses_bounded_reference_snapshots():
     text = source()
     assert "HISTORY_LIMIT = 30" in text
@@ -68,7 +78,7 @@ def test_undo_redo_uses_bounded_reference_snapshots():
     assert "restoreSnapshot" in text
     assert "undoStack.shift()" in text
     assert "page," in text
-    assert "thumbCanvas" not in text.split("function captureSnapshot", 1)[1].split("function restoreSnapshot", 1)[0]
+    assert "thumbCanvas" not in text.split("function captureSnapshot", 1)[1].split("async function rerenderRotatedPdfPages", 1)[0]
 
 
 def test_keyboard_shortcuts_and_page_jump_are_available():
@@ -93,6 +103,16 @@ def test_history_is_cleared_when_source_file_objects_change():
     assert "signature !== lastFileSignature" in text
     assert "undoStack.length = 0" in text
     assert "redoStack.length = 0" in text
+
+
+def test_non_batch_thumbnail_rebuild_invalidates_batch_history():
+    text = source()
+    assert "function containsPageStructureMutation(mutations)" in text
+    assert "function invalidateHistoryAfterExternalEdit(mutations)" in text
+    assert "if (filesChanged || ownThumbRender || internalMutation || batchInFlight) return" in text
+    assert "clearHistory()" in text
+    assert "기존 단일 페이지 작업이 반영되어" in text
+    assert "queueMicrotask(() => { ownThumbRender = false; })" in text
 
 
 def test_productivity_uses_observers_without_render_function_wrapping():
