@@ -10,7 +10,7 @@ API = ROOT / "js" / "api.js"
 def test_crop_marks_are_loaded_only_for_pdf_editor():
     register = REGISTER.read_text(encoding="utf-8")
     assert "pdfCropMarksScript" in register
-    assert "/js/pdf-editor/crop-marks.js?v=20260731-2" in register
+    assert "/js/pdf-editor/crop-marks.js?v=20260731-3" in register
     assert register.count("pdfCropMarksScript") == 1
     assert LOADER.read_text(encoding="utf-8").count("'/js/pdf-editor/") == 8
 
