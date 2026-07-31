@@ -1,8 +1,8 @@
 // PDF editor module loader.
 // Keep the stable July 20 runtime, with selected July 24 core upgrades.
 (function () {
-  if (window.__pdfEditorModuleLoaderV16) return;
-  window.__pdfEditorModuleLoaderV16 = true;
+  if (window.__pdfEditorModuleLoaderV17) return;
+  window.__pdfEditorModuleLoaderV17 = true;
 
   function installPreviewToolbarLayoutFix() {
     if (!document.getElementById('pdfEditorPreviewToolbarWidthFix')) {
@@ -69,7 +69,7 @@
   function getParsedPageFromWrap(wrap) {
     const id = wrap?.closest('.thumb-item')?.dataset?.id;
     if (!id || typeof parsedPages === 'undefined') return null;
-    return parsedPages.find(page => page.id === id) || null;
+    return parsedPages.find(page => String(page.id) === String(id)) || null;
   }
 
   function decorateThumbnailWraps() {
@@ -407,9 +407,9 @@
     '/js/pdf-editor/upload-fix.js?v=20260724-5',
     '/js/pdf-editor/live-preview.js?v=20260724-4',
     '/js/pdf-editor/layout-export.js?v=20260724-5',
-    '/js/pdf-editor/page-count-hint.js?v=20260724-2',
-    '/js/pdf-editor/nup-helper.js?v=20260724-2',
-    '/js/pdf-editor/preview-row-default.js?v=20260602-1',
+    '/js/pdf-editor/page-count-hint.js?v=20260731-1',
+    '/js/pdf-editor/nup-helper.js?v=20260731-1',
+    '/js/pdf-editor/preview-row-default.js?v=20260731-1',
     '/js/pdf-editor/divider-helper.js?v=20260724-2-safe1'
   ];
 
