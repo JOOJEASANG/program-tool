@@ -25,6 +25,7 @@ DEFERRED_MODULES = [
 ]
 
 
+
 def test_pdf_editor_runtime_keeps_the_approved_eight_modules():
     source = LOADER.read_text(encoding="utf-8")
     positions = []
@@ -36,6 +37,7 @@ def test_pdf_editor_runtime_keeps_the_approved_eight_modules():
     assert source.count("'/js/pdf-editor/") == 8
 
 
+
 def test_deferred_feature_wrappers_are_not_loaded_directly():
     loader = LOADER.read_text(encoding="utf-8")
     register = REGISTER.read_text(encoding="utf-8")
@@ -45,10 +47,14 @@ def test_deferred_feature_wrappers_are_not_loaded_directly():
         assert (PDF_MODULES / module).exists()
 
 
-def test_crop_marks_is_the_only_extra_pdf_editor_script():
+
+def test_pdf_editor_route_extras_are_bounded_and_single_loaded():
     source = REGISTER.read_text(encoding="utf-8")
     assert source.count("pdfCropMarksScript") == 1
     assert source.count("/js/pdf-editor/crop-marks.js") == 1
+    assert source.count("pdfSaveOperationScript") == 1
+    assert source.count("/js/pdf-editor/save-operation.js") == 1
+
 
 
 def test_integrated_runtime_features_remain_present():
@@ -57,6 +63,7 @@ def test_integrated_runtime_features_remain_present():
     layout = (PDF_MODULES / "layout-export.js").read_text(encoding="utf-8")
     divider = (PDF_MODULES / "divider-helper.js").read_text(encoding="utf-8")
     crop = (PDF_MODULES / "crop-marks.js").read_text(encoding="utf-8")
+    save = (PDF_MODULES / "save-operation.js").read_text(encoding="utf-8")
 
     for marker in (
         "duplicateSelected",
@@ -90,3 +97,5 @@ def test_integrated_runtime_features_remain_present():
     assert "bleed_mm: numberValue('printBleedMm', 3, 0, 15)" in crop
     assert "원본 그림이나 배경을 자동으로 늘리지 않습니다." in crop
     assert "PDF 문서 편집기" in crop
+    assert "PDF 저장 설정 최종 확인" in save
+    assert "stage: 'summary-only'" in save
