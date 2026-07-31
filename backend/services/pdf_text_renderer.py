@@ -50,6 +50,34 @@ def apply_watermark(page: fitz.Page, settings) -> None:
     shape.commit(overlay=True)
 
 
+def _horizontal_overlay_rects(
+    page_width: float,
+    left_anchor: float,
+    right_anchor: float,
+) -> tuple[fitz.Rect, fitz.Rect, fitz.Rect]:
+    usable_left = max(0.0, min(max(0.0, page_width - 1.0), left_anchor))
+    usable_right = max(
+        usable_left + 1.0,
+        min(page_width, page_width - max(0.0, right_anchor)),
+    )
+    center = (usable_left + usable_right) / 2
+    return (
+        fitz.Rect(usable_left, 0, center, 1),
+        fitz.Rect(usable_left, 0, usable_right, 1),
+        fitz.Rect(center, 0, usable_right, 1),
+    )
+
+
+def _horizontal_paper_margins(settings, facing_pages: bool, is_odd: bool) -> tuple[float, float]:
+    left_mm = getattr(settings, "margin_left_mm", None)
+    right_mm = getattr(settings, "margin_right_mm", None)
+    left = pdf_ops._mm_to_pt_safe(left_mm, 0.0) if left_mm is not None else 0.0
+    right = pdf_ops._mm_to_pt_safe(right_mm, 0.0) if right_mm is not None else 0.0
+    if facing_pages and not is_odd:
+        left, right = right, left
+    return left, right
+
+
 def apply_header_footer(
     page: fitz.Page,
     settings,
@@ -94,10 +122,21 @@ def apply_header_footer(
             getattr(settings, "footer_margin_mm", 8.0), 8.0
         )
 
-    side_margin = header_margin
-    left_rect = fitz.Rect(side_margin, 0, page_width * 0.36, page_height)
-    center_rect = fitz.Rect(page_width * 0.25, 0, page_width * 0.75, page_height)
-    right_rect = fitz.Rect(page_width * 0.64, 0, page_width - side_margin, page_height)
+    paper_left, paper_right = _horizontal_paper_margins(
+        settings,
+        facing_pages,
+        is_odd,
+    )
+    header_rects = _horizontal_overlay_rects(
+        page_width,
+        max(header_margin, paper_left),
+        max(header_margin, paper_right),
+    )
+    footer_rects = _horizontal_overlay_rects(
+        page_width,
+        max(footer_margin, paper_left),
+        max(footer_margin, paper_right),
+    )
 
     def insert(text, base_rect, y, align):
         resolved = _safe_text(
@@ -118,12 +157,12 @@ def apply_header_footer(
 
     header_y = header_margin
     footer_y = max(0, page_height - footer_margin - fontsize * 1.6)
-    insert(fields.header_left, left_rect, header_y, fitz.TEXT_ALIGN_LEFT)
-    insert(fields.header_center, center_rect, header_y, fitz.TEXT_ALIGN_CENTER)
-    insert(fields.header_right, right_rect, header_y, fitz.TEXT_ALIGN_RIGHT)
-    insert(fields.footer_left, left_rect, footer_y, fitz.TEXT_ALIGN_LEFT)
-    insert(fields.footer_center, center_rect, footer_y, fitz.TEXT_ALIGN_CENTER)
-    insert(fields.footer_right, right_rect, footer_y, fitz.TEXT_ALIGN_RIGHT)
+    insert(fields.header_left, header_rects[0], header_y, fitz.TEXT_ALIGN_LEFT)
+    insert(fields.header_center, header_rects[1], header_y, fitz.TEXT_ALIGN_CENTER)
+    insert(fields.header_right, header_rects[2], header_y, fitz.TEXT_ALIGN_RIGHT)
+    insert(fields.footer_left, footer_rects[0], footer_y, fitz.TEXT_ALIGN_LEFT)
+    insert(fields.footer_center, footer_rects[1], footer_y, fitz.TEXT_ALIGN_CENTER)
+    insert(fields.footer_right, footer_rects[2], footer_y, fitz.TEXT_ALIGN_RIGHT)
 
 
 def _page_number_applies(settings, output_idx: int) -> bool:
