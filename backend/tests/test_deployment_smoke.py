@@ -124,6 +124,10 @@ def test_preview_and_production_workflows_run_smoke_checks():
     assert "scripts/smoke_deployment.py" in preview
     assert "--skip-api" in preview
     assert "steps.deploy.outputs.preview_url" in preview
+    assert "GITHUB_SHA:0:7" in preview
+    assert "GITHUB_RUN_ATTEMPT" in preview
+    assert 'echo "channel=$CHANNEL"' in preview
+    assert "--attempts 12" in preview
     assert "scripts/smoke_deployment.py" in production
     assert "https://program-tool.web.app" in production
     assert "--skip-api" not in production
