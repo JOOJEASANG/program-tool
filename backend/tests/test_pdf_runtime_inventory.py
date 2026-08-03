@@ -47,12 +47,15 @@ def test_deferred_feature_wrappers_are_not_loaded_directly():
 
 def test_pdf_editor_route_extras_are_bounded_and_single_loaded():
     source = REGISTER.read_text(encoding="utf-8")
+    assert source.count("pdfFileContextScopeScript") == 1
+    assert source.count("/js/pdf-editor/file-context-scope.js") == 1
     assert source.count("pdfCropMarksScript") == 1
     assert source.count("/js/pdf-editor/crop-marks.js") == 1
     assert source.count("pdfSaveOperationScript") == 1
     assert source.count("/js/pdf-editor/save-operation.js") == 1
     assert source.count("pdfSaveRecoveryScript") == 1
     assert source.count("/js/pdf-editor/save-recovery.js") == 1
+    assert source.index("/js/pdf-editor/file-context-scope.js") < source.index("/js/pdf-editor/crop-marks.js")
     assert source.index("/js/pdf-editor/save-operation.js") < source.index("/js/pdf-editor/save-recovery.js")
 
 
@@ -61,6 +64,7 @@ def test_integrated_runtime_features_remain_present():
     nup = (PDF_MODULES / "nup-helper.js").read_text(encoding="utf-8")
     layout = (PDF_MODULES / "layout-export.js").read_text(encoding="utf-8")
     divider = (PDF_MODULES / "divider-helper.js").read_text(encoding="utf-8")
+    file_context = (PDF_MODULES / "file-context-scope.js").read_text(encoding="utf-8")
     crop = (PDF_MODULES / "crop-marks.js").read_text(encoding="utf-8")
     save = (PDF_MODULES / "save-operation.js").read_text(encoding="utf-8")
     recovery = (PDF_MODULES / "save-recovery.js").read_text(encoding="utf-8")
@@ -78,6 +82,9 @@ def test_integrated_runtime_features_remain_present():
 
     assert "PdfDividerHelper" in divider
     assert "extraTexts" in divider
+    assert "stage: 'clicked-file-only'" in file_context
+    assert "candidate.file_index === page.file_index" in file_context
+    assert "이 파일 전체 시계방향 90° 회전" in file_context
     assert "bleed_mm: numberValue('printBleedMm', 3, 0, 15)" in crop
     assert "원본 그림이나 배경을 자동으로 늘리지 않습니다." in crop
     assert "PDF 문서 편집기" in crop
