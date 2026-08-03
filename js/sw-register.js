@@ -84,6 +84,7 @@
     }
     if(isPath('/tools/pdf-editor.html','/pdf-editor','/pdf-editor/index.html')){
       tasks.push(load('pdfEditorModuleLoaderScript','/js/pdf-editor/loader.js?v='+VERSION));
+      tasks.push(load('pdfFileContextScopeScript','/js/pdf-editor/file-context-scope.js?v=20260803-1'));
       tasks.push(load('pdfCropMarksScript','/js/pdf-editor/crop-marks.js?v=20260731-4'));
       tasks.push(load('pdfSaveOperationScript','/js/pdf-editor/save-operation.js?v=20260731-3'));
       tasks.push(load('pdfSaveRecoveryScript','/js/pdf-editor/save-recovery.js?v=20260803-1'));
