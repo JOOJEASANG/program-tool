@@ -55,7 +55,8 @@ jobs:
       - name: 오래된 PR 미리보기 채널 정리
         shell: bash
         run: |
-          CURRENT_CHANNEL="pr-${{ github.event.pull_request.number }}"
+          SHORT_SHA="${GITHUB_SHA:0:7}"
+          CURRENT_CHANNEL="pr-${{ github.event.pull_request.number }}-${SHORT_SHA}-r${GITHUB_RUN_ATTEMPT}"
           firebase hosting:channel:list \
             --project program-tool \
             --token "$FIREBASE_TOKEN" \
@@ -104,7 +105,8 @@ jobs:
         id: deploy
         shell: bash
         run: |
-          CHANNEL="pr-${{ github.event.pull_request.number }}"
+          SHORT_SHA="${GITHUB_SHA:0:7}"
+          CHANNEL="pr-${{ github.event.pull_request.number }}-${SHORT_SHA}-r${GITHUB_RUN_ATTEMPT}"
           set +e
           firebase hosting:channel:deploy "$CHANNEL" \
             --project program-tool \
@@ -133,6 +135,7 @@ jobs:
             echo "Firebase preview URL was not returned." >&2
             exit 1
           fi
+          echo "channel=$CHANNEL" >> "$GITHUB_OUTPUT"
           echo "preview_url=$URL" >> "$GITHUB_OUTPUT"
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
@@ -142,7 +145,7 @@ jobs:
           python3 scripts/smoke_deployment.py \
             --base-url "${{ steps.deploy.outputs.preview_url }}" \
             --skip-api \
-            --attempts 8 \
+            --attempts 12 \
             --delay-seconds 5 \
             --timeout 20
 
@@ -165,8 +168,9 @@ jobs:
         with:
           script: |
             const url = '${{ steps.deploy.outputs.preview_url }}';
+            const channel = '${{ steps.deploy.outputs.channel }}';
             const prNumber = context.payload.pull_request.number;
-            const body = `🔥 **Firebase 미리보기 배포 및 스모크 검사 완료**\n\n👉 [미리보기 열기](${url})\n\n> 홈·로그인·버전·보안 헤더 검사를 통과했습니다. 이 채널은 7일 후 자동 삭제됩니다.`;
+            const body = `🔥 **Firebase 미리보기 배포 및 스모크 검사 완료**\n\n👉 [미리보기 열기](${url})\n\n> 채널: \`${channel}\` · 홈·로그인·버전·보안 헤더 검사를 통과했습니다. 이 채널은 7일 후 자동 삭제됩니다.`;
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
