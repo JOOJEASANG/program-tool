@@ -6,7 +6,7 @@ ROOT = Path(__file__).resolve().parents[2]
 MODULE = ROOT / "js" / "pdf-editor" / "file-context-scope.js"
 REGISTER = ROOT / "js" / "sw-register.js"
 EDITOR = ROOT / "pdf-editor" / "index.html"
-BEHAVIOR = ROOT / "backend" / "tests" / "test_pdf_file_context_scope_behavior_stage5b.js"
+BEHAVIOR = ROOT / "backend" / "tests" / "test_pdf_file_context_scope_behavior_stage5b.cjs"
 
 
 def test_discontinuous_file_is_identified_by_group_break_and_file_index():
