@@ -15,10 +15,15 @@
   function editorReady() {
     try {
       return Boolean(
-        window.auth && window.db && window.storage && window.firebase
-        && typeof window.collectEditorState === 'function'
-        && Array.isArray(window.uploadedFiles)
-        && Array.isArray(window.parsedPages)
+        typeof auth !== 'undefined'
+        && typeof db !== 'undefined'
+        && typeof storage !== 'undefined'
+        && typeof firebase !== 'undefined'
+        && typeof collectEditorState === 'function'
+        && typeof uploadedFiles !== 'undefined'
+        && Array.isArray(uploadedFiles)
+        && typeof parsedPages !== 'undefined'
+        && Array.isArray(parsedPages)
         && byId('sessionSaveConfirm')
         && byId('sessionNameInput')
         && byId('sessionSaveStatus')
@@ -137,7 +142,7 @@
 
   async function cleanupUploadedPaths(paths) {
     if (!Array.isArray(paths) || paths.length === 0) return [];
-    return Promise.allSettled(paths.map((path) => window.storage.ref(path).delete()));
+    return Promise.allSettled(paths.map((path) => storage.ref(path).delete()));
   }
 
   async function trimOldSessions(collection, newDocumentId) {
@@ -164,14 +169,14 @@
   }
 
   async function saveSessionSafely() {
-    if (active) return false;
-    const user = window.auth?.currentUser;
-    const files = Array.isArray(window.uploadedFiles) ? [...window.uploadedFiles] : [];
+    if (active || !editorReady()) return false;
+    const user = auth.currentUser;
+    const files = [...uploadedFiles];
     if (!user || files.length === 0) return false;
 
     let state;
     try {
-      state = cloneSerializable(window.collectEditorState());
+      state = cloneSerializable(collectEditorState());
       validateSnapshot(files, state);
     } catch (error) {
       setStatus(`저장 전 확인 실패: ${error.message}`, '#dc2626');
@@ -181,7 +186,7 @@
     const name = (byId('sessionNameInput')?.value || '').trim() || '편집 세션';
     const sessionId = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
     const storagePaths = [];
-    const collection = window.db.collection('users').doc(user.uid).collection('pdf_sessions');
+    const collection = db.collection('users').doc(user.uid).collection('pdf_sessions');
     const confirmButton = byId('sessionSaveConfirm');
     let documentRef = null;
 
@@ -195,8 +200,8 @@
         const file = files[index];
         setStatus(`파일 업로드 중... (${index + 1}/${files.length})`, '#6b7280');
         const path = `pdf_sessions/${user.uid}/${sessionId}/src_${index}.pdf`;
-        await window.storage.ref(path).put(file, { contentType: 'application/pdf' });
         storagePaths.push(path);
+        await storage.ref(path).put(file, { contentType: 'application/pdf' });
       }
 
       setStatus('상태 저장 중...', '#6b7280');
@@ -207,7 +212,7 @@
         fileCount: files.length,
         pageCount: state.pages.length,
         state: JSON.stringify(state),
-        createdAt: window.firebase.firestore.FieldValue.serverTimestamp(),
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
       });
 
       try {
@@ -234,13 +239,9 @@
   }
 
   function interceptSave(event) {
-    if (active) {
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      return;
-    }
     event.preventDefault();
     event.stopImmediatePropagation();
+    if (active) return;
     saveSessionSafely().catch((error) => {
       console.error('[pdf-session] safe save failed', error);
       setStatus(`저장 실패: ${error.message}`, '#dc2626');
