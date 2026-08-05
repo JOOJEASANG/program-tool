@@ -45,6 +45,39 @@
     return window.CoverProjectStateBridge || null;
   }
 
+  function authService() {
+    try {
+      return typeof auth !== 'undefined' ? auth : (window.auth || null);
+    } catch (_) {
+      return window.auth || null;
+    }
+  }
+
+  function firestoreService() {
+    try {
+      return typeof db !== 'undefined' ? db : (window.db || null);
+    } catch (_) {
+      return window.db || null;
+    }
+  }
+
+  function firebaseService() {
+    return window.firebase || null;
+  }
+
+  async function isConfirmedAdmin(user) {
+    if (!user) return false;
+    try {
+      if (typeof ProgramAccess !== 'undefined' && typeof ProgramAccess.isAdmin === 'function') {
+        return Boolean(await ProgramAccess.isAdmin(user));
+      }
+    } catch (_) {
+      return false;
+    }
+    const area = byId('adminTemplateArea');
+    return Boolean(area && getComputedStyle(area).display !== 'none');
+  }
+
   function fire(element) {
     if (!element) return;
     element.dispatchEvent(new Event('input', { bubbles: true }));
@@ -228,12 +261,13 @@
     if (version < 1 || version > PROJECT_VERSION) {
       throw new Error(`지원하지 않는 프로젝트 버전입니다. 현재 지원 버전은 ${PROJECT_VERSION}입니다.`);
     }
+    const rawExtended = source.extended || source.projectState || null;
     return {
       type: PROJECT_TYPE,
       version,
       values: sanitizeValues(source.values),
       layout: sanitizeLayout(source.layout),
-      extended: sanitizeExtended(source.extended || source.projectState),
+      extended: rawExtended ? sanitizeExtended(rawExtended) : null,
     };
   }
 
@@ -309,7 +343,7 @@
     const project = normalizeProject(parsed);
     applyValues(project.values);
     applyLayout(project.layout);
-    bridge()?.restore?.(project.extended);
+    if (project.extended) bridge()?.restore?.(project.extended);
     finishRestore();
     return true;
   }
@@ -334,8 +368,10 @@
 
   async function deleteStoragePath(path) {
     if (!path) return true;
+    const firebaseApi = firebaseService();
+    if (!firebaseApi?.storage) throw new Error('Firebase Storage 연결을 확인하세요.');
     try {
-      await firebase.storage().ref(path).delete();
+      await firebaseApi.storage().ref(path).delete();
       return true;
     } catch (error) {
       if (error?.code === 'storage/object-not-found') return true;
@@ -345,10 +381,12 @@
 
   async function uploadAdminPart(file, templateId, side, cleanupPaths) {
     if (!file) return null;
+    const firebaseApi = firebaseService();
+    if (!firebaseApi?.storage) throw new Error('Firebase Storage 연결을 확인하세요.');
     const extension = validateAdminImage(file);
     const path = `cover_templates/${templateId}/${side}.${extension}`;
     cleanupPaths.push(path);
-    const reference = firebase.storage().ref(path);
+    const reference = firebaseApi.storage().ref(path);
     await reference.put(file, { contentType: file.type });
     return { url: await reference.getDownloadURL(), path };
   }
@@ -359,14 +397,19 @@
     const name = String(byId('coverTemplateName')?.value || '').trim();
     if (!name) return setTemplateInfo('템플릿 이름을 입력하세요.');
     if (!adminFrontFile && !adminBackFile) return setTemplateInfo('앞표지 또는 뒤표지 이미지를 새로 선택하세요.');
-    const user = window.auth?.currentUser;
-    if (!user || !window.db || !window.firebase?.storage) return setTemplateInfo('관리자 인증 또는 Firebase 연결을 확인하세요.');
+    const authApi = authService();
+    const database = firestoreService();
+    const firebaseApi = firebaseService();
+    const user = authApi?.currentUser;
+    if (!user || !database || !firebaseApi?.storage) return setTemplateInfo('관리자 인증 또는 Firebase 연결을 확인하세요.');
+    if (!(await isConfirmedAdmin(user))) return setTemplateInfo('관리자 권한을 확인하세요.');
 
     adminBusy = true;
     const button = byId('saveCoverTemplate');
     if (button) button.disabled = true;
     const cleanupPaths = [];
-    const documentRef = db.collection('cover_templates').doc();
+    const documentRef = database.collection('cover_templates').doc();
+    let committed = false;
     try {
       setTemplateInfo('관리자 템플릿을 저장하는 중입니다...');
       const front = await uploadAdminPart(adminFrontFile, documentRef.id, 'front', cleanupPaths);
@@ -381,19 +424,24 @@
         backPath: back?.path || '',
         createdBy: user.uid,
         createdByEmail: user.email || '',
-        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        createdAt: firebaseApi.firestore.FieldValue.serverTimestamp(),
+        updatedAt: firebaseApi.firestore.FieldValue.serverTimestamp(),
       });
+      committed = true;
       adminFrontFile = null;
       adminBackFile = null;
       setTemplateInfo('관리자 템플릿으로 저장했습니다.');
-      byId('refreshCoverTemplates')?.click();
+      try { byId('refreshCoverTemplates')?.click(); } catch (_) {}
     } catch (error) {
-      const cleanup = await Promise.allSettled(cleanupPaths.map(deleteStoragePath));
-      const cleanupFailed = cleanup.some((result) => result.status === 'rejected');
-      setTemplateInfo(cleanupFailed
-        ? `저장 실패 · 업로드 파일 정리도 확인이 필요합니다: ${error?.message || error}`
-        : `저장 실패 · 업로드된 임시 파일을 정리했습니다: ${error?.message || error}`);
+      if (committed) {
+        setTemplateInfo(`템플릿은 저장됐지만 목록 새로고침을 확인해 주세요: ${error?.message || error}`);
+      } else {
+        const cleanup = await Promise.allSettled(cleanupPaths.map(deleteStoragePath));
+        const cleanupFailed = cleanup.some((result) => result.status === 'rejected');
+        setTemplateInfo(cleanupFailed
+          ? `저장 실패 · 업로드 파일 정리도 확인이 필요합니다: ${error?.message || error}`
+          : `저장 실패 · 업로드된 임시 파일을 정리했습니다: ${error?.message || error}`);
+      }
     } finally {
       adminBusy = false;
       if (button) button.disabled = false;
@@ -407,7 +455,11 @@
     const option = select?.selectedOptions?.[0];
     if (!option?.value) return setTemplateInfo('삭제할 템플릿을 선택하세요.');
     if (!window.confirm(`“${option.textContent}” 템플릿을 삭제할까요?`)) return;
-    if (!window.db || !window.firebase?.storage) return setTemplateInfo('Firebase 연결을 확인하세요.');
+    const authApi = authService();
+    const database = firestoreService();
+    const user = authApi?.currentUser;
+    if (!user || !database || !firebaseService()?.storage) return setTemplateInfo('관리자 인증 또는 Firebase 연결을 확인하세요.');
+    if (!(await isConfirmedAdmin(user))) return setTemplateInfo('관리자 권한을 확인하세요.');
 
     adminBusy = true;
     const button = byId('deleteCoverTemplate');
@@ -416,9 +468,9 @@
       setTemplateInfo('템플릿 원본 이미지를 정리하는 중입니다...');
       await deleteStoragePath(option.dataset.frontPath || '');
       await deleteStoragePath(option.dataset.backPath || '');
-      await db.collection('cover_templates').doc(option.value).delete();
+      await database.collection('cover_templates').doc(option.value).delete();
       setTemplateInfo('관리자 템플릿과 원본 이미지를 삭제했습니다.');
-      byId('refreshCoverTemplates')?.click();
+      try { byId('refreshCoverTemplates')?.click(); } catch (_) {}
     } catch (error) {
       setTemplateInfo(`삭제 중단 · 원본 파일 또는 권한을 확인하세요: ${error?.message || error}`);
     } finally {
