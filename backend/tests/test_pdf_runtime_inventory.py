@@ -55,8 +55,11 @@ def test_pdf_editor_route_extras_are_bounded_and_single_loaded():
     assert source.count("/js/pdf-editor/save-recovery.js") == 1
     assert source.count("pdfSessionSaveSafetyScript") == 1
     assert source.count("/js/pdf-editor/session-save-safety.js") == 1
+    assert source.count("pdfFileContextScopeScript") == 1
+    assert source.count("/js/pdf-editor/file-context-scope.js") == 1
     assert source.index("/js/pdf-editor/save-operation.js") < source.index("/js/pdf-editor/save-recovery.js")
     assert source.index("/js/pdf-editor/save-recovery.js") < source.index("/js/pdf-editor/session-save-safety.js")
+    assert source.index("/js/pdf-editor/session-save-safety.js") < source.index("/js/pdf-editor/file-context-scope.js")
 
 
 def test_integrated_runtime_features_remain_present():
@@ -68,6 +71,7 @@ def test_integrated_runtime_features_remain_present():
     save = (PDF_MODULES / "save-operation.js").read_text(encoding="utf-8")
     recovery = (PDF_MODULES / "save-recovery.js").read_text(encoding="utf-8")
     session = (PDF_MODULES / "session-save-safety.js").read_text(encoding="utf-8")
+    file_context = (PDF_MODULES / "file-context-scope.js").read_text(encoding="utf-8")
 
     for marker in ("duplicateSelected", "moveSelected", "deleteSelected", "async function undo", "async function redo"):
         assert marker in page_tools
@@ -93,3 +97,5 @@ def test_integrated_runtime_features_remain_present():
     assert "편집 상태를 저장 시작 전 상태로 복구했습니다." in recovery
     assert "stage: 'multi-source-snapshot-failure-cleanup'" in session
     assert "업로드된 임시 파일 정리를 시도했습니다." in session
+    assert "stage: 'discontinuous-file-context-actions'" in file_context
+    assert "이 파일 전체 시계방향 90° 회전" in file_context
