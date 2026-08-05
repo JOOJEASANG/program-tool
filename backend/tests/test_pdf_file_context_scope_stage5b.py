@@ -1,3 +1,4 @@
+import subprocess
 from pathlib import Path
 
 
@@ -5,6 +6,7 @@ ROOT = Path(__file__).resolve().parents[2]
 MODULE = ROOT / "js" / "pdf-editor" / "file-context-scope.js"
 REGISTER = ROOT / "js" / "sw-register.js"
 EDITOR = ROOT / "pdf-editor" / "index.html"
+BEHAVIOR = ROOT / "backend" / "tests" / "test_pdf_file_context_scope_behavior_stage5b.js"
 
 
 def test_discontinuous_file_is_identified_by_group_break_and_file_index():
@@ -92,3 +94,15 @@ def test_context_scope_wrapper_is_bounded_and_does_not_poll_forever():
     assert "setInterval(" not in source
     assert "eval(" not in source
     assert "stage: 'discontinuous-file-context-actions'" in source
+
+
+def test_file_scope_behavior_executes_without_cross_file_leakage():
+    result = subprocess.run(
+        ["node", str(BEHAVIOR)],
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr or result.stdout
+    assert "file-context-scope behavior passed" in result.stdout
