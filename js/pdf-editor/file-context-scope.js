@@ -8,6 +8,7 @@
   const breakFileIndices = new Set();
   let installAttempts = 0;
   let pageCollectionRef = null;
+  let breakObserver = null;
 
   function editorReady() {
     try {
@@ -19,6 +20,7 @@
         && typeof schedulePreview === 'function'
         && typeof window._openThumbCtxMenu === 'function'
         && document.getElementById('thumbCtxMenu')
+        && document.getElementById('thumbArea')
       );
     } catch (_) {
       return false;
@@ -40,6 +42,15 @@
       const fileIndex = normalizedFileIndex(page);
       if (fileIndex !== null && page?.groupBreak === true) breakFileIndices.add(fileIndex);
     });
+  }
+
+  function installBreakObserver() {
+    if (breakObserver) return;
+    const thumbArea = document.getElementById('thumbArea');
+    if (!thumbArea) return;
+    breakObserver = new MutationObserver(syncBreakFileIndices);
+    breakObserver.observe(thumbArea, { childList: true, subtree: true });
+    syncBreakFileIndices();
   }
 
   function pdfPages(pages) {
@@ -110,7 +121,10 @@
   function scopedItem(icon, label, scope, degrees, menu) {
     const element = document.createElement('div');
     element.className = 'ctx-item all-rotate file-scoped-rotate';
-    element.innerHTML = `<span class="ctx-icon">${icon}</span>${label}`;
+    const iconElement = document.createElement('span');
+    iconElement.className = 'ctx-icon';
+    iconElement.textContent = icon;
+    element.append(iconElement, document.createTextNode(label));
     element.addEventListener('click', (event) => {
       event.preventDefault();
       event.stopPropagation();
@@ -161,6 +175,7 @@
       return false;
     }
 
+    installBreakObserver();
     const original = window._openThumbCtxMenu;
     if (original.__pdfFileContextScopeV1) return true;
 
@@ -180,6 +195,7 @@
     rotateScope,
     rewriteBulkRotationItems,
     currentScope,
+    syncBreakFileIndices,
     stage: 'discontinuous-file-context-actions',
   };
 
