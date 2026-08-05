@@ -35,7 +35,7 @@ def test_multi_source_session_snapshot_preserves_file_and_break_mapping():
 
 def test_session_save_rejects_broken_source_page_links_before_upload():
     source = MODULE.read_text(encoding="utf-8")
-    validation_at = source.index("validateSnapshot(files, state)")
+    validation_at = source.index("validateSnapshot(files, state);")
     first_upload_at = source.index("await storage.ref(path).put")
     assert validation_at < first_upload_at
     assert "fileIndex >= files.length" in source
@@ -49,7 +49,7 @@ def test_partial_storage_upload_is_cleaned_when_firestore_save_fails():
     assert "await storage.ref(path).put" in source
     assert "if (!documentRef) await cleanupUploadedPaths(storagePaths)" in source
     assert "Promise.allSettled(paths.map((path) => storage.ref(path).delete()))" in source
-    assert "업로드된 임시 파일을 정리했습니다." in source
+    assert "업로드된 임시 파일 정리를 시도했습니다." in source
     assert source.index("storagePaths.push(path)") < source.index("await storage.ref(path).put")
 
 
@@ -60,6 +60,8 @@ def test_old_sessions_are_trimmed_only_after_new_session_is_committed():
     assert add_at < trim_at
     assert "const excess = Math.max(0, snapshot.size - MAX_SESSIONS)" in source
     assert ".filter((document) => document.id !== newDocumentId)" in source
+    assert "results.some((result) => result.status === 'rejected')" in source
+    assert "keeping session document" in source
 
 
 def test_editor_mutation_is_locked_while_session_files_upload():
