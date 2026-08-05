@@ -69,7 +69,8 @@
     const selectors = [
       '#fileInput', '#uploadZone', '#navSessionBtn', '#navSessionLoadBtn',
       '#previewBtn', '#downloadBtn', '#resetBtn',
-      '.mode-btn', '#thumbArea button', '#thumbArea input',
+      '.mode-btn', '#thumbArea', '#thumbCtxMenu',
+      '#thumbArea button', '#thumbArea input',
       '#previewScroll button', '#previewScroll input'
     ];
     return [...document.querySelectorAll(selectors.join(','))]
@@ -77,10 +78,23 @@
       .filter((element) => element.id !== 'sessionSaveConfirm');
   }
 
+  function isEditorMutationTarget(target) {
+    return Boolean(target?.closest?.(
+      '#thumbArea, #thumbCtxMenu, #uploadZone, .mode-btn, '
+      + '#navSessionBtn, #navSessionLoadBtn, #previewBtn, #downloadBtn, #resetBtn'
+    ));
+  }
+
   function blockMutation(event) {
     if (!active) return;
     const target = event.target;
     if (target && target.closest?.('#sessionSaveModal')) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+  }
+
+  function blockPointerMutation(event) {
+    if (!active || !isEditorMutationTarget(event.target)) return;
     event.preventDefault();
     event.stopImmediatePropagation();
   }
@@ -93,6 +107,24 @@
     if (!mutates) return;
     event.preventDefault();
     event.stopImmediatePropagation();
+  }
+
+  function installMutationBlockers() {
+    document.addEventListener('drop', blockMutation, true);
+    document.addEventListener('keydown', blockMutationKey, true);
+    document.addEventListener('click', blockPointerMutation, true);
+    document.addEventListener('contextmenu', blockPointerMutation, true);
+    document.addEventListener('pointerdown', blockPointerMutation, true);
+    document.addEventListener('dragstart', blockPointerMutation, true);
+  }
+
+  function removeMutationBlockers() {
+    document.removeEventListener('drop', blockMutation, true);
+    document.removeEventListener('keydown', blockMutationKey, true);
+    document.removeEventListener('click', blockPointerMutation, true);
+    document.removeEventListener('contextmenu', blockPointerMutation, true);
+    document.removeEventListener('pointerdown', blockPointerMutation, true);
+    document.removeEventListener('dragstart', blockPointerMutation, true);
   }
 
   function lockEditor() {
@@ -116,16 +148,14 @@
     };
     body.dataset.pdfSessionSaving = 'true';
     body.setAttribute('aria-busy', 'true');
-    document.addEventListener('drop', blockMutation, true);
-    document.addEventListener('keydown', blockMutationKey, true);
+    installMutationBlockers();
   }
 
   function unlockEditor() {
     const body = document.body;
     const snapshot = lockSnapshot;
     lockSnapshot = null;
-    document.removeEventListener('drop', blockMutation, true);
-    document.removeEventListener('keydown', blockMutationKey, true);
+    removeMutationBlockers();
 
     if (snapshot) {
       snapshot.elements.forEach(({ element, disabled, ariaDisabled, pointerEvents }) => {
@@ -140,9 +170,24 @@
     delete body.dataset.pdfSessionSaving;
   }
 
+  function isMissingStorageError(error) {
+    return error?.code === 'storage/object-not-found'
+      || error?.code === 'object-not-found';
+  }
+
+  async function deleteStoragePath(path) {
+    try {
+      await storage.ref(path).delete();
+      return { path, missing: false };
+    } catch (error) {
+      if (isMissingStorageError(error)) return { path, missing: true };
+      throw error;
+    }
+  }
+
   async function cleanupUploadedPaths(paths) {
     if (!Array.isArray(paths) || paths.length === 0) return [];
-    return Promise.allSettled(paths.map((path) => storage.ref(path).delete()));
+    return Promise.allSettled(paths.map((path) => deleteStoragePath(path)));
   }
 
   async function trimOldSessions(collection, newDocumentId) {
@@ -289,6 +334,7 @@
     cleanupUploadedPaths,
     active: () => active,
     stage: 'multi-source-snapshot-failure-cleanup',
+    reviewFixes: 'thumbnail-lock-not-found-cleanup',
   };
 
   if (document.readyState === 'loading') {
