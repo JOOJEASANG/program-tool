@@ -49,16 +49,23 @@ def test_context_menu_explains_and_replaces_the_three_bulk_rotation_items():
         "이 파일 전체 180° 회전",
         "menu.querySelectorAll('.ctx-item.all-rotate')",
         "oldItem.replaceWith(scopedItem",
+        "iconElement.textContent = icon",
+        "document.createTextNode(label)",
     ):
         assert marker in source
+    assert "element.innerHTML" not in source
 
 
-def test_break_scope_survives_first_page_deletion_until_page_collection_resets():
+def test_break_scope_is_recorded_on_thumb_render_and_survives_first_page_deletion():
     source = MODULE.read_text(encoding="utf-8")
     assert "const breakFileIndices = new Set()" in source
     assert "if (pageCollectionRef !== parsedPages)" in source
     assert "breakFileIndices.clear()" in source
     assert "breakFileIndices.add(fileIndex)" in source
+    assert "breakObserver = new MutationObserver(syncBreakFileIndices)" in source
+    assert "breakObserver.observe(thumbArea, { childList: true, subtree: true })" in source
+    assert "installBreakObserver()" in source
+    assert source.index("installBreakObserver()") < source.index("const original = window._openThumbCtxMenu")
     assert "resolveScopeFor(page, parsedPages, breakFileIndices)" in source
 
 
