@@ -156,7 +156,11 @@
 
     for (const document of removable) {
       const paths = document.data()?.storagePaths || [];
-      await cleanupUploadedPaths(paths);
+      const results = await cleanupUploadedPaths(paths);
+      if (results.some((result) => result.status === 'rejected')) {
+        console.warn('[pdf-session] source cleanup incomplete; keeping session document', document.id);
+        continue;
+      }
       await collection.doc(document.id).delete();
     }
   }
@@ -229,7 +233,7 @@
       return true;
     } catch (error) {
       if (!documentRef) await cleanupUploadedPaths(storagePaths);
-      setStatus(`저장 실패: ${error.message} · 업로드된 임시 파일을 정리했습니다.`, '#dc2626');
+      setStatus(`저장 실패: ${error.message} · 업로드된 임시 파일 정리를 시도했습니다.`, '#dc2626');
       return false;
     } finally {
       active = false;
