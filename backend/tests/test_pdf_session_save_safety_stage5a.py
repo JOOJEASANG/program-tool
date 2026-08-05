@@ -48,9 +48,18 @@ def test_partial_storage_upload_is_cleaned_when_firestore_save_fails():
     assert "storagePaths.push(path)" in source
     assert "await storage.ref(path).put" in source
     assert "if (!documentRef) await cleanupUploadedPaths(storagePaths)" in source
-    assert "Promise.allSettled(paths.map((path) => storage.ref(path).delete()))" in source
+    assert "Promise.allSettled(paths.map((path) => deleteStoragePath(path)))" in source
     assert "업로드된 임시 파일 정리를 시도했습니다." in source
     assert source.index("storagePaths.push(path)") < source.index("await storage.ref(path).put")
+
+
+def test_missing_storage_objects_count_as_successful_cleanup():
+    source = MODULE.read_text(encoding="utf-8")
+    assert "function isMissingStorageError(error)" in source
+    assert "error?.code === 'storage/object-not-found'" in source
+    assert "error?.code === 'object-not-found'" in source
+    assert "if (isMissingStorageError(error)) return { path, missing: true }" in source
+    assert "paths.map((path) => deleteStoragePath(path))" in source
 
 
 def test_old_sessions_are_trimmed_only_after_new_session_is_committed():
@@ -70,12 +79,25 @@ def test_editor_mutation_is_locked_while_session_files_upload():
         "body.dataset.pdfSessionSaving = 'true'",
         "document.addEventListener('drop', blockMutation, true)",
         "document.addEventListener('keydown', blockMutationKey, true)",
-        "#fileInput",
-        "#uploadZone",
-        "#navSessionLoadBtn",
+        "document.addEventListener('click', blockPointerMutation, true)",
+        "document.addEventListener('contextmenu', blockPointerMutation, true)",
+        "document.addEventListener('pointerdown', blockPointerMutation, true)",
+        "document.addEventListener('dragstart', blockPointerMutation, true)",
+        "#thumbArea",
+        "#thumbCtxMenu",
+        "element.style.pointerEvents = 'none'",
+        "removeMutationBlockers()",
         "unlockEditor()",
     ):
         assert marker in source
+
+
+def test_thumbnail_and_context_menu_are_explicit_mutation_targets():
+    source = MODULE.read_text(encoding="utf-8")
+    assert "function isEditorMutationTarget(target)" in source
+    assert "'#thumbArea, #thumbCtxMenu, #uploadZone, .mode-btn, '" in source
+    assert "if (!active || !isEditorMutationTarget(event.target)) return" in source
+    assert "reviewFixes: 'thumbnail-lock-not-found-cleanup'" in source
 
 
 def test_capture_phase_intercepts_legacy_session_save_handlers_once():
@@ -92,7 +114,7 @@ def test_capture_phase_intercepts_legacy_session_save_handlers_once():
 def test_session_safety_runtime_is_loaded_after_final_pdf_save_recovery():
     register = REGISTER.read_text(encoding="utf-8")
     recovery = "/js/pdf-editor/save-recovery.js?v=20260803-1"
-    session = "/js/pdf-editor/session-save-safety.js?v=20260805-1"
+    session = "/js/pdf-editor/session-save-safety.js?v=20260805-2"
     assert register.count("pdfSessionSaveSafetyScript") == 1
     assert register.count(session) == 1
     assert register.index(recovery) < register.index(session)
