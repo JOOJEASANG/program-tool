@@ -72,7 +72,7 @@
         dbPromise = null;
         reject(request.error || new Error('최근 작업 저장소를 열지 못했습니다.'));
       };
-      request.onblocked = () => reject(new Error('다른 창에서 사용 중인 작업 저장소를 닫아 주세요.'));
+      request.onblocked = () => { dbPromise = null; reject(new Error('다른 창에서 사용 중인 작업 저장소를 닫아 주세요.')); };
     });
     return dbPromise;
   }
@@ -88,16 +88,18 @@
   async function getRecord(storeName, id) {
     const db = await openDatabase();
     const transaction = db.transaction(storeName, 'readonly');
+    const completion = transactionPromise(transaction);
     const result = await requestPromise(transaction.objectStore(storeName).get(id));
-    await transactionPromise(transaction);
+    await completion;
     return result || null;
   }
 
   async function getAllRecords(storeName) {
     const db = await openDatabase();
     const transaction = db.transaction(storeName, 'readonly');
+    const completion = transactionPromise(transaction);
     const result = await requestPromise(transaction.objectStore(storeName).getAll());
-    await transactionPromise(transaction);
+    await completion;
     return Array.isArray(result) ? result : [];
   }
 
@@ -553,10 +555,10 @@
     if (!record?.snapshot) return;
     if (!window.confirm(`“${record.title || '표지 작업'}” 상태로 복원할까요? 현재 작업은 최근 자동 저장에 남습니다.`)) return;
     if (button) button.disabled = true;
-    activeRestore = true;
     clearTimeout(saveTimer);
     try {
-      await queueSave({ force: true });
+      await queueSave({ manual: true, force: true });
+      activeRestore = true;
       const [front, back] = await Promise.all([
         loadAssetImage(record.snapshot.images?.front),
         loadAssetImage(record.snapshot.images?.back),
