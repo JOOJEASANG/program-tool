@@ -100,7 +100,7 @@ def test_cover_recovery_has_accessible_explicit_management_ui():
         "aria-modal', 'true'",
         "aria-labelledby', 'coverRecoveryTitle'",
         "event.key !== 'Escape'",
-        "원본 이미지 2개 포함",
+        "원본 이미지 ${summary.images}개 포함",
         "QuotaExceededError",
         "@media(max-width:520px)",
     ):
