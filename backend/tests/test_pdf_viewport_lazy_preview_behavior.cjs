@@ -8,10 +8,14 @@ const source = fs.readFileSync(
   'utf8',
 );
 
+const registry = new Map();
+
 function createElement(tag, id = '') {
   const node = {
     tagName: String(tag || '').toUpperCase(),
-    id,
+    _id: '',
+    get id() { return this._id; },
+    set id(value) { this._id = String(value || ''); if (this._id) registry.set(this._id, this); },
     type: '',
     value: '',
     min: '',
@@ -65,10 +69,11 @@ function createElement(tag, id = '') {
       };
     },
   };
+  node.id = id;
   return node;
 }
 
-const elements = new Map();
+const elements = registry;
 const previewParent = createElement('div', 'previewParent');
 const previewScroll = createElement('div', 'previewScroll');
 previewParent.appendChild(previewScroll);
