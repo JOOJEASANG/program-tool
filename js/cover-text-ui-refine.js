@@ -1,8 +1,8 @@
 // Refine cover text inputs and color palettes without replacing the renderer.
 (function () {
   'use strict';
-  if (window.__coverTextUiRefineV4) return;
-  window.__coverTextUiRefineV4 = true;
+  if (window.__coverTextUiRefineV5) return;
+  window.__coverTextUiRefineV5 = true;
   if (!location.pathname.includes('perfect-binding-cover')) return;
 
   const COLORS = ['#ffffff','#f8fafc','#e2e8f0','#94a3b8','#475569','#111827','#000000','#12396d','#1d4ed8','#0ea5e9','#0f766e','#16a34a','#65a30d','#ca8a04','#ea580c','#dc2626','#be123c','#9333ea','#7c3aed','#6d4c41'];
@@ -15,15 +15,84 @@
     '책등 글자를 입력하세요'
   ];
   const SPINE_MIGRATION_KEY = 'programTool.coverTextZones.spineClean.v4';
+  const DEMO_MIGRATION_KEY = 'programTool.coverTextZones.demoClean.v5';
+  const AUTOSAVE_KEYS = [
+    'programTool.coverEditor.autosave.v3',
+    'programTool.coverEditor.autosave.v2'
+  ];
+  const LEGACY_TEXT_IDS = [
+    'frontTitle', 'institutionName', 'issuerName', 'publishYearLine',
+    'spineTop', 'spineCenter', 'spineBottom', 'publisher',
+    'publishYear', 'spineTitle'
+  ];
   const ZONES = ['top', 'center', 'bottom'];
   const Y = { top: 18, center: 50, bottom: 84 };
   const $ = (selector, root = document) => root.querySelector(selector);
-  const isSampleTitle = value => SAMPLE_TITLES.includes(String(value || '').trim());
+  const text = value => String(value || '').trim();
+  const isSampleTitle = value => SAMPLE_TITLES.includes(text(value));
 
-  function dispatchInput(input, color) {
-    input.value = color;
+  function hasDemoSignature(fields) {
+    if (!fields || typeof fields !== 'object') return false;
+    if (isSampleTitle(fields.frontTitle) || isSampleTitle(fields.spineTitle)) return true;
+    if (text(fields.institutionName) === '한국초등학교' && text(fields.publishYearLine) === '2026') return true;
+    return text(fields.spineTop) === '2026' && Boolean(text(fields.spineCenter) || text(fields.spineBottom));
+  }
+
+  function cleanAutosavePayload(payload) {
+    if (!payload || typeof payload !== 'object' || !payload.fields || !hasDemoSignature(payload.fields)) {
+      return { changed: false, payload };
+    }
+    const fields = { ...payload.fields };
+    for (const id of LEGACY_TEXT_IDS) fields[id] = '';
+    return { changed: true, payload: { ...payload, fields } };
+  }
+
+  function dispatchValue(input, value) {
+    if (!input) return;
+    input.value = value;
     input.dispatchEvent(new Event('input', { bubbles: true }));
     input.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+
+  function cleanLegacyDemoState() {
+    let migrated = false;
+    try { migrated = localStorage.getItem(DEMO_MIGRATION_KEY) === 'done'; } catch (_) {}
+    let cleanedStoredState = false;
+
+    if (!migrated) {
+      for (const key of AUTOSAVE_KEYS) {
+        try {
+          const raw = localStorage.getItem(key);
+          if (!raw) continue;
+          const result = cleanAutosavePayload(JSON.parse(raw));
+          if (!result.changed) continue;
+          localStorage.setItem(key, JSON.stringify(result.payload));
+          cleanedStoredState = true;
+        } catch (_) {}
+      }
+    }
+
+    const liveFields = {};
+    for (const id of LEGACY_TEXT_IDS) liveFields[id] = document.getElementById(id)?.value || '';
+    const cleanLiveState = cleanedStoredState || hasDemoSignature(liveFields);
+    if (cleanLiveState) {
+      for (const id of LEGACY_TEXT_IDS) {
+        const input = document.getElementById(id);
+        if (input) dispatchValue(input, '');
+      }
+    } else {
+      for (const id of ['frontTitle', 'spineTitle']) {
+        const input = document.getElementById(id);
+        if (input && isSampleTitle(input.value)) dispatchValue(input, '');
+      }
+    }
+
+    try { localStorage.setItem(DEMO_MIGRATION_KEY, 'done'); } catch (_) {}
+    return cleanLiveState;
+  }
+
+  function dispatchInput(input, color) {
+    dispatchValue(input, color);
   }
 
   function palette(input, id, label) {
@@ -95,7 +164,7 @@
     if (field) field.style.display = 'none';
   }
 
-  function normalizeData() {
+  function normalizeData(clearLegacySpine = false) {
     const api = window.CoverTextZones;
     if (!api?.data) return;
 
@@ -118,7 +187,7 @@
       try { firstCleanup = localStorage.getItem(SPINE_MIGRATION_KEY) !== 'done'; } catch (_) {}
       for (const zone of ZONES) {
         const item = spine[zone][0];
-        if (firstCleanup || isSampleTitle(item.text)) item.text = '';
+        if (clearLegacySpine || firstCleanup || isSampleTitle(item.text)) item.text = '';
       }
       if (firstCleanup) {
         try { localStorage.setItem(SPINE_MIGRATION_KEY, 'done'); } catch (_) {}
@@ -137,10 +206,7 @@
     panel.querySelectorAll('.cover-zone').forEach(zone => { zone.style.display = ''; });
     panel.querySelectorAll('.cover-text-row input[type="text"]').forEach(input => {
       input.placeholder = active === 'spine' ? '책등 글자를 입력하세요' : '제목을 입력하세요';
-      if (isSampleTitle(input.value)) {
-        input.value = '';
-        input.dispatchEvent(new Event('input', { bubbles: true }));
-      }
+      if (isSampleTitle(input.value)) dispatchValue(input, '');
     });
 
     const note = $('.card-note', panel);
@@ -172,7 +238,11 @@
       'programTool.coverTextZones.v3',
       'programTool.coverTextZones.v2',
       'programTool.coverTextZones.v1',
-      SPINE_MIGRATION_KEY
+      'programTool.coverEditor.autosave.v3',
+      'programTool.coverEditor.autosave.v2',
+      'programTool.coverEditor.imageTools.v1',
+      SPINE_MIGRATION_KEY,
+      DEMO_MIGRATION_KEY
     ].forEach(key => {
       try { localStorage.removeItem(key); } catch (_) {}
     });
@@ -192,8 +262,9 @@
 
   function boot() {
     installStyles();
+    const clearedDemoState = cleanLegacyDemoState();
     disableLegacySpine();
-    normalizeData();
+    normalizeData(clearedDemoState);
     refineInputs();
     addPalettes();
     addResetButton();
@@ -211,6 +282,11 @@
     });
     observer.observe(document.querySelector('.settings') || document.body, { childList: true, subtree: true });
   }
+
+  window.CoverSampleTextCleanup = {
+    hasDemoSignature,
+    cleanAutosavePayload
+  };
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setTimeout(boot, 900));
   else setTimeout(boot, 900);
