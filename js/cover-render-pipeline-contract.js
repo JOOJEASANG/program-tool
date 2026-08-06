@@ -18,6 +18,7 @@
 
   function retireCompatibilityScripts() {
     for (const script of document.querySelectorAll('script[src]')) {
+      if (script.dataset.coverCompatibilityRetired === '1') continue;
       const src = String(script.getAttribute('src') || script.src || '');
       if (!RETIRED_SCRIPT_PARTS.some((part) => src.includes(part))) continue;
       script.dataset.coverCompatibilityRetired = '1';
