@@ -80,8 +80,9 @@
   async function putRecord(storeName, value) {
     const db = await openDatabase();
     const transaction = db.transaction(storeName, 'readwrite');
+    const completion = transactionPromise(transaction);
     transaction.objectStore(storeName).put(value);
-    await transactionPromise(transaction);
+    await completion;
     return value;
   }
 
@@ -89,8 +90,8 @@
     const db = await openDatabase();
     const transaction = db.transaction(storeName, 'readonly');
     const completion = transactionPromise(transaction);
-    const result = await requestPromise(transaction.objectStore(storeName).get(id));
-    await completion;
+    const resultRequest = requestPromise(transaction.objectStore(storeName).get(id));
+    const [result] = await Promise.all([resultRequest, completion]);
     return result || null;
   }
 
@@ -98,23 +99,25 @@
     const db = await openDatabase();
     const transaction = db.transaction(storeName, 'readonly');
     const completion = transactionPromise(transaction);
-    const result = await requestPromise(transaction.objectStore(storeName).getAll());
-    await completion;
+    const resultRequest = requestPromise(transaction.objectStore(storeName).getAll());
+    const [result] = await Promise.all([resultRequest, completion]);
     return Array.isArray(result) ? result : [];
   }
 
   async function deleteRecord(storeName, id) {
     const db = await openDatabase();
     const transaction = db.transaction(storeName, 'readwrite');
+    const completion = transactionPromise(transaction);
     transaction.objectStore(storeName).delete(id);
-    await transactionPromise(transaction);
+    await completion;
   }
 
   async function clearStore(storeName) {
     const db = await openDatabase();
     const transaction = db.transaction(storeName, 'readwrite');
+    const completion = transactionPromise(transaction);
     transaction.objectStore(storeName).clear();
-    await transactionPromise(transaction);
+    await completion;
   }
 
   function recoverableImageSource(image) {
@@ -557,12 +560,12 @@
     if (button) button.disabled = true;
     clearTimeout(saveTimer);
     try {
-      await queueSave({ manual: true, force: true });
-      activeRestore = true;
       const [front, back] = await Promise.all([
         loadAssetImage(record.snapshot.images?.front),
         loadAssetImage(record.snapshot.images?.back),
       ]);
+      await queueSave({ manual: true, force: true });
+      activeRestore = true;
       applyFields(record.snapshot.fields);
       applyLayout(record.snapshot.layout);
       try { window.CoverProjectStateBridge?.restore?.(clone(record.snapshot.extended)); }
