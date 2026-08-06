@@ -1,0 +1,56 @@
+name: PDF lazy preview test DOM patch
+
+on:
+  push:
+    branches:
+      - agent/pdf-viewport-lazy-preview-stage2
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: agent/pdf-viewport-lazy-preview-stage2
+          fetch-depth: 0
+      - name: Register dynamic test element ids
+        shell: python
+        run: |
+          from pathlib import Path
+          path = Path('backend/tests/test_pdf_viewport_lazy_preview_behavior.cjs')
+          source = path.read_text(encoding='utf-8')
+          source = source.replace(
+              "function createElement(tag, id = '') {\n",
+              "const registry = new Map();\n\nfunction createElement(tag, id = '') {\n",
+              1,
+          )
+          source = source.replace(
+              "    id,\n    type: '',",
+              "    _id: '',\n    get id() { return this._id; },\n    set id(value) { this._id = String(value || ''); if (this._id) registry.set(this._id, this); },\n    type: '',",
+              1,
+          )
+          source = source.replace(
+              "  };\n  return node;\n}\n\nconst elements = new Map();",
+              "  };\n  node.id = id;\n  return node;\n}\n\nconst elements = registry;",
+              1,
+          )
+          required = [
+              "const registry = new Map();",
+              "set id(value) { this._id = String(value || ''); if (this._id) registry.set(this._id, this); }",
+              "const elements = registry;",
+          ]
+          missing = [item for item in required if item not in source]
+          if missing:
+              raise SystemExit(f'test DOM patch incomplete: {missing}')
+          path.write_text(source, encoding='utf-8')
+      - name: Commit test DOM patch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add backend/tests/test_pdf_viewport_lazy_preview_behavior.cjs
+          git commit -m "PDF 지연 미리보기 동적 메뉴 실행 검사 보강"
+          git push origin HEAD:agent/pdf-viewport-lazy-preview-stage2
