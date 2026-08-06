@@ -235,10 +235,10 @@ assert.equal(api.isLightweightPage({ pdfPage: { __lightweightPdfPage: true } }),
   const rendered = await api.renderLazyWindow(1);
   assert.equal(rendered, true);
   assert.equal(outputCalls.length, 2);
-  assert.deepEqual(outputCalls.map((call) => call.outputIndex), [0, 1]);
-  assert.deepEqual(editCalls.map((call) => [call.outputIndex, call.total]), [[0, 2], [1, 2]]);
+  assert.equal(JSON.stringify(outputCalls.map((call) => call.outputIndex)), JSON.stringify([0, 1]));
+  assert.equal(JSON.stringify(editCalls.map((call) => [call.outputIndex, call.total])), JSON.stringify([[0, 2], [1, 2]]));
   assert.equal(previewNodes.length, 2);
-  assert.deepEqual(previewNodes.map((node) => Number(node.dataset.outputIndex)), [0, 1]);
+  assert.equal(JSON.stringify(previewNodes.map((node) => Number(node.dataset.outputIndex))), JSON.stringify([0, 1]));
   assert.equal(previewNodes[1].dataset.lazySelected, 'true');
   assert.equal(elements.get('previewPages').textContent, '전체 2개 중 1–2 출력면');
   assert.equal(elements.get('pdfLazyPreviewOutputNumber').value, '2');
@@ -296,7 +296,7 @@ assert.equal(api.isLightweightPage({ pdfPage: { __lightweightPdfPage: true } }),
   assert.equal(outputCalls.length, 1);
   assert.equal(outputCalls[0].selected[0].lightweight, false);
   assert.equal(outputCalls[0].selected[0].thumbCanvas.dataset.realSource, '1');
-  assert.deepEqual(editCalls.map((call) => [call.outputIndex, call.total]), [[0, 1]]);
+  assert.equal(JSON.stringify(editCalls.map((call) => [call.outputIndex, call.total])), JSON.stringify([[0, 1]]));
   assert.equal(previewNodes[0].dataset.outputIndex, '0');
   assert.equal(context.previewCanvases.length, 1);
 
