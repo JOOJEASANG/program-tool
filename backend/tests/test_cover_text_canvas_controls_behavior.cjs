@@ -81,7 +81,7 @@ context.state = {
     [spineRotated.id]: { x: 72, y: 78, scale: 100 },
   },
   hitBoxes: {
-    [front.id]: { x: 700, y: 420, w: 200, h: 50 },
+    [front.id]: { x: 3120, y: 1490, w: 200, h: 50 },
   },
 };
 context.getSpec = () => ({ totalW: 430, totalH: 303, bleed: 3, trimW: 210, trimH: 297, spine: 4 });
