@@ -21,7 +21,7 @@ def test_cover_spine_safety_matches_multi_layer_renderer_contract():
     source = SAFETY.read_text(encoding="utf-8")
     for marker in (
         "const MAX_TEXT_WIDTH_RATIO = 0.28",
-        "window.CoverTextZones?.data?.spine",
+        "textApi.data?.spine",
         "state.layout?.[entry.id]",
         "fontHeightMm = renderedPt * MM_PER_PT",
         "maxLengthMm = trimHeightMm * MAX_TEXT_WIDTH_RATIO",
@@ -74,10 +74,24 @@ def test_cover_spine_safety_extends_preflight_and_blocks_unprintable_text():
         "const base = previous.apply(this, args)",
         "if (item) items.push(item)",
         "updatePreflightSummary(items)",
+        "const OUTPUT_IDS = ['pdfBtn', 'guidePdfBtn', 'pngBtn']",
+        "button.addEventListener('click', guardUnsafeSpineOutput, { capture: true })",
+        "event.stopImmediatePropagation()",
+        "syncSpinePreflightRow(result)",
     ):
         assert marker in source
     assert "setInterval(" not in source
     assert "eval(" not in source
+
+
+def test_cover_spine_safety_uses_legacy_text_only_without_multi_layer_editor():
+    source = SAFETY.read_text(encoding="utf-8")
+    start = source.index("function currentSpineEntries")
+    end = source.index("function currentEvaluation", start)
+    block = source[start:end]
+    assert "const textApi = window.CoverTextZones" in block
+    assert "if (textApi)" in block
+    assert block.index("return output") < block.index("const legacy")
 
 
 def test_cover_spine_safety_behavior_executes():
