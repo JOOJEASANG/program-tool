@@ -70,50 +70,58 @@ jobs:
 
           test_path = Path('backend/tests/test_pdf_file_navigation_stage3.py')
           tests = test_path.read_text(encoding='utf-8')
-          tests = tests.replace(
-              '        "await lazy.requestRender(outputIndex)",\n',
-              '        "if (!Number.isInteger(outputIndex) || outputIndex < 0) return false",\n        "await lazy.requestRender(outputIndex)",\n        "previews[outputIndex]?.scrollIntoView",\n        "event?.detail?.mode === \'new\'",\n        "collapsed.clear()",\n',
-              1,
+          old_marker = '        "await lazy.requestRender(outputIndex)",\n'
+          new_markers = (
+              '        "if (!Number.isInteger(outputIndex) || outputIndex < 0) return false",\n'
+              '        "await lazy.requestRender(outputIndex)",\n'
+              '        "previews[outputIndex]?.scrollIntoView",\n'
+              '        "event?.detail?.mode === \'new\'",\n'
+              '        "collapsed.clear()",\n'
           )
+          if tests.count(old_marker) != 1:
+              raise SystemExit('preview assertion marker not found exactly once')
+          tests = tests.replace(old_marker, new_markers, 1)
           test_path.write_text(tests, encoding='utf-8')
 
           behavior_path = Path('backend/tests/test_pdf_file_navigation_behavior.cjs')
           behavior = behavior_path.read_text(encoding='utf-8')
-          behavior = behavior.replace(
-              "const document = {\n  getElementById() { return null; },\n  createElement() { return {}; },\n  addEventListener() {},\n  documentElement: { dataset: {} },\n};",
-              "const listeners = {};\nconst document = {\n  getElementById() { return null; },\n  createElement() { return {}; },\n  addEventListener(type, listener) { listeners[type] = listener; },\n  querySelectorAll() { return []; },\n  documentElement: { dataset: {} },\n};",
-              1,
-          )
-          behavior = behavior.replace(
-              "  MutationObserver: function MutationObserver() {},\n",
-              "  MutationObserver: function MutationObserver() {},\n  triggerPreview() { throw new Error('hidden page must not rebuild preview'); },\n",
-              1,
-          )
+          old_document = "const document = {\n  getElementById() { return null; },\n  createElement() { return {}; },\n  addEventListener() {},\n  documentElement: { dataset: {} },\n};"
+          new_document = "const listeners = {};\nconst document = {\n  getElementById() { return null; },\n  createElement() { return {}; },\n  addEventListener(type, listener) { listeners[type] = listener; },\n  querySelectorAll() { return []; },\n  documentElement: { dataset: {} },\n};"
+          if behavior.count(old_document) != 1:
+              raise SystemExit('behavior document stub not found exactly once')
+          behavior = behavior.replace(old_document, new_document, 1)
+
+          old_observer = "  MutationObserver: function MutationObserver() {},\n"
+          new_observer = "  MutationObserver: function MutationObserver() {},\n  triggerPreview() { throw new Error('hidden page must not rebuild preview'); },\n"
+          if behavior.count(old_observer) != 1:
+              raise SystemExit('behavior preview stub anchor not found exactly once')
+          behavior = behavior.replace(old_observer, new_observer, 1)
+
           anchor = "api.collapseAll();\nassert.deepEqual([...api.getCollapsedFiles()].sort(), ['0', '1']);\napi.expandAll();"
           replacement = "api.collapseAll();\nassert.deepEqual([...api.getCollapsedFiles()].sort(), ['0', '1']);\nlisteners['pdf-import-committed']({ detail: { mode: 'new' } });\nassert.equal(api.getCollapsedFiles().size, 0, 'replacement import must clear previous collapsed file keys');\napi.collapseAll();\nassert.equal(await api.showOutput(pages[2]), false, 'excluded page without an output descriptor must preserve the current preview');\napi.expandAll();"
           if behavior.count(anchor) != 1:
-              raise SystemExit('behavior review assertion anchor not found')
+              raise SystemExit('behavior review assertion anchor not found exactly once')
           behavior = behavior.replace(anchor, replacement, 1)
-          behavior = behavior.replace(
-              "console.log('pdf-file-navigation behavior passed');",
-              "console.log('pdf-file-navigation behavior passed');",
-              1,
-          )
-          # Top-level await is unavailable in CommonJS; wrap the existing assertions in an async IIFE.
+
           first_assert = "assert.equal(api.stage, 'file-collapse-edited-original-page-jump');"
           if behavior.count(first_assert) != 1:
-              raise SystemExit('behavior async wrapper anchor not found')
+              raise SystemExit('behavior async wrapper anchor not found exactly once')
           behavior = behavior.replace(first_assert, "(async () => {\n" + first_assert, 1)
+
+          final_log = "console.log('pdf-file-navigation behavior passed');\n"
+          if behavior.count(final_log) != 1:
+              raise SystemExit('behavior final log not found exactly once')
           behavior = behavior.replace(
-              "console.log('pdf-file-navigation behavior passed');\n",
-              "console.log('pdf-file-navigation behavior passed');\n})().catch((error) => { console.error(error); process.exitCode = 1; });\n",
+              final_log,
+              final_log + "})().catch((error) => { console.error(error); process.exitCode = 1; });\n",
               1,
           )
           behavior_path.write_text(behavior, encoding='utf-8')
-      - name: Commit review fixes
+      - name: Commit review fixes and remove one-shot workflow
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/pdf-file-navigation-review-fix.yml
           git add js/pdf-editor/file-navigation.js backend/tests/test_pdf_file_navigation_stage3.py backend/tests/test_pdf_file_navigation_behavior.cjs
           git commit -m "PDF 새 작업 접기 초기화와 숨김 페이지 이동 보강"
           git push origin HEAD:agent/pdf-file-navigation-stage3
