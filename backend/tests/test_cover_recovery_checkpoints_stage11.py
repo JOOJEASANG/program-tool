@@ -55,14 +55,15 @@ def test_cover_recovery_captures_complete_current_work_and_source_images():
         assert marker in source
 
 
-def test_cover_recovery_preserves_current_work_before_explicit_restore():
+def test_cover_recovery_loads_target_assets_then_preserves_current_work_before_restore():
     source = RECOVERY.read_text(encoding="utf-8")
     restore_start = source.index("async function restoreCheckpoint")
     restore_end = source.index("async function removeCheckpoint", restore_start)
     restore = source[restore_start:restore_end]
+    load_target = restore.index("const [front, back] = await Promise.all")
     preserve = restore.index("await queueSave({ manual: true, force: true })")
     begin_restore = restore.index("activeRestore = true")
-    assert preserve < begin_restore
+    assert load_target < preserve < begin_restore
     for marker in (
         "loadAssetImage(record.snapshot.images?.front)",
         "loadAssetImage(record.snapshot.images?.back)",
@@ -109,10 +110,11 @@ def test_cover_recovery_has_accessible_explicit_management_ui():
     assert "eval(" not in source
 
 
-def test_cover_recovery_registers_transaction_completion_before_read_request():
+def test_cover_recovery_registers_all_transaction_completion_handlers_before_operations():
     source = RECOVERY.read_text(encoding="utf-8")
-    assert source.count("const completion = transactionPromise(transaction);") == 2
-    assert source.count("await completion;") == 2
+    assert source.count("const completion = transactionPromise(transaction);") == 5
+    assert source.count("const [result] = await Promise.all([resultRequest, completion]);") == 2
+    assert source.count("await completion;") == 3
     assert "request.onblocked = () => { dbPromise = null;" in source
 
 
