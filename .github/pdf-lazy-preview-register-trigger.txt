@@ -1,0 +1,1 @@
+trigger PDF lazy preview runtime registration
