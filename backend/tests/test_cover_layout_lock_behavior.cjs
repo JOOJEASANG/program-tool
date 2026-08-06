@@ -81,7 +81,7 @@ assert.equal(reset.disabled, true);
 assert.equal(posX.getAttribute('data-cover-layout-lock-was-disabled'), '0');
 assert.equal(posY.getAttribute('data-cover-layout-lock-was-disabled'), '1');
 assert.equal(dispatched.at(-1).type, 'cover-layout-lock-change');
-assert.deepEqual(dispatched.at(-1).detail, { locked: true });
+assert.deepEqual(JSON.parse(JSON.stringify(dispatched.at(-1).detail)), { locked: true });
 
 assert.equal(api.setLocked(false, false), false);
 assert.equal(api.locked, false);
@@ -93,5 +93,5 @@ assert.equal(posX.disabled, false);
 assert.equal(posY.disabled, true, 'control disabled before locking must stay disabled');
 assert.equal(reset.disabled, false);
 assert.equal(posX.getAttribute('data-cover-layout-lock-was-disabled'), null);
-assert.deepEqual(dispatched.at(-1).detail, { locked: false });
+assert.deepEqual(JSON.parse(JSON.stringify(dispatched.at(-1).detail)), { locked: false });
 console.log('cover-layout-lock behavior passed');
