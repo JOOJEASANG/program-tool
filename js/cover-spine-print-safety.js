@@ -13,6 +13,7 @@
     'trimH', 'spineTextSize', 'spineDirection',
   ]);
   const ZONES = ['top', 'center', 'bottom'];
+  const OUTPUT_IDS = ['pdfBtn', 'guidePdfBtn', 'pngBtn'];
 
   let installed = false;
   let frame = 0;
@@ -180,18 +181,21 @@
 
   function currentSpineEntries() {
     const output = [];
-    try {
-      const data = window.CoverTextZones?.data?.spine;
-      if (data) {
-        for (const zone of ZONES) {
-          for (const entry of data[zone] || []) {
-            const layout = typeof state !== 'undefined' ? state.layout?.[entry.id] : null;
-            output.push({ ...entry, zone, scale: finite(layout?.scale, finite(entry.scale, 100)), y: finite(layout?.y, finite(entry.y, zone === 'top' ? 18 : zone === 'bottom' ? 84 : 50)) });
+    const textApi = window.CoverTextZones;
+    if (textApi) {
+      try {
+        const data = textApi.data?.spine;
+        if (data) {
+          for (const zone of ZONES) {
+            for (const entry of data[zone] || []) {
+              const layout = typeof state !== 'undefined' ? state.layout?.[entry.id] : null;
+              output.push({ ...entry, zone, scale: finite(layout?.scale, finite(entry.scale, 100)), y: finite(layout?.y, finite(entry.y, zone === 'top' ? 18 : zone === 'bottom' ? 84 : 50)) });
+            }
           }
         }
-      }
-    } catch (_) {}
-    if (output.some((entry) => String(entry.text || '').trim())) return output;
+      } catch (_) {}
+      return output;
+    }
     const legacy = String(byId('spineTitle')?.value || '').trim();
     return legacy ? [{ id: 'legacySpineTitle', zone: 'center', text: legacy, size: positive(byId('spineTextSize')?.value, 11), scale: 100, y: 50 }] : [];
   }
@@ -289,6 +293,44 @@
     summary.style.borderColor = errors ? '#fecaca' : warnings ? '#fde68a' : '#bbf7d0'; summary.style.background = errors ? '#fef2f2' : warnings ? '#fffbeb' : '#f0fdf4'; summary.style.color = errors ? '#b91c1c' : warnings ? '#92400e' : '#166534';
   }
 
+  function currentPreflightItemsFromDom() {
+    const list = byId('coverPreflightList');
+    if (!list) return [];
+    return [...list.querySelectorAll('strong')].map((node) => {
+      const text = String(node.textContent || '').trim();
+      return { level: text.startsWith('✕') ? 'error' : text.startsWith('!') ? 'warn' : 'ok' };
+    });
+  }
+
+  function syncSpinePreflightRow(result) {
+    const list = byId('coverPreflightList');
+    if (!list) return;
+    list.querySelectorAll('[data-cover-spine-safety-issue="1"]').forEach((row) => row.remove());
+    const item = preflightIssue(result);
+    appendPreflightRow(item);
+    updatePreflightSummary(currentPreflightItemsFromDom());
+  }
+
+  function guardUnsafeSpineOutput(event) {
+    const result = renderEvaluation(currentEvaluation());
+    syncSpinePreflightRow(result);
+    if (result.level !== 'error') return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    event.stopPropagation();
+    try { window.setStatus?.('책등 글자 인쇄 오류를 먼저 수정해 주세요.', 'err'); } catch (_) {}
+    byId('coverSpinePrintSafety')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  function installOutputGuards() {
+    for (const id of OUTPUT_IDS) {
+      const button = byId(id);
+      if (!button || button.dataset.coverSpineSafetyGuardV1 === '1') continue;
+      button.dataset.coverSpineSafetyGuardV1 = '1';
+      button.addEventListener('click', guardUnsafeSpineOutput, { capture: true });
+    }
+  }
+
   function wrapPreflightButton(id) {
     const button = byId(id);
     if (!button || typeof button.onclick !== 'function') return false;
@@ -303,7 +345,11 @@
   }
 
   function update() {
-    const result = renderEvaluation(); wrapPreflightButton('runCoverPreflight'); wrapPreflightButton('refreshCoverPreflight'); return result;
+    const result = renderEvaluation();
+    wrapPreflightButton('runCoverPreflight');
+    wrapPreflightButton('refreshCoverPreflight');
+    installOutputGuards();
+    return result;
   }
   function scheduleUpdate() { cancelAnimationFrame(frame); frame = requestAnimationFrame(update); }
   function handleChange(event) { if (WATCH_IDS.has(event.target?.id) || event.target?.closest?.('#coverTextZonePanel')) scheduleUpdate(); }
@@ -313,6 +359,6 @@
     update();
   }
 
-  window.CoverSpinePrintSafety = { weightedCharacters, layerScale, evaluateSpineLayer, overlapWarnings, evaluateSpineLayers, currentSpineEntries, currentEvaluation, preflightIssue, renderEvaluation, applyRecommendedSizes, update, stage: 'multi-layer-spine-print-fit-safety' };
+  window.CoverSpinePrintSafety = { weightedCharacters, layerScale, evaluateSpineLayer, overlapWarnings, evaluateSpineLayers, currentSpineEntries, currentEvaluation, preflightIssue, renderEvaluation, applyRecommendedSizes, guardUnsafeSpineOutput, installOutputGuards, update, stage: 'multi-layer-spine-print-fit-safety' };
   for (const delay of INSTALL_DELAYS) setTimeout(install, delay);
 })();
