@@ -1,0 +1,48 @@
+name: Cover jsPDF boundary branch task
+
+on:
+  push:
+    branches:
+      - agent/cover-source-cleanup-lazy-jspdf
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: agent/cover-source-cleanup-lazy-jspdf
+          fetch-depth: 0
+      - name: Install synchronous lazy-loader boundary
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path('perfect-binding-cover/index.html')
+          source = path.read_text(encoding='utf-8')
+          old_scripts = '<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>\n  <script>'
+          new_scripts = '<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script><script src="../js/cover-jspdf-loader.js"></script>\n  <script>'
+          old_output = "try{await document.fonts.ready;const s=getSpec()"
+          new_output = "try{if(kind!=='png')await window.CoverJsPdfLoader.ensure();await document.fonts.ready;const s=getSpec()"
+          if old_scripts not in source:
+              raise SystemExit('firebase script boundary not found')
+          if old_output not in source:
+              raise SystemExit('createOutput boundary not found')
+          source = source.replace(old_scripts, new_scripts, 1)
+          source = source.replace(old_output, new_output, 1)
+          if source.count('../js/cover-jspdf-loader.js') != 1:
+              raise SystemExit('loader tag count mismatch')
+          if source.count("await window.CoverJsPdfLoader.ensure()") != 1:
+              raise SystemExit('loader await count mismatch')
+          path.write_text(source, encoding='utf-8')
+      - name: Commit boundary patch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add perfect-binding-cover/index.html
+          git commit -m "책표지 PDF 출력 지연 로더 경계 연결"
+          git push origin HEAD:agent/cover-source-cleanup-lazy-jspdf
