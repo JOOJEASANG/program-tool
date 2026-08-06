@@ -27,6 +27,8 @@ def test_cover_source_lazy_loads_jspdf_only_at_output_boundary():
     assert "function ensure()" in loader
     assert "document.head.appendChild(script)" in loader
     assert "function ensureJsPdf()" in safety
+    assert "window.CoverJsPdfLoader?.ensure" in safety
+    assert "return window.CoverJsPdfLoader.ensure()" in safety
     assert "recoverJsPdf(event, button)" in safety
     assert "output.kind !== 'png' && !jsPdfReady()" in safety
 
