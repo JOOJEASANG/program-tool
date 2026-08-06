@@ -1,11 +1,18 @@
-// Transactional PDF import: stage every page first, then commit once.
+// Transactional PDF import that preserves the existing bounded large-document path.
 (function () {
   'use strict';
   if (window.__pdfImportTransactionSafetyV1) return;
   window.__pdfImportTransactionSafetyV1 = true;
   if (!location.pathname.includes('pdf-editor')) return;
 
+  const RENDER_HEAVY_PAGE_LIMIT = 25;
+  const RENDER_HUGE_PAGE_LIMIT = 80;
+  const EXTREME_PAGE_LIMIT = 300;
+  const RENDER_HEAVY_BYTE_LIMIT = 30 * 1024 * 1024;
+  const RENDER_HUGE_BYTE_LIMIT = 80 * 1024 * 1024;
+  const OPTIMIZED_PAGE_LIMIT = 120;
   const INSTALL_DELAYS = [0, 120, 300, 650, 1100, 1800, 2800];
+
   let installed = false;
   let importQueue = Promise.resolve();
 
@@ -17,6 +24,10 @@
     const text = String(name || 'PDF 파일');
     return text.length > 28 ? `${text.slice(0, 26)}…` : text;
   };
+
+  function optimizationApi() {
+    return window.PdfUploadOptimization || null;
+  }
 
   function setSafeStatus(message, type = 'info', retry) {
     const bar = byId('statusBar');
@@ -53,21 +64,21 @@
   }
 
   function captureUiState() {
-    const modeButtons = [...document.querySelectorAll('.mode-btn')].map((button) => ({
-      button,
-      className: button.className,
-    }));
+    const previewScroll = byId('previewScroll');
     return {
       previewDisabled: byId('previewBtn')?.disabled,
       downloadDisabled: byId('downloadBtn')?.disabled,
-      previewHtml: byId('previewScroll')?.innerHTML || '',
+      previewNodes: previewScroll ? [...previewScroll.childNodes] : [],
       paperSize: byId('paperSize')?.value,
       customSizeDisplay: byId('customSizeRow')?.style.display,
       customW: byId('customW')?.value,
       customH: byId('customH')?.value,
       orientLandClass: byId('orientLand')?.className,
       orientPortClass: byId('orientPort')?.className,
-      modeButtons,
+      modeButtons: [...document.querySelectorAll('.mode-btn')].map((button) => ({
+        button,
+        className: button.className,
+      })),
     };
   }
 
@@ -75,7 +86,8 @@
     if (!snapshot) return;
     if (byId('previewBtn')) byId('previewBtn').disabled = Boolean(snapshot.previewDisabled);
     if (byId('downloadBtn')) byId('downloadBtn').disabled = Boolean(snapshot.downloadDisabled);
-    if (byId('previewScroll')) byId('previewScroll').innerHTML = snapshot.previewHtml;
+    const previewScroll = byId('previewScroll');
+    if (previewScroll) previewScroll.replaceChildren(...(snapshot.previewNodes || []));
     if (byId('paperSize') && snapshot.paperSize !== undefined) byId('paperSize').value = snapshot.paperSize;
     if (byId('customSizeRow')) byId('customSizeRow').style.display = snapshot.customSizeDisplay || '';
     if (byId('customW') && snapshot.customW !== undefined) byId('customW').value = snapshot.customW;
@@ -94,6 +106,9 @@
       nextId: _nextId,
       landscape,
       uploadMode: _uploadMode,
+      fastMode: Boolean(window.__pdfEditorFastMode),
+      extremeMode: Boolean(window.__pdfEditorExtremeMode),
+      fastReason: String(window.__pdfEditorFastModeReason || ''),
       ui: captureUiState(),
     };
   }
@@ -106,8 +121,19 @@
     _nextId = snapshot.nextId;
     landscape = snapshot.landscape;
     _uploadMode = snapshot.uploadMode;
-    restoreUiState(snapshot.ui);
+    window.__pdfEditorFastMode = snapshot.fastMode;
+    window.__pdfEditorExtremeMode = snapshot.extremeMode;
+    window.__pdfEditorFastModeReason = snapshot.fastReason;
     try { renderThumbs(); } catch (_) {}
+    restoreUiState(snapshot.ui);
+  }
+
+  function clearNupSessionState() {
+    try {
+      localStorage.removeItem('programToolPdfFileNupOverridesV1');
+      localStorage.removeItem('programToolPdfPageNupOverridesV1');
+      localStorage.removeItem('programToolPdfSelectedPageOrdinalV1');
+    } catch (_) {}
   }
 
   function detectFirstPageSettings(pdfPage) {
@@ -135,6 +161,103 @@
     landscape = detected.landscape;
     byId('orientLand')?.classList.toggle('active', detected.landscape);
     byId('orientPort')?.classList.toggle('active', !detected.landscape);
+    try { updateNupBadges?.(); } catch (_) {}
+  }
+
+  function chooseImportPlan(total, fileSize, requestedMode) {
+    const currentPages = requestedMode === 'new' ? 0 : parsedPages.length;
+    const projectedPages = currentPages + total;
+    const extreme = total >= EXTREME_PAGE_LIMIT || projectedPages >= EXTREME_PAGE_LIMIT;
+    const heavy = total >= RENDER_HEAVY_PAGE_LIMIT
+      || fileSize >= RENDER_HEAVY_BYTE_LIMIT
+      || projectedPages > OPTIMIZED_PAGE_LIMIT;
+    const huge = total >= RENDER_HUGE_PAGE_LIMIT
+      || fileSize >= RENDER_HUGE_BYTE_LIMIT
+      || projectedPages > OPTIMIZED_PAGE_LIMIT;
+    return {
+      total,
+      fileSize,
+      projectedPages,
+      extreme,
+      heavy,
+      huge,
+      thumbScale: huge ? 0.28 : (heavy ? 0.42 : 0.75),
+      batchYield: huge ? 1 : (heavy ? 2 : 6),
+    };
+  }
+
+  async function safePdfGetDocument(buffer, heavyMode) {
+    const options = {
+      data: buffer,
+      disableAutoFetch: Boolean(heavyMode),
+      disableStream: false,
+      disableFontFace: Boolean(heavyMode),
+    };
+    try {
+      return await pdfjsLib.getDocument({ ...options, disableWorker: true }).promise;
+    } catch (firstError) {
+      console.warn('[pdf-import-transaction] workerless load failed; retrying with worker', firstError);
+      return pdfjsLib.getDocument(options).promise;
+    }
+  }
+
+  function fallbackPlaceholder(pageNumber, total, rotation = 0) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 96;
+    canvas.height = 136;
+    canvas.dataset.lightweightPage = '1';
+    canvas.dataset.pageNumber = String(pageNumber);
+    canvas.dataset.totalPages = String(total);
+    canvas.dataset.pageRotation = String(rotation);
+    return canvas;
+  }
+
+  function makePagePlaceholder(pageNumber, total, rotation = 0) {
+    return optimizationApi()?.makePagePlaceholder?.(pageNumber, total, rotation)
+      || fallbackPlaceholder(pageNumber, total, rotation);
+  }
+
+  function makeLightweightPdfPage(pageNumber, total) {
+    const optimized = optimizationApi()?.makeLightweightPdfPage?.(pageNumber, total);
+    if (optimized) return optimized;
+    return {
+      __lightweightPdfPage: true,
+      getViewport({ scale = 1, rotation = 0 } = {}) {
+        const sideways = rotation === 90 || rotation === 270;
+        return { width: (sideways ? 136 : 96) * scale, height: (sideways ? 96 : 136) * scale, rotation };
+      },
+      render({ canvasContext }) {
+        const replacement = fallbackPlaceholder(pageNumber, total, 0);
+        canvasContext.canvas.width = replacement.width;
+        canvasContext.canvas.height = replacement.height;
+        return { promise: Promise.resolve() };
+      },
+    };
+  }
+
+  async function safeRenderPdfPage(pdfPage, scale, rotation, heavyMode) {
+    const viewport = pdfPage.getViewport({ scale, rotation });
+    const canvas = document.createElement('canvas');
+    const maxSide = heavyMode ? 900 : 1400;
+    let width = Math.max(1, Math.floor(viewport.width));
+    let height = Math.max(1, Math.floor(viewport.height));
+    const ratio = Math.min(1, maxSide / Math.max(width, height));
+    width = Math.max(1, Math.floor(width * ratio));
+    height = Math.max(1, Math.floor(height * ratio));
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext('2d', { alpha: false });
+    const renderViewport = ratio < 1
+      ? pdfPage.getViewport({ scale: scale * ratio, rotation })
+      : viewport;
+    try {
+      await pdfPage.render({ canvasContext: context, viewport: renderViewport, intent: 'display' }).promise;
+    } catch (error) {
+      console.warn('[pdf-import-transaction] page preview failed; using placeholder', error);
+      return makePagePlaceholder('', 0, rotation);
+    }
+    canvas.dataset.pageRotation = String(((Number(rotation || 0) % 360) + 360) % 360);
+    return canvas;
   }
 
   function releaseStagedPages(pages) {
@@ -144,6 +267,7 @@
         canvas.width = 1;
         canvas.height = 1;
       }
+      try { page?.pdfPage?.cleanup?.(); } catch (_) {}
     }
   }
 
@@ -152,38 +276,96 @@
     const shortName = shortFileName(file.name);
     let pdfDocument = null;
     let failedPage = 0;
-    const startId = _nextId;
     try {
       const buffer = await file.arrayBuffer();
-      pdfDocument = await pdfjsLib.getDocument({ data: buffer }).promise;
+      const likelyHeavyBySize = Number(file.size || 0) >= RENDER_HEAVY_BYTE_LIMIT;
+      pdfDocument = await safePdfGetDocument(buffer, likelyHeavyBySize);
       const total = Number(pdfDocument.numPages || 0);
       if (!Number.isInteger(total) || total < 1) throw new Error('페이지가 없는 PDF입니다.');
+      const plan = chooseImportPlan(total, Number(file.size || 0), requestedMode);
+      let firstPage = null;
       let detected = null;
-      for (let pageNumber = 1; pageNumber <= total; pageNumber += 1) {
-        failedPage = pageNumber;
-        setSafeStatus(`“${shortName}” 임시 검사 중 · ${pageNumber} / ${total}`);
-        const pdfPage = await pdfDocument.getPage(pageNumber);
-        const thumbCanvas = await renderPdfPage(pdfPage, 0.9, 0);
-        if (pageNumber === 1 && requestedMode === 'new') detected = detectFirstPageSettings(pdfPage);
-        stagedPages.push({
-          id: makeId(),
-          pdfPage,
-          thumbCanvas,
-          excluded: false,
-          nupOverride: null,
-          nupDisabled: false,
-          sourceFile: shortName,
-          groupBreak: false,
-          rotation: 0,
-          pageType: 'pdf',
-          file_index: null,
-          page_index: pageNumber - 1,
-        });
-        await new Promise((resolve) => setTimeout(resolve, 0));
+
+      if (requestedMode === 'new' && byId('autoDetectSize')?.checked) {
+        failedPage = 1;
+        firstPage = await pdfDocument.getPage(1);
+        detected = detectFirstPageSettings(firstPage);
       }
-      return { file, shortName, total, pages: stagedPages, detected, requestedMode, startId, pdfDocument };
+
+      if (plan.extreme) {
+        for (let pageNumber = 1; pageNumber <= total; pageNumber += 1) {
+          failedPage = pageNumber;
+          if (pageNumber === 1 && firstPage) {
+            firstPage.getViewport({ scale: 1 });
+            try { firstPage.cleanup?.(); } catch (_) {}
+            firstPage = null;
+          } else {
+            const checkedPage = await pdfDocument.getPage(pageNumber);
+            checkedPage.getViewport({ scale: 1 });
+            try { checkedPage.cleanup?.(); } catch (_) {}
+          }
+          stagedPages.push({
+            id: null,
+            pdfPage: makeLightweightPdfPage(pageNumber, total),
+            thumbCanvas: makePagePlaceholder(pageNumber, total, 0),
+            excluded: false,
+            nupOverride: null,
+            nupDisabled: false,
+            sourceFile: shortName,
+            groupBreak: false,
+            rotation: 0,
+            pageType: 'pdf',
+            file_index: null,
+            page_index: pageNumber - 1,
+            lightweight: true,
+          });
+          if (pageNumber % 50 === 0 || pageNumber === total) {
+            setSafeStatus(`“${shortName}” 초대용량 페이지 검사 중 · ${pageNumber} / ${total}`);
+            await new Promise((resolve) => setTimeout(resolve, 0));
+          }
+        }
+        try { await pdfDocument.destroy?.(); } catch (_) {}
+        pdfDocument = null;
+      } else {
+        for (let pageNumber = 1; pageNumber <= total; pageNumber += 1) {
+          failedPage = pageNumber;
+          setSafeStatus(`“${shortName}” 임시 검사 중 · ${pageNumber} / ${total}${plan.heavy ? ' · 최적화' : ''}`);
+          const pdfPage = pageNumber === 1 && firstPage
+            ? firstPage
+            : await pdfDocument.getPage(pageNumber);
+          firstPage = null;
+          const thumbCanvas = await safeRenderPdfPage(pdfPage, plan.thumbScale, 0, plan.heavy);
+          stagedPages.push({
+            id: null,
+            pdfPage,
+            thumbCanvas,
+            excluded: false,
+            nupOverride: null,
+            nupDisabled: false,
+            sourceFile: shortName,
+            groupBreak: false,
+            rotation: 0,
+            pageType: 'pdf',
+            file_index: null,
+            page_index: pageNumber - 1,
+          });
+          if (pageNumber % plan.batchYield === 0) {
+            await new Promise((resolve) => setTimeout(resolve, plan.heavy ? 12 : 0));
+          }
+        }
+      }
+
+      return {
+        file,
+        shortName,
+        total,
+        pages: stagedPages,
+        detected,
+        requestedMode,
+        pdfDocument,
+        plan,
+      };
     } catch (error) {
-      _nextId = startId;
       releaseStagedPages(stagedPages);
       try { await pdfDocument?.destroy?.(); } catch (_) {}
       const wrapped = new Error(error?.message || 'PDF를 읽지 못했습니다.');
@@ -196,13 +378,13 @@
 
   function commitStagedFile(stage) {
     const before = captureEditorState();
-    before.nextId = stage.startId;
     const isNew = stage.requestedMode === 'new';
     const isBreak = stage.requestedMode === 'break';
     try {
       const fileIndex = isNew ? 0 : uploadedFiles.length;
       const committedPages = stage.pages.map((page, index) => ({
         ...page,
+        id: makeId(),
         file_index: fileIndex,
         groupBreak: !isNew && isBreak && index === 0,
       }));
@@ -210,6 +392,7 @@
       parsedPages = isNew ? committedPages : [...parsedPages, ...committedPages];
       uploadedFiles = isNew ? [stage.file] : [...uploadedFiles, stage.file];
       if (isNew) {
+        clearNupSessionState();
         previewCanvases = [];
         fileNupMap = {};
         applyDetectedSettings(stage.detected);
@@ -217,14 +400,15 @@
 
       renderThumbs();
       if (byId('previewBtn')) byId('previewBtn').disabled = false;
-      if (byId('downloadBtn')) byId('downloadBtn').disabled = true;
+      if (byId('downloadBtn')) byId('downloadBtn').disabled = false;
 
       if (isNew) {
         document.querySelectorAll('.mode-btn').forEach((button) => button.classList.remove('active', 'break-active'));
         document.querySelector('.mode-btn[data-mode="cont"]')?.classList.add('active');
         _uploadMode = 'cont';
       }
-      return { fileIndex, committedPages, before };
+      const aggregateMode = optimizationApi()?.syncAggregateMode?.() || null;
+      return { fileIndex, committedPages, before, aggregateMode };
     } catch (error) {
       restoreEditorState(before);
       throw error;
@@ -243,10 +427,13 @@
     let committed = false;
     try {
       stage = await stagePdfFile(file, requestedMode);
-      commitStagedFile(stage);
+      const result = commitStagedFile(stage);
       committed = true;
-      setSafeStatus(`“${stage.shortName}” ${stage.total}페이지를 안전하게 추가했습니다.`, 'success');
-      setTimeout(() => { try { hideStatus(); } catch (_) {} }, 2500);
+      const modeText = result.aggregateMode?.extreme
+        ? ' · 초대용량 목록 모드'
+        : result.aggregateMode?.optimized ? ' · 대용량 최적화' : '';
+      setSafeStatus(`“${stage.shortName}” ${stage.total}페이지를 안전하게 추가했습니다${modeText}.`, 'success');
+      setTimeout(() => { try { hideStatus(); } catch (_) {} }, result.aggregateMode?.extreme ? 5000 : 2500);
       try {
         await triggerPreview();
       } catch (previewError) {
@@ -255,13 +442,18 @@
       }
       try {
         document.dispatchEvent(new CustomEvent('pdf-import-committed', {
-          detail: { fileName: file.name, pageCount: stage.total, mode: requestedMode },
+          detail: {
+            fileName: file.name,
+            pageCount: stage.total,
+            mode: requestedMode,
+            optimized: Boolean(stage.plan?.heavy),
+            extreme: Boolean(stage.plan?.extreme),
+          },
         }));
       } catch (_) {}
       return true;
     } catch (error) {
       if (stage && !committed) {
-        _nextId = stage.startId;
         releaseStagedPages(stage.pages);
         try { await stage.pdfDocument?.destroy?.(); } catch (_) {}
       }
@@ -307,6 +499,9 @@
 
   window.PdfImportTransactionSafety = {
     isPdfFile,
+    chooseImportPlan,
+    safePdfGetDocument,
+    safeRenderPdfPage,
     stagePdfFile,
     commitStagedFile,
     transactionalHandleFile,
@@ -314,7 +509,7 @@
     restoreEditorState,
     install,
     get installed() { return installed; },
-    stage: 'stage-all-pages-atomic-commit-rollback',
+    stage: 'bounded-stage-atomic-commit-node-preserving-rollback',
   };
 
   for (const delay of INSTALL_DELAYS) setTimeout(install, delay);
