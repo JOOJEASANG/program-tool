@@ -75,7 +75,7 @@ def test_pdf_import_extreme_mode_validates_pages_without_full_canvas_rendering()
     stage_end = source.index("function commitStagedFile", stage_start)
     stage = source[stage_start:stage_end]
     extreme_start = stage.index("if (plan.extreme)")
-    normal_start = stage.index("} else {", extreme_start)
+    normal_start = stage.index("      } else {\n        for (let pageNumber", extreme_start)
     extreme = stage[extreme_start:normal_start]
     assert "pdfDocument.getPage(pageNumber)" in extreme
     assert "checkedPage.getViewport({ scale: 1 })" in extreme
