@@ -79,9 +79,6 @@ const document = {
   dispatchEvent() {},
 };
 
-let renderThumbCalls = 0;
-let previewCalls = 0;
-let throwOnRenderThumbs = false;
 let renderedPageCount = 0;
 let placeholderCount = 0;
 let lightweightCount = 0;
@@ -104,6 +101,9 @@ const context = {
   Array,
   Object,
   Math,
+  renderThumbCalls: 0,
+  previewCalls: 0,
+  throwOnRenderThumbs: false,
 };
 context.window = context;
 context.PdfUploadOptimization = {
@@ -137,7 +137,7 @@ vm.createContext(context);
 vm.runInContext(`
   var parsedPages = [{ id: 10, sourceFile: '기존.pdf', file_index: 0, page_index: 0 }];
   var uploadedFiles = [{ name: '기존.pdf', size: 1000 }];
-  var previewCanvases = [globalThis.document.getElementById('existing-preview-canvas') || { id: 'existing-preview' }];
+  var previewCanvases = [{ id: 'existing-preview' }];
   var fileNupMap = { 0: 2 };
   var _nextId = 20;
   var landscape = false;
@@ -152,9 +152,6 @@ vm.runInContext(`
   function hideStatus() {}
   window.handleFile = async function legacyHandleFile() { throw new Error('legacy path should not run'); };
 `, context);
-context.renderThumbCalls = renderThumbCalls;
-context.previewCalls = previewCalls;
-context.throwOnRenderThumbs = throwOnRenderThumbs;
 
 function page(pageNumber, renderFails = false) {
   return {
@@ -174,8 +171,10 @@ function documentFor(data) {
     numPages: total,
     destroyed: false,
     async getPage(number) {
-      if (data === 'bad-with-edit' && number === 2) {
-        vm.runInContext("parsedPages.push({id: makeId(), sourceFile: '사용자추가', file_index: 0, page_index: 99})", context);
+      if ((data === 'bad-with-edit' || data === 'bad') && number === 2) {
+        if (data === 'bad-with-edit') {
+          vm.runInContext("parsedPages.push({id: makeId(), sourceFile: '사용자추가', file_index: 0, page_index: 99})", context);
+        }
         throw new Error('손상된 페이지 스트림');
       }
       return page(number, data === 'render-fallback' && number === 2);
@@ -262,16 +261,10 @@ function file(name, data, size = 1000) {
 
   vm.runInContext("_uploadMode = 'new'", context);
   const beforeNewFailure = vm.runInContext('JSON.stringify({pages: parsedPages.map(p => p.id), files: uploadedFiles.map(f => f.name), preview: previewCanvases.length, nup: fileNupMap})', context);
-  const badNew = await context.window.handleFile(file('새작업-손상.pdf', 'bad-with-edit'));
+  const badNew = await context.window.handleFile(file('새작업-손상.pdf', 'bad'));
   assert.equal(badNew, false);
-  const afterNewFailure = vm.runInContext('JSON.stringify({pages: parsedPages.filter(p => p.sourceFile !== "사용자추가").map(p => p.id), files: uploadedFiles.map(f => f.name), preview: previewCanvases.length, nup: fileNupMap})', context);
-  const normalizedBefore = JSON.stringify({
-    pages: JSON.parse(beforeNewFailure).pages,
-    files: JSON.parse(beforeNewFailure).files,
-    preview: JSON.parse(beforeNewFailure).preview,
-    nup: JSON.parse(beforeNewFailure).nup,
-  });
-  assert.equal(afterNewFailure, normalizedBefore, 'failed new import must not clear the current job');
+  const afterNewFailure = vm.runInContext('JSON.stringify({pages: parsedPages.map(p => p.id), files: uploadedFiles.map(f => f.name), preview: previewCanvases.length, nup: fileNupMap})', context);
+  assert.equal(afterNewFailure, beforeNewFailure, 'failed new import must not clear the current job');
 
   const newSuccess = await context.window.handleFile(file('새작업.pdf', 'good'));
   assert.equal(newSuccess, true);
