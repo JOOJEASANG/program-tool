@@ -1,0 +1,119 @@
+name: PDF file navigation review patch
+
+on:
+  push:
+    branches:
+      - agent/pdf-file-navigation-stage3
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: agent/pdf-file-navigation-stage3
+          fetch-depth: 0
+      - name: Fix replacement collapse state and hidden page preview
+        shell: python
+        run: |
+          from pathlib import Path
+
+          nav_path = Path('js/pdf-editor/file-navigation.js')
+          source = nav_path.read_text(encoding='utf-8')
+
+          old_output = '''      const descriptors = lazy?.buildOutputDescriptors?.() || [];
+      const outputIndex = lazy?.descriptorIndexForPage?.(page, descriptors);
+      if (outputIndex >= 0 && lazy?.isActive?.(descriptors)) {
+        await lazy.requestRender(outputIndex);
+        return;
+      }
+      if (typeof triggerPreview === 'function') await triggerPreview();
+      requestAnimationFrame(() => {
+        const previews = document.querySelectorAll('#previewScroll .page-preview');
+        previews[outputIndex >= 0 ? outputIndex : 0]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+'''
+          new_output = '''      const descriptors = lazy?.buildOutputDescriptors?.() || [];
+      const outputIndex = Number(lazy?.descriptorIndexForPage?.(page, descriptors));
+      if (!Number.isInteger(outputIndex) || outputIndex < 0) return false;
+      if (lazy?.isActive?.(descriptors)) {
+        await lazy.requestRender(outputIndex);
+        return true;
+      }
+      if (typeof triggerPreview === 'function') await triggerPreview();
+      requestAnimationFrame(() => {
+        const previews = document.querySelectorAll('#previewScroll .page-preview');
+        previews[outputIndex]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+      return true;
+'''
+          if source.count(old_output) != 1:
+              raise SystemExit('showOutput boundary not found exactly once')
+          source = source.replace(old_output, new_output, 1)
+
+          old_event = "      document.addEventListener('pdf-import-committed', () => { selectedId = ''; queueEnhance(); });"
+          new_event = "      document.addEventListener('pdf-import-committed', (event) => { selectedId = ''; if (event?.detail?.mode === 'new') collapsed.clear(); queueEnhance(); });"
+          if source.count(old_event) != 1:
+              raise SystemExit('import committed event boundary not found exactly once')
+          source = source.replace(old_event, new_event, 1)
+
+          old_export = "    navigateToPage,\n    jumpEdited,"
+          new_export = "    navigateToPage,\n    showOutput,\n    jumpEdited,"
+          if source.count(old_export) != 1:
+              raise SystemExit('navigation export boundary not found exactly once')
+          source = source.replace(old_export, new_export, 1)
+          nav_path.write_text(source, encoding='utf-8')
+
+          test_path = Path('backend/tests/test_pdf_file_navigation_stage3.py')
+          tests = test_path.read_text(encoding='utf-8')
+          tests = tests.replace(
+              '        "await lazy.requestRender(outputIndex)",\n',
+              '        "if (!Number.isInteger(outputIndex) || outputIndex < 0) return false",\n        "await lazy.requestRender(outputIndex)",\n        "previews[outputIndex]?.scrollIntoView",\n        "event?.detail?.mode === \'new\'",\n        "collapsed.clear()",\n',
+              1,
+          )
+          test_path.write_text(tests, encoding='utf-8')
+
+          behavior_path = Path('backend/tests/test_pdf_file_navigation_behavior.cjs')
+          behavior = behavior_path.read_text(encoding='utf-8')
+          behavior = behavior.replace(
+              "const document = {\n  getElementById() { return null; },\n  createElement() { return {}; },\n  addEventListener() {},\n  documentElement: { dataset: {} },\n};",
+              "const listeners = {};\nconst document = {\n  getElementById() { return null; },\n  createElement() { return {}; },\n  addEventListener(type, listener) { listeners[type] = listener; },\n  querySelectorAll() { return []; },\n  documentElement: { dataset: {} },\n};",
+              1,
+          )
+          behavior = behavior.replace(
+              "  MutationObserver: function MutationObserver() {},\n",
+              "  MutationObserver: function MutationObserver() {},\n  triggerPreview() { throw new Error('hidden page must not rebuild preview'); },\n",
+              1,
+          )
+          anchor = "api.collapseAll();\nassert.deepEqual([...api.getCollapsedFiles()].sort(), ['0', '1']);\napi.expandAll();"
+          replacement = "api.collapseAll();\nassert.deepEqual([...api.getCollapsedFiles()].sort(), ['0', '1']);\nlisteners['pdf-import-committed']({ detail: { mode: 'new' } });\nassert.equal(api.getCollapsedFiles().size, 0, 'replacement import must clear previous collapsed file keys');\napi.collapseAll();\nassert.equal(await api.showOutput(pages[2]), false, 'excluded page without an output descriptor must preserve the current preview');\napi.expandAll();"
+          if behavior.count(anchor) != 1:
+              raise SystemExit('behavior review assertion anchor not found')
+          behavior = behavior.replace(anchor, replacement, 1)
+          behavior = behavior.replace(
+              "console.log('pdf-file-navigation behavior passed');",
+              "console.log('pdf-file-navigation behavior passed');",
+              1,
+          )
+          # Top-level await is unavailable in CommonJS; wrap the existing assertions in an async IIFE.
+          first_assert = "assert.equal(api.stage, 'file-collapse-edited-original-page-jump');"
+          if behavior.count(first_assert) != 1:
+              raise SystemExit('behavior async wrapper anchor not found')
+          behavior = behavior.replace(first_assert, "(async () => {\n" + first_assert, 1)
+          behavior = behavior.replace(
+              "console.log('pdf-file-navigation behavior passed');\n",
+              "console.log('pdf-file-navigation behavior passed');\n})().catch((error) => { console.error(error); process.exitCode = 1; });\n",
+              1,
+          )
+          behavior_path.write_text(behavior, encoding='utf-8')
+      - name: Commit review fixes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add js/pdf-editor/file-navigation.js backend/tests/test_pdf_file_navigation_stage3.py backend/tests/test_pdf_file_navigation_behavior.cjs
+          git commit -m "PDF 새 작업 접기 초기화와 숨김 페이지 이동 보강"
+          git push origin HEAD:agent/pdf-file-navigation-stage3
