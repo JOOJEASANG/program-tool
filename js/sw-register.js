@@ -102,6 +102,7 @@
       tasks.push(load('coverProjectStateBridgeScriptV1','/js/cover-project-state-bridge.js?v='+VERSION));
       tasks.push(load('coverTemplateProjectSafetyScriptV2','/js/cover-template-project-safety.js?v=20260805-1'));
       tasks.push(load('coverTemplateSurfaceCleanupScriptV1','/js/cover-template-surface-cleanup.js?v=20260806-1'));
+      tasks.push(load('coverImagePrintQualityScriptV1','/js/cover-image-print-quality.js?v=20260806-1'));
       tasks.push(load('coverFloatingActionDockScriptV2','/js/cover-floating-action-dock.js?v=20260806-1'));
       tasks.push(load('coverUiRuntimeNormalizerScriptV1','/js/cover-ui-runtime-normalizer.js?v=20260805-1'));
       tasks.push(load('coverOutputPerformanceSafetyScriptV1','/js/cover-output-performance-safety.js?v=20260805-1'));
