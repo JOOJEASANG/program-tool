@@ -79,7 +79,7 @@ def test_pdf_file_navigation_uses_existing_preview_paths_without_mutating_pages(
     for marker in (
         "lazy?.buildOutputDescriptors?.()",
         "lazy?.descriptorIndexForPage?.(page, descriptors)",
-        "lazy?.requestRender(outputIndex)",
+        "await lazy.requestRender(outputIndex)",
         "if (typeof triggerPreview === 'function') await triggerPreview()",
         "renderThumbs = wrapped",
         "window.renderThumbs = wrapped",
