@@ -10,6 +10,8 @@ const source = fs.readFileSync(
 
 const registry = new Map();
 
+const registry = new Map();
+
 function createElement(tag, id = '') {
   const node = {
     tagName: String(tag || '').toUpperCase(),
