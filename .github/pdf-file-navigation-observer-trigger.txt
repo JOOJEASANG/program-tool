@@ -1,0 +1,1 @@
+trigger PDF file navigation observer patch
