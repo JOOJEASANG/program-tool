@@ -1,1 +1,0 @@
-trigger transactional PDF import runtime registration
