@@ -14,8 +14,6 @@ DIRECT_MODULES = [
     "cover-template-manager.js",
     "cmyk-color-control.js",
     "cover-editor-ux-upgrade.js",
-    "cover-editor-multiselect.js",
-    "cover-editor-layer-style.js",
     "cover-editor-preflight-project.js",
     "cover-editor-image-tools.js",
 ]
@@ -97,15 +95,16 @@ def test_cover_runtime_safety_behavior_executes():
     assert "cover-runtime-safety behavior passed" in result.stdout
 
 
-def test_cover_audit_records_remaining_runtime_debt():
+def test_cover_audit_records_current_runtime_debt_and_retired_sources():
     direct = EDITOR.read_text(encoding="utf-8")
     cmyk = (ROOT / "js" / "cmyk-color-control.js").read_text(encoding="utf-8")
     refine = (ROOT / "js" / "cover-text-ui-refine.js").read_text(encoding="utf-8")
     templates = (ROOT / "js" / "cover-template-manager.js").read_text(encoding="utf-8")
     image_tools = (ROOT / "js" / "cover-editor-image-tools.js").read_text(encoding="utf-8")
 
-    assert "cover-editor-multiselect.js" in direct
-    assert "cover-editor-layer-style.js" in direct
+    assert "cover-editor-multiselect.js" not in direct
+    assert "cover-editor-layer-style.js" not in direct
+    assert "jspdf.umd.min.js" not in direct
     assert "visual-color-palette" in cmyk
     assert "cover-color-palette" in refine
     assert "snapshotCurrent()" in templates
