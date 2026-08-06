@@ -1,0 +1,68 @@
+name: PDF import behavior test boundary patch
+
+on:
+  push:
+    branches:
+      - agent/pdf-import-transaction-safety-stage1
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: agent/pdf-import-transaction-safety-stage1
+          fetch-depth: 0
+      - name: Patch behavior failure variants
+        shell: python
+        run: |
+          from pathlib import Path
+          path = Path('backend/tests/test_pdf_import_transaction_safety_behavior.cjs')
+          source = path.read_text(encoding='utf-8')
+          old = '''      if (data === 'bad-with-edit' && number === 2) {
+        vm.runInContext("parsedPages.push({id: makeId(), sourceFile: '사용자추가', file_index: 0, page_index: 99})", context);
+        throw new Error('손상된 페이지 스트림');
+      }
+'''
+          new = '''      if ((data === 'bad-with-edit' || data === 'bad') && number === 2) {
+        if (data === 'bad-with-edit') {
+          vm.runInContext("parsedPages.push({id: makeId(), sourceFile: '사용자추가', file_index: 0, page_index: 99})", context);
+        }
+        throw new Error('손상된 페이지 스트림');
+      }
+'''
+          if source.count(old) != 1:
+              raise SystemExit('failure variant boundary not found')
+          source = source.replace(old, new, 1)
+          source = source.replace(
+              "const badNew = await context.window.handleFile(file('새작업-손상.pdf', 'bad-with-edit'));",
+              "const badNew = await context.window.handleFile(file('새작업-손상.pdf', 'bad'));",
+              1,
+          )
+          old_assert = '''  const afterNewFailure = vm.runInContext('JSON.stringify({pages: parsedPages.filter(p => p.sourceFile !== "사용자추가").map(p => p.id), files: uploadedFiles.map(f => f.name), preview: previewCanvases.length, nup: fileNupMap})', context);
+  const normalizedBefore = JSON.stringify({
+    pages: JSON.parse(beforeNewFailure).pages,
+    files: JSON.parse(beforeNewFailure).files,
+    preview: JSON.parse(beforeNewFailure).preview,
+    nup: JSON.parse(beforeNewFailure).nup,
+  });
+  assert.equal(afterNewFailure, normalizedBefore, 'failed new import must not clear the current job');
+'''
+          new_assert = '''  const afterNewFailure = vm.runInContext('JSON.stringify({pages: parsedPages.map(p => p.id), files: uploadedFiles.map(f => f.name), preview: previewCanvases.length, nup: fileNupMap})', context);
+  assert.equal(afterNewFailure, beforeNewFailure, 'failed new import must not clear the current job');
+'''
+          if source.count(old_assert) != 1:
+              raise SystemExit('new failure assertion boundary not found')
+          source = source.replace(old_assert, new_assert, 1)
+          path.write_text(source, encoding='utf-8')
+      - name: Commit test patch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add backend/tests/test_pdf_import_transaction_safety_behavior.cjs
+          git commit -m "PDF 새 작업 실패와 동시 편집 검사 분리"
+          git push origin HEAD:agent/pdf-import-transaction-safety-stage1
