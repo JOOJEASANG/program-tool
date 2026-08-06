@@ -79,13 +79,18 @@ def test_pdf_file_navigation_uses_existing_preview_paths_without_mutating_pages(
     for marker in (
         "lazy?.buildOutputDescriptors?.()",
         "lazy?.descriptorIndexForPage?.(page, descriptors)",
+        "if (!Number.isInteger(outputIndex) || outputIndex < 0) return false",
         "await lazy.requestRender(outputIndex)",
+        "previews[outputIndex]?.scrollIntoView",
         "if (typeof triggerPreview === 'function') await triggerPreview()",
+        "event?.detail?.mode === 'new'",
+        "collapsed.clear()",
         "renderThumbs = wrapped",
         "window.renderThumbs = wrapped",
         "stage: 'file-collapse-edited-original-page-jump'",
     ):
         assert marker in source
+    assert "previews[outputIndex >= 0 ? outputIndex : 0]" not in source
     assert "parsedPages =" not in source
     assert "uploadedFiles =" not in source
     assert "downloadBtn.addEventListener" not in source
