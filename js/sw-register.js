@@ -105,6 +105,7 @@
       tasks.push(load('coverImagePrintQualityScriptV1','/js/cover-image-print-quality.js?v=20260806-1'));
       tasks.push(load('coverFinalOutputConfirmScriptV1','/js/cover-final-output-confirm.js?v=20260806-1'));
       tasks.push(load('coverLayoutLockScriptV1','/js/cover-layout-lock.js?v=20260806-1'));
+      tasks.push(load('coverRecoveryCheckpointsScriptV1','/js/cover-recovery-checkpoints.js?v=20260806-1'));
       tasks.push(load('coverFloatingActionDockScriptV2','/js/cover-floating-action-dock.js?v=20260806-1'));
       tasks.push(load('coverUiRuntimeNormalizerScriptV1','/js/cover-ui-runtime-normalizer.js?v=20260805-1'));
       tasks.push(load('coverOutputPerformanceSafetyScriptV1','/js/cover-output-performance-safety.js?v=20260805-1'));
