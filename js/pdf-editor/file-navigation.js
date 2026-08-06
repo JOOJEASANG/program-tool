@@ -298,18 +298,21 @@
     const lazy = window.PdfViewportLazyPreview;
     try {
       const descriptors = lazy?.buildOutputDescriptors?.() || [];
-      const outputIndex = lazy?.descriptorIndexForPage?.(page, descriptors);
-      if (outputIndex >= 0 && lazy?.isActive?.(descriptors)) {
+      const outputIndex = Number(lazy?.descriptorIndexForPage?.(page, descriptors));
+      if (!Number.isInteger(outputIndex) || outputIndex < 0) return false;
+      if (lazy?.isActive?.(descriptors)) {
         await lazy.requestRender(outputIndex);
-        return;
+        return true;
       }
       if (typeof triggerPreview === 'function') await triggerPreview();
       requestAnimationFrame(() => {
         const previews = document.querySelectorAll('#previewScroll .page-preview');
-        previews[outputIndex >= 0 ? outputIndex : 0]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        previews[outputIndex]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       });
+      return true;
     } catch (error) {
       console.warn('[pdf-file-navigation] preview navigation failed', error);
+      return false;
     }
   }
 
@@ -384,7 +387,7 @@
     enhance();
     if (!installed) {
       installed = true;
-      document.addEventListener('pdf-import-committed', () => { selectedId = ''; queueEnhance(); });
+      document.addEventListener('pdf-import-committed', (event) => { selectedId = ''; if (event?.detail?.mode === 'new') collapsed.clear(); queueEnhance(); });
       document.addEventListener('pdf-import-failed', queueEnhance);
     }
   }
@@ -400,6 +403,7 @@
     collapseAll,
     expandAll,
     navigateToPage,
+    showOutput,
     jumpEdited,
     jumpOriginal,
     getCollapsedFiles: () => new Set(collapsed),
