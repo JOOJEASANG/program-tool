@@ -77,9 +77,9 @@ const originalZones = {
   bottom: data.spine.bottom,
 };
 const result = api.runWithoutNativeSpine(() => {
-  assert.deepEqual(data.spine.top, []);
-  assert.deepEqual(data.spine.center, []);
-  assert.deepEqual(data.spine.bottom, []);
+  assert.equal(data.spine.top.length, 0);
+  assert.equal(data.spine.center.length, 0);
+  assert.equal(data.spine.bottom.length, 0);
   assert.equal(elements.spineTop.value, '');
   assert.equal(elements.spineCenter.value, '');
   assert.equal(elements.spineBottom.value, '');
