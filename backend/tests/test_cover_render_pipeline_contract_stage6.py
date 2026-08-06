@@ -32,10 +32,11 @@ def test_cover_render_pipeline_has_one_final_owner_and_bounded_installation():
     assert "eval(" not in source
 
 
-def test_cover_render_pipeline_retires_inactive_compatibility_script_nodes():
+def test_cover_render_pipeline_retires_inactive_compatibility_script_nodes_once():
     source = PIPELINE.read_text(encoding="utf-8")
     assert "cover-editor-multiselect.js" in source
     assert "cover-editor-layer-style.js" in source
+    assert "if (script.dataset.coverCompatibilityRetired === '1') continue" in source
     assert "script.dataset.coverCompatibilityRetired = '1'" in source
     assert "script.remove()" in source
     assert "cover-editor-image-tools.js" not in source
