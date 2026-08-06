@@ -5,7 +5,8 @@ const vm = require('node:vm');
 
 const source = fs.readFileSync(path.resolve(__dirname, '../../js/cover-spine-print-safety.js'), 'utf8');
 const window = {};
-const document = { getElementById() { return null; } };
+const elements = new Map();
+const document = { getElementById(id) { return elements.get(id) || null; } };
 const context = vm.createContext({
   window,
   document,
@@ -18,6 +19,13 @@ const context = vm.createContext({
 vm.runInContext(source, context, { filename: 'cover-spine-print-safety.js' });
 const api = window.CoverSpinePrintSafety;
 assert.equal(api.stage, 'multi-layer-spine-print-fit-safety');
+
+elements.set('spineTitle', { value: '구형 책등 제목' });
+window.CoverTextZones = { data: { spine: { top: [], center: [], bottom: [] } } };
+assert.equal(api.currentSpineEntries().length, 0, 'multi-layer editor must not fall back to hidden legacy text');
+delete window.CoverTextZones;
+assert.equal(api.currentSpineEntries()[0].id, 'legacySpineTitle', 'legacy fallback remains available when the multi-layer editor is unavailable');
+elements.delete('spineTitle');
 
 assert.equal(api.weightedCharacters('가나다'), 3);
 assert.ok(api.weightedCharacters('ABC') > 1.8 && api.weightedCharacters('ABC') < 1.9);
