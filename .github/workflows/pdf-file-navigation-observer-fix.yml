@@ -1,0 +1,63 @@
+name: PDF file navigation observer patch
+
+on:
+  push:
+    branches:
+      - agent/pdf-file-navigation-stage3
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: agent/pdf-file-navigation-stage3
+          fetch-depth: 0
+      - name: Pause observer while enhancing navigation DOM
+        shell: python
+        run: |
+          from pathlib import Path
+          path = Path('js/pdf-editor/file-navigation.js')
+          source = path.read_text(encoding='utf-8')
+          old_start = '''    enhancing = true;
+    try {
+      installStyles();
+'''
+          new_start = '''    enhancing = true;
+    observer?.disconnect?.();
+    try {
+      installStyles();
+'''
+          if source.count(old_start) != 1:
+              raise SystemExit('enhance start boundary not found')
+          source = source.replace(old_start, new_start, 1)
+          old_finally = '''    } finally {
+      enhancing = false;
+    }
+  }
+
+  function queueEnhance() {
+'''
+          new_finally = '''    } finally {
+      enhancing = false;
+      if (observer && area) observer.observe(area, { childList: true, subtree: false });
+    }
+  }
+
+  function queueEnhance() {
+'''
+          if source.count(old_finally) != 1:
+              raise SystemExit('enhance finally boundary not found')
+          source = source.replace(old_finally, new_finally, 1)
+          path.write_text(source, encoding='utf-8')
+      - name: Commit observer fix
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add js/pdf-editor/file-navigation.js
+          git commit -m "PDF 파일 탐색 DOM 보강 중 감시자 일시 중지"
+          git push origin HEAD:agent/pdf-file-navigation-stage3
