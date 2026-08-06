@@ -1,6 +1,6 @@
 # 책표지 제작 프로그램 런타임 점검 기준
 
-기준일: 2026-08-05
+기준일: 2026-08-06
 
 ## 점검 범위
 
@@ -34,12 +34,17 @@
 4. `cover-preview-workspace.js`
 5. `cover-project-state-bridge.js`
 6. `cover-template-project-safety.js`
-7. `cover-floating-action-dock.js`
-8. `cover-ui-runtime-normalizer.js`
-9. `cover-output-performance-safety.js`
-10. `cover-runtime-safety.js`
+7. `cover-template-surface-cleanup.js`
+8. `cover-floating-action-dock.js`
+9. `cover-ui-runtime-normalizer.js`
+10. `cover-output-performance-safety.js`
+11. `cover-runtime-safety.js`
 
-`cover-template-project-safety.js`는 현재 글자 레이어와 이미지 효과를 내 작업 템플릿에 포함하고, 프로젝트 파일의 크기·버전·필드·배치·글자 레이어·이미지 효과를 검증한다. 관리자 이미지 템플릿은 권한을 다시 확인한 뒤 저장하며 Firestore 확정 전 실패한 Storage 경로를 정리한다. 삭제 시 원본 Storage 정리가 끝난 뒤에만 Firestore 문서를 삭제한다.
+`cover-template-project-safety.js`는 프로젝트 파일의 크기·버전·필드·배치·글자 레이어·이미지 효과를 검증한다. 관리자 이미지 템플릿은 권한을 다시 확인한 뒤 저장하며 Firestore 확정 전 실패한 Storage 경로를 정리한다. 삭제 시 원본 Storage 정리가 끝난 뒤에만 Firestore 문서를 삭제한다.
+
+`cover-template-surface-cleanup.js`는 기본 스타일 프리셋과 개인 작업 템플릿 화면을 운영 UI에서 제거하고, 기존 관리자 제공 이미지 템플릿 DOM과 이벤트 연결은 그대로 유지한다.
+
+`cover-floating-action-dock.js`는 300DPI PDF 버튼을 첫 줄 전체에 두고, 가이드 PDF·미리보기 PNG·초기화 아이콘을 둘째 줄 3칸에 배치한다. 설명 문구와 빈 상태 영역은 고정 메뉴에서 숨겨 세로 공간을 줄인다.
 
 `cover-ui-runtime-normalizer.js`는 정적 색상 입력에 중복 생성된 두 팔레트 중 기존 상세 팔레트 하나만 남기고, 동적 글자 색상 입력은 해당 글자 팔레트를 유지한다. 모바일 가상 키보드가 실제로 화면 높이를 줄이고 입력 요소가 활성화된 동안에는 고정 출력 메뉴를 문서 흐름으로 돌려 입력란을 가리지 않게 한다. 출력 상태 영역에는 실시간 상태 접근성 속성을 부여한다.
 
@@ -55,8 +60,6 @@
 
 ## 2차 점검에서 정리한 항목
 
-- 내 작업 템플릿에 현재 `CoverTextZones` 글자 레이어와 앞·뒤표지 이미지 효과를 함께 저장하고 복원한다.
-- 과거 템플릿은 확장 상태가 없으면 기존 규격·색상·배치만 복원해 현재 글자 레이어를 임의로 비우지 않는다.
 - 프로젝트 파일은 2MB 이하, 버전 1~2, 배치 요소 300개 이하, 글자 레이어 60개 이하로 제한한다.
 - 가져온 글자·색상·위치·크기와 이미지 회전·반전·밝기·대비·채도를 허용 범위로 정규화한다.
 - 관리자 템플릿 저장 전 관리자 권한과 이미지 MIME·15MB 제한을 확인한다.
@@ -82,6 +85,16 @@
 - PDF 페이지 크기가 완성 가로·세로 밀리미터와 일치하고 래스터가 페이지 전체에 배치되는 기존 계약을 고정한다.
 - jsPDF 최초 CDN 실패 시 출력 시점에 대체 CDN으로 복구하고, 중복 로드와 무한 대기를 막는다.
 - 자세한 사례는 `docs/cover-output-test-matrix.md`에 기록한다.
+
+## 5차 점검에서 정리한 항목
+
+- 하단 고정 작업 메뉴의 여백과 버튼 높이를 줄였다.
+- 300DPI PDF는 첫 줄 전체 버튼으로 유지한다.
+- 가이드 PDF·미리보기 PNG·초기화 아이콘은 둘째 줄에 나란히 배치한다.
+- 초기화는 `↻` 아이콘으로 표시하고 접근성 이름과 설명을 유지한다.
+- 고정 메뉴의 반복 설명 문구와 비어 있는 상태 영역은 숨긴다.
+- 기본 스타일 프리셋과 개인 작업 템플릿 UI를 제거한다.
+- 공개 관리자 이미지 템플릿의 조회·적용과 관리자 저장·삭제 기능은 유지한다.
 
 ## 확인 완료 후 남은 구조 개선 사항
 
