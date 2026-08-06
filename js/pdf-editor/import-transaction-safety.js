@@ -196,6 +196,7 @@
 
   function commitStagedFile(stage) {
     const before = captureEditorState();
+    before.nextId = stage.startId;
     const isNew = stage.requestedMode === 'new';
     const isBreak = stage.requestedMode === 'break';
     try {
@@ -238,9 +239,12 @@
 
     setBusy(true);
     const hadExistingWork = parsedPages.length > 0 || uploadedFiles.length > 0;
+    let stage = null;
+    let committed = false;
     try {
-      const stage = await stagePdfFile(file, requestedMode);
+      stage = await stagePdfFile(file, requestedMode);
       commitStagedFile(stage);
+      committed = true;
       setSafeStatus(`“${stage.shortName}” ${stage.total}페이지를 안전하게 추가했습니다.`, 'success');
       setTimeout(() => { try { hideStatus(); } catch (_) {} }, 2500);
       try {
@@ -256,6 +260,11 @@
       } catch (_) {}
       return true;
     } catch (error) {
+      if (stage && !committed) {
+        _nextId = stage.startId;
+        releaseStagedPages(stage.pages);
+        try { await stage.pdfDocument?.destroy?.(); } catch (_) {}
+      }
       console.error(error);
       const pageText = error.pageNumber ? ` · ${error.pageNumber}페이지에서 중단` : '';
       const retained = hadExistingWork ? ' · 기존 작업은 그대로 유지됩니다.' : '';
