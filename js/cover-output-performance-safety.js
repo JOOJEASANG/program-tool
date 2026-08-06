@@ -137,6 +137,7 @@
 
   function ensureJsPdf() {
     if (jsPdfReady()) return Promise.resolve(window.jspdf.jsPDF);
+    if (typeof window.CoverJsPdfLoader?.ensure === 'function') return window.CoverJsPdfLoader.ensure();
     if (jsPdfPromise) return jsPdfPromise;
 
     jsPdfPromise = new Promise((resolve, reject) => {
