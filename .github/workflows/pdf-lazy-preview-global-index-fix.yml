@@ -1,0 +1,139 @@
+name: PDF lazy preview global index patch
+
+on:
+  push:
+    branches:
+      - agent/pdf-viewport-lazy-preview-stage2
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: agent/pdf-viewport-lazy-preview-stage2
+          fetch-depth: 0
+      - name: Disable local insertion and globalize N-up labels
+        shell: python
+        run: |
+          from pathlib import Path
+
+          lazy_path = Path('js/pdf-editor/viewport-lazy-preview.js')
+          lazy = lazy_path.read_text(encoding='utf-8')
+          style_anchor = '''      #previewScroll[data-lazy-preview="true"] .page-preview{position:relative}
+'''
+          style_replacement = '''      #previewScroll[data-lazy-preview="true"] .prev-ins-zone,#previewScroll[data-lazy-preview="true"] .prev-ins-zone-v{display:none!important;pointer-events:none!important}
+      #previewScroll[data-lazy-preview="true"] .page-preview{position:relative}
+'''
+          if lazy.count(style_anchor) != 1:
+              raise SystemExit('lazy preview style anchor not found')
+          lazy = lazy.replace(style_anchor, style_replacement, 1)
+
+          annotate_anchor = '''  function annotateDisplayedFaces(descriptors, selectedIndex) {
+'''
+          disable_function = '''  function disableLocalInsertControls() {
+    document.querySelectorAll('#previewScroll .prev-ins-zone, #previewScroll .prev-ins-zone-v').forEach((zone) => {
+      zone.hidden = true;
+      zone.setAttribute('aria-hidden', 'true');
+      zone.querySelectorAll('button').forEach((button) => { button.disabled = true; });
+    });
+  }
+
+  function annotateDisplayedFaces(descriptors, selectedIndex) {
+'''
+          if lazy.count(annotate_anchor) != 1:
+              raise SystemExit('lazy preview annotation anchor not found')
+          lazy = lazy.replace(annotate_anchor, disable_function, 1)
+
+          display_anchor = '''      if (scroll) scroll.dataset.lazyPreview = 'true';
+      annotateDisplayedFaces(visibleDescriptors, currentOutputIndex);
+'''
+          display_replacement = '''      if (scroll) scroll.dataset.lazyPreview = 'true';
+      disableLocalInsertControls();
+      annotateDisplayedFaces(visibleDescriptors, currentOutputIndex);
+'''
+          if lazy.count(display_anchor) != 1:
+              raise SystemExit('lazy preview display anchor not found')
+          lazy = lazy.replace(display_anchor, display_replacement, 1)
+          lazy_path.write_text(lazy, encoding='utf-8')
+
+          nup_path = Path('js/pdf-editor/nup-helper.js')
+          nup = nup_path.read_text(encoding='utf-8')
+          loop_anchor = '''      previews.forEach((wrap, index) => {
+        wrap.querySelectorAll('.page-label,.booklet-output-label,.pdf-output-source-label').forEach((node) => node.remove());
+        const pages = groups[index] || [];
+'''
+          loop_replacement = '''      previews.forEach((wrap, index) => {
+        wrap.querySelectorAll('.page-label,.booklet-output-label,.pdf-output-source-label').forEach((node) => node.remove());
+        const datasetIndex = Number(wrap.dataset.outputIndex);
+        const outputIndex = Number.isInteger(datasetIndex) && datasetIndex >= 0 ? datasetIndex : index;
+        const pages = groups[outputIndex] || [];
+'''
+          if nup.count(loop_anchor) != 1:
+              raise SystemExit('N-up annotation loop anchor not found')
+          nup = nup.replace(loop_anchor, loop_replacement, 1)
+          nup = nup.replace('const sheet = Math.floor(index / 2) + 1;', 'const sheet = Math.floor(outputIndex / 2) + 1;', 1)
+          nup = nup.replace('const isBack = index % 2 === 1;', 'const isBack = outputIndex % 2 === 1;', 1)
+          nup = nup.replace('label.textContent = `출력 ${index + 1}쪽 · 원본 ${sourceText}`;', 'label.textContent = `출력 ${outputIndex + 1}쪽 · 원본 ${sourceText}`;', 1)
+          required = [
+              'const datasetIndex = Number(wrap.dataset.outputIndex);',
+              'const pages = groups[outputIndex] || [];',
+              'Math.floor(outputIndex / 2)',
+              'outputIndex % 2',
+              '출력 ${outputIndex + 1}쪽',
+          ]
+          missing = [item for item in required if item not in nup]
+          if missing:
+              raise SystemExit(f'N-up global index patch incomplete: {missing}')
+          nup_path.write_text(nup, encoding='utf-8')
+
+          test_path = Path('backend/tests/test_pdf_viewport_lazy_preview_stage2.py')
+          tests = test_path.read_text(encoding='utf-8')
+          tests = tests.replace(
+              'BEHAVIOR = ROOT / "backend" / "tests" / "test_pdf_viewport_lazy_preview_behavior.cjs"\n',
+              'BEHAVIOR = ROOT / "backend" / "tests" / "test_pdf_viewport_lazy_preview_behavior.cjs"\nNUP_HELPER = ROOT / "js" / "pdf-editor" / "nup-helper.js"\n',
+              1,
+          )
+          test_anchor = '''
+def test_pdf_lazy_preview_replaces_only_preview_delegate_not_final_download():
+'''
+          new_test = '''
+def test_pdf_lazy_preview_disables_local_insert_controls_and_globalizes_existing_labels():
+    source = LAZY.read_text(encoding="utf-8")
+    for marker in (
+        "function disableLocalInsertControls()",
+        "#previewScroll .prev-ins-zone, #previewScroll .prev-ins-zone-v",
+        "zone.hidden = true",
+        "button.disabled = true",
+        "disableLocalInsertControls()",
+    ):
+        assert marker in source
+    nup = NUP_HELPER.read_text(encoding="utf-8")
+    for marker in (
+        "const datasetIndex = Number(wrap.dataset.outputIndex)",
+        "const outputIndex = Number.isInteger(datasetIndex)",
+        "const pages = groups[outputIndex] || []",
+        "Math.floor(outputIndex / 2) + 1",
+        "outputIndex % 2 === 1",
+        "출력 ${outputIndex + 1}쪽",
+    ):
+        assert marker in nup
+
+
+def test_pdf_lazy_preview_replaces_only_preview_delegate_not_final_download():
+'''
+          if tests.count(test_anchor) != 1:
+              raise SystemExit('stage2 test insertion anchor not found')
+          tests = tests.replace(test_anchor, new_test, 1)
+          test_path.write_text(tests, encoding='utf-8')
+      - name: Commit global index fixes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add js/pdf-editor/viewport-lazy-preview.js js/pdf-editor/nup-helper.js backend/tests/test_pdf_viewport_lazy_preview_stage2.py
+          git commit -m "PDF 지연 미리보기 삽입 차단과 전역 출력면 주석 보강"
+          git push origin HEAD:agent/pdf-viewport-lazy-preview-stage2
