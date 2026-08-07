@@ -82,6 +82,12 @@
       tasks.push(load('homeHeroUpgradeScript','/js/home-hero-upgrade.js?v='+VERSION));
       tasks.push(load('homeHeaderFooterRefineScript','/js/home-header-footer-refine.js?v='+VERSION));
     }
+    if(isPath(
+      '/tools/pdf-editor.html','/pdf-editor','/pdf-editor/index.html',
+      '/tools/perfect-binding-cover.html','/perfect-binding-cover','/perfect-binding-cover/index.html'
+    )){
+      tasks.push(load('desktopToolMobileNoticeScriptV1','/js/desktop-tool-mobile-notice.js?v=20260807-1'));
+    }
     if(isPath('/tools/pdf-editor.html','/pdf-editor','/pdf-editor/index.html')){
       tasks.push(load('pdfEditorModuleLoaderScript','/js/pdf-editor/loader.js?v='+VERSION));
       tasks.push(load('pdfCropMarksScript','/js/pdf-editor/crop-marks.js?v=20260731-4'));
