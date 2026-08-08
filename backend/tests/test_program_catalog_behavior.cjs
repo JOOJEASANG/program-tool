@@ -1,6 +1,8 @@
 const assert = require('assert');
-const core = require('../../js/program-catalog-core.js');
+require('../../js/program-catalog-core.js');
+const core = globalThis.ProgramCatalogCore;
 
+assert(core);
 assert.equal(core.stage, 'public-home-program-catalog-model');
 const defaults = core.defaultCatalog();
 assert.equal(defaults.categories[0].name, 'PDF·인쇄');
