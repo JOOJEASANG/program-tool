@@ -77,13 +77,13 @@
 
   function helpers(){
     const tasks=[];
-    if(!isAuthPage())tasks.push(load('appVersionHelperScript','/js/app-version.js?v=20260808-2'));
+    if(!isAuthPage())tasks.push(load('appVersionHelperScript','/js/app-version.js?v=20260808-3'));
     if(isHome()){
       tasks.push(load('homeHeroUpgradeScript','/js/home-hero-upgrade.js?v='+VERSION));
       tasks.push(load('homeHeaderFooterRefineScript','/js/home-header-footer-refine.js?v='+VERSION));
     }
-    if(isPath('/admin.html')){
-      tasks.push(load('adminServiceConsoleScriptV1','/js/admin-service-console.js?v=20260808-2'));
+    if(isPath('/admin','/admin.html')){
+      tasks.push(load('adminServiceConsoleScriptV1','/js/admin-service-console.js?v=20260808-3'));
     }
     if(isPath(
       '/tools/pdf-editor.html','/pdf-editor','/pdf-editor/index.html',
