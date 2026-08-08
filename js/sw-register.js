@@ -78,7 +78,7 @@
 
   function helpers(){
     const tasks=[];
-    if(!isAuthPage())tasks.push(load('appVersionHelperScript','/js/app-version.js?v=20260808-5'));
+    if(!isAuthPage())tasks.push(load('appVersionHelperScript','/js/app-version.js?v=20260808-6'));
     if(isHome()){
       tasks.push(loadCatalogCore().then(()=>load('homeProgramCatalogScriptV1','/js/home-program-catalog.js?v=20260808-1')));
       tasks.push(load('homeHeroUpgradeScript','/js/home-hero-upgrade.js?v='+VERSION));
@@ -86,6 +86,7 @@
     }
     if(isPath('/admin','/admin.html')){
       tasks.push(loadCatalogCore().then(()=>load('adminProgramCatalogManagerScriptV1','/js/admin-program-catalog-manager.js?v=20260808-1')));
+      tasks.push(load('adminProgramIconPaletteScriptV1','/js/admin-program-icon-palette.js?v=20260808-1'));
       tasks.push(load('adminServiceImageLibraryScriptV2','/js/admin-service-image-library.js?v=20260808-1'));
     }
     if(isPath(

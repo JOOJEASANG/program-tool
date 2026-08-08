@@ -21,7 +21,10 @@
     const script=document.getElementById('programCatalogCoreScriptV1');
     const loadTarget=()=>{
       if(target==='home')loadScopedScript('homeProgramCatalogScriptV1','/js/home-program-catalog.js?v=20260808-1');
-      if(target==='admin')loadScopedScript('adminProgramCatalogManagerScriptV1','/js/admin-program-catalog-manager.js?v=20260808-1');
+      if(target==='admin'){
+        loadScopedScript('adminProgramCatalogManagerScriptV1','/js/admin-program-catalog-manager.js?v=20260808-1');
+        loadScopedScript('adminProgramIconPaletteScriptV1','/js/admin-program-icon-palette.js?v=20260808-1');
+      }
     };
     if(window.ProgramCatalogCore)loadTarget();
     else if(script)script.addEventListener('load',loadTarget,{once:true});
