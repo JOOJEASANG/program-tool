@@ -61,7 +61,8 @@
 
   function enhanceInput(input) {
     const field = input.closest('.pcat-field');
-    if (!field || field.querySelector(`.${PALETTE_CLASS}`)) return;
+    if (!field || input.dataset.iconPaletteEnhanced === 'true') return;
+    input.dataset.iconPaletteEnhanced = 'true';
 
     const palette = document.createElement('div');
     palette.className = PALETTE_CLASS;
@@ -74,7 +75,7 @@
       </div>
       <div class="pcat-icon-groups" role="group" aria-label="아이콘 분류"></div>
       <div class="pcat-icon-grid" role="listbox" aria-label="프로그램 아이콘 목록"></div>`;
-    field.appendChild(palette);
+    field.insertAdjacentElement('afterend', palette);
 
     const preview = palette.querySelector('.pcat-icon-preview');
     const search = palette.querySelector('.pcat-icon-search');
