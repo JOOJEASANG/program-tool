@@ -1,4 +1,4 @@
-// Keep cover template administration in the dedicated admin console.
+// Keep cover template administration in the administrator service console.
 (function () {
   'use strict';
   if (window.__coverTemplateAdminSeparationV1) return;
@@ -27,7 +27,7 @@
       note.id = 'coverTemplateAdminConsoleNote';
       note.className = 'card-note';
       note.style.marginTop = '7px';
-      note.textContent = '제공 이미지 등록·수정·삭제는 관리자 페이지의 “표지 템플릿” 메뉴에서 관리합니다.';
+      note.textContent = '제공 이미지 등록·수정·삭제는 관리자 페이지의 “서비스 관리 → 책표지 제작”에서 관리합니다.';
       const refresh = document.getElementById('refreshCoverTemplates');
       (refresh?.parentElement || info || card).insertAdjacentElement('afterend', note);
     }
@@ -40,7 +40,7 @@
   window.CoverTemplateAdminSeparation = {
     install,
     get installed() { return installed; },
-    stage: 'admin-console-only-template-management',
+    stage: 'admin-service-console-only-template-management',
   };
 
   for (const delay of INSTALL_DELAYS) setTimeout(install, delay);
