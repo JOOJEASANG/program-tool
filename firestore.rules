@@ -19,6 +19,9 @@ service cloud.firestore {
     match /settings/programs { allow read: if signedIn(); allow write: if isAdmin(); }
     match /settings/config { allow read, write: if isAdmin(); }
     match /settings/business { allow read: if true; allow write: if isAdmin(); }
+    // Public home navigation/card catalog. Anyone may read the published catalog,
+    // while only an administrator may create or change it.
+    match /settings/public_program_catalog { allow read: if true; allow write: if isAdmin(); }
 
     match /user_permissions/{uid} {
       allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
