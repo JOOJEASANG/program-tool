@@ -18,14 +18,15 @@
 
   function loadScopedEnhancements(){
     if(currentPath==='/admin.html'||currentPath.endsWith('/admin.html')){
-      loadScopedScript('adminCoverTemplateManagerScriptV1','/js/admin-cover-template-manager.js?v=20260808-1');
+      loadScopedScript('adminServiceManagementScriptV1','/js/admin-service-management.js?v=20260808-1');
     }
     if(
       currentPath==='/tools/perfect-binding-cover.html'||
       currentPath==='/perfect-binding-cover'||
       currentPath.endsWith('/perfect-binding-cover/index.html')
     ){
-      loadScopedScript('coverTemplateAdminSeparationScriptV1','/js/cover-template-admin-separation.js?v=20260808-1');
+      loadScopedScript('coverTemplateAdminSeparationScriptV1','/js/cover-template-admin-separation.js?v=20260808-2');
+      loadScopedScript('coverProvidedImageLibraryScriptV1','/js/cover-provided-image-library.js?v=20260808-1');
     }
   }
 
