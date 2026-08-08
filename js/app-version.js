@@ -16,8 +16,23 @@
     document.head.appendChild(script);
   }
 
+  function loadCatalogScripts(target){
+    loadScopedScript('programCatalogCoreScriptV1','/js/program-catalog-core.js?v=20260808-1');
+    const script=document.getElementById('programCatalogCoreScriptV1');
+    const loadTarget=()=>{
+      if(target==='home')loadScopedScript('homeProgramCatalogScriptV1','/js/home-program-catalog.js?v=20260808-1');
+      if(target==='admin')loadScopedScript('adminProgramCatalogManagerScriptV1','/js/admin-program-catalog-manager.js?v=20260808-1');
+    };
+    if(window.ProgramCatalogCore)loadTarget();
+    else if(script)script.addEventListener('load',loadTarget,{once:true});
+  }
+
   function loadScopedEnhancements(){
+    if(currentPath==='/'||currentPath==='/index.html'){
+      loadCatalogScripts('home');
+    }
     if(currentPath==='/admin'||currentPath==='/admin.html'||currentPath.endsWith('/admin.html')){
+      loadCatalogScripts('admin');
       loadScopedScript('adminServiceImageLibraryScriptV2','/js/admin-service-image-library.js?v=20260808-1');
     }
     if(
