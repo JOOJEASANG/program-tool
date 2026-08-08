@@ -1,4 +1,3 @@
-import base64
 from pathlib import Path
 
 import fitz
@@ -9,10 +8,16 @@ from services import pdf_divider_renderer
 ROOT = Path(__file__).resolve().parents[2]
 RENDERER = ROOT / "backend" / "services" / "pdf_divider_renderer.py"
 
-# 1x1 opaque PNG, enough to verify that a divider embeds a raster image.
-PNG_1X1 = base64.b64decode(
-    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl2nXQAAAAASUVORK5CYII="
-)
+
+def _valid_png_bytes() -> bytes:
+    """Build a PNG using the same PyMuPDF version used by the renderer."""
+    image_doc = fitz.open()
+    try:
+        page = image_doc.new_page(width=24, height=24)
+        page.draw_rect(page.rect, color=None, fill=(0.12, 0.35, 0.72), overlay=True)
+        return page.get_pixmap(alpha=False).tobytes("png")
+    finally:
+        image_doc.close()
 
 
 def test_service_image_loader_requires_exact_public_pdf_divider_document_contract():
@@ -32,7 +37,12 @@ def test_service_image_loader_requires_exact_public_pdf_divider_document_contrac
 
 
 def test_divider_renderer_embeds_service_image_before_text(monkeypatch):
-    monkeypatch.setattr(pdf_divider_renderer, "_service_image_bytes", lambda content: PNG_1X1)
+    png_bytes = _valid_png_bytes()
+    monkeypatch.setattr(
+        pdf_divider_renderer,
+        "_service_image_bytes",
+        lambda content: png_bytes,
+    )
     doc = fitz.open()
     try:
         pdf_divider_renderer.render_divider_page(
@@ -43,7 +53,7 @@ def test_divider_renderer_embeds_service_image_before_text(monkeypatch):
             297 * 72 / 25.4,
         )
         assert doc.page_count == 1
-        assert doc[0].get_images(full=True)
+        assert len(doc[0].get_images(full=True)) == 1
     finally:
         doc.close()
 
