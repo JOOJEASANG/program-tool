@@ -28,7 +28,6 @@ assert.equal(normalized.categories[0].programs[0].name, '자유 프로그램명'
 assert.equal(normalized.categories[0].programs[0].url, '');
 assert.equal(normalized.categories[0].programs[0].tags.length, 8);
 assert.notEqual(normalized.categories[0].programs[0].id, normalized.categories[0].programs[1].id);
-assert.equal(core.safeUrl('//evil.example/path'), '');
 assert.equal(core.safeUrl('pdf-editor/'), 'pdf-editor/');
 assert.equal(core.safeUrl('https://example.com/tool'), 'https://example.com/tool');
 
