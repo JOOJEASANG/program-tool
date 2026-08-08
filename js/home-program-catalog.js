@@ -17,14 +17,14 @@
 
   function toHomeCategory(category) {
     return {
-      label: escapeHtml(category.name),
+      label: text(category.name),
       accent: category.accent,
-      title: escapeHtml(category.sectionTitle || category.name),
-      badge: escapeHtml(category.badge),
+      title: text(category.sectionTitle || category.name),
+      badge: text(category.badge),
       heroTitle: `${escapeHtml(category.heroTitle || category.name)}${category.heroAccent ? ` <span>${escapeHtml(category.heroAccent)}</span>` : ''}`,
-      lead: escapeHtml(category.lead),
+      lead: text(category.lead),
       copy: safeBreaks(category.copy),
-      visual: [escapeHtml(category.visualIcon || '🧰'), escapeHtml(category.visualTitle || category.name), escapeHtml(category.visualText)],
+      visual: [text(category.visualIcon || '🧰'), text(category.visualTitle || category.name), text(category.visualText)],
       programs: category.programs.map((program) => ({
         name: escapeHtml(program.name),
         icon: escapeHtml(program.icon || '🧰'),
