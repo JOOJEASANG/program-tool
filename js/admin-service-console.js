@@ -3,7 +3,7 @@
   'use strict';
   if (window.__adminServiceConsoleV1) return;
   window.__adminServiceConsoleV1 = true;
-  if (!/\/admin\.html$/.test(location.pathname)) return;
+  if (!/^\/admin(?:\.html)?\/?$/.test(location.pathname)) return;
 
   const KIND = 'library-image';
   const MAX = 15 * 1024 * 1024;

@@ -17,8 +17,8 @@
   }
 
   function loadScopedEnhancements(){
-    if(currentPath==='/admin.html'||currentPath.endsWith('/admin.html')){
-      loadScopedScript('adminServiceConsoleScriptV1','/js/admin-service-console.js?v=20260808-2');
+    if(currentPath==='/admin'||currentPath==='/admin.html'||currentPath.endsWith('/admin.html')){
+      loadScopedScript('adminServiceConsoleScriptV1','/js/admin-service-console.js?v=20260808-3');
     }
     if(
       currentPath==='/tools/perfect-binding-cover.html'||
