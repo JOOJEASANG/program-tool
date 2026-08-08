@@ -1,4 +1,4 @@
-// Keep cover template administration in the dedicated admin console.
+// Keep cover template administration out of the user-facing cover maker.
 (function () {
   'use strict';
   if (window.__coverTemplateAdminSeparationV1) return;
@@ -10,7 +10,6 @@
 
   function install() {
     const area = document.getElementById('adminTemplateArea');
-    const info = document.getElementById('coverTemplateInfo');
     const card = document.getElementById('templateCard');
     if (!area || !card) return false;
 
@@ -21,16 +20,7 @@
       control.disabled = true;
       control.dataset.adminConsoleOnly = '1';
     });
-
-    if (!document.getElementById('coverTemplateAdminConsoleNote')) {
-      const note = document.createElement('div');
-      note.id = 'coverTemplateAdminConsoleNote';
-      note.className = 'card-note';
-      note.style.marginTop = '7px';
-      note.textContent = '제공 이미지 등록·수정·삭제는 관리자 페이지의 “표지 템플릿” 메뉴에서 관리합니다.';
-      const refresh = document.getElementById('refreshCoverTemplates');
-      (refresh?.parentElement || info || card).insertAdjacentElement('afterend', note);
-    }
+    document.getElementById('coverTemplateAdminConsoleNote')?.remove();
 
     installed = true;
     document.documentElement.dataset.coverTemplateAdminSeparated = '1';
@@ -40,7 +30,7 @@
   window.CoverTemplateAdminSeparation = {
     install,
     get installed() { return installed; },
-    stage: 'admin-console-only-template-management',
+    stage: 'admin-service-console-only-template-management',
   };
 
   for (const delay of INSTALL_DELAYS) setTimeout(install, delay);

@@ -11,17 +11,20 @@ FIRESTORE_RULES = ROOT / "firestore.rules"
 STORAGE_RULES = ROOT / "storage.rules"
 
 
-def test_admin_cover_template_manager_is_loaded_only_on_relevant_surfaces():
+def test_legacy_manager_is_replaced_by_safe_service_console_on_relevant_surfaces():
     source = APP_VERSION.read_text(encoding="utf-8")
-    assert source.count("/js/admin-cover-template-manager.js") == 1
+    assert "/js/admin-cover-template-manager.js" not in source
+    assert "/js/admin-service-management.js" not in source
+    assert source.count("/js/admin-service-console.js") == 1
     assert source.count("/js/cover-template-admin-separation.js") == 1
+    assert source.count("/js/cover-provided-image-library.js") == 1
     assert "currentPath==='/admin.html'" in source
     assert "currentPath==='/tools/perfect-binding-cover.html'" in source
     assert "currentPath==='/perfect-binding-cover'" in source
     assert "currentPath.endsWith('/perfect-binding-cover/index.html')" in source
 
 
-def test_admin_cover_template_manager_has_dedicated_crud_and_safe_upload_contract():
+def test_legacy_admin_cover_template_manager_source_remains_compatible_for_existing_data():
     source = ADMIN_MODULE.read_text(encoding="utf-8")
     for marker in (
         "표지 제공 이미지 관리",
@@ -52,20 +55,20 @@ def test_admin_cover_template_manager_has_dedicated_crud_and_safe_upload_contrac
         assert forbidden not in source
 
 
-def test_cover_editor_keeps_only_user_facing_template_controls():
+def test_cover_editor_hides_legacy_admin_crud_without_showing_admin_instructions_to_members():
     source = SEPARATION_MODULE.read_text(encoding="utf-8")
     for marker in (
         "adminTemplateArea",
         "area.hidden = true",
         "area.style.display = 'none'",
         "control.disabled = true",
-        "관리자 페이지의 “표지 템플릿” 메뉴에서 관리합니다.",
-        "admin-console-only-template-management",
+        "coverTemplateAdminConsoleNote')?.remove()",
+        "admin-service-console-only-template-management",
     ):
         assert marker in source
-    assert "coverTemplateSelect" not in source
-    assert "applyCoverTemplate" not in source
-    assert "refreshCoverTemplates" in source
+    assert "관리자 페이지" not in source
+    assert "saveCoverTemplate" not in source
+    assert "deleteCoverTemplate" not in source
 
 
 def test_existing_firebase_rules_still_support_template_management():
@@ -81,7 +84,7 @@ def test_existing_firebase_rules_still_support_template_management():
     assert "request.resource.size <= 15728640" in storage
 
 
-def test_admin_cover_template_manager_behavior_executes():
+def test_legacy_admin_cover_template_manager_behavior_still_executes():
     result = subprocess.run(
         ["node", str(BEHAVIOR)],
         cwd=ROOT,
