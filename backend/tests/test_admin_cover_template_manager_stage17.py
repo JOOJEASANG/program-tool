@@ -11,17 +11,19 @@ FIRESTORE_RULES = ROOT / "firestore.rules"
 STORAGE_RULES = ROOT / "storage.rules"
 
 
-def test_legacy_manager_is_replaced_by_safe_service_console_on_relevant_surfaces():
+def test_legacy_manager_is_replaced_by_size_aware_service_image_surfaces():
     source = APP_VERSION.read_text(encoding="utf-8")
     assert "/js/admin-cover-template-manager.js" not in source
     assert "/js/admin-service-management.js" not in source
-    assert source.count("/js/admin-service-console.js") == 1
+    assert "/js/admin-service-console.js" not in source
+    assert source.count("/js/admin-service-image-library.js") == 1
     assert source.count("/js/cover-template-admin-separation.js") == 1
-    assert source.count("/js/cover-provided-image-library.js") == 1
+    assert source.count("/js/cover-service-image-library.js") == 1
+    assert source.count("/js/pdf-divider-service-image-library.js") == 1
+    assert "currentPath==='/admin'" in source
     assert "currentPath==='/admin.html'" in source
-    assert "currentPath==='/tools/perfect-binding-cover.html'" in source
-    assert "currentPath==='/perfect-binding-cover'" in source
-    assert "currentPath.endsWith('/perfect-binding-cover/index.html')" in source
+    assert "perfect-binding-cover" in source
+    assert "pdf-editor" in source
 
 
 def test_legacy_admin_cover_template_manager_source_remains_compatible_for_existing_data():
@@ -71,7 +73,7 @@ def test_cover_editor_hides_legacy_admin_crud_without_showing_admin_instructions
     assert "deleteCoverTemplate" not in source
 
 
-def test_existing_firebase_rules_still_support_template_management():
+def test_existing_firebase_rules_still_support_service_image_management():
     firestore = FIRESTORE_RULES.read_text(encoding="utf-8")
     storage = STORAGE_RULES.read_text(encoding="utf-8")
     assert "match /cover_templates/{templateId}" in firestore
