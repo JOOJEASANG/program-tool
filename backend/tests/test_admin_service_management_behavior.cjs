@@ -46,7 +46,9 @@ vm.runInContext(adminSource, adminContext, { filename: 'admin-service-management
 const adminApi = adminContext.AdminServiceManagement;
 assert.equal(adminApi.stage, 'service-console-cover-library');
 assert.equal(adminApi.kind, 'library-image');
-assert.deepEqual(adminApi.validateImageFile(null), { ok: true, message: '' });
+const emptyValidation = adminApi.validateImageFile(null);
+assert.equal(emptyValidation.ok, true);
+assert.equal(emptyValidation.message, '');
 assert.equal(adminApi.validateImageFile({ type: 'image/png', size: 1024 }).ok, true);
 assert.equal(adminApi.validateImageFile({ type: 'image/jpeg', size: 15 * 1024 * 1024 }).ok, true);
 assert.equal(adminApi.validateImageFile({ type: 'image/gif', size: 1024 }).ok, false);
@@ -72,6 +74,6 @@ vm.createContext(userContext);
 vm.runInContext(userSource, userContext, { filename: 'cover-provided-image-library.js' });
 assert.equal(userContext.CoverProvidedImageLibrary.stage, 'user-selectable-admin-image-library');
 assert.equal(userContext.CoverProvidedImageLibrary.kind, 'library-image');
-assert.deepEqual(userContext.CoverProvidedImageLibrary.images, []);
+assert.equal(userContext.CoverProvidedImageLibrary.images.length, 0);
 
 console.log('admin service management behavior passed');
