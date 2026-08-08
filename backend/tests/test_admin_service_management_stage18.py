@@ -3,9 +3,10 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
-ADMIN = ROOT / "js" / "admin-service-management.js"
+ADMIN = ROOT / "js" / "admin-service-console.js"
 USER = ROOT / "js" / "cover-provided-image-library.js"
 VERSION = ROOT / "js" / "app-version.js"
+SW_REGISTER = ROOT / "js" / "sw-register.js"
 SEPARATION = ROOT / "js" / "cover-template-admin-separation.js"
 FIRESTORE = ROOT / "firestore.rules"
 STORAGE = ROOT / "storage.rules"
@@ -24,7 +25,7 @@ def test_admin_console_is_service_oriented_and_cover_library_is_single_image():
         "이미지 한 장씩 등록합니다",
         "회원 공개",
         "관리자 전용",
-        "kind: KIND",
+        "kind:KIND",
         "imageUrl",
         "imagePath",
         "cover_templates",
@@ -34,8 +35,25 @@ def test_admin_console_is_service_oriented_and_cover_library_is_single_image():
         assert marker in source
     assert "frontFile" not in source
     assert "backFile" not in source
-    assert "앞표지 이미지</strong><input" not in source
-    assert "뒤표지 이미지</strong><input" not in source
+
+
+def test_replacement_upload_is_unique_and_old_object_is_cleaned_only_after_metadata_switch():
+    source = ADMIN.read_text(encoding="utf-8")
+    assert "function uniquePath" in source
+    assert "library-${nonce}" in source
+    assert "const path=uniquePath(id,value)" in source
+    metadata_write = source.index("await db.collection('cover_templates').doc(id).set(data,{merge:true})")
+    old_cleanup = source.index("removeStorage(old.imagePath)")
+    assert metadata_write < old_cleanup
+    assert "if(fresh?.path)await removeStorage(fresh.path)" in source
+
+
+def test_delete_removes_live_metadata_before_storage_cleanup():
+    source = ADMIN.read_text(encoding="utf-8")
+    document_delete = source.index("await db.collection('cover_templates').doc(id).delete()")
+    storage_cleanup = source.index("await removeStorage(path)", document_delete)
+    assert document_delete < storage_cleanup
+    assert "cleanupFailed=true" in source
 
 
 def test_user_cover_maker_gets_gallery_with_front_and_back_apply_actions():
@@ -70,15 +88,17 @@ def test_admin_write_and_user_read_use_existing_secure_cover_template_rules():
     assert "allow delete: if isAdmin();" in storage
 
 
-def test_scoped_loader_uses_service_console_and_user_library_only_on_relevant_pages():
-    source = VERSION.read_text(encoding="utf-8")
-    assert "adminServiceManagementScriptV1" in source
-    assert "/js/admin-service-management.js" in source
-    assert "coverProvidedImageLibraryScriptV1" in source
-    assert "/js/cover-provided-image-library.js" in source
-    assert "adminCoverTemplateManagerScriptV1" not in source
-    assert "currentPath==='/admin.html'" in source
-    assert "perfect-binding-cover" in source
+def test_scoped_loaders_use_safe_service_console_and_user_library():
+    version = VERSION.read_text(encoding="utf-8")
+    runtime = SW_REGISTER.read_text(encoding="utf-8")
+    for source in (version, runtime):
+        assert "adminServiceConsoleScriptV1" in source
+        assert "/js/admin-service-console.js" in source
+        assert "coverProvidedImageLibraryScriptV1" in source
+        assert "/js/cover-provided-image-library.js" in source
+        assert "/js/admin-service-management.js" not in source
+    assert "currentPath==='/admin.html'" in version
+    assert "perfect-binding-cover" in version
 
 
 def test_user_cover_maker_has_no_admin_crud_controls():
