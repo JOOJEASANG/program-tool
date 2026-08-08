@@ -11,10 +11,11 @@ FIRESTORE_RULES = ROOT / "firestore.rules"
 STORAGE_RULES = ROOT / "storage.rules"
 
 
-def test_legacy_manager_is_replaced_by_service_console_on_relevant_surfaces():
+def test_legacy_manager_is_replaced_by_safe_service_console_on_relevant_surfaces():
     source = APP_VERSION.read_text(encoding="utf-8")
     assert "/js/admin-cover-template-manager.js" not in source
-    assert source.count("/js/admin-service-management.js") == 1
+    assert "/js/admin-service-management.js" not in source
+    assert source.count("/js/admin-service-console.js") == 1
     assert source.count("/js/cover-template-admin-separation.js") == 1
     assert source.count("/js/cover-provided-image-library.js") == 1
     assert "currentPath==='/admin.html'" in source
