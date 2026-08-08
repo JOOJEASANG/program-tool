@@ -83,7 +83,7 @@
       tasks.push(load('homeHeaderFooterRefineScript','/js/home-header-footer-refine.js?v='+VERSION));
     }
     if(isPath('/admin.html')){
-      tasks.push(load('adminServiceManagementScriptV1','/js/admin-service-management.js?v=20260808-1'));
+      tasks.push(load('adminServiceConsoleScriptV1','/js/admin-service-console.js?v=20260808-2'));
     }
     if(isPath(
       '/tools/pdf-editor.html','/pdf-editor','/pdf-editor/index.html',
