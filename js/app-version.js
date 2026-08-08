@@ -5,6 +5,29 @@
   if(/^\/login(?:\.html)?\/?$/.test(location.pathname))return;
 
   const LOCAL_KEY='programStudioVersion';
+  const currentPath=location.pathname.replace(/\/+$/,'')||'/';
+
+  function loadScopedScript(id,src){
+    if(document.getElementById(id))return;
+    const script=document.createElement('script');
+    script.id=id;
+    script.src=src;
+    script.async=false;
+    document.head.appendChild(script);
+  }
+
+  function loadScopedEnhancements(){
+    if(currentPath==='/admin.html'||currentPath.endsWith('/admin.html')){
+      loadScopedScript('adminCoverTemplateManagerScriptV1','/js/admin-cover-template-manager.js?v=20260808-1');
+    }
+    if(
+      currentPath==='/tools/perfect-binding-cover.html'||
+      currentPath==='/perfect-binding-cover'||
+      currentPath.endsWith('/perfect-binding-cover/index.html')
+    ){
+      loadScopedScript('coverTemplateAdminSeparationScriptV1','/js/cover-template-admin-separation.js?v=20260808-1');
+    }
+  }
 
   async function check(){
     try{
@@ -37,6 +60,7 @@
     }
   }
 
+  loadScopedEnhancements();
   if(document.readyState==='loading'){
     document.addEventListener('DOMContentLoaded',check,{once:true});
   }else{
