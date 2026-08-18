@@ -80,7 +80,11 @@
     const tasks=[];
     if(!isAuthPage())tasks.push(load('appVersionHelperScript','/js/app-version.js?v=20260818-3'));
     if(isHome()){
-      tasks.push(loadCatalogCore().then(()=>load('homeProgramCatalogScriptV1','/js/home-program-catalog.js?v=20260808-1')));
+      tasks.push(
+        loadCatalogCore()
+          .then(()=>load('homeProgramCatalogScriptV1','/js/home-program-catalog.js?v=20260808-1'))
+          .then(()=>load('homePdfUtilityNameSyncScriptV1','/js/home-pdf-utility-name-sync.js?v=20260818-1'))
+      );
       tasks.push(load('homeHeroUpgradeScript','/js/home-hero-upgrade.js?v='+VERSION));
       tasks.push(load('homeHeaderFooterRefineScript','/js/home-header-footer-refine.js?v='+VERSION));
     }
@@ -115,7 +119,7 @@
       tasks.push(
         Promise.all([finalGuard,panelBalance])
           .then(()=>load('pdfUtilityScriptV1','/js/pdf-utility.js?v=20260818-1'))
-          .then(()=>load('pdfUtilityFinalizeScriptV1','/js/pdf-utility-finalize.js?v=20260818-2'))
+          .then(()=>load('pdfUtilityFinalizeScriptV1','/js/pdf-utility-finalize.js?v=20260818-3'))
       );
     }
     if(isPath('/tools/perfect-binding-cover.html','/perfect-binding-cover','/perfect-binding-cover/index.html')){
