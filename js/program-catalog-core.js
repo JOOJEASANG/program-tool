@@ -7,6 +7,7 @@
   const DEFAULT_CATEGORY_ACCENT = '#1769e0';
   const DEFAULT_PROGRAM_ACCENT = '#1769e0';
   const DEFAULT_PROGRAM_BG = '#eef7ff';
+  const LEGACY_PDF_UTILITY_NAMES = new Set(['PDF 인쇄 검수', 'PDF 검사']);
 
   const DEFAULT_CATALOG = {
     version: 1,
@@ -19,7 +20,7 @@
         visualIcon: '🖨️', visualTitle: '인쇄 작업 준비', visualText: '파일 규격과 출력 조건을 빠르게 점검합니다.',
         programs: [
           { id: 'pdf-editor', name: 'PDF 편집기', icon: '📄', accent: '#f08b32', bg: '#fff3e7', desc: '페이지 편집, N-up, 소책자, 간지, 워터마크와 페이지 번호를 한 번에 처리합니다.', url: 'pdf-editor/', tags: ['페이지 편집','N-up','소책자'], status: 'active', visible: true },
-          { id: 'pdf-preflight', name: 'PDF 인쇄 검수', icon: '🔍', accent: '#18a47a', bg: '#eafaf3', desc: '출력 전 문서 상태와 암호를 확인하고 인쇄 문제를 미리 점검합니다.', url: 'pdf-preflight/', tags: ['검수','암호','출력 준비'], status: 'active', visible: true },
+          { id: 'pdf-preflight', name: 'PDF유틸리티', icon: '🧰', accent: '#18a47a', bg: '#eafaf3', desc: '최대 10개 PDF 일괄 검수, 합치기, 배경색 제거, 용량 줄이기, 복구와 암호 작업을 한 곳에서 처리합니다.', url: 'pdf-preflight/', tags: ['PDF 검수','PDF 합치기','배경 제거','용량 줄이기','PDF 복구','암호'], status: 'active', visible: true },
           { id: 'perfect-binding-cover', name: '책표지제작', icon: '📚', accent: '#5969dc', bg: '#edf1ff', desc: '책등 폭과 재단 여백을 계산해 앞표지·책등·뒤표지가 연결된 전체 표지를 만듭니다.', url: 'perfect-binding-cover/', tags: ['책등 계산','재단 여백','전체 표지'], status: 'active', visible: true },
           { id: 'label-layout', name: '라벨·스티커 배치', icon: '🏷️', accent: '#38a376', bg: '#eefaf4', desc: '라벨 용지 규격에 맞춰 여러 개의 라벨을 자동 배치합니다.', url: '', tags: ['라벨','자동 배치'], status: 'coming', visible: true }
         ]
@@ -85,9 +86,13 @@
     let id = slug(item.id || item.name, 'program');
     while (usedIds.has(id)) id = `${id}-${Math.random().toString(36).slice(2, 6)}`;
     usedIds.add(id);
+    const originalName = text(item.name, 80) || '새 프로그램';
+    const name = id === 'pdf-preflight' && LEGACY_PDF_UTILITY_NAMES.has(originalName)
+      ? 'PDF유틸리티'
+      : originalName;
     return {
       id,
-      name: text(item.name, 80) || '새 프로그램',
+      name,
       icon: text(item.icon, 12) || '🧰',
       accent: color(item.accent, DEFAULT_PROGRAM_ACCENT),
       bg: color(item.bg, DEFAULT_PROGRAM_BG),
