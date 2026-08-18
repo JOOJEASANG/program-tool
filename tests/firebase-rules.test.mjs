@@ -7,11 +7,14 @@ import {
 } from '@firebase/rules-unit-testing';
 import {
   collection,
+  deleteDoc,
   doc,
+  getDoc,
   getDocs,
   orderBy,
   query,
   setDoc,
+  updateDoc,
   where,
 } from 'firebase/firestore';
 import {
@@ -53,26 +56,33 @@ async function seedApprovedUser(uid = 'approved-user') {
     );
     await setDoc(
       doc(context.firestore(), 'cover_templates', 'public-template'),
-      { name: '공개 템플릿', isPublic: true }
+      { name: '이전 공개 템플릿', isPublic: true }
     );
     await setDoc(
       doc(context.firestore(), 'cover_templates', 'private-template'),
-      { name: '비공개 템플릿', isPublic: false }
+      { name: '이전 비공개 템플릿', isPublic: false }
+    );
+    await uploadString(
+      ref(context.storage(), 'cover_templates/public-template/legacy.png'),
+      'legacy-image',
+      'raw',
+      { contentType: 'image/png' }
     );
   });
 }
 
-test('approved users must constrain cover template queries to public documents', async () => {
+test('approved users cannot read retired administrator-provided image records', async () => {
   await seedApprovedUser();
   const db = env.authenticatedContext(
     'approved-user',
     { email: 'approved@example.com' }
   ).firestore();
 
+  await assertFails(getDoc(doc(db, 'cover_templates', 'public-template')));
   await assertFails(
     getDocs(query(collection(db, 'cover_templates'), orderBy('name')))
   );
-  await assertSucceeds(
+  await assertFails(
     getDocs(query(
       collection(db, 'cover_templates'),
       where('isPublic', '==', true),
@@ -81,19 +91,66 @@ test('approved users must constrain cover template queries to public documents',
   );
 });
 
-test('unapproved users cannot read public cover templates', async () => {
+test('members cannot create or update retired administrator-provided image records', async () => {
   await seedApprovedUser();
   const db = env.authenticatedContext(
-    'pending-user',
-    { email: 'pending@example.com' }
+    'approved-user',
+    { email: 'approved@example.com' }
   ).firestore();
+
   await assertFails(
-    getDocs(query(
-      collection(db, 'cover_templates'),
-      where('isPublic', '==', true),
-      orderBy('name')
-    ))
+    setDoc(doc(db, 'cover_templates', 'new-template'), { name: '새 제공 이미지', isPublic: true })
   );
+  await assertFails(
+    updateDoc(doc(db, 'cover_templates', 'public-template'), { name: '변경 시도' })
+  );
+});
+
+test('administrators can inspect and delete retired records but cannot create replacements', async () => {
+  await seedApprovedUser();
+  const db = env.authenticatedContext(
+    'admin-user',
+    { email: 'admin@example.com', admin: true }
+  ).firestore();
+
+  await assertSucceeds(getDoc(doc(db, 'cover_templates', 'public-template')));
+  await assertFails(
+    setDoc(doc(db, 'cover_templates', 'replacement-template'), { name: '새 제공 이미지', isPublic: true })
+  );
+  await assertSucceeds(deleteDoc(doc(db, 'cover_templates', 'private-template')));
+});
+
+test('retired provider storage is not member-readable or writable and remains admin-deletable', async () => {
+  await seedApprovedUser();
+  const memberStorage = env.authenticatedContext(
+    'approved-user',
+    { email: 'approved@example.com' }
+  ).storage();
+  const adminStorage = env.authenticatedContext(
+    'admin-user',
+    { email: 'admin@example.com', admin: true }
+  ).storage();
+  const path = 'cover_templates/public-template/legacy.png';
+
+  await assertFails(getBytes(ref(memberStorage, path)));
+  await assertFails(
+    uploadString(
+      ref(memberStorage, 'cover_templates/public-template/member.png'),
+      'member-image',
+      'raw',
+      { contentType: 'image/png' }
+    )
+  );
+  await assertSucceeds(getBytes(ref(adminStorage, path)));
+  await assertFails(
+    uploadString(
+      ref(adminStorage, 'cover_templates/public-template/replacement.png'),
+      'admin-image',
+      'raw',
+      { contentType: 'image/png' }
+    )
+  );
+  await assertSucceeds(deleteObject(ref(adminStorage, path)));
 });
 
 test('temporary PDF input is owner-only and bounded to the expected path shape', async () => {

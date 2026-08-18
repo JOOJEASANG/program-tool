@@ -36,22 +36,21 @@
     }
     if(currentPath==='/admin'||currentPath==='/admin.html'||currentPath.endsWith('/admin.html')){
       loadCatalogScripts('admin');
-      loadScopedScript('adminServiceImageLibraryScriptV2','/js/admin-service-image-library.js?v=20260808-1');
     }
     if(
       currentPath==='/tools/pdf-editor.html'||
       currentPath==='/pdf-editor'||
       currentPath.endsWith('/pdf-editor/index.html')
     ){
-      loadScopedScript('pdfDividerServiceImageLibraryScriptV1','/js/pdf-divider-service-image-library.js?v=20260808-1');
+      loadScopedScript('pdfDividerLocalImageUploadScriptV1','/js/pdf-divider-local-image-upload.js?v=20260818-1');
     }
     if(
       currentPath==='/tools/perfect-binding-cover.html'||
       currentPath==='/perfect-binding-cover'||
       currentPath.endsWith('/perfect-binding-cover/index.html')
     ){
-      loadScopedScript('coverTemplateAdminSeparationScriptV1','/js/cover-template-admin-separation.js?v=20260808-2');
-      loadScopedScript('coverServiceImageLibraryScriptV2','/js/cover-service-image-library.js?v=20260808-1');
+      loadScopedScript('coverTemplateAdminSeparationScriptV1','/js/cover-template-admin-separation.js?v=20260818-1');
+      loadScopedScript('coverLocalImageUploadScriptV1','/js/cover-local-image-upload.js?v=20260818-1');
     }
   }
 

@@ -1,3 +1,5 @@
+import base64
+import json
 from pathlib import Path
 
 import fitz
@@ -10,7 +12,6 @@ RENDERER = ROOT / "backend" / "services" / "pdf_divider_renderer.py"
 
 
 def _valid_png_bytes() -> bytes:
-    """Build a PNG using the same PyMuPDF version used by the renderer."""
     image_doc = fitz.open()
     try:
         page = image_doc.new_page(width=24, height=24)
@@ -20,34 +21,49 @@ def _valid_png_bytes() -> bytes:
         image_doc.close()
 
 
-def test_service_image_loader_requires_exact_public_pdf_divider_document_contract():
+def _data_url(raw: bytes) -> str:
+    return "data:image/png;base64," + base64.b64encode(raw).decode("ascii")
+
+
+def test_renderer_accepts_only_inline_user_image_data():
     source = RENDERER.read_text(encoding="utf-8")
     for marker in (
-        "SERVICE_IMAGE_PATH_RE",
-        "match.group(1) != image_id",
-        'collection("cover_templates").document(image_id).get()',
-        'data.get("kind") != "service-image-v2"',
-        'data.get("isPublic") is not True',
-        '"pdf-divider" not in targets',
-        'str(data.get("imagePath") or "") != image_path',
-        "MAX_SERVICE_IMAGE_BYTES",
-        "blob.download_as_bytes()",
+        "MAX_LOCAL_IMAGE_BYTES",
+        "LOCAL_IMAGE_DATA_RE",
+        'content.get("localImageDataUrl")',
+        "base64.b64decode",
+        "validate=True",
+        "page.insert_image",
     ):
         assert marker in source
+    for forbidden in (
+        "cover_templates",
+        "service-image-v2",
+        "serviceImageId",
+        "serviceImagePath",
+        "firebase_admin",
+        "fa_storage",
+        "fa_firestore",
+    ):
+        assert forbidden not in source
 
 
-def test_divider_renderer_embeds_service_image_before_text(monkeypatch):
+def test_divider_renderer_embeds_user_uploaded_image_before_text():
     png_bytes = _valid_png_bytes()
-    monkeypatch.setattr(
-        pdf_divider_renderer,
-        "_service_image_bytes",
-        lambda content: png_bytes,
+    content = json.dumps(
+        {
+            "title": "간지",
+            "fg": "#ffffff",
+            "localImageDataUrl": _data_url(png_bytes),
+            "localImageName": "my-divider.png",
+        },
+        ensure_ascii=False,
     )
     doc = fitz.open()
     try:
         pdf_divider_renderer.render_divider_page(
             doc,
-            '{"title":"간지","fg":"#ffffff","serviceImageId":"abc","serviceImagePath":"cover_templates/abc/service-x.png"}',
+            content,
             "simple",
             210 * 72 / 25.4,
             297 * 72 / 25.4,
@@ -58,17 +74,21 @@ def test_divider_renderer_embeds_service_image_before_text(monkeypatch):
         doc.close()
 
 
-def test_divider_service_image_falls_back_to_normal_background_when_unavailable(monkeypatch):
-    monkeypatch.setattr(pdf_divider_renderer, "_service_image_bytes", lambda content: None)
+def test_invalid_inline_image_is_ignored_safely():
+    assert pdf_divider_renderer._local_image_bytes({"localImageDataUrl": "https://example.com/a.png"}) is None
+    assert pdf_divider_renderer._local_image_bytes({"localImageDataUrl": "data:image/gif;base64,AAAA"}) is None
+    assert pdf_divider_renderer._local_image_bytes({"localImageDataUrl": "data:image/png;base64,%%%"}) is None
+
     doc = fitz.open()
     try:
         pdf_divider_renderer.render_divider_page(
             doc,
-            '{"title":"기본 간지","noBg":false,"bg":"#12396d","fg":"#ffffff"}',
+            '{"title":"기본 간지","noBg":false,"bg":"#12396d","fg":"#ffffff","localImageDataUrl":"https://example.com/a.png"}',
             "simple",
             210 * 72 / 25.4,
             297 * 72 / 25.4,
         )
         assert doc.page_count == 1
+        assert len(doc[0].get_images(full=True)) == 0
     finally:
         doc.close()

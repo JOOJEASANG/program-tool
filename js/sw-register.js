@@ -78,7 +78,7 @@
 
   function helpers(){
     const tasks=[];
-    if(!isAuthPage())tasks.push(load('appVersionHelperScript','/js/app-version.js?v=20260808-6'));
+    if(!isAuthPage())tasks.push(load('appVersionHelperScript','/js/app-version.js?v=20260818-1'));
     if(isHome()){
       tasks.push(loadCatalogCore().then(()=>load('homeProgramCatalogScriptV1','/js/home-program-catalog.js?v=20260808-1')));
       tasks.push(load('homeHeroUpgradeScript','/js/home-hero-upgrade.js?v='+VERSION));
@@ -87,7 +87,6 @@
     if(isPath('/admin','/admin.html')){
       tasks.push(loadCatalogCore().then(()=>load('adminProgramCatalogManagerScriptV1','/js/admin-program-catalog-manager.js?v=20260808-1')));
       tasks.push(load('adminProgramIconPaletteScriptV1','/js/admin-program-icon-palette.js?v=20260808-1'));
-      tasks.push(load('adminServiceImageLibraryScriptV2','/js/admin-service-image-library.js?v=20260808-1'));
     }
     if(isPath(
       '/tools/pdf-editor.html','/pdf-editor','/pdf-editor/index.html',
@@ -106,7 +105,7 @@
       tasks.push(load('pdfViewportLazyPreviewScriptV1','/js/pdf-editor/viewport-lazy-preview.js?v=20260806-1'));
       tasks.push(load('pdfViewportLazyPreviewGuardScriptV1','/js/pdf-editor/viewport-lazy-preview-guard.js?v=20260806-1'));
       tasks.push(load('pdfFileNavigationScriptV1','/js/pdf-editor/file-navigation.js?v=20260806-1'));
-      tasks.push(load('pdfDividerServiceImageLibraryScriptV1','/js/pdf-divider-service-image-library.js?v=20260808-1'));
+      tasks.push(load('pdfDividerLocalImageUploadScriptV1','/js/pdf-divider-local-image-upload.js?v=20260818-1'));
     }
     if(isPath('/tools/pdf-Checker.html','/tools/preflight.html','/pdf-preflight','/pdf-preflight/index.html')){
       tasks.push(load('pdfCheckerFinalGuardScript','/js/pdf-checker-final-guard.js?v='+VERSION));
@@ -132,9 +131,9 @@
       tasks.push(load('coverRuntimeSafetyScriptV1','/js/cover-runtime-safety.js?v=20260805-1'));
       tasks.push(load('coverTextCanvasControlsScriptV1','/js/cover-text-canvas-controls.js?v=20260806-1'));
       tasks.push(load('coverEditHistoryScriptV1','/js/cover-edit-history.js?v=20260806-1'));
-      tasks.push(load('coverServiceImageLibraryScriptV2','/js/cover-service-image-library.js?v=20260808-1'));
+      tasks.push(load('coverLocalImageUploadScriptV1','/js/cover-local-image-upload.js?v=20260818-1'));
       tasks.push(load('coverRenderPipelineContractScriptV1','/js/cover-render-pipeline-contract.js?v=20260806-1'));
-      tasks.push(load('coverTemplateAdminSeparationScriptV1','/js/cover-template-admin-separation.js?v=20260808-2'));
+      tasks.push(load('coverTemplateAdminSeparationScriptV1','/js/cover-template-admin-separation.js?v=20260818-1'));
     }
     return Promise.allSettled(tasks);
   }
