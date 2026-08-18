@@ -57,6 +57,15 @@
     document.head.appendChild(script);
   }
 
+  function loadCostGuard() {
+    if (document.getElementById('pdfUtilityCostGuardScriptV2')) return;
+    const script = document.createElement('script');
+    script.id = 'pdfUtilityCostGuardScriptV2';
+    script.src = '/js/pdf-utility-cost-guard-v2.js?v=20260818-1';
+    script.async = false;
+    document.head.appendChild(script);
+  }
+
   function finalize() {
     attempts += 1;
     const utility = window.PdfUtility;
@@ -78,7 +87,7 @@
     const hero = document.querySelector('.hero p');
     if (hero) hero.textContent = '여러 PDF를 한 번에 검사하고, 합치기·배경색 제거·용량 줄이기·복구·암호 작업까지 한 곳에서 처리하세요.';
     const uploadSub = document.querySelector('.upload-sub');
-    if (uploadSub) uploadSub.innerHTML = '클릭하거나 여러 PDF를 끌어다 놓으세요.<br>최대 10개 · 전체 합계 200MB · PDF 형식만 지원';
+    if (uploadSub) uploadSub.innerHTML = '클릭하거나 여러 PDF를 끌어다 놓으세요.<br>최대 10개 · 파일당/전체 합계 500MB · PDF 형식만 지원';
     const input = document.getElementById('fileInput');
     if (input) {
       input.multiple = true;
@@ -91,6 +100,7 @@
     window.runCheck = utility.runBatchCheck;
     document.documentElement.dataset.pdfUtilityFinalized = '1';
     loadWideLayout();
+    loadCostGuard();
   }
 
   finalize();
