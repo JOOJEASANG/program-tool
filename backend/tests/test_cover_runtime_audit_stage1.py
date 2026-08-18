@@ -107,5 +107,6 @@ def test_cover_audit_records_current_runtime_debt_and_retired_sources():
     assert "jspdf.umd.min.js" not in direct
     assert "visual-color-palette" in cmyk
     assert "cover-color-palette" in refine
-    assert "snapshotCurrent()" in templates
+    assert "template-ui-retired" in templates
+    assert "snapshotCurrent()" not in templates
     assert "window.coverImageEffects" in image_tools
