@@ -1,52 +1,72 @@
-// Keep legacy administrator-provided cover template controls out of the user-facing cover maker.
+// Remove retired administrator-provided cover image controls from the user-facing cover maker.
 (function () {
   'use strict';
-  if (window.__coverTemplateAdminSeparationV1) return;
-  window.__coverTemplateAdminSeparationV1 = true;
+  if (window.__coverTemplateAdminSeparationV2) return;
+  window.__coverTemplateAdminSeparationV2 = true;
   if (!location.pathname.includes('perfect-binding-cover')) return;
 
-  const INSTALL_DELAYS = [700, 1200, 1800, 2500, 3300];
+  const INSTALL_DELAYS = [100, 350, 800, 1400, 2300];
   let installed = false;
 
-  function hideElement(element) {
-    if (!element) return;
-    element.hidden = true;
-    element.style.display = 'none';
-    element.setAttribute('aria-hidden', 'true');
-    element.querySelectorAll?.('input,select,button').forEach((control) => {
-      control.disabled = true;
-      control.dataset.legacyProvidedImageDisabled = '1';
-    });
+  function removeLegacyProviderUi() {
+    let removed = false;
+    const select = document.getElementById('coverTemplateSelect');
+    const providerBlock = select?.closest('div[style*="border-top"]');
+    if (providerBlock) {
+      providerBlock.remove();
+      removed = true;
+    }
+
+    for (const id of [
+      'adminTemplateArea',
+      'coverProvidedImageLibraryPanel',
+      'coverServiceImagePanel',
+      'coverTemplateAdminConsoleNote',
+    ]) {
+      const element = document.getElementById(id);
+      if (element) {
+        element.remove();
+        removed = true;
+      }
+    }
+
+    for (const id of ['applyCoverTemplate', 'refreshCoverTemplates']) {
+      const button = document.getElementById(id);
+      if (button?.parentElement) {
+        button.parentElement.remove();
+        removed = true;
+      } else if (button) {
+        button.remove();
+        removed = true;
+      }
+    }
+
+    document.getElementById('coverTemplateInfo')?.remove();
+    document.documentElement.dataset.coverLegacyProvidedImagesRemoved = '1';
+    installed = installed || removed;
+    return removed;
   }
 
   function install() {
-    const area = document.getElementById('adminTemplateArea');
-    const select = document.getElementById('coverTemplateSelect');
-    const provided = document.getElementById('coverProvidedImageLibraryPanel');
-    const service = document.getElementById('coverServiceImagePanel');
-
-    hideElement(area);
-    hideElement(select?.closest('.field'));
-    hideElement(provided);
-    hideElement(service);
-
-    const apply = document.getElementById('applyCoverTemplate');
-    const refresh = document.getElementById('refreshCoverTemplates');
-    if (apply?.parentElement) hideElement(apply.parentElement);
-    if (refresh?.parentElement) hideElement(refresh.parentElement);
-    hideElement(document.getElementById('coverTemplateInfo'));
-    document.getElementById('coverTemplateAdminConsoleNote')?.remove();
-
-    installed = Boolean(area || select || provided || service);
-    document.documentElement.dataset.coverLegacyProvidedImagesDisabled = '1';
-    return installed;
+    removeLegacyProviderUi();
+    return true;
   }
 
   window.CoverTemplateAdminSeparation = {
     install,
+    removeLegacyProviderUi,
     get installed() { return installed; },
-    stage: 'legacy-provided-cover-images-disabled',
+    stage: 'legacy-provided-cover-images-removed',
   };
 
   for (const delay of INSTALL_DELAYS) setTimeout(install, delay);
+
+  const observer = new MutationObserver(() => removeLegacyProviderUi());
+  const startObserver = () => {
+    if (!document.body) return;
+    observer.observe(document.body, { childList: true, subtree: true });
+    setTimeout(() => observer.disconnect(), 5000);
+  };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', startObserver, { once: true });
+  else startObserver();
 })();

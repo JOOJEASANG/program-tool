@@ -78,7 +78,7 @@
 
   function helpers(){
     const tasks=[];
-    if(!isAuthPage())tasks.push(load('appVersionHelperScript','/js/app-version.js?v=20260818-1'));
+    if(!isAuthPage())tasks.push(load('appVersionHelperScript','/js/app-version.js?v=20260818-2'));
     if(isHome()){
       tasks.push(loadCatalogCore().then(()=>load('homeProgramCatalogScriptV1','/js/home-program-catalog.js?v=20260808-1')));
       tasks.push(load('homeHeroUpgradeScript','/js/home-hero-upgrade.js?v='+VERSION));
@@ -131,9 +131,9 @@
       tasks.push(load('coverRuntimeSafetyScriptV1','/js/cover-runtime-safety.js?v=20260805-1'));
       tasks.push(load('coverTextCanvasControlsScriptV1','/js/cover-text-canvas-controls.js?v=20260806-1'));
       tasks.push(load('coverEditHistoryScriptV1','/js/cover-edit-history.js?v=20260806-1'));
-      tasks.push(load('coverLocalImageUploadScriptV1','/js/cover-local-image-upload.js?v=20260818-1'));
+      tasks.push(load('coverLocalImageUploadScriptV1','/js/cover-local-image-upload.js?v=20260818-2'));
       tasks.push(load('coverRenderPipelineContractScriptV1','/js/cover-render-pipeline-contract.js?v=20260806-1'));
-      tasks.push(load('coverTemplateAdminSeparationScriptV1','/js/cover-template-admin-separation.js?v=20260818-1'));
+      tasks.push(load('coverTemplateAdminSeparationScriptV1','/js/cover-template-admin-separation.js?v=20260818-2'));
     }
     return Promise.allSettled(tasks);
   }

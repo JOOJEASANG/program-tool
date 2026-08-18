@@ -49,8 +49,8 @@
       currentPath==='/perfect-binding-cover'||
       currentPath.endsWith('/perfect-binding-cover/index.html')
     ){
-      loadScopedScript('coverTemplateAdminSeparationScriptV1','/js/cover-template-admin-separation.js?v=20260818-1');
-      loadScopedScript('coverLocalImageUploadScriptV1','/js/cover-local-image-upload.js?v=20260818-1');
+      loadScopedScript('coverTemplateAdminSeparationScriptV1','/js/cover-template-admin-separation.js?v=20260818-2');
+      loadScopedScript('coverLocalImageUploadScriptV1','/js/cover-local-image-upload.js?v=20260818-2');
     }
   }
 
