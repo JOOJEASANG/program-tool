@@ -104,7 +104,7 @@ def test_pdf_utility_runtime_loads_after_existing_preflight_guards():
     assert "Promise.all([finalGuard,panelBalance])" in source
     assert "/js/pdf-utility.js?v=20260818-1" in source
     assert "pdfUtilityFinalizeScriptV1" in source
-    assert "/js/pdf-utility-finalize.js?v=20260818-1" in source
+    assert "/js/pdf-utility-finalize.js?v=20260818-2" in source
     assert "pdfToolsResetBelowStyle" in finalizer
     assert "wrapBusyState" in finalizer
     assert "MutationObserver" in finalizer
