@@ -17,6 +17,7 @@ FRONTEND = ROOT / "js" / "pdf-utility.js"
 SW_REGISTER = ROOT / "js" / "sw-register.js"
 CATALOG = ROOT / "js" / "program-catalog-core.js"
 MAIN = ROOT / "backend" / "main.py"
+PERMISSIONS = ROOT / "backend" / "utils" / "permissions.py"
 REQUIREMENTS = ROOT / "backend" / "requirements.txt"
 
 
@@ -62,15 +63,17 @@ def test_background_cleanup_keeps_page_count_and_whitens_light_background():
         doc.close()
 
 
-def test_pdf_utility_limits_and_routes_are_bounded():
+def test_pdf_utility_limits_routes_and_access_are_bounded():
     assert MAX_FILES == 10
     assert MAX_TOTAL_BYTES == 200 * 1024 * 1024
     assert MAX_TOTAL_PAGES == 1000
     assert BACKGROUND_DPI == 180
 
-    source = MAIN.read_text(encoding="utf-8")
-    assert "from routers.pdf_utility import pdf_utility_bp" in source
-    assert 'url_prefix="/api/pdf-utility"' in source
+    main = MAIN.read_text(encoding="utf-8")
+    permissions = PERMISSIONS.read_text(encoding="utf-8")
+    assert "from routers.pdf_utility import pdf_utility_bp" in main
+    assert 'url_prefix="/api/pdf-utility"' in main
+    assert '("/api/pdf-utility", "preflight")' in permissions
 
 
 def test_pdf_utility_frontend_has_batch_merge_background_and_single_file_tools():
