@@ -21,27 +21,25 @@ def test_legacy_admin_cover_image_manager_is_removed():
     assert source.count("/js/cover-local-image-upload.js") == 1
 
 
-def test_cover_template_manager_has_no_provider_image_template_or_firebase_crud():
+def test_cover_template_sidebar_is_fully_retired():
     source = TEMPLATE_MANAGER.read_text(encoding="utf-8")
     for forbidden in (
+        "기본 스타일 프리셋",
+        "내 작업 템플릿",
         "관리자 제공 이미지 템플릿",
-        "coverTemplateSelect",
-        "applyCoverTemplate",
-        "refreshCoverTemplates",
-        "adminTemplateArea",
-        "cover_templates",
         "firebase.storage",
         "db.collection",
-        "loadTemplates",
+        "localStorage",
         "saveTemplate",
-        "deleteTemplate",
+        "applyTemplate",
     ):
         assert forbidden not in source
     for marker in (
-        "기본 스타일 프리셋",
-        "내 작업 템플릿",
-        "이미지 파일은 저장되지 않습니다",
-        "local-presets-only",
+        "templateCard",
+        "표지 템플릿",
+        "제공 이미지 템플릿",
+        "removeTemplateUi",
+        "template-ui-retired",
     ):
         assert marker in source
 
