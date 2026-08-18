@@ -19,7 +19,11 @@ from firebase_functions import https_fn, options, scheduler_fn
 from flask import Flask, g, jsonify, request
 from werkzeug.exceptions import MethodNotAllowed, NotFound, RequestEntityTooLarge
 
+import routers.pdf as pdf_router
+import routers.pdf_utility as pdf_utility_router
+import routers.preflight as preflight_router
 from routers.pdf import pdf_bp
+from routers.pdf_large_security import pdf_large_security_bp
 from routers.pdf_tools import pdf_tools_bp
 from routers.pdf_utility import pdf_utility_bp
 from routers.preflight import preflight_bp
@@ -29,6 +33,21 @@ from utils.permissions import AccessError, require_program_access_for_request
 flask_app = Flask(__name__)
 logger = logging.getLogger(__name__)
 REQUEST_ID_PATTERN = re.compile(r"^[A-Za-z0-9._-]{8,64}$")
+PDF_STORAGE_TRANSFER_BYTES = 500 * 1024 * 1024
+
+# One shared upper bound for Storage-backed PDF input/output. Direct multipart
+# requests intentionally stay small; large files go directly through Storage.
+pdf_router.MAX_PDF_FILE_BYTES = PDF_STORAGE_TRANSFER_BYTES
+pdf_router.MAX_TOTAL_PDF_BYTES = PDF_STORAGE_TRANSFER_BYTES
+preflight_router.MAX_STORAGE_PDF_BYTES = PDF_STORAGE_TRANSFER_BYTES
+pdf_utility_router.MAX_FILE_BYTES = PDF_STORAGE_TRANSFER_BYTES
+pdf_utility_router.MAX_TOTAL_BYTES = PDF_STORAGE_TRANSFER_BYTES
+
+# Background raster work is intentionally more conservative than simple
+# transfer/merge work because every page consumes CPU and memory.
+pdf_utility_router.MAX_BACKGROUND_PAGES = 100
+pdf_utility_router.MAX_BACKGROUND_PIXELS = 90_000_000
+pdf_utility_router.BACKGROUND_DPI = 160
 
 # Large PDFs use Firebase Storage. Direct multipart requests remain below the
 # Cloud Functions request/response quota with a small boundary allowance.
@@ -36,6 +55,7 @@ flask_app.config["MAX_CONTENT_LENGTH"] = 25 * 1024 * 1024
 flask_app.register_blueprint(pdf_bp, url_prefix="/api/pdf")
 flask_app.register_blueprint(pdf_tools_bp, url_prefix="/api/pdf-tools")
 flask_app.register_blueprint(pdf_utility_bp, url_prefix="/api/pdf-utility")
+flask_app.register_blueprint(pdf_large_security_bp, url_prefix="/api/pdf-utility")
 flask_app.register_blueprint(preflight_bp, url_prefix="/api/preflight")
 
 
