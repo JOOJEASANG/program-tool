@@ -14,6 +14,7 @@ from routers.pdf_utility import (
 
 ROOT = Path(__file__).resolve().parents[2]
 FRONTEND = ROOT / "js" / "pdf-utility.js"
+FINALIZER = ROOT / "js" / "pdf-utility-finalize.js"
 SW_REGISTER = ROOT / "js" / "sw-register.js"
 CATALOG = ROOT / "js" / "program-catalog-core.js"
 MAIN = ROOT / "backend" / "main.py"
@@ -97,10 +98,18 @@ def test_pdf_utility_frontend_has_batch_merge_background_and_single_file_tools()
 
 def test_pdf_utility_runtime_loads_after_existing_preflight_guards():
     source = SW_REGISTER.read_text(encoding="utf-8")
+    finalizer = FINALIZER.read_text(encoding="utf-8")
     assert "pdfCheckerFinalGuardScript" in source
     assert "pdfPreflightPanelBalanceScript" in source
-    assert "Promise.all([finalGuard,panelBalance]).then" in source
+    assert "Promise.all([finalGuard,panelBalance])" in source
     assert "/js/pdf-utility.js?v=20260818-1" in source
+    assert "pdfUtilityFinalizeScriptV1" in source
+    assert "/js/pdf-utility-finalize.js?v=20260818-1" in source
+    assert "pdfToolsResetBelowStyle" in finalizer
+    assert "wrapBusyState" in finalizer
+    assert "MutationObserver" in finalizer
+    assert "window.runCheck = utility.runBatchCheck" in finalizer
+    assert "최대 10개 일괄 검수" in finalizer
 
 
 def test_pdf_utility_name_migrates_legacy_catalog_entry():
