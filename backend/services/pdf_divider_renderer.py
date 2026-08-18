@@ -1,6 +1,8 @@
 """Render divider pages with the same fields used by the browser editor."""
 from __future__ import annotations
 
+import base64
+import binascii
 import re
 
 import fitz
@@ -13,9 +15,9 @@ MAX_EXTRA_TEXTS = 30
 MAX_TEXT_LENGTH = 500
 EXTRA_TEXT_MAX_WIDTH_RATIO = 0.88
 ITALIC_SHEAR = -0.20
-MAX_SERVICE_IMAGE_BYTES = 15 * 1024 * 1024
-SERVICE_IMAGE_PATH_RE = re.compile(
-    r"^cover_templates/([A-Za-z0-9_-]{1,160})/[A-Za-z0-9._-]{1,240}$"
+MAX_LOCAL_IMAGE_BYTES = 5 * 1024 * 1024
+LOCAL_IMAGE_DATA_RE = re.compile(
+    r"^data:image/(?:jpeg|png|webp);base64,([A-Za-z0-9+/=]+)$"
 )
 
 
@@ -123,44 +125,24 @@ def _draw_extra_text(page: fitz.Page, item: dict):
     )
 
 
-def _service_image_bytes(content: dict) -> bytes | None:
-    """Load only a currently public PDF-divider service image from Firebase.
-
-    The client may submit metadata, but Admin SDK access is allowed only after
-    the Firestore document proves that the exact Storage path is a public
-    service-image-v2 assigned to the PDF divider surface.
-    """
-    image_id = str(content.get("serviceImageId") or "").strip()
-    image_path = str(content.get("serviceImagePath") or "").strip()
-    if not image_id or not image_path:
+def _local_image_bytes(content: dict) -> bytes | None:
+    """Decode only a user-uploaded inline JPG, PNG, or WebP image."""
+    data_url = str(content.get("localImageDataUrl") or "").strip()
+    if not data_url:
         return None
-    match = SERVICE_IMAGE_PATH_RE.fullmatch(image_path)
-    if match is None or match.group(1) != image_id:
+    # Reject obviously oversized payloads before base64 decoding.
+    if len(data_url) > (MAX_LOCAL_IMAGE_BYTES * 4 // 3) + 4096:
+        return None
+    match = LOCAL_IMAGE_DATA_RE.fullmatch(data_url)
+    if match is None:
         return None
     try:
-        from firebase_admin import firestore as fa_firestore
-        from firebase_admin import storage as fa_storage
-
-        snapshot = fa_firestore.client().collection("cover_templates").document(image_id).get()
-        if not snapshot.exists:
-            return None
-        data = snapshot.to_dict() or {}
-        targets = data.get("targets") if isinstance(data.get("targets"), list) else []
-        if (
-            data.get("kind") != "service-image-v2"
-            or data.get("isPublic") is not True
-            or "pdf-divider" not in targets
-            or str(data.get("imagePath") or "") != image_path
-        ):
-            return None
-        blob = fa_storage.bucket().blob(image_path)
-        blob.reload()
-        size = int(blob.size or 0)
-        if size <= 0 or size > MAX_SERVICE_IMAGE_BYTES:
-            return None
-        return blob.download_as_bytes()
-    except Exception:
+        raw = base64.b64decode(match.group(1), validate=True)
+    except (binascii.Error, ValueError):
         return None
+    if not raw or len(raw) > MAX_LOCAL_IMAGE_BYTES:
+        return None
+    return raw
 
 
 def render_divider_page(out_doc: fitz.Document, content_raw: str, style: str, paper_w_pt: float, paper_h_pt: float):
@@ -184,16 +166,16 @@ def render_divider_page(out_doc: fitz.Document, content_raw: str, style: str, pa
     note_y = paper_h_pt * _number(note_y_pct, 88, 0, 100) / 100
     page = out_doc.new_page(width=paper_w_pt, height=paper_h_pt)
 
-    service_image = _service_image_bytes(content)
-    if service_image:
+    local_image = _local_image_bytes(content)
+    if local_image:
         try:
-            page.insert_image(page.rect, stream=service_image, keep_proportion=False, overlay=True)
+            page.insert_image(page.rect, stream=local_image, keep_proportion=False, overlay=True)
         except Exception:
-            service_image = None
-    if service_image is None and not no_bg:
+            local_image = None
+    if local_image is None and not no_bg:
         page.draw_rect(page.rect, color=None, fill=bg, overlay=True)
 
-    has_visual_background = service_image is not None or not no_bg
+    has_visual_background = local_image is not None or not no_bg
     if has_visual_background and resolved_style == "band":
         page.draw_rect(
             fitz.Rect(0, paper_h_pt * 0.34, paper_w_pt, paper_h_pt * 0.66),
