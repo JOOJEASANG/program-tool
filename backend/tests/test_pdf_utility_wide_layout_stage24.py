@@ -30,8 +30,8 @@ def test_pdf_utility_wide_layout_groups_batch_and_selected_file_tools():
         "pdfUtilityWideActiveFile",
         "['checkBtn', 'pdfUtilityMergeBtn']",
         "['pdfUtilityBackgroundBtn', 'pdfUtilityCompressBtn', 'pdfUtilityRepairBtn', 'encryptBtn', 'decryptBtn']",
-        "pdfuw-action-grid batch",
-        "pdfuw-action-grid single",
+        ".pdfuw-action-grid.batch",
+        ".pdfuw-action-grid.single",
     ):
         assert marker in source
 
