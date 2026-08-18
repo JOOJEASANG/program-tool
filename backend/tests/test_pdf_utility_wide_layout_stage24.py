@@ -4,6 +4,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 LAYOUT = ROOT / "js" / "pdf-utility-wide-layout.js"
 FINALIZE = ROOT / "js" / "pdf-utility-finalize.js"
+REGISTER = ROOT / "js" / "sw-register.js"
 
 
 def test_pdf_utility_wide_layout_uses_desktop_workspace_width_and_sticky_file_panel():
@@ -47,8 +48,10 @@ def test_pdf_utility_results_expand_for_wide_screen_review():
 
 def test_pdf_utility_finalize_loads_wide_layout_after_function_initialization():
     source = FINALIZE.read_text(encoding="utf-8")
+    register = REGISTER.read_text(encoding="utf-8")
     assert "function loadWideLayout()" in source
     assert "pdfUtilityWideLayoutScriptV1" in source
     assert "/js/pdf-utility-wide-layout.js?v=20260818-1" in source
     assert "document.documentElement.dataset.pdfUtilityFinalized = '1';" in source
     assert source.index("document.documentElement.dataset.pdfUtilityFinalized = '1';") < source.index("loadWideLayout();")
+    assert "/js/pdf-utility-finalize.js?v=20260818-2" in register
