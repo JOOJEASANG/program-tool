@@ -16,7 +16,6 @@ def test_storage_rules_follow_public_program_access_policy_for_pdf_utility():
     assert "function canUseProgram(programId)" in rules
     assert "isApproved() || isPublicProgram(programId)" in rules
 
-    assert "public.get(program_id) is True" not in backend
     assert 'public.get(program_id) is True' in backend
 
 
