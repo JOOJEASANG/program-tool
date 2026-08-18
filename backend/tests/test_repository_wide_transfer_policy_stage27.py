@@ -82,9 +82,21 @@ def test_pdf_editor_and_persistent_session_each_enforce_500mb_working_set():
     assert "원본 PDF 전체 합계는 최대 500MB" in session
 
 
-def test_storage_rules_allow_500mb_pdf_but_only_server_creates_results():
+def test_storage_rules_allow_owner_staging_without_duplicate_program_gate():
     rules = STORAGE_RULES.read_text(encoding="utf-8")
     assert "request.resource.size <= 524288000" in rules
+
+    pdf_temp = rules[rules.index("match /pdf_temp/"):rules.index("match /preflight_temp/")]
+    preflight_temp = rules[rules.index("match /preflight_temp/"):rules.index("match /pdf_sessions/")]
+    for block in (pdf_temp, preflight_temp):
+        assert "allow read, delete: if isOwner(userId);" in block
+        assert "allow create, update: if isOwner(userId) && isPdfUpload();" in block
+        assert "canUseProgram(" not in block
+
+    # Program access is still enforced by the backend before any PDF operation.
+    main = MAIN.read_text(encoding="utf-8")
+    assert "require_program_access_for_request" in main
+
     results = rules[rules.index("match /pdf_results/"):rules.index("match /cover_templates/")]
     assert "allow delete: if isOwner(userId);" in results
     assert "allow create, update: if false;" in results
