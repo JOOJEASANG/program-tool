@@ -54,4 +54,4 @@ def test_pdf_utility_finalize_loads_wide_layout_after_function_initialization():
     assert "/js/pdf-utility-wide-layout.js?v=20260818-1" in source
     assert "document.documentElement.dataset.pdfUtilityFinalized = '1';" in source
     assert source.index("document.documentElement.dataset.pdfUtilityFinalized = '1';") < source.index("loadWideLayout();")
-    assert "/js/pdf-utility-finalize.js?v=20260818-2" in register
+    assert "/js/pdf-utility-finalize.js?v=20260818-3" in register
