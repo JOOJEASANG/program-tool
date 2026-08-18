@@ -35,7 +35,7 @@ service firebase.storage {
     }
     function isPdfUpload() {
       return request.resource != null
-        && request.resource.size <= 209715200
+        && request.resource.size <= 524288000
         && request.resource.contentType == 'application/pdf';
     }
 
@@ -57,7 +57,11 @@ service firebase.storage {
       allow create, update: if isOwner(userId) && canUseProgram('pdf-editor') && isPdfUpload();
     }
     match /pdf_results/{userId}/{resultId}/{fileName} {
-      allow read, delete: if isOwner(userId) && isApproved();
+      // Generated results are uploaded only by the server. The owner may remove
+      // their own temporary result immediately after download to avoid storage cost.
+      allow read: if isOwner(userId)
+        && (canUseProgram('pdf-editor') || canUseProgram('preflight'));
+      allow delete: if isOwner(userId);
       allow create, update: if false;
     }
 
