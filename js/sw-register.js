@@ -115,7 +115,7 @@
       tasks.push(
         Promise.all([finalGuard,panelBalance])
           .then(()=>load('pdfUtilityScriptV1','/js/pdf-utility.js?v=20260818-1'))
-          .then(()=>load('pdfUtilityFinalizeScriptV1','/js/pdf-utility-finalize.js?v=20260818-1'))
+          .then(()=>load('pdfUtilityFinalizeScriptV1','/js/pdf-utility-finalize.js?v=20260818-2'))
       );
     }
     if(isPath('/tools/perfect-binding-cover.html','/perfect-binding-cover','/perfect-binding-cover/index.html')){
