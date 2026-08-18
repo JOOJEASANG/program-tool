@@ -54,6 +54,7 @@
       loadScopedScript('coverLargeFilePolicyScriptV1','/js/cover-large-file-policy.js?v=20260818-1');
       loadScopedScript('coverTemplateAdminSeparationScriptV1','/js/cover-template-admin-separation.js?v=20260818-2');
       loadScopedScript('coverLocalImageUploadScriptV1','/js/cover-local-image-upload.js?v=20260818-2');
+      loadScopedScript('coverPreviewTextInspectorScriptV1','/js/cover-preview-text-inspector.js?v=20260818-1');
     }
   }
 
