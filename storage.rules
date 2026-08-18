@@ -39,19 +39,24 @@ service firebase.storage {
         && request.resource.contentType == 'application/pdf';
     }
 
-    // Shared PDF temporary area. Keep files isolated to the signed-in user's UID,
-    // while matching the same public-program policy enforced by the backend.
+    // Ephemeral staging for server-authorized PDF work.
+    // The browser must be able to stage its own PDF before the backend request can
+    // perform the authoritative program-access check. Requiring canUseProgram()
+    // here duplicated that check against a separate Firestore lookup and could
+    // reject a valid signed-in user before the API was ever called.
+    // Files remain isolated by UID, limited to PDF/500MB, and are covered by the
+    // one-day Storage lifecycle cleanup.
     match /pdf_temp/{userId}/{sessionId}/{fileName} {
-      allow read, delete: if isOwner(userId)
-        && (canUseProgram('pdf-editor') || canUseProgram('preflight'));
-      allow create, update: if isOwner(userId)
-        && (canUseProgram('pdf-editor') || canUseProgram('preflight'))
-        && isPdfUpload();
+      allow read, delete: if isOwner(userId);
+      allow create, update: if isOwner(userId) && isPdfUpload();
     }
     match /preflight_temp/{userId}/{sessionId}/{fileName} {
-      allow read, delete: if isOwner(userId) && canUseProgram('preflight');
-      allow create, update: if isOwner(userId) && canUseProgram('preflight') && isPdfUpload();
+      allow read, delete: if isOwner(userId);
+      allow create, update: if isOwner(userId) && isPdfUpload();
     }
+
+    // Saved editor sessions are persistent user data, so keep the program-access
+    // policy here rather than treating them like short-lived staging objects.
     match /pdf_sessions/{userId}/{sessionId}/{fileName} {
       allow read, delete: if isOwner(userId) && canUseProgram('pdf-editor');
       allow create, update: if isOwner(userId) && canUseProgram('pdf-editor') && isPdfUpload();
