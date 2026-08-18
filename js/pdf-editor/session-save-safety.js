@@ -6,11 +6,13 @@
 
   const MAX_INSTALL_ATTEMPTS = 40;
   const MAX_SESSIONS = 10;
+  const MAX_SESSION_BYTES = 500 * 1024 * 1024;
   let installAttempts = 0;
   let active = false;
   let lockSnapshot = null;
 
   const byId = (id) => document.getElementById(id);
+  const totalBytes = (files) => Array.from(files || []).reduce((sum, file) => sum + Number(file?.size || 0), 0);
 
   function editorReady() {
     try {
@@ -41,6 +43,13 @@
     if (!Array.isArray(files) || files.length === 0) {
       throw new Error('저장할 원본 PDF가 없습니다.');
     }
+    const bytes = totalBytes(files);
+    if (files.some((file) => Number(file?.size || 0) > MAX_SESSION_BYTES)) {
+      throw new Error('저장 세션의 PDF 한 파일은 최대 500MB까지 가능합니다.');
+    }
+    if (bytes > MAX_SESSION_BYTES) {
+      throw new Error('저장 세션의 원본 PDF 전체 합계는 최대 500MB까지 가능합니다.');
+    }
     if (!state || !Array.isArray(state.pages)) {
       throw new Error('편집 페이지 상태를 확인할 수 없습니다.');
     }
@@ -62,6 +71,7 @@
       fileCount: files.length,
       pageCount: state.pages.length,
       breakCount: state.pages.filter((page) => Boolean(page?.groupBreak)).length,
+      totalBytes: bytes,
     };
   }
 
@@ -224,9 +234,10 @@
     if (!user || files.length === 0) return false;
 
     let state;
+    let snapshotMeta;
     try {
       state = cloneSerializable(collectEditorState());
-      validateSnapshot(files, state);
+      snapshotMeta = validateSnapshot(files, state);
     } catch (error) {
       setStatus(`저장 전 확인 실패: ${error.message}`, '#dc2626');
       return false;
@@ -260,6 +271,7 @@
         storagePaths: [...storagePaths],
         fileCount: files.length,
         pageCount: state.pages.length,
+        totalBytes: snapshotMeta.totalBytes,
         state: JSON.stringify(state),
         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
       });
@@ -270,7 +282,7 @@
         console.warn('[pdf-session] old session cleanup failed', trimError);
       }
 
-      setStatus('✅ 저장 완료!', '#166534');
+      setStatus(`✅ 저장 완료! · 원본 ${(snapshotMeta.totalBytes / 1024 / 1024).toFixed(1)}MB`, '#166534');
       setTimeout(() => {
         const modal = byId('sessionSaveModal');
         if (modal) modal.style.display = 'none';
@@ -333,7 +345,8 @@
     validateSnapshot,
     cleanupUploadedPaths,
     active: () => active,
-    stage: 'multi-source-snapshot-failure-cleanup',
+    maxSessionBytes: MAX_SESSION_BYTES,
+    stage: 'multi-source-snapshot-500mb-failure-cleanup',
     reviewFixes: 'thumbnail-lock-not-found-cleanup',
   };
 
