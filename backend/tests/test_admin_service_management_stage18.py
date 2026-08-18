@@ -32,7 +32,8 @@ def test_admin_provided_image_scripts_are_removed_and_not_loaded():
         assert "cover-service-image-library" not in source
         assert "cover-provided-image-library" not in source
         assert "pdf-divider-service-image-library" not in source
-        assert "/js/cover-local-image-upload.js?v=20260818-1" in source
+        assert "/js/cover-local-image-upload.js?v=20260818-2" in source
+        assert "/js/cover-template-admin-separation.js?v=20260818-2" in source
         assert "/js/pdf-divider-local-image-upload.js?v=20260818-1" in source
 
 
@@ -48,6 +49,7 @@ def test_cover_uses_only_user_selected_front_back_or_spread_images():
         "if (state.backImage) drawImage",
         "if (state.frontImage) drawImage",
         "user-local-cover-images-only",
+        "이미지 저작권에 대해 저희는 책임을 지지 않습니다.",
     ):
         assert marker in source
     assert "cover_templates" not in source
@@ -75,16 +77,18 @@ def test_pdf_divider_uses_inline_user_upload_and_no_remote_library():
     assert "관리자 제공" not in source
 
 
-def test_legacy_cover_provider_controls_stay_hidden():
+def test_legacy_cover_provider_controls_are_removed_if_stale_markup_reappears():
     source = SEPARATION.read_text(encoding="utf-8")
     for marker in (
         "adminTemplateArea",
         "coverTemplateSelect",
         "coverProvidedImageLibraryPanel",
         "coverServiceImagePanel",
-        "legacy-provided-cover-images-disabled",
+        "removeLegacyProviderUi",
+        "legacy-provided-cover-images-removed",
     ):
         assert marker in source
+    assert ".remove()" in source
 
 
 def test_firebase_blocks_member_access_and_new_provider_uploads():
