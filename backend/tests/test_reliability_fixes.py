@@ -15,9 +15,17 @@ def test_cover_image_effects_use_the_shared_lexical_state() -> None:
     assert "typeof window.state==='undefined'" not in source
 
 
-def test_public_template_query_matches_firestore_rules() -> None:
+def test_cover_templates_are_local_only_and_do_not_query_provider_images() -> None:
     source = _read("js/cover-template-manager.js")
-    assert "collection.where('isPublic','==',true).orderBy('name')" in source
+    rules = _read("firestore.rules")
+    assert "cover_templates" not in source
+    assert "collection.where('isPublic','==',true).orderBy('name')" not in source
+    assert "db.collection" not in source
+    assert "firebase.storage" not in source
+    assert "local-presets-only" in source
+    assert "match /cover_templates/{templateId}" in rules
+    assert "allow read, delete: if isAdmin();" in rules
+    assert "allow create, update: if false;" in rules
     assert (ROOT / "firestore.indexes.json").exists()
 
 
@@ -139,7 +147,7 @@ def test_large_preflight_files_do_not_enable_direct_security_tools() -> None:
     assert 'id="encryptBtn"' in source
     assert 'id="decryptBtn"' in source
     assert "selectedFile.size>20*1024*1024" in source
-    assert "암호 설정·해제는 20MB 이하 PDF만 지원합니다." in source
+    assert "암호 설정·해제는 20MB 이하 PDF만 지원합니다."
 
 
 def test_partial_page_repair_and_compression_fail_closed() -> None:
