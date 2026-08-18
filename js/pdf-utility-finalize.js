@@ -48,6 +48,15 @@
     checkObserver.observe(check, { subtree: true, childList: true, characterData: true });
   }
 
+  function loadWideLayout() {
+    if (document.getElementById('pdfUtilityWideLayoutScriptV1')) return;
+    const script = document.createElement('script');
+    script.id = 'pdfUtilityWideLayoutScriptV1';
+    script.src = '/js/pdf-utility-wide-layout.js?v=20260818-1';
+    script.async = false;
+    document.head.appendChild(script);
+  }
+
   function finalize() {
     attempts += 1;
     const utility = window.PdfUtility;
@@ -81,6 +90,7 @@
     observeCheckLabel();
     window.runCheck = utility.runBatchCheck;
     document.documentElement.dataset.pdfUtilityFinalized = '1';
+    loadWideLayout();
   }
 
   finalize();
