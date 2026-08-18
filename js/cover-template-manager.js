@@ -1,134 +1,37 @@
-(()=>{
-'use strict';
-const q=id=>document.getElementById(id);
-const STORAGE_KEY='programTool.coverEditor.userTemplates.v1';
+// Cover template UI retired. Keep this tiny guard for stale cached pages that still load the old script path.
+(function () {
+  'use strict';
+  if (window.__coverTemplateUiRetiredV1) return;
+  window.__coverTemplateUiRetiredV1 = true;
+  if (!location.pathname.includes('perfect-binding-cover')) return;
 
-const BUILTINS={
-  government:{name:'관공서 기본형',desc:'공공기관 계획서·보고서용 정돈된 남색 구성',values:{trimW:210,trimH:297,bleed:3,safeMargin:10,frontColor:'#f8fbff',backColor:'#eef4f8',spineColor:'#12396d',textColor:'#12396d',titleSize:28,spineTextSize:11,spineDirection:'bottomToTop'},layout:{frontTitle:{x:50,y:37,scale:100},frontSubtitle:{x:50,y:50,scale:95},publisher:{x:50,y:89,scale:90},backText:{x:50,y:73,scale:90}}},
-  education:{name:'교육 운영계획서',desc:'학교 운영계획서에 맞춘 안정적인 세로 배치',values:{trimW:210,trimH:297,bleed:3,safeMargin:12,frontColor:'#ffffff',backColor:'#f4f8fb',spineColor:'#1d5f7a',textColor:'#12396d',titleSize:30,spineTextSize:11,spineDirection:'bottomToTop'},layout:{frontTitle:{x:50,y:34,scale:105},frontSubtitle:{x:50,y:48,scale:92},publisher:{x:50,y:91,scale:88},backText:{x:50,y:76,scale:90}}},
-  forum:{name:'포럼 자료집',desc:'중앙 여백이 넓고 현대적인 행사 자료집 구성',values:{trimW:210,trimH:297,bleed:3,safeMargin:10,frontColor:'#f7fafc',backColor:'#edf5f7',spineColor:'#0e7490',textColor:'#0f4c5c',titleSize:31,spineTextSize:10,spineDirection:'bottomToTop'},layout:{frontTitle:{x:50,y:42,scale:108},frontSubtitle:{x:50,y:55,scale:94},publisher:{x:50,y:87,scale:86},backText:{x:50,y:70,scale:88}}},
-  minimal:{name:'미니멀 백색형',desc:'글자가 많은 문서에 적합한 흰색 중심 구성',values:{trimW:210,trimH:297,bleed:3,safeMargin:13,frontColor:'#ffffff',backColor:'#ffffff',spineColor:'#334155',textColor:'#1e293b',titleSize:27,spineTextSize:10,spineDirection:'bottomToTop'},layout:{frontTitle:{x:50,y:31,scale:100},frontSubtitle:{x:50,y:44,scale:90},publisher:{x:50,y:92,scale:84},backText:{x:50,y:78,scale:86}}}
-};
+  const LEGACY_IDS = [
+    'templateCard',
+    'coverBuiltinPreset',
+    'userCoverTemplate',
+    'userCoverTemplateName',
+    'saveUserCoverTemplate',
+    'applyUserCoverTemplate',
+    'deleteUserCoverTemplate',
+    'coverTemplateSelect',
+    'adminTemplateArea',
+  ];
 
-function fire(el){
-  if(!el)return;
-  el.dispatchEvent(new Event('input',{bubbles:true}));
-  el.dispatchEvent(new Event('change',{bubbles:true}));
-}
-function setValue(id,value){
-  const el=q(id);
-  if(!el||value==null)return;
-  if(el.type==='checkbox')el.checked=!!value;
-  else el.value=value;
-  fire(el);
-}
-function clone(value){return JSON.parse(JSON.stringify(value));}
-function userTemplates(){
-  try{
-    const value=JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]');
-    return Array.isArray(value)?value:[];
-  }catch(_){return[];}
-}
-function saveUserTemplates(items){localStorage.setItem(STORAGE_KEY,JSON.stringify(items));}
-function card(){
-  return `<section class="card" id="templateCard"><div class="card-head"><span class="step">★</span><div><div class="card-title">표지 템플릿</div><div class="card-note">기본 스타일 프리셋 또는 내가 저장한 작업 설정을 한 번에 적용합니다.</div></div></div><div class="field"><label>기본 스타일 프리셋</label><select id="coverBuiltinPreset">${Object.entries(BUILTINS).map(([key,value])=>`<option value="${key}">${value.name}</option>`).join('')}</select></div><div class="grid2"><button class="mini-btn active" id="applyBuiltinPreset" type="button">기본 프리셋 적용</button><button class="mini-btn" id="previewBuiltinInfo" type="button">설명 보기</button></div><div id="builtinPresetInfo" class="card-note" style="margin-top:6px"></div><div style="margin-top:10px;padding-top:10px;border-top:1px solid #e2e8f0"><div class="field"><label>내 작업 템플릿</label><select id="userCoverTemplate"><option value="">저장된 템플릿 없음</option></select></div><div class="field"><label>새 템플릿 이름</label><input id="userCoverTemplateName" type="text" maxlength="80" placeholder="예: 우리 학교 운영계획서"></div><div class="grid3"><button class="mini-btn active" id="saveUserCoverTemplate" type="button">현재 작업 저장</button><button class="mini-btn" id="applyUserCoverTemplate" type="button">불러오기</button><button class="mini-btn" id="deleteUserCoverTemplate" type="button">삭제</button></div><div class="card-note" style="margin-top:6px">규격·색상·글자·배치 상태가 내 브라우저에 저장됩니다. 이미지 파일은 저장되지 않습니다.</div></div></section>`;
-}
-function refreshBuiltinInfo(){
-  const preset=BUILTINS[q('coverBuiltinPreset')?.value]||BUILTINS.government;
-  if(q('builtinPresetInfo'))q('builtinPresetInfo').textContent=preset.desc;
-}
-function applyValues(values){
-  Object.entries(values||{}).forEach(([id,value])=>setValue(id,value));
-  if(q('sizePreset'))q('sizePreset').value='custom';
-}
-function applyLayout(layout){
-  if(typeof state==='undefined'||!state.layout)return;
-  Object.entries(layout||{}).forEach(([key,value])=>{
-    if(state.layout[key])Object.assign(state.layout[key],value);
-  });
-  if(typeof syncControls==='function')syncControls();
-  if(typeof requestRender==='function')requestRender();
-}
-function applyBuiltin(){
-  const preset=BUILTINS[q('coverBuiltinPreset')?.value];
-  if(!preset)return;
-  applyValues(preset.values);
-  applyLayout(preset.layout);
-  if(q('builtinPresetInfo'))q('builtinPresetInfo').textContent=`${preset.name} 적용 완료 · ${preset.desc}`;
-}
-function snapshotCurrent(){
-  const ids=['trimW','trimH','bleed','safeMargin','pageCount','paperCaliper','bindingAdjust','manualSpine','spineManual','frontColor','backColor','spineColor','textColor','titleSize','spineTextSize','spineDirection','frontTitle','frontSubtitle','publisher','publishYear','backText','spineTitle'];
-  const values={};
-  ids.forEach(id=>{
-    const el=q(id);
-    if(el)values[id]=el.type==='checkbox'?el.checked:el.value;
-  });
-  return {values,layout:typeof state!=='undefined'&&state.layout?clone(state.layout):{},savedAt:Date.now()};
-}
-function renderUserTemplates(){
-  const select=q('userCoverTemplate');
-  if(!select)return;
-  const items=userTemplates();
-  select.replaceChildren();
-  const first=document.createElement('option');
-  first.value='';
-  first.textContent=items.length?'템플릿 선택':'저장된 템플릿 없음';
-  select.appendChild(first);
-  items.forEach(item=>{
-    const option=document.createElement('option');
-    option.value=String(item.id||'');
-    option.textContent=String(item.name||'이름 없는 템플릿');
-    select.appendChild(option);
-  });
-}
-function saveUserTemplate(){
-  const input=q('userCoverTemplateName');
-  const name=String(input?.value||'').trim();
-  if(!name)return alert('템플릿 이름을 입력하세요.');
-  const items=userTemplates();
-  const item={id:`tpl_${Date.now()}`,name:name.slice(0,80),...snapshotCurrent()};
-  items.unshift(item);
-  saveUserTemplates(items.slice(0,30));
-  input.value='';
-  renderUserTemplates();
-  q('userCoverTemplate').value=item.id;
-  alert('현재 작업을 내 템플릿으로 저장했습니다.');
-}
-function applyUserTemplate(){
-  const id=q('userCoverTemplate')?.value;
-  const item=userTemplates().find(value=>value.id===id);
-  if(!item)return alert('불러올 템플릿을 선택하세요.');
-  applyValues(item.values);
-  applyLayout(item.layout);
-  if(typeof requestRender==='function')requestRender();
-}
-function deleteUserTemplate(){
-  const id=q('userCoverTemplate')?.value;
-  if(!id)return;
-  const items=userTemplates();
-  const item=items.find(value=>value.id===id);
-  if(!item)return;
-  if(!confirm(`“${item.name}” 템플릿을 삭제할까요?`))return;
-  saveUserTemplates(items.filter(value=>value.id!==id));
-  renderUserTemplates();
-}
-function bind(){
-  q('coverBuiltinPreset')?.addEventListener('change',refreshBuiltinInfo);
-  q('applyBuiltinPreset')?.addEventListener('click',applyBuiltin);
-  q('previewBuiltinInfo')?.addEventListener('click',refreshBuiltinInfo);
-  q('saveUserCoverTemplate')?.addEventListener('click',saveUserTemplate);
-  q('applyUserCoverTemplate')?.addEventListener('click',applyUserTemplate);
-  q('deleteUserCoverTemplate')?.addEventListener('click',deleteUserTemplate);
-}
-function init(){
-  const settings=document.querySelector('.settings');
-  if(!settings||q('templateCard'))return;
-  settings.insertAdjacentHTML('afterbegin',card());
-  bind();
-  refreshBuiltinInfo();
-  renderUserTemplates();
-  document.documentElement.dataset.coverTemplateMode='local-presets-only';
-}
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});
-else init();
+  function removeTemplateUi() {
+    for (const id of LEGACY_IDS) document.getElementById(id)?.remove();
+    document.querySelectorAll('.settings .card').forEach((card) => {
+      const title = card.querySelector('.card-title')?.textContent?.trim() || '';
+      if (title === '표지 템플릿' || title === '제공 이미지 템플릿') card.remove();
+    });
+    document.documentElement.dataset.coverTemplateUi = 'retired';
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', removeTemplateUi, { once: true });
+  else removeTemplateUi();
+  for (const delay of [150, 500, 1100, 2200, 4000]) setTimeout(removeTemplateUi, delay);
+
+  window.CoverTemplateManager = {
+    removeTemplateUi,
+    stage: 'template-ui-retired',
+  };
 })();
