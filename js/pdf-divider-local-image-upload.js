@@ -6,7 +6,10 @@
   const pathname = location.pathname.replace(/\/+$/, '') || '/';
   if (!['/tools/pdf-editor.html','/pdf-editor','/pdf-editor/index.html'].some((p) => pathname === p || pathname.endsWith(p))) return;
 
-  const MAX_BYTES = 5 * 1024 * 1024;
+  const MAX_SOURCE_BYTES = 500 * 1024 * 1024;
+  const MAX_EMBED_BYTES = 5 * 1024 * 1024;
+  const MAX_SOURCE_PIXELS = 80_000_000;
+  const MAX_EMBED_PIXELS = 20_000_000;
   const TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
   const STYLE_ID = 'pdfDividerLocalImageStyles';
   const PANEL_ID = 'pdfDividerLocalImagePanel';
@@ -35,7 +38,7 @@
   function validateFile(file) {
     if (!file) return { ok: false, message: '이미지를 선택해 주세요.' };
     if (!TYPES.has(file.type)) return { ok: false, message: 'JPG·PNG·WEBP 이미지만 사용할 수 있습니다.' };
-    if (Number(file.size || 0) > MAX_BYTES) return { ok: false, message: '간지 이미지는 5MB 이하로 사용해 주세요.' };
+    if (Number(file.size || 0) > MAX_SOURCE_BYTES) return { ok: false, message: '간지 원본 이미지는 한 파일 최대 500MB까지 사용할 수 있습니다.' };
     return { ok: true, message: '' };
   }
 
@@ -46,13 +49,92 @@
     el.style.color = error ? '#dc2626' : '#64748b';
   }
 
-  function readDataUrl(file) {
+  function blobToDataUrl(blob) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => resolve(String(reader.result || ''));
-      reader.onerror = () => reject(new Error('이미지 파일을 읽지 못했습니다.'));
-      reader.readAsDataURL(file);
+      reader.onerror = () => reject(new Error('최적화 이미지를 읽지 못했습니다.'));
+      reader.readAsDataURL(blob);
     });
+  }
+
+  function canvasToBlob(canvas, quality) {
+    return new Promise((resolve, reject) => {
+      canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('간지 이미지 최적화에 실패했습니다.')), 'image/webp', quality);
+    });
+  }
+
+  async function decodeFile(file) {
+    if (typeof createImageBitmap === 'function') {
+      const bitmap = await createImageBitmap(file);
+      return {
+        image: bitmap,
+        width: bitmap.width,
+        height: bitmap.height,
+        close: () => { try { bitmap.close(); } catch (_) {} },
+      };
+    }
+    const url = URL.createObjectURL(file);
+    return new Promise((resolve, reject) => {
+      const image = new Image();
+      image.onload = () => resolve({
+        image,
+        width: image.naturalWidth,
+        height: image.naturalHeight,
+        close: () => { try { URL.revokeObjectURL(url); } catch (_) {} },
+      });
+      image.onerror = () => { try { URL.revokeObjectURL(url); } catch (_) {}; reject(new Error('간지 이미지를 불러오지 못했습니다.')); };
+      image.src = url;
+    });
+  }
+
+  function drawScaled(source, width, height) {
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, Math.round(width));
+    canvas.height = Math.max(1, Math.round(height));
+    const ctx = canvas.getContext('2d', { alpha: false });
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(source, 0, 0, canvas.width, canvas.height);
+    return canvas;
+  }
+
+  async function optimizeFile(file) {
+    const decoded = await decodeFile(file);
+    try {
+      const sourcePixels = Number(decoded.width || 0) * Number(decoded.height || 0);
+      if (!sourcePixels || sourcePixels > MAX_SOURCE_PIXELS) {
+        throw new Error('간지 이미지 해상도는 8천만 픽셀 이하로 사용해 주세요.');
+      }
+      let scale = Math.min(1, Math.sqrt(MAX_EMBED_PIXELS / sourcePixels));
+      let width = Math.max(1, Math.round(decoded.width * scale));
+      let height = Math.max(1, Math.round(decoded.height * scale));
+      let canvas = drawScaled(decoded.image, width, height);
+      let blob = null;
+      const qualities = [.9, .82, .72, .62, .52, .42];
+
+      for (let round = 0; round < 5; round += 1) {
+        for (const quality of qualities) {
+          blob = await canvasToBlob(canvas, quality);
+          if (blob.size <= MAX_EMBED_BYTES) break;
+        }
+        if (blob && blob.size <= MAX_EMBED_BYTES) break;
+        const ratio = Math.max(.45, Math.min(.88, Math.sqrt(MAX_EMBED_BYTES / Math.max(1, blob?.size || MAX_EMBED_BYTES * 2)) * .92));
+        width = Math.max(320, Math.round(canvas.width * ratio));
+        height = Math.max(320, Math.round(canvas.height * ratio));
+        const next = drawScaled(canvas, width, height);
+        canvas.width = 1; canvas.height = 1;
+        canvas = next;
+      }
+      if (!blob || blob.size > MAX_EMBED_BYTES) throw new Error('이미지를 안전한 내부 용량으로 줄이지 못했습니다. 더 작은 해상도의 이미지를 사용해 주세요.');
+      const dataUrl = await blobToDataUrl(blob);
+      canvas.width = 1; canvas.height = 1;
+      return { dataUrl, embeddedBytes: blob.size, width, height };
+    } finally {
+      decoded.close();
+    }
   }
 
   function preload(dataUrl) {
@@ -76,7 +158,7 @@
     panel.innerHTML = `
       <div class="pdf-div-local-head"><strong>간지 배경 이미지 직접 업로드</strong></div>
       <div class="pdf-div-local-row"><input id="pdfDividerLocalFile" type="file" accept="image/jpeg,image/png,image/webp"><button type="button" class="btn-sm" id="pdfDividerLocalClear">이미지 해제</button></div>
-      <div class="pdf-div-local-note">사용자가 직접 선택한 이미지가 현재 간지에만 저장됩니다. 사용 권한이 있는 이미지만 업로드해 주세요. 최대 5MB.</div>
+      <div class="pdf-div-local-note">원본 JPG·PNG·WEBP는 한 파일 최대 500MB까지 선택할 수 있습니다. 서버 요청과 PDF 안정성을 위해 프로그램이 자동으로 5MB 이하 내부 이미지로 최적화합니다. 사용 권한이 있는 이미지만 업로드해 주세요.</div>
       <div id="pdfDividerLocalActive" class="pdf-div-local-active"></div><div id="pdfDividerLocalStatus" class="pdf-div-local-note"></div>`;
     const confirm = $('dividerConfirmBtn')?.parentElement;
     modal.insertBefore(panel, confirm || null);
@@ -226,14 +308,15 @@
       const file = event.target.files?.[0] || null;
       const validation = validateFile(file);
       if (!validation.ok) { status(validation.message, true); event.target.value = ''; return; }
+      event.target.value = '';
       try {
-        status('이미지를 불러오는 중입니다...');
-        const dataUrl = await readDataUrl(file);
-        await preload(dataUrl);
-        selectedDataUrl = dataUrl;
+        status('원본 이미지를 프로그램용으로 최적화하는 중입니다...');
+        const optimized = await optimizeFile(file);
+        await preload(optimized.dataUrl);
+        selectedDataUrl = optimized.dataUrl;
         selectedName = file.name;
         syncLabel();
-        status('직접 업로드한 이미지를 간지 배경으로 사용합니다.');
+        status(`이미지 적용 완료 · 내부 ${(optimized.embeddedBytes / 1024 / 1024).toFixed(1)}MB로 최적화됨`);
         try { updateDividerPreview(); } catch (_) {}
       } catch (error) {
         status(error?.message || '이미지를 불러오지 못했습니다.', true);
@@ -257,11 +340,14 @@
   window.PdfDividerLocalImageUpload = {
     install,
     validateFile,
+    optimizeFile,
     clearImage,
     preload,
     renderLocalDivider,
-    stage: 'user-local-pdf-divider-image-only',
-    maxBytes: MAX_BYTES,
+    stage: 'user-local-pdf-divider-source-500mb-auto-optimized',
+    maxBytes: MAX_SOURCE_BYTES,
+    maxEmbeddedBytes: MAX_EMBED_BYTES,
+    maxSourcePixels: MAX_SOURCE_PIXELS,
   };
   [700, 1300, 2200, 3200].forEach((delay) => setTimeout(install, delay));
 })();

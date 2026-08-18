@@ -52,4 +52,4 @@ def test_admin_loaders_include_icon_palette_and_cache_bump():
     assert expected in sw_register
     assert "adminProgramIconPaletteScriptV1" in app_version
     assert "adminProgramIconPaletteScriptV1" in sw_register
-    assert "/js/app-version.js?v=20260818-3" in sw_register
+    assert "/js/app-version.js?v=20260818-4" in sw_register

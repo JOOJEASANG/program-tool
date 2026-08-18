@@ -34,7 +34,7 @@ def test_admin_provided_image_scripts_are_removed_and_not_loaded():
         assert "pdf-divider-service-image-library" not in source
         assert "/js/cover-local-image-upload.js?v=20260818-2" in source
         assert "/js/cover-template-admin-separation.js?v=20260818-2" in source
-        assert "/js/pdf-divider-local-image-upload.js?v=20260818-1" in source
+        assert "/js/pdf-divider-local-image-upload.js?v=20260818-2" in source
 
 
 def test_cover_uses_only_user_selected_front_back_or_spread_images():
@@ -57,7 +57,7 @@ def test_cover_uses_only_user_selected_front_back_or_spread_images():
     assert "제공 이미지" not in source
 
 
-def test_pdf_divider_uses_inline_user_upload_and_no_remote_library():
+def test_pdf_divider_uses_500mb_user_source_with_bounded_inline_embedding():
     source = PDF_LOCAL.read_text(encoding="utf-8")
     for marker in (
         "간지 배경 이미지 직접 업로드",
@@ -65,13 +65,16 @@ def test_pdf_divider_uses_inline_user_upload_and_no_remote_library():
         "image/jpeg",
         "image/png",
         "image/webp",
-        "MAX_BYTES = 5 * 1024 * 1024",
+        "MAX_SOURCE_BYTES = 500 * 1024 * 1024",
+        "MAX_EMBED_BYTES = 5 * 1024 * 1024",
         "localImageDataUrl",
         "localImageName",
-        "FileReader",
-        "user-local-pdf-divider-image-only",
+        "createImageBitmap",
+        "optimizeFile",
+        "user-local-pdf-divider-source-500mb-auto-optimized",
     ):
         assert marker in source
+    assert "readAsDataURL(file)" not in source
     assert "cover_templates" not in source
     assert "serviceImage" not in source
     assert "관리자 제공" not in source

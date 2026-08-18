@@ -17,13 +17,14 @@
   }
 
   function loadCatalogScripts(target){
-    loadScopedScript('programCatalogCoreScriptV1','/js/program-catalog-core.js?v=20260808-1');
+    loadScopedScript('programCatalogCoreScriptV1','/js/program-catalog-core.js?v=20260818-1');
     const script=document.getElementById('programCatalogCoreScriptV1');
     const loadTarget=()=>{
       if(target==='home')loadScopedScript('homeProgramCatalogScriptV1','/js/home-program-catalog.js?v=20260808-1');
       if(target==='admin'){
         loadScopedScript('adminProgramCatalogManagerScriptV1','/js/admin-program-catalog-manager.js?v=20260808-1');
         loadScopedScript('adminProgramIconPaletteScriptV1','/js/admin-program-icon-palette.js?v=20260808-1');
+        loadScopedScript('adminProgramCatalogNavGuardScriptV1','/js/admin-program-catalog-nav-guard.js?v=20260818-1');
       }
     };
     if(window.ProgramCatalogCore)loadTarget();
@@ -42,13 +43,15 @@
       currentPath==='/pdf-editor'||
       currentPath.endsWith('/pdf-editor/index.html')
     ){
-      loadScopedScript('pdfDividerLocalImageUploadScriptV1','/js/pdf-divider-local-image-upload.js?v=20260818-1');
+      loadScopedScript('pdfEditorTransferLimitGuardScriptV1','/js/pdf-editor/transfer-limit-guard.js?v=20260818-1');
+      loadScopedScript('pdfDividerLocalImageUploadScriptV1','/js/pdf-divider-local-image-upload.js?v=20260818-2');
     }
     if(
       currentPath==='/tools/perfect-binding-cover.html'||
       currentPath==='/perfect-binding-cover'||
       currentPath.endsWith('/perfect-binding-cover/index.html')
     ){
+      loadScopedScript('coverLargeFilePolicyScriptV1','/js/cover-large-file-policy.js?v=20260818-1');
       loadScopedScript('coverTemplateAdminSeparationScriptV1','/js/cover-template-admin-separation.js?v=20260818-2');
       loadScopedScript('coverLocalImageUploadScriptV1','/js/cover-local-image-upload.js?v=20260818-2');
     }
