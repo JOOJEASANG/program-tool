@@ -30,7 +30,7 @@ def test_pdf_utility_temp_storage_allows_public_preflight_but_keeps_owner_and_pd
     assert "canUseProgram('preflight')" in pdf_temp_block
     assert "canUseProgram('pdf-editor')" in pdf_temp_block
     assert "isPdfUpload()" in pdf_temp_block
-    assert "request.resource.size <= 209715200" in rules
+    assert "request.resource.size <= 524288000" in rules
     assert "request.resource.contentType == 'application/pdf'" in rules
 
 
@@ -43,3 +43,15 @@ def test_preflight_temp_storage_uses_same_program_policy():
 
     assert "isOwner(userId) && canUseProgram('preflight')" in block
     assert "isPdfUpload()" in block
+
+
+def test_generated_results_can_be_removed_immediately_by_owner():
+    rules = STORAGE_RULES.read_text(encoding="utf-8")
+    start = rules.index("match /pdf_results/{userId}/{resultId}/{fileName}")
+    end = rules.index("match /cover_templates/{templateId}/{fileName}")
+    block = rules[start:end]
+
+    assert "allow delete: if isOwner(userId);" in block
+    assert "canUseProgram('preflight')" in block
+    assert "canUseProgram('pdf-editor')" in block
+    assert "allow create, update: if false;" in block
