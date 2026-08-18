@@ -119,7 +119,8 @@ def health():
 @https_fn.on_request(
     memory=options.MemoryOption.GB_2,
     timeout_sec=300,
-    max_instances=10,
+    min_instances=0,
+    max_instances=2,
 )
 def api(req: https_fn.Request) -> https_fn.Response:
     with flask_app.request_context(req.environ):
@@ -128,9 +129,9 @@ def api(req: https_fn.Request) -> https_fn.Response:
 
 @scheduler_fn.on_schedule(schedule="every 6 hours")
 def cleanup_temporary_pdfs(event: scheduler_fn.ScheduledEvent) -> None:
-    """Delete abandoned PDF inputs and generated results after 24 hours."""
+    """Delete abandoned PDF inputs and generated results after 6 hours."""
     del event
-    cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=6)
     bucket = fa_storage.bucket(
         os.environ.get(
             "FIREBASE_STORAGE_BUCKET",
