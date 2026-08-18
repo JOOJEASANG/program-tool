@@ -6,7 +6,8 @@
   if (!location.pathname.includes('perfect-binding-cover')) return;
 
   const STYLE_ID = 'coverLocalImageUploadStyles';
-  const INSTALL_DELAYS = [900, 1500, 2300, 3100];
+  const COPYRIGHT_ID = 'coverImageCopyrightNotice';
+  const INSTALL_DELAYS = [700, 1200, 1900, 2800];
   let installed = false;
   let renderPatchCount = 0;
   const $ = (id) => document.getElementById(id);
@@ -16,11 +17,30 @@
     const el = document.createElement('style');
     el.id = STYLE_ID;
     el.textContent = `
+      .cover-image-copyright{margin-top:8px;border:1px solid #fed7aa;border-radius:9px;background:#fff7ed;color:#9a3412;padding:8px 9px;font-size:8.5px;font-weight:850;line-height:1.5}
+      .cover-image-copyright strong{font-weight:950}.cover-image-copyright span{display:block;margin-top:2px;color:#b45309;font-weight:750}
       .cover-spread-local{margin-top:8px;border:1px dashed #67c7d8;border-radius:9px;background:#ecfeff;padding:8px}
       .cover-spread-row{display:flex;gap:7px;align-items:center}.cover-spread-row label{flex:1;cursor:pointer;font-size:9px;font-weight:900;color:#0e7490}
       .cover-spread-note{font-size:8px;color:#64748b;line-height:1.45;margin-top:4px}.cover-spread-active{font-size:8px;font-weight:900;color:#166534;margin-top:5px}
     `;
     document.head.appendChild(el);
+  }
+
+  function makeCopyrightNotice() {
+    if ($(COPYRIGHT_ID)) return true;
+    const front = $('frontInput');
+    if (!front) return false;
+    const section = front.closest('section.card');
+    if (!section) return false;
+    const uploadGrid = section.querySelector('.upload-grid');
+    if (!uploadGrid) return false;
+    const notice = document.createElement('div');
+    notice.id = COPYRIGHT_ID;
+    notice.className = 'cover-image-copyright';
+    notice.setAttribute('role', 'note');
+    notice.innerHTML = '<strong>이미지 저작권에 대해 저희는 책임을 지지 않습니다.</strong><span>사용자가 직접 사용 권한을 확인한 이미지만 업로드해 주세요.</span>';
+    uploadGrid.insertAdjacentElement('afterend', notice);
+    return true;
   }
 
   function clearSpread() {
@@ -141,20 +161,23 @@
     if (installed) return true;
     if (typeof state === 'undefined' || !$('frontInput')) return false;
     styles();
+    if (!makeCopyrightNotice()) return false;
     if (!makeLocalSpreadUpload()) return false;
     installed = true;
     document.documentElement.dataset.coverLocalImageUpload = '1';
+    document.documentElement.dataset.coverCopyrightNotice = '1';
     return true;
   }
 
   window.CoverLocalImageUpload = {
     install,
     clearSpread,
+    makeCopyrightNotice,
     patchRenderCover,
     stage: 'user-local-cover-images-only',
     get renderPatchCount() { return renderPatchCount; },
   };
 
   for (const delay of INSTALL_DELAYS) setTimeout(install, delay);
-  setTimeout(patchRenderCover, 3400);
+  setTimeout(patchRenderCover, 3200);
 })();
