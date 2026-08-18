@@ -147,7 +147,7 @@ def test_large_preflight_files_do_not_enable_direct_security_tools() -> None:
     assert 'id="encryptBtn"' in source
     assert 'id="decryptBtn"' in source
     assert "selectedFile.size>20*1024*1024" in source
-    assert "암호 설정·해제는 20MB 이하 PDF만 지원합니다."
+    assert "암호 설정·해제는 20MB 이하 PDF만 지원합니다." in source
 
 
 def test_partial_page_repair_and_compression_fail_closed() -> None:
