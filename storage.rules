@@ -24,23 +24,37 @@ service firebase.storage {
           && firestore.get(/databases/(default)/documents/user_permissions/$(request.auth.uid)).data.status == 'approved'
         );
     }
+    function isPublicProgram(programId) {
+      return signedIn()
+        && firestore.exists(/databases/(default)/documents/settings/programs)
+        && firestore.get(/databases/(default)/documents/settings/programs).data.public is map
+        && firestore.get(/databases/(default)/documents/settings/programs).data.public[programId] == true;
+    }
+    function canUseProgram(programId) {
+      return isApproved() || isPublicProgram(programId);
+    }
     function isPdfUpload() {
       return request.resource != null
         && request.resource.size <= 209715200
         && request.resource.contentType == 'application/pdf';
     }
 
+    // Shared PDF temporary area. Keep files isolated to the signed-in user's UID,
+    // while matching the same public-program policy enforced by the backend.
     match /pdf_temp/{userId}/{sessionId}/{fileName} {
-      allow read, delete: if isOwner(userId) && isApproved();
-      allow create, update: if isOwner(userId) && isApproved() && isPdfUpload();
+      allow read, delete: if isOwner(userId)
+        && (canUseProgram('pdf-editor') || canUseProgram('preflight'));
+      allow create, update: if isOwner(userId)
+        && (canUseProgram('pdf-editor') || canUseProgram('preflight'))
+        && isPdfUpload();
     }
     match /preflight_temp/{userId}/{sessionId}/{fileName} {
-      allow read, delete: if isOwner(userId) && isApproved();
-      allow create, update: if isOwner(userId) && isApproved() && isPdfUpload();
+      allow read, delete: if isOwner(userId) && canUseProgram('preflight');
+      allow create, update: if isOwner(userId) && canUseProgram('preflight') && isPdfUpload();
     }
     match /pdf_sessions/{userId}/{sessionId}/{fileName} {
-      allow read, delete: if isOwner(userId) && isApproved();
-      allow create, update: if isOwner(userId) && isApproved() && isPdfUpload();
+      allow read, delete: if isOwner(userId) && canUseProgram('pdf-editor');
+      allow create, update: if isOwner(userId) && canUseProgram('pdf-editor') && isPdfUpload();
     }
     match /pdf_results/{userId}/{resultId}/{fileName} {
       allow read, delete: if isOwner(userId) && isApproved();
