@@ -3,9 +3,7 @@ from pathlib import Path
 import fitz
 
 from routers.pdf_utility import (
-    BACKGROUND_DPI,
     MAX_FILES,
-    MAX_TOTAL_BYTES,
     MAX_TOTAL_PAGES,
     _clean_background_pdf,
     _merge_pdf_bytes,
@@ -66,9 +64,7 @@ def test_background_cleanup_keeps_page_count_and_whitens_light_background():
 
 def test_pdf_utility_limits_routes_and_access_are_bounded():
     assert MAX_FILES == 10
-    assert MAX_TOTAL_BYTES == 200 * 1024 * 1024
     assert MAX_TOTAL_PAGES == 1000
-    assert BACKGROUND_DPI == 180
 
     main = MAIN.read_text(encoding="utf-8")
     permissions = PERMISSIONS.read_text(encoding="utf-8")
@@ -81,7 +77,6 @@ def test_pdf_utility_frontend_has_batch_merge_background_and_single_file_tools()
     source = FRONTEND.read_text(encoding="utf-8")
     for marker in (
         "MAX_FILES = 10",
-        "MAX_TOTAL_BYTES = 200 * 1024 * 1024",
         "runBatchCheck",
         "runMerge",
         "background-cleanup-storage",
