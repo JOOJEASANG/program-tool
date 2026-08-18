@@ -112,7 +112,11 @@
       const panelBalance=load('pdfPreflightPanelBalanceScript','/js/pdf-preflight-panel-balance.js?v='+VERSION);
       tasks.push(finalGuard);
       tasks.push(panelBalance);
-      tasks.push(Promise.all([finalGuard,panelBalance]).then(()=>load('pdfUtilityScriptV1','/js/pdf-utility.js?v=20260818-1')));
+      tasks.push(
+        Promise.all([finalGuard,panelBalance])
+          .then(()=>load('pdfUtilityScriptV1','/js/pdf-utility.js?v=20260818-1'))
+          .then(()=>load('pdfUtilityFinalizeScriptV1','/js/pdf-utility-finalize.js?v=20260818-1'))
+      );
     }
     if(isPath('/tools/perfect-binding-cover.html','/perfect-binding-cover','/perfect-binding-cover/index.html')){
       tasks.push(load('perfectBindingFineControlsScript','/js/perfect-binding-cover-fine-controls.js?v='+VERSION));
@@ -143,7 +147,7 @@
 
   async function boot(){
     const helpersPromise=helpers();
-    cleanupLegacyRuntime().catch(error=>console.warn('Legacy service worker cleanup failed',error));
+    cleanupLegacyRuntime().catch(error=>console.warn('Legacy runtime cleanup failed',error));
     try{
       await Promise.race([helpersPromise,delay(1000)]);
       await nextPaint();
