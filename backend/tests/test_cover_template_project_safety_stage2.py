@@ -93,11 +93,12 @@ def test_template_project_safety_loads_between_bridge_and_final_runtime_guard():
     assert source.index(bridge) < source.index(template) < source.index(dock) < source.index(final_guard)
 
 
-def test_existing_gaps_are_the_reason_for_the_stage2_bridge():
+def test_retired_sidebar_template_manager_no_longer_owns_project_state():
     templates = TEMPLATE_MANAGER.read_text(encoding="utf-8")
     project = PROJECT_MODULE.read_text(encoding="utf-8")
-    assert "function snapshotCurrent()" in templates
-    assert "CoverProjectStateBridge" not in templates
+    assert "template-ui-retired" in templates
+    assert "snapshotCurrent" not in templates
+    assert "localStorage" not in templates
     assert "if (data.layout && typeof state" in project
     assert "PROJECT_VERSION = 2" in project
 

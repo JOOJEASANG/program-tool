@@ -15,14 +15,16 @@ def test_cover_image_effects_use_the_shared_lexical_state() -> None:
     assert "typeof window.state==='undefined'" not in source
 
 
-def test_cover_templates_are_local_only_and_do_not_query_provider_images() -> None:
+def test_cover_templates_are_retired_and_do_not_query_provider_images() -> None:
     source = _read("js/cover-template-manager.js")
     rules = _read("firestore.rules")
     assert "cover_templates" not in source
     assert "collection.where('isPublic','==',true).orderBy('name')" not in source
     assert "db.collection" not in source
     assert "firebase.storage" not in source
-    assert "local-presets-only" in source
+    assert "localStorage" not in source
+    assert "template-ui-retired" in source
+    assert "removeTemplateUi" in source
     assert "match /cover_templates/{templateId}" in rules
     assert "allow read, delete: if isAdmin();" in rules
     assert "allow create, update: if false;" in rules
