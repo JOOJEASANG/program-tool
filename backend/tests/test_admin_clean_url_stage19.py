@@ -6,28 +6,35 @@ ROOT = Path(__file__).resolve().parents[2]
 FIREBASE = ROOT / "firebase.json"
 REGISTER = ROOT / "js" / "sw-register.js"
 VERSION = ROOT / "js" / "app-version.js"
-CONSOLE = ROOT / "js" / "admin-service-image-library.js"
+CATALOG = ROOT / "js" / "admin-program-catalog-manager.js"
+ICONS = ROOT / "js" / "admin-program-icon-palette.js"
 
 
-def test_firebase_clean_urls_requires_admin_route_alias_support():
+def test_firebase_clean_urls_keep_admin_catalog_available():
     config = json.loads(FIREBASE.read_text(encoding="utf-8"))
     assert config["hosting"]["cleanUrls"] is True
 
     register = REGISTER.read_text(encoding="utf-8")
     assert "isPath('/admin','/admin.html')" in register
-    assert "/js/admin-service-image-library.js?v=20260808-1" in register
+    assert "/js/admin-program-catalog-manager.js?v=20260808-1" in register
+    assert "/js/admin-program-icon-palette.js?v=20260808-1" in register
+    assert "admin-service-image-library" not in register
 
     version = VERSION.read_text(encoding="utf-8")
     assert "currentPath==='/admin'" in version
     assert "currentPath==='/admin.html'" in version
-    assert "/js/admin-service-image-library.js?v=20260808-1" in version
+    assert "/js/admin-program-catalog-manager.js?v=20260808-1" in version
+    assert "/js/admin-program-icon-palette.js?v=20260808-1" in version
+    assert "admin-service-image-library" not in version
 
 
-def test_admin_service_image_console_accepts_clean_and_html_routes():
-    source = CONSOLE.read_text(encoding="utf-8")
-    assert "path !== '/admin'" in source
-    assert "path !== '/admin.html'" in source
-    assert "서비스 이미지 관리" in source
-    assert "PDF 편집 · 간지 이미지" in source
-    assert "책표지 제작 · 표지 이미지" in source
-    assert "adminServiceImageNav" in source
+def test_admin_catalog_modules_accept_clean_and_html_routes():
+    catalog = CATALOG.read_text(encoding="utf-8")
+    assert "path !== '/admin'" in catalog
+    assert "path !== '/admin.html'" in catalog
+    assert "카테고리·프로그램" in catalog
+
+    icons = ICONS.read_text(encoding="utf-8")
+    assert "path !== '/admin'" in icons
+    assert "path !== '/admin.html'" in icons
+    assert "아이콘 선택" in icons
