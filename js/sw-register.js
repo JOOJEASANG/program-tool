@@ -124,6 +124,7 @@
       tasks.push(
         Promise.all([finalGuard,panelBalance])
           .then(()=>load('pdfUtilityScriptV1','/js/pdf-utility.js?v=20260818-1'))
+          .then(()=>load('pdfUtilityMarginCropScriptV1','/js/pdf-utility-margin-crop.js?v=20260819-1'))
           .then(()=>load('pdfUtilityFinalizeScriptV1','/js/pdf-utility-finalize.js?v=20260818-3'))
       );
     }

@@ -26,6 +26,7 @@ from routers.pdf import pdf_bp
 from routers.pdf_large_security import pdf_large_security_bp
 from routers.pdf_tools import pdf_tools_bp
 from routers.pdf_utility import pdf_utility_bp
+from routers.pdf_utility_margin_crop import pdf_utility_margin_crop_bp
 from routers.preflight import preflight_bp
 from utils.permissions import AccessError, require_program_access_for_request
 
@@ -56,6 +57,7 @@ flask_app.register_blueprint(pdf_bp, url_prefix="/api/pdf")
 flask_app.register_blueprint(pdf_tools_bp, url_prefix="/api/pdf-tools")
 flask_app.register_blueprint(pdf_utility_bp, url_prefix="/api/pdf-utility")
 flask_app.register_blueprint(pdf_large_security_bp, url_prefix="/api/pdf-utility")
+flask_app.register_blueprint(pdf_utility_margin_crop_bp, url_prefix="/api/pdf-utility")
 flask_app.register_blueprint(preflight_bp, url_prefix="/api/preflight")
 
 
