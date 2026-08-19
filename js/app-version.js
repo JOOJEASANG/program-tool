@@ -32,36 +32,75 @@
   }
 
   function loadScopedEnhancements(){
-    if(currentPath==='/'||currentPath==='/index.html')loadCatalogScripts('home');
-    if(currentPath==='/admin'||currentPath==='/admin.html'||currentPath.endsWith('/admin.html'))loadCatalogScripts('admin');
-    if(currentPath==='/tools/pdf-editor.html'||currentPath==='/pdf-editor'||currentPath.endsWith('/pdf-editor/index.html')){
+    if(currentPath==='/'||currentPath==='/index.html'){
+      loadCatalogScripts('home');
+    }
+    if(currentPath==='/admin'||currentPath==='/admin.html'||currentPath.endsWith('/admin.html')){
+      loadCatalogScripts('admin');
+    }
+    if(
+      currentPath==='/tools/pdf-editor.html'||
+      currentPath==='/pdf-editor'||
+      currentPath.endsWith('/pdf-editor/index.html')
+    ){
       loadScopedScript('pdfEditorTransferLimitGuardScriptV1','/js/pdf-editor/transfer-limit-guard.js?v=20260818-1');
       loadScopedScript('pdfDividerLocalImageUploadScriptV1','/js/pdf-divider-local-image-upload.js?v=20260818-2');
     }
-    if(currentPath==='/tools/perfect-binding-cover.html'||currentPath==='/perfect-binding-cover'||currentPath.endsWith('/perfect-binding-cover/index.html')){
+    if(
+      currentPath==='/tools/perfect-binding-cover.html'||
+      currentPath==='/perfect-binding-cover'||
+      currentPath.endsWith('/perfect-binding-cover/index.html')
+    ){
       loadScopedScript('coverLargeFilePolicyScriptV1','/js/cover-large-file-policy.js?v=20260818-1');
       loadScopedScript('coverTemplateAdminSeparationScriptV1','/js/cover-template-admin-separation.js?v=20260818-2');
       loadScopedScript('coverLocalImageUploadScriptV1','/js/cover-local-image-upload.js?v=20260818-2');
       loadScopedScript('coverPreviewTextInspectorScriptV1','/js/cover-preview-text-inspector.js?v=20260818-1');
     }
-    if(currentPath==='/tools/pdf-Checker.html'||currentPath==='/tools/preflight.html'||currentPath==='/pdf-preflight'||currentPath.endsWith('/pdf-preflight/index.html')){
+    if(
+      currentPath==='/tools/pdf-Checker.html'||
+      currentPath==='/tools/preflight.html'||
+      currentPath==='/pdf-preflight'||
+      currentPath.endsWith('/pdf-preflight/index.html')
+    ){
       loadScopedScript('pdfUtilityImageConverterScriptV1','/js/pdf-utility-image-converter.js?v=20260819-1');
     }
   }
 
   async function check(){
     try{
-      const response=await fetch('/version.json?t='+Date.now(),{cache:'no-store',headers:{'Cache-Control':'no-cache'}});
+      const response=await fetch('/version.json?t='+Date.now(),{
+        cache:'no-store',
+        headers:{'Cache-Control':'no-cache'}
+      });
       if(!response.ok)return;
       const data=await response.json();
       const currentVersion=String(data.version||'').trim();
       if(!currentVersion||currentVersion==='unknown')return;
+
       const previousVersion=localStorage.getItem(LOCAL_KEY)||'';
       localStorage.setItem(LOCAL_KEY,currentVersion);
-      window.ProgramStudioVersion={version:currentVersion,previousVersion,changed:Boolean(previousVersion&&previousVersion!==currentVersion),label:String(data.label||''),updatedAt:String(data.updatedAt||'')};
-      if(previousVersion&&previousVersion!==currentVersion)window.dispatchEvent(new CustomEvent('program-studio-version-changed',{detail:window.ProgramStudioVersion}));
-    }catch(error){console.warn('Program Studio version check failed',error);}
+      window.ProgramStudioVersion={
+        version:currentVersion,
+        previousVersion,
+        changed:Boolean(previousVersion&&previousVersion!==currentVersion),
+        label:String(data.label||''),
+        updatedAt:String(data.updatedAt||'')
+      };
+
+      if(previousVersion&&previousVersion!==currentVersion){
+        window.dispatchEvent(new CustomEvent('program-studio-version-changed',{
+          detail:window.ProgramStudioVersion
+        }));
+      }
+    }catch(error){
+      console.warn('Program Studio version check failed',error);
+    }
   }
+
   loadScopedEnhancements();
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',check,{once:true});else check();
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded',check,{once:true});
+  }else{
+    check();
+  }
 })();
