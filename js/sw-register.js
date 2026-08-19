@@ -125,6 +125,7 @@
         Promise.all([finalGuard,panelBalance])
           .then(()=>load('pdfUtilityScriptV1','/js/pdf-utility.js?v=20260818-1'))
           .then(()=>load('pdfUtilityMarginCropScriptV1','/js/pdf-utility-margin-crop.js?v=20260819-1'))
+          .then(()=>load('pdfUtilityBackgroundMarginLabelsScriptV1','/js/pdf-utility-background-margin-labels.js?v=20260819-2'))
           .then(()=>load('pdfUtilityImageConverterScriptV1','/js/pdf-utility-image-converter.js?v=20260819-1'))
           .then(()=>load('pdfUtilityFinalizeScriptV1','/js/pdf-utility-finalize.js?v=20260818-3'))
       );
