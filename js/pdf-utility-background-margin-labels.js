@@ -12,7 +12,7 @@
     style.id = 'pdfUtilityBackgroundMarginLabelsStyles';
     style.textContent = `
       #pdfUtilityModalTitle{font-size:0}
-      #pdfUtilityModalTitle::after{content:'배경 및 여백 제거';font-size:inherit}
+      #pdfUtilityModalTitle::after{content:'배경 및 여백 제거';font-size:19px;font-weight:950}
       .pdfu-margin-title{font-size:0!important}
       .pdfu-margin-title::after{content:'여백 내용 제거';font-size:12px}
       .pdfu-margin-desc{font-size:0!important}
