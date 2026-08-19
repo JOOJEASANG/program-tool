@@ -56,6 +56,14 @@
       loadScopedScript('coverLocalImageUploadScriptV1','/js/cover-local-image-upload.js?v=20260818-2');
       loadScopedScript('coverPreviewTextInspectorScriptV1','/js/cover-preview-text-inspector.js?v=20260818-1');
     }
+    if(
+      currentPath==='/tools/pdf-Checker.html'||
+      currentPath==='/tools/preflight.html'||
+      currentPath==='/pdf-preflight'||
+      currentPath.endsWith('/pdf-preflight/index.html')
+    ){
+      loadScopedScript('pdfUtilityImageConverterScriptV1','/js/pdf-utility-image-converter.js?v=20260819-1');
+    }
   }
 
   async function check(){
