@@ -62,6 +62,7 @@
       currentPath==='/pdf-preflight'||
       currentPath.endsWith('/pdf-preflight/index.html')
     ){
+      loadScopedScript('pdfUtilityFirstPaintScriptV1','/js/pdf-utility-first-paint.js?v=20260821-1');
       loadScopedScript('pdfUtilityImageConverterScriptV1','/js/pdf-utility-image-converter.js?v=20260819-1');
       loadScopedScript('pdfUtilityImageConverterFinalizeScriptV1','/js/pdf-utility-image-converter-finalize.js?v=20260819-3');
     }
