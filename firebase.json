@@ -22,6 +22,14 @@
       {
         "source": "/api/**",
         "function": "api"
+      },
+      {
+        "source": "/pdf-preflight",
+        "destination": "/pdf-preflight/index.html"
+      },
+      {
+        "source": "/pdf-preflight/**",
+        "destination": "/pdf-preflight/index.html"
       }
     ],
     "headers": [
