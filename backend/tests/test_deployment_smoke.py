@@ -32,16 +32,17 @@ def result(
     )
 
 
+def frameable_headers() -> dict[str, str]:
+    return {
+        "strict-transport-security": "max-age=31536000; includeSubDomains",
+        "content-security-policy": "default-src 'self'; frame-ancestors 'self'; object-src 'none'",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "SAMEORIGIN",
+    }
+
+
 def test_home_contract_requires_content_and_security_headers():
-    response = result(
-        "<title>Program Studio</title>",
-        headers={
-            "strict-transport-security": "max-age=31536000; includeSubDomains",
-            "content-security-policy": "default-src 'self'; object-src 'none'",
-            "x-content-type-options": "nosniff",
-            "x-frame-options": "DENY",
-        },
-    )
+    response = result("<title>Program Studio</title>", headers=frameable_headers())
 
     smoke._require_text(response, "Program Studio")
     smoke._require_security_headers(response)
@@ -52,6 +53,16 @@ def test_security_header_failure_is_actionable():
 
     with pytest.raises(smoke.SmokeFailure, match="보안 헤더"):
         smoke._require_security_headers(response)
+
+
+def test_design_editor_same_origin_frame_contract_rejects_deny():
+    headers = frameable_headers()
+    headers["x-frame-options"] = "DENY"
+    headers["content-security-policy"] = "default-src 'self'; frame-ancestors 'none'"
+    response = result("디자인 편집기", headers=headers)
+
+    with pytest.raises(smoke.SmokeFailure, match="동일 출처 iframe"):
+        smoke._require_same_origin_frame_headers(response)
 
 
 def test_version_contract_rejects_stale_deployment():
@@ -75,17 +86,16 @@ def test_run_smoke_checks_can_skip_api(monkeypatch):
         del base_url, timeout
         paths.append(path)
         if path == "/":
-            return result(
-                "Program Studio",
-                headers={
-                    "strict-transport-security": "max-age=31536000",
-                    "content-security-policy": "default-src 'self'",
-                    "x-content-type-options": "nosniff",
-                    "x-frame-options": "DENY",
-                },
-            )
+            return result("Program Studio", headers=frameable_headers())
         if path == "/login.html":
             return result("Google로 계속하기 js/firebase-config.js")
+        if path == "/design-editor/":
+            return result(
+                "디자인 편집기 editorFrame perfect-binding-cover/?embed=1&mode=cover",
+                headers=frameable_headers(),
+            )
+        if path == "/perfect-binding-cover/?embed=1&mode=cover":
+            return result("책표지제작 · Program Studio", headers=frameable_headers())
         if path == "/version.json":
             return result(json.dumps({"version": "2026.07.29.005"}))
         raise AssertionError(path)
@@ -99,7 +109,13 @@ def test_run_smoke_checks_can_skip_api(monkeypatch):
         delay_seconds=0,
     )
 
-    assert paths == ["/", "/login.html", "/version.json"]
+    assert paths == [
+        "/",
+        "/login.html",
+        "/design-editor/",
+        "/perfect-binding-cover/?embed=1&mode=cover",
+        "/version.json",
+    ]
 
 
 def test_retry_reports_final_failure_without_sleep(monkeypatch):
