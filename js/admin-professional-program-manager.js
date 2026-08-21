@@ -11,7 +11,7 @@
   const PANEL_ID='adminProfessionalProgramsPanel';
   const STYLE_ID='adminProfessionalProgramsStyles';
   const DEFAULTS=[
-    {id:'design-editor',name:'디자인 편집기',icon:'✦',desc:'책표지, 포스터, 전단, 2단·3단 리플렛을 하나의 가벼운 편집기로 제작합니다.',url:'perfect-binding-cover/',status:'active',visible:true},
+    {id:'design-editor',name:'디자인 편집기',icon:'✦',desc:'책표지, 포스터, 전단, 2단·3단 리플렛을 하나의 가벼운 편집기로 제작합니다.',url:'design-editor/',status:'active',visible:true},
     {id:'image-editor',name:'이미지 편집기',icon:'◐',desc:'자르기, 크기 조절, 배경 제거와 기본 이미지 보정을 빠르게 처리합니다.',url:'',status:'coming',visible:true},
     {id:'document-editor',name:'문서 편집기',icon:'▤',desc:'글, 표, 이미지를 편집해 기관·학교·업무 문서를 정돈된 형식으로 완성합니다.',url:'',status:'coming',visible:true},
     {id:'pdf-editor',name:'PDF 편집기',icon:'PDF',desc:'페이지 편집, N-up, 소책자, 간지, 워터마크와 페이지 번호를 처리합니다.',url:'pdf-editor/',status:'active',visible:true},
@@ -29,6 +29,12 @@
   const esc=value=>String(value==null?'':value).replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
   const selected=()=>programs.find(item=>item.id===selectedId)||programs[0]||null;
 
+  function normalizedUrl(item,base){
+    const raw=String(item?.url==null?base.url:item.url).trim().slice(0,300);
+    if(base.id==='design-editor'&&(!raw||raw==='perfect-binding-cover/'||raw==='/perfect-binding-cover/'))return base.url;
+    return raw;
+  }
+
   function normalize(raw){
     const source=Array.isArray(raw?.programs)?raw.programs:[];
     if(!source.length)return DEFAULTS.map(item=>({...item}));
@@ -44,7 +50,7 @@
         ...base,
         name:String(item.name||base.name).trim().slice(0,80)||base.name,
         desc:String(item.desc||base.desc).trim().slice(0,500)||base.desc,
-        url:String(item.url==null?base.url:item.url).trim().slice(0,300),
+        url:normalizedUrl(item,base),
         status:item.status==='active'?'active':'coming',
         visible:item.visible!==false
       });
@@ -174,7 +180,7 @@
       <div class="progm-field"><label>프로그램 ID</label><div class="progm-fixed">${esc(program.id)}</div></div>
       <div class="progm-field"><label>상태</label><select data-progm-field="status"><option value="active"${program.status==='active'?' selected':''}>사용 가능</option><option value="coming"${program.status!=='active'?' selected':''}>준비 중</option></select></div>
       <div class="progm-field"><label>홈 공개</label><select data-progm-field="visible"><option value="true"${program.visible?' selected':''}>공개</option><option value="false"${!program.visible?' selected':''}>숨김</option></select></div>
-      <div class="progm-field wide"><label>프로그램 주소</label><input data-progm-field="url" maxlength="300" value="${esc(program.url)}" placeholder="예: pdf-editor/"></div>
+      <div class="progm-field wide"><label>프로그램 주소</label><input data-progm-field="url" maxlength="300" value="${esc(program.url)}" placeholder="예: design-editor/"></div>
       <div class="progm-field wide"><label>홈 설명</label><textarea data-progm-field="desc" maxlength="500">${esc(program.desc)}</textarea></div>
     </div>`;
     box.querySelectorAll('[data-progm-field]').forEach(control=>{
