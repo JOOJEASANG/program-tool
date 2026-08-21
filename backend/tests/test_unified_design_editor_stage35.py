@@ -51,7 +51,7 @@ def test_general_editor_is_preserved_as_an_isolated_engine():
         'id="inspector"',
         "../js/design-editor/presets.js",
         "../js/design-editor/app.js",
-        "300 DPI",
+        "작업영역을 직접 클릭",
     ):
         assert marker in source
 
