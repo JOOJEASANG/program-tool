@@ -14,6 +14,7 @@
   let saveTimer=0;
   let replaceTargetId='';
   let snapClearTimer=0;
+  let suppressBoardClear=false;
 
   const byId=id=>document.getElementById(id);
   const clamp=(value,min,max)=>Math.max(min,Math.min(max,value));
@@ -141,7 +142,9 @@
 
   function clearBaseSelection(){
     const board=byId('artboard');if(!board)return;
-    board.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true,clientX:0,clientY:0}));
+    suppressBoardClear=true;
+    try{board.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true,clientX:0,clientY:0}));}
+    finally{suppressBoardClear=false;}
   }
 
   function selectExtra(id){selectedExtraId=id||'';if(id)clearBaseSelection();sync();}
@@ -226,7 +229,7 @@
     const item=extra(),p=project();if(!item||!p)return;
     if(['x','y','w','h','opacity','strokeWidth','focusX','focusY'].includes(field))value=Number(value);
     item[field]=value;
-    item.w=clamp(Number(item.w)||1,1,p.width);item.h=clamp(Number(item.h)||1,.5,p.height);item.x=clamp(Number(item.x)||0,0,Math.max(0,p.width-item.w));item.y=clamp(Number(item.y)||0,0,Math.max(0,p.height-item.h));item.opacity=clamp(Number(item.opacity)||100,1,100);item.strokeWidth=clamp(Number(item.strokeWidth)||1,.2,12);persist();renderExtras();syncExtraInspector();renderExtraLayers();
+    item.w=clamp(Number(item.w)||1,1,p.width);item.h=clamp(Number(item.h)||1,.5,p.height);item.x=clamp(Number(item.x)||0,0,Math.max(0,p.width-item.w));item.y=clamp(Number(item.y)||0,0,Math.max(0,p.height-item.h));item.opacity=clamp(Number(item.opacity)||100,1,100);item.strokeWidth=clamp(Number(item.strokeWidth)||1,.2,12);persist();renderExtras();renderExtraLayers();
   }
 
   function removeExtra(){
@@ -294,7 +297,7 @@
     ['click','dblclick','input','change','keyup'].forEach(name=>document.addEventListener(name,event=>{
       if(name==='click'){
         if(event.target?.closest?.('.design-text'))selectedExtraId='';
-        else if(event.target===byId('artboard'))selectedExtraId='';
+        else if(event.target===byId('artboard')&&!suppressBoardClear)selectedExtraId='';
       }
       queueSync();
     },false));
