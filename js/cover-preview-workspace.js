@@ -24,7 +24,8 @@
       .preview-panel{padding:7px!important}
       .preview-card{border-radius:10px!important}
       .preview-head{padding:8px 11px!important}
-      .canvas-shell{padding:12px!important;align-items:center!important;justify-content:center!important;overflow:auto!important}
+      /* The canvas itself already includes the exact bleed area. Keep only top room for the panel labels. */
+      .canvas-shell{padding:22px 0 0!important;align-items:center!important;justify-content:center!important;overflow:auto!important}
       .canvas-wrap{margin:auto!important;transform:none!important;transition:none!important}
       .cover-preview-zoom{display:flex;align-items:center;gap:5px;margin-left:8px;padding-left:8px;border-left:1px solid #dbe5ee;position:relative;z-index:2}
       .cover-preview-zoom button{width:28px;height:28px;border:1px solid #cbd5e1;background:#fff;border-radius:7px;color:#334155;font-size:14px;font-weight:900;cursor:pointer;display:grid;place-items:center;pointer-events:auto}
@@ -34,7 +35,7 @@
       .cover-sidebar-actions .download-card{margin:0!important;padding:9px 0 0!important;border:0!important;box-shadow:none!important;border-radius:0!important;background:#fff!important}
       .cover-sidebar-actions .download-grid{grid-template-columns:1.25fr 1fr 1fr!important;gap:6px!important}
       .cover-sidebar-actions .download-btn{padding:10px 5px!important;font-size:9px!important}
-      @media(max-width:980px){.workspace{grid-template-columns:1fr!important}.cover-sidebar-actions{position:static;bottom:auto}.preview-panel{padding:9px!important}}
+      @media(max-width:980px){.workspace{grid-template-columns:1fr!important}.cover-sidebar-actions{position:static;bottom:auto}.preview-panel{padding:9px!important}.canvas-shell{padding:22px 0 0!important}}
     `;
     document.head.appendChild(style);
   }
