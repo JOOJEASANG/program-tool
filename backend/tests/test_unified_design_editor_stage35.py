@@ -8,7 +8,7 @@ BRIDGE = ROOT / "js" / "design-editor" / "embedded-runtime.js"
 REGISTER = ROOT / "js" / "sw-register.js"
 
 
-def test_unified_design_editor_defaults_to_existing_cover_engine():
+def test_unified_design_editor_defaults_to_existing_cover_engine_without_outer_sidebar():
     source = SHELL.read_text(encoding="utf-8")
     for marker in (
         "디자인 편집기",
@@ -19,13 +19,14 @@ def test_unified_design_editor_defaults_to_existing_cover_engine():
         "2단 리플렛",
         "3단 리플렛",
         "사용자 지정",
-        'src="../perfect-binding-cover/?embed=1"',
-        "기존 검증된 책표지 기능을 그대로 사용합니다.",
+        'src="../perfect-binding-cover/?embed=1&mode=cover"',
+        "single-sidebar-design-shell",
     ):
         assert marker in source
+    assert "studio-side" not in source
 
 
-def test_unified_shell_generates_mode_specific_editor_options():
+def test_unified_shell_routes_mode_specific_editor_requests_from_one_frame():
     source = SHELL.read_text(encoding="utf-8")
     for marker in (
         "poster-a4",
@@ -35,10 +36,10 @@ def test_unified_shell_generates_mode_specific_editor_options():
         "leaflet-2",
         "leaflet-3-roll",
         "leaflet-3-z",
-        "quickOrientation",
-        "quickWidth",
-        "quickHeight",
+        "orientation",
+        "w:210,h:297",
         "general.html?embed=1&preset=",
+        "program-studio-design-mode",
     ):
         assert marker in source
 
@@ -56,13 +57,18 @@ def test_general_editor_is_preserved_as_an_isolated_engine():
         assert marker in source
 
 
-def test_embedded_bridge_hides_duplicate_navigation_and_autostarts_requested_mode():
+def test_embedded_bridge_injects_mode_controls_into_existing_sidebar_and_autostarts_mode():
     source = BRIDGE.read_text(encoding="utf-8")
     for marker in (
         "params.get('embed')==='1'",
         "history.replaceState",
         "'/design-editor/index.html'",
         ".top-nav{display:none!important}",
+        "document.querySelector('.settings')",
+        "document.querySelector('.sidebar')",
+        "design-mode-grid",
+        "data-design-mode",
+        "program-studio-design-mode",
         "app.startProject('custom'",
         "app.startProject(preset)",
         "orientation==='landscape'",
@@ -75,7 +81,7 @@ def test_embedded_bridge_hides_duplicate_navigation_and_autostarts_requested_mod
     assert "eval(" not in source
 
 
-def test_general_editor_loads_bridge_before_existing_phase2_and_output_modules():
+def test_general_editor_loads_bridge_before_existing_phase_modules():
     source = REGISTER.read_text(encoding="utf-8")
     assert "if(isPath('/design-editor/general.html'))" in source
     bridge = source.index("designEditorEmbeddedRuntimeScriptV1")
