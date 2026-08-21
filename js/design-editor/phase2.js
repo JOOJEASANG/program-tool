@@ -93,7 +93,7 @@
     const w=kind==='line'?Math.min(90,p.width*.55):Math.min(70,p.width*.38);
     const h=kind==='line'?1.2:Math.min(42,p.height*.2);
     const item={id:uid(),type:'shape',shape:kind,name:kind==='rect'?'사각형':kind==='ellipse'?'원·타원':'선',x:(p.width-w)/2,y:(p.height-h)/2,w,h,fill:kind==='line'?'#12396d':'#dceeff',stroke:'#12396d',strokeWidth:1,opacity:100,locked:false,visible:true};
-    s.extras.push(item);selectedExtraId=item.id;persist();sync();setStatus(`${item.name}을 추가했습니다.`,'ok');
+    s.extras.push(item);selectedExtraId=item.id;clearBaseSelection();persist();sync();setStatus(`${item.name}을 추가했습니다.`,'ok');
   }
 
   function loadImageElement(src){
@@ -136,7 +136,7 @@
         const item={id:uid(),type:'image',name:file.name,src:data.src,aspect:data.aspect,x:(p.width-w)/2,y:(p.height-h)/2,w,h,fit:'cover',focusX:50,focusY:50,opacity:100,locked:false,visible:true};
         s.extras.push(item);selectedExtraId=item.id;
       }
-      persist();sync();setStatus('이미지를 작업영역에 추가했습니다.','ok');
+      clearBaseSelection();persist();sync();setStatus('이미지를 작업영역에 추가했습니다.','ok');
     }catch(error){replaceTargetId='';setStatus(error.message||'이미지를 추가하지 못했습니다.','err');}
   }
 
