@@ -11,7 +11,7 @@
     {
       id:'design-editor',name:'디자인 편집기',icon:'✦',accent:'#5969dc',bg:'#edf1ff',
       desc:'책표지 제작을 시작으로 포스터·전단·2단·3단 리플렛을 하나의 가벼운 편집기로 통합합니다.',
-      url:'perfect-binding-cover/',tags:['책표지','포스터·전단','리플렛'],status:'active',visible:true
+      url:'design-editor/',tags:['책표지','포스터·전단','리플렛'],status:'active',visible:true
     },
     {
       id:'image-editor',name:'이미지 편집기',icon:'◐',accent:'#b65f8c',bg:'#fff0f6',
@@ -67,6 +67,12 @@
     return fallback;
   }
 
+  function managedUrl(item,base){
+    const raw=String(item?.url==null?'':item.url).trim();
+    if(base.id==='design-editor'&&(!raw||raw==='perfect-binding-cover/'||raw==='/perfect-binding-cover/'))return base.url;
+    return safeUrl(raw,base.url);
+  }
+
   function normalizeManagedPrograms(raw){
     const source=Array.isArray(raw?.programs)?raw.programs:[];
     if(!source.length)return null;
@@ -82,7 +88,7 @@
         ...base,
         name:cleanText(item.name,base.name,80),
         desc:cleanText(item.desc,base.desc,500),
-        url:safeUrl(item.url,base.url),
+        url:managedUrl(item,base),
         status:item.status==='active'?'active':'coming',
         visible:item.visible!==false,
         tags:[...base.tags]
