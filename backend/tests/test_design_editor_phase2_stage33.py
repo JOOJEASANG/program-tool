@@ -50,6 +50,16 @@ def test_design_editor_phase2_keeps_print_layout_helpers_and_text_spacing():
         assert marker in source
 
 
+def test_design_editor_phase2_clears_text_selection_without_losing_extra_selection():
+    source = PHASE2.read_text(encoding="utf-8")
+    assert "let suppressBoardClear=false" in source
+    assert "suppressBoardClear=true" in source
+    assert "finally{suppressBoardClear=false;}" in source
+    assert "event.target===byId('artboard')&&!suppressBoardClear" in source
+    assert "selectedExtraId=item.id;clearBaseSelection();persist();sync()" in source
+    assert "clearBaseSelection();persist();sync();setStatus('이미지를 작업영역에 추가했습니다.'" in source
+
+
 def test_design_editor_phase2_avoids_reentrant_runtime_watchers():
     source = PHASE2.read_text(encoding="utf-8")
     assert "MutationObserver" not in source
