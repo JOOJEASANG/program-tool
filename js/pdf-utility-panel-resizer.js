@@ -32,6 +32,15 @@
     const style=document.createElement('style');
     style.id='pdfUtilityPanelResizerStyles';
     style.textContent=`
+      /* PDF Utility: remove the large introduction/guide box and use the full viewport width. */
+      body.pdfu-wide-layout .container{
+        width:100%!important;
+        max-width:none!important;
+        margin:0!important;
+        padding:24px 12px 50px!important;
+      }
+      body.pdfu-wide-layout .hero{display:none!important}
+      body.pdfu-wide-layout .workspace{width:100%!important;max-width:none!important;margin:0!important}
       body.pdfu-wide-layout .workspace.pdfu-resizable-workspace{
         grid-template-columns:minmax(0,calc((100% - ${GAP}px - ${HANDLE}px) * var(--pdfu-left-ratio, .5))) ${HANDLE}px minmax(0,1fr)!important;
         gap:${GAP}px!important;
@@ -89,12 +98,16 @@
         body.pdfu-wide-layout .workspace.pdfu-resizable-workspace{grid-template-columns:1fr!important}
         body.pdfu-wide-layout .pdfu-panel-resizer{display:none!important}
       }
+      @media(max-width:520px){
+        body.pdfu-wide-layout .container{padding:16px 8px 40px!important}
+      }
     `;
     document.head.appendChild(style);
   }
 
   function install(){
     if(installed)return true;
+    document.body.classList.add('pdfu-wide-layout');
     const workspace=document.querySelector('body.pdfu-wide-layout .workspace');
     if(!workspace)return false;
     const panels=workspace.querySelectorAll(':scope > .panel');
