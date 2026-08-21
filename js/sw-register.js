@@ -100,6 +100,7 @@
     }
     if(isPath('/design-editor','/design-editor/index.html')){
       tasks.push(load('designEditorPhase2ScriptV1','/js/design-editor/phase2.js?v=20260821-1'));
+      tasks.push(load('designEditorOutputScriptV1','/js/design-editor/output.js?v=20260821-1'));
     }
     if(isPath(
       '/tools/pdf-editor.html','/pdf-editor','/pdf-editor/index.html',
