@@ -98,6 +98,9 @@
       );
       tasks.push(load('adminProgramIconPaletteScriptV1','/js/admin-program-icon-palette.js?v=20260808-1'));
     }
+    if(isPath('/design-editor','/design-editor/index.html')){
+      tasks.push(load('designEditorPhase2ScriptV1','/js/design-editor/phase2.js?v=20260821-1'));
+    }
     if(isPath(
       '/tools/pdf-editor.html','/pdf-editor','/pdf-editor/index.html',
       '/tools/perfect-binding-cover.html','/perfect-binding-cover','/perfect-binding-cover/index.html'
