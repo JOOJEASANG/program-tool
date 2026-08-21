@@ -116,6 +116,7 @@
           .then(()=>load('designEditorProjectFileScriptV1','/js/design-editor/phase11-project-file.js?v=20260821-1'))
           .then(()=>load('designEditorRotationScriptV1','/js/design-editor/phase12-rotation.js?v=20260822-1'))
           .then(()=>load('designEditorPrintQualityScriptV1','/js/design-editor/phase13-print-quality.js?v=20260822-1'))
+          .then(()=>load('designEditorPrintSafetyScriptV1','/js/design-editor/phase14-print-safety.js?v=20260822-1'))
       );
     }
     if(isPath(
