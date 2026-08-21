@@ -28,15 +28,18 @@ def test_current_draft_reset_clears_only_the_current_scope_with_confirmation():
         "legacyScope===scope",
         "현재 작업 새로 시작",
         "다른 포스터·전단·리플렛 작업은 그대로 유지됩니다.",
-        "location.reload()",
+        "startBlankProject(snapshot)",
+        "app.startProject(presetId)",
+        "saveCurrent?.('reset-blank')",
         "stage:'reset-only-current-preset-draft'",
     ):
         assert marker in source
 
 
-def test_current_draft_reset_avoids_polling_and_reentrant_watchers():
+def test_current_draft_reset_avoids_stale_beforeunload_restore_and_runtime_watchers():
     source = RESET.read_text(encoding="utf-8")
     assert "confirm(" in source
+    assert "location.reload()" not in source
     assert "MutationObserver" not in source
     assert "setInterval(" not in source
     assert "eval(" not in source
