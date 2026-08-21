@@ -1,0 +1,148 @@
+(function(){
+  'use strict';
+  if(window.__designEditorProjectFileV1)return;
+  window.__designEditorProjectFileV1=true;
+  if(new URLSearchParams(location.search).get('embed')!=='1')return;
+
+  const DRAFT_KEY='programTool.designEditor.draft.v1';
+  const CARD_ID='designProjectFileTools';
+  const STYLE_ID='designProjectFileStyles';
+  const INPUT_ID='designProjectFileInput';
+  const FORMAT='program-studio-design-project';
+  const FORMAT_VERSION=1;
+  const MAX_FILE_BYTES=30*1024*1024;
+  const MAX_SURFACES=12;
+  const MAX_ITEMS_PER_SURFACE=500;
+  let installed=false;
+  let busy=false;
+
+  const byId=id=>document.getElementById(id);
+  const project=()=>window.DesignEditorApp?.project||null;
+
+  function setStatus(message,type='info'){
+    const node=byId('editorStatus');if(!node)return;
+    node.className=`editor-status ${type}`;node.textContent=message;
+  }
+
+  function safeName(value){
+    return String(value||'design-project').trim().replace(/[\\/:*?"<>|]+/g,'_').replace(/\s+/g,'_').slice(0,80)||'design-project';
+  }
+
+  function clone(value){
+    try{return JSON.parse(JSON.stringify(value));}catch(_){return null;}
+  }
+
+  function validNumber(value,min,max){
+    const number=Number(value);return Number.isFinite(number)&&number>=min&&number<=max;
+  }
+
+  function validateProject(raw){
+    const value=raw&&typeof raw==='object'?raw:null;
+    if(!value)throw new Error('프로젝트 파일 형식이 올바르지 않습니다.');
+    if(!String(value.presetId||'').trim())throw new Error('프로젝트 종류 정보가 없습니다.');
+    if(!validNumber(value.width,20,2000)||!validNumber(value.height,20,2000))throw new Error('프로젝트 규격 정보가 올바르지 않습니다.');
+    if(!Array.isArray(value.surfaces)||!value.surfaces.length||value.surfaces.length>MAX_SURFACES)throw new Error('프로젝트 면 구성이 올바르지 않습니다.');
+    for(const surface of value.surfaces){
+      if(!surface||typeof surface!=='object'||!String(surface.id||'').trim())throw new Error('프로젝트 면 정보가 손상되었습니다.');
+      const elements=Array.isArray(surface.elements)?surface.elements:[];
+      const extras=Array.isArray(surface.extras)?surface.extras:[];
+      if(elements.length+extras.length>MAX_ITEMS_PER_SURFACE)throw new Error('한 면에 포함된 요소가 너무 많습니다.');
+      for(const item of extras){
+        if(item?.type==='image'&&item.src&&!/^data:image\/(?:png|jpeg|webp);base64,/i.test(String(item.src)))throw new Error('지원하지 않는 이미지 데이터가 포함되어 있습니다.');
+      }
+    }
+    return value;
+  }
+
+  function unwrapProject(parsed){
+    if(parsed?.format===FORMAT){
+      if(Number(parsed.version)!==FORMAT_VERSION)throw new Error('현재 버전에서 지원하지 않는 프로젝트 파일입니다.');
+      return validateProject(parsed.project);
+    }
+    return validateProject(parsed);
+  }
+
+  function setBusy(value){
+    busy=Boolean(value);
+    ['designProjectSave','designProjectLoad'].forEach(id=>{const node=byId(id);if(node)node.disabled=busy;});
+  }
+
+  function downloadText(text,name){
+    const blob=new Blob([text],{type:'application/json;charset=utf-8'});
+    const url=URL.createObjectURL(blob);
+    try{
+      const link=document.createElement('a');link.href=url;link.download=name;document.body.appendChild(link);link.click();link.remove();
+    }finally{setTimeout(()=>URL.revokeObjectURL(url),1000);}
+  }
+
+  function exportProject(){
+    if(busy)return;
+    const current=project();if(!current)return setStatus('저장할 디자인 작업이 없습니다.','info');
+    const snapshot=clone(current);if(!snapshot)return setStatus('현재 디자인 작업을 읽지 못했습니다.','err');
+    try{
+      validateProject(snapshot);
+      const payload={format:FORMAT,version:FORMAT_VERSION,savedAt:new Date().toISOString(),project:snapshot};
+      downloadText(JSON.stringify(payload),`${safeName(current.name)}.design.json`);
+      setStatus('디자인 프로젝트 파일을 저장했습니다.','ok');
+    }catch(error){setStatus(error.message||'프로젝트 파일 저장에 실패했습니다.','err');}
+  }
+
+  function triggerImport(){
+    if(busy)return;
+    const input=byId(INPUT_ID);if(input){input.value='';input.click();}
+  }
+
+  async function importProject(event){
+    const input=event.currentTarget,file=input.files?.[0];input.value='';
+    if(!file)return;
+    if(file.size>MAX_FILE_BYTES)return setStatus('프로젝트 파일은 30MB 이하만 불러올 수 있습니다.','err');
+    setBusy(true);setStatus('프로젝트 파일을 확인하는 중입니다.','info');
+    try{
+      const parsed=JSON.parse(await file.text());
+      const incoming=clone(unwrapProject(parsed));
+      if(!incoming)throw new Error('프로젝트 내용을 복원하지 못했습니다.');
+      if(!incoming.activeSurface||!incoming.surfaces.some(surface=>surface.id===incoming.activeSurface))incoming.activeSurface=incoming.surfaces[0].id;
+      localStorage.setItem(DRAFT_KEY,JSON.stringify(incoming));
+      const resumed=window.DesignEditorApp?.resumeDraft?.();
+      if(resumed===false)throw new Error('프로젝트 화면을 복원하지 못했습니다.');
+      setTimeout(()=>{
+        window.DesignEditorPhase2?.sync?.();
+        window.DesignEditorDraftScope?.saveCurrent?.('project-file-import');
+        window.dispatchEvent(new Event('resize'));
+      },90);
+      setStatus(`${incoming.name||'디자인'} 프로젝트를 불러왔습니다.`,'ok');
+    }catch(error){
+      setStatus(error instanceof SyntaxError?'JSON 프로젝트 파일을 읽을 수 없습니다.':error.message||'프로젝트 파일을 불러오지 못했습니다.','err');
+    }finally{setBusy(false);}
+  }
+
+  function installStyles(){
+    if(byId(STYLE_ID))return;
+    const style=document.createElement('style');style.id=STYLE_ID;style.textContent=`
+      .design-project-file-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px}.design-project-file-grid button{border:1px solid #d7e0e9;border-radius:8px;background:#fff;color:#475569;padding:7px 4px;font-size:8px;font-weight:900;cursor:pointer}.design-project-file-grid button:hover:not(:disabled){border-color:#79b9c8;background:#f0fdff}.design-project-file-grid button:disabled{opacity:.45;cursor:not-allowed}.design-project-file-note{margin-top:6px;color:#7c8797;font-size:7px;line-height:1.5}
+    `;document.head.appendChild(style);
+  }
+
+  function installCard(){
+    if(byId(CARD_ID))return true;
+    const sidebar=document.querySelector('.sidebar'),clipboard=byId('designElementClipboardTools');if(!sidebar)return false;
+    const card=document.createElement('section');card.id=CARD_ID;card.className='side-card';
+    card.innerHTML=`<div class="side-label">작업 파일</div><div class="design-project-file-grid"><button id="designProjectSave" type="button">프로젝트 저장</button><button id="designProjectLoad" type="button">프로젝트 불러오기</button></div><div class="design-project-file-note">글씨·이미지·도형과 앞·뒷면/리플렛 면 구성을 통째로 저장합니다. 다른 PC에서도 이어서 편집할 수 있습니다.</div><input id="${INPUT_ID}" type="file" accept=".json,.design.json,application/json" hidden>`;
+    if(clipboard?.nextSibling)sidebar.insertBefore(card,clipboard.nextSibling);else sidebar.appendChild(card);
+    byId('designProjectSave')?.addEventListener('click',exportProject);
+    byId('designProjectLoad')?.addEventListener('click',triggerImport);
+    byId(INPUT_ID)?.addEventListener('change',importProject);
+    return true;
+  }
+
+  function install(){
+    if(installed)return true;
+    if(!document.querySelector('.sidebar')||!byId('artboard')||!window.DesignEditorApp)return false;
+    installed=true;installStyles();installCard();
+    window.DesignEditorProjectFile={exportProject,triggerImport,format:FORMAT,version:FORMAT_VERSION,stage:'portable-design-project-save-load'};
+    return true;
+  }
+
+  function boot(){if(install())return;[180,420,800,1300,2200,3200].forEach(delay=>setTimeout(install,delay));}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+})();
