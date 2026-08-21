@@ -49,10 +49,9 @@
   }
 
   function rotationDegrees(item){
-    let value=Number(item?.rotation)||0;
-    while(value>180)value-=360;
-    while(value<-180)value+=360;
-    return value;
+    const value=Number(item?.rotation);
+    if(!Number.isFinite(value))return 0;
+    return ((value+180)%360+360)%360-180;
   }
 
   function withRotation(ctx,item,x,y,w,h,draw){
