@@ -17,6 +17,7 @@ from urllib.request import Request, urlopen
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_BASE_URL = "https://program-tool.web.app"
 USER_AGENT = "ProgramStudioDeploymentSmoke/1.0"
+LEGACY_DESIGN_EDITOR_PATH = "/design-editor/"
 
 
 class SmokeFailure(RuntimeError):
