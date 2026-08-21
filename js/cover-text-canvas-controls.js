@@ -18,6 +18,7 @@
   let activeId = '';
   let guideState = null;
   let overlayFrame = 0;
+  let overlayDismissed = false;
   let snapping = readSnapSetting();
 
   const byId = (id) => document.getElementById(id);
@@ -82,6 +83,7 @@
 
   function selectItem(entry) {
     if (!entry) return false;
+    overlayDismissed = false;
     activeId = entry.id;
     ensureLayout(entry);
     textApi()?.select?.(entry.id);
@@ -477,6 +479,10 @@
     overlayFrame = 0;
     ensureOverlay();
     updateSnapButton();
+    if (overlayDismissed) {
+      hideOverlay();
+      return false;
+    }
     const canvas = byId('previewCanvas');
     const wrap = document.querySelector('.canvas-wrap');
     const entry = selectedItem();
@@ -564,7 +570,13 @@
     const canvas = byId('previewCanvas');
     const point = canvasPoint(event, canvas);
     const entry = pickedText(point);
-    if (!entry) return;
+    if (!entry) {
+      overlayDismissed = true;
+      guideState = null;
+      hideOverlay();
+      return;
+    }
+    overlayDismissed = false;
     event.preventDefault();
     event.stopImmediatePropagation();
     event.stopPropagation();
@@ -742,12 +754,18 @@
     document.addEventListener('keydown', handleKeydown, true);
     document.addEventListener('click', (event) => {
       const row = event.target?.closest?.('.cover-text-row');
-      if (row?.dataset?.textId) activeId = row.dataset.textId;
+      if (row?.dataset?.textId) {
+        activeId = row.dataset.textId;
+        overlayDismissed = false;
+      }
       scheduleOverlay();
     }, true);
     document.addEventListener('focusin', (event) => {
       const row = event.target?.closest?.('.cover-text-row');
-      if (row?.dataset?.textId) activeId = row.dataset.textId;
+      if (row?.dataset?.textId) {
+        activeId = row.dataset.textId;
+        overlayDismissed = false;
+      }
       scheduleOverlay();
     }, true);
     document.addEventListener('cover-layout-lock-change', scheduleOverlay);
