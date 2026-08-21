@@ -14,10 +14,10 @@
   const byId=id=>document.getElementById(id);
   const clamp=(value,min,max)=>Math.max(min,Math.min(max,value));
   const normalize=value=>{
-    let angle=Number(value)||0;
-    while(angle>180)angle-=360;
-    while(angle<-180)angle+=360;
-    return Math.round(angle*10)/10;
+    const angle=Number(value);
+    if(!Number.isFinite(angle))return 0;
+    const normalized=((angle+180)%360+360)%360-180;
+    return Math.round(normalized*10)/10;
   };
   const project=()=>window.DesignEditorApp?.project||null;
   const surface=()=>{
