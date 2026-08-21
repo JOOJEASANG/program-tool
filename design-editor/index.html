@@ -13,7 +13,7 @@
   <main id="unifiedDesignShell" class="studio" data-mode="cover">
     <!-- 작업 종류: 표지디자인 · 포스터 · 전단지 · 2단 리플렛 · 3단 리플렛 · 사용자 지정 -->
     <div id="loading" class="loading"><div><div class="spinner"></div>디자인 편집기를 불러오는 중...</div></div>
-    <iframe id="editorFrame" class="editor-frame" title="디자인 편집 작업영역" src="../perfect-binding-cover/?embed=1&mode=cover"></iframe>
+    <iframe id="editorFrame" class="editor-frame" title="디자인 편집 작업영역" src="/perfect-binding-cover/?embed=1&mode=cover"></iframe>
   </main>
   <script>
     (function(){
@@ -29,11 +29,11 @@
       function route(detail={}){
         const mode=safeMode(detail.mode),data={...DEFAULTS[mode],...detail,mode};
         shell.dataset.mode=mode;
-        if(mode==='cover')return '../perfect-binding-cover/?embed=1&mode=cover';
+        if(mode==='cover')return '/perfect-binding-cover/?embed=1&mode=cover';
         const query=new URLSearchParams({embed:'1',mode,preset:data.preset||DEFAULTS[mode].preset});
         if(data.orientation)query.set('orientation',data.orientation);
         if(mode==='custom'){query.set('w',String(clampNumber(data.w,210)));query.set('h',String(clampNumber(data.h,297)));}
-        return `general.html?${query.toString()}`;
+        return `/design-editor/general?${query.toString()}`;
       }
       function openMode(detail){loading.classList.remove('hide');frame.src=route(detail);}
       window.addEventListener('message',event=>{
@@ -43,7 +43,7 @@
       });
       frame.addEventListener('load',()=>loading.classList.add('hide'));
       setTimeout(()=>loading.classList.add('hide'),2600);
-      window.UnifiedDesignShell={openMode,stage:'single-sidebar-design-shell'};
+      window.UnifiedDesignShell={openMode,route,stage:'single-sidebar-design-shell'};
     })();
   </script>
 </body>
