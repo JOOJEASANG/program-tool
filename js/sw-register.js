@@ -113,6 +113,7 @@
           .then(()=>load('designEditorPhase4SmartLayoutScriptV1','/js/design-editor/phase4-smart-layout.js?v=20260821-1'))
           .then(()=>load('designEditorElementClipboardScriptV1','/js/design-editor/phase10-element-clipboard.js?v=20260821-1'))
           .then(()=>load('designEditorProjectFileScriptV1','/js/design-editor/phase11-project-file.js?v=20260821-1'))
+          .then(()=>load('designEditorRotationScriptV1','/js/design-editor/phase12-rotation.js?v=20260822-1'))
       );
     }
     if(isPath(
