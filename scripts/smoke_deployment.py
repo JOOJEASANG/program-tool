@@ -84,13 +84,28 @@ def _require_text(result: HttpResult, *needles: str) -> None:
         )
 
 
+def _require_same_origin_frame_headers(result: HttpResult) -> None:
+    _require_status_ok(result)
+    frame_option = result.headers.get("x-frame-options", "")
+    csp = result.headers.get("content-security-policy", "")
+    failures: list[str] = []
+    if frame_option.upper() != "SAMEORIGIN":
+        failures.append(f"x-frame-options={frame_option!r}")
+    if "frame-ancestors 'self'" not in csp.lower():
+        failures.append(f"content-security-policy={csp!r}")
+    if failures:
+        raise SmokeFailure(
+            f"{result.url} 동일 출처 iframe 허용 헤더가 올바르지 않습니다: {', '.join(failures)}"
+        )
+
+
 def _require_security_headers(result: HttpResult) -> None:
     _require_status_ok(result)
     required = {
         "strict-transport-security": "max-age=",
         "content-security-policy": "default-src 'self'",
         "x-content-type-options": "nosniff",
-        "x-frame-options": "DENY",
+        "x-frame-options": "SAMEORIGIN",
     }
     failures: list[str] = []
     for header, expected in required.items():
@@ -101,6 +116,7 @@ def _require_security_headers(result: HttpResult) -> None:
         raise SmokeFailure(
             f"{result.url} 보안 헤더가 올바르지 않습니다: {', '.join(failures)}"
         )
+    _require_same_origin_frame_headers(result)
 
 
 def _require_version(result: HttpResult, expected_version: str) -> None:
@@ -186,6 +202,24 @@ def run_smoke_checks(
                 "Google로 계속하기",
                 "js/firebase-config.js",
             ),
+        ),
+        (
+            "디자인 편집기 셸",
+            lambda: (
+                lambda result: (
+                    _require_text(result, "디자인 편집기", "editorFrame", "perfect-binding-cover/?embed=1&mode=cover"),
+                    _require_same_origin_frame_headers(result),
+                )
+            )(_fetch(base_url, "/design-editor/", timeout)),
+        ),
+        (
+            "디자인 편집기 내장 표지",
+            lambda: (
+                lambda result: (
+                    _require_text(result, "책표지제작", "Program Studio"),
+                    _require_same_origin_frame_headers(result),
+                )
+            )(_fetch(base_url, "/perfect-binding-cover/?embed=1&mode=cover", timeout)),
         ),
         (
             "배포 버전",
