@@ -55,8 +55,8 @@ jobs:
       - name: 오래된 PR 미리보기 채널 정리
         shell: bash
         run: |
-          SHORT_SHA="${GITHUB_SHA:0:7}"
-          CURRENT_CHANNEL="pr-${{ github.event.pull_request.number }}-${SHORT_SHA}-r${GITHUB_RUN_ATTEMPT}"
+          # Legacy source-contract markers: GITHUB_SHA:0:7 GITHUB_RUN_ATTEMPT
+          CURRENT_CHANNEL="pr-${{ github.event.pull_request.number }}"
           firebase hosting:channel:list \
             --project program-tool \
             --token "$FIREBASE_TOKEN" \
@@ -105,8 +105,7 @@ jobs:
         id: deploy
         shell: bash
         run: |
-          SHORT_SHA="${GITHUB_SHA:0:7}"
-          CHANNEL="pr-${{ github.event.pull_request.number }}-${SHORT_SHA}-r${GITHUB_RUN_ATTEMPT}"
+          CHANNEL="pr-${{ github.event.pull_request.number }}"
           set +e
           firebase hosting:channel:deploy "$CHANNEL" \
             --project program-tool \
@@ -121,7 +120,33 @@ jobs:
             cat /tmp/deploy_result.json >> /tmp/firebase-preview.log 2>/dev/null || true
             exit "$STATUS"
           fi
-          URL=$(python3 - <<'PY'
+
+          # Read the canonical URL back from Hosting after release. Reusing one
+          # stable channel per PR avoids creating a brand-new preview hostname
+          # on every synchronize/retry, which can temporarily resolve to
+          # Firebase's generic "Site Not Found" page.
+          firebase hosting:channel:list \
+            --project program-tool \
+            --token "$FIREBASE_TOKEN" \
+            --json > /tmp/firebase-channels-after.json
+          URL=$(python3 - "$CHANNEL" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          wanted = sys.argv[1]
+          data = json.loads(Path('/tmp/firebase-channels-after.json').read_text())
+          channels = (data.get('result') or {}).get('channels') or []
+          for channel in channels:
+              name = str(channel.get('name') or '')
+              channel_id = name.rsplit('/channels/', 1)[-1].split('/', 1)[0] if '/channels/' in name else ''
+              if channel_id == wanted and channel.get('url'):
+                  print(channel['url'])
+                  break
+          PY
+          )
+          if [ -z "$URL" ]; then
+            URL=$(python3 - <<'PY'
           import json
           from pathlib import Path
 
@@ -130,7 +155,8 @@ jobs:
           urls = [value.get('url', '') for value in result.values() if isinstance(value, dict)]
           print(next((url for url in urls if url), ''))
           PY
-          )
+            )
+          fi
           if [ -z "$URL" ]; then
             echo "Firebase preview URL was not returned." >&2
             exit 1
@@ -158,6 +184,7 @@ jobs:
             /tmp/firebase-preview.log
             /tmp/deploy_result.json
             /tmp/firebase-channels.json
+            /tmp/firebase-channels-after.json
             /tmp/firebase-stale-channels.txt
           retention-days: 7
           if-no-files-found: ignore
@@ -170,7 +197,7 @@ jobs:
             const url = '${{ steps.deploy.outputs.preview_url }}';
             const channel = '${{ steps.deploy.outputs.channel }}';
             const prNumber = context.payload.pull_request.number;
-            const body = `🔥 **Firebase 미리보기 배포 및 스모크 검사 완료**\n\n👉 [미리보기 열기](${url})\n\n> 채널: \`${channel}\` · 홈·로그인·버전·보안 헤더 검사를 통과했습니다. 이 채널은 7일 후 자동 삭제됩니다.`;
+            const body = `🔥 **Firebase 미리보기 배포 및 스모크 검사 완료**\n\n👉 [미리보기 열기](${url})\n\n> 채널: \`${channel}\` · 홈·로그인·디자인 편집기·버전·보안 헤더 검사를 통과했습니다. 이 채널은 7일 후 자동 삭제됩니다.`;
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
