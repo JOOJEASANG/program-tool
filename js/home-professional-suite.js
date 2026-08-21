@@ -55,6 +55,10 @@
     return (text||fallback).slice(0,max);
   }
 
+  function escapeHtml(value){
+    return String(value==null?'':value).replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+  }
+
   function safeUrl(value,fallback=''){
     const raw=String(value==null?'':value).trim();
     if(!raw)return fallback;
@@ -95,8 +99,12 @@
       .filter(program=>program.visible!==false)
       .map(program=>({
         ...program,
+        name:escapeHtml(program.name),
+        icon:escapeHtml(program.icon),
+        desc:escapeHtml(program.desc),
+        url:safeUrl(program.url,''),
         coming:program.status!=='active'||!safeUrl(program.url,''),
-        tags:[...program.tags]
+        tags:program.tags.map(escapeHtml)
       }));
   }
 
