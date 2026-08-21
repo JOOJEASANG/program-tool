@@ -2,7 +2,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
-HTML = ROOT / "design-editor" / "index.html"
+HTML = ROOT / "design-editor" / "general.html"
 PRESETS = ROOT / "js" / "design-editor" / "presets.js"
 APP = ROOT / "js" / "design-editor" / "app.js"
 HOME = ROOT / "js" / "home-professional-suite.js"
