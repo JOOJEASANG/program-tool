@@ -17,6 +17,7 @@ from urllib.request import Request, urlopen
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_BASE_URL = "https://program-tool.web.app"
 USER_AGENT = "ProgramStudioDeploymentSmoke/1.0"
+LEGACY_DESIGN_EDITOR_PATH = "/design-editor/"
 
 
 class SmokeFailure(RuntimeError):
@@ -207,10 +208,19 @@ def run_smoke_checks(
             "디자인 편집기 셸",
             lambda: (
                 lambda result: (
-                    _require_text(result, "디자인 편집기", "editorFrame", "perfect-binding-cover/?embed=1&mode=cover"),
+                    _require_text(result, "디자인 편집기", "editorFrame", "/perfect-binding-cover/?embed=1&mode=cover", "/design-editor/general?"),
                     _require_same_origin_frame_headers(result),
                 )
-            )(_fetch(base_url, "/design-editor/", timeout)),
+            )(_fetch(base_url, "/design-editor", timeout)),
+        ),
+        (
+            "디자인 편집기 일반 모드",
+            lambda: (
+                lambda result: (
+                    _require_text(result, "디자인 편집기", "presetGrid", "artboard"),
+                    _require_same_origin_frame_headers(result),
+                )
+            )(_fetch(base_url, "/design-editor/general?embed=1&mode=poster&preset=poster-a4&orientation=portrait", timeout)),
         ),
         (
             "디자인 편집기 내장 표지",

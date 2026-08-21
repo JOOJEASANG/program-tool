@@ -89,11 +89,13 @@ def test_run_smoke_checks_can_skip_api(monkeypatch):
             return result("Program Studio", headers=frameable_headers())
         if path == "/login.html":
             return result("Google로 계속하기 js/firebase-config.js")
-        if path == "/design-editor/":
+        if path == "/design-editor":
             return result(
-                "디자인 편집기 editorFrame perfect-binding-cover/?embed=1&mode=cover",
+                "디자인 편집기 editorFrame /perfect-binding-cover/?embed=1&mode=cover /design-editor/general?",
                 headers=frameable_headers(),
             )
+        if path == "/design-editor/general?embed=1&mode=poster&preset=poster-a4&orientation=portrait":
+            return result("디자인 편집기 presetGrid artboard", headers=frameable_headers())
         if path == "/perfect-binding-cover/?embed=1&mode=cover":
             return result("책표지제작 · Program Studio", headers=frameable_headers())
         if path == "/version.json":
@@ -112,7 +114,8 @@ def test_run_smoke_checks_can_skip_api(monkeypatch):
     assert paths == [
         "/",
         "/login.html",
-        "/design-editor/",
+        "/design-editor",
+        "/design-editor/general?embed=1&mode=poster&preset=poster-a4&orientation=portrait",
         "/perfect-binding-cover/?embed=1&mode=cover",
         "/version.json",
     ]
