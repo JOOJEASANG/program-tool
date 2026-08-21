@@ -104,6 +104,7 @@
         load('designEditorEmbeddedRuntimeScriptV1','/js/design-editor/embedded-runtime.js?v=20260821-1')
           .then(()=>load('designEditorPhase2ScriptV1','/js/design-editor/phase2.js?v=20260821-1'))
           .then(()=>load('designEditorOutputScriptV1','/js/design-editor/output.js?v=20260821-1'))
+          .then(()=>load('designEditorPhase3ControlsScriptV1','/js/design-editor/phase3-controls.js?v=20260821-1'))
       );
     }
     if(isPath(
@@ -118,7 +119,7 @@
       tasks.push(load('pdfCropMarksScript','/js/pdf-editor/crop-marks.js?v=20260731-4'));
       tasks.push(load('pdfSaveOperationScript','/js/pdf-editor/save-operation.js?v=20260731-3'));
       tasks.push(load('pdfSaveRecoveryScript','/js/pdf-editor/save-recovery.js?v=20260803-1'));
-      tasks.push(load('pdfSessionSaveSafetyScriptV1','/js/pdf-editor/session-save-safety.js?v=20260805-2'));
+      tasks.push(load('pdfSessionSaveSafetyScript','/js/pdf-editor/session-save-safety.js?v=20260805-2'));
       tasks.push(load('pdfFileContextScopeScript','/js/pdf-editor/file-context-scope.js?v=20260805-1'));
       tasks.push(load('pdfImportTransactionSafetyScriptV1','/js/pdf-editor/import-transaction-safety.js?v=20260806-1'));
       tasks.push(load('pdfViewportLazyPreviewScriptV1','/js/pdf-editor/viewport-lazy-preview.js?v=20260806-1'));
