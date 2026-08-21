@@ -25,7 +25,8 @@ def test_element_clipboard_supports_text_images_shapes_and_cross_surface_paste()
         "current.extras.push(item)",
         "item.id=uid()",
         "item.locked=false",
-        "DesignEditorDraftScope?.saveCurrent?.('clipboard-paste')",
+        "DesignEditorDraftScope?.saveCurrent?.(source)",
+        "persistAndRender('clipboard-paste')",
         "Ctrl+C / Ctrl+V",
         "stage:'cross-surface-element-copy-paste'",
     ):
