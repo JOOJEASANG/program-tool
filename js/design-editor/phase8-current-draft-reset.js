@@ -45,18 +45,40 @@
     }
   }
 
+  function setStatus(message){
+    const node=document.getElementById('editorStatus');if(!node)return;
+    node.className='editor-status ok';node.textContent=message;
+  }
+
+  function startBlankProject(snapshot){
+    const app=window.DesignEditorApp;
+    if(!app||typeof app.startProject!=='function')return false;
+    const presetId=String(snapshot.presetId||'');
+    const width=Number(snapshot.width)||210,height=Number(snapshot.height)||297;
+    if(presetId==='custom')app.startProject('custom',{width,height});
+    else app.startProject(presetId);
+    const fresh=app.project;
+    if(!fresh)return false;
+    fresh.width=width;fresh.height=height;
+    window.DesignEditorEmbeddedRuntime?.applyRequestedGeometry?.();
+    window.DesignEditorDraftScope?.saveCurrent?.('reset-blank');
+    setStatus('현재 종류·규격을 빈 작업으로 새로 시작했습니다.');
+    return true;
+  }
+
   function resetCurrentDraft(){
     const project=currentProject();
     const api=window.DesignEditorDraftScope;
     if(!project||!api?.scopeForProject||!api?.draftKey)return;
     const scope=api.scopeForProject(project),key=api.draftKey(project);
     if(!scope||!key)return;
+    const snapshot={presetId:project.presetId,name:project.name,width:project.width,height:project.height};
     const label=String(project.name||project.presetId||'현재 작업');
     if(!confirm(`${label}의 현재 자동 저장 작업만 비울까요?\n다른 포스터·전단·리플렛 작업은 그대로 유지됩니다.`))return;
     try{localStorage.removeItem(key);}catch(_){}
     clearIndexScope(scope);
     clearMatchingLegacy(scope);
-    location.reload();
+    startBlankProject(snapshot);
   }
 
   function install(){
