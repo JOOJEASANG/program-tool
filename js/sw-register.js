@@ -99,7 +99,7 @@
       tasks.push(load('adminProgramIconPaletteScriptV1','/js/admin-program-icon-palette.js?v=20260808-1'));
     }
     // Legacy test/source marker kept intentionally: if(isPath('/design-editor','/design-editor/index.html'))
-    if(isPath('/design-editor/general.html')){
+    if(isPath('/design-editor/general','/design-editor/general.html')){
       tasks.push(
         load('designEditorDraftScopeScriptV1','/js/design-editor/phase5-draft-scope.js?v=20260821-1')
           .then(()=>load('designEditorEmbeddedRuntimeScriptV1','/js/design-editor/embedded-runtime.js?v=20260821-1'))
