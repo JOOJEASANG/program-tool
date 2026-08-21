@@ -23,6 +23,14 @@
   `;
   document.head.appendChild(style);
 
+  // Access checks can take several seconds on a cold Firebase session. Keep the
+  // already-rendered tool visible while permission is checked instead of showing
+  // a blank page. Redirect behavior remains controlled by firebase-config.js.
+  const accessStyle=document.createElement('style');
+  accessStyle.id='programStudioAccessVisibilityStyle';
+  accessStyle.textContent='html[data-access-checking] body{visibility:visible!important}';
+  document.head.appendChild(accessStyle);
+
   let revealed=false;
   function reveal(){
     if(revealed)return;

@@ -14,12 +14,13 @@ def test_pdf_utility_loads_first_paint_guard_before_converter():
     assert app.index("pdfUtilityFirstPaintScriptV1") < app.index("pdfUtilityImageConverterScriptV1")
 
 
-def test_first_paint_guard_has_timeout_and_waits_for_final_layout():
+def test_first_paint_never_hides_page_and_uses_bounded_cosmetic_retry():
     source = FIRST_PAINT.read_text(encoding="utf-8")
-    assert "pdfu-first-paint-pending" in source
-    assert "pdfUtilityWideLayout === '1'" in source
-    assert "attempts < 120" in source
-    assert "setTimeout(check, 50)" in source
+    assert "pdfu-first-paint-pending" not in source
+    assert "visibility:hidden" not in source
+    assert "pdfu-instant-layout" in source
+    assert "attempts<20" in source
+    assert "setTimeout(check,100)" in source
 
 
 def test_image_converter_card_uses_polished_presentation_without_changing_limits():
