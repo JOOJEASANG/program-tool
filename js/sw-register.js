@@ -103,6 +103,7 @@
       tasks.push(
         load('designEditorDraftScopeScriptV1','/js/design-editor/phase5-draft-scope.js?v=20260821-1')
           .then(()=>load('designEditorEmbeddedRuntimeScriptV1','/js/design-editor/embedded-runtime.js?v=20260821-1'))
+          .then(()=>load('designEditorEmbeddedPolishScriptV1','/js/design-editor/phase6-embedded-polish.js?v=20260821-1'))
           .then(()=>load('designEditorPhase2ScriptV1','/js/design-editor/phase2.js?v=20260821-1'))
           .then(()=>load('designEditorOutputScriptV1','/js/design-editor/output.js?v=20260821-1'))
           .then(()=>load('designEditorPhase3ControlsScriptV1','/js/design-editor/phase3-controls.js?v=20260821-1'))
