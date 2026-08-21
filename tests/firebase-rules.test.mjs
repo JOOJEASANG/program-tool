@@ -217,3 +217,27 @@ test('generated results are server-created and owner-readable/deletable only', a
   );
   await assertSucceeds(deleteObject(ref(ownerStorage, path)));
 });
+
+test('professional program suite is public-readable and admin-writable only', async () => {
+  const suitePath = 'settings/professional_program_suite';
+  await env.withSecurityRulesDisabled(async context => {
+    await setDoc(doc(context.firestore(), suitePath), {
+      version: 1,
+      programs: [{ id: 'design-editor', name: '디자인 편집기' }],
+    });
+  });
+
+  const publicDb = env.unauthenticatedContext().firestore();
+  const memberDb = env.authenticatedContext(
+    'approved-user',
+    { email: 'approved@example.com' }
+  ).firestore();
+  const adminDb = env.authenticatedContext(
+    'admin-user',
+    { email: 'admin@example.com', admin: true }
+  ).firestore();
+
+  await assertSucceeds(getDoc(doc(publicDb, suitePath)));
+  await assertFails(updateDoc(doc(memberDb, suitePath), { version: 2 }));
+  await assertSucceeds(updateDoc(doc(adminDb, suitePath), { version: 2 }));
+});
