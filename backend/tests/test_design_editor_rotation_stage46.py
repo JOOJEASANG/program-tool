@@ -38,6 +38,9 @@ def test_rotation_module_is_bounded_and_does_not_poll_forever():
     assert "MutationObserver" not in source
     assert "setInterval(" not in source
     assert "eval(" not in source
+    assert "while(angle" not in source
+    assert "Number.isFinite(angle)" in source
+    assert "((angle+180)%360+360)%360-180" in source
     assert "[180,420,800,1300,2200,3200]" in source
 
 
@@ -50,5 +53,8 @@ def test_300dpi_output_preserves_rotation_for_all_element_types():
         "const angle=rotationDegrees(item)",
         "withRotation(ctx,item,x,y,w,h,()=>fitImage(ctx,image,item,x,y,w,h))",
         "withRotation(ctx,item,x,y,w,h,()=>{",
+        "Number.isFinite(value)",
+        "((value+180)%360+360)%360-180",
     ):
         assert marker in source
+    assert "while(value" not in source
