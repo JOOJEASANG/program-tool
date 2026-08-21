@@ -72,6 +72,13 @@
     });
   }
 
+  function previewRotation(value){
+    const record=selectedRecord();
+    if(!record)return null;
+    if(record.item.locked)return null;
+    record.item.rotation=normalize(value);applyTransform(record);return record;
+  }
+
   function setRotation(value,source='rotation-control'){
     const record=selectedRecord();
     if(!record)return setStatus('회전할 글씨·이미지·도형을 먼저 선택하세요.','info');
@@ -98,6 +105,7 @@
     if(event.shiftKey)next=Math.round(next/15)*15;
     rotateDrag.record.item.rotation=normalize(next);
     applyTransform(rotateDrag.record);syncInput();
+    const range=byId('designRotationRange');if(range)range.value=String(rotateDrag.record.item.rotation);
     event.preventDefault();
   }
 
@@ -144,8 +152,10 @@
     const anchor=projectFile||clipboard||phase3;
     if(anchor?.nextSibling)sidebar.insertBefore(card,anchor.nextSibling);else sidebar.appendChild(card);
     const range=byId('designRotationRange'),input=byId('designRotationInput');
-    range?.addEventListener('input',()=>{if(input)input.value=range.value;setRotation(range.value,'rotation-slider');});
-    input?.addEventListener('input',()=>{const value=clamp(Number(input.value)||0,-180,180);if(range)range.value=String(value);setRotation(value,'rotation-input');});
+    range?.addEventListener('input',()=>{if(input)input.value=range.value;previewRotation(range.value);});
+    range?.addEventListener('change',()=>setRotation(range.value,'rotation-slider'));
+    input?.addEventListener('input',()=>{const value=clamp(Number(input.value)||0,-180,180);if(range)range.value=String(value);previewRotation(value);});
+    input?.addEventListener('change',()=>setRotation(clamp(Number(input.value)||0,-180,180),'rotation-input'));
     card.querySelectorAll('[data-rotate]').forEach(button=>button.addEventListener('click',()=>{
       const value=Number(button.dataset.rotate)||0;if(range)range.value=String(value);if(input)input.value=String(value);setRotation(value,'rotation-quick');
     }));
@@ -165,7 +175,7 @@
   function bindEvents(){
     document.addEventListener('pointermove',handleRotateMove,{passive:false});
     document.addEventListener('pointerup',finishRotate);document.addEventListener('pointercancel',finishRotate);
-    ['click','dblclick','input','change','pointerup'].forEach(name=>document.addEventListener(name,queueUi,false));
+    ['click','dblclick','change','pointerup'].forEach(name=>document.addEventListener(name,queueUi,false));
     window.addEventListener('resize',queueUi,{passive:true});
   }
 
