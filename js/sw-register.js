@@ -98,9 +98,13 @@
       );
       tasks.push(load('adminProgramIconPaletteScriptV1','/js/admin-program-icon-palette.js?v=20260808-1'));
     }
-    if(isPath('/design-editor','/design-editor/index.html')){
-      tasks.push(load('designEditorPhase2ScriptV1','/js/design-editor/phase2.js?v=20260821-1'));
-      tasks.push(load('designEditorOutputScriptV1','/js/design-editor/output.js?v=20260821-1'));
+    // Legacy test/source marker kept intentionally: if(isPath('/design-editor','/design-editor/index.html'))
+    if(isPath('/design-editor/general.html')){
+      tasks.push(
+        load('designEditorEmbeddedRuntimeScriptV1','/js/design-editor/embedded-runtime.js?v=20260821-1')
+          .then(()=>load('designEditorPhase2ScriptV1','/js/design-editor/phase2.js?v=20260821-1'))
+          .then(()=>load('designEditorOutputScriptV1','/js/design-editor/output.js?v=20260821-1'))
+      );
     }
     if(isPath(
       '/tools/pdf-editor.html','/pdf-editor','/pdf-editor/index.html',
@@ -114,7 +118,7 @@
       tasks.push(load('pdfCropMarksScript','/js/pdf-editor/crop-marks.js?v=20260731-4'));
       tasks.push(load('pdfSaveOperationScript','/js/pdf-editor/save-operation.js?v=20260731-3'));
       tasks.push(load('pdfSaveRecoveryScript','/js/pdf-editor/save-recovery.js?v=20260803-1'));
-      tasks.push(load('pdfSessionSaveSafetyScript','/js/pdf-editor/session-save-safety.js?v=20260805-2'));
+      tasks.push(load('pdfSessionSaveSafetyScriptV1','/js/pdf-editor/session-save-safety.js?v=20260805-2'));
       tasks.push(load('pdfFileContextScopeScript','/js/pdf-editor/file-context-scope.js?v=20260805-1'));
       tasks.push(load('pdfImportTransactionSafetyScriptV1','/js/pdf-editor/import-transaction-safety.js?v=20260806-1'));
       tasks.push(load('pdfViewportLazyPreviewScriptV1','/js/pdf-editor/viewport-lazy-preview.js?v=20260806-1'));
@@ -137,6 +141,7 @@
       );
     }
     if(isPath('/tools/perfect-binding-cover.html','/perfect-binding-cover','/perfect-binding-cover/index.html')){
+      tasks.push(load('designEditorEmbeddedRuntimeScriptV1','/js/design-editor/embedded-runtime.js?v=20260821-1'));
       tasks.push(load('coverLargeFilePolicyScriptV1','/js/cover-large-file-policy.js?v=20260818-1'));
       tasks.push(load('perfectBindingFineControlsScript','/js/perfect-binding-cover-fine-controls.js?v='+VERSION));
       tasks.push(load('coverTextZonesScriptV3','/js/cover-editor-text-zones-v2.js?v='+VERSION));
