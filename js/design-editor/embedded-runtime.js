@@ -10,6 +10,13 @@
   const isCover=path==='/perfect-binding-cover'||path==='/perfect-binding-cover/index.html'||path.endsWith('/perfect-binding-cover/index.html');
   if(!embedded||(!isGeneral&&!isCover))return;
 
+  // Existing phase2/output modules were deliberately scoped to the original
+  // /design-editor/index.html path. Keep those proven guards intact by giving
+  // the embedded general editor the same in-document history path without a reload.
+  if(isGeneral){
+    try{history.replaceState(history.state,'','/design-editor/index.html'+location.search+location.hash);}catch(_){}
+  }
+
   function installEmbedStyles(){
     if(document.getElementById('designEmbeddedRuntimeStyles'))return;
     const style=document.createElement('style');
