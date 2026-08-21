@@ -6,7 +6,7 @@
   const params=new URLSearchParams(location.search);
   const embedded=params.get('embed')==='1';
   const originalPath=location.pathname.replace(/\/+$/,'')||'/';
-  const isGeneral=originalPath==='/design-editor/general.html'||originalPath.endsWith('/design-editor/general.html');
+  const isGeneral=originalPath==='/design-editor/general'||originalPath==='/design-editor/general.html'||originalPath.endsWith('/design-editor/general.html');
   const isCover=originalPath==='/perfect-binding-cover'||originalPath==='/perfect-binding-cover/index.html'||originalPath.endsWith('/perfect-binding-cover/index.html');
   if(!embedded||(!isGeneral&&!isCover))return;
 
