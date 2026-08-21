@@ -1,13 +1,14 @@
 // Preview-only transparent work area for the perfect-binding cover maker.
 (function(){
   'use strict';
-  if(window.__coverPreviewTransparencyV2)return;
-  window.__coverPreviewTransparencyV2=true;
+  if(window.__coverPreviewTransparencyV3)return;
+  window.__coverPreviewTransparencyV3=true;
   if(!location.pathname.includes('perfect-binding-cover'))return;
 
   const KEYS={front:'#ff00ff',back:'#00ffff',spine:'#00ff00'};
   let wrappedDelegate=null;
   let resizeObserver=null;
+  let renderingPreview=false;
   const byId=id=>document.getElementById(id);
 
   function installStyles(){
@@ -44,8 +45,31 @@
     resizeObserver=new ResizeObserver(()=>syncSize(source));resizeObserver.observe(source);
   }
 
-  function keySet(){return new Set(Object.values(KEYS).map(v=>v.toLowerCase()));}
-  function makeFacade(display){
+  function bindColorControls(){
+    for(const name of Object.keys(KEYS)){
+      const el=byId(`${name}Color`);if(!el||el.dataset.coverPreviewColorBound==='1')continue;
+      el.dataset.coverPreviewColorBound='1';
+      const markExplicit=()=>{
+        el.dataset.coverPreviewColorExplicit='1';
+        try{window.requestRender?.();}catch(_){}
+      };
+      el.addEventListener('input',markExplicit);
+      el.addEventListener('change',markExplicit);
+    }
+  }
+
+  function setDefaultSpineDirection(){
+    const select=byId('spineDirection');
+    if(!select||select.dataset.coverSpineDefaultApplied==='1')return;
+    select.dataset.coverSpineDefaultApplied='1';
+    if(select.value==='bottomToTop'){
+      select.value='vertical';
+      select.dispatchEvent(new Event('input',{bubbles:true}));
+      select.dispatchEvent(new Event('change',{bubbles:true}));
+    }
+  }
+
+  function makeFacade(display,transparentKeys){
     const nativeGetContext=HTMLCanvasElement.prototype.getContext.bind(display);
     let ctx=null;
     return new Proxy(display,{
@@ -56,10 +80,10 @@
           if(ctx)return ctx;
           ctx=nativeGetContext('2d',{alpha:true});
           if(!ctx)return null;
-          const nativeFillRect=ctx.fillRect.bind(ctx),nativeClearRect=ctx.clearRect.bind(ctx),keys=keySet();
+          const nativeFillRect=ctx.fillRect.bind(ctx),nativeClearRect=ctx.clearRect.bind(ctx);
           ctx.fillRect=function(x,y,w,h){
             const fill=String(ctx.fillStyle||'').toLowerCase();
-            if(keys.has(fill)){nativeClearRect(x,y,w,h);return;}
+            if(transparentKeys.has(fill)){nativeClearRect(x,y,w,h);return;}
             nativeFillRect(x,y,w,h);
           };
           return ctx;
@@ -71,29 +95,45 @@
     });
   }
 
-  function withKeyColors(run){
+  function withPreviewColors(transparentKeys,run){
     const controls={front:byId('frontColor'),back:byId('backColor'),spine:byId('spineColor')};
     const saved={};
-    for(const [name,el] of Object.entries(controls)){if(!el)continue;saved[name]=el.value;el.value=KEYS[name];}
-    try{return run();}finally{for(const [name,value] of Object.entries(saved))if(controls[name])controls[name].value=value;}
+    for(const [name,el] of Object.entries(controls)){
+      if(!el)continue;
+      saved[name]=el.value;
+      if(el.dataset.coverPreviewColorExplicit==='1')continue;
+      el.value=KEYS[name];
+      transparentKeys.add(KEYS[name].toLowerCase());
+    }
+    try{return run();}
+    finally{
+      for(const [name,value] of Object.entries(saved))if(controls[name])controls[name].value=value;
+      transparentKeys.clear();
+    }
   }
 
   function wrapRenderer(){
     const current=typeof window.renderCover==='function'?window.renderCover:(typeof renderCover==='function'?renderCover:null);
     if(!current)return false;
-    if(current.__coverPreviewTransparencyV2)return true;
+    if(current.__coverPreviewTransparencyV3)return true;
     if(wrappedDelegate===current)return true;
     const wrapped=function coverTransparentPreviewRenderer(canvas,dpi=110,withGuides,interactive){
-      if(!canvas||canvas.id!=='previewCanvas')return current.apply(this,arguments);
+      if(renderingPreview||!canvas||canvas.id!=='previewCanvas')return current.apply(this,arguments);
       const display=ensureDisplayCanvas(canvas);if(!display)return current.apply(this,arguments);
-      const facade=makeFacade(display);
-      const result=withKeyColors(()=>current.call(this,facade,dpi,withGuides,interactive===undefined?true:interactive));
-      if(canvas.width!==display.width)canvas.width=display.width;
-      if(canvas.height!==display.height)canvas.height=display.height;
-      syncSize(canvas);bindResize(canvas);
-      return result;
+      const transparentKeys=new Set();
+      const facade=makeFacade(display,transparentKeys);
+      renderingPreview=true;
+      try{
+        const result=withPreviewColors(transparentKeys,()=>current.call(this,facade,dpi,withGuides,interactive===undefined?true:interactive));
+        if(canvas.width!==display.width)canvas.width=display.width;
+        if(canvas.height!==display.height)canvas.height=display.height;
+        syncSize(canvas);bindResize(canvas);
+        return result;
+      }finally{
+        renderingPreview=false;
+      }
     };
-    wrapped.__coverPreviewTransparencyV2=true;wrapped.__coverPreviewTransparencyDelegate=current;
+    wrapped.__coverPreviewTransparencyV3=true;wrapped.__coverPreviewTransparencyDelegate=current;
     window.renderCover=wrapped;
     try{renderCover=wrapped;}catch(_){}
     wrappedDelegate=current;
@@ -101,6 +141,8 @@
   }
 
   function install(){
+    bindColorControls();
+    setDefaultSpineDirection();
     if(!wrapRenderer())return false;
     installStyles();
     const source=byId('previewCanvas');if(source){ensureDisplayCanvas(source);syncSize(source);bindResize(source);}
@@ -109,6 +151,8 @@
   }
 
   window.CoverPreviewTransparency={install,stage:'transparent-preview-work-area'};
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});
+  else install();
   [450,900,1500,2400,3600,5000].forEach(delay=>setTimeout(install,delay));
   window.addEventListener('resize',()=>requestAnimationFrame(()=>syncSize()),{passive:true});
 })();
