@@ -134,7 +134,7 @@
       tasks.push(load('coverLargeFilePolicyScriptV1','/js/cover-large-file-policy.js?v=20260818-1'));
       tasks.push(load('perfectBindingFineControlsScript','/js/perfect-binding-cover-fine-controls.js?v='+VERSION));
       tasks.push(load('coverTextZonesScriptV3','/js/cover-editor-text-zones-v2.js?v='+VERSION));
-      tasks.push(load('coverSpineOrientationControlsScriptV1','/js/cover-spine-orientation-controls.js?v=20260806-1'));
+      tasks.push(load('coverSpineOrientationControlsScriptV1','/js/cover-spine-orientation-controls.js?v=20260821-2'));
       tasks.push(load('coverTextUiRefineScriptV4','/js/cover-text-ui-refine.js?v='+VERSION));
       tasks.push(load('coverPreviewWorkspaceScriptV2','/js/cover-preview-workspace.js?v='+VERSION));
       tasks.push(load('coverProjectStateBridgeScriptV1','/js/cover-project-state-bridge.js?v='+VERSION));
@@ -154,6 +154,7 @@
       tasks.push(load('coverLocalImageUploadScriptV1','/js/cover-local-image-upload.js?v=20260818-2'));
       tasks.push(load('coverRenderPipelineContractScriptV1','/js/cover-render-pipeline-contract.js?v=20260806-1'));
       tasks.push(load('coverTemplateAdminSeparationScriptV1','/js/cover-template-admin-separation.js?v=20260818-2'));
+      tasks.push(load('coverPreviewTransparencyScriptV1','/js/cover-preview-transparency.js?v=20260821-1'));
     }
     return Promise.allSettled(tasks);
   }

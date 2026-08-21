@@ -16,6 +16,7 @@ def test_cover_spine_orientation_loads_after_text_zones_before_print_safety():
     print_safety = source.index("coverSpinePrintSafetyScriptV1")
     assert text_zones < orientation < print_safety
     assert source.count("/js/cover-spine-orientation-controls.js") == 1
+    assert "/js/cover-spine-orientation-controls.js?v=20260821-2" in source
 
 
 def test_cover_spine_orientation_supports_three_per_layer_modes():
@@ -45,12 +46,13 @@ def test_cover_spine_orientation_preserves_existing_render_and_state_paths():
         "state.layout?.[entry.id]",
         "state.hitBoxes[entry.id]",
         "window.renderCover = wrapped",
-        "stage: 'per-layer-spine-writing-direction'",
+        "stage:'per-layer-spine-writing-direction'",
     ):
         assert marker in source
     assert "setInterval(" not in source
     assert "eval(" not in source
     assert "innerHTML +=" not in source
+    assert "new MutationObserver" not in source
 
 
 def test_cover_project_bridge_keeps_orientation_inside_text_zone_entries():
