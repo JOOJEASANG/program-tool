@@ -155,8 +155,30 @@
         assert(spec.surfaceCount===2,'output surface count changed');
         assert(spec.widthMm===216&&spec.heightMm===303,'bleed geometry changed');
         assert(spec.widthPx===2551&&spec.heightPx===3579,'300DPI pixel geometry changed');
-        assert(DesignEditorOutput.verifyRenderedSurface({canvas:{width:2551,height:3579},totalW:216,totalH:303},spec)===true,'valid rendered surface was rejected');
 
+        const frontSurface=project.surfaces[0];
+        const actualRendered=await DesignEditorOutput.renderSurface(project,frontSurface);
+        assert(DesignEditorOutput.verifyRenderedSurface(actualRendered,spec)===true,'real 300DPI surface render failed verification');
+        document.body.dataset.renderedWidth=String(actualRendered.canvas.width);
+        document.body.dataset.renderedHeight=String(actualRendered.canvas.height);
+
+        const frontText=frontSurface.elements[0];
+        const pxPerMm=spec.dpi/25.4;
+        const fontPx=Math.max(1,(Number(frontText.size)||24)*spec.dpi/72);
+        const sampleX=Math.max(0,Math.floor((Number(frontText.x)+Number(project.bleed||0))*pxPerMm));
+        const sampleY=Math.max(0,Math.floor((Number(frontText.y)+Number(project.bleed||0))*pxPerMm-fontPx*1.5));
+        const sampleW=Math.max(1,Math.min(actualRendered.canvas.width-sampleX,Math.ceil((Number(frontText.width)||100)*pxPerMm)));
+        const sampleH=Math.max(1,Math.min(actualRendered.canvas.height-sampleY,Math.ceil(fontPx*3)));
+        const pixels=actualRendered.canvas.getContext('2d').getImageData(sampleX,sampleY,sampleW,sampleH).data;
+        let hasInk=false;
+        for(let index=0;index<pixels.length;index+=16){
+          if(pixels[index]<245||pixels[index+1]<245||pixels[index+2]<245){hasInk=true;break;}
+        }
+        assert(hasInk,'real 300DPI render did not contain expected text pixels');
+        actualRendered.canvas.width=1;
+        actualRendered.canvas.height=1;
+
+        assert(DesignEditorOutput.verifyRenderedSurface({canvas:{width:2551,height:3579},totalW:216,totalH:303},spec)===true,'valid rendered surface was rejected');
         let rejected=false;
         try{
           DesignEditorOutput.verifyRenderedSurface({canvas:{width:2550,height:3579},totalW:216,totalH:303},spec);
@@ -185,7 +207,7 @@
         const fatalRecords=(report.records||[]).filter(entry=>fatalTypes.has(entry.type));
         assert(fatalRecords.length===0,`runtime error records found: ${fatalRecords.map(entry=>entry.type+':'+entry.message).join(' | ')}`);
 
-        pass('core edit, two-surface flow, 300DPI output contract, fail-closed verification, full runtime manifest');
+        pass('core edit, two-surface flow, real 300DPI render, fail-closed verification, full runtime manifest');
       }catch(error){
         fail(error);
       }
