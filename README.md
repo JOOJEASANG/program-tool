@@ -54,10 +54,10 @@ npx firebase-tools@14.27.0 emulators:exec \
 ## 처리 한도와 결과 전달
 
 - 직접 multipart 업로드: 합계 20 MiB 이하
-- PDF 편집기·검수용 Storage 입력: 파일당 최대 200 MiB
+- PDF 편집기·검수용 Storage 입력: 파일당 최대 500 MiB
 - 표지 입력 이미지: 최대 15 MiB, 5천만 픽셀
 - 20 MiB를 넘는 생성 결과: `pdf_results/{uid}/{resultId}/{filename}`에 저장한 뒤 임시 다운로드 URL 반환
-- 임시 입력과 결과: 예약 함수가 24시간이 지난 객체를 6시간마다 정리
+- 임시 입력과 결과: 예약 함수가 6시간이 지난 객체를 6시간마다 정리
 
 Cloud Storage 버킷에도 방어적인 수명 주기 정책을 적용할 수 있습니다.
 
@@ -81,8 +81,10 @@ firebase deploy --project program-tool --force --non-interactive
 ## 구조
 
 - `pdf-editor/`, `pdf-preflight/`, `perfect-binding-cover/`: 운영 프로그램 화면
+- `design-editor/`: 표지·포스터·전단·리플렛 통합 디자인 편집기 셸과 일반 편집 화면
 - `tools/`: 이전 URL을 보존하는 호환 이동 페이지
 - `js/api.js`: 인증, 직접/Storage 업로드, 결과 다운로드 공통 API
+- `js/sw-register.js`: 화면별 런타임 모듈 로더. 일반 디자인 편집기는 `DESIGN_EDITOR_RUNTIME_SCRIPTS` 순서 목록으로 기능 의존성을 관리
 - `backend/routers/`: Flask API 진입점
 - `backend/services/pdf_engine.py`: PDF 레이아웃 렌더링의 단일 구현
 - `backend/services/preflight_svc.py`: PDF 검수
