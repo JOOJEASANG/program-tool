@@ -44,7 +44,7 @@ def test_stage64_runner_uses_installed_headless_browser_without_new_npm_dependen
         assert browser in source
     assert "python3 -m http.server" in source
     assert "--headless=new" in source
-    assert "--virtual-time-budget=12000" in source
+    assert "--virtual-time-budget=18000" in source
     assert "--dump-dom" in source
     assert "data-smoke-status=\"pass\"" in source
     assert "playwright" not in package.lower()
