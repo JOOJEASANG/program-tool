@@ -50,7 +50,7 @@
     const bounds=[0,...folds,Number(p.width)||210],labels=current.panels||[];
     let index=labels.findIndex(label=>/앞표지/.test(String(label)));
     if(index<0)index=0;
-    const start=bounds[index]??0,end=bounds[index+1]??Number(p.width)||210;
+    const start=bounds[index]??0,end=bounds[index+1]??(Number(p.width)||210);
     const panelW=Math.max(20,end-start),pad=clamp(Math.min(safe,panelW*.1),4,10);
     return{x:start+pad,w:Math.max(20,panelW-pad*2),top:clamp(safe,4,Math.max(4,(Number(p.height)||297)/4)),bottom:Math.max(20,(Number(p.height)||297)-safe)};
   }
