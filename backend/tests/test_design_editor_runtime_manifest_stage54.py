@@ -6,10 +6,16 @@ ROOT = Path(__file__).resolve().parents[2]
 REGISTER = ROOT / "js" / "sw-register.js"
 
 
+def runtime_manifest(source: str) -> str:
+    start = source.index("const DESIGN_EDITOR_RUNTIME_SCRIPTS=Object.freeze([")
+    end = source.index("]);", start) + 3
+    return source[start:end]
+
+
 def runtime_entries(source: str) -> list[tuple[str, str]]:
     return re.findall(
         r"\['(designEditor[^']+)'\s*,\s*'(/js/design-editor/[^']+)'\]",
-        source,
+        runtime_manifest(source),
     )
 
 
