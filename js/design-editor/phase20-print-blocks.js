@@ -29,7 +29,7 @@
     const p=project(),current=surface();if(!p||!current)return null;
     const safe=clamp(Number(p.safe)||8,4,24),folds=(current.folds||[]).map(Number).filter(Number.isFinite).sort((a,b)=>a-b),bounds=[0,...folds,Number(p.width)||210],labels=current.panels||[];
     let index=labels.findIndex(label=>/앞표지/.test(String(label)));if(index<0)index=0;
-    const start=bounds[index]??0,end=bounds[index+1]??Number(p.width)||210,panelW=Math.max(20,end-start),pad=clamp(Math.min(safe,panelW*.1),4,10);
+    const start=bounds[index]??0,end=bounds[index+1]??(Number(p.width)||210),panelW=Math.max(20,end-start),pad=clamp(Math.min(safe,panelW*.1),4,10);
     return{x:start+pad,w:Math.max(20,panelW-pad*2),top:safe,bottom:(Number(p.height)||297)-safe};
   }
 
