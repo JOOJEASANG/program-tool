@@ -10,6 +10,10 @@
   const MAX_PIXELS=42000000;
   const CARD_ID='designOutputTools';
   const LOADER_ID='designOutputJsPdfLoader';
+  const PDF_PROFILES=Object.freeze({
+    standard:{id:'standard',label:'표준 PDF · 용량 최적화',format:'JPEG',extension:'300dpi'},
+    lossless:{id:'lossless',label:'고품질 PDF · 무손실 PNG',format:'PNG',extension:'300dpi_lossless'}
+  });
   let installed=false;
   let busy=false;
 
@@ -26,7 +30,7 @@
   function installStyles(){
     if(byId('designOutputStyles'))return;
     const style=document.createElement('style');style.id='designOutputStyles';style.textContent=`
-      .design-output-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}.design-output-grid button{border:0;border-radius:8px;padding:9px 7px;font-size:9px;font-weight:950;cursor:pointer}.design-output-grid .png{background:#ecfeff;color:#0e7490;border:1px solid #a5e5ef}.design-output-grid .pdf{background:#12396d;color:#fff}.design-output-grid button:disabled{opacity:.5;cursor:not-allowed}.design-output-note{font-size:8px;color:#64748b;line-height:1.5;margin-top:7px}
+      .design-output-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}.design-output-grid button{border:0;border-radius:8px;padding:9px 7px;font-size:9px;font-weight:950;cursor:pointer}.design-output-grid .png{background:#ecfeff;color:#0e7490;border:1px solid #a5e5ef}.design-output-grid .pdf{background:#12396d;color:#fff}.design-output-grid button:disabled{opacity:.5;cursor:not-allowed}.design-output-profile{margin:0 0 7px}.design-output-profile label{display:block;font-size:8px;font-weight:900;color:#64748b;margin-bottom:4px}.design-output-profile select{width:100%;border:1px solid #cfd8e3;border-radius:8px;padding:7px 8px;background:#fff;color:#172033;font-size:9px;outline:none}.design-output-note{font-size:8px;color:#64748b;line-height:1.5;margin-top:7px}.design-output-tech{margin-top:5px;border-radius:7px;background:#f8fafc;padding:6px 7px;font-size:7px;line-height:1.45;color:#667085}
     `;document.head.appendChild(style);
   }
 
@@ -34,12 +38,17 @@
     if(byId(CARD_ID))return true;
     const sidebar=document.querySelector('.sidebar'),inspector=byId('inspector');if(!sidebar||!inspector)return false;
     const card=document.createElement('section');card.id=CARD_ID;card.className='side-card';
-    card.innerHTML=`<div class="side-label">인쇄 파일 만들기</div><div class="design-output-grid"><button id="designPngBtn" class="png" type="button">300DPI PNG</button><button id="designPdfBtn" class="pdf" type="button">300DPI PDF</button></div><div class="design-output-note">가이드선은 제외하고 재단 여백까지 포함해 출력합니다. PDF는 앞·뒷면/리플렛 양면을 한 파일에 넣습니다.</div>`;
+    card.innerHTML=`<div class="side-label">인쇄 파일 만들기</div><div class="design-output-profile"><label for="designPdfProfile">PDF 품질</label><select id="designPdfProfile"><option value="standard">표준 PDF · 용량 최적화</option><option value="lossless">고품질 PDF · 무손실 PNG</option></select></div><div class="design-output-grid"><button id="designPngBtn" class="png" type="button">300DPI PNG</button><button id="designPdfBtn" class="pdf" type="button">300DPI PDF</button></div><div class="design-output-note">가이드선은 제외하고 재단 여백까지 포함해 출력합니다. PDF는 앞·뒷면/리플렛 양면을 한 파일에 넣습니다.</div><div class="design-output-tech">현재 출력 색상은 RGB입니다. 고품질 PDF는 JPEG 재압축 없이 300DPI PNG 페이지를 넣어 글자·선·도형의 래스터 압축 손실을 줄이는 대신 파일이 커질 수 있습니다.</div>`;
     sidebar.insertBefore(card,inspector);byId('designPngBtn')?.addEventListener('click',exportPng);byId('designPdfBtn')?.addEventListener('click',exportPdf);return true;
   }
 
+  function selectedPdfProfile(){
+    const value=String(byId('designPdfProfile')?.value||'standard');
+    return PDF_PROFILES[value]||PDF_PROFILES.standard;
+  }
+
   function setBusy(value){
-    busy=Boolean(value);['designPngBtn','designPdfBtn'].forEach(id=>{const node=byId(id);if(node)node.disabled=busy;});
+    busy=Boolean(value);['designPngBtn','designPdfBtn','designPdfProfile'].forEach(id=>{const node=byId(id);if(node)node.disabled=busy;});
   }
 
   function safeName(value){return String(value||'design').trim().replace(/[\\/:*?"<>|]+/g,'_').replace(/\s+/g,'_').slice(0,80)||'design';}
@@ -191,27 +200,34 @@
     });
   }
 
+  function pdfImagePayload(canvas,profile){
+    if(profile.id==='lossless')return{data:canvas.toDataURL('image/png'),format:'PNG',compression:undefined};
+    return{data:canvas.toDataURL('image/jpeg',.96),format:'JPEG',compression:'FAST'};
+  }
+
   async function exportPdf(){
     const p=project();if(!p||!p.surfaces?.length||busy)return;
     const gate=window.DesignEditorFinalPrintCheck?.confirmBeforeOutput;
     if(gate&&!(await gate({format:'pdf'})))return;
-    setBusy(true);setStatus('300DPI PDF를 만드는 중입니다.','info');
+    const profile=selectedPdfProfile();
+    setBusy(true);setStatus(`${profile.label}를 만드는 중입니다.`,'info');
     try{
       const loader=await ensurePdfLoader(),JsPdf=await loader.ensure();let pdf=null;
       for(let index=0;index<p.surfaces.length;index+=1){
         const surface=p.surfaces[index],rendered=await renderSurface(p,surface),orientation=rendered.totalW>=rendered.totalH?'landscape':'portrait';
         if(!pdf)pdf=new JsPdf({orientation,unit:'mm',format:[rendered.totalW,rendered.totalH],compress:true});
         else pdf.addPage([rendered.totalW,rendered.totalH],orientation);
-        pdf.addImage(rendered.canvas.toDataURL('image/jpeg',.96),'JPEG',0,0,rendered.totalW,rendered.totalH,undefined,'FAST');
+        const image=pdfImagePayload(rendered.canvas,profile);
+        pdf.addImage(image.data,image.format,0,0,rendered.totalW,rendered.totalH,undefined,image.compression);
       }
-      pdf.save(`${safeName(p.name)}_300dpi.pdf`);setStatus(`300DPI PDF를 만들었습니다. ${p.surfaces.length}개 면이 포함됐습니다.`,'ok');
+      pdf.save(`${safeName(p.name)}_${profile.extension}.pdf`);setStatus(`${profile.label}를 만들었습니다. ${p.surfaces.length}개 면이 포함됐습니다.`,'ok');
     }catch(error){setStatus(error.message||'PDF 출력에 실패했습니다.','err');}
     finally{setBusy(false);}
   }
 
   function install(){
     if(installed)return true;if(!document.querySelector('.sidebar')||!byId('inspector'))return false;
-    installed=true;installStyles();installCard();window.DesignEditorOutput={renderSurface,exportPng,exportPdf,dpi:DPI,stage:'final-check-gated-300dpi-print-output'};return true;
+    installed=true;installStyles();installCard();window.DesignEditorOutput={renderSurface,exportPng,exportPdf,pdfImagePayload,selectedPdfProfile,pdfProfiles:PDF_PROFILES,dpi:DPI,colorSpace:'RGB',stage:'selectable-standard-lossless-300dpi-pdf-output'};return true;
   }
   function boot(){if(install())return;[250,600,1100,2000,3200].forEach(delay=>setTimeout(install,delay));}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
