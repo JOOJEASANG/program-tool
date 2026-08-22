@@ -9,7 +9,7 @@ REGISTER = ROOT / "js" / "sw-register.js"
 def test_design_editor_draft_scope_loads_before_embedded_mode_startup():
     source = REGISTER.read_text(encoding="utf-8")
     assert "designEditorDraftScopeScriptV1" in source
-    assert "/js/design-editor/phase5-draft-scope.js?v=20260821-1" in source
+    assert "/js/design-editor/phase5-draft-scope.js?v=20260822-2" in source
     draft_scope = source.index("designEditorDraftScopeScriptV1")
     embedded = source.index("designEditorEmbeddedRuntimeScriptV1")
     phase2 = source.index("designEditorPhase2ScriptV1")
