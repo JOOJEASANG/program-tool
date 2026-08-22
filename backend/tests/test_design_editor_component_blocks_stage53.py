@@ -9,7 +9,7 @@ REGISTER = ROOT / "js" / "sw-register.js"
 def test_component_blocks_load_after_simple_interface():
     source = REGISTER.read_text(encoding="utf-8")
     assert "designEditorComponentBlocksScriptV1" in source
-    assert "/js/design-editor/phase17-component-blocks.js?v=20260822-1" in source
+    assert "/js/design-editor/phase17-component-blocks.js?v=20260822-2" in source
     assert source.index("designEditorSimpleInterfaceScriptV1") < source.index("designEditorComponentBlocksScriptV1")
 
 
