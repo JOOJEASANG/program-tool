@@ -10,7 +10,7 @@ def test_design_editor_phase2_is_loaded_only_for_design_editor():
     register = REGISTER.read_text(encoding="utf-8")
     assert "if(isPath('/design-editor','/design-editor/index.html'))" in register
     assert "designEditorPhase2ScriptV1" in register
-    assert "/js/design-editor/phase2.js?v=20260821-1" in register
+    assert "/js/design-editor/phase2.js?v=20260822-2" in register
 
 
 def test_design_editor_phase2_adds_images_shapes_and_separate_extra_state():
@@ -45,7 +45,7 @@ def test_design_editor_phase2_keeps_print_layout_helpers_and_text_spacing():
         "letterSpacing",
         "lineHeight",
         "programTool.designEditor.draft.v1",
-        "stage:'images-shapes-snapping-text-spacing'",
+        "stage:'indexeddb-images-shapes-snapping-text-spacing'",
     ):
         assert marker in source
 
