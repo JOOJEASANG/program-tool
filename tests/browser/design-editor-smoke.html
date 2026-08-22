@@ -17,6 +17,10 @@
   <script>
     history.replaceState(null,'','/design-editor/general.html?browser-smoke=1');
     window.ProgramStudioBoot={reveal(){}};
+    window.__browserSmokeRuntimeResults=[];
+    window.addEventListener('programstudio:runtime-script-result',event=>{
+      window.__browserSmokeRuntimeResults.push(event.detail||{});
+    });
   </script>
 </head>
 <body data-smoke-status="pending">
@@ -54,15 +58,13 @@
       <div id="surfaceTabs"></div>
       <div id="saveState"></div>
       <div id="artboardViewport"><div id="artboard"></div></div>
-      <div id="editorStatus" class="editor-status"></div>
+      <div class="editor-footer"><div id="editorStatus" class="editor-status"></div></div>
     </section>
   </main>
 
   <script src="/js/design-editor/presets.js?v=20260821-1"></script>
   <script src="/js/design-editor/app.js?v=20260821-1"></script>
-  <script src="/js/design-editor/runtime-diagnostics.js?v=20260823-1"></script>
-  <script src="/js/design-editor/output.js?v=20260823-1"></script>
-  <script src="/js/design-editor/phase16-simple-interface.js?v=20260823-2"></script>
+  <script src="/js/sw-register.js"></script>
   <script>
     (async()=>{
       const result=document.getElementById('smokeResult');
@@ -75,24 +77,50 @@
         result.textContent='PASS: '+message;
       };
       const assert=(condition,message)=>{if(!condition)throw new Error(message);};
-      const waitFor=async(predicate,label,timeout=7000)=>{
-        const started=performance.now();
-        while(performance.now()-started<timeout){
+      const waitFor=async(predicate,label,timeout=10000)=>{
+        const started=Date.now();
+        while(Date.now()-started<timeout){
           if(predicate())return;
           await new Promise(resolve=>setTimeout(resolve,40));
         }
         throw new Error('timeout: '+label);
       };
-      const nextFrames=()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+      const settle=()=>new Promise(resolve=>setTimeout(resolve,40));
+      const runtimeResultsForManifest=()=>{
+        const manifest=Array.isArray(window.ProgramStudioDesignEditorRuntimeManifest)?window.ProgramStudioDesignEditorRuntimeManifest:[];
+        const ids=new Set(manifest.map(entry=>entry.id));
+        const latest=new Map();
+        (window.__browserSmokeRuntimeResults||[]).forEach(entry=>{if(ids.has(entry?.id))latest.set(entry.id,entry);});
+        return{manifest,latest};
+      };
 
       try{
         await waitFor(()=>window.DesignEditorApp,'DesignEditorApp');
+        await waitFor(()=>Array.isArray(window.ProgramStudioDesignEditorRuntimeManifest),'runtime manifest');
+        await waitFor(()=>{
+          const {manifest,latest}=runtimeResultsForManifest();
+          return manifest.length>0&&latest.size===manifest.length;
+        },'all runtime manifest results');
+
+        const runtimeBoot=runtimeResultsForManifest();
+        assert(runtimeBoot.manifest.length===27,'runtime manifest size changed without updating browser smoke contract');
+        runtimeBoot.manifest.forEach(entry=>{
+          const event=runtimeBoot.latest.get(entry.id);
+          assert(event?.status==='loaded',`runtime module failed: ${entry.id} (${event?.status||'missing-result'})`);
+          const node=document.getElementById(entry.id);
+          assert(node?.dataset?.loaded==='true',`runtime script was not marked loaded: ${entry.id}`);
+          assert(!node?.dataset?.failed,`runtime script has failure marker: ${entry.id}`);
+        });
+        document.body.dataset.runtimeExpected=String(runtimeBoot.manifest.length);
+        document.body.dataset.runtimeLoaded=String([...runtimeBoot.latest.values()].filter(entry=>entry.status==='loaded').length);
+
+        await waitFor(()=>window.DesignEditorRuntimeDiagnostics,'DesignEditorRuntimeDiagnostics');
         await waitFor(()=>window.DesignEditorOutput,'DesignEditorOutput');
         await waitFor(()=>window.DesignEditorSimpleInterface,'DesignEditorSimpleInterface');
 
         assert(DesignEditorPresets.get('flyer-a4')?.surfaces?.length===2,'flyer-a4 preset must keep two surfaces');
         DesignEditorApp.startProject('flyer-a4');
-        await nextFrames();
+        await settle();
 
         const project=DesignEditorApp.project;
         assert(project?.width===210&&project?.height===297,'A4 project dimensions changed');
@@ -102,7 +130,7 @@
         assert(document.querySelectorAll('.surface-tab').length===2,'surface tabs were not rendered');
 
         document.getElementById('addTitleBtn').click();
-        await nextFrames();
+        await settle();
         assert(project.surfaces[0].elements.length===1,'title button did not add an element');
         assert(document.querySelectorAll('.design-object').length===1,'title was not rendered on artboard');
 
@@ -110,16 +138,16 @@
         assert(textInput,'selected text inspector did not render');
         textInput.value='브라우저 자동검증 제목';
         textInput.dispatchEvent(new Event('input',{bubbles:true}));
-        await nextFrames();
+        await settle();
         assert(project.surfaces[0].elements[0].text==='브라우저 자동검증 제목','text edit did not update project state');
         assert(document.querySelector('.design-object')?.textContent.includes('브라우저 자동검증 제목'),'text edit did not rerender artboard');
 
         const tabs=[...document.querySelectorAll('.surface-tab')];
         tabs[1].click();
-        await nextFrames();
+        await settle();
         assert(project.activeSurface==='back','second surface did not become active');
         document.getElementById('addBodyBtn').click();
-        await nextFrames();
+        await settle();
         assert(project.surfaces[1].elements.length===1,'second surface edit failed');
 
         const spec=DesignEditorOutput.expectedOutputSpec(project);
@@ -138,12 +166,26 @@
         assert(rejected,'invalid rendered surface did not fail closed');
 
         DesignEditorSimpleInterface.sync();
-        await nextFrames();
         assert(document.getElementById('designOutputTools'),'output card was not installed in real browser DOM');
         assert(DesignEditorSimpleInterface.stage==='basic-first-contextual-sidebar','simple interface module did not boot');
         assert(DesignEditorOutput.stage==='selectable-standard-lossless-300dpi-pdf-output-with-postrender-verification','output module stage mismatch');
 
-        pass('core edit, two-surface flow, 300DPI output contract, fail-closed verification');
+        const health=DesignEditorRuntimeDiagnostics.audit();
+        assert(health.ok===true,`runtime diagnostics reported issues: ${(health.issues||[]).join(' | ')}`);
+        assert(health.runtime.expected===runtimeBoot.manifest.length,'diagnostics expected runtime count mismatch');
+        assert(health.runtime.loaded===runtimeBoot.manifest.length,'diagnostics loaded runtime count mismatch');
+        assert(health.runtime.failed===0,'diagnostics reported failed runtime modules');
+        assert(health.runtime.missing===0,'diagnostics reported missing runtime modules');
+        assert(health.storage.localStorage===true,'localStorage diagnostics failed');
+        assert(health.storage.indexedDB===true,'IndexedDB diagnostics failed');
+        assert(health.project.ready===true&&health.project.activeSurfaceExists===true,'project diagnostics failed');
+
+        const report=DesignEditorRuntimeDiagnostics.report();
+        const fatalTypes=new Set(['error','rejection','resource-error','runtime-error','runtime-timeout']);
+        const fatalRecords=(report.records||[]).filter(entry=>fatalTypes.has(entry.type));
+        assert(fatalRecords.length===0,`runtime error records found: ${fatalRecords.map(entry=>entry.type+':'+entry.message).join(' | ')}`);
+
+        pass('core edit, two-surface flow, 300DPI output contract, fail-closed verification, full runtime manifest');
       }catch(error){
         fail(error);
       }
