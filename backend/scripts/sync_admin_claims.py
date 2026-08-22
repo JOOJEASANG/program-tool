@@ -1,10 +1,13 @@
-"""Synchronize Firebase admin custom claims from settings/admin.
+"""Synchronize and verify Firebase admin custom claims from settings/admin.
 
 Dry-run:
     python -m scripts.sync_admin_claims
 
 Apply additions and revoke stale claims:
     python -m scripts.sync_admin_claims --apply --revoke-missing
+
+Verify every configured administrator has admin=true:
+    python -m scripts.sync_admin_claims --verify
 """
 from __future__ import annotations
 
@@ -52,6 +55,42 @@ def _set_admin_claim(user, enabled: bool, apply: bool) -> bool:
     return True
 
 
+def verify_admin_claims() -> int:
+    """Return 0 only when every settings/admin email resolves to admin=true."""
+    _initialize_firebase()
+    admin_emails = _admin_emails()
+    if not admin_emails:
+        print("FAIL   no administrator emails found in settings/admin.")
+        return 1
+
+    failures = 0
+    for email in sorted(admin_emails):
+        try:
+            user = auth.get_user_by_email(email)
+        except auth.UserNotFoundError:
+            print(f"FAIL   Firebase Auth user not found: {email}")
+            failures += 1
+            continue
+        if (user.custom_claims or {}).get("admin") is True:
+            print(f"PASS   admin=true: {email}")
+            continue
+        print(f"FAIL   missing admin=true custom claim: {email}")
+        failures += 1
+
+    if failures:
+        print(
+            f"Admin claim verification failed for {failures} account(s). "
+            "Keep the legacy email fallback enabled."
+        )
+        return failures
+
+    print(
+        f"Admin claim verification passed for {len(admin_emails)} account(s). "
+        "Configured administrators are ready for claim-only authorization."
+    )
+    return 0
+
+
 def sync_admin_claims(apply: bool = False, revoke_missing: bool = False) -> int:
     _initialize_firebase()
     admin_emails = _admin_emails()
@@ -88,7 +127,7 @@ def sync_admin_claims(apply: bool = False, revoke_missing: bool = False) -> int:
     return changed
 
 
-def main() -> None:
+def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Synchronize Firebase administrator claims"
     )
@@ -102,12 +141,23 @@ def main() -> None:
         action="store_true",
         help="Remove admin=true from users absent from settings/admin",
     )
-    args = parser.parse_args()
+    parser.add_argument(
+        "--verify",
+        action="store_true",
+        help="Exit nonzero unless every settings/admin account has admin=true",
+    )
+    args = parser.parse_args(argv)
+    if args.verify:
+        if args.apply or args.revoke_missing:
+            parser.error("--verify cannot be combined with --apply or --revoke-missing")
+        return verify_admin_claims()
+
     sync_admin_claims(
         apply=args.apply,
         revoke_missing=args.revoke_missing,
     )
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

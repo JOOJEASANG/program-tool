@@ -57,10 +57,12 @@ def test_preview_and_production_deploy_run_boot_guard_injection():
     preview = read(".github/workflows/firebase-preview.yml")
     deploy = read(".github/workflows/firebase-deploy.yml")
     command = "python3 scripts/inject_boot_guard.py"
+    preview_deploy = "bash scripts/firebase_ci.sh hosting:channel:deploy"
+    production_deploy = "bash scripts/firebase_ci.sh deploy"
     assert command in preview
     assert command in deploy
-    assert preview.index(command) < preview.index("firebase hosting:channel:deploy")
-    assert deploy.index(command) < deploy.index("firebase deploy")
+    assert preview.index(command) < preview.index(preview_deploy)
+    assert deploy.index(command) < deploy.index(production_deploy)
 
 
 def test_optional_helpers_do_not_reload_or_block_layout_reveal():

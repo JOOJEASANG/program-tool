@@ -44,11 +44,19 @@
 - 저장은 새 revision 업로드 → Firestore 메타데이터 전환 → 이전 revision 삭제 순서입니다. 중간 저장 실패 시 새 revision만 정리하고 기존 revision을 유지합니다.
 - Firestore/Storage Rules는 UID 소유권, 허용 필드, JSON MIME, 30MB 제한, 소유자 메타데이터를 검증합니다.
 
+## 관리자·배포 보안
+
+- `backend/scripts/sync_admin_claims.py`: `settings/admin` 기준으로 `admin: true` custom claim을 dry-run/적용하며 `--verify`는 모든 관리자 claim이 준비되지 않으면 실패 종료합니다.
+- Firestore/Storage/client의 legacy 관리자 이메일 fallback은 실제 운영 `--verify` 성공 전까지 제거하지 않습니다.
+- `.github/workflows/firebase-deploy.yml`, `.github/workflows/firebase-preview.yml`: WIF secrets가 있으면 `google-github-actions/auth`로 short-lived ADC를 생성합니다.
+- `scripts/firebase_ci.sh`: `GOOGLE_APPLICATION_CREDENTIALS`가 있으면 `FIREBASE_TOKEN`을 제거하고 ADC를 우선 사용합니다. WIF가 아직 없는 운영에서는 token fallback을 유지합니다.
+- `ADMIN_SECURITY_MIGRATION.md`: claim-only 관리자 권한과 WIF 배포의 실제 cutover 완료 조건을 정의합니다.
+
 ## 백엔드
 
 - `backend/main.py`: Flask 앱, HTTPS 함수, 임시 파일 정리 예약 함수
 - `backend/routers/`: PDF 편집·도구·검수 API
-- `backend/services/pdf_engine.py`: 페이지 배치와 출력
+- `backend/services/pdf_engine.py`: PDF 레이아웃 렌더링의 단일 구현
 - `backend/services/pdf_text_renderer.py`: 워터마크, 머리말·꼬리말, 페이지 번호
 - `backend/services/pdf_print_marks.py`: 재단선·도련 표시
 - `backend/services/preflight_svc.py`: 검수
@@ -63,7 +71,9 @@
 5. 디자인 이미지의 자동 저장은 `asset-store.js`를 거쳐 IndexedDB에 보관하고 localStorage 프로젝트 JSON에 base64 이미지 데이터를 다시 넣지 않습니다. 휴대용 `.design.json` 내보내기만 이미지 데이터를 포함합니다.
 6. 스타터 디자인 레시피는 기존 글자·사진·도형을 삭제하거나 위치를 초기화하지 않습니다. 이미 존재하는 작업을 보존한 채 필요한 구성요소와 스타일만 추가합니다.
 7. 클라우드 프로젝트는 고정 파일을 바로 덮어쓰지 않고 revision 단위로 저장합니다. Firestore 메타데이터 전환이 성공하기 전에는 기존 revision을 삭제하지 않습니다.
-8. PNG/PDF 출력은 `phase22-final-print-check.js`의 전체 면 검사를 우회하지 않습니다. 이미지 원본 누락처럼 치명적인 오류는 출력 전에 해결해야 합니다.
-9. `고품질 PDF`는 300DPI RGB 래스터 페이지를 PNG로 무손실 포함하는 프로필입니다. CMYK 또는 PDF/X 변환 기능으로 표시하거나 오인시키지 않습니다.
-10. 화면 변경 시 `version.json`, `sw.js`, `js/sw-register.js`, `js/firebase-config.js` 버전을 동기화합니다.
-11. 배포 전 Python, JavaScript, 정적 경로, Firebase 규칙 테스트를 모두 통과시킵니다.
+8. 관리자 legacy 이메일 fallback은 실제 운영 관리자 claim 검증이 성공하기 전에 제거하지 않습니다.
+9. Firebase CI는 WIF/ADC를 우선하고, WIF 실제 운영 검증 전까지만 `FIREBASE_TOKEN` fallback을 유지합니다.
+10. PNG/PDF 출력은 `phase22-final-print-check.js`의 전체 면 검사를 우회하지 않습니다. 이미지 원본 누락처럼 치명적인 오류는 출력 전에 해결해야 합니다.
+11. `고품질 PDF`는 300DPI RGB 래스터 페이지를 PNG로 무손실 포함하는 프로필입니다. CMYK 또는 PDF/X 변환 기능으로 표시하거나 오인시키지 않습니다.
+12. 화면 변경 시 `version.json`, `sw.js`, `js/sw-register.js`, `js/firebase-config.js` 버전을 동기화합니다.
+13. 배포 전 Python, JavaScript, 정적 경로, Firebase 규칙 테스트를 모두 통과시킵니다.

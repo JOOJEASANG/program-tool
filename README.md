@@ -13,6 +13,7 @@ Firebase Hosting과 Python Cloud Functions로 운영하는 PDF 제작·검수 �
 - PDF 편집기: 여러 PDF 병합, N-up 배치, 소책자 배열, 여백·페이지 번호·인쇄 표시
 - PDF 검사: 문서 정보, 크기, 색상·투명도 위험 신호, 보안 설정 검사와 제한적인 자동 수정
 - 책표지 제작: 판형·쪽수·종이에 따른 표지 크기 계산 및 300 DPI RGB PNG 출력
+- 통합 디자인 편집기: 포스터·전단·리플렛 편집, 인쇄 전 최종검사, 표준/고품질 PDF, 로컬·클라우드 프로젝트 저장
 
 PDF 검수 결과는 인쇄소의 RIP/프리플라이트 결과를 대체하지 않습니다. 브라우저 표지 출력도 RGB 래스터 이미지이며, 실제 CMYK 납품물에는 인쇄소 ICC 프로파일을 적용한 별도 변환 단계가 필요합니다.
 
@@ -56,6 +57,7 @@ npx firebase-tools@14.27.0 emulators:exec \
 - 직접 multipart 업로드: 합계 20 MiB 이하
 - PDF 편집기·검수용 Storage 입력: 파일당 최대 500 MiB
 - 표지 입력 이미지: 최대 15 MiB, 5천만 픽셀
+- 디자인 클라우드 프로젝트: 사용자당 최대 8개, 프로젝트 파일당 최대 30 MiB
 - 20 MiB를 넘는 생성 결과: `pdf_results/{uid}/{resultId}/{filename}`에 저장한 뒤 임시 다운로드 URL 반환
 - 임시 입력과 결과: 예약 함수가 6시간이 지난 객체를 6시간마다 정리
 
@@ -68,7 +70,9 @@ gcloud storage buckets update gs://program-tool.firebasestorage.app \
 
 ## 배포
 
-`main` 브랜치에 푸시하면 `.github/workflows/firebase-deploy.yml`이 품질 검사를 통과한 뒤 Hosting, Functions, Firestore 규칙·인덱스, Storage 규칙을 배포합니다. 저장소의 `FIREBASE_TOKEN` 비밀 값이 필요합니다.
+`main` 브랜치에 푸시하면 `.github/workflows/firebase-deploy.yml`이 품질 검사를 통과한 뒤 Hosting, Functions, Firestore 규칙·인덱스, Storage 규칙을 배포합니다.
+
+GitHub Actions에 `GCP_WORKLOAD_IDENTITY_PROVIDER`와 `GCP_SERVICE_ACCOUNT`가 모두 설정되어 있으면 short-lived Workload Identity Federation 자격정보를 사용합니다. 아직 WIF가 구성되지 않은 환경에서는 기존 `FIREBASE_TOKEN`을 임시 fallback으로 사용합니다. 모든 Firebase CI 명령은 `scripts/firebase_ci.sh`를 거치며 WIF/ADC가 있으면 legacy token을 제거하고 ADC를 우선 사용합니다.
 
 수동 배포:
 
@@ -89,10 +93,24 @@ firebase deploy --project program-tool --force --non-interactive
 - `backend/services/pdf_engine.py`: PDF 레이아웃 렌더링의 단일 구현
 - `backend/services/preflight_svc.py`: PDF 검수
 - `backend/utils/storage_delivery.py`: 대용량 결과의 비공개 임시 전달
+- `backend/scripts/sync_admin_claims.py`: 관리자 custom claim dry-run·적용·검증 도구
+- `scripts/firebase_ci.sh`: WIF/ADC 우선, `FIREBASE_TOKEN` fallback Firebase CI 실행기
 - `firestore.rules`, `storage.rules`, `tests/firebase-rules.test.mjs`: 접근 제어와 회귀 테스트
+- `ADMIN_SECURITY_MIGRATION.md`: 관리자 claim-only 권한과 WIF 배포 인증의 실제 전환 체크리스트
 
 ## 운영 보안
 
-API는 Firebase ID 토큰과 프로그램 승인 상태를 모두 확인합니다. 관리자 권한은 가능하면 Firebase custom claim의 `admin: true`를 사용하고, Firestore 이메일 목록 방식은 이전 운영 환경과의 호환 용도로만 유지합니다.
+API는 Firebase ID 토큰과 프로그램 승인 상태를 모두 확인합니다. 관리자 권한의 최종 기준은 Firebase custom claim의 `admin: true`입니다. 기존 Firestore 이메일 목록 fallback은 실제 운영 관리자 전원의 claim 적용 여부를 확인하기 위한 마이그레이션 호환 경로로만 유지합니다.
 
-Cloud 배포는 장기 토큰보다 Workload Identity Federation을 권장합니다. 현재 워크플로를 WIF로 전환하기 전까지 `FIREBASE_TOKEN`은 최소 권한과 정기 교체 정책으로 관리해야 합니다.
+관리자 claim 전환 전후에는 다음 검증을 사용합니다.
+
+```bash
+cd backend
+python -m scripts.sync_admin_claims
+python -m scripts.sync_admin_claims --apply
+python -m scripts.sync_admin_claims --verify
+```
+
+`--verify`가 성공하기 전에는 legacy 이메일 fallback을 제거하지 않습니다. 자세한 전환 순서와 rollback 기준은 `ADMIN_SECURITY_MIGRATION.md`를 따릅니다.
+
+Cloud 배포는 장기 refresh token보다 Workload Identity Federation/Application Default Credentials를 우선합니다. WIF로 PR 미리보기와 `production-smoke`까지 성공한 것을 확인한 뒤 `FIREBASE_TOKEN` secret을 제거합니다.

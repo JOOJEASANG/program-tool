@@ -18,6 +18,7 @@ backend/venv/
 firebase-service-account.json
 backend/firebase-service-account.json
 *.service-account.json
+gha-creds-*.json
 
 # Node / Firebase local state
 node_modules/
