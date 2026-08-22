@@ -241,3 +241,75 @@ test('professional program suite is public-readable and admin-writable only', as
   await assertFails(updateDoc(doc(memberDb, suitePath), { version: 2 }));
   await assertSucceeds(updateDoc(doc(adminDb, suitePath), { version: 2 }));
 });
+
+test('cloud design metadata is owner-only and schema bounded', async () => {
+  const ownerDb = env.authenticatedContext('design-owner', { email: 'owner@example.com' }).firestore();
+  const otherDb = env.authenticatedContext('other-user', { email: 'other@example.com' }).firestore();
+  const refPath = 'users/design-owner/design_projects/design_alpha';
+  const createdAt = new Date('2026-08-22T14:00:00Z');
+  const metadata = {
+    id: 'design_alpha',
+    name: '행사 포스터',
+    presetId: 'poster-a3',
+    width: 297,
+    height: 420,
+    storagePath: 'design_projects/design-owner/design_alpha/rev_one.design.json',
+    size: 2048,
+    createdAt,
+    updatedAt: createdAt,
+  };
+
+  await assertSucceeds(setDoc(doc(ownerDb, refPath), metadata));
+  await assertSucceeds(getDoc(doc(ownerDb, refPath)));
+  await assertFails(getDoc(doc(otherDb, refPath)));
+  await assertFails(setDoc(doc(otherDb, 'users/design-owner/design_projects/design_hijack'), {
+    ...metadata,
+    id: 'design_hijack',
+    storagePath: 'design_projects/design-owner/design_hijack/rev_one.design.json',
+  }));
+  await assertFails(updateDoc(doc(ownerDb, refPath), { createdAt: new Date('2026-08-23T00:00:00Z') }));
+  await assertFails(setDoc(doc(ownerDb, 'users/design-owner/design_projects/design_extra'), {
+    ...metadata,
+    id: 'design_extra',
+    storagePath: 'design_projects/design-owner/design_extra/rev_one.design.json',
+    unexpected: true,
+  }));
+  await assertSucceeds(updateDoc(doc(ownerDb, refPath), { name: '수정 포스터', updatedAt: new Date('2026-08-22T15:00:00Z') }));
+  await assertSucceeds(deleteDoc(doc(ownerDb, refPath)));
+});
+
+test('cloud design storage is owner-only and validates json metadata', async () => {
+  const ownerStorage = env.authenticatedContext('design-owner', { email: 'owner@example.com' }).storage();
+  const otherStorage = env.authenticatedContext('other-user', { email: 'other@example.com' }).storage();
+  const path = 'design_projects/design-owner/design_alpha/rev_one.design.json';
+  const validMetadata = {
+    contentType: 'application/json',
+    customMetadata: {
+      ownerUid: 'design-owner',
+      format: 'program-studio-design-project',
+    },
+  };
+
+  await assertSucceeds(uploadString(ref(ownerStorage, path), '{"format":"program-studio-design-project"}', 'raw', validMetadata));
+  await assertSucceeds(getBytes(ref(ownerStorage, path)));
+  await assertFails(getBytes(ref(otherStorage, path)));
+  await assertFails(uploadString(
+    ref(otherStorage, 'design_projects/design-owner/design_alpha/rev_two.design.json'),
+    '{}',
+    'raw',
+    validMetadata
+  ));
+  await assertFails(uploadString(
+    ref(ownerStorage, 'design_projects/design-owner/design_alpha/rev_bad.design.json'),
+    '{}',
+    'raw',
+    { contentType: 'text/plain', customMetadata: { ownerUid: 'design-owner', format: 'program-studio-design-project' } }
+  ));
+  await assertFails(uploadString(
+    ref(ownerStorage, 'design_projects/design-owner/design_alpha/rev_missing.design.json'),
+    '{}',
+    'raw',
+    { contentType: 'application/json' }
+  ));
+  await assertSucceeds(deleteObject(ref(ownerStorage, path)));
+});
