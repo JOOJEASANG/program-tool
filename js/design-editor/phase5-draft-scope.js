@@ -42,6 +42,11 @@
     return null;
   }
 
+  function durableSnapshot(project){
+    const snapshot=window.DesignEditorAssetStore?.snapshotProject?.(project);
+    return validProject(snapshot)?snapshot:project;
+  }
+
   function updateIndex(project,savedAt){
     const scope=scopeForProject(project);if(!scope)return;
     const current=readJson(INDEX_KEY);
@@ -54,8 +59,9 @@
     if(!validProject(project))return false;
     const key=draftKey(project);if(!key)return false;
     const savedAt=Date.now();
+    const snapshot=durableSnapshot(project);
     try{
-      localStorage.setItem(key,JSON.stringify({version:2,savedAt,source,project}));
+      localStorage.setItem(key,JSON.stringify({version:2,savedAt,source,project:snapshot}));
       updateIndex(project,savedAt);
       return true;
     }catch(_){return false;}
