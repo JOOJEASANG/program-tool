@@ -18,6 +18,7 @@
   const uid=()=>window.auth?.currentUser?.uid||'';
   const safeId=value=>String(value||'').replace(/[^a-zA-Z0-9_-]/g,'').slice(0,80);
   const newId=()=>`design_${Date.now().toString(36)}_${Math.random().toString(36).slice(2,10)}`;
+  const newRevisionId=()=>`rev_${Date.now().toString(36)}_${Math.random().toString(36).slice(2,10)}`;
 
   function setStatus(message,type='info'){
     const node=byId('editorStatus');if(!node)return;
@@ -41,7 +42,11 @@
   }
 
   function metadataCollection(userId){return window.db.collection('users').doc(userId).collection('design_projects');}
-  function storagePath(userId,projectId){return `${STORAGE_ROOT}/${userId}/${projectId}.design.json`;}
+  function revisionStoragePath(userId,projectId,revisionId){return `${STORAGE_ROOT}/${userId}/${projectId}/${revisionId}.design.json`;}
+  function isOwnedStoragePath(userId,projectId,path){
+    const parts=String(path||'').split('/');
+    return parts.length===4&&parts[0]===STORAGE_ROOT&&parts[1]===userId&&parts[2]===projectId&&/^[A-Za-z0-9_-]{1,80}\.design\.json$/.test(parts[3]);
+  }
 
   function installStyles(){
     if(byId(STYLE_ID))return;
@@ -56,6 +61,8 @@
     return date.toLocaleString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
   }
 
+  function escapeHtml(value){return String(value||'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));}
+
   function renderProjects(items=[]){
     const root=byId('designCloudList');if(!root)return;
     if(!items.length){root.innerHTML='<div class="cloud-project-empty">클라우드에 저장된 작업이 없습니다.</div>';return;}
@@ -63,8 +70,6 @@
     root.querySelectorAll('[data-cloud-load]').forEach(button=>button.addEventListener('click',()=>loadCloudProject(button.dataset.cloudLoad)));
     root.querySelectorAll('[data-cloud-delete]').forEach(button=>button.addEventListener('click',()=>deleteCloudProject(button.dataset.cloudDelete)));
   }
-
-  function escapeHtml(value){return String(value||'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));}
 
   async function listCloudProjects(){
     const userId=uid();
@@ -81,20 +86,30 @@
     if(!projectFile?.buildPortablePayload)return setStatus('프로젝트 저장 모듈을 준비하지 못했습니다.','err');
     setBusy(true);setStatus('클라우드 저장 파일을 준비하는 중입니다.','info');
     let uploadedRef=null;
+    let committed=false;
     try{
       const existingId=safeId(current.cloudProjectId);
       const projectId=existingId||newId();
+      const docRef=metadataCollection(userId).doc(projectId);
+      const existing=await docRef.get();
+      if(!existing.exists){
+        const countSnapshot=await metadataCollection(userId).limit(MAX_PROJECTS).get();
+        if(countSnapshot.size>=MAX_PROJECTS)throw new Error(`클라우드 작업은 최대 ${MAX_PROJECTS}개까지 저장할 수 있습니다.`);
+      }
+
       const payload=await projectFile.buildPortablePayload(current);
       const text=JSON.stringify(payload);
       const blob=new Blob([text],{type:'application/json'});
       if(blob.size>MAX_FILE_BYTES)throw new Error('클라우드 프로젝트는 30MB 이하만 저장할 수 있습니다.');
+
       const storage=await ensureStorageSdk();
-      const path=storagePath(userId,projectId);
+      const previousPath=existing.exists?String(existing.data().storagePath||''):'';
+      const path=revisionStoragePath(userId,projectId,newRevisionId());
       uploadedRef=storage.ref(path);
       await uploadedRef.put(blob,{contentType:'application/json',customMetadata:{ownerUid:userId,format:projectFile.format||'program-studio-design-project'}});
-      const docRef=metadataCollection(userId).doc(projectId);
-      const existing=await docRef.get();
+
       const now=window.firebase.firestore.FieldValue.serverTimestamp();
+      const previousCreatedAt=existing.exists?existing.data().createdAt:null;
       const metadata={
         id:projectId,
         name:String(current.name||'디자인 작업').slice(0,120),
@@ -104,16 +119,21 @@
         storagePath:path,
         size:blob.size,
         updatedAt:now,
-        createdAt:existing.exists?(existing.data().createdAt||now):now
+        createdAt:previousCreatedAt||now
       };
       await docRef.set(metadata);
+      committed=true;
+
       current.cloudProjectId=projectId;
       window.DesignEditorDraftScope?.saveCurrent?.('cloud-project-save');
+      if(previousPath&&previousPath!==path&&isOwnedStoragePath(userId,projectId,previousPath)){
+        try{await storage.ref(previousPath).delete();}catch(error){if(error?.code!=='storage/object-not-found')console.warn('Previous cloud revision cleanup failed',error);}
+      }
       await listCloudProjects();
       setStatus(existing.exists?'클라우드 작업을 업데이트했습니다.':'클라우드에 새 작업을 저장했습니다.','ok');
       return projectId;
     }catch(error){
-      if(uploadedRef){try{await uploadedRef.delete();}catch(_){} }
+      if(uploadedRef&&!committed){try{await uploadedRef.delete();}catch(_){} }
       setStatus(error.message||'클라우드 저장에 실패했습니다.','err');
       return null;
     }finally{setBusy(false);}
@@ -128,7 +148,7 @@
       const docRef=metadataCollection(userId).doc(id),snapshot=await docRef.get();
       if(!snapshot.exists)throw new Error('저장된 작업 정보를 찾을 수 없습니다.');
       const data=snapshot.data(),path=String(data.storagePath||'');
-      if(path!==storagePath(userId,id))throw new Error('클라우드 작업 경로가 올바르지 않습니다.');
+      if(!isOwnedStoragePath(userId,id,path))throw new Error('클라우드 작업 경로가 올바르지 않습니다.');
       const storage=await ensureStorageSdk(),url=await storage.ref(path).getDownloadURL();
       const response=await fetch(url,{cache:'no-store'});if(!response.ok)throw new Error('클라우드 작업 파일을 내려받지 못했습니다.');
       const blob=await response.blob();if(blob.size>MAX_FILE_BYTES)throw new Error('클라우드 프로젝트 크기가 허용 범위를 넘었습니다.');
@@ -152,9 +172,11 @@
     setBusy(true);setStatus('클라우드 작업을 삭제하는 중입니다.','info');
     try{
       const docRef=metadataCollection(userId).doc(id),snapshot=await docRef.get();
-      const path=snapshot.exists?String(snapshot.data().storagePath||''):storagePath(userId,id);
+      const path=snapshot.exists?String(snapshot.data().storagePath||''):'';
       await docRef.delete();
-      try{const storage=await ensureStorageSdk();await storage.ref(path).delete();}catch(error){if(error?.code!=='storage/object-not-found')console.warn('Cloud project orphan cleanup failed',error);}
+      if(isOwnedStoragePath(userId,id,path)){
+        try{const storage=await ensureStorageSdk();await storage.ref(path).delete();}catch(error){if(error?.code!=='storage/object-not-found')console.warn('Cloud project orphan cleanup failed',error);}
+      }
       if(project()?.cloudProjectId===id){delete project().cloudProjectId;window.DesignEditorDraftScope?.saveCurrent?.('cloud-project-delete');}
       await listCloudProjects();setStatus('클라우드 작업을 삭제했습니다.','ok');
     }catch(error){setStatus(error.message||'클라우드 작업 삭제에 실패했습니다.','err');}
@@ -172,7 +194,7 @@
     if(byId(CARD_ID))return true;
     const sidebar=document.querySelector('.sidebar'),projectFile=byId('designProjectFileTools'),inspector=byId('inspector');if(!sidebar)return false;
     const card=document.createElement('section');card.id=CARD_ID;card.className='side-card';
-    card.innerHTML='<div class="side-label">내 클라우드 작업</div><div class="cloud-project-actions"><button id="designCloudSave" class="primary" type="button">클라우드 저장</button><button id="designCloudRefresh" type="button">새로고침</button></div><div id="designCloudList" class="cloud-project-list"><div class="cloud-project-empty">저장된 작업을 확인하는 중입니다.</div></div><div class="cloud-project-note">프로젝트 본문은 내 Firebase Storage에, 목록 정보는 내 Firestore 영역에 저장됩니다. 다른 사용자는 접근할 수 없습니다.</div>';
+    card.innerHTML='<div class="side-label">내 클라우드 작업</div><div class="cloud-project-actions"><button id="designCloudSave" class="primary" type="button">클라우드 저장</button><button id="designCloudRefresh" type="button">새로고침</button></div><div id="designCloudList" class="cloud-project-list"><div class="cloud-project-empty">저장된 작업을 확인하는 중입니다.</div></div><div class="cloud-project-note">프로젝트 본문은 내 Firebase Storage에, 목록 정보는 내 Firestore 영역에 저장됩니다. 계정별로 분리되며 최대 8개까지 저장할 수 있습니다.</div>';
     if(projectFile?.nextSibling)sidebar.insertBefore(card,projectFile.nextSibling);else if(inspector)sidebar.insertBefore(card,inspector);else sidebar.appendChild(card);
     byId('designCloudSave')?.addEventListener('click',saveCloudProject);byId('designCloudRefresh')?.addEventListener('click',refresh);
     return true;
@@ -182,7 +204,7 @@
     if(installed)return true;
     if(!window.auth||!window.db||!window.DesignEditorApp||!window.DesignEditorProjectFile)return false;
     installed=true;installStyles();installCard();
-    window.DesignEditorCloudProjects={saveCloudProject,loadCloudProject,deleteCloudProject,listCloudProjects,storagePath,maxFileBytes:MAX_FILE_BYTES,stage:'owner-scoped-firestore-storage-cloud-projects'};
+    window.DesignEditorCloudProjects={saveCloudProject,loadCloudProject,deleteCloudProject,listCloudProjects,revisionStoragePath,isOwnedStoragePath,maxProjects:MAX_PROJECTS,maxFileBytes:MAX_FILE_BYTES,stage:'owner-scoped-revisioned-firestore-storage-cloud-projects'};
     const unsubscribe=window.auth.onAuthStateChanged(user=>{if(user)refresh();else renderProjects([]);});
     window.addEventListener('pagehide',()=>{try{unsubscribe();}catch(_){}},{once:true});
     return true;
