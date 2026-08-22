@@ -9,8 +9,16 @@ REGISTER = ROOT / "js" / "sw-register.js"
 def test_simple_interface_loads_after_quick_design():
     source = REGISTER.read_text(encoding="utf-8")
     assert "designEditorSimpleInterfaceScriptV1" in source
-    assert "/js/design-editor/phase16-simple-interface.js?v=20260822-1" in source
+    assert "/js/design-editor/phase16-simple-interface.js?v=20260823-1" in source
     assert source.index("designEditorQuickDesignScriptV1") < source.index("designEditorSimpleInterfaceScriptV1")
+
+
+def test_simple_interface_runs_on_actual_general_editor_route():
+    source = SIMPLE.read_text(encoding="utf-8")
+    assert "path!=='/design-editor/general'" in source
+    assert "path!=='/design-editor/general.html'" in source
+    assert "path.endsWith('/design-editor/general.html')" in source
+    assert "path!=='/design-editor/index.html'" not in source
 
 
 def test_simple_interface_keeps_basic_tools_visible_and_groups_precision_tools():

@@ -13,7 +13,7 @@
 
 - `js/firebase-config.js`: Firebase 초기화, 인증, 권한, 공통 스크립트 진입
 - `js/api.js`: 인증 API 호출, Storage 업로드, 임시 결과 다운로드
-- `js/sw-register.js`: 서비스 워커 복구와 화면별 보조 모듈 로딩. 일반 디자인 편집기의 기능 모듈은 `DESIGN_EDITOR_RUNTIME_SCRIPTS` 목록에 의존 순서대로 등록하고 `loadSeries()`가 순차 로드
+- `js/sw-register.js`: 서비스 워커 복구와 화면별 보조 모듈 로딩. 일반 디자인 편집기의 기능 모듈은 `DESIGN_EDITOR_RUNTIME_SCRIPTS` 목록에 의존 순서대로 등록하고 `loadSeries()`가 순차 로드. 각 모듈의 load/error/timeout 결과를 진단 이벤트로 내보내며 실패 모듈을 `loaded`로 오인하지 않음
 - `js/app-version.js`: 배포 버전 감지
 - `sw.js`: 네트워크 우선 캐시
 - `version.json`: 전체 사이트의 단일 배포 버전
@@ -23,12 +23,14 @@
 ## 통합 디자인 편집기
 
 - `js/design-editor/app.js`: 기본 프로젝트 상태, 텍스트 요소, 선택·드래그, 자동 저장
+- `js/design-editor/runtime-diagnostics.js`: 일반 편집기의 스크립트·리소스 오류, 처리되지 않은 Promise 오류, 런타임 모듈 load/error/timeout을 로컬 `sessionStorage`에 최대 40건 보관. 진단 화면과 복사용 기술 보고서를 제공하되 서버 전송은 하지 않고 이메일·data URL·blob URL을 마스킹하며 프로젝트 글 내용·이름·이미지 데이터는 보고서에서 제외
 - `js/design-editor/asset-store.js`: 편집 이미지 Blob을 IndexedDB에 저장하고 프로젝트에는 `assetId` 참조만 남기는 로컬 자산 저장소
 - `js/design-editor/phase2.js`: 이미지·도형과 세부 편집 기능. 새 이미지는 WebP Blob으로 최적화한 뒤 자산 저장소에 넣고 기존 data URL 이미지는 자동 마이그레이션
 - `js/design-editor/phase5-draft-scope.js`: 규격별 자동 저장. 자산 저장소로 이동한 이미지의 런타임 `blob:` URL은 자동 저장 JSON에서 제외
 - `js/design-editor/phase11-project-file.js`: `.design.json` 저장 시 IndexedDB 이미지를 다시 data URL로 포함하고, 불러올 때 다시 자산 저장소로 분리해 다른 PC 이동성을 유지. 같은 직렬화·복원 계약을 클라우드 저장에서도 재사용
 - `js/design-editor/phase13-print-quality.js`: 배치 이미지의 유효 DPI를 검사해 현재 면의 인쇄 선명도 위험을 표시
 - `js/design-editor/phase14-print-safety.js`: 안전여백·작은 글씨·접지선 충돌을 현재 면 기준으로 검사
+- `js/design-editor/phase16-simple-interface.js`: 실제 일반 편집기 `/design-editor/general(.html)`에서 기본 도구를 우선 표시하고 정밀 도구를 고급 영역으로 묶는 문맥형 사이드바
 - `js/design-editor/phase17-component-blocks.js`: 제목·일정·문의·기관정보 등 자주 쓰는 인쇄 구성요소를 현재 면에 비파괴 방식으로 추가
 - `js/design-editor/phase22-final-print-check.js`: 출력 직전 모든 작업면의 도련·안전여백·접지·이미지 누락·이미지 DPI를 통합 검사하고 치명적 오류가 있으면 출력을 중단
 - `js/design-editor/phase23-design-recipes.js`: 공공 안내·행사 포스터·깔끔 전단·따뜻한 안내 스타터 레시피. 기존 내용은 삭제하지 않고 구성요소와 전체 스타일 테마만 조합하며 같은 면의 동일 레시피 중복 적용을 막음
@@ -68,12 +70,14 @@
 2. 공통 API 계약은 `js/api.js` 한 곳에서 구성합니다.
 3. PDF 레이아웃은 중복 구현이나 런타임 monkeypatch 없이 `pdf_engine.py`에서 수정합니다.
 4. 통합 디자인 편집기 기능 모듈은 `js/sw-register.js`의 `DESIGN_EDITOR_RUNTIME_SCRIPTS`에서 로딩 순서를 관리하고 개별 `.then()` 체인을 다시 만들지 않습니다.
-5. 디자인 이미지의 자동 저장은 `asset-store.js`를 거쳐 IndexedDB에 보관하고 localStorage 프로젝트 JSON에 base64 이미지 데이터를 다시 넣지 않습니다. 휴대용 `.design.json` 내보내기만 이미지 데이터를 포함합니다.
-6. 스타터 디자인 레시피는 기존 글자·사진·도형을 삭제하거나 위치를 초기화하지 않습니다. 이미 존재하는 작업을 보존한 채 필요한 구성요소와 스타일만 추가합니다.
-7. 클라우드 프로젝트는 고정 파일을 바로 덮어쓰지 않고 revision 단위로 저장합니다. Firestore 메타데이터 전환이 성공하기 전에는 기존 revision을 삭제하지 않습니다.
-8. 관리자 legacy 이메일 fallback은 실제 운영 관리자 claim 검증이 성공하기 전에 제거하지 않습니다.
-9. Firebase CI는 WIF/ADC를 우선하고, WIF 실제 운영 검증 전까지만 `FIREBASE_TOKEN` fallback을 유지합니다.
-10. PNG/PDF 출력은 `phase22-final-print-check.js`의 전체 면 검사를 우회하지 않습니다. 이미지 원본 누락처럼 치명적인 오류는 출력 전에 해결해야 합니다.
-11. `고품질 PDF`는 300DPI RGB 래스터 페이지를 PNG로 무손실 포함하는 프로필입니다. CMYK 또는 PDF/X 변환 기능으로 표시하거나 오인시키지 않습니다.
-12. 화면 변경 시 `version.json`, `sw.js`, `js/sw-register.js`, `js/firebase-config.js` 버전을 동기화합니다.
-13. 배포 전 Python, JavaScript, 정적 경로, Firebase 규칙 테스트를 모두 통과시킵니다.
+5. 일반 디자인 편집기에 로드되는 기능 모듈의 경로 가드는 실제 `/design-editor/general` 및 `/design-editor/general.html` 경로를 허용해야 합니다.
+6. 런타임 진단은 로컬 전용으로 유지하며 네트워크 전송을 추가하지 않습니다. 복사 보고서에는 프로젝트 글 내용·이름·이미지 원본 데이터나 사용자 이메일을 포함하지 않습니다.
+7. 디자인 이미지의 자동 저장은 `asset-store.js`를 거쳐 IndexedDB에 보관하고 localStorage 프로젝트 JSON에 base64 이미지 데이터를 다시 넣지 않습니다. 휴대용 `.design.json` 내보내기만 이미지 데이터를 포함합니다.
+8. 스타터 디자인 레시피는 기존 글자·사진·도형을 삭제하거나 위치를 초기화하지 않습니다. 이미 존재하는 작업을 보존한 채 필요한 구성요소와 스타일만 추가합니다.
+9. 클라우드 프로젝트는 고정 파일을 바로 덮어쓰지 않고 revision 단위로 저장합니다. Firestore 메타데이터 전환이 성공하기 전에는 기존 revision을 삭제하지 않습니다.
+10. 관리자 legacy 이메일 fallback은 실제 운영 관리자 claim 검증이 성공하기 전에 제거하지 않습니다.
+11. Firebase CI는 WIF/ADC를 우선하고, WIF 실제 운영 검증 전까지만 `FIREBASE_TOKEN` fallback을 유지합니다.
+12. PNG/PDF 출력은 `phase22-final-print-check.js`의 전체 면 검사를 우회하지 않습니다. 이미지 원본 누락처럼 치명적인 오류는 출력 전에 해결해야 합니다.
+13. `고품질 PDF`는 300DPI RGB 래스터 페이지를 PNG로 무손실 포함하는 프로필입니다. CMYK 또는 PDF/X 변환 기능으로 표시하거나 오인시키지 않습니다.
+14. 화면 변경 시 `version.json`, `sw.js`, `js/sw-register.js`, `js/firebase-config.js` 버전을 동기화합니다.
+15. 배포 전 Python, JavaScript, 정적 경로, Firebase 규칙 테스트를 모두 통과시킵니다.
