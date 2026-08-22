@@ -119,6 +119,7 @@
           .then(()=>load('designEditorPrintSafetyScriptV1','/js/design-editor/phase14-print-safety.js?v=20260822-1'))
           .then(()=>load('designEditorQuickDesignScriptV1','/js/design-editor/phase15-quick-design.js?v=20260822-1'))
           .then(()=>load('designEditorSimpleInterfaceScriptV1','/js/design-editor/phase16-simple-interface.js?v=20260822-1'))
+          .then(()=>load('designEditorComponentBlocksScriptV1','/js/design-editor/phase17-component-blocks.js?v=20260822-1'))
       );
     }
     if(isPath(
