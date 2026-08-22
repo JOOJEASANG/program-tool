@@ -3,7 +3,7 @@
   if(window.__designEditorOutputV1)return;
   window.__designEditorOutputV1=true;
   const path=location.pathname.replace(/\/+$/,'')||'/';
-  if(path!=='/design-editor'&&path!=='/design-editor/index.html'&&!path.endsWith('/design-editor/index.html'))return;
+  if(path!=='/design-editor/general'&&path!=='/design-editor/general.html'&&!path.endsWith('/design-editor/general.html'))return;
 
   const DPI=300;
   const PX_PER_MM=DPI/25.4;
@@ -175,6 +175,8 @@
 
   async function exportPng(){
     const p=project(),surface=activeSurface(p);if(!p||!surface||busy)return;
+    const gate=window.DesignEditorFinalPrintCheck?.confirmBeforeOutput;
+    if(gate&&!(await gate({format:'png'})))return;
     setBusy(true);setStatus('300DPI PNG를 만드는 중입니다.','info');
     try{const {canvas}=await renderSurface(p,surface);downloadDataUrl(canvas.toDataURL('image/png'),`${safeName(p.name)}_${safeName(surface.label)}_300dpi.png`);setStatus('300DPI PNG를 만들었습니다.','ok');}
     catch(error){setStatus(error.message||'PNG 출력에 실패했습니다.','err');}
@@ -191,6 +193,8 @@
 
   async function exportPdf(){
     const p=project();if(!p||!p.surfaces?.length||busy)return;
+    const gate=window.DesignEditorFinalPrintCheck?.confirmBeforeOutput;
+    if(gate&&!(await gate({format:'pdf'})))return;
     setBusy(true);setStatus('300DPI PDF를 만드는 중입니다.','info');
     try{
       const loader=await ensurePdfLoader(),JsPdf=await loader.ensure();let pdf=null;
@@ -207,7 +211,7 @@
 
   function install(){
     if(installed)return true;if(!document.querySelector('.sidebar')||!byId('inspector'))return false;
-    installed=true;installStyles();installCard();window.DesignEditorOutput={renderSurface,exportPng,exportPdf,dpi:DPI,stage:'300dpi-print-output'};return true;
+    installed=true;installStyles();installCard();window.DesignEditorOutput={renderSurface,exportPng,exportPdf,dpi:DPI,stage:'final-check-gated-300dpi-print-output'};return true;
   }
   function boot(){if(install())return;[250,600,1100,2000,3200].forEach(delay=>setTimeout(install,delay));}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
