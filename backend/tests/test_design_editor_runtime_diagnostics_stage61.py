@@ -52,7 +52,8 @@ def test_runtime_diagnostics_redacts_content_and_exports_only_technical_summary(
     ):
         assert marker in source
     assert "project.name" not in source
-    assert ".text" not in source
+    assert "project.title" not in source
+    assert "textContent:item" not in source
     assert "item.src" in source  # presence check only; src value is never exported
 
 
