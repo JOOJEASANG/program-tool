@@ -22,8 +22,12 @@
       'use strict';
       const frame=document.getElementById('editorFrame'),loading=document.getElementById('loading'),shell=document.getElementById('unifiedDesignShell');
       const DEFAULTS={
-        cover:{mode:'cover'},poster:{mode:'poster',preset:'poster-a4',orientation:'portrait'},flyer:{mode:'flyer',preset:'flyer-a4',orientation:'portrait'},
-        leaflet2:{mode:'leaflet2',preset:'leaflet-2'},leaflet3:{mode:'leaflet3',preset:'leaflet-3-roll'},custom:{mode:'custom',preset:'custom',w:210,h:297}
+        cover:{mode:'cover'},
+        poster:{mode:'poster',preset:'poster-a4',paper:'a4',orientation:'portrait',w:210,h:297},
+        flyer:{mode:'flyer',preset:'flyer-a4',paper:'a4',orientation:'portrait',w:210,h:297},
+        leaflet2:{mode:'leaflet2',preset:'leaflet-2',paper:'a4',orientation:'landscape',w:297,h:210},
+        leaflet3:{mode:'leaflet3',preset:'leaflet-3-roll',paper:'a4',orientation:'landscape',w:297,h:210,fold:'leaflet-3-roll'},
+        custom:{mode:'custom',preset:'custom',paper:'custom',orientation:'portrait',w:210,h:297}
       };
       // Preset markers retained for source-contract tests: poster-a3 flyer-a5 leaflet-3-z general.html?embed=1&preset=
       function safeMode(value){return Object.prototype.hasOwnProperty.call(DEFAULTS,value)?value:'cover';}
@@ -32,9 +36,9 @@
         const mode=safeMode(detail.mode),data={...DEFAULTS[mode],...detail,mode};
         shell.dataset.mode=mode;
         if(mode==='cover')return '/perfect-binding-cover/?embed=1&mode=cover';
-        const query=new URLSearchParams({embed:'1',mode,preset:data.preset||DEFAULTS[mode].preset});
-        if(data.orientation)query.set('orientation',data.orientation);
-        if(mode==='custom'){query.set('w',String(clampNumber(data.w,210)));query.set('h',String(clampNumber(data.h,297)));}
+        const width=clampNumber(data.w??data.width,DEFAULTS[mode].w||210),height=clampNumber(data.h??data.height,DEFAULTS[mode].h||297);
+        const query=new URLSearchParams({embed:'1',mode,preset:data.preset||DEFAULTS[mode].preset,paper:data.paper||'custom',orientation:data.orientation||'portrait',w:String(width),h:String(height)});
+        if(mode==='leaflet3')query.set('fold',data.fold||data.preset||'leaflet-3-roll');
         return `/design-editor/general?${query.toString()}`;
       }
       function openMode(detail){loading.classList.remove('hide');frame.src=route(detail);}

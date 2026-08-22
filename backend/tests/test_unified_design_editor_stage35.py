@@ -73,7 +73,7 @@ def test_embedded_bridge_injects_mode_controls_into_existing_sidebar_and_autosta
         "app.startProject(preset)",
         "orientation==='landscape'",
         "leaflet-3-roll",
-        "stage:'unified-design-mode-engine-bridge'",
+        "stage:'single-general-editor-dynamic-document-options'",
     ):
         assert marker in source
     assert "MutationObserver" not in source
