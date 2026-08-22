@@ -38,6 +38,17 @@ service firebase.storage {
         && request.resource.size <= 524288000
         && request.resource.contentType == 'application/pdf';
     }
+    function isDesignProjectUpload(userId, projectId, fileName) {
+      return isOwner(userId)
+        && projectId.matches('^[A-Za-z0-9_-]{1,80}$')
+        && fileName.matches('^[A-Za-z0-9_-]{1,80}[.]design[.]json$')
+        && request.resource != null
+        && request.resource.size > 0
+        && request.resource.size <= 31457280
+        && request.resource.contentType == 'application/json'
+        && request.resource.metadata.ownerUid == userId
+        && request.resource.metadata.format == 'program-studio-design-project';
+    }
 
     // Ephemeral staging for server-authorized PDF work.
     // The browser must be able to stage its own PDF before the backend request can
@@ -68,6 +79,11 @@ service firebase.storage {
         && (canUseProgram('pdf-editor') || canUseProgram('preflight'));
       allow delete: if isOwner(userId);
       allow create, update: if false;
+    }
+
+    match /design_projects/{userId}/{projectId}/{fileName} {
+      allow read, delete: if isOwner(userId);
+      allow create, update: if isDesignProjectUpload(userId, projectId, fileName);
     }
 
     // Legacy administrator-provided cover/service images are retired.
