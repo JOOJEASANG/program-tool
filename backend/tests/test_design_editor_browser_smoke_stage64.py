@@ -9,7 +9,7 @@ WORKFLOW = ROOT / ".github" / "workflows" / "quality-gate.yml"
 
 def test_stage64_browser_harness_uses_real_design_editor_core_and_production_runtime_loader():
     source = HARNESS.read_text(encoding="utf-8")
-    assert "history.replaceState(null,'','/design-editor/general.html?browser-smoke=1')" in source
+    assert "history.replaceState(null,'','/design-editor/general.html?browser-smoke=1&embed=1')" in source
     for marker in (
         "/js/design-editor/presets.js",
         "/js/design-editor/app.js",
