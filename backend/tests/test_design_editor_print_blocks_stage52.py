@@ -34,9 +34,10 @@ def test_print_blocks_offer_high_value_one_click_components():
         "insertBrandBar",
         "cornerRadius",
         "titleStyle:'bar'",
-        "icon:'calendar'",
-        "icon:'pin'",
-        "icon:'people'",
+        "['calendar','일시'",
+        "['pin','장소'",
+        "['people','대상'",
+        "icon:fact[0]",
     ):
         assert marker in source
 
