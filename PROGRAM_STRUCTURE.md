@@ -29,7 +29,9 @@
 - `js/design-editor/phase11-project-file.js`: `.design.json` 저장 시 IndexedDB 이미지를 다시 data URL로 포함하고, 불러올 때 다시 자산 저장소로 분리해 다른 PC 이동성을 유지
 - `js/design-editor/phase13-print-quality.js`: 배치 이미지의 유효 DPI를 검사해 현재 면의 인쇄 선명도 위험을 표시
 - `js/design-editor/phase14-print-safety.js`: 안전여백·작은 글씨·접지선 충돌을 현재 면 기준으로 검사
+- `js/design-editor/phase17-component-blocks.js`: 제목·일정·문의·기관정보 등 자주 쓰는 인쇄 구성요소를 현재 면에 비파괴 방식으로 추가
 - `js/design-editor/phase22-final-print-check.js`: 출력 직전 모든 작업면의 도련·안전여백·접지·이미지 누락·이미지 DPI를 통합 검사하고 치명적 오류가 있으면 출력을 중단
+- `js/design-editor/phase23-design-recipes.js`: 공공 안내·행사 포스터·깔끔 전단·따뜻한 안내 스타터 레시피. 기존 내용은 삭제하지 않고 구성요소와 전체 스타일 테마만 조합하며 같은 면의 동일 레시피 중복 적용을 막음
 - `js/design-editor/output.js`: 최종 인쇄 검사를 통과한 작업의 300 DPI PNG/PDF 출력. PDF는 표준 JPEG 압축 프로필과 무손실 PNG 페이지 프로필을 선택할 수 있으며 현재 색상 공간은 RGB
 - `js/design-editor/phase3-controls.js` 이후 모듈: 정렬, 스마트 배치, 프로젝트 파일, 회전, 인쇄 품질·안전, 빠른 구성, 퀵툴바, 스마트 스냅, 스타일 테마
 - 기능 모듈을 추가하거나 순서를 바꿀 때는 `DESIGN_EDITOR_RUNTIME_SCRIPTS`만 수정하고 순서·중복 회귀 테스트를 함께 갱신합니다.
@@ -51,7 +53,8 @@
 3. PDF 레이아웃은 중복 구현이나 런타임 monkeypatch 없이 `pdf_engine.py`에서 수정합니다.
 4. 통합 디자인 편집기 기능 모듈은 `js/sw-register.js`의 `DESIGN_EDITOR_RUNTIME_SCRIPTS`에서 로딩 순서를 관리하고 개별 `.then()` 체인을 다시 만들지 않습니다.
 5. 디자인 이미지의 자동 저장은 `asset-store.js`를 거쳐 IndexedDB에 보관하고 localStorage 프로젝트 JSON에 base64 이미지 데이터를 다시 넣지 않습니다. 휴대용 `.design.json` 내보내기만 이미지 데이터를 포함합니다.
-6. PNG/PDF 출력은 `phase22-final-print-check.js`의 전체 면 검사를 우회하지 않습니다. 이미지 원본 누락처럼 치명적인 오류는 출력 전에 해결해야 합니다.
-7. `고품질 PDF`는 300DPI RGB 래스터 페이지를 PNG로 무손실 포함하는 프로필입니다. CMYK 또는 PDF/X 변환 기능으로 표시하거나 오인시키지 않습니다.
-8. 화면 변경 시 `version.json`, `sw.js`, `js/sw-register.js`, `js/firebase-config.js` 버전을 동기화합니다.
-9. 배포 전 Python, JavaScript, 정적 경로, Firebase 규칙 테스트를 모두 통과시킵니다.
+6. 스타터 디자인 레시피는 기존 글자·사진·도형을 삭제하거나 위치를 초기화하지 않습니다. 이미 존재하는 작업을 보존한 채 필요한 구성요소와 스타일만 추가합니다.
+7. PNG/PDF 출력은 `phase22-final-print-check.js`의 전체 면 검사를 우회하지 않습니다. 이미지 원본 누락처럼 치명적인 오류는 출력 전에 해결해야 합니다.
+8. `고품질 PDF`는 300DPI RGB 래스터 페이지를 PNG로 무손실 포함하는 프로필입니다. CMYK 또는 PDF/X 변환 기능으로 표시하거나 오인시키지 않습니다.
+9. 화면 변경 시 `version.json`, `sw.js`, `js/sw-register.js`, `js/firebase-config.js` 버전을 동기화합니다.
+10. 배포 전 Python, JavaScript, 정적 경로, Firebase 규칙 테스트를 모두 통과시킵니다.
