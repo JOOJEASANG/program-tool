@@ -122,6 +122,7 @@
           .then(()=>load('designEditorComponentBlocksScriptV1','/js/design-editor/phase17-component-blocks.js?v=20260822-1'))
           .then(()=>load('designEditorCanvasQuickbarScriptV1','/js/design-editor/phase18-canvas-quickbar.js?v=20260822-1'))
           .then(()=>load('designEditorSmartSnapScriptV1','/js/design-editor/phase19-smart-snap.js?v=20260822-1'))
+          .then(()=>load('designEditorPrintBlocksScriptV1','/js/design-editor/phase20-print-blocks.js?v=20260822-1'))
       );
     }
     if(isPath(
