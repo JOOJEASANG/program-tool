@@ -37,6 +37,8 @@
 - `js/design-editor/phase23-design-recipes.js`: 공공 안내·행사 포스터·깔끔 전단·따뜻한 안내 스타터 레시피. 기존 내용은 삭제하지 않고 구성요소와 전체 스타일 테마만 조합하며 같은 면의 동일 레시피 중복 적용을 막음
 - `js/design-editor/phase24-cloud-projects.js`: 로그인 사용자의 클라우드 작업 최대 8개를 저장·목록·불러오기·삭제. 프로젝트 본문은 30MB 이하 휴대형 `.design.json` revision으로 Storage에 저장하고 Firestore에는 이름·규격·현재 revision 경로 등 메타데이터만 저장
 - `js/design-editor/output.js`: 최종 인쇄 검사를 통과한 작업의 300 DPI PNG/PDF 출력. PDF는 표준 JPEG 압축 프로필과 무손실 PNG 페이지 프로필을 선택할 수 있으며 현재 색상 공간은 RGB. 렌더 완료 후 저장 직전에 재단+도련 기준 예상 픽셀 규격을 실제 캔버스와 다시 대조하고, PDF는 실제 페이지 수도 작업면 수와 일치하는지 확인해 불일치 시 저장을 중단
+- `tests/browser/design-editor-smoke.html`: 실제 브라우저 DOM에서 일반 편집기 경로를 재현하고 양면 전단 생성, 텍스트 편집, 작업면 전환, 300DPI 출력 규격, fail-closed 검증을 실행하는 무로그인 테스트 전용 smoke harness
+- `scripts/run_design_editor_browser_smoke.sh`: 로컬 정적 서버와 설치된 Chrome/Chromium headless 모드로 smoke harness를 실행하고 최종 DOM의 PASS 표식을 확인. 실패 시 DOM과 서버 로그를 `browser-smoke-artifacts`에 남김
 - `js/design-editor/phase3-controls.js` 이후 모듈: 정렬, 스마트 배치, 프로젝트 파일, 회전, 인쇄 품질·안전, 빠른 구성, 퀵툴바, 스마트 스냅, 스타일 테마
 - 기능 모듈을 추가하거나 순서를 바꿀 때는 `DESIGN_EDITOR_RUNTIME_SCRIPTS`만 수정하고 순서·중복 회귀 테스트를 함께 갱신합니다.
 
@@ -84,3 +86,4 @@
 15. PNG/PDF는 렌더 완료 후 저장 직전에 300DPI 픽셀 규격을 다시 검증합니다. PDF는 작업면 수와 실제 페이지 수도 일치해야 하며 검증 실패 시 파일 저장을 진행하지 않습니다.
 16. 화면 변경 시 `version.json`, `sw.js`, `js/sw-register.js`, `js/firebase-config.js` 버전을 동기화합니다.
 17. 배포 전 Python, JavaScript, 정적 경로, Firebase 규칙 테스트를 모두 통과시킵니다.
+18. 통합 디자인 편집기의 핵심 사용자 흐름은 PR마다 Headless Chrome smoke를 통과해야 하며, 브라우저 테스트는 운영 인증 규칙을 우회하는 코드를 제품 소스에 추가하지 않고 별도 테스트 harness에서만 실행합니다.
