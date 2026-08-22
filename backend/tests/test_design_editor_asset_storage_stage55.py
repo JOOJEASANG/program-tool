@@ -38,6 +38,14 @@ def test_image_addition_stores_blob_before_project_reference():
     assert "assetStore.ensureProject(p)" in source
 
 
+def test_image_tools_run_on_the_general_editor_route():
+    source = PHASE2.read_text(encoding="utf-8")
+    assert "path!=='/design-editor/general'" in source
+    assert "path!=='/design-editor/general.html'" in source
+    assert "path.endsWith('/design-editor/general.html')" in source
+    assert "path!=='/design-editor/index.html'" not in source
+
+
 def test_scoped_draft_removes_runtime_image_sources_after_asset_migration():
     source = DRAFT_SCOPE.read_text(encoding="utf-8")
     assert "function durableSnapshot(project)" in source
