@@ -57,7 +57,7 @@
     ['designEditorModeSwitchSafetyScriptV1','/js/design-editor/phase9-mode-switch-safety.js?v=20260821-1'],
     ['designEditorAssetStoreScriptV1','/js/design-editor/asset-store.js?v=20260822-1'],
     ['designEditorPhase2ScriptV1','/js/design-editor/phase2.js?v=20260822-2'],
-    ['designEditorOutputScriptV1','/js/design-editor/output.js?v=20260822-3'],
+    ['designEditorOutputScriptV1','/js/design-editor/output.js?v=20260822-4'],
     ['designEditorPhase3ControlsScriptV1','/js/design-editor/phase3-controls.js?v=20260821-1'],
     ['designEditorPhase4SmartLayoutScriptV1','/js/design-editor/phase4-smart-layout.js?v=20260821-1'],
     ['designEditorElementClipboardScriptV1','/js/design-editor/phase10-element-clipboard.js?v=20260821-1'],

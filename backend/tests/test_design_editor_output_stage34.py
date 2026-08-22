@@ -15,7 +15,7 @@ def function_block(source: str, start_marker: str, end_marker: str) -> str:
 def test_design_editor_output_is_loaded_for_general_editor():
     register = REGISTER.read_text(encoding="utf-8")
     assert "designEditorOutputScriptV1" in register
-    assert "/js/design-editor/output.js?v=20260822-3" in register
+    assert "/js/design-editor/output.js?v=20260822-4" in register
     source = OUTPUT.read_text(encoding="utf-8")
     assert "path!=='/design-editor/general'" in source
     assert "path!=='/design-editor/general.html'" in source
@@ -51,7 +51,7 @@ def test_design_editor_output_renders_text_images_shapes_and_all_surfaces_to_pdf
         "for(let index=0;index<p.surfaces.length;index+=1)",
         "pdf.addPage",
         "CoverJsPdfLoader",
-        "stage:'final-check-gated-300dpi-print-output'",
+        "stage:'selectable-standard-lossless-300dpi-pdf-output'",
     ):
         assert marker in source
 
@@ -65,6 +65,25 @@ def test_design_editor_output_requires_final_check_before_png_and_pdf():
     assert png.index("await gate({format:'png'})") < png.index("renderSurface(p,surface)")
     assert "await gate({format:'pdf'})" in pdf
     assert pdf.index("await gate({format:'pdf'})") < pdf.index("for(let index=0;index<p.surfaces.length;index+=1)")
+
+
+def test_design_editor_pdf_profiles_keep_standard_and_lossless_paths_explicit():
+    source = OUTPUT.read_text(encoding="utf-8")
+    for marker in (
+        "const PDF_PROFILES=Object.freeze",
+        "standard:{id:'standard'",
+        "lossless:{id:'lossless'",
+        "고품질 PDF · 무손실 PNG",
+        "현재 출력 색상은 RGB",
+        "canvas.toDataURL('image/png')",
+        "format:'PNG'",
+        "canvas.toDataURL('image/jpeg',.96)",
+        "format:'JPEG'",
+        "function pdfImagePayload(canvas,profile)",
+        "pdf.addImage(image.data,image.format",
+        "colorSpace:'RGB'",
+    ):
+        assert marker in source
 
 
 def test_design_editor_output_avoids_runtime_polling_and_eval():
