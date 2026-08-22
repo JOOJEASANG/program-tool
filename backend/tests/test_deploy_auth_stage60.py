@@ -5,6 +5,7 @@ ROOT = Path(__file__).resolve().parents[2]
 DEPLOY = ROOT / ".github" / "workflows" / "firebase-deploy.yml"
 PREVIEW = ROOT / ".github" / "workflows" / "firebase-preview.yml"
 WRAPPER = ROOT / "scripts" / "firebase_ci.sh"
+GITIGNORE = ROOT / ".gitignore"
 AUTH_SHA = "google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093"
 
 
@@ -38,3 +39,7 @@ def test_production_and_preview_do_not_silently_drop_legacy_credentials_before_w
         source = path.read_text(encoding="utf-8")
         assert "FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}" in source
         assert "if: env.WIF_PROVIDER != '' && env.WIF_SERVICE_ACCOUNT != ''" in source
+
+
+def test_generated_wif_credential_files_cannot_be_committed_accidentally():
+    assert "gha-creds-*.json" in GITIGNORE.read_text(encoding="utf-8")
