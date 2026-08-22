@@ -62,6 +62,32 @@
     return validateProject(parsed);
   }
 
+  async function buildPortablePayload(current=project()){
+    if(!current)throw new Error('저장할 디자인 작업이 없습니다.');
+    const assetStore=window.DesignEditorAssetStore;
+    const snapshot=assetStore?.toPortableProject?await assetStore.toPortableProject(current):clone(current);
+    if(!snapshot)throw new Error('현재 디자인 작업을 읽지 못했습니다.');
+    validateProject(snapshot);
+    return{format:FORMAT,version:FORMAT_VERSION,savedAt:new Date().toISOString(),project:snapshot};
+  }
+
+  async function restorePortablePayload(parsed,reason='project-file-import'){
+    const portable=clone(unwrapProject(parsed));
+    if(!portable)throw new Error('프로젝트 내용을 복원하지 못했습니다.');
+    const assetStore=window.DesignEditorAssetStore;
+    const incoming=assetStore?.importPortableProject?await assetStore.importPortableProject(portable):portable;
+    if(!incoming.activeSurface||!incoming.surfaces.some(surface=>surface.id===incoming.activeSurface))incoming.activeSurface=incoming.surfaces[0].id;
+    localStorage.setItem(DRAFT_KEY,JSON.stringify(incoming));
+    const resumed=window.DesignEditorApp?.resumeDraft?.();
+    if(resumed===false)throw new Error('프로젝트 화면을 복원하지 못했습니다.');
+    setTimeout(()=>{
+      window.DesignEditorPhase2?.sync?.();
+      window.DesignEditorDraftScope?.saveCurrent?.(reason);
+      window.dispatchEvent(new Event('resize'));
+    },90);
+    return incoming;
+  }
+
   function setBusy(value){
     busy=Boolean(value);
     ['designProjectSave','designProjectLoad'].forEach(id=>{const node=byId(id);if(node)node.disabled=busy;});
@@ -80,11 +106,7 @@
     const current=project();if(!current)return setStatus('저장할 디자인 작업이 없습니다.','info');
     setBusy(true);setStatus('프로젝트 파일을 준비하는 중입니다.','info');
     try{
-      const assetStore=window.DesignEditorAssetStore;
-      const snapshot=assetStore?.toPortableProject?await assetStore.toPortableProject(current):clone(current);
-      if(!snapshot)throw new Error('현재 디자인 작업을 읽지 못했습니다.');
-      validateProject(snapshot);
-      const payload={format:FORMAT,version:FORMAT_VERSION,savedAt:new Date().toISOString(),project:snapshot};
+      const payload=await buildPortablePayload(current);
       downloadText(JSON.stringify(payload),`${safeName(current.name)}.design.json`);
       setStatus('디자인 프로젝트 파일을 저장했습니다.','ok');
     }catch(error){setStatus(error.message||'프로젝트 파일 저장에 실패했습니다.','err');}
@@ -103,19 +125,7 @@
     setBusy(true);setStatus('프로젝트 파일을 확인하는 중입니다.','info');
     try{
       const parsed=JSON.parse(await file.text());
-      const portable=clone(unwrapProject(parsed));
-      if(!portable)throw new Error('프로젝트 내용을 복원하지 못했습니다.');
-      const assetStore=window.DesignEditorAssetStore;
-      const incoming=assetStore?.importPortableProject?await assetStore.importPortableProject(portable):portable;
-      if(!incoming.activeSurface||!incoming.surfaces.some(surface=>surface.id===incoming.activeSurface))incoming.activeSurface=incoming.surfaces[0].id;
-      localStorage.setItem(DRAFT_KEY,JSON.stringify(incoming));
-      const resumed=window.DesignEditorApp?.resumeDraft?.();
-      if(resumed===false)throw new Error('프로젝트 화면을 복원하지 못했습니다.');
-      setTimeout(()=>{
-        window.DesignEditorPhase2?.sync?.();
-        window.DesignEditorDraftScope?.saveCurrent?.('project-file-import');
-        window.dispatchEvent(new Event('resize'));
-      },90);
+      const incoming=await restorePortablePayload(parsed,'project-file-import');
       setStatus(`${incoming.name||'디자인'} 프로젝트를 불러왔습니다.`,'ok');
     }catch(error){
       setStatus(error instanceof SyntaxError?'JSON 프로젝트 파일을 읽을 수 없습니다.':error.message||'프로젝트 파일을 불러오지 못했습니다.','err');
@@ -145,7 +155,7 @@
     if(installed)return true;
     if(!document.querySelector('.sidebar')||!byId('artboard')||!window.DesignEditorApp)return false;
     installed=true;installStyles();installCard();
-    window.DesignEditorProjectFile={exportProject,triggerImport,format:FORMAT,version:FORMAT_VERSION,stage:'portable-design-project-save-load'};
+    window.DesignEditorProjectFile={exportProject,triggerImport,buildPortablePayload,restorePortablePayload,validateProject,unwrapProject,format:FORMAT,version:FORMAT_VERSION,maxFileBytes:MAX_FILE_BYTES,stage:'portable-design-project-save-load'};
     return true;
   }
 
