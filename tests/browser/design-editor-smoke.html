@@ -78,14 +78,14 @@
       };
       const assert=(condition,message)=>{if(!condition)throw new Error(message);};
       const waitFor=async(predicate,label,timeout=10000)=>{
-        const started=performance.now();
-        while(performance.now()-started<timeout){
+        const started=Date.now();
+        while(Date.now()-started<timeout){
           if(predicate())return;
           await new Promise(resolve=>setTimeout(resolve,40));
         }
         throw new Error('timeout: '+label);
       };
-      const nextFrames=()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+      const settle=()=>new Promise(resolve=>setTimeout(resolve,40));
       const runtimeResultsForManifest=()=>{
         const manifest=Array.isArray(window.ProgramStudioDesignEditorRuntimeManifest)?window.ProgramStudioDesignEditorRuntimeManifest:[];
         const ids=new Set(manifest.map(entry=>entry.id));
@@ -120,7 +120,7 @@
 
         assert(DesignEditorPresets.get('flyer-a4')?.surfaces?.length===2,'flyer-a4 preset must keep two surfaces');
         DesignEditorApp.startProject('flyer-a4');
-        await nextFrames();
+        await settle();
 
         const project=DesignEditorApp.project;
         assert(project?.width===210&&project?.height===297,'A4 project dimensions changed');
@@ -130,7 +130,7 @@
         assert(document.querySelectorAll('.surface-tab').length===2,'surface tabs were not rendered');
 
         document.getElementById('addTitleBtn').click();
-        await nextFrames();
+        await settle();
         assert(project.surfaces[0].elements.length===1,'title button did not add an element');
         assert(document.querySelectorAll('.design-object').length===1,'title was not rendered on artboard');
 
@@ -138,16 +138,16 @@
         assert(textInput,'selected text inspector did not render');
         textInput.value='브라우저 자동검증 제목';
         textInput.dispatchEvent(new Event('input',{bubbles:true}));
-        await nextFrames();
+        await settle();
         assert(project.surfaces[0].elements[0].text==='브라우저 자동검증 제목','text edit did not update project state');
         assert(document.querySelector('.design-object')?.textContent.includes('브라우저 자동검증 제목'),'text edit did not rerender artboard');
 
         const tabs=[...document.querySelectorAll('.surface-tab')];
         tabs[1].click();
-        await nextFrames();
+        await settle();
         assert(project.activeSurface==='back','second surface did not become active');
         document.getElementById('addBodyBtn').click();
-        await nextFrames();
+        await settle();
         assert(project.surfaces[1].elements.length===1,'second surface edit failed');
 
         const spec=DesignEditorOutput.expectedOutputSpec(project);
@@ -166,7 +166,6 @@
         assert(rejected,'invalid rendered surface did not fail closed');
 
         DesignEditorSimpleInterface.sync();
-        await nextFrames();
         assert(document.getElementById('designOutputTools'),'output card was not installed in real browser DOM');
         assert(DesignEditorSimpleInterface.stage==='basic-first-contextual-sidebar','simple interface module did not boot');
         assert(DesignEditorOutput.stage==='selectable-standard-lossless-300dpi-pdf-output-with-postrender-verification','output module stage mismatch');
