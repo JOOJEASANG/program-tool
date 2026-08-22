@@ -25,7 +25,7 @@ def test_stage67_browser_smoke_checks_real_canvas_contains_rendered_ink():
 
 def test_stage67_runner_requires_exact_real_render_dimensions_and_completion_marker():
     source = RUNNER.read_text(encoding="utf-8")
-    assert "PASS: core edit, two-surface flow, real 300DPI render, fail-closed verification, full runtime manifest" in source
+    assert "PASS: core edit, two-surface flow, real 300DPI render, real PNG export, fail-closed verification, full runtime manifest" in source
     assert "data-rendered-width=\"2551\"" in source
     assert "data-rendered-height=\"3579\"" in source
-    assert "--virtual-time-budget=18000" in source
+    assert "--virtual-time-budget=30000" in source
