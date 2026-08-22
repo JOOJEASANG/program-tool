@@ -9,6 +9,30 @@ service cloud.firestore {
     function isAdmin(){ return hasAdminClaim() || legacyAdmin(); }
     function permission(uid){ return get(/databases/$(database)/documents/user_permissions/$(uid)); }
     function approved(uid){ return isAdmin() || (exists(/databases/$(database)/documents/user_permissions/$(uid)) && permission(uid).data.status == 'approved'); }
+    function isOwner(uid){ return signedIn() && request.auth.uid == uid; }
+    function validDesignProjectMetadata(projectId){
+      return request.resource.data.keys().hasOnly(['id','name','presetId','width','height','storagePath','size','updatedAt','createdAt'])
+        && request.resource.data.id == projectId
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 120
+        && request.resource.data.presetId is string
+        && request.resource.data.presetId.size() > 0
+        && request.resource.data.presetId.size() <= 80
+        && request.resource.data.width is number
+        && request.resource.data.width >= 20
+        && request.resource.data.width <= 2000
+        && request.resource.data.height is number
+        && request.resource.data.height >= 20
+        && request.resource.data.height <= 2000
+        && request.resource.data.storagePath is string
+        && request.resource.data.storagePath.matches('^design_projects/[A-Za-z0-9_-]+/[A-Za-z0-9_-]+/[A-Za-z0-9_-]+[.]design[.]json$')
+        && request.resource.data.size is int
+        && request.resource.data.size > 0
+        && request.resource.data.size <= 31457280
+        && request.resource.data.updatedAt is timestamp
+        && request.resource.data.createdAt is timestamp;
+    }
 
     match /settings/admin {
       allow read: if isAdmin();
@@ -43,6 +67,15 @@ service cloud.firestore {
         && request.resource.data.createdAt is timestamp;
       allow update: if isAdmin();
       allow delete: if isAdmin();
+    }
+
+    match /users/{uid}/design_projects/{projectId} {
+      allow read: if isOwner(uid);
+      allow create: if isOwner(uid) && validDesignProjectMetadata(projectId);
+      allow update: if isOwner(uid)
+        && validDesignProjectMetadata(projectId)
+        && request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if isOwner(uid);
     }
 
     // Legacy administrator-provided cover/service image records are retired.
