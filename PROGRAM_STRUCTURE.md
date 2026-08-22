@@ -36,7 +36,7 @@
 - `js/design-editor/phase22-final-print-check.js`: 출력 직전 모든 작업면의 도련·안전여백·접지·이미지 누락·이미지 DPI를 통합 검사하고 치명적 오류가 있으면 출력을 중단
 - `js/design-editor/phase23-design-recipes.js`: 공공 안내·행사 포스터·깔끔 전단·따뜻한 안내 스타터 레시피. 기존 내용은 삭제하지 않고 구성요소와 전체 스타일 테마만 조합하며 같은 면의 동일 레시피 중복 적용을 막음
 - `js/design-editor/phase24-cloud-projects.js`: 로그인 사용자의 클라우드 작업 최대 8개를 저장·목록·불러오기·삭제. 프로젝트 본문은 30MB 이하 휴대형 `.design.json` revision으로 Storage에 저장하고 Firestore에는 이름·규격·현재 revision 경로 등 메타데이터만 저장
-- `js/design-editor/output.js`: 최종 인쇄 검사를 통과한 작업의 300 DPI PNG/PDF 출력. PDF는 표준 JPEG 압축 프로필과 무손실 PNG 페이지 프로필을 선택할 수 있으며 현재 색상 공간은 RGB
+- `js/design-editor/output.js`: 최종 인쇄 검사를 통과한 작업의 300 DPI PNG/PDF 출력. PDF는 표준 JPEG 압축 프로필과 무손실 PNG 페이지 프로필을 선택할 수 있으며 현재 색상 공간은 RGB. 렌더 완료 후 저장 직전에 재단+도련 기준 예상 픽셀 규격을 실제 캔버스와 다시 대조하고, PDF는 실제 페이지 수도 작업면 수와 일치하는지 확인해 불일치 시 저장을 중단
 - `js/design-editor/phase3-controls.js` 이후 모듈: 정렬, 스마트 배치, 프로젝트 파일, 회전, 인쇄 품질·안전, 빠른 구성, 퀵툴바, 스마트 스냅, 스타일 테마
 - 기능 모듈을 추가하거나 순서를 바꿀 때는 `DESIGN_EDITOR_RUNTIME_SCRIPTS`만 수정하고 순서·중복 회귀 테스트를 함께 갱신합니다.
 
@@ -81,5 +81,6 @@
 12. Firebase CI는 WIF/ADC를 우선하고, WIF 실제 운영 검증 전까지만 `FIREBASE_TOKEN` fallback을 유지합니다.
 13. PNG/PDF 출력은 `phase22-final-print-check.js`의 전체 면 검사를 우회하지 않습니다. 이미지 원본 누락처럼 치명적인 오류는 출력 전에 해결해야 합니다.
 14. `고품질 PDF`는 300DPI RGB 래스터 페이지를 PNG로 무손실 포함하는 프로필입니다. CMYK 또는 PDF/X 변환 기능으로 표시하거나 오인시키지 않습니다.
-15. 화면 변경 시 `version.json`, `sw.js`, `js/sw-register.js`, `js/firebase-config.js` 버전을 동기화합니다.
-16. 배포 전 Python, JavaScript, 정적 경로, Firebase 규칙 테스트를 모두 통과시킵니다.
+15. PNG/PDF는 렌더 완료 후 저장 직전에 300DPI 픽셀 규격을 다시 검증합니다. PDF는 작업면 수와 실제 페이지 수도 일치해야 하며 검증 실패 시 파일 저장을 진행하지 않습니다.
+16. 화면 변경 시 `version.json`, `sw.js`, `js/sw-register.js`, `js/firebase-config.js` 버전을 동기화합니다.
+17. 배포 전 Python, JavaScript, 정적 경로, Firebase 규칙 테스트를 모두 통과시킵니다.

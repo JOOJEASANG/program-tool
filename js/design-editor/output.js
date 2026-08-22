@@ -53,6 +53,57 @@
 
   function safeName(value){return String(value||'design').trim().replace(/[\\/:*?"<>|]+/g,'_').replace(/\s+/g,'_').slice(0,80)||'design';}
 
+  function expectedOutputSpec(p){
+    const bleed=Math.max(0,Number(p?.bleed)||0);
+    const widthMm=(Number(p?.width)||0)+bleed*2;
+    const heightMm=(Number(p?.height)||0)+bleed*2;
+    return{
+      dpi:DPI,
+      widthMm,
+      heightMm,
+      widthPx:Math.max(1,Math.round(widthMm*PX_PER_MM)),
+      heightPx:Math.max(1,Math.round(heightMm*PX_PER_MM)),
+      surfaceCount:Array.isArray(p?.surfaces)?p.surfaces.length:0
+    };
+  }
+
+  function verificationFailure(message){
+    const error=new Error(message);
+    error.code='OUTPUT_VERIFICATION_FAILED';
+    return error;
+  }
+
+  function verifyRenderedSurface(rendered,spec){
+    if(!spec||spec.widthMm<=0||spec.heightMm<=0)throw verificationFailure('출력 문서 규격을 확인할 수 없습니다.');
+    if(!rendered?.canvas)throw verificationFailure('출력 렌더 캔버스를 확인할 수 없습니다.');
+    if(rendered.canvas.width!==spec.widthPx||rendered.canvas.height!==spec.heightPx){
+      throw verificationFailure(`300DPI 출력 픽셀 규격이 예상값과 다릅니다. 예상 ${spec.widthPx}×${spec.heightPx}px, 실제 ${rendered.canvas.width}×${rendered.canvas.height}px입니다.`);
+    }
+    const actualW=Number(rendered.totalW),actualH=Number(rendered.totalH);
+    if(!Number.isFinite(actualW)||!Number.isFinite(actualH)||Math.abs(actualW-spec.widthMm)>.001||Math.abs(actualH-spec.heightMm)>.001){
+      throw verificationFailure('출력 문서의 mm 규격이 예상값과 다릅니다.');
+    }
+    return true;
+  }
+
+  function verifyPdfDocument(pdf,spec,renderedCount){
+    if(!spec||spec.surfaceCount<1)throw verificationFailure('PDF에 포함할 작업면을 확인할 수 없습니다.');
+    if(renderedCount!==spec.surfaceCount)throw verificationFailure(`PDF 렌더 면 수가 예상값과 다릅니다. 예상 ${spec.surfaceCount}개, 실제 ${renderedCount}개입니다.`);
+    const pageCount=typeof pdf?.getNumberOfPages==='function'?Number(pdf.getNumberOfPages()):renderedCount;
+    if(!Number.isFinite(pageCount)||pageCount!==spec.surfaceCount)throw verificationFailure(`PDF 페이지 수가 예상값과 다릅니다. 예상 ${spec.surfaceCount}개, 실제 ${pageCount}개입니다.`);
+    return pageCount;
+  }
+
+  function recordVerificationFailure(error,format,spec){
+    if(error?.code!=='OUTPUT_VERIFICATION_FAILED')return;
+    window.DesignEditorRuntimeDiagnostics?.record?.('output-verification-error',error.message||'출력 결과 검증 실패',{
+      format,
+      expectedWidthPx:Number(spec?.widthPx)||0,
+      expectedHeightPx:Number(spec?.heightPx)||0,
+      surfaces:Number(spec?.surfaceCount)||0
+    });
+  }
+
   function loadImage(src){
     return new Promise((resolve,reject)=>{const image=new Image();image.onload=()=>resolve(image);image.onerror=()=>reject(new Error('출력용 이미지를 읽지 못했습니다.'));image.src=src;});
   }
@@ -186,10 +237,17 @@
     const p=project(),surface=activeSurface(p);if(!p||!surface||busy)return;
     const gate=window.DesignEditorFinalPrintCheck?.confirmBeforeOutput;
     if(gate&&!(await gate({format:'png'})))return;
+    const spec=expectedOutputSpec(p);
     setBusy(true);setStatus('300DPI PNG를 만드는 중입니다.','info');
-    try{const {canvas}=await renderSurface(p,surface);downloadDataUrl(canvas.toDataURL('image/png'),`${safeName(p.name)}_${safeName(surface.label)}_300dpi.png`);setStatus('300DPI PNG를 만들었습니다.','ok');}
-    catch(error){setStatus(error.message||'PNG 출력에 실패했습니다.','err');}
-    finally{setBusy(false);}
+    try{
+      const rendered=await renderSurface(p,surface);
+      verifyRenderedSurface(rendered,spec);
+      downloadDataUrl(rendered.canvas.toDataURL('image/png'),`${safeName(p.name)}_${safeName(surface.label)}_300dpi.png`);
+      setStatus(`300DPI PNG를 검증 후 만들었습니다. ${spec.widthPx}×${spec.heightPx}px입니다.`,'ok');
+    }catch(error){
+      recordVerificationFailure(error,'png',spec);
+      setStatus(error?.code==='OUTPUT_VERIFICATION_FAILED'?`PNG 출력 검증 실패로 저장을 중단했습니다. ${error.message}`:(error.message||'PNG 출력에 실패했습니다.'),'err');
+    }finally{setBusy(false);}
   }
 
   function ensurePdfLoader(){
@@ -209,25 +267,31 @@
     const p=project();if(!p||!p.surfaces?.length||busy)return;
     const gate=window.DesignEditorFinalPrintCheck?.confirmBeforeOutput;
     if(gate&&!(await gate({format:'pdf'})))return;
-    const profile=selectedPdfProfile();
+    const profile=selectedPdfProfile(),spec=expectedOutputSpec(p);
     setBusy(true);setStatus(`${profile.label}를 만드는 중입니다.`,'info');
     try{
-      const loader=await ensurePdfLoader(),JsPdf=await loader.ensure();let pdf=null;
+      const loader=await ensurePdfLoader(),JsPdf=await loader.ensure();let pdf=null,renderedCount=0;
       for(let index=0;index<p.surfaces.length;index+=1){
         const surface=p.surfaces[index],rendered=await renderSurface(p,surface),orientation=rendered.totalW>=rendered.totalH?'landscape':'portrait';
+        verifyRenderedSurface(rendered,spec);
         if(!pdf)pdf=new JsPdf({orientation,unit:'mm',format:[rendered.totalW,rendered.totalH],compress:true});
         else pdf.addPage([rendered.totalW,rendered.totalH],orientation);
         const image=pdfImagePayload(rendered.canvas,profile);
         pdf.addImage(image.data,image.format,0,0,rendered.totalW,rendered.totalH,undefined,image.compression);
+        renderedCount+=1;
       }
-      pdf.save(`${safeName(p.name)}_${profile.extension}.pdf`);setStatus(`${profile.label}를 만들었습니다. ${p.surfaces.length}개 면이 포함됐습니다.`,'ok');
-    }catch(error){setStatus(error.message||'PDF 출력에 실패했습니다.','err');}
-    finally{setBusy(false);}
+      const pageCount=verifyPdfDocument(pdf,spec,renderedCount);
+      pdf.save(`${safeName(p.name)}_${profile.extension}.pdf`);
+      setStatus(`${profile.label}를 검증 후 만들었습니다. ${pageCount}개 면 · ${spec.widthPx}×${spec.heightPx}px입니다.`,'ok');
+    }catch(error){
+      recordVerificationFailure(error,'pdf',spec);
+      setStatus(error?.code==='OUTPUT_VERIFICATION_FAILED'?`PDF 출력 검증 실패로 저장을 중단했습니다. ${error.message}`:(error.message||'PDF 출력에 실패했습니다.'),'err');
+    }finally{setBusy(false);}
   }
 
   function install(){
     if(installed)return true;if(!document.querySelector('.sidebar')||!byId('inspector'))return false;
-    installed=true;installStyles();installCard();window.DesignEditorOutput={renderSurface,exportPng,exportPdf,pdfImagePayload,selectedPdfProfile,pdfProfiles:PDF_PROFILES,dpi:DPI,colorSpace:'RGB',stage:'selectable-standard-lossless-300dpi-pdf-output'};return true;
+    installed=true;installStyles();installCard();window.DesignEditorOutput={renderSurface,exportPng,exportPdf,pdfImagePayload,selectedPdfProfile,expectedOutputSpec,verifyRenderedSurface,verifyPdfDocument,pdfProfiles:PDF_PROFILES,dpi:DPI,colorSpace:'RGB',stage:'selectable-standard-lossless-300dpi-pdf-output-with-postrender-verification'};return true;
   }
   function boot(){if(install())return;[250,600,1100,2000,3200].forEach(delay=>setTimeout(install,delay));}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();

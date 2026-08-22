@@ -59,6 +59,6 @@ def test_print_output_matches_editor_title_and_shape_styles():
         "item.cornerRadius",
         "item.shapeShadow",
         "shadowBlur=1.8*PX_PER_MM",
-        "stage:'selectable-standard-lossless-300dpi-pdf-output'",
+        "stage:'selectable-standard-lossless-300dpi-pdf-output-with-postrender-verification'",
     ):
         assert marker in source

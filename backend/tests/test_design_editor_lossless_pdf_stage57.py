@@ -38,9 +38,11 @@ def test_both_pdf_profiles_still_use_the_final_print_gate():
     assert "profile.extension" in export_pdf
 
 
-def test_lossless_profile_keeps_300dpi_renderer_and_all_surfaces():
+def test_lossless_profile_keeps_300dpi_renderer_all_surfaces_and_postrender_verification():
     source = OUTPUT.read_text(encoding="utf-8")
     assert "const DPI=300" in source
     assert "for(let index=0;index<p.surfaces.length;index+=1)" in source
     assert "renderSurface(p,surface)" in source
-    assert "stage:'selectable-standard-lossless-300dpi-pdf-output'" in source
+    assert "verifyRenderedSurface(rendered,spec)" in source
+    assert "verifyPdfDocument(pdf,spec,renderedCount)" in source
+    assert "stage:'selectable-standard-lossless-300dpi-pdf-output-with-postrender-verification'" in source

@@ -15,7 +15,7 @@ def function_block(source: str, start_marker: str, end_marker: str) -> str:
 def test_design_editor_output_is_loaded_for_general_editor():
     register = REGISTER.read_text(encoding="utf-8")
     assert "designEditorOutputScriptV1" in register
-    assert "/js/design-editor/output.js?v=20260822-4" in register
+    assert "/js/design-editor/output.js?v=20260823-1" in register
     source = OUTPUT.read_text(encoding="utf-8")
     assert "path!=='/design-editor/general'" in source
     assert "path!=='/design-editor/general.html'" in source
@@ -51,7 +51,7 @@ def test_design_editor_output_renders_text_images_shapes_and_all_surfaces_to_pdf
         "for(let index=0;index<p.surfaces.length;index+=1)",
         "pdf.addPage",
         "CoverJsPdfLoader",
-        "stage:'selectable-standard-lossless-300dpi-pdf-output'",
+        "stage:'selectable-standard-lossless-300dpi-pdf-output-with-postrender-verification'",
     ):
         assert marker in source
 
