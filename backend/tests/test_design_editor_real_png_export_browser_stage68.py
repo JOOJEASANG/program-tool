@@ -4,6 +4,14 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 HARNESS = ROOT / "tests" / "browser" / "design-editor-smoke.html"
 RUNNER = ROOT / "scripts" / "run_design_editor_browser_smoke.sh"
+REGISTER = ROOT / "js" / "sw-register.js"
+
+
+def test_stage68_output_boots_before_embedded_runtime_rewrites_general_route():
+    source = REGISTER.read_text(encoding="utf-8")
+    output_entry = "['designEditorOutputScriptV1','/js/design-editor/output.js?v=20260823-1']"
+    embedded_entry = "['designEditorEmbeddedRuntimeScriptV1','/js/design-editor/embedded-runtime.js?v=20260821-1']"
+    assert source.index(output_entry) < source.index(embedded_entry)
 
 
 def test_stage68_browser_smoke_runs_real_png_export_through_final_print_gate():
