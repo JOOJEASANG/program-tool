@@ -48,6 +48,43 @@
   function isAuthPage(){return isPath('/login','/login.html')}
   function loadCatalogCore(){return load('programCatalogCoreScriptV1','/js/program-catalog-core.js?v=20260818-1')}
 
+  const DESIGN_EDITOR_RUNTIME_SCRIPTS=Object.freeze([
+    ['designEditorDraftScopeScriptV1','/js/design-editor/phase5-draft-scope.js?v=20260821-1'],
+    ['designEditorEmbeddedRuntimeScriptV1','/js/design-editor/embedded-runtime.js?v=20260821-1'],
+    ['designEditorEmbeddedPolishScriptV1','/js/design-editor/phase6-embedded-polish.js?v=20260821-1'],
+    ['designEditorRecentDraftsScriptV1','/js/design-editor/phase7-recent-drafts.js?v=20260821-1'],
+    ['designEditorCurrentDraftResetScriptV1','/js/design-editor/phase8-current-draft-reset.js?v=20260821-1'],
+    ['designEditorModeSwitchSafetyScriptV1','/js/design-editor/phase9-mode-switch-safety.js?v=20260821-1'],
+    ['designEditorPhase2ScriptV1','/js/design-editor/phase2.js?v=20260821-1'],
+    ['designEditorOutputScriptV1','/js/design-editor/output.js?v=20260821-1'],
+    ['designEditorPhase3ControlsScriptV1','/js/design-editor/phase3-controls.js?v=20260821-1'],
+    ['designEditorPhase4SmartLayoutScriptV1','/js/design-editor/phase4-smart-layout.js?v=20260821-1'],
+    ['designEditorElementClipboardScriptV1','/js/design-editor/phase10-element-clipboard.js?v=20260821-1'],
+    ['designEditorProjectFileScriptV1','/js/design-editor/phase11-project-file.js?v=20260821-1'],
+    ['designEditorRotationScriptV1','/js/design-editor/phase12-rotation.js?v=20260822-1'],
+    ['designEditorPrintQualityScriptV1','/js/design-editor/phase13-print-quality.js?v=20260822-1'],
+    ['designEditorPrintSafetyScriptV1','/js/design-editor/phase14-print-safety.js?v=20260822-1'],
+    ['designEditorQuickDesignScriptV1','/js/design-editor/phase15-quick-design.js?v=20260822-1'],
+    ['designEditorSimpleInterfaceScriptV1','/js/design-editor/phase16-simple-interface.js?v=20260822-1'],
+    ['designEditorComponentBlocksScriptV1','/js/design-editor/phase17-component-blocks.js?v=20260822-1'],
+    ['designEditorCanvasQuickbarScriptV1','/js/design-editor/phase18-canvas-quickbar.js?v=20260822-1'],
+    ['designEditorSmartSnapScriptV1','/js/design-editor/phase19-smart-snap.js?v=20260822-1'],
+    ['designEditorPrintBlocksScriptV1','/js/design-editor/phase20-print-blocks.js?v=20260822-1'],
+    ['designEditorStyleThemesScriptV1','/js/design-editor/phase21-style-themes.js?v=20260822-1']
+  ]);
+
+  async function loadSeries(entries){
+    const seen=new Set();
+    for(const [id,src] of entries){
+      if(!id||!src||seen.has(id)){
+        console.warn('Runtime manifest entry skipped',id,src);
+        continue;
+      }
+      seen.add(id);
+      await load(id,src);
+    }
+  }
+
   async function cleanupLegacyRuntime(){
     try{
       if(localStorage.getItem(CLEANUP_KEY)==='done')return;
@@ -101,30 +138,7 @@
     // Legacy test/source marker kept intentionally: if(isPath('/design-editor','/design-editor/index.html'))
     // Legacy test/source marker kept intentionally: if(isPath('/design-editor/general.html'))
     if(isPath('/design-editor/general','/design-editor/general.html')){
-      tasks.push(
-        load('designEditorDraftScopeScriptV1','/js/design-editor/phase5-draft-scope.js?v=20260821-1')
-          .then(()=>load('designEditorEmbeddedRuntimeScriptV1','/js/design-editor/embedded-runtime.js?v=20260821-1'))
-          .then(()=>load('designEditorEmbeddedPolishScriptV1','/js/design-editor/phase6-embedded-polish.js?v=20260821-1'))
-          .then(()=>load('designEditorRecentDraftsScriptV1','/js/design-editor/phase7-recent-drafts.js?v=20260821-1'))
-          .then(()=>load('designEditorCurrentDraftResetScriptV1','/js/design-editor/phase8-current-draft-reset.js?v=20260821-1'))
-          .then(()=>load('designEditorModeSwitchSafetyScriptV1','/js/design-editor/phase9-mode-switch-safety.js?v=20260821-1'))
-          .then(()=>load('designEditorPhase2ScriptV1','/js/design-editor/phase2.js?v=20260821-1'))
-          .then(()=>load('designEditorOutputScriptV1','/js/design-editor/output.js?v=20260821-1'))
-          .then(()=>load('designEditorPhase3ControlsScriptV1','/js/design-editor/phase3-controls.js?v=20260821-1'))
-          .then(()=>load('designEditorPhase4SmartLayoutScriptV1','/js/design-editor/phase4-smart-layout.js?v=20260821-1'))
-          .then(()=>load('designEditorElementClipboardScriptV1','/js/design-editor/phase10-element-clipboard.js?v=20260821-1'))
-          .then(()=>load('designEditorProjectFileScriptV1','/js/design-editor/phase11-project-file.js?v=20260821-1'))
-          .then(()=>load('designEditorRotationScriptV1','/js/design-editor/phase12-rotation.js?v=20260822-1'))
-          .then(()=>load('designEditorPrintQualityScriptV1','/js/design-editor/phase13-print-quality.js?v=20260822-1'))
-          .then(()=>load('designEditorPrintSafetyScriptV1','/js/design-editor/phase14-print-safety.js?v=20260822-1'))
-          .then(()=>load('designEditorQuickDesignScriptV1','/js/design-editor/phase15-quick-design.js?v=20260822-1'))
-          .then(()=>load('designEditorSimpleInterfaceScriptV1','/js/design-editor/phase16-simple-interface.js?v=20260822-1'))
-          .then(()=>load('designEditorComponentBlocksScriptV1','/js/design-editor/phase17-component-blocks.js?v=20260822-1'))
-          .then(()=>load('designEditorCanvasQuickbarScriptV1','/js/design-editor/phase18-canvas-quickbar.js?v=20260822-1'))
-          .then(()=>load('designEditorSmartSnapScriptV1','/js/design-editor/phase19-smart-snap.js?v=20260822-1'))
-          .then(()=>load('designEditorPrintBlocksScriptV1','/js/design-editor/phase20-print-blocks.js?v=20260822-1'))
-          .then(()=>load('designEditorStyleThemesScriptV1','/js/design-editor/phase21-style-themes.js?v=20260822-1'))
-      );
+      tasks.push(loadSeries(DESIGN_EDITOR_RUNTIME_SCRIPTS));
     }
     if(isPath(
       '/tools/pdf-editor.html','/pdf-editor','/pdf-editor/index.html',
