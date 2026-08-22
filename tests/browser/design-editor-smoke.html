@@ -187,6 +187,38 @@
         }
         assert(rejected,'invalid rendered surface did not fail closed');
 
+        const finalCheck=window.DesignEditorFinalPrintCheck;
+        assert(finalCheck?.confirmBeforeOutput,'final print gate is unavailable');
+        const originalGate=finalCheck.confirmBeforeOutput;
+        const originalAnchorClick=HTMLAnchorElement.prototype.click;
+        let gateFormat='';
+        let capturedDownload=null;
+        finalCheck.confirmBeforeOutput=async options=>{gateFormat=String(options?.format||'');return true;};
+        HTMLAnchorElement.prototype.click=function(){capturedDownload={href:this.href,download:this.download};};
+        try{
+          await DesignEditorOutput.exportPng();
+        }finally{
+          finalCheck.confirmBeforeOutput=originalGate;
+          HTMLAnchorElement.prototype.click=originalAnchorClick;
+        }
+        assert(gateFormat==='png','PNG export did not pass through the final print gate');
+        assert(capturedDownload?.href?.startsWith('data:image/png;base64,'),'PNG export did not produce a PNG data URL');
+        assert(capturedDownload?.download?.endsWith('_300dpi.png'),'PNG export filename lost the 300dpi suffix');
+        const pngBase64=capturedDownload.href.split(',',2)[1];
+        const pngHeader=Uint8Array.from(atob(pngBase64.slice(0,48)),char=>char.charCodeAt(0));
+        assert(pngHeader.length>=24,'PNG header is too short');
+        assert([137,80,78,71,13,10,26,10].every((value,index)=>pngHeader[index]===value),'PNG file signature is invalid');
+        const pngView=new DataView(pngHeader.buffer,pngHeader.byteOffset,pngHeader.byteLength);
+        const pngWidth=pngView.getUint32(16);
+        const pngHeight=pngView.getUint32(20);
+        assert(pngWidth===spec.widthPx&&pngHeight===spec.heightPx,`PNG IHDR dimensions changed: ${pngWidth}×${pngHeight}`);
+        assert(capturedDownload.href.length>1000,'PNG export payload is unexpectedly small');
+        assert(document.getElementById('editorStatus')?.textContent.includes('검증 후 만들었습니다'),'PNG success status was not shown');
+        document.body.dataset.exportedPngWidth=String(pngWidth);
+        document.body.dataset.exportedPngHeight=String(pngHeight);
+        document.body.dataset.exportedPngGate=gateFormat;
+        capturedDownload.href='';
+
         DesignEditorSimpleInterface.sync();
         assert(document.getElementById('designOutputTools'),'output card was not installed in real browser DOM');
         assert(DesignEditorSimpleInterface.stage==='basic-first-contextual-sidebar','simple interface module did not boot');
@@ -207,7 +239,7 @@
         const fatalRecords=(report.records||[]).filter(entry=>fatalTypes.has(entry.type));
         assert(fatalRecords.length===0,`runtime error records found: ${fatalRecords.map(entry=>entry.type+':'+entry.message).join(' | ')}`);
 
-        pass('core edit, two-surface flow, real 300DPI render, fail-closed verification, full runtime manifest');
+        pass('core edit, two-surface flow, real 300DPI render, real PNG export, fail-closed verification, full runtime manifest');
       }catch(error){
         fail(error);
       }
