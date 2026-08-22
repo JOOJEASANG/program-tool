@@ -9,7 +9,7 @@ REGISTER = ROOT / "js" / "sw-register.js"
 def test_smart_snap_loads_after_canvas_quickbar():
     source = REGISTER.read_text(encoding="utf-8")
     assert "designEditorSmartSnapScriptV1" in source
-    assert "/js/design-editor/phase19-smart-snap.js?v=20260822-1" in source
+    assert "/js/design-editor/phase19-smart-snap.js?v=20260823-2" in source
     assert source.index("designEditorCanvasQuickbarScriptV1") < source.index("designEditorSmartSnapScriptV1")
 
 
