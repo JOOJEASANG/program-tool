@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>Design Editor Browser Smoke</title>
+  <style>
+    .hidden{display:none!important}
+    body{font-family:Arial,sans-serif;margin:0;padding:12px}
+    .sidebar{width:320px}
+    .side-card{border:1px solid #ddd;padding:8px;margin:4px 0}
+    #editorShell{display:grid;grid-template-columns:320px 1fr;gap:12px}
+    #artboardViewport{width:900px;height:700px;overflow:auto}
+    #artboard{position:relative;background:#fff}
+    .design-object{position:absolute}
+    .editor-status{font-size:12px}
+  </style>
+  <script>
+    history.replaceState(null,'','/design-editor/general.html?browser-smoke=1');
+    window.ProgramStudioBoot={reveal(){}};
+  </script>
+</head>
+<body data-smoke-status="pending">
+  <div id="smokeResult">PENDING</div>
+  <div id="authLoading"></div>
+  <span id="navUserName"></span>
+  <button id="logoutBtn" type="button">logout</button>
+
+  <main id="startScreen">
+    <button id="resumeDraftBtn" class="hidden" type="button">resume</button>
+    <div id="presetGrid"></div>
+    <input id="customWidth" value="210">
+    <input id="customHeight" value="297">
+    <button id="customStartBtn" type="button">custom</button>
+    <button id="coverEditorBtn" type="button">cover</button>
+  </main>
+
+  <main id="editorShell" class="hidden">
+    <aside class="sidebar">
+      <section class="side-card">
+        <div id="documentTitle"></div>
+        <div id="documentMeta"></div>
+        <button id="newDesignBtn" type="button">new</button>
+      </section>
+      <section class="side-card">
+        <button id="addTitleBtn" type="button">title</button>
+        <button id="addSubtitleBtn" type="button">subtitle</button>
+        <button id="addBodyBtn" type="button">body</button>
+        <button id="addInfoBtn" type="button">info</button>
+      </section>
+      <section id="inspector" class="side-card"></section>
+      <section class="side-card"><div id="layerList"></div></section>
+    </aside>
+    <section>
+      <div id="surfaceTabs"></div>
+      <div id="saveState"></div>
+      <div id="artboardViewport"><div id="artboard"></div></div>
+      <div id="editorStatus" class="editor-status"></div>
+    </section>
+  </main>
+
+  <script src="/js/design-editor/presets.js?v=20260821-1"></script>
+  <script src="/js/design-editor/app.js?v=20260821-1"></script>
+  <script src="/js/design-editor/runtime-diagnostics.js?v=20260823-1"></script>
+  <script src="/js/design-editor/output.js?v=20260823-1"></script>
+  <script src="/js/design-editor/phase16-simple-interface.js?v=20260823-2"></script>
+  <script>
+    (async()=>{
+      const result=document.getElementById('smokeResult');
+      const fail=error=>{
+        document.body.dataset.smokeStatus='fail';
+        result.textContent='FAIL: '+String(error?.stack||error?.message||error);
+      };
+      const pass=message=>{
+        document.body.dataset.smokeStatus='pass';
+        result.textContent='PASS: '+message;
+      };
+      const assert=(condition,message)=>{if(!condition)throw new Error(message);};
+      const waitFor=async(predicate,label,timeout=7000)=>{
+        const started=performance.now();
+        while(performance.now()-started<timeout){
+          if(predicate())return;
+          await new Promise(resolve=>setTimeout(resolve,40));
+        }
+        throw new Error('timeout: '+label);
+      };
+      const nextFrames=()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+
+      try{
+        await waitFor(()=>window.DesignEditorApp,'DesignEditorApp');
+        await waitFor(()=>window.DesignEditorOutput,'DesignEditorOutput');
+        await waitFor(()=>window.DesignEditorSimpleInterface,'DesignEditorSimpleInterface');
+
+        assert(DesignEditorPresets.get('flyer-a4')?.surfaces?.length===2,'flyer-a4 preset must keep two surfaces');
+        DesignEditorApp.startProject('flyer-a4');
+        await nextFrames();
+
+        const project=DesignEditorApp.project;
+        assert(project?.width===210&&project?.height===297,'A4 project dimensions changed');
+        assert(project?.bleed===3,'A4 bleed changed');
+        assert(project?.surfaces?.length===2,'A4 flyer surface count changed');
+        assert(!document.getElementById('editorShell').classList.contains('hidden'),'editor shell did not open');
+        assert(document.querySelectorAll('.surface-tab').length===2,'surface tabs were not rendered');
+
+        document.getElementById('addTitleBtn').click();
+        await nextFrames();
+        assert(project.surfaces[0].elements.length===1,'title button did not add an element');
+        assert(document.querySelectorAll('.design-object').length===1,'title was not rendered on artboard');
+
+        const textInput=document.getElementById('textContentInput');
+        assert(textInput,'selected text inspector did not render');
+        textInput.value='브라우저 자동검증 제목';
+        textInput.dispatchEvent(new Event('input',{bubbles:true}));
+        await nextFrames();
+        assert(project.surfaces[0].elements[0].text==='브라우저 자동검증 제목','text edit did not update project state');
+        assert(document.querySelector('.design-object')?.textContent.includes('브라우저 자동검증 제목'),'text edit did not rerender artboard');
+
+        const tabs=[...document.querySelectorAll('.surface-tab')];
+        tabs[1].click();
+        await nextFrames();
+        assert(project.activeSurface==='back','second surface did not become active');
+        document.getElementById('addBodyBtn').click();
+        await nextFrames();
+        assert(project.surfaces[1].elements.length===1,'second surface edit failed');
+
+        const spec=DesignEditorOutput.expectedOutputSpec(project);
+        assert(spec.dpi===300,'output DPI changed');
+        assert(spec.surfaceCount===2,'output surface count changed');
+        assert(spec.widthMm===216&&spec.heightMm===303,'bleed geometry changed');
+        assert(spec.widthPx===2551&&spec.heightPx===3579,'300DPI pixel geometry changed');
+        assert(DesignEditorOutput.verifyRenderedSurface({canvas:{width:2551,height:3579},totalW:216,totalH:303},spec)===true,'valid rendered surface was rejected');
+
+        let rejected=false;
+        try{
+          DesignEditorOutput.verifyRenderedSurface({canvas:{width:2550,height:3579},totalW:216,totalH:303},spec);
+        }catch(error){
+          rejected=error?.code==='OUTPUT_VERIFICATION_FAILED';
+        }
+        assert(rejected,'invalid rendered surface did not fail closed');
+
+        DesignEditorSimpleInterface.sync();
+        await nextFrames();
+        assert(document.getElementById('designOutputTools'),'output card was not installed in real browser DOM');
+        assert(DesignEditorSimpleInterface.stage==='basic-first-contextual-sidebar','simple interface module did not boot');
+        assert(DesignEditorOutput.stage==='selectable-standard-lossless-300dpi-pdf-output-with-postrender-verification','output module stage mismatch');
+
+        pass('core edit, two-surface flow, 300DPI output contract, fail-closed verification');
+      }catch(error){
+        fail(error);
+      }
+    })();
+  </script>
+</body>
+</html>
