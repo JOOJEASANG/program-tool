@@ -9,7 +9,7 @@ REGISTER = ROOT / "js" / "sw-register.js"
 def test_simple_interface_loads_after_quick_design():
     source = REGISTER.read_text(encoding="utf-8")
     assert "designEditorSimpleInterfaceScriptV1" in source
-    assert "/js/design-editor/phase16-simple-interface.js?v=20260823-1" in source
+    assert "/js/design-editor/phase16-simple-interface.js?v=20260823-2" in source
     assert source.index("designEditorQuickDesignScriptV1") < source.index("designEditorSimpleInterfaceScriptV1")
 
 
@@ -63,9 +63,13 @@ def test_contextual_inspector_keeps_visual_controls_outside_advanced_group():
     assert "designQuickDesignTools" not in advanced_line
 
 
-def test_simple_interface_is_event_driven_without_runtime_polling():
+def test_simple_interface_coalesces_event_bursts_without_runtime_polling():
     source = SIMPLE.read_text(encoding="utf-8")
+    assert "let syncFrame=0" in source
+    assert "if(syncFrame)return" in source
+    assert "syncFrame=requestAnimationFrame" in source
+    assert "syncFrame=0;" in source
+    assert "sync();" in source
     assert "MutationObserver" not in source
     assert "setInterval(" not in source
     assert "eval(" not in source
-    assert "requestAnimationFrame" in source
