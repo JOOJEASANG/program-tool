@@ -7,17 +7,18 @@ RUNNER = ROOT / "scripts" / "run_design_editor_browser_smoke.sh"
 WORKFLOW = ROOT / ".github" / "workflows" / "quality-gate.yml"
 
 
-def test_stage64_browser_harness_uses_real_design_editor_modules_and_general_route():
+def test_stage64_browser_harness_uses_real_design_editor_core_and_production_runtime_loader():
     source = HARNESS.read_text(encoding="utf-8")
     assert "history.replaceState(null,'','/design-editor/general.html?browser-smoke=1')" in source
     for marker in (
         "/js/design-editor/presets.js",
         "/js/design-editor/app.js",
-        "/js/design-editor/runtime-diagnostics.js",
-        "/js/design-editor/output.js",
-        "/js/design-editor/phase16-simple-interface.js",
+        "/js/sw-register.js",
     ):
         assert marker in source
+    assert '<script src="/js/design-editor/runtime-diagnostics.js' not in source
+    assert '<script src="/js/design-editor/output.js' not in source
+    assert '<script src="/js/design-editor/phase16-simple-interface.js' not in source
     assert "DesignEditorApp.startProject('flyer-a4')" in source
     assert "document.getElementById('addTitleBtn').click()" in source
     assert "tabs[1].click()" in source
