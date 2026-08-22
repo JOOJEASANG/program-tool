@@ -17,15 +17,36 @@
   const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
   const nextPaint=()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
 
+  function runtimeScriptResult(id,src,status){
+    const node=document.getElementById(id);
+    if(node){
+      if(status==='loaded'){
+        node.dataset.loaded='true';
+        delete node.dataset.failed;
+      }else{
+        node.dataset.failed=status;
+      }
+    }
+    try{
+      window.dispatchEvent(new CustomEvent('programstudio:runtime-script-result',{detail:{id,src,status}}));
+    }catch(_){}
+  }
+
   function load(id,src){
     const existing=document.getElementById(id);
     if(existing){
       if(existing.dataset.loaded==='true')return Promise.resolve();
       return new Promise(resolve=>{
-        const done=()=>resolve();
-        existing.addEventListener('load',done,{once:true});
-        existing.addEventListener('error',done,{once:true});
-        setTimeout(done,1200);
+        let settled=false;
+        const done=status=>{
+          if(settled)return;
+          settled=true;
+          runtimeScriptResult(id,src,status);
+          resolve();
+        };
+        existing.addEventListener('load',()=>done('loaded'),{once:true});
+        existing.addEventListener('error',()=>done('error'),{once:true});
+        setTimeout(()=>done('timeout'),1200);
       });
     }
     return new Promise(resolve=>{
@@ -33,11 +54,17 @@
       script.id=id;
       script.src=src;
       script.async=false;
-      const done=()=>{script.dataset.loaded='true';resolve()};
-      script.addEventListener('load',done,{once:true});
-      script.addEventListener('error',done,{once:true});
+      let settled=false;
+      const done=status=>{
+        if(settled)return;
+        settled=true;
+        runtimeScriptResult(id,src,status);
+        resolve();
+      };
+      script.addEventListener('load',()=>done('loaded'),{once:true});
+      script.addEventListener('error',()=>done('error'),{once:true});
       document.head.appendChild(script);
-      setTimeout(done,1200);
+      setTimeout(()=>done('timeout'),1200);
     });
   }
 
@@ -49,6 +76,7 @@
   function loadCatalogCore(){return load('programCatalogCoreScriptV1','/js/program-catalog-core.js?v=20260818-1')}
 
   const DESIGN_EDITOR_RUNTIME_SCRIPTS=Object.freeze([
+    ['designEditorRuntimeDiagnosticsScriptV1','/js/design-editor/runtime-diagnostics.js?v=20260823-1'],
     ['designEditorDraftScopeScriptV1','/js/design-editor/phase5-draft-scope.js?v=20260822-2'],
     ['designEditorEmbeddedRuntimeScriptV1','/js/design-editor/embedded-runtime.js?v=20260821-1'],
     ['designEditorEmbeddedPolishScriptV1','/js/design-editor/phase6-embedded-polish.js?v=20260821-1'],
@@ -68,7 +96,7 @@
     ['designEditorPrintSafetyScriptV1','/js/design-editor/phase14-print-safety.js?v=20260822-1'],
     ['designEditorFinalPrintCheckScriptV1','/js/design-editor/phase22-final-print-check.js?v=20260822-1'],
     ['designEditorQuickDesignScriptV1','/js/design-editor/phase15-quick-design.js?v=20260822-1'],
-    ['designEditorSimpleInterfaceScriptV1','/js/design-editor/phase16-simple-interface.js?v=20260822-1'],
+    ['designEditorSimpleInterfaceScriptV1','/js/design-editor/phase16-simple-interface.js?v=20260823-1'],
     ['designEditorComponentBlocksScriptV1','/js/design-editor/phase17-component-blocks.js?v=20260822-2'],
     ['designEditorCanvasQuickbarScriptV1','/js/design-editor/phase18-canvas-quickbar.js?v=20260822-1'],
     ['designEditorSmartSnapScriptV1','/js/design-editor/phase19-smart-snap.js?v=20260822-1'],
@@ -76,6 +104,7 @@
     ['designEditorStyleThemesScriptV1','/js/design-editor/phase21-style-themes.js?v=20260822-1'],
     ['designEditorDesignRecipesScriptV1','/js/design-editor/phase23-design-recipes.js?v=20260822-1']
   ]);
+  window.ProgramStudioDesignEditorRuntimeManifest=DESIGN_EDITOR_RUNTIME_SCRIPTS.map(([id,src])=>({id,src}));
 
   async function loadSeries(entries){
     const seen=new Set();
