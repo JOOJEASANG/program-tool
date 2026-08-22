@@ -79,8 +79,30 @@ def test_health_contract_requires_ok():
         smoke._require_health(result(json.dumps({"status": "degraded"})))
 
 
+def test_design_runtime_manifest_assets_are_unique_and_javascript():
+    entries = smoke.design_editor_runtime_assets()
+    assert len(entries) == 27
+    assert len({script_id for script_id, _ in entries}) == 27
+    assert len({path for _, path in entries}) == 27
+
+    smoke._require_javascript_asset(
+        result(
+            "(function(){})();",
+            headers={"content-type": "text/javascript; charset=utf-8"},
+            url="https://example.test/js/design-editor/test.js",
+        )
+    )
+
+    with pytest.raises(smoke.SmokeFailure, match="MIME"):
+        smoke._require_javascript_asset(
+            result("(function(){})();", headers={"content-type": "text/html"})
+        )
+
+
 def test_run_smoke_checks_can_skip_api(monkeypatch):
     paths: list[str] = []
+    runtime_paths = [path for _, path in smoke.design_editor_runtime_assets()]
+    runtime_path_set = set(runtime_paths)
 
     def fake_fetch(base_url: str, path: str, timeout: float):
         del base_url, timeout
@@ -96,6 +118,12 @@ def test_run_smoke_checks_can_skip_api(monkeypatch):
             )
         if path == "/design-editor/general?embed=1&mode=poster&preset=poster-a4&orientation=portrait":
             return result("디자인 편집기 presetGrid artboard", headers=frameable_headers())
+        if path in runtime_path_set:
+            return result(
+                "(function(){})();",
+                headers={"content-type": "application/javascript; charset=utf-8"},
+                url=f"https://example.test{path}",
+            )
         if path == "/perfect-binding-cover/?embed=1&mode=cover":
             return result("책표지제작 · Program Studio", headers=frameable_headers())
         if path == "/version.json":
@@ -111,14 +139,32 @@ def test_run_smoke_checks_can_skip_api(monkeypatch):
         delay_seconds=0,
     )
 
-    assert paths == [
+    assert paths[:4] == [
         "/",
         "/login.html",
         "/design-editor",
         "/design-editor/general?embed=1&mode=poster&preset=poster-a4&orientation=portrait",
+    ]
+    assert paths[4:4 + len(runtime_paths)] == runtime_paths
+    assert paths[-2:] == [
         "/perfect-binding-cover/?embed=1&mode=cover",
         "/version.json",
     ]
+    assert "/api/health" not in paths
+
+
+def test_runtime_asset_failure_names_the_manifest_entry(monkeypatch):
+    script_id, first_path = smoke.design_editor_runtime_assets()[0]
+
+    def fake_fetch(base_url: str, path: str, timeout: float):
+        del base_url, timeout
+        if path == first_path:
+            return result("<html>fallback</html>", headers={"content-type": "text/html"})
+        raise AssertionError(path)
+
+    monkeypatch.setattr(smoke, "_fetch", fake_fetch)
+    with pytest.raises(smoke.SmokeFailure, match=script_id):
+        smoke._require_design_editor_runtime_assets("https://example.test/", 1)
 
 
 def test_retry_reports_final_failure_without_sleep(monkeypatch):

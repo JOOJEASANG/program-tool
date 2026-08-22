@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 import time
 from dataclasses import dataclass
@@ -18,6 +19,11 @@ ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_BASE_URL = "https://program-tool.web.app"
 USER_AGENT = "ProgramStudioDeploymentSmoke/1.0"
 LEGACY_DESIGN_EDITOR_PATH = "/design-editor/"
+RUNTIME_MANIFEST_PATTERN = re.compile(
+    r"const DESIGN_EDITOR_RUNTIME_SCRIPTS=Object\.freeze\(\[(.*?)\]\);",
+    re.S,
+)
+RUNTIME_ENTRY_PATTERN = re.compile(r"\['([^']+)','([^']+)'\]")
 
 
 class SmokeFailure(RuntimeError):
@@ -143,6 +149,44 @@ def _require_health(result: HttpResult) -> None:
         raise SmokeFailure(f"{result.url} 상태가 ok가 아닙니다: {payload!r}")
 
 
+def _require_javascript_asset(result: HttpResult) -> None:
+    _require_status_ok(result)
+    content_type = result.headers.get("content-type", "").lower()
+    text = result.text.lstrip()
+    if "javascript" not in content_type:
+        raise SmokeFailure(
+            f"{result.url} JavaScript MIME이 올바르지 않습니다: {content_type!r}"
+        )
+    if not text or text.lower().startswith(("<!doctype html", "<html")):
+        raise SmokeFailure(f"{result.url} 응답이 JavaScript 본문이 아닙니다.")
+
+
+def design_editor_runtime_assets() -> list[tuple[str, str]]:
+    source = (ROOT / "js" / "sw-register.js").read_text(encoding="utf-8")
+    match = RUNTIME_MANIFEST_PATTERN.search(source)
+    if not match:
+        raise SmokeFailure("디자인 편집기 runtime manifest를 찾을 수 없습니다.")
+    entries = RUNTIME_ENTRY_PATTERN.findall(match.group(1))
+    if not entries:
+        raise SmokeFailure("디자인 편집기 runtime manifest가 비어 있습니다.")
+    ids = [entry[0] for entry in entries]
+    paths = [entry[1] for entry in entries]
+    if len(ids) != len(set(ids)) or len(paths) != len(set(paths)):
+        raise SmokeFailure("디자인 편집기 runtime manifest에 중복 항목이 있습니다.")
+    return entries
+
+
+def _require_design_editor_runtime_assets(base_url: str, timeout: float) -> None:
+    entries = design_editor_runtime_assets()
+    for script_id, path in entries:
+        try:
+            _require_javascript_asset(_fetch(base_url, path, timeout))
+        except SmokeFailure as error:
+            raise SmokeFailure(
+                f"디자인 편집기 runtime 자산 실패: {script_id} {path}: {error}"
+            ) from error
+
+
 def expected_version_from_repository() -> str:
     data = json.loads((ROOT / "version.json").read_text(encoding="utf-8"))
     version = str(data.get("version") or "").strip()
@@ -221,6 +265,10 @@ def run_smoke_checks(
                     _require_same_origin_frame_headers(result),
                 )
             )(_fetch(base_url, "/design-editor/general?embed=1&mode=poster&preset=poster-a4&orientation=portrait", timeout)),
+        ),
+        (
+            "디자인 편집기 런타임 자산",
+            lambda: _require_design_editor_runtime_assets(base_url, timeout),
         ),
         (
             "디자인 편집기 내장 표지",
