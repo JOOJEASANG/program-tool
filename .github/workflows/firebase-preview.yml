@@ -10,14 +10,29 @@ permissions:
   checks: write
   contents: read
   pull-requests: write
+  id-token: write
 
 jobs:
   preview:
     runs-on: ubuntu-latest
     timeout-minutes: 35
+    env:
+      WIF_PROVIDER: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+      WIF_SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+      FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
     steps:
       - name: 코드 체크아웃
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Google Cloud WIF 인증
+        if: env.WIF_PROVIDER != '' && env.WIF_SERVICE_ACCOUNT != ''
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
+        with:
+          project_id: program-tool
+          workload_identity_provider: ${{ env.WIF_PROVIDER }}
+          service_account: ${{ env.WIF_SERVICE_ACCOUNT }}
+          create_credentials_file: true
+          export_environment_variables: true
 
       - name: Node.js 설정
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
@@ -57,9 +72,8 @@ jobs:
         run: |
           # Legacy source-contract markers: GITHUB_SHA:0:7 GITHUB_RUN_ATTEMPT
           CURRENT_CHANNEL="pr-${{ github.event.pull_request.number }}"
-          firebase hosting:channel:list \
+          bash scripts/firebase_ci.sh hosting:channel:list \
             --project program-tool \
-            --token "$FIREBASE_TOKEN" \
             --json > /tmp/firebase-channels.json
           python3 - "$CURRENT_CHANNEL" <<'PY' > /tmp/firebase-stale-channels.txt
           import json
@@ -93,13 +107,10 @@ jobs:
           while IFS= read -r CHANNEL; do
             [ -z "$CHANNEL" ] && continue
             echo "Deleting stale Firebase preview channel: $CHANNEL"
-            firebase hosting:channel:delete "$CHANNEL" \
+            bash scripts/firebase_ci.sh hosting:channel:delete "$CHANNEL" \
               --project program-tool \
-              --token "$FIREBASE_TOKEN" \
               --force
           done < /tmp/firebase-stale-channels.txt
-        env:
-          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
 
       - name: Firebase 미리보기 채널 배포
         id: deploy
@@ -107,9 +118,8 @@ jobs:
         run: |
           CHANNEL="pr-${{ github.event.pull_request.number }}"
           set +e
-          firebase hosting:channel:deploy "$CHANNEL" \
+          bash scripts/firebase_ci.sh hosting:channel:deploy "$CHANNEL" \
             --project program-tool \
-            --token "$FIREBASE_TOKEN" \
             --expires 7d \
             --json > /tmp/deploy_result.json \
             2> >(tee /tmp/firebase-preview.log >&2)
@@ -125,9 +135,8 @@ jobs:
           # stable channel per PR avoids creating a brand-new preview hostname
           # on every synchronize/retry, which can temporarily resolve to
           # Firebase's generic "Site Not Found" page.
-          firebase hosting:channel:list \
+          bash scripts/firebase_ci.sh hosting:channel:list \
             --project program-tool \
-            --token "$FIREBASE_TOKEN" \
             --json > /tmp/firebase-channels-after.json
           URL=$(python3 - "$CHANNEL" <<'PY'
           import json
@@ -163,8 +172,6 @@ jobs:
           fi
           echo "channel=$CHANNEL" >> "$GITHUB_OUTPUT"
           echo "preview_url=$URL" >> "$GITHUB_OUTPUT"
-        env:
-          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
 
       - name: 미리보기 사용자 경로 검증
         run: |
