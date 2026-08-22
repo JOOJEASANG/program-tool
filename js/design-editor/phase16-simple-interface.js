@@ -12,6 +12,7 @@
   const PREF_KEY='programTool.designEditor.advancedOpen.v1';
   const ADVANCED_CARD_IDS=['designPhase3LayoutTools','designElementClipboardTools','designProjectFileTools','designRotationTools'];
   let installed=false;
+  let syncFrame=0;
 
   const byId=id=>document.getElementById(id);
   const project=()=>window.DesignEditorApp?.project||null;
@@ -99,7 +100,15 @@
     if(!project()||byId('editorShell')?.classList.contains('hidden'))return;
     ensureAdvancedCard();simplifyInspector();
   }
-  function queueSync(){requestAnimationFrame(()=>requestAnimationFrame(sync));}
+  function queueSync(){
+    if(syncFrame)return;
+    syncFrame=requestAnimationFrame(()=>{
+      syncFrame=requestAnimationFrame(()=>{
+        syncFrame=0;
+        sync();
+      });
+    });
+  }
   function bindEvents(){
     ['click','dblclick','input','change','keyup','pointerup'].forEach(name=>document.addEventListener(name,queueSync,false));
     window.addEventListener('resize',queueSync,{passive:true});

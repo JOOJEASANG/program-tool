@@ -11,6 +11,7 @@
   let moving=false;
   let snapped=false;
   let clearTimer=0;
+  let moveFrame=0;
 
   const byId=id=>document.getElementById(id);
   const clamp=(value,min,max)=>Math.max(min,Math.min(max,value));
@@ -167,9 +168,22 @@
     if(event.target?.closest?.('.phase3-resize-handle,.phase12-rotation-handle,#designCanvasQuickbar')){moving=false;return;}
     moving=Boolean(event.target?.closest?.('.design-object,.phase2-extra-object'));snapped=false;
   }
-  function movePointer(event){if(moving&&event.buttons)smartSnap();}
+  function movePointer(event){
+    if(!moving||!event.buttons||moveFrame)return;
+    moveFrame=requestAnimationFrame(()=>{
+      moveFrame=0;
+      if(moving)smartSnap();
+    });
+  }
+  function flushPendingSnap(){
+    if(!moveFrame)return;
+    cancelAnimationFrame(moveFrame);
+    moveFrame=0;
+    if(moving)smartSnap();
+  }
   function finishPointer(){
     if(!moving)return;
+    flushPendingSnap();
     moving=false;if(snapped)persist();snapped=false;clearGuides(450);
     requestAnimationFrame(()=>window.DesignEditorCanvasQuickbar?.sync?.());
   }
