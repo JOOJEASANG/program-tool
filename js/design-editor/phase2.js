@@ -3,7 +3,7 @@
   if(window.__designEditorPhase2V1)return;
   window.__designEditorPhase2V1=true;
   const path=location.pathname.replace(/\/+$/,'')||'/';
-  if(path!=='/design-editor'&&path!=='/design-editor/index.html'&&!path.endsWith('/design-editor/index.html'))return;
+  if(path!=='/design-editor/general'&&path!=='/design-editor/general.html'&&!path.endsWith('/design-editor/general.html'))return;
 
   const DRAFT_KEY='programTool.designEditor.draft.v1';
   const STYLE_ID='designEditorPhase2Styles';
