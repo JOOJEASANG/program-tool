@@ -9,7 +9,7 @@ REGISTER = ROOT / "js" / "sw-register.js"
 def test_project_file_module_loads_after_clipboard_stage():
     register = REGISTER.read_text(encoding="utf-8")
     assert "designEditorProjectFileScriptV1" in register
-    assert "/js/design-editor/phase11-project-file.js?v=20260822-2" in register
+    assert "/js/design-editor/phase11-project-file.js?v=20260823-1" in register
     assert register.index("designEditorElementClipboardScriptV1") < register.index("designEditorProjectFileScriptV1")
 
 
@@ -46,7 +46,8 @@ def test_project_file_import_restores_editor_and_scoped_draft():
         "localStorage.setItem(DRAFT_KEY,JSON.stringify(incoming))",
         "window.DesignEditorApp?.resumeDraft?.()",
         "window.DesignEditorPhase2?.sync?.()",
-        "window.DesignEditorDraftScope?.saveCurrent?.('project-file-import')",
+        "window.DesignEditorDraftScope?.saveCurrent?.(reason)",
+        "restorePortablePayload(parsed,'project-file-import')",
         "window.dispatchEvent(new Event('resize'))",
         "stage:'portable-design-project-save-load'",
     ):
