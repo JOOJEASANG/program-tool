@@ -3,7 +3,7 @@
   if(window.__designEditorPhase2V1)return;
   window.__designEditorPhase2V1=true;
   const path=location.pathname.replace(/\/+$/,'')||'/';
-  if(path!=='/design-editor'&&path!=='/design-editor/index.html'&&!path.endsWith('/design-editor/index.html'))return;
+  if(path!=='/design-editor/general'&&path!=='/design-editor/general.html'&&!path.endsWith('/design-editor/general.html'))return;
 
   const DRAFT_KEY='programTool.designEditor.draft.v1';
   const STYLE_ID='designEditorPhase2Styles';
@@ -44,10 +44,11 @@
       try{
         const p=project();
         if(p)localStorage.setItem(DRAFT_KEY,JSON.stringify(p));
+        window.DesignEditorDraftScope?.saveCurrent?.('phase2');
         if(state)state.textContent='자동 저장됨';
       }catch(error){
         if(state)state.textContent='현재 작업';
-        setStatus('이미지가 커서 자동 저장 공간이 부족할 수 있습니다.','err');
+        setStatus('현재 작업을 자동 저장하지 못했습니다.','err');
       }
     },160);
   }
@@ -105,6 +106,15 @@
     });
   }
 
+  function blobToDataUrl(blob){
+    return new Promise((resolve,reject)=>{
+      const reader=new FileReader();
+      reader.onload=()=>resolve(String(reader.result||''));
+      reader.onerror=()=>reject(reader.error||new Error('이미지를 변환하지 못했습니다.'));
+      reader.readAsDataURL(blob);
+    });
+  }
+
   async function prepareImage(file){
     if(!file||!['image/jpeg','image/png','image/webp'].includes(file.type))throw new Error('JPG·PNG·WEBP 이미지만 사용할 수 있습니다.');
     if(file.size>12*1024*1024)throw new Error('이미지는 12MB 이하만 사용할 수 있습니다.');
@@ -118,8 +128,17 @@
       const height=Math.max(1,Math.round(image.naturalHeight*scale));
       const canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;
       const ctx=canvas.getContext('2d',{alpha:true});ctx.drawImage(image,0,0,width,height);
-      return {src:canvas.toDataURL('image/webp',.9),aspect:image.naturalWidth/Math.max(1,image.naturalHeight)};
+      const blob=await new Promise((resolve,reject)=>canvas.toBlob(value=>value?resolve(value):reject(new Error('이미지 최적화에 실패했습니다.')),'image/webp',.9));
+      return {blob,aspect:image.naturalWidth/Math.max(1,image.naturalHeight)};
     }finally{URL.revokeObjectURL(source);}
+  }
+
+  async function storePreparedImage(data,name){
+    const assetStore=window.DesignEditorAssetStore;
+    if(assetStore?.storeBlob){
+      try{return await assetStore.storeBlob(data.blob,{name});}catch(error){console.warn('IndexedDB image storage fallback',error);}
+    }
+    return {assetId:'',src:await blobToDataUrl(data.blob)};
   }
 
   async function handleImageInput(event){
@@ -128,12 +147,17 @@
     if(!file)return;
     try{
       const data=await prepareImage(file);
+      const stored=await storePreparedImage(data,file.name);
       const p=project(),s=surface();if(!p||!s)return;
       const target=replaceTargetId?s.extras.find(item=>item.id===replaceTargetId&&item.type==='image'):null;
-      if(target){target.src=data.src;target.name=file.name;target.aspect=data.aspect;replaceTargetId='';selectedExtraId=target.id;}
-      else{
+      if(target){
+        target.src=stored.src;
+        if(stored.assetId)target.assetId=stored.assetId;else delete target.assetId;
+        target.name=file.name;target.aspect=data.aspect;replaceTargetId='';selectedExtraId=target.id;
+      }else{
         const w=Math.min(90,p.width*.5),h=Math.min(w/data.aspect,p.height*.45);
-        const item={id:uid(),type:'image',name:file.name,src:data.src,aspect:data.aspect,x:(p.width-w)/2,y:(p.height-h)/2,w,h,fit:'cover',focusX:50,focusY:50,opacity:100,locked:false,visible:true};
+        const item={id:uid(),type:'image',name:file.name,src:stored.src,aspect:data.aspect,x:(p.width-w)/2,y:(p.height-h)/2,w,h,fit:'cover',focusX:50,focusY:50,opacity:100,locked:false,visible:true};
+        if(stored.assetId)item.assetId=stored.assetId;
         s.extras.push(item);selectedExtraId=item.id;
       }
       clearBaseSelection();persist();sync();setStatus('이미지를 작업영역에 추가했습니다.','ok');
@@ -183,7 +207,7 @@
       if(item.visible===false)return;
       const node=document.createElement('div');node.dataset.extraId=item.id;node.className=`phase2-extra-object${item.type==='image'?' phase2-image':''}${item.id===selectedExtraId?' selected':''}${item.locked?' locked':''}`;node.style.zIndex=String(16+index);node.style.opacity=String(clamp(Number(item.opacity)||100,1,100)/100);applyPosition(node,item);
       if(item.type==='image'){
-        const image=document.createElement('img');image.src=item.src;image.alt='';image.draggable=false;image.style.objectFit=item.fit==='contain'?'contain':'cover';image.style.objectPosition=`${clamp(Number(item.focusX)||50,0,100)}% ${clamp(Number(item.focusY)||50,0,100)}%`;node.appendChild(image);
+        const image=document.createElement('img');if(item.src)image.src=item.src;image.alt='';image.draggable=false;image.style.objectFit=item.fit==='contain'?'contain':'cover';image.style.objectPosition=`${clamp(Number(item.focusX)||50,0,100)}% ${clamp(Number(item.focusY)||50,0,100)}%`;node.appendChild(image);
       }else{
         const inner=document.createElement('div');inner.className='phase2-shape-inner';
         if(item.shape==='line'){inner.style.background=item.stroke||'#12396d';inner.style.height=`${Math.max(1,(Number(item.strokeWidth)||1)*scale)}px`;inner.style.marginTop=`${Math.max(0,(item.h*scale-Math.max(1,(Number(item.strokeWidth)||1)*scale))/2)}px`;}
@@ -292,6 +316,21 @@
 
   function queueSync(){requestAnimationFrame(()=>requestAnimationFrame(sync));}
 
+  async function hydrateAssets(){
+    const p=project(),assetStore=window.DesignEditorAssetStore;
+    if(!p||!assetStore?.ensureProject)return false;
+    try{
+      const result=await assetStore.ensureProject(p);
+      if(result.changed){
+        try{localStorage.setItem(DRAFT_KEY,JSON.stringify(p));}catch(_){}
+        window.DesignEditorDraftScope?.saveCurrent?.('asset-migration');
+        queueSync();
+      }
+      if(result.missing)setStatus(`${result.missing}개 이미지의 저장본을 찾지 못했습니다.`,'err');
+      return true;
+    }catch(error){console.warn('Design asset hydration failed',error);return false;}
+  }
+
   function bindGlobal(){
     document.addEventListener('pointermove',handlePointerMove,{passive:false});document.addEventListener('pointerup',handlePointerUp);document.addEventListener('pointercancel',handlePointerUp);
     ['click','dblclick','input','change','keyup'].forEach(name=>document.addEventListener(name,event=>{
@@ -313,7 +352,8 @@
     if(installed)return true;
     if(!document.querySelector('.sidebar')||!byId('artboard')||!byId('inspector'))return false;
     installed=true;installStyles();installTools();bindGlobal();
-    window.DesignEditorPhase2={sync,addShape,stage:'images-shapes-snapping-text-spacing'};
+    window.DesignEditorPhase2={sync,addShape,hydrateAssets,stage:'indexeddb-images-shapes-snapping-text-spacing'};
+    hydrateAssets();
     [250,700,1300,2200].forEach(delay=>setTimeout(queueSync,delay));
     return true;
   }

@@ -75,16 +75,20 @@
     }finally{setTimeout(()=>URL.revokeObjectURL(url),1000);}
   }
 
-  function exportProject(){
+  async function exportProject(){
     if(busy)return;
     const current=project();if(!current)return setStatus('저장할 디자인 작업이 없습니다.','info');
-    const snapshot=clone(current);if(!snapshot)return setStatus('현재 디자인 작업을 읽지 못했습니다.','err');
+    setBusy(true);setStatus('프로젝트 파일을 준비하는 중입니다.','info');
     try{
+      const assetStore=window.DesignEditorAssetStore;
+      const snapshot=assetStore?.toPortableProject?await assetStore.toPortableProject(current):clone(current);
+      if(!snapshot)throw new Error('현재 디자인 작업을 읽지 못했습니다.');
       validateProject(snapshot);
       const payload={format:FORMAT,version:FORMAT_VERSION,savedAt:new Date().toISOString(),project:snapshot};
       downloadText(JSON.stringify(payload),`${safeName(current.name)}.design.json`);
       setStatus('디자인 프로젝트 파일을 저장했습니다.','ok');
     }catch(error){setStatus(error.message||'프로젝트 파일 저장에 실패했습니다.','err');}
+    finally{setBusy(false);}
   }
 
   function triggerImport(){
@@ -99,8 +103,10 @@
     setBusy(true);setStatus('프로젝트 파일을 확인하는 중입니다.','info');
     try{
       const parsed=JSON.parse(await file.text());
-      const incoming=clone(unwrapProject(parsed));
-      if(!incoming)throw new Error('프로젝트 내용을 복원하지 못했습니다.');
+      const portable=clone(unwrapProject(parsed));
+      if(!portable)throw new Error('프로젝트 내용을 복원하지 못했습니다.');
+      const assetStore=window.DesignEditorAssetStore;
+      const incoming=assetStore?.importPortableProject?await assetStore.importPortableProject(portable):portable;
       if(!incoming.activeSurface||!incoming.surfaces.some(surface=>surface.id===incoming.activeSurface))incoming.activeSurface=incoming.surfaces[0].id;
       localStorage.setItem(DRAFT_KEY,JSON.stringify(incoming));
       const resumed=window.DesignEditorApp?.resumeDraft?.();

@@ -23,7 +23,10 @@
 ## 통합 디자인 편집기
 
 - `js/design-editor/app.js`: 기본 프로젝트 상태, 텍스트 요소, 선택·드래그, 자동 저장
-- `js/design-editor/phase2.js`: 이미지·도형과 세부 편집 기능
+- `js/design-editor/asset-store.js`: 편집 이미지 Blob을 IndexedDB에 저장하고 프로젝트에는 `assetId` 참조만 남기는 로컬 자산 저장소
+- `js/design-editor/phase2.js`: 이미지·도형과 세부 편집 기능. 새 이미지는 WebP Blob으로 최적화한 뒤 자산 저장소에 넣고 기존 data URL 이미지는 자동 마이그레이션
+- `js/design-editor/phase5-draft-scope.js`: 규격별 자동 저장. 자산 저장소로 이동한 이미지의 런타임 `blob:` URL은 자동 저장 JSON에서 제외
+- `js/design-editor/phase11-project-file.js`: `.design.json` 저장 시 IndexedDB 이미지를 다시 data URL로 포함하고, 불러올 때 다시 자산 저장소로 분리해 다른 PC 이동성을 유지
 - `js/design-editor/output.js`: 300 DPI PNG/PDF 출력
 - `js/design-editor/phase3-controls.js` 이후 모듈: 정렬, 스마트 배치, 프로젝트 파일, 회전, 인쇄 품질·안전, 빠른 구성, 퀵툴바, 스마트 스냅, 스타일 테마
 - 기능 모듈을 추가하거나 순서를 바꿀 때는 `DESIGN_EDITOR_RUNTIME_SCRIPTS`만 수정하고 순서·중복 회귀 테스트를 함께 갱신합니다.
@@ -44,5 +47,6 @@
 2. 공통 API 계약은 `js/api.js` 한 곳에서 구성합니다.
 3. PDF 레이아웃은 중복 구현이나 런타임 monkeypatch 없이 `pdf_engine.py`에서 수정합니다.
 4. 통합 디자인 편집기 기능 모듈은 `js/sw-register.js`의 `DESIGN_EDITOR_RUNTIME_SCRIPTS`에서 로딩 순서를 관리하고 개별 `.then()` 체인을 다시 만들지 않습니다.
-5. 화면 변경 시 `version.json`, `sw.js`, `js/sw-register.js`, `js/firebase-config.js` 버전을 동기화합니다.
-6. 배포 전 Python, JavaScript, 정적 경로, Firebase 규칙 테스트를 모두 통과시킵니다.
+5. 디자인 이미지의 자동 저장은 `asset-store.js`를 거쳐 IndexedDB에 보관하고 localStorage 프로젝트 JSON에 base64 이미지 데이터를 다시 넣지 않습니다. 휴대용 `.design.json` 내보내기만 이미지 데이터를 포함합니다.
+6. 화면 변경 시 `version.json`, `sw.js`, `js/sw-register.js`, `js/firebase-config.js` 버전을 동기화합니다.
+7. 배포 전 Python, JavaScript, 정적 경로, Firebase 규칙 테스트를 모두 통과시킵니다.

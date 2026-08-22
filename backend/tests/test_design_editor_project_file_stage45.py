@@ -9,7 +9,7 @@ REGISTER = ROOT / "js" / "sw-register.js"
 def test_project_file_module_loads_after_clipboard_stage():
     register = REGISTER.read_text(encoding="utf-8")
     assert "designEditorProjectFileScriptV1" in register
-    assert "/js/design-editor/phase11-project-file.js?v=20260821-1" in register
+    assert "/js/design-editor/phase11-project-file.js?v=20260822-2" in register
     assert register.index("designEditorElementClipboardScriptV1") < register.index("designEditorProjectFileScriptV1")
 
 
