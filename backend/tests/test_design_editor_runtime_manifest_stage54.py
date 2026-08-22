@@ -33,7 +33,7 @@ def test_design_editor_runtime_manifest_is_unique_and_preserves_dependency_order
     ids = [item[0] for item in entries]
     paths = [item[1] for item in entries]
 
-    assert len(entries) == 25
+    assert len(entries) == 26
     assert len(ids) == len(set(ids))
     assert len(paths) == len(set(paths))
     assert ids[0] == "designEditorDraftScopeScriptV1"
@@ -44,6 +44,7 @@ def test_design_editor_runtime_manifest_is_unique_and_preserves_dependency_order
     ]
     assert ids.index("designEditorAssetStoreScriptV1") < ids.index("designEditorPhase2ScriptV1")
     assert ids.index("designEditorPhase2ScriptV1") < ids.index("designEditorOutputScriptV1")
+    assert ids.index("designEditorProjectFileScriptV1") < ids.index("designEditorCloudProjectsScriptV1")
     assert ids.index("designEditorPrintQualityScriptV1") < ids.index("designEditorPrintSafetyScriptV1")
     assert ids.index("designEditorPrintSafetyScriptV1") < ids.index("designEditorFinalPrintCheckScriptV1")
     assert ids.index("designEditorComponentBlocksScriptV1") < ids.index("designEditorStyleThemesScriptV1")
