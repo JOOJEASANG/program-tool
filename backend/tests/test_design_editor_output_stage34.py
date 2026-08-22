@@ -6,6 +6,12 @@ OUTPUT = ROOT / "js" / "design-editor" / "output.js"
 REGISTER = ROOT / "js" / "sw-register.js"
 
 
+def function_block(source: str, start_marker: str, end_marker: str) -> str:
+    start = source.index(start_marker)
+    end = source.index(end_marker, start)
+    return source[start:end]
+
+
 def test_design_editor_output_is_loaded_for_general_editor():
     register = REGISTER.read_text(encoding="utf-8")
     assert "designEditorOutputScriptV1" in register
@@ -52,11 +58,13 @@ def test_design_editor_output_renders_text_images_shapes_and_all_surfaces_to_pdf
 
 def test_design_editor_output_requires_final_check_before_png_and_pdf():
     source = OUTPUT.read_text(encoding="utf-8")
+    png = function_block(source, "async function exportPng()", "function ensurePdfLoader()")
+    pdf = function_block(source, "async function exportPdf()", "function install()")
     assert source.count("window.DesignEditorFinalPrintCheck?.confirmBeforeOutput") == 2
-    assert "await gate({format:'png'})" in source
-    assert "await gate({format:'pdf'})" in source
-    assert source.index("await gate({format:'png'})") < source.index("renderSurface(p,surface)")
-    assert source.index("await gate({format:'pdf'})") < source.index("for(let index=0;index<p.surfaces.length;index+=1)")
+    assert "await gate({format:'png'})" in png
+    assert png.index("await gate({format:'png'})") < png.index("renderSurface(p,surface)")
+    assert "await gate({format:'pdf'})" in pdf
+    assert pdf.index("await gate({format:'pdf'})") < pdf.index("for(let index=0;index<p.surfaces.length;index+=1)")
 
 
 def test_design_editor_output_avoids_runtime_polling_and_eval():
