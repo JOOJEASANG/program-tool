@@ -24,9 +24,19 @@
     return !!(project&&project.presetId&&Array.isArray(project.surfaces)&&Number.isFinite(Number(project.width))&&Number.isFinite(Number(project.height)));
   }
 
+  function scopeDimensions(project){
+    if(project?.designMode==='cover'&&project?.cover){
+      const trimWidth=Number(project.cover.trimWidth);
+      const trimHeight=Number(project.cover.trimHeight);
+      if(Number.isFinite(trimWidth)&&Number.isFinite(trimHeight))return{width:trimWidth,height:trimHeight};
+    }
+    return{width:Number(project?.width),height:Number(project?.height)};
+  }
+
   function scopeForProject(project){
     if(!validProject(project))return '';
-    return `${safePart(project.presetId)}.${roundMm(project.width)}x${roundMm(project.height)}`;
+    const size=scopeDimensions(project);
+    return `${safePart(project.presetId)}.${roundMm(size.width)}x${roundMm(size.height)}`;
   }
 
   function draftKey(project){
@@ -34,11 +44,25 @@
     return scope?DRAFT_PREFIX+scope:'';
   }
 
-  function readEnvelope(project){
-    const key=draftKey(project);if(!key)return null;
+  function legacyGeometryDraftKey(project){
+    if(!validProject(project)||project?.designMode!=='cover')return '';
+    return DRAFT_PREFIX+`${safePart(project.presetId)}.${roundMm(project.width)}x${roundMm(project.height)}`;
+  }
+
+  function envelopeAt(key){
+    if(!key)return null;
     const raw=readJson(key);
     if(validProject(raw?.project))return raw;
     if(validProject(raw))return {version:2,savedAt:0,project:raw};
+    return null;
+  }
+
+  function readEnvelope(project){
+    const key=draftKey(project);if(!key)return null;
+    const current=envelopeAt(key);
+    if(current)return current;
+    const legacyKey=legacyGeometryDraftKey(project);
+    if(legacyKey&&legacyKey!==key)return envelopeAt(legacyKey);
     return null;
   }
 
@@ -51,7 +75,8 @@
     const scope=scopeForProject(project);if(!scope)return;
     const current=readJson(INDEX_KEY);
     const list=Array.isArray(current)?current.filter(item=>item&&item.scope!==scope):[];
-    list.unshift({scope,presetId:String(project.presetId),name:String(project.name||project.presetId),width:roundMm(project.width),height:roundMm(project.height),savedAt});
+    const size=scopeDimensions(project);
+    list.unshift({scope,presetId:String(project.presetId),name:String(project.name||project.presetId),width:roundMm(size.width),height:roundMm(size.height),savedAt});
     try{localStorage.setItem(INDEX_KEY,JSON.stringify(list.slice(0,24)));}catch(_){}
   }
 
@@ -112,6 +137,8 @@
     try{
       localStorage.setItem(LEGACY_KEY,JSON.stringify(saved.project));
       app.resumeDraft();
+      const restored=currentProject();
+      if(restored?.designMode==='cover')saveProject(restored,'cover-scope-migration');
       setStatus('이 작업 종류의 자동 저장본을 복구했습니다.');
       queueSave('restored');
       window.dispatchEvent(new Event('resize'));
@@ -147,6 +174,6 @@
     saveCurrent,
     restoreCurrentScope,
     listDrafts:()=>readJson(INDEX_KEY)||[],
-    stage:'preset-and-size-scoped-draft-recovery'
+    stage:'preset-trim-size-scoped-draft-recovery'
   };
 })();

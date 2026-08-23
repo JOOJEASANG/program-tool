@@ -35,12 +35,14 @@
         await waitFor(()=>{
           const ids=new Set(window.ProgramStudioDesignEditorRuntimeManifest.map(entry=>entry.id));
           const latest=new Map();(window.__browserCoverRuntimeResults||[]).forEach(entry=>{if(ids.has(entry?.id))latest.set(entry.id,entry);});
-          return ids.size===29&&latest.size===29&&[...latest.values()].every(entry=>entry.status==='loaded');
+          return ids.size===30&&latest.size===30&&[...latest.values()].every(entry=>entry.status==='loaded');
         },'all runtime manifest results');
         await waitFor(()=>window.DesignEditorCoverModel,'DesignEditorCoverModel');
         await waitFor(()=>window.DesignEditorCoverModeBridge,'DesignEditorCoverModeBridge');
+        await waitFor(()=>window.DesignEditorCoverSettings,'DesignEditorCoverSettings');
         await waitFor(()=>window.DesignEditorEmbeddedRuntime,'DesignEditorEmbeddedRuntime');
         await waitFor(()=>window.DesignEditorApp?.project?.presetId==='cover-a4','cover project');
+        await waitFor(()=>document.getElementById('designCoverSettingsTools'),'cover settings panel');
         await settle();
 
         const project=DesignEditorApp.project;
@@ -62,17 +64,33 @@
         assert(coverModeButton?.classList.contains('on'),'cover mode button is not active');
         const coverNote=document.querySelector('#designEmbeddedModeCard .design-mode-note')?.textContent||'';
         assert(coverNote.includes('뒤표지')&&coverNote.includes('책등')&&coverNote.includes('앞표지'),'cover mode note does not describe unified spread');
+        assert(document.getElementById('coverPageCount')?.value==='160','cover settings page count did not sync');
+        assert(document.getElementById('coverPaperCaliper')?.value==='0.1','cover settings paper caliper did not sync');
 
         document.getElementById('addTitleBtn').click();await settle();
         const input=document.getElementById('textContentInput');assert(input,'common text inspector did not open on cover');
         input.value='통합 표지 제목';input.dispatchEvent(new Event('input',{bubbles:true}));await settle();
         assert(project.surfaces[0].elements?.[0]?.text==='통합 표지 제목','common text editing did not update cover project');
         assert(document.querySelector('.design-object')?.textContent.includes('통합 표지 제목'),'cover title was not rendered by common artboard');
+        const titleId=project.surfaces[0].elements[0].id;
+        const initialScope=window.DesignEditorDraftScope?.scopeForProject?.(project)||'';
+        assert(initialScope==='cover-a4.210x297','cover draft scope must use finished trim size');
 
-        const scope=window.DesignEditorDraftScope?.scopeForProject?.(project)||'';
-        assert(scope.startsWith('cover-a4.'),'cover draft does not have an isolated preset scope');
-        document.body.dataset.coverWidth=String(project.width);document.body.dataset.coverHeight=String(project.height);document.body.dataset.coverSpine=String(project.cover.spine);document.body.dataset.coverFolds=surface.folds.join(',');document.body.dataset.coverRuntime=String(window.ProgramStudioDesignEditorRuntimeManifest.length);
-        pass('unified cover spread boots in the general editor');
+        const pageCount=document.getElementById('coverPageCount');
+        pageCount.value='200';pageCount.dispatchEvent(new Event('input',{bubbles:true}));await settle();
+        const applied=DesignEditorCoverSettings.applySettings('browser-cover-settings-smoke');
+        await settle();
+        assert(applied?.spine===10.5,'200-page cover spine must calculate to 10.5mm');
+        assert(project.cover?.pageCount===200&&project.cover?.spine===10.5,'cover settings were not applied to project');
+        assert(project.width===430.5&&project.height===297,'cover spread did not resize after spine change');
+        assert(project.surfaces[0].folds?.[0]===210&&project.surfaces[0].folds?.[1]===220.5,'cover boundaries did not move with spine');
+        assert(project.surfaces[0].elements?.[0]?.id===titleId&&project.surfaces[0].elements?.[0]?.text==='통합 표지 제목','cover geometry change did not preserve existing text element');
+        assert(window.DesignEditorDraftScope.scopeForProject(project)===initialScope,'cover draft scope changed when only spine width changed');
+        assert(document.querySelectorAll('.fold-guide').length===2&&document.querySelectorAll('.panel-guide-label').length===3,'cover guides did not rerender after geometry change');
+        assert(document.getElementById('editorStatus')?.textContent.includes('책등 10.5mm'),'cover settings success status is missing');
+
+        document.body.dataset.coverWidth=String(project.width);document.body.dataset.coverHeight=String(project.height);document.body.dataset.coverSpine=String(project.cover.spine);document.body.dataset.coverFolds=project.surfaces[0].folds.join(',');document.body.dataset.coverRuntime=String(window.ProgramStudioDesignEditorRuntimeManifest.length);document.body.dataset.coverPageCount=String(project.cover.pageCount);document.body.dataset.coverElementPreserved=String(project.surfaces[0].elements[0].id===titleId);document.body.dataset.coverDraftScope=window.DesignEditorDraftScope.scopeForProject(project);
+        pass('unified cover settings resize spine and preserve common-editor content');
       }catch(error){fail(error);}
     })();
   </script>

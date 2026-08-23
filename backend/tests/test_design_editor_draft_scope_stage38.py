@@ -9,7 +9,7 @@ REGISTER = ROOT / "js" / "sw-register.js"
 def test_design_editor_draft_scope_loads_before_embedded_mode_startup():
     source = REGISTER.read_text(encoding="utf-8")
     assert "designEditorDraftScopeScriptV1" in source
-    assert "/js/design-editor/phase5-draft-scope.js?v=20260822-2" in source
+    assert "/js/design-editor/phase5-draft-scope.js?v=20260823-3" in source
     draft_scope = source.index("designEditorDraftScopeScriptV1")
     embedded = source.index("designEditorEmbeddedRuntimeScriptV1")
     phase2 = source.index("designEditorPhase2ScriptV1")
@@ -24,12 +24,17 @@ def test_design_editor_drafts_are_scoped_by_preset_and_physical_size():
         "programTool.designEditor.draft.index.v2",
         "scopeForProject",
         "project.presetId",
+        "scopeDimensions(project)",
+        "project.cover.trimWidth",
+        "project.cover.trimHeight",
         "project.width",
         "project.height",
         "legacy-migration",
+        "legacyGeometryDraftKey(project)",
+        "cover-scope-migration",
         "app.resumeDraft()",
         "이 작업 종류의 자동 저장본을 복구했습니다.",
-        "stage:'preset-and-size-scoped-draft-recovery'",
+        "stage:'preset-trim-size-scoped-draft-recovery'",
     ):
         assert marker in source
 

@@ -7,6 +7,7 @@ SHELL = ROOT / "design-editor" / "index.html"
 REGISTER = ROOT / "js" / "sw-register.js"
 BRIDGE = ROOT / "js" / "design-editor" / "cover-mode-bridge.js"
 MODEL = ROOT / "js" / "design-editor" / "cover-model.js"
+SETTINGS = ROOT / "js" / "design-editor" / "cover-settings.js"
 COVER_HARNESS = ROOT / "tests" / "browser" / "design-editor-cover-smoke.html"
 COVER_RUNNER = ROOT / "scripts" / "run_design_editor_cover_smoke.sh"
 SUITE_RUNNER = ROOT / "scripts" / "run_design_editor_browser_smoke.sh"
@@ -29,16 +30,18 @@ def test_stage72_shell_routes_cover_to_general_engine_and_keeps_legacy_fallback(
     assert (ROOT / "perfect-binding-cover" / "index.html").exists()
 
 
-def test_stage72_cover_model_and_bridge_are_first_class_runtime_modules_before_embedded_switcher():
+def test_stage72_cover_model_bridge_and_settings_are_first_class_runtime_modules():
     source = REGISTER.read_text(encoding="utf-8")
     entries = manifest_entries(source)
-    assert len(entries) == 29
+    assert len(entries) == 30
     ids = [entry[0] for entry in entries]
     assert ids.index("designEditorDraftScopeScriptV1") < ids.index("designEditorCoverModelScriptV1")
     assert ids.index("designEditorCoverModelScriptV1") < ids.index("designEditorCoverModeBridgeScriptV1")
     assert ids.index("designEditorCoverModeBridgeScriptV1") < ids.index("designEditorEmbeddedRuntimeScriptV1")
+    assert ids.index("designEditorEmbeddedRuntimeScriptV1") < ids.index("designEditorCoverSettingsScriptV1")
     assert ("designEditorCoverModelScriptV1", "/js/design-editor/cover-model.js?v=20260823-1") in entries
     assert ("designEditorCoverModeBridgeScriptV1", "/js/design-editor/cover-mode-bridge.js?v=20260823-1") in entries
+    assert ("designEditorCoverSettingsScriptV1", "/js/design-editor/cover-settings.js?v=20260823-1") in entries
 
 
 def test_stage72_cover_bridge_starts_cover_preset_in_common_editor_and_restores_scoped_draft():
@@ -58,19 +61,40 @@ def test_stage72_cover_bridge_starts_cover_preset_in_common_editor_and_restores_
     assert "location.href='/perfect-binding-cover" not in source
 
 
-def test_stage72_cover_browser_smoke_checks_geometry_common_text_and_scoped_autosave():
+def test_stage72_cover_settings_use_common_project_and_preserve_elements():
+    source = SETTINGS.read_text(encoding="utf-8")
+    for marker in (
+        "표지 규격 · 책등",
+        "coverPageCount",
+        "coverPaperCaliper",
+        "coverBindingAdjust",
+        "coverManualSpine",
+        "model.applyToProject(current,settingsFromInputs())",
+        "afterElements.map(item=>item.id).join('|')!==elementIds",
+        "afterExtras.map(item=>item.id).join('|')!==extraIds",
+        "root.DesignEditorDraftScope?.saveCurrent?.(source)",
+        "programstudio:cover-geometry-change",
+        "stage:'cover-geometry-settings-on-common-editor'",
+    ):
+        assert marker in source
+
+
+def test_stage72_cover_browser_smoke_checks_geometry_common_text_settings_and_scoped_autosave():
     source = COVER_HARNESS.read_text(encoding="utf-8")
     for marker in (
         "mode=cover&preset=cover-a4",
-        "ids.size===29&&latest.size===29",
+        "ids.size===30&&latest.size===30",
         "project.width===428.5&&project.height===297",
         "project.cover?.spine===8.5",
         "surface.folds[0]===210&&surface.folds[1]===218.5",
-        "document.querySelectorAll('.fold-guide').length===2",
-        "document.querySelectorAll('.panel-guide-label').length===3",
         "input.value='통합 표지 제목'",
-        "scope.startsWith('cover-a4.')",
-        "pass('unified cover spread boots in the general editor')",
+        "initialScope==='cover-a4.210x297'",
+        "pageCount.value='200'",
+        "applied?.spine===10.5",
+        "project.width===430.5&&project.height===297",
+        "project.surfaces[0].folds?.[1]===220.5",
+        "project.surfaces[0].elements?.[0]?.id===titleId",
+        "pass('unified cover settings resize spine and preserve common-editor content')",
     ):
         assert marker in source
 
@@ -82,22 +106,25 @@ def test_stage72_cover_runner_is_isolated_and_part_of_existing_browser_suite():
     assert '--user-data-dir="$PROFILE_DIR"' in cover
     assert "--virtual-time-budget=18000" in cover
     for marker in (
-        'data-cover-width="428.5"',
+        'data-cover-width="430.5"',
         'data-cover-height="297"',
-        'data-cover-spine="8.5"',
-        'data-cover-folds="210,218.5"',
-        'data-cover-runtime="29"',
+        'data-cover-spine="10.5"',
+        'data-cover-folds="210,220.5"',
+        'data-cover-runtime="30"',
+        'data-cover-page-count="200"',
+        'data-cover-element-preserved="true"',
+        'data-cover-draft-scope="cover-a4.210x297"',
     ):
         assert marker in cover
     assert 'bash "$ROOT_DIR/scripts/run_design_editor_cover_smoke.sh"' in suite
     assert suite.index("run_design_editor_cover_smoke.sh") < suite.index("run_design_editor_pdf_smoke.sh")
 
 
-def test_stage72_old_cover_page_is_untouched_while_bridge_migration_starts():
+def test_stage72_old_cover_page_is_untouched_while_migration_continues():
     legacy = (ROOT / "perfect-binding-cover" / "index.html").read_text(encoding="utf-8")
     assert "id=\"pageCount\"" in legacy
     assert "id=\"paperCaliper\"" in legacy
     assert "id=\"spineDirection\"" in legacy
     assert "id=\"pdfBtn\"" in legacy
     assert "RGB" in legacy
-    assert MODEL.exists() and BRIDGE.exists()
+    assert MODEL.exists() and BRIDGE.exists() and SETTINGS.exists()

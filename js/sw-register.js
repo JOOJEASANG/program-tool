@@ -77,10 +77,11 @@
 
   const DESIGN_EDITOR_RUNTIME_SCRIPTS=Object.freeze([
     ['designEditorRuntimeDiagnosticsScriptV1','/js/design-editor/runtime-diagnostics.js?v=20260823-1'],
-    ['designEditorDraftScopeScriptV1','/js/design-editor/phase5-draft-scope.js?v=20260822-2'],
+    ['designEditorDraftScopeScriptV1','/js/design-editor/phase5-draft-scope.js?v=20260823-3'],
     ['designEditorCoverModelScriptV1','/js/design-editor/cover-model.js?v=20260823-1'],
     ['designEditorCoverModeBridgeScriptV1','/js/design-editor/cover-mode-bridge.js?v=20260823-1'],
     ['designEditorEmbeddedRuntimeScriptV1','/js/design-editor/embedded-runtime.js?v=20260821-1'],
+    ['designEditorCoverSettingsScriptV1','/js/design-editor/cover-settings.js?v=20260823-1'],
     ['designEditorEmbeddedPolishScriptV1','/js/design-editor/phase6-embedded-polish.js?v=20260821-1'],
     ['designEditorRecentDraftsScriptV1','/js/design-editor/phase7-recent-drafts.js?v=20260821-1'],
     ['designEditorCurrentDraftResetScriptV1','/js/design-editor/phase8-current-draft-reset.js?v=20260821-1'],
