@@ -50,7 +50,7 @@ def test_stage73_cover_draft_scope_is_stable_across_spine_only_changes():
 
 def test_stage73_runtime_manifest_loads_cover_settings_after_cover_bridge():
     source = REGISTER.read_text(encoding="utf-8")
-    assert "/js/design-editor/phase5-draft-scope.js?v=20260823-3" in source
+    assert "/js/design-editor/phase5-draft-scope.js?v=20260823-4" in source
     assert "/js/design-editor/cover-settings.js?v=20260823-1" in source
     assert source.index("designEditorCoverModeBridgeScriptV1") < source.index("designEditorCoverSettingsScriptV1")
 
