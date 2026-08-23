@@ -12,6 +12,8 @@
   const STYLE_ID='designEditorEmbeddedPolishStyles';
   let installed=false;
   let refreshTimer=0;
+  let sidebarObserver=null;
+  let pinning=false;
 
   function installStyles(){
     if(document.getElementById(STYLE_ID))return;
@@ -20,6 +22,7 @@
     style.textContent=`
       html[data-design-embedded="1"] .start-screen{display:none!important}
       html[data-design-embedded="1"] #newDesignBtn{display:none!important}
+      html[data-design-embedded="1"] .sidebar>#designEmbeddedModeCard{order:-9999!important;position:sticky!important;top:0!important;z-index:900!important;box-shadow:0 8px 18px rgba(15,23,42,.08)!important}
       .design-mode-btn.has-saved{position:relative;padding-right:12px!important}
       .design-mode-btn.has-saved::after{content:'';position:absolute;right:5px;top:5px;width:5px;height:5px;border-radius:50%;background:currentColor;opacity:.8}
       .design-mode-save-hint{display:flex;align-items:center;gap:5px;margin-top:6px;padding:5px 6px;border-radius:6px;background:#eef8f8;color:#0f6f78;font-size:7px;font-weight:850;line-height:1.35}
@@ -49,7 +52,27 @@
     return button?.dataset.designMode||'';
   }
 
+  function keepModeCardFirst(){
+    if(pinning)return false;
+    const sidebar=document.querySelector('.sidebar'),card=document.getElementById('designEmbeddedModeCard');
+    if(!sidebar||!card||card.parentElement!==sidebar)return false;
+    if(sidebar.firstElementChild!==card){
+      pinning=true;
+      try{sidebar.insertBefore(card,sidebar.firstElementChild);}finally{pinning=false;}
+    }
+    sidebar.dataset.designModeCardPinned='top';
+    return true;
+  }
+
+  function observeSidebar(){
+    const sidebar=document.querySelector('.sidebar');
+    if(!sidebar||typeof MutationObserver!=='function'||sidebarObserver)return;
+    sidebarObserver=new MutationObserver(()=>requestAnimationFrame(()=>{keepModeCardFirst();decorateModeCard();}));
+    sidebarObserver.observe(sidebar,{childList:true});
+  }
+
   function decorateModeCard(){
+    keepModeCardFirst();
     const card=document.getElementById('designEmbeddedModeCard');
     if(!card)return false;
     const modes=savedModes();
@@ -72,7 +95,7 @@
 
   function queueRefresh(){
     clearTimeout(refreshTimer);
-    refreshTimer=setTimeout(decorateModeCard,260);
+    refreshTimer=setTimeout(()=>{keepModeCardFirst();decorateModeCard();},120);
   }
 
   function install(){
@@ -81,7 +104,8 @@
     installed=true;
     ['input','change','pointerup','keyup','click'].forEach(name=>document.addEventListener(name,queueRefresh,false));
     window.addEventListener('pageshow',queueRefresh);
-    [80,220,480,900,1500,2400,3600].forEach(delay=>setTimeout(decorateModeCard,delay));
+    observeSidebar();
+    [80,220,480,900,1500,2400,3600].forEach(delay=>setTimeout(()=>{keepModeCardFirst();decorateModeCard();observeSidebar();},delay));
     return true;
   }
 
@@ -89,6 +113,7 @@
 
   window.DesignEditorEmbeddedPolish={
     decorateModeCard,
-    stage:'single-sidebar-embedded-flow-and-saved-mode-indicators'
+    keepModeCardFirst,
+    stage:'top-pinned-design-mode-selector-and-saved-mode-indicators'
   };
 })();
