@@ -32,7 +32,7 @@ def test_project_file_import_validates_size_structure_and_embedded_images():
         "const MAX_FILE_BYTES=30*1024*1024",
         "const MAX_SURFACES=12",
         "const MAX_ITEMS_PER_SURFACE=500",
-        "validateProject(parsed.project)",
+        "canonicalizeCoverProject(validateProject(raw))",
         "data:image\\/(?:png|jpeg|webp);base64",
         "file.size>MAX_FILE_BYTES",
         "JSON.parse(await file.text())",
@@ -49,7 +49,7 @@ def test_project_file_import_restores_editor_and_scoped_draft():
         "window.DesignEditorDraftScope?.saveCurrent?.(reason)",
         "restorePortablePayload(parsed,'project-file-import')",
         "window.dispatchEvent(new Event('resize'))",
-        "stage:'portable-design-project-save-load'",
+        "stage:'portable-design-project-save-load-cover-aware'",
     ):
         assert marker in source
 
