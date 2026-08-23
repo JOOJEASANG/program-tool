@@ -17,7 +17,7 @@ def manifest_entries(source: str):
     return re.findall(r"\['([^']+)','([^']+)'\]", block.group(1))
 
 
-def test_stage74_spine_tools_preserve_three_legacy_directions_and_cover_zones():
+def test_stage74_spine_tools_preserve_three_directions_and_cover_zones():
     source = TOOLS.read_text(encoding="utf-8")
     for marker in (
         "const DIRECTIONS=['bottomToTop','vertical','topToBottom']",
@@ -46,7 +46,7 @@ def test_stage74_spine_tools_keep_text_centered_on_spine_and_preserve_y_drag_onl
     assert "document.addEventListener('pointerup',()=>{if(selectedSpineEntry())captureDraggedPosition()" in source
 
 
-def test_stage74_spine_print_safety_keeps_legacy_thresholds_and_blocks_errors():
+def test_stage74_spine_print_safety_keeps_thresholds_and_blocks_errors():
     source = TOOLS.read_text(encoding="utf-8")
     for marker in (
         "spine<2.2",
@@ -105,11 +105,9 @@ def test_stage74_runner_requires_runtime_direction_and_real_render_markers():
         assert marker in source
 
 
-def test_stage74_legacy_spine_modules_remain_available_as_fallback_reference():
-    assert LEGACY_ORIENTATION.exists()
-    assert LEGACY_SAFETY.exists()
-    orientation = LEGACY_ORIENTATION.read_text(encoding="utf-8")
-    safety = LEGACY_SAFETY.read_text(encoding="utf-8")
-    assert "bottomToTop" in orientation and "vertical" in orientation and "topToBottom" in orientation
-    assert "MAX_TEXT_WIDTH_RATIO = 0.28" in safety
-    assert "spineMm < 2.2" in safety
+def test_stage74_legacy_spine_modules_are_removed_after_integrated_parity():
+    assert not LEGACY_ORIENTATION.exists()
+    assert not LEGACY_SAFETY.exists()
+    source = TOOLS.read_text(encoding="utf-8")
+    assert "bottomToTop" in source and "vertical" in source and "topToBottom" in source
+    assert "spine<2.2" in source
