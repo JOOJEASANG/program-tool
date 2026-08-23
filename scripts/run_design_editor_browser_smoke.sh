@@ -53,7 +53,7 @@ done
   --no-sandbox \
   --disable-dev-shm-usage \
   --disable-background-networking \
-  --virtual-time-budget=18000 \
+  --virtual-time-budget=30000 \
   --dump-dom \
   "$URL" >"$DOM_OUT"
 
@@ -66,7 +66,7 @@ if ! grep -q 'data-smoke-status="pass"' "$DOM_OUT"; then
   exit 1
 fi
 
-if ! grep -q 'PASS: core edit, two-surface flow, real 300DPI render, fail-closed verification, full runtime manifest' "$DOM_OUT"; then
+if ! grep -q 'PASS: core edit, two-surface flow, real 300DPI render, real PNG export, fail-closed verification, full runtime manifest' "$DOM_OUT"; then
   echo "Browser smoke completion marker is missing." >&2
   cat "$DOM_OUT" >&2
   exit 1
@@ -74,6 +74,12 @@ fi
 
 if ! grep -q 'data-rendered-width="2551"' "$DOM_OUT" || ! grep -q 'data-rendered-height="3579"' "$DOM_OUT"; then
   echo "Real 300DPI render dimensions were not recorded." >&2
+  cat "$DOM_OUT" >&2
+  exit 1
+fi
+
+if ! grep -q 'data-exported-png-width="2551"' "$DOM_OUT" || ! grep -q 'data-exported-png-height="3579"' "$DOM_OUT" || ! grep -q 'data-exported-png-gate="png"' "$DOM_OUT"; then
+  echo "Real PNG export dimensions or final-print gate marker were not recorded." >&2
   cat "$DOM_OUT" >&2
   exit 1
 fi

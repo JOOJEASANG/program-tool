@@ -4,7 +4,10 @@
   window.__designEditorSimpleInterfaceV1=true;
 
   const path=location.pathname.replace(/\/+$/,'')||'/';
-  if(path!=='/design-editor/general'&&path!=='/design-editor/general.html'&&!path.endsWith('/design-editor/general.html'))return;
+  const embedded=new URLSearchParams(location.search).get('embed')==='1';
+  const generalPath=path==='/design-editor/general'||path==='/design-editor/general.html'||path.endsWith('/design-editor/general.html');
+  const embeddedGeneralPath=embedded&&(path==='/design-editor/index.html'||path.endsWith('/design-editor/index.html'));
+  if(!generalPath&&!embeddedGeneralPath)return;
 
   const STYLE_ID='designEditorSimpleInterfaceStyles';
   const ADVANCED_CARD_ID='designAdvancedTools';

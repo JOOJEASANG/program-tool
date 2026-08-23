@@ -9,7 +9,7 @@ REGISTER = ROOT / "js" / "sw-register.js"
 
 def test_interaction_modules_use_fresh_runtime_cache_versions():
     source = REGISTER.read_text(encoding="utf-8")
-    assert "/js/design-editor/phase16-simple-interface.js?v=20260823-2" in source
+    assert "/js/design-editor/phase16-simple-interface.js?v=20260823-3" in source
     assert "/js/design-editor/phase19-smart-snap.js?v=20260823-2" in source
 
 
