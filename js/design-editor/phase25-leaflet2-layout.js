@@ -251,7 +251,12 @@
     document.addEventListener('click',event=>{
       const modeButton=event.target?.closest?.('[data-design-mode]');
       if(modeButton?.dataset.designMode==='leaflet2')setTimeout(()=>queueRefresh(0),40);
-      if(event.target?.closest?.('.design-mode-apply')&&isLeaflet2())setTimeout(()=>queueRefresh(0),80);
+      if(event.target?.closest?.('.design-mode-apply')&&isLeaflet2()){
+        const requested=cleanLayout(byId(SELECT_ID)?.value)||preferredLayout;
+        setTimeout(()=>{
+          if(isLeaflet2())applyGeometry(requested,{preference:false,persist:true,source:'leaflet2-layout-option-apply'});
+        },80);
+      }
       const finalButton=event.target?.closest?.('#designFinalCheckBtn');
       if(finalButton&&isLeaflet2()&&project()?.leaflet2Layout==='top-bottom'){
         event.preventDefault();event.stopImmediatePropagation();runManualMergedCheck(finalButton);
