@@ -28,8 +28,6 @@ def test_stage71_default_cover_geometry_matches_legacy_a4_example():
     assert "id:'cover-a4'" in source
     assert "group:'표지'" in source
     assert "designMode:'cover'" in source
-    # 160 pages -> 80 sheets * 0.1mm + 0.5mm binding adjustment = 8.5mm.
-    # A4 spread without bleed is therefore 210 + 8.5 + 210 = 428.5mm.
     assert 80 * 0.1 + 0.5 == 8.5
     assert 210 * 2 + 8.5 == 428.5
 
@@ -49,38 +47,33 @@ def test_stage71_cover_project_adapter_preserves_existing_cover_content_when_geo
         assert marker in source
 
 
-def test_stage71_legacy_cover_capability_contract_names_existing_modules():
+def test_stage71_capability_contract_names_integrated_owners_not_retired_files():
     source = MODEL.read_text(encoding="utf-8")
-    expected = (
+    for marker in (
+        "const CAPABILITIES=Object.freeze({",
+        "common:Object.freeze([",
+        "coverSpecific:Object.freeze([",
+        "owner:'common'",
+        "owner:'cover-model + cover-settings'",
+        "owner:'cover-spine-tools'",
+        "owner:'project-file + draft-scope + cloud-projects'",
+        "owner:'cover-preview-zones'",
+        "const LEGACY_CAPABILITIES=CAPABILITIES",
+    ):
+        assert marker in source
+    for retired in (
         "cover-editor-text-zones-v2.js",
-        "cover-preview-text-inspector.js",
-        "cover-text-canvas-controls.js",
-        "cover-editor-image-tools.js",
         "cover-local-image-upload.js",
-        "cover-image-print-quality.js",
-        "cover-edit-history.js",
-        "cover-layout-lock.js",
-        "cover-project-state-bridge.js",
-        "cover-recovery-checkpoints.js",
-        "cover-final-output-confirm.js",
-        "cover-output-performance-safety.js",
-        "perfect-binding-cover-fine-controls.js",
+        "cover-runtime-safety.js",
         "cover-spine-orientation-controls.js",
-        "cover-spine-print-safety.js",
         "cover-template-manager.js",
-        "cover-template-project-safety.js",
-        "cover-preview-workspace.js",
-        "cover-preview-transparency.js",
-    )
-    for filename in expected:
-        assert filename in source
-        assert (ROOT / "js" / filename).exists(), filename
+    ):
+        assert retired not in source
+        assert not (ROOT / "js" / retired).exists()
 
 
-def test_stage71_contract_explicitly_separates_common_migration_from_cover_specific_features():
+def test_stage71_contract_explicitly_separates_common_and_cover_specific_features():
     source = MODEL.read_text(encoding="utf-8")
-    assert "migrateToCommon:Object.freeze([" in source
-    assert "retainCoverSpecific:Object.freeze([" in source
     for capability in (
         "text-editing",
         "image-editing",
@@ -90,8 +83,8 @@ def test_stage71_contract_explicitly_separates_common_migration_from_cover_speci
         "spread-geometry",
         "spine-orientation",
         "spine-print-safety",
-        "cover-templates",
+        "cover-project",
         "cover-preview-zones",
     ):
         assert f"capability:'{capability}'" in source
-    assert "stage:'cover-spread-model-and-capability-migration-contract'" in source
+    assert "stage:'cover-spread-model-integrated-capability-contract'" in source
