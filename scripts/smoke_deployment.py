@@ -70,9 +70,7 @@ def _fetch(base_url: str, path: str, timeout: float) -> HttpResult:
             )
     except HTTPError as error:
         body = error.read() if error.fp else b""
-        raise SmokeFailure(
-            f"{url} 요청 실패: HTTP {error.code} {body[:200]!r}"
-        ) from error
+        raise SmokeFailure(f"{url} 요청 실패: HTTP {error.code} {body[:200]!r}") from error
     except URLError as error:
         raise SmokeFailure(f"{url} 연결 실패: {error.reason}") from error
 
@@ -86,9 +84,7 @@ def _require_text(result: HttpResult, *needles: str) -> None:
     _require_status_ok(result)
     missing = [needle for needle in needles if needle not in result.text]
     if missing:
-        raise SmokeFailure(
-            f"{result.url} 응답에서 필수 문구를 찾지 못했습니다: {missing}"
-        )
+        raise SmokeFailure(f"{result.url} 응답에서 필수 문구를 찾지 못했습니다: {missing}")
 
 
 def _require_same_origin_frame_headers(result: HttpResult) -> None:
@@ -101,9 +97,7 @@ def _require_same_origin_frame_headers(result: HttpResult) -> None:
     if "frame-ancestors 'self'" not in csp.lower():
         failures.append(f"content-security-policy={csp!r}")
     if failures:
-        raise SmokeFailure(
-            f"{result.url} 동일 출처 iframe 허용 헤더가 올바르지 않습니다: {', '.join(failures)}"
-        )
+        raise SmokeFailure(f"{result.url} 동일 출처 iframe 허용 헤더가 올바르지 않습니다: {', '.join(failures)}")
 
 
 def _require_security_headers(result: HttpResult) -> None:
@@ -120,9 +114,7 @@ def _require_security_headers(result: HttpResult) -> None:
         if expected.lower() not in actual.lower():
             failures.append(f"{header}={actual!r}")
     if failures:
-        raise SmokeFailure(
-            f"{result.url} 보안 헤더가 올바르지 않습니다: {', '.join(failures)}"
-        )
+        raise SmokeFailure(f"{result.url} 보안 헤더가 올바르지 않습니다: {', '.join(failures)}")
     _require_same_origin_frame_headers(result)
 
 
@@ -134,9 +126,7 @@ def _require_version(result: HttpResult, expected_version: str) -> None:
         raise SmokeFailure(f"{result.url} 버전 JSON을 읽을 수 없습니다.") from error
     actual = str(payload.get("version") or "").strip()
     if actual != expected_version:
-        raise SmokeFailure(
-            f"배포 버전 불일치: deployed={actual!r}, expected={expected_version!r}"
-        )
+        raise SmokeFailure(f"배포 버전 불일치: deployed={actual!r}, expected={expected_version!r}")
 
 
 def _require_health(result: HttpResult) -> None:
@@ -154,9 +144,7 @@ def _require_javascript_asset(result: HttpResult) -> None:
     content_type = result.headers.get("content-type", "").lower()
     text = result.text.lstrip()
     if "javascript" not in content_type:
-        raise SmokeFailure(
-            f"{result.url} JavaScript MIME이 올바르지 않습니다: {content_type!r}"
-        )
+        raise SmokeFailure(f"{result.url} JavaScript MIME이 올바르지 않습니다: {content_type!r}")
     if not text or text.lower().startswith(("<!doctype html", "<html")):
         raise SmokeFailure(f"{result.url} 응답이 JavaScript 본문이 아닙니다.")
 
@@ -182,9 +170,7 @@ def _require_design_editor_runtime_assets(base_url: str, timeout: float) -> None
         try:
             _require_javascript_asset(_fetch(base_url, path, timeout))
         except SmokeFailure as error:
-            raise SmokeFailure(
-                f"디자인 편집기 runtime 자산 실패: {script_id} {path}: {error}"
-            ) from error
+            raise SmokeFailure(f"디자인 편집기 runtime 자산 실패: {script_id} {path}: {error}") from error
 
 
 def expected_version_from_repository() -> str:
@@ -195,13 +181,7 @@ def expected_version_from_repository() -> str:
     return version
 
 
-def _retry(
-    label: str,
-    operation: Callable[[], None],
-    *,
-    attempts: int,
-    delay_seconds: float,
-) -> None:
+def _retry(label: str, operation: Callable[[], None], *, attempts: int, delay_seconds: float) -> None:
     last_error: Exception | None = None
     for attempt in range(1, attempts + 1):
         try:
@@ -210,10 +190,7 @@ def _retry(
             return
         except Exception as error:  # noqa: BLE001 - report the final deployment failure
             last_error = error
-            print(
-                f"RETRY {label} ({attempt}/{attempts}): {error}",
-                file=sys.stderr,
-            )
+            print(f"RETRY {label} ({attempt}/{attempts}): {error}", file=sys.stderr)
             if attempt < attempts:
                 time.sleep(delay_seconds)
     raise SmokeFailure(f"{label} 최종 실패: {last_error}") from last_error
@@ -229,33 +206,34 @@ def run_smoke_checks(
     timeout: float = 20.0,
 ) -> None:
     base_url = _normalize_base_url(base_url)
+    general_cover_path = "/design-editor/general?embed=1&mode=cover&preset=cover-a4"
 
     checks: list[tuple[str, Callable[[], None]]] = [
         (
             "홈 화면 및 보안 헤더",
-            lambda: (
-                lambda result: (
-                    _require_text(result, "Program Studio"),
-                    _require_security_headers(result),
-                )
-            )(_fetch(base_url, "/", timeout)),
+            lambda: (lambda result: (_require_text(result, "Program Studio"), _require_security_headers(result)))(_fetch(base_url, "/", timeout)),
         ),
         (
             "로그인 화면",
-            lambda: _require_text(
-                _fetch(base_url, "/login.html", timeout),
-                "Google로 계속하기",
-                "js/firebase-config.js",
-            ),
+            lambda: _require_text(_fetch(base_url, "/login.html", timeout), "Google로 계속하기", "js/firebase-config.js"),
         ),
         (
             "디자인 편집기 셸",
             lambda: (
                 lambda result: (
-                    _require_text(result, "디자인 편집기", "editorFrame", "/perfect-binding-cover/?embed=1&mode=cover", "/design-editor/general?"),
+                    _require_text(result, "디자인 편집기", "editorFrame", general_cover_path, "/perfect-binding-cover/?embed=1&mode=cover", "/design-editor/general?"),
                     _require_same_origin_frame_headers(result),
                 )
             )(_fetch(base_url, "/design-editor", timeout)),
+        ),
+        (
+            "디자인 편집기 통합 표지 모드",
+            lambda: (
+                lambda result: (
+                    _require_text(result, "디자인 편집기", "presetGrid", "artboard"),
+                    _require_same_origin_frame_headers(result),
+                )
+            )(_fetch(base_url, general_cover_path, timeout)),
         ),
         (
             "디자인 편집기 일반 모드",
@@ -266,12 +244,9 @@ def run_smoke_checks(
                 )
             )(_fetch(base_url, "/design-editor/general?embed=1&mode=poster&preset=poster-a4&orientation=portrait", timeout)),
         ),
+        ("디자인 편집기 런타임 자산", lambda: _require_design_editor_runtime_assets(base_url, timeout)),
         (
-            "디자인 편집기 런타임 자산",
-            lambda: _require_design_editor_runtime_assets(base_url, timeout),
-        ),
-        (
-            "디자인 편집기 내장 표지",
+            "레거시 표지 호환 경로",
             lambda: (
                 lambda result: (
                     _require_text(result, "책표지제작", "Program Studio"),
@@ -279,31 +254,13 @@ def run_smoke_checks(
                 )
             )(_fetch(base_url, "/perfect-binding-cover/?embed=1&mode=cover", timeout)),
         ),
-        (
-            "배포 버전",
-            lambda: _require_version(
-                _fetch(base_url, "/version.json", timeout),
-                expected_version,
-            ),
-        ),
+        ("배포 버전", lambda: _require_version(_fetch(base_url, "/version.json", timeout), expected_version)),
     ]
     if include_api:
-        checks.append(
-            (
-                "Functions 상태",
-                lambda: _require_health(
-                    _fetch(base_url, "/api/health", timeout)
-                ),
-            )
-        )
+        checks.append(("Functions 상태", lambda: _require_health(_fetch(base_url, "/api/health", timeout))))
 
     for label, operation in checks:
-        _retry(
-            label,
-            operation,
-            attempts=max(1, attempts),
-            delay_seconds=max(0.0, delay_seconds),
-        )
+        _retry(label, operation, attempts=max(1, attempts), delay_seconds=max(0.0, delay_seconds))
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
