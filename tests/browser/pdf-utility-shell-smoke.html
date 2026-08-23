@@ -18,12 +18,13 @@
   <div id="result">PENDING</div>
   <script src="/js/program-shell-unify.js?v=20260824-1"></script>
   <script>
-    (()=>{
+    (async()=>{
       const result=document.getElementById('result');
       const assert=(value,message)=>{if(!value)throw new Error(message)};
+      const waitFor=async(predicate,label,timeout=3000)=>{const started=Date.now();while(Date.now()-started<timeout){if(predicate())return;await new Promise(resolve=>setTimeout(resolve,20));}throw new Error('timeout: '+label)};
       try{
+        await waitFor(()=>document.body.dataset.programShell==='compact','compact shell');
         assert(window.ProgramShellUnify?.stage==='pdf-tools-headerless-unified-shell','shell API missing');
-        assert(document.body.dataset.programShell==='compact','compact shell marker missing');
         assert(document.body.dataset.programKind==='pdf-utility','pdf utility kind missing');
         assert(!document.querySelector('body > .top-nav'),'fixed top nav remained');
         const container=document.querySelector('main.container');
