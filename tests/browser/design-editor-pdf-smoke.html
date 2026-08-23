@@ -28,175 +28,42 @@
   <div id="authLoading"></div>
   <span id="navUserName"></span>
   <button id="logoutBtn" type="button">logout</button>
-
-  <main id="startScreen">
-    <button id="resumeDraftBtn" class="hidden" type="button">resume</button>
-    <div id="presetGrid"></div>
-    <input id="customWidth" value="210">
-    <input id="customHeight" value="297">
-    <button id="customStartBtn" type="button">custom</button>
-    <button id="coverEditorBtn" type="button">cover</button>
-  </main>
-
-  <main id="editorShell" class="hidden">
-    <aside class="sidebar">
-      <section class="side-card">
-        <div id="documentTitle"></div>
-        <div id="documentMeta"></div>
-        <button id="newDesignBtn" type="button">new</button>
-      </section>
-      <section class="side-card">
-        <button id="addTitleBtn" type="button">title</button>
-        <button id="addSubtitleBtn" type="button">subtitle</button>
-        <button id="addBodyBtn" type="button">body</button>
-        <button id="addInfoBtn" type="button">info</button>
-      </section>
-      <section id="inspector" class="side-card"></section>
-      <section class="side-card"><div id="layerList"></div></section>
-    </aside>
-    <section>
-      <div id="surfaceTabs"></div>
-      <div id="saveState"></div>
-      <div id="artboardViewport"><div id="artboard"></div></div>
-      <div class="editor-footer"><div id="editorStatus" class="editor-status"></div></div>
-    </section>
-  </main>
-
+  <main id="startScreen"><button id="resumeDraftBtn" class="hidden" type="button">resume</button><div id="presetGrid"></div><input id="customWidth" value="210"><input id="customHeight" value="297"><button id="customStartBtn" type="button">custom</button><button id="coverEditorBtn" type="button">cover</button></main>
+  <main id="editorShell" class="hidden"><aside class="sidebar"><section class="side-card"><div id="documentTitle"></div><div id="documentMeta"></div><button id="newDesignBtn" type="button">new</button></section><section class="side-card"><button id="addTitleBtn" type="button">title</button><button id="addSubtitleBtn" type="button">subtitle</button><button id="addBodyBtn" type="button">body</button><button id="addInfoBtn" type="button">info</button></section><section id="inspector" class="side-card"></section><section class="side-card"><div id="layerList"></div></section></aside><section><div id="surfaceTabs"></div><div id="saveState"></div><div id="artboardViewport"><div id="artboard"></div></div><div class="editor-footer"><div id="editorStatus" class="editor-status"></div></div></section></main>
   <script src="/js/design-editor/presets.js?v=20260821-1"></script>
   <script src="/js/design-editor/app.js?v=20260821-1"></script>
   <script src="/js/sw-register.js"></script>
   <script>
     (async()=>{
       const result=document.getElementById('pdfSmokeResult');
-      const fail=error=>{
-        document.body.dataset.pdfSmokeStatus='fail';
-        result.textContent='FAIL: '+String(error?.stack||error?.message||error);
-      };
-      const pass=message=>{
-        document.body.dataset.pdfSmokeStatus='pass';
-        result.textContent='PASS: '+message;
-      };
+      const fail=error=>{document.body.dataset.pdfSmokeStatus='fail';result.textContent='FAIL: '+String(error?.stack||error?.message||error);};
+      const pass=message=>{document.body.dataset.pdfSmokeStatus='pass';result.textContent='PASS: '+message;};
       const assert=(condition,message)=>{if(!condition)throw new Error(message);};
-      const waitFor=async(predicate,label,timeout=12000)=>{
-        const started=Date.now();
-        while(Date.now()-started<timeout){
-          if(predicate())return;
-          await new Promise(resolve=>setTimeout(resolve,40));
-        }
-        throw new Error('timeout: '+label);
-      };
+      const waitFor=async(predicate,label,timeout=12000)=>{const started=Date.now();while(Date.now()-started<timeout){if(predicate())return;await new Promise(resolve=>setTimeout(resolve,40));}throw new Error('timeout: '+label);};
       const settle=()=>new Promise(resolve=>setTimeout(resolve,40));
-      const runtimeResultsForManifest=()=>{
-        const manifest=Array.isArray(window.ProgramStudioDesignEditorRuntimeManifest)?window.ProgramStudioDesignEditorRuntimeManifest:[];
-        const ids=new Set(manifest.map(entry=>entry.id));
-        const latest=new Map();
-        (window.__browserPdfRuntimeResults||[]).forEach(entry=>{if(ids.has(entry?.id))latest.set(entry.id,entry);});
-        return{manifest,latest};
-      };
+      const runtimeResultsForManifest=()=>{const manifest=Array.isArray(window.ProgramStudioDesignEditorRuntimeManifest)?window.ProgramStudioDesignEditorRuntimeManifest:[];const ids=new Set(manifest.map(entry=>entry.id));const latest=new Map();(window.__browserPdfRuntimeResults||[]).forEach(entry=>{if(ids.has(entry?.id))latest.set(entry.id,entry);});return{manifest,latest};};
       try{
         await waitFor(()=>window.DesignEditorApp,'DesignEditorApp');
         await waitFor(()=>Array.isArray(window.ProgramStudioDesignEditorRuntimeManifest),'runtime manifest');
-        await waitFor(()=>{
-          const {manifest,latest}=runtimeResultsForManifest();
-          return manifest.length===27&&latest.size===manifest.length;
-        },'all runtime manifest results');
-        const runtimeBoot=runtimeResultsForManifest();
-        runtimeBoot.manifest.forEach(entry=>assert(runtimeBoot.latest.get(entry.id)?.status==='loaded',`runtime failed: ${entry.id}`));
-        await waitFor(()=>window.DesignEditorOutput,'DesignEditorOutput');
-        await waitFor(()=>window.DesignEditorFinalPrintCheck,'DesignEditorFinalPrintCheck');
-
-        DesignEditorApp.startProject('flyer-a4');
-        await settle();
-        const project=DesignEditorApp.project;
-        assert(project?.surfaces?.length===2,'PDF smoke requires two surfaces');
-        document.getElementById('addTitleBtn').click();
-        await settle();
-        const textInput=document.getElementById('textContentInput');
-        textInput.value='PDF 브라우저 자동검증 앞면';
-        textInput.dispatchEvent(new Event('input',{bubbles:true}));
-        await settle();
-        document.querySelectorAll('.surface-tab')[1].click();
-        await settle();
-        document.getElementById('addBodyBtn').click();
-        await settle();
-        const backInput=document.getElementById('textContentInput');
-        backInput.value='PDF 브라우저 자동검증 뒷면';
-        backInput.dispatchEvent(new Event('input',{bubbles:true}));
-        await settle();
-
-        const spec=DesignEditorOutput.expectedOutputSpec(project);
-        assert(spec.widthPx===2551&&spec.heightPx===3579&&spec.surfaceCount===2,'PDF output spec changed');
-        const profile=document.getElementById('designPdfProfile');
-        assert(profile,'PDF profile control is missing');
-        profile.value='standard';
-
-        const pdfInstances=[];
-        class BrowserSmokeJsPdf{
-          constructor(options){
-            this.options=options;
-            this.pages=[{format:options.format,orientation:options.orientation}];
-            this.images=[];
-            this.savedName='';
-            pdfInstances.push(this);
-          }
-          addPage(format,orientation){this.pages.push({format,orientation});}
-          addImage(data,format,x,y,w,h,alias,compression){this.images.push({data,format,x,y,w,h,alias,compression});}
-          getNumberOfPages(){return this.pages.length;}
-          save(name){this.savedName=String(name||'');}
-        }
-        const originalLoader=window.CoverJsPdfLoader;
-        const finalCheck=window.DesignEditorFinalPrintCheck;
-        const originalGate=finalCheck.confirmBeforeOutput;
-        let gateFormat='';
-        window.CoverJsPdfLoader={ensure:async()=>BrowserSmokeJsPdf,ready:()=>true,stage:'browser-smoke-pdf-double'};
-        finalCheck.confirmBeforeOutput=async options=>{gateFormat=String(options?.format||'');return true;};
-        try{
-          await DesignEditorOutput.exportPdf();
-        }finally{
-          finalCheck.confirmBeforeOutput=originalGate;
-          if(originalLoader)window.CoverJsPdfLoader=originalLoader;else delete window.CoverJsPdfLoader;
-        }
-
-        assert(gateFormat==='pdf','PDF export did not pass through final print gate');
-        assert(pdfInstances.length===1,'PDF export created an unexpected document count');
-        const pdf=pdfInstances[0];
-        assert(pdf.getNumberOfPages()===2,'PDF export did not create two pages');
-        assert(pdf.pages.length===2,'PDF page records are incomplete');
-        pdf.pages.forEach((page,index)=>{
-          const format=Array.isArray(page.format)?page.format:[];
-          assert(Math.abs(Number(format[0])-216)<.001&&Math.abs(Number(format[1])-303)<.001,`PDF page ${index+1} mm format changed`);
-          assert(page.orientation==='portrait',`PDF page ${index+1} orientation changed`);
-        });
-        assert(pdf.images.length===2,'PDF export did not add two rendered images');
-        pdf.images.forEach((image,index)=>{
-          assert(image.format==='JPEG',`PDF page ${index+1} image format changed`);
-          assert(image.data?.startsWith('data:image/jpeg'),`PDF page ${index+1} did not use a JPEG payload`);
-          const jpegBytes=Uint8Array.from(atob(image.data.split(',',2)[1].slice(0,16)),char=>char.charCodeAt(0));
-          assert(jpegBytes[0]===0xff&&jpegBytes[1]===0xd8&&jpegBytes[2]===0xff,`PDF page ${index+1} JPEG signature is invalid`);
-          assert(image.x===0&&image.y===0,'PDF page image origin changed');
-          assert(Math.abs(image.w-216)<.001&&Math.abs(image.h-303)<.001,`PDF page ${index+1} image mm size changed`);
-          assert(image.compression==='FAST',`PDF page ${index+1} compression profile changed`);
-          assert(image.data.length>1000,`PDF page ${index+1} image payload is unexpectedly small`);
-        });
-        assert(pdf.savedName.endsWith('_300dpi.pdf'),'PDF save filename lost the 300dpi suffix');
-        assert(document.getElementById('editorStatus')?.textContent.includes('2개 면'),'PDF success status lost page count');
-        assert(document.getElementById('editorStatus')?.textContent.includes('2551×3579'),'PDF success status lost pixel geometry');
-        document.body.dataset.pdfPages=String(pdf.getNumberOfPages());
-        document.body.dataset.pdfImages=String(pdf.images.length);
-        document.body.dataset.pdfGate=gateFormat;
-        document.body.dataset.pdfProfile='standard';
-        document.body.dataset.pdfWidth=String(spec.widthPx);
-        document.body.dataset.pdfHeight=String(spec.heightPx);
-        pdf.images.forEach(image=>{image.data='';});
-
-        const report=window.DesignEditorRuntimeDiagnostics?.report?.();
-        const fatalTypes=new Set(['error','rejection','resource-error','runtime-error','runtime-timeout','output-verification-error']);
-        const fatal=(report?.records||[]).filter(entry=>fatalTypes.has(entry.type));
-        assert(fatal.length===0,`runtime/output errors found: ${fatal.map(entry=>entry.type+':'+entry.message).join(' | ')}`);
+        await waitFor(()=>{const {manifest,latest}=runtimeResultsForManifest();return manifest.length===29&&latest.size===manifest.length;},'all runtime manifest results');
+        const runtimeBoot=runtimeResultsForManifest();runtimeBoot.manifest.forEach(entry=>assert(runtimeBoot.latest.get(entry.id)?.status==='loaded',`runtime failed: ${entry.id}`));
+        assert(window.DesignEditorCoverModel,'cover model runtime module did not load');
+        await waitFor(()=>window.DesignEditorOutput,'DesignEditorOutput');await waitFor(()=>window.DesignEditorFinalPrintCheck,'DesignEditorFinalPrintCheck');
+        DesignEditorApp.startProject('flyer-a4');await settle();const project=DesignEditorApp.project;assert(project?.surfaces?.length===2,'PDF smoke requires two surfaces');
+        document.getElementById('addTitleBtn').click();await settle();const textInput=document.getElementById('textContentInput');textInput.value='PDF 브라우저 자동검증 앞면';textInput.dispatchEvent(new Event('input',{bubbles:true}));await settle();
+        document.querySelectorAll('.surface-tab')[1].click();await settle();document.getElementById('addBodyBtn').click();await settle();const backInput=document.getElementById('textContentInput');backInput.value='PDF 브라우저 자동검증 뒷면';backInput.dispatchEvent(new Event('input',{bubbles:true}));await settle();
+        const spec=DesignEditorOutput.expectedOutputSpec(project);assert(spec.widthPx===2551&&spec.heightPx===3579&&spec.surfaceCount===2,'PDF output spec changed');const profile=document.getElementById('designPdfProfile');assert(profile,'PDF profile control is missing');profile.value='standard';
+        const pdfInstances=[];class BrowserSmokeJsPdf{constructor(options){this.options=options;this.pages=[{format:options.format,orientation:options.orientation}];this.images=[];this.savedName='';pdfInstances.push(this);}addPage(format,orientation){this.pages.push({format,orientation});}addImage(data,format,x,y,w,h,alias,compression){this.images.push({data,format,x,y,w,h,alias,compression});}getNumberOfPages(){return this.pages.length;}save(name){this.savedName=String(name||'');}}
+        const originalLoader=window.CoverJsPdfLoader;const finalCheck=window.DesignEditorFinalPrintCheck;const originalGate=finalCheck.confirmBeforeOutput;let gateFormat='';window.CoverJsPdfLoader={ensure:async()=>BrowserSmokeJsPdf,ready:()=>true,stage:'browser-smoke-pdf-double'};finalCheck.confirmBeforeOutput=async options=>{gateFormat=String(options?.format||'');return true;};
+        try{await DesignEditorOutput.exportPdf();}finally{finalCheck.confirmBeforeOutput=originalGate;if(originalLoader)window.CoverJsPdfLoader=originalLoader;else delete window.CoverJsPdfLoader;}
+        assert(gateFormat==='pdf','PDF export did not pass through final print gate');assert(pdfInstances.length===1,'PDF export created an unexpected document count');const pdf=pdfInstances[0];assert(pdf.getNumberOfPages()===2,'PDF export did not create two pages');assert(pdf.pages.length===2,'PDF page records are incomplete');
+        pdf.pages.forEach((page,index)=>{const format=Array.isArray(page.format)?page.format:[];assert(Math.abs(Number(format[0])-216)<.001&&Math.abs(Number(format[1])-303)<.001,`PDF page ${index+1} mm format changed`);assert(page.orientation==='portrait',`PDF page ${index+1} orientation changed`);});
+        assert(pdf.images.length===2,'PDF export did not add two rendered images');pdf.images.forEach((image,index)=>{assert(image.format==='JPEG',`PDF page ${index+1} image format changed`);assert(image.data?.startsWith('data:image/jpeg'),`PDF page ${index+1} did not use a JPEG payload`);const jpegBytes=Uint8Array.from(atob(image.data.split(',',2)[1].slice(0,16)),char=>char.charCodeAt(0));assert(jpegBytes[0]===0xff&&jpegBytes[1]===0xd8&&jpegBytes[2]===0xff,`PDF page ${index+1} JPEG signature is invalid`);assert(image.x===0&&image.y===0,'PDF page image origin changed');assert(Math.abs(image.w-216)<.001&&Math.abs(image.h-303)<.001,`PDF page ${index+1} image mm size changed`);assert(image.compression==='FAST',`PDF page ${index+1} compression profile changed`);assert(image.data.length>1000,`PDF page ${index+1} image payload is unexpectedly small`);});
+        assert(pdf.savedName.endsWith('_300dpi.pdf'),'PDF save filename lost the 300dpi suffix');assert(document.getElementById('editorStatus')?.textContent.includes('2개 면'),'PDF success status lost page count');assert(document.getElementById('editorStatus')?.textContent.includes('2551×3579'),'PDF success status lost pixel geometry');
+        document.body.dataset.pdfPages=String(pdf.getNumberOfPages());document.body.dataset.pdfImages=String(pdf.images.length);document.body.dataset.pdfGate=gateFormat;document.body.dataset.pdfProfile='standard';document.body.dataset.pdfWidth=String(spec.widthPx);document.body.dataset.pdfHeight=String(spec.heightPx);pdf.images.forEach(image=>{image.data='';});
+        const report=window.DesignEditorRuntimeDiagnostics?.report?.();const fatalTypes=new Set(['error','rejection','resource-error','runtime-error','runtime-timeout','output-verification-error']);const fatal=(report?.records||[]).filter(entry=>fatalTypes.has(entry.type));assert(fatal.length===0,`runtime/output errors found: ${fatal.map(entry=>entry.type+':'+entry.message).join(' | ')}`);
         pass('two-surface real 300DPI PDF export orchestration');
-      }catch(error){
-        fail(error);
-      }
+      }catch(error){fail(error);}
     })();
   </script>
 </body>
