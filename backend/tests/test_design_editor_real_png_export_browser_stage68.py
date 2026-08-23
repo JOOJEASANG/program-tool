@@ -5,13 +5,26 @@ ROOT = Path(__file__).resolve().parents[2]
 HARNESS = ROOT / "tests" / "browser" / "design-editor-smoke.html"
 RUNNER = ROOT / "scripts" / "run_design_editor_browser_smoke.sh"
 REGISTER = ROOT / "js" / "sw-register.js"
+SIMPLE_INTERFACE = ROOT / "js" / "design-editor" / "phase16-simple-interface.js"
 
 
-def test_stage68_output_boots_before_embedded_runtime_rewrites_general_route():
+def test_stage68_general_only_modules_boot_before_embedded_runtime_rewrites_route():
     source = REGISTER.read_text(encoding="utf-8")
-    output_entry = "['designEditorOutputScriptV1','/js/design-editor/output.js?v=20260823-1']"
     embedded_entry = "['designEditorEmbeddedRuntimeScriptV1','/js/design-editor/embedded-runtime.js?v=20260821-1']"
-    assert source.index(output_entry) < source.index(embedded_entry)
+    embedded_index = source.index(embedded_entry)
+    for entry in (
+        "['designEditorOutputScriptV1','/js/design-editor/output.js?v=20260823-1']",
+        "['designEditorPhase2ScriptV1','/js/design-editor/phase2.js?v=20260822-2']",
+        "['designEditorComponentBlocksScriptV1','/js/design-editor/phase17-component-blocks.js?v=20260822-2']",
+    ):
+        assert source.index(entry) < embedded_index
+
+
+def test_stage68_simple_interface_accepts_embedded_unified_editor_route():
+    source = SIMPLE_INTERFACE.read_text(encoding="utf-8")
+    assert "const embedded=new URLSearchParams(location.search).get('embed')==='1'" in source
+    assert "const embeddedGeneralPath=embedded&&(path==='/design-editor/index.html'||path.endsWith('/design-editor/index.html'))" in source
+    assert "if(!generalPath&&!embeddedGeneralPath)return" in source
 
 
 def test_stage68_browser_smoke_runs_real_png_export_through_final_print_gate():
