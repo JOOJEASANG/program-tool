@@ -8,7 +8,7 @@ BRIDGE = ROOT / "js" / "design-editor" / "embedded-runtime.js"
 REGISTER = ROOT / "js" / "sw-register.js"
 
 
-def test_unified_design_editor_defaults_to_existing_cover_engine_without_outer_sidebar():
+def test_unified_design_editor_defaults_to_general_cover_engine_without_outer_sidebar():
     source = SHELL.read_text(encoding="utf-8")
     for marker in (
         "디자인 편집기",
@@ -19,16 +19,18 @@ def test_unified_design_editor_defaults_to_existing_cover_engine_without_outer_s
         "2단 리플렛",
         "3단 리플렛",
         "사용자 지정",
-        'src="../perfect-binding-cover/?embed=1&mode=cover"',
-        "single-sidebar-design-shell",
+        'src="/design-editor/general?embed=1&mode=cover&preset=cover-a4"',
+        "single-sidebar-general-engine-shell",
     ):
         assert marker in source
+    assert "legacyCoverFallback:'/perfect-binding-cover/?embed=1&mode=cover'" in source
     assert "studio-side" not in source
 
 
 def test_unified_shell_routes_mode_specific_editor_requests_from_one_frame():
     source = SHELL.read_text(encoding="utf-8")
     for marker in (
+        "cover-a4",
         "poster-a4",
         "poster-a3",
         "flyer-a4",
@@ -44,7 +46,7 @@ def test_unified_shell_routes_mode_specific_editor_requests_from_one_frame():
         assert marker in source
 
 
-def test_general_editor_is_preserved_as_an_isolated_engine():
+def test_general_editor_is_preserved_as_the_shared_engine():
     source = GENERAL.read_text(encoding="utf-8")
     for marker in (
         'id="editorShell"',
@@ -57,7 +59,7 @@ def test_general_editor_is_preserved_as_an_isolated_engine():
         assert marker in source
 
 
-def test_embedded_bridge_injects_mode_controls_into_existing_sidebar_and_autostarts_mode():
+def test_embedded_bridge_injects_mode_controls_into_existing_sidebar_and_autostarts_non_cover_modes():
     source = BRIDGE.read_text(encoding="utf-8")
     for marker in (
         "params.get('embed')==='1'",
@@ -81,11 +83,13 @@ def test_embedded_bridge_injects_mode_controls_into_existing_sidebar_and_autosta
     assert "eval(" not in source
 
 
-def test_general_editor_loads_bridge_before_existing_phase_modules():
+def test_general_editor_loads_cover_bridge_then_existing_phase_modules():
     source = REGISTER.read_text(encoding="utf-8")
-    assert "if(isPath('/design-editor/general.html'))" in source
-    bridge = source.index("designEditorEmbeddedRuntimeScriptV1")
+    assert "if(isPath('/design-editor/general','/design-editor/general.html'))" in source
+    cover_model = source.index("designEditorCoverModelScriptV1")
+    cover_bridge = source.index("designEditorCoverModeBridgeScriptV1")
+    embedded = source.index("designEditorEmbeddedRuntimeScriptV1")
     phase2 = source.index("designEditorPhase2ScriptV1")
     output = source.index("designEditorOutputScriptV1")
-    assert bridge < phase2 < output
+    assert cover_model < cover_bridge < embedded < phase2 < output
     assert "/js/design-editor/embedded-runtime.js?v=20260821-1" in source
