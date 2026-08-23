@@ -55,10 +55,10 @@ def test_stage81_restored_project_keeps_real_png_and_pdf_output_paths():
     for marker in (
         "async function exportPng()",
         "async function exportPdf()",
-        "await finalCheck('png',p,spec)",
-        "await finalCheck('pdf',p,spec)",
-        "await renderSurface(p,surface)",
-        "await loader.ensure()",
+        "if(gate&&!(await gate({format:'png'})))return;",
+        "if(gate&&!(await gate({format:'pdf'})))return;",
+        "const rendered=await renderSurface(p,surface);",
+        "JsPdf=await loader.ensure()",
     ):
         assert marker in source
 
