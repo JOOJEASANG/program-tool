@@ -18,8 +18,9 @@ def global_headers():
 def test_unified_design_shell_embeds_same_origin_editors():
     source = SHELL.read_text(encoding="utf-8")
     assert 'id="editorFrame"' in source
-    assert "../perfect-binding-cover/?embed=1&mode=cover" in source
-    assert "general.html?${query.toString()}" in source
+    assert '/design-editor/general?embed=1&mode=cover&preset=cover-a4' in source
+    assert "return `/design-editor/general?${query.toString()}`" in source
+    assert "legacyCoverFallback:'/perfect-binding-cover/?embed=1&mode=cover'" in source
 
 
 def test_firebase_headers_allow_only_same_origin_embedding():
@@ -31,13 +32,15 @@ def test_firebase_headers_allow_only_same_origin_embedding():
     assert "frame-src 'self'" in csp
 
 
-def test_deployment_smoke_checks_design_editor_shell_and_embedded_cover():
+def test_deployment_smoke_checks_design_editor_shell_unified_cover_and_legacy_fallback():
     source = SMOKE.read_text(encoding="utf-8")
     for marker in (
-        '"/design-editor/"',
-        '"/perfect-binding-cover/?embed=1&mode=cover"',
+        '"/design-editor"',
+        '"/design-editor/general?embed=1&mode=cover&preset=cover-a4"',
         '"디자인 편집기 셸"',
-        '"디자인 편집기 내장 표지"',
+        '"디자인 편집기 통합 표지 모드"',
+        '"/perfect-binding-cover/?embed=1&mode=cover"',
+        '"레거시 표지 호환 경로"',
         "_require_same_origin_frame_headers",
         '"SAMEORIGIN"',
         '"frame-ancestors \'self\'"',
