@@ -84,4 +84,6 @@ if ! grep -q 'data-exported-png-width="2551"' "$DOM_OUT" || ! grep -q 'data-expo
   exit 1
 fi
 
-echo "Design editor browser smoke passed using $BROWSER"
+echo "Design editor PNG browser smoke passed using $BROWSER"
+bash "$ROOT_DIR/scripts/run_design_editor_pdf_smoke.sh"
+echo "Design editor browser smoke suite passed"
