@@ -58,7 +58,7 @@ def test_stage3_real_browser_checks_ratio_geometry_and_clipboard_import():
         "workflow.pasteImageBlob(pastedBlob,'clipboard-test.png')",
         "workflow.handlePaste(fakeEvent)",
         "editable control paste should be ignored",
-        "PASS: centered crop presets and clipboard image workflow",
+        "pass('centered crop presets and clipboard image workflow')",
     ):
         assert marker in smoke
     assert 'PROFILE_DIR="$(mktemp -d)"' in runner
