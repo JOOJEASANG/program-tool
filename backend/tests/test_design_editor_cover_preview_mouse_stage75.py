@@ -82,7 +82,7 @@ def test_stage75_runtime_manifest_and_real_browser_contract_include_preview_and_
     cover = COVER_HARNESS.read_text(encoding="utf-8")
     runner = COVER_RUNNER.read_text(encoding="utf-8")
     assert "designEditorCoverPreviewZonesScriptV1" in register
-    assert "/js/design-editor/cover-preview-zones.js?v=20260823-1" in register
+    assert "/js/design-editor/cover-preview-zones.js?v=20260823-2" in register
     assert "runtimeBoot.manifest.length===32" in general
     assert "firstElementChild?.id==='designEmbeddedModeCard'" in general
     assert "new MouseEvent('contextmenu'" in general
