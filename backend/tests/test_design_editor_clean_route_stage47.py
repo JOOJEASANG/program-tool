@@ -9,14 +9,15 @@ REGISTER = ROOT / "js" / "sw-register.js"
 FIREBASE = ROOT / "firebase.json"
 
 
-def test_shell_uses_absolute_routes_for_all_embedded_modes():
+def test_shell_uses_absolute_routes_for_all_embedded_modes_without_legacy_editor_fallback():
     source = SHELL.read_text(encoding="utf-8")
     assert 'src="/design-editor/general?embed=1&mode=cover&preset=cover-a4"' in source
     assert "return '/design-editor/general?embed=1&mode=cover&preset=cover-a4'" in source
-    assert "legacyCoverFallback:'/perfect-binding-cover/?embed=1&mode=cover'" in source
     assert "return `/design-editor/general?${query.toString()}`" in source
     assert "return `general.html?${query.toString()}`" not in source
     assert "window.UnifiedDesignShell={openMode,route" in source
+    assert "legacyCoverFallback:" not in source
+    assert "single-sidebar-general-engine-shell-no-legacy-fallback" in source
 
 
 def test_clean_general_route_is_recognized_by_runtime_loader():

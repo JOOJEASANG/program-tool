@@ -29,14 +29,14 @@ ROUTE_MODULES = [
 ]
 
 
-def test_cover_direct_runtime_order_is_explicit():
+def test_retired_cover_page_loads_no_direct_legacy_runtime():
     source = EDITOR.read_text(encoding="utf-8")
-    positions = []
+    assert "/design-editor/?mode=cover" in source
+    assert "location.replace(" in source
     for module in DIRECT_MODULES:
-        needle = f'../js/{module}'
-        assert source.count(needle) == 1
-        positions.append(source.index(needle))
-    assert positions == sorted(positions)
+        assert f'../js/{module}' not in source
+    assert "<canvas" not in source
+    assert 'id="pdfBtn"' not in source
 
 
 def test_cover_route_runtime_order_is_explicit_and_safety_is_last():
@@ -95,16 +95,17 @@ def test_cover_runtime_safety_behavior_executes():
     assert "cover-runtime-safety behavior passed" in result.stdout
 
 
-def test_cover_audit_records_current_runtime_debt_and_retired_sources():
-    direct = EDITOR.read_text(encoding="utf-8")
+def test_cover_audit_records_retired_page_and_remaining_orphan_candidates():
+    retired = EDITOR.read_text(encoding="utf-8")
     cmyk = (ROOT / "js" / "cmyk-color-control.js").read_text(encoding="utf-8")
     refine = (ROOT / "js" / "cover-text-ui-refine.js").read_text(encoding="utf-8")
     templates = (ROOT / "js" / "cover-template-manager.js").read_text(encoding="utf-8")
     image_tools = (ROOT / "js" / "cover-editor-image-tools.js").read_text(encoding="utf-8")
 
-    assert "cover-editor-multiselect.js" not in direct
-    assert "cover-editor-layer-style.js" not in direct
-    assert "jspdf.umd.min.js" not in direct
+    assert "cover-editor-multiselect.js" not in retired
+    assert "cover-editor-layer-style.js" not in retired
+    assert "jspdf.umd.min.js" not in retired
+    assert "/design-editor/?mode=cover" in retired
     assert "visual-color-palette" in cmyk
     assert "cover-color-palette" in refine
     assert "template-ui-retired" in templates

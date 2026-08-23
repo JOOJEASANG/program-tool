@@ -59,10 +59,13 @@ def test_ui_normalizer_loads_after_dock_and_before_final_safety_boundary():
     assert source.index(dock) < source.index(normalizer) < source.index(safety)
 
 
-def test_current_renderer_and_pointer_ownership_order_is_explicit():
+def test_retired_page_has_no_direct_renderer_or_pointer_owners_while_route_modules_remain_auditable():
     editor = EDITOR.read_text(encoding="utf-8")
     register = REGISTER.read_text(encoding="utf-8")
-    assert editor.index("cover-editor-ux-upgrade.js") < editor.index("cover-editor-image-tools.js")
+    assert "cover-editor-ux-upgrade.js" not in editor
+    assert "cover-editor-image-tools.js" not in editor
+    assert "<canvas" not in editor
+    assert "/design-editor/?mode=cover" in editor
     assert register.index("perfect-binding-cover-fine-controls.js") < register.index("cover-editor-text-zones-v2.js")
     assert register.index("cover-editor-text-zones-v2.js") < register.index("cover-runtime-safety.js")
 
@@ -78,7 +81,7 @@ def test_current_renderer_and_pointer_ownership_order_is_explicit():
     assert "guardedCoverRender.__coverRuntimeSafetyV1" in safety
 
 
-def test_obsolete_compatibility_files_remain_inert_until_source_html_cleanup():
+def test_obsolete_compatibility_files_remain_inert_until_orphan_cleanup():
     multiselect = (ROOT / "js" / "cover-editor-multiselect.js").read_text(encoding="utf-8")
     layer = (ROOT / "js" / "cover-editor-layer-style.js").read_text(encoding="utf-8")
     assert "coverMultiPanel" in multiselect

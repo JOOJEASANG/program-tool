@@ -4,33 +4,43 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 HTML = ROOT / "perfect-binding-cover" / "index.html"
+DESIGN_OUTPUT = ROOT / "js" / "design-editor" / "output.js"
 OUTPUT_SAFETY = ROOT / "js" / "cover-output-performance-safety.js"
 LOADER = ROOT / "js" / "cover-jspdf-loader.js"
 BEHAVIOR = ROOT / "backend" / "tests" / "test_cover_jspdf_loader_behavior.cjs"
 
 
-def test_cover_source_no_longer_loads_retired_compatibility_scripts():
+def test_retired_cover_source_loads_no_legacy_editor_scripts():
     source = HTML.read_text(encoding="utf-8")
-    assert "../js/cover-editor-multiselect.js" not in source
-    assert "../js/cover-editor-layer-style.js" not in source
-    assert "../js/cover-editor-image-tools.js" in source
+    for module in (
+        "cover-editor-multiselect.js",
+        "cover-editor-layer-style.js",
+        "cover-editor-image-tools.js",
+        "cover-jspdf-loader.js",
+        "cover-editor-ux-upgrade.js",
+        "cover-editor-preflight-project.js",
+    ):
+        assert f"../js/{module}" not in source
+    assert "/design-editor/?mode=cover" in source
 
 
-def test_cover_source_lazy_loads_jspdf_only_at_output_boundary():
+def test_integrated_design_output_lazy_loads_jspdf_only_at_output_boundary():
     html = HTML.read_text(encoding="utf-8")
+    output = DESIGN_OUTPUT.read_text(encoding="utf-8")
     safety = OUTPUT_SAFETY.read_text(encoding="utf-8")
     loader = LOADER.read_text(encoding="utf-8")
     assert "jspdf.umd.min.js" not in html
-    assert html.count('../js/cover-jspdf-loader.js') == 1
-    assert html.index('../js/cover-jspdf-loader.js') < html.index('async function createOutput')
-    assert "if(kind!=='png')await window.CoverJsPdfLoader.ensure()" in html
+    assert "cover-jspdf-loader.js" not in html
+    assert "function ensurePdfLoader()" in output
+    assert "script.src='/js/cover-jspdf-loader.js?v=20260806-1'" in output
+    assert "document.head.appendChild(script)" in output
+    assert "async function exportPdf()" in output
+    assert "await loader.ensure()" in output
     assert "function ensure()" in loader
     assert "document.head.appendChild(script)" in loader
     assert "function ensureJsPdf()" in safety
     assert "window.CoverJsPdfLoader?.ensure" in safety
     assert "return window.CoverJsPdfLoader.ensure()" in safety
-    assert "recoverJsPdf(event, button)" in safety
-    assert "output.kind !== 'png' && !jsPdfReady()" in safety
 
 
 def test_cover_jspdf_loader_does_not_request_network_until_pdf_output():
@@ -45,9 +55,11 @@ def test_cover_jspdf_loader_does_not_request_network_until_pdf_output():
     assert "cover-jspdf-loader behavior passed" in result.stdout
 
 
-def test_cover_source_has_no_sample_title_or_year_values():
+def test_retired_cover_source_has_no_legacy_form_or_sample_values():
     source = HTML.read_text(encoding="utf-8")
     assert "2026학년도 방과후학교 운영 계획서" not in source
-    assert '<textarea id="frontTitle" placeholder="표지 제목을 입력하세요"></textarea>' in source
-    assert '<input id="publishYear" type="text" placeholder="예: 2026">' in source
-    assert '<input id="spineTitle" type="text" placeholder="책등 제목을 입력하세요">' in source
+    assert 'id="frontTitle"' not in source
+    assert 'id="publishYear"' not in source
+    assert 'id="spineTitle"' not in source
+    assert '<canvas' not in source
+    assert "통합 디자인 편집기의 표지디자인으로 이전되었습니다." in source

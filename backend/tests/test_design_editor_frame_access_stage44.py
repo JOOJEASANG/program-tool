@@ -15,12 +15,13 @@ def global_headers():
     return {item["key"].lower(): item["value"] for item in global_rule["headers"]}
 
 
-def test_unified_design_shell_embeds_same_origin_editors():
+def test_unified_design_shell_embeds_same_origin_editors_without_legacy_editor_fallback():
     source = SHELL.read_text(encoding="utf-8")
     assert 'id="editorFrame"' in source
     assert '/design-editor/general?embed=1&mode=cover&preset=cover-a4' in source
     assert "return `/design-editor/general?${query.toString()}`" in source
-    assert "legacyCoverFallback:'/perfect-binding-cover/?embed=1&mode=cover'" in source
+    assert "legacyCoverFallback:" not in source
+    assert "single-sidebar-general-engine-shell-no-legacy-fallback" in source
 
 
 def test_firebase_headers_allow_only_same_origin_embedding():
@@ -32,7 +33,7 @@ def test_firebase_headers_allow_only_same_origin_embedding():
     assert "frame-src 'self'" in csp
 
 
-def test_deployment_smoke_checks_design_editor_shell_unified_cover_and_legacy_fallback():
+def test_deployment_smoke_checks_design_editor_shell_unified_cover_and_retired_compatibility_url():
     source = SMOKE.read_text(encoding="utf-8")
     for marker in (
         '"/design-editor"',
