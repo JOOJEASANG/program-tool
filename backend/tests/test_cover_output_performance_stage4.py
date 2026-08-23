@@ -6,32 +6,37 @@ ROOT = Path(__file__).resolve().parents[2]
 MODULE = ROOT / "js" / "cover-output-performance-safety.js"
 REGISTER = ROOT / "js" / "sw-register.js"
 EDITOR = ROOT / "perfect-binding-cover" / "index.html"
+DESIGN_OUTPUT = ROOT / "js" / "design-editor" / "output.js"
 BEHAVIOR = ROOT / "backend" / "tests" / "test_cover_output_performance_behavior_stage4.cjs"
 
 
-def test_output_budget_uses_the_same_dimensions_and_dpi_as_the_base_exporter():
-    source = MODULE.read_text(encoding="utf-8")
-    editor = EDITOR.read_text(encoding="utf-8")
+def test_output_budget_uses_integrated_design_editor_300dpi_dimensions():
+    output = DESIGN_OUTPUT.read_text(encoding="utf-8")
+    legacy = EDITOR.read_text(encoding="utf-8")
     for marker in (
-        "pdfBtn: { kind: 'pdf', dpi: 300",
-        "guidePdfBtn: { kind: 'guide', dpi: 300",
-        "pngBtn: { kind: 'png', dpi: 180",
-        "Math.round(spec.totalW * output.dpi / 25.4)",
-        "Math.round(spec.totalH * output.dpi / 25.4)",
+        "const DPI=300",
+        "const PX_PER_MM=DPI/25.4",
+        "const MAX_PIXELS=42000000",
+        "function expectedOutputSpec(p)",
+        "widthPx:Math.max(1,Math.round(widthMm*PX_PER_MM))",
+        "heightPx:Math.max(1,Math.round(heightMm*PX_PER_MM))",
+        "if(pixels>MAX_PIXELS)",
     ):
-        assert marker in source
-    assert "dpi=kind==='png'?180:300" in editor
-    assert "pixels>52000000" in editor
-    assert "renderCover(out,dpi,kind==='guide',false)" in editor
+        assert marker in output
+    assert "/design-editor/?mode=cover" in legacy
+    assert 'id="pdfBtn"' not in legacy
+    assert "renderCover(" not in legacy
 
 
 def test_pdf_page_size_and_raster_placement_contract_remain_in_millimeters():
-    editor = EDITOR.read_text(encoding="utf-8")
-    assert "new jsPDF({orientation,unit:'mm',format:[s.totalW,s.totalH],compress:true})" in editor
-    assert "doc.addImage(out,'PNG',0,0,doc.internal.pageSize.getWidth(),doc.internal.pageSize.getHeight()" in editor
-    assert "RGB 300DPI" in editor
-    assert "가이드 PDF" in editor
-    assert "미리보기 PNG" in editor
+    output = DESIGN_OUTPUT.read_text(encoding="utf-8")
+    assert "new JsPdf({orientation,unit:'mm',format:[rendered.totalW,rendered.totalH],compress:true})" in output
+    assert "pdf.addImage(image.data,image.format,0,0,rendered.totalW,rendered.totalH" in output
+    assert "standard:{id:'standard'" in output
+    assert "lossless:{id:'lossless'" in output
+    assert "format:'PNG'" in output
+    assert "format:'JPEG'" in output
+    assert "colorSpace:'RGB'" in output
 
 
 def test_device_memory_tiers_never_exceed_the_existing_hard_pixel_limit():
