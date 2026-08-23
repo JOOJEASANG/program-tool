@@ -68,7 +68,8 @@ def test_stage75_general_mouse_menu_reuses_existing_editor_controls():
         "showContextMenu",
         "scaleSelected",
         "handleWheel",
-        "stage:'top-pinned-mode-selector-wheel-and-context-menu'",
+        "syncCapabilityVisibility",
+        "stage:'mode-aware-sidebar-top-selector-mouse-and-optional-shape-stroke'",
     ):
         assert marker in source
 
