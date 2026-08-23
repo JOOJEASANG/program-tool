@@ -161,7 +161,7 @@ jobs:
   document-editor-browser-smoke:
     name: Document editor browser smoke
     runs-on: ubuntu-latest
-    timeout-minutes: 7
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
@@ -173,6 +173,7 @@ jobs:
         run: |
           bash scripts/run_document_editor_browser_smoke.sh
           bash scripts/run_document_editor_workflow_smoke.sh
+          bash scripts/run_document_editor_usability_smoke.sh
 
       - name: Upload document editor diagnostics
         if: always()
