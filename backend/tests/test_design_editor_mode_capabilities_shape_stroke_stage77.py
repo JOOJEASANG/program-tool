@@ -80,7 +80,7 @@ def test_stage77_real_browser_checks_irrelevant_options_and_borderless_shape_ren
         "DesignEditorOutput.renderSurface(project,surface)",
         "line must not expose a border on/off control",
         "visibleStrokeFields.length===1",
-        "PASS: mode-aware sidebar hides irrelevant options and borderless shapes match 300DPI output",
+        "pass('mode-aware sidebar hides irrelevant options and borderless shapes match 300DPI output')",
     ):
         assert marker in source
 
