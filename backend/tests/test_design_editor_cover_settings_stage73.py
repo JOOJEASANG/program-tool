@@ -73,10 +73,10 @@ def test_stage73_cover_runner_requires_geometry_content_and_scope_markers():
         'data-cover-height="297"',
         'data-cover-spine="10.5"',
         'data-cover-folds="210,220.5"',
-        'data-cover-runtime="30"',
+        'data-cover-runtime="31"',
         'data-cover-page-count="200"',
         'data-cover-element-preserved="true"',
         'data-cover-draft-scope="cover-a4.210x297"',
     ):
         assert marker in source
-    assert "PASS: unified cover settings resize spine and preserve common-editor content" in source
+    assert "PASS: unified cover settings, spine direction, safety and real render preserve common-editor content" in source
