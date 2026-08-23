@@ -13,7 +13,9 @@ COVER_RUNNER = ROOT / "scripts" / "run_design_editor_cover_smoke.sh"
 def test_stage75_cover_preview_is_preview_only_and_tracks_three_cover_regions():
     source = PREVIEW.read_text(encoding="utf-8")
     for marker in (
-        "const DEFAULTS={visible:true,labels:true,safe:true,opacity:12,zoom:1}",
+        "const PREF_KEY='programTool.designEditor.coverPreviewZones.v2'",
+        "const DEFAULTS={visible:true,labels:true,safe:true,opacity:0,zoom:1}",
+        "var(--zone-opacity,0)",
         "zoneBox('back'",
         "zoneBox('spine'",
         "zoneBox('front'",
