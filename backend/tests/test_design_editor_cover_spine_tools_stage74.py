@@ -66,19 +66,20 @@ def test_stage74_spine_print_safety_keeps_legacy_thresholds_and_blocks_errors():
         assert marker in source
 
 
-def test_stage74_runtime_manifest_adds_one_spine_module_after_rotation():
+def test_stage74_runtime_manifest_keeps_spine_module_after_rotation_before_preview():
     source = REGISTER.read_text(encoding="utf-8")
     entries = manifest_entries(source)
-    assert len(entries) == 31
+    assert len(entries) == 32
     ids = [item[0] for item in entries]
     assert ids.index("designEditorRotationScriptV1") < ids.index("designEditorCoverSpineToolsScriptV1")
+    assert ids.index("designEditorCoverSpineToolsScriptV1") < ids.index("designEditorCoverPreviewZonesScriptV1")
     assert ("designEditorCoverSpineToolsScriptV1", "/js/design-editor/cover-spine-tools.js?v=20260823-1") in entries
 
 
 def test_stage74_real_browser_checks_three_directions_safety_fit_and_real_300dpi_spine_ink():
     source = HARNESS.read_text(encoding="utf-8")
     for marker in (
-        "ids.size===31&&latest.size===31",
+        "ids.size===32&&latest.size===32",
         "DesignEditorCoverSpineTools.addSpineTitle('center')",
         "spineTitle.spineDirection==='bottomToTop'&&spineTitle.rotation===-90",
         "DesignEditorCoverSpineTools.setDirection('topToBottom')",
@@ -95,11 +96,11 @@ def test_stage74_real_browser_checks_three_directions_safety_fit_and_real_300dpi
 def test_stage74_runner_requires_runtime_direction_and_real_render_markers():
     source = RUNNER.read_text(encoding="utf-8")
     for marker in (
-        'data-cover-runtime="31"',
+        'data-cover-runtime="32"',
         'data-cover-spine-titles="1"',
         'data-cover-spine-direction="bottomToTop"',
         'data-cover-spine-ink="true"',
-        "PASS: unified cover settings, spine direction, safety and real render preserve common-editor content",
+        "PASS: unified cover preview zones, settings, spine direction, safety and real render",
     ):
         assert marker in source
 
