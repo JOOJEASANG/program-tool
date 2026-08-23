@@ -14,7 +14,8 @@ OUTPUT = ROOT / "js" / "design-editor" / "output.js"
 def test_stage81_real_user_flow_covers_image_edit_save_restore_and_outputs():
     source = HARNESS.read_text(encoding="utf-8")
     for marker in (
-        "new File([bytes],'user-flow.png',{type:'image/png'})",
+        "canvas.toBlob(value=>value?resolve(value):reject(new Error('test PNG creation failed')),'image/png')",
+        "new File([blob],'user-flow.png',{type:'image/png'})",
         "imageInput.files=transfer.files",
         "DesignEditorProjectFile.buildPortablePayload(project)",
         "portableImage?.src?.startsWith('data:image/webp;base64,')",
@@ -23,7 +24,7 @@ def test_stage81_real_user_flow_covers_image_edit_save_restore_and_outputs():
         "await DesignEditorOutput.exportPng()",
         "await DesignEditorOutput.exportPdf()",
         "pdf.getNumberOfPages()===2&&pdf.images.length===2",
-        "PASS: image upload, edit, portable save, restore, PNG and PDF output",
+        "pass('image upload, edit, portable save, restore, PNG and PDF output')",
     ):
         assert marker in source
 
