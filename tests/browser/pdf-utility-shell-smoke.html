@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>PDF Utility Unified Shell Smoke</title>
+  <style>
+    :root{--nav-h:60px}*{box-sizing:border-box}body{margin:0;padding-top:var(--nav-h)}.top-nav{height:var(--nav-h)}.container{max-width:1060px;margin:0 auto;padding:38px 20px 70px}.hero{min-height:120px}
+  </style>
+  <script>history.replaceState(null,'','/pdf-preflight/index.html?browser-shell-smoke=1');</script>
+</head>
+<body data-shell-smoke="pending">
+  <nav class="top-nav">
+    <a class="nav-back" href="../index.html">← 도구 목록</a>
+    <div class="nav-title">PDF 검사</div>
+    <div class="nav-user"><span class="nav-user-name" id="userName">사용자</span><button class="nav-logout">로그아웃</button></div>
+  </nav>
+  <main class="container"><section class="hero"><h1>PDF 검사</h1></section></main>
+  <div id="result">PENDING</div>
+  <script src="/js/program-shell-unify.js?v=20260824-1"></script>
+  <script>
+    (()=>{
+      const result=document.getElementById('result');
+      const assert=(value,message)=>{if(!value)throw new Error(message)};
+      try{
+        assert(window.ProgramShellUnify?.stage==='pdf-tools-headerless-unified-shell','shell API missing');
+        assert(document.body.dataset.programShell==='compact','compact shell marker missing');
+        assert(document.body.dataset.programKind==='pdf-utility','pdf utility kind missing');
+        assert(!document.querySelector('body > .top-nav'),'fixed top nav remained');
+        const container=document.querySelector('main.container');
+        const bar=container?.querySelector(':scope > .program-local-actions');
+        assert(bar&&bar===container.firstElementChild,'local actions not moved inside content');
+        assert(bar.querySelector('.nav-back')?.textContent.trim()==='← 홈','home action missing');
+        assert(bar.querySelector('#userName'),'account node lost');
+        assert(bar.querySelector('.nav-logout'),'logout action lost');
+        assert(getComputedStyle(document.body).paddingTop==='0px','body top padding remained');
+        document.body.dataset.shellSmoke='pass';
+        document.body.dataset.shellHeaderRemoved='true';
+        document.body.dataset.shellActionsPreserved='true';
+        result.textContent='PASS: PDF utility fixed header removed and account actions preserved in content';
+      }catch(error){document.body.dataset.shellSmoke='fail';result.textContent='FAIL: '+String(error?.message||error)}
+    })();
+  </script>
+</body>
+</html>
