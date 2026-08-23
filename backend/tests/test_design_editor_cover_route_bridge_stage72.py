@@ -30,18 +30,20 @@ def test_stage72_shell_routes_cover_to_general_engine_and_keeps_legacy_fallback(
     assert (ROOT / "perfect-binding-cover" / "index.html").exists()
 
 
-def test_stage72_cover_model_bridge_and_settings_are_first_class_runtime_modules():
+def test_stage72_cover_model_bridge_settings_and_spine_tools_are_first_class_runtime_modules():
     source = REGISTER.read_text(encoding="utf-8")
     entries = manifest_entries(source)
-    assert len(entries) == 30
+    assert len(entries) == 31
     ids = [entry[0] for entry in entries]
     assert ids.index("designEditorDraftScopeScriptV1") < ids.index("designEditorCoverModelScriptV1")
     assert ids.index("designEditorCoverModelScriptV1") < ids.index("designEditorCoverModeBridgeScriptV1")
     assert ids.index("designEditorCoverModeBridgeScriptV1") < ids.index("designEditorEmbeddedRuntimeScriptV1")
     assert ids.index("designEditorEmbeddedRuntimeScriptV1") < ids.index("designEditorCoverSettingsScriptV1")
+    assert ids.index("designEditorRotationScriptV1") < ids.index("designEditorCoverSpineToolsScriptV1")
     assert ("designEditorCoverModelScriptV1", "/js/design-editor/cover-model.js?v=20260823-1") in entries
     assert ("designEditorCoverModeBridgeScriptV1", "/js/design-editor/cover-mode-bridge.js?v=20260823-1") in entries
     assert ("designEditorCoverSettingsScriptV1", "/js/design-editor/cover-settings.js?v=20260823-1") in entries
+    assert ("designEditorCoverSpineToolsScriptV1", "/js/design-editor/cover-spine-tools.js?v=20260823-1") in entries
 
 
 def test_stage72_cover_bridge_starts_cover_preset_in_common_editor_and_restores_scoped_draft():
@@ -83,7 +85,7 @@ def test_stage72_cover_browser_smoke_checks_geometry_common_text_settings_and_sc
     source = COVER_HARNESS.read_text(encoding="utf-8")
     for marker in (
         "mode=cover&preset=cover-a4",
-        "ids.size===30&&latest.size===30",
+        "ids.size===31&&latest.size===31",
         "project.width===428.5&&project.height===297",
         "project.cover?.spine===8.5",
         "surface.folds[0]===210&&surface.folds[1]===218.5",
@@ -94,7 +96,8 @@ def test_stage72_cover_browser_smoke_checks_geometry_common_text_settings_and_sc
         "project.width===430.5&&project.height===297",
         "project.surfaces[0].folds?.[1]===220.5",
         "project.surfaces[0].elements?.[0]?.id===titleId",
-        "pass('unified cover settings resize spine and preserve common-editor content')",
+        "DesignEditorCoverSpineTools.addSpineTitle('center')",
+        "pass('unified cover settings, spine direction, safety and real render preserve common-editor content')",
     ):
         assert marker in source
 
@@ -104,16 +107,19 @@ def test_stage72_cover_runner_is_isolated_and_part_of_existing_browser_suite():
     suite = SUITE_RUNNER.read_text(encoding="utf-8")
     assert 'PROFILE_DIR="$(mktemp -d)"' in cover
     assert '--user-data-dir="$PROFILE_DIR"' in cover
-    assert "--virtual-time-budget=18000" in cover
+    assert "--virtual-time-budget=30000" in cover
     for marker in (
         'data-cover-width="430.5"',
         'data-cover-height="297"',
         'data-cover-spine="10.5"',
         'data-cover-folds="210,220.5"',
-        'data-cover-runtime="30"',
+        'data-cover-runtime="31"',
         'data-cover-page-count="200"',
         'data-cover-element-preserved="true"',
         'data-cover-draft-scope="cover-a4.210x297"',
+        'data-cover-spine-titles="1"',
+        'data-cover-spine-direction="bottomToTop"',
+        'data-cover-spine-ink="true"',
     ):
         assert marker in cover
     assert 'bash "$ROOT_DIR/scripts/run_design_editor_cover_smoke.sh"' in suite
