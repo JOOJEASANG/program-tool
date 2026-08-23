@@ -43,7 +43,7 @@ def test_stage72_cover_model_bridge_settings_and_spine_tools_are_first_class_run
     assert ids.index("designEditorRotationScriptV1") < ids.index("designEditorCoverSpineToolsScriptV1")
     assert ids.index("designEditorCoverSpineToolsScriptV1") < ids.index("designEditorCoverPreviewZonesScriptV1")
     assert ("designEditorCoverModelScriptV1", "/js/design-editor/cover-model.js?v=20260823-1") in entries
-    assert ("designEditorCoverModeBridgeScriptV1", "/js/design-editor/cover-mode-bridge.js?v=20260823-1") in entries
+    assert ("designEditorCoverModeBridgeScriptV1", "/js/design-editor/cover-mode-bridge.js?v=20260823-2") in entries
     assert ("designEditorCoverSettingsScriptV1", "/js/design-editor/cover-settings.js?v=20260823-1") in entries
     assert ("designEditorCoverSpineToolsScriptV1", "/js/design-editor/cover-spine-tools.js?v=20260823-1") in entries
     assert ("designEditorCoverPreviewZonesScriptV1", "/js/design-editor/cover-preview-zones.js?v=20260823-3") in entries

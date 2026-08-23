@@ -40,7 +40,7 @@ def test_design_editor_runtime_manifest_is_single_ordered_source_of_truth():
     assert paths[0] == "/js/design-editor/runtime-diagnostics.js?v=20260823-1"
     assert paths[1] == "/js/design-editor/phase5-draft-scope.js?v=20260823-4"
     assert paths[2] == "/js/design-editor/cover-model.js?v=20260823-1"
-    assert paths[3] == "/js/design-editor/cover-mode-bridge.js?v=20260823-1"
+    assert paths[3] == "/js/design-editor/cover-mode-bridge.js?v=20260823-2"
     assert paths[5] == "/js/design-editor/cover-settings.js?v=20260823-1"
     assert "/js/design-editor/cover-spine-tools.js?v=20260823-1" in paths
     assert "/js/design-editor/cover-preview-zones.js?v=20260823-3" in paths

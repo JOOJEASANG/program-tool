@@ -42,6 +42,7 @@ if ! grep -q 'data-exported-png-width="2551"' "$DOM_OUT" || ! grep -q 'data-expo
 
 echo "Design editor PNG browser smoke passed using $BROWSER"
 bash "$ROOT_DIR/scripts/run_design_editor_cover_smoke.sh"
+bash "$ROOT_DIR/scripts/run_design_editor_cover_mode_menu_smoke.sh"
 bash "$ROOT_DIR/scripts/run_design_editor_cover_project_smoke.sh"
 bash "$ROOT_DIR/scripts/run_design_editor_mode_shape_smoke.sh"
 bash "$ROOT_DIR/scripts/run_design_editor_user_flow_smoke.sh"
