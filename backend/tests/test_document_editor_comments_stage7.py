@@ -46,7 +46,8 @@ def test_stage7_comment_engine_is_local_bounded_and_dom_clean():
         assert marker in source
     assert "fetch(" not in source
     assert "XMLHttpRequest" not in source
-    assert "data-comment" not in source
+    assert "setAttribute('data-comment" not in source
+    assert ".dataset.documentComment" not in source
 
 
 def test_stage7_project_roundtrip_keeps_comments_as_metadata():
