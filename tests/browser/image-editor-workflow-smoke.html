@@ -24,7 +24,7 @@
     const assert=(condition,message)=>{if(!condition)throw new Error(message)};
     const waitFor=async(predicate,label,timeout=12000)=>{const started=Date.now();while(Date.now()-started<timeout){if(predicate())return;await new Promise(resolve=>setTimeout(resolve,40))}throw new Error('timeout: '+label)};
     try{
-      await waitFor(()=>window.ImageEditorApp&&window.ImageEditorWorkflow,'image workflow modules');
+      await waitFor(()=>window.ImageEditorApp&&window.ImageEditorWorkflow&&document.documentElement.dataset.imageEditorWorkflowReady==='1','image workflow ready');
       const api=window.ImageEditorApp,workflow=window.ImageEditorWorkflow;
       assert(document.documentElement.dataset.imageEditorWorkflowReady==='1','workflow ready marker missing');
 
