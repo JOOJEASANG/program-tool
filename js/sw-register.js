@@ -2,7 +2,7 @@
   if(window.__programStudioRuntimeBoot)return;
   window.__programStudioRuntimeBoot=true;
 
-  const VERSION='2026.08.23.001';
+  const VERSION='2026.08.23.002';
   const CACHE_PREFIX='program-studio-';
   const CLEANUP_KEY='program-studio-legacy-runtime-cleanup-'+VERSION;
   const currentPath=location.pathname.replace(/\/+$/,'')||'/';
@@ -187,7 +187,7 @@
         loadCatalogCore()
           .then(()=>load('homeProgramCatalogScriptV1','/js/home-program-catalog.js?v=20260808-1'))
           .then(()=>load('homePdfUtilityNameSyncScriptV1','/js/home-pdf-utility-name-sync.js?v=20260818-1'))
-          .then(()=>load('homeProfessionalSuiteScriptV1','/js/home-professional-suite.js?v=20260823-1'))
+          .then(()=>load('homeProfessionalSuiteScriptV1','/js/home-professional-suite.js?v=20260823-2'))
       );
       tasks.push(load('homeHeroUpgradeScript','/js/home-hero-upgrade.js?v='+VERSION));
       tasks.push(load('homeHeaderFooterRefineScript','/js/home-header-footer-refine.js?v='+VERSION));
