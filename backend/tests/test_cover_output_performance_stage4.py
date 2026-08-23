@@ -20,7 +20,7 @@ def test_output_budget_uses_integrated_design_editor_300dpi_dimensions():
         "function expectedOutputSpec(p)",
         "widthPx:Math.max(1,Math.round(widthMm*PX_PER_MM))",
         "heightPx:Math.max(1,Math.round(heightMm*PX_PER_MM))",
-        "if(pixels>MAX_PIXELS)",
+        "if(width*height>MAX_PIXELS)",
     ):
         assert marker in output
     assert "/design-editor/?mode=cover" in legacy
