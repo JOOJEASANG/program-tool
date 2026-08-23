@@ -8,7 +8,7 @@ BRIDGE = ROOT / "js" / "design-editor" / "embedded-runtime.js"
 REGISTER = ROOT / "js" / "sw-register.js"
 
 
-def test_unified_design_editor_defaults_to_general_cover_engine_without_outer_sidebar():
+def test_unified_design_editor_defaults_to_general_cover_engine_without_outer_sidebar_or_legacy_fallback():
     source = SHELL.read_text(encoding="utf-8")
     for marker in (
         "디자인 편집기",
@@ -20,30 +20,29 @@ def test_unified_design_editor_defaults_to_general_cover_engine_without_outer_si
         "3단 리플렛",
         "사용자 지정",
         'src="/design-editor/general?embed=1&mode=cover&preset=cover-a4"',
-        "single-sidebar-general-engine-shell",
+        "single-sidebar-general-engine-shell-no-legacy-fallback",
     ):
         assert marker in source
-    assert "legacyCoverFallback:'/perfect-binding-cover/?embed=1&mode=cover'" in source
+    assert "legacyCoverFallback:" not in source
     assert "studio-side" not in source
 
 
-def test_unified_shell_routes_mode_specific_editor_requests_from_one_frame():
+def test_unified_shell_routes_supported_default_modes_from_one_frame():
     source = SHELL.read_text(encoding="utf-8")
     for marker in (
         "cover-a4",
         "poster-a4",
-        "poster-a3",
         "flyer-a4",
-        "flyer-a5",
         "leaflet-2",
         "leaflet-3-roll",
-        "leaflet-3-z",
+        "custom",
         "orientation",
         "w:210,h:297",
-        "general.html?embed=1&preset=",
+        "return `/design-editor/general?${query.toString()}`",
         "program-studio-design-mode",
     ):
         assert marker in source
+    assert "general.html?embed=1&preset=" not in source
 
 
 def test_general_editor_is_preserved_as_the_shared_engine():
