@@ -71,9 +71,9 @@ def test_health_contract_requires_ok():
 
 def test_design_runtime_manifest_assets_are_unique_and_javascript():
     entries = smoke.design_editor_runtime_assets()
-    assert len(entries) == 30
-    assert len({script_id for script_id, _ in entries}) == 30
-    assert len({path for _, path in entries}) == 30
+    assert len(entries) == 31
+    assert len({script_id for script_id, _ in entries}) == 31
+    assert len({path for _, path in entries}) == 31
     smoke._require_javascript_asset(result("(function(){})();", headers={"content-type": "text/javascript; charset=utf-8"}, url="https://example.test/js/design-editor/test.js"))
     with pytest.raises(smoke.SmokeFailure, match="MIME"):
         smoke._require_javascript_asset(result("(function(){})();", headers={"content-type": "text/html"}))
