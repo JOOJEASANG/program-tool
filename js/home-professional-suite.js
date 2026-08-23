@@ -15,8 +15,8 @@
     },
     {
       id:'image-editor',name:'이미지 편집기',icon:'◐',accent:'#b65f8c',bg:'#fff0f6',
-      desc:'자르기, 크기 조절, 배경 제거와 기본 보정을 복잡한 메뉴 없이 빠르게 처리하는 이미지 작업 공간입니다.',
-      url:'',tags:['자르기','배경 제거','이미지 보정'],status:'coming',visible:true
+      desc:'자르기, 크기 조절, 회전·뒤집기와 기본 보정을 복잡한 메뉴 없이 빠르게 처리하는 이미지 작업 공간입니다.',
+      url:'image-editor/',tags:['자르기','크기 조절','이미지 보정'],status:'active',visible:true
     },
     {
       id:'document-editor',name:'문서 편집기',icon:'▤',accent:'#2878b8',bg:'#edf7ff',
@@ -70,6 +70,7 @@
   function managedUrl(item,base){
     const raw=String(item?.url==null?'':item.url).trim();
     if(base.id==='design-editor'&&(!raw||raw==='perfect-binding-cover/'||raw==='/perfect-binding-cover/'))return base.url;
+    if(base.status==='active'&&!raw)return base.url;
     return safeUrl(raw,base.url);
   }
 
@@ -89,7 +90,7 @@
         name:cleanText(item.name,base.name,80),
         desc:cleanText(item.desc,base.desc,500),
         url:managedUrl(item,base),
-        status:item.status==='active'?'active':'coming',
+        status:base.status==='active'||item.status==='active'?'active':'coming',
         visible:item.visible!==false,
         tags:[...base.tags]
       });
@@ -135,7 +136,7 @@
   function updateHeroExtras(){
     const hero=document.getElementById('hero');
     if(!hero)return;
-    const chips=['DESIGN','DOCUMENT','PDF'];
+    const chips=['DESIGN','IMAGE','PDF'];
     hero.querySelectorAll('.hero-float').forEach((node,index)=>{if(chips[index])node.textContent=chips[index]});
     const process=hero.querySelector('.hero-process');
     if(process)process.innerHTML='<span>작업 선택</span><b>→</b><span>간편 편집</span><b>→</b><span>전문 결과</span>';
