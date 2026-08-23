@@ -82,7 +82,7 @@ def test_design_editor_runtime_manifest_uses_sequential_loader_only():
     assert "tasks.push(loadSeries(DESIGN_EDITOR_RUNTIME_SCRIPTS))" in source
 
     general_start = source.index("if(isPath('/design-editor/general','/design-editor/general.html'))")
-    general_end = source.index("if(isPath(\n      '/tools/pdf-editor.html'", general_start)
+    general_end = source.index("if(isPath('/tools/pdf-editor.html'", general_start)
     general_block = source[general_start:general_end]
     for script_id, _ in _manifest_entries(source):
         assert f"load('{script_id}'" not in general_block
