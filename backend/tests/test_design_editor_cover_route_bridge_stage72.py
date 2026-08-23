@@ -19,14 +19,15 @@ def manifest_entries(source: str):
     return re.findall(r"\['([^']+)','([^']+)'\]", block.group(1))
 
 
-def test_stage72_shell_routes_cover_to_general_engine_and_keeps_legacy_fallback():
+def test_stage72_shell_routes_cover_to_general_engine_without_legacy_editor_fallback():
     source = SHELL.read_text(encoding="utf-8")
     general_cover = "/design-editor/general?embed=1&mode=cover&preset=cover-a4"
     assert f'src="{general_cover}"' in source
     assert f"if(mode==='cover')return '{general_cover}'" in source
     assert "cover:{mode:'cover',preset:'cover-a4'}" in source
-    assert "legacyCoverFallback:'/perfect-binding-cover/?embed=1&mode=cover'" in source
-    assert "/perfect-binding-cover/?embed=1&mode=cover" in source
+    assert "legacyCoverFallback" not in source
+    assert "single-sidebar-general-engine-shell-no-legacy-fallback" in source
+    assert "Retired compatibility URL only" in source
     assert (ROOT / "perfect-binding-cover" / "index.html").exists()
 
 
@@ -131,11 +132,10 @@ def test_stage72_cover_runner_is_isolated_and_part_of_existing_browser_suite():
     assert suite.index("run_design_editor_cover_smoke.sh") < suite.index("run_design_editor_pdf_smoke.sh")
 
 
-def test_stage72_old_cover_page_is_untouched_while_migration_continues():
+def test_stage72_old_cover_url_is_redirect_only_after_migration():
     legacy = (ROOT / "perfect-binding-cover" / "index.html").read_text(encoding="utf-8")
-    assert "id=\"pageCount\"" in legacy
-    assert "id=\"paperCaliper\"" in legacy
-    assert "id=\"spineDirection\"" in legacy
-    assert "id=\"pdfBtn\"" in legacy
-    assert "RGB" in legacy
+    assert "/design-editor/?mode=cover" in legacy
+    assert "target.searchParams.set('mode','cover')" in legacy
+    for old_control in ('id="pageCount"', 'id="paperCaliper"', 'id="spineDirection"', 'id="pdfBtn"', '<canvas'):
+        assert old_control not in legacy
     assert MODEL.exists() and BRIDGE.exists() and SETTINGS.exists()
