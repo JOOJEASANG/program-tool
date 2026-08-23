@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="/css/document-editor.css?v=20260823-1">
   <link rel="stylesheet" href="/css/document-editor-workflow.css?v=20260824-1">
   <link rel="stylesheet" href="/css/document-editor-usability.css?v=20260824-1">
+  <link rel="stylesheet" href="/css/document-editor-table-tools.css?v=20260824-1">
 </head>
 <body>
   <header class="app-header">
@@ -91,6 +92,21 @@
         <button id="insertTableBtn" class="wide" type="button">표 넣기</button>
       </section>
 
+      <section class="panel-card workflow-card table-tools-card">
+        <div class="panel-title">표 · 링크 편집</div>
+        <p class="help">문서 안의 표 셀을 클릭한 뒤 행·열을 편집할 수 있습니다.</p>
+        <div class="table-tool-grid">
+          <button id="tableAddRowBtn" type="button">행 아래 추가</button><button id="tableDeleteRowBtn" type="button">행 삭제</button>
+          <button id="tableAddColBtn" type="button">열 오른쪽 추가</button><button id="tableDeleteColBtn" type="button">열 삭제</button>
+        </div>
+        <button id="tableDeleteBtn" class="wide danger table-delete" type="button">표 전체 삭제</button>
+        <div class="link-tools">
+          <label>링크 주소<input id="linkUrl" type="text" maxlength="500" placeholder="example.com 또는 https://..."></label>
+          <div class="link-actions"><button id="applyLinkBtn" type="button">선택 글자에 링크</button><button id="unlinkBtn" type="button">링크 해제</button></div>
+        </div>
+        <div id="tableToolsState" class="workflow-note">표 셀을 선택하거나 링크를 적용할 글자를 선택하세요.</div>
+      </section>
+
       <section class="panel-card">
         <div class="panel-title">이미지 삽입</div>
         <p class="help">사진은 문서 안에 저장되도록 자동으로 적당한 크기로 줄입니다.</p>
@@ -133,7 +149,8 @@
   </main>
 
   <script src="/js/document-editor/app.js?v=20260823-1"></script>
-  <script src="/js/document-editor/workflow.js?v=20260824-1"></script>
+  <script src="/js/document-editor/workflow.js?v=20260824-2"></script>
   <script src="/js/document-editor/usability.js?v=20260824-1"></script>
+  <script src="/js/document-editor/table-tools.js?v=20260824-1"></script>
 </body>
 </html>
