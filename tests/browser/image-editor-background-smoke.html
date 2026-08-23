@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"><title>Image Editor Background Smoke</title></head>
+<body data-image-background-smoke="pending">
+  <div id="result">PENDING</div>
+  <iframe id="editor" src="/image-editor/" style="width:1100px;height:780px;border:0"></iframe>
+  <script>
+  (async()=>{
+    const result=document.getElementById('result'),frame=document.getElementById('editor');
+    const fail=error=>{document.body.dataset.imageBackgroundSmoke='fail';result.textContent='FAIL: '+String(error?.stack||error?.message||error)};
+    const pass=message=>{document.body.dataset.imageBackgroundSmoke='pass';result.textContent='PASS: '+message};
+    const assert=(condition,message)=>{if(!condition)throw new Error(message)};
+    const waitFor=async(predicate,label,timeout=12000)=>{const started=Date.now();while(Date.now()-started<timeout){if(predicate())return;await new Promise(resolve=>setTimeout(resolve,40))}throw new Error('timeout: '+label)};
+    try{
+      await waitFor(()=>frame.contentWindow?.ImageEditorApp,'ImageEditorApp');
+      const api=frame.contentWindow.ImageEditorApp;
+      const source=document.createElement('canvas');source.width=80;source.height=60;const ctx=source.getContext('2d');
+      ctx.fillStyle='#ffffff';ctx.fillRect(0,0,80,60);ctx.fillStyle='#cc3030';ctx.fillRect(20,15,40,30);
+      const blob=await new Promise(resolve=>source.toBlob(resolve,'image/png'));
+      await api.loadBlob(blob,'background-source.png');
+      const sampled=api.sampleBackgroundFromCorners();
+      assert(sampled&&sampled.r>245&&sampled.g>245&&sampled.b>245,'corner background sampling did not detect white');
+      const removed=api.removeBackground({color:sampled.hex,tolerance:12,feather:8});
+      assert(removed.removedPixels>2000,'white background removal removed too few pixels');
+      const png=api.renderOutput('image/png'),pngCtx=png.getContext('2d');
+      const corner=pngCtx.getImageData(2,2,1,1).data,center=pngCtx.getImageData(40,30,1,1).data;
+      assert(corner[3]===0,'PNG corner did not become transparent');
+      assert(center[3]===255&&center[0]>150&&center[1]<100,'subject pixels were incorrectly removed');
+      const exported=await api.exportBlob('image/png',.92);assert(exported.type==='image/png'&&exported.size>40,'transparent PNG export failed');
+      const jpeg=api.renderOutput('image/jpeg'),jpegCorner=jpeg.getContext('2d').getImageData(2,2,1,1).data;
+      assert(jpegCorner[3]===255&&jpegCorner[0]>245&&jpegCorner[1]>245&&jpegCorner[2]>245,'JPEG transparent area was not flattened to white');
+      assert(api.undo()===true,'background removal undo failed');
+      const restored=api.renderOutput('image/png').getContext('2d').getImageData(2,2,1,1).data;
+      assert(restored[3]===255&&restored[0]>245,'undo did not restore original white background');
+      const doc=frame.contentDocument;doc.getElementById('exportFormat').value='image/jpeg';doc.getElementById('exportFormat').dispatchEvent(new Event('change',{bubbles:true}));
+      assert(doc.getElementById('exportNote').textContent.includes('흰색'),'JPEG transparency guidance is missing');
+      document.body.dataset.backgroundSample=sampled.hex;document.body.dataset.backgroundRemoved=String(removed.removedPixels>2000);document.body.dataset.backgroundCornerAlpha=String(corner[3]);document.body.dataset.backgroundSubjectAlpha=String(center[3]);document.body.dataset.backgroundJpegWhite=String(jpegCorner[0]>245);document.body.dataset.backgroundUndo=String(restored[3]===255);document.body.dataset.backgroundStage=api.stage;
+      pass('corner sampling, single-color removal, transparent PNG, white JPEG flatten and undo');
+    }catch(error){fail(error)}
+  })();
+  </script>
+</body>
+</html>
