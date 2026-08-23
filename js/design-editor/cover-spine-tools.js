@@ -14,6 +14,7 @@
   const MM_PER_PT=25.4/72;
   let installed=false;
   let syncFrame=0;
+  let outputGuardInstalled=false;
 
   const byId=id=>document.getElementById(id);
   const clamp=(value,min,max)=>Math.max(min,Math.min(max,value));
@@ -21,11 +22,15 @@
   const surface=()=>project()?.surfaces?.find(item=>item.id===project()?.activeSurface)||project()?.surfaces?.[0]||null;
   const isCover=()=>project()?.designMode==='cover'&&project()?.cover;
 
+  function setStatus(message,type='info'){
+    const node=byId('editorStatus');if(!node)return;
+    node.className=`editor-status ${type}`;node.textContent=message;
+  }
   function normalizeDirection(value){return DIRECTIONS.includes(value)?value:'bottomToTop';}
   function spineEntries(){return (surface()?.elements||[]).filter(item=>item?.type==='text'&&item.coverRole==='spine-title');}
   function selectedSpineEntry(){
     const id=document.querySelector('.design-text.selected')?.dataset?.id;
-    return spineEntries().find(item=>item.id===id)||spineEntries()[0]||null;
+    return id?spineEntries().find(item=>item.id===id)||null:null;
   }
   function weightedCharacters(text){
     let units=0;
@@ -36,28 +41,39 @@
   }
   function centerX(){const p=project();return Number(p?.cover?.trimWidth||210)+Number(p?.cover?.spine||0)/2;}
   function zonePercent(entry){return Number(entry?.spineYPercent??ZONES[entry?.spineZone]??50);}
-  function estimateLengthMm(entry){return Math.max(1,weightedCharacters(entry?.text)*Math.max(5,Number(entry?.size)||10)*MM_PER_PT*.86);}
+  function fontHeightMm(entry){return Math.max(5,Number(entry?.size)||10)*MM_PER_PT*1.3;}
+  function estimateLengthMm(entry){
+    const size=Math.max(5,Number(entry?.size)||10);
+    const perUnit=size*MM_PER_PT*(normalizeDirection(entry?.spineDirection)==='vertical'?1.08:.86);
+    return Math.max(1,weightedCharacters(entry?.text)*perUnit);
+  }
+  function verticalColumnWidth(entry,spine){
+    const oneCharacter=Math.max(2.4,Math.max(5,Number(entry?.size)||10)*MM_PER_PT*.9);
+    return Math.max(.8,Math.min(Math.max(.8,spine*.72),oneCharacter));
+  }
 
   function placeEntry(entry){
     const p=project();if(!p?.cover||!entry)return entry;
     const spine=Math.max(0,Number(p.cover.spine)||0),trimH=Math.max(1,Number(p.cover.trimHeight)||Number(p.height)||297),direction=normalizeDirection(entry.spineDirection);
     entry.spineDirection=direction;
     entry.rotation=DIRECTION_ROTATION[direction];
-    entry.icon='none';entry.align='center';entry.coverRole='spine-title';entry.spineZone=entry.spineZone||'center';entry.spineYPercent=zonePercent(entry);
+    entry.icon='none';entry.align='center';entry.coverRole='spine-title';entry.spineZone=entry.spineZone||'center';entry.spineYPercent=clamp(zonePercent(entry),3,97);
     if(direction==='vertical'){
-      entry.w=Math.max(.8,spine*.72);
+      entry.w=verticalColumnWidth(entry,spine);
+      entry.lineHeight=1.05;
       entry.x=centerX()-entry.w/2;
       const length=estimateLengthMm(entry);
       entry.y=clamp(trimH*entry.spineYPercent/100-length/2,0,Math.max(0,trimH-length));
     }else{
       entry.w=Math.max(36,Math.min(trimH*.42,126));
+      entry.lineHeight=1.18;
       entry.x=centerX()-entry.w/2;
-      const fontMm=Math.max(5,Number(entry.size)||10)*MM_PER_PT*1.3;
-      entry.y=clamp(trimH*entry.spineYPercent/100-fontMm/2,0,Math.max(0,trimH-fontMm));
+      const height=fontHeightMm(entry);
+      entry.y=clamp(trimH*entry.spineYPercent/100-height/2,0,Math.max(0,trimH-height));
     }
     return entry;
   }
-  function placeAll(){spineEntries().forEach(placeEntry);return spineEntries();}
+  function placeAll(){const entries=spineEntries();entries.forEach(placeEntry);return entries;}
 
   function persist(source='cover-spine-tools'){
     const p=project();if(!p)return;
@@ -82,8 +98,17 @@
     placeEntry(entry);persist('cover-spine-add');rerender();return entry;
   }
   function setDirection(direction){
-    const entry=selectedSpineEntry();if(!entry)return false;
+    const entry=selectedSpineEntry();
+    if(!entry){setStatus('방향을 바꿀 책등 글자를 먼저 선택하세요.','info');return false;}
     entry.spineDirection=normalizeDirection(direction);project().cover.spineDirection=entry.spineDirection;placeEntry(entry);persist('cover-spine-direction');rerender();return true;
+  }
+  function captureDraggedPosition(){
+    const entry=selectedSpineEntry(),p=project();if(!entry||!p?.cover)return false;
+    const trimH=Math.max(1,Number(p.cover.trimHeight)||297);
+    const logicalHeight=normalizeDirection(entry.spineDirection)==='vertical'?estimateLengthMm(entry):fontHeightMm(entry);
+    const center=clamp((Number(entry.y)||0)+logicalHeight/2,0,trimH);
+    entry.spineYPercent=clamp(center/trimH*100,3,97);
+    placeEntry(entry);persist('cover-spine-position');rerender();return true;
   }
 
   function evaluateEntry(entry){
@@ -97,15 +122,26 @@
     else if(compression<.85){level='warn';label='문구 김';message='책등 문구가 약간 압축될 수 있습니다.';}
     else if(size<6){level='warn';label='작은 글자';message='인쇄 후 읽기 어려울 수 있습니다.';}
     const safePt=spine>0?Math.floor((spine*.72/MM_PER_PT)*2)/2:null;
-    return{entry,spine,trimH,size,ratio,natural,maxLength,compression,level,label,message,recommendedSize:safePt&&safePt<size?Math.max(5,safePt):null};
+    return{entry,spine,trimH,size,ratio,natural,maxLength,printedLength:Math.min(natural,maxLength),compression,level,label,message,recommendedSize:safePt&&safePt<size?Math.max(5,safePt):null};
+  }
+  function overlapWarnings(items){
+    const active=items.filter(item=>item.entry?.text&&item.level!=='empty');const overlaps=[];
+    for(let i=0;i<active.length;i++){
+      const left=active[i],leftCenter=left.trimH*zonePercent(left.entry)/100,leftStart=leftCenter-left.printedLength/2,leftEnd=leftCenter+left.printedLength/2;
+      for(let j=i+1;j<active.length;j++){
+        const right=active[j],rightCenter=right.trimH*zonePercent(right.entry)/100,rightStart=rightCenter-right.printedLength/2,rightEnd=rightCenter+right.printedLength/2;
+        const overlap=Math.min(leftEnd,rightEnd)-Math.max(leftStart,rightStart);if(overlap>2)overlaps.push({left:left.entry.id,right:right.entry.id,overlap});
+      }
+    }
+    return overlaps;
   }
   function evaluateAll(){
-    const items=spineEntries().map(evaluateEntry);const errors=items.filter(x=>x.level==='error').length,warnings=items.filter(x=>x.level==='warn').length;
+    const items=spineEntries().map(evaluateEntry),overlaps=overlapWarnings(items),errors=items.filter(x=>x.level==='error').length,warnings=items.filter(x=>x.level==='warn').length+overlaps.length;
     let level='ok',label='적합',message=`책등 글자 ${items.length}개가 현재 책등 폭에 맞습니다.`;
     if(!items.length){level='empty';label='문구 없음';message='책등 글자를 추가하면 방향과 인쇄 안전을 함께 검사합니다.';}
     else if(errors){level='error';label=`오류 ${errors}개`;message=items.find(x=>x.level==='error')?.message||'책등 글자를 확인하세요.';}
-    else if(warnings){level='warn';label=`주의 ${warnings}개`;message=items.find(x=>x.level==='warn')?.message||'책등 글자를 확인하세요.';}
-    return{items,errors,warnings,level,label,message};
+    else if(warnings){level='warn';label=`주의 ${warnings}개`;message=overlaps.length?`책등 글자 ${overlaps.length}쌍이 서로 겹칠 수 있습니다.`:(items.find(x=>x.level==='warn')?.message||'책등 글자를 확인하세요.');}
+    return{items,overlaps,errors,warnings,level,label,message};
   }
   function applyRecommendedSize(){
     let changed=0;
@@ -148,22 +184,37 @@
   function syncPanel(){
     if(!isCover())return;
     installCard();const selected=selectedSpineEntry(),direction=normalizeDirection(selected?.spineDirection||project()?.cover?.spineDirection);
-    byId(CARD_ID)?.querySelectorAll('[data-spine-direction]').forEach(button=>button.classList.toggle('on',button.dataset.spineDirection===direction));
+    byId(CARD_ID)?.querySelectorAll('[data-spine-direction]').forEach(button=>button.classList.toggle('on',Boolean(selected)&&button.dataset.spineDirection===direction));
     const evaluation=evaluateAll(),panel=byId('designCoverSpineSafety');if(panel){panel.dataset.level=evaluation.level;const badge=panel.querySelector('.cover-spine-safety-badge'),detail=panel.querySelector('.cover-spine-safety-detail');if(badge)badge.textContent=evaluation.label;if(detail)detail.textContent=evaluation.message;const fit=byId('designCoverSpineFit');if(fit)fit.disabled=!evaluation.items.some(item=>item.recommendedSize);}
   }
-  function queueSync(){if(syncFrame)return;syncFrame=requestAnimationFrame(()=>requestAnimationFrame(()=>{syncFrame=0;syncDom();syncPanel();}));}
+  function queueSync(){if(syncFrame)return;syncFrame=requestAnimationFrame(()=>requestAnimationFrame(()=>{syncFrame=0;syncDom();syncPanel();installOutputGuard();}));}
   function onGeometryChange(){if(!isCover())return;placeAll();persist('cover-spine-geometry');rerender();}
+  function installOutputGuard(){
+    if(outputGuardInstalled)return true;
+    const gate=window.DesignEditorFinalPrintCheck;
+    if(!gate||typeof gate.confirmBeforeOutput!=='function')return false;
+    if(gate.confirmBeforeOutput.__coverSpineSafetyGuard){outputGuardInstalled=true;return true;}
+    const original=gate.confirmBeforeOutput.bind(gate);
+    const wrapped=async options=>{
+      const evaluation=evaluateAll();syncPanel();
+      window.DesignEditorCoverSpineTools.lastEvaluation=evaluation;
+      if(evaluation.errors){setStatus(`책등 글자 인쇄 오류: ${evaluation.message}`,'err');return false;}
+      return original(options);
+    };
+    wrapped.__coverSpineSafetyGuard=true;wrapped.__delegate=original;gate.confirmBeforeOutput=wrapped;outputGuardInstalled=true;return true;
+  }
   function bindEvents(){
-    ['click','dblclick','input','change','pointerup'].forEach(name=>document.addEventListener(name,queueSync,false));
+    ['click','dblclick','input','change'].forEach(name=>document.addEventListener(name,queueSync,false));
+    document.addEventListener('pointerup',()=>{if(selectedSpineEntry())captureDraggedPosition();else queueSync();},false);
     window.addEventListener('programstudio:cover-geometry-change',onGeometryChange);
     window.addEventListener('resize',queueSync,{passive:true});
   }
   function install(){
     if(installed)return true;if(!isCover()||!document.querySelector('.sidebar')||!window.DesignEditorRotation)return false;
-    installed=true;installStyles();installCard();placeAll();bindEvents();syncDom();syncPanel();
-    window.DesignEditorCoverSpineTools={addSpineTitle,setDirection,placeEntry,placeAll,evaluateEntry,evaluateAll,applyRecommendedSize,normalizeDirection,directions:[...DIRECTIONS],stage:'common-text-spine-direction-and-print-safety'};
+    installed=true;installStyles();installCard();placeAll();bindEvents();syncDom();syncPanel();installOutputGuard();
+    window.DesignEditorCoverSpineTools={addSpineTitle,setDirection,placeEntry,placeAll,captureDraggedPosition,evaluateEntry,evaluateAll,overlapWarnings,applyRecommendedSize,normalizeDirection,installOutputGuard,directions:[...DIRECTIONS],lastEvaluation:null,stage:'unified-cover-spine-writing-and-print-safety'};
     return true;
   }
-  function boot(){if(install())return;[180,420,800,1400,2200,3200].forEach(delay=>setTimeout(install,delay));}
+  function boot(){if(install())return;[180,420,800,1300,2200,3200].forEach(delay=>setTimeout(()=>{install();installOutputGuard();},delay));}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
