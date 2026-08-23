@@ -5,11 +5,15 @@ import json
 ROOT = Path(__file__).resolve().parents[2]
 
 
+def version_tuple(value: str) -> tuple[int, int, int, int]:
+    parts = tuple(int(part) for part in str(value).split("."))
+    assert len(parts) == 4
+    return parts
+
+
 def test_image_editor_stage3_release_floor_and_runtime_assets_remain_available():
     version = json.loads((ROOT / "version.json").read_text(encoding="utf-8"))
-    prefix, revision = version["version"].rsplit(".", 1)
-    assert prefix == "2026.08.23"
-    assert int(revision) >= 3
+    assert version_tuple(version["version"]) >= (2026, 8, 23, 3)
 
     page = (ROOT / "image-editor" / "index.html").read_text(encoding="utf-8")
     workflow = (ROOT / "js" / "image-editor" / "workflow.js").read_text(encoding="utf-8")
