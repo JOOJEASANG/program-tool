@@ -2,10 +2,10 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-PORT="${DESIGN_EDITOR_BROWSER_SMOKE_PORT:-4173}"
+PORT="${DESIGN_EDITOR_PDF_SMOKE_PORT:-4174}"
 OUT_DIR="${DESIGN_EDITOR_BROWSER_SMOKE_OUT:-$ROOT_DIR/browser-smoke-artifacts}"
-DOM_OUT="$OUT_DIR/design-editor-smoke-dom.html"
-SERVER_LOG="$OUT_DIR/design-editor-smoke-server.log"
+DOM_OUT="$OUT_DIR/design-editor-pdf-smoke-dom.html"
+SERVER_LOG="$OUT_DIR/design-editor-pdf-smoke-server.log"
 mkdir -p "$OUT_DIR"
 
 find_browser() {
@@ -20,7 +20,7 @@ find_browser() {
 
 BROWSER="$(find_browser || true)"
 if [[ -z "$BROWSER" ]]; then
-  echo "Headless Chrome/Chromium executable not found." >&2
+  echo "Headless Chrome/Chromium executable not found for PDF smoke." >&2
   exit 1
 fi
 
@@ -32,7 +32,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-URL="http://127.0.0.1:$PORT/tests/browser/design-editor-smoke.html"
+URL="http://127.0.0.1:$PORT/tests/browser/design-editor-pdf-smoke.html"
 for _ in $(seq 1 50); do
   if python3 - "$URL" <<'PY' >/dev/null 2>&1
 import sys
@@ -53,12 +53,12 @@ done
   --no-sandbox \
   --disable-dev-shm-usage \
   --disable-background-networking \
-  --virtual-time-budget=30000 \
+  --virtual-time-budget=45000 \
   --dump-dom \
   "$URL" >"$DOM_OUT"
 
-if ! grep -q 'data-smoke-status="pass"' "$DOM_OUT"; then
-  echo "Design editor browser smoke failed." >&2
+if ! grep -q 'data-pdf-smoke-status="pass"' "$DOM_OUT"; then
+  echo "Design editor PDF browser smoke failed." >&2
   echo "----- Browser DOM -----" >&2
   cat "$DOM_OUT" >&2
   echo "----- HTTP server log -----" >&2
@@ -66,24 +66,24 @@ if ! grep -q 'data-smoke-status="pass"' "$DOM_OUT"; then
   exit 1
 fi
 
-if ! grep -q 'PASS: core edit, two-surface flow, real 300DPI render, real PNG export, fail-closed verification, full runtime manifest' "$DOM_OUT"; then
-  echo "Browser smoke completion marker is missing." >&2
+if ! grep -q 'PASS: two-surface real 300DPI PDF export orchestration' "$DOM_OUT"; then
+  echo "PDF browser smoke completion marker is missing." >&2
   cat "$DOM_OUT" >&2
   exit 1
 fi
 
-if ! grep -q 'data-rendered-width="2551"' "$DOM_OUT" || ! grep -q 'data-rendered-height="3579"' "$DOM_OUT"; then
-  echo "Real 300DPI render dimensions were not recorded." >&2
-  cat "$DOM_OUT" >&2
-  exit 1
-fi
+for marker in \
+  'data-pdf-pages="2"' \
+  'data-pdf-images="2"' \
+  'data-pdf-gate="pdf"' \
+  'data-pdf-profile="standard"' \
+  'data-pdf-width="2551"' \
+  'data-pdf-height="3579"'; do
+  if ! grep -q "$marker" "$DOM_OUT"; then
+    echo "PDF browser smoke marker missing: $marker" >&2
+    cat "$DOM_OUT" >&2
+    exit 1
+  fi
+done
 
-if ! grep -q 'data-exported-png-width="2551"' "$DOM_OUT" || ! grep -q 'data-exported-png-height="3579"' "$DOM_OUT" || ! grep -q 'data-exported-png-gate="png"' "$DOM_OUT"; then
-  echo "Real PNG export dimensions or final-print gate marker were not recorded." >&2
-  cat "$DOM_OUT" >&2
-  exit 1
-fi
-
-echo "Design editor PNG browser smoke passed using $BROWSER"
-bash "$ROOT_DIR/scripts/run_design_editor_pdf_smoke.sh"
-echo "Design editor browser smoke suite passed"
+echo "Design editor PDF browser smoke passed using $BROWSER"
