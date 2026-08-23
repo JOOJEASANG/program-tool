@@ -7,6 +7,7 @@
   <title>문서 편집기 | Program Studio</title>
   <meta name="description" content="A4 문서를 글·표·이미지와 함께 작성하고 자동 저장한 뒤 인쇄 또는 PDF로 저장하는 브라우저 문서 편집기">
   <link rel="stylesheet" href="/css/document-editor.css?v=20260823-1">
+  <link rel="stylesheet" href="/css/document-editor-workflow.css?v=20260824-1">
 </head>
 <body>
   <header class="app-header">
@@ -49,6 +50,23 @@
 
   <main class="workspace">
     <aside class="sidebar">
+      <section class="panel-card workflow-card">
+        <div class="panel-title">페이지 설정</div>
+        <div class="field-row workflow-fields">
+          <label>방향<select id="pageOrientation"><option value="portrait">세로</option><option value="landscape">가로</option></select></label>
+          <label>여백<select id="pageMargin"><option value="normal">보통</option><option value="narrow">좁게</option><option value="wide">넓게</option></select></label>
+        </div>
+        <div id="pageSetupState" class="workflow-note">A4 세로 · 보통 여백</div>
+      </section>
+
+      <section class="panel-card workflow-card">
+        <div class="panel-title">찾기 · 바꾸기</div>
+        <input id="findText" class="workflow-input" type="text" maxlength="120" placeholder="찾을 내용" aria-label="찾을 내용">
+        <input id="replaceText" class="workflow-input" type="text" maxlength="120" placeholder="바꿀 내용" aria-label="바꿀 내용">
+        <div class="workflow-actions"><button id="findNextBtn" type="button">찾기</button><button id="replaceAllBtn" type="button">모두 바꾸기</button></div>
+        <div id="findState" class="workflow-note">문서 본문에서 텍스트를 찾습니다.</div>
+      </section>
+
       <section class="panel-card">
         <div class="panel-title">표 삽입</div>
         <div class="field-row">
@@ -63,6 +81,15 @@
         <p class="help">사진은 문서 안에 저장되도록 자동으로 적당한 크기로 줄입니다.</p>
         <button id="insertImageBtn" class="wide" type="button">이미지 선택</button>
         <input id="imageInput" type="file" accept="image/png,image/jpeg,image/webp" hidden>
+      </section>
+
+      <section class="panel-card workflow-card">
+        <div class="panel-title">문서 파일</div>
+        <p class="help">자동 저장과 별도로 현재 문서를 파일로 보관하거나 다른 브라우저에서 다시 열 수 있습니다.</p>
+        <button id="projectExportBtn" class="wide" type="button">문서 파일 저장</button>
+        <button id="projectImportBtn" class="wide secondary" type="button">문서 파일 불러오기</button>
+        <input id="projectFileInput" type="file" accept="application/json,.json,.document.json" hidden>
+        <div id="projectState" class="workflow-note">Program Studio 문서 파일(.document.json)</div>
       </section>
 
       <section class="panel-card">
@@ -85,11 +112,12 @@
       </div>
       <footer class="status-bar">
         <span id="statusText">새 문서를 작성할 수 있습니다.</span>
-        <span><b id="wordCount">0</b>단어 · <b id="charCount">0</b>자 · A4</span>
+        <span><b id="wordCount">0</b>단어 · <b id="charCount">0</b>자 · <span id="pageMeta">A4 세로</span></span>
       </footer>
     </section>
   </main>
 
   <script src="/js/document-editor/app.js?v=20260823-1"></script>
+  <script src="/js/document-editor/workflow.js?v=20260824-1"></script>
 </body>
 </html>
