@@ -135,7 +135,7 @@ jobs:
   image-editor-browser-smoke:
     name: Image editor browser smoke
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 7
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
@@ -143,8 +143,10 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Run image editor Chrome smoke
-        run: bash scripts/run_image_editor_browser_smoke.sh
+      - name: Run image editor Chrome smokes
+        run: |
+          bash scripts/run_image_editor_browser_smoke.sh
+          bash scripts/run_image_editor_background_smoke.sh
 
       - name: Upload image editor diagnostics
         if: always()
