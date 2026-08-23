@@ -16,7 +16,8 @@ def test_stage81_real_user_flow_covers_image_edit_save_restore_and_outputs():
     for marker in (
         "canvas.toBlob(value=>value?resolve(value):reject(new Error('test PNG creation failed')),'image/png')",
         "new File([blob],'user-flow.png',{type:'image/png'})",
-        "imageInput.files=transfer.files",
+        "Object.defineProperty(imageInput,'files',{configurable:true,value:transfer.files})",
+        "imageInput.files?.[0]?.name==='user-flow.png'",
         "DesignEditorProjectFile.buildPortablePayload(project)",
         "portableImage?.src?.startsWith('data:image/webp;base64,')",
         "DesignEditorProjectFile.restorePortablePayload(payload,'browser-user-flow-smoke')",
