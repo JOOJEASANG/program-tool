@@ -34,6 +34,7 @@ def test_stage81_real_user_flow_covers_image_edit_save_restore_and_outputs():
 def test_stage81_new_project_restores_scope_before_user_can_edit():
     source = DRAFT_SCOPE.read_text(encoding="utf-8")
     for marker in (
+        "let startHookInstalled=false",
         "function installProjectStartHook()",
         "const originalStart=app.startProject.bind(app)",
         "app.startProject=(...args)=>{",
@@ -41,10 +42,11 @@ def test_stage81_new_project_restores_scope_before_user_can_edit():
         "const result=originalStart(...args)",
         "restoreCurrentScope()",
         "installProjectStartHook();restoreCurrentScope();",
-        "preset-trim-size-scoped-draft-recovery-start-race-safe",
+        "stage:'preset-trim-size-scoped-draft-recovery'",
     ):
         assert marker in source
-    assert source.index("const result=originalStart(...args)") < source.index("restoreCurrentScope()", source.index("app.startProject=(...args)=>{"))
+    start_hook = source.index("app.startProject=(...args)=>{")
+    assert source.index("const result=originalStart(...args)", start_hook) < source.index("restoreCurrentScope()", start_hook)
 
 
 def test_stage81_user_flow_uses_real_asset_and_portable_project_boundaries():
@@ -84,12 +86,17 @@ def test_stage81_restored_project_keeps_real_png_and_pdf_output_paths():
 
 def test_stage81_user_flow_runner_is_isolated_and_part_of_full_browser_suite():
     runner = RUNNER.read_text(encoding="utf-8")
+    harness = HARNESS.read_text(encoding="utf-8")
     suite = SUITE.read_text(encoding="utf-8")
     assert 'PROFILE_DIR="$(mktemp -d)"' in runner
     assert '--user-data-dir="$PROFILE_DIR"' in runner
     assert '--virtual-time-budget=60000' in runner
+    assert "/__design_user_flow_hold__" in runner
+    assert "time.sleep(8)" in runner
+    assert 'src="/__design_user_flow_hold__"' in harness
     for marker in (
         'data-user-flow-runtime="32"',
+        'data-user-flow-upload-handler="production-change-listener"',
         'data-user-flow-portable="true"',
         'data-user-flow-restored="true"',
         'data-user-flow-png="true"',
