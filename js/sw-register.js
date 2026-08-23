@@ -2,7 +2,7 @@
   if(window.__programStudioRuntimeBoot)return;
   window.__programStudioRuntimeBoot=true;
 
-  const VERSION='2026.08.24.006';
+  const VERSION='2026.08.24.007';
   const CACHE_PREFIX='program-studio-';
   const CLEANUP_KEY='program-studio-legacy-runtime-cleanup-'+VERSION;
   const currentPath=location.pathname.replace(/\/+$/,'')||'/';
@@ -207,6 +207,7 @@
       tasks.push(loadSeries(DESIGN_EDITOR_RUNTIME_SCRIPTS));
     }
     if(isPath('/tools/pdf-editor.html','/pdf-editor','/pdf-editor/index.html')){
+      tasks.push(load('programShellUnifyScriptV1','/js/program-shell-unify.js?v=20260824-1'));
       tasks.push(load('desktopToolMobileNoticeScriptV1','/js/desktop-tool-mobile-notice.js?v=20260807-1'));
       tasks.push(load('pdfEditorModuleLoaderScript','/js/pdf-editor/loader.js?v='+VERSION));
       tasks.push(load('pdfEditorTransferLimitGuardScriptV1','/js/pdf-editor/transfer-limit-guard.js?v=20260818-1'));
@@ -222,6 +223,7 @@
       tasks.push(load('pdfDividerLocalImageUploadScriptV1','/js/pdf-divider-local-image-upload.js?v=20260818-2'));
     }
     if(isPath('/tools/pdf-Checker.html','/tools/preflight.html','/pdf-preflight','/pdf-preflight/index.html')){
+      tasks.push(load('programShellUnifyScriptV1','/js/program-shell-unify.js?v=20260824-1'));
       const finalGuard=load('pdfCheckerFinalGuardScript','/js/pdf-checker-final-guard.js?v='+VERSION);
       const panelBalance=load('pdfPreflightPanelBalanceScript','/js/pdf-preflight-panel-balance.js?v='+VERSION);
       tasks.push(finalGuard);

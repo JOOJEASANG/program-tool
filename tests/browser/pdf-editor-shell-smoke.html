@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>PDF Editor Unified Shell Smoke</title>
+  <style>
+    :root{--nav-h:52px}*{box-sizing:border-box}body{margin:0;padding-top:var(--nav-h)}.top-nav{height:var(--nav-h)}.app{display:grid;grid-template-columns:360px 1fr;height:calc(100vh - var(--nav-h))}aside{padding:16px}
+  </style>
+  <script>history.replaceState(null,'','/pdf-editor/index.html?browser-shell-smoke=1');</script>
+</head>
+<body data-shell-smoke="pending">
+  <nav class="top-nav">
+    <a class="nav-back" href="/index.html">목록으로</a>
+    <div class="nav-title">PDF 문서 편집기</div>
+    <div class="nav-user">
+      <button id="navSessionBtn" style="display:none">편집 저장</button>
+      <button id="navSessionLoadBtn" style="display:none">편집 불러오기</button>
+      <span id="navUserName" class="nav-user-name">사용자</span>
+      <button id="navLogout" class="nav-logout">로그아웃</button>
+    </div>
+  </nav>
+  <div class="app"><aside><h1>PDF 문서 편집기</h1><div class="sub">PDF 편집 작업</div></aside><main></main></div>
+  <div id="result">PENDING</div>
+  <script src="/js/program-shell-unify.js?v=20260824-1"></script>
+  <script>
+    (async()=>{
+      const result=document.getElementById('result');
+      const assert=(value,message)=>{if(!value)throw new Error(message)};
+      const waitFor=async(predicate,label,timeout=3000)=>{const started=Date.now();while(Date.now()-started<timeout){if(predicate())return;await new Promise(resolve=>setTimeout(resolve,20));}throw new Error('timeout: '+label)};
+      try{
+        await waitFor(()=>document.body.dataset.programShell==='compact','compact shell');
+        assert(window.ProgramShellUnify?.stage==='pdf-tools-headerless-unified-shell','shell API missing');
+        assert(document.body.dataset.programKind==='pdf-editor','pdf editor kind missing');
+        assert(!document.querySelector('body > .top-nav'),'fixed top nav remained');
+        const bar=document.querySelector('.app > aside > .program-local-actions');
+        assert(bar&&bar===document.querySelector('.app > aside')?.firstElementChild,'local actions not moved to sidebar top');
+        assert(bar.querySelector('.nav-back')?.textContent.trim()==='← 홈','home action missing');
+        assert(bar.querySelector('#navSessionBtn')&&bar.querySelector('#navSessionLoadBtn'),'session actions lost');
+        assert(bar.querySelector('#navLogout'),'logout action lost');
+        assert(document.getElementById('navUserName'),'user node lost');
+        assert(getComputedStyle(document.body).paddingTop==='0px','body top padding remained');
+        document.body.dataset.shellSmoke='pass';
+        document.body.dataset.shellHeaderRemoved='true';
+        document.body.dataset.shellActionsPreserved='true';
+        result.textContent='PASS: PDF editor fixed header removed and actions preserved in workspace';
+      }catch(error){document.body.dataset.shellSmoke='fail';result.textContent='FAIL: '+String(error?.message||error)}
+    })();
+  </script>
+</body>
+</html>
