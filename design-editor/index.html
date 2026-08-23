@@ -12,9 +12,6 @@
 <body>
   <main id="unifiedDesignShell" class="studio" data-mode="cover">
     <!-- 작업 종류: 표지디자인 · 포스터 · 전단지 · 2단 리플렛 · 3단 리플렛 · 사용자 지정 -->
-    <!-- Legacy cover fallback retained until migration completes: /perfect-binding-cover/?embed=1&mode=cover -->
-    <!-- Legacy source-contract marker: src="../perfect-binding-cover/?embed=1&mode=cover" -->
-    <!-- Legacy source-contract marker: general.html?${query.toString()} -->
     <div id="loading" class="loading"><div><div class="spinner"></div>디자인 편집기를 불러오는 중...</div></div>
     <iframe id="editorFrame" class="editor-frame" title="디자인 편집 작업영역" src="/design-editor/general?embed=1&mode=cover&preset=cover-a4"></iframe>
   </main>
@@ -30,7 +27,6 @@
         leaflet3:{mode:'leaflet3',preset:'leaflet-3-roll',paper:'a4',orientation:'landscape',w:297,h:210,fold:'leaflet-3-roll'},
         custom:{mode:'custom',preset:'custom',paper:'custom',orientation:'portrait',w:210,h:297}
       };
-      // Preset markers retained for source-contract tests: poster-a3 flyer-a5 leaflet-3-z general.html?embed=1&preset=
       function safeMode(value){return Object.prototype.hasOwnProperty.call(DEFAULTS,value)?value:'cover';}
       function clampNumber(value,fallback){const n=Number(value);return Number.isFinite(n)?Math.max(80,Math.min(1000,n)):fallback;}
       function route(detail={}){
@@ -50,7 +46,7 @@
       });
       frame.addEventListener('load',()=>loading.classList.add('hide'));
       setTimeout(()=>loading.classList.add('hide'),2600);
-      window.UnifiedDesignShell={openMode,route,legacyCoverFallback:'/perfect-binding-cover/?embed=1&mode=cover',stage:'single-sidebar-general-engine-shell'};
+      window.UnifiedDesignShell={openMode,route,stage:'single-sidebar-general-engine-shell-no-legacy-fallback'};
     })();
   </script>
 </body>
