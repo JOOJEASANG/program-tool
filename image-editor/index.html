@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>이미지 편집기 | Program Studio</title>
+  <link rel="stylesheet" href="/css/image-editor.css?v=20260823-1">
+</head>
+<body>
+  <header class="app-header">
+    <a class="home-link" href="/" aria-label="홈으로">← 홈</a>
+    <div class="brand-block">
+      <strong>이미지 편집기</strong>
+      <span>자르기 · 크기 조절 · 회전 · 기본 보정</span>
+    </div>
+    <div class="header-actions">
+      <button id="undoBtn" class="ghost" type="button" disabled>실행 취소</button>
+      <button id="resetBtn" class="ghost" type="button" disabled>원본 복원</button>
+      <button id="exportBtn" class="primary" type="button" disabled>이미지 저장</button>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <aside class="sidebar" aria-label="이미지 편집 도구">
+      <section class="tool-card upload-card">
+        <div class="tool-title">이미지</div>
+        <button id="openBtn" class="wide secondary" type="button">이미지 불러오기</button>
+        <input id="fileInput" type="file" accept="image/png,image/jpeg,image/webp,image/gif,image/bmp" hidden>
+        <div id="fileMeta" class="meta">PNG, JPG, WebP 등 · 최대 60MP</div>
+      </section>
+
+      <section class="tool-card" data-requires-image>
+        <div class="tool-title">자르기</div>
+        <p class="help">미리보기에서 마우스로 영역을 드래그하거나 숫자로 정확히 지정할 수 있습니다.</p>
+        <div class="grid-four crop-fields">
+          <label>X<input id="cropX" type="number" min="0" step="1" value="0"></label>
+          <label>Y<input id="cropY" type="number" min="0" step="1" value="0"></label>
+          <label>가로<input id="cropW" type="number" min="1" step="1" value="1"></label>
+          <label>세로<input id="cropH" type="number" min="1" step="1" value="1"></label>
+        </div>
+        <div class="button-row">
+          <button id="squareCropBtn" type="button">정사각형</button>
+          <button id="fullCropBtn" type="button">전체</button>
+          <button id="applyCropBtn" class="accent" type="button">자르기 적용</button>
+        </div>
+      </section>
+
+      <section class="tool-card" data-requires-image>
+        <div class="tool-title">회전 · 뒤집기</div>
+        <div class="button-grid">
+          <button id="rotateLeftBtn" type="button">↶ 왼쪽 90°</button>
+          <button id="rotateRightBtn" type="button">↷ 오른쪽 90°</button>
+          <button id="flipHBtn" type="button">↔ 좌우 반전</button>
+          <button id="flipVBtn" type="button">↕ 상하 반전</button>
+        </div>
+      </section>
+
+      <section class="tool-card" data-requires-image>
+        <div class="tool-title">크기 조절</div>
+        <div class="size-row">
+          <label>가로 px<input id="resizeW" type="number" min="1" max="20000" step="1"></label>
+          <span>×</span>
+          <label>세로 px<input id="resizeH" type="number" min="1" max="20000" step="1"></label>
+        </div>
+        <label class="check"><input id="lockRatio" type="checkbox" checked> 비율 유지</label>
+        <button id="applyResizeBtn" class="wide" type="button">크기 적용</button>
+      </section>
+
+      <section class="tool-card" data-requires-image>
+        <div class="tool-title">기본 보정</div>
+        <label class="range-field">밝기 <output id="brightnessOut">100%</output><input id="brightness" type="range" min="20" max="180" value="100"></label>
+        <label class="range-field">대비 <output id="contrastOut">100%</output><input id="contrast" type="range" min="20" max="180" value="100"></label>
+        <label class="range-field">채도 <output id="saturationOut">100%</output><input id="saturation" type="range" min="0" max="200" value="100"></label>
+        <button id="resetAdjustBtn" class="wide" type="button">보정값 초기화</button>
+      </section>
+
+      <section class="tool-card export-card" data-requires-image>
+        <div class="tool-title">저장 설정</div>
+        <div class="export-row">
+          <label>형식<select id="exportFormat"><option value="image/png">PNG</option><option value="image/jpeg">JPEG</option><option value="image/webp">WebP</option></select></label>
+          <label>품질<input id="exportQuality" type="number" min="10" max="100" step="1" value="92"></label>
+        </div>
+        <button id="exportSideBtn" class="wide primary" type="button">편집 이미지 저장</button>
+      </section>
+    </aside>
+
+    <section class="stage-wrap">
+      <div id="dropZone" class="drop-zone" tabindex="0" role="button" aria-label="이미지를 끌어놓거나 클릭하여 불러오기">
+        <div id="emptyState" class="empty-state">
+          <div class="empty-icon">◐</div>
+          <strong>편집할 이미지를 놓아주세요</strong>
+          <span>클릭해서 파일을 선택할 수도 있습니다.</span>
+        </div>
+        <div id="canvasViewport" class="canvas-viewport" hidden>
+          <div class="canvas-shell">
+            <canvas id="previewCanvas" aria-label="이미지 미리보기"></canvas>
+            <div id="cropOverlay" class="crop-overlay" hidden></div>
+          </div>
+        </div>
+      </div>
+      <footer class="status-bar">
+        <span id="statusText">이미지를 불러오면 편집을 시작할 수 있습니다.</span>
+        <span id="dimensionText">—</span>
+      </footer>
+    </section>
+  </main>
+
+  <script src="/js/image-editor/app.js?v=20260823-1"></script>
+</body>
+</html>
