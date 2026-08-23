@@ -95,11 +95,15 @@
     const template=document.createElement('template');template.innerHTML=String(html||'');
     template.content.querySelectorAll('script,style,iframe,object,embed,link,meta,form,svg,math,video,audio,source,canvas').forEach(node=>node.remove());
     const allowed=new Set(['P','DIV','BR','H1','H2','H3','SPAN','B','STRONG','I','EM','U','FONT','A','UL','OL','LI','TABLE','TBODY','THEAD','TFOOT','TR','TD','TH','IMG','BLOCKQUOTE','HR','SUP','SUB']);
-    const allowedAttrs=new Set(['style','color','face','size','href','target','rel','colspan','rowspan','alt','src','width','height']);
+    const allowedAttrs=new Set(['style','color','face','size','href','target','rel','colspan','rowspan','alt','src','width','height','data-document-page-break']);
     [...template.content.querySelectorAll('*')].forEach(node=>{
       if(!allowed.has(node.tagName)){node.replaceWith(...node.childNodes);return;}
       [...node.attributes].forEach(attr=>{if(!allowedAttrs.has(attr.name.toLowerCase()))node.removeAttribute(attr.name);});
       if(node.hasAttribute('style')&&/(?:url\s*\(|expression\s*\(|@import)/i.test(node.getAttribute('style')||''))node.removeAttribute('style');
+      if(node.hasAttribute('data-document-page-break')){
+        if(node.tagName!=='DIV'||node.getAttribute('data-document-page-break')!=='true')node.removeAttribute('data-document-page-break');
+        else{node.removeAttribute('style');node.innerHTML='<br>';}
+      }
       if(node.tagName==='A'){
         const href=(node.getAttribute('href')||'').trim();
         if(!/^(?:https?:\/\/|mailto:)/i.test(href)){node.replaceWith(...node.childNodes);return;}
@@ -116,7 +120,9 @@
   }
   function buildProject(){
     const state=core()?.getState?.()||{};
-    return{format:PROJECT_FORMAT,version:PROJECT_VERSION,title:String(state.title||'제목 없는 문서').slice(0,100),html:String(state.html||'<p><br></p>'),page:{...pageSettings},exportedAt:new Date().toISOString()};
+    const project={format:PROJECT_FORMAT,version:PROJECT_VERSION,title:String(state.title||'제목 없는 문서').slice(0,100),html:String(state.html||'<p><br></p>'),page:{...pageSettings},exportedAt:new Date().toISOString()};
+    const printLayout=root.DocumentEditorPrintLayout?.getSettings?.();if(printLayout)project.printLayout=printLayout;
+    return project;
   }
   function serializeProject(){return JSON.stringify(buildProject(),null,2);}
   function ensureProjectSize(text){if(new Blob([text]).size>MAX_PROJECT_BYTES)throw new Error('문서 파일이 5MB를 초과합니다. 큰 이미지를 줄인 뒤 다시 저장해주세요.');}
@@ -135,9 +141,9 @@
     payload=validateProject(payload);
     const html=sanitizeDocumentHtml(payload.html);ensureProjectSize(JSON.stringify({...payload,html}));
     if($('documentTitle'))$('documentTitle').value=String(payload.title||'제목 없는 문서').slice(0,100)||'제목 없는 문서';
-    core()?.setContent?.(html,{save:false});applyPageSettings(payload.page||{}, {save:true});core()?.saveDraft?.();
-    setWorkflowNote('projectState','문서 파일을 불러왔습니다.','ok');setMainStatus('문서 파일의 내용과 페이지 설정을 복원했습니다.');
-    return{title:$('documentTitle')?.value||'',html:core()?.getContent?.()||'',page:{...pageSettings}};
+    core()?.setContent?.(html,{save:false});applyPageSettings(payload.page||{}, {save:true});root.DocumentEditorPrintLayout?.applySettings?.(payload.printLayout||{}, {save:true});root.DocumentEditorPrintLayout?.refreshPageBreaks?.();core()?.saveDraft?.();
+    setWorkflowNote('projectState','문서 파일을 불러왔습니다.','ok');setMainStatus('문서 파일의 내용과 페이지·인쇄 설정을 복원했습니다.');
+    return{title:$('documentTitle')?.value||'',html:core()?.getContent?.()||'',page:{...pageSettings},printLayout:root.DocumentEditorPrintLayout?.getSettings?.()||null};
   }
   function parseProject(text){ensureProjectSize(String(text||''));return validateProject(JSON.parse(String(text||'')));}
   async function importProjectFile(file){

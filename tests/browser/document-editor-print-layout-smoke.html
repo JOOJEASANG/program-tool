@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"><title>Document Editor Print Layout Smoke</title></head>
+<body data-document-print-smoke="pending">
+  <div id="result">PENDING</div>
+  <iframe id="editorFrame" src="/document-editor/" style="width:1200px;height:900px;border:0"></iframe>
+  <script>
+  (async()=>{
+    const result=document.getElementById('result'),frame=document.getElementById('editorFrame');
+    const fail=error=>{document.body.dataset.documentPrintSmoke='fail';result.textContent='FAIL: '+String(error?.stack||error?.message||error)};
+    const pass=message=>{document.body.dataset.documentPrintSmoke='pass';result.textContent='PASS: '+message};
+    const assert=(condition,message)=>{if(!condition)throw new Error(message)};
+    const waitFor=async(predicate,label,timeout=12000)=>{const started=Date.now();while(Date.now()-started<timeout){if(predicate())return;await new Promise(resolve=>setTimeout(resolve,40))}throw new Error('timeout: '+label)};
+    try{
+      await waitFor(()=>frame.contentWindow?.DocumentEditorApp&&frame.contentWindow?.DocumentEditorWorkflow&&frame.contentWindow?.DocumentEditorPrintLayout&&frame.contentDocument?.documentElement.dataset.documentEditorPrintLayoutReady==='1','document print layout ready');
+      const win=frame.contentWindow,doc=frame.contentDocument,core=win.DocumentEditorApp,workflow=win.DocumentEditorWorkflow,layout=win.DocumentEditorPrintLayout;
+      core.clearDraft();core.newDocument(true);layout.applySettings({header:'',footer:'',headerEnabled:false,footerEnabled:false});
+      core.setContent('<p id="first">첫 페이지 내용</p><p id="second">둘째 페이지 내용</p>',{save:false});
+      const first=doc.getElementById('first'),range=doc.createRange(),selection=win.getSelection();range.selectNodeContents(first);range.collapse(false);selection.removeAllRanges();selection.addRange(range);
+      assert(layout.insertPageBreak()===true,'page break insert failed');
+      let marker=doc.querySelector('[data-document-page-break="true"]');assert(marker,'page break marker missing');assert(marker.getAttribute('contenteditable')==='false','page break must be non-editable');
+
+      const applied=layout.applySettings({header:'2026 사업보고서',footer:'Program Studio',headerEnabled:true,footerEnabled:true});
+      assert(applied.headerEnabled&&applied.footerEnabled,'print settings were not enabled');
+      assert(doc.getElementById('documentPrintHeader').dataset.active==='true'&&doc.getElementById('documentPrintFooter').dataset.active==='true','running header/footer activation missing');
+      assert(doc.getElementById('documentPage').dataset.printHeader==='true'&&doc.getElementById('documentPage').dataset.printFooter==='true','page print padding flags missing');
+
+      const project=workflow.buildProject();
+      assert(project.printLayout?.header==='2026 사업보고서'&&project.printLayout?.footer==='Program Studio','project did not preserve print layout');
+      assert(project.html.includes('data-document-page-break="true"'),'project did not preserve page break');
+      const serialized=workflow.serializeProject();assert(serialized.includes('2026 사업보고서')&&serialized.includes('data-document-page-break'),'serialized project lost print metadata');
+
+      core.setContent('<p>초기화</p>',{save:false});layout.applySettings({header:'다른 머리말',footer:'',headerEnabled:false,footerEnabled:false});
+      const restored=workflow.restoreProject(project);marker=doc.querySelector('[data-document-page-break="true"]');
+      assert(marker&&marker.getAttribute('contenteditable')==='false','restored page break was not refreshed');
+      assert(restored.printLayout?.header==='2026 사업보고서'&&restored.printLayout?.footerEnabled===true,'restoreProject did not restore print settings');
+      assert(doc.getElementById('documentPrintHeader').textContent==='2026 사업보고서'&&doc.getElementById('documentPrintFooter').textContent==='Program Studio','running header/footer text not restored');
+
+      const safe=workflow.sanitizeDocumentHtml('<p>앞</p><div data-document-page-break="true" style="color:red">위조</div><p>뒤</p>'),probe=doc.createElement('div');probe.innerHTML=safe;
+      const safeMarker=probe.querySelector('[data-document-page-break="true"]');assert(safeMarker&&safeMarker.tagName==='DIV'&&!safeMarker.hasAttribute('style')&&safeMarker.textContent==='','valid page break was not normalized safely');
+      const invalid=workflow.sanitizeDocumentHtml('<span data-document-page-break="true">일반 글자</span>'),invalidProbe=doc.createElement('div');invalidProbe.innerHTML=invalid;
+      assert(!invalidProbe.querySelector('[data-document-page-break]')&&invalidProbe.textContent.includes('일반 글자'),'invalid page break attribute survived sanitizer');
+
+      assert(layout.removeAllPageBreaks()===1,'page break removal count is wrong');assert(!doc.querySelector('[data-document-page-break="true"]'),'page break survived removal');assert(core.getState().hasDraft===true,'print layout workflow was not autosaved');
+
+      document.body.dataset.pageBreakRoundtrip='true';
+      document.body.dataset.printHeader='true';
+      document.body.dataset.printFooter='true';
+      document.body.dataset.projectPrintLayout='true';
+      document.body.dataset.printSanitized='true';
+      document.body.dataset.documentPrintStage=layout.stage;
+      pass('page breaks, running print header/footer and project roundtrip');
+    }catch(error){fail(error)}
+  })();
+  </script>
+</body>
+</html>

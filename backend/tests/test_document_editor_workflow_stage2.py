@@ -23,7 +23,7 @@ def test_document_editor_stage2_exposes_page_find_and_project_controls():
         'id="projectImportBtn"',
         'id="projectFileInput"',
         '/css/document-editor-workflow.css?v=20260824-1',
-        '/js/document-editor/workflow.js?v=20260824-2',
+        '/js/document-editor/workflow.js?v=20260824-3',
     ):
         assert marker in page
     assert STYLE.exists()

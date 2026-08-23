@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="/css/document-editor-workflow.css?v=20260824-1">
   <link rel="stylesheet" href="/css/document-editor-usability.css?v=20260824-1">
   <link rel="stylesheet" href="/css/document-editor-table-tools.css?v=20260824-1">
+  <link rel="stylesheet" href="/css/document-editor-print-layout.css?v=20260824-1">
 </head>
 <body>
   <header class="app-header">
@@ -73,6 +74,16 @@
           <label>여백<select id="pageMargin"><option value="normal">보통</option><option value="narrow">좁게</option><option value="wide">넓게</option></select></label>
         </div>
         <div id="pageSetupState" class="workflow-note">A4 세로 · 보통 여백</div>
+      </section>
+
+      <section class="panel-card workflow-card print-layout-card">
+        <div class="panel-title">페이지 · 인쇄 설정</div>
+        <p class="help">현재 커서 위치에서 다음 내용을 새 페이지로 넘기거나 PDF 인쇄용 머리말·꼬리말을 지정할 수 있습니다.</p>
+        <div class="page-break-actions"><button id="insertPageBreakBtn" type="button">페이지 나누기</button><button id="removePageBreaksBtn" class="danger" type="button">나누기 모두 삭제</button></div>
+        <label class="print-layout-field">머리말<input id="printHeaderText" type="text" maxlength="120" placeholder="예: 2026년 사업보고서"></label>
+        <label class="print-layout-field">꼬리말<input id="printFooterText" type="text" maxlength="120" placeholder="예: Program Studio"></label>
+        <div class="print-toggle-row"><label><input id="printHeaderEnabled" type="checkbox"> 머리말 인쇄</label><label><input id="printFooterEnabled" type="checkbox"> 꼬리말 인쇄</label></div>
+        <div id="printLayoutState" class="workflow-note">인쇄 머리말·꼬리말을 사용하지 않습니다.</div>
       </section>
 
       <section class="panel-card workflow-card">
@@ -141,6 +152,8 @@
       <div class="page-viewport">
         <article id="documentPage" class="document-page" contenteditable="true" spellcheck="true" data-placeholder="여기에 문서 내용을 입력하세요."><p><br></p></article>
       </div>
+      <div id="documentPrintHeader" class="document-print-running" data-active="false" aria-hidden="true"></div>
+      <div id="documentPrintFooter" class="document-print-running" data-active="false" aria-hidden="true"></div>
       <footer class="status-bar">
         <span id="statusText">새 문서를 작성할 수 있습니다.</span>
         <span><b id="wordCount">0</b>단어 · <b id="charCount">0</b>자 · <span id="pageMeta">A4 세로</span></span>
@@ -149,8 +162,9 @@
   </main>
 
   <script src="/js/document-editor/app.js?v=20260823-1"></script>
-  <script src="/js/document-editor/workflow.js?v=20260824-2"></script>
+  <script src="/js/document-editor/workflow.js?v=20260824-3"></script>
   <script src="/js/document-editor/usability.js?v=20260824-1"></script>
   <script src="/js/document-editor/table-tools.js?v=20260824-1"></script>
+  <script src="/js/document-editor/print-layout.js?v=20260824-1"></script>
 </body>
 </html>
