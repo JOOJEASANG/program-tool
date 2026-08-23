@@ -122,6 +122,7 @@
     const state=core()?.getState?.()||{};
     const project={format:PROJECT_FORMAT,version:PROJECT_VERSION,title:String(state.title||'제목 없는 문서').slice(0,100),html:String(state.html||'<p><br></p>'),page:{...pageSettings},exportedAt:new Date().toISOString()};
     const printLayout=root.DocumentEditorPrintLayout?.getSettings?.();if(printLayout)project.printLayout=printLayout;
+    const projectComments=root.DocumentEditorComments?.getComments?.();if(projectComments?.length)project.comments=projectComments;
     return project;
   }
   function serializeProject(){return JSON.stringify(buildProject(),null,2);}
@@ -141,9 +142,9 @@
     payload=validateProject(payload);
     const html=sanitizeDocumentHtml(payload.html);ensureProjectSize(JSON.stringify({...payload,html}));
     if($('documentTitle'))$('documentTitle').value=String(payload.title||'제목 없는 문서').slice(0,100)||'제목 없는 문서';
-    core()?.setContent?.(html,{save:false});applyPageSettings(payload.page||{}, {save:true});root.DocumentEditorPrintLayout?.applySettings?.(payload.printLayout||{}, {save:true});root.DocumentEditorPrintLayout?.refreshPageBreaks?.();core()?.saveDraft?.();
-    setWorkflowNote('projectState','문서 파일을 불러왔습니다.','ok');setMainStatus('문서 파일의 내용과 페이지·인쇄 설정을 복원했습니다.');
-    return{title:$('documentTitle')?.value||'',html:core()?.getContent?.()||'',page:{...pageSettings},printLayout:root.DocumentEditorPrintLayout?.getSettings?.()||null};
+    core()?.setContent?.(html,{save:false});applyPageSettings(payload.page||{}, {save:true});root.DocumentEditorPrintLayout?.applySettings?.(payload.printLayout||{}, {save:true});root.DocumentEditorPrintLayout?.refreshPageBreaks?.();root.DocumentEditorComments?.importComments?.(payload.comments||[],{save:true});core()?.saveDraft?.();
+    setWorkflowNote('projectState','문서 파일을 불러왔습니다.','ok');setMainStatus('문서 파일의 내용과 페이지·인쇄 설정·메모를 복원했습니다.');
+    return{title:$('documentTitle')?.value||'',html:core()?.getContent?.()||'',page:{...pageSettings},printLayout:root.DocumentEditorPrintLayout?.getSettings?.()||null,comments:root.DocumentEditorComments?.getComments?.()||[]};
   }
   function parseProject(text){ensureProjectSize(String(text||''));return validateProject(JSON.parse(String(text||'')));}
   async function importProjectFile(file){
