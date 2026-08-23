@@ -20,8 +20,8 @@
     },
     {
       id:'document-editor',name:'문서 편집기',icon:'▤',accent:'#2878b8',bg:'#edf7ff',
-      desc:'한글 문서처럼 글·표·이미지를 편집하고 기관·학교·업무 문서를 정돈된 형식으로 완성합니다.',
-      url:'',tags:['문서 작성','표·이미지','PDF 출력'],status:'coming',visible:true
+      desc:'A4 문서에 글·표·이미지를 편집하고 자동 저장한 뒤 인쇄 또는 PDF로 완성하는 문서 작업 공간입니다.',
+      url:'document-editor/',tags:['문서 작성','표·이미지','PDF 출력'],status:'active',visible:true
     },
     {
       id:'pdf-editor',name:'PDF 편집기',icon:'PDF',accent:'#f08b32',bg:'#fff3e7',
@@ -136,7 +136,7 @@
   function updateHeroExtras(){
     const hero=document.getElementById('hero');
     if(!hero)return;
-    const chips=['DESIGN','IMAGE','PDF'];
+    const chips=['DESIGN','IMAGE','DOCUMENT'];
     hero.querySelectorAll('.hero-float').forEach((node,index)=>{if(chips[index])node.textContent=chips[index]});
     const process=hero.querySelector('.hero-process');
     if(process)process.innerHTML='<span>작업 선택</span><b>→</b><span>간편 편집</span><b>→</b><span>전문 결과</span>';
