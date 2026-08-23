@@ -75,6 +75,23 @@
       const input=$(inputId),out=$(outId);if(input&&out)out.value=`${input.value}%`;
     });
   }
+  function updateBackgroundOutputs(){
+    const tolerance=$('backgroundTolerance'),toleranceOut=$('backgroundToleranceOut'),feather=$('backgroundFeather'),featherOut=$('backgroundFeatherOut');
+    if(tolerance&&toleranceOut)toleranceOut.value=String(tolerance.value);
+    if(feather&&featherOut)featherOut.value=String(feather.value);
+  }
+  function updateExportControls(){
+    const format=$('exportFormat'),quality=$('exportQuality'),note=$('exportNote');if(!format)return;
+    const mime=format.value||'image/png';if(quality)quality.disabled=mime==='image/png';
+    if(!note)return;
+    if(mime==='image/jpeg'){
+      note.textContent='JPEG는 투명도를 지원하지 않아 투명 영역을 흰색으로 저장합니다.';note.dataset.tone='warn';
+    }else if(mime==='image/webp'){
+      note.textContent='WebP는 투명 배경을 유지하면서 파일 크기를 줄일 수 있습니다.';note.dataset.tone='success';
+    }else{
+      note.textContent='PNG는 투명 배경을 그대로 저장합니다.';note.dataset.tone='success';
+    }
+  }
   function syncCropFields(){
     const rect=currentRect();if(!rect)return;
     $('cropX').value=String(rect.x);$('cropY').value=String(rect.y);$('cropW').value=String(rect.w);$('cropH').value=String(rect.h);
@@ -128,6 +145,59 @@
   function syncAdjustInputs(){
     Object.entries(state.adjustments).forEach(([key,value])=>{const node=$(key);if(node)node.value=String(value)});updateAdjustOutputs();
   }
+  function componentHex(value){return clamp(round(value),0,255).toString(16).padStart(2,'0');}
+  function colorHex(color){return `#${componentHex(color.r)}${componentHex(color.g)}${componentHex(color.b)}`;}
+  function parseColor(value){
+    if(value&&typeof value==='object'&&Number.isFinite(Number(value.r))&&Number.isFinite(Number(value.g))&&Number.isFinite(Number(value.b))){
+      return{r:clamp(round(value.r),0,255),g:clamp(round(value.g),0,255),b:clamp(round(value.b),0,255)};
+    }
+    const match=String(value||'').trim().match(/^#?([0-9a-f]{6})$/i);if(!match)return null;
+    return{r:parseInt(match[1].slice(0,2),16),g:parseInt(match[1].slice(2,4),16),b:parseInt(match[1].slice(4,6),16)};
+  }
+  function sampleBackgroundFromCorners(options={}){
+    if(!state.base)return null;
+    const canvas=state.base,w=canvas.width,h=canvas.height,ctx=canvas.getContext('2d',{willReadFrequently:true});
+    const suggested=Math.max(2,round(Math.min(w,h)*.04));
+    const patch=clamp(round(options.patchSize)||suggested,2,Math.max(2,Math.min(24,w,h)));
+    const points=[[0,0],[Math.max(0,w-patch),0],[0,Math.max(0,h-patch)],[Math.max(0,w-patch),Math.max(0,h-patch)]];
+    let r=0,g=0,b=0,count=0;
+    for(const [x,y] of points){
+      const image=ctx.getImageData(x,y,Math.min(patch,w-x),Math.min(patch,h-y)).data;
+      for(let i=0;i<image.length;i+=4){if(image[i+3]<32)continue;r+=image[i];g+=image[i+1];b+=image[i+2];count++;}
+    }
+    const color=count?{r:round(r/count),g:round(g/count),b:round(b/count)}:{r:255,g:255,b:255};
+    return{...color,hex:colorHex(color),samples:count,patchSize:patch};
+  }
+  function syncBackgroundColorFromCorners(){
+    const sample=sampleBackgroundFromCorners(),input=$('backgroundColor'),note=$('backgroundStatus');if(!sample)return null;
+    if(input)input.value=sample.hex;
+    if(note){note.textContent=`모서리 기준 배경색 ${sample.hex.toUpperCase()}를 선택했습니다. 단색 배경에서 가장 정확합니다.`;note.dataset.tone='success';}
+    return sample;
+  }
+  function removeBackground(options={}){
+    if(!state.base)return null;
+    const target=parseColor(options.color||$('backgroundColor')?.value)||sampleBackgroundFromCorners()||{r:255,g:255,b:255,hex:'#ffffff'};
+    const tolerance=clamp(Number(options.tolerance??$('backgroundTolerance')?.value??30),0,120);
+    const feather=clamp(Number(options.feather??$('backgroundFeather')?.value??18),0,80);
+    pushHistory('배경 제거');
+    const ctx=state.base.getContext('2d',{willReadFrequently:true}),image=ctx.getImageData(0,0,state.base.width,state.base.height),data=image.data;
+    let removedPixels=0,softenedPixels=0;
+    for(let i=0;i<data.length;i+=4){
+      const alpha=data[i+3];if(alpha===0)continue;
+      const dr=data[i]-target.r,dg=data[i+1]-target.g,db=data[i+2]-target.b;
+      const distance=Math.sqrt((dr*dr+dg*dg+db*db)/3);
+      if(distance<=tolerance){data[i+3]=0;removedPixels++;continue;}
+      if(feather>0&&distance<tolerance+feather){
+        const factor=(distance-tolerance)/feather,newAlpha=clamp(round(alpha*factor),0,alpha);
+        if(newAlpha<alpha){data[i+3]=newAlpha;softenedPixels++;}
+      }
+    }
+    ctx.putImageData(image,0,0);renderPreview();setEnabled(true);updateExportControls();
+    const hex=colorHex(target),note=$('backgroundStatus');
+    if(note){note.textContent=`${hex.toUpperCase()} 계열 배경 ${removedPixels.toLocaleString()}px 제거${softenedPixels?` · 경계 ${softenedPixels.toLocaleString()}px 부드럽게 처리`:''}.`;note.dataset.tone=removedPixels?'success':'warn';}
+    setStatus(removedPixels?`배경 ${removedPixels.toLocaleString()}픽셀을 투명하게 처리했습니다.`:'선택한 색과 허용 범위에 해당하는 배경 픽셀이 없습니다.',removedPixels?'ok':'error');
+    return{color:hex,tolerance,feather,removedPixels,softenedPixels};
+  }
   async function decodeBlob(blob){
     if(!blob||!String(blob.type||'').startsWith('image/'))throw new Error('지원되는 이미지 파일을 선택해주세요.');
     if(typeof createImageBitmap==='function'){
@@ -148,7 +218,7 @@
       state.base=canvas;state.loaded=true;state.history=[];state.adjustments={brightness:100,contrast:100,saturation:100};
       if(!options.preserveOriginal){state.originalBlob=blob;state.originalName=String(name||'image').replace(/[\\/:*?"<>|]+/g,'_')||'image';}
       resetCrop();syncAdjustInputs();
-      $('emptyState').hidden=true;$('canvasViewport').hidden=false;updateMeta();renderPreview();
+      $('emptyState').hidden=true;$('canvasViewport').hidden=false;updateMeta();renderPreview();syncBackgroundColorFromCorners();updateExportControls();
       setStatus('이미지를 불러왔습니다. 미리보기에서 드래그하면 자를 영역을 지정할 수 있습니다.');
       return{width,height,name:state.originalName};
     }catch(error){setStatus(error.message||String(error),'error');throw error;}
@@ -248,7 +318,10 @@
     $('resizeH')?.addEventListener('input',()=>{if(ratioSync||!state.base||!$('lockRatio').checked)return;ratioSync=true;$('resizeW').value=String(Math.max(1,round(Number($('resizeH').value)*state.base.width/state.base.height)));ratioSync=false});
     $('applyResizeBtn')?.addEventListener('click',()=>{try{resize(Number($('resizeW').value),Number($('resizeH').value))}catch(error){setStatus(error.message||String(error),'error')}});
     ['brightness','contrast','saturation'].forEach(id=>$(id)?.addEventListener('input',()=>{state.adjustments[id]=Number($(id).value);updateAdjustOutputs();renderPreview()}));$('resetAdjustBtn')?.addEventListener('click',resetAdjustments);
-    $('exportFormat')?.addEventListener('change',()=>{$('exportQuality').disabled=$('exportFormat').value==='image/png'});
+    $('sampleBackgroundBtn')?.addEventListener('click',()=>syncBackgroundColorFromCorners());
+    ['backgroundTolerance','backgroundFeather'].forEach(id=>$(id)?.addEventListener('input',updateBackgroundOutputs));
+    $('removeBackgroundBtn')?.addEventListener('click',()=>removeBackground());
+    $('exportFormat')?.addEventListener('change',updateExportControls);
     root.addEventListener('resize',()=>requestAnimationFrame(renderCropOverlay),{passive:true});
     document.addEventListener('keydown',event=>{
       const mod=event.ctrlKey||event.metaKey;if(!mod)return;
@@ -256,14 +329,14 @@
     });
   }
   function boot(){
-    setEnabled(false);document.querySelectorAll('[data-requires-image]').forEach(node=>node.setAttribute('aria-disabled','true'));bindFileInput();bindControls();bindCropDrag();updateAdjustOutputs();if($('exportQuality'))$('exportQuality').disabled=true;document.documentElement.dataset.imageEditorReady='1';
+    setEnabled(false);document.querySelectorAll('[data-requires-image]').forEach(node=>node.setAttribute('aria-disabled','true'));bindFileInput();bindControls();bindCropDrag();updateAdjustOutputs();updateBackgroundOutputs();updateExportControls();document.documentElement.dataset.imageEditorReady='1';
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 
   root.ImageEditorApp={
-    loadBlob,loadFile,rotateLeft,rotateRight,flipHorizontal,flipVertical,setCrop,applyCrop,resize,setAdjustments,resetAdjustments,renderOutput,exportBlob,resetOriginal,undo,
+    loadBlob,loadFile,rotateLeft,rotateRight,flipHorizontal,flipVertical,setCrop,applyCrop,resize,setAdjustments,resetAdjustments,sampleBackgroundFromCorners,removeBackground,renderOutput,exportBlob,resetOriginal,undo,
     getState:()=>({loaded:state.loaded,width:state.base?.width||0,height:state.base?.height||0,crop:currentRect(),adjustments:{...state.adjustments},historyLength:state.history.length,name:state.originalName}),
     limits:{maxPixels:MAX_PIXELS},
-    stage:'image-editor-core-stage1'
+    stage:'image-editor-core-stage2-background'
   };
 })(window);
