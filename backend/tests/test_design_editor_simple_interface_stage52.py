@@ -9,16 +9,16 @@ REGISTER = ROOT / "js" / "sw-register.js"
 def test_simple_interface_loads_after_quick_design():
     source = REGISTER.read_text(encoding="utf-8")
     assert "designEditorSimpleInterfaceScriptV1" in source
-    assert "/js/design-editor/phase16-simple-interface.js?v=20260823-2" in source
+    assert "/js/design-editor/phase16-simple-interface.js?v=20260823-3" in source
     assert source.index("designEditorQuickDesignScriptV1") < source.index("designEditorSimpleInterfaceScriptV1")
 
 
-def test_simple_interface_runs_on_actual_general_editor_route():
+def test_simple_interface_runs_on_general_and_embedded_unified_editor_routes():
     source = SIMPLE.read_text(encoding="utf-8")
-    assert "path!=='/design-editor/general'" in source
-    assert "path!=='/design-editor/general.html'" in source
-    assert "path.endsWith('/design-editor/general.html')" in source
-    assert "path!=='/design-editor/index.html'" not in source
+    assert "const generalPath=path==='/design-editor/general'||path==='/design-editor/general.html'||path.endsWith('/design-editor/general.html')" in source
+    assert "const embedded=new URLSearchParams(location.search).get('embed')==='1'" in source
+    assert "const embeddedGeneralPath=embedded&&(path==='/design-editor/index.html'||path.endsWith('/design-editor/index.html'))" in source
+    assert "if(!generalPath&&!embeddedGeneralPath)return" in source
 
 
 def test_simple_interface_keeps_basic_tools_visible_and_groups_precision_tools():
