@@ -45,7 +45,7 @@
       try{
         await waitFor(()=>window.DesignEditorApp,'DesignEditorApp');
         await waitFor(()=>Array.isArray(window.ProgramStudioDesignEditorRuntimeManifest),'runtime manifest');
-        await waitFor(()=>{const {manifest,latest}=runtimeResultsForManifest();return manifest.length===30&&latest.size===manifest.length;},'all runtime manifest results');
+        await waitFor(()=>{const {manifest,latest}=runtimeResultsForManifest();return manifest.length===31&&latest.size===manifest.length;},'all runtime manifest results');
         const runtimeBoot=runtimeResultsForManifest();runtimeBoot.manifest.forEach(entry=>assert(runtimeBoot.latest.get(entry.id)?.status==='loaded',`runtime failed: ${entry.id}`));
         assert(window.DesignEditorCoverModel,'cover model runtime module did not load');
         await waitFor(()=>window.DesignEditorOutput,'DesignEditorOutput');await waitFor(()=>window.DesignEditorFinalPrintCheck,'DesignEditorFinalPrintCheck');
