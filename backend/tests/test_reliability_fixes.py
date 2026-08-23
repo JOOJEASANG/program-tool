@@ -31,13 +31,20 @@ def test_cover_templates_are_retired_and_do_not_query_provider_images() -> None:
     assert (ROOT / "firestore.indexes.json").exists()
 
 
-def test_cover_output_is_lossless_and_described_as_rgb_raster() -> None:
-    source = _read("perfect-binding-cover/index.html")
-    assert "300DPI RGB PDF" in source
-    assert "RGB 래스터 PDF" in source
-    assert "doc.addImage(out,'PNG'" in source
-    assert "toDataURL('image/jpeg'" not in source
-    assert "인쇄용 PDF 만들기" not in source
+def test_integrated_cover_output_supports_300dpi_rgb_and_lossless_pdf() -> None:
+    source = _read("js/design-editor/output.js")
+    legacy = _read("perfect-binding-cover/index.html")
+    assert "const DPI=300" in source
+    assert "300DPI PDF" in source
+    assert "현재 출력 색상은 RGB입니다." in source
+    assert "lossless:{id:'lossless'" in source
+    assert "canvas.toDataURL('image/png')" in source
+    assert "format:'PNG'" in source
+    assert "colorSpace:'RGB'" in source
+    assert "verifyRenderedSurface" in source
+    assert "verifyPdfDocument" in source
+    assert "/design-editor/?mode=cover" in legacy
+    assert "doc.addImage(out,'PNG'" not in legacy
 
 
 def test_csp_is_enforced_and_runtime_eval_is_absent() -> None:
