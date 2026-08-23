@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>Design Editor Cover Browser Smoke</title>
+  <style>
+    .hidden{display:none!important}body{font-family:Arial,sans-serif;margin:0;padding:12px}.sidebar{width:320px}.side-card{border:1px solid #ddd;padding:8px;margin:4px 0}#editorShell{display:grid;grid-template-columns:320px 1fr;gap:12px}#artboardViewport{width:1200px;height:700px;overflow:auto}#artboard{position:relative;background:#fff}.design-object{position:absolute}.editor-status{font-size:12px}
+  </style>
+  <script>
+    history.replaceState(null,'','/design-editor/general.html?browser-cover-smoke=1&embed=1&mode=cover&preset=cover-a4');
+    window.ProgramStudioBoot={reveal(){}};
+    window.__browserCoverRuntimeResults=[];
+    window.addEventListener('programstudio:runtime-script-result',event=>window.__browserCoverRuntimeResults.push(event.detail||{}));
+  </script>
+</head>
+<body data-cover-smoke-status="pending">
+  <div id="coverSmokeResult">PENDING</div><div id="authLoading"></div><span id="navUserName"></span><button id="logoutBtn" type="button">logout</button>
+  <main id="startScreen"><button id="resumeDraftBtn" class="hidden" type="button">resume</button><div id="presetGrid"></div><input id="customWidth" value="210"><input id="customHeight" value="297"><button id="customStartBtn" type="button">custom</button><button id="coverEditorBtn" type="button">cover</button></main>
+  <main id="editorShell" class="hidden">
+    <aside class="sidebar"><section class="side-card"><div id="documentTitle"></div><div id="documentMeta"></div><button id="newDesignBtn" type="button">new</button></section><section class="side-card"><button id="addTitleBtn" type="button">title</button><button id="addSubtitleBtn" type="button">subtitle</button><button id="addBodyBtn" type="button">body</button><button id="addInfoBtn" type="button">info</button></section><section id="inspector" class="side-card"></section><section class="side-card"><div id="layerList"></div></section></aside>
+    <section><div id="surfaceTabs"></div><div id="saveState"></div><div id="artboardViewport"><div id="artboard"></div></div><div class="editor-footer"><div id="editorStatus" class="editor-status"></div></div></section>
+  </main>
+  <script src="/js/design-editor/presets.js?v=20260821-1"></script><script src="/js/design-editor/app.js?v=20260821-1"></script><script src="/js/sw-register.js"></script>
+  <script>
+    (async()=>{
+      const result=document.getElementById('coverSmokeResult');
+      const fail=error=>{document.body.dataset.coverSmokeStatus='fail';result.textContent='FAIL: '+String(error?.stack||error?.message||error);};
+      const pass=message=>{document.body.dataset.coverSmokeStatus='pass';result.textContent='PASS: '+message;};
+      const assert=(condition,message)=>{if(!condition)throw new Error(message);};
+      const waitFor=async(predicate,label,timeout=12000)=>{const started=Date.now();while(Date.now()-started<timeout){if(predicate())return;await new Promise(resolve=>setTimeout(resolve,40));}throw new Error('timeout: '+label);};
+      const settle=()=>new Promise(resolve=>setTimeout(resolve,80));
+      try{
+        await waitFor(()=>window.DesignEditorApp,'DesignEditorApp');
+        await waitFor(()=>Array.isArray(window.ProgramStudioDesignEditorRuntimeManifest),'runtime manifest');
+        await waitFor(()=>{
+          const ids=new Set(window.ProgramStudioDesignEditorRuntimeManifest.map(entry=>entry.id));
+          const latest=new Map();(window.__browserCoverRuntimeResults||[]).forEach(entry=>{if(ids.has(entry?.id))latest.set(entry.id,entry);});
+          return ids.size===29&&latest.size===29&&[...latest.values()].every(entry=>entry.status==='loaded');
+        },'all runtime manifest results');
+        await waitFor(()=>window.DesignEditorCoverModel,'DesignEditorCoverModel');
+        await waitFor(()=>window.DesignEditorCoverModeBridge,'DesignEditorCoverModeBridge');
+        await waitFor(()=>window.DesignEditorEmbeddedRuntime,'DesignEditorEmbeddedRuntime');
+        await waitFor(()=>window.DesignEditorApp?.project?.presetId==='cover-a4','cover project');
+        await settle();
+
+        const project=DesignEditorApp.project;
+        assert(project.designMode==='cover','cover project lost designMode');
+        assert(project.width===428.5&&project.height===297,'default cover spread geometry changed');
+        assert(project.bleed===3&&project.safe===10,'cover bleed/safe defaults changed');
+        assert(project.cover?.spine===8.5,'default cover spine changed');
+        assert(project.cover?.pageCount===160&&project.cover?.paperCaliper===0.1&&project.cover?.bindingAdjust===0.5,'cover binding calculation inputs changed');
+        assert(project.surfaces?.length===1&&project.activeSurface==='cover','cover must remain one spread surface');
+        const surface=project.surfaces[0];
+        assert(surface.folds?.length===2&&surface.folds[0]===210&&surface.folds[1]===218.5,'back/spine/front boundaries changed');
+        assert(surface.panels?.[0]==='뒤표지'&&surface.panels?.[2]==='앞표지'&&surface.panels?.[1]?.includes('책등 8.5mm'),'cover panel labels changed');
+        assert(document.querySelectorAll('.surface-tab').length===1,'cover should expose one spread tab');
+        assert(document.querySelectorAll('.fold-guide').length===2,'cover boundary guides were not rendered');
+        assert(document.querySelectorAll('.panel-guide-label').length===3,'cover panel labels were not rendered');
+        assert(!document.getElementById('editorShell').classList.contains('hidden'),'cover editor shell did not open');
+
+        const coverModeButton=document.querySelector('[data-design-mode="cover"]');
+        assert(coverModeButton?.classList.contains('on'),'cover mode button is not active');
+        const coverNote=document.querySelector('#designEmbeddedModeCard .design-mode-note')?.textContent||'';
+        assert(coverNote.includes('뒤표지')&&coverNote.includes('책등')&&coverNote.includes('앞표지'),'cover mode note does not describe unified spread');
+
+        document.getElementById('addTitleBtn').click();await settle();
+        const input=document.getElementById('textContentInput');assert(input,'common text inspector did not open on cover');
+        input.value='통합 표지 제목';input.dispatchEvent(new Event('input',{bubbles:true}));await settle();
+        assert(project.surfaces[0].elements?.[0]?.text==='통합 표지 제목','common text editing did not update cover project');
+        assert(document.querySelector('.design-object')?.textContent.includes('통합 표지 제목'),'cover title was not rendered by common artboard');
+
+        const scope=window.DesignEditorDraftScope?.scopeForProject?.(project)||'';
+        assert(scope.startsWith('cover-a4.'),'cover draft does not have an isolated preset scope');
+        document.body.dataset.coverWidth=String(project.width);document.body.dataset.coverHeight=String(project.height);document.body.dataset.coverSpine=String(project.cover.spine);document.body.dataset.coverFolds=surface.folds.join(',');document.body.dataset.coverRuntime=String(window.ProgramStudioDesignEditorRuntimeManifest.length);
+        pass('unified cover spread boots in the general editor');
+      }catch(error){fail(error);}
+    })();
+  </script>
+</body>
+</html>
