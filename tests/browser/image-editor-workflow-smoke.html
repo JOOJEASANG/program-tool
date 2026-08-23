@@ -40,14 +40,12 @@
       assert(wide&&wide.x===0&&wide.y===6&&wide.w===120&&wide.h===68,'16:9 centered crop is wrong');
       crop=api.getState().crop;assert(crop.x===0&&crop.y===6&&crop.w===120&&crop.h===68,'16:9 crop did not reach editor state');
 
-      assert(await workflow.pasteImageBlob(blob,'clipboard-test.png')===true,'direct clipboard blob load failed');
-      let state=api.getState();assert(state.width===120&&state.height===80&&state.name==='clipboard-test.png','clipboard blob dimensions/name are wrong');
-
       let prevented=false;
       const fakeEvent={target:document.body,clipboardData:{items:[{type:'image/png',getAsFile:()=>blob}]},preventDefault(){prevented=true}};
       assert(await workflow.handlePaste(fakeEvent)===true,'paste event image import failed');
       assert(prevented===true,'image paste did not prevent default browser paste');
-      state=api.getState();assert(state.width===120&&state.height===80,'paste event lost image dimensions');
+      const state=api.getState();assert(state.width===120&&state.height===80&&state.name==='clipboard-image.png','paste event lost image dimensions/name');
+      assert(document.getElementById('clipboardStatus').textContent.includes('클립보드'),'clipboard status was not updated');
 
       const input=document.getElementById('cropX');
       assert(await workflow.handlePaste({target:input,clipboardData:{items:[{type:'image/png',getAsFile:()=>blob}]},preventDefault(){throw new Error('editable target paste must not be intercepted')}})===false,'editable control paste should be ignored');
