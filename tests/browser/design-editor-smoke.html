@@ -103,7 +103,7 @@
         },'all runtime manifest results');
 
         const runtimeBoot=runtimeResultsForManifest();
-        assert(runtimeBoot.manifest.length===31,'runtime manifest size changed without updating browser smoke contract');
+        assert(runtimeBoot.manifest.length===32,'runtime manifest size changed without updating browser smoke contract');
         runtimeBoot.manifest.forEach(entry=>{
           const event=runtimeBoot.latest.get(entry.id);
           assert(event?.status==='loaded',`runtime module failed: ${entry.id} (${event?.status||'missing-result'})`);
@@ -118,6 +118,7 @@
         await waitFor(()=>window.DesignEditorOutput,'DesignEditorOutput');
         await waitFor(()=>window.DesignEditorSimpleInterface,'DesignEditorSimpleInterface');
         await waitFor(()=>window.DesignEditorFinalPrintCheck,'DesignEditorFinalPrintCheck');
+        await waitFor(()=>window.DesignEditorEmbeddedPolish,'DesignEditorEmbeddedPolish');
         assert(window.DesignEditorCoverModel,'cover model runtime module did not load');
 
         assert(DesignEditorPresets.get('flyer-a4')?.surfaces?.length===2,'flyer-a4 preset must keep two surfaces');
@@ -130,6 +131,10 @@
         assert(project?.surfaces?.length===2,'A4 flyer surface count changed');
         assert(!document.getElementById('editorShell').classList.contains('hidden'),'editor shell did not open');
         assert(document.querySelectorAll('.surface-tab').length===2,'surface tabs were not rendered');
+        await waitFor(()=>document.querySelector('.sidebar')?.firstElementChild?.id==='designEmbeddedModeCard','design mode selector pinned first');
+        const modeCard=document.getElementById('designEmbeddedModeCard');
+        assert(modeCard&&getComputedStyle(modeCard).position==='sticky','design mode selector is not sticky at sidebar top');
+        assert(document.querySelector('.sidebar')?.dataset?.designModeCardPinned==='top','sidebar did not record top-pinned mode selector');
 
         document.getElementById('addTitleBtn').click();
         await settle();
@@ -143,6 +148,25 @@
         await settle();
         assert(project.surfaces[0].elements[0].text==='브라우저 자동검증 제목','text edit did not update project state');
         assert(document.querySelector('.design-object')?.textContent.includes('브라우저 자동검증 제목'),'text edit did not rerender artboard');
+
+        const titleNode=document.querySelector('.design-text.selected');
+        assert(titleNode,'selected title node is missing for mouse interaction smoke');
+        titleNode.dispatchEvent(new MouseEvent('contextmenu',{bubbles:true,cancelable:true,button:2,clientX:240,clientY:220,view:window}));
+        await settle();
+        const mouseMenu=document.getElementById('designEditorMouseContextMenu');
+        assert(mouseMenu&&!mouseMenu.hidden,'right-click context menu did not open');
+        assert(mouseMenu.textContent.includes('복제')&&mouseMenu.textContent.includes('삭제'),'right-click selected-element actions are incomplete');
+        const titleBeforeWheel=project.surfaces[0].elements[0];
+        const sizeBeforeWheel=Number(titleBeforeWheel.size),yBeforeWheel=Number(titleBeforeWheel.y);
+        titleNode.dispatchEvent(new WheelEvent('wheel',{bubbles:true,cancelable:true,ctrlKey:true,deltaY:-100}));
+        await settle();
+        assert(Number(titleBeforeWheel.size)===sizeBeforeWheel+1,'Ctrl+wheel did not increase selected text size');
+        document.querySelector('.design-text.selected')?.dispatchEvent(new WheelEvent('wheel',{bubbles:true,cancelable:true,altKey:true,deltaY:100}));
+        await settle();
+        assert(Number(titleBeforeWheel.y)>yBeforeWheel,'Alt+wheel did not nudge selected element');
+        document.body.dataset.modeSelectorTop=String(document.querySelector('.sidebar')?.firstElementChild?.id==='designEmbeddedModeCard');
+        document.body.dataset.mouseContext='selected';
+        document.body.dataset.mouseWheel='scale-nudge';
 
         const tabs=[...document.querySelectorAll('.surface-tab')];
         tabs[1].click();
