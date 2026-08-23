@@ -6,7 +6,8 @@ PDF_HTML = ROOT / "pdf-editor" / "index.html"
 PDF_LOADER = ROOT / "js" / "pdf-editor" / "loader.js"
 PDF_UPLOAD = ROOT / "js" / "pdf-editor" / "upload-fix.js"
 COVER_HTML = ROOT / "perfect-binding-cover" / "index.html"
-COVER_DOCK = ROOT / "js" / "cover-floating-action-dock.js"
+COVER_SETTINGS = ROOT / "js" / "design-editor" / "cover-settings.js"
+COVER_PREVIEW = ROOT / "js" / "design-editor" / "cover-preview-zones.js"
 SW_REGISTER = ROOT / "js" / "sw-register.js"
 
 
@@ -63,12 +64,15 @@ def test_cover_product_name_is_consistent_after_unified_editor_migration():
             assert name not in text, f"old product name remains in {path}: {name}"
 
 
-def test_cover_legacy_dock_source_remains_auditable_until_orphan_cleanup():
-    dock = COVER_DOCK.read_text(encoding="utf-8")
+def test_cover_ui_is_owned_by_integrated_editor_after_legacy_dock_cleanup():
+    settings = COVER_SETTINGS.read_text(encoding="utf-8")
+    preview = COVER_PREVIEW.read_text(encoding="utf-8")
     register = SW_REGISTER.read_text(encoding="utf-8")
-    assert "cover-floating-dock" in dock
-    assert "position:fixed!important" in dock
-    assert "sidebar.clientWidth - paddingLeft - paddingRight" in dock
-    assert "작업 메뉴" in dock
-    assert "화면 고정" in dock
-    assert "cover-floating-action-dock.js" in register
+    assert not (ROOT / "js" / "cover-floating-action-dock.js").exists()
+    assert "designCoverSettingsTools" in settings
+    assert "표지 규격 · 책등" in settings
+    assert "designCoverPreviewZoneTools" in preview
+    assert "뒤표지" in preview and "책등" in preview and "앞표지" in preview
+    assert "cover-floating-action-dock.js" not in register
+    assert "designEditorCoverSettingsScriptV1" in register
+    assert "designEditorCoverPreviewZonesScriptV1" in register

@@ -9,22 +9,26 @@ def _read(path: str) -> str:
     return (ROOT / path).read_text(encoding="utf-8")
 
 
-def test_cover_image_effects_use_the_shared_lexical_state() -> None:
-    source = _read("js/cover-editor-image-tools.js")
-    assert "typeof state==='undefined'" in source
-    assert "typeof window.state==='undefined'" not in source
+def test_legacy_cover_runtime_is_removed_and_integrated_cover_modules_remain() -> None:
+    for path in (
+        "js/cover-editor-image-tools.js",
+        "js/cover-template-manager.js",
+        "js/cover-runtime-safety.js",
+        "js/cover-output-performance-safety.js",
+    ):
+        assert not (ROOT / path).exists()
+    for path in (
+        "js/design-editor/cover-model.js",
+        "js/design-editor/cover-settings.js",
+        "js/design-editor/cover-spine-tools.js",
+        "js/design-editor/cover-preview-zones.js",
+        "js/cover-jspdf-loader.js",
+    ):
+        assert (ROOT / path).exists()
 
 
-def test_cover_templates_are_retired_and_do_not_query_provider_images() -> None:
-    source = _read("js/cover-template-manager.js")
+def test_retired_cover_template_collection_is_not_writable() -> None:
     rules = _read("firestore.rules")
-    assert "cover_templates" not in source
-    assert "collection.where('isPublic','==',true).orderBy('name')" not in source
-    assert "db.collection" not in source
-    assert "firebase.storage" not in source
-    assert "localStorage" not in source
-    assert "template-ui-retired" in source
-    assert "removeTemplateUi" in source
     assert "match /cover_templates/{templateId}" in rules
     assert "allow read, delete: if isAdmin();" in rules
     assert "allow create, update: if false;" in rules

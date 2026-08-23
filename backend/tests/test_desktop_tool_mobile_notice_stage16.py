@@ -8,23 +8,25 @@ REGISTER = ROOT / "js" / "sw-register.js"
 BEHAVIOR = ROOT / "backend" / "tests" / "test_desktop_tool_mobile_notice_behavior.cjs"
 
 
-def test_desktop_tool_mobile_notice_loads_for_both_desktop_tools_once():
+def test_desktop_tool_mobile_notice_loads_for_pdf_editor_once_and_not_retired_cover():
     source = REGISTER.read_text(encoding="utf-8")
     marker = "desktopToolMobileNoticeScriptV1"
     assert source.count(marker) == 1
     assert source.count("/js/desktop-tool-mobile-notice.js") == 1
     notice = source.index(marker)
     assert notice < source.index("pdfEditorModuleLoaderScript")
-    assert notice < source.index("perfectBindingFineControlsScript")
     for path in (
         "/tools/pdf-editor.html",
         "/pdf-editor",
         "/pdf-editor/index.html",
-        "/tools/perfect-binding-cover.html",
-        "/perfect-binding-cover",
-        "/perfect-binding-cover/index.html",
     ):
         assert path in source
+    for retired in (
+        "/tools/perfect-binding-cover.html",
+        "/perfect-binding-cover/index.html",
+        "perfectBindingFineControlsScript",
+    ):
+        assert retired not in source
 
 
 def test_desktop_tool_mobile_notice_is_nonblocking_and_does_not_touch_editors():

@@ -4,9 +4,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 VERSION = ROOT / "js" / "app-version.js"
 SW_REGISTER = ROOT / "js" / "sw-register.js"
-COVER_LOCAL = ROOT / "js" / "cover-local-image-upload.js"
+PHASE2 = ROOT / "js" / "design-editor" / "phase2.js"
+ASSET_STORE = ROOT / "js" / "design-editor" / "asset-store.js"
+LEGACY_COVER = ROOT / "perfect-binding-cover" / "index.html"
 PDF_LOCAL = ROOT / "js" / "pdf-divider-local-image-upload.js"
-SEPARATION = ROOT / "js" / "cover-template-admin-separation.js"
 FIRESTORE = ROOT / "firestore.rules"
 STORAGE = ROOT / "storage.rules"
 
@@ -17,44 +18,48 @@ RETIRED_SCRIPTS = (
     "admin-cover-template-manager.js",
     "cover-service-image-library.js",
     "cover-provided-image-library.js",
-    "pdf-divider-service-image-library.js",
+    "cover-local-image-upload.js",
+    "cover-template-admin-separation.js",
 )
 
 
-def test_admin_provided_image_scripts_are_removed_and_not_loaded():
+def test_admin_provided_image_and_legacy_cover_provider_scripts_are_removed_and_not_loaded():
     for filename in RETIRED_SCRIPTS:
         assert not (ROOT / "js" / filename).exists(), filename
 
     for source in (VERSION.read_text(encoding="utf-8"), SW_REGISTER.read_text(encoding="utf-8")):
-        assert "admin-service-image-library" not in source
-        assert "admin-service-console" not in source
-        assert "admin-cover-template-manager" not in source
-        assert "cover-service-image-library" not in source
-        assert "cover-provided-image-library" not in source
-        assert "pdf-divider-service-image-library" not in source
-        assert "/js/cover-local-image-upload.js?v=20260818-2" in source
-        assert "/js/cover-template-admin-separation.js?v=20260818-2" in source
-        assert "/js/pdf-divider-local-image-upload.js?v=20260818-2" in source
+        for token in (
+            "admin-service-image-library",
+            "admin-service-console",
+            "admin-cover-template-manager",
+            "cover-service-image-library",
+            "cover-provided-image-library",
+            "cover-local-image-upload",
+            "cover-template-admin-separation",
+        ):
+            assert token not in source
+    register = SW_REGISTER.read_text(encoding="utf-8")
+    assert "designEditorAssetStoreScriptV1" in register
+    assert "designEditorPhase2ScriptV1" in register
+    assert "/js/pdf-divider-local-image-upload.js?v=20260818-2" in register
 
 
-def test_cover_uses_only_user_selected_front_back_or_spread_images():
-    source = COVER_LOCAL.read_text(encoding="utf-8")
+def test_cover_uses_common_user_selected_image_pipeline_without_provider_library():
+    phase2 = PHASE2.read_text(encoding="utf-8")
+    store = ASSET_STORE.read_text(encoding="utf-8")
     for marker in (
-        "펼침 이미지 직접 업로드",
-        "사용 권한이 있는 이미지만 업로드",
-        "state.__localSpreadImage",
-        "state.__localSpreadName",
-        "loadImageFile(file)",
-        "drawImage(ctx, state.__localSpreadImage",
-        "if (state.backImage) drawImage",
-        "if (state.frontImage) drawImage",
-        "user-local-cover-images-only",
-        "이미지 저작권에 대해 저희는 책임을 지지 않습니다.",
+        'accept="image/jpeg,image/png,image/webp"',
+        "handleImageInput",
+        "prepareImage(file)",
+        "storePreparedImage",
+        "assetStore.storeBlob",
+        "file.size>12*1024*1024",
+        "image.naturalWidth*image.naturalHeight>50000000",
     ):
-        assert marker in source
-    assert "cover_templates" not in source
-    assert "service-image" not in source
-    assert "제공 이미지" not in source
+        assert marker in phase2
+    assert "IndexedDB" in store or "indexedDB" in store
+    for forbidden in ("cover_templates", "service-image", "제공 이미지", "관리자 제공"):
+        assert forbidden not in phase2
 
 
 def test_pdf_divider_uses_500mb_user_source_with_bounded_inline_embedding():
@@ -80,18 +85,16 @@ def test_pdf_divider_uses_500mb_user_source_with_bounded_inline_embedding():
     assert "관리자 제공" not in source
 
 
-def test_legacy_cover_provider_controls_are_removed_if_stale_markup_reappears():
-    source = SEPARATION.read_text(encoding="utf-8")
+def test_retired_cover_redirect_contains_no_stale_provider_controls():
+    source = LEGACY_COVER.read_text(encoding="utf-8")
     for marker in (
         "adminTemplateArea",
         "coverTemplateSelect",
         "coverProvidedImageLibraryPanel",
         "coverServiceImagePanel",
-        "removeLegacyProviderUi",
-        "legacy-provided-cover-images-removed",
     ):
-        assert marker in source
-    assert ".remove()" in source
+        assert marker not in source
+    assert "/design-editor/?mode=cover" in source
 
 
 def test_firebase_blocks_member_access_and_new_provider_uploads():

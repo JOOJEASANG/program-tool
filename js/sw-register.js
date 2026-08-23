@@ -206,13 +206,8 @@
     if(isPath('/design-editor/general','/design-editor/general.html')){
       tasks.push(loadSeries(DESIGN_EDITOR_RUNTIME_SCRIPTS));
     }
-    if(isPath(
-      '/tools/pdf-editor.html','/pdf-editor','/pdf-editor/index.html',
-      '/tools/perfect-binding-cover.html','/perfect-binding-cover','/perfect-binding-cover/index.html'
-    )){
-      tasks.push(load('desktopToolMobileNoticeScriptV1','/js/desktop-tool-mobile-notice.js?v=20260807-1'));
-    }
     if(isPath('/tools/pdf-editor.html','/pdf-editor','/pdf-editor/index.html')){
+      tasks.push(load('desktopToolMobileNoticeScriptV1','/js/desktop-tool-mobile-notice.js?v=20260807-1'));
       tasks.push(load('pdfEditorModuleLoaderScript','/js/pdf-editor/loader.js?v='+VERSION));
       tasks.push(load('pdfEditorTransferLimitGuardScriptV1','/js/pdf-editor/transfer-limit-guard.js?v=20260818-1'));
       tasks.push(load('pdfCropMarksScript','/js/pdf-editor/crop-marks.js?v=20260731-4'));
@@ -239,33 +234,6 @@
           .then(()=>load('pdfUtilityImageConverterScriptV1','/js/pdf-utility-image-converter.js?v=20260819-1'))
           .then(()=>load('pdfUtilityFinalizeScriptV1','/js/pdf-utility-finalize.js?v=20260818-3'))
       );
-    }
-    if(isPath('/tools/perfect-binding-cover.html','/perfect-binding-cover','/perfect-binding-cover/index.html')){
-      tasks.push(load('designEditorEmbeddedRuntimeScriptV1','/js/design-editor/embedded-runtime.js?v=20260821-1'));
-      tasks.push(load('coverLargeFilePolicyScriptV1','/js/cover-large-file-policy.js?v=20260818-1'));
-      tasks.push(load('perfectBindingFineControlsScript','/js/perfect-binding-cover-fine-controls.js?v='+VERSION));
-      tasks.push(load('coverTextZonesScriptV3','/js/cover-editor-text-zones-v2.js?v='+VERSION));
-      tasks.push(load('coverSpineOrientationControlsScriptV1','/js/cover-spine-orientation-controls.js?v=20260821-2'));
-      tasks.push(load('coverTextUiRefineScriptV4','/js/cover-text-ui-refine.js?v='+VERSION));
-      tasks.push(load('coverPreviewWorkspaceScriptV2','/js/cover-preview-workspace.js?v='+VERSION));
-      tasks.push(load('coverProjectStateBridgeScriptV1','/js/cover-project-state-bridge.js?v='+VERSION));
-      tasks.push(load('coverTemplateProjectSafetyScriptV2','/js/cover-template-project-safety.js?v=20260805-1'));
-      tasks.push(load('coverTemplateSurfaceCleanupScriptV1','/js/cover-template-surface-cleanup.js?v=20260806-1'));
-      tasks.push(load('coverImagePrintQualityScriptV1','/js/cover-image-print-quality.js?v=20260806-1'));
-      tasks.push(load('coverSpinePrintSafetyScriptV1','/js/cover-spine-print-safety.js?v=20260806-1'));
-      tasks.push(load('coverFinalOutputConfirmScriptV1','/js/cover-final-output-confirm.js?v=20260806-1'));
-      tasks.push(load('coverLayoutLockScriptV1','/js/cover-layout-lock.js?v=20260806-1'));
-      tasks.push(load('coverRecoveryCheckpointsScriptV1','/js/cover-recovery-checkpoints.js?v=20260806-1'));
-      tasks.push(load('coverFloatingActionDockScriptV2','/js/cover-floating-action-dock.js?v=20260806-1'));
-      tasks.push(load('coverUiRuntimeNormalizerScriptV1','/js/cover-ui-runtime-normalizer.js?v=20260805-1'));
-      tasks.push(load('coverOutputPerformanceSafetyScriptV1','/js/cover-output-performance-safety.js?v=20260805-1'));
-      tasks.push(load('coverRuntimeSafetyScriptV1','/js/cover-runtime-safety.js?v=20260805-1'));
-      tasks.push(load('coverTextCanvasControlsScriptV1','/js/cover-text-canvas-controls.js?v=20260806-1'));
-      tasks.push(load('coverEditHistoryScriptV1','/js/cover-edit-history.js?v=20260806-1'));
-      tasks.push(load('coverLocalImageUploadScriptV1','/js/cover-local-image-upload.js?v=20260818-2'));
-      tasks.push(load('coverRenderPipelineContractScriptV1','/js/cover-render-pipeline-contract.js?v=20260806-1'));
-      tasks.push(load('coverTemplateAdminSeparationScriptV1','/js/cover-template-admin-separation.js?v=20260818-2'));
-      tasks.push(load('coverPreviewTransparencyScriptV1','/js/cover-preview-transparency.js?v=20260821-1'));
     }
     return Promise.allSettled(tasks);
   }

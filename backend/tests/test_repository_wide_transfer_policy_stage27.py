@@ -6,7 +6,6 @@ from routers import pdf_utility as pdf_utility_router
 ROOT = Path(__file__).resolve().parents[2]
 SW_REGISTER = ROOT / "js" / "sw-register.js"
 APP_VERSION = ROOT / "js" / "app-version.js"
-COVER_POLICY = ROOT / "js" / "cover-large-file-policy.js"
 DIVIDER_UPLOAD = ROOT / "js" / "pdf-divider-local-image-upload.js"
 EDITOR_POLICY = ROOT / "js" / "pdf-editor" / "transfer-limit-guard.js"
 SESSION_SAVE = ROOT / "js" / "pdf-editor" / "session-save-safety.js"
@@ -46,13 +45,11 @@ def test_pdf_utility_large_storage_routes_use_disk_not_multi_file_memory_buffers
     assert "shutil.rmtree" in source
 
 
-def test_cover_source_upload_accepts_500mb_without_base64_source_copy():
-    source = COVER_POLICY.read_text(encoding="utf-8")
-    assert "MAX_SOURCE_BYTES = 500 * 1024 * 1024" in source
-    assert "MAX_DECODED_PIXELS = 50_000_000" in source
-    assert "URL.createObjectURL(file)" in source
-    assert "readAsDataURL(file)" not in source
-    assert "window.loadImageFile = loadImageFile500" in source
+def test_retired_cover_500mb_runtime_policy_is_removed():
+    assert not (ROOT / "js" / "cover-large-file-policy.js").exists()
+    for source in (SW_REGISTER.read_text(encoding="utf-8"), APP_VERSION.read_text(encoding="utf-8")):
+        assert "cover-large-file-policy.js" not in source
+        assert "coverLargeFilePolicyScriptV1" not in source
 
 
 def test_divider_source_upload_accepts_500mb_then_bounded_internal_embedding():
@@ -93,7 +90,6 @@ def test_storage_rules_allow_owner_staging_without_duplicate_program_gate():
         assert "allow create, update: if isOwner(userId) && isPdfUpload();" in block
         assert "canUseProgram(" not in block
 
-    # Program access is still enforced by the backend before any PDF operation.
     main = MAIN.read_text(encoding="utf-8")
     assert "require_program_access_for_request" in main
 
@@ -110,18 +106,19 @@ def test_persistent_pdf_sessions_are_not_accidentally_put_in_temp_lifecycle():
     assert '"pdf_sessions/"' not in lifecycle
 
 
-def test_both_runtime_loaders_apply_repo_wide_guards():
+def test_active_runtime_loaders_apply_pdf_transfer_guards_without_retired_cover_policy():
     sw = SW_REGISTER.read_text(encoding="utf-8")
     app = APP_VERSION.read_text(encoding="utf-8")
     markers = (
         "admin-program-catalog-nav-guard.js",
         "pdf-editor/transfer-limit-guard.js",
         "pdf-divider-local-image-upload.js?v=20260818-2",
-        "cover-large-file-policy.js",
     )
     for marker in markers:
         assert marker in sw
         assert marker in app
+    assert "cover-large-file-policy.js" not in sw
+    assert "cover-large-file-policy.js" not in app
 
 
 def test_admin_catalog_menu_has_late_dependency_recovery():
