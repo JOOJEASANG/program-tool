@@ -8,6 +8,7 @@ SUITE = ROOT / "scripts" / "run_design_editor_browser_smoke.sh"
 PHASE2 = ROOT / "js" / "design-editor" / "phase2.js"
 ASSET_STORE = ROOT / "js" / "design-editor" / "asset-store.js"
 PROJECT_FILE = ROOT / "js" / "design-editor" / "phase11-project-file.js"
+DRAFT_SCOPE = ROOT / "js" / "design-editor" / "phase5-draft-scope.js"
 OUTPUT = ROOT / "js" / "design-editor" / "output.js"
 
 
@@ -28,6 +29,22 @@ def test_stage81_real_user_flow_covers_image_edit_save_restore_and_outputs():
         "pass('image upload, edit, portable save, restore, PNG and PDF output')",
     ):
         assert marker in source
+
+
+def test_stage81_new_project_restores_scope_before_user_can_edit():
+    source = DRAFT_SCOPE.read_text(encoding="utf-8")
+    for marker in (
+        "function installProjectStartHook()",
+        "const originalStart=app.startProject.bind(app)",
+        "app.startProject=(...args)=>{",
+        "restoredScope=''",
+        "const result=originalStart(...args)",
+        "restoreCurrentScope()",
+        "installProjectStartHook();restoreCurrentScope();",
+        "preset-trim-size-scoped-draft-recovery-start-race-safe",
+    ):
+        assert marker in source
+    assert source.index("const result=originalStart(...args)") < source.index("restoreCurrentScope()", source.index("app.startProject=(...args)=>{"))
 
 
 def test_stage81_user_flow_uses_real_asset_and_portable_project_boundaries():
