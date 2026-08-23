@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"><title>Document Editor Smoke</title></head>
+<body data-document-editor-smoke="pending">
+  <div id="result">PENDING</div>
+  <iframe id="editorFrame" src="/document-editor/" style="width:1200px;height:900px;border:0"></iframe>
+  <script>
+  (async()=>{
+    const result=document.getElementById('result'),frame=document.getElementById('editorFrame');
+    const fail=error=>{document.body.dataset.documentEditorSmoke='fail';result.textContent='FAIL: '+String(error?.stack||error?.message||error)};
+    const pass=message=>{document.body.dataset.documentEditorSmoke='pass';result.textContent='PASS: '+message};
+    const assert=(condition,message)=>{if(!condition)throw new Error(message)};
+    const waitFor=async(predicate,label,timeout=12000)=>{const started=Date.now();while(Date.now()-started<timeout){if(predicate())return;await new Promise(resolve=>setTimeout(resolve,40))}throw new Error('timeout: '+label)};
+    try{
+      await waitFor(()=>frame.contentWindow?.DocumentEditorApp&&frame.contentDocument?.documentElement.dataset.documentEditorReady==='1','document editor ready');
+      const win=frame.contentWindow,doc=frame.contentDocument,api=win.DocumentEditorApp,page=doc.getElementById('documentPage');
+      api.clearDraft();api.newDocument(true);
+      doc.getElementById('documentTitle').value='회의 자료';
+      api.setContent('<p id="smokeText">문서 편집기 테스트 본문</p>',{save:false});
+      const textNode=doc.getElementById('smokeText').firstChild,range=doc.createRange(),selection=win.getSelection();range.selectNodeContents(textNode);selection.removeAllRanges();selection.addRange(range);
+      assert(api.format('bold')===true,'bold formatting command failed');
+      assert(page.querySelector('b,strong'),'bold formatting did not reach document DOM');
+
+      const endRange=doc.createRange();endRange.selectNodeContents(page);endRange.collapse(false);selection.removeAllRanges();selection.addRange(endRange);
+      api.insertTable(2,3);
+      const table=page.querySelector('table');assert(table&&table.rows.length===2&&table.rows[0].cells.length===3,'table insertion failed');
+
+      const imageRange=doc.createRange();imageRange.selectNodeContents(page);imageRange.collapse(false);selection.removeAllRanges();selection.addRange(imageRange);
+      const tinyPng='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
+      assert(api.insertImageDataUrl(tinyPng,'테스트 이미지')===true,'image insertion failed');
+      assert(page.querySelector('img[src^="data:image/png;base64,"]'),'image data URL missing');
+
+      assert(api.saveDraft()===true,'draft save failed');
+      const saved=api.getState();assert(saved.hasDraft&&saved.title==='회의 자료','saved document state is wrong');
+      api.setContent('<p>임시 내용</p>',{save:false});doc.getElementById('documentTitle').value='임시 제목';
+      assert(api.restoreDraft()===true,'draft restore failed');
+      const restored=api.getState();assert(restored.title==='회의 자료'&&restored.text.includes('문서 편집기 테스트 본문'),'draft text/title restore failed');
+      assert(page.querySelector('table')&&page.querySelector('img'),'draft did not restore table/image');
+
+      let printed=false;win.print=()=>{printed=true};assert(api.printDocument()===true&&printed,'print/PDF action was not called');
+      assert(api.newDocument(true)===true,'new document reset failed');
+      const fresh=api.getState();assert(fresh.title==='제목 없는 문서'&&!page.querySelector('table,img'),'new document did not clear content');
+
+      document.body.dataset.documentBold='true';
+      document.body.dataset.documentTable='2x3';
+      document.body.dataset.documentImage='true';
+      document.body.dataset.documentRestore='true';
+      document.body.dataset.documentPrint=String(printed);
+      document.body.dataset.documentStage=api.stage;
+      pass('edit, format, table, image, autosave restore, print and new document');
+    }catch(error){fail(error)}
+  })();
+  </script>
+</body>
+</html>
