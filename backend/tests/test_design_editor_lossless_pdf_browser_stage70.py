@@ -5,6 +5,7 @@ ROOT = Path(__file__).resolve().parents[2]
 HARNESS = ROOT / "tests" / "browser" / "design-editor-pdf-lossless-smoke.html"
 LOSSLESS_RUNNER = ROOT / "scripts" / "run_design_editor_pdf_lossless_smoke.sh"
 STANDARD_RUNNER = ROOT / "scripts" / "run_design_editor_pdf_smoke.sh"
+PNG_RUNNER = ROOT / "scripts" / "run_design_editor_browser_smoke.sh"
 
 
 def test_stage70_lossless_harness_uses_actual_lossless_profile_and_two_surface_export():
@@ -47,3 +48,11 @@ def test_stage70_standard_pdf_runner_chains_lossless_profile_smoke():
     assert 'bash "$ROOT_DIR/scripts/run_design_editor_pdf_lossless_smoke.sh"' in source
     assert source.index('data-pdf-profile="standard"') < source.index("run_design_editor_pdf_lossless_smoke.sh")
     assert "Design editor PDF profile smoke suite passed" in source
+
+
+def test_stage70_each_browser_output_smoke_uses_an_isolated_chrome_profile():
+    for path in (PNG_RUNNER, STANDARD_RUNNER, LOSSLESS_RUNNER):
+        source = path.read_text(encoding="utf-8")
+        assert 'PROFILE_DIR="$(mktemp -d)"' in source
+        assert '--user-data-dir="$PROFILE_DIR"' in source
+        assert 'rm -rf "$PROFILE_DIR"' in source
