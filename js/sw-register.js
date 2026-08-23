@@ -77,7 +77,7 @@
 
   const DESIGN_EDITOR_RUNTIME_SCRIPTS=Object.freeze([
     ['designEditorRuntimeDiagnosticsScriptV1','/js/design-editor/runtime-diagnostics.js?v=20260823-1'],
-    ['designEditorDraftScopeScriptV1','/js/design-editor/phase5-draft-scope.js?v=20260823-3'],
+    ['designEditorDraftScopeScriptV1','/js/design-editor/phase5-draft-scope.js?v=20260823-4'],
     ['designEditorCoverModelScriptV1','/js/design-editor/cover-model.js?v=20260823-1'],
     ['designEditorCoverModeBridgeScriptV1','/js/design-editor/cover-mode-bridge.js?v=20260823-1'],
     ['designEditorEmbeddedRuntimeScriptV1','/js/design-editor/embedded-runtime.js?v=20260821-1'],
@@ -96,7 +96,7 @@
     ['designEditorCloudProjectsScriptV1','/js/design-editor/phase24-cloud-projects.js?v=20260823-1'],
     ['designEditorRotationScriptV1','/js/design-editor/phase12-rotation.js?v=20260822-1'],
     ['designEditorCoverSpineToolsScriptV1','/js/design-editor/cover-spine-tools.js?v=20260823-1'],
-    ['designEditorCoverPreviewZonesScriptV1','/js/design-editor/cover-preview-zones.js?v=20260823-1'],
+    ['designEditorCoverPreviewZonesScriptV1','/js/design-editor/cover-preview-zones.js?v=20260823-2'],
     ['designEditorPrintQualityScriptV1','/js/design-editor/phase13-print-quality.js?v=20260822-1'],
     ['designEditorPrintSafetyScriptV1','/js/design-editor/phase14-print-safety.js?v=20260822-1'],
     ['designEditorFinalPrintCheckScriptV1','/js/design-editor/phase22-final-print-check.js?v=20260822-1'],

@@ -13,7 +13,9 @@ COVER_RUNNER = ROOT / "scripts" / "run_design_editor_cover_smoke.sh"
 def test_stage75_cover_preview_is_preview_only_and_tracks_three_cover_regions():
     source = PREVIEW.read_text(encoding="utf-8")
     for marker in (
-        "const DEFAULTS={visible:true,labels:true,safe:true,opacity:12,zoom:1}",
+        "const PREF_KEY='programTool.designEditor.coverPreviewZones.v2'",
+        "const DEFAULTS={visible:true,labels:true,safe:true,opacity:0,zoom:1}",
+        "var(--zone-opacity,0)",
         "zoneBox('back'",
         "zoneBox('spine'",
         "zoneBox('front'",
@@ -80,7 +82,7 @@ def test_stage75_runtime_manifest_and_real_browser_contract_include_preview_and_
     cover = COVER_HARNESS.read_text(encoding="utf-8")
     runner = COVER_RUNNER.read_text(encoding="utf-8")
     assert "designEditorCoverPreviewZonesScriptV1" in register
-    assert "/js/design-editor/cover-preview-zones.js?v=20260823-1" in register
+    assert "/js/design-editor/cover-preview-zones.js?v=20260823-2" in register
     assert "runtimeBoot.manifest.length===32" in general
     assert "firstElementChild?.id==='designEmbeddedModeCard'" in general
     assert "new MouseEvent('contextmenu'" in general
