@@ -1,2 +1,17 @@
 <!doctype html>
-<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="refresh" content="0;url=../perfect-binding-cover/"><title>책표지제작 이동</title><script>location.replace('../perfect-binding-cover/'+location.search+location.hash);</script></head><body><p>새 프로그램 주소로 이동합니다. <a href="../perfect-binding-cover/">책표지제작 열기</a></p></body></html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta http-equiv="refresh" content="0;url=/design-editor/?mode=cover">
+  <title>표지디자인 · 통합 디자인 편집기</title>
+  <script>
+    (function(){
+      const target=new URL('/design-editor/',location.origin);
+      target.searchParams.set('mode','cover');
+      location.replace(target.pathname+target.search+location.hash);
+    })();
+  </script>
+</head>
+<body><p>통합 디자인 편집기의 표지디자인으로 이동합니다. <a href="/design-editor/?mode=cover">표지디자인 열기</a></p></body>
+</html>

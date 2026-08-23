@@ -11,6 +11,16 @@
 
   const STYLE_ID='designEditorEmbeddedPolishStyles';
   const MENU_ID='designEditorMouseContextMenu';
+  const SHAPE_STROKE_MODE_ID='designShapeStrokeMode';
+  const COVER_ONLY_IDS=Object.freeze(['designCoverSettingsTools','designCoverSpineTools','designCoverPreviewZoneTools']);
+  const MODE_CAPABILITIES=Object.freeze({
+    cover:Object.freeze(['common','cover']),
+    poster:Object.freeze(['common']),
+    flyer:Object.freeze(['common']),
+    leaflet2:Object.freeze(['common','fold']),
+    leaflet3:Object.freeze(['common','fold']),
+    custom:Object.freeze(['common'])
+  });
   let installed=false;
   let refreshTimer=0;
   let sidebarObserver=null;
@@ -30,6 +40,7 @@
       html[data-design-embedded="1"] .start-screen{display:none!important}
       html[data-design-embedded="1"] #newDesignBtn{display:none!important}
       html[data-design-embedded="1"] .sidebar>#designEmbeddedModeCard{order:-9999!important;position:sticky!important;top:0!important;z-index:900!important;box-shadow:0 8px 18px rgba(15,23,42,.08)!important}
+      [data-design-capability][hidden]{display:none!important}
       .design-mode-btn.has-saved{position:relative;padding-right:12px!important}
       .design-mode-btn.has-saved::after{content:'';position:absolute;right:5px;top:5px;width:5px;height:5px;border-radius:50%;background:currentColor;opacity:.8}
       .design-mode-save-hint{display:flex;align-items:center;gap:5px;margin-top:6px;padding:5px 6px;border-radius:6px;background:#eef8f8;color:#0f6f78;font-size:7px;font-weight:850;line-height:1.35}
@@ -37,12 +48,14 @@
       .design-mouse-menu{position:fixed;z-index:12000;min-width:182px;padding:5px;border:1px solid #cbd5e1;border-radius:10px;background:#fff;box-shadow:0 16px 42px rgba(15,23,42,.24);font-size:8px;color:#334155}
       .design-mouse-menu[hidden]{display:none!important}.design-mouse-menu-title{padding:5px 7px 4px;color:#64748b;font-size:7px;font-weight:950}.design-mouse-menu-sep{height:1px;background:#e5e7eb;margin:4px 2px}
       .design-mouse-menu button{display:flex;width:100%;align-items:center;justify-content:space-between;gap:12px;border:0;border-radius:6px;background:#fff;padding:7px 8px;color:#334155;font-size:8px;font-weight:850;text-align:left;cursor:pointer}.design-mouse-menu button:hover{background:#f0f9ff;color:#0f6070}.design-mouse-menu button.danger{color:#b42318}.design-mouse-menu small{color:#94a3b8;font-size:6.5px;font-weight:700}
+      .design-shape-stroke-field{margin-top:7px}.design-shape-stroke-disabled{display:none!important}
     `;
     document.head.appendChild(style);
   }
 
   function modeForPreset(presetId){
     const id=String(presetId||'');
+    if(id==='cover-a4')return 'cover';
     if(id.startsWith('poster-'))return 'poster';
     if(id.startsWith('flyer-'))return 'flyer';
     if(id==='leaflet-2')return 'leaflet2';
@@ -58,8 +71,35 @@
   }
 
   function currentMode(){
+    const p=project();
+    const projectMode=String(p?.designMode||modeForPreset(p?.presetId)||'');
+    if(projectMode&&MODE_CAPABILITIES[projectMode])return projectMode;
     const button=document.querySelector('#designEmbeddedModeCard .design-mode-btn.on');
-    return button?.dataset.designMode||'';
+    const buttonMode=button?.dataset.designMode||'';
+    if(buttonMode&&MODE_CAPABILITIES[buttonMode])return buttonMode;
+    const queryMode=String(params.get('mode')||'');
+    return MODE_CAPABILITIES[queryMode]?queryMode:'custom';
+  }
+
+  function supportsCapability(capability,mode=currentMode()){
+    return (MODE_CAPABILITIES[mode]||MODE_CAPABILITIES.custom).includes(capability);
+  }
+
+  function syncCapabilityVisibility(){
+    const mode=currentMode();
+    document.documentElement.dataset.activeDesignMode=mode;
+    COVER_ONLY_IDS.forEach(id=>{
+      const node=byId(id);if(!node)return;
+      node.dataset.designCapability='cover';
+    });
+    document.querySelectorAll('[data-design-capability]').forEach(node=>{
+      const required=String(node.dataset.designCapability||'common').split(/\s+/).filter(Boolean);
+      const visible=required.some(capability=>supportsCapability(capability,mode));
+      node.hidden=!visible;
+      node.setAttribute('aria-hidden',visible?'false':'true');
+    });
+    const sidebar=document.querySelector('.sidebar');if(sidebar)sidebar.dataset.activeDesignMode=mode;
+    return mode;
   }
 
   function keepModeCardFirst(){
@@ -77,7 +117,7 @@
   function observeSidebar(){
     const sidebar=document.querySelector('.sidebar');
     if(!sidebar||typeof MutationObserver!=='function'||sidebarObserver)return;
-    sidebarObserver=new MutationObserver(()=>requestAnimationFrame(()=>{keepModeCardFirst();decorateModeCard();}));
+    sidebarObserver=new MutationObserver(()=>requestAnimationFrame(()=>{keepModeCardFirst();decorateModeCard();syncCapabilityVisibility();syncShapeStrokeControls();applyShapeStrokeVisuals();}));
     sidebarObserver.observe(sidebar,{childList:true});
   }
 
@@ -100,6 +140,89 @@
     }else if(!hasCurrent&&hint){
       hint.remove();
     }
+    return true;
+  }
+
+  function activeSurface(){
+    const p=project();if(!p)return null;
+    return p.surfaces?.find(item=>item.id===p.activeSurface)||p.surfaces?.[0]||null;
+  }
+
+  function selectedShape(){
+    const id=document.querySelector('.phase2-extra-object.selected')?.dataset?.extraId;
+    if(!id)return null;
+    return activeSurface()?.extras?.find(item=>item.id===id&&item.type==='shape')||null;
+  }
+
+  function persistShapeStyle(source='shape-stroke-mode'){
+    const p=project();if(!p)return;
+    try{localStorage.setItem('programTool.designEditor.draft.v1',JSON.stringify(p));}catch(_){}
+    window.DesignEditorDraftScope?.saveCurrent?.(source);
+  }
+
+  function applyShapeStrokeVisuals(){
+    const surface=activeSurface();if(!surface)return false;
+    document.querySelectorAll('.phase2-extra-object[data-extra-id]').forEach(node=>{
+      const item=surface.extras?.find(entry=>entry.id===node.dataset.extraId&&entry.type==='shape');
+      if(!item||item.shape==='line')return;
+      const inner=node.querySelector('.phase2-shape-inner');if(!inner)return;
+      const enabled=item.strokeEnabled!==false;
+      node.dataset.strokeEnabled=String(enabled);
+      if(!enabled)inner.style.border='none';
+    });
+    return true;
+  }
+
+  function syncShapeStrokeControls(){
+    const root=byId('inspector'),item=selectedShape();if(!root)return false;
+    const oldField=byId(`${SHAPE_STROKE_MODE_ID}Field`);
+    const strokeControls=[...root.querySelectorAll('[data-extra-field="stroke"]')];
+    strokeControls.forEach(control=>{const field=control.closest('.field');if(field)field.hidden=false;});
+    const widthControl=root.querySelector('[data-extra-field="strokeWidth"]');
+    if(widthControl?.closest('.field'))widthControl.closest('.field').hidden=false;
+
+    if(!item){oldField?.remove();return false;}
+    if(item.shape==='line'){
+      oldField?.remove();
+      strokeControls.slice(1).forEach(control=>{const field=control.closest('.field');if(field)field.hidden=true;});
+      return true;
+    }
+
+    let field=oldField;
+    if(!field){
+      field=document.createElement('div');field.id=`${SHAPE_STROKE_MODE_ID}Field`;field.className='field design-shape-stroke-field';
+      field.innerHTML=`<label for="${SHAPE_STROKE_MODE_ID}">테두리</label><select id="${SHAPE_STROKE_MODE_ID}"><option value="on">있음</option><option value="none">없음</option></select>`;
+      const strokeField=strokeControls[0]?.closest('.field');
+      if(strokeField?.parentElement)strokeField.parentElement.insertBefore(field,strokeField);else root.appendChild(field);
+      byId(SHAPE_STROKE_MODE_ID)?.addEventListener('change',event=>{
+        const current=selectedShape();if(!current||current.shape==='line')return;
+        current.strokeEnabled=event.target.value!=='none';
+        persistShapeStyle();
+        window.DesignEditorPhase2?.sync?.();
+        setTimeout(()=>{syncShapeStrokeControls();applyShapeStrokeVisuals();},0);
+      });
+    }
+    const enabled=item.strokeEnabled!==false;
+    const control=byId(SHAPE_STROKE_MODE_ID);if(control)control.value=enabled?'on':'none';
+    strokeControls.forEach(stroke=>{const target=stroke.closest('.field');if(target)target.hidden=!enabled;});
+    if(widthControl?.closest('.field'))widthControl.closest('.field').hidden=!enabled;
+    return true;
+  }
+
+  function installShapeOutputGuard(){
+    const output=window.DesignEditorOutput;
+    if(!output||typeof output.renderSurface!=='function')return false;
+    if(output.renderSurface.__shapeStrokeNoneGuard)return true;
+    const original=output.renderSurface.bind(output);
+    const wrapped=async(p,surface,...rest)=>{
+      const patched=surface&&Array.isArray(surface.extras)?{
+        ...surface,
+        extras:surface.extras.map(item=>item?.type==='shape'&&item.shape!=='line'&&item.strokeEnabled===false?{...item,stroke:'rgba(0,0,0,0)'}:item)
+      }:surface;
+      return original(p,patched,...rest);
+    };
+    wrapped.__shapeStrokeNoneGuard=true;wrapped.__delegate=original;
+    output.renderSurface=wrapped;
     return true;
   }
 
@@ -178,7 +301,7 @@
 
   function queueRefresh(){
     clearTimeout(refreshTimer);
-    refreshTimer=setTimeout(()=>{keepModeCardFirst();decorateModeCard();},120);
+    refreshTimer=setTimeout(()=>{keepModeCardFirst();decorateModeCard();syncCapabilityVisibility();syncShapeStrokeControls();applyShapeStrokeVisuals();installShapeOutputGuard();},120);
   }
 
   function install(){
@@ -188,7 +311,7 @@
     ['input','change','pointerup','keyup','click'].forEach(name=>document.addEventListener(name,queueRefresh,false));
     window.addEventListener('pageshow',queueRefresh);
     observeSidebar();bindMouse();
-    [80,220,480,900,1500,2400,3600].forEach(delay=>setTimeout(()=>{keepModeCardFirst();decorateModeCard();observeSidebar();},delay));
+    [80,220,480,900,1500,2400,3600].forEach(delay=>setTimeout(()=>{keepModeCardFirst();decorateModeCard();syncCapabilityVisibility();syncShapeStrokeControls();applyShapeStrokeVisuals();installShapeOutputGuard();observeSidebar();},delay));
     return true;
   }
 
@@ -197,9 +320,15 @@
   window.DesignEditorEmbeddedPolish={
     decorateModeCard,
     keepModeCardFirst,
+    syncCapabilityVisibility,
+    supportsCapability,
+    syncShapeStrokeControls,
+    applyShapeStrokeVisuals,
+    installShapeOutputGuard,
     showContextMenu,
     closeMenu,
     scaleSelected,
-    stage:'top-pinned-mode-selector-wheel-and-context-menu'
+    modeCapabilities:MODE_CAPABILITIES,
+    stage:'mode-aware-sidebar-top-selector-mouse-and-optional-shape-stroke'
   };
 })();
