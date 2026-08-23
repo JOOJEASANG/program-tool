@@ -86,4 +86,6 @@ for marker in \
   fi
 done
 
-echo "Design editor PDF browser smoke passed using $BROWSER"
+echo "Design editor standard PDF browser smoke passed using $BROWSER"
+bash "$ROOT_DIR/scripts/run_design_editor_pdf_lossless_smoke.sh"
+echo "Design editor PDF profile smoke suite passed"
