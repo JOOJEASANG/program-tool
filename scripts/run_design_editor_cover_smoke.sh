@@ -28,12 +28,12 @@ PY
   sleep 0.1
 done
 
-"$BROWSER" --headless=new --disable-gpu --no-sandbox --disable-dev-shm-usage --disable-background-networking --user-data-dir="$PROFILE_DIR" --virtual-time-budget=18000 --dump-dom "$URL" >"$DOM_OUT"
+"$BROWSER" --headless=new --disable-gpu --no-sandbox --disable-dev-shm-usage --disable-background-networking --user-data-dir="$PROFILE_DIR" --virtual-time-budget=30000 --dump-dom "$URL" >"$DOM_OUT"
 
 if ! grep -q 'data-cover-smoke-status="pass"' "$DOM_OUT"; then echo "Design editor cover browser smoke failed." >&2; cat "$DOM_OUT" >&2; echo "----- HTTP server log -----" >&2; cat "$SERVER_LOG" >&2; exit 1; fi
-if ! grep -q 'PASS: unified cover settings resize spine and preserve common-editor content' "$DOM_OUT"; then echo "Cover browser smoke completion marker is missing." >&2; cat "$DOM_OUT" >&2; exit 1; fi
-for marker in 'data-cover-width="430.5"' 'data-cover-height="297"' 'data-cover-spine="10.5"' 'data-cover-folds="210,220.5"' 'data-cover-runtime="30"' 'data-cover-page-count="200"' 'data-cover-element-preserved="true"' 'data-cover-draft-scope="cover-a4.210x297"'; do
+if ! grep -q 'PASS: unified cover settings, spine direction, safety and real render preserve common-editor content' "$DOM_OUT"; then echo "Cover browser smoke completion marker is missing." >&2; cat "$DOM_OUT" >&2; exit 1; fi
+for marker in 'data-cover-width="430.5"' 'data-cover-height="297"' 'data-cover-spine="10.5"' 'data-cover-folds="210,220.5"' 'data-cover-runtime="31"' 'data-cover-page-count="200"' 'data-cover-element-preserved="true"' 'data-cover-draft-scope="cover-a4.210x297"' 'data-cover-spine-titles="1"' 'data-cover-spine-direction="bottomToTop"' 'data-cover-spine-ink="true"'; do
   if ! grep -q "$marker" "$DOM_OUT"; then echo "Cover browser smoke marker missing: $marker" >&2; cat "$DOM_OUT" >&2; exit 1; fi
 done
 
-echo "Design editor unified cover settings browser smoke passed using $BROWSER"
+echo "Design editor unified cover settings and spine tools browser smoke passed using $BROWSER"
