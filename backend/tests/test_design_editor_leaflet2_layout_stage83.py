@@ -40,6 +40,8 @@ def test_leaflet2_top_bottom_has_horizontal_guides_safety_and_portable_metadata(
         "horizontal-fold",
         "horizontal-image-fold",
         "project()?.leaflet2Layout==='top-bottom'",
+        "const requested=cleanLayout(byId(SELECT_ID)?.value)||preferredLayout",
+        "source:'leaflet2-layout-option-apply'",
         "gate.confirmBeforeOutput=wrapped",
         "__leaflet2TopBottomGuard=true",
         "persistProject(options.source||'leaflet2-layout')",
@@ -58,11 +60,14 @@ def test_leaflet2_layout_browser_smoke_is_chained_into_design_suite():
         "select.value='top-bottom'",
         "surface.foldAxis==='y'",
         "surface.foldsY?.length===1",
+        "paper.value='a3'",
+        "top-bottom layout preserved after size apply",
         "layout.horizontalFoldIssues()",
         "DesignEditorProjectFile.buildPortablePayload(project)",
         "confirmBeforeOutput?.__leaflet2TopBottomGuard===true",
-        "pass('leaflet2 left-right and top-bottom folds, guides, safety and project persistence')",
+        "pass('leaflet2 left-right and top-bottom folds, size persistence, guides, safety and project persistence')",
     ):
         assert marker in smoke
+    assert 'data-leaflet2-size-preserved="true"' in runner
     assert 'data-leaflet2-layout-stage="leaflet2-left-right-and-top-bottom-layout"' in runner
     assert "bash \"$ROOT_DIR/scripts/run_design_editor_leaflet2_layout_smoke.sh\"" in suite
