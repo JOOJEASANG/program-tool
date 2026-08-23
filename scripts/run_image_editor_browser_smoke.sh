@@ -32,7 +32,7 @@ done
 
 if ! grep -q 'data-image-editor-smoke="pass"' "$DOM_OUT"; then echo "Image editor browser smoke failed." >&2; cat "$DOM_OUT" >&2; echo "----- HTTP server log -----" >&2; cat "$SERVER_LOG" >&2; exit 1; fi
 if ! grep -q 'PASS: upload, rotate, undo, flip, crop, resize, adjustments, export and original reset' "$DOM_OUT"; then echo "Image editor completion marker missing." >&2; cat "$DOM_OUT" >&2; exit 1; fi
-for marker in 'data-image-editor-width="80"' 'data-image-editor-height="60"' 'data-image-editor-export-type="image/png"' 'data-image-editor-export-ready="true"' 'data-image-editor-stage="image-editor-core-stage1"'; do
+for marker in 'data-image-editor-width="80"' 'data-image-editor-height="60"' 'data-image-editor-export-type="image/png"' 'data-image-editor-export-ready="true"' 'data-image-editor-stage="image-editor-core-stage2-background"'; do
   if ! grep -q "$marker" "$DOM_OUT"; then echo "Image editor smoke marker missing: $marker" >&2; cat "$DOM_OUT" >&2; exit 1; fi
 done
 

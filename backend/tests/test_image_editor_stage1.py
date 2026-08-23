@@ -21,7 +21,7 @@ def test_image_editor_stage1_has_real_workspace_and_core_tools():
         'id="resizeW"',
         'id="brightness"',
         'id="exportFormat"',
-        "/js/image-editor/app.js?v=20260823-1",
+        "/js/image-editor/app.js?v=20260823-2",
     ):
         assert marker in page
     assert STYLE.exists()
@@ -41,20 +41,19 @@ def test_image_editor_stage1_core_is_local_and_exportable():
         "function renderOutput(mime='image/png')",
         "async function exportBlob",
         "async function resetOriginal()",
-        "stage:'image-editor-core-stage1'",
+        "stage:'image-editor-core-stage2-background'",
     ):
         assert marker in source
     assert "fetch(" not in source
     assert "XMLHttpRequest" not in source
 
 
-def test_image_editor_stage1_home_card_is_active_without_overpromising_background_removal():
+def test_image_editor_home_card_is_active_and_matches_available_core_features():
     source = HOME.read_text(encoding="utf-8")
     image_block = source[source.index("id:'image-editor'"):source.index("id:'document-editor'")]
     assert "url:'image-editor/'" in image_block
     assert "status:'active'" in image_block
     assert "자르기" in image_block and "크기 조절" in image_block and "기본 보정" in image_block
-    assert "배경 제거" not in image_block
 
 
 def test_image_editor_stage1_has_real_chrome_smoke_in_quality_gate():

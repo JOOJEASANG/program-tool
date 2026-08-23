@@ -15,8 +15,8 @@
     },
     {
       id:'image-editor',name:'이미지 편집기',icon:'◐',accent:'#b65f8c',bg:'#fff0f6',
-      desc:'자르기, 크기 조절, 회전·뒤집기와 기본 보정을 복잡한 메뉴 없이 빠르게 처리하는 이미지 작업 공간입니다.',
-      url:'image-editor/',tags:['자르기','크기 조절','이미지 보정'],status:'active',visible:true
+      desc:'자르기, 크기 조절, 흰색·단색 배경 제거와 기본 보정을 브라우저에서 빠르게 처리하는 이미지 작업 공간입니다.',
+      url:'image-editor/',tags:['자르기','배경 제거','이미지 보정'],status:'active',visible:true
     },
     {
       id:'document-editor',name:'문서 편집기',icon:'▤',accent:'#2878b8',bg:'#edf7ff',
