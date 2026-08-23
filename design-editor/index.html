@@ -12,17 +12,18 @@
 <body>
   <main id="unifiedDesignShell" class="studio" data-mode="cover">
     <!-- 작업 종류: 표지디자인 · 포스터 · 전단지 · 2단 리플렛 · 3단 리플렛 · 사용자 지정 -->
+    <!-- Legacy cover fallback retained until migration completes: /perfect-binding-cover/?embed=1&mode=cover -->
     <!-- Legacy source-contract marker: src="../perfect-binding-cover/?embed=1&mode=cover" -->
     <!-- Legacy source-contract marker: general.html?${query.toString()} -->
     <div id="loading" class="loading"><div><div class="spinner"></div>디자인 편집기를 불러오는 중...</div></div>
-    <iframe id="editorFrame" class="editor-frame" title="디자인 편집 작업영역" src="/perfect-binding-cover/?embed=1&mode=cover"></iframe>
+    <iframe id="editorFrame" class="editor-frame" title="디자인 편집 작업영역" src="/design-editor/general?embed=1&mode=cover&preset=cover-a4"></iframe>
   </main>
   <script>
     (function(){
       'use strict';
       const frame=document.getElementById('editorFrame'),loading=document.getElementById('loading'),shell=document.getElementById('unifiedDesignShell');
       const DEFAULTS={
-        cover:{mode:'cover'},
+        cover:{mode:'cover',preset:'cover-a4'},
         poster:{mode:'poster',preset:'poster-a4',paper:'a4',orientation:'portrait',w:210,h:297},
         flyer:{mode:'flyer',preset:'flyer-a4',paper:'a4',orientation:'portrait',w:210,h:297},
         leaflet2:{mode:'leaflet2',preset:'leaflet-2',paper:'a4',orientation:'landscape',w:297,h:210},
@@ -35,7 +36,7 @@
       function route(detail={}){
         const mode=safeMode(detail.mode),data={...DEFAULTS[mode],...detail,mode};
         shell.dataset.mode=mode;
-        if(mode==='cover')return '/perfect-binding-cover/?embed=1&mode=cover';
+        if(mode==='cover')return '/design-editor/general?embed=1&mode=cover&preset=cover-a4';
         const width=clampNumber(data.w??data.width,DEFAULTS[mode].w||210),height=clampNumber(data.h??data.height,DEFAULTS[mode].h||297);
         const query=new URLSearchParams({embed:'1',mode,preset:data.preset||DEFAULTS[mode].preset,paper:data.paper||'custom',orientation:data.orientation||'portrait',w:String(width),h:String(height)});
         if(mode==='leaflet3')query.set('fold',data.fold||data.preset||'leaflet-3-roll');
@@ -49,7 +50,7 @@
       });
       frame.addEventListener('load',()=>loading.classList.add('hide'));
       setTimeout(()=>loading.classList.add('hide'),2600);
-      window.UnifiedDesignShell={openMode,route,stage:'single-sidebar-design-shell'};
+      window.UnifiedDesignShell={openMode,route,legacyCoverFallback:'/perfect-binding-cover/?embed=1&mode=cover',stage:'single-sidebar-general-engine-shell'};
     })();
   </script>
 </body>

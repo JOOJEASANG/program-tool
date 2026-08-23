@@ -11,8 +11,9 @@ FIREBASE = ROOT / "firebase.json"
 
 def test_shell_uses_absolute_routes_for_all_embedded_modes():
     source = SHELL.read_text(encoding="utf-8")
-    assert 'src="/perfect-binding-cover/?embed=1&mode=cover"' in source
-    assert "return '/perfect-binding-cover/?embed=1&mode=cover'" in source
+    assert 'src="/design-editor/general?embed=1&mode=cover&preset=cover-a4"' in source
+    assert "return '/design-editor/general?embed=1&mode=cover&preset=cover-a4'" in source
+    assert "legacyCoverFallback:'/perfect-binding-cover/?embed=1&mode=cover'" in source
     assert "return `/design-editor/general?${query.toString()}`" in source
     assert "return `general.html?${query.toString()}`" not in source
     assert "window.UnifiedDesignShell={openMode,route" in source

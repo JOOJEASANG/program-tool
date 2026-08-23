@@ -47,8 +47,9 @@
         await waitFor(()=>{
           const ids=new Set(window.ProgramStudioDesignEditorRuntimeManifest.map(entry=>entry.id));
           const latest=new Map();(window.__browserLosslessRuntimeResults||[]).forEach(entry=>{if(ids.has(entry?.id))latest.set(entry.id,entry);});
-          return ids.size===27&&latest.size===27&&[...latest.values()].every(entry=>entry.status==='loaded');
+          return ids.size===29&&latest.size===29&&[...latest.values()].every(entry=>entry.status==='loaded');
         },'all runtime manifest results');
+        assert(window.DesignEditorCoverModel,'cover model runtime module did not load');
         await waitFor(()=>window.DesignEditorOutput,'DesignEditorOutput');
         await waitFor(()=>window.DesignEditorFinalPrintCheck,'DesignEditorFinalPrintCheck');
         DesignEditorApp.startProject('flyer-a4');await settle();
@@ -59,7 +60,6 @@
         document.getElementById('textContentInput').value='무손실 PDF 뒷면';document.getElementById('textContentInput').dispatchEvent(new Event('input',{bubbles:true}));await settle();
         const spec=DesignEditorOutput.expectedOutputSpec(project);assert(spec.widthPx===2551&&spec.heightPx===3579&&spec.surfaceCount===2,'lossless PDF output spec changed');
         const profile=document.getElementById('designPdfProfile');assert(profile,'PDF profile control is missing');profile.value='lossless';
-
         const pdfInstances=[];
         class LosslessSmokeJsPdf{
           constructor(options){this.options=options;this.pages=[{format:options.format,orientation:options.orientation}];this.images=[];this.savedName='';pdfInstances.push(this);}
@@ -72,7 +72,6 @@
         window.CoverJsPdfLoader={ensure:async()=>LosslessSmokeJsPdf,ready:()=>true,stage:'browser-smoke-lossless-pdf-double'};
         finalCheck.confirmBeforeOutput=async options=>{gateFormat=String(options?.format||'');return true;};
         try{await DesignEditorOutput.exportPdf();}finally{finalCheck.confirmBeforeOutput=originalGate;if(originalLoader)window.CoverJsPdfLoader=originalLoader;else delete window.CoverJsPdfLoader;}
-
         assert(gateFormat==='pdf','lossless PDF export did not pass final print gate');
         assert(pdfInstances.length===1,'lossless PDF document count changed');
         const pdf=pdfInstances[0];assert(pdf.getNumberOfPages()===2&&pdf.images.length===2,'lossless PDF page/image count changed');
