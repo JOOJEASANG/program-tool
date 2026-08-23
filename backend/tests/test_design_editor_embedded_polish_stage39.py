@@ -29,9 +29,11 @@ def test_embedded_polish_removes_obsolete_inner_start_flow_and_marks_saved_modes
         "다시 돌아와도 이어서 작업할 수 있습니다.",
         "keepModeCardFirst",
         "position:sticky!important",
+        "syncCapabilityVisibility",
+        "MODE_CAPABILITIES",
         "showContextMenu",
         "handleWheel",
-        "stage:'top-pinned-mode-selector-wheel-and-context-menu'",
+        "stage:'mode-aware-sidebar-top-selector-mouse-and-optional-shape-stroke'",
     ):
         assert marker in source
 
