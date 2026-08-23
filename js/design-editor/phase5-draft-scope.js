@@ -192,6 +192,6 @@
     restoreCurrentScope,
     installProjectStartHook,
     listDrafts:()=>readJson(INDEX_KEY)||[],
-    stage:'preset-trim-size-scoped-draft-recovery-start-race-safe'
+    stage:'preset-trim-size-scoped-draft-recovery'
   };
 })();
