@@ -15,7 +15,12 @@ def test_stage75_cover_preview_is_preview_only_and_tracks_three_cover_regions():
     for marker in (
         "const PREF_KEY='programTool.designEditor.coverPreviewZones.v2'",
         "const DEFAULTS={visible:true,labels:true,safe:true,opacity:0,zoom:1}",
-        "var(--zone-opacity,0)",
+        ".trim-guide{border:1px solid #94a3b8!important}",
+        ".safe-guide{display:none!important}",
+        ".fold-guide{border-left:1px solid #475569!important}",
+        ".panel-guide-label{background:rgba(255,255,255,.94)!important;border-color:#cbd5e1!important;color:#475569!important}",
+        ".cover-preview-zone{position:absolute;box-sizing:border-box;border:0;background:rgba(100,116,139,var(--zone-opacity,0))",
+        ".cover-preview-zone-safe{position:absolute;box-sizing:border-box;border:1px dashed rgba(100,116,139,.58)",
         "zoneBox('back'",
         "zoneBox('spine'",
         "zoneBox('front'",
@@ -25,6 +30,14 @@ def test_stage75_cover_preview_is_preview_only_and_tracks_three_cover_regions():
         "stage:'preview-zones-wheel-and-context-menu'",
     ):
         assert marker in source
+    for old_color in (
+        "rgba(14,165,233",
+        "rgba(16,185,129",
+        "rgba(99,102,241",
+        "rgba(220,38,38",
+        "rgba(217,119,6",
+    ):
+        assert old_color not in source
     assert "project().surfaces" not in source
 
 
@@ -82,7 +95,7 @@ def test_stage75_runtime_manifest_and_real_browser_contract_include_preview_and_
     cover = COVER_HARNESS.read_text(encoding="utf-8")
     runner = COVER_RUNNER.read_text(encoding="utf-8")
     assert "designEditorCoverPreviewZonesScriptV1" in register
-    assert "/js/design-editor/cover-preview-zones.js?v=20260823-2" in register
+    assert "/js/design-editor/cover-preview-zones.js?v=20260823-3" in register
     assert "runtimeBoot.manifest.length===32" in general
     assert "firstElementChild?.id==='designEmbeddedModeCard'" in general
     assert "new MouseEvent('contextmenu'" in general
