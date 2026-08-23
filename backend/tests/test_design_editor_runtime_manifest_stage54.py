@@ -43,7 +43,7 @@ def test_design_editor_runtime_manifest_is_single_ordered_source_of_truth():
     assert paths[3] == "/js/design-editor/cover-mode-bridge.js?v=20260823-1"
     assert paths[5] == "/js/design-editor/cover-settings.js?v=20260823-1"
     assert "/js/design-editor/cover-spine-tools.js?v=20260823-1" in paths
-    assert "/js/design-editor/cover-preview-zones.js?v=20260823-2" in paths
+    assert "/js/design-editor/cover-preview-zones.js?v=20260823-3" in paths
     assert "window.ProgramStudioDesignEditorRuntimeManifest" in source
 
 
