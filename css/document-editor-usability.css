@@ -1,0 +1,8 @@
+.usability-card .usability-row{display:grid;grid-template-columns:1fr 96px;gap:8px;align-items:end}
+.usability-card label{display:grid;gap:5px;font-size:12px;font-weight:700;color:#526079}
+.usability-card select{width:100%;min-height:36px;border:1px solid #d7deea;border-radius:8px;background:#fff;color:#172033;padding:0 9px;font:inherit}
+.usability-card .template-action{margin-top:8px}
+#usabilityState{margin-top:8px}
+.document-page[data-zoom]{transform-origin:top center}
+@media print{#documentPage{zoom:1!important}}
+@media(max-width:760px){.usability-card .usability-row{grid-template-columns:1fr}}
