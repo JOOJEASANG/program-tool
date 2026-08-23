@@ -55,8 +55,8 @@ def test_stage3_real_browser_checks_ratio_geometry_and_clipboard_import():
     for marker in (
         "square.x===20&&square.y===0&&square.w===80&&square.h===80",
         "wide.x===0&&wide.y===6&&wide.w===120&&wide.h===68",
-        "workflow.pasteImageBlob(pastedBlob,'clipboard-test.png')",
         "workflow.handlePaste(fakeEvent)",
+        "state.name==='clipboard-image.png'",
         "editable control paste should be ignored",
         "pass('centered crop presets and clipboard image workflow')",
     ):
