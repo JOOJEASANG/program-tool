@@ -10,6 +10,12 @@
     history.replaceState(null,'','/design-editor/general.html?browser-user-flow-smoke=1&embed=1');
     window.ProgramStudioBoot={reveal(){}};
     window.__browserUserFlowRuntimeResults=[];
+    window.__phase2ImageChangeHandler=null;
+    const nativeAddEventListener=EventTarget.prototype.addEventListener;
+    EventTarget.prototype.addEventListener=function(type,listener,options){
+      if(type==='change'&&this?.id==='phase2ImageInput'&&typeof listener==='function')window.__phase2ImageChangeHandler=listener;
+      return nativeAddEventListener.call(this,type,listener,options);
+    };
     window.addEventListener('programstudio:runtime-script-result',event=>window.__browserUserFlowRuntimeResults.push(event.detail||{}));
   </script>
 </head>
@@ -37,6 +43,7 @@
         await waitFor(()=>{const {manifest,latest}=runtimeResults();return manifest.length===32&&latest.size===manifest.length;},'all runtime modules');
         const boot=runtimeResults();boot.manifest.forEach(entry=>assert(boot.latest.get(entry.id)?.status==='loaded',`runtime failed: ${entry.id}`));
         await waitFor(()=>window.DesignEditorPhase2&&window.DesignEditorAssetStore&&window.DesignEditorProjectFile&&window.DesignEditorOutput&&window.DesignEditorFinalPrintCheck,'user-flow modules');
+        await waitFor(()=>typeof window.__phase2ImageChangeHandler==='function','phase2 image change handler');
 
         DesignEditorApp.startProject('flyer-a4');await settle();
         let project=DesignEditorApp.project;
@@ -46,9 +53,11 @@
         assert(DesignEditorApp.project?.surfaces?.[0]?.elements?.[0]?.text==='저장 복원 사용자 흐름','text edit did not reach project state');
 
         await waitFor(()=>document.getElementById('phase2ImageInput'),'image input');
-        const imageInput=document.getElementById('phase2ImageInput');const transfer=new DataTransfer();const imageFile=await canvasPngFile();assert(imageFile.size>0,'test PNG file is empty');transfer.items.add(imageFile);Object.defineProperty(imageInput,'files',{configurable:true,value:transfer.files});assert(imageInput.files?.[0]?.name==='user-flow.png','test file did not reach image input');imageInput.dispatchEvent(new Event('change',{bubbles:true}));
+        const imageInput=document.getElementById('phase2ImageInput');const transfer=new DataTransfer();const imageFile=await canvasPngFile();assert(imageFile.size>0,'test PNG file is empty');transfer.items.add(imageFile);Object.defineProperty(imageInput,'files',{configurable:true,value:transfer.files});assert(imageInput.files?.[0]?.name==='user-flow.png','test file did not reach image input');
+        await window.__phase2ImageChangeHandler.call(imageInput,{currentTarget:imageInput});
         await waitFor(()=>{const current=DesignEditorApp.project;const hasImage=current?.surfaces?.[0]?.extras?.some(item=>item.type==='image'&&item.assetId&&String(item.src||'').startsWith('blob:'));if(hasImage)return true;const status=String(document.getElementById('editorStatus')?.textContent||'');if(/이미지.*(못|실패)|JPG·PNG·WEBP|12MB|5천만/.test(status))throw new Error('image upload failed: '+status);return false;},'indexeddb image asset');
         project=DesignEditorApp.project;const uploaded=project.surfaces[0].extras.find(item=>item.type==='image');assert(uploaded?.name==='user-flow.png','uploaded image metadata changed');
+        document.body.dataset.userFlowUploadHandler='production-change-listener';
 
         const payload=await DesignEditorProjectFile.buildPortablePayload(project);
         const portableImage=payload.project.surfaces[0].extras.find(item=>item.type==='image');
