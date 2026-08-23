@@ -15,22 +15,24 @@
     spineDirection:'bottomToTop'
   });
 
-  const LEGACY_CAPABILITIES=Object.freeze({
-    migrateToCommon:Object.freeze([
-      Object.freeze({capability:'text-editing',legacy:['cover-editor-text-zones-v2.js','cover-preview-text-inspector.js','cover-text-canvas-controls.js','cover-text-ui-refine.js'],target:'DesignEditorApp text + common inspector'}),
-      Object.freeze({capability:'image-editing',legacy:['cover-editor-image-tools.js','cover-local-image-upload.js','cover-image-print-quality.js'],target:'DesignEditor Phase2 + asset store + print quality'}),
-      Object.freeze({capability:'selection-layout-history',legacy:['cover-edit-history.js','cover-layout-lock.js','cover-floating-action-dock.js'],target:'DesignEditor selection + rotation + history + quickbar'}),
-      Object.freeze({capability:'project-recovery',legacy:['cover-project-state-bridge.js','cover-recovery-checkpoints.js','cover-editor-preflight-project.js'],target:'DesignEditor project file + draft + cloud projects'}),
-      Object.freeze({capability:'output-preflight',legacy:['cover-final-output-confirm.js','cover-output-performance-safety.js','cover-render-pipeline-contract.js'],target:'DesignEditor final print check + verified 300DPI output'})
+  const CAPABILITIES=Object.freeze({
+    common:Object.freeze([
+      Object.freeze({capability:'text-editing',owner:'common',target:'DesignEditorApp text + common inspector'}),
+      Object.freeze({capability:'image-editing',owner:'common',target:'DesignEditor Phase2 + asset store + print quality'}),
+      Object.freeze({capability:'selection-layout-history',owner:'common',target:'DesignEditor selection + rotation + history + quickbar'}),
+      Object.freeze({capability:'project-recovery',owner:'common',target:'DesignEditor project file + draft + cloud projects'}),
+      Object.freeze({capability:'output-preflight',owner:'common',target:'DesignEditor final print check + verified 300DPI output'})
     ]),
-    retainCoverSpecific:Object.freeze([
-      Object.freeze({capability:'spread-geometry',legacy:['perfect-binding-cover-fine-controls.js'],reason:'back + spine + front geometry and binding dimensions'}),
-      Object.freeze({capability:'spine-orientation',legacy:['cover-spine-orientation-controls.js'],reason:'spine text direction is unique to book covers'}),
-      Object.freeze({capability:'spine-print-safety',legacy:['cover-spine-print-safety.js'],reason:'narrow-spine text and safety checks are cover-specific'}),
-      Object.freeze({capability:'cover-templates',legacy:['cover-template-manager.js','cover-template-project-safety.js','cover-template-surface-cleanup.js','cover-template-admin-separation.js'],reason:'cover templates depend on back/spine/front zones'}),
-      Object.freeze({capability:'cover-preview-zones',legacy:['cover-preview-workspace.js','cover-preview-transparency.js'],reason:'full-spread panel preview remains a cover-mode presentation concern'})
+    coverSpecific:Object.freeze([
+      Object.freeze({capability:'spread-geometry',owner:'cover-model + cover-settings',reason:'back + spine + front geometry and binding dimensions'}),
+      Object.freeze({capability:'spine-orientation',owner:'cover-spine-tools',reason:'spine text direction is unique to book covers'}),
+      Object.freeze({capability:'spine-print-safety',owner:'cover-spine-tools',reason:'narrow-spine text and safety checks are cover-specific'}),
+      Object.freeze({capability:'cover-project',owner:'project-file + draft-scope + cloud-projects',reason:'cover geometry and common elements must roundtrip together'}),
+      Object.freeze({capability:'cover-preview-zones',owner:'cover-preview-zones',reason:'full-spread panel preview remains a cover-mode presentation concern'})
     ])
   });
+  // Compatibility alias for callers created before the legacy editor was retired.
+  const LEGACY_CAPABILITIES=CAPABILITIES;
 
   const clamp=(value,min,max)=>Math.max(min,Math.min(max,value));
   const round1=value=>Math.round((Number(value)||0)*10)/10;
@@ -130,6 +132,7 @@
 
   root.DesignEditorCoverModel={
     DEFAULTS,
+    CAPABILITIES,
     LEGACY_CAPABILITIES,
     normalize,
     calculateSpine,
@@ -137,6 +140,6 @@
     makePreset,
     registerPreset,
     applyToProject,
-    stage:'cover-spread-model-and-capability-migration-contract'
+    stage:'cover-spread-model-integrated-capability-contract'
   };
 })(window);
