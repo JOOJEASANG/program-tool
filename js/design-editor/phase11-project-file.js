@@ -122,7 +122,7 @@
     if(resumed===false)throw new Error('프로젝트 화면을 복원하지 못했습니다.');
     setTimeout(()=>{
       window.DesignEditorPhase2?.sync?.();
-      window.DesignEditorCoverSpineTools?.sync?.();
+      window.DesignEditorCoverSpineTools?.placeAll?.();
       window.DesignEditorCoverPreviewZones?.render?.();
       window.DesignEditorDraftScope?.saveCurrent?.(reason);
       window.dispatchEvent(new Event('resize'));
