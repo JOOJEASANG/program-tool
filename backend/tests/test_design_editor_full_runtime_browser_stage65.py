@@ -12,7 +12,7 @@ def test_stage65_browser_smoke_collects_every_production_runtime_result():
     assert "programstudio:runtime-script-result" in source
     assert "runtimeResultsForManifest" in source
     assert "latest.size===manifest.length" in source
-    assert "runtimeBoot.manifest.length===30" in source
+    assert "runtimeBoot.manifest.length===31" in source
     assert "event?.status==='loaded'" in source
     assert "node?.dataset?.loaded==='true'" in source
     assert "!node?.dataset?.failed" in source
@@ -49,5 +49,5 @@ def test_stage65_manifest_contract_and_browser_contract_keep_same_expected_count
     register = REGISTER.read_text(encoding="utf-8")
     harness = HARNESS.read_text(encoding="utf-8")
     manifest_block = register[register.index("const DESIGN_EDITOR_RUNTIME_SCRIPTS=Object.freeze(["):register.index("]);", register.index("const DESIGN_EDITOR_RUNTIME_SCRIPTS=Object.freeze(["))]
-    assert manifest_block.count("['designEditor") == 30
-    assert "runtimeBoot.manifest.length===30" in harness
+    assert manifest_block.count("['designEditor") == 31
+    assert "runtimeBoot.manifest.length===31" in harness
