@@ -62,7 +62,7 @@
         assert(surface.panels.join('|').includes('위')||surface.panels.join('|').includes('상단'),'top-bottom panel labels are not vertical');
         await waitFor(()=>document.querySelector('#artboard .leaflet2-horizontal-fold-guide'),'horizontal guide');
         const horizontal=document.querySelector('#artboard .leaflet2-horizontal-fold-guide');
-        assert(horizontal&&horizontal.style.borderTopStyle==='dashed','horizontal fold guide was not rendered');
+        assert(horizontal&&getComputedStyle(horizontal).borderTopStyle==='dashed','horizontal fold guide was not rendered');
         assert(document.querySelectorAll('#artboard .leaflet2-horizontal-panel-label').length===2,'top-bottom panel labels were not rendered');
         assert(new URLSearchParams(location.search).get('leaflet2Layout')==='top-bottom','top-bottom layout was not reflected in history');
 
