@@ -78,15 +78,14 @@
   const DESIGN_EDITOR_RUNTIME_SCRIPTS=Object.freeze([
     ['designEditorRuntimeDiagnosticsScriptV1','/js/design-editor/runtime-diagnostics.js?v=20260823-1'],
     ['designEditorDraftScopeScriptV1','/js/design-editor/phase5-draft-scope.js?v=20260822-2'],
-    ['designEditorOutputScriptV1','/js/design-editor/output.js?v=20260823-1'],
-    ['designEditorPhase2ScriptV1','/js/design-editor/phase2.js?v=20260822-2'],
-    ['designEditorComponentBlocksScriptV1','/js/design-editor/phase17-component-blocks.js?v=20260822-2'],
     ['designEditorEmbeddedRuntimeScriptV1','/js/design-editor/embedded-runtime.js?v=20260821-1'],
     ['designEditorEmbeddedPolishScriptV1','/js/design-editor/phase6-embedded-polish.js?v=20260821-1'],
     ['designEditorRecentDraftsScriptV1','/js/design-editor/phase7-recent-drafts.js?v=20260821-1'],
     ['designEditorCurrentDraftResetScriptV1','/js/design-editor/phase8-current-draft-reset.js?v=20260821-1'],
     ['designEditorModeSwitchSafetyScriptV1','/js/design-editor/phase9-mode-switch-safety.js?v=20260821-1'],
     ['designEditorAssetStoreScriptV1','/js/design-editor/asset-store.js?v=20260822-1'],
+    ['designEditorPhase2ScriptV1','/js/design-editor/phase2.js?v=20260822-2'],
+    ['designEditorOutputScriptV1','/js/design-editor/output.js?v=20260823-1'],
     ['designEditorPhase3ControlsScriptV1','/js/design-editor/phase3-controls.js?v=20260821-1'],
     ['designEditorPhase4SmartLayoutScriptV1','/js/design-editor/phase4-smart-layout.js?v=20260821-1'],
     ['designEditorElementClipboardScriptV1','/js/design-editor/phase10-element-clipboard.js?v=20260821-1'],
@@ -98,13 +97,42 @@
     ['designEditorFinalPrintCheckScriptV1','/js/design-editor/phase22-final-print-check.js?v=20260822-1'],
     ['designEditorQuickDesignScriptV1','/js/design-editor/phase15-quick-design.js?v=20260822-1'],
     ['designEditorSimpleInterfaceScriptV1','/js/design-editor/phase16-simple-interface.js?v=20260823-3'],
+    ['designEditorComponentBlocksScriptV1','/js/design-editor/phase17-component-blocks.js?v=20260822-2'],
     ['designEditorCanvasQuickbarScriptV1','/js/design-editor/phase18-canvas-quickbar.js?v=20260822-1'],
     ['designEditorSmartSnapScriptV1','/js/design-editor/phase19-smart-snap.js?v=20260823-2'],
     ['designEditorPrintBlocksScriptV1','/js/design-editor/phase20-print-blocks.js?v=20260822-1'],
     ['designEditorStyleThemesScriptV1','/js/design-editor/phase21-style-themes.js?v=20260822-1'],
     ['designEditorDesignRecipesScriptV1','/js/design-editor/phase23-design-recipes.js?v=20260822-1']
   ]);
+  const DESIGN_EDITOR_GENERAL_ROUTE_IDS=new Set([
+    'designEditorPhase2ScriptV1',
+    'designEditorOutputScriptV1',
+    'designEditorSimpleInterfaceScriptV1',
+    'designEditorComponentBlocksScriptV1'
+  ]);
   window.ProgramStudioDesignEditorRuntimeManifest=DESIGN_EDITOR_RUNTIME_SCRIPTS.map(([id,src])=>({id,src}));
+
+  function runtimePath(){return location.pathname.replace(/\/+$/,'')||'/';}
+  function isEmbeddedGeneralRuntime(){
+    if(new URLSearchParams(location.search).get('embed')!=='1')return false;
+    const path=runtimePath();
+    return (currentPath==='/design-editor/general'||currentPath==='/design-editor/general.html'||currentPath.endsWith('/design-editor/general.html'))
+      && (path==='/design-editor/index.html'||path.endsWith('/design-editor/index.html'));
+  }
+  async function loadDesignEditorEntry(id,src){
+    if(!DESIGN_EDITOR_GENERAL_ROUTE_IDS.has(id)||!isEmbeddedGeneralRuntime()){
+      await load(id,src);
+      return;
+    }
+    const restoreUrl=location.pathname+location.search+location.hash;
+    const generalUrl=currentPath+location.search+location.hash;
+    history.replaceState(history.state,'',generalUrl);
+    try{
+      await load(id,src);
+    }finally{
+      history.replaceState(history.state,'',restoreUrl);
+    }
+  }
 
   async function loadSeries(entries){
     const seen=new Set();
@@ -114,7 +142,7 @@
         continue;
       }
       seen.add(id);
-      await load(id,src);
+      await loadDesignEditorEntry(id,src);
     }
   }
 
