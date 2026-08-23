@@ -39,7 +39,9 @@
       assert(restored.title==='업무 보고서'&&restored.page.orientation==='landscape'&&restored.page.margin==='narrow','project restore metadata failed');
       assert(core.getState().text.includes('지역 사업')&&doc.getElementById('documentPage').querySelector('table'),'project restore lost content/table');
 
-      const sanitized=workflow.sanitizeDocumentHtml('<p onclick="window.bad=1">안전 문장</p><script>window.bad=2</script><img src="javascript:alert(1)" onerror="window.bad=3"><span style="background:url(https://bad.example/a)">검사</span>');
+      const unsafeScript='<'+'script>window.bad=2<'+'/script>';
+      const unsafeHtml='<p onclick="window.bad=1">안전 문장</p>'+unsafeScript+'<img src="javascript:alert(1)" onerror="window.bad=3"><span style="background:url(https://bad.example/a)">검사</span>';
+      const sanitized=workflow.sanitizeDocumentHtml(unsafeHtml);
       const probe=doc.createElement('div');probe.innerHTML=sanitized;
       assert(!probe.querySelector('script,img'),'unsafe script/image survived sanitization');
       assert(!probe.querySelector('[onclick],[onerror]'),'event handler survived sanitization');
