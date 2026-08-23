@@ -12,7 +12,7 @@ def test_project_file_exposes_shared_portable_payload_contract():
     assert "async function buildPortablePayload" in source
     assert "async function restorePortablePayload" in source
     assert "buildPortablePayload,restorePortablePayload" in source
-    assert "validateProject,unwrapProject" in source
+    assert "validateProject,validateCoverProject,canonicalizeCoverProject,unwrapProject" in source
     assert "maxFileBytes:MAX_FILE_BYTES" in source
     assert "const payload=await buildPortablePayload(current);" in source
     assert "const incoming=await restorePortablePayload(parsed,'project-file-import');" in source

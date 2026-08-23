@@ -13,6 +13,8 @@
   const MAX_FILE_BYTES=30*1024*1024;
   const MAX_SURFACES=12;
   const MAX_ITEMS_PER_SURFACE=500;
+  const SPINE_DIRECTIONS=new Set(['bottomToTop','vertical','topToBottom']);
+  const SPINE_ZONES=new Set(['top','center','bottom']);
   let installed=false;
   let busy=false;
 
@@ -36,6 +38,42 @@
     const number=Number(value);return Number.isFinite(number)&&number>=min&&number<=max;
   }
 
+  function isCoverProject(value){
+    return value?.designMode==='cover'||value?.presetId==='cover-a4';
+  }
+
+  function validateCoverProject(value){
+    if(!isCoverProject(value))return value;
+    const cover=value.cover;
+    if(!cover||typeof cover!=='object')throw new Error('표지 프로젝트의 책등·제본 정보가 없습니다.');
+    if(!validNumber(cover.trimWidth,80,300)||!validNumber(cover.trimHeight,100,450))throw new Error('표지 완성 규격 정보가 올바르지 않습니다.');
+    if(!validNumber(cover.bleed,0,10)||!validNumber(cover.safe,3,30))throw new Error('표지 도련·안전여백 정보가 올바르지 않습니다.');
+    if(!validNumber(cover.pageCount,2,10000)||!validNumber(cover.paperCaliper,.01,1)||!validNumber(cover.bindingAdjust,0,20))throw new Error('표지 제본 계산 정보가 올바르지 않습니다.');
+    if(cover.manualSpine&&!validNumber(cover.spineManual,0,100))throw new Error('표지 수동 책등 정보가 올바르지 않습니다.');
+    if(!SPINE_DIRECTIONS.has(String(cover.spineDirection||'')))throw new Error('표지 책등 글자 방향 정보가 올바르지 않습니다.');
+    if(value.surfaces.length!==1||value.surfaces[0]?.id!=='cover')throw new Error('표지는 뒤표지·책등·앞표지 단일 펼침면이어야 합니다.');
+    const surface=value.surfaces[0];
+    for(const item of surface.elements||[]){
+      if(item?.coverRole!=='spine-title')continue;
+      if(!SPINE_DIRECTIONS.has(String(item.spineDirection||'')))throw new Error('책등 글자 방향 정보가 손상되었습니다.');
+      if(item.spineZone&&!SPINE_ZONES.has(String(item.spineZone)))throw new Error('책등 글자 위치 정보가 손상되었습니다.');
+      if(item.spineYPercent!=null&&!validNumber(item.spineYPercent,0,100))throw new Error('책등 글자 세로 위치 정보가 손상되었습니다.');
+    }
+    return value;
+  }
+
+  function canonicalizeCoverProject(value){
+    if(!isCoverProject(value))return value;
+    validateCoverProject(value);
+    const model=window.DesignEditorCoverModel;
+    if(!model?.applyToProject)throw new Error('표지 프로젝트 모델을 준비하지 못했습니다.');
+    const cloudProjectId=value.cloudProjectId;
+    model.applyToProject(value,value.cover);
+    if(cloudProjectId)value.cloudProjectId=cloudProjectId;
+    validateCoverProject(value);
+    return value;
+  }
+
   function validateProject(raw){
     const value=raw&&typeof raw==='object'?raw:null;
     if(!value)throw new Error('프로젝트 파일 형식이 올바르지 않습니다.');
@@ -51,15 +89,16 @@
         if(item?.type==='image'&&item.src&&!/^data:image\/(?:png|jpeg|webp);base64,/i.test(String(item.src)))throw new Error('지원하지 않는 이미지 데이터가 포함되어 있습니다.');
       }
     }
+    validateCoverProject(value);
     return value;
   }
 
   function unwrapProject(parsed){
-    if(parsed?.format===FORMAT){
+    const raw=parsed?.format===FORMAT?(()=>{
       if(Number(parsed.version)!==FORMAT_VERSION)throw new Error('현재 버전에서 지원하지 않는 프로젝트 파일입니다.');
-      return validateProject(parsed.project);
-    }
-    return validateProject(parsed);
+      return parsed.project;
+    })():parsed;
+    return canonicalizeCoverProject(validateProject(raw));
   }
 
   async function buildPortablePayload(current=project()){
@@ -67,7 +106,7 @@
     const assetStore=window.DesignEditorAssetStore;
     const snapshot=assetStore?.toPortableProject?await assetStore.toPortableProject(current):clone(current);
     if(!snapshot)throw new Error('현재 디자인 작업을 읽지 못했습니다.');
-    validateProject(snapshot);
+    validateProject(snapshot);canonicalizeCoverProject(snapshot);
     return{format:FORMAT,version:FORMAT_VERSION,savedAt:new Date().toISOString(),project:snapshot};
   }
 
@@ -76,12 +115,15 @@
     if(!portable)throw new Error('프로젝트 내용을 복원하지 못했습니다.');
     const assetStore=window.DesignEditorAssetStore;
     const incoming=assetStore?.importPortableProject?await assetStore.importPortableProject(portable):portable;
+    canonicalizeCoverProject(incoming);
     if(!incoming.activeSurface||!incoming.surfaces.some(surface=>surface.id===incoming.activeSurface))incoming.activeSurface=incoming.surfaces[0].id;
     localStorage.setItem(DRAFT_KEY,JSON.stringify(incoming));
     const resumed=window.DesignEditorApp?.resumeDraft?.();
     if(resumed===false)throw new Error('프로젝트 화면을 복원하지 못했습니다.');
     setTimeout(()=>{
       window.DesignEditorPhase2?.sync?.();
+      window.DesignEditorCoverSpineTools?.placeAll?.();
+      window.DesignEditorCoverPreviewZones?.render?.();
       window.DesignEditorDraftScope?.saveCurrent?.(reason);
       window.dispatchEvent(new Event('resize'));
     },90);
@@ -143,7 +185,8 @@
     if(byId(CARD_ID))return true;
     const sidebar=document.querySelector('.sidebar'),clipboard=byId('designElementClipboardTools');if(!sidebar)return false;
     const card=document.createElement('section');card.id=CARD_ID;card.className='side-card';
-    card.innerHTML=`<div class="side-label">작업 파일</div><div class="design-project-file-grid"><button id="designProjectSave" type="button">프로젝트 저장</button><button id="designProjectLoad" type="button">프로젝트 불러오기</button></div><div class="design-project-file-note">글씨·이미지·도형과 앞·뒷면/리플렛 면 구성을 통째로 저장합니다. 다른 PC에서도 이어서 편집할 수 있습니다.</div><input id="${INPUT_ID}" type="file" accept=".json,.design.json,application/json" hidden>`;
+    const coverNote=project()?.designMode==='cover'?' 표지는 완성 규격·책등·제본 설정과 책등 글자 방향까지 함께 저장합니다.':'';
+    card.innerHTML=`<div class="side-label">작업 파일</div><div class="design-project-file-grid"><button id="designProjectSave" type="button">프로젝트 저장</button><button id="designProjectLoad" type="button">프로젝트 불러오기</button></div><div class="design-project-file-note">글씨·이미지·도형과 모든 면 구성을 통째로 저장합니다.${coverNote} 다른 PC에서도 이어서 편집할 수 있습니다.</div><input id="${INPUT_ID}" type="file" accept=".json,.design.json,application/json" hidden>`;
     if(clipboard?.nextSibling)sidebar.insertBefore(card,clipboard.nextSibling);else sidebar.appendChild(card);
     byId('designProjectSave')?.addEventListener('click',exportProject);
     byId('designProjectLoad')?.addEventListener('click',triggerImport);
@@ -155,7 +198,7 @@
     if(installed)return true;
     if(!document.querySelector('.sidebar')||!byId('artboard')||!window.DesignEditorApp)return false;
     installed=true;installStyles();installCard();
-    window.DesignEditorProjectFile={exportProject,triggerImport,buildPortablePayload,restorePortablePayload,validateProject,unwrapProject,format:FORMAT,version:FORMAT_VERSION,maxFileBytes:MAX_FILE_BYTES,stage:'portable-design-project-save-load'};
+    window.DesignEditorProjectFile={exportProject,triggerImport,buildPortablePayload,restorePortablePayload,validateProject,validateCoverProject,canonicalizeCoverProject,unwrapProject,format:FORMAT,version:FORMAT_VERSION,maxFileBytes:MAX_FILE_BYTES,stage:'portable-design-project-save-load-cover-aware'};
     return true;
   }
 
