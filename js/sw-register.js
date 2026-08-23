@@ -2,7 +2,7 @@
   if(window.__programStudioRuntimeBoot)return;
   window.__programStudioRuntimeBoot=true;
 
-  const VERSION='2026.08.24.005';
+  const VERSION='2026.08.24.006';
   const CACHE_PREFIX='program-studio-';
   const CLEANUP_KEY='program-studio-legacy-runtime-cleanup-'+VERSION;
   const currentPath=location.pathname.replace(/\/+$/,'')||'/';
