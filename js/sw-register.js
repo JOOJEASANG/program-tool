@@ -97,7 +97,7 @@
     ['designEditorPrintSafetyScriptV1','/js/design-editor/phase14-print-safety.js?v=20260822-1'],
     ['designEditorFinalPrintCheckScriptV1','/js/design-editor/phase22-final-print-check.js?v=20260822-1'],
     ['designEditorQuickDesignScriptV1','/js/design-editor/phase15-quick-design.js?v=20260822-1'],
-    ['designEditorSimpleInterfaceScriptV1','/js/design-editor/phase16-simple-interface.js?v=20260823-2'],
+    ['designEditorSimpleInterfaceScriptV1','/js/design-editor/phase16-simple-interface.js?v=20260823-3'],
     ['designEditorCanvasQuickbarScriptV1','/js/design-editor/phase18-canvas-quickbar.js?v=20260822-1'],
     ['designEditorSmartSnapScriptV1','/js/design-editor/phase19-smart-snap.js?v=20260823-2'],
     ['designEditorPrintBlocksScriptV1','/js/design-editor/phase20-print-blocks.js?v=20260822-1'],
