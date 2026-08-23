@@ -5,14 +5,14 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="color-scheme" content="light">
   <title>이미지 편집기 | Program Studio</title>
-  <link rel="stylesheet" href="/css/image-editor.css?v=20260823-1">
+  <link rel="stylesheet" href="/css/image-editor.css?v=20260823-2">
 </head>
 <body>
   <header class="app-header">
     <a class="home-link" href="/" aria-label="홈으로">← 홈</a>
     <div class="brand-block">
       <strong>이미지 편집기</strong>
-      <span>자르기 · 크기 조절 · 회전 · 기본 보정</span>
+      <span>자르기 · 크기 조절 · 배경 제거 · 회전 · 기본 보정</span>
     </div>
     <div class="header-actions">
       <button id="undoBtn" class="ghost" type="button" disabled>실행 취소</button>
@@ -75,12 +75,26 @@
         <button id="resetAdjustBtn" class="wide" type="button">보정값 초기화</button>
       </section>
 
+      <section class="tool-card background-card" data-requires-image>
+        <div class="tool-title">흰색 · 단색 배경 제거</div>
+        <p class="help">상품 사진처럼 배경색이 일정한 이미지에 적합합니다. 네 모서리 색을 자동으로 읽거나 직접 색을 지정할 수 있습니다.</p>
+        <div class="background-color-row">
+          <label>배경색<input id="backgroundColor" type="color" value="#ffffff"></label>
+          <button id="sampleBackgroundBtn" type="button">모서리에서 자동 선택</button>
+        </div>
+        <label class="range-field">허용 범위 <output id="backgroundToleranceOut">30</output><input id="backgroundTolerance" type="range" min="0" max="120" value="30"></label>
+        <label class="range-field">경계 부드럽게 <output id="backgroundFeatherOut">18</output><input id="backgroundFeather" type="range" min="0" max="80" value="18"></label>
+        <button id="removeBackgroundBtn" class="wide accent" type="button">선택한 배경 투명하게</button>
+        <div id="backgroundStatus" class="tool-note">PNG 또는 WebP로 저장하면 투명 배경을 유지할 수 있습니다.</div>
+      </section>
+
       <section class="tool-card export-card" data-requires-image>
         <div class="tool-title">저장 설정</div>
         <div class="export-row">
           <label>형식<select id="exportFormat"><option value="image/png">PNG</option><option value="image/jpeg">JPEG</option><option value="image/webp">WebP</option></select></label>
           <label>품질<input id="exportQuality" type="number" min="10" max="100" step="1" value="92"></label>
         </div>
+        <div id="exportNote" class="tool-note">PNG는 투명 배경을 그대로 저장합니다.</div>
         <button id="exportSideBtn" class="wide primary" type="button">편집 이미지 저장</button>
       </section>
     </aside>
@@ -106,6 +120,6 @@
     </section>
   </main>
 
-  <script src="/js/image-editor/app.js?v=20260823-1"></script>
+  <script src="/js/image-editor/app.js?v=20260823-2"></script>
 </body>
 </html>
