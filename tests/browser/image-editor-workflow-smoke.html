@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"><title>Image Editor Workflow Smoke</title></head>
+<body data-image-workflow-smoke="pending">
+  <div id="result">PENDING</div>
+  <div id="dropZone"><div id="emptyState"></div><div id="canvasViewport" hidden><canvas id="previewCanvas"></canvas><div id="cropOverlay" hidden></div></div></div>
+  <div id="fileMeta"></div><div id="statusText"></div><div id="dimensionText"></div>
+  <input id="fileInput" type="file"><button id="openBtn"></button><button id="undoBtn"></button><button id="resetBtn"></button><button id="exportBtn"></button><button id="exportSideBtn"></button>
+  <button id="rotateLeftBtn"></button><button id="rotateRightBtn"></button><button id="flipHBtn"></button><button id="flipVBtn"></button>
+  <input id="cropX" value="0"><input id="cropY" value="0"><input id="cropW" value="1"><input id="cropH" value="1"><button id="squareCropBtn"></button><button id="fullCropBtn"></button><button id="applyCropBtn"></button>
+  <button data-crop-ratio="square">1:1</button><button data-crop-ratio="portrait45">4:5</button><button data-crop-ratio="photo32">3:2</button><button data-crop-ratio="wide169">16:9</button><div id="cropPresetStatus"></div><div id="clipboardStatus"></div>
+  <input id="resizeW"><input id="resizeH"><input id="lockRatio" type="checkbox" checked><button id="applyResizeBtn"></button>
+  <input id="brightness" type="range" min="20" max="180" value="100"><output id="brightnessOut"></output><input id="contrast" type="range" min="20" max="180" value="100"><output id="contrastOut"></output><input id="saturation" type="range" min="0" max="200" value="100"><output id="saturationOut"></output><button id="resetAdjustBtn"></button>
+  <input id="backgroundColor" type="color" value="#ffffff"><button id="sampleBackgroundBtn"></button><input id="backgroundTolerance" type="range" min="0" max="120" value="30"><output id="backgroundToleranceOut"></output><input id="backgroundFeather" type="range" min="0" max="80" value="18"><output id="backgroundFeatherOut"></output><button id="removeBackgroundBtn"></button><div id="backgroundStatus"></div>
+  <select id="exportFormat"><option value="image/png">PNG</option><option value="image/jpeg">JPEG</option><option value="image/webp">WebP</option></select><input id="exportQuality" value="92"><div id="exportNote"></div>
+  <section data-requires-image></section>
+  <script src="/js/image-editor/app.js?v=20260823-2"></script>
+  <script src="/js/image-editor/workflow.js?v=20260823-3"></script>
+  <script>
+  (async()=>{
+    const result=document.getElementById('result');
+    const fail=error=>{document.body.dataset.imageWorkflowSmoke='fail';result.textContent='FAIL: '+String(error?.stack||error?.message||error)};
+    const pass=message=>{document.body.dataset.imageWorkflowSmoke='pass';result.textContent='PASS: '+message};
+    const assert=(condition,message)=>{if(!condition)throw new Error(message)};
+    const waitFor=async(predicate,label,timeout=12000)=>{const started=Date.now();while(Date.now()-started<timeout){if(predicate())return;await new Promise(resolve=>setTimeout(resolve,40))}throw new Error('timeout: '+label)};
+    try{
+      await waitFor(()=>window.ImageEditorApp&&window.ImageEditorWorkflow&&document.documentElement.dataset.imageEditorWorkflowReady==='1','image workflow ready');
+      const api=window.ImageEditorApp,workflow=window.ImageEditorWorkflow;
+      assert(document.documentElement.dataset.imageEditorWorkflowReady==='1','workflow ready marker missing');
+
+      const source=document.createElement('canvas');source.width=120;source.height=80;const ctx=source.getContext('2d');ctx.fillStyle='#6b8ed6';ctx.fillRect(0,0,120,80);
+      const blob=await new Promise(resolve=>source.toBlob(resolve,'image/png'));
+      await api.loadBlob(blob,'workflow-source.png');
+
+      const square=workflow.applyCropRatio('square');
+      assert(square&&square.x===20&&square.y===0&&square.w===80&&square.h===80,'1:1 centered crop is wrong');
+      let crop=api.getState().crop;assert(crop.x===20&&crop.y===0&&crop.w===80&&crop.h===80,'1:1 crop did not reach editor state');
+
+      const wide=workflow.applyCropRatio('wide169');
+      assert(wide&&wide.x===0&&wide.y===6&&wide.w===120&&wide.h===68,'16:9 centered crop is wrong');
+      crop=api.getState().crop;assert(crop.x===0&&crop.y===6&&crop.w===120&&crop.h===68,'16:9 crop did not reach editor state');
+
+      let prevented=false;
+      const fakeEvent={target:document.body,clipboardData:{items:[{type:'image/png',getAsFile:()=>blob}]},preventDefault(){prevented=true}};
+      assert(await workflow.handlePaste(fakeEvent)===true,'paste event image import failed');
+      assert(prevented===true,'image paste did not prevent default browser paste');
+      const state=api.getState();assert(state.width===120&&state.height===80&&state.name==='clipboard-image.png','paste event lost image dimensions/name');
+      assert(document.getElementById('clipboardStatus').textContent.includes('클립보드'),'clipboard status was not updated');
+
+      const input=document.getElementById('cropX');
+      assert(await workflow.handlePaste({target:input,clipboardData:{items:[{type:'image/png',getAsFile:()=>blob}]},preventDefault(){throw new Error('editable target paste must not be intercepted')}})===false,'editable control paste should be ignored');
+
+      document.body.dataset.workflowSquare=`${square.w}x${square.h}@${square.x},${square.y}`;
+      document.body.dataset.workflowWide=`${wide.w}x${wide.h}@${wide.x},${wide.y}`;
+      document.body.dataset.workflowPaste=`${state.width}x${state.height}`;
+      document.body.dataset.workflowPrevented=String(prevented);
+      document.body.dataset.workflowStage=workflow.stage;
+      pass('centered crop presets and clipboard image workflow');
+    }catch(error){fail(error)}
+  })();
+  </script>
+</body>
+</html>

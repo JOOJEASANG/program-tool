@@ -6,6 +6,7 @@
   <meta name="color-scheme" content="light">
   <title>이미지 편집기 | Program Studio</title>
   <link rel="stylesheet" href="/css/image-editor.css?v=20260823-2">
+  <link rel="stylesheet" href="/css/image-editor-workflow.css?v=20260823-3">
 </head>
 <body>
   <header class="app-header">
@@ -28,11 +29,19 @@
         <button id="openBtn" class="wide secondary" type="button">이미지 불러오기</button>
         <input id="fileInput" type="file" accept="image/png,image/jpeg,image/webp,image/gif,image/bmp" hidden>
         <div id="fileMeta" class="meta">PNG, JPG, WebP 등 · 최대 60MP</div>
+        <div class="clipboard-hint"><span id="clipboardStatus">클립보드 이미지도 바로 붙여넣을 수 있습니다.</span><kbd>Ctrl+V</kbd></div>
       </section>
 
       <section class="tool-card" data-requires-image>
         <div class="tool-title">자르기</div>
         <p class="help">미리보기에서 마우스로 영역을 드래그하거나 숫자로 정확히 지정할 수 있습니다.</p>
+        <div class="crop-preset-grid" aria-label="자르기 비율">
+          <button type="button" data-crop-ratio="square">1:1</button>
+          <button type="button" data-crop-ratio="portrait45">4:5</button>
+          <button type="button" data-crop-ratio="photo32">3:2</button>
+          <button type="button" data-crop-ratio="wide169">16:9</button>
+        </div>
+        <div id="cropPresetStatus" class="workflow-note">비율을 선택하면 가운데 기준의 최대 영역을 자동으로 잡습니다.</div>
         <div class="grid-four crop-fields">
           <label>X<input id="cropX" type="number" min="0" step="1" value="0"></label>
           <label>Y<input id="cropY" type="number" min="0" step="1" value="0"></label>
@@ -121,5 +130,6 @@
   </main>
 
   <script src="/js/image-editor/app.js?v=20260823-2"></script>
+  <script src="/js/image-editor/workflow.js?v=20260823-3"></script>
 </body>
 </html>

@@ -147,6 +147,7 @@ jobs:
         run: |
           bash scripts/run_image_editor_browser_smoke.sh
           bash scripts/run_image_editor_background_smoke.sh
+          bash scripts/run_image_editor_workflow_smoke.sh
 
       - name: Upload image editor diagnostics
         if: always()
