@@ -47,7 +47,7 @@
         await waitFor(()=>{
           const ids=new Set(window.ProgramStudioDesignEditorRuntimeManifest.map(entry=>entry.id));
           const latest=new Map();(window.__browserLosslessRuntimeResults||[]).forEach(entry=>{if(ids.has(entry?.id))latest.set(entry.id,entry);});
-          return ids.size===31&&latest.size===31&&[...latest.values()].every(entry=>entry.status==='loaded');
+          return ids.size===32&&latest.size===32&&[...latest.values()].every(entry=>entry.status==='loaded');
         },'all runtime manifest results');
         assert(window.DesignEditorCoverModel,'cover model runtime module did not load');
         await waitFor(()=>window.DesignEditorOutput,'DesignEditorOutput');
