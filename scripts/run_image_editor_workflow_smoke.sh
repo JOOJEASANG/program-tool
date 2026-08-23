@@ -32,7 +32,7 @@ done
 
 if ! grep -q 'data-image-workflow-smoke="pass"' "$DOM_OUT"; then echo "Image editor workflow browser smoke failed." >&2; cat "$DOM_OUT" >&2; echo "----- HTTP server log -----" >&2; cat "$SERVER_LOG" >&2; exit 1; fi
 if ! grep -q 'PASS: centered crop presets and clipboard image workflow' "$DOM_OUT"; then echo "Image editor workflow completion marker missing." >&2; cat "$DOM_OUT" >&2; exit 1; fi
-for marker in 'data-workflow-square="80x80@20,0"' 'data-workflow-wide="120x68@0,6"' 'data-workflow-paste="32x24"' 'data-workflow-prevented="true"' 'data-workflow-stage="image-editor-workflow-stage3"'; do
+for marker in 'data-workflow-square="80x80@20,0"' 'data-workflow-wide="120x68@0,6"' 'data-workflow-paste="120x80"' 'data-workflow-prevented="true"' 'data-workflow-stage="image-editor-workflow-stage3"'; do
   if ! grep -q "$marker" "$DOM_OUT"; then echo "Image editor workflow marker missing: $marker" >&2; cat "$DOM_OUT" >&2; exit 1; fi
 done
 
