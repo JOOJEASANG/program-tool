@@ -16,6 +16,7 @@
   let modeCaptureInstalled=false;
 
   function project(){return root.DesignEditorApp?.project||null;}
+  function isCoverProject(){return project()?.designMode==='cover'&&project()?.presetId==='cover-a4';}
 
   function setStatus(current=project()){
     const node=document.getElementById('editorStatus');
@@ -27,6 +28,7 @@
   }
 
   function patchModeCard(){
+    if(!isCoverProject())return false;
     const card=document.getElementById('designEmbeddedModeCard');
     if(!card)return false;
     card.querySelectorAll('[data-design-mode]').forEach(button=>button.classList.toggle('on',button.dataset.designMode==='cover'));
@@ -39,6 +41,7 @@
 
   function syncModeMenus(){
     root.DesignEditorEmbeddedPolish?.syncCapabilityVisibility?.();
+    if(!isCoverProject())return;
     root.DesignEditorCoverSettings?.syncFields?.();
     root.DesignEditorCoverSpineTools?.placeAll?.();
     root.DesignEditorCoverPreviewZones?.render?.();
@@ -52,6 +55,7 @@
     const app=root.DesignEditorApp;
     const model=root.DesignEditorCoverModel;
     if(!app||typeof app.startProject!=='function'||!model)return false;
+    if(root.DesignEditorEmbeddedRuntime&&app.project?.designMode&&app.project.designMode!=='cover')return false;
     model.registerPreset();
     if(app.project?.presetId!=='cover-a4')app.startProject('cover-a4');
     const current=model.applyToProject(app.project);
@@ -64,11 +68,11 @@
 
   function restoreScopedDraft(force=false){
     if(force)restored=false;
-    if(restored||!installed||!root.DesignEditorEmbeddedRuntime)return false;
+    if(!isCoverProject()||restored||!installed||!root.DesignEditorEmbeddedRuntime)return false;
     const scope=root.DesignEditorDraftScope;
     if(!scope?.restoreCurrentScope)return false;
     restored=Boolean(scope.restoreCurrentScope());
-    if(restored){
+    if(restored&&isCoverProject()){
       root.DesignEditorCoverModel?.applyToProject?.(project());
       setStatus();
       syncModeMenus();
@@ -81,7 +85,7 @@
     const app=root.DesignEditorApp;
     const model=root.DesignEditorCoverModel;
     if(!app||typeof app.startProject!=='function'||!model)return false;
-    if(project()?.designMode==='cover'&&project()?.presetId==='cover-a4'){
+    if(isCoverProject()){
       patchModeCard();syncModeMenus();updateCoverHistory();return true;
     }
     root.DesignEditorModeSwitchSafety?.saveNow?.(`cover-${source}`);
@@ -101,7 +105,7 @@
     setStatus();
     root.dispatchEvent(new Event('resize'));
     try{root.dispatchEvent(new CustomEvent('programstudio:design-mode-change',{detail:{mode:'cover',source}}));}catch(_){}
-    requestAnimationFrame(()=>{patchModeCard();syncModeMenus();root.DesignEditorPhase2?.sync?.();});
+    requestAnimationFrame(()=>{if(!isCoverProject())return;patchModeCard();syncModeMenus();root.DesignEditorPhase2?.sync?.();});
     return true;
   }
 
@@ -131,9 +135,11 @@
   }
 
   function settleAfterRuntime(){
+    if(!isCoverProject())return false;
     patchModeCard();
     restoreScopedDraft();
     syncModeMenus();
+    return true;
   }
 
   function onRuntimeResult(event){
