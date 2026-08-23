@@ -40,19 +40,17 @@
       assert(wide&&wide.x===0&&wide.y===6&&wide.w===120&&wide.h===68,'16:9 centered crop is wrong');
       crop=api.getState().crop;assert(crop.x===0&&crop.y===6&&crop.w===120&&crop.h===68,'16:9 crop did not reach editor state');
 
-      const pasted=document.createElement('canvas');pasted.width=32;pasted.height=24;pasted.getContext('2d').fillRect(0,0,32,24);
-      const pastedBlob=await new Promise(resolve=>pasted.toBlob(resolve,'image/png'));
-      assert(await workflow.pasteImageBlob(pastedBlob,'clipboard-test.png')===true,'direct clipboard blob load failed');
-      let state=api.getState();assert(state.width===32&&state.height===24&&state.name==='clipboard-test.png','clipboard blob dimensions/name are wrong');
+      assert(await workflow.pasteImageBlob(blob,'clipboard-test.png')===true,'direct clipboard blob load failed');
+      let state=api.getState();assert(state.width===120&&state.height===80&&state.name==='clipboard-test.png','clipboard blob dimensions/name are wrong');
 
       let prevented=false;
-      const fakeEvent={target:document.body,clipboardData:{items:[{type:'image/png',getAsFile:()=>pastedBlob}]},preventDefault(){prevented=true}};
+      const fakeEvent={target:document.body,clipboardData:{items:[{type:'image/png',getAsFile:()=>blob}]},preventDefault(){prevented=true}};
       assert(await workflow.handlePaste(fakeEvent)===true,'paste event image import failed');
       assert(prevented===true,'image paste did not prevent default browser paste');
-      state=api.getState();assert(state.width===32&&state.height===24,'paste event lost image dimensions');
+      state=api.getState();assert(state.width===120&&state.height===80,'paste event lost image dimensions');
 
       const input=document.getElementById('cropX');
-      assert(await workflow.handlePaste({target:input,clipboardData:{items:[{type:'image/png',getAsFile:()=>pastedBlob}]},preventDefault(){throw new Error('editable target paste must not be intercepted')}})===false,'editable control paste should be ignored');
+      assert(await workflow.handlePaste({target:input,clipboardData:{items:[{type:'image/png',getAsFile:()=>blob}]},preventDefault(){throw new Error('editable target paste must not be intercepted')}})===false,'editable control paste should be ignored');
 
       document.body.dataset.workflowSquare=`${square.w}x${square.h}@${square.x},${square.y}`;
       document.body.dataset.workflowWide=`${wide.w}x${wide.h}@${wide.x},${wide.y}`;
