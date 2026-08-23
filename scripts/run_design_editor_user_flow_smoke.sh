@@ -13,7 +13,31 @@ find_browser(){ for candidate in google-chrome google-chrome-stable chromium chr
 BROWSER="$(find_browser || true)"
 if [[ -z "$BROWSER" ]]; then echo "Headless Chrome/Chromium executable not found for design user-flow smoke." >&2; rm -rf "$PROFILE_DIR"; exit 1; fi
 
-python3 -m http.server "$PORT" --bind 127.0.0.1 --directory "$ROOT_DIR" >"$SERVER_LOG" 2>&1 &
+python3 - "$PORT" "$ROOT_DIR" >"$SERVER_LOG" 2>&1 <<'PY' &
+import http.server
+import os
+import sys
+import time
+
+port=int(sys.argv[1])
+root=sys.argv[2]
+
+class Handler(http.server.SimpleHTTPRequestHandler):
+    def __init__(self,*args,**kwargs):
+        super().__init__(*args,directory=root,**kwargs)
+
+    def do_GET(self):
+        if self.path.split('?',1)[0]=='/__design_user_flow_hold__':
+            time.sleep(8)
+            self.send_response(204)
+            self.send_header('Cache-Control','no-store')
+            self.end_headers()
+            return
+        super().do_GET()
+
+server=http.server.ThreadingHTTPServer(('127.0.0.1',port),Handler)
+server.serve_forever()
+PY
 SERVER_PID=$!
 cleanup(){ kill "$SERVER_PID" >/dev/null 2>&1 || true; wait "$SERVER_PID" >/dev/null 2>&1 || true; rm -rf "$PROFILE_DIR"; }
 trap cleanup EXIT
@@ -32,7 +56,7 @@ done
 
 if ! grep -q 'data-user-flow-status="pass"' "$DOM_OUT"; then echo "Design editor user-flow browser smoke failed." >&2; cat "$DOM_OUT" >&2; echo "----- HTTP server log -----" >&2; cat "$SERVER_LOG" >&2; exit 1; fi
 if ! grep -q 'PASS: image upload, edit, portable save, restore, PNG and PDF output' "$DOM_OUT"; then echo "Design editor user-flow completion marker is missing." >&2; cat "$DOM_OUT" >&2; exit 1; fi
-for marker in 'data-user-flow-runtime="32"' 'data-user-flow-portable="true"' 'data-user-flow-restored="true"' 'data-user-flow-png="true"' 'data-user-flow-pdf-pages="2"'; do
+for marker in 'data-user-flow-runtime="32"' 'data-user-flow-upload-handler="production-change-listener"' 'data-user-flow-portable="true"' 'data-user-flow-restored="true"' 'data-user-flow-png="true"' 'data-user-flow-pdf-pages="2"'; do
   if ! grep -q "$marker" "$DOM_OUT"; then echo "Design editor user-flow marker missing: $marker" >&2; cat "$DOM_OUT" >&2; exit 1; fi
 done
 
