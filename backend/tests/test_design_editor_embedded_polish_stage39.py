@@ -27,13 +27,20 @@ def test_embedded_polish_removes_obsolete_inner_start_flow_and_marks_saved_modes
         "has-saved",
         "자동 저장된 작업 있음",
         "다시 돌아와도 이어서 작업할 수 있습니다.",
-        "stage:'single-sidebar-embedded-flow-and-saved-mode-indicators'",
+        "keepModeCardFirst",
+        "position:sticky!important",
+        "showContextMenu",
+        "handleWheel",
+        "stage:'top-pinned-mode-selector-wheel-and-context-menu'",
     ):
         assert marker in source
 
 
-def test_embedded_polish_avoids_reentrant_runtime_watchers():
+def test_embedded_polish_sidebar_watcher_is_scoped_and_reentrancy_guarded():
     source = POLISH.read_text(encoding="utf-8")
-    assert "MutationObserver" not in source
+    assert "if(pinning)return false" in source
+    assert "sidebarObserver=new MutationObserver" in source
+    assert "sidebarObserver.observe(sidebar,{childList:true});" in source
+    assert "subtree:true" not in source
     assert "setInterval(" not in source
     assert "eval(" not in source
