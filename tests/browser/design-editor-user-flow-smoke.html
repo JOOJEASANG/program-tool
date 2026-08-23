@@ -30,7 +30,7 @@
       const waitFor=async(predicate,label,timeout=18000)=>{const started=Date.now();while(Date.now()-started<timeout){if(predicate())return;await new Promise(resolve=>setTimeout(resolve,50));}throw new Error('timeout: '+label);};
       const settle=(ms=80)=>new Promise(resolve=>setTimeout(resolve,ms));
       const runtimeResults=()=>{const manifest=Array.isArray(window.ProgramStudioDesignEditorRuntimeManifest)?window.ProgramStudioDesignEditorRuntimeManifest:[];const ids=new Set(manifest.map(entry=>entry.id));const latest=new Map();(window.__browserUserFlowRuntimeResults||[]).forEach(entry=>{if(ids.has(entry?.id))latest.set(entry.id,entry);});return{manifest,latest};};
-      const pixelPngFile=()=>{const base64='iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl9dL8AAAAASUVORK5CYII=';const binary=atob(base64);const bytes=new Uint8Array(binary.length);for(let i=0;i<binary.length;i+=1)bytes[i]=binary.charCodeAt(i);return new File([bytes],'user-flow.png',{type:'image/png'});};
+      const canvasPngFile=async()=>{const canvas=document.createElement('canvas');canvas.width=64;canvas.height=48;const ctx=canvas.getContext('2d');ctx.fillStyle='#dceeff';ctx.fillRect(0,0,64,48);ctx.fillStyle='#12396d';ctx.fillRect(8,8,48,32);ctx.fillStyle='#ffffff';ctx.fillRect(24,16,16,16);const blob=await new Promise((resolve,reject)=>canvas.toBlob(value=>value?resolve(value):reject(new Error('test PNG creation failed')),'image/png'));return new File([blob],'user-flow.png',{type:'image/png'});};
       try{
         await waitFor(()=>window.DesignEditorApp,'DesignEditorApp');
         await waitFor(()=>Array.isArray(window.ProgramStudioDesignEditorRuntimeManifest),'runtime manifest');
@@ -46,7 +46,7 @@
         assert(project.surfaces[0].elements[0]?.text==='저장 복원 사용자 흐름','text edit did not reach project state');
 
         await waitFor(()=>document.getElementById('phase2ImageInput'),'image input');
-        const imageInput=document.getElementById('phase2ImageInput');const transfer=new DataTransfer();transfer.items.add(pixelPngFile());imageInput.files=transfer.files;imageInput.dispatchEvent(new Event('change',{bubbles:true}));
+        const imageInput=document.getElementById('phase2ImageInput');const transfer=new DataTransfer();const imageFile=await canvasPngFile();assert(imageFile.size>0,'test PNG file is empty');transfer.items.add(imageFile);imageInput.files=transfer.files;imageInput.dispatchEvent(new Event('change',{bubbles:true}));
         await waitFor(()=>project.surfaces[0].extras?.some(item=>item.type==='image'&&item.assetId&&String(item.src||'').startsWith('blob:')),'indexeddb image asset');
         const uploaded=project.surfaces[0].extras.find(item=>item.type==='image');assert(uploaded?.name==='user-flow.png','uploaded image metadata changed');
 
