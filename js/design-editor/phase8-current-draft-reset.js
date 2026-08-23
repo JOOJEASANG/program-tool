@@ -105,3 +105,10 @@
     stage:'reset-only-current-preset-draft'
   };
 })();
+
+(function(){
+  'use strict';
+  const id='designEditorLeaflet2LayoutScriptV1';
+  if(document.getElementById(id))return;
+  const script=document.createElement('script');script.id=id;script.src='/js/design-editor/phase25-leaflet2-layout.js?v=20260824-1';script.async=false;document.head.appendChild(script);
+})();
