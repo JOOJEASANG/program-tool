@@ -6,6 +6,7 @@ PORT="${DESIGN_EDITOR_PDF_SMOKE_PORT:-4174}"
 OUT_DIR="${DESIGN_EDITOR_BROWSER_SMOKE_OUT:-$ROOT_DIR/browser-smoke-artifacts}"
 DOM_OUT="$OUT_DIR/design-editor-pdf-smoke-dom.html"
 SERVER_LOG="$OUT_DIR/design-editor-pdf-smoke-server.log"
+PROFILE_DIR="$(mktemp -d)"
 mkdir -p "$OUT_DIR"
 
 find_browser() {
@@ -21,6 +22,7 @@ find_browser() {
 BROWSER="$(find_browser || true)"
 if [[ -z "$BROWSER" ]]; then
   echo "Headless Chrome/Chromium executable not found for PDF smoke." >&2
+  rm -rf "$PROFILE_DIR"
   exit 1
 fi
 
@@ -29,6 +31,7 @@ SERVER_PID=$!
 cleanup() {
   kill "$SERVER_PID" >/dev/null 2>&1 || true
   wait "$SERVER_PID" >/dev/null 2>&1 || true
+  rm -rf "$PROFILE_DIR"
 }
 trap cleanup EXIT
 
@@ -53,6 +56,7 @@ done
   --no-sandbox \
   --disable-dev-shm-usage \
   --disable-background-networking \
+  --user-data-dir="$PROFILE_DIR" \
   --virtual-time-budget=45000 \
   --dump-dom \
   "$URL" >"$DOM_OUT"
