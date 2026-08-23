@@ -12,6 +12,7 @@
   let restoredScope='';
   let saveTimer=0;
   let installed=false;
+  let startHookInstalled=false;
 
   const roundMm=value=>Math.round((Number(value)||0)*10)/10;
   const safePart=value=>String(value||'design').toLowerCase().replace(/[^a-z0-9._-]+/g,'-').replace(/^-+|-+$/g,'')||'design';
@@ -146,6 +147,21 @@
     }catch(_){return false;}
   }
 
+  function installProjectStartHook(){
+    if(startHookInstalled)return true;
+    const app=window.DesignEditorApp;
+    if(!app||typeof app.startProject!=='function')return false;
+    const originalStart=app.startProject.bind(app);
+    app.startProject=(...args)=>{
+      restoredScope='';
+      const result=originalStart(...args);
+      restoreCurrentScope();
+      return result;
+    };
+    startHookInstalled=true;
+    return true;
+  }
+
   function installEvents(){
     if(installed)return;
     installed=true;
@@ -158,8 +174,9 @@
   function boot(){
     installEvents();
     const attempt=()=>{
+      installProjectStartHook();
       if(restoreCurrentScope())return;
-      [120,280,520,900,1500,2400,3600].forEach(delay=>setTimeout(restoreCurrentScope,delay));
+      [120,280,520,900,1500,2400,3600].forEach(delay=>setTimeout(()=>{installProjectStartHook();restoreCurrentScope();},delay));
     };
     if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',attempt,{once:true});else attempt();
     [700,1400,2600,4200].forEach(delay=>setTimeout(()=>queueSave('settled'),delay));
@@ -173,7 +190,8 @@
     draftKey,
     saveCurrent,
     restoreCurrentScope,
+    installProjectStartHook,
     listDrafts:()=>readJson(INDEX_KEY)||[],
-    stage:'preset-trim-size-scoped-draft-recovery'
+    stage:'preset-trim-size-scoped-draft-recovery-start-race-safe'
   };
 })();
