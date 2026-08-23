@@ -84,7 +84,7 @@ def test_stage75_runtime_manifest_and_real_browser_contract_include_preview_and_
     assert "firstElementChild?.id==='designEmbeddedModeCard'" in general
     assert "new MouseEvent('contextmenu'" in general
     assert "new WheelEvent('wheel'" in general
-    assert "data-mode-selector-top" in general
+    assert "dataset.modeSelectorTop" in general
     assert "ids.size===32&&latest.size===32" in cover
     assert "data-cover-preview-zones" in cover
     assert "PASS: unified cover preview zones, settings, spine direction, safety and real render" in runner
