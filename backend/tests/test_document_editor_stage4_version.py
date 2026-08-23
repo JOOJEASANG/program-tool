@@ -27,7 +27,7 @@ def test_document_editor_stage4_release_floor_and_runtime_sync():
     assert f"const VERSION='{current}'" in sw_register
     assert f"const APP_VERSION='{current}'" in sw
     assert f"/js/sw-register.js?v={current}" in firebase
-    assert "/js/document-editor/workflow.js?v=20260824-2" in page
+    assert "/js/document-editor/workflow.js?v=20260824-3" in page
     assert "/css/document-editor-table-tools.css?v=20260824-1" in page
     assert "/js/document-editor/table-tools.js?v=20260824-1" in page
     assert "stage:'document-editor-workflow-stage2'" in workflow
