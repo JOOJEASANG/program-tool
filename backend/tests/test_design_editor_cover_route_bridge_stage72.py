@@ -70,7 +70,7 @@ def test_stage72_cover_browser_smoke_checks_geometry_common_text_and_scoped_auto
         "document.querySelectorAll('.panel-guide-label').length===3",
         "input.value='통합 표지 제목'",
         "scope.startsWith('cover-a4.')",
-        "PASS: unified cover spread boots in the general editor",
+        "pass('unified cover spread boots in the general editor')",
     ):
         assert marker in source
 
