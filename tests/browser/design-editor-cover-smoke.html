@@ -35,17 +35,20 @@
         await waitFor(()=>{
           const ids=new Set(window.ProgramStudioDesignEditorRuntimeManifest.map(entry=>entry.id));
           const latest=new Map();(window.__browserCoverRuntimeResults||[]).forEach(entry=>{if(ids.has(entry?.id))latest.set(entry.id,entry);});
-          return ids.size===31&&latest.size===31&&[...latest.values()].every(entry=>entry.status==='loaded');
+          return ids.size===32&&latest.size===32&&[...latest.values()].every(entry=>entry.status==='loaded');
         },'all runtime manifest results');
         await waitFor(()=>window.DesignEditorCoverModel,'DesignEditorCoverModel');
         await waitFor(()=>window.DesignEditorCoverModeBridge,'DesignEditorCoverModeBridge');
         await waitFor(()=>window.DesignEditorCoverSettings,'DesignEditorCoverSettings');
         await waitFor(()=>window.DesignEditorCoverSpineTools,'DesignEditorCoverSpineTools');
+        await waitFor(()=>window.DesignEditorCoverPreviewZones,'DesignEditorCoverPreviewZones');
         await waitFor(()=>window.DesignEditorOutput,'DesignEditorOutput');
         await waitFor(()=>window.DesignEditorEmbeddedRuntime,'DesignEditorEmbeddedRuntime');
         await waitFor(()=>window.DesignEditorApp?.project?.presetId==='cover-a4','cover project');
         await waitFor(()=>document.getElementById('designCoverSettingsTools'),'cover settings panel');
         await waitFor(()=>document.getElementById('designCoverSpineTools'),'cover spine tools panel');
+        await waitFor(()=>document.getElementById('designCoverPreviewZoneTools'),'cover preview zone panel');
+        await waitFor(()=>document.getElementById('designCoverPreviewZones')?.dataset?.zoneCount==='3','cover preview zones');
         await settle();
 
         const project=DesignEditorApp.project;
@@ -70,6 +73,22 @@
         assert(document.getElementById('coverPageCount')?.value==='160','cover settings page count did not sync');
         assert(document.getElementById('coverPaperCaliper')?.value==='0.1','cover settings paper caliper did not sync');
 
+        const initialOverlay=document.getElementById('designCoverPreviewZones');
+        assert(initialOverlay&&!initialOverlay.hidden,'cover preview zone overlay is not visible');
+        assert(initialOverlay.querySelectorAll('.cover-preview-zone').length===3,'cover preview must show three regions');
+        assert(initialOverlay.querySelectorAll('.cover-preview-zone-safe').length===3,'cover preview must show three safe regions');
+        assert(initialOverlay.querySelector('[data-zone="back"]'),'back cover preview region is missing');
+        assert(initialOverlay.querySelector('[data-zone="spine"]'),'spine preview region is missing');
+        assert(initialOverlay.querySelector('[data-zone="front"]'),'front cover preview region is missing');
+        assert(initialOverlay.textContent.includes('뒤표지')&&initialOverlay.textContent.includes('책등')&&initialOverlay.textContent.includes('앞표지'),'cover preview labels are missing');
+        const projectBeforePreviewPrefs=JSON.stringify(project);
+        DesignEditorCoverPreviewZones.setPrefs({visible:false,labels:false,safe:false,opacity:0});await settle();
+        assert(document.getElementById('designCoverPreviewZones')?.hidden===true,'preview overlay visibility toggle failed');
+        DesignEditorCoverPreviewZones.setPrefs({visible:true,labels:true,safe:true,opacity:18});await settle();
+        const restoredOverlay=document.getElementById('designCoverPreviewZones');
+        assert(restoredOverlay?.hidden===false&&restoredOverlay.dataset.opacity==='18','preview overlay restore/opacity failed');
+        assert(JSON.stringify(project)===projectBeforePreviewPrefs,'preview-only controls mutated printable project data');
+
         document.getElementById('addTitleBtn').click();await settle();
         const input=document.getElementById('textContentInput');assert(input,'common text inspector did not open on cover');
         input.value='통합 표지 제목';input.dispatchEvent(new Event('input',{bubbles:true}));await settle();
@@ -91,6 +110,9 @@
         assert(window.DesignEditorDraftScope.scopeForProject(project)===initialScope,'cover draft scope changed when only spine width changed');
         assert(document.querySelectorAll('.fold-guide').length===2&&document.querySelectorAll('.panel-guide-label').length===3,'cover guides did not rerender after geometry change');
         assert(document.getElementById('editorStatus')?.textContent.includes('책등 10.5mm'),'cover settings success status is missing');
+        await waitFor(()=>document.getElementById('designCoverPreviewZones')?.dataset?.spine==='10.5','preview overlay geometry refresh');
+        const resizedOverlay=document.getElementById('designCoverPreviewZones');
+        assert(resizedOverlay.querySelectorAll('.cover-preview-zone').length===3&&resizedOverlay.querySelectorAll('.cover-preview-zone-safe').length===3,'preview zones were lost after geometry change');
 
         const spineTitle=DesignEditorCoverSpineTools.addSpineTitle('center');await settle();
         assert(spineTitle?.coverRole==='spine-title'&&spineTitle.spineZone==='center','common text was not promoted to a spine title');
@@ -116,8 +138,8 @@
         rendered.canvas.width=1;rendered.canvas.height=1;
 
         const finalSafety=DesignEditorCoverSpineTools.evaluateAll();
-        document.body.dataset.coverWidth=String(project.width);document.body.dataset.coverHeight=String(project.height);document.body.dataset.coverSpine=String(project.cover.spine);document.body.dataset.coverFolds=project.surfaces[0].folds.join(',');document.body.dataset.coverRuntime=String(window.ProgramStudioDesignEditorRuntimeManifest.length);document.body.dataset.coverPageCount=String(project.cover.pageCount);document.body.dataset.coverElementPreserved=String(project.surfaces[0].elements[0].id===titleId);document.body.dataset.coverDraftScope=window.DesignEditorDraftScope.scopeForProject(project);document.body.dataset.coverSpineTitles=String(DesignEditorCoverSpineTools.evaluateAll().items.length);document.body.dataset.coverSpineDirection=spineTitle.spineDirection;document.body.dataset.coverSpineSafety=finalSafety.level;document.body.dataset.coverSpineInk=String(spineInk);
-        pass('unified cover settings, spine direction, safety and real render preserve common-editor content');
+        document.body.dataset.coverWidth=String(project.width);document.body.dataset.coverHeight=String(project.height);document.body.dataset.coverSpine=String(project.cover.spine);document.body.dataset.coverFolds=project.surfaces[0].folds.join(',');document.body.dataset.coverRuntime=String(window.ProgramStudioDesignEditorRuntimeManifest.length);document.body.dataset.coverPageCount=String(project.cover.pageCount);document.body.dataset.coverElementPreserved=String(project.surfaces[0].elements[0].id===titleId);document.body.dataset.coverDraftScope=window.DesignEditorDraftScope.scopeForProject(project);document.body.dataset.coverSpineTitles=String(DesignEditorCoverSpineTools.evaluateAll().items.length);document.body.dataset.coverSpineDirection=spineTitle.spineDirection;document.body.dataset.coverSpineSafety=finalSafety.level;document.body.dataset.coverSpineInk=String(spineInk);document.body.dataset.coverPreviewZones=String(resizedOverlay.querySelectorAll('.cover-preview-zone').length);document.body.dataset.coverPreviewSafe=String(resizedOverlay.querySelectorAll('.cover-preview-zone-safe').length);document.body.dataset.coverPreviewOpacity=resizedOverlay.dataset.opacity;document.body.dataset.coverPreviewProjectStable=String(JSON.stringify(project)!==projectBeforePreviewPrefs);
+        pass('unified cover preview zones, settings, spine direction, safety and real render');
       }catch(error){fail(error);}
     })();
   </script>

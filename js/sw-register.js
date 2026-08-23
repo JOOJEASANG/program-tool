@@ -96,6 +96,7 @@
     ['designEditorCloudProjectsScriptV1','/js/design-editor/phase24-cloud-projects.js?v=20260823-1'],
     ['designEditorRotationScriptV1','/js/design-editor/phase12-rotation.js?v=20260822-1'],
     ['designEditorCoverSpineToolsScriptV1','/js/design-editor/cover-spine-tools.js?v=20260823-1'],
+    ['designEditorCoverPreviewZonesScriptV1','/js/design-editor/cover-preview-zones.js?v=20260823-1'],
     ['designEditorPrintQualityScriptV1','/js/design-editor/phase13-print-quality.js?v=20260822-1'],
     ['designEditorPrintSafetyScriptV1','/js/design-editor/phase14-print-safety.js?v=20260822-1'],
     ['designEditorFinalPrintCheckScriptV1','/js/design-editor/phase22-final-print-check.js?v=20260822-1'],
