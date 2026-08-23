@@ -3,17 +3,27 @@
 <head><meta charset="utf-8"><title>Image Editor Background Smoke</title></head>
 <body data-image-background-smoke="pending">
   <div id="result">PENDING</div>
-  <iframe id="editor" src="/image-editor/" style="width:1100px;height:780px;border:0"></iframe>
+  <div id="dropZone"><div id="emptyState"></div><div id="canvasViewport" hidden><canvas id="previewCanvas"></canvas><div id="cropOverlay" hidden></div></div></div>
+  <div id="fileMeta"></div><div id="statusText"></div><div id="dimensionText"></div>
+  <input id="fileInput" type="file"><button id="openBtn"></button><button id="undoBtn"></button><button id="resetBtn"></button><button id="exportBtn"></button><button id="exportSideBtn"></button>
+  <button id="rotateLeftBtn"></button><button id="rotateRightBtn"></button><button id="flipHBtn"></button><button id="flipVBtn"></button>
+  <input id="cropX" value="0"><input id="cropY" value="0"><input id="cropW" value="1"><input id="cropH" value="1"><button id="squareCropBtn"></button><button id="fullCropBtn"></button><button id="applyCropBtn"></button>
+  <input id="resizeW"><input id="resizeH"><input id="lockRatio" type="checkbox" checked><button id="applyResizeBtn"></button>
+  <input id="brightness" type="range" min="20" max="180" value="100"><output id="brightnessOut"></output><input id="contrast" type="range" min="20" max="180" value="100"><output id="contrastOut"></output><input id="saturation" type="range" min="0" max="200" value="100"><output id="saturationOut"></output><button id="resetAdjustBtn"></button>
+  <input id="backgroundColor" type="color" value="#ffffff"><button id="sampleBackgroundBtn"></button><input id="backgroundTolerance" type="range" min="0" max="120" value="30"><output id="backgroundToleranceOut"></output><input id="backgroundFeather" type="range" min="0" max="80" value="18"><output id="backgroundFeatherOut"></output><button id="removeBackgroundBtn"></button><div id="backgroundStatus"></div>
+  <select id="exportFormat"><option value="image/png">PNG</option><option value="image/jpeg">JPEG</option><option value="image/webp">WebP</option></select><input id="exportQuality" value="92"><div id="exportNote"></div>
+  <section data-requires-image></section>
+  <script src="/js/image-editor/app.js?v=20260823-2"></script>
   <script>
   (async()=>{
-    const result=document.getElementById('result'),frame=document.getElementById('editor');
+    const result=document.getElementById('result');
     const fail=error=>{document.body.dataset.imageBackgroundSmoke='fail';result.textContent='FAIL: '+String(error?.stack||error?.message||error)};
     const pass=message=>{document.body.dataset.imageBackgroundSmoke='pass';result.textContent='PASS: '+message};
     const assert=(condition,message)=>{if(!condition)throw new Error(message)};
     const waitFor=async(predicate,label,timeout=12000)=>{const started=Date.now();while(Date.now()-started<timeout){if(predicate())return;await new Promise(resolve=>setTimeout(resolve,40))}throw new Error('timeout: '+label)};
     try{
-      await waitFor(()=>frame.contentWindow?.ImageEditorApp,'ImageEditorApp');
-      const api=frame.contentWindow.ImageEditorApp;
+      await waitFor(()=>window.ImageEditorApp,'ImageEditorApp');
+      const api=window.ImageEditorApp;
       const source=document.createElement('canvas');source.width=80;source.height=60;const ctx=source.getContext('2d');
       ctx.fillStyle='#ffffff';ctx.fillRect(0,0,80,60);ctx.fillStyle='#cc3030';ctx.fillRect(20,15,40,30);
       const blob=await new Promise(resolve=>source.toBlob(resolve,'image/png'));
@@ -32,8 +42,8 @@
       assert(api.undo()===true,'background removal undo failed');
       const restored=api.renderOutput('image/png').getContext('2d').getImageData(2,2,1,1).data;
       assert(restored[3]===255&&restored[0]>245,'undo did not restore original white background');
-      const doc=frame.contentDocument;doc.getElementById('exportFormat').value='image/jpeg';doc.getElementById('exportFormat').dispatchEvent(new Event('change',{bubbles:true}));
-      assert(doc.getElementById('exportNote').textContent.includes('흰색'),'JPEG transparency guidance is missing');
+      document.getElementById('exportFormat').value='image/jpeg';document.getElementById('exportFormat').dispatchEvent(new Event('change',{bubbles:true}));
+      assert(document.getElementById('exportNote').textContent.includes('흰색'),'JPEG transparency guidance is missing');
       document.body.dataset.backgroundSample=sampled.hex;document.body.dataset.backgroundRemoved=String(removed.removedPixels>2000);document.body.dataset.backgroundCornerAlpha=String(corner[3]);document.body.dataset.backgroundSubjectAlpha=String(center[3]);document.body.dataset.backgroundJpegWhite=String(jpegCorner[0]>245);document.body.dataset.backgroundUndo=String(restored[3]===255);document.body.dataset.backgroundStage=api.stage;
       pass('corner sampling, single-color removal, transparent PNG, white JPEG flatten and undo');
     }catch(error){fail(error)}
