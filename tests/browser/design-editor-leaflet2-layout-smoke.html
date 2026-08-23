@@ -66,7 +66,17 @@
         assert(document.querySelectorAll('#artboard .leaflet2-horizontal-panel-label').length===2,'top-bottom panel labels were not rendered');
         assert(new URLSearchParams(location.search).get('leaflet2Layout')==='top-bottom','top-bottom layout was not reflected in history');
 
-        surface.elements.push({id:'fold-text',type:'text',text:'접지선 확인',x:20,y:103,w:60,size:12,visible:true});
+        const paper=document.getElementById('designModePaper');paper.value='a3';paper.dispatchEvent(new Event('change',{bubbles:true}));
+        document.querySelector('.design-mode-apply').click();
+        await waitFor(()=>app.project?.width===420&&app.project?.height===297,'A3 landscape geometry apply');
+        await waitFor(()=>app.project?.leaflet2Layout==='top-bottom','top-bottom layout preserved after size apply');
+        await settle(160);
+        project=app.project;surface=project.surfaces.find(item=>item.id===project.activeSurface)||project.surfaces[0];
+        assert(surface.foldAxis==='y'&&surface.foldsY?.length===1&&Math.abs(surface.foldsY[0]-148.5)<.01,'top-bottom fold was not recalculated after A3 size change');
+        assert(document.getElementById('designLeaflet2Layout')?.value==='top-bottom','top-bottom selector was lost after size change');
+
+        const foldY=Number(surface.foldsY[0]);
+        surface.elements.push({id:'fold-text',type:'text',text:'접지선 확인',x:20,y:foldY-2,w:60,size:12,visible:true});
         const issues=layout.horizontalFoldIssues();
         assert(issues.some(item=>item.itemId==='fold-text'&&item.kind==='horizontal-fold'),'horizontal fold safety did not detect crossing text');
         assert(document.getElementById('designLeaflet2LayoutSafety')?.textContent.includes('확인 필요')||issues.length>0,'horizontal fold safety note missing');
@@ -81,12 +91,13 @@
 
         document.body.dataset.leaflet2LeftRight='true';
         document.body.dataset.leaflet2TopBottom='true';
+        document.body.dataset.leaflet2SizePreserved='true';
         document.body.dataset.leaflet2HorizontalGuide='true';
         document.body.dataset.leaflet2Safety='true';
         document.body.dataset.leaflet2Portable='true';
         document.body.dataset.leaflet2FinalGate='true';
         document.body.dataset.leaflet2LayoutStage=layout.stage;
-        pass('leaflet2 left-right and top-bottom folds, guides, safety and project persistence');
+        pass('leaflet2 left-right and top-bottom folds, size persistence, guides, safety and project persistence');
       }catch(error){fail(error);}
     })();
   </script>
