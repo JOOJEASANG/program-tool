@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"><title>Document Editor Workflow Smoke</title></head>
+<body data-document-workflow-smoke="pending">
+  <div id="result">PENDING</div>
+  <iframe id="editorFrame" src="/document-editor/" style="width:1200px;height:900px;border:0"></iframe>
+  <script>
+  (async()=>{
+    const result=document.getElementById('result'),frame=document.getElementById('editorFrame');
+    const fail=error=>{document.body.dataset.documentWorkflowSmoke='fail';result.textContent='FAIL: '+String(error?.stack||error?.message||error)};
+    const pass=message=>{document.body.dataset.documentWorkflowSmoke='pass';result.textContent='PASS: '+message};
+    const assert=(condition,message)=>{if(!condition)throw new Error(message)};
+    const waitFor=async(predicate,label,timeout=12000)=>{const started=Date.now();while(Date.now()-started<timeout){if(predicate())return;await new Promise(resolve=>setTimeout(resolve,40))}throw new Error('timeout: '+label)};
+    try{
+      await waitFor(()=>frame.contentWindow?.DocumentEditorApp&&frame.contentWindow?.DocumentEditorWorkflow&&frame.contentDocument?.documentElement.dataset.documentEditorWorkflowReady==='1','document workflow ready');
+      const win=frame.contentWindow,doc=frame.contentDocument,core=win.DocumentEditorApp,workflow=win.DocumentEditorWorkflow;
+      core.clearDraft();win.localStorage.removeItem(workflow.constants.settingsKey);core.newDocument(true);
+      doc.getElementById('documentTitle').value='업무 보고서';
+      core.setContent('<h1>주간 보고</h1><p>천안 사업 진행 상황입니다.</p><p>천안 다음 일정을 확인합니다.</p><table><tbody><tr><td>항목</td><td>상태</td></tr><tr><td>점검</td><td>완료</td></tr></tbody></table>',{save:false});
+
+      const page=workflow.applyPageSettings({orientation:'landscape',margin:'narrow'});
+      assert(page.orientation==='landscape'&&page.margin==='narrow'&&page.width===297&&page.height===210,'landscape/narrow page settings are wrong');
+      const pageNode=doc.getElementById('documentPage');
+      assert(pageNode.dataset.orientation==='landscape'&&pageNode.style.getPropertyValue('--document-page-width')==='297mm','page DOM did not receive landscape size');
+      assert(pageNode.style.getPropertyValue('--document-margin-x')==='12mm','narrow margin did not reach page DOM');
+
+      const found=workflow.findText('천안');assert(found.found&&found.count===2,'find text count is wrong');
+      const replaced=workflow.replaceAllText('천안','지역');assert(replaced===2,'replace all count is wrong');
+      assert(core.getState().text.includes('지역 사업')&&core.getState().text.includes('지역 다음'),'replace all did not update document text');
+
+      const project=workflow.buildProject();
+      assert(project.format==='program-studio-document-project'&&project.version===2,'project format/version is wrong');
+      assert(project.title==='업무 보고서'&&project.page.orientation==='landscape'&&project.page.margin==='narrow','project metadata is wrong');
+      const serialized=workflow.serializeProject(),parsed=workflow.parseProject(serialized),blob=workflow.projectBlob();
+      assert(parsed.title==='업무 보고서'&&blob.type==='application/json'&&blob.size>100,'portable project serialization failed');
+
+      core.setContent('<p>임시 문서</p>',{save:false});doc.getElementById('documentTitle').value='임시 제목';workflow.applyPageSettings({orientation:'portrait',margin:'wide'});
+      const restored=workflow.restoreProject(project);
+      assert(restored.title==='업무 보고서'&&restored.page.orientation==='landscape'&&restored.page.margin==='narrow','project restore metadata failed');
+      assert(core.getState().text.includes('지역 사업')&&doc.getElementById('documentPage').querySelector('table'),'project restore lost content/table');
+
+      const sanitized=workflow.sanitizeDocumentHtml('<p onclick="window.bad=1">안전 문장</p><script>window.bad=2</script><img src="javascript:alert(1)" onerror="window.bad=3"><span style="background:url(https://bad.example/a)">검사</span>');
+      const probe=doc.createElement('div');probe.innerHTML=sanitized;
+      assert(!probe.querySelector('script,img'),'unsafe script/image survived sanitization');
+      assert(!probe.querySelector('[onclick],[onerror]'),'event handler survived sanitization');
+      assert(!/url\s*\(/i.test(probe.innerHTML),'unsafe style URL survived sanitization');
+
+      document.body.dataset.documentOrientation=page.orientation;
+      document.body.dataset.documentMargin=page.margin;
+      document.body.dataset.documentFind=String(found.count);
+      document.body.dataset.documentReplace=String(replaced);
+      document.body.dataset.documentProject=String(blob.size>100);
+      document.body.dataset.documentSanitize='true';
+      document.body.dataset.documentWorkflowStage=workflow.stage;
+      pass('page setup, find replace, portable project roundtrip and sanitization');
+    }catch(error){fail(error)}
+  })();
+  </script>
+</body>
+</html>
