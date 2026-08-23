@@ -86,6 +86,6 @@ def test_stage75_runtime_manifest_and_real_browser_contract_include_preview_and_
     assert "new WheelEvent('wheel'" in general
     assert "dataset.modeSelectorTop" in general
     assert "ids.size===32&&latest.size===32" in cover
-    assert "data-cover-preview-zones" in cover
+    assert "dataset.coverPreviewZones" in cover
     assert "PASS: unified cover preview zones, settings, spine direction, safety and real render" in runner
     assert 'data-cover-runtime="32"' in runner
