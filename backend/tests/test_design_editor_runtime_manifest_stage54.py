@@ -20,7 +20,7 @@ def test_design_editor_runtime_manifest_is_single_ordered_source_of_truth():
     source = REGISTER.read_text(encoding="utf-8")
     entries = _manifest_entries(source)
 
-    assert len(entries) == 31
+    assert len(entries) == 32
     ids = [item[0] for item in entries]
     paths = [item[1] for item in entries]
     assert len(ids) == len(set(ids))
@@ -32,6 +32,7 @@ def test_design_editor_runtime_manifest_is_single_ordered_source_of_truth():
     assert ids[4] == "designEditorEmbeddedRuntimeScriptV1"
     assert ids[5] == "designEditorCoverSettingsScriptV1"
     assert "designEditorCoverSpineToolsScriptV1" in ids
+    assert "designEditorCoverPreviewZonesScriptV1" in ids
     assert ids[-2:] == [
         "designEditorStyleThemesScriptV1",
         "designEditorDesignRecipesScriptV1",
@@ -42,6 +43,7 @@ def test_design_editor_runtime_manifest_is_single_ordered_source_of_truth():
     assert paths[3] == "/js/design-editor/cover-mode-bridge.js?v=20260823-1"
     assert paths[5] == "/js/design-editor/cover-settings.js?v=20260823-1"
     assert "/js/design-editor/cover-spine-tools.js?v=20260823-1" in paths
+    assert "/js/design-editor/cover-preview-zones.js?v=20260823-1" in paths
     assert "window.ProgramStudioDesignEditorRuntimeManifest" in source
 
 
@@ -64,7 +66,8 @@ def test_design_editor_runtime_manifest_preserves_dependency_order():
     before("designEditorElementClipboardScriptV1", "designEditorProjectFileScriptV1")
     before("designEditorProjectFileScriptV1", "designEditorCloudProjectsScriptV1")
     before("designEditorRotationScriptV1", "designEditorCoverSpineToolsScriptV1")
-    before("designEditorCoverSpineToolsScriptV1", "designEditorPrintSafetyScriptV1")
+    before("designEditorCoverSpineToolsScriptV1", "designEditorCoverPreviewZonesScriptV1")
+    before("designEditorCoverPreviewZonesScriptV1", "designEditorPrintSafetyScriptV1")
     before("designEditorQuickDesignScriptV1", "designEditorSimpleInterfaceScriptV1")
     before("designEditorSimpleInterfaceScriptV1", "designEditorComponentBlocksScriptV1")
     before("designEditorPrintBlocksScriptV1", "designEditorStyleThemesScriptV1")
