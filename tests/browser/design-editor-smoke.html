@@ -103,7 +103,7 @@
         },'all runtime manifest results');
 
         const runtimeBoot=runtimeResultsForManifest();
-        assert(runtimeBoot.manifest.length===29,'runtime manifest size changed without updating browser smoke contract');
+        assert(runtimeBoot.manifest.length===30,'runtime manifest size changed without updating browser smoke contract');
         runtimeBoot.manifest.forEach(entry=>{
           const event=runtimeBoot.latest.get(entry.id);
           assert(event?.status==='loaded',`runtime module failed: ${entry.id} (${event?.status||'missing-result'})`);
