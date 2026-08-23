@@ -12,6 +12,7 @@
   <link rel="stylesheet" href="/css/document-editor-table-tools.css?v=20260824-1">
   <link rel="stylesheet" href="/css/document-editor-print-layout.css?v=20260824-1">
   <link rel="stylesheet" href="/css/document-editor-outline.css?v=20260824-1">
+  <link rel="stylesheet" href="/css/document-editor-comments.css?v=20260824-1">
 </head>
 <body>
   <header class="app-header">
@@ -72,6 +73,15 @@
         <div class="outline-head"><div class="panel-title">문서 개요</div><button id="refreshOutlineBtn" class="outline-refresh" type="button">새로고침</button></div>
         <div id="documentOutlineList" class="document-outline-list" aria-label="문서 제목 개요"></div>
         <div id="outlineState" class="workflow-note">문서의 제목 1·2·3을 자동으로 정리합니다.</div>
+      </section>
+
+      <section class="panel-card workflow-card comment-card">
+        <div class="panel-title">문서 메모</div>
+        <p class="help">문서에서 메모를 연결할 문단이나 글자를 선택한 뒤 내용을 입력하세요. 메모는 인쇄되지 않습니다.</p>
+        <textarea id="commentText" class="comment-input" maxlength="600" placeholder="검토할 내용, 수정 요청, 확인할 사항"></textarea>
+        <div class="comment-actions"><button id="addCommentBtn" class="primary" type="button">선택 문단에 메모 추가</button><button id="clearCommentsBtn" type="button">전체 삭제</button></div>
+        <div id="documentCommentList" class="comment-list" aria-label="문서 메모 목록"></div>
+        <div id="commentState" class="workflow-note">문단을 선택한 뒤 메모를 추가할 수 있습니다.</div>
       </section>
 
       <section class="panel-card workflow-card">
@@ -169,10 +179,11 @@
   </main>
 
   <script src="/js/document-editor/app.js?v=20260823-1"></script>
-  <script src="/js/document-editor/workflow.js?v=20260824-3"></script>
+  <script src="/js/document-editor/workflow.js?v=20260824-4"></script>
   <script src="/js/document-editor/usability.js?v=20260824-1"></script>
   <script src="/js/document-editor/table-tools.js?v=20260824-1"></script>
   <script src="/js/document-editor/print-layout.js?v=20260824-1"></script>
   <script src="/js/document-editor/outline.js?v=20260824-1"></script>
+  <script src="/js/document-editor/comments.js?v=20260824-1"></script>
 </body>
 </html>

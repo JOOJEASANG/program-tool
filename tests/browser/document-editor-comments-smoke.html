@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"><title>Document Editor Comments Smoke</title></head>
+<body data-document-comments-smoke="pending">
+  <div id="result">PENDING</div>
+  <iframe id="editorFrame" src="/document-editor/" style="width:1200px;height:900px;border:0"></iframe>
+  <script>
+  (async()=>{
+    const result=document.getElementById('result'),frame=document.getElementById('editorFrame');
+    const fail=error=>{document.body.dataset.documentCommentsSmoke='fail';result.textContent='FAIL: '+String(error?.stack||error?.message||error)};
+    const pass=message=>{document.body.dataset.documentCommentsSmoke='pass';result.textContent='PASS: '+message};
+    const assert=(condition,message)=>{if(!condition)throw new Error(message)};
+    const waitFor=async(predicate,label,timeout=12000)=>{const started=Date.now();while(Date.now()-started<timeout){if(predicate())return;await new Promise(resolve=>setTimeout(resolve,40))}throw new Error('timeout: '+label)};
+    try{
+      await waitFor(()=>frame.contentWindow?.DocumentEditorApp&&frame.contentWindow?.DocumentEditorWorkflow&&frame.contentWindow?.DocumentEditorComments&&frame.contentDocument?.documentElement.dataset.documentEditorCommentsReady==='1','document comments ready');
+      const win=frame.contentWindow,doc=frame.contentDocument,core=win.DocumentEditorApp,workflow=win.DocumentEditorWorkflow,comments=win.DocumentEditorComments;
+      core.clearDraft();core.newDocument(true);comments.clearComments();
+      core.setContent('<p>첫 문단</p><p>검토 대상 문단의 중요한 내용입니다.</p><p>마지막 문단</p>',{save:false});
+      const target=doc.querySelectorAll('#documentPage p')[1],range=doc.createRange(),selection=win.getSelection();
+      range.selectNodeContents(target);selection.removeAllRanges();selection.addRange(range);comments.captureAnchor();
+      const created=comments.addComment('표현 확인 필요');
+      assert(created&&comments.getComments().length===1,'comment was not created');
+      assert(created.anchor.quote.includes('검토 대상 문단'),'comment quote anchor is wrong');
+      assert(doc.querySelectorAll('#documentCommentList .comment-item').length===1,'comment list did not render');
+
+      const project=workflow.buildProject();
+      assert(project.comments?.length===1,'project did not preserve comments metadata');
+      assert(project.comments[0].text==='표현 확인 필요','project comment text is wrong');
+      assert(!project.html.includes('표현 확인 필요')&&!project.html.includes('data-comment'),'comment metadata polluted document HTML');
+
+      const inserted=doc.createElement('p');inserted.textContent='앞쪽에 새로 추가된 문단';doc.getElementById('documentPage').insertBefore(inserted,doc.getElementById('documentPage').firstChild);
+      assert(comments.navigateToComment(created.id)===true,'comment quote fallback navigation failed after structure shift');
+      assert(win.getSelection().toString().includes('검토 대상 문단'),'comment navigation selected the wrong paragraph');
+
+      comments.clearComments();assert(comments.getComments().length===0,'clearComments failed');
+      const restored=workflow.restoreProject(project);
+      assert(restored.comments.length===1&&comments.getComments().length===1,'project restore did not restore comments');
+      const restoredId=comments.getComments()[0].id;
+      assert(comments.navigateToComment(restoredId)===true,'restored comment navigation failed');
+      assert(comments.deleteComment(restoredId)===true&&comments.getComments().length===0,'comment deletion failed');
+
+      comments.importComments(project.comments);assert(comments.getComments().length===1,'comment re-import failed');
+      core.newDocument(true);assert(comments.getComments().length===0,'new document did not clear comments');
+
+      document.body.dataset.commentProject='true';
+      document.body.dataset.commentCleanHtml='true';
+      document.body.dataset.commentFallback='true';
+      document.body.dataset.commentRestore='true';
+      document.body.dataset.commentDelete='true';
+      document.body.dataset.commentNewDocumentClear='true';
+      document.body.dataset.documentCommentsStage=comments.stage;
+      pass('paragraph comments, clean project metadata, fallback navigation and restore');
+    }catch(error){fail(error)}
+  })();
+  </script>
+</body>
+</html>
