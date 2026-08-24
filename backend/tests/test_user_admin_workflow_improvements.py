@@ -1,4 +1,5 @@
 from pathlib import Path
+import json
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -6,6 +7,10 @@ ROOT = Path(__file__).resolve().parents[2]
 
 def read(path: str) -> str:
     return (ROOT / path).read_text(encoding="utf-8")
+
+
+def release_version() -> str:
+    return str(json.loads(read("version.json"))["version"]).strip()
 
 
 def test_runtime_boot_loads_print_workflow_modules():
@@ -17,11 +22,13 @@ def test_runtime_boot_loads_print_workflow_modules():
         "/js/admin-operations-overview.js",
         "/js/pdf-editor-final-check.js",
         "/js/pdf-print-readiness.js",
+        "/js/pdf-editor/spread-split.js",
+        "/js/pdf-editor/booklet-sheet-preview.js",
     ):
         assert asset in runtime
         assert asset in app_version
 
-    assert "const VERSION='2026.08.25.010'" in runtime
+    assert f"const VERSION='{release_version()}'" in runtime
 
 
 def test_pdf_editor_final_check_reuses_generated_output_without_manual_reupload():
@@ -79,10 +86,11 @@ def test_admin_operations_overview_is_explicit_and_non_destructive():
 
 
 def test_release_version_is_synchronized_for_new_workflow():
-    version = read("version.json")
+    version = json.loads(read("version.json"))
+    expected = str(version["version"]).strip()
     sw = read("sw.js")
     firebase = read("js/firebase-config.js")
 
-    assert '"version": "2026.08.25.010"' in version
-    assert "APP_VERSION='2026.08.25.010'" in sw
-    assert "/js/sw-register.js?v=2026.08.25.010" in firebase
+    assert expected
+    assert f"APP_VERSION='{expected}'" in sw
+    assert f"/js/sw-register.js?v={expected}" in firebase
