@@ -64,9 +64,8 @@
 
   function managedProgramUrl(item,base){
     const raw=String(item?.url||'').trim();
-    // Core deployed routes stay canonical so stale admin URLs cannot break the home.
-    if(raw==='perfect-binding-cover/'||raw==='/perfect-binding-cover/')return base.url;
-    return base.url;
+    if(base.id==='design-editor'&&(raw==='perfect-binding-cover/'||raw==='/perfect-binding-cover/'))return base.url;
+    return safeUrl(raw,base.url);
   }
 
   function normalizeManagedPrograms(raw){
@@ -85,8 +84,7 @@
         name:String(item?.name||'').trim()||base.name,
         desc:String(item?.desc||'').trim()||base.desc,
         url:managedProgramUrl(item,base),
-        // Finished core tools remain active; admin controls visibility and order.
-        status:base.status,
+        status:item?.status==='active'?'active':'coming',
         visible:item.visible!==false,
         tags:[...base.tags]
       });
