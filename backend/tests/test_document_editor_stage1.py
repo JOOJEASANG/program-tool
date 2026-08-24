@@ -70,12 +70,12 @@ def test_document_editor_stage1_has_real_browser_smoke():
     assert 'data-document-stage="document-editor-core-stage1"' in runner
 
 
-def test_document_editor_stage1_home_activation_happens_only_with_real_route():
+def test_document_editor_stage1_remains_available_but_is_not_a_primary_home_card():
     source = HOME.read_text(encoding="utf-8")
-    block = source[source.index("id:'document-editor'"):source.index("id:'pdf-editor'")]
-    assert "document-editor/" in block
-    assert "status:'active'" in block
-    assert "문서 작성" in block and "표·이미지" in block and "PDF 출력" in block
+    page = PAGE.read_text(encoding="utf-8")
+    assert "id:'document-editor'" not in source
+    assert "문서 편집기" in page
+    assert "document-editor-core-stage1" in APP.read_text(encoding="utf-8")
 
 
 def test_document_editor_stage1_quality_gate_runs_browser_smoke():
