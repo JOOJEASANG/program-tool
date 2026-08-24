@@ -58,6 +58,7 @@
       loadScopedScript('pdfEditorTransferLimitGuardScriptV1','/js/pdf-editor/transfer-limit-guard.js?v=20260818-1');
       loadScopedScript('pdfDividerLocalImageUploadScriptV1','/js/pdf-divider-local-image-upload.js?v=20260818-2');
       loadScopedScript('pdfEditorFinalCheckScriptV1','/js/pdf-editor-final-check.js?v=20260824-1');
+      loadScopedScript('pdfEditorSpreadSplitScriptV1','/js/pdf-editor/spread-split.js?v=20260825-1');
     }
     if(
       currentPath==='/tools/pdf-Checker.html'||
