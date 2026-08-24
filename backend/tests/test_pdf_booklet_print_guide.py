@@ -16,11 +16,15 @@ def source() -> str:
 def test_booklet_guide_is_integrated_without_adding_runtime_modules():
     loader = LOADER.read_text(encoding="utf-8")
     text = source()
+    legacy = LEGACY.read_text(encoding="utf-8")
     assert "__pdfEditorNupHelperV8" in text
     assert "/js/pdf-editor/nup-helper.js" in loader
     assert "/js/pdf-editor/booklet-print-guide.js" not in loader
     assert loader.count("'/js/pdf-editor/") == 8
-    assert EDITOR.read_bytes() == LEGACY.read_bytes()
+    assert EDITOR.read_text(encoding="utf-8") != legacy
+    assert "/pdf-editor/" in legacy
+    assert "location.replace" in legacy
+    assert "location.search+location.hash" in legacy
 
 
 def test_duplex_flip_guide_has_long_and_short_edge_options():

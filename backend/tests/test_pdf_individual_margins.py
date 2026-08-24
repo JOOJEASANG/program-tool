@@ -236,5 +236,10 @@ def test_session_restore_synchronizes_facing_state_and_checkbox():
     )
 
 
-def test_public_pdf_editor_entrypoints_remain_identical():
-    assert EDITOR.read_bytes() == LEGACY_EDITOR.read_bytes()
+def test_legacy_pdf_editor_entrypoint_redirects_to_canonical_editor():
+    legacy = LEGACY_EDITOR.read_text(encoding="utf-8")
+    assert EDITOR.read_text(encoding="utf-8") != legacy
+    assert 'http-equiv="refresh"' in legacy
+    assert "/pdf-editor/" in legacy
+    assert "location.replace" in legacy
+    assert "location.search+location.hash" in legacy

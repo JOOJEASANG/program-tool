@@ -44,7 +44,12 @@ def test_branding_is_consistent_on_current_public_pages():
 def test_pdf_editor_has_no_dead_cloud_file_library_or_eval():
     editor = read("pdf-editor/index.html")
     legacy = read("tools/pdf-editor.html")
-    assert editor == legacy
+    assert editor != legacy
+    assert len(legacy.encode("utf-8")) < 2048
+    assert 'http-equiv="refresh"' in legacy
+    assert "/pdf-editor/" in legacy
+    assert "location.replace" in legacy
+    assert "location.search+location.hash" in legacy
     for token in ("navHistoryBtn", "fileHistoryModal", "pdf_history", "openFileHistory", "saveToStorage", "내 파일함"):
         assert token not in editor
     assert "eval(" not in editor

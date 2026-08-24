@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from utils.permissions import _program_access_from_snapshots
+from utils.permissions import _program_access_from_snapshots, program_for_path
 
 
 @dataclass
@@ -10,6 +10,13 @@ class _Snapshot:
 
     def to_dict(self):
         return self.data
+
+
+def test_pdf_all_in_one_tool_routes_use_preflight_program_access():
+    assert program_for_path("/api/pdf-tools/extract") == "preflight"
+    assert program_for_path("/api/pdf-tools/remove-blank") == "preflight"
+    assert program_for_path("/api/pdf-tools/from-images") == "preflight"
+    assert program_for_path("/api/pdf/process") == "pdf-editor"
 
 
 def test_approved_all_false_programs_grants_access():

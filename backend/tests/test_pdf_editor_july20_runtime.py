@@ -85,5 +85,10 @@ def test_disabled_wrapper_files_are_not_runtime_roots():
         assert wrapper not in runtime_sources
 
 
-def test_both_public_entrypoints_use_the_same_restored_editor():
-    assert TOOL.read_bytes() == ROUTE.read_bytes()
+def test_legacy_public_entrypoint_redirects_to_the_restored_editor():
+    legacy = TOOL.read_text(encoding="utf-8")
+    assert ROUTE.read_text(encoding="utf-8") != legacy
+    assert 'http-equiv="refresh"' in legacy
+    assert "/pdf-editor/" in legacy
+    assert "location.replace" in legacy
+    assert "location.search+location.hash" in legacy

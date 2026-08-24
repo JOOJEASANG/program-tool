@@ -28,6 +28,17 @@ MAX_COMPRESS_PIXELS_TOTAL = 180_000_000
 MAX_REMOVE_BLANK_PAGES = 500
 MAX_RANGE_SPEC_LENGTH = 4096
 MAX_RANGE_TOKENS = 512
+IMAGE_MIME_FILETYPES = {
+    "image/jpeg": "jpg",
+    "image/jpg": "jpg",
+    "image/png": "png",
+    "image/gif": "gif",
+    "image/bmp": "bmp",
+    "image/tiff": "tiff",
+    "image/webp": "webp",
+}
+IMAGE_EXTENSION_ALIASES = {"jpeg": "jpg", "jpe": "jpg", "tif": "tiff"}
+SAFE_IMAGE_FILETYPES = {"jpg", "png", "gif", "bmp", "tiff", "webp"}
 DEFAULT_STORAGE_BUCKET = os.environ.get(
     "FIREBASE_STORAGE_BUCKET", "program-tool.firebasestorage.app"
 )
@@ -178,10 +189,19 @@ def extract(uid):
         if source is not None:
             source.close()
 
-def _image_filetype(filename: str) -> str:
+
+def _image_filetype(uploaded) -> str:
+    """Return a bounded PyMuPDF image type from browser metadata or filename."""
+    mimetype = str(getattr(uploaded, "mimetype", "") or "").split(";", 1)[0].strip().lower()
+    if mimetype in IMAGE_MIME_FILETYPES:
+        return IMAGE_MIME_FILETYPES[mimetype]
+
+    filename = str(getattr(uploaded, "filename", "") or "")
     extension = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
-    aliases = {"jpeg": "jpg", "jpe": "jpg", "tif": "tiff"}
-    return aliases.get(extension, extension or "jpg")
+    extension = IMAGE_EXTENSION_ALIASES.get(extension, extension)
+    if extension in SAFE_IMAGE_FILETYPES:
+        return extension
+    return "jpg"
 
 
 @pdf_tools_bp.route("/from-images", methods=["POST"])
@@ -224,7 +244,7 @@ def from_images(uid):
             try:
                 image_doc = fitz.open(
                     stream=data,
-                    filetype=_image_filetype(uploaded.filename or ""),
+                    filetype=_image_filetype(uploaded),
                 )
                 if image_doc.page_count < 1:
                     raise ValueError("페이지가 없는 이미지입니다.")
