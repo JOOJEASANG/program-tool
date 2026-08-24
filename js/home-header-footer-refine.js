@@ -7,6 +7,7 @@
     const style=document.createElement('style');
     style.id='homeHeaderFooterRefineStyles';
     style.textContent=`
+      .greeting{display:none!important}
       .user{
         gap:7px!important;
         padding:4px 9px 4px 4px!important;
@@ -69,6 +70,10 @@
     document.head.appendChild(style);
   }
 
+  function removeGreetingBlock(){
+    document.getElementById('greeting')?.remove();
+  }
+
   function findCopyright(footer){
     const direct=[...footer.querySelectorAll('.footer-right > span')];
     return direct.find(el=>(el.textContent||'').includes('©'))
@@ -112,6 +117,6 @@
     }).observe(footer,{childList:true,subtree:true});
   }
 
-  function boot(){injectStyles();keepDetailedBusinessHidden();loadBusinessName()}
+  function boot(){injectStyles();removeGreetingBlock();keepDetailedBusinessHidden();loadBusinessName()}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
