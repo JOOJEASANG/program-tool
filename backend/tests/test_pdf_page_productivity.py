@@ -15,12 +15,16 @@ def source() -> str:
 def test_productivity_is_integrated_without_adding_runtime_modules():
     loader = LOADER.read_text(encoding="utf-8")
     text = source()
+    legacy = LEGACY.read_text(encoding="utf-8")
     assert "__pdfEditorPageProductivityV4" in text
     assert "/js/pdf-editor/page-count-hint.js" in loader
     assert "/js/pdf-editor/page-productivity.js" not in loader
     assert "/js/pdf-editor/page-selection-preview-focus.js" not in loader
     assert loader.count("'/js/pdf-editor/") == 8
-    assert EDITOR.read_bytes() == LEGACY.read_bytes()
+    assert EDITOR.read_text(encoding="utf-8") != legacy
+    assert "/pdf-editor/" in legacy
+    assert "location.replace" in legacy
+    assert "location.search+location.hash" in legacy
 
 
 def test_explicit_checkbox_selection_does_not_replace_thumbnail_navigation():
