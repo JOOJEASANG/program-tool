@@ -37,7 +37,7 @@ def test_pdf_editor_final_check_reuses_generated_output_without_manual_reupload(
     assert "문제 있어도 PDF 저장" in source
 
 
-def test_home_explains_the_print_workflow_and_uses_real_tools():
+def test_home_explains_the_print_workflow_and_keeps_secondary_tools_secondary():
     workflow = read("js/home-print-workflow.js")
     suite = read("js/home-professional-suite.js")
 
@@ -48,7 +48,7 @@ def test_home_explains_the_print_workflow_and_uses_real_tools():
     assert 'href="/pdf-editor/"' in workflow
     assert 'href="/pdf-preflight/"' in workflow
 
-    assert "id:'document-editor'" in suite
+    assert "id:'document-editor'" not in suite
     assert "conversion-ocr" not in suite
     assert "print-production-home-v2" in suite
     assert "for(const item of source)" in suite
