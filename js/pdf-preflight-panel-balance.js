@@ -2,6 +2,18 @@
   if(window.__pdfPreflightPanelBalanceV2)return;
   window.__pdfPreflightPanelBalanceV2=true;
 
+  function normalizeCheckButtonName(){
+    const name=document.querySelector('#checkBtn .action-name');
+    if(name&&name.textContent.trim()==='문서 검수')name.textContent='인쇄 전 검사';
+  }
+
+  function keepCheckButtonName(){
+    const name=document.querySelector('#checkBtn .action-name');
+    if(!name||name.__pdfPreflightNameGuard)return;
+    name.__pdfPreflightNameGuard=true;
+    new MutationObserver(()=>normalizeCheckButtonName()).observe(name,{childList:true,subtree:true,characterData:true});
+  }
+
   function applyCopy(){
     const navTitle=document.querySelector('.nav-title');
     if(navTitle)navTitle.textContent='PDF 검사 · 유틸리티';
@@ -41,10 +53,10 @@
     if(checkBtn){
       checkBtn.classList.add('action-btn--primary');
       const chip=checkBtn.querySelector('.action-chip');
-      const name=checkBtn.querySelector('.action-name');
       const desc=checkBtn.querySelector('.action-desc');
       if(chip)chip.textContent='인쇄 검사';
-      if(name&&name.textContent.trim()==='문서 검수')name.textContent='인쇄 전 검사';
+      normalizeCheckButtonName();
+      keepCheckButtonName();
       if(desc)desc.textContent='해상도·폰트·색상·페이지 규격과 출력 위험 요소를 점검합니다.';
     }
 
