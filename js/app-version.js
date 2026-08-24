@@ -56,6 +56,7 @@
       loadScopedScript('pdfUtilityImageConverterScriptV1','/js/pdf-utility-image-converter.js?v=20260819-1');
       loadScopedScript('pdfUtilityImageConverterFinalizeScriptV1','/js/pdf-utility-image-converter-finalize.js?v=20260819-3');
       loadScopedScript('pdfUtilityPanelResizerScriptV1','/js/pdf-utility-panel-resizer.js?v=20260821-1');
+      loadScopedScript('pdfPrintReadinessScriptV1','/js/pdf-print-readiness.js?v=20260824-1');
     }
   }
 
