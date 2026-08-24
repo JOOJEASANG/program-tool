@@ -8,7 +8,7 @@ from flask import g, request
 
 
 PROGRAM_BY_PREFIX: tuple[tuple[str, str], ...] = (
-    ("/api/pdf-tools", "pdf-editor"),
+    ("/api/pdf-tools", "preflight"),
     ("/api/pdf", "pdf-editor"),
     ("/api/pdf-utility", "preflight"),
     ("/api/preflight", "preflight"),
