@@ -2,7 +2,7 @@
   if(window.__programStudioRuntimeBoot)return;
   window.__programStudioRuntimeBoot=true;
 
-  const VERSION='2026.08.25.010';
+  const VERSION='2026.08.25.011';
   const CACHE_PREFIX='program-studio-';
   const CLEANUP_KEY='program-studio-legacy-runtime-cleanup-'+VERSION;
   const currentPath=location.pathname.replace(/\/+$/,'')||'/';
@@ -225,6 +225,8 @@
       tasks.push(load('pdfFileNavigationScriptV1','/js/pdf-editor/file-navigation.js?v=20260806-1'));
       tasks.push(load('pdfDividerLocalImageUploadScriptV1','/js/pdf-divider-local-image-upload.js?v=20260818-2'));
       tasks.push(load('pdfEditorFinalCheckScriptV1','/js/pdf-editor-final-check.js?v='+VERSION));
+      tasks.push(load('pdfEditorSpreadSplitScriptV1','/js/pdf-editor/spread-split.js?v=20260825-1'));
+      tasks.push(load('pdfBookletSheetPreviewScriptV1','/js/pdf-editor/booklet-sheet-preview.js?v=20260825-1'));
     }
     if(isPath('/tools/pdf-Checker.html','/tools/preflight.html','/pdf-preflight','/pdf-preflight/index.html')){
       tasks.push(load('programShellUnifyScriptV1','/js/program-shell-unify.js?v=20260824-1'));
