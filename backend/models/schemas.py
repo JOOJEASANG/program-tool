@@ -21,6 +21,7 @@ class PageInfo(BaseModel):
     group_break: bool = False
     excluded: bool = False
     page_type: Literal["normal", "divider", "blank"] = "normal"
+    split_side: Optional[Literal["left", "right"]] = None
     # Allows 30 bounded extra text layers plus their compact metadata.
     divider_content: Optional[str] = Field(default=None, max_length=50_000)
     divider_style: Optional[Literal["simple", "lines", "band"]] = "simple"
