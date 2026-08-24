@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>PDF Print Output Stage1 Smoke</title>
+  <script>history.replaceState(null,'','/pdf-editor/index.html?print-output-stage1-smoke=1');</script>
+</head>
+<body data-print-output-smoke="pending">
+  <div class="app">
+    <aside>
+      <h1>PDF 문서 편집기</h1>
+      <div class="sub">PDF 업로드 · 페이지 편집 · 간지 삽입 · 머리말/꼬리말 · 워터마크 · N-up 인쇄</div>
+      <button id="downloadBtn">PDF 저장</button>
+      <div id="thumbArea"></div>
+    </aside>
+    <main><div id="previewScroll"></div></main>
+  </div>
+  <div id="result">PENDING</div>
+  <script src="/js/pdf-all-in-one-stage1.js?v=20260824-1"></script>
+  <script>
+    (async()=>{
+      const result=document.getElementById('result');
+      const assert=(value,message)=>{if(!value)throw new Error(message)};
+      const waitFor=async(predicate,label,timeout=3000)=>{const started=Date.now();while(Date.now()-started<timeout){if(predicate())return;await new Promise(resolve=>setTimeout(resolve,20));}throw new Error('timeout: '+label)};
+      try{
+        await waitFor(()=>document.documentElement.dataset.printOutputStage==='subscription-alternative-stage1','print stage');
+        assert(document.title==='인쇄·출력 도구 · Program Studio','print tool title missing');
+        assert(document.querySelector('.app > aside > h1')?.textContent==='인쇄·출력 도구','aside title not rebranded');
+        assert(document.querySelector('.app > aside > .sub')?.textContent.includes('소책자'),'print feature description missing');
+        assert(document.getElementById('downloadBtn'),'existing PDF save control lost');
+        assert(document.getElementById('thumbArea'),'existing page list control lost');
+        assert(document.getElementById('previewScroll'),'existing preview control lost');
+        document.body.dataset.printOutputSmoke='pass';
+        document.body.dataset.printOutputControlsPreserved='true';
+        result.textContent='PASS: print-output branding applied without removing PDF editor controls';
+      }catch(error){document.body.dataset.printOutputSmoke='fail';result.textContent='FAIL: '+String(error?.message||error)}
+    })();
+  </script>
+</body>
+</html>

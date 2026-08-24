@@ -2,7 +2,7 @@
   if(window.__programStudioRuntimeBoot)return;
   window.__programStudioRuntimeBoot=true;
 
-  const VERSION='2026.08.24.007';
+  const VERSION='2026.08.24.008';
   const CACHE_PREFIX='program-studio-';
   const CLEANUP_KEY='program-studio-legacy-runtime-cleanup-'+VERSION;
   const currentPath=location.pathname.replace(/\/+$/,'')||'/';
@@ -187,7 +187,7 @@
         loadCatalogCore()
           .then(()=>load('homeProgramCatalogScriptV1','/js/home-program-catalog.js?v=20260808-1'))
           .then(()=>load('homePdfUtilityNameSyncScriptV1','/js/home-pdf-utility-name-sync.js?v=20260818-1'))
-          .then(()=>load('homeProfessionalSuiteScriptV1','/js/home-professional-suite.js?v=20260823-3'))
+          .then(()=>load('homeProfessionalSuiteScriptV1','/js/home-professional-suite.js?v=20260824-1'))
       );
       tasks.push(load('homeHeroUpgradeScript','/js/home-hero-upgrade.js?v='+VERSION));
       tasks.push(load('homeHeaderFooterRefineScript','/js/home-header-footer-refine.js?v='+VERSION));
@@ -208,6 +208,7 @@
     }
     if(isPath('/tools/pdf-editor.html','/pdf-editor','/pdf-editor/index.html')){
       tasks.push(load('programShellUnifyScriptV1','/js/program-shell-unify.js?v=20260824-1'));
+      tasks.push(load('pdfAllInOneStage1ScriptV1','/js/pdf-all-in-one-stage1.js?v=20260824-1'));
       tasks.push(load('desktopToolMobileNoticeScriptV1','/js/desktop-tool-mobile-notice.js?v=20260807-1'));
       tasks.push(load('pdfEditorModuleLoaderScript','/js/pdf-editor/loader.js?v='+VERSION));
       tasks.push(load('pdfEditorTransferLimitGuardScriptV1','/js/pdf-editor/transfer-limit-guard.js?v=20260818-1'));
@@ -235,6 +236,7 @@
           .then(()=>load('pdfUtilityBackgroundMarginLabelsScriptV1','/js/pdf-utility-background-margin-labels.js?v=20260819-2'))
           .then(()=>load('pdfUtilityImageConverterScriptV1','/js/pdf-utility-image-converter.js?v=20260819-1'))
           .then(()=>load('pdfUtilityFinalizeScriptV1','/js/pdf-utility-finalize.js?v=20260818-3'))
+          .then(()=>load('pdfAllInOneStage1ScriptV1','/js/pdf-all-in-one-stage1.js?v=20260824-1'))
       );
     }
     return Promise.allSettled(tasks);
