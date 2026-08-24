@@ -39,6 +39,16 @@
     if(currentPath==='/admin'||currentPath==='/admin.html'||currentPath.endsWith('/admin.html')){
       loadCatalogScripts('admin');
       loadScopedScript('adminOperationsOverviewScriptV1','/js/admin-operations-overview.js?v=20260824-1');
+      loadScopedScript('aiDesignFeatureGateScriptV1','/js/ai-design-feature-gate.js?v=20260824-1');
+    }
+    if(
+      currentPath==='/design-editor'||
+      currentPath==='/design-editor/index.html'||
+      currentPath==='/design-editor/general'||
+      currentPath==='/design-editor/general.html'||
+      currentPath.endsWith('/design-editor/general.html')
+    ){
+      loadScopedScript('aiDesignFeatureGateScriptV1','/js/ai-design-feature-gate.js?v=20260824-1');
     }
     if(
       currentPath==='/tools/pdf-editor.html'||
