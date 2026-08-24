@@ -1,4 +1,4 @@
-// Refocus the public home on subscription-alternative work tools.
+// Refocus the public home on practical print-production work tools.
 (function(){
   'use strict';
   if(window.__homeProfessionalSuiteV2)return;
@@ -9,41 +9,41 @@
   const DOC_ID='professional_program_suite';
   const DEFAULT_PROGRAMS=[
     {
-      id:'pdf-utility',name:'PDF 올인원',icon:'PDF',accent:'#f08b32',bg:'#fff3e7',
-      desc:'Acrobat 없이 PDF 합치기·페이지 추출/나누기·압축·검수·보안·이미지 변환을 한곳에서 처리합니다.',
-      url:'pdf-preflight/',tags:['합치기·나누기','압축·보안','PDF↔이미지'],status:'active',visible:true
+      id:'pdf-editor',name:'PDF 편집 · 인쇄배치',icon:'PRINT',accent:'#18a47a',bg:'#eafaf3',
+      desc:'페이지 정리, N-up, 소책자, 간지, 워터마크와 용지 설정까지 실제 출력용 PDF를 준비합니다.',
+      url:'pdf-editor/',tags:['페이지 편집','N-up·소책자','인쇄 전 검사'],status:'active',visible:true
     },
     {
-      id:'pdf-editor',name:'인쇄·출력 도구',icon:'PRINT',accent:'#18a47a',bg:'#eafaf3',
-      desc:'N-up, 소책자, 간지, 워터마크, 페이지 번호와 용지 설정 등 인쇄용 PDF 작업을 전문 프로그램 없이 준비합니다.',
-      url:'pdf-editor/',tags:['N-up','소책자','인쇄 설정'],status:'active',visible:true
+      id:'pdf-utility',name:'PDF 검사 · 유틸리티',icon:'PDF',accent:'#f08b32',bg:'#fff3e7',
+      desc:'PDF 합치기·나누기·압축·보안과 함께 DPI, 폰트, 규격, 도련 등 인쇄 전 상태를 검사합니다.',
+      url:'pdf-preflight/',tags:['인쇄 파일 검사','합치기·나누기','압축·보안'],status:'active',visible:true
     },
     {
       id:'image-editor',name:'이미지 작업 도구',icon:'◐',accent:'#b65f8c',bg:'#fff0f6',
-      desc:'포토샵을 열지 않고 자르기·리사이즈·단색 배경 제거·기본 보정처럼 자주 필요한 이미지 작업만 빠르게 처리합니다.',
+      desc:'포토샵을 열지 않고 자르기·리사이즈·배경 제거·기본 보정처럼 출력 전에 자주 필요한 이미지 작업을 처리합니다.',
       url:'image-editor/',tags:['배경 제거','리사이즈','이미지 보정'],status:'active',visible:true
     },
     {
       id:'design-editor',name:'디자인 제작',icon:'✦',accent:'#5969dc',bg:'#edf1ff',
-      desc:'포스터·전단·책표지·2단/3단 리플렛처럼 실제 인쇄물을 규격과 접지 가이드에 맞춰 바로 제작합니다.',
+      desc:'포스터·전단·책표지·2단/3단 리플렛을 실제 인쇄 규격과 접지 가이드에 맞춰 제작합니다.',
       url:'design-editor/',tags:['포스터·전단','책표지','리플렛'],status:'active',visible:true
     },
     {
-      id:'conversion-ocr',name:'OCR · 문서 변환',icon:'OCR',accent:'#2878b8',bg:'#edf7ff',
-      desc:'스캔 PDF의 문자 인식과 PDF↔Office 변환처럼 별도 유료 프로그램이 필요한 작업을 한곳에 모을 예정입니다.',
-      url:'',tags:['스캔 OCR','PDF→Word','Office→PDF'],status:'coming',visible:true
+      id:'document-editor',name:'문서 편집기',icon:'DOC',accent:'#2878b8',bg:'#edf7ff',
+      desc:'업무·기관 문서를 작성하고 표, 페이지 설정, 찾기·바꾸기, 저장 프로젝트 등 실무 편집 기능을 사용합니다.',
+      url:'document-editor/',tags:['업무 문서','표·페이지 설정','프로젝트 저장'],status:'active',visible:true
     }
   ];
 
   const SUITE={
-    label:'실무 도구',
+    label:'인쇄·출력 실무 도구',
     accent:'#1769e0',
-    title:'설치 없이 필요한 작업만',
-    badge:'PDF · PRINT · IMAGE · OCR',
-    heroTitle:'구독 프로그램 없이 <span>필요한 작업만 바로</span>',
-    lead:'파일을 올리고, 필요한 기능을 고르고, 결과만 저장하세요.',
-    copy:'비싼 프로그램 전체 기능이 필요한 것은 아닙니다.<br><strong>PDF·인쇄·이미지·디자인에서 실제로 자주 쓰는 기능을 설치 없이 바로 사용할 수 있게 구성합니다.</strong>',
-    visual:['PDF','프로그램 없이 바로 해결','합치기·압축·출력·변환처럼 꼭 필요한 작업을 빠르고 단순하게 제공합니다.']
+    title:'출력 전 마지막 작업까지',
+    badge:'PDF · PRINT · OUTPUT',
+    heroTitle:'인쇄·출력 실무에 <span>필요한 도구만 바로</span>',
+    lead:'파일을 편집하고, 인쇄 전 검사하고, 결과를 저장하세요.',
+    copy:'디자인 기능을 많이 모으는 것보다 실제 출력 과정에서 반복되는 일을 줄이는 데 집중합니다.<br><strong>PDF 편집·인쇄배치·출력 전 검사·이미지·디자인·문서 작업을 설치 없이 연결합니다.</strong>',
+    visual:['PRINT','인쇄 준비부터 최종 검사까지','페이지 배치·소책자·규격·해상도·도련처럼 출력 직전에 필요한 작업을 한 흐름으로 제공합니다.']
   };
 
   let activePrograms=DEFAULT_PROGRAMS.map(program=>({...program,tags:[...program.tags]}));
@@ -64,24 +64,37 @@
 
   function managedProgramUrl(item,base){
     const raw=String(item?.url||'').trim();
-    // Keep former cover-only catalog entries safely routed into the unified design editor.
-    if(raw==='perfect-binding-cover/'||raw==='/perfect-binding-cover/') return base.url;
+    // Core deployed routes stay canonical so stale admin URLs cannot break the home.
+    if(raw==='perfect-binding-cover/'||raw==='/perfect-binding-cover/')return base.url;
     return base.url;
   }
 
   function normalizeManagedPrograms(raw){
     const source=Array.isArray(raw?.programs)?raw.programs:[];
     if(!source.length)return null;
-    const managedById=new Map(source.map(item=>[String(item?.id||''),item]));
-    return DEFAULT_PROGRAMS.map(base=>{
-      const item=managedById.get(base.id);
-      return {
+    const baseById=new Map(DEFAULT_PROGRAMS.map(base=>[base.id,base]));
+    const used=new Set();
+    const ordered=[];
+    for(const item of source){
+      const id=String(item?.id||'');
+      const base=baseById.get(id);
+      if(!base||used.has(id))continue;
+      used.add(id);
+      ordered.push({
         ...base,
+        name:String(item?.name||'').trim()||base.name,
+        desc:String(item?.desc||'').trim()||base.desc,
         url:managedProgramUrl(item,base),
-        visible:item?item.visible!==false:base.visible,
+        // Finished core tools remain active; admin controls visibility and order.
+        status:base.status,
+        visible:item.visible!==false,
         tags:[...base.tags]
-      };
-    });
+      });
+    }
+    for(const base of DEFAULT_PROGRAMS){
+      if(!used.has(base.id))ordered.push({...base,tags:[...base.tags]});
+    }
+    return ordered;
   }
 
   function displayPrograms(){
@@ -119,12 +132,12 @@
   function updateHeroExtras(){
     const hero=document.getElementById('hero');
     if(!hero)return;
-    const chips=['PDF','PRINT','IMAGE'];
+    const chips=['PDF','PRINT','CHECK'];
     hero.querySelectorAll('.hero-float').forEach((node,index)=>{if(chips[index])node.textContent=chips[index]});
     const process=hero.querySelector('.hero-process');
-    if(process)process.innerHTML='<span>파일 선택</span><b>→</b><span>필요한 작업</span><b>→</b><span>결과 저장</span>';
+    if(process)process.innerHTML='<span>편집·배치</span><b>→</b><span>인쇄 전 검사</span><b>→</b><span>PDF 저장</span>';
     const meterHead=hero.querySelector('.hero-meter-head');
-    if(meterHead)meterHead.innerHTML='<span>설치 없이 바로</span><span>READY</span>';
+    if(meterHead)meterHead.innerHTML='<span>출력 실무 흐름</span><span>READY</span>';
   }
 
   function applyProfessionalSuite(){
@@ -139,7 +152,7 @@
     buildNav();
     switchCategory('studio',false);
     const kicker=document.getElementById('sectionKicker');
-    if(kicker)kicker.textContent='NO-SUBSCRIPTION WORK TOOLS';
+    if(kicker)kicker.textContent='PRINT PRODUCTION WORKFLOW';
     const count=document.getElementById('count');
     if(count){
       const shown=displayPrograms();
@@ -149,7 +162,7 @@
     }
     updateHeroExtras();
     document.documentElement.dataset.professionalHome='1';
-    document.documentElement.dataset.productFocus='subscription-alternative-stage1';
+    document.documentElement.dataset.productFocus='print-production-workflow';
     return true;
   }
 
@@ -180,7 +193,7 @@
     apply:safeApply,
     loadManagedPrograms,
     defaults:()=>DEFAULT_PROGRAMS.map(program=>({...program,tags:[...program.tags]})),
-    stage:'subscription-alternative-home-stage1'
+    stage:'print-production-home-v2'
   };
   window.addEventListener('program-catalog-applied',()=>queueMicrotask(safeApply));
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{safeApply();loadManagedPrograms();},{once:true});
