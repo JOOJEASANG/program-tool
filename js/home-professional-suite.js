@@ -7,7 +7,14 @@
   if(path!=='/'&&path!=='/index.html')return;
 
   const DOC_ID='professional_program_suite';
+  const HOME_PROGRAM_ORDER=['design-editor','pdf-editor','pdf-utility','image-editor'];
+  const HOME_PROGRAM_RANK=new Map(HOME_PROGRAM_ORDER.map((id,index)=>[id,index]));
   const DEFAULT_PROGRAMS=[
+    {
+      id:'design-editor',name:'디자인 제작',icon:'✦',accent:'#5969dc',bg:'#edf1ff',
+      desc:'포스터·전단·책표지·2단/3단 리플렛을 실제 인쇄 규격과 접지 가이드에 맞춰 제작합니다.',
+      url:'design-editor/',tags:['포스터·전단','책표지','리플렛'],status:'active',visible:true
+    },
     {
       id:'pdf-editor',name:'PDF 편집 · 인쇄배치',icon:'PRINT',accent:'#18a47a',bg:'#eafaf3',
       desc:'페이지 정리, N-up, 소책자, 간지, 워터마크와 용지 설정까지 실제 출력용 PDF를 준비합니다.',
@@ -22,11 +29,6 @@
       id:'image-editor',name:'이미지 작업 도구',icon:'◐',accent:'#b65f8c',bg:'#fff0f6',
       desc:'포토샵을 열지 않고 자르기·리사이즈·배경 제거·기본 보정처럼 출력 전에 자주 필요한 이미지 작업을 처리합니다.',
       url:'image-editor/',tags:['배경 제거','리사이즈','이미지 보정'],status:'active',visible:true
-    },
-    {
-      id:'design-editor',name:'디자인 제작',icon:'✦',accent:'#5969dc',bg:'#edf1ff',
-      desc:'포스터·전단·책표지·2단/3단 리플렛을 실제 인쇄 규격과 접지 가이드에 맞춰 제작합니다.',
-      url:'design-editor/',tags:['포스터·전단','책표지','리플렛'],status:'active',visible:true
     }
   ];
 
@@ -36,9 +38,9 @@
     title:'출력 전 마지막 작업까지',
     badge:'PDF · PRINT · OUTPUT',
     heroTitle:'인쇄·출력 실무에 <span>필요한 도구만 바로</span>',
-    lead:'파일을 편집하고, 인쇄 전 검사하고, 결과를 저장하세요.',
-    copy:'디자인 기능을 많이 모으는 것보다 실제 출력 과정에서 반복되는 일을 줄이는 데 집중합니다.<br><strong>PDF 편집·인쇄배치·출력 전 검사·이미지·디자인 작업을 설치 없이 연결합니다.</strong>',
-    visual:['PRINT','인쇄 준비부터 최종 검사까지','페이지 배치·소책자·규격·해상도·도련처럼 출력 직전에 필요한 작업을 한 흐름으로 제공합니다.']
+    lead:'디자인하고, 편집·인쇄배치하고, 마지막으로 검사하세요.',
+    copy:'디자인 기능을 많이 모으는 것보다 실제 출력 과정에서 반복되는 일을 줄이는 데 집중합니다.<br><strong>디자인 제작 → PDF 편집·인쇄배치 → 인쇄 전 검사 순서로 자연스럽게 작업할 수 있습니다.</strong>',
+    visual:['PRINT','디자인부터 최종 검사까지','제작·페이지 배치·소책자·규격·해상도·도련처럼 실제 출력에 필요한 작업을 한 흐름으로 제공합니다.']
   };
 
   let activePrograms=DEFAULT_PROGRAMS.map(program=>({...program,tags:[...program.tags]}));
@@ -46,7 +48,7 @@
   let managedLoadStarted=false;
 
   function escapeHtml(value){
-    return String(value==null?'':value).replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+    return String(value==null?'':value).replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[char]));
   }
 
   function safeUrl(value,fallback=''){
@@ -63,18 +65,22 @@
     return safeUrl(raw,base.url);
   }
 
+  function homeRank(program){
+    return HOME_PROGRAM_RANK.has(program?.id)?HOME_PROGRAM_RANK.get(program.id):999;
+  }
+
   function normalizeManagedPrograms(raw){
     const source=Array.isArray(raw?.programs)?raw.programs:[];
     if(!source.length)return null;
     const baseById=new Map(DEFAULT_PROGRAMS.map(base=>[base.id,base]));
     const used=new Set();
-    const ordered=[];
+    const normalized=[];
     for(const item of source){
       const id=String(item?.id||'');
       const base=baseById.get(id);
       if(!base||used.has(id))continue;
       used.add(id);
-      ordered.push({
+      normalized.push({
         ...base,
         name:String(item?.name||'').trim()||base.name,
         desc:String(item?.desc||'').trim()||base.desc,
@@ -85,13 +91,14 @@
       });
     }
     for(const base of DEFAULT_PROGRAMS){
-      if(!used.has(base.id))ordered.push({...base,tags:[...base.tags]});
+      if(!used.has(base.id))normalized.push({...base,tags:[...base.tags]});
     }
-    return ordered;
+    return normalized.sort((a,b)=>homeRank(a)-homeRank(b));
   }
 
   function displayPrograms(){
-    return activePrograms
+    return [...activePrograms]
+      .sort((a,b)=>homeRank(a)-homeRank(b))
       .filter(program=>program.visible!==false)
       .map(program=>({
         ...program,
@@ -125,10 +132,10 @@
   function updateHeroExtras(){
     const hero=document.getElementById('hero');
     if(!hero)return;
-    const chips=['PDF','PRINT','CHECK'];
+    const chips=['DESIGN','PRINT','CHECK'];
     hero.querySelectorAll('.hero-float').forEach((node,index)=>{if(chips[index])node.textContent=chips[index]});
     const process=hero.querySelector('.hero-process');
-    if(process)process.innerHTML='<span>편집·배치</span><b>→</b><span>인쇄 전 검사</span><b>→</b><span>PDF 저장</span>';
+    if(process)process.innerHTML='<span>디자인 제작</span><b>→</b><span>편집·인쇄배치</span><b>→</b><span>인쇄 전 검사</span>';
     const meterHead=hero.querySelector('.hero-meter-head');
     if(meterHead)meterHead.innerHTML='<span>출력 실무 흐름</span><span>READY</span>';
   }
@@ -186,7 +193,7 @@
     apply:safeApply,
     loadManagedPrograms,
     defaults:()=>DEFAULT_PROGRAMS.map(program=>({...program,tags:[...program.tags]})),
-    stage:'print-production-home-v2'
+    stage:'print-production-home-v3'
   };
   window.addEventListener('program-catalog-applied',()=>queueMicrotask(safeApply));
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{safeApply();loadManagedPrograms();},{once:true});
