@@ -60,6 +60,7 @@
       loadScopedScript('pdfEditorFinalCheckScriptV1','/js/pdf-editor-final-check.js?v=20260824-1');
       loadScopedScript('pdfEditorSpreadSplitScriptV1','/js/pdf-editor/spread-split.js?v=20260825-1');
       loadScopedScript('pdfBookletSheetPreviewScriptV1','/js/pdf-editor/booklet-sheet-preview.js?v=20260825-1');
+      loadScopedScript('pdfBookletRepeatTwoScriptV1','/js/pdf-editor/booklet-repeat-two.js?v=20260825-1');
     }
     if(
       currentPath==='/tools/pdf-Checker.html'||
