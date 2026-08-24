@@ -6,6 +6,7 @@ PAGE = ROOT / "image-editor" / "index.html"
 APP = ROOT / "js" / "image-editor" / "app.js"
 HOME = ROOT / "js" / "home-professional-suite.js"
 SMOKE = ROOT / "tests" / "browser" / "image-editor-background-smoke.html"
+CORE_SMOKE = ROOT / "tests" / "browser" / "image-editor-smoke.html"
 RUNNER = ROOT / "scripts" / "run_image_editor_background_smoke.sh"
 QUALITY = ROOT / ".github" / "workflows" / "quality-gate.yml"
 
@@ -62,6 +63,7 @@ def test_stage2_home_can_truthfully_advertise_background_removal():
 
 def test_stage2_real_browser_verifies_transparency_jpeg_flatten_and_undo():
     smoke = SMOKE.read_text(encoding="utf-8")
+    core_smoke = CORE_SMOKE.read_text(encoding="utf-8")
     runner = RUNNER.read_text(encoding="utf-8")
     quality = QUALITY.read_text(encoding="utf-8")
     for marker in (
@@ -69,12 +71,15 @@ def test_stage2_real_browser_verifies_transparency_jpeg_flatten_and_undo():
         "api.removeBackground({color:sampled.hex,tolerance:12,feather:8})",
         "corner[3]===0",
         "center[3]===255",
-        "api.exportBlob('image/png',.92)",
         "jpegCorner[3]===255",
         "api.undo()===true",
         "JPEG transparency guidance is missing",
     ):
         assert marker in smoke
+    assert "api.exportBlob('image/png',.92)" not in smoke
+    assert "api.exportBlob('image/png',.92)" in core_smoke
+    assert "PNG export failed" in core_smoke
+    assert '<link rel="icon" href="data:,">' in smoke
     assert 'PROFILE_DIR="$(mktemp -d)"' in runner
     assert 'data-background-stage="image-editor-core-stage2-background"' in runner
     assert "bash scripts/run_image_editor_background_smoke.sh" in quality
