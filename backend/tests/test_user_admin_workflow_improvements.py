@@ -21,7 +21,7 @@ def test_runtime_boot_loads_print_workflow_modules():
         assert asset in runtime
         assert asset in app_version
 
-    assert "const VERSION='2026.08.24.009'" in runtime
+    assert "const VERSION='2026.08.25.010'" in runtime
 
 
 def test_pdf_editor_final_check_reuses_generated_output_without_manual_reupload():
@@ -83,6 +83,6 @@ def test_release_version_is_synchronized_for_new_workflow():
     sw = read("sw.js")
     firebase = read("js/firebase-config.js")
 
-    assert '"version": "2026.08.24.009"' in version
-    assert "APP_VERSION='2026.08.24.009'" in sw
-    assert "/js/sw-register.js?v=2026.08.24.009" in firebase
+    assert '"version": "2026.08.25.010"' in version
+    assert "APP_VERSION='2026.08.25.010'" in sw
+    assert "/js/sw-register.js?v=2026.08.25.010" in firebase
