@@ -28,7 +28,6 @@
   };
 
   const fileKey = (file) => `${file?.name || ''}|${Number(file?.size || 0)}|${Number(file?.lastModified || 0)}`;
-  const byId = (report) => new Map((Array.isArray(report?.checks) ? report.checks : []).map((item) => [item.id, item]));
 
   function installStyles() {
     if (document.getElementById('pdfPrintReadinessStyles')) return;
@@ -110,7 +109,9 @@
       .filter((item) => item.severity === 'fail' || item.severity === 'warning')
       .sort((a, b) => {
         if (a.severity !== b.severity) return a.severity === 'fail' ? -1 : 1;
-        return PRIORITY.indexOf(a.id) - PRIORITY.indexOf(b.id);
+        const ai = PRIORITY.indexOf(a.id);
+        const bi = PRIORITY.indexOf(b.id);
+        return (ai < 0 ? PRIORITY.length : ai) - (bi < 0 ? PRIORITY.length : bi);
       })
       .slice(0, 6);
   }
@@ -177,7 +178,6 @@
     makePanel();
     render();
 
-    const target = document.querySelector('.container') || document.body;
     let queued = false;
     const observer = new MutationObserver(() => {
       if (queued) return;
@@ -187,7 +187,12 @@
         render();
       });
     });
-    observer.observe(target, { childList: true, subtree: true, characterData: true });
+    const observed = [
+      document.getElementById('pdfUtilityFileItems'),
+      document.getElementById('pdfUtilityBatchResults'),
+      document.getElementById('results'),
+    ].filter(Boolean);
+    observed.forEach((target) => observer.observe(target, { childList: true, subtree: true, characterData: true }));
     document.addEventListener('click', (event) => {
       if (event.target.closest('.pdfu-file-row,.pdfu-detail-btn,#checkBtn')) setTimeout(render, 0);
     });
