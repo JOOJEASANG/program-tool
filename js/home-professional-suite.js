@@ -62,6 +62,13 @@
     return fallback;
   }
 
+  function managedProgramUrl(item,base){
+    const raw=String(item?.url||'').trim();
+    // Keep former cover-only catalog entries safely routed into the unified design editor.
+    if(raw==='perfect-binding-cover/'||raw==='/perfect-binding-cover/') return base.url;
+    return base.url;
+  }
+
   function normalizeManagedPrograms(raw){
     const source=Array.isArray(raw?.programs)?raw.programs:[];
     if(!source.length)return null;
@@ -70,6 +77,7 @@
       const item=managedById.get(base.id);
       return {
         ...base,
+        url:managedProgramUrl(item,base),
         visible:item?item.visible!==false:base.visible,
         tags:[...base.tags]
       };
