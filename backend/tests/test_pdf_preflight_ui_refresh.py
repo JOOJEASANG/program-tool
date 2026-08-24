@@ -1,0 +1,38 @@
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[2]
+
+
+def read(path: str) -> str:
+    return (ROOT / path).read_text(encoding="utf-8")
+
+
+def test_pdf_preflight_ui_is_clean_single_column_workflow():
+    source = read("js/pdf-preflight-panel-balance.js")
+
+    assert "PDF 검사 · 유틸리티" in source
+    assert "PDF 선택" in source
+    assert "인쇄 전 검사" in source
+    assert "PDF 보안 도구" in source
+    assert "grid-template-columns:1fr!important" in source
+    assert "grid-template-columns:repeat(3,minmax(0,1fr))!important" in source
+    assert "results-section-heading" in source
+    assert "인쇄 전 확인 항목" in source
+    assert 'href="/pdf-editor/"' in source
+    assert "clean-workspace-v2" in source
+
+
+def test_pdf_preflight_ui_refresh_keeps_processing_logic_separate():
+    source = read("js/pdf-preflight-panel-balance.js")
+    page = read("pdf-preflight/index.html")
+    runtime = read("js/sw-register.js")
+    app_version = read("js/app-version.js")
+
+    assert "apiPreflightCheck(selectedFile" in page
+    assert "apiPdfTool('encrypt'" in page
+    assert "apiPdfTool('decrypt'" in page
+    assert "apiPreflightCheck" not in source
+    assert "apiPdfTool" not in source
+    assert "/js/pdf-preflight-panel-balance.js" in runtime
+    assert "/js/pdf-preflight-panel-balance.js" not in app_version or "pdf-preflight" in app_version
