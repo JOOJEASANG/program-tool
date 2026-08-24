@@ -15,6 +15,14 @@
   let installed=false;
   let localBusy=false;
 
+  function setText(node,value){
+    if(node&&node.textContent!==value)node.textContent=value;
+  }
+
+  function setHtml(node,value){
+    if(node&&node.innerHTML!==value)node.innerHTML=value;
+  }
+
   function activeFile(){
     const utility=window.PdfUtility;
     if(utility?.state?.files?.length){
@@ -50,34 +58,29 @@
 
   function applyPrintBranding(){
     if(!isPrint)return false;
-    document.title='인쇄·출력 도구 · Program Studio';
+    if(document.title!=='인쇄·출력 도구 · Program Studio')document.title='인쇄·출력 도구 · Program Studio';
     const title=document.querySelector('.app > aside > h1');
-    if(title&&title.textContent!=='인쇄·출력 도구')title.textContent='인쇄·출력 도구';
+    setText(title,'인쇄·출력 도구');
     const sub=document.querySelector('.app > aside > .sub');
-    if(sub)sub.textContent='N-up · 소책자 · 페이지 편집 · 간지 · 머리말/꼬리말 · 워터마크 · 인쇄용 PDF 저장';
+    setText(sub,'N-up · 소책자 · 페이지 편집 · 간지 · 머리말/꼬리말 · 워터마크 · 인쇄용 PDF 저장');
     document.documentElement.dataset.printOutputStage='subscription-alternative-stage1';
     return Boolean(title);
   }
 
   function applyUtilityBranding(){
     if(!isUtility)return false;
-    document.title='PDF 올인원 · Program Studio';
+    if(document.title!=='PDF 올인원 · Program Studio')document.title='PDF 올인원 · Program Studio';
     const description=document.querySelector('meta[name="description"]');
-    if(description)description.content='PDF 합치기·페이지 추출/나누기·빈 페이지 제거·압축·검수·암호·복구·PDF 이미지 변환을 한곳에서 처리하는 PDF 올인원 도구입니다.';
-    const navTitle=document.querySelector('.nav-title');
-    if(navTitle&&navTitle.textContent!=='PDF 올인원')navTitle.textContent='PDF 올인원';
-    const badge=document.querySelector('.hero-badge');
-    if(badge&&badge.textContent!=='📄 PDF ALL-IN-ONE')badge.textContent='📄 PDF ALL-IN-ONE';
+    const descriptionText='PDF 합치기·페이지 추출/나누기·빈 페이지 제거·압축·검수·암호·복구·PDF 이미지 변환을 한곳에서 처리하는 PDF 올인원 도구입니다.';
+    if(description&&description.content!==descriptionText)description.content=descriptionText;
+    setText(document.querySelector('.nav-title'),'PDF 올인원');
+    setText(document.querySelector('.hero-badge'),'📄 PDF ALL-IN-ONE');
     const heroTitle=document.querySelector('.hero h1');
-    if(heroTitle&&heroTitle.textContent!=='PDF 올인원')heroTitle.textContent='PDF 올인원';
-    const heroText=document.querySelector('.hero p');
-    if(heroText)heroText.textContent='Acrobat 같은 별도 구독 프로그램 없이 PDF 합치기·나누기·압축·검수·보안·이미지 변환을 필요한 순간 바로 처리하세요.';
-    const steps=document.querySelector('.hero-steps');
-    if(steps)steps.innerHTML='<span class="hero-step">1. 파일 추가</span><span class="hero-step">2. 필요한 작업 선택</span><span class="hero-step">3. 결과 다운로드</span>';
-    const workTitle=document.querySelector('.workspace>.panel:nth-child(2) .panel-title');
-    if(workTitle)workTitle.textContent='PDF 작업 선택';
-    const workDesc=document.querySelector('.workspace>.panel:nth-child(2) .panel-desc');
-    if(workDesc)workDesc.textContent='합치기·나누기·압축·정리·보안·변환 중 필요한 기능만 선택해 실행합니다.';
+    setText(heroTitle,'PDF 올인원');
+    setText(document.querySelector('.hero p'),'Acrobat 같은 별도 구독 프로그램 없이 PDF 합치기·나누기·압축·검수·보안·이미지 변환을 필요한 순간 바로 처리하세요.');
+    setHtml(document.querySelector('.hero-steps'),'<span class="hero-step">1. 파일 추가</span><span class="hero-step">2. 필요한 작업 선택</span><span class="hero-step">3. 결과 다운로드</span>');
+    setText(document.querySelector('.workspace>.panel:nth-child(2) .panel-title'),'PDF 작업 선택');
+    setText(document.querySelector('.workspace>.panel:nth-child(2) .panel-desc'),'합치기·나누기·압축·정리·보안·변환 중 필요한 기능만 선택해 실행합니다.');
     document.documentElement.dataset.pdfAllInOneStage='1';
     return Boolean(heroTitle);
   }
@@ -162,8 +165,9 @@
     const file=activeFile();
     try{validateFastToolFile(file);}catch(error){showError(error.message);return;}
     makeModal();
-    $('pdfaioFile').textContent=`선택 파일: ${file.name}`;
-    $('pdfaioStatus').textContent='';
+    setText($('pdfaioFile'),`선택 파일: ${file.name}`);
+    setText($('pdfaioStatus'),'');
+    $('pdfaioStatus').style.color='#2563eb';
     $('pdfaioRanges').value='';
     $('pdfAllInOneOverlay').classList.add('open');
     setTimeout(()=>$('pdfaioRanges')?.focus(),60);
@@ -178,16 +182,16 @@
       if(!ranges)throw new Error('페이지 범위를 입력하세요. 예: 1-3,5');
       if(!/^[0-9,\-\s]+$/.test(ranges))throw new Error('페이지 범위는 숫자, 쉼표, 하이픈만 사용할 수 있습니다.');
       setBusy(true,'페이지 추출');
-      $('pdfaioStatus').textContent='선택한 페이지를 새 PDF로 만드는 중...';
+      setText($('pdfaioStatus'),'선택한 페이지를 새 PDF로 만드는 중...');
       const {blob}=await window.apiPdfTool('extract',file,{ranges});
       downloadBlob(blob,`${safeBaseName(file)}_페이지_${ranges.replace(/\s+/g,'').replace(/,/g,'_')}.pdf`);
       $('pdfaioStatus').style.color='#15803d';
-      $('pdfaioStatus').textContent='페이지 추출이 완료되었습니다.';
+      setText($('pdfaioStatus'),'페이지 추출이 완료되었습니다.');
       showStatus('필요한 페이지만 새 PDF로 저장했습니다.','ok');
       setTimeout(()=>$('pdfAllInOneOverlay')?.classList.remove('open'),500);
     }catch(error){
       const message=error?.message||'페이지 추출에 실패했습니다.';
-      if($('pdfaioStatus')){$('pdfaioStatus').style.color='#dc2626';$('pdfaioStatus').textContent=message;}
+      if($('pdfaioStatus')){$('pdfaioStatus').style.color='#dc2626';setText($('pdfaioStatus'),message);}
       showError(message);
     }finally{setBusy(false);}
   }
