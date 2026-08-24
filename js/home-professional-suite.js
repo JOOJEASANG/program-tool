@@ -27,11 +27,6 @@
       id:'design-editor',name:'디자인 제작',icon:'✦',accent:'#5969dc',bg:'#edf1ff',
       desc:'포스터·전단·책표지·2단/3단 리플렛을 실제 인쇄 규격과 접지 가이드에 맞춰 제작합니다.',
       url:'design-editor/',tags:['포스터·전단','책표지','리플렛'],status:'active',visible:true
-    },
-    {
-      id:'document-editor',name:'문서 편집기',icon:'DOC',accent:'#2878b8',bg:'#edf7ff',
-      desc:'업무·기관 문서를 작성하고 표, 페이지 설정, 찾기·바꾸기, 저장 프로젝트 등 실무 편집 기능을 사용합니다.',
-      url:'document-editor/',tags:['업무 문서','표·페이지 설정','프로젝트 저장'],status:'active',visible:true
     }
   ];
 
@@ -42,7 +37,7 @@
     badge:'PDF · PRINT · OUTPUT',
     heroTitle:'인쇄·출력 실무에 <span>필요한 도구만 바로</span>',
     lead:'파일을 편집하고, 인쇄 전 검사하고, 결과를 저장하세요.',
-    copy:'디자인 기능을 많이 모으는 것보다 실제 출력 과정에서 반복되는 일을 줄이는 데 집중합니다.<br><strong>PDF 편집·인쇄배치·출력 전 검사·이미지·디자인·문서 작업을 설치 없이 연결합니다.</strong>',
+    copy:'디자인 기능을 많이 모으는 것보다 실제 출력 과정에서 반복되는 일을 줄이는 데 집중합니다.<br><strong>PDF 편집·인쇄배치·출력 전 검사·이미지·디자인 작업을 설치 없이 연결합니다.</strong>',
     visual:['PRINT','인쇄 준비부터 최종 검사까지','페이지 배치·소책자·규격·해상도·도련처럼 출력 직전에 필요한 작업을 한 흐름으로 제공합니다.']
   };
 
