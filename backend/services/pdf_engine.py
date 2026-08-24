@@ -186,17 +186,27 @@ def _render_source_page(
     src_doc = src_docs[page_info.file_index]
     src_page = src_doc[page_info.page_index]
     src_rect = src_page.rect
+    split_side = getattr(page_info, "split_side", None)
+    clip_rect = src_rect
+    if split_side in {"left", "right"}:
+        midpoint = src_rect.x0 + src_rect.width / 2
+        clip_rect = fitz.Rect(
+            src_rect.x0 if split_side == "left" else midpoint,
+            src_rect.y0,
+            midpoint if split_side == "left" else src_rect.x1,
+            src_rect.y1,
+        )
     rotation = pdf_ops._best_fit_rotation(
         cell_w,
         cell_h,
-        src_rect.width,
-        src_rect.height,
+        clip_rect.width,
+        clip_rect.height,
         page_info.rotation,
     )
     fit_rect = pdf_ops._calc_fit_rect(
         cell_rect,
-        src_rect.width,
-        src_rect.height,
+        clip_rect.width,
+        clip_rect.height,
         rotation,
     )
     try:
@@ -206,6 +216,7 @@ def _render_source_page(
             page_info.page_index,
             rotate=rotation,
             keep_proportion=True,
+            clip=clip_rect,
         )
     except ValueError as exc:
         if EMPTY_SOURCE_PAGE_ERROR not in str(exc):
