@@ -11,6 +11,7 @@
   const SUPPORTED_NUP=new Set([2,4,6,8]);
   let panelOpen=false;
   let triggerPatched=false;
+  let eventsBound=false;
   let attempts=0;
 
   const $=id=>document.getElementById(id);
@@ -294,6 +295,8 @@
   }
 
   function bindEvents(){
+    if(eventsBound)return;
+    eventsBound=true;
     $('bookletCheck')?.addEventListener('change',()=>setTimeout(syncVisibility,0));
     document.querySelectorAll('.nup-btn').forEach(button=>button.addEventListener('click',()=>setTimeout(syncVisibility,0)));
     $('resetBtn')?.addEventListener('click',()=>setTimeout(()=>{panelOpen=false;syncVisibility();},0));
