@@ -29,12 +29,15 @@ def test_version_badge_is_not_rendered():
     assert "programStudioVersion" in version_helper
 
 
-def test_preflight_panels_stretch_to_the_same_height():
+def test_preflight_uses_single_column_task_flow():
     balance = read("js/pdf-preflight-panel-balance.js")
-    assert ".workspace{align-items:stretch!important}" in balance
+    assert "grid-template-columns:1fr!important" in balance
     assert ".workspace>.panel" in balance
-    assert "height:100%!important" in balance
-    assert "margin-top:auto!important" in balance
+    assert "height:auto!important" in balance
+    assert "display:block!important" in balance
+    assert "PDF 선택" in balance
+    assert "인쇄 전 검사" in balance
+    assert "인쇄 전 확인 항목" in balance
 
 
 def test_boot_guard_is_injected_only_into_dynamic_pages():
