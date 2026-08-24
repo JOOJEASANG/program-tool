@@ -12,8 +12,8 @@ Firebase Hosting과 Python Cloud Functions로 운영하는 PDF 제작·검수 �
 
 - PDF 편집기: 여러 PDF 병합, N-up 배치, 소책자 배열, 여백·페이지 번호·인쇄 표시
 - PDF 검사: 문서 정보, 크기, 색상·투명도 위험 신호, 보안 설정 검사와 제한적인 자동 수정
-- 책표지 제작: 판형·쪽수·종이에 따른 표지 크기 계산 및 300 DPI RGB PNG 출력
-- 통합 디자인 편집기: 포스터·전단·리플렛 편집, 인쇄 전 최종검사, 표준/고품질 PDF, 로컬·클라우드 프로젝트 저장
+- 책표지 제작: 통합 디자인 편집기의 표지 모드에서 판형·쪽수·종이에 따른 표지 크기 계산 및 300 DPI RGB 출력
+- 통합 디자인 편집기: 표지·포스터·전단·리플렛 편집, 인쇄 전 최종검사, 표준/고품질 PDF, 로컬·클라우드 프로젝트 저장
 
 PDF 검수 결과는 인쇄소의 RIP/프리플라이트 결과를 대체하지 않습니다. 브라우저 표지 출력도 RGB 래스터 이미지이며, 실제 CMYK 납품물에는 인쇄소 ICC 프로파일을 적용한 별도 변환 단계가 필요합니다.
 
@@ -84,9 +84,12 @@ firebase deploy --project program-tool --force --non-interactive
 
 ## 구조
 
-- `pdf-editor/`, `pdf-preflight/`, `perfect-binding-cover/`: 운영 프로그램 화면
-- `design-editor/`: 표지·포스터·전단·리플렛 통합 디자인 편집기 셸과 일반 편집 화면
-- `tools/`: 이전 URL을 보존하는 호환 이동 페이지
+- `pdf-editor/`: PDF 인쇄·출력 도구의 정식 화면
+- `pdf-preflight/`: PDF 검사·보안·변환 도구의 정식 화면
+- `design-editor/`: 표지·포스터·전단·리플렛 통합 디자인 편집기. 책표지는 `/?mode=cover` 진입을 사용
+- `perfect-binding-cover/`, `tools/*.html`, `legal/*.html`, `dashboard.html`: 기존 공개 URL을 보존하는 호환 이동 페이지
+- `document-editor/`, `image-editor/`: 문서·이미지 작업 화면
+- `docs/`: 운영·보안·기능 구조와 구현 참고 문서
 - `js/api.js`: 인증, 직접/Storage 업로드, 결과 다운로드 공통 API
 - `js/sw-register.js`: 화면별 런타임 모듈 로더. 일반 디자인 편집기는 `DESIGN_EDITOR_RUNTIME_SCRIPTS` 순서 목록으로 기능 의존성을 관리
 - `backend/routers/`: Flask API 진입점
@@ -96,7 +99,7 @@ firebase deploy --project program-tool --force --non-interactive
 - `backend/scripts/sync_admin_claims.py`: 관리자 custom claim dry-run·적용·검증 도구
 - `scripts/firebase_ci.sh`: WIF/ADC 우선, `FIREBASE_TOKEN` fallback Firebase CI 실행기
 - `firestore.rules`, `storage.rules`, `tests/firebase-rules.test.mjs`: 접근 제어와 회귀 테스트
-- `ADMIN_SECURITY_MIGRATION.md`: 관리자 claim-only 권한과 WIF 배포 인증의 실제 전환 체크리스트
+- `docs/admin-security-migration.md`: 관리자 claim-only 권한과 WIF 배포 인증의 실제 전환 체크리스트
 
 ## 운영 보안
 
@@ -111,6 +114,6 @@ python -m scripts.sync_admin_claims --apply
 python -m scripts.sync_admin_claims --verify
 ```
 
-`--verify`가 성공하기 전에는 legacy 이메일 fallback을 제거하지 않습니다. 자세한 전환 순서와 rollback 기준은 `ADMIN_SECURITY_MIGRATION.md`를 따릅니다.
+`--verify`가 성공하기 전에는 legacy 이메일 fallback을 제거하지 않습니다. 자세한 전환 순서와 rollback 기준은 `docs/admin-security-migration.md`를 따릅니다.
 
 Cloud 배포는 장기 refresh token보다 Workload Identity Federation/Application Default Credentials를 우선합니다. WIF로 PR 미리보기와 `production-smoke`까지 성공한 것을 확인한 뒤 `FIREBASE_TOKEN` secret을 제거합니다.
