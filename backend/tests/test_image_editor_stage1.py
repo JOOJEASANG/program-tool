@@ -50,10 +50,11 @@ def test_image_editor_stage1_core_is_local_and_exportable():
 
 def test_image_editor_home_card_is_active_and_matches_available_core_features():
     source = HOME.read_text(encoding="utf-8")
-    image_block = source[source.index("id:'image-editor'"):source.index("id:'document-editor'")]
+    image_block = source[source.index("id:'image-editor'"):source.index("id:'design-editor'")]
     assert "url:'image-editor/'" in image_block
     assert "status:'active'" in image_block
-    assert "자르기" in image_block and "크기 조절" in image_block and "기본 보정" in image_block
+    assert "자르기" in image_block and "리사이즈" in image_block and "기본 보정" in image_block
+    assert "이미지 작업 도구" in image_block
 
 
 def test_image_editor_stage1_has_real_chrome_smoke_in_quality_gate():
