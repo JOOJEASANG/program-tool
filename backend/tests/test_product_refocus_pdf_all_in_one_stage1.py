@@ -55,5 +55,5 @@ def test_stage1_runtime_and_browser_regression_are_wired():
     assert runtime.count("pdfAllInOneStage1ScriptV1") == 2
     assert "pdf-all-in-one-stage1-smoke.html" in runner
     assert "pdf-print-output-stage1-smoke.html" in runner
-    assert "data-pdf-all-in-one-smoke=\"pass\"" in utility_smoke
-    assert "data-print-output-smoke=\"pass\"" in print_smoke
+    assert "dataset.pdfAllInOneSmoke='pass'" in utility_smoke
+    assert "dataset.printOutputSmoke='pass'" in print_smoke
