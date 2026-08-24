@@ -81,7 +81,11 @@ def test_preview_requests_share_one_coordinator_before_and_after_upload_fix():
 
 def test_stable_editor_surface_module_count_and_cache_versions():
     source = LOADER.read_text(encoding="utf-8")
-    assert EDITOR.read_bytes() == LEGACY.read_bytes()
+    legacy = LEGACY.read_text(encoding="utf-8")
+    assert EDITOR.read_text(encoding="utf-8") != legacy
+    assert "/pdf-editor/" in legacy
+    assert "location.replace" in legacy
+    assert "location.search+location.hash" in legacy
     assert source.count("'/js/pdf-editor/") == 8
     assert "__pdfEditorModuleLoaderV18" in source
     assert "page-count-hint.js?v=20260731-1" in source
