@@ -57,7 +57,13 @@
         await waitFor(()=>document.getElementById('designShapeStrokeMode'),'shape stroke mode control');
         const strokeMode=document.getElementById('designShapeStrokeMode');
         assert(strokeMode.value==='on','existing/new shape border must default to on');
-        strokeMode.value='none';strokeMode.dispatchEvent(new Event('change',{bubbles:true}));await settle();
+        strokeMode.value='none';strokeMode.dispatchEvent(new Event('change',{bubbles:true}));
+        await waitFor(()=>rect.strokeEnabled===false,'shape border none project state');
+        await waitFor(()=>{
+          const node=document.querySelector(`.phase2-extra-object[data-extra-id="${rect.id}"] .phase2-shape-inner`);
+          return Boolean(node&&getComputedStyle(node).borderTopStyle==='none');
+        },'borderless rectangle render');
+        await waitFor(()=>document.querySelector('[data-extra-field="stroke"]')?.closest('.field')?.hidden===true&&document.querySelector('[data-extra-field="strokeWidth"]')?.closest('.field')?.hidden===true,'border controls hidden');
         assert(rect.strokeEnabled===false,'shape border none did not persist to project state');
         const rectNode=document.querySelector(`.phase2-extra-object[data-extra-id="${rect.id}"] .phase2-shape-inner`);
         assert(rectNode&&getComputedStyle(rectNode).borderTopStyle==='none','borderless rectangle still shows a CSS border');
