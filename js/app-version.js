@@ -34,9 +34,11 @@
   function loadScopedEnhancements(){
     if(currentPath==='/'||currentPath==='/index.html'){
       loadCatalogScripts('home');
+      loadScopedScript('homePrintWorkflowScriptV1','/js/home-print-workflow.js?v=20260824-1');
     }
     if(currentPath==='/admin'||currentPath==='/admin.html'||currentPath.endsWith('/admin.html')){
       loadCatalogScripts('admin');
+      loadScopedScript('adminOperationsOverviewScriptV1','/js/admin-operations-overview.js?v=20260824-1');
     }
     if(
       currentPath==='/tools/pdf-editor.html'||
@@ -45,6 +47,7 @@
     ){
       loadScopedScript('pdfEditorTransferLimitGuardScriptV1','/js/pdf-editor/transfer-limit-guard.js?v=20260818-1');
       loadScopedScript('pdfDividerLocalImageUploadScriptV1','/js/pdf-divider-local-image-upload.js?v=20260818-2');
+      loadScopedScript('pdfEditorFinalCheckScriptV1','/js/pdf-editor-final-check.js?v=20260824-1');
     }
     if(
       currentPath==='/tools/pdf-Checker.html'||

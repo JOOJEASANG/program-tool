@@ -11,20 +11,21 @@ UTILITY_SMOKE = ROOT / "tests" / "browser" / "pdf-all-in-one-stage1-smoke.html"
 PRINT_SMOKE = ROOT / "tests" / "browser" / "pdf-print-output-stage1-smoke.html"
 
 
-def test_home_is_refocused_on_subscription_alternative_work_tools():
+def test_home_is_refocused_on_print_production_workflow():
     source = HOME.read_text(encoding="utf-8")
     for marker in (
-        "name:'PDF 올인원'",
-        "name:'인쇄·출력 도구'",
+        "name:'PDF 편집 · 인쇄배치'",
+        "name:'PDF 검사 · 유틸리티'",
         "name:'이미지 작업 도구'",
         "name:'디자인 제작'",
-        "name:'OCR · 문서 변환'",
-        "구독 프로그램 없이",
-        "subscription-alternative-home-stage1",
+        "인쇄·출력 실무 도구",
+        "편집하고, 인쇄 전 검사하고, 결과를 저장",
+        "print-production-home-v2",
     ):
         assert marker in source
     assert "id:'document-editor'" not in source
-    assert source.index("id:'pdf-utility'") < source.index("id:'pdf-editor'")
+    assert "conversion-ocr" not in source
+    assert source.index("id:'pdf-editor'") < source.index("id:'pdf-utility'")
 
 
 def test_pdf_all_in_one_surfaces_existing_extract_and_blank_page_tools():
@@ -50,7 +51,7 @@ def test_stage1_runtime_and_browser_regression_are_wired():
     utility_smoke = UTILITY_SMOKE.read_text(encoding="utf-8")
     print_smoke = PRINT_SMOKE.read_text(encoding="utf-8")
 
-    assert "/js/home-professional-suite.js?v=20260824-1" in runtime
+    assert "/js/home-professional-suite.js?v='+VERSION" in runtime
     assert "/js/pdf-all-in-one-stage1.js?v=20260824-1" in runtime
     assert runtime.count("pdfAllInOneStage1ScriptV1") == 2
     assert "pdf-all-in-one-stage1-smoke.html" in runner

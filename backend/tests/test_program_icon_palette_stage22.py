@@ -44,7 +44,7 @@ def test_icon_picker_preserves_direct_input_and_catalog_change_events():
     assert 'maxlength="12"' in manager
 
 
-def test_admin_loaders_include_icon_palette_and_cache_bump():
+def test_admin_loaders_include_icon_palette_and_runtime_cache_bump():
     app_version = APP_VERSION.read_text(encoding="utf-8")
     sw_register = SW_REGISTER.read_text(encoding="utf-8")
     expected = "/js/admin-program-icon-palette.js?v=20260808-1"
@@ -52,4 +52,5 @@ def test_admin_loaders_include_icon_palette_and_cache_bump():
     assert expected in sw_register
     assert "adminProgramIconPaletteScriptV1" in app_version
     assert "adminProgramIconPaletteScriptV1" in sw_register
-    assert "/js/app-version.js?v=20260818-4" in sw_register
+    assert "const VERSION='2026.08.24.009'" in sw_register
+    assert "load('appVersionHelperScript','/js/app-version.js?v='+VERSION)" in sw_register

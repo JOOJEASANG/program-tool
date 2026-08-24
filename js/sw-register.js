@@ -2,7 +2,7 @@
   if(window.__programStudioRuntimeBoot)return;
   window.__programStudioRuntimeBoot=true;
 
-  const VERSION='2026.08.24.008';
+  const VERSION='2026.08.24.009';
   const CACHE_PREFIX='program-studio-';
   const CLEANUP_KEY='program-studio-legacy-runtime-cleanup-'+VERSION;
   const currentPath=location.pathname.replace(/\/+$/,'')||'/';
@@ -181,13 +181,14 @@
 
   function helpers(){
     const tasks=[];
-    if(!isAuthPage())tasks.push(load('appVersionHelperScript','/js/app-version.js?v=20260818-4'));
+    if(!isAuthPage())tasks.push(load('appVersionHelperScript','/js/app-version.js?v='+VERSION));
     if(isHome()){
       tasks.push(
         loadCatalogCore()
           .then(()=>load('homeProgramCatalogScriptV1','/js/home-program-catalog.js?v=20260808-1'))
           .then(()=>load('homePdfUtilityNameSyncScriptV1','/js/home-pdf-utility-name-sync.js?v=20260818-1'))
-          .then(()=>load('homeProfessionalSuiteScriptV1','/js/home-professional-suite.js?v=20260824-1'))
+          .then(()=>load('homeProfessionalSuiteScriptV1','/js/home-professional-suite.js?v='+VERSION))
+          .then(()=>load('homePrintWorkflowScriptV1','/js/home-print-workflow.js?v='+VERSION))
       );
       tasks.push(load('homeHeroUpgradeScript','/js/home-hero-upgrade.js?v='+VERSION));
       tasks.push(load('homeHeaderFooterRefineScript','/js/home-header-footer-refine.js?v='+VERSION));
@@ -198,6 +199,7 @@
           .then(()=>load('adminProgramCatalogManagerScriptV1','/js/admin-program-catalog-manager.js?v=20260808-1'))
           .then(()=>load('adminProgramCatalogNavGuardScriptV1','/js/admin-program-catalog-nav-guard.js?v=20260818-1'))
           .then(()=>load('adminProfessionalProgramManagerScriptV1','/js/admin-professional-program-manager.js?v=20260821-2'))
+          .then(()=>load('adminOperationsOverviewScriptV1','/js/admin-operations-overview.js?v='+VERSION))
       );
       tasks.push(load('adminProgramIconPaletteScriptV1','/js/admin-program-icon-palette.js?v=20260808-1'));
     }
@@ -222,6 +224,7 @@
       tasks.push(load('pdfViewportLazyPreviewGuardScriptV1','/js/pdf-editor/viewport-lazy-preview-guard.js?v=20260806-1'));
       tasks.push(load('pdfFileNavigationScriptV1','/js/pdf-editor/file-navigation.js?v=20260806-1'));
       tasks.push(load('pdfDividerLocalImageUploadScriptV1','/js/pdf-divider-local-image-upload.js?v=20260818-2'));
+      tasks.push(load('pdfEditorFinalCheckScriptV1','/js/pdf-editor-final-check.js?v='+VERSION));
     }
     if(isPath('/tools/pdf-Checker.html','/tools/preflight.html','/pdf-preflight','/pdf-preflight/index.html')){
       tasks.push(load('programShellUnifyScriptV1','/js/program-shell-unify.js?v=20260824-1'));
@@ -237,6 +240,7 @@
           .then(()=>load('pdfUtilityImageConverterScriptV1','/js/pdf-utility-image-converter.js?v=20260819-1'))
           .then(()=>load('pdfUtilityFinalizeScriptV1','/js/pdf-utility-finalize.js?v=20260818-3'))
           .then(()=>load('pdfAllInOneStage1ScriptV1','/js/pdf-all-in-one-stage1.js?v=20260824-1'))
+          .then(()=>load('pdfPrintReadinessScriptV1','/js/pdf-print-readiness.js?v='+VERSION))
       );
     }
     return Promise.allSettled(tasks);
