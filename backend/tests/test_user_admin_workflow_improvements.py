@@ -50,7 +50,8 @@ def test_home_explains_the_print_workflow_and_keeps_secondary_tools_secondary():
 
     assert "id:'document-editor'" not in suite
     assert "conversion-ocr" not in suite
-    assert "print-production-home-v2" in suite
+    assert "print-production-home-v3" in suite
+    assert "HOME_PROGRAM_ORDER=['design-editor','pdf-editor','pdf-utility','image-editor']" in suite
     assert "for(const item of source)" in suite
     assert "status:item?.status==='active'?'active':'coming'" in suite
     assert "return safeUrl(raw,base.url)" in suite

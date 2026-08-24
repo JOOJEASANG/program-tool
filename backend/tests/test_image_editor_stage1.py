@@ -50,7 +50,8 @@ def test_image_editor_stage1_core_is_local_and_exportable():
 
 def test_image_editor_home_card_is_active_and_matches_available_core_features():
     source = HOME.read_text(encoding="utf-8")
-    image_block = source[source.index("id:'image-editor'"):source.index("id:'design-editor'")]
+    start = source.index("id:'image-editor'")
+    image_block = source[start:source.index("  ];", start)]
     assert "url:'image-editor/'" in image_block
     assert "status:'active'" in image_block
     assert "자르기" in image_block and "리사이즈" in image_block and "기본 보정" in image_block

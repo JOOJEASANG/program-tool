@@ -14,18 +14,22 @@ PRINT_SMOKE = ROOT / "tests" / "browser" / "pdf-print-output-stage1-smoke.html"
 def test_home_is_refocused_on_print_production_workflow():
     source = HOME.read_text(encoding="utf-8")
     for marker in (
+        "name:'디자인 제작'",
         "name:'PDF 편집 · 인쇄배치'",
         "name:'PDF 검사 · 유틸리티'",
         "name:'이미지 작업 도구'",
-        "name:'디자인 제작'",
         "인쇄·출력 실무 도구",
-        "편집하고, 인쇄 전 검사하고, 결과를 저장",
-        "print-production-home-v2",
+        "디자인하고, 편집·인쇄배치하고, 마지막으로 검사",
+        "print-production-home-v3",
     ):
         assert marker in source
     assert "id:'document-editor'" not in source
     assert "conversion-ocr" not in source
+    assert source.index("id:'design-editor'") < source.index("id:'pdf-editor'")
     assert source.index("id:'pdf-editor'") < source.index("id:'pdf-utility'")
+    assert source.index("id:'pdf-utility'") < source.index("id:'image-editor'")
+    assert "HOME_PROGRAM_ORDER=['design-editor','pdf-editor','pdf-utility','image-editor']" in source
+    assert "normalized.sort((a,b)=>homeRank(a)-homeRank(b))" in source
 
 
 def test_pdf_all_in_one_surfaces_existing_extract_and_blank_page_tools():
