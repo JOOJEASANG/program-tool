@@ -55,7 +55,8 @@ def test_stage2_transparent_exports_keep_png_webp_and_flatten_jpeg_to_white():
 
 def test_stage2_home_can_truthfully_advertise_background_removal():
     source = HOME.read_text(encoding="utf-8")
-    block = source[source.index("id:'image-editor'"):source.index("id:'design-editor'")]
+    start = source.index("id:'image-editor'")
+    block = source[start:source.index("  ];", start)]
     assert "배경 제거" in block
     assert "status:'active'" in block
     assert "url:'image-editor/'" in block
