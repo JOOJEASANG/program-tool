@@ -92,8 +92,15 @@ def _program_access_from_snapshots(program_snapshot, permission_snapshot, progra
 
 
 def _has_program_access(db: firestore.Client, uid: str, program_id: str) -> bool:
-    """Return whether the account itself has administrator approval."""
-    permission_snapshot = db.collection("user_permissions").document(uid).get()
+    """Return whether the account itself has administrator approval.
+
+    Keep the existing ``get_all`` lookup shape so authorization remains compatible
+    with the repository's Firestore batching/mocking path while no longer reading
+    public-program settings for access decisions.
+    """
+    permission_ref = db.collection("user_permissions").document(uid)
+    snapshots = list(db.get_all([permission_ref]))
+    permission_snapshot = snapshots[0] if snapshots else None
     return _program_access_from_snapshots(None, permission_snapshot, program_id)
 
 
