@@ -55,15 +55,18 @@ def test_legacy_admin_fallback_uses_normalized_email_list():
     assert _is_legacy_admin(db, "other@example.com") is False
 
 
-def test_public_program_allows_without_user_approval():
-    program = FakeSnapshot({"public": {"pdf-editor": True}})
-    permission = FakeSnapshot(None)
-    assert _program_access_from_snapshots(program, permission, "pdf-editor") is True
-    assert _program_access_from_snapshots(program, permission, "preflight") is False
+def test_public_program_cannot_bypass_user_approval():
+    program = FakeSnapshot({"public": {"pdf-editor": True, "preflight": True}})
+    pending = FakeSnapshot({"status": "pending"})
+    missing = FakeSnapshot(None)
+
+    assert _program_access_from_snapshots(program, pending, "pdf-editor") is False
+    assert _program_access_from_snapshots(program, pending, "preflight") is False
+    assert _program_access_from_snapshots(program, missing, "pdf-editor") is False
 
 
 def test_approved_account_can_use_every_managed_program():
-    private = FakeSnapshot({"public": {"pdf-editor": False, "preflight": False}})
+    catalog = FakeSnapshot({"public": {"pdf-editor": False, "preflight": False}})
     approved = FakeSnapshot({
         "status": "approved",
         "programs": {"pdf-editor": True, "preflight": False},
@@ -71,10 +74,10 @@ def test_approved_account_can_use_every_managed_program():
     pending = FakeSnapshot({"status": "pending", "programs": {"pdf-editor": True}})
     suspended = FakeSnapshot({"status": "suspended", "programs": {"preflight": True}})
 
-    assert _program_access_from_snapshots(private, approved, "pdf-editor") is True
-    assert _program_access_from_snapshots(private, approved, "preflight") is True
-    assert _program_access_from_snapshots(private, pending, "pdf-editor") is False
-    assert _program_access_from_snapshots(private, suspended, "preflight") is False
+    assert _program_access_from_snapshots(catalog, approved, "pdf-editor") is True
+    assert _program_access_from_snapshots(catalog, approved, "preflight") is True
+    assert _program_access_from_snapshots(catalog, pending, "pdf-editor") is False
+    assert _program_access_from_snapshots(catalog, suspended, "preflight") is False
 
 
 def test_frontend_and_backend_share_account_approval_policy():
@@ -82,22 +85,52 @@ def test_frontend_and_backend_share_account_approval_policy():
     backend = (ROOT / "backend" / "utils" / "permissions.py").read_text(encoding="utf-8")
     assert "getIdTokenResult" in frontend
     assert "claims?.admin === true" in frontend
-    assert "publicPrograms?.[programId] === true" in frontend
-    assert "const assigned = access.status === 'approved'" in frontend
-    assert "allowed: access.admin || publicAccess || assigned" in frontend
+    assert "allowed: access.approved" in frontend
+    assert "public: false" in frontend
+    assert "allowed: access.admin || publicAccess || assigned" not in frontend
     assert "this.clearCache(user)" in frontend
     assert "def _has_admin_claim" in backend
     assert "def _is_legacy_admin" in backend
     assert "def _program_access_from_snapshots" in backend
     assert 'return permission_data.get("status") == "approved"' in backend
+    assert '.get("public")' not in backend
 
 
-def test_guard_maps_each_protected_page_to_one_program_id():
+def test_guard_maps_every_program_shell_to_approval_policy():
     frontend = (ROOT / "js" / "firebase-config.js").read_text(encoding="utf-8")
-    assert "return 'pdf-editor'" in frontend
-    assert "return 'preflight'" in frontend
-    assert "return 'design-studio'" in frontend
+    for program_id in (
+        "return 'pdf-editor'",
+        "return 'preflight'",
+        "return 'design-studio'",
+        "return 'document-editor'",
+        "return 'image-editor'",
+    ):
+        assert program_id in frontend
+    for route in (
+        "/design-editor/index.html",
+        "/design-editor/general.html",
+        "/document-editor/index.html",
+        "/image-editor/index.html",
+        "/pdf-editor/index.html",
+        "/pdf-preflight/index.html",
+    ):
+        assert route in frontend
     assert "ProgramAccess.guardTool({ programId, timeoutMs: 8000 })" in frontend
+
+
+def test_deploy_injector_bootstraps_auth_for_tool_shells_without_firebase():
+    injector = (ROOT / "scripts" / "inject_boot_guard.py").read_text(encoding="utf-8")
+    for path in (
+        '"design-editor/index.html"',
+        '"document-editor/index.html"',
+        '"image-editor/index.html"',
+        '"pdf-editor/index.html"',
+        '"pdf-preflight/index.html"',
+    ):
+        assert path in injector
+    assert "FIREBASE_APPROVAL_BOOTSTRAP" in injector
+    assert 'src="/js/firebase-config.js"' in injector
+    assert 'approval_required=requires_approval(path)' in injector
 
 
 def test_new_user_document_rules_reject_privilege_fields_and_true_programs():
