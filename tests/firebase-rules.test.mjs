@@ -153,7 +153,7 @@ test('retired provider storage is not member-readable or writable and remains ad
   await assertSucceeds(deleteObject(ref(adminStorage, path)));
 });
 
-test('temporary PDF input is owner-only and bounded to the expected path shape', async () => {
+test('temporary PDF input is owner-only, approved-only and bounded to the expected path shape', async () => {
   await seedApprovedUser();
   const ownerStorage = env.authenticatedContext(
     'approved-user',
@@ -167,9 +167,16 @@ test('temporary PDF input is owner-only and bounded to the expected path shape',
     ownerStorage,
     'pdf_temp/approved-user/session-1/source.pdf'
   );
+  const validPreflight = ref(
+    ownerStorage,
+    'preflight_temp/approved-user/session-1/source.pdf'
+  );
 
   await assertSucceeds(
     uploadString(valid, '%PDF-test', 'raw', { contentType: 'application/pdf' })
+  );
+  await assertSucceeds(
+    uploadString(validPreflight, '%PDF-test', 'raw', { contentType: 'application/pdf' })
   );
   await assertFails(
     uploadString(
@@ -181,6 +188,70 @@ test('temporary PDF input is owner-only and bounded to the expected path shape',
   );
   await assertFails(
     getBytes(ref(otherStorage, 'pdf_temp/approved-user/session-1/source.pdf'))
+  );
+});
+
+test('pending users cannot stage large PDF work before program authorization', async () => {
+  await env.withSecurityRulesDisabled(async context => {
+    await setDoc(
+      doc(context.firestore(), 'user_permissions', 'pending-user'),
+      { status: 'pending' }
+    );
+  });
+  const pendingStorage = env.authenticatedContext(
+    'pending-user',
+    { email: 'pending@example.com' }
+  ).storage();
+
+  await assertFails(
+    uploadString(
+      ref(pendingStorage, 'pdf_temp/pending-user/session-1/source.pdf'),
+      '%PDF-test',
+      'raw',
+      { contentType: 'application/pdf' }
+    )
+  );
+  await assertFails(
+    uploadString(
+      ref(pendingStorage, 'preflight_temp/pending-user/session-1/source.pdf'),
+      '%PDF-test',
+      'raw',
+      { contentType: 'application/pdf' }
+    )
+  );
+});
+
+test('public PDF programs still allow signed-in staging without account approval', async () => {
+  await env.withSecurityRulesDisabled(async context => {
+    await setDoc(
+      doc(context.firestore(), 'settings', 'programs'),
+      { public: { 'pdf-editor': true, preflight: true } }
+    );
+    await setDoc(
+      doc(context.firestore(), 'user_permissions', 'public-user'),
+      { status: 'pending' }
+    );
+  });
+  const publicStorage = env.authenticatedContext(
+    'public-user',
+    { email: 'public@example.com' }
+  ).storage();
+
+  await assertSucceeds(
+    uploadString(
+      ref(publicStorage, 'pdf_temp/public-user/session-1/source.pdf'),
+      '%PDF-test',
+      'raw',
+      { contentType: 'application/pdf' }
+    )
+  );
+  await assertSucceeds(
+    uploadString(
+      ref(publicStorage, 'preflight_temp/public-user/session-1/source.pdf'),
+      '%PDF-test',
+      'raw',
+      { contentType: 'application/pdf' }
+    )
   );
 });
 
