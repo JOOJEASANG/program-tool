@@ -33,6 +33,12 @@
   function isLeaflet2(p=project()){return Boolean(p&&(p.designMode==='leaflet2'||p.presetId==='leaflet-2'));}
   function isLeaflet3(p=project()){return Boolean(p&&(p.designMode==='leaflet3'||String(p.presetId||'').startsWith('leaflet-3-')));}
   function isLeaflet(p=project()){return isLeaflet2(p)||isLeaflet3(p);}
+  function isProductManaged(p=project()){return Boolean(p&&(p.printProductMode==='invitation'||p.printProductMode==='leaflet'));}
+  function productExpectedFoldCount(p){
+    if(p?.printProductMode==='invitation')return 1;
+    if(p?.printProductMode==='leaflet')return Math.max(1,(Number(p.printProductPages)||6)/2-1);
+    return 0;
+  }
   function orientationOf(p){
     const explicit=String(p?.orientation||'');
     if(explicit==='portrait'||explicit==='landscape')return explicit;
@@ -119,9 +125,14 @@
 
   function geometryNeedsSync(p){
     if(!isLeaflet(p))return false;
+    const surface=activeSurface(p);if(!surface)return true;
+    if(isProductManaged(p)){
+      const expectedAxis=p.printProductAxis==='y'?'y':'x';
+      const list=expectedAxis==='y'?numericList(surface.foldsY):numericList(surface.folds);
+      return axisOf(surface)!==expectedAxis||list.length!==productExpectedFoldCount(p);
+    }
     const expectedOrientation=orientationOf(p);
     if(p[ORIENTATION_KEY]!==expectedOrientation)return true;
-    const surface=activeSurface(p);if(!surface)return true;
     if(isLeaflet2(p)){
       const expectedAxis=p.leaflet2Layout==='top-bottom'?'y':'x';
       if(axisOf(surface)!==expectedAxis)return true;
@@ -139,7 +150,9 @@
     if(!geometryNeedsSync(p)&&!options.force)return false;
     mutating=true;
     try{
-      if(isLeaflet2(p))applyLeaflet2Geometry(p);else applyLeaflet3Geometry(p);
+      if(isProductManaged(p)&&window.DesignEditorPrintProductMenu?.applyGeometry){
+        window.DesignEditorPrintProductMenu.applyGeometry(p,{persist:false});
+      }else if(isLeaflet2(p))applyLeaflet2Geometry(p);else applyLeaflet3Geometry(p);
       if(options.persist!==false)persist(options.source||'print-fold-geometry');
     }finally{mutating=false;}
     window.dispatchEvent(new Event('resize'));
@@ -165,7 +178,7 @@
   }
 
   function foldSignature(p,surface){
-    return [p.designMode,p.width,p.height,p.bleed,p.showGuides,p.showFolds,surface?.id,surface?.foldAxis,...numericList(surface?.folds),...numericList(surface?.foldsY),p[FLIP_KEY]||'none'].join('|');
+    return [p.designMode,p.printProductMode||'',p.printProductPages||'',p.printProductFold||'',p.width,p.height,p.bleed,p.showGuides,p.showFolds,surface?.id,surface?.foldAxis,...numericList(surface?.folds),...numericList(surface?.foldsY),p[FLIP_KEY]||'none'].join('|');
   }
 
   function ensureOverlay(artboard){
@@ -259,6 +272,7 @@
 
   function ensureDirectionField(){
     const p=project();let field=byId(FIELD_ID);
+    if(isProductManaged(p)){if(field)field.hidden=true;return false;}
     const surface=activeSurface(p),show=Boolean(isLeaflet2(p)&&surface&&axisOf(surface)==='y');
     if(!show){if(field)field.hidden=true;return false;}
     const options=byId('designEmbeddedModeCard')?.querySelector('.design-mode-options');if(!options)return false;
@@ -301,16 +315,16 @@
     if(event.target?.id==='designLeaflet2Layout')queue(80);
   },true);
   document.addEventListener('click',event=>{
-    if(event.target?.closest?.('.design-mode-apply'))queue(120);
+    if(event.target?.closest?.('.design-mode-apply')||event.target?.closest?.('.design-product-apply'))queue(120);
     if(event.target?.closest?.('.surface-tab'))queue(30);
   },true);
   document.addEventListener('input',event=>{
-    if(['designModeWidth','designModeHeight','bleedInput','safeInput'].includes(event.target?.id))queue(40);
+    if(['designModeWidth','designModeHeight','bleedInput','safeInput','designProductFoldPosition'].includes(event.target?.id))queue(40);
   },true);
   window.addEventListener('resize',()=>queue(20),{passive:true});
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',connect,{once:true});else connect();
   [180,420,800,1400,2400].forEach(delay=>setTimeout(connect,delay));
 
-  window.DesignEditorPrintFoldProduction={sync,applyFlipRotations,stage:'leaflet-fold-lines-orientation-and-invitation-rotation'};
+  window.DesignEditorPrintFoldProduction={sync,syncGeometry,applyFlipRotations,stage:'print-product-fold-lines-orientation-and-invitation-rotation'};
 })();
