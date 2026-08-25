@@ -17,12 +17,13 @@
   const project=()=>window.DesignEditorApp?.project||null;
   const isLeaflet2=p=>Boolean(p&&(p.designMode==='leaflet2'||p.presetId==='leaflet-2'));
   const isLeaflet3=p=>Boolean(p&&(p.designMode==='leaflet3'||String(p.presetId||'').startsWith('leaflet-3-')));
+  const isLeaflet=p=>isLeaflet2(p)||isLeaflet3(p);
   const expectedLineCount=p=>isLeaflet2(p)?1:isLeaflet3(p)?2:0;
   const roundMm=value=>Math.round((Number(value)||0)*10)/10;
 
   function normalizeOrientationFields(){
     const p=project();
-    if(!isLeaflet2(p))return false;
+    if(!isLeaflet(p))return false;
     const paper=document.getElementById('designModePaper');
     const orientation=document.getElementById('designModeOrientation');
     const width=document.getElementById('designModeWidth');
@@ -43,6 +44,7 @@
     width.value=String(roundMm(w));
     height.value=String(roundMm(h));
     document.documentElement.dataset.leafletOrientationApply=`${direction}:${roundMm(w)}x${roundMm(h)}`;
+    document.documentElement.dataset.leafletOrientationMode=isLeaflet3(p)?'leaflet3':'leaflet2';
     return true;
   }
 

@@ -6,7 +6,7 @@
   <style>
     #artboard{position:relative;width:606px;height:432px;background:#fff}
   </style>
-  <script>history.replaceState(null,'','/design-editor/general.html?embed=1&mode=leaflet2&foldRuntime=20260825-3');</script>
+  <script>history.replaceState(null,'','/design-editor/general.html?embed=1&mode=leaflet2&foldRuntime=20260825-4');</script>
 </head>
 <body data-fold-runtime-status="pending">
   <div id="result">PENDING</div>
@@ -15,6 +15,7 @@
     <select id="designModeOrientation"><option value="portrait">세로</option><option value="landscape" selected>가로</option></select>
     <input id="designModeWidth" value="297">
     <input id="designModeHeight" value="210">
+    <select id="designModeFold"><option value="leaflet-3-roll">말아접기</option><option value="leaflet-3-z" selected>Z접지</option></select>
     <button type="button" class="design-mode-apply">현재 옵션 적용</button>
   </div>
   <div id="artboard"></div>
@@ -26,7 +27,7 @@
     };
     window.DesignEditorApp={project:leaflet2};
   </script>
-  <script src="/js/design-editor/print-fold-runtime-ensure.js?v=20260825-3"></script>
+  <script src="/js/design-editor/print-fold-runtime-ensure.js?v=20260825-4"></script>
   <script>
     (async()=>{
       const result=document.getElementById('result');
@@ -47,11 +48,13 @@
         const orientation=document.getElementById('designModeOrientation');
         const width=document.getElementById('designModeWidth');
         const height=document.getElementById('designModeHeight');
+        const fold=document.getElementById('designModeFold');
         orientation.value='portrait';
         width.value='297';height.value='210';
         document.querySelector('.design-mode-apply').click();
         await waitFor(()=>width.value==='210'&&height.value==='297','leaflet2 portrait apply normalization');
-        assert(document.documentElement.dataset.leafletOrientationApply==='portrait:210x297','적용 직전 용지 방향 정규화 마커가 잘못되었습니다.');
+        assert(document.documentElement.dataset.leafletOrientationApply==='portrait:210x297','2단 적용 직전 용지 방향 정규화 마커가 잘못되었습니다.');
+        assert(document.documentElement.dataset.leafletOrientationMode==='leaflet2','2단 방향 적용 모드 마커가 잘못되었습니다.');
         document.body.dataset.foldRuntimeOrientationApply='portrait';
 
         window.DesignEditorApp.project={
@@ -59,12 +62,23 @@
           showGuides:true,showFolds:true,activeSurface:'outside',
           surfaces:[{id:'outside',label:'바깥면',folds:[99,198],panels:['뒷면','가운데 면','앞표지'],elements:[],extras:[]}]
         };
+        orientation.value='landscape';width.value='297';height.value='210';fold.value='leaflet-3-z';
         await window.DesignEditorPrintFoldRuntimeEnsure.refresh();
         await waitFor(()=>document.querySelectorAll('.design-print-fold-line').length===2,'leaflet3 lines');
         lines=[...document.querySelectorAll('.design-print-fold-line')];
         assert(lines.length===2,'3단 접지선은 2개여야 합니다.');
         assert(lines.every(line=>line.classList.contains('x')&&parseFloat(line.style.height)>0),'가로 3단 접지선이 세로선으로 보이지 않습니다.');
         document.body.dataset.foldRuntimeLeaflet3='2';
+
+        orientation.value='portrait';
+        width.value='297';height.value='210';
+        document.querySelector('.design-mode-apply').click();
+        await waitFor(()=>width.value==='210'&&height.value==='297','leaflet3 portrait apply normalization');
+        assert(document.documentElement.dataset.leafletOrientationApply==='portrait:210x297','3단 적용 직전 용지 방향 정규화 마커가 잘못되었습니다.');
+        assert(document.documentElement.dataset.leafletOrientationMode==='leaflet3','3단 방향 적용 모드 마커가 잘못되었습니다.');
+        assert(fold.value==='leaflet-3-z','3단 방향 적용 중 선택한 접지 방식이 변경되었습니다.');
+        document.body.dataset.foldRuntimeLeaflet3OrientationApply='portrait';
+        document.body.dataset.foldRuntimeLeaflet3FoldPreserved=fold.value;
 
         window.DesignEditorApp.project.orientation='portrait';
         window.DesignEditorApp.project.width=210;
@@ -75,7 +89,7 @@
         assert(lines.length===2&&lines.every(line=>parseFloat(line.style.width)>0),'세로 3단은 가로 접지선 2개여야 합니다.');
         document.body.dataset.foldRuntimePortrait='2';
         document.body.dataset.foldRuntimeEnsure=document.documentElement.dataset.printFoldRuntimeEnsure||'';
-        pass('2단 방향 적용 정규화와 2단 1개, 3단 2개 접지선이 실제 DOM에서 확인됨');
+        pass('2단과 3단 방향 적용 정규화, 3단 접지 방식 유지와 접지선 방향 전환이 실제 DOM에서 확인됨');
       }catch(error){fail(error);}
     })();
   </script>
