@@ -16,15 +16,17 @@ def test_unified_design_editor_defaults_to_general_cover_engine_without_outer_si
         "표지디자인",
         "포스터",
         "전단지",
-        "2단 리플렛",
-        "3단 리플렛",
-        "사용자 지정",
+        "초대장/안내장",
+        "리플렛(4P~12P)",
         'src="/design-editor/general?embed=1&mode=cover&preset=cover-a4"',
         "single-sidebar-general-engine-shell-no-legacy-fallback",
     ):
         assert marker in source
     assert "legacyCoverFallback:" not in source
     assert "studio-side" not in source
+    assert "2단 리플렛" not in source
+    assert "3단 리플렛" not in source
+    assert "사용자 지정" not in source
 
 
 def test_unified_shell_routes_supported_default_modes_from_one_frame():
