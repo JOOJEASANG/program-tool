@@ -2,10 +2,12 @@
   if(window.__programStudioRuntimeBoot)return;
   window.__programStudioRuntimeBoot=true;
 
-  const VERSION='2026.08.25.012';
+  const VERSION='2026.08.26.001';
   const CACHE_PREFIX='program-studio-';
   const CLEANUP_KEY='program-studio-legacy-runtime-cleanup-'+VERSION;
+  const SCRIPT_TIMEOUT_MS=8000;
   const currentPath=location.pathname.replace(/\/+$/,'')||'/';
+  const loadPromises=new Map();
 
   const reveal=()=>{
     if(window.ProgramStudioBoot&&typeof window.ProgramStudioBoot.reveal==='function'){
@@ -32,40 +34,66 @@
     }catch(_){}
   }
 
+  function runtimeLoadError(id,src,status){
+    const error=new Error(`Runtime script ${status}: ${id}`);
+    error.name='ProgramStudioRuntimeLoadError';
+    error.scriptId=id;
+    error.scriptSrc=src;
+    error.status=status;
+    return error;
+  }
+
   function load(id,src){
-    const existing=document.getElementById(id);
-    if(existing){
-      if(existing.dataset.loaded==='true')return Promise.resolve();
-      return new Promise(resolve=>{
-        let settled=false;
-        const done=status=>{
-          if(settled)return;
-          settled=true;
-          runtimeScriptResult(id,src,status);
-          resolve();
-        };
-        existing.addEventListener('load',()=>done('loaded'),{once:true});
-        existing.addEventListener('error',()=>done('error'),{once:true});
-        setTimeout(()=>done('timeout'),1200);
-      });
+    let existing=document.getElementById(id);
+    if(existing&&existing.dataset.loaded==='true'){
+      return Promise.resolve({id,src,status:'loaded'});
     }
-    return new Promise(resolve=>{
-      const script=document.createElement('script');
-      script.id=id;
-      script.src=src;
-      script.async=false;
+    if(loadPromises.has(id))return loadPromises.get(id);
+    if(existing&&existing.dataset.failed){
+      existing.remove();
+      existing=null;
+    }
+
+    const promise=new Promise((resolve,reject)=>{
+      const script=existing||document.createElement('script');
+      if(!existing){
+        script.id=id;
+        script.src=src;
+        script.async=false;
+      }
+
       let settled=false;
+      let timer=null;
+      const cleanup=()=>{
+        if(timer)clearTimeout(timer);
+        script.removeEventListener('load',onLoad);
+        script.removeEventListener('error',onError);
+      };
       const done=status=>{
         if(settled)return;
         settled=true;
+        cleanup();
         runtimeScriptResult(id,src,status);
-        resolve();
+        if(status==='loaded'){
+          resolve({id,src,status});
+          return;
+        }
+        if(script.isConnected&&script.dataset.loaded!=='true')script.remove();
+        reject(runtimeLoadError(id,src,status));
       };
-      script.addEventListener('load',()=>done('loaded'),{once:true});
-      script.addEventListener('error',()=>done('error'),{once:true});
-      document.head.appendChild(script);
-      setTimeout(()=>done('timeout'),1200);
+      const onLoad=()=>done('loaded');
+      const onError=()=>done('error');
+      script.addEventListener('load',onLoad,{once:true});
+      script.addEventListener('error',onError,{once:true});
+      if(!existing)document.head.appendChild(script);
+      timer=setTimeout(()=>done('timeout'),SCRIPT_TIMEOUT_MS);
     });
+
+    const tracked=promise.finally(()=>{
+      if(loadPromises.get(id)===tracked)loadPromises.delete(id);
+    });
+    loadPromises.set(id,tracked);
+    return tracked;
   }
 
   function isPath(...parts){
@@ -179,9 +207,18 @@
     try{localStorage.setItem(CLEANUP_KEY,'done')}catch(_){}
   }
 
-  function helpers(){
+  async function helpers(){
     const tasks=[];
-    if(!isAuthPage())tasks.push(load('appVersionHelperScript','/js/app-version.js?v='+VERSION));
+    if(!isAuthPage()){
+      tasks.push(
+        load('programStudioPlatformHealthScriptV1','/js/platform-health.js?v='+VERSION)
+          .catch(error=>{
+            console.warn('Platform health helper loading failed',error);
+            return null;
+          })
+      );
+      tasks.push(load('appVersionHelperScript','/js/app-version.js?v='+VERSION));
+    }
     if(isHome()){
       tasks.push(
         loadCatalogCore()
@@ -231,7 +268,7 @@
     if(isPath('/tools/pdf-Checker.html','/tools/preflight.html','/pdf-preflight','/pdf-preflight/index.html')){
       tasks.push(load('programShellUnifyScriptV1','/js/program-shell-unify.js?v=20260824-1'));
       const finalGuard=load('pdfCheckerFinalGuardScript','/js/pdf-checker-final-guard.js?v='+VERSION);
-      const panelBalance=load('pdfPreflightPanelBalanceScript','/js/pdf-preflight-panel-balance.js?v='+VERSION);
+      const panelBalance=load('pdfPreflightPanelBalanceScriptV1','/js/pdf-preflight-panel-balance.js?v='+VERSION);
       tasks.push(finalGuard);
       tasks.push(panelBalance);
       tasks.push(
@@ -251,6 +288,13 @@
 
   async function boot(){
     const helpersPromise=helpers();
+    window.ProgramStudioRuntimeReady=helpersPromise;
+    helpersPromise.then(results=>{
+      const failed=results.filter(result=>result.status==='rejected').length;
+      try{
+        window.dispatchEvent(new CustomEvent('programstudio:runtime-ready',{detail:{failed,total:results.length}}));
+      }catch(_){}
+    });
     cleanupLegacyRuntime().catch(error=>console.warn('Legacy runtime cleanup failed',error));
     try{
       await Promise.race([helpersPromise,delay(1000)]);
