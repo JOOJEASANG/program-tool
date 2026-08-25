@@ -10,6 +10,7 @@
   const STYLE_ID='designPreviewGuideEnhancementStyles';
   const SIZE_ID='designPreviewSizeBadge';
   const LEGEND_ID='designPreviewGuideLegend';
+  const BLEED_ID='designPreviewBleedOverlay';
   let artboardObserver=null;
   let resizeObserver=null;
   let retryTimer=0;
@@ -36,6 +37,7 @@
     style.textContent=`
       /* General design preview color system.
          blue = full work area including bleed
+         purple = bleed band
          red = finished trim area
          green = safe content area
          orange = fold line */
@@ -43,6 +45,11 @@
         outline:1.5px solid #2563eb!important;
         outline-offset:-1px!important;
       }
+      .design-preview-bleed-overlay{
+        position:absolute;inset:0;z-index:1;pointer-events:none;
+        box-shadow:inset 0 0 0 var(--design-preview-bleed-px,0px) rgba(124,58,237,.09);
+      }
+      .design-preview-bleed-overlay[hidden]{display:none!important}
       #artboard[data-design-preview-guides="1"] .trim-guide{
         border:1.5px solid #e11d48!important;
         background:transparent!important;
@@ -116,8 +123,23 @@
     if(!p||!artboard||isCover())return false;
     const surface=activeSurface(p);
     const signature=guideSignature(p,surface);
+    const bleed=Math.max(0,Number(p.bleed)||0);
+    const totalW=(Number(p.width)||0)+bleed*2;
+    const totalH=(Number(p.height)||0)+bleed*2;
 
     artboard.dataset.designPreviewGuides='1';
+
+    let bleedOverlay=byId(BLEED_ID);
+    if(!bleedOverlay){
+      bleedOverlay=document.createElement('div');
+      bleedOverlay.id=BLEED_ID;
+      bleedOverlay.className='design-preview-bleed-overlay';
+      bleedOverlay.setAttribute('aria-hidden','true');
+      artboard.appendChild(bleedOverlay);
+    }
+    const bleedPx=totalW>0?(artboard.clientWidth/totalW)*bleed:0;
+    bleedOverlay.style.setProperty('--design-preview-bleed-px',`${Math.max(0,bleedPx)}px`);
+    bleedOverlay.hidden=p.showGuides===false||bleed<=0;
 
     let size=byId(SIZE_ID);
     if(!size){
@@ -139,9 +161,6 @@
       artboard.appendChild(legend);
     }
     if(legend.dataset.signature!==signature){
-      const bleed=Math.max(0,Number(p.bleed)||0);
-      const totalW=(Number(p.width)||0)+bleed*2;
-      const totalH=(Number(p.height)||0)+bleed*2;
       const nodes=[chip('work',`작업영역 ${mm(totalW)}×${mm(totalH)}mm`)];
       if(p.showGuides!==false){
         nodes.push(chip('trim',`재단영역 ${mm(p.width)}×${mm(p.height)}mm`));
