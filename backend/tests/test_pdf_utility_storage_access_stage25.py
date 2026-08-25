@@ -19,7 +19,7 @@ def test_storage_rules_keep_program_access_policy_for_persistent_pdf_resources()
     assert 'public.get(program_id) is True' in backend
 
 
-def test_pdf_utility_temp_storage_is_owner_only_pdf_staging_before_backend_auth():
+def test_pdf_utility_temp_storage_requires_matching_program_access_before_staging():
     rules = STORAGE_RULES.read_text(encoding="utf-8")
 
     pdf_temp_start = rules.index("match /pdf_temp/{userId}/{sessionId}/{fileName}")
@@ -27,13 +27,14 @@ def test_pdf_utility_temp_storage_is_owner_only_pdf_staging_before_backend_auth(
     pdf_temp_block = rules[pdf_temp_start:preflight_temp_start]
 
     assert "allow read, delete: if isOwner(userId);" in pdf_temp_block
-    assert "allow create, update: if isOwner(userId) && isPdfUpload();" in pdf_temp_block
-    assert "canUseProgram(" not in pdf_temp_block
+    assert "allow create, update: if isOwner(userId)" in pdf_temp_block
+    assert "canUseProgram('pdf-editor')" in pdf_temp_block
+    assert "isPdfUpload()" in pdf_temp_block
     assert "request.resource.size <= 524288000" in rules
     assert "request.resource.contentType == 'application/pdf'" in rules
 
 
-def test_preflight_temp_storage_is_owner_only_pdf_staging_before_backend_auth():
+def test_preflight_temp_storage_requires_matching_program_access_before_staging():
     rules = STORAGE_RULES.read_text(encoding="utf-8")
 
     start = rules.index("match /preflight_temp/{userId}/{sessionId}/{fileName}")
@@ -41,8 +42,9 @@ def test_preflight_temp_storage_is_owner_only_pdf_staging_before_backend_auth():
     block = rules[start:end]
 
     assert "allow read, delete: if isOwner(userId);" in block
-    assert "allow create, update: if isOwner(userId) && isPdfUpload();" in block
-    assert "canUseProgram(" not in block
+    assert "allow create, update: if isOwner(userId)" in block
+    assert "canUseProgram('preflight')" in block
+    assert "isPdfUpload()" in block
 
 
 def test_saved_sessions_still_require_pdf_editor_program_access():
