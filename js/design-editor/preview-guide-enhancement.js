@@ -59,6 +59,11 @@
         opacity:1!important;
         z-index:31!important;
       }
+      #artboard[data-design-preview-guides="2"] .fold-guide.leaflet2-horizontal-fold-guide{
+        border:0!important;
+        border-left:0!important;
+        border-top:1.5px dashed #334155!important;
+      }
       #artboard[data-design-preview-guides="2"] .panel-guide-label{
         display:block!important;
         visibility:visible!important;
@@ -113,7 +118,7 @@
     return [
       round1(p.width),round1(p.height),round1(p.bleed),round1(p.safe),
       p.showGuides!==false?'guides':'no-guides',p.showFolds!==false?'folds':'no-folds',
-      ...(surface?.folds||[]).map(round1),...(surface?.panels||[])
+      ...(surface?.folds||[]).map(round1),...(surface?.foldsY||[]).map(round1),...(surface?.panels||[])
     ].join('|');
   }
 
@@ -156,8 +161,12 @@
         nodes.push(chip('safe',`안전여백 ${mm(p.safe)}mm`));
       }
       const folds=Array.isArray(surface?.folds)?surface.folds.filter(value=>Number.isFinite(Number(value))):[];
+      const foldsY=Array.isArray(surface?.foldsY)?surface.foldsY.filter(value=>Number.isFinite(Number(value))):[];
       if(p.showGuides!==false&&p.showFolds!==false&&folds.length){
         nodes.push(chip('fold',`접지선 ${folds.map(value=>mm(value)).join(' / ')}mm`));
+      }
+      if(p.showGuides!==false&&p.showFolds!==false&&foldsY.length){
+        nodes.push(chip('fold',`가로 접지선 ${foldsY.map(value=>mm(value)).join(' / ')}mm`));
       }
       legend.replaceChildren(...nodes);
       legend.dataset.signature=signature;
@@ -203,7 +212,7 @@
     if(['bleedInput','safeInput','designModeWidth','designModeHeight'].includes(event.target?.id))schedule();
   },true);
   document.addEventListener('change',event=>{
-    if(['guideToggle','foldToggle','designModePaper','designModeOrientation','designModeFold'].includes(event.target?.id))setTimeout(schedule,0);
+    if(['guideToggle','foldToggle','designModePaper','designModeOrientation','designModeFold','designLeaflet2Layout'].includes(event.target?.id))setTimeout(schedule,0);
   },true);
   document.addEventListener('click',event=>{
     if(event.target?.closest?.('.design-mode-apply,.surface-tab'))setTimeout(schedule,0);
