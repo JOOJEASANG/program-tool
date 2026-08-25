@@ -50,20 +50,20 @@ service firebase.storage {
         && request.resource.metadata.format == 'program-studio-design-project';
     }
 
-    // Ephemeral staging for server-authorized PDF work.
-    // The browser must be able to stage its own PDF before the backend request can
-    // perform the authoritative program-access check. Requiring canUseProgram()
-    // here duplicated that check against a separate Firestore lookup and could
-    // reject a valid signed-in user before the API was ever called.
-    // Files remain isolated by UID, limited to PDF/500MB, and are covered by the
-    // one-day Storage lifecycle cleanup.
+    // Ephemeral staging for server-authorized PDF work. Keep read/delete owner-only
+    // so stale objects can be cleaned up even after access changes, but require the
+    // same program-access policy as the API before accepting new 500MB uploads.
     match /pdf_temp/{userId}/{sessionId}/{fileName} {
       allow read, delete: if isOwner(userId);
-      allow create, update: if isOwner(userId) && isPdfUpload();
+      allow create, update: if isOwner(userId)
+        && canUseProgram('pdf-editor')
+        && isPdfUpload();
     }
     match /preflight_temp/{userId}/{sessionId}/{fileName} {
       allow read, delete: if isOwner(userId);
-      allow create, update: if isOwner(userId) && isPdfUpload();
+      allow create, update: if isOwner(userId)
+        && canUseProgram('preflight')
+        && isPdfUpload();
     }
 
     // Saved editor sessions are persistent user data, so keep the program-access
