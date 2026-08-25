@@ -1,19 +1,21 @@
 from __future__ import annotations
 
 import json
+import tempfile
+from pathlib import Path
 
 from flask import Blueprint, Response, request
 
 from routers.preflight import (
     _delete_storage_path,
     _deliver_pdf_response,
+    _download_pdf_from_storage,
     _error,
     _read_pdf_from_request,
-    _read_pdf_from_storage,
     _request_id,
     _safe_pdf_name,
 )
-from services.preflight_auto_fix import auto_fix_pdf_bytes
+from services.preflight_auto_fix import auto_fix_pdf_source
 from utils.auth import require_auth
 
 
@@ -39,7 +41,7 @@ def _bool(value) -> bool:
     return str(value or "").strip().lower() in {"1", "true", "yes", "on"}
 
 
-def _run(filename: str, data: bytes):
+def _run(filename: str, source_input):
     params = _params()
     normalize = _bool(params.get("normalize_page_size"))
     pad_mode = str(params.get("pad_mode") or "none").strip().lower()
@@ -50,8 +52,8 @@ def _run(filename: str, data: bytes):
             "PREFLIGHT_AUTO_FIX_EMPTY",
         )
     try:
-        result = auto_fix_pdf_bytes(
-            data,
+        result = auto_fix_pdf_source(
+            source_input,
             normalize_page_size=normalize,
             pad_mode=pad_mode,
         )
@@ -107,18 +109,21 @@ def auto_fix(uid):
 @preflight_auto_fix_bp.route("/auto-fix-storage", methods=["POST"])
 @require_auth
 def auto_fix_storage(uid):
-    filename, data, path, error = _read_pdf_from_storage(uid)
-    try:
-        if error:
-            return error
-        source_name = filename or "document.pdf"
-        response = _run(source_name, data)
-        return _deliver_pdf_response(
-            uid,
-            response,
-            filename=_safe_pdf_name(source_name, "print_fixed"),
-            source="preflight-auto-fix-storage",
-            force_storage=True,
-        )
-    finally:
-        _delete_storage_path(path)
+    path = None
+    with tempfile.TemporaryDirectory(prefix="preflight-auto-fix-") as temp_dir:
+        source_path = Path(temp_dir) / "source.pdf"
+        filename, path, error = _download_pdf_from_storage(uid, source_path)
+        try:
+            if error:
+                return error
+            source_name = filename or "document.pdf"
+            response = _run(source_name, source_path)
+            return _deliver_pdf_response(
+                uid,
+                response,
+                filename=_safe_pdf_name(source_name, "print_fixed"),
+                source="preflight-auto-fix-storage",
+                force_storage=True,
+            )
+        finally:
+            _delete_storage_path(path)

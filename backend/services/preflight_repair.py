@@ -6,6 +6,7 @@ import json
 import logging
 import re
 import uuid
+from pathlib import Path
 
 import fitz
 from flask import Response, g, has_request_context, request
@@ -14,6 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 REQUEST_ID_PATTERN = re.compile(r"^[A-Za-z0-9._-]{8,64}$")
+PdfSource = bytes | str | Path
 
 
 def _request_id() -> str:
@@ -52,10 +54,16 @@ def _remove_failed_output_pages(
         document.delete_page(page_count_before)
 
 
-def fix_pdf_response(filename: str, data: bytes) -> Response:
+def _open_source(source_input: PdfSource) -> fitz.Document:
+    if isinstance(source_input, (str, Path)):
+        return fitz.open(str(source_input))
+    return fitz.open(stream=source_input, filetype="pdf")
+
+
+def fix_pdf_response(filename: str, source_input: PdfSource) -> Response:
     """Return a normalized PDF without forcing all pages to the first page size."""
     try:
-        source = fitz.open(stream=data, filetype="pdf")
+        source = _open_source(source_input)
     except Exception:
         logger.warning("PDF repair could not open source", exc_info=True)
         return _json_error(

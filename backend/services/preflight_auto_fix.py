@@ -11,12 +11,14 @@ from __future__ import annotations
 
 import io
 from dataclasses import dataclass
+from pathlib import Path
 
 import fitz
 
 PT_TO_MM = 25.4 / 72
 SIZE_TOLERANCE_PT = 3.0
 MAX_AUTO_FIX_PAGES = 2000
+PdfSource = bytes | str | Path
 
 
 @dataclass(frozen=True)
@@ -80,8 +82,17 @@ def _blank_count(page_count: int, pad_mode: str) -> int:
     return 0
 
 
-def auto_fix_pdf_bytes(
-    data: bytes,
+def _open_source(source_input: PdfSource) -> fitz.Document:
+    try:
+        if isinstance(source_input, (str, Path)):
+            return fitz.open(str(source_input))
+        return fitz.open(stream=source_input, filetype="pdf")
+    except Exception as exc:
+        raise ValueError("PDF 파일을 열 수 없습니다.") from exc
+
+
+def auto_fix_pdf_source(
+    source_input: PdfSource,
     *,
     normalize_page_size: bool = False,
     pad_mode: str = "none",
@@ -89,11 +100,7 @@ def auto_fix_pdf_bytes(
     if pad_mode not in {"none", "even", "booklet"}:
         raise ValueError("지원하지 않는 페이지 보충 방식입니다.")
 
-    try:
-        source = fitz.open(stream=data, filetype="pdf")
-    except Exception as exc:
-        raise ValueError("PDF 파일을 열 수 없습니다.") from exc
-
+    source = _open_source(source_input)
     output = fitz.open()
     try:
         if source.is_encrypted:
@@ -152,3 +159,17 @@ def auto_fix_pdf_bytes(
     finally:
         output.close()
         source.close()
+
+
+def auto_fix_pdf_bytes(
+    data: bytes,
+    *,
+    normalize_page_size: bool = False,
+    pad_mode: str = "none",
+) -> AutoFixResult:
+    """Backward-compatible bytes entry point for direct uploads and tests."""
+    return auto_fix_pdf_source(
+        data,
+        normalize_page_size=normalize_page_size,
+        pad_mode=pad_mode,
+    )

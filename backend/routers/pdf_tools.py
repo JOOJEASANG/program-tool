@@ -44,6 +44,10 @@ DEFAULT_STORAGE_BUCKET = os.environ.get(
 )
 
 
+class ImageLimitExceeded(ValueError):
+    """Raised only when image conversion exceeds an explicit processing limit."""
+
+
 def _bucket():
     return fa_storage.bucket(DEFAULT_STORAGE_BUCKET)
 
@@ -255,16 +259,16 @@ def from_images(uid):
                         * source_rect.height * 200 / 72
                     )
                     if projected_pixels > MAX_IMAGE_PIXELS_PER_FILE:
-                        raise ValueError("이미지 해상도가 너무 큽니다.")
+                        raise ImageLimitExceeded("이미지 해상도가 너무 큽니다.")
                     if total_pixels + projected_pixels > MAX_IMAGE_PIXELS_TOTAL:
-                        raise ValueError("전체 이미지 해상도가 처리 한도를 초과합니다.")
+                        raise ImageLimitExceeded("전체 이미지 해상도가 처리 한도를 초과합니다.")
                     pixmap = image_page.get_pixmap(dpi=200, alpha=False)
                     pixels = pixmap.width * pixmap.height
                     if pixels > MAX_IMAGE_PIXELS_PER_FILE:
-                        raise ValueError("이미지 해상도가 너무 큽니다.")
+                        raise ImageLimitExceeded("이미지 해상도가 너무 큽니다.")
                     total_pixels += pixels
                     if total_pixels > MAX_IMAGE_PIXELS_TOTAL:
-                        raise ValueError("전체 이미지 해상도가 처리 한도를 초과합니다.")
+                        raise ImageLimitExceeded("전체 이미지 해상도가 처리 한도를 초과합니다.")
 
                     if page_size == "a4":
                         page = output.new_page(width=595.28, height=841.89)
@@ -287,7 +291,7 @@ def from_images(uid):
                         )
                         target = page.rect
                     page.insert_image(target, pixmap=pixmap)
-            except ValueError:
+            except (ValueError, ImageLimitExceeded):
                 raise
             except Exception as exc:
                 raise ValueError("지원되지 않거나 손상된 이미지가 포함되어 있습니다.") from exc
@@ -300,8 +304,10 @@ def from_images(uid):
         buffer = io.BytesIO()
         output.save(buffer, garbage=4, deflate=True, deflate_images=True)
         return _pdf_response(buffer.getvalue(), "from_images.pdf", uid)
-    except ValueError as exc:
+    except ImageLimitExceeded as exc:
         return _error(str(exc), 413, "IMAGE_LIMIT_EXCEEDED")
+    except ValueError as exc:
+        return _error(str(exc), 400, "IMAGE_INVALID")
     except Exception:
         return _internal_error("Images to PDF")
     finally:
