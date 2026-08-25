@@ -48,6 +48,15 @@ after(async () => {
   await env.cleanup();
 });
 
+async function seedPermission(uid, status = 'approved') {
+  await env.withSecurityRulesDisabled(async context => {
+    await setDoc(
+      doc(context.firestore(), 'user_permissions', uid),
+      { status }
+    );
+  });
+}
+
 async function seedApprovedUser(uid = 'approved-user') {
   await env.withSecurityRulesDisabled(async context => {
     await setDoc(
@@ -191,11 +200,14 @@ test('temporary PDF input is owner-only, approved-only and bounded to the expect
   );
 });
 
-test('pending users cannot stage large PDF work before program authorization', async () => {
+test('pending users cannot stage or read PDF work before administrator approval', async () => {
+  await seedPermission('pending-user', 'pending');
   await env.withSecurityRulesDisabled(async context => {
-    await setDoc(
-      doc(context.firestore(), 'user_permissions', 'pending-user'),
-      { status: 'pending' }
+    await uploadString(
+      ref(context.storage(), 'pdf_temp/pending-user/session-1/existing.pdf'),
+      '%PDF-existing',
+      'raw',
+      { contentType: 'application/pdf' }
     );
   });
   const pendingStorage = env.authenticatedContext(
@@ -219,9 +231,15 @@ test('pending users cannot stage large PDF work before program authorization', a
       { contentType: 'application/pdf' }
     )
   );
+  await assertFails(
+    getBytes(ref(pendingStorage, 'pdf_temp/pending-user/session-1/existing.pdf'))
+  );
+  await assertSucceeds(
+    deleteObject(ref(pendingStorage, 'pdf_temp/pending-user/session-1/existing.pdf'))
+  );
 });
 
-test('public PDF programs still allow signed-in staging without account approval', async () => {
+test('public PDF catalog flags cannot bypass administrator approval', async () => {
   await env.withSecurityRulesDisabled(async context => {
     await setDoc(
       doc(context.firestore(), 'settings', 'programs'),
@@ -237,7 +255,7 @@ test('public PDF programs still allow signed-in staging without account approval
     { email: 'public@example.com' }
   ).storage();
 
-  await assertSucceeds(
+  await assertFails(
     uploadString(
       ref(publicStorage, 'pdf_temp/public-user/session-1/source.pdf'),
       '%PDF-test',
@@ -245,7 +263,7 @@ test('public PDF programs still allow signed-in staging without account approval
       { contentType: 'application/pdf' }
     )
   );
-  await assertSucceeds(
+  await assertFails(
     uploadString(
       ref(publicStorage, 'preflight_temp/public-user/session-1/source.pdf'),
       '%PDF-test',
@@ -313,7 +331,8 @@ test('professional program suite is public-readable and admin-writable only', as
   await assertSucceeds(updateDoc(doc(adminDb, suitePath), { version: 2 }));
 });
 
-test('cloud design metadata is owner-only and schema bounded', async () => {
+test('cloud design metadata is owner-only, approved-only and schema bounded', async () => {
+  await seedPermission('design-owner', 'approved');
   const ownerDb = env.authenticatedContext('design-owner', { email: 'owner@example.com' }).firestore();
   const otherDb = env.authenticatedContext('other-user', { email: 'other@example.com' }).firestore();
   const refPath = 'users/design-owner/design_projects/design_alpha';
@@ -349,7 +368,65 @@ test('cloud design metadata is owner-only and schema bounded', async () => {
   await assertSucceeds(deleteDoc(doc(ownerDb, refPath)));
 });
 
-test('cloud design storage is owner-only and validates json metadata', async () => {
+test('pending design owners cannot read or save cloud projects', async () => {
+  await seedPermission('pending-design-owner', 'pending');
+  const refPath = 'users/pending-design-owner/design_projects/design_alpha';
+  const createdAt = new Date('2026-08-22T14:00:00Z');
+  const metadata = {
+    id: 'design_alpha',
+    name: '행사 포스터',
+    presetId: 'poster-a3',
+    width: 297,
+    height: 420,
+    storagePath: 'design_projects/pending-design-owner/design_alpha/rev_one.design.json',
+    size: 2048,
+    createdAt,
+    updatedAt: createdAt,
+  };
+  await env.withSecurityRulesDisabled(async context => {
+    await setDoc(doc(context.firestore(), refPath), metadata);
+    await uploadString(
+      ref(context.storage(), metadata.storagePath),
+      '{"format":"program-studio-design-project"}',
+      'raw',
+      {
+        contentType: 'application/json',
+        customMetadata: {
+          ownerUid: 'pending-design-owner',
+          format: 'program-studio-design-project',
+        },
+      }
+    );
+  });
+
+  const db = env.authenticatedContext('pending-design-owner', { email: 'pending@example.com' }).firestore();
+  const storage = env.authenticatedContext('pending-design-owner', { email: 'pending@example.com' }).storage();
+
+  await assertFails(getDoc(doc(db, refPath)));
+  await assertFails(setDoc(doc(db, 'users/pending-design-owner/design_projects/design_beta'), {
+    ...metadata,
+    id: 'design_beta',
+    storagePath: 'design_projects/pending-design-owner/design_beta/rev_one.design.json',
+  }));
+  await assertFails(getBytes(ref(storage, metadata.storagePath)));
+  await assertFails(uploadString(
+    ref(storage, 'design_projects/pending-design-owner/design_alpha/rev_two.design.json'),
+    '{}',
+    'raw',
+    {
+      contentType: 'application/json',
+      customMetadata: {
+        ownerUid: 'pending-design-owner',
+        format: 'program-studio-design-project',
+      },
+    }
+  ));
+  await assertSucceeds(deleteDoc(doc(db, refPath)));
+  await assertSucceeds(deleteObject(ref(storage, metadata.storagePath)));
+});
+
+test('cloud design storage is owner-only, approved-only and validates json metadata', async () => {
+  await seedPermission('design-owner', 'approved');
   const ownerStorage = env.authenticatedContext('design-owner', { email: 'owner@example.com' }).storage();
   const otherStorage = env.authenticatedContext('other-user', { email: 'other@example.com' }).storage();
   const path = 'design_projects/design-owner/design_alpha/rev_one.design.json';

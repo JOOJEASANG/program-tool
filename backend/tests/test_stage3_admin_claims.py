@@ -34,27 +34,26 @@ def test_claimed_admin_skips_legacy_admin_document(monkeypatch):
     db.collection.assert_not_called()
 
 
-def test_program_access_uses_one_batched_get_all_call():
-    program_ref = SimpleNamespace(path="settings/programs")
+def test_program_access_uses_one_batched_permission_lookup():
     permission_ref = SimpleNamespace(path="user_permissions/user-1")
-    settings_collection = Mock()
     users_collection = Mock()
-    settings_collection.document.return_value = program_ref
     users_collection.document.return_value = permission_ref
     db = Mock()
-    db.collection.side_effect = lambda name: settings_collection if name == "settings" else users_collection
+    db.collection.return_value = users_collection
     db.get_all.return_value = [
-        Snapshot("settings/programs", {"public": {"pdf-editor": False}}),
         Snapshot("user_permissions/user-1", {"status": "approved", "programs": {"pdf-editor": True}}),
     ]
     assert permissions._has_program_access(db, "user-1", "pdf-editor") is True
-    db.get_all.assert_called_once_with([program_ref, permission_ref])
+    db.collection.assert_called_once_with("user_permissions")
+    db.get_all.assert_called_once_with([permission_ref])
 
 
-def test_public_program_allows_access_without_user_approval():
+def test_public_program_does_not_allow_access_without_user_approval():
     public_snapshot = Snapshot("settings/programs", {"public": {"pdf-editor": True}})
     missing_permission = Snapshot("user_permissions/user-1", exists=False)
-    assert permissions._program_access_from_snapshots(public_snapshot, missing_permission, "pdf-editor") is True
+    pending_permission = Snapshot("user_permissions/user-1", {"status": "pending"})
+    assert permissions._program_access_from_snapshots(public_snapshot, missing_permission, "pdf-editor") is False
+    assert permissions._program_access_from_snapshots(public_snapshot, pending_permission, "pdf-editor") is False
 
 
 def test_missing_snapshots_fail_closed():

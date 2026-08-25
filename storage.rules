@@ -24,14 +24,8 @@ service firebase.storage {
           && firestore.get(/databases/(default)/documents/user_permissions/$(request.auth.uid)).data.status == 'approved'
         );
     }
-    function isPublicProgram(programId) {
-      return signedIn()
-        && firestore.exists(/databases/(default)/documents/settings/programs)
-        && firestore.get(/databases/(default)/documents/settings/programs).data.public is map
-        && firestore.get(/databases/(default)/documents/settings/programs).data.public[programId] == true;
-    }
     function canUseProgram(programId) {
-      return isApproved() || isPublicProgram(programId);
+      return isApproved();
     }
     function isPdfUpload() {
       return request.resource != null
@@ -40,6 +34,7 @@ service firebase.storage {
     }
     function isDesignProjectUpload(userId, projectId, fileName) {
       return isOwner(userId)
+        && isApproved()
         && projectId.matches('^[A-Za-z0-9_-]{1,80}$')
         && fileName.matches('^[A-Za-z0-9_-]{1,80}[.]design[.]json$')
         && request.resource != null
@@ -50,17 +45,19 @@ service firebase.storage {
         && request.resource.metadata.format == 'program-studio-design-project';
     }
 
-    // Ephemeral staging for server-authorized PDF work. Keep read/delete owner-only
-    // so stale objects can be cleaned up even after access changes, but require the
-    // same program-access policy as the API before accepting new 500MB uploads.
+    // Ephemeral staging for server-authorized PDF work. New uploads and reads
+    // require administrator approval; owners may still delete stale objects after
+    // access changes so temporary storage can be cleaned up safely.
     match /pdf_temp/{userId}/{sessionId}/{fileName} {
-      allow read, delete: if isOwner(userId);
+      allow read: if isOwner(userId) && canUseProgram('pdf-editor');
+      allow delete: if isOwner(userId);
       allow create, update: if isOwner(userId)
         && canUseProgram('pdf-editor')
         && isPdfUpload();
     }
     match /preflight_temp/{userId}/{sessionId}/{fileName} {
-      allow read, delete: if isOwner(userId);
+      allow read: if isOwner(userId) && canUseProgram('preflight');
+      allow delete: if isOwner(userId);
       allow create, update: if isOwner(userId)
         && canUseProgram('preflight')
         && isPdfUpload();
@@ -82,7 +79,8 @@ service firebase.storage {
     }
 
     match /design_projects/{userId}/{projectId}/{fileName} {
-      allow read, delete: if isOwner(userId);
+      allow read: if isOwner(userId) && isApproved();
+      allow delete: if isOwner(userId);
       allow create, update: if isDesignProjectUpload(userId, projectId, fileName);
     }
 

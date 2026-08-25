@@ -44,9 +44,10 @@ service cloud.firestore {
     match /settings/config { allow read, write: if isAdmin(); }
     match /settings/business { allow read: if true; allow write: if isAdmin(); }
     // Public home navigation/card catalog. Anyone may read the published catalog,
-    // while only an administrator may create or change it.
+    // while only an administrator may create or change it. Catalog visibility is
+    // not program authorization; opening a tool still requires approved(uid).
     match /settings/public_program_catalog { allow read: if true; allow write: if isAdmin(); }
-    // Simplified five-tool professional suite used by the public home and admin manager.
+    // Public home metadata for the professional suite. Tool access itself is gated.
     match /settings/professional_program_suite { allow read: if true; allow write: if isAdmin(); }
 
     match /user_permissions/{uid} {
@@ -70,9 +71,10 @@ service cloud.firestore {
     }
 
     match /users/{uid}/design_projects/{projectId} {
-      allow read: if isOwner(uid);
-      allow create: if isOwner(uid) && validDesignProjectMetadata(projectId);
+      allow read: if isOwner(uid) && approved(uid);
+      allow create: if isOwner(uid) && approved(uid) && validDesignProjectMetadata(projectId);
       allow update: if isOwner(uid)
+        && approved(uid)
         && validDesignProjectMetadata(projectId)
         && request.resource.data.createdAt == resource.data.createdAt;
       allow delete: if isOwner(uid);
