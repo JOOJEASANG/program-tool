@@ -31,9 +31,9 @@ done
 "$BROWSER" --headless=new --disable-gpu --no-sandbox --disable-dev-shm-usage --disable-background-networking --user-data-dir="$PROFILE_DIR" --virtual-time-budget=18000 --dump-dom "$URL" >"$DOM_OUT"
 
 if ! grep -q 'data-fold-runtime-status="pass"' "$DOM_OUT"; then echo "Design editor fold runtime browser smoke failed." >&2; cat "$DOM_OUT" >&2; echo "----- HTTP server log -----" >&2; cat "$SERVER_LOG" >&2; exit 1; fi
-for marker in 'data-fold-runtime-leaflet2="1"' 'data-fold-runtime-orientation-apply="portrait"' 'data-fold-runtime-leaflet3="2"' 'data-fold-runtime-portrait="2"' 'data-fold-runtime-ensure="ready"'; do
+for marker in 'data-fold-runtime-leaflet2="1"' 'data-fold-runtime-orientation-apply="portrait"' 'data-fold-runtime-leaflet3="2"' 'data-fold-runtime-leaflet3-orientation-apply="portrait"' 'data-fold-runtime-leaflet3-fold-preserved="leaflet-3-z"' 'data-fold-runtime-portrait="2"' 'data-fold-runtime-ensure="ready"'; do
   if ! grep -q "$marker" "$DOM_OUT"; then echo "Fold runtime marker missing: $marker" >&2; cat "$DOM_OUT" >&2; exit 1; fi
 done
-if ! grep -q 'PASS: 2단 방향 적용 정규화와 2단 1개, 3단 2개 접지선이 실제 DOM에서 확인됨' "$DOM_OUT"; then echo "Fold runtime completion marker missing." >&2; cat "$DOM_OUT" >&2; exit 1; fi
+if ! grep -q 'PASS: 2단과 3단 방향 적용 정규화, 3단 접지 방식 유지와 접지선 방향 전환이 실제 DOM에서 확인됨' "$DOM_OUT"; then echo "Fold runtime completion marker missing." >&2; cat "$DOM_OUT" >&2; exit 1; fi
 
 echo "Design editor fold runtime browser smoke passed using $BROWSER"
