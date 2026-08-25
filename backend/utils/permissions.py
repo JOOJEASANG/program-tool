@@ -79,33 +79,22 @@ def _snapshot_data(snapshot) -> dict:
 
 
 def _program_access_from_snapshots(program_snapshot, permission_snapshot, program_id: str) -> bool:
-    """Evaluate public and approved-account access from Firestore snapshots.
+    """Evaluate the shared administrator-approval policy.
 
-    The administrator UI manages one account-level approval state and does not
-    expose per-program switches. The authorization policy therefore follows the
-    same model: every account with ``status == 'approved'`` can use all managed
-    programs. The legacy ``programs`` map remains in documents for compatibility,
-    but it is not an additional hidden denial condition.
+    Program catalog/public metadata is intentionally ignored for authorization.
+    Every non-administrator account must have ``status == 'approved'`` before it
+    can use any managed program. The legacy ``programs`` map remains only for
+    document compatibility and is not an authorization input.
     """
-    public = _snapshot_data(program_snapshot).get("public")
-    if isinstance(public, dict) and public.get(program_id) is True:
-        return True
-
+    del program_snapshot, program_id
     permission_data = _snapshot_data(permission_snapshot)
     return permission_data.get("status") == "approved"
 
 
 def _has_program_access(db: firestore.Client, uid: str, program_id: str) -> bool:
-    """Read public-program and user-permission documents in one Firestore RPC."""
-    program_ref = db.collection("settings").document("programs")
-    permission_ref = db.collection("user_permissions").document(uid)
-    snapshots = list(db.get_all([program_ref, permission_ref]))
-    by_path = {snapshot.reference.path: snapshot for snapshot in snapshots}
-    return _program_access_from_snapshots(
-        by_path.get(program_ref.path),
-        by_path.get(permission_ref.path),
-        program_id,
-    )
+    """Return whether the account itself has administrator approval."""
+    permission_snapshot = db.collection("user_permissions").document(uid).get()
+    return _program_access_from_snapshots(None, permission_snapshot, program_id)
 
 
 def require_program_access_for_request():
@@ -129,7 +118,7 @@ def require_program_access_for_request():
         if not is_admin:
             is_admin = _is_legacy_admin(db, _normalized_email(decoded))
         if not is_admin and not _has_program_access(db, uid, program_id):
-            raise AccessError("이 프로그램을 사용할 권한이 없습니다.", 403)
+            raise AccessError("관리자 승인 후 이 프로그램을 사용할 수 있습니다.", 403)
     except AccessError:
         raise
     except Exception as exc:
