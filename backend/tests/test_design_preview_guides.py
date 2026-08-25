@@ -19,13 +19,18 @@ def test_general_design_preview_guides_show_size_and_color_coded_areas():
     assert "border:1.5px solid #e11d48!important" in source
     assert "border:1.25px dashed #16a34a!important" in source
     assert "border-left:1.5px dashed #d97706!important" in source
+    assert "rgba(124,58,237,.09)" in source
 
 
-def test_general_preview_work_area_includes_bleed_on_all_sides():
+def test_general_preview_work_area_includes_and_visually_marks_bleed_on_all_sides():
     source = (ROOT / "js" / "design-editor" / "preview-guide-enhancement.js").read_text(encoding="utf-8")
 
     assert "const totalW=(Number(p.width)||0)+bleed*2" in source
     assert "const totalH=(Number(p.height)||0)+bleed*2" in source
+    assert "const BLEED_ID='designPreviewBleedOverlay'" in source
+    assert "const bleedPx=totalW>0?(artboard.clientWidth/totalW)*bleed:0" in source
+    assert "--design-preview-bleed-px" in source
+    assert "bleedOverlay.hidden=p.showGuides===false||bleed<=0" in source
     assert "p.showGuides!==false" in source
     assert "p.showFolds!==false" in source
 
