@@ -70,6 +70,16 @@
     document.head.appendChild(style);
   }
 
+  function loadPremiumUi(){
+    if(window.HomePremiumUI||document.getElementById('homePremiumUiScriptV1'))return;
+    const script=document.createElement('script');
+    script.id='homePremiumUiScriptV1';
+    script.src='/js/home-premium-ui.js?v=20260826-1';
+    script.async=false;
+    script.addEventListener('error',()=>console.warn('Premium home UI could not be loaded.'),{once:true});
+    document.head.appendChild(script);
+  }
+
   function removeGreetingBlock(){
     document.getElementById('greeting')?.remove();
   }
@@ -117,6 +127,6 @@
     }).observe(footer,{childList:true,subtree:true});
   }
 
-  function boot(){injectStyles();removeGreetingBlock();keepDetailedBusinessHidden();loadBusinessName()}
+  function boot(){injectStyles();removeGreetingBlock();keepDetailedBusinessHidden();loadBusinessName();loadPremiumUi()}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
