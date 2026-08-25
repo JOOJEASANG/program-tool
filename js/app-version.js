@@ -51,6 +51,7 @@
       loadScopedScript('aiDesignFeatureGateScriptV1','/js/ai-design-feature-gate.js?v=20260824-1');
       loadScopedScript('designPreviewGuideEnhancementScriptV1','/js/design-editor/preview-guide-enhancement.js?v=20260825-3');
       loadScopedScript('designCoverPreviewCleanupScriptV1','/js/design-editor/cover-preview-cleanup.js?v=20260825-3');
+      loadScopedScript('designPrintFoldProductionScriptV1','/js/design-editor/print-fold-production.js?v=20260825-1');
     }
     if(
       currentPath==='/tools/pdf-editor.html'||
