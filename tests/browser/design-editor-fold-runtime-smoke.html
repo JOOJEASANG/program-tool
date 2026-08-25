@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>Design Fold Runtime Smoke</title>
+  <style>
+    #artboard{position:relative;width:606px;height:432px;background:#fff}
+  </style>
+  <script>history.replaceState(null,'','/design-editor/general.html?embed=1&mode=leaflet2&foldRuntime=20260825-2');</script>
+</head>
+<body data-fold-runtime-status="pending">
+  <div id="result">PENDING</div>
+  <div id="artboard"></div>
+  <script>
+    const leaflet2={
+      designMode:'leaflet2',presetId:'leaflet-2',orientation:'landscape',width:297,height:210,bleed:3,safe:8,
+      showGuides:true,showFolds:true,activeSurface:'outside',
+      surfaces:[{id:'outside',label:'바깥면',folds:[148.5],panels:['뒷표지','앞표지'],elements:[],extras:[]}]
+    };
+    window.DesignEditorApp={project:leaflet2};
+  </script>
+  <script src="/js/design-editor/print-fold-runtime-ensure.js?v=20260825-2"></script>
+  <script>
+    (async()=>{
+      const result=document.getElementById('result');
+      const fail=error=>{document.body.dataset.foldRuntimeStatus='fail';result.textContent='FAIL: '+String(error?.stack||error?.message||error);};
+      const pass=message=>{document.body.dataset.foldRuntimeStatus='pass';result.textContent='PASS: '+message;};
+      const assert=(condition,message)=>{if(!condition)throw new Error(message);};
+      const waitFor=async(predicate,label,timeout=10000)=>{const started=Date.now();while(Date.now()-started<timeout){if(predicate())return;await new Promise(resolve=>setTimeout(resolve,40));}throw new Error('timeout: '+label);};
+      try{
+        await waitFor(()=>window.DesignEditorPrintFoldRuntimeEnsure&&window.DesignEditorPrintFoldProduction,'fold runtime load');
+        await window.DesignEditorPrintFoldRuntimeEnsure.refresh();
+        await waitFor(()=>document.querySelectorAll('.design-print-fold-line').length===1,'leaflet2 line');
+        let lines=[...document.querySelectorAll('.design-print-fold-line')];
+        assert(lines.length===1,'2단 접지선은 1개여야 합니다.');
+        assert(lines[0].classList.contains('x'),'가로 2단은 세로 접지선이어야 합니다.');
+        assert(parseFloat(lines[0].style.height)>0,'2단 접지선 높이가 0입니다.');
+        document.body.dataset.foldRuntimeLeaflet2='1';
+
+        window.DesignEditorApp.project={
+          designMode:'leaflet3',presetId:'leaflet-3-z',foldType:'leaflet-3-z',orientation:'landscape',width:297,height:210,bleed:3,safe:7,
+          showGuides:true,showFolds:true,activeSurface:'outside',
+          surfaces:[{id:'outside',label:'바깥면',folds:[99,198],panels:['뒷면','가운데 면','앞표지'],elements:[],extras:[]}]
+        };
+        await window.DesignEditorPrintFoldRuntimeEnsure.refresh();
+        await waitFor(()=>document.querySelectorAll('.design-print-fold-line').length===2,'leaflet3 lines');
+        lines=[...document.querySelectorAll('.design-print-fold-line')];
+        assert(lines.length===2,'3단 접지선은 2개여야 합니다.');
+        assert(lines.every(line=>line.classList.contains('x')&&parseFloat(line.style.height)>0),'가로 3단 접지선이 세로선으로 보이지 않습니다.');
+        document.body.dataset.foldRuntimeLeaflet3='2';
+
+        window.DesignEditorApp.project.orientation='portrait';
+        window.DesignEditorApp.project.width=210;
+        window.DesignEditorApp.project.height=297;
+        await window.DesignEditorPrintFoldRuntimeEnsure.refresh();
+        await waitFor(()=>[...document.querySelectorAll('.design-print-fold-line')].every(line=>line.classList.contains('y')),'portrait horizontal lines');
+        lines=[...document.querySelectorAll('.design-print-fold-line')];
+        assert(lines.length===2&&lines.every(line=>parseFloat(line.style.width)>0),'세로 3단은 가로 접지선 2개여야 합니다.');
+        document.body.dataset.foldRuntimePortrait='2';
+        document.body.dataset.foldRuntimeEnsure=document.documentElement.dataset.printFoldRuntimeEnsure||'';
+        pass('2단 1개, 3단 2개 접지선과 가로·세로 방향 전환이 실제 DOM에서 확인됨');
+      }catch(error){fail(error);}
+    })();
+  </script>
+</body>
+</html>

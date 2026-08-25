@@ -20,6 +20,7 @@
     (function(){
       'use strict';
       const frame=document.getElementById('editorFrame'),loading=document.getElementById('loading'),shell=document.getElementById('unifiedDesignShell');
+      const FOLD_RUNTIME_VERSION='20260825-2';
       const DEFAULTS={
         cover:{mode:'cover',preset:'cover-a4'},
         poster:{mode:'poster',preset:'poster-a4',paper:'a4',orientation:'portrait',w:210,h:297},
@@ -39,15 +40,36 @@
         if(mode==='leaflet3')query.set('fold',data.fold||data.preset||'leaflet-3-roll');
         return `/design-editor/general?${query.toString()}`;
       }
+      function ensureFoldRuntime(){
+        try{
+          const doc=frame.contentDocument,win=frame.contentWindow;
+          if(!doc?.head||!win)return false;
+          if(win.DesignEditorPrintFoldRuntimeEnsure?.refresh){win.DesignEditorPrintFoldRuntimeEnsure.refresh();return true;}
+          let script=doc.getElementById('designPrintFoldRuntimeEnsureScriptV1');
+          if(!script){
+            script=doc.createElement('script');
+            script.id='designPrintFoldRuntimeEnsureScriptV1';
+            script.src=`/js/design-editor/print-fold-runtime-ensure.js?v=${FOLD_RUNTIME_VERSION}`;
+            script.async=false;
+            doc.head.appendChild(script);
+          }
+          script.addEventListener('load',()=>win.DesignEditorPrintFoldRuntimeEnsure?.refresh?.(),{once:true});
+          return true;
+        }catch(_){return false;}
+      }
       function openMode(detail){loading.classList.remove('hide');frame.src=route(detail);}
       window.addEventListener('message',event=>{
         if(event.origin!==location.origin||event.source!==frame.contentWindow)return;
         const data=event.data||{};
         if(data.type==='program-studio-design-mode')openMode(data);
       });
-      frame.addEventListener('load',()=>loading.classList.add('hide'));
+      frame.addEventListener('load',()=>{
+        ensureFoldRuntime();
+        [80,240,600,1200,2400].forEach(delay=>setTimeout(ensureFoldRuntime,delay));
+        loading.classList.add('hide');
+      });
       setTimeout(()=>loading.classList.add('hide'),2600);
-      window.UnifiedDesignShell={openMode,route,stage:'single-sidebar-general-engine-shell-no-legacy-fallback'};
+      window.UnifiedDesignShell={openMode,route,ensureFoldRuntime,foldRuntimeStage:'direct-fold-runtime-loader-and-verifier',stage:'single-sidebar-general-engine-shell-no-legacy-fallback'};
     })();
   </script>
 </body>
