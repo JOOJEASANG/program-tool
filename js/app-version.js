@@ -74,6 +74,7 @@
       loadScopedScript('pdfUtilityPanelResizerScriptV1','/js/pdf-utility-panel-resizer.js?v=20260821-1');
       loadScopedScript('pdfPrintReadinessScriptV1','/js/pdf-print-readiness.js?v=20260824-1');
       loadScopedScript('pdfPrintAutoFixScriptV1','/js/pdf-print-auto-fix.js?v=20260825-1');
+      loadScopedScript('pdfLargeOutputTilingScriptV1','/js/pdf-large-output-tiling.js?v=20260825-1');
     }
   }
 
