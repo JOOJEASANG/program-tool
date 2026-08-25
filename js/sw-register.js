@@ -210,11 +210,13 @@
   async function helpers(){
     const tasks=[];
     if(!isAuthPage()){
-      try{
-        await load('programStudioPlatformHealthScriptV1','/js/platform-health.js?v='+VERSION);
-      }catch(error){
-        console.warn('Platform health helper loading failed',error);
-      }
+      tasks.push(
+        load('programStudioPlatformHealthScriptV1','/js/platform-health.js?v='+VERSION)
+          .catch(error=>{
+            console.warn('Platform health helper loading failed',error);
+            return null;
+          })
+      );
       tasks.push(load('appVersionHelperScript','/js/app-version.js?v='+VERSION));
     }
     if(isHome()){
@@ -266,7 +268,7 @@
     if(isPath('/tools/pdf-Checker.html','/tools/preflight.html','/pdf-preflight','/pdf-preflight/index.html')){
       tasks.push(load('programShellUnifyScriptV1','/js/program-shell-unify.js?v=20260824-1'));
       const finalGuard=load('pdfCheckerFinalGuardScript','/js/pdf-checker-final-guard.js?v='+VERSION);
-      const panelBalance=load('pdfPreflightPanelBalanceScript','/js/pdf-preflight-panel-balance.js?v='+VERSION);
+      const panelBalance=load('pdfPreflightPanelBalanceScriptV1','/js/pdf-preflight-panel-balance.js?v='+VERSION);
       tasks.push(finalGuard);
       tasks.push(panelBalance);
       tasks.push(
