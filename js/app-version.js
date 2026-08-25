@@ -49,6 +49,7 @@
       currentPath.endsWith('/design-editor/general.html')
     ){
       loadScopedScript('aiDesignFeatureGateScriptV1','/js/ai-design-feature-gate.js?v=20260824-1');
+      loadScopedScript('designCoverPreviewCleanupScriptV1','/js/design-editor/cover-preview-cleanup.js?v=20260825-1');
     }
     if(
       currentPath==='/tools/pdf-editor.html'||
