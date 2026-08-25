@@ -6,15 +6,45 @@
 
   const SCRIPT_ID='designPrintFoldProductionDirectScriptV1';
   const SCRIPT_SRC='/js/design-editor/print-fold-production.js?v=20260825-2';
+  const PAPER_MM={
+    a6:[105,148],a5:[148,210],a4:[210,297],a3:[297,420],
+    b5:[182,257],b4:[257,364],b3:[364,515]
+  };
   let retryTimer=0;
   let burstTimer=0;
   let observer=null;
 
   const project=()=>window.DesignEditorApp?.project||null;
-  const activeSurface=p=>p?.surfaces?.find(item=>item.id===p.activeSurface)||p?.surfaces?.[0]||null;
   const isLeaflet2=p=>Boolean(p&&(p.designMode==='leaflet2'||p.presetId==='leaflet-2'));
   const isLeaflet3=p=>Boolean(p&&(p.designMode==='leaflet3'||String(p.presetId||'').startsWith('leaflet-3-')));
   const expectedLineCount=p=>isLeaflet2(p)?1:isLeaflet3(p)?2:0;
+  const roundMm=value=>Math.round((Number(value)||0)*10)/10;
+
+  function normalizeOrientationFields(){
+    const p=project();
+    if(!isLeaflet2(p))return false;
+    const paper=document.getElementById('designModePaper');
+    const orientation=document.getElementById('designModeOrientation');
+    const width=document.getElementById('designModeWidth');
+    const height=document.getElementById('designModeHeight');
+    if(!orientation||!width||!height)return false;
+    const direction=orientation.value==='landscape'?'landscape':'portrait';
+    let w=Number(width.value)||Number(p?.width)||210;
+    let h=Number(height.value)||Number(p?.height)||297;
+    const preset=paper?.value&&paper.value!=='custom'?PAPER_MM[paper.value]:null;
+    if(preset){
+      const short=Math.min(...preset),long=Math.max(...preset);
+      w=direction==='landscape'?long:short;
+      h=direction==='landscape'?short:long;
+    }else{
+      if(direction==='landscape'&&w<h)[w,h]=[h,w];
+      if(direction==='portrait'&&w>h)[w,h]=[h,w];
+    }
+    width.value=String(roundMm(w));
+    height.value=String(roundMm(h));
+    document.documentElement.dataset.leafletOrientationApply=`${direction}:${roundMm(w)}x${roundMm(h)}`;
+    return true;
+  }
 
   function ensureProduction(){
     if(window.DesignEditorPrintFoldProduction)return Promise.resolve(true);
@@ -76,9 +106,11 @@
 
   function bind(){
     document.addEventListener('click',event=>{
+      if(event.target?.closest?.('.design-mode-apply'))normalizeOrientationFields();
       if(event.target?.closest?.('[data-design-mode],.design-mode-apply,.surface-tab'))burst();
     },true);
     document.addEventListener('change',event=>{
+      if(event.target?.id==='designModeOrientation')normalizeOrientationFields();
       if(['designModeOrientation','designModePaper','designModeFold','designLeaflet2Layout','guideToggle','foldToggle'].includes(event.target?.id))burst();
     },true);
     document.addEventListener('input',event=>{
@@ -97,5 +129,5 @@
   burst();
   [500,1200,2400,4200,7000].forEach(delay=>setTimeout(refresh,delay));
 
-  window.DesignEditorPrintFoldRuntimeEnsure={refresh,forceRender,stage:'direct-fold-runtime-loader-and-verifier'};
+  window.DesignEditorPrintFoldRuntimeEnsure={refresh,forceRender,normalizeOrientationFields,stage:'direct-fold-runtime-loader-orientation-and-verifier'};
 })();

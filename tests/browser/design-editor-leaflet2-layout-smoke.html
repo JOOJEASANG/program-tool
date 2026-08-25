@@ -26,6 +26,7 @@
   <script src="/js/design-editor/presets.js?v=20260821-1"></script>
   <script src="/js/design-editor/app.js?v=20260821-1"></script>
   <script src="/js/sw-register.js"></script>
+  <script src="/js/design-editor/print-fold-runtime-ensure.js?v=20260825-3"></script>
   <script>
     (async()=>{
       const result=document.getElementById('leaflet2LayoutResult');
@@ -38,6 +39,7 @@
         await waitFor(()=>window.DesignEditorApp?.project?.designMode==='leaflet2','leaflet2 project');
         await waitFor(()=>window.DesignEditorEmbeddedRuntime,'embedded runtime');
         await waitFor(()=>window.DesignEditorLeaflet2Layout&&document.documentElement.dataset.designLeaflet2LayoutReady==='1','leaflet2 layout module');
+        await waitFor(()=>window.DesignEditorPrintFoldRuntimeEnsure,'fold runtime ensure');
         await waitFor(()=>document.getElementById('designLeaflet2Layout'),'leaflet2 layout select');
         const app=window.DesignEditorApp,layout=window.DesignEditorLeaflet2Layout;
         let project=app.project,surface=project.surfaces.find(item=>item.id===project.activeSurface)||project.surfaces[0];
@@ -75,6 +77,22 @@
         assert(surface.foldAxis==='y'&&surface.foldsY?.length===1&&Math.abs(surface.foldsY[0]-148.5)<.01,'top-bottom fold was not recalculated after A3 size change');
         assert(document.getElementById('designLeaflet2Layout')?.value==='top-bottom','top-bottom selector was lost after size change');
 
+        const livePaper=document.getElementById('designModePaper');
+        const liveOrientation=document.getElementById('designModeOrientation');
+        const liveWidthInput=document.getElementById('designModeWidth');
+        const liveHeightInput=document.getElementById('designModeHeight');
+        livePaper.value='a4';
+        liveOrientation.value='portrait';
+        liveWidthInput.value='297';liveHeightInput.value='210';
+        document.querySelector('.design-mode-apply').click();
+        await waitFor(()=>app.project?.width===210&&app.project?.height===297&&app.project?.orientation==='portrait','A4 portrait orientation apply');
+        await waitFor(()=>app.project?.leaflet2Layout==='top-bottom','top-bottom layout preserved after orientation apply');
+        await settle(180);
+        project=app.project;surface=project.surfaces.find(item=>item.id===project.activeSurface)||project.surfaces[0];
+        assert(surface.foldAxis==='y'&&surface.foldsY?.length===1&&Math.abs(surface.foldsY[0]-148.5)<.01,'portrait orientation did not recalculate top-bottom fold');
+        assert(document.getElementById('designModeOrientation')?.value==='portrait','portrait orientation selector was lost after apply');
+        assert(document.documentElement.dataset.leafletOrientationApply==='portrait:210x297','orientation apply normalizer marker missing');
+
         const foldY=Number(surface.foldsY[0]);
         surface.elements.push({id:'fold-text',type:'text',text:'접지선 확인',x:20,y:foldY-2,w:60,size:12,visible:true});
         const issues=layout.horizontalFoldIssues();
@@ -85,6 +103,7 @@
         const portable=await window.DesignEditorProjectFile.buildPortablePayload(project);
         const savedSurface=portable.project.surfaces.find(item=>item.id===surface.id);
         assert(portable.project.leaflet2Layout==='top-bottom','portable project lost top-bottom layout');
+        assert(portable.project.orientation==='portrait'&&portable.project.width===210&&portable.project.height===297,'portable project lost applied paper orientation');
         assert(savedSurface.foldAxis==='y'&&savedSurface.foldsY?.length===1,'portable project lost horizontal fold metadata');
 
         await waitFor(()=>window.DesignEditorFinalPrintCheck?.confirmBeforeOutput?.__leaflet2TopBottomGuard===true,'final print gate patch');
@@ -92,12 +111,13 @@
         document.body.dataset.leaflet2LeftRight='true';
         document.body.dataset.leaflet2TopBottom='true';
         document.body.dataset.leaflet2SizePreserved='true';
+        document.body.dataset.leaflet2OrientationApplied='true';
         document.body.dataset.leaflet2HorizontalGuide='true';
         document.body.dataset.leaflet2Safety='true';
         document.body.dataset.leaflet2Portable='true';
         document.body.dataset.leaflet2FinalGate='true';
         document.body.dataset.leaflet2LayoutStage=layout.stage;
-        pass('leaflet2 left-right and top-bottom folds, size persistence, guides, safety and project persistence');
+        pass('leaflet2 layout, paper orientation, guides, safety and project persistence');
       }catch(error){fail(error);}
     })();
   </script>

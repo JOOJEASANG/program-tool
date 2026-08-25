@@ -31,8 +31,8 @@ done
 "$BROWSER" --headless=new --disable-gpu --no-sandbox --disable-dev-shm-usage --disable-background-networking --user-data-dir="$PROFILE_DIR" --virtual-time-budget=32000 --dump-dom "$URL" >"$DOM_OUT"
 
 if ! grep -q 'data-leaflet2-layout-status="pass"' "$DOM_OUT"; then echo "Design editor leaflet2 layout browser smoke failed." >&2; cat "$DOM_OUT" >&2; echo "----- HTTP server log -----" >&2; cat "$SERVER_LOG" >&2; exit 1; fi
-if ! grep -q 'PASS: leaflet2 left-right and top-bottom folds, size persistence, guides, safety and project persistence' "$DOM_OUT"; then echo "Leaflet2 layout completion marker missing." >&2; cat "$DOM_OUT" >&2; exit 1; fi
-for marker in 'data-leaflet2-left-right="true"' 'data-leaflet2-top-bottom="true"' 'data-leaflet2-size-preserved="true"' 'data-leaflet2-horizontal-guide="true"' 'data-leaflet2-safety="true"' 'data-leaflet2-portable="true"' 'data-leaflet2-final-gate="true"' 'data-leaflet2-layout-stage="leaflet2-left-right-and-top-bottom-layout"'; do
+if ! grep -q 'PASS: leaflet2 layout, paper orientation, guides, safety and project persistence' "$DOM_OUT"; then echo "Leaflet2 layout completion marker missing." >&2; cat "$DOM_OUT" >&2; exit 1; fi
+for marker in 'data-leaflet2-left-right="true"' 'data-leaflet2-top-bottom="true"' 'data-leaflet2-size-preserved="true"' 'data-leaflet2-orientation-applied="true"' 'data-leaflet2-horizontal-guide="true"' 'data-leaflet2-safety="true"' 'data-leaflet2-portable="true"' 'data-leaflet2-final-gate="true"' 'data-leaflet2-layout-stage="leaflet2-left-right-and-top-bottom-layout"'; do
   if ! grep -q "$marker" "$DOM_OUT"; then echo "Leaflet2 layout marker missing: $marker" >&2; cat "$DOM_OUT" >&2; exit 1; fi
 done
 
