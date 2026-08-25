@@ -3,7 +3,18 @@
   window.__programStudioBootGuardV2=true;
 
   const root=document.documentElement;
+  const path=String(location.pathname||'').replace(/\\/g,'/').replace(/\/+$/,'');
+  const protectedProgram=(function(){
+    if(['/tools/pdf-editor.html','/pdf-editor','/pdf-editor/index.html'].some(item=>path.endsWith(item)))return 'pdf-editor';
+    if(['/tools/preflight.html','/tools/pdf-Checker.html','/pdf-preflight','/pdf-preflight/index.html'].some(item=>path.endsWith(item)))return 'preflight';
+    if(['/tools/perfect-binding-cover.html','/perfect-binding-cover','/perfect-binding-cover/index.html','/design-editor','/design-editor/index.html','/design-editor/general','/design-editor/general.html'].some(item=>path.endsWith(item)))return 'design-studio';
+    if(['/document-editor','/document-editor/index.html'].some(item=>path.endsWith(item)))return 'document-editor';
+    if(['/image-editor','/image-editor/index.html'].some(item=>path.endsWith(item)))return 'image-editor';
+    return '';
+  })();
+
   root.classList.add('app-booting');
+  if(protectedProgram)root.dataset.approvalRequired='true';
 
   const style=document.createElement('style');
   style.id='programStudioBootGuardStyle';
@@ -23,9 +34,9 @@
   `;
   document.head.appendChild(style);
 
-  // Access checks can take several seconds on a cold Firebase session. Keep the
-  // already-rendered tool visible while permission is checked instead of showing
-  // a blank page. Redirect behavior remains controlled by firebase-config.js.
+  // firebase-config.js temporarily hides the document while it checks access.
+  // Keep the body renderable behind this non-interactive boot layer so users see
+  // a stable loading state instead of a flash of an unauthorized tool.
   const accessStyle=document.createElement('style');
   accessStyle.id='programStudioAccessVisibilityStyle';
   accessStyle.textContent='html[data-access-checking] body{visibility:visible!important}';
@@ -41,6 +52,37 @@
   }
 
   window.ProgramStudioBoot={...(window.ProgramStudioBoot||{}),reveal};
-  window.addEventListener('pageshow',event=>{if(event.persisted)reveal()});
-  setTimeout(reveal,1800);
+  window.addEventListener('pageshow',event=>{
+    if(event.persisted&&!protectedProgram)reveal();
+  });
+
+  if(!protectedProgram){
+    setTimeout(reveal,1800);
+    return;
+  }
+
+  const started=Date.now();
+  const failClosedTimer=setTimeout(()=>{
+    if(revealed)return;
+    const target=new URL('/approval-waiting.html',location.origin);
+    target.searchParams.set('status','timeout');
+    target.searchParams.set('program',protectedProgram);
+    location.replace(target.href);
+  },10500);
+
+  function waitForApproval(){
+    if(revealed)return;
+    const ready=window.ProgramAccessReady;
+    if(ready&&typeof ready.then==='function'){
+      Promise.resolve(ready).then(access=>{
+        if(access){
+          clearTimeout(failClosedTimer);
+          reveal();
+        }
+      }).catch(()=>{});
+      return;
+    }
+    if(Date.now()-started<10000)setTimeout(waitForApproval,40);
+  }
+  waitForApproval();
 })();
