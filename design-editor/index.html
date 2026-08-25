@@ -22,6 +22,7 @@
       const frame=document.getElementById('editorFrame'),loading=document.getElementById('loading'),shell=document.getElementById('unifiedDesignShell');
       const FOLD_RUNTIME_VERSION='20260825-5';
       const PRODUCT_RUNTIME_VERSION='20260825-1';
+      const PRODUCT_STATE_VERSION='20260825-1';
       const DEFAULTS={
         cover:{mode:'cover',preset:'cover-a4'},
         poster:{mode:'poster',preset:'poster-a4',paper:'a4',orientation:'portrait',w:210,h:297},
@@ -51,15 +52,22 @@
         }catch(_){return false;}
       }
       function ensureFoldRuntime(){
-        const ok=injectRuntime('designPrintFoldRuntimeEnsureScriptV1',`/js/design-editor/print-fold-runtime-ensure.js?v=${FOLD_RUNTIME_VERSION}`,win=>{
+        return injectRuntime('designPrintFoldRuntimeEnsureScriptV1',`/js/design-editor/print-fold-runtime-ensure.js?v=${FOLD_RUNTIME_VERSION}`,win=>{
           if(win.DesignEditorPrintFoldRuntimeEnsure?.refresh){win.DesignEditorPrintFoldRuntimeEnsure.refresh();return true;}return false;
         });
-        return ok;
       }
       function ensureProductRuntime(){
         return injectRuntime('designPrintProductMenuScriptV1',`/js/design-editor/print-product-menu.js?v=${PRODUCT_RUNTIME_VERSION}`,win=>{
           if(win.DesignEditorPrintProductMenu?.render){win.DesignEditorPrintProductMenu.render();return true;}return false;
         });
+      }
+      function ensureProductStateRuntime(){
+        return injectRuntime('designPrintProductStateRestoreScriptV1',`/js/design-editor/print-product-state-restore.js?v=${PRODUCT_STATE_VERSION}`,win=>{
+          if(win.DesignEditorPrintProductStateRestore?.patch){win.DesignEditorPrintProductStateRestore.patch();return true;}return false;
+        });
+      }
+      function ensurePrintRuntimes(){
+        ensureFoldRuntime();ensureProductRuntime();ensureProductStateRuntime();
       }
       function openMode(detail){loading.classList.remove('hide');frame.src=route(detail);}
       window.addEventListener('message',event=>{
@@ -68,12 +76,12 @@
         if(data.type==='program-studio-design-mode')openMode(data);
       });
       frame.addEventListener('load',()=>{
-        ensureFoldRuntime();ensureProductRuntime();
-        [80,240,600,1200,2400].forEach(delay=>setTimeout(()=>{ensureFoldRuntime();ensureProductRuntime();},delay));
+        ensurePrintRuntimes();
+        [80,240,600,1200,2400].forEach(delay=>setTimeout(ensurePrintRuntimes,delay));
         loading.classList.add('hide');
       });
       setTimeout(()=>loading.classList.add('hide'),2600);
-      window.UnifiedDesignShell={openMode,route,ensureFoldRuntime,ensureProductRuntime,foldRuntimeStage:'direct-fold-runtime-loader-and-verifier',productRuntimeStage:'print-product-menu-loader',stage:'single-sidebar-general-engine-shell-no-legacy-fallback'};
+      window.UnifiedDesignShell={openMode,route,ensureFoldRuntime,ensureProductRuntime,ensureProductStateRuntime,ensurePrintRuntimes,foldRuntimeStage:'direct-fold-runtime-loader-and-verifier',productRuntimeStage:'print-product-menu-loader',stage:'single-sidebar-general-engine-shell-no-legacy-fallback'};
     })();
   </script>
 </body>
