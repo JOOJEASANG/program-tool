@@ -77,12 +77,13 @@
         assert(surface.foldAxis==='y'&&surface.foldsY?.length===1&&Math.abs(surface.foldsY[0]-148.5)<.01,'top-bottom fold was not recalculated after A3 size change');
         assert(document.getElementById('designLeaflet2Layout')?.value==='top-bottom','top-bottom selector was lost after size change');
 
-        const orientation=document.getElementById('designModeOrientation');
-        const widthInput=document.getElementById('designModeWidth');
-        const heightInput=document.getElementById('designModeHeight');
-        paper.value='a4';
-        orientation.value='portrait';
-        widthInput.value='297';heightInput.value='210';
+        const livePaper=document.getElementById('designModePaper');
+        const liveOrientation=document.getElementById('designModeOrientation');
+        const liveWidthInput=document.getElementById('designModeWidth');
+        const liveHeightInput=document.getElementById('designModeHeight');
+        livePaper.value='a4';
+        liveOrientation.value='portrait';
+        liveWidthInput.value='297';liveHeightInput.value='210';
         document.querySelector('.design-mode-apply').click();
         await waitFor(()=>app.project?.width===210&&app.project?.height===297&&app.project?.orientation==='portrait','A4 portrait orientation apply');
         await waitFor(()=>app.project?.leaflet2Layout==='top-bottom','top-bottom layout preserved after orientation apply');
