@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>Design Editor Print Products Smoke</title>
+  <style>
+    body{font-family:Arial,sans-serif}.sidebar{width:320px}#artboard{position:relative;width:606px;height:432px;background:#fff}
+  </style>
+  <script>history.replaceState(null,'','/design-editor/general.html?embed=1&mode=leaflet3&printProducts=20260825-1');</script>
+</head>
+<body data-print-products-status="pending">
+  <div id="result">PENDING</div>
+  <aside class="sidebar">
+    <section id="designEmbeddedModeCard">
+      <div class="design-mode-grid"><button data-design-mode="custom">직접</button></div>
+      <div class="design-mode-options"></div>
+    </section>
+  </aside>
+  <div id="saveState"></div>
+  <div id="artboard"></div>
+  <script>
+    const makeProject=(mode,detail={})=>{
+      const width=Number(detail.width)||297,height=Number(detail.height)||210;
+      const base={designMode:mode,presetId:mode==='leaflet2'?'leaflet-2':'leaflet-3-roll',orientation:detail.orientation||'landscape',paper:detail.paper||'a4',width,height,bleed:3,safe:7,showGuides:true,showFolds:true,activeSurface:'outside'};
+      if(mode==='leaflet2')base.surfaces=[{id:'outside',label:'바깥면',folds:[width/2],panels:['뒷표지','앞표지'],elements:[],extras:[]},{id:'inside',label:'안쪽면',folds:[width/2],panels:['내용 1','내용 2'],elements:[],extras:[]}];
+      else base.surfaces=[{id:'outside',label:'바깥면',folds:[width/3,width*2/3],panels:['뒷면','가운데 면','앞표지'],elements:[],extras:[]},{id:'inside',label:'안쪽면',folds:[width/3,width*2/3],panels:['내용 1','내용 2','내용 3'],elements:[],extras:[]}];
+      return base;
+    };
+    window.DesignEditorApp={project:makeProject('leaflet3')};
+    window.DesignEditorEmbeddedRuntime={
+      switchGeneralMode(detail){
+        const mode=detail.mode==='leaflet2'?'leaflet2':'leaflet3';
+        window.DesignEditorApp.project=makeProject(mode,detail);
+        return true;
+      }
+    };
+    window.DesignEditorDraftScope={saveCurrent(){return true;}};
+    window.DesignEditorPreviewGuides={refresh(){}};
+    window.DesignEditorRotation={sync(){}};
+  </script>
+  <script src="/js/design-editor/print-product-menu.js?v=20260825-1"></script>
+  <script src="/js/design-editor/print-product-state-restore.js?v=20260825-1"></script>
+  <script src="/js/design-editor/print-fold-production.js?v=20260825-3"></script>
+  <script src="/js/design-editor/print-fold-runtime-ensure.js?v=20260825-5"></script>
+  <script>
+    (async()=>{
+      const result=document.getElementById('result');
+      const fail=error=>{document.body.dataset.printProductsStatus='fail';result.textContent='FAIL: '+String(error?.stack||error?.message||error);};
+      const pass=message=>{document.body.dataset.printProductsStatus='pass';result.textContent='PASS: '+message;};
+      const assert=(condition,message)=>{if(!condition)throw new Error(message);};
+      const waitFor=async(predicate,label,timeout=12000)=>{const started=Date.now();while(Date.now()-started<timeout){if(predicate())return;await new Promise(resolve=>setTimeout(resolve,40));}throw new Error('timeout: '+label);};
+      const clickProduct=async key=>{document.querySelector(`[data-print-product="${key}"]`)?.click();await waitFor(()=>document.documentElement.dataset.printProductMenu===key,`product ${key}`);};
+      try{
+        await waitFor(()=>window.DesignEditorPrintProductMenu&&document.querySelectorAll('[data-print-product]').length===5,'5 product menu');
+        const buttons=[...document.querySelectorAll('[data-print-product]')];
+        const labels=buttons.map(node=>node.textContent.trim());
+        assert(buttons.length===5,'인쇄물 메뉴는 5개여야 합니다.');
+        assert(labels.includes('초대장·안내장')&&labels.includes('리플렛'),'초대장·안내장 또는 리플렛 메뉴가 없습니다.');
+        assert(!labels.includes('직접')&&!document.querySelector('[data-print-product="custom"]'),'직접 메뉴가 남아 있습니다.');
+        document.body.dataset.printProductsMenu=labels.join('|');
+
+        await clickProduct('invitation');
+        await waitFor(()=>document.getElementById('designProductFoldPosition'),'invitation options');
+        document.getElementById('designProductAxis').value='y';
+        document.getElementById('designProductFoldPosition').value='120';
+        document.getElementById('designProductFlip').value='top';
+        document.querySelector('.design-product-apply').click();
+        await waitFor(()=>window.DesignEditorApp.project?.printProductMode==='invitation'&&Number(window.DesignEditorApp.project?.printProductFoldPosition)===120,'invitation custom fold apply');
+        let p=window.DesignEditorApp.project,surface=p.surfaces[0];
+        assert(surface.foldAxis==='y'&&surface.foldsY?.length===1&&Number(surface.foldsY[0])===120,'초대장 상하 120mm 접지가 적용되지 않았습니다.');
+        assert(p.printFoldFlipPanel==='top','초대장 상단 180도 설정이 유지되지 않았습니다.');
+        await window.DesignEditorPrintFoldRuntimeEnsure.refresh();
+        await waitFor(()=>document.querySelectorAll('.design-print-fold-line').length===1,'invitation fold line');
+        document.body.dataset.printProductsInvitation='120mm-y-top';
+
+        await clickProduct('leaflet');
+        await waitFor(()=>document.getElementById('designProductPages'),'leaflet options');
+        let pages=document.getElementById('designProductPages');pages.value='8';pages.dispatchEvent(new Event('change',{bubbles:true}));
+        document.getElementById('designProductFold').value='accordion';
+        document.querySelector('.design-product-apply').click();
+        await waitFor(()=>Number(window.DesignEditorApp.project?.printProductPages)===8,'8P leaflet apply');
+        p=window.DesignEditorApp.project;surface=p.surfaces[0];
+        assert(surface.foldAxis==='x'&&surface.folds?.length===3&&surface.panels?.length===4,'8P는 4단/접지선 3개여야 합니다.');
+        await window.DesignEditorPrintFoldRuntimeEnsure.refresh();
+        await waitFor(()=>document.querySelectorAll('.design-print-fold-line').length===3,'8P fold lines');
+        document.body.dataset.printProductsLeaflet8='4panels-3folds';
+
+        window.DesignEditorPrintProductMenu.render();
+        await waitFor(()=>document.getElementById('designProductPages'),'12P options');
+        pages=document.getElementById('designProductPages');pages.value='12';pages.dispatchEvent(new Event('change',{bubbles:true}));
+        document.getElementById('designProductFold').value='roll';
+        const orientation=document.getElementById('designModeOrientation');orientation.value='portrait';orientation.dispatchEvent(new Event('change',{bubbles:true}));
+        document.querySelector('.design-product-apply').click();
+        await waitFor(()=>Number(window.DesignEditorApp.project?.printProductPages)===12&&window.DesignEditorApp.project?.orientation==='portrait','12P portrait apply');
+        p=window.DesignEditorApp.project;surface=p.surfaces[0];
+        assert(p.width===210&&p.height===297,'12P A4 세로 규격이 210×297이 아닙니다.');
+        assert(surface.foldAxis==='y'&&surface.foldsY?.length===5&&surface.panels?.length===6,'12P 세로는 6단/가로 접지선 5개여야 합니다.');
+        await window.DesignEditorPrintFoldRuntimeEnsure.refresh();
+        await waitFor(()=>document.querySelectorAll('.design-print-fold-line').length===5,'12P fold lines');
+        assert([...document.querySelectorAll('.design-print-fold-line')].every(line=>line.classList.contains('y')&&parseFloat(line.style.width)>0),'12P 세로 접지선 방향이 잘못되었습니다.');
+        document.body.dataset.printProductsLeaflet12='6panels-5folds-portrait';
+
+        p.printProductMode='leaflet';p.printProductPages=8;p.printProductFold='gate';p.paper='a4';p.orientation='landscape';p.width=297;p.height=210;p.printProductAxis='x';
+        window.DesignEditorPrintProductMenu.state.leaflet.pages=6;window.DesignEditorPrintProductMenu.state.leaflet.fold='roll';
+        window.DesignEditorPrintProductStateRestore.hydrate(p);
+        assert(window.DesignEditorPrintProductMenu.state.leaflet.pages===8&&window.DesignEditorPrintProductMenu.state.leaflet.fold==='gate','저장된 8P 대문접지 상태를 복원하지 못했습니다.');
+        document.body.dataset.printProductsRestore='8p-gate';
+        document.body.dataset.printProductsRuntime=document.documentElement.dataset.printFoldRuntimeEnsure||'';
+        pass('5개 인쇄물 메뉴, 비대칭 초대장 접지, 8P·12P 가변 리플렛 접지와 저장 복원이 확인됨');
+      }catch(error){fail(error);}
+    })();
+  </script>
+</body>
+</html>

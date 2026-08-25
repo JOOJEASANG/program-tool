@@ -5,7 +5,7 @@
   window.__designEditorPrintFoldRuntimeEnsureV1=true;
 
   const SCRIPT_ID='designPrintFoldProductionDirectScriptV1';
-  const SCRIPT_SRC='/js/design-editor/print-fold-production.js?v=20260825-2';
+  const SCRIPT_SRC='/js/design-editor/print-fold-production.js?v=20260825-3';
   const PAPER_MM={
     a6:[105,148],a5:[148,210],a4:[210,297],a3:[297,420],
     b5:[182,257],b4:[257,364],b3:[364,515]
@@ -18,7 +18,11 @@
   const isLeaflet2=p=>Boolean(p&&(p.designMode==='leaflet2'||p.presetId==='leaflet-2'));
   const isLeaflet3=p=>Boolean(p&&(p.designMode==='leaflet3'||String(p.presetId||'').startsWith('leaflet-3-')));
   const isLeaflet=p=>isLeaflet2(p)||isLeaflet3(p);
-  const expectedLineCount=p=>isLeaflet2(p)?1:isLeaflet3(p)?2:0;
+  const expectedLineCount=p=>{
+    if(p?.printProductMode==='invitation')return 1;
+    if(p?.printProductMode==='leaflet')return Math.max(1,(Number(p.printProductPages)||6)/2-1);
+    return isLeaflet2(p)?1:isLeaflet3(p)?2:0;
+  };
   const roundMm=value=>Math.round((Number(value)||0)*10)/10;
 
   function normalizeOrientationFields(){
@@ -44,7 +48,7 @@
     width.value=String(roundMm(w));
     height.value=String(roundMm(h));
     document.documentElement.dataset.leafletOrientationApply=`${direction}:${roundMm(w)}x${roundMm(h)}`;
-    document.documentElement.dataset.leafletOrientationMode=isLeaflet3(p)?'leaflet3':'leaflet2';
+    document.documentElement.dataset.leafletOrientationMode=p?.printProductMode|| (isLeaflet3(p)?'leaflet3':'leaflet2');
     return true;
   }
 
@@ -108,15 +112,15 @@
 
   function bind(){
     document.addEventListener('click',event=>{
-      if(event.target?.closest?.('.design-mode-apply'))normalizeOrientationFields();
-      if(event.target?.closest?.('[data-design-mode],.design-mode-apply,.surface-tab'))burst();
+      if(event.target?.closest?.('.design-mode-apply,.design-product-apply'))normalizeOrientationFields();
+      if(event.target?.closest?.('[data-design-mode],[data-print-product],.design-mode-apply,.design-product-apply,.surface-tab'))burst();
     },true);
     document.addEventListener('change',event=>{
       if(event.target?.id==='designModeOrientation')normalizeOrientationFields();
-      if(['designModeOrientation','designModePaper','designModeFold','designLeaflet2Layout','guideToggle','foldToggle'].includes(event.target?.id))burst();
+      if(['designModeOrientation','designModePaper','designModeFold','designProductFold','designProductPages','designProductAxis','designLeaflet2Layout','guideToggle','foldToggle'].includes(event.target?.id))burst();
     },true);
     document.addEventListener('input',event=>{
-      if(['designModeWidth','designModeHeight','bleedInput','safeInput'].includes(event.target?.id))burst();
+      if(['designModeWidth','designModeHeight','designProductFoldPosition','bleedInput','safeInput'].includes(event.target?.id))burst();
     },true);
     if(typeof MutationObserver==='function'){
       observer=new MutationObserver(records=>{
@@ -131,5 +135,5 @@
   burst();
   [500,1200,2400,4200,7000].forEach(delay=>setTimeout(refresh,delay));
 
-  window.DesignEditorPrintFoldRuntimeEnsure={refresh,forceRender,normalizeOrientationFields,stage:'direct-fold-runtime-loader-orientation-and-verifier'};
+  window.DesignEditorPrintFoldRuntimeEnsure={refresh,forceRender,normalizeOrientationFields,expectedLineCount,stage:'direct-fold-runtime-variable-page-verifier'};
 })();

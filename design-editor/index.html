@@ -4,14 +4,14 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>디자인 편집기 · Program Studio</title>
-  <meta name="description" content="표지디자인을 기본으로 포스터·전단·2단·3단 리플렛을 하나의 사이드바에서 전환해 작업하는 통합 디자인 편집기">
+  <meta name="description" content="표지·포스터·전단·초대장·안내장·4P~12P 리플렛을 인쇄 실무 기준으로 작업하는 통합 디자인 편집기">
   <style>
     *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;background:#eef3f7}body{overflow:hidden}.studio{position:relative;width:100%;height:100vh}.editor-frame{display:block;width:100%;height:100%;border:0;background:#fff}.loading{position:absolute;inset:0;z-index:5;display:grid;place-items:center;background:#f8fbfd;color:#64748b;font:800 11px/1.4 Arial,sans-serif;transition:.15s}.loading.hide{opacity:0;pointer-events:none}.spinner{width:30px;height:30px;border:3px solid #dbe5ee;border-top-color:#12396d;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 10px}@keyframes spin{to{transform:rotate(360deg)}}
   </style>
 </head>
 <body>
   <main id="unifiedDesignShell" class="studio" data-mode="cover">
-    <!-- 작업 종류: 표지디자인 · 포스터 · 전단지 · 2단 리플렛 · 3단 리플렛 · 사용자 지정 -->
+    <!-- 작업 종류: 표지디자인 · 포스터 · 전단지 · 초대장/안내장 · 리플렛(4P~12P) -->
     <!-- Retired compatibility URL only; it redirects here and is not an editor fallback: /perfect-binding-cover/?embed=1&mode=cover -->
     <div id="loading" class="loading"><div><div class="spinner"></div>디자인 편집기를 불러오는 중...</div></div>
     <iframe id="editorFrame" class="editor-frame" title="디자인 편집 작업영역" src="/design-editor/general?embed=1&mode=cover&preset=cover-a4"></iframe>
@@ -20,7 +20,9 @@
     (function(){
       'use strict';
       const frame=document.getElementById('editorFrame'),loading=document.getElementById('loading'),shell=document.getElementById('unifiedDesignShell');
-      const FOLD_RUNTIME_VERSION='20260825-4';
+      const FOLD_RUNTIME_VERSION='20260825-5';
+      const PRODUCT_RUNTIME_VERSION='20260825-1';
+      const PRODUCT_STATE_VERSION='20260825-1';
       const DEFAULTS={
         cover:{mode:'cover',preset:'cover-a4'},
         poster:{mode:'poster',preset:'poster-a4',paper:'a4',orientation:'portrait',w:210,h:297},
@@ -40,22 +42,32 @@
         if(mode==='leaflet3')query.set('fold',data.fold||data.preset||'leaflet-3-roll');
         return `/design-editor/general?${query.toString()}`;
       }
-      function ensureFoldRuntime(){
+      function injectRuntime(id,src,ready){
         try{
-          const doc=frame.contentDocument,win=frame.contentWindow;
-          if(!doc?.head||!win)return false;
-          if(win.DesignEditorPrintFoldRuntimeEnsure?.refresh){win.DesignEditorPrintFoldRuntimeEnsure.refresh();return true;}
-          let script=doc.getElementById('designPrintFoldRuntimeEnsureScriptV1');
-          if(!script){
-            script=doc.createElement('script');
-            script.id='designPrintFoldRuntimeEnsureScriptV1';
-            script.src=`/js/design-editor/print-fold-runtime-ensure.js?v=${FOLD_RUNTIME_VERSION}`;
-            script.async=false;
-            doc.head.appendChild(script);
-          }
-          script.addEventListener('load',()=>win.DesignEditorPrintFoldRuntimeEnsure?.refresh?.(),{once:true});
+          const doc=frame.contentDocument,win=frame.contentWindow;if(!doc?.head||!win)return false;
+          if(ready(win))return true;
+          let script=doc.getElementById(id);
+          if(!script){script=doc.createElement('script');script.id=id;script.src=src;script.async=false;doc.head.appendChild(script);}
           return true;
         }catch(_){return false;}
+      }
+      function ensureFoldRuntime(){
+        return injectRuntime('designPrintFoldRuntimeEnsureScriptV1',`/js/design-editor/print-fold-runtime-ensure.js?v=${FOLD_RUNTIME_VERSION}`,win=>{
+          if(win.DesignEditorPrintFoldRuntimeEnsure?.refresh){win.DesignEditorPrintFoldRuntimeEnsure.refresh();return true;}return false;
+        });
+      }
+      function ensureProductRuntime(){
+        return injectRuntime('designPrintProductMenuScriptV1',`/js/design-editor/print-product-menu.js?v=${PRODUCT_RUNTIME_VERSION}`,win=>{
+          if(win.DesignEditorPrintProductMenu?.render){win.DesignEditorPrintProductMenu.render();return true;}return false;
+        });
+      }
+      function ensureProductStateRuntime(){
+        return injectRuntime('designPrintProductStateRestoreScriptV1',`/js/design-editor/print-product-state-restore.js?v=${PRODUCT_STATE_VERSION}`,win=>{
+          if(win.DesignEditorPrintProductStateRestore?.patch){win.DesignEditorPrintProductStateRestore.patch();return true;}return false;
+        });
+      }
+      function ensurePrintRuntimes(){
+        ensureFoldRuntime();ensureProductRuntime();ensureProductStateRuntime();
       }
       function openMode(detail){loading.classList.remove('hide');frame.src=route(detail);}
       window.addEventListener('message',event=>{
@@ -64,12 +76,12 @@
         if(data.type==='program-studio-design-mode')openMode(data);
       });
       frame.addEventListener('load',()=>{
-        ensureFoldRuntime();
-        [80,240,600,1200,2400].forEach(delay=>setTimeout(ensureFoldRuntime,delay));
+        ensurePrintRuntimes();
+        [80,240,600,1200,2400].forEach(delay=>setTimeout(ensurePrintRuntimes,delay));
         loading.classList.add('hide');
       });
       setTimeout(()=>loading.classList.add('hide'),2600);
-      window.UnifiedDesignShell={openMode,route,ensureFoldRuntime,foldRuntimeStage:'direct-fold-runtime-loader-and-verifier',stage:'single-sidebar-general-engine-shell-no-legacy-fallback'};
+      window.UnifiedDesignShell={openMode,route,ensureFoldRuntime,ensureProductRuntime,ensureProductStateRuntime,ensurePrintRuntimes,foldRuntimeStage:'direct-fold-runtime-loader-and-verifier',productRuntimeStage:'print-product-menu-loader',stage:'single-sidebar-general-engine-shell-no-legacy-fallback'};
     })();
   </script>
 </body>

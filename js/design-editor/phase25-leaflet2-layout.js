@@ -31,7 +31,7 @@
   const roundMm=value=>Math.round((Number(value)||0)*10)/10;
 
   function isLeaflet2(p=project()){
-    return Boolean(p&&(p.designMode==='leaflet2'||p.presetId==='leaflet-2'));
+    return Boolean(p&&!p.printProductMode&&(p.designMode==='leaflet2'||p.presetId==='leaflet-2'));
   }
   function activeSurface(p=project()){
     if(!p)return null;
