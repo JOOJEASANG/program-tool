@@ -31,10 +31,9 @@ done
 "$BROWSER" --headless=new --disable-gpu --no-sandbox --disable-dev-shm-usage --disable-background-networking --user-data-dir="$PROFILE_DIR" --virtual-time-budget=24000 --dump-dom "$URL" >"$DOM_OUT"
 
 if ! grep -q 'data-print-products-status="pass"' "$DOM_OUT"; then echo "Design editor print products browser smoke failed." >&2; cat "$DOM_OUT" >&2; echo "----- HTTP server log -----" >&2; cat "$SERVER_LOG" >&2; exit 1; fi
-for marker in 'data-print-products-invitation="120mm-y-top"' 'data-print-products-leaflet8="4panels-3folds"' 'data-print-products-leaflet12="6panels-5folds-portrait"' 'data-print-products-restore="8p-gate"' 'data-print-products-runtime="ready"'; do
+for marker in 'data-print-products-menu="표지|포스터|전단|초대장·안내장|리플렛"' 'data-print-products-invitation="120mm-y-top"' 'data-print-products-leaflet8="4panels-3folds"' 'data-print-products-leaflet12="6panels-5folds-portrait"' 'data-print-products-restore="8p-gate"' 'data-print-products-runtime="ready"'; do
   if ! grep -q "$marker" "$DOM_OUT"; then echo "Print products marker missing: $marker" >&2; cat "$DOM_OUT" >&2; exit 1; fi
 done
-if grep -q 'data-print-product="custom"' "$DOM_OUT"; then echo "Removed direct/custom visible product menu reappeared." >&2; cat "$DOM_OUT" >&2; exit 1; fi
 if ! grep -q 'PASS: 5개 인쇄물 메뉴, 비대칭 초대장 접지, 8P·12P 가변 리플렛 접지와 저장 복원이 확인됨' "$DOM_OUT"; then echo "Print products completion marker missing." >&2; cat "$DOM_OUT" >&2; exit 1; fi
 
 echo "Design editor print products browser smoke passed using $BROWSER"
