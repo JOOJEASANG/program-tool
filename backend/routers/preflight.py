@@ -2,7 +2,9 @@ import io
 import logging
 import os
 import re
+import tempfile
 import uuid
+from pathlib import Path
 
 import firebase_admin.storage as fa_storage
 import fitz
@@ -26,6 +28,7 @@ MAX_COMPRESS_PIXELS_TOTAL = 180_000_000
 DEFAULT_STORAGE_BUCKET = os.environ.get(
     "FIREBASE_STORAGE_BUCKET", "program-tool.firebasestorage.app"
 )
+PdfSource = bytes | str | Path
 
 
 def _request_id() -> str:
@@ -66,6 +69,10 @@ def _internal_error(operation: str):
 
 def _bucket():
     return fa_storage.bucket(DEFAULT_STORAGE_BUCKET)
+
+
+def _max_storage_mb() -> int:
+    return MAX_STORAGE_PDF_BYTES // (1024 * 1024)
 
 
 def _delete_storage_path(path: str | None) -> None:
@@ -120,31 +127,43 @@ def _safe_pdf_name(filename: str | None, suffix: str) -> str:
     return f"{base or 'document'}_{suffix}.pdf"
 
 
-def _read_pdf_from_storage(uid: str):
+def _download_pdf_from_storage(uid: str, destination: str | Path):
     payload = request.get_json(silent=True) or {}
-    path = payload.get("storage_path")
+    raw_path = payload.get("storage_path")
     filename = _safe_pdf_name(payload.get("filename"), "source").removesuffix("_source.pdf") + ".pdf"
-    error = _validate_storage_path(uid, path)
+    error = _validate_storage_path(uid, raw_path)
     if error:
-        return None, None, None, error
+        return None, None, error
+
+    path = str(raw_path)
+    target = Path(destination)
     try:
         blob = _bucket().blob(path)
         blob.reload()
-        size = int(blob.size or 0)
-        if size > MAX_STORAGE_PDF_BYTES:
-            return None, None, path, _error(
-                "파일이 200MB 제한을 초과합니다.",
+        declared_size = int(blob.size or 0)
+        if declared_size > MAX_STORAGE_PDF_BYTES:
+            return None, path, _error(
+                f"파일이 {_max_storage_mb()}MB 제한을 초과합니다.",
                 413,
                 "PDF_FILE_TOO_LARGE",
             )
-        data = blob.download_as_bytes()
-        if len(data) > MAX_STORAGE_PDF_BYTES:
-            return None, None, path, _error(
-                "파일이 200MB 제한을 초과합니다.",
+        blob.download_to_filename(str(target))
+        actual_size = target.stat().st_size
+        if actual_size > MAX_STORAGE_PDF_BYTES:
+            return None, path, _error(
+                f"파일이 {_max_storage_mb()}MB 제한을 초과합니다.",
                 413,
                 "PDF_FILE_TOO_LARGE",
             )
-        return filename, data, path, None
+        if declared_size and actual_size != declared_size:
+            logger.warning(
+                "Preflight storage size changed path=%s declared=%s actual=%s request_id=%s",
+                path,
+                declared_size,
+                actual_size,
+                _request_id(),
+            )
+        return filename, path, None
     except Exception:
         logger.warning(
             "Preflight storage read failed path=%s request_id=%s",
@@ -152,16 +171,24 @@ def _read_pdf_from_storage(uid: str):
             _request_id(),
             exc_info=True,
         )
-        return None, None, path, _error(
+        return None, path, _error(
             "업로드된 PDF 파일을 찾거나 읽지 못했습니다. 다시 업로드해 주세요.",
             404,
             "STORAGE_FILE_NOT_FOUND",
         )
 
 
-def _open_pdf(data: bytes) -> fitz.Document:
+def _source_size(source_input: PdfSource) -> int:
+    if isinstance(source_input, (str, Path)):
+        return Path(source_input).stat().st_size
+    return len(source_input)
+
+
+def _open_pdf(source_input: PdfSource) -> fitz.Document:
     try:
-        return fitz.open(stream=data, filetype="pdf")
+        if isinstance(source_input, (str, Path)):
+            return fitz.open(str(source_input))
+        return fitz.open(stream=source_input, filetype="pdf")
     except Exception as exc:
         raise ValueError("PDF 파일을 열 수 없습니다.") from exc
 
@@ -187,9 +214,9 @@ def _compress_options() -> tuple[int, int, str]:
     return presets.get(quality, presets["balanced"])
 
 
-def _run_check_response(filename: str, data: bytes):
+def _run_check_response(filename: str, source_input: PdfSource):
     try:
-        document = _open_pdf(data)
+        document = _open_pdf(source_input)
     except ValueError:
         return _error(
             "PDF 파일을 열 수 없습니다. PDF 복구/정상화 도구를 먼저 실행해 보세요.",
@@ -199,7 +226,7 @@ def _run_check_response(filename: str, data: bytes):
 
     try:
         try:
-            checks = run_reliable_checks(document, len(data))
+            checks = run_reliable_checks(document, _source_size(source_input))
             score = compute_score(checks)
             report = PreflightReport(
                 filename=filename or "document.pdf",
@@ -258,18 +285,21 @@ def check(uid):
 @preflight_bp.route("/check-storage", methods=["POST"])
 @require_auth
 def check_storage(uid):
-    filename, data, path, error = _read_pdf_from_storage(uid)
-    try:
-        if error:
-            return error
-        return _run_check_response(filename or "document.pdf", data)
-    finally:
-        _delete_storage_path(path)
+    path = None
+    with tempfile.TemporaryDirectory(prefix="preflight-check-") as temp_dir:
+        source_path = Path(temp_dir) / "source.pdf"
+        filename, path, error = _download_pdf_from_storage(uid, source_path)
+        try:
+            if error:
+                return error
+            return _run_check_response(filename or "document.pdf", source_path)
+        finally:
+            _delete_storage_path(path)
 
 
-def _compress_pdf_response(filename: str, data: bytes):
+def _compress_pdf_response(filename: str, source_input: PdfSource):
     try:
-        source = _open_pdf(data)
+        source = _open_pdf(source_input)
     except ValueError:
         return _error(
             "PDF 파일을 열 수 없어 경량화를 진행할 수 없습니다. 먼저 PDF 복구/정상화를 실행해 보세요.",
@@ -357,7 +387,7 @@ def _compress_pdf_response(filename: str, data: bytes):
         output_name = _safe_pdf_name(filename, f"light_{quality}")
         note = (
             f"rasterized-jpeg;quality={quality};dpi={dpi};jpg={jpeg_quality};"
-            f"input={len(data)};output={len(output_bytes)};"
+            f"input={_source_size(source_input)};output={len(output_bytes)};"
             f"skipped={','.join(map(str, skipped_pages))}"
         )
         response = Response(
@@ -400,21 +430,24 @@ def fix(uid):
 @preflight_bp.route("/fix-storage", methods=["POST"])
 @require_auth
 def fix_storage(uid):
-    filename, data, path, error = _read_pdf_from_storage(uid)
-    try:
-        if error:
-            return error
-        source_name = filename or "document.pdf"
-        response = fix_pdf_response(source_name, data)
-        return _deliver_pdf_response(
-            uid,
-            response,
-            filename=_safe_pdf_name(source_name, "repaired"),
-            source="preflight-fix",
-            force_storage=True,
-        )
-    finally:
-        _delete_storage_path(path)
+    path = None
+    with tempfile.TemporaryDirectory(prefix="preflight-fix-") as temp_dir:
+        source_path = Path(temp_dir) / "source.pdf"
+        filename, path, error = _download_pdf_from_storage(uid, source_path)
+        try:
+            if error:
+                return error
+            source_name = filename or "document.pdf"
+            response = fix_pdf_response(source_name, source_path)
+            return _deliver_pdf_response(
+                uid,
+                response,
+                filename=_safe_pdf_name(source_name, "repaired"),
+                source="preflight-fix",
+                force_storage=True,
+            )
+        finally:
+            _delete_storage_path(path)
 
 
 @preflight_bp.route("/compress", methods=["POST"])
@@ -436,18 +469,21 @@ def compress(uid):
 @preflight_bp.route("/compress-storage", methods=["POST"])
 @require_auth
 def compress_storage(uid):
-    filename, data, path, error = _read_pdf_from_storage(uid)
-    try:
-        if error:
-            return error
-        source_name = filename or "document.pdf"
-        response = _compress_pdf_response(source_name, data)
-        return _deliver_pdf_response(
-            uid,
-            response,
-            filename=_safe_pdf_name(source_name, "light"),
-            source="preflight-compress",
-            force_storage=True,
-        )
-    finally:
-        _delete_storage_path(path)
+    path = None
+    with tempfile.TemporaryDirectory(prefix="preflight-compress-") as temp_dir:
+        source_path = Path(temp_dir) / "source.pdf"
+        filename, path, error = _download_pdf_from_storage(uid, source_path)
+        try:
+            if error:
+                return error
+            source_name = filename or "document.pdf"
+            response = _compress_pdf_response(source_name, source_path)
+            return _deliver_pdf_response(
+                uid,
+                response,
+                filename=_safe_pdf_name(source_name, "light"),
+                source="preflight-compress",
+                force_storage=True,
+            )
+        finally:
+            _delete_storage_path(path)
