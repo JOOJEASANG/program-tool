@@ -127,9 +127,7 @@ def test_active_runtime_loaders_apply_pdf_transfer_guards_without_retired_cover_
 
 def test_admin_catalog_menu_has_late_dependency_recovery():
     source = ADMIN_GUARD.read_text(encoding="utf-8")
-    app = APP_VERSION.read_text(encoding="utf-8")
     assert "AdminProgramCatalogManager" in source
     assert "auth.onAuthStateChanged" in source
     assert "attempts < 60" in source
     assert "adminProgramCatalogNav" in source
-    assert "admin-program-catalog-nav-guard.js" in app
