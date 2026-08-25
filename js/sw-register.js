@@ -2,7 +2,7 @@
   if(window.__programStudioRuntimeBoot)return;
   window.__programStudioRuntimeBoot=true;
 
-  const VERSION='2026.08.25.011';
+  const VERSION='2026.08.25.012';
   const CACHE_PREFIX='program-studio-';
   const CLEANUP_KEY='program-studio-legacy-runtime-cleanup-'+VERSION;
   const currentPath=location.pathname.replace(/\/+$/,'')||'/';
@@ -243,6 +243,7 @@
           .then(()=>load('pdfUtilityFinalizeScriptV1','/js/pdf-utility-finalize.js?v=20260818-3'))
           .then(()=>load('pdfAllInOneStage1ScriptV1','/js/pdf-all-in-one-stage1.js?v=20260824-1'))
           .then(()=>load('pdfPrintReadinessScriptV1','/js/pdf-print-readiness.js?v='+VERSION))
+          .then(()=>load('pdfPrintAutoFixScriptV1','/js/pdf-print-auto-fix.js?v='+VERSION))
       );
     }
     return Promise.allSettled(tasks);
