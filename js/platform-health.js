@@ -39,6 +39,8 @@
       if(detail.source)safeDetail.source=safePath(detail.source);
       if(Number.isFinite(Number(detail.line)))safeDetail.line=Number(detail.line);
       if(Number.isFinite(Number(detail.column)))safeDetail.column=Number(detail.column);
+      if(Number.isFinite(Number(detail.failed)))safeDetail.failed=Math.max(0,Number(detail.failed));
+      if(Number.isFinite(Number(detail.total)))safeDetail.total=Math.max(0,Number(detail.total));
     }
     events.push({
       time:new Date().toISOString(),
@@ -167,6 +169,18 @@
     });
   }
 
+  function showRuntimeSummary(detail){
+    const failed=Math.max(0,Number(detail?.failed)||0);
+    if(!failed)return;
+    record('runtime-startup-failure',{failed,total:Number(detail?.total)||0});
+    showNotice('runtime-failure',{
+      message:'일부 기능 초기화에 실패했습니다. 작업을 시작하기 전에 새로고침해 주세요.',
+      tone:'error',
+      actionLabel:'새로고침',
+      onAction:()=>location.reload()
+    });
+  }
+
   function init(){
     ensureUi();
     syncNetworkState();
@@ -178,6 +192,7 @@
   window.addEventListener('offline',syncNetworkState);
   window.addEventListener('program-studio-version-changed',event=>showVersionNotice(event.detail));
   window.addEventListener('programstudio:runtime-script-result',event=>showRuntimeFailure(event.detail));
+  window.addEventListener('programstudio:runtime-ready',event=>showRuntimeSummary(event.detail));
   window.addEventListener('error',event=>{
     if(event.target&&event.target!==window){
       const source=event.target.src||event.target.href||'';
