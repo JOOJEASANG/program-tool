@@ -1,8 +1,8 @@
-// Cover preview visual cleanup: keep one clear label per cover zone.
+// Cover preview visual cleanup: move labels outside the trim area and color-code each zone.
 (function(){
   'use strict';
-  if(window.__designEditorCoverPreviewCleanupV1)return;
-  window.__designEditorCoverPreviewCleanupV1=true;
+  if(window.__designEditorCoverPreviewCleanupV2)return;
+  window.__designEditorCoverPreviewCleanupV2=true;
 
   const params=new URLSearchParams(location.search);
   if(params.get('embed')!=='1'||params.get('mode')!=='cover')return;
@@ -10,52 +10,64 @@
   const STYLE_ID='designCoverPreviewCleanupStyles';
 
   function install(){
-    if(document.getElementById(STYLE_ID))return true;
-    const style=document.createElement('style');
+    let style=document.getElementById(STYLE_ID);
+    if(style)style.remove();
+    style=document.createElement('style');
     style.id=STYLE_ID;
     style.textContent=`
-      /* The base editor already draws panel names. Cover mode has its own richer
-         zone labels, so showing both creates duplicate badges around the spine. */
+      /* Cover mode has its own zone labels. Hide the base panel badges so labels
+         are never drawn twice around the spine. */
       .panel-guide-label{display:none!important}
 
-      /* Keep the three cover zones visually quiet and let the fold lines define
-         the actual back/spine/front boundaries. */
-      .cover-preview-zone{overflow:hidden!important}
-      .cover-preview-zone-label{
-        top:6px!important;
-        z-index:4!important;
-        padding:2px 6px!important;
-        border-color:#cbd5e1!important;
-        background:rgba(255,255,255,.97)!important;
-        box-shadow:0 1px 3px rgba(15,23,42,.08)!important;
-        color:#475569!important;
-        line-height:1.25!important;
-      }
+      /* The labels intentionally sit outside the artboard/trim line in the
+         viewport padding. Keep every layer overflow-visible so the outside
+         badges are never clipped. */
+      #designCoverPreviewZones{overflow:visible!important}
+      .cover-preview-zone{overflow:visible!important;box-sizing:border-box!important;background:rgba(255,255,255,0)!important}
 
-      /* A spine can be only a few millimetres wide. Its badge must be allowed to
-         extend outside the narrow zone, and is lowered so it cannot collide with
-         the back/front labels on the top guide row. */
-      .cover-preview-zone[data-zone="spine"]{
-        overflow:visible!important;
-        z-index:3!important;
-      }
-      .cover-preview-zone[data-zone="spine"]>.cover-preview-zone-label{
-        top:22px!important;
+      /* The colored zone borders replace the visually competing generic fold
+         guides in cover mode. Back = green, spine = orange, front = blue. */
+      .fold-guide{display:none!important}
+      .cover-preview-zone[data-zone="back"]{border:1.5px solid #22a06b!important}
+      .cover-preview-zone[data-zone="spine"]{border:1.5px solid #e59b23!important;z-index:3!important}
+      .cover-preview-zone[data-zone="front"]{border:1.5px solid #2f80ed!important}
+
+      /* All three labels share one clean row above the preview line. This keeps
+         the words completely away from trim/safe/fold guides. */
+      .cover-preview-zone-label{
+        top:-28px!important;
+        left:50%!important;
+        z-index:6!important;
         max-width:none!important;
         min-width:max-content!important;
-        padding:2px 7px!important;
-        background:#fff!important;
-        border-color:#94a3b8!important;
-        color:#334155!important;
+        padding:3px 8px!important;
+        border-radius:999px!important;
+        background:rgba(255,255,255,.98)!important;
+        box-shadow:0 2px 7px rgba(15,23,42,.12)!important;
+        font-size:7.5px!important;
+        font-weight:950!important;
+        line-height:1.2!important;
+        white-space:nowrap!important;
+      }
+      .cover-preview-zone[data-zone="back"]>.cover-preview-zone-label{
+        border:1px solid #22a06b!important;color:#11724d!important
+      }
+      .cover-preview-zone[data-zone="spine"]>.cover-preview-zone-label{
+        border:1px solid #e59b23!important;color:#9a5d08!important
+      }
+      .cover-preview-zone[data-zone="front"]>.cover-preview-zone-label{
+        border:1px solid #2f80ed!important;color:#1d5fb8!important
       }
 
-      /* Safety boxes stay behind labels and remain intentionally lighter than
-         the solid fold/trim boundaries. */
-      .cover-preview-zone-safe{z-index:1!important;border-color:rgba(100,116,139,.42)!important}
-      .cover-preview-zone-safe[data-zone="spine"]{border-color:rgba(71,85,105,.5)!important}
+      /* Safety guides use the same family as their zone but stay lighter than
+         the primary border so the hierarchy remains obvious. */
+      .cover-preview-zone-safe{z-index:1!important;background:transparent!important}
+      .cover-preview-zone-safe[data-zone="back"]{border:1px dashed rgba(34,160,107,.48)!important}
+      .cover-preview-zone-safe[data-zone="spine"]{border:1px dashed rgba(229,155,35,.55)!important}
+      .cover-preview-zone-safe[data-zone="front"]{border:1px dashed rgba(47,128,237,.48)!important}
     `;
     document.head.appendChild(style);
-    document.documentElement.dataset.coverPreviewCleanup='1';
+    document.documentElement.dataset.coverPreviewCleanup='2';
     return true;
   }
 
