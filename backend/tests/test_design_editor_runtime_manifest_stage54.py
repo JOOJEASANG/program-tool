@@ -93,6 +93,9 @@ def test_runtime_loader_reports_failures_without_mislabeling_them_loaded():
     assert "programstudio:runtime-script-result" in source
     assert "node.dataset.failed=status" in source
     assert "if(status==='loaded')" in source
-    assert "script.addEventListener('error',()=>done('error')" in source
-    assert "setTimeout(()=>done('timeout'),1200)" in source
+    assert "const onError=()=>done('error')" in source
+    assert "script.addEventListener('error',onError,{once:true})" in source
+    assert "const SCRIPT_TIMEOUT_MS=8000" in source
+    assert "setTimeout(()=>done('timeout'),SCRIPT_TIMEOUT_MS)" in source
+    assert "reject(runtimeLoadError(id,src,status))" in source
     assert "const done=()=>{script.dataset.loaded='true';resolve()}" not in source
