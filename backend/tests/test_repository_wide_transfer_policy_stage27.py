@@ -79,16 +79,20 @@ def test_pdf_editor_and_persistent_session_each_enforce_500mb_working_set():
     assert "원본 PDF 전체 합계는 최대 500MB" in session
 
 
-def test_storage_rules_allow_owner_staging_without_duplicate_program_gate():
+def test_storage_rules_gate_owner_staging_with_matching_program_access():
     rules = STORAGE_RULES.read_text(encoding="utf-8")
     assert "request.resource.size <= 524288000" in rules
 
     pdf_temp = rules[rules.index("match /pdf_temp/"):rules.index("match /preflight_temp/")]
     preflight_temp = rules[rules.index("match /preflight_temp/"):rules.index("match /pdf_sessions/")]
-    for block in (pdf_temp, preflight_temp):
-        assert "allow read, delete: if isOwner(userId);" in block
-        assert "allow create, update: if isOwner(userId) && isPdfUpload();" in block
-        assert "canUseProgram(" not in block
+
+    assert "allow read, delete: if isOwner(userId);" in pdf_temp
+    assert "canUseProgram('pdf-editor')" in pdf_temp
+    assert "isPdfUpload()" in pdf_temp
+
+    assert "allow read, delete: if isOwner(userId);" in preflight_temp
+    assert "canUseProgram('preflight')" in preflight_temp
+    assert "isPdfUpload()" in preflight_temp
 
     main = MAIN.read_text(encoding="utf-8")
     assert "require_program_access_for_request" in main
@@ -123,7 +127,9 @@ def test_active_runtime_loaders_apply_pdf_transfer_guards_without_retired_cover_
 
 def test_admin_catalog_menu_has_late_dependency_recovery():
     source = ADMIN_GUARD.read_text(encoding="utf-8")
+    app = APP_VERSION.read_text(encoding="utf-8")
     assert "AdminProgramCatalogManager" in source
     assert "auth.onAuthStateChanged" in source
     assert "attempts < 60" in source
     assert "adminProgramCatalogNav" in source
+    assert "admin-program-catalog-nav-guard.js" in app
