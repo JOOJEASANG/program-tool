@@ -6,17 +6,17 @@ STORAGE_RULES = ROOT / "storage.rules"
 PERMISSIONS = ROOT / "backend" / "utils" / "permissions.py"
 
 
-def test_storage_rules_keep_program_access_policy_for_persistent_pdf_resources():
+def test_storage_rules_require_account_approval_for_program_resources():
     rules = STORAGE_RULES.read_text(encoding="utf-8")
     backend = PERMISSIONS.read_text(encoding="utf-8")
 
-    assert "function isPublicProgram(programId)" in rules
-    assert "/documents/settings/programs" in rules
-    assert ".data.public[programId] == true" in rules
     assert "function canUseProgram(programId)" in rules
-    assert "isApproved() || isPublicProgram(programId)" in rules
+    assert "return isApproved();" in rules
+    assert "function isPublicProgram(programId)" not in rules
+    assert ".data.public[programId] == true" not in rules
 
-    assert 'public.get(program_id) is True' in backend
+    assert 'return permission_data.get("status") == "approved"' in backend
+    assert '.get("public")' not in backend
 
 
 def test_pdf_utility_temp_storage_requires_matching_program_access_before_staging():
@@ -26,7 +26,8 @@ def test_pdf_utility_temp_storage_requires_matching_program_access_before_stagin
     preflight_temp_start = rules.index("match /preflight_temp/{userId}/{sessionId}/{fileName}")
     pdf_temp_block = rules[pdf_temp_start:preflight_temp_start]
 
-    assert "allow read, delete: if isOwner(userId);" in pdf_temp_block
+    assert "allow read: if isOwner(userId) && canUseProgram('pdf-editor');" in pdf_temp_block
+    assert "allow delete: if isOwner(userId);" in pdf_temp_block
     assert "allow create, update: if isOwner(userId)" in pdf_temp_block
     assert "canUseProgram('pdf-editor')" in pdf_temp_block
     assert "isPdfUpload()" in pdf_temp_block
@@ -41,7 +42,8 @@ def test_preflight_temp_storage_requires_matching_program_access_before_staging(
     end = rules.index("match /pdf_sessions/{userId}/{sessionId}/{fileName}")
     block = rules[start:end]
 
-    assert "allow read, delete: if isOwner(userId);" in block
+    assert "allow read: if isOwner(userId) && canUseProgram('preflight');" in block
+    assert "allow delete: if isOwner(userId);" in block
     assert "allow create, update: if isOwner(userId)" in block
     assert "canUseProgram('preflight')" in block
     assert "isPdfUpload()" in block
@@ -60,7 +62,7 @@ def test_saved_sessions_still_require_pdf_editor_program_access():
 def test_generated_results_can_be_removed_immediately_by_owner():
     rules = STORAGE_RULES.read_text(encoding="utf-8")
     start = rules.index("match /pdf_results/{userId}/{resultId}/{fileName}")
-    end = rules.index("match /cover_templates/{templateId}/{fileName}")
+    end = rules.index("match /design_projects/{userId}/{projectId}/{fileName}")
     block = rules[start:end]
 
     assert "allow delete: if isOwner(userId);" in block
