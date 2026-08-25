@@ -14,12 +14,13 @@
     <!-- 작업 종류: 표지디자인 · 포스터 · 전단지 · 2단 리플렛 · 3단 리플렛 · 사용자 지정 -->
     <!-- Retired compatibility URL only; it redirects here and is not an editor fallback: /perfect-binding-cover/?embed=1&mode=cover -->
     <div id="loading" class="loading"><div><div class="spinner"></div>디자인 편집기를 불러오는 중...</div></div>
-    <iframe id="editorFrame" class="editor-frame" title="디자인 편집 작업영역" src="/design-editor/general?embed=1&mode=cover&preset=cover-a4"></iframe>
+    <iframe id="editorFrame" class="editor-frame" title="디자인 편집 작업영역" src="/design-editor/general?embed=1&mode=cover&preset=cover-a4&foldRuntime=20260825-2"></iframe>
   </main>
   <script>
     (function(){
       'use strict';
       const frame=document.getElementById('editorFrame'),loading=document.getElementById('loading'),shell=document.getElementById('unifiedDesignShell');
+      const FOLD_RUNTIME_VERSION='20260825-2';
       const DEFAULTS={
         cover:{mode:'cover',preset:'cover-a4'},
         poster:{mode:'poster',preset:'poster-a4',paper:'a4',orientation:'portrait',w:210,h:297},
@@ -33,11 +34,28 @@
       function route(detail={}){
         const mode=safeMode(detail.mode),data={...DEFAULTS[mode],...detail,mode};
         shell.dataset.mode=mode;
-        if(mode==='cover')return '/design-editor/general?embed=1&mode=cover&preset=cover-a4';
+        if(mode==='cover')return `/design-editor/general?embed=1&mode=cover&preset=cover-a4&foldRuntime=${FOLD_RUNTIME_VERSION}`;
         const width=clampNumber(data.w??data.width,DEFAULTS[mode].w||210),height=clampNumber(data.h??data.height,DEFAULTS[mode].h||297);
-        const query=new URLSearchParams({embed:'1',mode,preset:data.preset||DEFAULTS[mode].preset,paper:data.paper||'custom',orientation:data.orientation||'portrait',w:String(width),h:String(height)});
+        const query=new URLSearchParams({embed:'1',mode,preset:data.preset||DEFAULTS[mode].preset,paper:data.paper||'custom',orientation:data.orientation||'portrait',w:String(width),h:String(height),foldRuntime:FOLD_RUNTIME_VERSION});
         if(mode==='leaflet3')query.set('fold',data.fold||data.preset||'leaflet-3-roll');
         return `/design-editor/general?${query.toString()}`;
+      }
+      function ensureFoldRuntime(){
+        try{
+          const doc=frame.contentDocument,win=frame.contentWindow;
+          if(!doc?.head||!win)return false;
+          if(win.DesignEditorPrintFoldRuntimeEnsure?.refresh){win.DesignEditorPrintFoldRuntimeEnsure.refresh();return true;}
+          let script=doc.getElementById('designPrintFoldRuntimeEnsureScriptV1');
+          if(!script){
+            script=doc.createElement('script');
+            script.id='designPrintFoldRuntimeEnsureScriptV1';
+            script.src=`/js/design-editor/print-fold-runtime-ensure.js?v=${FOLD_RUNTIME_VERSION}`;
+            script.async=false;
+            doc.head.appendChild(script);
+          }
+          script.addEventListener('load',()=>win.DesignEditorPrintFoldRuntimeEnsure?.refresh?.(),{once:true});
+          return true;
+        }catch(_){return false;}
       }
       function openMode(detail){loading.classList.remove('hide');frame.src=route(detail);}
       window.addEventListener('message',event=>{
@@ -45,9 +63,13 @@
         const data=event.data||{};
         if(data.type==='program-studio-design-mode')openMode(data);
       });
-      frame.addEventListener('load',()=>loading.classList.add('hide'));
+      frame.addEventListener('load',()=>{
+        ensureFoldRuntime();
+        [80,240,600,1200,2400].forEach(delay=>setTimeout(ensureFoldRuntime,delay));
+        loading.classList.add('hide');
+      });
       setTimeout(()=>loading.classList.add('hide'),2600);
-      window.UnifiedDesignShell={openMode,route,stage:'single-sidebar-general-engine-shell-no-legacy-fallback'};
+      window.UnifiedDesignShell={openMode,route,ensureFoldRuntime,stage:'single-sidebar-general-engine-shell-with-direct-fold-runtime'};
     })();
   </script>
 </body>
