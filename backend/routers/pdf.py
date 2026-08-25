@@ -160,6 +160,40 @@ def _validate_pdf_request(req: PdfProcessRequest, file_bytes_list: list[bytes]) 
             doc.close()
 
 
+def _invalid_pdf_names(file_bytes_list: list[bytes], filenames: list[str]) -> list[str]:
+    """Return every corrupt/unsupported PDF name without stopping at the first file."""
+    invalid: list[str] = []
+    for index, data in enumerate(file_bytes_list):
+        document = None
+        try:
+            document = fitz.open(stream=data, filetype="pdf")
+            if document.page_count < 1:
+                invalid.append(filenames[index])
+        except Exception:
+            invalid.append(filenames[index])
+        finally:
+            if document is not None:
+                document.close()
+    return invalid
+
+
+def _format_upload_issues(
+    invalid_types: list[str],
+    too_large: list[str],
+    invalid_pdfs: list[str],
+) -> str:
+    parts: list[str] = []
+    if invalid_types:
+        parts.append("PDF 형식이 아닌 파일: " + ", ".join(invalid_types))
+    if too_large:
+        parts.append(
+            f"{_max_file_mb()} MB 초과 파일: " + ", ".join(too_large)
+        )
+    if invalid_pdfs:
+        parts.append("유효하지 않은 PDF: " + ", ".join(invalid_pdfs))
+    return "업로드 파일 검증 실패 — " + " / ".join(parts)
+
+
 def _validate_pdf_paths(req: PdfProcessRequest, file_paths: list[str | Path]) -> None:
     _validate_request_shape(req, len(file_paths))
     docs: list[fitz.Document] = []
@@ -226,30 +260,38 @@ def process(uid):
         )
 
     file_bytes_list: list[bytes] = []
+    filenames: list[str] = []
+    invalid_types: list[str] = []
+    too_large: list[str] = []
     total_bytes = 0
-    for uploaded in files:
-        filename = uploaded.filename or ""
+    for index, uploaded in enumerate(files):
+        filename = uploaded.filename or f"파일 {index + 1}"
         if not filename.lower().endswith(".pdf"):
-            return _error_response(
-                f"PDF 파일만 처리할 수 있습니다. ({filename})",
-                400,
-                "PDF_INVALID_FILE_TYPE",
-            )
-        data = uploaded.read()
+            invalid_types.append(filename)
+            continue
+        data = uploaded.read(MAX_PDF_FILE_BYTES + 1)
         if len(data) > MAX_PDF_FILE_BYTES:
-            return _error_response(
-                f"파일이 {_max_file_mb()} MB를 초과합니다. ({filename})",
-                413,
-                "PDF_FILE_TOO_LARGE",
-            )
+            too_large.append(filename)
+            continue
         total_bytes += len(data)
-        if total_bytes > MAX_DIRECT_TOTAL_PDF_BYTES:
-            return _error_response(
-                f"직접 업로드 전체 용량은 최대 {_max_direct_total_mb()} MB까지 처리할 수 있습니다",
-                413,
-                "PDF_TOTAL_TOO_LARGE",
-            )
         file_bytes_list.append(data)
+        filenames.append(filename)
+
+    invalid_pdfs = _invalid_pdf_names(file_bytes_list, filenames)
+    if invalid_types or too_large or invalid_pdfs:
+        detail = _format_upload_issues(invalid_types, too_large, invalid_pdfs)
+        if too_large:
+            return _error_response(detail, 413, "PDF_FILE_TOO_LARGE")
+        if invalid_types:
+            return _error_response(detail, 400, "PDF_INVALID_FILE_TYPE")
+        return _error_response(detail, 400, "PDF_VALIDATION_FAILED")
+
+    if total_bytes > MAX_DIRECT_TOTAL_PDF_BYTES:
+        return _error_response(
+            f"직접 업로드 전체 용량은 최대 {_max_direct_total_mb()} MB까지 처리할 수 있습니다",
+            413,
+            "PDF_TOTAL_TOO_LARGE",
+        )
 
     try:
         _validate_pdf_request(req, file_bytes_list)
