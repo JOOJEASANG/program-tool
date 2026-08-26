@@ -13,16 +13,21 @@
     return '';
   })();
 
-  function loadDesignPrintProductionStage2(){
-    if(!(['/design-editor/general','/design-editor/general.html'].some(item=>path.endsWith(item))))return;
-    if(document.getElementById('designPrintProductionStage2ScriptV1'))return;
+  function isGeneralDesignEditor(){
+    return ['/design-editor/general','/design-editor/general.html'].some(item=>path.endsWith(item));
+  }
+
+  function loadDesignRuntimeScript(id,src){
+    if(!isGeneralDesignEditor()||document.getElementById(id))return;
     const script=document.createElement('script');
-    script.id='designPrintProductionStage2ScriptV1';
-    script.src='/js/design-editor/print-production-stage2.js?v=20260826-1';
+    script.id=id;
+    script.src=src;
     script.async=false;
     document.head.appendChild(script);
   }
-  loadDesignPrintProductionStage2();
+
+  loadDesignRuntimeScript('designTextAutoFitScriptV1','/js/design-editor/text-auto-fit.js?v=20260826-1');
+  loadDesignRuntimeScript('designPrintProductionStage2ScriptV1','/js/design-editor/print-production-stage2.js?v=20260826-1');
 
   root.classList.add('app-booting');
   if(protectedProgram)root.dataset.approvalRequired='true';
