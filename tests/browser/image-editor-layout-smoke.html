@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>Image Editor Layout Smoke</title>
+  <link rel="stylesheet" href="/css/image-editor.css?v=20260823-2">
+  <link rel="stylesheet" href="/css/image-editor-workflow.css?v=20260823-3">
+  <link rel="stylesheet" href="/css/image-editor-pro.css?v=20260826-1">
+  <link rel="stylesheet" href="/css/image-editor-pdf-layout.css?v=20260826-2">
+</head>
+<body class="image-editor-pro" data-image-layout-smoke="pending">
+  <header class="app-header"><a class="home-link">← 홈</a><div class="brand-block"><strong>이미지 편집기</strong></div><div class="header-actions"><button>저장</button></div></header>
+  <main class="workspace">
+    <aside class="sidebar"><section class="tool-card upload-card"><div class="tool-title">이미지</div><button class="wide">이미지 불러오기</button></section></aside>
+    <section class="stage-wrap">
+      <div class="stage-toolbar"><span class="stage-metric primary">이미지 정보 —</span></div>
+      <div id="dropZone" class="drop-zone"><div id="emptyState" class="empty-state"><strong>편집할 이미지를 놓아주세요</strong></div><div id="canvasViewport" class="canvas-viewport" hidden><div class="canvas-shell"><canvas></canvas></div></div></div>
+      <footer class="status-bar">상태</footer>
+    </section>
+  </main>
+  <div id="result">PENDING</div>
+  <script>
+  (()=>{
+    const result=document.getElementById('result');
+    const fail=error=>{document.body.dataset.imageLayoutSmoke='fail';result.textContent='FAIL: '+String(error?.message||error)};
+    const assert=(condition,message)=>{if(!condition)throw new Error(message)};
+    try{
+      const viewport=document.getElementById('canvasViewport');
+      const drop=document.getElementById('dropZone');
+      assert(getComputedStyle(viewport).display==='none','hidden canvas viewport is visible');
+      const dropBg=getComputedStyle(drop).backgroundColor;
+      const rgb=(dropBg.match(/\d+/g)||[]).slice(0,3).map(Number);
+      assert(rgb.length===3&&rgb.reduce((a,b)=>a+b,0)>500,'preview work surface is too dark');
+      viewport.hidden=false;
+      assert(getComputedStyle(viewport).display!=='none','canvas viewport stays hidden after enabling');
+      assert(document.querySelector('.pro-badge')===null,'PRO badge should not be present');
+      document.body.dataset.imageLayoutSmoke='pass';
+      result.textContent='PASS: PDF-style layout, bright preview surface and correct hidden canvas state';
+    }catch(error){fail(error)}
+  })();
+  </script>
+</body>
+</html>
