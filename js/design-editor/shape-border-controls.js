@@ -12,14 +12,56 @@
   let installed=false;
   let syncTimer=0;
   let saveTimer=0;
+  let heartbeat=0;
+  let lastSelectedShapeId='';
 
   const byId=id=>document.getElementById(id);
   const project=()=>window.DesignEditorApp?.project||null;
   function surface(){const p=project();return p?.surfaces?.find(item=>item.id===p.activeSurface)||p?.surfaces?.[0]||null;}
+  const closeEnough=(a,b)=>Math.abs((Number(a)||0)-(Number(b)||0))<.051;
+
+  function nodeForItem(item){
+    if(!item?.id)return null;
+    const nodes=document.querySelectorAll('.phase2-extra-object[data-extra-id]');
+    return [...nodes].find(node=>node.dataset.extraId===item.id)||null;
+  }
+
+  function shapeFromInspector(){
+    const inspector=byId('inspector'),s=surface();
+    if(!inspector||!s||!inspector.querySelector('[data-extra-field="fill"]')||!inspector.querySelector('[data-extra-field="strokeWidth"]'))return null;
+    const candidates=(s.extras||[]).filter(item=>item?.type==='shape'&&item.shape!=='line');
+    if(!candidates.length)return null;
+    if(lastSelectedShapeId){
+      const remembered=candidates.find(item=>item.id===lastSelectedShapeId);
+      if(remembered)return remembered;
+    }
+    const values={};
+    ['x','y','w','h'].forEach(field=>{values[field]=inspector.querySelector(`[data-extra-field="${field}"]`)?.value;});
+    const matched=candidates.filter(item=>['x','y','w','h'].every(field=>values[field]==null||values[field]===''||closeEnough(item[field],values[field])));
+    if(matched.length===1)return matched[0];
+    return candidates.length===1?candidates[0]:null;
+  }
+
   function selectedShape(){
-    const node=document.querySelector('.phase2-extra-object.selected[data-extra-id]');if(!node)return null;
-    const item=surface()?.extras?.find(entry=>entry.id===node.dataset.extraId&&entry.type==='shape');
-    return item?{item,node}:null;
+    const s=surface();if(!s)return null;
+    const selectedNode=document.querySelector('.phase2-extra-object.selected[data-extra-id]');
+    if(selectedNode){
+      const item=(s.extras||[]).find(entry=>entry.id===selectedNode.dataset.extraId&&entry.type==='shape');
+      if(item){lastSelectedShapeId=item.id;return{item,node:selectedNode,source:'canvas'};}
+    }
+    const layer=document.querySelector('[data-phase2-layer].on');
+    if(layer){
+      const item=(s.extras||[]).find(entry=>entry.id===layer.dataset.phase2Layer&&entry.type==='shape');
+      if(item){lastSelectedShapeId=item.id;return{item,node:nodeForItem(item),source:'layer'};}
+    }
+    const inferred=shapeFromInspector();
+    if(inferred){lastSelectedShapeId=inferred.id;return{item:inferred,node:nodeForItem(inferred),source:'inspector'};}
+    if(lastSelectedShapeId){
+      const item=(s.extras||[]).find(entry=>entry.id===lastSelectedShapeId&&entry.type==='shape');
+      const node=nodeForItem(item);
+      if(item&&node?.classList.contains('selected'))return{item,node,source:'remembered'};
+    }
+    return null;
   }
 
   function persist(source='shape-border'){
@@ -67,7 +109,8 @@
   }
 
   function refreshRenderedShape(item,node){
-    if(!item||!node||item.shape==='line')return;
+    if(!item||item.shape==='line')return;
+    node=node||nodeForItem(item);if(!node)return;
     const inner=node.querySelector('.phase2-shape-inner');if(!inner)return;
     if(borderEnabled(item)){
       const scale=Math.max(.001,(byId('artboard')?.getBoundingClientRect().width||1)/Math.max(1,(Number(project()?.width)||1)+(Number(project()?.bleed)||0)*2));
@@ -77,11 +120,11 @@
   }
 
   function patchInspector(record){
-    const {item,node}=record;normalizeLegacy(item);refreshRenderedShape(item,node);
+    const {item}=record;normalizeLegacy(item);refreshRenderedShape(item,record.node);
     if(item.shape==='line'){byId(CONTROL_ID)?.remove();return;}
     const inspector=byId('inspector');if(!inspector)return;
     let row=byId(CONTROL_ID);
-    if(!row){
+    if(!row||!inspector.contains(row)){
       row=document.createElement('div');row.id=CONTROL_ID;row.className='shape-border-toggle-row';
       row.innerHTML='<label class="shape-border-toggle"><span>테두리 선</span><span><input id="designShapeBorderToggle" type="checkbox"> 표시</span></label><div id="designShapeBorderState" class="shape-border-state"></div>';
       const widthField=inspector.querySelector('[data-extra-field="strokeWidth"]')?.closest('.field');
@@ -121,7 +164,7 @@
     window.DesignEditorPhase2?.sync?.();
     window.DesignEditorQuickDesign?.sync?.();
     window.DesignEditorCanvasQuickbar?.sync?.();
-    setTimeout(sync,30);
+    [0,35,120].forEach(delay=>setTimeout(sync,delay));
     setStatus(enabled?'도형 테두리를 표시합니다.':'도형 테두리를 없앴습니다. 출력 파일에도 테두리가 그려지지 않습니다.','ok');
     return true;
   }
@@ -135,24 +178,26 @@
 
   function sync(){
     const record=selectedShape();
-    if(!record){byId(CONTROL_ID)?.remove();return;}
-    patchInspector(record);
+    if(!record){byId(CONTROL_ID)?.remove();return false;}
+    patchInspector(record);return true;
   }
   function queueSync(){clearTimeout(syncTimer);syncTimer=setTimeout(()=>requestAnimationFrame(sync),30);}
   function bindEvents(){
     ['click','dblclick','change','keyup','pointerup'].forEach(name=>document.addEventListener(name,event=>{if(event.target?.closest?.(`#${CONTROL_ID}`))return;queueSync();},false));
     document.addEventListener('input',event=>{rememberStrokeColor(event);if(!event.target?.closest?.(`#${CONTROL_ID}`))queueSync();},false);
     const inspector=byId('inspector');if(inspector)new MutationObserver(queueSync).observe(inspector,{childList:true,subtree:true});
-    const board=byId('artboard');if(board)new MutationObserver(queueSync).observe(board,{childList:true,subtree:true});
+    const board=byId('artboard');if(board)new MutationObserver(queueSync).observe(board,{childList:true,subtree:true,attributes:true,attributeFilter:['class','data-extra-id']});
+    heartbeat=window.setInterval(()=>{if(document.visibilityState!=='hidden')sync();},700);
+    window.addEventListener('pagehide',()=>{if(heartbeat)clearInterval(heartbeat);heartbeat=0;},{once:true});
   }
 
   function install(){
     if(installed)return true;
     if(!byId('inspector')||!byId('artboard')||!window.DesignEditorApp)return false;
     installed=true;installStyles();bindEvents();
-    window.DesignEditorShapeBorderControls={setBorderEnabled,borderEnabled,currentStrokeColor,transparentStroke:TRANSPARENT_STROKE,stage:'shape-border-none-screen-and-print-safe'};
-    [100,260,620,1100,1800,2800].forEach(delay=>setTimeout(queueSync,delay));return true;
+    window.DesignEditorShapeBorderControls={setBorderEnabled,borderEnabled,currentStrokeColor,transparentStroke:TRANSPARENT_STROKE,reconcile:sync,getSelectedShapeId:()=>selectedShape()?.item?.id||'',stage:'shape-border-none-screen-and-print-safe'};
+    [60,120,260,520,900,1500,2400,3600].forEach(delay=>setTimeout(queueSync,delay));return true;
   }
-  function boot(){if(install())return;[140,320,700,1200,2000,3200].forEach(delay=>setTimeout(install,delay));}
+  function boot(){if(install())return;[100,220,480,850,1400,2200,3400].forEach(delay=>setTimeout(install,delay));}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
