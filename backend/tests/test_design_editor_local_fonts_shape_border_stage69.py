@@ -28,6 +28,13 @@ def test_stage69_local_fonts_are_permission_gated_and_not_uploaded():
     assert "firebase.storage" not in source
 
 
+def test_stage69_local_font_permission_request_is_bound_to_explicit_user_button():
+    source = LOCAL_FONTS.read_text(encoding="utf-8")
+    assert "id=\"designLocalFontLoad\"" in source
+    assert "addEventListener('click',queryFonts)" in source
+    assert "async function queryFonts()" in source
+
+
 def test_stage69_local_font_output_guard_blocks_missing_pc_fonts():
     source = LOCAL_FONTS.read_text(encoding="utf-8")
     assert "designPngBtn" in source
