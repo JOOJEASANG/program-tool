@@ -35,12 +35,17 @@
     return rect.x<fold+FOLD_BUFFER_MM&&rect.x+rect.w>fold-FOLD_BUFFER_MM;
   }
 
+  function crossesFoldY(rect,fold){
+    return rect.y<fold+FOLD_BUFFER_MM&&rect.y+rect.h>fold-FOLD_BUFFER_MM;
+  }
+
   function inspectSurface(){
     const p=project(),current=surface();
     if(!p||!current)return{issues:[],count:0,fixableCount:0};
     const safe=clamp(Number(p.safe)||0,0,Math.min(Number(p.width)||0,Number(p.height)||0)/2);
     const width=Math.max(0,Number(p.width)||0),height=Math.max(0,Number(p.height)||0);
     const folds=(current.folds||[]).map(Number).filter(Number.isFinite);
+    const foldsY=(current.foldsY||[]).map(Number).filter(Number.isFinite);
     const issues=[];
 
     (current.elements||[]).filter(item=>item?.visible!==false&&item?.type==='text').forEach(item=>{
@@ -49,6 +54,7 @@
       if(outside)issues.push({id:item.id,type:'text',kind:'safe',label:'글씨가 안전여백 밖에 있습니다.',fixable:true});
       if((Number(item.size)||0)<MIN_TEXT_PT)issues.push({id:item.id,type:'text',kind:'small-text',label:`글씨가 ${MIN_TEXT_PT}pt보다 작습니다.`,fixable:true});
       if(folds.some(fold=>crossesFold(rect,fold)))issues.push({id:item.id,type:'text',kind:'fold',label:'글씨가 접지선 가까이에 있습니다.',fixable:false});
+      if(foldsY.some(fold=>crossesFoldY(rect,fold)))issues.push({id:item.id,type:'text',kind:'fold-y',label:'글씨가 상하 접지선 가까이에 있습니다.',fixable:false});
     });
 
     (current.extras||[]).filter(item=>item?.visible!==false&&item?.type==='image').forEach(item=>{
@@ -56,6 +62,7 @@
       const outside=rect.x<safe-.2||rect.y<safe-.2||rect.x+rect.w>width-safe+.2||rect.y+rect.h>height-safe+.2;
       if(outside)issues.push({id:item.id,type:'image',kind:'image-safe',label:'이미지가 안전여백 밖에 있습니다.',fixable:false});
       if(folds.some(fold=>crossesFold(rect,fold)))issues.push({id:item.id,type:'image',kind:'fold',label:'이미지가 접지선 가까이에 있습니다.',fixable:false});
+      if(foldsY.some(fold=>crossesFoldY(rect,fold)))issues.push({id:item.id,type:'image',kind:'fold-y',label:'이미지가 상하 접지선 가까이에 있습니다.',fixable:false});
     });
 
     return{issues,count:issues.length,fixableCount:issues.filter(issue=>issue.fixable).length};
@@ -89,7 +96,7 @@
   function render(summary){
     const body=byId('designPrintSafetyBody');if(!body)return;
     if(!summary.count){
-      body.innerHTML='<div class="print-safety-head"><div class="print-safety-title">현재 면 안전</div><span class="print-safety-badge">문제 없음</span></div><div class="print-safety-note">글자 크기 · 안전여백 · 접지선 위치를 자동으로 확인했습니다.</div>';
+      body.innerHTML='<div class="print-safety-head"><div class="print-safety-title">현재 면 안전</div><span class="print-safety-badge">문제 없음</span></div><div class="print-safety-note">글자 크기 · 안전여백 · 좌우/상하 접지선 위치를 자동으로 확인했습니다.</div>';
       return;
     }
     const unique=[];const seen=new Set();
