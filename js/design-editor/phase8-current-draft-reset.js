@@ -14,7 +14,6 @@
   const HEADER_BUTTON_ID='designGlobalResetBtn';
   const CARD_BUTTON_ID='designCurrentDraftResetBtn';
   const CARD_WRAP_ID='designCurrentDraftResetWrap';
-  let observer=null;
   let installTimer=0;
   let resetting=false;
 
@@ -197,17 +196,10 @@
     installTimer=setTimeout(()=>install(),delay);
   }
 
-  function observe(){
-    if(observer||typeof MutationObserver!=='function')return;
-    observer=new MutationObserver(records=>{
-      if(records.some(record=>record.type==='childList'))queueInstall(30);
-    });
-    observer.observe(document.documentElement,{childList:true,subtree:true});
-  }
-
   function boot(){
-    install();observe();
+    install();
     [80,180,360,700,1200,2200,3600].forEach(delay=>setTimeout(install,delay));
+    ['click','change'].forEach(name=>document.addEventListener(name,()=>queueInstall(30),false));
     window.addEventListener('programstudio:design-mode-change',()=>queueInstall(20));
     window.addEventListener('designeditor:project-restored',()=>queueInstall(20));
   }
