@@ -56,6 +56,8 @@ def test_stage69_shape_border_none_uses_transparent_stroke_for_real_output():
     source = SHAPE_BORDER.read_text(encoding="utf-8")
     assert "TRANSPARENT_STROKE='rgba(0,0,0,0)'" in source
     assert "strokeDisabled" in source
+    assert "strokeColorBeforeNone" in source
+    assert "item.stroke=TRANSPARENT_STROKE" in source
     assert "inner.style.border='none'" in source
     assert "300DPI PNG/PDF" in source
 
