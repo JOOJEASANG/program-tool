@@ -32,8 +32,9 @@ done
 
 if ! grep -q 'data-image-pro-smoke="pass"' "$DOM_OUT"; then echo "Image editor pro browser smoke failed." >&2; cat "$DOM_OUT" >&2; echo "----- HTTP server log -----" >&2; cat "$SERVER_LOG" >&2; exit 1; fi
 if ! grep -q 'PASS: resize presets, adjustment compare, transparent trim, zoom and export estimate' "$DOM_OUT"; then echo "Image editor pro completion marker missing." >&2; cat "$DOM_OUT" >&2; exit 1; fi
-for marker in 'data-pro-trim="140x80"' 'data-pro-zoom="150%"' 'data-pro-stage="image-editor-pro-stage1"'; do
+for marker in 'data-pro-trim="140x80"' 'data-pro-zoom="150%"' 'data-pro-stage="image-editor-pro-stage2-single-flight"'; do
   if ! grep -q "$marker" "$DOM_OUT"; then echo "Image editor pro marker missing: $marker" >&2; cat "$DOM_OUT" >&2; exit 1; fi
 done
 
 echo "Image editor pro browser smoke passed using $BROWSER"
+bash "$ROOT_DIR/scripts/run_app_theme_smoke.sh"

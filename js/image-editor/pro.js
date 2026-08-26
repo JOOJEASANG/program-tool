@@ -23,6 +23,8 @@
   let compareSnapshot=null;
   let estimateTimer=0;
   let estimateToken=0;
+  let estimateFlight=null;
+  let estimateFlightKey='';
 
   const $=id=>document.getElementById(id);
   const clamp=(value,min,max)=>Math.max(min,Math.min(max,value));
@@ -213,21 +215,41 @@
 
   function exportFormatLabel(mime){return mime==='image/jpeg'?'JPEG':mime==='image/webp'?'WebP':'PNG';}
 
+  function estimateKey(state,mime,quality){
+    const adjustments=state.adjustments||{};
+    return [state.width,state.height,mime,quality,adjustments.brightness,adjustments.contrast,adjustments.saturation].join('|');
+  }
+
   async function updateExportEstimate(){
+    clearTimeout(estimateTimer);estimateTimer=0;
     const editor=api(),state=editor?.getState?.(),node=$('exportEstimate');if(!node)return null;
     if(!state?.loaded){node.textContent='이미지를 불러오면 저장 예상 용량을 표시합니다.';node.dataset.tone='idle';return null;}
     const pixels=state.width*state.height,mime=$('exportFormat')?.value||'image/png',quality=clamp((Number($('exportQuality')?.value)||92)/100,.1,1);
     if(pixels>ESTIMATE_MAX_PIXELS){
       node.textContent=`${exportFormatLabel(mime)} · ${(pixels/1_000_000).toFixed(1)}MP · 대용량 이미지는 저장할 때 최종 용량을 계산합니다.`;node.dataset.tone='large';return null;
     }
+    const key=estimateKey(state,mime,quality);
+    if(estimateFlight&&estimateFlightKey===key)return estimateFlight;
     const token=++estimateToken;node.textContent='저장 예상 용량 계산 중…';node.dataset.tone='working';
-    try{
-      const blob=await editor.exportBlob(mime,quality);if(token!==estimateToken)return null;
-      node.textContent=`예상 ${formatBytes(blob.size)} · ${exportFormatLabel(mime)} · ${state.width.toLocaleString()} × ${state.height.toLocaleString()}px`;node.dataset.tone='ready';return blob.size;
-    }catch(error){if(token===estimateToken){node.textContent='예상 용량을 계산하지 못했습니다. 저장 기능은 그대로 사용할 수 있습니다.';node.dataset.tone='warn';}return null;}
+    const flight=(async()=>{
+      try{
+        const blob=await editor.exportBlob(mime,quality);if(token!==estimateToken)return null;
+        node.textContent=`예상 ${formatBytes(blob.size)} · ${exportFormatLabel(mime)} · ${state.width.toLocaleString()} × ${state.height.toLocaleString()}px`;node.dataset.tone='ready';return blob.size;
+      }catch(error){
+        if(token===estimateToken){node.textContent='예상 용량을 계산하지 못했습니다. 저장 기능은 그대로 사용할 수 있습니다.';node.dataset.tone='warn';}
+        return null;
+      }finally{
+        if(estimateFlight===flight){estimateFlight=null;estimateFlightKey='';}
+      }
+    })();
+    estimateFlight=flight;estimateFlightKey=key;
+    return flight;
   }
 
-  function scheduleEstimate(delay=650){clearTimeout(estimateTimer);estimateTimer=setTimeout(updateExportEstimate,delay);}
+  function scheduleEstimate(delay=650){
+    clearTimeout(estimateTimer);
+    estimateTimer=setTimeout(()=>{estimateTimer=0;void updateExportEstimate();},delay);
+  }
 
   function restoreExportPrefs(){
     try{
@@ -291,6 +313,6 @@
   root.ImageEditorPro={
     setFitZoom,setZoom,nudgeZoom,resizePreset,applyAdjustmentPreset,beginCompare,endCompare,opaqueBounds,trimTransparentMargins,updateExportEstimate,updateMetrics,
     presets:{adjustments:ADJUST_PRESETS,resize:RESIZE_PRESETS},
-    stage:'image-editor-pro-stage1'
+    stage:'image-editor-pro-stage2-single-flight'
   };
 })(window);
