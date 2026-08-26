@@ -42,13 +42,13 @@ if ! grep -q 'data-shape-border-smoke="pass"' "$DOM_OUT"; then
   cat "$SERVER_LOG" >&2
   exit 1
 fi
-if ! grep -q 'PASS: shape border toggle removes and restores border in editor and real 300DPI render' "$DOM_OUT"; then
-  echo "Shape border completion marker is missing." >&2
+if ! grep -q 'data-shape-border-stage="shape-border-none-screen-and-print-safe"' "$DOM_OUT"; then
+  echo "Shape border runtime stage marker is missing." >&2
   cat "$DOM_OUT" >&2
   exit 1
 fi
-if ! grep -q 'data-shape-border-stage="shape-border-none-screen-and-print-safe"' "$DOM_OUT"; then
-  echo "Shape border runtime stage marker is missing." >&2
+if ! grep -q 'data-disabled-pixel="255,0,0"' "$DOM_OUT" || ! grep -q 'data-enabled-pixel="0,0,0"' "$DOM_OUT" || ! grep -q 'data-ellipse-pixel="0,0,255"' "$DOM_OUT"; then
+  echo "Shape border 300DPI pixel verification markers are missing." >&2
   cat "$DOM_OUT" >&2
   exit 1
 fi
