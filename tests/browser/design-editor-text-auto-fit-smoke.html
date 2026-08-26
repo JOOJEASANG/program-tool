@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>Design Editor Text Auto Fit Smoke</title>
+  <style>
+    *{box-sizing:border-box}
+    body{font-family:Arial,sans-serif;margin:0;padding:10px}
+    #artboard{position:relative;width:648px;height:909px;background:#fff}
+    .design-object{position:absolute;min-height:10px;border:1px solid transparent;padding:2px 3px;line-height:1.26}
+    .design-text-inner{display:flex;align-items:flex-start;gap:.28em;width:100%;min-height:1.3em}
+    .editable-text{display:block;flex:1;min-width:0;white-space:pre-wrap;overflow-wrap:anywhere;outline:none}
+    .design-prefix-icon{width:1em;height:1em;flex:0 0 1em;margin-top:.12em}
+    .field label{display:block}
+  </style>
+  <script>
+    history.replaceState(null,'','/design-editor/general.html?text-auto-fit-smoke=1');
+    const project={
+      width:210,height:297,bleed:3,safe:6,activeSurface:'front',designMode:'cover',
+      surfaces:[
+        {id:'front',elements:[
+          {id:'title1',type:'text',role:'title',text:'짧은 제목',fontFamily:'Arial',size:32,weight:800,align:'center',color:'#111827',icon:'none',x:15,y:20,w:180,visible:true},
+          {id:'body1',type:'text',role:'body',text:'본문',fontFamily:'Arial',size:14,weight:400,align:'left',color:'#111827',icon:'none',x:20,y:55,w:130,visible:true}
+        ]},
+        {id:'back',elements:[
+          {id:'back1',type:'text',role:'subtitle',text:'뒷면 자동 맞춤',fontFamily:'Arial',size:18,weight:700,align:'right',color:'#111827',icon:'none',x:10,y:40,w:170,visible:true}
+        ]}
+      ]
+    };
+    window.DesignEditorApp={get project(){return project;}};
+    window.DesignEditorDraftScope={saveCurrent(){return true;}};
+  </script>
+</head>
+<body data-text-auto-fit-smoke="pending">
+  <div id="result">PENDING</div>
+  <div id="inspector"><div class="field"><label>글상자 폭 mm</label><input id="widthInput" value="180"></div></div>
+  <div id="artboard">
+    <div class="design-object design-text selected" data-id="title1" style="left:54px;top:69px;width:540px;font-family:Arial,sans-serif;font-weight:800;font-size:45.155px;text-align:center"><div class="design-text-inner"><span class="editable-text">짧은 제목</span></div></div>
+    <div class="design-object design-text" data-id="body1" style="left:69px;top:174px;width:390px;font-family:Arial,sans-serif;font-weight:400;font-size:19.753px;text-align:left"><div class="design-text-inner"><span class="editable-text">본문</span></div></div>
+  </div>
+  <script src="/js/design-editor/text-auto-fit.js?v=20260826-1"></script>
+  <script>
+    (async()=>{
+      const result=document.getElementById('result');
+      const fail=error=>{document.body.dataset.textAutoFitSmoke='fail';result.textContent='FAIL: '+String(error?.stack||error?.message||error)};
+      const pass=message=>{document.body.dataset.textAutoFitSmoke='pass';result.textContent='PASS: '+message};
+      const assert=(condition,message)=>{if(!condition)throw new Error(message)};
+      const waitFor=async(predicate,label,timeout=8000)=>{const started=Date.now();while(Date.now()-started<timeout){if(predicate())return;await new Promise(resolve=>setTimeout(resolve,35))}throw new Error('timeout: '+label)};
+      const settle=()=>new Promise(resolve=>setTimeout(resolve,120));
+      try{
+        await waitFor(()=>window.DesignEditorTextAutoFit,'auto fit runtime');
+        await settle();
+        const title=project.surfaces[0].elements[0],body=project.surfaces[0].elements[1],back=project.surfaces[1].elements[0];
+        const originalCenter=15+180/2;
+        assert(title.w<80,'short centered title box did not shrink');
+        assert(Math.abs((title.x+title.w/2)-originalCenter)<.35,'centered title moved while auto fitting');
+        assert(body.w<60,'left-aligned body box did not shrink');
+        assert(Math.abs(body.x-20)<.1,'left-aligned body x changed');
+        assert(back.w<100,'inactive-surface text was not auto fitted');
+        assert(document.getElementById('widthInput').disabled===true,'manual width input was not disabled');
+        assert(document.querySelector('#inspector label').textContent.includes('자동'),'auto width label is missing');
+
+        const titleNode=document.querySelector('[data-id="title1"]');
+        const textNode=titleNode.querySelector('.editable-text');
+        const shortWidth=title.w;
+        const centerBeforeLong=title.x+title.w/2;
+        title.text='이 제목은 자동 폭이 더 길어져야 합니다 ABC 12345';
+        textNode.textContent=title.text;
+        textNode.dispatchEvent(new Event('input',{bubbles:true}));
+        await settle();
+        assert(title.w>shortWidth+20,'longer text did not grow the box');
+        assert(Math.abs((title.x+title.w/2)-centerBeforeLong)<.35,'center anchor changed after growing');
+
+        const longWidth=title.w;
+        const centerBeforeShort=title.x+title.w/2;
+        title.text='짧게';textNode.textContent=title.text;textNode.dispatchEvent(new Event('input',{bubbles:true}));
+        await settle();
+        assert(title.w<longWidth-20,'shorter text did not shrink the box');
+        assert(Math.abs((title.x+title.w/2)-centerBeforeShort)<.35,'center anchor changed after shrinking');
+
+        const noIconWidth=title.w;
+        title.icon='calendar';window.DesignEditorTextAutoFit.sync();await settle();
+        assert(title.w>noIconWidth,'icon width was not included in auto fit');
+        const noSpacingWidth=title.w;
+        title.letterSpacing=1;window.DesignEditorTextAutoFit.sync();await settle();
+        assert(title.w>noSpacingWidth,'letter spacing was not included in auto fit');
+
+        document.body.dataset.titleWidth=title.w.toFixed(2);
+        document.body.dataset.bodyWidth=body.w.toFixed(2);
+        document.body.dataset.backWidth=back.w.toFixed(2);
+        document.body.dataset.autoStage=window.DesignEditorTextAutoFit.stage;
+        pass('all-design text box width follows rendered text and preserves alignment anchors');
+      }catch(error){fail(error)}
+    })();
+  </script>
+</body>
+</html>
