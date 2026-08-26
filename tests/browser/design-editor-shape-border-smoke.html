@@ -20,48 +20,80 @@
   <div id="artboard"></div>
   <script src="/js/design-editor/phase2.js?v=20260821-1"></script>
   <script src="/js/design-editor/output.js?v=20260821-1"></script>
-  <script src="/js/design-editor/shape-border-controls.js?v=20260827-1"></script>
+  <script src="/js/design-editor/shape-border-controls.js?v=20260827-2"></script>
   <script>
     (async()=>{
       const result=document.getElementById('result');
       const fail=error=>{document.body.dataset.shapeBorderSmoke='fail';result.textContent='FAIL: '+String(error?.stack||error?.message||error)};
       const pass=message=>{document.body.dataset.shapeBorderSmoke='pass';result.textContent='PASS: '+message};
       const assert=(condition,message)=>{if(!condition)throw new Error(message)};
-      const waitFor=async(predicate,label,timeout=8000)=>{const started=Date.now();while(Date.now()-started<timeout){if(predicate())return;await new Promise(resolve=>setTimeout(resolve,35))}throw new Error('timeout: '+label)};
+      const waitFor=async(predicate,label,timeout=9000)=>{const started=Date.now();while(Date.now()-started<timeout){if(predicate())return;await new Promise(resolve=>setTimeout(resolve,35))}throw new Error('timeout: '+label)};
       const pixelAt=(canvas,x,y)=>canvas.getContext('2d').getImageData(Math.max(0,Math.min(canvas.width-1,Math.round(x))),Math.max(0,Math.min(canvas.height-1,Math.round(y))),1,1).data;
+      const borderIsNone=()=>{const node=document.querySelector('.phase2-extra-object.selected .phase2-shape-inner');return Boolean(node&&getComputedStyle(node).borderStyle==='none');};
+      const pxPerMm=300/25.4;
       try{
         await waitFor(()=>window.DesignEditorPhase2&&window.DesignEditorOutput&&window.DesignEditorShapeBorderControls,'shape runtimes');
+        const api=window.DesignEditorShapeBorderControls;
+        assert(api.stage==='shape-border-none-screen-and-print-safe','runtime stage mismatch');
+
         window.DesignEditorPhase2.addShape('rect');
         await waitFor(()=>project.surfaces[0].extras.length===1&&document.querySelector('.phase2-extra-object.selected'),'rectangle add');
-        const item=project.surfaces[0].extras[0];item.fill='#ff0000';item.stroke='#000000';item.strokeWidth=2;window.DesignEditorPhase2.sync();
-        await waitFor(()=>document.getElementById('designShapeBorderToggle'),'border toggle');
-        const api=window.DesignEditorShapeBorderControls,toggle=document.getElementById('designShapeBorderToggle');
-        assert(api.stage==='shape-border-none-screen-and-print-safe','runtime stage mismatch');
-        assert(toggle.checked===true,'border should start enabled');
+        const rect=project.surfaces[0].extras[0];rect.fill='#ff0000';rect.stroke='#000000';rect.strokeWidth=2;window.DesignEditorPhase2.sync();
+        await waitFor(()=>document.getElementById('designShapeBorderToggle'),'rectangle border toggle');
+        assert(api.getSelectedShapeId()===rect.id,'selected rectangle resolution failed');
+        assert(document.getElementById('designShapeBorderToggle').checked===true,'rectangle border should start enabled');
+
+        // Base Phase2 rebuilds the inspector. The extension must restore its control afterwards.
+        window.DesignEditorPhase2.sync();
+        await waitFor(()=>document.getElementById('designShapeBorderToggle'),'border toggle after inspector rebuild');
+        const toggle=document.getElementById('designShapeBorderToggle');
         toggle.checked=false;toggle.dispatchEvent(new Event('change',{bubbles:true}));
-        await waitFor(()=>item.strokeDisabled===true&&item.stroke==='rgba(0,0,0,0)','disable border');
-        await waitFor(()=>document.querySelector('.phase2-extra-object.selected .phase2-shape-inner')?.style.border==='none','screen border none');
+        await waitFor(()=>rect.strokeDisabled===true&&rect.stroke==='rgba(0,0,0,0)','disable rectangle border');
+        await waitFor(borderIsNone,'rectangle screen border none');
         assert(document.getElementById('designShapeBorderState').textContent.includes('300DPI'),'print guidance missing');
         assert(document.querySelector('[data-extra-field="stroke"]').disabled===true,'stroke color input not disabled');
         assert(document.querySelector('[data-extra-field="strokeWidth"]').disabled===true,'stroke width input not disabled');
 
         const disabledRender=await window.DesignEditorOutput.renderSurface(project,project.surfaces[0]);
-        const pxPerMm=300/25.4;
-        const sampleX=(project.bleed+item.x+item.w/2)*pxPerMm;
-        const sampleY=(project.bleed+item.y+.5)*pxPerMm;
-        const noBorder=pixelAt(disabledRender.canvas,sampleX,sampleY);
-        assert(noBorder[0]>200&&noBorder[1]<70&&noBorder[2]<70,'disabled border still appears in 300DPI output');
+        const rectSampleX=(project.bleed+rect.x+rect.w/2)*pxPerMm;
+        const rectSampleY=(project.bleed+rect.y+.5)*pxPerMm;
+        const noBorder=pixelAt(disabledRender.canvas,rectSampleX,rectSampleY);
+        assert(noBorder[0]>200&&noBorder[1]<70&&noBorder[2]<70,'disabled rectangle border still appears in 300DPI output');
+
+        const savedProject=JSON.parse(JSON.stringify(project));
+        const savedRender=await window.DesignEditorOutput.renderSurface(savedProject,savedProject.surfaces[0]);
+        const savedNoBorder=pixelAt(savedRender.canvas,rectSampleX,rectSampleY);
+        assert(savedProject.surfaces[0].extras[0].strokeDisabled===true,'strokeDisabled was not preserved in saved project data');
+        assert(savedNoBorder[0]>200&&savedNoBorder[1]<70&&savedNoBorder[2]<70,'saved borderless rectangle regained a border in 300DPI output');
 
         api.setBorderEnabled(true);
-        await waitFor(()=>item.strokeDisabled===false&&item.stroke==='#000000','enable border');
+        await waitFor(()=>rect.strokeDisabled===false&&rect.stroke==='#000000','restore rectangle border');
         const enabledRender=await window.DesignEditorOutput.renderSurface(project,project.surfaces[0]);
-        const withBorder=pixelAt(enabledRender.canvas,sampleX,sampleY);
-        assert(withBorder[0]<90&&withBorder[1]<90&&withBorder[2]<90,'restored border missing from 300DPI output');
+        const withBorder=pixelAt(enabledRender.canvas,rectSampleX,rectSampleY);
+        assert(withBorder[0]<90&&withBorder[1]<90&&withBorder[2]<90,'restored rectangle border missing from 300DPI output');
+
+        window.DesignEditorPhase2.addShape('ellipse');
+        await waitFor(()=>project.surfaces[0].extras.length===2&&api.getSelectedShapeId()===project.surfaces[0].extras[1].id,'ellipse selection');
+        const ellipse=project.surfaces[0].extras[1];ellipse.fill='#0000ff';ellipse.stroke='#00ff00';ellipse.strokeWidth=2;window.DesignEditorPhase2.sync();
+        await waitFor(()=>document.getElementById('designShapeBorderToggle'),'ellipse border toggle');
+        api.setBorderEnabled(false);
+        await waitFor(()=>ellipse.strokeDisabled===true&&borderIsNone(),'ellipse border none');
+        const ellipseRender=await window.DesignEditorOutput.renderSurface(project,project.surfaces[0]);
+        const ellipseSampleX=(project.bleed+ellipse.x+ellipse.w/2)*pxPerMm;
+        const ellipseSampleY=(project.bleed+ellipse.y+1)*pxPerMm;
+        const ellipseNoBorder=pixelAt(ellipseRender.canvas,ellipseSampleX,ellipseSampleY);
+        assert(ellipseNoBorder[2]>150&&ellipseNoBorder[0]<120&&ellipseNoBorder[1]<120,'disabled ellipse border does not render as fill-only at 300DPI');
+
+        window.DesignEditorPhase2.addShape('line');
+        await waitFor(()=>project.surfaces[0].extras.length===3&&document.querySelector('.phase2-extra-object.selected'),'line add');
+        await waitFor(()=>!document.getElementById('designShapeBorderToggle'),'line should not show border-none toggle');
+
         await waitFor(()=>saveCount>0,'draft save');
         document.body.dataset.disabledPixel=Array.from(noBorder.slice(0,3)).join(',');
         document.body.dataset.enabledPixel=Array.from(withBorder.slice(0,3)).join(',');
+        document.body.dataset.ellipsePixel=Array.from(ellipseNoBorder.slice(0,3)).join(',');
         document.body.dataset.shapeBorderStage=api.stage;
-        pass('shape border toggle removes and restores border in editor and real 300DPI render');
+        pass('rectangle/ellipse border-none, inspector rebuild, saved project and real 300DPI render are stable');
       }catch(error){fail(error)}
     })();
   </script>

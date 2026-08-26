@@ -62,6 +62,16 @@ def test_stage69_shape_border_none_uses_transparent_stroke_for_real_output():
     assert "300DPI PNG/PDF" in source
 
 
+def test_stage69_shape_border_control_recovers_after_phase2_inspector_rebuild():
+    source = SHAPE_BORDER.read_text(encoding="utf-8")
+    assert "lastSelectedShapeId" in source
+    assert "shapeFromInspector" in source
+    assert "data-phase2-layer" in source
+    assert "getSelectedShapeId" in source
+    assert "MutationObserver(queueSync)" in source
+    assert "setInterval" in source
+
+
 def test_stage69_browser_suite_runs_both_new_smokes():
     source = RUNNER.read_text(encoding="utf-8")
     assert "run_design_editor_local_fonts_smoke.sh" in source
