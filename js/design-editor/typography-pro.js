@@ -207,14 +207,17 @@
 
   function applyPreview(){
     const current=surface(),p=project();if(!current||!p)return;
-    const px=scale();
+    const px=scale(),bleed=Number(p.bleed)||0;
     document.querySelectorAll('.design-text[data-id]').forEach(node=>{
       const item=current.elements?.find(entry=>entry.id===node.dataset.id&&entry.type==='text');if(!item)return;
       const editable=node.querySelector('.editable-text');
+      node.style.fontFamily=`"${String(item.fontFamily||'Pretendard').replace(/"/g,'')}",Pretendard,"Malgun Gothic",sans-serif`;
+      node.style.fontWeight=String(Number(item.weight)||400);
+      node.style.fontSize=`${(Number(item.size)||12)*(25.4/72)*px}px`;
       node.style.lineHeight=String(clamp(Number(item.lineHeight)||1.26,.8,3));
       if(editable)editable.style.letterSpacing=`${(Number(item.letterSpacing)||0)*px}px`;
-      node.style.left=`${(Number(item.x)||0)*px}px`;
-      node.style.top=`${(Number(item.y)||0)*px}px`;
+      node.style.left=`${(bleed+(Number(item.x)||0))*px}px`;
+      node.style.top=`${(bleed+(Number(item.y)||0))*px}px`;
       clearTitleClasses(node);
       const style=TITLE_STYLES.some(([key])=>key===item.titleStyle)?item.titleStyle:'none';
       if(style!=='none')node.classList.add(`typography-title-${style}`);
