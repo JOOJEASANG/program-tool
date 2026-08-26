@@ -12,6 +12,7 @@
     .editable-text{display:block;flex:1;min-width:0;white-space:pre-wrap;overflow-wrap:anywhere;outline:none}
     .design-prefix-icon{width:1em;height:1em;flex:0 0 1em;margin-top:.12em}
     .field label{display:block}
+    .phase3-resize-handle{position:absolute;right:-7px;bottom:-7px;width:13px;height:13px}
   </style>
   <script>
     history.replaceState(null,'','/design-editor/general.html?text-auto-fit-smoke=1');
@@ -38,7 +39,7 @@
     <div class="design-object design-text selected" data-id="title1" style="left:54px;top:69px;width:540px;font-family:Arial,sans-serif;font-weight:800;font-size:45.155px;text-align:center"><div class="design-text-inner"><span class="editable-text">짧은 제목</span></div></div>
     <div class="design-object design-text" data-id="body1" style="left:69px;top:174px;width:390px;font-family:Arial,sans-serif;font-weight:400;font-size:19.753px;text-align:left"><div class="design-text-inner"><span class="editable-text">본문</span></div></div>
   </div>
-  <script src="/js/design-editor/text-auto-fit.js?v=20260826-1"></script>
+  <script src="/js/design-editor/text-auto-fit.js?v=20260826-2"></script>
   <script>
     (async()=>{
       const result=document.getElementById('result');
@@ -53,8 +54,12 @@
         const originalCenter=15+180/2;
         assert(Math.abs((title.x+title.w/2)-originalCenter)<.35,'centered title moved while auto fitting');
         assert(Math.abs(body.x-20)<.1,'left-aligned body x changed');
-        assert(document.getElementById('widthInput').disabled===true,'manual width input was not disabled');
-        assert(document.querySelector('#inspector label').textContent.includes('자동'),'auto width label is missing');
+        const widthInput=document.getElementById('widthInput');
+        assert(widthInput.disabled===false&&widthInput.readOnly===false,'manual width input is not editable');
+        assert(document.querySelector('#inspector .field>label').textContent.includes('자동'),'auto width label is missing');
+        await waitFor(()=>document.getElementById('textBoxAutoWidthInput'),'auto width toggle');
+        const autoToggle=document.getElementById('textBoxAutoWidthInput');
+        assert(autoToggle.checked===true,'auto width should be enabled by default');
 
         const titleNode=document.querySelector('[data-id="title1"]');
         const textNode=titleNode.querySelector('.editable-text');
@@ -79,11 +84,42 @@
         title.letterSpacing=1;window.DesignEditorTextAutoFit.sync();
         await waitFor(()=>title.w>noSpacingWidth+.2,'letter spacing included');
 
+        widthInput.value='70';
+        widthInput.dispatchEvent(new Event('input',{bubbles:true}));
+        await waitFor(()=>title.textBoxWidthMode==='manual'&&Math.abs(title.w-70)<.1,'manual width input');
+        await waitFor(()=>document.querySelector('#inspector .field>label').textContent.includes('직접'),'manual width label');
+        assert(document.getElementById('textBoxAutoWidthInput').checked===false,'auto toggle did not turn off after manual width input');
+        const manualWidth=title.w;
+        title.text='수동 폭에서는 글자가 아주 길어져도 사용자가 지정한 글상자 폭을 그대로 유지해야 합니다 ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        textNode.textContent=title.text;
+        textNode.dispatchEvent(new Event('input',{bubbles:true}));
+        await new Promise(resolve=>setTimeout(resolve,180));
+        assert(Math.abs(title.w-manualWidth)<.1,'manual width was overwritten by automatic fitting');
+
+        const toggle=document.getElementById('textBoxAutoWidthInput');
+        toggle.checked=true;
+        toggle.dispatchEvent(new Event('change',{bubbles:true}));
+        await waitFor(()=>title.textBoxWidthMode==='auto'&&Math.abs(title.w-manualWidth)>2,'return to auto width');
+        assert(document.querySelector('#inspector .field>label').textContent.includes('자동'),'auto label did not return');
+
+        const handle=document.createElement('button');
+        handle.type='button';handle.className='phase3-resize-handle';titleNode.appendChild(handle);
+        await waitFor(()=>handle.title.includes('글상자 폭'),'manual drag handle hint');
+        const dragStartWidth=title.w,dragStartSize=title.size;
+        handle.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,cancelable:true,pointerId:7,clientX:100,clientY:100}));
+        document.dispatchEvent(new PointerEvent('pointermove',{bubbles:true,cancelable:true,pointerId:7,clientX:160,clientY:100}));
+        document.dispatchEvent(new PointerEvent('pointerup',{bubbles:true,cancelable:true,pointerId:7,clientX:160,clientY:100}));
+        await waitFor(()=>title.textBoxWidthMode==='manual'&&title.w>dragStartWidth+10,'manual drag width resize');
+        assert(title.size===dragStartSize,'manual width drag changed font size');
+        assert(handle.style.getPropertyValue('cursor')==='ew-resize','manual width drag cursor missing');
+        assert(document.getElementById('textBoxAutoWidthInput').checked===false,'drag resize did not switch auto width off');
+
         document.body.dataset.titleWidth=title.w.toFixed(2);
         document.body.dataset.bodyWidth=body.w.toFixed(2);
         document.body.dataset.backWidth=back.w.toFixed(2);
+        document.body.dataset.widthMode=title.textBoxWidthMode;
         document.body.dataset.autoStage=window.DesignEditorTextAutoFit.stage;
-        pass('all-design text box width follows rendered text and preserves alignment anchors');
+        pass('text box width supports auto fitting, direct numeric width, drag resize, and return-to-auto mode');
       }catch(error){fail(error)}
     })();
   </script>
