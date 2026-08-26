@@ -19,6 +19,8 @@
     ];
     window.FontFace=class FakeFontFace{constructor(family,buffer){this.family=family;this.buffer=buffer;}async load(){return this;}};
     try{Object.defineProperty(document.fonts,'add',{value:()=>{fontFaceAdds+=1;},configurable:true});}catch(_){try{document.fonts.add=()=>{fontFaceAdds+=1;};}catch(__){}}
+    // Deliberately claim every PSLocal_* family exists. The production guard must
+    // still trust only aliases whose real FontFace load completed in this session.
     try{Object.defineProperty(document.fonts,'check',{value:font=>String(font).includes('PSLocal_'),configurable:true});}catch(_){try{document.fonts.check=font=>String(font).includes('PSLocal_');}catch(__){}}
   </script>
 </head>
@@ -63,13 +65,14 @@
         assert(item.localFontFullName==='테스트고딕 Regular','full name metadata missing');
         assert(fontFaceAdds>=1,'FontFace was not registered');
         assert(api.missingLocalFonts().length===0,'loaded local font reported missing');
-        assert(document.getElementById('designLocalFontState').textContent.includes('연결됨'),'connected status missing');
+        await waitFor(()=>document.getElementById('designLocalFontState')?.textContent.includes('연결됨'),'connected status');
         assert(panel.textContent.includes('상업적 이용')&&panel.textContent.includes('서버나 Firebase로 업로드하지 않습니다'),'license/privacy guidance missing');
         await waitFor(()=>saveCount>0,'draft save');
         await waitFor(()=>autoFitCount>0,'auto-fit sync');
 
         const alias=item.fontFamily;
         item.localFontSource='local';item.localFontRuntimeFamily='PSLocal_missing';item.fontFamily='PSLocal_missing';item.localFontFullName='없는 PC 글꼴';
+        assert(api.missingLocalFonts().length===1,'synthetic document.fonts.check fallback must not count as a loaded PC font');
         let outputClicks=0;document.getElementById('designPngBtn').addEventListener('click',()=>{outputClicks+=1;});
         document.getElementById('designPngBtn').click();
         assert(outputClicks===0,'output was not blocked for missing local font');
