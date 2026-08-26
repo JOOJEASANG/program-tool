@@ -53,7 +53,7 @@
       const outside=rect.x<safe-.2||rect.y<safe-.2||rect.x+rect.w>width-safe+.2||rect.y+rect.h>height-safe+.2;
       if(outside)issues.push({id:item.id,type:'text',kind:'safe',label:'글씨가 안전여백 밖에 있습니다.',fixable:true});
       if((Number(item.size)||0)<MIN_TEXT_PT)issues.push({id:item.id,type:'text',kind:'small-text',label:`글씨가 ${MIN_TEXT_PT}pt보다 작습니다.`,fixable:true});
-      if(folds.some(fold=>crossesFoldX(rect,fold)))issues.push({id:item.id,type:'text',kind:'fold',label:'글씨가 좌우 접지선 가까이에 있습니다.',fixable:false});
+      if(folds.some(fold=>crossesFoldX(rect,fold)))issues.push({id:item.id,type:'text',kind:'fold',label:'글씨가 접지선 가까이에 있습니다.',fixable:false});
       if(foldsY.some(fold=>crossesFoldY(rect,fold)))issues.push({id:item.id,type:'text',kind:'fold-y',label:'글씨가 상하 접지선 가까이에 있습니다.',fixable:false});
     });
 
@@ -61,7 +61,7 @@
       const rect=rectFor(item);
       const outside=rect.x<safe-.2||rect.y<safe-.2||rect.x+rect.w>width-safe+.2||rect.y+rect.h>height-safe+.2;
       if(outside)issues.push({id:item.id,type:'image',kind:'image-safe',label:'이미지가 안전여백 밖에 있습니다.',fixable:false});
-      if(folds.some(fold=>crossesFoldX(rect,fold)))issues.push({id:item.id,type:'image',kind:'fold',label:'이미지가 좌우 접지선 가까이에 있습니다.',fixable:false});
+      if(folds.some(fold=>crossesFoldX(rect,fold)))issues.push({id:item.id,type:'image',kind:'fold',label:'이미지가 접지선 가까이에 있습니다.',fixable:false});
       if(foldsY.some(fold=>crossesFoldY(rect,fold)))issues.push({id:item.id,type:'image',kind:'fold-y',label:'이미지가 상하 접지선 가까이에 있습니다.',fixable:false});
     });
 
@@ -153,7 +153,7 @@
     if(installed)return true;
     if(!document.querySelector('.sidebar')||!byId('artboard')||!window.DesignEditorApp)return false;
     installed=true;installStyles();installCard();bindEvents();
-    window.DesignEditorPrintSafety={inspectSurface,refresh,autoFix,stage:'automatic-print-safety-xy-folds-and-lightweight-autofix',lastSummary:null};
+    window.DesignEditorPrintSafety={inspectSurface,refresh,autoFix,stage:'automatic-print-safety-and-lightweight-autofix',lastSummary:null};
     [120,320,700,1300,2200].forEach(delay=>setTimeout(()=>queueRefresh(),delay));
     return true;
   }
