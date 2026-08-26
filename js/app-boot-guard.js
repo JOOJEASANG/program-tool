@@ -27,6 +27,7 @@
   }
 
   loadDesignRuntimeScript('designTextAutoFitScriptV1','/js/design-editor/text-auto-fit.js?v=20260826-1');
+  loadDesignRuntimeScript('designCurrentDraftResetScriptV2','/js/design-editor/phase8-current-draft-reset.js?v=20260826-2');
   loadDesignRuntimeScript('designPrintProductionStage2ScriptV1','/js/design-editor/print-production-stage2.js?v=20260826-1');
 
   root.classList.add('app-booting');
