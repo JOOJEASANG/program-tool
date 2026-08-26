@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>Design Editor Local Fonts Smoke</title>
+  <style>
+    *{box-sizing:border-box}body{font-family:Arial,sans-serif;margin:0;padding:10px}#artboard{position:relative;width:648px;height:909px;background:#fff}.design-object{position:absolute;padding:2px 3px}.design-text-inner{display:flex;width:100%;min-height:1.3em}.editable-text{display:block;flex:1;min-width:0}.field label{display:block}.hidden{display:none!important}
+  </style>
+  <script>
+    history.replaceState(null,'','/design-editor/general.html?embed=1&local-font-smoke=1');
+    const project={width:210,height:297,bleed:3,safe:6,activeSurface:'front',surfaces:[{id:'front',background:'#fff',elements:[{id:'title1',type:'text',role:'title',text:'PC 폰트 테스트',fontFamily:'Pretendard',size:28,weight:700,align:'left',color:'#172033',icon:'none',x:12,y:20,w:120,visible:true}],extras:[]}]};
+    let saveCount=0,autoFitCount=0,fontFaceAdds=0;
+    window.DesignEditorApp={get project(){return project;}};
+    window.DesignEditorDraftScope={saveCurrent(){saveCount+=1;return true;}};
+    window.DesignEditorTextAutoFit={sync(){autoFitCount+=1;},stage:'smoke-auto-fit'};
+    window.queryLocalFonts=async()=>[
+      {family:'테스트고딕',fullName:'테스트고딕 Regular',postscriptName:'TestGothic-Regular',style:'Regular',blob:async()=>new Blob(['fake-font'],{type:'font/ttf'})},
+      {family:'테스트명조',fullName:'테스트명조 Bold',postscriptName:'TestMyeongjo-Bold',style:'Bold',blob:async()=>new Blob(['fake-font-2'],{type:'font/ttf'})}
+    ];
+    window.FontFace=class FakeFontFace{constructor(family,buffer){this.family=family;this.buffer=buffer;}async load(){return this;}};
+    try{Object.defineProperty(document.fonts,'add',{value:()=>{fontFaceAdds+=1;},configurable:true});}catch(_){try{document.fonts.add=()=>{fontFaceAdds+=1;};}catch(__){}}
+    // Deliberately claim every PSLocal_* family exists. The production guard must
+    // still trust only aliases whose real FontFace load completed in this session.
+    try{Object.defineProperty(document.fonts,'check',{value:font=>String(font).includes('PSLocal_'),configurable:true});}catch(_){try{document.fonts.check=font=>String(font).includes('PSLocal_');}catch(__){}}
+  </script>
+</head>
+<body data-local-font-smoke="pending">
+  <div id="result">PENDING</div>
+  <div id="editorStatus"></div><div id="saveState"></div>
+  <button id="designPngBtn" type="button">PNG</button><button id="designPdfBtn" type="button">PDF</button><button id="designPressPdfBtn" type="button">PRESS</button>
+  <div id="inspector">
+    <div class="field"><label>글꼴</label><select id="fontInput"><option value="Pretendard">Pretendard</option></select></div>
+    <div class="field-grid"><div class="field"><label>글자 크기 pt</label><input id="sizeInput" type="number" value="28"></div><div class="field"><label>굵기</label><select id="weightInput"><option value="700" selected>굵게</option></select></div></div>
+    <div class="field-grid"><div class="field"><label>색상</label><input id="colorInput" type="color" value="#172033"></div><div class="field"><label>글상자 폭 mm</label><input id="widthInput" type="number" value="120"></div></div>
+  </div>
+  <div id="artboard"><div class="design-object design-text selected" data-id="title1" style="left:45px;top:69px;width:360px;font-family:Pretendard;font-weight:700;font-size:39px"><div class="design-text-inner"><span class="editable-text">PC 폰트 테스트</span></div></div></div>
+  <script src="/js/design-editor/typography-pro.js?v=20260827-1"></script>
+  <script src="/js/design-editor/local-fonts.js?v=20260827-1"></script>
+  <script>
+    (async()=>{
+      const result=document.getElementById('result');
+      const fail=error=>{document.body.dataset.localFontSmoke='fail';result.textContent='FAIL: '+String(error?.stack||error?.message||error)};
+      const pass=message=>{document.body.dataset.localFontSmoke='pass';result.textContent='PASS: '+message};
+      const assert=(condition,message)=>{if(!condition)throw new Error(message)};
+      const waitFor=async(predicate,label,timeout=8000)=>{const started=Date.now();while(Date.now()-started<timeout){if(predicate())return;await new Promise(resolve=>setTimeout(resolve,35))}throw new Error('timeout: '+label)};
+      const fire=(node,name)=>node.dispatchEvent(new Event(name,{bubbles:true}));
+      try{
+        await waitFor(()=>window.DesignEditorLocalFonts,'local-font runtime');
+        await waitFor(()=>document.getElementById('designLocalFontPanel'),'local-font panel');
+        const api=window.DesignEditorLocalFonts,item=project.surfaces[0].elements[0],panel=document.getElementById('designLocalFontPanel');
+        assert(api.stage==='permission-gated-local-font-access-with-print-fallback-guard','runtime stage mismatch');
+        assert(api.supported===true,'queryLocalFonts support detection failed');
+        assert(panel.textContent.includes('무료 폰트')&&panel.textContent.includes('내 PC 폰트'),'font source tabs missing');
+        panel.querySelector('[data-local-font-tab="local"]').click();
+        document.getElementById('designLocalFontLoad').click();
+        await waitFor(()=>!document.getElementById('designLocalFontSelect').disabled,'local fonts query');
+        const localSelect=document.getElementById('designLocalFontSelect');
+        assert([...localSelect.options].some(option=>option.value==='TestGothic-Regular'),'queried local font missing');
+        assert(document.getElementById('designLocalFontCount').textContent.includes('2'),'font count missing');
+        const search=document.getElementById('designLocalFontSearch');search.value='명조';fire(search,'input');
+        assert([...localSelect.options].some(option=>option.value==='TestMyeongjo-Bold'),'local font search failed');
+        search.value='';fire(search,'input');localSelect.value='TestGothic-Regular';fire(localSelect,'change');
+        await waitFor(()=>item.localFontSource==='local'&&String(item.fontFamily).startsWith('PSLocal_'),'local font apply');
+        assert(item.localFontPostscriptName==='TestGothic-Regular','postscript metadata missing');
+        assert(item.localFontFullName==='테스트고딕 Regular','full name metadata missing');
+        assert(fontFaceAdds>=1,'FontFace was not registered');
+        assert(api.missingLocalFonts().length===0,'loaded local font reported missing');
+        await waitFor(()=>document.getElementById('designLocalFontState')?.textContent.includes('연결됨'),'connected status');
+        assert(panel.textContent.includes('상업적 이용')&&panel.textContent.includes('서버나 Firebase로 업로드하지 않습니다'),'license/privacy guidance missing');
+        await waitFor(()=>saveCount>0,'draft save');
+        await waitFor(()=>autoFitCount>0,'auto-fit sync');
+
+        const alias=item.fontFamily;
+        item.localFontSource='local';item.localFontRuntimeFamily='PSLocal_missing';item.fontFamily='PSLocal_missing';item.localFontFullName='없는 PC 글꼴';
+        assert(api.missingLocalFonts().length===1,'synthetic document.fonts.check fallback must not count as a loaded PC font');
+        let outputClicks=0;document.getElementById('designPngBtn').addEventListener('click',()=>{outputClicks+=1;});
+        document.getElementById('designPngBtn').click();
+        assert(outputClicks===0,'output was not blocked for missing local font');
+        assert(document.getElementById('editorStatus').textContent.includes('출력을 중단'),'missing-font output warning absent');
+        item.fontFamily=alias;item.localFontRuntimeFamily=alias;item.localFontFullName='테스트고딕 Regular';
+        document.body.dataset.localAlias=alias;
+        document.body.dataset.fontFaceAdds=String(fontFaceAdds);
+        document.body.dataset.saveCount=String(saveCount);
+        document.body.dataset.localFontStage=api.stage;
+        pass('permission-gated PC font list, search, local FontFace application, license warning and missing-font output guard');
+      }catch(error){fail(error)}
+    })();
+  </script>
+</body>
+</html>

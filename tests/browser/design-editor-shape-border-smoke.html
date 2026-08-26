@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>Design Editor Shape Border Smoke</title>
+  <style>
+    *{box-sizing:border-box}body{font-family:Arial,sans-serif;margin:0;padding:10px}.sidebar{width:300px}.side-card{padding:6px}.field{margin:4px}.field-grid{display:grid;grid-template-columns:1fr 1fr}.check-row{display:flex}.hidden{display:none!important}#artboard{position:relative;width:648px;height:909px;background:#fff}.phase2-extra-object{position:absolute}.phase2-shape-inner{width:100%;height:100%}
+  </style>
+  <script>
+    history.replaceState(null,'','/design-editor/general.html?embed=1&shape-border-smoke=1');
+    const project={name:'도형 테두리 테스트',width:210,height:297,bleed:3,safe:6,activeSurface:'front',surfaces:[{id:'front',label:'앞면',background:'#ffffff',elements:[],extras:[]}]};
+    let saveCount=0;
+    window.DesignEditorApp={get project(){return project;}};
+    window.DesignEditorDraftScope={saveCurrent(){saveCount+=1;return true;}};
+  </script>
+</head>
+<body data-shape-border-smoke="pending">
+  <div id="result">PENDING</div><div id="editorStatus"></div><div id="saveState"></div>
+  <aside class="sidebar"><section id="inspector" class="side-card"></section></aside>
+  <div id="artboard"></div>
+  <script src="/js/design-editor/phase2.js?v=20260821-1"></script>
+  <script src="/js/design-editor/output.js?v=20260821-1"></script>
+  <script src="/js/design-editor/shape-border-controls.js?v=20260827-1"></script>
+  <script>
+    (async()=>{
+      const result=document.getElementById('result');
+      const fail=error=>{document.body.dataset.shapeBorderSmoke='fail';result.textContent='FAIL: '+String(error?.stack||error?.message||error)};
+      const pass=message=>{document.body.dataset.shapeBorderSmoke='pass';result.textContent='PASS: '+message};
+      const assert=(condition,message)=>{if(!condition)throw new Error(message)};
+      const waitFor=async(predicate,label,timeout=8000)=>{const started=Date.now();while(Date.now()-started<timeout){if(predicate())return;await new Promise(resolve=>setTimeout(resolve,35))}throw new Error('timeout: '+label)};
+      const pixelAt=(canvas,x,y)=>canvas.getContext('2d').getImageData(Math.max(0,Math.min(canvas.width-1,Math.round(x))),Math.max(0,Math.min(canvas.height-1,Math.round(y))),1,1).data;
+      try{
+        await waitFor(()=>window.DesignEditorPhase2&&window.DesignEditorOutput&&window.DesignEditorShapeBorderControls,'shape runtimes');
+        window.DesignEditorPhase2.addShape('rect');
+        await waitFor(()=>project.surfaces[0].extras.length===1&&document.querySelector('.phase2-extra-object.selected'),'rectangle add');
+        const item=project.surfaces[0].extras[0];item.fill='#ff0000';item.stroke='#000000';item.strokeWidth=2;window.DesignEditorPhase2.sync();
+        await waitFor(()=>document.getElementById('designShapeBorderToggle'),'border toggle');
+        const api=window.DesignEditorShapeBorderControls,toggle=document.getElementById('designShapeBorderToggle');
+        assert(api.stage==='shape-border-none-screen-and-print-safe','runtime stage mismatch');
+        assert(toggle.checked===true,'border should start enabled');
+        toggle.checked=false;toggle.dispatchEvent(new Event('change',{bubbles:true}));
+        await waitFor(()=>item.strokeDisabled===true&&item.stroke==='rgba(0,0,0,0)','disable border');
+        await waitFor(()=>document.querySelector('.phase2-extra-object.selected .phase2-shape-inner')?.style.border==='none','screen border none');
+        assert(document.getElementById('designShapeBorderState').textContent.includes('300DPI'),'print guidance missing');
+        assert(document.querySelector('[data-extra-field="stroke"]').disabled===true,'stroke color input not disabled');
+        assert(document.querySelector('[data-extra-field="strokeWidth"]').disabled===true,'stroke width input not disabled');
+
+        const disabledRender=await window.DesignEditorOutput.renderSurface(project,project.surfaces[0]);
+        const pxPerMm=300/25.4;
+        const sampleX=(project.bleed+item.x+item.w/2)*pxPerMm;
+        const sampleY=(project.bleed+item.y+.5)*pxPerMm;
+        const noBorder=pixelAt(disabledRender.canvas,sampleX,sampleY);
+        assert(noBorder[0]>200&&noBorder[1]<70&&noBorder[2]<70,'disabled border still appears in 300DPI output');
+
+        api.setBorderEnabled(true);
+        await waitFor(()=>item.strokeDisabled===false&&item.stroke==='#000000','enable border');
+        const enabledRender=await window.DesignEditorOutput.renderSurface(project,project.surfaces[0]);
+        const withBorder=pixelAt(enabledRender.canvas,sampleX,sampleY);
+        assert(withBorder[0]<90&&withBorder[1]<90&&withBorder[2]<90,'restored border missing from 300DPI output');
+        await waitFor(()=>saveCount>0,'draft save');
+        document.body.dataset.disabledPixel=Array.from(noBorder.slice(0,3)).join(',');
+        document.body.dataset.enabledPixel=Array.from(withBorder.slice(0,3)).join(',');
+        document.body.dataset.shapeBorderStage=api.stage;
+        pass('shape border toggle removes and restores border in editor and real 300DPI render');
+      }catch(error){fail(error)}
+    })();
+  </script>
+</body>
+</html>
