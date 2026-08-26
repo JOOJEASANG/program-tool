@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>Design Editor Reset All Menus Smoke</title>
+  <style>
+    .sidebar{width:280px}.document-head{display:flex;gap:6px}.document-head>div{flex:1}.mini-action{padding:5px}.side-card{padding:8px}.design-mode-grid{display:flex;gap:3px}
+  </style>
+  <script>
+    history.replaceState(null,'','/design-editor/general.html?embed=1&mode=leaflet2&preset=leaflet-2');
+    const LEGACY_KEY='programTool.designEditor.draft.v1';
+    const PREFIX='programTool.designEditor.draft.v2.';
+    const INDEX_KEY='programTool.designEditor.draft.index.v2';
+    const clone=value=>JSON.parse(JSON.stringify(value));
+    const safe=value=>String(value||'design').toLowerCase().replace(/[^a-z0-9._-]+/g,'-').replace(/^-+|-+$/g,'')||'design';
+    const round=value=>Math.round((Number(value)||0)*10)/10;
+    function scopeForProject(project){
+      let width=Number(project.width),height=Number(project.height);
+      if(project.designMode==='cover'&&project.cover){width=Number(project.cover.trimWidth);height=Number(project.cover.trimHeight);}
+      return `${safe(project.presetId)}.${round(width)}x${round(height)}`;
+    }
+    function keyFor(project){return PREFIX+scopeForProject(project)}
+    function invitationProject(){return{
+      version:1,presetId:'leaflet-2',name:'초대장·안내장 · 297×210mm · 접지 146mm',width:297,height:210,bleed:3,safe:8,showGuides:true,showFolds:true,activeSurface:'outside',designMode:'leaflet2',paper:'a4',orientation:'landscape',
+      printProductMode:'invitation',printProductPages:4,printProductFold:'custom',printProductAxis:'x',printProductFoldPosition:146,printFoldFlipPanel:'top',foldType:'invitation-left-right',
+      surfaces:[
+        {id:'outside',label:'바깥면',folds:[146],panels:['왼쪽 외부','오른쪽 외부'],background:'#ff0000',elements:[{id:'t1',type:'text',text:'삭제할 글씨'}],extras:[{id:'i1',type:'image',assetId:'old-image'}]},
+        {id:'inside',label:'안쪽면',folds:[146],panels:['내용 왼쪽','내용 오른쪽'],background:'#00ff00',elements:[{id:'t2',type:'text',text:'삭제'}],extras:[{id:'s1',type:'shape'}]}
+      ]
+    }}
+    function coverProject(){return{
+      version:1,presetId:'cover-a4',name:'무선제본 전체 표지',width:437.5,height:297,bleed:3,safe:10,showGuides:true,showFolds:true,activeSurface:'cover',designMode:'cover',
+      cover:{trimWidth:210,trimHeight:297,bleed:3,safe:10,pageCount:220,paperCaliper:.1,bindingAdjust:.5,manualSpine:false,spineManual:8.5,spineDirection:'topToBottom',spine:17.5,spreadWidth:437.5,totalWidth:443.5,totalHeight:303,folds:[210,227.5],panels:['뒤표지','책등 17.5mm','앞표지']},
+      surfaces:[{id:'cover',label:'전체 표지',folds:[210,227.5],panels:['뒤표지','책등 17.5mm','앞표지'],background:'#123456',elements:[{id:'coverText',type:'text',text:'표지 글씨'}],extras:[{id:'coverImg',type:'image'}]}]
+    }}
+    function posterProject(){return{
+      version:1,presetId:'poster-a3',name:'A3 포스터',width:297,height:420,bleed:3,safe:12,showGuides:true,showFolds:true,activeSurface:'front',designMode:'poster',paper:'a3',orientation:'portrait',
+      surfaces:[{id:'front',label:'앞면',folds:[],panels:['포스터'],background:'#eeeeee',elements:[{id:'posterText',type:'text',text:'포스터'}],extras:[{id:'posterShape',type:'shape'}]}]
+    }}
+    let current=invitationProject();
+    let saveSources=[];
+    window.DesignEditorApp={
+      get project(){return current},
+      resumeDraft(){const raw=JSON.parse(localStorage.getItem(LEGACY_KEY)||'null');if(raw)current=raw;return Boolean(raw)}
+    };
+    window.DesignEditorDraftScope={
+      scopeForProject,
+      draftKey:keyFor,
+      saveCurrent(source){
+        saveSources.push(source);
+        const savedAt=Date.now(),scope=scopeForProject(current);
+        localStorage.setItem(keyFor(current),JSON.stringify({version:2,savedAt,source,project:clone(current)}));
+        localStorage.setItem(INDEX_KEY,JSON.stringify([{scope,presetId:current.presetId,name:current.name,width:current.designMode==='cover'?current.cover.trimWidth:current.width,height:current.designMode==='cover'?current.cover.trimHeight:current.height,savedAt}]));
+      },
+      listDrafts(){return JSON.parse(localStorage.getItem(INDEX_KEY)||'[]')}
+    };
+    window.DesignEditorRecentDrafts={render(){document.body.dataset.recentRendered='1'}};
+    window.DesignEditorPhase2={sync(){document.body.dataset.phase2Sync='1'}};
+    window.DesignEditorTextAutoFit={sync(){document.body.dataset.textFitSync='1'}};
+    window.DesignEditorPrintProductMenu={render(){document.body.dataset.productRender='1'}};
+  </script>
+</head>
+<body data-reset-smoke="pending">
+  <div id="result">PENDING</div>
+  <aside class="sidebar">
+    <section class="side-card"><div class="document-head"><div><div id="documentTitle">디자인</div><div id="documentMeta"></div></div><button id="newDesignBtn" class="mini-action" type="button">다른 규격</button></div></section>
+    <section id="designEmbeddedModeCard" class="side-card">
+      <div class="design-mode-grid">
+        <button data-print-product="cover">표지</button><button data-print-product="poster">포스터</button><button data-print-product="flyer">전단</button><button data-print-product="invitation">초대장·안내장</button><button data-print-product="leaflet">리플렛</button>
+      </div>
+      <div class="design-mode-options"></div>
+    </section>
+  </aside>
+  <div id="artboard"></div><div id="editorStatus"></div><div id="saveState"></div>
+  <script id="designEditorLeaflet2LayoutScriptV1"></script>
+  <script src="/js/design-editor/phase8-current-draft-reset.js?v=20260826-2"></script>
+  <script>
+    (async()=>{
+      const result=document.getElementById('result');
+      const assert=(value,message)=>{if(!value)throw new Error(message)};
+      const waitFor=async(predicate,label,timeout=5000)=>{const started=Date.now();while(Date.now()-started<timeout){if(predicate())return;await new Promise(resolve=>setTimeout(resolve,25))}throw new Error('timeout: '+label)};
+      const seed=project=>{
+        current=clone(project);saveSources=[];
+        const scope=scopeForProject(current),key=keyFor(current);
+        localStorage.clear();
+        localStorage.setItem(LEGACY_KEY,JSON.stringify(current));
+        localStorage.setItem(key,JSON.stringify({version:2,savedAt:1,source:'dirty',project:clone(current)}));
+        localStorage.setItem(PREFIX+'legacy-alias',JSON.stringify({version:2,savedAt:1,source:'old-alias',project:clone(current)}));
+        localStorage.setItem(INDEX_KEY,JSON.stringify([{scope,presetId:current.presetId,name:'오래된 작업',width:current.width,height:current.height,savedAt:1}]));
+        return {scope,key};
+      };
+      const assertBlank=project=>{
+        assert(project.surfaces.every(surface=>surface.background==='#ffffff'),'surface background was not reset');
+        assert(project.surfaces.every(surface=>Array.isArray(surface.elements)&&surface.elements.length===0),'text elements were not cleared');
+        assert(project.surfaces.every(surface=>Array.isArray(surface.extras)&&surface.extras.length===0),'image/shape extras were not cleared');
+      };
+      try{
+        await waitFor(()=>window.DesignEditorCurrentDraftReset,'reset runtime');
+        await waitFor(()=>document.getElementById('designGlobalResetBtn')&&document.getElementById('designCurrentDraftResetBtn'),'both reset buttons');
+        assert(document.getElementById('designGlobalResetBtn').textContent.includes('초기화'),'header reset label missing');
+        assert(document.getElementById('designCurrentDraftResetBtn').textContent.includes('새 작업'),'mode-card new work label missing');
+        ['cover','poster','flyer','invitation','leaflet'].forEach(product=>{
+          document.documentElement.dataset.printProductMenu=product;
+          assert(document.getElementById('designCurrentDraftResetBtn'),'reset button missing for '+product);
+        });
+
+        let seeded=seed(invitationProject());
+        let resets=0;window.addEventListener('designeditor:project-reset',()=>resets++);
+        assert(window.DesignEditorCurrentDraftReset.resetCurrentDraft({confirm:false,reload:false})===true,'invitation reset returned false');
+        assertBlank(current);
+        assert(current.printProductMode==='invitation'&&current.printProductAxis==='x'&&current.printProductFoldPosition===146&&current.printFoldFlipPanel==='top','invitation configuration changed');
+        assert(current.width===297&&current.height===210&&current.surfaces[0].folds[0]===146,'invitation geometry changed');
+        assert(localStorage.getItem(PREFIX+'legacy-alias')===null,'legacy scoped alias was not removed');
+        const saved=JSON.parse(localStorage.getItem(seeded.key)||'null');
+        assert(saved?.project?.surfaces?.every(surface=>surface.elements.length===0&&surface.extras.length===0),'blank scoped draft was not saved');
+        assert(saveSources.includes('reset-new-work'),'blank reset save source missing');
+        assert(resets===1,'project reset event missing');
+
+        seeded=seed(coverProject());
+        assert(window.DesignEditorCurrentDraftReset.resetCurrentDraft({confirm:false,reload:false})===true,'cover reset returned false');
+        assertBlank(current);
+        assert(current.designMode==='cover'&&current.cover.pageCount===220&&current.cover.spineDirection==='topToBottom','cover settings changed');
+        assert(current.cover.spine===17.5&&current.width===437.5&&current.surfaces[0].folds.join(',')==='210,227.5','cover geometry changed');
+
+        seeded=seed(posterProject());
+        assert(window.DesignEditorCurrentDraftReset.resetCurrentDraft({confirm:false,reload:false})===true,'poster reset returned false');
+        assertBlank(current);
+        assert(current.designMode==='poster'&&current.presetId==='poster-a3'&&current.width===297&&current.height===420,'poster type or size changed');
+
+        document.getElementById('designCurrentDraftResetWrap').remove();
+        document.querySelector('#designEmbeddedModeCard .design-mode-options').replaceChildren(document.createElement('div'));
+        await waitFor(()=>document.getElementById('designCurrentDraftResetBtn'),'reset reinstall after menu rerender');
+        assert(document.querySelectorAll('#designGlobalResetBtn').length===1,'header reset duplicated');
+        assert(document.querySelectorAll('#designCurrentDraftResetBtn').length===1,'mode reset duplicated');
+        assert(document.body.dataset.phase2Sync==='1'&&document.body.dataset.textFitSync==='1'&&document.body.dataset.productRender==='1','editor UI was not refreshed');
+        assert(document.body.dataset.recentRendered==='1','recent draft UI was not refreshed');
+
+        document.body.dataset.resetSmoke='pass';
+        document.body.dataset.resetStage=window.DesignEditorCurrentDraftReset.stage;
+        result.textContent='PASS: reset button is available across all design menus and starts a blank current-spec project';
+      }catch(error){
+        document.body.dataset.resetSmoke='fail';
+        result.textContent='FAIL: '+String(error?.stack||error);
+      }
+    })();
+  </script>
+</body>
+</html>
