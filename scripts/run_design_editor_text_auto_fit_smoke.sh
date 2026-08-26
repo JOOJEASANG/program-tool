@@ -42,15 +42,20 @@ if ! grep -q 'data-text-auto-fit-smoke="pass"' "$DOM_OUT"; then
   cat "$SERVER_LOG" >&2
   exit 1
 fi
-if ! grep -q 'PASS: all-design text box width follows rendered text and preserves alignment anchors' "$DOM_OUT"; then
-  echo "Text auto-fit completion marker is missing." >&2
+if ! grep -q 'PASS: text box width supports auto fitting, direct numeric width, drag resize, and return-to-auto mode' "$DOM_OUT"; then
+  echo "Text auto/manual width completion marker is missing." >&2
   cat "$DOM_OUT" >&2
   exit 1
 fi
-if ! grep -q 'data-auto-stage="all-design-text-box-auto-fit"' "$DOM_OUT"; then
-  echo "Text auto-fit runtime stage marker is missing." >&2
+if ! grep -q 'data-auto-stage="all-design-text-box-auto-and-manual-width"' "$DOM_OUT"; then
+  echo "Text auto/manual width runtime stage marker is missing." >&2
+  cat "$DOM_OUT" >&2
+  exit 1
+fi
+if ! grep -q 'data-width-mode="manual"' "$DOM_OUT"; then
+  echo "Text manual-width final state marker is missing." >&2
   cat "$DOM_OUT" >&2
   exit 1
 fi
 
-echo "Design editor text auto-fit browser smoke passed using $BROWSER"
+echo "Design editor text auto/manual width browser smoke passed using $BROWSER"
