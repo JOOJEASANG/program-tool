@@ -118,12 +118,15 @@
     if(!input)return;
     const surface=activeSurface(),selected=document.querySelector('.design-text.selected[data-id]');
     const entry=surface?.elements?.find(item=>item.id===selected?.dataset.id&&item.type==='text');
-    if(entry)input.value=String(Math.round((Number(entry.w)||0)*10)/10);
-    input.disabled=true;
-    input.readOnly=true;
-    input.title='글자 길이에 따라 자동으로 맞춰집니다.';
+    if(entry){
+      const value=String(Math.round((Number(entry.w)||0)*10)/10);
+      if(input.value!==value)input.value=value;
+    }
+    if(!input.disabled)input.disabled=true;
+    if(!input.readOnly)input.readOnly=true;
+    if(input.title!=='글자 길이에 따라 자동으로 맞춰집니다.')input.title='글자 길이에 따라 자동으로 맞춰집니다.';
     const label=input.closest('.field')?.querySelector('label');
-    if(label)label.textContent='글상자 폭 mm · 자동';
+    if(label&&label.textContent!=='글상자 폭 mm · 자동')label.textContent='글상자 폭 mm · 자동';
   }
 
   function persist(){
@@ -160,25 +163,24 @@
   function queueSync(){
     if(queued)return;
     queued=true;
-    requestAnimationFrame(()=>requestAnimationFrame(()=>{queued=false;syncAll();}));
+    setTimeout(()=>{queued=false;syncAll();},0);
   }
 
   function bindEvents(){
-    const board=document.getElementById('artboard'),inspector=document.getElementById('inspector');
-    if(board||inspector){
+    const board=document.getElementById('artboard');
+    if(board){
       observer=new MutationObserver(()=>queueSync());
-      if(board)observer.observe(board,{childList:true,subtree:true,characterData:true});
-      if(inspector)observer.observe(inspector,{childList:true,subtree:true});
+      observer.observe(board,{childList:true,subtree:true,characterData:true});
     }
     document.addEventListener('input',event=>{
       if(event.target?.matches?.('.editable-text,#textContentInput,#sizeInput,#phase2LetterSpacing,#phase2LineHeight'))queueSync();
-    },true);
+    });
     document.addEventListener('change',event=>{
       if(event.target?.matches?.('#roleInput,#iconInput,#fontInput,#weightInput'))queueSync();
-    },true);
+    });
     document.addEventListener('click',event=>{
       if(event.target?.matches?.('[data-align],#addTitleBtn,#addSubtitleBtn,#addBodyBtn,#addInfoBtn,#inspectorAddTitle,#inspectorAddText'))queueSync();
-    },true);
+    });
     window.addEventListener('resize',queueSync,{passive:true});
     window.addEventListener('designeditor:project-restored',queueSync);
     if(document.fonts?.ready)document.fonts.ready.then(queueSync).catch(()=>{});
