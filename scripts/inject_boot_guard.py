@@ -9,7 +9,6 @@ ROOT = Path(__file__).resolve().parents[1]
 VERSION_FILE = ROOT / "version.json"
 MARKER = "data-program-studio-boot-guard"
 ACCESS_MARKER = "data-program-studio-approval-bootstrap"
-THEME_MARKER = "data-program-studio-theme"
 IMAGE_LAYOUT_MARKER = "data-image-editor-pdf-layout"
 EXCLUDED_PARTS = {".git", "node_modules", "venv", ".venv", "__pycache__"}
 PROTECTED_HTML = {
@@ -60,9 +59,8 @@ def should_inject(path: Path, text: str) -> bool:
     needs_boot = MARKER not in text and (
         approval_required or "sw-register.js" in text or "firebase-config.js" in text
     )
-    needs_theme = approval_required and THEME_MARKER not in text
     needs_image_layout = is_image_editor(path) and IMAGE_LAYOUT_MARKER not in text
-    return needs_boot or needs_theme or needs_image_layout
+    return needs_boot or needs_image_layout
 
 
 def inject_guard(
@@ -77,11 +75,6 @@ def inject_guard(
         tags += (
             f'<script {MARKER} src="/js/app-boot-guard.js?'
             f'v={version}"></script>'
-        )
-    if approval_required and THEME_MARKER not in text:
-        tags += (
-            f'<link {THEME_MARKER} rel="stylesheet" href="/css/app-theme.css?v={version}">'
-            f'<script {THEME_MARKER} src="/js/app-theme.js?v={version}"></script>'
         )
     if image_editor and IMAGE_LAYOUT_MARKER not in text:
         tags += (
