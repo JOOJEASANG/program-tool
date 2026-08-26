@@ -46,13 +46,15 @@
 
       assert(pro.setZoom(150)===true,'zoom did not apply');
       assert(document.getElementById('zoomValue').textContent==='150%','zoom label is wrong');
-      const estimate=await pro.updateExportEstimate();assert(Number(estimate)>0,'export estimate did not produce bytes');
-      assert(document.getElementById('exportEstimate').textContent.includes('예상'),'export estimate text missing');
+      await pro.updateExportEstimate();
+      await waitFor(()=>document.getElementById('exportEstimate').dataset.tone==='ready'&&document.getElementById('exportEstimate').textContent.includes('예상'),'export estimate ready');
+      const estimateText=document.getElementById('exportEstimate').textContent;
+      assert(/예상\s+[\d.,]+\s+(?:B|KB|MB)/.test(estimateText),'export estimate size text missing');
       pro.updateMetrics();assert(document.getElementById('imageInfoBadge').textContent.includes('140'),'image metrics did not update');
 
       document.body.dataset.proTrim=`${state.width}x${state.height}`;
       document.body.dataset.proZoom=document.getElementById('zoomValue').textContent;
-      document.body.dataset.proEstimate=String(estimate);
+      document.body.dataset.proEstimate=estimateText;
       document.body.dataset.proStage=pro.stage;
       pass('resize presets, adjustment compare, transparent trim, zoom and export estimate');
     }catch(error){fail(error)}
