@@ -70,12 +70,25 @@
     document.head.appendChild(style);
   }
 
+  function loadHeroConsole(){
+    if(window.HomeHeroConsoleV2||document.getElementById('homeHeroConsoleV2Script'))return;
+    const script=document.createElement('script');
+    script.id='homeHeroConsoleV2Script';
+    script.src='/js/home-hero-console-v2.js?v=20260826-1';
+    script.async=false;
+    script.addEventListener('error',()=>console.warn('Home hero console could not be loaded.'),{once:true});
+    document.head.appendChild(script);
+  }
+
   function loadPremiumUi(){
-    if(window.HomePremiumUI||document.getElementById('homePremiumUiScriptV1'))return;
+    if(window.HomePremiumUI){loadHeroConsole();return;}
+    const existing=document.getElementById('homePremiumUiScriptV1');
+    if(existing){existing.addEventListener('load',loadHeroConsole,{once:true});return;}
     const script=document.createElement('script');
     script.id='homePremiumUiScriptV1';
     script.src='/js/home-premium-ui.js?v=20260826-1';
     script.async=false;
+    script.addEventListener('load',loadHeroConsole,{once:true});
     script.addEventListener('error',()=>console.warn('Premium home UI could not be loaded.'),{once:true});
     document.head.appendChild(script);
   }
