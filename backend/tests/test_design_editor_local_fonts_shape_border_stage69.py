@@ -35,6 +35,14 @@ def test_stage69_local_font_permission_request_is_bound_to_explicit_user_button(
     assert "async function queryFonts()" in source
 
 
+def test_stage69_local_font_output_guard_requires_real_fontface_load_in_session():
+    source = LOCAL_FONTS.read_text(encoding="utf-8")
+    assert "loadedAliases.add(alias)" in source
+    assert "loadedAliases.has(alias)" in source
+    assert "document.fonts?.check" not in source
+    assert "if(!loaded)throw new Error" in source
+
+
 def test_stage69_local_font_output_guard_blocks_missing_pc_fonts():
     source = LOCAL_FONTS.read_text(encoding="utf-8")
     assert "designPngBtn" in source
