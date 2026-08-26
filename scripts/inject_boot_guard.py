@@ -10,6 +10,7 @@ VERSION_FILE = ROOT / "version.json"
 MARKER = "data-program-studio-boot-guard"
 ACCESS_MARKER = "data-program-studio-approval-bootstrap"
 THEME_MARKER = "data-program-studio-theme"
+IMAGE_LAYOUT_MARKER = "data-image-editor-pdf-layout"
 EXCLUDED_PARTS = {".git", "node_modules", "venv", ".venv", "__pycache__"}
 PROTECTED_HTML = {
     "design-editor/index.html",
@@ -48,6 +49,10 @@ def requires_approval(path: Path) -> bool:
     return relative_path(path) in PROTECTED_HTML
 
 
+def is_image_editor(path: Path) -> bool:
+    return relative_path(path) == "image-editor/index.html"
+
+
 def should_inject(path: Path, text: str) -> bool:
     if any(part in EXCLUDED_PARTS for part in path.parts):
         return False
@@ -56,10 +61,17 @@ def should_inject(path: Path, text: str) -> bool:
         approval_required or "sw-register.js" in text or "firebase-config.js" in text
     )
     needs_theme = approval_required and THEME_MARKER not in text
-    return needs_boot or needs_theme
+    needs_image_layout = is_image_editor(path) and IMAGE_LAYOUT_MARKER not in text
+    return needs_boot or needs_theme or needs_image_layout
 
 
-def inject_guard(text: str, version: str, *, approval_required: bool = False) -> str:
+def inject_guard(
+    text: str,
+    version: str,
+    *,
+    approval_required: bool = False,
+    image_editor: bool = False,
+) -> str:
     tags = ""
     if MARKER not in text:
         tags += (
@@ -70,6 +82,11 @@ def inject_guard(text: str, version: str, *, approval_required: bool = False) ->
         tags += (
             f'<link {THEME_MARKER} rel="stylesheet" href="/css/app-theme.css?v={version}">'
             f'<script {THEME_MARKER} src="/js/app-theme.js?v={version}"></script>'
+        )
+    if image_editor and IMAGE_LAYOUT_MARKER not in text:
+        tags += (
+            f'<link {IMAGE_LAYOUT_MARKER} rel="stylesheet" '
+            f'href="/css/image-editor-pdf-layout.css?v={version}">'
         )
     if approval_required and "firebase-config.js" not in text:
         tags += FIREBASE_APPROVAL_BOOTSTRAP
@@ -92,6 +109,7 @@ def inject_all() -> list[Path]:
             text,
             version,
             approval_required=requires_approval(path),
+            image_editor=is_image_editor(path),
         )
         if updated == text:
             continue
