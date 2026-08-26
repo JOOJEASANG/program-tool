@@ -37,3 +37,4 @@ for marker in 'data-pro-trim="140x80"' 'data-pro-zoom="150%"' 'data-pro-stage="i
 done
 
 echo "Image editor pro browser smoke passed using $BROWSER"
+bash "$ROOT_DIR/scripts/run_image_editor_layout_smoke.sh"
