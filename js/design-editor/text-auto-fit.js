@@ -5,7 +5,10 @@
 
   const DRAFT_KEY='programTool.designEditor.draft.v1';
   const MIN_BOX_MM=4;
+  const MIN_MANUAL_BOX_MM=20;
   const EPSILON_MM=.08;
+  const AUTO_CONTROL_ID='textBoxAutoWidthControl';
+  const AUTO_INPUT_ID='textBoxAutoWidthInput';
   let installed=false;
   let syncing=false;
   let queued=false;
@@ -18,6 +21,12 @@
     const p=project();
     return p?.surfaces?.find(surface=>surface.id===p.activeSurface)||p?.surfaces?.[0]||null;
   };
+  const selectedTextEntry=()=>{
+    const surface=activeSurface();
+    const selected=document.querySelector('.design-text.selected[data-id]');
+    return surface?.elements?.find(item=>item.id===selected?.dataset.id&&item.type==='text')||null;
+  };
+  const isAutoWidth=entry=>entry?.textBoxWidthMode!=='manual';
 
   function artboardScale(){
     const p=project(),board=document.getElementById('artboard');
@@ -89,8 +98,8 @@
     return clamp(next,0,Math.max(0,(Number(p.width)||newWidth)-newWidth));
   }
 
-  function fitEntry(entry,p,scale){
-    if(!entry||entry.type!=='text'||entry.visible===false)return false;
+  function fitEntry(entry,p=project(),scale=artboardScale()){
+    if(!entry||entry.type!=='text'||entry.visible===false||!p||!isAutoWidth(entry))return false;
     const nextWidth=measureWidthMm(entry,p,scale);
     const oldWidth=Math.max(MIN_BOX_MM,Number(entry.w)||nextWidth);
     const oldX=Number(entry.x)||0;
@@ -98,6 +107,29 @@
     if(Math.abs(oldWidth-nextWidth)<EPSILON_MM&&Math.abs(oldX-nextX)<EPSILON_MM)return false;
     entry.w=Math.round(nextWidth*1000)/1000;
     entry.x=Math.round(nextX*1000)/1000;
+    return true;
+  }
+
+  function applyManualWidth(entry,value,p=project()){
+    if(!entry||entry.type!=='text'||!p)return false;
+    const parsed=Number(value);
+    if(!Number.isFinite(parsed))return false;
+    const maximum=Math.max(MIN_MANUAL_BOX_MM,Number(p.width)||MIN_MANUAL_BOX_MM);
+    const nextWidth=clamp(parsed,MIN_MANUAL_BOX_MM,maximum);
+    entry.textBoxWidthMode='manual';
+    entry.w=Math.round(nextWidth*1000)/1000;
+    entry.x=Math.round(clamp(Number(entry.x)||0,0,Math.max(0,maximum-nextWidth))*1000)/1000;
+    return true;
+  }
+
+  function setAutoWidth(entry,enabled=true){
+    if(!entry||entry.type!=='text')return false;
+    entry.textBoxWidthMode=enabled?'auto':'manual';
+    if(enabled)fitEntry(entry);
+    applyActiveSurface();
+    syncInspector();
+    persist();
+    try{window.dispatchEvent(new CustomEvent('designeditor:text-width-mode',{detail:{entry,mode:entry.textBoxWidthMode}}));}catch(_){}
     return true;
   }
 
@@ -113,20 +145,49 @@
     });
   }
 
+  function ensureAutoControl(input,entry){
+    const field=input.closest('.field');
+    if(!field)return null;
+    let control=document.getElementById(AUTO_CONTROL_ID);
+    if(!control||control.parentElement!==field){
+      control?.remove();
+      control=document.createElement('label');
+      control.id=AUTO_CONTROL_ID;
+      control.className='check-row text-box-auto-width-control';
+      control.title='켜면 글자 길이에 맞춰 폭이 자동으로 조절되고, 끄면 사용자가 지정한 폭을 유지합니다.';
+      const checkbox=document.createElement('input');
+      checkbox.id=AUTO_INPUT_ID;
+      checkbox.type='checkbox';
+      const text=document.createElement('span');
+      text.textContent='글상자 폭 자동 맞춤';
+      control.append(checkbox,text);
+      field.appendChild(control);
+      checkbox.addEventListener('change',()=>{
+        const current=selectedTextEntry();
+        if(!current)return;
+        setAutoWidth(current,checkbox.checked);
+      });
+    }
+    const checkbox=control.querySelector(`#${AUTO_INPUT_ID}`);
+    if(checkbox&&entry)checkbox.checked=isAutoWidth(entry);
+    return control;
+  }
+
   function syncInspector(){
     const input=document.getElementById('widthInput');
     if(!input)return;
-    const surface=activeSurface(),selected=document.querySelector('.design-text.selected[data-id]');
-    const entry=surface?.elements?.find(item=>item.id===selected?.dataset.id&&item.type==='text');
+    const entry=selectedTextEntry();
     if(entry){
       const value=String(Math.round((Number(entry.w)||0)*10)/10);
       if(input.value!==value)input.value=value;
     }
-    if(!input.disabled)input.disabled=true;
-    if(!input.readOnly)input.readOnly=true;
-    if(input.title!=='글자 길이에 따라 자동으로 맞춰집니다.')input.title='글자 길이에 따라 자동으로 맞춰집니다.';
+    input.disabled=false;
+    input.readOnly=false;
+    const auto=!entry||isAutoWidth(entry);
+    input.title=auto?'폭을 직접 입력하면 수동 폭으로 전환됩니다.':'사용자가 지정한 글상자 폭입니다.';
     const label=input.closest('.field')?.querySelector('label');
-    if(label&&label.textContent!=='글상자 폭 mm · 자동')label.textContent='글상자 폭 mm · 자동';
+    if(label)label.textContent=auto?'글상자 폭 mm · 자동':'글상자 폭 mm · 직접';
+    ensureAutoControl(input,entry);
   }
 
   function persist(){
@@ -173,8 +234,17 @@
       observer.observe(board,{childList:true,subtree:true,characterData:true});
     }
     document.addEventListener('input',event=>{
+      if(event.target?.id==='widthInput'){
+        const entry=selectedTextEntry();
+        if(entry&&applyManualWidth(entry,event.target.value)){
+          applyActiveSurface();
+          persist();
+          setTimeout(syncInspector,0);
+        }
+        return;
+      }
       if(event.target?.matches?.('.editable-text,#textContentInput,#sizeInput,#phase2LetterSpacing,#phase2LineHeight'))queueSync();
-    });
+    },true);
     document.addEventListener('change',event=>{
       if(event.target?.matches?.('#roleInput,#iconInput,#fontInput,#weightInput'))queueSync();
     });
@@ -183,6 +253,10 @@
     });
     window.addEventListener('resize',queueSync,{passive:true});
     window.addEventListener('designeditor:project-restored',queueSync);
+    window.addEventListener('designeditor:text-width-manual',event=>{
+      const entry=event.detail?.entry||selectedTextEntry();
+      if(entry){entry.textBoxWidthMode='manual';syncInspector();persist();}
+    });
     if(document.fonts?.ready)document.fonts.ready.then(queueSync).catch(()=>{});
   }
 
@@ -191,7 +265,15 @@
     if(!document.getElementById('artboard')||!document.getElementById('inspector')||!window.DesignEditorApp)return false;
     installed=true;
     bindEvents();
-    window.DesignEditorTextAutoFit={sync:syncAll,queue:queueSync,stage:'all-design-text-box-auto-fit'};
+    window.DesignEditorTextAutoFit={
+      sync:syncAll,
+      queue:queueSync,
+      fitEntry,
+      isAutoWidth,
+      setAutoWidth,
+      setManualWidth:(entry,width)=>{const changed=applyManualWidth(entry,width);if(changed){applyActiveSurface();syncInspector();persist();}return changed;},
+      stage:'all-design-text-box-auto-and-manual-width'
+    };
     [0,80,220,500,1000,1800].forEach(delay=>setTimeout(queueSync,delay));
     return true;
   }
