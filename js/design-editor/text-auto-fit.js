@@ -14,6 +14,7 @@
   let queued=false;
   let saveTimer=0;
   let observer=null;
+  let manualDrag=null;
 
   const clamp=(value,min,max)=>Math.max(min,Math.min(max,value));
   const project=()=>window.DesignEditorApp?.project||null;
@@ -133,6 +134,59 @@
     return true;
   }
 
+  function syncManualResizeHandles(){
+    document.querySelectorAll('.design-text.selected[data-id] .phase3-resize-handle').forEach(handle=>{
+      handle.title='좌우로 드래그해서 글상자 폭 조절';
+      handle.setAttribute('aria-label','글상자 폭 조절');
+      handle.style.setProperty('cursor','ew-resize','important');
+    });
+  }
+
+  function beginManualResize(event){
+    const handle=event.target?.closest?.('.phase3-resize-handle');
+    const node=handle?.closest?.('.design-text.selected[data-id]');
+    if(!handle||!node)return;
+    const entry=selectedTextEntry(),p=project();
+    if(!entry||!p||entry.locked)return;
+    entry.textBoxWidthMode='manual';
+    manualDrag={
+      entry,
+      node,
+      startX:Number(event.clientX)||0,
+      startWidth:Math.max(MIN_MANUAL_BOX_MM,Number(entry.w)||MIN_MANUAL_BOX_MM),
+      scale:artboardScale(),
+      project:p
+    };
+    syncInspector();
+    try{handle.setPointerCapture?.(event.pointerId);}catch(_){}
+    event.preventDefault();
+    event.stopImmediatePropagation();
+  }
+
+  function moveManualResize(event){
+    if(!manualDrag)return;
+    const {entry,node,startX,startWidth,scale,project:p}=manualDrag;
+    const delta=((Number(event.clientX)||0)-startX)/Math.max(.001,scale);
+    const nextWidth=clamp(startWidth+delta,MIN_MANUAL_BOX_MM,Math.max(MIN_MANUAL_BOX_MM,Number(p.width)||MIN_MANUAL_BOX_MM));
+    entry.w=Math.round(nextWidth*1000)/1000;
+    entry.x=Math.round(clamp(Number(entry.x)||0,0,Math.max(0,(Number(p.width)||nextWidth)-nextWidth))*1000)/1000;
+    node.style.left=`${((Number(p.bleed)||0)+(Number(entry.x)||0))*scale}px`;
+    node.style.width=`${entry.w*scale}px`;
+    const input=document.getElementById('widthInput');
+    if(input)input.value=String(Math.round(entry.w*10)/10);
+    event.preventDefault();
+    event.stopImmediatePropagation();
+  }
+
+  function finishManualResize(){
+    if(!manualDrag)return;
+    const entry=manualDrag.entry;
+    manualDrag=null;
+    persist();
+    syncInspector();
+    try{window.dispatchEvent(new CustomEvent('designeditor:text-width-manual',{detail:{entry}}));}catch(_){}
+  }
+
   function applyActiveSurface(){
     const p=project(),surface=activeSurface(),board=document.getElementById('artboard');
     if(!p||!surface||!board)return;
@@ -143,6 +197,7 @@
       node.style.left=`${((Number(p.bleed)||0)+(Number(entry.x)||0))*scale}px`;
       node.style.width=`${Math.max(MIN_BOX_MM,Number(entry.w)||MIN_BOX_MM)*scale}px`;
     });
+    syncManualResizeHandles();
   }
 
   function ensureAutoControl(input,entry){
@@ -188,6 +243,7 @@
     const label=input.closest('.field')?.querySelector('label');
     if(label)label.textContent=auto?'글상자 폭 mm · 자동':'글상자 폭 mm · 직접';
     ensureAutoControl(input,entry);
+    syncManualResizeHandles();
   }
 
   function persist(){
@@ -233,6 +289,10 @@
       observer=new MutationObserver(()=>queueSync());
       observer.observe(board,{childList:true,subtree:true,characterData:true});
     }
+    document.addEventListener('pointerdown',beginManualResize,true);
+    document.addEventListener('pointermove',moveManualResize,true);
+    document.addEventListener('pointerup',finishManualResize,true);
+    document.addEventListener('pointercancel',finishManualResize,true);
     document.addEventListener('input',event=>{
       if(event.target?.id==='widthInput'){
         const entry=selectedTextEntry();
