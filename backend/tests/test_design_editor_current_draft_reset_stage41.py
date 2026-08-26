@@ -16,30 +16,39 @@ def test_current_draft_reset_loads_after_recent_drafts_and_before_phase2():
     assert recent < reset < phase2
 
 
-def test_current_draft_reset_clears_only_the_current_scope_with_confirmation():
+def test_current_draft_reset_is_available_for_all_design_menus_and_blanks_content():
     source = RESET.read_text(encoding="utf-8")
     for marker in (
         "programTool.designEditor.draft.index.v2",
         "programTool.designEditor.draft.v1",
+        "programTool.designEditor.draft.v2.",
         "DesignEditorDraftScope",
         "scopeForProject",
         "draftKey",
         "current.filter(item=>item?.scope!==scope)",
-        "legacyScope===scope",
-        "현재 작업 새로 시작",
-        "다른 포스터·전단·리플렛 작업은 그대로 유지됩니다.",
-        "startBlankProject(snapshot)",
-        "app.startProject(presetId)",
-        "saveCurrent?.('reset-blank')",
-        "stage:'reset-only-current-preset-draft'",
+        "scopeFor(saved)===scope",
+        "blankProject(project)",
+        "background:'#ffffff'",
+        "elements:[]",
+        "extras:[]",
+        "초기화 · 새 작업",
+        "현재 메뉴와 규격은 유지하고 디자인 내용만 비워 새 작업을 시작합니다.",
+        "saveCurrent?.('reset-new-work')",
+        "designeditor:project-reset",
+        "stage:'all-design-menus-reset-to-blank-current-spec'",
     ):
         assert marker in source
 
 
-def test_current_draft_reset_avoids_stale_beforeunload_restore_and_runtime_watchers():
+def test_current_draft_reset_replaces_stale_state_before_reload_and_avoids_polling_watchers():
     source = RESET.read_text(encoding="utf-8")
     assert "confirm(" in source
-    assert "location.reload()" not in source
+    clear_scope = source.index("clearScopeStorage(project,scope)")
+    write_blank = source.index("localStorage.setItem(LEGACY_KEY,JSON.stringify(fresh))")
+    resume_blank = source.index("app.resumeDraft()")
+    save_blank = source.index("saveCurrent?.('reset-new-work')")
+    reload_page = source.index("location.reload()")
+    assert clear_scope < write_blank < resume_blank < save_blank < reload_page
     assert "MutationObserver" not in source
     assert "setInterval(" not in source
     assert "eval(" not in source
