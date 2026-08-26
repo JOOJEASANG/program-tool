@@ -1,8 +1,8 @@
 // Cover preview visual cleanup: keep dashed guides and color-code print areas consistently.
 (function(){
   'use strict';
-  if(window.__designEditorCoverPreviewCleanupV4)return;
-  window.__designEditorCoverPreviewCleanupV4=true;
+  if(window.__designEditorCoverPreviewCleanupV5)return;
+  window.__designEditorCoverPreviewCleanupV5=true;
 
   const params=new URLSearchParams(location.search);
   if(params.get('embed')!=='1'||params.get('mode')!=='cover')return;
@@ -30,7 +30,8 @@
     style.id=STYLE_ID;
     style.textContent=`
       /* Same print-guide color language as the other design modes.
-         blue=work area, red=trim, purple=bleed, green=safe, orange=cover panel/fold. */
+         blue=work area, red=trim, green=safe, orange=cover panel/fold.
+         Bleed is shown by the spacing between the blue work-area edge and red trim line without a color fill. */
       #artboard{outline:1.5px dashed #2563eb!important;outline-offset:-1px!important}
       #artboard .trim-guide{display:block!important;border:1.5px dashed #dc2626!important;background:transparent!important;opacity:1!important}
       #artboard .safe-guide{display:none!important}
@@ -39,7 +40,7 @@
 
       .cover-preview-bleed-band{
         position:absolute;inset:0;z-index:2;pointer-events:none;
-        box-shadow:inset 0 0 0 var(--cover-preview-bleed-px,0px) rgba(124,58,237,.10);
+        background:transparent!important;box-shadow:none!important;
       }
       .cover-preview-bleed-band[hidden]{display:none!important}
 
@@ -108,6 +109,7 @@
     const band=ensureBleedBand(artboard);
     const bleedPx=totalW>0?(artboard.clientWidth/totalW)*bleed:0;
     band.style.setProperty('--cover-preview-bleed-px',`${Math.max(0,bleedPx)}px`);
+    band.dataset.fill='none';
     band.hidden=bleed<=0;
 
     let badge=byId(SIZE_ID);
@@ -120,7 +122,7 @@
     }
     const text=sizeText(p);
     if(badge.textContent!==text)badge.textContent=text;
-    document.documentElement.dataset.coverPreviewCleanup='4';
+    document.documentElement.dataset.coverPreviewCleanup='5';
     return true;
   }
 
