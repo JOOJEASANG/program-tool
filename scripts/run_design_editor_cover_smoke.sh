@@ -35,5 +35,10 @@ if ! grep -q 'PASS: unified cover preview zones, settings, spine direction, safe
 for marker in 'data-cover-width="430.5"' 'data-cover-height="297"' 'data-cover-spine="10.5"' 'data-cover-folds="210,220.5"' 'data-cover-runtime="32"' 'data-cover-page-count="200"' 'data-cover-element-preserved="true"' 'data-cover-draft-scope="cover-a4.210x297"' 'data-cover-spine-titles="1"' 'data-cover-spine-direction="bottomToTop"' 'data-cover-spine-ink="true"' 'data-cover-preview-zones="3"' 'data-cover-preview-safe="3"' 'data-cover-preview-opacity="18"'; do
   if ! grep -q "$marker" "$DOM_OUT"; then echo "Cover browser smoke marker missing: $marker" >&2; cat "$DOM_OUT" >&2; exit 1; fi
 done
+if ! grep -q 'id="designCoverPreviewBleedBand"' "$DOM_OUT" || ! grep -q 'data-fill="none"' "$DOM_OUT"; then
+  echo "Cover bleed band must stay transparent without lavender fill." >&2
+  cat "$DOM_OUT" >&2
+  exit 1
+fi
 
 echo "Design editor unified cover preview, settings and spine browser smoke passed using $BROWSER"
