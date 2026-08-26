@@ -46,17 +46,13 @@
       const pass=message=>{document.body.dataset.textAutoFitSmoke='pass';result.textContent='PASS: '+message};
       const assert=(condition,message)=>{if(!condition)throw new Error(message)};
       const waitFor=async(predicate,label,timeout=8000)=>{const started=Date.now();while(Date.now()-started<timeout){if(predicate())return;await new Promise(resolve=>setTimeout(resolve,35))}throw new Error('timeout: '+label)};
-      const settle=()=>new Promise(resolve=>setTimeout(resolve,120));
       try{
         await waitFor(()=>window.DesignEditorTextAutoFit,'auto fit runtime');
-        await settle();
         const title=project.surfaces[0].elements[0],body=project.surfaces[0].elements[1],back=project.surfaces[1].elements[0];
+        await waitFor(()=>title.w<80&&body.w<60&&back.w<100,'initial all-surface auto fit');
         const originalCenter=15+180/2;
-        assert(title.w<80,'short centered title box did not shrink');
         assert(Math.abs((title.x+title.w/2)-originalCenter)<.35,'centered title moved while auto fitting');
-        assert(body.w<60,'left-aligned body box did not shrink');
         assert(Math.abs(body.x-20)<.1,'left-aligned body x changed');
-        assert(back.w<100,'inactive-surface text was not auto fitted');
         assert(document.getElementById('widthInput').disabled===true,'manual width input was not disabled');
         assert(document.querySelector('#inspector label').textContent.includes('자동'),'auto width label is missing');
 
@@ -67,23 +63,21 @@
         title.text='이 제목은 자동 폭이 더 길어져야 합니다 ABC 12345';
         textNode.textContent=title.text;
         textNode.dispatchEvent(new Event('input',{bubbles:true}));
-        await settle();
-        assert(title.w>shortWidth+20,'longer text did not grow the box');
+        await waitFor(()=>title.w>shortWidth+20,'long text auto grow');
         assert(Math.abs((title.x+title.w/2)-centerBeforeLong)<.35,'center anchor changed after growing');
 
         const longWidth=title.w;
         const centerBeforeShort=title.x+title.w/2;
         title.text='짧게';textNode.textContent=title.text;textNode.dispatchEvent(new Event('input',{bubbles:true}));
-        await settle();
-        assert(title.w<longWidth-20,'shorter text did not shrink the box');
+        await waitFor(()=>title.w<longWidth-20,'short text auto shrink');
         assert(Math.abs((title.x+title.w/2)-centerBeforeShort)<.35,'center anchor changed after shrinking');
 
         const noIconWidth=title.w;
-        title.icon='calendar';window.DesignEditorTextAutoFit.sync();await settle();
-        assert(title.w>noIconWidth,'icon width was not included in auto fit');
+        title.icon='calendar';window.DesignEditorTextAutoFit.sync();
+        await waitFor(()=>title.w>noIconWidth+.2,'icon width included');
         const noSpacingWidth=title.w;
-        title.letterSpacing=1;window.DesignEditorTextAutoFit.sync();await settle();
-        assert(title.w>noSpacingWidth,'letter spacing was not included in auto fit');
+        title.letterSpacing=1;window.DesignEditorTextAutoFit.sync();
+        await waitFor(()=>title.w>noSpacingWidth+.2,'letter spacing included');
 
         document.body.dataset.titleWidth=title.w.toFixed(2);
         document.body.dataset.bodyWidth=body.w.toFixed(2);
