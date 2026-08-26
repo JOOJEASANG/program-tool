@@ -9,6 +9,7 @@ ROOT = Path(__file__).resolve().parents[1]
 VERSION_FILE = ROOT / "version.json"
 MARKER = "data-program-studio-boot-guard"
 ACCESS_MARKER = "data-program-studio-approval-bootstrap"
+THEME_MARKER = "data-program-studio-theme"
 EXCLUDED_PARTS = {".git", "node_modules", "venv", ".venv", "__pycache__"}
 PROTECTED_HTML = {
     "design-editor/index.html",
@@ -48,20 +49,32 @@ def requires_approval(path: Path) -> bool:
 
 
 def should_inject(path: Path, text: str) -> bool:
-    if MARKER in text:
-        return False
     if any(part in EXCLUDED_PARTS for part in path.parts):
         return False
-    return requires_approval(path) or "sw-register.js" in text or "firebase-config.js" in text
+    approval_required = requires_approval(path)
+    needs_boot = MARKER not in text and (
+        approval_required or "sw-register.js" in text or "firebase-config.js" in text
+    )
+    needs_theme = approval_required and THEME_MARKER not in text
+    return needs_boot or needs_theme
 
 
 def inject_guard(text: str, version: str, *, approval_required: bool = False) -> str:
-    tags = (
-        f'<script {MARKER} src="/js/app-boot-guard.js?'
-        f'v={version}"></script>'
-    )
+    tags = ""
+    if MARKER not in text:
+        tags += (
+            f'<script {MARKER} src="/js/app-boot-guard.js?'
+            f'v={version}"></script>'
+        )
+    if approval_required and THEME_MARKER not in text:
+        tags += (
+            f'<link {THEME_MARKER} rel="stylesheet" href="/css/app-theme.css?v={version}">'
+            f'<script {THEME_MARKER} src="/js/app-theme.js?v={version}"></script>'
+        )
     if approval_required and "firebase-config.js" not in text:
         tags += FIREBASE_APPROVAL_BOOTSTRAP
+    if not tags:
+        return text
     match = re.search(r"<head\b[^>]*>", text, flags=re.IGNORECASE)
     if not match:
         return text
