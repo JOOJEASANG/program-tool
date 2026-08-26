@@ -7,13 +7,15 @@
   <title>이미지 편집기 | Program Studio</title>
   <link rel="stylesheet" href="/css/image-editor.css?v=20260823-2">
   <link rel="stylesheet" href="/css/image-editor-workflow.css?v=20260823-3">
+  <link rel="stylesheet" href="/css/image-editor-pro.css?v=20260826-1">
 </head>
-<body>
+<body class="image-editor-pro">
   <header class="app-header">
     <a class="home-link" href="/" aria-label="홈으로">← 홈</a>
     <div class="brand-block">
       <strong>이미지 편집기</strong>
       <span>자르기 · 크기 조절 · 배경 제거 · 회전 · 기본 보정</span>
+      <span class="pro-badge">PRO</span>
     </div>
     <div class="header-actions">
       <button id="undoBtn" class="ghost" type="button" disabled>실행 취소</button>
@@ -73,14 +75,30 @@
           <label>세로 px<input id="resizeH" type="number" min="1" max="20000" step="1"></label>
         </div>
         <label class="check"><input id="lockRatio" type="checkbox" checked> 비율 유지</label>
+        <div class="quick-tool-label">빠른 크기</div>
+        <div class="resize-preset-grid" aria-label="빠른 크기 조절">
+          <button type="button" data-resize-preset="half">50%</button>
+          <button type="button" data-resize-preset="threeQuarter">75%</button>
+          <button type="button" data-resize-preset="long1080">긴 변 1080</button>
+          <button type="button" data-resize-preset="long2048">긴 변 2048</button>
+        </div>
+        <div id="resizePresetStatus" class="workflow-note">프리셋은 원본 비율을 유지해 목표 크기만 빠르게 입력합니다.</div>
         <button id="applyResizeBtn" class="wide" type="button">크기 적용</button>
       </section>
 
       <section class="tool-card" data-requires-image>
         <div class="tool-title">기본 보정</div>
+        <div class="adjust-preset-grid" aria-label="빠른 보정 프리셋">
+          <button type="button" data-adjust-preset="clean">선명하게</button>
+          <button type="button" data-adjust-preset="vivid">생생하게</button>
+          <button type="button" data-adjust-preset="soft">부드럽게</button>
+          <button type="button" data-adjust-preset="mono">흑백</button>
+        </div>
+        <div id="adjustPresetStatus" class="workflow-note">프리셋 적용 후 슬라이더로 세밀하게 조정할 수 있습니다.</div>
         <label class="range-field">밝기 <output id="brightnessOut">100%</output><input id="brightness" type="range" min="20" max="180" value="100"></label>
         <label class="range-field">대비 <output id="contrastOut">100%</output><input id="contrast" type="range" min="20" max="180" value="100"></label>
         <label class="range-field">채도 <output id="saturationOut">100%</output><input id="saturation" type="range" min="0" max="200" value="100"></label>
+        <button id="compareAdjustBtn" class="compare-button" type="button">누르고 보정 전 비교</button>
         <button id="resetAdjustBtn" class="wide" type="button">보정값 초기화</button>
       </section>
 
@@ -94,6 +112,7 @@
         <label class="range-field">허용 범위 <output id="backgroundToleranceOut">30</output><input id="backgroundTolerance" type="range" min="0" max="120" value="30"></label>
         <label class="range-field">경계 부드럽게 <output id="backgroundFeatherOut">18</output><input id="backgroundFeather" type="range" min="0" max="80" value="18"></label>
         <button id="removeBackgroundBtn" class="wide accent" type="button">선택한 배경 투명하게</button>
+        <button id="trimTransparentBtn" class="trim-button" type="button">투명 여백 자동 정리</button>
         <div id="backgroundStatus" class="tool-note">PNG 또는 WebP로 저장하면 투명 배경을 유지할 수 있습니다.</div>
       </section>
 
@@ -104,18 +123,33 @@
           <label>품질<input id="exportQuality" type="number" min="10" max="100" step="1" value="92"></label>
         </div>
         <div id="exportNote" class="tool-note">PNG는 투명 배경을 그대로 저장합니다.</div>
+        <div id="exportEstimate" class="export-estimate">이미지를 불러오면 저장 예상 용량을 표시합니다.</div>
         <button id="exportSideBtn" class="wide primary" type="button">편집 이미지 저장</button>
       </section>
     </aside>
 
     <section class="stage-wrap">
+      <div class="stage-toolbar" aria-label="미리보기 도구">
+        <div class="stage-metrics">
+          <span id="imageInfoBadge" class="stage-metric primary">이미지 정보 —</span>
+          <span id="cropInfoBadge" class="stage-metric">선택 영역 —</span>
+          <span id="historyInfoBadge" class="stage-metric">작업 0</span>
+        </div>
+        <div class="zoom-controls">
+          <button id="zoomOutBtn" type="button" aria-label="미리보기 축소">−</button>
+          <span id="zoomValue" class="zoom-value">맞춤</span>
+          <button id="zoomInBtn" type="button" aria-label="미리보기 확대">＋</button>
+          <button id="zoomFitBtn" type="button" data-zoom-mode="fit">화면 맞춤</button>
+          <button id="checkerToggleBtn" class="checker-button" type="button">투명 격자</button>
+        </div>
+      </div>
       <div id="dropZone" class="drop-zone" tabindex="0" role="button" aria-label="이미지를 끌어놓거나 클릭하여 불러오기">
         <div id="emptyState" class="empty-state">
           <div class="empty-icon">◐</div>
           <strong>편집할 이미지를 놓아주세요</strong>
-          <span>클릭해서 파일을 선택할 수도 있습니다.</span>
+          <span>클릭해서 파일을 선택하거나 Ctrl+V로 바로 붙여넣을 수 있습니다.</span>
         </div>
-        <div id="canvasViewport" class="canvas-viewport" hidden>
+        <div id="canvasViewport" class="canvas-viewport" data-canvas-background="checker" hidden>
           <div class="canvas-shell">
             <canvas id="previewCanvas" aria-label="이미지 미리보기"></canvas>
             <div id="cropOverlay" class="crop-overlay" hidden></div>
@@ -131,5 +165,6 @@
 
   <script src="/js/image-editor/app.js?v=20260823-2"></script>
   <script src="/js/image-editor/workflow.js?v=20260823-3"></script>
+  <script src="/js/image-editor/pro.js?v=20260826-1"></script>
 </body>
 </html>
