@@ -102,6 +102,10 @@
         await waitFor(()=>title.textBoxWidthMode==='auto'&&Math.abs(title.w-manualWidth)>2,'return to auto width');
         assert(document.querySelector('#inspector .field>label').textContent.includes('자동'),'auto label did not return');
 
+        title.text='드래그 폭 조절';
+        textNode.textContent=title.text;
+        textNode.dispatchEvent(new Event('input',{bubbles:true}));
+        await waitFor(()=>title.textBoxWidthMode==='auto'&&title.w<120,'prepare drag width');
         const handle=document.createElement('button');
         handle.type='button';handle.className='phase3-resize-handle';titleNode.appendChild(handle);
         await waitFor(()=>handle.title.includes('글상자 폭'),'manual drag handle hint');
