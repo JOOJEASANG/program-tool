@@ -31,7 +31,7 @@
     return{x:Number(item?.x)||0,y:Number(item?.y)||0,w:Math.max(0,Number(item?.w)||0),h:Math.max(0,Number(item?.h)||0)};
   }
 
-  function crossesFoldX(rect,fold){
+  function crossesFold(rect,fold){
     return rect.x<fold+FOLD_BUFFER_MM&&rect.x+rect.w>fold-FOLD_BUFFER_MM;
   }
 
@@ -53,7 +53,7 @@
       const outside=rect.x<safe-.2||rect.y<safe-.2||rect.x+rect.w>width-safe+.2||rect.y+rect.h>height-safe+.2;
       if(outside)issues.push({id:item.id,type:'text',kind:'safe',label:'글씨가 안전여백 밖에 있습니다.',fixable:true});
       if((Number(item.size)||0)<MIN_TEXT_PT)issues.push({id:item.id,type:'text',kind:'small-text',label:`글씨가 ${MIN_TEXT_PT}pt보다 작습니다.`,fixable:true});
-      if(folds.some(fold=>crossesFoldX(rect,fold)))issues.push({id:item.id,type:'text',kind:'fold',label:'글씨가 접지선 가까이에 있습니다.',fixable:false});
+      if(folds.some(fold=>crossesFold(rect,fold)))issues.push({id:item.id,type:'text',kind:'fold',label:'글씨가 접지선 가까이에 있습니다.',fixable:false});
       if(foldsY.some(fold=>crossesFoldY(rect,fold)))issues.push({id:item.id,type:'text',kind:'fold-y',label:'글씨가 상하 접지선 가까이에 있습니다.',fixable:false});
     });
 
@@ -61,7 +61,7 @@
       const rect=rectFor(item);
       const outside=rect.x<safe-.2||rect.y<safe-.2||rect.x+rect.w>width-safe+.2||rect.y+rect.h>height-safe+.2;
       if(outside)issues.push({id:item.id,type:'image',kind:'image-safe',label:'이미지가 안전여백 밖에 있습니다.',fixable:false});
-      if(folds.some(fold=>crossesFoldX(rect,fold)))issues.push({id:item.id,type:'image',kind:'fold',label:'이미지가 접지선 가까이에 있습니다.',fixable:false});
+      if(folds.some(fold=>crossesFold(rect,fold)))issues.push({id:item.id,type:'image',kind:'fold',label:'이미지가 접지선 가까이에 있습니다.',fixable:false});
       if(foldsY.some(fold=>crossesFoldY(rect,fold)))issues.push({id:item.id,type:'image',kind:'fold-y',label:'이미지가 상하 접지선 가까이에 있습니다.',fixable:false});
     });
 
