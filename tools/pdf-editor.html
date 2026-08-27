@@ -7,12 +7,7 @@
   <meta http-equiv="refresh" content="0;url=/pdf-editor/">
   <title>PDF 편집기 · Program Studio로 이동</title>
   <script>
-    (function(){
-      const target=new URL('/pdf-editor/',location.origin);
-      target.search=location.search;
-      target.hash=location.hash;
-      location.replace(target.pathname+target.search+target.hash);
-    })();
+    location.replace('/pdf-editor/'+location.search+location.hash);
   </script>
 </head>
 <body><main aria-live="polite"><p>PDF 편집기는 정식 프로그램 주소로 이동되었습니다. <a href="/pdf-editor/">PDF 편집기 열기</a></p></main></body>
