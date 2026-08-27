@@ -224,6 +224,10 @@
     });
   }
 
+  function refresh(){
+    syncSteps();
+  }
+
   function bindEvents(){
     if(document.documentElement.dataset.designWorkflowV2Events==='1')return;
     document.documentElement.dataset.designWorkflowV2Events='1';
@@ -256,7 +260,7 @@
     bindEvents();
     syncActiveStep();
     queueSync();
-    window.DesignEditorWorkflowV2={activateStep,refresh:queueSync,stage:'guided-compose-edit-arrange-output-v2'};
+    window.DesignEditorWorkflowV2={activateStep,refresh,stage:'guided-compose-edit-arrange-output-v2'};
     return true;
   }
 
