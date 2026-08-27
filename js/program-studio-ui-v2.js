@@ -126,16 +126,24 @@
     else host.appendChild(button);
   }
 
-  function loadSurfaceEnhancements(){
-    if(surface!=='pdf-editor')return;
-    const id='pdfEditorWorkflowV2Script';
-    if(document.getElementById(id)||window.__pdfEditorWorkflowV2)return;
+  function loadEnhancement(id,src,ready,message){
+    if(document.getElementById(id)||ready())return;
     const script=document.createElement('script');
     script.id=id;
-    script.src='/js/pdf-editor/workflow-v2.js?v=20260828-1';
+    script.src=src;
     script.async=false;
-    script.addEventListener('error',()=>toast('PDF 편집 화면 개선 기능을 불러오지 못했습니다.'));
+    script.addEventListener('error',()=>toast(message));
     document.head.appendChild(script);
+  }
+
+  function loadSurfaceEnhancements(){
+    if(surface==='pdf-editor'){
+      loadEnhancement('pdfEditorWorkflowV2Script','/js/pdf-editor/workflow-v2.js?v=20260828-1',()=>Boolean(window.__pdfEditorWorkflowV2),'PDF 편집 화면 개선 기능을 불러오지 못했습니다.');
+      return;
+    }
+    if(surface==='design-editor'){
+      loadEnhancement('designEditorWorkflowV2Script','/js/design-editor/workflow-v2.js?v=20260828-1',()=>Boolean(window.__designEditorWorkflowV2),'디자인 편집 화면 개선 기능을 불러오지 못했습니다.');
+    }
   }
 
   let palette=null;
@@ -259,5 +267,5 @@
     improveExternalStateLabels();
   });
 
-  window.ProgramStudioUI={version:'2026.08.28.003',surface,openPalette,closePalette};
+  window.ProgramStudioUI={version:'2026.08.28.004',surface,openPalette,closePalette};
 })();
