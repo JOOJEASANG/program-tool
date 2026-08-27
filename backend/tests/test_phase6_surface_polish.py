@@ -36,6 +36,7 @@ def test_design_shell_preserves_initial_route_parameters_without_breaking_stage_
     assert "const initialRoute=route(incomingDetail())" in source
     assert "routingStage:'query-aware-initial-route-v2'" in source
     assert "stage:'single-sidebar-general-engine-shell-no-legacy-fallback'" in source
+    assert "if(mode==='cover')return '/design-editor/general?embed=1&mode=cover&preset=cover-a4'" in source
     for token in ["preset", "paper", "orientation", "fold", "w", "h"]:
         assert token in source
 
@@ -62,7 +63,10 @@ def test_legacy_redirects_are_noindex_accessible_and_preserve_navigation_context
         assert "if(!target.searchParams.has('preset'))" in source
         assert "location.hash" in source
 
-    for path in ["tools/pdf-editor.html", "tools/preflight.html", "tools/pdf-Checker.html"]:
+    pdf_editor = text("tools/pdf-editor.html")
+    assert "location.search+location.hash" in pdf_editor
+
+    for path in ["tools/preflight.html", "tools/pdf-Checker.html"]:
         source = text(path)
         assert "target.search=location.search" in source
         assert "target.hash=location.hash" in source
