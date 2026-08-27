@@ -99,6 +99,9 @@ jobs:
       - name: Validate static asset paths
         run: python scripts/validate_static_references.py
 
+      - name: Run Phase 5 UX browser smoke
+        run: bash scripts/run_phase5_browser_smoke.sh
+
       - name: Upload frontend diagnostics
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -106,6 +109,7 @@ jobs:
           name: frontend-diagnostics
           path: |
             inline-js.log
+            browser-smoke-artifacts
           retention-days: 7
           if-no-files-found: ignore
 
