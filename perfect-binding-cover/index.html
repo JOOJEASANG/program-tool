@@ -9,12 +9,18 @@
   <script>
     (function(){
       const target=new URL('/design-editor/',location.origin);
+      const incoming=new URLSearchParams(location.search);
+      incoming.forEach((value,key)=>target.searchParams.append(key,value));
       target.searchParams.set('mode','cover');
+      if(!target.searchParams.has('preset'))target.searchParams.set('preset','cover-a4');
       location.replace(target.pathname+target.search+location.hash);
     })();
   </script>
 </head>
 <body>
-  <p>책표지제작 기능은 Program Studio 통합 디자인 편집기의 표지디자인으로 이전되었습니다. <a href="/design-editor/?mode=cover">통합 표지디자인 열기</a></p>
+  <main aria-live="polite">
+    <p>책표지제작 기능은 Program Studio 통합 디자인 편집기의 표지디자인으로 이전되었습니다.</p>
+    <p><a href="/design-editor/?mode=cover&preset=cover-a4">통합 표지디자인 열기</a></p>
+  </main>
 </body>
 </html>
