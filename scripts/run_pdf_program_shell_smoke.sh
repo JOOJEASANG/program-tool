@@ -60,6 +60,8 @@ reset_profile
 run_product_case "pdf-all-in-one-stage1-smoke.html" "$OUT_DIR/pdf-all-in-one-stage1-smoke-dom.html" 'data-pdf-all-in-one-smoke="pass"' 'PASS: PDF all-in-one branding, page extract and blank-page removal'
 reset_profile
 run_product_case "pdf-print-output-stage1-smoke.html" "$OUT_DIR/pdf-print-output-stage1-smoke-dom.html" 'data-print-output-smoke="pass"' 'PASS: print-output branding applied without removing PDF editor controls'
+reset_profile
+run_product_case "pdf-security-500mb-smoke.html" "$OUT_DIR/pdf-security-500mb-smoke-dom.html" 'data-pdf-security-smoke="pass"' 'PASS: PDF encrypt/decrypt uses Storage from 20MB to 500MB while normal tools keep the direct limit'
 
 bash "$ROOT_DIR/scripts/run_pdf_print_workflow_focus_smoke.sh"
 echo "PDF program unified shell and product-focus browser smokes passed using $BROWSER"
