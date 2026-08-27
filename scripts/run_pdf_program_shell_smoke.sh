@@ -61,4 +61,5 @@ run_product_case "pdf-all-in-one-stage1-smoke.html" "$OUT_DIR/pdf-all-in-one-sta
 reset_profile
 run_product_case "pdf-print-output-stage1-smoke.html" "$OUT_DIR/pdf-print-output-stage1-smoke-dom.html" 'data-print-output-smoke="pass"' 'PASS: print-output branding applied without removing PDF editor controls'
 
+bash "$ROOT_DIR/scripts/run_pdf_print_workflow_focus_smoke.sh"
 echo "PDF program unified shell and product-focus browser smokes passed using $BROWSER"
