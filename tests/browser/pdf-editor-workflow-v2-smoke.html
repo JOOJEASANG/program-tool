@@ -63,7 +63,7 @@
         thumbSection.style.display='block';
         document.getElementById('slideCount').textContent='12페이지';
         document.getElementById('downloadBtn').disabled=false;
-        await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+        window.PdfEditorWorkflowV2.refresh();
         assert(document.getElementById('pdfOutputSummaryV2').classList.contains('ready'),'output summary did not become ready');
 
         window.dispatchEvent(new CustomEvent('programstudio:runtime-script-result',{detail:{id:'pdfSmokeFailure',src:'/js/pdf-editor/fake.js',status:'error'}}));
