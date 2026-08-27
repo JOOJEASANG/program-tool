@@ -11,6 +11,7 @@ MARKER = "data-program-studio-boot-guard"
 ACCESS_MARKER = "data-program-studio-approval-bootstrap"
 IMAGE_LAYOUT_MARKER = "data-image-editor-pdf-layout"
 PDF_SECURITY_MARKER = "data-pdf-security-500mb"
+PDF_BOOKLET_MARKER = "data-pdf-classic-booklet"
 EXCLUDED_PARTS = {".git", "node_modules", "venv", ".venv", "__pycache__"}
 PROTECTED_HTML = {
     "design-editor/index.html",
@@ -29,6 +30,10 @@ PDF_SECURITY_HTML = {
     "pdf-preflight/index.html",
     "tools/preflight.html",
     "tools/pdf-Checker.html",
+}
+PDF_BOOKLET_HTML = {
+    "pdf-editor/index.html",
+    "tools/pdf-editor.html",
 }
 FIREBASE_APPROVAL_BOOTSTRAP = (
     f'<script {ACCESS_MARKER} src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>'
@@ -62,6 +67,10 @@ def is_pdf_security_page(path: Path) -> bool:
     return relative_path(path) in PDF_SECURITY_HTML
 
 
+def is_pdf_booklet_page(path: Path) -> bool:
+    return relative_path(path) in PDF_BOOKLET_HTML
+
+
 def should_inject(path: Path, text: str) -> bool:
     if any(part in EXCLUDED_PARTS for part in path.parts):
         return False
@@ -71,7 +80,8 @@ def should_inject(path: Path, text: str) -> bool:
     )
     needs_image_layout = is_image_editor(path) and IMAGE_LAYOUT_MARKER not in text
     needs_pdf_security = is_pdf_security_page(path) and PDF_SECURITY_MARKER not in text
-    return needs_boot or needs_image_layout or needs_pdf_security
+    needs_pdf_booklet = is_pdf_booklet_page(path) and PDF_BOOKLET_MARKER not in text
+    return needs_boot or needs_image_layout or needs_pdf_security or needs_pdf_booklet
 
 
 def inject_guard(
@@ -81,6 +91,7 @@ def inject_guard(
     approval_required: bool = False,
     image_editor: bool = False,
     pdf_security: bool = False,
+    pdf_booklet: bool = False,
 ) -> str:
     tags = ""
     if MARKER not in text:
@@ -97,6 +108,11 @@ def inject_guard(
         tags += (
             f'<script {PDF_SECURITY_MARKER} defer '
             f'src="/js/pdf-utility/security-large-file.js?v={version}"></script>'
+        )
+    if pdf_booklet and PDF_BOOKLET_MARKER not in text:
+        tags += (
+            f'<script {PDF_BOOKLET_MARKER} defer '
+            f'src="/js/pdf-editor/booklet-sheet-preview.js?v={version}"></script>'
         )
     if approval_required and "firebase-config.js" not in text:
         tags += FIREBASE_APPROVAL_BOOTSTRAP
@@ -121,6 +137,7 @@ def inject_all() -> list[Path]:
             approval_required=requires_approval(path),
             image_editor=is_image_editor(path),
             pdf_security=is_pdf_security_page(path),
+            pdf_booklet=is_pdf_booklet_page(path),
         )
         if updated == text:
             continue
