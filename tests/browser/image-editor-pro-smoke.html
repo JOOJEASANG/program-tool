@@ -46,9 +46,16 @@
 
       assert(pro.setZoom(150)===true,'zoom did not apply');
       assert(document.getElementById('zoomValue').textContent==='150%','zoom label is wrong');
+
+      // Full canvas encoding is covered by the core image-editor browser smoke.
+      // Keep this Pro smoke deterministic under Chrome virtual time by isolating
+      // the estimate UI contract from the asynchronous encoder thread.
+      const realExportBlob=api.exportBlob;
+      api.exportBlob=async mime=>new Blob([new Uint8Array(2048)],{type:mime||'image/png'});
       await pro.updateExportEstimate();
-      await waitFor(()=>document.getElementById('exportEstimate').dataset.tone==='ready'&&document.getElementById('exportEstimate').textContent.includes('예상'),'export estimate ready');
+      api.exportBlob=realExportBlob;
       const estimateText=document.getElementById('exportEstimate').textContent;
+      assert(document.getElementById('exportEstimate').dataset.tone==='ready','export estimate did not become ready');
       assert(/예상\s+[\d.,]+\s+(?:B|KB|MB)/.test(estimateText),'export estimate size text missing');
       pro.updateMetrics();assert(document.getElementById('imageInfoBadge').textContent.includes('140'),'image metrics did not update');
 
