@@ -5,7 +5,7 @@
 
   const path=(location.pathname||'/').replace(/\/+$/,'')||'/';
   const surface=(()=>{
-    if(path==='/'||path.endsWith('/index.html'))return 'home';
+    if(path==='/'||path==='/index.html')return 'home';
     if(path.endsWith('/login')||path.endsWith('/login.html'))return 'auth';
     if(path.endsWith('/admin')||path.endsWith('/admin.html'))return 'admin';
     if(path.endsWith('/approval-waiting')||path.endsWith('/approval-waiting.html'))return 'approval';
@@ -75,6 +75,12 @@
     button.className='ps-sidebar-toggle';
     button.innerHTML='<span aria-hidden="true">☰</span><span class="ps-toggle-label">작업 패널</span>';
     button.title='왼쪽 작업 패널 접기/펼치기';
+    if(host.classList.contains('app-header')){
+      button.style.borderColor='#d7e1ec';
+      button.style.background='#fff';
+      button.style.color='#44546a';
+      button.style.boxShadow='0 2px 8px rgba(15,39,72,.06)';
+    }
 
     const sync=()=>{
       const collapsed=document.documentElement.classList.contains('ps-sidebar-collapsed');
@@ -185,9 +191,15 @@
     host.insertBefore(button,host.firstChild);
   }
 
+  function isEditableTarget(target){
+    if(!(target instanceof Element))return false;
+    return Boolean(target.closest('input,textarea,select,[contenteditable="true"],[contenteditable=""]'));
+  }
+
   function mountGlobalKeys(){
     document.addEventListener('keydown',event=>{
       if((event.ctrlKey||event.metaKey)&&String(event.key).toLowerCase()==='k'){
+        if(surface!=='home'&&isEditableTarget(event.target))return;
         event.preventDefault();
         if(palette?.classList.contains('open'))closePalette();else openPalette();
       }else if(event.key==='Escape'&&palette?.classList.contains('open')){
@@ -211,5 +223,5 @@
     improveExternalStateLabels();
   });
 
-  window.ProgramStudioUI={version:'2026.08.28.001',surface,openPalette,closePalette};
+  window.ProgramStudioUI={version:'2026.08.28.002',surface,openPalette,closePalette};
 })();
