@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>PDF Print Workflow Focus Smoke</title>
+  <script>history.replaceState(null,'','/pdf-editor/index.html?print-workflow-focus-smoke=1');</script>
+  <style>
+    .sec-body.hidden{display:none}.nup-grid{display:grid;grid-template-columns:repeat(4,1fr)}
+  </style>
+</head>
+<body data-print-workflow-focus-smoke="pending">
+  <div class="app">
+    <aside>
+      <h1>인쇄·출력 도구</h1>
+      <div class="sub">N-up · 소책자 · 페이지 편집</div>
+      <div class="sec"><div class="sec-head"><span class="sec-title">파일 업로드</span></div><div class="sec-body" id="sb-upload"><input id="fileInput" type="file"><div id="pdfSpreadSplitPanel">펼침면 좌우 분할</div></div></div>
+      <div class="sec"><div class="sec-head"><span class="sec-title">N-up 배치</span></div><div class="sec-body" id="sb-nup"><div class="field"><label>기본 N-up (페이지당 슬라이드 수)</label><div class="nup-grid">
+        <button type="button" class="nup-btn active" data-nup="1"><span class="nup-label">1장</span><span class="nup-badge">1×1</span></button>
+        <button type="button" class="nup-btn" data-nup="2"><span class="nup-label">2장</span><span class="nup-badge">1×2</span></button>
+        <button type="button" class="nup-btn" data-nup="3"><span class="nup-label">3장</span><span class="nup-badge">1×3</span></button>
+        <button type="button" class="nup-btn" data-nup="4"><span class="nup-label">4장</span><span class="nup-badge">2×2</span></button>
+        <button type="button" class="nup-btn" data-nup="6"><span class="nup-label">6장</span><span class="nup-badge">2×3</span></button>
+        <button type="button" class="nup-btn" data-nup="8"><span class="nup-label">8장</span><span class="nup-badge">2×4</span></button>
+        <button type="button" class="nup-btn" data-nup="9"><span class="nup-label">9장</span><span class="nup-badge">3×3</span></button>
+      </div></div><div id="bookletRow"><input type="checkbox" id="bookletCheck"><div id="bookletPadInfo"></div></div></div></div>
+      <div class="sec"><div class="sec-head"><span class="sec-title">문서 편집</span></div><div class="sec-body" id="sb-edit"><button id="watermarkBtn">워터마크</button></div></div>
+      <button id="downloadBtn">PDF 저장</button>
+    </aside>
+    <main><div id="previewScroll"></div></main>
+  </div>
+  <div id="result">PENDING</div>
+  <script>
+    window.previewSchedules=0;
+    window.schedulePreview=()=>{window.previewSchedules+=1};
+    window.updateBookletPadInfo=()=>{
+      const info=document.getElementById('bookletPadInfo');
+      if(info)info.textContent=document.getElementById('bookletCheck')?.checked?'빈 페이지 2장 추가 → 총 12페이지':'';
+    };
+    document.querySelectorAll('.nup-btn').forEach(button=>button.addEventListener('click',()=>{
+      document.querySelectorAll('.nup-btn').forEach(item=>item.classList.remove('active'));
+      button.classList.add('active');
+    }));
+  </script>
+  <script src="/js/pdf-editor/print-workflow-focus.js?v=20260827-1"></script>
+  <script>
+    (async()=>{
+      const result=document.getElementById('result');
+      const assert=(value,message)=>{if(!value)throw new Error(message)};
+      const waitFor=async(predicate,label,timeout=3000)=>{const started=Date.now();while(Date.now()-started<timeout){if(predicate())return;await new Promise(resolve=>setTimeout(resolve,20));}throw new Error('timeout: '+label)};
+      try{
+        await waitFor(()=>window.PdfPrintWorkflowFocus?.stage==='pdf-print-workflow-focus-v1','workflow runtime');
+        const panel=document.getElementById('pdfPrintWorkflowFocusPanel');
+        const split=document.getElementById('pdfSpreadSplitPanel');
+        const utility=document.querySelector('.pdf-print-utility-link');
+        assert(panel,'workflow mode panel missing');
+        assert(panel.querySelector('[data-print-mode="normal"]'),'normal mode missing');
+        assert(panel.querySelector('[data-print-mode="booklet"]'),'booklet mode missing');
+        assert(utility?.getAttribute('href')==='/pdf-preflight/','PDF utility route missing');
+        assert(split?.dataset.printWorkflowSeparated==='true'&&split.hidden,'spread split remained in print workflow');
+        assert(getComputedStyle(document.getElementById('bookletRow')).display==='none','legacy booklet checkbox remained visible');
+        assert(document.querySelector('#sb-edit')?.closest('.sec')?.querySelector('.sec-title')?.textContent==='인쇄 표시 · 선택','optional edit section not de-emphasized');
+
+        panel.querySelector('[data-print-mode="booklet"]').click();
+        await new Promise(resolve=>setTimeout(resolve,30));
+        assert(window.PdfPrintWorkflowFocus.mode==='booklet','booklet mode not active');
+        assert(document.getElementById('bookletCheck').checked,'existing booklet engine checkbox not enabled');
+        assert(document.querySelector('.nup-btn.active')?.dataset.nup==='2','unsupported N-up was not normalized to 2');
+        assert(getComputedStyle(document.querySelector('.nup-btn[data-nup="1"]')).display==='none','unsupported N-up 1 visible in booklet mode');
+        assert(getComputedStyle(document.querySelector('.nup-btn[data-nup="9"]')).display==='none','unsupported N-up 9 visible in booklet mode');
+        assert(document.querySelector('#sb-nup')?.closest('.sec')?.querySelector('.sec-title')?.textContent==='소책자 배치','booklet section title missing');
+        assert(getComputedStyle(panel.querySelector('.pdf-print-booklet-guide')).display!=='none','booklet guide hidden');
+        assert(document.getElementById('pdfPrintBookletPad')?.textContent.includes('빈 페이지 2장'),'booklet padding summary missing');
+
+        panel.querySelector('[data-print-mode="normal"]').click();
+        await new Promise(resolve=>setTimeout(resolve,30));
+        assert(window.PdfPrintWorkflowFocus.mode==='normal','normal mode not restored');
+        assert(!document.getElementById('bookletCheck').checked,'booklet engine remained enabled in normal mode');
+        assert(getComputedStyle(document.querySelector('.nup-btn[data-nup="1"]')).display!=='none','N-up 1 not restored');
+        assert(document.querySelector('#sb-nup')?.closest('.sec')?.querySelector('.sec-title')?.textContent==='페이지 배치','normal section title not restored');
+        assert(document.getElementById('downloadBtn')&&document.getElementById('previewScroll')&&document.getElementById('watermarkBtn'),'existing print controls were removed');
+
+        document.body.dataset.printWorkflowFocusSmoke='pass';
+        result.textContent='PASS: print layout and PDF processing separated, booklet promoted to primary mode';
+      }catch(error){
+        document.body.dataset.printWorkflowFocusSmoke='fail';
+        result.textContent='FAIL: '+String(error?.message||error);
+      }
+    })();
+  </script>
+</body>
+</html>
