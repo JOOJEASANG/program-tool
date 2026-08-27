@@ -12,15 +12,23 @@
   const STYLE_ID='designEditorSimpleInterfaceStyles';
   const ADVANCED_CARD_ID='designAdvancedTools';
   const INSPECTOR_DETAILS_ID='designInspectorAdvanced';
-  const PREF_KEY='programTool.designEditor.advancedOpen.v1';
+  const LEGACY_PREF_KEY='programTool.designEditor.advancedOpen.v1';
+  const TOOLS_PREF_KEY='programTool.designEditor.toolsAdvancedOpen.v2';
+  const INSPECTOR_PREF_KEY='programTool.designEditor.inspectorAdvancedOpen.v2';
   const ADVANCED_CARD_IDS=['designPhase3LayoutTools','designElementClipboardTools','designProjectFileTools','designRotationTools'];
   let installed=false;
   let syncFrame=0;
 
   const byId=id=>document.getElementById(id);
   const project=()=>window.DesignEditorApp?.project||null;
-  function preference(){try{return localStorage.getItem(PREF_KEY)==='1';}catch(_){return false;}}
-  function remember(value){try{localStorage.setItem(PREF_KEY,value?'1':'0');}catch(_){} }
+  function preference(key){
+    try{
+      const exact=localStorage.getItem(key);
+      if(exact!==null)return exact==='1';
+      return localStorage.getItem(LEGACY_PREF_KEY)==='1';
+    }catch(_){return false;}
+  }
+  function remember(key,value){try{localStorage.setItem(key,value?'1':'0');}catch(_){} }
 
   function installStyles(){
     if(byId(STYLE_ID))return;
@@ -79,20 +87,20 @@
     root.querySelector('.simple-interface-hint')?.remove();
     if(existing)return;
     const advanced=advancedInspectorNodes(root,kind);if(!advanced.length)return;
-    const details=document.createElement('details');details.id=INSPECTOR_DETAILS_ID;details.className='simple-inspector-advanced';details.open=preference();
+    const details=document.createElement('details');details.id=INSPECTOR_DETAILS_ID;details.className='simple-inspector-advanced';details.open=preference(INSPECTOR_PREF_KEY);
     const label=kind==='text'?'아이콘·잠금·세부 간격':kind==='image'?'위치·크기·초점·잠금':'위치·크기·잠금';
     details.innerHTML=`<summary>세부 설정 <span class="simple-advanced-sub">${label}</span></summary><div class="simple-inspector-body"></div>`;
     const body=details.querySelector('.simple-inspector-body');advanced.forEach(node=>moveNode(body,node));
-    details.addEventListener('toggle',()=>remember(details.open));root.appendChild(details);
+    details.addEventListener('toggle',()=>remember(INSPECTOR_PREF_KEY,details.open));root.appendChild(details);
   }
 
   function ensureAdvancedCard(){
     const sidebar=document.querySelector('.sidebar');if(!sidebar)return false;
     let details=byId(ADVANCED_CARD_ID);
     if(!details){
-      details=document.createElement('details');details.id=ADVANCED_CARD_ID;details.className='side-card simple-advanced-card';details.open=preference();
+      details=document.createElement('details');details.id=ADVANCED_CARD_ID;details.className='side-card simple-advanced-card';details.open=preference(TOOLS_PREF_KEY);
       details.innerHTML='<summary>고급 도구 <span class="simple-advanced-sub">정밀정렬 · 복사 · 프로젝트 · 회전</span></summary><div class="simple-advanced-stack"></div>';
-      details.addEventListener('toggle',()=>remember(details.open));sidebar.appendChild(details);
+      details.addEventListener('toggle',()=>remember(TOOLS_PREF_KEY,details.open));sidebar.appendChild(details);
     }
     const stack=details.querySelector('.simple-advanced-stack');
     ADVANCED_CARD_IDS.forEach(id=>{const card=byId(id);if(card&&card.parentElement!==stack)stack.appendChild(card);});
@@ -119,7 +127,7 @@
   function install(){
     if(installed)return true;
     if(!document.querySelector('.sidebar')||!byId('inspector')||!window.DesignEditorApp)return false;
-    installed=true;installStyles();bindEvents();window.DesignEditorSimpleInterface={sync,stage:'basic-first-contextual-sidebar'};
+    installed=true;installStyles();bindEvents();window.DesignEditorSimpleInterface={sync,stage:'basic-first-contextual-sidebar-decoupled-preferences'};
     [180,420,850,1500,2400,3400].forEach(delay=>setTimeout(queueSync,delay));
     return true;
   }
