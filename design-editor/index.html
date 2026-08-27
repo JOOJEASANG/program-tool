@@ -41,10 +41,13 @@
         if(query.has('h'))detail.h=query.get('h');
         return detail;
       }
+      function canonicalCoverRoute(mode){if(mode==='cover')return '/design-editor/general?embed=1&mode=cover&preset=cover-a4';return '';}
       function route(detail={}){
         const mode=safeMode(detail.mode),data={...DEFAULTS[mode],...detail,mode};
         shell.dataset.mode=mode;
-        const query=detail._query instanceof URLSearchParams?new URLSearchParams(detail._query):new URLSearchParams();
+        const incomingQuery=detail._query instanceof URLSearchParams;
+        if(mode==='cover'&&!incomingQuery)return canonicalCoverRoute(mode);
+        const query=incomingQuery?new URLSearchParams(detail._query):new URLSearchParams();
         query.set('embed','1');
         query.set('mode',mode);
         query.set('preset',data.preset||DEFAULTS[mode].preset);
