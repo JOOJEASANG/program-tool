@@ -1,2 +1,19 @@
 <!doctype html>
-<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="refresh" content="0;url=../pdf-preflight/"><title>PDF 인쇄 검수 이동</title><script>location.replace('../pdf-preflight/'+location.search+location.hash);</script></head><body><p>새 프로그램 주소로 이동합니다. <a href="../pdf-preflight/">PDF 인쇄 검수 열기</a></p></body></html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex">
+  <meta http-equiv="refresh" content="0;url=/pdf-preflight/">
+  <title>PDF 인쇄 검수 · Program Studio로 이동</title>
+  <script>
+    (function(){
+      const target=new URL('/pdf-preflight/',location.origin);
+      target.search=location.search;
+      target.hash=location.hash;
+      location.replace(target.pathname+target.search+target.hash);
+    })();
+  </script>
+</head>
+<body><main aria-live="polite"><p>새 프로그램 주소로 이동합니다. <a href="/pdf-preflight/">PDF 인쇄 검수 열기</a></p></main></body>
+</html>
