@@ -6,7 +6,10 @@
   <style>
     :root{--nav-h:52px}*{box-sizing:border-box}body{margin:0;padding-top:var(--nav-h)}.top-nav{height:var(--nav-h)}.app{display:grid;grid-template-columns:360px 1fr;height:calc(100vh - var(--nav-h))}aside{padding:16px;overflow:auto}.sec{border-top:1px solid #ddd}.sec-head{padding:8px}.sec-body{padding:8px}.hidden{display:none}.thumb-hint{font-size:10px}
   </style>
-  <script>history.replaceState(null,'','/pdf-editor/index.html?browser-workflow-v2-smoke=1');</script>
+  <script>
+    history.replaceState(null,'','/pdf-editor/index.html?browser-workflow-v2-smoke=1');
+    try{localStorage.removeItem('program-studio:pdf-editor:advanced');}catch(_){}
+  </script>
 </head>
 <body data-workflow-v2-smoke="pending">
   <nav class="top-nav">
