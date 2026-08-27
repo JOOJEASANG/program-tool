@@ -35,7 +35,7 @@ def test_two_up_booklet_output_sides_pair_into_real_sheets():
     ]
 
 
-def test_four_up_booklet_keeps_two_strips_on_same_physical_sheet():
+def test_backend_keeps_legacy_four_up_engine_compatibility():
     pages = [PageInfo(file_index=0, page_index=index) for index in range(8)]
     imposed = _booklet_reorder(pages, 4)
     sides = [page_numbers(imposed[index:index + 4]) for index in range(0, len(imposed), 4)]
@@ -44,7 +44,6 @@ def test_four_up_booklet_keeps_two_strips_on_same_physical_sheet():
         [4, 1, 8, 5],
         [2, 3, 6, 7],
     ]
-    assert len(sides) == 2  # front + back = one physical sheet
 
 
 def test_booklet_padding_is_visible_as_blank_slots():
@@ -55,19 +54,26 @@ def test_booklet_padding_is_visible_as_blank_slots():
     assert sum(item.page_type == "blank" for item in imposed) == 3
 
 
-def test_frontend_sheet_preview_uses_the_existing_imposition_and_real_canvases():
+def test_frontend_booklet_is_classic_two_page_mode_only():
     source = read("js/pdf-editor/booklet-sheet-preview.js")
     app_version = read("js/app-version.js")
     runtime = read("js/sw-register.js")
+    editor = read("pdf-editor/index.html")
 
-    assert "physical-booklet-sheet-preview-v1" in source
-    assert "bookletReorderPreview(active,nupValue)" in source
+    assert "classic-booklet-only-v2" in source
+    assert "const BOOKLET_NUP=2" in source
+    assert "bookletReorderPreview(active,BOOKLET_NUP)" in source
+    assert "nup_default:BOOKLET_NUP" in source
+    assert "html.pdf-classic-booklet-active #nupGrid{display:none!important}" in source
+    assert "소책자 · 좌/우 2쪽 · 앞/뒤 한 장" in source
+    assert "소책자 전용" in source
+    assert "실제 소책자 용지 앞·뒷면" in source
     assert "for(let i=0;i<sides.length;i+=2)" in source
     assert "clonePreviewCanvas(previews[side.index])" in source
-    assert "실제 용지 앞·뒷면" in source
-    assert "실제 종이 ${plan.sheets.length}장" in source
-    assert "빈쪽 ${plan.blankCount}쪽" in source
-    assert "프린터의 긴변/짧은변 넘김 설정" in source
-    assert "if(eventsBound)return" in source
-    assert "/js/pdf-editor/booklet-sheet-preview.js?v=20260825-1" in app_version
+
+    # Normal print layout remains available unchanged when booklet is off.
+    for value in (1, 2, 4, 6, 8, 9):
+        assert f'data-nup="{value}"' in editor
+
+    assert "/js/pdf-editor/booklet-sheet-preview.js?v=20260827-1" in app_version
     assert "/js/pdf-editor/booklet-sheet-preview.js?v=20260825-1" in runtime
