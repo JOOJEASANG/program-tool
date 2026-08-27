@@ -39,32 +39,32 @@
 
   function projectStats(){
     const p=project();
-    if(!p)return{ready:false,surfaces:0,objects:0,name:'',width:0,height:0};
+    if(!p)return{ready:false,surfaces:0,objects:0};
     const surfaces=Array.isArray(p.surfaces)?p.surfaces:[];
     let objects=0;
     surfaces.forEach(surface=>{
       objects+=(Array.isArray(surface?.elements)?surface.elements.length:0);
       objects+=(Array.isArray(surface?.extras)?surface.extras.length:0);
     });
-    return{ready:true,surfaces:surfaces.length,objects,name:String(p.name||''),width:Number(p.width)||0,height:Number(p.height)||0};
+    return{ready:true,surfaces:surfaces.length,objects};
   }
 
   function diagnostics(){
     try{
       const health=window.DesignEditorRuntimeDiagnostics?.audit?.();
       const issues=Array.isArray(health?.issues)?health.issues:[];
-      return{available:Boolean(health),count:issues.length,issues};
-    }catch(_){return{available:false,count:0,issues:[]};}
+      return{count:issues.length,issues};
+    }catch(_){return{count:0,issues:[]};}
   }
 
   function printSafety(){
     const summary=window.DesignEditorPrintSafety?.lastSummary;
-    return{available:Boolean(summary),count:Number(summary?.count)||0,fixable:Number(summary?.fixableCount)||0};
+    return{count:Number(summary?.count)||0,fixable:Number(summary?.fixableCount)||0};
   }
 
   function printQuality(){
     const summary=window.DesignEditorPrintQuality?.lastSummary;
-    return{available:Boolean(summary),count:Number(summary?.count)||0,low:Number(summary?.lowCount)||0,caution:Number(summary?.cautionCount)||0};
+    return{count:Number(summary?.count)||0,low:Number(summary?.lowCount)||0,caution:Number(summary?.cautionCount)||0};
   }
 
   function finalCheckState(){
@@ -72,7 +72,6 @@
     const text=String(badge?.textContent||'').trim();
     const className=String(badge?.className||'');
     return{
-      available:Boolean(badge),
       fatal:className.includes('fatal')||/^오류/.test(text),
       warning:className.includes('warn')||/^경고/.test(text),
       ok:className.includes('ok')||text==='인쇄 적합',
@@ -90,8 +89,17 @@
     return candidates.map(byId).find(Boolean)||null;
   }
 
+  function syncActiveStep(){
+    document.querySelectorAll('#'+PANEL_ID+' [data-design-step]').forEach(button=>{
+      const selected=button.dataset.designStep===activeStep;
+      button.classList.toggle('active',selected);
+      button.setAttribute('aria-current',selected?'step':'false');
+    });
+  }
+
   function activateStep(step,userInitiated=false){
     activeStep=['compose','edit','arrange','output'].includes(step)?step:'compose';
+    syncActiveStep();
     if(userInitiated){
       const target=anchorForStep(activeStep);
       if(target){
@@ -114,6 +122,7 @@
     panel.innerHTML=`<div class="design-workflow-kicker">QUICK WORKFLOW</div><div class="design-workflow-title">순서대로 만들면 더 빠릅니다</div><div class="design-workflow-note">내용을 구성하고 요소를 편집한 뒤 정렬을 다듬고, 마지막에 인쇄 검사를 거쳐 파일을 만듭니다.</div><div class="design-workflow-steps" role="navigation" aria-label="디자인 작업 단계"><button type="button" class="design-workflow-step active" data-design-step="compose"><span class="design-workflow-step-num">STEP 1</span><strong>구성</strong><small>글씨·사진·도형</small></button><button type="button" class="design-workflow-step" data-design-step="edit"><span class="design-workflow-step-num">STEP 2</span><strong>편집</strong><small>선택 요소 설정</small></button><button type="button" class="design-workflow-step" data-design-step="arrange"><span class="design-workflow-step-num">STEP 3</span><strong>정리</strong><small>정렬·간격·회전</small></button><button type="button" class="design-workflow-step" data-design-step="output"><span class="design-workflow-step-num">STEP 4</span><strong>출력</strong><small>검사·PNG·PDF</small></button></div>`;
     sidebar.prepend(panel);
     panel.querySelectorAll('[data-design-step]').forEach(button=>button.addEventListener('click',()=>activateStep(button.dataset.designStep,true)));
+    syncActiveStep();
     return true;
   }
 
@@ -152,11 +161,8 @@
     const quality=printQuality();
     const final=finalCheckState();
     const saveText=String(byId('saveState')?.textContent||'').trim();
-
-    let state='ok';
-    let badgeText='정상';
-    let titleText='편집 상태 정상';
     const notes=[];
+    let state='ok',badgeText='정상',titleText='편집 상태 정상';
 
     if(diag.count>0){
       state='bad';badgeText=`진단 ${diag.count}`;titleText='편집기 확인이 필요합니다.';notes.push('런타임 또는 저장 상태를 진단에서 확인하세요.');
@@ -176,12 +182,10 @@
       notes.push(final.ok?'최종 인쇄 검사 통과':'출력 전에 전체 인쇄 검사를 실행하세요.');
     }
     if(saveText)notes.push(saveText);
-
     badge.className=`design-workflow-badge ${state}`;
     badge.textContent=badgeText;
     title.textContent=titleText;
     note.textContent=notes.join(' · ');
-
     const diagButton=card.querySelector('[data-design-workflow-action="diagnostics"]');
     if(diagButton)diagButton.hidden=!byId('designDiagnosticsButton')&&diag.count===0;
   }
@@ -204,9 +208,8 @@
       }
       button.classList.toggle('done',done);
       button.classList.toggle('warn',warn&&!done);
-      button.classList.toggle('active',step===activeStep);
-      button.setAttribute('aria-current',step===activeStep?'step':'false');
     });
+    syncActiveStep();
     syncStatus();
     decorateOutput();
   }
@@ -251,6 +254,7 @@
     installStatus();
     decorateOutput();
     bindEvents();
+    syncActiveStep();
     queueSync();
     window.DesignEditorWorkflowV2={activateStep,refresh:queueSync,stage:'guided-compose-edit-arrange-output-v2'};
     return true;
