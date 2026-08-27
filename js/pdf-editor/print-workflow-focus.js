@@ -81,7 +81,7 @@
     const card=document.createElement('div');
     card.id=UTILITY_CARD_ID;
     card.className='pdf-print-utility-card';
-    card.innerHTML=`<strong>PDF 자체를 가공해야 하나요?</strong><p>펼침면 분할, 페이지 추출·나누기, 병합·정리 같은 작업은 인쇄 배치와 분리했습니다.</p><a class="pdf-print-utility-link" href="/pdf-preflight/">PDF 가공·분할 도구로 이동 →</a>`;
+    card.innerHTML=`<strong>PDF 자체를 가공해야 하나요?</strong><p>페이지 추출·나누기, 병합·정리 같은 작업은 인쇄 배치와 분리했습니다.</p><a class="pdf-print-utility-link" href="/pdf-preflight/">PDF 가공·분할 도구로 이동 →</a>`;
     uploadBody.appendChild(card);
     return true;
   }
@@ -96,10 +96,13 @@
 
   function syncBookletPad(){
     if(mode!=='booklet'){setText($('pdfPrintBookletPad'),'');return;}
-    try{updateBookletPadInfo?.();}catch(_){}
-    const legacy=$('bookletPadInfo');
-    const text=String(legacy?.textContent||'').trim();
+    const text=String($('bookletPadInfo')?.textContent||'').trim();
     setText($('pdfPrintBookletPad'),text);
+  }
+
+  function refreshLegacyBookletInfo(){
+    try{updateBookletPadInfo?.();}catch(_){}
+    syncBookletPad();
   }
 
   function renameSections(){
@@ -146,6 +149,7 @@
         const value=currentNup();
         if(!SUPPORTED_BOOKLET_NUP.has(value))clickNup(2);
         setChecked(bookletCheck(),true);
+        refreshLegacyBookletInfo();
       }else{
         setChecked(bookletCheck(),false);
       }
