@@ -102,6 +102,9 @@ jobs:
       - name: Run Phase 5 UX browser smoke
         run: bash scripts/run_phase5_browser_smoke.sh
 
+      - name: Run Phase 6 mobile accessibility smoke
+        run: bash scripts/run_phase6_browser_smoke.sh
+
       - name: Upload frontend diagnostics
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
