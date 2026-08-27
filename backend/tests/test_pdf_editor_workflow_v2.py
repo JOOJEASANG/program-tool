@@ -8,9 +8,10 @@ GLOBAL_UI = ROOT / "js" / "program-studio-ui-v2.js"
 
 def test_pdf_workflow_v2_is_loaded_only_for_pdf_editor_surface():
     text = GLOBAL_UI.read_text(encoding="utf-8")
-    assert "surface!=='pdf-editor'" in text
+    assert "if(surface==='pdf-editor')" in text
+    assert "loadEnhancement('pdfEditorWorkflowV2Script'" in text
     assert "/js/pdf-editor/workflow-v2.js?v=20260828-1" in text
-    assert "pdfEditorWorkflowV2Script" in text
+    assert "if(surface==='design-editor')" in text
 
 
 def test_pdf_sidebar_toggle_waits_for_compact_shell_actions():
