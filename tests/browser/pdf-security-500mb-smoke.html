@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>PDF Security 500MB Smoke</title>
+</head>
+<body data-pdf-security-smoke="pending">
+  <div id="uploadZone"><div class="upload-sub">기존 용량 안내</div></div>
+  <input id="fileInput" type="file">
+  <div id="uploadFilename"></div>
+  <button id="resetBtn" style="display:none"></button>
+  <button id="decryptBtn" class="file-action"><span class="action-desc">decrypt</span></button>
+  <button id="encryptBtn" class="file-action"><span class="action-desc">encrypt</span></button>
+  <div id="pdfUtilityFileSummary"></div>
+  <div id="pdfUtilityFileItems"></div>
+  <div id="toolError"></div>
+  <div id="result">PENDING</div>
+
+  <script>
+    let selectedFile=null;
+    let pageBusy=false;
+    const calls={original:[],uploads:[],fetches:[],deletes:0,status:[]};
+    window.auth={currentUser:{uid:'smoke-user',getIdToken:async()=> 'token'}};
+    window.firebase={auth:()=>window.auth,storage:()=>window.__storage};
+    window.__storage={ref:path=>({path,put:async()=>{},delete:async()=>{calls.deletes+=1}})};
+    window._authHeaders=async()=>({Authorization:'Bearer token'});
+    window._ensureStorage=async()=>window.__storage;
+    window._uploadStorageFile=async(ref,file,options)=>{
+      calls.uploads.push({path:ref.path,size:file.size});
+      options?.onProgress?.({ratio:1});
+    };
+    window._readPdfDelivery=async()=>new Blob(['pdf'],{type:'application/pdf'});
+    window.apiPdfTool=async function(op,file,params){calls.original.push({op,size:file?.size||0,params});return {blob:new Blob(['direct'],{type:'application/pdf'})}};
+    window.showError=message=>{calls.error=message};
+    window.showCheckStatus=(message,type)=>{calls.status.push({message,type})};
+    window.hideCheckStatus=()=>{};
+    window.hideError=()=>{};
+    window.setProgress=()=>{};
+    window.setPageBusy=value=>{pageBusy=!!value};
+    window.safeBaseName=file=>String(file.name||'document.pdf').replace(/\.pdf$/i,'');
+    window.downloadBlob=()=>{};
+    window.openTool=()=>{};
+    window.syncFileActionAvailability=function(){
+      const unavailable=pageBusy||!selectedFile||Number(selectedFile?.size||0)>20*1024*1024;
+      document.getElementById('decryptBtn').disabled=unavailable;
+      document.getElementById('encryptBtn').disabled=unavailable;
+    };
+    window.selectFile=function(file){
+      if(file.size>20*1024*1024)throw new Error('legacy 20MB blocker');
+      selectedFile=file;window.selectedFile=file;
+    };
+    window.runAutoDecrypt=async function(){throw new Error('legacy auto decrypt should not handle large files')};
+    window.fetch=async(url,options)=>{
+      calls.fetches.push({url,body:JSON.parse(options.body)});
+      return {ok:true,status:200,headers:{get:()=> 'application/json'}};
+    };
+  </script>
+  <script src="/js/pdf-utility/security-large-file.js?v=smoke"></script>
+  <script>
+    (async()=>{
+      const result=document.getElementById('result');
+      const assert=(value,message)=>{if(!value)throw new Error(message)};
+      const waitFor=async(predicate,label,timeout=4000)=>{const started=Date.now();while(Date.now()-started<timeout){if(predicate())return;await new Promise(resolve=>setTimeout(resolve,20));}throw new Error('timeout: '+label)};
+      try{
+        await waitFor(()=>window.PdfSecurityLargeFile?.stage==='pdf-security-large-file-v1','security bridge');
+        assert(window.PdfSecurityLargeFile.securityMax===500*1024*1024,'500MB cap missing');
+
+        const large={name:'locked-large.pdf',type:'application/pdf',size:25*1024*1024};
+        const largeResult=await window.apiPdfTool('decrypt',large,{password:'1234'});
+        assert(largeResult.meta?.large_security===true,'large decrypt did not use storage path');
+        assert(calls.original.length===0,'large decrypt reached direct multipart API');
+        assert(calls.uploads.length===1&&calls.uploads[0].size===large.size,'large PDF was not uploaded');
+        assert(calls.fetches[0]?.url==='/api/pdf-utility/security-storage','security endpoint mismatch');
+        assert(calls.fetches[0]?.body?.operation==='decrypt','decrypt operation missing');
+        assert(calls.fetches[0]?.body?.storage_path?.startsWith('pdf_temp/smoke-user/'),'storage path scope mismatch');
+
+        const small={name:'small.pdf',type:'application/pdf',size:5*1024*1024};
+        await window.apiPdfTool('compress',small,{});
+        assert(calls.original.length===1&&calls.original[0].op==='compress','normal PDF operation was not preserved');
+
+        const hugeForSecurity={name:'huge-locked.pdf',type:'application/pdf',size:450*1024*1024};
+        window.selectFile(hugeForSecurity);
+        assert(selectedFile===hugeForSecurity&&window.selectedFile===hugeForSecurity,'450MB file was not selected');
+        assert(document.getElementById('decryptBtn').disabled===false,'decrypt stayed disabled for 450MB');
+        assert(document.getElementById('encryptBtn').disabled===false,'encrypt stayed disabled for 450MB');
+        assert(document.getElementById('decryptBtn').querySelector('.action-desc').textContent.includes('500MB'),'500MB UI description missing');
+
+        let tooLargeMessage='';
+        try{await window.apiPdfTool('decrypt',{name:'too-large.pdf',type:'application/pdf',size:501*1024*1024},{password:'x'})}catch(error){tooLargeMessage=String(error.message||error)}
+        assert(tooLargeMessage.includes('500MB'),'501MB rejection missing');
+
+        document.body.dataset.pdfSecuritySmoke='pass';
+        document.body.dataset.largeDecryptStorage='true';
+        document.body.dataset.securityCap='500mb';
+        result.textContent='PASS: PDF encrypt/decrypt uses Storage from 20MB to 500MB while normal tools keep the direct limit';
+      }catch(error){
+        document.body.dataset.pdfSecuritySmoke='fail';
+        result.textContent='FAIL: '+String(error?.stack||error?.message||error);
+      }
+    })();
+  </script>
+</body>
+</html>
