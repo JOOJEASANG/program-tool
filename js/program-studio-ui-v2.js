@@ -9,6 +9,7 @@
     if(path.endsWith('/login')||path.endsWith('/login.html'))return 'auth';
     if(path.endsWith('/admin')||path.endsWith('/admin.html'))return 'admin';
     if(path.endsWith('/approval-waiting')||path.endsWith('/approval-waiting.html'))return 'approval';
+    if(['/guide','/guide.html','/terms','/terms.html','/privacy','/privacy.html'].some(item=>path.endsWith(item)))return 'legal';
     if(path.includes('/pdf-editor'))return 'pdf-editor';
     if(path.includes('/pdf-preflight'))return 'pdf-preflight';
     if(path.includes('/design-editor/general'))return 'design-editor';
@@ -137,6 +138,9 @@
   }
 
   function loadSurfaceEnhancements(){
+    if(['auth','approval','legal'].includes(surface)){
+      loadEnhancement('programStudioPhase6Script','/js/surface-polish-v3.js?v=20260828-1',()=>Boolean(window.__programStudioPhase6),'화면 접근성 개선 기능을 불러오지 못했습니다.');
+    }
     if(surface==='home'){
       loadEnhancement('homeDashboardV2Script','/js/home-dashboard-v2.js?v=20260828-1',()=>Boolean(window.__homeDashboardV2),'홈 빠른 작업 기능을 불러오지 못했습니다.');
       return;
@@ -287,5 +291,5 @@
     improveExternalStateLabels();
   });
 
-  window.ProgramStudioUI={version:'2026.08.28.006',surface,openPalette,closePalette};
+  window.ProgramStudioUI={version:'2026.08.28.007',surface,openPalette,closePalette};
 })();
