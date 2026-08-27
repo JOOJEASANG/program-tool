@@ -5,15 +5,15 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="robots" content="noindex">
   <meta http-equiv="refresh" content="0;url=/pdf-editor/">
-  <title>인쇄·출력 도구 · Program Studio로 이동</title>
+  <title>PDF 편집기 · Program Studio로 이동</title>
   <script>
     (function(){
       const target=new URL('/pdf-editor/',location.origin);
-      location.replace(target.pathname+location.search+location.hash);
+      target.search=location.search;
+      target.hash=location.hash;
+      location.replace(target.pathname+target.search+target.hash);
     })();
   </script>
 </head>
-<body>
-  <p>PDF 인쇄·출력 기능은 정식 프로그램 주소로 이동되었습니다. <a href="/pdf-editor/">인쇄·출력 도구 열기</a></p>
-</body>
+<body><main aria-live="polite"><p>PDF 편집기는 정식 프로그램 주소로 이동되었습니다. <a href="/pdf-editor/">PDF 편집기 열기</a></p></main></body>
 </html>
