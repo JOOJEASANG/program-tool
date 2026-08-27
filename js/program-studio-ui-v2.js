@@ -56,16 +56,33 @@
   }
 
   function sidebarTarget(){
-    if(surface==='pdf-editor')return document.querySelector('aside');
+    if(surface==='pdf-editor')return document.querySelector('.app > aside');
     if(['design-editor','document-editor','image-editor'].includes(surface))return document.querySelector('.sidebar');
     return null;
   }
 
-  function mountSidebarToggle(){
+  function sidebarHost(attempt){
+    if(surface==='pdf-editor'){
+      const compact=document.querySelector('.app > aside > .program-local-actions');
+      if(compact)return compact;
+      if(attempt>=8)return document.querySelector('.top-nav');
+      return null;
+    }
+    return document.querySelector('.top-nav,.app-header');
+  }
+
+  function mountSidebarToggle(attempt=0){
     const target=sidebarTarget();
-    if(!target)return;
-    const host=document.querySelector('.top-nav,.app-header');
-    if(!host||host.querySelector('.ps-sidebar-toggle'))return;
+    if(!target){
+      if(attempt<10)setTimeout(()=>mountSidebarToggle(attempt+1),80+attempt*60);
+      return;
+    }
+    const host=sidebarHost(attempt);
+    if(!host){
+      if(attempt<10)setTimeout(()=>mountSidebarToggle(attempt+1),80+attempt*60);
+      return;
+    }
+    if(host.querySelector('.ps-sidebar-toggle'))return;
     const key=`program-studio:sidebar:${surface}`;
     const saved=localStorage.getItem(key)==='collapsed';
     if(saved)document.documentElement.classList.add('ps-sidebar-collapsed');
@@ -92,15 +109,33 @@
 
     button.addEventListener('click',()=>{
       const collapsed=document.documentElement.classList.toggle('ps-sidebar-collapsed');
-      localStorage.setItem(key,collapsed?'collapsed':'expanded');
+      try{localStorage.setItem(key,collapsed?'collapsed':'expanded');}catch(_){}
       sync();
       toast(collapsed?'작업 패널을 접었습니다.':'작업 패널을 펼쳤습니다.');
       window.dispatchEvent(new Event('resize'));
     });
 
+    if(host.classList.contains('program-local-actions')){
+      const account=host.querySelector('.program-account-name');
+      if(account)host.insertBefore(button,account);
+      else host.appendChild(button);
+      return;
+    }
     const anchor=host.querySelector('.nav-user,.header-actions');
     if(anchor)host.insertBefore(button,anchor);
     else host.appendChild(button);
+  }
+
+  function loadSurfaceEnhancements(){
+    if(surface!=='pdf-editor')return;
+    const id='pdfEditorWorkflowV2Script';
+    if(document.getElementById(id)||window.__pdfEditorWorkflowV2)return;
+    const script=document.createElement('script');
+    script.id=id;
+    script.src='/js/pdf-editor/workflow-v2.js?v=20260828-1';
+    script.async=false;
+    script.addEventListener('error',()=>toast('PDF 편집 화면 개선 기능을 불러오지 못했습니다.'));
+    document.head.appendChild(script);
   }
 
   let palette=null;
@@ -217,11 +252,12 @@
   }
 
   onReady(()=>{
-    mountSidebarToggle();
+    loadSurfaceEnhancements();
+    mountSidebarToggle(0);
     mountCommandTrigger();
     mountGlobalKeys();
     improveExternalStateLabels();
   });
 
-  window.ProgramStudioUI={version:'2026.08.28.002',surface,openPalette,closePalette};
+  window.ProgramStudioUI={version:'2026.08.28.003',surface,openPalette,closePalette};
 })();
