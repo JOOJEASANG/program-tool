@@ -58,13 +58,11 @@
         assert(panel.querySelector('[data-design-step="output"]').classList.contains('active'),'output step did not activate');
 
         document.querySelector('[data-design-workflow-action="print-check"]').click();
-        await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
         assert(document.body.dataset.finalCheckClicked==='true','final print check was not reused');
         assert(panel.querySelector('[data-design-step="output"]').classList.contains('done'),'output step did not become done after final check');
 
         window.DesignEditorRuntimeDiagnostics.audit=()=>({ok:false,issues:['runtime failure']});
         window.DesignEditorWorkflowV2.refresh();
-        await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
         const status=document.getElementById('designWorkflowStatusV2');
         assert(status.querySelector('.design-workflow-badge').classList.contains('bad'),'diagnostic issue was not surfaced');
         assert(status.querySelector('.design-workflow-badge').textContent.includes('진단 1'),'diagnostic count missing');
