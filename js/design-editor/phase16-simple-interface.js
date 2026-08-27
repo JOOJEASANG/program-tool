@@ -127,7 +127,7 @@
   function install(){
     if(installed)return true;
     if(!document.querySelector('.sidebar')||!byId('inspector')||!window.DesignEditorApp)return false;
-    installed=true;installStyles();bindEvents();window.DesignEditorSimpleInterface={sync,stage:'basic-first-contextual-sidebar-decoupled-preferences'};
+    installed=true;installStyles();bindEvents();window.DesignEditorSimpleInterface={sync,stage:'basic-first-contextual-sidebar'};
     [180,420,850,1500,2400,3400].forEach(delay=>setTimeout(queueSync,delay));
     return true;
   }
