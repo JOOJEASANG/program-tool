@@ -137,8 +137,20 @@
   }
 
   function loadSurfaceEnhancements(){
+    if(surface==='home'){
+      loadEnhancement('homeDashboardV2Script','/js/home-dashboard-v2.js?v=20260828-1',()=>Boolean(window.__homeDashboardV2),'홈 빠른 작업 기능을 불러오지 못했습니다.');
+      return;
+    }
+    if(surface==='admin'){
+      loadEnhancement('adminWorkflowV2Script','/js/admin-workflow-v2.js?v=20260828-1',()=>Boolean(window.__adminWorkflowV2),'관리자 편의 기능을 불러오지 못했습니다.');
+      return;
+    }
     if(surface==='pdf-editor'){
       loadEnhancement('pdfEditorWorkflowV2Script','/js/pdf-editor/workflow-v2.js?v=20260828-1',()=>Boolean(window.__pdfEditorWorkflowV2),'PDF 편집 화면 개선 기능을 불러오지 못했습니다.');
+      return;
+    }
+    if(surface==='pdf-preflight'){
+      loadEnhancement('pdfPreflightWorkflowV2Script','/js/pdf-preflight/workflow-v2.js?v=20260828-1',()=>Boolean(window.__pdfPreflightWorkflowV2),'PDF 검사 결과 개선 기능을 불러오지 못했습니다.');
       return;
     }
     if(surface==='design-editor'){
@@ -275,5 +287,5 @@
     improveExternalStateLabels();
   });
 
-  window.ProgramStudioUI={version:'2026.08.28.005',surface,openPalette,closePalette};
+  window.ProgramStudioUI={version:'2026.08.28.006',surface,openPalette,closePalette};
 })();
