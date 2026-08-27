@@ -285,6 +285,11 @@
     syncSummary();
   }
 
+  function refresh(){
+    syncQueued=false;
+    syncSteps();
+  }
+
   function queueSync(){
     if(syncQueued)return;
     syncQueued=true;
@@ -368,7 +373,7 @@
       activateStep,
       setAdvanced,
       showError,
-      refresh:queueSync,
+      refresh,
       stage:'pdf-editor-guided-workflow-v2'
     };
     return true;
