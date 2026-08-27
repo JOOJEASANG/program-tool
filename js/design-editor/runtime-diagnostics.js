@@ -193,6 +193,12 @@
     const button=document.createElement('button');button.id=BUTTON_ID;button.type='button';button.className='design-diagnostics-btn';button.addEventListener('click',showModal);footer.appendChild(button);refreshButton();return true;
   }
 
+  function isExpectedCancellation(reason){
+    const name=String(reason?.name||'');
+    const message=String(reason?.message||reason||'');
+    return name==='AbortError'||/\b(?:abort(?:ed)?|cancel(?:led|ed)?)\b|취소/i.test(message);
+  }
+
   function bindErrors(){
     window.addEventListener('error',event=>{
       const target=event.target;
@@ -204,6 +210,7 @@
     },true);
     window.addEventListener('unhandledrejection',event=>{
       const reason=event.reason;
+      if(isExpectedCancellation(reason))return;
       record('rejection',reason?.message||reason||'처리되지 않은 비동기 오류');
     });
     window.addEventListener('programstudio:runtime-script-result',event=>{
@@ -216,7 +223,7 @@
     if(installed)return;
     installed=true;loadRecords();installStyles();bindErrors();installButton();
     [300,900,1800,3500].forEach(delay=>setTimeout(()=>{installButton();refreshButton();},delay));
-    window.DesignEditorRuntimeDiagnostics={record,report,audit,clear,stage:'local-runtime-qa-diagnostics'};
+    window.DesignEditorRuntimeDiagnostics={record,report,audit,clear,isExpectedCancellation,stage:'local-runtime-qa-diagnostics-filtered-cancellation'};
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
 })();
