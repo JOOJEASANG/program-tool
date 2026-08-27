@@ -17,13 +17,21 @@
     return ['/design-editor/general','/design-editor/general.html'].some(item=>path.endsWith(item));
   }
 
-  function loadDesignRuntimeScript(id,src){
-    if(!isGeneralDesignEditor()||document.getElementById(id))return;
+  function isPdfPrintEditor(){
+    return ['/tools/pdf-editor.html','/pdf-editor','/pdf-editor/index.html'].some(item=>path.endsWith(item));
+  }
+
+  function loadRuntimeScript(id,src,enabled){
+    if(!enabled||document.getElementById(id))return;
     const script=document.createElement('script');
     script.id=id;
     script.src=src;
     script.async=false;
     document.head.appendChild(script);
+  }
+
+  function loadDesignRuntimeScript(id,src){
+    loadRuntimeScript(id,src,isGeneralDesignEditor());
   }
 
   loadDesignRuntimeScript('designTextAutoFitScriptV1','/js/design-editor/text-auto-fit.js?v=20260826-2');
@@ -32,6 +40,7 @@
   loadDesignRuntimeScript('designShapeBorderControlsScriptV1','/js/design-editor/shape-border-controls.js?v=20260827-1');
   loadDesignRuntimeScript('designShapeInspectorUxScriptV1','/js/design-editor/shape-inspector-ux.js?v=20260827-1');
   loadDesignRuntimeScript('designPrintProductionStage2ScriptV1','/js/design-editor/print-production-stage2.js?v=20260826-1');
+  loadRuntimeScript('pdfPrintWorkflowFocusScriptV1','/js/pdf-editor/print-workflow-focus.js?v=20260827-1',isPdfPrintEditor());
 
   root.classList.add('app-booting');
   if(protectedProgram)root.dataset.approvalRequired='true';
