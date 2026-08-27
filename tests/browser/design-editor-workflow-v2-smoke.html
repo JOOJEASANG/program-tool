@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>Design Editor Workflow V2 Smoke</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0}.top-nav{height:54px;display:flex}.nav-user{margin-left:auto}.editor-shell{display:grid;grid-template-columns:320px 1fr;height:700px}.sidebar{display:flex;flex-direction:column;gap:8px;padding:10px;overflow:auto}.side-card{border:1px solid #ddd;padding:10px}.editor-main{min-height:0}.editor-footer{display:flex}.hidden{display:none!important}
+  </style>
+  <script>history.replaceState(null,'','/design-editor/general.html?embed=1&browser-workflow-v2-smoke=1');</script>
+</head>
+<body data-design-workflow-v2-smoke="pending">
+  <nav class="top-nav"><a class="nav-back" href="/index.html">← 홈</a><div class="nav-title">디자인 편집기</div><div class="nav-user"><button class="nav-logout">로그아웃</button></div></nav>
+  <main id="editorShell" class="editor-shell">
+    <aside class="sidebar">
+      <section id="designQuickDesignTools" class="side-card">빠른 구성</section>
+      <section id="designPhase2Tools" class="side-card">요소 추가</section>
+      <section id="inspector" class="side-card">선택 요소 편집</section>
+      <section id="designPhase4SmartLayout" class="side-card">스마트 정리</section>
+      <details id="designAdvancedTools" class="side-card"><summary>고급 도구</summary></details>
+      <section id="designPrintQualityTools" class="side-card">인쇄 품질</section>
+      <section id="designPrintSafetyTools" class="side-card">인쇄 안전</section>
+      <section id="designFinalPrintCheckTools" class="side-card"><span id="designFinalCheckBadge" class="final-check-badge">대기</span><button id="designFinalCheckBtn" type="button">전체 인쇄 검사 실행</button></section>
+      <section id="designOutputTools" class="side-card"><button id="designPngBtn">PNG</button><button id="designPdfBtn">PDF</button></section>
+    </aside>
+    <section class="editor-main"><div id="artboard"></div><footer class="editor-footer"><span id="editorStatus">준비됨</span><span id="saveState">자동 저장됨</span><button id="designDiagnosticsButton" data-state="ok">진단 정상</button></footer></section>
+  </main>
+  <div id="result">PENDING</div>
+
+  <script>
+    window.DesignEditorApp={project:{name:'테스트 포스터',width:210,height:297,activeSurface:'front',surfaces:[{id:'front',label:'앞면',elements:[{id:'title',type:'text'}],extras:[]}]}};
+    window.DesignEditorRuntimeDiagnostics={audit:()=>({ok:true,issues:[]})};
+    window.DesignEditorPrintSafety={lastSummary:{count:0,fixableCount:0}};
+    window.DesignEditorPrintQuality={lastSummary:{count:0,lowCount:0,cautionCount:0}};
+    document.getElementById('designFinalCheckBtn').addEventListener('click',()=>{
+      const badge=document.getElementById('designFinalCheckBadge');
+      badge.className='final-check-badge ok';
+      badge.textContent='인쇄 적합';
+      window.DesignEditorWorkflowV2?.refresh?.();
+      document.body.dataset.finalCheckClicked='true';
+    });
+    document.getElementById('designDiagnosticsButton').addEventListener('click',()=>{document.body.dataset.diagnosticsClicked='true';});
+  </script>
+  <script src="/js/design-editor/workflow-v2.js?v=smoke"></script>
+  <script>
+    (async()=>{
+      const result=document.getElementById('result');
+      const assert=(value,message)=>{if(!value)throw new Error(message)};
+      const waitFor=async(predicate,label,timeout=4000)=>{const started=Date.now();while(Date.now()-started<timeout){if(predicate())return;await new Promise(resolve=>setTimeout(resolve,25));}throw new Error('timeout: '+label)};
+      try{
+        await waitFor(()=>window.DesignEditorWorkflowV2,'workflow API');
+        const panel=document.getElementById('designEditorWorkflowV2');
+        assert(panel,'workflow panel missing');
+        assert(panel.querySelectorAll('[data-design-step]').length===4,'four workflow steps missing');
+        assert(document.getElementById('designOutputTools').classList.contains('design-output-dock-v2'),'output dock class missing');
+        assert(document.getElementById('designWorkflowStatusV2'),'workflow status missing');
+
+        panel.querySelector('[data-design-step="output"]').click();
+        assert(panel.querySelector('[data-design-step="output"]').classList.contains('active'),'output step did not activate');
+
+        document.querySelector('[data-design-workflow-action="print-check"]').click();
+        await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+        assert(document.body.dataset.finalCheckClicked==='true','final print check was not reused');
+        assert(panel.querySelector('[data-design-step="output"]').classList.contains('done'),'output step did not become done after final check');
+
+        window.DesignEditorRuntimeDiagnostics.audit=()=>({ok:false,issues:['runtime failure']});
+        window.DesignEditorWorkflowV2.refresh();
+        await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+        const status=document.getElementById('designWorkflowStatusV2');
+        assert(status.querySelector('.design-workflow-badge').classList.contains('bad'),'diagnostic issue was not surfaced');
+        assert(status.querySelector('.design-workflow-badge').textContent.includes('진단 1'),'diagnostic count missing');
+        status.querySelector('[data-design-workflow-action="diagnostics"]').click();
+        assert(document.body.dataset.diagnosticsClicked==='true','diagnostics button was not reused');
+
+        document.body.dataset.designWorkflowV2Smoke='pass';
+        result.textContent='PASS: design workflow v2, output dock, final print check and diagnostics integration';
+      }catch(error){
+        document.body.dataset.designWorkflowV2Smoke='fail';
+        result.textContent='FAIL: '+String(error?.message||error);
+      }
+    })();
+  </script>
+</body>
+</html>
