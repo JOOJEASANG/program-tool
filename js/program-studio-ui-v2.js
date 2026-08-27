@@ -143,6 +143,14 @@
     }
     if(surface==='design-editor'){
       loadEnhancement('designEditorWorkflowV2Script','/js/design-editor/workflow-v2.js?v=20260828-1',()=>Boolean(window.__designEditorWorkflowV2),'디자인 편집 화면 개선 기능을 불러오지 못했습니다.');
+      return;
+    }
+    if(surface==='document-editor'){
+      loadEnhancement('documentEditorWorkflowV2Script','/js/document-editor/workflow-v2.js?v=20260828-1',()=>Boolean(window.__documentEditorWorkflowV2),'문서 편집 화면 개선 기능을 불러오지 못했습니다.');
+      return;
+    }
+    if(surface==='image-editor'){
+      loadEnhancement('imageEditorWorkflowV2Script','/js/image-editor/workflow-v2.js?v=20260828-1',()=>Boolean(window.__imageEditorWorkflowV2),'이미지 편집 화면 개선 기능을 불러오지 못했습니다.');
     }
   }
 
@@ -267,5 +275,5 @@
     improveExternalStateLabels();
   });
 
-  window.ProgramStudioUI={version:'2026.08.28.004',surface,openPalette,closePalette};
+  window.ProgramStudioUI={version:'2026.08.28.005',surface,openPalette,closePalette};
 })();
