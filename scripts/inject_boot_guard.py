@@ -10,6 +10,7 @@ VERSION_FILE = ROOT / "version.json"
 MARKER = "data-program-studio-boot-guard"
 ACCESS_MARKER = "data-program-studio-approval-bootstrap"
 IMAGE_LAYOUT_MARKER = "data-image-editor-pdf-layout"
+PDF_SECURITY_MARKER = "data-pdf-security-500mb"
 EXCLUDED_PARTS = {".git", "node_modules", "venv", ".venv", "__pycache__"}
 PROTECTED_HTML = {
     "design-editor/index.html",
@@ -23,6 +24,11 @@ PROTECTED_HTML = {
     "tools/preflight.html",
     "tools/pdf-Checker.html",
     "tools/perfect-binding-cover.html",
+}
+PDF_SECURITY_HTML = {
+    "pdf-preflight/index.html",
+    "tools/preflight.html",
+    "tools/pdf-Checker.html",
 }
 FIREBASE_APPROVAL_BOOTSTRAP = (
     f'<script {ACCESS_MARKER} src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>'
@@ -52,6 +58,10 @@ def is_image_editor(path: Path) -> bool:
     return relative_path(path) == "image-editor/index.html"
 
 
+def is_pdf_security_page(path: Path) -> bool:
+    return relative_path(path) in PDF_SECURITY_HTML
+
+
 def should_inject(path: Path, text: str) -> bool:
     if any(part in EXCLUDED_PARTS for part in path.parts):
         return False
@@ -60,7 +70,8 @@ def should_inject(path: Path, text: str) -> bool:
         approval_required or "sw-register.js" in text or "firebase-config.js" in text
     )
     needs_image_layout = is_image_editor(path) and IMAGE_LAYOUT_MARKER not in text
-    return needs_boot or needs_image_layout
+    needs_pdf_security = is_pdf_security_page(path) and PDF_SECURITY_MARKER not in text
+    return needs_boot or needs_image_layout or needs_pdf_security
 
 
 def inject_guard(
@@ -69,6 +80,7 @@ def inject_guard(
     *,
     approval_required: bool = False,
     image_editor: bool = False,
+    pdf_security: bool = False,
 ) -> str:
     tags = ""
     if MARKER not in text:
@@ -80,6 +92,11 @@ def inject_guard(
         tags += (
             f'<link {IMAGE_LAYOUT_MARKER} rel="stylesheet" '
             f'href="/css/image-editor-pdf-layout.css?v={version}">'
+        )
+    if pdf_security and PDF_SECURITY_MARKER not in text:
+        tags += (
+            f'<script {PDF_SECURITY_MARKER} defer '
+            f'src="/js/pdf-utility/security-large-file.js?v={version}"></script>'
         )
     if approval_required and "firebase-config.js" not in text:
         tags += FIREBASE_APPROVAL_BOOTSTRAP
@@ -103,6 +120,7 @@ def inject_all() -> list[Path]:
             version,
             approval_required=requires_approval(path),
             image_editor=is_image_editor(path),
+            pdf_security=is_pdf_security_page(path),
         )
         if updated == text:
             continue
