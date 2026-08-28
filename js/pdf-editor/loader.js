@@ -1,5 +1,5 @@
-// PDF editor module loader.
-// Keep the stable July 20 runtime, with selected July 24 core upgrades.
+// PDF editor enhancement bootstrap.
+// Core feature-module ownership lives in core-runtime.js.
 (function () {
   if (window.__pdfEditorModuleLoaderV18) return;
   window.__pdfEditorModuleLoaderV18 = true;
@@ -402,25 +402,35 @@
     bootEditorEnhancements();
   }
 
-  const MODULES = [
-    '/js/pdf-editor/font-render-fix.js?v=20260618-1',
-    '/js/pdf-editor/upload-fix.js?v=20260724-5',
-    '/js/pdf-editor/live-preview.js?v=20260724-4',
-    '/js/pdf-editor/layout-export.js?v=20260731-3',
-    '/js/pdf-editor/page-count-hint.js?v=20260731-1',
-    '/js/pdf-editor/nup-helper.js?v=20260731-1',
-    '/js/pdf-editor/preview-row-default.js?v=20260731-1',
-    '/js/pdf-editor/divider-helper.js?v=20260731-2'
-  ];
+  function loadCoreRuntime() {
+    const context = window.ProgramStudioPdfEditorRuntimeContext || {};
+    const hostLoad = context.load;
+    const coreSrc = '/js/pdf-editor/core-runtime.js?v=20260828-1';
+    const promise = typeof hostLoad === 'function'
+      ? hostLoad('pdfEditorCoreRuntimeScriptV1', coreSrc)
+      : new Promise((resolve, reject) => {
+          let script = document.getElementById('pdfEditorCoreRuntimeScriptV1');
+          if (!script) {
+            script = document.createElement('script');
+            script.id = 'pdfEditorCoreRuntimeScriptV1';
+            script.src = coreSrc;
+            script.async = false;
+            document.head.appendChild(script);
+          }
+          script.addEventListener('load', resolve, { once: true });
+          script.addEventListener('error', () => reject(new Error('PDF core runtime loader failed')), { once: true });
+        });
 
-  function loadScript(src) {
-    const clean = src.split('?')[0];
-    if ([...document.scripts].some(script => script.src && script.src.includes(clean))) return;
-    const script = document.createElement('script');
-    script.src = src;
-    script.async = false;
-    document.head.appendChild(script);
+    return promise.then(() => {
+      const runtime = window.PdfEditorCoreRuntime;
+      if (!runtime || typeof runtime.loadAll !== 'function') throw new Error('PDF core runtime API is unavailable');
+      return runtime.loadAll();
+    });
   }
 
-  MODULES.forEach(loadScript);
+  window.PdfEditorModuleLoader = {
+    loadCoreRuntime,
+    stage: 'pdf-editor-enhancement-bootstrap-v19'
+  };
+  loadCoreRuntime().catch(error => console.error('[pdf-editor-loader] core runtime failed', error));
 })();
