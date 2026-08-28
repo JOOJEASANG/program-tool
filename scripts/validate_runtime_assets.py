@@ -13,8 +13,7 @@ RUNTIME_SOURCES = (
     Path("js/firebase-config.js"),
     Path("js/program-studio-ui-v2.js"),
 )
-ACTIVE_HOME_ENTRY_SOURCES = RUNTIME_SOURCES + (Path("index.html"),)
-ORPHAN_CANDIDATES = (
+RETIRED_LEGACY_ASSETS = (
     Path("js/home-premium-ui.js"),
     Path("js/home-hero-console-v2.js"),
 )
@@ -123,14 +122,9 @@ def validate() -> None:
             f"Home dynamic helper bytes {home_bytes:,} exceed budget {HOME_DYNAMIC_BYTES_BUDGET:,}"
         )
 
-    active_home_text = "\n".join(read(relative) for relative in ACTIVE_HOME_ENTRY_SOURCES)
-    for candidate in ORPHAN_CANDIDATES:
-        candidate_path = ROOT / candidate
-        if not candidate_path.is_file():
-            errors.append(f"Tracked legacy candidate disappeared without inventory update: {candidate.as_posix()}")
-            continue
-        if candidate.name in active_home_text or f"/{candidate.as_posix()}" in active_home_text:
-            errors.append(f"Legacy candidate became runtime-active again: {candidate.as_posix()}")
+    for retired in RETIRED_LEGACY_ASSETS:
+        if (ROOT / retired).exists():
+            errors.append(f"Retired legacy asset was reintroduced: {retired.as_posix()}")
 
     if errors:
         print("Runtime asset validation failed:", file=sys.stderr)
@@ -143,7 +137,7 @@ def validate() -> None:
         f"{len(dynamic_assets)} local dynamic asset(s) exist; "
         f"home helpers {len(home_assets)}/{HOME_DYNAMIC_COUNT_BUDGET}, "
         f"{home_bytes:,}/{HOME_DYNAMIC_BYTES_BUDGET:,} bytes; "
-        f"legacy candidates quarantined: {len(ORPHAN_CANDIDATES)}"
+        f"retired legacy assets absent: {len(RETIRED_LEGACY_ASSETS)}"
     )
 
 
