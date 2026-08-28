@@ -21,6 +21,7 @@
       'use strict';
       const frame=document.getElementById('editorFrame'),loading=document.getElementById('loading'),shell=document.getElementById('unifiedDesignShell');
       const FOLD_RUNTIME_VERSION='20260825-5';
+      const DOCUMENT_STATE_VERSION='20260828-1';
       const PRODUCT_RUNTIME_VERSION='20260828-3';
       const PRODUCT_STATE_VERSION='20260825-1';
       const PRODUCT_TOPBAR_VERSION='20260828-2';
@@ -28,7 +29,7 @@
       const MULTI_SELECTION_VERSION='20260828-1';
       const MULTI_SMART_GUIDES_VERSION='20260828-1';
       const SIMPLE_RESULT_VERSION='20260828-1';
-      const PROFESSIONAL_UI_VERSION='20260828-1';
+      const PROFESSIONAL_UI_VERSION='20260828-2';
       const DEFAULTS={
         cover:{mode:'cover',preset:'cover-a4'},
         poster:{mode:'poster',preset:'poster-a4',paper:'a4',orientation:'portrait',w:210,h:297},
@@ -82,6 +83,11 @@
           if(win.DesignEditorPrintFoldRuntimeEnsure?.refresh){win.DesignEditorPrintFoldRuntimeEnsure.refresh();return true;}return false;
         });
       }
+      function ensureDocumentStateRuntime(){
+        return injectRuntime('designDocumentTypeStateScriptV1',`/js/design-editor/document-type-state.js?v=${DOCUMENT_STATE_VERSION}`,win=>{
+          if(win.DesignEditorDocumentTypeState?.sync){const project=win.DesignEditorApp?.project;if(project)win.DesignEditorDocumentTypeState.sync(project,{emit:false,source:'shell'});return true;}return false;
+        });
+      }
       function ensureProductRuntime(){
         return injectRuntime('designPrintProductMenuScriptV1',`/js/design-editor/print-product-menu.js?v=${PRODUCT_RUNTIME_VERSION}`,win=>{
           if(win.DesignEditorPrintProductMenu?.render){win.DesignEditorPrintProductMenu.render();return true;}return false;
@@ -118,10 +124,12 @@
         });
       }
       function ensureProfessionalUi(){
-        return injectRuntime('designProfessionalUiScriptV1',`/js/design-editor/professional-ui.js?v=${PROFESSIONAL_UI_VERSION}`,win=>Boolean(win.DesignEditorProfessionalUi));
+        return injectRuntime('designProfessionalUiScriptV1',`/js/design-editor/professional-ui.js?v=${PROFESSIONAL_UI_VERSION}`,win=>{
+          if(win.DesignEditorProfessionalUi?.sync){win.DesignEditorProfessionalUi.sync();return true;}return false;
+        });
       }
       function ensurePrintRuntimes(){
-        ensureFoldRuntime();ensureProductRuntime();ensureProductStateRuntime();ensureProductTopbarRuntime();ensureSelectionContextRuntime();ensureMultiSelectionRuntime();ensureMultiSmartGuidesRuntime();ensureSimpleResultRuntime();ensureProfessionalUi();
+        ensureFoldRuntime();ensureDocumentStateRuntime();ensureProductRuntime();ensureProductStateRuntime();ensureProductTopbarRuntime();ensureSelectionContextRuntime();ensureMultiSelectionRuntime();ensureMultiSmartGuidesRuntime();ensureSimpleResultRuntime();ensureProfessionalUi();
       }
       function openMode(detail){loading.classList.remove('hide');frame.src=route(detail);}
       window.addEventListener('message',event=>{
@@ -137,7 +145,7 @@
       const initialRoute=route(incomingDetail());
       if(frame.getAttribute('src')!==initialRoute)frame.src=initialRoute;
       setTimeout(()=>loading.classList.add('hide'),2600);
-      window.UnifiedDesignShell={openMode,route,incomingDetail,ensureFoldRuntime,ensureProductRuntime,ensureProductStateRuntime,ensureProductTopbarRuntime,ensureSelectionContextRuntime,ensureMultiSelectionRuntime,ensureMultiSmartGuidesRuntime,ensureSimpleResultRuntime,ensureProfessionalUi,ensurePrintRuntimes,foldRuntimeStage:'direct-fold-runtime-loader-and-verifier',productRuntimeStage:'print-product-menu-loader',productTopbarStage:'professional-design-commandbar-v2',selectionContextStage:'selection-context-properties-v1',multiSelectionStage:'multi-select-align-distribute-group-v1',multiSmartGuidesStage:'multi-smart-guides-exact-gap-v1',simpleResultStage:'simple-result-background-logo-text-output-v1',professionalUiStage:'professional-workspace-visual-system-v1',routingStage:'query-aware-initial-route-v3-invitation',stage:'single-sidebar-general-engine-shell-no-legacy-fallback'};
+      window.UnifiedDesignShell={openMode,route,incomingDetail,ensureFoldRuntime,ensureDocumentStateRuntime,ensureProductRuntime,ensureProductStateRuntime,ensureProductTopbarRuntime,ensureSelectionContextRuntime,ensureMultiSelectionRuntime,ensureMultiSmartGuidesRuntime,ensureSimpleResultRuntime,ensureProfessionalUi,ensurePrintRuntimes,foldRuntimeStage:'direct-fold-runtime-loader-and-verifier',documentStateStage:'canonical-document-type-state-v1',productRuntimeStage:'print-product-menu-loader',productTopbarStage:'professional-design-commandbar-v2',selectionContextStage:'selection-context-properties-v1',multiSelectionStage:'multi-select-align-distribute-group-v1',multiSmartGuidesStage:'multi-smart-guides-exact-gap-v1',simpleResultStage:'simple-result-background-logo-text-output-v1',professionalUiStage:'professional-workspace-visual-system-v1',workspaceStage:'three-pane-context-properties-v1',routingStage:'query-aware-initial-route-v3-invitation',stage:'single-sidebar-general-engine-shell-no-legacy-fallback'};
     })();
   </script>
 </body>

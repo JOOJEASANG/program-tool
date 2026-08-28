@@ -16,8 +16,10 @@
         --ps-workspace:#e7ecf1;--ps-panel:#ffffff;--ps-line:#d8e1e9;--ps-text:#223247;--ps-muted:#6a788a;
         --ps-primary:#173f70;--ps-accent:#157f98;--ps-focus:rgba(31,116,180,.18);--ps-success:#147a61;
       }
-      .editor-shell{grid-template-columns:310px minmax(0,1fr)!important;background:var(--ps-workspace)!important}
+      .editor-shell{grid-template-columns:300px minmax(0,1fr) 306px!important;background:var(--ps-workspace)!important}
       .sidebar{padding:12px!important;gap:10px!important;background:#f7f9fb!important;border-right:1px solid var(--ps-line)!important;scrollbar-gutter:stable}
+      .properties-panel{min-width:0;padding:12px!important;gap:10px!important;background:#f7f9fb!important;border-left:1px solid var(--ps-line)!important;overflow-y:auto!important;scrollbar-gutter:stable;display:flex!important;flex-direction:column!important}
+      .properties-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;padding:2px 2px 1px}.properties-heading strong{color:#263b52;font-size:11.5px;font-weight:950}.properties-heading span{color:#8290a1;font-size:8.5px;font-weight:800;line-height:1.4;text-align:right}
       .side-card,.design-mode-card{position:relative;border-color:var(--ps-line)!important;border-radius:12px!important;background:var(--ps-panel)!important;box-shadow:0 1px 2px rgba(15,23,42,.025)!important}
       .side-card{padding:13px!important}.side-card[data-ps-section]::before{content:attr(data-ps-section);display:block;margin:0 0 8px;color:#7b8999;font-size:8.5px;font-weight:950;letter-spacing:.04em;text-transform:uppercase}
       #designSimpleResultTools[data-ps-section]::before{margin-bottom:5px}
@@ -51,8 +53,8 @@
       .simple-result-title{font-size:12px!important}.simple-result-sub{font-size:9px!important}.simple-result-step-label{font-size:8.5px!important}.simple-result-btn{min-height:36px!important;font-size:9.5px!important}.simple-result-output-note{font-size:8px!important}.simple-result-advanced{font-size:9px!important}
 
       button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid #3d8fb4!important;outline-offset:2px!important}button{transition:border-color .12s ease,background-color .12s ease,color .12s ease,box-shadow .12s ease}
-      @media(max-width:1280px){.editor-shell{grid-template-columns:292px minmax(0,1fr)!important}#designPrintProductTopbar .design-product-topbar-btn{padding:0 9px!important;font-size:9.5px!important}.ps-workflow-note{display:none}}
-      @media(max-width:980px){.editor-shell{grid-template-columns:1fr!important}.sidebar{padding:10px!important}.artboard-viewport{padding:32px 16px!important}.ps-workflowbar{position:sticky;top:0;z-index:14}}
+      @media(max-width:1280px){.editor-shell{grid-template-columns:282px minmax(0,1fr) 286px!important}#designPrintProductTopbar .design-product-topbar-btn{padding:0 9px!important;font-size:9.5px!important}.ps-workflow-note{display:none}}
+      @media(max-width:980px){.editor-shell{grid-template-columns:1fr!important}.sidebar,.properties-panel{padding:10px!important}.properties-panel{border-left:0!important;border-top:1px solid var(--ps-line)!important}.artboard-viewport{padding:32px 16px!important}.ps-workflowbar{position:sticky;top:0;z-index:14}}
       @media(max-width:620px){.editor-toolbar{padding:7px 8px!important}#designPrintProductTopbar .design-product-topbar-btn{height:32px!important;font-size:9px!important}.artboard-viewport{padding:26px 10px!important}.ps-pro-cta.secondary{display:none}.ps-workflow-title,.ps-workflow-note{display:none}.ps-workflowbar{padding:0 8px}.ps-workflow-step{padding:0 7px}}
     `;
     document.head.appendChild(style);
@@ -133,13 +135,15 @@
   function syncProductLabel(){
     const p=project();if(!p)return;
     const map={cover:'책표지',poster:'포스터',flyer:'전단',invitation:'초대장·안내장',leaflet2:'2단 리플렛',leaflet3:'3단 리플렛',custom:'사용자 규격'};
+    const type=window.DesignEditorDocumentTypeState?.current?.(p)||p.documentType||p.designMode;
     const title=byId('documentTitle');
-    if(title&&map[p.designMode]&&(!title.textContent||title.textContent==='디자인'))title.textContent=map[p.designMode];
+    if(title&&map[type]&&(!title.textContent||title.textContent==='디자인'))title.textContent=map[type];
   }
 
   function sync(){
     installStyles();tagSidebarSections();ensureWorkflowBar();ensureToolbarCtas();syncProductLabel();
     document.documentElement.dataset.professionalUi='2';
+    document.documentElement.dataset.designWorkspace='three-pane';
   }
 
   let frame=0;
@@ -148,10 +152,10 @@
     sync();
     const root=byId('editorShell')||document.body;
     if(typeof MutationObserver==='function')new MutationObserver(queueSync).observe(root,{childList:true,subtree:true});
-    ['programstudio:design-mode-change','programstudio:runtime-script-result','resize'].forEach(name=>window.addEventListener(name,queueSync));
+    ['programstudio:design-mode-change','programstudio:document-type-change','programstudio:runtime-script-result','resize'].forEach(name=>window.addEventListener(name,queueSync));
     [120,360,900,1800].forEach(delay=>setTimeout(queueSync,delay));
   }
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
-  window.DesignEditorProfessionalUi={sync,makePdf,openCheck,openCompose,stage:'professional-workspace-result-first-v2'};
+  window.DesignEditorProfessionalUi={sync,makePdf,openCheck,openCompose,stage:'professional-workspace-result-first-v2',workspaceStage:'three-pane-context-properties-v1'};
 })();

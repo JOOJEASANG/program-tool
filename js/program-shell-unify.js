@@ -10,6 +10,7 @@
 
   const STYLE_ID='programShellUnifyStyles';
   const PDF_WORKFLOW_VERSION='20260828-1';
+  const PDF_WORKSPACE_VERSION='20260828-1';
 
   function installStyles(){
     if(document.getElementById(STYLE_ID))return;
@@ -55,6 +56,18 @@
     return true;
   }
 
+  function loadPdfWorkspace(){
+    if(!isPdfEditor)return false;
+    if(window.PdfEditorWorkspaceLayout?.sync){window.PdfEditorWorkspaceLayout.sync();return true;}
+    if(document.getElementById('pdfEditorWorkspaceLayoutScriptV1'))return true;
+    const script=document.createElement('script');
+    script.id='pdfEditorWorkspaceLayoutScriptV1';
+    script.src=`/js/pdf-editor/workspace-layout.js?v=${PDF_WORKSPACE_VERSION}`;
+    script.async=false;
+    document.head.appendChild(script);
+    return true;
+  }
+
   function makeActions(kind){
     const oldNav=document.querySelector('body > .top-nav');
     if(!oldNav)return null;
@@ -89,9 +102,15 @@
     return bar;
   }
 
+  function loadPdfEnhancements(){
+    if(!isPdfEditor)return;
+    loadPdfWorkflow();
+    loadPdfWorkspace();
+  }
+
   function apply(){
     if(document.body?.dataset.programShell==='compact'){
-      loadPdfWorkflow();
+      loadPdfEnhancements();
       return true;
     }
     const kind=isPdfEditor?'pdf-editor':'pdf-utility';
@@ -101,18 +120,18 @@
     document.body.dataset.programShell='compact';
     document.body.dataset.programKind=kind;
     makeActions(kind);
-    loadPdfWorkflow();
+    loadPdfEnhancements();
     document.documentElement.dataset.programShellUnified='2';
     return true;
   }
 
   function boot(){
     if(apply())return;
-    [40,120,300,700].forEach(delay=>setTimeout(()=>{apply();loadPdfWorkflow();},delay));
+    [40,120,300,700].forEach(delay=>setTimeout(()=>{apply();loadPdfEnhancements();},delay));
   }
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 
   // Keep the public shell stage stable for existing browser/runtime contracts.
-  window.ProgramShellUnify={apply,loadPdfWorkflow,stage:'pdf-tools-headerless-unified-shell',workflowStage:'pdf-tools-guided-unified-shell-v2'};
+  window.ProgramShellUnify={apply,loadPdfWorkflow,loadPdfWorkspace,stage:'pdf-tools-headerless-unified-shell',workflowStage:'pdf-tools-guided-unified-shell-v2',workspaceStage:'pdf-three-pane-output-settings-v1'};
 })();
