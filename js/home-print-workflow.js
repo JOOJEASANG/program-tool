@@ -36,7 +36,7 @@
       <div class="hpw-steps">
         <a class="hpw-step" data-kind="design" href="/design-editor/"><span class="hpw-num">✦</span><span><strong>디자인 만들기</strong><small>포스터 · 전단 · 초대장 · 리플렛 · 책표지</small></span></a>
         <a class="hpw-step" data-kind="pdf" href="/pdf-editor/"><span class="hpw-num">P</span><span><strong>PDF 편집 · 인쇄배치</strong><small>파일 추가 · 페이지 정리 · N-up · 소책자 · 간지</small></span></a>
-        <a class="hpw-step" data-kind="check" href="/pdf-preflight/"><span class="hpw-num">✓</span><span><strong>인쇄 전 PDF 검사</strong><small>규격 · DPI · 폰트 · 도련 · 색상 상태 확인</small></span></a>
+        <a class="hpw-step" data-kind="check" href="/pdf-preflight/"><span class="hpw-num">✓</span><span><strong>인쇄 전 검사</strong><small>PDF 규격 · DPI · 폰트 · 도련 · 색상 상태 확인</small></span></a>
         <a class="hpw-step" data-kind="image" href="/image-editor/"><span class="hpw-num">◐</span><span><strong>이미지 작업</strong><small>자르기 · 리사이즈 · 배경 제거 · 기본 보정</small></span></a>
       </div>
       <div class="hpw-flow"><span class="hpw-flow-label">추천 출력 흐름</span><span class="hpw-flow-step"><b>1</b> 디자인 또는 PDF 준비</span><span class="hpw-flow-arrow">→</span><span class="hpw-flow-step"><b>2</b> 편집 · 배치 · 확인</span><span class="hpw-flow-arrow">→</span><span class="hpw-flow-step"><b>3</b> 인쇄용 PDF 저장</span><a href="/pdf-editor/">PDF 편집기 바로가기 →</a></div>
