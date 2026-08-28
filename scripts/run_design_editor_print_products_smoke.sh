@@ -7,6 +7,7 @@ OUT_DIR="${DESIGN_EDITOR_BROWSER_SMOKE_OUT:-$ROOT_DIR/browser-smoke-artifacts}"
 DOM_OUT="$OUT_DIR/design-editor-print-products-smoke-dom.html"
 TOPBAR_DOM_OUT="$OUT_DIR/design-editor-product-topbar-smoke-dom.html"
 CONTEXT_DOM_OUT="$OUT_DIR/design-editor-selection-contextbar-smoke-dom.html"
+MULTI_DOM_OUT="$OUT_DIR/design-editor-multiselect-smoke-dom.html"
 SERVER_LOG="$OUT_DIR/design-editor-print-products-smoke-server.log"
 PROFILE_DIR="$(mktemp -d)"
 mkdir -p "$OUT_DIR"
@@ -22,6 +23,7 @@ trap cleanup EXIT
 URL="http://127.0.0.1:$PORT/tests/browser/design-editor-print-products-smoke.html"
 TOPBAR_URL="http://127.0.0.1:$PORT/tests/browser/design-editor-product-topbar-smoke.html"
 CONTEXT_URL="http://127.0.0.1:$PORT/tests/browser/design-editor-selection-contextbar-smoke.html"
+MULTI_URL="http://127.0.0.1:$PORT/tests/browser/design-editor-multiselect-smoke.html"
 for _ in $(seq 1 50); do
   if python3 - "$URL" <<'PY' >/dev/null 2>&1
 import sys, urllib.request
@@ -56,4 +58,12 @@ for marker in 'data-design-contextbar-text="font-size-weight-color-align"' 'data
 done
 if ! grep -q 'PASS: selection contextbar: 글씨·이미지·도형 속성이 기존 inspector와 layout API를 통해 동기화됨' "$CONTEXT_DOM_OUT"; then echo "Selection contextbar completion marker missing." >&2; cat "$CONTEXT_DOM_OUT" >&2; exit 1; fi
 
-echo "Design editor print products + professional command bar + selection contextbar browser smokes passed using $BROWSER"
+"$BROWSER" --headless=new --disable-gpu --no-sandbox --disable-dev-shm-usage --disable-background-networking --user-data-dir="$PROFILE_DIR" --virtual-time-budget=18000 --dump-dom "$MULTI_URL" >"$MULTI_DOM_OUT"
+
+if ! grep -q 'data-design-multiselect-status="pass"' "$MULTI_DOM_OUT"; then echo "Design editor multi selection browser smoke failed." >&2; cat "$MULTI_DOM_OUT" >&2; echo "----- HTTP server log -----" >&2; cat "$SERVER_LOG" >&2; exit 1; fi
+for marker in 'data-design-multiselect-selection="modifier-3"' 'data-design-multiselect-align="selection-bounds"' 'data-design-multiselect-distribute="horizontal-vertical"' 'data-design-multiselect-group="group-ungroup"' 'data-design-multiselect-drag="group-drag-and-nudge"' 'data-design-multiselect-bulk="lock-duplicate-delete"'; do
+  if ! grep -q "$marker" "$MULTI_DOM_OUT"; then echo "Multi selection marker missing: $marker" >&2; cat "$MULTI_DOM_OUT" >&2; exit 1; fi
+done
+if ! grep -q 'PASS: multi selection: 선택·정렬·동일 간격·그룹·이동·잠금·복제·삭제가 확인됨' "$MULTI_DOM_OUT"; then echo "Multi selection completion marker missing." >&2; cat "$MULTI_DOM_OUT" >&2; exit 1; fi
+
+echo "Design editor print products + professional command bar + selection contextbar + multi selection browser smokes passed using $BROWSER"
