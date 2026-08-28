@@ -113,5 +113,6 @@
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 
-  window.ProgramShellUnify={apply,loadPdfWorkflow,stage:'pdf-tools-guided-unified-shell-v2'};
+  // Keep the public shell stage stable for existing browser/runtime contracts.
+  window.ProgramShellUnify={apply,loadPdfWorkflow,stage:'pdf-tools-headerless-unified-shell',workflowStage:'pdf-tools-guided-unified-shell-v2'};
 })();
