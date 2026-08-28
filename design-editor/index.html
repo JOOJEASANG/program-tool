@@ -21,7 +21,7 @@
       'use strict';
       const frame=document.getElementById('editorFrame'),loading=document.getElementById('loading'),shell=document.getElementById('unifiedDesignShell');
       const FOLD_RUNTIME_VERSION='20260825-5';
-      const PRODUCT_RUNTIME_VERSION='20260825-1';
+      const PRODUCT_RUNTIME_VERSION='20260828-3';
       const PRODUCT_STATE_VERSION='20260825-1';
       const PRODUCT_TOPBAR_VERSION='20260828-2';
       const SELECTION_CONTEXT_VERSION='20260828-1';
@@ -32,6 +32,7 @@
         cover:{mode:'cover',preset:'cover-a4'},
         poster:{mode:'poster',preset:'poster-a4',paper:'a4',orientation:'portrait',w:210,h:297},
         flyer:{mode:'flyer',preset:'flyer-a4',paper:'a4',orientation:'portrait',w:210,h:297},
+        invitation:{mode:'invitation',preset:'invitation-a4',paper:'a4',orientation:'landscape',w:297,h:210},
         leaflet2:{mode:'leaflet2',preset:'leaflet-2',paper:'a4',orientation:'landscape',w:297,h:210},
         leaflet3:{mode:'leaflet3',preset:'leaflet-3-roll',paper:'a4',orientation:'landscape',w:297,h:210,fold:'leaflet-3-roll'},
         custom:{mode:'custom',preset:'custom',paper:'custom',orientation:'portrait',w:210,h:297}
@@ -132,7 +133,7 @@
       const initialRoute=route(incomingDetail());
       if(frame.getAttribute('src')!==initialRoute)frame.src=initialRoute;
       setTimeout(()=>loading.classList.add('hide'),2600);
-      window.UnifiedDesignShell={openMode,route,incomingDetail,ensureFoldRuntime,ensureProductRuntime,ensureProductStateRuntime,ensureProductTopbarRuntime,ensureSelectionContextRuntime,ensureMultiSelectionRuntime,ensureMultiSmartGuidesRuntime,ensureSimpleResultRuntime,ensurePrintRuntimes,foldRuntimeStage:'direct-fold-runtime-loader-and-verifier',productRuntimeStage:'print-product-menu-loader',productTopbarStage:'professional-design-commandbar-v2',selectionContextStage:'selection-context-properties-v1',multiSelectionStage:'multi-select-align-distribute-group-v1',multiSmartGuidesStage:'multi-smart-guides-exact-gap-v1',simpleResultStage:'simple-result-background-logo-text-output-v1',routingStage:'query-aware-initial-route-v2',stage:'single-sidebar-general-engine-shell-no-legacy-fallback'};
+      window.UnifiedDesignShell={openMode,route,incomingDetail,ensureFoldRuntime,ensureProductRuntime,ensureProductStateRuntime,ensureProductTopbarRuntime,ensureSelectionContextRuntime,ensureMultiSelectionRuntime,ensureMultiSmartGuidesRuntime,ensureSimpleResultRuntime,ensurePrintRuntimes,foldRuntimeStage:'direct-fold-runtime-loader-and-verifier',productRuntimeStage:'print-product-menu-loader',productTopbarStage:'professional-design-commandbar-v2',selectionContextStage:'selection-context-properties-v1',multiSelectionStage:'multi-select-align-distribute-group-v1',multiSmartGuidesStage:'multi-smart-guides-exact-gap-v1',simpleResultStage:'simple-result-background-logo-text-output-v1',routingStage:'query-aware-initial-route-v3-invitation',stage:'single-sidebar-general-engine-shell-no-legacy-fallback'};
     })();
   </script>
 </body>
