@@ -18,7 +18,7 @@
 
   const MODES={
     cover:{label:'표지디자인',short:'표지'},poster:{label:'포스터',short:'포스터'},flyer:{label:'전단지',short:'전단'},
-    leaflet2:{label:'2단 리플렛',short:'2단'},leaflet3:{label:'3단 리플렛',short:'3단'},custom:{label:'사용자 지정',short:'직접'}
+    invitation:{label:'초대장·안내장',short:'초대장'},leaflet2:{label:'2단 리플렛',short:'2단'},leaflet3:{label:'3단 리플렛',short:'3단'},custom:{label:'사용자 지정',short:'직접'}
   };
   const PAPERS={
     a6:{label:'A6',width:105,height:148},
@@ -59,6 +59,7 @@
     const preset=String(params.get('preset')||'');
     if(preset.startsWith('poster-'))return 'poster';
     if(preset.startsWith('flyer-'))return 'flyer';
+    if(preset.startsWith('invitation-'))return 'invitation';
     if(preset==='leaflet-2')return 'leaflet2';
     if(preset.startsWith('leaflet-3-'))return 'leaflet3';
     return 'custom';
@@ -68,6 +69,7 @@
     if(mode==='cover')return{mode:'cover'};
     if(mode==='poster')return{mode:'poster',paper:'a4',orientation:'portrait',width:210,height:297,preset:'poster-a4'};
     if(mode==='flyer')return{mode:'flyer',paper:'a4',orientation:'portrait',width:210,height:297,preset:'flyer-a4'};
+    if(mode==='invitation')return{mode:'invitation',paper:'a4',orientation:'landscape',width:297,height:210,preset:'invitation-a4'};
     if(mode==='leaflet2')return{mode:'leaflet2',paper:'a4',orientation:'landscape',width:297,height:210,preset:'leaflet-2'};
     if(mode==='leaflet3')return{mode:'leaflet3',paper:'a4',orientation:'landscape',width:297,height:210,preset:'leaflet-3-roll',fold:'leaflet-3-roll'};
     return{mode:'custom',paper:'custom',orientation:'portrait',width:210,height:297,preset:'custom'};
@@ -127,6 +129,7 @@
   function optionMarkup(mode){
     const config=activeConfig?.mode===mode?activeConfig:(modeConfigs[mode]||defaultConfig(mode));
     if(mode==='cover')return '<div class="design-mode-note">표지 규격·책등·앞뒤표지 설정은 아래 기존 옵션을 그대로 사용합니다.</div>';
+    if(mode==='invitation')return `<p class="design-mode-note">초대장·안내장은 리플렛과 별도 문서 유형으로 유지됩니다. 세부 접지 위치와 방향은 제품 설정에서 조정합니다.</p>${sizeOptionsMarkup(config,false)}`;
     if(mode==='leaflet2')return `<p class="design-mode-note">2단 접지선은 선택한 가로 크기의 정확한 1/2 위치에 자동 생성됩니다.</p>${sizeOptionsMarkup(config,false)}`;
     if(mode==='leaflet3')return `<p class="design-mode-note">용지 크기와 접지 방식을 선택하면 각 면 폭과 접지선이 자동 계산됩니다.</p>${sizeOptionsMarkup(config,true)}`;
     if(mode==='poster'||mode==='flyer')return sizeOptionsMarkup(config,false);
@@ -136,6 +139,7 @@
   function canonicalPreset(config){
     if(config.mode==='poster')return config.paper==='a3'&&config.width===297&&config.height===420?'poster-a3':'poster-a4';
     if(config.mode==='flyer')return config.paper==='a5'&&config.width===148&&config.height===210?'flyer-a5':'flyer-a4';
+    if(config.mode==='invitation')return'invitation-a4';
     if(config.mode==='leaflet2')return'leaflet-2';
     if(config.mode==='leaflet3')return config.fold==='leaflet-3-z'?'leaflet-3-z':'leaflet-3-roll';
     return'custom';
@@ -143,7 +147,7 @@
 
   function panelWidths(config){
     const width=Number(config.width)||297;
-    if(config.mode==='leaflet2')return[width/2,width/2];
+    if(config.mode==='invitation'||config.mode==='leaflet2')return[width/2,width/2];
     const third=width/3;
     if(config.mode!=='leaflet3'||config.fold==='leaflet-3-z')return[third,third,third];
     const inset=clamp(width/297,0.8,2);
@@ -151,6 +155,14 @@
   }
 
   function setLeafletGeometry(project,config){
+    if(config.mode==='invitation'){
+      const half=project.width/2;
+      project.surfaces?.forEach(surface=>{
+        surface.folds=[half];
+        surface.panels=surface.id==='outside'?['왼쪽 외부','오른쪽 외부']:['내용 왼쪽','내용 오른쪽'];
+      });
+      return;
+    }
     if(config.mode==='leaflet2'){
       const half=project.width/2;
       project.surfaces?.forEach(surface=>{
