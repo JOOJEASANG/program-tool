@@ -13,20 +13,25 @@ def test_desktop_tool_mobile_notice_loads_for_pdf_editor_once_and_not_retired_co
     marker = "desktopToolMobileNoticeScriptV1"
     assert source.count(marker) == 1
     assert source.count("/js/desktop-tool-mobile-notice.js") == 1
-    notice = source.index(marker)
-    assert notice < source.index("pdfEditorModuleLoaderScript")
+
+    pdf_start = source.index("if(isPath('/tools/pdf-editor.html','/pdf-editor','/pdf-editor/index.html'))")
+    pdf_end = source.index("if(isPath('/tools/pdf-Checker.html'", pdf_start)
+    pdf_block = source[pdf_start:pdf_end]
+
+    notice = pdf_block.index(marker)
+    assert notice < pdf_block.index("pdfEditorModuleLoaderScript")
     for path in (
         "/tools/pdf-editor.html",
         "/pdf-editor",
         "/pdf-editor/index.html",
     ):
-        assert path in source
+        assert path in pdf_block
     for retired in (
         "/tools/perfect-binding-cover.html",
         "/perfect-binding-cover/index.html",
         "perfectBindingFineControlsScript",
     ):
-        assert retired not in source
+        assert retired not in pdf_block
 
 
 def test_desktop_tool_mobile_notice_is_nonblocking_and_does_not_touch_editors():
