@@ -4,13 +4,14 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 
 
-def test_phase17_design_shell_injects_multi_smart_guides_runtime():
+def test_phase17_design_manifest_loads_multi_smart_guides_runtime():
     shell = (ROOT / "design-editor" / "index.html").read_text(encoding="utf-8")
-    assert "MULTI_SMART_GUIDES_VERSION='20260828-1'" in shell
-    assert "designMultiSmartGuidesScriptV1" in shell
-    assert "/js/design-editor/multi-selection-smart-guides.js?v=${MULTI_SMART_GUIDES_VERSION}" in shell
-    assert "ensureMultiSmartGuidesRuntime" in shell
+    runtime = (ROOT / "js" / "design-editor" / "shell-runtime.js").read_text(encoding="utf-8")
+    assert "designMultiSmartGuidesScriptV1" in runtime
+    assert "/js/design-editor/multi-selection-smart-guides.js?v=20260828-1" in runtime
+    assert "const ensureMultiSmartGuidesRuntime=ensurePrintRuntimes" in shell
     assert "multiSmartGuidesStage:'multi-smart-guides-exact-gap-v1'" in shell
+    assert "runtimeManifestStage:'design-shell-runtime-manifest-v1'" in shell
 
 
 def test_phase17_multi_smart_guides_adds_snap_targets_and_exact_gap_controls():
