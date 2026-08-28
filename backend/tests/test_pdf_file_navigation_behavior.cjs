@@ -47,7 +47,7 @@ vm.runInContext(source, context, { filename: 'file-navigation.js' });
 const api = context.PdfFileNavigation;
 
 (async () => {
-  assert.equal(api.stage, 'file-collapse-edited-original-page-jump');
+  assert.equal(api.stage, 'file-collapse-group-boundary-edited-original-page-jump');
   assert.deepEqual(JSON.parse(JSON.stringify(api.uniqueNumbers([3, 1, 3, 2]))), [1, 2, 3]);
   assert.equal(api.compactRanges([1, 2, 3, 7, 8]), '1–3, 7–8');
   assert.equal(api.compactRanges([1, 3, 5]), '1, 3 외 1구간');
@@ -78,6 +78,12 @@ const api = context.PdfFileNavigation;
   assert.equal(api.originalPageAt(0, 3, pages).id, 3);
   assert.equal(api.originalPageAt(1, 2, pages).id, 5);
   assert.equal(api.originalPageAt(0, 2, pages), null);
+
+  assert.equal(api.toggleGroupBreak(pages[3]), true);
+  assert.equal(pages[3].groupBreak, true);
+  assert.equal(api.toggleGroupBreak(pages[3]), true);
+  assert.equal(pages[3].groupBreak, false);
+  assert.equal(api.toggleGroupBreak(pages[0]), false, 'first page cannot start a redundant boundary');
 
   api.toggleFile('0');
   assert.equal(api.getCollapsedFiles().has('0'), true);
