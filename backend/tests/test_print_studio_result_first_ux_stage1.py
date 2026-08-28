@@ -40,6 +40,7 @@ def test_design_editor_exposes_result_first_workflow_and_output_cta():
 
 def test_pdf_editor_guides_file_page_layout_paper_output_and_reuses_existing_actions():
     workflow = text("js/pdf-editor/workflow-ui.js")
+    ui_runtime = text("js/pdf-editor/ui-runtime.js")
     shell = text("js/program-shell-unify.js")
     for marker in (
         "1 · PDF 파일",
@@ -55,8 +56,10 @@ def test_pdf_editor_guides_file_page_layout_paper_output_and_reuses_existing_act
         "guided-file-page-layout-paper-output-v1",
     ):
         assert marker in workflow
-    assert "/js/pdf-editor/workflow-ui.js?v=${PDF_WORKFLOW_VERSION}" in shell
+    assert "/js/pdf-editor/workflow-ui.js?v=20260828-1" in ui_runtime
+    assert "/js/pdf-editor/ui-runtime.js?v=${PDF_UI_RUNTIME_VERSION}" in shell
     assert "pdf-tools-guided-unified-shell-v2" in shell
+    assert "uiRuntimeStage:'pdf-editor-ui-runtime-manifest-v1'" in shell
     assert "stage:'pdf-tools-headerless-unified-shell'" in shell
 
 
