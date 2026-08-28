@@ -53,8 +53,8 @@
   function outputSection(){return byId('downloadBtn')?.closest('.sec')||null}
   function renameSections(){
     const labels={upload:'1 · PDF 파일',pages:'2 · 페이지 정리',nup:'3 · 인쇄 배치',paper:'4 · 용지 · 여백',edit:'선택 · 문서 꾸미기'};
-    Object.entries(labels).forEach(([key,label])=>{const title=sectionByKey(key)?.querySelector('.sec-title');if(title)title.textContent=label;});
-    const output=outputSection();if(output){output.classList.add('pdf-workflow-output-sec');output.dataset.workflowSection='output';const title=output.querySelector('.sec-title');if(title)title.textContent='5 · 결과 저장';}
+    Object.entries(labels).forEach(([key,label])=>{const title=sectionByKey(key)?.querySelector('.sec-title');if(title&&title.textContent!==label)title.textContent=label;});
+    const output=outputSection();if(output){output.classList.add('pdf-workflow-output-sec');output.dataset.workflowSection='output';const title=output.querySelector('.sec-title');if(title&&title.textContent!=='5 · 결과 저장')title.textContent='5 · 결과 저장';}
   }
 
   function ensureHeader(){
@@ -98,27 +98,42 @@
     });
   }
 
+  function setChip(head,key,value){
+    const node=head?.querySelector(`[data-summary="${key}"]`);if(!node||node.dataset.value===value)return;
+    node.dataset.value=value;const strong=node.querySelector('strong')?.outerHTML||'';node.innerHTML=strong+value;
+  }
+
   function syncSummary(){
     const fileCount=files().length,pageCount=pages().length,visible=activePages().length,nupValue=currentNup();
     const head=ensureHeader();
-    const set=(key,value)=>{const node=head?.querySelector(`[data-summary="${key}"]`);if(node){const strong=node.querySelector('strong')?.outerHTML||'';node.innerHTML=strong+value;}};
-    set('files',String(fileCount));set('pages',pageCount?`${visible}/${pageCount}`:'0');set('nup',`${nupValue}-up`);
+    setChip(head,'files',String(fileCount));setChip(head,'pages',pageCount?`${visible}/${pageCount}`:'0');setChip(head,'nup',`${nupValue}-up`);
     head?.querySelectorAll('[data-step]').forEach(button=>button.classList.toggle('on',fileCount?button.dataset.step!=='upload':button.dataset.step==='upload'));
-    const summary=byId('pdfResultSummary');if(summary)summary.textContent=fileCount?`파일 ${fileCount}개 · 사용 ${visible}쪽 · ${nupValue}-up 배치`:'PDF를 추가하면 결과가 자동 미리보기됩니다.';
+    const nextSummary=fileCount?`파일 ${fileCount}개 · 사용 ${visible}쪽 · ${nupValue}-up 배치`:'PDF를 추가하면 결과가 자동 미리보기됩니다.';
+    const summary=byId('pdfResultSummary');if(summary&&summary.textContent!==nextSummary)summary.textContent=nextSummary;
     const bar=ensureResultBar();const originalPreview=byId('previewBtn'),originalSave=byId('downloadBtn');
     const quickPreview=bar?.querySelector('[data-action="preview"]'),quickSave=bar?.querySelector('[data-action="save"]');
-    if(quickPreview)quickPreview.disabled=!originalPreview||originalPreview.disabled;if(quickSave)quickSave.disabled=!originalSave||originalSave.disabled;
+    const previewDisabled=!originalPreview||originalPreview.disabled;const saveDisabled=!originalSave||originalSave.disabled;
+    if(quickPreview&&quickPreview.disabled!==previewDisabled)quickPreview.disabled=previewDisabled;
+    if(quickSave&&quickSave.disabled!==saveDisabled)quickSave.disabled=saveDisabled;
+  }
+
+  function observeRoot(){
+    if(!observer)return;
+    const root=document.querySelector('.app')||document.body;
+    observer.observe(root,{childList:true,subtree:true,attributes:true,attributeFilter:['disabled','class','style']});
   }
 
   function sync(){
-    installStyles();document.body.dataset.pdfWorkflow='guided';renameSections();ensureHeader();ensureResultBar();markTouchedSections();applyInitialState();syncSummary();
-    document.documentElement.dataset.pdfWorkflowUi='1';
+    observer?.disconnect?.();
+    try{
+      installStyles();document.body.dataset.pdfWorkflow='guided';renameSections();ensureHeader();ensureResultBar();markTouchedSections();applyInitialState();syncSummary();
+      document.documentElement.dataset.pdfWorkflowUi='1';
+    }finally{observeRoot();}
   }
   function queueSync(){if(frame)return;frame=requestAnimationFrame(()=>{frame=0;sync();});}
   function boot(){
+    if(typeof MutationObserver==='function')observer=new MutationObserver(queueSync);
     sync();
-    const root=document.querySelector('.app')||document.body;
-    if(typeof MutationObserver==='function'){observer=new MutationObserver(queueSync);observer.observe(root,{childList:true,subtree:true,attributes:true,attributeFilter:['disabled','class','style']});}
     document.addEventListener('change',queueSync,true);document.addEventListener('click',()=>setTimeout(queueSync,0),true);
     [120,320,700,1400].forEach(delay=>setTimeout(queueSync,delay));
   }
