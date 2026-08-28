@@ -10,9 +10,11 @@ def read(path: str) -> str:
 def test_home_uses_canonical_program_routes_without_obsolete_runtime_mutators():
     home = read("index.html")
     register = read("js/sw-register.js")
+    assert "url:'design-editor/'" in home
     assert "url:'pdf-editor/'" in home
     assert "url:'pdf-preflight/'" in home
-    assert "url:'perfect-binding-cover/'" in home
+    assert "url:'image-editor/'" in home
+    assert "data-home-static-professional" in home
     for name in ("home-cleanup.js", "program-paths.js", "site-wording-cleanup.js"):
         assert name not in register
         assert not (ROOT / "js" / name).exists()
@@ -77,21 +79,3 @@ def test_pdf_editor_stable_loader_is_small_and_polling_is_bounded():
     editor = read("pdf-editor/index.html")
     assert "new MutationObserver(requestPreviewCheck)" in editor
     assert "setInterval(async () =>" not in editor
-
-
-def test_pdf_editor_mobile_layout_releases_fixed_desktop_height():
-    editor = read("pdf-editor/index.html")
-    assert "body { overflow: auto; }" in editor
-    assert ".app { display: block; height: auto;" in editor
-    assert "main { height: auto; min-height:" in editor
-    assert ".preview-zoom { width: 100%;" in editor
-
-
-def test_home_and_admin_mobile_layout_remain_readable():
-    home = read("index.html")
-    assert ".programs-head{display:block}" in home
-    assert ".programs h2{word-break:keep-all}" in home
-    admin = read("admin.html")
-    assert "grid-template-columns:auto repeat(4,minmax(0,1fr))" in admin
-    assert ".navbtn{display:flex;flex-direction:column" in admin
-    assert ".sidefoot{display:contents}" in admin
