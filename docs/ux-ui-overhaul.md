@@ -190,7 +190,7 @@ PDF, 디자인, 문서, 이미지 편집기는 기능은 많지만 어떤 순서
 
 Phase 1~7의 UX/UI 개편, 모바일·접근성 정리, 레거시 진입 경로 호환, 공개 화면 초기 렌더 최적화와 보호 화면 접근 게이트 강화를 완료했다. 편집기의 PDF/디자인/문서/이미지 핵심 처리 엔진은 유지하면서 사용자 흐름과 보조 UI, 런타임 로딩 책임을 공통 레이어로 정리했다.
 
-최종 제품 코드 기준 Repository quality gate에서는 Backend regression 854개, Frontend/static checks, Phase 5·6·7 Chrome smoke, PDF·디자인·문서·이미지 browser smoke, Firebase rules 검사가 모두 통과했고 Firebase PR 미리보기 배포 및 사용자 경로 검증도 성공했다.
+최종 제품 코드 기준 Repository quality gate에서는 Backend regression, Frontend/static checks, Phase 5·6·7 Chrome smoke, PDF·디자인·문서·이미지 browser smoke, Firebase rules 검사가 모두 통과했고 Firebase PR 미리보기 배포 및 사용자 경로 검증도 성공했다.
 
 ## 이후 유지보수 단계
 
