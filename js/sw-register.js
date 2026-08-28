@@ -4,7 +4,7 @@
 
   // Historical filename: this module is the runtime/helper loader and legacy
   // service-worker cleanup layer. It intentionally does not register a worker.
-  const VERSION='2026.08.28.004';
+  const VERSION='2026.08.26.001';
   const CACHE_PREFIX='program-studio-';
   const CLEANUP_KEY='program-studio-legacy-runtime-cleanup-'+VERSION;
   const SCRIPT_TIMEOUT_MS=8000;
