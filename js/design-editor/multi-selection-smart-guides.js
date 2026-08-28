@@ -215,8 +215,17 @@
   function syncControls(){
     const controls=byId(CONTROLS_ID);if(!controls)return false;
     const toggle=controls.querySelector('[data-multi-smart-toggle]');
-    if(toggle){toggle.classList.toggle('on',enabled);toggle.setAttribute('aria-pressed',String(enabled));toggle.textContent=enabled?'자석 ON':'자석 OFF';}
-    controls.querySelectorAll('[data-multi-exact-gap]').forEach(input=>{if(document.activeElement!==input)input.value=String(currentGap(input.dataset.multiExactGap));});
+    if(toggle){
+      toggle.classList.toggle('on',enabled);
+      const pressed=String(enabled),label=enabled?'자석 ON':'자석 OFF';
+      if(toggle.getAttribute('aria-pressed')!==pressed)toggle.setAttribute('aria-pressed',pressed);
+      if(toggle.textContent!==label)toggle.textContent=label;
+    }
+    controls.querySelectorAll('[data-multi-exact-gap]').forEach(input=>{
+      if(document.activeElement===input)return;
+      const value=String(currentGap(input.dataset.multiExactGap));
+      if(input.value!==value)input.value=value;
+    });
     return true;
   }
 
