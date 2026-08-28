@@ -7,7 +7,7 @@ def text(path: str) -> str:
     return (ROOT / path).read_text(encoding="utf-8")
 
 
-def test_home_quick_start_is_task_first_not_fake_linear_pdf_loop():
+def test_home_quick_start_is_task_first_and_explains_the_real_output_flow():
     source = text("js/home-print-workflow.js")
     for marker in (
         "무엇을 하려는지 선택하세요",
@@ -16,10 +16,10 @@ def test_home_quick_start_is_task_first_not_fake_linear_pdf_loop():
         "인쇄 전 검사",
         "이미지 작업",
         "추천 출력 흐름",
+        "검사 후 PDF 저장",
         "task-first-print-workflow-home-v2",
     ):
         assert marker in source
-    assert "검사 후 PDF 저장" not in source
 
 
 def test_design_editor_exposes_result_first_workflow_and_output_cta():
