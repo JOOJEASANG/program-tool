@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>Design Editor Product Topbar Smoke</title>
+  <style>
+    body{margin:0;font-family:Arial,sans-serif}.editor-main{height:400px;overflow:auto}.editor-toolbar{height:50px;display:flex;align-items:center;gap:8px;padding:0 10px;background:#fff;border-bottom:1px solid #ddd}.surface-tabs{display:flex;gap:4px}.sidebar{width:320px}.design-mode-card{padding:10px}.spacer{height:900px}
+  </style>
+  <script>history.replaceState(null,'','/design-editor/general.html?embed=1&mode=cover&productTopbar=20260828-1');</script>
+</head>
+<body data-design-product-topbar-status="pending">
+  <div id="result">PENDING</div>
+  <div class="editor-main">
+    <div class="editor-toolbar"><div id="surfaceTabs" class="surface-tabs"><button type="button">앞면</button></div><span id="saveState">자동 저장됨</span></div>
+    <div class="spacer"></div>
+  </div>
+  <aside class="sidebar">
+    <section id="designEmbeddedModeCard" class="design-mode-card" data-ps-tool-step="all" hidden>
+      <div class="design-mode-head"><a class="design-mode-home" href="#">←</a><div><div class="design-mode-title">디자인 편집기</div><div class="design-mode-sub">기존 선택 카드</div></div></div>
+      <div class="design-mode-grid">
+        <button type="button" data-print-product="cover">표지</button>
+        <button type="button" data-print-product="poster">포스터</button>
+        <button type="button" data-print-product="flyer">전단</button>
+        <button type="button" data-print-product="invitation">초대장·안내장</button>
+        <button type="button" data-print-product="leaflet">리플렛</button>
+      </div>
+      <div class="design-mode-options"><label>용지 규격 <select><option>A4</option></select></label></div>
+    </section>
+  </aside>
+  <script>
+    document.documentElement.dataset.printProductMenu='cover';
+    document.querySelectorAll('[data-print-product]').forEach(button=>button.addEventListener('click',()=>{
+      document.documentElement.dataset.printProductMenu=button.dataset.printProduct;
+    }));
+    window.DesignEditorPrintProductMenu={render(){return true;}};
+    window.DesignEditorApp={project:{designMode:'cover'}};
+  </script>
+  <script src="/js/design-editor/print-product-topbar.js?v=20260828-1"></script>
+  <script>
+    (async()=>{
+      const result=document.getElementById('result');
+      const fail=error=>{document.body.dataset.designProductTopbarStatus='fail';result.textContent='FAIL: '+String(error?.stack||error?.message||error);};
+      const pass=message=>{document.body.dataset.designProductTopbarStatus='pass';result.textContent='PASS: '+message;};
+      const assert=(condition,message)=>{if(!condition)throw new Error(message);};
+      const waitFor=async(predicate,label,timeout=8000)=>{const started=Date.now();while(Date.now()-started<timeout){if(predicate())return;await new Promise(resolve=>setTimeout(resolve,30));}throw new Error('timeout: '+label);};
+      try{
+        await waitFor(()=>document.querySelectorAll('#designPrintProductTopbar [data-print-product-top]').length===5,'topbar mount');
+        const topbar=document.getElementById('designPrintProductTopbar');
+        const toolbar=document.querySelector('.editor-toolbar');
+        const card=document.getElementById('designEmbeddedModeCard');
+        const sourceGrid=card.querySelector('.design-mode-grid');
+        assert(topbar.parentElement===toolbar,'작업 종류가 editor toolbar 안에 고정되지 않았습니다.');
+        const labels=[...topbar.querySelectorAll('[data-print-product-top]')].map(node=>node.textContent.trim());
+        assert(labels.join('|')==='표지|포스터|전단|초대장·안내장|리플렛','상단 작업 종류 순서가 잘못되었습니다.');
+        assert(getComputedStyle(toolbar).position==='sticky'&&getComputedStyle(toolbar).top==='0px','editor toolbar가 상단 sticky가 아닙니다.');
+        assert(getComputedStyle(sourceGrid).display==='none','사이드바의 중복 작업 종류 선택이 숨겨지지 않았습니다.');
+        assert(card.dataset.psToolAlways==='1'&&!card.dataset.psToolStep&&!card.hidden,'문서 세부 설정 카드가 항상 표시 상태가 아닙니다.');
+        assert(card.querySelector('.design-mode-title').textContent.trim()==='문서 설정','사이드바 카드 제목이 문서 설정으로 정리되지 않았습니다.');
+        document.body.dataset.designProductTopbarFixed='sticky';
+        document.body.dataset.designProductTopbarSidebar='details-only';
+
+        topbar.querySelector('[data-print-product-top="flyer"]').click();
+        await waitFor(()=>document.documentElement.dataset.printProductMenu==='flyer','topbar proxy flyer');
+        await waitFor(()=>topbar.querySelector('[data-print-product-top="flyer"]').classList.contains('on'),'flyer active sync');
+        document.body.dataset.designProductTopbarProxy='flyer';
+
+        document.documentElement.dataset.printProductMenu='leaflet';
+        await waitFor(()=>topbar.querySelector('[data-print-product-top="leaflet"]').classList.contains('on'),'leaflet state sync');
+        document.body.dataset.designProductTopbarSync='leaflet';
+        pass('작업 종류 상단 고정, 사이드바 세부 설정 유지, 기존 메뉴 클릭 프록시와 활성 상태 동기화 확인');
+      }catch(error){fail(error);}
+    })();
+  </script>
+</body>
+</html>
