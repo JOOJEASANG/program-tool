@@ -8,6 +8,7 @@ DOM_OUT="$OUT_DIR/design-editor-print-products-smoke-dom.html"
 TOPBAR_DOM_OUT="$OUT_DIR/design-editor-product-topbar-smoke-dom.html"
 CONTEXT_DOM_OUT="$OUT_DIR/design-editor-selection-contextbar-smoke-dom.html"
 MULTI_DOM_OUT="$OUT_DIR/design-editor-multiselect-smoke-dom.html"
+MULTI_SMART_DOM_OUT="$OUT_DIR/design-editor-multi-smart-guides-smoke-dom.html"
 SERVER_LOG="$OUT_DIR/design-editor-print-products-smoke-server.log"
 PROFILE_DIR="$(mktemp -d)"
 mkdir -p "$OUT_DIR"
@@ -24,6 +25,7 @@ URL="http://127.0.0.1:$PORT/tests/browser/design-editor-print-products-smoke.htm
 TOPBAR_URL="http://127.0.0.1:$PORT/tests/browser/design-editor-product-topbar-smoke.html"
 CONTEXT_URL="http://127.0.0.1:$PORT/tests/browser/design-editor-selection-contextbar-smoke.html"
 MULTI_URL="http://127.0.0.1:$PORT/tests/browser/design-editor-multiselect-smoke.html"
+MULTI_SMART_URL="http://127.0.0.1:$PORT/tests/browser/design-editor-multi-smart-guides-smoke.html"
 for _ in $(seq 1 50); do
   if python3 - "$URL" <<'PY' >/dev/null 2>&1
 import sys, urllib.request
@@ -66,4 +68,12 @@ for marker in 'data-design-multiselect-selection="modifier-3"' 'data-design-mult
 done
 if ! grep -q 'PASS: multi selection: 선택·정렬·동일 간격·그룹·이동·잠금·복제·삭제가 확인됨' "$MULTI_DOM_OUT"; then echo "Multi selection completion marker missing." >&2; cat "$MULTI_DOM_OUT" >&2; exit 1; fi
 
-echo "Design editor print products + professional command bar + selection contextbar + multi selection browser smokes passed using $BROWSER"
+"$BROWSER" --headless=new --disable-gpu --no-sandbox --disable-dev-shm-usage --disable-background-networking --user-data-dir="$PROFILE_DIR" --virtual-time-budget=18000 --dump-dom "$MULTI_SMART_URL" >"$MULTI_SMART_DOM_OUT"
+
+if ! grep -q 'data-design-multi-smart-status="pass"' "$MULTI_SMART_DOM_OUT"; then echo "Design editor multi smart guides browser smoke failed." >&2; cat "$MULTI_SMART_DOM_OUT" >&2; echo "----- HTTP server log -----" >&2; cat "$SERVER_LOG" >&2; exit 1; fi
+for marker in 'data-design-multi-smart-toggle="enabled"' 'data-design-multi-smart-gap="horizontal-6-vertical-4"' 'data-design-multi-smart-snap="artboard-center"' 'data-design-multi-smart-guide="visible"'; do
+  if ! grep -q "$marker" "$MULTI_SMART_DOM_OUT"; then echo "Multi smart guide marker missing: $marker" >&2; cat "$MULTI_SMART_DOM_OUT" >&2; exit 1; fi
+done
+if ! grep -q 'PASS: multi smart guides: 자석 가이드·아트보드 중앙 스냅·가로/세로 정확한 mm 간격이 확인됨' "$MULTI_SMART_DOM_OUT"; then echo "Multi smart guides completion marker missing." >&2; cat "$MULTI_SMART_DOM_OUT" >&2; exit 1; fi
+
+echo "Design editor print products + professional command bar + selection contextbar + multi selection + multi smart guides browser smokes passed using $BROWSER"

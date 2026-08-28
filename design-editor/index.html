@@ -26,6 +26,7 @@
       const PRODUCT_TOPBAR_VERSION='20260828-2';
       const SELECTION_CONTEXT_VERSION='20260828-1';
       const MULTI_SELECTION_VERSION='20260828-1';
+      const MULTI_SMART_GUIDES_VERSION='20260828-1';
       const DEFAULTS={
         cover:{mode:'cover',preset:'cover-a4'},
         poster:{mode:'poster',preset:'poster-a4',paper:'a4',orientation:'portrait',w:210,h:297},
@@ -103,8 +104,13 @@
           if(win.DesignEditorMultiSelection?.sync){win.DesignEditorMultiSelection.sync();return true;}return false;
         });
       }
+      function ensureMultiSmartGuidesRuntime(){
+        return injectRuntime('designMultiSmartGuidesScriptV1',`/js/design-editor/multi-selection-smart-guides.js?v=${MULTI_SMART_GUIDES_VERSION}`,win=>{
+          if(win.DesignEditorMultiSmartGuides?.sync){win.DesignEditorMultiSmartGuides.sync();return true;}return false;
+        });
+      }
       function ensurePrintRuntimes(){
-        ensureFoldRuntime();ensureProductRuntime();ensureProductStateRuntime();ensureProductTopbarRuntime();ensureSelectionContextRuntime();ensureMultiSelectionRuntime();
+        ensureFoldRuntime();ensureProductRuntime();ensureProductStateRuntime();ensureProductTopbarRuntime();ensureSelectionContextRuntime();ensureMultiSelectionRuntime();ensureMultiSmartGuidesRuntime();
       }
       function openMode(detail){loading.classList.remove('hide');frame.src=route(detail);}
       window.addEventListener('message',event=>{
@@ -120,7 +126,7 @@
       const initialRoute=route(incomingDetail());
       if(frame.getAttribute('src')!==initialRoute)frame.src=initialRoute;
       setTimeout(()=>loading.classList.add('hide'),2600);
-      window.UnifiedDesignShell={openMode,route,incomingDetail,ensureFoldRuntime,ensureProductRuntime,ensureProductStateRuntime,ensureProductTopbarRuntime,ensureSelectionContextRuntime,ensureMultiSelectionRuntime,ensurePrintRuntimes,foldRuntimeStage:'direct-fold-runtime-loader-and-verifier',productRuntimeStage:'print-product-menu-loader',productTopbarStage:'professional-design-commandbar-v2',selectionContextStage:'selection-context-properties-v1',multiSelectionStage:'multi-select-align-distribute-group-v1',routingStage:'query-aware-initial-route-v2',stage:'single-sidebar-general-engine-shell-no-legacy-fallback'};
+      window.UnifiedDesignShell={openMode,route,incomingDetail,ensureFoldRuntime,ensureProductRuntime,ensureProductStateRuntime,ensureProductTopbarRuntime,ensureSelectionContextRuntime,ensureMultiSelectionRuntime,ensureMultiSmartGuidesRuntime,ensurePrintRuntimes,foldRuntimeStage:'direct-fold-runtime-loader-and-verifier',productRuntimeStage:'print-product-menu-loader',productTopbarStage:'professional-design-commandbar-v2',selectionContextStage:'selection-context-properties-v1',multiSelectionStage:'multi-select-align-distribute-group-v1',multiSmartGuidesStage:'multi-smart-guides-exact-gap-v1',routingStage:'query-aware-initial-route-v2',stage:'single-sidebar-general-engine-shell-no-legacy-fallback'};
     })();
   </script>
 </body>
