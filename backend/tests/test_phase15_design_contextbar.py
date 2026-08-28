@@ -4,13 +4,14 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 
 
-def test_phase15_design_shell_injects_selection_context_runtime():
+def test_phase15_design_manifest_loads_selection_context_runtime():
     shell = (ROOT / "design-editor" / "index.html").read_text(encoding="utf-8")
-    assert "SELECTION_CONTEXT_VERSION='20260828-1'" in shell
-    assert "designSelectionContextbarScriptV1" in shell
-    assert "/js/design-editor/selection-contextbar.js?v=${SELECTION_CONTEXT_VERSION}" in shell
-    assert "ensureSelectionContextRuntime" in shell
+    runtime = (ROOT / "js" / "design-editor" / "shell-runtime.js").read_text(encoding="utf-8")
+    assert "designSelectionContextbarScriptV1" in runtime
+    assert "/js/design-editor/selection-contextbar.js?v=20260828-1" in runtime
+    assert "const ensureSelectionContextRuntime=ensurePrintRuntimes" in shell
     assert "selectionContextStage:'selection-context-properties-v1'" in shell
+    assert "runtimeManifestStage:'design-shell-runtime-manifest-v1'" in shell
 
 
 def test_phase15_selection_contextbar_exposes_only_selected_element_properties():
