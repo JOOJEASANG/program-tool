@@ -35,7 +35,7 @@ def test_retired_service_worker_is_not_registered_again():
     assert (ROOT / "sw.js").is_file()
 
 
-def test_legacy_home_candidates_are_not_active_entry_assets():
+def test_retired_home_experiment_assets_stay_removed():
     active_sources = [
         ROOT / "index.html",
         ROOT / "js" / "firebase-config.js",
@@ -44,5 +44,5 @@ def test_legacy_home_candidates_are_not_active_entry_assets():
     ]
     active_text = "\n".join(path.read_text(encoding="utf-8") for path in active_sources)
     for name in ("home-premium-ui.js", "home-hero-console-v2.js"):
-        assert (ROOT / "js" / name).is_file()
+        assert not (ROOT / "js" / name).exists()
         assert name not in active_text
