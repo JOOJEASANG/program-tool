@@ -5,33 +5,33 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 MODULE = ROOT / "js" / "desktop-tool-mobile-notice.js"
 REGISTER = ROOT / "js" / "sw-register.js"
+ROUTE_RUNTIME = ROOT / "js" / "pdf-editor" / "route-runtime.js"
 BEHAVIOR = ROOT / "backend" / "tests" / "test_desktop_tool_mobile_notice_behavior.cjs"
 
 
 def test_desktop_tool_mobile_notice_loads_for_pdf_editor_once_and_not_retired_cover():
-    source = REGISTER.read_text(encoding="utf-8")
+    register = REGISTER.read_text(encoding="utf-8")
+    route = ROUTE_RUNTIME.read_text(encoding="utf-8")
     marker = "desktopToolMobileNoticeScriptV1"
-    assert source.count(marker) == 1
-    assert source.count("/js/desktop-tool-mobile-notice.js") == 1
 
-    pdf_start = source.index("if(isPath('/tools/pdf-editor.html','/pdf-editor','/pdf-editor/index.html'))")
-    pdf_end = source.index("if(isPath('/tools/pdf-Checker.html'", pdf_start)
-    pdf_block = source[pdf_start:pdf_end]
+    assert "/js/pdf-editor/route-runtime.js?v=20260828-1" in register
+    assert route.count(marker) == 1
+    assert route.count("/js/desktop-tool-mobile-notice.js") == 1
 
-    notice = pdf_block.index(marker)
-    assert notice < pdf_block.index("pdfEditorModuleLoaderScript")
+    notice = route.index(marker)
+    assert notice < route.index("pdfEditorModuleLoaderScript")
     for path in (
         "/tools/pdf-editor.html",
         "/pdf-editor",
         "/pdf-editor/index.html",
     ):
-        assert path in pdf_block
+        assert path in register
     for retired in (
         "/tools/perfect-binding-cover.html",
         "/perfect-binding-cover/index.html",
         "perfectBindingFineControlsScript",
     ):
-        assert retired not in pdf_block
+        assert retired not in route
 
 
 def test_desktop_tool_mobile_notice_is_nonblocking_and_does_not_touch_editors():

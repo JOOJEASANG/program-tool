@@ -4,16 +4,16 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 HARNESS = ROOT / "tests" / "browser" / "design-editor-smoke.html"
 RUNNER = ROOT / "scripts" / "run_design_editor_browser_smoke.sh"
-REGISTER = ROOT / "js" / "sw-register.js"
+CORE_RUNTIME = ROOT / "js" / "design-editor" / "core-runtime.js"
 SIMPLE_INTERFACE = ROOT / "js" / "design-editor" / "phase16-simple-interface.js"
 
 
 def test_stage68_preserves_runtime_dependency_order_and_bridges_general_only_modules():
-    source = REGISTER.read_text(encoding="utf-8")
+    source = CORE_RUNTIME.read_text(encoding="utf-8")
     assert source.index("designEditorEmbeddedRuntimeScriptV1") < source.index("designEditorPhase2ScriptV1") < source.index("designEditorOutputScriptV1")
     assert source.index("designEditorAssetStoreScriptV1") < source.index("designEditorPhase2ScriptV1")
     assert source.index("designEditorQuickDesignScriptV1") < source.index("designEditorSimpleInterfaceScriptV1") < source.index("designEditorComponentBlocksScriptV1")
-    assert "const DESIGN_EDITOR_GENERAL_ROUTE_IDS=new Set([" in source
+    assert "const GENERAL_ROUTE_IDS=new Set([" in source
     for script_id in (
         "designEditorPhase2ScriptV1",
         "designEditorOutputScriptV1",
@@ -21,10 +21,11 @@ def test_stage68_preserves_runtime_dependency_order_and_bridges_general_only_mod
         "designEditorComponentBlocksScriptV1",
     ):
         assert f"'{script_id}'" in source
-    assert "async function loadDesignEditorEntry(id,src)" in source
+    assert "async function loadEntry(entry)" in source
     assert "history.replaceState(history.state,'',generalUrl)" in source
     assert "history.replaceState(history.state,'',restoreUrl)" in source
-    assert "await loadDesignEditorEntry(id,src)" in source
+    assert "await hostLoad(entry.id,entry.src)" in source
+    assert "await loadEntry(entry)" in source
 
 
 def test_stage68_simple_interface_accepts_embedded_unified_editor_route():

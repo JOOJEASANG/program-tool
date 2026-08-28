@@ -4,20 +4,22 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 REGISTER = ROOT / "js" / "sw-register.js"
+CORE_RUNTIME = ROOT / "js" / "design-editor" / "core-runtime.js"
 
 
 def _manifest_entries(source: str):
     match = re.search(
-        r"const DESIGN_EDITOR_RUNTIME_SCRIPTS=Object\.freeze\(\[(.*?)\]\);",
+        r"const MODULES=Object\.freeze\(\[(.*?)\]\);",
         source,
         re.S,
     )
     assert match
-    return re.findall(r"\['([^']+)','([^']+)'\]", match.group(1))
+    return re.findall(r"\{id:'([^']+)',src:'([^']+)'\}", match.group(1))
 
 
 def test_design_editor_runtime_manifest_is_single_ordered_source_of_truth():
-    source = REGISTER.read_text(encoding="utf-8")
+    source = CORE_RUNTIME.read_text(encoding="utf-8")
+    register = REGISTER.read_text(encoding="utf-8")
     entries = _manifest_entries(source)
 
     assert len(entries) == 32
@@ -45,10 +47,12 @@ def test_design_editor_runtime_manifest_is_single_ordered_source_of_truth():
     assert "/js/design-editor/cover-spine-tools.js?v=20260823-1" in paths
     assert "/js/design-editor/cover-preview-zones.js?v=20260823-3" in paths
     assert "window.ProgramStudioDesignEditorRuntimeManifest" in source
+    assert "/js/design-editor/core-runtime.js?v=20260828-1" in register
+    assert "Source-contract compatibility metadata only" in register
 
 
 def test_design_editor_runtime_manifest_preserves_dependency_order():
-    source = REGISTER.read_text(encoding="utf-8")
+    source = CORE_RUNTIME.read_text(encoding="utf-8")
     ids = [item[0] for item in _manifest_entries(source)]
 
     def before(first: str, second: str):
@@ -75,17 +79,15 @@ def test_design_editor_runtime_manifest_preserves_dependency_order():
 
 
 def test_design_editor_runtime_manifest_uses_sequential_loader_only():
-    source = REGISTER.read_text(encoding="utf-8")
-    assert "async function loadSeries(entries)" in source
-    assert "for(const [id,src] of entries)" in source
-    assert "await loadDesignEditorEntry(id,src)" in source
-    assert "tasks.push(loadSeries(DESIGN_EDITOR_RUNTIME_SCRIPTS))" in source
-
-    general_start = source.index("if(isPath('/design-editor/general','/design-editor/general.html'))")
-    general_end = source.index("if(isPath('/tools/pdf-editor.html'", general_start)
-    general_block = source[general_start:general_end]
-    for script_id, _ in _manifest_entries(source):
-        assert f"load('{script_id}'" not in general_block
+    source = CORE_RUNTIME.read_text(encoding="utf-8")
+    register = REGISTER.read_text(encoding="utf-8")
+    assert "async function loadAll()" in source
+    assert "for(const entry of MODULES)" in source
+    assert "await loadEntry(entry)" in source
+    assert "tasks.push(loadDesignEditorRuntime())" in register
+    assert "ProgramStudioDesignEditorRuntimeContext={entryPath:currentPath,load}" in register
+    assert "tasks.push(loadSeries(DESIGN_EDITOR_RUNTIME_SCRIPTS))" not in register
+    assert "function loadSeries(" not in register
 
 
 def test_runtime_loader_reports_failures_without_mislabeling_them_loaded():

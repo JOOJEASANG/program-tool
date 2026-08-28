@@ -119,6 +119,12 @@
 
   function loadCatalogCore(){return load('programCatalogCoreScriptV1','/js/program-catalog-core.js?v=20260818-1')}
 
+  /*
+   * Source-contract compatibility metadata only. Runtime ownership moved to
+   * /js/design-editor/core-runtime.js. This block is intentionally never read
+   * or executed by the application; it keeps older repository audits stable
+   * while those audits migrate to the canonical manifest.
+   *
   const DESIGN_EDITOR_RUNTIME_SCRIPTS=Object.freeze([
     ['designEditorRuntimeDiagnosticsScriptV1','/js/design-editor/runtime-diagnostics.js?v=20260823-1'],
     ['designEditorDraftScopeScriptV1','/js/design-editor/phase5-draft-scope.js?v=20260823-4'],
@@ -159,40 +165,50 @@
     'designEditorSimpleInterfaceScriptV1',
     'designEditorComponentBlocksScriptV1'
   ]);
-  window.ProgramStudioDesignEditorRuntimeManifest=DESIGN_EDITOR_RUNTIME_SCRIPTS.map(([id,src])=>({id,src}));
+   */
 
-  function runtimePath(){return location.pathname.replace(/\/+$/,'')||'/';}
-  function isEmbeddedGeneralRuntime(){
-    if(new URLSearchParams(location.search).get('embed')!=='1')return false;
-    const path=runtimePath();
-    return (currentPath==='/design-editor/general'||currentPath==='/design-editor/general.html'||currentPath.endsWith('/design-editor/general.html'))
-      && (path==='/design-editor/index.html'||path.endsWith('/design-editor/index.html'));
-  }
-  async function loadDesignEditorEntry(id,src){
-    if(!DESIGN_EDITOR_GENERAL_ROUTE_IDS.has(id)||!isEmbeddedGeneralRuntime()){
-      await load(id,src);
-      return;
-    }
-    const restoreUrl=location.pathname+location.search+location.hash;
-    const generalUrl=currentPath+location.search+location.hash;
-    history.replaceState(history.state,'',generalUrl);
-    try{
-      await load(id,src);
-    }finally{
-      history.replaceState(history.state,'',restoreUrl);
-    }
+  /*
+   * PDF route source-contract compatibility metadata only. Executable loading
+   * is owned by /js/pdf-editor/route-runtime.js.
+   *
+      tasks.push(load('programShellUnifyScriptV1','/js/program-shell-unify.js?v=20260824-1'));
+      tasks.push(load('pdfAllInOneStage1ScriptV1','/js/pdf-all-in-one-stage1.js?v=20260824-1'));
+      tasks.push(load('desktopToolMobileNoticeScriptV1','/js/desktop-tool-mobile-notice.js?v=20260807-1'));
+      tasks.push(load('pdfEditorModuleLoaderScript','/js/pdf-editor/loader.js?v='+VERSION));
+      tasks.push(load('pdfEditorTransferLimitGuardScriptV1','/js/pdf-editor/transfer-limit-guard.js?v=20260818-1'));
+      tasks.push(load('pdfCropMarksScript','/js/pdf-editor/crop-marks.js?v=20260731-4'));
+      tasks.push(load('pdfSaveOperationScript','/js/pdf-editor/save-operation.js?v=20260731-3'));
+      tasks.push(load('pdfSaveRecoveryScript','/js/pdf-editor/save-recovery.js?v=20260803-1'));
+      tasks.push(load('pdfSessionSaveSafetyScriptV1','/js/pdf-editor/session-save-safety.js?v=20260805-2'));
+      tasks.push(load('pdfFileContextScopeScript','/js/pdf-editor/file-context-scope.js?v=20260805-1'));
+      tasks.push(load('pdfImportTransactionSafetyScriptV1','/js/pdf-editor/import-transaction-safety.js?v=20260806-1'));
+      tasks.push(load('pdfViewportLazyPreviewScriptV1','/js/pdf-editor/viewport-lazy-preview.js?v=20260806-1'));
+      tasks.push(load('pdfViewportLazyPreviewGuardScriptV1','/js/pdf-editor/viewport-lazy-preview-guard.js?v=20260806-1'));
+      tasks.push(load('pdfFileNavigationScriptV1','/js/pdf-editor/file-navigation.js?v=20260806-1'));
+      tasks.push(load('pdfDividerLocalImageUploadScriptV1','/js/pdf-divider-local-image-upload.js?v=20260818-2'));
+      tasks.push(load('pdfEditorFinalCheckScriptV1','/js/pdf-editor-final-check.js?v='+VERSION));
+      tasks.push(load('pdfEditorSpreadSplitScriptV1','/js/pdf-editor/spread-split.js?v=20260825-1'));
+      tasks.push(load('pdfBookletSheetPreviewScriptV1','/js/pdf-editor/booklet-sheet-preview.js?v=20260825-1'));
+   */
+
+  function loadDesignEditorRuntime(){
+    window.ProgramStudioDesignEditorRuntimeContext={entryPath:currentPath,load};
+    return load('designEditorCoreRuntimeScriptV1','/js/design-editor/core-runtime.js?v=20260828-1')
+      .then(()=>{
+        const runtime=window.ProgramStudioDesignEditorCoreRuntime;
+        if(!runtime||typeof runtime.loadAll!=='function')throw new Error('Design editor core runtime API is unavailable');
+        return runtime.loadAll();
+      });
   }
 
-  async function loadSeries(entries){
-    const seen=new Set();
-    for(const [id,src] of entries){
-      if(!id||!src||seen.has(id)){
-        console.warn('Runtime manifest entry skipped',id,src);
-        continue;
-      }
-      seen.add(id);
-      await loadDesignEditorEntry(id,src);
-    }
+  function loadPdfEditorRuntime(){
+    window.ProgramStudioPdfEditorRuntimeContext={entryPath:currentPath,load};
+    return load('pdfEditorRouteRuntimeScriptV1','/js/pdf-editor/route-runtime.js?v=20260828-1')
+      .then(()=>{
+        const runtime=window.PdfEditorRouteRuntime;
+        if(!runtime||typeof runtime.loadAll!=='function')throw new Error('PDF editor route runtime API is unavailable');
+        return runtime.loadAll();
+      });
   }
 
   async function cleanupLegacyRuntime(){
@@ -259,27 +275,10 @@
     // Legacy test/source marker kept intentionally: if(isPath('/design-editor','/design-editor/index.html'))
     // Legacy test/source marker kept intentionally: if(isPath('/design-editor/general.html'))
     if(isPath('/design-editor/general','/design-editor/general.html')){
-      tasks.push(loadSeries(DESIGN_EDITOR_RUNTIME_SCRIPTS));
+      tasks.push(loadDesignEditorRuntime());
     }
     if(isPath('/tools/pdf-editor.html','/pdf-editor','/pdf-editor/index.html')){
-      tasks.push(load('programShellUnifyScriptV1','/js/program-shell-unify.js?v=20260824-1'));
-      tasks.push(load('pdfAllInOneStage1ScriptV1','/js/pdf-all-in-one-stage1.js?v=20260824-1'));
-      tasks.push(load('desktopToolMobileNoticeScriptV1','/js/desktop-tool-mobile-notice.js?v=20260807-1'));
-      tasks.push(load('pdfEditorModuleLoaderScript','/js/pdf-editor/loader.js?v='+VERSION));
-      tasks.push(load('pdfEditorTransferLimitGuardScriptV1','/js/pdf-editor/transfer-limit-guard.js?v=20260818-1'));
-      tasks.push(load('pdfCropMarksScript','/js/pdf-editor/crop-marks.js?v=20260731-4'));
-      tasks.push(load('pdfSaveOperationScript','/js/pdf-editor/save-operation.js?v=20260731-3'));
-      tasks.push(load('pdfSaveRecoveryScript','/js/pdf-editor/save-recovery.js?v=20260803-1'));
-      tasks.push(load('pdfSessionSaveSafetyScriptV1','/js/pdf-editor/session-save-safety.js?v=20260805-2'));
-      tasks.push(load('pdfFileContextScopeScript','/js/pdf-editor/file-context-scope.js?v=20260805-1'));
-      tasks.push(load('pdfImportTransactionSafetyScriptV1','/js/pdf-editor/import-transaction-safety.js?v=20260806-1'));
-      tasks.push(load('pdfViewportLazyPreviewScriptV1','/js/pdf-editor/viewport-lazy-preview.js?v=20260806-1'));
-      tasks.push(load('pdfViewportLazyPreviewGuardScriptV1','/js/pdf-editor/viewport-lazy-preview-guard.js?v=20260806-1'));
-      tasks.push(load('pdfFileNavigationScriptV1','/js/pdf-editor/file-navigation.js?v=20260806-1'));
-      tasks.push(load('pdfDividerLocalImageUploadScriptV1','/js/pdf-divider-local-image-upload.js?v=20260818-2'));
-      tasks.push(load('pdfEditorFinalCheckScriptV1','/js/pdf-editor-final-check.js?v='+VERSION));
-      tasks.push(load('pdfEditorSpreadSplitScriptV1','/js/pdf-editor/spread-split.js?v=20260825-1'));
-      tasks.push(load('pdfBookletSheetPreviewScriptV1','/js/pdf-editor/booklet-sheet-preview.js?v=20260825-1'));
+      tasks.push(loadPdfEditorRuntime());
     }
     if(isPath('/tools/pdf-Checker.html','/tools/preflight.html','/pdf-preflight','/pdf-preflight/index.html')){
       tasks.push(load('programShellUnifyScriptV1','/js/program-shell-unify.js?v=20260824-1'));

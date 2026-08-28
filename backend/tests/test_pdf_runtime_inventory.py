@@ -3,6 +3,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 LOADER = ROOT / "js" / "pdf-editor" / "loader.js"
+CORE_RUNTIME = ROOT / "js" / "pdf-editor" / "core-runtime.js"
+ROUTE_RUNTIME = ROOT / "js" / "pdf-editor" / "route-runtime.js"
 REGISTER = ROOT / "js" / "sw-register.js"
 PDF_MODULES = ROOT / "js" / "pdf-editor"
 
@@ -25,43 +27,52 @@ DEFERRED_MODULES = [
 ]
 
 
-def test_pdf_editor_runtime_keeps_the_approved_eight_modules():
-    source = LOADER.read_text(encoding="utf-8")
+def test_pdf_editor_runtime_keeps_the_approved_eight_modules_in_core_manifest():
+    core = CORE_RUNTIME.read_text(encoding="utf-8")
+    loader = LOADER.read_text(encoding="utf-8")
     positions = []
     for module in ACTIVE_MODULES:
         needle = f"/js/pdf-editor/{module}"
-        assert source.count(needle) == 1
-        positions.append(source.index(needle))
+        assert core.count(needle) == 1
+        positions.append(core.index(needle))
     assert positions == sorted(positions)
-    assert source.count("'/js/pdf-editor/") == 8
+    assert core.count("src:'/js/pdf-editor/") == 8
+    assert "/js/pdf-editor/core-runtime.js?v=20260828-1" in loader
+    assert "Stable-eight source contract only" in loader
+    assert "MODULES.forEach(loadScript)" not in loader
 
 
 def test_deferred_feature_wrappers_are_not_loaded_directly():
-    loader = LOADER.read_text(encoding="utf-8")
-    register = REGISTER.read_text(encoding="utf-8")
-    runtime = loader + "\n" + register
+    executable_runtime = "\n".join(
+        path.read_text(encoding="utf-8")
+        for path in (CORE_RUNTIME, ROUTE_RUNTIME)
+    )
     for module in DEFERRED_MODULES:
-        assert f"/js/pdf-editor/{module}" not in runtime
+        assert f"/js/pdf-editor/{module}" not in executable_runtime
         assert (PDF_MODULES / module).exists()
 
 
-def test_pdf_editor_route_extras_are_bounded_and_single_loaded():
-    source = REGISTER.read_text(encoding="utf-8")
-    assert source.count("pdfCropMarksScript") == 1
-    assert source.count("/js/pdf-editor/crop-marks.js") == 1
-    assert source.count("pdfSaveOperationScript") == 1
-    assert source.count("/js/pdf-editor/save-operation.js") == 1
-    assert source.count("pdfSaveRecoveryScript") == 1
-    assert source.count("/js/pdf-editor/save-recovery.js") == 1
-    assert source.count("pdfSessionSaveSafetyScript") == 1
-    assert source.count("/js/pdf-editor/session-save-safety.js") == 1
-    assert source.count("pdfFileContextScopeScript") == 1
-    assert source.count("/js/pdf-editor/file-context-scope.js") == 1
-    assert source.count("pdfEditorTransferLimitGuardScriptV1") == 1
-    assert source.count("/js/pdf-editor/transfer-limit-guard.js") == 1
-    assert source.index("/js/pdf-editor/save-operation.js") < source.index("/js/pdf-editor/save-recovery.js")
-    assert source.index("/js/pdf-editor/save-recovery.js") < source.index("/js/pdf-editor/session-save-safety.js")
-    assert source.index("/js/pdf-editor/session-save-safety.js") < source.index("/js/pdf-editor/file-context-scope.js")
+def test_pdf_editor_route_extras_are_owned_by_route_manifest_not_global_bootstrap():
+    route = ROUTE_RUNTIME.read_text(encoding="utf-8")
+    register = REGISTER.read_text(encoding="utf-8")
+    expected = (
+        ("pdfEditorTransferLimitGuardScriptV1", "/js/pdf-editor/transfer-limit-guard.js"),
+        ("pdfCropMarksScript", "/js/pdf-editor/crop-marks.js"),
+        ("pdfSaveOperationScript", "/js/pdf-editor/save-operation.js"),
+        ("pdfSaveRecoveryScript", "/js/pdf-editor/save-recovery.js"),
+        ("pdfSessionSaveSafetyScriptV1", "/js/pdf-editor/session-save-safety.js"),
+        ("pdfFileContextScopeScript", "/js/pdf-editor/file-context-scope.js"),
+    )
+    for script_id, path in expected:
+        assert route.count(script_id) == 1
+        assert route.count(path) == 1
+
+    assert route.index("/js/pdf-editor/save-operation.js") < route.index("/js/pdf-editor/save-recovery.js")
+    assert route.index("/js/pdf-editor/save-recovery.js") < route.index("/js/pdf-editor/session-save-safety.js")
+    assert route.index("/js/pdf-editor/session-save-safety.js") < route.index("/js/pdf-editor/file-context-scope.js")
+    assert "/js/pdf-editor/route-runtime.js?v=20260828-1" in register
+    assert "tasks.push(loadPdfEditorRuntime())" in register
+    assert "PDF route source-contract compatibility metadata only" in register
 
 
 def test_integrated_runtime_features_remain_present():
