@@ -13,7 +13,7 @@ def test_home_quick_start_is_task_first_not_fake_linear_pdf_loop():
         "무엇을 하려는지 선택하세요",
         "디자인 만들기",
         "PDF 편집 · 인쇄배치",
-        "인쇄 전 PDF 검사",
+        "인쇄 전 검사",
         "이미지 작업",
         "추천 출력 흐름",
         "task-first-print-workflow-home-v2",
@@ -57,6 +57,7 @@ def test_pdf_editor_guides_file_page_layout_paper_output_and_reuses_existing_act
         assert marker in workflow
     assert "/js/pdf-editor/workflow-ui.js?v=${PDF_WORKFLOW_VERSION}" in shell
     assert "pdf-tools-guided-unified-shell-v2" in shell
+    assert "stage:'pdf-tools-headerless-unified-shell'" in shell
 
 
 def test_pdf_guided_ui_does_not_replace_core_page_or_download_state():
