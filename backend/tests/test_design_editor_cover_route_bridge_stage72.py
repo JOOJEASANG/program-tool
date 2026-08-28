@@ -60,7 +60,10 @@ def test_stage72_cover_bridge_starts_cover_preset_in_common_editor_and_restores_
         "root.DesignEditorDraftScope",
         "root.DesignEditorEmbeddedRuntime",
         "scope.restoreCurrentScope()",
-        "stage:'unified-general-cover-route-bridge'",
+        "function activateCoverInPlace(source='mode-button')",
+        "[data-print-product]",
+        "activateCoverInPlace(productButton?'product-menu':'mode-button')",
+        "stage:'unified-general-cover-route-bridge-fast-in-place-switch'",
     ):
         assert marker in source
     assert "location.href='/perfect-binding-cover" not in source
