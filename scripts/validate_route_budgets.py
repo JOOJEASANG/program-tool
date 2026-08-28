@@ -25,6 +25,8 @@ UI_ENHANCEMENTS = {
     "design-general": "designEditorWorkflowV2Script",
     "pdf-editor": "pdfEditorWorkflowV2Script",
 }
+EDITOR_TOOL_RAIL_ID = "editorToolRailV1Script"
+EDITOR_TOOL_RAIL_ROUTES = ("design-general", "pdf-editor")
 
 
 def normalize(raw: str) -> str:
@@ -77,6 +79,10 @@ def collect_routes(sw_text: str, ui_text: str) -> dict[str, set[str]]:
     }
     for route, script_id in UI_ENHANCEMENTS.items():
         routes[route].add(ui_asset(ui_text, script_id))
+
+    tool_rail = ui_asset(ui_text, EDITOR_TOOL_RAIL_ID)
+    for route in EDITOR_TOOL_RAIL_ROUTES:
+        routes[route].add(tool_rail)
     return routes
 
 

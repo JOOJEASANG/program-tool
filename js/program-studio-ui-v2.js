@@ -137,6 +137,10 @@
     document.head.appendChild(script);
   }
 
+  function loadEditorToolRail(){
+    loadEnhancement('editorToolRailV1Script','/js/editor-tool-rail-v1.js?v=20260828-1',()=>Boolean(window.__programStudioEditorToolRailV1),'편집 도구 아이콘 메뉴를 불러오지 못했습니다.');
+  }
+
   function loadSurfaceEnhancements(){
     if(['auth','approval','legal'].includes(surface)){
       loadEnhancement('programStudioPhase6Script','/js/surface-polish-v3.js?v=20260828-1',()=>Boolean(window.__programStudioPhase6),'화면 접근성 개선 기능을 불러오지 못했습니다.');
@@ -151,6 +155,7 @@
     }
     if(surface==='pdf-editor'){
       loadEnhancement('pdfEditorWorkflowV2Script','/js/pdf-editor/workflow-v2.js?v=20260828-1',()=>Boolean(window.__pdfEditorWorkflowV2),'PDF 편집 화면 개선 기능을 불러오지 못했습니다.');
+      loadEditorToolRail();
       return;
     }
     if(surface==='pdf-preflight'){
@@ -159,14 +164,17 @@
     }
     if(surface==='design-editor'){
       loadEnhancement('designEditorWorkflowV2Script','/js/design-editor/workflow-v2.js?v=20260828-1',()=>Boolean(window.__designEditorWorkflowV2),'디자인 편집 화면 개선 기능을 불러오지 못했습니다.');
+      loadEditorToolRail();
       return;
     }
     if(surface==='document-editor'){
       loadEnhancement('documentEditorWorkflowV2Script','/js/document-editor/workflow-v2.js?v=20260828-1',()=>Boolean(window.__documentEditorWorkflowV2),'문서 편집 화면 개선 기능을 불러오지 못했습니다.');
+      loadEditorToolRail();
       return;
     }
     if(surface==='image-editor'){
       loadEnhancement('imageEditorWorkflowV2Script','/js/image-editor/workflow-v2.js?v=20260828-1',()=>Boolean(window.__imageEditorWorkflowV2),'이미지 편집 화면 개선 기능을 불러오지 못했습니다.');
+      loadEditorToolRail();
     }
   }
 
@@ -291,5 +299,5 @@
     improveExternalStateLabels();
   });
 
-  window.ProgramStudioUI={version:'2026.08.28.007',surface,openPalette,closePalette};
+  window.ProgramStudioUI={version:'2026.08.28.008',surface,openPalette,closePalette};
 })();
