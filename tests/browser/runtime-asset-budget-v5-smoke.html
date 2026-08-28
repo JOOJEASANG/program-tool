@@ -28,6 +28,7 @@
     const realAppend=document.head.appendChild.bind(document.head);
 
     history.replaceState({},'', '/index.html');
+    window.requestAnimationFrame=callback=>setTimeout(()=>callback(performance.now()),0);
 
     document.head.appendChild=function(node){
       if(node&&node.tagName==='SCRIPT'&&node.src&&node.dataset.phase8Harness!=='loader'){
