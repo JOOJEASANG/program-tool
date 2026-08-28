@@ -25,6 +25,24 @@ def test_unified_design_shell_injects_fold_product_and_visual_runtimes_without_c
     assert "stage:'single-sidebar-general-engine-shell-no-legacy-fallback'" in shell
 
 
+def test_invitation_is_a_first_class_preset_and_product_mode_not_a_leaflet_alias():
+    presets = (ROOT / "js" / "design-editor" / "presets.js").read_text(encoding="utf-8")
+    runtime = (ROOT / "js" / "design-editor" / "embedded-runtime.js").read_text(encoding="utf-8")
+    menu = (ROOT / "js" / "design-editor" / "print-product-menu.js").read_text(encoding="utf-8")
+    assert "'invitation-a4':{" in presets
+    assert "group:'초대장·안내장'" in presets
+    assert "invitation:{label:'초대장·안내장'" in runtime
+    assert "if(preset.startsWith('invitation-'))return 'invitation';" in runtime
+    assert "if(mode==='invitation')return{mode:'invitation'" in runtime
+    assert "if(config.mode==='invitation')return'invitation-a4';" in runtime
+    assert "if(p?.designMode==='invitation')return'invitation';" in menu
+    assert "switchBase('invitation',state.invitation" in menu
+    invitation_apply = menu[menu.index("function applyInvitation(card)"):menu.index("function applyLeaflet(card)")]
+    invitation_activate = menu[menu.index("if(product==='invitation'){"):menu.index("if(product==='leaflet'){")]
+    assert "leaflet2" not in invitation_apply
+    assert "leaflet2" not in invitation_activate
+
+
 def test_fold_runtime_normalizes_leaflet2_leaflet3_and_product_orientation_before_apply():
     runtime = (ROOT / "js" / "design-editor" / "print-fold-runtime-ensure.js").read_text(encoding="utf-8")
     assert "function normalizeOrientationFields()" in runtime
