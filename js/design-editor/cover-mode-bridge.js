@@ -9,7 +9,7 @@
   const coverRequested=params.get('mode')==='cover'||params.get('preset')==='cover-a4';
   const generalPath=initialPath==='/design-editor/general'||initialPath==='/design-editor/general.html'||initialPath.endsWith('/design-editor/general.html');
   const rewrittenGeneralPath=embedded&&(initialPath==='/design-editor/index.html'||initialPath.endsWith('/design-editor/index.html'));
-  if(!embedded||!coverRequested||(!generalPath&&!rewrittenGeneralPath))return;
+  if(!embedded||(!generalPath&&!rewrittenGeneralPath))return;
 
   let installed=false;
   let restored=false;
@@ -55,7 +55,7 @@
     const app=root.DesignEditorApp;
     const model=root.DesignEditorCoverModel;
     if(!app||typeof app.startProject!=='function'||!model)return false;
-    if(root.DesignEditorEmbeddedRuntime&&app.project?.designMode&&app.project.designMode!=='cover')return false;
+    if(root.DesignEditorEmbeddedRuntime&&app.project?.designMode&&app.project.designMode!=='cover'&&!coverRequested)return false;
     model.registerPreset();
     if(app.project?.presetId!=='cover-a4')app.startProject('cover-a4');
     const current=model.applyToProject(app.project);
@@ -110,15 +110,20 @@
   }
 
   function handleModeButtonCapture(event){
-    const button=event.target?.closest?.('#designEmbeddedModeCard [data-design-mode]');
+    const modeButton=event.target?.closest?.('#designEmbeddedModeCard [data-design-mode]');
+    const productButton=event.target?.closest?.('#designEmbeddedModeCard [data-print-product]');
+    const button=modeButton||productButton;
     if(!button)return;
-    const next=button.dataset.designMode;
+    const next=modeButton?.dataset.designMode||productButton?.dataset.printProduct||'';
     const current=project()?.designMode||'';
     if(next==='cover'){
       event.preventDefault();event.stopImmediatePropagation();
-      activateCoverInPlace('mode-button');
+      activateCoverInPlace(productButton?'product-menu':'mode-button');
       return;
     }
+    // Product menu owns all non-cover product switches. Only intercept its cover action
+    // so cover no longer asks the parent shell to reload the whole iframe.
+    if(productButton)return;
     if(current!=='cover')return;
     const runtime=root.DesignEditorEmbeddedRuntime;
     if(!runtime?.switchGeneralMode)return;
@@ -151,7 +156,7 @@
   function boot(){
     installModeCapture();
     root.addEventListener('programstudio:runtime-script-result',onRuntimeResult);
-    if(!ensureCoverProject()){
+    if(coverRequested&&!ensureCoverProject()){
       [80,260,700,1200].forEach(delay=>setTimeout(ensureCoverProject,delay));
     }
     settleAfterRuntime();
@@ -167,6 +172,6 @@
     patchModeCard,
     activateCoverInPlace,
     syncModeMenus,
-    stage:'unified-general-cover-route-bridge'
+    stage:'unified-general-cover-route-bridge-fast-in-place-switch'
   };
 })(window);
