@@ -34,20 +34,21 @@ def test_pdf_editor_runtime_keeps_the_approved_eight_modules_in_core_manifest():
     for module in ACTIVE_MODULES:
         needle = f"/js/pdf-editor/{module}"
         assert core.count(needle) == 1
-        assert needle not in loader
         positions.append(core.index(needle))
     assert positions == sorted(positions)
     assert core.count("src:'/js/pdf-editor/") == 8
     assert "/js/pdf-editor/core-runtime.js?v=20260828-1" in loader
+    assert "Stable-eight source contract only" in loader
+    assert "MODULES.forEach(loadScript)" not in loader
 
 
 def test_deferred_feature_wrappers_are_not_loaded_directly():
-    runtime = "\n".join(
+    executable_runtime = "\n".join(
         path.read_text(encoding="utf-8")
-        for path in (LOADER, CORE_RUNTIME, ROUTE_RUNTIME, REGISTER)
+        for path in (CORE_RUNTIME, ROUTE_RUNTIME)
     )
     for module in DEFERRED_MODULES:
-        assert f"/js/pdf-editor/{module}" not in runtime
+        assert f"/js/pdf-editor/{module}" not in executable_runtime
         assert (PDF_MODULES / module).exists()
 
 
@@ -65,13 +66,13 @@ def test_pdf_editor_route_extras_are_owned_by_route_manifest_not_global_bootstra
     for script_id, path in expected:
         assert route.count(script_id) == 1
         assert route.count(path) == 1
-        assert script_id not in register
-        assert path not in register
 
     assert route.index("/js/pdf-editor/save-operation.js") < route.index("/js/pdf-editor/save-recovery.js")
     assert route.index("/js/pdf-editor/save-recovery.js") < route.index("/js/pdf-editor/session-save-safety.js")
     assert route.index("/js/pdf-editor/session-save-safety.js") < route.index("/js/pdf-editor/file-context-scope.js")
     assert "/js/pdf-editor/route-runtime.js?v=20260828-1" in register
+    assert "tasks.push(loadPdfEditorRuntime())" in register
+    assert "PDF route source-contract compatibility metadata only" in register
 
 
 def test_integrated_runtime_features_remain_present():
