@@ -42,7 +42,7 @@
   </script>
   <script src="/js/design-editor/selection-contextbar.js?v=20260828-1"></script>
   <script>
-    (()=>{
+    window.addEventListener('DOMContentLoaded',()=>{
       const result=document.getElementById('result'),assert=(ok,msg)=>{if(!ok)throw new Error(msg);};
       const change=(node,value,type='input')=>{assert(node,'context control missing');node.value=value;node.dispatchEvent(new Event(type,{bubbles:true}));};
       const selectExtra=item=>{document.querySelectorAll('.selected').forEach(node=>node.classList.remove('selected'));const node=document.createElement('div');node.className='phase2-extra-object selected';node.dataset.extraId=item.id;artboard.appendChild(node);window.DesignEditorSelectionContextbar.sync();return node;};
@@ -61,7 +61,7 @@
         shapeNode.classList.remove('selected');window.DesignEditorSelectionContextbar.sync();assert(bar.hidden,'context not hidden');assert(!document.documentElement.dataset.designSelectionContext,'context dataset remains');assert(getComputedStyle(designCanvasQuickbar).display==='block','floating quickbar contract not restored');
         document.body.dataset.designContextbarStatus='pass';result.textContent='PASS: selection contextbar: 글씨·이미지·도형 속성이 기존 inspector와 layout API를 통해 동기화됨';
       }catch(error){document.body.dataset.designContextbarStatus='fail';result.textContent='FAIL: '+String(error?.stack||error);}
-    })();
+    },{once:true});
   </script>
 </body>
 </html>
