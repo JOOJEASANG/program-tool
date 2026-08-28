@@ -34,9 +34,10 @@ def test_design_shell_preserves_initial_route_parameters_without_breaking_stage_
     assert "function incomingDetail()" in source
     assert "_query:query" in source
     assert "const initialRoute=route(incomingDetail())" in source
-    assert "routingStage:'query-aware-initial-route-v2'" in source
+    assert "routingStage:'query-aware-initial-route-v3-invitation'" in source
     assert "stage:'single-sidebar-general-engine-shell-no-legacy-fallback'" in source
     assert "if(mode==='cover')return '/design-editor/general?embed=1&mode=cover&preset=cover-a4'" in source
+    assert "invitation:{mode:'invitation',preset:'invitation-a4'" in source
     for token in ["preset", "paper", "orientation", "fold", "w", "h"]:
         assert token in source
 
