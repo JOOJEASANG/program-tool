@@ -24,6 +24,7 @@
       const PRODUCT_RUNTIME_VERSION='20260825-1';
       const PRODUCT_STATE_VERSION='20260825-1';
       const PRODUCT_TOPBAR_VERSION='20260828-2';
+      const SELECTION_CONTEXT_VERSION='20260828-1';
       const DEFAULTS={
         cover:{mode:'cover',preset:'cover-a4'},
         poster:{mode:'poster',preset:'poster-a4',paper:'a4',orientation:'portrait',w:210,h:297},
@@ -91,8 +92,13 @@
           if(win.DesignEditorPrintProductTopbar?.sync){win.DesignEditorPrintProductTopbar.sync();return true;}return false;
         });
       }
+      function ensureSelectionContextRuntime(){
+        return injectRuntime('designSelectionContextbarScriptV1',`/js/design-editor/selection-contextbar.js?v=${SELECTION_CONTEXT_VERSION}`,win=>{
+          if(win.DesignEditorSelectionContextbar?.sync){win.DesignEditorSelectionContextbar.sync();return true;}return false;
+        });
+      }
       function ensurePrintRuntimes(){
-        ensureFoldRuntime();ensureProductRuntime();ensureProductStateRuntime();ensureProductTopbarRuntime();
+        ensureFoldRuntime();ensureProductRuntime();ensureProductStateRuntime();ensureProductTopbarRuntime();ensureSelectionContextRuntime();
       }
       function openMode(detail){loading.classList.remove('hide');frame.src=route(detail);}
       window.addEventListener('message',event=>{
@@ -108,7 +114,7 @@
       const initialRoute=route(incomingDetail());
       if(frame.getAttribute('src')!==initialRoute)frame.src=initialRoute;
       setTimeout(()=>loading.classList.add('hide'),2600);
-      window.UnifiedDesignShell={openMode,route,incomingDetail,ensureFoldRuntime,ensureProductRuntime,ensureProductStateRuntime,ensureProductTopbarRuntime,ensurePrintRuntimes,foldRuntimeStage:'direct-fold-runtime-loader-and-verifier',productRuntimeStage:'print-product-menu-loader',productTopbarStage:'professional-design-commandbar-v2',routingStage:'query-aware-initial-route-v2',stage:'single-sidebar-general-engine-shell-no-legacy-fallback'};
+      window.UnifiedDesignShell={openMode,route,incomingDetail,ensureFoldRuntime,ensureProductRuntime,ensureProductStateRuntime,ensureProductTopbarRuntime,ensureSelectionContextRuntime,ensurePrintRuntimes,foldRuntimeStage:'direct-fold-runtime-loader-and-verifier',productRuntimeStage:'print-product-menu-loader',productTopbarStage:'professional-design-commandbar-v2',selectionContextStage:'selection-context-properties-v1',routingStage:'query-aware-initial-route-v2',stage:'single-sidebar-general-engine-shell-no-legacy-fallback'};
     })();
   </script>
 </body>

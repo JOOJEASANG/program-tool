@@ -6,6 +6,7 @@ PORT="${DESIGN_EDITOR_PRINT_PRODUCTS_SMOKE_PORT:-4198}"
 OUT_DIR="${DESIGN_EDITOR_BROWSER_SMOKE_OUT:-$ROOT_DIR/browser-smoke-artifacts}"
 DOM_OUT="$OUT_DIR/design-editor-print-products-smoke-dom.html"
 TOPBAR_DOM_OUT="$OUT_DIR/design-editor-product-topbar-smoke-dom.html"
+CONTEXT_DOM_OUT="$OUT_DIR/design-editor-selection-contextbar-smoke-dom.html"
 SERVER_LOG="$OUT_DIR/design-editor-print-products-smoke-server.log"
 PROFILE_DIR="$(mktemp -d)"
 mkdir -p "$OUT_DIR"
@@ -20,6 +21,7 @@ cleanup(){ kill "$SERVER_PID" >/dev/null 2>&1 || true; wait "$SERVER_PID" >/dev/
 trap cleanup EXIT
 URL="http://127.0.0.1:$PORT/tests/browser/design-editor-print-products-smoke.html"
 TOPBAR_URL="http://127.0.0.1:$PORT/tests/browser/design-editor-product-topbar-smoke.html"
+CONTEXT_URL="http://127.0.0.1:$PORT/tests/browser/design-editor-selection-contextbar-smoke.html"
 for _ in $(seq 1 50); do
   if python3 - "$URL" <<'PY' >/dev/null 2>&1
 import sys, urllib.request
@@ -46,4 +48,12 @@ for marker in 'data-design-product-topbar-fixed="sticky"' 'data-design-product-t
 done
 if ! grep -q 'PASS: professional command bar: 종류·면 계층, 실행취소, 빠른 추가, 패널, 맞춤, 도움말, 출력, 선택 자동 편집이 확인됨' "$TOPBAR_DOM_OUT"; then echo "Professional command bar completion marker missing." >&2; cat "$TOPBAR_DOM_OUT" >&2; exit 1; fi
 
-echo "Design editor print products + professional command bar browser smokes passed using $BROWSER"
+"$BROWSER" --headless=new --disable-gpu --no-sandbox --disable-dev-shm-usage --disable-background-networking --user-data-dir="$PROFILE_DIR" --virtual-time-budget=16000 --dump-dom "$CONTEXT_URL" >"$CONTEXT_DOM_OUT"
+
+if ! grep -q 'data-design-contextbar-status="pass"' "$CONTEXT_DOM_OUT"; then echo "Design editor selection contextbar browser smoke failed." >&2; cat "$CONTEXT_DOM_OUT" >&2; echo "----- HTTP server log -----" >&2; cat "$SERVER_LOG" >&2; exit 1; fi
+for marker in 'data-design-contextbar-text="font-size-weight-color-align"' 'data-design-contextbar-image="size-fit-focus-opacity"' 'data-design-contextbar-shape="fill-stroke-radius-opacity"' 'data-design-contextbar-proxy="existing-inspector-controls"' 'data-design-contextbar-floating="suppressed-when-context"'; do
+  if ! grep -q "$marker" "$CONTEXT_DOM_OUT"; then echo "Selection contextbar marker missing: $marker" >&2; cat "$CONTEXT_DOM_OUT" >&2; exit 1; fi
+done
+if ! grep -q 'PASS: selection contextbar: 글씨·이미지·도형 속성이 기존 inspector와 layout API를 통해 동기화됨' "$CONTEXT_DOM_OUT"; then echo "Selection contextbar completion marker missing." >&2; cat "$CONTEXT_DOM_OUT" >&2; exit 1; fi
+
+echo "Design editor print products + professional command bar + selection contextbar browser smokes passed using $BROWSER"
