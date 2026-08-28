@@ -9,6 +9,7 @@ ROOT = Path(__file__).resolve().parents[1]
 VERSION_FILE = ROOT / "version.json"
 MARKER = "data-program-studio-boot-guard"
 ACCESS_MARKER = "data-program-studio-approval-bootstrap"
+FAVICON_MARKER = "data-program-studio-favicon"
 IMAGE_LAYOUT_MARKER = "data-image-editor-pdf-layout"
 PDF_SECURITY_MARKER = "data-pdf-security-500mb"
 PDF_BOOKLET_MARKER = "data-pdf-classic-booklet"
@@ -26,6 +27,16 @@ PROTECTED_HTML = {
     "tools/pdf-Checker.html",
     "tools/perfect-binding-cover.html",
 }
+PUBLIC_HTML = {
+    "index.html",
+    "login.html",
+    "admin.html",
+    "approval-waiting.html",
+    "guide.html",
+    "terms.html",
+    "privacy.html",
+}
+DEPLOY_HTML = PUBLIC_HTML | PROTECTED_HTML
 PDF_SECURITY_HTML = {
     "pdf-preflight/index.html",
     "tools/preflight.html",
@@ -40,6 +51,9 @@ FIREBASE_APPROVAL_BOOTSTRAP = (
     '<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>'
     '<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>'
     '<script src="/js/firebase-config.js"></script>'
+)
+FAVICON_TAG = (
+    f'<link {FAVICON_MARKER} rel="icon" href="/favicon.svg" type="image/svg+xml">'
 )
 
 
@@ -57,6 +71,10 @@ def relative_path(path: Path) -> str:
 
 def requires_approval(path: Path) -> bool:
     return relative_path(path) in PROTECTED_HTML
+
+
+def requires_favicon(path: Path) -> bool:
+    return relative_path(path) in DEPLOY_HTML
 
 
 def is_image_editor(path: Path) -> bool:
@@ -78,10 +96,11 @@ def should_inject(path: Path, text: str) -> bool:
     needs_boot = MARKER not in text and (
         approval_required or "sw-register.js" in text or "firebase-config.js" in text
     )
+    needs_favicon = requires_favicon(path) and FAVICON_MARKER not in text
     needs_image_layout = is_image_editor(path) and IMAGE_LAYOUT_MARKER not in text
     needs_pdf_security = is_pdf_security_page(path) and PDF_SECURITY_MARKER not in text
     needs_pdf_booklet = is_pdf_booklet_page(path) and PDF_BOOKLET_MARKER not in text
-    return needs_boot or needs_image_layout or needs_pdf_security or needs_pdf_booklet
+    return needs_boot or needs_favicon or needs_image_layout or needs_pdf_security or needs_pdf_booklet
 
 
 def inject_guard(
@@ -89,11 +108,14 @@ def inject_guard(
     version: str,
     *,
     approval_required: bool = False,
+    favicon: bool = False,
     image_editor: bool = False,
     pdf_security: bool = False,
     pdf_booklet: bool = False,
 ) -> str:
     tags = ""
+    if favicon and FAVICON_MARKER not in text:
+        tags += FAVICON_TAG
     if MARKER not in text:
         tags += (
             f'<script {MARKER} src="/js/app-boot-guard.js?'
@@ -135,6 +157,7 @@ def inject_all() -> list[Path]:
             text,
             version,
             approval_required=requires_approval(path),
+            favicon=requires_favicon(path),
             image_editor=is_image_editor(path),
             pdf_security=is_pdf_security_page(path),
             pdf_booklet=is_pdf_booklet_page(path),
