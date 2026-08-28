@@ -4,13 +4,14 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 
 
-def test_phase18_design_shell_injects_simple_result_runtime():
+def test_phase18_design_manifest_loads_simple_result_runtime():
     shell = (ROOT / "design-editor" / "index.html").read_text(encoding="utf-8")
-    assert "SIMPLE_RESULT_VERSION='20260828-1'" in shell
-    assert "designSimpleResultWorkflowScriptV1" in shell
-    assert "/js/design-editor/simple-result-workflow.js?v=${SIMPLE_RESULT_VERSION}" in shell
-    assert "ensureSimpleResultRuntime" in shell
+    runtime = (ROOT / "js" / "design-editor" / "shell-runtime.js").read_text(encoding="utf-8")
+    assert "designSimpleResultWorkflowScriptV1" in runtime
+    assert "/js/design-editor/simple-result-workflow.js?v=20260828-1" in runtime
+    assert "const ensureSimpleResultRuntime=ensurePrintRuntimes" in shell
     assert "simpleResultStage:'simple-result-background-logo-text-output-v1'" in shell
+    assert "runtimeManifestStage:'design-shell-runtime-manifest-v1'" in shell
 
 
 def test_phase18_simple_result_keeps_default_workflow_small_and_result_focused():
