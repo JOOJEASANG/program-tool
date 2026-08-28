@@ -71,14 +71,16 @@ def test_large_encrypt_decrypt_uses_storage_and_temp_files():
     assert "DIRECT_SECURITY_BYTES = 20 * 1024 * 1024" in guard
 
 
-def test_home_fallback_and_managed_catalog_old_names_are_normalized():
+def test_home_fallback_is_current_while_managed_catalog_old_names_remain_normalized():
     sync = HOME_SYNC.read_text(encoding="utf-8")
     loader = SW_REGISTER.read_text(encoding="utf-8")
     index = INDEX.read_text(encoding="utf-8")
 
-    # The static fallback still contains the historical label in legacy HTML;
-    # the runtime synchronizer must fix it before the home screen is revealed.
-    assert "PDF 인쇄 검수" in index
+    # The initial home is already print-first; the synchronizer only keeps old
+    # managed-catalog aliases compatible for users with historical settings.
+    assert "인쇄 전 검사" in index
+    assert "url:'pdf-preflight/'" in index
+    assert "PDF 인쇄 검수" not in index
     for alias in ("PDF 인쇄 검수", "PDF 검사", "PDF 인쇄 검수기", "PDF 검사기"):
         assert alias in sync
     assert "program.name = 'PDF유틸리티'" in sync
