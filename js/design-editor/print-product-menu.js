@@ -87,22 +87,23 @@
     if(byId(STYLE_ID))return;
     const style=document.createElement('style');style.id=STYLE_ID;style.textContent=`
       #designEmbeddedModeCard[data-print-product-menu="1"] .design-mode-grid{grid-template-columns:repeat(5,minmax(0,1fr))!important}
-      #designEmbeddedModeCard[data-print-product-menu="1"] .design-mode-btn{font-size:7px!important;padding:6px 1px!important}
-      #designEmbeddedModeCard[data-print-product-menu="1"] .design-product-note{font-size:6.7px;line-height:1.45;color:#64748b;margin:0 0 6px}
-      #designEmbeddedModeCard[data-print-product-menu="1"] .design-product-two{display:grid;grid-template-columns:1fr 1fr;gap:5px}
-      #designEmbeddedModeCard[data-print-product-menu="1"] .design-product-field{margin-bottom:5px}
-      #designEmbeddedModeCard[data-print-product-menu="1"] .design-product-field label{display:block;font-size:7px;font-weight:900;color:#667085;margin-bottom:3px}
+      #designEmbeddedModeCard[data-print-product-menu="1"] .design-mode-btn{font-size:9px!important;padding:7px 2px!important;min-height:31px!important}
+      #designEmbeddedModeCard[data-print-product-menu="1"] .design-product-note{font-size:9px;line-height:1.5;color:#64748b;margin:0 0 8px}
+      #designEmbeddedModeCard[data-print-product-menu="1"] .design-product-two{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+      #designEmbeddedModeCard[data-print-product-menu="1"] .design-product-field{margin-bottom:7px}
+      #designEmbeddedModeCard[data-print-product-menu="1"] .design-product-field label{display:block;font-size:9px;font-weight:900;color:#667085;margin-bottom:4px}
       #designEmbeddedModeCard[data-print-product-menu="1"] .design-product-field select,
-      #designEmbeddedModeCard[data-print-product-menu="1"] .design-product-field input{width:100%;border:1px solid #cfd9e3;border-radius:7px;background:#fff;padding:6px 7px;font-size:8px;color:#344054}
-      #designEmbeddedModeCard[data-print-product-menu="1"] .design-product-hint{font-size:6.2px;line-height:1.4;color:#8a94a4;margin:3px 0 6px}
-      #designEmbeddedModeCard[data-print-product-menu="1"] .design-product-apply{width:100%;border:0;border-radius:7px;background:#1d8198;color:#fff;padding:7px;font-size:8px;font-weight:950;cursor:pointer}
-      #designEmbeddedModeCard[data-print-product-menu="1"] .design-product-center{border:1px dashed #f59e0b;border-radius:7px;background:#fffbeb;color:#a16207;padding:6px;font-size:7px;font-weight:900;cursor:pointer;width:100%}
+      #designEmbeddedModeCard[data-print-product-menu="1"] .design-product-field input{width:100%;border:1px solid #cfd9e3;border-radius:8px;background:#fff;padding:7px 8px;font-size:10px;color:#344054}
+      #designEmbeddedModeCard[data-print-product-menu="1"] .design-product-hint{font-size:8.5px;line-height:1.5;color:#8a94a4;margin:4px 0 8px}
+      #designEmbeddedModeCard[data-print-product-menu="1"] .design-product-apply{width:100%;border:0;border-radius:8px;background:#1d8198;color:#fff;padding:8px;font-size:10px;font-weight:950;cursor:pointer}
+      #designEmbeddedModeCard[data-print-product-menu="1"] .design-product-center{border:1px dashed #f59e0b;border-radius:8px;background:#fffbeb;color:#a16207;padding:7px;font-size:9px;font-weight:900;cursor:pointer;width:100%}
       #designPrintFoldDirectionField{display:none!important}
     `;document.head.appendChild(style);
   }
 
   function productOf(p=project()){
     if(p?.[PRODUCT_KEY]==='invitation'||p?.[PRODUCT_KEY]==='leaflet')return p[PRODUCT_KEY];
+    if(p?.designMode==='invitation')return'invitation';
     if(p?.designMode==='leaflet2'||p?.designMode==='leaflet3')return'leaflet';
     if(p?.designMode==='poster')return'poster';
     if(p?.designMode==='flyer')return'flyer';
@@ -125,7 +126,7 @@
   }
   function invitationMarkup(){
     const data=state.invitation;
-    return `<p class="design-product-note">초대장·안내장은 접는 위치가 중앙이 아니어도 됩니다. 접지 방향과 실제 mm 위치를 지정하면 미리보기 접지선과 각 단 여백이 같이 바뀝니다.</p>${commonSizeMarkup(data)}<div class="design-product-two"><div class="design-product-field"><label>접지 방향</label><select id="designProductAxis"><option value="x"${data.axis==='x'?' selected':''}>좌우 접기</option><option value="y"${data.axis==='y'?' selected':''}>상하 접기</option></select></div><div class="design-product-field"><label>접지 위치 mm</label><input id="designProductFoldPosition" type="number" min="15" max="985" step="0.1" value="${round1(data.position)}"></div></div><button id="designProductCenterFold" class="design-product-center" type="button">접지 위치 정중앙 50:50</button><div class="design-product-field" style="margin-top:5px"><label>상하 접기 내용 방향</label><select id="designProductFlip"><option value="none"${data.flip==='none'?' selected':''}>일반 방향</option><option value="top"${data.flip==='top'?' selected':''}>상단 내용 180°</option><option value="bottom"${data.flip==='bottom'?' selected':''}>하단 내용 180°</option></select></div><div class="design-product-hint">상하로 접는 카드·초대장은 접었을 때 한쪽이 거꾸로 보일 수 있어 180° 보정을 선택할 수 있습니다.</div><button class="design-product-apply" type="button">현재 옵션 적용</button>`;
+    return `<p class="design-product-note">초대장·안내장은 리플렛과 별도의 작업 유형입니다. 접지 방향과 실제 mm 위치를 지정하면 미리보기 접지선과 각 단 여백이 같이 바뀝니다.</p>${commonSizeMarkup(data)}<div class="design-product-two"><div class="design-product-field"><label>접지 방향</label><select id="designProductAxis"><option value="x"${data.axis==='x'?' selected':''}>좌우 접기</option><option value="y"${data.axis==='y'?' selected':''}>상하 접기</option></select></div><div class="design-product-field"><label>접지 위치 mm</label><input id="designProductFoldPosition" type="number" min="15" max="985" step="0.1" value="${round1(data.position)}"></div></div><button id="designProductCenterFold" class="design-product-center" type="button">접지 위치 정중앙 50:50</button><div class="design-product-field" style="margin-top:7px"><label>상하 접기 내용 방향</label><select id="designProductFlip"><option value="none"${data.flip==='none'?' selected':''}>일반 방향</option><option value="top"${data.flip==='top'?' selected':''}>상단 내용 180°</option><option value="bottom"${data.flip==='bottom'?' selected':''}>하단 내용 180°</option></select></div><div class="design-product-hint">상하로 접는 카드·초대장은 접었을 때 한쪽이 거꾸로 보일 수 있어 180° 보정을 선택할 수 있습니다.</div><button class="design-product-apply" type="button">현재 옵션 적용</button>`;
   }
   function leafletMarkup(){
     const data=state.leaflet;
@@ -158,6 +159,14 @@
     const save=byId('saveState');if(save)save.textContent='자동 저장됨';
   }
 
+  function syncDocumentIdentity(p){
+    if(!p)return;
+    const title=byId('documentTitle');
+    const meta=byId('documentMeta');
+    if(title&&p.name)title.textContent=p.name;
+    if(meta)meta.textContent=`${round1(p.width)} × ${round1(p.height)}mm · 재단 ${round1(p.bleed)}mm`;
+  }
+
   function applyInvitationGeometry(p=project(),options={}){
     if(!p)return false;
     const data=state.invitation;
@@ -165,6 +174,7 @@
     const length=axis==='y'?Number(p.height)||0:Number(p.width)||0;
     const position=round1(clamp(Number(data.position)||length/2,15,Math.max(15,length-15)));
     data.position=position;
+    p.designMode='invitation';
     p[PRODUCT_KEY]='invitation';p[PAGE_KEY]=4;p[FOLD_KEY]='custom';p[AXIS_KEY]=axis;p[POSITION_KEY]=position;p[FLIP_KEY]=data.flip||'none';
     p.leaflet2Layout=axis==='y'?'top-bottom':'left-right';
     p.foldType=axis==='y'?'invitation-top-bottom':'invitation-left-right';
@@ -174,6 +184,8 @@
       setSurfaceGeometry(surface,axis,[position],panels);
     });
     p.name=`초대장·안내장 · ${round1(p.width)}×${round1(p.height)}mm · 접지 ${position}mm`;
+    syncDocumentIdentity(p);
+    document.documentElement.dataset.printProductMenu='invitation';
     if(options.persist!==false)persist('invitation-fold');
     window.DesignEditorPrintFoldProduction?.applyFlipRotations?.({persist:options.persist!==false});
     window.DesignEditorPreviewGuides?.refresh?.();window.dispatchEvent(new Event('resize'));
@@ -202,13 +214,14 @@
       setSurfaceGeometry(surface,axis,cumulative(widths),genericPanelNames(surface,count,fold));
     });
     p.name=`리플렛 ${pages}P · ${count}단 · ${round1(p.width)}×${round1(p.height)}mm`;
+    syncDocumentIdentity(p);
     if(options.persist!==false)persist('leaflet-pages-fold');
     window.DesignEditorPreviewGuides?.refresh?.();window.dispatchEvent(new Event('resize'));
     return true;
   }
   function applyGeometry(p=project(),options={}){
     if(!p)return false;
-    if(p[PRODUCT_KEY]==='invitation')return applyInvitationGeometry(p,options);
+    if(p[PRODUCT_KEY]==='invitation'||p.designMode==='invitation')return applyInvitationGeometry(p,options);
     if(p[PRODUCT_KEY]==='leaflet')return applyLeafletGeometry(p,options);
     return false;
   }
@@ -225,7 +238,7 @@
     state.invitation.axis=card.querySelector('#designProductAxis')?.value==='y'?'y':'x';
     state.invitation.position=Number(card.querySelector('#designProductFoldPosition')?.value)||((state.invitation.axis==='y'?state.invitation.height:state.invitation.width)/2);
     state.invitation.flip=card.querySelector('#designProductFlip')?.value||'none';
-    return switchBase('leaflet2',state.invitation,p=>{if(!p)return;applyInvitationGeometry(p,{persist:true});});
+    return switchBase('invitation',state.invitation,p=>{if(!p)return;applyInvitationGeometry(p,{persist:true});});
   }
   function applyLeaflet(card){
     Object.assign(state.leaflet,readCommon(card,state.leaflet));
@@ -274,7 +287,7 @@
     if(product==='invitation'){
       const p=project();
       if(p){state.invitation.paper=p.paper||inferPaper(p.width,p.height);state.invitation.orientation=p.orientation||inferredOrientation(p.width,p.height);state.invitation.width=p.width||297;state.invitation.height=p.height||210;}
-      switchBase('leaflet2',state.invitation,next=>{if(next)applyInvitationGeometry(next,{persist:true});});return;
+      switchBase('invitation',state.invitation,next=>{if(next)applyInvitationGeometry(next,{persist:true});});return;
     }
     if(product==='leaflet'){
       const p=project();

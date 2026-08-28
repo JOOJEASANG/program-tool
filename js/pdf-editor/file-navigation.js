@@ -1,4 +1,4 @@
-// Compact file grouping and page jump tools for the PDF editor thumbnail list.
+// Compact file grouping, import flow and page jump tools for the PDF editor thumbnail list.
 (function () {
   'use strict';
   if (window.__pdfFileNavigationV1) return;
@@ -12,6 +12,7 @@
   let frame = 0;
   let selectedId = '';
   let installed = false;
+  let uploadFlowInstalled = false;
 
   const byId = (id) => document.getElementById(id);
   const keyOf = (value) => String(Number(value));
@@ -87,21 +88,27 @@
     const style = document.createElement('style');
     style.id = 'pdfFileNavigationStyles';
     style.textContent = `
-      .pdf-file-nav{position:sticky;top:-1px;z-index:12;display:grid;gap:5px;margin:0 0 7px;padding:7px;border:1px solid #dbe5ee;border-radius:9px;background:rgba(248,250,252,.97);box-shadow:0 3px 8px rgba(15,23,42,.06)}
-      .pdf-file-nav-row{display:grid;grid-template-columns:minmax(0,1fr) 60px 42px;gap:4px;align-items:center}
-      .pdf-file-nav label{margin:0;font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-      .pdf-file-nav input,.pdf-file-nav select{min-width:0;width:100%;height:27px;padding:4px 6px;border:1px solid #cbd5e1;border-radius:6px;background:#fff;font:inherit;font-size:9px;font-weight:750}
-      .pdf-file-nav button{height:27px;border:1px solid #93c5fd;border-radius:6px;background:#eff6ff;color:#1d4ed8;font:inherit;font-size:9px;font-weight:850;cursor:pointer}
-      .pdf-file-nav-actions{display:flex;gap:4px}.pdf-file-nav-actions button{flex:1;border-color:#cbd5e1;background:#fff;color:#475569}
-      .pdf-file-nav-status{min-height:12px;font-size:8px;font-weight:750;color:#64748b;line-height:1.35}
-      .thumb-file-sep[data-file-nav-header="true"]{gap:5px;padding:6px 5px;margin-top:2px;border:1px solid #ddd6fe;border-radius:7px;background:#faf8ff}
+      .pdf-file-nav{position:sticky;top:-1px;z-index:12;display:grid;gap:6px;margin:0 0 8px;padding:9px;border:1px solid #dbe5ee;border-radius:10px;background:rgba(248,250,252,.98);box-shadow:0 3px 8px rgba(15,23,42,.06)}
+      .pdf-file-nav-row{display:grid;grid-template-columns:minmax(0,1fr) 64px 44px;gap:5px;align-items:center}
+      .pdf-file-nav label{margin:0;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+      .pdf-file-nav input,.pdf-file-nav select{min-width:0;width:100%;height:29px;padding:4px 7px;border:1px solid #cbd5e1;border-radius:7px;background:#fff;font:inherit;font-size:10px;font-weight:750}
+      .pdf-file-nav button{height:29px;border:1px solid #93c5fd;border-radius:7px;background:#eff6ff;color:#1d4ed8;font:inherit;font-size:10px;font-weight:850;cursor:pointer}
+      .pdf-file-nav-actions{display:flex;gap:5px}.pdf-file-nav-actions button{flex:1;border-color:#cbd5e1;background:#fff;color:#475569}
+      .pdf-file-nav-status{min-height:14px;font-size:9px;font-weight:750;color:#64748b;line-height:1.4}
+      .thumb-file-sep[data-file-nav-header="true"]{gap:6px;padding:7px 6px;margin-top:3px;border:1px solid #d8e1eb;border-radius:8px;background:#f8fafc}
       .thumb-file-sep[data-file-nav-header="true"] .thumb-file-sep-line{display:none}
-      .thumb-file-sep[data-file-nav-header="true"] .thumb-file-sep-label{max-width:105px;overflow:hidden;text-overflow:ellipsis;font-size:9px}
-      .pdf-file-nav-toggle{flex:0 0 24px;width:24px;height:24px;border:1px solid #c4b5fd;border-radius:6px;background:#fff;color:#6d28d9;font:inherit;font-size:11px;font-weight:900;cursor:pointer}
+      .thumb-file-sep[data-file-nav-header="true"] .thumb-file-sep-label{max-width:104px;overflow:hidden;text-overflow:ellipsis;font-size:10px;color:#334155}
+      .pdf-file-nav-toggle{flex:0 0 25px;width:25px;height:25px;border:1px solid #cbd5e1;border-radius:7px;background:#fff;color:#475569;font:inherit;font-size:11px;font-weight:900;cursor:pointer}
       .thumb-file-sep[data-collapsed="true"] .pdf-file-nav-toggle{transform:rotate(-90deg)}
-      .pdf-file-nav-meta{min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#64748b;font-size:8px;font-weight:750}
+      .pdf-file-nav-meta{min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#64748b;font-size:8.5px;font-weight:750}
+      .pdf-file-boundary{flex:0 0 auto;height:25px;padding:0 7px;border:1px solid #b8c5d4;border-radius:999px;background:#fff;color:#526174;font:800 8.5px Pretendard,"Noto Sans KR",sans-serif;cursor:pointer;white-space:nowrap}
+      .pdf-file-boundary:hover{border-color:#7ca5d7;background:#f4f8fd;color:#174f8f}
+      .pdf-file-boundary.is-break{border-color:#7c3aed;background:#f5f3ff;color:#6d28d9;box-shadow:inset 0 0 0 1px rgba(124,58,237,.08)}
+      .thumb-file-sep[data-group-break="true"]{border-color:#c4b5fd;background:#faf8ff}
       .thumb-item[data-file-nav-current="true"] .thumb-wrap{border-color:#2563eb!important;box-shadow:0 0 0 2px rgba(37,99,235,.18)}
-      @media(max-width:430px){.pdf-file-nav-row{grid-template-columns:minmax(0,1fr) 52px 40px}.pdf-file-nav-meta{display:none}}
+      .pdf-upload-simple-hint{margin-top:7px;padding:7px 8px;border:1px solid #dbe7f3;border-radius:8px;background:#f8fbff;color:#536579;font-size:9px;font-weight:750;line-height:1.45}
+      .pdf-upload-simple-hint strong{color:#174f8f}
+      @media(max-width:430px){.pdf-file-nav-row{grid-template-columns:minmax(0,1fr) 54px 40px}.pdf-file-nav-meta{display:none}.pdf-file-boundary{font-size:8px;padding-inline:6px}}
     `;
     document.head.appendChild(style);
   }
@@ -112,6 +119,45 @@
     status.textContent = message;
     status.dataset.level = level;
     status.style.color = level === 'error' ? '#b91c1c' : level === 'success' ? '#166534' : '#64748b';
+  }
+
+  function syncUploadMode() {
+    try { _uploadMode = parsedPages.length ? 'cont' : 'new'; } catch (_) {}
+  }
+
+  function installSimpleUploadFlow() {
+    const modeRow = document.querySelector('.mode-row');
+    const uploadZone = byId('uploadZone');
+    const uploadText = byId('uploadZoneText');
+    const uploadSub = byId('uploadZoneSub');
+    if (modeRow) {
+      modeRow.hidden = true;
+      modeRow.setAttribute('aria-hidden', 'true');
+      if (!byId('pdfUploadSimpleHint')) {
+        const hint = document.createElement('div');
+        hint.id = 'pdfUploadSimpleHint';
+        hint.className = 'pdf-upload-simple-hint';
+        hint.innerHTML = '<strong>PDF는 계속 추가됩니다.</strong> 여러 파일을 한 번에 선택한 뒤 파일 제목의 <b>연속 / 새 묶음</b> 버튼으로 묶음을 나누세요.';
+        modeRow.insertAdjacentElement('afterend', hint);
+      }
+    }
+    if (uploadZone) uploadZone.classList.toggle('compact', parsedPages.length > 0);
+    if (uploadText) uploadText.textContent = parsedPages.length ? 'PDF 더 추가' : 'PDF 파일 클릭 또는 드래그';
+    if (uploadSub) uploadSub.textContent = parsedPages.length ? '여러 PDF를 한 번에 추가할 수 있습니다' : '여러 파일을 한 번에 선택해도 됩니다';
+
+    if (!uploadFlowInstalled) {
+      uploadFlowInstalled = true;
+      document.addEventListener('change', (event) => {
+        if (event.target?.id !== 'fileInput') return;
+        syncUploadMode();
+      }, true);
+      document.addEventListener('drop', (event) => {
+        if (!event.dataTransfer?.files?.length) return;
+        const hasPdf = [...event.dataTransfer.files].some((file) => (file.type || '').includes('pdf') || /\.pdf$/i.test(file.name || ''));
+        if (hasPdf) syncUploadMode();
+      }, true);
+      byId('resetBtn')?.addEventListener('click', () => setTimeout(() => { syncUploadMode(); queueEnhance(); }, 0));
+    }
   }
 
   function ensureToolbar(groups) {
@@ -189,16 +235,43 @@
     return header;
   }
 
-  function decorateHeader(header, group) {
+  function toggleGroupBreak(page) {
+    if (!page) return false;
+    const index = parsedPages.indexOf(page);
+    if (index <= 0) return false;
+    page.groupBreak = !page.groupBreak;
+    if (typeof renderThumbs === 'function') renderThumbs();
+    if (typeof schedulePreview === 'function') schedulePreview(80);
+    setStatus(page.groupBreak ? '이 파일 앞에서 새 출력 묶음을 시작합니다.' : '앞 파일과 이어서 배치합니다.', 'success');
+    return true;
+  }
+
+  function decorateHeader(header, group, page) {
     header.dataset.fileNavHeader = 'true';
     header.dataset.fileIndex = group.key;
-    header.querySelectorAll('.pdf-file-nav-toggle,.pdf-file-nav-meta').forEach((node) => node.remove());
+    header.dataset.groupBreak = page?.groupBreak ? 'true' : 'false';
+    header.querySelectorAll('.pdf-file-nav-toggle,.pdf-file-nav-meta,.pdf-file-boundary').forEach((node) => node.remove());
     const toggle = document.createElement('button'); toggle.type = 'button'; toggle.className = 'pdf-file-nav-toggle'; toggle.textContent = '▾'; toggle.title = `${group.name} 접기 또는 펼치기`; toggle.setAttribute('aria-label', toggle.title);
     toggle.addEventListener('click', (event) => { event.preventDefault(); event.stopPropagation(); toggleFile(group.key); });
     const meta = document.createElement('span'); meta.className = 'pdf-file-nav-meta'; meta.textContent = group.summary; meta.title = `${group.name} · ${group.summary}`;
     const label = header.querySelector('.thumb-file-sep-label');
     header.insertBefore(toggle, header.firstChild);
     if (label?.nextSibling) header.insertBefore(meta, label.nextSibling); else header.appendChild(meta);
+
+    if (page && parsedPages.indexOf(page) > 0) {
+      const boundary = document.createElement('button');
+      boundary.type = 'button';
+      boundary.className = 'pdf-file-boundary' + (page.groupBreak ? ' is-break' : '');
+      boundary.textContent = page.groupBreak ? '새 묶음' : '연속';
+      boundary.title = page.groupBreak ? '클릭하면 앞 파일과 이어서 배치합니다.' : '클릭하면 이 파일부터 새 출력 묶음을 시작합니다.';
+      boundary.setAttribute('aria-pressed', page.groupBreak ? 'true' : 'false');
+      boundary.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        toggleGroupBreak(page);
+      });
+      header.appendChild(boundary);
+    }
   }
 
   function applyCollapsed(groups = buildFileGroups()) {
@@ -235,6 +308,7 @@
     observer?.disconnect?.();
     try {
       installStyles();
+      installSimpleUploadFlow();
       const groups = buildFileGroups();
       ensureToolbar(groups);
       area.querySelectorAll('.pdf-file-nav-single-header').forEach((header) => header.remove());
@@ -252,16 +326,17 @@
         const page = pageForItem(cursor);
         const group = page ? groups.get(keyOf(page.file_index)) : null;
         if (!group) continue;
-        decorateHeader(header, group);
+        decorateHeader(header, group, page);
         decorated.add(group.key);
       }
       for (const group of groups.values()) {
         if (decorated.has(group.key)) continue;
         const first = items.find((item) => item.dataset.fileIndex === group.key);
         if (!first) continue;
+        const page = pageForItem(first);
         const header = syntheticHeader(group);
         first.parentElement.insertBefore(header, first);
-        decorateHeader(header, group);
+        decorateHeader(header, group, page);
       }
       applyCollapsed(groups);
       return true;
@@ -382,6 +457,7 @@
 
   function install() {
     installStyles();
+    installSimpleUploadFlow();
     wrapRenderThumbs();
     installObserver();
     enhance();
@@ -400,6 +476,7 @@
     originalPageAt,
     enhance,
     toggleFile,
+    toggleGroupBreak,
     collapseAll,
     expandAll,
     navigateToPage,
@@ -407,7 +484,7 @@
     jumpEdited,
     jumpOriginal,
     getCollapsedFiles: () => new Set(collapsed),
-    stage: 'file-collapse-edited-original-page-jump',
+    stage: 'file-collapse-group-boundary-edited-original-page-jump',
   };
 
   for (const delay of INSTALL_DELAYS) setTimeout(install, delay);

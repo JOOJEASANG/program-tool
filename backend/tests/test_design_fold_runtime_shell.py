@@ -3,21 +3,44 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 
 
-def test_unified_design_shell_injects_fold_and_product_runtimes_without_changing_route_contract():
+def test_unified_design_shell_injects_fold_product_and_visual_runtimes_without_changing_route_contract():
     shell = (ROOT / "design-editor" / "index.html").read_text(encoding="utf-8")
     assert 'src="/design-editor/general?embed=1&mode=cover&preset=cover-a4"' in shell
     assert "const FOLD_RUNTIME_VERSION='20260825-5'" in shell
-    assert "const PRODUCT_RUNTIME_VERSION='20260825-1'" in shell
+    assert "const PRODUCT_RUNTIME_VERSION='20260828-3'" in shell
     assert "const PRODUCT_STATE_VERSION='20260825-1'" in shell
+    assert "const PROFESSIONAL_UI_VERSION='20260828-1'" in shell
+    assert "invitation:{mode:'invitation',preset:'invitation-a4'" in shell
     assert "print-fold-runtime-ensure.js?v=${FOLD_RUNTIME_VERSION}" in shell
     assert "print-product-menu.js?v=${PRODUCT_RUNTIME_VERSION}" in shell
     assert "print-product-state-restore.js?v=${PRODUCT_STATE_VERSION}" in shell
+    assert "professional-ui.js?v=${PROFESSIONAL_UI_VERSION}" in shell
     assert "ensureFoldRuntime" in shell
     assert "ensureProductRuntime" in shell
     assert "ensureProductStateRuntime" in shell
+    assert "ensureProfessionalUi" in shell
     assert "foldRuntimeStage:'direct-fold-runtime-loader-and-verifier'" in shell
     assert "productRuntimeStage:'print-product-menu-loader'" in shell
+    assert "professionalUiStage:'professional-workspace-visual-system-v1'" in shell
     assert "stage:'single-sidebar-general-engine-shell-no-legacy-fallback'" in shell
+
+
+def test_invitation_is_a_first_class_preset_and_product_mode_not_a_leaflet_alias():
+    presets = (ROOT / "js" / "design-editor" / "presets.js").read_text(encoding="utf-8")
+    runtime = (ROOT / "js" / "design-editor" / "embedded-runtime.js").read_text(encoding="utf-8")
+    menu = (ROOT / "js" / "design-editor" / "print-product-menu.js").read_text(encoding="utf-8")
+    assert "'invitation-a4':{" in presets
+    assert "group:'초대장·안내장'" in presets
+    assert "invitation:{label:'초대장·안내장'" in runtime
+    assert "if(preset.startsWith('invitation-'))return 'invitation';" in runtime
+    assert "if(mode==='invitation')return{mode:'invitation'" in runtime
+    assert "if(config.mode==='invitation')return'invitation-a4';" in runtime
+    assert "if(p?.designMode==='invitation')return'invitation';" in menu
+    assert "switchBase('invitation',state.invitation" in menu
+    invitation_apply = menu[menu.index("function applyInvitation(card)"):menu.index("function applyLeaflet(card)")]
+    invitation_activate = menu[menu.index("if(product==='invitation'){"):menu.index("if(product==='leaflet'){")]
+    assert "leaflet2" not in invitation_apply
+    assert "leaflet2" not in invitation_activate
 
 
 def test_fold_runtime_normalizes_leaflet2_leaflet3_and_product_orientation_before_apply():

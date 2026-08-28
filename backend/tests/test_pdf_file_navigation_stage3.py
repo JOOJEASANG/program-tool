@@ -61,6 +61,21 @@ def test_pdf_file_navigation_collapses_only_matching_file_items():
         assert marker in source
 
 
+def test_pdf_file_navigation_simplifies_import_and_sets_group_boundaries_after_upload():
+    source = NAVIGATION.read_text(encoding="utf-8")
+    for marker in (
+        "function syncUploadMode()",
+        "_uploadMode = parsedPages.length ? 'cont' : 'new'",
+        "modeRow.hidden = true",
+        "PDF는 계속 추가됩니다.",
+        "function toggleGroupBreak(page)",
+        "page.groupBreak = !page.groupBreak",
+        "boundary.textContent = page.groupBreak ? '새 묶음' : '연속'",
+        "toggleGroupBreak(page)",
+    ):
+        assert marker in source
+
+
 def test_pdf_file_navigation_pauses_observer_while_enhancing_dom():
     source = NAVIGATION.read_text(encoding="utf-8")
     start = source.index("function enhance()")
@@ -74,7 +89,7 @@ def test_pdf_file_navigation_pauses_observer_while_enhancing_dom():
     assert "observer.observe(area, { childList: true, subtree: false })" in source
 
 
-def test_pdf_file_navigation_uses_existing_preview_paths_without_mutating_pages():
+def test_pdf_file_navigation_uses_existing_preview_paths_without_mutating_pages_collection():
     source = NAVIGATION.read_text(encoding="utf-8")
     for marker in (
         "lazy?.buildOutputDescriptors?.()",
@@ -87,7 +102,7 @@ def test_pdf_file_navigation_uses_existing_preview_paths_without_mutating_pages(
         "collapsed.clear()",
         "renderThumbs = wrapped",
         "window.renderThumbs = wrapped",
-        "stage: 'file-collapse-edited-original-page-jump'",
+        "stage: 'file-collapse-group-boundary-edited-original-page-jump'",
     ):
         assert marker in source
     assert "previews[outputIndex >= 0 ? outputIndex : 0]" not in source
