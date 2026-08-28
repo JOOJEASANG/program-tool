@@ -39,7 +39,7 @@
         <a class="hpw-step" data-kind="check" href="/pdf-preflight/"><span class="hpw-num">✓</span><span><strong>인쇄 전 검사</strong><small>PDF 규격 · DPI · 폰트 · 도련 · 색상 상태 확인</small></span></a>
         <a class="hpw-step" data-kind="image" href="/image-editor/"><span class="hpw-num">◐</span><span><strong>이미지 작업</strong><small>자르기 · 리사이즈 · 배경 제거 · 기본 보정</small></span></a>
       </div>
-      <div class="hpw-flow"><span class="hpw-flow-label">추천 출력 흐름</span><span class="hpw-flow-step"><b>1</b> 디자인 또는 PDF 준비</span><span class="hpw-flow-arrow">→</span><span class="hpw-flow-step"><b>2</b> 편집 · 배치 · 확인</span><span class="hpw-flow-arrow">→</span><span class="hpw-flow-step"><b>3</b> 인쇄용 PDF 저장</span><a href="/pdf-editor/">PDF 편집기 바로가기 →</a></div>
+      <div class="hpw-flow"><span class="hpw-flow-label">추천 출력 흐름</span><span class="hpw-flow-step"><b>1</b> 디자인 또는 PDF 준비</span><span class="hpw-flow-arrow">→</span><span class="hpw-flow-step"><b>2</b> 편집 · 배치 · 인쇄 전 검사</span><span class="hpw-flow-arrow">→</span><span class="hpw-flow-step"><b>3</b> 검사 후 PDF 저장</span><a href="/pdf-editor/">PDF 편집기 바로가기 →</a></div>
     </div>`;
     hero.insertAdjacentElement('afterend',section);
     document.documentElement.dataset.homePrintWorkflow='2';
