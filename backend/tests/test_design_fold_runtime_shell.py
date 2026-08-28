@@ -3,20 +3,25 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 
 
-def test_unified_design_shell_injects_fold_and_product_runtimes_without_changing_route_contract():
+def test_unified_design_shell_injects_fold_product_and_visual_runtimes_without_changing_route_contract():
     shell = (ROOT / "design-editor" / "index.html").read_text(encoding="utf-8")
     assert 'src="/design-editor/general?embed=1&mode=cover&preset=cover-a4"' in shell
     assert "const FOLD_RUNTIME_VERSION='20260825-5'" in shell
-    assert "const PRODUCT_RUNTIME_VERSION='20260825-1'" in shell
+    assert "const PRODUCT_RUNTIME_VERSION='20260828-3'" in shell
     assert "const PRODUCT_STATE_VERSION='20260825-1'" in shell
+    assert "const PROFESSIONAL_UI_VERSION='20260828-1'" in shell
+    assert "invitation:{mode:'invitation',preset:'invitation-a4'" in shell
     assert "print-fold-runtime-ensure.js?v=${FOLD_RUNTIME_VERSION}" in shell
     assert "print-product-menu.js?v=${PRODUCT_RUNTIME_VERSION}" in shell
     assert "print-product-state-restore.js?v=${PRODUCT_STATE_VERSION}" in shell
+    assert "professional-ui.js?v=${PROFESSIONAL_UI_VERSION}" in shell
     assert "ensureFoldRuntime" in shell
     assert "ensureProductRuntime" in shell
     assert "ensureProductStateRuntime" in shell
+    assert "ensureProfessionalUi" in shell
     assert "foldRuntimeStage:'direct-fold-runtime-loader-and-verifier'" in shell
     assert "productRuntimeStage:'print-product-menu-loader'" in shell
+    assert "professionalUiStage:'professional-workspace-visual-system-v1'" in shell
     assert "stage:'single-sidebar-general-engine-shell-no-legacy-fallback'" in shell
 
 
