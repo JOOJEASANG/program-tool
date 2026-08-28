@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>PDF Editor Workflow V2 Smoke</title>
+  <style>
+    :root{--nav-h:52px}*{box-sizing:border-box}body{margin:0;padding-top:var(--nav-h)}.top-nav{height:var(--nav-h)}.app{display:grid;grid-template-columns:360px 1fr;height:calc(100vh - var(--nav-h))}aside{padding:16px;overflow:auto}.sec{border-top:1px solid #ddd}.sec-head{padding:8px}.sec-body{padding:8px}.hidden{display:none}.thumb-hint{font-size:10px}
+  </style>
+  <script>
+    history.replaceState(null,'','/pdf-editor/index.html?browser-workflow-v2-smoke=1');
+    try{localStorage.removeItem('program-studio:pdf-editor:advanced');}catch(_){}
+  </script>
+</head>
+<body data-workflow-v2-smoke="pending">
+  <nav class="top-nav">
+    <a class="nav-back" href="/index.html">목록으로</a>
+    <div class="nav-title">PDF 문서 편집기</div>
+    <div class="nav-user">
+      <button id="navSessionBtn">편집 저장</button>
+      <button id="navSessionLoadBtn">편집 불러오기</button>
+      <span id="navUserName" class="nav-user-name">사용자</span>
+      <button id="navLogout" class="nav-logout">로그아웃</button>
+    </div>
+  </nav>
+
+  <div class="app">
+    <aside>
+      <h1>PDF 문서 편집기</h1>
+      <div class="sub">PDF 업로드 · 페이지 편집 · 인쇄</div>
+      <div class="sec"><div class="sec-head" data-sec="upload"><span class="sec-title">파일 업로드</span></div><div class="sec-body" id="sb-upload"><input id="fileInput" type="file"></div></div>
+      <div class="sec" id="thumbSection" style="display:none"><div class="sec-head" data-sec="pages"><span class="sec-title">페이지 목록</span><span id="slideCount"></span></div><div class="sec-body" id="sb-pages"><div id="thumbArea"></div><div class="thumb-hint">클릭=제외 · 드래그=순서변경 · 배지=개별설정</div></div></div>
+      <div class="sec"><div class="sec-head" data-sec="nup"><span class="sec-title">N-up 배치</span></div><div class="sec-body" id="sb-nup"><button class="nup-btn active" data-nup="2">2장</button></div></div>
+      <div class="sec"><div class="sec-head" data-sec="paper"><span class="sec-title">용지 설정</span></div><div class="sec-body" id="sb-paper"><select id="paperSize"><option selected>A4 (210×297mm)</option></select><button id="orientPort" class="active">세로</button><button id="orientLand">가로</button></div></div>
+      <div class="sec"><div class="sec-head collapsed" data-sec="edit"><span class="sec-title">문서 편집</span></div><div class="sec-body hidden" id="sb-edit"><input type="checkbox" id="wmEnabled"><input type="checkbox" id="hfEnabled"><input type="checkbox" id="pnEnabled"></div></div>
+      <div class="sec"><div class="sec-head"><span class="sec-title">출력</span></div><div class="sec-body"><button id="previewBtn">미리보기</button><button id="downloadBtn" disabled>PDF 저장</button></div></div>
+    </aside>
+    <main></main>
+  </div>
+
+  <div id="result">PENDING</div>
+  <script src="/js/program-shell-unify.js?v=20260824-1"></script>
+  <script src="/js/program-studio-ui-v2.js?v=workflow-v2-smoke"></script>
+  <script>
+    (async()=>{
+      const result=document.getElementById('result');
+      const assert=(value,message)=>{if(!value)throw new Error(message)};
+      const waitFor=async(predicate,label,timeout=5000)=>{const started=Date.now();while(Date.now()-started<timeout){if(predicate())return;await new Promise(resolve=>setTimeout(resolve,25));}throw new Error('timeout: '+label)};
+      try{
+        await waitFor(()=>document.body.dataset.programShell==='compact','compact shell');
+        await waitFor(()=>window.PdfEditorWorkflowV2,'workflow api');
+        await waitFor(()=>document.querySelector('.program-local-actions .ps-sidebar-toggle'),'sidebar toggle in compact actions');
+
+        assert(document.getElementById('pdfEditorWorkflowV2'),'workflow panel missing');
+        assert(document.querySelectorAll('#pdfEditorWorkflowV2 [data-step]').length===4,'four workflow steps missing');
+        assert(document.querySelector('.thumb-hint').textContent.includes('클릭=미리보기 이동'),'thumbnail help contract not repaired');
+        assert(document.querySelector('#downloadBtn').closest('.sec').classList.contains('pdf-output-dock-v2'),'output dock class missing');
+        assert(document.documentElement.dataset.pdfAdvanced==='0','advanced controls should start collapsed');
+
+        document.querySelector('.pdf-advanced-toggle').click();
+        assert(document.documentElement.dataset.pdfAdvanced==='1','advanced toggle did not open');
+
+        const thumbSection=document.getElementById('thumbSection');
+        thumbSection.style.display='block';
+        document.getElementById('slideCount').textContent='12페이지';
+        document.getElementById('downloadBtn').disabled=false;
+        window.PdfEditorWorkflowV2.refresh();
+        assert(document.getElementById('pdfOutputSummaryV2').classList.contains('ready'),'output summary did not become ready');
+
+        window.dispatchEvent(new CustomEvent('programstudio:runtime-script-result',{detail:{id:'pdfSmokeFailure',src:'/js/pdf-editor/fake.js',status:'error'}}));
+        const errorBox=document.getElementById('pdfEditorWorkflowErrorV2');
+        assert(errorBox.classList.contains('show'),'runtime failure was not surfaced');
+        errorBox.querySelector('[data-error-action="dismiss"]').click();
+        assert(!errorBox.classList.contains('show'),'runtime failure dismiss did not work');
+
+        document.body.dataset.workflowV2Smoke='pass';
+        result.textContent='PASS: PDF workflow v2, compact-shell toggle, corrected help and runtime recovery UI';
+      }catch(error){
+        document.body.dataset.workflowV2Smoke='fail';
+        result.textContent='FAIL: '+String(error?.message||error);
+      }
+    })();
+  </script>
+</body>
+</html>

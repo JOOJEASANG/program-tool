@@ -64,6 +64,9 @@ jobs:
       - name: 배포 HTML 렌더링 가드 삽입
         run: python3 scripts/inject_boot_guard.py
 
+      - name: 호스팅 캐시·보안 정책 계약 검사
+        run: python3 scripts/validate_hosting_delivery.py
+
       - name: Firebase CLI 설치
         run: npm install -g firebase-tools@14.27.0
 
@@ -182,6 +185,14 @@ jobs:
             --delay-seconds 5 \
             --timeout 20
 
+      - name: 실제 배포 전달 예산·헤더 검증
+        run: |
+          python3 scripts/verify_preview_delivery.py \
+            --base-url "${{ steps.deploy.outputs.preview_url }}" \
+            --timeout 20 \
+            --workers 8 \
+            --report /tmp/preview-delivery.json
+
       - name: Firebase 배포 진단 업로드
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -193,6 +204,7 @@ jobs:
             /tmp/firebase-channels.json
             /tmp/firebase-channels-after.json
             /tmp/firebase-stale-channels.txt
+            /tmp/preview-delivery.json
           retention-days: 7
           if-no-files-found: ignore
 
@@ -204,7 +216,7 @@ jobs:
             const url = '${{ steps.deploy.outputs.preview_url }}';
             const channel = '${{ steps.deploy.outputs.channel }}';
             const prNumber = context.payload.pull_request.number;
-            const body = `🔥 **Firebase 미리보기 배포 및 스모크 검사 완료**\n\n👉 [미리보기 열기](${url})\n\n> 채널: \`${channel}\` · 홈·로그인·디자인 편집기·버전·보안 헤더 검사를 통과했습니다. 이 채널은 7일 후 자동 삭제됩니다.`;
+            const body = `🔥 **Firebase 미리보기 배포 및 스모크 검사 완료**\n\n👉 [미리보기 열기](${url})\n\n> 채널: \`${channel}\` · 사용자 경로, 실제 first-party 전달 예산, 404/MIME, 캐시·보안 헤더 검사를 통과했습니다. 응답 지연 시간은 진단값으로만 기록하며 실패 기준으로 사용하지 않습니다. 이 채널은 7일 후 자동 삭제됩니다.`;
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,

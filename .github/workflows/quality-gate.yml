@@ -75,6 +75,9 @@ jobs:
       - name: Build deployment HTML
         run: python scripts/inject_boot_guard.py
 
+      - name: Validate release hygiene
+        run: python scripts/validate_release_hygiene.py
+
       - name: Validate JavaScript files
         run: |
           find js -type f -name '*.js' -print0 | xargs -0 -n1 node --check
@@ -99,6 +102,27 @@ jobs:
       - name: Validate static asset paths
         run: python scripts/validate_static_references.py
 
+      - name: Validate runtime asset manifest
+        run: python scripts/validate_runtime_assets.py
+
+      - name: Validate route bootstrap budgets
+        run: python scripts/validate_route_budgets.py
+
+      - name: Run Phase 5 UX browser smoke
+        run: bash scripts/run_phase5_browser_smoke.sh
+
+      - name: Run Phase 6 mobile accessibility smoke
+        run: bash scripts/run_phase6_browser_smoke.sh
+
+      - name: Run Phase 7 public first-paint smoke
+        run: bash scripts/run_phase7_browser_smoke.sh
+
+      - name: Run Phase 8 runtime asset smoke
+        run: bash scripts/run_phase8_browser_smoke.sh
+
+      - name: Run Phase 12 compact editor tool rail smoke
+        run: bash scripts/run_phase12_browser_smoke.sh
+
       - name: Upload frontend diagnostics
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -106,6 +130,7 @@ jobs:
           name: frontend-diagnostics
           path: |
             inline-js.log
+            browser-smoke-artifacts
           retention-days: 7
           if-no-files-found: ignore
 

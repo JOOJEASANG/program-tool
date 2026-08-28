@@ -68,17 +68,19 @@ def test_preview_and_production_deploy_run_boot_guard_injection():
     assert deploy.index(command) < deploy.index(production_deploy)
 
 
-def test_optional_helpers_do_not_reload_or_block_layout_reveal():
+def test_optional_helpers_do_not_block_public_first_paint():
     register = read("js/sw-register.js")
     boot = register[register.index("async function boot()") :]
-    assert "const helpersPromise=helpers();" in boot
+    assert "const protectedPage=isProtectedRuntimePage();" in boot
+    assert "const helpersPromise=protectedPage?helpers():nextPaint().then(helpers);" in boot
+    assert "window.ProgramStudioRuntimeReady=helpersPromise" in boot
     assert "cleanupLegacyRuntime()" in boot
-    assert "Promise.race([helpersPromise,delay(1000)])" in boot
-    assert "await nextPaint();" in boot
-    assert boot.index("Promise.race([helpersPromise,delay(1000)])") < boot.index("reveal();")
+    assert "if(!protectedPage){" in boot
+    assert "await Promise.race([helpersPromise,delay(1000)])" in boot
+    assert boot.index("if(!protectedPage){") < boot.index("await Promise.race([helpersPromise,delay(1000)])")
     assert "location.reload()" not in register
     assert "location.replace(" not in register
-    assert "setTimeout(reveal,1600)" in register
+    assert "setTimeout(()=>{if(!isProtectedRuntimePage())reveal()},600)" in register
 
 
 def test_home_helpers_run_only_on_the_root_home_page():

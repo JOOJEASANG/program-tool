@@ -2,6 +2,8 @@
   if(window.__programStudioRuntimeBoot)return;
   window.__programStudioRuntimeBoot=true;
 
+  // Historical filename: this module is the runtime/helper loader and legacy
+  // service-worker cleanup layer. It intentionally does not register a worker.
   const VERSION='2026.08.26.001';
   const CACHE_PREFIX='program-studio-';
   const CLEANUP_KEY='program-studio-legacy-runtime-cleanup-'+VERSION;
@@ -9,12 +11,31 @@
   const currentPath=location.pathname.replace(/\/+$/,'')||'/';
   const loadPromises=new Map();
 
+  function isPath(...parts){
+    return parts.some(path=>currentPath===path||currentPath.endsWith(path));
+  }
+  function isHome(){return currentPath==='/'||currentPath==='/index.html'}
+  function isAuthPage(){return isPath('/login','/login.html')}
+  function isProtectedRuntimePage(){
+    return isPath(
+      '/tools/pdf-editor.html','/pdf-editor','/pdf-editor/index.html',
+      '/tools/preflight.html','/tools/pdf-Checker.html','/pdf-preflight','/pdf-preflight/index.html',
+      '/tools/perfect-binding-cover.html','/perfect-binding-cover','/perfect-binding-cover/index.html',
+      '/design-editor','/design-editor/index.html','/design-editor/general','/design-editor/general.html',
+      '/document-editor','/document-editor/index.html',
+      '/image-editor','/image-editor/index.html'
+    );
+  }
+
   const reveal=()=>{
+    if(isProtectedRuntimePage())return false;
     if(window.ProgramStudioBoot&&typeof window.ProgramStudioBoot.reveal==='function'){
       window.ProgramStudioBoot.reveal();
     }else{
       document.documentElement.classList.remove('app-booting');
+      document.documentElement.dataset.appReady='true';
     }
+    return true;
   };
   const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
   const nextPaint=()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
@@ -96,11 +117,6 @@
     return tracked;
   }
 
-  function isPath(...parts){
-    return parts.some(path=>currentPath===path||currentPath.endsWith(path));
-  }
-  function isHome(){return currentPath==='/'||currentPath==='/index.html'}
-  function isAuthPage(){return isPath('/login','/login.html')}
   function loadCatalogCore(){return load('programCatalogCoreScriptV1','/js/program-catalog-core.js?v=20260818-1')}
 
   const DESIGN_EDITOR_RUNTIME_SCRIPTS=Object.freeze([
@@ -287,25 +303,41 @@
   }
 
   async function boot(){
-    const helpersPromise=helpers();
+    const protectedPage=isProtectedRuntimePage();
+    const helpersPromise=protectedPage?helpers():nextPaint().then(helpers);
     window.ProgramStudioRuntimeReady=helpersPromise;
+    window.ProgramStudioRuntime={
+      version:VERSION,
+      protectedPage,
+      bootStrategy:protectedPage?'approval-gated-runtime':'public-first-paint'
+    };
     helpersPromise.then(results=>{
       const failed=results.filter(result=>result.status==='rejected').length;
+      window.ProgramStudioRuntime.helpersReady=true;
+      window.ProgramStudioRuntime.failedHelpers=failed;
       try{
         window.dispatchEvent(new CustomEvent('programstudio:runtime-ready',{detail:{failed,total:results.length}}));
       }catch(_){}
     });
     cleanupLegacyRuntime().catch(error=>console.warn('Legacy runtime cleanup failed',error));
+
+    if(!protectedPage){
+      reveal();
+      helpersPromise.catch(error=>console.warn('Runtime helper loading failed',error));
+      return;
+    }
+
+    // Protected tools are revealed only by app-boot-guard.js after
+    // ProgramAccessReady resolves. Optional helper loading must never unlock them.
     try{
       await Promise.race([helpersPromise,delay(1000)]);
       await nextPaint();
     }finally{
-      reveal();
       helpersPromise.catch(error=>console.warn('Runtime helper loading failed',error));
     }
   }
 
-  setTimeout(reveal,1600);
+  setTimeout(()=>{if(!isProtectedRuntimePage())reveal()},600);
   if(document.readyState==='loading'){
     document.addEventListener('DOMContentLoaded',boot,{once:true});
   }else{

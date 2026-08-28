@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="ko" data-phase8-smoke="running">
+<head>
+  <meta charset="utf-8">
+  <title>Phase 8 runtime asset budget smoke</title>
+</head>
+<body>
+  <main>
+    <h1>Phase 8 runtime asset budget smoke</h1>
+    <pre id="result">running</pre>
+  </main>
+  <script>
+  (async()=>{
+    const expected=[
+      '/js/platform-health.js',
+      '/js/app-version.js',
+      '/js/program-catalog-core.js',
+      '/js/home-program-catalog.js',
+      '/js/home-pdf-utility-name-sync.js',
+      '/js/home-professional-suite.js',
+      '/js/home-print-workflow.js',
+      '/js/home-hero-upgrade.js',
+      '/js/home-header-footer-refine.js',
+      '/js/home-dashboard-v2.js'
+    ].sort();
+    const requested=[];
+    const result=document.getElementById('result');
+    const realAppend=document.head.appendChild.bind(document.head);
+
+    history.replaceState({},'', '/index.html');
+    window.requestAnimationFrame=callback=>setTimeout(()=>callback(performance.now()),0);
+
+    document.head.appendChild=function(node){
+      if(node&&node.tagName==='SCRIPT'&&node.src&&node.dataset.phase8Harness!=='loader'){
+        const url=new URL(node.src,location.href);
+        if(url.pathname.startsWith('/js/')){
+          requested.push(url.pathname);
+          setTimeout(()=>node.dispatchEvent(new Event('load')),0);
+          return node;
+        }
+      }
+      return realAppend(node);
+    };
+
+    const loadHarness=src=>new Promise((resolve,reject)=>{
+      const script=document.createElement('script');
+      script.dataset.phase8Harness='loader';
+      script.src=src;
+      script.addEventListener('load',resolve,{once:true});
+      script.addEventListener('error',reject,{once:true});
+      realAppend(script);
+    });
+
+    try{
+      await loadHarness('/js/sw-register.js?v=phase8-smoke');
+      await loadHarness('/js/program-studio-ui-v2.js?v=phase8-smoke');
+      document.dispatchEvent(new Event('DOMContentLoaded'));
+      if(window.ProgramStudioRuntimeReady)await window.ProgramStudioRuntimeReady;
+      await new Promise(resolve=>setTimeout(resolve,80));
+
+      const actual=[...requested].sort();
+      const unique=[...new Set(actual)].sort();
+      if(actual.length!==unique.length)throw new Error(`duplicate runtime request: ${actual.join(', ')}`);
+      if(actual.length!==expected.length)throw new Error(`runtime request count ${actual.length}, expected ${expected.length}: ${actual.join(', ')}`);
+      for(let i=0;i<expected.length;i++){
+        if(actual[i]!==expected[i])throw new Error(`runtime manifest mismatch: ${actual.join(', ')}`);
+      }
+      if(!window.ProgramStudioRuntime||window.ProgramStudioRuntime.bootStrategy!=='public-first-paint'){
+        throw new Error('public first-paint runtime strategy changed');
+      }
+      if(window.ProgramStudioRuntime.protectedPage!==false){
+        throw new Error('home route was incorrectly treated as protected');
+      }
+
+      document.documentElement.dataset.phase8Smoke='pass';
+      result.textContent=`pass: ${actual.length} unique home runtime helper requests`;
+    }catch(error){
+      document.documentElement.dataset.phase8Smoke='fail';
+      result.textContent=`fail: ${error&&error.stack?error.stack:error}`;
+    }
+  })();
+  </script>
+</body>
+</html>

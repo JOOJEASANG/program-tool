@@ -26,6 +26,24 @@ window.googleProvider = googleProvider;
 window.firebaseConfig = firebaseConfig;
 
 (() => {
+  const UI_VERSION = '20260828-3';
+  if (!document.getElementById('programStudioUiV2Styles')) {
+    const link = document.createElement('link');
+    link.id = 'programStudioUiV2Styles';
+    link.rel = 'stylesheet';
+    link.href = `/css/program-studio-ui-v2.css?v=${UI_VERSION}`;
+    document.head.appendChild(link);
+  }
+  if (!document.getElementById('programStudioUiV2Script')) {
+    const script = document.createElement('script');
+    script.id = 'programStudioUiV2Script';
+    script.src = `/js/program-studio-ui-v2.js?v=${UI_VERSION}`;
+    script.defer = true;
+    document.head.appendChild(script);
+  }
+})();
+
+(() => {
   if (document.getElementById('programStudioCacheBootstrap')) return;
   const script = document.createElement('script');
   script.id = 'programStudioCacheBootstrap';

@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>Design Simple Result Workflow Smoke</title>
+  <style>
+    body{margin:0;font-family:Arial,sans-serif}.sidebar{width:320px}.side-card{border:1px solid #ddd;padding:8px;margin:5px}.editor-toolbar{height:50px}.artboard{position:relative;width:432px;height:606px}.phase2-extra-object{position:absolute}.ps-tool-rail{display:flex}.ps-tool-rail-button{display:block}
+  </style>
+  <script>history.replaceState(null,'','/design-editor/general.html?embed=1&mode=poster&simpleResult=20260828-1');</script>
+</head>
+<body data-design-simple-result-status="pending">
+  <div id="result">PENDING</div>
+  <main id="editorShell">
+    <aside class="sidebar">
+      <section class="side-card" id="documentCard"><div class="document-head">문서</div></section>
+      <section class="side-card" id="nativeAddCard"><div>내용 추가</div><button id="addTitleBtn">메인 제목</button><button id="addBodyBtn">본문</button><button id="addInfoBtn">날짜·장소</button></section>
+      <section class="side-card" id="designQuickDesignTools">빠른 꾸미기</section>
+      <section class="side-card" id="designPhase2Tools"><button id="phase2AddImage">이미지</button><input id="phase2ImageInput" type="file" hidden></section>
+      <section class="side-card" id="designPhase4SmartLayout">스마트 정렬</section>
+      <section class="side-card" id="designPrintQualityTools">인쇄 품질</section>
+      <section class="side-card" id="designPrintSafetyTools">인쇄 안전</section>
+      <section class="side-card" id="designFinalPrintCheckTools">최종 인쇄 검사</section>
+      <section class="side-card" id="inspector">설정</section>
+      <section class="side-card" id="layerCard"><div id="layerList">레이어</div></section>
+      <section class="side-card" id="designOutputTools"><button id="designPngBtn">PNG</button><button id="designPdfBtn">PDF</button></section>
+    </aside>
+    <section><div class="editor-toolbar"></div><div id="artboard" class="artboard"></div><span id="saveState">현재 작업</span><div id="editorStatus"></div></section>
+  </main>
+  <nav class="ps-tool-rail"><button class="ps-tool-rail-button" data-ps-tool-step="compose">구성</button><button class="ps-tool-rail-button" data-ps-tool-step="edit">편집</button><button class="ps-tool-rail-button" data-ps-tool-step="arrange">정리</button><button class="ps-tool-rail-button" data-ps-tool-step="output">출력</button><button class="ps-tool-rail-button" data-ps-tool-step="all">전체</button></nav>
+  <script>
+    const surface={id:'front',label:'앞면',background:'#ffffff',elements:[],extras:[]};
+    const project={name:'테스트 포스터',width:210,height:297,bleed:3,safe:8,activeSurface:'front',surfaces:[surface]};
+    const calls={title:0,body:0,info:0,png:0,pdf:0,save:0,sync:0,steps:[]};
+    window.DesignEditorApp={project};
+    window.DesignEditorDraftScope={saveCurrent(){calls.save++;}};
+    window.DesignEditorPhase2={sync(){calls.sync++;renderExtras();}};
+    window.DesignEditorOutput={exportPng(){calls.png++;},exportPdf(){calls.pdf++;}};
+    window.ProgramStudioEditorToolRail={activeStep:'compose',select(step){this.activeStep=step;calls.steps.push(step);}};
+    addTitleBtn.onclick=()=>calls.title++;addBodyBtn.onclick=()=>calls.body++;addInfoBtn.onclick=()=>calls.info++;
+    function renderExtras(){
+      artboard.querySelectorAll('.phase2-extra-object').forEach(node=>node.remove());
+      surface.extras.forEach(item=>{const node=document.createElement('div');node.className='phase2-extra-object';node.dataset.extraId=item.id;artboard.appendChild(node);});
+    }
+  </script>
+  <script src="/js/design-editor/simple-result-workflow.js?v=20260828-1"></script>
+  <script>
+    window.addEventListener('DOMContentLoaded',()=>{
+      const result=document.getElementById('result');
+      const assert=(ok,msg)=>{if(!ok)throw new Error(msg);};
+      const run=async()=>{
+        try{
+          const api=window.DesignEditorSimpleResultWorkflow;assert(api,'simple result runtime missing');api.sync();
+          const card=document.getElementById('designSimpleResultTools');assert(card&&card.dataset.psToolStep==='compose','quick card missing or not compose');
+          assert(nativeAddCard.classList.contains('design-simple-basic-hidden'),'native add card not hidden');
+          assert(layerCard.classList.contains('design-simple-basic-hidden'),'layer card not hidden');
+          assert(designPhase2Tools.classList.contains('design-simple-basic-hidden'),'phase2 card not hidden');
+          assert(designQuickDesignTools.classList.contains('design-simple-basic-hidden'),'quick design card not hidden');
+          assert(designPhase4SmartLayout.classList.contains('design-simple-basic-hidden'),'smart layout not hidden');
+          assert(designPrintQualityTools.classList.contains('design-simple-basic-hidden')&&designPrintSafetyTools.classList.contains('design-simple-basic-hidden'),'print diagnostics not hidden');
+          assert(getComputedStyle(document.querySelector('[data-ps-tool-step="arrange"]')).display==='none'&&getComputedStyle(document.querySelector('[data-ps-tool-step="all"]')).display==='none','advanced tool rail buttons visible');
+          document.body.dataset.designSimpleResultBasic='advanced-hidden';
+
+          card.querySelector('[data-simple-action="title"]').click();card.querySelector('[data-simple-action="body"]').click();card.querySelector('[data-simple-action="info"]').click();
+          assert(calls.title===1&&calls.body===1&&calls.info===1,'text shortcuts did not proxy native buttons');
+
+          const bg={id:'bg1',type:'image',name:'bg.webp',src:'data:image/webp;base64,AA==',aspect:1.4,x:20,y:20,w:30,h:30,fit:'contain',opacity:80,locked:false,visible:true};surface.extras.push(bg);renderExtras();
+          assert(api.applyImageRole('background','bg1'),'background role failed');
+          assert(surface.extras[0]===bg&&bg.simpleRole==='background'&&bg.locked===true&&bg.fit==='cover','background properties wrong');
+          assert(bg.x===-3&&bg.y===-3&&bg.w===216&&bg.h===303,'background does not cover bleed');
+          api.sync();assert(artboard.querySelector('[data-extra-id="bg1"]').classList.contains('design-simple-background'),'background DOM not sent behind content');
+          document.body.dataset.designSimpleResultBackground='bleed-cover-locked';
+
+          const logo={id:'logo1',type:'image',name:'logo.png',src:'data:image/png;base64,AA==',aspect:2,x:0,y:0,w:90,h:90,fit:'cover',opacity:100,locked:false,visible:true};surface.extras.push(logo);renderExtras();
+          assert(api.applyImageRole('logo','logo1'),'logo role failed');
+          assert(logo.simpleRole==='logo'&&logo.fit==='contain'&&logo.locked===false,'logo properties wrong');
+          assert(logo.x>=8&&logo.y>=8&&logo.w<=55&&logo.h<=297*.22,'logo placement not safe/simple');
+          document.body.dataset.designSimpleResultLogo='contain-safe';
+
+          assert(api.removeBackground(),'background removal failed');assert(!surface.extras.some(item=>item.simpleRole==='background'),'background remains');
+          card.querySelector('[data-simple-action="png"]').click();card.querySelector('[data-simple-action="pdf"]').click();
+          await new Promise(resolve=>setTimeout(resolve,20));assert(calls.png===1&&calls.pdf===1,'simple output did not proxy existing 300DPI output without background');
+          document.body.dataset.designSimpleResultOutput='png-pdf';
+
+          api.setAdvanced(true);assert(!nativeAddCard.classList.contains('design-simple-basic-hidden'),'advanced mode did not restore native add');assert(getComputedStyle(document.querySelector('[data-ps-tool-step="arrange"]')).display!=='none','advanced rail not restored');
+          api.setAdvanced(false);assert(nativeAddCard.classList.contains('design-simple-basic-hidden'),'basic mode not restored');
+          document.body.dataset.designSimpleResultFlow='background-logo-text-output';
+          document.body.dataset.designSimpleResultStatus='pass';
+          result.textContent='PASS: simple result workflow: 배경·로고·제목·본문·정보·PNG/PDF만 기본 노출하고 고급 편집은 접어 둠';
+        }catch(error){document.body.dataset.designSimpleResultStatus='fail';result.textContent='FAIL: '+String(error?.stack||error);}
+      };
+      run();
+    },{once:true});
+  </script>
+</body>
+</html>

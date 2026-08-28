@@ -23,6 +23,11 @@
       const FOLD_RUNTIME_VERSION='20260825-5';
       const PRODUCT_RUNTIME_VERSION='20260825-1';
       const PRODUCT_STATE_VERSION='20260825-1';
+      const PRODUCT_TOPBAR_VERSION='20260828-2';
+      const SELECTION_CONTEXT_VERSION='20260828-1';
+      const MULTI_SELECTION_VERSION='20260828-1';
+      const MULTI_SMART_GUIDES_VERSION='20260828-1';
+      const SIMPLE_RESULT_VERSION='20260828-1';
       const DEFAULTS={
         cover:{mode:'cover',preset:'cover-a4'},
         poster:{mode:'poster',preset:'poster-a4',paper:'a4',orientation:'portrait',w:210,h:297},
@@ -33,13 +38,32 @@
       };
       function safeMode(value){return Object.prototype.hasOwnProperty.call(DEFAULTS,value)?value:'cover';}
       function clampNumber(value,fallback){const n=Number(value);return Number.isFinite(n)?Math.max(80,Math.min(1000,n)):fallback;}
+      function incomingDetail(){
+        const query=new URLSearchParams(location.search),mode=safeMode(query.get('mode')||'cover');
+        const detail={mode,_query:query};
+        ['preset','paper','orientation','fold'].forEach(key=>{if(query.has(key))detail[key]=query.get(key);});
+        if(query.has('w'))detail.w=query.get('w');
+        if(query.has('h'))detail.h=query.get('h');
+        return detail;
+      }
+      function canonicalCoverRoute(mode){if(mode==='cover')return '/design-editor/general?embed=1&mode=cover&preset=cover-a4';return '';}
       function route(detail={}){
         const mode=safeMode(detail.mode),data={...DEFAULTS[mode],...detail,mode};
         shell.dataset.mode=mode;
-        if(mode==='cover')return '/design-editor/general?embed=1&mode=cover&preset=cover-a4';
+        const incomingQuery=detail._query instanceof URLSearchParams;
+        if(mode==='cover'&&!incomingQuery)return canonicalCoverRoute(mode);
+        const query=incomingQuery?new URLSearchParams(detail._query):new URLSearchParams();
+        query.set('embed','1');
+        query.set('mode',mode);
+        query.set('preset',data.preset||DEFAULTS[mode].preset);
+        if(mode==='cover')return `/design-editor/general?${query.toString()}`;
         const width=clampNumber(data.w??data.width,DEFAULTS[mode].w||210),height=clampNumber(data.h??data.height,DEFAULTS[mode].h||297);
-        const query=new URLSearchParams({embed:'1',mode,preset:data.preset||DEFAULTS[mode].preset,paper:data.paper||'custom',orientation:data.orientation||'portrait',w:String(width),h:String(height)});
+        query.set('paper',data.paper||'custom');
+        query.set('orientation',data.orientation||'portrait');
+        query.set('w',String(width));
+        query.set('h',String(height));
         if(mode==='leaflet3')query.set('fold',data.fold||data.preset||'leaflet-3-roll');
+        else query.delete('fold');
         return `/design-editor/general?${query.toString()}`;
       }
       function injectRuntime(id,src,ready){
@@ -66,8 +90,33 @@
           if(win.DesignEditorPrintProductStateRestore?.patch){win.DesignEditorPrintProductStateRestore.patch();return true;}return false;
         });
       }
+      function ensureProductTopbarRuntime(){
+        return injectRuntime('designPrintProductTopbarScriptV1',`/js/design-editor/print-product-topbar.js?v=${PRODUCT_TOPBAR_VERSION}`,win=>{
+          if(win.DesignEditorPrintProductTopbar?.sync){win.DesignEditorPrintProductTopbar.sync();return true;}return false;
+        });
+      }
+      function ensureSelectionContextRuntime(){
+        return injectRuntime('designSelectionContextbarScriptV1',`/js/design-editor/selection-contextbar.js?v=${SELECTION_CONTEXT_VERSION}`,win=>{
+          if(win.DesignEditorSelectionContextbar?.sync){win.DesignEditorSelectionContextbar.sync();return true;}return false;
+        });
+      }
+      function ensureMultiSelectionRuntime(){
+        return injectRuntime('designMultiSelectionScriptV1',`/js/design-editor/multi-selection-context.js?v=${MULTI_SELECTION_VERSION}`,win=>{
+          if(win.DesignEditorMultiSelection?.sync){win.DesignEditorMultiSelection.sync();return true;}return false;
+        });
+      }
+      function ensureMultiSmartGuidesRuntime(){
+        return injectRuntime('designMultiSmartGuidesScriptV1',`/js/design-editor/multi-selection-smart-guides.js?v=${MULTI_SMART_GUIDES_VERSION}`,win=>{
+          if(win.DesignEditorMultiSmartGuides?.sync){win.DesignEditorMultiSmartGuides.sync();return true;}return false;
+        });
+      }
+      function ensureSimpleResultRuntime(){
+        return injectRuntime('designSimpleResultWorkflowScriptV1',`/js/design-editor/simple-result-workflow.js?v=${SIMPLE_RESULT_VERSION}`,win=>{
+          if(win.DesignEditorSimpleResultWorkflow?.sync){win.DesignEditorSimpleResultWorkflow.sync();return true;}return false;
+        });
+      }
       function ensurePrintRuntimes(){
-        ensureFoldRuntime();ensureProductRuntime();ensureProductStateRuntime();
+        ensureFoldRuntime();ensureProductRuntime();ensureProductStateRuntime();ensureProductTopbarRuntime();ensureSelectionContextRuntime();ensureMultiSelectionRuntime();ensureMultiSmartGuidesRuntime();ensureSimpleResultRuntime();
       }
       function openMode(detail){loading.classList.remove('hide');frame.src=route(detail);}
       window.addEventListener('message',event=>{
@@ -80,8 +129,10 @@
         [80,240,600,1200,2400].forEach(delay=>setTimeout(ensurePrintRuntimes,delay));
         loading.classList.add('hide');
       });
+      const initialRoute=route(incomingDetail());
+      if(frame.getAttribute('src')!==initialRoute)frame.src=initialRoute;
       setTimeout(()=>loading.classList.add('hide'),2600);
-      window.UnifiedDesignShell={openMode,route,ensureFoldRuntime,ensureProductRuntime,ensureProductStateRuntime,ensurePrintRuntimes,foldRuntimeStage:'direct-fold-runtime-loader-and-verifier',productRuntimeStage:'print-product-menu-loader',stage:'single-sidebar-general-engine-shell-no-legacy-fallback'};
+      window.UnifiedDesignShell={openMode,route,incomingDetail,ensureFoldRuntime,ensureProductRuntime,ensureProductStateRuntime,ensureProductTopbarRuntime,ensureSelectionContextRuntime,ensureMultiSelectionRuntime,ensureMultiSmartGuidesRuntime,ensureSimpleResultRuntime,ensurePrintRuntimes,foldRuntimeStage:'direct-fold-runtime-loader-and-verifier',productRuntimeStage:'print-product-menu-loader',productTopbarStage:'professional-design-commandbar-v2',selectionContextStage:'selection-context-properties-v1',multiSelectionStage:'multi-select-align-distribute-group-v1',multiSmartGuidesStage:'multi-smart-guides-exact-gap-v1',simpleResultStage:'simple-result-background-logo-text-output-v1',routingStage:'query-aware-initial-route-v2',stage:'single-sidebar-general-engine-shell-no-legacy-fallback'};
     })();
   </script>
 </body>

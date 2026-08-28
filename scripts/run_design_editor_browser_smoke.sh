@@ -41,6 +41,7 @@ if ! grep -q 'data-rendered-width="2551"' "$DOM_OUT" || ! grep -q 'data-rendered
 if ! grep -q 'data-exported-png-width="2551"' "$DOM_OUT" || ! grep -q 'data-exported-png-height="3579"' "$DOM_OUT" || ! grep -q 'data-exported-png-gate="png"' "$DOM_OUT"; then echo "Real PNG export dimensions or final-print gate marker were not recorded." >&2; cat "$DOM_OUT" >&2; exit 1; fi
 
 echo "Design editor PNG browser smoke passed using $BROWSER"
+bash "$ROOT_DIR/scripts/run_design_editor_workflow_v2_smoke.sh"
 bash "$ROOT_DIR/scripts/run_design_editor_cover_smoke.sh"
 bash "$ROOT_DIR/scripts/run_design_editor_cover_mode_menu_smoke.sh"
 bash "$ROOT_DIR/scripts/run_design_editor_cover_project_smoke.sh"

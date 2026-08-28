@@ -5,6 +5,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PORT="${DOCUMENT_EDITOR_SMOKE_PORT:-4187}"
 OUT_DIR="${DOCUMENT_EDITOR_BROWSER_SMOKE_OUT:-$ROOT_DIR/browser-smoke-artifacts}"
 DOM_OUT="$OUT_DIR/document-editor-smoke-dom.html"
+WORKFLOW_DOM_OUT="$OUT_DIR/document-editor-workflow-v2-smoke-dom.html"
 SERVER_LOG="$OUT_DIR/document-editor-smoke-server.log"
 PROFILE_DIR="$(mktemp -d)"
 mkdir -p "$OUT_DIR"
@@ -18,6 +19,7 @@ SERVER_PID=$!
 cleanup(){ kill "$SERVER_PID" >/dev/null 2>&1 || true; wait "$SERVER_PID" >/dev/null 2>&1 || true; rm -rf "$PROFILE_DIR"; }
 trap cleanup EXIT
 URL="http://127.0.0.1:$PORT/tests/browser/document-editor-smoke.html"
+WORKFLOW_URL="http://127.0.0.1:$PORT/tests/browser/document-editor-workflow-v2-smoke.html"
 for _ in $(seq 1 50); do
   if python3 - "$URL" <<'PY' >/dev/null 2>&1
 import sys, urllib.request
@@ -37,3 +39,9 @@ for marker in 'data-document-bold="true"' 'data-document-table="2x3"' 'data-docu
 done
 
 echo "Document editor browser smoke passed using $BROWSER"
+
+"$BROWSER" --headless=new --disable-gpu --no-sandbox --disable-dev-shm-usage --disable-background-networking --user-data-dir="$PROFILE_DIR" --virtual-time-budget=8000 --dump-dom "$WORKFLOW_URL" >"$WORKFLOW_DOM_OUT"
+if ! grep -q 'data-document-workflow-v2-smoke="pass"' "$WORKFLOW_DOM_OUT"; then echo "Document workflow v2 browser smoke failed." >&2; cat "$WORKFLOW_DOM_OUT" >&2; exit 1; fi
+if ! grep -q 'PASS: document workflow v2, status, save and print reuse' "$WORKFLOW_DOM_OUT"; then echo "Document workflow v2 completion marker missing." >&2; cat "$WORKFLOW_DOM_OUT" >&2; exit 1; fi
+
+echo "Document workflow v2 browser smoke passed using $BROWSER"

@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="ko" data-program-surface="image-editor" data-phase12-smoke="running">
+<head>
+  <meta charset="utf-8">
+  <title>Phase 12 editor tool rail smoke</title>
+</head>
+<body>
+  <main class="workspace">
+    <aside class="sidebar" aria-label="이미지 편집 도구">
+      <section id="imageEditorWorkflowV2" class="tool-card"><button class="image-workflow-step active" data-image-step="open">불러오기</button><button class="image-workflow-step" data-image-step="layout">자르기·크기</button><button class="image-workflow-step" data-image-step="finish">보정·배경</button><button class="image-workflow-step" data-image-step="output">저장</button></section>
+      <section id="imageWorkflowStatusV2" class="tool-card"><div class="tool-title">작업 상태</div></section>
+      <section id="openCard" class="tool-card" data-image-step="open"><div class="tool-title">이미지</div></section>
+      <section id="cropCard" class="tool-card" data-image-step="layout"><div class="tool-title">자르기</div></section>
+      <section id="rotateCard" class="tool-card" data-image-step="layout"><div class="tool-title">회전 · 뒤집기</div></section>
+      <section id="resizeCard" class="tool-card" data-image-step="layout"><div class="tool-title">크기 조절</div></section>
+      <section id="adjustCard" class="tool-card" data-image-step="finish"><div class="tool-title">기본 보정</div></section>
+      <section id="backgroundCard" class="tool-card" data-image-step="finish"><div class="tool-title">흰색 · 단색 배경 제거</div></section>
+      <section id="exportCard" class="tool-card" data-image-step="output"><div class="tool-title">저장 설정</div></section>
+      <section id="unknownCard" class="tool-card"><div class="tool-title">실험 도구</div></section>
+    </aside>
+  </main>
+  <pre id="result">running</pre>
+  <script>
+  window.ImageEditorWorkflowV2={
+    active:'open',
+    activateStep(step){
+      this.active=step;
+      document.querySelectorAll('#imageEditorWorkflowV2 [data-image-step]').forEach(button=>button.classList.toggle('active',button.dataset.imageStep===step));
+    }
+  };
+  </script>
+  <script src="/js/editor-tool-rail-v1.js?v=phase12-smoke"></script>
+  <script>
+  (async()=>{
+    const result=document.getElementById('result');
+    const visible=id=>!document.getElementById(id).hidden;
+    try{
+      for(let i=0;i<40&&!window.ProgramStudioEditorToolRail;i++)await new Promise(resolve=>setTimeout(resolve,25));
+      const api=window.ProgramStudioEditorToolRail;
+      if(!api)throw new Error('tool rail API missing');
+      const rail=document.querySelector('.ps-tool-rail');
+      if(!rail)throw new Error('tool rail missing');
+      const buttons=[...rail.querySelectorAll('[data-ps-tool-step]')];
+      if(buttons.length!==5)throw new Error(`expected 5 rail buttons, got ${buttons.length}`);
+      if(buttons.some(button=>!button.querySelector('svg')))throw new Error('rail button without SVG icon');
+      if(!document.getElementById('imageEditorWorkflowV2').classList.contains('ps-tool-source'))throw new Error('large workflow source was not compacted');
+      if(api.activeStep!=='open')throw new Error(`initial step ${api.activeStep}`);
+      if(!visible('openCard')||visible('cropCard')||visible('adjustCard')||visible('exportCard')||visible('unknownCard'))throw new Error('initial filtering mismatch');
+      rail.querySelector('[data-ps-tool-step="layout"]').click();
+      await new Promise(resolve=>setTimeout(resolve,20));
+      if(api.activeStep!=='layout')throw new Error('layout step not activated');
+      if(visible('openCard')||!visible('cropCard')||!visible('rotateCard')||!visible('resizeCard')||visible('adjustCard'))throw new Error('layout filtering mismatch');
+      rail.querySelector('[data-ps-tool-step="all"]').click();
+      await new Promise(resolve=>setTimeout(resolve,20));
+      if(api.activeStep!=='all')throw new Error('all tools step not activated');
+      for(const id of ['openCard','cropCard','rotateCard','resizeCard','adjustCard','backgroundCard','exportCard','unknownCard'])if(!visible(id))throw new Error(`all tools did not show ${id}`);
+      const active=rail.querySelector('.ps-tool-rail-button.active');
+      if(active?.dataset.psToolStep!=='all')throw new Error('active rail state mismatch');
+      document.documentElement.dataset.phase12Smoke='pass';
+      result.textContent='pass: compact icon rail filters editor tools and restores all tools';
+    }catch(error){
+      document.documentElement.dataset.phase12Smoke='fail';
+      result.textContent=`fail: ${error&&error.stack?error.stack:error}`;
+    }
+  })();
+  </script>
+</body>
+</html>

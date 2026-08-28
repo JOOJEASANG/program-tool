@@ -27,7 +27,9 @@ def test_runtime_diagnostics_captures_browser_and_loader_failures_locally():
         "const MAX_RECORDS=40",
         "runtime-error",
         "runtime-timeout",
-        "stage:'local-runtime-qa-diagnostics'",
+        "function isExpectedCancellation(reason)",
+        "if(isExpectedCancellation(reason))return;",
+        "stage:'local-runtime-qa-diagnostics-filtered-cancellation'",
     ):
         assert marker in source
     assert "fetch(" not in source

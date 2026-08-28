@@ -36,18 +36,26 @@ def test_recovery_worker_purges_cache_before_unregistering() -> None:
     )
 
 
-def test_optional_boot_helpers_reveal_without_reload() -> None:
+def test_optional_boot_helpers_preserve_public_first_paint_and_protected_gate() -> None:
     register = source("js/sw-register.js")
     guard = source("js/app-boot-guard.js")
-    assert "Promise.race([helpersPromise,delay(1000)])" in register
-    assert "setTimeout(reveal,1600)" in register
+
+    assert "const protectedPage=isProtectedRuntimePage();" in register
+    assert "const helpersPromise=protectedPage?helpers():nextPaint().then(helpers);" in register
+    assert "if(isProtectedRuntimePage())return false;" in register
+    assert "await Promise.race([helpersPromise,delay(1000)])" in register
+    assert "setTimeout(()=>{if(!isProtectedRuntimePage())reveal()},600)" in register
     assert "cleanupLegacyRuntime" in register
     assert "navigator.serviceWorker.getRegistrations" in register
     assert "registration.unregister()" in register
+    assert "navigator.serviceWorker.register" not in register
     assert "location.reload()" not in register
     assert "location.replace(" not in register
+
     assert "opacity:0" not in guard
-    assert "setTimeout(reveal,1800)" in guard
+    assert "if(!protectedProgram){" in guard
+    assert "window.ProgramStudioBoot={...(window.ProgramStudioBoot||{}),reveal,protectedProgram};" in guard
+    assert "setTimeout(reveal,1800)" not in guard
 
 
 def test_access_guard_has_timeout_parallel_reads_and_visibility_watchdog() -> None:
