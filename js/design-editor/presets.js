@@ -27,6 +27,13 @@
       id:'flyer-a5',group:'전단',name:'A5 양면 전단',description:'휴대하기 좋은 소형 양면 전단',width:148,height:210,bleed:3,safe:8,
       surfaces:[{id:'front',label:'앞면',folds:[],panels:['앞면']},{id:'back',label:'뒷면',folds:[],panels:['뒷면']}]
     },
+    'invitation-a4':{
+      id:'invitation-a4',group:'초대장·안내장',name:'A4 2단 초대장·안내장',description:'접지 방향과 위치를 조절할 수 있는 초대장·안내장',width:297,height:210,bleed:3,safe:8,
+      surfaces:[
+        {id:'outside',label:'바깥면',folds:[148.5],panels:['왼쪽 외부','오른쪽 외부']},
+        {id:'inside',label:'안쪽면',folds:[148.5],panels:['내용 왼쪽','내용 오른쪽']}
+      ]
+    },
     'leaflet-2':{
       id:'leaflet-2',group:'리플렛',name:'A4 2단 리플렛',description:'A4 가로 2단 접지 · 바깥면/안쪽면',width:297,height:210,bleed:3,safe:8,
       surfaces:[
