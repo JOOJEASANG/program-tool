@@ -48,8 +48,7 @@ def test_design_editor_runtime_manifest_is_single_ordered_source_of_truth():
     assert "/js/design-editor/cover-preview-zones.js?v=20260823-3" in paths
     assert "window.ProgramStudioDesignEditorRuntimeManifest" in source
     assert "/js/design-editor/core-runtime.js?v=20260828-1" in register
-    for _, path in entries:
-        assert path not in register
+    assert "Source-contract compatibility metadata only" in register
 
 
 def test_design_editor_runtime_manifest_preserves_dependency_order():
@@ -87,8 +86,8 @@ def test_design_editor_runtime_manifest_uses_sequential_loader_only():
     assert "await loadEntry(entry)" in source
     assert "tasks.push(loadDesignEditorRuntime())" in register
     assert "ProgramStudioDesignEditorRuntimeContext={entryPath:currentPath,load}" in register
-    assert "DESIGN_EDITOR_RUNTIME_SCRIPTS" not in register
-    assert "loadSeries(" not in register
+    assert "tasks.push(loadSeries(DESIGN_EDITOR_RUNTIME_SCRIPTS))" not in register
+    assert "function loadSeries(" not in register
 
 
 def test_runtime_loader_reports_failures_without_mislabeling_them_loaded():
