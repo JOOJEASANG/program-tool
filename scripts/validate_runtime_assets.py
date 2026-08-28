@@ -12,6 +12,12 @@ RUNTIME_SOURCES = (
     Path("js/sw-register.js"),
     Path("js/firebase-config.js"),
     Path("js/program-studio-ui-v2.js"),
+    Path("js/design-editor/core-runtime.js"),
+    Path("js/design-editor/shell-runtime.js"),
+    Path("js/pdf-editor/route-runtime.js"),
+    Path("js/pdf-editor/core-runtime.js"),
+    Path("js/pdf-editor/ui-runtime.js"),
+    Path("js/pdf-editor/loader.js"),
 )
 RETIRED_LEGACY_ASSETS = (
     Path("js/home-premium-ui.js"),
