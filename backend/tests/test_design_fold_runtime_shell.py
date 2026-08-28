@@ -3,31 +3,38 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 
 
-def test_unified_design_shell_injects_fold_product_and_visual_runtimes_without_changing_route_contract():
+def test_unified_design_shell_uses_one_manifest_loader_without_changing_route_contract():
     shell = (ROOT / "design-editor" / "index.html").read_text(encoding="utf-8")
+    runtime = (ROOT / "js" / "design-editor" / "shell-runtime.js").read_text(encoding="utf-8")
     assert 'src="/design-editor/general?embed=1&mode=cover&preset=cover-a4"' in shell
-    assert "const FOLD_RUNTIME_VERSION='20260825-5'" in shell
-    assert "const DOCUMENT_STATE_VERSION='20260828-1'" in shell
-    assert "const PRODUCT_RUNTIME_VERSION='20260828-3'" in shell
-    assert "const PRODUCT_STATE_VERSION='20260825-1'" in shell
-    assert "const PROFESSIONAL_UI_VERSION='20260828-2'" in shell
+    assert "const SHELL_RUNTIME_VERSION='20260828-1'" in shell
     assert "invitation:{mode:'invitation',preset:'invitation-a4'" in shell
-    assert "print-fold-runtime-ensure.js?v=${FOLD_RUNTIME_VERSION}" in shell
-    assert "document-type-state.js?v=${DOCUMENT_STATE_VERSION}" in shell
-    assert "print-product-menu.js?v=${PRODUCT_RUNTIME_VERSION}" in shell
-    assert "print-product-state-restore.js?v=${PRODUCT_STATE_VERSION}" in shell
-    assert "professional-ui.js?v=${PROFESSIONAL_UI_VERSION}" in shell
-    assert "ensureFoldRuntime" in shell
-    assert "ensureDocumentStateRuntime" in shell
-    assert "ensureProductRuntime" in shell
-    assert "ensureProductStateRuntime" in shell
-    assert "ensureProfessionalUi" in shell
+    assert "shell-runtime.js?v=${SHELL_RUNTIME_VERSION}" in shell
+    assert "injectRuntime('designShellRuntimeScriptV1'" in shell
+    assert "const ensureFoldRuntime=ensurePrintRuntimes" in shell
+    assert "const ensureProfessionalUi=ensurePrintRuntimes" in shell
+    assert "runtimeManifestStage:'design-shell-runtime-manifest-v1'" in shell
     assert "foldRuntimeStage:'direct-fold-runtime-loader-and-verifier'" in shell
     assert "documentStateStage:'canonical-document-type-state-v1'" in shell
     assert "productRuntimeStage:'print-product-menu-loader'" in shell
     assert "professionalUiStage:'professional-workspace-visual-system-v1'" in shell
-    assert "workspaceStage:'three-pane-context-properties-v1'" in shell
     assert "stage:'single-sidebar-general-engine-shell-no-legacy-fallback'" in shell
+    for marker in (
+        "print-fold-runtime-ensure.js?v=20260825-5",
+        "document-type-state.js?v=20260828-1",
+        "print-product-menu.js?v=20260828-3",
+        "print-product-state-restore.js?v=20260825-1",
+        "print-product-topbar.js?v=20260828-2",
+        "selection-contextbar.js?v=20260828-1",
+        "multi-selection-context.js?v=20260828-1",
+        "multi-selection-smart-guides.js?v=20260828-1",
+        "simple-result-workflow.js?v=20260828-1",
+        "professional-ui.js?v=20260828-2",
+        "design-shell-runtime-manifest-v1",
+    ):
+        assert marker in runtime
+    assert "print-product-menu.js?v=${PRODUCT_RUNTIME_VERSION}" not in shell
+    assert "professional-ui.js?v=${PROFESSIONAL_UI_VERSION}" not in shell
 
 
 def test_invitation_is_a_first_class_preset_and_product_mode_not_a_leaflet_alias():

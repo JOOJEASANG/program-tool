@@ -9,8 +9,7 @@
   if(!isPdfEditor&&!isPdfUtility)return;
 
   const STYLE_ID='programShellUnifyStyles';
-  const PDF_WORKFLOW_VERSION='20260828-1';
-  const PDF_WORKSPACE_VERSION='20260828-1';
+  const PDF_UI_RUNTIME_VERSION='20260828-1';
 
   function installStyles(){
     if(document.getElementById(STYLE_ID))return;
@@ -44,28 +43,29 @@
     document.head.appendChild(style);
   }
 
-  function loadPdfWorkflow(){
+  function loadPdfUiRuntime(){
     if(!isPdfEditor)return false;
-    if(window.PdfEditorWorkflowUi?.sync){window.PdfEditorWorkflowUi.sync();return true;}
-    if(document.getElementById('pdfEditorWorkflowUiScriptV1'))return true;
+    if(window.PdfEditorUiRuntime?.sync){window.PdfEditorUiRuntime.sync();return true;}
+    if(document.getElementById('pdfEditorUiRuntimeScriptV1'))return true;
     const script=document.createElement('script');
-    script.id='pdfEditorWorkflowUiScriptV1';
-    script.src=`/js/pdf-editor/workflow-ui.js?v=${PDF_WORKFLOW_VERSION}`;
+    script.id='pdfEditorUiRuntimeScriptV1';
+    script.src=`/js/pdf-editor/ui-runtime.js?v=${PDF_UI_RUNTIME_VERSION}`;
     script.async=false;
     document.head.appendChild(script);
     return true;
   }
 
+  // Compatibility methods for callers that used the previous two-loader API.
+  function loadPdfWorkflow(){
+    if(!isPdfEditor)return false;
+    if(window.PdfEditorWorkflowUi?.sync){window.PdfEditorWorkflowUi.sync();return true;}
+    return loadPdfUiRuntime();
+  }
+
   function loadPdfWorkspace(){
     if(!isPdfEditor)return false;
     if(window.PdfEditorWorkspaceLayout?.sync){window.PdfEditorWorkspaceLayout.sync();return true;}
-    if(document.getElementById('pdfEditorWorkspaceLayoutScriptV1'))return true;
-    const script=document.createElement('script');
-    script.id='pdfEditorWorkspaceLayoutScriptV1';
-    script.src=`/js/pdf-editor/workspace-layout.js?v=${PDF_WORKSPACE_VERSION}`;
-    script.async=false;
-    document.head.appendChild(script);
-    return true;
+    return loadPdfUiRuntime();
   }
 
   function makeActions(kind){
@@ -103,9 +103,8 @@
   }
 
   function loadPdfEnhancements(){
-    if(!isPdfEditor)return;
-    loadPdfWorkflow();
-    loadPdfWorkspace();
+    if(!isPdfEditor)return false;
+    return loadPdfUiRuntime();
   }
 
   function apply(){
@@ -133,5 +132,5 @@
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 
   // Keep the public shell stage stable for existing browser/runtime contracts.
-  window.ProgramShellUnify={apply,loadPdfWorkflow,loadPdfWorkspace,stage:'pdf-tools-headerless-unified-shell',workflowStage:'pdf-tools-guided-unified-shell-v2',workspaceStage:'pdf-three-pane-output-settings-v1'};
+  window.ProgramShellUnify={apply,loadPdfUiRuntime,loadPdfWorkflow,loadPdfWorkspace,stage:'pdf-tools-headerless-unified-shell',workflowStage:'pdf-tools-guided-unified-shell-v2',workspaceStage:'pdf-three-pane-output-settings-v1',uiRuntimeStage:'pdf-editor-ui-runtime-manifest-v1'};
 })();

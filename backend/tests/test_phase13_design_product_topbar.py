@@ -4,13 +4,14 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 
 
-def test_phase13_design_shell_injects_fixed_product_topbar_runtime():
+def test_phase13_design_manifest_loads_fixed_product_topbar_runtime():
     shell = (ROOT / "design-editor" / "index.html").read_text(encoding="utf-8")
-    assert "PRODUCT_TOPBAR_VERSION='20260828-2'" in shell
-    assert "designPrintProductTopbarScriptV1" in shell
-    assert "/js/design-editor/print-product-topbar.js?v=${PRODUCT_TOPBAR_VERSION}" in shell
-    assert "ensureProductTopbarRuntime" in shell
+    runtime = (ROOT / "js" / "design-editor" / "shell-runtime.js").read_text(encoding="utf-8")
+    assert "designPrintProductTopbarScriptV1" in runtime
+    assert "/js/design-editor/print-product-topbar.js?v=20260828-2" in runtime
+    assert "const ensureProductTopbarRuntime=ensurePrintRuntimes" in shell
     assert "productTopbarStage:'professional-design-commandbar-v2'" in shell
+    assert "runtimeManifestStage:'design-shell-runtime-manifest-v1'" in shell
 
 
 def test_phase13_product_topbar_keeps_product_choice_above_canvas_and_settings_visible():
