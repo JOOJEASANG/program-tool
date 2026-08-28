@@ -1,7 +1,7 @@
 (function(){
   if(window.__homeHeaderFooterRefineV1)return;
   window.__homeHeaderFooterRefineV1=true;
-  let businessName='',scheduled=false;
+  let businessName='',currentBusinessName='',scheduled=false;
 
   function injectStyles(){
     if(document.getElementById('homeHeaderFooterRefineStyles'))return;
