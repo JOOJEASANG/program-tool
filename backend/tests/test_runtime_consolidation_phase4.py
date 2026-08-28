@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 
 
@@ -8,8 +9,15 @@ def text(path: str) -> str:
     return (ROOT / path).read_text(encoding="utf-8")
 
 
+def executable_text(path: str) -> str:
+    source = text(path)
+    source = re.sub(r"/\*.*?\*/", "", source, flags=re.S)
+    source = re.sub(r"//[^\n]*", "", source)
+    return source
+
+
 def test_global_bootstrap_only_selects_design_and_pdf_route_runtimes():
-    sw = text("js/sw-register.js")
+    sw = executable_text("js/sw-register.js")
     design = text("js/design-editor/core-runtime.js")
     pdf_route = text("js/pdf-editor/route-runtime.js")
 
@@ -44,12 +52,13 @@ def test_design_core_owns_32_ordered_modules_and_embedded_route_compatibility():
 
 
 def test_pdf_loader_is_enhancement_bootstrap_and_core_manifest_owns_eight_modules():
-    loader = text("js/pdf-editor/loader.js")
+    loader = executable_text("js/pdf-editor/loader.js")
     core = text("js/pdf-editor/core-runtime.js")
 
     assert "/js/pdf-editor/core-runtime.js?v=20260828-1" in loader
     assert "pdf-editor-enhancement-bootstrap-v19" in loader
     assert "const MODULES" not in loader
+    assert "MODULES.forEach(loadScript)" not in loader
     assert core.count("{id:'pdfEditor") == 8
     assert "pdf-editor-core-runtime-manifest-v1" in core
 
