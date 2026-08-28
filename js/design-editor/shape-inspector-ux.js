@@ -12,6 +12,7 @@
   const BORDER_SEGMENT_ID='designShapeBorderSegmented';
   let observer=null;
   let syncTimer=0;
+  let boundRoot=null;
 
   const byId=id=>document.getElementById(id);
 
@@ -152,17 +153,28 @@
     });
   }
 
+  function observeRoot(root=byId('inspector')){
+    if(!observer||!root)return false;
+    observer.observe(root,{childList:true,subtree:true,attributes:true,attributeFilter:['class','value','checked']});
+    return true;
+  }
+
   function enhance(){
     const root=byId('inspector');if(!root)return false;
-    installStyles();
-    root.classList.add('shape-ux-inspector');
-    enhanceRadius(root);
-    enhanceToggle(byId('quickShapeShadow'),'은은한 그림자');
-    enhanceToggle(byId('phase2ExtraLock'),'이 요소 잠금');
-    enhanceToggle(byId('designShapeBorderToggle'),'테두리 선 표시');
-    enhanceBorderSelect(root);
-    enhanceFields(root);
-    return true;
+    observer?.disconnect?.();
+    try{
+      installStyles();
+      root.classList.add('shape-ux-inspector');
+      enhanceRadius(root);
+      enhanceToggle(byId('quickShapeShadow'),'은은한 그림자');
+      enhanceToggle(byId('phase2ExtraLock'),'이 요소 잠금');
+      enhanceToggle(byId('designShapeBorderToggle'),'테두리 선 표시');
+      enhanceBorderSelect(root);
+      enhanceFields(root);
+      return true;
+    }finally{
+      observeRoot(root);
+    }
   }
 
   function queueEnhance(){
@@ -172,12 +184,15 @@
 
   function bind(){
     const root=byId('inspector');if(!root)return false;
-    if(observer)observer.disconnect();
-    observer=new MutationObserver(queueEnhance);
-    observer.observe(root,{childList:true,subtree:true,attributes:true,attributeFilter:['class','value','checked']});
-    root.addEventListener('input',queueEnhance,false);
-    root.addEventListener('change',queueEnhance,false);
-    root.addEventListener('click',queueEnhance,false);
+    observer?.disconnect?.();
+    if(!observer)observer=new MutationObserver(queueEnhance);
+    observeRoot(root);
+    if(boundRoot!==root){
+      boundRoot=root;
+      root.addEventListener('input',queueEnhance,false);
+      root.addEventListener('change',queueEnhance,false);
+      root.addEventListener('click',queueEnhance,false);
+    }
     return true;
   }
 
