@@ -42,10 +42,29 @@
   loadDesignRuntimeScript('designPrintProductionStage2ScriptV1','/js/design-editor/print-production-stage2.js?v=20260826-1');
   loadRuntimeScript('pdfPrintWorkflowFocusScriptV1','/js/pdf-editor/print-workflow-focus.js?v=20260827-1',isPdfPrintEditor());
 
-  root.classList.add('app-booting');
-  if(protectedProgram)root.dataset.approvalRequired='true';
+  let revealed=false;
+  let style=null;
+  function reveal(){
+    if(revealed)return;
+    revealed=true;
+    root.classList.remove('app-booting');
+    root.dataset.appReady='true';
+    if(style)requestAnimationFrame(()=>style.remove());
+  }
 
-  const style=document.createElement('style');
+  window.ProgramStudioBoot={...(window.ProgramStudioBoot||{}),reveal,protectedProgram};
+
+  // Public surfaces do not need the approval curtain. Rendering them immediately
+  // avoids a visible spinner while optional runtime helpers initialize later.
+  if(!protectedProgram){
+    reveal();
+    return;
+  }
+
+  root.classList.add('app-booting');
+  root.dataset.approvalRequired='true';
+
+  style=document.createElement('style');
   style.id='programStudioBootGuardStyle';
   style.textContent=`
     html.app-booting body{pointer-events:none!important}
@@ -70,25 +89,6 @@
   accessStyle.id='programStudioAccessVisibilityStyle';
   accessStyle.textContent='html[data-access-checking] body{visibility:visible!important}';
   document.head.appendChild(accessStyle);
-
-  let revealed=false;
-  function reveal(){
-    if(revealed)return;
-    revealed=true;
-    root.classList.remove('app-booting');
-    root.dataset.appReady='true';
-    requestAnimationFrame(()=>style.remove());
-  }
-
-  window.ProgramStudioBoot={...(window.ProgramStudioBoot||{}),reveal};
-  window.addEventListener('pageshow',event=>{
-    if(event.persisted&&!protectedProgram)reveal();
-  });
-
-  if(!protectedProgram){
-    setTimeout(reveal,1800);
-    return;
-  }
 
   const started=Date.now();
   const failClosedTimer=setTimeout(()=>{
