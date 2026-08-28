@@ -71,7 +71,7 @@
 
   function enhanceRadius(root){
     root.querySelectorAll('[data-radius-preset]').forEach(button=>{
-      button.classList.add('shape-ux-choice');
+      if(!button.classList.contains('shape-ux-choice'))button.classList.add('shape-ux-choice');
       const pressed=button.classList.contains('on')?'true':'false';
       if(button.getAttribute('aria-pressed')!==pressed)button.setAttribute('aria-pressed',pressed);
     });
@@ -86,7 +86,7 @@
   function enhanceToggle(input,labelText){
     if(!input)return;
     const label=input.closest('label');if(!label)return;
-    label.classList.add('shape-ux-toggle-row');
+    if(!label.classList.contains('shape-ux-toggle-row'))label.classList.add('shape-ux-toggle-row');
     if(!input.getAttribute('aria-label'))input.setAttribute('aria-label',labelText);
   }
 
@@ -104,17 +104,18 @@
     if(!select||!segment)return;
     segment.querySelectorAll('button[data-shape-ux-border-value]').forEach(button=>{
       const on=button.dataset.shapeUxBorderValue===select.value;
-      button.classList.toggle('on',on);
-      button.setAttribute('aria-pressed',on?'true':'false');
+      if(button.classList.contains('on')!==on)button.classList.toggle('on',on);
+      const pressed=on?'true':'false';
+      if(button.getAttribute('aria-pressed')!==pressed)button.setAttribute('aria-pressed',pressed);
     });
   }
 
   function enhanceBorderSelect(root){
     const record=findBorderSelect(root);if(!record)return;
     const {field,select}=record;
-    field.classList.add('shape-ux-border-field');
+    if(!field.classList.contains('shape-ux-border-field'))field.classList.add('shape-ux-border-field');
     if(select.options.length!==2)return;
-    select.classList.add('shape-ux-native-select');
+    if(!select.classList.contains('shape-ux-native-select'))select.classList.add('shape-ux-native-select');
     let segment=field.querySelector(`#${BORDER_SEGMENT_ID}`);
     if(!segment){
       segment=document.createElement('div');
@@ -142,8 +143,8 @@
 
   function enhanceFields(root){
     root.querySelectorAll('input[type=number]').forEach(input=>{
-      input.inputMode='decimal';
-      input.setAttribute('autocomplete','off');
+      if(input.inputMode!=='decimal')input.inputMode='decimal';
+      if(input.getAttribute('autocomplete')!=='off')input.setAttribute('autocomplete','off');
     });
     root.querySelectorAll('input[type=color]').forEach(input=>{
       if(!input.getAttribute('aria-label')){
@@ -153,28 +154,17 @@
     });
   }
 
-  function observeRoot(root=byId('inspector')){
-    if(!observer||!root)return false;
-    observer.observe(root,{childList:true,subtree:true,attributes:true,attributeFilter:['class','value','checked']});
-    return true;
-  }
-
   function enhance(){
     const root=byId('inspector');if(!root)return false;
-    observer?.disconnect?.();
-    try{
-      installStyles();
-      root.classList.add('shape-ux-inspector');
-      enhanceRadius(root);
-      enhanceToggle(byId('quickShapeShadow'),'은은한 그림자');
-      enhanceToggle(byId('phase2ExtraLock'),'이 요소 잠금');
-      enhanceToggle(byId('designShapeBorderToggle'),'테두리 선 표시');
-      enhanceBorderSelect(root);
-      enhanceFields(root);
-      return true;
-    }finally{
-      observeRoot(root);
-    }
+    installStyles();
+    if(!root.classList.contains('shape-ux-inspector'))root.classList.add('shape-ux-inspector');
+    enhanceRadius(root);
+    enhanceToggle(byId('quickShapeShadow'),'은은한 그림자');
+    enhanceToggle(byId('phase2ExtraLock'),'이 요소 잠금');
+    enhanceToggle(byId('designShapeBorderToggle'),'테두리 선 표시');
+    enhanceBorderSelect(root);
+    enhanceFields(root);
+    return true;
   }
 
   function queueEnhance(){
@@ -184,9 +174,11 @@
 
   function bind(){
     const root=byId('inspector');if(!root)return false;
-    observer?.disconnect?.();
     if(!observer)observer=new MutationObserver(queueEnhance);
-    observeRoot(root);
+    observer.disconnect();
+    // Watch structural rebuilds only. Input/change/click listeners handle state changes,
+    // which prevents our own class/ARIA writes from feeding back into the observer.
+    observer.observe(root,{childList:true,subtree:true});
     if(boundRoot!==root){
       boundRoot=root;
       root.addEventListener('input',queueEnhance,false);
