@@ -6,11 +6,11 @@ ROOT = Path(__file__).resolve().parents[2]
 
 def test_phase13_design_shell_injects_fixed_product_topbar_runtime():
     shell = (ROOT / "design-editor" / "index.html").read_text(encoding="utf-8")
-    assert "PRODUCT_TOPBAR_VERSION='20260828-1'" in shell
+    assert "PRODUCT_TOPBAR_VERSION='20260828-2'" in shell
     assert "designPrintProductTopbarScriptV1" in shell
     assert "/js/design-editor/print-product-topbar.js?v=${PRODUCT_TOPBAR_VERSION}" in shell
     assert "ensureProductTopbarRuntime" in shell
-    assert "productTopbarStage:'fixed-print-product-topbar-v1'" in shell
+    assert "productTopbarStage:'professional-design-commandbar-v2'" in shell
 
 
 def test_phase13_product_topbar_keeps_product_choice_above_canvas_and_settings_visible():
@@ -18,7 +18,7 @@ def test_phase13_product_topbar_keeps_product_choice_above_canvas_and_settings_v
     for label in ("표지", "포스터", "전단", "초대장·안내장", "리플렛"):
         assert label in source
     assert "document.querySelector('.editor-toolbar')" in source
-    assert "toolbar.insertBefore(root,surfaceTabs||toolbar.firstChild)" in source
+    assert "toolbar.insertBefore(root,tabs||toolbar.firstChild)" in source
     assert ".editor-toolbar{position:sticky!important;top:0!important" in source
     assert "data-print-product-top" in source
     assert "button.click()" in source

@@ -38,12 +38,12 @@ for marker in 'data-print-products-menu="표지|포스터|전단|초대장·안�
 done
 if ! grep -q 'PASS: 5개 인쇄물 메뉴, 비대칭 초대장 접지, 8P·12P 가변 리플렛 접지와 저장 복원이 확인됨' "$DOM_OUT"; then echo "Print products completion marker missing." >&2; cat "$DOM_OUT" >&2; exit 1; fi
 
-"$BROWSER" --headless=new --disable-gpu --no-sandbox --disable-dev-shm-usage --disable-background-networking --user-data-dir="$PROFILE_DIR" --virtual-time-budget=12000 --dump-dom "$TOPBAR_URL" >"$TOPBAR_DOM_OUT"
+"$BROWSER" --headless=new --disable-gpu --no-sandbox --disable-dev-shm-usage --disable-background-networking --user-data-dir="$PROFILE_DIR" --virtual-time-budget=16000 --dump-dom "$TOPBAR_URL" >"$TOPBAR_DOM_OUT"
 
-if ! grep -q 'data-design-product-topbar-status="pass"' "$TOPBAR_DOM_OUT"; then echo "Design editor product topbar browser smoke failed." >&2; cat "$TOPBAR_DOM_OUT" >&2; echo "----- HTTP server log -----" >&2; cat "$SERVER_LOG" >&2; exit 1; fi
-for marker in 'data-design-product-topbar-fixed="sticky"' 'data-design-product-topbar-sidebar="details-only"' 'data-design-product-topbar-proxy="flyer"' 'data-design-product-topbar-sync="leaflet"'; do
-  if ! grep -q "$marker" "$TOPBAR_DOM_OUT"; then echo "Product topbar marker missing: $marker" >&2; cat "$TOPBAR_DOM_OUT" >&2; exit 1; fi
+if ! grep -q 'data-design-product-topbar-status="pass"' "$TOPBAR_DOM_OUT"; then echo "Design editor professional command bar browser smoke failed." >&2; cat "$TOPBAR_DOM_OUT" >&2; echo "----- HTTP server log -----" >&2; cat "$SERVER_LOG" >&2; exit 1; fi
+for marker in 'data-design-product-topbar-fixed="sticky"' 'data-design-product-topbar-sidebar="details-only"' 'data-design-product-topbar-proxy="flyer"' 'data-design-product-topbar-sync="leaflet"' 'data-design-product-topbar-hierarchy="product-surface"' 'data-design-product-topbar-commands="undo-redo-insert-panel-fit-output"' 'data-design-product-topbar-context="edit"'; do
+  if ! grep -q "$marker" "$TOPBAR_DOM_OUT"; then echo "Professional command bar marker missing: $marker" >&2; cat "$TOPBAR_DOM_OUT" >&2; exit 1; fi
 done
-if ! grep -q 'PASS: 작업 종류 상단 고정, 사이드바 세부 설정 유지, 기존 메뉴 클릭 프록시와 활성 상태 동기화 확인' "$TOPBAR_DOM_OUT"; then echo "Product topbar completion marker missing." >&2; cat "$TOPBAR_DOM_OUT" >&2; exit 1; fi
+if ! grep -q 'PASS: professional command bar: 종류·면 계층, 실행취소, 빠른 추가, 패널, 맞춤, 도움말, 출력, 선택 자동 편집이 확인됨' "$TOPBAR_DOM_OUT"; then echo "Professional command bar completion marker missing." >&2; cat "$TOPBAR_DOM_OUT" >&2; exit 1; fi
 
-echo "Design editor print products + fixed product topbar browser smokes passed using $BROWSER"
+echo "Design editor print products + professional command bar browser smokes passed using $BROWSER"
