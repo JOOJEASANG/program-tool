@@ -20,16 +20,7 @@
     (function(){
       'use strict';
       const frame=document.getElementById('editorFrame'),loading=document.getElementById('loading'),shell=document.getElementById('unifiedDesignShell');
-      const FOLD_RUNTIME_VERSION='20260825-5';
-      const DOCUMENT_STATE_VERSION='20260828-1';
-      const PRODUCT_RUNTIME_VERSION='20260828-3';
-      const PRODUCT_STATE_VERSION='20260825-1';
-      const PRODUCT_TOPBAR_VERSION='20260828-2';
-      const SELECTION_CONTEXT_VERSION='20260828-1';
-      const MULTI_SELECTION_VERSION='20260828-1';
-      const MULTI_SMART_GUIDES_VERSION='20260828-1';
-      const SIMPLE_RESULT_VERSION='20260828-1';
-      const PROFESSIONAL_UI_VERSION='20260828-2';
+      const SHELL_RUNTIME_VERSION='20260828-1';
       const DEFAULTS={
         cover:{mode:'cover',preset:'cover-a4'},
         poster:{mode:'poster',preset:'poster-a4',paper:'a4',orientation:'portrait',w:210,h:297},
@@ -78,59 +69,22 @@
           return true;
         }catch(_){return false;}
       }
-      function ensureFoldRuntime(){
-        return injectRuntime('designPrintFoldRuntimeEnsureScriptV1',`/js/design-editor/print-fold-runtime-ensure.js?v=${FOLD_RUNTIME_VERSION}`,win=>{
-          if(win.DesignEditorPrintFoldRuntimeEnsure?.refresh){win.DesignEditorPrintFoldRuntimeEnsure.refresh();return true;}return false;
-        });
-      }
-      function ensureDocumentStateRuntime(){
-        return injectRuntime('designDocumentTypeStateScriptV1',`/js/design-editor/document-type-state.js?v=${DOCUMENT_STATE_VERSION}`,win=>{
-          if(win.DesignEditorDocumentTypeState?.sync){const project=win.DesignEditorApp?.project;if(project)win.DesignEditorDocumentTypeState.sync(project,{emit:false,source:'shell'});return true;}return false;
-        });
-      }
-      function ensureProductRuntime(){
-        return injectRuntime('designPrintProductMenuScriptV1',`/js/design-editor/print-product-menu.js?v=${PRODUCT_RUNTIME_VERSION}`,win=>{
-          if(win.DesignEditorPrintProductMenu?.render){win.DesignEditorPrintProductMenu.render();return true;}return false;
-        });
-      }
-      function ensureProductStateRuntime(){
-        return injectRuntime('designPrintProductStateRestoreScriptV1',`/js/design-editor/print-product-state-restore.js?v=${PRODUCT_STATE_VERSION}`,win=>{
-          if(win.DesignEditorPrintProductStateRestore?.patch){win.DesignEditorPrintProductStateRestore.patch();return true;}return false;
-        });
-      }
-      function ensureProductTopbarRuntime(){
-        return injectRuntime('designPrintProductTopbarScriptV1',`/js/design-editor/print-product-topbar.js?v=${PRODUCT_TOPBAR_VERSION}`,win=>{
-          if(win.DesignEditorPrintProductTopbar?.sync){win.DesignEditorPrintProductTopbar.sync();return true;}return false;
-        });
-      }
-      function ensureSelectionContextRuntime(){
-        return injectRuntime('designSelectionContextbarScriptV1',`/js/design-editor/selection-contextbar.js?v=${SELECTION_CONTEXT_VERSION}`,win=>{
-          if(win.DesignEditorSelectionContextbar?.sync){win.DesignEditorSelectionContextbar.sync();return true;}return false;
-        });
-      }
-      function ensureMultiSelectionRuntime(){
-        return injectRuntime('designMultiSelectionScriptV1',`/js/design-editor/multi-selection-context.js?v=${MULTI_SELECTION_VERSION}`,win=>{
-          if(win.DesignEditorMultiSelection?.sync){win.DesignEditorMultiSelection.sync();return true;}return false;
-        });
-      }
-      function ensureMultiSmartGuidesRuntime(){
-        return injectRuntime('designMultiSmartGuidesScriptV1',`/js/design-editor/multi-selection-smart-guides.js?v=${MULTI_SMART_GUIDES_VERSION}`,win=>{
-          if(win.DesignEditorMultiSmartGuides?.sync){win.DesignEditorMultiSmartGuides.sync();return true;}return false;
-        });
-      }
-      function ensureSimpleResultRuntime(){
-        return injectRuntime('designSimpleResultWorkflowScriptV1',`/js/design-editor/simple-result-workflow.js?v=${SIMPLE_RESULT_VERSION}`,win=>{
-          if(win.DesignEditorSimpleResultWorkflow?.sync){win.DesignEditorSimpleResultWorkflow.sync();return true;}return false;
-        });
-      }
-      function ensureProfessionalUi(){
-        return injectRuntime('designProfessionalUiScriptV1',`/js/design-editor/professional-ui.js?v=${PROFESSIONAL_UI_VERSION}`,win=>{
-          if(win.DesignEditorProfessionalUi?.sync){win.DesignEditorProfessionalUi.sync();return true;}return false;
-        });
-      }
       function ensurePrintRuntimes(){
-        ensureFoldRuntime();ensureDocumentStateRuntime();ensureProductRuntime();ensureProductStateRuntime();ensureProductTopbarRuntime();ensureSelectionContextRuntime();ensureMultiSelectionRuntime();ensureMultiSmartGuidesRuntime();ensureSimpleResultRuntime();ensureProfessionalUi();
+        return injectRuntime('designShellRuntimeScriptV1',`/js/design-editor/shell-runtime.js?v=${SHELL_RUNTIME_VERSION}`,win=>{
+          if(win.DesignEditorShellRuntime?.sync){win.DesignEditorShellRuntime.sync();return true;}
+          return false;
+        });
       }
+      const ensureFoldRuntime=ensurePrintRuntimes;
+      const ensureDocumentStateRuntime=ensurePrintRuntimes;
+      const ensureProductRuntime=ensurePrintRuntimes;
+      const ensureProductStateRuntime=ensurePrintRuntimes;
+      const ensureProductTopbarRuntime=ensurePrintRuntimes;
+      const ensureSelectionContextRuntime=ensurePrintRuntimes;
+      const ensureMultiSelectionRuntime=ensurePrintRuntimes;
+      const ensureMultiSmartGuidesRuntime=ensurePrintRuntimes;
+      const ensureSimpleResultRuntime=ensurePrintRuntimes;
+      const ensureProfessionalUi=ensurePrintRuntimes;
       function openMode(detail){loading.classList.remove('hide');frame.src=route(detail);}
       window.addEventListener('message',event=>{
         if(event.origin!==location.origin||event.source!==frame.contentWindow)return;
@@ -139,13 +93,13 @@
       });
       frame.addEventListener('load',()=>{
         ensurePrintRuntimes();
-        [80,240,600,1200,2400].forEach(delay=>setTimeout(ensurePrintRuntimes,delay));
+        [120,600].forEach(delay=>setTimeout(ensurePrintRuntimes,delay));
         loading.classList.add('hide');
       });
       const initialRoute=route(incomingDetail());
       if(frame.getAttribute('src')!==initialRoute)frame.src=initialRoute;
       setTimeout(()=>loading.classList.add('hide'),2600);
-      window.UnifiedDesignShell={openMode,route,incomingDetail,ensureFoldRuntime,ensureDocumentStateRuntime,ensureProductRuntime,ensureProductStateRuntime,ensureProductTopbarRuntime,ensureSelectionContextRuntime,ensureMultiSelectionRuntime,ensureMultiSmartGuidesRuntime,ensureSimpleResultRuntime,ensureProfessionalUi,ensurePrintRuntimes,foldRuntimeStage:'direct-fold-runtime-loader-and-verifier',documentStateStage:'canonical-document-type-state-v1',productRuntimeStage:'print-product-menu-loader',productTopbarStage:'professional-design-commandbar-v2',selectionContextStage:'selection-context-properties-v1',multiSelectionStage:'multi-select-align-distribute-group-v1',multiSmartGuidesStage:'multi-smart-guides-exact-gap-v1',simpleResultStage:'simple-result-background-logo-text-output-v1',professionalUiStage:'professional-workspace-visual-system-v1',workspaceStage:'three-pane-context-properties-v1',routingStage:'query-aware-initial-route-v3-invitation',stage:'single-sidebar-general-engine-shell-no-legacy-fallback'};
+      window.UnifiedDesignShell={openMode,route,incomingDetail,ensureFoldRuntime,ensureDocumentStateRuntime,ensureProductRuntime,ensureProductStateRuntime,ensureProductTopbarRuntime,ensureSelectionContextRuntime,ensureMultiSelectionRuntime,ensureMultiSmartGuidesRuntime,ensureSimpleResultRuntime,ensureProfessionalUi,ensurePrintRuntimes,foldRuntimeStage:'direct-fold-runtime-loader-and-verifier',documentStateStage:'canonical-document-type-state-v1',productRuntimeStage:'print-product-menu-loader',productTopbarStage:'professional-design-commandbar-v2',selectionContextStage:'selection-context-properties-v1',multiSelectionStage:'multi-select-align-distribute-group-v1',multiSmartGuidesStage:'multi-smart-guides-exact-gap-v1',simpleResultStage:'simple-result-background-logo-text-output-v1',professionalUiStage:'professional-workspace-visual-system-v1',workspaceStage:'three-pane-context-properties-v1',runtimeManifestStage:'design-shell-runtime-manifest-v1',routingStage:'query-aware-initial-route-v3-invitation',stage:'single-sidebar-general-engine-shell-no-legacy-fallback'};
     })();
   </script>
 </body>
