@@ -1,7 +1,7 @@
 (function(){
   'use strict';
-  if(window.__programShellUnifyV1)return;
-  window.__programShellUnifyV1=true;
+  if(window.__programShellUnifyV2)return;
+  window.__programShellUnifyV2=true;
 
   const path=location.pathname.replace(/\/+$/,'')||'/';
   const isPdfEditor=path==='/pdf-editor'||path==='/pdf-editor/index.html'||path.endsWith('/pdf-editor/index.html');
@@ -9,6 +9,7 @@
   if(!isPdfEditor&&!isPdfUtility)return;
 
   const STYLE_ID='programShellUnifyStyles';
+  const PDF_WORKFLOW_VERSION='20260828-1';
 
   function installStyles(){
     if(document.getElementById(STYLE_ID))return;
@@ -40,6 +41,18 @@
       }
     `;
     document.head.appendChild(style);
+  }
+
+  function loadPdfWorkflow(){
+    if(!isPdfEditor)return false;
+    if(window.PdfEditorWorkflowUi?.sync){window.PdfEditorWorkflowUi.sync();return true;}
+    if(document.getElementById('pdfEditorWorkflowUiScriptV1'))return true;
+    const script=document.createElement('script');
+    script.id='pdfEditorWorkflowUiScriptV1';
+    script.src=`/js/pdf-editor/workflow-ui.js?v=${PDF_WORKFLOW_VERSION}`;
+    script.async=false;
+    document.head.appendChild(script);
+    return true;
   }
 
   function makeActions(kind){
@@ -77,7 +90,10 @@
   }
 
   function apply(){
-    if(document.body?.dataset.programShell==='compact')return true;
+    if(document.body?.dataset.programShell==='compact'){
+      loadPdfWorkflow();
+      return true;
+    }
     const kind=isPdfEditor?'pdf-editor':'pdf-utility';
     const oldNav=document.querySelector('body > .top-nav');
     if(!document.body||!oldNav)return false;
@@ -85,16 +101,17 @@
     document.body.dataset.programShell='compact';
     document.body.dataset.programKind=kind;
     makeActions(kind);
-    document.documentElement.dataset.programShellUnified='1';
+    loadPdfWorkflow();
+    document.documentElement.dataset.programShellUnified='2';
     return true;
   }
 
   function boot(){
     if(apply())return;
-    [40,120,300,700].forEach(delay=>setTimeout(apply,delay));
+    [40,120,300,700].forEach(delay=>setTimeout(()=>{apply();loadPdfWorkflow();},delay));
   }
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 
-  window.ProgramShellUnify={apply,stage:'pdf-tools-headerless-unified-shell'};
+  window.ProgramShellUnify={apply,loadPdfWorkflow,stage:'pdf-tools-guided-unified-shell-v2'};
 })();
