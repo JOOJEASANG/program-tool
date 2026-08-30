@@ -36,18 +36,17 @@ def test_design_shell_has_one_enhancement_loader_and_manifest_owns_modules():
     assert "eval(" not in runtime
 
 
-def test_pdf_shell_has_one_ui_loader_and_ui_manifest_owns_workflow_and_workspace():
+def test_pdf_shell_has_one_ui_loader_and_manifest_owns_the_always_visible_sidebar():
     shell = text("js/program-shell-unify.js")
     runtime = text("js/pdf-editor/ui-runtime.js")
 
     assert "/js/pdf-editor/ui-runtime.js?v=${PDF_UI_RUNTIME_VERSION}" in shell
-    assert "pdf-editor-ui-runtime-manifest-v1" in shell
-    assert "pdf-editor-ui-runtime-manifest-v1" in runtime
-    assert "/js/pdf-editor/workflow-ui.js?v=20260828-1" in runtime
-    assert "/js/pdf-editor/workspace-layout.js?v=20260828-1" in runtime
-    assert "/js/pdf-editor/workflow-ui.js?v=${PDF_WORKFLOW_VERSION}" not in shell
-    assert "/js/pdf-editor/workspace-layout.js?v=${PDF_WORKSPACE_VERSION}" not in shell
-    assert runtime.count("{id:") == 2
+    assert "pdf-editor-always-visible-sidebar-runtime-v2" in shell
+    assert "pdf-editor-always-visible-sidebar-runtime-v2" in runtime
+    assert "/js/pdf-editor/simple-sidebar-ui.js?v=20260830-1" in runtime
+    assert "/js/pdf-editor/workflow-ui.js" not in runtime
+    assert "/js/pdf-editor/workspace-layout.js" not in runtime
+    assert runtime.count("{id:") == 1
 
 
 def test_ui_manifest_loaders_do_not_take_over_editor_core_state_or_actions():
