@@ -51,7 +51,7 @@ def test_route_keeps_single_pdf_program_and_loads_new_divider_layer_revision():
     route = (ROOT / "js/pdf-editor/route-runtime.js").read_text(encoding="utf-8")
     assert route.count("{id:") == 19
     assert "/js/pdf-divider-local-image-upload.js?v=20260830-1" in route
-    assert "/js/pdf-editor/divider-modal-layout.js?v=20260830-1" in route
+    assert "/js/pdf-editor/divider-modal-layout.js?v=20260830-2" in route
 
 
 def test_backend_clamps_and_preserves_divider_layer_order():

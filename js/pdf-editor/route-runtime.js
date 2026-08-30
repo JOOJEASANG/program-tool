@@ -21,7 +21,7 @@
     {id:'pdfViewportLazyPreviewGuardScriptV1',src:'/js/pdf-editor/viewport-lazy-preview-guard.js?v=20260806-1'},
     {id:'pdfFileNavigationScriptV1',src:'/js/pdf-editor/file-navigation.js?v=20260806-1'},
     {id:'pdfDividerLocalImageUploadScriptV1',src:'/js/pdf-divider-local-image-upload.js?v=20260830-1'},
-    {id:'pdfDividerModalLayoutScriptV1',src:'/js/pdf-editor/divider-modal-layout.js?v=20260830-1'},
+    {id:'pdfDividerModalLayoutScriptV1',src:'/js/pdf-editor/divider-modal-layout.js?v=20260830-2'},
     {id:'pdfEditorFinalCheckScriptV1',src:'/js/pdf-editor-final-check.js?v=20260828-1'},
     {id:'pdfEditorSpreadSplitScriptV1',src:'/js/pdf-editor/spread-split.js?v=20260825-1'},
     {id:'pdfBookletSheetPreviewScriptV1',src:'/js/pdf-editor/booklet-sheet-preview.js?v=20260825-1'}
