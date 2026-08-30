@@ -52,6 +52,26 @@ html.ps-ui-v2 ::selection{background:#cfe0ff;color:#0b2a55}
 .ps-ui-toast{position:fixed;left:50%;bottom:24px;z-index:3500;transform:translate(-50%,16px);opacity:0;pointer-events:none;border:1px solid #dfe7f0;border-radius:12px;background:#fff;color:#26364b;padding:10px 14px;box-shadow:var(--ps-shadow);font-size:11px;font-weight:800;transition:.2s ease}
 .ps-ui-toast.show{opacity:1;transform:translate(-50%,0)}
 
+/* Tool dock – cross-editor navigation */
+.ps-tool-dock{display:flex;align-items:center;gap:2px;height:100%;flex:1;min-width:0}
+.ps-dock-home{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:10px;text-decoration:none;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.15);margin-right:6px;flex:0 0 auto}
+.ps-dock-home svg{width:22px;height:22px}
+.ps-dock-link{display:inline-flex;align-items:center;gap:5px;padding:6px 10px;border-radius:8px;text-decoration:none;font-size:11px;font-weight:850;white-space:nowrap;color:rgba(255,255,255,.58);border:1px solid transparent;transition:background .15s,color .15s}
+.ps-dock-link:hover{background:rgba(255,255,255,.12);color:rgba(255,255,255,.85)}
+.ps-dock-link[aria-current="page"]{background:rgba(255,255,255,.18);color:#fff;border-color:rgba(255,255,255,.2)}
+.ps-dock-icon{font-size:14px;line-height:1}
+.ps-dock-spacer{flex:1;min-width:8px}
+.ps-dock-cmd{display:inline-flex;align-items:center;gap:5px;padding:6px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.1);color:rgba(255,255,255,.65);font-size:10px;font-weight:800;cursor:pointer;white-space:nowrap;flex:0 0 auto}
+.ps-dock-cmd:hover{background:rgba(255,255,255,.18);color:#fff}
+.ps-dock-cmd kbd{border:1px solid rgba(255,255,255,.2);border-bottom-width:2px;border-radius:5px;background:rgba(255,255,255,.08);padding:1px 5px;font:750 9px/1.4 inherit;color:rgba(255,255,255,.5)}
+.app-header .ps-dock-home{background:#f3f6fb;border-color:#d7e1ec}
+.app-header .ps-dock-link{color:#6b7b90}
+.app-header .ps-dock-link:hover{background:#f0f4fa;color:#334155}
+.app-header .ps-dock-link[aria-current="page"]{background:#edf2fc;color:#1769e0;border-color:#d3dfef}
+.app-header .ps-dock-cmd{border-color:#d7e1ec;background:#fff;color:#6b7b90;box-shadow:0 2px 6px rgba(15,39,72,.04)}
+.app-header .ps-dock-cmd:hover{background:#f0f5ff;color:#334155;border-color:#b8c9de}
+.app-header .ps-dock-cmd kbd{border-color:#d7e0ea;background:#f6f8fb;color:#78869a}
+
 /* Home */
 html[data-program-surface="home"].ps-ui-v2 body{background:linear-gradient(180deg,#fff 0,#f8fbff 48%,#f4f7fb 100%)}
 html[data-program-surface="home"].ps-ui-v2 .nav{height:72px;border-bottom:1px solid rgba(216,226,238,.9);box-shadow:0 8px 30px rgba(15,39,72,.035)}
@@ -73,6 +93,15 @@ html[data-program-surface="home"].ps-ui-v2 .desc{font-size:13px;line-height:1.72
 html[data-program-surface="home"].ps-ui-v2 .tag{background:#f3f6fa;border:1px solid #e7edf4;color:#56657a}
 html[data-program-surface="home"].ps-ui-v2 .status{padding:6px 9px}
 html[data-program-surface="home"].ps-ui-v2 .nav-btn{min-height:40px;display:inline-flex;align-items:center}
+
+/* Compact hero for logged-in users */
+html[data-program-surface="home"].ps-ui-v2 body.ps-logged-in .hero-shell{padding-top:38px;padding-bottom:28px}
+html[data-program-surface="home"].ps-ui-v2 body.ps-logged-in .hero-inner{grid-template-columns:1fr}
+html[data-program-surface="home"].ps-ui-v2 body.ps-logged-in .hero-visual{display:none}
+html[data-program-surface="home"].ps-ui-v2 body.ps-logged-in .hero h1{font-size:clamp(28px,3.8vw,42px)}
+html[data-program-surface="home"].ps-ui-v2 body.ps-logged-in .hero-copy{display:none}
+html[data-program-surface="home"].ps-ui-v2 body.ps-logged-in .hero-actions{display:none}
+html[data-program-surface="home"].ps-ui-v2 body.ps-logged-in .badge{display:none}
 
 /* Login / signup: desktop split layout, single-column on small screens */
 html[data-program-surface="auth"].ps-ui-v2 body{background:radial-gradient(circle at 18% 18%,rgba(50,161,189,.34),transparent 30%),radial-gradient(circle at 85% 80%,rgba(23,105,224,.28),transparent 34%),linear-gradient(145deg,#071a38 0%,#0b2a55 54%,#124d70 100%)}
@@ -194,6 +223,7 @@ html[data-program-surface="approval"].ps-ui-v2 :where(.card,.approval-card,.gate
   html[data-program-surface="pdf-editor"].ps-ui-v2 body,html[data-program-surface="design-editor"].ps-ui-v2 body{overflow:auto}
   .ps-sidebar-toggle{padding-inline:9px}.ps-sidebar-toggle .ps-toggle-label{display:none}
   .ps-command-trigger kbd{display:none}
+  .ps-dock-link>span:not(.ps-dock-icon){display:none}.ps-dock-cmd>span{display:none}.ps-dock-cmd kbd{display:none}
 }
 @media(max-width:620px){
   .ps-command-backdrop{padding-top:7vh}.ps-command-dialog{border-radius:16px}.ps-command-item{grid-template-columns:38px minmax(0,1fr) auto}.ps-command-icon{width:38px;height:38px}

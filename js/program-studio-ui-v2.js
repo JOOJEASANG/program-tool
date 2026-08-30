@@ -23,11 +23,11 @@
   document.documentElement.dataset.programSurface=surface;
 
   const TOOLS=[
-    {name:'PDF 편집기',description:'병합 · 페이지 편집 · N-up · 소책자',icon:'📄',url:'/pdf-editor/'},
-    {name:'PDF 인쇄 검수',description:'문서 상태 · 보안 · 출력 위험 점검',icon:'🔍',url:'/pdf-preflight/'},
-    {name:'디자인 편집기',description:'표지 · 포스터 · 전단 · 리플렛',icon:'✦',url:'/design-editor/'},
-    {name:'문서 편집기',description:'A4 문서 작성 · 표 · 이미지 · 인쇄',icon:'📝',url:'/document-editor/'},
-    {name:'이미지 편집기',description:'이미지 크기 · 배경 · 자르기 · 출력',icon:'🖼️',url:'/image-editor/'}
+    {name:'PDF 편집기',description:'병합 · 페이지 편집 · N-up · 소책자',icon:'📄',url:'/pdf-editor/',dock:'PDF 편집'},
+    {name:'PDF 인쇄 검수',description:'문서 상태 · 보안 · 출력 위험 점검',icon:'🔍',url:'/pdf-preflight/',dock:'검사'},
+    {name:'디자인 편집기',description:'표지 · 포스터 · 전단 · 리플렛',icon:'✦',url:'/design-editor/',dock:'디자인'},
+    {name:'문서 편집기',description:'A4 문서 작성 · 표 · 이미지 · 인쇄',icon:'📝',url:'/document-editor/',dock:'문서'},
+    {name:'이미지 편집기',description:'이미지 크기 · 배경 · 자르기 · 출력',icon:'🖼️',url:'/image-editor/',dock:'이미지'}
   ];
 
   function onReady(fn){
@@ -253,6 +253,37 @@
     return palette;
   }
 
+  function mountToolDock(attempt=0){
+    const dockSurfaces=['pdf-editor','pdf-preflight','design-editor','document-editor','image-editor'];
+    if(!dockSurfaces.includes(surface))return;
+    const host=document.querySelector('.top-nav,.app-header');
+    if(!host){if(attempt<10)setTimeout(()=>mountToolDock(attempt+1),80+attempt*60);return;}
+    if(host.querySelector('.ps-tool-dock'))return;
+    const inIframe=surface==='design-editor';
+    const dock=document.createElement('nav');
+    dock.className='ps-tool-dock';
+    dock.setAttribute('aria-label','도구 전환');
+    const home=document.createElement('a');
+    home.href='/';home.className='ps-dock-home';home.title='Program Studio 홈';
+    if(inIframe)home.target='_top';
+    home.innerHTML='<svg viewBox="0 0 54 54" fill="none"><defs><linearGradient id="dkG" x1="6" y1="4" x2="48" y2="51" gradientUnits="userSpaceOnUse"><stop stop-color="#1769E0"/><stop offset="1" stop-color="#18B6B9"/></linearGradient></defs><path d="M27 2.7 47.8 14.7v24L27 50.7 6.2 38.7v-24Z" fill="url(#dkG)"/><path d="M17.2 15.3h10.4c6 0 9.7 3.2 9.7 8.3 0 5.3-3.9 8.7-10 8.7h-4.4v6.3h-5.7V15.3Zm5.7 4.8v7.4H27c2.8 0 4.4-1.3 4.4-3.8 0-2.3-1.6-3.6-4.4-3.6h-4.1Z" fill="#fff"/><circle cx="42.7" cy="11.3" r="3.3" fill="#73F1E5"/></svg>';
+    dock.appendChild(home);
+    TOOLS.forEach(t=>{
+      const a=document.createElement('a');a.href=t.url;a.className='ps-dock-link';
+      if(inIframe)a.target='_top';
+      if(t.url.includes(surface))a.setAttribute('aria-current','page');
+      a.innerHTML=`<span class="ps-dock-icon" aria-hidden="true">${t.icon}</span><span>${t.dock}</span>`;
+      dock.appendChild(a);
+    });
+    const spacer=document.createElement('span');spacer.className='ps-dock-spacer';dock.appendChild(spacer);
+    const cmd=document.createElement('button');cmd.type='button';cmd.className='ps-dock-cmd';
+    cmd.innerHTML='<span aria-hidden="true">⌕</span><span>빠른 실행</span><kbd>Ctrl K</kbd>';
+    cmd.setAttribute('aria-label','프로그램 빠른 실행 열기');
+    cmd.addEventListener('click',openPalette);dock.appendChild(cmd);
+    host.querySelectorAll('.nav-back,.nav-title,.home-link,.brand-block').forEach(el=>{el.style.display='none'});
+    host.insertBefore(dock,host.firstChild);
+  }
+
   function mountCommandTrigger(){
     if(surface!=='home')return;
     const host=document.querySelector('.nav-right');
@@ -294,10 +325,11 @@
   onReady(()=>{
     loadSurfaceEnhancements();
     mountSidebarToggle(0);
+    mountToolDock();
     mountCommandTrigger();
     mountGlobalKeys();
     improveExternalStateLabels();
   });
 
-  window.ProgramStudioUI={version:'2026.08.28.008',surface,openPalette,closePalette};
+  window.ProgramStudioUI={version:'2026.08.29.001',surface,openPalette,closePalette};
 })();
