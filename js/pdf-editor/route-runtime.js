@@ -23,7 +23,6 @@
     {id:'pdfDividerLocalImageUploadScriptV1',src:'/js/pdf-divider-local-image-upload.js?v=20260818-2'},
     {id:'pdfEditorFinalCheckScriptV1',src:'/js/pdf-editor-final-check.js?v=20260828-1'},
     {id:'pdfEditorSpreadSplitScriptV1',src:'/js/pdf-editor/spread-split.js?v=20260825-1'},
-    {id:'pdfBookletMenuPolishScriptV1',src:'/js/pdf-editor/booklet-menu-polish.js?v=20260830-1'},
     {id:'pdfBookletSheetPreviewScriptV1',src:'/js/pdf-editor/booklet-sheet-preview.js?v=20260825-1'}
   ]);
 
