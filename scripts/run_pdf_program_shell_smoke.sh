@@ -63,7 +63,7 @@ run_product_case "pdf-print-output-stage1-smoke.html" "$OUT_DIR/pdf-print-output
 reset_profile
 run_product_case "pdf-security-500mb-smoke.html" "$OUT_DIR/pdf-security-500mb-smoke-dom.html" 'data-pdf-security-smoke="pass"' 'PASS: PDF encrypt/decrypt uses Storage from 20MB to 500MB while normal tools keep the direct limit'
 reset_profile
-run_product_case "pdf-editor-workflow-v2-smoke.html" "$OUT_DIR/pdf-editor-workflow-v2-smoke-dom.html" 'data-workflow-v2-smoke="pass"' 'PASS: PDF workflow v2, compact-shell toggle, corrected help and runtime recovery UI'
+run_product_case "pdf-editor-workflow-v2-smoke.html" "$OUT_DIR/pdf-editor-workflow-v2-smoke-dom.html" 'data-workflow-v2-smoke="pass"' 'PASS: PDF editor keeps account actions on one line and all sidebar controls visible'
 
 bash "$ROOT_DIR/scripts/run_pdf_print_workflow_focus_smoke.sh"
-echo "PDF program unified shell, workflow and product-focus browser smokes passed using $BROWSER"
+echo "PDF program unified shell, all-visible sidebar and product-focus browser smokes passed using $BROWSER"
