@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate release-level HTML metadata after deployment HTML generation."""
+"""Validate release-level HTML metadata and Hosting delivery policy."""
 
 from __future__ import annotations
 
@@ -9,6 +9,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 from inject_boot_guard import DEPLOY_HTML, FAVICON_MARKER, META_MARKER, PAGE_METADATA, ROOT
+from validate_hosting_delivery import validate as validate_hosting_delivery
 
 FAVICON = ROOT / "favicon.svg"
 EXPECTED_FAVICON = f'{FAVICON_MARKER} rel="icon" href="/favicon.svg" type="image/svg+xml"'
@@ -22,6 +23,7 @@ ROBOTS_RE = re.compile(
 
 
 def validate() -> None:
+    validate_hosting_delivery()
     errors: list[str] = []
 
     if set(PAGE_METADATA) != set(DEPLOY_HTML):

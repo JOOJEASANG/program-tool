@@ -1,20 +1,10 @@
 {
   "hosting": {
-    "public": ".",
+    "public": ".firebase-hosting",
     "ignore": [
       "firebase.json",
       "**/.*",
-      "**/node_modules/**",
-      "design_program.html",
-      "backend/**",
-      "backups/**",
-      ".github/**",
-      "scripts/**",
-      "docs/**",
-      "tests/**",
-      "**/*.md",
-      "**/*.py",
-      "**/__pycache__/**"
+      "**/node_modules/**"
     ],
     "cleanUrls": true,
     "trailingSlash": false,

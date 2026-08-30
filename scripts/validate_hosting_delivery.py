@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate Firebase Hosting cache and security header policy before deployment."""
+"""Validate Firebase Hosting stage, cache, and security header policy before deployment."""
 
 from __future__ import annotations
 
@@ -7,8 +7,11 @@ import json
 import sys
 from pathlib import Path
 
+from prepare_hosting_dist import OUTPUT, build as build_hosting_dist
+
 ROOT = Path(__file__).resolve().parents[1]
 FIREBASE_JSON = ROOT / "firebase.json"
+EXPECTED_PUBLIC = ".firebase-hosting"
 
 REQUIRED_GLOBAL = {
     "strict-transport-security": ("max-age=31536000", "includesubdomains"),
@@ -66,6 +69,20 @@ def validate() -> None:
     rules = source_rules(hosting)
     errors: list[str] = []
 
+    public_dir = str(hosting.get("public") or "").strip()
+    if public_dir != EXPECTED_PUBLIC:
+        errors.append(
+            f"Hosting public directory must be {EXPECTED_PUBLIC!r}, got {public_dir!r}"
+        )
+
+    try:
+        build_hosting_dist()
+    except Exception as error:
+        errors.append(f"Hosting allowlist stage failed: {error}")
+
+    if not OUTPUT.is_dir():
+        errors.append(f"Hosting stage directory is missing: {OUTPUT.name}")
+
     global_headers = rules.get("**", {})
     for name, fragments in REQUIRED_GLOBAL.items():
         actual = global_headers.get(name, "")
@@ -96,8 +113,8 @@ def validate() -> None:
         raise SystemExit(1)
 
     print(
-        "Hosting delivery policy OK: global security headers + safe revalidation cache contracts; "
-        "immutable caching remains disabled"
+        "Hosting delivery policy OK: allowlisted stage + global security headers + "
+        "safe revalidation cache contracts; immutable caching remains disabled"
     )
 
 

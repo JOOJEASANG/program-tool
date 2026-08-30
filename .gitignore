@@ -23,6 +23,7 @@ gha-creds-*.json
 # Node / Firebase local state
 node_modules/
 .firebase/
+.firebase-hosting/
 .firebaserc.local
 .emulator-tmp/
 
