@@ -106,17 +106,27 @@
     const style = document.createElement('style');
     style.id = 'pdfBookletPrintGuideStylesV2';
     style.textContent = `
-      .booklet-print-guide-v2{display:none;margin-top:8px;padding:10px;border:1px solid #bfdbfe;border-radius:10px;background:linear-gradient(180deg,#eff6ff,#f8fbff);color:#1e3a8a}
+      #bookletRow{margin-top:8px!important;padding:10px 11px!important;border:1px solid #dbe4ee!important;border-radius:10px!important;background:#f8fafc!important}
+      html.pdf-classic-booklet-active body #bookletRow{display:block!important}
+      #bookletRow>label{display:grid!important;grid-template-columns:18px minmax(0,1fr)!important;grid-template-rows:auto auto!important;column-gap:8px!important;row-gap:2px!important;align-items:start!important;margin:0!important;line-height:1.35!important}
+      #bookletRow>label>#bookletCheck{grid-column:1!important;grid-row:1/span 2!important;width:15px!important;height:15px!important;margin:1px 0 0!important;accent-color:#12396d}
+      #bookletRow>label>span:first-of-type{grid-column:2!important;font-size:11px!important;font-weight:900!important;color:#1f2937!important;letter-spacing:-.1px!important}
+      #bookletRow>label>span:last-of-type{grid-column:2!important;display:block!important;margin:0!important;color:#64748b!important;font-size:9px!important;font-weight:600!important;line-height:1.45!important;word-break:keep-all!important}
+      #bookletPadInfo{margin:7px 0 0!important;padding:6px 8px!important;border-radius:7px!important;background:#eff6ff!important;color:#1d4ed8!important;font-size:9px!important;font-weight:800!important;line-height:1.45!important}
+      #bookletRow #bookletReliabilityNotice{margin:7px 0 0!important;padding:6px 8px!important;border:0!important;border-radius:7px!important;background:#f1f5f9!important;color:#475569!important;font-size:8.5px!important;font-weight:650!important;line-height:1.45!important}
+      #bookletRow+.classic-booklet-note{margin-top:6px!important;padding:7px 9px!important;border-color:#dbe4ee!important;background:#f8fafc!important;color:#475569!important;line-height:1.45!important}
+      #bookletSheetPreviewButton.booklet-sheet-preview-btn{margin-top:7px!important;width:100%!important;padding:7px 9px!important;border-radius:8px!important}
+      .booklet-print-guide-v2{display:none;margin-top:9px;padding:9px 0 0;border:0;border-top:1px solid #dbe4ee;border-radius:0;background:transparent;color:#1e3a8a}
       .booklet-print-guide-v2.open{display:block}
-      .booklet-guide-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;font-size:10px;font-weight:900}
-      .booklet-guide-count{flex:0 0 auto;padding:2px 7px;border-radius:999px;background:#dbeafe;color:#1d4ed8;font-size:9px;white-space:nowrap}
-      .booklet-guide-flip{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:8px;margin-bottom:8px}
-      .booklet-guide-flip label{margin:0;font-size:10px;color:#475569;white-space:nowrap}
-      .booklet-guide-flip select{min-width:0;padding:6px 8px!important;font-size:10px!important;font-weight:800!important;border-radius:7px!important}
-      .booklet-guide-steps{display:grid;gap:5px;color:#334155;font-size:9px;font-weight:700;line-height:1.5}
+      .booklet-guide-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:7px;color:#334155;font-size:10px;font-weight:900}
+      .booklet-guide-count{flex:0 0 auto;padding:2px 7px;border-radius:999px;background:#e8eef7;color:#31577f;font-size:9px;white-space:nowrap}
+      .booklet-guide-flip{display:grid;grid-template-columns:70px minmax(0,1fr);align-items:center;gap:7px;margin-bottom:7px}
+      .booklet-guide-flip label{margin:0;font-size:9px;color:#64748b;white-space:nowrap}
+      .booklet-guide-flip select{min-width:0;padding:6px 8px!important;background:#fff!important;font-size:10px!important;font-weight:800!important;border-radius:7px!important}
+      .booklet-guide-steps{display:grid;gap:4px;padding:7px 8px;border:1px solid #e2e8f0;border-radius:8px;background:#fff;color:#334155;font-size:9px;font-weight:700;line-height:1.5}
       .booklet-guide-step{display:flex;align-items:flex-start;gap:6px}
-      .booklet-guide-step b{display:flex;flex:0 0 18px;align-items:center;justify-content:center;height:18px;border-radius:999px;background:#2563eb;color:#fff;font-size:8px}
-      .booklet-guide-note{margin-top:8px;padding-top:7px;border-top:1px solid #bfdbfe;color:#64748b;font-size:8px;font-weight:750;line-height:1.55}
+      .booklet-guide-step b{display:flex;flex:0 0 18px;align-items:center;justify-content:center;height:18px;border-radius:999px;background:#31577f;color:#fff;font-size:8px}
+      .booklet-guide-note{margin-top:6px;padding:0 1px;border-top:0;color:#64748b;font-size:8px;font-weight:750;line-height:1.55}
       #previewScroll .pdf-output-source-label{max-width:100%;padding:5px 6px 7px;border-top:1px solid #e2e8f0;background:#f8fafc;color:#334155;font-size:9px;font-weight:800;line-height:1.45;text-align:center;word-break:keep-all}
       #previewScroll .pdf-output-source-label strong{color:#1d4ed8}
       #previewScroll .pdf-output-source-label strong.back{color:#7c3aed}
