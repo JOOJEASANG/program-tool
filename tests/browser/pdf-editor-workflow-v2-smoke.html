@@ -42,7 +42,7 @@
       const waitFor=async(predicate,label,timeout=6000)=>{const started=Date.now();while(Date.now()-started<timeout){if(predicate())return;await new Promise(resolve=>setTimeout(resolve,25));}throw new Error('timeout: '+label)};
       try{
         await waitFor(()=>document.body.dataset.programShell==='compact','compact shell');
-        await waitFor(()=>window.PdfEditorSimpleSidebarUi?.stage==='single-sidebar-all-controls-visible-v2','simple sidebar api');
+        await waitFor(()=>window.PdfEditorSimpleSidebarUi?.stage==='single-sidebar-all-controls-visible-v3','simple sidebar api');
         await waitFor(()=>document.body.dataset.pdfSidebarMode==='all-visible','all visible mode');
         await new Promise(resolve=>setTimeout(resolve,250));
 

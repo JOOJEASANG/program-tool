@@ -39,7 +39,7 @@ def test_browser_smokes_cover_editor_and_utility_shells():
     editor = EDITOR_SMOKE.read_text(encoding="utf-8")
     utility = UTILITY_SMOKE.read_text(encoding="utf-8")
     runner = RUNNER.read_text(encoding="utf-8")
-    assert "PDF editor fixed header removed and actions preserved in workspace" in editor
+    assert "PDF sidebar remains visible after delayed common/runtime initialization" in editor
     assert "PDF utility fixed header removed and account actions preserved in content" in utility
     assert "pdf-editor-shell-smoke.html" in runner
     assert "pdf-utility-shell-smoke.html" in runner

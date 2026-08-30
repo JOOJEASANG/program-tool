@@ -6,18 +6,19 @@ WORKFLOW = ROOT / "js" / "pdf-editor" / "workflow-v2.js"
 GLOBAL_UI = ROOT / "js" / "program-studio-ui-v2.js"
 
 
-def test_pdf_workflow_v2_is_loaded_only_for_pdf_editor_surface():
+def test_pdf_editor_does_not_reload_retired_guided_workflow_or_tool_rail():
     text = GLOBAL_UI.read_text(encoding="utf-8")
     assert "if(surface==='pdf-editor')" in text
-    assert "loadEnhancement('pdfEditorWorkflowV2Script'" in text
-    assert "/js/pdf-editor/workflow-v2.js?v=20260828-1" in text
+    assert "loadEnhancement('pdfEditorWorkflowV2Script'" not in text
+    assert "/js/pdf-editor/workflow-v2.js?v=20260828-1" not in text
+    assert "if(surface==='pdf-editor')return;" in text
     assert "if(surface==='design-editor')" in text
 
 
-def test_pdf_sidebar_toggle_waits_for_compact_shell_actions():
+def test_pdf_sidebar_toggle_is_disabled_for_always_visible_sidebar():
     text = GLOBAL_UI.read_text(encoding="utf-8")
-    assert ".app > aside > .program-local-actions" in text
-    assert "if(attempt>=8)return document.querySelector('.top-nav')" in text
+    assert "function mountSidebarToggle(attempt=0)" in text
+    assert "if(surface==='pdf-editor')return;" in text
     assert "if(attempt<10)setTimeout(()=>mountSidebarToggle" in text
     assert "setInterval(" not in text
 

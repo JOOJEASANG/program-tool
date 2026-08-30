@@ -50,7 +50,7 @@ def test_pdf_editor_lists_file_layout_paper_edit_and_output_controls_without_ste
         "program-studio:pdf-editor:advanced",
         "클릭=미리보기 이동",
         "로그아웃",
-        "single-sidebar-all-controls-visible-v2",
+        "single-sidebar-all-controls-visible-v3",
     ):
         assert marker in sidebar
     assert "/js/pdf-editor/simple-sidebar-ui.js?v=20260830-1" in ui_runtime

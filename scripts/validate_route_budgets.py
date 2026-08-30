@@ -23,10 +23,9 @@ UI_ENHANCEMENTS = {
     "home": "homeDashboardV2Script",
     "admin": "adminWorkflowV2Script",
     "design-general": "designEditorWorkflowV2Script",
-    "pdf-editor": "pdfEditorWorkflowV2Script",
 }
 EDITOR_TOOL_RAIL_ID = "editorToolRailV1Script"
-EDITOR_TOOL_RAIL_ROUTES = ("design-general", "pdf-editor")
+EDITOR_TOOL_RAIL_ROUTES = ("design-general",)
 
 
 def normalize(raw: str) -> str:

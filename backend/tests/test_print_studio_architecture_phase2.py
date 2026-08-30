@@ -66,8 +66,8 @@ def test_pdf_workspace_keeps_every_control_in_one_always_visible_sidebar():
     ui_runtime = text("js/pdf-editor/ui-runtime.js")
     shell = text("js/program-shell-unify.js")
     for marker in (
-        "single-sidebar-all-controls-visible-v2",
-        "restoreToolRail()",
+        "single-sidebar-all-controls-visible-v3",
+        "neutralizeToolRail()",
         "restoreOutputRail()",
         "keepSectionsOpen()",
         "flex-wrap:nowrap!important",

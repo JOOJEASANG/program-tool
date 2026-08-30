@@ -73,6 +73,9 @@
   }
 
   function mountSidebarToggle(attempt=0){
+    // PDF editor owns an always-visible sidebar through program-shell-unify/ui-runtime.
+    // Never reintroduce the legacy collapsible panel control on this surface.
+    if(surface==='pdf-editor')return;
     const target=sidebarTarget();
     if(!target){
       if(attempt<10)setTimeout(()=>mountSidebarToggle(attempt+1),80+attempt*60);
@@ -154,8 +157,9 @@
       return;
     }
     if(surface==='pdf-editor'){
-      loadEnhancement('pdfEditorWorkflowV2Script','/js/pdf-editor/workflow-v2.js?v=20260828-1',()=>Boolean(window.__pdfEditorWorkflowV2),'PDF 편집 화면 개선 기능을 불러오지 못했습니다.');
-      loadEditorToolRail();
+      // The PDF editor has its own always-visible sidebar runtime. Loading the
+      // retired workflow/tool-rail here races that runtime and can move every
+      // sidebar section into a detached legacy panel after first paint.
       return;
     }
     if(surface==='pdf-preflight'){
@@ -299,5 +303,5 @@
     improveExternalStateLabels();
   });
 
-  window.ProgramStudioUI={version:'2026.08.28.008',surface,openPalette,closePalette};
+  window.ProgramStudioUI={version:'2026.08.30.009',surface,openPalette,closePalette};
 })();
