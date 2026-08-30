@@ -38,33 +38,32 @@ def test_design_editor_exposes_result_first_workflow_and_output_cta():
     assert "invitation:'초대장·안내장'" in source
 
 
-def test_pdf_editor_guides_file_page_layout_paper_output_and_reuses_existing_actions():
-    workflow = text("js/pdf-editor/workflow-ui.js")
+def test_pdf_editor_lists_file_layout_paper_edit_and_output_controls_without_step_filtering():
+    sidebar = text("js/pdf-editor/simple-sidebar-ui.js")
     ui_runtime = text("js/pdf-editor/ui-runtime.js")
     shell = text("js/program-shell-unify.js")
     for marker in (
-        "1 · PDF 파일",
-        "2 · 페이지 정리",
-        "3 · 인쇄 배치",
-        "4 · 용지 · 여백",
-        "5 · 결과 저장",
-        "PDF 더 추가",
-        "미리보기 갱신",
-        "PDF 저장",
-        "byId('previewBtn')?.click()",
-        "byId('downloadBtn')?.click()",
-        "guided-file-page-layout-paper-output-v1",
+        "all-visible",
+        "keepSectionsOpen",
+        "blockToggle",
+        "ps-sidebar-toggle",
+        "program-studio:pdf-editor:advanced",
+        "클릭=미리보기 이동",
+        "로그아웃",
+        "single-sidebar-all-controls-visible-v2",
     ):
-        assert marker in workflow
-    assert "/js/pdf-editor/workflow-ui.js?v=20260828-1" in ui_runtime
+        assert marker in sidebar
+    assert "/js/pdf-editor/simple-sidebar-ui.js?v=20260830-1" in ui_runtime
+    assert "/js/pdf-editor/workflow-ui.js" not in ui_runtime
+    assert "/js/pdf-editor/workspace-layout.js" not in ui_runtime
     assert "/js/pdf-editor/ui-runtime.js?v=${PDF_UI_RUNTIME_VERSION}" in shell
-    assert "pdf-tools-guided-unified-shell-v2" in shell
-    assert "uiRuntimeStage:'pdf-editor-ui-runtime-manifest-v1'" in shell
+    assert "workflowStage:'pdf-all-controls-visible-v1'" in shell
+    assert "uiRuntimeStage:'pdf-editor-always-visible-sidebar-runtime-v2'" in shell
     assert "stage:'pdf-tools-headerless-unified-shell'" in shell
 
 
-def test_pdf_guided_ui_does_not_replace_core_page_or_download_state():
-    source = text("js/pdf-editor/workflow-ui.js")
+def test_pdf_sidebar_ui_does_not_replace_core_page_or_download_state():
+    source = text("js/pdf-editor/simple-sidebar-ui.js")
     for forbidden in (
         "parsedPages =",
         "uploadedFiles =",
