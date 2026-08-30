@@ -64,6 +64,8 @@ reset_profile
 run_product_case "pdf-security-500mb-smoke.html" "$OUT_DIR/pdf-security-500mb-smoke-dom.html" 'data-pdf-security-smoke="pass"' 'PASS: PDF encrypt/decrypt uses Storage from 20MB to 500MB while normal tools keep the direct limit'
 reset_profile
 run_product_case "pdf-editor-workflow-v2-smoke.html" "$OUT_DIR/pdf-editor-workflow-v2-smoke-dom.html" 'data-workflow-v2-smoke="pass"' 'PASS: PDF editor keeps account actions on one line and all sidebar controls visible'
+reset_profile
+run_product_case "pdf-divider-modal-layout-smoke.html" "$OUT_DIR/pdf-divider-modal-layout-smoke-dom.html" 'data-divider-modal-smoke="pass"' 'PASS: divider modal survives delayed studio load, opens on click and keeps actions in the narrow left panel'
 
 bash "$ROOT_DIR/scripts/run_pdf_print_workflow_focus_smoke.sh"
-echo "PDF program unified shell, all-visible sidebar and product-focus browser smokes passed using $BROWSER"
+echo "PDF program unified shell, all-visible sidebar, divider-modal and product-focus browser smokes passed using $BROWSER"
