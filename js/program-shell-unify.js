@@ -9,7 +9,12 @@
   if(!isPdfEditor&&!isPdfUtility)return;
 
   const STYLE_ID='programShellUnifyStyles';
-  const PDF_UI_RUNTIME_VERSION='20260828-1';
+  const PDF_UI_RUNTIME_VERSION='20260830-1';
+  if(isPdfEditor){
+    // The PDF editor intentionally uses one always-visible sidebar.
+    window.__programStudioEditorToolRailV1=true;
+    window.__pdfEditorWorkflowV2=true;
+  }
 
   function installStyles(){
     if(document.getElementById(STYLE_ID))return;
@@ -25,20 +30,13 @@
       .program-local-actions .program-logout{margin-left:0!important}
       body[data-program-shell="compact"][data-program-kind="pdf-editor"] .app{height:100vh!important}
       body[data-program-shell="compact"][data-program-kind="pdf-editor"] aside{padding-top:12px!important}
-      body[data-program-shell="compact"][data-program-kind="pdf-editor"] .program-local-actions{margin:0 0 10px}
+      body[data-program-shell="compact"][data-program-kind="pdf-editor"] .program-local-actions{margin:0 0 10px;flex-wrap:nowrap}
       body[data-program-shell="compact"][data-program-kind="pdf-editor"] .program-local-actions .nav-user-name{display:none!important}
       body[data-program-shell="compact"][data-program-kind="pdf-utility"] .container{padding-top:18px!important}
       body[data-program-shell="compact"][data-program-kind="pdf-utility"] .program-local-actions{margin:0 0 12px}
       body[data-program-shell="compact"][data-program-kind="pdf-utility"] .program-local-actions .nav-user-name{margin-left:auto}
-      @media(max-width:900px){
-        body[data-program-shell="compact"][data-program-kind="pdf-editor"] .app{height:auto!important;min-height:100vh!important}
-        body[data-program-shell="compact"][data-program-kind="pdf-editor"] main{min-height:100vh!important}
-        .program-local-actions a,.program-local-actions button{font-size:10px!important;padding:6px 8px!important}
-      }
-      @media(max-width:520px){
-        body[data-program-shell="compact"][data-program-kind="pdf-utility"] .container{padding-top:12px!important}
-        .program-local-actions .program-account-name{display:none!important}
-      }
+      @media(max-width:900px){body[data-program-shell="compact"][data-program-kind="pdf-editor"] .app{height:auto!important;min-height:100vh!important}body[data-program-shell="compact"][data-program-kind="pdf-editor"] main{min-height:100vh!important}.program-local-actions a,.program-local-actions button{font-size:10px!important;padding:6px 8px!important}}
+      @media(max-width:520px){body[data-program-shell="compact"][data-program-kind="pdf-utility"] .container{padding-top:12px!important}.program-local-actions .program-account-name{display:none!important}}
     `;
     document.head.appendChild(style);
   }
@@ -55,18 +53,8 @@
     return true;
   }
 
-  // Compatibility methods for callers that used the previous two-loader API.
-  function loadPdfWorkflow(){
-    if(!isPdfEditor)return false;
-    if(window.PdfEditorWorkflowUi?.sync){window.PdfEditorWorkflowUi.sync();return true;}
-    return loadPdfUiRuntime();
-  }
-
-  function loadPdfWorkspace(){
-    if(!isPdfEditor)return false;
-    if(window.PdfEditorWorkspaceLayout?.sync){window.PdfEditorWorkspaceLayout.sync();return true;}
-    return loadPdfUiRuntime();
-  }
+  function loadPdfWorkflow(){if(!isPdfEditor)return false;if(window.PdfEditorWorkflowUi?.sync){window.PdfEditorWorkflowUi.sync();return true;}return loadPdfUiRuntime();}
+  function loadPdfWorkspace(){if(!isPdfEditor)return false;if(window.PdfEditorWorkspaceLayout?.sync){window.PdfEditorWorkspaceLayout.sync();return true;}return loadPdfUiRuntime();}
 
   function makeActions(kind){
     const oldNav=document.querySelector('body > .top-nav');
@@ -74,63 +62,29 @@
     const bar=document.createElement('div');
     bar.className='program-local-actions';
     bar.setAttribute('aria-label','프로그램 이동 및 계정');
-
     const back=oldNav.querySelector('.nav-back');
     if(back){back.textContent='← 홈';bar.appendChild(back);}
-
     if(kind==='pdf-editor'){
-      const save=document.getElementById('navSessionBtn');
-      const load=document.getElementById('navSessionLoadBtn');
-      const user=document.getElementById('navUserName');
-      const logout=document.getElementById('navLogout');
-      if(save)bar.appendChild(save);
-      if(load)bar.appendChild(load);
-      if(user){user.classList.add('program-account-name');bar.appendChild(user);}
-      if(logout){logout.classList.add('program-logout');bar.appendChild(logout);}
-      const aside=document.querySelector('.app > aside');
-      if(aside)aside.insertBefore(bar,aside.firstChild);
+      const save=document.getElementById('navSessionBtn'),load=document.getElementById('navSessionLoadBtn'),user=document.getElementById('navUserName'),logout=document.getElementById('navLogout');
+      if(save)bar.appendChild(save);if(load)bar.appendChild(load);if(user){user.classList.add('program-account-name');bar.appendChild(user);}if(logout){logout.classList.add('program-logout');bar.appendChild(logout);}
+      const aside=document.querySelector('.app > aside');if(aside)aside.insertBefore(bar,aside.firstChild);
     }else{
-      const user=document.getElementById('userName');
-      const logout=oldNav.querySelector('.nav-logout');
-      if(user){user.classList.add('program-account-name');bar.appendChild(user);}
-      if(logout){logout.classList.add('program-logout');bar.appendChild(logout);}
-      const container=document.querySelector('main.container');
-      if(container)container.insertBefore(bar,container.firstChild);
+      const user=document.getElementById('userName'),logout=oldNav.querySelector('.nav-logout');
+      if(user){user.classList.add('program-account-name');bar.appendChild(user);}if(logout){logout.classList.add('program-logout');bar.appendChild(logout);}
+      const container=document.querySelector('main.container');if(container)container.insertBefore(bar,container.firstChild);
     }
-
-    oldNav.remove();
-    return bar;
+    oldNav.remove();return bar;
   }
 
-  function loadPdfEnhancements(){
-    if(!isPdfEditor)return false;
-    return loadPdfUiRuntime();
-  }
-
+  function loadPdfEnhancements(){return isPdfEditor?loadPdfUiRuntime():false;}
   function apply(){
-    if(document.body?.dataset.programShell==='compact'){
-      loadPdfEnhancements();
-      return true;
-    }
-    const kind=isPdfEditor?'pdf-editor':'pdf-utility';
-    const oldNav=document.querySelector('body > .top-nav');
+    if(document.body?.dataset.programShell==='compact'){loadPdfEnhancements();return true;}
+    const kind=isPdfEditor?'pdf-editor':'pdf-utility',oldNav=document.querySelector('body > .top-nav');
     if(!document.body||!oldNav)return false;
-    installStyles();
-    document.body.dataset.programShell='compact';
-    document.body.dataset.programKind=kind;
-    makeActions(kind);
-    loadPdfEnhancements();
-    document.documentElement.dataset.programShellUnified='2';
-    return true;
+    installStyles();document.body.dataset.programShell='compact';document.body.dataset.programKind=kind;makeActions(kind);loadPdfEnhancements();document.documentElement.dataset.programShellUnified='2';return true;
   }
-
-  function boot(){
-    if(apply())return;
-    [40,120,300,700].forEach(delay=>setTimeout(()=>{apply();loadPdfEnhancements();},delay));
-  }
-
+  function boot(){if(apply())return;[40,120,300,700].forEach(delay=>setTimeout(()=>{apply();loadPdfEnhancements();},delay));}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 
-  // Keep the public shell stage stable for existing browser/runtime contracts.
-  window.ProgramShellUnify={apply,loadPdfUiRuntime,loadPdfWorkflow,loadPdfWorkspace,stage:'pdf-tools-headerless-unified-shell',workflowStage:'pdf-tools-guided-unified-shell-v2',workspaceStage:'pdf-three-pane-output-settings-v1',uiRuntimeStage:'pdf-editor-ui-runtime-manifest-v1'};
+  window.ProgramShellUnify={apply,loadPdfUiRuntime,loadPdfWorkflow,loadPdfWorkspace,stage:'pdf-tools-headerless-unified-shell',workflowStage:'pdf-all-controls-visible-v1',workspaceStage:'pdf-single-sidebar-v2',uiRuntimeStage:'pdf-editor-always-visible-sidebar-runtime-v2'};
 })();
