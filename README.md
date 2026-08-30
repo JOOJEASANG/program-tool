@@ -41,7 +41,10 @@ node --check sw.js
 python scripts/check_inline_js.py
 python scripts/check_version_sync.py
 python scripts/validate_static_references.py
+python scripts/validate_release_hygiene.py
 ```
+
+`validate_release_hygiene.py`는 Hosting 보안·캐시 계약도 함께 검사하고, 실제 배포 대상은 `.firebase-hosting/`에 allowlist 방식으로 생성합니다. 저장소 루트 전체를 Hosting에 직접 공개하지 않습니다.
 
 Firebase 규칙은 에뮬레이터로 실제 허용·거부 동작을 검사합니다.
 
@@ -70,13 +73,15 @@ gcloud storage buckets update gs://program-tool.firebasestorage.app \
 
 ## 배포
 
-`main` 브랜치에 푸시하면 `.github/workflows/firebase-deploy.yml`이 품질 검사를 통과한 뒤 Hosting, Functions, Firestore 규칙·인덱스, Storage 규칙을 배포합니다.
+`main` 브랜치에 푸시하면 `.github/workflows/firebase-deploy.yml`이 품질 검사를 통과한 뒤 Hosting, Functions, Firestore 규칙·인덱스, Storage 규칙을 배포합니다. Hosting 배포 직전 `scripts/firebase_ci.sh`가 `scripts/validate_hosting_delivery.py`를 실행해 보안 헤더를 검사하고 `.firebase-hosting/` 배포 디렉터리를 새로 만듭니다.
 
-GitHub Actions에 `GCP_WORKLOAD_IDENTITY_PROVIDER`와 `GCP_SERVICE_ACCOUNT`가 모두 설정되어 있으면 short-lived Workload Identity Federation 자격정보를 사용합니다. 아직 WIF가 구성되지 않은 환경에서는 기존 `FIREBASE_TOKEN`을 임시 fallback으로 사용합니다. 모든 Firebase CI 명령은 `scripts/firebase_ci.sh`를 거치며 WIF/ADC가 있으면 legacy token을 제거하고 ADC를 우선 사용합니다.
+GitHub Actions에 `GCP_WORKLOAD_IDENTITY_PROVIDER`와 `GCP_SERVICE_ACCOUNT`가 모두 설정되어 있으면 short-lived Workload Identity Federation 자격정보를 사용합니다. 아직 WIF가 구성되지 않은 환경에서는 기존 `FIREBASE_TOKEN`을 임시 fallback으로 사용합니다. 두 WIF secret 중 하나만 설정된 경우와 WIF 설정 후 ADC 자격정보가 만들어지지 않은 경우에는 legacy token으로 우회하지 않고 배포를 실패시킵니다. 모든 Firebase CI 명령은 `scripts/firebase_ci.sh`를 거치며 WIF/ADC가 있으면 legacy token을 제거하고 ADC를 우선 사용합니다.
 
 수동 배포:
 
 ```bash
+python scripts/inject_boot_guard.py
+python scripts/validate_hosting_delivery.py
 firebase deploy --project program-tool --force --non-interactive
 ```
 
@@ -97,6 +102,8 @@ firebase deploy --project program-tool --force --non-interactive
 - `backend/services/preflight_svc.py`: PDF 검수
 - `backend/utils/storage_delivery.py`: 대용량 결과의 비공개 임시 전달
 - `backend/scripts/sync_admin_claims.py`: 관리자 custom claim dry-run·적용·검증 도구
+- `scripts/prepare_hosting_dist.py`: 공개 가능한 프런트 파일만 `.firebase-hosting/`에 복사하는 Hosting allowlist 빌더
+- `scripts/validate_hosting_delivery.py`: Hosting allowlist, 보안 헤더, 캐시 정책 검증
 - `scripts/firebase_ci.sh`: WIF/ADC 우선, `FIREBASE_TOKEN` fallback Firebase CI 실행기
 - `firestore.rules`, `storage.rules`, `tests/firebase-rules.test.mjs`: 접근 제어와 회귀 테스트
 - `docs/admin-security-migration.md`: 관리자 claim-only 권한과 WIF 배포 인증의 실제 전환 체크리스트
