@@ -65,15 +65,17 @@ def test_cover_uses_common_user_selected_image_pipeline_without_provider_library
 def test_pdf_divider_uses_500mb_user_source_with_bounded_inline_embedding():
     source = PDF_LOCAL.read_text(encoding="utf-8")
     for marker in (
-        "간지 배경 이미지 직접 업로드",
-        "사용 권한이 있는 이미지만 업로드",
+        "간지 이미지 레이어",
+        "이미지를 여러 번 추가하면 레이어로 쌓입니다",
         "image/jpeg",
         "image/png",
         "image/webp",
         "MAX_SOURCE_BYTES = 500 * 1024 * 1024",
         "MAX_EMBED_BYTES = 5 * 1024 * 1024",
+        "MAX_TOTAL_EMBED_BYTES = 15 * 1024 * 1024",
         "localImageDataUrl",
         "localImageName",
+        "localImageLayers",
         "createImageBitmap",
         "optimizeFile",
         "user-local-pdf-divider-source-500mb-auto-optimized",
