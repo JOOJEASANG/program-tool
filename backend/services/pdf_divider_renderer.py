@@ -16,8 +16,10 @@ MAX_TEXT_LENGTH = 500
 EXTRA_TEXT_MAX_WIDTH_RATIO = 0.88
 ITALIC_SHEAR = -0.20
 MAX_LOCAL_IMAGE_BYTES = 5 * 1024 * 1024
+MAX_TOTAL_LOCAL_IMAGE_BYTES = 15 * 1024 * 1024
+MAX_LOCAL_IMAGE_LAYERS = 6
 LOCAL_IMAGE_DATA_RE = re.compile(
-    r"^data:image/(?:jpeg|png|webp);base64,([A-Za-z0-9+/=]+)$"
+    r"^data:image/(jpeg|png|webp);base64,([A-Za-z0-9+/=]+)$"
 )
 
 
@@ -125,24 +127,100 @@ def _draw_extra_text(page: fitz.Page, item: dict):
     )
 
 
-def _local_image_bytes(content: dict) -> bytes | None:
-    """Decode only a user-uploaded inline JPG, PNG, or WebP image."""
-    data_url = str(content.get("localImageDataUrl") or "").strip()
-    if not data_url:
+def _decode_local_image_data_url(data_url) -> tuple[bytes, str] | None:
+    """Decode one bounded inline JPG, PNG, or WebP image."""
+    value = str(data_url or "").strip()
+    if not value:
         return None
-    # Reject obviously oversized payloads before base64 decoding.
-    if len(data_url) > (MAX_LOCAL_IMAGE_BYTES * 4 // 3) + 4096:
+    if len(value) > (MAX_LOCAL_IMAGE_BYTES * 4 // 3) + 4096:
         return None
-    match = LOCAL_IMAGE_DATA_RE.fullmatch(data_url)
+    match = LOCAL_IMAGE_DATA_RE.fullmatch(value)
     if match is None:
         return None
     try:
-        raw = base64.b64decode(match.group(1), validate=True)
+        raw = base64.b64decode(match.group(2), validate=True)
     except (binascii.Error, ValueError):
         return None
     if not raw or len(raw) > MAX_LOCAL_IMAGE_BYTES:
         return None
-    return raw
+    return raw, match.group(1)
+
+
+def _local_image_bytes(content: dict) -> bytes | None:
+    """Backward-compatible decoder for the original single divider image."""
+    decoded = _decode_local_image_data_url(content.get("localImageDataUrl"))
+    return decoded[0] if decoded else None
+
+
+def _local_image_layers(content: dict) -> list[dict]:
+    layers = content.get("localImageLayers")
+    if not isinstance(layers, list):
+        return []
+    result: list[dict] = []
+    total_bytes = 0
+    for item in layers[:MAX_LOCAL_IMAGE_LAYERS]:
+        if not isinstance(item, dict):
+            continue
+        decoded = _decode_local_image_data_url(item.get("dataUrl"))
+        if decoded is None:
+            continue
+        raw, image_type = decoded
+        if total_bytes + len(raw) > MAX_TOTAL_LOCAL_IMAGE_BYTES:
+            break
+        total_bytes += len(raw)
+        result.append({
+            "raw": raw,
+            "type": image_type,
+            "x": _number(item.get("x"), 50, 0, 100),
+            "y": _number(item.get("y"), 50, 0, 100),
+            "scale": _number(item.get("scale"), 100, 10, 300),
+            "fit": "cover" if str(item.get("fit") or "").lower() == "cover" else "contain",
+        })
+    return result
+
+
+def _image_dimensions(raw: bytes, image_type: str) -> tuple[float, float] | None:
+    try:
+        image_doc = fitz.open(stream=raw, filetype=image_type)
+        try:
+            if image_doc.page_count < 1:
+                return None
+            rect = image_doc[0].rect
+            if rect.width <= 0 or rect.height <= 0:
+                return None
+            return float(rect.width), float(rect.height)
+        finally:
+            image_doc.close()
+    except Exception:
+        return None
+
+
+def _insert_image_layer(page: fitz.Page, layer: dict) -> bool:
+    dimensions = _image_dimensions(layer["raw"], layer["type"])
+    if dimensions is None:
+        return False
+    image_w, image_h = dimensions
+    page_w, page_h = page.rect.width, page.rect.height
+    if layer["fit"] == "cover":
+        base_scale = max(page_w / image_w, page_h / image_h)
+    else:
+        base_scale = min(page_w / image_w, page_h / image_h)
+    scale = base_scale * layer["scale"] / 100
+    draw_w = image_w * scale
+    draw_h = image_h * scale
+    center_x = page.rect.x0 + page_w * layer["x"] / 100
+    center_y = page.rect.y0 + page_h * layer["y"] / 100
+    target = fitz.Rect(
+        center_x - draw_w / 2,
+        center_y - draw_h / 2,
+        center_x + draw_w / 2,
+        center_y + draw_h / 2,
+    )
+    try:
+        page.insert_image(target, stream=layer["raw"], keep_proportion=True, overlay=True)
+        return True
+    except Exception:
+        return False
 
 
 def render_divider_page(out_doc: fitz.Document, content_raw: str, style: str, paper_w_pt: float, paper_h_pt: float):
@@ -166,16 +244,27 @@ def render_divider_page(out_doc: fitz.Document, content_raw: str, style: str, pa
     note_y = paper_h_pt * _number(note_y_pct, 88, 0, 100) / 100
     page = out_doc.new_page(width=paper_w_pt, height=paper_h_pt)
 
-    local_image = _local_image_bytes(content)
-    if local_image:
-        try:
-            page.insert_image(page.rect, stream=local_image, keep_proportion=False, overlay=True)
-        except Exception:
-            local_image = None
-    if local_image is None and not no_bg:
+    # A divider without a selected background is always plain white.
+    if not no_bg:
         page.draw_rect(page.rect, color=None, fill=bg, overlay=True)
 
-    has_visual_background = local_image is not None or not no_bg
+    layers = _local_image_layers(content)
+    inserted_layers = 0
+    for layer in layers:
+        if _insert_image_layer(page, layer):
+            inserted_layers += 1
+
+    # Old saved dividers without localImageLayers keep their original full-page behavior.
+    legacy_image = None
+    if not layers:
+        legacy_image = _local_image_bytes(content)
+        if legacy_image:
+            try:
+                page.insert_image(page.rect, stream=legacy_image, keep_proportion=False, overlay=True)
+            except Exception:
+                legacy_image = None
+
+    has_visual_background = inserted_layers > 0 or legacy_image is not None or not no_bg
     if has_visual_background and resolved_style == "band":
         page.draw_rect(
             fitz.Rect(0, paper_h_pt * 0.34, paper_w_pt, paper_h_pt * 0.66),
