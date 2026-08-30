@@ -66,13 +66,15 @@ def test_home_catalog_overrides_static_default_only_after_public_catalog_load():
         "db.collection('settings').doc(DOC_ID).get()",
         "ProgramCatalogCore.publicCatalog",
         "Object.keys(CATEGORIES).forEach",
-        "Object.assign(CATEGORIES, next)",
-        "nav.replaceChildren()",
+        "Object.assign(CATEGORIES,next)",
+        "replaceChildren()",
         "buildNav()",
-        "switchCategory(first, false)",
+        "switchCategory(first,false)",
         "admin-managed-home-navigation-and-programs",
-        "escapeHtml(program.name)",
-        "safeBreaks(category.copy)",
+        "esc(p.name)",
+        "breaks(c.copy)",
+        "decorateProgramIcons",
+        "<svg viewBox=",
     ):
         assert marker in source
 

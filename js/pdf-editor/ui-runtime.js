@@ -1,12 +1,11 @@
-// Unified loader for PDF editor workflow and three-pane workspace UI.
+// Unified loader for the PDF editor's always-visible sidebar UI.
 (function(){
   'use strict';
   if(window.__pdfEditorUiRuntimeV1)return;
   window.__pdfEditorUiRuntimeV1=true;
 
   const MODULES=Object.freeze([
-    {id:'pdfEditorWorkflowUiScriptV1',src:'/js/pdf-editor/workflow-ui.js?v=20260828-1',global:'PdfEditorWorkflowUi'},
-    {id:'pdfEditorWorkspaceLayoutScriptV1',src:'/js/pdf-editor/workspace-layout.js?v=20260828-1',global:'PdfEditorWorkspaceLayout'}
+    {id:'pdfEditorSimpleSidebarUiScriptV1',src:'/js/pdf-editor/simple-sidebar-ui.js?v=20260830-1',global:'PdfEditorSimpleSidebarUi'}
   ]);
   const loading=new Map();
 
@@ -64,6 +63,6 @@
     loadAll,
     sync,
     modules:MODULES.map(({id,src,global})=>({id,src,global})),
-    stage:'pdf-editor-ui-runtime-manifest-v1'
+    stage:'pdf-editor-always-visible-sidebar-runtime-v2'
   };
 })();
