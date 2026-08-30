@@ -78,7 +78,8 @@ def test_pdf_loader_is_enhancement_bootstrap_and_core_manifest_owns_eight_module
 
 def test_pdf_route_manifest_owns_route_helpers_without_editor_state_takeover():
     route = text("js/pdf-editor/route-runtime.js")
-    assert route.count("{id:") == 18
+    assert route.count("{id:") == 19
+    assert "/js/pdf-editor/booklet-menu-polish.js?v=20260830-1" in route
     assert "ProgramStudioPdfEditorRuntimeContext" in route
     assert "Promise.all(pending)" in route
     assert "pdf-editor-route-runtime-manifest-v1" in route
