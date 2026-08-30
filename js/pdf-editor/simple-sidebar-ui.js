@@ -31,23 +31,34 @@
       body[data-program-kind="pdf-editor"] .sec-head .sec-arrow{display:none!important}
       body[data-program-kind="pdf-editor"] .sec-body,body[data-program-kind="pdf-editor"] .sec-body.hidden{display:block!important;padding:10px 11px 11px!important}
       body[data-program-kind="pdf-editor"] #thumbSection[style*="display:none"]{display:none!important}
-      body[data-program-kind="pdf-editor"] .ps-sidebar-toggle,body[data-program-kind="pdf-editor"] .ps-tool-sidebar-shell,body[data-program-kind="pdf-editor"] .ps-tool-rail,body[data-program-kind="pdf-editor"] .ps-tool-panel-head,body[data-program-kind="pdf-editor"] #pdfWorkflowHead,body[data-program-kind="pdf-editor"] #pdfResultBar,body[data-program-kind="pdf-editor"] #pdfOutputRail,body[data-program-kind="pdf-editor"] #pdfEditorWorkflowV2,body[data-program-kind="pdf-editor"] #pdfEditorWorkflowErrorV2,body[data-program-kind="pdf-editor"] #pdfOutputSummaryV2{display:none!important}
+      body[data-program-kind="pdf-editor"] .ps-tool-sidebar-shell{display:block!important;height:auto!important;min-height:0!important;background:transparent!important}
+      body[data-program-kind="pdf-editor"] .ps-tool-sidebar-shell>.ps-tool-panel{display:block!important;min-height:0!important;overflow:visible!important;padding:0!important;background:transparent!important}
+      body[data-program-kind="pdf-editor"] .ps-sidebar-toggle,body[data-program-kind="pdf-editor"] .ps-tool-rail,body[data-program-kind="pdf-editor"] .ps-tool-panel-head,body[data-program-kind="pdf-editor"] #pdfWorkflowHead,body[data-program-kind="pdf-editor"] #pdfResultBar,body[data-program-kind="pdf-editor"] #pdfOutputRail,body[data-program-kind="pdf-editor"] #pdfEditorWorkflowV2,body[data-program-kind="pdf-editor"] #pdfEditorWorkflowErrorV2,body[data-program-kind="pdf-editor"] #pdfOutputSummaryV2{display:none!important}
       @media(max-width:980px){body[data-program-kind="pdf-editor"]{overflow:auto!important}body[data-program-kind="pdf-editor"] .app{grid-template-columns:1fr!important;height:auto!important;min-height:100vh!important}body[data-program-kind="pdf-editor"] .app>aside:first-of-type,body[data-program-kind="pdf-editor"] .app>main{grid-column:1!important;width:100%!important;height:auto!important;position:relative!important;overflow:visible!important}}
     `;
     document.head.appendChild(style);
   }
 
-  function restoreToolRail(){
+  function neutralizeToolRail(){
     const sidebar=document.querySelector('.app>aside:first-of-type');
     const shell=sidebar?.querySelector(':scope>.ps-tool-sidebar-shell');
     if(!sidebar||!shell)return;
-    const panel=shell.querySelector('.ps-tool-panel'),actions=sidebar.querySelector(':scope>.program-local-actions');
+
+    // A late legacy tool-rail may already own MutationObservers that move direct
+    // sidebar children back into its panel. Removing that shell would then let
+    // those observers move every restored section into a detached node. Keep the
+    // containment alive, force its own state to "all", and flatten it visually.
+    try{window.ProgramStudioEditorToolRail?.showAll?.();}catch(error){console.warn('[pdf-sidebar] legacy tool rail showAll failed',error);}
+    const panel=shell.querySelector('.ps-tool-panel');
     if(panel){
-      const anchor=actions?.nextSibling||shell;
-      [...panel.children].filter(node=>!node.classList.contains('ps-tool-panel-head')).forEach(node=>sidebar.insertBefore(node,anchor));
+      [...panel.children].forEach(node=>{
+        if(!(node instanceof HTMLElement)||node.classList.contains('ps-tool-panel-head'))return;
+        node.hidden=false;
+        node.removeAttribute('data-ps-tool-step');
+      });
     }
-    shell.remove();
-    sidebar.classList.remove('ps-tool-rail-mounted');
+    shell.dataset.pdfSidebarLegacyContainment='1';
+    sidebar.classList.remove('ps-sidebar-collapsed');
     document.getElementById('programStudioEditorToolRailV1Styles')?.remove();
   }
 
@@ -61,7 +72,9 @@
 
   function removeLegacyUi(){
     document.querySelectorAll('.ps-sidebar-toggle,#pdfWorkflowHead,#pdfResultBar,#pdfEditorWorkflowV2,#pdfEditorWorkflowErrorV2,#pdfOutputSummaryV2').forEach(node=>node.remove());
-    document.querySelector('.app>aside:first-of-type')?.classList.remove('ps-sidebar-collapsed','ps-tool-rail-mounted');
+    const sidebar=document.querySelector('.app>aside:first-of-type');
+    sidebar?.classList.remove('ps-sidebar-collapsed');
+    sidebar?.removeAttribute('aria-hidden');
     document.documentElement.classList.remove('ps-sidebar-collapsed');
     document.body?.classList.remove('ps-sidebar-collapsed');
     document.body?.removeAttribute('data-pdf-workflow');
@@ -69,13 +82,19 @@
     document.documentElement.removeAttribute('data-pdf-workflow-ui');
     document.documentElement.removeAttribute('data-pdf-workspace-layout');
     document.documentElement.dataset.pdfAdvanced='1';
-    try{localStorage.removeItem('program-studio:pdf-editor:sidebar-collapsed');localStorage.setItem('program-studio:pdf-editor:advanced','1');}catch(_){}
+    try{
+      localStorage.removeItem('program-studio:pdf-editor:sidebar-collapsed');
+      localStorage.removeItem('program-studio:sidebar:pdf-editor');
+      localStorage.setItem('program-studio:pdf-editor:advanced','1');
+    }catch(_){}
   }
 
   function keepSectionsOpen(){
     document.querySelectorAll('.app>aside .sec').forEach(sec=>{
-      sec.classList.remove('pdf-step-section','pdf-advanced-section','pdf-output-dock-v2');
+      sec.hidden=false;
+      sec.classList.remove('pdf-step-section','pdf-advanced-section','pdf-output-dock-v2','ps-tool-source','ps-tool-context-hidden');
       sec.removeAttribute('data-pdf-step');
+      sec.removeAttribute('data-ps-tool-step');
       const head=sec.querySelector(':scope>.sec-head'),body=sec.querySelector(':scope>.sec-body');
       head?.classList.remove('collapsed');body?.classList.remove('hidden');
       if(head){head.setAttribute('aria-expanded','true');head.removeAttribute('role');}
@@ -92,8 +111,8 @@
 
   function sync(){
     observer?.disconnect?.();
-    try{installStyles();restoreToolRail();restoreOutputRail();removeLegacyUi();keepSectionsOpen();compactLogout();document.body.dataset.pdfSidebarMode='all-visible';document.documentElement.dataset.pdfSimpleSidebarUi='1';}
-    finally{observer?.observe(document.querySelector('.app')||document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['class','style']});}
+    try{installStyles();neutralizeToolRail();restoreOutputRail();removeLegacyUi();keepSectionsOpen();compactLogout();document.body.dataset.pdfSidebarMode='all-visible';document.documentElement.dataset.pdfSimpleSidebarUi='1';}
+    finally{observer?.observe(document.querySelector('.app')||document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['class','style','hidden','aria-hidden']});}
   }
 
   function blockToggle(event){
@@ -102,9 +121,9 @@
     head.classList.remove('collapsed');head.parentElement?.querySelector(':scope>.sec-body')?.classList.remove('hidden');
   }
   function queue(){if(frame)return;frame=requestAnimationFrame(()=>{frame=0;sync();});}
-  function boot(){if(typeof MutationObserver==='function')observer=new MutationObserver(queue);document.addEventListener('click',blockToggle,true);sync();[80,220,600,1200].forEach(delay=>setTimeout(queue,delay));}
+  function boot(){if(typeof MutationObserver==='function')observer=new MutationObserver(queue);document.addEventListener('click',blockToggle,true);sync();[80,220,600,1200,2200].forEach(delay=>setTimeout(queue,delay));}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 
-  const api={sync,stage:'single-sidebar-all-controls-visible-v2'};
+  const api={sync,stage:'single-sidebar-all-controls-visible-v3'};
   window.PdfEditorSimpleSidebarUi=api;window.PdfEditorWorkflowUi=api;window.PdfEditorWorkspaceLayout=api;
 })();
