@@ -61,22 +61,22 @@ def test_design_document_type_is_canonical_with_legacy_compatibility():
     assert "professional-workspace-result-first-v2" in professional
 
 
-def test_pdf_workspace_moves_output_settings_to_a_real_right_rail_without_replacing_core_actions():
-    workspace = text("js/pdf-editor/workspace-layout.js")
+def test_pdf_workspace_keeps_every_control_in_one_always_visible_sidebar():
+    sidebar = text("js/pdf-editor/simple-sidebar-ui.js")
     ui_runtime = text("js/pdf-editor/ui-runtime.js")
     shell = text("js/program-shell-unify.js")
     for marker in (
-        "three-pane-output-settings-v1",
-        "pdfOutputRail",
-        "sectionByKey('paper')",
-        "sectionByKey('edit')",
-        "outputSection()",
-        "rail.appendChild(paper)",
-        "rail.appendChild(edit)",
-        "rail.appendChild(output)",
-        'data-pdf-workspace="three-pane"',
+        "single-sidebar-all-controls-visible-v2",
+        "restoreToolRail()",
+        "restoreOutputRail()",
+        "keepSectionsOpen()",
+        "flex-wrap:nowrap!important",
+        ".sec-body.hidden{display:block!important",
+        ".ps-sidebar-toggle",
+        "pdf-output-dock-v2",
+        "aria-label','로그아웃",
     ):
-        assert marker in workspace
+        assert marker in sidebar
     for forbidden in (
         "parsedPages =",
         "uploadedFiles =",
@@ -85,9 +85,11 @@ def test_pdf_workspace_moves_output_settings_to_a_real_right_rail_without_replac
         "eval(",
         "setInterval(",
     ):
-        assert forbidden not in workspace
-    assert "/js/pdf-editor/workspace-layout.js?v=20260828-1" in ui_runtime
+        assert forbidden not in sidebar
+    assert "/js/pdf-editor/simple-sidebar-ui.js?v=20260830-1" in ui_runtime
+    assert "/js/pdf-editor/workspace-layout.js" not in ui_runtime
+    assert "/js/pdf-editor/workflow-ui.js" not in ui_runtime
     assert "/js/pdf-editor/ui-runtime.js?v=${PDF_UI_RUNTIME_VERSION}" in shell
-    assert "workspaceStage:'pdf-three-pane-output-settings-v1'" in shell
-    assert "uiRuntimeStage:'pdf-editor-ui-runtime-manifest-v1'" in shell
+    assert "workspaceStage:'pdf-single-sidebar-v2'" in shell
+    assert "uiRuntimeStage:'pdf-editor-always-visible-sidebar-runtime-v2'" in shell
     assert "stage:'pdf-tools-headerless-unified-shell'" in shell
