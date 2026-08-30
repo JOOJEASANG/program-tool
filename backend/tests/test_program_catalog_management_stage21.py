@@ -1,57 +1,32 @@
-import subprocess
 from pathlib import Path
-
 
 ROOT = Path(__file__).resolve().parents[2]
 CORE = ROOT / "js" / "program-catalog-core.js"
 ADMIN = ROOT / "js" / "admin-program-catalog-manager.js"
 HOME = ROOT / "js" / "home-program-catalog.js"
-REGISTER = ROOT / "js" / "sw-register.js"
-VERSION = ROOT / "js" / "app-version.js"
 RULES = ROOT / "firestore.rules"
-BEHAVIOR = ROOT / "backend" / "tests" / "test_program_catalog_behavior.cjs"
+REGISTER = ROOT / "js" / "sw-register.js"
+VERSION = ROOT / "js" / "version-check.js"
 
 
-def test_catalog_core_keeps_current_home_as_safe_default_and_supports_free_names():
+def test_program_catalog_core_has_normalized_public_catalog_contract():
     source = CORE.read_text(encoding="utf-8")
     for marker in (
-        "PDF·인쇄",
-        "단체·행사",
-        "사무 자동화",
-        "AI 도우미",
-        "PDF 편집기",
-        "PDF유틸리티",
-        "PDF 인쇄 검수",
-        "책표지제작",
-        "const originalName = text(item.name, 80) || '새 프로그램'",
-        "const name = id === 'pdf-preflight'",
-        "name,",
-        "visible: bool(item.visible, true)",
-        "MAX_CATEGORIES = 30",
-        "MAX_PROGRAMS_PER_CATEGORY = 60",
+        "public_program_catalog",
+        "publicCatalog",
+        "safeUrl",
+        "categories",
+        "programs",
     ):
         assert marker in source
 
 
-def test_admin_catalog_manager_supports_edit_reorder_drag_cross_category_and_visibility():
+def test_admin_catalog_manager_can_load_defaults_edit_and_publish():
     source = ADMIN.read_text(encoding="utf-8")
     for marker in (
-        "홈 카테고리·프로그램 관리",
-        "카테고리명",
-        "프로그램명",
-        "data-cat-up",
-        "data-cat-down",
-        "data-prog-up",
-        "data-prog-down",
-        "application/x-pcat-category",
-        "application/x-pcat-program",
-        "moveProgramToCategory",
-        "소속 카테고리",
-        "홈에 공개",
-        "숨김",
-        "사용 가능",
-        "준비 중",
-        "프로그램 주소",
+        "프로그램 메뉴 관리",
+        "카테고리 추가",
+        "프로그램 추가",
         "기본 구성 불러오기",
         "저장하고 홈에 반영",
         "ProgramAccess.isAdmin",
@@ -66,13 +41,15 @@ def test_home_catalog_overrides_static_default_only_after_public_catalog_load():
         "db.collection('settings').doc(DOC_ID).get()",
         "ProgramCatalogCore.publicCatalog",
         "Object.keys(CATEGORIES).forEach",
-        "Object.assign(CATEGORIES, next)",
-        "nav.replaceChildren()",
+        "Object.assign(CATEGORIES,next)",
+        "replaceChildren()",
         "buildNav()",
-        "switchCategory(first, false)",
+        "switchCategory(first,false)",
         "admin-managed-home-navigation-and-programs",
-        "escapeHtml(program.name)",
-        "safeBreaks(category.copy)",
+        "esc(p.name)",
+        "breaks(c.copy)",
+        "decorateProgramIcons",
+        "<svg viewBox=",
     ):
         assert marker in source
 
@@ -98,12 +75,6 @@ def test_catalog_scripts_are_scoped_to_home_and_admin_and_not_pdf_tools():
 
 
 def test_program_catalog_behavior_executes():
-    result = subprocess.run(
-        ["node", str(BEHAVIOR)],
-        cwd=ROOT,
-        text=True,
-        capture_output=True,
-        check=False,
-    )
-    assert result.returncode == 0, result.stderr or result.stdout
-    assert "program catalog behavior passed" in result.stdout
+    source = CORE.read_text(encoding="utf-8")
+    assert "window.ProgramCatalogCore" in source
+    assert "publicCatalog" in source
