@@ -17,6 +17,15 @@
 
   const context=()=>window.ProgramStudioPdfEditorRuntimeContext||{};
 
+  function ensureBookletStylesheet(){
+    if(document.getElementById('pdfBookletMenuSafeCssV1'))return;
+    const link=document.createElement('link');
+    link.id='pdfBookletMenuSafeCssV1';
+    link.rel='stylesheet';
+    link.href='/css/pdf-booklet-menu-safe.css?v=20260830-1';
+    document.head.appendChild(link);
+  }
+
   function fallbackLoad(id,src){
     const existing=document.getElementById(id);
     if(existing&&existing.dataset.loaded==='true')return Promise.resolve(true);
@@ -39,6 +48,7 @@
   }
 
   function loadAll(){
+    ensureBookletStylesheet();
     const seen=new Set();
     const pending=[];
     for(const entry of MODULES){
