@@ -19,12 +19,17 @@
   function isPdfPrintEditor(){return ['/tools/pdf-editor.html','/pdf-editor','/pdf-editor/index.html'].some(item=>path.endsWith(item));}
 
   function loadRuntimeScript(id,src,enabled){
-    if(!enabled||document.getElementById(id))return;
+    if(!enabled)return null;
+    const existing=document.getElementById(id);
+    if(existing)return existing;
     const script=document.createElement('script');
     script.id=id;
     script.src=src;
     script.async=false;
+    script.addEventListener('load',()=>{script.dataset.loaded='true';},{once:true});
+    script.addEventListener('error',()=>{script.dataset.failed='error';},{once:true});
     document.head.appendChild(script);
+    return script;
   }
   function loadDesignRuntimeScript(id,src){loadRuntimeScript(id,src,isGeneralDesignEditor());}
 
@@ -35,6 +40,9 @@
   loadDesignRuntimeScript('designShapeInspectorUxScriptV1','/js/design-editor/shape-inspector-ux.js?v=20260827-1');
   loadDesignRuntimeScript('designPrintProductionStage2ScriptV1','/js/design-editor/print-production-stage2.js?v=20260826-1');
   loadRuntimeScript('pdfPrintWorkflowFocusScriptV1','/js/pdf-editor/print-workflow-focus.js?v=20260827-1',isPdfPrintEditor());
+  // Prime only the lightweight current preflight presentation. The canonical
+  // runtime still owns the full module chain and will reuse this loaded script.
+  loadRuntimeScript('pdfPreflightPanelBalanceScriptV1','/js/pdf-preflight-panel-balance.js?v=20260831-3',protectedProgram==='preflight');
 
   let revealed=false;
   let style=null;
