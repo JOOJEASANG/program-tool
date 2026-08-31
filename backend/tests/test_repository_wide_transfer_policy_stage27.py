@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 
 from routers import pdf_utility as pdf_utility_router
@@ -9,6 +10,7 @@ APP_VERSION = ROOT / "js" / "app-version.js"
 DIVIDER_UPLOAD = ROOT / "js" / "pdf-divider-local-image-upload.js"
 EDITOR_POLICY = ROOT / "js" / "pdf-editor" / "transfer-limit-guard.js"
 SESSION_SAVE = ROOT / "js" / "pdf-editor" / "session-save-safety.js"
+UTILITY_POLICY = ROOT / "js" / "pdf-utility-cost-policy-hardening.js"
 ADMIN_GUARD = ROOT / "js" / "admin-program-catalog-nav-guard.js"
 STORAGE_RULES = ROOT / "storage.rules"
 STORAGE_LIFECYCLE = ROOT / "storage-lifecycle.json"
@@ -18,15 +20,23 @@ PDF_UTILITY = ROOT / "backend" / "routers" / "pdf_utility.py"
 MB = 1024 * 1024
 
 
-def test_storage_backed_pdf_policy_is_500mb_with_bounded_compute():
-    assert pdf_utility_router.MAX_FILE_BYTES == 500 * MB
-    assert pdf_utility_router.MAX_TOTAL_BYTES == 500 * MB
+def executable_js(path: Path) -> str:
+    source = path.read_text(encoding="utf-8")
+    source = re.sub(r"/\*.*?\*/", "", source, flags=re.S)
+    source = re.sub(r"//[^\n]*", "", source)
+    return source
+
+
+def test_storage_backed_pdf_policy_is_200mb_file_300mb_job_with_bounded_compute():
+    assert pdf_utility_router.MAX_FILE_BYTES == 200 * MB
+    assert pdf_utility_router.MAX_TOTAL_BYTES == 300 * MB
     assert pdf_utility_router.MAX_BACKGROUND_PAGES == 100
     assert pdf_utility_router.MAX_BACKGROUND_PIXELS == 90_000_000
     assert pdf_utility_router.BACKGROUND_DPI == 160
 
     main = MAIN.read_text(encoding="utf-8")
-    assert "PDF_STORAGE_TRANSFER_BYTES = 500 * 1024 * 1024" in main
+    assert "PDF_STORAGE_FILE_BYTES = 200 * MIB" in main
+    assert "PDF_STORAGE_TOTAL_BYTES = 300 * MIB" in main
     assert "min_instances=0" in main
     assert "max_instances=2" in main
 
@@ -45,17 +55,17 @@ def test_pdf_utility_large_storage_routes_use_disk_not_multi_file_memory_buffers
     assert "shutil.rmtree" in source
 
 
-def test_retired_cover_500mb_runtime_policy_is_removed():
+def test_retired_cover_large_file_runtime_policy_is_removed():
     assert not (ROOT / "js" / "cover-large-file-policy.js").exists()
     for source in (SW_REGISTER.read_text(encoding="utf-8"), APP_VERSION.read_text(encoding="utf-8")):
         assert "cover-large-file-policy.js" not in source
         assert "coverLargeFilePolicyScriptV1" not in source
 
 
-def test_divider_source_upload_accepts_500mb_then_bounded_internal_embedding():
+def test_divider_source_upload_is_local_only_and_internal_embedding_is_bounded():
     source = DIVIDER_UPLOAD.read_text(encoding="utf-8")
-    assert "MAX_SOURCE_BYTES = 500 * 1024 * 1024" in source
     assert "MAX_EMBED_BYTES = 5 * 1024 * 1024" in source
+    assert "MAX_TOTAL_EMBED_BYTES = 15 * 1024 * 1024" in source
     assert "MAX_SOURCE_PIXELS = 80_000_000" in source
     assert "MAX_EMBED_PIXELS = 20_000_000" in source
     assert "createImageBitmap" in source
@@ -65,23 +75,28 @@ def test_divider_source_upload_accepts_500mb_then_bounded_internal_embedding():
     assert "maxEmbeddedBytes: MAX_EMBED_BYTES" in source
 
 
-def test_pdf_editor_and_persistent_session_each_enforce_500mb_working_set():
+def test_pdf_editor_session_and_utility_enforce_cost_bounded_working_sets():
     editor = EDITOR_POLICY.read_text(encoding="utf-8")
     session = SESSION_SAVE.read_text(encoding="utf-8")
+    utility = UTILITY_POLICY.read_text(encoding="utf-8")
 
-    assert "MAX_FILE_BYTES = 500 * 1024 * 1024" in editor
-    assert "MAX_TOTAL_BYTES = 500 * 1024 * 1024" in editor
+    assert "MAX_FILE_BYTES = 200 * 1024 * 1024" in editor
+    assert "MAX_TOTAL_BYTES = 300 * 1024 * 1024" in editor
     assert "document.addEventListener('change', onChange, true)" in editor
     assert "document.addEventListener('drop', onDrop, true)" in editor
 
-    assert "MAX_SESSION_BYTES = 500 * 1024 * 1024" in session
+    assert "MAX_FILE_BYTES = 200 * 1024 * 1024" in session
+    assert "MAX_SESSION_BYTES = 300 * 1024 * 1024" in session
     assert "totalBytes: snapshotMeta.totalBytes" in session
-    assert "원본 PDF 전체 합계는 최대 500MB" in session
+    assert "원본 PDF 전체 합계는 최대 300MB" in session
+
+    assert "const MAX_FILE_BYTES=200*1024*1024" in utility
+    assert "const MAX_TOTAL_BYTES=300*1024*1024" in utility
 
 
 def test_storage_rules_gate_owner_staging_with_matching_program_access():
     rules = STORAGE_RULES.read_text(encoding="utf-8")
-    assert "request.resource.size <= 524288000" in rules
+    assert "validPdfUpload(209715200)" in rules
 
     pdf_temp = rules[rules.index("match /pdf_temp/"):rules.index("match /preflight_temp/")]
     preflight_temp = rules[rules.index("match /preflight_temp/"):rules.index("match /pdf_sessions/")]
@@ -89,12 +104,14 @@ def test_storage_rules_gate_owner_staging_with_matching_program_access():
     assert "allow read: if isOwner(userId) && canUseProgram('pdf-editor');" in pdf_temp
     assert "allow delete: if isOwner(userId);" in pdf_temp
     assert "canUseProgram('pdf-editor')" in pdf_temp
-    assert "isPdfUpload()" in pdf_temp
+    assert "validPdfUpload(209715200)" in pdf_temp
+    assert "allow update: if false;" in pdf_temp
 
     assert "allow read: if isOwner(userId) && canUseProgram('preflight');" in preflight_temp
     assert "allow delete: if isOwner(userId);" in preflight_temp
     assert "canUseProgram('preflight')" in preflight_temp
-    assert "isPdfUpload()" in preflight_temp
+    assert "validPdfUpload(209715200)" in preflight_temp
+    assert "allow update: if false;" in preflight_temp
 
     main = MAIN.read_text(encoding="utf-8")
     assert "require_program_access_for_request" in main
@@ -106,23 +123,24 @@ def test_storage_rules_gate_owner_staging_with_matching_program_access():
 
 def test_persistent_pdf_sessions_are_not_accidentally_put_in_temp_lifecycle():
     lifecycle = STORAGE_LIFECYCLE.read_text(encoding="utf-8")
+    main = MAIN.read_text(encoding="utf-8")
     assert '"pdf_temp/"' in lifecycle
     assert '"preflight_temp/"' in lifecycle
     assert '"pdf_results/"' in lifecycle
     assert '"pdf_sessions/"' not in lifecycle
+    assert 'schedule="every 24 hours"' in main
+    assert '"pdf_sessions"' in main
+    assert '"design_projects"' in main
 
 
-def test_active_runtime_loaders_apply_pdf_transfer_guards_without_retired_cover_policy():
-    sw = SW_REGISTER.read_text(encoding="utf-8")
-    app = APP_VERSION.read_text(encoding="utf-8")
-    markers = (
-        "admin-program-catalog-nav-guard.js",
-        "pdf-editor/transfer-limit-guard.js",
-        "pdf-divider-local-image-upload.js?v=20260818-2",
-    )
-    for marker in markers:
-        assert marker in sw
-        assert marker in app
+def test_active_runtime_uses_single_pdf_owner_while_compatibility_markers_remain_non_executable():
+    sw = executable_js(SW_REGISTER)
+    app = executable_js(APP_VERSION)
+    assert "/js/pdf-editor/route-runtime.js?v=20260828-1" in sw
+    assert "pdf-editor/transfer-limit-guard.js" not in sw
+    assert "pdf-divider-local-image-upload.js" not in sw
+    assert "pdfEditorTransferLimitGuardScriptV1" not in app
+    assert "pdfDividerLocalImageUploadScriptV1" not in app
     assert "cover-large-file-policy.js" not in sw
     assert "cover-large-file-policy.js" not in app
 
