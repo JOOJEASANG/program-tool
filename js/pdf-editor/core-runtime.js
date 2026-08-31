@@ -26,6 +26,15 @@
     document.head.appendChild(link);
   }
 
+  function installUploadOrderModeSafety(){
+    if(window.__pdfUploadOrderModeSafetyV1)return;
+    window.__pdfUploadOrderModeSafetyV1=true;
+    document.addEventListener('click',event=>{
+      if(!event.target?.closest?.('.mode-btn,#uploadZone'))return;
+      window.__pdfUploadOrderRequestedMode='';
+    },true);
+  }
+
   function fallbackLoad(id,src){
     const existing=document.getElementById(id);
     if(existing&&existing.dataset.loaded==='true')return Promise.resolve(true);
@@ -56,6 +65,7 @@
 
   function loadAll(){
     ensureBookletStylesheet();
+    installUploadOrderModeSafety();
     const seen=new Set();
     const pending=[];
     for(const entry of MODULES){
