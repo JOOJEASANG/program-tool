@@ -1,8 +1,8 @@
 // Re-assert PDF Utility branding and batch-check binding after legacy preflight guards finish.
 (function () {
   'use strict';
-  if (window.__pdfUtilityFinalizeV1) return;
-  window.__pdfUtilityFinalizeV1 = true;
+  if (window.__pdfUtilityFinalizeV2) return;
+  window.__pdfUtilityFinalizeV2 = true;
 
   const path = location.pathname.replace(/\/+$/, '') || '/';
   if (!(path === '/pdf-preflight' || path.endsWith('/pdf-preflight/index.html') || path.endsWith('/tools/pdf-Checker.html') || path.endsWith('/tools/preflight.html'))) return;
@@ -57,12 +57,25 @@
     document.head.appendChild(script);
   }
 
+  function loadCostPolicyHardening() {
+    if (document.getElementById('pdfUtilityCostPolicyHardeningScriptV1')) return;
+    const script = document.createElement('script');
+    script.id = 'pdfUtilityCostPolicyHardeningScriptV1';
+    script.src = '/js/pdf-utility-cost-policy-hardening.js?v=20260831-1';
+    script.async = false;
+    document.head.appendChild(script);
+  }
+
   function loadCostGuard() {
-    if (document.getElementById('pdfUtilityCostGuardScriptV2')) return;
+    if (document.getElementById('pdfUtilityCostGuardScriptV2')) {
+      loadCostPolicyHardening();
+      return;
+    }
     const script = document.createElement('script');
     script.id = 'pdfUtilityCostGuardScriptV2';
     script.src = '/js/pdf-utility-cost-guard-v2.js?v=20260818-1';
     script.async = false;
+    script.addEventListener('load', loadCostPolicyHardening, { once: true });
     document.head.appendChild(script);
   }
 
@@ -87,7 +100,7 @@
     const hero = document.querySelector('.hero p');
     if (hero) hero.textContent = '여러 PDF를 한 번에 검사하고, 합치기·배경색 제거·용량 줄이기·복구·암호 작업까지 한 곳에서 처리하세요.';
     const uploadSub = document.querySelector('.upload-sub');
-    if (uploadSub) uploadSub.innerHTML = '클릭하거나 여러 PDF를 끌어다 놓으세요.<br>최대 10개 · 파일당/전체 합계 500MB · PDF 형식만 지원';
+    if (uploadSub) uploadSub.innerHTML = '클릭하거나 여러 PDF를 끌어다 놓으세요.<br>최대 10개 · 파일당 200MB · 전체 합계 300MB · PDF 형식만 지원';
     const input = document.getElementById('fileInput');
     if (input) {
       input.multiple = true;
