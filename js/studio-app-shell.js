@@ -23,6 +23,7 @@
   const error=byId('workspaceError');
   const engineChip=document.querySelector('.engine-chip');
   let timer=0;
+  let started=false;
 
   function setText(id,value){const node=byId(id);if(node)node.textContent=value;}
   function fail(message){
@@ -41,6 +42,7 @@
   }
   function load(){
     if(!app){fail('지원하지 않는 프로그램 주소입니다.');return;}
+    started=true;
     document.title=`${app.title} · Program Studio`;
     setText('appTitle',app.title);setText('appCategory',app.category);setText('appDescription',app.description);
     const legacy=byId('legacyLink');if(legacy){legacy.href=app.legacy;legacy.hidden=false;}
@@ -48,6 +50,17 @@
     loading?.classList.remove('hide');error&&(error.hidden=true);
     frame.src=app.target;
     clearTimeout(timer);timer=setTimeout(()=>fail('작업 엔진 응답이 늦습니다. 새로고침 후 다시 시도해 주세요.'),18000);
+  }
+  function startAfterAccess(){
+    const access=window.ProgramAccessReady;
+    if(access&&typeof access.then==='function'){
+      Promise.resolve(access).then(result=>{
+        if(result&&!started)load();
+      }).catch(()=>{});
+      return;
+    }
+    if(document.documentElement.dataset.accessReady==='true')load();
+    else setTimeout(startAfterAccess,40);
   }
 
   frame?.addEventListener('load',()=>{
@@ -66,7 +79,7 @@
   });
   frame?.addEventListener('error',()=>fail());
   byId('retryBtn')?.addEventListener('click',load);
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',load,{once:true});else load();
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',startAfterAccess,{once:true});else startAfterAccess();
 
-  window.ProgramStudioModularAppShell={apps:APPS,appKey:key,reload:load,stage:'modular-app-shell-v1'};
+  window.ProgramStudioModularAppShell={apps:APPS,appKey:key,reload:load,stage:'modular-app-shell-access-gated-v2'};
 })();
