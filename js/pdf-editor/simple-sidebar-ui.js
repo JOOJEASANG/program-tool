@@ -1,4 +1,4 @@
-// PDF editor: one sidebar, every control visible, no step/work-panel filtering.
+// PDF editor: one sidebar, with page-list collapse preserved while legacy rails stay disabled.
 (function(){
   'use strict';
   if(window.__pdfEditorSimpleSidebarUiV1)return;
@@ -31,6 +31,10 @@
       body[data-program-kind="pdf-editor"] .sec-head .sec-arrow{display:none!important}
       body[data-program-kind="pdf-editor"] .sec-body,body[data-program-kind="pdf-editor"] .sec-body.hidden{display:block!important;padding:10px 11px 11px!important}
       body[data-program-kind="pdf-editor"] #thumbSection[style*="display:none"]{display:none!important}
+      body[data-program-kind="pdf-editor"] #thumbSection>.sec-head{cursor:pointer!important}
+      body[data-program-kind="pdf-editor"] #thumbSection>.sec-head .sec-arrow{display:inline-block!important;margin-left:auto!important;transition:transform .2s ease!important}
+      body[data-program-kind="pdf-editor"] #thumbSection>.sec-head.collapsed .sec-arrow{transform:rotate(-90deg)!important}
+      body[data-program-kind="pdf-editor"] #thumbSection>#sb-pages.hidden{display:none!important}
       body[data-program-kind="pdf-editor"] .ps-tool-sidebar-shell{display:block!important;height:auto!important;min-height:0!important;background:transparent!important}
       body[data-program-kind="pdf-editor"] .ps-tool-sidebar-shell>.ps-tool-panel{display:block!important;min-height:0!important;overflow:visible!important;padding:0!important;background:transparent!important}
       body[data-program-kind="pdf-editor"] .ps-sidebar-toggle,body[data-program-kind="pdf-editor"] .ps-tool-rail,body[data-program-kind="pdf-editor"] .ps-tool-panel-head,body[data-program-kind="pdf-editor"] #pdfWorkflowHead,body[data-program-kind="pdf-editor"] #pdfResultBar,body[data-program-kind="pdf-editor"] #pdfOutputRail,body[data-program-kind="pdf-editor"] #pdfEditorWorkflowV2,body[data-program-kind="pdf-editor"] #pdfEditorWorkflowErrorV2,body[data-program-kind="pdf-editor"] #pdfOutputSummaryV2{display:none!important}
@@ -45,9 +49,7 @@
     if(!sidebar||!shell)return;
 
     // A late legacy tool-rail may already own MutationObservers that move direct
-    // sidebar children back into its panel. Removing that shell would then let
-    // those observers move every restored section into a detached node. Keep the
-    // containment alive, force its own state to "all", and flatten it visually.
+    // sidebar children back into its panel. Keep that containment alive and flat.
     try{window.ProgramStudioEditorToolRail?.showAll?.();}catch(error){console.warn('[pdf-sidebar] legacy tool rail showAll failed',error);}
     const panel=shell.querySelector('.ps-tool-panel');
     if(panel){
@@ -96,6 +98,13 @@
       sec.removeAttribute('data-pdf-step');
       sec.removeAttribute('data-ps-tool-step');
       const head=sec.querySelector(':scope>.sec-head'),body=sec.querySelector(':scope>.sec-body');
+      if(sec.id==='thumbSection'){
+        if(head&&body){
+          head.setAttribute('aria-expanded',body.classList.contains('hidden')?'false':'true');
+          head.removeAttribute('role');
+        }
+        return;
+      }
       head?.classList.remove('collapsed');body?.classList.remove('hidden');
       if(head){head.setAttribute('aria-expanded','true');head.removeAttribute('role');}
     });
@@ -111,12 +120,19 @@
 
   function sync(){
     observer?.disconnect?.();
-    try{installStyles();neutralizeToolRail();restoreOutputRail();removeLegacyUi();keepSectionsOpen();compactLogout();document.body.dataset.pdfSidebarMode='all-visible';document.documentElement.dataset.pdfSimpleSidebarUi='1';}
+    try{installStyles();neutralizeToolRail();restoreOutputRail();removeLegacyUi();keepSectionsOpen();compactLogout();document.body.dataset.pdfSidebarMode='all-visible-page-list-collapsible';document.documentElement.dataset.pdfSimpleSidebarUi='1';}
     finally{observer?.observe(document.querySelector('.app')||document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['class','style','hidden','aria-hidden']});}
   }
 
   function blockToggle(event){
     const head=event.target.closest?.('.app>aside .sec-head');if(!head)return;
+    if(head.closest('#thumbSection')){
+      setTimeout(()=>{
+        const body=head.parentElement?.querySelector(':scope>.sec-body');
+        if(body)head.setAttribute('aria-expanded',body.classList.contains('hidden')?'false':'true');
+      },0);
+      return;
+    }
     event.preventDefault();event.stopImmediatePropagation();
     head.classList.remove('collapsed');head.parentElement?.querySelector(':scope>.sec-body')?.classList.remove('hidden');
   }
@@ -124,6 +140,6 @@
   function boot(){if(typeof MutationObserver==='function')observer=new MutationObserver(queue);document.addEventListener('click',blockToggle,true);sync();[80,220,600,1200,2200].forEach(delay=>setTimeout(queue,delay));}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 
-  const api={sync,stage:'single-sidebar-all-controls-visible-v3'};
+  const api={sync,stage:'single-sidebar-page-list-collapsible-hotfix-v4'};
   window.PdfEditorSimpleSidebarUi=api;window.PdfEditorWorkflowUi=api;window.PdfEditorWorkspaceLayout=api;
 })();
