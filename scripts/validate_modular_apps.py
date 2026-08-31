@@ -33,6 +33,7 @@ def validate() -> None:
         "css/studio-app-shell.css",
         "js/studio-app-shell.js",
         "js/modular-app-access.js",
+        "js/design-editor/standalone-product-profile.js",
         "js/design-editor/product-boundary-ui.js",
         "js/pdf-editor/app-boundary.js",
         "tests/browser/modular-app-shell-smoke.html",
@@ -51,6 +52,9 @@ def validate() -> None:
     access = read("js/modular-app-access.js")
     home = read("js/home-program-catalog.js")
     design_core = read("js/design-editor/core-runtime.js")
+    design_shell = read("js/design-editor/shell-runtime.js")
+    design_profiles = read("js/design-editor/standalone-product-profile.js")
+    boundary_ui = read("js/design-editor/product-boundary-ui.js")
     pdf_boundary = read("js/pdf-editor/app-boundary.js")
     hosting = read("scripts/prepare_hosting_dist.py")
     browser_smoke = read("tests/browser/modular-app-shell-smoke.html")
@@ -68,6 +72,8 @@ def validate() -> None:
     for key in DESIGN_KEYS:
         if key not in access:
             errors.append(f"access adapter does not recognize design app {key}")
+        if f"{key}:Object.freeze(" not in design_profiles:
+            errors.append(f"standalone product profile is missing {key}")
     for key in PDF_KEYS:
         if key not in access:
             errors.append(f"access adapter does not recognize PDF app {key}")
@@ -78,6 +84,10 @@ def validate() -> None:
         or "return product==='cover'" not in design_core
     ):
         errors.append("cover-only design modules are not product scoped")
+    if "standalone-product-profile.js" not in design_shell or "activeProfile" not in design_shell:
+        errors.append("design shell does not use the standalone product profile layer")
+    if "DesignEditorStandaloneProducts" not in boundary_ui:
+        errors.append("product-boundary UI does not consume standalone product profiles")
     if "app!=='layout'&&app!=='booklet'" not in pdf_boundary or "if(app==='layout')" not in pdf_boundary:
         errors.append("PDF layout/booklet boundary is incomplete")
     if '"apps",' not in hosting:
@@ -102,7 +112,7 @@ def validate() -> None:
             print(f" - {error}", file=sys.stderr)
         raise SystemExit(1)
 
-    print("Modular app architecture OK: 8 standalone routes share canonical design/PDF engines and have browser coverage")
+    print("Modular app architecture OK: 8 standalone routes share canonical design/PDF engines, product profiles and browser coverage")
 
 
 if __name__ == "__main__":
