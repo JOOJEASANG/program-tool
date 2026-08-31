@@ -1,17 +1,19 @@
 // Canonical runtime owner for the PDF inspection + utility route.
 (function(){
   'use strict';
-  if(window.__pdfPreflightRouteRuntimeV1)return;
-  window.__pdfPreflightRouteRuntimeV1=true;
+  if(window.__pdfPreflightRouteRuntimeV2)return;
+  window.__pdfPreflightRouteRuntimeV2=true;
 
   const context=window.ProgramStudioPreflightRuntimeContext||{};
   const load=typeof context.load==='function'?context.load:null;
   if(!load)throw new Error('PDF preflight runtime loader context is unavailable');
 
-  // Functional modules load first. The newest workspace presentation is applied
-  // last so older feature helpers cannot overwrite it after the page is revealed.
+  // The current workspace shell is applied first so approved users are not kept
+  // behind a loading curtain while the heavier functional helpers are fetched.
+  // Older helpers no longer own branding/presentation, so this order is stable.
   const MODULES=Object.freeze([
     {id:'programShellUnifyScriptV1',src:'/js/program-shell-unify.js?v=20260824-1'},
+    {id:'pdfPreflightPanelBalanceScriptV1',src:'/js/pdf-preflight-panel-balance.js?v=20260831-2'},
     {id:'pdfCheckerFinalGuardScript',src:'/js/pdf-checker-final-guard.js?v=20260831-1'},
     {id:'pdfUtilityScriptV1',src:'/js/pdf-utility.js?v=20260831-1'},
     {id:'pdfUtilityMarginCropScriptV1',src:'/js/pdf-utility-margin-crop.js?v=20260819-1'},
@@ -27,8 +29,7 @@
     {id:'pdfPrintReadinessScriptV1',src:'/js/pdf-print-readiness.js?v=20260831-1'},
     {id:'pdfPrintAutoFixScriptV1',src:'/js/pdf-print-auto-fix.js?v=20260831-1'},
     {id:'pdfLargeOutputTilingScriptV1',src:'/js/pdf-large-output-tiling.js?v=20260831-1'},
-    {id:'pdfPreflightWorkflowV2Script',src:'/js/pdf-preflight/workflow-v2.js?v=20260831-1'},
-    {id:'pdfPreflightPanelBalanceScriptV1',src:'/js/pdf-preflight-panel-balance.js?v=20260831-2'}
+    {id:'pdfPreflightWorkflowV2Script',src:'/js/pdf-preflight/workflow-v2.js?v=20260831-1'}
   ]);
 
   let readyPromise=null;
@@ -39,8 +40,11 @@
       for(const entry of MODULES){
         await load(entry.id,entry.src);
         loaded.push(entry.id);
+        if(entry.id==='pdfPreflightPanelBalanceScriptV1'){
+          document.documentElement.dataset.pdfPreflightShellReady='1';
+        }
       }
-      document.documentElement.dataset.pdfPreflightRuntime='canonical-v1';
+      document.documentElement.dataset.pdfPreflightRuntime='canonical-v2';
       return loaded;
     })();
     return readyPromise;
@@ -49,6 +53,6 @@
   window.ProgramStudioPreflightRuntime={
     modules:MODULES,
     loadAll,
-    stage:'canonical-preflight-runtime-v1'
+    stage:'canonical-preflight-runtime-v2'
   };
 })();
