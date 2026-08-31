@@ -40,6 +40,68 @@
     select.dispatchEvent(new Event('change', { bubbles: true }));
   }
 
+  function ensurePageListQuickAddStyles() {
+    if (document.getElementById('pdfPageListQuickAddStylesV1')) return;
+    const style = document.createElement('style');
+    style.id = 'pdfPageListQuickAddStylesV1';
+    style.textContent = `
+      #pdfFileNavigation,#pdfFileNavigationToolbar{display:none!important}
+      #pdfPageListQuickAddV1{position:sticky;top:5px;z-index:24;display:flex;align-items:center;gap:7px;margin:0 0 8px;padding:7px;border:1px solid #bfdbfe;border-radius:10px;background:rgba(248,251,255,.98);box-shadow:0 3px 10px rgba(15,23,42,.07);backdrop-filter:blur(6px)}
+      #pdfPageListQuickAddV1 button{width:100%;min-height:34px;border:1px solid #93c5fd;border-radius:8px;background:#eff6ff;color:#1d4ed8;font-family:inherit;font-size:10px;font-weight:900;cursor:pointer}
+      #pdfPageListQuickAddV1 button:hover{background:#dbeafe;border-color:#60a5fa}
+      #pdfPageListQuickAddV1 button:focus-visible{outline:2px solid #2563eb;outline-offset:2px}
+    `;
+    document.head.appendChild(style);
+  }
+
+  function openQuickPdfPicker() {
+    let hasPages = false;
+    try { hasPages = Array.isArray(parsedPages) && parsedPages.length > 0; } catch (_) {}
+    const mode = hasPages ? 'cont' : 'new';
+    try { _uploadMode = mode; } catch (_) {}
+    document.querySelectorAll('.mode-btn').forEach((button) => button.classList.remove('active', 'break-active'));
+    document.querySelector(`.mode-btn[data-mode="${mode}"]`)?.classList.add('active');
+
+    const input = document.getElementById('fileInput');
+    if (input) {
+      try { input.value = ''; } catch (_) {}
+      input.click();
+      return true;
+    }
+    document.getElementById('uploadZone')?.click();
+    return Boolean(document.getElementById('uploadZone'));
+  }
+
+  function ensurePageListQuickAdd() {
+    const area = document.getElementById('thumbArea');
+    if (!area?.parentElement) return false;
+    ensurePageListQuickAddStyles();
+
+    let bar = document.getElementById('pdfPageListQuickAddV1');
+    if (!bar) {
+      bar = document.createElement('div');
+      bar.id = 'pdfPageListQuickAddV1';
+      bar.setAttribute('role', 'group');
+      bar.setAttribute('aria-label', 'PDF 빠른 추가');
+
+      const button = document.createElement('button');
+      button.id = 'pdfPageListQuickAddButtonV1';
+      button.type = 'button';
+      button.textContent = '＋ PDF 추가 · 현재 작업에 이어 붙이기';
+      button.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        openQuickPdfPicker();
+      });
+      bar.appendChild(button);
+    }
+
+    const parent = area.parentElement;
+    const anchor = document.getElementById('pageProductivityPanelV3') || area;
+    if (bar.parentElement !== parent || bar.nextElementSibling !== anchor) parent.insertBefore(bar, anchor);
+    return true;
+  }
+
   function ensureFastInsertStyles() {
     if (document.getElementById('pdfFastInsertActionsStylesV1')) return;
     const style = document.createElement('style');
@@ -197,9 +259,10 @@
   function boot(attempt = 0) {
     applyToolbarStyle();
     setDefaultPerRow();
+    ensurePageListQuickAdd();
     installBookletSessionResultGuard(0);
     installFastInsertActions();
-    if ((!document.querySelector('.preview-zoom') || !document.getElementById('perRowSelect') || !document.getElementById('previewScroll')) && attempt < 8) {
+    if ((!document.querySelector('.preview-zoom') || !document.getElementById('perRowSelect') || !document.getElementById('previewScroll') || !document.getElementById('thumbArea')) && attempt < 8) {
       setTimeout(() => boot(attempt + 1), 140 + attempt * 60);
     }
   }

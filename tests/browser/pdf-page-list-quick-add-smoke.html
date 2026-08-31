@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>PDF page list quick add smoke</title>
+</head>
+<body>
+  <div class="preview-zoom"><span>줄당</span><select id="perRowSelect"><option value="2">2</option></select></div>
+  <input id="fileInput" type="file" multiple hidden>
+  <div class="mode-row"><button class="mode-btn" data-mode="new">새 작업</button><button class="mode-btn" data-mode="cont">연속</button></div>
+  <div id="uploadZone">upload</div>
+  <section id="sb-pages">
+    <div id="pdfFileNavigation">legacy file navigation</div>
+    <div id="pageProductivityPanelV3">multi select panel</div>
+    <div id="thumbArea"></div>
+  </section>
+  <div id="previewScroll"></div>
+  <div id="result">WAIT</div>
+
+  <script>
+    window.parsedPages = [{ id: 'p1' }, { id: 'p2' }];
+    window._uploadMode = 'new';
+    window.__pickerClicks = 0;
+    document.getElementById('fileInput').click = function () { window.__pickerClicks += 1; };
+  </script>
+  <script src="/js/pdf-editor/preview-row-default.js?v=20260831-1"></script>
+  <script>
+    setTimeout(function () {
+      var bar = document.getElementById('pdfPageListQuickAddV1');
+      var button = document.getElementById('pdfPageListQuickAddButtonV1');
+      var legacy = document.getElementById('pdfFileNavigation');
+      var panel = document.getElementById('pageProductivityPanelV3');
+      var area = document.getElementById('thumbArea');
+      if (!bar || !button || !legacy || !panel || !area) return;
+      button.click();
+      var passed = window.__pickerClicks === 1
+        && window._uploadMode === 'cont'
+        && bar.nextElementSibling === panel
+        && panel.nextElementSibling === area
+        && getComputedStyle(legacy).display === 'none'
+        && getComputedStyle(bar).position === 'sticky';
+      if (!passed) return;
+      document.documentElement.dataset.pdfPageListQuickAddSmoke = 'pass';
+      document.getElementById('result').textContent = 'PASS: page list keeps sticky PDF append action and removes legacy jump panel from view';
+    }, 120);
+  </script>
+</body>
+</html>
