@@ -60,7 +60,8 @@
     if(style)requestAnimationFrame(()=>style.remove());
   }
 
-  window.ProgramStudioBoot={...(window.ProgramStudioBoot||{}),reveal,protectedProgram,modularAppKey};
+  window.ProgramStudioBoot={...(window.ProgramStudioBoot||{}),reveal,protectedProgram};
+  window.ProgramStudioBoot.modularAppKey=modularAppKey;
   if(!protectedProgram){reveal();return;}
 
   root.classList.add('app-booting');
