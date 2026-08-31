@@ -169,7 +169,7 @@
 
   function queueEnhance(){
     clearTimeout(syncTimer);
-    syncTimer=setTimeout(()=>requestAnimationFrame(enhance),16);
+    syncTimer=setTimeout(()=>{syncTimer=0;enhance();},0);
   }
 
   function bind(){
