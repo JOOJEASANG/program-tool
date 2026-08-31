@@ -18,7 +18,8 @@ def test_unified_design_shell_uses_one_manifest_loader_without_changing_route_co
     assert "documentStateStage:'canonical-document-type-state-v1'" in shell
     assert "productRuntimeStage:'print-product-menu-loader'" in shell
     assert "professionalUiStage:'professional-workspace-visual-system-v1'" in shell
-    assert "firstPaintStage:'runtime-gated-shell-reveal-v1'" in shell
+    assert "firstPaintStage:'approved-base-shell-reveal-v2'" in shell
+    assert "Date.now()-baseReadyAt>=1200" in shell
     assert "stage:'single-sidebar-general-engine-shell-no-legacy-fallback'" in shell
     for marker in (
         "print-fold-runtime-ensure.js?v=20260825-5",

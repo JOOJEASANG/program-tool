@@ -89,6 +89,7 @@
         loading.classList.remove('hide','error');
         if(loadingMessage)loadingMessage.textContent=message;
         delete shell.dataset.ready;
+        delete shell.dataset.readyStage;
       }
       function showLoadFailure(){
         loading.classList.remove('hide');loading.classList.add('error');
@@ -99,7 +100,7 @@
       async function waitForFrameReady(){
         showLoading();
         const deadline=Date.now()+12000;
-        let shellLoadStarted=false;
+        let shellLoadStarted=false,baseReadyAt=0;
         while(Date.now()<deadline){
           try{
             const doc=frame.contentDocument,win=frame.contentWindow;
@@ -109,14 +110,20 @@
               shellLoadStarted=true;
               Promise.resolve(win.DesignEditorShellRuntime.loadAll()).catch(()=>{shellLoadStarted=false;});
             }
-            const innerReady=doc.documentElement.dataset.appReady==='true'&&doc.documentElement.dataset.designCoreRuntime==='1';
-            const shellReady=doc.documentElement.dataset.designShellRuntime==='1'&&doc.documentElement.dataset.professionalUi==='2'&&doc.documentElement.dataset.designWorkspace==='three-pane';
-            if(innerReady&&shellReady){
-              await new Promise(resolve=>win.requestAnimationFrame(()=>win.requestAnimationFrame(resolve)));
-              loading.classList.add('hide');
-              shell.dataset.ready='true';
-              return true;
-            }
+            // Approval + the direct editor app are enough to enter the workspace.
+            // Professional/core helpers keep loading in the iframe background.
+            const baseReady=doc.documentElement.dataset.appReady==='true'&&Boolean(win.DesignEditorApp)&&Boolean(doc.getElementById('editorShell')||doc.getElementById('startScreen'));
+            const enhancedReady=Boolean(win.DesignEditorEssentialWorkspace?.stage)||(doc.documentElement.dataset.designShellRuntime==='1'&&doc.documentElement.dataset.professionalUi==='2');
+            if(baseReady){
+              if(!baseReadyAt)baseReadyAt=Date.now();
+              if(enhancedReady||Date.now()-baseReadyAt>=1200){
+                await new Promise(resolve=>win.requestAnimationFrame(()=>win.requestAnimationFrame(resolve)));
+                loading.classList.add('hide');
+                shell.dataset.ready='true';
+                shell.dataset.readyStage=enhancedReady?'enhanced':'base';
+                return true;
+              }
+            }else baseReadyAt=0;
           }catch(_){/* same-origin frame can be temporarily unavailable while navigating */}
           await delay(40);
         }
@@ -133,7 +140,7 @@
       const initialRoute=route(incomingDetail());
       if(frame.getAttribute('src')!==initialRoute)frame.src=initialRoute;
       else if(frame.contentDocument?.readyState==='complete')setTimeout(waitForFrameReady,0);
-      window.UnifiedDesignShell={openMode,route,incomingDetail,ensureFoldRuntime,ensureDocumentStateRuntime,ensureProductRuntime,ensureProductStateRuntime,ensureProductTopbarRuntime,ensureSelectionContextRuntime,ensureMultiSelectionRuntime,ensureMultiSmartGuidesRuntime,ensureSimpleResultRuntime,ensureProfessionalUi,ensurePrintRuntimes,waitForFrameReady,foldRuntimeStage:'direct-fold-runtime-loader-and-verifier',documentStateStage:'canonical-document-type-state-v1',productRuntimeStage:'print-product-menu-loader',productTopbarStage:'professional-design-commandbar-v2',selectionContextStage:'selection-context-properties-v1',multiSelectionStage:'multi-select-align-distribute-group-v1',multiSmartGuidesStage:'multi-smart-guides-exact-gap-v1',simpleResultStage:'simple-result-background-logo-text-output-v1',professionalUiStage:'professional-workspace-visual-system-v1',workspaceStage:'three-pane-context-properties-v1',runtimeManifestStage:'design-shell-runtime-manifest-v1',routingStage:'query-aware-initial-route-v3-invitation',firstPaintStage:'runtime-gated-shell-reveal-v1',stage:'single-sidebar-general-engine-shell-no-legacy-fallback'};
+      window.UnifiedDesignShell={openMode,route,incomingDetail,ensureFoldRuntime,ensureDocumentStateRuntime,ensureProductRuntime,ensureProductStateRuntime,ensureProductTopbarRuntime,ensureSelectionContextRuntime,ensureMultiSelectionRuntime,ensureMultiSmartGuidesRuntime,ensureSimpleResultRuntime,ensureProfessionalUi,ensurePrintRuntimes,waitForFrameReady,foldRuntimeStage:'direct-fold-runtime-loader-and-verifier',documentStateStage:'canonical-document-type-state-v1',productRuntimeStage:'print-product-menu-loader',productTopbarStage:'professional-design-commandbar-v2',selectionContextStage:'selection-context-properties-v1',multiSelectionStage:'multi-select-align-distribute-group-v1',multiSmartGuidesStage:'multi-smart-guides-exact-gap-v1',simpleResultStage:'simple-result-background-logo-text-output-v1',professionalUiStage:'professional-workspace-visual-system-v1',workspaceStage:'three-pane-context-properties-v1',runtimeManifestStage:'design-shell-runtime-manifest-v1',routingStage:'query-aware-initial-route-v3-invitation',firstPaintStage:'approved-base-shell-reveal-v2',stage:'single-sidebar-general-engine-shell-no-legacy-fallback'};
     })();
   </script>
 </body>

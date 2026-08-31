@@ -91,12 +91,18 @@ def test_preflight_runtime_is_canonical_and_current_ui_loads_last():
     assert not (ROOT / "js/pdf-utility-cost-policy-hardening.js").exists()
 
 
-def test_preflight_page_reveal_waits_for_current_runtime_ui():
+def test_protected_reveal_does_not_wait_for_full_heavy_runtime_chain():
     boot = text("js/app-boot-guard.js")
-    assert "ProgramStudioPreflightRuntimeReady" in boot
     assert "clean-workspace-v2" in boot
-    assert "waitForPreflightRuntime" in boot
-    assert "await waitForPreflightRuntime()" in boot
+    assert "waitForPreflightShell" in boot
+    assert "waitForDesignShell" in boot
+    assert "pdfPreflightPanelBalanceScriptV1" in boot
+    assert "script.dataset.loaded='true'" in boot
+    assert "if(!access){retryApprovalWait();return;}" in boot
+    assert "clearTimeout(failClosedTimer)" in boot
+    assert "await Promise.all([waitForPreflightShell(),waitForDesignShell()])" in boot
+    assert "ProgramStudioPreflightRuntimeReady" not in boot
+    assert "waitForPreflightRuntime" not in boot
 
 
 def test_design_metadata_is_bound_to_owner_and_project_path():
