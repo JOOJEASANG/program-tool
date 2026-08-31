@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko">
+<html lang="ko" data-program-surface="image-editor">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -8,46 +8,70 @@
   <link rel="stylesheet" href="/css/image-editor-workflow.css?v=20260823-3">
   <link rel="stylesheet" href="/css/image-editor-pro.css?v=20260826-1">
   <link rel="stylesheet" href="/css/image-editor-pdf-layout.css?v=20260826-2">
-  <link rel="stylesheet" href="/css/image-editor-headerless.css?v=20260830-1">
+  <link rel="stylesheet" href="/css/image-editor-headerless.css?v=20260831-1">
 </head>
 <body class="image-editor-pro" data-image-headerless-smoke="pending">
-  <header class="app-header">
-    <a class="home-link" href="/">← 홈</a>
-    <div class="brand-block"><strong>이미지 편집기</strong><span>기존 상단 제목</span></div>
-    <div class="header-actions">
-      <button id="undoBtn" type="button">실행 취소</button>
-      <button id="resetBtn" type="button">원본 복원</button>
-      <button id="exportBtn" type="button">이미지 저장</button>
-    </div>
-  </header>
   <main class="workspace">
-    <aside class="sidebar"><section class="tool-card upload-card"><div class="tool-title">이미지</div></section></aside>
-    <section class="stage-wrap"><div class="stage-toolbar"></div><div class="drop-zone"></div><footer class="status-bar">상태</footer></section>
+    <aside class="sidebar" aria-label="이미지 편집 도구">
+      <section id="imageEditorWorkflowV2" class="tool-card">
+        <button class="image-workflow-step active" data-image-step="open" aria-current="step">불러오기</button>
+      </section>
+      <div class="image-editor-local-actions" data-ps-tool-always="1">
+        <a class="image-editor-home" href="/">← 홈</a>
+        <button id="undoBtn" type="button" disabled>실행 취소</button>
+        <button id="resetBtn" type="button" disabled>원본 복원</button>
+      </div>
+      <section id="imageWorkflowStatusV2" class="tool-card">준비</section>
+      <section class="tool-card upload-card" data-image-step="open"><div class="tool-title">이미지</div><button id="openBtn" class="wide">이미지 불러오기</button></section>
+      <section class="tool-card" data-image-step="layout"><div class="tool-title">자르기</div></section>
+      <section class="tool-card" data-image-step="finish"><div class="tool-title">기본 보정</div></section>
+      <section class="tool-card export-card" data-image-step="output"><div class="tool-title">저장 설정</div></section>
+    </aside>
+    <section class="stage-wrap">
+      <div class="stage-toolbar"></div>
+      <div class="drop-zone"></div>
+      <footer class="status-bar">상태</footer>
+    </section>
   </main>
   <div id="result">PENDING</div>
   <script>
+    window.ImageEditorWorkflowV2={
+      activateStep(step){
+        document.querySelectorAll('#imageEditorWorkflowV2 [data-image-step]').forEach(button=>button.classList.toggle('active',button.dataset.imageStep===step));
+      }
+    };
+  </script>
+  <script src="/js/editor-tool-rail-v1.js?v=20260828-1"></script>
+  <script>
   (()=>{
-    const result=document.getElementById('result');
-    const assert=(condition,message)=>{if(!condition)throw new Error(message)};
-    try{
-      const header=document.querySelector('.app-header');
-      const workspace=document.querySelector('.workspace');
-      const sidebar=document.querySelector('.sidebar');
-      const actions=document.querySelector('.header-actions');
-      const rect=workspace.getBoundingClientRect();
-      assert(getComputedStyle(header).display==='contents','header band must not occupy layout space');
-      assert(getComputedStyle(document.querySelector('.brand-block')).display==='none','old header title must be hidden');
-      assert(Math.abs(rect.top)<1,'workspace must start at viewport top');
-      assert(Math.abs(rect.height-window.innerHeight)<2,'desktop workspace must use full viewport height');
-      assert(getComputedStyle(actions).position==='fixed','undo/reset controls must remain available in compact sidebar area');
-      assert(getComputedStyle(document.getElementById('exportBtn')).display==='none','duplicate header save button must be hidden');
-      assert(parseFloat(getComputedStyle(sidebar).paddingTop)>=50,'sidebar must reserve room for compact local controls');
-      document.body.dataset.imageHeaderlessSmoke='pass';
-      result.textContent='PASS: image editor header removed and preview uses full viewport while local actions remain available';
-    }catch(error){
-      document.body.dataset.imageHeaderlessSmoke='fail';
-      result.textContent='FAIL: '+String(error?.message||error);
-    }
+    const run=()=>{
+      const result=document.getElementById('result');
+      const assert=(condition,message)=>{if(!condition)throw new Error(message)};
+      try{
+        const workspace=document.querySelector('.workspace');
+        const actions=document.querySelector('.image-editor-local-actions');
+        const home=document.querySelector('.image-editor-home');
+        const rect=workspace.getBoundingClientRect();
+        const rgb=(getComputedStyle(home).color.match(/\d+/g)||[]).slice(0,3).map(Number);
+        assert(document.querySelector('.app-header')===null,'legacy app header must not exist');
+        assert(Math.abs(rect.top)<1,'workspace must start at viewport top');
+        assert(Math.abs(rect.height-window.innerHeight)<2,'desktop workspace must use full viewport height');
+        assert(document.querySelector('.sidebar.ps-tool-rail-mounted'),'shared editor tool rail must mount');
+        assert(actions.closest('.ps-tool-panel'),'home/undo/reset must live inside the tool panel, not float over the page');
+        assert(getComputedStyle(actions).position!=='fixed','local actions must never be fixed overlays');
+        assert(getComputedStyle(home).position!=='fixed','home action must never be a fixed overlay');
+        assert(rgb.length===3&&rgb.reduce((a,b)=>a+b,0)<600,'home action text must remain visible on its light background');
+        assert(document.getElementById('undoBtn')&&document.getElementById('resetBtn'),'undo/reset controls must remain available');
+        assert(document.querySelector('.ps-sidebar-toggle')===null,'legacy header panel toggle must not be reintroduced');
+        document.body.dataset.imageHeaderlessSmoke='pass';
+        result.textContent='PASS: structural header removal stays compatible with the shared image editor tool rail';
+      }catch(error){
+        document.body.dataset.imageHeaderlessSmoke='fail';
+        result.textContent='FAIL: '+String(error?.message||error);
+      }
+    };
+    if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(run,50),{once:true});
+    else setTimeout(run,50);
   })();
   </script>
 </body>
