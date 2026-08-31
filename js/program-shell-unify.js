@@ -9,7 +9,7 @@
   if(!isPdfEditor&&!isPdfUtility)return;
 
   const STYLE_ID='programShellUnifyStyles';
-  const PDF_UI_RUNTIME_VERSION='20260830-1';
+  const PDF_UI_RUNTIME_VERSION='20260831-1';
   if(isPdfEditor){
     // The PDF editor intentionally uses one always-visible sidebar.
     window.__programStudioEditorToolRailV1=true;
