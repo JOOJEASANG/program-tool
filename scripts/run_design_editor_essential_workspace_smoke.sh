@@ -32,11 +32,11 @@ done
 
 if ! grep -q 'data-essential-workspace-status="pass"' "$DOM_OUT"; then echo "Design editor essential workspace smoke failed." >&2; cat "$DOM_OUT" >&2; echo "----- HTTP server log -----" >&2; cat "$SERVER_LOG" >&2; exit 1; fi
 for marker in \
-  'data-essential-home="true"' \
-  'data-essential-no-all="true"' \
-  'data-essential-step-isolation="true"' \
+  'data-essential-flat="true"' \
+  'data-essential-all-visible="true"' \
+  'data-essential-invitation-no-fold="true"' \
   'data-essential-invitation-cover-hidden="true"' \
-  'data-essential-invitation-fold="x"'; do
+  'data-essential-cover-boundaries="2"'; do
   if ! grep -q "$marker" "$DOM_OUT"; then echo "Missing essential workspace marker: $marker" >&2; cat "$DOM_OUT" >&2; exit 1; fi
 done
 
