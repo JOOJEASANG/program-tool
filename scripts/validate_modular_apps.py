@@ -33,6 +33,7 @@ def validate() -> None:
         "css/studio-app-shell.css",
         "js/studio-app-shell.js",
         "js/modular-app-access.js",
+        "js/design-editor/shared/module-profile.js",
         "js/design-editor/standalone-product-profile.js",
         "js/design-editor/product-boundary-ui.js",
         "js/pdf-editor/standalone-app-profile.js",
@@ -56,6 +57,7 @@ def validate() -> None:
     home = read("js/home-program-catalog.js")
     design_core = read("js/design-editor/core-runtime.js")
     design_shell = read("js/design-editor/shell-runtime.js")
+    shared_modules = read("js/design-editor/shared/module-profile.js")
     design_profiles = read("js/design-editor/standalone-product-profile.js")
     boundary_ui = read("js/design-editor/product-boundary-ui.js")
     pdf_route = read("js/pdf-editor/route-runtime.js")
@@ -94,6 +96,16 @@ def validate() -> None:
         or "return product==='cover'" not in design_core
     ):
         errors.append("cover-only design modules are not product scoped")
+    if "shared/module-profile.js" not in design_core or "shouldLoadCore" not in design_core:
+        errors.append("design core does not consume the shared module policy layer")
+    if "shared/module-profile.js" not in design_shell or "shouldLoadShell" not in design_shell:
+        errors.append("design shell does not consume the shared module policy layer")
+    if (
+        "design-editor-shared-module-profile-v1" not in shared_modules
+        or "CORE_PRODUCT_ONLY" not in shared_modules
+        or "SHELL_CAPABILITIES" not in shared_modules
+    ):
+        errors.append("shared design module policy is incomplete")
     if "standalone-product-profile.js" not in design_shell or "activeProfile" not in design_shell:
         errors.append("design shell does not use the standalone product profile layer")
     if "DesignEditorStandaloneProducts" not in boundary_ui:
@@ -112,8 +124,12 @@ def validate() -> None:
         errors.append("modular app engine must start after access approval")
     if "engine started before approval" not in browser_smoke:
         errors.append("browser smoke does not verify approval-before-engine contract")
-    if "data-standalone-profile-smoke" not in profile_smoke or "standalone-product-profile-smoke.html" not in smoke_runner:
-        errors.append("standalone design/PDF profile browser coverage is missing")
+    if (
+        "data-standalone-profile-smoke" not in profile_smoke
+        or "standalone-product-profile-smoke.html" not in smoke_runner
+        or "DesignEditorSharedModuleProfile" not in profile_smoke
+    ):
+        errors.append("standalone/shared design/PDF profile browser coverage is missing")
     if "data-standalone-boundary-smoke" not in boundary_smoke or "standalone-boundary-ui-smoke.html" not in smoke_runner:
         errors.append("standalone boundary UI browser coverage is missing")
 
@@ -130,7 +146,7 @@ def validate() -> None:
             print(f" - {error}", file=sys.stderr)
         raise SystemExit(1)
 
-    print("Modular app architecture OK: 8 standalone routes share canonical design/PDF engines, product profiles, boundary UI and browser coverage")
+    print("Modular app architecture OK: 8 standalone routes share canonical design/PDF engines, shared module policy, product profiles, boundary UI and browser coverage")
 
 
 if __name__ == "__main__":
