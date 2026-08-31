@@ -72,4 +72,10 @@ run_browser_case "$workspace_nav_url" "$workspace_nav_out" 'data-workspace-nav-s
 grep -q 'data-workspace-nav-steps="4"' "$workspace_nav_out" || { cat "$workspace_nav_out" >&2; exit 1; }
 grep -q 'data-workspace-nav-product="cover"' "$workspace_nav_out" || { cat "$workspace_nav_out" >&2; exit 1; }
 
-echo "Modular app browser smoke passed for 8 routes, design/PDF profiles, boundary UI and shared design workspace navigation using $BROWSER"
+multi_selection_out="$OUT_DIR/design-multi-selection-shared-smoke-dom.html"
+multi_selection_url="http://127.0.0.1:$PORT/tests/browser/design-multi-selection-shared-smoke.html"
+run_browser_case "$multi_selection_url" "$multi_selection_out" 'data-multi-selection-shared-smoke="pass"'
+grep -q 'data-multi-selection-shared-count="2"' "$multi_selection_out" || { cat "$multi_selection_out" >&2; exit 1; }
+grep -q 'data-multi-selection-shared-ownership="pass"' "$multi_selection_out" || { cat "$multi_selection_out" >&2; exit 1; }
+
+echo "Modular app browser smoke passed for 8 routes, design/PDF profiles, boundary UI, shared workspace navigation and multi-selection ownership using $BROWSER"
