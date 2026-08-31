@@ -66,6 +66,8 @@ reset_profile
 run_product_case "pdf-editor-workflow-v2-smoke.html" "$OUT_DIR/pdf-editor-workflow-v2-smoke-dom.html" 'data-workflow-v2-smoke="pass"' 'PASS: PDF editor keeps account actions on one line and all sidebar controls visible'
 reset_profile
 run_product_case "pdf-divider-modal-layout-smoke.html" "$OUT_DIR/pdf-divider-modal-layout-smoke-dom.html" 'data-divider-modal-smoke="pass"' 'PASS: divider modal survives delayed studio load, opens on click and keeps actions in the narrow left panel'
+reset_profile
+run_product_case "pdf-fast-insert-actions-smoke.html" "$OUT_DIR/pdf-fast-insert-actions-smoke-dom.html" 'data-pdf-fast-insert-smoke="pass"' 'PASS: large PDF optimized preview keeps blank-page and divider insertion actions'
 
 bash "$ROOT_DIR/scripts/run_pdf_print_workflow_focus_smoke.sh"
-echo "PDF program unified shell, all-visible sidebar, divider-modal and product-focus browser smokes passed using $BROWSER"
+echo "PDF program unified shell, all-visible sidebar, divider-modal, fast-insert and product-focus browser smokes passed using $BROWSER"
