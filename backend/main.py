@@ -36,15 +36,17 @@ from utils.permissions import AccessError, require_program_access_for_request
 flask_app = Flask(__name__)
 logger = logging.getLogger(__name__)
 REQUEST_ID_PATTERN = re.compile(r"^[A-Za-z0-9._-]{8,64}$")
-PDF_STORAGE_TRANSFER_BYTES = 500 * 1024 * 1024
+MIB = 1024 * 1024
+PDF_STORAGE_FILE_BYTES = 200 * MIB
+PDF_STORAGE_TOTAL_BYTES = 300 * MIB
 
-# One shared upper bound for Storage-backed PDF input/output. Direct multipart
-# requests intentionally stay small; large files go directly through Storage.
-pdf_router.MAX_PDF_FILE_BYTES = PDF_STORAGE_TRANSFER_BYTES
-pdf_router.MAX_TOTAL_PDF_BYTES = PDF_STORAGE_TRANSFER_BYTES
-preflight_router.MAX_STORAGE_PDF_BYTES = PDF_STORAGE_TRANSFER_BYTES
-pdf_utility_router.MAX_FILE_BYTES = PDF_STORAGE_TRANSFER_BYTES
-pdf_utility_router.MAX_TOTAL_BYTES = PDF_STORAGE_TRANSFER_BYTES
+# Storage and backend limits intentionally match. This avoids paying to accept a
+# 500 MiB client object that a downstream PDF route should never need to process.
+pdf_router.MAX_PDF_FILE_BYTES = PDF_STORAGE_FILE_BYTES
+pdf_router.MAX_TOTAL_PDF_BYTES = PDF_STORAGE_TOTAL_BYTES
+preflight_router.MAX_STORAGE_PDF_BYTES = PDF_STORAGE_FILE_BYTES
+pdf_utility_router.MAX_FILE_BYTES = PDF_STORAGE_FILE_BYTES
+pdf_utility_router.MAX_TOTAL_BYTES = PDF_STORAGE_TOTAL_BYTES
 
 # Background raster work is intentionally more conservative than simple
 # transfer/merge work because every page consumes CPU and memory.
@@ -54,7 +56,7 @@ pdf_utility_router.BACKGROUND_DPI = 160
 
 # Large PDFs use Firebase Storage. Direct multipart requests remain below the
 # Cloud Functions request/response quota with a small boundary allowance.
-flask_app.config["MAX_CONTENT_LENGTH"] = 25 * 1024 * 1024
+flask_app.config["MAX_CONTENT_LENGTH"] = 25 * MIB
 flask_app.register_blueprint(pdf_bp, url_prefix="/api/pdf")
 flask_app.register_blueprint(pdf_tools_bp, url_prefix="/api/pdf-tools")
 flask_app.register_blueprint(pdf_utility_bp, url_prefix="/api/pdf-utility")
@@ -153,11 +155,11 @@ def api(req: https_fn.Request) -> https_fn.Response:
         return flask_app.full_dispatch_request()
 
 
-@scheduler_fn.on_schedule(schedule="every 6 hours")
+@scheduler_fn.on_schedule(schedule="every 1 hours")
 def cleanup_temporary_pdfs(event: scheduler_fn.ScheduledEvent) -> None:
-    """Delete abandoned PDF inputs and generated results after 6 hours."""
+    """Delete abandoned PDF staging objects and generated results after 1 hour."""
     del event
-    cutoff = datetime.now(timezone.utc) - timedelta(hours=6)
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=1)
     bucket = fa_storage.bucket(
         os.environ.get(
             "FIREBASE_STORAGE_BUCKET",
