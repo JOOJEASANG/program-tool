@@ -7,6 +7,7 @@
 
   const MODULES=Object.freeze([
     {id:'programShellUnifyScriptV1',src:'/js/program-shell-unify.js?v=20260831-1'},
+    {id:'pdfEditorAppBoundaryScriptV1',src:'/js/pdf-editor/app-boundary.js?v=20260831-1'},
     {id:'pdfAllInOneStage1ScriptV1',src:'/js/pdf-all-in-one-stage1.js?v=20260824-1'},
     {id:'desktopToolMobileNoticeScriptV1',src:'/js/desktop-tool-mobile-notice.js?v=20260807-1'},
     {id:'pdfEditorModuleLoaderScript',src:'/js/pdf-editor/loader.js?v=20260828-1'},
