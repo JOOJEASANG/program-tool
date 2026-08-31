@@ -10,9 +10,10 @@ def text(path: str) -> str:
 def test_design_editor_uses_dedicated_essential_workspace_instead_of_generic_all_tools_rail():
     ui = text("js/program-studio-ui-v2.js")
     segment = ui[ui.index("if(surface==='design-editor'){"):ui.index("if(surface==='document-editor'){")]
-    assert "designEditorEssentialWorkspaceScriptV1" in segment
-    assert "/js/design-editor/essential-workspace.js?v=20260831-1" in segment
+    assert "loadDesignEssentialWorkspace();" in segment
     assert "loadEditorToolRail();" not in segment
+    assert "designEditorEssentialWorkspaceScriptV1" in ui
+    assert "/js/design-editor/essential-workspace.js?v=20260831-1" in ui
 
 
 def test_essential_workspace_has_home_then_four_isolated_groups_and_no_all_tools_menu():
