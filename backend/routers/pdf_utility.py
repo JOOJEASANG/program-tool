@@ -22,8 +22,8 @@ pdf_utility_bp = Blueprint("pdf_utility", __name__)
 logger = logging.getLogger(__name__)
 
 MAX_FILES = 10
-MAX_FILE_BYTES = 500 * 1024 * 1024
-MAX_TOTAL_BYTES = 500 * 1024 * 1024
+MAX_FILE_BYTES = 200 * 1024 * 1024
+MAX_TOTAL_BYTES = 300 * 1024 * 1024
 MAX_TOTAL_PAGES = 1000
 MAX_BACKGROUND_PAGES = 100
 MAX_BACKGROUND_PIXELS = 90_000_000
@@ -119,7 +119,7 @@ def _storage_blob(uid: str, path: str):
     if size <= 0:
         raise ValueError("빈 PDF 파일은 처리할 수 없습니다.")
     if size > MAX_FILE_BYTES:
-        raise ValueError("PDF 한 파일은 최대 500MB까지 처리할 수 있습니다.")
+        raise ValueError("PDF 한 파일은 최대 200MB까지 처리할 수 있습니다.")
     return blob, size
 
 
@@ -131,7 +131,7 @@ def _download_storage_pdf_to_path(uid: str, path: str, destination: str | Path) 
     if actual_size <= 0:
         raise ValueError("빈 PDF 파일은 처리할 수 없습니다.")
     if actual_size > MAX_FILE_BYTES:
-        raise ValueError("PDF 한 파일은 최대 500MB까지 처리할 수 있습니다.")
+        raise ValueError("PDF 한 파일은 최대 200MB까지 처리할 수 있습니다.")
     if declared_size and actual_size != declared_size:
         logger.warning(
             "PDF utility storage size changed path=%s declared=%s actual=%s request_id=%s",
@@ -148,7 +148,7 @@ def _download_storage_pdf(uid: str, path: str) -> bytes:
     blob, _ = _storage_blob(uid, path)
     data = blob.download_as_bytes()
     if len(data) > MAX_FILE_BYTES:
-        raise ValueError("PDF 한 파일은 최대 500MB까지 처리할 수 있습니다.")
+        raise ValueError("PDF 한 파일은 최대 200MB까지 처리할 수 있습니다.")
     return data
 
 
@@ -385,7 +385,7 @@ def merge_storage(uid):
             local_path = temp_dir / f"source-{index:02d}.pdf"
             total_bytes += _download_storage_pdf_to_path(uid, path, local_path)
             if total_bytes > MAX_TOTAL_BYTES:
-                return _error("PDF 합치기 전체 파일 용량은 최대 500MB까지 가능합니다.", 413, "PDF_MERGE_TOTAL_LIMIT")
+                return _error("PDF 합치기 전체 파일 용량은 최대 300MB까지 가능합니다.", 413, "PDF_MERGE_TOTAL_LIMIT")
             local_paths.append(local_path)
 
         output_path = temp_dir / "merged.pdf"
@@ -415,6 +415,7 @@ def background_cleanup_storage(uid):
     payload = request.get_json(silent=True) or {}
     raw_path = payload.get("storage_path")
     strength = str(payload.get("strength") or "medium").strip().lower()
+    filename = str(payload.get("filename") or "document.pdf")
     path = ""
     temp_dir = Path(tempfile.mkdtemp(prefix="pdf-utility-background-"))
     try:
@@ -423,18 +424,11 @@ def background_cleanup_storage(uid):
         _download_storage_pdf_to_path(uid, path, source_path)
         output_path = temp_dir / "cleaned.pdf"
         page_count = _clean_background_pdf_path(source_path, output_path, strength)
-        source_name = _safe_name(payload.get("filename"), "document.pdf")
-        base = source_name[:-4] if source_name.lower().endswith(".pdf") else source_name
-        response = _deliver_pdf_path(
-            uid,
-            output_path,
-            f"{base}_배경제거.pdf",
-            "pdf-utility-background-cleanup",
-        )
+        safe_name = f"{_safe_name(Path(filename).stem)}_배경색제거.pdf"
+        response = _deliver_pdf_path(uid, output_path, safe_name, "pdf-utility-background")
         response.headers["X-PDF-Page-Count"] = str(page_count)
-        response.headers["X-Background-Strength"] = strength
         response.headers["Access-Control-Expose-Headers"] = (
-            "X-PDF-Page-Count, X-Background-Strength, X-Request-ID, Content-Disposition"
+            "X-PDF-Page-Count, X-Request-ID, Content-Disposition"
         )
         return response
     except PermissionError as exc:
