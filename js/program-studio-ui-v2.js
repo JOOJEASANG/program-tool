@@ -134,6 +134,10 @@
     loadEnhancement('editorToolRailV1Script','/js/editor-tool-rail-v1.js?v=20260828-1',()=>Boolean(window.__programStudioEditorToolRailV1),'편집 도구 아이콘 메뉴를 불러오지 못했습니다.');
   }
 
+  function loadDesignEssentialWorkspace(){
+    loadEnhancement('designEditorEssentialWorkspaceScriptV1','/js/design-editor/essential-workspace.js?v=20260831-1',()=>Boolean(window.__designEditorEssentialWorkspaceV1),'디자인 필수 메뉴를 불러오지 못했습니다.');
+  }
+
   function loadSurfaceEnhancements(){
     if(['auth','approval','legal'].includes(surface)){
       loadEnhancement('programStudioPhase6Script','/js/surface-polish-v3.js?v=20260828-1',()=>Boolean(window.__programStudioPhase6),'화면 접근성 개선 기능을 불러오지 못했습니다.');
@@ -149,7 +153,7 @@
     if(surface==='pdf-editor'||surface==='pdf-preflight')return;
     if(surface==='design-editor'){
       loadEnhancement('designEditorWorkflowV2Script','/js/design-editor/workflow-v2.js?v=20260828-1',()=>Boolean(window.__designEditorWorkflowV2),'디자인 편집 화면 개선 기능을 불러오지 못했습니다.');
-      loadEditorToolRail();
+      loadDesignEssentialWorkspace();
       return;
     }
     if(surface==='document-editor'){
@@ -282,5 +286,5 @@
     improveExternalStateLabels();
   });
 
-  window.ProgramStudioUI={version:'2026.08.31.010',surface,openPalette,closePalette};
+  window.ProgramStudioUI={version:'2026.08.31.011',surface,openPalette,closePalette};
 })();
