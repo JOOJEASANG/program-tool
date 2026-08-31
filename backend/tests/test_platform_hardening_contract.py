@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 
 
@@ -6,6 +7,13 @@ ROOT = Path(__file__).resolve().parents[2]
 
 def text(relative: str) -> str:
     return (ROOT / relative).read_text(encoding="utf-8")
+
+
+def executable_js(relative: str) -> str:
+    source = text(relative)
+    source = re.sub(r"/\*.*?\*/", "", source, flags=re.S)
+    source = re.sub(r"//[^\n]*", "", source)
+    return source
 
 
 def test_functions_and_storage_transfer_limits_stay_cost_bounded():
@@ -18,6 +26,8 @@ def test_functions_and_storage_transfer_limits_stay_cost_bounded():
     assert "PDF_STORAGE_TOTAL_BYTES = 300 * MIB" in main
     assert 'schedule="every 1 hours"' in main
     assert "timedelta(hours=1)" in main
+    assert 'schedule="every 24 hours"' in main
+    assert "ORPHAN_GRACE_HOURS = 24" in main
     assert "validPdfUpload(209715200)" in rules
     assert "MAX_FILE_BYTES = 200 * 1024 * 1024" in session
     assert "MAX_SESSION_BYTES = 300 * 1024 * 1024" in session
@@ -26,7 +36,7 @@ def test_functions_and_storage_transfer_limits_stay_cost_bounded():
 
 
 def test_version_observer_does_not_own_pdf_runtime_modules():
-    observer = text("js/app-version.js")
+    observer = executable_js("js/app-version.js")
     route = text("js/pdf-editor/route-runtime.js")
 
     route_owned_ids = (
@@ -73,3 +83,11 @@ def test_saved_session_storage_requires_owner_metadata():
         "sessionId,",
     ):
         assert marker in session
+
+
+def test_quota_cleanup_drops_firestore_reference_before_blob_deletion():
+    main = text("backend/main.py")
+    delete_document = main.index("snapshot.reference.delete()")
+    delete_blobs = main.index("_delete_blob_paths(bucket, paths)", delete_document)
+    assert delete_document < delete_blobs
+    assert "referenced.update(paths)" in main[delete_document:delete_blobs]
