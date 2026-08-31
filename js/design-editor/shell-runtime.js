@@ -27,10 +27,18 @@
   const loading=new Map();
   const getApi=entry=>window[entry.global]||null;
   const activeProfile=()=>window.DesignEditorStandaloneProducts?.fromLocation?.(location.search)||null;
+  const sharedProfile=()=>window.DesignEditorSharedModuleProfile||null;
   const needsFoldRuntime=()=>activeProfile()?.needsFoldRuntime??fallbackFoldProduct;
   const needsProductMenu=()=>activeProfile()?.needsProductMenu??fallbackFoldProduct;
   const shouldLoad=entry=>{
     if(!standalone)return true;
+    const shared=sharedProfile();
+    if(shared?.shouldLoadShell){
+      return shared.shouldLoadShell(entry.id,app,{
+        needsFoldRuntime:needsFoldRuntime(),
+        needsProductMenu:needsProductMenu()
+      });
+    }
     if(entry.id==='designPrintFoldRuntimeEnsureScriptV1')return needsFoldRuntime();
     if(entry.id==='designPrintProductMenuScriptV1')return needsProductMenu();
     return true;
@@ -103,6 +111,7 @@
   }
 
   async function loadAll(){
+    await loadSupportScript('designSharedModuleProfileScriptV1','/js/design-editor/shared/module-profile.js?v=20260831-1');
     await loadBoundaryUi();
     for(const entry of MODULES)await loadEntry(entry);
     sync();
