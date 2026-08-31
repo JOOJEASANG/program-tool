@@ -214,7 +214,14 @@
     else{const y=(bleed+fold)*sy;line.style.left=`${bleed*sx}px`;line.style.top=`${y}px`;line.style.width=`${width*sx}px`;line.style.height='0';label.style.left=`${(bleed+width/2)*sx}px`;label.style.top=`${y}px`;}
     art.dataset.invitationFoldGuide=axis;return true;
   }
-  function queueGuide(){if(guideFrame)return;guideFrame=requestAnimationFrame(()=>{guideFrame=requestAnimationFrame(syncInvitationGuide);});}
+  function queueGuide(){
+    if(currentType()!=='invitation'){
+      if(guideFrame){cancelAnimationFrame(guideFrame);guideFrame=0;}
+      removeInvitationGuide();return;
+    }
+    if(guideFrame)cancelAnimationFrame(guideFrame);
+    guideFrame=requestAnimationFrame(()=>{guideFrame=0;syncInvitationGuide();});
+  }
 
   function syncAll(){
     if(syncFrame)return;syncFrame=requestAnimationFrame(()=>{syncFrame=0;if(mutating)return;mutating=true;try{movePropertyCards();[...panel.children].forEach(tagNode);applyStep(activeStep);queueGuide();}finally{mutating=false;}});
