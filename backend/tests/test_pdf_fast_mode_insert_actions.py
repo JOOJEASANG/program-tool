@@ -41,6 +41,30 @@ def test_fast_mode_divider_insert_reuses_existing_modal_api():
     assert "dividerModal" not in source
 
 
+def test_page_list_keeps_a_sticky_append_pdf_action_and_hides_legacy_jump_panel():
+    source = PREVIEW_HELPER.read_text(encoding="utf-8")
+
+    for marker in (
+        "function ensurePageListQuickAdd()",
+        "pdfPageListQuickAddV1",
+        "＋ PDF 추가 · 현재 작업에 이어 붙이기",
+        "position:sticky",
+        "#pdfFileNavigation,#pdfFileNavigationToolbar{display:none!important}",
+        "const anchor = document.getElementById('pageProductivityPanelV3') || area",
+    ):
+        assert marker in source
+
+
+def test_page_list_quick_add_reuses_existing_file_input_and_append_mode():
+    source = PREVIEW_HELPER.read_text(encoding="utf-8")
+
+    assert "const mode = hasPages ? 'cont' : 'new'" in source
+    assert "_uploadMode = mode" in source
+    assert "document.getElementById('fileInput')" in source
+    assert "input.click()" in source
+    assert "document.getElementById('uploadZone')?.click()" in source
+
+
 def test_large_document_optimization_still_stays_enabled():
     source = UPLOAD_FIX.read_text(encoding="utf-8")
 
@@ -54,5 +78,5 @@ def test_pdf_core_runtime_module_count_is_unchanged():
     source = CORE_RUNTIME.read_text(encoding="utf-8")
 
     assert source.count("src:'/js/pdf-editor/") == 8
-    assert "preview-row-default.js" in source
+    assert "preview-row-default.js?v=20260831-1" in source
     assert "divider-helper.js" in source
