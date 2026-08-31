@@ -20,18 +20,8 @@ def _sample_pdf(sizes):
 
 
 def test_auto_fix_normalizes_to_dominant_size_and_pads_booklet():
-    source = _sample_pdf([
-        (595.28, 841.89),
-        (595.28, 841.89),
-        (419.53, 595.28),
-    ])
-
-    result = auto_fix_pdf_bytes(
-        source,
-        normalize_page_size=True,
-        pad_mode="booklet",
-    )
-
+    source = _sample_pdf([(595.28, 841.89), (595.28, 841.89), (419.53, 595.28)])
+    result = auto_fix_pdf_bytes(source, normalize_page_size=True, pad_mode="booklet")
     assert result.added_blank_pages == 1
     assert result.normalize_page_size is True
     fixed = fitz.open(stream=result.data, filetype="pdf")
@@ -48,18 +38,8 @@ def test_auto_fix_normalizes_to_dominant_size_and_pads_booklet():
 
 
 def test_auto_fix_even_padding_preserves_existing_page_sizes():
-    source = _sample_pdf([
-        (595.28, 841.89),
-        (419.53, 595.28),
-        (612.0, 792.0),
-    ])
-
-    result = auto_fix_pdf_bytes(
-        source,
-        normalize_page_size=False,
-        pad_mode="even",
-    )
-
+    source = _sample_pdf([(595.28, 841.89), (419.53, 595.28), (612.0, 792.0)])
+    result = auto_fix_pdf_bytes(source, normalize_page_size=False, pad_mode="even")
     assert result.added_blank_pages == 1
     fixed = fitz.open(stream=result.data, filetype="pdf")
     try:
@@ -72,24 +52,19 @@ def test_auto_fix_even_padding_preserves_existing_page_sizes():
         fixed.close()
 
 
-def test_auto_fix_frontend_and_routes_are_wired():
+def test_auto_fix_frontend_and_routes_are_wired_through_canonical_preflight_runtime():
     frontend = (ROOT / "js" / "pdf-print-auto-fix.js").read_text(encoding="utf-8")
+    runtime = (ROOT / "js" / "pdf-preflight" / "route-runtime.js").read_text(encoding="utf-8")
     app_version = (ROOT / "js" / "app-version.js").read_text(encoding="utf-8")
-    runtime = (ROOT / "js" / "sw-register.js").read_text(encoding="utf-8")
     main = (ROOT / "backend" / "main.py").read_text(encoding="utf-8")
     router = (ROOT / "backend" / "routers" / "preflight_auto_fix.py").read_text(encoding="utf-8")
 
-    assert "안전 자동 수정" in frontend
-    assert "페이지 규격 자동 통일" in frontend
-    assert "양면 인쇄용 짝수 맞춤" in frontend
-    assert "소책자용 4의 배수 맞춤" in frontend
-    assert "자동으로 수정하지 않는 항목" in frontend
-    assert "utility.state.files[index]=replacement" in frontend
-    assert "await utility.runBatchCheck()" in frontend
-    assert "/api/preflight/auto-fix" in frontend
-    assert "/api/preflight/auto-fix-storage" in frontend
-    assert "pdfPrintAutoFixScriptV1" in app_version
+    for marker in ("안전 자동 수정", "페이지 규격 자동 통일", "양면 인쇄용 짝수 맞춤", "소책자용 4의 배수 맞춤", "자동으로 수정하지 않는 항목", "utility.state.files[index]=replacement", "await utility.runBatchCheck()", "/api/preflight/auto-fix", "/api/preflight/auto-fix-storage"):
+        assert marker in frontend
     assert "pdfPrintAutoFixScriptV1" in runtime
+    assert "/js/pdf-print-auto-fix.js" in runtime
+    executable_app = app_version.split("/*", 1)[0] + app_version.rsplit("*/", 1)[-1]
+    assert "pdfPrintAutoFixScriptV1" not in executable_app
     assert "preflight_auto_fix_bp" in main
     assert '@preflight_auto_fix_bp.route("/auto-fix"' in router
     assert '@preflight_auto_fix_bp.route("/auto-fix-storage"' in router

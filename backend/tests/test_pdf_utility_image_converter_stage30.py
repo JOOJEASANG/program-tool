@@ -3,15 +3,19 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 MODULE = ROOT / "js" / "pdf-utility-image-converter.js"
-SW = ROOT / "js" / "sw-register.js"
+RUNTIME = ROOT / "js" / "pdf-preflight" / "route-runtime.js"
 APP = ROOT / "js" / "app-version.js"
 
 
-def test_pdf_utility_image_converter_is_loaded_only_on_pdf_utility():
+def test_pdf_utility_image_converter_is_owned_only_by_canonical_preflight_runtime():
     source = MODULE.read_text(encoding="utf-8")
+    runtime = RUNTIME.read_text(encoding="utf-8")
+    app = APP.read_text(encoding="utf-8")
     assert "pdf-preflight" in source
-    assert "pdf-utility-image-converter" in SW.read_text(encoding="utf-8")
-    assert "pdf-utility-image-converter" in APP.read_text(encoding="utf-8")
+    assert "pdfUtilityImageConverterScriptV1" in runtime
+    assert "/js/pdf-utility-image-converter.js?v=20260819-1" in runtime
+    executable_app = app.split("/*", 1)[0] + app.rsplit("*/", 1)[-1]
+    assert "pdfUtilityImageConverterScriptV1" not in executable_app
 
 
 def test_converter_has_500mb_10_file_and_100_page_guards():

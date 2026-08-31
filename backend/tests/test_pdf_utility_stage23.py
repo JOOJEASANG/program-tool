@@ -13,7 +13,7 @@ from routers.pdf_utility import (
 ROOT = Path(__file__).resolve().parents[2]
 FRONTEND = ROOT / "js" / "pdf-utility.js"
 FINALIZER = ROOT / "js" / "pdf-utility-finalize.js"
-SW_REGISTER = ROOT / "js" / "sw-register.js"
+PREFLIGHT_RUNTIME = ROOT / "js" / "pdf-preflight" / "route-runtime.js"
 CATALOG = ROOT / "js" / "program-catalog-core.js"
 MAIN = ROOT / "backend" / "main.py"
 PERMISSIONS = ROOT / "backend" / "utils" / "permissions.py"
@@ -65,7 +65,6 @@ def test_background_cleanup_keeps_page_count_and_whitens_light_background():
 def test_pdf_utility_limits_routes_and_access_are_bounded():
     assert MAX_FILES == 10
     assert MAX_TOTAL_PAGES == 1000
-
     main = MAIN.read_text(encoding="utf-8")
     permissions = PERMISSIONS.read_text(encoding="utf-8")
     assert "from routers.pdf_utility import pdf_utility_bp" in main
@@ -91,28 +90,35 @@ def test_pdf_utility_frontend_has_batch_merge_background_and_single_file_tools()
         assert marker in source
 
 
-def test_pdf_utility_runtime_loads_after_existing_preflight_guards():
-    source = SW_REGISTER.read_text(encoding="utf-8")
+def test_pdf_utility_runtime_is_ordered_by_canonical_preflight_manifest():
+    runtime = PREFLIGHT_RUNTIME.read_text(encoding="utf-8")
     finalizer = FINALIZER.read_text(encoding="utf-8")
-    assert "pdfCheckerFinalGuardScript" in source
-    assert "pdfPreflightPanelBalanceScript" in source
-    assert "Promise.all([finalGuard,panelBalance])" in source
-    assert "/js/pdf-utility.js?v=20260818-1" in source
-    assert "pdfUtilityFinalizeScriptV1" in source
-    assert "/js/pdf-utility-finalize.js?v=20260818-3" in source
+    expected = [
+        "pdfCheckerFinalGuardScript",
+        "pdfUtilityScriptV1",
+        "pdfUtilityFinalizeScriptV1",
+        "pdfPreflightPanelBalanceScriptV1",
+    ]
+    for marker in expected:
+        assert marker in runtime
+    assert runtime.index("pdfCheckerFinalGuardScript") < runtime.index("pdfUtilityScriptV1")
+    assert runtime.index("pdfUtilityScriptV1") < runtime.index("pdfUtilityFinalizeScriptV1")
+    assert runtime.index("pdfUtilityFinalizeScriptV1") < runtime.index("pdfPreflightPanelBalanceScriptV1")
+    assert "/js/pdf-utility.js?v=20260831-1" in runtime
+    assert "/js/pdf-utility-finalize.js?v=20260831-2" in runtime
     assert "pdfToolsResetBelowStyle" in finalizer
     assert "wrapBusyState" in finalizer
     assert "MutationObserver" in finalizer
-    assert "window.runCheck = utility.runBatchCheck" in finalizer
+    assert "window.runCheck=utility.runBatchCheck" in finalizer
     assert "최대 10개 일괄 검수" in finalizer
 
 
-def test_pdf_utility_name_migrates_legacy_catalog_entry():
+def test_pdf_utility_name_migrates_all_legacy_catalog_entries_to_canonical_name():
     source = CATALOG.read_text(encoding="utf-8")
     assert "LEGACY_PDF_UTILITY_NAMES" in source
-    assert "PDF 인쇄 검수" in source
-    assert "PDF 검사" in source
-    assert "name: 'PDF유틸리티'" in source
+    for name in ("PDF 인쇄 검수", "PDF 검사", "PDF유틸리티", "PDF 올인원"):
+        assert name in source
+    assert "const PDF_UTILITY_NAME = 'PDF 검사 · 유틸리티';" in source
     assert "id === 'pdf-preflight'" in source
     assert "PDF 합치기" in source
     assert "배경 제거" in source

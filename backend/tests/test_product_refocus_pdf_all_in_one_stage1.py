@@ -64,5 +64,5 @@ def test_quick_actions_runtime_and_browser_regression_are_wired_to_canonical_rou
     assert "/js/pdf-all-in-one-stage1.js" in editor
     assert "pdf-utility-quick-actions-smoke.html" in runner
     assert "pdf-print-output-stage1-smoke.html" in runner
-    assert 'data-pdf-quick-actions-smoke="pass"' in utility_smoke
+    assert "dataset.pdfQuickActionsSmoke='pass'" in utility_smoke
     assert "dataset.printOutputSmoke='pass'" in print_smoke
