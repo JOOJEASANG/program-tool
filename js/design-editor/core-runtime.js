@@ -9,10 +9,10 @@
   const MODULES=Object.freeze([
     {id:'designEditorRuntimeDiagnosticsScriptV1',src:'/js/design-editor/runtime-diagnostics.js?v=20260823-1'},
     {id:'designEditorDraftScopeScriptV1',src:'/js/design-editor/phase5-draft-scope.js?v=20260823-4'},
-    {id:'designEditorCoverModelScriptV1',src:'/js/design-editor/cover-model.js?v=20260823-1',products:['cover']},
-    {id:'designEditorCoverModeBridgeScriptV1',src:'/js/design-editor/cover-mode-bridge.js?v=20260823-2',products:['cover']},
+    {id:'designEditorCoverModelScriptV1',src:'/js/design-editor/cover-model.js?v=20260823-1'},
+    {id:'designEditorCoverModeBridgeScriptV1',src:'/js/design-editor/cover-mode-bridge.js?v=20260823-2'},
     {id:'designEditorEmbeddedRuntimeScriptV1',src:'/js/design-editor/embedded-runtime.js?v=20260821-1'},
-    {id:'designEditorCoverSettingsScriptV1',src:'/js/design-editor/cover-settings.js?v=20260823-1',products:['cover']},
+    {id:'designEditorCoverSettingsScriptV1',src:'/js/design-editor/cover-settings.js?v=20260823-1'},
     {id:'designEditorEmbeddedPolishScriptV1',src:'/js/design-editor/phase6-embedded-polish.js?v=20260821-1'},
     {id:'designEditorRecentDraftsScriptV1',src:'/js/design-editor/phase7-recent-drafts.js?v=20260821-1'},
     {id:'designEditorCurrentDraftResetScriptV1',src:'/js/design-editor/phase8-current-draft-reset.js?v=20260821-1'},
@@ -26,8 +26,8 @@
     {id:'designEditorProjectFileScriptV1',src:'/js/design-editor/phase11-project-file.js?v=20260823-1'},
     {id:'designEditorCloudProjectsScriptV1',src:'/js/design-editor/phase24-cloud-projects.js?v=20260823-1'},
     {id:'designEditorRotationScriptV1',src:'/js/design-editor/phase12-rotation.js?v=20260822-1'},
-    {id:'designEditorCoverSpineToolsScriptV1',src:'/js/design-editor/cover-spine-tools.js?v=20260823-1',products:['cover']},
-    {id:'designEditorCoverPreviewZonesScriptV1',src:'/js/design-editor/cover-preview-zones.js?v=20260823-3',products:['cover']},
+    {id:'designEditorCoverSpineToolsScriptV1',src:'/js/design-editor/cover-spine-tools.js?v=20260823-1'},
+    {id:'designEditorCoverPreviewZonesScriptV1',src:'/js/design-editor/cover-preview-zones.js?v=20260823-3'},
     {id:'designEditorPrintQualityScriptV1',src:'/js/design-editor/phase13-print-quality.js?v=20260822-1'},
     {id:'designEditorPrintSafetyScriptV1',src:'/js/design-editor/phase14-print-safety.js?v=20260822-1'},
     {id:'designEditorFinalPrintCheckScriptV1',src:'/js/design-editor/phase22-final-print-check.js?v=20260822-1'},
@@ -38,8 +38,7 @@
     {id:'designEditorSmartSnapScriptV1',src:'/js/design-editor/phase19-smart-snap.js?v=20260823-2'},
     {id:'designEditorPrintBlocksScriptV1',src:'/js/design-editor/phase20-print-blocks.js?v=20260822-1'},
     {id:'designEditorStyleThemesScriptV1',src:'/js/design-editor/phase21-style-themes.js?v=20260822-1'},
-    {id:'designEditorDesignRecipesScriptV1',src:'/js/design-editor/phase23-design-recipes.js?v=20260822-1'},
-    {id:'designShellRuntimeScriptV1',src:'/js/design-editor/shell-runtime.js?v=20260831-1',standalone:true}
+    {id:'designEditorDesignRecipesScriptV1',src:'/js/design-editor/phase23-design-recipes.js?v=20260822-1'}
   ]);
 
   const GENERAL_ROUTE_IDS=new Set([
@@ -48,16 +47,24 @@
     'designEditorSimpleInterfaceScriptV1',
     'designEditorComponentBlocksScriptV1'
   ]);
+  const COVER_ONLY_IDS=new Set([
+    'designEditorCoverModelScriptV1',
+    'designEditorCoverModeBridgeScriptV1',
+    'designEditorCoverSettingsScriptV1',
+    'designEditorCoverSpineToolsScriptV1',
+    'designEditorCoverPreviewZonesScriptV1'
+  ]);
   const PRODUCT_ALIASES=Object.freeze({notice:'invitation',leaflet2:'leaflet',leaflet3:'leaflet'});
   const params=()=>new URLSearchParams(location.search);
   const standaloneProduct=()=>{
     const raw=(params().get('app')||'').trim().toLowerCase();
     return PRODUCT_ALIASES[raw]||raw;
   };
-  const activeModules=()=>{
+  const shouldLoad=entry=>{
     const product=standaloneProduct();
-    if(!product)return MODULES.filter(entry=>!entry.standalone);
-    return MODULES.filter(entry=>(!entry.products||entry.products.includes(product))&&(!entry.standalone||Boolean(product)));
+    if(!product)return true;
+    if(COVER_ONLY_IDS.has(entry.id))return product==='cover';
+    return true;
   };
 
   const context=()=>window.ProgramStudioDesignEditorRuntimeContext||{};
@@ -80,6 +87,7 @@
   }
 
   async function loadEntry(entry){
+    if(!shouldLoad(entry))return;
     if(!GENERAL_ROUTE_IDS.has(entry.id)||!isEmbeddedGeneralRuntime()){
       await hostLoad(entry.id,entry.src);
       return;
@@ -97,8 +105,7 @@
 
   async function loadAll(){
     const seen=new Set();
-    const modules=activeModules();
-    for(const entry of modules){
+    for(const entry of MODULES){
       if(!entry.id||!entry.src||seen.has(entry.id)){
         console.warn('[design-core-runtime] manifest entry skipped',entry);
         continue;
@@ -107,16 +114,17 @@
       await loadEntry(entry);
     }
     const product=standaloneProduct();
+    if(product)await hostLoad('designShellRuntimeScriptV1','/js/design-editor/shell-runtime.js?v=20260831-1');
     document.documentElement.dataset.designCoreRuntime='1';
     if(product)document.documentElement.dataset.designProductBoundary=product;
     return true;
   }
 
-  window.ProgramStudioDesignEditorRuntimeManifest=activeModules().map(({id,src})=>({id,src}));
+  window.ProgramStudioDesignEditorRuntimeManifest=MODULES.map(({id,src})=>({id,src}));
   window.ProgramStudioDesignEditorCoreRuntime={
     loadAll,
-    modules:activeModules().map(({id,src})=>({id,src})),
+    modules:MODULES.map(({id,src})=>({id,src})),
     product:standaloneProduct(),
-    stage:'design-editor-product-aware-core-runtime-v3'
+    stage:'design-editor-core-runtime-manifest-v1'
   };
 })();
