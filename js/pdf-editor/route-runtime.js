@@ -47,12 +47,16 @@
     return hostLoadScript(entry.id,entry.src);
   }
 
+  function loadStandaloneBoundary(){
+    if(!standaloneApp())return Promise.resolve(true);
+    return hostLoadScript('pdfEditorStandaloneAppProfileScriptV1','/js/pdf-editor/standalone-app-profile.js?v=20260831-1')
+      .then(()=>hostLoadScript('pdfEditorAppBoundaryScriptV1','/js/pdf-editor/app-boundary.js?v=20260831-2'));
+  }
+
   function loadAll(){
     const seen=new Set();
     const pending=[];
-    if(standaloneApp()){
-      pending.push(hostLoadScript('pdfEditorAppBoundaryScriptV1','/js/pdf-editor/app-boundary.js?v=20260831-1'));
-    }
+    if(standaloneApp())pending.push(loadStandaloneBoundary());
     for(const entry of MODULES){
       if(!entry.id||!entry.src||seen.has(entry.id)){
         console.warn('[pdf-route-runtime] manifest entry skipped',entry);
@@ -65,7 +69,10 @@
     }
     return Promise.all(pending).then(()=>{
       document.documentElement.dataset.pdfRouteRuntime='1';
-      if(standaloneApp())document.documentElement.dataset.pdfStandaloneApp=standaloneApp();
+      if(standaloneApp()){
+        const profile=window.PdfEditorStandaloneApps?.fromLocation?.(location.search);
+        document.documentElement.dataset.pdfStandaloneApp=profile?.key||standaloneApp();
+      }
       return true;
     });
   }
@@ -74,6 +81,7 @@
     loadAll,
     modules:MODULES.map(({id,src})=>({id,src})),
     app:standaloneApp(),
+    get profile(){return window.PdfEditorStandaloneApps?.fromLocation?.(location.search)?.key||null;},
     stage:'pdf-editor-route-runtime-manifest-v1'
   };
 })();
