@@ -37,7 +37,7 @@
        the PDF-specific shell/runtime. It must never mount the retired PDF
        workflow or icon tool rail in this ordering. -->
   <script src="/js/program-studio-ui-v2.js?v=20260830-2"></script>
-  <script src="/js/program-shell-unify.js?v=20260824-1"></script>
+  <script src="/js/program-shell-unify.js?v=20260831-1"></script>
   <script>
     (async()=>{
       const result=document.getElementById('result');
@@ -46,7 +46,7 @@
       const visible=node=>node&&getComputedStyle(node).display!=='none'&&getComputedStyle(node).visibility!=='hidden';
       try{
         await waitFor(()=>document.body.dataset.programShell==='compact','compact shell');
-        await waitFor(()=>window.PdfEditorSimpleSidebarUi?.stage==='single-sidebar-all-controls-visible-v3','always-visible sidebar runtime');
+        await waitFor(()=>window.PdfEditorSimpleSidebarUi?.stage==='single-sidebar-page-list-collapsible-hotfix-v4','sidebar recovery runtime');
         await new Promise(resolve=>setTimeout(resolve,2300));
 
         assert(window.ProgramShellUnify?.stage==='pdf-tools-headerless-unified-shell','shell API missing');
@@ -71,7 +71,7 @@
         assert(!document.querySelector('.ps-tool-sidebar-shell'),'legacy editor tool shell was mounted');
         assert(!document.getElementById('pdfEditorWorkflowV2Script'),'legacy PDF workflow script was loaded');
         assert(!document.getElementById('editorToolRailV1Script'),'legacy tool-rail script was loaded');
-        assert(document.body.dataset.pdfSidebarMode==='all-visible','always-visible sidebar marker missing');
+        assert(document.body.dataset.pdfSidebarMode==='all-visible-page-list-collapsible','sidebar recovery marker missing');
 
         document.body.dataset.shellSmoke='pass';
         document.body.dataset.shellHeaderRemoved='true';
