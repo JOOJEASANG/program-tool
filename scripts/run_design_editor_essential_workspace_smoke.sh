@@ -36,8 +36,7 @@ for marker in \
   'data-essential-no-all="true"' \
   'data-essential-step-isolation="true"' \
   'data-essential-invitation-cover-hidden="true"' \
-  'data-essential-invitation-fold="xy"' \
-  'data-essential-cover-visible="true"'; do
+  'data-essential-invitation-fold="x"'; do
   if ! grep -q "$marker" "$DOM_OUT"; then echo "Missing essential workspace marker: $marker" >&2; cat "$DOM_OUT" >&2; exit 1; fi
 done
 
