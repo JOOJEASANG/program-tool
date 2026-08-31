@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>PDF Security Storage Policy Smoke</title>
+  <script>history.replaceState(null,'','/pdf-preflight/index.html?pdf-security-storage-smoke=1');</script>
+</head>
+<body data-pdf-security-storage-smoke="pending">
+  <div id="toolError"></div>
+  <div id="result">PENDING</div>
+  <script>
+    const calls={original:[],uploads:[],fetches:[],deletes:0,status:[]};
+    window.auth={currentUser:{uid:'smoke-user',getIdToken:async()=> 'token'}};
+    window.firebase={auth:()=>window.auth,storage:()=>window.__storage};
+    window.__storage={ref:path=>({path,put:async()=>{},delete:async()=>{calls.deletes+=1}})};
+    window._ensureStorage=async()=>window.__storage;
+    window._uploadStorageFile=async(ref,file)=>{calls.uploads.push({path:ref.path,size:file.size})};
+    window._readPdfDelivery=async()=>new Blob(['pdf'],{type:'application/pdf'});
+    window.apiPdfTool=async function(op,file,params){calls.original.push({op,size:file?.size||0,params});return {blob:new Blob(['direct'],{type:'application/pdf'})}};
+    window.runAutoDecrypt=async()=>{};
+    window.showError=message=>{calls.error=String(message)};
+    window.showCheckStatus=(message,type)=>{calls.status.push({message:String(message),type:String(type||'info')})};
+    window.setPageBusy=()=>{};
+    window.fetch=async(url,options)=>{
+      calls.fetches.push({url,body:JSON.parse(options.body)});
+      return {ok:true,status:200,headers:{get:()=> 'application/json'}};
+    };
+  </script>
+  <script src="/js/pdf-utility/security-large-file.js?v=20260831-2"></script>
+  <script>
+    (async()=>{
+      const result=document.getElementById('result');
+      const assert=(value,message)=>{if(!value)throw new Error(message)};
+      const waitFor=async(predicate,label,timeout=4000)=>{const started=Date.now();while(Date.now()-started<timeout){if(predicate())return;await new Promise(resolve=>setTimeout(resolve,20));}throw new Error('timeout: '+label)};
+      try{
+        await waitFor(()=>window.PdfSecurityLargeFile?.stage==='pdf-security-storage-200mb-v2','security storage bridge');
+        assert(window.PdfSecurityLargeFile.maxFileBytes===200*1024*1024,'200MB cap missing');
+        assert(window.PdfSecurityLargeFile.directMax===20*1024*1024,'20MB direct threshold missing');
+
+        const large={name:'locked-large.pdf',type:'application/pdf',size:25*1024*1024};
+        const largeResult=await window.apiPdfTool('decrypt',large,{password:'1234'});
+        assert(largeResult.meta?.large_security===true,'large decrypt did not use storage path');
+        assert(calls.original.length===0,'large decrypt reached direct multipart API');
+        assert(calls.uploads.length===1&&calls.uploads[0].size===large.size,'large PDF was not uploaded');
+        assert(calls.fetches[0]?.url==='/api/pdf-utility/security-storage','security endpoint mismatch');
+        assert(calls.fetches[0]?.body?.operation==='decrypt','decrypt operation missing');
+        assert(calls.fetches[0]?.body?.storage_path?.startsWith('pdf_temp/smoke-user/'),'storage path scope mismatch');
+
+        const small={name:'small.pdf',type:'application/pdf',size:5*1024*1024};
+        await window.apiPdfTool('compress',small,{});
+        assert(calls.original.length===1&&calls.original[0].op==='compress','normal PDF operation was not preserved');
+
+        let tooLargeMessage='';
+        try{await window.apiPdfTool('encrypt',{name:'too-large.pdf',type:'application/pdf',size:201*1024*1024},{password:'1234'})}catch(error){tooLargeMessage=String(error.message||error)}
+        assert(tooLargeMessage.includes('200MB'),'201MB rejection missing');
+        assert(calls.fetches.length===1,'oversized file must not reach security endpoint');
+
+        document.body.dataset.pdfSecurityStorageSmoke='pass';
+        result.textContent='PASS: PDF encrypt/decrypt uses Storage above 20MB with a 200MB file ceiling';
+      }catch(error){
+        document.body.dataset.pdfSecurityStorageSmoke='fail';
+        result.textContent='FAIL: '+String(error?.stack||error?.message||error);
+      }
+    })();
+  </script>
+</body>
+</html>
