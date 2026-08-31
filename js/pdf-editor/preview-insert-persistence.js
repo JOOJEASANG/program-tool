@@ -8,7 +8,7 @@
   if(path!=='/pdf-editor'&&path!=='/pdf-editor/index.html'&&!path.endsWith('/pdf-editor/index.html'))return;
 
   let observer=null;
-  let frame=0;
+  let timer=0;
   let repairing=false;
 
   function installStyles(){
@@ -136,8 +136,10 @@
   }
 
   function queue(){
-    if(frame)return;
-    frame=requestAnimationFrame(()=>{frame=0;repair();});
+    if(timer)return;
+    // A zero-delay task is used instead of requestAnimationFrame so preview
+    // restoration also runs in throttled/background/headless rendering states.
+    timer=setTimeout(()=>{timer=0;repair();},0);
   }
 
   function install(attempt=0){
@@ -160,5 +162,5 @@
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>install(0),{once:true});else install(0);
 
-  window.PdfPreviewInsertPersistence={repair,ensureNormalBoundaries,ensureFastFallback,stage:'multi-file-preview-insert-persistence-v1'};
+  window.PdfPreviewInsertPersistence={repair,ensureNormalBoundaries,ensureFastFallback,stage:'multi-file-preview-insert-persistence-v2'};
 })();
