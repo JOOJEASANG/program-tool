@@ -61,17 +61,20 @@ def test_design_document_type_is_canonical_with_legacy_compatibility():
     assert "professional-workspace-result-first-v2" in professional
 
 
-def test_pdf_workspace_keeps_every_control_in_one_always_visible_sidebar():
+def test_pdf_workspace_keeps_controls_in_one_sidebar_with_page_list_collapse_exception():
     sidebar = text("js/pdf-editor/simple-sidebar-ui.js")
     ui_runtime = text("js/pdf-editor/ui-runtime.js")
     shell = text("js/program-shell-unify.js")
     for marker in (
-        "single-sidebar-all-controls-visible-v3",
+        "single-sidebar-page-list-collapsible-hotfix-v4",
         "neutralizeToolRail()",
         "restoreOutputRail()",
         "keepSectionsOpen()",
         "flex-wrap:nowrap!important",
         ".sec-body.hidden{display:block!important",
+        "#thumbSection>#sb-pages.hidden{display:none!important}",
+        "if(sec.id==='thumbSection')",
+        "if(head.closest('#thumbSection'))",
         ".ps-sidebar-toggle",
         "pdf-output-dock-v2",
         "aria-label','로그아웃",
@@ -86,7 +89,7 @@ def test_pdf_workspace_keeps_every_control_in_one_always_visible_sidebar():
         "setInterval(",
     ):
         assert forbidden not in sidebar
-    assert "/js/pdf-editor/simple-sidebar-ui.js?v=20260830-1" in ui_runtime
+    assert "/js/pdf-editor/simple-sidebar-ui.js?v=20260831-1" in ui_runtime
     assert "/js/pdf-editor/workspace-layout.js" not in ui_runtime
     assert "/js/pdf-editor/workflow-ui.js" not in ui_runtime
     assert "/js/pdf-editor/ui-runtime.js?v=${PDF_UI_RUNTIME_VERSION}" in shell
