@@ -4,7 +4,7 @@
 
   // Historical filename: this module is the runtime/helper loader and legacy
   // service-worker cleanup layer. It intentionally does not register a worker.
-  const VERSION='2026.08.26.001';
+  const VERSION='2026.08.31.003';
   const CACHE_PREFIX='program-studio-';
   const CLEANUP_KEY='program-studio-legacy-runtime-cleanup-'+VERSION;
   const SCRIPT_TIMEOUT_MS=8000;
@@ -122,8 +122,7 @@
   /*
    * Source-contract compatibility metadata only. Runtime ownership moved to
    * /js/design-editor/core-runtime.js. This block is intentionally never read
-   * or executed by the application; it keeps older repository audits stable
-   * while those audits migrate to the canonical manifest.
+   * or executed by the application. Runtime validators strip block comments.
    *
   const DESIGN_EDITOR_RUNTIME_SCRIPTS=Object.freeze([
     ['designEditorRuntimeDiagnosticsScriptV1','/js/design-editor/runtime-diagnostics.js?v=20260823-1'],

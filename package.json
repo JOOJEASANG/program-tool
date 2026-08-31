@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test:rules": "node --test tests/firebase-rules.test.mjs"
+    "test:rules": "node --test --test-concurrency=1 tests/firebase-rules.test.mjs tests/firebase-hardening-rules.test.mjs"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "5.0.1",

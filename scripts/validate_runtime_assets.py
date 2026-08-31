@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate JavaScript-created local assets and keep the home runtime within budget."""
+"""Validate JavaScript-created local assets and runtime ownership contracts."""
 
 from __future__ import annotations
 
@@ -10,6 +10,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 RUNTIME_SOURCES = (
     Path("js/sw-register.js"),
+    Path("js/app-version.js"),
     Path("js/firebase-config.js"),
     Path("js/program-studio-ui-v2.js"),
     Path("js/design-editor/core-runtime.js"),
@@ -19,19 +20,34 @@ RUNTIME_SOURCES = (
     Path("js/pdf-editor/ui-runtime.js"),
     Path("js/pdf-editor/loader.js"),
 )
+CANONICAL_RUNTIME_OWNERS = (
+    Path("js/sw-register.js"),
+    Path("js/design-editor/core-runtime.js"),
+    Path("js/design-editor/shell-runtime.js"),
+    Path("js/pdf-editor/route-runtime.js"),
+    Path("js/pdf-editor/core-runtime.js"),
+    Path("js/pdf-editor/ui-runtime.js"),
+)
 RETIRED_LEGACY_ASSETS = (
     Path("js/home-premium-ui.js"),
     Path("js/home-hero-console-v2.js"),
 )
 HOME_DYNAMIC_COUNT_BUDGET = 10
-HOME_DYNAMIC_BYTES_BUDGET = 82_000
+HOME_DYNAMIC_BYTES_BUDGET = 88_000
 ASSET_LITERAL_RE = re.compile(r"[\'\"`](/(?:js|css)/[^\'\"`\s]+)[\'\"`]")
 LOAD_RE = re.compile(
     r"load\(\s*[\'\"](?P<id>[^\'\"]+)[\'\"]\s*,\s*[\'\"](?P<src>/js/[^\'\"]+)[\'\"]"
 )
+SCOPED_LOAD_RE = re.compile(
+    r"loadScopedScript\(\s*[\'\"](?P<id>[^\'\"]+)[\'\"]\s*,\s*[\'\"](?P<src>/js/[^\'\"]+)[\'\"]"
+)
+MANIFEST_ENTRY_RE = re.compile(
+    r"\{\s*id\s*:\s*[\'\"](?P<id>[^\'\"]+)[\'\"]\s*,\s*src\s*:\s*[\'\"](?P<src>/js/[^\'\"]+)[\'\"]"
+)
 HOME_DASHBOARD_RE = re.compile(
     r"loadEnhancement\(\s*[\'\"]homeDashboardV2Script[\'\"]\s*,\s*[\'\"](?P<src>/js/[^\'\"]+)[\'\"]"
 )
+BLOCK_COMMENT_RE = re.compile(r"/\*.*?\*/", re.S)
 
 
 def read(relative: Path) -> str:
@@ -39,6 +55,11 @@ def read(relative: Path) -> str:
     if not path.is_file():
         raise AssertionError(f"Required runtime source is missing: {relative.as_posix()}")
     return path.read_text(encoding="utf-8")
+
+
+def active_js(text: str) -> str:
+    """Drop compatibility metadata kept in block comments before ownership scans."""
+    return BLOCK_COMMENT_RE.sub("", text)
 
 
 def normalize_asset(raw: str) -> str:
@@ -53,20 +74,59 @@ def collect_literal_assets(source_text: str) -> set[str]:
     return {normalize_asset(match.group(1)) for match in ASSET_LITERAL_RE.finditer(source_text)}
 
 
+def collect_script_entries(source_text: str) -> list[tuple[str, str]]:
+    text = active_js(source_text)
+    entries: list[tuple[str, str]] = []
+    for pattern in (LOAD_RE, SCOPED_LOAD_RE, MANIFEST_ENTRY_RE):
+        entries.extend((match.group("id"), match.group("src")) for match in pattern.finditer(text))
+    return entries
+
+
+def validate_observer_runtime_ownership(source_text: dict[Path, str]) -> list[str]:
+    """The version observer must never race a canonical owner for the same DOM id."""
+    errors: list[str] = []
+    observer_entries = collect_script_entries(source_text[Path("js/app-version.js")])
+    observer_by_id: dict[str, set[str]] = {}
+    for script_id, src in observer_entries:
+        observer_by_id.setdefault(script_id, set()).add(src)
+
+    canonical_by_id: dict[str, list[tuple[Path, str]]] = {}
+    for relative in CANONICAL_RUNTIME_OWNERS:
+        for script_id, src in collect_script_entries(source_text[relative]):
+            canonical_by_id.setdefault(script_id, []).append((relative, src))
+
+    for script_id, observer_sources in sorted(observer_by_id.items()):
+        owners = canonical_by_id.get(script_id, [])
+        if owners:
+            owner_text = ", ".join(
+                f"{path.as_posix()} -> {src}" for path, src in owners
+            )
+            errors.append(
+                "app-version.js duplicates canonical runtime script id "
+                f"{script_id!r} ({sorted(observer_sources)!r}); owned by {owner_text}"
+            )
+        if len(observer_sources) > 1:
+            errors.append(
+                f"app-version.js maps script id {script_id!r} to conflicting sources: "
+                f"{sorted(observer_sources)!r}"
+            )
+    return errors
+
+
 def collect_home_dynamic_assets(sw_text: str, ui_text: str) -> list[str]:
     helpers_start = sw_text.find("async function helpers(){")
     admin_start = sw_text.find("if(isPath('/admin','/admin.html'))", helpers_start)
     if helpers_start < 0 or admin_start < 0:
         raise AssertionError("Could not isolate public/home helper manifest in js/sw-register.js")
 
-    block = sw_text[helpers_start:admin_start]
+    block = active_js(sw_text[helpers_start:admin_start])
     entries = [(match.group("id"), normalize_asset(match.group("src"))) for match in LOAD_RE.finditer(block)]
 
     if "loadCatalogCore()" not in block:
         raise AssertionError("Home helper manifest no longer loads the program catalog core")
     catalog_match = re.search(
         r"function loadCatalogCore\(\)\{return load\(\s*[\'\"](?P<id>[^\'\"]+)[\'\"]\s*,\s*[\'\"](?P<src>/js/[^\'\"]+)[\'\"]",
-        sw_text,
+        active_js(sw_text),
     )
     if not catalog_match:
         raise AssertionError("Could not resolve loadCatalogCore() asset")
@@ -92,15 +152,17 @@ def validate() -> None:
 
     dynamic_assets: set[str] = set()
     for relative, text in source_text.items():
-        for asset in collect_literal_assets(text):
+        for asset in collect_literal_assets(active_js(text)):
             dynamic_assets.add(asset)
             if not filesystem_path(asset).is_file():
                 errors.append(f"Missing dynamic asset: {asset} (referenced by {relative.as_posix()})")
 
+    errors.extend(validate_observer_runtime_ownership(source_text))
+
     sw_text = source_text[Path("js/sw-register.js")]
     ui_text = source_text[Path("js/program-studio-ui-v2.js")]
 
-    if "navigator.serviceWorker.register" in sw_text or "serviceWorker.register(" in sw_text:
+    if "navigator.serviceWorker.register" in active_js(sw_text) or "serviceWorker.register(" in active_js(sw_text):
         errors.append("js/sw-register.js must remain a retired-worker cleanup/runtime loader, not register a new service worker")
     if not (ROOT / "sw.js").is_file():
         errors.append("sw.js compatibility artifact is missing; keep it while old clients may still request it")

@@ -1,12 +1,14 @@
 // Safe editor-session persistence for multiple source PDFs.
 (function () {
   'use strict';
-  if (window.__pdfSessionSaveSafetyV1) return;
-  window.__pdfSessionSaveSafetyV1 = true;
+  if (window.__pdfSessionSaveSafetyV2) return;
+  window.__pdfSessionSaveSafetyV2 = true;
 
   const MAX_INSTALL_ATTEMPTS = 40;
   const MAX_SESSIONS = 10;
-  const MAX_SESSION_BYTES = 500 * 1024 * 1024;
+  const MAX_SESSION_FILES = 50;
+  const MAX_FILE_BYTES = 200 * 1024 * 1024;
+  const MAX_SESSION_BYTES = 300 * 1024 * 1024;
   let installAttempts = 0;
   let active = false;
   let lockSnapshot = null;
@@ -43,12 +45,15 @@
     if (!Array.isArray(files) || files.length === 0) {
       throw new Error('저장할 원본 PDF가 없습니다.');
     }
+    if (files.length > MAX_SESSION_FILES) {
+      throw new Error(`저장 세션은 원본 PDF를 최대 ${MAX_SESSION_FILES}개까지 보관할 수 있습니다.`);
+    }
     const bytes = totalBytes(files);
-    if (files.some((file) => Number(file?.size || 0) > MAX_SESSION_BYTES)) {
-      throw new Error('저장 세션의 PDF 한 파일은 최대 500MB까지 가능합니다.');
+    if (files.some((file) => Number(file?.size || 0) > MAX_FILE_BYTES)) {
+      throw new Error('저장 세션의 PDF 한 파일은 최대 200MB까지 가능합니다.');
     }
     if (bytes > MAX_SESSION_BYTES) {
-      throw new Error('저장 세션의 원본 PDF 전체 합계는 최대 500MB까지 가능합니다.');
+      throw new Error('저장 세션의 원본 PDF 전체 합계는 최대 300MB까지 가능합니다.');
     }
     if (!state || !Array.isArray(state.pages)) {
       throw new Error('편집 페이지 상태를 확인할 수 없습니다.');
@@ -261,12 +266,19 @@
         setStatus(`파일 업로드 중... (${index + 1}/${files.length})`, '#6b7280');
         const path = `pdf_sessions/${user.uid}/${sessionId}/src_${index}.pdf`;
         storagePaths.push(path);
-        await storage.ref(path).put(file, { contentType: 'application/pdf' });
+        await storage.ref(path).put(file, {
+          contentType: 'application/pdf',
+          customMetadata: {
+            ownerUid: user.uid,
+            purpose: 'pdf-session-source',
+            sessionId,
+          },
+        });
       }
 
       setStatus('상태 저장 중...', '#6b7280');
       documentRef = await collection.add({
-        name,
+        name: name.slice(0, 120),
         sessionId,
         storagePaths: [...storagePaths],
         fileCount: files.length,
@@ -329,12 +341,12 @@
 
     const button = byId('sessionSaveConfirm');
     const input = byId('sessionNameInput');
-    if (button.dataset.sessionSaveSafetyV1 !== 'true') {
-      button.dataset.sessionSaveSafetyV1 = 'true';
+    if (button.dataset.sessionSaveSafetyV2 !== 'true') {
+      button.dataset.sessionSaveSafetyV2 = 'true';
       button.addEventListener('click', interceptSave, true);
     }
-    if (input.dataset.sessionSaveSafetyV1 !== 'true') {
-      input.dataset.sessionSaveSafetyV1 = 'true';
+    if (input.dataset.sessionSaveSafetyV2 !== 'true') {
+      input.dataset.sessionSaveSafetyV2 = 'true';
       input.addEventListener('keydown', interceptEnter, true);
     }
     return true;
@@ -346,8 +358,10 @@
     cleanupUploadedPaths,
     active: () => active,
     maxSessionBytes: MAX_SESSION_BYTES,
-    stage: 'multi-source-snapshot-500mb-failure-cleanup',
-    reviewFixes: 'thumbnail-lock-not-found-cleanup',
+    maxFileBytes: MAX_FILE_BYTES,
+    maxSessionFiles: MAX_SESSION_FILES,
+    stage: 'multi-source-snapshot-300mb-cost-guard-v2',
+    reviewFixes: 'thumbnail-lock-not-found-cleanup-owner-metadata',
   };
 
   if (document.readyState === 'loading') {

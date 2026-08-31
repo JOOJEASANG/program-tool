@@ -1,4 +1,4 @@
-"""Private, short-lived Firebase Storage delivery for generated PDFs."""
+"""Short-retention Firebase Storage delivery for generated PDFs."""
 from __future__ import annotations
 
 import re
@@ -8,8 +8,8 @@ from pathlib import Path
 from urllib.parse import quote
 
 
-RESULT_TTL_HOURS = 6
-MAX_RESULT_BYTES = 500 * 1024 * 1024
+RESULT_TTL_HOURS = 1
+MAX_RESULT_BYTES = 300 * 1024 * 1024
 
 
 def _safe_filename(filename: str | None) -> str:
@@ -36,14 +36,20 @@ def upload_pdf_result(
     source_path: str | Path | None = None,
     metadata: dict[str, str] | None = None,
 ) -> dict:
-    """Upload one generated PDF and return a tokenized download contract."""
+    """Upload one generated PDF and return a short-retention download contract.
+
+    Firebase download-token URLs do not have a cryptographic expiry timestamp.
+    The returned ``expires_at`` therefore represents the server cleanup deadline,
+    not a signed-URL guarantee. The client deletes the object immediately after a
+    successful download and the scheduled cleanup removes abandoned results.
+    """
     if (data is None) == (source_path is None):
         raise ValueError("data 또는 source_path 중 하나만 제공해야 합니다.")
     size_bytes = _result_size(data=data, source_path=source_path)
     if size_bytes <= 0:
         raise ValueError("완성 PDF 파일이 비어 있습니다.")
     if size_bytes > MAX_RESULT_BYTES:
-        raise ValueError("완성 PDF는 최대 500MB까지 다운로드할 수 있습니다.")
+        raise ValueError("완성 PDF는 최대 300MB까지 다운로드할 수 있습니다.")
 
     safe_uid = re.sub(r"[^A-Za-z0-9_-]+", "_", str(uid))[:128]
     if not safe_uid:
@@ -59,7 +65,7 @@ def upload_pdf_result(
     blob.metadata = {
         "firebaseStorageDownloadTokens": token,
         "temporary": "true",
-        "expiresAt": expires_at.isoformat(),
+        "cleanupAfter": expires_at.isoformat(),
         **(metadata or {}),
     }
     blob.content_disposition = f'attachment; filename="{safe_name}"'
@@ -79,5 +85,6 @@ def upload_pdf_result(
         "storage_path": storage_path,
         "download_url": download_url,
         "expires_at": expires_at.isoformat(),
+        "expiration_mode": "scheduled-delete",
         "size_bytes": size_bytes,
     }

@@ -2,9 +2,11 @@ import logging
 import os
 import re
 import uuid
+from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 
 import firebase_admin
+import firebase_admin.firestore as fa_firestore
 import firebase_admin.storage as fa_storage
 
 if not firebase_admin._apps:
@@ -36,15 +38,20 @@ from utils.permissions import AccessError, require_program_access_for_request
 flask_app = Flask(__name__)
 logger = logging.getLogger(__name__)
 REQUEST_ID_PATTERN = re.compile(r"^[A-Za-z0-9._-]{8,64}$")
-PDF_STORAGE_TRANSFER_BYTES = 500 * 1024 * 1024
+MIB = 1024 * 1024
+PDF_STORAGE_FILE_BYTES = 200 * MIB
+PDF_STORAGE_TOTAL_BYTES = 300 * MIB
+MAX_SAVED_PDF_SESSIONS = 10
+MAX_SAVED_DESIGN_PROJECTS = 8
+ORPHAN_GRACE_HOURS = 24
 
-# One shared upper bound for Storage-backed PDF input/output. Direct multipart
-# requests intentionally stay small; large files go directly through Storage.
-pdf_router.MAX_PDF_FILE_BYTES = PDF_STORAGE_TRANSFER_BYTES
-pdf_router.MAX_TOTAL_PDF_BYTES = PDF_STORAGE_TRANSFER_BYTES
-preflight_router.MAX_STORAGE_PDF_BYTES = PDF_STORAGE_TRANSFER_BYTES
-pdf_utility_router.MAX_FILE_BYTES = PDF_STORAGE_TRANSFER_BYTES
-pdf_utility_router.MAX_TOTAL_BYTES = PDF_STORAGE_TRANSFER_BYTES
+# Storage and backend limits intentionally match. This avoids paying to accept a
+# 500 MiB client object that a downstream PDF route should never need to process.
+pdf_router.MAX_PDF_FILE_BYTES = PDF_STORAGE_FILE_BYTES
+pdf_router.MAX_TOTAL_PDF_BYTES = PDF_STORAGE_TOTAL_BYTES
+preflight_router.MAX_STORAGE_PDF_BYTES = PDF_STORAGE_FILE_BYTES
+pdf_utility_router.MAX_FILE_BYTES = PDF_STORAGE_FILE_BYTES
+pdf_utility_router.MAX_TOTAL_BYTES = PDF_STORAGE_TOTAL_BYTES
 
 # Background raster work is intentionally more conservative than simple
 # transfer/merge work because every page consumes CPU and memory.
@@ -54,7 +61,7 @@ pdf_utility_router.BACKGROUND_DPI = 160
 
 # Large PDFs use Firebase Storage. Direct multipart requests remain below the
 # Cloud Functions request/response quota with a small boundary allowance.
-flask_app.config["MAX_CONTENT_LENGTH"] = 25 * 1024 * 1024
+flask_app.config["MAX_CONTENT_LENGTH"] = 25 * MIB
 flask_app.register_blueprint(pdf_bp, url_prefix="/api/pdf")
 flask_app.register_blueprint(pdf_tools_bp, url_prefix="/api/pdf-tools")
 flask_app.register_blueprint(pdf_utility_bp, url_prefix="/api/pdf-utility")
@@ -153,17 +160,106 @@ def api(req: https_fn.Request) -> https_fn.Response:
         return flask_app.full_dispatch_request()
 
 
-@scheduler_fn.on_schedule(schedule="every 6 hours")
-def cleanup_temporary_pdfs(event: scheduler_fn.ScheduledEvent) -> None:
-    """Delete abandoned PDF inputs and generated results after 6 hours."""
-    del event
-    cutoff = datetime.now(timezone.utc) - timedelta(hours=6)
-    bucket = fa_storage.bucket(
+def _bucket():
+    return fa_storage.bucket(
         os.environ.get(
             "FIREBASE_STORAGE_BUCKET",
             "program-tool.firebasestorage.app",
         )
     )
+
+
+def _safe_time(value) -> datetime:
+    if isinstance(value, datetime):
+        return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+    return datetime.min.replace(tzinfo=timezone.utc)
+
+
+def _delete_blob_paths(bucket, paths) -> None:
+    for path in paths or []:
+        value = str(path or "").strip()
+        if not value:
+            continue
+        try:
+            bucket.blob(value).delete()
+        except Exception:
+            logger.warning("Persistent quota blob cleanup failed path=%s", value, exc_info=True)
+
+
+def _normalize_document_paths(data: dict, paths_field: str) -> list[str]:
+    raw_paths = data.get(paths_field)
+    if isinstance(raw_paths, list):
+        return [str(path) for path in raw_paths if path]
+    if raw_paths:
+        return [str(raw_paths)]
+    return []
+
+
+def _trim_firestore_group(db, bucket, collection_id: str, limit: int, timestamp_field: str, paths_field: str):
+    """Keep newest bounded user documents and return paths referenced by survivors."""
+    grouped = defaultdict(list)
+    for snapshot in db.collection_group(collection_id).stream():
+        try:
+            parent_doc = snapshot.reference.parent.parent
+            uid = parent_doc.id if parent_doc is not None else ""
+            if uid:
+                grouped[uid].append(snapshot)
+        except Exception:
+            logger.warning("Quota document ownership parse failed path=%s", snapshot.reference.path, exc_info=True)
+
+    referenced: set[str] = set()
+    for uid, snapshots in grouped.items():
+        ordered = sorted(
+            snapshots,
+            key=lambda item: _safe_time((item.to_dict() or {}).get(timestamp_field)),
+            reverse=True,
+        )
+        keep = ordered[:limit]
+        remove = ordered[limit:]
+        for snapshot in keep:
+            referenced.update(_normalize_document_paths(snapshot.to_dict() or {}, paths_field))
+        for snapshot in remove:
+            paths = _normalize_document_paths(snapshot.to_dict() or {}, paths_field)
+            try:
+                # Remove the database reference first. If this fails, keep the
+                # blobs protected as referenced data rather than breaking a live
+                # session/project. Blob cleanup can safely retry later.
+                snapshot.reference.delete()
+            except Exception:
+                referenced.update(paths)
+                logger.warning("Persistent quota document cleanup failed path=%s", snapshot.reference.path, exc_info=True)
+                continue
+            _delete_blob_paths(bucket, paths)
+            logger.info(
+                "Persistent quota trimmed collection=%s uid=%s document=%s",
+                collection_id,
+                uid,
+                snapshot.id,
+            )
+    return referenced
+
+
+def _delete_old_orphans(bucket, prefix: str, referenced: set[str], cutoff: datetime) -> None:
+    try:
+        for blob in bucket.list_blobs(prefix=prefix):
+            if blob.name in referenced:
+                continue
+            try:
+                updated = blob.updated
+                if updated is not None and updated <= cutoff:
+                    blob.delete()
+            except Exception:
+                logger.warning("Orphan object cleanup failed path=%s", getattr(blob, "name", "unknown"), exc_info=True)
+    except Exception:
+        logger.warning("Orphan prefix scan failed prefix=%s", prefix, exc_info=True)
+
+
+@scheduler_fn.on_schedule(schedule="every 1 hours")
+def cleanup_temporary_pdfs(event: scheduler_fn.ScheduledEvent) -> None:
+    """Delete abandoned PDF staging objects and generated results after 1 hour."""
+    del event
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=1)
+    bucket = _bucket()
     for prefix in ("pdf_temp/", "preflight_temp/", "pdf_results/"):
         try:
             blobs = bucket.list_blobs(prefix=prefix)
@@ -184,3 +280,38 @@ def cleanup_temporary_pdfs(event: scheduler_fn.ScheduledEvent) -> None:
                 prefix,
                 exc_info=True,
             )
+
+
+@scheduler_fn.on_schedule(schedule="every 24 hours")
+def cleanup_persistent_user_storage(event: scheduler_fn.ScheduledEvent) -> None:
+    """Enforce saved-project/session quotas and remove old unreferenced objects.
+
+    Firestore/Storage rules cannot count every object under a user's prefix. This
+    daily server-side reconciliation closes that gap without deleting objects that
+    are still in a valid saved session/project. Newly uploaded orphans receive a
+    24-hour grace period so an in-progress client save cannot be raced by cleanup.
+    """
+    del event
+    db = fa_firestore.client()
+    bucket = _bucket()
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=ORPHAN_GRACE_HOURS)
+
+    session_paths = _trim_firestore_group(
+        db,
+        bucket,
+        "pdf_sessions",
+        MAX_SAVED_PDF_SESSIONS,
+        "createdAt",
+        "storagePaths",
+    )
+    design_paths = _trim_firestore_group(
+        db,
+        bucket,
+        "design_projects",
+        MAX_SAVED_DESIGN_PROJECTS,
+        "updatedAt",
+        "storagePath",
+    )
+
+    _delete_old_orphans(bucket, "pdf_sessions/", session_paths, cutoff)
+    _delete_old_orphans(bucket, "design_projects/", design_paths, cutoff)

@@ -429,7 +429,10 @@ test('cloud design storage is owner-only, approved-only and validates json metad
   await seedPermission('design-owner', 'approved');
   const ownerStorage = env.authenticatedContext('design-owner', { email: 'owner@example.com' }).storage();
   const otherStorage = env.authenticatedContext('other-user', { email: 'other@example.com' }).storage();
-  const path = 'design_projects/design-owner/design_alpha/rev_one.design.json';
+  // Use a distinct project/revision path from the immutability regression suite.
+  // This test covers authorization and metadata validation, while the hardening
+  // suite separately verifies that an existing revision cannot be overwritten.
+  const path = 'design_projects/design-owner/design_rules/rev_access.design.json';
   const validMetadata = {
     contentType: 'application/json',
     customMetadata: {
@@ -442,19 +445,19 @@ test('cloud design storage is owner-only, approved-only and validates json metad
   await assertSucceeds(getBytes(ref(ownerStorage, path)));
   await assertFails(getBytes(ref(otherStorage, path)));
   await assertFails(uploadString(
-    ref(otherStorage, 'design_projects/design-owner/design_alpha/rev_two.design.json'),
+    ref(otherStorage, 'design_projects/design-owner/design_rules/rev_other.design.json'),
     '{}',
     'raw',
     validMetadata
   ));
   await assertFails(uploadString(
-    ref(ownerStorage, 'design_projects/design-owner/design_alpha/rev_bad.design.json'),
+    ref(ownerStorage, 'design_projects/design-owner/design_rules/rev_bad.design.json'),
     '{}',
     'raw',
     { contentType: 'text/plain', customMetadata: { ownerUid: 'design-owner', format: 'program-studio-design-project' } }
   ));
   await assertFails(uploadString(
-    ref(ownerStorage, 'design_projects/design-owner/design_alpha/rev_missing.design.json'),
+    ref(ownerStorage, 'design_projects/design-owner/design_rules/rev_missing.design.json'),
     '{}',
     'raw',
     { contentType: 'application/json' }

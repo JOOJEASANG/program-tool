@@ -18,7 +18,7 @@ from utils.storage_delivery import upload_pdf_result
 pdf_large_security_bp = Blueprint("pdf_large_security", __name__)
 logger = logging.getLogger(__name__)
 
-MAX_FILE_BYTES = 500 * 1024 * 1024
+MAX_FILE_BYTES = 200 * 1024 * 1024
 MAX_PAGES = 2000
 DEFAULT_STORAGE_BUCKET = os.environ.get(
     "FIREBASE_STORAGE_BUCKET", "program-tool.firebasestorage.app"
@@ -97,14 +97,14 @@ def security_storage(uid):
         if size <= 0:
             return _error("빈 PDF 파일은 처리할 수 없습니다.", 400, "PDF_SECURITY_FILE_EMPTY")
         if size > MAX_FILE_BYTES:
-            return _error("PDF 한 파일은 최대 500MB까지 처리할 수 있습니다.", 413, "PDF_SECURITY_FILE_TOO_LARGE")
+            return _error("PDF 한 파일은 최대 200MB까지 처리할 수 있습니다.", 413, "PDF_SECURITY_FILE_TOO_LARGE")
 
         with tempfile.TemporaryDirectory(prefix="pdf-security-") as temp_dir:
             source_path = Path(temp_dir) / "source.pdf"
             output_path = Path(temp_dir) / "output.pdf"
             blob.download_to_filename(str(source_path))
             if source_path.stat().st_size > MAX_FILE_BYTES:
-                return _error("PDF 한 파일은 최대 500MB까지 처리할 수 있습니다.", 413, "PDF_SECURITY_FILE_TOO_LARGE")
+                return _error("PDF 한 파일은 최대 200MB까지 처리할 수 있습니다.", 413, "PDF_SECURITY_FILE_TOO_LARGE")
 
             try:
                 document = fitz.open(str(source_path))

@@ -9,10 +9,12 @@ PRODUCTION = ROOT / ".github" / "workflows" / "firebase-deploy.yml"
 
 def test_stage66_deployment_smoke_reads_runtime_assets_from_single_manifest_source():
     source = SMOKE.read_text(encoding="utf-8")
-    assert "js\" / \"sw-register.js" in source
-    assert "RUNTIME_MANIFEST_PATTERN" in source
+    assert '"js/design-editor/core-runtime.js"' in source
+    assert '"js/pdf-editor/route-runtime.js"' in source
     assert "RUNTIME_ENTRY_PATTERN" in source
+    assert "def _runtime_assets_from_file" in source
     assert "def design_editor_runtime_assets()" in source
+    assert "def pdf_editor_runtime_assets()" in source
     assert "len(ids) != len(set(ids))" in source
     assert "len(paths) != len(set(paths))" in source
 
@@ -22,10 +24,13 @@ def test_stage66_deployment_smoke_fetches_every_runtime_asset_as_javascript():
     assert "def _require_javascript_asset" in source
     assert 'if "javascript" not in content_type' in source
     assert 'startswith(("<!doctype html", "<html"))' in source
+    assert "def _require_runtime_assets" in source
     assert "def _require_design_editor_runtime_assets" in source
+    assert "def _require_pdf_editor_runtime_assets" in source
     assert "for script_id, path in entries" in source
     assert "_require_javascript_asset(_fetch(base_url, path, timeout))" in source
-    assert '"디자인 편집기 런타임 자산"' in source
+    assert '"디자인 편집기 canonical 런타임 자산"' in source
+    assert '"PDF 편집기 canonical 런타임 자산"' in source
 
 
 def test_stage66_same_smoke_script_guards_preview_and_production_deployments():
