@@ -124,6 +124,11 @@
       if(!(node instanceof HTMLElement))return;
       const hide=isInternal(node)||!modeAllowed(node,type);
       node.dataset.designFlatHidden=hide?'1':'0';
+      // The flat workspace owns top-level tool-card visibility. Explicitly
+      // restore the hidden property as product modes change so a previous
+      // runtime cannot leave an allowed card hidden after switching modes.
+      node.hidden=hide;
+      node.setAttribute('aria-hidden',hide?'true':'false');
       node.classList.remove('design-essential-step-hidden','design-essential-internal');
     });
     const foldToggle=byId('foldToggle')?.closest('.check-row');
