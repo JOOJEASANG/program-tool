@@ -23,7 +23,7 @@ def test_unified_design_shell_uses_one_manifest_loader_without_changing_route_co
     assert "stage:'single-sidebar-general-engine-shell-no-legacy-fallback'" in shell
     for marker in (
         "print-fold-runtime-ensure.js?v=20260825-5",
-        "document-type-state.js?v=20260828-1",
+        "shared/document-type-state.js?v=20260831-1",
         "print-product-menu.js?v=20260828-3",
         "print-product-state-restore.js?v=20260825-1",
         "print-product-topbar.js?v=20260828-2",
