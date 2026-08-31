@@ -60,6 +60,6 @@
   window.PdfEditorRouteRuntime={
     loadAll,
     modules:MODULES.map(({id,src})=>({id,src})),
-    stage:'pdf-editor-route-runtime-manifest-v2'
+    stage:'pdf-editor-route-runtime-manifest-v1'
   };
 })();
