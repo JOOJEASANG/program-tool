@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>Design Editor Essential Workspace Smoke</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif}.hidden{display:none!important}#editorShell{display:grid;grid-template-columns:300px 1fr 306px;height:760px}.sidebar,.properties-panel{padding:10px}.side-card{border:1px solid #ddd;padding:9px;margin-bottom:7px}.editor-main{min-width:0}.artboard-viewport{width:900px;height:600px;display:flex;align-items:center;justify-content:center}.artboard{position:relative;width:606px;height:432px;background:#fff}.fold-guide{position:absolute}.panel-guide-label{position:absolute}
+  </style>
+  <script>
+    history.replaceState(null,'','/design-editor/general.html?embed=1&mode=invitation&preset=invitation-a4');
+    document.documentElement.dataset.programSurface='design-editor';
+    document.documentElement.dataset.designDocumentType='invitation';
+  </script>
+</head>
+<body data-essential-workspace-status="pending">
+  <div id="result">PENDING</div>
+  <main id="editorShell">
+    <aside class="sidebar" aria-label="디자인 제작 도구">
+      <section id="documentCard" class="side-card"><div class="document-head"><div class="document-title">초대장</div></div></section>
+      <section id="contentCard" class="side-card"><div class="side-label">내용 추가</div><button>제목</button></section>
+      <section id="designCoverSettingsTools" class="side-card"><div class="side-label">표지 설정</div></section>
+      <section id="designFinalPrintCheckTools" class="side-card"><div class="side-label">최종 인쇄 검사</div></section>
+      <section id="designPrintQualityTools" class="side-card"><div class="side-label">이미지 품질</div></section>
+      <section id="designPrintSafetyTools" class="side-card"><div class="side-label">인쇄 안전</div></section>
+      <section id="designOutputTools" class="side-card"><div class="side-label">출력</div></section>
+      <section id="designQuickDesignTools" class="side-card"><div class="side-label">빠른 꾸미기</div></section>
+    </aside>
+    <section class="editor-main"><div id="artboardViewport" class="artboard-viewport"><div id="artboard" class="artboard"></div></div></section>
+    <aside id="propertiesPanel" class="properties-panel">
+      <section id="inspector" class="side-card"><div class="inspector-title">선택 속성</div></section>
+      <section class="side-card"><div class="side-label">레이어</div><div id="layerList"></div></section>
+    </aside>
+  </main>
+  <script>
+    const invitation={
+      designMode:'invitation',printProductMode:'invitation',presetId:'invitation-a4',width:297,height:210,bleed:3,safe:8,showGuides:true,showFolds:true,activeSurface:'outside',
+      surfaces:[{id:'outside',label:'바깥면',foldAxis:'x',folds:[148.5],panels:['뒷면','앞면'],elements:[],extras:[]}]
+    };
+    window.DesignEditorApp={project:invitation};
+    window.DesignEditorWorkflowV2={activateStep(){}};
+  </script>
+  <script src="/js/design-editor/essential-workspace.js?v=20260831-1"></script>
+  <script>
+    (async()=>{
+      const result=document.getElementById('result');
+      const fail=error=>{document.body.dataset.essentialWorkspaceStatus='fail';result.textContent='FAIL: '+String(error?.stack||error?.message||error)};
+      const pass=message=>{document.body.dataset.essentialWorkspaceStatus='pass';result.textContent='PASS: '+message};
+      const assert=(condition,message)=>{if(!condition)throw new Error(message)};
+      const waitFor=async(predicate,label,timeout=8000)=>{const start=Date.now();while(Date.now()-start<timeout){if(predicate())return;await new Promise(resolve=>setTimeout(resolve,30))}throw new Error('timeout: '+label)};
+      const settle=()=>new Promise(resolve=>setTimeout(resolve,120));
+      const visible=id=>{const node=document.getElementById(id);return Boolean(node)&&getComputedStyle(node).display!=='none'};
+      try{
+        await waitFor(()=>window.DesignEditorEssentialWorkspace?.stage,'essential workspace');
+        await waitFor(()=>document.querySelector('.design-essential-rail'),'essential rail');
+        await settle();
+        const rail=document.querySelector('.design-essential-rail');
+        const home=rail.querySelector('a.design-essential-rail-btn');
+        assert(home&&new URL(home.href).pathname==='/', 'main home button must be the first rail action');
+        assert(rail.firstElementChild===home,'home button must sit above compose');
+        assert(!rail.querySelector('[data-design-essential-step="all"]'),'design rail must not expose an all-tools button');
+        assert(document.getElementById('propertiesPanel').hidden===true,'legacy right properties panel must be consolidated');
+        assert(document.getElementById('inspector').closest('.design-essential-panel'),'inspector must move into the selected submenu panel');
+        assert(visible('documentCard')&&visible('contentCard'),'compose must show document and content tools');
+        assert(!visible('inspector')&&!visible('designOutputTools'),'compose must not show edit/output tools');
+        assert(!visible('designCoverSettingsTools'),'invitation must never show cover-only settings');
+        assert(!visible('designQuickDesignTools'),'duplicate quick styling card must stay out of the essential menu');
+        assert(!visible('designPrintQualityTools')&&!visible('designPrintSafetyTools'),'internal quality/safety cards must stay hidden behind final check');
+
+        window.DesignEditorEssentialWorkspace.select('edit');await settle();
+        assert(visible('inspector'),'edit must show only selected-element properties');
+        assert(!visible('contentCard')&&!visible('designOutputTools'),'edit must not fall back to all tools');
+
+        window.DesignEditorEssentialWorkspace.select('arrange');await settle();
+        assert(visible('designLayerTools'),'arrange must show layers');
+        assert(!visible('inspector')&&!visible('contentCard'),'arrange must not show edit/compose tools');
+
+        window.DesignEditorEssentialWorkspace.select('output');await settle();
+        assert(visible('designFinalPrintCheckTools')&&visible('designOutputTools'),'output must show final check and export');
+        assert(!visible('contentCard')&&!visible('inspector'),'output must not show compose/edit tools');
+
+        await waitFor(()=>document.getElementById('artboard')?.dataset.invitationFoldGuide==='x','invitation x fold guide');
+        assert(document.getElementById('designEssentialInvitationFold'),'invitation center divider is missing');
+
+        invitation.surfaces[0].foldAxis='y';invitation.surfaces[0].folds=[];invitation.surfaces[0].foldsY=[105];
+        window.dispatchEvent(new Event('resize'));await waitFor(()=>document.getElementById('artboard')?.dataset.invitationFoldGuide==='y','invitation y fold guide');
+
+        invitation.designMode='cover';invitation.printProductMode='';invitation.presetId='cover-a4';document.documentElement.dataset.designDocumentType='cover';
+        window.DesignEditorEssentialWorkspace.select('compose');window.DesignEditorEssentialWorkspace.sync();await settle();
+        assert(visible('designCoverSettingsTools'),'cover mode must show cover-only settings');
+        assert(!document.getElementById('designEssentialInvitationFold'),'invitation fold guide must disappear outside invitation');
+
+        document.body.dataset.essentialHome='true';document.body.dataset.essentialNoAll='true';document.body.dataset.essentialStepIsolation='true';document.body.dataset.essentialInvitationCoverHidden='true';document.body.dataset.essentialInvitationFold='xy';document.body.dataset.essentialCoverVisible='true';
+        pass('home, isolated four-step menus, product-only visibility and invitation fold guides');
+      }catch(error){fail(error)}
+    })();
+  </script>
+</body>
+</html>
