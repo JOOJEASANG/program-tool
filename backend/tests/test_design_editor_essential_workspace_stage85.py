@@ -17,7 +17,7 @@ def test_design_editor_uses_dedicated_essential_workspace_instead_of_generic_all
 
 def test_essential_workspace_has_home_then_four_isolated_groups_and_no_all_tools_menu():
     source = text("js/design-editor/essential-workspace.js")
-    assert "href='/';" in source or "node.href='/'" in source
+    assert "node.href='/'" in source
     for step in ("compose", "edit", "arrange", "output"):
         assert f"id:'{step}'" in source
     assert "STEPS.some(item=>item.id===step)?step:'compose'" in source
@@ -62,7 +62,7 @@ def test_design_browser_suite_runs_essential_workspace_smoke():
     runner = text("scripts/run_design_editor_browser_smoke.sh")
     smoke = text("tests/browser/design-editor-essential-workspace-smoke.html")
     assert "run_design_editor_essential_workspace_smoke.sh" in runner
-    assert "data-essential-home='true'" in smoke
-    assert "data-essential-no-all='true'" in smoke
-    assert "data-essential-step-isolation='true'" in smoke
-    assert "data-essential-invitation-fold='xy'" in smoke
+    assert "dataset.essentialHome='true'" in smoke
+    assert "dataset.essentialNoAll='true'" in smoke
+    assert "dataset.essentialStepIsolation='true'" in smoke
+    assert "dataset.essentialInvitationFold='xy'" in smoke
