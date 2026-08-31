@@ -1,7 +1,7 @@
 (function(){
   'use strict';
-  if(window.__programStudioBootGuardV3)return;
-  window.__programStudioBootGuardV3=true;
+  if(window.__programStudioBootGuardV4)return;
+  window.__programStudioBootGuardV4=true;
 
   const root=document.documentElement;
   const path=String(location.pathname||'').replace(/\\/g,'/').replace(/\/+$/,'');
@@ -77,45 +77,33 @@
     location.replace(target.href);
   },12000);
 
-  function redirectRuntimeFailure(){
-    const target=new URL('/approval-waiting.html',location.origin);
-    target.searchParams.set('status','runtime');
-    target.searchParams.set('program',protectedProgram);
-    location.replace(target.href);
+  async function waitUntil(predicate,timeoutMs){
+    const deadline=Date.now()+timeoutMs;
+    while(Date.now()<deadline){
+      try{if(predicate())return true;}catch(_){}
+      await delay(40);
+    }
+    return false;
   }
 
-  async function waitForPreflightRuntime(){
+  async function waitForPreflightShell(){
     if(protectedProgram!=='preflight')return;
-    const deadline=Date.now()+9000;
-    while(Date.now()<deadline){
-      const ready=window.ProgramStudioPreflightRuntimeReady;
-      if(ready&&typeof ready.then==='function'){
-        await ready;
-        if(document.body?.dataset?.pdfPreflightUi!=='clean-workspace-v2'){
-          await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
-        }
-        if(document.body?.dataset?.pdfPreflightUi!=='clean-workspace-v2')throw new Error('PDF preflight workspace did not reach the current UI state');
-        return;
-      }
-      await delay(40);
-    }
-    throw new Error('PDF preflight runtime was not initialized');
+    const ready=await waitUntil(()=>document.body?.dataset?.pdfPreflightUi==='clean-workspace-v2',2800);
+    if(!ready)console.warn('PDF preflight shell is still enhancing; revealing the base workspace to avoid blocking the tool.');
   }
 
-  async function waitForDesignRuntime(){
+  async function waitForDesignShell(){
     if(protectedProgram!=='design-studio'||!isGeneralDesignEditor())return;
-    const deadline=Date.now()+9000;
-    while(Date.now()<deadline){
-      const ready=window.ProgramStudioRuntimeReady;
-      if(ready&&typeof ready.then==='function'){
-        await ready;
-        await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
-        if(root.dataset.designCoreRuntime!=='1')throw new Error('Design editor core runtime did not reach ready state');
-        return;
-      }
-      await delay(40);
-    }
-    throw new Error('Design editor runtime was not initialized');
+    const ready=await waitUntil(()=>Boolean(
+      window.DesignEditorEssentialWorkspace?.stage||
+      (window.DesignEditorApp&&(document.getElementById('editorShell')||document.getElementById('startScreen')))
+    ),2800);
+    if(!ready)console.warn('Design editor enhancements are still loading; revealing the base workspace to avoid blocking the tool.');
+  }
+
+  function retryApprovalWait(){
+    if(revealed||Date.now()-started>=11000)return;
+    setTimeout(waitForApproval,60);
   }
 
   function waitForApproval(){
@@ -123,21 +111,23 @@
     const ready=window.ProgramAccessReady;
     if(ready&&typeof ready.then==='function'){
       Promise.resolve(ready).then(async access=>{
-        if(!access)return;
+        if(!access){retryApprovalWait();return;}
+        // Access is the only fail-closed gate. Route enhancements may continue in
+        // the background, but must never keep an approved user behind a spinner.
+        clearTimeout(failClosedTimer);
         try{
-          await waitForPreflightRuntime();
-          await waitForDesignRuntime();
-          clearTimeout(failClosedTimer);
-          reveal();
+          await Promise.all([waitForPreflightShell(),waitForDesignShell()]);
         }catch(error){
-          console.error('Protected runtime failed before reveal',error);
-          clearTimeout(failClosedTimer);
-          redirectRuntimeFailure();
+          console.warn('Protected route enhancement wait failed; continuing with the base workspace.',error);
         }
-      }).catch(()=>{});
+        reveal();
+      }).catch(error=>{
+        console.warn('Program access readiness promise failed before reveal.',error);
+        retryApprovalWait();
+      });
       return;
     }
-    if(Date.now()-started<11000)setTimeout(waitForApproval,40);
+    retryApprovalWait();
   }
   waitForApproval();
 })();
