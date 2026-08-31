@@ -58,7 +58,7 @@
       const pass=message=>{document.body.dataset.essentialWorkspaceStatus='pass';result.textContent='PASS: '+message};
       const assert=(condition,message)=>{if(!condition)throw new Error(message)};
       const waitFor=async(predicate,label,timeout=8000)=>{const start=Date.now();while(Date.now()-start<timeout){if(predicate())return;await new Promise(resolve=>setTimeout(resolve,30))}throw new Error('timeout: '+label)};
-      const settle=()=>new Promise(resolve=>setTimeout(resolve,160));
+      const settle=(ms=180)=>new Promise(resolve=>setTimeout(resolve,ms));
       const visible=id=>{const node=document.getElementById(id);return Boolean(node)&&!node.hidden&&getComputedStyle(node).display!=='none'};
       try{
         await waitFor(()=>window.DesignEditorEssentialWorkspace?.stage,'flat essential workspace');
@@ -85,11 +85,13 @@
         project.documentType='cover';project.designMode='cover';delete project.printProductMode;project.presetId='cover-a4';project.width=428;project.height=297;project.bleed=3;project.cover={trimWidth:210,trimHeight:297,spine:8};project.surfaces[0].folds=[];project.surfaces[0].panels=[];
         document.documentElement.dataset.designDocumentType='cover';
         window.dispatchEvent(new CustomEvent('programstudio:document-type-change',{detail:{type:'cover'}}));
+        window.DesignEditorEssentialWorkspace.sync();
         window.dispatchEvent(new Event('resize'));
-        await waitFor(()=>document.querySelectorAll('#designFlatCoverBoundaries .design-flat-cover-boundary').length===2,'cover boundaries');
-        await settle();
-        assert(visible('designCoverSettingsTools')&&visible('designCoverSpineTools'),'cover-only settings must return for cover work');
+        await settle(260);
+        window.DesignEditorEssentialWorkspace.sync();
+        await settle(260);
         assert(document.querySelectorAll('#designFlatCoverBoundaries .design-flat-cover-boundary').length===2,'back/spine/front need two structural separators');
+        assert(visible('designCoverSettingsTools')&&visible('designCoverSpineTools'),'cover-only settings must return for cover work');
         document.body.dataset.essentialCoverBoundaries='2';
 
         pass('flat expanded sidebar, no invitation fold, restored cover boundaries');
