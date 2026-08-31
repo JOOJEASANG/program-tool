@@ -26,15 +26,6 @@
     document.head.appendChild(link);
   }
 
-  function installUploadOrderModeSafety(){
-    if(window.__pdfUploadOrderModeSafetyV1)return;
-    window.__pdfUploadOrderModeSafetyV1=true;
-    document.addEventListener('click',event=>{
-      if(!event.target?.closest?.('.mode-btn,#uploadZone'))return;
-      window.__pdfUploadOrderRequestedMode='';
-    },true);
-  }
-
   function fallbackLoad(id,src){
     const existing=document.getElementById(id);
     if(existing&&existing.dataset.loaded==='true')return Promise.resolve(true);
@@ -57,15 +48,14 @@
   }
 
   function loadUploadOrderUi(){
-    const id='pdfUploadOrderUiScriptV1';
-    const src='/js/pdf-editor/upload-order-ui.js?v=20260831-1';
+    const id='pdfUploadOrderModalUiScriptV2';
+    const src='/js/pdf-editor/upload-order-modal-ui.js?v=20260831-2';
     const loader=context().load;
     return typeof loader==='function' ? loader(id,src) : fallbackLoad(id,src);
   }
 
   function loadAll(){
     ensureBookletStylesheet();
-    installUploadOrderModeSafety();
     const seen=new Set();
     const pending=[];
     for(const entry of MODULES){

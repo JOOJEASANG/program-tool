@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="utf-8">
-  <title>PDF page list quick add smoke</title>
+  <title>PDF upload order modal smoke</title>
 </head>
 <body>
   <div class="preview-zoom"><span>줄당</span><select id="perRowSelect"><option value="2">2</option></select></div>
@@ -28,7 +28,6 @@
     var parsedPages = [{ id: 'p1' }, { id: 'p2' }];
     var uploadedFiles = [];
     var _uploadMode = 'cont';
-    window.__pickerClicks = 0;
     window.__handledFiles = [];
     async function handleFile(file) {
       window.__handledFiles.push({ name: file.name, mode: _uploadMode });
@@ -39,48 +38,41 @@
     document.querySelectorAll('.mode-btn').forEach(function (button) {
       button.addEventListener('click', function () { _uploadMode = button.dataset.mode; });
     });
-    document.getElementById('fileInput').click = function () { window.__pickerClicks += 1; };
   </script>
   <script src="/js/pdf-editor/preview-row-default.js?v=20260831-1"></script>
-  <script src="/js/pdf-editor/upload-order-ui.js?v=20260831-1"></script>
+  <script src="/js/pdf-editor/upload-order-modal-ui.js?v=20260831-2"></script>
   <script>
     setTimeout(async function () {
-      var bar = document.getElementById('pdfPageListQuickAddV1');
-      var continuous = bar && bar.querySelector('[data-quick-upload-mode="cont"]');
-      var separate = bar && bar.querySelector('[data-quick-upload-mode="break"]');
-      var legacy = document.getElementById('pdfFileNavigation');
-      var panel = document.getElementById('pageProductivityPanelV3');
-      var area = document.getElementById('thumbArea');
-      var utility = document.getElementById('pdfPrintUtilityRedirectCard');
-      if (!bar || !continuous || !separate || !legacy || !panel || !area || !utility) return;
+      try {
+        var first = new File(['1'], '01-first.pdf', { type: 'application/pdf' });
+        var second = new File(['2'], '02-second.pdf', { type: 'application/pdf' });
+        var third = new File(['3'], '03-third.pdf', { type: 'application/pdf' });
+        if (!window.PdfUploadOrderUi || window.PdfUploadOrderUi.stage !== 'modal-order-editor-v2') return;
 
-      separate.click();
-      if (window.__pickerClicks !== 1 || _uploadMode !== 'break') return;
+        window.PdfUploadOrderUi.stageFiles([first, second, third], 'cont');
+        var modal = document.getElementById('pdfUploadOrderModalV2');
+        if (!modal || modal.hidden || modal.querySelectorAll('.pdf-upload-order-row').length !== 3) return;
 
-      var first = new File(['1'], '01-first.pdf', { type: 'application/pdf' });
-      var second = new File(['2'], '02-second.pdf', { type: 'application/pdf' });
-      var third = new File(['3'], '03-third.pdf', { type: 'application/pdf' });
-      window.PdfUploadOrderUi.stageFiles([first, second, third], 'cont');
-      var orderPanel = document.getElementById('pdfUploadOrderPanelV1');
-      if (!orderPanel || orderPanel.querySelectorAll('.pdf-upload-order-row').length !== 3) return;
-      window.PdfUploadOrderUi.movePending(2, 0);
-      var reordered = window.PdfUploadOrderUi.pending.files.map(function (file) { return file.name; }).join(',');
-      if (reordered !== '03-third.pdf,01-first.pdf,02-second.pdf') return;
-      await window.PdfUploadOrderUi.processPending();
+        window.PdfUploadOrderUi.movePending(2, 0);
+        var reordered = window.PdfUploadOrderUi.pending.files.map(function (file) { return file.name; }).join(',');
+        if (reordered !== '03-third.pdf,01-first.pdf,02-second.pdf') return;
+        await window.PdfUploadOrderUi.processPending();
 
-      var handled = window.__handledFiles.map(function (entry) { return entry.name + ':' + entry.mode; }).join(',');
-      var passed = handled === '03-third.pdf:cont,01-first.pdf:cont,02-second.pdf:cont'
-        && bar.nextElementSibling === panel
-        && panel.nextElementSibling === area
-        && getComputedStyle(legacy).display === 'none'
-        && getComputedStyle(bar).position === 'sticky'
-        && getComputedStyle(utility).display === 'none'
-        && continuous.textContent.includes('연속 추가')
-        && separate.textContent.includes('새 묶음 추가');
-      if (!passed) return;
-      document.documentElement.dataset.pdfPageListQuickAddSmoke = 'pass';
-      document.getElementById('result').textContent = 'PASS: page list keeps sticky PDF append action and removes legacy jump panel from view';
-    }, 180);
+        var handled = window.__handledFiles.map(function (entry) { return entry.name + ':' + entry.mode; }).join(',');
+        var quickBar = document.getElementById('pdfPageListQuickAddV1');
+        var utility = document.getElementById('pdfPrintUtilityRedirectCard');
+        var passed = handled === '03-third.pdf:cont,01-first.pdf:cont,02-second.pdf:cont'
+          && !quickBar
+          && !utility
+          && modal.hidden
+          && modal.querySelector('.pdf-upload-order-title').textContent.includes('업로드 순서 편집');
+        if (!passed) return;
+        document.documentElement.dataset.pdfPageListQuickAddSmoke = 'pass';
+        document.getElementById('result').textContent = 'PASS: multi-file PDF upload uses reorder modal and removes page-list quick-add controls';
+      } catch (error) {
+        document.getElementById('result').textContent = 'FAIL: ' + String(error && (error.stack || error.message) || error);
+      }
+    }, 220);
   </script>
 </body>
 </html>

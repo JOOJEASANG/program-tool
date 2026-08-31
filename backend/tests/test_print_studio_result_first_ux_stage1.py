@@ -43,22 +43,22 @@ def test_pdf_editor_lists_file_layout_paper_edit_and_output_controls_without_ste
     ui_runtime = text("js/pdf-editor/ui-runtime.js")
     shell = text("js/program-shell-unify.js")
     for marker in (
-        "all-visible",
-        "keepSectionsOpen",
-        "blockToggle",
+        "pinned-upload-collapsible",
+        "normalizeSections",
+        "guardUploadToggle",
         "ps-sidebar-toggle",
         "program-studio:pdf-editor:advanced",
         "클릭=미리보기 이동",
         "로그아웃",
-        "single-sidebar-all-controls-visible-v3",
+        "single-sidebar-pinned-upload-collapsible-v4",
     ):
         assert marker in sidebar
-    assert "/js/pdf-editor/simple-sidebar-ui.js?v=20260830-1" in ui_runtime
+    assert "/js/pdf-editor/simple-sidebar-ui.js?v=20260831-2" in ui_runtime
     assert "/js/pdf-editor/workflow-ui.js" not in ui_runtime
     assert "/js/pdf-editor/workspace-layout.js" not in ui_runtime
     assert "/js/pdf-editor/ui-runtime.js?v=${PDF_UI_RUNTIME_VERSION}" in shell
-    assert "workflowStage:'pdf-all-controls-visible-v1'" in shell
-    assert "uiRuntimeStage:'pdf-editor-always-visible-sidebar-runtime-v2'" in shell
+    assert "workflowStage:'pdf-collapsible-tools-v2'" in shell
+    assert "uiRuntimeStage:'pdf-editor-pinned-upload-collapsible-sidebar-runtime-v3'" in shell
     assert "stage:'pdf-tools-headerless-unified-shell'" in shell
 
 

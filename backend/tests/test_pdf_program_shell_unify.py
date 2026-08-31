@@ -21,7 +21,8 @@ def test_pdf_tools_remove_fixed_header_without_losing_actions():
         "document.getElementById('userName')",
         "oldNav.remove()",
         "stage:'pdf-tools-headerless-unified-shell'",
-        "workflowStage:'pdf-all-controls-visible-v1'",
+        "workflowStage:'pdf-collapsible-tools-v2'",
+        "workspaceStage:'pdf-pinned-upload-sidebar-v3'",
     ):
         assert marker in source
 
@@ -31,7 +32,7 @@ def test_runtime_loads_shared_shell_for_pdf_editor_from_canonical_route_manifest
     route_runtime = ROUTE_RUNTIME.read_text(encoding="utf-8")
     assert "pdfEditorRouteRuntimeScriptV1" in runtime
     assert "programShellUnifyScriptV1" in route_runtime
-    assert "/js/program-shell-unify.js?v=20260824-1" in route_runtime
+    assert "/js/program-shell-unify.js?v=20260831-2" in route_runtime
     assert "/js/pdf-editor/ui-runtime.js?v=${PDF_UI_RUNTIME_VERSION}" in SHELL.read_text(encoding="utf-8")
 
 
@@ -39,7 +40,7 @@ def test_browser_smokes_cover_editor_and_utility_shells():
     editor = EDITOR_SMOKE.read_text(encoding="utf-8")
     utility = UTILITY_SMOKE.read_text(encoding="utf-8")
     runner = RUNNER.read_text(encoding="utf-8")
-    assert "PDF sidebar remains visible after delayed common/runtime initialization" in editor
+    assert "PDF sidebar remains stable with pinned upload and collapsible tool sections" in editor
     assert "PDF utility fixed header removed and account actions preserved in content" in utility
     assert "pdf-editor-shell-smoke.html" in runner
     assert "pdf-utility-shell-smoke.html" in runner

@@ -1,11 +1,11 @@
-// Unified loader for the PDF editor's always-visible sidebar UI.
+// Unified loader for the PDF editor sidebar UI.
 (function(){
   'use strict';
   if(window.__pdfEditorUiRuntimeV1)return;
   window.__pdfEditorUiRuntimeV1=true;
 
   const MODULES=Object.freeze([
-    {id:'pdfEditorSimpleSidebarUiScriptV1',src:'/js/pdf-editor/simple-sidebar-ui.js?v=20260830-1',global:'PdfEditorSimpleSidebarUi'}
+    {id:'pdfEditorSimpleSidebarUiScriptV1',src:'/js/pdf-editor/simple-sidebar-ui.js?v=20260831-2',global:'PdfEditorSimpleSidebarUi'}
   ]);
   const loading=new Map();
 
@@ -63,6 +63,6 @@
     loadAll,
     sync,
     modules:MODULES.map(({id,src,global})=>({id,src,global})),
-    stage:'pdf-editor-always-visible-sidebar-runtime-v2'
+    stage:'pdf-editor-pinned-upload-collapsible-sidebar-runtime-v3'
   };
 })();
