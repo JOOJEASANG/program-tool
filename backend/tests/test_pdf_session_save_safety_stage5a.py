@@ -97,7 +97,7 @@ def test_thumbnail_and_context_menu_are_explicit_mutation_targets():
     assert "function isEditorMutationTarget(target)" in source
     assert "'#thumbArea, #thumbCtxMenu, #uploadZone, .mode-btn, '" in source
     assert "if (!active || !isEditorMutationTarget(event.target)) return" in source
-    assert "reviewFixes: 'thumbnail-lock-not-found-cleanup'" in source
+    assert "reviewFixes: 'thumbnail-lock-not-found-cleanup-owner-metadata'" in source
 
 
 def test_capture_phase_intercepts_legacy_session_save_handlers_once():
@@ -105,7 +105,8 @@ def test_capture_phase_intercepts_legacy_session_save_handlers_once():
     assert "button.addEventListener('click', interceptSave, true)" in source
     assert "input.addEventListener('keydown', interceptEnter, true)" in source
     assert "event.stopImmediatePropagation()" in source
-    assert "button.dataset.sessionSaveSafetyV1" in source
+    assert "button.dataset.sessionSaveSafetyV2" in source
+    assert "input.dataset.sessionSaveSafetyV2" in source
     assert "MAX_INSTALL_ATTEMPTS = 40" in source
     assert "setInterval(" not in source
     assert "eval(" not in source
