@@ -26,12 +26,14 @@ def test_design_shell_has_one_enhancement_loader_and_manifest_owns_modules():
         "multi-selection-smart-guides.js",
         "simple-result-workflow.js",
         "professional-ui.js",
+        "preview-fit-refresh.js",
     )
     for path in module_paths:
         assert path in runtime
         assert path not in shell
 
-    assert runtime.count("{id:") == 10
+    assert runtime.count("{id:") == 11
+    assert runtime.index("designPreviewFitRefreshScriptV1") > runtime.index("designProfessionalUiScriptV1")
     assert "setInterval(" not in runtime
     assert "eval(" not in runtime
 
