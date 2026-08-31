@@ -6,7 +6,7 @@
   <style>
     body{margin:0;font-family:Arial,sans-serif}.editor-toolbar{height:54px;display:flex;align-items:center;padding:0 10px;border-bottom:1px solid #ddd}.artboard{position:relative;width:420px;height:260px;margin:30px}.design-text,.phase2-extra-object{position:absolute}.sidebar{display:none}#designCanvasQuickbar{display:block;position:fixed}
   </style>
-  <script>history.replaceState(null,'','/design-editor/general.html?embed=1&mode=poster&selectionContext=20260828-1');</script>
+  <script>history.replaceState(null,'','/design-editor/general.html?embed=1&mode=poster&selectionContext=20260831-1');</script>
 </head>
 <body data-design-contextbar-status="pending">
   <div id="result">PENDING</div>
@@ -40,7 +40,7 @@
     quickCornerRadius.oninput=e=>{const item=selectedExtra();if(item)item.cornerRadius=Number(e.target.value);};phase2ExtraLock.onchange=e=>{const item=selectedExtra();if(item)item.locked=e.target.checked;};phase2ExtraDuplicate.onclick=()=>calls.extraDuplicate++;phase2ReplaceImage.onclick=()=>calls.replace++;
     window.DesignEditorPhase3Controls={alignSelected(value){calls.arrange.push(value);}};
   </script>
-  <script src="/js/design-editor/selection-contextbar.js?v=20260828-1"></script>
+  <script src="/js/design-editor/shared/selection-contextbar.js?v=20260831-1"></script>
   <script>
     window.addEventListener('DOMContentLoaded',()=>{
       const result=document.getElementById('result'),assert=(ok,msg)=>{if(!ok)throw new Error(msg);};

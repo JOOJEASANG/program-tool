@@ -71,7 +71,7 @@ def test_only_internal_status_cards_are_suppressed_from_flat_user_menu():
 def test_selection_contextbar_remains_separate_from_flat_sidebar_policy():
     runtime = text("js/design-editor/shell-runtime.js")
     assert "designSelectionContextbarScriptV1" in runtime
-    assert "/js/design-editor/selection-contextbar.js" in runtime
+    assert "/js/design-editor/shared/selection-contextbar.js" in runtime
 
 
 def test_design_browser_suite_runs_flat_workspace_smoke():

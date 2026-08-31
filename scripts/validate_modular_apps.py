@@ -34,6 +34,8 @@ def validate() -> None:
         "js/studio-app-shell.js",
         "js/modular-app-access.js",
         "js/design-editor/shared/module-profile.js",
+        "js/design-editor/shared/document-type-state.js",
+        "js/design-editor/shared/selection-contextbar.js",
         "js/design-editor/standalone-product-profile.js",
         "js/design-editor/product-boundary-ui.js",
         "js/pdf-editor/standalone-app-profile.js",
@@ -100,6 +102,10 @@ def validate() -> None:
         errors.append("design core does not consume the shared module policy layer")
     if "shared/module-profile.js" not in design_shell or "shouldLoadShell" not in design_shell:
         errors.append("design shell does not consume the shared module policy layer")
+    if "shared/document-type-state.js?v=20260831-1" not in design_shell:
+        errors.append("design shell does not load canonical document type state from shared")
+    if "shared/selection-contextbar.js?v=20260831-1" not in design_shell:
+        errors.append("design shell does not load selection contextbar from shared")
     if (
         "design-editor-shared-module-profile-v1" not in shared_modules
         or "CORE_PRODUCT_ONLY" not in shared_modules
@@ -146,7 +152,7 @@ def validate() -> None:
             print(f" - {error}", file=sys.stderr)
         raise SystemExit(1)
 
-    print("Modular app architecture OK: 8 standalone routes share canonical design/PDF engines, shared module policy, product profiles, boundary UI and browser coverage")
+    print("Modular app architecture OK: 8 standalone routes share canonical design/PDF engines, shared module policy, shared editor state/UI, product profiles, boundary UI and browser coverage")
 
 
 if __name__ == "__main__":

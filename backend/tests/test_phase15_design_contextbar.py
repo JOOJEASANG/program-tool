@@ -8,14 +8,14 @@ def test_phase15_design_manifest_loads_selection_context_runtime():
     shell = (ROOT / "design-editor" / "index.html").read_text(encoding="utf-8")
     runtime = (ROOT / "js" / "design-editor" / "shell-runtime.js").read_text(encoding="utf-8")
     assert "designSelectionContextbarScriptV1" in runtime
-    assert "/js/design-editor/selection-contextbar.js?v=20260828-1" in runtime
+    assert "/js/design-editor/shared/selection-contextbar.js?v=20260831-1" in runtime
     assert "const ensureSelectionContextRuntime=ensurePrintRuntimes" in shell
     assert "selectionContextStage:'selection-context-properties-v1'" in shell
     assert "runtimeManifestStage:'design-shell-runtime-manifest-v1'" in shell
 
 
 def test_phase15_selection_contextbar_exposes_only_selected_element_properties():
-    source = (ROOT / "js" / "design-editor" / "selection-contextbar.js").read_text(encoding="utf-8")
+    source = (ROOT / "js" / "design-editor" / "shared" / "selection-contextbar.js").read_text(encoding="utf-8")
     for token in (
         "designSelectionContextbar",
         'data-context-field="text-font"',
@@ -38,7 +38,7 @@ def test_phase15_selection_contextbar_exposes_only_selected_element_properties()
 
 
 def test_phase15_contextbar_reuses_existing_inspector_and_layout_actions():
-    source = (ROOT / "js" / "design-editor" / "selection-contextbar.js").read_text(encoding="utf-8")
+    source = (ROOT / "js" / "design-editor" / "shared" / "selection-contextbar.js").read_text(encoding="utf-8")
     for token in (
         "#fontInput",
         "#sizeInput",
