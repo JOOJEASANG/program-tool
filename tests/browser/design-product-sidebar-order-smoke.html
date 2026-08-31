@@ -39,6 +39,7 @@
   <script>
     setTimeout(()=>{
       try{
+        const app=new URLSearchParams(location.search).get('app')||'poster';
         const profile=window.DesignEditorStandaloneProducts?.fromLocation?.(location.search);
         const api=window.DesignEditorSidebarMenuOrder;
         if(!profile||!api)throw new Error('sidebar order runtime missing');
@@ -48,10 +49,17 @@
           .filter(node=>node.matches?.('.side-card,.design-mode-card'))
           .map(node=>node.id);
         const expected=profile.sidebarOrder.filter(id=>document.getElementById(id));
-        if(actual.join('|')!==expected.join('|'))throw new Error(`order mismatch: ${actual.join(' > ')}`);
+        const actualKnown=actual.filter(id=>profile.sidebarOrder.includes(id));
+        if(actualKnown.join('|')!==expected.join('|'))throw new Error(`profile order mismatch: ${actualKnown.join(' > ')}`);
         const sections=[...panel.querySelectorAll(':scope > .design-sidebar-group-label')].map(node=>node.dataset.sidebarSection);
         for(const key of ['structure','create','edit','output','advanced']){
           if(!sections.includes(key))throw new Error(`missing section ${key}`);
+        }
+        if(sections.length!==new Set(sections).size)throw new Error(`repeated sidebar sections: ${sections.join(' > ')}`);
+        if(sections.length!==5)throw new Error(`section count mismatch: ${sections.length}`);
+        if(app==='cover'){
+          const fallback=actual.indexOf('designRecipeTools'),edit=actual.indexOf('inspector'),advanced=actual.indexOf('designAdvancedTools');
+          if(fallback<0||fallback>edit||fallback>advanced)throw new Error('unlisted create card escaped its semantic group');
         }
         if(document.documentElement.dataset.designSidebarOrder!==profile.key)throw new Error('product ownership missing');
         document.documentElement.dataset.productSidebarOrderSmoke='pass';
@@ -59,6 +67,7 @@
         document.documentElement.dataset.productSidebarOrderFirst=actual[0]||'';
         document.documentElement.dataset.productSidebarOrderLast=actual.at(-1)||'';
         document.documentElement.dataset.productSidebarOrderSections=String(sections.length);
+        document.documentElement.dataset.productSidebarOrderFallback='grouped';
       }catch(error){
         document.documentElement.dataset.productSidebarOrderSmoke='fail';
         document.body.insertAdjacentHTML('beforeend',`<pre>${String(error?.stack||error)}</pre>`);
