@@ -42,28 +42,27 @@
     (async()=>{
       const result=document.getElementById('result');
       const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+      const waitFor=async(predicate,label,timeout=2500)=>{const started=Date.now();while(Date.now()-started<timeout){if(predicate())return;await wait(25);}throw new Error('timeout: '+label);};
       const assert=(value,message)=>{if(!value)throw new Error(message)};
+      const boundaryValues=()=>[...scroll.querySelectorAll(':scope>.prev-ins-zone.pdf-preview-boundary-insert')].map(node=>node.dataset.pdfInsertBoundary).join(',');
       try{
-        await wait(180);
+        await waitFor(()=>boundaryValues()==='0,2,3','initial row insertion boundaries');
         let boundaries=[...scroll.querySelectorAll(':scope>.prev-ins-zone.pdf-preview-boundary-insert')];
         assert(boundaries.length===3,'two preview rows must expose top, row-boundary and end insertion controls');
-        assert(boundaries.map(node=>node.dataset.pdfInsertBoundary).join(',')==='0,2,3','boundary indices must follow rendered output pages');
         assert(scroll.querySelector('.prev-ins-zone-v.pdf-preview-inline-insert'),'same-row insertion control must remain visible');
         boundaries[1].querySelector('button').click();
         assert(document.body.dataset.boundaryBlankIndex==='2','row-boundary blank-page action must point between output pages');
 
         scroll.replaceChildren(row(2),row(2));
-        await wait(180);
+        await waitFor(()=>boundaryValues()==='0,2,4','multi-file rerender insertion boundaries');
         boundaries=[...scroll.querySelectorAll(':scope>.prev-ins-zone.pdf-preview-boundary-insert')];
         assert(boundaries.length===3,'multi-file preview rerender must restore all row-boundary controls');
-        assert(boundaries.map(node=>node.dataset.pdfInsertBoundary).join(',')==='0,2,4','rerendered boundaries must track the new output count');
 
         parsedPages=[{id:1},{id:2},{id:3},{id:4}];
         window.__pdfEditorFastMode=true;
         scroll.innerHTML='<div class="empty-state"><p>대용량 최적화 모드</p></div>';
-        await wait(180);
+        await waitFor(()=>!!document.getElementById('pdfFastInsertActionsV1'),'optimized preview insertion actions');
         const fast=document.getElementById('pdfFastInsertActionsV1');
-        assert(fast,'optimized multi-file preview must keep insertion controls');
         const fastButtons=fast.querySelectorAll('button');
         assert(fastButtons.length===2&&fastButtons[0].textContent.includes('빈 페이지')&&fastButtons[1].textContent.includes('간지'),'optimized preview must expose blank and divider actions');
         fastButtons[1].click();
