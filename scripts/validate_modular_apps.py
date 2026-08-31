@@ -39,6 +39,7 @@ def validate() -> None:
         "js/pdf-editor/app-boundary.js",
         "tests/browser/modular-app-shell-smoke.html",
         "tests/browser/standalone-product-profile-smoke.html",
+        "tests/browser/standalone-boundary-ui-smoke.html",
         "scripts/run_modular_app_shell_smoke.sh",
     )
     for relative in required:
@@ -63,6 +64,7 @@ def validate() -> None:
     hosting = read("scripts/prepare_hosting_dist.py")
     browser_smoke = read("tests/browser/modular-app-shell-smoke.html")
     profile_smoke = read("tests/browser/standalone-product-profile-smoke.html")
+    boundary_smoke = read("tests/browser/standalone-boundary-ui-smoke.html")
     smoke_runner = read("scripts/run_modular_app_shell_smoke.sh")
 
     for key in APP_KEYS:
@@ -112,6 +114,8 @@ def validate() -> None:
         errors.append("browser smoke does not verify approval-before-engine contract")
     if "data-standalone-profile-smoke" not in profile_smoke or "standalone-product-profile-smoke.html" not in smoke_runner:
         errors.append("standalone design/PDF profile browser coverage is missing")
+    if "data-standalone-boundary-smoke" not in boundary_smoke or "standalone-boundary-ui-smoke.html" not in smoke_runner:
+        errors.append("standalone boundary UI browser coverage is missing")
 
     # Keep standalone shells thin: app shell must route to canonical editors,
     # never grow a second canvas/PDF implementation.
@@ -126,7 +130,7 @@ def validate() -> None:
             print(f" - {error}", file=sys.stderr)
         raise SystemExit(1)
 
-    print("Modular app architecture OK: 8 standalone routes share canonical design/PDF engines, product profiles and browser coverage")
+    print("Modular app architecture OK: 8 standalone routes share canonical design/PDF engines, product profiles, boundary UI and browser coverage")
 
 
 if __name__ == "__main__":
