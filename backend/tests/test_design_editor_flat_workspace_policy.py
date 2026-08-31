@@ -24,7 +24,7 @@ def test_preview_workflow_bar_is_removed_but_selection_contextbar_stays_owned():
     assert "designProfessionalWorkflow" in workspace
     assert "removeWorkflowBar" in workspace
     assert "designSelectionContextbarScriptV1" in shell_runtime
-    assert "/js/design-editor/selection-contextbar.js" in shell_runtime
+    assert "/js/design-editor/shared/selection-contextbar.js" in shell_runtime
 
 
 def test_cover_has_structural_back_spine_front_boundaries_independent_of_zone_preferences():
