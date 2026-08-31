@@ -61,20 +61,17 @@ def test_design_document_type_is_canonical_with_legacy_compatibility():
     assert "professional-workspace-result-first-v2" in professional
 
 
-def test_pdf_workspace_pins_upload_and_keeps_other_controls_collapsible():
+def test_pdf_workspace_keeps_every_control_in_one_always_visible_sidebar():
     sidebar = text("js/pdf-editor/simple-sidebar-ui.js")
     ui_runtime = text("js/pdf-editor/ui-runtime.js")
     shell = text("js/program-shell-unify.js")
     for marker in (
-        "single-sidebar-pinned-upload-collapsible-v4",
+        "single-sidebar-all-controls-visible-v3",
         "neutralizeToolRail()",
         "restoreOutputRail()",
-        "normalizeSections()",
-        "guardUploadToggle",
+        "keepSectionsOpen()",
         "flex-wrap:nowrap!important",
-        ".sec-body.hidden{display:none!important",
-        "data-pdf-upload-fixed",
-        "position:sticky!important",
+        ".sec-body.hidden{display:block!important",
         ".ps-sidebar-toggle",
         "pdf-output-dock-v2",
         "aria-label','로그아웃",
@@ -89,10 +86,10 @@ def test_pdf_workspace_pins_upload_and_keeps_other_controls_collapsible():
         "setInterval(",
     ):
         assert forbidden not in sidebar
-    assert "/js/pdf-editor/simple-sidebar-ui.js?v=20260831-2" in ui_runtime
+    assert "/js/pdf-editor/simple-sidebar-ui.js?v=20260830-1" in ui_runtime
     assert "/js/pdf-editor/workspace-layout.js" not in ui_runtime
     assert "/js/pdf-editor/workflow-ui.js" not in ui_runtime
     assert "/js/pdf-editor/ui-runtime.js?v=${PDF_UI_RUNTIME_VERSION}" in shell
-    assert "workspaceStage:'pdf-pinned-upload-sidebar-v3'" in shell
-    assert "uiRuntimeStage:'pdf-editor-pinned-upload-collapsible-sidebar-runtime-v3'" in shell
+    assert "workspaceStage:'pdf-single-sidebar-v2'" in shell
+    assert "uiRuntimeStage:'pdf-editor-always-visible-sidebar-runtime-v2'" in shell
     assert "stage:'pdf-tools-headerless-unified-shell'" in shell

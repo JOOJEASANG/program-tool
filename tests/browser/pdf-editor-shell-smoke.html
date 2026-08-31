@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <title>PDF Editor Unified Shell Smoke</title>
   <style>
-    :root{--nav-h:52px}*{box-sizing:border-box}body{margin:0;padding-top:var(--nav-h)}.top-nav{height:var(--nav-h)}.app{display:grid;grid-template-columns:360px 1fr;height:calc(100vh - var(--nav-h))}aside{padding:16px}.sec{display:block;border:1px solid #ddd;margin:6px 0}.sec-head{display:flex}.sec-title{flex:1}.sec-body{display:block;padding:8px}.sec-body.hidden{display:none}
+    :root{--nav-h:52px}*{box-sizing:border-box}body{margin:0;padding-top:var(--nav-h)}.top-nav{height:var(--nav-h)}.app{display:grid;grid-template-columns:360px 1fr;height:calc(100vh - var(--nav-h))}aside{padding:16px}.sec{display:block;border:1px solid #ddd;margin:6px 0}.sec-body{display:block;padding:8px}.sec-body.hidden{display:none}
   </style>
   <script>history.replaceState(null,'','/pdf-editor/index.html?browser-shell-smoke=1');</script>
 </head>
@@ -23,22 +23,21 @@
     <aside>
       <h1>PDF 문서 편집기</h1>
       <div class="sub">PDF 편집 작업</div>
-      <div class="sec" id="uploadSection"><div class="sec-head" data-sec="upload"><span class="sec-title">파일 업로드</span><span class="sec-arrow">▾</span></div><div class="sec-body" id="sb-upload">업로드 도구</div></div>
-      <div class="sec" id="nupSection"><div class="sec-head" data-sec="nup"><span class="sec-title">N-up 배치</span><span class="sec-arrow">▾</span></div><div class="sec-body" id="sb-nup">배치 도구</div></div>
-      <div class="sec" id="paperSection"><div class="sec-head" data-sec="paper"><span class="sec-title">용지 설정</span><span class="sec-arrow">▾</span></div><div class="sec-body" id="sb-paper">용지 도구</div></div>
-      <div class="sec" id="editSection"><div class="sec-head collapsed" data-sec="edit"><span class="sec-title">문서 편집</span><span class="sec-arrow">▾</span></div><div class="sec-body hidden" id="sb-edit">편집 도구</div></div>
+      <div class="sec" id="uploadSection"><div class="sec-head"><span class="sec-title">파일 업로드</span></div><div class="sec-body" id="sb-upload">업로드 도구</div></div>
+      <div class="sec" id="nupSection"><div class="sec-head"><span class="sec-title">N-up 배치</span></div><div class="sec-body" id="sb-nup">배치 도구</div></div>
+      <div class="sec" id="paperSection"><div class="sec-head"><span class="sec-title">용지 설정</span></div><div class="sec-body" id="sb-paper">용지 도구</div></div>
+      <div class="sec" id="editSection"><div class="sec-head collapsed"><span class="sec-title">문서 편집</span></div><div class="sec-body hidden" id="sb-edit">편집 도구</div></div>
       <div class="sec" id="outputSection"><div class="sec-head"><span class="sec-title">출력</span></div><div class="sec-body">출력 도구</div></div>
     </aside>
     <main></main>
   </div>
   <div id="result">PENDING</div>
 
-  <script>
-    document.querySelectorAll('.sec-head[data-sec]').forEach(function(head){head.addEventListener('click',function(){var body=document.getElementById('sb-'+head.dataset.sec);if(!body)return;head.classList.toggle('collapsed');body.classList.toggle('hidden');});});
-  </script>
-  <!-- Production regression order: common UI may initialize before PDF shell. -->
+  <!-- Production regression order: the common UI can reach DOM ready before
+       the PDF-specific shell/runtime. It must never mount the retired PDF
+       workflow or icon tool rail in this ordering. -->
   <script src="/js/program-studio-ui-v2.js?v=20260830-2"></script>
-  <script src="/js/program-shell-unify.js?v=20260831-2"></script>
+  <script src="/js/program-shell-unify.js?v=20260824-1"></script>
   <script>
     (async()=>{
       const result=document.getElementById('result');
@@ -47,7 +46,7 @@
       const visible=node=>node&&getComputedStyle(node).display!=='none'&&getComputedStyle(node).visibility!=='hidden';
       try{
         await waitFor(()=>document.body.dataset.programShell==='compact','compact shell');
-        await waitFor(()=>window.PdfEditorSimpleSidebarUi?.stage==='single-sidebar-pinned-upload-collapsible-v4','collapsible sidebar runtime');
+        await waitFor(()=>window.PdfEditorSimpleSidebarUi?.stage==='single-sidebar-all-controls-visible-v3','always-visible sidebar runtime');
         await new Promise(resolve=>setTimeout(resolve,2300));
 
         assert(window.ProgramShellUnify?.stage==='pdf-tools-headerless-unified-shell','shell API missing');
@@ -65,21 +64,20 @@
 
         const sections=[...aside.querySelectorAll('.sec')];
         assert(sections.length===5,'sidebar sections were lost');
-        assert(sections.every(visible),'one or more sidebar section cards became hidden');
-        assert(document.getElementById('sb-edit').classList.contains('hidden'),'default collapsed editor state was not preserved');
-        assert(document.getElementById('uploadSection').dataset.pdfUploadFixed==='1','upload section is not pinned');
+        assert(sections.every(visible),'one or more sidebar sections became hidden');
+        assert(visible(document.getElementById('sb-edit')),'previously collapsed editor section did not stay open');
         assert(!document.querySelector('.ps-sidebar-toggle'),'legacy sidebar toggle was mounted');
         assert(!document.querySelector('.ps-tool-rail'),'legacy editor tool rail was mounted');
         assert(!document.querySelector('.ps-tool-sidebar-shell'),'legacy editor tool shell was mounted');
         assert(!document.getElementById('pdfEditorWorkflowV2Script'),'legacy PDF workflow script was loaded');
         assert(!document.getElementById('editorToolRailV1Script'),'legacy tool-rail script was loaded');
-        assert(document.body.dataset.pdfSidebarMode==='pinned-upload-collapsible','collapsible sidebar marker missing');
+        assert(document.body.dataset.pdfSidebarMode==='all-visible','always-visible sidebar marker missing');
 
         document.body.dataset.shellSmoke='pass';
         document.body.dataset.shellHeaderRemoved='true';
         document.body.dataset.shellActionsPreserved='true';
         document.body.dataset.shellSidebarStable='true';
-        result.textContent='PASS: PDF sidebar remains stable with pinned upload and collapsible tool sections';
+        result.textContent='PASS: PDF sidebar remains visible after delayed common/runtime initialization';
       }catch(error){document.body.dataset.shellSmoke='fail';result.textContent='FAIL: '+String(error?.message||error)}
     })();
   </script>
