@@ -87,11 +87,9 @@
         window.dispatchEvent(new CustomEvent('programstudio:document-type-change',{detail:{type:'cover'}}));
         window.DesignEditorEssentialWorkspace.sync();
         window.dispatchEvent(new Event('resize'));
-        await settle(260);
-        window.DesignEditorEssentialWorkspace.sync();
-        await settle(260);
+        await waitFor(()=>visible('designCoverSettingsTools')&&visible('designCoverSpineTools'),'cover-only settings restored',4000);
+        await waitFor(()=>document.querySelectorAll('#designFlatCoverBoundaries .design-flat-cover-boundary').length===2,'cover structural boundaries',4000);
         assert(document.querySelectorAll('#designFlatCoverBoundaries .design-flat-cover-boundary').length===2,'back/spine/front need two structural separators');
-        assert(visible('designCoverSettingsTools')&&visible('designCoverSpineTools'),'cover-only settings must return for cover work');
         document.body.dataset.essentialCoverBoundaries='2';
 
         pass('flat expanded sidebar, no invitation fold, restored cover boundaries');
