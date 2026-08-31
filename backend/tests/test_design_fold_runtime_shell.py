@@ -7,7 +7,7 @@ def test_unified_design_shell_uses_one_manifest_loader_without_changing_route_co
     shell = (ROOT / "design-editor" / "index.html").read_text(encoding="utf-8")
     runtime = (ROOT / "js" / "design-editor" / "shell-runtime.js").read_text(encoding="utf-8")
     assert 'src="/design-editor/general?embed=1&mode=cover&preset=cover-a4"' in shell
-    assert "const SHELL_RUNTIME_VERSION='20260828-1'" in shell
+    assert "const SHELL_RUNTIME_VERSION='20260831-2'" in shell
     assert "invitation:{mode:'invitation',preset:'invitation-a4'" in shell
     assert "shell-runtime.js?v=${SHELL_RUNTIME_VERSION}" in shell
     assert "injectRuntime('designShellRuntimeScriptV1'" in shell
@@ -18,6 +18,7 @@ def test_unified_design_shell_uses_one_manifest_loader_without_changing_route_co
     assert "documentStateStage:'canonical-document-type-state-v1'" in shell
     assert "productRuntimeStage:'print-product-menu-loader'" in shell
     assert "professionalUiStage:'professional-workspace-visual-system-v1'" in shell
+    assert "firstPaintStage:'runtime-gated-shell-reveal-v1'" in shell
     assert "stage:'single-sidebar-general-engine-shell-no-legacy-fallback'" in shell
     for marker in (
         "print-fold-runtime-ensure.js?v=20260825-5",
@@ -30,9 +31,11 @@ def test_unified_design_shell_uses_one_manifest_loader_without_changing_route_co
         "multi-selection-smart-guides.js?v=20260828-1",
         "simple-result-workflow.js?v=20260828-1",
         "professional-ui.js?v=20260828-2",
+        "preview-fit-refresh.js?v=20260831-1",
         "design-shell-runtime-manifest-v1",
     ):
         assert marker in runtime
+    assert runtime.index("designPreviewFitRefreshScriptV1") > runtime.index("designProfessionalUiScriptV1")
     assert "print-product-menu.js?v=${PRODUCT_RUNTIME_VERSION}" not in shell
     assert "professional-ui.js?v=${PROFESSIONAL_UI_VERSION}" not in shell
 
