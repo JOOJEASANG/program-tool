@@ -23,19 +23,25 @@ def test_home_quick_start_is_task_first_and_explains_the_real_output_flow():
 
 
 def test_design_editor_exposes_result_first_workflow_and_output_cta():
-    source = text("js/design-editor/professional-ui.js")
+    workflow = text("js/design-editor/professional-ui.js")
+    shared = text("js/design-editor/shared/professional-shell-ui.js")
     for marker in (
         "designProfessionalWorkflow",
         "1</b>종류·규격",
         "2</b>내용 제작",
         "3</b>인쇄 점검",
         "4</b>PDF 만들기",
-        "designProfessionalPdfCta",
-        "data-simple-action=\"pdf\"",
         "professional-workspace-result-first-v2",
     ):
-        assert marker in source
-    assert "invitation:'초대장·안내장'" in source
+        assert marker in workflow
+    for marker in (
+        "designProfessionalPdfCta",
+        "data-simple-action=\"pdf\"",
+        "invitation:'초대장·안내장'",
+        "design-editor-professional-shell-ui-v1",
+    ):
+        assert marker in shared
+    assert "professionalWorkflowOwner='workspace-navigation'" in workflow
 
 
 def test_pdf_editor_lists_controls_without_step_filtering_and_allows_page_list_collapse():

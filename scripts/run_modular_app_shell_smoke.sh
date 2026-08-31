@@ -72,6 +72,21 @@ run_browser_case "$workspace_nav_url" "$workspace_nav_out" 'data-workspace-nav-s
 grep -q 'data-workspace-nav-steps="4"' "$workspace_nav_out" || { cat "$workspace_nav_out" >&2; exit 1; }
 grep -q 'data-workspace-nav-product="cover"' "$workspace_nav_out" || { cat "$workspace_nav_out" >&2; exit 1; }
 
+for mode in integrated standalone; do
+  professional_out="$OUT_DIR/design-professional-ui-${mode}-smoke-dom.html"
+  if [[ "$mode" == "standalone" ]]; then
+    professional_url="http://127.0.0.1:$PORT/tests/browser/design-professional-ui-boundary-smoke.html?embed=1&app=cover&case=standalone"
+    expected_owner="workspace-navigation"
+  else
+    professional_url="http://127.0.0.1:$PORT/tests/browser/design-professional-ui-boundary-smoke.html?embed=1&case=integrated"
+    expected_owner="professional-ui"
+  fi
+  run_browser_case "$professional_url" "$professional_out" 'data-professional-boundary-smoke="pass"'
+  grep -q "data-professional-boundary-case=\"$mode\"" "$professional_out" || { cat "$professional_out" >&2; exit 1; }
+  grep -q "data-professional-boundary-owner=\"$expected_owner\"" "$professional_out" || { cat "$professional_out" >&2; exit 1; }
+  grep -q 'data-professional-boundary-shared="loaded"' "$professional_out" || { cat "$professional_out" >&2; exit 1; }
+done
+
 multi_selection_out="$OUT_DIR/design-multi-selection-shared-smoke-dom.html"
 multi_selection_url="http://127.0.0.1:$PORT/tests/browser/design-multi-selection-shared-smoke.html"
 run_browser_case "$multi_selection_url" "$multi_selection_out" 'data-multi-selection-shared-smoke="pass"'
@@ -85,4 +100,4 @@ grep -q 'data-design-multi-smart-ownership="contextbar"' "$smart_guides_out" || 
 grep -q 'data-design-multi-smart-gap="horizontal-6-vertical-4"' "$smart_guides_out" || { cat "$smart_guides_out" >&2; exit 1; }
 grep -q 'data-design-multi-smart-snap="artboard-center"' "$smart_guides_out" || { cat "$smart_guides_out" >&2; exit 1; }
 
-echo "Modular app browser smoke passed for 8 routes, design/PDF profiles, boundary UI, shared workspace navigation, multi-selection ownership and smart guides using $BROWSER"
+echo "Modular app browser smoke passed for 8 routes, design/PDF profiles, boundary UI, shared workspace navigation, professional UI ownership, multi-selection ownership and smart guides using $BROWSER"
