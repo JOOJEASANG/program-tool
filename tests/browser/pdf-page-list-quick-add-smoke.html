@@ -6,9 +6,16 @@
 </head>
 <body>
   <div class="preview-zoom"><span>줄당</span><select id="perRowSelect"><option value="2">2</option></select></div>
-  <input id="fileInput" type="file" multiple hidden>
-  <div class="mode-row"><button class="mode-btn" data-mode="new">새 작업</button><button class="mode-btn" data-mode="cont">연속</button></div>
-  <div id="uploadZone">upload</div>
+  <section id="sb-upload">
+    <div id="uploadZone">upload</div>
+    <div class="mode-row">
+      <button class="mode-btn" data-mode="new">새 작업</button>
+      <button class="mode-btn active" data-mode="cont">연속</button>
+      <button class="mode-btn" data-mode="break">비연속</button>
+    </div>
+    <input id="fileInput" type="file" multiple hidden>
+    <div id="pdfPrintUtilityRedirectCard">PDF 가공·분할 도구로 이동</div>
+  </section>
   <section id="sb-pages">
     <div id="pdfFileNavigation">legacy file navigation</div>
     <div id="pageProductivityPanelV3">multi select panel</div>
@@ -18,31 +25,62 @@
   <div id="result">WAIT</div>
 
   <script>
-    window.parsedPages = [{ id: 'p1' }, { id: 'p2' }];
-    window._uploadMode = 'new';
+    var parsedPages = [{ id: 'p1' }, { id: 'p2' }];
+    var uploadedFiles = [];
+    var _uploadMode = 'cont';
     window.__pickerClicks = 0;
+    window.__handledFiles = [];
+    async function handleFile(file) {
+      window.__handledFiles.push({ name: file.name, mode: _uploadMode });
+      uploadedFiles.push(file);
+      parsedPages.push({ id: 'loaded-' + file.name });
+    }
+    window.handleFile = handleFile;
+    document.querySelectorAll('.mode-btn').forEach(function (button) {
+      button.addEventListener('click', function () { _uploadMode = button.dataset.mode; });
+    });
     document.getElementById('fileInput').click = function () { window.__pickerClicks += 1; };
   </script>
   <script src="/js/pdf-editor/preview-row-default.js?v=20260831-1"></script>
+  <script src="/js/pdf-editor/upload-order-ui.js?v=20260831-1"></script>
   <script>
-    setTimeout(function () {
+    setTimeout(async function () {
       var bar = document.getElementById('pdfPageListQuickAddV1');
-      var button = document.getElementById('pdfPageListQuickAddButtonV1');
+      var continuous = bar && bar.querySelector('[data-quick-upload-mode="cont"]');
+      var separate = bar && bar.querySelector('[data-quick-upload-mode="break"]');
       var legacy = document.getElementById('pdfFileNavigation');
       var panel = document.getElementById('pageProductivityPanelV3');
       var area = document.getElementById('thumbArea');
-      if (!bar || !button || !legacy || !panel || !area) return;
-      button.click();
-      var passed = window.__pickerClicks === 1
-        && window._uploadMode === 'cont'
+      var utility = document.getElementById('pdfPrintUtilityRedirectCard');
+      if (!bar || !continuous || !separate || !legacy || !panel || !area || !utility) return;
+
+      separate.click();
+      if (window.__pickerClicks !== 1 || _uploadMode !== 'break') return;
+
+      var first = new File(['1'], '01-first.pdf', { type: 'application/pdf' });
+      var second = new File(['2'], '02-second.pdf', { type: 'application/pdf' });
+      var third = new File(['3'], '03-third.pdf', { type: 'application/pdf' });
+      window.PdfUploadOrderUi.stageFiles([first, second, third], 'cont');
+      var orderPanel = document.getElementById('pdfUploadOrderPanelV1');
+      if (!orderPanel || orderPanel.querySelectorAll('.pdf-upload-order-row').length !== 3) return;
+      window.PdfUploadOrderUi.movePending(2, 0);
+      var reordered = window.PdfUploadOrderUi.pending.files.map(function (file) { return file.name; }).join(',');
+      if (reordered !== '03-third.pdf,01-first.pdf,02-second.pdf') return;
+      await window.PdfUploadOrderUi.processPending();
+
+      var handled = window.__handledFiles.map(function (entry) { return entry.name + ':' + entry.mode; }).join(',');
+      var passed = handled === '03-third.pdf:cont,01-first.pdf:cont,02-second.pdf:cont'
         && bar.nextElementSibling === panel
         && panel.nextElementSibling === area
         && getComputedStyle(legacy).display === 'none'
-        && getComputedStyle(bar).position === 'sticky';
+        && getComputedStyle(bar).position === 'sticky'
+        && getComputedStyle(utility).display === 'none'
+        && continuous.textContent.includes('연속 추가')
+        && separate.textContent.includes('새 묶음 추가');
       if (!passed) return;
       document.documentElement.dataset.pdfPageListQuickAddSmoke = 'pass';
       document.getElementById('result').textContent = 'PASS: page list keeps sticky PDF append action and removes legacy jump panel from view';
-    }, 120);
+    }, 180);
   </script>
 </body>
 </html>
