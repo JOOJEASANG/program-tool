@@ -7,7 +7,7 @@
 
   const DOC_ID='public_program_catalog';
   const text=v=>String(v==null?'':v);
-  const esc=v=>text(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const esc=v=>text(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));
   const breaks=v=>esc(v).replace(/\r?\n/g,'<br>');
   const ICONS={design:'M4 20h4L19 9a2 2 0 0 0 0-3l-1-1a2 2 0 0 0-3 0L4 16v4Zm10-13 4 4M4 21h16',pdf:'M6 3h8l4 4v14H6V3Zm8 0v5h4M9 12h2v2H9v-2Zm4 0h2v2h-2v-2Zm-4 4h2m2 0h2',check:'M6 3h8l4 4v5M14 3v5h4M6 3v18h7m1-4 2 2 4-5',image:'M4 5h16v14H4V5Zm2 11 4-4 3 3 2-2 3 3M9 9h.01'};
   const MODULAR_DESIGN=[
@@ -69,5 +69,5 @@
   async function loadCatalog(){if(!ready())return false;try{const snap=await db.collection('settings').doc(DOC_ID).get();return snap.exists?applyCatalog(snap.data()||{}):false;}catch(error){console.warn('Program catalog fallback',error);return false;}}
   async function install(){installIcons();for(let i=0;i<10;i+=1){if(ready()){applyFallbackExpansion();return loadCatalog();}await new Promise(r=>setTimeout(r,180));}return false;}
 
-  window.HomeProgramCatalog={install,loadCatalog,applyCatalog,expandPrograms,decorateProgramIcons,stage:'modular-production-apps-home-catalog-v2'};install();
+  window.HomeProgramCatalog={install,loadCatalog,applyCatalog,expandPrograms,decorateProgramIcons,stage:'admin-managed-home-navigation-and-programs',modularStage:'modular-production-apps-home-catalog-v2'};install();
 })();
