@@ -11,10 +11,9 @@
   const foldProduct=app==='invitation'||app==='leaflet'||(!standalone&&['invitation','leaflet2','leaflet3'].includes(params.get('mode')||''));
 
   const MODULES=Object.freeze([
-    {id:'designProductBoundaryUiScriptV1',src:'/js/design-editor/product-boundary-ui.js?v=20260831-1',global:'DesignEditorProductBoundaryUi',method:'sync',when:()=>standalone},
-    {id:'designPrintFoldRuntimeEnsureScriptV1',src:'/js/design-editor/print-fold-runtime-ensure.js?v=20260825-5',global:'DesignEditorPrintFoldRuntimeEnsure',method:'refresh',when:()=>foldProduct||!standalone},
+    {id:'designPrintFoldRuntimeEnsureScriptV1',src:'/js/design-editor/print-fold-runtime-ensure.js?v=20260825-5',global:'DesignEditorPrintFoldRuntimeEnsure',method:'refresh'},
     {id:'designDocumentTypeStateScriptV1',src:'/js/design-editor/document-type-state.js?v=20260828-1',global:'DesignEditorDocumentTypeState',method:'sync'},
-    {id:'designPrintProductMenuScriptV1',src:'/js/design-editor/print-product-menu.js?v=20260828-3',global:'DesignEditorPrintProductMenu',method:'render',when:()=>!standalone||foldProduct},
+    {id:'designPrintProductMenuScriptV1',src:'/js/design-editor/print-product-menu.js?v=20260828-3',global:'DesignEditorPrintProductMenu',method:'render'},
     {id:'designPrintProductStateRestoreScriptV1',src:'/js/design-editor/print-product-state-restore.js?v=20260825-1',global:'DesignEditorPrintProductStateRestore',method:'patch'},
     {id:'designPrintProductTopbarScriptV1',src:'/js/design-editor/print-product-topbar.js?v=20260828-2',global:'DesignEditorPrintProductTopbar',method:'sync'},
     {id:'designSelectionContextbarScriptV1',src:'/js/design-editor/selection-contextbar.js?v=20260828-1',global:'DesignEditorSelectionContextbar',method:'sync'},
@@ -25,11 +24,31 @@
     {id:'designPreviewFitRefreshScriptV1',src:'/js/design-editor/preview-fit-refresh.js?v=20260831-1',global:'DesignEditorPreviewFitRefresh',method:'sync'}
   ]);
 
-  const activeModules=()=>MODULES.filter(entry=>typeof entry.when!=='function'||entry.when());
   const loading=new Map();
   const getApi=entry=>window[entry.global]||null;
+  const shouldLoad=entry=>{
+    if(!standalone)return true;
+    if(entry.id==='designPrintFoldRuntimeEnsureScriptV1')return foldProduct;
+    if(entry.id==='designPrintProductMenuScriptV1')return foldProduct;
+    return true;
+  };
+
+  function loadBoundaryUi(){
+    if(!standalone)return Promise.resolve(true);
+    const id='designProductBoundaryUiScriptV1';
+    const src='/js/design-editor/product-boundary-ui.js?v=20260831-1';
+    const existing=document.getElementById(id);
+    if(existing&&existing.dataset.loaded==='true')return Promise.resolve(true);
+    return new Promise(resolve=>{
+      const script=existing||document.createElement('script');
+      if(!existing){script.id=id;script.src=src;script.async=false;document.head.appendChild(script);}
+      script.addEventListener('load',()=>{script.dataset.loaded='true';window.DesignEditorProductBoundaryUi?.sync?.();resolve(true);},{once:true});
+      script.addEventListener('error',()=>resolve(false),{once:true});
+    });
+  }
 
   function syncEntry(entry){
+    if(!shouldLoad(entry))return false;
     const api=getApi(entry);
     const fn=api?.[entry.method];
     if(typeof fn!=='function')return false;
@@ -48,6 +67,7 @@
   }
 
   function loadEntry(entry){
+    if(!shouldLoad(entry))return Promise.resolve(true);
     if(syncEntry(entry))return Promise.resolve(true);
     if(loading.has(entry.id))return loading.get(entry.id);
 
@@ -74,8 +94,8 @@
   }
 
   async function loadAll(){
-    const modules=activeModules();
-    for(const entry of modules)await loadEntry(entry);
+    await loadBoundaryUi();
+    for(const entry of MODULES)await loadEntry(entry);
     sync();
     document.documentElement.dataset.designShellRuntime='1';
     if(standalone)document.documentElement.dataset.designStandaloneApp=app;
@@ -84,7 +104,8 @@
 
   function sync(){
     let ready=0;
-    activeModules().forEach(entry=>{if(syncEntry(entry))ready+=1;});
+    MODULES.forEach(entry=>{if(syncEntry(entry))ready+=1;});
+    if(standalone)window.DesignEditorProductBoundaryUi?.sync?.();
     return ready;
   }
 
@@ -99,7 +120,7 @@
     loadAll,
     sync,
     product:standalone?app:'integrated',
-    modules:activeModules().map(({id,src,global,method})=>({id,src,global,method})),
-    stage:'design-shell-product-boundary-v2'
+    modules:MODULES.map(({id,src,global,method})=>({id,src,global,method})),
+    stage:'design-shell-runtime-manifest-v1'
   };
 })();
