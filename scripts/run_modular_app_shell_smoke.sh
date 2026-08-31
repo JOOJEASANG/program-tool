@@ -52,4 +52,18 @@ grep -q 'data-notice-runtime="invitation"' "$profile_out" || { cat "$profile_out
 grep -q 'data-leaflet-fold="true"' "$profile_out" || { cat "$profile_out" >&2; exit 1; }
 grep -q 'data-booklet-default="true"' "$profile_out" || { cat "$profile_out" >&2; exit 1; }
 
-echo "Modular app shell browser smoke passed for 8 standalone routes and design/PDF profiles using $BROWSER"
+for app in cover poster flyer invitation notice leaflet; do
+  out="$OUT_DIR/standalone-design-${app}-boundary-smoke-dom.html"
+  url="http://127.0.0.1:$PORT/tests/browser/standalone-boundary-ui-smoke.html?kind=design&app=$app"
+  run_browser_case "$url" "$out" 'data-standalone-boundary-smoke="pass"'
+  grep -q "data-boundary-app=\"$app\"" "$out" || { cat "$out" >&2; exit 1; }
+done
+
+for app in layout booklet; do
+  out="$OUT_DIR/standalone-pdf-${app}-boundary-smoke-dom.html"
+  url="http://127.0.0.1:$PORT/tests/browser/standalone-boundary-ui-smoke.html?kind=pdf&app=$app"
+  run_browser_case "$url" "$out" 'data-standalone-boundary-smoke="pass"'
+  grep -q "data-boundary-app=\"$app\"" "$out" || { cat "$out" >&2; exit 1; }
+done
+
+echo "Modular app browser smoke passed for 8 routes, design/PDF profiles and standalone boundary UI using $BROWSER"
