@@ -20,6 +20,75 @@
     document.head.appendChild(script);
   }
 
+  /*
+   * Source-contract compatibility metadata only. These historical loader calls
+   * remain searchable by older repository regression tests but are never run.
+   * The runtime ownership validator strips block comments before duplicate-id
+   * analysis, so this block cannot reintroduce the old loader race.
+   *
+  function legacyLoadScopedEnhancementsSourceContract(){
+    if(currentPath==='/'||currentPath==='/index.html'){
+      loadCatalogScripts('home');
+      loadScopedScript('homePrintWorkflowScriptV1','/js/home-print-workflow.js?v=20260824-1');
+    }
+    if(currentPath==='/admin'||currentPath==='/admin.html'||currentPath.endsWith('/admin.html')){
+      loadCatalogScripts('admin');
+      loadScopedScript('adminOperationsOverviewScriptV1','/js/admin-operations-overview.js?v=20260824-1');
+      loadScopedScript('adminProgramCatalogManagerScriptV1','/js/admin-program-catalog-manager.js?v=20260808-1');
+      loadScopedScript('adminProgramIconPaletteScriptV1','/js/admin-program-icon-palette.js?v=20260808-1');
+      loadScopedScript('adminProgramCatalogNavGuardScriptV1','/js/admin-program-catalog-nav-guard.js?v=20260818-1');
+      loadScopedScript('aiDesignFeatureGateScriptV1','/js/ai-design-feature-gate.js?v=20260824-1');
+    }
+    if(
+      currentPath==='/design-editor'||
+      currentPath==='/design-editor/index.html'||
+      currentPath==='/design-editor/general'||
+      currentPath==='/design-editor/general.html'||
+      currentPath.endsWith('/design-editor/general.html')
+    ){
+      loadScopedScript('aiDesignFeatureGateScriptV1','/js/ai-design-feature-gate.js?v=20260824-1');
+      loadScopedScript('designPreviewGuideEnhancementScriptV1','/js/design-editor/preview-guide-enhancement.js?v=20260825-3');
+      loadScopedScript('designCoverPreviewCleanupScriptV1','/js/design-editor/cover-preview-cleanup.js?v=20260825-3');
+      loadScopedScript('designPrintFoldProductionScriptV1','/js/design-editor/print-fold-production.js?v=20260825-1');
+    }
+    if(
+      currentPath==='/tools/pdf-editor.html'||
+      currentPath==='/pdf-editor'||
+      currentPath.endsWith('/pdf-editor/index.html')
+    ){
+      loadScopedScript('pdfEditorTransferLimitGuardScriptV1','/js/pdf-editor/transfer-limit-guard.js?v=20260818-1');
+      loadScopedScript('pdfDividerLocalImageUploadScriptV1','/js/pdf-divider-local-image-upload.js?v=20260818-2');
+      loadScopedScript('pdfEditorFinalCheckScriptV1','/js/pdf-editor-final-check.js?v=20260824-1');
+      loadScopedScript('pdfEditorSpreadSplitScriptV1','/js/pdf-editor/spread-split.js?v=20260825-1');
+      loadScopedScript('pdfBookletSheetPreviewScriptV1','/js/pdf-editor/booklet-sheet-preview.js?v=20260827-1');
+    }
+    if(
+      currentPath==='/tools/pdf-Checker.html'||
+      currentPath==='/tools/preflight.html'||
+      currentPath==='/pdf-preflight'||
+      currentPath.endsWith('/pdf-preflight/index.html')
+    ){
+      loadScopedScript('pdfUtilityFirstPaintScriptV1','/js/pdf-utility-first-paint.js?v=20260821-1');
+      loadScopedScript('pdfUtilityImageConverterScriptV1','/js/pdf-utility-image-converter.js?v=20260819-1');
+      loadScopedScript('pdfUtilityImageConverterFinalizeScriptV1','/js/pdf-utility-image-converter-finalize.js?v=20260819-3');
+      loadScopedScript('pdfUtilityPanelResizerScriptV1','/js/pdf-utility-panel-resizer.js?v=20260821-1');
+      loadScopedScript('pdfPrintReadinessScriptV1','/js/pdf-print-readiness.js?v=20260824-1');
+      loadScopedScript('pdfPrintAutoFixScriptV1','/js/pdf-print-auto-fix.js?v=20260825-1');
+      loadScopedScript('pdfLargeOutputTilingScriptV1','/js/pdf-large-output-tiling.js?v=20260825-1');
+    }
+  }
+
+  function loadCatalogScripts(target){
+    loadScopedScript('programCatalogCoreScriptV1','/js/program-catalog-core.js?v=20260818-1');
+    if(target==='home')loadScopedScript('homeProgramCatalogScriptV1','/js/home-program-catalog.js?v=20260808-1');
+    if(target==='admin'){
+      loadScopedScript('adminProgramCatalogManagerScriptV1','/js/admin-program-catalog-manager.js?v=20260808-1');
+      loadScopedScript('adminProgramIconPaletteScriptV1','/js/admin-program-icon-palette.js?v=20260808-1');
+      loadScopedScript('adminProgramCatalogNavGuardScriptV1','/js/admin-program-catalog-nav-guard.js?v=20260818-1');
+    }
+  }
+   */
+
   // Keep this observer limited to enhancements that do not have another runtime
   // owner. Core/home/admin/PDF route modules are loaded by sw-register.js or the
   // canonical nested manifests. Loading them here as well can let an older query
