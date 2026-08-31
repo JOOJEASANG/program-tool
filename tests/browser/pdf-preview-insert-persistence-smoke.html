@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>PDF Preview Insert Persistence Smoke</title>
+</head>
+<body data-pdf-preview-insert-persistence-smoke="pending">
+  <div id="previewPages"></div>
+  <div id="previewScroll"></div>
+  <div id="result">PENDING</div>
+
+  <script>
+    history.replaceState(null,'','/pdf-editor/index.html?preview-insert-persistence-smoke=1');
+    var parsedPages=[{id:1},{id:2},{id:3}];
+    function makePreviewInsertZone(zoneIdx){
+      const zone=document.createElement('div');
+      zone.className='prev-ins-zone';
+      const buttons=document.createElement('div');buttons.className='prev-ins-btns';
+      const blank=document.createElement('button');blank.className='prev-ins-btn';blank.textContent='+ 빈 페이지';blank.addEventListener('click',()=>document.body.dataset.boundaryBlankIndex=String(zoneIdx));
+      const divider=document.createElement('button');divider.className='prev-ins-btn divider';divider.textContent='+ 간지';divider.addEventListener('click',()=>document.body.dataset.boundaryDividerIndex=String(zoneIdx));
+      buttons.append(blank,divider);zone.appendChild(buttons);return zone;
+    }
+    function makeBlankPage(){return{id:'blank-'+Date.now()};}
+    function renderThumbs(){document.body.dataset.fastThumbs='1';}
+    function showStatus(message){document.body.dataset.fastStatus=message;}
+    window.openDividerInsert=index=>{document.body.dataset.fastDividerIndex=String(index);};
+
+    function row(count,withInline=true){
+      const node=document.createElement('div');node.className='preview-row';
+      for(let i=0;i<count;i+=1){
+        const page=document.createElement('div');page.className='page-preview';node.appendChild(page);
+        if(withInline&&i<count-1){const inline=document.createElement('div');inline.className='prev-ins-zone-v';node.appendChild(inline);}
+      }
+      return node;
+    }
+    const scroll=document.getElementById('previewScroll');
+    scroll.append(row(2),row(1,false));
+  </script>
+  <script src="/js/pdf-editor/preview-insert-persistence.js?v=20260831-2"></script>
+  <script>
+    (async()=>{
+      const result=document.getElementById('result');
+      const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+      const waitFor=async(predicate,label,timeout=2500)=>{const started=Date.now();while(Date.now()-started<timeout){if(predicate())return;await wait(25);}throw new Error('timeout: '+label);};
+      const assert=(value,message)=>{if(!value)throw new Error(message)};
+      const boundaryValues=()=>[...scroll.querySelectorAll(':scope>.prev-ins-zone.pdf-preview-boundary-insert')].map(node=>node.dataset.pdfInsertBoundary).join(',');
+      try{
+        await waitFor(()=>boundaryValues()==='0,2,3','initial row insertion boundaries');
+        let boundaries=[...scroll.querySelectorAll(':scope>.prev-ins-zone.pdf-preview-boundary-insert')];
+        assert(boundaries.length===3,'two preview rows must expose top, row-boundary and end insertion controls');
+        assert(scroll.querySelector('.prev-ins-zone-v.pdf-preview-inline-insert'),'same-row insertion control must remain visible');
+        boundaries[1].querySelector('button').click();
+        assert(document.body.dataset.boundaryBlankIndex==='2','row-boundary blank-page action must point between output pages');
+
+        scroll.replaceChildren(row(2),row(2));
+        await waitFor(()=>boundaryValues()==='0,2,4','multi-file rerender insertion boundaries');
+        boundaries=[...scroll.querySelectorAll(':scope>.prev-ins-zone.pdf-preview-boundary-insert')];
+        assert(boundaries.length===3,'multi-file preview rerender must restore all row-boundary controls');
+
+        parsedPages=[{id:1},{id:2},{id:3},{id:4}];
+        window.__pdfEditorFastMode=true;
+        scroll.innerHTML='<div class="empty-state"><p>대용량 최적화 모드</p></div>';
+        await waitFor(()=>!!document.getElementById('pdfFastInsertActionsV1'),'optimized preview insertion actions');
+        const fast=document.getElementById('pdfFastInsertActionsV1');
+        const fastButtons=fast.querySelectorAll('button');
+        assert(fastButtons.length===2&&fastButtons[0].textContent.includes('빈 페이지')&&fastButtons[1].textContent.includes('간지'),'optimized preview must expose blank and divider actions');
+        fastButtons[1].click();
+        assert(document.body.dataset.fastDividerIndex==='4','optimized divider insertion must use the current document end');
+
+        document.body.dataset.pdfPreviewInsertPersistenceSmoke='pass';
+        result.textContent='PASS: multi-file preview rerenders keep blank-page and divider insertion controls at every row boundary';
+      }catch(error){
+        document.body.dataset.pdfPreviewInsertPersistenceSmoke='fail';
+        result.textContent='FAIL: '+String(error?.stack||error?.message||error);
+      }
+    })();
+  </script>
+</body>
+</html>

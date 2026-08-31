@@ -58,7 +58,7 @@ def test_pdf_editor_route_extras_are_owned_by_route_manifest_not_global_bootstra
     expected = (
         ("pdfEditorTransferLimitGuardScriptV1", "/js/pdf-editor/transfer-limit-guard.js"),
         ("pdfCropMarksScript", "/js/pdf-editor/crop-marks.js"),
-        ("pdfSaveOperationScript", "/js/pdf-editor/save-operation.js"),
+        ("pdfOutputSaveRecoveryScriptV1", "/js/pdf-editor/output-save-recovery.js"),
         ("pdfSaveRecoveryScript", "/js/pdf-editor/save-recovery.js"),
         ("pdfSessionSaveSafetyScriptV1", "/js/pdf-editor/session-save-safety.js"),
         ("pdfFileContextScopeScript", "/js/pdf-editor/file-context-scope.js"),
@@ -67,7 +67,8 @@ def test_pdf_editor_route_extras_are_owned_by_route_manifest_not_global_bootstra
         assert route.count(script_id) == 1
         assert route.count(path) == 1
 
-    assert route.index("/js/pdf-editor/save-operation.js") < route.index("/js/pdf-editor/save-recovery.js")
+    assert "/js/pdf-editor/save-operation.js" not in route
+    assert route.index("/js/pdf-editor/output-save-recovery.js") < route.index("/js/pdf-editor/save-recovery.js")
     assert route.index("/js/pdf-editor/save-recovery.js") < route.index("/js/pdf-editor/session-save-safety.js")
     assert route.index("/js/pdf-editor/session-save-safety.js") < route.index("/js/pdf-editor/file-context-scope.js")
     assert "/js/pdf-editor/route-runtime.js?v=20260828-1" in register

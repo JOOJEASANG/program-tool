@@ -78,7 +78,10 @@ def test_pdf_loader_is_enhancement_bootstrap_and_core_manifest_owns_eight_module
 
 def test_pdf_route_manifest_owns_route_helpers_without_editor_state_takeover():
     route = text("js/pdf-editor/route-runtime.js")
-    assert route.count("{id:") == 19
+    assert route.count("{id:") == 20
+    assert "/js/pdf-editor/preview-insert-persistence.js?v=20260831-2" in route
+    assert "/js/pdf-editor/output-save-recovery.js?v=20260831-1" in route
+    assert "/js/pdf-editor/save-operation.js" not in route
     assert "/js/pdf-editor/divider-modal-layout.js?v=20260830-2" in route
     assert "ProgramStudioPdfEditorRuntimeContext" in route
     assert "Promise.all(pending)" in route
@@ -93,6 +96,22 @@ def test_pdf_route_manifest_owns_route_helpers_without_editor_state_takeover():
         "eval(",
     ):
         assert forbidden not in route
+
+
+def test_pdf_output_save_recovery_keeps_core_click_handler_and_uses_bounded_observers():
+    source = text("js/pdf-editor/output-save-recovery.js")
+    for marker in (
+        "function stateReady()",
+        "previewObserver.observe(preview,{attributes:true,attributeFilter:['disabled']})",
+        "thumbObserver.observe(thumbs,{childList:true})",
+        "direct.disabled=false",
+        "core-save-button-recovery-v1",
+    ):
+        assert marker in source
+    assert "stopImmediatePropagation" not in source
+    assert "downloadBtn').addEventListener('click'" not in source
+    assert "setInterval(" not in source
+    assert "subtree:true" not in source
 
 
 def test_nested_manifests_are_part_of_runtime_asset_validation():

@@ -38,22 +38,25 @@ def test_design_editor_exposes_result_first_workflow_and_output_cta():
     assert "invitation:'초대장·안내장'" in source
 
 
-def test_pdf_editor_lists_file_layout_paper_edit_and_output_controls_without_step_filtering():
+def test_pdf_editor_lists_controls_without_step_filtering_and_allows_page_list_collapse():
     sidebar = text("js/pdf-editor/simple-sidebar-ui.js")
     ui_runtime = text("js/pdf-editor/ui-runtime.js")
     shell = text("js/program-shell-unify.js")
     for marker in (
-        "all-visible",
+        "all-visible-page-list-collapsible",
         "keepSectionsOpen",
         "blockToggle",
+        "if(sec.id==='thumbSection')",
+        "if(head.closest('#thumbSection'))",
+        "#thumbSection>#sb-pages.hidden{display:none!important}",
         "ps-sidebar-toggle",
         "program-studio:pdf-editor:advanced",
         "클릭=미리보기 이동",
         "로그아웃",
-        "single-sidebar-all-controls-visible-v3",
+        "single-sidebar-page-list-collapsible-hotfix-v4",
     ):
         assert marker in sidebar
-    assert "/js/pdf-editor/simple-sidebar-ui.js?v=20260830-1" in ui_runtime
+    assert "/js/pdf-editor/simple-sidebar-ui.js?v=20260831-1" in ui_runtime
     assert "/js/pdf-editor/workflow-ui.js" not in ui_runtime
     assert "/js/pdf-editor/workspace-layout.js" not in ui_runtime
     assert "/js/pdf-editor/ui-runtime.js?v=${PDF_UI_RUNTIME_VERSION}" in shell
