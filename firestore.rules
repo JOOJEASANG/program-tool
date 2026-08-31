@@ -2,10 +2,10 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     function signedIn(){ return request.auth != null; }
-    function hasAdminClaim(){ return signedIn() && request.auth.token.admin == true; }
+    function hasAdminClaim(){ return signedIn() && request.auth.token.keys().hasAll(['admin']) && request.auth.token.admin == true; }
     function adminDoc(){ return get(/databases/$(database)/documents/settings/admin); }
     // Temporary migration fallback. Remove after every administrator has admin=true.
-    function legacyAdmin(){ return signedIn() && exists(/databases/$(database)/documents/settings/admin) && request.auth.token.email != null && adminDoc().data.emails.hasAny([request.auth.token.email, request.auth.token.email.lower()]); }
+    function legacyAdmin(){ return signedIn() && request.auth.token.keys().hasAll(['email']) && exists(/databases/$(database)/documents/settings/admin) && request.auth.token.email != null && adminDoc().data.emails.hasAny([request.auth.token.email, request.auth.token.email.lower()]); }
     function isAdmin(){ return hasAdminClaim() || legacyAdmin(); }
     function permission(uid){ return get(/databases/$(database)/documents/user_permissions/$(uid)); }
     function approved(uid){ return isAdmin() || (exists(/databases/$(database)/documents/user_permissions/$(uid)) && permission(uid).data.status == 'approved'); }
@@ -76,6 +76,7 @@ service cloud.firestore {
     match /user_permissions/{uid} {
       allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
       allow create: if signedIn() && request.auth.uid == uid
+        && request.auth.token.keys().hasAll(['email'])
         && request.resource.data.keys().hasOnly(['uid','email','displayName','status','plan','programs','createdAt'])
         && request.resource.data.uid == uid
         && request.resource.data.email == request.auth.token.email.lower()
