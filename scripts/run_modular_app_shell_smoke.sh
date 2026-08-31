@@ -66,4 +66,10 @@ for app in layout booklet; do
   grep -q "data-boundary-app=\"$app\"" "$out" || { cat "$out" >&2; exit 1; }
 done
 
-echo "Modular app browser smoke passed for 8 routes, design/PDF profiles and standalone boundary UI using $BROWSER"
+workspace_nav_out="$OUT_DIR/design-workspace-navigation-smoke-dom.html"
+workspace_nav_url="http://127.0.0.1:$PORT/tests/browser/design-workspace-navigation-smoke.html"
+run_browser_case "$workspace_nav_url" "$workspace_nav_out" 'data-workspace-nav-smoke="pass"'
+grep -q 'data-workspace-nav-steps="4"' "$workspace_nav_out" || { cat "$workspace_nav_out" >&2; exit 1; }
+grep -q 'data-workspace-nav-product="cover"' "$workspace_nav_out" || { cat "$workspace_nav_out" >&2; exit 1; }
+
+echo "Modular app browser smoke passed for 8 routes, design/PDF profiles, boundary UI and shared design workspace navigation using $BROWSER"
