@@ -21,6 +21,8 @@ from urllib.request import Request, urlopen
 from validate_route_budgets import UI, SW, collect_routes
 
 USER_AGENT = "ProgramStudioPreviewDelivery/1.0"
+NETWORK_RETRY_ATTEMPTS = 4
+NETWORK_RETRY_BASE_DELAY_SECONDS = 0.6
 ROUTE_PATHS = {
     "home": "/",
     "admin": "/admin.html",
@@ -134,26 +136,36 @@ def _fetch(base_url: str, path: str, timeout: float) -> tuple[HttpMetric, bytes,
             "Pragma": "no-cache",
         },
     )
-    started = time.perf_counter()
-    try:
-        with urlopen(request, timeout=timeout) as response:
-            body = response.read()
-            elapsed_ms = (time.perf_counter() - started) * 1000.0
-            headers = {key.lower(): value for key, value in response.headers.items()}
-            metric = HttpMetric(
-                url=response.geturl(),
-                status=int(response.status),
-                content_type=headers.get("content-type", ""),
-                cache_control=headers.get("cache-control", ""),
-                body_bytes=len(body),
-                elapsed_ms=round(elapsed_ms, 2),
-            )
-            return metric, body, headers
-    except HTTPError as error:
-        body = error.read() if error.fp else b""
-        raise DeliveryFailure(f"{url} returned HTTP {error.code}: {body[:160]!r}") from error
-    except URLError as error:
-        raise DeliveryFailure(f"{url} connection failed: {error.reason}") from error
+    last_network_error: BaseException | None = None
+    for attempt in range(1, NETWORK_RETRY_ATTEMPTS + 1):
+        started = time.perf_counter()
+        try:
+            with urlopen(request, timeout=timeout) as response:
+                body = response.read()
+                elapsed_ms = (time.perf_counter() - started) * 1000.0
+                headers = {key.lower(): value for key, value in response.headers.items()}
+                metric = HttpMetric(
+                    url=response.geturl(),
+                    status=int(response.status),
+                    content_type=headers.get("content-type", ""),
+                    cache_control=headers.get("cache-control", ""),
+                    body_bytes=len(body),
+                    elapsed_ms=round(elapsed_ms, 2),
+                )
+                return metric, body, headers
+        except HTTPError as error:
+            body = error.read() if error.fp else b""
+            raise DeliveryFailure(f"{url} returned HTTP {error.code}: {body[:160]!r}") from error
+        except (URLError, TimeoutError, OSError) as error:
+            last_network_error = error
+            if attempt >= NETWORK_RETRY_ATTEMPTS:
+                break
+            time.sleep(NETWORK_RETRY_BASE_DELAY_SECONDS * attempt)
+
+    reason = getattr(last_network_error, "reason", last_network_error)
+    raise DeliveryFailure(
+        f"{url} connection failed after {NETWORK_RETRY_ATTEMPTS} attempts: {reason}"
+    ) from last_network_error
 
 
 def require_security_headers(url: str, headers: dict[str, str]) -> None:

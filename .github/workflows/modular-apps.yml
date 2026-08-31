@@ -1,0 +1,56 @@
+name: Modular app architecture
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  modular-apps:
+    name: Standalone app boundaries
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.11'
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '20'
+
+      - name: Validate modular route contracts
+        run: python scripts/validate_modular_apps.py
+
+      - name: Validate modular JavaScript syntax
+        run: |
+          node --check js/studio-app-shell.js
+          node --check js/modular-app-access.js
+          node --check js/design-editor/standalone-product-profile.js
+          node --check js/design-editor/product-boundary-ui.js
+          node --check js/design-editor/core-runtime.js
+          node --check js/design-editor/shell-runtime.js
+          node --check js/design-editor/essential-workspace.js
+          node --check js/pdf-editor/standalone-app-profile.js
+          node --check js/pdf-editor/app-boundary.js
+          node --check js/pdf-editor/route-runtime.js
+
+      - name: Run standalone app browser smoke
+        run: bash scripts/run_modular_app_shell_smoke.sh
+
+      - name: Validate Hosting stage
+        run: python scripts/validate_hosting_delivery.py
+
+      - name: Upload modular app diagnostics
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: modular-app-browser-smoke
+          path: browser-smoke-artifacts
+          retention-days: 7
+          if-no-files-found: ignore

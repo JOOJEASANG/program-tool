@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"><title>Standalone Boundary UI Smoke</title></head>
+<body data-standalone-boundary-smoke="running">
+<div id="result">RUNNING</div>
+
+<section id="designFixture">
+  <div id="designEmbeddedModeCard" class="design-mode-card">
+    <div class="design-mode-grid">MODE GRID</div>
+    <div class="design-mode-options">OPTIONS</div>
+  </div>
+  <button data-print-product="cover">cover</button>
+  <button data-print-product="poster">poster</button>
+  <button data-print-product="flyer">flyer</button>
+  <button data-print-product="invitation">invitation</button>
+  <button data-print-product="leaflet">leaflet</button>
+</section>
+
+<section id="pdfFixture">
+  <div class="nav-title"></div>
+  <aside>
+    <h1></h1><div class="sub"></div>
+    <div class="sec"><div class="sec-head" data-sec="nup"><span class="sec-title"></span></div></div>
+    <div class="sec" id="editSection"><div id="sb-edit"></div></div>
+  </aside>
+  <div class="nup-grid">
+    <button class="nup-btn active" data-nup="1">1</button>
+    <button class="nup-btn" data-nup="2">2</button>
+  </div>
+  <div id="bookletRow"><input type="checkbox" id="bookletCheck"></div>
+</section>
+
+<script>
+(async()=>{
+  const input=new URL(location.href).searchParams;
+  const kind=input.get('kind')||'design';
+  const requested=input.get('app')||'cover';
+  const result=document.getElementById('result');
+  const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+  const load=src=>new Promise((resolve,reject)=>{const s=document.createElement('script');s.src=src;s.onload=resolve;s.onerror=reject;document.head.appendChild(s);});
+  const fail=error=>{document.body.dataset.standaloneBoundarySmoke='fail';result.textContent='FAIL: '+String(error?.stack||error);};
+
+  document.querySelectorAll('.nup-btn').forEach(button=>button.addEventListener('click',()=>{
+    document.querySelectorAll('.nup-btn').forEach(item=>item.classList.remove('active'));
+    button.classList.add('active');
+  }));
+
+  try{
+    if(kind==='design'){
+      const surface=requested==='notice'?'&surface=notice':'';
+      const runtimeApp=requested==='notice'?'invitation':requested;
+      history.replaceState(null,'',`/design-editor/general?embed=1&app=${runtimeApp}${surface}`);
+      document.getElementById('pdfFixture').remove();
+      await load('/js/design-editor/standalone-product-profile.js');
+      await load('/js/design-editor/product-boundary-ui.js');
+      await wait(120);
+      const expectedLabel=requested==='notice'?'안내장':({cover:'표지',poster:'포스터',flyer:'전단지',invitation:'초대장',leaflet:'리플렛'}[requested]);
+      const expectedProduct=requested==='notice'?'invitation':requested;
+      const badge=document.querySelector('.design-product-boundary-badge');
+      if(!badge||badge.textContent!==`${expectedLabel} 전용 작업`)throw new Error('wrong design boundary badge: '+badge?.textContent);
+      if(document.querySelector('.design-mode-grid').style.display!=='none')throw new Error('design mode grid remains visible');
+      document.querySelectorAll('[data-print-product]').forEach(button=>{
+        const shouldShow=button.dataset.printProduct===expectedProduct;
+        if(button.hidden===shouldShow)throw new Error('product visibility mismatch: '+button.dataset.printProduct);
+      });
+      if(document.documentElement.dataset.designProductBoundary!==expectedProduct)throw new Error('design runtime boundary mismatch');
+      document.body.dataset.boundaryKind='design';
+      document.body.dataset.boundaryApp=requested;
+    }else{
+      history.replaceState(null,'',`/pdf-editor/?embed=1&app=${requested}`);
+      document.getElementById('designFixture').remove();
+      await load('/js/pdf-editor/standalone-app-profile.js');
+      await load('/js/pdf-editor/app-boundary.js');
+      await wait(700);
+      const expectedTitle=requested==='layout'?'PDF 배치':'소책자 제작';
+      const expectedSection=requested==='layout'?'페이지 배치':'소책자 배치';
+      if(document.querySelector('aside>h1').textContent!==expectedTitle)throw new Error('wrong PDF title');
+      if(document.querySelector('[data-sec="nup"] .sec-title').textContent!==expectedSection)throw new Error('wrong PDF section title');
+      if(!document.querySelector('.nup-btn[data-nup="2"]').classList.contains('active'))throw new Error('default N-up is not 2');
+      if(document.getElementById('editSection').style.display!=='none')throw new Error('document edit section remains visible');
+      const check=document.getElementById('bookletCheck');
+      if(check.checked!==(requested==='booklet'))throw new Error('booklet default mismatch');
+      const row=document.getElementById('bookletRow');
+      if(row.hidden!==(requested==='layout'))throw new Error('booklet row visibility mismatch');
+      if(!document.body.classList.contains('pdf-app-embedded'))throw new Error('embedded PDF mode missing');
+      document.body.dataset.boundaryKind='pdf';
+      document.body.dataset.boundaryApp=requested;
+    }
+    document.body.dataset.standaloneBoundarySmoke='pass';
+    result.textContent=`PASS: ${kind} ${requested} boundary UI`;
+  }catch(error){fail(error);}
+})();
+</script>
+</body>
+</html>

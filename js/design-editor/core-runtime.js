@@ -47,12 +47,31 @@
     'designEditorSimpleInterfaceScriptV1',
     'designEditorComponentBlocksScriptV1'
   ]);
+  const COVER_ONLY_IDS=new Set([
+    'designEditorCoverModelScriptV1',
+    'designEditorCoverModeBridgeScriptV1',
+    'designEditorCoverSettingsScriptV1',
+    'designEditorCoverSpineToolsScriptV1',
+    'designEditorCoverPreviewZonesScriptV1'
+  ]);
+  const PRODUCT_ALIASES=Object.freeze({notice:'invitation',leaflet2:'leaflet',leaflet3:'leaflet'});
+  const params=()=>new URLSearchParams(location.search);
+  const standaloneProduct=()=>{
+    const raw=(params().get('app')||'').trim().toLowerCase();
+    return PRODUCT_ALIASES[raw]||raw;
+  };
+  const shouldLoad=entry=>{
+    const product=standaloneProduct();
+    if(!product)return true;
+    if(COVER_ONLY_IDS.has(entry.id))return product==='cover';
+    return true;
+  };
 
   const context=()=>window.ProgramStudioDesignEditorRuntimeContext||{};
   const runtimePath=()=>location.pathname.replace(/\/+$/,'')||'/';
 
   function isEmbeddedGeneralRuntime(){
-    if(new URLSearchParams(location.search).get('embed')!=='1')return false;
+    if(params().get('embed')!=='1')return false;
     const entryPath=context().entryPath||runtimePath();
     const path=runtimePath();
     return (entryPath==='/design-editor/general'||entryPath==='/design-editor/general.html'||entryPath.endsWith('/design-editor/general.html'))
@@ -68,6 +87,7 @@
   }
 
   async function loadEntry(entry){
+    if(!shouldLoad(entry))return;
     if(!GENERAL_ROUTE_IDS.has(entry.id)||!isEmbeddedGeneralRuntime()){
       await hostLoad(entry.id,entry.src);
       return;
@@ -93,7 +113,10 @@
       seen.add(entry.id);
       await loadEntry(entry);
     }
+    const product=standaloneProduct();
+    if(product)await hostLoad('designShellRuntimeScriptV1','/js/design-editor/shell-runtime.js?v=20260831-1');
     document.documentElement.dataset.designCoreRuntime='1';
+    if(product)document.documentElement.dataset.designProductBoundary=product;
     return true;
   }
 
@@ -101,6 +124,7 @@
   window.ProgramStudioDesignEditorCoreRuntime={
     loadAll,
     modules:MODULES.map(({id,src})=>({id,src})),
+    product:standaloneProduct(),
     stage:'design-editor-core-runtime-manifest-v1'
   };
 })();

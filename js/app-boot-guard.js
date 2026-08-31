@@ -5,7 +5,13 @@
 
   const root=document.documentElement;
   const path=String(location.pathname||'').replace(/\\/g,'/').replace(/\/+$/,'');
+  const modularAppKey=(function(){
+    const match=path.match(/^\/apps\/([^/]+)$/i);
+    return match?String(match[1]||'').toLowerCase():'';
+  })();
   const protectedProgram=(function(){
+    if(['pdf-layout','booklet'].includes(modularAppKey))return 'pdf-editor';
+    if(['cover','poster','flyer','invitation','notice','leaflet'].includes(modularAppKey))return 'design-studio';
     if(['/tools/pdf-editor.html','/pdf-editor','/pdf-editor/index.html'].some(item=>path.endsWith(item)))return 'pdf-editor';
     if(['/tools/preflight.html','/tools/pdf-Checker.html','/pdf-preflight','/pdf-preflight/index.html'].some(item=>path.endsWith(item)))return 'preflight';
     if(['/tools/perfect-binding-cover.html','/perfect-binding-cover','/perfect-binding-cover/index.html','/design-editor','/design-editor/index.html','/design-editor/general','/design-editor/general.html'].some(item=>path.endsWith(item)))return 'design-studio';
@@ -55,6 +61,7 @@
   }
 
   window.ProgramStudioBoot={...(window.ProgramStudioBoot||{}),reveal,protectedProgram};
+  window.ProgramStudioBoot.modularAppKey=modularAppKey;
   if(!protectedProgram){reveal();return;}
 
   root.classList.add('app-booting');

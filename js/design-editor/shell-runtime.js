@@ -4,6 +4,12 @@
   if(window.__designEditorShellRuntimeV1)return;
   window.__designEditorShellRuntimeV1=true;
 
+  const params=new URLSearchParams(location.search);
+  const rawApp=(params.get('app')||'').trim().toLowerCase();
+  const app=rawApp==='notice'?'invitation':rawApp;
+  const standalone=['cover','poster','flyer','invitation','leaflet'].includes(app);
+  const fallbackFoldProduct=app==='invitation'||app==='leaflet'||(!standalone&&['invitation','leaflet2','leaflet3'].includes(params.get('mode')||''));
+
   const MODULES=Object.freeze([
     {id:'designPrintFoldRuntimeEnsureScriptV1',src:'/js/design-editor/print-fold-runtime-ensure.js?v=20260825-5',global:'DesignEditorPrintFoldRuntimeEnsure',method:'refresh'},
     {id:'designDocumentTypeStateScriptV1',src:'/js/design-editor/document-type-state.js?v=20260828-1',global:'DesignEditorDocumentTypeState',method:'sync'},
@@ -20,8 +26,38 @@
 
   const loading=new Map();
   const getApi=entry=>window[entry.global]||null;
+  const activeProfile=()=>window.DesignEditorStandaloneProducts?.fromLocation?.(location.search)||null;
+  const needsFoldRuntime=()=>activeProfile()?.needsFoldRuntime??fallbackFoldProduct;
+  const needsProductMenu=()=>activeProfile()?.needsProductMenu??fallbackFoldProduct;
+  const shouldLoad=entry=>{
+    if(!standalone)return true;
+    if(entry.id==='designPrintFoldRuntimeEnsureScriptV1')return needsFoldRuntime();
+    if(entry.id==='designPrintProductMenuScriptV1')return needsProductMenu();
+    return true;
+  };
+
+  function loadSupportScript(scriptId,src){
+    const existing=document.getElementById(scriptId);
+    if(existing?.dataset.loaded==='true')return Promise.resolve(true);
+    return new Promise(resolve=>{
+      const script=existing||document.createElement('script');
+      const done=ok=>{if(ok)script.dataset.loaded='true';resolve(ok);};
+      script.addEventListener('load',()=>done(true),{once:true});
+      script.addEventListener('error',()=>done(false),{once:true});
+      if(!existing){script.id=scriptId;script.src=src;script.async=false;document.head.appendChild(script);}
+    });
+  }
+
+  async function loadBoundaryUi(){
+    if(!standalone)return true;
+    await loadSupportScript('designStandaloneProductProfileScriptV1','/js/design-editor/standalone-product-profile.js?v=20260831-1');
+    const loaded=await loadSupportScript('designProductBoundaryUiScriptV1','/js/design-editor/product-boundary-ui.js?v=20260831-2');
+    window.DesignEditorProductBoundaryUi?.sync?.();
+    return loaded;
+  }
 
   function syncEntry(entry){
+    if(!shouldLoad(entry))return false;
     const api=getApi(entry);
     const fn=api?.[entry.method];
     if(typeof fn!=='function')return false;
@@ -40,6 +76,7 @@
   }
 
   function loadEntry(entry){
+    if(!shouldLoad(entry))return Promise.resolve(true);
     if(syncEntry(entry))return Promise.resolve(true);
     if(loading.has(entry.id))return loading.get(entry.id);
 
@@ -66,15 +103,21 @@
   }
 
   async function loadAll(){
+    await loadBoundaryUi();
     for(const entry of MODULES)await loadEntry(entry);
     sync();
     document.documentElement.dataset.designShellRuntime='1';
+    if(standalone){
+      document.documentElement.dataset.designStandaloneApp=activeProfile()?.key||rawApp||app;
+      document.documentElement.dataset.designStandaloneRuntime=activeProfile()?.runtimeProduct||app;
+    }
     return true;
   }
 
   function sync(){
     let ready=0;
     MODULES.forEach(entry=>{if(syncEntry(entry))ready+=1;});
+    if(standalone)window.DesignEditorProductBoundaryUi?.sync?.();
     return ready;
   }
 
@@ -88,6 +131,8 @@
   window.DesignEditorShellRuntime={
     loadAll,
     sync,
+    product:standalone?app:'integrated',
+    get profile(){return activeProfile()?.key||null;},
     modules:MODULES.map(({id,src,global,method})=>({id,src,global,method})),
     stage:'design-shell-runtime-manifest-v1'
   };
