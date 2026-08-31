@@ -5,8 +5,15 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Program Studio 작업실</title>
   <meta name="description" content="Program Studio 독립 작업 프로그램">
+  <meta name="robots" content="noindex,nofollow">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
   <link rel="stylesheet" href="/css/studio-app-shell.css?v=20260831-1">
+  <script data-program-studio-boot-guard src="/js/app-boot-guard.js?v=2026.08.31.004"></script>
+  <script data-program-studio-approval-bootstrap src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="/js/firebase-config.js"></script>
 </head>
 <body>
   <div class="app-shell" id="studioAppShell">
@@ -38,6 +45,7 @@
       </div>
     </main>
   </div>
+  <script src="/js/sw-register.js?v=2026.08.31.004"></script>
   <script src="/js/studio-app-shell.js?v=20260831-1"></script>
 </body>
 </html>
