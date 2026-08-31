@@ -78,4 +78,11 @@ run_browser_case "$multi_selection_url" "$multi_selection_out" 'data-multi-selec
 grep -q 'data-multi-selection-shared-count="2"' "$multi_selection_out" || { cat "$multi_selection_out" >&2; exit 1; }
 grep -q 'data-multi-selection-shared-ownership="pass"' "$multi_selection_out" || { cat "$multi_selection_out" >&2; exit 1; }
 
-echo "Modular app browser smoke passed for 8 routes, design/PDF profiles, boundary UI, shared workspace navigation and multi-selection ownership using $BROWSER"
+smart_guides_out="$OUT_DIR/design-smart-guides-shared-smoke-dom.html"
+smart_guides_url="http://127.0.0.1:$PORT/tests/browser/design-editor-multi-smart-guides-smoke.html"
+run_browser_case "$smart_guides_url" "$smart_guides_out" 'data-design-multi-smart-status="pass"'
+grep -q 'data-design-multi-smart-ownership="contextbar"' "$smart_guides_out" || { cat "$smart_guides_out" >&2; exit 1; }
+grep -q 'data-design-multi-smart-gap="horizontal-6-vertical-4"' "$smart_guides_out" || { cat "$smart_guides_out" >&2; exit 1; }
+grep -q 'data-design-multi-smart-snap="artboard-center"' "$smart_guides_out" || { cat "$smart_guides_out" >&2; exit 1; }
+
+echo "Modular app browser smoke passed for 8 routes, design/PDF profiles, boundary UI, shared workspace navigation, multi-selection ownership and smart guides using $BROWSER"
