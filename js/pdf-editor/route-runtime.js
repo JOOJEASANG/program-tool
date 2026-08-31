@@ -6,7 +6,7 @@
   window.__pdfEditorRouteRuntimeV1=true;
 
   const MODULES=Object.freeze([
-    {id:'programShellUnifyScriptV1',src:'/js/program-shell-unify.js?v=20260824-1'},
+    {id:'programShellUnifyScriptV1',src:'/js/program-shell-unify.js?v=20260831-2'},
     {id:'pdfAllInOneStage1ScriptV1',src:'/js/pdf-all-in-one-stage1.js?v=20260824-1'},
     {id:'desktopToolMobileNoticeScriptV1',src:'/js/desktop-tool-mobile-notice.js?v=20260807-1'},
     {id:'pdfEditorModuleLoaderScript',src:'/js/pdf-editor/loader.js?v=20260828-1'},
@@ -46,8 +46,6 @@
         continue;
       }
       seen.add(entry.id);
-      // Start requests in manifest order, matching the previous sw-register behavior,
-      // while allowing the browser to fetch independent helpers without a waterfall.
       pending.push(hostLoad(entry));
     }
     return Promise.all(pending).then(()=>{
