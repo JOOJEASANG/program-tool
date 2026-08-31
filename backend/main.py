@@ -186,6 +186,15 @@ def _delete_blob_paths(bucket, paths) -> None:
             logger.warning("Persistent quota blob cleanup failed path=%s", value, exc_info=True)
 
 
+def _normalize_document_paths(data: dict, paths_field: str) -> list[str]:
+    raw_paths = data.get(paths_field)
+    if isinstance(raw_paths, list):
+        return [str(path) for path in raw_paths if path]
+    if raw_paths:
+        return [str(raw_paths)]
+    return []
+
+
 def _trim_firestore_group(db, bucket, collection_id: str, limit: int, timestamp_field: str, paths_field: str):
     """Keep newest bounded user documents and return paths referenced by survivors."""
     grouped = defaultdict(list)
@@ -208,27 +217,25 @@ def _trim_firestore_group(db, bucket, collection_id: str, limit: int, timestamp_
         keep = ordered[:limit]
         remove = ordered[limit:]
         for snapshot in keep:
-            data = snapshot.to_dict() or {}
-            raw_paths = data.get(paths_field)
-            if isinstance(raw_paths, list):
-                referenced.update(str(path) for path in raw_paths if path)
-            elif raw_paths:
-                referenced.add(str(raw_paths))
+            referenced.update(_normalize_document_paths(snapshot.to_dict() or {}, paths_field))
         for snapshot in remove:
-            data = snapshot.to_dict() or {}
-            raw_paths = data.get(paths_field)
-            paths = raw_paths if isinstance(raw_paths, list) else [raw_paths] if raw_paths else []
-            _delete_blob_paths(bucket, paths)
+            paths = _normalize_document_paths(snapshot.to_dict() or {}, paths_field)
             try:
+                # Remove the database reference first. If this fails, keep the
+                # blobs protected as referenced data rather than breaking a live
+                # session/project. Blob cleanup can safely retry later.
                 snapshot.reference.delete()
-                logger.warning(
-                    "Persistent quota trimmed collection=%s uid=%s document=%s",
-                    collection_id,
-                    uid,
-                    snapshot.id,
-                )
             except Exception:
+                referenced.update(paths)
                 logger.warning("Persistent quota document cleanup failed path=%s", snapshot.reference.path, exc_info=True)
+                continue
+            _delete_blob_paths(bucket, paths)
+            logger.info(
+                "Persistent quota trimmed collection=%s uid=%s document=%s",
+                collection_id,
+                uid,
+                snapshot.id,
+            )
     return referenced
 
 
