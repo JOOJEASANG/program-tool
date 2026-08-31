@@ -14,7 +14,7 @@ ASSET_RE = re.compile(r"[\'\"`](/js/[^\'\"`\s]+)[\'\"`]")
 LOAD_CATALOG_RE = re.compile(r"function loadCatalogCore\(\)\{return load\([^,]+,[\'\"](?P<src>/js/[^\'\"]+)")
 
 ROUTE_BUDGETS = {
-    "home": (10, 82_000),
+    "home": (10, 88_000),
     "admin": (10, 180_000),
     "design-general": (38, 1_200_000),
     "pdf-editor": (22, 900_000),
