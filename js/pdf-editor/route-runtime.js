@@ -2,19 +2,19 @@
 // sw-register.js only chooses the route; this manifest owns editor-specific helpers.
 (function(){
   'use strict';
-  if(window.__pdfEditorRouteRuntimeV1)return;
-  window.__pdfEditorRouteRuntimeV1=true;
+  if(window.__pdfEditorRouteRuntimeV2)return;
+  window.__pdfEditorRouteRuntimeV2=true;
 
   const MODULES=Object.freeze([
     {id:'programShellUnifyScriptV1',src:'/js/program-shell-unify.js?v=20260831-1'},
     {id:'pdfAllInOneStage1ScriptV1',src:'/js/pdf-all-in-one-stage1.js?v=20260824-1'},
     {id:'desktopToolMobileNoticeScriptV1',src:'/js/desktop-tool-mobile-notice.js?v=20260807-1'},
     {id:'pdfEditorModuleLoaderScript',src:'/js/pdf-editor/loader.js?v=20260828-1'},
-    {id:'pdfEditorTransferLimitGuardScriptV1',src:'/js/pdf-editor/transfer-limit-guard.js?v=20260818-1'},
+    {id:'pdfEditorTransferLimitGuardScriptV1',src:'/js/pdf-editor/transfer-limit-guard.js?v=20260831-2'},
     {id:'pdfCropMarksScript',src:'/js/pdf-editor/crop-marks.js?v=20260731-4'},
     {id:'pdfOutputSaveRecoveryScriptV1',src:'/js/pdf-editor/output-save-recovery.js?v=20260831-1'},
     {id:'pdfSaveRecoveryScript',src:'/js/pdf-editor/save-recovery.js?v=20260803-1'},
-    {id:'pdfSessionSaveSafetyScriptV1',src:'/js/pdf-editor/session-save-safety.js?v=20260805-2'},
+    {id:'pdfSessionSaveSafetyScriptV1',src:'/js/pdf-editor/session-save-safety.js?v=20260831-2'},
     {id:'pdfFileContextScopeScript',src:'/js/pdf-editor/file-context-scope.js?v=20260805-1'},
     {id:'pdfImportTransactionSafetyScriptV1',src:'/js/pdf-editor/import-transaction-safety.js?v=20260806-1'},
     {id:'pdfViewportLazyPreviewScriptV1',src:'/js/pdf-editor/viewport-lazy-preview.js?v=20260806-1'},
@@ -47,8 +47,8 @@
         continue;
       }
       seen.add(entry.id);
-      // Start requests in manifest order, matching the previous sw-register behavior,
-      // while allowing the browser to fetch independent helpers without a waterfall.
+      // Start requests in manifest order while allowing the browser to fetch
+      // independent helpers without a waterfall.
       pending.push(hostLoad(entry));
     }
     return Promise.all(pending).then(()=>{
@@ -60,6 +60,6 @@
   window.PdfEditorRouteRuntime={
     loadAll,
     modules:MODULES.map(({id,src})=>({id,src})),
-    stage:'pdf-editor-route-runtime-manifest-v1'
+    stage:'pdf-editor-route-runtime-manifest-v2'
   };
 })();
