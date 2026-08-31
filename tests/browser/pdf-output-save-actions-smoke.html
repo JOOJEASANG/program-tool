@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>PDF Output Save Actions Smoke</title>
+  <script>history.replaceState(null,'','/pdf-editor/index.html?output-save-actions-smoke=1');</script>
+</head>
+<body data-pdf-output-save-smoke="pending">
+  <button id="previewBtn" disabled>미리보기</button>
+  <button id="downloadBtn" disabled>PDF 저장</button>
+  <div id="thumbArea"></div>
+  <div id="result">PENDING</div>
+
+  <script>
+    var uploadedFiles=[new File(['source'],'sample.pdf',{type:'application/pdf'})];
+    var parsedPages=[{file_index:0,page_index:0,pageType:'pdf',excluded:false,rotation:0}];
+    function collectEditorState(){
+      return {
+        pages:parsedPages,
+        fileNupMap:{},
+        nup:1,
+        showBorder:false,
+        wmEnabled:false,
+        hfEnabled:false,
+        pnEnabled:false,
+        facingPages:false,
+        booklet:false
+      };
+    }
+    function getSettings(){return {pw:210,ph:297,mh:10,mv:10,gp:4};}
+    function showStatus(message){document.body.dataset.lastStatus=String(message||'');}
+    async function apiProcessPdf(){
+      document.body.dataset.finalProcess='1';
+      return new Blob(['%PDF-1.4\nsmoke\n%%EOF'],{type:'application/pdf'});
+    }
+    async function apiPreflightCheck(){
+      document.body.dataset.finalPreflight='1';
+      return {score:100,page_count:1,checks:[]};
+    }
+
+    document.getElementById('downloadBtn').addEventListener('click',()=>{
+      document.body.dataset.directSave='1';
+    });
+  </script>
+  <script src="/js/pdf-editor/output-save-recovery.js?v=20260831-1"></script>
+  <script src="/js/pdf-editor-final-check.js?v=20260828-1"></script>
+  <script>
+    (async()=>{
+      const result=document.getElementById('result');
+      const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+      const waitFor=async(predicate,label,timeout=4000)=>{const started=Date.now();while(Date.now()-started<timeout){if(predicate())return;await wait(25);}throw new Error('timeout: '+label);};
+      const assert=(value,message)=>{if(!value)throw new Error(message)};
+      try{
+        await waitFor(()=>document.documentElement.dataset.pdfOutputSaveRecovery==='1','save recovery install');
+        await waitFor(()=>!!document.getElementById('pdfEditorFinalCheckBtn'),'final check control');
+
+        document.getElementById('previewBtn').disabled=false;
+        await waitFor(()=>document.getElementById('downloadBtn').disabled===false,'direct save recovery');
+        await waitFor(()=>document.getElementById('pdfEditorFinalCheckBtn').disabled===false,'final check enable');
+
+        document.getElementById('downloadBtn').click();
+        assert(document.body.dataset.directSave==='1','direct PDF save click must reach the core handler');
+
+        document.getElementById('pdfEditorFinalCheckBtn').click();
+        await waitFor(()=>document.getElementById('pdfEditorFinalCheckModal')?.classList.contains('open'),'final check modal');
+        assert(document.body.dataset.finalProcess==='1','final check must generate the PDF');
+        assert(document.body.dataset.finalPreflight==='1','final check must run preflight on the generated PDF');
+        assert(!document.getElementById('pefcSave').disabled,'checked PDF save action must be available');
+
+        document.body.dataset.pdfOutputSaveSmoke='pass';
+        result.textContent='PASS: direct PDF save and print preflight save remain actionable after preview state recovery';
+      }catch(error){
+        document.body.dataset.pdfOutputSaveSmoke='fail';
+        result.textContent='FAIL: '+String(error?.stack||error?.message||error);
+      }
+    })();
+  </script>
+</body>
+</html>
