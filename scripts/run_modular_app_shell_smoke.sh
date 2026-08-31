@@ -30,14 +30,26 @@ PY
   return 1
 }
 
+run_browser_case(){
+  local url="$1" out="$2" marker="$3"
+  rm -rf "$PROFILE_DIR"; PROFILE_DIR="$(mktemp -d)"
+  "$BROWSER" --headless=new --disable-gpu --no-sandbox --disable-dev-shm-usage --disable-background-networking --user-data-dir="$PROFILE_DIR" --virtual-time-budget=5000 --dump-dom "$url" >"$out"
+  grep -q "$marker" "$out" || { cat "$out" >&2; exit 1; }
+}
+
 wait_for_server
 for app in cover poster flyer invitation notice leaflet pdf-layout booklet; do
-  rm -rf "$PROFILE_DIR"; PROFILE_DIR="$(mktemp -d)"
   out="$OUT_DIR/modular-app-${app}-smoke-dom.html"
   url="http://127.0.0.1:$PORT/tests/browser/modular-app-shell-smoke.html?app=$app"
-  "$BROWSER" --headless=new --disable-gpu --no-sandbox --disable-dev-shm-usage --disable-background-networking --user-data-dir="$PROFILE_DIR" --virtual-time-budget=5000 --dump-dom "$url" >"$out"
-  grep -q 'data-modular-shell-smoke="pass"' "$out" || { echo "Modular app shell smoke failed: $app" >&2; cat "$out" >&2; exit 1; }
+  run_browser_case "$url" "$out" 'data-modular-shell-smoke="pass"'
   grep -q "data-modular-shell-app=\"$app\"" "$out" || { cat "$out" >&2; exit 1; }
 done
 
-echo "Modular app shell browser smoke passed for 8 standalone routes using $BROWSER"
+profile_out="$OUT_DIR/standalone-product-profile-smoke-dom.html"
+profile_url="http://127.0.0.1:$PORT/tests/browser/standalone-product-profile-smoke.html"
+run_browser_case "$profile_url" "$profile_out" 'data-standalone-profile-smoke="pass"'
+grep -q 'data-notice-runtime="invitation"' "$profile_out" || { cat "$profile_out" >&2; exit 1; }
+grep -q 'data-leaflet-fold="true"' "$profile_out" || { cat "$profile_out" >&2; exit 1; }
+grep -q 'data-booklet-default="true"' "$profile_out" || { cat "$profile_out" >&2; exit 1; }
+
+echo "Modular app shell browser smoke passed for 8 standalone routes and design/PDF profiles using $BROWSER"
