@@ -64,7 +64,11 @@ def validate() -> None:
         if key not in access:
             errors.append(f"access adapter does not recognize PDF app {key}")
 
-    if "products:['cover']" not in design_core:
+    if (
+        "const COVER_ONLY_IDS=new Set([" not in design_core
+        or "designEditorCoverModelScriptV1" not in design_core
+        or "return product==='cover'" not in design_core
+    ):
         errors.append("cover-only design modules are not product scoped")
     if "app!=='layout'&&app!=='booklet'" not in pdf_boundary or "if(app==='layout')" not in pdf_boundary:
         errors.append("PDF layout/booklet boundary is incomplete")
