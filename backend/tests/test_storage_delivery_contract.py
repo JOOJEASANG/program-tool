@@ -1,6 +1,10 @@
 from datetime import datetime
 
-from utils.storage_delivery import upload_pdf_result
+from utils.storage_delivery import (
+    MAX_RESULT_BYTES,
+    RESULT_TTL_HOURS,
+    upload_pdf_result,
+)
 
 
 class FakeBlob:
@@ -46,6 +50,13 @@ def test_generated_pdf_is_delivered_from_private_temporary_storage() -> None:
     assert payload["download_url"].startswith(
         "https://firebasestorage.googleapis.com/"
     )
+    assert payload["expiration_mode"] == "scheduled-delete"
     assert bucket.created[0].content_type == "application/pdf"
     assert bucket.created[0].metadata["temporary"] == "true"
+    assert bucket.created[0].metadata["cleanupAfter"] == payload["expires_at"]
     assert datetime.fromisoformat(payload["expires_at"])
+
+
+def test_result_retention_and_size_are_cost_bounded() -> None:
+    assert RESULT_TTL_HOURS == 1
+    assert MAX_RESULT_BYTES == 300 * 1024 * 1024
