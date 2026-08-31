@@ -42,7 +42,7 @@ def test_design_original_workspace_is_three_pane_and_inspector_is_contextual_rig
 
 
 def test_design_document_type_is_canonical_with_legacy_compatibility():
-    state = text("js/design-editor/document-type-state.js")
+    state = text("js/design-editor/shared/document-type-state.js")
     shell = text("design-editor/index.html")
     runtime = text("js/design-editor/shell-runtime.js")
     professional = text("js/design-editor/professional-ui.js")
@@ -53,7 +53,7 @@ def test_design_document_type_is_canonical_with_legacy_compatibility():
         "programstudio:document-type-change",
     ):
         assert marker in state
-    assert "/js/design-editor/document-type-state.js?v=20260828-1" in runtime
+    assert "/js/design-editor/shared/document-type-state.js?v=20260831-1" in runtime
     assert "documentStateStage:'canonical-document-type-state-v1'" in shell
     assert "runtimeManifestStage:'design-shell-runtime-manifest-v1'" in shell
     assert "workspaceStage:'three-pane-context-properties-v1'" in shell
