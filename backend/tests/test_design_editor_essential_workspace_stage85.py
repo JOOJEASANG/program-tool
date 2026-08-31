@@ -66,5 +66,5 @@ def test_design_browser_suite_runs_essential_workspace_smoke():
     assert "dataset.essentialHome='true'" in smoke
     assert "dataset.essentialNoAll='true'" in smoke
     assert "dataset.essentialStepIsolation='true'" in smoke
+    assert "dataset.essentialInvitationCoverHidden='true'" in smoke
     assert "dataset.essentialInvitationFold='x'" in smoke
-    assert "invitation guide cleanup after product switch" in smoke
