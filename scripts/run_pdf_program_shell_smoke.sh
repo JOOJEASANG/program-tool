@@ -63,13 +63,15 @@ run_product_case "pdf-print-output-stage1-smoke.html" "$OUT_DIR/pdf-print-output
 reset_profile
 run_product_case "pdf-security-500mb-smoke.html" "$OUT_DIR/pdf-security-500mb-smoke-dom.html" 'data-pdf-security-smoke="pass"' 'PASS: PDF encrypt/decrypt uses Storage from 20MB to 500MB while normal tools keep the direct limit'
 reset_profile
-run_product_case "pdf-editor-workflow-v2-smoke.html" "$OUT_DIR/pdf-editor-workflow-v2-smoke-dom.html" 'data-workflow-v2-smoke="pass"' 'PASS: PDF editor keeps account actions on one line and all sidebar controls visible'
+run_product_case "pdf-editor-workflow-v2-smoke.html" "$OUT_DIR/pdf-editor-workflow-v2-smoke-dom.html" 'data-workflow-v2-smoke="pass"' 'PASS: PDF editor page list collapses while the remaining recovery sidebar controls stay visible'
 reset_profile
 run_product_case "pdf-divider-modal-layout-smoke.html" "$OUT_DIR/pdf-divider-modal-layout-smoke-dom.html" 'data-divider-modal-smoke="pass"' 'PASS: divider modal survives delayed studio load, opens on click and keeps actions in the narrow left panel'
 reset_profile
 run_product_case "pdf-fast-insert-actions-smoke.html" "$OUT_DIR/pdf-fast-insert-actions-smoke-dom.html" 'data-pdf-fast-insert-smoke="pass"' 'PASS: large PDF optimized preview keeps blank-page and divider insertion actions'
 reset_profile
+run_product_case "pdf-preview-insert-persistence-smoke.html" "$OUT_DIR/pdf-preview-insert-persistence-smoke-dom.html" 'data-pdf-preview-insert-persistence-smoke="pass"' 'PASS: multi-file preview rerenders keep blank-page and divider insertion controls at every row boundary'
+reset_profile
 run_product_case "pdf-page-list-quick-add-smoke.html" "$OUT_DIR/pdf-page-list-quick-add-smoke-dom.html" 'data-pdf-page-list-quick-add-smoke="pass"' 'PASS: page list keeps sticky PDF append action and removes legacy jump panel from view'
 
 bash "$ROOT_DIR/scripts/run_pdf_print_workflow_focus_smoke.sh"
-echo "PDF program unified shell, all-visible sidebar, divider-modal, fast-insert, page-list quick-add and product-focus browser smokes passed using $BROWSER"
+echo "PDF program unified shell, page-list collapse, divider-modal, persistent insert, fast-insert, page-list quick-add and product-focus browser smokes passed using $BROWSER"
