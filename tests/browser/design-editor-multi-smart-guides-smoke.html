@@ -45,7 +45,7 @@
     window.DesignEditorDraftScope={saveCurrent(reason){window.__saveReason=reason;}};
   </script>
   <script src="/js/design-editor/shared/multi-selection-context.js?v=20260828-1"></script>
-  <script src="/js/design-editor/multi-selection-smart-guides.js?v=20260828-1"></script>
+  <script src="/js/design-editor/shared/multi-selection-smart-guides.js?v=20260828-1"></script>
   <script>
     window.addEventListener('DOMContentLoaded',async()=>{
       const result=document.getElementById('result');
@@ -66,6 +66,9 @@
         multi.selectKeys(['text:text-a','text:text-b','extra:shape-c']);smart.sync();
         const bar=document.getElementById('designMultiSelectionContextbar'),controls=document.getElementById('designMultiSmartGuideControls');
         assert(bar&&!bar.hidden&&controls,'smart controls missing');
+        assert(bar.contains(controls),'smart controls escaped multi-selection contextbar');
+        assert(controls.previousElementSibling?.dataset.multiSmartSep==='phase17','smart controls separator ownership missing');
+        document.body.dataset.designMultiSmartOwnership='contextbar';
         const toggle=controls.querySelector('[data-multi-smart-toggle]');assert(toggle&&toggle.getAttribute('aria-pressed')==='true','smart toggle not enabled');
         toggle.click();assert(toggle.getAttribute('aria-pressed')==='false','smart toggle did not disable');toggle.click();assert(toggle.getAttribute('aria-pressed')==='true','smart toggle did not re-enable');
         document.body.dataset.designMultiSmartToggle='enabled';
