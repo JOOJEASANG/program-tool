@@ -154,8 +154,9 @@ def validate() -> None:
     if "data-standalone-boundary-smoke" not in boundary_smoke or "standalone-boundary-ui-smoke.html" not in smoke_runner:
         errors.append("standalone boundary UI browser coverage is missing")
     if (
-        "data-workspace-nav-smoke" not in workspace_nav_smoke
-        or "data-workspace-nav-steps" not in workspace_nav_smoke
+        "dataset.workspaceNavSmoke" not in workspace_nav_smoke
+        or "dataset.workspaceNavSteps" not in workspace_nav_smoke
+        or "dataset.workspaceNavProduct" not in workspace_nav_smoke
         or "design-workspace-navigation-smoke.html" not in smoke_runner
     ):
         errors.append("shared design workspace navigation browser coverage is missing")
