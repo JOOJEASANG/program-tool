@@ -35,6 +35,8 @@ jobs:
           node --check js/design-editor/shared/document-type-state.js
           node --check js/design-editor/shared/selection-contextbar.js
           node --check js/design-editor/shared/workspace-navigation.js
+          node --check js/design-editor/shared/professional-shell-ui.js
+          node --check js/design-editor/professional-ui.js
           node --check js/design-editor/standalone-product-profile.js
           node --check js/design-editor/product-boundary-ui.js
           node --check js/design-editor/core-runtime.js
