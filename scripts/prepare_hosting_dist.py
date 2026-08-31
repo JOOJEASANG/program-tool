@@ -18,6 +18,7 @@ ROOT_FILES = set(DEPLOY_HTML) | {
 }
 OPTIONAL_ROOT_FILES = {"robots.txt", "sitemap.xml"}
 HOSTED_DIRS = (
+    "apps",
     "css",
     "js",
     "design-editor",
