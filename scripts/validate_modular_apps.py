@@ -66,7 +66,7 @@ def validate() -> None:
 
     if "products:['cover']" not in design_core:
         errors.append("cover-only design modules are not product scoped")
-    if "app==='layout'" not in pdf_boundary or "app==='booklet'" not in pdf_boundary:
+    if "app!=='layout'&&app!=='booklet'" not in pdf_boundary or "if(app==='layout')" not in pdf_boundary:
         errors.append("PDF layout/booklet boundary is incomplete")
     if '"apps",' not in hosting:
         errors.append("Hosting allowlist does not include apps directory")
