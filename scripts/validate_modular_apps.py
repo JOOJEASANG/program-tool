@@ -40,6 +40,7 @@ def validate() -> None:
         "js/design-editor/shared/multi-selection-smart-guides.js",
         "js/design-editor/shared/simple-result-workflow.js",
         "js/design-editor/shared/workspace-navigation.js",
+        "js/design-editor/shared/sidebar-menu-order.js",
         "js/design-editor/standalone-product-profile.js",
         "js/design-editor/product-boundary-ui.js",
         "js/pdf-editor/standalone-app-profile.js",
@@ -48,6 +49,7 @@ def validate() -> None:
         "tests/browser/standalone-product-profile-smoke.html",
         "tests/browser/standalone-boundary-ui-smoke.html",
         "tests/browser/design-workspace-navigation-smoke.html",
+        "tests/browser/design-product-sidebar-order-smoke.html",
         "tests/browser/design-multi-selection-shared-smoke.html",
         "tests/browser/design-editor-multi-smart-guides-smoke.html",
         "tests/browser/design-editor-simple-result-smoke.html",
@@ -78,6 +80,7 @@ def validate() -> None:
     design_shell = read("js/design-editor/shell-runtime.js")
     shared_modules = read("js/design-editor/shared/module-profile.js")
     workspace_nav = read("js/design-editor/shared/workspace-navigation.js")
+    sidebar_order = read("js/design-editor/shared/sidebar-menu-order.js")
     smart_guides = read("js/design-editor/shared/multi-selection-smart-guides.js")
     simple_result = read("js/design-editor/shared/simple-result-workflow.js")
     design_profiles = read("js/design-editor/standalone-product-profile.js")
@@ -90,6 +93,7 @@ def validate() -> None:
     profile_smoke = read("tests/browser/standalone-product-profile-smoke.html")
     boundary_smoke = read("tests/browser/standalone-boundary-ui-smoke.html")
     workspace_nav_smoke = read("tests/browser/design-workspace-navigation-smoke.html")
+    sidebar_order_smoke = read("tests/browser/design-product-sidebar-order-smoke.html")
     multi_selection_smoke = read("tests/browser/design-multi-selection-shared-smoke.html")
     smart_guides_smoke = read("tests/browser/design-editor-multi-smart-guides-smoke.html")
     simple_result_smoke = read("tests/browser/design-editor-simple-result-smoke.html")
@@ -109,6 +113,8 @@ def validate() -> None:
             errors.append(f"access adapter does not recognize design app {key}")
         if f"{key}:Object.freeze(" not in design_profiles:
             errors.append(f"standalone product profile is missing {key}")
+        if f"sidebarOrder:MENU_ORDERS.{key}" not in design_profiles:
+            errors.append(f"standalone product profile is missing sidebar order for {key}")
     for key in PDF_KEYS:
         if key not in access:
             errors.append(f"access adapter does not recognize PDF app {key}")
@@ -138,6 +144,10 @@ def validate() -> None:
         errors.append("design shell does not load simple result workflow from shared")
     if "shared/workspace-navigation.js?v=20260831-1" not in design_shell or "loadWorkspaceNavigation" not in design_shell:
         errors.append("standalone design shell does not load shared workspace navigation")
+    if "shared/sidebar-menu-order.js?v=20260901-1" not in design_shell or "loadSidebarMenuOrder" not in design_shell:
+        errors.append("standalone design shell does not load product-specific sidebar ordering")
+    if "standalone-product-profile.js?v=20260901-1" not in design_shell:
+        errors.append("standalone design shell does not load the current product profile version")
     if (
         "design-editor-shared-module-profile-v1" not in shared_modules
         or "CORE_PRODUCT_ONLY" not in shared_modules
@@ -153,6 +163,15 @@ def validate() -> None:
         or "DesignEditorEssentialWorkspace" not in workspace_nav
     ):
         errors.append("shared design workspace navigation is incomplete")
+    if (
+        "product-specific-sidebar-order-v1" not in sidebar_order
+        or "규격 · 구조" not in sidebar_order
+        or "내용 · 디자인" not in sidebar_order
+        or "편집 · 배치" not in sidebar_order
+        or "인쇄 · 출력" not in sidebar_order
+        or "profile.sidebarOrder" not in sidebar_order
+    ):
+        errors.append("product-specific sidebar ordering/UI grouping contract is incomplete")
     if (
         "stage:'multi-smart-guides-exact-gap-v1'" not in smart_guides
         or "const bar=byId('designMultiSelectionContextbar')" not in smart_guides
@@ -201,6 +220,13 @@ def validate() -> None:
     ):
         errors.append("shared design workspace navigation browser coverage is missing")
     if (
+        "dataset.productSidebarOrderSmoke" not in sidebar_order_smoke
+        or "dataset.productSidebarOrderApp" not in sidebar_order_smoke
+        or "dataset.productSidebarOrderSections" not in sidebar_order_smoke
+        or "design-product-sidebar-order-smoke.html" not in smoke_runner
+    ):
+        errors.append("product-specific sidebar order browser coverage is missing")
+    if (
         "shared/multi-selection-context.js" not in multi_selection_smoke
         or "dataset.multiSelectionSharedSmoke" not in multi_selection_smoke
         or "dataset.multiSelectionSharedOwnership" not in multi_selection_smoke
@@ -232,7 +258,7 @@ def validate() -> None:
             print(f" - {error}", file=sys.stderr)
         raise SystemExit(1)
 
-    print("Modular app architecture OK: 8 standalone routes share canonical design/PDF engines, shared module policy, shared editor state/UI, product profiles, boundary UI, workspace navigation, multi-selection context, smart guides, simple-result workflow and browser coverage")
+    print("Modular app architecture OK: 8 standalone routes share canonical design/PDF engines, shared module policy, shared editor state/UI, product profiles, boundary UI, workspace navigation, product-specific sidebar order, multi-selection context, smart guides, simple-result workflow and browser coverage")
 
 
 if __name__ == "__main__":
