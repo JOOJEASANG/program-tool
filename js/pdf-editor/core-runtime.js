@@ -47,6 +47,13 @@
     return typeof loader==='function' ? loader(entry.id,entry.src) : fallbackLoad(entry.id,entry.src);
   }
 
+  function loadUploadOrderUi(){
+    const id='pdfUploadOrderUiScriptV1';
+    const src='/js/pdf-editor/upload-order-ui.js?v=20260831-1';
+    const loader=context().load;
+    return typeof loader==='function' ? loader(id,src) : fallbackLoad(id,src);
+  }
+
   function loadAll(){
     ensureBookletStylesheet();
     const seen=new Set();
@@ -56,6 +63,7 @@
       seen.add(entry.id);
       pending.push(loadEntry(entry));
     }
+    pending.push(loadUploadOrderUi());
     return Promise.all(pending).then(()=>{
       document.documentElement.dataset.pdfCoreRuntime='1';
       return true;
