@@ -35,7 +35,7 @@ service firebase.storage {
     }
     function validStagePath(sessionId, fileName) {
       return sessionId.matches('^[A-Za-z0-9_-]{8,40}$')
-        && fileName.matches('^[A-Za-z0-9_.-]{1,100}[.]pdf$');
+        && fileName.matches('^[A-Za-z0-9_.-]{1,100}[.][Pp][Dd][Ff]$');
     }
     function validSessionUpload(userId, sessionId, fileName) {
       return validPdfUpload(209715200)
@@ -82,14 +82,14 @@ service firebase.storage {
       allow update: if false;
     }
 
-    // Saved editor sessions are persistent user data. New/updated source files
-    // are limited to the same 200 MiB per-file ceiling and must carry ownership
-    // metadata. Existing legacy objects remain readable/deletable by their owner.
+    // Saved editor sessions are persistent user data. New source files are
+    // limited to 200 MiB each, carry ownership metadata, and are immutable.
     match /pdf_sessions/{userId}/{sessionId}/{fileName} {
       allow read, delete: if isOwner(userId) && canUseProgram('pdf-editor');
-      allow create, update: if isOwner(userId)
+      allow create: if isOwner(userId)
         && canUseProgram('pdf-editor')
         && validSessionUpload(userId, sessionId, fileName);
+      allow update: if false;
     }
     match /pdf_results/{userId}/{resultId}/{fileName} {
       // Generated results are uploaded only by the server. The owner may remove
