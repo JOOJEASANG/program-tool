@@ -30,6 +30,10 @@
         "function": "api"
       },
       {
+        "source": "/apps/**",
+        "destination": "/apps/index.html"
+      },
+      {
         "source": "/design-editor",
         "destination": "/design-editor/index.html"
       },
