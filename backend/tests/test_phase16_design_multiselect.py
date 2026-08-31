@@ -8,14 +8,14 @@ def test_phase16_design_manifest_loads_multi_selection_runtime():
     shell = (ROOT / "design-editor" / "index.html").read_text(encoding="utf-8")
     runtime = (ROOT / "js" / "design-editor" / "shell-runtime.js").read_text(encoding="utf-8")
     assert "designMultiSelectionScriptV1" in runtime
-    assert "/js/design-editor/multi-selection-context.js?v=20260828-1" in runtime
+    assert "/js/design-editor/shared/multi-selection-context.js?v=20260828-1" in runtime
     assert "const ensureMultiSelectionRuntime=ensurePrintRuntimes" in shell
     assert "multiSelectionStage:'multi-select-align-distribute-group-v1'" in shell
     assert "runtimeManifestStage:'design-shell-runtime-manifest-v1'" in shell
 
 
 def test_phase16_multi_selection_keeps_flat_project_model_and_adds_bulk_actions():
-    source = (ROOT / "js" / "design-editor" / "multi-selection-context.js").read_text(encoding="utf-8")
+    source = (ROOT / "js" / "design-editor" / "shared" / "multi-selection-context.js").read_text(encoding="utf-8")
     for token in (
         "data-design-multi-selection",
         "ps-multi-selected",
@@ -45,7 +45,7 @@ def test_phase16_multi_selection_keeps_flat_project_model_and_adds_bulk_actions(
 
 
 def test_phase16_multi_selection_supports_group_drag_keyboard_and_selection_bounds():
-    source = (ROOT / "js" / "design-editor" / "multi-selection-context.js").read_text(encoding="utf-8")
+    source = (ROOT / "js" / "design-editor" / "shared" / "multi-selection-context.js").read_text(encoding="utf-8")
     for token in (
         "function beginDrag",
         "function handleDragMove",

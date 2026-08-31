@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>Design Shared Multi Selection Smoke</title>
+  <style>
+    html,body{margin:0;height:100%;font-family:Arial,sans-serif}.editor-toolbar{height:40px}.design-flat-panel{width:320px;height:420px;overflow:auto;padding:11px 12px 16px;box-sizing:border-box}.side-card,.design-mode-card{height:90px;margin-bottom:12px;border:1px solid #ddd}#artboard{position:relative;width:210px;height:297px}.design-text{position:absolute;width:30px;height:12px}
+  </style>
+  <script>history.replaceState(null,'','/design-editor/general.html?embed=1&mode=poster&app=poster');</script>
+</head>
+<body data-multi-selection-shared-smoke="pending">
+  <div class="editor-toolbar">toolbar</div>
+  <div id="designSelectionContextbar" role="toolbar">single selection</div>
+  <div class="design-flat-panel">
+    <div id="designEmbeddedModeCard" class="design-mode-card">setup</div>
+    <div id="inspector" class="side-card">edit</div>
+    <div id="designLayerTools" class="side-card">arrange</div>
+    <div id="designFinalPrintCheckTools" class="side-card">output</div>
+  </div>
+  <div id="editorStatus"></div>
+  <div id="saveState"></div>
+  <div id="artboard">
+    <div class="design-text" data-id="alpha"></div>
+    <div class="design-text" data-id="beta"></div>
+  </div>
+  <script>
+    const project={
+      width:210,height:297,bleed:0,activeSurface:'front',
+      surfaces:[{id:'front',elements:[
+        {id:'alpha',type:'text',x:10,y:12,w:30,size:11,lineHeight:1.2},
+        {id:'beta',type:'text',x:58,y:28,w:34,size:11,lineHeight:1.2}
+      ],extras:[]}]
+    };
+    window.DesignEditorApp={project};
+    window.DesignEditorEssentialWorkspace={currentType(){return'poster';},select(){return true;}};
+  </script>
+  <script src="/js/design-editor/shared/workspace-navigation.js?v=20260831-1"></script>
+  <script src="/js/design-editor/shared/multi-selection-context.js?v=20260828-1"></script>
+  <script>
+    window.addEventListener('DOMContentLoaded',()=>setTimeout(()=>{
+      const assert=(ok,msg)=>{if(!ok)throw new Error(msg);};
+      try{
+        assert(window.DesignEditorMultiSelection,'shared multi-selection API missing');
+        assert(window.DesignEditorWorkspaceNavigation,'workspace navigation API missing');
+        assert(window.DesignEditorMultiSelection.selectKeys(['text:alpha','text:beta']),'multi selection failed');
+        const single=document.getElementById('designSelectionContextbar');
+        const multi=document.getElementById('designMultiSelectionContextbar');
+        const nav=document.getElementById('designWorkspaceNavigation');
+        assert(multi&&!multi.hidden,'multi-selection contextbar missing');
+        assert(multi.getAttribute('role')==='toolbar','multi-selection role contract');
+        assert(multi.querySelector('[data-multi-count]')?.textContent==='2개','multi-selection count mismatch');
+        assert(document.documentElement.dataset.designMultiSelection==='2','multi-selection document state missing');
+        assert(nav&&nav.parentElement?.classList.contains('design-flat-panel'),'workspace nav must stay in left panel');
+        assert(single?.nextElementSibling===multi,'multi-selection bar must own the editor contextbar lane');
+        assert(!nav.contains(multi)&&!multi.contains(nav),'workspace nav and multi-selection bar are nested');
+        assert(!nav.contains(single)&&!single.contains(nav),'workspace nav and single-selection bar are nested');
+        document.body.dataset.multiSelectionSharedCount='2';
+        document.body.dataset.multiSelectionSharedOwnership='pass';
+        document.body.dataset.multiSelectionSharedSmoke='pass';
+      }catch(error){
+        document.body.dataset.multiSelectionSharedSmoke='fail';
+        document.body.textContent='FAIL: '+String(error?.stack||error);
+      }
+    },180),{once:true});
+  </script>
+</body>
+</html>

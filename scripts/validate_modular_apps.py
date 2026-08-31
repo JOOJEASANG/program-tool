@@ -36,6 +36,7 @@ def validate() -> None:
         "js/design-editor/shared/module-profile.js",
         "js/design-editor/shared/document-type-state.js",
         "js/design-editor/shared/selection-contextbar.js",
+        "js/design-editor/shared/multi-selection-context.js",
         "js/design-editor/shared/workspace-navigation.js",
         "js/design-editor/standalone-product-profile.js",
         "js/design-editor/product-boundary-ui.js",
@@ -45,11 +46,19 @@ def validate() -> None:
         "tests/browser/standalone-product-profile-smoke.html",
         "tests/browser/standalone-boundary-ui-smoke.html",
         "tests/browser/design-workspace-navigation-smoke.html",
+        "tests/browser/design-multi-selection-shared-smoke.html",
         "scripts/run_modular_app_shell_smoke.sh",
     )
     for relative in required:
         if not (ROOT / relative).is_file():
             errors.append(f"missing modular app asset: {relative}")
+
+    legacy_removed = (
+        "js/design-editor/multi-selection-context.js",
+    )
+    for relative in legacy_removed:
+        if (ROOT / relative).exists():
+            errors.append(f"legacy design asset must stay removed after shared migration: {relative}")
 
     firebase = json.loads(read("firebase.json"))
     rewrites = firebase.get("hosting", {}).get("rewrites", [])
@@ -73,6 +82,7 @@ def validate() -> None:
     profile_smoke = read("tests/browser/standalone-product-profile-smoke.html")
     boundary_smoke = read("tests/browser/standalone-boundary-ui-smoke.html")
     workspace_nav_smoke = read("tests/browser/design-workspace-navigation-smoke.html")
+    multi_selection_smoke = read("tests/browser/design-multi-selection-shared-smoke.html")
     smoke_runner = read("scripts/run_modular_app_shell_smoke.sh")
 
     for key in APP_KEYS:
@@ -110,6 +120,8 @@ def validate() -> None:
         errors.append("design shell does not load canonical document type state from shared")
     if "shared/selection-contextbar.js?v=20260831-1" not in design_shell:
         errors.append("design shell does not load selection contextbar from shared")
+    if "shared/multi-selection-context.js?v=20260828-1" not in design_shell:
+        errors.append("design shell does not load multi-selection context from shared")
     if "shared/workspace-navigation.js?v=20260831-1" not in design_shell or "loadWorkspaceNavigation" not in design_shell:
         errors.append("standalone design shell does not load shared workspace navigation")
     if (
@@ -160,6 +172,13 @@ def validate() -> None:
         or "design-workspace-navigation-smoke.html" not in smoke_runner
     ):
         errors.append("shared design workspace navigation browser coverage is missing")
+    if (
+        "shared/multi-selection-context.js" not in multi_selection_smoke
+        or "dataset.multiSelectionSharedSmoke" not in multi_selection_smoke
+        or "dataset.multiSelectionSharedOwnership" not in multi_selection_smoke
+        or "design-multi-selection-shared-smoke.html" not in smoke_runner
+    ):
+        errors.append("shared multi-selection browser/UI ownership coverage is missing")
 
     # Keep standalone shells thin: app shell must route to canonical editors,
     # never grow a second canvas/PDF implementation.
@@ -174,7 +193,7 @@ def validate() -> None:
             print(f" - {error}", file=sys.stderr)
         raise SystemExit(1)
 
-    print("Modular app architecture OK: 8 standalone routes share canonical design/PDF engines, shared module policy, shared editor state/UI, product profiles, boundary UI, workspace navigation and browser coverage")
+    print("Modular app architecture OK: 8 standalone routes share canonical design/PDF engines, shared module policy, shared editor state/UI, product profiles, boundary UI, workspace navigation, multi-selection context and browser coverage")
 
 
 if __name__ == "__main__":
