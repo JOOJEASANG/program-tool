@@ -5,7 +5,6 @@
   if(window.__designEditorSidebarMenuOrderV1)return;
   window.__designEditorSidebarMenuOrderV1=true;
 
-  const params=new URLSearchParams(location.search);
   const profile=window.DesignEditorStandaloneProducts?.fromLocation?.(location.search)||null;
   if(!profile?.sidebarOrder?.length)return;
 
@@ -20,9 +19,10 @@
   });
   const STRUCTURE_IDS=new Set(['designEmbeddedModeCard','designCoverSettingsTools','designCoverSpineTools']);
   const CREATE_IDS=new Set(['designSimpleResultTools','designRecipeTools','designComponentBlocksTools','designContentAddTools','designPhase2Tools','designQuickDesignTools']);
-  const EDIT_IDS=new Set(['inspector','designPhase4SmartLayout','designLayerTools']);
+  const EDIT_IDS=new Set(['inspector','designLayerTools']);
   const OUTPUT_IDS=new Set(['designPrintQualityTools','designPrintSafetyTools','designFinalPrintCheckTools','designOutputTools']);
   const ADVANCED_IDS=new Set(['designAdvancedTools','designPhase3LayoutTools','designElementClipboardTools','designProjectFileTools','designRotationTools','designDiagnosticsTools']);
+  const SMART_LAYOUT_CREATE_PRODUCTS=new Set(['poster','flyer','leaflet']);
 
   let panel=null;
   let observer=null;
@@ -65,6 +65,7 @@
   function sectionFor(node){
     const id=String(node?.id||'');
     if(STRUCTURE_IDS.has(id)||/CoverSettings|CoverSpine|PrintFold|Leaflet|FoldTools/i.test(id))return'structure';
+    if(id==='designPhase4SmartLayout')return SMART_LAYOUT_CREATE_PRODUCTS.has(profile.key)?'create':'edit';
     if(CREATE_IDS.has(id))return'create';
     if(EDIT_IDS.has(id))return'edit';
     if(OUTPUT_IDS.has(id)||/PrintQuality|PrintSafety|FinalPrint|Output/i.test(id))return'output';
@@ -85,19 +86,18 @@
   }
 
   function rank(node){
-    const id=String(node.id||'');
-    const exact=profile.sidebarOrder.indexOf(id);
-    if(exact>=0)return exact*100;
     const section=SECTION_META[sectionFor(node)]||SECTION_META.advanced;
-    return profile.sidebarOrder.length*100+section.rank*1000+rememberOriginal(node);
+    const exact=profile.sidebarOrder.indexOf(String(node.id||''));
+    const within=exact>=0?exact:profile.sidebarOrder.length+rememberOriginal(node);
+    return section.rank*100000+within;
   }
 
   function directCards(){
     if(!panel)return[];
     return [...panel.children].filter(node=>
       isElement(node)&&
-      node.id!=='designWorkspaceNavigation'&&
-      !node.classList.contains(LABEL_CLASS)
+      !node.classList.contains(LABEL_CLASS)&&
+      node.matches('.side-card,.design-mode-card')
     );
   }
 
@@ -127,12 +127,19 @@
     });
   }
 
+  function startObserving(){
+    if(!observer||!panel)return;
+    observer.observe(panel,{childList:true,subtree:true,attributes:true,attributeFilter:['hidden','class','data-design-flat-hidden']});
+  }
+
   function reorder(){
     syncFrame=0;
     if(mutating)return false;
     panel=document.querySelector('.design-flat-panel');
     if(!panel)return false;
     mutating=true;
+    const reconnect=Boolean(observer);
+    if(reconnect)observer.disconnect();
     try{
       installStyles();
       ensureNativeIds();
@@ -147,6 +154,7 @@
       return true;
     }finally{
       mutating=false;
+      if(reconnect)startObserving();
     }
   }
 
@@ -161,7 +169,7 @@
       if(mutating)return;
       if(mutations.some(item=>item.type==='childList'||item.type==='attributes'))schedule();
     });
-    observer.observe(panel,{childList:true,subtree:true,attributes:true,attributeFilter:['hidden','class','data-design-flat-hidden']});
+    startObserving();
     ['programstudio:design-document-type','programstudio:design-product-change','programstudio:runtime-script-result','resize'].forEach(name=>window.addEventListener(name,schedule,{passive:true}));
     document.addEventListener('click',()=>setTimeout(schedule,0),true);
   }
