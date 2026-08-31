@@ -79,10 +79,18 @@ def test_design_runtime_manifest_assets_are_unique_and_javascript():
         smoke._require_javascript_asset(result("(function(){})();", headers={"content-type": "text/html"}))
 
 
+def test_pdf_runtime_manifest_assets_are_unique():
+    entries = smoke.pdf_editor_runtime_assets()
+    assert entries
+    assert len({script_id for script_id, _ in entries}) == len(entries)
+    assert len({path for _, path in entries}) == len(entries)
+
+
 def test_run_smoke_checks_can_skip_api(monkeypatch):
     paths: list[str] = []
-    runtime_paths = [path for _, path in smoke.design_editor_runtime_assets()]
-    runtime_path_set = set(runtime_paths)
+    design_runtime_paths = [path for _, path in smoke.design_editor_runtime_assets()]
+    pdf_runtime_paths = [path for _, path in smoke.pdf_editor_runtime_assets()]
+    runtime_path_set = set(design_runtime_paths) | set(pdf_runtime_paths)
     general_cover = "/design-editor/general?embed=1&mode=cover&preset=cover-a4"
     general_poster = "/design-editor/general?embed=1&mode=poster&preset=poster-a4&orientation=portrait"
 
@@ -109,7 +117,11 @@ def test_run_smoke_checks_can_skip_api(monkeypatch):
     smoke.run_smoke_checks("https://example.test", expected_version="2026.07.29.005", include_api=False, attempts=1, delay_seconds=0)
 
     assert paths[:5] == ["/", "/login.html", "/design-editor", general_cover, general_poster]
-    assert paths[5:5 + len(runtime_paths)] == runtime_paths
+    design_start = 5
+    design_end = design_start + len(design_runtime_paths)
+    pdf_end = design_end + len(pdf_runtime_paths)
+    assert paths[design_start:design_end] == design_runtime_paths
+    assert paths[design_end:pdf_end] == pdf_runtime_paths
     assert paths[-2:] == ["/perfect-binding-cover/?embed=1&mode=cover", "/version.json"]
     assert "/api/health" not in paths
 
