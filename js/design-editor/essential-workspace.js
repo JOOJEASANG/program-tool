@@ -208,27 +208,39 @@
     return true;
   }
 
-  function sync(){
+  function runSync(){
+    if(mutating||!panel)return false;
+    mutating=true;
+    try{
+      removeWorkflowBar();moveSidebarChildren();movePropertyCards();applyVisibility();clearInvitationGeometry();stripInvitationFoldControls();renderCoverBoundaries();
+      document.documentElement.dataset.designEssentialWorkspace='flat-v2';
+      document.documentElement.dataset.editorToolStep='all';
+      return true;
+    }finally{mutating=false;}
+  }
+
+  function scheduleSync(){
     if(syncFrame)return;
-    syncFrame=requestAnimationFrame(()=>{
-      syncFrame=0;if(mutating||!panel)return;mutating=true;
-      try{
-        removeWorkflowBar();moveSidebarChildren();movePropertyCards();applyVisibility();clearInvitationGeometry();stripInvitationFoldControls();renderCoverBoundaries();
-        document.documentElement.dataset.designEssentialWorkspace='flat-v2';
-        document.documentElement.dataset.editorToolStep='all';
-      }finally{mutating=false;}
-    });
+    syncFrame=requestAnimationFrame(()=>{syncFrame=0;runSync();});
+  }
+
+  function sync(){
+    if(syncFrame){
+      try{cancelAnimationFrame(syncFrame);}catch(_){}
+      syncFrame=0;
+    }
+    return runSync();
   }
 
   function observe(){
-    sidebarObserver=new MutationObserver(sync);sidebarObserver.observe(sidebar,{childList:true});
-    panelObserver=new MutationObserver(sync);panelObserver.observe(panel,{childList:true,subtree:true});
-    properties=byId('propertiesPanel');if(properties){propertiesObserver=new MutationObserver(sync);propertiesObserver.observe(properties,{childList:true,subtree:false});}
-    htmlObserver=new MutationObserver(sync);htmlObserver.observe(document.documentElement,{attributes:true,attributeFilter:['data-design-document-type','data-active-design-mode']});
+    sidebarObserver=new MutationObserver(scheduleSync);sidebarObserver.observe(sidebar,{childList:true});
+    panelObserver=new MutationObserver(scheduleSync);panelObserver.observe(panel,{childList:true,subtree:true});
+    properties=byId('propertiesPanel');if(properties){propertiesObserver=new MutationObserver(scheduleSync);propertiesObserver.observe(properties,{childList:true,subtree:false});}
+    htmlObserver=new MutationObserver(scheduleSync);htmlObserver.observe(document.documentElement,{attributes:true,attributeFilter:['data-design-document-type','data-active-design-mode']});
     const artboard=byId('artboard');if(artboard&&typeof ResizeObserver==='function'){resizeObserver=new ResizeObserver(renderCoverBoundaries);resizeObserver.observe(artboard);}
-    ['programstudio:design-document-type','programstudio:document-type-change','programstudio:design-mode-change','programstudio:design-product-change','programstudio:cover-geometry-change','programstudio:runtime-script-result','resize'].forEach(name=>window.addEventListener(name,sync,{passive:true}));
+    ['programstudio:design-document-type','programstudio:document-type-change','programstudio:design-mode-change','programstudio:design-product-change','programstudio:cover-geometry-change','programstudio:runtime-script-result','resize'].forEach(name=>window.addEventListener(name,scheduleSync,{passive:true}));
     document.addEventListener('click',event=>{
-      if(event.target?.closest?.('#designEmbeddedModeCard .design-product-apply,#designEmbeddedModeCard .design-mode-apply'))setTimeout(sync,0);
+      if(event.target?.closest?.('#designEmbeddedModeCard .design-product-apply,#designEmbeddedModeCard .design-mode-apply'))setTimeout(scheduleSync,0);
     },true);
   }
 
@@ -240,8 +252,8 @@
     if(!panel){panel=document.createElement('div');panel.className='design-flat-panel';panel.setAttribute('aria-label','디자인 도구 전체 메뉴');moveSidebarChildren();sidebar.appendChild(panel);}
     moveSidebarChildren();movePropertyCards();observe();sync();
     window.ProgramStudioEditorToolRail={surface:'design-editor',select:step=>select(step,true),showAll:()=>true,get activeStep(){return'all';},stage:'design-flat-expanded-sidebar-v2'};
-    window.DesignEditorEssentialWorkspace={sync,select,currentType,stage:'flat-expanded-product-aware-workspace-v2'};
-    [120,350,800,1600,3000].forEach(delay=>setTimeout(sync,delay));
+    window.DesignEditorEssentialWorkspace={sync,schedule: scheduleSync,select,currentType,stage:'flat-expanded-product-aware-workspace-v2'};
+    [120,350,800,1600,3000].forEach(delay=>setTimeout(scheduleSync,delay));
     return true;
   }
 
