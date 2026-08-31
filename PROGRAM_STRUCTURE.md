@@ -2,13 +2,48 @@
 
 ## 운영 화면
 
-- `pdf-editor/index.html`: PDF 편집기
+- `apps/index.html`: 독립 작업 앱 공통 셸. `/apps/cover`, `/apps/poster`, `/apps/flyer`, `/apps/invitation`, `/apps/notice`, `/apps/leaflet`, `/apps/pdf-layout`, `/apps/booklet` 경로를 하나의 얇은 셸에서 라우팅합니다.
+- `pdf-editor/index.html`: 기존 PDF 통합 편집기 및 독립 PDF 앱의 공통 편집 엔진
 - `pdf-preflight/index.html`: PDF 검사·유틸리티
-- `perfect-binding-cover/index.html`: 책표지 제작
-- `design-editor/index.html`: 디자인 편집기 셸
-- `design-editor/general.html`: 포스터·전단·리플렛·사용자 지정 공통 편집 화면
+- `perfect-binding-cover/index.html`: 책표지 제작 레거시 호환 진입점
+- `design-editor/index.html`: 기존 통합 디자인 편집기 셸 및 호환 진입점
+- `design-editor/general.html`: 디자인 독립 앱이 공유하는 공통 편집 엔진
 - `document-editor/`, `image-editor/`: 문서·이미지 편집기
 - `tools/*.html`: 기존 주소 호환용 진입 페이지
+
+## 독립 작업 앱 구조
+
+사용자에게는 작업 목적별 프로그램을 분리해서 보여주되, 글씨·도형·정렬·저장·출력 같은 공통 기능은 하나의 편집 엔진에서 공유합니다. 저장소는 하나의 monorepo로 유지합니다.
+
+### 디자인 앱
+
+- `/apps/cover`: 표지 제작
+- `/apps/poster`: 포스터 제작
+- `/apps/flyer`: 전단지 제작
+- `/apps/invitation`: 초대장 제작
+- `/apps/notice`: 안내장 제작
+- `/apps/leaflet`: 리플렛 제작
+
+`js/studio-app-shell.js`는 앱 URL을 실제 편집 엔진으로 연결합니다. 디자인 앱은 `design-editor/general.html`을 공유하되 `app=` 경계를 전달합니다.
+
+`js/design-editor/core-runtime.js`는 독립 앱의 `app` 값을 읽어 제품 전용 모듈을 조건부로 로드합니다. 예를 들어 표지 모델·표지 설정·책등·표지 미리보기 모듈은 `cover` 앱에서만 로드합니다. 기존 `/design-editor` 통합 화면에서는 호환성을 위해 전체 모듈을 계속 사용할 수 있습니다.
+
+`js/design-editor/product-boundary-ui.js`는 독립 디자인 앱 내부에서 다른 제작 종류로 전환하는 메뉴를 숨기고 현재 앱의 작업 목적을 고정합니다. `js/design-editor/shell-runtime.js`도 접지 기능 등 보조 모듈을 현재 앱에 필요한 경우에만 로드합니다.
+
+### PDF 앱
+
+- `/apps/pdf-layout`: PDF N-up·인쇄 배치
+- `/apps/booklet`: 소책자 제작
+
+두 앱은 `pdf-editor/index.html`의 PDF 업로드·페이지 상태·렌더링·저장 엔진을 공유합니다. `js/pdf-editor/app-boundary.js`가 앱별 UI와 기본 동작을 분리합니다. PDF 배치에서는 소책자 옵션을 숨기고, 소책자 앱에서는 소책자 배치를 기본 작업으로 활성화합니다.
+
+### 앱 셸 UX
+
+- `apps/index.html`: 공통 헤더와 전체 작업영역 iframe만 소유합니다.
+- `css/studio-app-shell.css`: 독립 앱 공통 시각 체계와 반응형 레이아웃
+- `js/studio-app-shell.js`: 앱 이름·설명·엔진 URL·오류 재시도 상태 관리
+- 앱 셸은 자체 편집 기능을 소유하지 않습니다. 실제 편집 기능은 디자인/PDF canonical runtime이 소유합니다.
+- `/apps/**`는 Firebase rewrite로 `apps/index.html`에 연결하고 기존 승인 사용자 접근 제어를 그대로 적용합니다.
 
 ## 공통 프런트엔드와 런타임 소유권
 
@@ -22,7 +57,9 @@
 ### Canonical runtime manifest
 
 - 디자인 편집기 기능 순서와 소유권: `js/design-editor/core-runtime.js`의 `MODULES`
+- 디자인 앱별 보조 기능: `js/design-editor/shell-runtime.js`
 - PDF 편집기 route 보조 기능 소유권: `js/pdf-editor/route-runtime.js`의 `MODULES`
+- PDF 독립 앱 UI 경계: `js/pdf-editor/app-boundary.js`
 - PDF 핵심/화면 모듈: `js/pdf-editor/core-runtime.js`, `js/pdf-editor/ui-runtime.js`
 - 최상위 `sw-register.js`는 nested manifest 내부 기능을 다시 소유하지 않습니다.
 
@@ -54,6 +91,7 @@
 ## PDF 편집기
 
 - `js/pdf-editor/route-runtime.js`: route 보조 모듈의 단일 manifest
+- `js/pdf-editor/app-boundary.js`: PDF 배치/소책자 독립 앱의 UI·기본 모드 경계
 - `js/pdf-editor/transfer-limit-guard.js`: 업로드 전 브라우저 비용/메모리 상한 검사
 - `js/pdf-editor/session-save-safety.js`: 다중 원본을 포함한 저장 세션의 snapshot 저장과 실패 정리
 - `backend/services/pdf_engine.py`: PDF 레이아웃 렌더링의 단일 서버 구현
@@ -117,11 +155,12 @@ PR과 배포 전에는 다음을 검사합니다.
 ## 변경 규칙
 
 1. 기능 모듈은 한 runtime owner만 가져야 합니다. 같은 DOM script id를 여러 loader에서 로드하지 않습니다.
-2. 디자인 기능 순서는 `js/design-editor/core-runtime.js`에서 관리합니다.
-3. PDF route 기능 순서는 `js/pdf-editor/route-runtime.js`에서 관리합니다.
-4. `js/app-version.js`에 canonical PDF/디자인/home/admin loader를 다시 추가하지 않습니다.
-5. PDF 서버 처리 용량을 올릴 때는 Storage Rules, 브라우저 transfer guard, 세션 guard, backend 상한을 함께 검토합니다.
-6. persistent Storage 경로를 추가할 때는 사용자별 quota와 orphan cleanup 전략을 함께 추가합니다.
-7. 임시 Storage 결과의 보관 시간을 늘리지 않습니다. 장시간 보관이 필요한 데이터는 별도 영구 저장 모델을 사용합니다.
-8. 관리자 legacy email fallback과 Firebase token fallback은 각각 custom claim/WIF 운영 검증 완료 후 제거합니다.
-9. 운영 runtime 구조가 바뀌면 이 문서와 canonical smoke 검사를 같은 변경에서 갱신합니다.
+2. 디자인 기능 순서는 `js/design-editor/core-runtime.js`에서 관리합니다. 제품 전용 모듈은 `products` 경계로 조건부 로드할 수 있습니다.
+3. 독립 앱은 편집 기능을 복제하지 않고 `apps/index.html` + canonical editor runtime 조합을 사용합니다.
+4. PDF route 기능 순서는 `js/pdf-editor/route-runtime.js`에서 관리합니다.
+5. `js/app-version.js`에 canonical PDF/디자인/home/admin loader를 다시 추가하지 않습니다.
+6. PDF 서버 처리 용량을 올릴 때는 Storage Rules, 브라우저 transfer guard, 세션 guard, backend 상한을 함께 검토합니다.
+7. persistent Storage 경로를 추가할 때는 사용자별 quota와 orphan cleanup 전략을 함께 추가합니다.
+8. 임시 Storage 결과의 보관 시간을 늘리지 않습니다. 장시간 보관이 필요한 데이터는 별도 영구 저장 모델을 사용합니다.
+9. 관리자 legacy email fallback과 Firebase token fallback은 각각 custom claim/WIF 운영 검증 완료 후 제거합니다.
+10. 운영 runtime 구조가 바뀌면 이 문서와 canonical smoke 검사를 같은 변경에서 갱신합니다.
