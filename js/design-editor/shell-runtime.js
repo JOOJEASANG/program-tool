@@ -40,11 +40,11 @@ const loaded=await loadSupportScript('designProductBoundaryUiScriptV1','/js/desi
 }
 async function loadWorkspaceNavigation(){
 if(!standalone)return true;
-const loaded=await loadSupportScript('designWorkspaceNavigationScriptV1','/js/design-editor/shared/workspace-navigation.js?v=20260831-1');window.DesignEditorWorkspaceNavigation?.sync?.();return loaded;
+const loaded=await loadSupportScript('designWorkspaceNavigationScriptV1','/js/design-editor/shared/workspace-navigation.js?v=20260901-2');window.DesignEditorWorkspaceNavigation?.sync?.();return loaded;
 }
 async function loadSidebarMenuOrder(){
 if(!standalone)return true;
-const loaded=await loadSupportScript('designSidebarMenuOrderScriptV1','/js/design-editor/shared/sidebar-menu-order.js?v=20260901-1');window.DesignEditorSidebarMenuOrder?.sync?.();return loaded;
+const loaded=await loadSupportScript('designSidebarMenuOrderScriptV1','/js/design-editor/shared/sidebar-menu-order.js?v=20260901-2');window.DesignEditorSidebarMenuOrder?.sync?.();return loaded;
 }
 function syncEntry(e){
 if(!shouldLoad(e))return false;const api=getApi(e),fn=api?.[e.method];if(typeof fn!=='function')return false;

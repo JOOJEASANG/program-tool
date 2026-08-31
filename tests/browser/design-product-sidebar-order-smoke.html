@@ -35,7 +35,7 @@
       }
     })();
   </script>
-  <script src="/js/design-editor/shared/sidebar-menu-order.js?v=20260901-1"></script>
+  <script src="/js/design-editor/shared/sidebar-menu-order.js?v=20260901-2"></script>
   <script>
     setTimeout(()=>{
       try{
@@ -51,7 +51,8 @@
         const expected=profile.sidebarOrder.filter(id=>document.getElementById(id));
         const actualKnown=actual.filter(id=>profile.sidebarOrder.includes(id));
         if(actualKnown.join('|')!==expected.join('|'))throw new Error(`profile order mismatch: ${actualKnown.join(' > ')}`);
-        const sections=[...panel.querySelectorAll(':scope > .design-sidebar-group-label')].map(node=>node.dataset.sidebarSection);
+        const labels=[...panel.querySelectorAll(':scope > .design-sidebar-group-label')];
+        const sections=labels.map(node=>node.dataset.sidebarSection);
         for(const key of ['structure','create','edit','output','advanced']){
           if(!sections.includes(key))throw new Error(`missing section ${key}`);
         }
@@ -61,6 +62,26 @@
           const fallback=actual.indexOf('designRecipeTools'),edit=actual.indexOf('inspector'),advanced=actual.indexOf('designAdvancedTools');
           if(fallback<0||fallback>edit||fallback>advanced)throw new Error('unlisted create card escaped its semantic group');
         }
+
+        const advancedLabel=panel.querySelector('[data-sidebar-section="advanced"]');
+        const advancedCard=document.getElementById('designAdvancedTools');
+        if(advancedLabel?.getAttribute('aria-expanded')!=='false')throw new Error('advanced section should default collapsed');
+        if(!advancedCard?.classList.contains('design-sidebar-section-collapsed-card'))throw new Error('advanced card should default hidden by section state');
+
+        const createLabel=panel.querySelector('[data-sidebar-section="create"]');
+        const createCard=document.getElementById('designSimpleResultTools');
+        createLabel?.click();
+        if(createLabel?.getAttribute('aria-expanded')!=='false'||!createCard?.classList.contains('design-sidebar-section-collapsed-card'))throw new Error('create section did not collapse');
+        createLabel?.click();
+        if(createLabel?.getAttribute('aria-expanded')!=='true'||createCard?.classList.contains('design-sidebar-section-collapsed-card'))throw new Error('create section did not reopen');
+
+        const outputLabel=panel.querySelector('[data-sidebar-section="output"]');
+        outputLabel?.click();
+        if(outputLabel?.getAttribute('aria-expanded')!=='false')throw new Error('output section did not collapse');
+        const opened=api.openForStep('output');
+        if(opened!=='output'||outputLabel?.getAttribute('aria-expanded')!=='true')throw new Error('workspace step did not reopen output section');
+
+        if(panel.dataset.designSidebarSections!=='interactive')throw new Error('interactive section ownership missing');
         if(document.documentElement.dataset.designSidebarOrder!==profile.key)throw new Error('product ownership missing');
         document.documentElement.dataset.productSidebarOrderSmoke='pass';
         document.documentElement.dataset.productSidebarOrderApp=profile.key;
@@ -68,6 +89,8 @@
         document.documentElement.dataset.productSidebarOrderLast=actual.at(-1)||'';
         document.documentElement.dataset.productSidebarOrderSections=String(sections.length);
         document.documentElement.dataset.productSidebarOrderFallback='grouped';
+        document.documentElement.dataset.productSidebarSectionCollapse='pass';
+        document.documentElement.dataset.productSidebarWorkspaceOpen='pass';
       }catch(error){
         document.documentElement.dataset.productSidebarOrderSmoke='fail';
         document.body.insertAdjacentHTML('beforeend',`<pre>${String(error?.stack||error)}</pre>`);

@@ -142,10 +142,10 @@ def validate() -> None:
         errors.append("design shell does not load multi-selection smart guides from shared")
     if "shared/simple-result-workflow.js?v=20260828-1" not in design_shell:
         errors.append("design shell does not load simple result workflow from shared")
-    if "shared/workspace-navigation.js?v=20260831-1" not in design_shell or "loadWorkspaceNavigation" not in design_shell:
-        errors.append("standalone design shell does not load shared workspace navigation")
-    if "shared/sidebar-menu-order.js?v=20260901-1" not in design_shell or "loadSidebarMenuOrder" not in design_shell:
-        errors.append("standalone design shell does not load product-specific sidebar ordering")
+    if "shared/workspace-navigation.js?v=20260901-2" not in design_shell or "loadWorkspaceNavigation" not in design_shell:
+        errors.append("standalone design shell does not load the current shared workspace navigation")
+    if "shared/sidebar-menu-order.js?v=20260901-2" not in design_shell or "loadSidebarMenuOrder" not in design_shell:
+        errors.append("standalone design shell does not load the current product-specific sidebar UI")
     if "standalone-product-profile.js?v=20260901-1" not in design_shell:
         errors.append("standalone design shell does not load the current product profile version")
     if (
@@ -155,23 +155,27 @@ def validate() -> None:
     ):
         errors.append("shared design module policy is incomplete")
     if (
-        "shared-workspace-navigation-v1" not in workspace_nav
+        "shared-workspace-navigation-v2" not in workspace_nav
         or "{key:'start',label:'설정'}" not in workspace_nav
         or "{key:'edit',label:'편집'}" not in workspace_nav
         or "{key:'arrange',label:'배치'}" not in workspace_nav
         or "{key:'output',label:'출력'}" not in workspace_nav
         or "DesignEditorEssentialWorkspace" not in workspace_nav
+        or "DesignEditorSidebarMenuOrder" not in workspace_nav
     ):
-        errors.append("shared design workspace navigation is incomplete")
+        errors.append("shared design workspace navigation/sidebar linkage is incomplete")
     if (
-        "product-specific-sidebar-order-v1" not in sidebar_order
+        "product-specific-sidebar-sections-v2" not in sidebar_order
         or "규격 · 구조" not in sidebar_order
         or "내용 · 디자인" not in sidebar_order
         or "편집 · 배치" not in sidebar_order
         or "인쇄 · 출력" not in sidebar_order
         or "profile.sidebarOrder" not in sidebar_order
+        or "aria-expanded" not in sidebar_order
+        or "design-sidebar-section-collapsed-card" not in sidebar_order
+        or "openForStep" not in sidebar_order
     ):
-        errors.append("product-specific sidebar ordering/UI grouping contract is incomplete")
+        errors.append("product-specific interactive sidebar grouping contract is incomplete")
     if (
         "stage:'multi-smart-guides-exact-gap-v1'" not in smart_guides
         or "const bar=byId('designMultiSelectionContextbar')" not in smart_guides
@@ -216,16 +220,19 @@ def validate() -> None:
         "dataset.workspaceNavSmoke" not in workspace_nav_smoke
         or "dataset.workspaceNavSteps" not in workspace_nav_smoke
         or "dataset.workspaceNavProduct" not in workspace_nav_smoke
+        or "dataset.workspaceNavSidebar" not in workspace_nav_smoke
         or "design-workspace-navigation-smoke.html" not in smoke_runner
     ):
-        errors.append("shared design workspace navigation browser coverage is missing")
+        errors.append("shared design workspace navigation/sidebar linkage browser coverage is missing")
     if (
         "dataset.productSidebarOrderSmoke" not in sidebar_order_smoke
         or "dataset.productSidebarOrderApp" not in sidebar_order_smoke
         or "dataset.productSidebarOrderSections" not in sidebar_order_smoke
+        or "dataset.productSidebarSectionCollapse" not in sidebar_order_smoke
+        or "dataset.productSidebarWorkspaceOpen" not in sidebar_order_smoke
         or "design-product-sidebar-order-smoke.html" not in smoke_runner
     ):
-        errors.append("product-specific sidebar order browser coverage is missing")
+        errors.append("product-specific interactive sidebar browser coverage is missing")
     if (
         "shared/multi-selection-context.js" not in multi_selection_smoke
         or "dataset.multiSelectionSharedSmoke" not in multi_selection_smoke
@@ -258,7 +265,7 @@ def validate() -> None:
             print(f" - {error}", file=sys.stderr)
         raise SystemExit(1)
 
-    print("Modular app architecture OK: 8 standalone routes share canonical design/PDF engines, shared module policy, shared editor state/UI, product profiles, boundary UI, workspace navigation, product-specific sidebar order, multi-selection context, smart guides, simple-result workflow and browser coverage")
+    print("Modular app architecture OK: 8 standalone routes share canonical design/PDF engines, shared module policy, shared editor state/UI, product profiles, boundary UI, workspace navigation, interactive product-specific sidebar sections, multi-selection context, smart guides, simple-result workflow and browser coverage")
 
 
 if __name__ == "__main__":

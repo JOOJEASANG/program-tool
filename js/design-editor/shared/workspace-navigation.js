@@ -80,8 +80,13 @@
     if(nav)nav.dataset.product=currentType();
   }
 
+  function prepareSidebar(step){
+    try{return window.DesignEditorSidebarMenuOrder?.openForStep?.(step)||null;}catch(_){return null;}
+  }
+
   function select(step='start',scroll=true){
     const normalized=STEPS.some(item=>item.key===step)?step:'start';
+    const sidebarSection=prepareSidebar(normalized);
     const api=window.DesignEditorEssentialWorkspace||window.ProgramStudioEditorToolRail;
     if(scroll&&api?.select){
       try{api.select(normalized,true);}catch(_){}
@@ -90,6 +95,7 @@
       try{node?.scrollIntoView({behavior:'smooth',block:'start'});}catch(_){node?.scrollIntoView();}
     }
     setActive(normalized);
+    try{window.dispatchEvent(new CustomEvent('programstudio:workspace-navigation-select',{detail:{step:normalized,sidebarSection}}));}catch(_){}
     return true;
   }
 
@@ -163,5 +169,5 @@
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>boot(),{once:true});else boot();
 
-  window.DesignEditorWorkspaceNavigation={sync,select,currentType,stage:'shared-workspace-navigation-v1'};
+  window.DesignEditorWorkspaceNavigation={sync,select,currentType,stage:'shared-workspace-navigation-v2'};
 })();
