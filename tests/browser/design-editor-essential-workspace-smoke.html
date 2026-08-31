@@ -78,19 +78,16 @@
         assert(visible('designFinalPrintCheckTools')&&visible('designOutputTools'),'output must show final check and export');
         assert(!visible('contentCard')&&!visible('inspector'),'output must not show compose/edit tools');
 
-        await waitFor(()=>document.getElementById('artboard')?.dataset.invitationFoldGuide==='x','invitation x fold guide');
+        await waitFor(()=>document.getElementById('artboard')?.dataset.invitationFoldGuide==='x','invitation center fold guide');
         assert(document.getElementById('designEssentialInvitationFold'),'invitation center divider is missing');
-
-        invitation.surfaces[0].foldAxis='y';invitation.surfaces[0].folds=[];invitation.surfaces[0].foldsY=[105];
-        window.dispatchEvent(new Event('resize'));await waitFor(()=>document.getElementById('artboard')?.dataset.invitationFoldGuide==='y','invitation y fold guide');
 
         invitation.designMode='cover';invitation.printProductMode='';invitation.presetId='cover-a4';document.documentElement.dataset.designDocumentType='cover';
         window.DesignEditorEssentialWorkspace.select('compose');window.DesignEditorEssentialWorkspace.sync();await settle();
         assert(visible('designCoverSettingsTools'),'cover mode must show cover-only settings');
         assert(!document.getElementById('designEssentialInvitationFold'),'invitation fold guide must disappear outside invitation');
 
-        document.body.dataset.essentialHome='true';document.body.dataset.essentialNoAll='true';document.body.dataset.essentialStepIsolation='true';document.body.dataset.essentialInvitationCoverHidden='true';document.body.dataset.essentialInvitationFold='xy';document.body.dataset.essentialCoverVisible='true';
-        pass('home, isolated four-step menus, product-only visibility and invitation fold guides');
+        document.body.dataset.essentialHome='true';document.body.dataset.essentialNoAll='true';document.body.dataset.essentialStepIsolation='true';document.body.dataset.essentialInvitationCoverHidden='true';document.body.dataset.essentialInvitationFold='x';document.body.dataset.essentialCoverVisible='true';
+        pass('home, isolated four-step menus, product-only visibility and invitation center fold guide');
       }catch(error){fail(error)}
     })();
   </script>
