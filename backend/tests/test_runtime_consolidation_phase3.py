@@ -36,14 +36,14 @@ def test_design_shell_has_one_enhancement_loader_and_manifest_owns_modules():
     assert "eval(" not in runtime
 
 
-def test_pdf_shell_has_one_ui_loader_and_manifest_owns_the_always_visible_sidebar():
+def test_pdf_shell_has_one_ui_loader_and_manifest_owns_the_collapsible_sidebar():
     shell = text("js/program-shell-unify.js")
     runtime = text("js/pdf-editor/ui-runtime.js")
 
     assert "/js/pdf-editor/ui-runtime.js?v=${PDF_UI_RUNTIME_VERSION}" in shell
-    assert "pdf-editor-always-visible-sidebar-runtime-v2" in shell
-    assert "pdf-editor-always-visible-sidebar-runtime-v2" in runtime
-    assert "/js/pdf-editor/simple-sidebar-ui.js?v=20260830-1" in runtime
+    assert "pdf-editor-pinned-upload-collapsible-sidebar-runtime-v3" in shell
+    assert "pdf-editor-pinned-upload-collapsible-sidebar-runtime-v3" in runtime
+    assert "/js/pdf-editor/simple-sidebar-ui.js?v=20260831-2" in runtime
     assert "/js/pdf-editor/workflow-ui.js" not in runtime
     assert "/js/pdf-editor/workspace-layout.js" not in runtime
     assert runtime.count("{id:") == 1
