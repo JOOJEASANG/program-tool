@@ -38,7 +38,8 @@
     {id:'designEditorSmartSnapScriptV1',src:'/js/design-editor/phase19-smart-snap.js?v=20260823-2'},
     {id:'designEditorPrintBlocksScriptV1',src:'/js/design-editor/phase20-print-blocks.js?v=20260822-1'},
     {id:'designEditorStyleThemesScriptV1',src:'/js/design-editor/phase21-style-themes.js?v=20260822-1'},
-    {id:'designEditorDesignRecipesScriptV1',src:'/js/design-editor/phase23-design-recipes.js?v=20260822-1'}
+    {id:'designEditorDesignRecipesScriptV1',src:'/js/design-editor/phase23-design-recipes.js?v=20260822-1'},
+    {id:'designShellRuntimeScriptV1',src:'/js/design-editor/shell-runtime.js?v=20260831-1',standalone:true}
   ]);
 
   const GENERAL_ROUTE_IDS=new Set([
@@ -55,8 +56,8 @@
   };
   const activeModules=()=>{
     const product=standaloneProduct();
-    if(!product)return MODULES;
-    return MODULES.filter(entry=>!entry.products||entry.products.includes(product));
+    if(!product)return MODULES.filter(entry=>!entry.standalone);
+    return MODULES.filter(entry=>(!entry.products||entry.products.includes(product))&&(!entry.standalone||Boolean(product)));
   };
 
   const context=()=>window.ProgramStudioDesignEditorRuntimeContext||{};
@@ -116,6 +117,6 @@
     loadAll,
     modules:activeModules().map(({id,src})=>({id,src})),
     product:standaloneProduct(),
-    stage:'design-editor-product-aware-core-runtime-v2'
+    stage:'design-editor-product-aware-core-runtime-v3'
   };
 })();
