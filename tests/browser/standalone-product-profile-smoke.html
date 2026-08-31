@@ -18,12 +18,19 @@
     if(!modules||!docType||!design||!pdf)throw new Error('profile registries missing');
     const cover=design.get('cover');
     const poster=design.get('poster');
+    const flyer=design.get('flyer');
+    const invitation=design.get('invitation');
     const notice=design.fromLocation('?app=invitation&surface=notice');
     const leaflet=design.get('leaflet3');
     if(cover?.runtimeProduct!=='cover'||cover?.needsFoldRuntime!==false||!design.allows(cover,'cover'))throw new Error('cover profile mismatch');
     if(poster?.needsFoldRuntime!==false||design.allows(poster,'cover'))throw new Error('poster capability mismatch');
     if(notice?.key!=='notice'||notice?.runtimeProduct!=='invitation'||notice?.label!=='안내장')throw new Error('notice profile mismatch');
     if(leaflet?.key!=='leaflet'||leaflet?.needsFoldRuntime!==true||!design.allows(leaflet,'fold'))throw new Error('leaflet profile mismatch');
+    if(cover.sidebarOrder?.[1]!=='designCoverSettingsTools'||cover.sidebarOrder?.[2]!=='designCoverSpineTools')throw new Error('cover sidebar priority mismatch');
+    if(poster.sidebarOrder?.[1]!=='designSimpleResultTools'||poster.sidebarOrder?.[2]!=='designRecipeTools')throw new Error('poster sidebar priority mismatch');
+    if(flyer.sidebarOrder?.[2]!=='designComponentBlocksTools')throw new Error('flyer sidebar priority mismatch');
+    if(invitation.sidebarOrder?.[0]!=='designEmbeddedModeCard'||notice.sidebarOrder?.[2]!=='designRecipeTools')throw new Error('invitation/notice sidebar priority mismatch');
+    if(leaflet.sidebarOrder?.[1]!=='designPhase4SmartLayout')throw new Error('leaflet layout priority mismatch');
     if(!modules.shouldLoadCore('designEditorCoverModelScriptV1','cover'))throw new Error('cover core module should load for cover');
     if(modules.shouldLoadCore('designEditorCoverModelScriptV1','poster'))throw new Error('cover core module leaked into poster');
     if(modules.shouldLoadShell('designPrintFoldRuntimeEnsureScriptV1','poster'))throw new Error('fold runtime leaked into poster');
@@ -40,9 +47,10 @@
     document.body.dataset.noticeRuntime=notice.runtimeProduct;
     document.body.dataset.leafletFold=String(leaflet.needsFoldRuntime);
     document.body.dataset.bookletDefault=String(booklet.booklet);
+    document.body.dataset.sidebarOrders='product-specific';
     document.body.dataset.sharedModuleProfile=modules.stage;
     document.body.dataset.sharedDocumentType=docType.stage;
-    result.textContent='PASS: shared design state/module policy and standalone design/PDF profiles resolve expected capabilities';
+    result.textContent='PASS: shared design state/module policy and standalone design/PDF profiles resolve expected capabilities and sidebar priorities';
   }catch(error){
     document.body.dataset.standaloneProfileSmoke='fail';
     result.textContent='FAIL: '+String(error?.stack||error);

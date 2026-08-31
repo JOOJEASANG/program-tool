@@ -72,6 +72,14 @@ run_browser_case "$workspace_nav_url" "$workspace_nav_out" 'data-workspace-nav-s
 grep -q 'data-workspace-nav-steps="4"' "$workspace_nav_out" || { cat "$workspace_nav_out" >&2; exit 1; }
 grep -q 'data-workspace-nav-product="cover"' "$workspace_nav_out" || { cat "$workspace_nav_out" >&2; exit 1; }
 
+for app in cover poster flyer invitation notice leaflet; do
+  sidebar_out="$OUT_DIR/design-product-sidebar-${app}-smoke-dom.html"
+  sidebar_url="http://127.0.0.1:$PORT/tests/browser/design-product-sidebar-order-smoke.html?app=$app"
+  run_browser_case "$sidebar_url" "$sidebar_out" 'data-product-sidebar-order-smoke="pass"'
+  grep -q "data-product-sidebar-order-app=\"$app\"" "$sidebar_out" || { cat "$sidebar_out" >&2; exit 1; }
+  grep -q 'data-product-sidebar-order-sections="5"' "$sidebar_out" || { cat "$sidebar_out" >&2; exit 1; }
+done
+
 for mode in integrated standalone; do
   professional_out="$OUT_DIR/design-professional-ui-${mode}-smoke-dom.html"
   if [[ "$mode" == "standalone" ]]; then
@@ -100,4 +108,4 @@ grep -q 'data-design-multi-smart-ownership="contextbar"' "$smart_guides_out" || 
 grep -q 'data-design-multi-smart-gap="horizontal-6-vertical-4"' "$smart_guides_out" || { cat "$smart_guides_out" >&2; exit 1; }
 grep -q 'data-design-multi-smart-snap="artboard-center"' "$smart_guides_out" || { cat "$smart_guides_out" >&2; exit 1; }
 
-echo "Modular app browser smoke passed for 8 routes, design/PDF profiles, boundary UI, shared workspace navigation, professional UI ownership, multi-selection ownership and smart guides using $BROWSER"
+echo "Modular app browser smoke passed for 8 routes, design/PDF profiles, boundary UI, shared workspace navigation, product-specific sidebar order, professional UI ownership, multi-selection ownership and smart guides using $BROWSER"
