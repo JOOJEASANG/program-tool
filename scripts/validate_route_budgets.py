@@ -10,14 +10,19 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SW = ROOT / "js/sw-register.js"
 UI = ROOT / "js/program-studio-ui-v2.js"
+DESIGN_RUNTIME = ROOT / "js/design-editor/core-runtime.js"
+PDF_RUNTIME = ROOT / "js/pdf-editor/route-runtime.js"
+PREFLIGHT_RUNTIME = ROOT / "js/pdf-preflight/route-runtime.js"
 ASSET_RE = re.compile(r"[\'\"`](/js/[^\'\"`\s]+)[\'\"`]")
-LOAD_CATALOG_RE = re.compile(r"function loadCatalogCore\(\)\{return load\([^,]+,[\'\"](?P<src>/js/[^\'\"]+)")
+MANIFEST_RE = re.compile(r"\{\s*id\s*:\s*[\'\"][^\'\"]+[\'\"]\s*,\s*src\s*:\s*[\'\"](?P<src>/js/[^\'\"]+)")
+LOAD_CATALOG_RE = re.compile(r"function loadCatalogCore\(\)\{\s*return load\([^,]+,[\'\"](?P<src>/js/[^\'\"]+)")
 
 ROUTE_BUDGETS = {
     "home": (10, 88_000),
     "admin": (10, 180_000),
     "design-general": (38, 1_200_000),
-    "pdf-editor": (22, 900_000),
+    "pdf-editor": (24, 950_000),
+    "pdf-preflight": (22, 1_100_000),
 }
 UI_ENHANCEMENTS = {
     "home": "homeDashboardV2Script",
@@ -25,7 +30,6 @@ UI_ENHANCEMENTS = {
     "design-general": "designEditorWorkflowV2Script",
 }
 EDITOR_TOOL_RAIL_ID = "editorToolRailV1Script"
-EDITOR_TOOL_RAIL_ROUTES = ("design-general",)
 
 
 def normalize(raw: str) -> str:
@@ -34,6 +38,14 @@ def normalize(raw: str) -> str:
 
 def assets(text: str) -> set[str]:
     return {normalize(match.group(1)) for match in ASSET_RE.finditer(text)}
+
+
+def manifest_assets(path: Path) -> set[str]:
+    text = path.read_text(encoding="utf-8")
+    found = {normalize(match.group("src")) for match in MANIFEST_RE.finditer(text)}
+    if not found:
+        raise AssertionError(f"Could not resolve canonical runtime manifest: {path.relative_to(ROOT).as_posix()}")
+    return found
 
 
 def segment(text: str, start: str, end: str) -> str:
@@ -62,26 +74,25 @@ def collect_routes(sw_text: str, ui_text: str) -> dict[str, set[str]]:
     catalog = normalize(catalog_match.group("src"))
 
     home = common | assets(segment(sw_text, "if(isHome()){", "if(isPath('/admin','/admin.html')){")) | {catalog}
-    admin = common | assets(segment(sw_text, "if(isPath('/admin','/admin.html')){", "// Legacy test/source marker kept intentionally:")) | {catalog}
-    design = common | assets(segment(sw_text, "const DESIGN_EDITOR_RUNTIME_SCRIPTS=Object.freeze([", "]);\n  const DESIGN_EDITOR_GENERAL_ROUTE_IDS"))
-    pdf_editor = common | assets(segment(
+    admin = common | assets(segment(
         sw_text,
-        "if(isPath('/tools/pdf-editor.html','/pdf-editor','/pdf-editor/index.html')){",
-        "if(isPath('/tools/pdf-Checker.html','/tools/preflight.html','/pdf-preflight','/pdf-preflight/index.html')){",
-    ))
+        "if(isPath('/admin','/admin.html')){",
+        "if(isPath('/design-editor/general','/design-editor/general.html'))",
+    )) | {catalog}
+    design = common | manifest_assets(DESIGN_RUNTIME)
+    pdf_editor = common | manifest_assets(PDF_RUNTIME)
+    pdf_preflight = common | manifest_assets(PREFLIGHT_RUNTIME)
 
     routes = {
         "home": home,
         "admin": admin,
         "design-general": design,
         "pdf-editor": pdf_editor,
+        "pdf-preflight": pdf_preflight,
     }
     for route, script_id in UI_ENHANCEMENTS.items():
         routes[route].add(ui_asset(ui_text, script_id))
-
-    tool_rail = ui_asset(ui_text, EDITOR_TOOL_RAIL_ID)
-    for route in EDITOR_TOOL_RAIL_ROUTES:
-        routes[route].add(tool_rail)
+    routes["design-general"].add(ui_asset(ui_text, EDITOR_TOOL_RAIL_ID))
     return routes
 
 

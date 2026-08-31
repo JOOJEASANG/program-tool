@@ -3,7 +3,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 BRIDGE = (ROOT / "js/pdf-utility/security-large-file.js").read_text(encoding="utf-8")
-POLICY = (ROOT / "js/pdf-utility-cost-policy-hardening.js").read_text(encoding="utf-8")
+POLICY = (ROOT / "js/pdf-utility-cost-guard-v2.js").read_text(encoding="utf-8")
+RUNTIME = (ROOT / "js/pdf-preflight/route-runtime.js").read_text(encoding="utf-8")
 API = (ROOT / "js/api.js").read_text(encoding="utf-8")
 ROUTER = (ROOT / "backend/routers/pdf_large_security.py").read_text(encoding="utf-8")
 STORAGE_RULES = (ROOT / "storage.rules").read_text(encoding="utf-8")
@@ -14,17 +15,18 @@ def compact(value: str) -> str:
     return "".join(value.split())
 
 
-def test_security_bridge_routes_large_encrypt_decrypt_to_storage_but_strict_policy_caps_input():
+def test_security_bridge_routes_encrypt_decrypt_over_20mb_to_storage_with_200mb_ceiling():
     source = compact(BRIDGE)
-    strict = compact(POLICY)
+    policy = compact(POLICY)
     assert "DIRECT_MAX=20*1024*1024" in source
-    assert "UTILITY_FILE_MAX=200*1024*1024" in source
-    assert "op==='encrypt'||op==='decrypt'" in source
+    assert "MAX_FILE_BYTES=200*1024*1024" in source
+    assert "operation==='encrypt'||operation==='decrypt'" in source
     assert "size>DIRECT_MAX" in source
-    assert "runStorageSecurity(op,file,params)" in source
+    assert "runStorageSecurity(operation,file,params)" in source
     assert "returnoriginalApiPdfTool.apply(this,arguments)" in source
-    assert "MAX_FILE_BYTES=200*1024*1024" in strict
-    assert "MAX_TOTAL_BYTES=300*1024*1024" in strict
+    assert "MAX_FILE_BYTES=200*1024*1024" in policy
+    assert "MAX_TOTAL_BYTES=300*1024*1024" in policy
+    assert "500MB" not in BRIDGE
 
 
 def test_security_bridge_uses_storage_endpoint_and_cleanup():
@@ -32,7 +34,7 @@ def test_security_bridge_uses_storage_endpoint_and_cleanup():
     assert "SECURITY_ENDPOINT='/api/pdf-utility/security-storage'" in source
     assert "pdf_temp/${user.uid}/${session}/source.pdf" in BRIDGE
     assert "storage_path:storagePath" in source
-    assert "operation:op" in source
+    assert "operation," in BRIDGE
     assert "_uploadStorageFile" in BRIDGE
     assert "_readPdfDelivery" in BRIDGE
     assert "awaitref.delete()" in source
@@ -44,13 +46,14 @@ def test_generic_pdf_tool_direct_limit_remains_unchanged():
     assert "PDF 도구는 20MB 이하 파일만 지원합니다." in API
 
 
-def test_strict_capture_policy_blocks_above_200mb_before_legacy_large_selection_handlers():
-    strict = compact(POLICY)
-    assert "MAX_FILE_BYTES=200*1024*1024" in strict
-    assert "Number(file.size||0)>MAX_FILE_BYTES" in strict
-    assert "document.addEventListener('change',onChange,true)" in strict
-    assert "document.addEventListener('drop',onDrop,true)" in strict
-    assert "PDF한파일은최대200MB" in strict
+def test_single_upload_policy_rejects_above_200mb_and_job_above_300mb():
+    policy = compact(POLICY)
+    assert "MAX_FILE_BYTES=200*1024*1024" in policy
+    assert "MAX_TOTAL_BYTES=300*1024*1024" in policy
+    assert "Number(file.size||0)>MAX_FILE_BYTES" in policy
+    assert "nextTotal>MAX_TOTAL_BYTES" in policy
+    assert "PDF한파일은최대200MB" in policy
+    assert "전체합계는최대300MB" in policy
 
 
 def test_backend_and_storage_rules_are_aligned_to_200mb():
@@ -62,11 +65,8 @@ def test_backend_and_storage_rules_are_aligned_to_200mb():
     assert "validPdfUpload(209715200)" in rules
 
 
-def test_deployment_keeps_security_bridge_in_pdf_utility_entry_pages():
-    # Marker name is retained for deployed HTML compatibility; actual accepted
-    # file size is enforced by Storage rules + strict cost policy + backend.
-    assert 'PDF_SECURITY_MARKER = "data-pdf-security-500mb"' in INJECTOR
-    assert '"pdf-preflight/index.html"' in INJECTOR
-    assert '"tools/preflight.html"' in INJECTOR
-    assert '"tools/pdf-Checker.html"' in INJECTOR
-    assert "/js/pdf-utility/security-large-file.js" in INJECTOR
+def test_deployment_does_not_inject_a_second_security_bridge_owner():
+    assert "PDF_SECURITY_MARKER" not in INJECTOR
+    assert "/js/pdf-utility/security-large-file.js" not in INJECTOR
+    assert "/js/pdf-utility/security-large-file.js" in RUNTIME
+    assert "pdfSecurityLargeFileScriptV1" in RUNTIME

@@ -1,10 +1,11 @@
 (function(){
+  'use strict';
   if(window.__programStudioRuntimeBoot)return;
   window.__programStudioRuntimeBoot=true;
 
-  // Historical filename: this module is the runtime/helper loader and legacy
-  // service-worker cleanup layer. It intentionally does not register a worker.
-  const VERSION='2026.08.31.003';
+  // Historical filename: this module owns shared runtime loading and retired
+  // service-worker cleanup. It intentionally does not register a worker.
+  const VERSION='2026.08.31.004';
   const CACHE_PREFIX='program-studio-';
   const CLEANUP_KEY='program-studio-legacy-runtime-cleanup-'+VERSION;
   const SCRIPT_TIMEOUT_MS=8000;
@@ -66,14 +67,9 @@
 
   function load(id,src){
     let existing=document.getElementById(id);
-    if(existing&&existing.dataset.loaded==='true'){
-      return Promise.resolve({id,src,status:'loaded'});
-    }
+    if(existing&&existing.dataset.loaded==='true')return Promise.resolve({id,src,status:'loaded'});
     if(loadPromises.has(id))return loadPromises.get(id);
-    if(existing&&existing.dataset.failed){
-      existing.remove();
-      existing=null;
-    }
+    if(existing&&existing.dataset.failed){existing.remove();existing=null;}
 
     const promise=new Promise((resolve,reject)=>{
       const script=existing||document.createElement('script');
@@ -82,7 +78,6 @@
         script.src=src;
         script.async=false;
       }
-
       let settled=false;
       let timer=null;
       const cleanup=()=>{
@@ -95,10 +90,7 @@
         settled=true;
         cleanup();
         runtimeScriptResult(id,src,status);
-        if(status==='loaded'){
-          resolve({id,src,status});
-          return;
-        }
+        if(status==='loaded')return resolve({id,src,status});
         if(script.isConnected&&script.dataset.loaded!=='true')script.remove();
         reject(runtimeLoadError(id,src,status));
       };
@@ -117,78 +109,9 @@
     return tracked;
   }
 
-  function loadCatalogCore(){return load('programCatalogCoreScriptV1','/js/program-catalog-core.js?v=20260818-1')}
-
-  /*
-   * Source-contract compatibility metadata only. Runtime ownership moved to
-   * /js/design-editor/core-runtime.js. This block is intentionally never read
-   * or executed by the application. Runtime validators strip block comments.
-   *
-  const DESIGN_EDITOR_RUNTIME_SCRIPTS=Object.freeze([
-    ['designEditorRuntimeDiagnosticsScriptV1','/js/design-editor/runtime-diagnostics.js?v=20260823-1'],
-    ['designEditorDraftScopeScriptV1','/js/design-editor/phase5-draft-scope.js?v=20260823-4'],
-    ['designEditorCoverModelScriptV1','/js/design-editor/cover-model.js?v=20260823-1'],
-    ['designEditorCoverModeBridgeScriptV1','/js/design-editor/cover-mode-bridge.js?v=20260823-2'],
-    ['designEditorEmbeddedRuntimeScriptV1','/js/design-editor/embedded-runtime.js?v=20260821-1'],
-    ['designEditorCoverSettingsScriptV1','/js/design-editor/cover-settings.js?v=20260823-1'],
-    ['designEditorEmbeddedPolishScriptV1','/js/design-editor/phase6-embedded-polish.js?v=20260821-1'],
-    ['designEditorRecentDraftsScriptV1','/js/design-editor/phase7-recent-drafts.js?v=20260821-1'],
-    ['designEditorCurrentDraftResetScriptV1','/js/design-editor/phase8-current-draft-reset.js?v=20260821-1'],
-    ['designEditorModeSwitchSafetyScriptV1','/js/design-editor/phase9-mode-switch-safety.js?v=20260821-1'],
-    ['designEditorAssetStoreScriptV1','/js/design-editor/asset-store.js?v=20260822-1'],
-    ['designEditorPhase2ScriptV1','/js/design-editor/phase2.js?v=20260822-2'],
-    ['designEditorOutputScriptV1','/js/design-editor/output.js?v=20260823-1'],
-    ['designEditorPhase3ControlsScriptV1','/js/design-editor/phase3-controls.js?v=20260821-1'],
-    ['designEditorPhase4SmartLayoutScriptV1','/js/design-editor/phase4-smart-layout.js?v=20260821-1'],
-    ['designEditorElementClipboardScriptV1','/js/design-editor/phase10-element-clipboard.js?v=20260821-1'],
-    ['designEditorProjectFileScriptV1','/js/design-editor/phase11-project-file.js?v=20260823-1'],
-    ['designEditorCloudProjectsScriptV1','/js/design-editor/phase24-cloud-projects.js?v=20260823-1'],
-    ['designEditorRotationScriptV1','/js/design-editor/phase12-rotation.js?v=20260822-1'],
-    ['designEditorCoverSpineToolsScriptV1','/js/design-editor/cover-spine-tools.js?v=20260823-1'],
-    ['designEditorCoverPreviewZonesScriptV1','/js/design-editor/cover-preview-zones.js?v=20260823-3'],
-    ['designEditorPrintQualityScriptV1','/js/design-editor/phase13-print-quality.js?v=20260822-1'],
-    ['designEditorPrintSafetyScriptV1','/js/design-editor/phase14-print-safety.js?v=20260822-1'],
-    ['designEditorFinalPrintCheckScriptV1','/js/design-editor/phase22-final-print-check.js?v=20260822-1'],
-    ['designEditorQuickDesignScriptV1','/js/design-editor/phase15-quick-design.js?v=20260822-1'],
-    ['designEditorSimpleInterfaceScriptV1','/js/design-editor/phase16-simple-interface.js?v=20260823-3'],
-    ['designEditorComponentBlocksScriptV1','/js/design-editor/phase17-component-blocks.js?v=20260822-2'],
-    ['designEditorCanvasQuickbarScriptV1','/js/design-editor/phase18-canvas-quickbar.js?v=20260822-1'],
-    ['designEditorSmartSnapScriptV1','/js/design-editor/phase19-smart-snap.js?v=20260823-2'],
-    ['designEditorPrintBlocksScriptV1','/js/design-editor/phase20-print-blocks.js?v=20260822-1'],
-    ['designEditorStyleThemesScriptV1','/js/design-editor/phase21-style-themes.js?v=20260822-1'],
-    ['designEditorDesignRecipesScriptV1','/js/design-editor/phase23-design-recipes.js?v=20260822-1']
-  ]);
-  const DESIGN_EDITOR_GENERAL_ROUTE_IDS=new Set([
-    'designEditorPhase2ScriptV1',
-    'designEditorOutputScriptV1',
-    'designEditorSimpleInterfaceScriptV1',
-    'designEditorComponentBlocksScriptV1'
-  ]);
-   */
-
-  /*
-   * PDF route source-contract compatibility metadata only. Executable loading
-   * is owned by /js/pdf-editor/route-runtime.js.
-   *
-      tasks.push(load('programShellUnifyScriptV1','/js/program-shell-unify.js?v=20260824-1'));
-      tasks.push(load('pdfAllInOneStage1ScriptV1','/js/pdf-all-in-one-stage1.js?v=20260824-1'));
-      tasks.push(load('desktopToolMobileNoticeScriptV1','/js/desktop-tool-mobile-notice.js?v=20260807-1'));
-      tasks.push(load('pdfEditorModuleLoaderScript','/js/pdf-editor/loader.js?v='+VERSION));
-      tasks.push(load('pdfEditorTransferLimitGuardScriptV1','/js/pdf-editor/transfer-limit-guard.js?v=20260818-1'));
-      tasks.push(load('pdfCropMarksScript','/js/pdf-editor/crop-marks.js?v=20260731-4'));
-      tasks.push(load('pdfSaveOperationScript','/js/pdf-editor/save-operation.js?v=20260731-3'));
-      tasks.push(load('pdfSaveRecoveryScript','/js/pdf-editor/save-recovery.js?v=20260803-1'));
-      tasks.push(load('pdfSessionSaveSafetyScriptV1','/js/pdf-editor/session-save-safety.js?v=20260805-2'));
-      tasks.push(load('pdfFileContextScopeScript','/js/pdf-editor/file-context-scope.js?v=20260805-1'));
-      tasks.push(load('pdfImportTransactionSafetyScriptV1','/js/pdf-editor/import-transaction-safety.js?v=20260806-1'));
-      tasks.push(load('pdfViewportLazyPreviewScriptV1','/js/pdf-editor/viewport-lazy-preview.js?v=20260806-1'));
-      tasks.push(load('pdfViewportLazyPreviewGuardScriptV1','/js/pdf-editor/viewport-lazy-preview-guard.js?v=20260806-1'));
-      tasks.push(load('pdfFileNavigationScriptV1','/js/pdf-editor/file-navigation.js?v=20260806-1'));
-      tasks.push(load('pdfDividerLocalImageUploadScriptV1','/js/pdf-divider-local-image-upload.js?v=20260818-2'));
-      tasks.push(load('pdfEditorFinalCheckScriptV1','/js/pdf-editor-final-check.js?v='+VERSION));
-      tasks.push(load('pdfEditorSpreadSplitScriptV1','/js/pdf-editor/spread-split.js?v=20260825-1'));
-      tasks.push(load('pdfBookletSheetPreviewScriptV1','/js/pdf-editor/booklet-sheet-preview.js?v=20260825-1'));
-   */
+  function loadCatalogCore(){
+    return load('programCatalogCoreScriptV1','/js/program-catalog-core.js?v=20260818-1');
+  }
 
   function loadDesignEditorRuntime(){
     window.ProgramStudioDesignEditorRuntimeContext={entryPath:currentPath,load};
@@ -210,31 +133,32 @@
       });
   }
 
-  async function cleanupLegacyRuntime(){
-    try{
-      if(localStorage.getItem(CLEANUP_KEY)==='done')return;
-    }catch(_){}
+  function loadPreflightRuntime(){
+    window.ProgramStudioPreflightRuntimeContext={entryPath:currentPath,load};
+    const ready=load('pdfPreflightRouteRuntimeScriptV1','/js/pdf-preflight/route-runtime.js?v=20260831-1')
+      .then(()=>{
+        const runtime=window.ProgramStudioPreflightRuntime;
+        if(!runtime||typeof runtime.loadAll!=='function')throw new Error('PDF preflight route runtime API is unavailable');
+        return runtime.loadAll();
+      });
+    window.ProgramStudioPreflightRuntimeReady=ready;
+    return ready;
+  }
 
+  async function cleanupLegacyRuntime(){
+    try{if(localStorage.getItem(CLEANUP_KEY)==='done')return;}catch(_){}
     try{
       if('serviceWorker'in navigator&&typeof navigator.serviceWorker.getRegistrations==='function'){
         const registrations=await navigator.serviceWorker.getRegistrations();
         await Promise.allSettled(registrations.map(registration=>registration.unregister()));
       }
-    }catch(error){
-      console.warn('Legacy service worker cleanup failed',error);
-    }
-
+    }catch(error){console.warn('Legacy service worker cleanup failed',error);}
     try{
       if('caches'in window){
         const keys=await caches.keys();
-        await Promise.allSettled(
-          keys.filter(key=>key.startsWith(CACHE_PREFIX)).map(key=>caches.delete(key))
-        );
+        await Promise.allSettled(keys.filter(key=>key.startsWith(CACHE_PREFIX)).map(key=>caches.delete(key)));
       }
-    }catch(error){
-      console.warn('Legacy Program Studio cache cleanup failed',error);
-    }
-
+    }catch(error){console.warn('Legacy Program Studio cache cleanup failed',error);}
     try{localStorage.setItem(CLEANUP_KEY,'done')}catch(_){}
   }
 
@@ -243,10 +167,7 @@
     if(!isAuthPage()){
       tasks.push(
         load('programStudioPlatformHealthScriptV1','/js/platform-health.js?v='+VERSION)
-          .catch(error=>{
-            console.warn('Platform health helper loading failed',error);
-            return null;
-          })
+          .catch(error=>{console.warn('Platform health helper loading failed',error);return null;})
       );
       tasks.push(load('appVersionHelperScript','/js/app-version.js?v='+VERSION));
     }
@@ -254,7 +175,7 @@
       tasks.push(
         loadCatalogCore()
           .then(()=>load('homeProgramCatalogScriptV1','/js/home-program-catalog.js?v=20260808-1'))
-          .then(()=>load('homePdfUtilityNameSyncScriptV1','/js/home-pdf-utility-name-sync.js?v=20260818-1'))
+          .then(()=>load('homePdfUtilityNameSyncScriptV1','/js/home-pdf-utility-name-sync.js?v=20260831-1'))
           .then(()=>load('homeProfessionalSuiteScriptV1','/js/home-professional-suite.js?v='+VERSION))
           .then(()=>load('homePrintWorkflowScriptV1','/js/home-print-workflow.js?v='+VERSION))
       );
@@ -271,32 +192,9 @@
       );
       tasks.push(load('adminProgramIconPaletteScriptV1','/js/admin-program-icon-palette.js?v=20260808-1'));
     }
-    // Legacy test/source marker kept intentionally: if(isPath('/design-editor','/design-editor/index.html'))
-    // Legacy test/source marker kept intentionally: if(isPath('/design-editor/general.html'))
-    if(isPath('/design-editor/general','/design-editor/general.html')){
-      tasks.push(loadDesignEditorRuntime());
-    }
-    if(isPath('/tools/pdf-editor.html','/pdf-editor','/pdf-editor/index.html')){
-      tasks.push(loadPdfEditorRuntime());
-    }
-    if(isPath('/tools/pdf-Checker.html','/tools/preflight.html','/pdf-preflight','/pdf-preflight/index.html')){
-      tasks.push(load('programShellUnifyScriptV1','/js/program-shell-unify.js?v=20260824-1'));
-      const finalGuard=load('pdfCheckerFinalGuardScript','/js/pdf-checker-final-guard.js?v='+VERSION);
-      const panelBalance=load('pdfPreflightPanelBalanceScriptV1','/js/pdf-preflight-panel-balance.js?v='+VERSION);
-      tasks.push(finalGuard);
-      tasks.push(panelBalance);
-      tasks.push(
-        Promise.all([finalGuard,panelBalance])
-          .then(()=>load('pdfUtilityScriptV1','/js/pdf-utility.js?v=20260818-1'))
-          .then(()=>load('pdfUtilityMarginCropScriptV1','/js/pdf-utility-margin-crop.js?v=20260819-1'))
-          .then(()=>load('pdfUtilityBackgroundMarginLabelsScriptV1','/js/pdf-utility-background-margin-labels.js?v=20260819-2'))
-          .then(()=>load('pdfUtilityImageConverterScriptV1','/js/pdf-utility-image-converter.js?v=20260819-1'))
-          .then(()=>load('pdfUtilityFinalizeScriptV1','/js/pdf-utility-finalize.js?v=20260818-3'))
-          .then(()=>load('pdfAllInOneStage1ScriptV1','/js/pdf-all-in-one-stage1.js?v=20260824-1'))
-          .then(()=>load('pdfPrintReadinessScriptV1','/js/pdf-print-readiness.js?v='+VERSION))
-          .then(()=>load('pdfPrintAutoFixScriptV1','/js/pdf-print-auto-fix.js?v='+VERSION))
-      );
-    }
+    if(isPath('/design-editor/general','/design-editor/general.html'))tasks.push(loadDesignEditorRuntime());
+    if(isPath('/tools/pdf-editor.html','/pdf-editor','/pdf-editor/index.html'))tasks.push(loadPdfEditorRuntime());
+    if(isPath('/tools/pdf-Checker.html','/tools/preflight.html','/pdf-preflight','/pdf-preflight/index.html'))tasks.push(loadPreflightRuntime());
     return Promise.allSettled(tasks);
   }
 
@@ -307,15 +205,15 @@
     window.ProgramStudioRuntime={
       version:VERSION,
       protectedPage,
+      helpersReady:false,
+      failedHelpers:0,
       bootStrategy:protectedPage?'approval-gated-runtime':'public-first-paint'
     };
     helpersPromise.then(results=>{
       const failed=results.filter(result=>result.status==='rejected').length;
       window.ProgramStudioRuntime.helpersReady=true;
       window.ProgramStudioRuntime.failedHelpers=failed;
-      try{
-        window.dispatchEvent(new CustomEvent('programstudio:runtime-ready',{detail:{failed,total:results.length}}));
-      }catch(_){}
+      try{window.dispatchEvent(new CustomEvent('programstudio:runtime-ready',{detail:{failed,total:results.length}}));}catch(_){}
     });
     cleanupLegacyRuntime().catch(error=>console.warn('Legacy runtime cleanup failed',error));
 
@@ -324,9 +222,6 @@
       helpersPromise.catch(error=>console.warn('Runtime helper loading failed',error));
       return;
     }
-
-    // Protected tools are revealed only by app-boot-guard.js after
-    // ProgramAccessReady resolves. Optional helper loading must never unlock them.
     try{
       await Promise.race([helpersPromise,delay(1000)]);
       await nextPaint();
@@ -336,9 +231,6 @@
   }
 
   setTimeout(()=>{if(!isProtectedRuntimePage())reveal()},600);
-  if(document.readyState==='loading'){
-    document.addEventListener('DOMContentLoaded',boot,{once:true});
-  }else{
-    boot();
-  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});
+  else boot();
 })();

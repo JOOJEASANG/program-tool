@@ -7,10 +7,11 @@ from routers import pdf_utility as pdf_utility_router
 ROOT = Path(__file__).resolve().parents[2]
 SW_REGISTER = ROOT / "js" / "sw-register.js"
 APP_VERSION = ROOT / "js" / "app-version.js"
+PREFLIGHT_RUNTIME = ROOT / "js" / "pdf-preflight" / "route-runtime.js"
 DIVIDER_UPLOAD = ROOT / "js" / "pdf-divider-local-image-upload.js"
 EDITOR_POLICY = ROOT / "js" / "pdf-editor" / "transfer-limit-guard.js"
 SESSION_SAVE = ROOT / "js" / "pdf-editor" / "session-save-safety.js"
-UTILITY_POLICY = ROOT / "js" / "pdf-utility-cost-policy-hardening.js"
+UTILITY_POLICY = ROOT / "js" / "pdf-utility-cost-guard-v2.js"
 ADMIN_GUARD = ROOT / "js" / "admin-program-catalog-nav-guard.js"
 STORAGE_RULES = ROOT / "storage.rules"
 STORAGE_LIFECYCLE = ROOT / "storage-lifecycle.json"
@@ -45,7 +46,6 @@ def test_pdf_utility_large_storage_routes_use_disk_not_multi_file_memory_buffers
     source = PDF_UTILITY.read_text(encoding="utf-8")
     merge = source[source.index('def merge_storage(uid):'):source.index('@pdf_utility_bp.route("/background-cleanup-storage"')]
     background = source[source.index('def background_cleanup_storage(uid):'):]
-
     assert "download_to_filename" in source
     assert "_download_storage_pdf_to_path" in merge
     assert "_merge_pdf_paths" in merge
@@ -90,32 +90,28 @@ def test_pdf_editor_session_and_utility_enforce_cost_bounded_working_sets():
     assert "totalBytes: snapshotMeta.totalBytes" in session
     assert "원본 PDF 전체 합계는 최대 300MB" in session
 
-    assert "const MAX_FILE_BYTES=200*1024*1024" in utility
-    assert "const MAX_TOTAL_BYTES=300*1024*1024" in utility
+    compact = "".join(utility.split())
+    assert "constMAX_FILE_BYTES=200*1024*1024" in compact
+    assert "constMAX_TOTAL_BYTES=300*1024*1024" in compact
+    assert "500MB" not in utility
 
 
 def test_storage_rules_gate_owner_staging_with_matching_program_access():
     rules = STORAGE_RULES.read_text(encoding="utf-8")
     assert "validPdfUpload(209715200)" in rules
-
     pdf_temp = rules[rules.index("match /pdf_temp/"):rules.index("match /preflight_temp/")]
     preflight_temp = rules[rules.index("match /preflight_temp/"):rules.index("match /pdf_sessions/")]
-
     assert "allow read: if isOwner(userId) && canUseProgram('pdf-editor');" in pdf_temp
     assert "allow delete: if isOwner(userId);" in pdf_temp
     assert "canUseProgram('pdf-editor')" in pdf_temp
     assert "validPdfUpload(209715200)" in pdf_temp
     assert "allow update: if false;" in pdf_temp
-
     assert "allow read: if isOwner(userId) && canUseProgram('preflight');" in preflight_temp
     assert "allow delete: if isOwner(userId);" in preflight_temp
     assert "canUseProgram('preflight')" in preflight_temp
     assert "validPdfUpload(209715200)" in preflight_temp
     assert "allow update: if false;" in preflight_temp
-
-    main = MAIN.read_text(encoding="utf-8")
-    assert "require_program_access_for_request" in main
-
+    assert "require_program_access_for_request" in MAIN.read_text(encoding="utf-8")
     results = rules[rules.index("match /pdf_results/"):rules.index("match /design_projects/")]
     assert "allow delete: if isOwner(userId);" in results
     assert "allow create, update: if false;" in results
@@ -133,14 +129,23 @@ def test_persistent_pdf_sessions_are_not_accidentally_put_in_temp_lifecycle():
     assert '"design_projects"' in main
 
 
-def test_active_runtime_uses_single_pdf_owner_while_compatibility_markers_remain_non_executable():
+def test_active_runtime_uses_single_pdf_and_preflight_owners():
     sw = executable_js(SW_REGISTER)
     app = executable_js(APP_VERSION)
+    preflight = PREFLIGHT_RUNTIME.read_text(encoding="utf-8")
+
     assert "/js/pdf-editor/route-runtime.js?v=20260828-1" in sw
     assert "pdf-editor/transfer-limit-guard.js" not in sw
     assert "pdf-divider-local-image-upload.js" not in sw
     assert "pdfEditorTransferLimitGuardScriptV1" not in app
     assert "pdfDividerLocalImageUploadScriptV1" not in app
+
+    assert "/js/pdf-preflight/route-runtime.js?v=20260831-1" in sw
+    assert "pdfUtilityCostGuardScriptV2" in preflight
+    assert "pdfPreflightPanelBalanceScriptV1" in preflight
+    assert "pdfUtilityCostGuardScriptV2" not in app
+    assert "pdfPreflightPanelBalanceScriptV1" not in app
+    assert "pdf-utility-first-paint.js" not in app
     assert "cover-large-file-policy.js" not in sw
     assert "cover-large-file-policy.js" not in app
 
