@@ -28,7 +28,8 @@ def test_pdf_utility_temp_storage_requires_matching_program_access_before_stagin
 
     assert "allow read: if isOwner(userId) && canUseProgram('pdf-editor');" in pdf_temp_block
     assert "allow delete: if isOwner(userId);" in pdf_temp_block
-    assert "allow create: if isOwner(userId)" in pdf_temp_block
+    assert "allow create: if resource == null" in pdf_temp_block
+    assert "isOwner(userId)" in pdf_temp_block
     assert "canUseProgram('pdf-editor')" in pdf_temp_block
     assert "validStagePath(sessionId, fileName)" in pdf_temp_block
     assert "validPdfUpload(209715200)" in pdf_temp_block
@@ -45,7 +46,8 @@ def test_preflight_temp_storage_requires_matching_program_access_before_staging(
 
     assert "allow read: if isOwner(userId) && canUseProgram('preflight');" in block
     assert "allow delete: if isOwner(userId);" in block
-    assert "allow create: if isOwner(userId)" in block
+    assert "allow create: if resource == null" in block
+    assert "isOwner(userId)" in block
     assert "canUseProgram('preflight')" in block
     assert "validStagePath(sessionId, fileName)" in block
     assert "validPdfUpload(209715200)" in block
@@ -58,7 +60,9 @@ def test_saved_sessions_still_require_pdf_editor_program_access():
     end = rules.index("match /pdf_results/{userId}/{resultId}/{fileName}")
     block = rules[start:end]
 
-    assert "isOwner(userId) && canUseProgram('pdf-editor')" in block
+    assert "allow create: if resource == null" in block
+    assert "isOwner(userId)" in block
+    assert "canUseProgram('pdf-editor')" in block
     assert "validSessionUpload(userId, sessionId, fileName)" in block
     assert "allow update: if false;" in block
 
