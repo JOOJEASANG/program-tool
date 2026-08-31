@@ -56,13 +56,16 @@
   ]);
   const PRODUCT_ALIASES=Object.freeze({notice:'invitation',leaflet2:'leaflet',leaflet3:'leaflet'});
   const params=()=>new URLSearchParams(location.search);
+  const sharedProfile=()=>window.DesignEditorSharedModuleProfile||null;
   const standaloneProduct=()=>{
     const raw=(params().get('app')||'').trim().toLowerCase();
-    return PRODUCT_ALIASES[raw]||raw;
+    return sharedProfile()?.normalizeProduct?.(raw)||PRODUCT_ALIASES[raw]||raw;
   };
   const shouldLoad=entry=>{
     const product=standaloneProduct();
     if(!product)return true;
+    const shared=sharedProfile();
+    if(shared?.shouldLoadCore)return shared.shouldLoadCore(entry.id,product);
     if(COVER_ONLY_IDS.has(entry.id))return product==='cover';
     return true;
   };
@@ -104,6 +107,7 @@
   }
 
   async function loadAll(){
+    await hostLoad('designSharedModuleProfileScriptV1','/js/design-editor/shared/module-profile.js?v=20260831-1');
     const seen=new Set();
     for(const entry of MODULES){
       if(!entry.id||!entry.src||seen.has(entry.id)){

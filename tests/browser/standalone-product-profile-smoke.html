@@ -3,15 +3,19 @@
 <head><meta charset="utf-8"><title>Standalone Product Profile Smoke</title></head>
 <body data-standalone-profile-smoke="running">
 <div id="result">RUNNING</div>
+<script src="/js/design-editor/shared/module-profile.js"></script>
+<script src="/js/design-editor/shared/document-type-state.js"></script>
 <script src="/js/design-editor/standalone-product-profile.js"></script>
 <script src="/js/pdf-editor/standalone-app-profile.js"></script>
 <script>
 (function(){
   const result=document.getElementById('result');
   try{
+    const modules=window.DesignEditorSharedModuleProfile;
+    const docType=window.DesignEditorDocumentTypeState;
     const design=window.DesignEditorStandaloneProducts;
     const pdf=window.PdfEditorStandaloneApps;
-    if(!design||!pdf)throw new Error('profile registries missing');
+    if(!modules||!docType||!design||!pdf)throw new Error('profile registries missing');
     const cover=design.get('cover');
     const poster=design.get('poster');
     const notice=design.fromLocation('?app=invitation&surface=notice');
@@ -20,6 +24,15 @@
     if(poster?.needsFoldRuntime!==false||design.allows(poster,'cover'))throw new Error('poster capability mismatch');
     if(notice?.key!=='notice'||notice?.runtimeProduct!=='invitation'||notice?.label!=='안내장')throw new Error('notice profile mismatch');
     if(leaflet?.key!=='leaflet'||leaflet?.needsFoldRuntime!==true||!design.allows(leaflet,'fold'))throw new Error('leaflet profile mismatch');
+    if(!modules.shouldLoadCore('designEditorCoverModelScriptV1','cover'))throw new Error('cover core module should load for cover');
+    if(modules.shouldLoadCore('designEditorCoverModelScriptV1','poster'))throw new Error('cover core module leaked into poster');
+    if(modules.shouldLoadShell('designPrintFoldRuntimeEnsureScriptV1','poster'))throw new Error('fold runtime leaked into poster');
+    if(!modules.shouldLoadShell('designPrintFoldRuntimeEnsureScriptV1','leaflet'))throw new Error('leaflet fold runtime missing');
+    if(modules.normalizeProduct('notice')!=='invitation'||modules.normalizeProduct('leaflet3')!=='leaflet')throw new Error('shared product alias mismatch');
+    const sample={documentType:'leaflet2'};
+    if(docType.infer(sample)!=='leaflet2')throw new Error('shared document type infer mismatch');
+    docType.sync(sample,{emit:false,type:'leaflet2'});
+    if(sample.printProductMode!=='leaflet'||sample.printProductPages!==4)throw new Error('shared document type compatibility mismatch');
     const layout=pdf.get('layout'),booklet=pdf.get('booklet');
     if(layout?.booklet!==false||layout?.showBooklet!==false||layout?.showDocumentEdit!==false)throw new Error('layout profile mismatch');
     if(booklet?.booklet!==true||booklet?.showBooklet!==true||booklet?.defaultNup!==2)throw new Error('booklet profile mismatch');
@@ -27,7 +40,9 @@
     document.body.dataset.noticeRuntime=notice.runtimeProduct;
     document.body.dataset.leafletFold=String(leaflet.needsFoldRuntime);
     document.body.dataset.bookletDefault=String(booklet.booklet);
-    result.textContent='PASS: standalone design/PDF product profiles resolve expected capabilities';
+    document.body.dataset.sharedModuleProfile=modules.stage;
+    document.body.dataset.sharedDocumentType=docType.stage;
+    result.textContent='PASS: shared design state/module policy and standalone design/PDF profiles resolve expected capabilities';
   }catch(error){
     document.body.dataset.standaloneProfileSmoke='fail';
     result.textContent='FAIL: '+String(error?.stack||error);
