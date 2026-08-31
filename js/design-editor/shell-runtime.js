@@ -35,12 +35,16 @@ return new Promise(resolve=>{const script=existing||document.createElement('scri
 }
 async function loadBoundaryUi(){
 if(!standalone)return true;
-await loadSupportScript('designStandaloneProductProfileScriptV1','/js/design-editor/standalone-product-profile.js?v=20260831-1');
+await loadSupportScript('designStandaloneProductProfileScriptV1','/js/design-editor/standalone-product-profile.js?v=20260901-1');
 const loaded=await loadSupportScript('designProductBoundaryUiScriptV1','/js/design-editor/product-boundary-ui.js?v=20260831-2');window.DesignEditorProductBoundaryUi?.sync?.();return loaded;
 }
 async function loadWorkspaceNavigation(){
 if(!standalone)return true;
 const loaded=await loadSupportScript('designWorkspaceNavigationScriptV1','/js/design-editor/shared/workspace-navigation.js?v=20260831-1');window.DesignEditorWorkspaceNavigation?.sync?.();return loaded;
+}
+async function loadSidebarMenuOrder(){
+if(!standalone)return true;
+const loaded=await loadSupportScript('designSidebarMenuOrderScriptV1','/js/design-editor/shared/sidebar-menu-order.js?v=20260901-1');window.DesignEditorSidebarMenuOrder?.sync?.();return loaded;
 }
 function syncEntry(e){
 if(!shouldLoad(e))return false;const api=getApi(e),fn=api?.[e.method];if(typeof fn!=='function')return false;
@@ -51,9 +55,9 @@ if(!shouldLoad(e))return Promise.resolve(true);if(syncEntry(e))return Promise.re
 const promise=new Promise(resolve=>{let script=document.getElementById(e.id);const done=()=>{syncEntry(e);resolve(true);};if(script){if(script.dataset.loaded==='true'){done();return;}script.addEventListener('load',done,{once:true});script.addEventListener('error',()=>resolve(false),{once:true});return;}script=document.createElement('script');script.id=e.id;script.src=e.src;script.async=false;script.addEventListener('load',()=>{script.dataset.loaded='true';done();},{once:true});script.addEventListener('error',()=>resolve(false),{once:true});document.head.appendChild(script);}).finally(()=>loading.delete(e.id));loading.set(e.id,promise);return promise;
 }
 async function loadAll(){
-await loadSupportScript('designSharedModuleProfileScriptV1','/js/design-editor/shared/module-profile.js?v=20260831-1');await loadBoundaryUi();for(const entry of MODULES)await loadEntry(entry);await loadWorkspaceNavigation();sync();document.documentElement.dataset.designShellRuntime='1';if(standalone){document.documentElement.dataset.designStandaloneApp=activeProfile()?.key||rawApp||app;document.documentElement.dataset.designStandaloneRuntime=activeProfile()?.runtimeProduct||app;}return true;
+await loadSupportScript('designSharedModuleProfileScriptV1','/js/design-editor/shared/module-profile.js?v=20260831-1');await loadBoundaryUi();for(const entry of MODULES)await loadEntry(entry);await loadWorkspaceNavigation();await loadSidebarMenuOrder();sync();document.documentElement.dataset.designShellRuntime='1';if(standalone){document.documentElement.dataset.designStandaloneApp=activeProfile()?.key||rawApp||app;document.documentElement.dataset.designStandaloneRuntime=activeProfile()?.runtimeProduct||app;}return true;
 }
-function sync(){let ready=0;MODULES.forEach(e=>{if(syncEntry(e))ready+=1;});if(standalone){window.DesignEditorProductBoundaryUi?.sync?.();window.DesignEditorWorkspaceNavigation?.sync?.();}return ready;}
+function sync(){let ready=0;MODULES.forEach(e=>{if(syncEntry(e))ready+=1;});if(standalone){window.DesignEditorProductBoundaryUi?.sync?.();window.DesignEditorWorkspaceNavigation?.sync?.();window.DesignEditorSidebarMenuOrder?.sync?.();}return ready;}
 function boot(){loadAll().catch(error=>console.error('[design-shell-runtime] load failed',error));[160,500,1200].forEach(delay=>setTimeout(sync,delay));}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 window.DesignEditorShellRuntime={loadAll,sync,product:standalone?app:'integrated',get profile(){return activeProfile()?.key||null;},modules:MODULES.map(({id,src,global,method})=>({id,src,global,method})),stage:'design-shell-runtime-manifest-v1'};
