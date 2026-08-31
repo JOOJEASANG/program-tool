@@ -53,6 +53,19 @@ def test_version_observer_rechecks_long_running_sessions_without_forced_refresh(
     assert "location.reload()" not in source
 
 
+def test_version_observer_marks_its_scripts_for_runtime_loader_interop():
+    source = APP_VERSION.read_text(encoding="utf-8")
+
+    assert "script.dataset.runtimeOwner='app-version'" in source
+    assert "script.dataset.loaded='true'" in source
+    assert "delete script.dataset.failed" in source
+    assert "script.dataset.failed='error'" in source
+    assert "script.addEventListener('load'" in source
+    assert "script.addEventListener('error'" in source
+    assert "const existing=document.getElementById(id)" in source
+    assert "if(existing)return existing" in source
+
+
 def test_platform_release_version_is_synchronized():
     version = json.loads(VERSION_JSON.read_text(encoding="utf-8"))["version"]
     runtime = RUNTIME.read_text(encoding="utf-8")
