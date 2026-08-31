@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="ko" data-program-studio-modular-app="1">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Program Studio 작업실</title>
+  <meta name="description" content="Program Studio 독립 작업 프로그램">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+  <link rel="stylesheet" href="/css/studio-app-shell.css?v=20260831-1">
+</head>
+<body>
+  <div class="app-shell" id="studioAppShell">
+    <header class="app-header">
+      <div class="header-left">
+        <a class="home-button" href="/" aria-label="Program Studio 홈으로">←</a>
+        <div class="brand-lockup">
+          <span class="brand-mark">PS</span>
+          <span class="brand-copy"><strong>Program Studio</strong><small id="appCategory">PRINT PRODUCTION</small></span>
+        </div>
+        <span class="header-divider" aria-hidden="true"></span>
+        <div class="app-identity">
+          <strong id="appTitle">작업 프로그램</strong>
+          <span id="appDescription">프로그램을 준비하는 중입니다.</span>
+        </div>
+      </div>
+      <div class="header-right">
+        <span class="engine-chip"><i></i><span id="engineLabel">공통 엔진 연결 중</span></span>
+        <a class="legacy-link" id="legacyLink" href="/" hidden>통합 편집기</a>
+      </div>
+    </header>
+    <main class="workspace">
+      <iframe id="appFrame" class="workspace-frame" title="Program Studio 작업영역" allow="clipboard-read; clipboard-write"></iframe>
+      <div class="workspace-loading" id="workspaceLoading" role="status" aria-live="polite">
+        <div class="loading-card"><span class="loader"></span><strong id="loadingTitle">작업 환경을 준비하고 있습니다</strong><p id="loadingMessage">공통 편집 엔진과 전용 기능을 연결하는 중입니다.</p></div>
+      </div>
+      <div class="workspace-error" id="workspaceError" hidden>
+        <div><strong>작업 프로그램을 불러오지 못했습니다.</strong><p>새로고침 후 다시 시도해 주세요.</p><button type="button" id="retryBtn">다시 불러오기</button></div>
+      </div>
+    </main>
+  </div>
+  <script src="/js/studio-app-shell.js?v=20260831-1"></script>
+</body>
+</html>
