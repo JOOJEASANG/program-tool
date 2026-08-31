@@ -137,8 +137,7 @@
 
   function queue(){
     if(timer)return;
-    // A zero-delay task is used instead of requestAnimationFrame so preview
-    // restoration also runs in throttled/background/headless rendering states.
+    // A zero-delay task keeps restoration reliable in throttled/background/headless states.
     timer=setTimeout(()=>{timer=0;repair();},0);
   }
 
