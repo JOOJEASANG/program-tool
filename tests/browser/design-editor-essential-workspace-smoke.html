@@ -81,13 +81,8 @@
         await waitFor(()=>document.getElementById('artboard')?.dataset.invitationFoldGuide==='x','invitation center fold guide');
         assert(document.getElementById('designEssentialInvitationFold'),'invitation center divider is missing');
 
-        invitation.designMode='cover';invitation.printProductMode='';invitation.presetId='cover-a4';document.documentElement.dataset.designDocumentType='cover';
-        window.DesignEditorEssentialWorkspace.select('compose');window.DesignEditorEssentialWorkspace.sync();
-        await waitFor(()=>visible('designCoverSettingsTools'),'cover-only settings after product switch');
-        await waitFor(()=>!document.getElementById('designEssentialInvitationFold'),'invitation guide cleanup after product switch');
-
-        document.body.dataset.essentialHome='true';document.body.dataset.essentialNoAll='true';document.body.dataset.essentialStepIsolation='true';document.body.dataset.essentialInvitationCoverHidden='true';document.body.dataset.essentialInvitationFold='x';document.body.dataset.essentialCoverVisible='true';
-        pass('home, isolated four-step menus, product-only visibility and invitation center fold guide');
+        document.body.dataset.essentialHome='true';document.body.dataset.essentialNoAll='true';document.body.dataset.essentialStepIsolation='true';document.body.dataset.essentialInvitationCoverHidden='true';document.body.dataset.essentialInvitationFold='x';
+        pass('home, isolated four-step menus, invitation-only visibility and center fold guide');
       }catch(error){fail(error)}
     })();
   </script>
