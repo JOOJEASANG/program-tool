@@ -50,6 +50,6 @@ echo "Image workflow v2 browser smoke passed using $BROWSER"
 
 "$BROWSER" --headless=new --disable-gpu --no-sandbox --disable-dev-shm-usage --disable-background-networking --user-data-dir="$PROFILE_DIR" --virtual-time-budget=8000 --dump-dom "$HEADERLESS_URL" >"$HEADERLESS_DOM_OUT"
 if ! grep -q 'data-image-headerless-smoke="pass"' "$HEADERLESS_DOM_OUT"; then echo "Image editor headerless browser smoke failed." >&2; cat "$HEADERLESS_DOM_OUT" >&2; exit 1; fi
-if ! grep -q 'PASS: image editor header removed and preview uses full viewport while local actions remain available' "$HEADERLESS_DOM_OUT"; then echo "Image editor headerless completion marker missing." >&2; cat "$HEADERLESS_DOM_OUT" >&2; exit 1; fi
+if ! grep -q 'PASS: structural header removal stays compatible with the shared image editor tool rail' "$HEADERLESS_DOM_OUT"; then echo "Image editor headerless completion marker missing." >&2; cat "$HEADERLESS_DOM_OUT" >&2; exit 1; fi
 
 echo "Image editor headerless browser smoke passed using $BROWSER"

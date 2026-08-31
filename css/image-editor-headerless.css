@@ -1,82 +1,91 @@
 /* Image editor headerless workspace.
- * Keep navigation/undo/reset available as compact sidebar-local controls while
- * giving the preview stage the full viewport height.
+ * The top header is removed structurally in image-editor/index.html.
+ * Keep home/undo/reset inside the sidebar so the shared editor tool rail can
+ * move them safely without creating fixed overlays or blank white buttons.
  */
 body.image-editor-pro .app-header{
-  display:contents!important;
-}
-body.image-editor-pro .app-header .brand-block{
-  display:none!important;
-}
-body.image-editor-pro .app-header .home-link{
-  position:fixed!important;
-  top:12px;
-  left:14px;
-  z-index:80;
-  width:98px;
-  height:34px;
-  padding:0 8px;
-  background:#fff;
-  box-shadow:0 2px 8px rgba(35,52,82,.06);
-}
-body.image-editor-pro .app-header .header-actions{
-  position:fixed!important;
-  top:12px;
-  left:120px;
-  z-index:80;
-  width:202px;
-  margin:0!important;
-  display:grid!important;
-  grid-template-columns:1fr 1fr;
-  gap:6px;
-}
-body.image-editor-pro .app-header .header-actions button{
-  width:100%;
-  height:34px;
-  padding:0 7px;
-  border-radius:9px;
-  background:#fff;
-  font-size:10px;
-  white-space:nowrap;
-}
-body.image-editor-pro .app-header #exportBtn{
   display:none!important;
 }
 body.image-editor-pro .workspace{
   height:100vh!important;
 }
 body.image-editor-pro .sidebar{
-  padding-top:58px!important;
+  padding-top:16px!important;
+}
+body.image-editor-pro .sidebar.ps-tool-rail-mounted{
+  padding:0!important;
+}
+body.image-editor-pro .image-editor-local-actions{
+  display:grid;
+  grid-template-columns:auto 1fr 1fr;
+  gap:6px;
+  align-items:center;
+  margin:0 0 10px;
+  padding:0 0 10px;
+  border-bottom:1px solid #edf1f5;
+}
+body.image-editor-pro .image-editor-local-actions a,
+body.image-editor-pro .image-editor-local-actions button{
+  min-width:0;
+  min-height:32px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  border:1px solid #d6e0ea;
+  border-radius:8px;
+  background:#fff;
+  color:#475569;
+  padding:0 8px;
+  font:inherit;
+  font-size:9px;
+  font-weight:850;
+  line-height:1.1;
+  text-decoration:none;
+  white-space:nowrap;
+  box-shadow:none;
+}
+body.image-editor-pro .image-editor-local-actions a:hover,
+body.image-editor-pro .image-editor-local-actions button:hover:not(:disabled){
+  border-color:#a8bfd9;
+  background:#f8fbff;
+  color:#12396d;
+}
+body.image-editor-pro .image-editor-local-actions button:disabled{
+  opacity:.42;
+  cursor:not-allowed;
+}
+body.image-editor-pro .image-editor-local-actions .image-editor-home{
+  min-width:54px;
+  color:#244c75;
+  background:#f8fafc;
+}
+body.image-editor-pro .ps-tool-panel .image-editor-local-actions{
+  margin-top:0;
 }
 body.image-editor-pro #previewCanvas{
   max-height:calc(100vh - 120px)!important;
 }
 
 @media(max-width:1000px){
-  body.image-editor-pro .app-header .home-link{width:86px;left:12px}
-  body.image-editor-pro .app-header .header-actions{left:104px;width:184px}
+  body.image-editor-pro .image-editor-local-actions{
+    grid-template-columns:auto 1fr 1fr;
+  }
 }
 
 @media(max-width:760px){
-  body.image-editor-pro .app-header .home-link{
-    position:absolute!important;
-    top:10px;
-    left:10px;
-    width:90px;
-  }
-  body.image-editor-pro .app-header .header-actions{
-    position:absolute!important;
-    top:10px;
-    left:106px;
-    width:calc(100vw - 118px);
-    max-width:250px;
-  }
   body.image-editor-pro .workspace{
     height:auto!important;
     min-height:100vh!important;
   }
   body.image-editor-pro .sidebar{
-    padding-top:56px!important;
+    padding-top:10px!important;
+  }
+  body.image-editor-pro .sidebar.ps-tool-rail-mounted{
+    padding:0!important;
+  }
+  body.image-editor-pro .image-editor-local-actions{
+    margin:0 0 8px;
+    padding-bottom:8px;
   }
   body.image-editor-pro #previewCanvas{
     max-height:calc(100vh - 105px)!important;
