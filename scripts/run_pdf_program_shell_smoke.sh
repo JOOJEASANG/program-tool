@@ -71,7 +71,9 @@ run_product_case "pdf-fast-insert-actions-smoke.html" "$OUT_DIR/pdf-fast-insert-
 reset_profile
 run_product_case "pdf-preview-insert-persistence-smoke.html" "$OUT_DIR/pdf-preview-insert-persistence-smoke-dom.html" 'data-pdf-preview-insert-persistence-smoke="pass"' 'PASS: multi-file preview rerenders keep blank-page and divider insertion controls at every row boundary'
 reset_profile
+run_product_case "pdf-output-save-actions-smoke.html" "$OUT_DIR/pdf-output-save-actions-smoke-dom.html" 'data-pdf-output-save-smoke="pass"' 'PASS: direct PDF save and print preflight save remain actionable after preview state recovery'
+reset_profile
 run_product_case "pdf-page-list-quick-add-smoke.html" "$OUT_DIR/pdf-page-list-quick-add-smoke-dom.html" 'data-pdf-page-list-quick-add-smoke="pass"' 'PASS: page list keeps sticky PDF append action and removes legacy jump panel from view'
 
 bash "$ROOT_DIR/scripts/run_pdf_print_workflow_focus_smoke.sh"
-echo "PDF program unified shell, page-list collapse, divider-modal, persistent insert, fast-insert, page-list quick-add and product-focus browser smokes passed using $BROWSER"
+echo "PDF program unified shell, page-list collapse, divider-modal, persistent insert, output-save, fast-insert, page-list quick-add and product-focus browser smokes passed using $BROWSER"
