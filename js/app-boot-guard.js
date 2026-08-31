@@ -102,6 +102,22 @@
     throw new Error('PDF preflight runtime was not initialized');
   }
 
+  async function waitForDesignRuntime(){
+    if(protectedProgram!=='design-studio'||!isGeneralDesignEditor())return;
+    const deadline=Date.now()+9000;
+    while(Date.now()<deadline){
+      const ready=window.ProgramStudioRuntimeReady;
+      if(ready&&typeof ready.then==='function'){
+        await ready;
+        await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+        if(root.dataset.designCoreRuntime!=='1')throw new Error('Design editor core runtime did not reach ready state');
+        return;
+      }
+      await delay(40);
+    }
+    throw new Error('Design editor runtime was not initialized');
+  }
+
   function waitForApproval(){
     if(revealed)return;
     const ready=window.ProgramAccessReady;
@@ -110,6 +126,7 @@
         if(!access)return;
         try{
           await waitForPreflightRuntime();
+          await waitForDesignRuntime();
           clearTimeout(failClosedTimer);
           reveal();
         }catch(error){
