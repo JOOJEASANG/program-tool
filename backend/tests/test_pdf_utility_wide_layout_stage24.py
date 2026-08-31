@@ -4,7 +4,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 LAYOUT = ROOT / "js" / "pdf-utility-wide-layout.js"
 FINALIZE = ROOT / "js" / "pdf-utility-finalize.js"
-REGISTER = ROOT / "js" / "sw-register.js"
+RUNTIME = ROOT / "js" / "pdf-preflight" / "route-runtime.js"
 
 
 def test_pdf_utility_wide_layout_uses_desktop_workspace_width_and_sticky_file_panel():
@@ -46,12 +46,12 @@ def test_pdf_utility_results_expand_for_wide_screen_review():
     assert "width:min(620px,100%)!important" in source
 
 
-def test_pdf_utility_finalize_loads_wide_layout_after_function_initialization():
-    source = FINALIZE.read_text(encoding="utf-8")
-    register = REGISTER.read_text(encoding="utf-8")
-    assert "function loadWideLayout()" in source
-    assert "pdfUtilityWideLayoutScriptV1" in source
-    assert "/js/pdf-utility-wide-layout.js?v=20260818-1" in source
-    assert "document.documentElement.dataset.pdfUtilityFinalized = '1';" in source
-    assert source.index("document.documentElement.dataset.pdfUtilityFinalized = '1';") < source.index("loadWideLayout();")
-    assert "/js/pdf-utility-finalize.js?v=20260818-3" in register
+def test_pdf_utility_wide_layout_is_owned_by_canonical_route_before_finalize():
+    runtime = RUNTIME.read_text(encoding="utf-8")
+    finalizer = FINALIZE.read_text(encoding="utf-8")
+    assert "pdfUtilityWideLayoutScriptV1" in runtime
+    assert "/js/pdf-utility-wide-layout.js?v=20260821-1" in runtime
+    assert "pdfUtilityFinalizeScriptV1" in runtime
+    assert runtime.index("pdfUtilityWideLayoutScriptV1") < runtime.index("pdfUtilityFinalizeScriptV1")
+    assert "function loadWideLayout()" not in finalizer
+    assert "document.documentElement.dataset.pdfUtilityFinalized='functional-v3';" in finalizer

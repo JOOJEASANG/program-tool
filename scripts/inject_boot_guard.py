@@ -12,7 +12,6 @@ ACCESS_MARKER = "data-program-studio-approval-bootstrap"
 FAVICON_MARKER = "data-program-studio-favicon"
 META_MARKER = "data-program-studio-meta"
 IMAGE_LAYOUT_MARKER = "data-image-editor-pdf-layout"
-PDF_SECURITY_MARKER = "data-pdf-security-500mb"
 PDF_BOOKLET_MARKER = "data-pdf-classic-booklet"
 EXCLUDED_PARTS = {".git", "node_modules", "venv", ".venv", "__pycache__"}
 PROTECTED_HTML = {
@@ -24,8 +23,6 @@ PROTECTED_HTML = {
     "pdf-preflight/index.html",
     "perfect-binding-cover/index.html",
     "tools/pdf-editor.html",
-    "tools/preflight.html",
-    "tools/pdf-Checker.html",
     "tools/perfect-binding-cover.html",
 }
 PUBLIC_HTML = {
@@ -38,11 +35,6 @@ PUBLIC_HTML = {
     "privacy.html",
 }
 DEPLOY_HTML = PUBLIC_HTML | PROTECTED_HTML
-PDF_SECURITY_HTML = {
-    "pdf-preflight/index.html",
-    "tools/preflight.html",
-    "tools/pdf-Checker.html",
-}
 PDF_BOOKLET_HTML = {
     "pdf-editor/index.html",
     "tools/pdf-editor.html",
@@ -60,11 +52,9 @@ PAGE_METADATA = {
     "document-editor/index.html": ("문서 편집기 | Program Studio", "Program Studio 문서 작성 및 인쇄 편집기", "noindex,nofollow"),
     "image-editor/index.html": ("이미지 편집기 | Program Studio", "Program Studio 이미지 보정·크기·배경 편집기", "noindex,nofollow"),
     "pdf-editor/index.html": ("PDF 편집기 | Program Studio", "Program Studio PDF 병합·페이지·배치·출력 편집기", "noindex,nofollow"),
-    "pdf-preflight/index.html": ("PDF 인쇄 검수 | Program Studio", "Program Studio PDF 인쇄 전 상태·보안·출력 위험 검사", "noindex,nofollow"),
+    "pdf-preflight/index.html": ("PDF 검사 · 유틸리티 | Program Studio", "Program Studio PDF 인쇄 전 검사·보안·유틸리티 도구", "noindex,nofollow"),
     "perfect-binding-cover/index.html": ("표지 편집기 | Program Studio", "Program Studio 무선제본 표지 편집기 호환 진입점", "noindex,nofollow"),
     "tools/pdf-editor.html": ("PDF 편집기로 이동 | Program Studio", "Program Studio PDF 편집기 호환 주소", "noindex,nofollow"),
-    "tools/preflight.html": ("PDF 인쇄 검수로 이동 | Program Studio", "Program Studio PDF 인쇄 검수 호환 주소", "noindex,nofollow"),
-    "tools/pdf-Checker.html": ("PDF 인쇄 검수로 이동 | Program Studio", "Program Studio PDF 검사 호환 주소", "noindex,nofollow"),
     "tools/perfect-binding-cover.html": ("표지 편집기로 이동 | Program Studio", "Program Studio 표지 편집기 호환 주소", "noindex,nofollow"),
 }
 FIREBASE_APPROVAL_BOOTSTRAP = (
@@ -73,9 +63,7 @@ FIREBASE_APPROVAL_BOOTSTRAP = (
     '<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>'
     '<script src="/js/firebase-config.js"></script>'
 )
-FAVICON_TAG = (
-    f'<link {FAVICON_MARKER} rel="icon" href="/favicon.svg" type="image/svg+xml">'
-)
+FAVICON_TAG = f'<link {FAVICON_MARKER} rel="icon" href="/favicon.svg" type="image/svg+xml">'
 TITLE_RE = re.compile(r"<title\b[^>]*>.*?</title\s*>", flags=re.IGNORECASE | re.DOTALL)
 DESCRIPTION_RE = re.compile(
     r"<meta\b(?=[^>]*\bname\s*=\s*[\"\']description[\"\'])[^>]*>", flags=re.IGNORECASE
@@ -113,10 +101,6 @@ def is_image_editor(path: Path) -> bool:
     return relative_path(path) == "image-editor/index.html"
 
 
-def is_pdf_security_page(path: Path) -> bool:
-    return relative_path(path) in PDF_SECURITY_HTML
-
-
 def is_pdf_booklet_page(path: Path) -> bool:
     return relative_path(path) in PDF_BOOKLET_HTML
 
@@ -149,9 +133,8 @@ def should_inject(path: Path, text: str) -> bool:
     needs_favicon = requires_favicon(path) and FAVICON_MARKER not in text
     needs_metadata = page_metadata(path) is not None
     needs_image_layout = is_image_editor(path) and IMAGE_LAYOUT_MARKER not in text
-    needs_pdf_security = is_pdf_security_page(path) and PDF_SECURITY_MARKER not in text
     needs_pdf_booklet = is_pdf_booklet_page(path) and PDF_BOOKLET_MARKER not in text
-    return needs_boot or needs_favicon or needs_metadata or needs_image_layout or needs_pdf_security or needs_pdf_booklet
+    return needs_boot or needs_favicon or needs_metadata or needs_image_layout or needs_pdf_booklet
 
 
 def inject_guard(
@@ -162,7 +145,6 @@ def inject_guard(
     favicon: bool = False,
     metadata: tuple[str, str, str] | None = None,
     image_editor: bool = False,
-    pdf_security: bool = False,
     pdf_booklet: bool = False,
 ) -> str:
     text = normalize_metadata(text, metadata)
@@ -170,19 +152,11 @@ def inject_guard(
     if favicon and FAVICON_MARKER not in text:
         tags += FAVICON_TAG
     if MARKER not in text:
-        tags += (
-            f'<script {MARKER} src="/js/app-boot-guard.js?'
-            f'v={version}"></script>'
-        )
+        tags += f'<script {MARKER} src="/js/app-boot-guard.js?v={version}"></script>'
     if image_editor and IMAGE_LAYOUT_MARKER not in text:
         tags += (
             f'<link {IMAGE_LAYOUT_MARKER} rel="stylesheet" '
             f'href="/css/image-editor-pdf-layout.css?v={version}">'
-        )
-    if pdf_security and PDF_SECURITY_MARKER not in text:
-        tags += (
-            f'<script {PDF_SECURITY_MARKER} defer '
-            f'src="/js/pdf-utility/security-large-file.js?v={version}"></script>'
         )
     if pdf_booklet and PDF_BOOKLET_MARKER not in text:
         tags += (
@@ -213,7 +187,6 @@ def inject_all() -> list[Path]:
             favicon=requires_favicon(path),
             metadata=page_metadata(path),
             image_editor=is_image_editor(path),
-            pdf_security=is_pdf_security_page(path),
             pdf_booklet=is_pdf_booklet_page(path),
         )
         if updated == text:

@@ -6,19 +6,23 @@ GLOBAL_UI = ROOT / "js" / "program-studio-ui-v2.js"
 HOME = ROOT / "js" / "home-dashboard-v2.js"
 ADMIN = ROOT / "js" / "admin-workflow-v2.js"
 PREFLIGHT = ROOT / "js" / "pdf-preflight" / "workflow-v2.js"
+PREFLIGHT_RUNTIME = ROOT / "js" / "pdf-preflight" / "route-runtime.js"
 
 
-def test_global_ui_loads_phase5_enhancements_by_surface():
+def test_phase5_enhancements_have_single_surface_owners():
     text = GLOBAL_UI.read_text(encoding="utf-8")
+    runtime = PREFLIGHT_RUNTIME.read_text(encoding="utf-8")
     for marker in (
         "surface==='home'",
         "/js/home-dashboard-v2.js?v=20260828-1",
         "surface==='admin'",
         "/js/admin-workflow-v2.js?v=20260828-1",
-        "surface==='pdf-preflight'",
-        "/js/pdf-preflight/workflow-v2.js?v=20260828-1",
     ):
         assert marker in text
+    assert "surface==='pdf-preflight'" in text
+    assert "/js/pdf-preflight/workflow-v2.js" not in text
+    assert "pdfPreflightWorkflowV2Script" in runtime
+    assert "/js/pdf-preflight/workflow-v2.js?v=20260831-1" in runtime
 
 
 def test_home_workspace_has_search_favorites_recent_and_no_polling():

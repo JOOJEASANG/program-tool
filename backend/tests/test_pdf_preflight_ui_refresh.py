@@ -10,7 +10,6 @@ def read(path: str) -> str:
 
 def test_pdf_preflight_ui_is_clean_single_column_workflow():
     source = read("js/pdf-preflight-panel-balance.js")
-
     assert "PDF 검사 · 유틸리티" in source
     assert "PDF 선택" in source
     assert "인쇄 전 검사" in source
@@ -23,10 +22,10 @@ def test_pdf_preflight_ui_is_clean_single_column_workflow():
     assert "clean-workspace-v2" in source
 
 
-def test_pdf_preflight_ui_refresh_keeps_processing_logic_separate():
+def test_pdf_preflight_ui_refresh_keeps_processing_logic_separate_and_canonical():
     source = read("js/pdf-preflight-panel-balance.js")
     page = read("pdf-preflight/index.html")
-    runtime = read("js/sw-register.js")
+    runtime = read("js/pdf-preflight/route-runtime.js")
     app_version = read("js/app-version.js")
 
     assert "apiPreflightCheck(selectedFile" in page
@@ -35,4 +34,6 @@ def test_pdf_preflight_ui_refresh_keeps_processing_logic_separate():
     assert "apiPreflightCheck" not in source
     assert "apiPdfTool" not in source
     assert "/js/pdf-preflight-panel-balance.js" in runtime
-    assert "/js/pdf-preflight-panel-balance.js" not in app_version or "pdf-preflight" in app_version
+    assert runtime.index("pdfPreflightPanelBalanceScriptV1") > runtime.index("pdfUtilityFinalizeScriptV1")
+    executable = app_version.split("/*", 1)[0] + app_version.rsplit("*/", 1)[-1]
+    assert "/js/pdf-preflight-panel-balance.js" not in executable

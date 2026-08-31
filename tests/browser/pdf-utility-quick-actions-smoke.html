@@ -2,18 +2,17 @@
 <html lang="ko">
 <head>
   <meta charset="utf-8">
-  <title>PDF All-in-One Stage1 Smoke</title>
-  <meta name="description" content="legacy">
+  <title>PDF Quick Actions Smoke</title>
   <style>.action-grid{display:grid}.action-btn{display:block}.hero-step{display:inline-block}.pdfu-file-items{min-height:1px}</style>
-  <script>history.replaceState(null,'','/pdf-preflight/index.html?pdf-all-in-one-stage1-smoke=1');</script>
+  <script>history.replaceState(null,'','/pdf-preflight/index.html?pdf-quick-actions-smoke=1');</script>
 </head>
-<body data-pdf-all-in-one-smoke="pending">
-  <nav><div class="nav-title">PDF유틸리티</div></nav>
+<body data-pdf-quick-actions-smoke="pending">
+  <nav><div class="nav-title">PDF 검사 · 유틸리티</div></nav>
   <main>
-    <section class="hero"><div class="hero-badge">PDF UTILITY</div><h1>PDF유틸리티</h1><p>legacy</p><div class="hero-steps"></div></section>
+    <section class="hero"><div class="hero-badge">PDF · PRINT CHECK</div><h1>PDF 검사 · 유틸리티</h1><p>canonical presentation owner</p><div class="hero-steps"></div></section>
     <section class="workspace">
-      <div class="panel"><h2 class="panel-title">파일</h2><p class="panel-desc">파일 선택</p><div id="pdfUtilityFileItems"></div></div>
-      <div class="panel"><h2 class="panel-title">작업 선택</h2><p class="panel-desc">legacy</p><div class="action-grid"></div></div>
+      <div class="panel"><h2 class="panel-title">PDF 파일 선택</h2><p class="panel-desc">파일 선택</p><div id="pdfUtilityFileItems"></div></div>
+      <div class="panel"><h2 class="panel-title">검사 · 유틸리티</h2><p class="panel-desc">작업 선택</p><div class="action-grid"></div></div>
     </section>
     <div id="result">PENDING</div>
   </main>
@@ -24,10 +23,7 @@
     const downloads=[];
     const sampleFile=new File([new Uint8Array([37,80,68,70])],'sample.pdf',{type:'application/pdf',lastModified:1});
     window.selectedFile=sampleFile;
-    window.PdfUtility={
-      state:{files:[sampleFile],activeIndex:0,busy:false},
-      selectActive(index){this.state.activeIndex=index;}
-    };
+    window.PdfUtility={state:{files:[sampleFile],activeIndex:0,busy:false},selectActive(index){this.state.activeIndex=index;}};
     window.apiPdfTool=async(op,file,params)=>{
       calls.push({op,name:file?.name,params:{...(params||{})}});
       await new Promise(resolve=>setTimeout(resolve,25));
@@ -40,48 +36,40 @@
     HTMLAnchorElement.prototype.click=function(){downloads.push(this.download||'download');};
     const originalCreate=URL.createObjectURL;
     const originalRevoke=URL.revokeObjectURL;
-    URL.createObjectURL=()=> 'blob:pdf-all-in-one-smoke';
+    URL.createObjectURL=()=> 'blob:pdf-quick-actions-smoke';
     URL.revokeObjectURL=()=>{};
   </script>
-  <script src="/js/pdf-all-in-one-stage1.js?v=20260824-1"></script>
+  <script src="/js/pdf-all-in-one-stage1.js?v=20260831-2"></script>
   <script>
     (async()=>{
       const result=document.getElementById('result');
       const assert=(value,message)=>{if(!value)throw new Error(message)};
       const waitFor=async(predicate,label,timeout=5000)=>{const started=Date.now();while(Date.now()-started<timeout){if(predicate())return;await new Promise(resolve=>setTimeout(resolve,20));}throw new Error('timeout: '+label)};
       try{
-        await waitFor(()=>window.PdfAllInOneStage1?.stage==='pdf-all-in-one-stage1','stage API');
+        await waitFor(()=>window.PdfAllInOneStage1?.stage==='pdf-utility-quick-actions-v2','quick actions API');
         await waitFor(()=>document.getElementById('pdfAllInOneExtractBtn')&&document.getElementById('pdfAllInOneBlankBtn'),'action buttons');
-        assert(document.title==='PDF 올인원 · Program Studio','document title not rebranded');
-        assert(document.querySelector('.hero h1')?.textContent==='PDF 올인원','hero title not rebranded');
-        assert(document.documentElement.dataset.pdfAllInOneStage==='1','stage dataset missing');
+        assert(document.title==='PDF Quick Actions Smoke','quick actions must not own document branding');
+        assert(document.querySelector('.hero h1')?.textContent==='PDF 검사 · 유틸리티','quick actions changed canonical hero title');
         const extract=document.getElementById('pdfAllInOneExtractBtn');
         const blank=document.getElementById('pdfAllInOneBlankBtn');
         assert(!extract.disabled&&!blank.disabled,'actions should be enabled for selected PDF');
-
         extract.click();
         await waitFor(()=>document.getElementById('pdfAllInOneOverlay')?.classList.contains('open'),'extract modal');
         document.getElementById('pdfaioRanges').value='1-3,5';
         document.getElementById('pdfaioRun').click();
         await waitFor(()=>calls.some(call=>call.op==='extract'),'extract api call');
-        const extractCall=calls.find(call=>call.op==='extract');
-        assert(extractCall.params.ranges==='1-3,5','extract ranges were not preserved');
+        assert(calls.find(call=>call.op==='extract').params.ranges==='1-3,5','extract ranges were not preserved');
         await waitFor(()=>!window.PdfUtility.state.busy,'extract completion');
-
         blank.click();
         await waitFor(()=>calls.some(call=>call.op==='remove-blank'),'remove blank api call');
         await waitFor(()=>!window.PdfUtility.state.busy,'blank completion');
         assert(errors.length===0,'unexpected errors: '+errors.join(' / '));
         assert(downloads.length>=2,'expected two result downloads');
         assert(statuses.some(item=>item.message.includes('빈 페이지 2개')),'blank-page removal result count missing');
-
-        document.body.dataset.pdfAllInOneSmoke='pass';
-        document.body.dataset.pdfAllInOneBranding='true';
-        document.body.dataset.pdfAllInOneExtract='true';
-        document.body.dataset.pdfAllInOneBlank='true';
-        result.textContent='PASS: PDF all-in-one branding, page extract and blank-page removal';
+        document.body.dataset.pdfQuickActionsSmoke='pass';
+        result.textContent='PASS: PDF utility quick actions preserve canonical branding and run extract/blank-page tools';
       }catch(error){
-        document.body.dataset.pdfAllInOneSmoke='fail';
+        document.body.dataset.pdfQuickActionsSmoke='fail';
         result.textContent='FAIL: '+String(error?.message||error);
       }finally{
         HTMLAnchorElement.prototype.click=originalAnchorClick;

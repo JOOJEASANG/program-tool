@@ -13,27 +13,25 @@ def release_version() -> str:
     return str(json.loads(read("version.json"))["version"]).strip()
 
 
-def test_runtime_boot_loads_print_workflow_modules():
+def test_runtime_boot_uses_canonical_owners_for_print_workflow_modules():
     runtime = read("js/sw-register.js")
     app_version = read("js/app-version.js")
+    pdf_editor = read("js/pdf-editor/route-runtime.js")
+    preflight = read("js/pdf-preflight/route-runtime.js")
 
-    for asset in (
-        "/js/home-print-workflow.js",
-        "/js/admin-operations-overview.js",
-        "/js/pdf-editor-final-check.js",
-        "/js/pdf-print-readiness.js",
-        "/js/pdf-editor/spread-split.js",
-        "/js/pdf-editor/booklet-sheet-preview.js",
-    ):
-        assert asset in runtime
-        assert asset in app_version
-
+    assert "/js/home-print-workflow.js" in runtime
+    assert "/js/admin-operations-overview.js" in runtime
+    for asset in ("/js/pdf-editor-final-check.js", "/js/pdf-editor/spread-split.js", "/js/pdf-editor/booklet-sheet-preview.js"):
+        assert asset in pdf_editor
+    assert "/js/pdf-print-readiness.js" in preflight
+    executable_app = app_version.split("/*", 1)[0] + app_version.rsplit("*/", 1)[-1]
+    for asset in ("/js/pdf-editor-final-check.js", "/js/pdf-print-readiness.js", "/js/pdf-editor/spread-split.js", "/js/pdf-editor/booklet-sheet-preview.js"):
+        assert asset not in executable_app
     assert f"const VERSION='{release_version()}'" in runtime
 
 
 def test_pdf_editor_final_check_reuses_generated_output_without_manual_reupload():
     source = read("js/pdf-editor-final-check.js")
-
     assert "인쇄 전 검사 후 저장" in source
     assert "바로 PDF 저장" in source
     assert "apiProcessPdf(sources,settings" in source
@@ -47,14 +45,12 @@ def test_pdf_editor_final_check_reuses_generated_output_without_manual_reupload(
 def test_home_explains_the_print_workflow_and_keeps_secondary_tools_secondary():
     workflow = read("js/home-print-workflow.js")
     suite = read("js/home-professional-suite.js")
-
     assert "인쇄 작업 빠른 시작" in workflow
     assert "PDF 편집 · 인쇄배치" in workflow
     assert "인쇄 전 검사" in workflow
     assert "검사 후 PDF 저장" in workflow
     assert 'href="/pdf-editor/"' in workflow
     assert 'href="/pdf-preflight/"' in workflow
-
     assert "id:'document-editor'" not in suite
     assert "conversion-ocr" not in suite
     assert "print-production-home-v3" in suite
@@ -66,20 +62,12 @@ def test_home_explains_the_print_workflow_and_keeps_secondary_tools_secondary():
 
 def test_admin_operations_overview_is_explicit_and_non_destructive():
     source = read("js/admin-operations-overview.js")
-
-    for route in (
-        "pdf-editor/",
-        "pdf-preflight/",
-        "image-editor/",
-        "design-editor/",
-        "document-editor/",
-    ):
+    for route in ("pdf-editor/", "pdf-preflight/", "image-editor/", "design-editor/", "document-editor/"):
         assert route in source
-
     assert "professional_program_suite" in source
     assert "완성 도구 상태 정리" in source
     assert "if(!confirm(" in source
-    assert "visible:true" in source  # only used when a canonical tool is missing
+    assert "visible:true" in source
     assert "source[index]={...source[index],url:tool.url,status:'active'}" in source
     assert "window.AdminProfessionalProgramManager?.reload?.()" in source
     assert "$('aopSync').addEventListener('click',syncCanonical)" in source
@@ -90,7 +78,6 @@ def test_release_version_is_synchronized_for_new_workflow():
     expected = str(version["version"]).strip()
     sw = read("sw.js")
     firebase = read("js/firebase-config.js")
-
     assert expected
     assert f"APP_VERSION='{expected}'" in sw
     assert f"/js/sw-register.js?v={expected}" in firebase

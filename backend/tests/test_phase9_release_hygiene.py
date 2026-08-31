@@ -19,10 +19,13 @@ def test_phase9_favicon_asset_and_deploy_inventory():
     favicon = ROOT / "favicon.svg"
     assert favicon.is_file()
     assert '<svg xmlns="http://www.w3.org/2000/svg"' in favicon.read_text(encoding="utf-8")
-    assert len(inject.DEPLOY_HTML) == 18
+    assert len(inject.DEPLOY_HTML) == 16
     assert "index.html" in inject.DEPLOY_HTML
     assert "pdf-editor/index.html" in inject.DEPLOY_HTML
+    assert "pdf-preflight/index.html" in inject.DEPLOY_HTML
     assert "tools/pdf-editor.html" in inject.DEPLOY_HTML
+    assert "tools/preflight.html" not in inject.DEPLOY_HTML
+    assert "tools/pdf-Checker.html" not in inject.DEPLOY_HTML
 
 
 def test_phase9_injection_adds_one_common_favicon():

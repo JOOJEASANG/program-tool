@@ -1,11 +1,11 @@
-// Product refocus Stage1: PDF all-in-one + print/output positioning.
+// PDF utility quick actions + PDF editor print/output positioning.
 (function(){
   'use strict';
-  if(window.__pdfAllInOneStage1)return;
-  window.__pdfAllInOneStage1=true;
+  if(window.__pdfAllInOneStage2)return;
+  window.__pdfAllInOneStage2=true;
 
   const path=location.pathname.replace(/\/+$/,'')||'/';
-  const isUtility=path==='/pdf-preflight'||path==='/pdf-preflight/index.html'||path.endsWith('/pdf-preflight/index.html')||path.endsWith('/tools/pdf-Checker.html')||path.endsWith('/tools/preflight.html');
+  const isUtility=path==='/pdf-preflight'||path==='/pdf-preflight/index.html'||path.endsWith('/pdf-preflight/index.html');
   const isPrint=path==='/pdf-editor'||path==='/pdf-editor/index.html'||path.endsWith('/pdf-editor/index.html')||path.endsWith('/tools/pdf-editor.html');
   if(!isUtility&&!isPrint)return;
 
@@ -15,13 +15,7 @@
   let installed=false;
   let localBusy=false;
 
-  function setText(node,value){
-    if(node&&node.textContent!==value)node.textContent=value;
-  }
-
-  function setHtml(node,value){
-    if(node&&node.innerHTML!==value)node.innerHTML=value;
-  }
+  function setText(node,value){if(node&&node.textContent!==value)node.textContent=value;}
 
   function activeFile(){
     const utility=window.PdfUtility;
@@ -32,19 +26,9 @@
     return window.selectedFile||null;
   }
 
-  function showError(message){
-    if(typeof window.showError==='function')window.showError(message);
-    else alert(message);
-  }
-
-  function showStatus(message,type='info'){
-    if(typeof window.showCheckStatus==='function')window.showCheckStatus(message,type);
-  }
-
-  function safeBaseName(file){
-    return String(file?.name||'document.pdf').replace(/\.pdf$/i,'').replace(/[\\/:*?"<>|]+/g,'_').slice(0,80)||'document';
-  }
-
+  function showError(message){if(typeof window.showError==='function')window.showError(message);else alert(message);}
+  function showStatus(message,type='info'){if(typeof window.showCheckStatus==='function')window.showCheckStatus(message,type);}
+  function safeBaseName(file){return String(file?.name||'document.pdf').replace(/\.pdf$/i,'').replace(/[\\/:*?"<>|]+/g,'_').slice(0,80)||'document';}
   function downloadBlob(blob,name){
     const url=URL.createObjectURL(blob);
     const link=document.createElement('a');
@@ -56,6 +40,8 @@
     setTimeout(()=>URL.revokeObjectURL(url),1500);
   }
 
+  // Only the PDF editor still uses this module for persistent route branding.
+  // PDF inspection/utility presentation is owned by pdf-preflight-panel-balance.js.
   function applyPrintBranding(){
     if(!isPrint)return false;
     if(document.title!=='인쇄·출력 도구 · Program Studio')document.title='인쇄·출력 도구 · Program Studio';
@@ -65,24 +51,6 @@
     setText(sub,'N-up · 소책자 · 페이지 편집 · 간지 · 머리말/꼬리말 · 워터마크 · 인쇄용 PDF 저장');
     document.documentElement.dataset.printOutputStage='subscription-alternative-stage1';
     return Boolean(title);
-  }
-
-  function applyUtilityBranding(){
-    if(!isUtility)return false;
-    if(document.title!=='PDF 올인원 · Program Studio')document.title='PDF 올인원 · Program Studio';
-    const description=document.querySelector('meta[name="description"]');
-    const descriptionText='PDF 합치기·페이지 추출/나누기·빈 페이지 제거·압축·검수·암호·복구·PDF 이미지 변환을 한곳에서 처리하는 PDF 올인원 도구입니다.';
-    if(description&&description.content!==descriptionText)description.content=descriptionText;
-    setText(document.querySelector('.nav-title'),'PDF 올인원');
-    setText(document.querySelector('.hero-badge'),'📄 PDF ALL-IN-ONE');
-    const heroTitle=document.querySelector('.hero h1');
-    setText(heroTitle,'PDF 올인원');
-    setText(document.querySelector('.hero p'),'Acrobat 같은 별도 구독 프로그램 없이 PDF 합치기·나누기·압축·검수·보안·이미지 변환을 필요한 순간 바로 처리하세요.');
-    setHtml(document.querySelector('.hero-steps'),'<span class="hero-step">1. 파일 추가</span><span class="hero-step">2. 필요한 작업 선택</span><span class="hero-step">3. 결과 다운로드</span>');
-    setText(document.querySelector('.workspace>.panel:nth-child(2) .panel-title'),'PDF 작업 선택');
-    setText(document.querySelector('.workspace>.panel:nth-child(2) .panel-desc'),'합치기·나누기·압축·정리·보안·변환 중 필요한 기능만 선택해 실행합니다.');
-    document.documentElement.dataset.pdfAllInOneStage='1';
-    return Boolean(heroTitle);
   }
 
   function installStyles(){
@@ -224,7 +192,6 @@
 
   function installUtility(){
     if(!isUtility)return false;
-    applyUtilityBranding();
     if(!window.PdfUtility||typeof window.apiPdfTool!=='function'||!document.querySelector('.action-grid'))return false;
     installStyles();
     makeModal();
@@ -233,26 +200,14 @@
     observeUtilityState();
     syncButtons();
     installed=true;
-    window.PdfAllInOneStage1={
-      activeFile,
-      openExtract,
-      runExtract,
-      runRemoveBlank,
-      syncButtons,
-      stage:'pdf-all-in-one-stage1'
-    };
+    window.PdfAllInOneStage1={activeFile,openExtract,runExtract,runRemoveBlank,syncButtons,stage:'pdf-utility-quick-actions-v2'};
     return true;
-  }
-
-  function guardBranding(){
-    if(isPrint)applyPrintBranding();
-    if(isUtility)applyUtilityBranding();
   }
 
   function startObserver(){
     if(observer||!document.body)return;
     observer=new MutationObserver(()=>{
-      guardBranding();
+      if(isPrint)applyPrintBranding();
       if(isUtility&&!installed)installUtility();
       if(isUtility)syncButtons();
     });
@@ -260,11 +215,16 @@
   }
 
   function boot(){
-    guardBranding();
+    if(isPrint)applyPrintBranding();
     if(isUtility)installUtility();
     startObserver();
-    [80,220,500,900,1500,2400].forEach(delay=>setTimeout(()=>{guardBranding();if(isUtility)installUtility();syncButtons();},delay));
+    [80,220,500,900,1500,2400].forEach(delay=>setTimeout(()=>{
+      if(isPrint)applyPrintBranding();
+      if(isUtility)installUtility();
+      if(isUtility)syncButtons();
+    },delay));
   }
 
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});
+  else boot();
 })();

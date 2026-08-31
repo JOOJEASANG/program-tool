@@ -42,13 +42,11 @@ def test_design_shell_preserves_initial_route_parameters_without_breaking_stage_
         assert token in source
 
 
-def test_legacy_redirects_are_noindex_accessible_and_preserve_navigation_context():
+def test_legacy_redirects_remain_accessible_without_duplicate_preflight_html():
     redirect_paths = [
         "perfect-binding-cover/index.html",
         "tools/perfect-binding-cover.html",
         "tools/pdf-editor.html",
-        "tools/preflight.html",
-        "tools/pdf-Checker.html",
     ]
     for path in redirect_paths:
         source = text(path)
@@ -67,7 +65,10 @@ def test_legacy_redirects_are_noindex_accessible_and_preserve_navigation_context
     pdf_editor = text("tools/pdf-editor.html")
     assert "location.search+location.hash" in pdf_editor
 
-    for path in ["tools/preflight.html", "tools/pdf-Checker.html"]:
-        source = text(path)
-        assert "target.search=location.search" in source
-        assert "target.hash=location.hash" in source
+    assert not (ROOT / "tools" / "preflight.html").exists()
+    assert not (ROOT / "tools" / "pdf-Checker.html").exists()
+    firebase = text("firebase.json")
+    for source in ("/tools/preflight", "/tools/preflight.html", "/tools/pdf-Checker", "/tools/pdf-Checker.html"):
+        assert f'"source": "{source}"' in firebase
+    assert firebase.count('"destination": "/pdf-preflight"') >= 4
+    assert firebase.count('"type": 301') >= 4

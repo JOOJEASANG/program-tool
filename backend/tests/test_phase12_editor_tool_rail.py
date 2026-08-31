@@ -8,12 +8,12 @@ def test_phase12_shared_editor_tool_rail_is_loaded_for_supported_editors_only():
     ui = (ROOT / "js" / "program-studio-ui-v2.js").read_text(encoding="utf-8")
     assert "/js/editor-tool-rail-v1.js?v=20260828-1" in ui
     assert "editorToolRailV1Script" in ui
-    for surface in ("pdf-editor", "design-editor", "document-editor", "image-editor"):
+    for surface in ("pdf-editor", "pdf-preflight", "design-editor", "document-editor", "image-editor"):
         assert f"surface==='{surface}'" in ui
     assert ui.count("loadEditorToolRail();") >= 3
-    pdf_block = ui.split("if(surface==='pdf-editor'){", 1)[1].split("if(surface==='pdf-preflight')", 1)[0]
-    assert "loadEditorToolRail();" not in pdf_block
-    assert "return;" in pdf_block
+    assert "if(surface==='pdf-editor'||surface==='pdf-preflight')return;" in ui
+    design_block = ui.split("if(surface==='design-editor'){", 1)[1].split("if(surface==='document-editor')", 1)[0]
+    assert "loadEditorToolRail();" in design_block
 
 
 def test_phase12_tool_rail_has_icon_groups_and_safe_all_tools_fallback():
@@ -41,7 +41,8 @@ def test_phase12_route_budget_contract_counts_shared_tool_rail_only_where_loaded
     source = (ROOT / "scripts" / "validate_route_budgets.py").read_text(encoding="utf-8")
     assert "editorToolRailV1Script" in source
     assert 'EDITOR_TOOL_RAIL_ROUTES = ("design-general",)' in source
-    assert '"pdf-editor": (22, 900_000)' in source
+    assert '"pdf-editor": (24, 950_000)' in source
+    assert "PREFLIGHT_ROUTE_BUDGET = (22, 1_100_000)" in source
 
 
 def test_phase12_browser_smoke_is_wired_into_quality_gate():

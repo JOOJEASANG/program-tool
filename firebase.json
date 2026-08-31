@@ -18,6 +18,12 @@
     ],
     "cleanUrls": true,
     "trailingSlash": false,
+    "redirects": [
+      { "source": "/tools/preflight", "destination": "/pdf-preflight", "type": 301 },
+      { "source": "/tools/preflight.html", "destination": "/pdf-preflight", "type": 301 },
+      { "source": "/tools/pdf-Checker", "destination": "/pdf-preflight", "type": 301 },
+      { "source": "/tools/pdf-Checker.html", "destination": "/pdf-preflight", "type": 301 }
+    ],
     "rewrites": [
       {
         "source": "/api/**",

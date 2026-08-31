@@ -24,7 +24,7 @@
 
   const TOOLS=[
     {name:'PDF 편집기',description:'병합 · 페이지 편집 · N-up · 소책자',icon:'📄',url:'/pdf-editor/'},
-    {name:'PDF 인쇄 검수',description:'문서 상태 · 보안 · 출력 위험 점검',icon:'🔍',url:'/pdf-preflight/'},
+    {name:'PDF 검사 · 유틸리티',description:'인쇄 전 검사 · 보안 · 합치기 · 복구',icon:'🔍',url:'/pdf-preflight/'},
     {name:'디자인 편집기',description:'표지 · 포스터 · 전단 · 리플렛',icon:'✦',url:'/design-editor/'},
     {name:'문서 편집기',description:'A4 문서 작성 · 표 · 이미지 · 인쇄',icon:'📝',url:'/document-editor/'},
     {name:'이미지 편집기',description:'이미지 크기 · 배경 · 자르기 · 출력',icon:'🖼️',url:'/image-editor/'}
@@ -73,19 +73,11 @@
   }
 
   function mountSidebarToggle(attempt=0){
-    // PDF editor owns an always-visible sidebar through program-shell-unify/ui-runtime.
-    // Never reintroduce the legacy collapsible panel control on this surface.
     if(surface==='pdf-editor')return;
     const target=sidebarTarget();
-    if(!target){
-      if(attempt<10)setTimeout(()=>mountSidebarToggle(attempt+1),80+attempt*60);
-      return;
-    }
+    if(!target){if(attempt<10)setTimeout(()=>mountSidebarToggle(attempt+1),80+attempt*60);return;}
     const host=sidebarHost(attempt);
-    if(!host){
-      if(attempt<10)setTimeout(()=>mountSidebarToggle(attempt+1),80+attempt*60);
-      return;
-    }
+    if(!host){if(attempt<10)setTimeout(()=>mountSidebarToggle(attempt+1),80+attempt*60);return;}
     if(host.querySelector('.ps-sidebar-toggle'))return;
     const key=`program-studio:sidebar:${surface}`;
     const saved=localStorage.getItem(key)==='collapsed';
@@ -121,13 +113,11 @@
 
     if(host.classList.contains('program-local-actions')){
       const account=host.querySelector('.program-account-name');
-      if(account)host.insertBefore(button,account);
-      else host.appendChild(button);
+      if(account)host.insertBefore(button,account);else host.appendChild(button);
       return;
     }
     const anchor=host.querySelector('.nav-user,.header-actions');
-    if(anchor)host.insertBefore(button,anchor);
-    else host.appendChild(button);
+    if(anchor)host.insertBefore(button,anchor);else host.appendChild(button);
   }
 
   function loadEnhancement(id,src,ready,message){
@@ -156,16 +146,7 @@
       loadEnhancement('adminWorkflowV2Script','/js/admin-workflow-v2.js?v=20260828-1',()=>Boolean(window.__adminWorkflowV2),'관리자 편의 기능을 불러오지 못했습니다.');
       return;
     }
-    if(surface==='pdf-editor'){
-      // The PDF editor has its own always-visible sidebar runtime. Loading the
-      // retired workflow/tool-rail here races that runtime and can move every
-      // sidebar section into a detached legacy panel after first paint.
-      return;
-    }
-    if(surface==='pdf-preflight'){
-      loadEnhancement('pdfPreflightWorkflowV2Script','/js/pdf-preflight/workflow-v2.js?v=20260828-1',()=>Boolean(window.__pdfPreflightWorkflowV2),'PDF 검사 결과 개선 기능을 불러오지 못했습니다.');
-      return;
-    }
+    if(surface==='pdf-editor'||surface==='pdf-preflight')return;
     if(surface==='design-editor'){
       loadEnhancement('designEditorWorkflowV2Script','/js/design-editor/workflow-v2.js?v=20260828-1',()=>Boolean(window.__designEditorWorkflowV2),'디자인 편집 화면 개선 기능을 불러오지 못했습니다.');
       loadEditorToolRail();
@@ -281,9 +262,7 @@
         if(surface!=='home'&&isEditableTarget(event.target))return;
         event.preventDefault();
         if(palette?.classList.contains('open'))closePalette();else openPalette();
-      }else if(event.key==='Escape'&&palette?.classList.contains('open')){
-        closePalette();
-      }
+      }else if(event.key==='Escape'&&palette?.classList.contains('open'))closePalette();
     });
   }
 
@@ -303,5 +282,5 @@
     improveExternalStateLabels();
   });
 
-  window.ProgramStudioUI={version:'2026.08.30.009',surface,openPalette,closePalette};
+  window.ProgramStudioUI={version:'2026.08.31.010',surface,openPalette,closePalette};
 })();

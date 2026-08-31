@@ -26,7 +26,7 @@ window.googleProvider = googleProvider;
 window.firebaseConfig = firebaseConfig;
 
 (() => {
-  const UI_VERSION = '20260828-3';
+  const UI_VERSION = '20260831-1';
   if (!document.getElementById('programStudioUiV2Styles')) {
     const link = document.createElement('link');
     link.id = 'programStudioUiV2Styles';
@@ -47,7 +47,7 @@ window.firebaseConfig = firebaseConfig;
   if (document.getElementById('programStudioCacheBootstrap')) return;
   const script = document.createElement('script');
   script.id = 'programStudioCacheBootstrap';
-  script.src = '/js/sw-register.js?v=2026.08.31.003';
+  script.src = '/js/sw-register.js?v=2026.08.31.004';
   script.defer = true;
   document.head.appendChild(script);
 })();

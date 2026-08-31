@@ -3,32 +3,31 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 APP_VERSION = ROOT / "js" / "app-version.js"
-FIRST_PAINT = ROOT / "js" / "pdf-utility-first-paint.js"
+BOOT_GUARD = ROOT / "js" / "app-boot-guard.js"
+PREFLIGHT_RUNTIME = ROOT / "js" / "pdf-preflight" / "route-runtime.js"
 CONVERTER = ROOT / "js" / "pdf-utility-image-converter.js"
+RETIRED_FIRST_PAINT = ROOT / "js" / "pdf-utility-first-paint.js"
 
 
-def test_pdf_utility_loads_first_paint_guard_before_converter():
-    app = APP_VERSION.read_text(encoding="utf-8")
-    assert "pdfUtilityFirstPaintScriptV1" in app
-    assert "pdfUtilityFirstPaintScriptV1','/js/pdf-utility-first-paint.js?v=20260821-1'" in app
-    assert app.index("pdfUtilityFirstPaintScriptV1") < app.index("pdfUtilityImageConverterScriptV1")
+def test_pdf_utility_first_paint_is_owned_by_canonical_boot_sequence():
+    observer = APP_VERSION.read_text(encoding="utf-8")
+    boot = BOOT_GUARD.read_text(encoding="utf-8")
+    runtime = PREFLIGHT_RUNTIME.read_text(encoding="utf-8")
+
+    assert not RETIRED_FIRST_PAINT.exists()
+    executable_observer = observer.split("/*", 1)[0] + observer.rsplit("*/", 1)[-1]
+    assert "pdfUtilityFirstPaintScriptV1" not in executable_observer
+    assert "ProgramStudioPreflightRuntimeReady" in boot
+    assert "clean-workspace-v2" in boot
+    assert "pdfPreflightPanelBalanceScriptV1" in runtime
+    assert runtime.index("pdfUtilityImageConverterScriptV1") < runtime.index("pdfPreflightPanelBalanceScriptV1")
 
 
-def test_first_paint_never_hides_page_and_uses_bounded_cosmetic_retry():
-    source = FIRST_PAINT.read_text(encoding="utf-8")
-    assert "pdfu-first-paint-pending" not in source
-    assert "visibility:hidden" not in source
-    assert "pdfu-instant-layout" in source
-    assert "attempts<20" in source
-    assert "setTimeout(check,100)" in source
-
-
-def test_image_converter_card_uses_polished_presentation_without_changing_limits():
-    source = FIRST_PAINT.read_text(encoding="utf-8")
+def test_image_converter_limits_remain_bounded_after_legacy_first_paint_removal():
     converter = CONVERTER.read_text(encoding="utf-8")
-    assert "pdfu-image-converter-polished" in source
-    assert "PDF → JPG / PNG" in source
-    assert "JPG / PNG → PDF" in source
-    assert "변환 설정 열기" in source
+    runtime = PREFLIGHT_RUNTIME.read_text(encoding="utf-8")
+
+    assert "pdfUtilityImageConverterScriptV1" in runtime
+    assert "pdfUtilityImageConverterFinalizeScriptV1" in runtime
     assert "MAX_BYTES = 500 * 1024 * 1024" in converter
     assert "MAX_PAGES = 100" in converter
