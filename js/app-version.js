@@ -11,12 +11,22 @@
   let checkPromise=null;
 
   function loadScopedScript(id,src){
-    if(document.getElementById(id))return;
+    const existing=document.getElementById(id);
+    if(existing)return existing;
     const script=document.createElement('script');
     script.id=id;
     script.src=src;
     script.async=false;
+    script.dataset.runtimeOwner='app-version';
+    script.addEventListener('load',()=>{
+      script.dataset.loaded='true';
+      delete script.dataset.failed;
+    },{once:true});
+    script.addEventListener('error',()=>{
+      script.dataset.failed='error';
+    },{once:true});
     document.head.appendChild(script);
+    return script;
   }
 
   function loadCatalogScripts(target){
