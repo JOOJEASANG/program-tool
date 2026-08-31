@@ -19,11 +19,9 @@ ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_BASE_URL = "https://program-tool.web.app"
 USER_AGENT = "ProgramStudioDeploymentSmoke/1.0"
 LEGACY_DESIGN_EDITOR_PATH = "/design-editor/"
-RUNTIME_MANIFEST_PATTERN = re.compile(
-    r"const DESIGN_EDITOR_RUNTIME_SCRIPTS=Object\.freeze\(\[(.*?)\]\);",
-    re.S,
+RUNTIME_ENTRY_PATTERN = re.compile(
+    r"\{\s*id\s*:\s*['\"]([^'\"]+)['\"]\s*,\s*src\s*:\s*['\"]([^'\"]+)['\"]"
 )
-RUNTIME_ENTRY_PATTERN = re.compile(r"\['([^']+)','([^']+)'\]")
 
 
 class SmokeFailure(RuntimeError):
@@ -149,28 +147,65 @@ def _require_javascript_asset(result: HttpResult) -> None:
         raise SmokeFailure(f"{result.url} 응답이 JavaScript 본문이 아닙니다.")
 
 
-def design_editor_runtime_assets() -> list[tuple[str, str]]:
-    source = (ROOT / "js" / "sw-register.js").read_text(encoding="utf-8")
-    match = RUNTIME_MANIFEST_PATTERN.search(source)
-    if not match:
-        raise SmokeFailure("디자인 편집기 runtime manifest를 찾을 수 없습니다.")
-    entries = RUNTIME_ENTRY_PATTERN.findall(match.group(1))
+def _runtime_assets_from_file(relative_path: str, label: str) -> list[tuple[str, str]]:
+    source_path = ROOT / relative_path
+    source = source_path.read_text(encoding="utf-8")
+    entries = RUNTIME_ENTRY_PATTERN.findall(source)
     if not entries:
-        raise SmokeFailure("디자인 편집기 runtime manifest가 비어 있습니다.")
+        raise SmokeFailure(f"{label} canonical runtime manifest가 비어 있습니다: {relative_path}")
     ids = [entry[0] for entry in entries]
     paths = [entry[1] for entry in entries]
-    if len(ids) != len(set(ids)) or len(paths) != len(set(paths)):
-        raise SmokeFailure("디자인 편집기 runtime manifest에 중복 항목이 있습니다.")
+    if len(ids) != len(set(ids)):
+        raise SmokeFailure(f"{label} runtime manifest에 중복 script id가 있습니다.")
+    if len(paths) != len(set(paths)):
+        raise SmokeFailure(f"{label} runtime manifest에 중복 자산 경로가 있습니다.")
     return entries
 
 
-def _require_design_editor_runtime_assets(base_url: str, timeout: float) -> None:
-    entries = design_editor_runtime_assets()
+def design_editor_runtime_assets() -> list[tuple[str, str]]:
+    return _runtime_assets_from_file(
+        "js/design-editor/core-runtime.js",
+        "디자인 편집기",
+    )
+
+
+def pdf_editor_runtime_assets() -> list[tuple[str, str]]:
+    return _runtime_assets_from_file(
+        "js/pdf-editor/route-runtime.js",
+        "PDF 편집기",
+    )
+
+
+def _require_runtime_assets(
+    base_url: str,
+    timeout: float,
+    *,
+    label: str,
+    entries: list[tuple[str, str]],
+) -> None:
     for script_id, path in entries:
         try:
             _require_javascript_asset(_fetch(base_url, path, timeout))
         except SmokeFailure as error:
-            raise SmokeFailure(f"디자인 편집기 runtime 자산 실패: {script_id} {path}: {error}") from error
+            raise SmokeFailure(f"{label} runtime 자산 실패: {script_id} {path}: {error}") from error
+
+
+def _require_design_editor_runtime_assets(base_url: str, timeout: float) -> None:
+    _require_runtime_assets(
+        base_url,
+        timeout,
+        label="디자인 편집기",
+        entries=design_editor_runtime_assets(),
+    )
+
+
+def _require_pdf_editor_runtime_assets(base_url: str, timeout: float) -> None:
+    _require_runtime_assets(
+        base_url,
+        timeout,
+        label="PDF 편집기",
+        entries=pdf_editor_runtime_assets(),
+    )
 
 
 def expected_version_from_repository() -> str:
@@ -244,7 +279,8 @@ def run_smoke_checks(
                 )
             )(_fetch(base_url, "/design-editor/general?embed=1&mode=poster&preset=poster-a4&orientation=portrait", timeout)),
         ),
-        ("디자인 편집기 런타임 자산", lambda: _require_design_editor_runtime_assets(base_url, timeout)),
+        ("디자인 편집기 canonical 런타임 자산", lambda: _require_design_editor_runtime_assets(base_url, timeout)),
+        ("PDF 편집기 canonical 런타임 자산", lambda: _require_pdf_editor_runtime_assets(base_url, timeout)),
         (
             "레거시 표지 호환 경로",
             lambda: (
