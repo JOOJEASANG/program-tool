@@ -21,17 +21,17 @@ def test_design_general_reveals_after_access_without_waiting_for_full_runtime_ch
     assert "window.ProgramStudioRuntimeReady" not in guard
 
 
-def test_outer_design_shell_keeps_loading_cover_until_inner_and_shell_ui_are_ready():
+def test_outer_design_shell_reveals_approved_base_editor_while_enhancements_continue():
     shell = read("design-editor/index.html")
     assert "async function waitForFrameReady()" in shell
     assert "doc.documentElement.dataset.appReady==='true'" in shell
-    assert "doc.documentElement.dataset.designCoreRuntime==='1'" in shell
-    assert "doc.documentElement.dataset.designShellRuntime==='1'" in shell
-    assert "doc.documentElement.dataset.professionalUi==='2'" in shell
-    assert "doc.documentElement.dataset.designWorkspace==='three-pane'" in shell
-    assert "frame.addEventListener('load',()=>{waitForFrameReady();});" in shell
-    assert "setTimeout(()=>loading.classList.add('hide'),2600)" not in shell
-    assert "firstPaintStage:'runtime-gated-shell-reveal-v1'" in shell
+    assert "Boolean(win.DesignEditorApp)" in shell
+    assert "Boolean(win.DesignEditorEssentialWorkspace?.stage)" in shell
+    assert "Date.now()-baseReadyAt>=1200" in shell
+    assert "shell.dataset.readyStage=enhancedReady?'enhanced':'base'" in shell
+    assert "Promise.resolve(win.DesignEditorShellRuntime.loadAll())" in shell
+    assert "doc.documentElement.dataset.designCoreRuntime==='1'" not in shell
+    assert "firstPaintStage:'approved-base-shell-reveal-v2'" in shell
 
 
 def test_cover_preview_refits_after_internal_workspace_resizes():
