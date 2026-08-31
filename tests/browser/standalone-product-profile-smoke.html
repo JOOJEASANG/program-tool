@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"><title>Standalone Product Profile Smoke</title></head>
+<body data-standalone-profile-smoke="running">
+<div id="result">RUNNING</div>
+<script src="/js/design-editor/standalone-product-profile.js"></script>
+<script src="/js/pdf-editor/standalone-app-profile.js"></script>
+<script>
+(function(){
+  const result=document.getElementById('result');
+  try{
+    const design=window.DesignEditorStandaloneProducts;
+    const pdf=window.PdfEditorStandaloneApps;
+    if(!design||!pdf)throw new Error('profile registries missing');
+    const cover=design.get('cover');
+    const poster=design.get('poster');
+    const notice=design.fromLocation('?app=invitation&surface=notice');
+    const leaflet=design.get('leaflet3');
+    if(cover?.runtimeProduct!=='cover'||cover?.needsFoldRuntime!==false||!design.allows(cover,'cover'))throw new Error('cover profile mismatch');
+    if(poster?.needsFoldRuntime!==false||design.allows(poster,'cover'))throw new Error('poster capability mismatch');
+    if(notice?.key!=='notice'||notice?.runtimeProduct!=='invitation'||notice?.label!=='안내장')throw new Error('notice profile mismatch');
+    if(leaflet?.key!=='leaflet'||leaflet?.needsFoldRuntime!==true||!design.allows(leaflet,'fold'))throw new Error('leaflet profile mismatch');
+    const layout=pdf.get('layout'),booklet=pdf.get('booklet');
+    if(layout?.booklet!==false||layout?.showBooklet!==false||layout?.showDocumentEdit!==false)throw new Error('layout profile mismatch');
+    if(booklet?.booklet!==true||booklet?.showBooklet!==true||booklet?.defaultNup!==2)throw new Error('booklet profile mismatch');
+    document.body.dataset.standaloneProfileSmoke='pass';
+    document.body.dataset.noticeRuntime=notice.runtimeProduct;
+    document.body.dataset.leafletFold=String(leaflet.needsFoldRuntime);
+    document.body.dataset.bookletDefault=String(booklet.booklet);
+    result.textContent='PASS: standalone design/PDF product profiles resolve expected capabilities';
+  }catch(error){
+    document.body.dataset.standaloneProfileSmoke='fail';
+    result.textContent='FAIL: '+String(error?.stack||error);
+  }
+})();
+</script>
+</body>
+</html>
