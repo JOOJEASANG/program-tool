@@ -4,10 +4,13 @@ service firebase.storage {
     function signedIn() { return request.auth != null; }
     function isOwner(userId) { return signedIn() && request.auth.uid == userId; }
     function hasAdminClaim() {
-      return signedIn() && request.auth.token.admin == true;
+      return signedIn()
+        && request.auth.token.keys().hasAll(['admin'])
+        && request.auth.token.admin == true;
     }
     function legacyAdmin() {
       return signedIn()
+        && request.auth.token.keys().hasAll(['email'])
         && request.auth.token.email != null
         && firestore.exists(/databases/(default)/documents/settings/admin)
         && firestore.get(/databases/(default)/documents/settings/admin).data.emails.hasAny([
@@ -42,6 +45,7 @@ service firebase.storage {
         && sessionId.matches('^[A-Za-z0-9_-]{8,40}$')
         && fileName.matches('^src_[0-9]{1,2}[.]pdf$')
         && request.resource.metadata != null
+        && request.resource.metadata.keys().hasAll(['ownerUid', 'purpose', 'sessionId'])
         && request.resource.metadata.ownerUid == userId
         && request.resource.metadata.purpose == 'pdf-session-source'
         && request.resource.metadata.sessionId == sessionId;
@@ -56,17 +60,19 @@ service firebase.storage {
         && request.resource.size <= 31457280
         && request.resource.contentType == 'application/json'
         && request.resource.metadata != null
+        && request.resource.metadata.keys().hasAll(['ownerUid', 'format'])
         && request.resource.metadata.ownerUid == userId
         && request.resource.metadata.format == 'program-studio-design-project';
     }
 
     // Short-lived staging. The backend accepts at most 200 MiB per file and
     // 300 MiB per PDF job, so Storage must never accept a larger single object.
-    // Updates are denied to avoid accidental duplicate transfer/overwrite cost.
+    // Existing objects cannot be overwritten; callers must use a fresh session path.
     match /pdf_temp/{userId}/{sessionId}/{fileName} {
       allow read: if isOwner(userId) && canUseProgram('pdf-editor');
       allow delete: if isOwner(userId);
-      allow create: if isOwner(userId)
+      allow create: if resource == null
+        && isOwner(userId)
         && canUseProgram('pdf-editor')
         && validStagePath(sessionId, fileName)
         && validPdfUpload(209715200);
@@ -75,7 +81,8 @@ service firebase.storage {
     match /preflight_temp/{userId}/{sessionId}/{fileName} {
       allow read: if isOwner(userId) && canUseProgram('preflight');
       allow delete: if isOwner(userId);
-      allow create: if isOwner(userId)
+      allow create: if resource == null
+        && isOwner(userId)
         && canUseProgram('preflight')
         && validStagePath(sessionId, fileName)
         && validPdfUpload(209715200);
@@ -86,7 +93,8 @@ service firebase.storage {
     // limited to 200 MiB each, carry ownership metadata, and are immutable.
     match /pdf_sessions/{userId}/{sessionId}/{fileName} {
       allow read, delete: if isOwner(userId) && canUseProgram('pdf-editor');
-      allow create: if isOwner(userId)
+      allow create: if resource == null
+        && isOwner(userId)
         && canUseProgram('pdf-editor')
         && validSessionUpload(userId, sessionId, fileName);
       allow update: if false;
@@ -105,7 +113,8 @@ service firebase.storage {
       allow delete: if isOwner(userId);
       // Revisions are immutable: a save writes a new revision and then removes
       // the previous one after Firestore metadata commits successfully.
-      allow create: if isDesignProjectUpload(userId, projectId, fileName);
+      allow create: if resource == null
+        && isDesignProjectUpload(userId, projectId, fileName);
       allow update: if false;
     }
 
