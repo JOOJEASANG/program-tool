@@ -6,21 +6,21 @@
   <title>디자인 편집기 · Program Studio</title>
   <meta name="description" content="표지·포스터·전단·초대장·안내장·4P~12P 리플렛을 인쇄 실무 기준으로 작업하는 통합 디자인 편집기">
   <style>
-    *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;background:#eef3f7}body{overflow:hidden}.studio{position:relative;width:100%;height:100vh}.editor-frame{display:block;width:100%;height:100%;border:0;background:#fff}.loading{position:absolute;inset:0;z-index:5;display:grid;place-items:center;background:#f8fbfd;color:#64748b;font:800 11px/1.4 Arial,sans-serif;transition:.15s}.loading.hide{opacity:0;pointer-events:none}.spinner{width:30px;height:30px;border:3px solid #dbe5ee;border-top-color:#12396d;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 10px}@keyframes spin{to{transform:rotate(360deg)}}
+    *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;background:#eef3f7}body{overflow:hidden}.studio{position:relative;width:100%;height:100vh}.editor-frame{display:block;width:100%;height:100%;border:0;background:#fff}.loading{position:absolute;inset:0;z-index:5;display:grid;place-items:center;background:#f8fbfd;color:#64748b;font:800 11px/1.4 Arial,sans-serif;transition:.15s}.loading.hide{opacity:0;pointer-events:none}.loading.error{color:#9f2d24}.spinner{width:30px;height:30px;border:3px solid #dbe5ee;border-top-color:#12396d;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 10px}.loading.error .spinner{display:none}@keyframes spin{to{transform:rotate(360deg)}}
   </style>
 </head>
 <body>
   <main id="unifiedDesignShell" class="studio" data-mode="cover">
     <!-- 작업 종류: 표지디자인 · 포스터 · 전단지 · 초대장/안내장 · 리플렛(4P~12P) -->
     <!-- Retired compatibility URL only; it redirects here and is not an editor fallback: /perfect-binding-cover/?embed=1&mode=cover -->
-    <div id="loading" class="loading"><div><div class="spinner"></div>디자인 편집기를 불러오는 중...</div></div>
+    <div id="loading" class="loading"><div><div class="spinner"></div><span id="loadingMessage">디자인 편집기를 불러오는 중...</span></div></div>
     <iframe id="editorFrame" class="editor-frame" title="디자인 편집 작업영역" src="/design-editor/general?embed=1&mode=cover&preset=cover-a4"></iframe>
   </main>
   <script>
     (function(){
       'use strict';
-      const frame=document.getElementById('editorFrame'),loading=document.getElementById('loading'),shell=document.getElementById('unifiedDesignShell');
-      const SHELL_RUNTIME_VERSION='20260828-1';
+      const frame=document.getElementById('editorFrame'),loading=document.getElementById('loading'),loadingMessage=document.getElementById('loadingMessage'),shell=document.getElementById('unifiedDesignShell');
+      const SHELL_RUNTIME_VERSION='20260831-2';
       const DEFAULTS={
         cover:{mode:'cover',preset:'cover-a4'},
         poster:{mode:'poster',preset:'poster-a4',paper:'a4',orientation:'portrait',w:210,h:297},
@@ -85,21 +85,55 @@
       const ensureMultiSmartGuidesRuntime=ensurePrintRuntimes;
       const ensureSimpleResultRuntime=ensurePrintRuntimes;
       const ensureProfessionalUi=ensurePrintRuntimes;
-      function openMode(detail){loading.classList.remove('hide');frame.src=route(detail);}
+      function showLoading(message='디자인 편집기를 불러오는 중...'){
+        loading.classList.remove('hide','error');
+        if(loadingMessage)loadingMessage.textContent=message;
+        delete shell.dataset.ready;
+      }
+      function showLoadFailure(){
+        loading.classList.remove('hide');loading.classList.add('error');
+        if(loadingMessage)loadingMessage.textContent='디자인 편집기를 완성하지 못했습니다. 새로고침해 주세요.';
+        shell.dataset.ready='error';
+      }
+      const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+      async function waitForFrameReady(){
+        showLoading();
+        const deadline=Date.now()+12000;
+        let shellLoadStarted=false;
+        while(Date.now()<deadline){
+          try{
+            const doc=frame.contentDocument,win=frame.contentWindow;
+            if(!doc?.documentElement||!win){await delay(40);continue;}
+            ensurePrintRuntimes();
+            if(win.DesignEditorShellRuntime?.loadAll&&!shellLoadStarted){
+              shellLoadStarted=true;
+              Promise.resolve(win.DesignEditorShellRuntime.loadAll()).catch(()=>{shellLoadStarted=false;});
+            }
+            const innerReady=doc.documentElement.dataset.appReady==='true'&&doc.documentElement.dataset.designCoreRuntime==='1';
+            const shellReady=doc.documentElement.dataset.designShellRuntime==='1'&&doc.documentElement.dataset.professionalUi==='2'&&doc.documentElement.dataset.designWorkspace==='three-pane';
+            if(innerReady&&shellReady){
+              await new Promise(resolve=>win.requestAnimationFrame(()=>win.requestAnimationFrame(resolve)));
+              loading.classList.add('hide');
+              shell.dataset.ready='true';
+              return true;
+            }
+          }catch(_){/* same-origin frame can be temporarily unavailable while navigating */}
+          await delay(40);
+        }
+        showLoadFailure();
+        return false;
+      }
+      function openMode(detail){showLoading('작업 종류를 전환하는 중...');frame.src=route(detail);}
       window.addEventListener('message',event=>{
         if(event.origin!==location.origin||event.source!==frame.contentWindow)return;
         const data=event.data||{};
         if(data.type==='program-studio-design-mode')openMode(data);
       });
-      frame.addEventListener('load',()=>{
-        ensurePrintRuntimes();
-        [120,600].forEach(delay=>setTimeout(ensurePrintRuntimes,delay));
-        loading.classList.add('hide');
-      });
+      frame.addEventListener('load',()=>{waitForFrameReady();});
       const initialRoute=route(incomingDetail());
       if(frame.getAttribute('src')!==initialRoute)frame.src=initialRoute;
-      setTimeout(()=>loading.classList.add('hide'),2600);
-      window.UnifiedDesignShell={openMode,route,incomingDetail,ensureFoldRuntime,ensureDocumentStateRuntime,ensureProductRuntime,ensureProductStateRuntime,ensureProductTopbarRuntime,ensureSelectionContextRuntime,ensureMultiSelectionRuntime,ensureMultiSmartGuidesRuntime,ensureSimpleResultRuntime,ensureProfessionalUi,ensurePrintRuntimes,foldRuntimeStage:'direct-fold-runtime-loader-and-verifier',documentStateStage:'canonical-document-type-state-v1',productRuntimeStage:'print-product-menu-loader',productTopbarStage:'professional-design-commandbar-v2',selectionContextStage:'selection-context-properties-v1',multiSelectionStage:'multi-select-align-distribute-group-v1',multiSmartGuidesStage:'multi-smart-guides-exact-gap-v1',simpleResultStage:'simple-result-background-logo-text-output-v1',professionalUiStage:'professional-workspace-visual-system-v1',workspaceStage:'three-pane-context-properties-v1',runtimeManifestStage:'design-shell-runtime-manifest-v1',routingStage:'query-aware-initial-route-v3-invitation',stage:'single-sidebar-general-engine-shell-no-legacy-fallback'};
+      else if(frame.contentDocument?.readyState==='complete')setTimeout(waitForFrameReady,0);
+      window.UnifiedDesignShell={openMode,route,incomingDetail,ensureFoldRuntime,ensureDocumentStateRuntime,ensureProductRuntime,ensureProductStateRuntime,ensureProductTopbarRuntime,ensureSelectionContextRuntime,ensureMultiSelectionRuntime,ensureMultiSmartGuidesRuntime,ensureSimpleResultRuntime,ensureProfessionalUi,ensurePrintRuntimes,waitForFrameReady,foldRuntimeStage:'direct-fold-runtime-loader-and-verifier',documentStateStage:'canonical-document-type-state-v1',productRuntimeStage:'print-product-menu-loader',productTopbarStage:'professional-design-commandbar-v2',selectionContextStage:'selection-context-properties-v1',multiSelectionStage:'multi-select-align-distribute-group-v1',multiSmartGuidesStage:'multi-smart-guides-exact-gap-v1',simpleResultStage:'simple-result-background-logo-text-output-v1',professionalUiStage:'professional-workspace-visual-system-v1',workspaceStage:'three-pane-context-properties-v1',runtimeManifestStage:'design-shell-runtime-manifest-v1',routingStage:'query-aware-initial-route-v3-invitation',firstPaintStage:'runtime-gated-shell-reveal-v1',stage:'single-sidebar-general-engine-shell-no-legacy-fallback'};
     })();
   </script>
 </body>
