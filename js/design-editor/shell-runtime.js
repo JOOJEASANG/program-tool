@@ -4,10 +4,17 @@
   if(window.__designEditorShellRuntimeV1)return;
   window.__designEditorShellRuntimeV1=true;
 
+  const params=new URLSearchParams(location.search);
+  const rawApp=(params.get('app')||'').trim().toLowerCase();
+  const app=rawApp==='notice'?'invitation':rawApp;
+  const standalone=['cover','poster','flyer','invitation','leaflet'].includes(app);
+  const foldProduct=app==='invitation'||app==='leaflet'||(!standalone&&['invitation','leaflet2','leaflet3'].includes(params.get('mode')||''));
+
   const MODULES=Object.freeze([
-    {id:'designPrintFoldRuntimeEnsureScriptV1',src:'/js/design-editor/print-fold-runtime-ensure.js?v=20260825-5',global:'DesignEditorPrintFoldRuntimeEnsure',method:'refresh'},
+    {id:'designProductBoundaryUiScriptV1',src:'/js/design-editor/product-boundary-ui.js?v=20260831-1',global:'DesignEditorProductBoundaryUi',method:'sync',when:()=>standalone},
+    {id:'designPrintFoldRuntimeEnsureScriptV1',src:'/js/design-editor/print-fold-runtime-ensure.js?v=20260825-5',global:'DesignEditorPrintFoldRuntimeEnsure',method:'refresh',when:()=>foldProduct||!standalone},
     {id:'designDocumentTypeStateScriptV1',src:'/js/design-editor/document-type-state.js?v=20260828-1',global:'DesignEditorDocumentTypeState',method:'sync'},
-    {id:'designPrintProductMenuScriptV1',src:'/js/design-editor/print-product-menu.js?v=20260828-3',global:'DesignEditorPrintProductMenu',method:'render'},
+    {id:'designPrintProductMenuScriptV1',src:'/js/design-editor/print-product-menu.js?v=20260828-3',global:'DesignEditorPrintProductMenu',method:'render',when:()=>!standalone||foldProduct},
     {id:'designPrintProductStateRestoreScriptV1',src:'/js/design-editor/print-product-state-restore.js?v=20260825-1',global:'DesignEditorPrintProductStateRestore',method:'patch'},
     {id:'designPrintProductTopbarScriptV1',src:'/js/design-editor/print-product-topbar.js?v=20260828-2',global:'DesignEditorPrintProductTopbar',method:'sync'},
     {id:'designSelectionContextbarScriptV1',src:'/js/design-editor/selection-contextbar.js?v=20260828-1',global:'DesignEditorSelectionContextbar',method:'sync'},
@@ -18,6 +25,7 @@
     {id:'designPreviewFitRefreshScriptV1',src:'/js/design-editor/preview-fit-refresh.js?v=20260831-1',global:'DesignEditorPreviewFitRefresh',method:'sync'}
   ]);
 
+  const activeModules=()=>MODULES.filter(entry=>typeof entry.when!=='function'||entry.when());
   const loading=new Map();
   const getApi=entry=>window[entry.global]||null;
 
@@ -66,15 +74,17 @@
   }
 
   async function loadAll(){
-    for(const entry of MODULES)await loadEntry(entry);
+    const modules=activeModules();
+    for(const entry of modules)await loadEntry(entry);
     sync();
     document.documentElement.dataset.designShellRuntime='1';
+    if(standalone)document.documentElement.dataset.designStandaloneApp=app;
     return true;
   }
 
   function sync(){
     let ready=0;
-    MODULES.forEach(entry=>{if(syncEntry(entry))ready+=1;});
+    activeModules().forEach(entry=>{if(syncEntry(entry))ready+=1;});
     return ready;
   }
 
@@ -88,7 +98,8 @@
   window.DesignEditorShellRuntime={
     loadAll,
     sync,
-    modules:MODULES.map(({id,src,global,method})=>({id,src,global,method})),
-    stage:'design-shell-runtime-manifest-v1'
+    product:standalone?app:'integrated',
+    modules:activeModules().map(({id,src,global,method})=>({id,src,global,method})),
+    stage:'design-shell-product-boundary-v2'
   };
 })();
