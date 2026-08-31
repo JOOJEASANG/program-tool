@@ -16,6 +16,7 @@
     script.id=id;
     script.src=src;
     script.async=false;
+    script.onload=()=>script.dataset.loaded='true';
     document.head.appendChild(script);
   }
 

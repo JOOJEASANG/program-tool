@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>PDF Fast Insert Actions Smoke</title>
+</head>
+<body data-pdf-fast-insert-smoke="pending">
+  <div class="preview-zoom"><span>줄당</span><select id="perRowSelect"><option value="2">2</option></select></div>
+  <div><span id="previewInfo"></span><span id="previewPages"></span></div>
+  <div id="previewScroll"><div class="empty-state"><p>대용량 최적화 모드</p></div></div>
+  <div id="result">PENDING</div>
+
+  <script>
+    var parsedPages=[{id:'p1',pageType:'pdf',excluded:false}];
+    window.__pdfEditorFastMode=true;
+    function makeBlankPage(){return{id:'blank-'+Date.now(),pageType:'blank',excluded:false};}
+    function renderThumbs(){document.body.dataset.fastInsertThumbs='rendered';}
+    function showStatus(message){document.body.dataset.fastInsertStatus=message;}
+    function hideStatus(){}
+    window.openDividerInsert=function(index){document.body.dataset.fastInsertDividerIndex=String(index);};
+  </script>
+  <script src="/js/pdf-editor/preview-row-default.js?v=20260731-1"></script>
+  <script>
+  (()=>{
+    const result=document.getElementById('result');
+    const assert=(condition,message)=>{if(!condition)throw new Error(message)};
+    const run=()=>{
+      try{
+        const actions=document.getElementById('pdfFastInsertActionsV1');
+        assert(actions,'fast-mode insert action bar must exist');
+        const buttons=actions.querySelectorAll('button');
+        assert(buttons.length===2,'blank and divider buttons must both exist');
+        assert(buttons[0].textContent.includes('빈 페이지'),'blank page action must stay visible');
+        assert(buttons[1].textContent.includes('간지'),'divider action must stay visible');
+
+        buttons[0].click();
+        assert(parsedPages.length===2,'blank page must be appended to the page model');
+        assert(parsedPages[1].pageType==='blank','appended page must be a blank page');
+        assert(document.body.dataset.fastInsertThumbs==='rendered','thumbnail list must refresh after blank insertion');
+        assert(document.getElementById('previewPages').textContent.includes('2페이지'),'fast preview page count must refresh');
+
+        buttons[1].click();
+        assert(document.body.dataset.fastInsertDividerIndex==='2','divider modal must open at the current document end');
+
+        document.getElementById('previewScroll').innerHTML='<div class="empty-state"><p>대용량 최적화 모드 재렌더</p></div>';
+        setTimeout(()=>{
+          try{
+            assert(document.getElementById('pdfFastInsertActionsV1'),'action bar must be restored after optimized placeholder rerender');
+            document.body.dataset.pdfFastInsertSmoke='pass';
+            result.textContent='PASS: large PDF optimized preview keeps blank-page and divider insertion actions';
+          }catch(error){
+            document.body.dataset.pdfFastInsertSmoke='fail';
+            result.textContent='FAIL: '+String(error?.message||error);
+          }
+        },80);
+      }catch(error){
+        document.body.dataset.pdfFastInsertSmoke='fail';
+        result.textContent='FAIL: '+String(error?.message||error);
+      }
+    };
+    setTimeout(run,120);
+  })();
+  </script>
+</body>
+</html>
