@@ -7,7 +7,6 @@
 
   const MODULES=Object.freeze([
     {id:'programShellUnifyScriptV1',src:'/js/program-shell-unify.js?v=20260831-1'},
-    {id:'pdfEditorAppBoundaryScriptV1',src:'/js/pdf-editor/app-boundary.js?v=20260831-1'},
     {id:'pdfAllInOneStage1ScriptV1',src:'/js/pdf-all-in-one-stage1.js?v=20260824-1'},
     {id:'desktopToolMobileNoticeScriptV1',src:'/js/desktop-tool-mobile-notice.js?v=20260807-1'},
     {id:'pdfEditorModuleLoaderScript',src:'/js/pdf-editor/loader.js?v=20260828-1'},
@@ -30,18 +29,30 @@
   ]);
 
   const context=()=>window.ProgramStudioPdfEditorRuntimeContext||{};
+  const params=()=>new URLSearchParams(location.search);
+  const standaloneApp=()=>{
+    const value=(params().get('app')||'').trim().toLowerCase();
+    return value==='layout'||value==='booklet'?value:'';
+  };
 
-  function hostLoad(entry){
+  function hostLoadScript(id,src){
     const loader=context().load;
     if(typeof loader!=='function'){
       return Promise.reject(new Error('Program Studio PDF route loader is unavailable'));
     }
-    return loader(entry.id,entry.src);
+    return loader(id,src);
+  }
+
+  function hostLoad(entry){
+    return hostLoadScript(entry.id,entry.src);
   }
 
   function loadAll(){
     const seen=new Set();
     const pending=[];
+    if(standaloneApp()){
+      pending.push(hostLoadScript('pdfEditorAppBoundaryScriptV1','/js/pdf-editor/app-boundary.js?v=20260831-1'));
+    }
     for(const entry of MODULES){
       if(!entry.id||!entry.src||seen.has(entry.id)){
         console.warn('[pdf-route-runtime] manifest entry skipped',entry);
@@ -54,6 +65,7 @@
     }
     return Promise.all(pending).then(()=>{
       document.documentElement.dataset.pdfRouteRuntime='1';
+      if(standaloneApp())document.documentElement.dataset.pdfStandaloneApp=standaloneApp();
       return true;
     });
   }
@@ -61,6 +73,7 @@
   window.PdfEditorRouteRuntime={
     loadAll,
     modules:MODULES.map(({id,src})=>({id,src})),
+    app:standaloneApp(),
     stage:'pdf-editor-route-runtime-manifest-v1'
   };
 })();
