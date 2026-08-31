@@ -36,6 +36,7 @@ def validate() -> None:
         "js/design-editor/shared/module-profile.js",
         "js/design-editor/shared/document-type-state.js",
         "js/design-editor/shared/selection-contextbar.js",
+        "js/design-editor/shared/workspace-navigation.js",
         "js/design-editor/standalone-product-profile.js",
         "js/design-editor/product-boundary-ui.js",
         "js/pdf-editor/standalone-app-profile.js",
@@ -43,6 +44,7 @@ def validate() -> None:
         "tests/browser/modular-app-shell-smoke.html",
         "tests/browser/standalone-product-profile-smoke.html",
         "tests/browser/standalone-boundary-ui-smoke.html",
+        "tests/browser/design-workspace-navigation-smoke.html",
         "scripts/run_modular_app_shell_smoke.sh",
     )
     for relative in required:
@@ -60,6 +62,7 @@ def validate() -> None:
     design_core = read("js/design-editor/core-runtime.js")
     design_shell = read("js/design-editor/shell-runtime.js")
     shared_modules = read("js/design-editor/shared/module-profile.js")
+    workspace_nav = read("js/design-editor/shared/workspace-navigation.js")
     design_profiles = read("js/design-editor/standalone-product-profile.js")
     boundary_ui = read("js/design-editor/product-boundary-ui.js")
     pdf_route = read("js/pdf-editor/route-runtime.js")
@@ -69,6 +72,7 @@ def validate() -> None:
     browser_smoke = read("tests/browser/modular-app-shell-smoke.html")
     profile_smoke = read("tests/browser/standalone-product-profile-smoke.html")
     boundary_smoke = read("tests/browser/standalone-boundary-ui-smoke.html")
+    workspace_nav_smoke = read("tests/browser/design-workspace-navigation-smoke.html")
     smoke_runner = read("scripts/run_modular_app_shell_smoke.sh")
 
     for key in APP_KEYS:
@@ -106,12 +110,23 @@ def validate() -> None:
         errors.append("design shell does not load canonical document type state from shared")
     if "shared/selection-contextbar.js?v=20260831-1" not in design_shell:
         errors.append("design shell does not load selection contextbar from shared")
+    if "shared/workspace-navigation.js?v=20260831-1" not in design_shell or "loadWorkspaceNavigation" not in design_shell:
+        errors.append("standalone design shell does not load shared workspace navigation")
     if (
         "design-editor-shared-module-profile-v1" not in shared_modules
         or "CORE_PRODUCT_ONLY" not in shared_modules
         or "SHELL_CAPABILITIES" not in shared_modules
     ):
         errors.append("shared design module policy is incomplete")
+    if (
+        "shared-workspace-navigation-v1" not in workspace_nav
+        or "{key:'start',label:'설정'}" not in workspace_nav
+        or "{key:'edit',label:'편집'}" not in workspace_nav
+        or "{key:'arrange',label:'배치'}" not in workspace_nav
+        or "{key:'output',label:'출력'}" not in workspace_nav
+        or "DesignEditorEssentialWorkspace" not in workspace_nav
+    ):
+        errors.append("shared design workspace navigation is incomplete")
     if "standalone-product-profile.js" not in design_shell or "activeProfile" not in design_shell:
         errors.append("design shell does not use the standalone product profile layer")
     if "DesignEditorStandaloneProducts" not in boundary_ui:
@@ -138,6 +153,12 @@ def validate() -> None:
         errors.append("standalone/shared design/PDF profile browser coverage is missing")
     if "data-standalone-boundary-smoke" not in boundary_smoke or "standalone-boundary-ui-smoke.html" not in smoke_runner:
         errors.append("standalone boundary UI browser coverage is missing")
+    if (
+        "data-workspace-nav-smoke" not in workspace_nav_smoke
+        or "data-workspace-nav-steps" not in workspace_nav_smoke
+        or "design-workspace-navigation-smoke.html" not in smoke_runner
+    ):
+        errors.append("shared design workspace navigation browser coverage is missing")
 
     # Keep standalone shells thin: app shell must route to canonical editors,
     # never grow a second canvas/PDF implementation.
@@ -152,7 +173,7 @@ def validate() -> None:
             print(f" - {error}", file=sys.stderr)
         raise SystemExit(1)
 
-    print("Modular app architecture OK: 8 standalone routes share canonical design/PDF engines, shared module policy, shared editor state/UI, product profiles, boundary UI and browser coverage")
+    print("Modular app architecture OK: 8 standalone routes share canonical design/PDF engines, shared module policy, shared editor state/UI, product profiles, boundary UI, workspace navigation and browser coverage")
 
 
 if __name__ == "__main__":
