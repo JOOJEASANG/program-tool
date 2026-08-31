@@ -42,13 +42,15 @@
       surface.extras.forEach(item=>{const node=document.createElement('div');node.className='phase2-extra-object';node.dataset.extraId=item.id;artboard.appendChild(node);});
     }
   </script>
-  <script src="/js/design-editor/simple-result-workflow.js?v=20260828-1"></script>
+  <script id="designSimpleResultWorkflowSmokeScript" src="/js/design-editor/shared/simple-result-workflow.js?v=20260828-1"></script>
   <script>
     window.addEventListener('DOMContentLoaded',()=>{
       const result=document.getElementById('result');
       const assert=(ok,msg)=>{if(!ok)throw new Error(msg);};
       const run=async()=>{
         try{
+          const runtimeScript=document.getElementById('designSimpleResultWorkflowSmokeScript');assert(runtimeScript?.src.includes('/js/design-editor/shared/simple-result-workflow.js'),'simple result runtime not loaded from shared');
+          document.body.dataset.designSimpleResultOwnership='shared';
           const api=window.DesignEditorSimpleResultWorkflow;assert(api,'simple result runtime missing');api.sync();
           const card=document.getElementById('designSimpleResultTools');assert(card&&card.dataset.psToolStep==='compose','quick card missing or not compose');
           assert(nativeAddCard.classList.contains('design-simple-basic-hidden'),'native add card not hidden');

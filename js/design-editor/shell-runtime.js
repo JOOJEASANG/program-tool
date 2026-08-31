@@ -15,7 +15,7 @@ const MODULES=Object.freeze([
 {id:'designSelectionContextbarScriptV1',src:'/js/design-editor/shared/selection-contextbar.js?v=20260831-1',global:'DesignEditorSelectionContextbar',method:'sync'},
 {id:'designMultiSelectionScriptV1',src:'/js/design-editor/shared/multi-selection-context.js?v=20260828-1',global:'DesignEditorMultiSelection',method:'sync'},
 {id:'designMultiSmartGuidesScriptV1',src:'/js/design-editor/shared/multi-selection-smart-guides.js?v=20260828-1',global:'DesignEditorMultiSmartGuides',method:'sync'},
-{id:'designSimpleResultWorkflowScriptV1',src:'/js/design-editor/simple-result-workflow.js?v=20260828-1',global:'DesignEditorSimpleResultWorkflow',method:'sync'},
+{id:'designSimpleResultWorkflowScriptV1',src:'/js/design-editor/shared/simple-result-workflow.js?v=20260828-1',global:'DesignEditorSimpleResultWorkflow',method:'sync'},
 {id:'designProfessionalUiScriptV1',src:'/js/design-editor/professional-ui.js?v=20260828-2',global:'DesignEditorProfessionalUi',method:'sync'},
 {id:'designPreviewFitRefreshScriptV1',src:'/js/design-editor/preview-fit-refresh.js?v=20260831-1',global:'DesignEditorPreviewFitRefresh',method:'sync'}
 ]);

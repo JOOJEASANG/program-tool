@@ -38,6 +38,7 @@ def validate() -> None:
         "js/design-editor/shared/selection-contextbar.js",
         "js/design-editor/shared/multi-selection-context.js",
         "js/design-editor/shared/multi-selection-smart-guides.js",
+        "js/design-editor/shared/simple-result-workflow.js",
         "js/design-editor/shared/workspace-navigation.js",
         "js/design-editor/standalone-product-profile.js",
         "js/design-editor/product-boundary-ui.js",
@@ -49,6 +50,7 @@ def validate() -> None:
         "tests/browser/design-workspace-navigation-smoke.html",
         "tests/browser/design-multi-selection-shared-smoke.html",
         "tests/browser/design-editor-multi-smart-guides-smoke.html",
+        "tests/browser/design-editor-simple-result-smoke.html",
         "scripts/run_modular_app_shell_smoke.sh",
     )
     for relative in required:
@@ -58,6 +60,7 @@ def validate() -> None:
     legacy_removed = (
         "js/design-editor/multi-selection-context.js",
         "js/design-editor/multi-selection-smart-guides.js",
+        "js/design-editor/simple-result-workflow.js",
     )
     for relative in legacy_removed:
         if (ROOT / relative).exists():
@@ -76,6 +79,7 @@ def validate() -> None:
     shared_modules = read("js/design-editor/shared/module-profile.js")
     workspace_nav = read("js/design-editor/shared/workspace-navigation.js")
     smart_guides = read("js/design-editor/shared/multi-selection-smart-guides.js")
+    simple_result = read("js/design-editor/shared/simple-result-workflow.js")
     design_profiles = read("js/design-editor/standalone-product-profile.js")
     boundary_ui = read("js/design-editor/product-boundary-ui.js")
     pdf_route = read("js/pdf-editor/route-runtime.js")
@@ -88,6 +92,7 @@ def validate() -> None:
     workspace_nav_smoke = read("tests/browser/design-workspace-navigation-smoke.html")
     multi_selection_smoke = read("tests/browser/design-multi-selection-shared-smoke.html")
     smart_guides_smoke = read("tests/browser/design-editor-multi-smart-guides-smoke.html")
+    simple_result_smoke = read("tests/browser/design-editor-simple-result-smoke.html")
     smoke_runner = read("scripts/run_modular_app_shell_smoke.sh")
 
     for key in APP_KEYS:
@@ -129,6 +134,8 @@ def validate() -> None:
         errors.append("design shell does not load multi-selection context from shared")
     if "shared/multi-selection-smart-guides.js?v=20260828-1" not in design_shell:
         errors.append("design shell does not load multi-selection smart guides from shared")
+    if "shared/simple-result-workflow.js?v=20260828-1" not in design_shell:
+        errors.append("design shell does not load simple result workflow from shared")
     if "shared/workspace-navigation.js?v=20260831-1" not in design_shell or "loadWorkspaceNavigation" not in design_shell:
         errors.append("standalone design shell does not load shared workspace navigation")
     if (
@@ -153,6 +160,13 @@ def validate() -> None:
         or "#${CONTROLS_ID} .design-multi-gap-apply{display:none}" not in smart_guides
     ):
         errors.append("shared multi-selection smart-guide ownership/mobile contract is incomplete")
+    if (
+        "stage:'simple-result-background-logo-text-output-v1'" not in simple_result
+        or "data-simple-action=\"title\"" not in simple_result
+        or "data-simple-action=\"png\"" not in simple_result
+        or "data-simple-action=\"pdf\"" not in simple_result
+    ):
+        errors.append("shared simple-result background/logo/text/output contract is incomplete")
     if "standalone-product-profile.js" not in design_shell or "activeProfile" not in design_shell:
         errors.append("design shell does not use the standalone product profile layer")
     if "DesignEditorStandaloneProducts" not in boundary_ui:
@@ -199,6 +213,11 @@ def validate() -> None:
         or "design-editor-multi-smart-guides-smoke.html" not in smoke_runner
     ):
         errors.append("shared multi-selection smart-guide browser/UI ownership coverage is missing")
+    if (
+        "shared/simple-result-workflow.js" not in simple_result_smoke
+        or "dataset.designSimpleResultOwnership='shared'" not in simple_result_smoke
+    ):
+        errors.append("shared simple-result browser/runtime ownership coverage is missing")
 
     # Keep standalone shells thin: app shell must route to canonical editors,
     # never grow a second canvas/PDF implementation.
@@ -213,7 +232,7 @@ def validate() -> None:
             print(f" - {error}", file=sys.stderr)
         raise SystemExit(1)
 
-    print("Modular app architecture OK: 8 standalone routes share canonical design/PDF engines, shared module policy, shared editor state/UI, product profiles, boundary UI, workspace navigation, multi-selection context, smart guides and browser coverage")
+    print("Modular app architecture OK: 8 standalone routes share canonical design/PDF engines, shared module policy, shared editor state/UI, product profiles, boundary UI, workspace navigation, multi-selection context, smart guides, simple-result workflow and browser coverage")
 
 
 if __name__ == "__main__":
