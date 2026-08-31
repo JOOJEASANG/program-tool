@@ -1,547 +1,258 @@
-// Multi-selection layer for the embedded design editor.
-// Keeps the existing flat project model and single-selection inspectors intact.
+// Context-sensitive property bar for the embedded design editor.
+// Reuses the existing inspector controls and layout API so there is only one editing implementation.
 (function(){
   'use strict';
-  if(window.__designEditorMultiSelectionV1)return;
-  window.__designEditorMultiSelectionV1=true;
+  if(window.__designEditorSelectionContextbarV1)return;
+  window.__designEditorSelectionContextbarV1=true;
   if(new URLSearchParams(location.search).get('embed')!=='1')return;
 
-  const BAR_ID='designMultiSelectionContextbar';
-  const BOUNDS_ID='designMultiSelectionBounds';
-  const STYLE_ID='designMultiSelectionStyles';
-  const DRAFT_KEY='programTool.designEditor.draft.v1';
-  const selectedKeys=new Set();
+  const BAR_ID='designSelectionContextbar';
+  const STYLE_ID='designSelectionContextbarStyles';
+  const FIELD_MAP={
+    'text-font':{selector:'#fontInput',event:'change'},
+    'text-size':{selector:'#sizeInput',event:'input'},
+    'text-weight':{selector:'#weightInput',event:'change'},
+    'text-color':{selector:'#colorInput',event:'input'},
+    'extra-w':{selector:'[data-extra-field="w"]',event:'input'},
+    'extra-h':{selector:'[data-extra-field="h"]',event:'input'},
+    'extra-opacity':{selector:'[data-extra-field="opacity"]',event:'input'},
+    'image-fit':{selector:'[data-extra-field="fit"]',event:'change'},
+    'image-focus-x':{selector:'[data-extra-field="focusX"]',event:'input'},
+    'image-focus-y':{selector:'[data-extra-field="focusY"]',event:'input'},
+    'shape-fill':{selector:'[data-extra-field="fill"]',event:'input'},
+    'shape-stroke':{selector:'[data-extra-field="stroke"]',event:'input'},
+    'shape-stroke-width':{selector:'[data-extra-field="strokeWidth"]',event:'input'},
+    'shape-radius':{selector:'#quickCornerRadius',event:'input'}
+  };
   let installed=false;
-  let syncTimer=0;
-  let observer=null;
-  let drag=null;
-  let suppressClickUntil=0;
+  let timer=0;
+  let renderedSignature='';
+  let artboardObserver=null;
+  let inspectorObserver=null;
+  let toolbarResizeObserver=null;
 
   const byId=id=>document.getElementById(id);
-  const clamp=(value,min,max)=>Math.max(min,Math.min(max,value));
   const project=()=>window.DesignEditorApp?.project||null;
   const surface=()=>{
     const p=project();
     return p?.surfaces?.find(item=>item.id===p.activeSurface)||p?.surfaces?.[0]||null;
   };
-  const uid=prefix=>`${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2,8)}`;
-  const itemKey=(kind,id)=>`${kind}:${id}`;
+  const safeColor=(value,fallback='#172033')=>/^#[0-9a-f]{6}$/i.test(String(value||''))?String(value):fallback;
+  const rounded=value=>Number.isFinite(Number(value))?Math.round(Number(value)*10)/10:0;
+  const percentValue=(value,fallback=50)=>Number.isFinite(Number(value))?Math.round(Number(value)):fallback;
 
-  function setStatus(message,type='info'){
-    const node=byId('editorStatus');if(!node)return;
-    node.className=`editor-status ${type}`;node.textContent=message;
-  }
-
-  function ppm(){
-    const p=project(),board=byId('artboard');
-    if(!p||!board)return 1;
-    return Math.max(.001,board.getBoundingClientRect().width/Math.max(1,Number(p.width)+(Number(p.bleed)||0)*2));
-  }
-
-  function textHeight(item,node=null){
-    const scale=ppm(),rect=node?.getBoundingClientRect?.();
-    if(rect?.height>1)return rect.height/scale;
-    return Math.max(4,(Number(item.size)||11)*0.3528*(Number(item.lineHeight)||1.26));
-  }
-
-  function dimensions(record){
-    const item=record.item;
-    return {
-      x:Number(item.x)||0,
-      y:Number(item.y)||0,
-      w:Math.max(.5,Number(item.w)||.5),
-      h:record.kind==='extra'?Math.max(.5,Number(item.h)||.5):textHeight(item,record.node)
-    };
-  }
-
-  function recordForKey(key){
+  function selectedRecord(){
     const current=surface();if(!current)return null;
-    const split=String(key||'').indexOf(':');if(split<1)return null;
-    const kind=key.slice(0,split),id=key.slice(split+1);
-    if(kind==='text'){
-      const item=current.elements?.find(entry=>entry.id===id&&entry.type==='text');
-      if(!item)return null;
-      const node=byId('artboard')?.querySelector(`.design-text[data-id="${CSS.escape(id)}"]`)||null;
-      return {key,kind:'text',item,node};
+    const extraNode=document.querySelector('.phase2-extra-object.selected');
+    if(extraNode){
+      const item=current.extras?.find(entry=>entry.id===extraNode.dataset.extraId);
+      if(item)return{kind:item.type==='image'?'image':'shape',item,node:extraNode,key:`extra:${item.id}`};
     }
-    if(kind==='extra'){
-      const item=current.extras?.find(entry=>entry.id===id);
-      if(!item)return null;
-      const node=byId('artboard')?.querySelector(`.phase2-extra-object[data-extra-id="${CSS.escape(id)}"]`)||null;
-      return {key,kind:'extra',item,node};
+    const textNode=document.querySelector('.design-text.selected');
+    if(textNode){
+      const item=current.elements?.find(entry=>entry.id===textNode.dataset.id&&entry.type==='text');
+      if(item)return{kind:'text',item,node:textNode,key:`text:${item.id}`};
     }
     return null;
   }
 
-  function recordForNode(target){
-    const node=target?.closest?.('.design-text,.phase2-extra-object');if(!node)return null;
-    const current=surface();if(!current)return null;
-    if(node.classList.contains('phase2-extra-object')){
-      const id=node.dataset.extraId||'';
-      const item=current.extras?.find(entry=>entry.id===id);
-      return item?{key:itemKey('extra',id),kind:'extra',item,node}:null;
+  function sourceControl(selector){
+    return byId('inspector')?.querySelector(selector)||document.querySelector(selector);
+  }
+
+  function fire(control,eventName){
+    if(!control)return false;
+    control.dispatchEvent(new Event(eventName,{bubbles:true}));
+    return true;
+  }
+
+  function proxyField(key,value){
+    const config=FIELD_MAP[key];if(!config)return false;
+    const control=sourceControl(config.selector);if(!control)return false;
+    control.value=String(value);
+    fire(control,config.event);
+    return true;
+  }
+
+  function proxyTextAlign(value){
+    const button=byId('inspector')?.querySelector(`[data-align="${value}"]`);
+    if(!button)return false;
+    button.click();return true;
+  }
+
+  function proxyArrange(value){
+    if(!value)return false;
+    if(window.DesignEditorPhase3Controls?.alignSelected){window.DesignEditorPhase3Controls.alignSelected(value);return true;}
+    const button=document.querySelector(`[data-phase3-align="${value}"]`);
+    if(button){button.click();return true;}
+    return false;
+  }
+
+  function actionSource(record,action){
+    if(!record)return null;
+    if(record.kind==='text'){
+      return {back:'#layerBackBtn',front:'#layerFrontBtn',duplicate:'#duplicateBtn',delete:'#deleteBtn',lock:'#lockInput'}[action]||'';
     }
-    const id=node.dataset.id||'';
-    const item=current.elements?.find(entry=>entry.id===id&&entry.type==='text');
-    return item?{key:itemKey('text',id),kind:'text',item,node}:null;
+    return {back:'#phase2ExtraBack',front:'#phase2ExtraFront',duplicate:'#phase2ExtraDuplicate',delete:'#phase2ExtraDelete',lock:'#phase2ExtraLock',replace:'#phase2ReplaceImage'}[action]||'';
   }
 
-  function records(){
-    const result=[];
-    [...selectedKeys].forEach(key=>{
-      const record=recordForKey(key);
-      if(record)result.push(record);else selectedKeys.delete(key);
-    });
-    return result;
+  function proxyAction(action){
+    const record=selectedRecord();if(!record)return false;
+    const selector=actionSource(record,action);if(!selector)return false;
+    const control=sourceControl(selector);if(!control)return false;
+    if(action==='lock'&&control.matches('input[type="checkbox"]')){
+      control.checked=!control.checked;fire(control,'change');
+    }else control.click();
+    return true;
   }
 
-  function singleSelectionKeys(){
-    const found=[];
-    document.querySelectorAll('#artboard .design-text.selected').forEach(node=>{
-      if(node.dataset.id)found.push(itemKey('text',node.dataset.id));
-    });
-    document.querySelectorAll('#artboard .phase2-extra-object.selected').forEach(node=>{
-      if(node.dataset.extraId)found.push(itemKey('extra',node.dataset.extraId));
-    });
-    return found;
+  function fontOptions(){
+    const source=sourceControl('#fontInput');
+    return source?.innerHTML||'<option value="Pretendard">Pretendard</option><option value="Malgun Gothic">맑은 고딕</option><option value="Arial">Arial</option>';
   }
 
-  function groupKeys(groupId){
-    if(!groupId)return[];
-    const current=surface();if(!current)return[];
-    const keys=[];
-    (current.elements||[]).forEach(item=>{if(item.groupId===groupId)keys.push(itemKey('text',item.id));});
-    (current.extras||[]).forEach(item=>{if(item.groupId===groupId)keys.push(itemKey('extra',item.id));});
-    return keys;
+  function commonMarkup(record){
+    const locked=record.item.locked?'on':'';
+    return `<span class="design-context-sep" aria-hidden="true"></span><label class="design-context-field compact"><span>배치</span><select data-context-arrange aria-label="선택 요소 배치"><option value="">선택</option><option value="left">왼쪽</option><option value="center">가로 중앙</option><option value="right">오른쪽</option><option value="top">위</option><option value="middle">세로 중앙</option><option value="bottom">아래</option></select></label><span class="design-context-sep" aria-hidden="true"></span><div class="design-context-actions" aria-label="선택 요소 작업"><button type="button" data-context-action="back" title="한 단계 뒤로">뒤</button><button type="button" data-context-action="front" title="한 단계 앞으로">앞</button><button type="button" data-context-action="lock" class="${locked}" aria-pressed="${String(Boolean(record.item.locked))}" title="선택 요소 잠금/해제">잠금</button><button type="button" data-context-action="duplicate" title="선택 요소 복제">복제</button><button type="button" data-context-action="delete" class="danger" title="선택 요소 삭제">삭제</button></div>`;
   }
 
-  function bounds(list=records(),unlockedOnly=false){
-    const chosen=(unlockedOnly?list.filter(record=>!record.item.locked):list);
-    if(!chosen.length)return null;
-    const boxes=chosen.map(record=>dimensions(record));
-    const left=Math.min(...boxes.map(box=>box.x));
-    const top=Math.min(...boxes.map(box=>box.y));
-    const right=Math.max(...boxes.map(box=>box.x+box.w));
-    const bottom=Math.max(...boxes.map(box=>box.y+box.h));
-    return {left,top,right,bottom,width:right-left,height:bottom-top};
+  function textMarkup(record){
+    return `<span class="design-context-kind"><strong>T</strong><span>글씨</span></span><label class="design-context-field font"><span>글꼴</span><select data-context-field="text-font" aria-label="글꼴">${fontOptions()}</select></label><label class="design-context-field number"><span>크기</span><input data-context-field="text-size" type="number" min="6" max="120" step="1" aria-label="글자 크기 pt"><em>pt</em></label><label class="design-context-field weight"><span>굵기</span><select data-context-field="text-weight" aria-label="글자 굵기"><option value="400">보통</option><option value="500">중간</option><option value="700">굵게</option><option value="800">더 굵게</option><option value="900">매우 굵게</option></select></label><label class="design-context-color" title="글자 색상"><span>색상</span><input data-context-field="text-color" type="color" aria-label="글자 색상"></label><div class="design-context-segment" aria-label="문단 정렬"><span>문단</span><button type="button" data-context-text-align="left" title="왼쪽 정렬">좌</button><button type="button" data-context-text-align="center" title="가운데 정렬">중</button><button type="button" data-context-text-align="right" title="오른쪽 정렬">우</button></div>${commonMarkup(record)}`;
   }
 
-  function persist(reason='multi-selection'){
-    try{
-      const p=project();if(!p)return false;
-      localStorage.setItem(DRAFT_KEY,JSON.stringify(p));
-      window.DesignEditorDraftScope?.saveCurrent?.(reason);
-      const state=byId('saveState');if(state)state.textContent='자동 저장됨';
-      return true;
-    }catch(_){
-      setStatus('다중 선택 변경사항을 저장하지 못했습니다.','err');return false;
-    }
+  function imageMarkup(record){
+    return `<span class="design-context-kind"><strong>IMG</strong><span>이미지</span></span><label class="design-context-field number"><span>가로</span><input data-context-field="extra-w" type="number" min="1" step="0.5" aria-label="이미지 가로 mm"><em>mm</em></label><label class="design-context-field number"><span>세로</span><input data-context-field="extra-h" type="number" min="0.5" step="0.5" aria-label="이미지 세로 mm"><em>mm</em></label><label class="design-context-field compact"><span>맞춤</span><select data-context-field="image-fit" aria-label="이미지 맞춤"><option value="cover">영역 채우기</option><option value="contain">전체 보이기</option></select></label><label class="design-context-field number small"><span>초점 X</span><input data-context-field="image-focus-x" type="number" min="0" max="100" step="1" aria-label="이미지 가로 초점"><em>%</em></label><label class="design-context-field number small"><span>초점 Y</span><input data-context-field="image-focus-y" type="number" min="0" max="100" step="1" aria-label="이미지 세로 초점"><em>%</em></label><label class="design-context-field number small"><span>투명도</span><input data-context-field="extra-opacity" type="number" min="1" max="100" step="1" aria-label="이미지 불투명도"><em>%</em></label><button type="button" class="design-context-standalone" data-context-action="replace">교체</button>${commonMarkup(record)}`;
   }
 
-  function applyNodePosition(record){
-    const p=project(),node=record.node;if(!p||!node)return;
-    const scale=ppm(),bleed=Number(p.bleed)||0,item=record.item;
-    node.style.left=`${(bleed+(Number(item.x)||0))*scale}px`;
-    node.style.top=`${(bleed+(Number(item.y)||0))*scale}px`;
+  function shapeMarkup(record){
+    const item=record.item,isLine=item.shape==='line',isRect=item.shape==='rect';
+    const label=isLine?'선':item.shape==='ellipse'?'원·타원':'도형';
+    return `<span class="design-context-kind"><strong>${isLine?'—':item.shape==='ellipse'?'○':'□'}</strong><span>${label}</span></span><label class="design-context-field number"><span>가로</span><input data-context-field="extra-w" type="number" min="1" step="0.5" aria-label="도형 가로 mm"><em>mm</em></label><label class="design-context-field number"><span>세로</span><input data-context-field="extra-h" type="number" min="0.5" step="0.5" aria-label="도형 세로 mm"><em>mm</em></label>${isLine?'':`<label class="design-context-color" title="채우기 색상"><span>채우기</span><input data-context-field="shape-fill" type="color" aria-label="도형 채우기 색상"></label>`}<label class="design-context-color" title="테두리 색상"><span>${isLine?'선 색상':'테두리'}</span><input data-context-field="shape-stroke" type="color" aria-label="도형 테두리 색상"></label><label class="design-context-field number small"><span>선</span><input data-context-field="shape-stroke-width" type="number" min="0.2" max="12" step="0.2" aria-label="선 두께"><em>pt</em></label>${isRect?`<label class="design-context-field number small"><span>모서리</span><input data-context-field="shape-radius" type="number" min="0" step="0.5" aria-label="모서리 둥글기"><em>mm</em></label>`:''}<label class="design-context-field number small"><span>투명도</span><input data-context-field="extra-opacity" type="number" min="1" max="100" step="1" aria-label="도형 불투명도"><em>%</em></label>${commonMarkup(record)}`;
   }
 
-  function ensureStyles(){
+  function installStyles(){
     if(byId(STYLE_ID))return;
     const style=document.createElement('style');style.id=STYLE_ID;style.textContent=`
-      #${BAR_ID}{position:sticky;top:54px;z-index:74;display:flex;align-items:center;gap:5px;min-height:42px;flex:0 0 42px;padding:5px 10px;border-bottom:1px solid #cfdce9;background:#f5f9fd;box-shadow:0 3px 10px rgba(15,39,72,.04);overflow-x:auto;overflow-y:hidden;white-space:nowrap;scrollbar-width:thin}
+      #${BAR_ID}{position:sticky;top:54px;z-index:73;display:flex;align-items:center;gap:6px;min-height:42px;flex:0 0 42px;padding:5px 10px;border-bottom:1px solid #dce5ee;background:#f8fafc;box-shadow:0 3px 10px rgba(15,39,72,.035);overflow-x:auto;overflow-y:hidden;scrollbar-width:thin;white-space:nowrap}
       #${BAR_ID}[hidden]{display:none!important}
-      html[data-design-multi-selection] #designSelectionContextbar{display:none!important}
-      html[data-design-multi-selection] #designCanvasQuickbar{display:none!important}
-      html[data-design-multi-selection] #artboard .selected{outline-color:transparent!important;box-shadow:none!important;border-color:transparent!important}
-      #artboard .ps-multi-selected{outline:1.5px solid #1769e0!important;box-shadow:0 0 0 2px rgba(255,255,255,.82),0 0 0 4px rgba(23,105,224,.12)!important}
-      #${BOUNDS_ID}{position:absolute;z-index:118;pointer-events:none;border:1px dashed #1769e0;background:rgba(23,105,224,.025);box-shadow:0 0 0 1px rgba(255,255,255,.8) inset}
-      .design-multi-kind{display:inline-flex;align-items:center;gap:6px;flex:0 0 auto;padding-right:4px}.design-multi-kind strong{height:28px;min-width:34px;display:grid;place-items:center;border:1px solid #a9c5e3;border-radius:7px;background:#fff;color:#1769e0;font-size:8px;font-weight:950}.design-multi-kind span{font-size:8px;font-weight:900;color:#41556d}
-      .design-multi-group{display:flex;align-items:center;gap:3px;flex:0 0 auto}.design-multi-label{font-size:7px;font-weight:900;color:#7a8797;margin-right:2px}.design-multi-group button{height:29px;min-width:30px;border:1px solid #d2deea;border-radius:7px;background:#fff;color:#526174;padding:0 7px;font-size:7.5px;font-weight:900;cursor:pointer}.design-multi-group button:hover:not(:disabled){border-color:#8fb1d3;background:#edf6ff;color:#17466f}.design-multi-group button:disabled{opacity:.4;cursor:not-allowed}.design-multi-group button.on{border-color:#7ba9d7;background:#e8f3ff;color:#1769e0}.design-multi-group button.danger{color:#b42318;background:#fff8f7}.design-multi-sep{width:1px;height:22px;background:#d7e2ec;margin:0 2px;flex:0 0 1px}
-      @media(max-width:920px){#${BAR_ID}{top:var(--design-commandbar-height,96px);padding-inline:8px}.design-multi-label{display:none}.design-multi-kind span{display:none}}
-      @media(max-width:620px){#${BAR_ID}{gap:4px}.design-multi-group button{padding:0 6px}.design-multi-group[data-multi-section="bulk"] button[data-multi-action="lock"]{display:none}}
+      html[data-design-selection-context] #designCanvasQuickbar{display:none!important}
+      .design-context-kind{display:inline-flex;align-items:center;gap:6px;flex:0 0 auto;padding-right:4px;color:#334155;font-size:8px;font-weight:950}.design-context-kind strong{min-width:26px;height:27px;display:grid;place-items:center;border:1px solid #cbd8e6;border-radius:7px;background:#fff;color:#1769e0;font-size:8px}.design-context-kind span{font-size:9px;color:#31445c}
+      .design-context-field{position:relative;display:grid;grid-template-columns:auto auto auto;align-items:center;gap:4px;flex:0 0 auto}.design-context-field>span,.design-context-color>span,.design-context-segment>span{font-size:7px;font-weight:900;color:#7a8797}.design-context-field select,.design-context-field input{height:29px;border:1px solid #d5dfe9;border-radius:7px;background:#fff;color:#334155;padding:0 7px;font-size:8px;font-weight:850;outline:0}.design-context-field select:focus,.design-context-field input:focus{border-color:#66a6df;box-shadow:0 0 0 2px rgba(23,105,224,.11)}.design-context-field.font select{width:118px}.design-context-field.weight select{width:72px}.design-context-field.compact select{width:86px}.design-context-field.number input{width:58px;padding-right:18px}.design-context-field.number.small input{width:54px}.design-context-field em{margin-left:-23px;pointer-events:none;color:#94a3b8;font-size:6.5px;font-style:normal}.design-context-color{display:grid;grid-template-columns:auto 31px;align-items:center;gap:4px;flex:0 0 auto}.design-context-color input{width:31px;height:29px;border:1px solid #d5dfe9;border-radius:7px;background:#fff;padding:3px;cursor:pointer}
+      .design-context-segment{display:flex;align-items:center;gap:3px;flex:0 0 auto}.design-context-segment button,.design-context-actions button,.design-context-standalone{height:29px;min-width:29px;border:1px solid #d5dfe9;border-radius:7px;background:#fff;color:#526174;padding:0 7px;font-size:7.5px;font-weight:900;cursor:pointer}.design-context-segment button:hover,.design-context-actions button:hover,.design-context-standalone:hover{border-color:#9cb8d4;background:#f1f7ff;color:#17466f}.design-context-segment button.on,.design-context-actions button.on{border-color:#8bb4df;background:#eaf4ff;color:#1769e0}.design-context-actions{display:flex;align-items:center;gap:3px;flex:0 0 auto}.design-context-actions .danger{color:#b42318;background:#fff8f7}.design-context-sep{width:1px;height:22px;flex:0 0 1px;background:#dce4ec;margin:0 2px}
+      @media(max-width:920px){#${BAR_ID}{top:var(--design-commandbar-height,96px);padding-inline:8px;min-height:41px;flex-basis:41px}.design-context-kind span{display:none}.design-context-field>span,.design-context-color>span,.design-context-segment>span{display:none}.design-context-field.font select{width:105px}.design-context-field.weight select{width:66px}}
+      @media(max-width:620px){#${BAR_ID}{gap:4px}.design-context-field.font select{width:92px}.design-context-field.number input{width:54px}.design-context-actions button{padding:0 6px}.design-context-actions button[data-context-action="back"],.design-context-actions button[data-context-action="front"]{display:none}}
     `;document.head.appendChild(style);
   }
 
   function ensureBar(){
     let bar=byId(BAR_ID);if(bar)return bar;
-    const single=byId('designSelectionContextbar');
     const toolbar=document.querySelector('.editor-toolbar');if(!toolbar)return null;
-    bar=document.createElement('div');bar.id=BAR_ID;bar.hidden=true;
-    bar.setAttribute('role','toolbar');bar.setAttribute('aria-label','여러 요소 편집');
-    (single||toolbar).insertAdjacentElement('afterend',bar);
-    bar.innerHTML=`<span class="design-multi-kind"><strong data-multi-count>0개</strong><span>여러 요소</span></span>
-      <span class="design-multi-sep" aria-hidden="true"></span>
-      <div class="design-multi-group" data-multi-section="align"><span class="design-multi-label">정렬</span>
-        <button type="button" data-multi-action="left" title="선택 범위 왼쪽 정렬">좌</button>
-        <button type="button" data-multi-action="center" title="선택 범위 가로 중앙 정렬">가운데</button>
-        <button type="button" data-multi-action="right" title="선택 범위 오른쪽 정렬">우</button>
-        <button type="button" data-multi-action="top" title="선택 범위 위쪽 정렬">위</button>
-        <button type="button" data-multi-action="middle" title="선택 범위 세로 중앙 정렬">중앙</button>
-        <button type="button" data-multi-action="bottom" title="선택 범위 아래쪽 정렬">아래</button>
-      </div>
-      <span class="design-multi-sep" aria-hidden="true"></span>
-      <div class="design-multi-group" data-multi-section="distribute"><span class="design-multi-label">간격</span>
-        <button type="button" data-multi-action="distribute-h" title="가로 간격 동일하게">가로 동일</button>
-        <button type="button" data-multi-action="distribute-v" title="세로 간격 동일하게">세로 동일</button>
-      </div>
-      <span class="design-multi-sep" aria-hidden="true"></span>
-      <div class="design-multi-group" data-multi-section="group"><span class="design-multi-label">그룹</span>
-        <button type="button" data-multi-action="group">그룹</button>
-        <button type="button" data-multi-action="ungroup">해제</button>
-      </div>
-      <span class="design-multi-sep" aria-hidden="true"></span>
-      <div class="design-multi-group" data-multi-section="bulk"><span class="design-multi-label">일괄</span>
-        <button type="button" data-multi-action="lock">잠금</button>
-        <button type="button" data-multi-action="duplicate">복제</button>
-        <button type="button" data-multi-action="delete" class="danger">삭제</button>
-      </div>`;
-    bar.addEventListener('pointerdown',event=>event.stopPropagation());
-    bar.addEventListener('click',event=>{
-      event.stopPropagation();
-      const button=event.target.closest('[data-multi-action]');if(!button||button.disabled)return;
-      const action=button.dataset.multiAction;
-      if(['left','center','right','top','middle','bottom'].includes(action))align(action);
-      else if(action==='distribute-h')distribute('horizontal');
-      else if(action==='distribute-v')distribute('vertical');
-      else if(action==='group')group();
-      else if(action==='ungroup')ungroup();
-      else if(action==='lock')toggleLock();
-      else if(action==='duplicate')duplicate();
-      else if(action==='delete')remove();
-    });
-    document.documentElement.classList.add('design-multi-selection-ready');
+    bar=document.createElement('div');bar.id=BAR_ID;bar.hidden=true;bar.setAttribute('role','toolbar');bar.setAttribute('aria-label','선택 요소 속성');
+    toolbar.insertAdjacentElement('afterend',bar);
+    toolbar.dataset.designSelectionContextbar='v1';
+    document.documentElement.classList.add('design-selection-contextbar-ready');
+    bindBar(bar);syncOffset();
+    if(typeof ResizeObserver==='function'&&!toolbarResizeObserver){toolbarResizeObserver=new ResizeObserver(syncOffset);toolbarResizeObserver.observe(toolbar);}
     return bar;
   }
 
-  function renderBounds(list){
-    const board=byId('artboard'),p=project();if(!board||!p)return;
-    byId(BOUNDS_ID)?.remove();
-    const box=bounds(list);if(!box)return;
-    const scale=ppm(),bleed=Number(p.bleed)||0;
-    const node=document.createElement('div');node.id=BOUNDS_ID;
-    node.style.left=`${(bleed+box.left)*scale}px`;node.style.top=`${(bleed+box.top)*scale}px`;
-    node.style.width=`${Math.max(1,box.width*scale)}px`;node.style.height=`${Math.max(1,box.height*scale)}px`;
-    board.appendChild(node);
+  function syncOffset(){
+    const toolbar=document.querySelector('.editor-toolbar'),bar=byId(BAR_ID);if(!toolbar||!bar)return;
+    const height=Math.max(42,Math.round(toolbar.getBoundingClientRect().height||toolbar.offsetHeight||54));
+    bar.style.top=`${height}px`;
+    document.documentElement.style.setProperty('--design-commandbar-height',`${height}px`);
   }
 
-  function clearVisuals(){
-    document.querySelectorAll('#artboard .ps-multi-selected').forEach(node=>node.classList.remove('ps-multi-selected'));
-    byId(BOUNDS_ID)?.remove();
+  function renderSignature(record){
+    if(!record)return'';
+    const fonts=record.kind==='text'?fontOptions():'';
+    return `${record.key}:${record.kind}:${record.item.shape||''}:${fonts}`;
   }
 
-  function applyVisuals(){
-    clearVisuals();
-    const list=records();
-    if(list.length<2){
-      const bar=byId(BAR_ID);if(bar)bar.hidden=true;
-      delete document.documentElement.dataset.designMultiSelection;
-      return list;
-    }
-    document.querySelectorAll('#artboard .selected').forEach(node=>node.classList.remove('selected'));
-    list.forEach(record=>record.node?.classList.add('ps-multi-selected'));
-    document.documentElement.dataset.designMultiSelection=String(list.length);
-    const bar=ensureBar();
-    if(bar){
-      bar.hidden=false;
-      bar.querySelector('[data-multi-count]').textContent=`${list.length}개`;
-      const distributeDisabled=list.filter(record=>!record.item.locked).length<3;
-      bar.querySelector('[data-multi-action="distribute-h"]').disabled=distributeDisabled;
-      bar.querySelector('[data-multi-action="distribute-v"]').disabled=distributeDisabled;
-      const grouped=list.every(record=>Boolean(record.item.groupId))&&new Set(list.map(record=>record.item.groupId)).size===1;
-      bar.querySelector('[data-multi-action="group"]').disabled=grouped;
-      bar.querySelector('[data-multi-action="ungroup"]').disabled=!list.some(record=>record.item.groupId);
-      const allLocked=list.every(record=>record.item.locked);
-      const lock=bar.querySelector('[data-multi-action="lock"]');
-      lock.textContent=allLocked?'잠금 해제':'잠금';lock.classList.toggle('on',allLocked);
-    }
-    renderBounds(list);
-    window.DesignEditorSelectionContextbar?.sync?.();
-    return list;
-  }
-
-  function clear(options={}){
-    selectedKeys.clear();clearVisuals();
-    const bar=byId(BAR_ID);if(bar)bar.hidden=true;
-    delete document.documentElement.dataset.designMultiSelection;
-    if(options.restoreSingle&&options.key){
-      requestAnimationFrame(()=>{
-        const record=recordForKey(options.key);
-        record?.node?.click?.();
-      });
-    }
-    window.DesignEditorSelectionContextbar?.sync?.();
-    return true;
-  }
-
-  function selectKeys(keys){
-    selectedKeys.clear();
-    (keys||[]).forEach(key=>{if(recordForKey(key))selectedKeys.add(key);});
-    if(selectedKeys.size<2){
-      const only=[...selectedKeys][0]||'';
-      return clear({restoreSingle:Boolean(only),key:only});
-    }
-    applyVisuals();return true;
-  }
-
-  function reconcile(){
-    records();
-    if(selectedKeys.size<2){clear();return[];}
-    return applyVisuals();
-  }
-
-  function positionSync(){
-    const list=records();
-    list.forEach(applyNodePosition);
-    persist();
-    window.DesignEditorPhase2?.sync?.();
-    requestAnimationFrame(()=>{applyVisuals();window.DesignEditorWorkflowV2?.activateStep?.('arrange',false);});
-    return true;
-  }
-
-  function align(direction){
-    const list=records(),movable=list.filter(record=>!record.item.locked);if(movable.length<2)return false;
-    const box=bounds(list);if(!box)return false;
-    movable.forEach(record=>{
-      const d=dimensions(record),item=record.item;
-      if(direction==='left')item.x=box.left;
-      if(direction==='center')item.x=box.left+(box.width-d.w)/2;
-      if(direction==='right')item.x=box.right-d.w;
-      if(direction==='top')item.y=box.top;
-      if(direction==='middle')item.y=box.top+(box.height-d.h)/2;
-      if(direction==='bottom')item.y=box.bottom-d.h;
-    });
-    setStatus(`${list.length}개 요소를 선택 범위 기준으로 정렬했습니다.`,'ok');
-    return positionSync();
-  }
-
-  function distribute(axis){
-    const list=records().filter(record=>!record.item.locked);if(list.length<3)return false;
-    const horizontal=axis==='horizontal';
-    const sorted=[...list].sort((a,b)=>{
-      const ad=dimensions(a),bd=dimensions(b);
-      return horizontal?ad.x-bd.x:ad.y-bd.y;
-    });
-    const first=dimensions(sorted[0]),last=dimensions(sorted[sorted.length-1]);
-    const start=horizontal?first.x:first.y;
-    const end=horizontal?last.x+last.w:last.y+last.h;
-    const total=sorted.reduce((sum,record)=>{const d=dimensions(record);return sum+(horizontal?d.w:d.h);},0);
-    const gap=(end-start-total)/(sorted.length-1);
-    let cursor=start;
-    sorted.forEach((record,index)=>{
-      const d=dimensions(record);
-      if(index>0&&index<sorted.length-1){
-        if(horizontal)record.item.x=cursor;else record.item.y=cursor;
-      }
-      cursor+=(horizontal?d.w:d.h)+gap;
-    });
-    setStatus(`${list.length}개 요소의 ${horizontal?'가로':'세로'} 간격을 동일하게 맞췄습니다.`,'ok');
-    return positionSync();
-  }
-
-  function group(){
-    const list=records();if(list.length<2)return false;
-    const id=uid('design_group');
-    list.forEach(record=>record.item.groupId=id);
-    persist('multi-group');applyVisuals();setStatus(`${list.length}개 요소를 그룹으로 묶었습니다.`,'ok');return id;
-  }
-
-  function ungroup(){
-    const list=records();if(!list.some(record=>record.item.groupId))return false;
-    list.forEach(record=>{delete record.item.groupId;});
-    persist('multi-ungroup');applyVisuals();setStatus('선택한 요소의 그룹을 해제했습니다.','ok');return true;
-  }
-
-  function reloadAndRestore(keys,reason){
-    const wanted=[...(keys||[])];
-    persist(reason);
-    try{window.DesignEditorApp?.resumeDraft?.();}catch(_){}
-    const restore=()=>{
-      try{window.DesignEditorPhase2?.sync?.();}catch(_){}
-      selectedKeys.clear();wanted.forEach(key=>{if(recordForKey(key))selectedKeys.add(key);});
-      applyVisuals();
-    };
-    requestAnimationFrame(restore);
-    setTimeout(restore,60);
-    setTimeout(restore,180);
-  }
-
-  function toggleLock(){
-    const list=records();if(!list.length)return false;
-    const next=!list.every(record=>Boolean(record.item.locked));
-    list.forEach(record=>record.item.locked=next);
-    reloadAndRestore(list.map(record=>record.key),next?'multi-lock':'multi-unlock');
-    setStatus(next?'선택 요소를 모두 잠갔습니다.':'선택 요소의 잠금을 해제했습니다.','ok');return next;
-  }
-
-  function duplicate(){
-    const p=project(),current=surface(),list=records();if(!p||!current||list.length<2)return false;
-    const box=bounds(list);
-    const dx=Math.max(0,Math.min(4,Number(p.width)-box.right));
-    const dy=Math.max(0,Math.min(4,Number(p.height)-box.bottom));
-    const newGroup=uid('design_group'),newKeys=[];
-    list.forEach(record=>{
-      const copy={...record.item,id:uid(record.kind==='text'?'design':'design_extra'),x:(Number(record.item.x)||0)+dx,y:(Number(record.item.y)||0)+dy,locked:false,groupId:newGroup};
-      if(record.kind==='text'){
-        current.elements=current.elements||[];current.elements.push(copy);newKeys.push(itemKey('text',copy.id));
+  function syncControlValues(record,bar){
+    const item=record.item;
+    const set=(selector,value)=>{const node=bar.querySelector(selector);if(node&&document.activeElement!==node)node.value=String(value??'');};
+    if(record.kind==='text'){
+      set('[data-context-field="text-font"]',item.fontFamily||'Pretendard');
+      set('[data-context-field="text-size"]',rounded(item.size||11));
+      set('[data-context-field="text-weight"]',Number(item.weight)||400);
+      set('[data-context-field="text-color"]',safeColor(item.color));
+      bar.querySelectorAll('[data-context-text-align]').forEach(button=>button.classList.toggle('on',button.dataset.contextTextAlign===(item.align||'left')));
+    }else{
+      set('[data-context-field="extra-w"]',rounded(item.w));set('[data-context-field="extra-h"]',rounded(item.h));set('[data-context-field="extra-opacity"]',percentValue(item.opacity,100));
+      if(record.kind==='image'){
+        set('[data-context-field="image-fit"]',item.fit==='contain'?'contain':'cover');set('[data-context-field="image-focus-x"]',percentValue(item.focusX,50));set('[data-context-field="image-focus-y"]',percentValue(item.focusY,50));
       }else{
-        current.extras=current.extras||[];current.extras.push(copy);newKeys.push(itemKey('extra',copy.id));
+        set('[data-context-field="shape-fill"]',safeColor(item.fill,'#dceeff'));set('[data-context-field="shape-stroke"]',safeColor(item.stroke,'#12396d'));set('[data-context-field="shape-stroke-width"]',rounded(item.strokeWidth||1));set('[data-context-field="shape-radius"]',rounded(item.cornerRadius||0));
       }
+    }
+    const lock=bar.querySelector('[data-context-action="lock"]');if(lock){lock.classList.toggle('on',Boolean(item.locked));lock.setAttribute('aria-pressed',String(Boolean(item.locked)));lock.textContent=item.locked?'잠금됨':'잠금';}
+  }
+
+  function render(record){
+    const bar=ensureBar();if(!bar)return false;
+    if(!record||!document.documentElement.contains(record.node)){
+      bar.hidden=true;bar.replaceChildren();renderedSignature='';delete document.documentElement.dataset.designSelectionContext;return true;
+    }
+    document.documentElement.dataset.designSelectionContext=record.kind;
+    const signature=renderSignature(record);
+    if(signature!==renderedSignature&&!bar.contains(document.activeElement)){
+      bar.innerHTML=record.kind==='text'?textMarkup(record):record.kind==='image'?imageMarkup(record):shapeMarkup(record);
+      renderedSignature=signature;
+    }
+    bar.hidden=false;bar.dataset.contextKind=record.kind;bar.dataset.contextId=record.item.id||'';syncControlValues(record,bar);syncOffset();return true;
+  }
+
+  function bindBar(bar){
+    bar.addEventListener('pointerdown',event=>event.stopPropagation());
+    bar.addEventListener('click',event=>{
+      event.stopPropagation();
+      const align=event.target.closest('[data-context-text-align]');
+      if(align){proxyTextAlign(align.dataset.contextTextAlign);queue(25);return;}
+      const action=event.target.closest('[data-context-action]');
+      if(action){proxyAction(action.dataset.contextAction);queue(35);}
     });
-    selectedKeys.clear();newKeys.forEach(key=>selectedKeys.add(key));
-    reloadAndRestore(newKeys,'multi-duplicate');
-    setStatus(`${list.length}개 요소를 한 번에 복제했습니다.`,'ok');return newKeys;
-  }
-
-  function remove(){
-    const current=surface(),list=records();if(!current||list.length<2)return false;
-    const textIds=new Set(list.filter(record=>record.kind==='text').map(record=>record.item.id));
-    const extraIds=new Set(list.filter(record=>record.kind==='extra').map(record=>record.item.id));
-    current.elements=(current.elements||[]).filter(item=>!textIds.has(item.id));
-    current.extras=(current.extras||[]).filter(item=>!extraIds.has(item.id));
-    selectedKeys.clear();persist('multi-delete');
-    try{window.DesignEditorApp?.resumeDraft?.();}catch(_){}
-    try{window.DesignEditorPhase2?.sync?.();}catch(_){}
-    clear();setStatus(`${list.length}개 요소를 삭제했습니다.`,'ok');return true;
-  }
-
-  function moveBy(dx,dy){
-    const p=project(),list=records(),movable=list.filter(record=>!record.item.locked);if(!p||!movable.length)return false;
-    const box=bounds(movable);if(!box)return false;
-    const safeDx=clamp(Number(dx)||0,-box.left,Number(p.width)-box.right);
-    const safeDy=clamp(Number(dy)||0,-box.top,Number(p.height)-box.bottom);
-    movable.forEach(record=>{record.item.x=(Number(record.item.x)||0)+safeDx;record.item.y=(Number(record.item.y)||0)+safeDy;});
-    return positionSync();
-  }
-
-  function beginDrag(event,record){
-    const movable=records().filter(item=>!item.item.locked);if(movable.length<1)return false;
-    drag={
-      pointerId:event.pointerId,startX:event.clientX,startY:event.clientY,
-      scale:ppm(),
-      start:movable.map(item=>({key:item.key,x:Number(item.item.x)||0,y:Number(item.item.y)||0})),
-      box:bounds(movable)
+    const proxyEvent=event=>{
+      event.stopPropagation();
+      const field=event.target.closest('[data-context-field]');if(!field)return;
+      const key=field.dataset.contextField,config=FIELD_MAP[key];if(!config)return;
+      if((event.type==='input'&&config.event!=='input')||(event.type==='change'&&config.event!=='change'))return;
+      proxyField(key,field.value);queue(30);
     };
-    suppressClickUntil=Date.now()+450;
-    event.preventDefault();event.stopImmediatePropagation();
-    try{record.node?.setPointerCapture?.(event.pointerId);}catch(_){}
-    return true;
-  }
-
-  function handleDragMove(event){
-    if(!drag)return;
-    const p=project();if(!p)return;
-    const rawDx=(event.clientX-drag.startX)/drag.scale,rawDy=(event.clientY-drag.startY)/drag.scale;
-    const dx=clamp(rawDx,-drag.box.left,Number(p.width)-drag.box.right);
-    const dy=clamp(rawDy,-drag.box.top,Number(p.height)-drag.box.bottom);
-    drag.start.forEach(start=>{
-      const record=recordForKey(start.key);if(!record||record.item.locked)return;
-      record.item.x=start.x+dx;record.item.y=start.y+dy;applyNodePosition(record);
+    bar.addEventListener('input',proxyEvent);bar.addEventListener('change',event=>{
+      const arrange=event.target.closest('[data-context-arrange]');
+      if(arrange){event.stopPropagation();const value=arrange.value;arrange.value='';proxyArrange(value);queue(35);return;}
+      proxyEvent(event);
     });
-    renderBounds(records());event.preventDefault();event.stopImmediatePropagation();
   }
 
-  function finishDrag(event){
-    if(!drag)return;
-    drag=null;persist('multi-drag');
-    window.DesignEditorPhase2?.sync?.();
-    requestAnimationFrame(applyVisuals);
-    if(event){event.preventDefault();event.stopImmediatePropagation();}
-  }
-
-  function modifierSelect(event,record){
-    const seed=selectedKeys.size?[...selectedKeys]:singleSelectionKeys();
-    selectedKeys.clear();seed.forEach(key=>selectedKeys.add(key));
-    const grouped=record.item.groupId?groupKeys(record.item.groupId):[record.key];
-    const remove=grouped.every(key=>selectedKeys.has(key));
-    grouped.forEach(key=>remove?selectedKeys.delete(key):selectedKeys.add(key));
-    suppressClickUntil=Date.now()+450;
-    event.preventDefault();event.stopImmediatePropagation();
-    if(selectedKeys.size===1){
-      const only=[...selectedKeys][0];clear({restoreSingle:true,key:only});
-    }else if(selectedKeys.size<2)clear();
-    else applyVisuals();
-  }
-
-  function handlePointerDown(event){
-    const record=recordForNode(event.target);
-    const modified=event.shiftKey||event.ctrlKey||event.metaKey;
-    if(!record){
-      if(!event.target?.closest?.(`#${BAR_ID}`)&&event.target===byId('artboard'))clear();
-      return;
+  function observeTargets(){
+    const artboard=byId('artboard'),inspector=byId('inspector');
+    if(artboard&&!artboardObserver&&typeof MutationObserver==='function'){
+      artboardObserver=new MutationObserver(()=>queue(18));artboardObserver.observe(artboard,{subtree:true,childList:true,attributes:true,attributeFilter:['class']});
     }
-    if(modified){modifierSelect(event,record);return;}
-    if(record.item.groupId){
-      const keys=groupKeys(record.item.groupId);
-      if(keys.length>1){
-        if(!keys.every(key=>selectedKeys.has(key)))selectKeys(keys);
-        beginDrag(event,record);return;
-      }
-    }
-    if(selectedKeys.size>=2&&selectedKeys.has(record.key)){beginDrag(event,record);return;}
-    if(selectedKeys.size>=2)clear();
-  }
-
-  function handleClickCapture(event){
-    if(Date.now()<suppressClickUntil&&recordForNode(event.target)){
-      event.preventDefault();event.stopImmediatePropagation();
-    }
-  }
-
-  function handleKeydown(event){
-    if(selectedKeys.size<2)return;
-    const tag=String(event.target?.tagName||'').toUpperCase();
-    if(['INPUT','TEXTAREA','SELECT'].includes(tag)||event.target?.isContentEditable)return;
-    if(event.key==='Escape'){event.preventDefault();event.stopImmediatePropagation();clear();return;}
-    if(event.key==='Delete'||event.key==='Backspace'){event.preventDefault();event.stopImmediatePropagation();remove();return;}
-    if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='d'){event.preventDefault();event.stopImmediatePropagation();duplicate();return;}
-    if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(event.key)){
-      const step=event.shiftKey?5:.5;
-      const dx=event.key==='ArrowLeft'?-step:event.key==='ArrowRight'?step:0;
-      const dy=event.key==='ArrowUp'?-step:event.key==='ArrowDown'?step:0;
-      event.preventDefault();event.stopImmediatePropagation();moveBy(dx,dy);
+    if(inspector&&!inspectorObserver&&typeof MutationObserver==='function'){
+      inspectorObserver=new MutationObserver(()=>queue(24));inspectorObserver.observe(inspector,{subtree:true,childList:true});
     }
   }
 
   function bindGlobal(){
-    document.addEventListener('pointerdown',handlePointerDown,true);
-    document.addEventListener('pointermove',handleDragMove,true);
-    document.addEventListener('pointerup',finishDrag,true);
-    document.addEventListener('pointercancel',finishDrag,true);
-    document.addEventListener('click',handleClickCapture,true);
-    document.addEventListener('keydown',handleKeydown,true);
-    window.addEventListener('resize',()=>queueSync(20),{passive:true});
-    const board=byId('artboard');
-    if(board&&typeof MutationObserver==='function'){
-      observer=new MutationObserver(mutations=>{
-        const relevant=mutations.some(mutation=>[...mutation.addedNodes,...mutation.removedNodes].some(node=>
-          node?.nodeType===1&&(node.matches?.('.design-text,.phase2-extra-object')||node.querySelector?.('.design-text,.phase2-extra-object'))
-        ));
-        if(relevant)queueSync(18);
-      });
-      observer.observe(board,{childList:true,subtree:true});
-    }
+    ['click','dblclick','change','keyup','pointerup'].forEach(name=>document.addEventListener(name,event=>{if(event.target?.closest?.(`#${BAR_ID}`))return;queue(26);},false));
+    document.addEventListener('input',event=>{if(event.target?.closest?.(`#${BAR_ID}`))return;queue(26);},false);
+    window.addEventListener('resize',()=>{syncOffset();queue(20);},{passive:true});
   }
 
   function sync(){
-    clearTimeout(syncTimer);
-    if(selectedKeys.size>=2)reconcile();
-    return true;
+    clearTimeout(timer);observeTargets();return render(selectedRecord());
   }
-
-  function queueSync(delay=28){
-    clearTimeout(syncTimer);syncTimer=setTimeout(()=>requestAnimationFrame(sync),delay);
-  }
+  function queue(delay=32){clearTimeout(timer);timer=setTimeout(()=>requestAnimationFrame(sync),delay);}
 
   function install(){
     if(installed)return true;
-    if(!byId('artboard')||!document.querySelector('.editor-toolbar'))return false;
-    installed=true;ensureStyles();ensureBar();bindGlobal();
-    window.DesignEditorMultiSelection={
-      selectKeys,clear,sync,align,distribute,group,ungroup,toggleLock,duplicate,remove,moveBy,
-      get records(){return records();},
-      get selectedKeys(){return [...selectedKeys];},
-      stage:'multi-select-align-distribute-group-v1'
-    };
+    if(!document.querySelector('.editor-toolbar')||!byId('artboard')||!byId('inspector'))return false;
+    installed=true;installStyles();ensureBar();observeTargets();bindGlobal();sync();
+    [100,280,620,1200,2200].forEach(delay=>setTimeout(queue,delay));
+    window.DesignEditorSelectionContextbar={sync,selectedRecord,stage:'selection-context-properties-v1'};
     return true;
   }
 
