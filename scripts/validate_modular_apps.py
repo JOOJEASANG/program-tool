@@ -35,6 +35,8 @@ def validate() -> None:
         "js/modular-app-access.js",
         "js/design-editor/product-boundary-ui.js",
         "js/pdf-editor/app-boundary.js",
+        "tests/browser/modular-app-shell-smoke.html",
+        "scripts/run_modular_app_shell_smoke.sh",
     )
     for relative in required:
         if not (ROOT / relative).is_file():
@@ -51,12 +53,18 @@ def validate() -> None:
     design_core = read("js/design-editor/core-runtime.js")
     pdf_boundary = read("js/pdf-editor/app-boundary.js")
     hosting = read("scripts/prepare_hosting_dist.py")
+    browser_smoke = read("tests/browser/modular-app-shell-smoke.html")
+    smoke_runner = read("scripts/run_modular_app_shell_smoke.sh")
 
     for key in APP_KEYS:
         if f"/apps/{key}" not in home:
             errors.append(f"home catalog does not expose /apps/{key}")
         if key not in shell:
             errors.append(f"app shell does not define {key}")
+        if key not in browser_smoke:
+            errors.append(f"browser smoke does not define {key}")
+        if key not in smoke_runner:
+            errors.append(f"browser smoke runner does not execute {key}")
     for key in DESIGN_KEYS:
         if key not in access:
             errors.append(f"access adapter does not recognize design app {key}")
@@ -78,6 +86,8 @@ def validate() -> None:
         errors.append("modular apps must reuse ProgramAccess.guardTool")
     if "startAfterAccess" not in shell:
         errors.append("modular app engine must start after access approval")
+    if "engine started before approval" not in browser_smoke:
+        errors.append("browser smoke does not verify approval-before-engine contract")
 
     # Keep standalone shells thin: app shell must route to canonical editors,
     # never grow a second canvas/PDF implementation.
@@ -92,7 +102,7 @@ def validate() -> None:
             print(f" - {error}", file=sys.stderr)
         raise SystemExit(1)
 
-    print("Modular app architecture OK: 8 standalone routes share canonical design/PDF engines")
+    print("Modular app architecture OK: 8 standalone routes share canonical design/PDF engines and have browser coverage")
 
 
 if __name__ == "__main__":
