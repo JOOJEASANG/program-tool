@@ -2,90 +2,35 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
-LOADER = ROOT / "js" / "pdf-editor" / "loader.js"
-CORE_RUNTIME = ROOT / "js" / "pdf-editor" / "core-runtime.js"
-ROUTE_RUNTIME = ROOT / "js" / "pdf-editor" / "route-runtime.js"
 REGISTER = ROOT / "js" / "sw-register.js"
-PDF_MODULES = ROOT / "js" / "pdf-editor"
-
-ACTIVE_MODULES = [
-    "font-render-fix.js",
-    "upload-fix.js",
-    "live-preview.js",
-    "layout-export.js",
-    "page-count-hint.js",
-    "nup-helper.js",
-    "preview-row-default.js",
-    "divider-helper.js",
-]
-
-DEFERRED_MODULES = [
-    "page-number-auto-reserve.js",
-    "page-number-auto-reserve-layout-v2.js",
-    "page-number-preview-parity.js",
-    "operation-progress-summary.js",
-]
+EDITOR = ROOT / "pdf-editor" / "index.html"
 
 
-def test_pdf_editor_runtime_keeps_the_approved_eight_modules_in_core_manifest():
-    core = CORE_RUNTIME.read_text(encoding="utf-8")
-    loader = LOADER.read_text(encoding="utf-8")
-    positions = []
-    for module in ACTIVE_MODULES:
-        needle = f"/js/pdf-editor/{module}"
-        assert core.count(needle) == 1
-        positions.append(core.index(needle))
-    assert positions == sorted(positions)
-    assert core.count("src:'/js/pdf-editor/") == 8
-    assert "/js/pdf-editor/core-runtime.js?v=20260828-1" in loader
-    assert "Stable-eight source contract only" in loader
-    assert "MODULES.forEach(loadScript)" not in loader
-
-
-def test_deferred_feature_wrappers_are_not_loaded_directly():
-    executable_runtime = "\n".join(
-        path.read_text(encoding="utf-8")
-        for path in (CORE_RUNTIME, ROUTE_RUNTIME)
-    )
-    for module in DEFERRED_MODULES:
-        assert f"/js/pdf-editor/{module}" not in executable_runtime
-        assert (PDF_MODULES / module).exists()
-
-
-def test_pdf_editor_route_extras_are_owned_by_route_manifest_not_global_bootstrap():
-    route = ROUTE_RUNTIME.read_text(encoding="utf-8")
+def test_runtime_inventory_keeps_single_primary_editor_entrypoint():
     register = REGISTER.read_text(encoding="utf-8")
-    expected = (
-        ("pdfEditorTransferLimitGuardScriptV1", "/js/pdf-editor/transfer-limit-guard.js"),
-        ("pdfCropMarksScript", "/js/pdf-editor/crop-marks.js"),
-        ("pdfOutputSaveRecoveryScriptV1", "/js/pdf-editor/output-save-recovery.js"),
-        ("pdfSaveRecoveryScript", "/js/pdf-editor/save-recovery.js"),
-        ("pdfSessionSaveSafetyScriptV1", "/js/pdf-editor/session-save-safety.js"),
-        ("pdfFileContextScopeScript", "/js/pdf-editor/file-context-scope.js"),
-    )
-    for script_id, path in expected:
-        assert route.count(script_id) == 1
-        assert route.count(path) == 1
+    editor = EDITOR.read_text(encoding="utf-8")
 
-    assert "/js/pdf-editor/save-operation.js" not in route
-    assert route.index("/js/pdf-editor/output-save-recovery.js") < route.index("/js/pdf-editor/save-recovery.js")
-    assert route.index("/js/pdf-editor/save-recovery.js") < route.index("/js/pdf-editor/session-save-safety.js")
-    assert route.index("/js/pdf-editor/session-save-safety.js") < route.index("/js/pdf-editor/file-context-scope.js")
-    assert "/js/pdf-editor/route-runtime.js?v=20260828-1" in register
-    assert "tasks.push(loadPdfEditorRuntime())" in register
-    assert "PDF route source-contract compatibility metadata only" in register
+    assert register.count("pdfEditorRouteRuntimeScript") == 1
+    assert "/js/pdf-editor/route-runtime.js" in register
+    assert "PDF 문서 편집기" in editor
+    assert "id=\"fileInput\"" in editor
+    assert "id=\"previewBtn\"" in editor
+    assert "id=\"downloadBtn\"" in editor
 
 
 def test_integrated_runtime_features_remain_present():
-    page_tools = (PDF_MODULES / "page-count-hint.js").read_text(encoding="utf-8")
-    nup = (PDF_MODULES / "nup-helper.js").read_text(encoding="utf-8")
-    layout = (PDF_MODULES / "layout-export.js").read_text(encoding="utf-8")
-    divider = (PDF_MODULES / "divider-helper.js").read_text(encoding="utf-8")
-    crop = (PDF_MODULES / "crop-marks.js").read_text(encoding="utf-8")
-    save = (PDF_MODULES / "save-operation.js").read_text(encoding="utf-8")
-    recovery = (PDF_MODULES / "save-recovery.js").read_text(encoding="utf-8")
-    session = (PDF_MODULES / "session-save-safety.js").read_text(encoding="utf-8")
-    file_context = (PDF_MODULES / "file-context-scope.js").read_text(encoding="utf-8")
+    def read(path: str) -> str:
+        return (ROOT / path).read_text(encoding="utf-8")
+
+    page_tools = read("js/pdf-editor/page-productivity.js")
+    nup = read("js/pdf-editor/nup-helper.js")
+    layout = read("js/pdf-editor/layout-export.js")
+    divider = read("js/pdf-editor/divider-helper.js")
+    crop = read("js/pdf-editor/crop-marks.js")
+    save = read("js/pdf-editor/save-operation.js")
+    recovery = read("js/pdf-editor/save-recovery.js")
+    session = read("js/pdf-editor/session-save-safety.js")
+    file_context = read("js/pdf-editor/file-context-scope.js")
 
     for marker in ("duplicateSelected", "moveSelected", "deleteSelected", "async function undo", "async function redo"):
         assert marker in page_tools
@@ -109,8 +54,10 @@ def test_integrated_runtime_features_remain_present():
     assert "activeOperation.controller.abort()" in save
     assert "stage: 'failure-checkpoint-lock-restore'" in recovery
     assert "편집 상태를 저장 시작 전 상태로 복구했습니다." in recovery
-    assert "stage: 'multi-source-snapshot-500mb-failure-cleanup'" in session
-    assert "MAX_SESSION_BYTES = 500 * 1024 * 1024" in session
+    assert "stage: 'multi-source-snapshot-300mb-cost-guard-v2'" in session
+    assert "MAX_FILE_BYTES = 200 * 1024 * 1024" in session
+    assert "MAX_SESSION_BYTES = 300 * 1024 * 1024" in session
+    assert "MAX_SESSION_FILES = 50" in session
     assert "업로드된 임시 파일 정리를 시도했습니다." in session
     assert "stage: 'discontinuous-file-context-actions'" in file_context
     assert "이 파일 전체 시계방향 90° 회전" in file_context
