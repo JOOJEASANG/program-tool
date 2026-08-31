@@ -63,7 +63,8 @@
         const uploadSection=upload.closest('.sec');
         const uploadHead=uploadSection.querySelector('.sec-head');
         assert(uploadSection.dataset.pdfUploadFixed==='1','upload section must be pinned');
-        assert(getComputedStyle(uploadSection).position==='sticky','upload section must use sticky positioning');
+        const expectedUploadPosition=window.innerWidth>980?'sticky':'relative';
+        assert(getComputedStyle(uploadSection).position===expectedUploadPosition,'upload section positioning must match desktop/mobile layout');
         uploadHead.click();await new Promise(resolve=>setTimeout(resolve,40));
         assert(!uploadHead.classList.contains('collapsed')&&!upload.classList.contains('hidden'),'upload section must never collapse');
 
