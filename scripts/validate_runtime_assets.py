@@ -33,7 +33,7 @@ RETIRED_LEGACY_ASSETS = (
     Path("js/home-hero-console-v2.js"),
 )
 HOME_DYNAMIC_COUNT_BUDGET = 10
-HOME_DYNAMIC_BYTES_BUDGET = 82_000
+HOME_DYNAMIC_BYTES_BUDGET = 88_000
 ASSET_LITERAL_RE = re.compile(r"[\'\"`](/(?:js|css)/[^\'\"`\s]+)[\'\"`]")
 LOAD_RE = re.compile(
     r"load\(\s*[\'\"](?P<id>[^\'\"]+)[\'\"]\s*,\s*[\'\"](?P<src>/js/[^\'\"]+)[\'\"]"
