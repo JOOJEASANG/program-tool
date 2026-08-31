@@ -8,14 +8,15 @@ def test_phase18_design_manifest_loads_simple_result_runtime():
     shell = (ROOT / "design-editor" / "index.html").read_text(encoding="utf-8")
     runtime = (ROOT / "js" / "design-editor" / "shell-runtime.js").read_text(encoding="utf-8")
     assert "designSimpleResultWorkflowScriptV1" in runtime
-    assert "/js/design-editor/simple-result-workflow.js?v=20260828-1" in runtime
+    assert "/js/design-editor/shared/simple-result-workflow.js?v=20260828-1" in runtime
+    assert not (ROOT / "js" / "design-editor" / "simple-result-workflow.js").exists()
     assert "const ensureSimpleResultRuntime=ensurePrintRuntimes" in shell
     assert "simpleResultStage:'simple-result-background-logo-text-output-v1'" in shell
     assert "runtimeManifestStage:'design-shell-runtime-manifest-v1'" in shell
 
 
 def test_phase18_simple_result_keeps_default_workflow_small_and_result_focused():
-    source = (ROOT / "js" / "design-editor" / "simple-result-workflow.js").read_text(encoding="utf-8")
+    source = (ROOT / "js" / "design-editor" / "shared" / "simple-result-workflow.js").read_text(encoding="utf-8")
     for token in (
         "빠른 제작",
         "배경 이미지",
@@ -40,7 +41,7 @@ def test_phase18_simple_result_keeps_default_workflow_small_and_result_focused()
 
 
 def test_phase18_background_aware_output_draws_background_before_content():
-    source = (ROOT / "js" / "design-editor" / "simple-result-workflow.js").read_text(encoding="utf-8")
+    source = (ROOT / "js" / "design-editor" / "shared" / "simple-result-workflow.js").read_text(encoding="utf-8")
     background_draw = "for(const item of extras.filter(item=>item.simpleRole==='background'))"
     text_draw = ".filter(item=>item.visible!==false&&item.type==='text').forEach"
     foreground_draw = "for(const item of extras.filter(item=>item.simpleRole!=='background'))"
@@ -68,3 +69,4 @@ def test_phase18_browser_smoke_covers_basic_result_flow():
     source = smoke.read_text(encoding="utf-8")
     assert "simple result workflow" in source.lower()
     assert "background does not cover bleed" in source
+    assert "/js/design-editor/shared/simple-result-workflow.js?v=20260828-1" in source
