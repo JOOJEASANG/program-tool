@@ -110,7 +110,9 @@
   function currentFrameMatchesTarget(){
     if(!frame||!expectedFrameUrl)return false;
     try{
-      const current=new URL(frame.contentWindow.location.href),expected=new URL(expectedFrameUrl);
+      const actualHref=frame.contentWindow.location.href;
+      const candidate=actualHref==='about:blank'?frame.src:actualHref;
+      const current=new URL(candidate,location.origin),expected=new URL(expectedFrameUrl);
       return current.origin===expected.origin&&current.pathname===expected.pathname&&current.search===expected.search;
     }catch(_){return false;}
   }
