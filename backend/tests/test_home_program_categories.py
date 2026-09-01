@@ -34,4 +34,5 @@ def test_design_entries_share_one_editor_engine_instead_of_copying_programs():
     assert home.count("design-editor/?app=") == 5
     assert "const APP_CONFIG={" in shell
     assert "query.set('app',app);" in shell
-    assert "stage:'shared-design-engine-product-entry-v1'" in shell
+    assert "stage:'single-sidebar-general-engine-shell-no-legacy-fallback'" in shell
+    assert "productStage:'shared-design-engine-product-entry-v1'" in shell
