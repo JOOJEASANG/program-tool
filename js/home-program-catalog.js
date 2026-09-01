@@ -10,12 +10,13 @@
   const esc=v=>text(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));
   const breaks=v=>esc(v).replace(/\r?\n/g,'<br>');
   const ICONS={design:'M4 20h4L19 9a2 2 0 0 0 0-3l-1-1a2 2 0 0 0-3 0L4 16v4Zm10-13 4 4M4 21h16',pdf:'M6 3h8l4 4v14H6V3Zm8 0v5h4M9 12h2v2H9v-2Zm4 0h2v2h-2v-2Zm-4 4h2m2 0h2',check:'M6 3h8l4 4v5M14 3v5h4M6 3v18h7m1-4 2 2 4-5',image:'M4 5h16v14H4V5Zm2 11 4-4 3 3 2-2 3 3M9 9h.01'};
+  const DIRECT_DESIGN_BASE='/design-editor/general?embed=1';
   const MODULAR_DESIGN=[
-    {name:'표지 제작',icon:'COVER',accent:'#5267d9',bg:'#eef1ff',desc:'앞표지·뒤표지·책등과 인쇄 안전영역을 한 작업에서 관리합니다.',url:'/apps/cover',tags:['책표지','책등','인쇄 규격']},
-    {name:'포스터 · 전단지 제작',icon:'POSTER',accent:'#4f7bd9',bg:'#eef5ff',desc:'같은 단면 편집 도구에서 용지 크기와 방향만 바꿔 포스터와 전단지를 제작합니다.',url:'/apps/poster',tags:['포스터','전단지','용지 규격']},
-    {name:'초대장 제작',icon:'INVITE',accent:'#a0619c',bg:'#fff1fb',desc:'접지 위치와 앞뒤 면을 확인하며 초대장을 제작합니다.',url:'/apps/invitation',tags:['초대장','접지','앞뒤면']},
-    {name:'안내장 제작',icon:'NOTICE',accent:'#b06a72',bg:'#fff3f3',desc:'행사·교육·업무 안내 문구를 정돈된 정보 구조로 제작합니다.',url:'/apps/notice',tags:['안내장','정보 정렬','인쇄']},
-    {name:'리플렛 제작',icon:'LEAFLET',accent:'#7d69c7',bg:'#f5f1ff',desc:'4P~12P 접지 구조와 패널 폭, 앞뒤 면을 함께 관리합니다.',url:'/apps/leaflet',tags:['4P~12P','접지선','패널']}
+    {name:'표지 제작',icon:'COVER',accent:'#5267d9',bg:'#eef1ff',desc:'앞표지·뒤표지·책등과 인쇄 안전영역을 한 작업에서 관리합니다.',url:`${DIRECT_DESIGN_BASE}&mode=cover&preset=cover-a4&app=cover&entry=direct`,tags:['책표지','책등','인쇄 규격']},
+    {name:'포스터 · 전단지 제작',icon:'POSTER',accent:'#4f7bd9',bg:'#eef5ff',desc:'같은 단면 편집 도구에서 용지 크기와 방향만 바꿔 포스터와 전단지를 제작합니다.',url:`${DIRECT_DESIGN_BASE}&mode=poster&preset=poster-a4&paper=a4&orientation=portrait&w=210&h=297&app=poster&surface=poster-flyer&entry=direct`,tags:['포스터','전단지','용지 규격']},
+    {name:'초대장 제작',icon:'INVITE',accent:'#a0619c',bg:'#fff1fb',desc:'접지 위치와 앞뒤 면을 확인하며 초대장을 제작합니다.',url:`${DIRECT_DESIGN_BASE}&mode=invitation&preset=invitation-a4&paper=a4&orientation=landscape&w=297&h=210&app=invitation&entry=direct`,tags:['초대장','접지','앞뒤면']},
+    {name:'안내장 제작',icon:'NOTICE',accent:'#b06a72',bg:'#fff3f3',desc:'행사·교육·업무 안내 문구를 정돈된 정보 구조로 제작합니다.',url:`${DIRECT_DESIGN_BASE}&mode=invitation&preset=invitation-a4&paper=a4&orientation=landscape&w=297&h=210&app=invitation&surface=notice&entry=direct`,tags:['안내장','정보 정렬','인쇄']},
+    {name:'리플렛 제작',icon:'LEAFLET',accent:'#7d69c7',bg:'#f5f1ff',desc:'4P~12P 접지 구조와 패널 폭, 앞뒤 면을 함께 관리합니다.',url:`${DIRECT_DESIGN_BASE}&mode=leaflet3&preset=leaflet-3-roll&paper=a4&orientation=landscape&w=297&h=210&fold=leaflet-3-roll&app=leaflet&entry=direct`,tags:['4P~12P','접지선','패널']}
   ];
   const COMBINED_POSTER_FLYER=MODULAR_DESIGN[1];
   const MODULAR_PDF=[
@@ -25,14 +26,16 @@
 
   function ready(){return window.ProgramCatalogCore&&window.db&&typeof CATEGORIES!=='undefined'&&typeof buildNav==='function'&&typeof switchCategory==='function';}
   function normalizedName(p){return text(p?.name).replace(/[\s·ㆍ・/\\-]+/g,'');}
-  function normalizedUrl(p){return text(p?.url).trim().toLowerCase().split(/[?#]/,1)[0].replace(/\/+$/,'');}
+  function rawUrl(p){return text(p?.url).trim();}
+  function normalizedUrl(p){return rawUrl(p).toLowerCase().split(/[?#]/,1)[0].replace(/\/+$/,'');}
+  function programApp(p){try{return String(new URL(rawUrl(p),location.origin).searchParams.get('app')||'').toLowerCase();}catch(_){return'';}}
   function isPosterFlyerProgram(p){
-    const u=normalizedUrl(p),n=normalizedName(p);
-    return u.endsWith('/apps/poster')||u.endsWith('/apps/flyer')||[
+    const u=normalizedUrl(p),n=normalizedName(p),app=programApp(p);
+    return app==='poster'||app==='flyer'||u.endsWith('/apps/poster')||u.endsWith('/apps/flyer')||[
       '포스터제작','전단지제작','포스터디자인','전단지디자인','포스터전단지제작','포스터전단지디자인'
     ].includes(n);
   }
-  function isDesignProgram(p){const u=normalizedUrl(p),n=normalizedName(p);return u.includes('design-editor')||n==='디자인제작'||n.includes('디자인편집');}
+  function isDesignProgram(p){const u=normalizedUrl(p),n=normalizedName(p),app=programApp(p);return (u.includes('design-editor')&&!app)||n==='디자인제작'||n.includes('디자인편집');}
   function isPdfEditorProgram(p){const u=normalizedUrl(p),n=normalizedName(p);return (u.includes('pdf-editor')&&!u.includes('preflight'))||n.includes('PDF편집')||n.includes('인쇄배치');}
   function expandPrograms(programs){
     const out=[];let designExpanded=false,pdfExpanded=false,posterFlyerExpanded=false;
@@ -57,7 +60,7 @@
     return out;
   }
   function samePrograms(a,b){
-    return a.length===b.length&&a.every((p,i)=>normalizedName(p)===normalizedName(b[i])&&normalizedUrl(p)===normalizedUrl(b[i]));
+    return a.length===b.length&&a.every((p,i)=>normalizedName(p)===normalizedName(b[i])&&rawUrl(p)===rawUrl(b[i]));
   }
   function homeCategory(c){return{label:text(c.name),accent:c.accent,title:text(c.sectionTitle||c.name),badge:text(c.badge),heroTitle:`${esc(c.heroTitle||c.name)}${c.heroAccent?` <span>${esc(c.heroAccent)}</span>`:''}`,lead:text(c.lead),copy:breaks(c.copy),visual:[text(c.visualIcon||'🧰'),text(c.visualTitle||c.name),text(c.visualText)],programs:expandPrograms(c.programs).map(p=>({name:esc(p.name),icon:esc(p.icon||'🧰'),accent:p.accent,bg:p.bg,desc:esc(p.desc),url:window.ProgramCatalogCore.safeUrl(p.url),tags:(p.tags||[]).map(esc),coming:p.status&&p.status!=='active'||!window.ProgramCatalogCore.safeUrl(p.url)}))};}
 
@@ -93,5 +96,5 @@
   async function loadCatalog(){if(!ready())return false;try{const snap=await db.collection('settings').doc(DOC_ID).get();return snap.exists?applyCatalog(snap.data()||{}):false;}catch(error){console.warn('Program catalog fallback',error);return false;}}
   async function install(){installIcons();for(let i=0;i<10;i+=1){if(ready()){applyFallbackExpansion();return loadCatalog();}await new Promise(r=>setTimeout(r,180));}return false;}
 
-  window.HomeProgramCatalog={install,loadCatalog,applyCatalog,expandPrograms,decorateProgramIcons,isPosterFlyerProgram,stage:'admin-managed-home-navigation-and-programs',modularStage:'modular-production-apps-home-catalog-v4-remote-poster-flyer-normalized'};install();
+  window.HomeProgramCatalog={install,loadCatalog,applyCatalog,expandPrograms,decorateProgramIcons,isPosterFlyerProgram,stage:'admin-managed-home-navigation-and-programs',modularStage:'modular-production-apps-home-catalog-v5-direct-design-entry'};install();
 })();
