@@ -138,6 +138,10 @@
     loadEnhancement('designEditorEssentialWorkspaceScriptV1','/js/design-editor/essential-workspace.js?v=20260831-1',()=>Boolean(window.__designEditorEssentialWorkspaceV1),'디자인 필수 메뉴를 불러오지 못했습니다.');
   }
 
+  function loadDesignCanvasViewportToolbar(){
+    loadEnhancement('designEditorCanvasViewportToolbarScriptV1','/js/design-editor/shared/canvas-viewport-toolbar.js?v=20260901-1',()=>Boolean(window.__designEditorCanvasViewportToolbarV1),'캔버스 확대·맞춤 도구를 불러오지 못했습니다.');
+  }
+
   function loadSurfaceEnhancements(){
     if(['auth','approval','legal'].includes(surface)){
       loadEnhancement('programStudioPhase6Script','/js/surface-polish-v3.js?v=20260828-1',()=>Boolean(window.__programStudioPhase6),'화면 접근성 개선 기능을 불러오지 못했습니다.');
@@ -154,6 +158,7 @@
     if(surface==='design-editor'){
       loadEnhancement('designEditorWorkflowV2Script','/js/design-editor/workflow-v2.js?v=20260828-1',()=>Boolean(window.__designEditorWorkflowV2),'디자인 편집 화면 개선 기능을 불러오지 못했습니다.');
       loadDesignEssentialWorkspace();
+      loadDesignCanvasViewportToolbar();
       return;
     }
     if(surface==='document-editor'){
@@ -242,6 +247,11 @@
     return palette;
   }
 
+  function isEditableTarget(target){
+    if(!(target instanceof Element))return false;
+    return Boolean(target.closest('input,textarea,select,[contenteditable="true"],[contenteditable=""]'));
+  }
+
   function mountCommandTrigger(){
     if(surface!=='home')return;
     const host=document.querySelector('.nav-right');
@@ -253,11 +263,6 @@
     button.setAttribute('aria-label','프로그램 빠른 실행 열기');
     button.addEventListener('click',openPalette);
     host.insertBefore(button,host.firstChild);
-  }
-
-  function isEditableTarget(target){
-    if(!(target instanceof Element))return false;
-    return Boolean(target.closest('input,textarea,select,[contenteditable="true"],[contenteditable=""]'));
   }
 
   function mountGlobalKeys(){
@@ -286,5 +291,5 @@
     improveExternalStateLabels();
   });
 
-  window.ProgramStudioUI={version:'2026.08.31.011',surface,openPalette,closePalette};
+  window.ProgramStudioUI={version:'2026.09.01.012',surface,openPalette,closePalette};
 })();
