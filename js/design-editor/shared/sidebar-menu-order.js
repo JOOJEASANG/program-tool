@@ -1,8 +1,9 @@
 // Product-specific sidebar ordering for standalone design apps.
-// Reorders existing canonical editor cards and adds lightweight section controls.
+// Reorders existing canonical editor cards and adds lightweight section controls/card hierarchy.
 (function(){
   'use strict';
-  if(window.__designEditorSidebarMenuOrderV2)return;
+  if(window.__designEditorSidebarMenuOrderV3)return;
+  window.__designEditorSidebarMenuOrderV3=true;
   window.__designEditorSidebarMenuOrderV2=true;
   window.__designEditorSidebarMenuOrderV1=true;
 
@@ -12,6 +13,9 @@
   const STYLE_ID='designSidebarMenuOrderStyles';
   const LABEL_CLASS='design-sidebar-group-label';
   const COLLAPSED_CARD_CLASS='design-sidebar-section-collapsed-card';
+  const FOCUS_CARD_CLASS='design-sidebar-card-focus';
+  const COMPACT_CARD_CLASS='design-sidebar-card-compact';
+  const OUTPUT_ACTION_CLASS='design-sidebar-card-output-action';
   const STORAGE_KEY=`programTool.designEditor.sidebarSections.v1.${profile.key}`;
   const SECTION_META=Object.freeze({
     structure:{label:'규격 · 구조',rank:0},
@@ -25,7 +29,10 @@
   const EDIT_IDS=new Set(['inspector','designLayerTools']);
   const OUTPUT_IDS=new Set(['designPrintQualityTools','designPrintSafetyTools','designFinalPrintCheckTools','designOutputTools']);
   const ADVANCED_IDS=new Set(['designAdvancedTools','designPhase3LayoutTools','designElementClipboardTools','designProjectFileTools','designRotationTools','designDiagnosticsTools']);
+  const COMPACT_IDS=new Set(['designPrintQualityTools','designPrintSafetyTools','designAdvancedTools','designPhase3LayoutTools','designElementClipboardTools','designProjectFileTools','designRotationTools','designDiagnosticsTools']);
+  const OUTPUT_ACTION_IDS=new Set(['designFinalPrintCheckTools','designOutputTools']);
   const SMART_LAYOUT_CREATE_PRODUCTS=new Set(['poster','flyer','leaflet']);
+  const focusIds=new Set(profile.sidebarFocus||[]);
 
   let panel=null;
   let observer=null;
@@ -57,7 +64,7 @@
     const style=document.createElement('style');
     style.id=STYLE_ID;
     style.textContent=`
-      .design-sidebar-group-label{width:100%;display:flex;align-items:center;gap:6px;margin:12px 1px 6px;padding:4px 2px;border:0;background:transparent;color:#66758a;font-family:inherit;font-size:7px;font-weight:950;letter-spacing:.25px;text-align:left;cursor:pointer}
+      .design-sidebar-group-label{width:100%;display:flex;align-items:center;gap:6px;margin:13px 1px 6px;padding:5px 2px;border:0;background:transparent;color:#66758a;font-family:inherit;font-size:8px;font-weight:950;letter-spacing:.2px;text-align:left;cursor:pointer}
       .design-sidebar-group-label:first-of-type{margin-top:2px}
       .design-sidebar-group-label[hidden]{display:none!important}
       .design-sidebar-group-label::after{content:"";height:1px;flex:1;background:#e6edf3;transition:background .14s}
@@ -68,12 +75,26 @@
       .design-sidebar-group-chevron{width:10px;color:#98a2b3;font-size:8px;line-height:1;transform:rotate(0deg);transition:transform .14s,color .14s}
       .design-sidebar-group-label[aria-expanded="false"] .design-sidebar-group-chevron{transform:rotate(-90deg)}
       .design-sidebar-group-label.active .design-sidebar-group-chevron{color:#1769e0}
-      .design-sidebar-group-count{flex:0 0 auto;min-width:15px;padding:2px 4px;border-radius:999px;background:#f1f4f8;color:#8591a2;font-size:6px;font-weight:900;text-align:center;letter-spacing:0}
+      .design-sidebar-group-count{flex:0 0 auto;min-width:16px;padding:2px 5px;border-radius:999px;background:#f1f4f8;color:#8591a2;font-size:6px;font-weight:900;text-align:center;letter-spacing:0}
       .design-sidebar-group-label.active .design-sidebar-group-count{background:#eaf4ff;color:#1769e0}
       .${COLLAPSED_CARD_CLASS}{display:none!important}
       html[data-design-sidebar-order] .design-flat-panel>.side-card,
-      html[data-design-sidebar-order] .design-flat-panel>.design-mode-card{margin-bottom:8px!important}
-      @media(max-width:980px){.design-sidebar-group-label{margin-top:10px;padding-block:5px}}
+      html[data-design-sidebar-order] .design-flat-panel>.design-mode-card{margin-bottom:8px!important;transition:border-color .14s,background .14s,box-shadow .14s,transform .14s}
+      html[data-design-sidebar-hierarchy="product"] .design-flat-panel>.${FOCUS_CARD_CLASS}{position:relative;padding:12px!important;border-color:#bfd4ea!important;background:linear-gradient(180deg,#ffffff 0%,#f6faff 100%)!important;box-shadow:0 5px 14px rgba(18,57,109,.075)}
+      html[data-design-sidebar-hierarchy="product"] .design-flat-panel>.${FOCUS_CARD_CLASS}::before{content:"";position:absolute;left:-1px;top:10px;bottom:10px;width:3px;border-radius:0 3px 3px 0;background:#1769e0}
+      html[data-design-sidebar-hierarchy="product"] .design-flat-panel>.${FOCUS_CARD_CLASS} :is(.side-label,.inspector-title,summary){font-size:10px!important;font-weight:950!important;color:#12396d!important}
+      html[data-design-sidebar-hierarchy="product"] .design-flat-panel>.${FOCUS_CARD_CLASS} :is(.add-grid button,.wide-btn,.action-grid button){min-height:34px}
+      html[data-design-sidebar-hierarchy="product"] .design-flat-panel>.${OUTPUT_ACTION_CLASS}{border-color:#b9d9d4!important;background:linear-gradient(180deg,#ffffff 0%,#f5fffb 100%)!important;box-shadow:0 3px 10px rgba(14,116,144,.055)}
+      html[data-design-sidebar-hierarchy="product"] .design-flat-panel>.${OUTPUT_ACTION_CLASS} :is(.side-label,.inspector-title,summary){color:#0f6b6f!important;font-weight:950!important}
+      html[data-design-sidebar-hierarchy="product"] .design-flat-panel>.${OUTPUT_ACTION_CLASS} .wide-btn.primary{min-height:36px;font-size:9px}
+      html[data-design-sidebar-hierarchy="product"] .design-flat-panel>.${COMPACT_CARD_CLASS}{padding:8px 9px!important;border-color:#e5ebf1!important;background:#fbfcfe!important;box-shadow:none!important}
+      html[data-design-sidebar-hierarchy="product"] .design-flat-panel>.${COMPACT_CARD_CLASS} :is(.side-label,.inspector-title,summary){margin-bottom:5px!important;font-size:8px!important;color:#64748b!important}
+      html[data-design-sidebar-hierarchy="product"] .design-flat-panel>.${COMPACT_CARD_CLASS} :is(.inspector-note,.document-meta){margin-block:3px 7px!important;font-size:7px!important}
+      html[data-design-sidebar-hierarchy="product"] .design-flat-panel>.${COMPACT_CARD_CLASS} :is(.wide-btn,.mini-action){padding-block:6px!important}
+      @media(max-width:980px){
+        .design-sidebar-group-label{margin-top:10px;padding-block:6px;font-size:8px}
+        html[data-design-sidebar-hierarchy="product"] .design-flat-panel>.${FOCUS_CARD_CLASS}{padding:11px!important;box-shadow:0 3px 10px rgba(18,57,109,.06)}
+      }
     `;
     document.head.appendChild(style);
   }
@@ -141,6 +162,21 @@
 
   function removeLabels(){
     panel?.querySelectorAll(`:scope > .${LABEL_CLASS}`).forEach(node=>node.remove());
+  }
+
+  function applyCardHierarchy(cards=directCards()){
+    cards.forEach(card=>{
+      const id=String(card.id||'');
+      const focus=focusIds.has(id);
+      const outputAction=OUTPUT_ACTION_IDS.has(id);
+      const compact=!focus&&!outputAction&&COMPACT_IDS.has(id);
+      card.classList.toggle(FOCUS_CARD_CLASS,focus);
+      card.classList.toggle(OUTPUT_ACTION_CLASS,outputAction);
+      card.classList.toggle(COMPACT_CARD_CLASS,compact);
+      card.dataset.sidebarCardRole=focus?'focus':outputAction?'output-action':compact?'compact':'standard';
+    });
+    if(panel)panel.dataset.designSidebarHierarchy='product';
+    document.documentElement.dataset.designSidebarHierarchy='product';
   }
 
   function insertSectionLabels(cards){
@@ -286,6 +322,7 @@
       cards.forEach(rememberOriginal);
       cards.sort((a,b)=>rank(a)-rank(b));
       cards.forEach(card=>panel.appendChild(card));
+      applyCardHierarchy(cards);
       insertSectionLabels(cards);
       applyCollapsedState(cards);
       document.documentElement.dataset.designSidebarOrder=profile.key;
@@ -340,6 +377,7 @@
     sectionFor,
     product:profile.key,
     order:[...profile.sidebarOrder],
-    stage:'product-specific-sidebar-sections-v2'
+    focus:[...focusIds],
+    stage:'product-specific-sidebar-card-hierarchy-v3'
   };
 })();
