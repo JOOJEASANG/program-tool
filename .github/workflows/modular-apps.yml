@@ -31,12 +31,15 @@ jobs:
         run: |
           node --check js/studio-app-shell.js
           node --check js/modular-app-access.js
+          node --check js/program-studio-ui-v2.js
+          node --check js/design-editor/app.js
           node --check js/design-editor/shared/module-profile.js
           node --check js/design-editor/shared/document-type-state.js
           node --check js/design-editor/shared/selection-contextbar.js
           node --check js/design-editor/shared/workspace-navigation.js
           node --check js/design-editor/shared/sidebar-menu-order.js
           node --check js/design-editor/shared/professional-shell-ui.js
+          node --check js/design-editor/shared/canvas-viewport-toolbar.js
           node --check js/design-editor/professional-ui.js
           node --check js/design-editor/standalone-product-profile.js
           node --check js/design-editor/product-boundary-ui.js
