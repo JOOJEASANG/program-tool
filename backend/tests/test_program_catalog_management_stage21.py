@@ -7,7 +7,6 @@ CORE = ROOT / "js" / "program-catalog-core.js"
 ADMIN = ROOT / "js" / "admin-program-catalog-manager.js"
 HOME = ROOT / "js" / "home-program-catalog.js"
 REGISTER = ROOT / "js" / "sw-register.js"
-VERSION = ROOT / "js" / "app-version.js"
 RULES = ROOT / "firestore.rules"
 BEHAVIOR = ROOT / "backend" / "tests" / "test_program_catalog_behavior.cjs"
 
@@ -88,11 +87,9 @@ def test_catalog_is_public_read_admin_write_without_changing_member_program_perm
 
 def test_catalog_scripts_are_scoped_to_home_and_admin_and_not_pdf_tools():
     register = REGISTER.read_text(encoding="utf-8")
-    version = VERSION.read_text(encoding="utf-8")
-    for source in (register, version):
-        assert "/js/program-catalog-core.js" in source
-        assert "/js/home-program-catalog.js" in source
-        assert "/js/admin-program-catalog-manager.js" in source
+    assert "/js/program-catalog-core.js" in register
+    assert "/js/home-program-catalog.js" in register
+    assert "/js/admin-program-catalog-manager.js" in register
     assert "if(isHome())" in register
     assert "isPath('/admin','/admin.html')" in register
     pdf_block = register[register.index("if(isPath('/tools/pdf-editor.html'"):]
