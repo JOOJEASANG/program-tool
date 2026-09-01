@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>Design Editor Full Preview Smoke</title>
+  <style>
+    *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%}
+    #editorShell{display:grid;grid-template-columns:268px minmax(0,1fr) 292px;width:1200px;height:640px;background:#eef3f7}
+    .sidebar{min-width:0;background:#fff}
+    .editor-main{min-width:0;background:#edf2f6}
+    #artboardViewport{width:100%;height:100%;background:#dfe7ee}
+    #propertiesPanel{min-width:292px;background:#fff}
+  </style>
+  <script>history.replaceState(null,'','/design-editor/general.html?embed=1&app=poster&mode=poster');</script>
+</head>
+<body data-full-preview-smoke="pending">
+  <main id="editorShell" data-workspace="three-pane">
+    <aside class="sidebar"></aside>
+    <section class="editor-main"><div id="artboardViewport"></div></section>
+    <aside id="propertiesPanel"></aside>
+  </main>
+  <script src="/js/design-editor/full-preview-workspace.js?v=20260901-1"></script>
+  <script>
+    const run=async()=>{
+      const fail=message=>{document.body.dataset.fullPreviewSmoke='fail';document.body.textContent='FAIL: '+message};
+      const pass=message=>{document.body.dataset.fullPreviewSmoke='pass';document.body.dataset.fullPreviewStage=window.DesignEditorFullPreviewWorkspace?.stage||'';document.body.textContent='PASS: '+message};
+      try{
+        window.DesignEditorFullPreviewWorkspace?.sync?.();
+        await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+        const shell=document.getElementById('editorShell');
+        const sidebar=document.querySelector('.sidebar');
+        const main=document.querySelector('.editor-main');
+        const panel=document.getElementById('propertiesPanel');
+        const shellRect=shell.getBoundingClientRect();
+        const sidebarRect=sidebar.getBoundingClientRect();
+        const mainRect=main.getBoundingClientRect();
+        if(getComputedStyle(panel).display!=='none')throw new Error('properties panel still occupies layout space');
+        if(shell.dataset.workspace!=='two-pane-full-preview')throw new Error('workspace did not switch to two-pane full preview');
+        if(Math.abs(mainRect.right-shellRect.right)>1)throw new Error('preview does not reach the right edge');
+        const expectedOpenWidth=shellRect.width-sidebarRect.width;
+        if(Math.abs(mainRect.width-expectedOpenWidth)>2)throw new Error('preview did not reclaim removed sidebar width');
+        const openWidth=mainRect.width;
+        document.documentElement.dataset.designSidebarOpen='false';
+        window.DesignEditorFullPreviewWorkspace.sync();
+        await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+        const closedSidebarWidth=sidebar.getBoundingClientRect().width;
+        const closedWidth=main.getBoundingClientRect().width;
+        const expectedClosedWidth=shell.getBoundingClientRect().width-closedSidebarWidth;
+        if(Math.abs(closedWidth-expectedClosedWidth)>2)throw new Error('collapsed preview did not use all remaining shell width');
+        if(closedWidth<=openWidth+150)throw new Error('collapsed left sidebar did not expand preview');
+        document.body.dataset.openWidth=openWidth.toFixed(1);
+        document.body.dataset.closedWidth=closedWidth.toFixed(1);
+        document.body.dataset.shellWidth=shellRect.width.toFixed(1);
+        pass('removed right sidebar space is fully reclaimed by preview');
+      }catch(error){fail(error.message||String(error));}
+    };
+    if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',run,{once:true});else run();
+  </script>
+</body>
+</html>

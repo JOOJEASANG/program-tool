@@ -88,6 +88,7 @@
         const selected=document.querySelector('.ps-multi-selected');assert(selected,'selected node missing before smart drag');
         selected.dispatchEvent(pointer('pointerdown',{clientX:100,clientY:100}));
         document.dispatchEvent(pointer('pointermove',{clientX:206.8,clientY:100}));
+        assert(smart.snapNow(),'smart snap API did not find artboard-center target');
         document.dispatchEvent(pointer('pointerup',{clientX:206.8,clientY:100}));
         await wait(90);
         const left=Math.min(textA.x,textB.x,shapeC.x),right=Math.max(textA.x+textA.w,textB.x+textB.w,shapeC.x+shapeC.w),center=(left+right)/2;
