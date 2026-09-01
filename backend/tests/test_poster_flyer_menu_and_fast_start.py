@@ -31,7 +31,7 @@ def test_modular_app_shell_preloads_engine_while_access_remains_gated() -> None:
 
 def test_modular_app_page_starts_shell_before_deferred_firebase_access_scripts() -> None:
     page = source("apps/index.html")
-    shell_tag = '<script defer src="/js/studio-app-shell.js?v=20260901-5"></script>'
+    shell_tag = '<script defer src="/js/studio-app-shell.js?v=20260901-6"></script>'
     firebase_tag = '<script defer data-program-studio-approval-bootstrap src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>'
     access_tag = '<script defer src="/js/modular-app-access.js?v=20260901-2"></script>'
     assert shell_tag in page
