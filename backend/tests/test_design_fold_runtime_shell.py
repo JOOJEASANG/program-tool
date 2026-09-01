@@ -6,7 +6,7 @@ ROOT = Path(__file__).resolve().parents[2]
 def test_unified_design_shell_uses_one_manifest_loader_without_changing_route_contract():
     shell = (ROOT / "design-editor" / "index.html").read_text(encoding="utf-8")
     runtime = (ROOT / "js" / "design-editor" / "shell-runtime.js").read_text(encoding="utf-8")
-    assert 'src="/design-editor/general?embed=1&app=cover&mode=cover&preset=cover-a4"' in shell
+    assert 'src="/design-editor/general?embed=1&mode=cover&preset=cover-a4"' in shell
     assert "const SHELL_RUNTIME_VERSION='20260901-1'" in shell
     assert "invitation:{mode:'invitation',preset:'invitation-a4'" in shell
     assert "const APP_CONFIG={" in shell
@@ -23,8 +23,10 @@ def test_unified_design_shell_uses_one_manifest_loader_without_changing_route_co
     assert "professionalUiStage:'professional-workspace-visual-system-v1'" in shell
     assert "firstPaintStage:'approved-base-shell-reveal-v2'" in shell
     assert "Date.now()-baseReadyAt>=1200" in shell
-    assert "workspaceStage:'focused-header-workspace-v1'" in shell
-    assert "routingStage:'product-entry-query-routing-v1'" in shell
+    assert "workspaceStage:'three-pane-context-properties-v1'" in shell
+    assert "focusedWorkspaceStage:'focused-header-workspace-v1'" in shell
+    assert "routingStage:'query-aware-initial-route-v3-invitation'" in shell
+    assert "productRoutingStage:'product-entry-query-routing-v1'" in shell
     assert "stage:'shared-design-engine-product-entry-v1'" in shell
     for marker in (
         "print-fold-runtime-ensure.js?v=20260825-5",
