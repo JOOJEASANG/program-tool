@@ -2,16 +2,16 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
-APP_VERSION = ROOT / "js" / "app-version.js"
+RUNTIME = ROOT / "js" / "pdf-preflight" / "route-runtime.js"
 FINALIZER = ROOT / "js" / "pdf-utility-image-converter-finalize.js"
 CONVERTER = ROOT / "js" / "pdf-utility-image-converter.js"
 
 
 def test_image_converter_reconciles_after_final_pdf_utility_layout():
-    app = APP_VERSION.read_text(encoding="utf-8")
+    runtime = RUNTIME.read_text(encoding="utf-8")
     source = FINALIZER.read_text(encoding="utf-8")
-    assert "pdfUtilityImageConverterFinalizeScriptV1" in app
-    assert "/js/pdf-utility-image-converter-finalize.js?v=20260819-3" in app
+    assert "pdfUtilityImageConverterFinalizeScriptV1" in runtime
+    assert "/js/pdf-utility-image-converter-finalize.js?v=20260827-2" in runtime
     assert ".pdfuw-action-grid.single" in source
     assert "pdfUtilityImageConverterFinalized" in source
     assert "MutationObserver" in source
