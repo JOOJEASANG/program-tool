@@ -17,6 +17,16 @@ def test_general_editor_loads_stability_bootstrap_before_firebase_and_editor_run
     assert html.index(bootstrap) < html.index(firebase) < html.index(app)
 
 
+def test_direct_design_entry_keeps_general_route_for_refresh_and_bookmark():
+    source = read("js/design-editor/embedded-stability-bootstrap.js")
+    assert "const directEntry=['direct','app-direct'].includes" in source
+    assert "const directEntryUrl=location.pathname+location.search+location.hash;" in source
+    assert "history.replaceState=function(state,title,url)" in source
+    assert "if(target.pathname==='/design-editor/index.html')" in source
+    assert "return nativeReplaceState(state,title,directEntryUrl);" in source
+    assert "root.dataset.designDirectHistoryGuard='1'" in source
+
+
 def test_stability_bootstrap_starts_requested_project_before_heavy_runtime_chain():
     source = read("js/design-editor/embedded-stability-bootstrap.js")
     assert "function startRequestedProjectEarly()" in source
@@ -24,7 +34,7 @@ def test_stability_bootstrap_starts_requested_project_before_heavy_runtime_chain
     assert "app.startProject(preset);" in source
     assert "root.dataset.designEarlyProject='started'" in source
     assert "if(mode==='cover'&&!ensureEarlyCoverPreset())return false;" in source
-    assert "stage:'embedded-design-stable-canvas-bootstrap-v3-direct-entry-safe-resize'" in source
+    assert "stage:'embedded-design-stable-canvas-bootstrap-v4-direct-entry-history-guard'" in source
 
 
 def test_stability_bootstrap_coalesces_only_unchanged_startup_synthetic_resizes():
