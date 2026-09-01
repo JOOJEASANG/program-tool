@@ -143,7 +143,7 @@
     const sx=dir.includes('e')?1:dir.includes('w')?-1:0;
     const sy=dir.includes('s')?1:dir.includes('n')?-1:0;
     const minW=state.record.kind==='text'?20:state.record.kind==='shape'&&state.record.item.shape==='line'?2:4;
-    const minH=state.record.kind==='shape'&&state.record.item.shape==='line'?.5:4;
+    const minH=(state.record.kind==='shape'&&state.record.item.shape==='line') ? 0.5 : 4;
     let nextW=horizontal?state.w+sx*dx:state.w;
     let nextH=vertical?state.h+sy*dy:state.h;
     nextW=Math.max(minW,nextW);
