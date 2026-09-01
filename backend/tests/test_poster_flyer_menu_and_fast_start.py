@@ -15,7 +15,7 @@ def test_home_catalog_normalizes_separate_poster_and_flyer_entries() -> None:
     assert "u.endsWith('/apps/flyer')" in catalog
     assert "if(!posterFlyerExpanded){out.push(COMBINED_POSTER_FLYER);posterFlyerExpanded=true;}" in catalog
     assert "if(!samePrograms(next,category.programs))" in catalog
-    assert "modular-production-apps-home-catalog-v4-remote-poster-flyer-normalized" in catalog
+    assert "modular-production-apps-home-catalog-v5-direct-design-entry" in catalog
 
 
 def test_modular_app_shell_preloads_engine_while_access_remains_gated() -> None:

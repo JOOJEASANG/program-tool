@@ -8,8 +8,27 @@
   if(params.get('embed')!=='1')return;
 
   const root=document.documentElement;
+  const directEntry=['direct','app-direct'].includes(String(params.get('entry')||''));
+  const directEntryUrl=location.pathname+location.search+location.hash;
+  if(directEntry){
+    const nativeReplaceState=history.replaceState.bind(history);
+    history.replaceState=function(state,title,url){
+      try{
+        const target=new URL(String(url||''),location.href);
+        if(target.pathname==='/design-editor/index.html'){
+          root.dataset.designDirectHistoryGuard='1';
+          return nativeReplaceState(state,title,directEntryUrl);
+        }
+      }catch(_){}
+      return nativeReplaceState(state,title,url);
+    };
+    root.dataset.designDirectHistoryGuard='1';
+  }
+
+  const syntheticCoalesceDeadline=Date.now()+4200;
   let lastSyntheticResizeSignature='';
   let syntheticResizeFrame=0;
+  let forwardingSyntheticResize=false;
   let readyFrame=0;
   let earlyProjectTimer=0;
   let observer=null;
@@ -102,7 +121,7 @@
     const presets=window.DesignEditorPresets;
     if(!app||typeof app.startProject!=='function'||!presets)return false;
     if(app.project){
-      root.dataset.designEarlyProject= root.dataset.designEarlyProject||'existing';
+      root.dataset.designEarlyProject=root.dataset.designEarlyProject||'existing';
       return true;
     }
     const mode=requestedMode(),preset=requestedPreset(mode);
@@ -131,6 +150,21 @@
     return project?.surfaces?.find(surface=>surface.id===project.activeSurface)||project?.surfaces?.[0]||null;
   }
 
+  const ITEM_SIGNATURE_KEYS=[
+    'id','type','kind','role','text','x','y','w','h','width','height','size','fontSize','fontFamily','fontWeight',
+    'align','color','rotation','writingMode','direction','shape','fill','stroke','strokeWidth','radius','opacity',
+    'fit','focusX','focusY','locked','visible','aspect'
+  ];
+  function itemSignature(item){
+    if(!item||typeof item!=='object')return'';
+    return ITEM_SIGNATURE_KEYS.map(key=>`${key}=${String(item[key]??'')}`).join(',');
+  }
+  function surfaceContentSignature(surface){
+    const elements=Array.isArray(surface?.elements)?surface.elements.map(itemSignature).join('~'):'';
+    const extras=Array.isArray(surface?.extras)?surface.extras.map(itemSignature).join('~'):'';
+    return `${elements}#${extras}`;
+  }
+
   function resizeSignature(){
     const app=window.DesignEditorApp;
     const project=app?.project;
@@ -142,7 +176,8 @@
     return [
       project.presetId||'',project.designMode||'',project.activeSurface||'',
       Number(project.width)||0,Number(project.height)||0,Number(project.bleed)||0,
-      Math.round(viewport.clientWidth),Math.round(viewport.clientHeight),folds,panels
+      Math.round(viewport.clientWidth),Math.round(viewport.clientHeight),folds,panels,
+      project.cover?.spineDirection||'',surfaceContentSignature(surface)
     ].join(':');
   }
 
@@ -152,6 +187,8 @@
       syntheticResizeFrame=0;
       const app=window.DesignEditorApp;
       if(!app?.project)return;
+      forwardingSyntheticResize=true;
+      try{window.dispatchEvent(new Event('resize'));}finally{forwardingSyntheticResize=false;}
       const viewport=app.viewport;
       const state=viewport?.getState?.();
       if(state?.mode==='fit'&&typeof viewport.fit==='function')viewport.fit({center:false});
@@ -163,6 +200,7 @@
   }
 
   function handleResize(event){
+    if(forwardingSyntheticResize)return;
     if(event.isTrusted!==false){
       lastSyntheticResizeSignature='';
       queueReadyCheck();
@@ -170,9 +208,15 @@
     }
     const app=window.DesignEditorApp;
     if(!app?.project)return;
-    event.stopImmediatePropagation();
+    if(Date.now()>syntheticCoalesceDeadline){
+      lastSyntheticResizeSignature='';
+      queueReadyCheck();
+      return;
+    }
     const signature=resizeSignature();
-    if(!signature||signature===lastSyntheticResizeSignature)return;
+    if(!signature)return;
+    event.stopImmediatePropagation();
+    if(signature===lastSyntheticResizeSignature)return;
     refreshCanvasOnce(signature);
   }
 
@@ -225,7 +269,8 @@
     sync:()=>{keepDelegatedFrameVisible();startRequestedProjectEarly();queueReadyCheck();return true;},
     startRequestedProjectEarly,
     resizeSignature,
-    stage:'embedded-design-stable-canvas-bootstrap-v2-early-project'
+    surfaceContentSignature,
+    stage:'embedded-design-stable-canvas-bootstrap-v4-direct-entry-history-guard'
   };
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});

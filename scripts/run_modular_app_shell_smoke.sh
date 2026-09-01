@@ -54,7 +54,8 @@ home_merge_out="$OUT_DIR/home-poster-flyer-catalog-smoke-dom.html"
 home_merge_url="http://127.0.0.1:$PORT/tests/browser/home-program-catalog-poster-flyer-smoke.html"
 run_browser_case "$home_merge_url" "$home_merge_out" 'data-home-poster-flyer-smoke="pass"'
 grep -q 'data-home-poster-flyer-count="1"' "$home_merge_out" || { cat "$home_merge_out" >&2; exit 1; }
-grep -q 'data-home-poster-flyer-route="/apps/poster"' "$home_merge_out" || { cat "$home_merge_out" >&2; exit 1; }
+grep -q 'data-home-poster-flyer-direct="pass"' "$home_merge_out" || { cat "$home_merge_out" >&2; exit 1; }
+grep -q 'data-home-poster-flyer-route="/design-editor/general?embed=1' "$home_merge_out" || { cat "$home_merge_out" >&2; exit 1; }
 
 profile_out="$OUT_DIR/standalone-product-profile-smoke-dom.html"
 profile_url="http://127.0.0.1:$PORT/tests/browser/standalone-product-profile-smoke.html"
@@ -122,4 +123,4 @@ grep -q 'data-design-multi-smart-ownership="contextbar"' "$smart_guides_out" || 
 grep -q 'data-design-multi-smart-gap="horizontal-6-vertical-4"' "$smart_guides_out" || { cat "$smart_guides_out" >&2; exit 1; }
 grep -q 'data-design-multi-smart-snap="artboard-center"' "$smart_guides_out" || { cat "$smart_guides_out" >&2; exit 1; }
 
-echo "Modular app browser smoke passed for 8 routes, parallel editor preload behind access gate, merged poster/flyer home catalog, product-themed workspace headers/shortcuts, design/PDF profiles, boundary UI, shared workspace navigation, product-specific sidebar order/card hierarchy, professional UI ownership, multi-selection ownership and smart guides using $BROWSER"
+echo "Modular app browser smoke passed for legacy shell compatibility, direct poster/flyer home entry, product profiles, boundary UI, shared workspace navigation, product-specific sidebar order/card hierarchy, professional UI ownership, multi-selection ownership and smart guides using $BROWSER"
