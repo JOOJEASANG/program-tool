@@ -30,10 +30,11 @@ def test_canvas_toolbar_is_shared_and_loaded_as_surface_enhancement():
 
     assert "design-editor-canvas-viewport-toolbar-v1" in toolbar
     assert "DesignEditorApp?.viewport" in toolbar
+    assert "designCanvasViewportStage" in toolbar
     assert "data-canvas-view-action=\"fit\"" in toolbar
     assert "data-canvas-view-action=\"actual\"" in toolbar
     assert "data-canvas-view-action=\"center\"" in toolbar
     assert "/js/design-editor/shared/canvas-viewport-toolbar.js?v=20260901-1" in loader
     assert "loadDesignCanvasViewportToolbar();" in loader
     assert "run_design_editor_canvas_viewport_smoke.sh" in runner
-    assert "data-canvas-viewport-coordinates" in smoke
+    assert "dataset.canvasViewportCoordinates='pass'" in smoke
