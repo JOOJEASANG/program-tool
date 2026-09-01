@@ -10,9 +10,12 @@
   if(!['cover','poster','flyer','invitation','leaflet'].includes(app))return;
 
   const STYLE_ID='designProductSpecificWorkspaceStylesV1';
+  const combinedPosterFlyer=params.get('surface')==='poster-flyer';
   const COPY=Object.freeze({
     cover:Object.freeze({title:'표지 디자인',sub:'완성 규격·도련·책등을 설정합니다.',section:'표지 규격 · 책등',hideModeOptions:true}),
-    poster:Object.freeze({title:'포스터 디자인',sub:'단면 용지 규격과 방향만 설정합니다.',section:'포스터 규격',hideModeOptions:false}),
+    poster:Object.freeze(combinedPosterFlyer
+      ?{title:'포스터 · 전단지 디자인',sub:'단면 용지 규격과 방향을 선택해 포스터와 전단지를 함께 제작합니다.',section:'포스터 · 전단지 규격',hideModeOptions:false}
+      :{title:'포스터 디자인',sub:'단면 용지 규격과 방향만 설정합니다.',section:'포스터 규격',hideModeOptions:false}),
     flyer:Object.freeze({title:'전단지 디자인',sub:'단면 용지 규격과 방향만 설정합니다.',section:'전단지 규격',hideModeOptions:false}),
     invitation:Object.freeze({title:params.get('surface')==='notice'?'안내장 디자인':'초대장 · 안내장',sub:'용지 규격과 접지 방향·위치를 설정합니다.',section:'초대장 · 안내장 규격 · 접지',hideModeOptions:false}),
     leaflet:Object.freeze({title:'리플렛 디자인',sub:'페이지 수·접지 방식·용지 규격을 설정합니다.',section:'리플렛 규격 · 접지',hideModeOptions:false})

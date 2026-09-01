@@ -5,8 +5,8 @@
 
   const APPS=Object.freeze({
     cover:{title:'표지 제작',category:'DESIGN · COVER',description:'앞표지·뒤표지·책등과 인쇄 안전영역을 한 작업에서 관리합니다.',symbol:'표',workspaceTitle:'표지 인쇄 작업실',workspaceHint:'규격과 책등을 먼저 맞춘 뒤 내용과 최종 출력을 진행하세요.',kind:'design',quick:[{label:'규격·책등',target:'designCoverSettingsTools'},{label:'빠른 제작',target:'designSimpleResultTools'},{label:'레이어',target:'designLayerTools'},{label:'최종 출력',target:'designFinalPrintCheckTools',output:true}],target:'/design-editor/general?embed=1&mode=cover&preset=cover-a4&app=cover',legacy:'/design-editor/?mode=cover'},
-    poster:{title:'포스터 제작',category:'DESIGN · POSTER',description:'포스터 규격과 출력 품질을 중심으로 필요한 편집 도구만 제공합니다.',symbol:'포',workspaceTitle:'포스터 디자인 작업실',workspaceHint:'빠른 제작과 스타터 레이아웃에서 시작해 시인성과 출력 품질을 정리하세요.',kind:'design',quick:[{label:'빠른 제작',target:'designSimpleResultTools'},{label:'스타터 디자인',target:'designRecipeTools'},{label:'전문 배치',target:'designPhase4SmartLayout'},{label:'최종 출력',target:'designFinalPrintCheckTools',output:true}],target:'/design-editor/general?embed=1&mode=poster&preset=poster-a4&paper=a4&orientation=portrait&w=210&h=297&app=poster',legacy:'/design-editor/?mode=poster'},
-    flyer:{title:'전단지 제작',category:'DESIGN · FLYER',description:'전단지 레이아웃, 텍스트 위계, 이미지와 출력 설정에 집중한 작업실입니다.',symbol:'전',workspaceTitle:'전단지 구성 작업실',workspaceHint:'빠른 구성과 스타터 디자인으로 정보 밀도를 잡고 출력 단계까지 이어가세요.',kind:'design',quick:[{label:'빠른 제작',target:'designSimpleResultTools'},{label:'빠른 구성',target:'designComponentBlocksTools'},{label:'스타터 디자인',target:'designRecipeTools'},{label:'최종 출력',target:'designFinalPrintCheckTools',output:true}],target:'/design-editor/general?embed=1&mode=flyer&preset=flyer-a4&paper=a4&orientation=portrait&w=210&h=297&app=flyer',legacy:'/design-editor/?mode=flyer'},
+    poster:{title:'포스터 · 전단지 제작',category:'DESIGN · POSTER / FLYER',description:'같은 단면 편집 도구에서 용지 규격만 바꿔 포스터와 전단지를 제작합니다.',symbol:'포',workspaceTitle:'포스터 · 전단지 작업실',workspaceHint:'용지 규격과 방향을 먼저 정한 뒤 텍스트·이미지·배치를 편집하세요.',kind:'design',quick:[{label:'작업 규격',target:'designEmbeddedModeCard'},{label:'빠른 제작',target:'designSimpleResultTools'},{label:'스타터 디자인',target:'designRecipeTools'},{label:'최종 출력',target:'designFinalPrintCheckTools',output:true}],target:'/design-editor/general?embed=1&mode=poster&preset=poster-a4&paper=a4&orientation=portrait&w=210&h=297&app=poster&surface=poster-flyer',legacy:'/design-editor/?mode=poster'},
+    flyer:{title:'포스터 · 전단지 제작',category:'DESIGN · POSTER / FLYER',description:'같은 단면 편집 도구에서 용지 규격만 바꿔 포스터와 전단지를 제작합니다.',symbol:'전',workspaceTitle:'포스터 · 전단지 작업실',workspaceHint:'용지 규격과 방향을 먼저 정한 뒤 텍스트·이미지·배치를 편집하세요.',kind:'design',quick:[{label:'작업 규격',target:'designEmbeddedModeCard'},{label:'빠른 제작',target:'designSimpleResultTools'},{label:'스타터 디자인',target:'designRecipeTools'},{label:'최종 출력',target:'designFinalPrintCheckTools',output:true}],target:'/design-editor/general?embed=1&mode=poster&preset=poster-a4&paper=a4&orientation=portrait&w=210&h=297&app=poster&surface=poster-flyer',legacy:'/design-editor/?mode=poster'},
     invitation:{title:'초대장 제작',category:'DESIGN · INVITATION',description:'접지 위치와 앞뒤 면을 확인하며 초대장을 제작합니다.',symbol:'초',workspaceTitle:'초대장 편집 작업실',workspaceHint:'용지와 접지 구조를 확인한 뒤 초대 정보와 앞뒤 면을 정돈하세요.',kind:'design',quick:[{label:'작업 규격',target:'designEmbeddedModeCard'},{label:'빠른 제작',target:'designSimpleResultTools'},{label:'빠른 구성',target:'designComponentBlocksTools'},{label:'최종 출력',target:'designFinalPrintCheckTools',output:true}],target:'/design-editor/general?embed=1&mode=invitation&preset=invitation-a4&paper=a4&orientation=landscape&w=297&h=210&app=invitation',legacy:'/design-editor/?mode=invitation'},
     notice:{title:'안내장 제작',category:'DESIGN · NOTICE',description:'안내 문구와 정보 구조를 빠르게 정돈하고 인쇄 규격에 맞춰 출력합니다.',symbol:'안',workspaceTitle:'안내장 정보 작업실',workspaceHint:'안내 정보의 순서를 먼저 정리하고 가독성과 인쇄 안전영역을 확인하세요.',kind:'design',quick:[{label:'작업 규격',target:'designEmbeddedModeCard'},{label:'빠른 제작',target:'designSimpleResultTools'},{label:'스타터 구성',target:'designRecipeTools'},{label:'최종 출력',target:'designFinalPrintCheckTools',output:true}],target:'/design-editor/general?embed=1&mode=invitation&preset=invitation-a4&paper=a4&orientation=landscape&w=297&h=210&app=invitation&surface=notice',legacy:'/design-editor/?mode=invitation'},
     leaflet:{title:'리플렛 제작',category:'DESIGN · LEAFLET',description:'4P~12P 접지 구조, 패널 폭, 앞뒤 면과 접지 안전영역을 함께 관리합니다.',symbol:'리',workspaceTitle:'리플렛 접지 작업실',workspaceHint:'접지와 패널 구조를 먼저 확정하고 면별 내용과 배치를 이어서 정리하세요.',kind:'design',quick:[{label:'작업 규격',target:'designEmbeddedModeCard'},{label:'전문 배치',target:'designPhase4SmartLayout'},{label:'빠른 구성',target:'designComponentBlocksTools'},{label:'최종 출력',target:'designFinalPrintCheckTools',output:true}],target:'/design-editor/general?embed=1&mode=leaflet3&preset=leaflet-3-roll&paper=a4&orientation=landscape&w=297&h=210&fold=leaflet-3-roll&app=leaflet',legacy:'/design-editor/?mode=leaflet3'},
@@ -24,6 +24,7 @@
   const engineChip=document.querySelector('.engine-chip');
   let timer=0;
   let started=false;
+  let accessRetryTimer=0;
 
   function setText(id,value){const node=byId(id);if(node)node.textContent=value;}
   function setQuickActionsEnabled(enabled){byId('appQuickActions')?.querySelectorAll('button').forEach(button=>{button.disabled=!enabled;});}
@@ -68,15 +69,31 @@
   function ready(){clearTimeout(timer);error&&(error.hidden=true);loading?.classList.add('hide');engineChip?.classList.remove('loading');setText('engineLabel','공통 엔진 연결됨');setQuickActionsEnabled(true);document.documentElement.dataset.modularAppReady='true';}
   function load(){
     if(!app){fail('지원하지 않는 프로그램 주소입니다.');return;}
-    started=true;document.title=`${app.title} · Program Studio`;applyAppChrome();setText('loadingTitle',`${app.title} 작업실 준비 중`);setText('loadingMessage',app.workspaceHint||'공통 편집 엔진과 전용 기능을 연결하는 중입니다.');
+    if(started)return;
+    started=true;clearTimeout(accessRetryTimer);document.title=`${app.title} · Program Studio`;applyAppChrome();setText('loadingTitle',`${app.title} 작업실 준비 중`);setText('loadingMessage',app.workspaceHint||'공통 편집 엔진과 전용 기능을 연결하는 중입니다.');
     const legacy=byId('legacyLink');if(legacy){legacy.href=app.legacy;legacy.hidden=false;}
     engineChip?.classList.add('loading');setText('engineLabel','공통 엔진 연결 중');setQuickActionsEnabled(false);loading?.classList.remove('hide');error&&(error.hidden=true);frame.src=app.target;
     clearTimeout(timer);timer=setTimeout(()=>fail('작업 엔진 응답이 늦습니다. 새로고침 후 다시 시도해 주세요.'),18000);
   }
+  function retryAccess(){
+    if(started)return;
+    clearTimeout(accessRetryTimer);
+    accessRetryTimer=setTimeout(startAfterAccess,50);
+  }
   function startAfterAccess(){
+    if(started)return;
+    if(document.documentElement.dataset.accessReady==='true'){load();return;}
     const access=window.ProgramAccessReady;
-    if(access&&typeof access.then==='function'){Promise.resolve(access).then(result=>{if(result&&!started)load();}).catch(()=>{});return;}
-    if(document.documentElement.dataset.accessReady==='true')load();else setTimeout(startAfterAccess,40);
+    if(access&&typeof access.then==='function'){
+      const observed=access;
+      Promise.resolve(observed).then(result=>{
+        if(started)return;
+        if(result||document.documentElement.dataset.accessReady==='true'){load();return;}
+        retryAccess();
+      }).catch(()=>retryAccess());
+      return;
+    }
+    retryAccess();
   }
 
   frame?.addEventListener('load',()=>{
@@ -85,8 +102,8 @@
       const check=()=>{try{const html=doc.documentElement;if(html?.dataset?.appReady==='true'||html?.dataset?.designShellRuntime==='1'||frame.contentWindow?.DesignEditorApp||frame.contentWindow?.PdfEditorCoreRuntime){ready();return;}}catch(_){}setTimeout(ready,650);};check();
     }catch(_){ready();}
   });
-  frame?.addEventListener('error',()=>fail());byId('retryBtn')?.addEventListener('click',load);
+  frame?.addEventListener('error',()=>fail());byId('retryBtn')?.addEventListener('click',()=>{started=false;load();});
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',startAfterAccess,{once:true});else startAfterAccess();
 
-  window.ProgramStudioModularAppShell={apps:APPS,appKey:key,reload:load,openQuickAction,stage:'modular-app-shell-product-context-v4'};
+  window.ProgramStudioModularAppShell={apps:APPS,appKey:key,reload:()=>{started=false;load();},openQuickAction,stage:'modular-app-shell-product-context-v5-access-race-safe'};
 })();
