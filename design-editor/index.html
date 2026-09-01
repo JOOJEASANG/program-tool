@@ -4,17 +4,15 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>디자인 편집기 · Program Studio</title>
-  <meta name="description" content="표지·포스터·전단·초대장·안내장·4P~12P 리플렛을 인쇄 실무 기준으로 작업하는 통합 디자인 편집기">
+  <meta name="description" content="표지·포스터·전단·초대장·안내장·리플렛을 공통 디자인 엔진으로 편집하는 인쇄 디자인 프로그램">
   <style>
     *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;background:#eef3f7}body{overflow:hidden}.studio{position:relative;width:100%;height:100vh}.editor-frame{display:block;width:100%;height:100%;border:0;background:#fff}.loading{position:absolute;inset:0;z-index:5;display:grid;place-items:center;background:#f8fbfd;color:#64748b;font:800 11px/1.4 Arial,sans-serif;transition:.15s}.loading.hide{opacity:0;pointer-events:none}.loading.error{color:#9f2d24}.spinner{width:30px;height:30px;border:3px solid #dbe5ee;border-top-color:#12396d;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 10px}.loading.error .spinner{display:none}@keyframes spin{to{transform:rotate(360deg)}}
   </style>
 </head>
 <body>
-  <main id="unifiedDesignShell" class="studio" data-mode="cover">
-    <!-- 작업 종류: 표지디자인 · 포스터 · 전단지 · 초대장/안내장 · 리플렛(4P~12P) -->
-    <!-- Retired compatibility URL only; it redirects here and is not an editor fallback: /perfect-binding-cover/?embed=1&mode=cover -->
-    <div id="loading" class="loading"><div><div class="spinner"></div><span id="loadingMessage">디자인 편집기를 불러오는 중...</span></div></div>
-    <iframe id="editorFrame" class="editor-frame" title="디자인 편집 작업영역" src="/design-editor/general?embed=1&mode=cover&preset=cover-a4"></iframe>
+  <main id="unifiedDesignShell" class="studio" data-mode="cover" data-app="cover">
+    <div id="loading" class="loading"><div><div class="spinner"></div><span id="loadingMessage">디자인 프로그램을 불러오는 중...</span></div></div>
+    <iframe id="editorFrame" class="editor-frame" title="디자인 작업영역" src="/design-editor/general?embed=1&app=cover&mode=cover&preset=cover-a4"></iframe>
   </main>
   <script>
     (function(){
@@ -30,24 +28,37 @@
         leaflet3:{mode:'leaflet3',preset:'leaflet-3-roll',paper:'a4',orientation:'landscape',w:297,h:210,fold:'leaflet-3-roll'},
         custom:{mode:'custom',preset:'custom',paper:'custom',orientation:'portrait',w:210,h:297}
       };
+      const APP_CONFIG={
+        cover:{label:'표지 디자인',mode:'cover'},
+        poster:{label:'포스터 디자인',mode:'poster'},
+        flyer:{label:'전단지 디자인',mode:'flyer'},
+        invitation:{label:'초대장 · 안내장',mode:'invitation'},
+        leaflet:{label:'리플렛 디자인',mode:'leaflet3'}
+      };
+      const outerQuery=new URLSearchParams(location.search);
+      const fixedApp=Object.prototype.hasOwnProperty.call(APP_CONFIG,outerQuery.get('app')||'')?(outerQuery.get('app')||''):'';
       function safeMode(value){return Object.prototype.hasOwnProperty.call(DEFAULTS,value)?value:'cover';}
+      function appForMode(mode){if(mode==='leaflet2'||mode==='leaflet3')return'leaflet';if(Object.prototype.hasOwnProperty.call(APP_CONFIG,mode))return mode;return'cover';}
       function clampNumber(value,fallback){const n=Number(value);return Number.isFinite(n)?Math.max(80,Math.min(1000,n)):fallback;}
+      function applyIdentity(app,mode){const key=app||appForMode(mode),config=APP_CONFIG[key]||APP_CONFIG.cover;shell.dataset.app=key;shell.dataset.mode=mode;document.title=`${config.label} · Program Studio`;frame.title=`${config.label} 작업영역`;return config;}
       function incomingDetail(){
-        const query=new URLSearchParams(location.search),mode=safeMode(query.get('mode')||'cover');
-        const detail={mode,_query:query};
+        const query=new URLSearchParams(location.search),app=Object.prototype.hasOwnProperty.call(APP_CONFIG,query.get('app')||'')?(query.get('app')||''):'';
+        const defaultMode=app?APP_CONFIG[app].mode:'cover',mode=safeMode(query.get('mode')||defaultMode);
+        const detail={mode,app:app||appForMode(mode),_query:query};
         ['preset','paper','orientation','fold'].forEach(key=>{if(query.has(key))detail[key]=query.get(key);});
         if(query.has('w'))detail.w=query.get('w');
         if(query.has('h'))detail.h=query.get('h');
         return detail;
       }
-      function canonicalCoverRoute(mode){if(mode==='cover')return '/design-editor/general?embed=1&mode=cover&preset=cover-a4';return '';}
+      function canonicalCoverRoute(mode,app='cover'){if(mode==='cover')return `/design-editor/general?embed=1&app=${encodeURIComponent(app)}&mode=cover&preset=cover-a4`;return '';}
       function route(detail={}){
-        const mode=safeMode(detail.mode),data={...DEFAULTS[mode],...detail,mode};
-        shell.dataset.mode=mode;
+        const mode=safeMode(detail.mode),app=fixedApp||detail.app||appForMode(mode),data={...DEFAULTS[mode],...detail,mode,app};
+        applyIdentity(app,mode);
         const incomingQuery=detail._query instanceof URLSearchParams;
-        if(mode==='cover'&&!incomingQuery)return canonicalCoverRoute(mode);
+        if(mode==='cover'&&!incomingQuery)return canonicalCoverRoute(mode,app);
         const query=incomingQuery?new URLSearchParams(detail._query):new URLSearchParams();
         query.set('embed','1');
+        query.set('app',app);
         query.set('mode',mode);
         query.set('preset',data.preset||DEFAULTS[mode].preset);
         if(mode==='cover')return `/design-editor/general?${query.toString()}`;
@@ -85,62 +96,31 @@
       const ensureMultiSmartGuidesRuntime=ensurePrintRuntimes;
       const ensureSimpleResultRuntime=ensurePrintRuntimes;
       const ensureProfessionalUi=ensurePrintRuntimes;
-      function showLoading(message='디자인 편집기를 불러오는 중...'){
-        loading.classList.remove('hide','error');
-        if(loadingMessage)loadingMessage.textContent=message;
-        delete shell.dataset.ready;
-        delete shell.dataset.readyStage;
-      }
-      function showLoadFailure(){
-        loading.classList.remove('hide');loading.classList.add('error');
-        if(loadingMessage)loadingMessage.textContent='디자인 편집기를 완성하지 못했습니다. 새로고침해 주세요.';
-        shell.dataset.ready='error';
-      }
+      function activeLabel(){return APP_CONFIG[shell.dataset.app]?.label||'디자인 프로그램';}
+      function showLoading(message){loading.classList.remove('hide','error');if(loadingMessage)loadingMessage.textContent=message||`${activeLabel()}을 불러오는 중...`;delete shell.dataset.ready;delete shell.dataset.readyStage;}
+      function showLoadFailure(){loading.classList.remove('hide');loading.classList.add('error');if(loadingMessage)loadingMessage.textContent=`${activeLabel()}을 완성하지 못했습니다. 새로고침해 주세요.`;shell.dataset.ready='error';}
       const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
       async function waitForFrameReady(){
-        showLoading();
-        const deadline=Date.now()+12000;
-        let shellLoadStarted=false,baseReadyAt=0;
+        showLoading();const deadline=Date.now()+12000;let shellLoadStarted=false,baseReadyAt=0;
         while(Date.now()<deadline){
           try{
-            const doc=frame.contentDocument,win=frame.contentWindow;
-            if(!doc?.documentElement||!win){await delay(40);continue;}
+            const doc=frame.contentDocument,win=frame.contentWindow;if(!doc?.documentElement||!win){await delay(40);continue;}
             ensurePrintRuntimes();
-            if(win.DesignEditorShellRuntime?.loadAll&&!shellLoadStarted){
-              shellLoadStarted=true;
-              Promise.resolve(win.DesignEditorShellRuntime.loadAll()).catch(()=>{shellLoadStarted=false;});
-            }
-            // Approval + the direct editor app are enough to enter the workspace.
-            // Professional/core helpers keep loading in the iframe background.
+            if(win.DesignEditorShellRuntime?.loadAll&&!shellLoadStarted){shellLoadStarted=true;Promise.resolve(win.DesignEditorShellRuntime.loadAll()).catch(()=>{shellLoadStarted=false;});}
             const baseReady=doc.documentElement.dataset.appReady==='true'&&Boolean(win.DesignEditorApp)&&Boolean(doc.getElementById('editorShell')||doc.getElementById('startScreen'));
             const enhancedReady=Boolean(win.DesignEditorEssentialWorkspace?.stage)||(doc.documentElement.dataset.designShellRuntime==='1'&&doc.documentElement.dataset.professionalUi==='2');
-            if(baseReady){
-              if(!baseReadyAt)baseReadyAt=Date.now();
-              if(enhancedReady||Date.now()-baseReadyAt>=1200){
-                await new Promise(resolve=>win.requestAnimationFrame(()=>win.requestAnimationFrame(resolve)));
-                loading.classList.add('hide');
-                shell.dataset.ready='true';
-                shell.dataset.readyStage=enhancedReady?'enhanced':'base';
-                return true;
-              }
-            }else baseReadyAt=0;
+            if(baseReady){if(!baseReadyAt)baseReadyAt=Date.now();if(enhancedReady||Date.now()-baseReadyAt>=1200){await new Promise(resolve=>win.requestAnimationFrame(()=>win.requestAnimationFrame(resolve)));loading.classList.add('hide');shell.dataset.ready='true';shell.dataset.readyStage=enhancedReady?'enhanced':'base';return true;}}else baseReadyAt=0;
           }catch(_){/* same-origin frame can be temporarily unavailable while navigating */}
           await delay(40);
         }
-        showLoadFailure();
-        return false;
+        showLoadFailure();return false;
       }
-      function openMode(detail){showLoading('작업 종류를 전환하는 중...');frame.src=route(detail);}
-      window.addEventListener('message',event=>{
-        if(event.origin!==location.origin||event.source!==frame.contentWindow)return;
-        const data=event.data||{};
-        if(data.type==='program-studio-design-mode')openMode(data);
-      });
+      function openMode(detail){showLoading(`${activeLabel()} 작업 설정을 변경하는 중...`);frame.src=route({...detail,app:fixedApp||detail.app});}
+      window.addEventListener('message',event=>{if(event.origin!==location.origin||event.source!==frame.contentWindow)return;const data=event.data||{};if(data.type==='program-studio-design-mode')openMode(data);});
       frame.addEventListener('load',()=>{waitForFrameReady();});
-      const initialRoute=route(incomingDetail());
-      if(frame.getAttribute('src')!==initialRoute)frame.src=initialRoute;
-      else if(frame.contentDocument?.readyState==='complete')setTimeout(waitForFrameReady,0);
-      window.UnifiedDesignShell={openMode,route,incomingDetail,ensureFoldRuntime,ensureDocumentStateRuntime,ensureProductRuntime,ensureProductStateRuntime,ensureProductTopbarRuntime,ensureSelectionContextRuntime,ensureMultiSelectionRuntime,ensureMultiSmartGuidesRuntime,ensureSimpleResultRuntime,ensureProfessionalUi,ensurePrintRuntimes,waitForFrameReady,foldRuntimeStage:'direct-fold-runtime-loader-and-verifier',documentStateStage:'canonical-document-type-state-v1',productRuntimeStage:'print-product-menu-loader',productTopbarStage:'professional-design-commandbar-v2',selectionContextStage:'selection-context-properties-v1',multiSelectionStage:'multi-select-align-distribute-group-v1',multiSmartGuidesStage:'multi-smart-guides-exact-gap-v1',simpleResultStage:'simple-result-background-logo-text-output-v1',professionalUiStage:'professional-workspace-visual-system-v1',workspaceStage:'three-pane-context-properties-v1',runtimeManifestStage:'design-shell-runtime-manifest-v1',routingStage:'query-aware-initial-route-v3-invitation',firstPaintStage:'approved-base-shell-reveal-v2',stage:'single-sidebar-general-engine-shell-no-legacy-fallback'};
+      const initialDetail=incomingDetail(),initialRoute=route(initialDetail);
+      if(frame.getAttribute('src')!==initialRoute)frame.src=initialRoute;else if(frame.contentDocument?.readyState==='complete')setTimeout(waitForFrameReady,0);
+      window.UnifiedDesignShell={openMode,route,incomingDetail,ensureFoldRuntime,ensureDocumentStateRuntime,ensureProductRuntime,ensureProductStateRuntime,ensureProductTopbarRuntime,ensureSelectionContextRuntime,ensureMultiSelectionRuntime,ensureMultiSmartGuidesRuntime,ensureSimpleResultRuntime,ensureProfessionalUi,ensurePrintRuntimes,waitForFrameReady,app:fixedApp||initialDetail.app,foldRuntimeStage:'direct-fold-runtime-loader-and-verifier',documentStateStage:'canonical-document-type-state-v1',productRuntimeStage:'print-product-menu-loader',productTopbarStage:'professional-design-commandbar-v2',selectionContextStage:'selection-context-properties-v1',multiSelectionStage:'multi-select-align-distribute-group-v1',multiSmartGuidesStage:'multi-smart-guides-exact-gap-v1',simpleResultStage:'simple-result-background-logo-text-output-v1',professionalUiStage:'professional-workspace-visual-system-v1',workspaceStage:'focused-header-workspace-v1',runtimeManifestStage:'design-shell-runtime-manifest-v1',routingStage:'product-entry-query-routing-v1',firstPaintStage:'approved-base-shell-reveal-v2',stage:'shared-design-engine-product-entry-v1'};
     })();
   </script>
 </body>
