@@ -9,7 +9,7 @@
 <body data-modular-shell-smoke="running">
   <div id="result">RUNNING</div>
   <span id="appTitle"></span><span id="appCategory"></span><span id="appDescription"></span>
-  <span id="appSymbol"></span><span id="appWorkspaceTitle"></span><span id="appWorkspaceHint"></span>
+  <span id="appSymbol" class="product-symbol"></span><span id="appWorkspaceTitle"></span><span id="appWorkspaceHint"></span>
   <div id="productContext"></div><nav id="appQuickActions" class="product-quick-actions" hidden></nav>
   <span class="engine-chip"><span id="engineLabel"></span></span>
   <a id="legacyLink" hidden></a>
@@ -58,7 +58,7 @@
         if(document.getElementById('appSymbol').textContent!==exp.symbol)throw new Error('wrong product symbol');
         if(document.getElementById('appWorkspaceTitle').textContent!==exp.workspace)throw new Error('wrong workspace title');
         if(document.documentElement.dataset.appTheme!==window.__modularSmoke.key)throw new Error('product theme ownership missing');
-        const accent=getComputedStyle(document.documentElement).getPropertyValue('--app-accent').trim();
+        const accent=getComputedStyle(document.getElementById('appSymbol')).backgroundColor;
         if(accent!==exp.accent)throw new Error(`wrong accent ${accent} != ${exp.accent}`);
         const quick=document.querySelectorAll('#appQuickActions button');
         if(quick.length!==exp.quick)throw new Error(`wrong quick action count ${quick.length}`);
