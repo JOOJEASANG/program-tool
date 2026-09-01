@@ -7,7 +7,7 @@ def test_unified_design_shell_uses_one_manifest_loader_without_changing_route_co
     shell = (ROOT / "design-editor" / "index.html").read_text(encoding="utf-8")
     runtime = (ROOT / "js" / "design-editor" / "shell-runtime.js").read_text(encoding="utf-8")
     assert 'src="/design-editor/general?embed=1&mode=cover&preset=cover-a4"' in shell
-    assert "const SHELL_RUNTIME_VERSION='20260831-2'" in shell
+    assert "const SHELL_RUNTIME_VERSION='20260901-1'" in shell
     assert "invitation:{mode:'invitation',preset:'invitation-a4'" in shell
     assert "shell-runtime.js?v=${SHELL_RUNTIME_VERSION}" in shell
     assert "injectRuntime('designShellRuntimeScriptV1'" in shell
