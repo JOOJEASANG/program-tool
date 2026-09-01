@@ -3,14 +3,14 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 MODULE = ROOT / "js" / "pdf-print-readiness.js"
-APP_VERSION = ROOT / "js" / "app-version.js"
+RUNTIME = ROOT / "js" / "pdf-preflight" / "route-runtime.js"
 
 
 def test_print_readiness_module_is_loaded_only_for_pdf_utility():
-    source = APP_VERSION.read_text(encoding="utf-8")
+    source = RUNTIME.read_text(encoding="utf-8")
     assert "pdfPrintReadinessScriptV1" in source
-    assert "/js/pdf-print-readiness.js?v=20260824-1" in source
-    assert "currentPath==='/pdf-preflight'" in source
+    assert "/js/pdf-print-readiness.js?v=20260831-1" in source
+    assert "canonical-preflight-runtime-v1" in source
 
 
 def test_print_readiness_covers_real_print_room_decisions():
