@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"><title>Home Poster Flyer Catalog Smoke</title></head>
+<body data-home-poster-flyer-smoke="running">
+  <div id="programGrid"></div>
+  <div id="studioNav"></div>
+  <div id="hero"></div>
+  <div id="result">RUNNING</div>
+  <script>
+    history.replaceState(null,'','/');
+    window.ProgramCatalogCore={
+      safeUrl:value=>String(value||''),
+      publicCatalog:value=>value&&Array.isArray(value.categories)?value:{categories:[]}
+    };
+    window.db={collection:()=>({doc:()=>({get:async()=>({exists:false})})})};
+    window.CATEGORIES={
+      design:{programs:[
+        {name:'표지 제작',url:'/apps/cover'},
+        {name:'포스터 제작',url:'/apps/poster'},
+        {name:'전단지 제작',url:'/apps/flyer'},
+        {name:'리플렛 제작',url:'/apps/leaflet'}
+      ]}
+    };
+    window.buildNav=()=>{};
+    window.switchCategory=()=>{};
+  </script>
+  <script src="/js/home-program-catalog.js"></script>
+  <script>
+    (async()=>{
+      const result=document.getElementById('result');
+      const fail=message=>{document.body.dataset.homePosterFlyerSmoke='fail';result.textContent='FAIL: '+message;};
+      try{
+        const api=window.HomeProgramCatalog;
+        if(!api)throw new Error('HomeProgramCatalog missing');
+        const fallback=CATEGORIES.design.programs;
+        const combinedFallback=fallback.filter(item=>String(item.url||'').startsWith('/apps/poster'));
+        if(fallback.length!==3)throw new Error('fallback catalog still has separate poster/flyer cards');
+        if(combinedFallback.length!==1||combinedFallback[0].name!=='포스터 · 전단지 제작')throw new Error('fallback combined card missing');
+        if(fallback.some(item=>String(item.url||'').startsWith('/apps/flyer')))throw new Error('fallback flyer route survived');
+
+        const remote=api.expandPrograms([
+          {name:'포스터 디자인',url:'/apps/poster?from=remote'},
+          {name:'전단지 디자인',url:'/apps/flyer'},
+          {name:'이미지 편집기',url:'/image-editor'}
+        ]);
+        const posterCards=remote.filter(item=>String(item.url||'').startsWith('/apps/poster'));
+        if(remote.length!==2)throw new Error('remote catalog was not collapsed');
+        if(posterCards.length!==1||posterCards[0].name!=='포스터 · 전단지 제작')throw new Error('remote combined card missing');
+        if(remote.some(item=>String(item.url||'').startsWith('/apps/flyer')))throw new Error('remote flyer route survived');
+
+        document.body.dataset.homePosterFlyerSmoke='pass';
+        document.body.dataset.homePosterFlyerCount=String(posterCards.length);
+        document.body.dataset.homePosterFlyerRoute=posterCards[0].url;
+        result.textContent='PASS';
+      }catch(error){fail(error?.stack||error);}
+    })();
+  </script>
+</body>
+</html>

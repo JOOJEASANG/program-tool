@@ -17,22 +17,47 @@
     {name:'안내장 제작',icon:'NOTICE',accent:'#b06a72',bg:'#fff3f3',desc:'행사·교육·업무 안내 문구를 정돈된 정보 구조로 제작합니다.',url:'/apps/notice',tags:['안내장','정보 정렬','인쇄']},
     {name:'리플렛 제작',icon:'LEAFLET',accent:'#7d69c7',bg:'#f5f1ff',desc:'4P~12P 접지 구조와 패널 폭, 앞뒤 면을 함께 관리합니다.',url:'/apps/leaflet',tags:['4P~12P','접지선','패널']}
   ];
+  const COMBINED_POSTER_FLYER=MODULAR_DESIGN[1];
   const MODULAR_PDF=[
     {name:'PDF 배치',icon:'N-UP',accent:'#168b73',bg:'#eaf9f3',desc:'페이지 순서와 N-up, 용지, 여백을 설정해 출력용 PDF를 만듭니다.',url:'/apps/pdf-layout',tags:['N-up','페이지 배치','출력']},
     {name:'소책자 제작',icon:'BOOK',accent:'#2477a7',bg:'#edf7ff',desc:'소책자 페이지 순서와 양면 인쇄 흐름에 집중한 전용 작업실입니다.',url:'/apps/booklet',tags:['소책자','양면 인쇄','페이지 순서']}
   ];
 
   function ready(){return window.ProgramCatalogCore&&window.db&&typeof CATEGORIES!=='undefined'&&typeof buildNav==='function'&&typeof switchCategory==='function';}
-  function isDesignProgram(p){const u=text(p?.url).toLowerCase(),n=text(p?.name).replace(/\s+/g,'');return u.includes('design-editor')||n==='디자인제작'||n.includes('디자인편집');}
-  function isPdfEditorProgram(p){const u=text(p?.url).toLowerCase(),n=text(p?.name).replace(/\s+/g,'');return (u.includes('pdf-editor')&&!u.includes('preflight'))||n.includes('PDF편집')||n.includes('인쇄배치');}
+  function normalizedName(p){return text(p?.name).replace(/[\s·ㆍ・/\\-]+/g,'');}
+  function normalizedUrl(p){return text(p?.url).trim().toLowerCase().split(/[?#]/,1)[0].replace(/\/+$/,'');}
+  function isPosterFlyerProgram(p){
+    const u=normalizedUrl(p),n=normalizedName(p);
+    return u.endsWith('/apps/poster')||u.endsWith('/apps/flyer')||[
+      '포스터제작','전단지제작','포스터디자인','전단지디자인','포스터전단지제작','포스터전단지디자인'
+    ].includes(n);
+  }
+  function isDesignProgram(p){const u=normalizedUrl(p),n=normalizedName(p);return u.includes('design-editor')||n==='디자인제작'||n.includes('디자인편집');}
+  function isPdfEditorProgram(p){const u=normalizedUrl(p),n=normalizedName(p);return (u.includes('pdf-editor')&&!u.includes('preflight'))||n.includes('PDF편집')||n.includes('인쇄배치');}
   function expandPrograms(programs){
-    const out=[];let designExpanded=false,pdfExpanded=false;
-    for(const p of programs||[]){
-      if(isDesignProgram(p)&&!designExpanded){out.push(...MODULAR_DESIGN);designExpanded=true;continue;}
-      if(isPdfEditorProgram(p)&&!pdfExpanded){out.push(...MODULAR_PDF);pdfExpanded=true;continue;}
+    const out=[];let designExpanded=false,pdfExpanded=false,posterFlyerExpanded=false;
+    const pushProgram=p=>{
+      if(isPosterFlyerProgram(p)){
+        if(!posterFlyerExpanded){out.push(COMBINED_POSTER_FLYER);posterFlyerExpanded=true;}
+        return;
+      }
       out.push(p);
+    };
+    for(const p of programs||[]){
+      if(isDesignProgram(p)){
+        if(!designExpanded){MODULAR_DESIGN.forEach(pushProgram);designExpanded=true;}
+        continue;
+      }
+      if(isPdfEditorProgram(p)){
+        if(!pdfExpanded){MODULAR_PDF.forEach(pushProgram);pdfExpanded=true;}
+        continue;
+      }
+      pushProgram(p);
     }
     return out;
+  }
+  function samePrograms(a,b){
+    return a.length===b.length&&a.every((p,i)=>normalizedName(p)===normalizedName(b[i])&&normalizedUrl(p)===normalizedUrl(b[i]));
   }
   function homeCategory(c){return{label:text(c.name),accent:c.accent,title:text(c.sectionTitle||c.name),badge:text(c.badge),heroTitle:`${esc(c.heroTitle||c.name)}${c.heroAccent?` <span>${esc(c.heroAccent)}</span>`:''}`,lead:text(c.lead),copy:breaks(c.copy),visual:[text(c.visualIcon||'🧰'),text(c.visualTitle||c.name),text(c.visualText)],programs:expandPrograms(c.programs).map(p=>({name:esc(p.name),icon:esc(p.icon||'🧰'),accent:p.accent,bg:p.bg,desc:esc(p.desc),url:window.ProgramCatalogCore.safeUrl(p.url),tags:(p.tags||[]).map(esc),coming:p.status&&p.status!=='active'||!window.ProgramCatalogCore.safeUrl(p.url)}))};}
 
@@ -50,7 +75,7 @@
     Object.values(CATEGORIES).forEach(category=>{
       if(!category||!Array.isArray(category.programs))return;
       const next=expandPrograms(category.programs);
-      if(next.length!==category.programs.length){category.programs=next;changed=true;}
+      if(!samePrograms(next,category.programs)){category.programs=next;changed=true;}
     });
     if(changed&&typeof switchCategory==='function'){
       try{switchCategory(typeof active==='string'?active:Object.keys(CATEGORIES)[0],false);}catch(_){}
@@ -68,5 +93,5 @@
   async function loadCatalog(){if(!ready())return false;try{const snap=await db.collection('settings').doc(DOC_ID).get();return snap.exists?applyCatalog(snap.data()||{}):false;}catch(error){console.warn('Program catalog fallback',error);return false;}}
   async function install(){installIcons();for(let i=0;i<10;i+=1){if(ready()){applyFallbackExpansion();return loadCatalog();}await new Promise(r=>setTimeout(r,180));}return false;}
 
-  window.HomeProgramCatalog={install,loadCatalog,applyCatalog,expandPrograms,decorateProgramIcons,stage:'admin-managed-home-navigation-and-programs',modularStage:'modular-production-apps-home-catalog-v3-poster-flyer-merged'};install();
+  window.HomeProgramCatalog={install,loadCatalog,applyCatalog,expandPrograms,decorateProgramIcons,isPosterFlyerProgram,stage:'admin-managed-home-navigation-and-programs',modularStage:'modular-production-apps-home-catalog-v4-remote-poster-flyer-normalized'};install();
 })();

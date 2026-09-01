@@ -11,9 +11,11 @@ def read(path: str) -> str:
 def test_modular_app_shell_retries_when_initial_access_promise_resolves_empty():
     source = read("js/studio-app-shell.js")
     assert "function retryAccess()" in source
-    assert "if(result||document.documentElement.dataset.accessReady==='true'){load();return;}" in source
+    assert "if(result||document.documentElement.dataset.accessReady==='true'){grantAccess();return;}" in source
     assert "retryAccess();" in source
+    assert "if(!accessGranted||!frameReady)return;" in source
     assert "modular-app-shell-product-context-v5-access-race-safe" in source
+    assert "modular-app-shell-parallel-engine-preload-v1" in source
 
 
 def test_home_exposes_one_combined_poster_flyer_program():
@@ -22,6 +24,8 @@ def test_home_exposes_one_combined_poster_flyer_program():
     assert "url:'/apps/poster'" in source
     assert "name:'포스터 제작'" not in source
     assert "name:'전단지 제작'" not in source
+    assert "function isPosterFlyerProgram(p)" in source
+    assert "if(!posterFlyerExpanded){out.push(COMBINED_POSTER_FLYER);posterFlyerExpanded=true;}" in source
 
 
 def test_legacy_flyer_route_uses_the_combined_workspace():
