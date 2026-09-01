@@ -17,6 +17,16 @@ def test_general_editor_loads_stability_bootstrap_before_firebase_and_editor_run
     assert html.index(bootstrap) < html.index(firebase) < html.index(app)
 
 
+def test_stability_bootstrap_starts_requested_project_before_heavy_runtime_chain():
+    source = read("js/design-editor/embedded-stability-bootstrap.js")
+    assert "function startRequestedProjectEarly()" in source
+    assert "function probeEarlyProject()" in source
+    assert "app.startProject(preset);" in source
+    assert "root.dataset.designEarlyProject='started'" in source
+    assert "if(mode==='cover'&&!ensureEarlyCoverPreset())return false;" in source
+    assert "stage:'embedded-design-stable-canvas-bootstrap-v2-early-project'" in source
+
+
 def test_stability_bootstrap_coalesces_repeated_synthetic_resize_events():
     source = read("js/design-editor/embedded-stability-bootstrap.js")
     assert "event.isTrusted!==false" in source
