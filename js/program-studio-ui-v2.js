@@ -19,8 +19,9 @@
     return 'general';
   })();
 
-  document.documentElement.classList.add('ps-ui-v2');
+  document.documentElement.classList.add('ps-ui-v2','ps-ui-v3');
   document.documentElement.dataset.programSurface=surface;
+  document.documentElement.dataset.programDesignSystem='unified-v3';
 
   const TOOLS=[
     {name:'PDF 편집기',description:'병합 · 페이지 편집 · N-up · 소책자',icon:'📄',url:'/pdf-editor/'},
@@ -283,13 +284,67 @@
     });
   }
 
+  function actionKind(node){
+    const text=(node.textContent||'').replace(/\s+/g,' ').trim();
+    const classes=node.classList;
+    if(classes.contains('danger')||classes.contains('badbtn')||classes.contains('warnbtn')||/삭제|이용 중지|초기화/.test(text))return 'danger';
+    if(classes.contains('primary')||classes.contains('btn-primary')||classes.contains('submit-btn')||classes.contains('tm-run-btn')||/저장|다운로드|실행|시작하기/.test(text))return 'primary';
+    return 'secondary';
+  }
+
+  function enhanceControl(node){
+    if(!(node instanceof Element))return;
+    const controls=node.matches('button,a')?[node]:[...node.querySelectorAll('button,a')];
+    controls.forEach(control=>{
+      if(!control.dataset.psAction)control.dataset.psAction=actionKind(control);
+      const text=(control.textContent||'').trim();
+      if(control.tagName==='BUTTON'&&!control.getAttribute('aria-label')){
+        const label=text==='×'?'닫기':text==='↻'?'새로고침':text==='☰'?'메뉴 열기':'';
+        if(label)control.setAttribute('aria-label',label);
+      }
+    });
+  }
+
+  function mountSkipLink(){
+    if(['auth','approval'].includes(surface)||document.querySelector('.ps-global-skip-link'))return;
+    const target=document.querySelector('main,.content,.workspace,.editor-main');
+    if(!target)return;
+    target.id=target.id||'programStudioMain';
+    if(!target.hasAttribute('tabindex'))target.tabIndex=-1;
+    const link=document.createElement('a');
+    link.className='ps-global-skip-link';
+    link.href=`#${target.id}`;
+    link.textContent='본문으로 바로가기';
+    document.body.insertBefore(link,document.body.firstChild);
+  }
+
+  function observeNewControls(){
+    if(!document.body||document.body.dataset.psControlObserver==='ready')return;
+    document.body.dataset.psControlObserver='ready';
+    let queued=[];
+    let scheduled=false;
+    const flush=()=>{
+      scheduled=false;
+      const nodes=queued;
+      queued=[];
+      nodes.forEach(enhanceControl);
+    };
+    new MutationObserver(records=>{
+      records.forEach(record=>record.addedNodes.forEach(node=>{if(node.nodeType===1)queued.push(node)}));
+      if(queued.length&&!scheduled){scheduled=true;requestAnimationFrame(flush)}
+    }).observe(document.body,{childList:true,subtree:true});
+  }
+
   onReady(()=>{
     loadSurfaceEnhancements();
     mountSidebarToggle(0);
     mountCommandTrigger();
     mountGlobalKeys();
     improveExternalStateLabels();
+    enhanceControl(document.body);
+    mountSkipLink();
+    observeNewControls();
   });
 
-  window.ProgramStudioUI={version:'2026.09.01.012',surface,openPalette,closePalette};
+  window.ProgramStudioUI={version:'2026.09.01.020',surface,designSystem:'unified-v3',openPalette,closePalette};
 })();

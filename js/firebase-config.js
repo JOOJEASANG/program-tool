@@ -26,8 +26,12 @@ window.googleProvider = googleProvider;
 window.firebaseConfig = firebaseConfig;
 
 (() => {
-  const UI_VERSION = '20260831-1';
-  if (!document.getElementById('programStudioUiV2Styles')) {
+  const UI_VERSION = '20260901-20';
+  const existingUiStyles = document.getElementById('programStudioUiV2Styles')
+    || document.querySelector('link[data-program-studio-ui]');
+  if (existingUiStyles) {
+    existingUiStyles.id = 'programStudioUiV2Styles';
+  } else {
     const link = document.createElement('link');
     link.id = 'programStudioUiV2Styles';
     link.rel = 'stylesheet';
@@ -47,7 +51,7 @@ window.firebaseConfig = firebaseConfig;
   if (document.getElementById('programStudioCacheBootstrap')) return;
   const script = document.createElement('script');
   script.id = 'programStudioCacheBootstrap';
-  script.src = '/js/sw-register.js?v=2026.08.31.004';
+  script.src = '/js/sw-register.js?v=2026.09.01.020';
   script.defer = true;
   document.head.appendChild(script);
 })();
