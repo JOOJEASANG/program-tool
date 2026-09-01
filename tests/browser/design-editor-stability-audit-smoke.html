@@ -23,7 +23,7 @@
   <script src="/js/design-editor/direct-resize-handles.js?v=20260901-1"></script>
   <script src="/js/design-editor/stability-guards.js?v=20260901-1"></script>
   <script>
-    (async()=>{
+    async function runStabilityAudit(){
       const result=document.getElementById('result');
       const fail=error=>{document.body.dataset.stabilityAuditSmoke='fail';result.textContent='FAIL: '+String(error?.stack||error?.message||error)};
       const pass=message=>{document.body.dataset.stabilityAuditSmoke='pass';result.textContent='PASS: '+message};
@@ -67,7 +67,8 @@
         document.body.dataset.stabilityStage=window.DesignEditorStabilityGuards.stage;
         pass('direct resize keeps manual text width and removes legacy resize conflicts');
       }catch(error){fail(error)}
-    })();
+    }
+    if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',runStabilityAudit,{once:true});else runStabilityAudit();
   </script>
 </body>
 </html>
