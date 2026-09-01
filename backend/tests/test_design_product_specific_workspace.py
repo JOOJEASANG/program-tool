@@ -18,7 +18,9 @@ def test_product_specific_workspace_keeps_each_design_app_inside_its_own_setting
     assert "data-design-product-workspace" in source
     assert "#designEmbeddedModeCard .design-mode-grid{display:none!important}" in source
     assert "cover:Object.freeze({title:'표지 디자인'" in source
-    assert "poster:Object.freeze({title:'포스터 디자인'" in source
+    assert "const combinedPosterFlyer=params.get('surface')==='poster-flyer';" in source
+    assert "title:'포스터 · 전단지 디자인'" in source
+    assert "title:'포스터 디자인'" in source
     assert "flyer:Object.freeze({title:'전단지 디자인'" in source
     assert "invitation:Object.freeze({title:params.get('surface')==='notice'?'안내장 디자인':'초대장 · 안내장'" in source
     assert "leaflet:Object.freeze({title:'리플렛 디자인'" in source
