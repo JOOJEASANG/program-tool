@@ -5,6 +5,7 @@
 
   const root=document.documentElement;
   const path=String(location.pathname||'').replace(/\\/g,'/').replace(/\/+$/,'');
+  const params=new URLSearchParams(location.search);
   const modularAppKey=(function(){
     const match=path.match(/^\/apps\/([^/]+)$/i);
     return match?String(match[1]||'').toLowerCase():'';
@@ -22,7 +23,44 @@
 
   const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
   function isGeneralDesignEditor(){return ['/design-editor/general','/design-editor/general.html'].some(item=>path.endsWith(item));}
+  function isEmbeddedGeneralDesignEditor(){return isGeneralDesignEditor()&&params.get('embed')==='1';}
   function isPdfPrintEditor(){return ['/tools/pdf-editor.html','/pdf-editor','/pdf-editor/index.html'].some(item=>path.endsWith(item));}
+
+  function hasDelegatedModularParentGate(){
+    if(!isEmbeddedGeneralDesignEditor()||window.parent===window)return false;
+    try{
+      const parentDoc=window.parent.document,parentRoot=parentDoc?.documentElement;
+      const parentPath=String(window.parent.location.pathname||'').replace(/\/+$/,'');
+      const match=parentPath.match(/^\/apps\/([^/]+)$/i),key=String(match?.[1]||'').toLowerCase();
+      const frame=parentDoc?.getElementById('appFrame');
+      return ['cover','poster','flyer','invitation','notice','leaflet'].includes(key)&&
+        parentRoot?.dataset?.programStudioModularApp==='1'&&frame?.contentWindow===window;
+    }catch(_){return false;}
+  }
+
+  function installEmbeddedDesignFirstPaint(){
+    if(!isEmbeddedGeneralDesignEditor())return false;
+    root.dataset.designEmbeddedFirstPaint='1';
+    if(document.getElementById('designEmbeddedFirstPaintStyleV1'))return true;
+    const style=document.createElement('style');
+    style.id='designEmbeddedFirstPaintStyleV1';
+    style.textContent=`
+      html[data-design-embedded-first-paint="1"]{--design-focused-left:268px}
+      html[data-design-embedded-first-paint="1"] #editorShell{grid-template-columns:var(--design-focused-left) minmax(0,1fr)!important;grid-template-rows:minmax(0,1fr)!important}
+      html[data-design-embedded-first-paint="1"] #propertiesPanel{display:none!important;width:0!important;min-width:0!important;max-width:0!important;position:absolute!important;visibility:hidden!important;pointer-events:none!important}
+      html[data-design-embedded-first-paint="1"] .editor-main{grid-column:2!important;min-width:0!important}
+      html[data-design-embedded-first-paint="1"] #inspector{display:none!important}
+      html[data-design-embedded-first-paint="1"] #designPhase2Tools,
+      html[data-design-embedded-first-paint="1"] #designPhase4SmartLayout,
+      html[data-design-embedded-first-paint="1"] #designSimpleResultTools,
+      html[data-design-embedded-first-paint="1"] #designRotationTools,
+      html[data-design-embedded-first-paint="1"] #designCanvasQuickbar{display:none!important}
+      @media(max-width:1180px){html[data-design-embedded-first-paint="1"]{--design-focused-left:248px}}
+      @media(max-width:900px){html[data-design-embedded-first-paint="1"]{--design-focused-left:230px}}
+    `;
+    document.head.appendChild(style);
+    return true;
+  }
 
   function loadRuntimeScript(id,src,enabled){
     if(!enabled)return null;
@@ -39,6 +77,7 @@
   }
   function loadDesignRuntimeScript(id,src){loadRuntimeScript(id,src,isGeneralDesignEditor());}
 
+  installEmbeddedDesignFirstPaint();
   loadDesignRuntimeScript('designTextAutoFitScriptV1','/js/design-editor/text-auto-fit.js?v=20260826-2');
   loadDesignRuntimeScript('designTypographyProScriptV1','/js/design-editor/typography-pro.js?v=20260827-1');
   loadDesignRuntimeScript('designLocalFontsScriptV1','/js/design-editor/local-fonts.js?v=20260827-1');
@@ -62,6 +101,13 @@
 
   window.ProgramStudioBoot={...(window.ProgramStudioBoot||{}),reveal,protectedProgram};
   window.ProgramStudioBoot.modularAppKey=modularAppKey;
+
+  const delegatedParentGate=hasDelegatedModularParentGate();
+  if(delegatedParentGate){
+    root.dataset.parentAccessDelegated='true';
+    reveal();
+    return;
+  }
   if(!protectedProgram){reveal();return;}
 
   root.classList.add('app-booting');
