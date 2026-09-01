@@ -25,7 +25,7 @@ with urllib.request.urlopen(sys.argv[1], timeout=1) as response:
 PY
 then break; fi; sleep 0.1; done
 
-"$BROWSER" --headless=new --disable-gpu --no-sandbox --disable-dev-shm-usage --disable-background-networking --user-data-dir="$PROFILE_DIR" --virtual-time-budget=10000 --dump-dom "$URL" >"$DOM_OUT"
+"$BROWSER" --headless=new --window-size=1440,900 --disable-gpu --no-sandbox --disable-dev-shm-usage --disable-background-networking --user-data-dir="$PROFILE_DIR" --virtual-time-budget=10000 --dump-dom "$URL" >"$DOM_OUT"
 
 if ! grep -q 'data-full-preview-smoke="pass"' "$DOM_OUT"; then echo "Design editor full preview browser smoke failed." >&2; cat "$DOM_OUT" >&2; echo "----- HTTP server log -----" >&2; cat "$SERVER_LOG" >&2; exit 1; fi
 if ! grep -q 'PASS: removed right sidebar space is fully reclaimed by preview' "$DOM_OUT"; then echo "Full preview completion marker is missing." >&2; cat "$DOM_OUT" >&2; exit 1; fi
