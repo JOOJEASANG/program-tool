@@ -18,17 +18,26 @@ def test_modular_app_shell_retries_when_initial_access_promise_resolves_empty():
     assert "modular-app-shell-parallel-engine-preload-v1" in source
 
 
-def test_design_modular_shell_reveals_only_after_stable_focused_workspace_readiness():
+def test_design_modular_shell_reveals_only_after_stable_project_readiness():
     source = read("js/studio-app-shell.js")
     assert "function designFrameCanReveal()" in source
-    assert "Boolean(win.DesignEditorApp)" in source
+    assert "win.DesignEditorApp?.project" in source
+    assert "doc.documentElement.dataset.designEmbeddedProjectReady==='1'" in source
     assert "doc.documentElement.dataset.designFocusedWorkspace==='1'" in source
     assert "!doc.documentElement.classList.contains('app-booting')" in source
     assert "Boolean(win.DesignEditorFocusedWorkspace)" not in source
-    assert "markFrameReady('stable-workspace-probe')" in source
-    assert "markFrameReady('load-stable-workspace')" in source
+    assert "markFrameReady('stable-project-probe')" in source
+    assert "markFrameReady('load-stable-project')" in source
     assert "frameProbeTimer=setTimeout(probe,25)" in source
-    assert "modular-design-stable-workspace-reveal-v2" in source
+    assert "modular-design-stable-project-reveal-v3" in source
+
+
+def test_design_modular_shell_accepts_internal_general_route_rewrite_without_wait_race():
+    source = read("js/studio-app-shell.js")
+    assert "'/design-editor/index.html'" in source
+    assert "const designPaths=new Set" in source
+    assert "current.searchParams.get('embed')==='1'" in source
+    assert "currentMode===expectedMode" in source
 
 
 def test_design_modular_shell_suppresses_nested_auth_flash_after_parent_approval():
@@ -43,6 +52,7 @@ def test_design_modular_shell_suppresses_nested_auth_flash_after_parent_approval
 def test_design_modular_shell_warms_shared_editor_assets_before_navigation():
     source = read("js/studio-app-shell.js")
     assert "const DESIGN_PRELOADS=[" in source
+    assert "'/js/design-editor/embedded-stability-bootstrap.js?v=20260901-1'" in source
     assert "'/js/design-editor/presets.js?v=20260821-1'" in source
     assert "'/js/design-editor/app.js?v=20260821-1'" in source
     assert "'/js/design-editor/focused-professional-workspace.js?v=20260901-1'" in source
@@ -50,7 +60,7 @@ def test_design_modular_shell_warms_shared_editor_assets_before_navigation():
     page = read("apps/index.html")
     assert 'rel="preconnect" href="https://www.gstatic.com"' in page
     assert 'rel="preconnect" href="https://cdn.jsdelivr.net"' in page
-    assert '/js/studio-app-shell.js?v=20260901-6' in page
+    assert '/js/studio-app-shell.js?v=20260901-7' in page
 
 
 def test_home_exposes_one_combined_poster_flyer_program():

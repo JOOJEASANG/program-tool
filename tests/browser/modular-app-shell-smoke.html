@@ -43,7 +43,7 @@
     window.ProgramAccessReady=Promise.resolve(null);
     window.__modularSmoke={key,expected:expected[key],installRealAccess(){window.ProgramAccessReady=new Promise(resolve=>{approve=resolve;});},approve(value){approve?.(value);}};
   </script>
-  <script src="/js/studio-app-shell.js?v=20260901-6"></script>
+  <script src="/js/studio-app-shell.js?v=20260901-7"></script>
   <script>
     (async()=>{
       const result=document.getElementById('result');
@@ -77,9 +77,10 @@
         if(exp.quick){
           const target=quick[0].dataset.target;
           const doc=frame.contentDocument;
-          doc.body.innerHTML=`<div class="design-flat-panel"><section id="editorShell"></section><section id="${target}" class="side-card"></section></div>`;
-          frame.contentWindow.DesignEditorApp={stage:'smoke-ready'};
+          doc.body.innerHTML=`<div class="design-flat-panel"><section id="editorShell"><div id="artboard" style="width:640px;height:480px"></div></section><section id="${target}" class="side-card"></section></div>`;
+          frame.contentWindow.DesignEditorApp={project:{presetId:'smoke',width:210,height:297,bleed:3},stage:'smoke-ready'};
           doc.documentElement.dataset.designFocusedWorkspace='1';
+          doc.documentElement.dataset.designEmbeddedProjectReady='1';
           doc.documentElement.classList.remove('app-booting');
           frame.dispatchEvent(new Event('load'));
           frame.contentWindow.__openedSection='';
@@ -88,7 +89,7 @@
 
         await waitFor(()=>document.documentElement.dataset.modularAppReady==='true','shell ready');
         if(document.documentElement.dataset.modularAppEnginePreload!=='ready')throw new Error('engine preload did not finish');
-        if(exp.quick&&document.documentElement.dataset.modularAppFrameReadyStage!=='load-stable-workspace'&&document.documentElement.dataset.modularAppFrameReadyStage!=='stable-workspace-probe')throw new Error('design shell bypassed stable workspace readiness');
+        if(exp.quick&&document.documentElement.dataset.modularAppFrameReadyStage!=='load-stable-project'&&document.documentElement.dataset.modularAppFrameReadyStage!=='stable-project-probe')throw new Error('design shell bypassed stable project readiness');
         if(exp.quick&&![...quick].every(button=>!button.disabled))throw new Error('quick actions stayed disabled after engine ready');
         if(exp.quick){
           quick[0].click();
@@ -105,6 +106,7 @@
         document.body.dataset.modularShellAccessRace='pass';
         document.body.dataset.modularShellParallelPreload='pass';
         document.body.dataset.modularShellStableWorkspace='pass';
+        document.body.dataset.modularShellStableProject='pass';
         result.textContent='PASS: '+window.__modularSmoke.key+' -> '+frame.dataset.assignedSrc;
       }catch(error){fail(error);}
     })();
