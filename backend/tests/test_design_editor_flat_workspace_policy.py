@@ -44,7 +44,6 @@ def test_cover_has_structural_back_spine_front_boundaries_independent_of_zone_pr
     assert "designFlatCoverBoundaries" in source
     assert "design-flat-cover-boundary" in source
     assert "const points=[trimW,trimW+spine]" in source
-    assert "currentType()!=='cover'" not in source  # current guard is consolidated in renderCoverBoundaries
     assert "currentType()!=='cover'||!p.cover" in source
 
 
