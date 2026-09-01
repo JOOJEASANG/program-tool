@@ -29,13 +29,17 @@
     (async()=>{
       const result=document.getElementById('result');
       const fail=message=>{document.body.dataset.homePosterFlyerSmoke='fail';result.textContent='FAIL: '+message;};
+      const isDirectPoster=item=>{
+        const value=String(item?.url||'');
+        return value.startsWith('/design-editor/general?embed=1')&&value.includes('app=poster')&&value.includes('surface=poster-flyer');
+      };
       try{
         const api=window.HomeProgramCatalog;
         if(!api)throw new Error('HomeProgramCatalog missing');
         const fallback=CATEGORIES.design.programs;
-        const combinedFallback=fallback.filter(item=>String(item.url||'').startsWith('/apps/poster'));
+        const combinedFallback=fallback.filter(isDirectPoster);
         if(fallback.length!==3)throw new Error('fallback catalog still has separate poster/flyer cards');
-        if(combinedFallback.length!==1||combinedFallback[0].name!=='포스터 · 전단지 제작')throw new Error('fallback combined card missing');
+        if(combinedFallback.length!==1||combinedFallback[0].name!=='포스터 · 전단지 제작')throw new Error('fallback combined direct card missing');
         if(fallback.some(item=>String(item.url||'').startsWith('/apps/flyer')))throw new Error('fallback flyer route survived');
 
         const remote=api.expandPrograms([
@@ -43,14 +47,15 @@
           {name:'전단지 디자인',url:'/apps/flyer'},
           {name:'이미지 편집기',url:'/image-editor'}
         ]);
-        const posterCards=remote.filter(item=>String(item.url||'').startsWith('/apps/poster'));
+        const posterCards=remote.filter(isDirectPoster);
         if(remote.length!==2)throw new Error('remote catalog was not collapsed');
-        if(posterCards.length!==1||posterCards[0].name!=='포스터 · 전단지 제작')throw new Error('remote combined card missing');
+        if(posterCards.length!==1||posterCards[0].name!=='포스터 · 전단지 제작')throw new Error('remote combined direct card missing');
         if(remote.some(item=>String(item.url||'').startsWith('/apps/flyer')))throw new Error('remote flyer route survived');
 
         document.body.dataset.homePosterFlyerSmoke='pass';
         document.body.dataset.homePosterFlyerCount=String(posterCards.length);
         document.body.dataset.homePosterFlyerRoute=posterCards[0].url;
+        document.body.dataset.homePosterFlyerDirect='pass';
         result.textContent='PASS';
       }catch(error){fail(error?.stack||error);}
     })();
