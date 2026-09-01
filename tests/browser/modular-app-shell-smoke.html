@@ -20,10 +20,11 @@
   <script>
     const original=new URL(location.href);
     const key=original.searchParams.get('app')||'';
+    const combinedTarget='/design-editor/general?embed=1&mode=poster&preset=poster-a4&paper=a4&orientation=portrait&w=210&h=297&app=poster&surface=poster-flyer';
     const expected={
       cover:{target:'/design-editor/general?embed=1&mode=cover&preset=cover-a4&app=cover',title:'표지 제작',category:'DESIGN · COVER',symbol:'표',workspace:'표지 인쇄 작업실',quick:4,accent:'rgb(108, 85, 217)'},
-      poster:{target:'/design-editor/general?embed=1&mode=poster&preset=poster-a4&paper=a4&orientation=portrait&w=210&h=297&app=poster',title:'포스터 제작',category:'DESIGN · POSTER',symbol:'포',workspace:'포스터 디자인 작업실',quick:4,accent:'rgb(208, 75, 103)'},
-      flyer:{target:'/design-editor/general?embed=1&mode=flyer&preset=flyer-a4&paper=a4&orientation=portrait&w=210&h=297&app=flyer',title:'전단지 제작',category:'DESIGN · FLYER',symbol:'전',workspace:'전단지 구성 작업실',quick:4,accent:'rgb(201, 121, 37)'},
+      poster:{target:combinedTarget,title:'포스터 · 전단지 제작',category:'DESIGN · POSTER / FLYER',symbol:'포',workspace:'포스터 · 전단지 작업실',quick:4,accent:'rgb(208, 75, 103)'},
+      flyer:{target:combinedTarget,title:'포스터 · 전단지 제작',category:'DESIGN · POSTER / FLYER',symbol:'전',workspace:'포스터 · 전단지 작업실',quick:4,accent:'rgb(201, 121, 37)'},
       invitation:{target:'/design-editor/general?embed=1&mode=invitation&preset=invitation-a4&paper=a4&orientation=landscape&w=297&h=210&app=invitation',title:'초대장 제작',category:'DESIGN · INVITATION',symbol:'초',workspace:'초대장 편집 작업실',quick:4,accent:'rgb(168, 85, 145)'},
       notice:{target:'/design-editor/general?embed=1&mode=invitation&preset=invitation-a4&paper=a4&orientation=landscape&w=297&h=210&app=invitation&surface=notice',title:'안내장 제작',category:'DESIGN · NOTICE',symbol:'안',workspace:'안내장 정보 작업실',quick:4,accent:'rgb(47, 128, 109)'},
       leaflet:{target:'/design-editor/general?embed=1&mode=leaflet3&preset=leaflet-3-roll&paper=a4&orientation=landscape&w=297&h=210&fold=leaflet-3-roll&app=leaflet',title:'리플렛 제작',category:'DESIGN · LEAFLET',symbol:'리',workspace:'리플렛 접지 작업실',quick:4,accent:'rgb(22, 131, 151)'},
@@ -35,10 +36,12 @@
     const frame=document.getElementById('appFrame');
     Object.defineProperty(frame,'src',{configurable:true,get(){return frame.dataset.assignedSrc||'';},set(value){frame.dataset.assignedSrc=String(value);setTimeout(()=>frame.dispatchEvent(new Event('load')),0);}});
     let approve;
-    window.ProgramAccessReady=new Promise(resolve=>{approve=resolve;});
-    window.__modularSmoke={key,expected:expected[key],approve};
+    // Reproduce production ordering: firebase-config first exposes an already-resolved
+    // empty placeholder, then modular-app-access replaces it with the real guard promise.
+    window.ProgramAccessReady=Promise.resolve(null);
+    window.__modularSmoke={key,expected:expected[key],installRealAccess(){window.ProgramAccessReady=new Promise(resolve=>{approve=resolve;});},approve(value){approve?.(value);}};
   </script>
-  <script src="/js/studio-app-shell.js?v=20260901-2"></script>
+  <script src="/js/studio-app-shell.js?v=20260901-4"></script>
   <script>
     (async()=>{
       const result=document.getElementById('result');
@@ -47,8 +50,11 @@
       const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
       const waitFor=async(fn,label,timeout=5000)=>{const started=Date.now();while(Date.now()-started<timeout){if(fn())return;await wait(25);}throw new Error('timeout: '+label);};
       try{
-        await wait(120);
+        await wait(100);
         if(frame.dataset.assignedSrc)throw new Error('engine started before approval');
+        window.__modularSmoke.installRealAccess();
+        await wait(100);
+        if(frame.dataset.assignedSrc)throw new Error('engine started before real approval resolved');
         window.__modularSmoke.approve({approved:true,status:'approved'});
         await waitFor(()=>frame.dataset.assignedSrc,'canonical target assignment');
         const exp=window.__modularSmoke.expected;
@@ -87,6 +93,7 @@
         document.body.dataset.modularShellTheme=document.documentElement.dataset.appTheme||'';
         document.body.dataset.modularShellQuick=String(quick.length);
         document.body.dataset.modularShellWorkspace=exp.workspace;
+        document.body.dataset.modularShellAccessRace='pass';
         result.textContent='PASS: '+window.__modularSmoke.key+' -> '+frame.dataset.assignedSrc;
       }catch(error){fail(error);}
     })();
