@@ -16,7 +16,7 @@
     style.id=STYLE_ID;
     style.textContent=`
       html[data-design-canvas-viewport-toolbar="v1"] .editor-main{position:relative}
-      html[data-design-canvas-viewport-toolbar="v1"] .artboard-viewport{display:block!important;padding:0!important;scroll-behavior:smooth}
+      html[data-design-canvas-viewport-toolbar="v1"] .artboard-viewport{display:block!important;padding:0!important;scroll-behavior:auto!important}
       .design-canvas-viewport-stage{box-sizing:border-box;min-width:100%;min-height:100%;width:max-content;height:max-content;padding:36px;display:grid;place-items:center}
       .design-canvas-viewport-stage>.artboard{margin:0!important}
       .design-canvas-viewport-toolbar{position:absolute;z-index:89;left:50%;bottom:44px;transform:translateX(-50%);display:flex;align-items:center;gap:4px;min-height:38px;padding:5px 6px;border:1px solid #d8e2ec;border-radius:12px;background:rgba(255,255,255,.96);box-shadow:0 8px 26px rgba(15,39,72,.14);backdrop-filter:blur(9px);white-space:nowrap}
