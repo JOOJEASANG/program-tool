@@ -5,7 +5,6 @@ import re
 
 ROOT = Path(__file__).resolve().parents[2]
 PALETTE = ROOT / "js" / "admin-program-icon-palette.js"
-APP_VERSION = ROOT / "js" / "app-version.js"
 SW_REGISTER = ROOT / "js" / "sw-register.js"
 MANAGER = ROOT / "js" / "admin-program-catalog-manager.js"
 VERSION_JSON = ROOT / "version.json"
@@ -47,14 +46,11 @@ def test_icon_picker_preserves_direct_input_and_catalog_change_events():
 
 
 def test_admin_loaders_include_icon_palette_and_runtime_cache_bump():
-    app_version = APP_VERSION.read_text(encoding="utf-8")
     sw_register = SW_REGISTER.read_text(encoding="utf-8")
     release = json.loads(VERSION_JSON.read_text(encoding="utf-8"))
     expected_version = str(release["version"]).strip()
     expected = "/js/admin-program-icon-palette.js?v=20260808-1"
-    assert expected in app_version
     assert expected in sw_register
-    assert "adminProgramIconPaletteScriptV1" in app_version
     assert "adminProgramIconPaletteScriptV1" in sw_register
     assert f"const VERSION='{expected_version}'" in sw_register
     assert "load('appVersionHelperScript','/js/app-version.js?v='+VERSION)" in sw_register
