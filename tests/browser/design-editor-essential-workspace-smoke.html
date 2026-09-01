@@ -89,10 +89,13 @@
         assert(project.surfaces[0].folds.length===0&&!project.surfaces[0].foldAxis&&project.surfaces[0].panels.length===0,'invitation fold geometry must be cleared');
         assert(!Object.prototype.hasOwnProperty.call(project,'printProductFold')&&!Object.prototype.hasOwnProperty.call(project,'printProductAxis'),'invitation project fold metadata must be cleared');
 
+        // Headless Chrome --virtual-time-budget can freeze CSS transitions at their initial frame.
+        // Disable only the test transition so the final responsive layout can be asserted deterministically.
+        properties.style.transition='none';
         window.DesignEditorEssentialWorkspace.select('edit',false);
         await waitFor(()=>document.documentElement.dataset.designContextPaneOpen==='true'&&document.documentElement.dataset.designContextTab==='properties','property context open');
         assert(visible('inspector'),'property tab must reveal inspector');
-        await waitFor(()=>properties.getBoundingClientRect().width>=278,'context pane expansion transition');
+        await waitFor(()=>properties.getBoundingClientRect().width>=278,'context pane expanded layout');
         const expandedWidth=Math.round(properties.getBoundingClientRect().width);
         assert(expandedWidth>=278&&expandedWidth>collapsedWidth+200,'open context pane should expand substantially for inspector content');
         document.body.dataset.essentialContextExpandedWidth=String(expandedWidth);
@@ -101,7 +104,7 @@
         assert(visible('designLayerTools')&&!visible('inspector'),'layer tab must exclusively reveal layers');
         window.DesignEditorEssentialWorkspace.select('start',false);
         await waitFor(()=>document.documentElement.dataset.designContextPaneOpen==='false','context closes for setup');
-        await waitFor(()=>properties.getBoundingClientRect().width<=53,'context pane collapse transition');
+        await waitFor(()=>properties.getBoundingClientRect().width<=53,'context pane collapsed layout');
 
         document.body.dataset.essentialContextPane='pass';
         document.body.dataset.essentialCanvasPriority='pass';
