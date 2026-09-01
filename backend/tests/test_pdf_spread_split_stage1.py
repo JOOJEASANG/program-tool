@@ -63,10 +63,10 @@ def test_left_and_right_spread_halves_render_as_independent_pages():
 
 
 def test_pdf_editor_loads_spread_split_stage1_module():
-    version = read("js/app-version.js")
+    runtime = read("js/pdf-editor/route-runtime.js")
     split = read("js/pdf-editor/spread-split.js")
-    assert "pdfEditorSpreadSplitScriptV1" in version
-    assert "/js/pdf-editor/spread-split.js?v=20260825-1" in version
+    assert "pdfEditorSpreadSplitScriptV1" in runtime
+    assert "/js/pdf-editor/spread-split.js?v=20260825-1" in runtime
     assert "펼침면 좌우 분할" in split
     assert "splitSide" in split
     assert "firstPageSkip" in split
