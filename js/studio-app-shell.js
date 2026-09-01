@@ -120,8 +120,9 @@
       const win=frame.contentWindow,doc=frame.contentDocument;
       if(!win||!doc?.documentElement)return false;
       const baseReady=Boolean(win.DesignEditorApp)&&Boolean(doc.getElementById('editorShell')||doc.getElementById('startScreen'));
-      const focusedReady=Boolean(win.DesignEditorFocusedWorkspace)||doc.documentElement.dataset.designFocusedWorkspace==='1';
-      return baseReady&&focusedReady;
+      const focusedReady=doc.documentElement.dataset.designFocusedWorkspace==='1';
+      const bootStable=!doc.documentElement.classList.contains('app-booting');
+      return baseReady&&focusedReady&&bootStable;
     }catch(_){return false;}
   }
   function startFrameProbe(){
@@ -130,7 +131,7 @@
     const deadline=Date.now()+12000;
     const probe=()=>{
       if(frameReady)return;
-      if(designFrameCanReveal()){markFrameReady('interactive-probe');return;}
+      if(designFrameCanReveal()){markFrameReady('stable-workspace-probe');return;}
       if(Date.now()<deadline)frameProbeTimer=setTimeout(probe,25);
     };
     frameProbeTimer=setTimeout(probe,0);
@@ -171,10 +172,15 @@
 
   frame?.addEventListener('load',()=>{
     if(frameReady)return;
+    if(app?.kind==='design'){
+      if(designFrameCanReveal()){markFrameReady('load-stable-workspace');return;}
+      startFrameProbe();
+      return;
+    }
     try{
       const doc=frame.contentDocument;if(!doc){markFrameReady('load-fallback');return;}
       const html=doc.documentElement,win=frame.contentWindow;
-      if(html?.dataset?.appReady==='true'||html?.dataset?.designShellRuntime==='1'||win?.DesignEditorApp||win?.PdfEditorCoreRuntime){markFrameReady('load');return;}
+      if(html?.dataset?.appReady==='true'||html?.dataset?.designShellRuntime==='1'||win?.PdfEditorCoreRuntime){markFrameReady('load');return;}
     }catch(_){}
     frameProbeTimer=setTimeout(()=>markFrameReady('load-fallback'),220);
   });
@@ -186,5 +192,5 @@
   load();
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',startAfterAccess,{once:true});else startAfterAccess();
 
-  window.ProgramStudioModularAppShell={apps:APPS,appKey:key,reload:()=>{started=false;load();},openQuickAction,stage:'modular-app-shell-product-context-v5-access-race-safe',parallelStage:'modular-app-shell-parallel-engine-preload-v1',fastRevealStage:'modular-design-interactive-first-reveal-v1'};
+  window.ProgramStudioModularAppShell={apps:APPS,appKey:key,reload:()=>{started=false;load();},openQuickAction,stage:'modular-app-shell-product-context-v5-access-race-safe',parallelStage:'modular-app-shell-parallel-engine-preload-v1',fastRevealStage:'modular-design-stable-workspace-reveal-v2'};
 })();
