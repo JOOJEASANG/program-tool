@@ -24,6 +24,8 @@
   const engineChip=document.querySelector('.engine-chip');
   let timer=0;
   let started=false;
+  let accessGranted=false;
+  let frameReady=false;
   let accessRetryTimer=0;
 
   function setText(id,value){const node=byId(id);if(node)node.textContent=value;}
@@ -66,29 +68,38 @@
     const context=byId('productContext');if(context)context.dataset.appKey=key;renderQuickActions();
   }
   function fail(message){clearTimeout(timer);if(loading)loading.classList.add('hide');if(error){error.hidden=false;const p=error.querySelector('p');if(p&&message)p.textContent=message;}engineChip?.classList.add('loading');setText('engineLabel','연결 확인 필요');setQuickActionsEnabled(false);}
-  function ready(){clearTimeout(timer);error&&(error.hidden=true);loading?.classList.add('hide');engineChip?.classList.remove('loading');setText('engineLabel','공통 엔진 연결됨');setQuickActionsEnabled(true);document.documentElement.dataset.modularAppReady='true';}
+  function ready(){
+    if(!accessGranted||!frameReady)return;
+    clearTimeout(timer);error&&(error.hidden=true);loading?.classList.add('hide');engineChip?.classList.remove('loading');setText('engineLabel','공통 엔진 연결됨');setQuickActionsEnabled(true);document.documentElement.dataset.modularAppReady='true';
+  }
+  function maybeReady(){if(accessGranted&&frameReady)ready();}
   function load(){
     if(!app){fail('지원하지 않는 프로그램 주소입니다.');return;}
     if(started)return;
-    started=true;clearTimeout(accessRetryTimer);document.title=`${app.title} · Program Studio`;applyAppChrome();setText('loadingTitle',`${app.title} 작업실 준비 중`);setText('loadingMessage',app.workspaceHint||'공통 편집 엔진과 전용 기능을 연결하는 중입니다.');
+    started=true;frameReady=false;document.documentElement.removeAttribute('data-modular-app-ready');document.title=`${app.title} · Program Studio`;applyAppChrome();setText('loadingTitle',`${app.title} 작업실 준비 중`);setText('loadingMessage',app.workspaceHint||'공통 편집 엔진과 전용 기능을 연결하는 중입니다.');
     const legacy=byId('legacyLink');if(legacy){legacy.href=app.legacy;legacy.hidden=false;}
     engineChip?.classList.add('loading');setText('engineLabel','공통 엔진 연결 중');setQuickActionsEnabled(false);loading?.classList.remove('hide');error&&(error.hidden=true);frame.src=app.target;
+    document.documentElement.dataset.modularAppEnginePreload='started';
     clearTimeout(timer);timer=setTimeout(()=>fail('작업 엔진 응답이 늦습니다. 새로고침 후 다시 시도해 주세요.'),18000);
   }
+  function grantAccess(){
+    if(accessGranted)return;
+    accessGranted=true;clearTimeout(accessRetryTimer);document.documentElement.dataset.modularAppAccess='approved';maybeReady();
+  }
   function retryAccess(){
-    if(started)return;
+    if(accessGranted)return;
     clearTimeout(accessRetryTimer);
     accessRetryTimer=setTimeout(startAfterAccess,50);
   }
   function startAfterAccess(){
-    if(started)return;
-    if(document.documentElement.dataset.accessReady==='true'){load();return;}
+    if(accessGranted)return;
+    if(document.documentElement.dataset.accessReady==='true'){grantAccess();return;}
     const access=window.ProgramAccessReady;
     if(access&&typeof access.then==='function'){
       const observed=access;
       Promise.resolve(observed).then(result=>{
-        if(started)return;
-        if(result||document.documentElement.dataset.accessReady==='true'){load();return;}
+        if(accessGranted)return;
+        if(result||document.documentElement.dataset.accessReady==='true'){grantAccess();return;}
         retryAccess();
       }).catch(()=>retryAccess());
       return;
@@ -97,13 +108,19 @@
   }
 
   frame?.addEventListener('load',()=>{
+    const markFrameReady=()=>{frameReady=true;document.documentElement.dataset.modularAppEnginePreload='ready';maybeReady();};
     try{
-      const doc=frame.contentDocument;if(!doc){fail();return;}
-      const check=()=>{try{const html=doc.documentElement;if(html?.dataset?.appReady==='true'||html?.dataset?.designShellRuntime==='1'||frame.contentWindow?.DesignEditorApp||frame.contentWindow?.PdfEditorCoreRuntime){ready();return;}}catch(_){}setTimeout(ready,650);};check();
-    }catch(_){ready();}
+      const doc=frame.contentDocument;if(!doc){markFrameReady();return;}
+      const check=()=>{try{const html=doc.documentElement;if(html?.dataset?.appReady==='true'||html?.dataset?.designShellRuntime==='1'||frame.contentWindow?.DesignEditorApp||frame.contentWindow?.PdfEditorCoreRuntime){markFrameReady();return;}}catch(_){}setTimeout(markFrameReady,650);};check();
+    }catch(_){markFrameReady();}
   });
   frame?.addEventListener('error',()=>fail());byId('retryBtn')?.addEventListener('click',()=>{started=false;load();});
+
+  // Start the heavy editor navigation immediately. The access gate remains in
+  // control of visibility and interaction, so authentication and engine loading
+  // can run in parallel instead of adding their wait times together.
+  load();
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',startAfterAccess,{once:true});else startAfterAccess();
 
-  window.ProgramStudioModularAppShell={apps:APPS,appKey:key,reload:()=>{started=false;load();},openQuickAction,stage:'modular-app-shell-product-context-v5-access-race-safe'};
+  window.ProgramStudioModularAppShell={apps:APPS,appKey:key,reload:()=>{started=false;load();},openQuickAction,stage:'modular-app-shell-product-context-v5-access-race-safe',parallelStage:'modular-app-shell-parallel-engine-preload-v1'};
 })();
