@@ -27,9 +27,25 @@
   let accessGranted=false;
   let frameReady=false;
   let accessRetryTimer=0;
+  let frameProbeTimer=0;
+  let expectedFrameUrl='';
+
+  const DESIGN_PRELOADS=[
+    '/js/design-editor/presets.js?v=20260821-1',
+    '/js/design-editor/app.js?v=20260821-1',
+    '/js/design-editor/focused-professional-workspace.js?v=20260901-1'
+  ];
 
   function setText(id,value){const node=byId(id);if(node)node.textContent=value;}
   function setQuickActionsEnabled(enabled){byId('appQuickActions')?.querySelectorAll('button').forEach(button=>{button.disabled=!enabled;});}
+  function warmDesignAssets(){
+    if(app?.kind!=='design')return;
+    DESIGN_PRELOADS.forEach(href=>{
+      if(document.head.querySelector(`link[data-design-preload="${href}"]`))return;
+      const link=document.createElement('link');link.rel='preload';link.as='script';link.href=href;link.dataset.designPreload=href;document.head.appendChild(link);
+    });
+    document.documentElement.dataset.modularAppAssetWarmup='started';
+  }
   function openQuickAction(action){
     if(!action||!frame)return false;
     try{
@@ -67,18 +83,64 @@
     setText('appTitle',app.title);setText('appCategory',app.category);setText('appDescription',app.description);setText('appSymbol',app.symbol||'PS');setText('appWorkspaceTitle',app.workspaceTitle||app.title);setText('appWorkspaceHint',app.workspaceHint||app.description);
     const context=byId('productContext');if(context)context.dataset.appKey=key;renderQuickActions();
   }
-  function fail(message){clearTimeout(timer);if(loading)loading.classList.add('hide');if(error){error.hidden=false;const p=error.querySelector('p');if(p&&message)p.textContent=message;}engineChip?.classList.add('loading');setText('engineLabel','연결 확인 필요');setQuickActionsEnabled(false);}
+  function fail(message){clearTimeout(timer);clearTimeout(frameProbeTimer);if(frame)frame.style.visibility='visible';if(loading)loading.classList.add('hide');if(error){error.hidden=false;const p=error.querySelector('p');if(p&&message)p.textContent=message;}engineChip?.classList.add('loading');setText('engineLabel','연결 확인 필요');setQuickActionsEnabled(false);}
+  function prepareFrameForReveal(){
+    if(!frame)return;
+    if(app?.kind==='design'){
+      try{
+        const doc=frame.contentDocument;
+        if(doc?.documentElement){
+          doc.documentElement.dataset.parentAccessApproved='true';
+          doc.getElementById('authLoading')?.classList.add('hidden');
+        }
+      }catch(_){}
+    }
+    frame.style.visibility='visible';
+    document.documentElement.dataset.modularAppStableReveal='true';
+  }
   function ready(){
     if(!accessGranted||!frameReady)return;
-    clearTimeout(timer);error&&(error.hidden=true);loading?.classList.add('hide');engineChip?.classList.remove('loading');setText('engineLabel','공통 엔진 연결됨');setQuickActionsEnabled(true);document.documentElement.dataset.modularAppReady='true';
+    clearTimeout(timer);clearTimeout(frameProbeTimer);error&&(error.hidden=true);prepareFrameForReveal();loading?.classList.add('hide');engineChip?.classList.remove('loading');setText('engineLabel','공통 엔진 연결됨');setQuickActionsEnabled(true);document.documentElement.dataset.modularAppReady='true';
   }
   function maybeReady(){if(accessGranted&&frameReady)ready();}
+  function markFrameReady(stage='load'){
+    if(frameReady)return;
+    frameReady=true;clearTimeout(frameProbeTimer);document.documentElement.dataset.modularAppEnginePreload='ready';document.documentElement.dataset.modularAppFrameReadyStage=stage;maybeReady();
+  }
+  function currentFrameMatchesTarget(){
+    if(!frame||!expectedFrameUrl)return false;
+    try{
+      const current=new URL(frame.contentWindow.location.href),expected=new URL(expectedFrameUrl);
+      return current.origin===expected.origin&&current.pathname===expected.pathname&&current.search===expected.search;
+    }catch(_){return false;}
+  }
+  function designFrameCanReveal(){
+    if(app?.kind!=='design'||!currentFrameMatchesTarget())return false;
+    try{
+      const win=frame.contentWindow,doc=frame.contentDocument;
+      if(!win||!doc?.documentElement)return false;
+      const baseReady=Boolean(win.DesignEditorApp)&&Boolean(doc.getElementById('editorShell')||doc.getElementById('startScreen'));
+      const focusedReady=Boolean(win.DesignEditorFocusedWorkspace)||doc.documentElement.dataset.designFocusedWorkspace==='1';
+      return baseReady&&focusedReady;
+    }catch(_){return false;}
+  }
+  function startFrameProbe(){
+    clearTimeout(frameProbeTimer);
+    if(app?.kind!=='design')return;
+    const deadline=Date.now()+12000;
+    const probe=()=>{
+      if(frameReady)return;
+      if(designFrameCanReveal()){markFrameReady('interactive-probe');return;}
+      if(Date.now()<deadline)frameProbeTimer=setTimeout(probe,25);
+    };
+    frameProbeTimer=setTimeout(probe,0);
+  }
   function load(){
     if(!app){fail('지원하지 않는 프로그램 주소입니다.');return;}
     if(started)return;
-    started=true;frameReady=false;document.documentElement.removeAttribute('data-modular-app-ready');document.title=`${app.title} · Program Studio`;applyAppChrome();setText('loadingTitle',`${app.title} 작업실 준비 중`);setText('loadingMessage',app.workspaceHint||'공통 편집 엔진과 전용 기능을 연결하는 중입니다.');
+    started=true;frameReady=false;clearTimeout(frameProbeTimer);document.documentElement.removeAttribute('data-modular-app-ready');document.title=`${app.title} · Program Studio`;applyAppChrome();setText('loadingTitle',`${app.title} 작업실 준비 중`);setText('loadingMessage',app.workspaceHint||'공통 편집 엔진과 전용 기능을 연결하는 중입니다.');
     const legacy=byId('legacyLink');if(legacy){legacy.href=app.legacy;legacy.hidden=false;}
-    engineChip?.classList.add('loading');setText('engineLabel','공통 엔진 연결 중');setQuickActionsEnabled(false);loading?.classList.remove('hide');error&&(error.hidden=true);frame.src=app.target;
+    engineChip?.classList.add('loading');setText('engineLabel','공통 엔진 연결 중');setQuickActionsEnabled(false);loading?.classList.remove('hide');error&&(error.hidden=true);if(frame)frame.style.visibility='hidden';warmDesignAssets();expectedFrameUrl=new URL(app.target,location.origin).href;frame.src=app.target;startFrameProbe();
     document.documentElement.dataset.modularAppEnginePreload='started';
     clearTimeout(timer);timer=setTimeout(()=>fail('작업 엔진 응답이 늦습니다. 새로고침 후 다시 시도해 주세요.'),18000);
   }
@@ -108,11 +170,13 @@
   }
 
   frame?.addEventListener('load',()=>{
-    const markFrameReady=()=>{frameReady=true;document.documentElement.dataset.modularAppEnginePreload='ready';maybeReady();};
+    if(frameReady)return;
     try{
-      const doc=frame.contentDocument;if(!doc){markFrameReady();return;}
-      const check=()=>{try{const html=doc.documentElement;if(html?.dataset?.appReady==='true'||html?.dataset?.designShellRuntime==='1'||frame.contentWindow?.DesignEditorApp||frame.contentWindow?.PdfEditorCoreRuntime){markFrameReady();return;}}catch(_){}setTimeout(markFrameReady,650);};check();
-    }catch(_){markFrameReady();}
+      const doc=frame.contentDocument;if(!doc){markFrameReady('load-fallback');return;}
+      const html=doc.documentElement,win=frame.contentWindow;
+      if(html?.dataset?.appReady==='true'||html?.dataset?.designShellRuntime==='1'||win?.DesignEditorApp||win?.PdfEditorCoreRuntime){markFrameReady('load');return;}
+    }catch(_){}
+    frameProbeTimer=setTimeout(()=>markFrameReady('load-fallback'),220);
   });
   frame?.addEventListener('error',()=>fail());byId('retryBtn')?.addEventListener('click',()=>{started=false;load();});
 
@@ -122,5 +186,5 @@
   load();
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',startAfterAccess,{once:true});else startAfterAccess();
 
-  window.ProgramStudioModularAppShell={apps:APPS,appKey:key,reload:()=>{started=false;load();},openQuickAction,stage:'modular-app-shell-product-context-v5-access-race-safe',parallelStage:'modular-app-shell-parallel-engine-preload-v1'};
+  window.ProgramStudioModularAppShell={apps:APPS,appKey:key,reload:()=>{started=false;load();},openQuickAction,stage:'modular-app-shell-product-context-v5-access-race-safe',parallelStage:'modular-app-shell-parallel-engine-preload-v1',fastRevealStage:'modular-design-interactive-first-reveal-v1'};
 })();
