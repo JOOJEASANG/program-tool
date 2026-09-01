@@ -6,9 +6,12 @@ ROOT = Path(__file__).resolve().parents[2]
 def test_unified_design_shell_uses_one_manifest_loader_without_changing_route_contract():
     shell = (ROOT / "design-editor" / "index.html").read_text(encoding="utf-8")
     runtime = (ROOT / "js" / "design-editor" / "shell-runtime.js").read_text(encoding="utf-8")
-    assert 'src="/design-editor/general?embed=1&mode=cover&preset=cover-a4"' in shell
+    assert 'src="/design-editor/general?embed=1&app=cover&mode=cover&preset=cover-a4"' in shell
     assert "const SHELL_RUNTIME_VERSION='20260901-1'" in shell
     assert "invitation:{mode:'invitation',preset:'invitation-a4'" in shell
+    assert "const APP_CONFIG={" in shell
+    assert "leaflet:{label:'리플렛 디자인',mode:'leaflet3'}" in shell
+    assert "query.set('app',app);" in shell
     assert "shell-runtime.js?v=${SHELL_RUNTIME_VERSION}" in shell
     assert "injectRuntime('designShellRuntimeScriptV1'" in shell
     assert "const ensureFoldRuntime=ensurePrintRuntimes" in shell
@@ -20,7 +23,9 @@ def test_unified_design_shell_uses_one_manifest_loader_without_changing_route_co
     assert "professionalUiStage:'professional-workspace-visual-system-v1'" in shell
     assert "firstPaintStage:'approved-base-shell-reveal-v2'" in shell
     assert "Date.now()-baseReadyAt>=1200" in shell
-    assert "stage:'single-sidebar-general-engine-shell-no-legacy-fallback'" in shell
+    assert "workspaceStage:'focused-header-workspace-v1'" in shell
+    assert "routingStage:'product-entry-query-routing-v1'" in shell
+    assert "stage:'shared-design-engine-product-entry-v1'" in shell
     for marker in (
         "print-fold-runtime-ensure.js?v=20260825-5",
         "shared/document-type-state.js?v=20260831-1",
