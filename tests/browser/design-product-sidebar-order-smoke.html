@@ -11,7 +11,7 @@
     <section id="designRecipeTools" class="side-card"><div class="side-label">스타터 디자인 레시피</div></section>
     <section id="designPhase4SmartLayout" class="side-card"><div class="side-label">전문 기본 배치</div></section>
     <section id="designCoverSpineTools" class="side-card"><div class="side-label">책등 글자</div></section>
-    <section id="designSimpleResultTools" class="side-card"><div class="side-label">빠른 제작</div></section>
+    <section id="designSimpleResultTools" class="side-card"><div class="side-label">빠른 제작</div><button class="wide-btn primary" type="button">빠른 제작 실행</button></section>
     <section id="designPrintSafetyTools" class="side-card"><div class="side-label">인쇄 안전</div></section>
     <section id="inspector" class="side-card"><div class="inspector-title">선택 속성</div></section>
     <section id="designComponentBlocksTools" class="side-card"><div class="side-label">빠른 구성</div></section>
@@ -25,7 +25,7 @@
     <details id="designAdvancedTools" class="side-card"><summary>고급 도구</summary></details>
   </div>
 
-  <script src="/js/design-editor/standalone-product-profile.js?v=20260901-1"></script>
+  <script src="/js/design-editor/standalone-product-profile.js?v=20260901-2"></script>
   <script>
     (function(){
       const app=new URLSearchParams(location.search).get('app')||'poster';
@@ -35,7 +35,7 @@
       }
     })();
   </script>
-  <script src="/js/design-editor/shared/sidebar-menu-order.js?v=20260901-2"></script>
+  <script src="/js/design-editor/shared/sidebar-menu-order.js?v=20260901-3"></script>
   <script>
     setTimeout(()=>{
       try{
@@ -62,6 +62,19 @@
           const fallback=actual.indexOf('designRecipeTools'),edit=actual.indexOf('inspector'),advanced=actual.indexOf('designAdvancedTools');
           if(fallback<0||fallback>edit||fallback>advanced)throw new Error('unlisted create card escaped its semantic group');
         }
+
+        const focusCards=(profile.sidebarFocus||[]).map(id=>document.getElementById(id)).filter(Boolean);
+        if(!focusCards.length)throw new Error('product focus cards missing');
+        if(focusCards.some(card=>card.dataset.sidebarCardRole!=='focus'||!card.classList.contains('design-sidebar-card-focus')))throw new Error('product focus hierarchy missing');
+        const compactCard=document.getElementById('designPrintQualityTools');
+        if(compactCard?.dataset.sidebarCardRole!=='compact'||!compactCard.classList.contains('design-sidebar-card-compact'))throw new Error('secondary print card should be compact');
+        const outputAction=document.getElementById('designFinalPrintCheckTools');
+        if(outputAction?.dataset.sidebarCardRole!=='output-action'||!outputAction.classList.contains('design-sidebar-card-output-action'))throw new Error('final print action emphasis missing');
+        const focusStyle=getComputedStyle(focusCards[0]);
+        const compactStyle=getComputedStyle(compactCard);
+        if(focusStyle.boxShadow==='none')throw new Error('focus card visual emphasis missing');
+        if(parseFloat(focusStyle.paddingTop)<=parseFloat(compactStyle.paddingTop))throw new Error('focus/compact density hierarchy missing');
+        if(document.documentElement.dataset.designSidebarHierarchy!=='product')throw new Error('product card hierarchy ownership missing');
 
         const advancedLabel=panel.querySelector('[data-sidebar-section="advanced"]');
         const advancedCard=document.getElementById('designAdvancedTools');
@@ -91,6 +104,8 @@
         document.documentElement.dataset.productSidebarOrderFallback='grouped';
         document.documentElement.dataset.productSidebarSectionCollapse='pass';
         document.documentElement.dataset.productSidebarWorkspaceOpen='pass';
+        document.documentElement.dataset.productSidebarCardHierarchy='pass';
+        document.documentElement.dataset.productSidebarFocusCount=String(focusCards.length);
       }catch(error){
         document.documentElement.dataset.productSidebarOrderSmoke='fail';
         document.body.insertAdjacentHTML('beforeend',`<pre>${String(error?.stack||error)}</pre>`);
