@@ -12,8 +12,7 @@
   const ICONS={design:'M4 20h4L19 9a2 2 0 0 0 0-3l-1-1a2 2 0 0 0-3 0L4 16v4Zm10-13 4 4M4 21h16',pdf:'M6 3h8l4 4v14H6V3Zm8 0v5h4M9 12h2v2H9v-2Zm4 0h2v2h-2v-2Zm-4 4h2m2 0h2',check:'M6 3h8l4 4v5M14 3v5h4M6 3v18h7m1-4 2 2 4-5',image:'M4 5h16v14H4V5Zm2 11 4-4 3 3 2-2 3 3M9 9h.01'};
   const MODULAR_DESIGN=[
     {name:'표지 제작',icon:'COVER',accent:'#5267d9',bg:'#eef1ff',desc:'앞표지·뒤표지·책등과 인쇄 안전영역을 한 작업에서 관리합니다.',url:'/apps/cover',tags:['책표지','책등','인쇄 규격']},
-    {name:'포스터 제작',icon:'POSTER',accent:'#4f7bd9',bg:'#eef5ff',desc:'포스터 규격과 출력 품질을 중심으로 필요한 편집 도구만 사용합니다.',url:'/apps/poster',tags:['포스터','대형 출력','300 DPI']},
-    {name:'전단지 제작',icon:'FLYER',accent:'#2f8c9c',bg:'#ecfbfd',desc:'전단지 레이아웃과 글자 위계, 이미지 배치를 빠르게 구성합니다.',url:'/apps/flyer',tags:['전단지','텍스트','이미지']},
+    {name:'포스터 · 전단지 제작',icon:'POSTER',accent:'#4f7bd9',bg:'#eef5ff',desc:'같은 단면 편집 도구에서 용지 크기와 방향만 바꿔 포스터와 전단지를 제작합니다.',url:'/apps/poster',tags:['포스터','전단지','용지 규격']},
     {name:'초대장 제작',icon:'INVITE',accent:'#a0619c',bg:'#fff1fb',desc:'접지 위치와 앞뒤 면을 확인하며 초대장을 제작합니다.',url:'/apps/invitation',tags:['초대장','접지','앞뒤면']},
     {name:'안내장 제작',icon:'NOTICE',accent:'#b06a72',bg:'#fff3f3',desc:'행사·교육·업무 안내 문구를 정돈된 정보 구조로 제작합니다.',url:'/apps/notice',tags:['안내장','정보 정렬','인쇄']},
     {name:'리플렛 제작',icon:'LEAFLET',accent:'#7d69c7',bg:'#f5f1ff',desc:'4P~12P 접지 구조와 패널 폭, 앞뒤 면을 함께 관리합니다.',url:'/apps/leaflet',tags:['4P~12P','접지선','패널']}
@@ -69,5 +68,5 @@
   async function loadCatalog(){if(!ready())return false;try{const snap=await db.collection('settings').doc(DOC_ID).get();return snap.exists?applyCatalog(snap.data()||{}):false;}catch(error){console.warn('Program catalog fallback',error);return false;}}
   async function install(){installIcons();for(let i=0;i<10;i+=1){if(ready()){applyFallbackExpansion();return loadCatalog();}await new Promise(r=>setTimeout(r,180));}return false;}
 
-  window.HomeProgramCatalog={install,loadCatalog,applyCatalog,expandPrograms,decorateProgramIcons,stage:'admin-managed-home-navigation-and-programs',modularStage:'modular-production-apps-home-catalog-v2'};install();
+  window.HomeProgramCatalog={install,loadCatalog,applyCatalog,expandPrograms,decorateProgramIcons,stage:'admin-managed-home-navigation-and-programs',modularStage:'modular-production-apps-home-catalog-v3-poster-flyer-merged'};install();
 })();
