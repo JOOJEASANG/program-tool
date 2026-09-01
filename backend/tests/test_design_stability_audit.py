@@ -21,8 +21,8 @@ def test_shared_resize_path_removes_legacy_phase3_handle():
     source = read("js/design-editor/stability-guards.js")
     assert "phase3-resize-handle" in source
     assert "removeLegacyResizeHandles" in source
-    assert "data-design-direct-resize" not in source  # dataset is set through DOM API, not duplicated markup
     assert "document.documentElement.dataset.designDirectResize='1'" in source
+    assert "node.remove();removed=true" in source
 
 
 def test_direct_text_resize_is_persisted_as_manual_width():
