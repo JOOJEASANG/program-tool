@@ -22,6 +22,7 @@
   let frame=0;
 
   const byId=id=>document.getElementById(id);
+  const setText=(node,value)=>{if(node&&node.textContent!==value)node.textContent=value;};
 
   function installStyles(){
     if(byId(STYLE_ID))return;
@@ -54,8 +55,8 @@
     const sub=card.querySelector('.design-mode-sub');
     const grid=card.querySelector('.design-mode-grid');
     const options=card.querySelector('.design-mode-options');
-    if(title)title.textContent=config.title;
-    if(sub)sub.textContent=config.sub;
+    setText(title,config.title);
+    setText(sub,config.sub);
     if(grid){grid.hidden=true;grid.setAttribute('aria-hidden','true');}
     if(options){
       options.hidden=Boolean(config.hideModeOptions);
@@ -63,7 +64,7 @@
       if(!config.hideModeOptions){
         let label=options.querySelector('[data-product-workspace-label]');
         if(!label){label=document.createElement('div');label.dataset.productWorkspaceLabel='1';options.prepend(label);}
-        label.textContent=config.section;
+        setText(label,config.section);
       }
     }
     return true;
@@ -73,17 +74,16 @@
     if(app!=='cover')return true;
     const card=byId('designCoverSettingsTools');
     if(!card)return false;
-    const heading=card.querySelector('.side-label');
-    if(heading)heading.textContent='표지 규격 · 책등';
+    setText(card.querySelector('.side-label'),'표지 규격 · 책등');
     return true;
   }
 
   function syncDocumentCard(){
     const title=byId('documentTitle');
     const button=byId('newDesignBtn');
-    if(title&&!String(title.textContent||'').trim())title.textContent=config.title;
+    if(title&&!String(title.textContent||'').trim())setText(title,config.title);
     if(button){
-      button.textContent='규격 변경';
+      setText(button,'규격 변경');
       button.title='현재 프로그램의 문서 규격을 변경합니다.';
     }
   }
@@ -93,7 +93,6 @@
     syncIdentity();
     syncCover();
     syncDocumentCard();
-    window.DesignEditorProductBoundaryUi?.sync?.();
     return true;
   }
 
