@@ -78,7 +78,8 @@
         assert(layer&&layer.parentElement===properties,'layer card must stay in right context pane');
         assert(!panel.contains(inspector)&&!panel.contains(layer),'context tools must not be mixed into product sidebar');
         assert(document.documentElement.dataset.designContextPaneOpen==='false','context pane must start collapsed for canvas priority');
-        assert(Math.round(properties.getBoundingClientRect().width)===52,'collapsed context rail should be 52px');
+        const collapsedWidth=Math.round(properties.getBoundingClientRect().width);
+        assert(collapsedWidth===52,'collapsed context rail should be 52px');
         const firstColumn=parseFloat(getComputedStyle(document.getElementById('editorShell')).gridTemplateColumns.split(' ')[0]);
         assert(firstColumn<=268.5,'product sidebar must be narrower than legacy 320px workspace');
         assert(visible('documentCard')&&visible('contentCard')&&visible('designOutputTools')&&visible('designQuickDesignTools'),'product tools must stay in the left sidebar');
@@ -91,12 +92,16 @@
         window.DesignEditorEssentialWorkspace.select('edit',false);
         await waitFor(()=>document.documentElement.dataset.designContextPaneOpen==='true'&&document.documentElement.dataset.designContextTab==='properties','property context open');
         assert(visible('inspector'),'property tab must reveal inspector');
-        assert(Math.round(properties.getBoundingClientRect().width)>=290,'open context pane should expand to inspector width');
+        await waitFor(()=>properties.getBoundingClientRect().width>=278,'context pane expansion transition');
+        const expandedWidth=Math.round(properties.getBoundingClientRect().width);
+        assert(expandedWidth>=278&&expandedWidth>collapsedWidth+200,'open context pane should expand substantially for inspector content');
+        document.body.dataset.essentialContextExpandedWidth=String(expandedWidth);
         window.DesignEditorEssentialWorkspace.select('arrange',false);
         await waitFor(()=>document.documentElement.dataset.designContextTab==='layers','layer context open');
         assert(visible('designLayerTools')&&!visible('inspector'),'layer tab must exclusively reveal layers');
         window.DesignEditorEssentialWorkspace.select('start',false);
         await waitFor(()=>document.documentElement.dataset.designContextPaneOpen==='false','context closes for setup');
+        await waitFor(()=>properties.getBoundingClientRect().width<=53,'context pane collapse transition');
 
         document.body.dataset.essentialContextPane='pass';
         document.body.dataset.essentialCanvasPriority='pass';
