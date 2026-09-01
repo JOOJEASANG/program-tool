@@ -35,7 +35,7 @@ return new Promise(resolve=>{const script=existing||document.createElement('scri
 }
 async function loadBoundaryUi(){
 if(!standalone)return true;
-await loadSupportScript('designStandaloneProductProfileScriptV1','/js/design-editor/standalone-product-profile.js?v=20260901-1');
+await loadSupportScript('designStandaloneProductProfileScriptV1','/js/design-editor/standalone-product-profile.js?v=20260901-2');
 const loaded=await loadSupportScript('designProductBoundaryUiScriptV1','/js/design-editor/product-boundary-ui.js?v=20260831-2');window.DesignEditorProductBoundaryUi?.sync?.();return loaded;
 }
 async function loadWorkspaceNavigation(){
@@ -44,7 +44,7 @@ const loaded=await loadSupportScript('designWorkspaceNavigationScriptV1','/js/de
 }
 async function loadSidebarMenuOrder(){
 if(!standalone)return true;
-const loaded=await loadSupportScript('designSidebarMenuOrderScriptV1','/js/design-editor/shared/sidebar-menu-order.js?v=20260901-2');window.DesignEditorSidebarMenuOrder?.sync?.();return loaded;
+const loaded=await loadSupportScript('designSidebarMenuOrderScriptV1','/js/design-editor/shared/sidebar-menu-order.js?v=20260901-3');window.DesignEditorSidebarMenuOrder?.sync?.();return loaded;
 }
 function syncEntry(e){
 if(!shouldLoad(e))return false;const api=getApi(e),fn=api?.[e.method];if(typeof fn!=='function')return false;
