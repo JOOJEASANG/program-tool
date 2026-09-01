@@ -51,6 +51,7 @@
       const result=document.getElementById('result');
       const assert=(ok,message)=>{if(!ok)throw new Error(message);};
       const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+      const nextFrame=()=>new Promise(resolve=>requestAnimationFrame(resolve));
       const pointer=(type,init={})=>new PointerEvent(type,{bubbles:true,cancelable:true,pointerId:17,button:0,buttons:type==='pointermove'?1:0,...init});
       const scale=()=>document.getElementById('artboard').getBoundingClientRect().width/(project.width+project.bleed*2);
       const textHeight=item=>document.querySelector(`[data-id="${item.id}"]`).getBoundingClientRect().height/scale();
@@ -88,8 +89,12 @@
         const selected=document.querySelector('.ps-multi-selected');assert(selected,'selected node missing before smart drag');
         selected.dispatchEvent(pointer('pointerdown',{clientX:100,clientY:100}));
         document.dispatchEvent(pointer('pointermove',{clientX:206.8,clientY:100}));
+        await nextFrame();
+        await nextFrame();
         document.dispatchEvent(pointer('pointerup',{clientX:206.8,clientY:100}));
-        await wait(90);
+        await nextFrame();
+        await nextFrame();
+        await wait(20);
         const left=Math.min(textA.x,textB.x,shapeC.x),right=Math.max(textA.x+textA.w,textB.x+textB.w,shapeC.x+shapeC.w),center=(left+right)/2;
         assert(Math.abs(center-100)<.08,`group center did not snap to artboard center: ${center}`);
         assert(document.querySelector('.phase17-multi-guide.vertical'),'vertical smart guide not visible');
