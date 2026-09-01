@@ -18,6 +18,38 @@ def test_modular_app_shell_retries_when_initial_access_promise_resolves_empty():
     assert "modular-app-shell-parallel-engine-preload-v1" in source
 
 
+def test_design_modular_shell_reveals_on_interactive_editor_readiness():
+    source = read("js/studio-app-shell.js")
+    assert "function designFrameCanReveal()" in source
+    assert "Boolean(win.DesignEditorApp)" in source
+    assert "Boolean(win.DesignEditorFocusedWorkspace)" in source
+    assert "markFrameReady('interactive-probe')" in source
+    assert "frameProbeTimer=setTimeout(probe,25)" in source
+    assert "modular-design-interactive-first-reveal-v1" in source
+
+
+def test_design_modular_shell_suppresses_nested_auth_flash_after_parent_approval():
+    source = read("js/studio-app-shell.js")
+    assert "function prepareFrameForReveal()" in source
+    assert "doc.documentElement.dataset.parentAccessApproved='true'" in source
+    assert "doc.getElementById('authLoading')?.classList.add('hidden')" in source
+    assert "if(frame)frame.style.visibility='hidden'" in source
+    assert "frame.style.visibility='visible'" in source
+
+
+def test_design_modular_shell_warms_shared_editor_assets_before_navigation():
+    source = read("js/studio-app-shell.js")
+    assert "const DESIGN_PRELOADS=[" in source
+    assert "'/js/design-editor/presets.js?v=20260821-1'" in source
+    assert "'/js/design-editor/app.js?v=20260821-1'" in source
+    assert "'/js/design-editor/focused-professional-workspace.js?v=20260901-1'" in source
+    assert "warmDesignAssets();expectedFrameUrl=" in source
+    page = read("apps/index.html")
+    assert 'rel="preconnect" href="https://www.gstatic.com"' in page
+    assert 'rel="preconnect" href="https://cdn.jsdelivr.net"' in page
+    assert '/js/studio-app-shell.js?v=20260901-6' in page
+
+
 def test_home_exposes_one_combined_poster_flyer_program():
     source = read("js/home-program-catalog.js")
     assert "name:'포스터 · 전단지 제작'" in source
