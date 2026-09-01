@@ -78,6 +78,9 @@ for app in cover poster flyer invitation notice leaflet; do
   run_browser_case "$sidebar_url" "$sidebar_out" 'data-product-sidebar-order-smoke="pass"'
   grep -q "data-product-sidebar-order-app=\"$app\"" "$sidebar_out" || { cat "$sidebar_out" >&2; exit 1; }
   grep -q 'data-product-sidebar-order-sections="5"' "$sidebar_out" || { cat "$sidebar_out" >&2; exit 1; }
+  grep -q 'data-product-sidebar-section-collapse="pass"' "$sidebar_out" || { cat "$sidebar_out" >&2; exit 1; }
+  grep -q 'data-product-sidebar-workspace-open="pass"' "$sidebar_out" || { cat "$sidebar_out" >&2; exit 1; }
+  grep -q 'data-product-sidebar-card-hierarchy="pass"' "$sidebar_out" || { cat "$sidebar_out" >&2; exit 1; }
 done
 
 for mode in integrated standalone; do
@@ -108,4 +111,4 @@ grep -q 'data-design-multi-smart-ownership="contextbar"' "$smart_guides_out" || 
 grep -q 'data-design-multi-smart-gap="horizontal-6-vertical-4"' "$smart_guides_out" || { cat "$smart_guides_out" >&2; exit 1; }
 grep -q 'data-design-multi-smart-snap="artboard-center"' "$smart_guides_out" || { cat "$smart_guides_out" >&2; exit 1; }
 
-echo "Modular app browser smoke passed for 8 routes, design/PDF profiles, boundary UI, shared workspace navigation, product-specific sidebar order, professional UI ownership, multi-selection ownership and smart guides using $BROWSER"
+echo "Modular app browser smoke passed for 8 routes, design/PDF profiles, boundary UI, shared workspace navigation, product-specific sidebar order/card hierarchy, professional UI ownership, multi-selection ownership and smart guides using $BROWSER"
