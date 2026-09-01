@@ -18,14 +18,17 @@ def test_modular_app_shell_retries_when_initial_access_promise_resolves_empty():
     assert "modular-app-shell-parallel-engine-preload-v1" in source
 
 
-def test_design_modular_shell_reveals_on_interactive_editor_readiness():
+def test_design_modular_shell_reveals_only_after_stable_focused_workspace_readiness():
     source = read("js/studio-app-shell.js")
     assert "function designFrameCanReveal()" in source
     assert "Boolean(win.DesignEditorApp)" in source
-    assert "Boolean(win.DesignEditorFocusedWorkspace)" in source
-    assert "markFrameReady('interactive-probe')" in source
+    assert "doc.documentElement.dataset.designFocusedWorkspace==='1'" in source
+    assert "!doc.documentElement.classList.contains('app-booting')" in source
+    assert "Boolean(win.DesignEditorFocusedWorkspace)" not in source
+    assert "markFrameReady('stable-workspace-probe')" in source
+    assert "markFrameReady('load-stable-workspace')" in source
     assert "frameProbeTimer=setTimeout(probe,25)" in source
-    assert "modular-design-interactive-first-reveal-v1" in source
+    assert "modular-design-stable-workspace-reveal-v2" in source
 
 
 def test_design_modular_shell_suppresses_nested_auth_flash_after_parent_approval():
