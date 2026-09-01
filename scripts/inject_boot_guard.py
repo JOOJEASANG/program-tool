@@ -11,6 +11,7 @@ MARKER = "data-program-studio-boot-guard"
 ACCESS_MARKER = "data-program-studio-approval-bootstrap"
 FAVICON_MARKER = "data-program-studio-favicon"
 META_MARKER = "data-program-studio-meta"
+UI_STYLE_MARKER = "data-program-studio-ui"
 IMAGE_LAYOUT_MARKER = "data-image-editor-pdf-layout"
 PDF_BOOKLET_MARKER = "data-pdf-classic-booklet"
 EXCLUDED_PARTS = {".git", "node_modules", "venv", ".venv", "__pycache__"}
@@ -131,10 +132,11 @@ def should_inject(path: Path, text: str) -> bool:
         approval_required or "sw-register.js" in text or "firebase-config.js" in text
     )
     needs_favicon = requires_favicon(path) and FAVICON_MARKER not in text
+    needs_ui_style = requires_favicon(path) and UI_STYLE_MARKER not in text
     needs_metadata = page_metadata(path) is not None
     needs_image_layout = is_image_editor(path) and IMAGE_LAYOUT_MARKER not in text
     needs_pdf_booklet = is_pdf_booklet_page(path) and PDF_BOOKLET_MARKER not in text
-    return needs_boot or needs_favicon or needs_metadata or needs_image_layout or needs_pdf_booklet
+    return needs_boot or needs_favicon or needs_ui_style or needs_metadata or needs_image_layout or needs_pdf_booklet
 
 
 def inject_guard(
@@ -143,6 +145,7 @@ def inject_guard(
     *,
     approval_required: bool = False,
     favicon: bool = False,
+    ui_style: bool = True,
     metadata: tuple[str, str, str] | None = None,
     image_editor: bool = False,
     pdf_booklet: bool = False,
@@ -151,6 +154,11 @@ def inject_guard(
     tags = ""
     if favicon and FAVICON_MARKER not in text:
         tags += FAVICON_TAG
+    if ui_style and UI_STYLE_MARKER not in text:
+        tags += (
+            f'<link {UI_STYLE_MARKER} rel="stylesheet" '
+            f'href="/css/program-studio-ui-v2.css?v={version}">'
+        )
     if MARKER not in text:
         tags += f'<script {MARKER} src="/js/app-boot-guard.js?v={version}"></script>'
     if image_editor and IMAGE_LAYOUT_MARKER not in text:
@@ -185,6 +193,7 @@ def inject_all() -> list[Path]:
             version,
             approval_required=requires_approval(path),
             favicon=requires_favicon(path),
+            ui_style=requires_favicon(path),
             metadata=page_metadata(path),
             image_editor=is_image_editor(path),
             pdf_booklet=is_pdf_booklet_page(path),

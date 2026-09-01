@@ -8,7 +8,14 @@ import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
-from inject_boot_guard import DEPLOY_HTML, FAVICON_MARKER, META_MARKER, PAGE_METADATA, ROOT
+from inject_boot_guard import (
+    DEPLOY_HTML,
+    FAVICON_MARKER,
+    META_MARKER,
+    PAGE_METADATA,
+    ROOT,
+    UI_STYLE_MARKER,
+)
 from validate_hosting_delivery import validate as validate_hosting_delivery
 
 FAVICON = ROOT / "favicon.svg"
@@ -54,6 +61,10 @@ def validate() -> None:
 
         if text.count(FAVICON_MARKER) != 1 or EXPECTED_FAVICON not in text:
             errors.append(f"{relative}: favicon release contract mismatch")
+        if text.count(UI_STYLE_MARKER) != 1:
+            errors.append(f"{relative}: unified UI stylesheet contract mismatch")
+        if '/css/program-studio-ui-v2.css?v=' not in text:
+            errors.append(f"{relative}: unified UI stylesheet is missing")
 
         titles = TITLE_RE.findall(text)
         descriptions = DESCRIPTION_RE.findall(text)
