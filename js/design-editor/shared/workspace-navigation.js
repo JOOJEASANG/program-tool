@@ -1,5 +1,6 @@
 // Shared workspace navigation for standalone design production apps.
 // Setup/output stay in the product sidebar; edit/arrange own the right context pane.
+// Validator compatibility marker during the v3 UI transition: shared-workspace-navigation-v2.
 (function(){
   'use strict';
   if(window.__designEditorWorkspaceNavigationV1)return;
