@@ -7,25 +7,40 @@ def text(path: str) -> str:
     return (ROOT / path).read_text(encoding="utf-8")
 
 
-def test_design_editor_uses_dedicated_flat_workspace_instead_of_generic_tool_rail():
+def test_design_editor_uses_dedicated_product_workspace_instead_of_generic_tool_rail():
     ui = text("js/program-studio-ui-v2.js")
     segment = ui[ui.index("if(surface==='design-editor'){"):ui.index("if(surface==='document-editor'){")]
     assert "loadDesignEssentialWorkspace();" in segment
     assert "loadEditorToolRail();" not in segment
     assert "designEditorEssentialWorkspaceScriptV1" in ui
-    assert "/js/design-editor/essential-workspace.js?v=20260831-1" in ui
+    assert "/js/design-editor/essential-workspace.js" in ui
 
 
-def test_essential_workspace_is_one_expanded_sidebar_without_step_navigation():
+def test_essential_workspace_separates_product_sidebar_canvas_and_context_pane():
     source = text("js/design-editor/essential-workspace.js")
     assert "design-flat-panel" in source
-    assert "flat-expanded-product-aware-workspace-v2" in source
-    assert "const STEPS" not in source
-    assert "design-essential-rail" not in source
+    assert "context-pane-product-aware-workspace-v3" in source
+    assert "data-design-context-tab" in source
+    assert "designContextPaneChrome" in source
+    assert "setContextPane" in source
+    assert "revealTarget" in source
+    assert "grid-template-columns:268px minmax(0,1fr)" in source
+    assert "width:52px!important" in source
+    assert "width:292px!important" in source
     assert "dataset.editorToolStep='all'" in source
     assert "showAll:()=>true" in source
     assert "designProfessionalWorkflow" in source
     assert "removeWorkflowBar" in source
+
+
+def test_selection_properties_and_layers_are_owned_by_right_context_pane():
+    source = text("js/design-editor/essential-workspace.js")
+    assert "const inspector=byId('inspector'),layer=ensureLayerId()" in source
+    assert "properties.appendChild(node)" in source
+    assert "targetId==='inspector'" in source
+    assert "targetId==='designLayerTools'||targetId==='layerList'" in source
+    assert "setContextPane('properties',true" in source
+    assert "setContextPane('layers',true" in source
 
 
 def test_product_visibility_keeps_cover_tools_cover_only_and_fold_tools_leaflet_only():
@@ -60,7 +75,7 @@ def test_cover_boundaries_are_structural_and_do_not_depend_on_optional_zone_visi
     assert "renderCoverBoundaries" in source
 
 
-def test_only_internal_status_cards_are_suppressed_from_flat_user_menu():
+def test_only_internal_status_cards_are_suppressed_from_product_sidebar():
     source = text("js/design-editor/essential-workspace.js")
     for marker in ("designPrintQualityTools", "designPrintSafetyTools", "designRuntimeDiagnostics"):
         assert marker in source
@@ -68,18 +83,18 @@ def test_only_internal_status_cards_are_suppressed_from_flat_user_menu():
     assert "디자인 레시피" not in source
 
 
-def test_selection_contextbar_remains_separate_from_flat_sidebar_policy():
+def test_selection_contextbar_remains_separate_from_context_pane_policy():
     runtime = text("js/design-editor/shell-runtime.js")
     assert "designSelectionContextbarScriptV1" in runtime
     assert "/js/design-editor/shared/selection-contextbar.js" in runtime
 
 
-def test_design_browser_suite_runs_flat_workspace_smoke():
+def test_design_browser_suite_runs_context_workspace_smoke():
     runner = text("scripts/run_design_editor_browser_smoke.sh")
     smoke = text("tests/browser/design-editor-essential-workspace-smoke.html")
     assert "run_design_editor_essential_workspace_smoke.sh" in runner
-    assert "dataset.essentialFlat='true'" in smoke
-    assert "dataset.essentialAllVisible='true'" in smoke
+    assert "dataset.essentialContextPane='pass'" in smoke
+    assert "dataset.essentialCanvasPriority='pass'" in smoke
     assert "dataset.essentialInvitationNoFold='true'" in smoke
     assert "dataset.essentialInvitationCoverHidden='true'" in smoke
     assert "dataset.essentialCoverBoundaries='2'" in smoke

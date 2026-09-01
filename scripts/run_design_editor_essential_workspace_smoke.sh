@@ -28,16 +28,16 @@ PY
   sleep 0.1
 done
 
-"$BROWSER" --headless=new --disable-gpu --no-sandbox --disable-dev-shm-usage --disable-background-networking --user-data-dir="$PROFILE_DIR" --virtual-time-budget=12000 --dump-dom "$URL" >"$DOM_OUT"
+"$BROWSER" --headless=new --disable-gpu --no-sandbox --disable-dev-shm-usage --disable-background-networking --window-size=1440,900 --user-data-dir="$PROFILE_DIR" --virtual-time-budget=12000 --dump-dom "$URL" >"$DOM_OUT"
 
 if ! grep -q 'data-essential-workspace-status="pass"' "$DOM_OUT"; then echo "Design editor essential workspace smoke failed." >&2; cat "$DOM_OUT" >&2; echo "----- HTTP server log -----" >&2; cat "$SERVER_LOG" >&2; exit 1; fi
 for marker in \
-  'data-essential-flat="true"' \
-  'data-essential-all-visible="true"' \
+  'data-essential-context-pane="pass"' \
+  'data-essential-canvas-priority="pass"' \
   'data-essential-invitation-no-fold="true"' \
   'data-essential-invitation-cover-hidden="true"' \
   'data-essential-cover-boundaries="2"'; do
   if ! grep -q "$marker" "$DOM_OUT"; then echo "Missing essential workspace marker: $marker" >&2; cat "$DOM_OUT" >&2; exit 1; fi
 done
 
-echo "Design editor essential workspace browser smoke passed using $BROWSER"
+echo "Design editor context workspace browser smoke passed using $BROWSER"

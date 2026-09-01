@@ -2,14 +2,15 @@
 <html lang="ko">
 <head>
   <meta charset="utf-8">
-  <title>Design Editor Flat Workspace Smoke</title>
+  <title>Design Editor Context Workspace Smoke</title>
   <style>
-    *{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif}.hidden{display:none!important}#editorShell{display:grid;grid-template-columns:300px 1fr 306px;height:760px}.sidebar,.properties-panel{padding:10px}.side-card{border:1px solid #ddd;padding:9px;margin-bottom:7px}.editor-main{min-width:0}.editor-toolbar{height:48px}.artboard-viewport{width:900px;height:600px;display:flex;align-items:center;justify-content:center}.artboard{position:relative;width:606px;height:432px;background:#fff}.fold-guide{position:absolute}.panel-guide-label{position:absolute}
+    *{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif}.hidden{display:none!important}#editorShell{position:relative;display:grid;grid-template-columns:300px 1fr 306px;height:760px}.sidebar,.properties-panel{padding:10px}.side-card{border:1px solid #ddd;padding:9px;margin-bottom:7px}.editor-main{min-width:0}.editor-toolbar{height:48px}.artboard-viewport{width:900px;height:600px;display:flex;align-items:center;justify-content:center}.artboard{position:relative;width:606px;height:432px;background:#fff}.fold-guide{position:absolute}.panel-guide-label{position:absolute}
   </style>
   <script>
     history.replaceState(null,'','/design-editor/general.html?embed=1&mode=invitation&preset=invitation-a4');
     document.documentElement.dataset.programSurface='design-editor';
     document.documentElement.dataset.designDocumentType='invitation';
+    try{localStorage.removeItem('programTool.designEditor.contextPane.v1')}catch(_){}
   </script>
 </head>
 <body data-essential-workspace-status="pending">
@@ -38,8 +39,8 @@
     </aside>
     <section class="editor-main"><div class="editor-toolbar"></div><div id="designProfessionalWorkflow">작업 순서</div><div id="artboardViewport" class="artboard-viewport"><div id="artboard" class="artboard"></div></div></section>
     <aside id="propertiesPanel" class="properties-panel">
-      <section id="inspector" class="side-card"><div class="inspector-title">선택 속성</div></section>
-      <section class="side-card"><div class="side-label">레이어</div><div id="layerList"></div></section>
+      <section id="inspector" class="side-card"><div class="inspector-title">선택 속성</div><div class="prop-grid"><button>위치</button><button>크기</button></div></section>
+      <section class="side-card"><div class="side-label">레이어</div><div id="layerList"></div><button>앞으로</button></section>
     </aside>
   </main>
   <script>
@@ -50,7 +51,7 @@
     window.DesignEditorApp={project};
     window.DesignEditorWorkflowV2={activateStep(){}};
   </script>
-  <script src="/js/design-editor/essential-workspace.js?v=20260831-1"></script>
+  <script src="/js/design-editor/essential-workspace.js?v=20260901-2"></script>
   <script>
     (async()=>{
       const result=document.getElementById('result');
@@ -61,38 +62,65 @@
       const settle=(ms=180)=>new Promise(resolve=>setTimeout(resolve,ms));
       const visible=id=>{const node=document.getElementById(id);return Boolean(node)&&!node.hidden&&getComputedStyle(node).display!=='none'};
       try{
-        await waitFor(()=>window.DesignEditorEssentialWorkspace?.stage,'flat essential workspace');
-        await waitFor(()=>document.querySelector('.design-flat-panel'),'flat sidebar panel');
+        await waitFor(()=>window.DesignEditorEssentialWorkspace?.stage==='context-pane-product-aware-workspace-v3','context essential workspace');
+        await waitFor(()=>document.querySelector('.design-flat-panel'),'product sidebar panel');
         await settle();
 
         const panel=document.querySelector('.design-flat-panel');
-        assert(!document.querySelector('.design-essential-rail'),'step rail must be removed');
+        const properties=document.getElementById('propertiesPanel');
+        const inspector=document.getElementById('inspector');
+        const layer=document.getElementById('designLayerTools');
+        assert(!document.querySelector('.design-essential-rail'),'step rail must stay removed');
         assert(!document.getElementById('designProfessionalWorkflow'),'preview workflow bar must be removed');
-        assert(document.getElementById('propertiesPanel').hidden===true,'right properties panel must be consolidated');
-        assert(document.getElementById('inspector').closest('.design-flat-panel')===panel,'inspector must move into the flat sidebar');
-        assert(visible('documentCard')&&visible('contentCard')&&visible('inspector')&&visible('designOutputTools')&&visible('designQuickDesignTools'),'all user tools must stay expanded together');
+        assert(properties.hidden===false,'right context panel must be restored');
+        assert(Boolean(document.getElementById('designContextPaneChrome')),'right context chrome missing');
+        assert(inspector.parentElement===properties,'inspector must stay in right context pane');
+        assert(layer&&layer.parentElement===properties,'layer card must stay in right context pane');
+        assert(!panel.contains(inspector)&&!panel.contains(layer),'context tools must not be mixed into product sidebar');
+        assert(document.documentElement.dataset.designContextPaneOpen==='false','context pane must start collapsed for canvas priority');
+        const collapsedWidth=Math.round(properties.getBoundingClientRect().width);
+        assert(collapsedWidth===52,'collapsed context rail should be 52px');
+        const firstColumn=parseFloat(getComputedStyle(document.getElementById('editorShell')).gridTemplateColumns.split(' ')[0]);
+        assert(firstColumn<=268.5,'product sidebar must be narrower than legacy 320px workspace');
+        assert(visible('documentCard')&&visible('contentCard')&&visible('designOutputTools')&&visible('designQuickDesignTools'),'product tools must stay in the left sidebar');
         assert(!visible('designPrintQualityTools')&&!visible('designPrintSafetyTools'),'internal status cards must remain hidden');
         assert(!visible('designCoverSettingsTools')&&!visible('designCoverSpineTools'),'invitation must hide cover-only settings');
         assert(!document.getElementById('designProductAxis')&&!document.getElementById('designProductFoldPosition')&&!document.getElementById('designProductCenterFold')&&!document.getElementById('designProductFlip'),'invitation fold controls must be removed');
         assert(project.surfaces[0].folds.length===0&&!project.surfaces[0].foldAxis&&project.surfaces[0].panels.length===0,'invitation fold geometry must be cleared');
         assert(!Object.prototype.hasOwnProperty.call(project,'printProductFold')&&!Object.prototype.hasOwnProperty.call(project,'printProductAxis'),'invitation project fold metadata must be cleared');
 
-        document.body.dataset.essentialFlat='true';
-        document.body.dataset.essentialAllVisible='true';
+        // Headless Chrome --virtual-time-budget can freeze CSS transitions at their initial frame.
+        // Disable only the test transition so the final responsive layout can be asserted deterministically.
+        properties.style.transition='none';
+        window.DesignEditorEssentialWorkspace.select('edit',false);
+        await waitFor(()=>document.documentElement.dataset.designContextPaneOpen==='true'&&document.documentElement.dataset.designContextTab==='properties','property context open');
+        assert(visible('inspector'),'property tab must reveal inspector');
+        await waitFor(()=>properties.getBoundingClientRect().width>=278,'context pane expanded layout');
+        const expandedWidth=Math.round(properties.getBoundingClientRect().width);
+        assert(expandedWidth>=278&&expandedWidth>collapsedWidth+200,'open context pane should expand substantially for inspector content');
+        document.body.dataset.essentialContextExpandedWidth=String(expandedWidth);
+        window.DesignEditorEssentialWorkspace.select('arrange',false);
+        await waitFor(()=>document.documentElement.dataset.designContextTab==='layers','layer context open');
+        assert(visible('designLayerTools')&&!visible('inspector'),'layer tab must exclusively reveal layers');
+        window.DesignEditorEssentialWorkspace.select('start',false);
+        await waitFor(()=>document.documentElement.dataset.designContextPaneOpen==='false','context closes for setup');
+        await waitFor(()=>properties.getBoundingClientRect().width<=53,'context pane collapsed layout');
+
+        document.body.dataset.essentialContextPane='pass';
+        document.body.dataset.essentialCanvasPriority='pass';
         document.body.dataset.essentialInvitationNoFold='true';
         document.body.dataset.essentialInvitationCoverHidden='true';
 
         project.documentType='cover';project.designMode='cover';delete project.printProductMode;project.presetId='cover-a4';project.width=428;project.height=297;project.bleed=3;project.cover={trimWidth:210,trimHeight:297,spine:8};project.surfaces[0].folds=[];project.surfaces[0].panels=[];
         document.documentElement.dataset.designDocumentType='cover';
         window.dispatchEvent(new CustomEvent('programstudio:document-type-change',{detail:{type:'cover'}}));
-        window.DesignEditorEssentialWorkspace.sync();
-        window.dispatchEvent(new Event('resize'));
+        window.DesignEditorEssentialWorkspace.sync();window.dispatchEvent(new Event('resize'));
         await waitFor(()=>visible('designCoverSettingsTools')&&visible('designCoverSpineTools'),'cover-only settings restored',4000);
         await waitFor(()=>document.querySelectorAll('#designFlatCoverBoundaries .design-flat-cover-boundary').length===2,'cover structural boundaries',4000);
         assert(document.querySelectorAll('#designFlatCoverBoundaries .design-flat-cover-boundary').length===2,'back/spine/front need two structural separators');
         document.body.dataset.essentialCoverBoundaries='2';
 
-        pass('flat expanded sidebar, no invitation fold, restored cover boundaries');
+        pass('product sidebar + canvas-priority right context pane + cover boundaries');
       }catch(error){fail(error)}
     })();
   </script>

@@ -1,5 +1,6 @@
 // Shared workspace navigation for standalone design production apps.
-// Adds interface hierarchy without hiding or duplicating editor tools.
+// Setup/output stay in the product sidebar; edit/arrange own the right context pane.
+// Validator compatibility marker during the v3 UI transition: shared-workspace-navigation-v2.
 (function(){
   'use strict';
   if(window.__designEditorWorkspaceNavigationV1)return;
@@ -45,6 +46,11 @@
     return byId('designEmbeddedModeCard')||byId('designCoverSettingsTools')||byId('designSimpleResultTools')||panel.querySelector('.side-card,.design-mode-card');
   }
 
+  function contextStep(){
+    if(document.documentElement.dataset.designContextPaneOpen!=='true')return null;
+    return document.documentElement.dataset.designContextTab==='layers'?'arrange':'edit';
+  }
+
   function installStyles(){
     if(byId(STYLE_ID))return;
     const style=document.createElement('style');
@@ -81,6 +87,7 @@
   }
 
   function prepareSidebar(step){
+    if(step==='edit'||step==='arrange')return null;
     try{return window.DesignEditorSidebarMenuOrder?.openForStep?.(step)||null;}catch(_){return null;}
   }
 
@@ -95,16 +102,18 @@
       try{node?.scrollIntoView({behavior:'smooth',block:'start'});}catch(_){node?.scrollIntoView();}
     }
     setActive(normalized);
-    try{window.dispatchEvent(new CustomEvent('programstudio:workspace-navigation-select',{detail:{step:normalized,sidebarSection}}));}catch(_){}
+    try{window.dispatchEvent(new CustomEvent('programstudio:workspace-navigation-select',{detail:{step:normalized,sidebarSection,contextPane:normalized==='edit'||normalized==='arrange'}}));}catch(_){}
     return true;
   }
 
   function syncActiveFromScroll(){
     scrollFrame=0;
     if(!panel||!nav)return;
+    const contextual=contextStep();
+    if(contextual){setActive(contextual);return;}
     const threshold=panel.scrollTop+nav.offsetHeight+24;
     let chosen='start';
-    for(const item of STEPS){
+    for(const item of STEPS.filter(item=>item.key==='start'||item.key==='output')){
       const node=target(item.key);
       if(node&&Number(node.offsetTop)<=threshold)chosen=item.key;
     }
@@ -133,19 +142,13 @@
         if(!button)return;
         select(button.dataset.workspaceStep,true);
       });
-    }else if(nav.parentElement!==panel){
-      panel.prepend(nav);
-    }
-    syncProduct();
-    syncActiveFromScroll();
-    return true;
+    }else if(nav.parentElement!==panel){panel.prepend(nav);}
+    syncProduct();syncActiveFromScroll();return true;
   }
 
   function sync(){
     if(!ensureNav())return false;
-    syncProduct();
-    scheduleScrollSync();
-    return true;
+    syncProduct();scheduleScrollSync();return true;
   }
 
   function observe(){
@@ -153,7 +156,7 @@
     installed=true;
     panel?.addEventListener('scroll',scheduleScrollSync,{passive:true});
     htmlObserver=new MutationObserver(()=>{syncProduct();scheduleScrollSync();});
-    htmlObserver.observe(document.documentElement,{attributes:true,attributeFilter:['data-design-document-type','data-active-design-mode']});
+    htmlObserver.observe(document.documentElement,{attributes:true,attributeFilter:['data-design-document-type','data-active-design-mode','data-design-context-pane-open','data-design-context-tab']});
     ['programstudio:design-document-type','programstudio:document-type-change','programstudio:design-mode-change','programstudio:design-product-change','programstudio:runtime-script-result','resize'].forEach(name=>window.addEventListener(name,()=>{syncProduct();scheduleScrollSync();},{passive:true}));
   }
 
@@ -162,12 +165,10 @@
       if(attempt<60)setTimeout(()=>boot(attempt+1),80+Math.min(attempt,15)*25);
       return false;
     }
-    observe();
-    [120,400,900,1800].forEach(delay=>setTimeout(sync,delay));
-    return true;
+    observe();[120,400,900,1800].forEach(delay=>setTimeout(sync,delay));return true;
   }
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>boot(),{once:true});else boot();
 
-  window.DesignEditorWorkspaceNavigation={sync,select,currentType,stage:'shared-workspace-navigation-v2'};
+  window.DesignEditorWorkspaceNavigation={sync,select,currentType,stage:'shared-workspace-navigation-v3'};
 })();
