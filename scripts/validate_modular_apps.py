@@ -115,6 +115,8 @@ def validate() -> None:
             errors.append(f"standalone product profile is missing {key}")
         if f"sidebarOrder:MENU_ORDERS.{key}" not in design_profiles:
             errors.append(f"standalone product profile is missing sidebar order for {key}")
+        if f"sidebarFocus:SIDEBAR_FOCUS.{key}" not in design_profiles:
+            errors.append(f"standalone product profile is missing sidebar focus hierarchy for {key}")
     for key in PDF_KEYS:
         if key not in access:
             errors.append(f"access adapter does not recognize PDF app {key}")
@@ -144,9 +146,9 @@ def validate() -> None:
         errors.append("design shell does not load simple result workflow from shared")
     if "shared/workspace-navigation.js?v=20260901-2" not in design_shell or "loadWorkspaceNavigation" not in design_shell:
         errors.append("standalone design shell does not load the current shared workspace navigation")
-    if "shared/sidebar-menu-order.js?v=20260901-2" not in design_shell or "loadSidebarMenuOrder" not in design_shell:
+    if "shared/sidebar-menu-order.js?v=20260901-3" not in design_shell or "loadSidebarMenuOrder" not in design_shell:
         errors.append("standalone design shell does not load the current product-specific sidebar UI")
-    if "standalone-product-profile.js?v=20260901-1" not in design_shell:
+    if "standalone-product-profile.js?v=20260901-2" not in design_shell:
         errors.append("standalone design shell does not load the current product profile version")
     if (
         "design-editor-shared-module-profile-v1" not in shared_modules
@@ -165,17 +167,21 @@ def validate() -> None:
     ):
         errors.append("shared design workspace navigation/sidebar linkage is incomplete")
     if (
-        "product-specific-sidebar-sections-v2" not in sidebar_order
+        "product-specific-sidebar-card-hierarchy-v3" not in sidebar_order
         or "규격 · 구조" not in sidebar_order
         or "내용 · 디자인" not in sidebar_order
         or "편집 · 배치" not in sidebar_order
         or "인쇄 · 출력" not in sidebar_order
         or "profile.sidebarOrder" not in sidebar_order
+        or "profile.sidebarFocus" not in sidebar_order
         or "aria-expanded" not in sidebar_order
         or "design-sidebar-section-collapsed-card" not in sidebar_order
+        or "design-sidebar-card-focus" not in sidebar_order
+        or "design-sidebar-card-compact" not in sidebar_order
+        or "design-sidebar-card-output-action" not in sidebar_order
         or "openForStep" not in sidebar_order
     ):
-        errors.append("product-specific interactive sidebar grouping contract is incomplete")
+        errors.append("product-specific interactive sidebar card hierarchy contract is incomplete")
     if (
         "stage:'multi-smart-guides-exact-gap-v1'" not in smart_guides
         or "const bar=byId('designMultiSelectionContextbar')" not in smart_guides
@@ -230,9 +236,11 @@ def validate() -> None:
         or "dataset.productSidebarOrderSections" not in sidebar_order_smoke
         or "dataset.productSidebarSectionCollapse" not in sidebar_order_smoke
         or "dataset.productSidebarWorkspaceOpen" not in sidebar_order_smoke
+        or "dataset.productSidebarCardHierarchy" not in sidebar_order_smoke
+        or "data-product-sidebar-card-hierarchy" not in smoke_runner
         or "design-product-sidebar-order-smoke.html" not in smoke_runner
     ):
-        errors.append("product-specific interactive sidebar browser coverage is missing")
+        errors.append("product-specific sidebar order/hierarchy browser coverage is missing")
     if (
         "shared/multi-selection-context.js" not in multi_selection_smoke
         or "dataset.multiSelectionSharedSmoke" not in multi_selection_smoke
@@ -265,7 +273,7 @@ def validate() -> None:
             print(f" - {error}", file=sys.stderr)
         raise SystemExit(1)
 
-    print("Modular app architecture OK: 8 standalone routes share canonical design/PDF engines, shared module policy, shared editor state/UI, product profiles, boundary UI, workspace navigation, interactive product-specific sidebar sections, multi-selection context, smart guides, simple-result workflow and browser coverage")
+    print("Modular app architecture OK: 8 standalone routes share canonical design/PDF engines, shared module policy, shared editor state/UI, product profiles, boundary UI, workspace navigation, interactive product-specific sidebar sections/card hierarchy, multi-selection context, smart guides, simple-result workflow and browser coverage")
 
 
 if __name__ == "__main__":
