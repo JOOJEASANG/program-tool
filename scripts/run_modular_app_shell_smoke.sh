@@ -43,6 +43,9 @@ for app in cover poster flyer invitation notice leaflet pdf-layout booklet; do
   url="http://127.0.0.1:$PORT/tests/browser/modular-app-shell-smoke.html?app=$app"
   run_browser_case "$url" "$out" 'data-modular-shell-smoke="pass"'
   grep -q "data-modular-shell-app=\"$app\"" "$out" || { cat "$out" >&2; exit 1; }
+  grep -q "data-modular-shell-theme=\"$app\"" "$out" || { cat "$out" >&2; exit 1; }
+  if [[ "$app" == "pdf-layout" || "$app" == "booklet" ]]; then expected_quick=0; else expected_quick=4; fi
+  grep -q "data-modular-shell-quick=\"$expected_quick\"" "$out" || { cat "$out" >&2; exit 1; }
 done
 
 profile_out="$OUT_DIR/standalone-product-profile-smoke-dom.html"
@@ -111,4 +114,4 @@ grep -q 'data-design-multi-smart-ownership="contextbar"' "$smart_guides_out" || 
 grep -q 'data-design-multi-smart-gap="horizontal-6-vertical-4"' "$smart_guides_out" || { cat "$smart_guides_out" >&2; exit 1; }
 grep -q 'data-design-multi-smart-snap="artboard-center"' "$smart_guides_out" || { cat "$smart_guides_out" >&2; exit 1; }
 
-echo "Modular app browser smoke passed for 8 routes, design/PDF profiles, boundary UI, shared workspace navigation, product-specific sidebar order/card hierarchy, professional UI ownership, multi-selection ownership and smart guides using $BROWSER"
+echo "Modular app browser smoke passed for 8 routes, product-themed workspace headers/shortcuts, design/PDF profiles, boundary UI, shared workspace navigation, product-specific sidebar order/card hierarchy, professional UI ownership, multi-selection ownership and smart guides using $BROWSER"
