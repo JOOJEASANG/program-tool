@@ -8,6 +8,23 @@
   if(params.get('embed')!=='1')return;
 
   const root=document.documentElement;
+  const directEntry=['direct','app-direct'].includes(String(params.get('entry')||''));
+  const directEntryUrl=location.pathname+location.search+location.hash;
+  if(directEntry){
+    const nativeReplaceState=history.replaceState.bind(history);
+    history.replaceState=function(state,title,url){
+      try{
+        const target=new URL(String(url||''),location.href);
+        if(target.pathname==='/design-editor/index.html'){
+          root.dataset.designDirectHistoryGuard='1';
+          return nativeReplaceState(state,title,directEntryUrl);
+        }
+      }catch(_){}
+      return nativeReplaceState(state,title,url);
+    };
+    root.dataset.designDirectHistoryGuard='1';
+  }
+
   const syntheticCoalesceDeadline=Date.now()+4200;
   let lastSyntheticResizeSignature='';
   let syntheticResizeFrame=0;
@@ -253,7 +270,7 @@
     startRequestedProjectEarly,
     resizeSignature,
     surfaceContentSignature,
-    stage:'embedded-design-stable-canvas-bootstrap-v3-direct-entry-safe-resize'
+    stage:'embedded-design-stable-canvas-bootstrap-v4-direct-entry-history-guard'
   };
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});
