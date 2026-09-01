@@ -21,13 +21,12 @@
   </main>
   <script src="/js/design-editor/full-preview-workspace.js?v=20260901-1"></script>
   <script>
-    const run=async()=>{
+    const run=()=>{
       const fail=message=>{document.body.dataset.fullPreviewSmoke='fail';document.body.textContent='FAIL: '+message};
       const pass=message=>{document.body.dataset.fullPreviewSmoke='pass';document.body.dataset.fullPreviewStage=window.DesignEditorFullPreviewWorkspace?.stage||'';document.body.textContent='PASS: '+message};
       try{
         document.documentElement.dataset.designSidebarOpen='true';
         window.DesignEditorFullPreviewWorkspace?.sync?.();
-        await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
         const shell=document.getElementById('editorShell');
         const sidebar=document.querySelector('.sidebar');
         const main=document.querySelector('.editor-main');
@@ -44,7 +43,6 @@
         const openWidth=mainRect.width;
         document.documentElement.dataset.designSidebarOpen='false';
         window.DesignEditorFullPreviewWorkspace.sync();
-        await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
         const closedSidebarWidth=sidebar.getBoundingClientRect().width;
         const closedWidth=main.getBoundingClientRect().width;
         const expectedClosedWidth=shell.getBoundingClientRect().width-closedSidebarWidth;
