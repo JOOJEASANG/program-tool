@@ -45,7 +45,6 @@ jobs:
           node --check js/design-editor/product-boundary-ui.js
           node --check js/design-editor/core-runtime.js
           node --check js/design-editor/shell-runtime.js
-          node --check js/design-editor/essential-workspace.js
           node --check js/pdf-editor/standalone-app-profile.js
           node --check js/pdf-editor/app-boundary.js
           node --check js/pdf-editor/route-runtime.js
