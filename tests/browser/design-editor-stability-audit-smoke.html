@@ -28,14 +28,20 @@
       const fail=error=>{document.body.dataset.stabilityAuditSmoke='fail';result.textContent='FAIL: '+String(error?.stack||error?.message||error)};
       const pass=message=>{document.body.dataset.stabilityAuditSmoke='pass';result.textContent='PASS: '+message};
       const assert=(condition,message)=>{if(!condition)throw new Error(message)};
-      const waitFor=async(predicate,label,timeout=8000)=>{const start=Date.now();while(Date.now()-start<timeout){if(predicate())return;await new Promise(r=>setTimeout(r,35))}throw new Error('timeout: '+label)};
       try{
-        await waitFor(()=>window.DesignEditorTextAutoFit&&window.DesignEditorDirectResize&&window.DesignEditorStabilityGuards,'stability runtimes');
+        assert(window.DesignEditorTextAutoFit,'text auto fit runtime missing');
+        assert(window.DesignEditorDirectResize,'direct resize runtime missing');
+        assert(window.DesignEditorStabilityGuards,'stability guard runtime missing');
         const entry=project.surfaces[0].elements[0];
-        await waitFor(()=>document.querySelectorAll('.design-direct-resize-handle').length===2,'direct text resize handles');
+
+        window.DesignEditorTextAutoFit.sync();
+        window.DesignEditorDirectResize.sync();
+        window.DesignEditorStabilityGuards.sync();
+        assert(document.querySelectorAll('.design-direct-resize-handle').length===2,'direct text resize handles missing');
 
         const legacy=document.createElement('button');legacy.className='phase3-resize-handle';document.querySelector('[data-id="title1"]').appendChild(legacy);
-        await waitFor(()=>!document.querySelector('.phase3-resize-handle'),'legacy resize handle removal');
+        window.DesignEditorStabilityGuards.sync();
+        assert(!document.querySelector('.phase3-resize-handle'),'legacy resize handle was not removed');
 
         const startWidth=entry.w;
         const handle=document.querySelector('.design-direct-resize-handle[data-resize-dir="e"]');
@@ -43,15 +49,17 @@
         handle.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,cancelable:true,pointerId:11,button:0,clientX:300,clientY:120}));
         document.dispatchEvent(new PointerEvent('pointermove',{bubbles:true,cancelable:true,pointerId:11,buttons:1,clientX:360,clientY:120}));
         document.dispatchEvent(new PointerEvent('pointerup',{bubbles:true,cancelable:true,pointerId:11,button:0,clientX:360,clientY:120}));
-        await waitFor(()=>entry.w>startWidth+10,'direct text width drag');
-        await waitFor(()=>entry.textBoxWidthMode==='manual','manual width persistence after direct resize');
+        await Promise.resolve();
+        assert(entry.w>startWidth+10,'direct text width drag did not resize');
+        assert(entry.textBoxWidthMode==='manual','direct resize did not persist manual width mode');
         const manualWidth=entry.w;
 
         const text=document.querySelector('.editable-text');
         entry.text='직접 조절한 폭은 이후 글자가 길어져도 자동 맞춤이 덮어쓰면 안 됩니다 ABCDEFGHIJKLMNOPQRSTUVWXYZ';
         text.textContent=entry.text;text.dispatchEvent(new Event('input',{bubbles:true}));
-        await new Promise(resolve=>setTimeout(resolve,250));
+        window.DesignEditorTextAutoFit.sync();
         assert(Math.abs(entry.w-manualWidth)<.1,'auto fit overwrote direct manual width');
+        window.DesignEditorStabilityGuards.sync();
         assert(document.documentElement.dataset.designDirectResize==='1','direct resize stability marker missing');
         assert(!document.querySelector('.phase3-resize-handle'),'legacy resize handle returned');
         document.body.dataset.finalWidth=entry.w.toFixed(2);
