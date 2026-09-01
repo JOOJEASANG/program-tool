@@ -79,7 +79,7 @@ def test_small_source_stays_one_sheet_and_keeps_physical_scale():
 
 def test_tiling_ui_and_api_are_wired_for_pdf_and_images():
     frontend = (ROOT / "js" / "pdf-large-output-tiling.js").read_text(encoding="utf-8")
-    app_version = (ROOT / "js" / "app-version.js").read_text(encoding="utf-8")
+    runtime = (ROOT / "js" / "pdf-preflight" / "route-runtime.js").read_text(encoding="utf-8")
     main = (ROOT / "backend" / "main.py").read_text(encoding="utf-8")
     router = (ROOT / "backend" / "routers" / "pdf_utility_tiling.py").read_text(encoding="utf-8")
 
@@ -91,7 +91,8 @@ def test_tiling_ui_and_api_are_wired_for_pdf_and_images():
     assert "imageToPdf" in frontend
     assert "/api/pdf-utility/tile" in frontend
     assert "/api/pdf-utility/tile-storage" in frontend
-    assert "pdfLargeOutputTilingScriptV1" in app_version
+    assert "pdfLargeOutputTilingScriptV1" in runtime
+    assert "/js/pdf-large-output-tiling.js?v=20260831-1" in runtime
     assert "pdf_utility_tiling_bp" in main
     assert '@pdf_utility_tiling_bp.route("/tile"' in router
     assert '@pdf_utility_tiling_bp.route("/tile-storage"' in router
