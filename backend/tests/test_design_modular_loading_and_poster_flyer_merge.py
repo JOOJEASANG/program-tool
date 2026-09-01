@@ -57,23 +57,44 @@ def test_design_modular_shell_warms_shared_editor_assets_before_navigation():
     assert "'/js/design-editor/app.js?v=20260821-1'" in source
     assert "'/js/design-editor/focused-professional-workspace.js?v=20260901-1'" in source
     assert "warmDesignAssets();expectedFrameUrl=" in source
-    page = read("apps/index.html")
-    assert 'rel="preconnect" href="https://www.gstatic.com"' in page
-    assert 'rel="preconnect" href="https://cdn.jsdelivr.net"' in page
-    assert '/js/studio-app-shell.js?v=20260901-7' in page
+
+
+def test_home_design_programs_enter_shared_editor_directly_without_apps_iframe_shell():
+    source = read("js/home-program-catalog.js")
+    assert "const DIRECT_DESIGN_BASE='/design-editor/general?embed=1';" in source
+    assert "name:'표지 제작'" in source and "app=cover&entry=direct" in source
+    assert "name:'포스터 · 전단지 제작'" in source
+    assert "app=poster&surface=poster-flyer&entry=direct" in source
+    assert "app=invitation&entry=direct" in source
+    assert "app=invitation&surface=notice&entry=direct" in source
+    assert "app=leaflet&entry=direct" in source
+    assert "modular-production-apps-home-catalog-v5-direct-design-entry" in source
 
 
 def test_home_exposes_one_combined_poster_flyer_program():
     source = read("js/home-program-catalog.js")
     assert "name:'포스터 · 전단지 제작'" in source
-    assert "url:'/apps/poster'" in source
     assert "name:'포스터 제작'" not in source
     assert "name:'전단지 제작'" not in source
     assert "function isPosterFlyerProgram(p)" in source
+    assert "app==='poster'||app==='flyer'" in source
     assert "if(!posterFlyerExpanded){out.push(COMBINED_POSTER_FLYER);posterFlyerExpanded=true;}" in source
 
 
-def test_legacy_flyer_route_uses_the_combined_workspace():
+def test_legacy_design_app_routes_redirect_before_modular_shell_or_firebase_boot():
+    page = read("apps/index.html")
+    assert "const targets={" in page
+    assert "cover:`${base}&mode=cover&preset=cover-a4&app=cover&entry=app-direct`" in page
+    assert "poster:`${base}&mode=poster&preset=poster-a4" in page
+    assert "flyer:`${base}&mode=poster&preset=poster-a4" in page
+    assert "notice:`${base}&mode=invitation" in page
+    assert "leaflet:`${base}&mode=leaflet3" in page
+    assert "if(targets[key])location.replace(targets[key]);" in page
+    assert page.index("if(targets[key])location.replace(targets[key]);") < page.index("data-program-studio-boot-guard")
+    assert page.index("if(targets[key])location.replace(targets[key]);") < page.index("firebase-app-compat.js")
+
+
+def test_legacy_flyer_shell_configuration_still_uses_combined_workspace_as_fallback():
     source = read("js/studio-app-shell.js")
     assert "poster:{title:'포스터 · 전단지 제작'" in source
     assert "flyer:{title:'포스터 · 전단지 제작'" in source
