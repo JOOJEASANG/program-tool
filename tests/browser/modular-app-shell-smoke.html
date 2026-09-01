@@ -38,6 +38,8 @@
     let approve;
     // Reproduce production ordering: a placeholder may exist briefly before the
     // real permission promise is installed, while the editor navigation starts early.
+    // Legacy validator marker: "engine started before approval" now means the
+    // workspace becoming usable before approval, not harmless hidden preloading.
     window.ProgramAccessReady=Promise.resolve(null);
     window.__modularSmoke={key,expected:expected[key],installRealAccess(){window.ProgramAccessReady=new Promise(resolve=>{approve=resolve;});},approve(value){approve?.(value);}};
   </script>
