@@ -3,14 +3,17 @@
 <head>
   <meta charset="utf-8">
   <title>Modular App Shell Smoke</title>
+  <link rel="stylesheet" href="/css/studio-app-shell.css?v=20260901-2">
   <style>.hide{display:none}</style>
 </head>
 <body data-modular-shell-smoke="running">
   <div id="result">RUNNING</div>
   <span id="appTitle"></span><span id="appCategory"></span><span id="appDescription"></span>
+  <span id="appSymbol"></span><span id="appWorkspaceTitle"></span><span id="appWorkspaceHint"></span>
+  <div id="productContext"></div><nav id="appQuickActions" class="product-quick-actions" hidden></nav>
   <span class="engine-chip"><span id="engineLabel"></span></span>
   <a id="legacyLink" hidden></a>
-  <div id="workspaceLoading"></div>
+  <div id="workspaceLoading"><strong id="loadingTitle"></strong><p id="loadingMessage"></p></div>
   <div id="workspaceError" hidden><p></p></div>
   <button id="retryBtn"></button>
   <iframe id="appFrame"></iframe>
@@ -18,14 +21,14 @@
     const original=new URL(location.href);
     const key=original.searchParams.get('app')||'';
     const expected={
-      cover:{target:'/design-editor/general?embed=1&mode=cover&preset=cover-a4&app=cover',title:'표지 제작',category:'DESIGN · COVER'},
-      poster:{target:'/design-editor/general?embed=1&mode=poster&preset=poster-a4&paper=a4&orientation=portrait&w=210&h=297&app=poster',title:'포스터 제작',category:'DESIGN · POSTER'},
-      flyer:{target:'/design-editor/general?embed=1&mode=flyer&preset=flyer-a4&paper=a4&orientation=portrait&w=210&h=297&app=flyer',title:'전단지 제작',category:'DESIGN · FLYER'},
-      invitation:{target:'/design-editor/general?embed=1&mode=invitation&preset=invitation-a4&paper=a4&orientation=landscape&w=297&h=210&app=invitation',title:'초대장 제작',category:'DESIGN · INVITATION'},
-      notice:{target:'/design-editor/general?embed=1&mode=invitation&preset=invitation-a4&paper=a4&orientation=landscape&w=297&h=210&app=invitation&surface=notice',title:'안내장 제작',category:'DESIGN · NOTICE'},
-      leaflet:{target:'/design-editor/general?embed=1&mode=leaflet3&preset=leaflet-3-roll&paper=a4&orientation=landscape&w=297&h=210&fold=leaflet-3-roll&app=leaflet',title:'리플렛 제작',category:'DESIGN · LEAFLET'},
-      'pdf-layout':{target:'/pdf-editor/?embed=1&app=layout',title:'PDF 배치',category:'PDF · N-UP'},
-      booklet:{target:'/pdf-editor/?embed=1&app=booklet',title:'소책자 제작',category:'PDF · BOOKLET'}
+      cover:{target:'/design-editor/general?embed=1&mode=cover&preset=cover-a4&app=cover',title:'표지 제작',category:'DESIGN · COVER',symbol:'표',workspace:'표지 인쇄 작업실',quick:4,accent:'rgb(108, 85, 217)'},
+      poster:{target:'/design-editor/general?embed=1&mode=poster&preset=poster-a4&paper=a4&orientation=portrait&w=210&h=297&app=poster',title:'포스터 제작',category:'DESIGN · POSTER',symbol:'포',workspace:'포스터 디자인 작업실',quick:4,accent:'rgb(208, 75, 103)'},
+      flyer:{target:'/design-editor/general?embed=1&mode=flyer&preset=flyer-a4&paper=a4&orientation=portrait&w=210&h=297&app=flyer',title:'전단지 제작',category:'DESIGN · FLYER',symbol:'전',workspace:'전단지 구성 작업실',quick:4,accent:'rgb(201, 121, 37)'},
+      invitation:{target:'/design-editor/general?embed=1&mode=invitation&preset=invitation-a4&paper=a4&orientation=landscape&w=297&h=210&app=invitation',title:'초대장 제작',category:'DESIGN · INVITATION',symbol:'초',workspace:'초대장 편집 작업실',quick:4,accent:'rgb(168, 85, 145)'},
+      notice:{target:'/design-editor/general?embed=1&mode=invitation&preset=invitation-a4&paper=a4&orientation=landscape&w=297&h=210&app=invitation&surface=notice',title:'안내장 제작',category:'DESIGN · NOTICE',symbol:'안',workspace:'안내장 정보 작업실',quick:4,accent:'rgb(47, 128, 109)'},
+      leaflet:{target:'/design-editor/general?embed=1&mode=leaflet3&preset=leaflet-3-roll&paper=a4&orientation=landscape&w=297&h=210&fold=leaflet-3-roll&app=leaflet',title:'리플렛 제작',category:'DESIGN · LEAFLET',symbol:'리',workspace:'리플렛 접지 작업실',quick:4,accent:'rgb(22, 131, 151)'},
+      'pdf-layout':{target:'/pdf-editor/?embed=1&app=layout',title:'PDF 배치',category:'PDF · N-UP',symbol:'PDF',workspace:'PDF 배치 작업실',quick:0,accent:'rgb(95, 103, 199)'},
+      booklet:{target:'/pdf-editor/?embed=1&app=booklet',title:'소책자 제작',category:'PDF · BOOKLET',symbol:'책',workspace:'소책자 조판 작업실',quick:0,accent:'rgb(60, 109, 158)'}
     };
     if(!expected[key])throw new Error('unknown smoke app: '+key);
     history.replaceState(null,'','/apps/'+key+'?smoke=1');
@@ -35,7 +38,7 @@
     window.ProgramAccessReady=new Promise(resolve=>{approve=resolve;});
     window.__modularSmoke={key,expected:expected[key],approve};
   </script>
-  <script src="/js/studio-app-shell.js"></script>
+  <script src="/js/studio-app-shell.js?v=20260901-2"></script>
   <script>
     (async()=>{
       const result=document.getElementById('result');
@@ -52,10 +55,38 @@
         if(frame.dataset.assignedSrc!==exp.target)throw new Error('wrong target: '+frame.dataset.assignedSrc);
         if(document.getElementById('appTitle').textContent!==exp.title)throw new Error('wrong title');
         if(document.getElementById('appCategory').textContent!==exp.category)throw new Error('wrong category');
+        if(document.getElementById('appSymbol').textContent!==exp.symbol)throw new Error('wrong product symbol');
+        if(document.getElementById('appWorkspaceTitle').textContent!==exp.workspace)throw new Error('wrong workspace title');
+        if(document.documentElement.dataset.appTheme!==window.__modularSmoke.key)throw new Error('product theme ownership missing');
+        const accent=getComputedStyle(document.documentElement).getPropertyValue('--app-accent').trim();
+        if(accent!==exp.accent)throw new Error(`wrong accent ${accent} != ${exp.accent}`);
+        const quick=document.querySelectorAll('#appQuickActions button');
+        if(quick.length!==exp.quick)throw new Error(`wrong quick action count ${quick.length}`);
+        if(exp.quick&&![...quick].every(button=>button.disabled))throw new Error('quick actions enabled before engine ready');
+        if(!exp.quick&&!document.getElementById('appQuickActions').hidden)throw new Error('empty quick actions should stay hidden');
+
+        if(exp.quick){
+          const target=quick[0].dataset.target;
+          const doc=frame.contentDocument;
+          doc.body.innerHTML=`<div class="design-flat-panel"><section id="${target}" class="side-card"></section></div>`;
+          frame.contentWindow.__openedSection='';
+          frame.contentWindow.DesignEditorSidebarMenuOrder={sectionFor:()=> 'create',openSection:section=>{frame.contentWindow.__openedSection=section;return true;}};
+        }
+
         await waitFor(()=>document.documentElement.dataset.modularAppReady==='true','shell ready');
+        if(exp.quick&&![...quick].every(button=>!button.disabled))throw new Error('quick actions stayed disabled after engine ready');
+        if(exp.quick){
+          quick[0].click();
+          const target=quick[0].dataset.target;
+          if(document.documentElement.dataset.modularAppQuickAction!==target)throw new Error('external workspace jump did not target the expected card');
+          if(frame.contentWindow.__openedSection!=='create')throw new Error('external workspace jump did not open target sidebar section');
+        }
         document.body.dataset.modularShellSmoke='pass';
         document.body.dataset.modularShellApp=window.__modularSmoke.key;
         document.body.dataset.modularShellTarget=frame.dataset.assignedSrc;
+        document.body.dataset.modularShellTheme=document.documentElement.dataset.appTheme||'';
+        document.body.dataset.modularShellQuick=String(quick.length);
+        document.body.dataset.modularShellWorkspace=exp.workspace;
         result.textContent='PASS: '+window.__modularSmoke.key+' -> '+frame.dataset.assignedSrc;
       }catch(error){fail(error);}
     })();
