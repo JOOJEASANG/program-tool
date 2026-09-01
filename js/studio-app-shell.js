@@ -31,6 +31,7 @@
   let expectedFrameUrl='';
 
   const DESIGN_PRELOADS=[
+    '/js/design-editor/embedded-stability-bootstrap.js?v=20260901-1',
     '/js/design-editor/presets.js?v=20260821-1',
     '/js/design-editor/app.js?v=20260821-1',
     '/js/design-editor/focused-professional-workspace.js?v=20260901-1'
@@ -113,7 +114,18 @@
       const actualHref=frame.contentWindow.location.href;
       const candidate=actualHref==='about:blank'?frame.src:actualHref;
       const current=new URL(candidate,location.origin),expected=new URL(expectedFrameUrl);
-      return current.origin===expected.origin&&current.pathname===expected.pathname&&current.search===expected.search;
+      if(current.origin!==expected.origin)return false;
+      if(current.pathname===expected.pathname&&current.search===expected.search)return true;
+      if(app?.kind!=='design')return false;
+      const designPaths=new Set(['/design-editor/general','/design-editor/general.html','/design-editor/index.html']);
+      if(!designPaths.has(current.pathname)||!designPaths.has(expected.pathname))return false;
+      const currentMode=current.searchParams.get('mode')||'';
+      const expectedMode=expected.searchParams.get('mode')||'';
+      const currentPreset=current.searchParams.get('preset')||'';
+      const expectedPreset=expected.searchParams.get('preset')||'';
+      return current.searchParams.get('embed')==='1'
+        && (!expectedMode||currentMode===expectedMode)
+        && (!currentPreset||!expectedPreset||currentPreset===expectedPreset);
     }catch(_){return false;}
   }
   function designFrameCanReveal(){
@@ -121,7 +133,13 @@
     try{
       const win=frame.contentWindow,doc=frame.contentDocument;
       if(!win||!doc?.documentElement)return false;
-      const baseReady=Boolean(win.DesignEditorApp)&&Boolean(doc.getElementById('editorShell')||doc.getElementById('startScreen'));
+      const shell=doc.getElementById('editorShell');
+      const artboard=doc.getElementById('artboard');
+      const rect=artboard?.getBoundingClientRect?.();
+      const projectReady=doc.documentElement.dataset.designEmbeddedProjectReady==='1'||Boolean(
+        win.DesignEditorApp?.project&&shell&&!shell.classList.contains('hidden')&&rect&&rect.width>20&&rect.height>20
+      );
+      const baseReady=Boolean(win.DesignEditorApp)&&projectReady;
       const focusedReady=doc.documentElement.dataset.designFocusedWorkspace==='1';
       const bootStable=!doc.documentElement.classList.contains('app-booting');
       return baseReady&&focusedReady&&bootStable;
@@ -133,7 +151,7 @@
     const deadline=Date.now()+12000;
     const probe=()=>{
       if(frameReady)return;
-      if(designFrameCanReveal()){markFrameReady('stable-workspace-probe');return;}
+      if(designFrameCanReveal()){markFrameReady('stable-project-probe');return;}
       if(Date.now()<deadline)frameProbeTimer=setTimeout(probe,25);
     };
     frameProbeTimer=setTimeout(probe,0);
@@ -175,7 +193,7 @@
   frame?.addEventListener('load',()=>{
     if(frameReady)return;
     if(app?.kind==='design'){
-      if(designFrameCanReveal()){markFrameReady('load-stable-workspace');return;}
+      if(designFrameCanReveal()){markFrameReady('load-stable-project');return;}
       startFrameProbe();
       return;
     }
@@ -194,5 +212,5 @@
   load();
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',startAfterAccess,{once:true});else startAfterAccess();
 
-  window.ProgramStudioModularAppShell={apps:APPS,appKey:key,reload:()=>{started=false;load();},openQuickAction,stage:'modular-app-shell-product-context-v5-access-race-safe',parallelStage:'modular-app-shell-parallel-engine-preload-v1',fastRevealStage:'modular-design-stable-workspace-reveal-v2'};
+  window.ProgramStudioModularAppShell={apps:APPS,appKey:key,reload:()=>{started=false;load();},openQuickAction,stage:'modular-app-shell-product-context-v5-access-race-safe',parallelStage:'modular-app-shell-parallel-engine-preload-v1',fastRevealStage:'modular-design-stable-project-reveal-v3'};
 })();
