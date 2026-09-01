@@ -1,6 +1,6 @@
 // Standalone design-product profiles.
 // Keeps product identity, UX labels, runtime capabilities and product-specific
-// sidebar order in one place while canonical editor manifests stay unchanged.
+// sidebar order/focus in one place while canonical editor manifests stay unchanged.
 (function(){
   'use strict';
   if(window.DesignEditorStandaloneProducts)return;
@@ -39,13 +39,22 @@
     ])
   });
 
+  const SIDEBAR_FOCUS=Object.freeze({
+    cover:Object.freeze(['designEmbeddedModeCard','designCoverSettingsTools','designCoverSpineTools','designSimpleResultTools']),
+    poster:Object.freeze(['designSimpleResultTools','designRecipeTools','designPhase4SmartLayout']),
+    flyer:Object.freeze(['designSimpleResultTools','designComponentBlocksTools','designRecipeTools']),
+    invitation:Object.freeze(['designEmbeddedModeCard','designSimpleResultTools','designComponentBlocksTools']),
+    notice:Object.freeze(['designEmbeddedModeCard','designSimpleResultTools','designRecipeTools']),
+    leaflet:Object.freeze(['designEmbeddedModeCard','designPhase4SmartLayout','designSimpleResultTools','designComponentBlocksTools'])
+  });
+
   const PROFILES=Object.freeze({
-    cover:Object.freeze({key:'cover',runtimeProduct:'cover',label:'표지',badge:'표지 전용 작업',needsFoldRuntime:false,needsProductMenu:false,capabilities:Object.freeze(['common','cover']),sidebarOrder:MENU_ORDERS.cover}),
-    poster:Object.freeze({key:'poster',runtimeProduct:'poster',label:'포스터',badge:'포스터 전용 작업',needsFoldRuntime:false,needsProductMenu:false,capabilities:Object.freeze(['common']),sidebarOrder:MENU_ORDERS.poster}),
-    flyer:Object.freeze({key:'flyer',runtimeProduct:'flyer',label:'전단지',badge:'전단지 전용 작업',needsFoldRuntime:false,needsProductMenu:false,capabilities:Object.freeze(['common']),sidebarOrder:MENU_ORDERS.flyer}),
-    invitation:Object.freeze({key:'invitation',runtimeProduct:'invitation',label:'초대장',badge:'초대장 전용 작업',needsFoldRuntime:true,needsProductMenu:true,capabilities:Object.freeze(['common']),sidebarOrder:MENU_ORDERS.invitation}),
-    notice:Object.freeze({key:'notice',runtimeProduct:'invitation',label:'안내장',badge:'안내장 전용 작업',needsFoldRuntime:true,needsProductMenu:true,capabilities:Object.freeze(['common']),sidebarOrder:MENU_ORDERS.notice}),
-    leaflet:Object.freeze({key:'leaflet',runtimeProduct:'leaflet',label:'리플렛',badge:'리플렛 전용 작업',needsFoldRuntime:true,needsProductMenu:true,capabilities:Object.freeze(['common','fold']),sidebarOrder:MENU_ORDERS.leaflet})
+    cover:Object.freeze({key:'cover',runtimeProduct:'cover',label:'표지',badge:'표지 전용 작업',needsFoldRuntime:false,needsProductMenu:false,capabilities:Object.freeze(['common','cover']),sidebarOrder:MENU_ORDERS.cover,sidebarFocus:SIDEBAR_FOCUS.cover}),
+    poster:Object.freeze({key:'poster',runtimeProduct:'poster',label:'포스터',badge:'포스터 전용 작업',needsFoldRuntime:false,needsProductMenu:false,capabilities:Object.freeze(['common']),sidebarOrder:MENU_ORDERS.poster,sidebarFocus:SIDEBAR_FOCUS.poster}),
+    flyer:Object.freeze({key:'flyer',runtimeProduct:'flyer',label:'전단지',badge:'전단지 전용 작업',needsFoldRuntime:false,needsProductMenu:false,capabilities:Object.freeze(['common']),sidebarOrder:MENU_ORDERS.flyer,sidebarFocus:SIDEBAR_FOCUS.flyer}),
+    invitation:Object.freeze({key:'invitation',runtimeProduct:'invitation',label:'초대장',badge:'초대장 전용 작업',needsFoldRuntime:true,needsProductMenu:true,capabilities:Object.freeze(['common']),sidebarOrder:MENU_ORDERS.invitation,sidebarFocus:SIDEBAR_FOCUS.invitation}),
+    notice:Object.freeze({key:'notice',runtimeProduct:'invitation',label:'안내장',badge:'안내장 전용 작업',needsFoldRuntime:true,needsProductMenu:true,capabilities:Object.freeze(['common']),sidebarOrder:MENU_ORDERS.notice,sidebarFocus:SIDEBAR_FOCUS.notice}),
+    leaflet:Object.freeze({key:'leaflet',runtimeProduct:'leaflet',label:'리플렛',badge:'리플렛 전용 작업',needsFoldRuntime:true,needsProductMenu:true,capabilities:Object.freeze(['common','fold']),sidebarOrder:MENU_ORDERS.leaflet,sidebarFocus:SIDEBAR_FOCUS.leaflet})
   });
 
   function normalizeKey(value){
@@ -71,6 +80,7 @@
   window.DesignEditorStandaloneProducts=Object.freeze({
     profiles:PROFILES,
     menuOrders:MENU_ORDERS,
+    sidebarFocus:SIDEBAR_FOCUS,
     get,
     fromLocation,
     allows,
