@@ -7,6 +7,10 @@
   if(!Presets)return;
 
   const DRAFT_KEY='programTool.designEditor.draft.v1';
+  const CSS_PX_PER_MM=96/25.4;
+  const MIN_ZOOM_PERCENT=10;
+  const MAX_ZOOM_PERCENT=400;
+  const ZOOM_STEPS=[10,25,33,50,67,75,100,125,150,200,300,400];
   const ICONS={
     none:'',
     calendar:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2v3M18 2v3M3.5 8h17M5 4h14a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"/></svg>',
@@ -23,6 +27,9 @@
   let editingId='';
   let drag=null;
   let ppm=1;
+  let viewportMode='fit';
+  let manualPpm=CSS_PX_PER_MM;
+  let lastViewportSignal='';
   let saveTimer=0;
 
   const $=id=>document.getElementById(id);
@@ -152,18 +159,90 @@
     });
   }
 
-  function fitArtboard(){
-    if(!project)return;
+  function fitScale(){
+    if(!project)return 1;
     const viewport=$('artboardViewport');
-    const artboard=$('artboard');
-    if(!viewport||!artboard)return;
+    if(!viewport)return 1;
     const totalW=project.width+project.bleed*2;
     const totalH=project.height+project.bleed*2;
     const availableW=Math.max(180,viewport.clientWidth-72);
     const availableH=Math.max(220,viewport.clientHeight-72);
-    ppm=clamp(Math.min(availableW/totalW,availableH/totalH),.35,4.2);
+    return clamp(Math.min(availableW/totalW,availableH/totalH),.35,4.2);
+  }
+
+  function viewportState(){
+    const percent=Math.max(1,Math.round((ppm/CSS_PX_PER_MM)*100));
+    return {mode:viewportMode,percent,ppm,min:MIN_ZOOM_PERCENT,max:MAX_ZOOM_PERCENT,cssPxPerMm:CSS_PX_PER_MM};
+  }
+
+  function emitViewportState(){
+    const state=viewportState();
+    const signature=`${state.mode}:${state.percent}:${state.ppm.toFixed(4)}`;
+    if(signature===lastViewportSignal)return state;
+    lastViewportSignal=signature;
+    document.documentElement.dataset.designCanvasZoomMode=state.mode;
+    document.documentElement.dataset.designCanvasZoomPercent=String(state.percent);
+    window.dispatchEvent(new CustomEvent('designeditor:viewport-change',{detail:state}));
+    return state;
+  }
+
+  function fitArtboard(){
+    if(!project)return;
+    const artboard=$('artboard');
+    if(!artboard)return;
+    const totalW=project.width+project.bleed*2;
+    const totalH=project.height+project.bleed*2;
+    const minPpm=CSS_PX_PER_MM*(MIN_ZOOM_PERCENT/100);
+    const maxPpm=CSS_PX_PER_MM*(MAX_ZOOM_PERCENT/100);
+    ppm=viewportMode==='manual'?clamp(manualPpm,minPpm,maxPpm):fitScale();
     artboard.style.width=`${totalW*ppm}px`;
     artboard.style.height=`${totalH*ppm}px`;
+    emitViewportState();
+  }
+
+  function centerViewport(){
+    const viewport=$('artboardViewport');
+    if(!viewport)return false;
+    requestAnimationFrame(()=>{
+      viewport.scrollLeft=Math.max(0,(viewport.scrollWidth-viewport.clientWidth)/2);
+      viewport.scrollTop=Math.max(0,(viewport.scrollHeight-viewport.clientHeight)/2);
+    });
+    return true;
+  }
+
+  function setZoomPercent(value,options={}){
+    const numeric=Number(value);
+    const percent=clamp(Number.isFinite(numeric)?numeric:100,MIN_ZOOM_PERCENT,MAX_ZOOM_PERCENT);
+    viewportMode='manual';
+    manualPpm=CSS_PX_PER_MM*(percent/100);
+    lastViewportSignal='';
+    if(project)renderArtboard();else emitViewportState();
+    if(options.center!==false)centerViewport();
+    return viewportState();
+  }
+
+  function stepZoom(direction){
+    const current=viewportState().percent;
+    const dir=direction>=0?1:-1;
+    let next=dir>0?ZOOM_STEPS.find(step=>step>current):[...ZOOM_STEPS].reverse().find(step=>step<current);
+    if(next==null)next=dir>0?MAX_ZOOM_PERCENT:MIN_ZOOM_PERCENT;
+    return setZoomPercent(next);
+  }
+
+  function fitViewport(options={}){
+    viewportMode='fit';
+    lastViewportSignal='';
+    if(project)renderArtboard();else emitViewportState();
+    if(options.center!==false)centerViewport();
+    return viewportState();
+  }
+
+  function actualViewport(options={}){return setZoomPercent(100,options);}
+
+  function resetViewport(){
+    viewportMode='fit';
+    manualPpm=CSS_PX_PER_MM;
+    lastViewportSignal='';
   }
 
   function positionObject(node,entry){
@@ -335,18 +414,18 @@
   function startProject(presetId,custom=null){
     const preset=Presets.get(presetId);if(!preset)return;
     if(preset.custom&&custom){preset.width=clamp(Number(custom.width)||210,80,1000);preset.height=clamp(Number(custom.height)||297,80,1000);preset.name=`사용자 지정 ${preset.width} × ${preset.height}mm`;}
-    project=createProject(preset);selectedId='';editingId='';
+    project=createProject(preset);selectedId='';editingId='';resetViewport();
     $('startScreen')?.classList.add('hidden');$('editorShell')?.classList.remove('hidden');
     renderAll();scheduleSave();setStatus('작업영역을 더블클릭하면 원하는 위치에 글씨를 바로 추가할 수 있습니다.','ok');
   }
 
   function resumeDraft(){
     const draft=loadDraft();if(!draft)return;
-    project=draft;selectedId='';editingId='';$('startScreen')?.classList.add('hidden');$('editorShell')?.classList.remove('hidden');renderAll();setStatus('최근 자동 저장 작업을 불러왔습니다.','ok');
+    project=draft;selectedId='';editingId='';resetViewport();$('startScreen')?.classList.add('hidden');$('editorShell')?.classList.remove('hidden');renderAll();setStatus('최근 자동 저장 작업을 불러왔습니다.','ok');
   }
 
   function backToStart(){
-    selectedId='';editingId='';project=null;$('editorShell')?.classList.add('hidden');$('startScreen')?.classList.remove('hidden');renderStartCards();
+    selectedId='';editingId='';project=null;resetViewport();$('editorShell')?.classList.add('hidden');$('startScreen')?.classList.remove('hidden');renderStartCards();
   }
 
   function renderStartCards(){
@@ -397,7 +476,19 @@
       });
       $('logoutBtn')?.addEventListener('click',async()=>{await auth.signOut();location.href='../index.html';});
     }else $('authLoading')?.classList.add('hidden');
-    window.DesignEditorApp={startProject,resumeDraft,get project(){return project;},stage:'lightweight-direct-print-design-editor'};
+    const viewport=Object.freeze({
+      fit:fitViewport,
+      actual:actualViewport,
+      center:centerViewport,
+      zoomIn:()=>stepZoom(1),
+      zoomOut:()=>stepZoom(-1),
+      setZoom:setZoomPercent,
+      getState:viewportState,
+      min:MIN_ZOOM_PERCENT,
+      max:MAX_ZOOM_PERCENT,
+      stage:'design-editor-viewport-api-v1'
+    });
+    window.DesignEditorApp={startProject,resumeDraft,get project(){return project;},viewport,stage:'lightweight-direct-print-design-editor'};
   }
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
