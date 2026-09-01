@@ -6,6 +6,7 @@
   const STAGE='design-editor-canvas-viewport-toolbar-v1';
   const ROOT_ID='designCanvasViewportToolbar';
   const STYLE_ID='designCanvasViewportToolbarStyles';
+  const VIEWPORT_STAGE_ID='designCanvasViewportStage';
   let mounted=false;
   let api=null;
 
@@ -15,8 +16,9 @@
     style.id=STYLE_ID;
     style.textContent=`
       html[data-design-canvas-viewport-toolbar="v1"] .editor-main{position:relative}
-      html[data-design-canvas-viewport-toolbar="v1"] .artboard-viewport{align-items:flex-start!important;justify-content:flex-start!important;scroll-behavior:smooth}
-      html[data-design-canvas-viewport-toolbar="v1"] .artboard-viewport>.artboard{margin:auto}
+      html[data-design-canvas-viewport-toolbar="v1"] .artboard-viewport{display:block!important;padding:0!important;scroll-behavior:smooth}
+      .design-canvas-viewport-stage{box-sizing:border-box;min-width:100%;min-height:100%;width:max-content;height:max-content;padding:36px;display:grid;place-items:center}
+      .design-canvas-viewport-stage>.artboard{margin:0!important}
       .design-canvas-viewport-toolbar{position:absolute;z-index:89;left:50%;bottom:44px;transform:translateX(-50%);display:flex;align-items:center;gap:4px;min-height:38px;padding:5px 6px;border:1px solid #d8e2ec;border-radius:12px;background:rgba(255,255,255,.96);box-shadow:0 8px 26px rgba(15,39,72,.14);backdrop-filter:blur(9px);white-space:nowrap}
       .design-canvas-viewport-toolbar button{height:28px;min-width:30px;border:1px solid transparent;border-radius:8px;background:transparent;color:#44546a;font:850 9px/1 Pretendard,"Malgun Gothic",sans-serif;cursor:pointer;padding:0 8px}
       .design-canvas-viewport-toolbar button:hover{background:#eef5fb;color:#17466f}
@@ -29,7 +31,7 @@
       .design-canvas-viewport-toolbar .design-canvas-separator{width:1px;height:20px;background:#e1e8ef;margin:0 2px}
       .design-canvas-viewport-toolbar .design-canvas-fit{min-width:43px}
       .design-canvas-viewport-toolbar .design-canvas-center{min-width:46px}
-      @media(max-width:700px){.design-canvas-viewport-toolbar{bottom:42px;max-width:calc(100vw - 22px);padding:4px}.design-canvas-viewport-toolbar button{padding:0 6px}.design-canvas-viewport-toolbar .design-canvas-center{min-width:36px}.design-canvas-viewport-toolbar .design-canvas-center .design-canvas-wide{display:none}}
+      @media(max-width:700px){.design-canvas-viewport-stage{padding:24px}.design-canvas-viewport-toolbar{bottom:42px;max-width:calc(100vw - 22px);padding:4px}.design-canvas-viewport-toolbar button{padding:0 6px}.design-canvas-viewport-toolbar .design-canvas-center{min-width:36px}.design-canvas-viewport-toolbar .design-canvas-center .design-canvas-wide{display:none}}
     `;
     document.head.appendChild(style);
   }
@@ -38,6 +40,21 @@
     const candidate=window.DesignEditorApp?.viewport;
     if(!candidate||typeof candidate.getState!=='function'||typeof candidate.setZoom!=='function')return null;
     return candidate;
+  }
+
+  function ensureViewportStage(viewport){
+    const artboard=document.getElementById('artboard');
+    if(!viewport||!artboard)return null;
+    let stage=document.getElementById(VIEWPORT_STAGE_ID);
+    if(!stage){
+      stage=document.createElement('div');
+      stage.id=VIEWPORT_STAGE_ID;
+      stage.className='design-canvas-viewport-stage';
+      stage.setAttribute('aria-label','캔버스 작업영역');
+      viewport.insertBefore(stage,artboard);
+    }
+    if(artboard.parentElement!==stage)stage.appendChild(artboard);
+    return stage;
   }
 
   function sync(state=null){
@@ -79,6 +96,7 @@
     const host=document.querySelector('.editor-main');
     if(!api||!viewport||!host)return false;
     ensureStyles();
+    if(!ensureViewportStage(viewport))return false;
     let root=document.getElementById(ROOT_ID);
     if(!root){
       root=document.createElement('div');
