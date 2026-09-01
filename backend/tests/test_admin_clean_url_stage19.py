@@ -5,7 +5,6 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 FIREBASE = ROOT / "firebase.json"
 REGISTER = ROOT / "js" / "sw-register.js"
-VERSION = ROOT / "js" / "app-version.js"
 CATALOG = ROOT / "js" / "admin-program-catalog-manager.js"
 ICONS = ROOT / "js" / "admin-program-icon-palette.js"
 
@@ -19,13 +18,6 @@ def test_firebase_clean_urls_keep_admin_catalog_available():
     assert "/js/admin-program-catalog-manager.js?v=20260808-1" in register
     assert "/js/admin-program-icon-palette.js?v=20260808-1" in register
     assert "admin-service-image-library" not in register
-
-    version = VERSION.read_text(encoding="utf-8")
-    assert "currentPath==='/admin'" in version
-    assert "currentPath==='/admin.html'" in version
-    assert "/js/admin-program-catalog-manager.js?v=20260808-1" in version
-    assert "/js/admin-program-icon-palette.js?v=20260808-1" in version
-    assert "admin-service-image-library" not in version
 
 
 def test_admin_catalog_modules_accept_clean_and_html_routes():

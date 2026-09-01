@@ -8,14 +8,8 @@ def _read(path: str) -> str:
     return (ROOT / path).read_text(encoding="utf-8")
 
 
-def test_backup_workflow_is_manual_and_artifact_only():
-    source = _read(".github/workflows/backup-before-unified-print.yml")
-
-    assert "workflow_dispatch" in source
-    assert "contents: read" in source
-    assert "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4" in source
-    assert "git push" not in source
-    assert "git add backups" not in source
+def test_obsolete_manual_backup_workflow_is_removed():
+    assert not (ROOT / ".github/workflows/backup-before-unified-print.yml").exists()
 
 
 def test_hosting_excludes_internal_repository_files():
