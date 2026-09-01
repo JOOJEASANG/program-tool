@@ -24,19 +24,33 @@ def test_stability_bootstrap_starts_requested_project_before_heavy_runtime_chain
     assert "app.startProject(preset);" in source
     assert "root.dataset.designEarlyProject='started'" in source
     assert "if(mode==='cover'&&!ensureEarlyCoverPreset())return false;" in source
-    assert "stage:'embedded-design-stable-canvas-bootstrap-v2-early-project'" in source
+    assert "stage:'embedded-design-stable-canvas-bootstrap-v3-direct-entry-safe-resize'" in source
 
 
-def test_stability_bootstrap_coalesces_repeated_synthetic_resize_events():
+def test_stability_bootstrap_coalesces_only_unchanged_startup_synthetic_resizes():
     source = read("js/design-editor/embedded-stability-bootstrap.js")
+    assert "const syntheticCoalesceDeadline=Date.now()+4200;" in source
     assert "event.isTrusted!==false" in source
+    assert "if(Date.now()>syntheticCoalesceDeadline)" in source
     assert "event.stopImmediatePropagation();" in source
     assert "signature===lastSyntheticResizeSignature" in source
+    assert "function surfaceContentSignature(surface)" in source
+    assert "surfaceContentSignature(surface)" in source
+    assert "project.cover?.spineDirection" in source
+
+
+def test_stability_bootstrap_forwards_one_real_resize_for_changed_project_state():
+    source = read("js/design-editor/embedded-stability-bootstrap.js")
+    assert "let forwardingSyntheticResize=false;" in source
+    assert "if(forwardingSyntheticResize)return;" in source
+    assert "forwardingSyntheticResize=true;" in source
+    assert "window.dispatchEvent(new Event('resize'))" in source
+    assert "finally{forwardingSyntheticResize=false;}" in source
     assert "viewport.fit({center:false})" in source
     assert "designSyntheticResizeCoalesced='1'" in source
 
 
-def test_stability_bootstrap_keeps_parent_authorized_iframe_visible():
+def test_stability_bootstrap_keeps_parent_authorized_iframe_visible_for_legacy_routes():
     source = read("js/design-editor/embedded-stability-bootstrap.js")
     assert "function delegatedParent()" in source
     assert "parentRoot?.dataset?.programStudioModularApp==='1'" in source
