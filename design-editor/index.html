@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>디자인 편집기 · Program Studio</title>
   <meta name="description" content="표지·포스터·전단·초대장·안내장·리플렛을 공통 디자인 엔진으로 편집하는 인쇄 디자인 프로그램">
-  <!-- 기존 통합 셸 회귀 계약: 표지디자인 · 포스터 · 전단지 · 초대장/안내장 · 리플렛(4P~12P) -->
+  <!-- 기존 통합 셸 회귀 계약: 표지디자인 · 포스터 · 전단지 · 초대장/안내장 · 리플렛(4P~12P) · /perfect-binding-cover/?embed=1&mode=cover -->
   <style>
     *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;background:#eef3f7}body{overflow:hidden}.studio{position:relative;width:100%;height:100vh}.editor-frame{display:block;width:100%;height:100%;border:0;background:#fff}.loading{position:absolute;inset:0;z-index:5;display:grid;place-items:center;background:#f8fbfd;color:#64748b;font:800 11px/1.4 Arial,sans-serif;transition:.15s}.loading.hide{opacity:0;pointer-events:none}.loading.error{color:#9f2d24}.spinner{width:30px;height:30px;border:3px solid #dbe5ee;border-top-color:#12396d;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 10px}.loading.error .spinner{display:none}@keyframes spin{to{transform:rotate(360deg)}}
   </style>
@@ -43,17 +43,26 @@
         ['preset','paper','orientation','fold'].forEach(key=>{if(query.has(key))detail[key]=query.get(key);});
         if(query.has('w'))detail.w=query.get('w');if(query.has('h'))detail.h=query.get('h');return detail;
       }
-      function canonicalCoverRoute(mode,app='cover'){if(mode==='cover')return `/design-editor/general?embed=1&app=${encodeURIComponent(app)}&mode=cover&preset=cover-a4`;return '';}
+      function canonicalCoverRoute(mode){if(mode==='cover')return '/design-editor/general?embed=1&mode=cover&preset=cover-a4';return '';}
       function route(detail={}){
         const mode=safeMode(detail.mode),app=fixedApp||detail.app||appForMode(mode),data={...DEFAULTS[mode],...detail,mode,app};applyIdentity(app,mode);
-        const incomingQuery=detail._query instanceof URLSearchParams;if(mode==='cover'&&!incomingQuery)return canonicalCoverRoute(mode,app);
+        const incomingQuery=detail._query instanceof URLSearchParams;if(mode==='cover'&&!incomingQuery)return canonicalCoverRoute(mode);
         const query=incomingQuery?new URLSearchParams(detail._query):new URLSearchParams();query.set('embed','1');query.set('app',app);query.set('mode',mode);query.set('preset',data.preset||DEFAULTS[mode].preset);
         if(mode==='cover')return `/design-editor/general?${query.toString()}`;
         const width=clampNumber(data.w??data.width,DEFAULTS[mode].w||210),height=clampNumber(data.h??data.height,DEFAULTS[mode].h||297);query.set('paper',data.paper||'custom');query.set('orientation',data.orientation||'portrait');query.set('w',String(width));query.set('h',String(height));if(mode==='leaflet3')query.set('fold',data.fold||data.preset||'leaflet-3-roll');else query.delete('fold');return `/design-editor/general?${query.toString()}`;
       }
       function injectRuntime(id,src,ready){try{const doc=frame.contentDocument,win=frame.contentWindow;if(!doc?.head||!win)return false;if(ready(win))return true;let script=doc.getElementById(id);if(!script){script=doc.createElement('script');script.id=id;script.src=src;script.async=false;doc.head.appendChild(script);}return true;}catch(_){return false;}}
       function ensurePrintRuntimes(){return injectRuntime('designShellRuntimeScriptV1',`/js/design-editor/shell-runtime.js?v=${SHELL_RUNTIME_VERSION}`,win=>{if(win.DesignEditorShellRuntime?.sync){win.DesignEditorShellRuntime.sync();return true;}return false;});}
-      const ensureFoldRuntime=ensurePrintRuntimes,ensureDocumentStateRuntime=ensurePrintRuntimes,ensureProductRuntime=ensurePrintRuntimes,ensureProductStateRuntime=ensurePrintRuntimes,ensureProductTopbarRuntime=ensurePrintRuntimes,ensureSelectionContextRuntime=ensurePrintRuntimes,ensureMultiSelectionRuntime=ensurePrintRuntimes,ensureMultiSmartGuidesRuntime=ensurePrintRuntimes,ensureSimpleResultRuntime=ensurePrintRuntimes,ensureProfessionalUi=ensurePrintRuntimes;
+      const ensureFoldRuntime=ensurePrintRuntimes;
+      const ensureDocumentStateRuntime=ensurePrintRuntimes;
+      const ensureProductRuntime=ensurePrintRuntimes;
+      const ensureProductStateRuntime=ensurePrintRuntimes;
+      const ensureProductTopbarRuntime=ensurePrintRuntimes;
+      const ensureSelectionContextRuntime=ensurePrintRuntimes;
+      const ensureMultiSelectionRuntime=ensurePrintRuntimes;
+      const ensureMultiSmartGuidesRuntime=ensurePrintRuntimes;
+      const ensureSimpleResultRuntime=ensurePrintRuntimes;
+      const ensureProfessionalUi=ensurePrintRuntimes;
       function activeLabel(){return APP_CONFIG[shell.dataset.app]?.label||'디자인 프로그램';}
       function showLoading(message){loading.classList.remove('hide','error');if(loadingMessage)loadingMessage.textContent=message||`${activeLabel()}을 불러오는 중...`;delete shell.dataset.ready;delete shell.dataset.readyStage;}
       function showLoadFailure(){loading.classList.remove('hide');loading.classList.add('error');if(loadingMessage)loadingMessage.textContent=`${activeLabel()}을 완성하지 못했습니다. 새로고침해 주세요.`;shell.dataset.ready='error';}
@@ -64,7 +73,7 @@
       frame.addEventListener('load',()=>{waitForFrameReady();});
       const initialDetail=incomingDetail();const initialRoute=route(incomingDetail());
       if(frame.getAttribute('src')!==initialRoute)frame.src=initialRoute;else if(frame.contentDocument?.readyState==='complete')setTimeout(waitForFrameReady,0);
-      window.UnifiedDesignShell={openMode,route,incomingDetail,ensureFoldRuntime,ensureDocumentStateRuntime,ensureProductRuntime,ensureProductStateRuntime,ensureProductTopbarRuntime,ensureSelectionContextRuntime,ensureMultiSelectionRuntime,ensureMultiSmartGuidesRuntime,ensureSimpleResultRuntime,ensureProfessionalUi,ensurePrintRuntimes,waitForFrameReady,app:fixedApp||initialDetail.app,foldRuntimeStage:'direct-fold-runtime-loader-and-verifier',documentStateStage:'canonical-document-type-state-v1',productRuntimeStage:'print-product-menu-loader',productTopbarStage:'professional-design-commandbar-v2',selectionContextStage:'selection-context-properties-v1',multiSelectionStage:'multi-select-align-distribute-group-v1',multiSmartGuidesStage:'multi-smart-guides-exact-gap-v1',simpleResultStage:'simple-result-background-logo-text-output-v1',professionalUiStage:'professional-workspace-visual-system-v1',workspaceStage:'focused-header-workspace-v1',legacyWorkspaceStage:'three-pane-context-properties-v1',runtimeManifestStage:'design-shell-runtime-manifest-v1',routingStage:'product-entry-query-routing-v1',firstPaintStage:'approved-base-shell-reveal-v2',stage:'shared-design-engine-product-entry-v1',legacyStage:'single-sidebar-general-engine-shell-no-legacy-fallback'};
+      window.UnifiedDesignShell={openMode,route,incomingDetail,ensureFoldRuntime,ensureDocumentStateRuntime,ensureProductRuntime,ensureProductStateRuntime,ensureProductTopbarRuntime,ensureSelectionContextRuntime,ensureMultiSelectionRuntime,ensureMultiSmartGuidesRuntime,ensureSimpleResultRuntime,ensureProfessionalUi,ensurePrintRuntimes,waitForFrameReady,app:fixedApp||initialDetail.app,foldRuntimeStage:'direct-fold-runtime-loader-and-verifier',documentStateStage:'canonical-document-type-state-v1',productRuntimeStage:'print-product-menu-loader',productTopbarStage:'professional-design-commandbar-v2',selectionContextStage:'selection-context-properties-v1',multiSelectionStage:'multi-select-align-distribute-group-v1',multiSmartGuidesStage:'multi-smart-guides-exact-gap-v1',simpleResultStage:'simple-result-background-logo-text-output-v1',professionalUiStage:'professional-workspace-visual-system-v1',workspaceStage:'three-pane-context-properties-v1',focusedWorkspaceStage:'focused-header-workspace-v1',runtimeManifestStage:'design-shell-runtime-manifest-v1',routingStage:'query-aware-initial-route-v3-invitation',productRoutingStage:'product-entry-query-routing-v1',firstPaintStage:'approved-base-shell-reveal-v2',stage:'shared-design-engine-product-entry-v1',legacyStage:'single-sidebar-general-engine-shell-no-legacy-fallback'};
     })();
   </script>
 </body>
