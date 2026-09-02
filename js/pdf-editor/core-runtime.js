@@ -22,7 +22,7 @@
     const link=document.createElement('link');
     link.id='pdfBookletMenuSafeCssV1';
     link.rel='stylesheet';
-    link.href='/css/pdf-booklet-menu-safe.css?v=20260830-1';
+    link.href='/css/pdf-booklet-menu-safe.css?v=20260902-1';
     document.head.appendChild(link);
   }
 
