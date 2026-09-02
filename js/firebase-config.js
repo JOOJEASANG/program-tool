@@ -26,7 +26,7 @@ window.googleProvider = googleProvider;
 window.firebaseConfig = firebaseConfig;
 
 (() => {
-  const UI_VERSION = '20260901-20';
+  const UI_VERSION = '20260902-01';
   const existingUiStyles = document.getElementById('programStudioUiV2Styles')
     || document.querySelector('link[data-program-studio-ui]');
   if (existingUiStyles) {
@@ -44,6 +44,22 @@ window.firebaseConfig = firebaseConfig;
     script.src = `/js/program-studio-ui-v2.js?v=${UI_VERSION}`;
     script.defer = true;
     document.head.appendChild(script);
+  }
+
+  if (!document.getElementById('programStudioHomeSidebarContrast')) {
+    const style = document.createElement('style');
+    style.id = 'programStudioHomeSidebarContrast';
+    style.textContent = `
+      body[data-home-suite] .sidebar{--sb-text:#e2edf8;--sb-dim:#b7c9dc}
+      body[data-home-suite] .sidebar .nav-item{color:#e2edf8!important;font-weight:800!important}
+      body[data-home-suite] .sidebar .nav-item:hover{color:#fff!important}
+      body[data-home-suite] .sidebar .sb-section-label,
+      body[data-home-suite] .sidebar .sb-sub,
+      body[data-home-suite] .sidebar .sb-user-email{color:#b7c9dc!important}
+      body[data-home-suite] .sidebar .sb-logout-btn{color:#e5edf7!important;font-weight:800!important;background:rgba(255,255,255,.055)!important}
+      body[data-home-suite] .sidebar .sb-logout-btn:hover{color:#fecaca!important;background:rgba(239,68,68,.18)!important}
+    `;
+    document.head.appendChild(style);
   }
 })();
 
