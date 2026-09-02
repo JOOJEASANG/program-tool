@@ -21,6 +21,7 @@ const MODULES=Object.freeze([
 ]);
 const loading=new Map(),getApi=e=>window[e.global]||null,activeProfile=()=>window.DesignEditorStandaloneProducts?.fromLocation?.(location.search)||null,sharedProfile=()=>window.DesignEditorSharedModuleProfile||null;
 const needsFoldRuntime=()=>activeProfile()?.needsFoldRuntime??fallbackFoldProduct,needsProductMenu=()=>activeProfile()?.needsProductMenu??fallbackFoldProduct;
+const nextPaint=()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
 function shouldLoad(e){
 if(!standalone)return true;
 const shared=sharedProfile();
@@ -74,11 +75,29 @@ function loadEntry(e){
 if(!shouldLoad(e))return Promise.resolve(true);if(syncEntry(e))return Promise.resolve(true);if(loading.has(e.id))return loading.get(e.id);
 const promise=new Promise(resolve=>{let script=document.getElementById(e.id);const done=()=>{syncEntry(e);resolve(true);};if(script){if(script.dataset.loaded==='true'){done();return;}script.addEventListener('load',done,{once:true});script.addEventListener('error',()=>resolve(false),{once:true});return;}script=document.createElement('script');script.id=e.id;script.src=e.src;script.async=false;script.addEventListener('load',()=>{script.dataset.loaded='true';done();},{once:true});script.addEventListener('error',()=>resolve(false),{once:true});document.head.appendChild(script);}).finally(()=>loading.delete(e.id));loading.set(e.id,promise);return promise;
 }
-async function loadAll(){
-await loadSupportScript('designSharedModuleProfileScriptV1','/js/design-editor/shared/module-profile.js?v=20260831-1');await loadBoundaryUi();for(const entry of MODULES)await loadEntry(entry);await loadWorkspaceNavigation();await loadSidebarMenuOrder();await loadUiRevision();await loadDirectResize();await loadStabilityGuards();await loadFullPreviewWorkspace();await loadProductSpecificWorkspace();sync();document.documentElement.dataset.designShellRuntime='1';if(standalone){document.documentElement.dataset.designStandaloneApp=activeProfile()?.key||rawApp||app;document.documentElement.dataset.designStandaloneRuntime=activeProfile()?.runtimeProduct||app;}return true;
+async function finalizeWorkspace(){
+const root=document.documentElement;
+delete root.dataset.designFinalWorkspaceReady;
+try{window.DesignEditorDraftScope?.restoreCurrentScope?.();}catch(error){console.warn('[design-shell-runtime] draft restore failed',error);}
+sync();
+try{window.DesignEditorFocusedWorkspace?.sync?.();}catch(_){}
+try{window.DesignEditorEmbeddedStabilityBootstrap?.sync?.();}catch(_){}
+await nextPaint();
+try{window.DesignEditorSidebarMenuOrder?.sync?.();}catch(_){}
+try{window.DesignEditorProductSpecificWorkspace?.sync?.();}catch(_){}
+try{window.DesignEditorFocusedWorkspace?.sync?.();}catch(_){}
+try{window.DesignEditorEmbeddedStabilityBootstrap?.sync?.();}catch(_){}
+await nextPaint();
+root.dataset.designShellRuntime='1';
+root.dataset.designFinalWorkspaceReady='1';
+return true;
 }
-function sync(){let ready=0;MODULES.forEach(e=>{if(syncEntry(e))ready+=1;});if(standalone){window.DesignEditorProductBoundaryUi?.sync?.();window.DesignEditorWorkspaceNavigation?.sync?.();window.DesignEditorSidebarMenuOrder?.sync?.();window.DesignEditorProductSpecificWorkspace?.sync?.();}window.DesignEditorUiRevision?.sync?.();window.DesignEditorInvitationFoldOverlay?.refresh?.();window.DesignEditorDirectResize?.sync?.();window.DesignEditorStabilityGuards?.sync?.();window.DesignEditorFullPreviewWorkspace?.sync?.();return ready;}
-function boot(){loadAll().catch(error=>console.error('[design-shell-runtime] load failed',error));[160,500,1200].forEach(delay=>setTimeout(sync,delay));}
+async function loadAll(){
+const root=document.documentElement;delete root.dataset.designFinalWorkspaceReady;
+await loadSupportScript('designSharedModuleProfileScriptV1','/js/design-editor/shared/module-profile.js?v=20260831-1');await loadBoundaryUi();for(const entry of MODULES)await loadEntry(entry);await loadWorkspaceNavigation();await loadSidebarMenuOrder();await loadUiRevision();await loadDirectResize();await loadStabilityGuards();await loadFullPreviewWorkspace();await loadProductSpecificWorkspace();sync();await finalizeWorkspace();if(standalone){root.dataset.designStandaloneApp=activeProfile()?.key||rawApp||app;root.dataset.designStandaloneRuntime=activeProfile()?.runtimeProduct||app;}return true;
+}
+function sync(){let ready=0;MODULES.forEach(e=>{if(syncEntry(e))ready+=1;});if(standalone){window.DesignEditorProductBoundaryUi?.sync?.();window.DesignEditorWorkspaceNavigation?.sync?.();window.DesignEditorSidebarMenuOrder?.sync?.();window.DesignEditorProductSpecificWorkspace?.sync?.();}window.DesignEditorUiRevision?.sync?.();window.DesignEditorInvitationFoldOverlay?.refresh?.();window.DesignEditorDirectResize?.sync?.();window.DesignEditorStabilityGuards?.sync?.();window.DesignEditorFullPreviewWorkspace?.sync?.();window.DesignEditorFocusedWorkspace?.sync?.();return ready;}
+function boot(){document.documentElement.removeAttribute('data-design-final-workspace-ready');loadAll().catch(error=>console.error('[design-shell-runtime] load failed',error));[160,500,1200].forEach(delay=>setTimeout(()=>{if(document.documentElement.dataset.designFinalWorkspaceReady!=='1')sync();},delay));}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
-window.DesignEditorShellRuntime={loadAll,sync,product:standalone?app:'integrated',get profile(){return activeProfile()?.key||null;},modules:MODULES.map(({id,src,global,method})=>({id,src,global,method})),stage:'design-shell-runtime-manifest-v1'};
+window.DesignEditorShellRuntime={loadAll,sync,finalizeWorkspace,product:standalone?app:'integrated',get profile(){return activeProfile()?.key||null;},modules:MODULES.map(({id,src,global,method})=>({id,src,global,method})),stage:'design-shell-runtime-manifest-v1',finalStage:'design-shell-runtime-final-workspace-v2'};
 })();
