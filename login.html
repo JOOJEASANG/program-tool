@@ -10,49 +10,98 @@
     body {
       font-family: Pretendard, "Noto Sans KR", "Malgun Gothic", sans-serif;
       min-height: 100vh;
-      background: linear-gradient(150deg, #0a1f3d 0%, #12396d 55%, #1a6080 100%);
       display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 24px 16px;
     }
-    .wrap { width: 100%; max-width: 420px; }
-    .brand { text-align: center; margin-bottom: 28px; }
-    .brand-icon {
-      width: 56px; height: 56px;
-      background: linear-gradient(135deg, #1d9bb2, #12396d);
-      border-radius: 16px;
-      display: inline-flex; align-items: center; justify-content: center;
-      font-size: 26px; margin-bottom: 14px;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+
+    /* ── LEFT PANEL ── */
+    .panel-left {
+      flex: 1;
+      background: #0c1526;
+      display: flex;
+      flex-direction: column;
+      padding: 48px 52px;
+      position: relative;
+      overflow: hidden;
     }
-    .brand h1 { color: #fff; font-size: 26px; font-weight: 900; letter-spacing: -0.6px; }
-    .brand p { color: rgba(255,255,255,0.6); font-size: 13px; margin-top: 5px; }
-    .back-link {
-      display: inline-flex; align-items: center; gap: 5px;
-      color: rgba(255,255,255,0.55); font-size: 12px; font-weight: 700;
-      text-decoration: none; margin-top: 20px;
-      transition: color 0.15s;
+    .panel-left::before {
+      content: '';
+      position: absolute;
+      width: 420px; height: 420px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(37,99,235,.18) 0%, transparent 70%);
+      top: -80px; right: -80px;
+      pointer-events: none;
     }
-    .back-link:hover { color: rgba(255,255,255,0.9); }
-    .card {
+    .panel-left::after {
+      content: '';
+      position: absolute;
+      width: 280px; height: 280px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(14,165,233,.12) 0%, transparent 70%);
+      bottom: 40px; left: -60px;
+      pointer-events: none;
+    }
+    .left-logo {
+      display: flex; align-items: center; gap: 12px;
+      text-decoration: none; position: relative; z-index: 1;
+    }
+    .logo-mark {
+      width: 40px; height: 40px;
+      background: linear-gradient(135deg, #1e40af, #0ea5e9);
+      border-radius: 11px;
+      display: grid; place-items: center;
+    }
+    .logo-mark svg { width: 24px; height: 24px; }
+    .left-logo h1 { font-size: 17px; font-weight: 900; color: #fff; letter-spacing: -.3px; }
+    .left-body {
+      flex: 1; display: flex; flex-direction: column;
+      justify-content: center; position: relative; z-index: 1;
+      padding: 20px 0;
+    }
+    .left-headline {
+      font-size: 34px; font-weight: 950;
+      color: #fff; line-height: 1.15;
+      letter-spacing: -1px; margin-bottom: 18px;
+    }
+    .left-headline em {
+      font-style: normal;
+      background: linear-gradient(90deg, #60a5fa, #38bdf8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .left-desc {
+      font-size: 15px; color: rgba(255,255,255,.55);
+      line-height: 1.7; max-width: 340px;
+    }
+    .left-features {
+      margin-top: 36px; display: flex; flex-direction: column; gap: 12px;
+    }
+    .feature-item {
+      display: flex; align-items: center; gap: 12px;
+      font-size: 13px; font-weight: 700; color: rgba(255,255,255,.7);
+    }
+    .feature-dot {
+      width: 28px; height: 28px;
+      border-radius: 8px; display: grid; place-items: center;
+      font-size: 13px; flex: 0 0 28px;
+    }
+    .left-footer {
+      font-size: 11px; color: rgba(255,255,255,.28);
+      position: relative; z-index: 1;
+    }
+
+    /* ── RIGHT PANEL ── */
+    .panel-right {
+      width: 460px; flex: 0 0 460px;
       background: #fff;
-      border-radius: 22px;
-      padding: 32px 28px;
-      box-shadow: 0 32px 64px rgba(0,0,0,0.28);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 48px 44px;
     }
-    .tabs {
-      display: grid; grid-template-columns: 1fr 1fr;
-      background: #f1f5f9; border-radius: 12px; padding: 4px;
-      margin-bottom: 24px;
-    }
-    .tab {
-      border: none; background: transparent;
-      padding: 10px; border-radius: 9px;
-      font-size: 14px; font-weight: 700; color: #64748b;
-      cursor: pointer; transition: all 0.18s; font-family: inherit;
-    }
-    .tab.active { background: #fff; color: #12396d; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .form-wrap { width: 100%; max-width: 360px; }
+    .form-title { font-size: 22px; font-weight: 950; margin-bottom: 5px; color: #0f172a; }
+    .form-sub { font-size: 13px; color: #64748b; margin-bottom: 28px; line-height: 1.5; }
+
     .google-btn {
       width: 100%;
       display: flex; align-items: center; justify-content: center; gap: 10px;
@@ -69,56 +118,129 @@
       margin-bottom: 18px; color: #94a3b8; font-size: 12px; font-weight: 700;
     }
     .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: #e2e8f0; }
-    .field { margin-bottom: 13px; }
+
+    .tabs {
+      display: grid; grid-template-columns: 1fr 1fr;
+      background: #f1f5f9; border-radius: 12px; padding: 4px;
+      margin-bottom: 22px;
+    }
+    .tab {
+      border: none; background: transparent;
+      padding: 10px; border-radius: 9px;
+      font-size: 14px; font-weight: 700; color: #64748b;
+      cursor: pointer; transition: all .18s; font-family: inherit;
+    }
+    .tab.active { background: #fff; color: #1e40af; box-shadow: 0 2px 8px rgba(0,0,0,.1); }
+
+    .field { margin-bottom: 14px; }
     .field label { display: block; font-size: 12px; font-weight: 800; color: #374151; margin-bottom: 6px; }
     .field input {
       width: 100%; border: 1.5px solid #e2e8f0; border-radius: 10px;
       padding: 11px 13px; font-size: 14px; font-family: inherit; outline: none;
-      color: #0f172a; transition: border-color 0.15s, box-shadow 0.15s;
+      color: #0f172a; transition: border-color .15s, box-shadow .15s; background: #fff;
     }
-    .field input:focus { border-color: #12396d; box-shadow: 0 0 0 3px rgba(18,57,109,0.1); }
+    .field input:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,.1); }
     .submit-btn {
-      width: 100%; background: #12396d; color: #fff; border: none;
+      width: 100%; background: #1e40af; color: #fff; border: none;
       border-radius: 12px; padding: 13px;
       font-size: 15px; font-weight: 800; cursor: pointer;
-      font-family: inherit; margin-top: 4px; transition: background 0.15s;
-      letter-spacing: -0.2px;
+      font-family: inherit; margin-top: 4px; transition: background .15s;
+      letter-spacing: -.2px;
     }
-    .submit-btn:hover { background: #0f2f5c; }
+    .submit-btn:hover { background: #1d4ed8; }
     .submit-btn:disabled { opacity: 0.6; cursor: not-allowed; }
     .error-box {
       background: #fef2f2; border: 1px solid #fecaca; color: #dc2626;
       border-radius: 10px; padding: 10px 13px;
-      font-size: 13px; margin-top: 13px; display: none;
+      font-size: 13px; margin-top: 13px; display: none; line-height: 1.5;
     }
     .error-box.show { display: block; }
     .spinner {
       display: inline-block; width: 16px; height: 16px;
-      border: 2px solid rgba(255,255,255,0.4); border-top-color: #fff;
-      border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle;
-      margin-right: 6px;
+      border: 2px solid rgba(255,255,255,.4); border-top-color: #fff;
+      border-radius: 50%; animation: spin .7s linear infinite;
+      vertical-align: middle; margin-right: 6px;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
     #confirmPwField { display: none; }
+
+    .back-link {
+      display: inline-flex; align-items: center; gap: 5px;
+      color: #94a3b8; font-size: 12px; font-weight: 700;
+      text-decoration: none; margin-top: 24px; transition: color .15s;
+    }
+    .back-link:hover { color: #475569; }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 860px) {
+      body { flex-direction: column; }
+      .panel-left {
+        padding: 32px 28px 28px;
+        min-height: auto;
+      }
+      .left-features { display: none; }
+      .left-headline { font-size: 24px; margin-bottom: 10px; }
+      .left-desc { font-size: 13px; max-width: none; }
+      .panel-right {
+        width: 100%; flex: 1;
+        padding: 32px 24px;
+      }
+    }
+    @media (max-width: 440px) {
+      .panel-left { padding: 24px 20px 20px; }
+      .panel-right { padding: 28px 20px; }
+    }
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="brand">
-      <a href="index.html" style="text-decoration:none;color:inherit;display:flex;flex-direction:column;align-items:center;gap:0;">
-        <div class="brand-icon">🛠️</div>
-        <h1>Program Studio</h1>
-      </a>
-      <p>실무형 웹 프로그램을 한곳에서 사용하는 스마트 워크 플랫폼</p>
+  <!-- LEFT: Branding -->
+  <div class="panel-left">
+    <a class="left-logo" href="index.html">
+      <div class="logo-mark">
+        <svg viewBox="0 0 54 54" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M27 2.7 47.8 14.7v24L27 50.7 6.2 38.7v-24L27 2.7Z" fill="rgba(255,255,255,.8)"/>
+          <path d="M17.2 15.3h10.4c6 0 9.7 3.2 9.7 8.3 0 5.3-3.9 8.7-10 8.7h-4.4v6.3h-5.7V15.3Zm5.7 4.8v7.4H27c2.8 0 4.4-1.3 4.4-3.8 0-2.3-1.6-3.6-4.4-3.6h-4.1Z" fill="white"/>
+        </svg>
+      </div>
+      <h1>Program Studio</h1>
+    </a>
+
+    <div class="left-body">
+      <div class="left-headline">
+        인쇄·출력 실무에<br>필요한 모든 것을<br><em>한 곳에서</em>
+      </div>
+      <div class="left-desc">
+        디자인, PDF 편집, 인쇄 전 검사, 문서·이미지 작업까지.<br>
+        목적별로 정리된 전문 프로그램을 바로 사용하세요.
+      </div>
+      <div class="left-features">
+        <div class="feature-item">
+          <div class="feature-dot" style="background:rgba(99,102,241,.2)">✏️</div>
+          표지·포스터·전단지·초대장·리플렛 디자인
+        </div>
+        <div class="feature-item">
+          <div class="feature-dot" style="background:rgba(5,150,105,.2)">📄</div>
+          PDF 편집·인쇄배치·인쇄 전 검사
+        </div>
+        <div class="feature-item">
+          <div class="feature-dot" style="background:rgba(147,51,234,.2)">🖼️</div>
+          문서 작성 · 이미지 편집·변환
+        </div>
+      </div>
     </div>
 
-    <div class="card">
-      <div class="tabs">
-        <button class="tab active" id="tabLogin" onclick="switchTab('login')">로그인</button>
-        <button class="tab" id="tabSignup" onclick="switchTab('signup')">회원가입</button>
-      </div>
+    <div class="left-footer">
+      © <span id="footerYear"></span> Program Studio. All rights reserved.
+    </div>
+  </div>
 
-      <button class="google-btn" id="googleBtn">
+  <!-- RIGHT: Form -->
+  <div class="panel-right">
+    <div class="form-wrap">
+      <div class="form-title">시작하기</div>
+      <div class="form-sub">계정에 로그인하거나 새로 만들어 모든 프로그램을 무료로 사용하세요.</div>
+
+      <button class="google-btn" id="googleBtn" type="button">
         <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
           <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
           <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
@@ -129,6 +251,11 @@
       </button>
 
       <div class="divider">또는 이메일로 계속하기</div>
+
+      <div class="tabs">
+        <button class="tab active" id="tabLogin" type="button" onclick="switchTab('login')">로그인</button>
+        <button class="tab" id="tabSignup" type="button" onclick="switchTab('signup')">회원가입</button>
+      </div>
 
       <form id="authForm" novalidate>
         <div class="field">
@@ -147,12 +274,13 @@
       </form>
 
       <div class="error-box" id="errorBox" role="alert" aria-live="polite"></div>
-    </div>
-    <div style="text-align:center;">
-      <a class="back-link" href="index.html">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
-        서비스 소개로 돌아가기
-      </a>
+
+      <div style="text-align:center;">
+        <a class="back-link" href="index.html">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+          홈으로 돌아가기
+        </a>
+      </div>
     </div>
   </div>
 
@@ -161,6 +289,8 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
   <script src="js/firebase-config.js"></script>
   <script>
+    document.getElementById('footerYear').textContent = new Date().getFullYear();
+
     let mode = 'login';
     let authRoutingStarted = false;
     let authBootstrapComplete = false;
@@ -182,7 +312,7 @@
       googleButton.disabled = loading;
       if (loading) {
         const label = mode === 'login' ? '로그인 중...' : '가입 중...';
-        button.innerHTML = `<span class="spinner"></span>${label}`;
+        button.innerHTML = '<span class="spinner"></span>' + label;
       } else {
         button.textContent = mode === 'login' ? '로그인' : '회원가입 하기';
       }
@@ -229,7 +359,7 @@
       if (!user || authRoutingStarted) return;
       authRoutingStarted = true;
       try {
-        if (window.ProgramAccess?.routeAfterLogin) {
+        if (window.ProgramAccess && window.ProgramAccess.routeAfterLogin) {
           await window.ProgramAccess.routeAfterLogin(user, {
             adminUrl: 'admin.html',
             homeUrl: 'index.html'
@@ -262,7 +392,7 @@
       }
     }
 
-    auth.onAuthStateChanged(user => {
+    auth.onAuthStateChanged(function(user) {
       if (authBootstrapComplete) routeAuthenticatedUser(user);
     });
     completeRedirectSignIn();
@@ -276,13 +406,12 @@
       hideError();
     }
 
-    document.getElementById('googleBtn').addEventListener('click', async () => {
+    document.getElementById('googleBtn').addEventListener('click', async function() {
       hideError();
       if (!auth || !googleProvider) {
         showError('로그인 기능을 초기화하지 못했습니다. 페이지를 새로고침해주세요.');
         return;
       }
-
       setGoogleLoading(true);
       try {
         await window.authPersistenceReady;
@@ -307,7 +436,7 @@
       }
     });
 
-    document.getElementById('authForm').addEventListener('submit', async event => {
+    document.getElementById('authForm').addEventListener('submit', async function(event) {
       event.preventDefault();
       hideError();
       const email = document.getElementById('email').value.trim();
@@ -319,7 +448,6 @@
         if (password !== confirmation) return showError('비밀번호가 일치하지 않습니다.');
         if (password.length < 6) return showError('비밀번호는 6자 이상이어야 합니다.');
       }
-
       setLoading(true);
       try {
         await window.authPersistenceReady;

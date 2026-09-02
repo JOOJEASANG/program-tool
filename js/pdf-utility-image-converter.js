@@ -136,8 +136,9 @@
     if (total > MAX_BYTES) throw new Error('이미지 전체 용량은 최대 500MB까지 가능합니다.');
     for (const file of files) if (!['image/jpeg','image/png','image/webp'].includes(file.type)) throw new Error('JPG·PNG·WEBP 이미지만 선택할 수 있습니다.');
   }
-  function previewPdfFile(e) { const f = e.target.files?.[0]; $('pdficPdfPreview').innerHTML = f ? `<span class="pdfic-chip">${f.name} · ${(f.size/1048576).toFixed(1)}MB</span>` : ''; }
-  function previewImages(e) { const files = Array.from(e.target.files || []); $('pdficImagePreview').innerHTML = files.map(f => `<span class="pdfic-chip">${f.name}</span>`).join(''); }
+  function safeHtml(v) { return String(v ?? '').replace(/[<>&"']/g, ch => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;'}[ch])); }
+  function previewPdfFile(e) { const f = e.target.files?.[0]; $('pdficPdfPreview').innerHTML = f ? `<span class="pdfic-chip">${safeHtml(f.name)} · ${(f.size/1048576).toFixed(1)}MB</span>` : ''; }
+  function previewImages(e) { const files = Array.from(e.target.files || []); $('pdficImagePreview').innerHTML = files.map(f => `<span class="pdfic-chip">${safeHtml(f.name)}</span>`).join(''); }
   function setBusy(busy, text) {
     const run = $('pdficRun'); if (run) { run.disabled = busy; run.textContent = busy ? text : '변환하기'; }
     ['pdficClose','pdficCancel'].forEach(id => { const el = $(id); if (el) el.disabled = busy; });
