@@ -39,7 +39,8 @@ def test_shell_runtime_restores_draft_and_finishes_final_ui_before_ready_marker(
     assert "window.DesignEditorEmbeddedStabilityBootstrap?.sync?.();" in source
     assert "await nextPaint();" in source
     assert "root.dataset.designFinalWorkspaceReady='1';" in source
-    assert "stage:'design-shell-runtime-final-workspace-v2'" in source
+    assert "stage:'design-shell-runtime-manifest-v1'" in source
+    assert "finalStage:'design-shell-runtime-final-workspace-v2'" in source
 
 
 def test_sidebar_order_does_not_rebuild_identical_dom_on_delayed_syncs():
