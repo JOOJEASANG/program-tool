@@ -47,13 +47,41 @@ def test_boot_guard_is_injected_only_into_dynamic_pages():
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
 
+    index_path = ROOT / "index.html"
     source = '<html><head><title>x</title></head><body><script src="js/firebase-config.js"></script></body></html>'
-    updated = module.inject_guard(source, "2026.07.24.006")
+    updated = module.inject_guard(
+        source,
+        "2026.07.24.006",
+        favicon=module.requires_favicon(index_path),
+        metadata=module.page_metadata(index_path),
+    )
     assert module.MARKER in updated
-    assert updated.index(module.MARKER) < updated.index("<title>")
-    assert module.should_inject(Path("index.html"), source)
-    assert not module.should_inject(Path("plain.html"), "<html><head></head><body></body></html>")
-    assert not module.should_inject(Path("index.html"), updated)
+    assert updated.index(module.MARKER) < updated.index(module.META_MARKER)
+    assert module.should_inject(index_path, source)
+    assert not module.should_inject(ROOT / "plain.html", "<html><head></head><body></body></html>")
+    assert not module.should_inject(index_path, updated)
+
+
+def test_inline_boot_guard_is_injected_for_protected_pages():
+    script_path = ROOT / "scripts" / "inject_boot_guard.py"
+    spec = importlib.util.spec_from_file_location("inject_boot_guard", script_path)
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    preflight_path = ROOT / "pdf-preflight" / "index.html"
+    source = '<html><head></head><body></body></html>'
+    updated = module.inject_guard(
+        source,
+        "2026.07.24.006",
+        approval_required=True,
+        favicon=module.requires_favicon(preflight_path),
+        metadata=module.page_metadata(preflight_path),
+    )
+    assert module.INLINE_BOOT_GUARD_MARKER in updated
+    assert module.MARKER in updated
+    assert updated.index(module.INLINE_BOOT_GUARD_MARKER) < updated.index('src="/js/app-boot-guard.js')
+    assert not module.should_inject(preflight_path, updated)
 
 
 def test_preview_and_production_deploy_run_boot_guard_injection():

@@ -65,6 +65,24 @@ FIREBASE_APPROVAL_BOOTSTRAP = (
     '<script src="/js/firebase-config.js"></script>'
 )
 FAVICON_TAG = f'<link {FAVICON_MARKER} rel="icon" href="/favicon.svg" type="image/svg+xml">'
+INLINE_BOOT_GUARD_MARKER = "data-program-studio-boot-guard-inline"
+_INLINE_BOOT_CSS = (
+    "html.app-booting body{pointer-events:none!important}"
+    "html.app-booting::before{content:'';position:fixed;inset:0;z-index:2147483646;"
+    "background:rgba(248,250,252,.96);visibility:visible!important}"
+    "html.app-booting::after{content:'';position:fixed;left:50%;top:50%;"
+    "z-index:2147483647;width:34px;height:34px;margin:-17px 0 0 -17px;"
+    "border-radius:50%;border:3px solid #dbe5ee;border-top-color:#1769e0;"
+    "animation:programStudioBootSpin .72s linear infinite;visibility:visible!important}"
+    "@keyframes programStudioBootSpin{to{transform:rotate(360deg)}}"
+    "@media(prefers-reduced-motion:reduce){html.app-booting::after{animation-duration:1.4s}}"
+)
+INLINE_BOOT_GUARD_SNIPPET = (
+    f"<script {INLINE_BOOT_GUARD_MARKER}>"
+    "document.documentElement.classList.add('app-booting')"
+    "</script>"
+    f"<style>{_INLINE_BOOT_CSS}</style>"
+)
 TITLE_RE = re.compile(r"<title\b[^>]*>.*?</title\s*>", flags=re.IGNORECASE | re.DOTALL)
 DESCRIPTION_RE = re.compile(
     r"<meta\b(?=[^>]*\bname\s*=\s*[\"\']description[\"\'])[^>]*>", flags=re.IGNORECASE
@@ -128,12 +146,12 @@ def should_inject(path: Path, text: str) -> bool:
     if any(part in EXCLUDED_PARTS for part in path.parts):
         return False
     approval_required = requires_approval(path)
-    needs_boot = MARKER not in text and (
+    needs_boot = (MARKER not in text or (approval_required and INLINE_BOOT_GUARD_MARKER not in text)) and (
         approval_required or "sw-register.js" in text or "firebase-config.js" in text
     )
     needs_favicon = requires_favicon(path) and FAVICON_MARKER not in text
     needs_ui_style = requires_favicon(path) and UI_STYLE_MARKER not in text
-    needs_metadata = page_metadata(path) is not None
+    needs_metadata = page_metadata(path) is not None and META_MARKER not in text
     needs_image_layout = is_image_editor(path) and IMAGE_LAYOUT_MARKER not in text
     needs_pdf_booklet = is_pdf_booklet_page(path) and PDF_BOOKLET_MARKER not in text
     return needs_boot or needs_favicon or needs_ui_style or needs_metadata or needs_image_layout or needs_pdf_booklet
@@ -160,6 +178,8 @@ def inject_guard(
             f'href="/css/program-studio-ui-v2.css?v={version}">'
         )
     if MARKER not in text:
+        if approval_required and INLINE_BOOT_GUARD_MARKER not in text:
+            tags += INLINE_BOOT_GUARD_SNIPPET
         tags += f'<script {MARKER} src="/js/app-boot-guard.js?v={version}"></script>'
     if image_editor and IMAGE_LAYOUT_MARKER not in text:
         tags += (
