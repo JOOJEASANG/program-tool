@@ -81,16 +81,24 @@ def background_cleanup_crop_storage(uid):
         }
         source_path = temp_dir / "source.pdf"
         _download_storage_pdf_to_path(uid, path, source_path)
-        source = fitz.open(str(source_path))
-        output = fitz.open()
+        source = None
+        output = None
         try:
+            source = fitz.open(str(source_path))
+            if source.is_encrypted:
+                raise ValueError("암호화된 PDF는 처리할 수 없습니다.")
+            if source.page_count == 0:
+                raise ValueError("PDF에 페이지가 없습니다.")
+            output = fitz.open()
             page_count = _clean_background_document(source, output, strength)
             _remove_margin_content(output, margins_mm)
             output_path = temp_dir / "cleaned-margin.pdf"
             output.save(str(output_path), garbage=4, deflate=True, deflate_images=True)
         finally:
-            output.close()
-            source.close()
+            if output is not None:
+                output.close()
+            if source is not None:
+                source.close()
 
         source_name = _safe_name(payload.get("filename"), "document.pdf")
         base = source_name[:-4] if source_name.lower().endswith(".pdf") else source_name

@@ -286,6 +286,8 @@ def build_pdf_document(
     )
 
     active_pages = [page for page in request.pages if not page.excluded]
+    if not active_pages:
+        raise ValueError("출력할 페이지가 없습니다.")
     booklet_enabled = (
         bool(getattr(request, "booklet", False))
         and request.nup_default in pdf_ops.BOOKLET_STRIPS

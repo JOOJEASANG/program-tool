@@ -322,9 +322,14 @@ async function _ensurePreflightStoragePath(file, onStatus) {
 
   const uploadPromise = (async () => {
     onStatus && onStatus('대용량 PDF 임시 업로드 중...');
-    await st.ref(path).put(file, { contentType: 'application/pdf' });
-    __preflightTemp = { file, name: file.name, size: file.size, lastModified: file.lastModified, path };
-    return path;
+    try {
+      await st.ref(path).put(file, { contentType: 'application/pdf' });
+      __preflightTemp = { file, name: file.name, size: file.size, lastModified: file.lastModified, path };
+      return path;
+    } catch (err) {
+      __preflightTemp = null;
+      throw err;
+    }
   })();
   __preflightTemp = { file, name: file.name, size: file.size, lastModified: file.lastModified, path: null, uploadPromise };
   return uploadPromise;

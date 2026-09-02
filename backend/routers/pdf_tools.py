@@ -444,16 +444,15 @@ def decrypt(uid):
 def _is_blank(page: fitz.Page, threshold: float = 0.005) -> bool:
     if page.get_text("text").strip():
         return False
-    pixmap = page.get_pixmap(dpi=72, alpha=False)
+    pixmap = page.get_pixmap(dpi=72, alpha=False, colorspace=fitz.csRGB)
     samples = pixmap.samples
     count = pixmap.width * pixmap.height
     if count == 0:
         return True
     non_white = 0
     step = max(1, count // 5000)
-    bytes_per_pixel = pixmap.n
     for index in range(0, count, step):
-        offset = index * bytes_per_pixel
+        offset = index * 3
         red, green, blue = samples[offset], samples[offset + 1], samples[offset + 2]
         if red < 240 or green < 240 or blue < 240:
             non_white += 1

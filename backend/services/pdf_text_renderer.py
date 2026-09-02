@@ -170,12 +170,13 @@ def _page_number_applies(settings, output_idx: int) -> bool:
         return False
     if settings.exclude_first and output_idx == 0:
         return False
-    is_odd = output_idx % 2 == 0
+    page_number = output_idx + 1
+    is_odd_page = page_number % 2 == 1
     apply_to = getattr(settings, "apply_to", "all")
     return (
         apply_to == "all"
-        or (apply_to == "odd" and is_odd)
-        or (apply_to == "even" and not is_odd)
+        or (apply_to == "odd" and is_odd_page)
+        or (apply_to == "even" and not is_odd_page)
     )
 
 

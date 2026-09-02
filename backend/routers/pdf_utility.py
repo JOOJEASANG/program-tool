@@ -88,7 +88,7 @@ def _validate_storage_path(uid: str, path: str | None) -> str:
     value = str(path or "").strip()
     if not value:
         raise ValueError("Storage 파일 경로가 없습니다.")
-    if ".." in value or value.startswith("/"):
+    if "\x00" in value or ".." in value or value.startswith("/"):
         raise ValueError("잘못된 Storage 파일 경로입니다.")
     if not value.startswith(f"pdf_temp/{uid}/"):
         raise PermissionError("이 파일에 접근할 권한이 없습니다.")
