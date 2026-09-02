@@ -150,7 +150,7 @@
 
   async function waitForPreflightShell(){
     if(protectedProgram!=='preflight')return true;
-    const ready=await waitUntil(()=>document.body?.dataset?.pdfPreflightUi==='clean-workspace-v2',2800);
+    const ready=await waitUntil(()=>document.body?.dataset?.pdfPreflightUi==='clean-workspace-v2',400);
     if(!ready)console.warn('PDF preflight shell is still enhancing; revealing the base workspace to avoid blocking the tool.');
     return ready;
   }
