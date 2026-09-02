@@ -27,7 +27,7 @@ service firebase.storage {
           && firestore.get(/databases/(default)/documents/user_permissions/$(request.auth.uid)).data.status == 'approved'
         );
     }
-    function canUseProgram(programId) {
+    function canUseProgram(_programId) {
       return isApproved();
     }
     function validPdfUpload(maxBytes) {

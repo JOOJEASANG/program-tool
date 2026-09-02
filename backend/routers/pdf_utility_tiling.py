@@ -46,34 +46,6 @@ def _bool(value) -> bool:
     return str(value or "").strip().lower() in {"1", "true", "yes", "on"}
 
 
-def _run(filename: str, data: bytes):
-    params = _params()
-    try:
-        result = tile_pdf_bytes(
-            data,
-            paper_size=str(params.get("paper_size") or "A3"),
-            orientation=str(params.get("orientation") or "auto"),
-            printer_margin_mm=_float(params.get("printer_margin_mm"), 3.0),
-            overlap_mm=_float(params.get("overlap_mm"), 0.0),
-            add_sheet_labels=_bool(params.get("add_sheet_labels")),
-        )
-    except ValueError as exc:
-        return _error(str(exc), 400, "PDF_TILING_INVALID")
-    except Exception:
-        return _error("대형 분할 출력 PDF 생성 중 오류가 발생했습니다.", 500, "PDF_TILING_INTERNAL")
-
-    output_name = f"{_safe_name(filename, 'large_output').rsplit('.', 1)[0]}_분할출력.pdf"
-    response = _deliver_pdf(uid=request.environ.get("program_uid", ""), data=result.data, filename=output_name, source="pdf-utility-tiling")
-    response.headers["X-Tile-Source-Pages"] = str(result.source_pages)
-    response.headers["X-Tile-Sheet-Count"] = str(result.sheet_count)
-    response.headers["X-Tile-Printer-Margin"] = str(result.printer_margin_mm)
-    response.headers["X-Tile-Overlap"] = str(result.overlap_mm)
-    response.headers["Access-Control-Expose-Headers"] = (
-        "X-Tile-Source-Pages, X-Tile-Sheet-Count, X-Tile-Printer-Margin, X-Tile-Overlap, Content-Disposition, X-Request-ID"
-    )
-    return response
-
-
 def _run_with_uid(uid: str, filename: str, data: bytes):
     params = _params()
     try:
