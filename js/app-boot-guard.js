@@ -24,6 +24,7 @@
   const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
   function isGeneralDesignEditor(){return ['/design-editor/general','/design-editor/general.html'].some(item=>path.endsWith(item));}
   function isEmbeddedGeneralDesignEditor(){return isGeneralDesignEditor()&&params.get('embed')==='1';}
+  function isDirectDesignEntry(){return isEmbeddedGeneralDesignEditor()&&window.parent===window&&['direct','app-direct'].includes(String(params.get('entry')||''));}
   function isPdfPrintEditor(){return ['/tools/pdf-editor.html','/pdf-editor','/pdf-editor/index.html'].some(item=>path.endsWith(item));}
 
   function hasDelegatedModularParentGate(){
@@ -148,18 +149,38 @@
   }
 
   async function waitForPreflightShell(){
-    if(protectedProgram!=='preflight')return;
+    if(protectedProgram!=='preflight')return true;
     const ready=await waitUntil(()=>document.body?.dataset?.pdfPreflightUi==='clean-workspace-v2',2800);
     if(!ready)console.warn('PDF preflight shell is still enhancing; revealing the base workspace to avoid blocking the tool.');
+    return ready;
+  }
+
+  function directDesignWorkspaceReady(){
+    const standalone=Boolean(String(params.get('app')||'').trim());
+    const projectReady=Boolean(window.DesignEditorApp?.project)&&root.dataset.designEmbeddedProjectReady==='1'&&root.dataset.designEmbeddedCanvasStable==='1';
+    const focusedReady=root.dataset.designFocusedWorkspace==='1';
+    const shellReady=!standalone||root.dataset.designFinalWorkspaceReady==='1';
+    const productReady=!standalone||Boolean(root.dataset.designProductWorkspace);
+    const sidebarReady=!standalone||root.dataset.designSidebarStable==='1';
+    return projectReady&&focusedReady&&shellReady&&productReady&&sidebarReady;
   }
 
   async function waitForDesignShell(){
-    if(protectedProgram!=='design-studio'||!isGeneralDesignEditor())return;
+    if(protectedProgram!=='design-studio'||!isGeneralDesignEditor())return true;
+    if(isDirectDesignEntry()){
+      root.dataset.designRevealWait='final-workspace';
+      const ready=await waitUntil(directDesignWorkspaceReady,9000);
+      if(!ready)throw new Error('Final design workspace did not stabilize before reveal.');
+      document.getElementById('authLoading')?.classList.add('hidden');
+      root.dataset.designRevealStage='final-workspace';
+      return true;
+    }
     const ready=await waitUntil(()=>Boolean(
       window.DesignEditorEssentialWorkspace?.stage||
       (window.DesignEditorApp&&(document.getElementById('editorShell')||document.getElementById('startScreen')))
     ),2800);
     if(!ready)console.warn('Design editor enhancements are still loading; revealing the base workspace to avoid blocking the tool.');
+    return ready;
   }
 
   function retryApprovalWait(){
@@ -173,14 +194,17 @@
     if(ready&&typeof ready.then==='function'){
       Promise.resolve(ready).then(async access=>{
         if(!access){retryApprovalWait();return;}
-        // Access is the only fail-closed gate. Route enhancements may continue in
-        // the background, but must never keep an approved user behind a spinner.
-        clearTimeout(failClosedTimer);
         try{
           await Promise.all([waitForPreflightShell(),waitForDesignShell()]);
         }catch(error){
+          if(isDirectDesignEntry()){
+            console.warn('Direct design workspace is not stable yet; keeping the loading gate closed.',error);
+            retryApprovalWait();
+            return;
+          }
           console.warn('Protected route enhancement wait failed; continuing with the base workspace.',error);
         }
+        clearTimeout(failClosedTimer);
         reveal();
       }).catch(error=>{
         console.warn('Program access readiness promise failed before reveal.',error);

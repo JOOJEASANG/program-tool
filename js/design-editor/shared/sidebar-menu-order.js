@@ -40,6 +40,7 @@
   let activeFrame=0;
   let mutating=false;
   let observedPanel=null;
+  let lastLayoutSignature='';
   const originalOrder=new WeakMap();
   let originalSequence=0;
   let collapsedSections=loadCollapsedSections();
@@ -160,6 +161,33 @@
 
   function isCollapsed(section){return Boolean(collapsedSections[section]);}
 
+  function currentLayoutSignature(){
+    if(!panel)return'';
+    const nodes=[...panel.children].filter(isElement).map((node,index)=>{
+      if(node.classList.contains(LABEL_CLASS)){
+        const count=node.querySelector('.design-sidebar-group-count')?.textContent||'';
+        return `L:${node.dataset.sidebarSection||''}:${node.hidden?'1':'0'}:${node.getAttribute('aria-expanded')||''}:${count}`;
+      }
+      if(node.matches('.side-card,.design-mode-card')){
+        return `C:${node.id||index}:${sectionFor(node)}:${visible(node)?'1':'0'}:${node.classList.contains(COLLAPSED_CARD_CLASS)?'1':'0'}:${node.dataset.sidebarCardRole||''}`;
+      }
+      return `O:${node.id||node.className||index}`;
+    }).join('|');
+    const collapsed=Object.keys(SECTION_META).map(section=>`${section}:${isCollapsed(section)?'1':'0'}`).join(',');
+    return `${nodes}::${collapsed}`;
+  }
+
+  function markStable(){
+    lastLayoutSignature=currentLayoutSignature();
+    document.documentElement.dataset.designSidebarStable='1';
+    if(panel)panel.dataset.designSidebarStable='1';
+  }
+
+  function markDirty(){
+    delete document.documentElement.dataset.designSidebarStable;
+    if(panel)delete panel.dataset.designSidebarStable;
+  }
+
   function removeLabels(){
     panel?.querySelectorAll(`:scope > .${LABEL_CLASS}`).forEach(node=>node.remove());
   }
@@ -251,6 +279,7 @@
     if(!SECTION_META[section])return false;
     collapsedSections={...collapsedSections,[section]:Boolean(collapsed)};
     guardedMutation(()=>applyCollapsedState());
+    markStable();
     if(persist)saveCollapsedSections();
     scheduleActiveSync();
     return !isCollapsed(section);
@@ -313,10 +342,17 @@
     panel=document.querySelector('.design-flat-panel');
     if(!panel)return false;
     const changedPanel=observedPanel&&observedPanel!==panel;
-    if(changedPanel){observer?.disconnect();observer=null;observedPanel=null;}
+    if(changedPanel){observer?.disconnect();observer=null;observedPanel=null;lastLayoutSignature='';}
+    installStyles();
+    ensureNativeIds();
+    const currentSignature=currentLayoutSignature();
+    if(currentSignature&&currentSignature===lastLayoutSignature){
+      markStable();
+      scheduleActiveSync();
+      return true;
+    }
+    markDirty();
     guardedMutation(()=>{
-      installStyles();
-      ensureNativeIds();
       removeLabels();
       const cards=directCards();
       cards.forEach(rememberOriginal);
@@ -328,12 +364,14 @@
       document.documentElement.dataset.designSidebarOrder=profile.key;
       panel.dataset.designSidebarOrder=profile.key;
     });
+    markStable();
     scheduleActiveSync();
     return true;
   }
 
   function schedule(){
     if(syncFrame)return;
+    markDirty();
     syncFrame=requestAnimationFrame(()=>reorder());
   }
 

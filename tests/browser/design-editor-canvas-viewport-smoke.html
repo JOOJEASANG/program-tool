@@ -92,7 +92,7 @@
         document.body.dataset.canvasViewportDragMm=(entry.x-beforeX).toFixed(2);
 
         centerButton.click();
-        await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+        await waitFor(()=>viewport.scrollLeft>0&&viewport.scrollTop>0,'center scroll');
         assert(viewport.scrollLeft>0&&viewport.scrollTop>0,'center must scroll a large manual canvas to its center');
 
         viewport.style.width='480px';viewport.style.height='360px';
