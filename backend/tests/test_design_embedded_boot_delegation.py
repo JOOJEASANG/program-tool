@@ -45,8 +45,8 @@ def test_deployment_version_busts_cached_boot_guard_after_embedded_fix():
     sw_register = read("js/sw-register.js")
     sw = read("sw.js")
     firebase = read("js/firebase-config.js")
-    assert '"version": "2026.09.01.021"' in version
-    assert '"label": "디자인 프로그램 임베드 로딩 안정화"' in version
-    assert "const VERSION='2026.09.01.021'" in sw_register
-    assert "const APP_VERSION='2026.09.01.021'" in sw
-    assert "/js/sw-register.js?v=2026.09.01.021" in firebase
+    assert '"version": "2026.09.02.001"' in version
+    assert '"label": "포스터·전단지 통합, 소책자 메인 제거, 디자인 로딩 최적화"' in version
+    assert "const VERSION='2026.09.02.001'" in sw_register
+    assert "const APP_VERSION='2026.09.02.001'" in sw
+    assert "/js/sw-register.js?v=2026.09.02.001" in firebase

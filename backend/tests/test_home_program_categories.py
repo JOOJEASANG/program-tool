@@ -14,12 +14,12 @@ def test_home_lists_categorized_programs_and_split_design_entries():
     expected_design_entries = (
         "design-editor/?app=cover&mode=cover&preset=cover-a4",
         "design-editor/?app=poster&mode=poster&preset=poster-a4",
-        "design-editor/?app=flyer&mode=flyer&preset=flyer-a4",
         "design-editor/?app=invitation&mode=invitation&preset=invitation-a4",
         "design-editor/?app=leaflet&mode=leaflet3&preset=leaflet-3-roll",
     )
     for entry in expected_design_entries:
         assert entry in home
+    assert "포스터 · 전단지" in home
 
     assert "url:'pdf-editor/'" in home
     assert "url:'pdf-preflight/'" in home
@@ -31,7 +31,7 @@ def test_design_entries_share_one_editor_engine_instead_of_copying_programs():
     home = (ROOT / "index.html").read_text(encoding="utf-8")
     shell = (ROOT / "design-editor" / "index.html").read_text(encoding="utf-8")
 
-    assert home.count("design-editor/?app=") == 5
+    assert home.count("design-editor/?app=") == 4
     assert "const APP_CONFIG={" in shell
     assert "query.set('app',app);" in shell
     assert "stage:'single-sidebar-general-engine-shell-no-legacy-fallback'" in shell

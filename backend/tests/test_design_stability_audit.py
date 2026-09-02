@@ -35,8 +35,8 @@ def test_direct_text_resize_is_persisted_as_manual_width():
 
 def test_shell_loads_stability_guards_after_direct_resize():
     source = read("js/design-editor/shell-runtime.js")
-    direct = source.index("await loadDirectResize()")
-    stable = source.index("await loadStabilityGuards()")
+    direct = source.index("loadDirectResize()")
+    stable = source.index("loadStabilityGuards()")
     assert direct < stable
     assert "designStabilityGuardsScriptV1" in source
     assert "/js/design-editor/stability-guards.js?v=20260901-1" in source

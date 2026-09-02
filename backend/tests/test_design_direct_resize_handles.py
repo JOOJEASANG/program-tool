@@ -8,7 +8,7 @@ def test_shared_shell_loads_direct_resize_once_for_all_design_products():
     assert "designDirectResizeHandlesScriptV1" in runtime
     assert "/js/design-editor/direct-resize-handles.js?v=20260901-1" in runtime
     assert "window.DesignEditorDirectResize?.sync?.()" in runtime
-    assert runtime.index("await loadDirectResize()") < runtime.index("await loadProductSpecificWorkspace()")
+    assert runtime.index("loadDirectResize()") < runtime.index("loadProductSpecificWorkspace()")
 
 
 def test_direct_resize_handles_match_object_type_and_keep_common_engine_contract():
