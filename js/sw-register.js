@@ -5,7 +5,7 @@
 
   // Historical filename: this module owns shared runtime loading and retired
   // service-worker cleanup. It intentionally does not register a worker.
-  const VERSION='2026.09.02.001';
+  const VERSION='2026.09.02.002';
   const CACHE_PREFIX='program-studio-';
   const CLEANUP_KEY='program-studio-legacy-runtime-cleanup-'+VERSION;
   const SCRIPT_TIMEOUT_MS=8000;

@@ -65,3 +65,16 @@ def test_access_guard_has_timeout_parallel_reads_and_visibility_watchdog() -> No
     assert "status=timeout" in firebase
     assert "const watchdog = setTimeout" in firebase
     assert "root.style.visibility = ''" in firebase
+
+
+def test_boot_guard_spinner_stays_visible_when_firebase_hides_root() -> None:
+    # firebase-config.js sets html.style.visibility='hidden' during auth.
+    # The boot guard's ::before overlay and ::after spinner are pseudo-elements
+    # on <html> and inherit that hidden value. They must declare visibility:visible
+    # explicitly so the spinner is always shown to the user during the boot gate.
+    guard = source("js/app-boot-guard.js")
+    assert "html.app-booting::before{" in guard
+    assert "visibility:visible!important" in guard
+    assert "html.app-booting::after{" in guard
+    assert guard.index("html.app-booting::before{") < guard.index("visibility:visible!important")
+    assert guard.index("html.app-booting::after{") < guard.rindex("visibility:visible!important")

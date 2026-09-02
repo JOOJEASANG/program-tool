@@ -22,6 +22,18 @@ def test_pdf_preflight_ui_is_clean_single_column_workflow():
     assert "clean-workspace-v2" in source
 
 
+def test_pdf_preflight_page_preloads_firebase_scripts_for_faster_boot():
+    page = read("pdf-preflight/index.html")
+    assert 'rel="preconnect" href="https://www.gstatic.com"' in page
+    assert 'rel="preload" href="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js" as="script"' in page
+    assert 'rel="preload" href="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js" as="script"' in page
+    assert 'rel="preload" href="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js" as="script"' in page
+    # Preload hints must appear before the actual script tags in the document
+    preload_pos = page.index('rel="preload" href="https://www.gstatic.com/firebasejs')
+    script_pos = page.index('<script src="https://www.gstatic.com/firebasejs')
+    assert preload_pos < script_pos
+
+
 def test_pdf_preflight_ui_refresh_keeps_processing_logic_separate_and_canonical():
     source = read("js/pdf-preflight-panel-balance.js")
     page = read("pdf-preflight/index.html")
