@@ -231,7 +231,7 @@ window.ProgramAccess = {
 
   programForPath(pathname) {
     const path = String(pathname || '').replace(/\\/g, '/').replace(/\/+$/, '');
-    if (['/tools/pdf-editor.html', '/pdf-editor', '/pdf-editor/index.html'].some(item => path.endsWith(item))) {
+    if (['/tools/pdf-editor.html', '/pdf-editor', '/pdf-editor/index.html', '/booklet', '/booklet/index.html'].some(item => path.endsWith(item))) {
       return 'pdf-editor';
     }
     if (['/tools/preflight.html', '/tools/pdf-Checker.html', '/pdf-preflight', '/pdf-preflight/index.html'].some(item => path.endsWith(item))) {
