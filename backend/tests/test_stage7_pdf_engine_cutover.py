@@ -21,4 +21,4 @@ def test_direct_and_storage_routes_use_common_engine_entrypoints():
     source = Path(pdf_router.__file__).read_text(encoding="utf-8")
 
     assert "process_pdf_bytes(file_bytes_list, req)" in source
-    assert "process_pdf_files(source_paths, req, output_path)" in source
+    assert "process_pdf_paths(source_paths, req, output_path)" in source

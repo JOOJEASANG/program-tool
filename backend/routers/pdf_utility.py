@@ -3,19 +3,16 @@ from __future__ import annotations
 
 import io
 import logging
-import os
-import re
 import shutil
 import tempfile
-import uuid
 from pathlib import Path
 
-import firebase_admin.storage as fa_storage
 import fitz
 from PIL import Image
-from flask import Blueprint, Response, g, has_request_context, jsonify, request
+from flask import Blueprint, Response, jsonify, request
 
 from utils.auth import require_auth
+from utils.storage import get_bucket, get_request_id
 from utils.storage_delivery import upload_pdf_result
 
 pdf_utility_bp = Blueprint("pdf_utility", __name__)
@@ -29,9 +26,6 @@ MAX_BACKGROUND_PAGES = 100
 MAX_BACKGROUND_PIXELS = 90_000_000
 MAX_DIRECT_RESPONSE_BYTES = 20 * 1024 * 1024
 BACKGROUND_DPI = 160
-DEFAULT_STORAGE_BUCKET = os.environ.get(
-    "FIREBASE_STORAGE_BUCKET", "program-tool.firebasestorage.app"
-)
 
 BACKGROUND_STRENGTHS = {
     "light": {"threshold": 238, "lift": 0.35, "label": "약하게"},
@@ -41,23 +35,11 @@ BACKGROUND_STRENGTHS = {
 
 
 def _bucket():
-    return fa_storage.bucket(DEFAULT_STORAGE_BUCKET)
+    return get_bucket()
 
 
 def _request_id() -> str:
-    if not has_request_context():
-        return uuid.uuid4().hex[:16]
-    cached = getattr(g, "pdf_utility_request_id", None)
-    if isinstance(cached, str) and cached:
-        return cached
-    supplied = (request.headers.get("X-Request-ID") or "").strip()
-    request_id = (
-        supplied
-        if re.fullmatch(r"[A-Za-z0-9._-]{8,64}", supplied)
-        else uuid.uuid4().hex[:16]
-    )
-    g.pdf_utility_request_id = request_id
-    return request_id
+    return get_request_id()
 
 
 def _error(detail: str, status: int, code: str):

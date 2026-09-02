@@ -6,7 +6,7 @@ import fitz
 from models.schemas import PdfProcessRequest
 from routers import pdf as pdf_router
 from services import pdf_divider_renderer, pdf_engine
-from services.pdf_disk_ops import process_pdf_files
+from services.pdf_engine import process_pdf_paths
 
 
 def _divider_request() -> PdfProcessRequest:
@@ -54,7 +54,7 @@ def test_direct_and_disk_paths_use_same_divider_renderer(tmp_path):
     output_path = tmp_path / "output.pdf"
     source_path.write_bytes(_blank_source_bytes())
     memory_output = pdf_engine.process_pdf_bytes([source_path.read_bytes()], _divider_request())
-    process_pdf_files([source_path], _divider_request(), output_path)
+    process_pdf_paths([source_path], _divider_request(), output_path)
     with fitz.open(stream=memory_output, filetype="pdf") as memory_doc:
         with fitz.open(output_path) as disk_doc:
             assert memory_doc.page_count == disk_doc.page_count == 1

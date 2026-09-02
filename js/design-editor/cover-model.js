@@ -33,7 +33,6 @@
   });
   // Compatibility alias for callers created before the legacy editor was retired.
   const LEGACY_CAPABILITIES=CAPABILITIES;
-
   const clamp=(value,min,max)=>Math.max(min,Math.min(max,value));
   const round1=value=>Math.round((Number(value)||0)*10)/10;
 

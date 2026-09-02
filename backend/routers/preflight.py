@@ -1,20 +1,17 @@
 import io
 import logging
-import os
-import re
 import tempfile
-import uuid
 from pathlib import Path
 
-import firebase_admin.storage as fa_storage
 import fitz
-from flask import Blueprint, Response, g, has_request_context, jsonify, request
+from flask import Blueprint, Response, jsonify, request
 
 from models.schemas import PreflightReport
 from services.preflight_reliability import run_reliable_checks
 from services.preflight_repair import fix_pdf_response
 from services.preflight_svc import compute_score
 from utils.auth import require_auth
+from utils.storage import get_bucket, get_request_id
 from utils.storage_delivery import upload_pdf_result
 
 preflight_bp = Blueprint("preflight", __name__)
@@ -25,26 +22,11 @@ MAX_STORAGE_PDF_BYTES = 200 * 1024 * 1024
 MAX_DIRECT_RESPONSE_BYTES = 20 * 1024 * 1024
 MAX_COMPRESS_PAGES = 200
 MAX_COMPRESS_PIXELS_TOTAL = 180_000_000
-DEFAULT_STORAGE_BUCKET = os.environ.get(
-    "FIREBASE_STORAGE_BUCKET", "program-tool.firebasestorage.app"
-)
 PdfSource = bytes | str | Path
 
 
 def _request_id() -> str:
-    if not has_request_context():
-        return uuid.uuid4().hex[:16]
-    cached = getattr(g, "preflight_request_id", None)
-    if isinstance(cached, str) and cached:
-        return cached
-    supplied = (request.headers.get("X-Request-ID") or "").strip()
-    request_id = (
-        supplied
-        if re.fullmatch(r"[A-Za-z0-9._-]{8,64}", supplied)
-        else uuid.uuid4().hex[:16]
-    )
-    g.preflight_request_id = request_id
-    return request_id
+    return get_request_id()
 
 
 def _error(detail: str, status: int, code: str):
@@ -68,7 +50,7 @@ def _internal_error(operation: str):
 
 
 def _bucket():
-    return fa_storage.bucket(DEFAULT_STORAGE_BUCKET)
+    return get_bucket()
 
 
 def _max_storage_mb() -> int:

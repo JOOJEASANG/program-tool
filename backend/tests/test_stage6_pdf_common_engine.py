@@ -3,7 +3,8 @@ from pathlib import Path
 import fitz
 
 from models.schemas import PdfProcessRequest
-from services import pdf_disk_ops, pdf_engine
+from services import pdf_engine
+from routers import pdf as pdf_router
 
 
 def _source_pdf_bytes() -> bytes:
@@ -43,27 +44,6 @@ def test_memory_and_disk_wrappers_share_identical_page_geometry(tmp_path):
         disk_doc.close()
 
 
-def test_disk_compatibility_service_delegates_to_common_engine(monkeypatch, tmp_path):
-    captured = {}
-    expected = tmp_path / "result.pdf"
-
-    def fake_process(source_paths, request, output_path):
-        captured["source_paths"] = source_paths
-        captured["request"] = request
-        captured["output_path"] = output_path
-        return expected
-
-    monkeypatch.setattr(pdf_disk_ops, "process_pdf_paths", fake_process)
-    request = _request()
-    result = pdf_disk_ops.process_pdf_files(
-        [tmp_path / "source.pdf"], request, expected
-    )
-
-    assert result == expected
-    assert captured["request"] is request
-    assert captured["output_path"] == expected
-
-
 def test_common_engine_preserves_blank_source_pages():
     source = fitz.open()
     source.new_page(width=200, height=200)
@@ -80,10 +60,7 @@ def test_common_engine_preserves_blank_source_pages():
         result.close()
 
 
-def test_disk_service_contains_no_rendering_loop():
-    service_path = Path(pdf_disk_ops.__file__)
-    text = service_path.read_text(encoding="utf-8")
-    assert "show_pdf_page" not in text
-    assert "_apply_watermark" not in text
-    assert "_apply_header_footer" not in text
-    assert "process_pdf_paths(source_paths, request, output_path)" in text
+def test_storage_route_delegates_to_engine_process_pdf_paths():
+    source = Path(pdf_router.__file__).read_text(encoding="utf-8")
+    assert "process_pdf_paths" in source
+    assert "show_pdf_page" not in source

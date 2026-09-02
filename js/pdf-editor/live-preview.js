@@ -1,5 +1,4 @@
 // PDF editor live-preview status adapter.
-// Preview scheduling is owned by preview-controller.js.
 (function () {
   'use strict';
   if (window.__pdfEditorLivePreviewV4) return;
