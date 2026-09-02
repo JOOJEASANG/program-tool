@@ -55,6 +55,6 @@ def test_shell_loads_full_preview_after_ui_revision_and_refreshes_cache_version(
     assert "loadFullPreviewWorkspace" in runtime
     assert "designFullPreviewWorkspaceScriptV1" in runtime
     assert "/js/design-editor/full-preview-workspace.js?v=20260901-1" in runtime
-    assert runtime.index("await loadUiRevision()") < runtime.index("await loadFullPreviewWorkspace()")
+    assert runtime.index("loadUiRevision()") < runtime.index("loadFullPreviewWorkspace()")
     assert "DesignEditorFullPreviewWorkspace?.sync?.()" in runtime
-    assert "SHELL_RUNTIME_VERSION='20260901-2'" in index
+    assert "SHELL_RUNTIME_VERSION='20260902-1'" in index

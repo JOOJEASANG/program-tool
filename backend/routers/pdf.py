@@ -1,27 +1,21 @@
 import json
 import logging
-import os
-import re
 import shutil
 import tempfile
-import uuid
 from pathlib import Path
 
-import firebase_admin.storage as fa_storage
 import fitz
 from flask import (
     Blueprint,
     Response,
-    g,
-    has_request_context,
     jsonify,
     request,
 )
 
 from models.schemas import PdfProcessRequest
-from services.pdf_engine import process_pdf_bytes
-from services.pdf_disk_ops import process_pdf_files
+from services.pdf_engine import process_pdf_bytes, process_pdf_paths
 from utils.auth import require_auth
+from utils.storage import get_bucket, get_request_id
 from utils.storage_delivery import upload_pdf_result
 
 pdf_bp = Blueprint("pdf", __name__)
@@ -33,29 +27,14 @@ MAX_DIRECT_RESPONSE_BYTES = 20 * 1024 * 1024
 MAX_TOTAL_PDF_BYTES = 300 * 1024 * 1024
 MAX_PDF_FILES = 50
 MAX_REQUEST_PAGES = 2000
-DEFAULT_STORAGE_BUCKET = os.environ.get(
-    "FIREBASE_STORAGE_BUCKET", "program-tool.firebasestorage.app"
-)
-REQUEST_ID_PATTERN = re.compile(r"^[A-Za-z0-9._-]{8,64}$")
 
 
 def _bucket():
-    return fa_storage.bucket(DEFAULT_STORAGE_BUCKET)
+    return get_bucket()
 
 
 def _request_id() -> str:
-    """Return a stable request id inside Flask requests and a safe fallback elsewhere."""
-    if not has_request_context():
-        return uuid.uuid4().hex[:16]
-
-    cached = getattr(g, "pdf_request_id", None)
-    if isinstance(cached, str) and cached:
-        return cached
-
-    supplied = request.headers.get("X-Request-ID", "").strip()
-    request_id = supplied if REQUEST_ID_PATTERN.fullmatch(supplied) else uuid.uuid4().hex[:16]
-    g.pdf_request_id = request_id
-    return request_id
+    return get_request_id()
 
 
 def _error_response(detail: str, status: int, code: str):
@@ -420,7 +399,7 @@ def process_storage(uid):
             source_paths.append(local_path)
 
         _validate_pdf_paths(req, source_paths)
-        process_pdf_files(source_paths, req, output_path)
+        process_pdf_paths(source_paths, req, output_path)
         delivery = upload_pdf_result(
             bucket,
             uid,

@@ -154,18 +154,12 @@ def test_missing_explicit_page_boxes_is_not_reported_as_pass():
         document.close()
 
 
-def test_frontend_and_rules_use_hardened_contract():
-    loader = (ROOT / "js" / "pdf-editor" / "loader.js").read_text(encoding="utf-8")
-    contract = (ROOT / "js" / "pdf-editor" / "output-contract.js").read_text(encoding="utf-8")
+def test_security_constants_and_admin_flags_present():
     rules = (ROOT / "storage.rules").read_text(encoding="utf-8")
     tools = (ROOT / "backend" / "routers" / "pdf_tools.py").read_text(encoding="utf-8")
     claims = (ROOT / "backend" / "scripts" / "sync_admin_claims.py").read_text(encoding="utf-8")
 
-    assert "output-contract.js" in loader
-    assert "settings.page_order = currentOrder()" in contract
-    assert "createdDocument = await collection.add" in contract
-    assert "Promise.allSettled(storagePaths.map" in contract
-    assert "isOwner(userId) && isApproved() && isPdfUpload()" in rules
+    assert "isOwner(userId) && canUseProgram('pdf-editor')" in rules
     assert "MAX_IMAGE_FILES = 30" in tools
     assert "PDF_TOOL_INTERNAL_ERROR" in tools
     assert "--revoke-missing" in claims

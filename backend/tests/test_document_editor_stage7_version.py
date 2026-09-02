@@ -1,5 +1,6 @@
 from pathlib import Path
 import json
+from conftest import version_tuple
 
 
 ROOT = Path(__file__).resolve().parents[2]

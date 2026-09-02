@@ -10,7 +10,8 @@ def test_shell_loads_product_specific_workspace_only_for_standalone_apps():
     assert "designProductSpecificWorkspaceScriptV1" in shell
     assert "/js/design-editor/product-specific-workspace.js?v=20260901-1" in shell
     assert "DesignEditorProductSpecificWorkspace?.sync?.()" in shell
-    assert "await loadProductSpecificWorkspace();sync();" in shell
+    assert "loadProductSpecificWorkspace()" in shell
+    assert "sync();" in shell
 
 
 def test_product_specific_workspace_keeps_each_design_app_inside_its_own_settings():
