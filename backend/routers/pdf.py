@@ -221,7 +221,7 @@ def _validate_pdf_paths(req: PdfProcessRequest, file_paths: list[str | Path]) ->
 def _validate_storage_path(uid: str, path: str) -> None:
     if not isinstance(path, str) or not path:
         raise ValueError("잘못된 파일 경로입니다")
-    if ".." in path or path.startswith("/"):
+    if "\x00" in path or ".." in path or path.startswith("/"):
         raise PermissionError("허용되지 않은 파일 경로입니다")
     if not path.startswith(f"pdf_temp/{uid}/"):
         raise PermissionError("허용되지 않은 파일 경로입니다")

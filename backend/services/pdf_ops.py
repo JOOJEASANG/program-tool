@@ -123,6 +123,8 @@ def _calc_fit_rect(cell_rect: fitz.Rect, src_w: float, src_h: float, rotation: i
 
     cell_w = cell_rect.width
     cell_h = cell_rect.height
+    if src_w <= 0 or src_h <= 0:
+        return cell_rect
     scale = min(cell_w / src_w, cell_h / src_h)
     fitted_w = src_w * scale
     fitted_h = src_h * scale
