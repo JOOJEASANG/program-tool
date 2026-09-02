@@ -33,9 +33,13 @@ body[data-program-kind="pdf-editor"] #bookletRow>label>span:first-of-type{
   grid-row:1!important;
   margin:0!important;
   color:#26384d!important;
-  font-size:11px!important;
+  font-size:0!important;
   font-weight:900!important;
   letter-spacing:-.12px!important;
+}
+body[data-program-kind="pdf-editor"] #bookletRow>label>span:first-of-type::after{
+  content:'소책자 배치';
+  font-size:11px!important;
 }
 body[data-program-kind="pdf-editor"] #bookletRow>label>span:last-of-type{
   grid-column:1!important;
@@ -122,12 +126,52 @@ body[data-program-kind="pdf-editor"] #bookletRow+.classic-booklet-note{
   line-height:1.45!important;
 }
 body[data-program-kind="pdf-editor"] #bookletSheetPreviewButton.booklet-sheet-preview-btn{
-  margin-top:7px!important;
-  width:100%!important;
-  min-height:31px!important;
-  padding:7px 9px!important;
-  border-radius:8px!important;
+  margin-top:0!important;
+  width:auto!important;
+  min-width:0!important;
+  max-width:124px!important;
+  min-height:28px!important;
+  padding:5px 9px!important;
+  border-radius:7px!important;
+  font-size:9.5px!important;
+  line-height:1.15!important;
   font-weight:800!important;
+  flex:0 0 auto!important;
+}
+body[data-program-kind="pdf-editor"] .preview-shell:has(#bookletSheetPreviewPanel:not([hidden])){
+  gap:7px!important;
+}
+body[data-program-kind="pdf-editor"] .preview-shell:has(#bookletSheetPreviewPanel:not([hidden])) .preview-info{
+  justify-content:flex-start!important;
+  flex:0 0 auto!important;
+}
+body[data-program-kind="pdf-editor"] .preview-shell:has(#bookletSheetPreviewPanel:not([hidden])) .preview-info>#previewInfo,
+body[data-program-kind="pdf-editor"] .preview-shell:has(#bookletSheetPreviewPanel:not([hidden])) .preview-info>#previewPages,
+body[data-program-kind="pdf-editor"] .preview-shell:has(#bookletSheetPreviewPanel:not([hidden])) .preview-info>.preview-zoom{
+  display:none!important;
+}
+body[data-program-kind="pdf-editor"] .preview-shell:has(#bookletSheetPreviewPanel:not([hidden])) #previewScroll{
+  display:none!important;
+}
+body[data-program-kind="pdf-editor"] #bookletSheetPreviewPanel.booklet-sheet-preview-panel:not([hidden]){
+  display:block!important;
+  flex:1 1 auto!important;
+  width:100%!important;
+  height:100%!important;
+  min-height:0!important;
+  max-height:none!important;
+  margin:0!important;
+  overflow:auto!important;
+  border-radius:10px!important;
+  box-sizing:border-box!important;
+}
+body[data-program-kind="pdf-editor"] #bookletSheetPreviewPanel .booklet-sheet-list{
+  width:100%!important;
+  max-width:none!important;
+}
+body[data-program-kind="pdf-editor"] #bookletSheetPreviewPanel .booklet-sheet-card{
+  width:100%!important;
+  max-width:none!important;
 }
 body[data-program-kind="pdf-editor"] .booklet-print-guide-v2{
   margin-top:9px!important;
