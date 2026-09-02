@@ -86,7 +86,7 @@ def test_standalone_app_shell_uses_the_same_readability_floor():
 def test_visual_release_version_is_synchronized():
     config = read("js/firebase-config.js")
     injector = read("scripts/inject_boot_guard.py")
-    assert "const UI_VERSION = '20260901-20'" in config
+    assert "const UI_VERSION = '20260902-01'" in config
     assert "/js/sw-register.js?v=2026.09.01.021" in config
     assert "UI_STYLE_MARKER = \"data-program-studio-ui\"" in injector
     assert "link[data-program-studio-ui]" in config
