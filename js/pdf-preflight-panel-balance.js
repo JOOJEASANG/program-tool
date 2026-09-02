@@ -346,6 +346,7 @@
   }
 
   function boot(){
+    if(document.body)document.body.dataset.pdfPreflightUi='clean-workspace-v2';
     installStyles();
     applyCopy();
   }
