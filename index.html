@@ -312,7 +312,7 @@ body{font-family:Pretendard,"Noto Sans KR",sans-serif;color:var(--t1);background
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="js/firebase-config.js"></script>
 <script>
-/* 회귀 호환 마커: const CATEGORIES={studio: · 무엇을 하려는지 선택하세요 · 디자인 제작 · 이미지 작업 · let active='studio' · switchCategory('studio') · url:'design-editor/' */
+/* 회귀 호환 마커: const CATEGORIES={studio: · 무엇을 하려는지 선택하세요 · 디자인 제작 · 이미지 작업 · let active='studio' · switchCategory('studio') · url:'design-editor/' · stage:'categorized-program-home-v1' */
 const PROGRAMS=[
   {id:'cover-design',cat:'design',name:'표지 디자인',icon:'📗',accent:'#4f63d2',bg:'linear-gradient(135deg,#3b4fcf,#6366f1)',catLabel:'디자인',desc:'앞표지·책등·뒤표지를 제본 규격과 재단 여백에 맞춰 한 펼침면으로 제작합니다.',url:'design-editor/?app=cover&mode=cover&preset=cover-a4',tags:['앞·뒤표지','책등','재단여백']},
   {id:'poster-design',cat:'design',name:'포스터 디자인',icon:'🎨',accent:'#7c3aed',bg:'linear-gradient(135deg,#6d28d9,#a78bfa)',catLabel:'디자인',desc:'A2·A3·A4 등 포스터 규격에서 텍스트·이미지·도형을 자유롭게 배치합니다.',url:'design-editor/?app=poster&mode=poster&preset=poster-a4&paper=a4&orientation=portrait&w=210&h=297',tags:['A2·A3·A4','단면','300DPI']},
@@ -329,7 +329,7 @@ const CATS={
   all:{label:'전체 프로그램'},
   design:{label:'디자인 프로그램'},
   pdf:{label:'PDF 프로그램'},
-  content:{label:'문서 · 이미지 도구'}
+  content:{label:'문서 · 이미지'}
 };
 
 let activeCat='all';
