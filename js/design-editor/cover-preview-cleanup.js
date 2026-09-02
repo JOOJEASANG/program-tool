@@ -10,10 +10,12 @@
   const STYLE_ID='designCoverPreviewCleanupStyles';
   const SIZE_ID='designCoverPreviewSizeBadge';
   const BLEED_ID='designCoverPreviewBleedBand';
+  const ZONES_ID='designCoverPreviewZones';
   let observer=null;
   let resizeObserver=null;
   let frame=0;
   let retryTimer=0;
+  let previewRefreshTimer=0;
 
   const byId=id=>document.getElementById(id);
   const project=()=>window.DesignEditorApp?.project||null;
@@ -131,6 +133,23 @@
     frame=requestAnimationFrame(decorate);
   }
 
+  function renderPreviewZones(){
+    const api=window.DesignEditorCoverPreviewZones;
+    if(typeof api?.render!=='function')return false;
+    try{return Boolean(api.render());}catch(error){console.warn('Cover preview zone refresh failed',error);return false;}
+  }
+
+  function refreshPreviewZones(){
+    renderPreviewZones();
+    schedule();
+    clearTimeout(previewRefreshTimer);
+    previewRefreshTimer=setTimeout(()=>{
+      previewRefreshTimer=0;
+      renderPreviewZones();
+      schedule();
+    },120);
+  }
+
   function connect(){
     clearTimeout(retryTimer);
     const artboard=byId('artboard');
@@ -140,7 +159,10 @@
     }
     installStyles();
     if(!observer){
-      observer=new MutationObserver(()=>schedule());
+      observer=new MutationObserver(()=>{
+        schedule();
+        if(!byId(ZONES_ID))renderPreviewZones();
+      });
       observer.observe(artboard,{childList:true,subtree:false});
     }
     if(!resizeObserver&&window.ResizeObserver){
@@ -160,6 +182,7 @@
     if(event.target?.closest?.('#designCoverSettings button,#designCoverSpineTools button,.design-mode-apply'))setTimeout(schedule,0);
   },true);
   window.addEventListener('resize',schedule,{passive:true});
+  window.addEventListener('programstudio:cover-geometry-change',refreshPreviewZones);
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',connect,{once:true});
   else connect();
