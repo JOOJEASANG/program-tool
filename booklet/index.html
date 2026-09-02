@@ -1,0 +1,884 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>소책자 제작 · Program Studio</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<style>
+:root{
+  --sb-bg:#0c1526;--sb-border:rgba(255,255,255,.08);--sb-hover:rgba(255,255,255,.055);
+  --sb-dim:#4c617a;--sb-text:#8fa3bd;--sb-active:#1e40af;
+  --bg:#0f172a;--panel:#1e293b;--panel2:#162032;--card:#253348;
+  --border:#243447;--border2:rgba(255,255,255,.06);
+  --accent:#2563eb;--accent-d:#1d4ed8;--accent-s:rgba(37,99,235,.18);
+  --green:#10b981;--green-s:rgba(16,185,129,.15);
+  --red:#ef4444;--red-s:rgba(239,68,68,.12);
+  --amber:#f59e0b;--amber-s:rgba(245,158,11,.12);
+  --t1:#f1f5f9;--t2:#94a3b8;--t3:#475569;
+  --r:10px;--sb-w:296px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;font-family:Pretendard,"Noto Sans KR",sans-serif;background:var(--bg);color:var(--t1);line-height:1}
+a{text-decoration:none;color:inherit}
+button{font-family:inherit;cursor:pointer}
+
+/* LAYOUT */
+.app{display:flex;height:100vh;overflow:hidden}
+
+/* SIDEBAR */
+.sidebar{width:var(--sb-w);flex:0 0 var(--sb-w);background:var(--sb-bg);display:flex;flex-direction:column;border-right:1px solid var(--sb-border);overflow:hidden}
+.sb-logo{height:60px;display:flex;align-items:center;gap:11px;padding:0 18px;border-bottom:1px solid var(--sb-border);flex:0 0 60px}
+.sb-mark{width:36px;height:36px;background:linear-gradient(135deg,#1e40af,#6d28d9);border-radius:10px;display:grid;place-items:center;flex:0 0 36px;font-size:18px}
+.sb-brand{display:flex;flex-direction:column;gap:3px}
+.sb-name{font-size:14px;font-weight:900;color:#f1f5f9;letter-spacing:-.3px}
+.sb-sub{font-size:9px;font-weight:800;color:var(--sb-dim);letter-spacing:1.2px;text-transform:uppercase}
+.sb-home{margin-left:auto;width:28px;height:28px;border:0;background:var(--sb-hover);border-radius:7px;display:grid;place-items:center;font-size:14px;color:var(--sb-text);transition:background .15s}
+.sb-home:hover{background:rgba(255,255,255,.1);color:#e2e8f0}
+
+.sb-body{flex:1;overflow-y:auto;padding:14px 12px 12px;scrollbar-width:thin;scrollbar-color:var(--sb-border) transparent;display:flex;flex-direction:column;gap:14px}
+.sb-body::-webkit-scrollbar{width:4px}
+.sb-body::-webkit-scrollbar-thumb{background:var(--sb-border);border-radius:2px}
+
+.sec-label{font-size:9px;font-weight:900;color:var(--sb-dim);letter-spacing:1.4px;text-transform:uppercase;margin-bottom:6px}
+
+/* UPLOAD ZONE */
+.upload-zone{border:2px dashed var(--sb-border);border-radius:12px;padding:20px 14px;text-align:center;cursor:pointer;transition:border-color .2s,background .2s;background:rgba(255,255,255,.02);position:relative}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--accent);background:var(--accent-s)}
+.upload-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer}
+.uz-icon{font-size:26px;margin-bottom:8px;display:block}
+.uz-main{font-size:12px;font-weight:700;color:var(--t2);line-height:1.5}
+.uz-sub{font-size:10px;color:var(--t3);margin-top:4px}
+.file-chip{display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--border);border-radius:9px;padding:9px 11px;margin-top:4px}
+.file-chip-icon{font-size:16px;flex:0 0 auto}
+.file-chip-info{flex:1;min-width:0}
+.file-chip-name{font-size:11px;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.file-chip-meta{font-size:10px;color:var(--t3);margin-top:2px}
+.file-chip-rm{width:22px;height:22px;border:0;background:rgba(239,68,68,.15);color:var(--red);border-radius:5px;display:grid;place-items:center;font-size:13px;flex:0 0 22px;transition:background .15s}
+.file-chip-rm:hover{background:rgba(239,68,68,.3)}
+
+/* SETTINGS */
+.setting-row{display:flex;flex-direction:column;gap:5px}
+.setting-label{font-size:10px;font-weight:800;color:var(--t2);letter-spacing:.3px}
+.setting-desc{font-size:9px;color:var(--t3);margin-top:1px;line-height:1.5}
+.seg-group{display:flex;gap:3px;background:rgba(255,255,255,.04);border-radius:8px;padding:3px}
+.seg-btn{flex:1;padding:6px 4px;border:0;background:transparent;border-radius:6px;font:700 11px Pretendard;color:var(--t3);transition:background .15s,color .15s;white-space:nowrap}
+.seg-btn.active{background:var(--accent);color:#fff}
+.seg-btn:hover:not(.active){background:rgba(255,255,255,.07);color:var(--t2)}
+
+select,.inp{width:100%;background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--t1);font:600 12px Pretendard;outline:none;transition:border-color .15s;-webkit-appearance:none}
+select:focus,.inp:focus{border-color:var(--accent)}
+.inp-row{display:flex;gap:6px}
+.inp-wrap{flex:1;position:relative}
+.inp-unit{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:10px;font-weight:700;color:var(--t3);pointer-events:none}
+.inp-wrap .inp{padding-right:28px}
+
+/* ACTION BUTTON */
+.btn-process{width:100%;padding:13px;background:var(--accent);border:0;border-radius:10px;color:#fff;font:800 14px Pretendard;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:background .15s;margin-top:auto}
+.btn-process:hover:not(:disabled){background:var(--accent-d)}
+.btn-process:disabled{opacity:.45;cursor:not-allowed}
+
+/* SIDEBAR BOTTOM */
+.sb-footer{border-top:1px solid var(--sb-border);padding:12px}
+.sb-user{display:flex;align-items:center;gap:9px}
+.sb-avatar{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,#1e40af,#0ea5e9);color:#fff;display:grid;place-items:center;font-size:12px;font-weight:900;flex:0 0 30px;overflow:hidden}
+.sb-avatar img{width:100%;height:100%;object-fit:cover}
+.sb-uinfo{flex:1;min-width:0}
+.sb-uname{font-size:11px;font-weight:800;color:#e2e8f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sb-uemail{font-size:9px;color:var(--sb-dim);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sb-logout{border:0;background:transparent;color:var(--sb-dim);font:700 10px Pretendard;cursor:pointer;padding:4px 6px;border-radius:5px;transition:color .15s,background .15s;white-space:nowrap}
+.sb-logout:hover{color:#f87171;background:rgba(239,68,68,.1)}
+
+/* MAIN */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--bg)}
+
+/* TAB BAR */
+.tabbar{flex:0 0 52px;display:flex;align-items:center;gap:2px;padding:0 20px;border-bottom:1px solid var(--border2);background:var(--panel2)}
+.tab-btn{height:36px;padding:0 16px;border:0;background:transparent;color:var(--t3);font:700 12px Pretendard;border-radius:8px;cursor:pointer;transition:background .15s,color .15s;white-space:nowrap;position:relative}
+.tab-btn:hover{background:var(--sb-hover);color:var(--t2)}
+.tab-btn.active{color:var(--t1);background:rgba(37,99,235,.15)}
+.tab-btn.active::after{content:'';position:absolute;bottom:-1px;left:12px;right:12px;height:2px;background:var(--accent);border-radius:1px}
+.tab-spacer{flex:1}
+.dl-btn{height:36px;padding:0 16px;background:var(--green);border:0;border-radius:9px;color:#fff;font:800 12px Pretendard;cursor:pointer;display:flex;align-items:center;gap:7px;transition:background .15s;white-space:nowrap}
+.dl-btn:hover{background:#059669}
+.dl-btn:disabled{opacity:.4;cursor:not-allowed}
+
+/* TAB CONTENT */
+.tab-pane{flex:1;overflow:hidden;display:none}
+.tab-pane.active{display:flex;flex-direction:column}
+
+/* EMPTY STATE */
+.empty-state{flex:1;display:grid;place-items:center;text-align:center;padding:40px}
+.empty-icon{font-size:52px;margin-bottom:16px;display:block}
+.empty-title{font-size:16px;font-weight:800;color:var(--t2);margin-bottom:6px}
+.empty-desc{font-size:13px;color:var(--t3);line-height:1.6;max-width:340px}
+
+/* PREVIEW TAB */
+.preview-scroll{flex:1;overflow:auto;padding:20px;display:flex;flex-direction:column;gap:16px}
+.preview-info-bar{background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.pib-item{display:flex;flex-direction:column;gap:3px}
+.pib-label{font-size:9px;font-weight:800;color:var(--t3);letter-spacing:.8px;text-transform:uppercase}
+.pib-value{font-size:13px;font-weight:800;color:var(--t1)}
+.pib-div{width:1px;height:28px;background:var(--border);flex:0 0 1px}
+
+.sheet-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:12px}
+.sheet-card{background:var(--panel2);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.sheet-header{padding:8px 14px;background:rgba(255,255,255,.03);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+.sheet-num{font-size:10px;font-weight:900;color:var(--t3);letter-spacing:.5px;text-transform:uppercase}
+.sheet-body{padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.sheet-side{display:flex;align-items:center;gap:8px}
+.side-badge{flex:0 0 46px;font-size:9px;font-weight:900;letter-spacing:.5px;text-transform:uppercase;padding:4px 6px;border-radius:5px;text-align:center}
+.side-badge.front{background:rgba(37,99,235,.2);color:#93c5fd}
+.side-badge.back{background:rgba(16,185,129,.15);color:#6ee7b7}
+.side-pages{flex:1;display:flex;gap:6px}
+.page-box{flex:1;min-width:0;background:var(--card);border:1px solid var(--border);border-radius:7px;padding:8px 6px;display:flex;flex-direction:column;align-items:center;gap:4px}
+.page-box.blank{opacity:.35}
+.page-box.front-l{border-top:2px solid #3b82f6}
+.page-box.front-r{border-top:2px solid #60a5fa}
+.page-box.back-l{border-top:2px solid #10b981}
+.page-box.back-r{border-top:2px solid #34d399}
+.page-pos{font-size:8px;font-weight:700;color:var(--t3)}
+.page-num{font-size:16px;font-weight:900;color:var(--t1)}
+.page-num.blank-num{color:var(--t3);font-size:12px}
+
+/* ORDER TABLE TAB */
+.order-scroll{flex:1;overflow:auto;padding:20px}
+.order-table{width:100%;border-collapse:collapse;font-size:12px}
+.order-table th{font-size:9px;font-weight:900;color:var(--t3);letter-spacing:.8px;text-transform:uppercase;padding:8px 12px;border-bottom:2px solid var(--border);text-align:left;background:var(--panel2);position:sticky;top:0;z-index:1}
+.order-table td{padding:9px 12px;border-bottom:1px solid var(--border2);vertical-align:middle}
+.order-table tr:last-child td{border-bottom:none}
+.order-table tr:hover td{background:rgba(255,255,255,.02)}
+.badge-pg{display:inline-flex;align-items:center;justify-content:center;min-width:32px;height:24px;border-radius:5px;font-size:11px;font-weight:800;padding:0 7px}
+.badge-front{background:rgba(37,99,235,.2);color:#93c5fd}
+.badge-back{background:rgba(16,185,129,.15);color:#6ee7b7}
+.badge-blank{background:rgba(255,255,255,.06);color:var(--t3)}
+
+/* GUIDE TAB */
+.guide-scroll{flex:1;overflow:auto;padding:24px}
+.guide-content{max-width:640px;display:flex;flex-direction:column;gap:20px}
+.guide-section{background:var(--panel2);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.gs-header{padding:12px 16px;background:rgba(255,255,255,.03);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.gs-num{width:24px;height:24px;border-radius:6px;background:var(--accent);display:grid;place-items:center;font-size:12px;font-weight:900;color:#fff;flex:0 0 24px}
+.gs-title{font-size:13px;font-weight:800;color:var(--t1)}
+.gs-body{padding:14px 16px;font-size:12px;color:var(--t2);line-height:1.8}
+.gs-body strong{color:var(--t1);font-weight:700}
+.guide-tip{background:var(--amber-s);border:1px solid rgba(245,158,11,.25);border-radius:10px;padding:12px 14px;display:flex;gap:10px;align-items:flex-start}
+.guide-tip-icon{font-size:16px;flex:0 0 auto;margin-top:1px}
+.guide-tip-text{font-size:12px;color:#fcd34d;line-height:1.7}
+
+/* PROGRESS OVERLAY */
+.progress-overlay{position:fixed;inset:0;background:rgba(9,15,27,.82);display:grid;place-items:center;z-index:9999;backdrop-filter:blur(4px)}
+.progress-overlay.hidden{display:none}
+.progress-card{background:var(--panel2);border:1px solid var(--border);border-radius:16px;padding:32px 36px;text-align:center;min-width:280px;max-width:360px;width:90%}
+.progress-spinner{width:44px;height:44px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 16px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.progress-title{font-size:15px;font-weight:900;color:var(--t1);margin-bottom:6px}
+.progress-msg{font-size:12px;color:var(--t3);line-height:1.6;min-height:36px}
+.progress-bar-wrap{height:4px;background:rgba(255,255,255,.08);border-radius:2px;margin-top:16px;overflow:hidden}
+.progress-bar{height:100%;background:var(--accent);border-radius:2px;transition:width .3s;width:0}
+.progress-cancel{margin-top:14px;border:0;background:transparent;color:var(--t3);font:700 12px Pretendard;cursor:pointer;padding:6px 12px;border-radius:7px;transition:color .15s,background .15s}
+.progress-cancel:hover{color:var(--red);background:var(--red-s)}
+
+/* RESULT */
+.result-bar{flex:0 0 auto;background:var(--green-s);border-top:1px solid rgba(16,185,129,.2);padding:12px 20px;display:flex;align-items:center;gap:12px}
+.result-bar.hidden{display:none}
+.result-icon{font-size:20px}
+.result-text{flex:1}
+.result-title{font-size:13px;font-weight:800;color:#6ee7b7}
+.result-desc{font-size:11px;color:var(--t2);margin-top:2px}
+.result-dl{padding:9px 18px;background:var(--green);border:0;border-radius:8px;color:#fff;font:800 12px Pretendard;cursor:pointer;transition:background .15s;white-space:nowrap}
+.result-dl:hover{background:#059669}
+
+/* STATUS BAR */
+.status-bar{flex:0 0 28px;border-top:1px solid var(--border2);padding:0 16px;display:flex;align-items:center;gap:10px;background:var(--panel2)}
+.status-dot{width:6px;height:6px;border-radius:50%;background:var(--t3);flex:0 0 6px}
+.status-dot.ok{background:var(--green)}
+.status-dot.err{background:var(--red)}
+.status-dot.busy{background:var(--accent);animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.status-msg{font-size:10px;font-weight:600;color:var(--t3);flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+
+/* RESPONSIVE */
+@media(max-width:720px){
+  .sidebar{position:fixed;inset:0 auto 0 0;z-index:200;transform:translateX(-100%);transition:transform .25s}
+  .sidebar.open{transform:none}
+  .sb-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:199}
+  .sb-overlay.open{display:block}
+  .main{width:100%}
+  .menu-btn{display:grid}
+}
+.menu-btn{display:none;width:36px;height:36px;border:0;background:transparent;color:var(--t2);font-size:18px;place-items:center;cursor:pointer}
+</style>
+</head>
+<body>
+
+<div class="progress-overlay hidden" id="progressOverlay">
+  <div class="progress-card">
+    <div class="progress-spinner"></div>
+    <div class="progress-title">소책자 생성 중</div>
+    <div class="progress-msg" id="progressMsg">준비 중...</div>
+    <div class="progress-bar-wrap"><div class="progress-bar" id="progressBar"></div></div>
+    <button class="progress-cancel" id="progressCancel" type="button">취소</button>
+  </div>
+</div>
+
+<div class="sb-overlay" id="sbOverlay"></div>
+
+<div class="app">
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sb-logo">
+      <div class="sb-mark">📖</div>
+      <div class="sb-brand">
+        <span class="sb-name">소책자 제작</span>
+        <span class="sb-sub">Booklet Imposition</span>
+      </div>
+      <button class="sb-home" id="homeBtn" title="홈으로" type="button">🏠</button>
+    </div>
+
+    <div class="sb-body" id="sbBody">
+      <!-- UPLOAD -->
+      <div>
+        <div class="sec-label">원본 PDF</div>
+        <div class="upload-zone" id="uploadZone">
+          <input type="file" id="fileInput" accept="application/pdf">
+          <span class="uz-icon">📄</span>
+          <div class="uz-main">PDF 파일을 끌어다 놓거나 클릭해 선택</div>
+          <div class="uz-sub">최대 200MB · PDF 형식만 가능</div>
+        </div>
+        <div class="file-chip hidden" id="fileChip">
+          <span class="file-chip-icon">📄</span>
+          <div class="file-chip-info">
+            <div class="file-chip-name" id="chipName">파일명.pdf</div>
+            <div class="file-chip-meta" id="chipMeta">—</div>
+          </div>
+          <button class="file-chip-rm" id="fileRemove" type="button" title="파일 제거">✕</button>
+        </div>
+      </div>
+
+      <!-- 제본 단수 -->
+      <div class="setting-row">
+        <div class="setting-label">소책자 단수</div>
+        <div class="seg-group" id="strips">
+          <button class="seg-btn active" data-nup="2" type="button">1단</button>
+          <button class="seg-btn" data-nup="4" type="button">2단</button>
+          <button class="seg-btn" data-nup="6" type="button">3단</button>
+          <button class="seg-btn" data-nup="8" type="button">4단</button>
+        </div>
+        <div class="setting-desc" id="stripDesc">인쇄지 한 면에 소책자 1부 분량을 배치합니다.</div>
+      </div>
+
+      <!-- 출력 용지 -->
+      <div class="setting-row">
+        <div class="setting-label">출력 용지</div>
+        <select id="paperSelect">
+          <option value="a4p">A4 세로 (210 × 297 mm)</option>
+          <option value="a4l">A4 가로 (297 × 210 mm)</option>
+          <option value="a3p">A3 세로 (297 × 420 mm)</option>
+          <option value="a3l">A3 가로 (420 × 297 mm)</option>
+          <option value="b5p">B5 세로 (176 × 250 mm)</option>
+          <option value="b5l">B5 가로 (250 × 176 mm)</option>
+          <option value="ltp">Letter 세로 (215.9 × 279.4 mm)</option>
+          <option value="ltl">Letter 가로 (279.4 × 215.9 mm)</option>
+        </select>
+      </div>
+
+      <!-- 여백 -->
+      <div class="setting-row">
+        <div class="setting-label">여백 · 간격 (mm)</div>
+        <div class="inp-row">
+          <div class="inp-wrap">
+            <input class="inp" type="number" id="marginH" value="10" min="0" max="50" placeholder="좌우">
+            <span class="inp-unit">가로</span>
+          </div>
+          <div class="inp-wrap">
+            <input class="inp" type="number" id="marginV" value="10" min="0" max="50" placeholder="상하">
+            <span class="inp-unit">세로</span>
+          </div>
+          <div class="inp-wrap">
+            <input class="inp" type="number" id="gapMm" value="5" min="0" max="30" placeholder="간격">
+            <span class="inp-unit">간격</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 소책자 방향 -->
+      <div class="setting-row">
+        <div class="setting-label">원본 페이지 방향</div>
+        <div class="seg-group" id="orient">
+          <button class="seg-btn active" data-val="portrait" type="button">세로</button>
+          <button class="seg-btn" data-val="landscape" type="button">가로</button>
+        </div>
+      </div>
+
+      <!-- ACTION -->
+      <button class="btn-process" id="processBtn" type="button" disabled>
+        <span>📖</span> 소책자 PDF 생성
+      </button>
+    </div>
+
+    <div class="sb-footer">
+      <div class="sb-user" id="sbUser" style="display:none">
+        <div class="sb-avatar" id="sbAvatar">?</div>
+        <div class="sb-uinfo">
+          <div class="sb-uname" id="sbUname">사용자</div>
+          <div class="sb-uemail" id="sbUemail"></div>
+        </div>
+        <button class="sb-logout" id="sbLogout" type="button">로그아웃</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main" id="mainArea">
+    <div class="tabbar">
+      <button class="menu-btn" id="menuBtn" type="button">☰</button>
+      <button class="tab-btn active" data-tab="preview" type="button">📐 배치 미리보기</button>
+      <button class="tab-btn" data-tab="order" type="button">📋 인쇄면 순서</button>
+      <button class="tab-btn" data-tab="guide" type="button">📗 인쇄 안내</button>
+      <div class="tab-spacer"></div>
+    </div>
+
+    <!-- PREVIEW TAB -->
+    <div class="tab-pane active" id="panePreview">
+      <div class="empty-state" id="emptyPreview">
+        <span class="empty-icon">📖</span>
+        <div class="empty-title">PDF를 업로드하면 배치를 미리볼 수 있습니다</div>
+        <div class="empty-desc">소책자 제작 방식은 인쇄지 한 장을 반으로 접었을 때 페이지가 순서대로 읽히도록 PDF 페이지 순서를 재배치합니다.</div>
+      </div>
+      <div class="preview-scroll hidden" id="previewContent">
+        <div class="preview-info-bar" id="previewInfoBar"></div>
+        <div class="sheet-grid" id="sheetGrid"></div>
+      </div>
+    </div>
+
+    <!-- ORDER TABLE TAB -->
+    <div class="tab-pane" id="paneOrder">
+      <div class="empty-state" id="emptyOrder">
+        <span class="empty-icon">📋</span>
+        <div class="empty-title">인쇄면 순서</div>
+        <div class="empty-desc">PDF를 업로드하면 인쇄면별 페이지 배치 순서표가 표시됩니다.</div>
+      </div>
+      <div class="order-scroll hidden" id="orderContent">
+        <table class="order-table">
+          <thead>
+            <tr>
+              <th>시트</th>
+              <th>인쇄면</th>
+              <th>왼쪽 (자리)</th>
+              <th>오른쪽 (자리)</th>
+            </tr>
+          </thead>
+          <tbody id="orderBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- GUIDE TAB -->
+    <div class="tab-pane" id="paneGuide">
+      <div class="guide-scroll">
+        <div class="guide-content">
+          <div class="guide-section">
+            <div class="gs-header"><div class="gs-num">1</div><div class="gs-title">PDF 인쇄 설정</div></div>
+            <div class="gs-body">
+              프린터 인쇄 대화상자에서 <strong>양면 인쇄</strong>를 선택하고,<br>
+              뒤집는 방향은 <strong>"긴 변(Long edge) 기준 뒤집기"</strong>를 선택합니다.<br>
+              <strong>페이지 크기 조정 없이 실제 크기로 인쇄</strong>하세요.
+            </div>
+          </div>
+          <div class="guide-section">
+            <div class="gs-header"><div class="gs-num">2</div><div class="gs-title">인쇄 후 정렬</div></div>
+            <div class="gs-body">
+              인쇄된 종이를 순서가 흐트러지지 않도록 주의하며 꺼냅니다.<br>
+              <strong>앞면이 위를 향하도록</strong> 가지런히 정렬합니다.
+            </div>
+          </div>
+          <div class="guide-section">
+            <div class="gs-header"><div class="gs-num">3</div><div class="gs-title">접기 (폴딩)</div></div>
+            <div class="gs-body">
+              가운데를 기준으로 반을 접습니다. 접힌 크기가 소책자 완성 크기입니다.<br>
+              예) A4 출력 → 완성 크기 A5 (148 × 210 mm)<br>
+              예) A3 출력 → 완성 크기 A4 (210 × 297 mm)
+            </div>
+          </div>
+          <div class="guide-section">
+            <div class="gs-header"><div class="gs-num">4</div><div class="gs-title">제본 (중철)</div></div>
+            <div class="gs-body">
+              접힌 선 중간에 스테이플러로 2~3군데 고정합니다.<br>
+              스테이플러 심이 닿지 않는 경우 중철 전용 스테이플러를 이용하세요.
+            </div>
+          </div>
+          <div class="guide-tip">
+            <span class="guide-tip-icon">💡</span>
+            <div class="guide-tip-text">
+              <strong>빈 페이지 안내</strong><br>
+              소책자는 전체 페이지 수가 4의 배수여야 합니다. 맞지 않을 경우 자동으로 빈 페이지가 추가됩니다.
+            </div>
+          </div>
+          <div class="guide-tip">
+            <span class="guide-tip-icon">📐</span>
+            <div class="guide-tip-text" id="guideCompleteSize">
+              완성 소책자 크기는 출력 용지 설정에 따라 달라집니다. 좌측에서 출력 용지를 선택하세요.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RESULT BAR -->
+    <div class="result-bar hidden" id="resultBar">
+      <span class="result-icon">✅</span>
+      <div class="result-text">
+        <div class="result-title">소책자 PDF 생성 완료</div>
+        <div class="result-desc" id="resultDesc">파일을 저장하세요.</div>
+      </div>
+      <button class="result-dl" id="resultDl" type="button">⬇ 다운로드</button>
+    </div>
+
+    <!-- STATUS BAR -->
+    <div class="status-bar">
+      <div class="status-dot" id="statusDot"></div>
+      <div class="status-msg" id="statusMsg">PDF를 업로드하고 설정을 확인한 뒤 생성 버튼을 누르세요.</div>
+    </div>
+  </main>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+<script src="../js/firebase-config.js"></script>
+<script src="../js/api.js"></script>
+<script>
+'use strict';
+
+// ---------- PAPER SIZES ----------
+const PAPERS = {
+  a4p:{w:210,h:297,label:'A4 세로'},a4l:{w:297,h:210,label:'A4 가로'},
+  a3p:{w:297,h:420,label:'A3 세로'},a3l:{w:420,h:297,label:'A3 가로'},
+  b5p:{w:176,h:250,label:'B5 세로'},b5l:{w:250,h:176,label:'B5 가로'},
+  ltp:{w:215.9,h:279.4,label:'Letter 세로'},ltl:{w:279.4,h:215.9,label:'Letter 가로'},
+};
+
+// ---------- BOOKLET STRIPS ----------
+const BOOKLET_STRIPS = {2:1,4:2,6:3,8:4};
+
+// ---------- STATE ----------
+let currentFile = null;
+let pageCount = 0;
+let currentNup = 2;
+let currentOrient = 'portrait';
+let abortController = null;
+let resultBlob = null;
+let resultFilename = '';
+
+// ---------- DOM REFS ----------
+const $ = id => document.getElementById(id);
+const uploadZone = $('uploadZone');
+const fileInput = $('fileInput');
+const fileChip = $('fileChip');
+const chipName = $('chipName');
+const chipMeta = $('chipMeta');
+const processBtn = $('processBtn');
+const progressOverlay = $('progressOverlay');
+const progressMsg = $('progressMsg');
+const progressBar = $('progressBar');
+const progressCancel = $('progressCancel');
+const emptyPreview = $('emptyPreview');
+const previewContent = $('previewContent');
+const emptyOrder = $('emptyOrder');
+const orderContent = $('orderContent');
+const sheetGrid = $('sheetGrid');
+const orderBody = $('orderBody');
+const previewInfoBar = $('previewInfoBar');
+const resultBar = $('resultBar');
+const resultDesc = $('resultDesc');
+const resultDl = $('resultDl');
+const statusDot = $('statusDot');
+const statusMsg = $('statusMsg');
+const guideCompleteSize = $('guideCompleteSize');
+
+// ---------- TABS ----------
+document.querySelectorAll('.tab-btn[data-tab]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    $('pane' + btn.dataset.tab.charAt(0).toUpperCase() + btn.dataset.tab.slice(1)).classList.add('active');
+  });
+});
+
+// ---------- SIDEBAR TOGGLE (mobile) ----------
+$('menuBtn').addEventListener('click', () => {
+  $('sidebar').classList.add('open');
+  $('sbOverlay').classList.add('open');
+});
+$('sbOverlay').addEventListener('click', () => {
+  $('sidebar').classList.remove('open');
+  $('sbOverlay').classList.remove('open');
+});
+
+$('homeBtn').addEventListener('click', () => { location.href = '../index.html'; });
+
+// ---------- SEGMENT BUTTONS ----------
+document.querySelectorAll('#strips .seg-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#strips .seg-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentNup = parseInt(btn.dataset.nup, 10);
+    const strips = BOOKLET_STRIPS[currentNup];
+    const stripDescs = {1:'인쇄지 한 면에 소책자 1부 분량을 배치합니다.',2:'인쇄지 한 면에 2부를 나란히 배치합니다. 재단 후 분리합니다.',3:'인쇄지 한 면에 3부를 나란히 배치합니다.',4:'인쇄지 한 면에 4부를 나란히 배치합니다.'};
+    $('stripDesc').textContent = stripDescs[strips];
+    updatePreview();
+  });
+});
+document.querySelectorAll('#orient .seg-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#orient .seg-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentOrient = btn.dataset.val;
+    updatePreview();
+  });
+});
+
+$('paperSelect').addEventListener('change', () => {
+  updateGuideSize();
+  updatePreview();
+});
+['marginH','marginV','gapMm'].forEach(id => {
+  $(id).addEventListener('input', updatePreview);
+});
+
+// ---------- FILE UPLOAD ----------
+uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag'); });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag'));
+uploadZone.addEventListener('drop', e => {
+  e.preventDefault();
+  uploadZone.classList.remove('drag');
+  const f = e.dataTransfer.files[0];
+  if (f) loadFile(f);
+});
+fileInput.addEventListener('change', () => {
+  if (fileInput.files[0]) loadFile(fileInput.files[0]);
+});
+$('fileRemove').addEventListener('click', () => {
+  currentFile = null;
+  pageCount = 0;
+  fileInput.value = '';
+  uploadZone.classList.remove('hidden');
+  fileChip.classList.add('hidden');
+  processBtn.disabled = true;
+  clearPreview();
+  setStatus('', 'PDF를 업로드하고 설정을 확인한 뒤 생성 버튼을 누르세요.');
+  hideResult();
+});
+
+async function loadFile(file) {
+  if (!file.name.match(/\.pdf$/i)) {
+    setStatus('err', '📄 PDF 파일만 업로드할 수 있습니다.');
+    return;
+  }
+  if (file.size > 209715200) {
+    setStatus('err', '파일 크기가 200MB를 초과합니다.');
+    return;
+  }
+  currentFile = file;
+  chipName.textContent = file.name;
+  chipMeta.textContent = formatBytes(file.size);
+  uploadZone.classList.add('hidden');
+  fileChip.classList.remove('hidden');
+  setStatus('busy', 'PDF 페이지 수 확인 중...');
+  hideResult();
+
+  try {
+    pageCount = await getPdfPageCount(file);
+    chipMeta.textContent = formatBytes(file.size) + ' · ' + pageCount + '페이지';
+    processBtn.disabled = false;
+    setStatus('ok', pageCount + '페이지 PDF 로드됨. 설정 확인 후 생성 버튼을 눌러주세요.');
+    updatePreview();
+  } catch (err) {
+    setStatus('err', 'PDF 페이지 수를 읽을 수 없습니다: ' + err.message);
+    processBtn.disabled = false;
+  }
+}
+
+async function getPdfPageCount(file) {
+  if (typeof pdfjsLib === 'undefined') {
+    await new Promise((res, rej) => {
+      if (document.getElementById('pdfjs')) { res(); return; }
+      const s = document.createElement('script');
+      s.id = 'pdfjs';
+      s.src = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js';
+      s.onload = res;
+      s.onerror = () => rej(new Error('PDF.js 로드 실패'));
+      document.head.appendChild(s);
+    });
+    await new Promise(r => setTimeout(r, 50));
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+  }
+  const buf = await file.arrayBuffer();
+  const doc = await pdfjsLib.getDocument({ data: buf }).promise;
+  return doc.numPages;
+}
+
+// ---------- BOOKLET ALGORITHM ----------
+function calcImposition(totalPages, nup) {
+  const nBooklets = BOOKLET_STRIPS[nup];
+  const perBooklet = Math.ceil(totalPages / nBooklets);
+  const padUnit = 4;
+  const paddedPer = Math.ceil(perBooklet / padUnit) * padUnit;
+  const Nb = paddedPer;
+
+  const sheets = [];
+  for (let b = 0; b < nBooklets; b++) {
+    const offset = b * perBooklet;
+    // Each pair of op values = 1 sheet (front=even op, back=odd op)
+    for (let si = 0; si < paddedPer / 4; si++) {
+      const opFront = si * 2;
+      const opBack = si * 2 + 1;
+
+      const frontLeft = Nb - 1 - opFront;
+      const frontRight = opFront;
+      const backLeft = opBack;
+      const backRight = Nb - 1 - opBack;
+
+      const toPage = (localIdx) => {
+        const abs = offset + localIdx;
+        return abs < totalPages ? abs + 1 : null;
+      };
+
+      sheets.push({
+        strip: b + 1,
+        sheet: si + 1,
+        front: { left: toPage(frontLeft), right: toPage(frontRight) },
+        back:  { left: toPage(backLeft),  right: toPage(backRight)  },
+      });
+    }
+  }
+  return { sheets, paddedPer, nBooklets, perBooklet };
+}
+
+// ---------- PREVIEW ----------
+function updatePreview() {
+  updateGuideSize();
+  if (!pageCount) {
+    clearPreview();
+    return;
+  }
+  const { sheets, paddedPer, nBooklets } = calcImposition(pageCount, currentNup);
+  const paper = PAPERS[$('paperSelect').value];
+  const padded = nBooklets * paddedPer;
+  const addedBlanks = padded - pageCount;
+
+  // Info bar
+  previewInfoBar.innerHTML = [
+    pibItem('원본 페이지', pageCount + '쪽'),
+    '<div class="pib-div"></div>',
+    pibItem('빈 페이지 추가', addedBlanks > 0 ? '+' + addedBlanks : '없음'),
+    '<div class="pib-div"></div>',
+    pibItem('완성 페이지', padded + '쪽'),
+    '<div class="pib-div"></div>',
+    pibItem('출력 시트 수', sheets.length * nBooklets / nBooklets + '장 × ' + nBooklets + '단'),
+    '<div class="pib-div"></div>',
+    pibItem('완성 크기', Math.round(paper.w/2) + ' × ' + paper.h + ' mm'),
+  ].join('');
+
+  // Sheet grid
+  sheetGrid.innerHTML = '';
+  sheets.forEach((sh, idx) => {
+    const card = document.createElement('div');
+    card.className = 'sheet-card';
+    card.innerHTML = `
+      <div class="sheet-header">
+        <span class="sheet-num">시트 ${idx+1}${nBooklets>1?' ('+sh.strip+'단)':''}</span>
+      </div>
+      <div class="sheet-body">
+        <div class="sheet-side">
+          <span class="side-badge front">앞면</span>
+          <div class="side-pages">
+            ${pageBox(sh.front.left,'front-l','왼쪽')}
+            ${pageBox(sh.front.right,'front-r','오른쪽')}
+          </div>
+        </div>
+        <div class="sheet-side">
+          <span class="side-badge back">뒷면</span>
+          <div class="side-pages">
+            ${pageBox(sh.back.left,'back-l','왼쪽')}
+            ${pageBox(sh.back.right,'back-r','오른쪽')}
+          </div>
+        </div>
+      </div>`;
+    sheetGrid.appendChild(card);
+  });
+
+  emptyPreview.classList.add('hidden');
+  previewContent.classList.remove('hidden');
+
+  // Order table
+  orderBody.innerHTML = '';
+  sheets.forEach((sh, idx) => {
+    const rows = [
+      { side:'앞면', cls:'front', l:sh.front.left, r:sh.front.right },
+      { side:'뒷면', cls:'back',  l:sh.back.left,  r:sh.back.right  },
+    ];
+    rows.forEach((row, ri) => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = ri===0
+        ? `<td rowspan="2" style="font-weight:800;color:var(--t2)">시트 ${idx+1}</td>`
+        : '';
+      tr.innerHTML += `
+        <td><span class="badge-pg badge-${row.cls}">${row.side}</span></td>
+        <td>${badgePage(row.l)}</td>
+        <td>${badgePage(row.r)}</td>`;
+      orderBody.appendChild(tr);
+    });
+  });
+
+  emptyOrder.classList.add('hidden');
+  orderContent.classList.remove('hidden');
+}
+
+function pibItem(label, value) {
+  return `<div class="pib-item"><div class="pib-label">${label}</div><div class="pib-value">${value}</div></div>`;
+}
+
+function pageBox(pg, cls, pos) {
+  if (pg === null) return `<div class="page-box blank ${cls}"><span class="page-pos">${pos}</span><span class="page-num blank-num">빈 면</span></div>`;
+  return `<div class="page-box ${cls}"><span class="page-pos">${pos}</span><span class="page-num">${pg}</span></div>`;
+}
+
+function badgePage(pg) {
+  if (pg === null) return '<span class="badge-pg badge-blank">빈 면</span>';
+  return `<span style="font-weight:800;color:var(--t1)">${pg}쪽</span>`;
+}
+
+function clearPreview() {
+  emptyPreview.classList.remove('hidden');
+  previewContent.classList.add('hidden');
+  emptyOrder.classList.remove('hidden');
+  orderContent.classList.add('hidden');
+}
+
+function updateGuideSize() {
+  const p = PAPERS[$('paperSelect').value] || PAPERS.a4p;
+  const fw = Math.round(p.w / 2);
+  const fh = p.h;
+  guideCompleteSize.innerHTML = `<strong>현재 설정 완성 크기:</strong> ${fw} × ${fh} mm (출력용지 ${p.label} 기준으로 반을 접었을 때)`;
+}
+
+// ---------- PROCESS ----------
+progressCancel.addEventListener('click', () => {
+  if (abortController) abortController.abort();
+});
+
+processBtn.addEventListener('click', async () => {
+  if (!currentFile) return;
+  if (!auth || !auth.currentUser) {
+    setStatus('err', '로그인이 필요합니다. 다시 로그인 후 시도해주세요.');
+    return;
+  }
+
+  hideResult();
+  abortController = new AbortController();
+  progressOverlay.classList.remove('hidden');
+  processBtn.disabled = true;
+  setStatus('busy', '소책자 PDF 생성 중...');
+  progressBar.style.width = '0%';
+  progressMsg.textContent = '준비 중...';
+
+  const paper = PAPERS[$('paperSelect').value] || PAPERS.a4p;
+  const settings = {
+    nup_default: currentNup,
+    booklet: true,
+    paper: { width_mm: paper.w, height_mm: paper.h },
+    margin_h_mm: Number($('marginH').value) || 10,
+    margin_v_mm: Number($('marginV').value) || 10,
+    gap_mm: Number($('gapMm').value) || 5,
+    is_landscape: currentOrient === 'landscape',
+  };
+
+  try {
+    const blob = await apiProcessPdf([currentFile], settings, {
+      signal: abortController.signal,
+      onStatus: msg => { progressMsg.textContent = msg; },
+      onProgress: p => {
+        if (p.percent != null) progressBar.style.width = p.percent + '%';
+        if (p.message) progressMsg.textContent = p.message;
+      },
+    });
+
+    progressOverlay.classList.add('hidden');
+    processBtn.disabled = false;
+
+    const base = currentFile.name.replace(/\.pdf$/i,'');
+    resultFilename = base + '_소책자.pdf';
+    resultBlob = blob;
+    resultDesc.textContent = resultFilename + ' · ' + formatBytes(blob.size);
+    resultBar.classList.remove('hidden');
+    setStatus('ok', '소책자 PDF 생성 완료 ✓');
+  } catch (err) {
+    progressOverlay.classList.add('hidden');
+    processBtn.disabled = false;
+    if (err.name === 'AbortError') {
+      setStatus('', '작업이 취소되었습니다.');
+    } else {
+      setStatus('err', '오류: ' + (err.message || '알 수 없는 오류'));
+    }
+  } finally {
+    abortController = null;
+  }
+});
+
+resultDl.addEventListener('click', () => {
+  if (!resultBlob) return;
+  const url = URL.createObjectURL(resultBlob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = resultFilename;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+});
+
+function hideResult() { resultBar.classList.add('hidden'); resultBlob = null; }
+
+// ---------- STATUS ----------
+function setStatus(type, msg) {
+  statusMsg.textContent = msg;
+  statusDot.className = 'status-dot' + (type ? ' ' + type : '');
+}
+
+// ---------- UTILS ----------
+function formatBytes(b) {
+  if (b >= 1048576) return (b/1048576).toFixed(1) + ' MB';
+  if (b >= 1024) return (b/1024).toFixed(0) + ' KB';
+  return b + ' B';
+}
+
+// ---------- AUTH UI ----------
+function updateUserUI(user) {
+  const sbUser = $('sbUser');
+  if (!user) { sbUser.style.display = 'none'; return; }
+  sbUser.style.display = 'flex';
+  const av = $('sbAvatar');
+  if (user.photoURL) {
+    av.innerHTML = `<img src="${user.photoURL}" alt="">`;
+  } else {
+    av.textContent = (user.displayName || user.email || '?').charAt(0).toUpperCase();
+  }
+  $('sbUname').textContent = user.displayName || user.email || '사용자';
+  $('sbUemail').textContent = user.email || '';
+}
+
+if (auth) {
+  auth.onAuthStateChanged(user => updateUserUI(user));
+  $('sbLogout').addEventListener('click', async () => {
+    try { await auth.signOut(); location.replace('../login.html'); } catch(_) {}
+  });
+}
+
+// ---------- INIT ----------
+updateGuideSize();
+updatePreview();
+</script>
+</body>
+</html>
