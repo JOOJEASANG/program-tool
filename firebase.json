@@ -30,6 +30,10 @@
         "function": "api"
       },
       {
+        "source": "/print-checker",
+        "destination": "/print-checker/index.html"
+      },
+      {
         "source": "/apps/**",
         "destination": "/apps/index.html"
       },
