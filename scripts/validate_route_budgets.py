@@ -10,7 +10,6 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SW = ROOT / "js/sw-register.js"
 UI = ROOT / "js/program-studio-ui-v2.js"
-DESIGN_RUNTIME = ROOT / "js/design-editor/core-runtime.js"
 PDF_RUNTIME = ROOT / "js/pdf-editor/route-runtime.js"
 PREFLIGHT_RUNTIME = ROOT / "js/pdf-preflight/route-runtime.js"
 ASSET_RE = re.compile(r"[\'\"`](/js/[^\'\"`\s]+)[\'\"`]")
@@ -22,7 +21,6 @@ LOAD_CATALOG_RE = re.compile(r"function loadCatalogCore\(\)\{\s*return load\([^,
 ROUTE_BUDGETS = {
     "home": (10, 88_000),
     "admin": (10, 180_000),
-    "design-general": (38, 1_200_000),
     "pdf-editor": (24, 950_000),
 }
 # PDF preflight is approval-gated and owns a nested canonical manifest. Validate
@@ -31,9 +29,7 @@ PREFLIGHT_ROUTE_BUDGET = (22, 1_100_000)
 UI_ENHANCEMENTS = {
     "home": "homeDashboardV2Script",
     "admin": "adminWorkflowV2Script",
-    "design-general": "designEditorWorkflowV2Script",
 }
-DESIGN_ESSENTIAL_WORKSPACE_ID = "designEditorEssentialWorkspaceScriptV1"
 
 
 def normalize(raw: str) -> str:
@@ -77,16 +73,14 @@ def collect_routes(sw_text: str, ui_text: str) -> dict[str, set[str]]:
         raise AssertionError("Could not resolve loadCatalogCore()")
     catalog = normalize(catalog_match.group("src"))
     home = common | assets(segment(sw_text, "if(isHome()){", "if(isPath('/admin','/admin.html')){")) | {catalog}
-    admin = common | assets(segment(sw_text, "if(isPath('/admin','/admin.html')){", "if(isPath('/design-editor/general','/design-editor/general.html'))")) | {catalog}
+    admin = common | assets(segment(sw_text, "if(isPath('/admin','/admin.html')){", "if(isPath('/tools/pdf-editor.html','/pdf-editor','/pdf-editor/index.html'))")) | {catalog}
     routes = {
         "home": home,
         "admin": admin,
-        "design-general": common | manifest_assets(DESIGN_RUNTIME),
         "pdf-editor": common | manifest_assets(PDF_RUNTIME),
     }
     for route, script_id in UI_ENHANCEMENTS.items():
         routes[route].add(ui_asset(ui_text, script_id))
-    routes["design-general"].add(ui_asset(ui_text, DESIGN_ESSENTIAL_WORKSPACE_ID))
     return routes
 
 

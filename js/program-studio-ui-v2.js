@@ -139,6 +139,7 @@
     if(['auth','approval','legal'].includes(surface)){
       loadEnhancement('programStudioPhase6Script','/js/surface-polish-v3.js?v=20260828-1',()=>Boolean(window.__programStudioPhase6),'화면 접근성 개선 기능을 불러오지 못했습니다.');
     }
+    if(surface==='pdf-editor'||surface==='pdf-preflight')return;
     if(surface==='home'){
       loadEnhancement('homeDashboardV2Script','/js/home-dashboard-v2.js?v=20260828-1',()=>Boolean(window.__homeDashboardV2),'홈 빠른 작업 기능을 불러오지 못했습니다.');
       return;

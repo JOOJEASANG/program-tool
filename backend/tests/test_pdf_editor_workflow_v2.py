@@ -12,7 +12,6 @@ def test_pdf_editor_does_not_reload_retired_guided_workflow_or_tool_rail():
     assert "loadEnhancement('pdfEditorWorkflowV2Script'" not in text
     assert "/js/pdf-editor/workflow-v2.js?v=20260828-1" not in text
     assert "if(surface==='pdf-editor')return;" in text
-    assert "if(surface==='design-editor')" in text
 
 
 def test_pdf_sidebar_toggle_is_disabled_for_always_visible_sidebar():
