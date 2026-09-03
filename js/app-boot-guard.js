@@ -79,16 +79,29 @@
   function loadDesignRuntimeScript(id,src){loadRuntimeScript(id,src,isGeneralDesignEditor());}
 
   installEmbeddedDesignFirstPaint();
-  loadDesignRuntimeScript('designTextAutoFitScriptV1','/js/design-editor/text-auto-fit.js?v=20260826-2');
-  loadDesignRuntimeScript('designTypographyProScriptV1','/js/design-editor/typography-pro.js?v=20260827-1');
-  loadDesignRuntimeScript('designLocalFontsScriptV1','/js/design-editor/local-fonts.js?v=20260827-1');
-  loadDesignRuntimeScript('designShapeBorderControlsScriptV1','/js/design-editor/shape-border-controls.js?v=20260827-1');
-  loadDesignRuntimeScript('designShapeInspectorUxScriptV1','/js/design-editor/shape-inspector-ux.js?v=20260827-1');
-  loadDesignRuntimeScript('designPrintProductionStage2ScriptV1','/js/design-editor/print-production-stage2.js?v=20260826-1');
-  loadRuntimeScript('pdfPrintWorkflowFocusScriptV1','/js/pdf-editor/print-workflow-focus.js?v=20260827-1',isPdfPrintEditor());
-  // Prime only the lightweight current preflight presentation. The canonical
-  // runtime still owns the full module chain and will reuse this loaded script.
-  loadRuntimeScript('pdfPreflightPanelBalanceScriptV1','/js/pdf-preflight-panel-balance.js?v=20260831-3',protectedProgram==='preflight');
+
+  let postRevealScheduled=false;
+  function loadPostRevealEnhancements(){
+    loadDesignRuntimeScript('designTextAutoFitScriptV1','/js/design-editor/text-auto-fit.js?v=20260826-2');
+    loadDesignRuntimeScript('designTypographyProScriptV1','/js/design-editor/typography-pro.js?v=20260827-1');
+    loadDesignRuntimeScript('designLocalFontsScriptV1','/js/design-editor/local-fonts.js?v=20260827-1');
+    loadDesignRuntimeScript('designShapeBorderControlsScriptV1','/js/design-editor/shape-border-controls.js?v=20260827-1');
+    loadDesignRuntimeScript('designShapeInspectorUxScriptV1','/js/design-editor/shape-inspector-ux.js?v=20260827-1');
+    loadDesignRuntimeScript('designPrintProductionStage2ScriptV1','/js/design-editor/print-production-stage2.js?v=20260826-1');
+    loadRuntimeScript('pdfPrintWorkflowFocusScriptV1','/js/pdf-editor/print-workflow-focus.js?v=20260827-1',isPdfPrintEditor());
+    loadRuntimeScript('pdfPreflightPanelBalanceScriptV1','/js/pdf-preflight-panel-balance.js?v=20260831-3',protectedProgram==='preflight');
+    root.dataset.postRevealEnhancements='scheduled';
+  }
+  function schedulePostRevealEnhancements(){
+    if(postRevealScheduled)return;
+    postRevealScheduled=true;
+    const run=()=>{
+      try{loadPostRevealEnhancements();}
+      catch(error){console.warn('Post-reveal enhancement loading failed.',error);}
+    };
+    if(typeof requestIdleCallback==='function')requestIdleCallback(run,{timeout:900});
+    else setTimeout(run,80);
+  }
 
   let revealed=false;
   let style=null;
@@ -97,7 +110,9 @@
     revealed=true;
     root.classList.remove('app-booting');
     root.dataset.appReady='true';
+    root.dataset.bootGate='access-only';
     if(style)requestAnimationFrame(()=>style.remove());
+    schedulePostRevealEnhancements();
   }
 
   window.ProgramStudioBoot={...(window.ProgramStudioBoot||{}),reveal,protectedProgram};
@@ -148,10 +163,11 @@
     return false;
   }
 
-  async function waitForPreflightShell(){
+  async function watchPreflightShell(){
     if(protectedProgram!=='preflight')return true;
-    const ready=await waitUntil(()=>document.body?.dataset?.pdfPreflightUi==='clean-workspace-v2',400);
-    if(!ready)console.warn('PDF preflight shell is still enhancing; revealing the base workspace to avoid blocking the tool.');
+    const ready=await waitUntil(()=>document.body?.dataset?.pdfPreflightUi==='clean-workspace-v2',2500);
+    root.dataset.preflightEnhancementReady=ready?'1':'0';
+    if(!ready)console.warn('PDF preflight enhancements are still loading after the base workspace became interactive.');
     return ready;
   }
 
@@ -165,22 +181,21 @@
     return projectReady&&focusedReady&&shellReady&&productReady&&sidebarReady;
   }
 
-  async function waitForDesignShell(){
+  async function watchDesignShell(){
     if(protectedProgram!=='design-studio'||!isGeneralDesignEditor())return true;
-    if(isDirectDesignEntry()){
-      root.dataset.designRevealWait='final-workspace';
-      const ready=await waitUntil(directDesignWorkspaceReady,9000);
-      if(!ready)throw new Error('Final design workspace did not stabilize before reveal.');
-      document.getElementById('authLoading')?.classList.add('hidden');
-      root.dataset.designRevealStage='final-workspace';
-      return true;
-    }
-    const ready=await waitUntil(()=>Boolean(
+    const timeout=isDirectDesignEntry()?9000:2800;
+    const ready=await waitUntil(()=>isDirectDesignEntry()?directDesignWorkspaceReady():Boolean(
       window.DesignEditorEssentialWorkspace?.stage||
       (window.DesignEditorApp&&(document.getElementById('editorShell')||document.getElementById('startScreen')))
-    ),2800);
-    if(!ready)console.warn('Design editor enhancements are still loading; revealing the base workspace to avoid blocking the tool.');
+    ),timeout);
+    root.dataset.designEnhancementReady=ready?'1':'0';
+    root.dataset.designRevealStage=ready?'enhanced':'base-interactive';
+    if(!ready)console.warn('Design enhancements did not fully stabilize, but the base editor remains interactive.');
     return ready;
+  }
+
+  function observeEnhancementReadiness(){
+    Promise.allSettled([watchPreflightShell(),watchDesignShell()]).catch(()=>{});
   }
 
   function retryApprovalWait(){
@@ -192,20 +207,11 @@
     if(revealed)return;
     const ready=window.ProgramAccessReady;
     if(ready&&typeof ready.then==='function'){
-      Promise.resolve(ready).then(async access=>{
+      Promise.resolve(ready).then(access=>{
         if(!access){retryApprovalWait();return;}
-        try{
-          await Promise.all([waitForPreflightShell(),waitForDesignShell()]);
-        }catch(error){
-          if(isDirectDesignEntry()){
-            console.warn('Direct design workspace is not stable yet; keeping the loading gate closed.',error);
-            retryApprovalWait();
-            return;
-          }
-          console.warn('Protected route enhancement wait failed; continuing with the base workspace.',error);
-        }
         clearTimeout(failClosedTimer);
         reveal();
+        observeEnhancementReadiness();
       }).catch(error=>{
         console.warn('Program access readiness promise failed before reveal.',error);
         retryApprovalWait();
