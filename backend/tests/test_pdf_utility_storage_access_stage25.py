@@ -19,36 +19,36 @@ def test_storage_rules_require_account_approval_for_program_resources():
     assert '.get("public")' not in backend
 
 
-def test_pdf_utility_temp_storage_requires_matching_program_access_before_staging():
+def test_pdf_utility_temp_storage_is_owner_scoped_without_program_access_dependency():
     rules = STORAGE_RULES.read_text(encoding="utf-8")
 
     pdf_temp_start = rules.index("match /pdf_temp/{userId}/{sessionId}/{fileName}")
     preflight_temp_start = rules.index("match /preflight_temp/{userId}/{sessionId}/{fileName}")
     pdf_temp_block = rules[pdf_temp_start:preflight_temp_start]
 
-    assert "allow read: if isOwner(userId) && canUseProgram('pdf-editor');" in pdf_temp_block
+    assert "allow read: if isOwner(userId);" in pdf_temp_block
     assert "allow delete: if isOwner(userId);" in pdf_temp_block
     assert "allow create: if resource == null" in pdf_temp_block
     assert "isOwner(userId)" in pdf_temp_block
-    assert "canUseProgram('pdf-editor')" in pdf_temp_block
+    assert "canUseProgram(" not in pdf_temp_block
     assert "validStagePath(sessionId, fileName)" in pdf_temp_block
     assert "validPdfUpload(209715200)" in pdf_temp_block
     assert "allow update: if false;" in pdf_temp_block
     assert "request.resource.contentType == 'application/pdf'" in rules
 
 
-def test_preflight_temp_storage_requires_matching_program_access_before_staging():
+def test_preflight_temp_storage_is_owner_scoped_without_program_access_dependency():
     rules = STORAGE_RULES.read_text(encoding="utf-8")
 
     start = rules.index("match /preflight_temp/{userId}/{sessionId}/{fileName}")
     end = rules.index("match /pdf_sessions/{userId}/{sessionId}/{fileName}")
     block = rules[start:end]
 
-    assert "allow read: if isOwner(userId) && canUseProgram('preflight');" in block
+    assert "allow read: if isOwner(userId);" in block
     assert "allow delete: if isOwner(userId);" in block
     assert "allow create: if resource == null" in block
     assert "isOwner(userId)" in block
-    assert "canUseProgram('preflight')" in block
+    assert "canUseProgram(" not in block
     assert "validStagePath(sessionId, fileName)" in block
     assert "validPdfUpload(209715200)" in block
     assert "allow update: if false;" in block
@@ -67,13 +67,13 @@ def test_saved_sessions_still_require_pdf_editor_program_access():
     assert "allow update: if false;" in block
 
 
-def test_generated_results_can_be_removed_immediately_by_owner():
+def test_generated_results_are_server_created_and_owner_readable_deletable():
     rules = STORAGE_RULES.read_text(encoding="utf-8")
     start = rules.index("match /pdf_results/{userId}/{resultId}/{fileName}")
     end = rules.index("match /design_projects/{userId}/{projectId}/{fileName}")
     block = rules[start:end]
 
+    assert "allow read: if isOwner(userId);" in block
     assert "allow delete: if isOwner(userId);" in block
-    assert "canUseProgram('preflight')" in block
-    assert "canUseProgram('pdf-editor')" in block
+    assert "canUseProgram(" not in block
     assert "allow create, update: if false;" in block
