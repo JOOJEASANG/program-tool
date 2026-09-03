@@ -5,6 +5,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PORT="${DESIGN_EDITOR_BROWSER_SMOKE_PORT:-4173}"
 OUT_DIR="${DESIGN_EDITOR_BROWSER_SMOKE_OUT:-$ROOT_DIR/browser-smoke-artifacts}"
 DOM_OUT="$OUT_DIR/design-editor-smoke-dom.html"
+DIRECT_DOM_OUT="$OUT_DIR/design-direct-real-dom-smoke.html"
 SERVER_LOG="$OUT_DIR/design-editor-smoke-server.log"
 PROFILE_DIR="$(mktemp -d)"
 mkdir -p "$OUT_DIR"
@@ -23,6 +24,7 @@ SERVER_PID=$!
 cleanup(){ kill "$SERVER_PID" >/dev/null 2>&1 || true; wait "$SERVER_PID" >/dev/null 2>&1 || true; rm -rf "$PROFILE_DIR"; }
 trap cleanup EXIT
 URL="http://127.0.0.1:$PORT/tests/browser/design-editor-smoke.html"
+DIRECT_URL="http://127.0.0.1:$PORT/tests/browser/design-direct-real-dom-smoke.html"
 for _ in $(seq 1 50); do
   if python3 - "$URL" <<'PY' >/dev/null 2>&1
 import sys, urllib.request
@@ -41,6 +43,19 @@ if ! grep -q 'data-rendered-width="2551"' "$DOM_OUT" || ! grep -q 'data-rendered
 if ! grep -q 'data-exported-png-width="2551"' "$DOM_OUT" || ! grep -q 'data-exported-png-height="3579"' "$DOM_OUT" || ! grep -q 'data-exported-png-gate="png"' "$DOM_OUT"; then echo "Real PNG export dimensions or final-print gate marker were not recorded." >&2; cat "$DOM_OUT" >&2; exit 1; fi
 
 echo "Design editor PNG browser smoke passed using $BROWSER"
+
+"$BROWSER" --headless=new --disable-gpu --no-sandbox --disable-dev-shm-usage --disable-background-networking --user-data-dir="$PROFILE_DIR" --virtual-time-budget=30000 --dump-dom "$DIRECT_URL" >"$DIRECT_DOM_OUT"
+if ! grep -q 'data-direct-real-dom-smoke="pass"' "$DIRECT_DOM_OUT"; then
+  echo "Design direct real-DOM interaction smoke failed." >&2
+  grep -o 'data-direct-[^>]*' "$DIRECT_DOM_OUT" >&2 || true
+  grep -o 'FAIL: [^<]*' "$DIRECT_DOM_OUT" >&2 || true
+  cat "$DIRECT_DOM_OUT" >&2
+  exit 1
+fi
+if ! grep -q 'data-direct-click-delta="1"' "$DIRECT_DOM_OUT"; then echo "Real app-direct click did not mutate project state." >&2; cat "$DIRECT_DOM_OUT" >&2; exit 1; fi
+if ! grep -q 'data-direct-artboard-mutations="0"' "$DIRECT_DOM_OUT"; then echo "Real app-direct artboard is still rebuilding while idle." >&2; cat "$DIRECT_DOM_OUT" >&2; exit 1; fi
+echo "Design direct real-DOM interaction smoke passed using $BROWSER"
+
 bash "$ROOT_DIR/scripts/run_design_editor_workflow_v2_smoke.sh"
 bash "$ROOT_DIR/scripts/run_design_editor_cover_smoke.sh"
 bash "$ROOT_DIR/scripts/run_design_editor_cover_mode_menu_smoke.sh"

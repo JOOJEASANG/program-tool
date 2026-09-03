@@ -7,6 +7,7 @@ const params=new URLSearchParams(location.search),rawApp=(params.get('app')||'')
 const standalone=['cover','poster','flyer','invitation','leaflet'].includes(app);
 const fallbackFoldProduct=app==='invitation'||app==='leaflet'||(!standalone&&['invitation','leaflet2','leaflet3'].includes(params.get('mode')||''));
 const SUPPORT_SCRIPT_TIMEOUT_MS=1200;
+const FINAL_PAINT_TIMEOUT_MS=180;
 const MODULES=Object.freeze([
 {id:'designPrintFoldRuntimeEnsureScriptV1',src:'/js/design-editor/print-fold-runtime-ensure.js?v=20260825-5',global:'DesignEditorPrintFoldRuntimeEnsure',method:'refresh'},
 {id:'designDocumentTypeStateScriptV1',src:'/js/design-editor/shared/document-type-state.js?v=20260831-1',global:'DesignEditorDocumentTypeState',method:'sync'},
@@ -22,8 +23,12 @@ const MODULES=Object.freeze([
 ]);
 const loading=new Map(),getApi=e=>window[e.global]||null,activeProfile=()=>window.DesignEditorStandaloneProducts?.fromLocation?.(location.search)||null,sharedProfile=()=>window.DesignEditorSharedModuleProfile||null;
 const needsFoldRuntime=()=>activeProfile()?.needsFoldRuntime??fallbackFoldProduct,needsProductMenu=()=>activeProfile()?.needsProductMenu??fallbackFoldProduct;
-const nextPaint=()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
 const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+const markStage=stage=>{document.documentElement.dataset.designShellStage=stage;};
+const nextPaint=()=>Promise.race([
+  new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve('paint')))),
+  delay(FINAL_PAINT_TIMEOUT_MS).then(()=>{document.documentElement.dataset.designShellPaintFallback='1';return'timeout';})
+]);
 async function waitUntil(predicate,timeoutMs){const deadline=Date.now()+timeoutMs;while(Date.now()<deadline){try{if(predicate())return true;}catch(_){}await delay(30);}return false;}
 function shouldLoad(e){
 if(!standalone)return true;
@@ -81,25 +86,25 @@ if(!shouldLoad(e))return Promise.resolve(true);if(syncEntry(e))return Promise.re
 const promise=new Promise(resolve=>{let script=document.getElementById(e.id),settled=false,timer=0;const done=ok=>{if(settled)return;settled=true;if(timer)clearTimeout(timer);syncEntry(e);resolve(ok);};if(script){if(script.dataset.loaded==='true'||getApi(e)){done(true);return;}script.addEventListener('load',()=>done(true),{once:true});script.addEventListener('error',()=>done(false),{once:true});timer=setTimeout(()=>done(Boolean(getApi(e))),SUPPORT_SCRIPT_TIMEOUT_MS);return;}script=document.createElement('script');script.id=e.id;script.src=e.src;script.async=false;script.addEventListener('load',()=>{script.dataset.loaded='true';done(true);},{once:true});script.addEventListener('error',()=>done(false),{once:true});document.head.appendChild(script);timer=setTimeout(()=>done(Boolean(getApi(e))),SUPPORT_SCRIPT_TIMEOUT_MS);}).finally(()=>loading.delete(e.id));loading.set(e.id,promise);return promise;
 }
 async function finalizeWorkspace(){
-const root=document.documentElement;delete root.dataset.designFinalWorkspaceReady;
+const root=document.documentElement;delete root.dataset.designFinalWorkspaceReady;markStage('finalize-start');
 try{window.DesignEditorDraftScope?.restoreCurrentScope?.();}catch(error){console.warn('[design-shell-runtime] draft restore failed',error);}
 sync();try{window.DesignEditorFocusedWorkspace?.sync?.();}catch(_){}try{window.DesignEditorEmbeddedStabilityBootstrap?.sync?.();}catch(_){}
-await nextPaint();try{window.DesignEditorSidebarMenuOrder?.sync?.();}catch(_){}try{window.DesignEditorProductSpecificWorkspace?.sync?.();}catch(_){}try{window.DesignEditorFocusedWorkspace?.sync?.();}catch(_){}try{window.DesignEditorEmbeddedStabilityBootstrap?.sync?.();}catch(_){}
-await nextPaint();root.dataset.designShellRuntime='1';root.dataset.designFinalWorkspaceReady='1';return true;
+markStage('finalize-paint-1');await nextPaint();markStage('finalize-mid');try{window.DesignEditorSidebarMenuOrder?.sync?.();}catch(_){}try{window.DesignEditorProductSpecificWorkspace?.sync?.();}catch(_){}try{window.DesignEditorFocusedWorkspace?.sync?.();}catch(_){}try{window.DesignEditorEmbeddedStabilityBootstrap?.sync?.();}catch(_){}
+markStage('finalize-paint-2');await nextPaint();root.dataset.designShellRuntime='1';root.dataset.designFinalWorkspaceReady='1';markStage('ready');return true;
 }
 async function loadAll(){
-const root=document.documentElement;delete root.dataset.designFinalWorkspaceReady;
+const root=document.documentElement;delete root.dataset.designFinalWorkspaceReady;markStage('profile');
 await loadSupportScript('designSharedModuleProfileScriptV1','/js/design-editor/shared/module-profile.js?v=20260831-1',()=>Boolean(window.DesignEditorSharedModuleProfile));
-await loadBoundaryUi();
-await Promise.all(MODULES.map(entry=>loadEntry(entry)));
+markStage('boundary');await loadBoundaryUi();
+markStage('modules');await Promise.all(MODULES.map(entry=>loadEntry(entry)));
 // Essential workspace is owned by the global design UI loader. Only wait briefly
 // for its canonical panel before sidebar ordering; do not re-run its DOM sync here.
-await waitUntil(()=>Boolean(window.DesignEditorEssentialWorkspace?.stage&&document.querySelector('.design-flat-panel')),1400);
-await Promise.all([loadWorkspaceNavigation(),loadSidebarMenuOrder(),loadUiRevision(),loadDirectResize(),loadStabilityGuards(),loadFullPreviewWorkspace(),loadProductSpecificWorkspace()]);
-sync();await finalizeWorkspace();if(standalone){root.dataset.designStandaloneApp=activeProfile()?.key||rawApp||app;root.dataset.designStandaloneRuntime=activeProfile()?.runtimeProduct||app;}return true;
+markStage('essential-wait');await waitUntil(()=>Boolean(window.DesignEditorEssentialWorkspace?.stage&&document.querySelector('.design-flat-panel')),1400);
+markStage('support');await Promise.all([loadWorkspaceNavigation(),loadSidebarMenuOrder(),loadUiRevision(),loadDirectResize(),loadStabilityGuards(),loadFullPreviewWorkspace(),loadProductSpecificWorkspace()]);
+markStage('pre-finalize');sync();await finalizeWorkspace();if(standalone){root.dataset.designStandaloneApp=activeProfile()?.key||rawApp||app;root.dataset.designStandaloneRuntime=activeProfile()?.runtimeProduct||app;}return true;
 }
 function sync(){let ready=0;MODULES.forEach(e=>{if(syncEntry(e))ready+=1;});if(standalone){window.DesignEditorProductBoundaryUi?.sync?.();window.DesignEditorWorkspaceNavigation?.sync?.();window.DesignEditorSidebarMenuOrder?.sync?.();window.DesignEditorProductSpecificWorkspace?.sync?.();}window.DesignEditorUiRevision?.sync?.();window.DesignEditorInvitationFoldOverlay?.refresh?.();window.DesignEditorDirectResize?.sync?.();window.DesignEditorStabilityGuards?.sync?.();window.DesignEditorFullPreviewWorkspace?.sync?.();window.DesignEditorFocusedWorkspace?.sync?.();return ready;}
-function boot(){document.documentElement.removeAttribute('data-design-final-workspace-ready');loadAll().catch(error=>console.error('[design-shell-runtime] load failed',error));[160,500,1200].forEach(wait=>setTimeout(()=>{if(document.documentElement.dataset.designFinalWorkspaceReady!=='1')sync();},wait));}
+function boot(){document.documentElement.removeAttribute('data-design-final-workspace-ready');markStage('boot');loadAll().catch(error=>{markStage('failed');console.error('[design-shell-runtime] load failed',error);});[160,500,1200].forEach(wait=>setTimeout(()=>{if(document.documentElement.dataset.designFinalWorkspaceReady!=='1')sync();},wait));}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 window.DesignEditorShellRuntime={loadAll,sync,finalizeWorkspace,product:standalone?app:'integrated',get profile(){return activeProfile()?.key||null;},modules:MODULES.map(({id,src,global,method})=>({id,src,global,method})),stage:'design-shell-runtime-manifest-v1',finalStage:'design-shell-runtime-final-workspace-v4-functional'};
 })();
