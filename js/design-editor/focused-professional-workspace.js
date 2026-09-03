@@ -75,17 +75,17 @@
         grid-template-rows:minmax(0,1fr)!important
       }
       html[data-design-focused-workspace="1"][data-design-sidebar-open="false"] #editorShell{grid-template-columns:52px minmax(0,1fr)!important}
-      html[data-design-focused-workspace="1"] #propertiesPanel,
-      html[data-design-focused-workspace="1"][data-design-ui-revision="20260901"] #propertiesPanel,
-      html[data-design-focused-workspace="1"][data-design-context-pane-open="true"] #propertiesPanel,
-      html[data-design-focused-workspace="1"][data-design-context-pane-open="false"] #propertiesPanel{
+      html[data-design-focused-workspace="1"]:not([data-design-essential-workspace]) #propertiesPanel,
+      html[data-design-focused-workspace="1"][data-design-ui-revision="20260901"]:not([data-design-essential-workspace]) #propertiesPanel,
+      html[data-design-focused-workspace="1"][data-design-context-pane-open="true"]:not([data-design-essential-workspace]) #propertiesPanel,
+      html[data-design-focused-workspace="1"][data-design-context-pane-open="false"]:not([data-design-essential-workspace]) #propertiesPanel{
         display:none!important;width:0!important;min-width:0!important;max-width:0!important;position:absolute!important;visibility:hidden!important;pointer-events:none!important
       }
       html[data-design-focused-workspace="1"] #canvasArea,
       html[data-design-focused-workspace="1"][data-design-essential-workspace] #canvasArea{padding-right:0!important}
       html[data-design-focused-workspace="1"] .editor-main{grid-column:2!important;min-width:0!important}
-      html[data-design-focused-workspace="1"] #inspector{display:none!important}
-      html[data-design-focused-workspace="1"] [data-focused-ui-hidden="1"]{display:none!important}
+      html[data-design-focused-workspace="1"]:not([data-design-essential-workspace]) #inspector{display:none!important}
+      html[data-design-focused-workspace="1"]:not([data-design-essential-workspace]) [data-focused-ui-hidden="1"]{display:none!important}
       html[data-design-focused-workspace="1"] #designCanvasQuickbar{display:none!important}
       html[data-design-focused-workspace="1"] #designSelectionContextbar,
       html[data-design-focused-workspace="1"] #designMultiSelectionContextbar{
@@ -115,13 +115,18 @@
   function nativeAddCard(){return byId('addTitleBtn')?.closest('.side-card')||null;}
 
   function hideRedundantUi(){
+    document.querySelectorAll('[data-design-command="panel"]').forEach(node=>node.remove());
+    // When essential-workspace is active it owns sidebar card visibility via
+    // applyVisibility(). Do not compete with it — its CSS already overrides the
+    // focused-workspace hiding rules through the :not([data-design-essential-workspace])
+    // guards, and marking nodes here would fight its structural sync.
+    if(document.documentElement.dataset.designEssentialWorkspace)return;
     const card=nativeAddCard();if(card)card.dataset.focusedUiHidden='1';
     HIDDEN_IDS.forEach(id=>{const node=byId(id);if(node)node.dataset.focusedUiHidden='1';});
     document.querySelectorAll('.sidebar .side-card').forEach(node=>{
       const title=String(node.querySelector('.side-label,.design-tool-title,.inspector-title,summary')?.textContent||'').replace(/\s+/g,' ').trim();
       if(/^(내용 추가|전문 기본 배치|이미지·도형 추가|회전)$/.test(title))node.dataset.focusedUiHidden='1';
     });
-    document.querySelectorAll('[data-design-command="panel"]').forEach(node=>node.remove());
   }
 
   function preparePhase2Bootstrap(){

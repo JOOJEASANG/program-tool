@@ -262,6 +262,11 @@
     if(!p||!Array.isArray(p.surfaces))return false;
     syncing=true;
     let changed=false;
+    // Suppress our own artboard observer while we mutate the DOM so these writes
+    // do not re-trigger this sync. JS is single-threaded, so no external mutation
+    // can slip in during this synchronous block — nothing is missed.
+    const board=document.getElementById('artboard');
+    if(observer)observer.disconnect();
     try{
       const scale=artboardScale();
       p.surfaces.forEach(surface=>{
@@ -274,7 +279,10 @@
         window.dispatchEvent(new CustomEvent('designeditor:text-autofit',{detail:{project:p}}));
       }
       return changed;
-    }finally{syncing=false;}
+    }finally{
+      if(observer&&board){try{observer.takeRecords();}catch(_){}try{observer.observe(board,{childList:true,subtree:true,characterData:true});}catch(_){}}
+      syncing=false;
+    }
   }
 
   function queueSync(){

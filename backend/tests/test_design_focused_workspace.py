@@ -5,7 +5,7 @@ ROOT = Path(__file__).resolve().parents[2]
 
 def test_focused_workspace_is_loaded_by_general_editor():
     shell = (ROOT / "design-editor" / "general.html").read_text(encoding="utf-8")
-    assert "focused-professional-workspace.js?v=20260901-1" in shell
+    assert "focused-professional-workspace.js?v=20260903-1" in shell
 
 
 def test_focused_workspace_removes_redundant_panels_and_keeps_header_editing():
@@ -36,6 +36,17 @@ def test_focused_workspace_primes_phase2_before_hiding_source_controls():
     assert "phase2AddRect" in runtime
     assert "phase2AddEllipse" in runtime
     assert "phase2AddLine" in runtime
+
+
+def test_focused_workspace_yields_to_essential_workspace_when_both_coexist():
+    runtime = (ROOT / "js" / "design-editor" / "focused-professional-workspace.js").read_text(encoding="utf-8")
+    # Properties panel and inspector hiding must not apply when essential-workspace is managing them
+    assert ":not([data-design-essential-workspace]) #propertiesPanel" in runtime
+    assert ":not([data-design-essential-workspace]) #inspector" in runtime
+    assert ":not([data-design-essential-workspace]) [data-focused-ui-hidden" in runtime
+    # hideRedundantUi must short-circuit when essential-workspace is active
+    assert "dataset.designEssentialWorkspace" in runtime
+    assert "data-design-command=\"panel\"" in runtime
 
 
 def test_removed_right_sidebar_space_is_reclaimed_by_preview():

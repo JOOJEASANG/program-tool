@@ -272,10 +272,16 @@
     if(!p||!artboard||currentType()!=='cover'||!p.cover){removeCoverBoundaries();return false;}
     const bleed=Math.max(0,Number(p.bleed??p.cover.bleed)||0),trimW=Math.max(.1,Number(p.cover.trimWidth)||210),trimH=Math.max(.1,Number(p.cover.trimHeight)||Number(p.height)||297),spine=Math.max(0,Number(p.cover.spine)||0),width=Math.max(.1,Number(p.width)||trimW*2+spine),height=Math.max(.1,Number(p.height)||trimH);
     const sx=artboard.clientWidth/(width+bleed*2),sy=artboard.clientHeight/(height+bleed*2);
-    let overlay=byId(BOUNDARY_ID);if(!overlay){overlay=document.createElement('div');overlay.id=BOUNDARY_ID;overlay.className='design-flat-cover-boundaries';overlay.setAttribute('aria-hidden','true');artboard.appendChild(overlay);}
+    let overlay=byId(BOUNDARY_ID);
+    // Skip the unconditional rebuild when nothing that affects the guides changed.
+    // Without this the childList of the artboard churns on every sync and wakes
+    // every other artboard observer, feeding the idle re-render cascade.
+    const signature=[bleed,trimW,trimH,spine,Math.round(sx*1000),Math.round(sy*1000)].join('|');
+    if(overlay&&overlay.dataset.boundarySig===signature)return true;
+    if(!overlay){overlay=document.createElement('div');overlay.id=BOUNDARY_ID;overlay.className='design-flat-cover-boundaries';overlay.setAttribute('aria-hidden','true');artboard.appendChild(overlay);}
     const points=[trimW,trimW+spine];
     overlay.replaceChildren(...points.map(mm=>{const line=document.createElement('div');line.className='design-flat-cover-boundary';line.style.left=`${(bleed+mm)*sx}px`;line.style.top=`${bleed*sy}px`;line.style.height=`${trimH*sy}px`;return line;}));
-    overlay.dataset.spine=String(spine);return true;
+    overlay.dataset.spine=String(spine);overlay.dataset.boundarySig=signature;return true;
   }
 
   function targetFor(step){
@@ -305,11 +311,22 @@
 
   function runSync(){
     if(mutating||!panel)return false;mutating=true;
+    // Pause our own structural observers while we mutate the sidebar/panel so
+    // these writes do not re-trigger runSync. JS is single-threaded, so no
+    // external mutation can slip in during this synchronous block — nothing missed.
+    if(sidebarObserver)sidebarObserver.disconnect();
+    if(panelObserver)panelObserver.disconnect();
+    if(propertiesObserver)propertiesObserver.disconnect();
     try{
       removeWorkflowBar();moveSidebarChildren();ensureContextChrome();applyVisibility();clearInvitationGeometry();stripInvitationFoldControls();renderCoverBoundaries();
       document.documentElement.dataset.designEssentialWorkspace='context-v3';document.documentElement.dataset.editorToolStep='all';
       return true;
-    }finally{mutating=false;}
+    }finally{
+      if(sidebarObserver&&sidebar){try{sidebarObserver.takeRecords();}catch(_){}try{sidebarObserver.observe(sidebar,{childList:true});}catch(_){}}
+      if(panelObserver&&panel){try{panelObserver.takeRecords();}catch(_){}try{panelObserver.observe(panel,{childList:true,subtree:true});}catch(_){}}
+      if(propertiesObserver&&properties){try{propertiesObserver.takeRecords();}catch(_){}try{propertiesObserver.observe(properties,{childList:true,subtree:false});}catch(_){}}
+      mutating=false;
+    }
   }
 
   function scheduleSync(){if(syncFrame)return;syncFrame=requestAnimationFrame(()=>{syncFrame=0;runSync();});}
