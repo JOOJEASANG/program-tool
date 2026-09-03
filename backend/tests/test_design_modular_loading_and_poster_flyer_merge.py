@@ -14,22 +14,23 @@ def test_modular_app_shell_retries_when_initial_access_promise_resolves_empty():
     assert "if(result||document.documentElement.dataset.accessReady==='true'){grantAccess();return;}" in source
     assert "retryAccess();" in source
     assert "if(!accessGranted||!frameReady)return;" in source
-    assert "modular-app-shell-product-context-v5-access-race-safe" in source
-    assert "modular-app-shell-parallel-engine-preload-v1" in source
+    assert "modular-app-shell-product-context-v6-functional-reveal" in source
+    assert "modular-app-shell-parallel-engine-preload-v2" in source
 
 
-def test_design_modular_shell_reveals_only_after_stable_project_readiness():
+def test_design_modular_shell_reveals_only_after_functional_project_readiness():
     source = read("js/studio-app-shell.js")
     assert "function designFrameCanReveal()" in source
     assert "win.DesignEditorApp?.project" in source
     assert "doc.documentElement.dataset.designEmbeddedProjectReady==='1'" in source
-    assert "doc.documentElement.dataset.designFocusedWorkspace==='1'" in source
+    reveal = source[source.index("function designFrameCanReveal()") : source.index("function startFrameProbe()")]
+    assert "designFocusedWorkspace" not in reveal
     assert "!doc.documentElement.classList.contains('app-booting')" in source
     assert "Boolean(win.DesignEditorFocusedWorkspace)" not in source
-    assert "markFrameReady('stable-project-probe')" in source
-    assert "markFrameReady('load-stable-project')" in source
-    assert "frameProbeTimer=setTimeout(probe,25)" in source
-    assert "modular-design-stable-project-reveal-v3" in source
+    assert "markFrameReady('functional-project-probe')" in source
+    assert "markFrameReady('load-functional-project')" in source
+    assert "frameProbeTimer=setTimeout(probe,40)" in source
+    assert "modular-design-functional-project-reveal-v4" in source
 
 
 def test_design_modular_shell_accepts_internal_general_route_rewrite_without_wait_race():
@@ -49,13 +50,14 @@ def test_design_modular_shell_suppresses_nested_auth_flash_after_parent_approval
     assert "frame.style.visibility='visible'" in source
 
 
-def test_design_modular_shell_warms_shared_editor_assets_before_navigation():
+def test_design_modular_shell_warms_only_base_editor_assets_before_navigation():
     source = read("js/studio-app-shell.js")
     assert "const DESIGN_PRELOADS=[" in source
-    assert "'/js/design-editor/embedded-stability-bootstrap.js?v=20260901-1'" in source
-    assert "'/js/design-editor/presets.js?v=20260821-1'" in source
-    assert "'/js/design-editor/app.js?v=20260821-1'" in source
-    assert "'/js/design-editor/focused-professional-workspace.js?v=20260901-1'" in source
+    preloads = source.split("const DESIGN_PRELOADS=[", 1)[1].split("];", 1)[0]
+    assert "'/js/design-editor/embedded-stability-bootstrap.js?v=20260901-1'" in preloads
+    assert "'/js/design-editor/presets.js?v=20260821-1'" in preloads
+    assert "'/js/design-editor/app.js?v=20260821-1'" in preloads
+    assert "focused-professional-workspace.js" not in preloads
     assert "warmDesignAssets();expectedFrameUrl=" in source
 
 
