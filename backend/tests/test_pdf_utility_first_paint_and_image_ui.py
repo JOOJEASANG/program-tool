@@ -10,7 +10,7 @@ CONVERTER = ROOT / "js" / "pdf-utility-image-converter.js"
 RETIRED_FIRST_PAINT = ROOT / "js" / "pdf-utility-first-paint.js"
 
 
-def test_pdf_utility_first_paint_hides_legacy_workspace_until_full_runtime_is_ready():
+def test_pdf_utility_first_paint_opens_after_access_without_waiting_for_all_runtime_modules():
     observer = APP_VERSION.read_text(encoding="utf-8")
     boot = BOOT_GUARD.read_text(encoding="utf-8")
     sw = SW_REGISTER.read_text(encoding="utf-8")
@@ -22,11 +22,13 @@ def test_pdf_utility_first_paint_hides_legacy_workspace_until_full_runtime_is_re
     assert "ProgramStudioPreflightRuntimeReady" in sw
     assert "ProgramStudioPreflightRuntimeReady" in boot
     assert "waitForPreflightFunctionalReady" in boot
-    assert "waitForPromiseGlobal('ProgramStudioPreflightRuntimeReady'" in boot
+    assert "Boolean(window.ProgramStudioPreflightRuntimeReady),220" in boot
+    assert "clean-workspace-v2',480" in boot
+    assert "waitForPromiseGlobal('ProgramStudioPreflightRuntimeReady'" not in boot
+    assert "preflightRevealStage" in boot
+    assert "access-unblocked" in boot
     assert "pdfPreflightPanelBalanceScriptV1" in boot
     assert "script.dataset.loaded='true'" in boot
-    assert "clean-workspace-v2" in boot
-    assert "functional-runtime" in boot
     assert "const MODULES=Object.freeze([" in runtime
     assert "CRITICAL_MODULES" not in runtime
     assert "DEFERRED_MODULES" not in runtime
