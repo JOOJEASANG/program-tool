@@ -20,7 +20,7 @@
         try{if(predicate())return true;}catch(_){}
         await sleep(40);
       }
-      throw new Error('timeout: '+label);
+      throw new Error('timeout: '+label+' shellStage='+String(document.documentElement.dataset.designShellStage||''));
     };
     const loadScript=(id,src)=>new Promise((resolve,reject)=>{
       if(document.getElementById(id))return resolve();
@@ -52,6 +52,7 @@
     const result=()=>document.getElementById('diagnosticResult');
     const fail=error=>{
       document.body.dataset.directRealDomSmoke='fail';
+      document.body.dataset.directShellStage=String(document.documentElement.dataset.designShellStage||'');
       const message=String(error?.stack||error?.message||error);
       document.body.dataset.directFailure=message.slice(0,500);
       result().textContent='FAIL: '+message;
@@ -90,11 +91,12 @@
       document.body.dataset.directBodyPe=getComputedStyle(body).pointerEvents;
       document.body.dataset.directShellPe=getComputedStyle(shell).pointerEvents;
       document.body.dataset.directViewportPe=getComputedStyle(viewport).pointerEvents;
+      document.body.dataset.directShellStage=String(root.dataset.designShellStage||'');
       assert(getComputedStyle(body).pointerEvents!=='none','body pointer-events is none; '+peChain(body));
       assert(getComputedStyle(shell).pointerEvents!=='none','editorShell pointer-events is none; '+peChain(shell));
 
-      const button=document.getElementById('addTitleBtn');
-      assert(visible(button),'real addTitleBtn is not visible');
+      const button=document.querySelector('#designSimpleResultTools [data-simple-action="title"]')||document.getElementById('inspectorAddTitle');
+      assert(visible(button),'visible title-add control is missing');
       const rect=button.getBoundingClientRect(),x=rect.left+rect.width/2,y=rect.top+rect.height/2;
       const hit=document.elementFromPoint(x,y);
       document.body.dataset.directHitTarget=describe(hit);
@@ -110,7 +112,7 @@
       await sleep(160);
       const after=surface.elements.length;
       document.body.dataset.directClickDelta=String(after-before);
-      assert(after===before+1,`real add-title click did not change project state: before=${before} after=${after}`);
+      assert(after===before+1,`real title-add click did not change project state: before=${before} after=${after}`);
 
       let artboardMutations=0;
       const mutationObserver=new MutationObserver(records=>{artboardMutations+=records.filter(record=>record.type==='childList').length;});
