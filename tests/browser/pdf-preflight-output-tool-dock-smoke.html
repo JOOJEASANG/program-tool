@@ -63,7 +63,7 @@
           document.documentElement.dataset.pdfOutputToolDockSmoke=pass?'pass':'fail';
           const result=document.createElement('pre');
           result.id='result';
-          result.textContent=pass?'PASS: PDF tool dialogs render full-width as one active card inside the right progress/result panel':`FAIL: output tool docking regression · open=${openIds.join(',')} · dock=${dockWidth} · box=${boxWidth}`;
+          result.textContent=pass?'PASS: PDF tool dialogs render inside the right progress/result panel':`FAIL: output tool docking regression · open=${openIds.join(',')} · dock=${dockWidth} · box=${boxWidth}`;
           document.body.appendChild(result);
         },140);
       },80);
