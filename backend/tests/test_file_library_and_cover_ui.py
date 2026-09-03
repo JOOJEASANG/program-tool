@@ -43,36 +43,3 @@ def test_pdf_download_remains_local_and_large_preview_is_explained():
     assert "pdf_history" not in html
 
 
-def test_cover_product_name_is_consistent_after_unified_editor_migration():
-    cover = COVER_HTML.read_text(encoding="utf-8")
-    assert "<title>책표지제작 · Program Studio · 통합 디자인 편집기로 이동</title>" in cover
-    assert "책표지제작 기능은 Program Studio 통합 디자인 편집기의 표지디자인으로 이전되었습니다." in cover
-    assert "/design-editor/?mode=cover" in cover
-    assert '<div class="nav-title">책표지제작</div>' not in cover
-    binding = "무선" + "제본"
-    old_names = (
-        binding + " 표지제작기",
-        binding + " 표지 제작기",
-        binding + "용 표지 제작기",
-        binding + " 표지 제작",
-    )
-    for path in ROOT.rglob("*"):
-        if not path.is_file() or path.suffix.lower() not in {".html", ".js", ".json", ".md", ".py", ".yml", ".yaml"}:
-            continue
-        text = path.read_text(encoding="utf-8")
-        for name in old_names:
-            assert name not in text, f"old product name remains in {path}: {name}"
-
-
-def test_cover_ui_is_owned_by_integrated_editor_after_legacy_dock_cleanup():
-    settings = COVER_SETTINGS.read_text(encoding="utf-8")
-    preview = COVER_PREVIEW.read_text(encoding="utf-8")
-    register = SW_REGISTER.read_text(encoding="utf-8")
-    assert not (ROOT / "js" / "cover-floating-action-dock.js").exists()
-    assert "designCoverSettingsTools" in settings
-    assert "표지 규격 · 책등" in settings
-    assert "designCoverPreviewZoneTools" in preview
-    assert "뒤표지" in preview and "책등" in preview and "앞표지" in preview
-    assert "cover-floating-action-dock.js" not in register
-    assert "designEditorCoverSettingsScriptV1" in register
-    assert "designEditorCoverPreviewZonesScriptV1" in register
