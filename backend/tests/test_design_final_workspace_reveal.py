@@ -8,28 +8,58 @@ def read(path: str) -> str:
     return (ROOT / path).read_text(encoding="utf-8")
 
 
-def test_direct_design_entry_waits_for_functional_runtime_not_visual_stability_flags():
+def test_direct_design_entry_waits_for_wired_base_editor_not_full_enhancement_runtime():
     source = read("js/app-boot-guard.js")
     assert "function isDirectDesignEntry()" in source
     assert "function designBaseFunctionalReady()" in source
-    assert "root.dataset.designCoreRuntime==='1'" in source
-    assert "root.dataset.designShellRuntime==='1'" in source
-    assert "root.dataset.designFinalWorkspaceReady==='1'" in source
-    assert "window.DesignEditorApp?.project" in source
+    assert "const app=window.DesignEditorApp;" in source
+    assert "if(!app.project||!shell||shell.classList.contains('hidden'))return false;" in source
+    assert "const artboard=document.getElementById('artboard');" in source
+    assert "rect&&rect.width>20&&rect.height>20" in source
+    assert "root.dataset.designFunctionalBaseline=ready?'1':'0'" in source
+    assert "root.dataset.designCoreRuntime==='1'" not in source
+    assert "root.dataset.designShellRuntime==='1'" not in source
+    assert "root.dataset.designFinalWorkspaceReady==='1'" not in source
     assert "root.dataset.designSidebarStable==='1'" not in source
     assert "root.dataset.designFocusedWorkspace==='1'" not in source
     assert "root.dataset.designEmbeddedCanvasStable==='1'" not in source
     assert "root.dataset.designFunctionalReady=ready?'1':'0'" in source
-    assert "root.dataset.designRevealStage=ready?'functional-runtime':'bounded-fallback'" in source
+    assert "root.dataset.designRevealStage=ready?'base-editor-functional':'bounded-fallback'" in source
 
 
-def test_direct_design_entry_uses_bounded_functional_wait_before_reveal():
+def test_direct_design_entry_uses_short_bounded_base_functional_wait_before_reveal():
     source = read("js/app-boot-guard.js")
-    assert "const timeout=isDirectDesignEntry()?6800:4200;" in source
-    assert "Design functional runtime did not fully settle before the bounded reveal." in source
+    assert "const timeout=isDirectDesignEntry()?3200:2200;" in source
+    assert "Design base editor did not fully settle before the bounded reveal." in source
     approval = source[source.index("function waitForApproval()") :]
     assert approval.index("clearTimeout(failClosedTimer);") < approval.index("await waitForProtectedFunctionalReady();")
     assert approval.index("await waitForProtectedFunctionalReady();") < approval.index("reveal(functional?'functional-runtime':'functional-timeout');")
+
+
+def test_modular_design_parent_reveals_on_functional_project_not_visual_workspace_flag():
+    source = read("js/studio-app-shell.js")
+    reveal = source[source.index("function designFrameCanReveal()") : source.index("function startFrameProbe()")]
+    assert "Boolean(win.DesignEditorApp)" in reveal
+    assert "projectReady" in reveal
+    assert "bootStable" in reveal
+    assert "designFocusedWorkspace" not in reveal
+    assert "focused-professional-workspace.js" not in source.split("const DESIGN_PRELOADS=[", 1)[1].split("];", 1)[0]
+    assert "markFrameReady('functional-project-probe')" in source
+    assert "setTimeout(probe,40)" in source
+
+
+def test_design_startup_observers_do_not_watch_full_body_after_editor_is_ready():
+    focused = read("js/design-editor/focused-professional-workspace.js")
+    embedded = read("js/design-editor/embedded-stability-bootstrap.js")
+    assert "observer.observe(document.body,{childList:true,subtree:true})" not in focused
+    assert "observer.observe(sidebar,{childList:true,subtree:true})" in focused
+    assert "observer.observe(toolbar,{childList:true,subtree:false})" in focused
+    assert "observer.observe(properties,{childList:true,subtree:false})" in focused
+    assert "document.documentElement.dataset.designFocusedObserverScope='workspace-only'" in focused
+    assert "if(document.body)observer.observe(document.body,{childList:true,subtree:true});" in embedded
+    assert "observer.disconnect();" in embedded
+    assert "root.dataset.designEmbeddedStabilityObserver='released'" in embedded
+    assert embedded.index("observer.disconnect();") < embedded.index("function queueReadyCheck()")
 
 
 def test_shell_runtime_preserves_owner_order_without_rebuilding_essential_workspace():

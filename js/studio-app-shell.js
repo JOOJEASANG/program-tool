@@ -33,8 +33,7 @@
   const DESIGN_PRELOADS=[
     '/js/design-editor/embedded-stability-bootstrap.js?v=20260901-1',
     '/js/design-editor/presets.js?v=20260821-1',
-    '/js/design-editor/app.js?v=20260821-1',
-    '/js/design-editor/focused-professional-workspace.js?v=20260901-1'
+    '/js/design-editor/app.js?v=20260821-1'
   ];
 
   function setText(id,value){const node=byId(id);if(node)node.textContent=value;}
@@ -140,9 +139,8 @@
         win.DesignEditorApp?.project&&shell&&!shell.classList.contains('hidden')&&rect&&rect.width>20&&rect.height>20
       );
       const baseReady=Boolean(win.DesignEditorApp)&&projectReady;
-      const focusedReady=doc.documentElement.dataset.designFocusedWorkspace==='1';
       const bootStable=!doc.documentElement.classList.contains('app-booting');
-      return baseReady&&focusedReady&&bootStable;
+      return baseReady&&bootStable;
     }catch(_){return false;}
   }
   function startFrameProbe(){
@@ -151,8 +149,8 @@
     const deadline=Date.now()+12000;
     const probe=()=>{
       if(frameReady)return;
-      if(designFrameCanReveal()){markFrameReady('stable-project-probe');return;}
-      if(Date.now()<deadline)frameProbeTimer=setTimeout(probe,25);
+      if(designFrameCanReveal()){markFrameReady('functional-project-probe');return;}
+      if(Date.now()<deadline)frameProbeTimer=setTimeout(probe,40);
     };
     frameProbeTimer=setTimeout(probe,0);
   }
@@ -193,7 +191,7 @@
   frame?.addEventListener('load',()=>{
     if(frameReady)return;
     if(app?.kind==='design'){
-      if(designFrameCanReveal()){markFrameReady('load-stable-project');return;}
+      if(designFrameCanReveal()){markFrameReady('load-functional-project');return;}
       startFrameProbe();
       return;
     }
@@ -212,5 +210,5 @@
   load();
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',startAfterAccess,{once:true});else startAfterAccess();
 
-  window.ProgramStudioModularAppShell={apps:APPS,appKey:key,reload:()=>{started=false;load();},openQuickAction,stage:'modular-app-shell-product-context-v5-access-race-safe',parallelStage:'modular-app-shell-parallel-engine-preload-v1',fastRevealStage:'modular-design-stable-project-reveal-v3'};
+  window.ProgramStudioModularAppShell={apps:APPS,appKey:key,reload:()=>{started=false;load();},openQuickAction,stage:'modular-app-shell-product-context-v6-functional-reveal',parallelStage:'modular-app-shell-parallel-engine-preload-v2',fastRevealStage:'modular-design-functional-project-reveal-v4'};
 })();

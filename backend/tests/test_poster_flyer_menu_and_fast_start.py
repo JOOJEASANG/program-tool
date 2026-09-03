@@ -25,7 +25,7 @@ def test_modular_app_shell_preloads_engine_while_access_remains_gated() -> None:
     assert "function maybeReady(){if(accessGranted&&frameReady)ready();}" in shell
     assert "document.documentElement.dataset.modularAppEnginePreload='started'" in shell
     assert "if(!accessGranted||!frameReady)return;" in shell
-    assert "parallelStage:'modular-app-shell-parallel-engine-preload-v1'" in shell
+    assert "parallelStage:'modular-app-shell-parallel-engine-preload-v2'" in shell
     assert shell.index("load();\n  if(document.readyState") < shell.index("window.ProgramStudioModularAppShell=")
 
 

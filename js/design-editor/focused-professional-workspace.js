@@ -250,13 +250,19 @@
     hideRedundantUi();
     if(!observer&&typeof MutationObserver==='function'){
       observer=new MutationObserver(queueSync);
-      observer.observe(document.body,{childList:true,subtree:true});
+      const sidebar=document.querySelector('.sidebar');
+      const toolbar=document.querySelector('.editor-toolbar');
+      const properties=byId('propertiesPanel');
+      if(sidebar)observer.observe(sidebar,{childList:true,subtree:true});
+      if(toolbar)observer.observe(toolbar,{childList:true,subtree:false});
+      if(properties)observer.observe(properties,{childList:true,subtree:false});
+      document.documentElement.dataset.designFocusedObserverScope='workspace-only';
     }
     ['click','dblclick','input','change','pointerup','programstudio:design-mode-change','programstudio:document-type-change'].forEach(name=>document.addEventListener(name,queueSync,false));
     window.addEventListener('resize',queueSync,{passive:true});
     [80,180,350,700,1200,2000,3200].forEach(delay=>setTimeout(queueSync,delay));
   }
 
-  window.DesignEditorFocusedWorkspace={sync,stage:'focused-header-editing-workspace-v1'};
+  window.DesignEditorFocusedWorkspace={sync,stage:'focused-header-editing-workspace-v2-scoped-observer'};
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();

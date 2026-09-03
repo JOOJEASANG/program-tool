@@ -8,13 +8,16 @@ def read(path: str) -> str:
     return (ROOT / path).read_text(encoding="utf-8")
 
 
-def test_design_general_waits_for_functional_runtime_after_access():
+def test_design_general_waits_for_wired_base_editor_after_access():
     guard = read("js/app-boot-guard.js")
     assert "async function waitForDesignFunctionalReady()" in guard
     assert "function designBaseFunctionalReady()" in guard
-    assert "root.dataset.designCoreRuntime==='1'" in guard
-    assert "root.dataset.designShellRuntime==='1'" in guard
-    assert "window.DesignEditorApp?.project" in guard
+    assert "const app=window.DesignEditorApp;" in guard
+    assert "if(!app.project||!shell||shell.classList.contains('hidden'))return false;" in guard
+    assert "const artboard=document.getElementById('artboard');" in guard
+    assert "rect&&rect.width>20&&rect.height>20" in guard
+    assert "root.dataset.designCoreRuntime==='1'" not in guard
+    assert "root.dataset.designShellRuntime==='1'" not in guard
     assert "async function waitForProtectedFunctionalReady()" in guard
     assert "if(!access){retryApprovalWait();return;}" in guard
     assert "clearTimeout(failClosedTimer)" in guard

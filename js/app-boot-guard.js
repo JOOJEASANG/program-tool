@@ -176,22 +176,26 @@
 
   function designBaseFunctionalReady(){
     const standalone=Boolean(String(params.get('app')||'').trim());
-    const appReady=Boolean(window.DesignEditorApp&&(document.getElementById('editorShell')||document.getElementById('startScreen')));
-    const coreReady=root.dataset.designCoreRuntime==='1';
-    if(!appReady||!coreReady)return false;
+    const app=window.DesignEditorApp;
+    const shell=document.getElementById('editorShell');
+    const startScreen=document.getElementById('startScreen');
+    if(!app||(!shell&&!startScreen))return false;
     if(!standalone)return true;
-    const projectReady=Boolean(window.DesignEditorApp?.project);
-    const shellReady=root.dataset.designShellRuntime==='1'||root.dataset.designFinalWorkspaceReady==='1';
-    return projectReady&&shellReady;
+    if(!app.project||!shell||shell.classList.contains('hidden'))return false;
+    const artboard=document.getElementById('artboard');
+    const rect=artboard?.getBoundingClientRect?.();
+    const ready=Boolean(rect&&rect.width>20&&rect.height>20);
+    root.dataset.designFunctionalBaseline=ready?'1':'0';
+    return ready;
   }
 
   async function waitForDesignFunctionalReady(){
     if(protectedProgram!=='design-studio'||!isGeneralDesignEditor())return true;
-    const timeout=isDirectDesignEntry()?6800:4200;
+    const timeout=isDirectDesignEntry()?3200:2200;
     const ready=await waitUntil(designBaseFunctionalReady,timeout);
     root.dataset.designFunctionalReady=ready?'1':'0';
-    root.dataset.designRevealStage=ready?'functional-runtime':'bounded-fallback';
-    if(!ready)console.warn('Design functional runtime did not fully settle before the bounded reveal.');
+    root.dataset.designRevealStage=ready?'base-editor-functional':'bounded-fallback';
+    if(!ready)console.warn('Design base editor did not fully settle before the bounded reveal.');
     return ready;
   }
 

@@ -22,7 +22,9 @@
 <body data-phase7-smoke="pending">
   <main>
     <h1>보호 디자인 기능 준비 부트 검사</h1>
-    <div id="editorShell"></div>
+    <div id="editorShell">
+      <div id="artboard" style="width:420px;height:594px"></div>
+    </div>
     <p id="result">PENDING</p>
   </main>
   <script src="/js/app-boot-guard.js?v=smoke"></script>
@@ -40,22 +42,23 @@
       };
       try{
         await sleep(150);
-        assert(document.documentElement.classList.contains('app-booting'),'design revealed before functional runtime');
-        assert(document.documentElement.dataset.appReady!=='true','design appReady set before functional runtime');
+        assert(document.documentElement.classList.contains('app-booting'),'design revealed before base editor was functional');
+        assert(document.documentElement.dataset.appReady!=='true','design appReady set before base editor was functional');
 
         const signalAt=performance.now();
         window.DesignEditorApp={project:{id:'smoke-project'}};
-        document.documentElement.dataset.designCoreRuntime='1';
-        document.documentElement.dataset.designShellRuntime='1';
-        await wait(()=>document.documentElement.dataset.appReady==='true','protected design functional ready');
+        await wait(()=>document.documentElement.dataset.appReady==='true','protected design base functional ready');
         const afterSignal=performance.now()-signalAt;
 
         assert(!document.documentElement.classList.contains('app-booting'),'protected design curtain remained');
         assert(document.documentElement.dataset.bootGate==='functional-runtime','protected design did not use functional runtime gate');
         assert(document.documentElement.dataset.designFunctionalReady==='1','design functional marker missing');
-        assert(afterSignal<900,'design reveal was too slow after runtime readiness: '+Math.round(afterSignal)+'ms');
+        assert(document.documentElement.dataset.designFunctionalBaseline==='1','design base functional marker missing');
+        assert(document.documentElement.dataset.designCoreRuntime!=='1','smoke should not require full core runtime');
+        assert(document.documentElement.dataset.designShellRuntime!=='1','smoke should not require full shell runtime');
+        assert(afterSignal<900,'design reveal was too slow after base editor readiness: '+Math.round(afterSignal)+'ms');
         document.body.dataset.phase7Smoke='pass';
-        result.textContent='PASS: protected design stayed hidden until core, project and shell runtime were ready';
+        result.textContent='PASS: protected design stayed hidden until the wired base editor, project and artboard were ready';
       }catch(error){
         document.body.dataset.phase7Smoke='fail';
         result.textContent='FAIL: '+String(error.message||error);
