@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>PDF output tool dock smoke</title>
+  <style>
+    .workspace{display:grid;grid-template-columns:360px 1fr;gap:16px}.panel{border:1px solid #ddd;padding:12px}.pdf-preflight-output-empty{display:block}.tool-modal-overlay,.pdfu-modal-overlay,.pdfic-overlay,.pdfaio-overlay,.plot-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);padding:20px}.tool-modal-overlay.open,.pdfu-modal-overlay.open,.pdfic-overlay.open,.pdfaio-overlay.open,.plot-overlay.open{display:flex}.tool-modal-box,.pdfu-modal,.pdfic-box,.pdfaio-box,.plot-box{width:500px;max-height:90vh;overflow:auto;background:#fff;padding:20px;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+  </style>
+</head>
+<body>
+  <div class="workspace">
+    <section class="panel"><h1>도구</h1></section>
+    <section class="panel pdf-preflight-output-panel">
+      <div class="panel-head pdf-preflight-output-head"><h2>작업 진행 · 결과</h2></div>
+      <div id="pdfPreflightOutputEmpty" class="pdf-preflight-output-empty">결과 대기</div>
+    </section>
+  </div>
+
+  <div id="toolModalOverlay" class="tool-modal-overlay"><div class="tool-modal-box">암호 설정</div></div>
+  <div id="pdfUtilityModalOverlay" class="pdfu-modal-overlay"><div class="pdfu-modal">배경색 제거</div></div>
+
+  <script>history.replaceState(null,'','/pdf-preflight/index.html');</script>
+  <script src="/js/pdf-preflight/output-panel-tool-dock.js"></script>
+  <script>
+    setTimeout(()=>{
+      const dynamic=[
+        ['pdfUtilityImageConverterOverlay','pdfic-overlay','pdfic-box','PDF 이미지 변환'],
+        ['pdfAllInOneOverlay','pdfaio-overlay','pdfaio-box','페이지 추출'],
+        ['pdfLargeOutputTilingOverlay','plot-overlay','plot-box','대형 분할 출력']
+      ];
+      dynamic.forEach(([id,overlayClass,boxClass,label])=>{
+        const overlay=document.createElement('div');
+        overlay.id=id;overlay.className=overlayClass;
+        overlay.innerHTML=`<div class="${boxClass}">${label}</div>`;
+        document.body.appendChild(overlay);
+      });
+      document.getElementById('toolModalOverlay').classList.add('open');
+
+      setTimeout(()=>{
+        const ids=['toolModalOverlay','pdfUtilityModalOverlay','pdfUtilityImageConverterOverlay','pdfAllInOneOverlay','pdfLargeOutputTilingOverlay'];
+        const dock=document.getElementById('pdfPreflightOutputToolDock');
+        const empty=document.getElementById('pdfPreflightOutputEmpty');
+        const tool=document.getElementById('toolModalOverlay');
+        const allDocked=!!dock&&ids.every(id=>document.getElementById(id)?.parentElement===dock);
+        const inline=getComputedStyle(tool).position==='static'&&getComputedStyle(tool).display==='block';
+        const emptyHidden=getComputedStyle(empty).display==='none';
+        const active=dock?.classList.contains('active')===true;
+        const ready=document.documentElement.dataset.pdfPreflightToolDock==='open';
+        const pass=allDocked&&inline&&emptyHidden&&active&&ready;
+        document.documentElement.dataset.pdfOutputToolDockSmoke=pass?'pass':'fail';
+        const result=document.createElement('pre');
+        result.id='result';
+        result.textContent=pass?'PASS: PDF tool dialogs render inside the right progress/result panel':'FAIL: output tool docking regression';
+        document.body.appendChild(result);
+      },120);
+    },40);
+  </script>
+</body>
+</html>
