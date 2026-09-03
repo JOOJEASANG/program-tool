@@ -136,7 +136,7 @@
   }
 
   function loadDesignEssentialWorkspace(){
-    loadEnhancement('designEditorEssentialWorkspaceScriptV1','/js/design-editor/essential-workspace.js?v=20260831-1',()=>Boolean(window.__designEditorEssentialWorkspaceV1),'디자인 필수 메뉴를 불러오지 못했습니다.');
+    loadEnhancement('designEditorEssentialWorkspaceScriptV1','/js/design-editor/essential-workspace.js?v=20260903-1',()=>Boolean(window.__designEditorEssentialWorkspaceV1),'디자인 필수 메뉴를 불러오지 못했습니다.');
   }
 
   function loadDesignCanvasViewportToolbar(){
