@@ -45,5 +45,5 @@ def test_stage68_typography_runtime_is_deployed_and_browser_tested():
     boot = BOOT.read_text(encoding="utf-8")
     suite = BROWSER_SUITE.read_text(encoding="utf-8")
     assert "designTypographyProScriptV1" in boot
-    assert "/js/design-editor/typography-pro.js?v=20260827-1" in boot
+    assert "/js/design-editor/typography-pro.js?v=20260903-1" in boot
     assert "run_design_editor_typography_pro_smoke.sh" in suite

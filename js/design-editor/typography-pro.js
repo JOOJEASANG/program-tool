@@ -41,6 +41,8 @@
   let installed=false;
   let syncing=false;
   let syncTimer=0;
+  let inspectorObserver=null;
+  let artboardObserver=null;
   let saveTimer=0;
 
   const byId=id=>document.getElementById(id);
@@ -236,12 +238,22 @@
     if(syncing)return;
     const root=byId('inspector'),p=project();if(!root||!p)return;
     syncing=true;
+    // Suppress our own observers while we rebuild the inspector/preview so these
+    // writes do not re-trigger sync. JS is single-threaded, so no external
+    // mutation can slip in during this synchronous block — nothing is missed.
+    const board=byId('artboard');
+    if(inspectorObserver)inspectorObserver.disconnect();
+    if(artboardObserver)artboardObserver.disconnect();
     try{
       installOpenFonts();installStyles();
       const record=selectedRecord();
       if(!record){byId(PANEL_ID)?.remove();byId(LICENSE_ID)?.remove();byId(PREVIEW_ID)?.remove();applyPreview();return;}
       ensureFontOptions(record.item);enhanceBaseControls(record.item);installPanel(record);applyPreview();
-    }finally{syncing=false;}
+    }finally{
+      if(inspectorObserver){try{inspectorObserver.takeRecords();}catch(_){}try{inspectorObserver.observe(root,{childList:true,subtree:true});}catch(_){}}
+      if(artboardObserver&&board){try{artboardObserver.takeRecords();}catch(_){}try{artboardObserver.observe(board,{childList:true,subtree:true});}catch(_){}}
+      syncing=false;
+    }
   }
 
   function queueSync(){clearTimeout(syncTimer);syncTimer=setTimeout(()=>requestAnimationFrame(sync),28);}
@@ -251,8 +263,8 @@
       if(event.target?.closest?.(`#${PANEL_ID}`))return;queueSync();
     },false));
     window.addEventListener('resize',queueSync,{passive:true});
-    const inspector=byId('inspector');if(inspector)new MutationObserver(queueSync).observe(inspector,{childList:true,subtree:true});
-    const artboard=byId('artboard');if(artboard)new MutationObserver(queueSync).observe(artboard,{childList:true,subtree:true});
+    const inspector=byId('inspector');if(inspector){inspectorObserver=new MutationObserver(queueSync);inspectorObserver.observe(inspector,{childList:true,subtree:true});}
+    const artboard=byId('artboard');if(artboard){artboardObserver=new MutationObserver(queueSync);artboardObserver.observe(artboard,{childList:true,subtree:true});}
   }
 
   function install(){
