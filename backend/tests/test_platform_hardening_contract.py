@@ -84,6 +84,9 @@ def test_preflight_runtime_is_canonical_and_current_ui_loads_last():
     assert "ProgramStudioPreflightRuntimeReady" in sw
     assert runtime.index("pdfUtilityScriptV1") < runtime.index("pdfPreflightPanelBalanceScriptV1")
     assert runtime.index("pdfAllInOneStage1ScriptV1") < runtime.index("pdfPreflightPanelBalanceScriptV1")
+    assert runtime.index("pdfPrintReadinessScriptV1") < runtime.index("pdfPreflightPanelBalanceScriptV1")
+    assert "CRITICAL_MODULES" not in runtime
+    assert "DEFERRED_MODULES" not in runtime
     assert "pdfPreflightPanelBalanceScriptV1" not in ui
     assert "pdfPreflightWorkflowV2Script" not in ui
     assert "PDF_SECURITY_MARKER" not in injector
@@ -91,22 +94,23 @@ def test_preflight_runtime_is_canonical_and_current_ui_loads_last():
     assert not (ROOT / "js/pdf-utility-cost-policy-hardening.js").exists()
 
 
-def test_protected_reveal_does_not_wait_for_full_heavy_runtime_chain():
+def test_protected_reveal_waits_for_bounded_functional_runtime_after_access():
     boot = text("js/app-boot-guard.js")
     assert "clean-workspace-v2" in boot
-    assert "watchPreflightShell" in boot
-    assert "watchDesignShell" in boot
+    assert "waitForPreflightFunctionalReady" in boot
+    assert "waitForDesignFunctionalReady" in boot
+    assert "waitForProtectedFunctionalReady" in boot
+    assert "ProgramStudioPreflightRuntimeReady" in boot
     assert "pdfPreflightPanelBalanceScriptV1" in boot
     assert "script.dataset.loaded='true'" in boot
     assert "if(!access){retryApprovalWait();return;}" in boot
     assert "clearTimeout(failClosedTimer)" in boot
-    assert "root.dataset.bootGate='access-only'" in boot
-    assert "Promise.allSettled([watchPreflightShell(),watchDesignShell()])" in boot
+    assert "functional-runtime" in boot
+    assert "functional-timeout" in boot
     approval = boot[boot.index("function waitForApproval()") :]
-    assert approval.index("clearTimeout(failClosedTimer);") < approval.index("reveal();")
-    assert approval.index("reveal();") < approval.index("observeEnhancementReadiness();")
-    assert "ProgramStudioPreflightRuntimeReady" not in boot
-    assert "waitForPreflightRuntime" not in boot
+    assert approval.index("clearTimeout(failClosedTimer);") < approval.index("await waitForProtectedFunctionalReady();")
+    assert approval.index("await waitForProtectedFunctionalReady();") < approval.index("reveal(functional?'functional-runtime':'functional-timeout');")
+    assert "root.dataset.bootGate='access-only'" not in boot
 
 
 def test_design_metadata_is_bound_to_owner_and_project_path():
