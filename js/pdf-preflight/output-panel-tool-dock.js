@@ -45,6 +45,15 @@
     document.head.appendChild(style);
   }
 
+  function placeDock(panel,dock){
+    const head=panel.querySelector('.pdf-preflight-output-head')||panel.querySelector(':scope > .panel-head');
+    if(head){
+      if(head.nextElementSibling!==dock)head.insertAdjacentElement('afterend',dock);
+    }else if(panel.firstElementChild!==dock){
+      panel.prepend(dock);
+    }
+  }
+
   function ensureDock(){
     const panel=outputPanel();
     if(!panel)return null;
@@ -54,14 +63,9 @@
       dock.id='pdfPreflightOutputToolDock';
       dock.className='pdf-preflight-output-tool-dock';
       dock.setAttribute('aria-label','PDF 작업 설정');
-      const head=panel.querySelector('.pdf-preflight-output-head')||panel.querySelector(':scope > .panel-head');
-      if(head)head.insertAdjacentElement('afterend',dock);
-      else panel.prepend(dock);
-    }else if(dock.parentElement!==panel){
-      const head=panel.querySelector('.pdf-preflight-output-head')||panel.querySelector(':scope > .panel-head');
-      if(head)head.insertAdjacentElement('afterend',dock);
-      else panel.prepend(dock);
     }
+    if(dock.parentElement!==panel)panel.appendChild(dock);
+    placeDock(panel,dock);
     return dock;
   }
 
