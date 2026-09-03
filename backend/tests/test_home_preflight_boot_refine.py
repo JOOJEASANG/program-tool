@@ -29,13 +29,15 @@ def test_version_badge_is_not_rendered():
     assert "programStudioVersion" in version_helper
 
 
-def test_preflight_uses_single_column_task_flow():
+def test_preflight_uses_left_tools_right_results_task_flow():
     balance = read("js/pdf-preflight-panel-balance.js")
-    assert "grid-template-columns:1fr!important" in balance
-    assert ".workspace>.panel" in balance
-    assert "height:auto!important" in balance
-    assert "display:block!important" in balance
-    assert "PDF 선택" in balance
+    assert "left-tools-right-results-v1" in balance
+    assert "grid-template-columns:minmax(350px,420px) minmax(0,1fr)!important" in balance
+    assert "pdf-preflight-input-panel" in balance
+    assert "pdf-preflight-output-panel" in balance
+    assert "PDF 파일 업로드" in balance
+    assert "검사 · PDF 유틸리티" in balance
+    assert "작업 진행 · 결과" in balance
     assert "인쇄 전 검사" in balance
     assert "인쇄 전 확인 항목" in balance
 
