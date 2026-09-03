@@ -8,7 +8,7 @@ def read(path: str) -> str:
     return (ROOT / path).read_text(encoding="utf-8")
 
 
-def test_direct_design_entry_waits_for_final_workspace_not_base_editor():
+def test_direct_design_entry_tracks_final_workspace_after_base_reveal():
     source = read("js/app-boot-guard.js")
     assert "function isDirectDesignEntry()" in source
     assert "function directDesignWorkspaceReady()" in source
@@ -17,30 +17,36 @@ def test_direct_design_entry_waits_for_final_workspace_not_base_editor():
     assert "root.dataset.designEmbeddedProjectReady==='1'" in source
     assert "root.dataset.designEmbeddedCanvasStable==='1'" in source
     assert "root.dataset.designFocusedWorkspace==='1'" in source
-    assert "root.dataset.designRevealWait='final-workspace'" in source
-    assert "root.dataset.designRevealStage='final-workspace'" in source
+    assert "root.dataset.designEnhancementReady=ready?'1':'0'" in source
+    assert "root.dataset.designRevealStage=ready?'enhanced':'base-interactive'" in source
 
 
-def test_direct_design_entry_never_falls_back_to_half_built_workspace():
+def test_direct_design_entry_does_not_relock_base_workspace_for_enhancements():
     source = read("js/app-boot-guard.js")
-    assert "Final design workspace did not stabilize before reveal." in source
-    assert "Direct design workspace is not stable yet; keeping the loading gate closed." in source
-    assert "retryApprovalWait();" in source
-    assert source.index("await Promise.all([waitForPreflightShell(),waitForDesignShell()]);") < source.index("clearTimeout(failClosedTimer);")
+    assert "keeping the loading gate closed" not in source
+    assert "Final design workspace did not stabilize before reveal." not in source
+    assert "Design enhancements did not fully stabilize, but the base editor remains interactive." in source
+    approval = source[source.index("function waitForApproval()") :]
+    assert approval.index("clearTimeout(failClosedTimer);") < approval.index("reveal();")
+    assert approval.index("reveal();") < approval.index("observeEnhancementReadiness();")
 
 
 def test_shell_runtime_restores_draft_and_finishes_final_ui_before_ready_marker():
     source = read("js/design-editor/shell-runtime.js")
     assert "async function finalizeWorkspace()" in source
     assert "window.DesignEditorDraftScope?.restoreCurrentScope?.();" in source
+    assert "window.DesignEditorEssentialWorkspace?.sync?.();" in source
     assert "window.DesignEditorSidebarMenuOrder?.sync?.();" in source
     assert "window.DesignEditorProductSpecificWorkspace?.sync?.();" in source
     assert "window.DesignEditorFocusedWorkspace?.sync?.();" in source
     assert "window.DesignEditorEmbeddedStabilityBootstrap?.sync?.();" in source
     assert "await nextPaint();" in source
     assert "root.dataset.designFinalWorkspaceReady='1';" in source
+    assert "await loadEssentialWorkspace();" in source
+    assert "await loadSidebarMenuOrder();" in source
+    assert source.index("await loadEssentialWorkspace();") < source.index("await loadSidebarMenuOrder();")
     assert "stage:'design-shell-runtime-manifest-v1'" in source
-    assert "finalStage:'design-shell-runtime-final-workspace-v2'" in source
+    assert "finalStage:'design-shell-runtime-final-workspace-v3'" in source
 
 
 def test_sidebar_order_does_not_rebuild_identical_dom_on_delayed_syncs():
