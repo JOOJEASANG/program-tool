@@ -173,11 +173,14 @@
     const surface=activeSurface(project);
     const folds=(surface?.folds||[]).map(value=>Math.round((Number(value)||0)*10)/10).join(',');
     const panels=(surface?.panels||[]).join('|');
+    // Synthetic resize stabilization must follow geometry only. Including text,
+    // image or shape content here turns ordinary edits into resize events and
+    // causes the whole artboard (including cover/spine guides) to be rebuilt.
     return [
       project.presetId||'',project.designMode||'',project.activeSurface||'',
       Number(project.width)||0,Number(project.height)||0,Number(project.bleed)||0,
       Math.round(viewport.clientWidth),Math.round(viewport.clientHeight),folds,panels,
-      project.cover?.spineDirection||'',surfaceContentSignature(surface)
+      project.cover?.spineDirection||''
     ].join(':');
   }
 
