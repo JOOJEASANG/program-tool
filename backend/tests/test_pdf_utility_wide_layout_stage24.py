@@ -54,4 +54,13 @@ def test_pdf_utility_wide_layout_is_owned_by_canonical_route_before_finalize():
     assert "pdfUtilityFinalizeScriptV1" in runtime
     assert runtime.index("pdfUtilityWideLayoutScriptV1") < runtime.index("pdfUtilityFinalizeScriptV1")
     assert "function loadWideLayout()" not in finalizer
-    assert "document.documentElement.dataset.pdfUtilityFinalized='functional-v4-download-fallback';" in finalizer
+    assert "document.documentElement.dataset.pdfUtilityFinalized='functional-v5-download-fallback';" in finalizer
+
+
+def test_pdf_utility_download_fallback_keeps_blob_without_blob_fetch():
+    finalizer = FINALIZE.read_text(encoding="utf-8")
+    assert "const blobByUrl=new Map();" in finalizer
+    assert "URL.createObjectURL=wrappedCreateObjectURL;" in finalizer
+    assert "const blob=blobByUrl.get(href);" in finalizer
+    assert "Reflect.apply(nativeAnchorClick,link,[]);" in finalizer
+    assert "fetch(href)" not in finalizer
