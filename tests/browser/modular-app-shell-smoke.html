@@ -79,7 +79,8 @@
           const doc=frame.contentDocument;
           doc.body.innerHTML=`<div class="design-flat-panel"><section id="editorShell"><div id="artboard" style="width:640px;height:480px"></div></section><section id="${target}" class="side-card"></section></div>`;
           frame.contentWindow.DesignEditorApp={project:{presetId:'smoke',width:210,height:297,bleed:3},stage:'smoke-ready'};
-          doc.documentElement.dataset.designFocusedWorkspace='1';
+          // Visual enhancement readiness is intentionally absent: the parent must
+          // reveal once the wired project and actual artboard are functional.
           doc.documentElement.dataset.designEmbeddedProjectReady='1';
           doc.documentElement.classList.remove('app-booting');
           frame.dispatchEvent(new Event('load'));
@@ -89,7 +90,7 @@
 
         await waitFor(()=>document.documentElement.dataset.modularAppReady==='true','shell ready');
         if(document.documentElement.dataset.modularAppEnginePreload!=='ready')throw new Error('engine preload did not finish');
-        if(exp.quick&&document.documentElement.dataset.modularAppFrameReadyStage!=='load-stable-project'&&document.documentElement.dataset.modularAppFrameReadyStage!=='stable-project-probe')throw new Error('design shell bypassed stable project readiness');
+        if(exp.quick&&document.documentElement.dataset.modularAppFrameReadyStage!=='load-functional-project'&&document.documentElement.dataset.modularAppFrameReadyStage!=='functional-project-probe')throw new Error('design shell did not wait for functional project readiness');
         if(exp.quick&&![...quick].every(button=>!button.disabled))throw new Error('quick actions stayed disabled after engine ready');
         if(exp.quick){
           quick[0].click();
