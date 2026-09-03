@@ -162,11 +162,15 @@
 
   async function waitForPreflightFunctionalReady(){
     if(protectedProgram!=='preflight')return true;
-    const runtimeReady=await waitForPromiseGlobal('ProgramStudioPreflightRuntimeReady',1400,7600);
-    const uiReady=await waitUntil(()=>document.body?.dataset?.pdfPreflightUi==='clean-workspace-v2',1200);
-    const ready=runtimeReady&&uiReady;
+    // Access approval is the only hard gate for this route. The full preflight
+    // runtime contains 18 modules and may continue wiring utilities after first
+    // paint, so never hold the page behind the overlay while all 18 settle.
+    const runtimeStarted=await waitUntil(()=>Boolean(window.ProgramStudioPreflightRuntimeReady),220);
+    const uiReady=await waitUntil(()=>document.body?.dataset?.pdfPreflightUi==='clean-workspace-v2',480);
+    const ready=runtimeStarted&&uiReady;
     root.dataset.preflightFunctionalReady=ready?'1':'0';
-    if(!ready)console.warn('PDF preflight functional runtime did not fully settle before the bounded reveal.');
+    root.dataset.preflightRevealStage=ready?'core-started':'access-unblocked';
+    if(!ready)console.warn('PDF preflight opened after access while remaining runtime modules continue loading.');
     return ready;
   }
 
