@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Program Studio · 인쇄·출력 실무 도구</title>
-<meta name="description" content="표지·포스터·전단·초대장·리플렛 디자인과 PDF 편집·검사, 문서·이미지 작업을 카테고리별로 제공하는 인쇄·출력 실무 웹 도구">
+<meta name="description" content="인쇄물 사전 검토, PDF 편집·검사를 카테고리별로 제공하는 인쇄·출력 실무 웹 도구">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
 <style>
 :root{--sb-w:252px;--tb-h:78px;--sb-bg:#0c1526;--sb-hover:rgba(255,255,255,.07);--sb-active:#1e40af;--sb-text:#b0c6de;--sb-dim:#7a96b4;--sb-border:rgba(255,255,255,.1);--bg:#f0f4f8;--card:#fff;--accent:#2563eb;--accent-d:#1d4ed8;--t1:#0f172a;--t2:#475569;--t3:#94a3b8;--line:#e2e8f0;--r:16px}
@@ -216,24 +216,19 @@ body{font-family:Pretendard,"Noto Sans KR",sans-serif;color:var(--t1);background
     <button class="nav-item active" data-cat="all" type="button">
       <span class="nav-icon">◆</span>
       전체 프로그램
-      <span class="nav-count" id="cnt-all">9</span>
+      <span class="nav-count" id="cnt-all">3</span>
     </button>
     <div class="sb-divider"></div>
     <div class="sb-section-label">카테고리</div>
-    <button class="nav-item" data-cat="design" type="button">
-      <span class="nav-icon">✏️</span>
-      디자인 프로그램
-      <span class="nav-count" id="cnt-design">5</span>
+    <button class="nav-item" data-cat="print" type="button">
+      <span class="nav-icon">🔍</span>
+      인쇄물 검토
+      <span class="nav-count" id="cnt-print">1</span>
     </button>
     <button class="nav-item" data-cat="pdf" type="button">
       <span class="nav-icon">📄</span>
       PDF 프로그램
       <span class="nav-count" id="cnt-pdf">2</span>
-    </button>
-    <button class="nav-item" data-cat="content" type="button">
-      <span class="nav-icon">🗂️</span>
-      문서 · 이미지
-      <span class="nav-count" id="cnt-content">2</span>
     </button>
   </nav>
 
@@ -296,7 +291,7 @@ body{font-family:Pretendard,"Noto Sans KR",sans-serif;color:var(--t1);background
 
     <div class="programs-header">
       <h2 id="sectionTitle">전체 프로그램</h2>
-      <span class="prog-count" id="count">9개</span>
+      <span class="prog-count" id="count">3개</span>
     </div>
     <div class="grid" id="programGrid"></div>
   </div>
@@ -330,23 +325,16 @@ body{font-family:Pretendard,"Noto Sans KR",sans-serif;color:var(--t1);background
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="js/firebase-config.js"></script>
 <script>
-/* 회귀 호환 마커: const CATEGORIES={studio: · 무엇을 하려는지 선택하세요 · 디자인 제작 · 이미지 작업 · let active='studio' · switchCategory('studio') · url:'design-editor/' · stage:'categorized-program-home-v1' */
 const PROGRAMS=[
-  {id:'cover-design',cat:'design',name:'표지 디자인',icon:'📗',accent:'#4f63d2',bg:'linear-gradient(135deg,#3b4fcf,#6366f1)',catLabel:'디자인',desc:'앞표지·책등·뒤표지를 제본 규격과 재단 여백에 맞춰 한 펼침면으로 제작합니다.',url:'design-editor/?app=cover&mode=cover&preset=cover-a4',tags:['앞·뒤표지','책등','재단여백']},
-  {id:'poster-flyer-design',cat:'design',name:'포스터 · 전단지',icon:'🎨',accent:'#7c3aed',bg:'linear-gradient(135deg,#6d28d9,#a78bfa)',catLabel:'디자인',desc:'같은 편집 도구에서 용지 크기와 방향만 바꿔 포스터와 전단지를 제작합니다. A2·A3·A4 규격과 안전여백을 기본으로 잡아줍니다.',url:'design-editor/?app=poster&mode=poster&preset=poster-a4&paper=a4&orientation=portrait&w=210&h=297',tags:['포스터','전단지','A2·A3·A4']},
-  {id:'invitation-design',cat:'design',name:'초대장 · 안내장',icon:'💌',accent:'#db2777',bg:'linear-gradient(135deg,#9d174d,#db2777)',catLabel:'디자인',desc:'가로·세로 접지선과 앞뒤 구성을 보면서 초대장과 안내장을 제작합니다.',url:'design-editor/?app=invitation&mode=invitation&preset=invitation-a4&paper=a4&orientation=landscape&w=297&h=210',tags:['접는선','앞·뒤면','초대·안내']},
-  {id:'leaflet-design',cat:'design',name:'리플렛 디자인',icon:'📰',accent:'#ea580c',bg:'linear-gradient(135deg,#c2410c,#ea580c)',catLabel:'디자인',desc:'2단·3단 리플렛의 면 구성과 접지선을 기준으로 펼침면 디자인을 제작합니다.',url:'design-editor/?app=leaflet&mode=leaflet3&preset=leaflet-3-roll&paper=a4&orientation=landscape&w=297&h=210&fold=leaflet-3-roll',tags:['2단·3단','말아접기','접지 가이드']},
+  {id:'print-checker',cat:'print',name:'인쇄물 사전 검토',icon:'🔍',accent:'#1d9bb2',bg:'linear-gradient(135deg,#12396d,#1d9bb2)',catLabel:'인쇄 검토',desc:'외부 도구로 제작한 인쇄물 파일(PDF)의 책등·재단선·안전 영역·접지선·간격을 한 번에 검토합니다.',url:'print-checker/',tags:['재단선','안전 영역','접지선']},
   {id:'pdf-editor',cat:'pdf',name:'PDF 편집 · 인쇄배치',icon:'🖨️',accent:'#059669',bg:'linear-gradient(135deg,#065f46,#059669)',catLabel:'PDF',desc:'여러 PDF의 페이지를 정리하고 N-up 배치·간지·여백을 설정해 출력용 PDF를 만듭니다.',url:'pdf-editor/',tags:['페이지 편집','N-up 배치','인쇄 배치']},
-  {id:'pdf-preflight',cat:'pdf',name:'PDF 도구 모음',icon:'🧰',accent:'#d97706',bg:'linear-gradient(135deg,#92400e,#d97706)',catLabel:'PDF',desc:'인쇄 전 검사부터 PDF 합치기·나누기·압축·변환까지 자주 쓰는 PDF 작업을 한곳에서 처리합니다.',url:'pdf-preflight/',tags:['검사·진단','합치기·나누기','압축·변환']},
-  {id:'document-editor',cat:'content',name:'문서 편집기',icon:'📝',accent:'#2563eb',bg:'linear-gradient(135deg,#1e3a8a,#3b82f6)',catLabel:'문서',desc:'A4 문서를 작성하고 글자 서식·표·이미지를 편집한 뒤 인쇄 또는 PDF로 저장합니다.',url:'document-editor/',tags:['A4 문서','표·이미지','PDF 저장']},
-  {id:'image-editor',cat:'content',name:'이미지 편집기',icon:'🖼️',accent:'#9333ea',bg:'linear-gradient(135deg,#6b21a8,#a855f7)',catLabel:'이미지',desc:'자르기·리사이즈·배경 제거·기본 보정처럼 출력 전에 자주 필요한 이미지 작업을 처리합니다.',url:'image-editor/',tags:['배경 제거','리사이즈','이미지 보정']}
+  {id:'pdf-preflight',cat:'pdf',name:'PDF 도구 모음',icon:'🧰',accent:'#d97706',bg:'linear-gradient(135deg,#92400e,#d97706)',catLabel:'PDF',desc:'인쇄 전 검사부터 PDF 합치기·나누기·압축·변환까지 자주 쓰는 PDF 작업을 한곳에서 처리합니다.',url:'pdf-preflight/',tags:['검사·진단','합치기·나누기','압축·변환']}
 ];
 
 const CATS={
   all:{label:'전체 프로그램'},
-  design:{label:'디자인 프로그램'},
-  pdf:{label:'PDF 프로그램'},
-  content:{label:'문서 · 이미지'}
+  print:{label:'인쇄물 검토'},
+  pdf:{label:'PDF 프로그램'}
 };
 
 let activeCat='all';
@@ -523,7 +511,7 @@ if(window.auth){
 buildQuickRow();
 renderGrid();
 
-window.ProgramStudioHome={PROGRAMS,CATS,switchCat,get activeCategory(){return activeCat;},stage:'categorized-program-home-v2'};
+window.ProgramStudioHome={PROGRAMS,CATS,switchCat,get activeCategory(){return activeCat;},stage:'categorized-program-home-v3'};
 </script>
 </body>
 </html>
