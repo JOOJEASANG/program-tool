@@ -28,5 +28,5 @@ def test_document_editor_stage3_release_floor_and_runtime_sync():
     assert f"const APP_VERSION='{current}'" in sw
     assert f"/js/sw-register.js?v={current}" in firebase
     assert "/css/document-editor-usability.css?v=20260824-1" in page
-    assert "/js/document-editor/usability.js?v=20260824-1" in page
+    assert "/js/document-editor/usability.js?v=20260903-1" in page
     assert "stage:'document-editor-usability-stage3'" in usability

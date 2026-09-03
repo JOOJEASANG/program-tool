@@ -13,15 +13,16 @@ QUALITY = ROOT / ".github" / "workflows" / "quality-gate.yml"
 def test_stage3_exposes_starter_templates_zoom_and_safe_paste_ui():
     page = PAGE.read_text(encoding="utf-8")
     for marker in (
-        'id="documentTemplate"',
+        'id="formTemplateChips"',
+        'id="formTemplateList"',
         'id="documentZoom"',
-        'id="applyTemplateBtn"',
         'id="usabilityState"',
-        '<option value="meeting">회의록</option>',
-        '<option value="weekly">주간 업무보고</option>',
-        '<option value="notice">안내문</option>',
+        'data-form-tab="forms"',
+        'data-form-insert="approval"',
+        'data-form-insert="signature"',
         '/css/document-editor-usability.css?v=20260824-1',
-        '/js/document-editor/usability.js?v=20260824-1',
+        '/js/document-editor/usability.js?v=20260903-1',
+        '/js/document-editor/forms.js?v=20260903-1',
     ):
         assert marker in page
     assert STYLE.exists()

@@ -45,8 +45,8 @@ def test_deployment_version_busts_cached_boot_guard_after_embedded_fix():
     sw_register = read("js/sw-register.js")
     sw = read("sw.js")
     firebase = read("js/firebase-config.js")
-    assert '"version": "2026.09.02.003"' in version
-    assert '"label": "PDF 검사 부팅 게이트 지연 단축 및 서비스 워커 캐시 갱신"' in version
-    assert "const VERSION='2026.09.02.003'" in sw_register
-    assert "const APP_VERSION='2026.09.02.003'" in sw
-    assert "/js/sw-register.js?v=2026.09.02.003" in firebase
+    assert '"version": "2026.09.03.001"' in version
+    assert '"label": "문서 편집기 양식 갤러리·양식 요소 도구 추가 및 사이드바 탭 개편"' in version
+    assert "const VERSION='2026.09.03.001'" in sw_register
+    assert "const APP_VERSION='2026.09.03.001'" in sw
+    assert "/js/sw-register.js?v=2026.09.03.001" in firebase
