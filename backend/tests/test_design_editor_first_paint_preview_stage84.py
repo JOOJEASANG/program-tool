@@ -8,23 +8,21 @@ def read(path: str) -> str:
     return (ROOT / path).read_text(encoding="utf-8")
 
 
-def test_design_general_reveals_after_access_without_waiting_for_full_runtime_chain():
+def test_design_general_waits_for_functional_runtime_after_access():
     guard = read("js/app-boot-guard.js")
-    assert "async function watchDesignShell()" in guard
-    assert "async function watchPreflightShell()" in guard
-    assert "window.DesignEditorEssentialWorkspace?.stage" in guard
-    assert "window.DesignEditorApp" in guard
-    assert "function observeEnhancementReadiness()" in guard
-    assert "Promise.allSettled([watchPreflightShell(),watchDesignShell()])" in guard
+    assert "async function waitForDesignFunctionalReady()" in guard
+    assert "function designBaseFunctionalReady()" in guard
+    assert "root.dataset.designCoreRuntime==='1'" in guard
+    assert "root.dataset.designShellRuntime==='1'" in guard
+    assert "window.DesignEditorApp?.project" in guard
+    assert "async function waitForProtectedFunctionalReady()" in guard
     assert "if(!access){retryApprovalWait();return;}" in guard
     assert "clearTimeout(failClosedTimer)" in guard
-    assert "root.dataset.bootGate='access-only'" in guard
+    assert "functional-runtime" in guard
     approval = guard[guard.index("function waitForApproval()") :]
-    assert approval.index("clearTimeout(failClosedTimer);") < approval.index("reveal();")
-    assert approval.index("reveal();") < approval.index("observeEnhancementReadiness();")
-    assert "async function waitForDesignRuntime()" not in guard
-    assert "await waitForDesignRuntime();" not in guard
-    assert "window.ProgramStudioRuntimeReady" not in guard
+    assert approval.index("clearTimeout(failClosedTimer);") < approval.index("await waitForProtectedFunctionalReady();")
+    assert approval.index("await waitForProtectedFunctionalReady();") < approval.index("reveal(functional?'functional-runtime':'functional-timeout');")
+    assert "root.dataset.bootGate='access-only'" not in guard
 
 
 def test_outer_design_shell_reveals_approved_base_editor_while_enhancements_continue():
