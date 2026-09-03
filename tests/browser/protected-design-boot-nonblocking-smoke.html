@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Protected Design Boot Nonblocking Smoke</title>
+  <script>
+    history.replaceState(null,'','/design-editor/general.html?embed=1&entry=app-direct&app=poster&mode=poster');
+    window.__protectedBootStarted=performance.now();
+    window.ProgramAccessReady=Promise.resolve({allowed:true,status:'approved'});
+    window.requestIdleCallback=callback=>setTimeout(()=>callback({didTimeout:false,timeRemaining:()=>0}),2000);
+  </script>
+</head>
+<body data-phase7-smoke="pending">
+  <main>
+    <h1>보호 디자인 부트 비차단 검사</h1>
+    <p id="result">PENDING</p>
+  </main>
+  <script src="/js/app-boot-guard.js?v=smoke"></script>
+  <script>
+    (async()=>{
+      const result=document.getElementById('result');
+      const assert=(value,message)=>{if(!value)throw new Error(message);};
+      const wait=async(predicate,label)=>{
+        for(let i=0;i<100;i++){
+          if(predicate())return;
+          await new Promise(resolve=>setTimeout(resolve,10));
+        }
+        throw new Error('timeout: '+label);
+      };
+      try{
+        await wait(()=>document.documentElement.dataset.appReady==='true','protected design ready');
+        const elapsed=performance.now()-window.__protectedBootStarted;
+        assert(!document.documentElement.classList.contains('app-booting'),'protected design curtain remained');
+        assert(document.documentElement.dataset.bootGate==='access-only','protected design did not use access-only boot gate');
+        assert(!document.documentElement.dataset.designFinalWorkspaceReady,'test unexpectedly had final workspace readiness');
+        assert(!document.documentElement.dataset.designSidebarStable,'test unexpectedly had sidebar readiness');
+        assert(elapsed<700,'protected design reveal waited for UI stabilization: '+Math.round(elapsed)+'ms');
+        document.body.dataset.phase7Smoke='pass';
+        result.textContent='PASS: protected design became interactive after access without waiting for final UI flags ('+Math.round(elapsed)+'ms)';
+      }catch(error){
+        document.body.dataset.phase7Smoke='fail';
+        result.textContent='FAIL: '+String(error.message||error);
+      }
+    })();
+  </script>
+</body>
+</html>

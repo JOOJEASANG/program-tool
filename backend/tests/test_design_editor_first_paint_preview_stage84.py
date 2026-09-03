@@ -10,12 +10,18 @@ def read(path: str) -> str:
 
 def test_design_general_reveals_after_access_without_waiting_for_full_runtime_chain():
     guard = read("js/app-boot-guard.js")
-    assert "async function waitForDesignShell()" in guard
+    assert "async function watchDesignShell()" in guard
+    assert "async function watchPreflightShell()" in guard
     assert "window.DesignEditorEssentialWorkspace?.stage" in guard
     assert "window.DesignEditorApp" in guard
-    assert "await Promise.all([waitForPreflightShell(),waitForDesignShell()])" in guard
+    assert "function observeEnhancementReadiness()" in guard
+    assert "Promise.allSettled([watchPreflightShell(),watchDesignShell()])" in guard
     assert "if(!access){retryApprovalWait();return;}" in guard
     assert "clearTimeout(failClosedTimer)" in guard
+    assert "root.dataset.bootGate='access-only'" in guard
+    approval = guard[guard.index("function waitForApproval()") :]
+    assert approval.index("clearTimeout(failClosedTimer);") < approval.index("reveal();")
+    assert approval.index("reveal();") < approval.index("observeEnhancementReadiness();")
     assert "async function waitForDesignRuntime()" not in guard
     assert "await waitForDesignRuntime();" not in guard
     assert "window.ProgramStudioRuntimeReady" not in guard

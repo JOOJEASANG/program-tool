@@ -23,9 +23,12 @@ def test_pdf_utility_first_paint_uses_lightweight_shell_and_canonical_runtime():
     assert "ProgramStudioPreflightRuntimeReady" not in boot
     assert "pdfPreflightPanelBalanceScriptV1" in boot
     assert "script.dataset.loaded='true'" in boot
-    assert "waitForPreflightShell" in boot
+    assert "watchPreflightShell" in boot
     assert "clean-workspace-v2" in boot
+    assert "root.dataset.bootGate='access-only'" in boot
     assert "pdfPreflightPanelBalanceScriptV1" in runtime
+    assert "CRITICAL_MODULES" in runtime
+    assert "DEFERRED_MODULES" in runtime
     assert runtime.index("pdfUtilityImageConverterScriptV1") < runtime.index("pdfPreflightPanelBalanceScriptV1")
 
 
