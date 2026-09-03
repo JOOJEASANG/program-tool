@@ -1,8 +1,8 @@
 // Final functional binding after the PDF Utility core and preflight guard are ready.
 (function(){
   'use strict';
-  if(window.__pdfUtilityFinalizeV4)return;
-  window.__pdfUtilityFinalizeV4=true;
+  if(window.__pdfUtilityFinalizeV5)return;
+  window.__pdfUtilityFinalizeV5=true;
 
   const path=location.pathname.replace(/\/+$/,'')||'/';
   if(!(path==='/pdf-preflight'||path.endsWith('/pdf-preflight/index.html')))return;
@@ -10,6 +10,10 @@
   let attempts=0;
   let checkObserver=null;
   let retainedDownloadUrl='';
+  const blobByUrl=new Map();
+  const nativeAnchorClick=HTMLAnchorElement.prototype.click;
+  const nativeCreateObjectURL=URL.createObjectURL.bind(URL);
+  const nativeRevokeObjectURL=URL.revokeObjectURL.bind(URL);
 
   function ensureDownloadFallbackUi(){
     let bar=document.getElementById('pdfUtilityDownloadFallback');
@@ -31,10 +35,10 @@
   function retainBlobDownload(blob,name){
     if(!(blob instanceof Blob))return;
     if(retainedDownloadUrl){
-      try{URL.revokeObjectURL(retainedDownloadUrl);}catch(_){}
+      try{nativeRevokeObjectURL(retainedDownloadUrl);}catch(_){}
       retainedDownloadUrl='';
     }
-    retainedDownloadUrl=URL.createObjectURL(blob);
+    retainedDownloadUrl=nativeCreateObjectURL(blob);
     const bar=ensureDownloadFallbackUi();
     if(!bar)return;
     const text=document.getElementById('pdfUtilityDownloadFallbackText');
@@ -46,9 +50,10 @@
         const link=document.createElement('a');
         link.href=retainedDownloadUrl;
         link.download=name||'result.pdf';
+        link.dataset.pdfUtilityFallbackDownload='1';
         link.style.display='none';
         document.body.appendChild(link);
-        HTMLAnchorElement.prototype.click.call(link);
+        Reflect.apply(nativeAnchorClick,link,[]);
         link.remove();
       };
     }
@@ -56,27 +61,46 @@
   }
 
   function installDownloadFallback(){
-    if(HTMLAnchorElement.prototype.click.__pdfUtilityDownloadFallbackV4)return;
-    const nativeClick=HTMLAnchorElement.prototype.click;
-    const wrapped=function pdfUtilityAnchorClick(){
+    if(URL.createObjectURL.__pdfUtilityDownloadFallbackV5)return;
+
+    const wrappedCreateObjectURL=function pdfUtilityCreateObjectURL(value){
+      const url=nativeCreateObjectURL(value);
+      if(value instanceof Blob)blobByUrl.set(url,value);
+      return url;
+    };
+    wrappedCreateObjectURL.__pdfUtilityDownloadFallbackV5=true;
+    wrappedCreateObjectURL.__pdfUtilityNativeCreateObjectURL=nativeCreateObjectURL;
+
+    const wrappedRevokeObjectURL=function pdfUtilityRevokeObjectURL(url){
+      blobByUrl.delete(String(url||''));
+      return nativeRevokeObjectURL(url);
+    };
+    wrappedRevokeObjectURL.__pdfUtilityDownloadFallbackV5=true;
+    wrappedRevokeObjectURL.__pdfUtilityNativeRevokeObjectURL=nativeRevokeObjectURL;
+
+    const wrappedClick=function pdfUtilityAnchorClick(){
       const href=String(this.href||'');
       const name=this.download||'result.pdf';
-      if(href.startsWith('blob:')&&this.hasAttribute('download')){
-        fetch(href)
-          .then(response=>response.ok?response.blob():Promise.reject(new Error('blob read failed')))
-          .then(blob=>retainBlobDownload(blob,name))
-          .catch(error=>console.warn('[pdf utility] result download fallback capture failed',error));
+      const isFallback=this.dataset?.pdfUtilityFallbackDownload==='1';
+      if(!isFallback&&href.startsWith('blob:')&&this.hasAttribute('download')){
+        const blob=blobByUrl.get(href);
+        if(blob)retainBlobDownload(blob,name);
       }
-      return Reflect.apply(nativeClick,this,arguments);
+      return Reflect.apply(nativeAnchorClick,this,arguments);
     };
-    wrapped.__pdfUtilityDownloadFallbackV4=true;
-    wrapped.__pdfUtilityNativeClick=nativeClick;
-    HTMLAnchorElement.prototype.click=wrapped;
+    wrappedClick.__pdfUtilityDownloadFallbackV5=true;
+    wrappedClick.__pdfUtilityNativeClick=nativeAnchorClick;
+
+    URL.createObjectURL=wrappedCreateObjectURL;
+    URL.revokeObjectURL=wrappedRevokeObjectURL;
+    HTMLAnchorElement.prototype.click=wrappedClick;
+
     window.addEventListener('beforeunload',()=>{
       if(retainedDownloadUrl){
-        try{URL.revokeObjectURL(retainedDownloadUrl);}catch(_){}
+        try{nativeRevokeObjectURL(retainedDownloadUrl);}catch(_){}
         retainedDownloadUrl='';
       }
+      blobByUrl.clear();
     },{once:true});
   }
 
@@ -95,13 +119,13 @@
 
   function wrapBusyState(){
     const original=window.setPageBusy;
-    if(typeof original!=='function'||original.__pdfUtilityFinalizedV4)return;
+    if(typeof original!=='function'||original.__pdfUtilityFinalizedV5)return;
     const wrapped=function pdfUtilitySetPageBusy(busy,label){
       const result=Reflect.apply(original,this,arguments);
       if(!busy)queueMicrotask(restoreCheckLabel);
       return result;
     };
-    wrapped.__pdfUtilityFinalizedV4=true;
+    wrapped.__pdfUtilityFinalizedV5=true;
     wrapped.__pdfUtilityDelegate=original;
     window.setPageBusy=wrapped;
   }
@@ -133,7 +157,7 @@
     observeCheckLabel();
     ensureDownloadFallbackUi();
     window.runCheck=utility.runBatchCheck;
-    document.documentElement.dataset.pdfUtilityFinalized='functional-v4-download-fallback';
+    document.documentElement.dataset.pdfUtilityFinalized='functional-v5-download-fallback';
   }
 
   installDownloadFallback();
