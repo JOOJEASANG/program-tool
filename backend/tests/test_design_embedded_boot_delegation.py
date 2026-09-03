@@ -28,16 +28,16 @@ def test_embedded_design_editor_gets_stable_first_paint_layout_before_runtime_en
     assert "#designCanvasQuickbar{display:none!important}" in source
 
 
-def test_modular_shell_never_reveals_design_before_focused_project_is_painted():
+def test_modular_shell_never_reveals_design_before_functional_project_is_painted():
     source = read("js/studio-app-shell.js")
     assert "const projectReady=doc.documentElement.dataset.designEmbeddedProjectReady==='1'" in source
     assert "win.DesignEditorApp?.project" in source
-    assert "const focusedReady=doc.documentElement.dataset.designFocusedWorkspace==='1';" in source
     assert "const bootStable=!doc.documentElement.classList.contains('app-booting');" in source
+    assert "designFocusedWorkspace" not in source[source.index("function designFrameCanReveal()") : source.index("function startFrameProbe()")]
     assert "Boolean(win.DesignEditorFocusedWorkspace)||" not in source
     assert "if(app?.kind==='design'){" in source
-    assert "markFrameReady('load-stable-project')" in source
-    assert "fastRevealStage:'modular-design-stable-project-reveal-v3'" in source
+    assert "markFrameReady('load-functional-project')" in source
+    assert "fastRevealStage:'modular-design-functional-project-reveal-v4'" in source
 
 
 def test_deployment_version_busts_cached_boot_guard_after_embedded_fix():
