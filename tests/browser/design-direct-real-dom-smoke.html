@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Design Direct Real DOM Smoke</title>
+  <script>
+    history.replaceState(null,'','/design-editor/general.html?embed=1&entry=app-direct&app=cover&mode=cover&preset=cover-a4&browser-smoke=1');
+    window.ProgramAccessReady=Promise.resolve({allowed:true,status:'approved'});
+  </script>
+</head>
+<body data-direct-real-dom-smoke="pending">
+  <div id="diagnosticResult">PENDING</div>
+  <script>
+  (async()=>{
+    const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+    const waitFor=async(predicate,label,timeout=18000)=>{
+      const started=Date.now();
+      while(Date.now()-started<timeout){
+        try{if(predicate())return true;}catch(_){}
+        await sleep(40);
+      }
+      throw new Error('timeout: '+label);
+    };
+    const loadScript=(id,src)=>new Promise((resolve,reject)=>{
+      if(document.getElementById(id))return resolve();
+      const script=document.createElement('script');script.id=id;script.src=src;script.async=false;
+      script.onload=()=>resolve();script.onerror=()=>reject(new Error('script failed: '+src));
+      document.head.appendChild(script);
+    });
+    const visible=node=>{
+      if(!node)return false;
+      const style=getComputedStyle(node),rect=node.getBoundingClientRect();
+      return style.display!=='none'&&style.visibility!=='hidden'&&Number(style.opacity)!==0&&rect.width>4&&rect.height>4;
+    };
+    const describe=node=>{
+      if(!node)return'null';
+      const id=node.id?'#'+node.id:'';
+      const classes=node.classList?.length?'.'+[...node.classList].slice(0,4).join('.'):'';
+      return String(node.tagName||node.nodeName||'node').toLowerCase()+id+classes;
+    };
+    const peChain=node=>{
+      const rows=[];let current=node;
+      while(current&&current.nodeType===1&&rows.length<8){
+        const style=getComputedStyle(current);
+        rows.push(describe(current)+'[pe='+style.pointerEvents+',disp='+style.display+',vis='+style.visibility+',z='+style.zIndex+']');
+        current=current.parentElement;
+      }
+      return rows.join(' > ');
+    };
+    const hitStack=(x,y)=>document.elementsFromPoint(x,y).slice(0,8).map(describe).join(' > ');
+    const result=()=>document.getElementById('diagnosticResult');
+    const fail=error=>{
+      document.body.dataset.directRealDomSmoke='fail';
+      const message=String(error?.stack||error?.message||error);
+      document.body.dataset.directFailure=message.slice(0,500);
+      result().textContent='FAIL: '+message;
+    };
+    const assert=(condition,message)=>{if(!condition)throw new Error(message);};
+
+    try{
+      const source=await fetch('/design-editor/general.html',{cache:'no-store'}).then(response=>{
+        if(!response.ok)throw new Error('general.html fetch failed: '+response.status);
+        return response.text();
+      });
+      const parsed=new DOMParser().parseFromString(source,'text/html');
+      parsed.querySelectorAll('script').forEach(node=>node.remove());
+      [...parsed.head.querySelectorAll('style')].forEach(style=>document.head.appendChild(style.cloneNode(true)));
+      document.body.innerHTML=parsed.body.innerHTML+'<div id="diagnosticResult" style="display:none">PENDING</div>';
+      document.body.dataset.directRealDomSmoke='pending';
+
+      await loadScript('directEmbeddedStability','/js/design-editor/embedded-stability-bootstrap.js?v=20260901-1');
+      await loadScript('directBootGuard','/js/app-boot-guard.js?v=direct-real-dom-smoke');
+      await loadScript('directPresets','/js/design-editor/presets.js?v=20260821-1');
+      await loadScript('directApp','/js/design-editor/app.js?v=20260821-1');
+      await loadScript('directFocusedWorkspace','/js/design-editor/focused-professional-workspace.js?v=20260901-1');
+      await loadScript('directRuntimeLoader','/js/sw-register.js?v=2026.09.02.003');
+
+      await waitFor(()=>window.DesignEditorApp?.project,'requested cover project');
+      await waitFor(()=>document.documentElement.dataset.designCoreRuntime==='1','design core runtime');
+      await waitFor(()=>document.documentElement.dataset.designFinalWorkspaceReady==='1','design final workspace');
+      await waitFor(()=>document.documentElement.dataset.appReady==='true','boot reveal');
+      await sleep(4300);
+
+      const root=document.documentElement,body=document.body,shell=document.getElementById('editorShell');
+      const viewport=document.getElementById('artboardViewport'),artboard=document.getElementById('artboard');
+      assert(shell&&!shell.classList.contains('hidden'),'editorShell is not visible');
+      assert(viewport&&artboard,'artboard DOM missing');
+      document.body.dataset.directRootPe=getComputedStyle(root).pointerEvents;
+      document.body.dataset.directBodyPe=getComputedStyle(body).pointerEvents;
+      document.body.dataset.directShellPe=getComputedStyle(shell).pointerEvents;
+      document.body.dataset.directViewportPe=getComputedStyle(viewport).pointerEvents;
+      assert(getComputedStyle(body).pointerEvents!=='none','body pointer-events is none; '+peChain(body));
+      assert(getComputedStyle(shell).pointerEvents!=='none','editorShell pointer-events is none; '+peChain(shell));
+
+      const button=document.getElementById('addTitleBtn');
+      assert(visible(button),'real addTitleBtn is not visible');
+      const rect=button.getBoundingClientRect(),x=rect.left+rect.width/2,y=rect.top+rect.height/2;
+      const hit=document.elementFromPoint(x,y);
+      document.body.dataset.directHitTarget=describe(hit);
+      document.body.dataset.directHitStack=hitStack(x,y).slice(0,500);
+      document.body.dataset.directButtonChain=peChain(button).slice(0,700);
+      assert(hit&&(hit===button||button.contains(hit)),`real button is covered: hit=${describe(hit)} stack=${hitStack(x,y)} chain=${peChain(button)}`);
+
+      const surface=window.DesignEditorApp.project.surfaces.find(item=>item.id===window.DesignEditorApp.project.activeSurface)||window.DesignEditorApp.project.surfaces[0];
+      const before=surface.elements.length;
+      hit.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,cancelable:true,button:0,clientX:x,clientY:y,pointerId:91,pointerType:'mouse'}));
+      hit.dispatchEvent(new PointerEvent('pointerup',{bubbles:true,cancelable:true,button:0,clientX:x,clientY:y,pointerId:91,pointerType:'mouse'}));
+      hit.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true,button:0,clientX:x,clientY:y,view:window}));
+      await sleep(160);
+      const after=surface.elements.length;
+      document.body.dataset.directClickDelta=String(after-before);
+      assert(after===before+1,`real add-title click did not change project state: before=${before} after=${after}`);
+
+      let artboardMutations=0;
+      const mutationObserver=new MutationObserver(records=>{artboardMutations+=records.filter(record=>record.type==='childList').length;});
+      mutationObserver.observe(artboard,{childList:true,subtree:false});
+      const timerStarted=performance.now();
+      let sentinel=false;
+      setTimeout(()=>{sentinel=true;},120);
+      await sleep(1300);
+      mutationObserver.disconnect();
+      const timerElapsed=performance.now()-timerStarted;
+      document.body.dataset.directArtboardMutations=String(artboardMutations);
+      document.body.dataset.directTimerElapsed=String(Math.round(timerElapsed));
+      assert(sentinel,'main thread timer was starved');
+      assert(artboardMutations<=2,`idle artboard keeps rebuilding: ${artboardMutations} childList mutations/1.3s`);
+
+      const artRect=artboard.getBoundingClientRect();
+      const artX=artRect.left+artRect.width/2,artY=artRect.top+artRect.height/2;
+      document.body.dataset.directArtboardHit=describe(document.elementFromPoint(artX,artY));
+      document.body.dataset.directArtboardStack=hitStack(artX,artY).slice(0,500);
+      document.body.dataset.directRealDomSmoke='pass';
+      result().textContent='PASS: real app-direct DOM is hit-testable, clickable and idle-stable';
+    }catch(error){fail(error);}
+  })();
+  </script>
+</body>
+</html>
