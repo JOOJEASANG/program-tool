@@ -8,18 +8,23 @@ def read(path: str) -> str:
     return (ROOT / path).read_text(encoding="utf-8")
 
 
-def test_pdf_preflight_ui_is_clean_single_column_workflow():
+def test_pdf_preflight_ui_is_clean_left_tools_right_results_workflow():
     source = read("js/pdf-preflight-panel-balance.js")
     assert "PDF 검사 · 유틸리티" in source
-    assert "PDF 선택" in source
-    assert "인쇄 전 검사" in source
-    assert "PDF 보안 도구" in source
-    assert "grid-template-columns:1fr!important" in source
-    assert "grid-template-columns:repeat(3,minmax(0,1fr))!important" in source
+    assert "PDF 파일 업로드" in source
+    assert "검사 · PDF 유틸리티" in source
+    assert "작업 진행 · 결과" in source
+    assert "grid-template-columns:minmax(350px,420px) minmax(0,1fr)!important" in source
+    assert "pdf-preflight-input-panel" in source
+    assert "pdf-preflight-output-panel" in source
+    assert "pdfPreflightOutputEmpty" in source
+    assert "pdfAllInOneExtractBtn" in source
+    assert "pdfAllInOneBlankBtn" in source
     assert "results-section-heading" in source
     assert "인쇄 전 확인 항목" in source
     assert 'href="/pdf-editor/"' in source
     assert "clean-workspace-v2" in source
+    assert "left-tools-right-results-v1" in source
 
 
 def test_pdf_preflight_page_preloads_firebase_scripts_for_faster_boot():
