@@ -79,40 +79,28 @@
   function loadDesignRuntimeScript(id,src){loadRuntimeScript(id,src,isGeneralDesignEditor());}
 
   installEmbeddedDesignFirstPaint();
-
-  let postRevealScheduled=false;
-  function loadPostRevealEnhancements(){
-    loadDesignRuntimeScript('designTextAutoFitScriptV1','/js/design-editor/text-auto-fit.js?v=20260826-2');
-    loadDesignRuntimeScript('designTypographyProScriptV1','/js/design-editor/typography-pro.js?v=20260827-1');
-    loadDesignRuntimeScript('designLocalFontsScriptV1','/js/design-editor/local-fonts.js?v=20260827-1');
-    loadDesignRuntimeScript('designShapeBorderControlsScriptV1','/js/design-editor/shape-border-controls.js?v=20260827-1');
-    loadDesignRuntimeScript('designShapeInspectorUxScriptV1','/js/design-editor/shape-inspector-ux.js?v=20260827-1');
-    loadDesignRuntimeScript('designPrintProductionStage2ScriptV1','/js/design-editor/print-production-stage2.js?v=20260826-1');
-    loadRuntimeScript('pdfPrintWorkflowFocusScriptV1','/js/pdf-editor/print-workflow-focus.js?v=20260827-1',isPdfPrintEditor());
-    loadRuntimeScript('pdfPreflightPanelBalanceScriptV1','/js/pdf-preflight-panel-balance.js?v=20260831-3',protectedProgram==='preflight');
-    root.dataset.postRevealEnhancements='scheduled';
-  }
-  function schedulePostRevealEnhancements(){
-    if(postRevealScheduled)return;
-    postRevealScheduled=true;
-    const run=()=>{
-      try{loadPostRevealEnhancements();}
-      catch(error){console.warn('Post-reveal enhancement loading failed.',error);}
-    };
-    if(typeof requestIdleCallback==='function')requestIdleCallback(run,{timeout:900});
-    else setTimeout(run,80);
-  }
+  // These helpers participate in control wiring and must be present during the
+  // editor boot. Loading them only after reveal can expose a clickable but dead UI.
+  loadDesignRuntimeScript('designTextAutoFitScriptV1','/js/design-editor/text-auto-fit.js?v=20260826-2');
+  loadDesignRuntimeScript('designTypographyProScriptV1','/js/design-editor/typography-pro.js?v=20260827-1');
+  loadDesignRuntimeScript('designLocalFontsScriptV1','/js/design-editor/local-fonts.js?v=20260827-1');
+  loadDesignRuntimeScript('designShapeBorderControlsScriptV1','/js/design-editor/shape-border-controls.js?v=20260827-1');
+  loadDesignRuntimeScript('designShapeInspectorUxScriptV1','/js/design-editor/shape-inspector-ux.js?v=20260827-1');
+  loadDesignRuntimeScript('designPrintProductionStage2ScriptV1','/js/design-editor/print-production-stage2.js?v=20260826-1');
+  loadRuntimeScript('pdfPrintWorkflowFocusScriptV1','/js/pdf-editor/print-workflow-focus.js?v=20260827-1',isPdfPrintEditor());
+  // Prime the current preflight presentation behind the boot overlay so the
+  // legacy workspace never flashes before clean-workspace-v2 takes ownership.
+  loadRuntimeScript('pdfPreflightPanelBalanceScriptV1','/js/pdf-preflight-panel-balance.js?v=20260831-3',protectedProgram==='preflight');
 
   let revealed=false;
   let style=null;
-  function reveal(){
+  function reveal(stage){
     if(revealed)return;
     revealed=true;
     root.classList.remove('app-booting');
     root.dataset.appReady='true';
-    root.dataset.bootGate='access-only';
+    root.dataset.bootGate=stage||'functional-runtime';
     if(style)requestAnimationFrame(()=>style.remove());
-    schedulePostRevealEnhancements();
   }
 
   window.ProgramStudioBoot={...(window.ProgramStudioBoot||{}),reveal,protectedProgram};
@@ -121,10 +109,10 @@
   const delegatedParentGate=hasDelegatedModularParentGate();
   if(delegatedParentGate){
     root.dataset.parentAccessDelegated='true';
-    reveal();
+    reveal('parent-delegated');
     return;
   }
-  if(!protectedProgram){reveal();return;}
+  if(!protectedProgram){reveal('public');return;}
 
   root.classList.add('app-booting');
   root.dataset.approvalRequired='true';
@@ -163,39 +151,50 @@
     return false;
   }
 
-  async function watchPreflightShell(){
+  async function waitForPromiseGlobal(name,discoverMs,settleMs){
+    const found=await waitUntil(()=>Boolean(window[name]&&typeof window[name].then==='function'),discoverMs);
+    if(!found)return false;
+    return Promise.race([
+      Promise.resolve(window[name]).then(()=>true).catch(error=>{console.warn(`${name} failed before reveal.`,error);return false;}),
+      delay(settleMs).then(()=>false)
+    ]);
+  }
+
+  async function waitForPreflightFunctionalReady(){
     if(protectedProgram!=='preflight')return true;
-    const ready=await waitUntil(()=>document.body?.dataset?.pdfPreflightUi==='clean-workspace-v2',2500);
-    root.dataset.preflightEnhancementReady=ready?'1':'0';
-    if(!ready)console.warn('PDF preflight enhancements are still loading after the base workspace became interactive.');
+    const runtimeReady=await waitForPromiseGlobal('ProgramStudioPreflightRuntimeReady',1400,7600);
+    const uiReady=await waitUntil(()=>document.body?.dataset?.pdfPreflightUi==='clean-workspace-v2',1200);
+    const ready=runtimeReady&&uiReady;
+    root.dataset.preflightFunctionalReady=ready?'1':'0';
+    if(!ready)console.warn('PDF preflight functional runtime did not fully settle before the bounded reveal.');
     return ready;
   }
 
-  function directDesignWorkspaceReady(){
+  function designBaseFunctionalReady(){
     const standalone=Boolean(String(params.get('app')||'').trim());
-    const projectReady=Boolean(window.DesignEditorApp?.project)&&root.dataset.designEmbeddedProjectReady==='1'&&root.dataset.designEmbeddedCanvasStable==='1';
-    const focusedReady=root.dataset.designFocusedWorkspace==='1';
-    const shellReady=!standalone||root.dataset.designFinalWorkspaceReady==='1';
-    const productReady=!standalone||Boolean(root.dataset.designProductWorkspace);
-    const sidebarReady=!standalone||root.dataset.designSidebarStable==='1';
-    return projectReady&&focusedReady&&shellReady&&productReady&&sidebarReady;
+    const appReady=Boolean(window.DesignEditorApp&&(document.getElementById('editorShell')||document.getElementById('startScreen')));
+    const coreReady=root.dataset.designCoreRuntime==='1';
+    if(!appReady||!coreReady)return false;
+    if(!standalone)return true;
+    const projectReady=Boolean(window.DesignEditorApp?.project);
+    const shellReady=root.dataset.designShellRuntime==='1'||root.dataset.designFinalWorkspaceReady==='1';
+    return projectReady&&shellReady;
   }
 
-  async function watchDesignShell(){
+  async function waitForDesignFunctionalReady(){
     if(protectedProgram!=='design-studio'||!isGeneralDesignEditor())return true;
-    const timeout=isDirectDesignEntry()?9000:2800;
-    const ready=await waitUntil(()=>isDirectDesignEntry()?directDesignWorkspaceReady():Boolean(
-      window.DesignEditorEssentialWorkspace?.stage||
-      (window.DesignEditorApp&&(document.getElementById('editorShell')||document.getElementById('startScreen')))
-    ),timeout);
-    root.dataset.designEnhancementReady=ready?'1':'0';
-    root.dataset.designRevealStage=ready?'enhanced':'base-interactive';
-    if(!ready)console.warn('Design enhancements did not fully stabilize, but the base editor remains interactive.');
+    const timeout=isDirectDesignEntry()?6800:4200;
+    const ready=await waitUntil(designBaseFunctionalReady,timeout);
+    root.dataset.designFunctionalReady=ready?'1':'0';
+    root.dataset.designRevealStage=ready?'functional-runtime':'bounded-fallback';
+    if(!ready)console.warn('Design functional runtime did not fully settle before the bounded reveal.');
     return ready;
   }
 
-  function observeEnhancementReadiness(){
-    Promise.allSettled([watchPreflightShell(),watchDesignShell()]).catch(()=>{});
+  async function waitForProtectedFunctionalReady(){
+    if(protectedProgram==='preflight')return waitForPreflightFunctionalReady();
+    if(protectedProgram==='design-studio'&&isGeneralDesignEditor())return waitForDesignFunctionalReady();
+    return true;
   }
 
   function retryApprovalWait(){
@@ -207,11 +206,13 @@
     if(revealed)return;
     const ready=window.ProgramAccessReady;
     if(ready&&typeof ready.then==='function'){
-      Promise.resolve(ready).then(access=>{
+      Promise.resolve(ready).then(async access=>{
         if(!access){retryApprovalWait();return;}
+        // Access is already authorized. From here on the gate protects only
+        // against exposing half-wired UI, so it must not redirect on runtime delay.
         clearTimeout(failClosedTimer);
-        reveal();
-        observeEnhancementReadiness();
+        const functional=await waitForProtectedFunctionalReady();
+        reveal(functional?'functional-runtime':'functional-timeout');
       }).catch(error=>{
         console.warn('Program access readiness promise failed before reveal.',error);
         retryApprovalWait();
