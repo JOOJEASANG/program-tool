@@ -96,24 +96,28 @@ def test_pdf_editor_session_and_utility_enforce_cost_bounded_working_sets():
     assert "500MB" not in utility
 
 
-def test_storage_rules_gate_owner_staging_with_matching_program_access():
+def test_storage_rules_keep_temp_pdf_owner_scoped_and_backend_access_bounded():
     rules = STORAGE_RULES.read_text(encoding="utf-8")
     assert "validPdfUpload(209715200)" in rules
     pdf_temp = rules[rules.index("match /pdf_temp/"):rules.index("match /preflight_temp/")]
     preflight_temp = rules[rules.index("match /preflight_temp/"):rules.index("match /pdf_sessions/")]
-    assert "allow read: if isOwner(userId) && canUseProgram('pdf-editor');" in pdf_temp
+    assert "allow read: if isOwner(userId);" in pdf_temp
     assert "allow delete: if isOwner(userId);" in pdf_temp
-    assert "canUseProgram('pdf-editor')" in pdf_temp
+    assert "canUseProgram(" not in pdf_temp
+    assert "validStagePath(sessionId, fileName)" in pdf_temp
     assert "validPdfUpload(209715200)" in pdf_temp
     assert "allow update: if false;" in pdf_temp
-    assert "allow read: if isOwner(userId) && canUseProgram('preflight');" in preflight_temp
+    assert "allow read: if isOwner(userId);" in preflight_temp
     assert "allow delete: if isOwner(userId);" in preflight_temp
-    assert "canUseProgram('preflight')" in preflight_temp
+    assert "canUseProgram(" not in preflight_temp
+    assert "validStagePath(sessionId, fileName)" in preflight_temp
     assert "validPdfUpload(209715200)" in preflight_temp
     assert "allow update: if false;" in preflight_temp
     assert "require_program_access_for_request" in MAIN.read_text(encoding="utf-8")
     results = rules[rules.index("match /pdf_results/"):rules.index("match /design_projects/")]
+    assert "allow read: if isOwner(userId);" in results
     assert "allow delete: if isOwner(userId);" in results
+    assert "canUseProgram(" not in results
     assert "allow create, update: if false;" in results
 
 
