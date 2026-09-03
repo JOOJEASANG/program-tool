@@ -63,25 +63,22 @@ service firebase.storage {
         && request.resource.metadata.format == 'program-studio-design-project';
     }
 
-    // Short-lived staging. The backend accepts at most 200 MiB per file and
-    // 300 MiB per PDF job, so Storage must never accept a larger single object.
-    // Existing objects cannot be overwritten; callers must use a fresh session path.
+    // Short-lived PDF staging is available to any signed-in owner. These objects
+    // are immutable, PDF-only, size-bounded, and scoped to the authenticated UID.
+    // Backend processing endpoints independently validate that the Storage UID
+    // matches the authenticated request before reading a staged object.
     match /pdf_temp/{userId}/{sessionId}/{fileName} {
-      allow read: if isOwner(userId) && canUseProgram('pdf-editor');
-      allow delete: if isOwner(userId);
+      allow read, delete: if isOwner(userId);
       allow create: if resource == null
         && isOwner(userId)
-        && canUseProgram('pdf-editor')
         && validStagePath(sessionId, fileName)
         && validPdfUpload(209715200);
       allow update: if false;
     }
     match /preflight_temp/{userId}/{sessionId}/{fileName} {
-      allow read: if isOwner(userId) && canUseProgram('preflight');
-      allow delete: if isOwner(userId);
+      allow read, delete: if isOwner(userId);
       allow create: if resource == null
         && isOwner(userId)
-        && canUseProgram('preflight')
         && validStagePath(sessionId, fileName)
         && validPdfUpload(209715200);
       allow update: if false;
@@ -98,11 +95,9 @@ service firebase.storage {
       allow update: if false;
     }
     match /pdf_results/{userId}/{resultId}/{fileName} {
-      // Generated results are uploaded only by the server. The owner may remove
-      // their own temporary result immediately after download to avoid storage cost.
-      allow read: if isOwner(userId)
-        && (canUseProgram('pdf-editor') || canUseProgram('preflight'));
-      allow delete: if isOwner(userId);
+      // Results are server-created only. Any signed-in owner may read/delete the
+      // temporary result produced for their own authenticated PDF job.
+      allow read, delete: if isOwner(userId);
       allow create, update: if false;
     }
 
