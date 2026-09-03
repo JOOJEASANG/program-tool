@@ -58,6 +58,15 @@
       result().textContent='FAIL: '+message;
     };
     const assert=(condition,message)=>{if(!condition)throw new Error(message);};
+    const clickAt=node=>{
+      const rect=node.getBoundingClientRect(),x=rect.left+rect.width/2,y=rect.top+rect.height/2;
+      const hit=document.elementFromPoint(x,y);
+      if(!hit||(hit!==node&&!node.contains(hit)))throw new Error(`control is covered: target=${describe(node)} hit=${describe(hit)} stack=${hitStack(x,y)} chain=${peChain(node)}`);
+      hit.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,cancelable:true,button:0,clientX:x,clientY:y,pointerId:91,pointerType:'mouse'}));
+      hit.dispatchEvent(new PointerEvent('pointerup',{bubbles:true,cancelable:true,button:0,clientX:x,clientY:y,pointerId:91,pointerType:'mouse'}));
+      hit.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true,button:0,clientX:x,clientY:y,view:window}));
+      return{hit,x,y};
+    };
 
     try{
       const source=await fetch('/design-editor/general.html',{cache:'no-store'}).then(response=>{
@@ -81,7 +90,7 @@
       await waitFor(()=>document.documentElement.dataset.designCoreRuntime==='1','design core runtime');
       await waitFor(()=>document.documentElement.dataset.designFinalWorkspaceReady==='1','design final workspace');
       await waitFor(()=>document.documentElement.dataset.appReady==='true','boot reveal');
-      await sleep(4300);
+      await sleep(900);
 
       const root=document.documentElement,body=document.body,shell=document.getElementById('editorShell');
       const viewport=document.getElementById('artboardViewport'),artboard=document.getElementById('artboard');
@@ -95,24 +104,25 @@
       assert(getComputedStyle(body).pointerEvents!=='none','body pointer-events is none; '+peChain(body));
       assert(getComputedStyle(shell).pointerEvents!=='none','editorShell pointer-events is none; '+peChain(shell));
 
-      const button=document.querySelector('#designSimpleResultTools [data-simple-action="title"]')||document.getElementById('inspectorAddTitle');
-      assert(visible(button),'visible title-add control is missing');
-      const rect=button.getBoundingClientRect(),x=rect.left+rect.width/2,y=rect.top+rect.height/2;
-      const hit=document.elementFromPoint(x,y);
-      document.body.dataset.directHitTarget=describe(hit);
-      document.body.dataset.directHitStack=hitStack(x,y).slice(0,500);
-      document.body.dataset.directButtonChain=peChain(button).slice(0,700);
-      assert(hit&&(hit===button||button.contains(hit)),`real button is covered: hit=${describe(hit)} stack=${hitStack(x,y)} chain=${peChain(button)}`);
+      const insert=document.querySelector('#designTopCommandbar [data-design-command="insert"]');
+      assert(visible(insert),'visible top insert control is missing');
+      const insertClick=clickAt(insert);
+      document.body.dataset.directHitTarget=describe(insertClick.hit);
+      document.body.dataset.directHitStack=hitStack(insertClick.x,insertClick.y).slice(0,500);
+      document.body.dataset.directButtonChain=peChain(insert).slice(0,700);
+      await sleep(80);
+      const popover=document.getElementById('designTopInsertPopover');
+      assert(popover&&!popover.hidden&&visible(popover),'insert popover did not open after real click');
+      const title=popover.querySelector('[data-design-insert="title"]');
+      assert(visible(title),'visible title item is missing from insert popover');
 
       const surface=window.DesignEditorApp.project.surfaces.find(item=>item.id===window.DesignEditorApp.project.activeSurface)||window.DesignEditorApp.project.surfaces[0];
       const before=surface.elements.length;
-      hit.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,cancelable:true,button:0,clientX:x,clientY:y,pointerId:91,pointerType:'mouse'}));
-      hit.dispatchEvent(new PointerEvent('pointerup',{bubbles:true,cancelable:true,button:0,clientX:x,clientY:y,pointerId:91,pointerType:'mouse'}));
-      hit.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true,button:0,clientX:x,clientY:y,view:window}));
-      await sleep(160);
+      clickAt(title);
+      await sleep(180);
       const after=surface.elements.length;
       document.body.dataset.directClickDelta=String(after-before);
-      assert(after===before+1,`real title-add click did not change project state: before=${before} after=${after}`);
+      assert(after===before+1,`real insert-title click did not change project state: before=${before} after=${after}`);
 
       let artboardMutations=0;
       const mutationObserver=new MutationObserver(records=>{artboardMutations+=records.filter(record=>record.type==='childList').length;});
