@@ -38,14 +38,6 @@
         "destination": "/apps/index.html"
       },
       {
-        "source": "/design-editor",
-        "destination": "/design-editor/index.html"
-      },
-      {
-        "source": "/design-editor/general",
-        "destination": "/design-editor/general.html"
-      },
-      {
         "source": "/pdf-preflight",
         "destination": "/pdf-preflight/index.html"
       },
