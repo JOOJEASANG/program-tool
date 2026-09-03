@@ -162,7 +162,7 @@ test('retired provider storage is not member-readable or writable and remains ad
   await assertSucceeds(deleteObject(ref(adminStorage, path)));
 });
 
-test('temporary PDF input is owner-only, approved-only and bounded to the expected path shape', async () => {
+test('temporary PDF input is signed-in owner-only and bounded to the expected path shape', async () => {
   await seedApprovedUser();
   const ownerStorage = env.authenticatedContext(
     'approved-user',
@@ -196,11 +196,27 @@ test('temporary PDF input is owner-only, approved-only and bounded to the expect
     )
   );
   await assertFails(
+    uploadString(
+      ref(ownerStorage, 'pdf_temp/approved-user/session-2/not-pdf.pdf'),
+      'not-a-pdf',
+      'raw',
+      { contentType: 'text/plain' }
+    )
+  );
+  await assertFails(
+    uploadString(
+      ref(otherStorage, 'pdf_temp/approved-user/session-2/hijack.pdf'),
+      '%PDF-test',
+      'raw',
+      { contentType: 'application/pdf' }
+    )
+  );
+  await assertFails(
     getBytes(ref(otherStorage, 'pdf_temp/approved-user/session-1/source.pdf'))
   );
 });
 
-test('pending users cannot stage or read PDF work before administrator approval', async () => {
+test('pending signed-in users can stage, read and delete only their own temporary PDF work', async () => {
   await seedPermission('pending-user', 'pending');
   await env.withSecurityRulesDisabled(async context => {
     await uploadString(
@@ -215,7 +231,7 @@ test('pending users cannot stage or read PDF work before administrator approval'
     { email: 'pending@example.com' }
   ).storage();
 
-  await assertFails(
+  await assertSucceeds(
     uploadString(
       ref(pendingStorage, 'pdf_temp/pending-user/session-1/source.pdf'),
       '%PDF-test',
@@ -223,7 +239,7 @@ test('pending users cannot stage or read PDF work before administrator approval'
       { contentType: 'application/pdf' }
     )
   );
-  await assertFails(
+  await assertSucceeds(
     uploadString(
       ref(pendingStorage, 'preflight_temp/pending-user/session-1/source.pdf'),
       '%PDF-test',
@@ -231,7 +247,7 @@ test('pending users cannot stage or read PDF work before administrator approval'
       { contentType: 'application/pdf' }
     )
   );
-  await assertFails(
+  await assertSucceeds(
     getBytes(ref(pendingStorage, 'pdf_temp/pending-user/session-1/existing.pdf'))
   );
   await assertSucceeds(
@@ -239,21 +255,8 @@ test('pending users cannot stage or read PDF work before administrator approval'
   );
 });
 
-test('public PDF catalog flags cannot bypass administrator approval', async () => {
-  await env.withSecurityRulesDisabled(async context => {
-    await setDoc(
-      doc(context.firestore(), 'settings', 'programs'),
-      { public: { 'pdf-editor': true, preflight: true } }
-    );
-    await setDoc(
-      doc(context.firestore(), 'user_permissions', 'public-user'),
-      { status: 'pending' }
-    );
-  });
-  const publicStorage = env.authenticatedContext(
-    'public-user',
-    { email: 'public@example.com' }
-  ).storage();
+test('unauthenticated users cannot use temporary PDF staging', async () => {
+  const publicStorage = env.unauthenticatedContext().storage();
 
   await assertFails(
     uploadString(
@@ -273,9 +276,9 @@ test('public PDF catalog flags cannot bypass administrator approval', async () =
   );
 });
 
-test('generated results are server-created and owner-readable/deletable only', async () => {
-  await seedApprovedUser();
-  const path = 'pdf_results/approved-user/result-1/output.pdf';
+test('generated results are server-created and owner-readable/deletable independent of approval state', async () => {
+  await seedPermission('pending-user', 'pending');
+  const path = 'pdf_results/pending-user/result-1/output.pdf';
   await env.withSecurityRulesDisabled(async context => {
     await uploadString(
       ref(context.storage(), path),
@@ -286,8 +289,8 @@ test('generated results are server-created and owner-readable/deletable only', a
   });
 
   const ownerStorage = env.authenticatedContext(
-    'approved-user',
-    { email: 'approved@example.com' }
+    'pending-user',
+    { email: 'pending@example.com' }
   ).storage();
   const otherStorage = env.authenticatedContext(
     'other-user',
@@ -298,7 +301,7 @@ test('generated results are server-created and owner-readable/deletable only', a
   await assertFails(getBytes(ref(otherStorage, path)));
   await assertFails(
     uploadString(
-      ref(ownerStorage, 'pdf_results/approved-user/result-2/output.pdf'),
+      ref(ownerStorage, 'pdf_results/pending-user/result-2/output.pdf'),
       '%PDF-client',
       'raw',
       { contentType: 'application/pdf' }
