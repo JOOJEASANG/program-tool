@@ -135,18 +135,11 @@
     loadEnhancement('editorToolRailV1Script','/js/editor-tool-rail-v1.js?v=20260828-1',()=>Boolean(window.__programStudioEditorToolRailV1),'편집 도구 아이콘 메뉴를 불러오지 못했습니다.');
   }
 
-  function loadDesignEssentialWorkspace(){
-    loadEnhancement('designEditorEssentialWorkspaceScriptV1','/js/design-editor/essential-workspace.js?v=20260903-1',()=>Boolean(window.__designEditorEssentialWorkspaceV1),'디자인 필수 메뉴를 불러오지 못했습니다.');
-  }
-
-  function loadDesignCanvasViewportToolbar(){
-    loadEnhancement('designEditorCanvasViewportToolbarScriptV1','/js/design-editor/shared/canvas-viewport-toolbar.js?v=20260901-1',()=>Boolean(window.__designEditorCanvasViewportToolbarV1),'캔버스 확대·맞춤 도구를 불러오지 못했습니다.');
-  }
-
   function loadSurfaceEnhancements(){
     if(['auth','approval','legal'].includes(surface)){
       loadEnhancement('programStudioPhase6Script','/js/surface-polish-v3.js?v=20260828-1',()=>Boolean(window.__programStudioPhase6),'화면 접근성 개선 기능을 불러오지 못했습니다.');
     }
+    if(surface==='pdf-editor'||surface==='pdf-preflight')return;
     if(surface==='home'){
       loadEnhancement('homeDashboardV2Script','/js/home-dashboard-v2.js?v=20260828-1',()=>Boolean(window.__homeDashboardV2),'홈 빠른 작업 기능을 불러오지 못했습니다.');
       return;
@@ -154,22 +147,6 @@
     if(surface==='admin'){
       loadEnhancement('adminWorkflowV2Script','/js/admin-workflow-v2.js?v=20260828-1',()=>Boolean(window.__adminWorkflowV2),'관리자 편의 기능을 불러오지 못했습니다.');
       return;
-    }
-    if(surface==='pdf-editor'||surface==='pdf-preflight')return;
-    if(surface==='design-editor'){
-      loadEnhancement('designEditorWorkflowV2Script','/js/design-editor/workflow-v2.js?v=20260828-1',()=>Boolean(window.__designEditorWorkflowV2),'디자인 편집 화면 개선 기능을 불러오지 못했습니다.');
-      loadDesignEssentialWorkspace();
-      loadDesignCanvasViewportToolbar();
-      return;
-    }
-    if(surface==='document-editor'){
-      loadEnhancement('documentEditorWorkflowV2Script','/js/document-editor/workflow-v2.js?v=20260828-1',()=>Boolean(window.__documentEditorWorkflowV2),'문서 편집 화면 개선 기능을 불러오지 못했습니다.');
-      loadEditorToolRail();
-      return;
-    }
-    if(surface==='image-editor'){
-      loadEnhancement('imageEditorWorkflowV2Script','/js/image-editor/workflow-v2.js?v=20260828-1',()=>Boolean(window.__imageEditorWorkflowV2),'이미지 편집 화면 개선 기능을 불러오지 못했습니다.');
-      loadEditorToolRail();
     }
   }
 

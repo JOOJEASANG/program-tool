@@ -9,16 +9,12 @@
   <script>
     (function(){
       const key=(location.pathname.replace(/\/+$/,'').split('/').filter(Boolean).pop()||'').toLowerCase();
-      const base='/design-editor/general?embed=1';
-      const targets={
-        cover:`${base}&mode=cover&preset=cover-a4&app=cover&entry=app-direct`,
-        poster:`${base}&mode=poster&preset=poster-a4&paper=a4&orientation=portrait&w=210&h=297&app=poster&surface=poster-flyer&entry=app-direct`,
-        flyer:`${base}&mode=poster&preset=poster-a4&paper=a4&orientation=portrait&w=210&h=297&app=poster&surface=poster-flyer&entry=app-direct`,
-        invitation:`${base}&mode=invitation&preset=invitation-a4&paper=a4&orientation=landscape&w=297&h=210&app=invitation&entry=app-direct`,
-        notice:`${base}&mode=invitation&preset=invitation-a4&paper=a4&orientation=landscape&w=297&h=210&app=invitation&surface=notice&entry=app-direct`,
-        leaflet:`${base}&mode=leaflet3&preset=leaflet-3-roll&paper=a4&orientation=landscape&w=297&h=210&fold=leaflet-3-roll&app=leaflet&entry=app-direct`
+      const map={
+        cover:'cover',poster:'flyer',flyer:'flyer',
+        invitation:'invitation',notice:'invitation',leaflet:'leaflet'
       };
-      if(targets[key])location.replace(targets[key]);
+      const product=map[key];
+      if(product)location.replace('/print-checker?product='+product);
     })();
   </script>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">

@@ -147,14 +147,6 @@
       tasks.push(load('pdfBookletSheetPreviewScriptV1','/js/pdf-editor/booklet-sheet-preview.js?v=20260827-1'));
    */
 
-  function loadDesignEditorRuntime(){
-    window.ProgramStudioDesignEditorRuntimeContext={entryPath:currentPath,load};
-    return load('designEditorCoreRuntimeScriptV1','/js/design-editor/core-runtime.js?v=20260828-1').then(()=>{
-      const runtime=window.ProgramStudioDesignEditorCoreRuntime;
-      if(!runtime||typeof runtime.loadAll!=='function')throw new Error('Design editor core runtime API is unavailable');
-      return runtime.loadAll();
-    });
-  }
   function loadPdfEditorRuntime(){
     window.ProgramStudioPdfEditorRuntimeContext={entryPath:currentPath,load};
     return load('pdfEditorRouteRuntimeScriptV1','/js/pdf-editor/route-runtime.js?v=20260828-1').then(()=>{
@@ -214,9 +206,6 @@
         .then(()=>load('adminOperationsOverviewScriptV1','/js/admin-operations-overview.js?v='+VERSION)));
       tasks.push(load('adminProgramIconPaletteScriptV1','/js/admin-program-icon-palette.js?v=20260808-1'));
     }
-    // Legacy test/source marker kept intentionally: if(isPath('/design-editor','/design-editor/index.html'))
-    // Legacy test/source marker kept intentionally: if(isPath('/design-editor/general.html'))
-    if(isPath('/design-editor/general','/design-editor/general.html'))tasks.push(loadDesignEditorRuntime());
     if(isPath('/tools/pdf-editor.html','/pdf-editor','/pdf-editor/index.html'))tasks.push(loadPdfEditorRuntime());
     if(isPath('/tools/pdf-Checker.html','/tools/preflight.html','/pdf-preflight','/pdf-preflight/index.html'))tasks.push(loadPreflightRuntime());
     return Promise.allSettled(tasks);

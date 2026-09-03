@@ -26,13 +26,11 @@ NETWORK_RETRY_BASE_DELAY_SECONDS = 0.6
 ROUTE_PATHS = {
     "home": "/",
     "admin": "/admin.html",
-    "design-general": "/design-editor/general?embed=1&mode=poster&preset=poster-a4&orientation=portrait",
     "pdf-editor": "/pdf-editor/",
 }
 ROUTE_DELIVERY_BUDGETS = {
     "home": (24, 420_000),
     "admin": (24, 560_000),
-    "design-general": (54, 1_800_000),
     "pdf-editor": (42, 1_500_000),
 }
 SECURITY_HEADERS = {

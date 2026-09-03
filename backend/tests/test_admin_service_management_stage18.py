@@ -44,24 +44,6 @@ def test_admin_provided_image_and_legacy_cover_provider_scripts_are_removed_and_
     assert "/js/pdf-divider-local-image-upload.js?v=20260818-2" in register
 
 
-def test_cover_uses_common_user_selected_image_pipeline_without_provider_library():
-    phase2 = PHASE2.read_text(encoding="utf-8")
-    store = ASSET_STORE.read_text(encoding="utf-8")
-    for marker in (
-        'accept="image/jpeg,image/png,image/webp"',
-        "handleImageInput",
-        "prepareImage(file)",
-        "storePreparedImage",
-        "assetStore.storeBlob",
-        "file.size>12*1024*1024",
-        "image.naturalWidth*image.naturalHeight>50000000",
-    ):
-        assert marker in phase2
-    assert "IndexedDB" in store or "indexedDB" in store
-    for forbidden in ("cover_templates", "service-image", "제공 이미지", "관리자 제공"):
-        assert forbidden not in phase2
-
-
 def test_pdf_divider_uses_500mb_user_source_with_bounded_inline_embedding():
     source = PDF_LOCAL.read_text(encoding="utf-8")
     for marker in (
@@ -85,18 +67,6 @@ def test_pdf_divider_uses_500mb_user_source_with_bounded_inline_embedding():
     assert "cover_templates" not in source
     assert "serviceImage" not in source
     assert "관리자 제공" not in source
-
-
-def test_retired_cover_redirect_contains_no_stale_provider_controls():
-    source = LEGACY_COVER.read_text(encoding="utf-8")
-    for marker in (
-        "adminTemplateArea",
-        "coverTemplateSelect",
-        "coverProvidedImageLibraryPanel",
-        "coverServiceImagePanel",
-    ):
-        assert marker not in source
-    assert "/design-editor/?mode=cover" in source
 
 
 def test_firebase_blocks_member_access_and_new_provider_uploads():

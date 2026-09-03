@@ -9,46 +9,12 @@ def _read(path: str) -> str:
     return (ROOT / path).read_text(encoding="utf-8")
 
 
-def test_legacy_cover_runtime_is_removed_and_integrated_cover_modules_remain() -> None:
-    for path in (
-        "js/cover-editor-image-tools.js",
-        "js/cover-template-manager.js",
-        "js/cover-runtime-safety.js",
-        "js/cover-output-performance-safety.js",
-    ):
-        assert not (ROOT / path).exists()
-    for path in (
-        "js/design-editor/cover-model.js",
-        "js/design-editor/cover-settings.js",
-        "js/design-editor/cover-spine-tools.js",
-        "js/design-editor/cover-preview-zones.js",
-        "js/cover-jspdf-loader.js",
-    ):
-        assert (ROOT / path).exists()
-
-
 def test_retired_cover_template_collection_is_not_writable() -> None:
     rules = _read("firestore.rules")
     assert "match /cover_templates/{templateId}" in rules
     assert "allow read, delete: if isAdmin();" in rules
     assert "allow create, update: if false;" in rules
     assert (ROOT / "firestore.indexes.json").exists()
-
-
-def test_integrated_cover_output_supports_300dpi_rgb_and_lossless_pdf() -> None:
-    source = _read("js/design-editor/output.js")
-    legacy = _read("perfect-binding-cover/index.html")
-    assert "const DPI=300" in source
-    assert "300DPI PDF" in source
-    assert "현재 출력 색상은 RGB입니다." in source
-    assert "lossless:{id:'lossless'" in source
-    assert "canvas.toDataURL('image/png')" in source
-    assert "format:'PNG'" in source
-    assert "colorSpace:'RGB'" in source
-    assert "verifyRenderedSurface" in source
-    assert "verifyPdfDocument" in source
-    assert "/design-editor/?mode=cover" in legacy
-    assert "doc.addImage(out,'PNG'" not in legacy
 
 
 def test_csp_is_enforced_and_runtime_eval_is_absent() -> None:

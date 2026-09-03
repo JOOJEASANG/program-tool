@@ -16,10 +16,7 @@ IMAGE_LAYOUT_MARKER = "data-image-editor-pdf-layout"
 PDF_BOOKLET_MARKER = "data-pdf-classic-booklet"
 EXCLUDED_PARTS = {".git", "node_modules", "venv", ".venv", "__pycache__"}
 PROTECTED_HTML = {
-    "design-editor/index.html",
-    "design-editor/general.html",
-    "document-editor/index.html",
-    "image-editor/index.html",
+    "print-checker/index.html",
     "pdf-editor/index.html",
     "pdf-preflight/index.html",
     "perfect-binding-cover/index.html",
@@ -48,10 +45,7 @@ PAGE_METADATA = {
     "guide.html": ("이용안내 | Program Studio", "Program Studio 주요 프로그램과 이용 방법 안내", "index,follow"),
     "terms.html": ("이용약관 | Program Studio", "Program Studio 서비스 이용약관", "index,follow"),
     "privacy.html": ("개인정보처리방침 | Program Studio", "Program Studio 개인정보처리방침", "index,follow"),
-    "design-editor/index.html": ("디자인 편집기 | Program Studio", "Program Studio 통합 디자인 편집기", "noindex,nofollow"),
-    "design-editor/general.html": ("디자인 작업실 | Program Studio", "Program Studio 디자인 제작 작업실", "noindex,nofollow"),
-    "document-editor/index.html": ("문서 편집기 | Program Studio", "Program Studio 문서 작성 및 인쇄 편집기", "noindex,nofollow"),
-    "image-editor/index.html": ("이미지 편집기 | Program Studio", "Program Studio 이미지 보정·크기·배경 편집기", "noindex,nofollow"),
+    "print-checker/index.html": ("인쇄물 사전 검토 | Program Studio", "Program Studio 인쇄물 사전 검토 도구 — 책등·재단선·안전영역·접지선 확인", "noindex,nofollow"),
     "pdf-editor/index.html": ("PDF 편집기 | Program Studio", "Program Studio PDF 병합·페이지·배치·출력 편집기", "noindex,nofollow"),
     "pdf-preflight/index.html": ("PDF 검사 · 유틸리티 | Program Studio", "Program Studio PDF 인쇄 전 검사·보안·유틸리티 도구", "noindex,nofollow"),
     "perfect-binding-cover/index.html": ("표지 편집기 | Program Studio", "Program Studio 무선제본 표지 편집기 호환 진입점", "noindex,nofollow"),

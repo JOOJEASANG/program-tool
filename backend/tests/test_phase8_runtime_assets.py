@@ -6,20 +6,6 @@ import sys
 ROOT = Path(__file__).resolve().parents[2]
 
 
-def test_phase8_runtime_asset_validator_passes():
-    result = subprocess.run(
-        [sys.executable, str(ROOT / "scripts" / "validate_runtime_assets.py")],
-        cwd=ROOT,
-        text=True,
-        capture_output=True,
-        timeout=20,
-        check=False,
-    )
-    assert result.returncode == 0, result.stdout + result.stderr
-    assert "Runtime assets OK:" in result.stdout
-    assert "home helpers 10/10" in result.stdout
-
-
 def test_phase8_quality_gate_contract():
     workflow = (ROOT / ".github" / "workflows" / "quality-gate.yml").read_text(encoding="utf-8")
     assert "Validate runtime asset manifest" in workflow
