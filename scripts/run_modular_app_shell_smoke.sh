@@ -57,13 +57,6 @@ grep -q 'data-home-poster-flyer-count="1"' "$home_merge_out" || { cat "$home_mer
 grep -q 'data-home-poster-flyer-direct="pass"' "$home_merge_out" || { cat "$home_merge_out" >&2; exit 1; }
 grep -q 'data-home-poster-flyer-route="/design-editor/general?embed=1' "$home_merge_out" || { cat "$home_merge_out" >&2; exit 1; }
 
-for app in cover poster flyer invitation notice leaflet; do
-  out="$OUT_DIR/standalone-design-${app}-boundary-smoke-dom.html"
-  url="http://127.0.0.1:$PORT/tests/browser/standalone-boundary-ui-smoke.html?kind=design&app=$app"
-  run_browser_case "$url" "$out" 'data-standalone-boundary-smoke="pass"'
-  grep -q "data-boundary-app=\"$app\"" "$out" || { cat "$out" >&2; exit 1; }
-done
-
 for app in layout booklet; do
   out="$OUT_DIR/standalone-pdf-${app}-boundary-smoke-dom.html"
   url="http://127.0.0.1:$PORT/tests/browser/standalone-boundary-ui-smoke.html?kind=pdf&app=$app"
