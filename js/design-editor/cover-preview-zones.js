@@ -15,6 +15,8 @@
   let prefs=readPrefs();
   let frame=0;
   let installed=false;
+  let lastRenderSignature='';
+  let lastOverlay=null;
 
   const byId=id=>document.getElementById(id);
   const clamp=(value,min,max)=>Math.max(min,Math.min(max,value));
@@ -90,10 +92,23 @@
     overlay.appendChild(node);
     if(prefs.safe){const box=safeBox(zone,p,scale),safe=document.createElement('div');safe.className='cover-preview-zone-safe';safe.dataset.zone=zone.name;safe.style.left=`${box.left}px`;safe.style.top=`${box.top}px`;safe.style.width=`${box.width}px`;safe.style.height=`${box.height}px`;overlay.appendChild(safe);}
   }
+  function renderSignature(artboard,p){
+    const cover=p.cover||{};
+    return [
+      prefs.visible?1:0,prefs.labels?1:0,prefs.safe?1:0,prefs.opacity,prefs.zoom,
+      Math.round(artboard.clientWidth*10)/10,Math.round(artboard.clientHeight*10)/10,
+      Number(p.width)||0,Number(p.height)||0,Number(p.bleed)||0,Number(p.safe)||0,
+      Number(cover.trimWidth)||0,Number(cover.trimHeight)||0,Number(cover.spine)||0
+    ].join('|');
+  }
   function render(){
     if(!isCover())return false;
     const p=project(),artboard=byId('artboard'),overlay=ensureOverlay();if(!p||!artboard||!overlay)return false;
-    overlay.hidden=!prefs.visible;overlay.replaceChildren();if(!prefs.visible)return true;
+    const signature=renderSignature(artboard,p);
+    overlay.hidden=!prefs.visible;
+    if(overlay===lastOverlay&&signature===lastRenderSignature&&(!prefs.visible||overlay.dataset.zoneCount==='3'))return true;
+    lastOverlay=overlay;lastRenderSignature=signature;
+    overlay.replaceChildren();if(!prefs.visible)return true;
     const scale=mmScale(artboard,p),trimW=Number(p.cover.trimWidth)||210,spine=Number(p.cover.spine)||0;
     const zones=[zoneBox('back',0,trimW,p,scale),zoneBox('spine',trimW,spine,p,scale),zoneBox('front',trimW+spine,trimW,p,scale)];
     appendZone(overlay,zones[0],p,scale,'뒤표지');appendZone(overlay,zones[1],p,scale,`책등 ${spine.toFixed(1)}mm`);appendZone(overlay,zones[2],p,scale,'앞표지');
@@ -195,13 +210,13 @@
     if(!isCover()||!document.querySelector('.sidebar')||!byId('artboard'))return false;
     installed=true;normalizePrefs();installStyles();installCard();syncControls();applyZoom();render();ensureMenu();
     window.addEventListener('resize',queueRender,{passive:true});window.addEventListener('programstudio:cover-geometry-change',queueRender);
-    document.addEventListener('click',event=>{if(!event.target?.closest?.(`#${MENU_ID}`))closeMenu();queueRender();},false);
+    document.addEventListener('click',event=>{if(!event.target?.closest?.(`#${MENU_ID}`))closeMenu();},false);
     document.addEventListener('contextmenu',showContextMenu,true);byId('artboardViewport')?.addEventListener('wheel',handleWheel,{passive:false});byId('artboardViewport')?.addEventListener('scroll',closeMenu,{passive:true});
     document.addEventListener('keydown',event=>{if(event.key==='Escape')closeMenu();},true);
     return true;
   }
   function boot(){if(install())return;[180,420,800,1300,2200,3200].forEach(delay=>setTimeout(install,delay));}
 
-  window.DesignEditorCoverPreviewZones={render,setPrefs,changeZoom,showContextMenu,get prefs(){return {...prefs};},stage:'preview-zones-wheel-and-context-menu'};
+  window.DesignEditorCoverPreviewZones={render,setPrefs,changeZoom,showContextMenu,get prefs(){return {...prefs};},stage:'preview-zones-stable-geometry-v2'};
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
