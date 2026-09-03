@@ -15,7 +15,7 @@ def test_embedded_design_editor_delegates_access_gate_to_modular_parent():
     assert "frame?.contentWindow===window" in source
     assert "root.dataset.parentAccessDelegated='true'" in source
     assert "if(delegatedParentGate){" in source
-    assert "reveal();" in source
+    assert "reveal('parent-delegated');" in source
 
 
 def test_embedded_design_editor_gets_stable_first_paint_layout_before_runtime_enhancement():
