@@ -3,17 +3,21 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Protected Preflight Boot Nonblocking Smoke</title>
+  <title>Protected Preflight Functional Boot Smoke</title>
   <script>
     history.replaceState(null,'','/pdf-preflight/index.html?boot-smoke=1');
     window.__protectedBootStarted=performance.now();
     window.ProgramAccessReady=Promise.resolve({allowed:true,status:'approved'});
-    window.requestIdleCallback=callback=>setTimeout(()=>callback({didTimeout:false,timeRemaining:()=>0}),2000);
+    window.ProgramStudioPreflightRuntimeReady=new Promise(resolve=>{window.__resolvePreflightRuntime=resolve;});
+    const owned=document.createElement('script');
+    owned.id='pdfPreflightPanelBalanceScriptV1';
+    owned.dataset.loaded='true';
+    document.head.appendChild(owned);
   </script>
 </head>
 <body data-phase7-smoke="pending">
   <main>
-    <h1>보호 PDF 검사 부트 비차단 검사</h1>
+    <h1>보호 PDF 검사 기능 준비 부트 검사</h1>
     <p id="result">PENDING</p>
   </main>
   <script src="/js/app-boot-guard.js?v=smoke"></script>
@@ -21,22 +25,31 @@
     (async()=>{
       const result=document.getElementById('result');
       const assert=(value,message)=>{if(!value)throw new Error(message);};
+      const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
       const wait=async(predicate,label)=>{
-        for(let i=0;i<100;i++){
+        for(let i=0;i<180;i++){
           if(predicate())return;
-          await new Promise(resolve=>setTimeout(resolve,10));
+          await sleep(10);
         }
         throw new Error('timeout: '+label);
       };
       try{
-        await wait(()=>document.documentElement.dataset.appReady==='true','protected preflight ready');
-        const elapsed=performance.now()-window.__protectedBootStarted;
+        await sleep(150);
+        assert(document.documentElement.classList.contains('app-booting'),'preflight revealed before functional runtime');
+        assert(document.documentElement.dataset.appReady!=='true','preflight appReady set before functional runtime');
+
+        const signalAt=performance.now();
+        document.body.dataset.pdfPreflightUi='clean-workspace-v2';
+        window.__resolvePreflightRuntime(true);
+        await wait(()=>document.documentElement.dataset.appReady==='true','protected preflight functional ready');
+        const afterSignal=performance.now()-signalAt;
+
         assert(!document.documentElement.classList.contains('app-booting'),'protected preflight curtain remained');
-        assert(document.documentElement.dataset.bootGate==='access-only','protected preflight did not use access-only boot gate');
-        assert(!document.body.dataset.pdfPreflightUi,'test unexpectedly had preflight enhancement readiness');
-        assert(elapsed<700,'protected preflight reveal waited for UI enhancement: '+Math.round(elapsed)+'ms');
+        assert(document.documentElement.dataset.bootGate==='functional-runtime','protected preflight did not use functional runtime gate');
+        assert(document.documentElement.dataset.preflightFunctionalReady==='1','preflight functional marker missing');
+        assert(afterSignal<900,'preflight reveal was too slow after runtime readiness: '+Math.round(afterSignal)+'ms');
         document.body.dataset.phase7Smoke='pass';
-        result.textContent='PASS: protected preflight became interactive after access without waiting for enhanced UI ('+Math.round(elapsed)+'ms)';
+        result.textContent='PASS: protected preflight stayed hidden until full runtime and clean workspace were ready';
       }catch(error){
         document.body.dataset.phase7Smoke='fail';
         result.textContent='FAIL: '+String(error.message||error);

@@ -12,7 +12,7 @@ def test_public_boot_guard_has_no_artificial_timeout_or_loading_curtain():
     source = read("js/app-boot-guard.js")
     public_block = source.split("if(!protectedProgram){", 1)[1].split("root.classList.add('app-booting')", 1)[0]
 
-    assert "reveal();" in public_block
+    assert "reveal('public');" in public_block
     assert "setTimeout" not in public_block
     assert "programStudioBootGuardStyle" not in public_block
     assert "setTimeout(reveal,1800)" not in source
