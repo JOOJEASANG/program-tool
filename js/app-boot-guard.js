@@ -179,9 +179,13 @@
     const app=window.DesignEditorApp;
     const shell=document.getElementById('editorShell');
     const startScreen=document.getElementById('startScreen');
-    if(!app||(!shell&&!startScreen))return false;
+    const appReady=Boolean(app&&(shell||startScreen));
+    const coreReady=root.dataset.designCoreRuntime==='1';
+    if(!appReady||!coreReady)return false;
     if(!standalone)return true;
     if(!app.project||!shell||shell.classList.contains('hidden'))return false;
+    const shellReady=root.dataset.designShellRuntime==='1'||root.dataset.designFinalWorkspaceReady==='1';
+    if(!shellReady)return false;
     const artboard=document.getElementById('artboard');
     const rect=artboard?.getBoundingClientRect?.();
     const ready=Boolean(rect&&rect.width>20&&rect.height>20);
@@ -191,11 +195,11 @@
 
   async function waitForDesignFunctionalReady(){
     if(protectedProgram!=='design-studio'||!isGeneralDesignEditor())return true;
-    const timeout=isDirectDesignEntry()?3200:2200;
+    const timeout=isDirectDesignEntry()?6800:4200;
     const ready=await waitUntil(designBaseFunctionalReady,timeout);
     root.dataset.designFunctionalReady=ready?'1':'0';
-    root.dataset.designRevealStage=ready?'base-editor-functional':'bounded-fallback';
-    if(!ready)console.warn('Design base editor did not fully settle before the bounded reveal.');
+    root.dataset.designRevealStage=ready?'interaction-stable-shell':'bounded-fallback';
+    if(!ready)console.warn('Design interaction shell did not fully settle before the bounded reveal.');
     return ready;
   }
 

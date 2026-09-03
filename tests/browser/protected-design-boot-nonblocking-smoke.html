@@ -23,6 +23,7 @@
   <main>
     <h1>보호 디자인 기능 준비 부트 검사</h1>
     <div id="editorShell">
+      <button id="clickProbe" type="button">click probe</button>
       <div id="artboard" style="width:420px;height:594px"></div>
     </div>
     <p id="result">PENDING</p>
@@ -31,10 +32,13 @@
   <script>
     (async()=>{
       const result=document.getElementById('result');
+      const probe=document.getElementById('clickProbe');
+      let clickCount=0;
+      probe.addEventListener('click',()=>{clickCount+=1;});
       const assert=(value,message)=>{if(!value)throw new Error(message);};
       const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
       const wait=async(predicate,label)=>{
-        for(let i=0;i<180;i++){
+        for(let i=0;i<300;i++){
           if(predicate())return;
           await sleep(10);
         }
@@ -42,23 +46,34 @@
       };
       try{
         await sleep(150);
-        assert(document.documentElement.classList.contains('app-booting'),'design revealed before base editor was functional');
-        assert(document.documentElement.dataset.appReady!=='true','design appReady set before base editor was functional');
+        assert(document.documentElement.classList.contains('app-booting'),'design revealed before editor existed');
+        assert(document.documentElement.dataset.appReady!=='true','design appReady set before editor existed');
+
+        window.DesignEditorApp={project:{id:'smoke-project'}};
+        await sleep(120);
+        assert(document.documentElement.classList.contains('app-booting'),'design revealed before core runtime settled');
+
+        document.documentElement.dataset.designCoreRuntime='1';
+        await sleep(120);
+        assert(document.documentElement.classList.contains('app-booting'),'design revealed before interaction shell settled');
 
         const signalAt=performance.now();
-        window.DesignEditorApp={project:{id:'smoke-project'}};
-        await wait(()=>document.documentElement.dataset.appReady==='true','protected design base functional ready');
+        document.documentElement.dataset.designShellRuntime='1';
+        await wait(()=>document.documentElement.dataset.appReady==='true','protected design interaction shell ready');
         const afterSignal=performance.now()-signalAt;
 
         assert(!document.documentElement.classList.contains('app-booting'),'protected design curtain remained');
         assert(document.documentElement.dataset.bootGate==='functional-runtime','protected design did not use functional runtime gate');
         assert(document.documentElement.dataset.designFunctionalReady==='1','design functional marker missing');
-        assert(document.documentElement.dataset.designFunctionalBaseline==='1','design base functional marker missing');
-        assert(document.documentElement.dataset.designCoreRuntime!=='1','smoke should not require full core runtime');
-        assert(document.documentElement.dataset.designShellRuntime!=='1','smoke should not require full shell runtime');
-        assert(afterSignal<900,'design reveal was too slow after base editor readiness: '+Math.round(afterSignal)+'ms');
+        assert(document.documentElement.dataset.designFunctionalBaseline==='1','design functional baseline marker missing');
+        assert(document.documentElement.dataset.designCoreRuntime==='1','core runtime marker missing');
+        assert(document.documentElement.dataset.designShellRuntime==='1','interaction shell marker missing');
+        assert(getComputedStyle(document.body).pointerEvents!=='none','body remained pointer-blocked after reveal');
+        probe.click();
+        assert(clickCount===1,'click handler did not run after protected design reveal');
+        assert(afterSignal<900,'design reveal was too slow after interaction shell readiness: '+Math.round(afterSignal)+'ms');
         document.body.dataset.phase7Smoke='pass';
-        result.textContent='PASS: protected design stayed hidden until the wired base editor, project and artboard were ready';
+        result.textContent='PASS: protected design stayed hidden until core and interaction shell were ready, then clicks worked';
       }catch(error){
         document.body.dataset.phase7Smoke='fail';
         result.textContent='FAIL: '+String(error.message||error);
