@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>PDF Utility Cost Guard Stability Smoke</title>
+  <script>
+    history.replaceState(null,'','/pdf-preflight/index.html?cost-guard-smoke=1');
+    const NativeMutationObserver=window.MutationObserver;
+    window.__costGuardObserverCallbacks=0;
+    window.__costGuardLoopDetected=false;
+    window.MutationObserver=class GuardedMutationObserver{
+      constructor(callback){
+        let native=null;
+        native=new NativeMutationObserver((records,observer)=>{
+          window.__costGuardObserverCallbacks+=1;
+          if(window.__costGuardObserverCallbacks>20){
+            window.__costGuardLoopDetected=true;
+            native.disconnect();
+            return;
+          }
+          callback(records,observer);
+        });
+        this.native=native;
+      }
+      observe(){return this.native.observe(...arguments);}
+      disconnect(){return this.native.disconnect();}
+      takeRecords(){return this.native.takeRecords();}
+    };
+  </script>
+</head>
+<body data-phase7-smoke="pending">
+  <main>
+    <div id="uploadZone" tabindex="0"><span class="upload-sub">초기 업로드 안내</span></div>
+    <input id="fileInput" type="file">
+    <div id="pdfUtilityFileList">
+      <div><strong id="pdfUtilityFileSummary">0 / 10</strong></div>
+      <div id="pdfUtilityFileItems"></div>
+    </div>
+    <div class="pdfu-limit-note">초기 제한 안내</div>
+    <button id="encryptBtn" type="button">암호 설정</button>
+    <button id="decryptBtn" type="button">암호 해제</button>
+    <p id="result">PENDING</p>
+  </main>
+  <script>
+    window.PdfUtility={
+      state:{files:[],activeIndex:0,busy:false},
+      selectActive(index){this.state.activeIndex=index;}
+    };
+    window.hideError=()=>{};
+    window.showError=()=>{};
+  </script>
+  <script src="/js/pdf-utility-cost-guard-v2.js?v=stability-smoke"></script>
+  <script>
+    (async()=>{
+      const result=document.getElementById('result');
+      const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+      const assert=(value,message)=>{if(!value)throw new Error(message);};
+      try{
+        await sleep(40);
+        assert(window.PdfUtilityCostPolicy,'cost policy did not install');
+        assert(document.getElementById('pdfUtilityFileSummary').textContent.includes('/ 300MB'),'policy summary was not applied');
+
+        const row=document.createElement('div');
+        row.className='pdfu-file-row';
+        row.textContent='mutation probe';
+        document.getElementById('pdfUtilityFileItems').appendChild(row);
+
+        let timerFired=false;
+        setTimeout(()=>{timerFired=true;},30);
+        await sleep(120);
+
+        assert(timerFired,'main thread timer was starved by observer feedback');
+        assert(!window.__costGuardLoopDetected,'mutation observer feedback loop detected');
+        assert(window.__costGuardObserverCallbacks<10,'unexpected observer callback burst: '+window.__costGuardObserverCallbacks);
+        assert(document.getElementById('uploadZone').dataset.pdfUtilityPolicyOwner==='1','upload zone ownership missing');
+        document.body.dataset.phase7Smoke='pass';
+        result.textContent='PASS: PDF utility policy observer settled without starving the main thread';
+      }catch(error){
+        document.body.dataset.phase7Smoke='fail';
+        result.textContent='FAIL: '+String(error.message||error);
+      }
+    })();
+  </script>
+</body>
+</html>
