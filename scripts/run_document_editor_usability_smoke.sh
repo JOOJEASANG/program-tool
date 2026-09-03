@@ -32,7 +32,7 @@ done
 
 if ! grep -q 'data-document-usability-smoke="pass"' "$DOM_OUT"; then echo "Document editor usability browser smoke failed." >&2; cat "$DOM_OUT" >&2; echo "----- HTTP server log -----" >&2; cat "$SERVER_LOG" >&2; exit 1; fi
 if ! grep -q 'PASS: zoom, starter template and sanitized rich paste' "$DOM_OUT"; then echo "Document editor usability completion marker missing." >&2; cat "$DOM_OUT" >&2; exit 1; fi
-for marker in 'data-document-zoom="125"' 'data-document-template="meeting"' 'data-document-paste="true"' 'data-document-paste-prevented="true"' 'data-document-template-count="9"' 'data-document-usability-stage="document-editor-usability-stage3"'; do
+for marker in 'data-document-zoom="125"' 'data-document-template="meeting"' 'data-document-paste="true"' 'data-document-paste-prevented="true"' 'data-document-template-count="19"' 'data-document-usability-stage="document-editor-usability-stage3"'; do
   if ! grep -q "$marker" "$DOM_OUT"; then echo "Document editor usability marker missing: $marker" >&2; cat "$DOM_OUT" >&2; exit 1; fi
 done
 
