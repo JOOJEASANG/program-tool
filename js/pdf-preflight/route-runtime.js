@@ -19,8 +19,7 @@
     {id:'pdfUtilityPanelResizerScriptV1',src:'/js/pdf-utility-panel-resizer.js?v=20260823-1'},
     {id:'pdfUtilityFinalizeScriptV1',src:'/js/pdf-utility-finalize.js?v=20260831-2'},
     {id:'pdfAllInOneStage1ScriptV1',src:'/js/pdf-all-in-one-stage1.js?v=20260831-2'},
-    {id:'pdfPreflightWorkflowV2Script',src:'/js/pdf-preflight/workflow-v2.js?v=20260831-1'},
-    {id:'pdfPreflightPanelBalanceScriptV1',src:'/js/pdf-preflight-panel-balance.js?v=20260831-2'}
+    {id:'pdfPreflightWorkflowV2Script',src:'/js/pdf-preflight/workflow-v2.js?v=20260831-1'}
   ]);
 
   const DEFERRED_MODULES=Object.freeze([
@@ -35,7 +34,13 @@
     {id:'pdfLargeOutputTilingScriptV1',src:'/js/pdf-large-output-tiling.js?v=20260831-1'}
   ]);
 
-  const MODULES=Object.freeze([...CRITICAL_MODULES,...DEFERRED_MODULES]);
+  // Keep this declaration physically last among manifest entries. Older visual
+  // helpers may mutate the same workspace; the clean-workspace owner must win.
+  const PANEL_BALANCE_MODULE=Object.freeze(
+    {id:'pdfPreflightPanelBalanceScriptV1',src:'/js/pdf-preflight-panel-balance.js?v=20260831-2'}
+  );
+
+  const MODULES=Object.freeze([...CRITICAL_MODULES,...DEFERRED_MODULES,PANEL_BALANCE_MODULE]);
   let readyPromise=null;
   let deferredPromise=null;
   let deferredScheduled=false;
@@ -51,7 +56,11 @@
 
   function loadDeferred(){
     if(deferredPromise)return deferredPromise;
-    deferredPromise=loadEntries(DEFERRED_MODULES).then(loaded=>{
+    deferredPromise=loadEntries(DEFERRED_MODULES).then(async loaded=>{
+      // Re-sync the final clean workspace after optional feature modules mutate
+      // their controls. The existing script is reused by the host loader.
+      await load(PANEL_BALANCE_MODULE.id,PANEL_BALANCE_MODULE.src);
+      window.PdfPreflightPanelBalance?.sync?.();
       document.documentElement.dataset.pdfPreflightDeferred='ready';
       return loaded;
     }).catch(error=>{
@@ -75,6 +84,7 @@
     if(readyPromise)return readyPromise;
     readyPromise=(async()=>{
       const loaded=await loadEntries(CRITICAL_MODULES);
+      loaded.push(...await loadEntries([PANEL_BALANCE_MODULE]));
       document.documentElement.dataset.pdfPreflightRuntime='canonical-v2-critical-ready';
       scheduleDeferred();
       return loaded;
@@ -84,10 +94,10 @@
 
   window.ProgramStudioPreflightRuntime={
     modules:MODULES,
-    criticalModules:CRITICAL_MODULES,
+    criticalModules:Object.freeze([...CRITICAL_MODULES,PANEL_BALANCE_MODULE]),
     deferredModules:DEFERRED_MODULES,
     loadAll,
     loadDeferred,
-    stage:'canonical-preflight-runtime-v2'
+    stage:'canonical-preflight-runtime-v1'
   };
 })();
