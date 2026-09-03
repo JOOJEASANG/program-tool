@@ -55,7 +55,7 @@ def test_design_startup_observers_do_not_watch_full_body_after_editor_is_ready()
     assert "observer.observe(sidebar,{childList:true,subtree:true})" in focused
     assert "observer.observe(toolbar,{childList:true,subtree:false})" in focused
     assert "observer.observe(properties,{childList:true,subtree:false})" in focused
-    assert "root.dataset.designFocusedObserverScope='workspace-only'" in focused
+    assert "document.documentElement.dataset.designFocusedObserverScope='workspace-only'" in focused
     assert "if(document.body)observer.observe(document.body,{childList:true,subtree:true});" in embedded
     assert "observer.disconnect();" in embedded
     assert "root.dataset.designEmbeddedStabilityObserver='released'" in embedded
