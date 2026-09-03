@@ -1,4 +1,4 @@
-/* print-checker.js — 인쇄물 사전 검토 v20260903-4 */
+/* print-checker.js — 인쇄물 사전 검토 v20260903-5 */
 'use strict';
 
 const PrintChecker = (() => {
@@ -640,70 +640,54 @@ const PrintChecker = (() => {
     const el = byId('impositionGuide');
     if (!el) return;
 
-    const isBooklet = _product === 'booklet';
-    const isCover   = _product === 'cover';
-    if (!isBooklet && !isCover) { el.hidden = true; return; }
+    if (_product !== 'booklet') { el.hidden = true; return; }
 
-    const presets = isBooklet ? [4, 8, 12, 16] : [8, 16];
+    const userPages = parseInt(_specs.bookletPages) || 0;
 
-    let presetHtml = presets.map(n => {
+    function impRows(n, highlight) {
       const imp = computeImposition(n);
-      const sheetRows = imp.result.map(s =>
-        `<div class="imp-row">
+      const warnHtml = imp.blank > 0
+        ? `<div class="imp-warn">⚠️ ${n}p는 4의 배수가 아닙니다. <strong>${imp.pages}p</strong>로 맞추세요 (빈 페이지 ${imp.blank}장 추가). <small>빈 페이지는 마지막에 배치합니다.</small></div>`
+        : (highlight ? `<div class="imp-ok">✅ ${n}p = ${imp.sheets}장 인쇄</div>` : '');
+      const rows = imp.result.map(s => {
+        const f0blank = imp.blank > 0 && s.front[0] > n;
+        const b1blank = imp.blank > 0 && s.back[1] > n;
+        return `<div class="imp-row">
           <span class="imp-sheet-label">시트 ${s.sheet}</span>
-          <span class="imp-front">앞 <strong>P${s.front[0]}</strong>·<strong>P${s.front[1]}</strong></span>
-          <span class="imp-back">뒤 <strong>P${s.back[0]}</strong>·<strong>P${s.back[1]}</strong></span>
-        </div>`).join('');
-      return `<div class="imp-preset">
-        <div class="imp-preset-title">${n}p (${imp.sheets}장)</div>
-        ${sheetRows}
-      </div>`;
-    }).join('');
+          <span class="imp-front">앞 <strong>P${s.front[0]}</strong>${f0blank?' <em>(빈)</em>':''} · <strong>P${s.front[1]}</strong></span>
+          <span class="imp-back">뒤 <strong>P${s.back[0]}</strong> · <strong>P${s.back[1]}</strong>${b1blank?' <em>(빈)</em>':''}</span>
+        </div>`;
+      }).join('');
+      return warnHtml + rows;
+    }
+
+    let body = '';
+
+    if (userPages >= 4) {
+      body += `<div class="info-kicker" style="margin-bottom:6px">입력한 페이지: ${userPages}p 배치</div>
+        <div class="imp-preset" style="margin-bottom:14px">${impRows(userPages, true)}</div>`;
+    }
+
+    body += `<div class="info-kicker" style="margin-bottom:6px">주요 페이지 수 참조표</div>
+      <div class="imp-presets">${[4,8,12,16].map(n => {
+        const imp = computeImposition(n);
+        return `<div class="imp-preset">
+          <div class="imp-preset-title">${n}p (${imp.sheets}장)</div>
+          ${imp.result.map(s =>
+            `<div class="imp-row">
+              <span class="imp-sheet-label">시트 ${s.sheet}</span>
+              <span class="imp-front">앞 <strong>P${s.front[0]}</strong>·<strong>P${s.front[1]}</strong></span>
+              <span class="imp-back">뒤 <strong>P${s.back[0]}</strong>·<strong>P${s.back[1]}</strong></span>
+            </div>`).join('')}
+        </div>`;
+      }).join('')}</div>`;
 
     el.innerHTML = `
       <div class="info-kicker">소책자 페이지 배치 (중철 기준)</div>
       <p class="info-desc">중철(스테이플) 소책자는 <strong>4의 배수</strong> 페이지가 필요합니다.
-        아래 표를 보고 각 시트에 맞는 페이지를 배치하세요.</p>
-      <div class="imp-presets">${presetHtml}</div>
-      <div class="imp-calc">
-        <div class="info-kicker" style="margin-bottom:8px">페이지 수 직접 계산</div>
-        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-          <input id="impPageInput" class="spec-input" type="number" min="1" step="1" placeholder="예: 14" style="width:90px">
-          <span style="font-size:11px;color:var(--muted)">페이지</span>
-          <button id="impCalcBtn" class="calc-btn">계산</button>
-        </div>
-        <div id="impResult" style="margin-top:8px"></div>
-      </div>`;
+        왼쪽 사양 입력의 페이지 수를 입력하면 해당 배치가 자동으로 표시됩니다.</p>
+      ${body}`;
     el.hidden = false;
-
-    byId('impCalcBtn')?.addEventListener('click', () => {
-      const n = parseInt(byId('impPageInput')?.value) || 0;
-      if (!n) return;
-      const imp = computeImposition(n);
-      const resultEl = byId('impResult');
-      let r = '';
-
-      if (imp.blank > 0) {
-        r += `<div class="imp-warn">⚠️ ${n}p는 4의 배수가 아닙니다.
-          <strong>${imp.pages}p</strong>로 맞추세요 (빈 페이지 ${imp.blank}장 추가).
-          <br><small>보통 빈 페이지는 마지막에 배치합니다.</small>
-        </div>`;
-      } else {
-        r += `<div class="imp-ok">✅ ${n}p = ${imp.sheets}장 인쇄</div>`;
-      }
-
-      r += imp.result.map(s => {
-        const f0blank = n < imp.pages && s.front[0] > n;
-        const b1blank = n < imp.pages && s.back[1] > n;
-        return `<div class="imp-row">
-          <span class="imp-sheet-label">시트 ${s.sheet}</span>
-          <span class="imp-front">앞 <strong>P${s.front[0]}</strong>${f0blank?'<em>(빈)</em>':''} · <strong>P${s.front[1]}</strong></span>
-          <span class="imp-back">뒤 <strong>P${s.back[0]}</strong> · <strong>P${s.back[1]}</strong>${b1blank?'<em>(빈)</em>':''}</span>
-        </div>`;
-      }).join('');
-
-      resultEl.innerHTML = r;
-    });
   }
 
   /* 중철 임포지션 계산 */
