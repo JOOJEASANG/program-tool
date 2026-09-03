@@ -8,29 +8,30 @@ def read(path: str) -> str:
     return (ROOT / path).read_text(encoding="utf-8")
 
 
-def test_direct_design_entry_waits_for_wired_base_editor_not_full_enhancement_runtime():
+def test_direct_design_entry_waits_for_interaction_stable_shell_not_visual_workspace_flags():
     source = read("js/app-boot-guard.js")
     assert "function isDirectDesignEntry()" in source
     assert "function designBaseFunctionalReady()" in source
     assert "const app=window.DesignEditorApp;" in source
+    assert "const coreReady=root.dataset.designCoreRuntime==='1';" in source
+    assert "if(!appReady||!coreReady)return false;" in source
     assert "if(!app.project||!shell||shell.classList.contains('hidden'))return false;" in source
+    assert "const shellReady=root.dataset.designShellRuntime==='1'||root.dataset.designFinalWorkspaceReady==='1';" in source
+    assert "if(!shellReady)return false;" in source
     assert "const artboard=document.getElementById('artboard');" in source
     assert "rect&&rect.width>20&&rect.height>20" in source
     assert "root.dataset.designFunctionalBaseline=ready?'1':'0'" in source
-    assert "root.dataset.designCoreRuntime==='1'" not in source
-    assert "root.dataset.designShellRuntime==='1'" not in source
-    assert "root.dataset.designFinalWorkspaceReady==='1'" not in source
     assert "root.dataset.designSidebarStable==='1'" not in source
     assert "root.dataset.designFocusedWorkspace==='1'" not in source
     assert "root.dataset.designEmbeddedCanvasStable==='1'" not in source
     assert "root.dataset.designFunctionalReady=ready?'1':'0'" in source
-    assert "root.dataset.designRevealStage=ready?'base-editor-functional':'bounded-fallback'" in source
+    assert "root.dataset.designRevealStage=ready?'interaction-stable-shell':'bounded-fallback'" in source
 
 
-def test_direct_design_entry_uses_short_bounded_base_functional_wait_before_reveal():
+def test_direct_design_entry_uses_bounded_interaction_shell_wait_before_reveal():
     source = read("js/app-boot-guard.js")
-    assert "const timeout=isDirectDesignEntry()?3200:2200;" in source
-    assert "Design base editor did not fully settle before the bounded reveal." in source
+    assert "const timeout=isDirectDesignEntry()?6800:4200;" in source
+    assert "Design interaction shell did not fully settle before the bounded reveal." in source
     approval = source[source.index("function waitForApproval()") :]
     assert approval.index("clearTimeout(failClosedTimer);") < approval.index("await waitForProtectedFunctionalReady();")
     assert approval.index("await waitForProtectedFunctionalReady();") < approval.index("reveal(functional?'functional-runtime':'functional-timeout');")
@@ -60,6 +61,20 @@ def test_design_startup_observers_do_not_watch_full_body_after_editor_is_ready()
     assert "observer.disconnect();" in embedded
     assert "root.dataset.designEmbeddedStabilityObserver='released'" in embedded
     assert embedded.index("observer.disconnect();") < embedded.index("function queueReadyCheck()")
+
+
+def test_cover_preview_guide_does_not_rebuild_identical_geometry_on_every_click_or_resize():
+    source = read("js/design-editor/cover-preview-zones.js")
+    assert "let lastRenderSignature=''" in source
+    assert "let lastOverlay=null" in source
+    assert "function renderSignature(artboard,p)" in source
+    assert "overlay===lastOverlay&&signature===lastRenderSignature" in source
+    assert source.index("overlay===lastOverlay&&signature===lastRenderSignature") < source.index("overlay.replaceChildren()")
+    click_handler = source[source.index("document.addEventListener('click'") : source.index("document.addEventListener('contextmenu'")]
+    assert "queueRender()" not in click_handler
+    assert "window.addEventListener('resize',queueRender" in source
+    assert "programstudio:cover-geometry-change" in source
+    assert "stage:'preview-zones-stable-geometry-v2'" in source
 
 
 def test_shell_runtime_preserves_owner_order_without_rebuilding_essential_workspace():
