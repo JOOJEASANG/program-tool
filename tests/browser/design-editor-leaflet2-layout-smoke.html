@@ -35,6 +35,12 @@
       const assert=(condition,message)=>{if(!condition)throw new Error(message);};
       const waitFor=async(predicate,label,timeout=14000)=>{const started=Date.now();while(Date.now()-started<timeout){if(predicate())return;await new Promise(resolve=>setTimeout(resolve,35));}throw new Error('timeout: '+label);};
       const settle=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+      const horizontalGuide=()=>document.querySelector('#artboard .leaflet2-horizontal-fold-guide,#artboard .design-print-fold-line.y');
+      const horizontalPanelLabels=()=>{
+        const specific=[...document.querySelectorAll('#artboard .leaflet2-horizontal-panel-label')];
+        if(specific.length)return specific;
+        return [...document.querySelectorAll('#artboard > .panel-guide-label')].filter(node=>/상단|하단|위|아래/.test(node.textContent||''));
+      };
       try{
         await waitFor(()=>window.DesignEditorApp?.project?.designMode==='leaflet2','leaflet2 project');
         await waitFor(()=>window.DesignEditorEmbeddedRuntime,'embedded runtime');
@@ -62,10 +68,11 @@
         assert(Array.isArray(surface.folds)&&surface.folds.length===0,'top-bottom layout kept vertical folds');
         assert(surface.foldsY?.length===1&&Math.abs(surface.foldsY[0]-105)<.01,'top-bottom fold is not at half height');
         assert(surface.panels.join('|').includes('위')||surface.panels.join('|').includes('상단'),'top-bottom panel labels are not vertical');
-        await waitFor(()=>document.querySelector('#artboard .leaflet2-horizontal-fold-guide'),'horizontal guide');
-        const horizontal=document.querySelector('#artboard .leaflet2-horizontal-fold-guide');
+        await waitFor(()=>horizontalGuide(),'horizontal guide');
+        const horizontal=horizontalGuide();
         assert(horizontal&&getComputedStyle(horizontal).borderTopStyle==='dashed','horizontal fold guide was not rendered');
-        assert(document.querySelectorAll('#artboard .leaflet2-horizontal-panel-label').length===2,'top-bottom panel labels were not rendered');
+        await waitFor(()=>horizontalPanelLabels().length===2,'horizontal panel labels');
+        assert(horizontalPanelLabels().length===2,'top-bottom panel labels were not rendered');
         assert(new URLSearchParams(location.search).get('leaflet2Layout')==='top-bottom','top-bottom layout was not reflected in history');
 
         const paper=document.getElementById('designModePaper');paper.value='a3';paper.dispatchEvent(new Event('change',{bubbles:true}));

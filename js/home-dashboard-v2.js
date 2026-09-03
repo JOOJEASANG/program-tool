@@ -7,11 +7,12 @@
   const path=(location.pathname||'/').replace(/\/+$/,'')||'/';
   if(!(path==='/'||path==='/index.html'))return;
 
+  const PDF_UTILITY_NAME='PDF유틸리티';
   const FAVORITES_KEY='program-studio:home:favorites-v2';
   const RECENT_KEY='program-studio:home:recent-v2';
   const TOOLS=[
     {id:'pdf-editor',name:'PDF 편집기',desc:'페이지 편집 · N-up · 소책자 · 출력',icon:'📄',url:'/pdf-editor/',keywords:'pdf 인쇄 병합 배치 소책자'},
-    {id:'pdf-preflight',name:'PDF 인쇄 검수',desc:'문서 상태 · 암호 · 출력 위험 점검',icon:'🔍',url:'/pdf-preflight/',keywords:'pdf 검사 검수 보안 암호'},
+    {id:'pdf-preflight',name:PDF_UTILITY_NAME,desc:'문서 상태 · 암호 · 출력 위험 점검',icon:'🔍',url:'/pdf-preflight/',keywords:'pdf 검사 검수 보안 암호 유틸리티'},
     {id:'design-editor',name:'디자인 편집기',desc:'표지 · 포스터 · 전단 · 인쇄 디자인',icon:'✦',url:'/design-editor/',keywords:'디자인 포스터 표지 전단 인쇄'},
     {id:'document-editor',name:'문서 편집기',desc:'A4 문서 · 표 · 이미지 · PDF 출력',icon:'📝',url:'/document-editor/',keywords:'문서 a4 표 이미지 pdf'},
     {id:'image-editor',name:'이미지 편집기',desc:'자르기 · 크기 · 배경 제거 · 저장',icon:'🖼️',url:'/image-editor/',keywords:'이미지 사진 자르기 배경 크기'}
@@ -20,6 +21,23 @@
   const safeRead=(key,fallback=[])=>{try{const value=JSON.parse(localStorage.getItem(key)||'null');return Array.isArray(value)?value:fallback}catch(_){return fallback}};
   const safeWrite=(key,value)=>{try{localStorage.setItem(key,JSON.stringify(value))}catch(_){}};
   let query='';
+
+  function syncMainPdfUtilityName(){
+    const home=window.ProgramStudioHome;
+    const program=home?.PROGRAMS?.find?.(item=>item?.id==='pdf-preflight');
+    if(program)program.name=PDF_UTILITY_NAME;
+
+    document.querySelectorAll('.prog-card[href="pdf-preflight/"],.prog-card[href="/pdf-preflight/"]').forEach(card=>{
+      const name=card.querySelector('.card-name');
+      if(name)name.textContent=PDF_UTILITY_NAME;
+    });
+    document.querySelectorAll('.quick-chip[href="pdf-preflight/"],.quick-chip[href="/pdf-preflight/"]').forEach(link=>{
+      const dot=link.querySelector('.quick-dot');
+      link.replaceChildren();
+      if(dot)link.appendChild(dot);
+      link.appendChild(document.createTextNode(PDF_UTILITY_NAME));
+    });
+  }
 
   function installStyles(){
     if(document.getElementById('homeDashboardV2Styles'))return;
@@ -63,6 +81,7 @@
   }
 
   function install(){
+    syncMainPdfUtilityName();
     installStyles();if(document.getElementById('homeDashboardV2'))return;
     const programs=document.getElementById('programs');if(!programs)return;
     const section=document.createElement('section');section.id='homeDashboardV2';section.className='ps-home-workspace';section.setAttribute('aria-label','빠른 작업');section.innerHTML=`<div class="ps-home-workspace-card"><div class="ps-home-workspace-head"><div class="ps-home-workspace-copy"><div class="ps-home-workspace-kicker">QUICK WORKSPACE</div><div class="ps-home-workspace-title">바로 작업 시작</div><div class="ps-home-workspace-note">현재 사용할 수 있는 핵심 도구를 검색하거나 즐겨찾기에서 바로 실행하세요.</div></div><input class="ps-home-search" type="search" placeholder="PDF, 디자인, 문서, 이미지 검색" aria-label="사용 가능한 프로그램 검색"></div><div class="ps-home-tool-grid"></div><div class="ps-home-empty">검색 조건에 맞는 프로그램이 없습니다.</div><div class="ps-home-meta"></div></div>`;
@@ -70,7 +89,7 @@
     const input=section.querySelector('.ps-home-search');input.addEventListener('input',()=>{query=input.value.trim().toLowerCase();render()});
     document.addEventListener('keydown',event=>{if(event.key==='/'&&!event.ctrlKey&&!event.metaKey&&!event.altKey&&!event.target.closest?.('input,textarea,select,[contenteditable="true"]')){event.preventDefault();input.focus();}});
     render();
-    window.HomeDashboardV2={render,markRecent,stage:'home-quick-workspace-v2'};
+    window.HomeDashboardV2={render,markRecent,syncMainPdfUtilityName,stage:'home-quick-workspace-v2'};
   }
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
