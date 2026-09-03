@@ -59,6 +59,8 @@ run_case "pdf-utility-shell-smoke.html" "$OUT_DIR/pdf-utility-shell-smoke-dom.ht
 reset_profile
 run_product_case "pdf-utility-quick-actions-smoke.html" "$OUT_DIR/pdf-utility-quick-actions-smoke-dom.html" 'data-pdf-quick-actions-smoke="pass"' 'PASS: PDF utility quick actions preserve canonical branding and run extract/blank-page tools'
 reset_profile
+run_product_case "pdf-preflight-output-tool-dock-smoke.html" "$OUT_DIR/pdf-preflight-output-tool-dock-smoke-dom.html" 'data-pdf-output-tool-dock-smoke="pass"' 'PASS: PDF tool dialogs render inside the right progress/result panel'
+reset_profile
 run_product_case "pdf-print-output-stage1-smoke.html" "$OUT_DIR/pdf-print-output-stage1-smoke-dom.html" 'data-print-output-smoke="pass"' 'PASS: print-output branding applied without removing PDF editor controls'
 reset_profile
 run_product_case "pdf-security-storage-policy-smoke.html" "$OUT_DIR/pdf-security-storage-policy-smoke-dom.html" 'data-pdf-security-storage-smoke="pass"' 'PASS: PDF encrypt/decrypt uses Storage above 20MB with a 200MB file ceiling'
@@ -76,4 +78,4 @@ reset_profile
 run_product_case "pdf-page-list-quick-add-smoke.html" "$OUT_DIR/pdf-page-list-quick-add-smoke-dom.html" 'data-pdf-page-list-quick-add-smoke="pass"' 'PASS: page list keeps sticky PDF append action and removes legacy jump panel from view'
 
 bash "$ROOT_DIR/scripts/run_pdf_print_workflow_focus_smoke.sh"
-echo "PDF program unified shell, utility quick actions, storage security, page-list collapse, divider-modal, persistent insert, output-save, fast-insert, page-list quick-add and product-focus browser smokes passed using $BROWSER"
+echo "PDF program unified shell, utility quick actions, output-panel tool docking, storage security, page-list collapse, divider-modal, persistent insert, output-save, fast-insert, page-list quick-add and product-focus browser smokes passed using $BROWSER"
