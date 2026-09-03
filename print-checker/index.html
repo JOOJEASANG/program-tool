@@ -94,6 +94,19 @@
     #previewCanvas{display:block;width:100%;height:auto;border-radius:14px;border:1px solid var(--line);background:#f8fafc;min-height:200px}
     .canvas-empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--muted);font-weight:700;pointer-events:none}
 
+    /* ── 수동 조절 패널 ── */
+    .adj-panel{background:#f8fafc;border:1px solid var(--line);border-radius:16px;padding:16px 18px;margin-top:14px}
+    .adj-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+    .adj-title{font-size:11px;font-weight:900;color:var(--cyan);text-transform:uppercase;letter-spacing:.4px}
+    .adj-check-row{display:flex;align-items:center;gap:8px;margin-bottom:12px;font-size:12px;font-weight:700;color:#334155;cursor:pointer;user-select:none}
+    .adj-check-row input[type=checkbox]{accent-color:var(--cyan);width:15px;height:15px;cursor:pointer;flex-shrink:0}
+    .adj-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+    .adj-label{font-size:11px;font-weight:900;color:#64748b;min-width:60px;white-space:nowrap}
+    .adj-slider{flex:1;accent-color:var(--cyan);cursor:pointer}
+    .adj-val{font-size:11px;font-weight:900;color:var(--ink);min-width:44px;text-align:right;font-variant-numeric:tabular-nums}
+    .reset-adj-btn{margin-top:10px;border:1px solid var(--line);background:#fff;color:#475569;border-radius:10px;padding:7px 14px;font-size:11px;font-weight:900;cursor:pointer;width:100%}
+    .reset-adj-btn:hover{background:#eef2f7}
+
     /* ── 리포트 ── */
     #reportSection{margin-top:20px}
     .report-summary{border-radius:14px;padding:14px 18px;font-size:13px;font-weight:900;margin-bottom:14px}
@@ -131,7 +144,7 @@
     <div class="nav-title">인쇄물 사전 검토</div>
     <div class="nav-user">
       <span class="nav-user-name" id="userName">로딩 중...</span>
-      <button class="nav-logout" id="logoutBtn">로그아웃</button>
+      <button class="nav-logout" id="logoutBtn" aria-label="로그아웃">로그아웃</button>
     </div>
   </nav>
 
@@ -144,7 +157,7 @@
         <span class="hero-step">1. 제품 유형 선택</span>
         <span class="hero-step">2. 파일 업로드</span>
         <span class="hero-step">3. 사양 입력</span>
-        <span class="hero-step">4. 검토 결과 확인</span>
+        <span class="hero-step">4. 안내선 대조</span>
       </div>
     </section>
 
@@ -178,10 +191,37 @@
         <div class="panel canvas-panel">
           <div class="panel-kicker">미리보기</div>
           <div class="panel-title">오버레이 미리보기</div>
-          <div class="panel-desc">검토 기준선이 파일 위에 표시됩니다.</div>
+          <div class="panel-desc">사양 입력 후 안내선이 업로드한 파일 위에 표시됩니다.</div>
           <div style="margin-top:14px;position:relative">
             <canvas id="previewCanvas"></canvas>
             <div class="canvas-empty" id="canvasEmpty">파일을 업로드하면 미리보기가 표시됩니다</div>
+          </div>
+
+          <!-- 수동 조절 패널 (파일 업로드 후 표시) -->
+          <div class="adj-panel" id="adjPanel" hidden>
+            <div class="adj-header">
+              <span class="adj-title">수동 조절</span>
+            </div>
+            <label class="adj-check-row">
+              <input type="checkbox" id="fileHasBleed">
+              <span>파일에 재단선 여유(bleed)가 포함됨</span>
+            </label>
+            <div class="adj-row">
+              <span class="adj-label">가로 이동</span>
+              <input type="range" class="adj-slider" id="adjX" min="-80" max="80" value="0" step="1">
+              <span class="adj-val" id="adjXVal">0 px</span>
+            </div>
+            <div class="adj-row">
+              <span class="adj-label">세로 이동</span>
+              <input type="range" class="adj-slider" id="adjY" min="-80" max="80" value="0" step="1">
+              <span class="adj-val" id="adjYVal">0 px</span>
+            </div>
+            <div class="adj-row">
+              <span class="adj-label">크기 조절</span>
+              <input type="range" class="adj-slider" id="adjScale" min="70" max="130" value="100" step="1">
+              <span class="adj-val" id="adjScaleVal">100%</span>
+            </div>
+            <button class="reset-adj-btn" id="resetAdjBtn" type="button">조절 초기화</button>
           </div>
         </div>
       </div>
@@ -213,7 +253,7 @@
   <script defer src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script defer src="/js/firebase-config.js"></script>
-  <script defer src="/js/print-checker/print-checker.js?v=20260903-1"></script>
+  <script defer src="/js/print-checker/print-checker.js?v=20260903-2"></script>
   <script defer>
     document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('logoutBtn').addEventListener('click', () => {

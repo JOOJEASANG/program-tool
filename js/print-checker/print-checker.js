@@ -1,4 +1,4 @@
-/* print-checker.js — 인쇄물 사전 검토 도구 (단일 통합) v20260903-1 */
+/* print-checker.js — 인쇄물 사전 검토 도구 (단일 통합) v20260903-2 */
 'use strict';
 
 const PrintChecker = (() => {
@@ -48,6 +48,10 @@ const PrintChecker = (() => {
   let _product = null;
   let _specs = {};
   let _reportItems = [];
+  let _offsetX = 0;
+  let _offsetY = 0;
+  let _scaleAdj = 1.0;
+  let _fileHasBleed = false;
 
   /* ---------- DOM 참조 ---------- */
   const byId = id => document.getElementById(id);
@@ -57,6 +61,7 @@ const PrintChecker = (() => {
     renderProductCards();
     bindUpload();
     bindForm();
+    bindAdj();
 
     const params = new URLSearchParams(location.search);
     const preset = params.get('product');
@@ -83,6 +88,7 @@ const PrintChecker = (() => {
     renderSpecForm(key);
     byId('specSection').hidden = false;
     clearReport();
+    if (_imgEl) drawCanvas();
   }
 
   /* ---------- 사양 폼 ---------- */
@@ -177,6 +183,8 @@ const PrintChecker = (() => {
       _imgEl = img;
       _naturalW = img.naturalWidth;
       _naturalH = img.naturalHeight;
+      byId('canvasEmpty').hidden = true;
+      byId('adjPanel').hidden = false;
       drawCanvas();
       showFileInfo(`${_naturalW} × ${_naturalH} px (이미지)`);
     };
@@ -190,6 +198,8 @@ const PrintChecker = (() => {
       _imgEl = img;
       _naturalW = img.naturalWidth;
       _naturalH = img.naturalHeight;
+      byId('canvasEmpty').hidden = true;
+      byId('adjPanel').hidden = false;
       drawCanvas();
       showFileInfo(`PDF (첫 페이지 미리보기)`);
     };
@@ -219,51 +229,72 @@ const PrintChecker = (() => {
     const specs = _specs;
     const DISPLAY_W = 600;
 
-    if (!_imgEl) { ctx.clearRect(0, 0, canvas.width, canvas.height); return; }
+    if (!_imgEl) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      byId('canvasEmpty').hidden = false;
+      return;
+    }
 
-    const scale = DISPLAY_W / _naturalW;
+    const imgScale = DISPLAY_W / _naturalW;
     canvas.width = DISPLAY_W;
-    canvas.height = Math.round(_naturalH * scale);
+    canvas.height = Math.round(_naturalH * imgScale);
     ctx.drawImage(_imgEl, 0, 0, canvas.width, canvas.height);
 
     if (!_product || !specs.trimW || !specs.trimH) return;
 
-    /* ppi를 mm → px に変換 (ディスプレイ比率ベース) */
-    const mmToCanvas = mm => (mm / specs.trimW) * canvas.width;
+    const bleedMm = specs.bleed || 0;
+    const spineMm = (PRODUCTS[_product].hasSpine && specs.spine) ? specs.spine : 0;
 
-    /* 재단선 (bleed outer edge — 파란색 점선) */
-    const bleed = specs.bleed || 0;
-    const bLeft = mmToCanvas(bleed);
-    const bTop = mmToCanvas(bleed);
-    const bRight = canvas.width - mmToCanvas(bleed);
-    const bBottom = canvas.height - mmToCanvas(bleed);
-    drawRect(ctx, bLeft, bTop, bRight - bLeft, bBottom - bTop, '#3b82f6', 2, [6, 4]);
+    /* 파일 전체 실제 크기(mm) — 제품 유형과 bleed 포함 여부에 따라 결정 */
+    const fileW = PRODUCTS[_product].hasSpine
+      ? 2 * specs.trimW + spineMm + (_fileHasBleed ? 2 * bleedMm : 0)
+      : specs.trimW + (_fileHasBleed ? 2 * bleedMm : 0);
+    const fileH = specs.trimH + (_fileHasBleed ? 2 * bleedMm : 0);
 
-    /* 안전 영역 (green 실선) */
-    const safe = bleed + (specs.safeZone || 0);
-    const sLeft = mmToCanvas(safe);
-    const sTop = mmToCanvas(safe);
-    const sRight = canvas.width - mmToCanvas(safe);
-    const sBottom = canvas.height - mmToCanvas(safe);
-    drawRect(ctx, sLeft, sTop, sRight - sLeft, sBottom - sTop, '#22c55e', 1.5, []);
+    const mmToX = mm => (mm / fileW) * canvas.width;
+    const mmToY = mm => (mm / fileH) * canvas.height;
 
-    /* 책등 (표지) — 빨간 점선 세로 선 */
-    if (PRODUCTS[_product].hasSpine && specs.spine) {
-      const spL = mmToCanvas(bleed + specs.spine);
-      const spR = canvas.width - mmToCanvas(bleed + specs.spine);
+    /* 수동 조절 변환 적용 */
+    const cx = canvas.width / 2, cy = canvas.height / 2;
+    ctx.save();
+    ctx.translate(cx + _offsetX, cy + _offsetY);
+    ctx.scale(_scaleAdj, _scaleAdj);
+    ctx.translate(-cx, -cy);
+
+    /* 재단선 기준 좌표 (파일이 bleed를 포함하면 안쪽으로 bleed만큼 이동) */
+    const trimL = _fileHasBleed ? mmToX(bleedMm) : 0;
+    const trimT = _fileHasBleed ? mmToY(bleedMm) : 0;
+    const trimR = _fileHasBleed ? canvas.width - mmToX(bleedMm) : canvas.width;
+    const trimB = _fileHasBleed ? canvas.height - mmToY(bleedMm) : canvas.height;
+
+    /* 재단선 (파란색 점선) */
+    drawRect(ctx, trimL, trimT, trimR - trimL, trimB - trimT, '#3b82f6', 2, [6, 4]);
+
+    /* 안전 영역 (녹색 실선) */
+    const szX = mmToX(specs.safeZone || 0);
+    const szY = mmToY(specs.safeZone || 0);
+    drawRect(ctx, trimL + szX, trimT + szY, (trimR - trimL) - 2 * szX, (trimB - trimT) - 2 * szY, '#22c55e', 1.5, []);
+
+    /* 책등 (빨간 점선) — 표지 전용 */
+    if (PRODUCTS[_product].hasSpine && spineMm) {
+      const spL = trimL + mmToX(specs.trimW);
+      const spR = spL + mmToX(spineMm);
       drawLine(ctx, spL, 0, spL, canvas.height, '#ef4444', 2, [8, 4]);
       drawLine(ctx, spR, 0, spR, canvas.height, '#ef4444', 2, [8, 4]);
     }
 
-    /* 접지 패널 구분선 (리플렛) */
+    /* 접지선 (노란 점선) — 리플렛 전용 */
     if (PRODUCTS[_product].hasFold && specs.foldType) {
       const { panels } = FOLD_TYPES[specs.foldType] || { panels: 3 };
-      const panelW = canvas.width / panels;
+      const trimAreaW = trimR - trimL;
+      const panelW = trimAreaW / panels;
       for (let i = 1; i < panels; i++) {
-        drawLine(ctx, panelW * i, 0, panelW * i, canvas.height, '#f59e0b', 2, [10, 5]);
+        const lx = trimL + panelW * i;
+        drawLine(ctx, lx, trimT, lx, trimB, '#f59e0b', 2, [10, 5]);
       }
     }
 
+    ctx.restore();
     drawLegend(ctx);
   }
 
@@ -339,6 +370,43 @@ const PrintChecker = (() => {
     byId('runBtn').addEventListener('click', runCheck);
     byId('resetBtn').addEventListener('click', resetAll);
     byId('specForm').addEventListener('input', () => { readSpecs(); drawCanvas(); });
+  }
+
+  /* ---------- 수동 조절 바인딩 ---------- */
+  function bindAdj() {
+    byId('fileHasBleed').addEventListener('change', e => {
+      _fileHasBleed = e.target.checked;
+      drawCanvas();
+    });
+
+    byId('adjX').addEventListener('input', e => {
+      _offsetX = parseInt(e.target.value);
+      byId('adjXVal').textContent = (_offsetX > 0 ? '+' : '') + _offsetX + ' px';
+      drawCanvas();
+    });
+
+    byId('adjY').addEventListener('input', e => {
+      _offsetY = parseInt(e.target.value);
+      byId('adjYVal').textContent = (_offsetY > 0 ? '+' : '') + _offsetY + ' px';
+      drawCanvas();
+    });
+
+    byId('adjScale').addEventListener('input', e => {
+      _scaleAdj = parseInt(e.target.value) / 100;
+      byId('adjScaleVal').textContent = e.target.value + '%';
+      drawCanvas();
+    });
+
+    byId('resetAdjBtn').addEventListener('click', resetAdj);
+  }
+
+  function resetAdj() {
+    _offsetX = 0; _offsetY = 0; _scaleAdj = 1.0; _fileHasBleed = false;
+    byId('adjX').value = 0; byId('adjXVal').textContent = '0 px';
+    byId('adjY').value = 0; byId('adjYVal').textContent = '0 px';
+    byId('adjScale').value = 100; byId('adjScaleVal').textContent = '100%';
+    byId('fileHasBleed').checked = false;
+    drawCanvas();
   }
 
   /* ---------- 검토 실행 ---------- */
@@ -441,7 +509,7 @@ const PrintChecker = (() => {
     byId('reportGrid').innerHTML = '';
   }
 
-  /* ---------- 초기화 ---------- */
+  /* ---------- 전체 초기화 ---------- */
   function resetAll() {
     _file = null; _imgEl = null; _naturalW = 0; _naturalH = 0;
     _product = null; _specs = {}; _reportItems = [];
@@ -452,13 +520,17 @@ const PrintChecker = (() => {
     byId('uploadError').hidden = true;
     byId('fileInfo').hidden = true;
 
-    const ctx = byId('previewCanvas').getContext('2d');
-    ctx.clearRect(0, 0, byId('previewCanvas').width, byId('previewCanvas').height);
+    const canvas = byId('previewCanvas');
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    byId('canvasEmpty').hidden = false;
+    byId('adjPanel').hidden = true;
 
     document.querySelectorAll('.product-card').forEach(c => c.classList.remove('selected'));
     byId('specSection').hidden = true;
     byId('specForm').innerHTML = '';
     clearReport();
+    resetAdj();
   }
 
   return { init };
