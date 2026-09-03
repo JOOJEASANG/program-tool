@@ -15,6 +15,7 @@
   const fileKey=file=>`${file.name}|${file.size}|${file.lastModified}`;
   let installed=false;
   let observer=null;
+  let observerQueued=false;
 
   function state(){return window.PdfUtility?.state||null;}
   function totalBytes(){return (state()?.files||[]).reduce((sum,file)=>sum+Number(file?.size||0),0);}
@@ -22,6 +23,8 @@
   function hideError(){if(typeof window.hideError==='function')window.hideError();}
   function mb(bytes){return `${(Number(bytes||0)/1024/1024).toFixed(1)}MB`;}
   function isPdf(file){return Boolean(file)&&((file.type||'').includes('pdf')||/\.pdf$/i.test(file.name||''));}
+  function setText(node,value){if(node&&node.textContent!==value)node.textContent=value;}
+  function setHtml(node,value){if(node&&node.innerHTML!==value)node.innerHTML=value;}
 
   function validateIncoming(rawFiles){
     const current=state();
@@ -41,15 +44,13 @@
 
   function rewritePolicyUi(){
     const count=state()?.files?.length||0;
-    const summary=$('pdfUtilityFileSummary');
-    if(summary)summary.textContent=`${count} / ${MAX_FILES} · ${mb(totalBytes())} / 300MB`;
-    const note=document.querySelector('.pdfu-limit-note');
-    if(note)note.textContent='PDF는 최대 10개, 한 파일 최대 200MB, 한 번 작업 전체 합계 300MB까지 등록할 수 있습니다. 대용량 변환은 별도 페이지·해상도 한도가 적용됩니다.';
-    const uploadSub=document.querySelector('.upload-sub');
-    if(uploadSub)uploadSub.innerHTML='클릭하거나 여러 PDF를 끌어다 놓으세요.<br>최대 10개 · 파일당 200MB · 전체 합계 300MB · PDF 형식만 지원';
+    setText($('pdfUtilityFileSummary'),`${count} / ${MAX_FILES} · ${mb(totalBytes())} / 300MB`);
+    setText(document.querySelector('.pdfu-limit-note'),'PDF는 최대 10개, 한 파일 최대 200MB, 한 번 작업 전체 합계 300MB까지 등록할 수 있습니다. 대용량 변환은 별도 페이지·해상도 한도가 적용됩니다.');
+    setHtml(document.querySelector('.upload-sub'),'클릭하거나 여러 PDF를 끌어다 놓으세요.<br>최대 10개 · 파일당 200MB · 전체 합계 300MB · PDF 형식만 지원');
     for(const id of ['encryptBtn','decryptBtn']){
       const button=$(id);
-      if(button)button.title='20MB 초과~200MB PDF는 Storage 기반 암호 작업을 사용합니다.';
+      const title='20MB 초과~200MB PDF는 Storage 기반 암호 작업을 사용합니다.';
+      if(button&&button.title!==title)button.title=title;
     }
     document.documentElement.dataset.pdfUtilityCostPolicy='200mb-file-300mb-job-v2';
   }
@@ -107,15 +108,24 @@
 
   function observeUi(){
     if(observer)return;
-    const list=$('pdfUtilityFileList');
-    if(!list)return;
-    observer=new MutationObserver(()=>queueMicrotask(rewritePolicyUi));
-    observer.observe(list,{childList:true,subtree:true,characterData:true});
+    // Observe only the actual file rows. The policy rewrite updates the summary
+    // text outside this node, so its own DOM writes cannot retrigger the observer.
+    const items=$('pdfUtilityFileItems');
+    if(!items)return;
+    observer=new MutationObserver(()=>{
+      if(observerQueued)return;
+      observerQueued=true;
+      requestAnimationFrame(()=>{
+        observerQueued=false;
+        rewritePolicyUi();
+      });
+    });
+    observer.observe(items,{childList:true,subtree:true});
   }
 
   function install(attempt=0){
     if(installed)return;
-    if(!window.PdfUtility||!$('fileInput')||!$('uploadZone')||!$('pdfUtilityFileList')){
+    if(!window.PdfUtility||!$('fileInput')||!$('uploadZone')||!$('pdfUtilityFileList')||!$('pdfUtilityFileItems')){
       if(attempt<80)setTimeout(()=>install(attempt+1),75);
       return;
     }
