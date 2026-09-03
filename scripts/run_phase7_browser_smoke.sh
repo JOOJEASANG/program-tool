@@ -42,3 +42,5 @@ PY
 
 run_page "public-boot-guard-v4-smoke.html" "Public boot guard Phase 7 smoke" "public-boot-guard-v4-smoke-dom.html"
 run_page "runtime-public-first-paint-v4-smoke.html" "Runtime public first-paint Phase 7 smoke" "runtime-public-first-paint-v4-smoke-dom.html"
+run_page "protected-design-boot-nonblocking-smoke.html" "Protected design nonblocking boot smoke" "protected-design-boot-nonblocking-smoke-dom.html"
+run_page "protected-preflight-boot-nonblocking-smoke.html" "Protected preflight nonblocking boot smoke" "protected-preflight-boot-nonblocking-smoke-dom.html"
