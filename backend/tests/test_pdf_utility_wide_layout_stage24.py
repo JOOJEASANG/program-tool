@@ -54,4 +54,4 @@ def test_pdf_utility_wide_layout_is_owned_by_canonical_route_before_finalize():
     assert "pdfUtilityFinalizeScriptV1" in runtime
     assert runtime.index("pdfUtilityWideLayoutScriptV1") < runtime.index("pdfUtilityFinalizeScriptV1")
     assert "function loadWideLayout()" not in finalizer
-    assert "document.documentElement.dataset.pdfUtilityFinalized='functional-v3';" in finalizer
+    assert "document.documentElement.dataset.pdfUtilityFinalized='functional-v4-download-fallback';" in finalizer
