@@ -34,7 +34,7 @@ def test_stability_bootstrap_starts_requested_project_before_heavy_runtime_chain
     assert "app.startProject(preset);" in source
     assert "root.dataset.designEarlyProject='started'" in source
     assert "if(mode==='cover'&&!ensureEarlyCoverPreset())return false;" in source
-    assert "stage:'embedded-design-stable-canvas-bootstrap-v4-direct-entry-history-guard'" in source
+    assert "stage:'embedded-design-stable-canvas-bootstrap-v5-release-startup-observer'" in source
 
 
 def test_stability_bootstrap_coalesces_only_unchanged_startup_synthetic_resizes():
@@ -70,10 +70,13 @@ def test_stability_bootstrap_keeps_parent_authorized_iframe_visible_for_legacy_r
     assert "byId('authLoading')?.classList.add('hidden')" in source
 
 
-def test_stability_bootstrap_marks_only_painted_project_as_ready():
+def test_stability_bootstrap_marks_only_painted_project_as_ready_and_releases_observer():
     source = read("js/design-editor/embedded-stability-bootstrap.js")
     assert "function projectIsPaintReady()" in source
     assert "shell.classList.contains('hidden')" in source
     assert "rect.width>20&&rect.height>20" in source
     assert "root.dataset.designEmbeddedProjectReady='1'" in source
     assert "root.dataset.designEmbeddedCanvasStable='1'" in source
+    assert "observer.disconnect();" in source
+    assert "observer=null;" in source
+    assert "root.dataset.designEmbeddedStabilityObserver='released'" in source
