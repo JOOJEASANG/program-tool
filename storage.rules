@@ -68,7 +68,8 @@ service firebase.storage {
     // Backend processing endpoints independently validate that the Storage UID
     // matches the authenticated request before reading a staged object.
     match /pdf_temp/{userId}/{sessionId}/{fileName} {
-      allow read, delete: if isOwner(userId);
+      allow read: if isOwner(userId);
+      allow delete: if isOwner(userId);
       allow create: if resource == null
         && isOwner(userId)
         && validStagePath(sessionId, fileName)
@@ -76,7 +77,8 @@ service firebase.storage {
       allow update: if false;
     }
     match /preflight_temp/{userId}/{sessionId}/{fileName} {
-      allow read, delete: if isOwner(userId);
+      allow read: if isOwner(userId);
+      allow delete: if isOwner(userId);
       allow create: if resource == null
         && isOwner(userId)
         && validStagePath(sessionId, fileName)
@@ -97,7 +99,8 @@ service firebase.storage {
     match /pdf_results/{userId}/{resultId}/{fileName} {
       // Results are server-created only. Any signed-in owner may read/delete the
       // temporary result produced for their own authenticated PDF job.
-      allow read, delete: if isOwner(userId);
+      allow read: if isOwner(userId);
+      allow delete: if isOwner(userId);
       allow create, update: if false;
     }
 
