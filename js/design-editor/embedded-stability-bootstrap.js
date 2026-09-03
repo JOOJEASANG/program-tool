@@ -237,6 +237,12 @@
     if(projectIsPaintReady()){
       root.dataset.designEmbeddedProjectReady='1';
       root.dataset.designEmbeddedCanvasStable='1';
+      clearTimeout(earlyProjectTimer);
+      if(observer){
+        observer.disconnect();
+        observer=null;
+        root.dataset.designEmbeddedStabilityObserver='released';
+      }
       return true;
     }
     return false;
@@ -259,6 +265,7 @@
       });
       observer.observe(root,{attributes:true,attributeFilter:['style','data-access-checking','class']});
       if(document.body)observer.observe(document.body,{childList:true,subtree:true});
+      root.dataset.designEmbeddedStabilityObserver='startup';
     }
     ['programstudio:runtime-script-result','programstudio:design-mode-change','programstudio:document-type-change','designeditor:project-restored']
       .forEach(name=>window.addEventListener(name,queueReadyCheck));
@@ -270,7 +277,7 @@
     startRequestedProjectEarly,
     resizeSignature,
     surfaceContentSignature,
-    stage:'embedded-design-stable-canvas-bootstrap-v4-direct-entry-history-guard'
+    stage:'embedded-design-stable-canvas-bootstrap-v5-release-startup-observer'
   };
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});
