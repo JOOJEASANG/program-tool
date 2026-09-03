@@ -148,6 +148,34 @@
     .rc-detail{font-size:10px;color:var(--ink);font-weight:700;margin-bottom:3px}
     .rc-guide{font-size:10px;color:var(--muted);line-height:1.55}
 
+    /* ── 정보 카드 (접지·면부 가이드) ── */
+    .info-card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:0 6px 20px rgba(15,23,42,.06)}
+    .info-kicker{font-size:10px;font-weight:900;color:var(--cyan);letter-spacing:.5px;margin-bottom:6px}
+    .info-desc{font-size:11px;color:var(--muted);line-height:1.6;margin-bottom:10px}
+    .info-note{font-size:10px;color:#94a3b8;margin-top:8px}
+
+    /* ── 접지 면 배치 가이드 ── */
+    .fp-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+    .fp-side-label{font-size:10px;font-weight:900;color:#64748b;min-width:56px;white-space:nowrap}
+    .fp-panels{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+    .fp-cell{border:2px solid;border-radius:8px;padding:8px 10px;text-align:center;min-width:52px}
+    .fp-num{font-size:14px;font-weight:900}
+    .fp-role{font-size:9px;font-weight:800;margin-top:2px}
+    .fp-sep{font-size:12px;color:#94a3b8}
+
+    /* ── 면부 배치 가이드 ── */
+    .imp-presets{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:14px}
+    .imp-preset{background:#f8fafc;border:1px solid var(--line);border-radius:12px;padding:12px}
+    .imp-preset-title{font-size:11px;font-weight:900;color:#334155;margin-bottom:8px}
+    .imp-row{display:flex;align-items:center;gap:6px;margin-bottom:4px;font-size:10px;flex-wrap:wrap}
+    .imp-sheet-label{color:#64748b;font-weight:800;min-width:38px}
+    .imp-front{background:#dbeafe;border-radius:6px;padding:3px 8px;font-weight:800}
+    .imp-back{background:#dcfce7;border-radius:6px;padding:3px 8px;font-weight:800}
+    .imp-warn{background:#fef9c3;border:1px solid #fde68a;border-radius:8px;padding:8px 12px;font-size:11px;color:#92400e;font-weight:800;margin-bottom:8px}
+    .imp-ok{background:#dcfce7;border:1px solid #bbf7d0;border-radius:8px;padding:8px 12px;font-size:11px;color:#166534;font-weight:800;margin-bottom:8px}
+    .imp-calc{padding-top:12px;border-top:1px solid var(--line);margin-top:4px}
+    .calc-btn{border:0;background:linear-gradient(135deg,var(--navy),var(--cyan));color:#fff;border-radius:8px;padding:7px 14px;font-size:11px;font-weight:900;cursor:pointer}
+
     /* ── 반응형 ── */
     @media(max-width:768px){
       body{overflow:auto}
@@ -257,6 +285,12 @@
         <div class="file-info-bar" id="fileInfo" hidden></div>
       </div>
 
+      <!-- 접지 면 배치 가이드 (리플렛) -->
+      <div class="info-card" id="leafletGuide" hidden></div>
+
+      <!-- 면부 배치 가이드 (소책자) -->
+      <div class="info-card" id="impositionGuide" hidden></div>
+
       <!-- 검토 리포트 -->
       <div class="report-wrap" id="reportSection" hidden>
         <div class="report-kicker">STEP 4 · 검토 결과</div>
@@ -270,7 +304,7 @@
   <script defer src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script defer src="/js/firebase-config.js"></script>
-  <script defer src="/js/print-checker/print-checker.js?v=20260903-3"></script>
+  <script defer src="/js/print-checker/print-checker.js?v=20260903-4"></script>
   <script defer>
     document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('logoutBtn').addEventListener('click', () => {

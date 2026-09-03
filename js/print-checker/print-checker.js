@@ -1,13 +1,14 @@
-/* print-checker.js — 인쇄물 사전 검토 v20260903-3 */
+/* print-checker.js — 인쇄물 사전 검토 v20260903-4 */
 'use strict';
 
 const PrintChecker = (() => {
   /* ---------- 상수 ---------- */
   const PRODUCTS = {
-    cover:      { label: '표지',         icon: '📚', desc: '앞표지 + 책등 + 뒤표지', hasFold: false, hasSpine: true  },
-    leaflet:    { label: '리플렛',       icon: '📄', desc: '2단·3단·4단 접지',       hasFold: true,  hasSpine: false },
-    flyer:      { label: '전단지/포스터', icon: '🖼️', desc: '단면 전단지·포스터',    hasFold: false, hasSpine: false },
-    invitation: { label: '초대장/안내장', icon: '💌', desc: '단면 평판 초대장',       hasFold: false, hasSpine: false },
+    cover:      { label: '표지',         icon: '📚', desc: '앞표지 + 책등 + 뒤표지', hasFold: false, hasSpine: true,  isBooklet: false },
+    leaflet:    { label: '리플렛',       icon: '📄', desc: '2단·3단·4단 접지',       hasFold: true,  hasSpine: false, isBooklet: false },
+    booklet:    { label: '소책자',       icon: '📖', desc: '중철 4·8·12·16p',       hasFold: false, hasSpine: false, isBooklet: true  },
+    flyer:      { label: '전단지/포스터', icon: '🖼️', desc: '단면 전단지·포스터',    hasFold: false, hasSpine: false, isBooklet: false },
+    invitation: { label: '초대장/안내장', icon: '💌', desc: '단면 평판 초대장',       hasFold: false, hasSpine: false, isBooklet: false },
   };
 
   const FOLD_TYPES = {
@@ -15,6 +16,31 @@ const PrintChecker = (() => {
     '3roll':  { label: '말아접기 (3단)',        panels: 3 },
     '3zfold': { label: 'Z접기 (3단 지그재그)', panels: 3 },
     '4fold':  { label: '4단 접기',             panels: 4 },
+  };
+
+  /*
+   * 접지 방식별 페이지 배치 (평면 전개도 기준, 왼쪽→오른쪽)
+   * outside: 인쇄 앞면(외부) 패널의 페이지 번호 배열
+   * inside:  인쇄 뒷면(내부) 패널의 페이지 번호 배열
+   * cover: 표지 페이지 번호, back: 뒷면 페이지 번호
+   */
+  const FOLD_PAGES = {
+    '2fold':  {
+      outside: [4, 1], inside: [2, 3], total: 4, cover: 1, back: 4,
+      desc: '반접기 — 총 4페이지. 오른쪽 패널이 표지(P1), 왼쪽이 뒷면(P4).',
+    },
+    '3roll':  {
+      outside: [6, 5, 1], inside: [2, 3, 4], total: 6, cover: 1, back: 6,
+      desc: '말아접기 — 총 6페이지. 가장 오른쪽(P1)이 표지, 왼쪽(P6)이 뒷면. P5는 표지 뒤에 숨겨집니다.',
+    },
+    '3zfold': {
+      outside: [1, 2, 3], inside: [6, 5, 4], total: 6, cover: 1, back: 6,
+      desc: 'Z접기 — 총 6페이지. 가장 왼쪽(P1)이 표지. 지그재그로 접힙니다.',
+    },
+    '4fold':  {
+      outside: [8, 7, 6, 1], inside: [2, 3, 4, 5], total: 8, cover: 1, back: 8,
+      desc: '4단 접기 — 총 8페이지. 가장 오른쪽(P1)이 표지, 왼쪽 끝(P8)이 뒷면.',
+    },
   };
 
   const PAPER_TYPES = {
@@ -66,6 +92,7 @@ const PrintChecker = (() => {
     byId('specSection').hidden = false;
     clearReport();
     drawCanvas();
+    updateInfoPanels();
   }
 
   /* ---------- 사양 폼 ---------- */
@@ -85,20 +112,25 @@ const PrintChecker = (() => {
       form.appendChild(w);
     };
 
-    mmField('trimW', '재단 폭 (Trim Width)', '재단 후 최종 가로', '210');
-    mmField('trimH', '재단 높이 (Trim Height)', '재단 후 최종 세로', '297');
+    if (!p.isBooklet) {
+      mmField('trimW', '재단 폭 (Trim Width)', '재단 후 최종 가로', '210');
+      mmField('trimH', '재단 높이 (Trim Height)', '재단 후 최종 세로', '297');
+    } else {
+      /* 소책자는 완성판 크기 */
+      mmField('trimW', '완성판 폭', '접은 후 가로 크기', '148');
+      mmField('trimH', '완성판 높이', '접은 후 세로 크기', '210');
+    }
 
     if (p.hasSpine) {
-      /* 종이 종류 */
+      /* 종이 종류 + 페이지 수 → 책등 자동 계산 */
       const ptWrap = document.createElement('div');
       ptWrap.className = 'spec-field';
       ptWrap.innerHTML = `<label class="spec-label" for="paperType">종이 종류<small class="spec-hint">책등 두께 자동 계산</small></label>
         <select class="spec-input spec-select" id="paperType">
-          ${Object.entries(PAPER_TYPES).map(([v, t]) => `<option value="${v}" ${(_specs.paperType || 'mojo80') === v ? 'selected' : ''}>${t.label}</option>`).join('')}
+          ${Object.entries(PAPER_TYPES).map(([v,t]) => `<option value="${v}" ${(_specs.paperType||'mojo80')===v?'selected':''}>${t.label}</option>`).join('')}
         </select>`;
       form.appendChild(ptWrap);
 
-      /* 페이지 수 */
       const pgWrap = document.createElement('div');
       pgWrap.className = 'spec-field';
       pgWrap.innerHTML = `<label class="spec-label" for="pageCount">페이지 수<small class="spec-hint">총 페이지 (표지 제외)</small></label>
@@ -108,7 +140,6 @@ const PrintChecker = (() => {
         </div>`;
       form.appendChild(pgWrap);
 
-      /* 책등 두께 (자동/수동) */
       const spWrap = document.createElement('div');
       spWrap.className = 'spec-field';
       spWrap.innerHTML = `<label class="spec-label" for="spine">책등 두께<small class="spec-hint" id="spineHint">종이·페이지 선택 시 자동 계산</small></label>
@@ -118,37 +149,31 @@ const PrintChecker = (() => {
         </div>`;
       form.appendChild(spWrap);
 
-      /* 날개 옵션 */
       const wingWrap = document.createElement('div');
-      wingWrap.className = 'spec-field';
-      wingWrap.innerHTML = `<label class="spec-check-row" for="hasWing">
-          <input type="checkbox" id="hasWing" ${_specs.hasWing ? 'checked' : ''}>
+      wingWrap.className = 'spec-field wing-group';
+      wingWrap.innerHTML = `<label class="spec-check-row">
+          <input type="checkbox" id="hasWing" ${_specs.hasWing?'checked':''}>
           <span>날개(플랩) 포함</span>
         </label>
-        <div id="wingWGroup" style="margin-top:8px" ${_specs.hasWing ? '' : 'hidden'}>
+        <div id="wingWGroup" style="margin-top:8px" ${_specs.hasWing?'':' hidden'}>
           <div class="spec-input-row">
-            <input class="spec-input" id="wingW" type="number" min="0" step="1" placeholder="90" value="${_specs.wingW ?? ''}">
+            <input class="spec-input" id="wingW" type="number" min="0" step="1" placeholder="90" value="${_specs.wingW??''}">
             <span class="spec-unit">mm</span>
           </div>
           <small class="spec-hint">날개 폭 (앞·뒷날개 동일)</small>
         </div>`;
       form.appendChild(wingWrap);
 
-      /* 책등 자동 계산 이벤트 */
       const autoSpine = () => {
         const ptKey = byId('paperType')?.value;
         const pages = parseInt(byId('pageCount')?.value) || 0;
         const spineEl = byId('spine');
         if (ptKey && ptKey !== 'custom' && pages >= 2 && spineEl && !spineEl.dataset.manual) {
           const val = calcSpine(ptKey, pages);
-          if (val !== null) {
-            spineEl.value = val;
-            byId('spineHint').textContent = `자동 계산: ${val}mm`;
-          }
+          if (val !== null) { spineEl.value = val; byId('spineHint').textContent = `자동 계산: ${val}mm`; }
         }
-        readSpecs(); drawCanvas();
+        readSpecs(); drawCanvas(); updateInfoPanels();
       };
-
       byId('paperType')?.addEventListener('change', autoSpine);
       byId('pageCount')?.addEventListener('input', autoSpine);
       byId('spine')?.addEventListener('input', e => {
@@ -156,10 +181,7 @@ const PrintChecker = (() => {
         byId('spineHint').textContent = '직접 입력 중';
         readSpecs(); drawCanvas();
       });
-      byId('hasWing')?.addEventListener('change', e => {
-        byId('wingWGroup').hidden = !e.target.checked;
-        readSpecs(); drawCanvas();
-      });
+      byId('hasWing')?.addEventListener('change', e => { byId('wingWGroup').hidden = !e.target.checked; readSpecs(); drawCanvas(); });
       byId('wingW')?.addEventListener('input', () => { readSpecs(); drawCanvas(); });
     }
 
@@ -168,18 +190,40 @@ const PrintChecker = (() => {
       ftWrap.className = 'spec-field';
       ftWrap.innerHTML = `<label class="spec-label" for="foldType">접지 방식<small class="spec-hint">접지 유형 선택</small></label>
         <select class="spec-input spec-select" id="foldType">
-          ${Object.entries(FOLD_TYPES).map(([v, f]) => `<option value="${v}" ${_specs.foldType === v ? 'selected' : ''}>${f.label}</option>`).join('')}
+          ${Object.entries(FOLD_TYPES).map(([v,f]) => `<option value="${v}" ${_specs.foldType===v?'selected':''}>${f.label}</option>`).join('')}
         </select>`;
       form.appendChild(ftWrap);
+      byId('foldType')?.addEventListener('change', () => { readSpecs(); drawCanvas(); updateInfoPanels(); });
 
       const gmWrap = document.createElement('div');
       gmWrap.className = 'spec-field';
       gmWrap.innerHTML = `<label class="spec-label" for="gutterMargin">거터 (Gutter)<small class="spec-hint">패널 사이 여백 기준</small></label>
         <div class="spec-input-row">
-          <input class="spec-input" id="gutterMargin" type="number" min="0" step="0.1" placeholder="3" value="${_specs.gutterMargin ?? ''}">
+          <input class="spec-input" id="gutterMargin" type="number" min="0" step="0.1" placeholder="3" value="${_specs.gutterMargin??''}">
           <span class="spec-unit">mm</span>
         </div>`;
       form.appendChild(gmWrap);
+    }
+
+    if (p.isBooklet) {
+      /* 소책자: 페이지 수 입력 → 인쇄 시트 계산 */
+      const bpWrap = document.createElement('div');
+      bpWrap.className = 'spec-field';
+      bpWrap.innerHTML = `<label class="spec-label" for="bookletPages">총 페이지 수<small class="spec-hint">4의 배수 권장 (중철 기준)</small></label>
+        <div class="spec-input-row">
+          <input class="spec-input" id="bookletPages" type="number" min="4" step="1" placeholder="8" value="${_specs.bookletPages??''}">
+          <span class="spec-unit">p</span>
+        </div>`;
+      form.appendChild(bpWrap);
+      byId('bookletPages')?.addEventListener('input', () => { readSpecs(); updateInfoPanels(); });
+
+      const ptWrap2 = document.createElement('div');
+      ptWrap2.className = 'spec-field';
+      ptWrap2.innerHTML = `<label class="spec-label" for="paperType">종이 종류<small class="spec-hint">두께 참고용</small></label>
+        <select class="spec-input spec-select" id="paperType">
+          ${Object.entries(PAPER_TYPES).map(([v,t]) => `<option value="${v}" ${(_specs.paperType||'mojo80')===v?'selected':''}>${t.label}</option>`).join('')}
+        </select>`;
+      form.appendChild(ptWrap2);
     }
 
     mmField('bleed',    '재단선 여유 (Bleed)',   '재단선 바깥 여분 (보통 3mm)', '3');
@@ -194,24 +238,22 @@ const PrintChecker = (() => {
 
   function readSpecs() {
     const s = {};
-    ['trimW','trimH','spine','bleed','safeZone','gutterMargin','wingW'].forEach(id => {
+    ['trimW','trimH','spine','bleed','safeZone','gutterMargin','wingW','bookletPages'].forEach(id => {
       const el = byId(id); if (el) s[id] = parseFloat(el.value) || 0;
     });
-    const pcEl = byId('pageCount'); if (pcEl) s.pageCount = parseInt(pcEl.value) || 0;
-    const ftEl = byId('foldType');  if (ftEl) s.foldType  = ftEl.value;
-    const ptEl = byId('paperType'); if (ptEl) s.paperType = ptEl.value;
-    const hwEl = byId('hasWing');   if (hwEl) s.hasWing   = hwEl.checked;
+    const pcEl = byId('pageCount');    if (pcEl) s.pageCount    = parseInt(pcEl.value) || 0;
+    const ftEl = byId('foldType');    if (ftEl) s.foldType     = ftEl.value;
+    const ptEl = byId('paperType');   if (ptEl) s.paperType    = ptEl.value;
+    const hwEl = byId('hasWing');     if (hwEl) s.hasWing      = hwEl.checked;
     _specs = s;
     return s;
   }
 
   /* ---------- 업로드 ---------- */
   function bindUpload() {
-    const zone  = byId('uploadZone');
-    const input = byId('fileInput');
-
+    const zone = byId('uploadZone'), input = byId('fileInput');
     zone.addEventListener('click', () => input.click());
-    zone.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') input.click(); });
+    zone.addEventListener('keydown', e => { if (e.key==='Enter'||e.key===' ') input.click(); });
     zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
     zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
     zone.addEventListener('drop', e => { e.preventDefault(); zone.classList.remove('dragover'); handleFile(e.dataTransfer.files[0]); });
@@ -229,10 +271,6 @@ const PrintChecker = (() => {
     byId('uploadZone').classList.add('has-file');
     clearUploadError();
     byId('adjPanel').hidden = false;
-    loadPreview(file);
-  }
-
-  function loadPreview(file) {
     const reader = new FileReader();
     reader.onload = e => {
       if (file.type === 'application/pdf') loadPdfPreview(e.target.result);
@@ -260,10 +298,7 @@ const PrintChecker = (() => {
       byId('fileInfo').textContent = 'PDF (첫 페이지 미리보기)';
       byId('fileInfo').hidden = false;
     };
-    img.onerror = () => {
-      byId('fileInfo').textContent = 'PDF (미리보기 불가 — 검토는 정상 진행됩니다)';
-      byId('fileInfo').hidden = false;
-    };
+    img.onerror = () => { byId('fileInfo').textContent = 'PDF (미리보기 불가)'; byId('fileInfo').hidden = false; };
     img.src = dataUrl;
   }
 
@@ -277,13 +312,11 @@ const PrintChecker = (() => {
     const spine = (PRODUCTS[_product]?.hasSpine && s.spine) ? s.spine : 0;
     const wing  = (s.hasWing && s.wingW) ? s.wingW : 0;
     let fileW;
-    if (PRODUCTS[_product]?.hasSpine) {
-      fileW = 2 * (s.trimW || 0) + spine + 2 * wing + (_fileHasBleed ? 2 * bleed : 0);
-    } else {
-      fileW = (s.trimW || 0) + (_fileHasBleed ? 2 * bleed : 0);
-    }
-    const fileH = (s.trimH || 0) + (_fileHasBleed ? 2 * bleed : 0);
-    return { fileW, fileH, bleedMm: bleed, spineMm: spine, wingMm: wing };
+    if (PRODUCTS[_product]?.hasSpine)
+      fileW = 2*(s.trimW||0) + spine + 2*wing + (_fileHasBleed ? 2*bleed : 0);
+    else
+      fileW = (s.trimW||0) + (_fileHasBleed ? 2*bleed : 0);
+    return { fileW, fileH: (s.trimH||0) + (_fileHasBleed ? 2*bleed : 0), bleedMm: bleed, spineMm: spine, wingMm: wing };
   }
 
   /* ---------- 캔버스 ---------- */
@@ -293,32 +326,28 @@ const PrintChecker = (() => {
     const canvas = byId('previewCanvas');
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
-    const specs = _specs;
-    const hasSpecs = !!(specs.trimW && specs.trimH && _product);
+    const hasSpecs = !!((_specs.trimW || _specs.bookletPages) && _product);
 
-    if (_imgEl) {
-      drawOverlayCanvas(canvas, ctx);
-    } else if (hasSpecs) {
-      drawTemplateCanvas(canvas, ctx);
-    } else {
-      drawEmptyCanvas(canvas, ctx);
-    }
+    if (_imgEl)           drawOverlayCanvas(canvas, ctx);
+    else if (hasSpecs)    drawTemplateCanvas(canvas, ctx);
+    else                  drawEmptyCanvas(canvas, ctx);
   }
 
   function drawEmptyCanvas(canvas, ctx) {
     canvas.width = DISPLAY_W; canvas.height = 420;
-    ctx.fillStyle = '#f1f5f9';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = '#94a3b8';
+    ctx.fillStyle = '#f1f5f9'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#94a3b8'; ctx.textAlign = 'center';
     ctx.font = '600 14px Pretendard, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('왼쪽에서 제품 유형을 선택하고', DISPLAY_W / 2, 196);
-    ctx.fillText('사양을 입력하면 안내선이 표시됩니다', DISPLAY_W / 2, 220);
+    ctx.fillText('왼쪽에서 제품 유형을 선택하고', DISPLAY_W/2, 200);
+    ctx.fillText('사양을 입력하면 안내선이 표시됩니다', DISPLAY_W/2, 222);
     ctx.font = '12px Pretendard, sans-serif';
-    ctx.fillText('파일 없이도 작업 전 규격 확인이 가능합니다', DISPLAY_W / 2, 248);
+    ctx.fillText('파일 없이도 작업 전 규격 확인 가능합니다', DISPLAY_W/2, 250);
   }
 
   function drawTemplateCanvas(canvas, ctx) {
+    /* 소책자는 단일 페이지 템플릿 */
+    if (PRODUCTS[_product]?.isBooklet) { drawBookletPageTemplate(canvas, ctx); return; }
+
     const s = _specs;
     const layout = getLayout();
     if (!layout.fileW || !layout.fileH) { drawEmptyCanvas(canvas, ctx); return; }
@@ -327,82 +356,147 @@ const PrintChecker = (() => {
     canvas.width = DISPLAY_W;
     canvas.height = Math.max(Math.round(layout.fileH * scale), 180);
 
-    const mX = mm => mm * scale;
-    const mY = mm => mm * scale;
+    const mX = mm => mm * scale, mY = mm => mm * scale;
 
-    /* 재단선 여유 영역 (bleed 포함 시 = 연한 파랑) */
-    ctx.fillStyle = '#dbeafe';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#dbeafe'; ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     const trimL = _fileHasBleed ? mX(layout.bleedMm) : 0;
     const trimT = _fileHasBleed ? mY(layout.bleedMm) : 0;
     const trimR = canvas.width  - (_fileHasBleed ? mX(layout.bleedMm) : 0);
     const trimB = canvas.height - (_fileHasBleed ? mY(layout.bleedMm) : 0);
 
-    /* 표지 레이아웃 */
     if (PRODUCTS[_product].hasSpine) {
+      /* 표지 색상 존 */
       const wingPx = mX(layout.wingMm);
       const backL  = trimL + wingPx;
       const spineL = backL + mX(s.trimW);
       const spineR = spineL + mX(layout.spineMm);
       const frontR = spineR + mX(s.trimW);
 
-      /* 뒤표지 */
-      ctx.fillStyle = '#f0f9ff'; ctx.fillRect(backL, trimT, mX(s.trimW), trimB - trimT);
-      /* 책등 */
-      if (layout.spineMm > 0) {
-        ctx.fillStyle = '#fee2e2'; ctx.fillRect(spineL, trimT, mX(layout.spineMm), trimB - trimT);
+      ctx.fillStyle='#f0f9ff'; ctx.fillRect(backL,  trimT, mX(s.trimW),       trimB-trimT);
+      if (layout.spineMm>0) { ctx.fillStyle='#fee2e2'; ctx.fillRect(spineL, trimT, mX(layout.spineMm), trimB-trimT); }
+      ctx.fillStyle='#f0f9ff'; ctx.fillRect(spineR, trimT, mX(s.trimW),       trimB-trimT);
+      if (layout.wingMm>0) {
+        ctx.fillStyle='#fef9c3';
+        ctx.fillRect(trimL,  trimT, wingPx, trimB-trimT);
+        ctx.fillRect(frontR, trimT, wingPx, trimB-trimT);
       }
-      /* 앞표지 */
-      ctx.fillStyle = '#f0f9ff'; ctx.fillRect(spineR, trimT, mX(s.trimW), trimB - trimT);
-      /* 날개 */
-      if (layout.wingMm > 0) {
-        ctx.fillStyle = '#fef9c3';
-        ctx.fillRect(trimL,   trimT, wingPx, trimB - trimT);
-        ctx.fillRect(frontR,  trimT, wingPx, trimB - trimT);
-      }
+      drawZoneLabel(ctx, trimL,  trimT, backL,  trimB, layout.wingMm?'뒷날개':'', '#92400e', scale<1.6);
+      drawZoneLabel(ctx, backL,  trimT, spineL, trimB, `뒤표지\n${s.trimW}mm`,   '#1e40af', scale<1.6);
+      if (layout.spineMm>0) drawZoneLabel(ctx, spineL, trimT, spineR, trimB, `책등\n${layout.spineMm}mm`, '#991b1b', scale<1.6);
+      drawZoneLabel(ctx, spineR, trimT, frontR, trimB, `앞표지\n${s.trimW}mm`,   '#1e40af', scale<1.6);
+      drawZoneLabel(ctx, frontR, trimT, trimR,  trimB, layout.wingMm?'앞날개':'', '#92400e', scale<1.6);
 
-      /* 존 레이블 */
-      drawZoneLabel(ctx, trimL, trimT, backL,  trimB, layout.wingMm > 0 ? '뒷날개' : '', '#92400e', scale < 1.4);
-      drawZoneLabel(ctx, backL,  trimT, spineL, trimB, `뒤표지\n${s.trimW}mm`, '#1e40af', scale < 1.4);
-      if (layout.spineMm > 0)
-        drawZoneLabel(ctx, spineL, trimT, spineR, trimB, `책등\n${layout.spineMm}mm`, '#991b1b', scale < 1.4);
-      drawZoneLabel(ctx, spineR, trimT, frontR, trimB, `앞표지\n${s.trimW}mm`, '#1e40af', scale < 1.4);
-      drawZoneLabel(ctx, frontR, trimT, trimR,  trimB, layout.wingMm > 0 ? '앞날개' : '', '#92400e', scale < 1.4);
+      if (s.trimH) {
+        ctx.save(); ctx.translate(8,(trimT+trimB)/2); ctx.rotate(-Math.PI/2);
+        ctx.fillStyle='#475569'; ctx.font='bold 10px Pretendard,sans-serif'; ctx.textAlign='center';
+        ctx.fillText(`${s.trimH}mm`,0,0); ctx.restore();
+      }
+    } else if (PRODUCTS[_product].hasFold) {
+      /* 리플렛 색상 존 + 페이지 번호 */
+      ctx.fillStyle='#f8fafc'; ctx.fillRect(trimL, trimT, trimR-trimL, trimB-trimT);
+      drawLeafletPanelColors(ctx, trimL, trimT, trimR, trimB, scale);
     } else {
-      /* 표지 외 제품 */
-      ctx.fillStyle = '#f8fafc';
-      ctx.fillRect(trimL, trimT, trimR - trimL, trimB - trimT);
+      ctx.fillStyle='#f8fafc'; ctx.fillRect(trimL, trimT, trimR-trimL, trimB-trimT);
       drawZoneLabel(ctx, trimL, trimT, trimR, trimB,
-        PRODUCTS[_product].label + `\n${s.trimW} × ${s.trimH}mm`, '#334155', false);
+        `${PRODUCTS[_product].label}\n${s.trimW||'?'} × ${s.trimH||'?'}mm`, '#334155', false);
     }
 
-    /* 세로 치수 레이블 */
-    if (s.trimH) {
-      ctx.save();
-      ctx.translate(8, (trimT + trimB) / 2);
-      ctx.rotate(-Math.PI / 2);
-      ctx.fillStyle = '#475569'; ctx.font = 'bold 10px Pretendard, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText(`${s.trimH}mm`, 0, 0);
-      ctx.restore();
-    }
-
-    /* 안내선 */
     drawGuideLines(ctx, canvas, scale);
     drawLegend(ctx, canvas);
   }
 
-  function drawZoneLabel(ctx, x1, y1, x2, y2, text, color, smallFont) {
-    if (!text || x2 - x1 < 18) return;
-    const cx = (x1 + x2) / 2, cy = (y1 + y2) / 2;
-    ctx.save();
-    ctx.fillStyle = color;
-    ctx.textAlign = 'center';
-    ctx.font = `${smallFont ? '9' : '11'}px Pretendard, sans-serif`;
-    text.split('\n').forEach((line, i, arr) => {
-      ctx.fillText(line, cx, cy + (i - (arr.length - 1) / 2) * (smallFont ? 12 : 15));
+  /* 리플렛 패널 색상 + 페이지 번호 표시 */
+  function drawLeafletPanelColors(ctx, trimL, trimT, trimR, trimB, scale) {
+    const foldKey = _specs.foldType || '3roll';
+    const fp = FOLD_PAGES[foldKey];
+    if (!fp) return;
+
+    const panels = fp.outside.length;
+    const trimW = trimR - trimL;
+    const trimH = trimB - trimT;
+    const panelW = trimW / panels;
+    const smallText = panelW < 80;
+
+    fp.outside.forEach((pageNum, i) => {
+      const x  = trimL + panelW * i;
+      const cx = x + panelW / 2;
+
+      /* 패널 배경 색상 */
+      if (pageNum === fp.cover) {
+        ctx.fillStyle = '#dbeafe'; // 표지 = 파란색
+      } else if (pageNum === fp.back) {
+        ctx.fillStyle = '#fee2e2'; // 뒷면 = 빨간색
+      } else {
+        ctx.fillStyle = '#f8fafc'; // 내부 패널 = 흰색
+      }
+      ctx.fillRect(x, trimT, panelW, trimH);
+
+      /* 패널 구분 선 (옅은) */
+      ctx.save();
+      ctx.strokeStyle = '#cbd5e1'; ctx.lineWidth = 1; ctx.setLineDash([]);
+      if (i > 0) { ctx.beginPath(); ctx.moveTo(x, trimT); ctx.lineTo(x, trimB); ctx.stroke(); }
+      ctx.restore();
+
+      /* 페이지 번호 */
+      const textColor = pageNum===fp.cover ? '#1e40af' : pageNum===fp.back ? '#991b1b' : '#475569';
+      const fontSize  = smallText ? 11 : 15;
+      ctx.save();
+      ctx.fillStyle = textColor;
+      ctx.textAlign = 'center';
+      ctx.font = `900 ${fontSize}px Pretendard, sans-serif`;
+      ctx.fillText(`P${pageNum}`, cx, trimT + trimH * 0.42);
+
+      /* 역할 레이블 */
+      const roleLabel = pageNum===fp.cover ? '표지' : pageNum===fp.back ? '뒷면' : '';
+      if (roleLabel) {
+        ctx.font = `700 ${smallText?8:10}px Pretendard, sans-serif`;
+        ctx.fillText(roleLabel, cx, trimT + trimH * 0.42 + (smallText?12:15));
+      }
+
+      /* 앞면 인쇄 레이블 */
+      if (i===0) {
+        ctx.fillStyle='#94a3b8'; ctx.font=`${smallText?8:9}px Pretendard, sans-serif`;
+        ctx.fillText('앞면 인쇄 →', cx, trimT + 13);
+      }
+      ctx.restore();
     });
+  }
+
+  function drawBookletPageTemplate(canvas, ctx) {
+    /* 소책자: 완성판 한 페이지 + 안내선만 표시 */
+    const s = _specs;
+    const w = s.trimW || 148, h = s.trimH || 210;
+    const bleed = _fileHasBleed ? (s.bleed || 0) : 0;
+    const fw = w + 2*bleed, fh = h + 2*bleed;
+    const scale = DISPLAY_W / fw;
+    canvas.width = DISPLAY_W;
+    canvas.height = Math.max(Math.round(fh * scale), 180);
+
+    ctx.fillStyle = '#dbeafe'; ctx.fillRect(0,0,canvas.width,canvas.height);
+    const tL = bleed*scale, tT = bleed*scale;
+    ctx.fillStyle = '#f8fafc'; ctx.fillRect(tL, tT, w*scale, h*scale);
+
+    ctx.fillStyle='#334155'; ctx.textAlign='center'; ctx.font='bold 12px Pretendard,sans-serif';
+    ctx.fillText(`소책자 완성판 1페이지`, canvas.width/2, tT + h*scale*0.4);
+    ctx.font='10px Pretendard,sans-serif'; ctx.fillStyle='#64748b';
+    ctx.fillText(`${w} × ${h}mm`, canvas.width/2, tT + h*scale*0.4 + 18);
+
+    const mX = mm => mm * scale, mY = mm => mm * scale;
+    const trimL = bleed*scale, trimT = bleed*scale;
+    const trimR = canvas.width - bleed*scale, trimB = canvas.height - bleed*scale;
+    drawRect(ctx, trimL, trimT, trimR-trimL, trimB-trimT, '#3b82f6', 2, [6,4]);
+    const sz = (s.safeZone||0)*scale;
+    if (sz) drawRect(ctx, trimL+sz, trimT+sz, (trimR-trimL)-2*sz, (trimB-trimT)-2*sz, '#22c55e', 1.5, []);
+    drawLegend(ctx, canvas);
+  }
+
+  function drawZoneLabel(ctx, x1, y1, x2, y2, text, color, small) {
+    if (!text || x2-x1<16) return;
+    const cx=(x1+x2)/2, cy=(y1+y2)/2;
+    ctx.save(); ctx.fillStyle=color; ctx.textAlign='center';
+    ctx.font=`${small?'9':'11'}px Pretendard,sans-serif`;
+    text.split('\n').forEach((l,i,a) => ctx.fillText(l, cx, cy+(i-(a.length-1)/2)*(small?12:15)));
     ctx.restore();
   }
 
@@ -416,15 +510,12 @@ const PrintChecker = (() => {
 
     const layout = getLayout();
     const guideScale = canvas.width / layout.fileW;
-
-    const cx = canvas.width / 2, cy = canvas.height / 2;
+    const cx = canvas.width/2, cy = canvas.height/2;
     ctx.save();
-    ctx.translate(cx + _offsetX, cy + _offsetY);
+    ctx.translate(cx+_offsetX, cy+_offsetY);
     ctx.scale(_scaleAdj, _scaleAdj);
     ctx.translate(-cx, -cy);
-
     drawGuideLines(ctx, canvas, guideScale);
-
     ctx.restore();
     drawLegend(ctx, canvas);
   }
@@ -432,46 +523,37 @@ const PrintChecker = (() => {
   function drawGuideLines(ctx, canvas, scale) {
     const s = _specs;
     const layout = getLayout();
-    const mX = mm => mm * scale;
-    const mY = mm => mm * scale;
+    const mX = mm => mm*scale, mY = mm => mm*scale;
 
     const trimL = _fileHasBleed ? mX(layout.bleedMm) : 0;
     const trimT = _fileHasBleed ? mY(layout.bleedMm) : 0;
     const trimR = canvas.width  - (_fileHasBleed ? mX(layout.bleedMm) : 0);
     const trimB = canvas.height - (_fileHasBleed ? mY(layout.bleedMm) : 0);
 
-    /* 재단선 (파란 점선) */
-    drawRect(ctx, trimL, trimT, trimR - trimL, trimB - trimT, '#3b82f6', 2, [6, 4]);
+    drawRect(ctx, trimL, trimT, trimR-trimL, trimB-trimT, '#3b82f6', 2, [6,4]);
 
-    /* 안전 영역 (녹색 실선) */
-    const szX = mX(s.safeZone || 0), szY = mY(s.safeZone || 0);
-    if (szX || szY) {
-      drawRect(ctx, trimL + szX, trimT + szY, (trimR - trimL) - 2 * szX, (trimB - trimT) - 2 * szY, '#22c55e', 1.5, []);
-    }
+    const szX=mX(s.safeZone||0), szY=mY(s.safeZone||0);
+    if (szX||szY) drawRect(ctx, trimL+szX, trimT+szY, (trimR-trimL)-2*szX, (trimB-trimT)-2*szY, '#22c55e', 1.5, []);
 
     if (PRODUCTS[_product]?.hasSpine && layout.spineMm) {
       const backL  = trimL + mX(layout.wingMm);
       const spineL = backL + mX(s.trimW);
       const spineR = spineL + mX(layout.spineMm);
-
-      /* 책등 (빨간 점선) */
-      drawLine(ctx, spineL, trimT, spineL, trimB, '#ef4444', 2, [8, 4]);
-      drawLine(ctx, spineR, trimT, spineR, trimB, '#ef4444', 2, [8, 4]);
-
-      /* 날개 구분선 (노란 점선) */
+      drawLine(ctx, spineL, trimT, spineL, trimB, '#ef4444', 2, [8,4]);
+      drawLine(ctx, spineR, trimT, spineR, trimB, '#ef4444', 2, [8,4]);
       if (layout.wingMm) {
-        const wingPx = mX(layout.wingMm);
-        drawLine(ctx, trimL + wingPx, trimT, trimL + wingPx, trimB, '#f59e0b', 2, [10, 5]);
-        drawLine(ctx, trimR - wingPx, trimT, trimR - wingPx, trimB, '#f59e0b', 2, [10, 5]);
+        const wPx=mX(layout.wingMm);
+        drawLine(ctx, trimL+wPx, trimT, trimL+wPx, trimB, '#f59e0b', 2, [10,5]);
+        drawLine(ctx, trimR-wPx, trimT, trimR-wPx, trimB, '#f59e0b', 2, [10,5]);
       }
     }
 
     if (PRODUCTS[_product]?.hasFold && s.foldType) {
-      const { panels } = FOLD_TYPES[s.foldType] || { panels: 3 };
-      const trimAreaW = trimR - trimL;
-      for (let i = 1; i < panels; i++) {
-        const lx = trimL + (trimAreaW / panels) * i;
-        drawLine(ctx, lx, trimT, lx, trimB, '#f59e0b', 2, [10, 5]);
+      const { panels } = FOLD_TYPES[s.foldType] || { panels:3 };
+      const trimAreaW = trimR-trimL;
+      for (let i=1; i<panels; i++) {
+        const lx = trimL + (trimAreaW/panels)*i;
+        drawLine(ctx, lx, trimT, lx, trimB, '#f59e0b', 2, [10,5]);
       }
     }
   }
@@ -479,46 +561,164 @@ const PrintChecker = (() => {
   /* ---------- 범례 ---------- */
   function drawLegend(ctx, canvas) {
     if (!_product) return;
-    const items = [{ color: '#3b82f6', dash: true, label: '재단선' }, { color: '#22c55e', dash: false, label: '안전 영역' }];
+    const items = [
+      {color:'#3b82f6', dash:true,  label:'재단선'},
+      {color:'#22c55e', dash:false, label:'안전 영역'},
+    ];
     if (PRODUCTS[_product]?.hasSpine) {
-      items.push({ color: '#ef4444', dash: true, label: '책등' });
-      if (_specs.hasWing && _specs.wingW) items.push({ color: '#f59e0b', dash: true, label: '날개선' });
+      items.push({color:'#ef4444', dash:true, label:'책등'});
+      if (_specs.hasWing && _specs.wingW) items.push({color:'#f59e0b', dash:true, label:'날개선'});
     }
-    if (PRODUCTS[_product]?.hasFold) items.push({ color: '#f59e0b', dash: true, label: '접지선' });
+    if (PRODUCTS[_product]?.hasFold) items.push({color:'#f59e0b', dash:true, label:'접지선'});
 
-    const px = 12, py = 12, lineH = 20, padV = 7, padH = 10;
-    const boxH = items.length * lineH + padV * 2;
+    const px=12, py=12, lineH=20, padV=7, padH=10;
+    const boxH=items.length*lineH+padV*2;
     ctx.save();
-    ctx.fillStyle = 'rgba(0,0,0,.62)';
-    roundRect(ctx, px, py, 122, boxH, 7); ctx.fill();
-
-    items.forEach((it, i) => {
-      const ly = py + padV + i * lineH + lineH / 2;
-      ctx.strokeStyle = it.color; ctx.lineWidth = 2;
-      ctx.setLineDash(it.dash ? [5, 3] : []);
-      ctx.beginPath(); ctx.moveTo(px + padH, ly); ctx.lineTo(px + padH + 22, ly); ctx.stroke();
-      ctx.setLineDash([]);
-      ctx.fillStyle = '#fff'; ctx.font = '10px Pretendard, sans-serif';
-      ctx.fillText(it.label, px + padH + 28, ly + 4);
+    ctx.fillStyle='rgba(0,0,0,.62)'; roundRect(ctx, px, py, 122, boxH, 7); ctx.fill();
+    items.forEach((it,i)=>{
+      const ly=py+padV+i*lineH+lineH/2;
+      ctx.strokeStyle=it.color; ctx.lineWidth=2; ctx.setLineDash(it.dash?[5,3]:[]);
+      ctx.beginPath(); ctx.moveTo(px+padH,ly); ctx.lineTo(px+padH+22,ly); ctx.stroke();
+      ctx.setLineDash([]); ctx.fillStyle='#fff'; ctx.font='10px Pretendard,sans-serif';
+      ctx.fillText(it.label, px+padH+28, ly+4);
     });
     ctx.restore();
   }
 
   /* ---------- 그리기 헬퍼 ---------- */
-  function drawRect(ctx, x, y, w, h, color, lw, dash) {
-    ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = lw; ctx.setLineDash(dash);
-    ctx.strokeRect(x, y, w, h); ctx.restore();
+  function drawRect(ctx,x,y,w,h,color,lw,dash){ctx.save();ctx.strokeStyle=color;ctx.lineWidth=lw;ctx.setLineDash(dash);ctx.strokeRect(x,y,w,h);ctx.restore();}
+  function drawLine(ctx,x1,y1,x2,y2,color,lw,dash){ctx.save();ctx.strokeStyle=color;ctx.lineWidth=lw;ctx.setLineDash(dash);ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();ctx.restore();}
+  function roundRect(ctx,x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();}
+
+  /* ---------- 정보 패널 업데이트 ---------- */
+  function updateInfoPanels() {
+    renderLeafletFoldGuide();
+    renderImpositionGuide();
   }
-  function drawLine(ctx, x1, y1, x2, y2, color, lw, dash) {
-    ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = lw; ctx.setLineDash(dash);
-    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); ctx.restore();
+
+  /* 리플렛 페이지 배치 안내 */
+  function renderLeafletFoldGuide() {
+    const el = byId('leafletGuide');
+    if (!el) return;
+    if (_product !== 'leaflet') { el.hidden = true; return; }
+
+    readSpecs();
+    const foldKey = _specs.foldType || '3roll';
+    const fp = FOLD_PAGES[foldKey];
+    if (!fp) { el.hidden = true; return; }
+
+    const cell = (p) => {
+      const isC = p===fp.cover, isB = p===fp.back;
+      const bg = isC?'#dbeafe':isB?'#fee2e2':'#f1f5f9';
+      const bc = isC?'#3b82f6':isB?'#ef4444':'#e2e8f0';
+      const tc = isC?'#1e40af':isB?'#991b1b':'#475569';
+      const role = isC?'표지':isB?'뒷면':'';
+      return `<div class="fp-cell" style="background:${bg};border-color:${bc}">
+        <div class="fp-num" style="color:${tc}">P${p}</div>
+        ${role?`<div class="fp-role" style="color:${tc}">${role}</div>`:''}
+      </div>`;
+    };
+    const sep = '<div class="fp-sep">|</div>';
+
+    el.innerHTML = `
+      <div class="info-kicker">리플렛 페이지 배치 — ${FOLD_TYPES[foldKey]?.label}</div>
+      <p class="info-desc">${fp.desc}</p>
+      <div class="fp-row">
+        <span class="fp-side-label">앞면 인쇄</span>
+        <div class="fp-panels">${fp.outside.map(cell).join(sep)}</div>
+      </div>
+      <div class="fp-row" style="margin-top:8px">
+        <span class="fp-side-label">뒷면 인쇄</span>
+        <div class="fp-panels">${fp.inside.map(cell).join(sep)}</div>
+      </div>
+      <p class="info-note">↑ 패널은 왼쪽→오른쪽 순서입니다 (평면 전개도 기준)</p>`;
+    el.hidden = false;
   }
-  function roundRect(ctx, x, y, w, h, r) {
-    ctx.beginPath();
-    ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r);
-    ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
-    ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r);
-    ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y); ctx.closePath();
+
+  /* 소책자 중철 페이지 배치 가이드 */
+  function renderImpositionGuide() {
+    const el = byId('impositionGuide');
+    if (!el) return;
+
+    const isBooklet = _product === 'booklet';
+    const isCover   = _product === 'cover';
+    if (!isBooklet && !isCover) { el.hidden = true; return; }
+
+    const presets = isBooklet ? [4, 8, 12, 16] : [8, 16];
+
+    let presetHtml = presets.map(n => {
+      const imp = computeImposition(n);
+      const sheetRows = imp.result.map(s =>
+        `<div class="imp-row">
+          <span class="imp-sheet-label">시트 ${s.sheet}</span>
+          <span class="imp-front">앞 <strong>P${s.front[0]}</strong>·<strong>P${s.front[1]}</strong></span>
+          <span class="imp-back">뒤 <strong>P${s.back[0]}</strong>·<strong>P${s.back[1]}</strong></span>
+        </div>`).join('');
+      return `<div class="imp-preset">
+        <div class="imp-preset-title">${n}p (${imp.sheets}장)</div>
+        ${sheetRows}
+      </div>`;
+    }).join('');
+
+    el.innerHTML = `
+      <div class="info-kicker">소책자 페이지 배치 (중철 기준)</div>
+      <p class="info-desc">중철(스테이플) 소책자는 <strong>4의 배수</strong> 페이지가 필요합니다.
+        아래 표를 보고 각 시트에 맞는 페이지를 배치하세요.</p>
+      <div class="imp-presets">${presetHtml}</div>
+      <div class="imp-calc">
+        <div class="info-kicker" style="margin-bottom:8px">페이지 수 직접 계산</div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <input id="impPageInput" class="spec-input" type="number" min="1" step="1" placeholder="예: 14" style="width:90px">
+          <span style="font-size:11px;color:var(--muted)">페이지</span>
+          <button id="impCalcBtn" class="calc-btn">계산</button>
+        </div>
+        <div id="impResult" style="margin-top:8px"></div>
+      </div>`;
+    el.hidden = false;
+
+    byId('impCalcBtn')?.addEventListener('click', () => {
+      const n = parseInt(byId('impPageInput')?.value) || 0;
+      if (!n) return;
+      const imp = computeImposition(n);
+      const resultEl = byId('impResult');
+      let r = '';
+
+      if (imp.blank > 0) {
+        r += `<div class="imp-warn">⚠️ ${n}p는 4의 배수가 아닙니다.
+          <strong>${imp.pages}p</strong>로 맞추세요 (빈 페이지 ${imp.blank}장 추가).
+          <br><small>보통 빈 페이지는 마지막에 배치합니다.</small>
+        </div>`;
+      } else {
+        r += `<div class="imp-ok">✅ ${n}p = ${imp.sheets}장 인쇄</div>`;
+      }
+
+      r += imp.result.map(s => {
+        const f0blank = n < imp.pages && s.front[0] > n;
+        const b1blank = n < imp.pages && s.back[1] > n;
+        return `<div class="imp-row">
+          <span class="imp-sheet-label">시트 ${s.sheet}</span>
+          <span class="imp-front">앞 <strong>P${s.front[0]}</strong>${f0blank?'<em>(빈)</em>':''} · <strong>P${s.front[1]}</strong></span>
+          <span class="imp-back">뒤 <strong>P${s.back[0]}</strong> · <strong>P${s.back[1]}</strong>${b1blank?'<em>(빈)</em>':''}</span>
+        </div>`;
+      }).join('');
+
+      resultEl.innerHTML = r;
+    });
+  }
+
+  /* 중철 임포지션 계산 */
+  function computeImposition(n) {
+    const pages = Math.ceil(n / 4) * 4;
+    const sheets = pages / 4;
+    const result = [];
+    for (let s=0; s<sheets; s++) {
+      result.push({
+        sheet: s+1,
+        front: [pages - s*2, s*2 + 1],
+        back:  [s*2 + 2, pages - s*2 - 1],
+      });
+    }
+    return { pages, sheets, blank: pages-n, result };
   }
 
   /* ---------- 폼 & 버튼 ---------- */
@@ -531,31 +731,18 @@ const PrintChecker = (() => {
   /* ---------- 수동 조절 ---------- */
   function bindAdj() {
     byId('fileHasBleed').addEventListener('change', e => { _fileHasBleed = e.target.checked; drawCanvas(); });
-
-    byId('adjX').addEventListener('input', e => {
-      _offsetX = +e.target.value;
-      byId('adjXVal').textContent = (_offsetX > 0 ? '+' : '') + _offsetX + ' px';
-      drawCanvas();
-    });
-    byId('adjY').addEventListener('input', e => {
-      _offsetY = +e.target.value;
-      byId('adjYVal').textContent = (_offsetY > 0 ? '+' : '') + _offsetY + ' px';
-      drawCanvas();
-    });
-    byId('adjScale').addEventListener('input', e => {
-      _scaleAdj = +e.target.value / 100;
-      byId('adjScaleVal').textContent = e.target.value + '%';
-      drawCanvas();
-    });
+    byId('adjX').addEventListener('input', e => { _offsetX=+e.target.value; byId('adjXVal').textContent=(_offsetX>0?'+':'')+_offsetX+' px'; drawCanvas(); });
+    byId('adjY').addEventListener('input', e => { _offsetY=+e.target.value; byId('adjYVal').textContent=(_offsetY>0?'+':'')+_offsetY+' px'; drawCanvas(); });
+    byId('adjScale').addEventListener('input', e => { _scaleAdj=+e.target.value/100; byId('adjScaleVal').textContent=e.target.value+'%'; drawCanvas(); });
     byId('resetAdjBtn').addEventListener('click', resetAdj);
   }
 
   function resetAdj() {
-    _offsetX = 0; _offsetY = 0; _scaleAdj = 1.0; _fileHasBleed = false;
-    byId('adjX').value = 0; byId('adjXVal').textContent = '0 px';
-    byId('adjY').value = 0; byId('adjYVal').textContent = '0 px';
-    byId('adjScale').value = 100; byId('adjScaleVal').textContent = '100%';
-    byId('fileHasBleed').checked = false;
+    _offsetX=0; _offsetY=0; _scaleAdj=1.0; _fileHasBleed=false;
+    byId('adjX').value=0; byId('adjXVal').textContent='0 px';
+    byId('adjY').value=0; byId('adjYVal').textContent='0 px';
+    byId('adjScale').value=100; byId('adjScaleVal').textContent='100%';
+    byId('fileHasBleed').checked=false;
     drawCanvas();
   }
 
@@ -564,8 +751,7 @@ const PrintChecker = (() => {
     if (!_product) { alert('제품 유형을 먼저 선택해 주세요.'); return; }
     const specs = readSpecs();
     if (!specs.trimW || !specs.trimH) { alert('재단 폭과 높이를 입력해 주세요.'); return; }
-    drawCanvas();
-    _reportItems = [];
+    drawCanvas(); _reportItems=[];
     checkBleed(specs); checkSafeZone(specs);
     if (PRODUCTS[_product].hasSpine) checkSpine(specs);
     if (PRODUCTS[_product].hasFold)  checkFold(specs);
@@ -573,76 +759,60 @@ const PrintChecker = (() => {
     renderReport();
   }
 
-  function checkBleed(s) {
-    const ok = s.bleed >= 3;
-    addItem('재단선 여유 (Bleed)', ok ? 'pass' : 'warn', `${s.bleed}mm`,
-      ok ? '권장 기준(3mm) 이상입니다.' : '3mm 미만 — 흰 테두리가 생길 수 있습니다.');
+  function checkBleed(s){const ok=s.bleed>=3;addItem('재단선 여유',ok?'pass':'warn',`${s.bleed}mm`,ok?'권장(3mm) 이상':'3mm 미만 — 흰 테두리가 생길 수 있습니다.');}
+  function checkSafeZone(s){const ok=s.safeZone>=3;addItem('안전 영역',ok?'pass':'warn',`${s.safeZone}mm`,ok?'권장(3mm) 이상':'3mm 미만 — 텍스트가 재단될 수 있습니다.');}
+  function checkSpine(s){
+    if(!s.spine){addItem('책등 두께','warn','미입력','책등 두께를 입력해 주세요.');return;}
+    const total=s.trimW*2+s.spine+(s.bleed||0)*2+(s.hasWing?(s.wingW||0)*2:0);
+    addItem('책등 구성','pass',`뒤 ${s.trimW}mm + 책등 ${s.spine}mm + 앞 ${s.trimW}mm → 전체 ${total.toFixed(1)}mm`,'표지 PDF 전체 폭과 비교해 주세요.');
   }
-  function checkSafeZone(s) {
-    const ok = s.safeZone >= 3;
-    addItem('안전 영역 (Safe Zone)', ok ? 'pass' : 'warn', `${s.safeZone}mm`,
-      ok ? '권장 기준(3mm) 이상입니다.' : '3mm 미만 — 텍스트·로고가 재단될 수 있습니다.');
+  function checkFold(s){
+    const ft=FOLD_TYPES[s.foldType]||FOLD_TYPES['3roll'];
+    addItem(`접지(${ft.label})`,'pass',`패널 ${ft.panels}개, 각 폭 ${(s.trimW/ft.panels).toFixed(2)}mm`,`내지 면이 외지 면보다 ${s.gutterMargin||0}mm 작게 설계되었는지 확인하세요.`);
   }
-  function checkSpine(s) {
-    if (!s.spine) { addItem('책등 두께', 'warn', '미입력', '책등 두께를 입력해 주세요.'); return; }
-    const totalW = s.trimW * 2 + s.spine + (s.bleed || 0) * 2 + (s.hasWing ? (s.wingW||0)*2 : 0);
-    addItem('책등 구성', 'pass',
-      `뒤표지 ${s.trimW}mm + 책등 ${s.spine}mm + 앞표지 ${s.trimW}mm → 전체 ${totalW.toFixed(1)}mm`,
-      '책등 구성이 확인되었습니다. 표지 PDF 전체 폭과 비교해 주세요.');
+  function checkDimensions(s){
+    const STD=[{w:210,h:297,n:'A4'},{w:148,h:210,n:'A5'},{w:182,h:257,n:'B5'},{w:100,h:210,n:'DL'}];
+    const m=STD.find(z=>Math.abs(z.w-s.trimW)<1&&Math.abs(z.h-s.trimH)<1);
+    addItem('재단 규격',m?'pass':'info',`${s.trimW} × ${s.trimH}mm`,m?`표준 규격(${m.n})으로 확인됐습니다.`:'비표준 규격 — 인쇄소에 사전 문의를 권장합니다.');
   }
-  function checkFold(s) {
-    const ft = FOLD_TYPES[s.foldType] || FOLD_TYPES['3roll'];
-    addItem(`접지 (${ft.label})`, 'pass',
-      `패널 ${ft.panels}개, 각 패널 폭 ${(s.trimW / ft.panels).toFixed(2)}mm`,
-      `내지 면이 외지 면보다 ${s.gutterMargin||0}mm 작게 설계되었는지 확인하세요.`);
-  }
-  function checkDimensions(s) {
-    const STD = [
-      {w:210,h:297,n:'A4 세로'},{w:297,h:210,n:'A4 가로'},
-      {w:148,h:210,n:'A5 세로'},{w:210,h:148,n:'A5 가로'},
-      {w:182,h:257,n:'B5 세로'},{w:100,h:210,n:'DL 세로'},
-    ];
-    const m = STD.find(z => Math.abs(z.w-s.trimW)<1 && Math.abs(z.h-s.trimH)<1);
-    addItem('재단 규격', m ? 'pass' : 'info', `${s.trimW} × ${s.trimH}mm`,
-      m ? `표준 규격(${m.n})` : '비표준 규격 — 인쇄소에 사전 문의를 권장합니다.');
-  }
-  function addItem(label, status, detail, guide) { _reportItems.push({ label, status, detail, guide }); }
+  function addItem(label,status,detail,guide){_reportItems.push({label,status,detail,guide});}
 
   /* ---------- 리포트 ---------- */
-  function renderReport() {
-    const section = byId('reportSection');
-    const grid = byId('reportGrid');
-    grid.innerHTML = '';
-    const counts = { pass:0, warn:0, fail:0, info:0 };
-    _reportItems.forEach(it => {
-      counts[it.status] = (counts[it.status]||0) + 1;
-      const card = document.createElement('div');
-      card.className = `report-card status-${it.status}`;
-      const icon = { pass:'✅', warn:'⚠️', fail:'❌', info:'ℹ️' }[it.status]||'ℹ️';
-      card.innerHTML = `<div class="rc-head"><span class="rc-icon">${icon}</span><strong class="rc-label">${it.label}</strong></div><div class="rc-detail">${it.detail}</div><div class="rc-guide">${it.guide}</div>`;
+  function renderReport(){
+    const section=byId('reportSection'), grid=byId('reportGrid');
+    grid.innerHTML='';
+    const counts={pass:0,warn:0,fail:0,info:0};
+    _reportItems.forEach(it=>{
+      counts[it.status]=(counts[it.status]||0)+1;
+      const card=document.createElement('div');
+      card.className=`report-card status-${it.status}`;
+      const icon={pass:'✅',warn:'⚠️',fail:'❌',info:'ℹ️'}[it.status]||'ℹ️';
+      card.innerHTML=`<div class="rc-head"><span class="rc-icon">${icon}</span><strong class="rc-label">${it.label}</strong></div><div class="rc-detail">${it.detail}</div><div class="rc-guide">${it.guide}</div>`;
       grid.appendChild(card);
     });
-    const overall = counts.fail>0?'fail':counts.warn>0?'warn':'pass';
-    const summaryEl = byId('reportSummary');
-    summaryEl.className = `report-summary status-${overall}`;
-    summaryEl.innerHTML = `<strong>${{pass:'이상 없음',warn:'주의 필요',fail:'조치 필요'}[overall]}</strong> — 통과 ${counts.pass}, 주의 ${counts.warn}, 오류 ${counts.fail}`;
-    section.hidden = false;
-    section.scrollIntoView({ behavior:'smooth', block:'start' });
+    const overall=counts.fail>0?'fail':counts.warn>0?'warn':'pass';
+    const summaryEl=byId('reportSummary');
+    summaryEl.className=`report-summary status-${overall}`;
+    summaryEl.innerHTML=`<strong>${{pass:'이상 없음',warn:'주의 필요',fail:'조치 필요'}[overall]}</strong> — 통과 ${counts.pass}, 주의 ${counts.warn}, 오류 ${counts.fail}`;
+    section.hidden=false; section.scrollIntoView({behavior:'smooth',block:'start'});
   }
-  function clearReport() { byId('reportSection').hidden = true; byId('reportGrid').innerHTML = ''; }
+  function clearReport(){byId('reportSection').hidden=true;byId('reportGrid').innerHTML='';}
 
   /* ---------- 전체 초기화 ---------- */
-  function resetAll() {
-    _file=null; _imgEl=null; _naturalW=0; _naturalH=0;
-    _product=null; _specs={}; _reportItems=[];
+  function resetAll(){
+    _file=null;_imgEl=null;_naturalW=0;_naturalH=0;
+    _product=null;_specs={};_reportItems=[];
     byId('fileInput').value='';
     byId('uploadFilename').style.display='none';
     byId('uploadZone').classList.remove('has-file');
-    byId('uploadError').hidden=true; byId('fileInfo').hidden=true;
+    byId('uploadError').hidden=true;byId('fileInfo').hidden=true;
     byId('adjPanel').hidden=true;
     document.querySelectorAll('.product-card').forEach(c=>c.classList.remove('selected'));
-    byId('specSection').hidden=true; byId('specForm').innerHTML='';
-    clearReport(); resetAdj(); drawCanvas();
+    byId('specSection').hidden=true;byId('specForm').innerHTML='';
+    clearReport();resetAdj();
+    const lf=byId('leafletGuide'); if(lf) lf.hidden=true;
+    const im=byId('impositionGuide'); if(im) im.hidden=true;
+    drawCanvas();
   }
 
   return { init };
