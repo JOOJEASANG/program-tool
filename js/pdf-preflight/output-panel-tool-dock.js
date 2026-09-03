@@ -21,6 +21,7 @@
   ].join(',');
 
   let observer=null;
+  let resizeObserver=null;
   let queued=false;
   let lastOpen=false;
 
@@ -33,13 +34,43 @@
     const style=document.createElement('style');
     style.id='pdfPreflightOutputToolDockStyles';
     style.textContent=`
-      .pdf-preflight-output-tool-dock{display:none;width:100%;margin:0 0 10px}.pdf-preflight-output-tool-dock.active{display:block}
+      .pdf-preflight-output-panel{min-width:0!important;max-width:100%!important;box-sizing:border-box!important;container-type:inline-size}
+      .pdf-preflight-output-tool-dock{display:none;width:100%!important;max-width:none!important;min-width:0!important;margin:0 0 10px!important;padding:0!important;box-sizing:border-box!important;container-type:inline-size}
+      .pdf-preflight-output-tool-dock.active{display:block}
       .pdf-preflight-output-tool-dock.active + .pdf-preflight-output-empty{display:none!important}
-      .pdf-preflight-output-tool-dock .tool-modal-overlay,.pdf-preflight-output-tool-dock .pdfu-modal-overlay,.pdf-preflight-output-tool-dock .pdfic-overlay,.pdf-preflight-output-tool-dock .pdfaio-overlay,.pdf-preflight-output-tool-dock .plot-overlay{display:none!important;position:static!important;inset:auto!important;z-index:auto!important;width:100%!important;height:auto!important;min-height:0!important;padding:0!important;margin:0!important;background:transparent!important;backdrop-filter:none!important;align-items:stretch!important;justify-content:stretch!important}
-      .pdf-preflight-output-tool-dock .tool-modal-overlay.open,.pdf-preflight-output-tool-dock .pdfu-modal-overlay.open,.pdf-preflight-output-tool-dock .pdfic-overlay.open,.pdf-preflight-output-tool-dock .pdfaio-overlay.open,.pdf-preflight-output-tool-dock .plot-overlay.open{display:block!important}
-      .pdf-preflight-output-tool-dock .tool-modal-box,.pdf-preflight-output-tool-dock .pdfu-modal,.pdf-preflight-output-tool-dock .pdfic-box,.pdf-preflight-output-tool-dock .pdfaio-box,.pdf-preflight-output-tool-dock .plot-box{width:100%!important;max-width:none!important;max-height:none!important;overflow:visible!important;margin:0!important;border:1px solid #dfe7ef!important;border-radius:11px!important;padding:14px!important;box-shadow:none!important;background:#fff!important}
-      .pdf-preflight-output-tool-dock .tool-modal-title,.pdf-preflight-output-tool-dock .pdfu-modal-title,.pdf-preflight-output-tool-dock .pdfic-title,.pdf-preflight-output-tool-dock .pdfaio-title,.pdf-preflight-output-tool-dock .plot-title{font-size:15px!important}
-      .pdf-preflight-output-tool-dock .tool-modal-desc,.pdf-preflight-output-tool-dock .pdfu-modal-desc,.pdf-preflight-output-tool-dock .pdfic-desc,.pdf-preflight-output-tool-dock .pdfaio-desc,.pdf-preflight-output-tool-dock .plot-sub{font-size:9px!important;line-height:1.55!important}
+      .pdf-preflight-output-tool-dock>.tool-modal-overlay,.pdf-preflight-output-tool-dock>.pdfu-modal-overlay,.pdf-preflight-output-tool-dock>.pdfic-overlay,.pdf-preflight-output-tool-dock>.pdfaio-overlay,.pdf-preflight-output-tool-dock>.plot-overlay{display:none!important;position:static!important;inset:auto!important;z-index:auto!important;width:100%!important;max-width:none!important;min-width:0!important;height:auto!important;min-height:0!important;padding:0!important;margin:0!important;background:transparent!important;backdrop-filter:none!important;align-items:stretch!important;justify-content:stretch!important;box-sizing:border-box!important}
+      .pdf-preflight-output-tool-dock>.tool-modal-overlay.open,.pdf-preflight-output-tool-dock>.pdfu-modal-overlay.open,.pdf-preflight-output-tool-dock>.pdfic-overlay.open,.pdf-preflight-output-tool-dock>.pdfaio-overlay.open,.pdf-preflight-output-tool-dock>.plot-overlay.open{display:block!important}
+      .pdf-preflight-output-tool-dock .tool-modal-box,.pdf-preflight-output-tool-dock .pdfu-modal,.pdf-preflight-output-tool-dock .pdfic-box,.pdf-preflight-output-tool-dock .pdfaio-box,.pdf-preflight-output-tool-dock .plot-box{display:block!important;width:100%!important;max-width:none!important;min-width:0!important;max-height:none!important;overflow:visible!important;margin:0!important;border:1px solid #dfe7ef!important;border-radius:11px!important;padding:14px!important;box-shadow:none!important;background:#fff!important;box-sizing:border-box!important}
+      .pdf-preflight-output-tool-dock .tool-modal-box *,.pdf-preflight-output-tool-dock .pdfu-modal *,.pdf-preflight-output-tool-dock .pdfic-box *,.pdf-preflight-output-tool-dock .pdfaio-box *,.pdf-preflight-output-tool-dock .plot-box *{box-sizing:border-box;min-width:0;max-width:100%}
+      .pdf-preflight-output-tool-dock input,.pdf-preflight-output-tool-dock select,.pdf-preflight-output-tool-dock textarea{max-width:100%!important}
+      .pdf-preflight-output-tool-dock img,.pdf-preflight-output-tool-dock canvas,.pdf-preflight-output-tool-dock svg{max-width:100%!important;height:auto}
+      .pdf-preflight-output-tool-dock .tool-modal-title,.pdf-preflight-output-tool-dock .pdfu-modal-title,.pdf-preflight-output-tool-dock .pdfic-title,.pdf-preflight-output-tool-dock .pdfaio-title,.pdf-preflight-output-tool-dock .plot-title{font-size:15px!important;overflow-wrap:anywhere}
+      .pdf-preflight-output-tool-dock .tool-modal-desc,.pdf-preflight-output-tool-dock .pdfu-modal-desc,.pdf-preflight-output-tool-dock .pdfic-desc,.pdf-preflight-output-tool-dock .pdfaio-desc,.pdf-preflight-output-tool-dock .plot-sub{font-size:9px!important;line-height:1.55!important;overflow-wrap:anywhere}
+      .pdf-preflight-output-tool-dock .pdfic-grid,.pdf-preflight-output-tool-dock .plot-grid,.pdf-preflight-output-tool-dock .plot-size-row,.pdf-preflight-output-tool-dock .plot-mode{width:100%!important;max-width:none!important}
+      .pdf-preflight-output-tool-dock .plot-sheet-grid{max-width:100%!important}
+      .pdf-preflight-output-tool-dock .pdfic-actions,.pdf-preflight-output-tool-dock .pdfaio-actions,.pdf-preflight-output-tool-dock .plot-actions,.pdf-preflight-output-tool-dock .pdfu-modal-footer,.pdf-preflight-output-tool-dock .tool-modal-actions{max-width:none!important;flex-wrap:wrap!important}
+      .pdf-preflight-output-tool-dock .plot-preview-head,.pdf-preflight-output-tool-dock .pdfu-modal-head,.pdf-preflight-output-tool-dock .pdfic-head,.pdf-preflight-output-tool-dock .pdfaio-head,.pdf-preflight-output-tool-dock .tool-modal-head{flex-wrap:wrap}
+
+      .pdf-preflight-output-panel[data-pdf-preflight-output-size="narrow"] .pdf-preflight-output-tool-dock .pdfic-grid,
+      .pdf-preflight-output-panel[data-pdf-preflight-output-size="narrow"] .pdf-preflight-output-tool-dock .plot-grid,
+      .pdf-preflight-output-panel[data-pdf-preflight-output-size="narrow"] .pdf-preflight-output-tool-dock .plot-size-row,
+      .pdf-preflight-output-panel[data-pdf-preflight-output-size="narrow"] .pdf-preflight-output-tool-dock .plot-mode{grid-template-columns:1fr!important}
+      .pdf-preflight-output-panel[data-pdf-preflight-output-size="narrow"] .pdf-preflight-output-tool-dock .pdfic-actions,
+      .pdf-preflight-output-panel[data-pdf-preflight-output-size="narrow"] .pdf-preflight-output-tool-dock .pdfaio-actions,
+      .pdf-preflight-output-panel[data-pdf-preflight-output-size="narrow"] .pdf-preflight-output-tool-dock .plot-actions,
+      .pdf-preflight-output-panel[data-pdf-preflight-output-size="narrow"] .pdf-preflight-output-tool-dock .pdfu-modal-footer,
+      .pdf-preflight-output-panel[data-pdf-preflight-output-size="narrow"] .pdf-preflight-output-tool-dock .tool-modal-actions{flex-direction:column!important;align-items:stretch!important}
+      .pdf-preflight-output-panel[data-pdf-preflight-output-size="narrow"] .pdf-preflight-output-tool-dock .pdfic-btn,
+      .pdf-preflight-output-panel[data-pdf-preflight-output-size="narrow"] .pdf-preflight-output-tool-dock .pdfaio-btn,
+      .pdf-preflight-output-panel[data-pdf-preflight-output-size="narrow"] .pdf-preflight-output-tool-dock .plot-btn,
+      .pdf-preflight-output-panel[data-pdf-preflight-output-size="narrow"] .pdf-preflight-output-tool-dock .pdfu-modal-btn,
+      .pdf-preflight-output-panel[data-pdf-preflight-output-size="narrow"] .pdf-preflight-output-tool-dock .tool-modal-btn{width:100%!important}
+
+      @container (max-width:520px){
+        .pdf-preflight-output-tool-dock .pdfic-grid,.pdf-preflight-output-tool-dock .plot-grid,.pdf-preflight-output-tool-dock .plot-size-row,.pdf-preflight-output-tool-dock .plot-mode{grid-template-columns:1fr!important}
+        .pdf-preflight-output-tool-dock .pdfic-actions,.pdf-preflight-output-tool-dock .pdfaio-actions,.pdf-preflight-output-tool-dock .plot-actions,.pdf-preflight-output-tool-dock .pdfu-modal-footer,.pdf-preflight-output-tool-dock .tool-modal-actions{flex-direction:column!important;align-items:stretch!important}
+        .pdf-preflight-output-tool-dock .pdfic-btn,.pdf-preflight-output-tool-dock .pdfaio-btn,.pdf-preflight-output-tool-dock .plot-btn,.pdf-preflight-output-tool-dock .pdfu-modal-btn,.pdf-preflight-output-tool-dock .tool-modal-btn{width:100%!important}
+      }
       @media(max-width:820px){.pdf-preflight-output-tool-dock .tool-modal-box,.pdf-preflight-output-tool-dock .pdfu-modal,.pdf-preflight-output-tool-dock .pdfic-box,.pdf-preflight-output-tool-dock .pdfaio-box,.pdf-preflight-output-tool-dock .plot-box{padding:12px!important}}
     `;
     document.head.appendChild(style);
@@ -54,6 +85,13 @@
     }
   }
 
+  function classifyPanel(panel){
+    if(!panel)return;
+    const width=panel.getBoundingClientRect().width;
+    const size=width<520?'narrow':width<760?'medium':'wide';
+    if(panel.dataset.pdfPreflightOutputSize!==size)panel.dataset.pdfPreflightOutputSize=size;
+  }
+
   function ensureDock(){
     const panel=outputPanel();
     if(!panel)return null;
@@ -66,6 +104,15 @@
     }
     if(dock.parentElement!==panel)panel.appendChild(dock);
     placeDock(panel,dock);
+    classifyPanel(panel);
+    if(!resizeObserver&&typeof ResizeObserver==='function'){
+      resizeObserver=new ResizeObserver(entries=>{
+        for(const entry of entries){
+          if(entry.target===panel)classifyPanel(panel);
+        }
+      });
+      resizeObserver.observe(panel);
+    }
     return dock;
   }
 
@@ -108,7 +155,7 @@
       observer.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});
     }
     [80,220,500,900,1600,2600].forEach(delay=>setTimeout(sync,delay));
-    window.PdfPreflightOutputToolDock={sync,stage:'output-panel-tool-dock-v1'};
+    window.PdfPreflightOutputToolDock={sync,stage:'output-panel-tool-dock-fluid-v2'};
   }
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});
