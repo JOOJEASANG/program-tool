@@ -27,7 +27,7 @@ def test_stage75_cover_preview_is_preview_only_and_tracks_three_cover_regions():
         "overlay.dataset.zoneCount='3'",
         "programstudio:cover-geometry-change",
         "가이드와 화면 배율은 PNG/PDF 출력에 포함되지 않습니다.",
-        "stage:'preview-zones-wheel-and-context-menu'",
+        "stage:'preview-zones-stable-geometry-v2'",
     ):
         assert marker in source
     for old_color in (
