@@ -35,25 +35,38 @@
         overlay.innerHTML=`<div class="${boxClass}">${label}</div>`;
         document.body.appendChild(overlay);
       });
-      document.getElementById('toolModalOverlay').classList.add('open');
+
+      const tool=document.getElementById('toolModalOverlay');
+      const utility=document.getElementById('pdfUtilityModalOverlay');
+      tool.classList.add('open');
 
       setTimeout(()=>{
-        const ids=['toolModalOverlay','pdfUtilityModalOverlay','pdfUtilityImageConverterOverlay','pdfAllInOneOverlay','pdfLargeOutputTilingOverlay'];
-        const dock=document.getElementById('pdfPreflightOutputToolDock');
-        const empty=document.getElementById('pdfPreflightOutputEmpty');
-        const tool=document.getElementById('toolModalOverlay');
-        const allDocked=!!dock&&ids.every(id=>document.getElementById(id)?.parentElement===dock);
-        const inline=getComputedStyle(tool).position==='static'&&getComputedStyle(tool).display==='block';
-        const emptyHidden=getComputedStyle(empty).display==='none';
-        const active=dock?.classList.contains('active')===true;
-        const ready=document.documentElement.dataset.pdfPreflightToolDock==='open';
-        const pass=allDocked&&inline&&emptyHidden&&active&&ready;
-        document.documentElement.dataset.pdfOutputToolDockSmoke=pass?'pass':'fail';
-        const result=document.createElement('pre');
-        result.id='result';
-        result.textContent=pass?'PASS: PDF tool dialogs render inside the right progress/result panel':'FAIL: output tool docking regression';
-        document.body.appendChild(result);
-      },120);
+        utility.classList.add('open');
+        setTimeout(()=>{
+          const ids=['toolModalOverlay','pdfUtilityModalOverlay','pdfUtilityImageConverterOverlay','pdfAllInOneOverlay','pdfLargeOutputTilingOverlay'];
+          const panel=document.querySelector('.pdf-preflight-output-panel');
+          const dock=document.getElementById('pdfPreflightOutputToolDock');
+          const empty=document.getElementById('pdfPreflightOutputEmpty');
+          const box=utility.querySelector('.pdfu-modal');
+          const allDocked=!!dock&&ids.every(id=>document.getElementById(id)?.parentElement===dock);
+          const inline=getComputedStyle(utility).position==='static'&&getComputedStyle(utility).display==='block';
+          const emptyHidden=getComputedStyle(empty).display==='none';
+          const active=dock?.classList.contains('active')===true;
+          const ready=document.documentElement.dataset.pdfPreflightToolDock==='open';
+          const openIds=ids.filter(id=>document.getElementById(id)?.classList.contains('open'));
+          const singleTool=openIds.length===1&&openIds[0]==='pdfUtilityModalOverlay'&&!tool.classList.contains('open');
+          const dockWidth=dock?.getBoundingClientRect().width||0;
+          const boxWidth=box?.getBoundingClientRect().width||0;
+          const fullWidth=dockWidth>0&&Math.abs(dockWidth-boxWidth)<=2;
+          const panelClassified=Boolean(panel?.dataset.pdfPreflightOutputSize);
+          const pass=allDocked&&inline&&emptyHidden&&active&&ready&&singleTool&&fullWidth&&panelClassified;
+          document.documentElement.dataset.pdfOutputToolDockSmoke=pass?'pass':'fail';
+          const result=document.createElement('pre');
+          result.id='result';
+          result.textContent=pass?'PASS: PDF tool dialogs render full-width as one active card inside the right progress/result panel':`FAIL: output tool docking regression · open=${openIds.join(',')} · dock=${dockWidth} · box=${boxWidth}`;
+          document.body.appendChild(result);
+        },140);
+      },80);
     },40);
   </script>
 </body>
