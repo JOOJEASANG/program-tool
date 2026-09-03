@@ -94,13 +94,17 @@ def test_preflight_runtime_is_canonical_and_current_ui_loads_last():
 def test_protected_reveal_does_not_wait_for_full_heavy_runtime_chain():
     boot = text("js/app-boot-guard.js")
     assert "clean-workspace-v2" in boot
-    assert "waitForPreflightShell" in boot
-    assert "waitForDesignShell" in boot
+    assert "watchPreflightShell" in boot
+    assert "watchDesignShell" in boot
     assert "pdfPreflightPanelBalanceScriptV1" in boot
     assert "script.dataset.loaded='true'" in boot
     assert "if(!access){retryApprovalWait();return;}" in boot
     assert "clearTimeout(failClosedTimer)" in boot
-    assert "await Promise.all([waitForPreflightShell(),waitForDesignShell()])" in boot
+    assert "root.dataset.bootGate='access-only'" in boot
+    assert "Promise.allSettled([watchPreflightShell(),watchDesignShell()])" in boot
+    approval = boot[boot.index("function waitForApproval()") :]
+    assert approval.index("clearTimeout(failClosedTimer);") < approval.index("reveal();")
+    assert approval.index("reveal();") < approval.index("observeEnhancementReadiness();")
     assert "ProgramStudioPreflightRuntimeReady" not in boot
     assert "waitForPreflightRuntime" not in boot
 
