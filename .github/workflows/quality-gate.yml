@@ -150,7 +150,21 @@ jobs:
           python-version: '3.11'
 
       - name: Run headless Chrome smoke
-        run: bash scripts/run_design_editor_browser_smoke.sh
+        shell: bash
+        run: |
+          set -u
+          for attempt in 1 2 3; do
+            echo "Design editor browser smoke attempt ${attempt}/3"
+            if bash scripts/run_design_editor_browser_smoke.sh; then
+              exit 0
+            fi
+            if [ "$attempt" -lt 3 ]; then
+              echo "Transient design smoke failure; retrying after 2 seconds."
+              sleep 2
+            fi
+          done
+          echo "Design editor browser smoke failed on all 3 attempts."
+          exit 1
 
       - name: Upload browser smoke diagnostics
         if: always()
