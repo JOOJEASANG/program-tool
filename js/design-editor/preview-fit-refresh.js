@@ -53,6 +53,17 @@
     });
   }
 
+  function requestRefitForViewport(force=false){
+    const viewport=byId('artboardViewport');
+    if(!viewport)return false;
+    const rect=viewport.getBoundingClientRect();
+    const width=Math.round(rect.width),height=Math.round(rect.height);
+    if(!force&&width===lastWidth&&height===lastHeight)return false;
+    lastWidth=width;lastHeight=height;
+    requestRefit();
+    return true;
+  }
+
   function observeViewport(){
     const viewport=byId('artboardViewport');
     if(!viewport)return false;
@@ -70,16 +81,16 @@
     return true;
   }
 
-  function sync(){
+  function sync(options={}){
     installStyles();
     root.dataset.designCoverPreviewFit=isCover()?'1':'0';
     observeViewport();
-    requestRefit();
+    requestRefitForViewport(Boolean(options.force));
     return true;
   }
 
   function boot(){
-    sync();
+    sync({force:true});
     const shell=byId('editorShell')||document.body;
     if(typeof MutationObserver==='function'&&!mutationObserver){
       mutationObserver=new MutationObserver(()=>{
@@ -88,12 +99,12 @@
       });
       mutationObserver.observe(shell,{childList:true,subtree:true});
     }
-    ['programstudio:design-mode-change','programstudio:document-type-change'].forEach(name=>window.addEventListener(name,sync));
-    [80,220,500,900,1500].forEach(delay=>setTimeout(sync,delay));
+    ['programstudio:design-mode-change','programstudio:document-type-change'].forEach(name=>window.addEventListener(name,()=>sync({force:true})));
+    [80,220,500,900,1500].forEach(delay=>setTimeout(()=>sync(),delay));
   }
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});
   else boot();
 
-  window.DesignEditorPreviewFitRefresh={sync,requestRefit,stage:'cover-workspace-resize-refit-v1'};
+  window.DesignEditorPreviewFitRefresh={sync,requestRefit,stage:'cover-workspace-resize-refit-v2-size-gated'};
 })();
