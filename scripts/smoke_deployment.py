@@ -18,7 +18,6 @@ from urllib.request import Request, urlopen
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_BASE_URL = "https://program-tool.web.app"
 USER_AGENT = "ProgramStudioDeploymentSmoke/1.0"
-LEGACY_DESIGN_EDITOR_PATH = "/design-editor/"
 RUNTIME_ENTRY_PATTERN = re.compile(
     r"\{\s*id\s*:\s*['\"]([^'\"]+)['\"]\s*,\s*src\s*:\s*['\"]([^'\"]+)['\"]"
 )
@@ -162,13 +161,6 @@ def _runtime_assets_from_file(relative_path: str, label: str) -> list[tuple[str,
     return entries
 
 
-def design_editor_runtime_assets() -> list[tuple[str, str]]:
-    return _runtime_assets_from_file(
-        "js/design-editor/core-runtime.js",
-        "디자인 편집기",
-    )
-
-
 def pdf_editor_runtime_assets() -> list[tuple[str, str]]:
     return _runtime_assets_from_file(
         "js/pdf-editor/route-runtime.js",
@@ -188,15 +180,6 @@ def _require_runtime_assets(
             _require_javascript_asset(_fetch(base_url, path, timeout))
         except SmokeFailure as error:
             raise SmokeFailure(f"{label} runtime 자산 실패: {script_id} {path}: {error}") from error
-
-
-def _require_design_editor_runtime_assets(base_url: str, timeout: float) -> None:
-    _require_runtime_assets(
-        base_url,
-        timeout,
-        label="디자인 편집기",
-        entries=design_editor_runtime_assets(),
-    )
 
 
 def _require_pdf_editor_runtime_assets(base_url: str, timeout: float) -> None:
@@ -241,7 +224,6 @@ def run_smoke_checks(
     timeout: float = 20.0,
 ) -> None:
     base_url = _normalize_base_url(base_url)
-    general_cover_path = "/design-editor/general?embed=1&mode=cover&preset=cover-a4"
 
     checks: list[tuple[str, Callable[[], None]]] = [
         (
@@ -253,42 +235,23 @@ def run_smoke_checks(
             lambda: _require_text(_fetch(base_url, "/login.html", timeout), "Google로 계속하기", "js/firebase-config.js"),
         ),
         (
-            "디자인 편집기 셸",
+            "인쇄물 사전 검토 도구",
             lambda: (
                 lambda result: (
-                    _require_text(result, "디자인 편집기", "editorFrame", general_cover_path, "/perfect-binding-cover/?embed=1&mode=cover", "/design-editor/general?"),
+                    _require_text(result, "인쇄물 사전 검토", "Program Studio"),
                     _require_same_origin_frame_headers(result),
                 )
-            )(_fetch(base_url, "/design-editor", timeout)),
+            )(_fetch(base_url, "/print-checker", timeout)),
         ),
-        (
-            "디자인 편집기 통합 표지 모드",
-            lambda: (
-                lambda result: (
-                    _require_text(result, "디자인 편집기", "presetGrid", "artboard"),
-                    _require_same_origin_frame_headers(result),
-                )
-            )(_fetch(base_url, general_cover_path, timeout)),
-        ),
-        (
-            "디자인 편집기 일반 모드",
-            lambda: (
-                lambda result: (
-                    _require_text(result, "디자인 편집기", "presetGrid", "artboard"),
-                    _require_same_origin_frame_headers(result),
-                )
-            )(_fetch(base_url, "/design-editor/general?embed=1&mode=poster&preset=poster-a4&orientation=portrait", timeout)),
-        ),
-        ("디자인 편집기 canonical 런타임 자산", lambda: _require_design_editor_runtime_assets(base_url, timeout)),
         ("PDF 편집기 canonical 런타임 자산", lambda: _require_pdf_editor_runtime_assets(base_url, timeout)),
         (
             "레거시 표지 호환 경로",
             lambda: (
                 lambda result: (
-                    _require_text(result, "책표지제작", "Program Studio"),
+                    _require_text(result, "책표지", "Program Studio"),
                     _require_same_origin_frame_headers(result),
                 )
-            )(_fetch(base_url, "/perfect-binding-cover/?embed=1&mode=cover", timeout)),
+            )(_fetch(base_url, "/perfect-binding-cover/", timeout)),
         ),
         ("배포 버전", lambda: _require_version(_fetch(base_url, "/version.json", timeout), expected_version)),
     ]
