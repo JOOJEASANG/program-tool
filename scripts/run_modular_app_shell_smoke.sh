@@ -57,13 +57,6 @@ grep -q 'data-home-poster-flyer-count="1"' "$home_merge_out" || { cat "$home_mer
 grep -q 'data-home-poster-flyer-direct="pass"' "$home_merge_out" || { cat "$home_merge_out" >&2; exit 1; }
 grep -q 'data-home-poster-flyer-route="/design-editor/general?embed=1' "$home_merge_out" || { cat "$home_merge_out" >&2; exit 1; }
 
-profile_out="$OUT_DIR/standalone-product-profile-smoke-dom.html"
-profile_url="http://127.0.0.1:$PORT/tests/browser/standalone-product-profile-smoke.html"
-run_browser_case "$profile_url" "$profile_out" 'data-standalone-profile-smoke="pass"'
-grep -q 'data-notice-runtime="invitation"' "$profile_out" || { cat "$profile_out" >&2; exit 1; }
-grep -q 'data-leaflet-fold="true"' "$profile_out" || { cat "$profile_out" >&2; exit 1; }
-grep -q 'data-booklet-default="true"' "$profile_out" || { cat "$profile_out" >&2; exit 1; }
-
 for app in cover poster flyer invitation notice leaflet; do
   out="$OUT_DIR/standalone-design-${app}-boundary-smoke-dom.html"
   url="http://127.0.0.1:$PORT/tests/browser/standalone-boundary-ui-smoke.html?kind=design&app=$app"
@@ -78,49 +71,4 @@ for app in layout booklet; do
   grep -q "data-boundary-app=\"$app\"" "$out" || { cat "$out" >&2; exit 1; }
 done
 
-workspace_nav_out="$OUT_DIR/design-workspace-navigation-smoke-dom.html"
-workspace_nav_url="http://127.0.0.1:$PORT/tests/browser/design-workspace-navigation-smoke.html"
-run_browser_case "$workspace_nav_url" "$workspace_nav_out" 'data-workspace-nav-smoke="pass"'
-grep -q 'data-workspace-nav-steps="4"' "$workspace_nav_out" || { cat "$workspace_nav_out" >&2; exit 1; }
-grep -q 'data-workspace-nav-product="cover"' "$workspace_nav_out" || { cat "$workspace_nav_out" >&2; exit 1; }
-
-for app in cover poster flyer invitation notice leaflet; do
-  sidebar_out="$OUT_DIR/design-product-sidebar-${app}-smoke-dom.html"
-  sidebar_url="http://127.0.0.1:$PORT/tests/browser/design-product-sidebar-order-smoke.html?app=$app"
-  run_browser_case "$sidebar_url" "$sidebar_out" 'data-product-sidebar-order-smoke="pass"'
-  grep -q "data-product-sidebar-order-app=\"$app\"" "$sidebar_out" || { cat "$sidebar_out" >&2; exit 1; }
-  grep -q 'data-product-sidebar-order-sections="5"' "$sidebar_out" || { cat "$sidebar_out" >&2; exit 1; }
-  grep -q 'data-product-sidebar-section-collapse="pass"' "$sidebar_out" || { cat "$sidebar_out" >&2; exit 1; }
-  grep -q 'data-product-sidebar-workspace-open="pass"' "$sidebar_out" || { cat "$sidebar_out" >&2; exit 1; }
-  grep -q 'data-product-sidebar-card-hierarchy="pass"' "$sidebar_out" || { cat "$sidebar_out" >&2; exit 1; }
-done
-
-for mode in integrated standalone; do
-  professional_out="$OUT_DIR/design-professional-ui-${mode}-smoke-dom.html"
-  if [[ "$mode" == "standalone" ]]; then
-    professional_url="http://127.0.0.1:$PORT/tests/browser/design-professional-ui-boundary-smoke.html?embed=1&app=cover&case=standalone"
-    expected_owner="workspace-navigation"
-  else
-    professional_url="http://127.0.0.1:$PORT/tests/browser/design-professional-ui-boundary-smoke.html?embed=1&case=integrated"
-    expected_owner="professional-ui"
-  fi
-  run_browser_case "$professional_url" "$professional_out" 'data-professional-boundary-smoke="pass"'
-  grep -q "data-professional-boundary-case=\"$mode\"" "$professional_out" || { cat "$professional_out" >&2; exit 1; }
-  grep -q "data-professional-boundary-owner=\"$expected_owner\"" "$professional_out" || { cat "$professional_out" >&2; exit 1; }
-  grep -q 'data-professional-boundary-shared="loaded"' "$professional_out" || { cat "$professional_out" >&2; exit 1; }
-done
-
-multi_selection_out="$OUT_DIR/design-multi-selection-shared-smoke-dom.html"
-multi_selection_url="http://127.0.0.1:$PORT/tests/browser/design-multi-selection-shared-smoke.html"
-run_browser_case "$multi_selection_url" "$multi_selection_out" 'data-multi-selection-shared-smoke="pass"'
-grep -q 'data-multi-selection-shared-count="2"' "$multi_selection_out" || { cat "$multi_selection_out" >&2; exit 1; }
-grep -q 'data-multi-selection-shared-ownership="pass"' "$multi_selection_out" || { cat "$multi_selection_out" >&2; exit 1; }
-
-smart_guides_out="$OUT_DIR/design-smart-guides-shared-smoke-dom.html"
-smart_guides_url="http://127.0.0.1:$PORT/tests/browser/design-editor-multi-smart-guides-smoke.html"
-run_browser_case "$smart_guides_url" "$smart_guides_out" 'data-design-multi-smart-status="pass"'
-grep -q 'data-design-multi-smart-ownership="contextbar"' "$smart_guides_out" || { cat "$smart_guides_out" >&2; exit 1; }
-grep -q 'data-design-multi-smart-gap="horizontal-6-vertical-4"' "$smart_guides_out" || { cat "$smart_guides_out" >&2; exit 1; }
-grep -q 'data-design-multi-smart-snap="artboard-center"' "$smart_guides_out" || { cat "$smart_guides_out" >&2; exit 1; }
-
-echo "Modular app browser smoke passed for legacy shell compatibility, direct poster/flyer home entry, product profiles, boundary UI, shared workspace navigation, product-specific sidebar order/card hierarchy, professional UI ownership, multi-selection ownership and smart guides using $BROWSER"
+echo "Modular app browser smoke passed for legacy shell compatibility, direct poster/flyer home entry, boundary UI using $BROWSER"

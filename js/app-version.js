@@ -24,12 +24,6 @@
     if(currentPath==='/admin'||currentPath==='/admin.html'||currentPath.endsWith('/admin.html')){
       loadScopedScript('aiDesignFeatureGateScriptV1','/js/ai-design-feature-gate.js?v=20260824-1');
     }
-    if(currentPath==='/design-editor'||currentPath==='/design-editor/index.html'||currentPath==='/design-editor/general'||currentPath==='/design-editor/general.html'||currentPath.endsWith('/design-editor/general.html')){
-      loadScopedScript('aiDesignFeatureGateScriptV1','/js/ai-design-feature-gate.js?v=20260824-1');
-      loadScopedScript('designPreviewGuideEnhancementScriptV1','/js/design-editor/preview-guide-enhancement.js?v=20260825-3');
-      loadScopedScript('designCoverPreviewCleanupScriptV1','/js/design-editor/cover-preview-cleanup.js?v=20260825-3');
-      loadScopedScript('designPrintFoldProductionScriptV1','/js/design-editor/print-fold-production.js?v=20260825-1');
-    }
   }
 
   function readStoredVersion(){try{return localStorage.getItem(LOCAL_KEY)||''}catch(_){return ''}}

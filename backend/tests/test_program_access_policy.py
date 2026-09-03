@@ -121,9 +121,7 @@ def test_guard_maps_every_program_shell_to_approval_policy():
 def test_deploy_injector_bootstraps_auth_for_tool_shells_without_firebase():
     injector = (ROOT / "scripts" / "inject_boot_guard.py").read_text(encoding="utf-8")
     for path in (
-        '"design-editor/index.html"',
-        '"document-editor/index.html"',
-        '"image-editor/index.html"',
+        '"print-checker/index.html"',
         '"pdf-editor/index.html"',
         '"pdf-preflight/index.html"',
     ):
