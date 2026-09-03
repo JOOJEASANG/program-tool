@@ -12,7 +12,6 @@ service firebase.storage {
       return signedIn()
         && request.auth.token.keys().hasAll(['email'])
         && request.auth.token.email != null
-        && firestore.exists(/databases/(default)/documents/settings/admin)
         && firestore.get(/databases/(default)/documents/settings/admin).data.emails.hasAny([
           request.auth.token.email,
           request.auth.token.email.lower()
@@ -23,7 +22,6 @@ service firebase.storage {
       return isAdmin()
         || (
           signedIn()
-          && firestore.exists(/databases/(default)/documents/user_permissions/$(request.auth.uid))
           && firestore.get(/databases/(default)/documents/user_permissions/$(request.auth.uid)).data.status == 'approved'
         );
     }
