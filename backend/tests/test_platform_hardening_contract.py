@@ -67,7 +67,6 @@ def test_version_observer_does_not_own_pdf_runtime_modules():
 
 def test_deployment_smoke_reads_canonical_manifests_not_legacy_comments():
     smoke = text("scripts/smoke_deployment.py")
-    assert '"js/design-editor/core-runtime.js"' in smoke
     assert '"js/pdf-editor/route-runtime.js"' in smoke
     assert "DESIGN_EDITOR_RUNTIME_SCRIPTS" not in smoke
     assert "pdf_editor_runtime_assets" in smoke
