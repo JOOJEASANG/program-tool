@@ -11,17 +11,22 @@ def test_home_is_print_first_from_initial_source_not_generic_category_runtime():
     source = text("index.html")
     for marker in (
         'data-home-static-professional="1"',
-        "const CATEGORIES={studio:",
-        "무엇을 하려는지 선택하세요",
-        "디자인 제작",
+        "url:'print-checker/'",
+        "인쇄물 사전 검토",
         "PDF 편집 · 인쇄배치",
         "인쇄 전 검사",
-        "이미지 작업",
-        "let active='studio'",
-        "switchCategory('studio')",
     ):
         assert marker in source
-    for legacy in ("group:{label:", "office:{label:", "ai:{label:"):
+    for legacy in (
+        "url:'design-editor/'",
+        "url:'image-editor/'",
+        "url:'document-editor/'",
+        "let active='studio'",
+        "switchCategory('studio')",
+        "group:{label:",
+        "office:{label:",
+        "ai:{label:",
+    ):
         assert legacy not in source
 
 
