@@ -85,15 +85,14 @@ def test_home_exposes_one_combined_poster_flyer_program():
 
 def test_legacy_design_app_routes_redirect_before_modular_shell_or_firebase_boot():
     page = read("apps/index.html")
-    assert "const targets={" in page
-    assert "cover:`${base}&mode=cover&preset=cover-a4&app=cover&entry=app-direct`" in page
-    assert "poster:`${base}&mode=poster&preset=poster-a4" in page
-    assert "flyer:`${base}&mode=poster&preset=poster-a4" in page
-    assert "notice:`${base}&mode=invitation" in page
-    assert "leaflet:`${base}&mode=leaflet3" in page
-    assert "if(targets[key])location.replace(targets[key]);" in page
-    assert page.index("if(targets[key])location.replace(targets[key]);") < page.index("data-program-studio-boot-guard")
-    assert page.index("if(targets[key])location.replace(targets[key]);") < page.index("firebase-app-compat.js")
+    # Routes now redirect to the unified print-checker tool
+    assert "/print-checker?product=" in page
+    for key in ("cover", "flyer", "invitation", "leaflet"):
+        assert key in page
+    redirect_marker = "location.replace"
+    assert redirect_marker in page
+    assert page.index(redirect_marker) < page.index("data-program-studio-boot-guard")
+    assert page.index(redirect_marker) < page.index("firebase-app-compat.js")
 
 
 def test_legacy_flyer_shell_configuration_still_uses_combined_workspace_as_fallback():
