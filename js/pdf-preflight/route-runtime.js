@@ -14,8 +14,6 @@
     {id:'programShellUnifyScriptV1',src:'/js/program-shell-unify.js?v=20260824-1'},
     {id:'pdfCheckerFinalGuardScript',src:'/js/pdf-checker-final-guard.js?v=20260831-1'},
     {id:'pdfUtilityScriptV1',src:'/js/pdf-utility.js?v=20260831-1'},
-    {id:'pdfUtilityMarginCropScriptV1',src:'/js/pdf-utility-margin-crop.js?v=20260819-1'},
-    {id:'pdfUtilityBackgroundMarginLabelsScriptV1',src:'/js/pdf-utility-background-margin-labels.js?v=20260819-2'},
     {id:'pdfUtilityImageConverterScriptV1',src:'/js/pdf-utility-image-converter.js?v=20260819-1'},
     {id:'pdfUtilityImageConverterFinalizeScriptV1',src:'/js/pdf-utility-image-converter-finalize.js?v=20260827-2'},
     {id:'pdfSecurityLargeFileScriptV1',src:'/js/pdf-utility/security-large-file.js?v=20260831-2'},
@@ -28,7 +26,7 @@
     {id:'pdfPrintAutoFixScriptV1',src:'/js/pdf-print-auto-fix.js?v=20260831-1'},
     {id:'pdfLargeOutputTilingScriptV1',src:'/js/pdf-large-output-tiling.js?v=20260831-1'},
     {id:'pdfPreflightWorkflowV2Script',src:'/js/pdf-preflight/workflow-v2.js?v=20260831-1'},
-    {id:'pdfPreflightOutputToolDockScriptV1',src:'/js/pdf-preflight/output-panel-tool-dock.js?v=20260903-2'},
+    {id:'pdfPreflightOutputToolDockScriptV1',src:'/js/pdf-preflight/output-panel-tool-dock.js?v=20260903-3'},
     {id:'pdfPreflightPanelBalanceScriptV1',src:'/js/pdf-preflight-panel-balance.js?v=20260831-2'}
   ]);
 
