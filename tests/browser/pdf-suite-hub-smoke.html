@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"><title>PDF suite hub smoke</title><style>.hidden-tool{display:none!important}</style></head>
+<body>
+  <input id="suiteSearch" value="">
+  <div id="suiteFilters">
+    <button data-filter="all" class="active">전체</button>
+    <button data-filter="available">바로 사용</button>
+    <button data-filter="local">로컬</button>
+    <button data-filter="planned">예정</button>
+  </div>
+  <section class="section" data-category="pages">
+    <div class="tool available" id="availableTool" data-status="available" data-keywords="합치기 merge">PDF 합치기</div>
+    <a class="tool available" id="localTool" data-status="local" data-local-action="metadata" data-keywords="메타데이터 metadata">메타데이터 확인</a>
+    <div class="tool planned" id="plannedTool" data-status="planned" data-keywords="ocr 검색">OCR 문자 인식</div>
+  </section>
+  <section id="local-tools">
+    <label id="localDrop" for="localFile">PDF 선택</label>
+    <input id="localFile" type="file" accept="application/pdf">
+    <div id="localFileNote"></div>
+    <div class="local-actions">
+      <button class="local-btn" data-local-run="rotate90" disabled>90</button>
+      <button class="local-btn" data-local-run="rotate180" disabled>180</button>
+      <button class="local-btn" data-local-run="reverse" disabled>reverse</button>
+      <button class="local-btn" data-local-run="metadata" disabled>metadata</button>
+      <button class="local-btn" data-local-run="sanitize" disabled>sanitize</button>
+      <button class="local-btn" data-local-run="flatten" disabled>flatten</button>
+    </div>
+    <div id="localStatus"></div>
+    <div id="localMetadata"></div>
+  </section>
+  <script src="/js/pdf-suite/local-tools.js"></script>
+  <script>
+  (function(){
+    function fail(message){document.documentElement.dataset.pdfSuiteSmoke='fail';document.body.dataset.error=message;}
+    window.addEventListener('load',function(){
+      setTimeout(function(){
+        try{
+          if(!window.ProgramStudioPdfSuite)throw new Error('suite api missing');
+          if(!document.querySelector('[data-local-run="rotate270"]'))throw new Error('270 control missing');
+          var search=document.getElementById('suiteSearch');
+          search.value='ocr';
+          search.dispatchEvent(new Event('input',{bubbles:true}));
+          if(!document.getElementById('availableTool').classList.contains('hidden-tool'))throw new Error('search did not hide available');
+          if(document.getElementById('plannedTool').classList.contains('hidden-tool'))throw new Error('search hid OCR planned');
+          search.value='';
+          search.dispatchEvent(new Event('input',{bubbles:true}));
+          document.querySelector('[data-filter="local"]').click();
+          if(document.getElementById('localTool').classList.contains('hidden-tool'))throw new Error('local filter hid local tool');
+          if(!document.getElementById('plannedTool').classList.contains('hidden-tool'))throw new Error('local filter kept planned tool');
+          document.documentElement.dataset.pdfSuiteSmoke='pass';
+        }catch(error){fail(error.message||String(error));}
+      },120);
+    });
+  })();
+  </script>
+</body>
+</html>

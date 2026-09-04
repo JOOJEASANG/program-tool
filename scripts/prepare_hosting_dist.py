@@ -9,8 +9,12 @@ from inject_boot_guard import DEPLOY_HTML
 
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / ".firebase-hosting"
+PDF_SUITE_HTML = "pdf-suite/index.html"
+PDF_SUITE_AUTH_MARKER = "data-pdf-suite-auth-guard"
+PDF_SUITE_HOME_MARKER = "data-pdf-suite-home-launcher"
 
 ROOT_FILES = set(DEPLOY_HTML) | {
+    PDF_SUITE_HTML,
     "dashboard.html",
     "favicon.svg",
     "sw.js",
@@ -62,6 +66,22 @@ FORBIDDEN_OUTPUT_NAMES = {
     "PROGRAM_STRUCTURE.md",
 }
 
+PDF_SUITE_AUTH_SNIPPET = (
+    f'<script {PDF_SUITE_AUTH_MARKER}>document.documentElement.style.visibility="hidden";</script>'
+    '<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>'
+    '<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>'
+    '<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>'
+    '<script src="/js/firebase-config.js"></script>'
+    '<script data-pdf-suite-auth-runner>'
+    'window.ProgramAccessReady=window.ProgramAccess.guardTool({'
+    'programId:"preflight",loginUrl:"/login.html",waitingUrl:"/approval-waiting.html",timeoutMs:8000'
+    '});'
+    '</script>'
+)
+PDF_SUITE_HOME_SNIPPET = (
+    f'<script {PDF_SUITE_HOME_MARKER} defer src="/js/pdf-suite-home-launcher.js"></script>'
+)
+
 
 def _copy_file(source: Path, relative: Path) -> None:
     if source.is_symlink():
@@ -89,6 +109,23 @@ def _copy_directory(relative_dir: str) -> int:
     return copied
 
 
+def _inject_before(path: Path, marker: str, needle: str, snippet: str) -> None:
+    text = path.read_text(encoding="utf-8")
+    if marker in text:
+        return
+    index = text.lower().rfind(needle.lower())
+    if index < 0:
+        raise RuntimeError(f"Could not inject {marker} into {path.relative_to(OUTPUT).as_posix()}")
+    path.write_text(text[:index] + snippet + text[index:], encoding="utf-8")
+
+
+def _patch_pdf_suite_entry_points() -> None:
+    home = OUTPUT / "index.html"
+    suite = OUTPUT / PDF_SUITE_HTML
+    _inject_before(home, PDF_SUITE_HOME_MARKER, "</body>", PDF_SUITE_HOME_SNIPPET)
+    _inject_before(suite, PDF_SUITE_AUTH_MARKER, "</head>", PDF_SUITE_AUTH_SNIPPET)
+
+
 def build() -> int:
     if OUTPUT.exists():
         shutil.rmtree(OUTPUT)
@@ -109,6 +146,8 @@ def build() -> int:
     for relative_dir in HOSTED_DIRS:
         copied += _copy_directory(relative_dir)
 
+    _patch_pdf_suite_entry_points()
+
     missing_deploy = sorted(
         relative for relative in DEPLOY_HTML if not (OUTPUT / relative).is_file()
     )
@@ -116,6 +155,9 @@ def build() -> int:
         raise RuntimeError(
             "Hosting stage is missing deploy HTML: " + ", ".join(missing_deploy)
         )
+
+    if not (OUTPUT / PDF_SUITE_HTML).is_file():
+        raise RuntimeError("Hosting stage is missing PDF suite hub")
 
     leaked = sorted(
         path.relative_to(OUTPUT).as_posix()
