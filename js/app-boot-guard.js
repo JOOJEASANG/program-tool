@@ -5,7 +5,6 @@
 
   const root=document.documentElement;
   const path=String(location.pathname||'').replace(/\\/g,'/').replace(/\/+$/,'');
-  const params=new URLSearchParams(location.search);
   const modularAppKey=(function(){
     const match=path.match(/^\/apps\/([^/]+)$/i);
     return match?String(match[1]||'').toLowerCase():'';
@@ -15,53 +14,12 @@
     if(['cover','poster','flyer','invitation','notice','leaflet'].includes(modularAppKey))return 'design-studio';
     if(['/tools/pdf-editor.html','/pdf-editor','/pdf-editor/index.html'].some(item=>path.endsWith(item)))return 'pdf-editor';
     if(['/tools/preflight.html','/tools/pdf-Checker.html','/pdf-preflight','/pdf-preflight/index.html'].some(item=>path.endsWith(item)))return 'preflight';
-    if(['/tools/perfect-binding-cover.html','/perfect-binding-cover','/perfect-binding-cover/index.html','/design-editor','/design-editor/index.html','/design-editor/general','/design-editor/general.html'].some(item=>path.endsWith(item)))return 'design-studio';
-    if(['/document-editor','/document-editor/index.html'].some(item=>path.endsWith(item)))return 'document-editor';
-    if(['/image-editor','/image-editor/index.html'].some(item=>path.endsWith(item)))return 'image-editor';
+    if(['/tools/perfect-binding-cover.html','/perfect-binding-cover','/perfect-binding-cover/index.html'].some(item=>path.endsWith(item)))return 'design-studio';
     return '';
   })();
 
   const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
-  function isGeneralDesignEditor(){return ['/design-editor/general','/design-editor/general.html'].some(item=>path.endsWith(item));}
-  function isEmbeddedGeneralDesignEditor(){return isGeneralDesignEditor()&&params.get('embed')==='1';}
-  function isDirectDesignEntry(){return isEmbeddedGeneralDesignEditor()&&window.parent===window&&['direct','app-direct'].includes(String(params.get('entry')||''));}
   function isPdfPrintEditor(){return ['/tools/pdf-editor.html','/pdf-editor','/pdf-editor/index.html'].some(item=>path.endsWith(item));}
-
-  function hasDelegatedModularParentGate(){
-    if(!isEmbeddedGeneralDesignEditor()||window.parent===window)return false;
-    try{
-      const parentDoc=window.parent.document,parentRoot=parentDoc?.documentElement;
-      const parentPath=String(window.parent.location.pathname||'').replace(/\/+$/,'');
-      const match=parentPath.match(/^\/apps\/([^/]+)$/i),key=String(match?.[1]||'').toLowerCase();
-      const frame=parentDoc?.getElementById('appFrame');
-      return ['cover','poster','flyer','invitation','notice','leaflet'].includes(key)&&
-        parentRoot?.dataset?.programStudioModularApp==='1'&&frame?.contentWindow===window;
-    }catch(_){return false;}
-  }
-
-  function installEmbeddedDesignFirstPaint(){
-    if(!isEmbeddedGeneralDesignEditor())return false;
-    root.dataset.designEmbeddedFirstPaint='1';
-    if(document.getElementById('designEmbeddedFirstPaintStyleV1'))return true;
-    const style=document.createElement('style');
-    style.id='designEmbeddedFirstPaintStyleV1';
-    style.textContent=`
-      html[data-design-embedded-first-paint="1"]{--design-focused-left:268px}
-      html[data-design-embedded-first-paint="1"] #editorShell{grid-template-columns:var(--design-focused-left) minmax(0,1fr)!important;grid-template-rows:minmax(0,1fr)!important}
-      html[data-design-embedded-first-paint="1"] #propertiesPanel{display:none!important;width:0!important;min-width:0!important;max-width:0!important;position:absolute!important;visibility:hidden!important;pointer-events:none!important}
-      html[data-design-embedded-first-paint="1"] .editor-main{grid-column:2!important;min-width:0!important}
-      html[data-design-embedded-first-paint="1"] #inspector{display:none!important}
-      html[data-design-embedded-first-paint="1"] #designPhase2Tools,
-      html[data-design-embedded-first-paint="1"] #designPhase4SmartLayout,
-      html[data-design-embedded-first-paint="1"] #designSimpleResultTools,
-      html[data-design-embedded-first-paint="1"] #designRotationTools,
-      html[data-design-embedded-first-paint="1"] #designCanvasQuickbar{display:none!important}
-      @media(max-width:1180px){html[data-design-embedded-first-paint="1"]{--design-focused-left:248px}}
-      @media(max-width:900px){html[data-design-embedded-first-paint="1"]{--design-focused-left:230px}}
-    `;
-    document.head.appendChild(style);
-    return true;
-  }
 
   function loadRuntimeScript(id,src,enabled){
     if(!enabled)return null;
@@ -76,17 +34,7 @@
     document.head.appendChild(script);
     return script;
   }
-  function loadDesignRuntimeScript(id,src){loadRuntimeScript(id,src,isGeneralDesignEditor());}
 
-  installEmbeddedDesignFirstPaint();
-  // These helpers participate in control wiring and must be present during the
-  // editor boot. Loading them only after reveal can expose a clickable but dead UI.
-  loadDesignRuntimeScript('designTextAutoFitScriptV1','/js/design-editor/text-auto-fit.js?v=20260903-1');
-  loadDesignRuntimeScript('designTypographyProScriptV1','/js/design-editor/typography-pro.js?v=20260903-1');
-  loadDesignRuntimeScript('designLocalFontsScriptV1','/js/design-editor/local-fonts.js?v=20260827-1');
-  loadDesignRuntimeScript('designShapeBorderControlsScriptV1','/js/design-editor/shape-border-controls.js?v=20260827-1');
-  loadDesignRuntimeScript('designShapeInspectorUxScriptV1','/js/design-editor/shape-inspector-ux.js?v=20260827-1');
-  loadDesignRuntimeScript('designPrintProductionStage2ScriptV1','/js/design-editor/print-production-stage2.js?v=20260826-1');
   loadRuntimeScript('pdfPrintWorkflowFocusScriptV1','/js/pdf-editor/print-workflow-focus.js?v=20260827-1',isPdfPrintEditor());
   // Prime the current preflight presentation behind the boot overlay so the
   // legacy workspace never flashes before clean-workspace-v2 takes ownership.
@@ -106,12 +54,6 @@
   window.ProgramStudioBoot={...(window.ProgramStudioBoot||{}),reveal,protectedProgram};
   window.ProgramStudioBoot.modularAppKey=modularAppKey;
 
-  const delegatedParentGate=hasDelegatedModularParentGate();
-  if(delegatedParentGate){
-    root.dataset.parentAccessDelegated='true';
-    reveal('parent-delegated');
-    return;
-  }
   if(!protectedProgram){reveal('public');return;}
 
   root.classList.add('app-booting');
@@ -151,20 +93,11 @@
     return false;
   }
 
-  async function waitForPromiseGlobal(name,discoverMs,settleMs){
-    const found=await waitUntil(()=>Boolean(window[name]&&typeof window[name].then==='function'),discoverMs);
-    if(!found)return false;
-    return Promise.race([
-      Promise.resolve(window[name]).then(()=>true).catch(error=>{console.warn(`${name} failed before reveal.`,error);return false;}),
-      delay(settleMs).then(()=>false)
-    ]);
-  }
-
   async function waitForPreflightFunctionalReady(){
     if(protectedProgram!=='preflight')return true;
     // Access approval is the only hard gate for this route. The full preflight
-    // runtime contains 18 modules and may continue wiring utilities after first
-    // paint, so never hold the page behind the overlay while all 18 settle.
+    // runtime may continue wiring utilities after first paint, so never hold the
+    // page behind the overlay while every optional module settles.
     const runtimeStarted=await waitUntil(()=>Boolean(window.ProgramStudioPreflightRuntimeReady),220);
     const uiReady=await waitUntil(()=>document.body?.dataset?.pdfPreflightUi==='clean-workspace-v2',480);
     const ready=runtimeStarted&&uiReady;
@@ -172,41 +105,6 @@
     root.dataset.preflightRevealStage=ready?'core-started':'access-unblocked';
     if(!ready)console.warn('PDF preflight opened after access while remaining runtime modules continue loading.');
     return ready;
-  }
-
-  function designBaseFunctionalReady(){
-    const standalone=Boolean(String(params.get('app')||'').trim());
-    const app=window.DesignEditorApp;
-    const shell=document.getElementById('editorShell');
-    const startScreen=document.getElementById('startScreen');
-    const appReady=Boolean(app&&(shell||startScreen));
-    const coreReady=root.dataset.designCoreRuntime==='1';
-    if(!appReady||!coreReady)return false;
-    if(!standalone)return true;
-    if(!app.project||!shell||shell.classList.contains('hidden'))return false;
-    const shellReady=root.dataset.designShellRuntime==='1'||root.dataset.designFinalWorkspaceReady==='1';
-    if(!shellReady)return false;
-    const artboard=document.getElementById('artboard');
-    const rect=artboard?.getBoundingClientRect?.();
-    const ready=Boolean(rect&&rect.width>20&&rect.height>20);
-    root.dataset.designFunctionalBaseline=ready?'1':'0';
-    return ready;
-  }
-
-  async function waitForDesignFunctionalReady(){
-    if(protectedProgram!=='design-studio'||!isGeneralDesignEditor())return true;
-    const timeout=isDirectDesignEntry()?6800:4200;
-    const ready=await waitUntil(designBaseFunctionalReady,timeout);
-    root.dataset.designFunctionalReady=ready?'1':'0';
-    root.dataset.designRevealStage=ready?'interaction-stable-shell':'bounded-fallback';
-    if(!ready)console.warn('Design interaction shell did not fully settle before the bounded reveal.');
-    return ready;
-  }
-
-  async function waitForProtectedFunctionalReady(){
-    if(protectedProgram==='preflight')return waitForPreflightFunctionalReady();
-    if(protectedProgram==='design-studio'&&isGeneralDesignEditor())return waitForDesignFunctionalReady();
-    return true;
   }
 
   function retryApprovalWait(){
@@ -220,10 +118,8 @@
     if(ready&&typeof ready.then==='function'){
       Promise.resolve(ready).then(async access=>{
         if(!access){retryApprovalWait();return;}
-        // Access is already authorized. From here on the gate protects only
-        // against exposing half-wired UI, so it must not redirect on runtime delay.
         clearTimeout(failClosedTimer);
-        const functional=await waitForProtectedFunctionalReady();
+        const functional=await waitForPreflightFunctionalReady();
         reveal(functional?'functional-runtime':'functional-timeout');
       }).catch(error=>{
         console.warn('Program access readiness promise failed before reveal.',error);
