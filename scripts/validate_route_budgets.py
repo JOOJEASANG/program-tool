@@ -16,18 +16,13 @@ ASSET_RE = re.compile(r"[\'\"`](/js/[^\'\"`\s]+)[\'\"`]")
 MANIFEST_RE = re.compile(r"\{\s*id\s*:\s*[\'\"][^\'\"]+[\'\"]\s*,\s*src\s*:\s*[\'\"](?P<src>/js/[^\'\"]+)")
 LOAD_CATALOG_RE = re.compile(r"function loadCatalogCore\(\)\{\s*return load\([^,]+,[\'\"](?P<src>/js/[^\'\"]+)")
 
-# Phase 10/11 shared delivery routes. Keep this set stable because
-# verify_preview_delivery.py intentionally mirrors it.
 ROUTE_BUDGETS = {
-    "home": (10, 88_000),
+    "home": (6, 88_000),
     "admin": (10, 180_000),
     "pdf-editor": (24, 950_000),
 }
-# PDF preflight is approval-gated and owns a nested canonical manifest. Validate
-# its local bootstrap independently without changing the older preview contract.
 PREFLIGHT_ROUTE_BUDGET = (22, 1_100_000)
 UI_ENHANCEMENTS = {
-    "home": "homeDashboardV2Script",
     "admin": "adminWorkflowV2Script",
 }
 
@@ -67,13 +62,19 @@ def ui_asset(ui_text: str, script_id: str) -> str:
 
 
 def collect_routes(sw_text: str, ui_text: str) -> dict[str, set[str]]:
-    common = assets(segment(sw_text, "async function helpers(){", "if(isHome()){"))
+    # The home is now static: helpers before the admin branch are the complete
+    # shared public bootstrap. Old if(isHome()) overlay blocks were retired.
+    admin_marker = "if(isPath('/admin','/admin.html')){"
+    pdf_marker = "if(isPath('/tools/pdf-editor.html','/pdf-editor','/pdf-editor/index.html'))"
+    common = assets(segment(sw_text, "async function helpers(){", admin_marker))
+
     catalog_match = LOAD_CATALOG_RE.search(sw_text)
     if not catalog_match:
         raise AssertionError("Could not resolve loadCatalogCore()")
     catalog = normalize(catalog_match.group("src"))
-    home = common | assets(segment(sw_text, "if(isHome()){", "if(isPath('/admin','/admin.html')){")) | {catalog}
-    admin = common | assets(segment(sw_text, "if(isPath('/admin','/admin.html')){", "if(isPath('/tools/pdf-editor.html','/pdf-editor','/pdf-editor/index.html'))")) | {catalog}
+
+    home = set(common)
+    admin = common | assets(segment(sw_text, admin_marker, pdf_marker)) | {catalog}
     routes = {
         "home": home,
         "admin": admin,
