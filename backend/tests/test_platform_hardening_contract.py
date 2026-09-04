@@ -64,6 +64,9 @@ def test_version_observer_does_not_own_pdf_runtime_modules():
         assert script_id in preflight
         assert script_id not in observer
 
+    assert "aiDesignFeatureGateScriptV1" not in observer
+    assert "ai-design-feature-gate.js" not in observer
+
 
 def test_deployment_smoke_reads_canonical_manifests_not_legacy_comments():
     smoke = text("scripts/smoke_deployment.py")
@@ -93,12 +96,10 @@ def test_preflight_runtime_is_canonical_and_current_ui_loads_last():
     assert not (ROOT / "js/pdf-utility-cost-policy-hardening.js").exists()
 
 
-def test_protected_reveal_waits_for_bounded_functional_runtime_after_access():
+def test_protected_reveal_waits_for_bounded_preflight_runtime_after_access():
     boot = text("js/app-boot-guard.js")
     assert "clean-workspace-v2" in boot
     assert "waitForPreflightFunctionalReady" in boot
-    assert "waitForDesignFunctionalReady" in boot
-    assert "waitForProtectedFunctionalReady" in boot
     assert "ProgramStudioPreflightRuntimeReady" in boot
     assert "pdfPreflightPanelBalanceScriptV1" in boot
     assert "script.dataset.loaded='true'" in boot
@@ -106,9 +107,11 @@ def test_protected_reveal_waits_for_bounded_functional_runtime_after_access():
     assert "clearTimeout(failClosedTimer)" in boot
     assert "functional-runtime" in boot
     assert "functional-timeout" in boot
+    assert "waitForDesignFunctionalReady" not in boot
+    assert "DesignEditorApp" not in boot
     approval = boot[boot.index("function waitForApproval()") :]
-    assert approval.index("clearTimeout(failClosedTimer);") < approval.index("await waitForProtectedFunctionalReady();")
-    assert approval.index("await waitForProtectedFunctionalReady();") < approval.index("reveal(functional?'functional-runtime':'functional-timeout');")
+    assert approval.index("clearTimeout(failClosedTimer);") < approval.index("await waitForPreflightFunctionalReady();")
+    assert approval.index("await waitForPreflightFunctionalReady();") < approval.index("reveal(functional?'functional-runtime':'functional-timeout');")
     assert "root.dataset.bootGate='access-only'" not in boot
 
 
