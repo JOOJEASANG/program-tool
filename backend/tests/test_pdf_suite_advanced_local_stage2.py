@@ -54,6 +54,7 @@ def test_permanent_redaction_rebuilds_pages_from_raster_images_instead_of_copyin
 def test_hosting_injects_advanced_pdf_suite_runtime_and_phase5_runs_browser_smoke():
     hosting = HOSTING.read_text(encoding="utf-8")
     runner = RUNNER.read_text(encoding="utf-8")
+    smoke = SMOKE.read_text(encoding="utf-8")
 
     for marker in (
         'PDF_SUITE_ADVANCED_MARKER = "data-pdf-suite-advanced-tools"',
@@ -64,4 +65,4 @@ def test_hosting_injects_advanced_pdf_suite_runtime_and_phase5_runs_browser_smok
         assert marker in hosting
 
     assert "pdf-suite-advanced-smoke.html" in runner
-    assert "data-pdf-suite-advanced-smoke=\"pass\"" in SMOKE.read_text(encoding="utf-8")
+    assert "dataset.pdfSuiteAdvancedSmoke='pass'" in smoke
