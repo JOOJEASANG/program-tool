@@ -13,7 +13,6 @@
   const loadPromises=new Map();
 
   function isPath(...parts){return parts.some(path=>currentPath===path||currentPath.endsWith(path));}
-  function isHome(){return currentPath==='/'||currentPath==='/index.html'}
   function isAuthPage(){return isPath('/login','/login.html')}
   function isProtectedRuntimePage(){
     return isPath(
@@ -143,15 +142,6 @@
     if(!isAuthPage()){
       tasks.push(load('programStudioPlatformHealthScriptV1','/js/platform-health.js?v='+VERSION).catch(error=>{console.warn('Platform health helper loading failed',error);return null;}));
       tasks.push(load('appVersionHelperScript','/js/app-version.js?v='+VERSION));
-    }
-    if(isHome()){
-      tasks.push(loadCatalogCore()
-        .then(()=>load('homeProgramCatalogScriptV1','/js/home-program-catalog.js?v=20260808-1'))
-        .then(()=>load('homePdfUtilityNameSyncScriptV1','/js/home-pdf-utility-name-sync.js?v=20260831-1'))
-        .then(()=>load('homeProfessionalSuiteScriptV1','/js/home-professional-suite.js?v='+VERSION))
-        .then(()=>load('homePrintWorkflowScriptV1','/js/home-print-workflow.js?v='+VERSION)));
-      tasks.push(load('homeHeroUpgradeScript','/js/home-hero-upgrade.js?v='+VERSION));
-      tasks.push(load('homeHeaderFooterRefineScript','/js/home-header-footer-refine.js?v='+VERSION));
     }
     if(isPath('/admin','/admin.html')){
       tasks.push(loadCatalogCore()
