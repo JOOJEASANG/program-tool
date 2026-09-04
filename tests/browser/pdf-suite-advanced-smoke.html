@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"><title>PDF suite advanced smoke</title></head>
+<body>
+  <section class="section" data-category="pages"><div class="tool-grid"></div></section>
+  <section class="section" data-category="convert"><div class="tool-grid">
+    <div class="tool planned" id="textTool" data-status="planned"><span class="status plan">확장 예정</span><span class="tool-name">텍스트·문서 추출</span><span class="tool-desc">planned</span></div>
+  </div></section>
+  <section class="section" data-category="security"><div class="tool-grid">
+    <div class="tool planned" id="redactTool" data-status="planned"><span class="status plan">확장 예정</span><span class="tool-name">영구 마스킹·Redaction</span><span class="tool-desc">planned</span></div>
+    <div class="tool planned" id="attachTool" data-status="planned"><span class="status plan">확장 예정</span><span class="tool-name">첨부파일 추출</span><span class="tool-desc">planned</span></div>
+  </div></section>
+  <section class="section" data-category="inspect"><div class="tool-grid">
+    <div class="tool planned" id="compareTool" data-status="planned"><span class="status plan">확장 예정</span><span class="tool-name">PDF 버전 비교</span><span class="tool-desc">planned</span></div>
+    <div class="tool planned" id="accessTool" data-status="planned"><span class="status plan">확장 예정</span><span class="tool-name">접근성·태그 검사</span><span class="tool-desc">planned</span></div>
+  </div></section>
+  <section id="local-tools"><div id="localStatus"></div></section>
+  <div class="roadmap"><div class="roadmap-tags">
+    <span class="roadmap-tag">PDF/A</span><span class="roadmap-tag">영구 Redaction</span><span class="roadmap-tag">PDF 버전 비교</span><span class="roadmap-tag">접근성·Tagged PDF</span><span class="roadmap-tag">첨부파일 추출</span>
+  </div></div>
+  <script>window.ProgramStudioPdfSuite={getSelectedFile:function(){return null;}};</script>
+  <script src="/js/pdf-suite/advanced-tools.js"></script>
+  <script>
+  (function(){
+    function fail(message){document.documentElement.dataset.pdfSuiteAdvancedSmoke='fail';document.body.dataset.error=message;}
+    window.addEventListener('load',function(){setTimeout(function(){
+      try{
+        if(!window.ProgramStudioPdfSuiteAdvanced)throw new Error('advanced api missing');
+        if(document.documentElement.dataset.pdfSuiteAdvanced!=='ready')throw new Error('advanced ready marker missing');
+        ['textTool','redactTool','attachTool','compareTool','accessTool'].forEach(function(id){var node=document.getElementById(id);if(node.dataset.status!=='local'||node.classList.contains('planned'))throw new Error(id+' not promoted');});
+        if(document.querySelector('#textTool .tool-name').textContent.indexOf('TXT')<0)throw new Error('text tool copy not narrowed');
+        if(document.querySelector('#accessTool .tool-name').textContent.indexOf('기본 검사')<0)throw new Error('accessibility copy not narrowed');
+        if(!document.querySelector('[data-advanced-action="outline"]'))throw new Error('outline analysis card missing');
+        var tags=[].map.call(document.querySelectorAll('.roadmap-tag'),function(node){return node.textContent.trim();});
+        if(tags.indexOf('PDF/A')<0)throw new Error('pdf/a roadmap incorrectly removed');
+        ['영구 Redaction','PDF 버전 비교','접근성·Tagged PDF','첨부파일 추출'].forEach(function(tag){if(tags.indexOf(tag)>=0)throw new Error('completed roadmap tag remained: '+tag);});
+        document.getElementById('compareTool').click();
+        if(!document.getElementById('pdfAdvancedCompare')?.classList.contains('open'))throw new Error('compare modal did not open');
+        document.querySelector('#pdfAdvancedCompare .pdfadv-close').click();
+        document.getElementById('redactTool').click();
+        if(!document.querySelector('#pdfAdvancedRedact [data-redact-file]'))throw new Error('redaction file control missing');
+        document.querySelector('#pdfAdvancedRedact .pdfadv-close').click();
+        document.getElementById('accessTool').click();
+        if(!document.querySelector('#pdfAdvancedAccessibility [data-access-run]'))throw new Error('accessibility control missing');
+        document.querySelector('#pdfAdvancedAccessibility .pdfadv-close').click();
+        document.getElementById('attachTool').click();
+        if(!document.querySelector('#pdfAdvancedAttachments [data-attach-open]'))throw new Error('attachment control missing');
+        document.documentElement.dataset.pdfSuiteAdvancedSmoke='pass';
+      }catch(error){fail(error.message||String(error));}
+    },180);});
+  })();
+  </script>
+</body>
+</html>
