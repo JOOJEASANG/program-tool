@@ -14,7 +14,8 @@ ROOT = Path(__file__).resolve().parents[2]
 FRONTEND = ROOT / "js" / "pdf-utility.js"
 FINALIZER = ROOT / "js" / "pdf-utility-finalize.js"
 PREFLIGHT_RUNTIME = ROOT / "js" / "pdf-preflight" / "route-runtime.js"
-CATALOG = ROOT / "js" / "program-catalog-core.js"
+HOME = ROOT / "index.html"
+GLOBAL_UI = ROOT / "js" / "program-studio-ui-v2.js"
 MAIN = ROOT / "backend" / "main.py"
 PERMISSIONS = ROOT / "backend" / "utils" / "permissions.py"
 REQUIREMENTS = ROOT / "backend" / "requirements.txt"
@@ -113,15 +114,13 @@ def test_pdf_utility_runtime_is_ordered_by_canonical_preflight_manifest():
     assert "최대 10개 일괄 검수" in finalizer
 
 
-def test_pdf_utility_name_migrates_all_legacy_catalog_entries_to_canonical_name():
-    source = CATALOG.read_text(encoding="utf-8")
-    assert "LEGACY_PDF_UTILITY_NAMES" in source
-    for name in ("PDF 인쇄 검수", "PDF 검사", "PDF유틸리티", "PDF 올인원"):
-        assert name in source
-    assert "const PDF_UTILITY_NAME = 'PDF 검사 · 유틸리티';" in source
-    assert "id === 'pdf-preflight'" in source
-    assert "PDF 합치기" in source
-    assert "배경 제거" in source
+def test_pdf_utility_name_uses_current_static_home_without_legacy_catalog_runtime():
+    home = HOME.read_text(encoding="utf-8")
+    ui = GLOBAL_UI.read_text(encoding="utf-8")
+    assert "PDF 도구 모음" in home
+    assert "PDF 검사 · 유틸리티" in ui
+    assert "url:'/pdf-preflight/'" in ui
+    assert not (ROOT / "js" / "program-catalog-core.js").exists()
 
 
 def test_background_cleanup_dependency_is_pinned():
