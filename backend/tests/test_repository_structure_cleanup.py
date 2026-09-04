@@ -74,11 +74,13 @@ def test_removed_editor_residual_assets_are_not_reintroduced():
         "css/image-editor.css",
         "docs/design-editor-cover-integration.md",
         "docs/image-editor-stage3.md",
+        "js/ai-design-feature-gate.js",
         "js/editor-tool-rail-v1.js",
         "js/pdf-utility-background-margin-labels.js",
         "scripts/run_phase12_browser_smoke.sh",
         "tests/browser/editor-tool-rail-v6-smoke.html",
         "tests/browser/design-direct-real-dom-smoke.html",
+        "tests/browser/protected-design-boot-nonblocking-smoke.html",
     ]
     removed.extend(
         f"scripts/{name}"
@@ -135,3 +137,29 @@ def test_shared_ui_has_only_live_program_routes():
         assert dead not in source
     for live in ["/print-checker/", "/pdf-editor/", "/pdf-preflight/"]:
         assert live in source
+
+
+def test_boot_guard_has_no_retired_editor_runtime_loaders():
+    source = _read("js/app-boot-guard.js")
+    for dead in [
+        "/design-editor/",
+        "/document-editor",
+        "/image-editor",
+        "DesignEditorApp",
+        "designTextAutoFitScriptV1",
+        "designTypographyProScriptV1",
+        "designLocalFontsScriptV1",
+        "designShapeBorderControlsScriptV1",
+        "designShapeInspectorUxScriptV1",
+        "designPrintProductionStage2ScriptV1",
+    ]:
+        assert dead not in source
+    assert "/js/pdf-editor/print-workflow-focus.js" in source
+    assert "/js/pdf-preflight-panel-balance.js" in source
+
+
+def test_phase7_runner_only_exercises_live_boot_surfaces():
+    source = _read("scripts/run_phase7_browser_smoke.sh")
+    assert "protected-design-boot-nonblocking-smoke.html" not in source
+    assert "protected-preflight-boot-nonblocking-smoke.html" in source
+    assert "pdf-utility-cost-guard-stability-smoke.html" in source
