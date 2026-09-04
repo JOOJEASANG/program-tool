@@ -8,17 +8,17 @@ GLOBAL_UI = ROOT / "js" / "program-studio-ui-v2.js"
 
 def test_pdf_editor_does_not_reload_retired_guided_workflow_or_tool_rail():
     text = GLOBAL_UI.read_text(encoding="utf-8")
-    assert "if(surface==='pdf-editor')" in text
     assert "loadEnhancement('pdfEditorWorkflowV2Script'" not in text
     assert "/js/pdf-editor/workflow-v2.js?v=20260828-1" not in text
-    assert "if(surface==='pdf-editor')return;" in text
+    assert "editor-tool-rail-v1.js" not in text
+    assert "if(surface==='pdf-editor'||surface==='pdf-preflight'||surface==='print-checker')return;" in text
 
 
-def test_pdf_sidebar_toggle_is_disabled_for_always_visible_sidebar():
+def test_global_ui_no_longer_owns_retired_editor_sidebar_toggle():
     text = GLOBAL_UI.read_text(encoding="utf-8")
-    assert "function mountSidebarToggle(attempt=0)" in text
-    assert "if(surface==='pdf-editor')return;" in text
-    assert "if(attempt<10)setTimeout(()=>mountSidebarToggle" in text
+    assert "mountSidebarToggle" not in text
+    assert "sidebarTarget" not in text
+    assert "sidebarHost" not in text
     assert "setInterval(" not in text
 
 
