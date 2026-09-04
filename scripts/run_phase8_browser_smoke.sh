@@ -53,4 +53,8 @@ LOCAL_URL="http://127.0.0.1:$PORT/tests/browser/pdf-local-processing-smoke.html"
 LOCAL_OUT="$OUT_DIR/pdf-local-processing-smoke-dom.html"
 run_case "$LOCAL_URL" "$LOCAL_OUT" 'data-pdf-local-processing-smoke="pass"' 'PDF local-processing browser smoke'
 
-echo "Runtime asset + PDF local-processing Phase 8 smoke passed using $BROWSER"
+VISUAL_URL="http://127.0.0.1:$PORT/tests/browser/pdf-visual-organizer-smoke.html"
+VISUAL_OUT="$OUT_DIR/pdf-visual-organizer-smoke-dom.html"
+run_case "$VISUAL_URL" "$VISUAL_OUT" 'data-pdf-visual-organizer-smoke="pass"' 'PDF visual-organizer browser smoke'
+
+echo "Runtime asset + PDF local-processing + visual-organizer Phase 8 smoke passed using $BROWSER"
