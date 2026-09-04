@@ -16,6 +16,7 @@
     {id:'pdfUtilityScriptV1',src:'/js/pdf-utility.js?v=20260831-1'},
     {id:'pdfUtilityLocalProcessingScriptV1',src:'/js/pdf-utility/local-processing.js?v=20260904-1'},
     {id:'pdfUtilityPageExtractScriptV1',src:'/js/pdf-utility/page-extract.js?v=20260904-1'},
+    {id:'pdfUtilityPageOrganizeScriptV1',src:'/js/pdf-utility/page-organize.js?v=20260904-1'},
     {id:'pdfUtilityBackgroundMarginScriptV2',src:'/js/pdf-utility-margin-crop.js?v=20260904-2'},
     {id:'pdfUtilityImageConverterScriptV1',src:'/js/pdf-utility-image-converter.js?v=20260819-1'},
     {id:'pdfUtilityImageConverterFinalizeScriptV1',src:'/js/pdf-utility-image-converter-finalize.js?v=20260827-2'},
