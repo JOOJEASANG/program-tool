@@ -30,6 +30,7 @@
       .pdfu-margin-input:focus{border-color:#1d9bb2;box-shadow:0 0 0 3px rgba(29,155,178,.1)}
       .pdfu-margin-unit{font-size:10px;color:#94a3b8;font-weight:800}
       .pdfu-margin-zero{margin-top:8px;font-size:9px;color:#64748b;line-height:1.5}
+      html.pdfu-background-margin-busy .action-btn{pointer-events:none!important;opacity:.55}
       #pdfPreflightOutputToolDock[data-panel-size="narrow"] .pdfu-margin-grid,
       #pdfPreflightOutputToolDock[data-panel-size="compact"] .pdfu-margin-grid{grid-template-columns:1fr}
       @media(max-width:480px){.pdfu-margin-grid{grid-template-columns:1fr}}
@@ -164,12 +165,12 @@
     setTimeout(() => URL.revokeObjectURL(url), 1500);
   }
 
-  function setDisabled(disabled) {
-    ['pdfUtilityModalRun', 'pdfUtilityModalClose', 'pdfUtilityModalCancel', 'checkBtn', 'inlineResetBtn'].forEach((id) => {
+  function setBusyVisual(busy) {
+    document.documentElement.classList.toggle('pdfu-background-margin-busy', busy);
+    ['pdfUtilityModalRun', 'pdfUtilityModalClose', 'pdfUtilityModalCancel'].forEach((id) => {
       const node = $(id);
-      if (node) node.disabled = disabled;
+      if (node) node.disabled = busy;
     });
-    document.querySelectorAll('.pdfu-action,.pdfu-row-btn').forEach((button) => { button.disabled = disabled; });
   }
 
   async function runCombined(event) {
@@ -194,7 +195,7 @@
     const utilityState = window.PdfUtility?.state;
     if (utilityState?.busy) return true;
     if (utilityState) utilityState.busy = true;
-    setDisabled(true);
+    setBusyVisual(true);
     if (typeof window.setPageBusy === 'function') window.setPageBusy(true, '배경색·여백 내용 제거');
 
     let storageInstance = null;
@@ -267,7 +268,7 @@
         try { await storageInstance.ref(storagePath).delete(); } catch (_) {}
       }
       if (utilityState) utilityState.busy = false;
-      setDisabled(false);
+      setBusyVisual(false);
       if (typeof window.setPageBusy === 'function') window.setPageBusy(false);
     }
     return true;
