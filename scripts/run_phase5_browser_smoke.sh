@@ -46,3 +46,4 @@ run_page "pdf-preflight-workflow-v2-smoke.html" 'data-preflight-v2-smoke="pass"'
 run_page "print-checker-smoke.html" 'data-print-checker-smoke="pass"' "Print checker real PDF browser smoke" "print-checker-smoke-dom.html"
 run_page "pdf-suite-hub-smoke.html" 'data-pdf-suite-smoke="pass"' "PDF suite hub browser smoke" "pdf-suite-hub-smoke-dom.html"
 run_page "pdf-suite-advanced-smoke.html" 'data-pdf-suite-advanced-smoke="pass"' "PDF suite advanced browser smoke" "pdf-suite-advanced-smoke-dom.html"
+run_page "pdf-suite-ocr-smoke.html" 'data-pdf-suite-ocr-smoke="pass"' "PDF suite OCR browser smoke" "pdf-suite-ocr-smoke-dom.html"
