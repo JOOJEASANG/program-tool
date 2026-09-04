@@ -12,7 +12,7 @@ DIVIDER_UPLOAD = ROOT / "js" / "pdf-divider-local-image-upload.js"
 EDITOR_POLICY = ROOT / "js" / "pdf-editor" / "transfer-limit-guard.js"
 SESSION_SAVE = ROOT / "js" / "pdf-editor" / "session-save-safety.js"
 UTILITY_POLICY = ROOT / "js" / "pdf-utility-cost-guard-v2.js"
-ADMIN_GUARD = ROOT / "js" / "admin-program-catalog-nav-guard.js"
+GLOBAL_UI = ROOT / "js" / "program-studio-ui-v2.js"
 STORAGE_RULES = ROOT / "storage.rules"
 STORAGE_LIFECYCLE = ROOT / "storage-lifecycle.json"
 MAIN = ROOT / "backend" / "main.py"
@@ -154,9 +154,17 @@ def test_active_runtime_uses_single_pdf_and_preflight_owners():
     assert "cover-large-file-policy.js" not in app
 
 
-def test_admin_catalog_menu_has_late_dependency_recovery():
-    source = ADMIN_GUARD.read_text(encoding="utf-8")
-    assert "AdminProgramCatalogManager" in source
-    assert "auth.onAuthStateChanged" in source
-    assert "attempts < 60" in source
-    assert "adminProgramCatalogNav" in source
+def test_retired_admin_catalog_runtime_stays_removed_and_admin_workflow_remains_live():
+    runtime = SW_REGISTER.read_text(encoding="utf-8")
+    ui = GLOBAL_UI.read_text(encoding="utf-8")
+    for filename in (
+        "admin-program-catalog-nav-guard.js",
+        "admin-program-catalog-manager.js",
+        "admin-program-icon-palette.js",
+        "admin-professional-program-manager.js",
+        "admin-operations-overview.js",
+        "program-catalog-core.js",
+    ):
+        assert filename not in runtime
+        assert not (ROOT / "js" / filename).exists()
+    assert "/js/admin-workflow-v2.js?v=20260828-1" in ui
