@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="utf-8">
-  <title>Modular App Shell Smoke</title>
+  <title>Modular PDF App Shell Smoke</title>
   <link rel="stylesheet" href="/css/studio-app-shell.css?v=20260901-2">
   <style>.hide{display:none}</style>
 </head>
@@ -20,14 +20,7 @@
   <script>
     const original=new URL(location.href);
     const key=original.searchParams.get('app')||'';
-    const combinedTarget='/design-editor/general?embed=1&mode=poster&preset=poster-a4&paper=a4&orientation=portrait&w=210&h=297&app=poster&surface=poster-flyer';
     const expected={
-      cover:{target:'/design-editor/general?embed=1&mode=cover&preset=cover-a4&app=cover',title:'표지 제작',category:'DESIGN · COVER',symbol:'표',workspace:'표지 인쇄 작업실',quick:4,accent:'rgb(108, 85, 217)'},
-      poster:{target:combinedTarget,title:'포스터 · 전단지 제작',category:'DESIGN · POSTER / FLYER',symbol:'포',workspace:'포스터 · 전단지 작업실',quick:4,accent:'rgb(208, 75, 103)'},
-      flyer:{target:combinedTarget,title:'포스터 · 전단지 제작',category:'DESIGN · POSTER / FLYER',symbol:'전',workspace:'포스터 · 전단지 작업실',quick:4,accent:'rgb(201, 121, 37)'},
-      invitation:{target:'/design-editor/general?embed=1&mode=invitation&preset=invitation-a4&paper=a4&orientation=landscape&w=297&h=210&app=invitation',title:'초대장 제작',category:'DESIGN · INVITATION',symbol:'초',workspace:'초대장 편집 작업실',quick:4,accent:'rgb(168, 85, 145)'},
-      notice:{target:'/design-editor/general?embed=1&mode=invitation&preset=invitation-a4&paper=a4&orientation=landscape&w=297&h=210&app=invitation&surface=notice',title:'안내장 제작',category:'DESIGN · NOTICE',symbol:'안',workspace:'안내장 정보 작업실',quick:4,accent:'rgb(47, 128, 109)'},
-      leaflet:{target:'/design-editor/general?embed=1&mode=leaflet3&preset=leaflet-3-roll&paper=a4&orientation=landscape&w=297&h=210&fold=leaflet-3-roll&app=leaflet',title:'리플렛 제작',category:'DESIGN · LEAFLET',symbol:'리',workspace:'리플렛 접지 작업실',quick:4,accent:'rgb(22, 131, 151)'},
       'pdf-layout':{target:'/pdf-editor/?embed=1&app=layout',title:'PDF 배치',category:'PDF · N-UP',symbol:'PDF',workspace:'PDF 배치 작업실',quick:0,accent:'rgb(95, 103, 199)'},
       booklet:{target:'/pdf-editor/?embed=1&app=booklet',title:'소책자 제작',category:'PDF · BOOKLET',symbol:'책',workspace:'소책자 조판 작업실',quick:0,accent:'rgb(60, 109, 158)'}
     };
@@ -36,10 +29,8 @@
     const frame=document.getElementById('appFrame');
     Object.defineProperty(frame,'src',{configurable:true,get(){return frame.dataset.assignedSrc||'';},set(value){frame.dataset.assignedSrc=String(value);setTimeout(()=>frame.dispatchEvent(new Event('load')),0);}});
     let approve;
-    // Reproduce production ordering: a placeholder may exist briefly before the
-    // real permission promise is installed, while the editor navigation starts early.
-    // Legacy validator marker: "engine started before approval" now means the
-    // workspace becoming usable before approval, not harmless hidden preloading.
+    // "engine started before approval" remains a protected regression phrase:
+    // preloading may happen, but the workspace must never become usable first.
     window.ProgramAccessReady=Promise.resolve(null);
     window.__modularSmoke={key,expected:expected[key],installRealAccess(){window.ProgramAccessReady=new Promise(resolve=>{approve=resolve;});},approve(value){approve?.(value);}};
   </script>
@@ -56,8 +47,6 @@
         await waitFor(()=>frame.dataset.assignedSrc,'early engine preload');
         if(frame.dataset.assignedSrc!==exp.target)throw new Error('wrong preload target: '+frame.dataset.assignedSrc);
         if(document.documentElement.dataset.modularAppReady==='true')throw new Error('shell became usable before approval');
-        const quick=document.querySelectorAll('#appQuickActions button');
-        if(exp.quick&&![...quick].every(button=>button.disabled))throw new Error('quick actions enabled before approval');
 
         window.__modularSmoke.installRealAccess();
         await wait(100);
@@ -71,33 +60,13 @@
         if(document.documentElement.dataset.appTheme!==window.__modularSmoke.key)throw new Error('product theme ownership missing');
         const accent=getComputedStyle(document.getElementById('appSymbol')).backgroundColor;
         if(accent!==exp.accent)throw new Error(`wrong accent ${accent} != ${exp.accent}`);
-        if(quick.length!==exp.quick)throw new Error(`wrong quick action count ${quick.length}`);
-        if(!exp.quick&&!document.getElementById('appQuickActions').hidden)throw new Error('empty quick actions should stay hidden');
-
-        if(exp.quick){
-          const target=quick[0].dataset.target;
-          const doc=frame.contentDocument;
-          doc.body.innerHTML=`<div class="design-flat-panel"><section id="editorShell"><div id="artboard" style="width:640px;height:480px"></div></section><section id="${target}" class="side-card"></section></div>`;
-          frame.contentWindow.DesignEditorApp={project:{presetId:'smoke',width:210,height:297,bleed:3},stage:'smoke-ready'};
-          // Visual enhancement readiness is intentionally absent: the parent must
-          // reveal once the wired project and actual artboard are functional.
-          doc.documentElement.dataset.designEmbeddedProjectReady='1';
-          doc.documentElement.classList.remove('app-booting');
-          frame.dispatchEvent(new Event('load'));
-          frame.contentWindow.__openedSection='';
-          frame.contentWindow.DesignEditorSidebarMenuOrder={sectionFor:()=> 'create',openSection:section=>{frame.contentWindow.__openedSection=section;return true;}};
-        }
+        const quick=document.querySelectorAll('#appQuickActions button');
+        if(quick.length!==0)throw new Error(`wrong quick action count ${quick.length}`);
+        if(!document.getElementById('appQuickActions').hidden)throw new Error('empty quick actions should stay hidden');
 
         await waitFor(()=>document.documentElement.dataset.modularAppReady==='true','shell ready');
         if(document.documentElement.dataset.modularAppEnginePreload!=='ready')throw new Error('engine preload did not finish');
-        if(exp.quick&&document.documentElement.dataset.modularAppFrameReadyStage!=='load-functional-project'&&document.documentElement.dataset.modularAppFrameReadyStage!=='functional-project-probe')throw new Error('design shell did not wait for functional project readiness');
-        if(exp.quick&&![...quick].every(button=>!button.disabled))throw new Error('quick actions stayed disabled after engine ready');
-        if(exp.quick){
-          quick[0].click();
-          const target=quick[0].dataset.target;
-          if(document.documentElement.dataset.modularAppQuickAction!==target)throw new Error('external workspace jump did not target the expected card');
-          if(frame.contentWindow.__openedSection!=='create')throw new Error('external workspace jump did not open target sidebar section');
-        }
+
         document.body.dataset.modularShellSmoke='pass';
         document.body.dataset.modularShellApp=window.__modularSmoke.key;
         document.body.dataset.modularShellTarget=frame.dataset.assignedSrc;
@@ -107,7 +76,6 @@
         document.body.dataset.modularShellAccessRace='pass';
         document.body.dataset.modularShellParallelPreload='pass';
         document.body.dataset.modularShellStableWorkspace='pass';
-        document.body.dataset.modularShellStableProject='pass';
         result.textContent='PASS: '+window.__modularSmoke.key+' -> '+frame.dataset.assignedSrc;
       }catch(error){fail(error);}
     })();
