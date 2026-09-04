@@ -55,3 +55,83 @@ def test_obsolete_cover_editor_pages_are_removed():
     ]
     for path in removed:
         assert not (ROOT / path).exists(), path
+
+
+def test_removed_editor_residual_assets_are_not_reintroduced():
+    removed = [
+        "css/document-editor-comments.css",
+        "css/document-editor-forms.css",
+        "css/document-editor-outline.css",
+        "css/document-editor-print-layout.css",
+        "css/document-editor-table-tools.css",
+        "css/document-editor-usability.css",
+        "css/document-editor-workflow.css",
+        "css/document-editor.css",
+        "css/image-editor-headerless.css",
+        "css/image-editor-pdf-layout.css",
+        "css/image-editor-pro.css",
+        "css/image-editor-workflow.css",
+        "css/image-editor.css",
+        "docs/design-editor-cover-integration.md",
+        "docs/image-editor-stage3.md",
+        "js/editor-tool-rail-v1.js",
+        "js/pdf-utility-background-margin-labels.js",
+        "scripts/run_phase12_browser_smoke.sh",
+        "tests/browser/editor-tool-rail-v6-smoke.html",
+        "tests/browser/design-direct-real-dom-smoke.html",
+    ]
+    removed.extend(
+        f"scripts/{name}"
+        for name in [
+            "run_design_editor_browser_smoke.sh",
+            "run_design_editor_canvas_viewport_smoke.sh",
+            "run_design_editor_cover_mode_menu_smoke.sh",
+            "run_design_editor_cover_project_smoke.sh",
+            "run_design_editor_cover_smoke.sh",
+            "run_design_editor_essential_workspace_smoke.sh",
+            "run_design_editor_fold_runtime_smoke.sh",
+            "run_design_editor_full_preview_smoke.sh",
+            "run_design_editor_leaflet2_layout_smoke.sh",
+            "run_design_editor_local_fonts_smoke.sh",
+            "run_design_editor_mode_shape_smoke.sh",
+            "run_design_editor_pdf_lossless_smoke.sh",
+            "run_design_editor_pdf_smoke.sh",
+            "run_design_editor_print_production_stage2_smoke.sh",
+            "run_design_editor_print_products_smoke.sh",
+            "run_design_editor_reset_all_menus_smoke.sh",
+            "run_design_editor_shape_border_smoke.sh",
+            "run_design_editor_shape_inspector_ux_smoke.sh",
+            "run_design_editor_stability_audit_smoke.sh",
+            "run_design_editor_text_auto_fit_smoke.sh",
+            "run_design_editor_typography_pro_smoke.sh",
+            "run_design_editor_user_flow_smoke.sh",
+            "run_design_editor_workflow_v2_smoke.sh",
+            "run_document_editor_browser_smoke.sh",
+            "run_document_editor_comments_smoke.sh",
+            "run_document_editor_outline_smoke.sh",
+            "run_document_editor_print_layout_smoke.sh",
+            "run_document_editor_table_tools_smoke.sh",
+            "run_document_editor_usability_smoke.sh",
+            "run_document_editor_workflow_smoke.sh",
+            "run_image_editor_background_smoke.sh",
+            "run_image_editor_browser_smoke.sh",
+            "run_image_editor_layout_smoke.sh",
+            "run_image_editor_pro_smoke.sh",
+            "run_image_editor_workflow_smoke.sh",
+        ]
+    )
+    for path in removed:
+        assert not (ROOT / path).exists(), path
+
+
+def test_shared_ui_has_only_live_program_routes():
+    source = _read("js/program-studio-ui-v2.js")
+    for dead in [
+        "/design-editor/",
+        "/document-editor/",
+        "/image-editor/",
+        "editor-tool-rail-v1.js",
+    ]:
+        assert dead not in source
+    for live in ["/print-checker/", "/pdf-editor/", "/pdf-preflight/"]:
+        assert live in source
