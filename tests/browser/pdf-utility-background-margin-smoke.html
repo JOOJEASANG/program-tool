@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>PDF background margin selection smoke</title>
+</head>
+<body>
+  <input id="fileInput" type="file">
+  <div id="pdfUtilityModalOverlay" class="pdfu-modal-overlay open">
+    <div class="pdfu-modal">
+      <h2 id="pdfUtilityModalTitle">PDF 배경색 제거</h2>
+      <div id="pdfUtilityModalBody">
+        <label><input type="radio" name="pdfuBgStrength" value="medium" checked>보통</label>
+      </div>
+      <button id="pdfUtilityModalClose" type="button">닫기</button>
+      <button id="pdfUtilityModalCancel" type="button">취소</button>
+      <button id="pdfUtilityModalRun" type="button">배경 제거 실행</button>
+    </div>
+  </div>
+  <button id="checkBtn" type="button">검사</button>
+  <button id="inlineResetBtn" type="button">초기화</button>
+
+  <script>
+    history.replaceState(null,'','/pdf-preflight/index.html');
+    window.PdfUtility={state:{files:[new File(['pdf'],'selected-from-list.pdf',{type:'application/pdf'})],activeIndex:0,busy:false}};
+  </script>
+  <script src="/js/pdf-utility-margin-crop.js"></script>
+  <script>
+    setTimeout(()=>{
+      const selected=window.PdfUtilityBackgroundMargin?.selectedFile?.();
+      const body=document.getElementById('pdfUtilityModalBody');
+      const initialBox=body.querySelector('.pdfu-margin-box');
+      const inputs=['pdfuMarginTop','pdfuMarginBottom','pdfuMarginLeft','pdfuMarginRight'].every(id=>document.getElementById(id));
+      const usesUtilityState=selected?.name==='selected-from-list.pdf'&&document.getElementById('fileInput').files.length===0;
+
+      document.getElementById('pdfUtilityModalTitle').textContent='PDF 용량 줄이기';
+      body.innerHTML='<label><input type="radio" name="pdfuCompress" value="balanced" checked>균형</label>';
+
+      setTimeout(()=>{
+        const hiddenForCompress=!body.querySelector('.pdfu-margin-box');
+        document.getElementById('pdfUtilityModalTitle').textContent='PDF 배경색 제거';
+        body.innerHTML='<label><input type="radio" name="pdfuBgStrength" value="medium" checked>보통</label>';
+        setTimeout(()=>{
+          const restoredForBackground=Boolean(body.querySelector('.pdfu-margin-box'));
+          const pass=Boolean(initialBox)&&inputs&&usesUtilityState&&hiddenForCompress&&restoredForBackground;
+          document.documentElement.dataset.pdfBackgroundMarginSmoke=pass?'pass':'fail';
+          const result=document.createElement('pre');
+          result.id='result';
+          result.textContent=pass
+            ?'PASS: background cleanup margin removal follows PDF Utility selected file and stays out of compression'
+            :`FAIL: margin UI regression selected=${selected?.name||'none'} inputs=${inputs} compressHidden=${hiddenForCompress} restored=${restoredForBackground}`;
+          document.body.appendChild(result);
+        },120);
+      },120);
+    },180);
+  </script>
+</body>
+</html>
