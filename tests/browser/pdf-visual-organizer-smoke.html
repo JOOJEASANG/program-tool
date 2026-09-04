@@ -100,6 +100,15 @@
         await waitFor(()=>document.getElementById('pdfUtilityVisualOrganizeBtn'),'visual organizer action');
         await window.ProgramStudioPdfVisualPageOrganizer.openVisualOrganizer();
         await waitFor(()=>document.querySelectorAll('.pdfu-page-card').length===4,'four visual page cards');
+
+        document.getElementById('pdfUtilityVisualReset').click();
+        await wait(20);
+        document.querySelector('[data-source-page="1"] [data-action="rotate-right"]').click();
+        if(window.ProgramStudioPdfVisualPageOrganizer.snapshot().pages[0].rotation!==90)throw new Error('visual reset duplicated grid event bindings');
+        document.getElementById('pdfUtilityVisualReset').click();
+        await wait(20);
+        if(window.ProgramStudioPdfVisualPageOrganizer.snapshot().pages[0].rotation!==0)throw new Error('visual reset did not restore rotation');
+
         window.ProgramStudioPdfVisualPageOrganizer.movePage(4,0);
         window.ProgramStudioPdfVisualPageOrganizer.rotatePage(4,90);
         window.ProgramStudioPdfVisualPageOrganizer.deletePage(2);
