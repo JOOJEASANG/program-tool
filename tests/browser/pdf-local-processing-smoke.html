@@ -7,15 +7,29 @@
   </div>
   <div id="uploadZone"><input id="fileInput" type="file"></div>
   <div id="pdfUtilityFileItems"></div>
+  <div class="pdfu-limit-note"></div>
   <div id="progressBox"></div>
+  <div id="pdfUtilityModalOverlay" class="pdfu-modal-overlay">
+    <div class="pdfu-modal">
+      <div id="pdfUtilityModalTitle"></div>
+      <div id="pdfUtilityModalDesc"></div>
+      <div id="pdfUtilityModalBody"></div>
+      <button type="button" id="pdfUtilityModalClose">닫기</button>
+      <button type="button" id="pdfUtilityModalCancel">취소</button>
+      <button type="button" id="pdfUtilityModalRun">실행</button>
+    </div>
+  </div>
   <div id="result">RUNNING</div>
   <script>
     history.replaceState(null,'','/pdf-preflight?smoke=local-processing');
     let serverCalls=0;
+    let extractServerCalls=0;
+    let storagePuts=0;
     let downloadedName='';
     document.getElementById('pdfUtilityMergeBtn').addEventListener('click',()=>{serverCalls+=1;});
     window.setProgress=()=>{};
     window.showCheckStatus=()=>{};
+    window.showError=message=>{window.__lastSmokeError=String(message||'');};
     window.setPageBusy=()=>{};
     URL.createObjectURL=()=> 'blob:pdf-local-smoke';
     URL.revokeObjectURL=()=>{};
@@ -32,13 +46,17 @@
         },
         async load(bytes){
           const count=Math.max(1,new Uint8Array(bytes)[0]||1);
-          return {getPageIndices(){return Array.from({length:count},(_,index)=>index);}};
+          return {
+            getPageCount(){return count;},
+            getPageIndices(){return Array.from({length:count},(_,index)=>index);}
+          };
         }
       }
     };
     function fakeFile(name,size,pages){
       return {name,size,lastModified:size+pages,type:'application/pdf',async arrayBuffer(){return new Uint8Array([pages]).buffer;}};
     }
+    function key(file){return `${file.name}|${file.size}|${file.lastModified}`;}
     function setInputFiles(files){Object.defineProperty(document.getElementById('fileInput'),'files',{configurable:true,value:files});}
     function renderRows(files){
       const root=document.getElementById('pdfUtilityFileItems');
@@ -51,15 +69,37 @@
         root.appendChild(row);
       });
     }
+    const extractSmall=fakeFile('extract-source.pdf',4096,3);
+    window.PdfUtility={state:{files:[extractSmall],activeIndex:0,reports:new Map([[key(extractSmall),{page_count:3}]]),busy:false}};
+    window.auth={currentUser:{uid:'smoke-user',async getIdToken(){return 'smoke-token';}}};
+    window.firebase={storage(){return {ref(){return {async put(){storagePuts+=1;},async delete(){}};}};}};
+    const nativeFetch=window.fetch.bind(window);
+    window.fetch=async(input,init)=>{
+      const url=String(input||'');
+      if(url==='/api/pdf-utility/extract-storage'){
+        extractServerCalls+=1;
+        return {
+          ok:true,
+          status:200,
+          headers:{get(name){const lower=String(name).toLowerCase();if(lower==='content-type')return 'application/pdf';if(lower==='x-pdf-page-count')return '1';return null;}},
+          async blob(){return new Blob([new Uint8Array([37,80,68,70])],{type:'application/pdf'});}
+        };
+      }
+      return nativeFetch(input,init);
+    };
     const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
     const waitFor=async(fn,label,timeout=3000)=>{const started=Date.now();while(Date.now()-started<timeout){if(fn())return;await wait(20);}throw new Error('timeout: '+label);};
   </script>
   <script src="/js/pdf-utility/local-processing.js?v=20260904-1"></script>
+  <script src="/js/pdf-utility/page-extract.js?v=20260904-1"></script>
   <script>
     (async()=>{
       const result=document.getElementById('result');
       try{
         await waitFor(()=>window.ProgramStudioPdfLocalProcessing,'local processing runtime');
+        await waitFor(()=>window.ProgramStudioPdfPageExtract,'page extract runtime');
+        await waitFor(()=>document.getElementById('pdfUtilityExtractBtn'),'page extract action');
+
         const first=fakeFile('first.pdf',1024,2);
         const second=fakeFile('second.pdf',2048,2);
         setInputFiles([first,second]);
@@ -81,9 +121,36 @@
         document.getElementById('fileInput').dispatchEvent(new Event('change',{bubbles:true}));
         await wait(50);
         document.getElementById('pdfUtilityMergeBtn').click();
-        await waitFor(()=>serverCalls===1,'server fallback');
-        if(document.documentElement.dataset.pdfProcessingMode!=='server-fallback')throw new Error('server fallback mode missing');
+        await waitFor(()=>serverCalls===1,'merge server fallback');
+        if(document.documentElement.dataset.pdfProcessingMode!=='server-fallback')throw new Error('merge server fallback mode missing');
         if(document.getElementById('pdfUtilityMergeBtn').dataset.processingMode!=='local-first')throw new Error('merge button mode marker missing');
+
+        window.PdfUtility.state.files=[extractSmall];
+        window.PdfUtility.state.activeIndex=0;
+        downloadedName='';
+        window.ProgramStudioPdfPageExtract.openExtractModal();
+        document.getElementById('pdfUtilityExtractRange').value='2-3, 1';
+        document.getElementById('pdfUtilityModalRun').click();
+        await waitFor(()=>document.documentElement.dataset.pdfPageExtractLastResult==='local-success','local page extraction');
+        if(extractServerCalls!==0||storagePuts!==0)throw new Error('server/storage used during local page extraction');
+        if(!downloadedName.includes('extract-source_페이지추출_3p.pdf'))throw new Error('wrong local extract output name: '+downloadedName);
+        const parsed=window.ProgramStudioPdfPageExtract.parsePageSelection('3,1-2,2',3).join(',');
+        if(parsed!=='3,1,2')throw new Error('page selection order/dedupe failed: '+parsed);
+
+        const bigExtract=fakeFile('extract-big.pdf',130*1024*1024,2);
+        window.PdfUtility.state.files=[bigExtract];
+        window.PdfUtility.state.activeIndex=0;
+        window.PdfUtility.state.reports=new Map();
+        downloadedName='';
+        window.ProgramStudioPdfPageExtract.openExtractModal();
+        document.getElementById('pdfUtilityExtractRange').value='1';
+        document.getElementById('pdfUtilityModalRun').click();
+        await waitFor(()=>document.documentElement.dataset.pdfPageExtractLastResult==='server-success','page extraction server fallback');
+        if(extractServerCalls!==1)throw new Error('extract server fallback missing');
+        if(storagePuts!==1)throw new Error('extract fallback upload count wrong: '+storagePuts);
+        if(!downloadedName.includes('extract-big_페이지추출_1p.pdf'))throw new Error('wrong server extract output name: '+downloadedName);
+        if(document.getElementById('pdfUtilityExtractBtn').dataset.processingMode!=='local-first')throw new Error('extract button mode marker missing');
+
         document.body.dataset.pdfLocalProcessingSmoke='pass';
         result.textContent='PASS';
       }catch(error){
