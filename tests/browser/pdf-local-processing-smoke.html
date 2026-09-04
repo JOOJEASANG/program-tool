@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"><title>PDF Local Processing Smoke</title></head>
+<body data-pdf-local-processing-smoke="running">
+  <div class="action-grid">
+    <button type="button" id="pdfUtilityMergeBtn"><span class="action-chip">최대 10개</span><span class="action-desc">기존 서버 병합</span></button>
+  </div>
+  <div id="uploadZone"><input id="fileInput" type="file"></div>
+  <div id="pdfUtilityFileItems"></div>
+  <div id="progressBox"></div>
+  <div id="result">RUNNING</div>
+  <script>
+    history.replaceState(null,'','/pdf-preflight?smoke=local-processing');
+    let serverCalls=0;
+    let downloadedName='';
+    document.getElementById('pdfUtilityMergeBtn').addEventListener('click',()=>{serverCalls+=1;});
+    window.setProgress=()=>{};
+    window.showCheckStatus=()=>{};
+    window.setPageBusy=()=>{};
+    URL.createObjectURL=()=> 'blob:pdf-local-smoke';
+    URL.revokeObjectURL=()=>{};
+    HTMLAnchorElement.prototype.click=function(){downloadedName=this.download||'';};
+    window.PDFLib={
+      PDFDocument:{
+        async create(){
+          const pages=[];
+          return {
+            async copyPages(source,indices){return indices.map(index=>({index}));},
+            addPage(page){pages.push(page);},
+            async save(){return new Uint8Array([37,80,68,70,45,49,46,55]);}
+          };
+        },
+        async load(bytes){
+          const count=Math.max(1,new Uint8Array(bytes)[0]||1);
+          return {getPageIndices(){return Array.from({length:count},(_,index)=>index);}};
+        }
+      }
+    };
+    function fakeFile(name,size,pages){
+      return {name,size,lastModified:size+pages,type:'application/pdf',async arrayBuffer(){return new Uint8Array([pages]).buffer;}};
+    }
+    function setInputFiles(files){Object.defineProperty(document.getElementById('fileInput'),'files',{configurable:true,value:files});}
+    function renderRows(files){
+      const root=document.getElementById('pdfUtilityFileItems');
+      root.innerHTML='';
+      files.forEach((file,index)=>{
+        const row=document.createElement('div');
+        row.className='pdfu-file-row';
+        row.dataset.index=String(index);
+        row.innerHTML=`<span class="pdfu-file-name">${file.name}</span>`;
+        root.appendChild(row);
+      });
+    }
+    const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+    const waitFor=async(fn,label,timeout=3000)=>{const started=Date.now();while(Date.now()-started<timeout){if(fn())return;await wait(20);}throw new Error('timeout: '+label);};
+  </script>
+  <script src="/js/pdf-utility/local-processing.js?v=20260904-1"></script>
+  <script>
+    (async()=>{
+      const result=document.getElementById('result');
+      try{
+        await waitFor(()=>window.ProgramStudioPdfLocalProcessing,'local processing runtime');
+        const first=fakeFile('first.pdf',1024,2);
+        const second=fakeFile('second.pdf',2048,2);
+        setInputFiles([first,second]);
+        renderRows([second,first]);
+        document.getElementById('fileInput').dispatchEvent(new Event('change',{bubbles:true}));
+        await wait(50);
+        const order=window.ProgramStudioPdfLocalProcessing.resolveOrderedFiles().map(file=>file.name).join(',');
+        if(order!=='second.pdf,first.pdf')throw new Error('DOM order not preserved: '+order);
+        document.getElementById('pdfUtilityMergeBtn').click();
+        await waitFor(()=>document.documentElement.dataset.pdfLocalProcessingLastResult==='local-success','local merge success');
+        if(serverCalls!==0)throw new Error('server handler ran during local merge');
+        if(!downloadedName.includes('PDF_합치기_2개_4p.pdf'))throw new Error('wrong local output name: '+downloadedName);
+        if(document.documentElement.dataset.pdfProcessingMode!=='local-success')throw new Error('local success mode missing');
+
+        const bigA=fakeFile('big-a.pdf',70*1024*1024,1);
+        const bigB=fakeFile('big-b.pdf',70*1024*1024,1);
+        setInputFiles([bigA,bigB]);
+        renderRows([bigA,bigB]);
+        document.getElementById('fileInput').dispatchEvent(new Event('change',{bubbles:true}));
+        await wait(50);
+        document.getElementById('pdfUtilityMergeBtn').click();
+        await waitFor(()=>serverCalls===1,'server fallback');
+        if(document.documentElement.dataset.pdfProcessingMode!=='server-fallback')throw new Error('server fallback mode missing');
+        if(document.getElementById('pdfUtilityMergeBtn').dataset.processingMode!=='local-first')throw new Error('merge button mode marker missing');
+        document.body.dataset.pdfLocalProcessingSmoke='pass';
+        result.textContent='PASS';
+      }catch(error){
+        document.body.dataset.pdfLocalProcessingSmoke='fail';
+        result.textContent='FAIL: '+String(error?.stack||error);
+      }
+    })();
+  </script>
+</body>
+</html>
