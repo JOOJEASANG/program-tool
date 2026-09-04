@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"><title>PDF Visual Organizer Smoke</title></head>
+<body data-pdf-visual-organizer-smoke="running">
+  <div class="action-grid"></div>
+  <div class="pdfu-limit-note"></div>
+  <div id="progressBox"></div>
+  <div id="pdfUtilityModalOverlay" class="pdfu-modal-overlay">
+    <div class="pdfu-modal">
+      <div id="pdfUtilityModalTitle"></div>
+      <div id="pdfUtilityModalDesc"></div>
+      <div id="pdfUtilityModalBody"></div>
+      <button type="button" id="pdfUtilityModalClose">닫기</button>
+      <button type="button" id="pdfUtilityModalCancel">취소</button>
+      <button type="button" id="pdfUtilityModalRun">실행</button>
+    </div>
+  </div>
+  <div id="result">RUNNING</div>
+  <script>
+    history.replaceState(null,'','/pdf-preflight?smoke=visual-organizer');
+    let storagePuts=0;
+    let visualServerCalls=0;
+    let downloadedName='';
+    let lastServerPayload=null;
+    window.setProgress=()=>{};
+    window.showCheckStatus=()=>{};
+    window.showError=message=>{window.__lastVisualError=String(message||'');};
+    window.setPageBusy=()=>{};
+    URL.createObjectURL=()=> 'blob:pdf-visual-smoke';
+    URL.revokeObjectURL=()=>{};
+    HTMLAnchorElement.prototype.click=function(){downloadedName=this.download||'';};
+    HTMLCanvasElement.prototype.getContext=function(){return {};};
+
+    window.pdfjsLib={
+      GlobalWorkerOptions:{},
+      getDocument({data}){
+        const count=Math.max(1,new Uint8Array(data)[0]||1);
+        return {promise:Promise.resolve({
+          numPages:count,
+          async getPage(pageNumber){
+            return {
+              getViewport({scale=1}){return {width:100*scale,height:140*scale};},
+              render(){return {promise:Promise.resolve()};}
+            };
+          },
+          destroy(){}
+        })};
+      }
+    };
+
+    window.PDFLib={
+      degrees(angle){return {angle};},
+      PDFDocument:{
+        async create(){
+          const pages=[];
+          return {
+            async copyPages(source,indices){
+              return indices.map(index=>({
+                index,
+                rotation:0,
+                getRotation(){return {angle:this.rotation};},
+                setRotation(value){this.rotation=Number(value?.angle||0);}
+              }));
+            },
+            addPage(page){pages.push(page);},
+            async save(){return new Uint8Array([37,80,68,70,45,49,46,55]);}
+          };
+        },
+        async load(bytes){
+          const count=Math.max(1,new Uint8Array(bytes)[0]||1);
+          return {getPageCount(){return count;},getPageIndices(){return Array.from({length:count},(_,index)=>index);}};
+        }
+      }
+    };
+
+    function fakeFile(name,size,pages){return {name,size,lastModified:size+pages,type:'application/pdf',async arrayBuffer(){return new Uint8Array([pages]).buffer;}};}
+    const small=fakeFile('visual-small.pdf',8192,4);
+    window.PdfUtility={state:{files:[small],activeIndex:0,reports:new Map(),busy:false}};
+    window.auth={currentUser:{uid:'visual-user',async getIdToken(){return 'visual-token';}}};
+    window.firebase={storage(){return {ref(){return {async put(){storagePuts+=1;},async delete(){}};}};}};
+    const nativeFetch=window.fetch.bind(window);
+    window.fetch=async(input,init)=>{
+      const url=String(input||'');
+      if(url==='/api/pdf-utility/organize-storage'){
+        visualServerCalls+=1;
+        lastServerPayload=JSON.parse(String(init?.body||'{}'));
+        return {ok:true,status:200,headers:{get(name){const lower=String(name).toLowerCase();if(lower==='content-type')return 'application/pdf';if(lower==='x-pdf-page-count')return String(lastServerPayload.page_order?.length||0);return null;}},async blob(){return new Blob([new Uint8Array([37,80,68,70])],{type:'application/pdf'});}};
+      }
+      return nativeFetch(input,init);
+    };
+    const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+    const waitFor=async(fn,label,timeout=3500)=>{const started=Date.now();while(Date.now()-started<timeout){if(fn())return;await wait(20);}throw new Error('timeout: '+label);};
+  </script>
+  <script src="/js/pdf-utility/page-visual-organizer.js?v=20260904-1"></script>
+  <script>
+    (async()=>{
+      const result=document.getElementById('result');
+      try{
+        await waitFor(()=>window.ProgramStudioPdfVisualPageOrganizer,'visual organizer runtime');
+        await waitFor(()=>document.getElementById('pdfUtilityVisualOrganizeBtn'),'visual organizer action');
+        await window.ProgramStudioPdfVisualPageOrganizer.openVisualOrganizer();
+        await waitFor(()=>document.querySelectorAll('.pdfu-page-card').length===4,'four visual page cards');
+        window.ProgramStudioPdfVisualPageOrganizer.movePage(4,0);
+        window.ProgramStudioPdfVisualPageOrganizer.rotatePage(4,90);
+        window.ProgramStudioPdfVisualPageOrganizer.deletePage(2);
+        const localPlan=window.ProgramStudioPdfVisualPageOrganizer.snapshot();
+        if(localPlan.pages.map(item=>item.sourcePage).join(',')!=='4,1,3')throw new Error('visual local order/delete plan wrong');
+        if(localPlan.pages[0].rotation!==90)throw new Error('visual local rotation missing');
+        await window.ProgramStudioPdfVisualPageOrganizer.saveCurrent();
+        await waitFor(()=>document.documentElement.dataset.pdfVisualOrganizerLastResult==='local-success','visual local save');
+        if(visualServerCalls!==0||storagePuts!==0)throw new Error('server/storage used during local visual save');
+        if(!downloadedName.includes('visual-small_페이지시각정리_3p.pdf'))throw new Error('wrong local visual output name: '+downloadedName);
+
+        const big=fakeFile('visual-big.pdf',130*1024*1024,3);
+        window.PdfUtility.state.files=[big];
+        window.PdfUtility.state.activeIndex=0;
+        downloadedName='';
+        await window.ProgramStudioPdfVisualPageOrganizer.openVisualOrganizer();
+        await waitFor(()=>document.querySelectorAll('.pdfu-page-card').length===3,'three big visual page cards');
+        window.ProgramStudioPdfVisualPageOrganizer.movePage(3,0);
+        window.ProgramStudioPdfVisualPageOrganizer.rotatePage(3,90);
+        await window.ProgramStudioPdfVisualPageOrganizer.saveCurrent();
+        await waitFor(()=>document.documentElement.dataset.pdfVisualOrganizerLastResult==='server-success','visual server fallback');
+        if(visualServerCalls!==1)throw new Error('visual server fallback missing');
+        if(storagePuts!==1)throw new Error('visual fallback upload count wrong: '+storagePuts);
+        if((lastServerPayload?.page_order||[]).join(',')!=='3,1,2')throw new Error('visual server order payload wrong');
+        if(Number(lastServerPayload?.page_rotations?.['3']||0)!==90)throw new Error('visual server rotation payload wrong');
+        if(!downloadedName.includes('visual-big_페이지시각정리_3p.pdf'))throw new Error('wrong server visual output name: '+downloadedName);
+        if(document.getElementById('pdfUtilityVisualOrganizeBtn').dataset.processingMode!=='local-first')throw new Error('visual button mode marker missing');
+
+        document.body.dataset.pdfVisualOrganizerSmoke='pass';
+        result.textContent='PASS';
+      }catch(error){
+        document.body.dataset.pdfVisualOrganizerSmoke='fail';
+        result.textContent='FAIL: '+String(error?.stack||error);
+      }
+    })();
+  </script>
+</body>
+</html>
