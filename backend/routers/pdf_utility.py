@@ -1,4 +1,4 @@
-"""PDF Utility endpoints for bounded batch merge and background cleanup."""
+"""PDF Utility endpoints for bounded batch merge, page extraction and background cleanup."""
 from __future__ import annotations
 
 import io
@@ -265,6 +265,74 @@ def _merge_pdf_paths(paths: list[Path], output_path: Path) -> int:
         output.close()
 
 
+def _parse_page_selection(value: str | None, page_count: int) -> list[int]:
+    source = str(value or "").strip()
+    if not source:
+        raise ValueError("추출할 페이지 범위를 입력하세요. 예: 1-3, 5, 8-10")
+    if page_count < 1:
+        raise ValueError("페이지가 없는 PDF입니다.")
+
+    pages: list[int] = []
+    seen: set[int] = set()
+    for raw_part in source.split(","):
+        part = raw_part.strip()
+        if not part:
+            raise ValueError("페이지 범위에 빈 항목이 있습니다. 쉼표 앞뒤 값을 확인하세요.")
+        match = re.fullmatch(r"(\d+)\s*(?:-\s*(\d+))?", part)
+        if match is None:
+            raise ValueError(f"페이지 범위 형식이 올바르지 않습니다: {part}")
+        start = int(match.group(1))
+        end = int(match.group(2) or start)
+        if start < 1 or end < 1:
+            raise ValueError("페이지 번호는 1 이상이어야 합니다.")
+        if end < start:
+            raise ValueError(f"범위 시작 페이지가 끝 페이지보다 큽니다: {part}")
+        if start > page_count or end > page_count:
+            raise ValueError(f"페이지 범위가 전체 {page_count}페이지를 초과합니다: {part}")
+        for page_number in range(start, end + 1):
+            if page_number not in seen:
+                seen.add(page_number)
+                pages.append(page_number)
+            if len(pages) > MAX_TOTAL_PAGES:
+                raise ValueError(f"한 번에 추출할 수 있는 페이지는 최대 {MAX_TOTAL_PAGES}페이지입니다.")
+    if not pages:
+        raise ValueError("추출할 페이지가 없습니다.")
+    return pages
+
+
+def _extract_pdf_bytes(data: bytes, selection: str) -> tuple[bytes, int]:
+    source = _open_pdf(data)
+    output = fitz.open()
+    try:
+        pages = _parse_page_selection(selection, source.page_count)
+        for page_number in pages:
+            output.insert_pdf(source, from_page=page_number - 1, to_page=page_number - 1)
+        if output.page_count < 1:
+            raise ValueError("추출한 PDF에 페이지가 없습니다.")
+        buffer = io.BytesIO()
+        output.save(buffer, garbage=4, deflate=True, deflate_images=True, deflate_fonts=True)
+        return buffer.getvalue(), len(pages)
+    finally:
+        output.close()
+        source.close()
+
+
+def _extract_pdf_path(source_path: Path, output_path: Path, selection: str) -> int:
+    source = _open_pdf_path(source_path)
+    output = fitz.open()
+    try:
+        pages = _parse_page_selection(selection, source.page_count)
+        for page_number in pages:
+            output.insert_pdf(source, from_page=page_number - 1, to_page=page_number - 1)
+        if output.page_count < 1:
+            raise ValueError("추출한 PDF에 페이지가 없습니다.")
+        output.save(str(output_path), garbage=4, deflate=True, deflate_images=True, deflate_fonts=True)
+        return len(pages)
+    finally:
+        output.close()
+        source.close()
+
+
 def _background_lut(strength: str) -> list[int]:
     setting = BACKGROUND_STRENGTHS.get(strength)
     if setting is None:
@@ -389,6 +457,38 @@ def merge_storage(uid):
     finally:
         if paths:
             _delete_storage_paths(paths)
+        shutil.rmtree(temp_dir, ignore_errors=True)
+
+
+@pdf_utility_bp.route("/extract-storage", methods=["POST"])
+@require_auth
+def extract_storage(uid):
+    payload = request.get_json(silent=True) or {}
+    raw_path = payload.get("storage_path")
+    selection = str(payload.get("page_selection") or "").strip()
+    path = ""
+    temp_dir = Path(tempfile.mkdtemp(prefix="pdf-utility-extract-"))
+    try:
+        path = _validate_storage_path(uid, raw_path)
+        source_path = temp_dir / "source.pdf"
+        _download_storage_pdf_to_path(uid, path, source_path)
+        output_path = temp_dir / "extracted.pdf"
+        page_count = _extract_pdf_path(source_path, output_path, selection)
+        response = _deliver_pdf_path(uid, output_path, "PDF_page_extract.pdf", "pdf-utility-page-extract")
+        response.headers["X-PDF-Page-Count"] = str(page_count)
+        response.headers["Access-Control-Expose-Headers"] = (
+            "X-PDF-Page-Count, X-Request-ID, Content-Disposition"
+        )
+        return response
+    except PermissionError as exc:
+        return _error(str(exc), 403, "PDF_UTILITY_STORAGE_FORBIDDEN")
+    except ValueError as exc:
+        return _error(str(exc), 400, "PDF_UTILITY_VALIDATION_FAILED")
+    except Exception:
+        return _internal_error("PDF utility page extraction")
+    finally:
+        if path:
+            _delete_storage_paths([path])
         shutil.rmtree(temp_dir, ignore_errors=True)
 
 
