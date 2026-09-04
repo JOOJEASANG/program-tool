@@ -45,9 +45,13 @@
   }
 
   function syncTrackedFilesFromDom(){
+    const currentRows=rows();
+    if(!currentRows.length){
+      if($('pdfUtilityFileItems'))trackedFiles.clear();
+      return;
+    }
     const ordered=resolveOrderedFiles();
     if(!ordered)return;
-    if(!rows().length){trackedFiles.clear();return;}
     const keep=new Set(ordered.map(fileKey));
     for(const key of Array.from(trackedFiles.keys()))if(!keep.has(key))trackedFiles.delete(key);
   }
@@ -70,15 +74,16 @@
     badge.setAttribute('role','status');
     badge.setAttribute('aria-live','polite');
     badge.style.cssText='grid-column:1/-1;border:1px solid #bae6fd;background:#f0fdff;color:#0e7490;border-radius:11px;padding:9px 11px;font-size:10px;font-weight:850;line-height:1.55';
-    badge.innerHTML='<strong>처리 방식 · 브라우저 로컬 우선</strong><span style="display:block;margin-top:2px;color:#64748b">PDF 합치기는 파일을 서버에 올리지 않고 먼저 이 브라우저에서 처리합니다. 120MB 초과·암호 PDF·호환 오류일 때만 기존 서버 처리로 자동 전환합니다.</span>';
+    const strong=document.createElement('strong');
+    const span=document.createElement('span');
+    span.style.cssText='display:block;margin-top:2px;color:#64748b';
+    badge.append(strong,span);
     grid.appendChild(badge);
     return badge;
   }
 
   function setMode(mode,message){
-    document.documentElement.dataset.pdfProcessingMode=mode;
-    const badge=ensureModeBadge();
-    if(!badge)return;
+    const text=String(message||'');
     const labels={
       ready:'브라우저 로컬 우선',
       local:'브라우저에서 처리 중',
@@ -86,7 +91,17 @@
       'server-fallback':'서버 처리로 자동 전환',
       error:'처리 오류'
     };
-    badge.innerHTML=`<strong>처리 방식 · ${labels[mode]||mode}</strong><span style="display:block;margin-top:2px;color:#64748b">${message||''}</span>`;
+    document.documentElement.dataset.pdfProcessingMode=mode;
+    const badge=ensureModeBadge();
+    if(!badge)return;
+    if(badge.dataset.mode===mode&&badge.dataset.message===text)return;
+    badge.dataset.mode=mode;
+    badge.dataset.message=text;
+    const strong=badge.querySelector('strong');
+    const span=badge.querySelector('span');
+    const title=`처리 방식 · ${labels[mode]||mode}`;
+    if(strong&&strong.textContent!==title)strong.textContent=title;
+    if(span&&span.textContent!==text)span.textContent=text;
   }
 
   function updateMergeButton(){
@@ -94,9 +109,10 @@
     if(!button)return;
     button.dataset.processingMode='local-first';
     const chip=button.querySelector('.action-chip');
-    if(chip)chip.textContent='로컬 우선';
+    if(chip&&chip.textContent!=='로컬 우선')chip.textContent='로컬 우선';
     const desc=button.querySelector('.action-desc');
-    if(desc)desc.textContent='120MB 이하에서는 브라우저에서 먼저 합치며, 호환되지 않는 경우에만 서버 처리로 자동 전환합니다.';
+    const copy='120MB 이하에서는 브라우저에서 먼저 합치며, 호환되지 않는 경우에만 서버 처리로 자동 전환합니다.';
+    if(desc&&desc.textContent!==copy)desc.textContent=copy;
     ensureModeBadge();
   }
 
@@ -108,11 +124,6 @@
 
   function showStatus(message,type='info'){
     if(typeof window.showCheckStatus==='function')window.showCheckStatus(message,type);
-  }
-
-  function showError(message){
-    if(typeof window.showError==='function')window.showError(message);
-    else alert(message);
   }
 
   function stopProgressSoon(){
@@ -261,7 +272,9 @@
       note.dataset.localProcessingNote='1';
       note.append(' PDF 합치기는 120MB 이하에서 브라우저 로컬 처리를 우선해 불필요한 업로드를 줄입니다.');
     }
-    if($('pdfUtilityMergeBtn'))setMode('ready','PDF 합치기는 서버 업로드 없이 로컬 처리를 먼저 시도합니다.');
+    if($('pdfUtilityMergeBtn')&&!document.documentElement.dataset.pdfProcessingMode){
+      setMode('ready','PDF 합치기는 서버 업로드 없이 로컬 처리를 먼저 시도합니다.');
+    }
   }
 
   document.addEventListener('change',onDocumentChange,true);
@@ -273,7 +286,7 @@
   [100,300,700,1200,2200].forEach(delay=>setTimeout(install,delay));
 
   window.ProgramStudioPdfLocalProcessing=Object.freeze({
-    version:'2026.09.04.001',
+    version:'2026.09.04.002',
     strategy:'local-first-with-server-fallback',
     localMergeLimitBytes:LOCAL_MERGE_LIMIT_BYTES,
     pdfLibSource:PDF_LIB_SRC,
