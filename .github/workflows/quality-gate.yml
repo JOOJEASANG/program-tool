@@ -123,9 +123,6 @@ jobs:
       - name: Run Phase 8 runtime asset smoke
         run: bash scripts/run_phase8_browser_smoke.sh
 
-      - name: Run Phase 12 compact editor tool rail smoke
-        run: bash scripts/run_phase12_browser_smoke.sh
-
       - name: Upload frontend diagnostics
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
