@@ -1,6 +1,11 @@
+from pathlib import Path
+
 import fitz
 
 from routers.pdf_utility_margin_crop import _remove_margin_content
+
+
+ROOT = Path(__file__).resolve().parents[2]
 
 
 def test_margin_removal_keeps_page_size_and_whites_requested_content():
@@ -38,3 +43,20 @@ def test_zero_margins_do_not_change_page_content():
     assert page.rect.height == 200
     assert page.get_pixmap().pixel(5, 5) == before
     document.close()
+
+
+def test_background_margin_ui_uses_pdf_utility_selected_file_state():
+    script = (ROOT / "js" / "pdf-utility-margin-crop.js").read_text(encoding="utf-8")
+    runtime = (ROOT / "js" / "pdf-preflight" / "route-runtime.js").read_text(encoding="utf-8")
+
+    assert "window.PdfUtility?.state" in script
+    assert "state.files[index]" in script
+    assert "fileInput" not in script
+    assert "background-cleanup-crop-storage" in script
+    assert "margin_top_mm" in script
+    assert "margin_bottom_mm" in script
+    assert "margin_left_mm" in script
+    assert "margin_right_mm" in script
+    assert "페이지 크기는 그대로 유지" in script
+    assert "pdfUtilityBackgroundMarginScriptV2" in runtime
+    assert "/js/pdf-utility-margin-crop.js?v=20260904-2" in runtime
