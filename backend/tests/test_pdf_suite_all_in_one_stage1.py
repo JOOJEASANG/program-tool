@@ -70,7 +70,7 @@ def test_pdf_suite_is_staged_with_approval_guard_and_home_launcher():
     for marker in (
         'PDF_SUITE_HTML = "pdf-suite/index.html"',
         "data-pdf-suite-auth-guard",
-        'programId:"preflight"',
+        'programId:\"preflight\"',
         "pdf-suite-home-launcher.js",
         "_patch_pdf_suite_entry_points()",
     ):
@@ -79,6 +79,6 @@ def test_pdf_suite_is_staged_with_approval_guard_and_home_launcher():
     for marker in (
         "PDF 올인원 · PDF로 할 수 있는 작업을 한곳에",
         "pdf-suite/",
-        "dataPdfSuiteHomeChip",
+        "pdfSuiteHomeChip",
     ):
         assert marker in home
