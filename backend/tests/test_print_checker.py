@@ -10,7 +10,7 @@ def read(path: str) -> str:
 def test_print_checker_html_loads_unified_tool():
     html = read("print-checker/index.html")
     assert "인쇄물 사전 검토" in html
-    assert "print-checker.js?v=20260903-5" in html
+    assert "print-checker.js?v=20260904-1" in html
     assert "productGrid" in html
     assert "uploadZone" in html
     assert "specForm" in html
