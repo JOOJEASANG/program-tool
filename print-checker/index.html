@@ -15,34 +15,35 @@
       --navy:#12396d;--cyan:#1d9bb2;--ink:#0f172a;--muted:#64748b;
       --line:#e2e8f0;--bg:#f3f7fb;--sidebar:#ffffff;
       --pass:#16a34a;--warn:#d97706;--fail:#dc2626;--info:#1d4ed8;
-      --nav-h:56px;--sidebar-w:300px;
+      --sidebar-w:300px;
     }
     html,body{height:100%}
     body{font-family:Pretendard,"Noto Sans KR",sans-serif;background:var(--bg);color:var(--ink);overflow:hidden}
     button,input,select{font-family:inherit}
 
-    /* ── 내비 ── */
-    .top-nav{
-      position:fixed;inset:0 0 auto 0;z-index:500;height:var(--nav-h);
-      background:rgba(18,57,109,.97);backdrop-filter:blur(14px);
-      display:flex;align-items:center;padding:0 16px;gap:12px;
-      box-shadow:0 4px 20px rgba(15,23,42,.18)
-    }
-    .nav-back{border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.1);color:#fff;border-radius:9px;padding:7px 11px;font-size:12px;font-weight:800;cursor:pointer;text-decoration:none;white-space:nowrap}
-    .nav-back:hover{background:rgba(255,255,255,.2)}
-    .nav-title{flex:1;text-align:center;font-size:15px;font-weight:900;color:#fff;letter-spacing:-.3px}
-    .nav-user{display:flex;align-items:center;gap:8px}
-    .nav-user-name{max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:rgba(255,255,255,.72);font-size:11px;font-weight:700}
-    .nav-logout{border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.1);color:#fff;border-radius:9px;padding:7px 11px;font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap}
-    .nav-logout:hover{background:rgba(255,255,255,.2)}
-
     /* ── 앱 레이아웃 ── */
     .app-layout{
       display:flex;
-      height:calc(100vh - var(--nav-h));
-      margin-top:var(--nav-h);
+      height:100vh;
       overflow:hidden
     }
+
+    /* ── 사이드바 상단 네비 ── */
+    .sb-nav{
+      background:var(--navy);padding:12px 14px;
+      display:flex;align-items:center;gap:8px;flex-shrink:0;
+    }
+    .sb-nav-back{
+      border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.1);
+      color:#fff;border-radius:8px;padding:6px 10px;font-size:11px;font-weight:800;
+      cursor:pointer;text-decoration:none;white-space:nowrap;flex-shrink:0
+    }
+    .sb-nav-back:hover{background:rgba(255,255,255,.2)}
+    .sb-nav-title{flex:1;font-size:12px;font-weight:900;color:#fff;letter-spacing:-.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .sb-nav-user{display:flex;align-items:center;gap:6px;flex-shrink:0}
+    .sb-nav-name{max-width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:rgba(255,255,255,.7);font-size:10px;font-weight:700}
+    .sb-nav-logout{border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.1);color:#fff;border-radius:8px;padding:5px 9px;font-size:10px;font-weight:800;cursor:pointer;white-space:nowrap}
+    .sb-nav-logout:hover{background:rgba(255,255,255,.2)}
 
     /* ── 사이드바 ── */
     .sidebar{
@@ -120,11 +121,22 @@
       display:flex;flex-direction:column;gap:18px
     }
     .canvas-header{background:#fff;border:1px solid var(--line);border-radius:18px;padding:16px 20px;box-shadow:0 6px 20px rgba(15,23,42,.06)}
+    .canvas-header-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
     .canvas-header-badge{font-size:10px;font-weight:900;color:var(--cyan);margin-bottom:5px}
     .canvas-header h2{font-size:18px;font-weight:950;letter-spacing:-.4px;margin-bottom:4px}
     .canvas-header p{font-size:12px;color:var(--muted);line-height:1.6;max-width:580px}
     .canvas-tips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
     .canvas-tip{background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:5px 9px;font-size:10px;font-weight:800;color:#0c4a6e}
+    .collapse-btn{border:1px solid var(--line);background:#f8fafc;color:#64748b;border-radius:8px;padding:5px 9px;font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap;flex-shrink:0}
+    .collapse-btn:hover{background:#eef2f7}
+    .canvas-header-body{overflow:hidden;transition:opacity .2s}
+    .canvas-header.collapsed .canvas-header-body{display:none}
+    /* ── 앞면/뒷면 선택 ── */
+    .side-select-row{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+    .side-label{font-size:10px;font-weight:900;color:#64748b;white-space:nowrap}
+    .side-btn{border:1.5px solid var(--line);background:#f8fafc;color:#475569;border-radius:8px;padding:5px 12px;font-size:11px;font-weight:800;cursor:pointer}
+    .side-btn.active{border-color:var(--cyan);background:#f0fdff;color:var(--navy)}
+    .side-btn:hover:not(.active){background:#eef2f7}
     .canvas-wrap{background:#fff;border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:0 6px 20px rgba(15,23,42,.06)}
     .canvas-wrap canvas{display:block;width:100%;height:auto;border-radius:10px;border:1px solid var(--line);background:#f8fafc}
     .file-info-bar{font-size:11px;color:var(--muted);font-weight:700;margin-top:10px;text-align:center}
@@ -186,18 +198,19 @@
   </style>
 </head>
 <body>
-  <nav class="top-nav">
-    <a class="nav-back" href="/">← 홈</a>
-    <div class="nav-title">인쇄물 사전 검토</div>
-    <div class="nav-user">
-      <span class="nav-user-name" id="userName">로딩 중...</span>
-      <button class="nav-logout" id="logoutBtn" aria-label="로그아웃">로그아웃</button>
-    </div>
-  </nav>
-
   <div class="app-layout">
     <!-- ════ 사이드바 ════ -->
     <aside class="sidebar">
+
+      <!-- 사이드바 상단 네비 -->
+      <nav class="sb-nav">
+        <a class="sb-nav-back" href="/">← 홈</a>
+        <span class="sb-nav-title">인쇄물 사전 검토</span>
+        <div class="sb-nav-user">
+          <span class="sb-nav-name" id="userName">로딩 중…</span>
+          <button class="sb-nav-logout" id="logoutBtn" aria-label="로그아웃">로그아웃</button>
+        </div>
+      </nav>
 
       <!-- STEP 1: 제품 유형 -->
       <div class="sb-section">
@@ -231,6 +244,12 @@
       <!-- 수동 조절 (파일 업로드 후) -->
       <div class="adj-panel" id="adjPanel" hidden>
         <div class="adj-kicker">수동 조절</div>
+        <!-- 앞면/뒷면 선택 -->
+        <div class="side-select-row" id="sideSelectRow" hidden>
+          <span class="side-label">면 선택</span>
+          <button class="side-btn active" data-side="front" type="button">앞면</button>
+          <button class="side-btn" data-side="back" type="button">뒷면</button>
+        </div>
         <label class="adj-check-row">
           <input type="checkbox" id="fileHasBleed">
           <span>파일에 bleed(재단 여유) 포함됨</span>
@@ -264,18 +283,26 @@
     <!-- ════ 캔버스 영역 ════ -->
     <main class="canvas-area">
 
-      <!-- 헤더 설명 -->
-      <div class="canvas-header">
-        <div class="canvas-header-badge">🖨️ PRINT SPEC CHECKER</div>
-        <h2>인쇄물 사전 검토</h2>
-        <p>왼쪽에서 제품 유형과 사양을 선택하면 오른쪽에 안내선이 바로 표시됩니다.
-          파일 없이도 <strong>작업 전 규격 확인</strong>이 가능하며,
-          완성 파일을 업로드하면 안내선과 <strong>대조 확인</strong>할 수 있습니다.</p>
-        <div class="canvas-tips">
-          <span class="canvas-tip">🔵 재단선 — 실제 절단 위치</span>
-          <span class="canvas-tip">🟢 안전 영역 — 텍스트·로고 필수 구역</span>
-          <span class="canvas-tip">🔴 책등 — 앞·뒤 표지 경계</span>
-          <span class="canvas-tip">🟡 날개·접지선</span>
+      <!-- 헤더 설명 (접기/펼치기 가능) -->
+      <div class="canvas-header" id="canvasHeader">
+        <div class="canvas-header-top">
+          <div>
+            <div class="canvas-header-badge">🖨️ PRINT SPEC CHECKER</div>
+            <h2>인쇄물 사전 검토</h2>
+          </div>
+          <button class="collapse-btn" id="headerCollapseBtn" type="button" aria-label="접기">접기 ▲</button>
+        </div>
+        <div class="canvas-header-body" id="canvasHeaderBody">
+          <p>왼쪽에서 제품 유형과 사양을 선택하면 오른쪽에 안내선이 바로 표시됩니다.
+            파일 없이도 <strong>작업 전 규격 확인</strong>이 가능하며,
+            완성 파일을 업로드하면 안내선과 <strong>대조 확인</strong>할 수 있습니다.</p>
+          <div class="canvas-tips">
+            <span class="canvas-tip">🩷 작업선 — 도련(bleed) 외곽선</span>
+            <span class="canvas-tip">🔵 재단선 — 실제 절단 위치</span>
+            <span class="canvas-tip">🟢 안전 영역 — 텍스트·로고 필수 구역</span>
+            <span class="canvas-tip">🔴 책등 — 앞·뒤 표지 경계</span>
+            <span class="canvas-tip">🟡 날개·접지선</span>
+          </div>
         </div>
       </div>
 
@@ -304,7 +331,7 @@
   <script defer src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script defer src="/js/firebase-config.js"></script>
-  <script defer src="/js/print-checker/print-checker.js?v=20260903-5"></script>
+  <script defer src="/js/print-checker/print-checker.js?v=20260904-1"></script>
   <script defer>
     document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('logoutBtn').addEventListener('click', () => {
@@ -313,6 +340,14 @@
       firebase.auth().onAuthStateChanged(user => {
         if (!user) { location.href = '/'; return; }
         document.getElementById('userName').textContent = user.displayName || user.email || '';
+      });
+
+      /* 헤더 접기/펼치기 */
+      const hdr = document.getElementById('canvasHeader');
+      const btn = document.getElementById('headerCollapseBtn');
+      btn.addEventListener('click', () => {
+        const collapsed = hdr.classList.toggle('collapsed');
+        btn.textContent = collapsed ? '펼치기 ▼' : '접기 ▲';
       });
     });
   </script>
