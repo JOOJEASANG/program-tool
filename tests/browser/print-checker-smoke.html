@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"><title>Print checker smoke</title></head>
+<body>
+  <div id="productGrid"></div>
+  <section id="specSection" hidden><form id="specForm"></form></section>
+  <div id="uploadZone"><div id="uploadFilename" style="display:none"></div></div>
+  <input id="fileInput" type="file">
+  <span id="uploadFileInfo" hidden></span><span id="uploadError" hidden></span>
+  <div id="adjPanel" hidden>
+    <div id="sideSelectRow" hidden><button class="side-btn active" data-side="front" type="button">앞면</button><button class="side-btn" data-side="back" type="button">뒷면</button></div>
+    <input type="checkbox" id="fileHasBleed">
+    <input id="adjX" type="range" value="0"><span id="adjXVal"></span>
+    <input id="adjY" type="range" value="0"><span id="adjYVal"></span>
+    <input id="adjScale" type="range" value="100"><span id="adjScaleVal"></span>
+    <button id="resetAdjBtn" type="button">reset</button>
+  </div>
+  <button id="runBtn" type="button">run</button><button id="resetBtn" type="button">reset</button>
+  <div class="canvas-tips"></div><div style="width:900px"><canvas id="previewCanvas"></canvas><div id="canvasFileInfo" hidden></div></div>
+  <section id="leafletGuide" hidden></section><section id="impositionGuide" hidden></section>
+  <section id="reportSection" hidden><div id="reportSummary"></div><div id="reportGrid"></div></section>
+
+  <script>
+    history.replaceState(null,'','/print-checker?product=leaflet');
+    window.pdfjsLib={
+      GlobalWorkerOptions:{},
+      getDocument(){
+        const page=(n)=>({
+          rotate:0,
+          getViewport({scale}){return {width:841.8898*scale,height:595.2756*scale,rotation:0};},
+          render({canvasContext,viewport}){canvasContext.fillStyle=n===1?'#ddd':'#eee';canvasContext.fillRect(0,0,viewport.width,viewport.height);return {promise:Promise.resolve()};}
+        });
+        return {promise:Promise.resolve({numPages:2,getPage:async n=>page(n),destroy:async()=>{}})};
+      }
+    };
+  </script>
+  <script src="/js/print-checker/print-checker.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded',async()=>{
+      try{
+        await new Promise(r=>setTimeout(r,30));
+        const autoSelected=PrintChecker.getState().product==='leaflet'&&document.querySelector('[data-product="leaflet"]')?.classList.contains('selected');
+        document.getElementById('trimW').value='297';
+        document.getElementById('trimH').value='210';
+        document.getElementById('bleed').value='3';
+        document.getElementById('safeZone').value='3';
+        const file=new File([new Uint8Array([37,80,68,70,45,49,46,55])],'leaflet.pdf',{type:'application/pdf'});
+        const inspected=await PrintChecker.inspectFile(file);
+        const state1=PrintChecker.getState();
+        const metaOk=inspected&&state1.pdfPageCount===2&&Math.abs(state1.pdfPages['1'].widthMm-297)<0.1&&Math.abs(state1.pdfPages['1'].heightMm-210)<0.1;
+        const sideVisible=document.getElementById('sideSelectRow').hidden===false;
+        await PrintChecker.setFileSide('back');
+        const sideOk=PrintChecker.getState().fileSide==='back'&&document.getElementById('canvasFileInfo').textContent.includes('현재 2p');
+        const ran=PrintChecker.runCheck();
+        const reports=[...document.querySelectorAll('.report-card')].map(x=>x.textContent);
+        const actualOk=reports.some(x=>x.includes('PDF 실제 규격 (1p)')&&x.includes('297.0 × 210.0mm'))&&reports.some(x=>x.includes('PDF 페이지 수')&&x.includes('2p'));
+        const uniqueInfoIds=document.querySelectorAll('#uploadFileInfo').length===1&&document.querySelectorAll('#canvasFileInfo').length===1;
+        const pass=autoSelected&&metaOk&&sideVisible&&sideOk&&ran&&actualOk&&uniqueInfoIds;
+        document.documentElement.dataset.printCheckerSmoke=pass?'pass':'fail';
+        const out=document.createElement('pre');out.id='result';out.textContent=pass?'PASS: print checker auto-selects product, renders real PDF pages, switches front/back and validates mm dimensions':`FAIL auto=${autoSelected} meta=${metaOk} side=${sideVisible}/${sideOk} ran=${ran} actual=${actualOk}`;document.body.appendChild(out);
+      }catch(error){document.documentElement.dataset.printCheckerSmoke='fail';const out=document.createElement('pre');out.textContent='FAIL '+(error&&error.stack||error);document.body.appendChild(out);}
+    });
+  </script>
+</body>
+</html>
