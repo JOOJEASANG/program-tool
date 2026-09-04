@@ -35,6 +35,7 @@
     };
   </script>
   <script src="/js/print-checker/print-checker.js"></script>
+  <script src="/js/print-checker/reliability.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded',async()=>{
       try{
@@ -55,9 +56,21 @@
         const reports=[...document.querySelectorAll('.report-card')].map(x=>x.textContent);
         const actualOk=reports.some(x=>x.includes('PDF 실제 규격 (1p)')&&x.includes('297.0 × 210.0mm'))&&reports.some(x=>x.includes('PDF 페이지 수')&&x.includes('2p'));
         const uniqueInfoIds=document.querySelectorAll('#uploadFileInfo').length===1&&document.querySelectorAll('#canvasFileInfo').length===1;
-        const pass=autoSelected&&metaOk&&sideVisible&&sideOk&&ran&&actualOk&&uniqueInfoIds;
+
+        document.getElementById('trimW').value='296';
+        document.getElementById('trimW').dispatchEvent(new Event('input',{bubbles:true}));
+        const staleResultHidden=document.getElementById('reportSection').hidden===true&&document.getElementById('reportGrid').children.length===0;
+
+        const failedScript=document.createElement('script');
+        failedScript.id='printCheckerPdfJs';
+        document.head.appendChild(failedScript);
+        failedScript.dispatchEvent(new Event('error'));
+        await Promise.resolve();
+        const failedLoaderRemoved=!document.getElementById('printCheckerPdfJs');
+
+        const pass=autoSelected&&metaOk&&sideVisible&&sideOk&&ran&&actualOk&&uniqueInfoIds&&staleResultHidden&&failedLoaderRemoved;
         document.documentElement.dataset.printCheckerSmoke=pass?'pass':'fail';
-        const out=document.createElement('pre');out.id='result';out.textContent=pass?'PASS: print checker auto-selects product, renders real PDF pages, switches front/back and validates mm dimensions':`FAIL auto=${autoSelected} meta=${metaOk} side=${sideVisible}/${sideOk} ran=${ran} actual=${actualOk}`;document.body.appendChild(out);
+        const out=document.createElement('pre');out.id='result';out.textContent=pass?'PASS: print checker renders PDF, switches sides, validates dimensions, invalidates stale results and recovers failed loader':`FAIL auto=${autoSelected} meta=${metaOk} side=${sideVisible}/${sideOk} ran=${ran} actual=${actualOk} stale=${staleResultHidden} retry=${failedLoaderRemoved}`;document.body.appendChild(out);
       }catch(error){document.documentElement.dataset.printCheckerSmoke='fail';const out=document.createElement('pre');out.textContent='FAIL '+(error&&error.stack||error);document.body.appendChild(out);}
     });
   </script>

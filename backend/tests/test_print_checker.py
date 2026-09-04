@@ -13,6 +13,7 @@ def test_print_checker_html_loads_stabilized_tool():
     assert "인쇄물 사전 검토" in html
     assert "print-checker.js?v=20260904-2" in html
     assert "print-checker.css?v=20260904-2" in html
+    assert "reliability.js?v=20260904-1" in html
     assert "firebase-firestore-compat.js" in html
     assert "js/print-checker/access.js" in html
     for element_id in (
@@ -94,6 +95,20 @@ def test_print_checker_report_has_pass_warn_fail_info():
         assert cls in css
     for label in ("이상 없음", "주의 필요", "조치 필요"):
         assert label in js
+
+
+def test_print_checker_reliability_guard_recovers_pdf_loader_and_invalidates_stale_results():
+    js = read("js/print-checker/reliability.js")
+    assert "printCheckerPdfJs" in js
+    assert "MutationObserver" in js
+    assert "PDF_LOAD_TIMEOUT_MS" in js
+    assert "script.dispatchEvent(new Event('error'))" in js
+    assert "queueMicrotask" in js
+    assert "invalidateReport" in js
+    assert "reportSection" in js
+    assert "specForm" in js
+    assert "fileHasBleed" in js
+    assert "fileInput.value = ''" in js
 
 
 def test_print_checker_uses_shared_design_studio_approval_gate():
