@@ -253,14 +253,8 @@ window.ProgramAccess = {
     if (['/tools/preflight.html', '/tools/pdf-Checker.html', '/pdf-preflight', '/pdf-preflight/index.html'].some(item => path.endsWith(item))) {
       return 'preflight';
     }
-    if (['/tools/perfect-binding-cover.html', '/perfect-binding-cover', '/perfect-binding-cover/index.html', '/design-editor', '/design-editor/index.html', '/design-editor/general', '/design-editor/general.html'].some(item => path.endsWith(item))) {
+    if (['/tools/perfect-binding-cover.html', '/perfect-binding-cover', '/perfect-binding-cover/index.html'].some(item => path.endsWith(item))) {
       return 'design-studio';
-    }
-    if (['/document-editor', '/document-editor/index.html'].some(item => path.endsWith(item))) {
-      return 'document-editor';
-    }
-    if (['/image-editor', '/image-editor/index.html'].some(item => path.endsWith(item))) {
-      return 'image-editor';
     }
     return '';
   },

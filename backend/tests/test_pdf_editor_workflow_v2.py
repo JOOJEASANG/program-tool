@@ -11,7 +11,7 @@ def test_pdf_editor_does_not_reload_retired_guided_workflow_or_tool_rail():
     assert "loadEnhancement('pdfEditorWorkflowV2Script'" not in text
     assert "/js/pdf-editor/workflow-v2.js?v=20260828-1" not in text
     assert "editor-tool-rail-v1.js" not in text
-    assert "if(surface==='pdf-editor'||surface==='pdf-preflight'||surface==='print-checker')return;" in text
+    assert "surface==='pdf-editor'||surface==='pdf-preflight'||surface==='print-checker'||surface==='home'" in text
 
 
 def test_global_ui_no_longer_owns_retired_editor_sidebar_toggle():

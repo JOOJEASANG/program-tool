@@ -12,7 +12,6 @@ ACCESS_MARKER = "data-program-studio-approval-bootstrap"
 FAVICON_MARKER = "data-program-studio-favicon"
 META_MARKER = "data-program-studio-meta"
 UI_STYLE_MARKER = "data-program-studio-ui"
-IMAGE_LAYOUT_MARKER = "data-image-editor-pdf-layout"
 PDF_BOOKLET_MARKER = "data-pdf-classic-booklet"
 EXCLUDED_PARTS = {".git", "node_modules", "venv", ".venv", "__pycache__"}
 PROTECTED_HTML = {
@@ -38,7 +37,7 @@ PDF_BOOKLET_HTML = {
     "tools/pdf-editor.html",
 }
 PAGE_METADATA = {
-    "index.html": ("Program Studio", "PDF·인쇄, 디자인, 문서, 이미지 작업을 위한 Program Studio 웹 도구 플랫폼", "index,follow"),
+    "index.html": ("Program Studio", "PDF·인쇄 실무를 위한 인쇄물 사전 검토·PDF 편집·PDF 유틸리티 플랫폼", "index,follow"),
     "login.html": ("로그인 | Program Studio", "Program Studio 로그인 및 회원가입", "noindex,nofollow"),
     "admin.html": ("관리자 | Program Studio", "Program Studio 회원 및 프로그램 운영 관리", "noindex,nofollow"),
     "approval-waiting.html": ("승인 대기 | Program Studio", "Program Studio 계정 승인 상태 확인", "noindex,nofollow"),
@@ -48,9 +47,9 @@ PAGE_METADATA = {
     "print-checker/index.html": ("인쇄물 사전 검토 | Program Studio", "Program Studio 인쇄물 사전 검토 도구 — 책등·재단선·안전영역·접지선 확인", "noindex,nofollow"),
     "pdf-editor/index.html": ("PDF 편집기 | Program Studio", "Program Studio PDF 병합·페이지·배치·출력 편집기", "noindex,nofollow"),
     "pdf-preflight/index.html": ("PDF 검사 · 유틸리티 | Program Studio", "Program Studio PDF 인쇄 전 검사·보안·유틸리티 도구", "noindex,nofollow"),
-    "perfect-binding-cover/index.html": ("표지 편집기 | Program Studio", "Program Studio 무선제본 표지 편집기 호환 진입점", "noindex,nofollow"),
+    "perfect-binding-cover/index.html": ("표지 검토 | Program Studio", "Program Studio 무선제본 표지 검토 호환 진입점", "noindex,nofollow"),
     "tools/pdf-editor.html": ("PDF 편집기로 이동 | Program Studio", "Program Studio PDF 편집기 호환 주소", "noindex,nofollow"),
-    "tools/perfect-binding-cover.html": ("표지 편집기로 이동 | Program Studio", "Program Studio 표지 편집기 호환 주소", "noindex,nofollow"),
+    "tools/perfect-binding-cover.html": ("표지 검토로 이동 | Program Studio", "Program Studio 표지 검토 호환 주소", "noindex,nofollow"),
 }
 FIREBASE_APPROVAL_BOOTSTRAP = (
     f'<script {ACCESS_MARKER} src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>'
@@ -110,10 +109,6 @@ def page_metadata(path: Path) -> tuple[str, str, str] | None:
     return PAGE_METADATA.get(relative_path(path))
 
 
-def is_image_editor(path: Path) -> bool:
-    return relative_path(path) == "image-editor/index.html"
-
-
 def is_pdf_booklet_page(path: Path) -> bool:
     return relative_path(path) in PDF_BOOKLET_HTML
 
@@ -146,9 +141,8 @@ def should_inject(path: Path, text: str) -> bool:
     needs_favicon = requires_favicon(path) and FAVICON_MARKER not in text
     needs_ui_style = requires_favicon(path) and UI_STYLE_MARKER not in text
     needs_metadata = page_metadata(path) is not None and META_MARKER not in text
-    needs_image_layout = is_image_editor(path) and IMAGE_LAYOUT_MARKER not in text
     needs_pdf_booklet = is_pdf_booklet_page(path) and PDF_BOOKLET_MARKER not in text
-    return needs_boot or needs_favicon or needs_ui_style or needs_metadata or needs_image_layout or needs_pdf_booklet
+    return needs_boot or needs_favicon or needs_ui_style or needs_metadata or needs_pdf_booklet
 
 
 def inject_guard(
@@ -159,7 +153,6 @@ def inject_guard(
     favicon: bool = False,
     ui_style: bool = True,
     metadata: tuple[str, str, str] | None = None,
-    image_editor: bool = False,
     pdf_booklet: bool = False,
 ) -> str:
     text = normalize_metadata(text, metadata)
@@ -175,11 +168,6 @@ def inject_guard(
         if approval_required and INLINE_BOOT_GUARD_MARKER not in text:
             tags += INLINE_BOOT_GUARD_SNIPPET
         tags += f'<script {MARKER} src="/js/app-boot-guard.js?v={version}"></script>'
-    if image_editor and IMAGE_LAYOUT_MARKER not in text:
-        tags += (
-            f'<link {IMAGE_LAYOUT_MARKER} rel="stylesheet" '
-            f'href="/css/image-editor-pdf-layout.css?v={version}">'
-        )
     if pdf_booklet and PDF_BOOKLET_MARKER not in text:
         tags += (
             f'<script {PDF_BOOKLET_MARKER} defer '
@@ -209,7 +197,6 @@ def inject_all() -> list[Path]:
             favicon=requires_favicon(path),
             ui_style=requires_favicon(path),
             metadata=page_metadata(path),
-            image_editor=is_image_editor(path),
             pdf_booklet=is_pdf_booklet_page(path),
         )
         if updated == text:

@@ -19,7 +19,7 @@ def test_product_refocus_release_version_is_synced_with_canonical_pdf_routes():
     assert f"APP_VERSION='{expected}'" in sw
     assert f"const VERSION='{expected}'" in register
     assert f"/js/sw-register.js?v={expected}" in firebase
-    assert "/js/home-professional-suite.js?v='+VERSION" in register
+    assert "home-professional-suite.js" not in register
     assert "/js/pdf-preflight/route-runtime.js?v=20260831-1" in register
     assert "/js/pdf-all-in-one-stage1.js?v=20260831-2" in preflight
     assert "/js/pdf-all-in-one-stage1.js" in pdf_editor

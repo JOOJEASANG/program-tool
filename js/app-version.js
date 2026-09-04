@@ -7,24 +7,8 @@
 
   const LOCAL_KEY='programStudioVersion';
   const CHECK_INTERVAL_MS=10*60*1000;
-  const currentPath=location.pathname.replace(/\/+$/,'')||'/';
   let lastCheckAt=0;
   let checkPromise=null;
-
-  function loadScopedScript(id,src){
-    if(document.getElementById(id))return;
-    const script=document.createElement('script');
-    script.id=id;script.src=src;script.async=false;
-    script.onload=()=>script.dataset.loaded='true';
-    document.head.appendChild(script);
-  }
-
-  // Only enhancements without a canonical route-runtime owner belong here.
-  function loadObserverOwnedEnhancements(){
-    if(currentPath==='/admin'||currentPath==='/admin.html'||currentPath.endsWith('/admin.html')){
-      loadScopedScript('aiDesignFeatureGateScriptV1','/js/ai-design-feature-gate.js?v=20260824-1');
-    }
-  }
 
   function readStoredVersion(){try{return localStorage.getItem(LOCAL_KEY)||''}catch(_){return ''}}
   function writeStoredVersion(value){try{localStorage.setItem(LOCAL_KEY,value)}catch(_){}}
@@ -53,7 +37,6 @@
   }
 
   function checkWhenActive(){if(document.visibilityState!=='hidden')check({force:false});}
-  loadObserverOwnedEnhancements();
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>check({force:true}),{once:true});
   else check({force:true});
   setInterval(checkWhenActive,CHECK_INTERVAL_MS);

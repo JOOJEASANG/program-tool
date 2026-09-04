@@ -1,83 +1,27 @@
 from pathlib import Path
 import json
-
-
-ROOT = Path(__file__).resolve().parents[2]
-
-
-def read(path: str) -> str:
-    return (ROOT / path).read_text(encoding="utf-8")
-
-
-def release_version() -> str:
-    return str(json.loads(read("version.json"))["version"]).strip()
-
-
-def test_runtime_boot_uses_canonical_owners_for_print_workflow_modules():
-    runtime = read("js/sw-register.js")
-    app_version = read("js/app-version.js")
-    pdf_editor = read("js/pdf-editor/route-runtime.js")
-    preflight = read("js/pdf-preflight/route-runtime.js")
-
-    assert "/js/home-print-workflow.js" in runtime
-    assert "/js/admin-operations-overview.js" in runtime
-    for asset in ("/js/pdf-editor-final-check.js", "/js/pdf-editor/spread-split.js", "/js/pdf-editor/booklet-sheet-preview.js"):
-        assert asset in pdf_editor
-    assert "/js/pdf-print-readiness.js" in preflight
-    executable_app = app_version.split("/*", 1)[0] + app_version.rsplit("*/", 1)[-1]
-    for asset in ("/js/pdf-editor-final-check.js", "/js/pdf-print-readiness.js", "/js/pdf-editor/spread-split.js", "/js/pdf-editor/booklet-sheet-preview.js"):
-        assert asset not in executable_app
-    assert f"const VERSION='{release_version()}'" in runtime
-
-
+ROOT=Path(__file__).resolve().parents[2]
+def read(path:str)->str:return (ROOT/path).read_text(encoding="utf-8")
+def release_version()->str:return str(json.loads(read("version.json"))["version"]).strip()
+def test_runtime_boot_uses_canonical_owners_for_live_workflow_modules():
+ runtime=read("js/sw-register.js");app_version=read("js/app-version.js");pdf_editor=read("js/pdf-editor/route-runtime.js");preflight=read("js/pdf-preflight/route-runtime.js");assert "admin-operations-overview.js" not in runtime and "home-print-workflow.js" not in runtime
+ for asset in ("/js/pdf-editor-final-check.js","/js/pdf-editor/spread-split.js","/js/pdf-editor/booklet-sheet-preview.js"):assert asset in pdf_editor
+ assert "/js/pdf-print-readiness.js" in preflight;executable=app_version.split("/*",1)[0]+app_version.rsplit("*/",1)[-1]
+ for asset in ("/js/pdf-editor-final-check.js","/js/pdf-print-readiness.js","/js/pdf-editor/spread-split.js","/js/pdf-editor/booklet-sheet-preview.js"):assert asset not in executable
+ assert f"const VERSION='{release_version()}'" in runtime
 def test_pdf_editor_final_check_reuses_generated_output_without_manual_reupload():
-    source = read("js/pdf-editor-final-check.js")
-    assert "인쇄 전 검사 후 저장" in source
-    assert "바로 PDF 저장" in source
-    assert "apiProcessPdf(sources,settings" in source
-    assert "apiPreflightCheck(file" in source
-    assert "checkedBlob=blob" in source
-    assert "downloadBlob(checkedBlob" in source
-    assert "검사 완료 PDF 저장" in source
-    assert "문제 있어도 PDF 저장" in source
-
-
-def test_home_explains_the_print_workflow_and_keeps_secondary_tools_secondary():
-    workflow = read("js/home-print-workflow.js")
-    suite = read("js/home-professional-suite.js")
-    assert "인쇄 작업 빠른 시작" in workflow
-    assert "PDF 편집 · 인쇄배치" in workflow
-    assert "인쇄 전 검사" in workflow
-    assert "검사 후 PDF 저장" in workflow
-    assert 'href="/pdf-editor/"' in workflow
-    assert 'href="/pdf-preflight/"' in workflow
-    assert "id:'document-editor'" not in suite
-    assert "conversion-ocr" not in suite
-    assert "print-production-home-v3" in suite
-    assert "HOME_PROGRAM_ORDER=['design-editor','pdf-editor','pdf-utility','image-editor']" in suite
-    assert "for(const item of source)" in suite
-    assert "status:item?.status==='active'?'active':'coming'" in suite
-    assert "return safeUrl(raw,base.url)" in suite
-
-
-def test_admin_operations_overview_is_explicit_and_non_destructive():
-    source = read("js/admin-operations-overview.js")
-    for route in ("pdf-editor/", "pdf-preflight/", "image-editor/", "design-editor/", "document-editor/"):
-        assert route in source
-    assert "professional_program_suite" in source
-    assert "완성 도구 상태 정리" in source
-    assert "if(!confirm(" in source
-    assert "visible:true" in source
-    assert "source[index]={...source[index],url:tool.url,status:'active'}" in source
-    assert "window.AdminProfessionalProgramManager?.reload?.()" in source
-    assert "$('aopSync').addEventListener('click',syncCanonical)" in source
-
-
+ source=read("js/pdf-editor-final-check.js")
+ for marker in ("인쇄 전 검사 후 저장","바로 PDF 저장","apiProcessPdf(sources,settings","apiPreflightCheck(file","checkedBlob=blob","downloadBlob(checkedBlob","검사 완료 PDF 저장","문제 있어도 PDF 저장"):assert marker in source
+def test_static_home_keeps_current_programs_only():
+ home=read("index.html")
+ for label in ("인쇄물 사전 검토","PDF 편집 · 인쇄배치","PDF 도구 모음"):assert label in home
+ for retired in ("디자인 편집기","문서 편집기","이미지 편집기"):assert retired not in home
+def test_retired_admin_catalog_and_program_sync_runtime_is_absent():
+ runtime=read("js/sw-register.js")
+ retired=("admin-operations-overview.js","admin-professional-program-manager.js","admin-program-catalog-manager.js","admin-program-catalog-nav-guard.js","admin-program-icon-palette.js","program-catalog-core.js")
+ for filename in retired:
+  assert filename not in runtime
+  assert not (ROOT/"js"/filename).exists()
+ assert "/js/admin-workflow-v2.js?v=20260828-1" in read("js/program-studio-ui-v2.js")
 def test_release_version_is_synchronized_for_new_workflow():
-    version = json.loads(read("version.json"))
-    expected = str(version["version"]).strip()
-    sw = read("sw.js")
-    firebase = read("js/firebase-config.js")
-    assert expected
-    assert f"APP_VERSION='{expected}'" in sw
-    assert f"/js/sw-register.js?v={expected}" in firebase
+ version=json.loads(read("version.json"));expected=str(version["version"]).strip();sw=read("sw.js");firebase=read("js/firebase-config.js");assert expected and f"APP_VERSION='{expected}'" in sw and f"/js/sw-register.js?v={expected}" in firebase

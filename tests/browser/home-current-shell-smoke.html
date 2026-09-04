@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"><title>Current Home Shell Smoke</title></head>
+<body data-home-current-smoke="pending">
+  <main><h1>현재 홈 구성 검사</h1><p id="result">PENDING</p></main>
+  <script>
+    (async()=>{
+      const result=document.getElementById('result');
+      const assert=(value,message)=>{if(!value)throw new Error(message);};
+      try{
+        const response=await fetch('/index.html',{cache:'no-store'});
+        assert(response.ok,'index.html fetch failed');
+        const html=await response.text();
+        const doc=new DOMParser().parseFromString(html,'text/html');
+        assert(doc.querySelector('#programGrid'),'current program grid missing');
+        assert(doc.querySelector('#quickRow'),'current quick-start row missing');
+        assert(doc.querySelector('#search'),'current program search missing');
+        assert(doc.querySelector('[data-cat="print"]'),'print category missing');
+        assert(doc.querySelector('[data-cat="pdf"]'),'pdf category missing');
+        for(const id of ['print-checker','pdf-editor','pdf-preflight']){
+          assert(html.includes(`id:'${id}'`),`current program missing: ${id}`);
+        }
+        for(const dead of ['/design-editor/','/document-editor/','/image-editor/']){
+          assert(!html.includes(dead),`retired route returned to home: ${dead}`);
+        }
+        assert(html.includes("name:'PDF 도구 모음'"),'current PDF utility label missing');
+        document.body.dataset.homeCurrentSmoke='pass';
+        result.textContent='PASS: current three-program home shell is intact';
+      }catch(error){
+        document.body.dataset.homeCurrentSmoke='fail';
+        result.textContent='FAIL: '+String(error.message||error);
+      }
+    })();
+  </script>
+</body>
+</html>

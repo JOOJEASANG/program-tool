@@ -40,7 +40,7 @@ PY
   echo "$label passed using $BROWSER"
 }
 
-run_page "home-dashboard-v2-smoke.html" 'data-home-v2-smoke="pass"' "Home quick workspace browser smoke" "home-dashboard-v2-smoke-dom.html"
+run_page "home-current-shell-smoke.html" 'data-home-current-smoke="pass"' "Current home shell browser smoke" "home-current-shell-smoke-dom.html"
 run_page "admin-workflow-v2-smoke.html" 'data-admin-v2-smoke="pass"' "Admin workflow v2 browser smoke" "admin-workflow-v2-smoke-dom.html"
 run_page "pdf-preflight-workflow-v2-smoke.html" 'data-preflight-v2-smoke="pass"' "PDF preflight workflow v2 browser smoke" "pdf-preflight-workflow-v2-smoke-dom.html"
 run_page "print-checker-smoke.html" 'data-print-checker-smoke="pass"' "Print checker real PDF browser smoke" "print-checker-smoke-dom.html"

@@ -30,7 +30,8 @@ def test_runtime_loader_defers_public_helpers_but_never_unlocks_protected_tools(
     assert "bootStrategy:protectedPage?'approval-gated-runtime':'public-first-paint'" in boot_block
     assert "if(!protectedPage){" in boot_block
     assert "await Promise.race([helpersPromise,delay(1000)])" in boot_block
-    assert "Protected tools are revealed only by app-boot-guard.js" in source
+    assert "if(!protectedPage){reveal();" in boot_block
+    assert "if(isProtectedRuntimePage())return false;" in source
 
 
 def test_historical_runtime_filename_does_not_register_a_service_worker():
