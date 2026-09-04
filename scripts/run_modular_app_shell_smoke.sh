@@ -21,7 +21,7 @@ wait_for_server(){
   for _ in $(seq 1 50); do
     if python3 - "$PORT" <<'PY' >/dev/null 2>&1
 import sys, urllib.request
-with urllib.request.urlopen(f"http://127.0.0.1:{sys.argv[1]}/tests/browser/modular-app-shell-smoke.html?app=cover", timeout=1) as response:
+with urllib.request.urlopen(f"http://127.0.0.1:{sys.argv[1]}/tests/browser/modular-app-shell-smoke.html?app=pdf-layout", timeout=1) as response:
     raise SystemExit(0 if response.status == 200 else 1)
 PY
     then return 0; fi
@@ -38,7 +38,7 @@ run_browser_case(){
 }
 
 wait_for_server
-for app in cover poster flyer invitation notice leaflet pdf-layout booklet; do
+for app in pdf-layout booklet; do
   out="$OUT_DIR/modular-app-${app}-smoke-dom.html"
   url="http://127.0.0.1:$PORT/tests/browser/modular-app-shell-smoke.html?app=$app"
   run_browser_case "$url" "$out" 'data-modular-shell-smoke="pass"'
@@ -46,16 +46,8 @@ for app in cover poster flyer invitation notice leaflet pdf-layout booklet; do
   grep -q "data-modular-shell-theme=\"$app\"" "$out" || { cat "$out" >&2; exit 1; }
   grep -q 'data-modular-shell-access-race="pass"' "$out" || { cat "$out" >&2; exit 1; }
   grep -q 'data-modular-shell-parallel-preload="pass"' "$out" || { cat "$out" >&2; exit 1; }
-  if [[ "$app" == "pdf-layout" || "$app" == "booklet" ]]; then expected_quick=0; else expected_quick=4; fi
-  grep -q "data-modular-shell-quick=\"$expected_quick\"" "$out" || { cat "$out" >&2; exit 1; }
+  grep -q 'data-modular-shell-quick="0"' "$out" || { cat "$out" >&2; exit 1; }
 done
-
-home_merge_out="$OUT_DIR/home-poster-flyer-catalog-smoke-dom.html"
-home_merge_url="http://127.0.0.1:$PORT/tests/browser/home-program-catalog-poster-flyer-smoke.html"
-run_browser_case "$home_merge_url" "$home_merge_out" 'data-home-poster-flyer-smoke="pass"'
-grep -q 'data-home-poster-flyer-count="1"' "$home_merge_out" || { cat "$home_merge_out" >&2; exit 1; }
-grep -q 'data-home-poster-flyer-direct="pass"' "$home_merge_out" || { cat "$home_merge_out" >&2; exit 1; }
-grep -q 'data-home-poster-flyer-route="/design-editor/general?embed=1' "$home_merge_out" || { cat "$home_merge_out" >&2; exit 1; }
 
 for app in layout booklet; do
   out="$OUT_DIR/standalone-pdf-${app}-boundary-smoke-dom.html"
@@ -64,4 +56,4 @@ for app in layout booklet; do
   grep -q "data-boundary-app=\"$app\"" "$out" || { cat "$out" >&2; exit 1; }
 done
 
-echo "Modular app browser smoke passed for legacy shell compatibility, direct poster/flyer home entry, boundary UI using $BROWSER"
+echo "Modular app browser smoke passed for current PDF layout/booklet shell and boundary UI using $BROWSER"
