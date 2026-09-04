@@ -126,6 +126,26 @@ def test_removed_editor_residual_assets_are_not_reintroduced():
         assert not (ROOT / path).exists(), path
 
 
+def test_retired_home_overlay_modules_are_removed():
+    removed = [
+        "js/home-dashboard-v2.js",
+        "js/home-header-footer-refine.js",
+        "js/home-hero-upgrade.js",
+        "js/home-pdf-utility-name-sync.js",
+        "js/home-print-workflow.js",
+        "js/home-professional-suite.js",
+        "js/home-program-catalog.js",
+    ]
+    for path in removed:
+        assert not (ROOT / path).exists(), path
+
+    runtime = _read("js/sw-register.js")
+    ui = _read("js/program-studio-ui-v2.js")
+    for filename in [Path(path).name for path in removed]:
+        assert filename not in runtime
+        assert filename not in ui
+
+
 def test_shared_ui_has_only_live_program_routes():
     source = _read("js/program-studio-ui-v2.js")
     for dead in [
