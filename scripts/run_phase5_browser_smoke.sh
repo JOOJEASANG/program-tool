@@ -44,3 +44,4 @@ run_page "home-current-shell-smoke.html" 'data-home-current-smoke="pass"' "Curre
 run_page "admin-workflow-v2-smoke.html" 'data-admin-v2-smoke="pass"' "Admin workflow v2 browser smoke" "admin-workflow-v2-smoke-dom.html"
 run_page "pdf-preflight-workflow-v2-smoke.html" 'data-preflight-v2-smoke="pass"' "PDF preflight workflow v2 browser smoke" "pdf-preflight-workflow-v2-smoke-dom.html"
 run_page "print-checker-smoke.html" 'data-print-checker-smoke="pass"' "Print checker real PDF browser smoke" "print-checker-smoke-dom.html"
+run_page "pdf-suite-hub-smoke.html" 'data-pdf-suite-smoke="pass"' "PDF suite hub browser smoke" "pdf-suite-hub-smoke-dom.html"
