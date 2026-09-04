@@ -32,7 +32,7 @@ PREFLIGHT_NON_OWNERS = (
     Path("js/app-version.js"),
     Path("js/program-studio-ui-v2.js"),
 )
-RETIRED_LEGACY_ASSETS = (
+RETIRED_RUNTIME_ASSETS = (
     Path("js/home-premium-ui.js"),
     Path("js/home-hero-console-v2.js"),
     Path("js/home-dashboard-v2.js"),
@@ -45,6 +45,8 @@ RETIRED_LEGACY_ASSETS = (
     Path("js/ai-design-feature-gate.js"),
     Path("js/pdf-utility-first-paint.js"),
     Path("js/pdf-utility-cost-policy-hardening.js"),
+)
+RETIRED_COMPAT_FILES = (
     Path("tools/preflight.html"),
     Path("tools/pdf-Checker.html"),
 )
@@ -162,16 +164,17 @@ def validate() -> None:
     if not (ROOT / "sw.js").is_file():
         errors.append("sw.js compatibility artifact is missing; keep it while old clients may still request it")
 
-    retired_names = {path.name for path in RETIRED_LEGACY_ASSETS}
-    for filename in sorted(retired_names):
+    for retired in RETIRED_RUNTIME_ASSETS:
+        filename = retired.name
         if filename in sw_text or filename in ui_text:
             errors.append(f"Retired runtime asset is still referenced by shared runtime: {filename}")
-    if "if(isHome())" in sw_text:
-        errors.append("Static home must not regain a dynamic home-overlay loader")
-
-    for retired in RETIRED_LEGACY_ASSETS:
         if (ROOT / retired).exists():
             errors.append(f"Retired legacy asset was reintroduced: {retired.as_posix()}")
+    for retired in RETIRED_COMPAT_FILES:
+        if (ROOT / retired).exists():
+            errors.append(f"Retired compatibility file was reintroduced: {retired.as_posix()}")
+    if "if(isHome())" in sw_text:
+        errors.append("Static home must not regain a dynamic home-overlay loader")
 
     if errors:
         print("Runtime asset validation failed:", file=sys.stderr)
@@ -184,7 +187,7 @@ def validate() -> None:
         f"{len(dynamic_assets)} local dynamic asset(s) exist; "
         f"preflight canonical modules {len(collect_script_entries(source_text[PREFLIGHT_RUNTIME]))}; "
         "static home has no overlay helpers; "
-        f"retired legacy assets absent: {len(RETIRED_LEGACY_ASSETS)}"
+        f"retired runtime assets absent: {len(RETIRED_RUNTIME_ASSETS)}"
     )
 
 

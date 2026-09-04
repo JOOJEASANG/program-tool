@@ -15,7 +15,7 @@ def test_main_home_is_static_and_business_name_only():
     index = read("index.html")
     firebase = read("js/firebase-config.js")
     assert 'data-home-static-professional="1"' in index
-    for label in ("인쇄물 사전 검토", "PDF 편집기", "PDF 검사 · 유틸리티"):
+    for label in ("인쇄물 사전 검토", "PDF 편집 · 인쇄배치", "PDF 도구 모음"):
         assert label in index
     assert "대표 " not in firebase
     assert "사업자등록번호 " not in firebase
@@ -51,12 +51,7 @@ def test_boot_guard_is_injected_only_into_dynamic_pages():
 
     index_path = ROOT / "index.html"
     source = '<html><head><title>x</title></head><body><script src="js/firebase-config.js"></script></body></html>'
-    updated = module.inject_guard(
-        source,
-        "2026.07.24.006",
-        favicon=module.requires_favicon(index_path),
-        metadata=module.page_metadata(index_path),
-    )
+    updated = module.inject_guard(source, "2026.07.24.006", favicon=module.requires_favicon(index_path), metadata=module.page_metadata(index_path))
     assert module.MARKER in updated
     assert updated.index(module.MARKER) < updated.index(module.META_MARKER)
     assert module.should_inject(index_path, source)
@@ -73,13 +68,7 @@ def test_inline_boot_guard_is_injected_for_protected_pages():
 
     preflight_path = ROOT / "pdf-preflight" / "index.html"
     source = '<html><head></head><body></body></html>'
-    updated = module.inject_guard(
-        source,
-        "2026.07.24.006",
-        approval_required=True,
-        favicon=module.requires_favicon(preflight_path),
-        metadata=module.page_metadata(preflight_path),
-    )
+    updated = module.inject_guard(source, "2026.07.24.006", approval_required=True, favicon=module.requires_favicon(preflight_path), metadata=module.page_metadata(preflight_path))
     assert module.INLINE_BOOT_GUARD_MARKER in updated
     assert module.MARKER in updated
     assert updated.index(module.INLINE_BOOT_GUARD_MARKER) < updated.index('src="/js/app-boot-guard.js')
@@ -115,14 +104,5 @@ def test_optional_helpers_do_not_block_public_first_paint():
 
 def test_static_home_has_no_retired_overlay_helpers():
     register = read("js/sw-register.js")
-    for marker in (
-        "home-dashboard-v2.js",
-        "home-header-footer-refine.js",
-        "home-hero-upgrade.js",
-        "home-pdf-utility-name-sync.js",
-        "home-print-workflow.js",
-        "home-professional-suite.js",
-        "home-program-catalog.js",
-        "if(isHome())",
-    ):
+    for marker in ("home-dashboard-v2.js", "home-header-footer-refine.js", "home-hero-upgrade.js", "home-pdf-utility-name-sync.js", "home-print-workflow.js", "home-professional-suite.js", "home-program-catalog.js", "if(isHome())"):
         assert marker not in register

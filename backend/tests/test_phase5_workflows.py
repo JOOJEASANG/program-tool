@@ -24,14 +24,7 @@ def test_phase5_enhancements_have_single_surface_owners():
 
 def test_home_workspace_is_static_searchable_and_has_only_live_programs():
     text = HOME.read_text(encoding="utf-8")
-    for marker in (
-        'data-home-static-professional="1"',
-        "인쇄물 사전 검토",
-        "PDF 편집기",
-        "PDF 검사 · 유틸리티",
-        "search",
-        "prog-card",
-    ):
+    for marker in ('data-home-static-professional="1"', "인쇄물 사전 검토", "PDF 편집 · 인쇄배치", "PDF 도구 모음", "search", "prog-card"):
         assert marker in text
     for retired in ("디자인 편집기", "문서 편집기", "이미지 편집기"):
         assert retired not in text
@@ -39,15 +32,7 @@ def test_home_workspace_is_static_searchable_and_has_only_live_programs():
 
 def test_admin_workflow_makes_recent_members_read_only_and_confirms_bulk_changes():
     text = ADMIN.read_text(encoding="utf-8")
-    for marker in (
-        "#recentMembers .item>.btn{display:none!important}",
-        "button.disabled=true",
-        "admin-member-select",
-        "applyBulk",
-        "confirm(`${ids.length}명의 ${label}을(를) 변경할까요?`)",
-        "data-status=\"suspended\"",
-        "event.stopImmediatePropagation()",
-    ):
+    for marker in ("#recentMembers .item>.btn{display:none!important}", "button.disabled=true", "admin-member-select", "applyBulk", "confirm(`${ids.length}명의 ${label}을(를) 변경할까요?`)", "data-status=\"suspended\"", "event.stopImmediatePropagation()"):
         assert marker in text
     assert "setInterval(" not in text
 
@@ -63,15 +48,7 @@ def test_admin_bulk_update_reuses_firestore_without_replacing_existing_admin_ren
 def test_preflight_prioritizes_fail_warning_pass_and_supports_filters():
     text = PREFLIGHT.read_text(encoding="utf-8")
     assert "ORDER={fail:0,warning:1,pass:2,unknown:3}" in text
-    for marker in (
-        "문제 0",
-        "확인 0",
-        "정상 0",
-        "우선 수정 필요",
-        "확인 권장",
-        "preflight-filter-hidden",
-        "MutationObserver(queueSync)",
-    ):
+    for marker in ("문제 0", "확인 0", "정상 0", "우선 수정 필요", "확인 권장", "preflight-filter-hidden", "MutationObserver(queueSync)"):
         assert marker in text
     assert "setInterval(" not in text
     assert "runTool(" not in text
