@@ -1,353 +1,133 @@
 <!doctype html>
-<html lang="ko">
+<html lang="ko" data-program-studio-print-checker="1" style="visibility:hidden">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>인쇄물 사전 검토 · Program Studio</title>
-  <meta name="description" content="표지·리플렛·전단지 등 인쇄물 파일의 책등·재단선·안전 영역·접지선을 검토합니다.">
+  <meta name="description" content="표지·리플렛·전단지·초대장·소책자 PDF의 재단 규격, 도련, 안전 영역, 책등, 접지와 페이지 구성을 실제 파일과 비교합니다.">
   <meta name="robots" content="noindex,nofollow">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
-  <style>
-    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-    :root{
-      --navy:#12396d;--cyan:#1d9bb2;--ink:#0f172a;--muted:#64748b;
-      --line:#e2e8f0;--bg:#f3f7fb;--sidebar:#ffffff;
-      --pass:#16a34a;--warn:#d97706;--fail:#dc2626;--info:#1d4ed8;
-      --sidebar-w:300px;
-    }
-    html,body{height:100%}
-    body{font-family:Pretendard,"Noto Sans KR",sans-serif;background:var(--bg);color:var(--ink);overflow:hidden}
-    button,input,select{font-family:inherit}
-
-    /* ── 앱 레이아웃 ── */
-    .app-layout{
-      display:flex;
-      height:100vh;
-      overflow:hidden
-    }
-
-    /* ── 사이드바 상단 네비 ── */
-    .sb-nav{
-      background:var(--navy);padding:12px 14px;
-      display:flex;align-items:center;gap:8px;flex-shrink:0;
-    }
-    .sb-nav-back{
-      border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.1);
-      color:#fff;border-radius:8px;padding:6px 10px;font-size:11px;font-weight:800;
-      cursor:pointer;text-decoration:none;white-space:nowrap;flex-shrink:0
-    }
-    .sb-nav-back:hover{background:rgba(255,255,255,.2)}
-    .sb-nav-title{flex:1;font-size:12px;font-weight:900;color:#fff;letter-spacing:-.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .sb-nav-user{display:flex;align-items:center;gap:6px;flex-shrink:0}
-    .sb-nav-name{max-width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:rgba(255,255,255,.7);font-size:10px;font-weight:700}
-    .sb-nav-logout{border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.1);color:#fff;border-radius:8px;padding:5px 9px;font-size:10px;font-weight:800;cursor:pointer;white-space:nowrap}
-    .sb-nav-logout:hover{background:rgba(255,255,255,.2)}
-
-    /* ── 사이드바 ── */
-    .sidebar{
-      width:var(--sidebar-w);min-width:260px;flex-shrink:0;
-      overflow-y:auto;overflow-x:hidden;
-      background:var(--sidebar);
-      border-right:1px solid var(--line);
-      display:flex;flex-direction:column;gap:0
-    }
-    .sb-section{padding:16px 16px 0;border-bottom:1px solid var(--line)}
-    .sb-section:last-child{border-bottom:none;padding-bottom:16px}
-    .sb-kicker{font-size:10px;font-weight:900;color:var(--cyan);letter-spacing:.5px;margin-bottom:8px}
-    .sb-title{font-size:13px;font-weight:950;margin-bottom:12px}
-
-    /* ── 제품 카드 (사이드바 2×2) ── */
-    #productGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
-    .product-card{border:1.5px solid var(--line);background:#f8fafc;border-radius:12px;padding:10px 8px;text-align:center;cursor:pointer;transition:.15s;color:#334155}
-    .product-card:hover{border-color:#7dd3e0;background:#fff;transform:translateY(-1px)}
-    .product-card.selected{border-color:var(--cyan);background:linear-gradient(180deg,#f0fdff,#fff);box-shadow:0 0 0 2px rgba(29,155,178,.2)}
-    .pc-icon{display:block;font-size:22px;margin-bottom:4px}
-    .pc-label{display:block;font-size:11px;font-weight:950;margin-bottom:2px}
-    .pc-desc{display:block;font-size:9px;color:var(--muted);line-height:1.35}
-
-    /* ── 사양 폼 ── */
-    #specSection{padding-bottom:4px}
-    #specForm{display:flex;flex-direction:column;gap:10px;margin-bottom:14px}
-    .spec-field{display:flex;flex-direction:column;gap:4px}
-    .spine-auto-group{display:flex;flex-direction:column;gap:10px}
-    .spec-label{font-size:11px;font-weight:900;color:#374151}
-    .spec-hint{display:block;font-size:9px;color:var(--muted);font-weight:600;margin-top:1px}
-    .spec-input-row{display:flex;align-items:center;gap:6px}
-    .spec-input{flex:1;border:1.5px solid #d9e2ec;border-radius:9px;padding:8px 10px;font-size:12px;outline:none;min-width:0}
-    .spec-input:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(29,155,178,.1)}
-    .spec-select{width:100%;border:1.5px solid #d9e2ec;border-radius:9px;padding:8px 10px;font-size:12px;outline:none;background:#fff;cursor:pointer}
-    .spec-unit{font-size:11px;font-weight:900;color:var(--muted);white-space:nowrap;flex-shrink:0}
-    .spec-check-row{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:700;color:#334155;cursor:pointer;padding:4px 0}
-    .spec-check-row input[type=checkbox]{accent-color:var(--cyan);width:14px;height:14px;cursor:pointer;flex-shrink:0}
-    .wing-group{padding:4px 0}
-
-    /* ── 업로드 ── */
-    .upload-zone{border:2px dashed #bfd0df;border-radius:14px;background:#fbfdff;padding:20px 14px;text-align:center;cursor:pointer;transition:.18s;margin-bottom:12px}
-    .upload-zone:hover,.upload-zone.dragover{border-color:var(--cyan);background:#f0fdff}
-    .upload-zone.has-file{border-style:solid;border-color:#67c7d8;background:#effcff}
-    .upload-icon{font-size:24px;margin-bottom:6px}
-    .upload-title{font-size:12px;font-weight:950}
-    .upload-sub{font-size:10px;color:var(--muted);margin-top:4px;line-height:1.5}
-    .upload-filename{margin-top:8px;background:#fff;border:1px solid #bae6fd;border-radius:8px;padding:6px 10px;color:#0e7490;font-size:10px;font-weight:900;word-break:break-all}
-    #fileInput{display:none}
-    .file-info{display:block;font-size:10px;color:var(--muted);font-weight:700;margin-top:6px;text-align:center}
-    .upload-error{display:block;font-size:11px;color:var(--fail);font-weight:800;margin-top:6px;text-align:center}
-
-    /* ── 수동 조절 ── */
-    .adj-panel{padding:14px 16px;border-top:1px solid var(--line)}
-    .adj-kicker{font-size:10px;font-weight:900;color:var(--cyan);letter-spacing:.5px;margin-bottom:10px}
-    .adj-check-row{display:flex;align-items:center;gap:7px;margin-bottom:10px;font-size:11px;font-weight:700;color:#334155;cursor:pointer}
-    .adj-check-row input[type=checkbox]{accent-color:var(--cyan);width:14px;height:14px;cursor:pointer}
-    .adj-row{display:flex;align-items:center;gap:8px;margin-bottom:7px}
-    .adj-label{font-size:10px;font-weight:900;color:#64748b;min-width:54px;white-space:nowrap}
-    .adj-slider{flex:1;accent-color:var(--cyan);cursor:pointer}
-    .adj-val{font-size:10px;font-weight:900;color:var(--ink);min-width:38px;text-align:right;font-variant-numeric:tabular-nums}
-    .reset-adj-btn{width:100%;margin-top:6px;border:1px solid var(--line);background:#f8fafc;color:#475569;border-radius:8px;padding:7px;font-size:11px;font-weight:900;cursor:pointer}
-    .reset-adj-btn:hover{background:#eef2f7}
-
-    /* ── 액션 버튼 ── */
-    .action-row{display:flex;gap:8px;padding:14px 16px;border-top:1px solid var(--line)}
-    .run-btn{flex:1;border:0;background:linear-gradient(135deg,var(--navy),var(--cyan));color:#fff;border-radius:10px;padding:11px 14px;font-size:13px;font-weight:900;cursor:pointer;transition:.15s}
-    .run-btn:hover{opacity:.9;transform:translateY(-1px)}
-    .reset-btn{border:1px solid var(--line);background:#f8fafc;color:#475569;border-radius:10px;padding:11px 12px;font-size:12px;font-weight:900;cursor:pointer}
-    .reset-btn:hover{background:#eef2f7}
-
-    /* ── 캔버스 영역 (오른쪽) ── */
-    .canvas-area{
-      flex:1;overflow-y:auto;overflow-x:hidden;
-      padding:22px;background:var(--bg);
-      display:flex;flex-direction:column;gap:18px
-    }
-    .canvas-header{background:#fff;border:1px solid var(--line);border-radius:18px;padding:16px 20px;box-shadow:0 6px 20px rgba(15,23,42,.06)}
-    .canvas-header-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
-    .canvas-header-badge{font-size:10px;font-weight:900;color:var(--cyan);margin-bottom:5px}
-    .canvas-header h2{font-size:18px;font-weight:950;letter-spacing:-.4px;margin-bottom:4px}
-    .canvas-header p{font-size:12px;color:var(--muted);line-height:1.6;max-width:580px}
-    .canvas-tips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
-    .canvas-tip{background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:5px 9px;font-size:10px;font-weight:800;color:#0c4a6e}
-    .collapse-btn{border:1px solid var(--line);background:#f8fafc;color:#64748b;border-radius:8px;padding:5px 9px;font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap;flex-shrink:0}
-    .collapse-btn:hover{background:#eef2f7}
-    .canvas-header-body{overflow:hidden;transition:opacity .2s}
-    .canvas-header.collapsed .canvas-header-body{display:none}
-    /* ── 앞면/뒷면 선택 ── */
-    .side-select-row{display:flex;align-items:center;gap:8px;margin-bottom:10px}
-    .side-label{font-size:10px;font-weight:900;color:#64748b;white-space:nowrap}
-    .side-btn{border:1.5px solid var(--line);background:#f8fafc;color:#475569;border-radius:8px;padding:5px 12px;font-size:11px;font-weight:800;cursor:pointer}
-    .side-btn.active{border-color:var(--cyan);background:#f0fdff;color:var(--navy)}
-    .side-btn:hover:not(.active){background:#eef2f7}
-    .canvas-wrap{background:#fff;border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:0 6px 20px rgba(15,23,42,.06)}
-    .canvas-wrap canvas{display:block;width:100%;height:auto;border-radius:10px;border:1px solid var(--line);background:#f8fafc}
-    .file-info-bar{font-size:11px;color:var(--muted);font-weight:700;margin-top:10px;text-align:center}
-
-    /* ── 리포트 ── */
-    .report-wrap{background:#fff;border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:0 6px 20px rgba(15,23,42,.06)}
-    .report-kicker{font-size:10px;font-weight:900;color:var(--cyan);letter-spacing:.5px;margin-bottom:8px}
-    .report-summary{border-radius:12px;padding:12px 16px;font-size:12px;font-weight:900;margin-bottom:12px}
-    .report-summary.status-pass{background:#dcfce7;border:1px solid #bbf7d0;color:#166534}
-    .report-summary.status-warn{background:#fef9c3;border:1px solid #fde68a;color:#92400e}
-    .report-summary.status-fail{background:#fee2e2;border:1px solid #fecaca;color:#991b1b}
-    #reportGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px}
-    .report-card{background:#fff;border-radius:12px;padding:14px;border:1px solid var(--line)}
-    .report-card.status-pass{border-left:4px solid var(--pass)}
-    .report-card.status-warn{border-left:4px solid var(--warn)}
-    .report-card.status-fail{border-left:4px solid var(--fail)}
-    .report-card.status-info{border-left:4px solid var(--info)}
-    .rc-head{display:flex;align-items:center;gap:7px;margin-bottom:5px}
-    .rc-icon{font-size:14px;flex-shrink:0}
-    .rc-label{font-size:12px;font-weight:950}
-    .rc-detail{font-size:10px;color:var(--ink);font-weight:700;margin-bottom:3px}
-    .rc-guide{font-size:10px;color:var(--muted);line-height:1.55}
-
-    /* ── 정보 카드 (접지·면부 가이드) ── */
-    .info-card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:0 6px 20px rgba(15,23,42,.06)}
-    .info-kicker{font-size:10px;font-weight:900;color:var(--cyan);letter-spacing:.5px;margin-bottom:6px}
-    .info-desc{font-size:11px;color:var(--muted);line-height:1.6;margin-bottom:10px}
-    .info-note{font-size:10px;color:#94a3b8;margin-top:8px}
-
-    /* ── 접지 면 배치 가이드 ── */
-    .fp-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}
-    .fp-side-label{font-size:10px;font-weight:900;color:#64748b;min-width:56px;white-space:nowrap}
-    .fp-panels{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
-    .fp-cell{border:2px solid;border-radius:8px;padding:8px 10px;text-align:center;min-width:52px}
-    .fp-num{font-size:14px;font-weight:900}
-    .fp-role{font-size:9px;font-weight:800;margin-top:2px}
-    .fp-sep{font-size:12px;color:#94a3b8}
-
-    /* ── 면부 배치 가이드 ── */
-    .imp-presets{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:14px}
-    .imp-preset{background:#f8fafc;border:1px solid var(--line);border-radius:12px;padding:12px}
-    .imp-preset-title{font-size:11px;font-weight:900;color:#334155;margin-bottom:8px}
-    .imp-row{display:flex;align-items:center;gap:6px;margin-bottom:4px;font-size:10px;flex-wrap:wrap}
-    .imp-sheet-label{color:#64748b;font-weight:800;min-width:38px}
-    .imp-front{background:#dbeafe;border-radius:6px;padding:3px 8px;font-weight:800}
-    .imp-back{background:#dcfce7;border-radius:6px;padding:3px 8px;font-weight:800}
-    .imp-warn{background:#fef9c3;border:1px solid #fde68a;border-radius:8px;padding:8px 12px;font-size:11px;color:#92400e;font-weight:800;margin-bottom:8px}
-    .imp-ok{background:#dcfce7;border:1px solid #bbf7d0;border-radius:8px;padding:8px 12px;font-size:11px;color:#166534;font-weight:800;margin-bottom:8px}
-    .imp-calc{padding-top:12px;border-top:1px solid var(--line);margin-top:4px}
-    .calc-btn{border:0;background:linear-gradient(135deg,var(--navy),var(--cyan));color:#fff;border-radius:8px;padding:7px 14px;font-size:11px;font-weight:900;cursor:pointer}
-
-    /* ── 반응형 ── */
-    @media(max-width:768px){
-      body{overflow:auto}
-      .app-layout{flex-direction:column;height:auto;overflow:visible}
-      .sidebar{width:100%;min-width:0;border-right:none;border-bottom:1px solid var(--line)}
-      .canvas-area{padding:14px}
-    }
-  </style>
+  <link rel="stylesheet" href="/css/print-checker.css?v=20260904-2">
 </head>
-<body>
+<body class="print-checker-page">
   <div class="app-layout">
-    <!-- ════ 사이드바 ════ -->
-    <aside class="sidebar">
-
-      <!-- 사이드바 상단 네비 -->
+    <aside class="sidebar" aria-label="인쇄물 검토 설정">
       <nav class="sb-nav">
         <a class="sb-nav-back" href="/">← 홈</a>
         <span class="sb-nav-title">인쇄물 사전 검토</span>
         <div class="sb-nav-user">
-          <span class="sb-nav-name" id="userName">로딩 중…</span>
-          <button class="sb-nav-logout" id="logoutBtn" aria-label="로그아웃">로그아웃</button>
+          <span class="sb-nav-name" id="userName">확인 중…</span>
+          <button class="sb-nav-logout" id="logoutBtn" type="button" aria-label="로그아웃">로그아웃</button>
         </div>
       </nav>
 
-      <!-- STEP 1: 제품 유형 -->
-      <div class="sb-section">
+      <section class="sb-section">
         <div class="sb-kicker">STEP 1</div>
         <div class="sb-title">제품 유형 선택</div>
         <div id="productGrid" role="group" aria-label="제품 유형"></div>
-      </div>
+      </section>
 
-      <!-- STEP 2: 사양 입력 -->
-      <div class="sb-section" id="specSection" hidden>
+      <section class="sb-section" id="specSection" hidden>
         <div class="sb-kicker">STEP 2</div>
         <div class="sb-title">사양 입력</div>
         <form id="specForm" onsubmit="return false"></form>
-      </div>
+      </section>
 
-      <!-- STEP 3: 파일 업로드 -->
-      <div class="sb-section">
-        <div class="sb-kicker">STEP 3 (선택)</div>
-        <div class="sb-title">파일 업로드</div>
-        <div class="upload-zone" id="uploadZone" role="button" tabindex="0" aria-label="파일 업로드">
-          <div class="upload-icon">📂</div>
+      <section class="sb-section">
+        <div class="sb-kicker">STEP 3 · 선택</div>
+        <div class="sb-title">완성 파일 대조</div>
+        <div class="upload-zone" id="uploadZone" role="button" tabindex="0" aria-label="PDF 또는 이미지 파일 업로드">
+          <div class="upload-icon" aria-hidden="true">📂</div>
           <div class="upload-title">파일 올리기</div>
-          <div class="upload-sub">PDF·PNG·JPEG·TIFF·WEBP<br>클릭하거나 끌어다 놓으세요</div>
+          <div class="upload-sub">PDF·PNG·JPEG·WEBP<br>클릭하거나 끌어다 놓으세요</div>
           <div class="upload-filename" id="uploadFilename" style="display:none"></div>
         </div>
-        <input type="file" id="fileInput" accept=".pdf,application/pdf,image/png,image/jpeg,image/tiff,image/webp">
-        <span class="file-info" id="fileInfo" hidden></span>
-        <span class="upload-error" id="uploadError" hidden></span>
-      </div>
+        <input type="file" id="fileInput" accept=".pdf,application/pdf,image/png,image/jpeg,image/webp">
+        <span class="file-info" id="uploadFileInfo" hidden></span>
+        <span class="upload-error" id="uploadError" role="alert" hidden></span>
+      </section>
 
-      <!-- 수동 조절 (파일 업로드 후) -->
-      <div class="adj-panel" id="adjPanel" hidden>
-        <div class="adj-kicker">수동 조절</div>
-        <!-- 앞면/뒷면 선택 -->
+      <section class="adj-panel" id="adjPanel" hidden aria-label="미리보기 수동 조절">
+        <div class="adj-kicker">미리보기 조절</div>
         <div class="side-select-row" id="sideSelectRow" hidden>
-          <span class="side-label">면 선택</span>
-          <button class="side-btn active" data-side="front" type="button">앞면</button>
-          <button class="side-btn" data-side="back" type="button">뒷면</button>
+          <span class="side-label">PDF 면 선택</span>
+          <button class="side-btn active" data-side="front" type="button">앞면 · PDF 1p</button>
+          <button class="side-btn" data-side="back" type="button">뒷면 · PDF 2p</button>
         </div>
-        <label class="adj-check-row">
-          <input type="checkbox" id="fileHasBleed">
-          <span>파일에 bleed(재단 여유) 포함됨</span>
-        </label>
-        <div class="adj-row">
-          <span class="adj-label">가로 이동</span>
-          <input type="range" class="adj-slider" id="adjX" min="-80" max="80" value="0" step="1">
-          <span class="adj-val" id="adjXVal">0 px</span>
-        </div>
-        <div class="adj-row">
-          <span class="adj-label">세로 이동</span>
-          <input type="range" class="adj-slider" id="adjY" min="-80" max="80" value="0" step="1">
-          <span class="adj-val" id="adjYVal">0 px</span>
-        </div>
-        <div class="adj-row">
-          <span class="adj-label">크기 조절</span>
-          <input type="range" class="adj-slider" id="adjScale" min="70" max="130" value="100" step="1">
-          <span class="adj-val" id="adjScaleVal">100%</span>
-        </div>
+        <label class="adj-check-row"><input type="checkbox" id="fileHasBleed"><span>파일에 도련(bleed) 포함</span></label>
+        <div class="adj-row"><span class="adj-label">가로 이동</span><input type="range" class="adj-slider" id="adjX" min="-80" max="80" value="0" step="1"><span class="adj-val" id="adjXVal">0 px</span></div>
+        <div class="adj-row"><span class="adj-label">세로 이동</span><input type="range" class="adj-slider" id="adjY" min="-80" max="80" value="0" step="1"><span class="adj-val" id="adjYVal">0 px</span></div>
+        <div class="adj-row"><span class="adj-label">크기 조절</span><input type="range" class="adj-slider" id="adjScale" min="70" max="130" value="100" step="1"><span class="adj-val" id="adjScaleVal">100%</span></div>
         <button class="reset-adj-btn" id="resetAdjBtn" type="button">조절 초기화</button>
-      </div>
+      </section>
 
-      <!-- 액션 버튼 -->
       <div class="action-row">
         <button class="run-btn" id="runBtn" type="button">검토 실행</button>
         <button class="reset-btn" id="resetBtn" type="button">초기화</button>
       </div>
+    </aside>
 
-    </aside><!-- /sidebar -->
-
-    <!-- ════ 캔버스 영역 ════ -->
-    <main class="canvas-area">
-
-      <!-- 헤더 설명 (접기/펼치기 가능) -->
-      <div class="canvas-header" id="canvasHeader">
+    <main class="canvas-area" id="printCheckerMain">
+      <section class="canvas-header" id="canvasHeader">
         <div class="canvas-header-top">
           <div>
-            <div class="canvas-header-badge">🖨️ PRINT SPEC CHECKER</div>
+            <div class="canvas-header-badge">PRINT SPEC CHECKER</div>
             <h2>인쇄물 사전 검토</h2>
           </div>
-          <button class="collapse-btn" id="headerCollapseBtn" type="button" aria-label="접기">접기 ▲</button>
+          <button class="collapse-btn" id="headerCollapseBtn" type="button" aria-expanded="true">접기 ▲</button>
         </div>
         <div class="canvas-header-body" id="canvasHeaderBody">
-          <p>왼쪽에서 제품 유형과 사양을 선택하면 오른쪽에 안내선이 바로 표시됩니다.
-            파일 없이도 <strong>작업 전 규격 확인</strong>이 가능하며,
-            완성 파일을 업로드하면 안내선과 <strong>대조 확인</strong>할 수 있습니다.</p>
+          <p>제품 사양을 입력하면 안내선을 만들고, PDF를 올리면 실제 페이지를 렌더링해 <strong>페이지 수와 실제 mm 규격</strong>을 입력 사양과 비교합니다. 양면 PDF는 1·2페이지를 앞면·뒷면으로 전환해 확인할 수 있습니다.</p>
           <div class="canvas-tips">
-            <span class="canvas-tip">🩷 작업선 — 도련(bleed) 외곽선</span>
-            <span class="canvas-tip">🔵 재단선 — 실제 절단 위치</span>
-            <span class="canvas-tip">🟢 안전 영역 — 텍스트·로고 필수 구역</span>
-            <span class="canvas-tip">🔴 책등 — 앞·뒤 표지 경계</span>
-            <span class="canvas-tip">🟡 날개·접지선</span>
+            <span class="canvas-tip">작업선 — 도련 외곽</span>
+            <span class="canvas-tip">재단선 — 절단 위치</span>
+            <span class="canvas-tip">안전 영역 — 텍스트 보호</span>
+            <span class="canvas-tip">책등 · 날개</span>
+            <span class="canvas-tip">접지선 · 면 배치</span>
           </div>
         </div>
-      </div>
+      </section>
 
-      <!-- 캔버스 -->
-      <div class="canvas-wrap">
+      <section class="canvas-wrap" aria-label="인쇄물 미리보기">
         <canvas id="previewCanvas"></canvas>
-        <div class="file-info-bar" id="fileInfo" hidden></div>
-      </div>
+        <div class="file-info-bar" id="canvasFileInfo" hidden></div>
+      </section>
 
-      <!-- 접지 면 배치 가이드 (리플렛) -->
-      <div class="info-card" id="leafletGuide" hidden></div>
+      <section class="info-card" id="leafletGuide" hidden></section>
+      <section class="info-card" id="impositionGuide" hidden></section>
 
-      <!-- 면부 배치 가이드 (소책자) -->
-      <div class="info-card" id="impositionGuide" hidden></div>
-
-      <!-- 검토 리포트 -->
-      <div class="report-wrap" id="reportSection" hidden>
+      <section class="report-wrap" id="reportSection" hidden aria-live="polite">
         <div class="report-kicker">STEP 4 · 검토 결과</div>
         <div id="reportSummary" class="report-summary"></div>
         <div id="reportGrid"></div>
-      </div>
-
-    </main><!-- /canvas-area -->
-  </div><!-- /app-layout -->
+      </section>
+    </main>
+  </div>
 
   <script defer src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
   <script defer src="/js/firebase-config.js"></script>
-  <script defer src="/js/print-checker/print-checker.js?v=20260904-1"></script>
+  <script defer src="/js/print-checker/access.js?v=20260904-1"></script>
+  <script defer src="/js/print-checker/print-checker.js?v=20260904-2"></script>
   <script defer>
     document.addEventListener('DOMContentLoaded', () => {
-      document.getElementById('logoutBtn').addEventListener('click', () => {
-        firebase.auth().signOut().then(() => location.href = '/');
+      const logout = document.getElementById('logoutBtn');
+      logout?.addEventListener('click', () => window.auth?.signOut().then(() => location.replace('/')));
+      window.auth?.onAuthStateChanged(user => {
+        if (!user) return;
+        const name = document.getElementById('userName');
+        if (name) name.textContent = user.displayName || user.email || '사용자';
       });
-      firebase.auth().onAuthStateChanged(user => {
-        if (!user) { location.href = '/'; return; }
-        document.getElementById('userName').textContent = user.displayName || user.email || '';
-      });
-
-      /* 헤더 접기/펼치기 */
-      const hdr = document.getElementById('canvasHeader');
-      const btn = document.getElementById('headerCollapseBtn');
-      btn.addEventListener('click', () => {
-        const collapsed = hdr.classList.toggle('collapsed');
-        btn.textContent = collapsed ? '펼치기 ▼' : '접기 ▲';
+      const header = document.getElementById('canvasHeader');
+      const toggle = document.getElementById('headerCollapseBtn');
+      toggle?.addEventListener('click', () => {
+        const collapsed = header?.classList.toggle('collapsed') === true;
+        toggle.textContent = collapsed ? '펼치기 ▼' : '접기 ▲';
+        toggle.setAttribute('aria-expanded', String(!collapsed));
       });
     });
   </script>
