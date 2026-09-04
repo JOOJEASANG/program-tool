@@ -41,7 +41,7 @@
         await load(entry.id,entry.src);
         loaded.push(entry.id);
       }
-      document.documentElement.dataset.pdfPreflightRuntime='canonical-v2';
+      document.documentElement.dataset.pdfPreflightRuntime='canonical-v1';
       return loaded;
     })();
     return readyPromise;
@@ -50,6 +50,6 @@
   window.ProgramStudioPreflightRuntime={
     modules:MODULES,
     loadAll,
-    stage:'canonical-preflight-runtime-v2'
+    stage:'canonical-preflight-runtime-v1'
   };
 })();

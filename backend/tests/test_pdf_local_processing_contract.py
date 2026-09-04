@@ -13,7 +13,7 @@ def test_preflight_runtime_loads_local_processing_after_pdf_utility():
     local_pos = runtime.index("pdfUtilityLocalProcessingScriptV1")
     assert utility_pos < local_pos
     assert "/js/pdf-utility/local-processing.js?v=20260904-1" in runtime
-    assert "canonical-preflight-runtime-v2" in runtime
+    assert "canonical-preflight-runtime-v1" in runtime
 
 
 def test_local_merge_contract_is_browser_first_with_server_fallback():
