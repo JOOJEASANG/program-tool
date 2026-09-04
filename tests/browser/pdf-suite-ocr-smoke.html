@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"><title>PDF suite OCR smoke</title></head>
+<body>
+  <section class="section" data-category="convert"><div class="tool-grid">
+    <div class="tool planned" id="ocrTextCard" data-status="planned"><span class="status plan">확장 예정</span><span class="tool-name">OCR 문자 인식</span><span class="tool-desc">planned</span></div>
+  </div></section>
+  <section class="section" data-category="scan"><div class="tool-grid">
+    <div class="tool planned" id="ocrPdfCard" data-status="planned"><span class="status plan">확장 예정</span><span class="tool-name">검색 가능한 PDF</span><span class="tool-desc">planned</span></div>
+  </div></section>
+  <section class="roadmap"><div class="roadmap-tags"><span class="roadmap-tag">한국어 OCR</span><span class="roadmap-tag">검색 가능한 PDF</span><span class="roadmap-tag">PDF/A</span><span class="roadmap-tag">전자서명</span></div></section>
+  <script src="/js/pdf-suite/ocr-tools.js"></script>
+  <script>
+  (function(){
+    function fail(message){document.documentElement.dataset.pdfSuiteOcrSmoke='fail';document.body.dataset.error=message;}
+    window.addEventListener('load',function(){setTimeout(function(){
+      try{
+        if(!window.ProgramStudioPdfSuiteOcr)throw new Error('ocr api missing');
+        if(window.ProgramStudioPdfSuiteOcr.tesseractVersion!=='7.0.0')throw new Error('unexpected tesseract version');
+        if(document.documentElement.dataset.pdfSuiteOcr!=='ready')throw new Error('ready marker missing');
+        var txt=document.getElementById('ocrTextCard'),pdf=document.getElementById('ocrPdfCard');
+        [txt,pdf].forEach(function(card){if(card.dataset.status!=='local'||card.classList.contains('planned'))throw new Error('OCR card not promoted');});
+        if(txt.querySelector('.tool-name').textContent.indexOf('한국어·영어 OCR')<0)throw new Error('OCR text title missing');
+        if(pdf.querySelector('.tool-name').textContent.indexOf('검색 가능한 PDF')<0)throw new Error('searchable title missing');
+        var tags=[].map.call(document.querySelectorAll('.roadmap-tag'),function(node){return node.textContent.trim();});
+        if(tags.indexOf('한국어 OCR')>=0||tags.indexOf('검색 가능한 PDF')>=0)throw new Error('completed OCR roadmap tags remained');
+        if(tags.indexOf('PDF/A')<0||tags.indexOf('전자서명')<0)throw new Error('unimplemented standards roadmap removed');
+        pdf.click();
+        var modal=document.getElementById('pdfSuiteOcrModal');
+        if(!modal?.classList.contains('open'))throw new Error('OCR modal did not open');
+        if(modal.querySelector('[data-ocr-mode]').value!=='pdf')throw new Error('searchable PDF mode not selected');
+        if(!modal.querySelector('[data-ocr-native]').checked)throw new Error('native text preservation should default on');
+        if(!modal.querySelector('[data-ocr-lang] option[value="kor+eng"]'))throw new Error('Korean English option missing');
+        modal.querySelector('[data-ocr-close]').click();
+        txt.click();
+        if(modal.querySelector('[data-ocr-mode]').value!=='txt')throw new Error('OCR TXT mode not selected');
+        document.documentElement.dataset.pdfSuiteOcrSmoke='pass';
+      }catch(error){fail(error.message||String(error));}
+    },180);});
+  })();
+  </script>
+</body>
+</html>
