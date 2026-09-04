@@ -22,15 +22,18 @@ def validate() -> None:
     required = (
         "apps/index.html",
         "css/studio-app-shell.css",
+        "css/print-checker.css",
         "js/studio-app-shell.js",
         "js/modular-app-access.js",
         "js/pdf-editor/standalone-app-profile.js",
         "js/pdf-editor/app-boundary.js",
         "js/pdf-editor/route-runtime.js",
         "print-checker/index.html",
+        "js/print-checker/access.js",
         "js/print-checker/print-checker.js",
         "tests/browser/modular-app-shell-smoke.html",
         "tests/browser/standalone-boundary-ui-smoke.html",
+        "tests/browser/print-checker-smoke.html",
         "scripts/run_modular_app_shell_smoke.sh",
     )
     for relative in required:
@@ -70,9 +73,13 @@ def validate() -> None:
     for marker in ("productGrid", "uploadZone", "specForm", "reportSection", "previewCanvas"):
         if marker not in checker_html:
             errors.append(f"print-checker/index.html is missing element: {marker}")
+
+    checker_css = read("css/print-checker.css")
+    if "/css/print-checker.css" not in checker_html:
+        errors.append("print-checker/index.html does not load the scoped print-checker stylesheet")
     for cls in ("status-pass", "status-warn", "status-fail", "status-info"):
-        if cls not in checker_html:
-            errors.append(f"print-checker/index.html is missing status class: {cls}")
+        if cls not in checker_css:
+            errors.append(f"css/print-checker.css is missing status class: {cls}")
 
     checker_js = read("js/print-checker/print-checker.js")
     for product in PRINT_CHECKER_PRODUCTS:
@@ -84,6 +91,10 @@ def validate() -> None:
     for fold in ("2fold", "3roll", "3zfold", "4fold"):
         if fold not in checker_js:
             errors.append(f"print-checker.js does not handle fold type: {fold}")
+
+    checker_access = read("js/print-checker/access.js")
+    if "ProgramAccess.guardTool" not in checker_access or "design-studio" not in checker_access:
+        errors.append("print-checker must reuse the shared design-studio ProgramAccess guard")
 
     access = read("js/modular-app-access.js")
     for key in PDF_KEYS:
@@ -127,7 +138,7 @@ def validate() -> None:
             print(f" - {error}", file=sys.stderr)
         raise SystemExit(1)
 
-    print("Modular app architecture OK: print-checker unified tool (cover/leaflet/flyer/invitation), PDF editor (layout/booklet), shared access guard, Firebase rewrites and browser smoke coverage all validated")
+    print("Modular app architecture OK: print-checker unified tool (cover/leaflet/flyer/invitation), real PDF inspection, shared access guard, PDF editor (layout/booklet), Firebase rewrites and browser smoke coverage all validated")
 
 
 if __name__ == "__main__":
