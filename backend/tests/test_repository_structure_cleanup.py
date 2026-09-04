@@ -154,8 +154,53 @@ def test_boot_guard_has_no_retired_editor_runtime_loaders():
         "designPrintProductionStage2ScriptV1",
     ]:
         assert dead not in source
+    assert "/print-checker" in source
+    assert "return 'design-studio'" in source
     assert "/js/pdf-editor/print-workflow-focus.js" in source
     assert "/js/pdf-preflight-panel-balance.js" in source
+
+
+def test_shared_runtime_has_no_retired_editor_routes_or_manifest():
+    source = _read("js/sw-register.js")
+    for dead in [
+        "/design-editor",
+        "/document-editor",
+        "/image-editor",
+        "DESIGN_EDITOR_RUNTIME_SCRIPTS",
+        "DESIGN_EDITOR_GENERAL_ROUTE_IDS",
+    ]:
+        assert dead not in source
+    assert "'/print-checker','/print-checker/index.html'" in source
+    assert "/js/pdf-editor/route-runtime.js" in source
+    assert "/js/pdf-preflight/route-runtime.js" in source
+
+
+def test_access_path_mapper_keeps_only_live_compatibility_routes():
+    source = _read("js/firebase-config.js")
+    for dead in [
+        "/design-editor",
+        "/document-editor",
+        "/image-editor",
+        "return 'document-editor'",
+        "return 'image-editor'",
+    ]:
+        assert dead not in source
+    assert "/perfect-binding-cover" in source
+    assert "return 'design-studio'" in source
+    assert "/pdf-editor" in source
+    assert "/pdf-preflight" in source
+
+
+def test_deploy_injector_has_no_retired_image_editor_hooks():
+    source = _read("scripts/inject_boot_guard.py")
+    for dead in [
+        "IMAGE_LAYOUT_MARKER",
+        "is_image_editor",
+        "image_editor=",
+        "image-editor-pdf-layout.css",
+    ]:
+        assert dead not in source
+    assert "인쇄물 사전 검토·PDF 편집·PDF 유틸리티 플랫폼" in source
 
 
 def test_phase7_runner_only_exercises_live_boot_surfaces():
