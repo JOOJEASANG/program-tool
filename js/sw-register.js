@@ -75,8 +75,6 @@
     loadPromises.set(id,tracked);return tracked;
   }
 
-  function loadCatalogCore(){return load('programCatalogCoreScriptV1','/js/program-catalog-core.js?v=20260818-1')}
-
   /*
    * PDF route source-contract compatibility metadata only. Executable loading
    * is owned by /js/pdf-editor/route-runtime.js.
@@ -143,14 +141,6 @@
       tasks.push(load('programStudioPlatformHealthScriptV1','/js/platform-health.js?v='+VERSION).catch(error=>{console.warn('Platform health helper loading failed',error);return null;}));
       tasks.push(load('appVersionHelperScript','/js/app-version.js?v='+VERSION));
     }
-    if(isPath('/admin','/admin.html')){
-      tasks.push(loadCatalogCore()
-        .then(()=>load('adminProgramCatalogManagerScriptV1','/js/admin-program-catalog-manager.js?v=20260808-1'))
-        .then(()=>load('adminProgramCatalogNavGuardScriptV1','/js/admin-program-catalog-nav-guard.js?v=20260818-1'))
-        .then(()=>load('adminProfessionalProgramManagerScriptV1','/js/admin-professional-program-manager.js?v=20260821-2'))
-        .then(()=>load('adminOperationsOverviewScriptV1','/js/admin-operations-overview.js?v='+VERSION)));
-      tasks.push(load('adminProgramIconPaletteScriptV1','/js/admin-program-icon-palette.js?v=20260808-1'));
-    }
     if(isPath('/tools/pdf-editor.html','/pdf-editor','/pdf-editor/index.html'))tasks.push(loadPdfEditorRuntime());
     if(isPath('/tools/pdf-Checker.html','/tools/preflight.html','/pdf-preflight','/pdf-preflight/index.html'))tasks.push(loadPreflightRuntime());
     return Promise.allSettled(tasks);
@@ -168,7 +158,6 @@
     });
     cleanupLegacyRuntime().catch(error=>console.warn('Legacy runtime cleanup failed',error));
     if(!protectedPage){reveal();helpersPromise.catch(error=>console.warn('Runtime helper loading failed',error));return;}
-    // Protected tools are revealed only by app-boot-guard.js after approval and route runtime readiness.
     try{await Promise.race([helpersPromise,delay(1000)]);await nextPaint();}
     finally{helpersPromise.catch(error=>console.warn('Runtime helper loading failed',error));}
   }
