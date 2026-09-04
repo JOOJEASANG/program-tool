@@ -59,7 +59,6 @@ def test_public_program_cannot_bypass_user_approval():
     program = FakeSnapshot({"public": {"pdf-editor": True, "preflight": True}})
     pending = FakeSnapshot({"status": "pending"})
     missing = FakeSnapshot(None)
-
     assert _program_access_from_snapshots(program, pending, "pdf-editor") is False
     assert _program_access_from_snapshots(program, pending, "preflight") is False
     assert _program_access_from_snapshots(program, missing, "pdf-editor") is False
@@ -67,13 +66,9 @@ def test_public_program_cannot_bypass_user_approval():
 
 def test_approved_account_can_use_every_managed_program():
     catalog = FakeSnapshot({"public": {"pdf-editor": False, "preflight": False}})
-    approved = FakeSnapshot({
-        "status": "approved",
-        "programs": {"pdf-editor": True, "preflight": False},
-    })
+    approved = FakeSnapshot({"status": "approved", "programs": {"pdf-editor": True, "preflight": False}})
     pending = FakeSnapshot({"status": "pending", "programs": {"pdf-editor": True}})
     suspended = FakeSnapshot({"status": "suspended", "programs": {"preflight": True}})
-
     assert _program_access_from_snapshots(catalog, approved, "pdf-editor") is True
     assert _program_access_from_snapshots(catalog, approved, "preflight") is True
     assert _program_access_from_snapshots(catalog, pending, "pdf-editor") is False
@@ -96,35 +91,20 @@ def test_frontend_and_backend_share_account_approval_policy():
     assert '.get("public")' not in backend
 
 
-def test_guard_maps_every_program_shell_to_approval_policy():
+def test_guard_maps_every_live_program_shell_to_approval_policy():
     frontend = (ROOT / "js" / "firebase-config.js").read_text(encoding="utf-8")
-    for program_id in (
-        "return 'pdf-editor'",
-        "return 'preflight'",
-        "return 'design-studio'",
-        "return 'document-editor'",
-        "return 'image-editor'",
-    ):
+    for program_id in ("return 'pdf-editor'", "return 'preflight'", "return 'design-studio'"):
         assert program_id in frontend
-    for route in (
-        "/design-editor/index.html",
-        "/design-editor/general.html",
-        "/document-editor/index.html",
-        "/image-editor/index.html",
-        "/pdf-editor/index.html",
-        "/pdf-preflight/index.html",
-    ):
+    for route in ("/pdf-editor/index.html", "/pdf-preflight/index.html", "/print-checker"):
         assert route in frontend
+    for retired in ("/design-editor/", "/document-editor/", "/image-editor/", "return 'document-editor'", "return 'image-editor'"):
+        assert retired not in frontend
     assert "ProgramAccess.guardTool({ programId, timeoutMs: 8000 })" in frontend
 
 
 def test_deploy_injector_bootstraps_auth_for_tool_shells_without_firebase():
     injector = (ROOT / "scripts" / "inject_boot_guard.py").read_text(encoding="utf-8")
-    for path in (
-        '"print-checker/index.html"',
-        '"pdf-editor/index.html"',
-        '"pdf-preflight/index.html"',
-    ):
+    for path in ('"print-checker/index.html"', '"pdf-editor/index.html"', '"pdf-preflight/index.html"'):
         assert path in injector
     assert "FIREBASE_APPROVAL_BOOTSTRAP" in injector
     assert 'src="/js/firebase-config.js"' in injector

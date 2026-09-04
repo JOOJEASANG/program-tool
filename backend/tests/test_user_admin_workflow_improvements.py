@@ -13,14 +13,14 @@ def release_version() -> str:
     return str(json.loads(read("version.json"))["version"]).strip()
 
 
-def test_runtime_boot_uses_canonical_owners_for_print_workflow_modules():
+def test_runtime_boot_uses_canonical_owners_for_live_workflow_modules():
     runtime = read("js/sw-register.js")
     app_version = read("js/app-version.js")
     pdf_editor = read("js/pdf-editor/route-runtime.js")
     preflight = read("js/pdf-preflight/route-runtime.js")
 
-    assert "/js/home-print-workflow.js" in runtime
     assert "/js/admin-operations-overview.js" in runtime
+    assert "home-print-workflow.js" not in runtime
     for asset in ("/js/pdf-editor-final-check.js", "/js/pdf-editor/spread-split.js", "/js/pdf-editor/booklet-sheet-preview.js"):
         assert asset in pdf_editor
     assert "/js/pdf-print-readiness.js" in preflight
@@ -42,33 +42,19 @@ def test_pdf_editor_final_check_reuses_generated_output_without_manual_reupload(
     assert "문제 있어도 PDF 저장" in source
 
 
-def test_home_explains_the_print_workflow_and_keeps_secondary_tools_secondary():
-    workflow = read("js/home-print-workflow.js")
-    suite = read("js/home-professional-suite.js")
-    assert "인쇄 작업 빠른 시작" in workflow
-    assert "PDF 편집 · 인쇄배치" in workflow
-    assert "인쇄 전 검사" in workflow
-    assert "검사 후 PDF 저장" in workflow
-    assert 'href="/pdf-editor/"' in workflow
-    assert 'href="/pdf-preflight/"' in workflow
-    assert "id:'document-editor'" not in suite
-    assert "conversion-ocr" not in suite
-    assert "print-production-home-v3" in suite
-    assert "HOME_PROGRAM_ORDER=['design-editor','pdf-editor','pdf-utility','image-editor']" in suite
-    assert "for(const item of source)" in suite
-    assert "status:item?.status==='active'?'active':'coming'" in suite
-    assert "return safeUrl(raw,base.url)" in suite
+def test_static_home_keeps_current_programs_only():
+    home = read("index.html")
+    for label in ("인쇄물 사전 검토", "PDF 편집기", "PDF 검사 · 유틸리티"):
+        assert label in home
+    for retired in ("디자인 편집기", "문서 편집기", "이미지 편집기"):
+        assert retired not in home
 
 
-def test_admin_operations_overview_is_explicit_and_non_destructive():
+def test_admin_operations_overview_remains_explicit_and_non_destructive():
     source = read("js/admin-operations-overview.js")
-    for route in ("pdf-editor/", "pdf-preflight/", "image-editor/", "design-editor/", "document-editor/"):
-        assert route in source
     assert "professional_program_suite" in source
     assert "완성 도구 상태 정리" in source
     assert "if(!confirm(" in source
-    assert "visible:true" in source
-    assert "source[index]={...source[index],url:tool.url,status:'active'}" in source
     assert "window.AdminProfessionalProgramManager?.reload?.()" in source
     assert "$('aopSync').addEventListener('click',syncCanonical)" in source
 

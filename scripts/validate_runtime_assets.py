@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate JavaScript-created local assets and runtime ownership contracts."""
+"""Validate local runtime assets and canonical ownership contracts."""
 
 from __future__ import annotations
 
@@ -35,26 +35,23 @@ PREFLIGHT_NON_OWNERS = (
 RETIRED_LEGACY_ASSETS = (
     Path("js/home-premium-ui.js"),
     Path("js/home-hero-console-v2.js"),
+    Path("js/home-dashboard-v2.js"),
+    Path("js/home-header-footer-refine.js"),
+    Path("js/home-hero-upgrade.js"),
+    Path("js/home-pdf-utility-name-sync.js"),
+    Path("js/home-print-workflow.js"),
+    Path("js/home-professional-suite.js"),
+    Path("js/home-program-catalog.js"),
+    Path("js/ai-design-feature-gate.js"),
     Path("js/pdf-utility-first-paint.js"),
     Path("js/pdf-utility-cost-policy-hardening.js"),
     Path("tools/preflight.html"),
     Path("tools/pdf-Checker.html"),
 )
-HOME_DYNAMIC_COUNT_BUDGET = 10
-HOME_DYNAMIC_BYTES_BUDGET = 88_000
 ASSET_LITERAL_RE = re.compile(r"[\'\"`](/(?:js|css)/[^\'\"`\s]+)[\'\"`]")
-LOAD_RE = re.compile(
-    r"load\(\s*[\'\"](?P<id>[^\'\"]+)[\'\"]\s*,\s*[\'\"](?P<src>/js/[^\'\"]+)[\'\"]"
-)
-SCOPED_LOAD_RE = re.compile(
-    r"loadScopedScript\(\s*[\'\"](?P<id>[^\'\"]+)[\'\"]\s*,\s*[\'\"](?P<src>/js/[^\'\"]+)[\'\"]"
-)
-MANIFEST_ENTRY_RE = re.compile(
-    r"\{\s*id\s*:\s*[\'\"](?P<id>[^\'\"]+)[\'\"]\s*,\s*src\s*:\s*[\'\"](?P<src>/js/[^\'\"]+)[\'\"]"
-)
-HOME_DASHBOARD_RE = re.compile(
-    r"loadEnhancement\(\s*[\'\"]homeDashboardV2Script[\'\"]\s*,\s*[\'\"](?P<src>/js/[^\'\"]+)[\'\"]"
-)
+LOAD_RE = re.compile(r"load\(\s*[\'\"](?P<id>[^\'\"]+)[\'\"]\s*,\s*[\'\"](?P<src>/js/[^\'\"]+)[\'\"]")
+SCOPED_LOAD_RE = re.compile(r"loadScopedScript\(\s*[\'\"](?P<id>[^\'\"]+)[\'\"]\s*,\s*[\'\"](?P<src>/js/[^\'\"]+)[\'\"]")
+MANIFEST_ENTRY_RE = re.compile(r"\{\s*id\s*:\s*[\'\"](?P<id>[^\'\"]+)[\'\"]\s*,\s*src\s*:\s*[\'\"](?P<src>/js/[^\'\"]+)[\'\"]")
 BLOCK_COMMENT_RE = re.compile(r"/\*.*?\*/", re.S)
 
 
@@ -122,8 +119,7 @@ def validate_preflight_runtime_ownership(source_text: dict[Path, str]) -> list[s
     ids = [script_id for script_id, _ in entries]
     paths = [normalize_asset(src) for _, src in entries]
     if not entries:
-        errors.append("PDF preflight canonical runtime manifest is empty")
-        return errors
+        return ["PDF preflight canonical runtime manifest is empty"]
     if len(ids) != len(set(ids)):
         errors.append(f"PDF preflight runtime has duplicate script ids: {ids}")
     if len(paths) != len(set(paths)):
@@ -132,8 +128,7 @@ def validate_preflight_runtime_ownership(source_text: dict[Path, str]) -> list[s
     owned_ids = set(ids)
     owned_paths = set(paths)
     for relative in PREFLIGHT_NON_OWNERS:
-        text = active_js(source_text[relative])
-        for script_id, src in collect_script_entries(text):
+        for script_id, src in collect_script_entries(active_js(source_text[relative])):
             normalized = normalize_asset(src)
             if script_id in owned_ids or normalized in owned_paths:
                 errors.append(
@@ -146,39 +141,11 @@ def validate_preflight_runtime_ownership(source_text: dict[Path, str]) -> list[s
     return errors
 
 
-def collect_home_dynamic_assets(sw_text: str, ui_text: str) -> list[str]:
-    helpers_start = sw_text.find("async function helpers(){")
-    admin_start = sw_text.find("if(isPath('/admin','/admin.html'))", helpers_start)
-    if helpers_start < 0 or admin_start < 0:
-        raise AssertionError("Could not isolate public/home helper manifest in js/sw-register.js")
-    block = active_js(sw_text[helpers_start:admin_start])
-    entries = [(match.group("id"), normalize_asset(match.group("src"))) for match in LOAD_RE.finditer(block)]
-    if "loadCatalogCore()" not in block:
-        raise AssertionError("Home helper manifest no longer loads the program catalog core")
-    catalog_match = re.search(
-        r"function loadCatalogCore\(\)\{\s*return load\(\s*[\'\"](?P<id>[^\'\"]+)[\'\"]\s*,\s*[\'\"](?P<src>/js/[^\'\"]+)[\'\"]",
-        active_js(sw_text),
-    )
-    if not catalog_match:
-        raise AssertionError("Could not resolve loadCatalogCore() asset")
-    entries.append((catalog_match.group("id"), normalize_asset(catalog_match.group("src"))))
-    dashboard_match = HOME_DASHBOARD_RE.search(ui_text)
-    if not dashboard_match:
-        raise AssertionError("Could not resolve the home dashboard enhancement asset")
-    entries.append(("homeDashboardV2Script", normalize_asset(dashboard_match.group("src"))))
-    ids = [entry[0] for entry in entries]
-    paths = [entry[1] for entry in entries]
-    if len(ids) != len(set(ids)):
-        raise AssertionError(f"Duplicate home runtime script ids: {ids}")
-    if len(paths) != len(set(paths)):
-        raise AssertionError(f"Duplicate home runtime asset requests: {paths}")
-    return paths
-
-
 def validate() -> None:
     source_text = {relative: read(relative) for relative in RUNTIME_SOURCES}
     errors: list[str] = []
     dynamic_assets: set[str] = set()
+
     for relative, text in source_text.items():
         for asset in collect_literal_assets(active_js(text)):
             dynamic_assets.add(asset)
@@ -188,30 +155,19 @@ def validate() -> None:
     errors.extend(validate_observer_runtime_ownership(source_text))
     errors.extend(validate_preflight_runtime_ownership(source_text))
 
-    sw_text = source_text[Path("js/sw-register.js")]
-    ui_text = source_text[Path("js/program-studio-ui-v2.js")]
-    if "navigator.serviceWorker.register" in active_js(sw_text) or "serviceWorker.register(" in active_js(sw_text):
-        errors.append("js/sw-register.js must remain a retired-worker cleanup/runtime loader, not register a new service worker")
+    sw_text = active_js(source_text[Path("js/sw-register.js")])
+    ui_text = active_js(source_text[Path("js/program-studio-ui-v2.js")])
+    if "navigator.serviceWorker.register" in sw_text or "serviceWorker.register(" in sw_text:
+        errors.append("js/sw-register.js must clean up retired workers, not register a new service worker")
     if not (ROOT / "sw.js").is_file():
         errors.append("sw.js compatibility artifact is missing; keep it while old clients may still request it")
 
-    try:
-        home_assets = collect_home_dynamic_assets(sw_text, ui_text)
-    except AssertionError as error:
-        errors.append(str(error))
-        home_assets = []
-
-    home_bytes = 0
-    for asset in home_assets:
-        path = filesystem_path(asset)
-        if path.is_file():
-            home_bytes += path.stat().st_size
-        else:
-            errors.append(f"Missing home runtime asset: {asset}")
-    if len(home_assets) > HOME_DYNAMIC_COUNT_BUDGET:
-        errors.append(f"Home dynamic helper count {len(home_assets)} exceeds budget {HOME_DYNAMIC_COUNT_BUDGET}")
-    if home_bytes > HOME_DYNAMIC_BYTES_BUDGET:
-        errors.append(f"Home dynamic helper bytes {home_bytes:,} exceed budget {HOME_DYNAMIC_BYTES_BUDGET:,}")
+    retired_names = {path.name for path in RETIRED_LEGACY_ASSETS}
+    for filename in sorted(retired_names):
+        if filename in sw_text or filename in ui_text:
+            errors.append(f"Retired runtime asset is still referenced by shared runtime: {filename}")
+    if "if(isHome())" in sw_text:
+        errors.append("Static home must not regain a dynamic home-overlay loader")
 
     for retired in RETIRED_LEGACY_ASSETS:
         if (ROOT / retired).exists():
@@ -227,8 +183,7 @@ def validate() -> None:
         "Runtime assets OK: "
         f"{len(dynamic_assets)} local dynamic asset(s) exist; "
         f"preflight canonical modules {len(collect_script_entries(source_text[PREFLIGHT_RUNTIME]))}; "
-        f"home helpers {len(home_assets)}/{HOME_DYNAMIC_COUNT_BUDGET}, "
-        f"{home_bytes:,}/{HOME_DYNAMIC_BYTES_BUDGET:,} bytes; "
+        "static home has no overlay helpers; "
         f"retired legacy assets absent: {len(RETIRED_LEGACY_ASSETS)}"
     )
 

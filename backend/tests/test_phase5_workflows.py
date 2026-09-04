@@ -3,7 +3,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 GLOBAL_UI = ROOT / "js" / "program-studio-ui-v2.js"
-HOME = ROOT / "js" / "home-dashboard-v2.js"
+HOME = ROOT / "index.html"
 ADMIN = ROOT / "js" / "admin-workflow-v2.js"
 PREFLIGHT = ROOT / "js" / "pdf-preflight" / "workflow-v2.js"
 PREFLIGHT_RUNTIME = ROOT / "js" / "pdf-preflight" / "route-runtime.js"
@@ -12,34 +12,29 @@ PREFLIGHT_RUNTIME = ROOT / "js" / "pdf-preflight" / "route-runtime.js"
 def test_phase5_enhancements_have_single_surface_owners():
     text = GLOBAL_UI.read_text(encoding="utf-8")
     runtime = PREFLIGHT_RUNTIME.read_text(encoding="utf-8")
-    for marker in (
-        "surface==='home'",
-        "/js/home-dashboard-v2.js?v=20260828-1",
-        "surface==='admin'",
-        "/js/admin-workflow-v2.js?v=20260828-1",
-    ):
-        assert marker in text
+    assert "surface==='admin'" in text
+    assert "/js/admin-workflow-v2.js?v=20260828-1" in text
     assert "surface==='pdf-preflight'" in text
+    assert "surface==='home'" in text
+    assert "/js/home-dashboard-v2.js" not in text
     assert "/js/pdf-preflight/workflow-v2.js" not in text
     assert "pdfPreflightWorkflowV2Script" in runtime
     assert "/js/pdf-preflight/workflow-v2.js?v=20260831-1" in runtime
 
 
-def test_home_workspace_has_search_favorites_recent_and_no_polling():
+def test_home_workspace_is_static_searchable_and_has_only_live_programs():
     text = HOME.read_text(encoding="utf-8")
     for marker in (
-        "QUICK WORKSPACE",
-        "바로 작업 시작",
-        "ps-home-search",
-        "FAVORITES_KEY",
-        "RECENT_KEY",
-        "toggleFavorite",
-        "markRecent",
-        "event.key==='/'",
+        'data-home-static-professional="1"',
+        "인쇄물 사전 검토",
+        "PDF 편집기",
+        "PDF 검사 · 유틸리티",
+        "search",
+        "prog-card",
     ):
         assert marker in text
-    assert "setInterval(" not in text
-    assert "innerHTML=p." not in text
+    for retired in ("디자인 편집기", "문서 편집기", "이미지 편집기"):
+        assert retired not in text
 
 
 def test_admin_workflow_makes_recent_members_read_only_and_confirms_bulk_changes():

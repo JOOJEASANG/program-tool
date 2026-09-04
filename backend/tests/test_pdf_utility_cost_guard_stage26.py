@@ -10,9 +10,9 @@ FINALIZER = ROOT / "js" / "pdf-utility-finalize.js"
 UTILITY_POLICY = ROOT / "js" / "pdf-utility-cost-guard-v2.js"
 SECURITY_BRIDGE = ROOT / "js" / "pdf-utility" / "security-large-file.js"
 PREFLIGHT_RUNTIME = ROOT / "js" / "pdf-preflight" / "route-runtime.js"
-HOME_SYNC = ROOT / "js" / "home-pdf-utility-name-sync.js"
 SW_REGISTER = ROOT / "js" / "sw-register.js"
 INDEX = ROOT / "index.html"
+GLOBAL_UI = ROOT / "js" / "program-studio-ui-v2.js"
 
 
 def compact(value: str) -> str:
@@ -85,19 +85,17 @@ def test_large_encrypt_decrypt_uses_single_200mb_storage_bridge():
     assert "/js/pdf-utility/security-large-file.js" in runtime
 
 
-def test_home_and_catalog_legacy_names_normalize_to_current_label():
-    sync = HOME_SYNC.read_text(encoding="utf-8")
+def test_home_uses_current_pdf_utility_label_without_legacy_sync_overlay():
     loader = SW_REGISTER.read_text(encoding="utf-8")
     index = INDEX.read_text(encoding="utf-8")
+    ui = GLOBAL_UI.read_text(encoding="utf-8")
 
     assert "인쇄 전 검사" in index
-    assert "url:'pdf-preflight/'" in index
-    for alias in ("PDF 인쇄 검수", "PDF 검사", "PDF 인쇄 검수기", "PDF 검사기", "PDF유틸리티", "PDF 올인원"):
-        assert alias in sync
-    assert "PDF 검사 · 유틸리티" in sync
-    assert "pdf-preflight" in sync
-    assert "program-catalog-applied" in sync
-    assert "homePdfUtilityNameSyncScriptV1" in loader
+    assert "PDF 검사 · 유틸리티" in index
+    assert "PDF 검사 · 유틸리티" in ui
+    assert "url:'/pdf-preflight/'" in ui
+    assert not (ROOT / "js" / "home-pdf-utility-name-sync.js").exists()
+    assert "homePdfUtilityNameSyncScriptV1" not in loader
 
 
 def test_pdf_utility_runtime_has_one_policy_owner_and_functional_finalizer():

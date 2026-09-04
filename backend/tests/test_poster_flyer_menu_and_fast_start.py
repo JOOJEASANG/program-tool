@@ -8,14 +8,13 @@ def source(relative: str) -> str:
     return (ROOT / relative).read_text(encoding="utf-8")
 
 
-def test_home_catalog_normalizes_separate_poster_and_flyer_entries() -> None:
-    catalog = source("js/home-program-catalog.js")
-    assert "function isPosterFlyerProgram(p)" in catalog
-    assert "u.endsWith('/apps/poster')" in catalog
-    assert "u.endsWith('/apps/flyer')" in catalog
-    assert "if(!posterFlyerExpanded){out.push(COMBINED_POSTER_FLYER);posterFlyerExpanded=true;}" in catalog
-    assert "if(!samePrograms(next,category.programs))" in catalog
-    assert "modular-production-apps-home-catalog-v5-direct-design-entry" in catalog
+def test_poster_and_flyer_compat_routes_open_the_single_print_checker():
+    page = source("apps/index.html")
+    assert "poster:'flyer',flyer:'flyer'" in page
+    assert "cover:'cover'" in page
+    assert "notice:'invitation'" in page
+    assert "location.replace('/print-checker?product='+product)" in page
+    assert "/design-editor/" not in page
 
 
 def test_modular_app_shell_preloads_engine_while_access_remains_gated() -> None:

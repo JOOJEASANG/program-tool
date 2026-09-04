@@ -4,9 +4,6 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 VERSION = ROOT / "js" / "app-version.js"
 SW_REGISTER = ROOT / "js" / "sw-register.js"
-PHASE2 = ROOT / "js" / "design-editor" / "phase2.js"
-ASSET_STORE = ROOT / "js" / "design-editor" / "asset-store.js"
-LEGACY_COVER = ROOT / "perfect-binding-cover" / "index.html"
 PDF_LOCAL = ROOT / "js" / "pdf-divider-local-image-upload.js"
 FIRESTORE = ROOT / "firestore.rules"
 STORAGE = ROOT / "storage.rules"
@@ -23,7 +20,7 @@ RETIRED_SCRIPTS = (
 )
 
 
-def test_admin_provided_image_and_legacy_cover_provider_scripts_are_removed_and_not_loaded():
+def test_retired_provider_scripts_are_removed_and_not_loaded():
     for filename in RETIRED_SCRIPTS:
         assert not (ROOT / "js" / filename).exists(), filename
 
@@ -36,12 +33,13 @@ def test_admin_provided_image_and_legacy_cover_provider_scripts_are_removed_and_
             "cover-provided-image-library",
             "cover-local-image-upload",
             "cover-template-admin-separation",
+            "designEditorAssetStoreScriptV1",
+            "designEditorPhase2ScriptV1",
         ):
             assert token not in source
+
     register = SW_REGISTER.read_text(encoding="utf-8")
-    assert "designEditorAssetStoreScriptV1" in register
-    assert "designEditorPhase2ScriptV1" in register
-    assert "/js/pdf-divider-local-image-upload.js?v=20260818-2" in register
+    assert "/js/pdf-editor/route-runtime.js" in register
 
 
 def test_pdf_divider_uses_500mb_user_source_with_bounded_inline_embedding():

@@ -11,12 +11,12 @@ def read(path: str) -> str:
     return (ROOT / path).read_text(encoding="utf-8")
 
 
-def test_main_profile_control_is_compact_and_business_name_only():
-    refine = read("js/home-header-footer-refine.js")
+def test_main_home_is_static_and_business_name_only():
+    index = read("index.html")
     firebase = read("js/firebase-config.js")
-    assert "width:28px!important" in refine
-    assert "border-radius:8px!important" in refine
-    assert "footer-business-name" in refine
+    assert 'data-home-static-professional="1"' in index
+    for label in ("인쇄물 사전 검토", "PDF 편집기", "PDF 검사 · 유틸리티"):
+        assert label in index
     assert "대표 " not in firebase
     assert "사업자등록번호 " not in firebase
     assert "business.bizName" in firebase
@@ -113,8 +113,16 @@ def test_optional_helpers_do_not_block_public_first_paint():
     assert "setTimeout(()=>{if(!isProtectedRuntimePage())reveal()},600)" in register
 
 
-def test_home_helpers_run_only_on_the_root_home_page():
+def test_static_home_has_no_retired_overlay_helpers():
     register = read("js/sw-register.js")
-    assert "function isHome(){return currentPath==='/'||currentPath==='/index.html'}" in register
-    assert "location.pathname.endsWith('/index.html')" not in register
-    assert "if(isHome())" in register
+    for marker in (
+        "home-dashboard-v2.js",
+        "home-header-footer-refine.js",
+        "home-hero-upgrade.js",
+        "home-pdf-utility-name-sync.js",
+        "home-print-workflow.js",
+        "home-professional-suite.js",
+        "home-program-catalog.js",
+        "if(isHome())",
+    ):
+        assert marker not in register

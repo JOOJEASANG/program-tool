@@ -7,19 +7,12 @@ def text(path: str) -> str:
     return (ROOT / path).read_text(encoding="utf-8")
 
 
-def test_home_quick_start_is_task_first_and_explains_the_real_output_flow():
-    source = text("js/home-print-workflow.js")
-    for marker in (
-        "무엇을 하려는지 선택하세요",
-        "디자인 만들기",
-        "PDF 편집 · 인쇄배치",
-        "인쇄 전 검사",
-        "이미지 작업",
-        "추천 출력 흐름",
-        "검사 후 PDF 저장",
-        "task-first-print-workflow-home-v2",
-    ):
+def test_home_exposes_only_the_three_current_programs():
+    source = text("index.html")
+    for marker in ("인쇄물 사전 검토", "PDF 편집기", "PDF 검사 · 유틸리티"):
         assert marker in source
+    for retired in ("디자인 편집기", "문서 편집기", "이미지 편집기"):
+        assert retired not in source
 
 
 def test_pdf_editor_lists_controls_without_step_filtering_and_allows_page_list_collapse():
