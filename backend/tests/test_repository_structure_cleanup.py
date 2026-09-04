@@ -122,3 +122,16 @@ def test_removed_editor_residual_assets_are_not_reintroduced():
     )
     for path in removed:
         assert not (ROOT / path).exists(), path
+
+
+def test_shared_ui_has_only_live_program_routes():
+    source = _read("js/program-studio-ui-v2.js")
+    for dead in [
+        "/design-editor/",
+        "/document-editor/",
+        "/image-editor/",
+        "editor-tool-rail-v1.js",
+    ]:
+        assert dead not in source
+    for live in ["/print-checker/", "/pdf-editor/", "/pdf-preflight/"]:
+        assert live in source

@@ -12,10 +12,7 @@
     if(['/guide','/guide.html','/terms','/terms.html','/privacy','/privacy.html'].some(item=>path.endsWith(item)))return 'legal';
     if(path.includes('/pdf-editor'))return 'pdf-editor';
     if(path.includes('/pdf-preflight'))return 'pdf-preflight';
-    if(path.includes('/design-editor/general'))return 'design-editor';
-    if(path.includes('/design-editor'))return 'design-shell';
-    if(path.includes('/document-editor'))return 'document-editor';
-    if(path.includes('/image-editor'))return 'image-editor';
+    if(path.includes('/print-checker'))return 'print-checker';
     return 'general';
   })();
 
@@ -24,11 +21,9 @@
   document.documentElement.dataset.programDesignSystem='unified-v3';
 
   const TOOLS=[
+    {name:'인쇄물 사전 검토',description:'표지 · 전단 · 리플렛 · 초대장 인쇄 규격 확인',icon:'✓',url:'/print-checker/'},
     {name:'PDF 편집기',description:'병합 · 페이지 편집 · N-up · 소책자',icon:'📄',url:'/pdf-editor/'},
-    {name:'PDF 검사 · 유틸리티',description:'인쇄 전 검사 · 보안 · 합치기 · 복구',icon:'🔍',url:'/pdf-preflight/'},
-    {name:'디자인 편집기',description:'표지 · 포스터 · 전단 · 리플렛',icon:'✦',url:'/design-editor/'},
-    {name:'문서 편집기',description:'A4 문서 작성 · 표 · 이미지 · 인쇄',icon:'📝',url:'/document-editor/'},
-    {name:'이미지 편집기',description:'이미지 크기 · 배경 · 자르기 · 출력',icon:'🖼️',url:'/image-editor/'}
+    {name:'PDF 검사 · 유틸리티',description:'인쇄 전 검사 · 보안 · 합치기 · 복구',icon:'🔍',url:'/pdf-preflight/'}
   ];
 
   function onReady(fn){
@@ -57,70 +52,6 @@
     toastTimer=setTimeout(()=>node.classList.remove('show'),1500);
   }
 
-  function sidebarTarget(){
-    if(surface==='pdf-editor')return document.querySelector('.app > aside');
-    if(['design-editor','document-editor','image-editor'].includes(surface))return document.querySelector('.sidebar');
-    return null;
-  }
-
-  function sidebarHost(attempt){
-    if(surface==='pdf-editor'){
-      const compact=document.querySelector('.app > aside > .program-local-actions');
-      if(compact)return compact;
-      if(attempt>=8)return document.querySelector('.top-nav');
-      return null;
-    }
-    return document.querySelector('.top-nav,.app-header');
-  }
-
-  function mountSidebarToggle(attempt=0){
-    if(surface==='pdf-editor')return;
-    const target=sidebarTarget();
-    if(!target){if(attempt<10)setTimeout(()=>mountSidebarToggle(attempt+1),80+attempt*60);return;}
-    const host=sidebarHost(attempt);
-    if(!host){if(attempt<10)setTimeout(()=>mountSidebarToggle(attempt+1),80+attempt*60);return;}
-    if(host.querySelector('.ps-sidebar-toggle'))return;
-    const key=`program-studio:sidebar:${surface}`;
-    const saved=localStorage.getItem(key)==='collapsed';
-    if(saved)document.documentElement.classList.add('ps-sidebar-collapsed');
-
-    const button=document.createElement('button');
-    button.type='button';
-    button.className='ps-sidebar-toggle';
-    button.innerHTML='<span aria-hidden="true">☰</span><span class="ps-toggle-label">작업 패널</span>';
-    button.title='왼쪽 작업 패널 접기/펼치기';
-    if(host.classList.contains('app-header')){
-      button.style.borderColor='#d7e1ec';
-      button.style.background='#fff';
-      button.style.color='#44546a';
-      button.style.boxShadow='0 2px 8px rgba(15,39,72,.06)';
-    }
-
-    const sync=()=>{
-      const collapsed=document.documentElement.classList.contains('ps-sidebar-collapsed');
-      button.setAttribute('aria-expanded',String(!collapsed));
-      button.setAttribute('aria-label',collapsed?'작업 패널 펼치기':'작업 패널 접기');
-      target.setAttribute('aria-hidden',String(collapsed));
-    };
-    sync();
-
-    button.addEventListener('click',()=>{
-      const collapsed=document.documentElement.classList.toggle('ps-sidebar-collapsed');
-      try{localStorage.setItem(key,collapsed?'collapsed':'expanded');}catch(_){}
-      sync();
-      toast(collapsed?'작업 패널을 접었습니다.':'작업 패널을 펼쳤습니다.');
-      window.dispatchEvent(new Event('resize'));
-    });
-
-    if(host.classList.contains('program-local-actions')){
-      const account=host.querySelector('.program-account-name');
-      if(account)host.insertBefore(button,account);else host.appendChild(button);
-      return;
-    }
-    const anchor=host.querySelector('.nav-user,.header-actions');
-    if(anchor)host.insertBefore(button,anchor);else host.appendChild(button);
-  }
-
   function loadEnhancement(id,src,ready,message){
     if(document.getElementById(id)||ready())return;
     const script=document.createElement('script');
@@ -131,22 +62,17 @@
     document.head.appendChild(script);
   }
 
-  function loadEditorToolRail(){
-    loadEnhancement('editorToolRailV1Script','/js/editor-tool-rail-v1.js?v=20260828-1',()=>Boolean(window.__programStudioEditorToolRailV1),'편집 도구 아이콘 메뉴를 불러오지 못했습니다.');
-  }
-
   function loadSurfaceEnhancements(){
     if(['auth','approval','legal'].includes(surface)){
       loadEnhancement('programStudioPhase6Script','/js/surface-polish-v3.js?v=20260828-1',()=>Boolean(window.__programStudioPhase6),'화면 접근성 개선 기능을 불러오지 못했습니다.');
     }
-    if(surface==='pdf-editor'||surface==='pdf-preflight')return;
+    if(surface==='pdf-editor'||surface==='pdf-preflight'||surface==='print-checker')return;
     if(surface==='home'){
       loadEnhancement('homeDashboardV2Script','/js/home-dashboard-v2.js?v=20260828-1',()=>Boolean(window.__homeDashboardV2),'홈 빠른 작업 기능을 불러오지 못했습니다.');
       return;
     }
     if(surface==='admin'){
       loadEnhancement('adminWorkflowV2Script','/js/admin-workflow-v2.js?v=20260828-1',()=>Boolean(window.__adminWorkflowV2),'관리자 편의 기능을 불러오지 못했습니다.');
-      return;
     }
   }
 
@@ -314,7 +240,6 @@
 
   onReady(()=>{
     loadSurfaceEnhancements();
-    mountSidebarToggle(0);
     mountCommandTrigger();
     mountGlobalKeys();
     improveExternalStateLabels();
@@ -323,5 +248,5 @@
     observeNewControls();
   });
 
-  window.ProgramStudioUI={version:'2026.09.01.020',surface,designSystem:'unified-v3',openPalette,closePalette};
+  window.ProgramStudioUI={version:'2026.09.04.001',surface,designSystem:'unified-v3',openPalette,closePalette};
 })();
