@@ -93,15 +93,19 @@ def validate() -> None:
             errors.append(f"print-checker.js does not handle fold type: {fold}")
 
     checker_access = read("js/print-checker/access.js")
-    if "ProgramAccess.guardTool" not in checker_access or "design-studio" not in checker_access:
-        errors.append("print-checker must reuse the shared design-studio ProgramAccess guard")
+    if "ProgramAccess.guardTool" in checker_access or "approval-waiting" in checker_access:
+        errors.append("print-checker must remain a public daily-free route, not an approval-gated tool")
+    if "daily-free" not in checker_access or "guestLimit:3" not in checker_access or "memberLimit:10" not in checker_access:
+        errors.append("print-checker daily-free access policy is incomplete")
+    if "/js/pdf-daily-free.js" not in checker_html:
+        errors.append("print-checker/index.html must load the shared daily-free runtime")
 
     access = read("js/modular-app-access.js")
     for key in PDF_KEYS:
         if key not in access:
             errors.append(f"access adapter does not recognize PDF app: {key}")
     if "ProgramAccess.guardTool" not in access:
-        errors.append("modular apps must reuse ProgramAccess.guardTool")
+        errors.append("modular PDF apps must reuse ProgramAccess.guardTool")
 
     pdf_profiles = read("js/pdf-editor/standalone-app-profile.js")
     for key in ("layout", "booklet"):
@@ -138,7 +142,7 @@ def validate() -> None:
             print(f" - {error}", file=sys.stderr)
         raise SystemExit(1)
 
-    print("Modular app architecture OK: print-checker unified tool (cover/leaflet/flyer/invitation), real PDF inspection, shared access guard, PDF editor (layout/booklet), Firebase rewrites and browser smoke coverage all validated")
+    print("Modular app architecture OK: public daily-free Print Checker (cover/leaflet/flyer/invitation), real PDF inspection, protected modular PDF editor routes, Firebase rewrites and browser smoke coverage all validated")
 
 
 if __name__ == "__main__":
