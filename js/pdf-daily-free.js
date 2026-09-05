@@ -10,7 +10,7 @@
   const GUEST_USAGE_PREFIX='programStudioPdfUsage:guest:';
   const MEMBER_FALLBACK_PREFIX='programStudioPdfUsage:member:';
   const BADGE_ID='programPdfDailyFreeBadge';
-  const SUITE_ACTION_SELECTOR='[data-local-run],[data-ocr-run],.pdfadv-primary,[data-compare-download],.pdfadv-mini,.pdfadv-tool-ready,.pdfocr-ready';
+  const SUITE_ACTION_SELECTOR='[data-local-run],[data-ocr-run],[data-compare-run],[data-redact-export],[data-attach-open],[data-access-run],[data-outline-run],[data-advanced-action="text"]';
   let cachedStatus=null;
   let currentUser=null;
   let authReady=false;
