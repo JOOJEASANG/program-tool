@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"><title>Print checker defaults daily free smoke</title></head>
+<body>
+  <div id="productGrid"></div>
+  <section id="specSection" hidden><form id="specForm"></form></section>
+  <div id="uploadZone"><div id="uploadFilename" style="display:none"></div></div>
+  <input id="fileInput" type="file">
+  <span id="uploadFileInfo" hidden></span><span id="uploadError" hidden></span>
+  <div id="adjPanel" hidden>
+    <div id="sideSelectRow" hidden><button class="side-btn active" data-side="front" type="button">앞면</button><button class="side-btn" data-side="back" type="button">뒷면</button></div>
+    <input type="checkbox" id="fileHasBleed">
+    <input id="adjX" type="range" value="0"><span id="adjXVal"></span>
+    <input id="adjY" type="range" value="0"><span id="adjYVal"></span>
+    <input id="adjScale" type="range" value="100"><span id="adjScaleVal"></span>
+    <button id="resetAdjBtn" type="button">reset</button>
+  </div>
+  <button id="runBtn" type="button">run</button><button id="resetBtn" type="button">reset</button>
+  <div class="canvas-tips"></div><div style="width:900px"><canvas id="previewCanvas"></canvas><div id="canvasFileInfo" hidden></div></div>
+  <section id="leafletGuide" hidden></section><section id="impositionGuide" hidden></section>
+  <section id="reportSection" hidden><div id="reportSummary"></div><div id="reportGrid"></div></section>
+
+  <script>
+    history.replaceState(null,'','/print-checker');
+    window.__quotaCommits=0;
+    window.ProgramPdfDailyFree={
+      async canStart(){return {ok:true,status:{remaining:3}};},
+      async commitSuccess(){window.__quotaCommits+=1;return {remaining:2};}
+    };
+  </script>
+  <script src="../../js/print-checker/print-checker.js"></script>
+  <script src="../../js/print-checker/defaults-live.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded',async()=>{
+      const fail=(message)=>{
+        document.documentElement.dataset.printCheckerDefaultsDailyFreeSmoke='fail';
+        const out=document.createElement('pre');out.textContent='FAIL '+message;document.body.appendChild(out);
+      };
+      try{
+        await new Promise(r=>setTimeout(r,60));
+        const initialProduct=PrintChecker.getState().product==='flyer';
+        const initialValues=document.getElementById('trimW')?.value==='210'
+          &&document.getElementById('trimH')?.value==='297'
+          &&document.getElementById('bleed')?.value==='3'
+          &&document.getElementById('safeZone')?.value==='3';
+        const preset=document.getElementById('printSizePreset');
+        const initialPreset=preset?.value==='a4';
+        const summary=document.getElementById('printCheckerLiveSummary');
+        const initialCanvas=document.getElementById('previewCanvas').width>0&&document.getElementById('previewCanvas').height>0;
+        const summaryOk=summary?.textContent.includes('A4')&&summary.textContent.includes('210 × 297 mm');
+
+        preset.value='a5';
+        preset.dispatchEvent(new Event('change',{bubbles:true}));
+        await new Promise(r=>setTimeout(r,20));
+        const presetChanged=document.getElementById('trimW').value==='148'&&document.getElementById('trimH').value==='210';
+
+        document.getElementById('trimW').value='155';
+        document.getElementById('trimW').dispatchEvent(new Event('input',{bubbles:true}));
+        const customMode=preset.value==='custom';
+
+        document.querySelector('[data-product="cover"]')?.click();
+        await new Promise(r=>setTimeout(r,40));
+        const coverDefaults=PrintChecker.getState().product==='cover'
+          &&document.getElementById('trimW')?.value==='148'
+          &&document.getElementById('trimH')?.value==='210'
+          &&document.getElementById('paperType')?.value==='mojo80'
+          &&document.getElementById('pageCount')?.value==='100'
+          &&document.getElementById('spine')?.value==='5'
+          &&document.getElementById('bleed')?.value==='3'
+          &&document.getElementById('safeZone')?.value==='3';
+
+        document.getElementById('runBtn').click();
+        await new Promise(r=>setTimeout(r,40));
+        const quotaCommitted=window.__quotaCommits===1;
+        const reportVisible=document.getElementById('reportSection').hidden===false;
+        const ready=document.documentElement.dataset.printCheckerDefaultsLive==='ready';
+
+        const pass=initialProduct&&initialValues&&initialPreset&&initialCanvas&&summaryOk&&presetChanged&&customMode&&coverDefaults&&quotaCommitted&&reportVisible&&ready;
+        if(!pass)throw new Error(`initial=${initialProduct}/${initialValues}/${initialPreset}/${initialCanvas}/${summaryOk} size=${presetChanged}/${customMode} cover=${coverDefaults} quota=${quotaCommitted} report=${reportVisible} ready=${ready}`);
+        document.documentElement.dataset.printCheckerDefaultsDailyFreeSmoke='pass';
+        const out=document.createElement('pre');out.textContent='PASS: default print specs, presets, custom sizing, live preview and success-only quota are wired';document.body.appendChild(out);
+      }catch(error){fail(error?.message||String(error));}
+    });
+  </script>
+</body>
+</html>
