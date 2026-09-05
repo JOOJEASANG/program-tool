@@ -31,6 +31,12 @@
   let booted=false;
 
   function sleep(ms){return new Promise(resolve=>setTimeout(resolve,ms));}
+  function checker(){
+    try{
+      if(typeof PrintChecker!=='undefined')return PrintChecker;
+    }catch(_){}
+    return window.PrintChecker||null;
+  }
 
   function installStyles(){
     if($('printCheckerDefaultsLiveStyles'))return;
@@ -46,7 +52,7 @@
     document.head.appendChild(style);
   }
 
-  function currentProduct(){return window.PrintChecker?.getState?.()?.product||null;}
+  function currentProduct(){return checker()?.getState?.()?.product||null;}
   function renderedSpecReady(){return Boolean($('trimW')&&$('trimH')&&$('bleed')&&$('safeZone'));}
 
   function optionHtml(selected){
@@ -165,15 +171,16 @@
   async function waitForCore(timeoutMs=1600){
     const deadline=Date.now()+timeoutMs;
     while(Date.now()<deadline){
-      if(window.PrintChecker?.selectProduct&&document.querySelector('#productGrid .product-card'))return true;
+      if(checker()?.selectProduct&&document.querySelector('#productGrid .product-card'))return true;
       await sleep(20);
     }
     return false;
   }
 
   async function ensureRenderedProduct(product,timeoutMs=900){
-    if(!window.PrintChecker?.selectProduct)return false;
-    if(currentProduct()!==product||!renderedSpecReady())window.PrintChecker.selectProduct(product,{syncUrl:false});
+    const core=checker();
+    if(!core?.selectProduct)return false;
+    if(currentProduct()!==product||!renderedSpecReady())core.selectProduct(product,{syncUrl:false});
     const deadline=Date.now()+timeoutMs;
     while(Date.now()<deadline){
       if(currentProduct()===product&&renderedSpecReady())return true;
@@ -203,7 +210,7 @@
         const gate=await quota.canStart('print-checker');
         if(!gate.ok){alert(gate.message);return;}
       }
-      const ok=window.PrintChecker?.runCheck?.()===true;
+      const ok=checker()?.runCheck?.()===true;
       if(ok&&quota){
         try{await quota.commitSuccess('print-checker');}
         catch(error){console.warn('[print-checker] quota commit failed',error);}
@@ -254,6 +261,7 @@
   window.PrintCheckerDefaultsLive=Object.freeze({
     sizePresets:SIZE_PRESETS,
     productDefaults:PRODUCT_DEFAULTS,
+    checker,
     renderedSpecReady,
     waitForCore,
     ensureRenderedProduct,
