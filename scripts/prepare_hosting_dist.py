@@ -10,7 +10,7 @@ from inject_boot_guard import DEPLOY_HTML
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / ".firebase-hosting"
 PDF_SUITE_HTML = "pdf-suite/index.html"
-PDF_SUITE_AUTH_MARKER = "data-pdf-suite-auth-guard"
+PDF_SUITE_DAILY_FREE_MARKER = "data-pdf-suite-daily-free"
 PDF_SUITE_HOME_MARKER = "data-pdf-suite-home-launcher"
 PDF_SUITE_ADVANCED_MARKER = "data-pdf-suite-advanced-tools"
 PDF_SUITE_OCR_MARKER = "data-pdf-suite-ocr-tools"
@@ -68,17 +68,12 @@ FORBIDDEN_OUTPUT_NAMES = {
     "PROGRAM_STRUCTURE.md",
 }
 
-PDF_SUITE_AUTH_SNIPPET = (
-    f'<script {PDF_SUITE_AUTH_MARKER}>document.documentElement.style.visibility="hidden";</script>'
+PDF_SUITE_DAILY_FREE_SNIPPET = (
     '<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>'
     '<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>'
     '<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>'
     '<script src="/js/firebase-config.js"></script>'
-    '<script data-pdf-suite-auth-runner>'
-    'window.ProgramAccessReady=window.ProgramAccess.guardTool({'
-    'programId:"preflight",loginUrl:"/login.html",waitingUrl:"/approval-waiting.html",timeoutMs:8000'
-    '});'
-    '</script>'
+    f'<script {PDF_SUITE_DAILY_FREE_MARKER} src="/js/pdf-daily-free.js?v=20260906-1"></script>'
 )
 PDF_SUITE_HOME_SNIPPET = (
     f'<script {PDF_SUITE_HOME_MARKER} defer src="/js/pdf-suite-home-launcher.js"></script>'
@@ -133,7 +128,7 @@ def _patch_pdf_suite_entry_points() -> None:
     home = OUTPUT / "index.html"
     suite = OUTPUT / PDF_SUITE_HTML
     _inject_before(home, PDF_SUITE_HOME_MARKER, "</body>", PDF_SUITE_HOME_SNIPPET)
-    _inject_before(suite, PDF_SUITE_AUTH_MARKER, "</head>", PDF_SUITE_AUTH_SNIPPET)
+    _inject_before(suite, PDF_SUITE_DAILY_FREE_MARKER, "</head>", PDF_SUITE_DAILY_FREE_SNIPPET)
     _inject_before(suite, PDF_SUITE_ADVANCED_MARKER, "</body>", PDF_SUITE_ADVANCED_SNIPPET)
     _inject_before(suite, PDF_SUITE_OCR_MARKER, "</body>", PDF_SUITE_OCR_SNIPPET)
 

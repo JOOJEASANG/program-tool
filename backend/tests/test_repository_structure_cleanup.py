@@ -174,7 +174,8 @@ def test_boot_guard_has_no_retired_editor_runtime_loaders():
         "designPrintProductionStage2ScriptV1",
     ]:
         assert dead not in source
-    assert "/print-checker" in source
+    assert "/print-checker" not in source
+    assert "if(!protectedProgram){reveal('public');return;}" in source
     assert "return 'design-studio'" in source
     assert "/js/pdf-editor/print-workflow-focus.js" in source
     assert "/js/pdf-preflight-panel-balance.js" in source

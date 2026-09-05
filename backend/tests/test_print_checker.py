@@ -16,6 +16,8 @@ def test_print_checker_html_loads_stabilized_tool():
     assert "reliability.js?v=20260904-1" in html
     assert "firebase-firestore-compat.js" in html
     assert "js/print-checker/access.js" in html
+    assert "js/pdf-daily-free.js?v=20260906-1" in html
+    assert "js/print-checker/defaults-live.js?v=20260906-1" in html
     for element_id in (
         "productGrid", "uploadZone", "specForm", "reportSection", "previewCanvas",
         "uploadFileInfo", "canvasFileInfo", "sideSelectRow",
@@ -111,12 +113,14 @@ def test_print_checker_reliability_guard_recovers_pdf_loader_and_invalidates_sta
     assert "fileInput.value = ''" in js
 
 
-def test_print_checker_uses_shared_design_studio_approval_gate():
+def test_print_checker_uses_public_daily_free_access_policy():
     access = read("js/print-checker/access.js")
-    assert "ProgramAccess.guardTool" in access
-    assert "programId:'design-studio'" in access
-    assert "approval-waiting.html" in access
-    assert "ProgramAccessReady" in access
+    assert "ProgramAccess.guardTool" not in access
+    assert "approval-waiting.html" not in access
+    assert "mode:'daily-free'" in access
+    assert "guestLimit:3" in access
+    assert "memberLimit:10" in access
+    assert "비회원 · 하루 3회 무료" in access
 
 
 def test_apps_index_redirects_design_shortcuts_with_product_context():

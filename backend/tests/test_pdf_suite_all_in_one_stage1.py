@@ -63,18 +63,21 @@ def test_pdf_suite_local_tools_are_real_local_pdf_operations():
     assert "XMLHttpRequest" not in source
 
 
-def test_pdf_suite_is_staged_with_approval_guard_and_home_launcher():
+def test_pdf_suite_is_staged_with_daily_free_policy_and_home_launcher():
     hosting = HOSTING.read_text(encoding="utf-8")
     home = HOME.read_text(encoding="utf-8")
 
     for marker in (
         'PDF_SUITE_HTML = "pdf-suite/index.html"',
-        "data-pdf-suite-auth-guard",
-        'programId:\"preflight\"',
+        "data-pdf-suite-daily-free",
+        "pdf-daily-free.js",
         "pdf-suite-home-launcher.js",
         "_patch_pdf_suite_entry_points()",
     ):
         assert marker in hosting
+
+    assert "guardTool" not in hosting
+    assert 'programId:"preflight"' not in hosting
 
     for marker in (
         "PDF 올인원 · PDF로 할 수 있는 작업을 한곳에",
