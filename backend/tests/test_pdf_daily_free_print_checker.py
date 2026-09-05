@@ -38,6 +38,40 @@ def test_daily_free_policy_has_guest_and_member_limits_and_success_commit():
     assert "commitSuccess(actionName(node))" not in source
 
 
+def test_admin_pdf_usage_is_unlimited_and_never_enters_member_counter():
+    source = QUOTA.read_text(encoding="utf-8")
+
+    assert "if(await isAdmin(user))return makeStatus('admin',0,Infinity" in source
+    assert "if(user&&await isAdmin(user))next=makeStatus('admin',0,Infinity" in source
+    assert "관리자 · PDF 무료 사용 제한 없음" in source
+    assert "allowed:!finite||safeUsed<limit" in source
+
+
+def test_suite_quota_only_guards_real_processing_actions():
+    source = QUOTA.read_text(encoding="utf-8")
+
+    selector_line = next(line for line in source.splitlines() if "const SUITE_ACTION_SELECTOR=" in line)
+    for marker in (
+        "[data-local-run]",
+        "[data-ocr-run]",
+        "[data-compare-run]",
+        "[data-redact-export]",
+        "[data-attach-open]",
+        "[data-access-run]",
+        "[data-outline-run]",
+        '[data-advanced-action="text"]',
+    ):
+        assert marker in selector_line
+
+    for excluded in (
+        "[data-compare-download]",
+        ".pdfadv-mini",
+        ".pdfadv-tool-ready",
+        ".pdfocr-ready",
+    ):
+        assert excluded not in selector_line
+
+
 def test_print_checker_is_public_daily_free_and_loads_default_live_runtime():
     access = ACCESS.read_text(encoding="utf-8")
     html = PRINT_HTML.read_text(encoding="utf-8")
