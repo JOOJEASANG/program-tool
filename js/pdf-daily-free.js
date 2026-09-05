@@ -10,10 +10,13 @@
   const GUEST_USAGE_PREFIX='programStudioPdfUsage:guest:';
   const MEMBER_FALLBACK_PREFIX='programStudioPdfUsage:member:';
   const BADGE_ID='programPdfDailyFreeBadge';
+  const SUITE_ACTION_SELECTOR='[data-local-run],[data-ocr-run],.pdfadv-primary,[data-compare-download],.pdfadv-mini,.pdfadv-tool-ready,.pdfocr-ready';
   let cachedStatus=null;
   let currentUser=null;
   let authReady=false;
   let refreshPromise=null;
+  let pendingSuiteAction=null;
+  let suiteGateSerial=0;
 
   function localDateKey(date=new Date()){
     const year=date.getFullYear();
@@ -80,7 +83,7 @@
     const fallbackKey=memberFallbackKey(user.uid,dateKey);
     const fallback=()=>makeStatus('member',readCount(fallbackKey),MEMBER_LIMIT,dateKey,{uid:user.uid,persistence:'local-fallback'});
     try{
-      if(!window.db?.collection) return fallback();
+      if(!window.db?.collection)return fallback();
       const ref=window.db.collection('users').doc(user.uid).collection('daily_pdf_usage').doc(dateKey);
       const snap=await ref.get();
       const count=snap.exists?Number(snap.data()?.count||0):0;
@@ -196,6 +199,58 @@
     return next;
   }
 
+  function isPdfSuitePage(){
+    return Boolean(document.documentElement.dataset.pdfSuite)||/(^|\/)pdf-suite(\/|$)/.test(location.pathname);
+  }
+
+  function actionName(node){
+    return node?.dataset?.localRun||node?.dataset?.ocrRun||node?.dataset?.compareRun||node?.dataset?.advancedAction||node?.textContent?.trim().slice(0,60)||'pdf-suite-action';
+  }
+
+  function beginPendingSuiteAction(node){
+    pendingSuiteAction={
+      id:++suiteGateSerial,
+      action:actionName(node),
+      startedAt:Date.now(),
+      committed:false
+    };
+    return pendingSuiteAction;
+  }
+
+  async function gateSuiteAction(node){
+    const gate=await canStart(actionName(node));
+    if(!gate.ok){alert(gate.message);return;}
+    beginPendingSuiteAction(node);
+    node.dataset.pdfQuotaPass='1';
+    node.click();
+  }
+
+  function bindSuiteGuards(){
+    if(!isPdfSuitePage())return;
+    document.addEventListener('click',event=>{
+      const node=event.target.closest?.(SUITE_ACTION_SELECTOR);
+      if(!node)return;
+      if(node.matches('button:disabled,[aria-disabled="true"]'))return;
+      if(node.dataset.pdfQuotaPass==='1'){
+        delete node.dataset.pdfQuotaPass;
+        return;
+      }
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      gateSuiteAction(node).catch(error=>alert(error?.message||'무료 사용량을 확인하지 못했습니다.'));
+    },true);
+
+    document.addEventListener('click',event=>{
+      const link=event.target.closest?.('a[download]');
+      if(!link||!String(link.href||'').startsWith('blob:'))return;
+      const pending=pendingSuiteAction;
+      if(!pending||pending.committed||Date.now()-pending.startedAt>10*60*1000)return;
+      pending.committed=true;
+      commitSuccess(pending.action).catch(error=>console.warn('[pdf-daily-free] output commit failed',error));
+      setTimeout(()=>{if(pendingSuiteAction?.id===pending.id)pendingSuiteAction=null;},1800);
+    },true);
+  }
+
   function bindAuth(){
     if(window.auth?.onAuthStateChanged){
       window.auth.onAuthStateChanged(user=>{
@@ -213,12 +268,14 @@
 
   function boot(){
     bindAuth();
+    bindSuiteGuards();
     refresh().catch(()=>{});
   }
 
   window.ProgramPdfDailyFree=Object.freeze({
     guestLimit:GUEST_LIMIT,
     memberLimit:MEMBER_LIMIT,
+    suiteActionSelector:SUITE_ACTION_SELECTOR,
     localDateKey,
     guestUsageKey,
     memberFallbackKey,
