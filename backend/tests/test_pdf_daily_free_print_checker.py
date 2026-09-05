@@ -143,4 +143,5 @@ def test_daily_free_browser_smokes_are_wired_into_phase5():
     source = RUNNER.read_text(encoding="utf-8")
 
     assert "pdf-daily-free-smoke.html" in source
+    assert "pdf-daily-free-admin-smoke.html" in source
     assert "print-checker-defaults-daily-free-smoke.html" in source
