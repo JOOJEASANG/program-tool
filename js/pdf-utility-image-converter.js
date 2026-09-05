@@ -9,6 +9,16 @@
   const MAX_FILES = 10;
   const MAX_BYTES = 500 * 1024 * 1024;
   const MAX_PAGES = 100;
+  const MAX_INPUT_IMAGE_PIXELS = 60_000_000;
+  const MAX_RENDER_PIXELS = 32_000_000;
+  const MAX_TOTAL_RENDER_PIXELS = 250_000_000;
+  const LIB_LOAD_TIMEOUT_MS = 15_000;
+  const LIB_SOURCES = Object.freeze({
+    pdfjs: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js',
+    pdfWorker: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js',
+    pdfLib: 'https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js',
+    jszip: 'https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js'
+  });
   const SIZES = {
     A5: [148, 210], A4: [210, 297], A3: [297, 420], A2: [420, 594],
     B5: [182, 257], B4: [257, 364], Letter: [215.9, 279.4], Legal: [215.9, 355.6]
@@ -18,34 +28,73 @@
   const safeName = (name, fallback) => String(name || fallback).replace(/\.[^.]+$/, '').replace(/[^A-Za-z0-9가-힣._-]+/g, '_').slice(0, 80) || fallback;
   let libsPromise = null;
 
+  function removeFailedScript(script) {
+    if (!script) return;
+    script.dataset.pdfConverterState = 'failed';
+    if (script.parentNode) script.parentNode.removeChild(script);
+  }
+
+  function waitForScript(script, globalName) {
+    return new Promise((resolve, reject) => {
+      let settled = false;
+      const finish = (error) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        script.removeEventListener('load', onLoad);
+        script.removeEventListener('error', onError);
+        if (error) reject(error);
+        else resolve(window[globalName]);
+      };
+      const onLoad = () => {
+        if (!window[globalName]) return finish(new Error('변환 라이브러리 초기화에 실패했습니다.'));
+        script.dataset.pdfConverterState = 'loaded';
+        finish();
+      };
+      const onError = () => {
+        removeFailedScript(script);
+        finish(new Error('변환 라이브러리를 불러오지 못했습니다. 네트워크 상태를 확인한 뒤 다시 시도하세요.'));
+      };
+      const timer = setTimeout(() => {
+        removeFailedScript(script);
+        finish(new Error('변환 라이브러리 로딩 시간이 초과되었습니다. 다시 시도하세요.'));
+      }, LIB_LOAD_TIMEOUT_MS);
+      script.addEventListener('load', onLoad, { once: true });
+      script.addEventListener('error', onError, { once: true });
+      if (script.dataset.pdfConverterState === 'loaded' && window[globalName]) finish();
+      else if (script.dataset.pdfConverterState === 'failed') onError();
+    });
+  }
+
   function loadScript(src, globalName) {
     if (window[globalName]) return Promise.resolve(window[globalName]);
-    return new Promise((resolve, reject) => {
-      const existing = document.querySelector(`script[data-pdf-converter-src="${src}"]`);
-      if (existing) {
-        existing.addEventListener('load', () => resolve(window[globalName]), { once: true });
-        existing.addEventListener('error', () => reject(new Error('변환 라이브러리를 불러오지 못했습니다.')), { once: true });
-        return;
-      }
-      const script = document.createElement('script');
-      script.src = src;
-      script.async = true;
-      script.dataset.pdfConverterSrc = src;
-      script.onload = () => window[globalName] ? resolve(window[globalName]) : reject(new Error('변환 라이브러리 초기화에 실패했습니다.'));
-      script.onerror = () => reject(new Error('변환 라이브러리를 불러오지 못했습니다.'));
-      document.head.appendChild(script);
-    });
+    let existing = document.querySelector(`script[data-pdf-converter-src="${src}"]`);
+    if (existing && existing.dataset.pdfConverterState === 'failed') {
+      removeFailedScript(existing);
+      existing = null;
+    }
+    if (existing) return waitForScript(existing, globalName);
+    const script = document.createElement('script');
+    script.src = src;
+    script.async = true;
+    script.dataset.pdfConverterSrc = src;
+    script.dataset.pdfConverterState = 'loading';
+    document.head.appendChild(script);
+    return waitForScript(script, globalName);
   }
 
   async function loadLibraries() {
     if (libsPromise) return libsPromise;
     libsPromise = Promise.all([
-      loadScript('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js', 'pdfjsLib'),
-      loadScript('https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js', 'PDFLib'),
-      loadScript('https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js', 'JSZip')
+      loadScript(LIB_SOURCES.pdfjs, 'pdfjsLib'),
+      loadScript(LIB_SOURCES.pdfLib, 'PDFLib'),
+      loadScript(LIB_SOURCES.jszip, 'JSZip')
     ]).then(([pdfjs, pdfLib, jszip]) => {
-      pdfjs.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      pdfjs.GlobalWorkerOptions.workerSrc = LIB_SOURCES.pdfWorker;
       return { pdfjs, pdfLib, jszip };
+    }).catch((error) => {
+      libsPromise = null;
+      throw error;
     });
     return libsPromise;
   }
@@ -94,14 +143,14 @@
           <div class="pdfic-desc">PDF 페이지를 JPG 또는 PNG 이미지로 변환합니다. 페이지 비율은 유지하고 선택한 용지 크기에 맞춰 자동으로 배치합니다.</div>
           <label class="pdfic-label">PDF 파일</label><label class="pdfic-file">📄 PDF 선택<input id="pdficPdfInput" type="file" accept="application/pdf"></label>
           <div class="pdfic-grid"><div><label class="pdfic-label">출력 크기</label><select id="pdficPdfSize" class="pdfic-input">${Object.keys(SIZES).map(k => `<option value="${k}"${k==='A4'?' selected':''}>${k}</option>`).join('')}</select></div><div><label class="pdfic-label">방향</label><select id="pdficPdfOrientation" class="pdfic-input"><option value="auto" selected>자동</option><option value="portrait">세로</option><option value="landscape">가로</option></select></div><div><label class="pdfic-label">이미지 형식</label><select id="pdficImageFormat" class="pdfic-input"><option value="jpeg" selected>JPG</option><option value="png">PNG</option></select></div><div><label class="pdfic-label">해상도</label><select id="pdficDpi" class="pdfic-input"><option value="96">96 DPI</option><option value="150" selected>150 DPI</option><option value="200">200 DPI</option></select></div></div>
-          <div class="pdfic-note">최대 500MB · 최대 100페이지. 변환은 사용자의 PC 브라우저에서 처리되어 서버 처리비용을 발생시키지 않습니다. 여러 페이지 결과는 ZIP으로 묶어 저장합니다.</div>
+          <div class="pdfic-note">최대 500MB · 최대 100페이지. 고해상도·대형 용지는 브라우저 메모리 보호를 위해 안전 한도가 적용됩니다. 여러 페이지 결과는 ZIP으로 묶어 저장합니다.</div>
           <div class="pdfic-preview" id="pdficPdfPreview"></div>
         </section>
         <section class="pdfic-pane" id="pdficImageToPdf">
           <div class="pdfic-desc">JPG·PNG·WEBP 이미지를 최대 10개까지 하나의 PDF로 만들 수 있습니다. 선택한 페이지 크기 안에 이미지를 자동 비율로 맞춰 가운데 배치합니다.</div>
           <label class="pdfic-label">이미지 파일</label><label class="pdfic-file">🖼️ 이미지 여러 장 선택<input id="pdficImageInput" type="file" accept="image/jpeg,image/png,image/webp" multiple></label>
           <div class="pdfic-grid"><div><label class="pdfic-label">PDF 페이지 크기</label><select id="pdficImageSize" class="pdfic-input">${Object.keys(SIZES).map(k => `<option value="${k}"${k==='A4'?' selected':''}>${k}</option>`).join('')}</select></div><div><label class="pdfic-label">방향</label><select id="pdficImageOrientation" class="pdfic-input"><option value="auto" selected>이미지에 맞춤</option><option value="portrait">세로</option><option value="landscape">가로</option></select></div></div>
-          <div class="pdfic-note">최대 10개 · 전체 500MB. 이미지는 잘리지 않고 페이지 안에 자동 비율로 맞춰집니다. 변환은 브라우저에서 처리합니다.</div>
+          <div class="pdfic-note">최대 10개 · 전체 500MB. 매우 큰 원본 이미지는 브라우저 메모리 보호를 위해 제한될 수 있습니다. 이미지는 잘리지 않고 페이지 안에 자동 비율로 맞춰집니다.</div>
           <div class="pdfic-preview" id="pdficImagePreview"></div>
         </section>
         <div class="pdfic-status" id="pdficStatus"></div>
@@ -153,12 +202,28 @@
     const scale = Math.min(boxW / sourceW, boxH / sourceH);
     return { w: sourceW * scale, h: sourceH * scale, x: (boxW - sourceW * scale) / 2, y: (boxH - sourceH * scale) / 2 };
   }
-  function canvasFromImage(file, maxPixels = 20_000_000) {
+  function assertRenderBudget(width, height, accumulatedPixels = 0) {
+    const pixels = Math.max(1, Math.round(width)) * Math.max(1, Math.round(height));
+    if (pixels > MAX_RENDER_PIXELS) throw new Error('선택한 용지 크기와 DPI가 너무 큽니다. DPI 또는 출력 크기를 낮춰주세요.');
+    const total = accumulatedPixels + pixels;
+    if (total > MAX_TOTAL_RENDER_PIXELS) throw new Error('전체 변환 해상도가 브라우저 안전 한도를 넘습니다. DPI를 낮추거나 페이지 수를 나눠 변환하세요.');
+    return total;
+  }
+  function canvasFromImage(file, maxPixels = MAX_INPUT_IMAGE_PIXELS) {
     return new Promise((resolve, reject) => {
       const url = URL.createObjectURL(file); const img = new Image();
-      img.onload = () => { URL.revokeObjectURL(url); const pixels = img.naturalWidth * img.naturalHeight; if (pixels > 80_000_000) return reject(new Error('이미지 해상도가 너무 큽니다. 8천만 픽셀 이하를 사용하세요.')); resolve(img); };
-      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('이미지를 읽지 못했습니다.')); }; img.src = url;
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        const pixels = img.naturalWidth * img.naturalHeight;
+        if (pixels > maxPixels) { img.src = ''; return reject(new Error(`이미지 해상도가 너무 큽니다. ${Math.round(maxPixels/1_000_000)}백만 픽셀 이하를 사용하세요.`)); }
+        resolve(img);
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); img.src = ''; reject(new Error('이미지를 읽지 못했습니다.')); };
+      img.src = url;
     });
+  }
+  function canvasToBlob(canvas, type, quality) {
+    return new Promise((resolve, reject) => canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('이미지 인코딩에 실패했습니다. 해상도를 낮춰 다시 시도하세요.')), type, quality));
   }
   async function convertImagesToPdf(files, pdfLib) {
     const { PDFDocument } = pdfLib;
@@ -170,33 +235,44 @@
       const pageW = mmToPt(mw), pageH = mmToPt(mh);
       const box = contain(img.naturalWidth, img.naturalHeight, pageW - 28.35, pageH - 28.35);
       const canvas = document.createElement('canvas'); canvas.width = Math.max(1, Math.round(box.w)); canvas.height = Math.max(1, Math.round(box.h));
-      const ctx = canvas.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0,0,canvas.width,canvas.height); ctx.drawImage(img,0,0,canvas.width,canvas.height);
-      const jpg = await new Promise(r => canvas.toBlob(r,'image/jpeg',.9));
+      const ctx = canvas.getContext('2d');
+      if (!ctx) { img.src = ''; throw new Error('브라우저 이미지 캔버스를 만들지 못했습니다.'); }
+      ctx.fillStyle = '#fff'; ctx.fillRect(0,0,canvas.width,canvas.height); ctx.drawImage(img,0,0,canvas.width,canvas.height);
+      const jpg = await canvasToBlob(canvas,'image/jpeg',.9);
       const embedded = await pdf.embedJpg(await jpg.arrayBuffer());
       const page = pdf.addPage([pageW,pageH]); page.drawImage(embedded,{x:(pageW-box.w)/2,y:(pageH-box.h)/2,width:box.w,height:box.h});
-      canvas.width = 1; canvas.height = 1;
+      canvas.width = 1; canvas.height = 1; img.src = '';
     }
     return pdf.save({ useObjectStreams: true });
   }
   async function convertPdfToImages(file, pdfjs, jszip) {
     const data = await file.arrayBuffer();
     const pdf = await pdfjs.getDocument({ data }).promise;
-    if (pdf.numPages > MAX_PAGES) throw new Error(`최대 ${MAX_PAGES}페이지까지 변환할 수 있습니다.`);
+    if (pdf.numPages > MAX_PAGES) { if (typeof pdf.destroy === 'function') await pdf.destroy(); throw new Error(`최대 ${MAX_PAGES}페이지까지 변환할 수 있습니다.`); }
     const zip = new jszip(); const size = $('pdficPdfSize').value; const orientation = $('pdficPdfOrientation').value; const dpi = Number($('pdficDpi').value || 150); const format = $('pdficImageFormat').value;
-    for (let i = 1; i <= pdf.numPages; i += 1) {
-      status(`${i}/${pdf.numPages} 페이지 → 이미지 변환 중...`);
-      const page = await pdf.getPage(i); const base = page.getViewport({ scale: 1 });
-      const [mw,mh] = targetMm(size, orientation, base.width, base.height); const outW = Math.round(mw / 25.4 * dpi); const outH = Math.round(mh / 25.4 * dpi);
-      const scale = Math.min(outW / base.width, outH / base.height); const viewport = page.getViewport({ scale });
-      const canvas = document.createElement('canvas'); canvas.width = outW; canvas.height = outH; const ctx = canvas.getContext('2d'); ctx.fillStyle='#fff'; ctx.fillRect(0,0,outW,outH);
-      await page.render({ canvasContext: ctx, viewport, transform:[1,0,0,1,(outW-viewport.width)/2,(outH-viewport.height)/2] }).promise;
-      const blob = await new Promise(r => canvas.toBlob(r, format === 'png' ? 'image/png' : 'image/jpeg', .92));
-      zip.file(`${safeName(file.name,'document')}_${String(i).padStart(3,'0')}.${format === 'png' ? 'png' : 'jpg'}`, blob);
-      canvas.width = 1; canvas.height = 1;
+    let accumulatedPixels = 0;
+    try {
+      for (let i = 1; i <= pdf.numPages; i += 1) {
+        status(`${i}/${pdf.numPages} 페이지 → 이미지 변환 중...`);
+        const page = await pdf.getPage(i); const base = page.getViewport({ scale: 1 });
+        const [mw,mh] = targetMm(size, orientation, base.width, base.height); const outW = Math.round(mw / 25.4 * dpi); const outH = Math.round(mh / 25.4 * dpi);
+        accumulatedPixels = assertRenderBudget(outW, outH, accumulatedPixels);
+        const scale = Math.min(outW / base.width, outH / base.height); const viewport = page.getViewport({ scale });
+        const canvas = document.createElement('canvas'); canvas.width = outW; canvas.height = outH; const ctx = canvas.getContext('2d');
+        if (!ctx) throw new Error('브라우저 이미지 캔버스를 만들지 못했습니다.');
+        ctx.fillStyle='#fff'; ctx.fillRect(0,0,outW,outH);
+        await page.render({ canvasContext: ctx, viewport, transform:[1,0,0,1,(outW-viewport.width)/2,(outH-viewport.height)/2] }).promise;
+        const blob = await canvasToBlob(canvas, format === 'png' ? 'image/png' : 'image/jpeg', .92);
+        zip.file(`${safeName(file.name,'document')}_${String(i).padStart(3,'0')}.${format === 'png' ? 'png' : 'jpg'}`, blob);
+        canvas.width = 1; canvas.height = 1;
+        if (typeof page.cleanup === 'function') page.cleanup();
+      }
+      return await zip.generateAsync({ type:'blob', compression:'STORE' });
+    } finally {
+      if (typeof pdf.destroy === 'function') await pdf.destroy();
     }
-    return zip.generateAsync({ type:'blob', compression:'STORE' });
   }
-  function download(blob, name) { const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),1500); }
+  function download(blob, name) { const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),3000); }
   async function runConversion() {
     setBusy(true,'변환 준비 중...');
     try {
@@ -216,5 +292,10 @@
   function install() { installStyles(); return installCard(); }
   const retry = (n=0) => { if (install() || n>=60) return; setTimeout(()=>retry(n+1),250); };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded',()=>retry(),{once:true}); else retry();
-  window.PdfUtilityImageConverter = { install, validatePdf, validateImages, targetMm, contain, stage:'client-side-pdf-image-converter' };
+  window.PdfUtilityImageConverter = {
+    install, validatePdf, validateImages, targetMm, contain, assertRenderBudget,
+    librarySources: LIB_SOURCES,
+    limits: { maxRenderPixels: MAX_RENDER_PIXELS, maxTotalRenderPixels: MAX_TOTAL_RENDER_PIXELS, maxInputImagePixels: MAX_INPUT_IMAGE_PIXELS },
+    stage:'client-side-pdf-image-converter-reliable'
+  };
 })();
