@@ -13,6 +13,7 @@ PDF_SUITE_HTML = "pdf-suite/index.html"
 PDF_SUITE_AUTH_MARKER = "data-pdf-suite-auth-guard"
 PDF_SUITE_HOME_MARKER = "data-pdf-suite-home-launcher"
 PDF_SUITE_ADVANCED_MARKER = "data-pdf-suite-advanced-tools"
+PDF_SUITE_OCR_MARKER = "data-pdf-suite-ocr-tools"
 
 ROOT_FILES = set(DEPLOY_HTML) | {
     PDF_SUITE_HTML,
@@ -86,6 +87,10 @@ PDF_SUITE_ADVANCED_SNIPPET = (
     f'<script {PDF_SUITE_ADVANCED_MARKER} defer '
     'src="/js/pdf-suite/advanced-tools.js?v=20260905-1"></script>'
 )
+PDF_SUITE_OCR_SNIPPET = (
+    f'<script {PDF_SUITE_OCR_MARKER} defer '
+    'src="/js/pdf-suite/ocr-tools.js?v=20260905-1"></script>'
+)
 
 
 def _copy_file(source: Path, relative: Path) -> None:
@@ -130,6 +135,7 @@ def _patch_pdf_suite_entry_points() -> None:
     _inject_before(home, PDF_SUITE_HOME_MARKER, "</body>", PDF_SUITE_HOME_SNIPPET)
     _inject_before(suite, PDF_SUITE_AUTH_MARKER, "</head>", PDF_SUITE_AUTH_SNIPPET)
     _inject_before(suite, PDF_SUITE_ADVANCED_MARKER, "</body>", PDF_SUITE_ADVANCED_SNIPPET)
+    _inject_before(suite, PDF_SUITE_OCR_MARKER, "</body>", PDF_SUITE_OCR_SNIPPET)
 
 
 def build() -> int:
