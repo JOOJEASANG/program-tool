@@ -72,7 +72,10 @@ def test_print_checker_defaults_cover_all_inputs_and_live_size_modes():
         "matchingPreset",
         "notifyCore",
         "updateSummary",
-        "selectProduct?.('flyer'",
+        "renderedSpecReady",
+        "waitForCore",
+        "ensureRenderedProduct",
+        "seedProductAsync",
         "quota.canStart('print-checker')",
         "quota.commitSuccess('print-checker')",
     ):
