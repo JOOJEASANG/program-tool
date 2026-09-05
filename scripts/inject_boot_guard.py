@@ -15,7 +15,6 @@ UI_STYLE_MARKER = "data-program-studio-ui"
 PDF_BOOKLET_MARKER = "data-pdf-classic-booklet"
 EXCLUDED_PARTS = {".git", "node_modules", "venv", ".venv", "__pycache__"}
 PROTECTED_HTML = {
-    "print-checker/index.html",
     "pdf-editor/index.html",
     "pdf-preflight/index.html",
     "perfect-binding-cover/index.html",
@@ -30,6 +29,7 @@ PUBLIC_HTML = {
     "guide.html",
     "terms.html",
     "privacy.html",
+    "print-checker/index.html",
 }
 DEPLOY_HTML = PUBLIC_HTML | PROTECTED_HTML
 PDF_BOOKLET_HTML = {
