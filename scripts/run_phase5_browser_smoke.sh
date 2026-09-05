@@ -45,6 +45,7 @@ run_page "admin-workflow-v2-smoke.html" 'data-admin-v2-smoke="pass"' "Admin work
 run_page "pdf-preflight-workflow-v2-smoke.html" 'data-preflight-v2-smoke="pass"' "PDF preflight workflow v2 browser smoke" "pdf-preflight-workflow-v2-smoke-dom.html"
 run_page "print-checker-smoke.html" 'data-print-checker-smoke="pass"' "Print checker real PDF browser smoke" "print-checker-smoke-dom.html"
 run_page "pdf-daily-free-smoke.html" 'data-pdf-daily-free-smoke="pass"' "PDF daily free guest quota smoke" "pdf-daily-free-smoke-dom.html"
+run_page "pdf-daily-free-admin-smoke.html" 'data-pdf-daily-free-admin-smoke="pass"' "PDF daily free admin unlimited smoke" "pdf-daily-free-admin-smoke-dom.html"
 run_page "print-checker-defaults-daily-free-smoke.html" 'data-print-checker-defaults-daily-free-smoke="pass"' "Print checker defaults and daily free smoke" "print-checker-defaults-daily-free-smoke-dom.html"
 run_page "pdf-suite-hub-smoke.html" 'data-pdf-suite-smoke="pass"' "PDF suite hub browser smoke" "pdf-suite-hub-smoke-dom.html"
 run_page "pdf-suite-advanced-smoke.html" 'data-pdf-suite-advanced-smoke="pass"' "PDF suite advanced browser smoke" "pdf-suite-advanced-smoke-dom.html"
