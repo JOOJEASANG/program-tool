@@ -56,6 +56,14 @@ service cloud.firestore {
         && request.resource.data.state.size() <= 900000
         && request.resource.data.createdAt is timestamp;
     }
+    function validDailyPdfUsage(dateKey){
+      return request.resource.data.keys().hasOnly(['dateKey','count','updatedAt'])
+        && request.resource.data.dateKey == dateKey
+        && request.resource.data.count is int
+        && request.resource.data.count >= 1
+        && request.resource.data.count <= 10
+        && request.resource.data.updatedAt is timestamp;
+    }
 
     match /settings/admin {
       allow read: if isAdmin();
@@ -68,9 +76,9 @@ service cloud.firestore {
     match /settings/business { allow read: if true; allow write: if isAdmin(); }
     // Public home navigation/card catalog. Anyone may read the published catalog,
     // while only an administrator may create or change it. Catalog visibility is
-    // not program authorization; opening a tool still requires approved(uid).
+    // not program authorization; opening a protected tool still requires its own policy.
     match /settings/public_program_catalog { allow read: if true; allow write: if isAdmin(); }
-    // Public home metadata for the professional suite. Tool access itself is gated.
+    // Public home metadata for the professional suite. Tool access itself is separately gated.
     match /settings/professional_program_suite { allow read: if true; allow write: if isAdmin(); }
 
     match /user_permissions/{uid} {
@@ -92,6 +100,21 @@ service cloud.firestore {
         && request.resource.data.createdAt is timestamp;
       allow update: if isAdmin();
       allow delete: if isAdmin();
+    }
+
+    // Daily-free PDF counters are writable only by the signed-in account itself.
+    // Creation always starts at 1 and each update may advance exactly one successful use,
+    // capped at 10 per local calendar-date document.
+    match /users/{uid}/daily_pdf_usage/{dateKey} {
+      allow read: if isOwner(uid);
+      allow create: if isOwner(uid)
+        && validDailyPdfUsage(dateKey)
+        && request.resource.data.count == 1;
+      allow update: if isOwner(uid)
+        && validDailyPdfUsage(dateKey)
+        && request.resource.data.dateKey == resource.data.dateKey
+        && request.resource.data.count == resource.data.count + 1;
+      allow delete: if false;
     }
 
     match /users/{uid}/design_projects/{projectId} {
