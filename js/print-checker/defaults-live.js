@@ -28,6 +28,9 @@
   });
 
   let guardBusy=false;
+  let booted=false;
+
+  function sleep(ms){return new Promise(resolve=>setTimeout(resolve,ms));}
 
   function installStyles(){
     if($('printCheckerDefaultsLiveStyles'))return;
@@ -44,6 +47,7 @@
   }
 
   function currentProduct(){return window.PrintChecker?.getState?.()?.product||null;}
+  function renderedSpecReady(){return Boolean($('trimW')&&$('trimH')&&$('bleed')&&$('safeZone'));}
 
   function optionHtml(selected){
     return Object.entries(SIZE_PRESETS).map(([key,item])=>`<option value="${key}" ${key===selected?'selected':''}>${item.label}</option>`).join('');
@@ -51,7 +55,7 @@
 
   function ensureSizePreset(defaultKey){
     const form=$('specForm');
-    if(!form)return null;
+    if(!form||!renderedSpecReady())return null;
     let select=$('printSizePreset');
     if(select)return select;
     const wrap=document.createElement('div');
@@ -63,10 +67,8 @@
     select?.addEventListener('change',()=>{
       const preset=SIZE_PRESETS[select.value];
       if(!preset||preset.w===null)return;
-      const width=$('trimW');
-      const height=$('trimH');
-      if(width)width.value=String(preset.w);
-      if(height)height.value=String(preset.h);
+      $('trimW').value=String(preset.w);
+      $('trimH').value=String(preset.h);
       notifyCore();
       updateSummary();
     });
@@ -121,6 +123,7 @@
   }
 
   function updateSummary(){
+    if(!renderedSpecReady())return;
     const summary=ensureSummary();
     if(!summary)return;
     const product=currentProduct();
@@ -130,15 +133,16 @@
     const safe=Number($('safeZone')?.value||0);
     const presetKey=$('printSizePreset')?.value||matchingPreset();
     const presetLabel=SIZE_PRESETS[presetKey]?.label?.split(' · ')[0]||'직접 입력';
-    summary.innerHTML=`<span class="pc-default-chip">실시간</span><strong>${presetLabel}</strong><span>${width||0} × ${height||0} mm</span><span>도련 ${bleed||0} mm</span><span>안전 ${safe||0} mm</span>${product?`<span>${product}</span>`:''}`;
+    summary.innerHTML=`<span class="pc-default-chip">실시간</span><strong>${presetLabel}</strong><span>${width} × ${height} mm</span><span>도련 ${bleed} mm</span><span>안전 ${safe} mm</span>${product?`<span>${product}</span>`:''}`;
   }
 
   function seedProduct(product,{force=true}={}){
     const defaults=PRODUCT_DEFAULTS[product];
     const form=$('specForm');
-    if(!defaults||!form)return false;
+    if(!defaults||!form||!renderedSpecReady())return false;
     const preset=ensureSizePreset(defaults.size);
-    if(preset&&force)preset.value=defaults.size;
+    if(!preset)return false;
+    if(force)preset.value=defaults.size;
     Object.entries(defaults).forEach(([key,value])=>{
       if(key==='size')return;
       const node=$(key);
@@ -151,16 +155,41 @@
     if(spine)delete spine.dataset.manual;
     bindManualSize();
     notifyCore();
-    if(preset)preset.value=matchingPreset();
+    preset.value=matchingPreset();
     updateSummary();
     document.documentElement.dataset.printCheckerDefaultsLive='ready';
     document.documentElement.dataset.printCheckerDefaultProduct=product;
     return true;
   }
 
-  function seedCurrent(force=true){
+  async function waitForCore(timeoutMs=1600){
+    const deadline=Date.now()+timeoutMs;
+    while(Date.now()<deadline){
+      if(window.PrintChecker?.selectProduct&&document.querySelector('#productGrid .product-card'))return true;
+      await sleep(20);
+    }
+    return false;
+  }
+
+  async function ensureRenderedProduct(product,timeoutMs=900){
+    if(!window.PrintChecker?.selectProduct)return false;
+    if(currentProduct()!==product||!renderedSpecReady())window.PrintChecker.selectProduct(product,{syncUrl:false});
+    const deadline=Date.now()+timeoutMs;
+    while(Date.now()<deadline){
+      if(currentProduct()===product&&renderedSpecReady())return true;
+      await sleep(15);
+    }
+    return currentProduct()===product&&renderedSpecReady();
+  }
+
+  async function seedProductAsync(product,{force=true}={}){
+    if(!(await ensureRenderedProduct(product)))return false;
+    return seedProduct(product,{force});
+  }
+
+  async function seedCurrent(force=true){
     const product=currentProduct();
-    return product?seedProduct(product,{force}):false;
+    return product?seedProductAsync(product,{force}):false;
   }
 
   async function guardedRun(){
@@ -198,37 +227,44 @@
   function bindProductAndReset(){
     document.addEventListener('click',event=>{
       if(event.target.closest?.('.product-card'))setTimeout(()=>seedCurrent(true),0);
-      if(event.target.closest?.('#resetBtn'))setTimeout(()=>{
-        window.PrintChecker?.selectProduct?.('flyer',{syncUrl:false});
-        setTimeout(()=>seedCurrent(true),0);
-      },0);
+      if(event.target.closest?.('#resetBtn'))setTimeout(()=>seedProductAsync('flyer',{force:true}),0);
     });
     $('specForm')?.addEventListener('input',updateSummary);
     $('specForm')?.addEventListener('change',updateSummary);
   }
 
-  function boot(){
+  async function boot(){
+    if(booted)return;
+    booted=true;
     installStyles();
     bindRunGuard();
     bindProductAndReset();
-    let product=currentProduct();
-    if(!product){
-      window.PrintChecker?.selectProduct?.('flyer',{syncUrl:false});
-      product=currentProduct()||'flyer';
+    if(!(await waitForCore())){
+      booted=false;
+      console.warn('[print-checker] core did not become ready for default spec seeding');
+      return;
     }
-    seedProduct(product,{force:true});
+    const product=currentProduct()||'flyer';
+    if(!(await seedProductAsync(product,{force:true}))){
+      booted=false;
+      console.warn('[print-checker] default spec fields did not render');
+    }
   }
 
   window.PrintCheckerDefaultsLive=Object.freeze({
     sizePresets:SIZE_PRESETS,
     productDefaults:PRODUCT_DEFAULTS,
+    renderedSpecReady,
+    waitForCore,
+    ensureRenderedProduct,
     seedProduct,
+    seedProductAsync,
     matchingPreset,
     updateSummary,
     guardedRun,
     stage:'print-checker-defaults-live-v1'
   });
 
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});
-  else setTimeout(boot,0);
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{boot();},{once:true});
+  else setTimeout(()=>{boot();},0);
 })();
