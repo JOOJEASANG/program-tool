@@ -32,10 +32,17 @@ def test_guard_maps_server_pdf_shells_but_print_checker_is_daily_free():
  assert "window.ProgramAccess.guardTool" not in checker
  assert "mode:'daily-free'" in checker and "guestLimit:3" in checker and "memberLimit:10" in checker
  for retired in ("/design-editor/","/document-editor/","/image-editor/","return 'document-editor'","return 'image-editor'"): assert retired not in frontend
-def test_deploy_injector_bootstraps_auth_for_tool_shells_without_firebase():
- injector=(ROOT/"scripts"/"inject_boot_guard.py").read_text(encoding="utf-8")
- for path in ('"print-checker/index.html"','"pdf-editor/index.html"','"pdf-preflight/index.html"'): assert path in injector
+def test_deploy_injector_keeps_print_checker_public_and_server_pdf_shells_protected():
+ injector=(ROOT/"scripts"/"inject_boot_guard.py").read_text(encoding="utf-8");boot=(ROOT/"js"/"app-boot-guard.js").read_text(encoding="utf-8")
+ assert '"print-checker/index.html",\n}' not in injector.split("PROTECTED_HTML = {",1)[1].split("PUBLIC_HTML = {",1)[0]
+ public_block=injector.split("PUBLIC_HTML = {",1)[1].split("DEPLOY_HTML",1)[0]
+ assert '"print-checker/index.html"' in public_block
+ protected_block=injector.split("PROTECTED_HTML = {",1)[1].split("PUBLIC_HTML = {",1)[0]
+ for path in ('"pdf-editor/index.html"','"pdf-preflight/index.html"'): assert path in protected_block
  assert "FIREBASE_APPROVAL_BOOTSTRAP" in injector and 'src="/js/firebase-config.js"' in injector and 'approval_required=requires_approval(path)' in injector
+ assert "['/print-checker','/print-checker/index.html']" not in boot
+ assert "'/pdf-editor'" in boot and "'/pdf-preflight'" in boot
+ assert "if(!protectedProgram){reveal('public');return;}" in boot
 def test_new_user_document_rules_reject_privilege_fields_and_true_programs():
  rules=(ROOT/"firestore.rules").read_text(encoding="utf-8")
  for marker in ("request.resource.data.keys().hasOnly","request.resource.data.status == 'pending'","request.resource.data.plan == 'free'","request.resource.data.programs.keys().hasOnly","request.resource.data.programs['pdf-editor'] == false","request.resource.data.programs.preflight == false","request.resource.data.programs['design-studio'] == false"): assert marker in rules
