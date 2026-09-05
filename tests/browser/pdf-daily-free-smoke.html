@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"><title>PDF daily free smoke</title></head>
+<body>
+  <script>
+    for (const key of Object.keys(localStorage)) {
+      if (key.startsWith('programStudioPdfUsage:') || key === 'programStudioPdfGuestId') localStorage.removeItem(key);
+    }
+  </script>
+  <script src="../../js/pdf-daily-free.js"></script>
+  <script>
+    (async function(){
+      const fail=(message)=>{
+        document.documentElement.dataset.pdfDailyFreeSmoke='fail';
+        document.body.dataset.error=message;
+      };
+      try{
+        const api=window.ProgramPdfDailyFree;
+        if(!api)throw new Error('daily free API missing');
+        if(api.guestLimit!==3)throw new Error('guest limit must be 3');
+        if(api.memberLimit!==10)throw new Error('member limit must be 10');
+        const first=await api.status();
+        if(first.mode!=='guest'||first.used!==0||first.remaining!==3||!first.allowed)throw new Error('initial guest status invalid');
+        const gate=await api.canStart('smoke');
+        if(!gate.ok)throw new Error('first action unexpectedly blocked');
+        await api.commitSuccess('one');
+        await api.commitSuccess('two');
+        const beforeLast=await api.status();
+        if(beforeLast.used!==2||beforeLast.remaining!==1)throw new Error('success count did not advance to two');
+        await api.commitSuccess('three');
+        const exhausted=await api.status();
+        if(exhausted.used!==3||exhausted.remaining!==0||exhausted.allowed)throw new Error('guest limit was not enforced');
+        const blocked=await api.canStart('four');
+        if(blocked.ok||!String(blocked.message||'').includes('3회'))throw new Error('exhausted message invalid');
+        const key=api.guestUsageKey(api.localDateKey());
+        if(!key.includes(api.localDateKey()))throw new Error('usage key is not date scoped');
+        document.documentElement.dataset.pdfDailyFreeSmoke='pass';
+      }catch(error){fail(error?.message||String(error));}
+    })();
+  </script>
+</body>
+</html>
