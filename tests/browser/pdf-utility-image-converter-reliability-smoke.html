@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"><title>PDF image converter reliability smoke</title></head>
+<body>
+  <div class="action-grid"></div>
+  <script>
+    history.replaceState({}, '', '/pdf-preflight');
+  </script>
+  <script src="../../js/pdf-utility-image-converter.js"></script>
+  <script>
+    (function () {
+      const api = window.PdfUtilityImageConverter;
+      const fail = (message) => {
+        document.documentElement.dataset.pdfUtilityImageConverterReliabilitySmoke = 'fail';
+        document.body.dataset.error = message;
+      };
+      try {
+        if (!api) throw new Error('converter API missing');
+        if (!document.getElementById('pdfUtilityImageConverterCard')) throw new Error('converter card missing');
+        const sources = api.librarySources || {};
+        for (const key of ['pdfjs', 'pdfWorker', 'pdfLib', 'jszip']) {
+          if (!String(sources[key] || '').startsWith('https://cdn.jsdelivr.net/')) throw new Error(`${key} not on allowed CDN`);
+        }
+        if (Object.values(sources).some(value => String(value).includes('cdnjs.cloudflare.com'))) throw new Error('legacy cdnjs source remains');
+        const safeTotal = api.assertRenderBudget(2480, 3508, 0);
+        if (!(safeTotal > 0)) throw new Error('safe render budget rejected');
+        let pageGuarded = false;
+        try { api.assertRenderBudget(10000, 10000, 0); } catch (_) { pageGuarded = true; }
+        if (!pageGuarded) throw new Error('oversized page was not blocked');
+        let totalGuarded = false;
+        try { api.assertRenderBudget(5000, 5000, api.limits.maxTotalRenderPixels - 10_000_000); } catch (_) { totalGuarded = true; }
+        if (!totalGuarded) throw new Error('aggregate render budget was not blocked');
+        document.documentElement.dataset.pdfUtilityImageConverterReliabilitySmoke = 'pass';
+      } catch (error) { fail(error.message || String(error)); }
+    })();
+  </script>
+</body>
+</html>
