@@ -26,10 +26,11 @@ def test_frontend_and_backend_share_account_approval_policy():
  assert "allowed: access.admin || publicAccess || assigned" not in frontend
  for marker in ("def _has_admin_claim","def _is_legacy_admin","def _program_access_from_snapshots",'return permission_data.get("status") == "approved"'): assert marker in backend
  assert '.get("public")' not in backend
-def test_guard_maps_live_pdf_shells_and_print_checker_uses_shared_approval_policy():
+def test_guard_maps_server_pdf_shells_but_print_checker_is_daily_free():
  frontend=(ROOT/"js"/"firebase-config.js").read_text(encoding="utf-8");checker=(ROOT/"js"/"print-checker"/"access.js").read_text(encoding="utf-8")
  for marker in ("return 'pdf-editor'","return 'preflight'","/pdf-editor/index.html","/pdf-preflight/index.html","ProgramAccess.guardTool({ programId, timeoutMs: 8000 })"): assert marker in frontend
- assert "window.ProgramAccess.guardTool" in checker and "programId:'design-studio'" in checker
+ assert "window.ProgramAccess.guardTool" not in checker
+ assert "mode:'daily-free'" in checker and "guestLimit:3" in checker and "memberLimit:10" in checker
  for retired in ("/design-editor/","/document-editor/","/image-editor/","return 'document-editor'","return 'image-editor'"): assert retired not in frontend
 def test_deploy_injector_bootstraps_auth_for_tool_shells_without_firebase():
  injector=(ROOT/"scripts"/"inject_boot_guard.py").read_text(encoding="utf-8")
