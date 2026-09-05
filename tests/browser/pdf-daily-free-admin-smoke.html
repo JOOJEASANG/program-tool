@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"><title>PDF daily free admin smoke</title></head>
+<body>
+  <script>
+    window.__adminDbTouched=0;
+    window.db={
+      collection(){window.__adminDbTouched+=1;throw new Error('admin quota must not access Firestore');},
+      runTransaction(){window.__adminDbTouched+=1;throw new Error('admin quota must not write Firestore');}
+    };
+    window.auth={
+      onAuthStateChanged(callback){
+        callback({
+          uid:'admin-smoke-user',
+          async getIdTokenResult(){return {claims:{admin:true}};}
+        });
+      }
+    };
+  </script>
+  <script src="../../js/pdf-daily-free.js"></script>
+  <script>
+    (async function(){
+      const fail=(message)=>{
+        document.documentElement.dataset.pdfDailyFreeAdminSmoke='fail';
+        document.body.dataset.error=message;
+      };
+      try{
+        const api=window.ProgramPdfDailyFree;
+        if(!api)throw new Error('daily free API missing');
+        await new Promise(resolve=>setTimeout(resolve,30));
+        const initial=await api.status();
+        if(initial.mode!=='admin'||initial.used!==0||initial.limit!==null||initial.remaining!==null||!initial.allowed)throw new Error('admin status is not unlimited');
+        for(let i=0;i<15;i+=1){
+          const gate=await api.canStart(`admin-${i}`);
+          if(!gate.ok)throw new Error(`admin action ${i} was blocked`);
+          const committed=await api.commitSuccess(`admin-${i}`);
+          if(committed.mode!=='admin'||committed.used!==0||committed.remaining!==null||!committed.allowed)throw new Error(`admin action ${i} changed quota`);
+        }
+        if(window.__adminDbTouched!==0)throw new Error('admin quota touched Firestore');
+        const badge=document.getElementById('programPdfDailyFreeBadge');
+        if(!badge?.textContent.includes('관리자')||!badge.textContent.includes('제한 없음'))throw new Error('admin unlimited badge missing');
+        document.documentElement.dataset.pdfDailyFreeAdminSmoke='pass';
+      }catch(error){fail(error?.message||String(error));}
+    })();
+  </script>
+</body>
+</html>
