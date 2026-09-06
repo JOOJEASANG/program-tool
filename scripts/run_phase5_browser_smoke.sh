@@ -41,6 +41,7 @@ PY
 }
 
 run_page "home-current-shell-smoke.html" 'data-home-current-smoke="pass"' "Current home shell browser smoke" "home-current-shell-smoke-dom.html"
+run_page "pdf-home-consolidation-smoke.html" 'data-pdf-home-consolidation-smoke="pass"' "PDF home consolidation smoke" "pdf-home-consolidation-smoke-dom.html"
 run_page "admin-workflow-v2-smoke.html" 'data-admin-v2-smoke="pass"' "Admin workflow v2 browser smoke" "admin-workflow-v2-smoke-dom.html"
 run_page "pdf-preflight-workflow-v2-smoke.html" 'data-preflight-v2-smoke="pass"' "PDF preflight workflow v2 browser smoke" "pdf-preflight-workflow-v2-smoke-dom.html"
 run_page "print-checker-smoke.html" 'data-print-checker-smoke="pass"' "Print checker real PDF browser smoke" "print-checker-smoke-dom.html"
@@ -48,6 +49,7 @@ run_page "pdf-daily-free-smoke.html" 'data-pdf-daily-free-smoke="pass"' "PDF dai
 run_page "pdf-daily-free-admin-smoke.html" 'data-pdf-daily-free-admin-smoke="pass"' "PDF daily free admin unlimited smoke" "pdf-daily-free-admin-smoke-dom.html"
 run_page "print-checker-defaults-daily-free-smoke.html" 'data-print-checker-defaults-daily-free-smoke="pass"' "Print checker defaults and daily free smoke" "print-checker-defaults-daily-free-smoke-dom.html"
 run_page "pdf-suite-hub-smoke.html" 'data-pdf-suite-smoke="pass"' "PDF suite hub browser smoke" "pdf-suite-hub-smoke-dom.html"
+run_page "pdf-suite-unified-workspace-smoke.html" 'data-pdf-suite-unified-smoke="pass"' "PDF suite unified workspace smoke" "pdf-suite-unified-workspace-smoke-dom.html"
 run_page "pdf-suite-advanced-smoke.html" 'data-pdf-suite-advanced-smoke="pass"' "PDF suite advanced browser smoke" "pdf-suite-advanced-smoke-dom.html"
 run_page "pdf-suite-ocr-smoke.html" 'data-pdf-suite-ocr-smoke="pass"' "PDF suite OCR browser smoke" "pdf-suite-ocr-smoke-dom.html"
 run_page "pdf-utility-image-converter-reliability-smoke.html" 'data-pdf-utility-image-converter-reliability-smoke="pass"' "PDF image converter reliability smoke" "pdf-utility-image-converter-reliability-smoke-dom.html"
