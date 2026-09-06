@@ -1,56 +1,92 @@
 // Home entry point for the Program Studio PDF all-in-one workspace.
 (function(){
   'use strict';
-  if(window.__programStudioPdfSuiteHomeV1)return;
-  window.__programStudioPdfSuiteHomeV1=true;
+  if(window.__programStudioPdfSuiteHomeV2)return;
+  window.__programStudioPdfSuiteHomeV2=true;
 
-  function installStyle(){
-    if(document.getElementById('pdfSuiteHomeStyle'))return;
-    const style=document.createElement('style');
-    style.id='pdfSuiteHomeStyle';
-    style.textContent=`
-      .pdf-suite-home-entry{margin:0 0 26px;border:1.5px solid #bfdbfe;background:linear-gradient(135deg,#eff6ff,#ecfeff);border-radius:16px;padding:18px 20px;display:flex;align-items:center;gap:15px;box-shadow:0 8px 22px rgba(37,99,235,.06)}
-      .pdf-suite-home-icon{width:48px;height:48px;border-radius:13px;display:grid;place-items:center;background:linear-gradient(135deg,#1d4ed8,#0891b2);color:#fff;font-size:22px;flex:0 0 48px}
-      .pdf-suite-home-body{flex:1;min-width:0}.pdf-suite-home-title{font-size:15px;font-weight:950;color:#0f2f59}.pdf-suite-home-desc{font-size:11px;color:#475569;line-height:1.55;margin-top:4px}
-      .pdf-suite-home-cta{flex:0 0 auto;text-decoration:none;border:0;border-radius:11px;background:#1d4ed8;color:#fff;padding:10px 14px;font-size:11px;font-weight:900;box-shadow:0 4px 12px rgba(37,99,235,.18)}
-      @media(max-width:640px){.pdf-suite-home-entry{align-items:flex-start;flex-wrap:wrap}.pdf-suite-home-body{min-width:calc(100% - 70px)}.pdf-suite-home-cta{margin-left:63px}}
-    `;
-    document.head.appendChild(style);
-  }
+  const SUITE_PROGRAM={
+    id:'pdf-suite',
+    cat:'pdf',
+    name:'PDF 올인원',
+    icon:'📄',
+    accent:'#2563eb',
+    bg:'linear-gradient(135deg,#1e40af,#0891b2)',
+    catLabel:'PDF',
+    desc:'PDF 합치기·페이지 추출·회전 같은 기본 작업부터 검사·암호·압축·OCR·전문 인쇄배치까지 한곳에서 찾고 실행합니다.',
+    url:'pdf-suite/',
+    tags:['기본 PDF 작업','로컬 처리','전문 기능 연결']
+  };
 
-  function installEntry(){
-    const quick=document.getElementById('quickSection');
-    if(!quick||document.getElementById('pdfSuiteHomeEntry'))return false;
-    installStyle();
-    const box=document.createElement('section');
-    box.id='pdfSuiteHomeEntry';
-    box.className='pdf-suite-home-entry';
-    box.setAttribute('aria-label','PDF 올인원 빠른 실행');
-    box.innerHTML='<div class="pdf-suite-home-icon">📄</div><div class="pdf-suite-home-body"><div class="pdf-suite-home-title">PDF 올인원 · PDF로 할 수 있는 작업을 한곳에</div><div class="pdf-suite-home-desc">페이지 구성 · 변환 · 편집 · 보안 · 인쇄 · 스캔/OCR 확장 · 최적화 · 검사/분석을 목적별로 찾고 바로 실행합니다.</div></div><a class="pdf-suite-home-cta" href="pdf-suite/">PDF 올인원 열기 →</a>';
-    quick.insertAdjacentElement('afterend',box);
+  function consolidatePrograms(){
+    const api=window.ProgramStudioHome;
+    const programs=api?.PROGRAMS;
+    if(!Array.isArray(programs))return false;
+    const before=programs.map(item=>item.id).join(',');
+    const retained=programs.filter(item=>!['pdf-editor','pdf-preflight','pdf-suite'].includes(item.id));
+    retained.push({...SUITE_PROGRAM});
+    programs.splice(0,programs.length,...retained);
+    const changed=before!==programs.map(item=>item.id).join(',');
+    if(changed){
+      try{window.renderGrid?.();}catch(_){ }
+      try{window.buildQuickRow?.();}catch(_){ }
+    }
     return true;
   }
 
-  function installQuickChip(){
-    const row=document.getElementById('quickRow');
-    if(!row||row.querySelector('[data-pdf-suite-home-chip]'))return false;
-    const link=document.createElement('a');
-    link.href='pdf-suite/';
-    link.className='quick-chip';
-    link.dataset.pdfSuiteHomeChip='1';
-    link.innerHTML='<span class="quick-dot" style="background:#2563eb"></span>PDF 올인원';
-    row.prepend(link);
-    return true;
+  function syncCounts(){
+    const programs=window.ProgramStudioHome?.PROGRAMS;
+    if(!Array.isArray(programs))return;
+    const all=programs.length;
+    const print=programs.filter(item=>item.cat==='print').length;
+    const pdf=programs.filter(item=>item.cat==='pdf').length;
+    const set=(id,value)=>{
+      const node=document.getElementById(id);
+      const next=String(value);
+      if(node&&node.textContent!==next)node.textContent=next;
+    };
+    set('cnt-all',all);
+    set('cnt-print',print);
+    set('cnt-pdf',pdf);
+    const count=document.getElementById('count');
+    if(count){
+      const active=window.ProgramStudioHome?.activeCategory||'all';
+      const visible=active==='all'?all:active==='print'?print:active==='pdf'?pdf:all;
+      const next=`${visible}개`;
+      if(count.textContent!==next)count.textContent=next;
+    }
+  }
+
+  function removeLegacyEntry(){
+    document.getElementById('pdfSuiteHomeEntry')?.remove();
+    document.querySelectorAll('[data-pdf-suite-home-chip]').forEach(node=>node.remove());
   }
 
   function install(){
-    installEntry();
-    installQuickChip();
+    removeLegacyEntry();
+    if(!consolidatePrograms())return;
+    syncCounts();
+    document.documentElement.dataset.pdfHomeUnified='ready';
   }
 
-  const observer=new MutationObserver(install);
+  let observerQueued=false;
+  const observer=new MutationObserver(()=>{
+    if(observerQueued||!window.ProgramStudioHome?.PROGRAMS)return;
+    observerQueued=true;
+    queueMicrotask(()=>{
+      observerQueued=false;
+      consolidatePrograms();
+      syncCounts();
+    });
+  });
   if(document.documentElement)observer.observe(document.documentElement,{subtree:true,childList:true});
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});
   else install();
-  [80,250,600,1200,2200].forEach(delay=>setTimeout(install,delay));
+  [50,150,400,900].forEach(delay=>setTimeout(install,delay));
+
+  window.ProgramStudioPdfSuiteHome=Object.freeze({
+    program:SUITE_PROGRAM,
+    consolidatePrograms,
+    syncCounts,
+    stage:'pdf-suite-home-unified-v2'
+  });
 })();

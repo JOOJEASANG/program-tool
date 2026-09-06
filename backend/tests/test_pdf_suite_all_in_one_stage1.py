@@ -63,7 +63,7 @@ def test_pdf_suite_local_tools_are_real_local_pdf_operations():
     assert "XMLHttpRequest" not in source
 
 
-def test_pdf_suite_is_staged_with_daily_free_policy_and_home_launcher():
+def test_pdf_suite_is_staged_with_daily_free_policy_and_single_home_entry():
     hosting = HOSTING.read_text(encoding="utf-8")
     home = HOME.read_text(encoding="utf-8")
 
@@ -72,6 +72,12 @@ def test_pdf_suite_is_staged_with_daily_free_policy_and_home_launcher():
         "data-pdf-suite-daily-free",
         "pdf-daily-free.js",
         "pdf-suite-home-launcher.js",
+        "data-pdf-suite-unified-workspace",
+        "unified-workspace.js",
+        "data-pdf-suite-unified-quota",
+        "unified-quota.js",
+        "data-pdf-specialist-label",
+        "specialist-label.js",
         "_patch_pdf_suite_entry_points()",
     ):
         assert marker in hosting
@@ -80,8 +86,13 @@ def test_pdf_suite_is_staged_with_daily_free_policy_and_home_launcher():
     assert 'programId:"preflight"' not in hosting
 
     for marker in (
-        "PDF 올인원 · PDF로 할 수 있는 작업을 한곳에",
+        "name:'PDF 올인원'",
         "pdf-suite/",
-        "pdfSuiteHomeChip",
+        "consolidatePrograms",
+        "pdf-editor",
+        "pdf-preflight",
+        "pdf-suite-home-unified-v2",
     ):
         assert marker in home
+
+    assert "pdfSuiteHomeChip" not in home

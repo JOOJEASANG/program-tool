@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"><title>PDF Suite Unified Workspace Smoke</title></head>
+<body data-pdf-suite-unified-smoke="running">
+  <nav class="top"><a class="top-link" href="/pdf-preflight/">PDF 검사·유틸리티</a><a class="top-link" href="/pdf-editor/">PDF 편집·인쇄</a></nav>
+  <main>
+    <section class="hero"><p>old copy</p></section>
+    <section class="quick"><a href="/pdf-preflight/"><strong>PDF 검사·유틸리티</strong><small>합치기</small></a></section>
+    <section class="section"><div class="tool-grid">
+      <a class="tool available" data-status="available" href="/pdf-preflight/"><span class="status now">바로 사용</span><span class="tool-name">PDF 합치기</span></a>
+      <a class="tool available" data-status="available" href="/pdf-preflight/"><span class="status now">바로 사용</span><span class="tool-name">페이지 추출·나누기</span></a>
+    </div></section>
+    <section id="local-tools"></section>
+  </main>
+  <div id="result">RUNNING</div>
+  <script>
+    history.replaceState(null,'','/pdf-suite/?smoke=unified');
+    let downloadedName='';
+    URL.createObjectURL=()=> 'blob:pdf-unified-smoke';
+    URL.revokeObjectURL=()=>{};
+    HTMLAnchorElement.prototype.click=function(){if(this.download)downloadedName=this.download;};
+    window.PDFLib={
+      PDFDocument:{
+        async create(){
+          const pages=[];
+          return {
+            async copyPages(source,indices){return indices.map(index=>({index,source}));},
+            addPage(page){pages.push(page);},
+            async save(){return new Uint8Array([37,80,68,70,45,49,46,55]);}
+          };
+        },
+        async load(bytes){
+          const count=Math.max(1,new Uint8Array(bytes)[0]||1);
+          return {
+            getPageCount(){return count;},
+            getPageIndices(){return Array.from({length:count},(_,index)=>index);}
+          };
+        }
+      }
+    };
+    function fakeFile(name,size,pages){return {name,size,type:'application/pdf',async arrayBuffer(){return new Uint8Array([pages]).buffer;}};}
+    function setInputFiles(id,files){Object.defineProperty(document.getElementById(id),'files',{configurable:true,value:files});}
+    const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+    const waitFor=async(fn,label,timeout=3000)=>{const started=Date.now();while(Date.now()-started<timeout){if(fn())return;await wait(20);}throw new Error('timeout: '+label);};
+  </script>
+  <script src="/js/pdf-suite/unified-navigation-prep.js?v=smoke"></script>
+  <script>document.querySelector('.quick a').setAttribute('href','../pdf-preflight/');</script>
+  <script src="/js/pdf-suite/unified-workspace.js?v=smoke"></script>
+  <script>
+    (async()=>{
+      const result=document.getElementById('result');
+      try{
+        await waitFor(()=>window.ProgramStudioPdfUnifiedWorkspace,'runtime');
+        await waitFor(()=>document.getElementById('pdf-primary-workspace'),'primary workspace');
+        const workspace=document.getElementById('pdf-primary-workspace');
+        if(!workspace)throw new Error('primary workspace missing');
+        if(document.documentElement.dataset.pdfSuiteUnified!=='ready')throw new Error('ready marker missing');
+        if(document.documentElement.dataset.pdfUnifiedNavigationPrep!=='ready')throw new Error('navigation prep marker missing');
+        const mergeCard=Array.from(document.querySelectorAll('.tool')).find(tool=>tool.querySelector('.tool-name')?.textContent==='PDF 합치기');
+        if(mergeCard?.getAttribute('href')!=='#pdf-primary-workspace')throw new Error('merge card not routed locally');
+        if(mergeCard?.dataset.status!=='local')throw new Error('merge card local marker missing');
+        if(document.querySelector('.top-link[href="/pdf-preflight/"]')?.textContent!=='전문 검사·변환')throw new Error('specialist navigation label missing');
+        if(document.querySelector('.quick a')?.getAttribute('href')!=='#pdf-primary-workspace')throw new Error('quick local workspace route missing');
+
+        const first=fakeFile('first.pdf',1024,2);
+        const second=fakeFile('second.pdf',2048,3);
+        setInputFiles('pdfUnifiedMergeInput',[first,second]);
+        document.getElementById('pdfUnifiedMergeInput').dispatchEvent(new Event('change',{bubbles:true}));
+        await wait(30);
+        if(window.ProgramStudioPdfUnifiedWorkspace.mergeFiles.map(file=>file.name).join(',')!=='first.pdf,second.pdf')throw new Error('merge selection order wrong');
+        document.querySelectorAll('[data-pdf-unified-move="up"]')[1].click();
+        if(window.ProgramStudioPdfUnifiedWorkspace.mergeFiles.map(file=>file.name).join(',')!=='second.pdf,first.pdf')throw new Error('merge reorder failed');
+        document.getElementById('pdfUnifiedRun').click();
+        await waitFor(()=>document.documentElement.dataset.pdfUnifiedLastResult==='merge-success','merge success');
+        if(!downloadedName.includes('PDF_합치기_2개_5p.pdf'))throw new Error('merge output name wrong: '+downloadedName);
+
+        const extract=fakeFile('extract.pdf',4096,4);
+        document.querySelector('[data-pdf-unified-mode="extract"]').click();
+        setInputFiles('pdfUnifiedExtractInput',[extract]);
+        document.getElementById('pdfUnifiedExtractInput').dispatchEvent(new Event('change',{bubbles:true}));
+        await waitFor(()=>document.getElementById('pdfUnifiedExtractMeta').textContent.includes('4페이지'),'extract page count');
+        document.getElementById('pdfUnifiedRange').value='4,2-3,1';
+        downloadedName='';
+        document.getElementById('pdfUnifiedRun').click();
+        await waitFor(()=>document.documentElement.dataset.pdfUnifiedLastResult==='extract-success','extract success');
+        if(!downloadedName.includes('extract_페이지추출_4p.pdf'))throw new Error('extract output name wrong: '+downloadedName);
+        const parsed=window.ProgramStudioPdfUnifiedWorkspace.parsePageSelection('3,1-2,2',4).join(',');
+        if(parsed!=='3,1,2')throw new Error('page parser order/dedupe failed: '+parsed);
+
+        document.body.dataset.pdfSuiteUnifiedSmoke='pass';
+        result.textContent='PASS';
+      }catch(error){
+        document.body.dataset.pdfSuiteUnifiedSmoke='fail';
+        result.textContent='FAIL: '+String(error?.stack||error);
+      }
+    })();
+  </script>
+</body>
+</html>

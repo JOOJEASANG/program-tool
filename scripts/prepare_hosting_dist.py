@@ -14,6 +14,10 @@ PDF_SUITE_DAILY_FREE_MARKER = "data-pdf-suite-daily-free"
 PDF_SUITE_HOME_MARKER = "data-pdf-suite-home-launcher"
 PDF_SUITE_ADVANCED_MARKER = "data-pdf-suite-advanced-tools"
 PDF_SUITE_OCR_MARKER = "data-pdf-suite-ocr-tools"
+PDF_SUITE_UNIFIED_NAV_MARKER = "data-pdf-suite-unified-navigation-prep"
+PDF_SUITE_UNIFIED_MARKER = "data-pdf-suite-unified-workspace"
+PDF_SUITE_UNIFIED_QUOTA_MARKER = "data-pdf-suite-unified-quota"
+PDF_SPECIALIST_LABEL_MARKER = "data-pdf-specialist-label"
 
 ROOT_FILES = set(DEPLOY_HTML) | {
     PDF_SUITE_HTML,
@@ -76,7 +80,7 @@ PDF_SUITE_DAILY_FREE_SNIPPET = (
     f'<script {PDF_SUITE_DAILY_FREE_MARKER} src="/js/pdf-daily-free.js?v=20260906-1"></script>'
 )
 PDF_SUITE_HOME_SNIPPET = (
-    f'<script {PDF_SUITE_HOME_MARKER} defer src="/js/pdf-suite-home-launcher.js"></script>'
+    f'<script {PDF_SUITE_HOME_MARKER} defer src="/js/pdf-suite-home-launcher.js?v=20260906-2"></script>'
 )
 PDF_SUITE_ADVANCED_SNIPPET = (
     f'<script {PDF_SUITE_ADVANCED_MARKER} defer '
@@ -85,6 +89,22 @@ PDF_SUITE_ADVANCED_SNIPPET = (
 PDF_SUITE_OCR_SNIPPET = (
     f'<script {PDF_SUITE_OCR_MARKER} defer '
     'src="/js/pdf-suite/ocr-tools.js?v=20260905-1"></script>'
+)
+PDF_SUITE_UNIFIED_NAV_SNIPPET = (
+    f'<script {PDF_SUITE_UNIFIED_NAV_MARKER} defer '
+    'src="/js/pdf-suite/unified-navigation-prep.js?v=20260906-1"></script>'
+)
+PDF_SUITE_UNIFIED_SNIPPET = (
+    f'<script {PDF_SUITE_UNIFIED_MARKER} defer '
+    'src="/js/pdf-suite/unified-workspace.js?v=20260906-1"></script>'
+)
+PDF_SUITE_UNIFIED_QUOTA_SNIPPET = (
+    f'<script {PDF_SUITE_UNIFIED_QUOTA_MARKER} defer '
+    'src="/js/pdf-suite/unified-quota.js?v=20260906-1"></script>'
+)
+PDF_SPECIALIST_LABEL_SNIPPET = (
+    f'<script {PDF_SPECIALIST_LABEL_MARKER} defer '
+    'src="/js/pdf-suite/specialist-label.js?v=20260906-1"></script>'
 )
 
 
@@ -127,10 +147,17 @@ def _inject_before(path: Path, marker: str, needle: str, snippet: str) -> None:
 def _patch_pdf_suite_entry_points() -> None:
     home = OUTPUT / "index.html"
     suite = OUTPUT / PDF_SUITE_HTML
+    preflight = OUTPUT / "pdf-preflight/index.html"
+    editor = OUTPUT / "pdf-editor/index.html"
     _inject_before(home, PDF_SUITE_HOME_MARKER, "</body>", PDF_SUITE_HOME_SNIPPET)
     _inject_before(suite, PDF_SUITE_DAILY_FREE_MARKER, "</head>", PDF_SUITE_DAILY_FREE_SNIPPET)
     _inject_before(suite, PDF_SUITE_ADVANCED_MARKER, "</body>", PDF_SUITE_ADVANCED_SNIPPET)
     _inject_before(suite, PDF_SUITE_OCR_MARKER, "</body>", PDF_SUITE_OCR_SNIPPET)
+    _inject_before(suite, PDF_SUITE_UNIFIED_NAV_MARKER, "</body>", PDF_SUITE_UNIFIED_NAV_SNIPPET)
+    _inject_before(suite, PDF_SUITE_UNIFIED_MARKER, "</body>", PDF_SUITE_UNIFIED_SNIPPET)
+    _inject_before(suite, PDF_SUITE_UNIFIED_QUOTA_MARKER, "</body>", PDF_SUITE_UNIFIED_QUOTA_SNIPPET)
+    _inject_before(preflight, PDF_SPECIALIST_LABEL_MARKER, "</body>", PDF_SPECIALIST_LABEL_SNIPPET)
+    _inject_before(editor, PDF_SPECIALIST_LABEL_MARKER, "</body>", PDF_SPECIALIST_LABEL_SNIPPET)
 
 
 def build() -> int:
