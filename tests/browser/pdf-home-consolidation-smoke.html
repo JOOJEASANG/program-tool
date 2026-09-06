@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"><title>PDF Home Consolidation Smoke</title></head>
+<body data-pdf-home-consolidation-smoke="running">
+  <span id="cnt-all">3</span><span id="cnt-print">1</span><span id="cnt-pdf">2</span><span id="count">3개</span>
+  <div id="programGrid"></div><div id="quickRow"></div><div id="result">RUNNING</div>
+  <script>
+    const PROGRAMS=[
+      {id:'print-checker',cat:'print',name:'인쇄물 사전 검토',url:'print-checker/'},
+      {id:'pdf-editor',cat:'pdf',name:'PDF 편집 · 인쇄배치',url:'pdf-editor/'},
+      {id:'pdf-preflight',cat:'pdf',name:'PDF 도구 모음',url:'pdf-preflight/'}
+    ];
+    window.ProgramStudioHome={PROGRAMS,get activeCategory(){return 'all';}};
+    window.renderGrid=()=>{document.getElementById('programGrid').textContent=PROGRAMS.map(item=>item.id).join(',');};
+    window.buildQuickRow=()=>{document.getElementById('quickRow').textContent=PROGRAMS.map(item=>item.name).join(',');};
+    renderGrid();buildQuickRow();
+    const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+  </script>
+  <script src="/js/pdf-suite-home-launcher.js?v=smoke"></script>
+  <script>
+    (async()=>{
+      const result=document.getElementById('result');
+      try{
+        for(let i=0;i<30&&document.documentElement.dataset.pdfHomeUnified!=='ready';i+=1)await wait(20);
+        const ids=PROGRAMS.map(item=>item.id).join(',');
+        if(ids!=='print-checker,pdf-suite')throw new Error('home programs not consolidated: '+ids);
+        if(document.getElementById('cnt-all').textContent!=='2')throw new Error('all count wrong');
+        if(document.getElementById('cnt-pdf').textContent!=='1')throw new Error('pdf count wrong');
+        if(!document.getElementById('quickRow').textContent.includes('PDF 올인원'))throw new Error('PDF all-in-one quick entry missing');
+        if(document.getElementById('quickRow').textContent.includes('PDF 도구 모음'))throw new Error('legacy PDF tool still exposed');
+        document.body.dataset.pdfHomeConsolidationSmoke='pass';
+        result.textContent='PASS';
+      }catch(error){
+        document.body.dataset.pdfHomeConsolidationSmoke='fail';
+        result.textContent='FAIL: '+String(error?.stack||error);
+      }
+    })();
+  </script>
+</body>
+</html>
