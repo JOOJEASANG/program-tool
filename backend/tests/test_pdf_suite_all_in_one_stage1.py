@@ -6,6 +6,7 @@ HUB = ROOT / "pdf-suite" / "index.html"
 LOCAL = ROOT / "js" / "pdf-suite" / "local-tools.js"
 HOME = ROOT / "js" / "pdf-suite-home-launcher.js"
 SINGLE = ROOT / "js" / "pdf-suite" / "single-page-shell.js"
+SPECIALIST = ROOT / "js" / "pdf-suite" / "specialist-label.js"
 HOSTING = ROOT / "scripts" / "prepare_hosting_dist.py"
 
 
@@ -64,10 +65,11 @@ def test_pdf_suite_local_tools_are_real_local_pdf_operations():
     assert "XMLHttpRequest" not in source
 
 
-def test_pdf_suite_is_staged_with_daily_free_policy_and_single_home_entry():
+def test_pdf_suite_is_staged_with_daily_free_policy_and_four_home_programs():
     hosting = HOSTING.read_text(encoding="utf-8")
     home = HOME.read_text(encoding="utf-8")
     single = SINGLE.read_text(encoding="utf-8")
+    specialist = SPECIALIST.read_text(encoding="utf-8")
 
     for marker in (
         'PDF_SUITE_HTML = "pdf-suite/index.html"',
@@ -90,25 +92,41 @@ def test_pdf_suite_is_staged_with_daily_free_policy_and_single_home_entry():
     assert 'programId:"preflight"' not in hosting
 
     for marker in (
-        "name:'PDF 작업실'",
+        "name:'인쇄물 사전 검토'",
+        "name:'PDF 편집 · N-UP 배치'",
+        "name:'소책자 배치'",
+        "name:'PDF 유틸리티'",
+        "print-checker/",
+        "pdf-editor/",
+        "booklet/",
         "pdf-suite/",
-        "consolidatePrograms",
-        "pdf-editor",
-        "pdf-preflight",
-        "pdf-suite-home-single-workspace-v3",
+        "normalizePrograms",
+        "pdf-home-four-programs-v4",
     ):
         assert marker in home
 
     for marker in (
         "기본 작업",
-        "변환",
+        "변환 · OCR",
         "편집 · 보안",
         "최적화 · 검사",
+        "N-up 다면 배치",
+        "소책자·중철 배치",
+        "책자 출력 배치",
+        "인쇄물 사전 검토",
+        "removeSeparatedTools",
         "openEmbedded",
         "/pdf-preflight/?embed=1",
         "/pdf-editor/?embed=1",
-        "pdf-single-page-workspace-v1",
+        "pdf-utility-workspace-v2",
     ):
         assert marker in single
+
+    for marker in (
+        "PDF 편집 · N-UP 배치 · Program Studio",
+        "프로그램 목록으로 돌아가기",
+        "PDF 유틸리티 내부 엔진",
+    ):
+        assert marker in specialist
 
     assert "pdfSuiteHomeChip" not in home
