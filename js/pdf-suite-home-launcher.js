@@ -39,7 +39,11 @@
     const all=programs.length;
     const print=programs.filter(item=>item.cat==='print').length;
     const pdf=programs.filter(item=>item.cat==='pdf').length;
-    const set=(id,value)=>{const node=document.getElementById(id);if(node)node.textContent=String(value);};
+    const set=(id,value)=>{
+      const node=document.getElementById(id);
+      const next=String(value);
+      if(node&&node.textContent!==next)node.textContent=next;
+    };
     set('cnt-all',all);
     set('cnt-print',print);
     set('cnt-pdf',pdf);
@@ -47,7 +51,8 @@
     if(count){
       const active=window.ProgramStudioHome?.activeCategory||'all';
       const visible=active==='all'?all:active==='print'?print:active==='pdf'?pdf:all;
-      count.textContent=`${visible}개`;
+      const next=`${visible}개`;
+      if(count.textContent!==next)count.textContent=next;
     }
   }
 
@@ -63,10 +68,15 @@
     document.documentElement.dataset.pdfHomeUnified='ready';
   }
 
+  let observerQueued=false;
   const observer=new MutationObserver(()=>{
-    if(!window.ProgramStudioHome?.PROGRAMS)return;
-    consolidatePrograms();
-    syncCounts();
+    if(observerQueued||!window.ProgramStudioHome?.PROGRAMS)return;
+    observerQueued=true;
+    queueMicrotask(()=>{
+      observerQueued=false;
+      consolidatePrograms();
+      syncCounts();
+    });
   });
   if(document.documentElement)observer.observe(document.documentElement,{subtree:true,childList:true});
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});
