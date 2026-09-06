@@ -1,8 +1,8 @@
 // Label specialist PDF engines and support embedding utility features without blurring standalone program roles.
 (function(){
   'use strict';
-  if(window.__programStudioPdfSpecialistLabelV4)return;
-  window.__programStudioPdfSpecialistLabelV4=true;
+  if(window.__programStudioPdfSpecialistLabelV5)return;
+  window.__programStudioPdfSpecialistLabelV5=true;
 
   const params=new URLSearchParams(location.search);
   const embedded=params.get('embed')==='1';
@@ -15,15 +15,12 @@
     style.textContent=`
       .pdf-specialist-role{margin:0 0 14px;border:1px solid #bfdbfe;background:#eff6ff;color:#334155;border-radius:12px;padding:10px 12px;font:800 11px/1.55 Pretendard,"Noto Sans KR",sans-serif}
       .pdf-specialist-role a{color:#1d4ed8;font-weight:950;text-decoration:none}.pdf-specialist-role strong{color:#0f2f59}
-      .pdf-editor-specialist-link,.pdf-editor-booklet-link{display:block;margin:0 0 9px;border-radius:10px;padding:9px 10px;font:800 10px/1.5 Pretendard,"Noto Sans KR",sans-serif;text-decoration:none}
-      .pdf-editor-specialist-link{border:1px solid #bfdbfe;background:#eff6ff;color:#334155}
-      .pdf-editor-booklet-link{border:1px solid #c4b5fd;background:#f5f3ff;color:#6d28d9}.pdf-editor-booklet-link:hover{background:#ede9fe}
       .pdf-specialist-focus{margin:0 0 12px;border:1px solid #bae6fd;background:#f0fdff;color:#0e7490;border-radius:10px;padding:9px 11px;font:850 10px/1.5 Pretendard,"Noto Sans KR",sans-serif}
       .pdf-specialist-focus strong{color:#155e75}
       .pdf-specialist-focus-target{outline:3px solid rgba(37,99,235,.3)!important;outline-offset:3px!important;border-color:#60a5fa!important}
       html[data-pdf-specialist-embed="true"] body{padding-top:0!important}
       html[data-pdf-specialist-embed="true"] .top-nav{display:none!important}
-      html[data-pdf-specialist-embed="true"] .hero,html[data-pdf-specialist-embed="true"] #pdfSpecialistRole,html[data-pdf-specialist-embed="true"] #pdfEditorSpecialistLink,html[data-pdf-specialist-embed="true"] #pdfEditorBookletLink{display:none!important}
+      html[data-pdf-specialist-embed="true"] .hero,html[data-pdf-specialist-embed="true"] #pdfSpecialistRole{display:none!important}
       html[data-pdf-specialist-embed="true"] .container{padding-top:14px!important;padding-bottom:24px!important}
       html[data-pdf-specialist-embed="true"] .app{height:100vh!important}
     `;
@@ -61,6 +58,12 @@
     document.documentElement.dataset.pdfSpecialist='preflight';
   }
 
+  function removeEditorSidebarShortcuts(){
+    document.getElementById('pdfEditorSpecialistLink')?.remove();
+    document.getElementById('pdfEditorBookletLink')?.remove();
+    document.documentElement.dataset.pdfEditorSidebarShortcuts='removed';
+  }
+
   function installEditor(){
     document.title=embedded?'PDF 유틸리티 · 일반 편집':'PDF 편집 · N-UP · 소책자 배치 · Program Studio';
     const nav=document.querySelector('.nav-title');
@@ -68,25 +71,9 @@
     const aside=document.querySelector('aside');
     const heading=aside?.querySelector('h1');
     if(heading)heading.textContent=embedded?'PDF 일반 편집':'PDF 편집 · N-UP 배치';
-    if(aside&&!embedded&&!document.getElementById('pdfEditorBookletLink')){
-      const booklet=document.createElement('a');
-      booklet.id='pdfEditorBookletLink';
-      booklet.className='pdf-editor-booklet-link';
-      booklet.href='../booklet/';
-      booklet.textContent='📖 소책자 · 중철 배치 열기 →';
-      aside.prepend(booklet);
-    }
-    if(aside&&!embedded&&!document.getElementById('pdfEditorSpecialistLink')){
-      const link=document.createElement('a');
-      link.id='pdfEditorSpecialistLink';
-      link.className='pdf-editor-specialist-link';
-      link.href='../index.html';
-      link.textContent='← 프로그램 목록으로 돌아가기';
-      aside.prepend(link);
-    }
+    removeEditorSidebarShortcuts();
     installFocus(aside);
     document.documentElement.dataset.pdfSpecialist='editor';
-    if(!embedded)document.documentElement.dataset.pdfEditorBookletEntry='ready';
   }
 
   function candidates(){

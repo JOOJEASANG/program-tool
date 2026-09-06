@@ -5,6 +5,7 @@ ROOT = Path(__file__).resolve().parents[2]
 HUB = ROOT / "pdf-suite" / "index.html"
 LOCAL = ROOT / "js" / "pdf-suite" / "local-tools.js"
 HOME = ROOT / "js" / "pdf-suite-home-launcher.js"
+NAV_PREP = ROOT / "js" / "pdf-suite" / "unified-navigation-prep.js"
 SINGLE = ROOT / "js" / "pdf-suite" / "single-page-shell.js"
 SPECIALIST = ROOT / "js" / "pdf-suite" / "specialist-label.js"
 HOSTING = ROOT / "scripts" / "prepare_hosting_dist.py"
@@ -68,6 +69,7 @@ def test_pdf_suite_local_tools_are_real_local_pdf_operations():
 def test_pdf_suite_is_staged_with_combined_editor_and_split_utility_workspace():
     hosting = HOSTING.read_text(encoding="utf-8")
     home = HOME.read_text(encoding="utf-8")
+    nav_prep = NAV_PREP.read_text(encoding="utf-8")
     single = SINGLE.read_text(encoding="utf-8")
     specialist = SPECIALIST.read_text(encoding="utf-8")
 
@@ -76,6 +78,8 @@ def test_pdf_suite_is_staged_with_combined_editor_and_split_utility_workspace():
         "data-pdf-suite-daily-free",
         "pdf-daily-free.js",
         "pdf-suite-home-launcher.js?v=20260906-5",
+        "data-pdf-suite-unified-navigation-prep",
+        "unified-navigation-prep.js?v=20260906-2",
         "data-pdf-suite-unified-workspace",
         "unified-workspace.js",
         "data-pdf-suite-unified-quota",
@@ -83,7 +87,7 @@ def test_pdf_suite_is_staged_with_combined_editor_and_split_utility_workspace():
         "data-pdf-suite-single-page-workspace",
         "single-page-shell.js?v=20260906-3",
         "data-pdf-specialist-label",
-        "specialist-label.js?v=20260906-4",
+        "specialist-label.js?v=20260906-5",
         "_patch_pdf_suite_entry_points()",
     ):
         assert marker in hosting
@@ -103,6 +107,14 @@ def test_pdf_suite_is_staged_with_combined_editor_and_split_utility_workspace():
     ):
         assert marker in home
     assert "id:'booklet'" not in home
+
+    for marker in (
+        "removeEditorOwnedUtilityTools",
+        "pdfUtilityEditorOverlapRemoved",
+        "pdf-editor",
+        "pdf-suite-unified-navigation-prep-v2",
+    ):
+        assert marker in nav_prep
 
     for marker in (
         "페이지 · 문서",
@@ -125,11 +137,15 @@ def test_pdf_suite_is_staged_with_combined_editor_and_split_utility_workspace():
 
     for marker in (
         "PDF 편집 · N-UP · 소책자 배치 · Program Studio",
-        "소책자 · 중철 배치 열기",
-        "../booklet/",
-        "프로그램 목록으로 돌아가기",
+        "removeEditorSidebarShortcuts",
+        "pdfEditorSidebarShortcuts='removed'",
         "PDF 유틸리티 내부 엔진",
     ):
         assert marker in specialist
 
+    assert "소책자 · 중철 배치 열기" not in specialist
+    assert "프로그램 목록으로 돌아가기" not in specialist
+    assert "../booklet/" not in specialist
+    assert "pdf-editor-booklet-link" not in specialist
+    assert "pdf-editor-specialist-link" not in specialist
     assert "pdfSuiteHomeChip" not in home

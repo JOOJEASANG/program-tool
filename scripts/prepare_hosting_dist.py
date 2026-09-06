@@ -93,7 +93,7 @@ PDF_SUITE_OCR_SNIPPET = (
 )
 PDF_SUITE_UNIFIED_NAV_SNIPPET = (
     f'<script {PDF_SUITE_UNIFIED_NAV_MARKER} defer '
-    'src="/js/pdf-suite/unified-navigation-prep.js?v=20260906-1"></script>'
+    'src="/js/pdf-suite/unified-navigation-prep.js?v=20260906-2"></script>'
 )
 PDF_SUITE_UNIFIED_SNIPPET = (
     f'<script {PDF_SUITE_UNIFIED_MARKER} defer '
@@ -109,7 +109,7 @@ PDF_SUITE_SINGLE_PAGE_SNIPPET = (
 )
 PDF_SPECIALIST_LABEL_SNIPPET = (
     f'<script {PDF_SPECIALIST_LABEL_MARKER} defer '
-    'src="/js/pdf-suite/specialist-label.js?v=20260906-4"></script>'
+    'src="/js/pdf-suite/specialist-label.js?v=20260906-5"></script>'
 )
 
 
