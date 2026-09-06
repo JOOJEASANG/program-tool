@@ -37,6 +37,7 @@
         document.documentElement.dataset.printCheckerDefaultsDailyFreeSmoke='fail';
         const out=document.createElement('pre');out.textContent='FAIL '+message;document.body.appendChild(out);
       };
+      const same=(left,right)=>JSON.stringify(left)===JSON.stringify(right);
       try{
         await new Promise(r=>setTimeout(r,80));
         const initialProduct=PrintChecker.getState().product==='flyer';
@@ -78,10 +79,12 @@
         document.querySelector('[data-product="booklet"]')?.click();
         await new Promise(r=>setTimeout(r,100));
         const bookletPages=document.getElementById('bookletPages');
+        const backCoverOption=document.getElementById('bookletUseLastPageAsBackCover');
         const bookletOnly=PrintChecker.getState().product==='booklet'
           &&document.querySelectorAll('#specForm .spec-field').length===1
           &&bookletPages?.value==='8'
           &&bookletPages?.min==='1'
+          &&backCoverOption?.checked===false
           &&!document.getElementById('trimW')
           &&!document.getElementById('trimH')
           &&!document.getElementById('bleed')
@@ -95,11 +98,43 @@
           &&summary.classList.contains('pc-booklet-only-hidden');
         const bookletCanvas=document.getElementById('previewCanvas').width>0&&document.getElementById('previewCanvas').height>220;
 
+        bookletPages.value='7';
+        bookletPages.dispatchEvent(new Event('input',{bubbles:true}));
+        await new Promise(r=>setTimeout(r,70));
+        const oddNormal=PrintCheckerBookletLayoutOnly.buildLayoutPlan(7,false);
+        const oddNormalOk=oddNormal.pages===8
+          &&oddNormal.sheets===2
+          &&oddNormal.blank===1
+          &&same(oddNormal.result[0].front,[null,1])
+          &&same(oddNormal.result[0].back,[2,7]);
+
+        backCoverOption.checked=true;
+        backCoverOption.dispatchEvent(new Event('change',{bubbles:true}));
+        await new Promise(r=>setTimeout(r,70));
+        const oddBackCover=PrintCheckerBookletLayoutOnly.buildLayoutPlan(7,true);
+        const oddBackCoverOk=oddBackCover.pages===8
+          &&oddBackCover.sheets===2
+          &&oddBackCover.blank===1
+          &&oddBackCover.useLastPageAsBackCover===true
+          &&same(oddBackCover.result[0].front,[7,1])
+          &&same(oddBackCover.result[0].back,[2,null]);
+
+        bookletPages.value='9';
+        bookletPages.dispatchEvent(new Event('input',{bubbles:true}));
+        await new Promise(r=>setTimeout(r,70));
+        const nineBackCover=PrintCheckerBookletLayoutOnly.buildLayoutPlan(9,true);
+        const nineBackCoverOk=nineBackCover.pages===12
+          &&nineBackCover.sheets===3
+          &&nineBackCover.blank===3
+          &&same(nineBackCover.result[0].front,[9,1])
+          &&same(nineBackCover.result[0].back,[2,null]);
+
         bookletPages.value='20';
         bookletPages.dispatchEvent(new Event('input',{bubbles:true}));
         await new Promise(r=>setTimeout(r,70));
         const bookletTwenty=PrintChecker.getState().specs.bookletPages===20
           &&PrintChecker.computeImposition(20).sheets===5
+          &&PrintCheckerBookletLayoutOnly.buildLayoutPlan(20,true).blank===0
           &&document.getElementById('previewCanvas').height>500;
         const bookletDoesNotCharge=window.__quotaCommits===1;
 
@@ -114,10 +149,10 @@
         const ready=document.documentElement.dataset.printCheckerDefaultsLive==='ready'
           &&document.documentElement.dataset.printCheckerBookletLayout==='ready';
 
-        const pass=initialProduct&&initialValues&&initialPreset&&initialCanvas&&summaryOk&&presetChanged&&customMode&&coverDefaults&&quotaCommitted&&reportVisible&&bookletOnly&&bookletMode&&bookletCanvas&&bookletTwenty&&bookletDoesNotCharge&&restored&&ready;
-        if(!pass)throw new Error(`initial=${initialProduct}/${initialValues}/${initialPreset}/${initialCanvas}/${summaryOk} size=${presetChanged}/${customMode} cover=${coverDefaults} quota=${quotaCommitted} report=${reportVisible} booklet=${bookletOnly}/${bookletMode}/${bookletCanvas}/${bookletTwenty}/${bookletDoesNotCharge} restored=${restored} ready=${ready}`);
+        const pass=initialProduct&&initialValues&&initialPreset&&initialCanvas&&summaryOk&&presetChanged&&customMode&&coverDefaults&&quotaCommitted&&reportVisible&&bookletOnly&&bookletMode&&bookletCanvas&&oddNormalOk&&oddBackCoverOk&&nineBackCoverOk&&bookletTwenty&&bookletDoesNotCharge&&restored&&ready;
+        if(!pass)throw new Error(`initial=${initialProduct}/${initialValues}/${initialPreset}/${initialCanvas}/${summaryOk} size=${presetChanged}/${customMode} cover=${coverDefaults} quota=${quotaCommitted} report=${reportVisible} booklet=${bookletOnly}/${bookletMode}/${bookletCanvas} odd=${oddNormalOk}/${oddBackCoverOk}/${nineBackCoverOk} twenty=${bookletTwenty}/${bookletDoesNotCharge} restored=${restored} ready=${ready}`);
         document.documentElement.dataset.printCheckerDefaultsDailyFreeSmoke='pass';
-        const out=document.createElement('pre');out.textContent='PASS: standard print defaults remain intact and booklet is total-pages-only with an imposition-style live layout';document.body.appendChild(out);
+        const out=document.createElement('pre');out.textContent='PASS: booklet odd-page padding and optional last-page back-cover placement are reflected in the live imposition preview';document.body.appendChild(out);
       }catch(error){fail(error?.message||String(error));}
     });
   </script>
