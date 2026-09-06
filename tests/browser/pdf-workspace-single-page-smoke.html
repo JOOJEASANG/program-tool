@@ -54,16 +54,25 @@
   <div id="result">RUNNING</div>
   <script>
     history.replaceState(null,'','/pdf-suite/?smoke=split');
+    const authListeners=[];
+    window.auth={
+      currentUser:null,
+      onAuthStateChanged(callback){authListeners.push(callback);setTimeout(()=>callback(this.currentUser),0);return()=>{};}
+    };
+    const setSmokeUser=user=>{window.auth.currentUser=user;authListeners.forEach(callback=>callback(user));};
     const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
     const waitFor=async(fn,label,timeout=3000)=>{const start=Date.now();while(Date.now()-start<timeout){if(fn())return;await wait(20);}throw new Error('timeout: '+label);};
   </script>
   <script src="/js/pdf-suite/unified-navigation-prep.js?v=smoke"></script>
   <script src="/js/pdf-suite/single-page-shell.js?v=smoke"></script>
+  <script src="/js/pdf-suite/protected-tool-guard.js?v=smoke"></script>
   <script>
     (async()=>{
       const result=document.getElementById('result');
       try{
         await waitFor(()=>document.documentElement.dataset.pdfUtilityLayout==='split','split runtime');
+        await waitFor(()=>document.documentElement.dataset.pdfUtilityProtectedToolGuard==='ready','protected guard');
+        await wait(30);
         if(document.title!=='PDF 유틸리티 · Program Studio')throw new Error('utility title not normalized');
         if(!document.getElementById('pdfUtilitySplit'))throw new Error('split workspace missing');
         if(!document.querySelector('.pdfu-sidebar')||!document.querySelector('.pdfu-stage'))throw new Error('left/right layout missing');
@@ -79,11 +88,22 @@
         if(document.getElementById('pdf-primary-workspace').parentElement?.id!=='pdfUtilityStageBody')throw new Error('primary workspace not mounted on right');
 
         const before=location.pathname+location.search;
-        if(!window.ProgramStudioPdfSinglePageWorkspace.selectTool('PDF 압축'))throw new Error('compression menu selection failed');
+        const compressionButton=[...document.querySelectorAll('[data-pdfu-tool]')].find(node=>node.querySelector('.pdfu-menu-name')?.textContent.includes('PDF 압축'));
+        if(!compressionButton)throw new Error('compression menu button missing');
+        compressionButton.click();
+        await wait(50);
+        if(location.pathname+location.search!==before)throw new Error('top-level route changed for protected utility');
+        if(document.querySelector('iframe[data-pdfu-frame="preflight"]'))throw new Error('guest protected tool mounted an iframe');
+        if(!document.getElementById('pdfUtilityStageBody').textContent.includes('로그인 후'))throw new Error('guest login guidance missing');
+        if(document.getElementById('pdfUtilityStageAction').textContent!=='로그인 후 사용')throw new Error('login action missing');
+        if(document.documentElement.dataset.pdfUtilityProtectedGuard!=='auth-required')throw new Error('guest auth-required state missing');
+
+        setSmokeUser({uid:'smoke-user'});
         await wait(30);
-        if(location.pathname+location.search!==before)throw new Error('top-level route changed for preflight');
+        compressionButton.click();
+        await wait(50);
         const preflight=document.querySelector('iframe[data-pdfu-frame="preflight"]');
-        if(!preflight||!preflight.getAttribute('src').includes('/pdf-preflight/?embed=1'))throw new Error('preflight not mounted in right result screen');
+        if(!preflight||!preflight.getAttribute('src').includes('/pdf-preflight/?embed=1'))throw new Error('signed-in preflight not mounted in right result screen');
         if(!document.getElementById('pdfUtilityStageTitle').textContent.includes('PDF 압축'))throw new Error('compression title missing');
         if(window.ProgramStudioPdfSinglePageWorkspace.selectTool('페이지 번호'))throw new Error('removed editor tool is still selectable');
 
