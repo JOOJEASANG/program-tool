@@ -165,9 +165,13 @@
     const primary=$('pdf-primary-workspace');if(primary&&primary.parentElement!==sourceStore)sourceStore.appendChild(primary);
     const local=$('local-tools');if(local&&local.parentElement!==sourceStore){restoreLocalPanel(local);sourceStore.appendChild(local);}
     [preflightFrame,editorFrame].forEach(frame=>{if(frame&&frame.parentElement!==sourceStore)sourceStore.appendChild(frame);});
-    document.querySelectorAll('.pdfadv-overlay.pdfu-inline-overlay,.pdfocr-overlay.pdfu-inline-overlay').forEach(overlay=>{overlay.classList.remove('pdfu-inline-overlay');if(overlay.parentElement!==document.body)document.body.appendChild(overlay);});
+    document.querySelectorAll('.pdfadv-overlay.pdfu-inline-overlay,.pdfocr-overlay.pdfu-inline-overlay').forEach(overlay=>{
+      overlay.classList.remove('open','pdfu-inline-overlay');
+      if(overlay.parentElement!==document.body)document.body.appendChild(overlay);
+    });
+    document.body.style.overflow='';
     stageBody.replaceChildren();
-    stageAction.classList.remove('show');stageAction.onclick=null;stageAction.textContent='실행';
+    stageAction.classList.remove('show');stageAction.textContent='실행';
     embeddedKind=null;
   }
 
@@ -236,8 +240,8 @@
     const frame=ensureFrame(kind,tool);shell.appendChild(frame);stageBody.appendChild(shell);
   }
 
-  function showStageAction(label,handler){
-    stageAction.textContent=label;stageAction.classList.add('show');stageAction.onclick=handler;
+  function showStageAction(label){
+    stageAction.textContent=label;stageAction.classList.add('show');
   }
 
   function launchAdvanced(tool){
@@ -245,17 +249,17 @@
     if(!action)return;
     if(action==='text'){
       mountLocal(tool,'upload-only');
-      showStageAction('텍스트 추출 실행',()=>window.ProgramStudioPdfSuiteAdvanced?.launch?.('text'));
+      showStageAction('텍스트 추출 실행');
       return;
     }
     if(ADVANCED_SHARED_FILE.has(action))mountLocal(tool,'upload-only');
-    showStageAction('기능 열기',()=>window.ProgramStudioPdfSuiteAdvanced?.launch?.(action));
+    showStageAction('기능 열기');
     window.ProgramStudioPdfSuiteAdvanced?.launch?.(action);
   }
 
   function launchOcr(tool){
     showEmpty(tool);
-    showStageAction('OCR 화면 열기',()=>tool.source?.click?.());
+    showStageAction('OCR 화면 열기');
     tool.source?.click?.();
   }
 
@@ -276,7 +280,7 @@
     if(tool.href.includes('pdf-editor')){mountFrame(tool,'editor');return true;}
     if(tool.href.includes('#local-tools')){mountLocal(tool,'upload-only');return true;}
     if(tool.source?.matches?.('[role="button"],.available')){
-      showEmpty(tool);showStageAction('기능 열기',()=>tool.source.click());return true;
+      showEmpty(tool);showStageAction('기능 열기');return true;
     }
     showEmpty(tool);return true;
   }
