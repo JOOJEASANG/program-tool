@@ -57,6 +57,8 @@ run_case "pdf-editor-shell-smoke.html" "$OUT_DIR/pdf-editor-shell-smoke-dom.html
 reset_profile
 run_case "pdf-utility-shell-smoke.html" "$OUT_DIR/pdf-utility-shell-smoke-dom.html" 'PASS: PDF utility fixed header removed and account actions preserved in content'
 reset_profile
+run_product_case "pdf-utility-direct-tools-smoke.html" "$OUT_DIR/pdf-utility-direct-tools-smoke-dom.html" 'data-pdf-utility-direct-tools-smoke="pass"' 'PASS: PDF Utility menu opens exact workflows directly without a legacy intermediate page'
+reset_profile
 run_product_case "pdf-utility-quick-actions-smoke.html" "$OUT_DIR/pdf-utility-quick-actions-smoke-dom.html" 'data-pdf-quick-actions-smoke="pass"' 'PASS: PDF utility quick actions preserve canonical branding and run extract/blank-page tools'
 reset_profile
 run_product_case "pdf-preflight-output-tool-dock-smoke.html" "$OUT_DIR/pdf-preflight-output-tool-dock-smoke-dom.html" 'data-pdf-output-tool-dock-smoke="pass"' 'PASS: PDF tool dialogs render inside the right progress/result panel'
@@ -80,4 +82,4 @@ reset_profile
 run_product_case "pdf-page-list-quick-add-smoke.html" "$OUT_DIR/pdf-page-list-quick-add-smoke-dom.html" 'data-pdf-page-list-quick-add-smoke="pass"' 'PASS: page list keeps sticky PDF append action and removes legacy jump panel from view'
 
 bash "$ROOT_DIR/scripts/run_pdf_print_workflow_focus_smoke.sh"
-echo "PDF program unified shell, utility quick actions, output-panel tool docking, background margin removal, storage security, page-list collapse, divider-modal, persistent insert, output-save, fast-insert, page-list quick-add and product-focus browser smokes passed using $BROWSER"
+echo "PDF program unified shell, direct utility workflows, utility quick actions, output-panel tool docking, background margin removal, storage security, page-list collapse, divider-modal, persistent insert, output-save, fast-insert, page-list quick-add and product-focus browser smokes passed using $BROWSER"
