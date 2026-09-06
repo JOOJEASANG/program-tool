@@ -17,6 +17,7 @@ PDF_SUITE_OCR_MARKER = "data-pdf-suite-ocr-tools"
 PDF_SUITE_UNIFIED_NAV_MARKER = "data-pdf-suite-unified-navigation-prep"
 PDF_SUITE_UNIFIED_MARKER = "data-pdf-suite-unified-workspace"
 PDF_SUITE_UNIFIED_QUOTA_MARKER = "data-pdf-suite-unified-quota"
+PDF_SUITE_SINGLE_PAGE_MARKER = "data-pdf-suite-single-page-workspace"
 PDF_SPECIALIST_LABEL_MARKER = "data-pdf-specialist-label"
 
 ROOT_FILES = set(DEPLOY_HTML) | {
@@ -80,7 +81,7 @@ PDF_SUITE_DAILY_FREE_SNIPPET = (
     f'<script {PDF_SUITE_DAILY_FREE_MARKER} src="/js/pdf-daily-free.js?v=20260906-1"></script>'
 )
 PDF_SUITE_HOME_SNIPPET = (
-    f'<script {PDF_SUITE_HOME_MARKER} defer src="/js/pdf-suite-home-launcher.js?v=20260906-2"></script>'
+    f'<script {PDF_SUITE_HOME_MARKER} defer src="/js/pdf-suite-home-launcher.js?v=20260906-3"></script>'
 )
 PDF_SUITE_ADVANCED_SNIPPET = (
     f'<script {PDF_SUITE_ADVANCED_MARKER} defer '
@@ -102,9 +103,13 @@ PDF_SUITE_UNIFIED_QUOTA_SNIPPET = (
     f'<script {PDF_SUITE_UNIFIED_QUOTA_MARKER} defer '
     'src="/js/pdf-suite/unified-quota.js?v=20260906-1"></script>'
 )
+PDF_SUITE_SINGLE_PAGE_SNIPPET = (
+    f'<script {PDF_SUITE_SINGLE_PAGE_MARKER} defer '
+    'src="/js/pdf-suite/single-page-shell.js?v=20260906-1"></script>'
+)
 PDF_SPECIALIST_LABEL_SNIPPET = (
     f'<script {PDF_SPECIALIST_LABEL_MARKER} defer '
-    'src="/js/pdf-suite/specialist-label.js?v=20260906-1"></script>'
+    'src="/js/pdf-suite/specialist-label.js?v=20260906-2"></script>'
 )
 
 
@@ -156,6 +161,7 @@ def _patch_pdf_suite_entry_points() -> None:
     _inject_before(suite, PDF_SUITE_UNIFIED_NAV_MARKER, "</body>", PDF_SUITE_UNIFIED_NAV_SNIPPET)
     _inject_before(suite, PDF_SUITE_UNIFIED_MARKER, "</body>", PDF_SUITE_UNIFIED_SNIPPET)
     _inject_before(suite, PDF_SUITE_UNIFIED_QUOTA_MARKER, "</body>", PDF_SUITE_UNIFIED_QUOTA_SNIPPET)
+    _inject_before(suite, PDF_SUITE_SINGLE_PAGE_MARKER, "</body>", PDF_SUITE_SINGLE_PAGE_SNIPPET)
     _inject_before(preflight, PDF_SPECIALIST_LABEL_MARKER, "</body>", PDF_SPECIALIST_LABEL_SNIPPET)
     _inject_before(editor, PDF_SPECIALIST_LABEL_MARKER, "</body>", PDF_SPECIALIST_LABEL_SNIPPET)
 

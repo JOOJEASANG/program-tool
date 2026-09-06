@@ -5,6 +5,7 @@ ROOT = Path(__file__).resolve().parents[2]
 HUB = ROOT / "pdf-suite" / "index.html"
 LOCAL = ROOT / "js" / "pdf-suite" / "local-tools.js"
 HOME = ROOT / "js" / "pdf-suite-home-launcher.js"
+SINGLE = ROOT / "js" / "pdf-suite" / "single-page-shell.js"
 HOSTING = ROOT / "scripts" / "prepare_hosting_dist.py"
 
 
@@ -66,6 +67,7 @@ def test_pdf_suite_local_tools_are_real_local_pdf_operations():
 def test_pdf_suite_is_staged_with_daily_free_policy_and_single_home_entry():
     hosting = HOSTING.read_text(encoding="utf-8")
     home = HOME.read_text(encoding="utf-8")
+    single = SINGLE.read_text(encoding="utf-8")
 
     for marker in (
         'PDF_SUITE_HTML = "pdf-suite/index.html"',
@@ -76,6 +78,8 @@ def test_pdf_suite_is_staged_with_daily_free_policy_and_single_home_entry():
         "unified-workspace.js",
         "data-pdf-suite-unified-quota",
         "unified-quota.js",
+        "data-pdf-suite-single-page-workspace",
+        "single-page-shell.js",
         "data-pdf-specialist-label",
         "specialist-label.js",
         "_patch_pdf_suite_entry_points()",
@@ -86,13 +90,25 @@ def test_pdf_suite_is_staged_with_daily_free_policy_and_single_home_entry():
     assert 'programId:"preflight"' not in hosting
 
     for marker in (
-        "name:'PDF 올인원'",
+        "name:'PDF 작업실'",
         "pdf-suite/",
         "consolidatePrograms",
         "pdf-editor",
         "pdf-preflight",
-        "pdf-suite-home-unified-v2",
+        "pdf-suite-home-single-workspace-v3",
     ):
         assert marker in home
+
+    for marker in (
+        "기본 작업",
+        "변환",
+        "편집 · 보안",
+        "최적화 · 검사",
+        "openEmbedded",
+        "/pdf-preflight/?embed=1",
+        "/pdf-editor/?embed=1",
+        "pdf-single-page-workspace-v1",
+    ):
+        assert marker in single
 
     assert "pdfSuiteHomeChip" not in home

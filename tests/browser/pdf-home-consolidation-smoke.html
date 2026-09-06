@@ -26,8 +26,9 @@
         if(ids!=='print-checker,pdf-suite')throw new Error('home programs not consolidated: '+ids);
         if(document.getElementById('cnt-all').textContent!=='2')throw new Error('all count wrong');
         if(document.getElementById('cnt-pdf').textContent!=='1')throw new Error('pdf count wrong');
-        if(!document.getElementById('quickRow').textContent.includes('PDF 올인원'))throw new Error('PDF all-in-one quick entry missing');
+        if(!document.getElementById('quickRow').textContent.includes('PDF 작업실'))throw new Error('PDF workspace quick entry missing');
         if(document.getElementById('quickRow').textContent.includes('PDF 도구 모음'))throw new Error('legacy PDF tool still exposed');
+        if(document.documentElement.dataset.pdfHomeWorkspace!=='single-page')throw new Error('single-page home marker missing');
         document.body.dataset.pdfHomeConsolidationSmoke='pass';
         result.textContent='PASS';
       }catch(error){
