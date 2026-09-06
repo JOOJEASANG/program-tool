@@ -40,7 +40,7 @@
         if(document.title!=='PDF 작업실 · Program Studio')throw new Error('workspace title not normalized');
         if(!document.querySelector('.top-title')?.textContent.includes('PDF 작업실'))throw new Error('top title missing');
         if(!document.querySelector('.quick')?.classList.contains('pdfws-legacy-hidden'))throw new Error('legacy quick routes still visible');
-        if(document.querySelectorAll('[data-pdf-workspace-group]').length!==4)throw new Error('four workspace groups missing');
+        if(document.querySelectorAll('#pdfWorkspaceNav button[data-pdf-workspace-group]').length!==4)throw new Error('four workspace groups missing');
         if(!document.querySelector('[data-pdf-workspace-print]'))throw new Error('print checker top route missing');
         if(document.querySelector('.top-link[href="/pdf-preflight/"]')&&!document.querySelector('.top-link[href="/pdf-preflight/"]').classList.contains('pdfws-legacy-hidden'))throw new Error('specialist top route still exposed');
 
