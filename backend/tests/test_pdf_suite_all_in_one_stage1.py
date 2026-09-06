@@ -65,7 +65,7 @@ def test_pdf_suite_local_tools_are_real_local_pdf_operations():
     assert "XMLHttpRequest" not in source
 
 
-def test_pdf_suite_is_staged_with_daily_free_policy_and_four_home_programs():
+def test_pdf_suite_is_staged_with_combined_editor_and_split_utility_workspace():
     hosting = HOSTING.read_text(encoding="utf-8")
     home = HOME.read_text(encoding="utf-8")
     single = SINGLE.read_text(encoding="utf-8")
@@ -75,15 +75,15 @@ def test_pdf_suite_is_staged_with_daily_free_policy_and_four_home_programs():
         'PDF_SUITE_HTML = "pdf-suite/index.html"',
         "data-pdf-suite-daily-free",
         "pdf-daily-free.js",
-        "pdf-suite-home-launcher.js",
+        "pdf-suite-home-launcher.js?v=20260906-5",
         "data-pdf-suite-unified-workspace",
         "unified-workspace.js",
         "data-pdf-suite-unified-quota",
         "unified-quota.js",
         "data-pdf-suite-single-page-workspace",
-        "single-page-shell.js",
+        "single-page-shell.js?v=20260906-3",
         "data-pdf-specialist-label",
-        "specialist-label.js",
+        "specialist-label.js?v=20260906-4",
         "_patch_pdf_suite_entry_points()",
     ):
         assert marker in hosting
@@ -93,20 +93,19 @@ def test_pdf_suite_is_staged_with_daily_free_policy_and_four_home_programs():
 
     for marker in (
         "name:'인쇄물 사전 검토'",
-        "name:'PDF 편집 · N-UP 배치'",
-        "name:'소책자 배치'",
+        "name:'PDF 편집 · N-UP · 소책자 배치'",
         "name:'PDF 유틸리티'",
         "print-checker/",
         "pdf-editor/",
-        "booklet/",
         "pdf-suite/",
         "normalizePrograms",
-        "pdf-home-four-programs-v4",
+        "pdf-home-three-programs-v5",
     ):
         assert marker in home
+    assert "id:'booklet'" not in home
 
     for marker in (
-        "기본 작업",
+        "페이지 · 문서",
         "변환 · OCR",
         "편집 · 보안",
         "최적화 · 검사",
@@ -115,15 +114,19 @@ def test_pdf_suite_is_staged_with_daily_free_policy_and_four_home_programs():
         "책자 출력 배치",
         "인쇄물 사전 검토",
         "removeSeparatedTools",
-        "openEmbedded",
-        "/pdf-preflight/?embed=1",
-        "/pdf-editor/?embed=1",
-        "pdf-utility-workspace-v2",
+        "pdfu-sidebar",
+        "pdfu-stage",
+        "작업 · 실시간 결과 화면",
+        "activateTool",
+        "mountFrame",
+        "pdf-utility-split-workspace-v3",
     ):
         assert marker in single
 
     for marker in (
-        "PDF 편집 · N-UP 배치 · Program Studio",
+        "PDF 편집 · N-UP · 소책자 배치 · Program Studio",
+        "소책자 · 중철 배치 열기",
+        "../booklet/",
         "프로그램 목록으로 돌아가기",
         "PDF 유틸리티 내부 엔진",
     ):

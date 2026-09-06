@@ -1,40 +1,56 @@
 <!doctype html>
 <html lang="ko">
-<head><meta charset="utf-8"><title>PDF Utility Workspace Smoke</title></head>
+<head><meta charset="utf-8"><title>PDF Utility Split Workspace Smoke</title></head>
 <body data-pdf-workspace-single-page-smoke="running">
-  <nav class="top">
+  <nav class="top" style="height:62px">
     <a class="back" href="/index.html">← 도구 목록</a>
     <div class="top-title">PDF 올인원 <span class="top-sub">ALL PDF WORKSPACE</span></div>
-    <div class="top-spacer"></div>
     <a class="top-link" href="/pdf-preflight/">전문 검사·변환</a>
     <a class="top-link" href="/pdf-editor/">전문 편집·인쇄</a>
   </nav>
   <main class="wrap">
-    <section class="hero"><span class="hero-badge">old</span><h1>old</h1><p>old</p><div class="hero-meta"></div></section>
-    <section class="quick"><a href="/pdf-preflight/"><strong>legacy</strong></a></section>
-    <section id="pdf-primary-workspace">LOCAL PRIMARY</section>
+    <section class="hero"><h1>old</h1></section>
+    <section class="quick">legacy quick</section>
+    <section id="pdf-primary-workspace">
+      <button class="pdfu-tab active" data-pdf-unified-mode="merge" type="button">PDF 합치기</button>
+      <button class="pdfu-tab" data-pdf-unified-mode="extract" type="button">페이지 추출</button>
+      <div id="primaryContent">LOCAL PRIMARY</div>
+    </section>
     <div class="toolbar">SEARCH</div>
-    <section class="section" data-category="pages"><a class="tool available" href="#local-tools"><span class="tool-name">전체 페이지 회전</span></a></section>
-    <section class="section" data-category="convert"><a class="tool available" id="preflightTool" href="/pdf-preflight/"><span class="tool-name">PDF 압축</span></a></section>
-    <section class="section" data-category="scan"><div class="tool planned"><span class="tool-name">OCR</span></div></section>
-    <section class="section" data-category="edit">
+    <section class="section" data-category="pages">
+      <div class="tool-grid">
+        <a class="tool available" href="/pdf-preflight/"><span class="tool-icon">🔗</span><span class="tool-name">PDF 합치기</span><span class="tool-desc">여러 PDF 합치기</span></a>
+        <a class="tool available" href="/pdf-preflight/"><span class="tool-icon">✂️</span><span class="tool-name">페이지 추출·나누기</span><span class="tool-desc">페이지 추출</span></a>
+        <a class="tool available" data-status="local" data-local-action="rotate" href="#local-tools"><span class="tool-icon">🔄</span><span class="tool-name">전체 페이지 회전</span><span class="tool-desc">페이지 회전</span></a>
+      </div>
+    </section>
+    <section class="section" data-category="convert"><div class="tool-grid"><a class="tool available" href="/pdf-preflight/"><span class="tool-icon">🗜️</span><span class="tool-name">PDF 압축</span><span class="tool-desc">PDF 용량 줄이기</span></a></div></section>
+    <section class="section" data-category="scan"><div class="tool-grid"><div class="tool planned" data-status="planned"><span class="tool-icon">✨</span><span class="tool-name">기울기 자동 보정</span><span class="tool-desc">확장 예정</span></div></div></section>
+    <section class="section" data-category="edit"><div class="tool-grid">
       <a class="tool available" id="nupTool" href="/pdf-editor/"><span class="tool-name">N-up 다면 배치</span></a>
       <a class="tool available" id="bookletTool" href="/pdf-editor/"><span class="tool-name">소책자·중철 배치</span></a>
-      <a class="tool available" id="editorUtilityTool" href="/pdf-editor/"><span class="tool-name">페이지 번호</span></a>
+      <a class="tool available" href="/pdf-editor/"><span class="tool-icon">#️⃣</span><span class="tool-name">페이지 번호</span><span class="tool-desc">쪽번호 추가</span></a>
+    </div></section>
+    <section class="section" data-category="security"><div class="tool-grid"><div class="tool planned"><span class="tool-name">전자서명</span><span class="tool-desc">확장 예정</span></div></div></section>
+    <section class="section" data-category="optimize"><div class="tool-grid"></div></section>
+    <section class="section" data-category="print"><div class="tool-grid"><a class="tool available" id="printCheckerTool" href="/print-checker/"><span class="tool-name">인쇄물 사전 검토</span></a><a class="tool available" id="bookletPrintTool" href="/pdf-editor/"><span class="tool-name">책자 출력 배치</span></a></div></section>
+    <section class="section" data-category="analyze"><div class="tool-grid"></div></section>
+    <section id="local-tools">
+      <div class="local-head"><h2 id="localTitle">브라우저 로컬 빠른 처리</h2><p>원본 설명</p></div>
+      <div class="local-actions">
+        <button class="local-btn" data-local-run="rotate90">90</button>
+        <button class="local-btn" data-local-run="rotate180">180</button>
+        <button class="local-btn" data-local-run="reverse">reverse</button>
+        <button class="local-btn" data-local-run="metadata">metadata</button>
+        <button class="local-btn" data-local-run="sanitize">sanitize</button>
+        <button class="local-btn" data-local-run="flatten">flatten</button>
+      </div>
     </section>
-    <section class="section" data-category="security"><div class="tool planned"><span class="tool-name">보안</span></div></section>
-    <section class="section" data-category="optimize"><div class="tool planned"><span class="tool-name">최적화</span></div></section>
-    <section class="section" data-category="print">
-      <a class="tool available" id="printCheckerTool" href="/print-checker/"><span class="tool-name">인쇄물 사전 검토</span></a>
-      <a class="tool available" id="bookletPrintTool" href="/pdf-editor/"><span class="tool-name">책자 출력 배치</span></a>
-    </section>
-    <section class="section" data-category="analyze"><div class="tool planned"><span class="tool-name">분석</span></div></section>
-    <section id="local-tools">LOCAL TOOLS</section>
     <section class="roadmap">ROADMAP</section>
   </main>
   <div id="result">RUNNING</div>
   <script>
-    history.replaceState(null,'','/pdf-suite/?smoke=utility');
+    history.replaceState(null,'','/pdf-suite/?smoke=split');
     const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
     const waitFor=async(fn,label,timeout=3000)=>{const start=Date.now();while(Date.now()-start<timeout){if(fn())return;await wait(20);}throw new Error('timeout: '+label);};
   </script>
@@ -43,39 +59,44 @@
     (async()=>{
       const result=document.getElementById('result');
       try{
-        await waitFor(()=>document.documentElement.dataset.pdfUtility==='ready','utility runtime');
+        await waitFor(()=>document.documentElement.dataset.pdfUtilityLayout==='split','split runtime');
         if(document.title!=='PDF 유틸리티 · Program Studio')throw new Error('utility title not normalized');
-        if(!document.querySelector('.top-title')?.textContent.includes('PDF 유틸리티'))throw new Error('utility top title missing');
-        if(!document.querySelector('.quick')?.classList.contains('pdfws-legacy-hidden'))throw new Error('legacy quick routes still visible');
-        if(document.querySelectorAll('#pdfWorkspaceNav button[data-pdf-workspace-group]').length!==4)throw new Error('four utility groups missing');
-        if(document.querySelector('[data-pdf-workspace-print]'))throw new Error('print checker should not be embedded in utility nav');
-        if(document.getElementById('nupTool'))throw new Error('N-UP should be removed from utility');
-        if(document.getElementById('bookletTool')||document.getElementById('bookletPrintTool'))throw new Error('booklet should be removed from utility');
-        if(document.getElementById('printCheckerTool'))throw new Error('print checker should be removed from utility');
-
-        window.ProgramStudioPdfSinglePageWorkspace.setGroup('convert',{scroll:false});
-        if(document.querySelector('[data-category="convert"]').style.display==='none')throw new Error('convert group hidden');
-        if(document.querySelector('[data-category="pages"]').style.display!=='none')throw new Error('pages group still visible');
-        if(document.getElementById('pdf-primary-workspace').style.display!=='none')throw new Error('local primary should hide outside basic');
+        if(!document.getElementById('pdfUtilitySplit'))throw new Error('split workspace missing');
+        if(!document.querySelector('.pdfu-sidebar')||!document.querySelector('.pdfu-stage'))throw new Error('left/right layout missing');
+        if(document.querySelectorAll('[data-pdfu-group]').length!==4)throw new Error('four menu groups missing');
+        if(document.getElementById('nupTool')||document.getElementById('bookletTool')||document.getElementById('bookletPrintTool')||document.getElementById('printCheckerTool'))throw new Error('separate programs leaked into utility');
+        if(!document.getElementById('pdfUtilityStageTitle').textContent.includes('PDF 합치기'))throw new Error('default merge tool not selected');
+        if(document.getElementById('pdf-primary-workspace').parentElement?.id!=='pdfUtilityStageBody')throw new Error('primary workspace not mounted on right');
 
         const before=location.pathname+location.search;
-        document.getElementById('preflightTool').click();
-        await waitFor(()=>document.getElementById('pdfWorkspaceEmbedded')?.classList.contains('open'),'embedded preflight');
-        if(location.pathname+location.search!==before)throw new Error('top-level route changed for preflight');
-        if(document.documentElement.dataset.pdfWorkspaceEmbedded!=='preflight')throw new Error('preflight embed marker missing');
-        const preflightFrame=document.getElementById('pdfWorkspaceFramePreflight');
-        if(!preflightFrame.getAttribute('src')?.includes('/pdf-preflight/?embed=1'))throw new Error('preflight iframe not embedded');
-
-        document.getElementById('pdfWorkspaceEmbeddedClose').click();
+        if(!window.ProgramStudioPdfSinglePageWorkspace.selectTool('PDF 압축'))throw new Error('compression menu selection failed');
         await wait(30);
-        if(document.documentElement.dataset.pdfWorkspaceView!=='group-convert')throw new Error('group state not restored');
+        if(location.pathname+location.search!==before)throw new Error('top-level route changed for preflight');
+        const preflight=document.querySelector('iframe[data-pdfu-frame="preflight"]');
+        if(!preflight||!preflight.getAttribute('src').includes('/pdf-preflight/?embed=1'))throw new Error('preflight not mounted in right result screen');
+        if(!document.getElementById('pdfUtilityStageTitle').textContent.includes('PDF 압축'))throw new Error('compression title missing');
 
-        window.ProgramStudioPdfSinglePageWorkspace.setGroup('edit',{scroll:false});
-        document.getElementById('editorUtilityTool').click();
-        await waitFor(()=>document.documentElement.dataset.pdfWorkspaceEmbedded==='editor','embedded editor utility');
+        window.ProgramStudioPdfSinglePageWorkspace.selectTool('페이지 번호');
+        await wait(30);
+        const editor=document.querySelector('iframe[data-pdfu-frame="editor"]');
+        if(!editor||!editor.getAttribute('src').includes('/pdf-editor/?embed=1'))throw new Error('editor utility not mounted in right result screen');
         if(location.pathname+location.search!==before)throw new Error('top-level route changed for editor utility');
-        const editorFrame=document.getElementById('pdfWorkspaceFrameEditor');
-        if(!editorFrame.getAttribute('src')?.includes('/pdf-editor/?embed=1'))throw new Error('editor utility iframe not embedded');
+
+        window.ProgramStudioPdfSinglePageWorkspace.selectTool('전체 페이지 회전');
+        await wait(20);
+        const local=document.getElementById('local-tools');
+        if(local.parentElement?.id!=='pdfUtilityStageBody')throw new Error('local tool panel not mounted on right');
+        if(local.dataset.localFocus!=='rotate')throw new Error('rotation local focus missing');
+        if(local.querySelector('[data-local-run="reverse"]').style.display!=='none')throw new Error('unrelated local action still visible');
+        if(local.querySelector('[data-local-run="rotate90"]').style.display==='none')throw new Error('rotation action hidden');
+
+        window.ProgramStudioPdfSinglePageWorkspace.selectTool('기울기 자동 보정');
+        if(!document.getElementById('pdfUtilityStageBody').textContent.includes('확장 예정'))throw new Error('planned tool result placeholder missing');
+
+        const search=document.getElementById('pdfUtilityMenuSearch');search.value='압축';search.dispatchEvent(new Event('input',{bubbles:true}));
+        const visible=[...document.querySelectorAll('[data-pdfu-tool]')].filter(node=>!node.hidden).map(node=>node.textContent);
+        if(!visible.some(text=>text.includes('PDF 압축')))throw new Error('menu search lost compression tool');
+        if(visible.some(text=>text.includes('페이지 번호')))throw new Error('menu search did not filter other tools');
 
         document.body.dataset.pdfWorkspaceSinglePageSmoke='pass';
         result.textContent='PASS';

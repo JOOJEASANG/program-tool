@@ -23,16 +23,17 @@
       try{
         for(let i=0;i<30&&document.documentElement.dataset.pdfHomeUnified!=='ready';i+=1)await wait(20);
         const ids=PROGRAMS.map(item=>item.id).join(',');
-        if(ids!=='print-checker,pdf-editor,booklet,pdf-suite')throw new Error('home programs not normalized: '+ids);
-        if(document.getElementById('cnt-all').textContent!=='4')throw new Error('all count wrong');
-        if(document.getElementById('cnt-print').textContent!=='2')throw new Error('print count wrong');
+        if(ids!=='print-checker,pdf-editor,pdf-suite')throw new Error('home programs not normalized: '+ids);
+        if(PROGRAMS.some(item=>item.id==='booklet'))throw new Error('booklet should not remain a separate home program');
+        if(document.getElementById('cnt-all').textContent!=='3')throw new Error('all count wrong');
+        if(document.getElementById('cnt-print').textContent!=='1')throw new Error('print count wrong');
         if(document.getElementById('cnt-pdf').textContent!=='2')throw new Error('pdf count wrong');
         const quick=document.getElementById('quickRow').textContent;
-        for(const name of ['인쇄물 사전 검토','PDF 편집 · N-UP 배치','소책자 배치','PDF 유틸리티']){
+        for(const name of ['인쇄물 사전 검토','PDF 편집 · N-UP · 소책자 배치','PDF 유틸리티']){
           if(!quick.includes(name))throw new Error('home entry missing: '+name);
         }
         if(quick.includes('PDF 도구 모음'))throw new Error('legacy PDF tool still exposed');
-        if(document.documentElement.dataset.pdfHomeWorkspace!=='four-programs')throw new Error('four-program home marker missing');
+        if(document.documentElement.dataset.pdfHomeWorkspace!=='three-programs')throw new Error('three-program home marker missing');
         document.body.dataset.pdfHomeConsolidationSmoke='pass';
         result.textContent='PASS';
       }catch(error){
