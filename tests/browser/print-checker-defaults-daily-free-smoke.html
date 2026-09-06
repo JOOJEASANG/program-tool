@@ -3,8 +3,8 @@
 <head><meta charset="utf-8"><title>Print checker defaults daily free smoke</title></head>
 <body>
   <div id="productGrid"></div>
-  <section id="specSection" hidden><form id="specForm"></form></section>
-  <div id="uploadZone"><div id="uploadFilename" style="display:none"></div></div>
+  <section id="specSection" hidden><div class="sb-title">사양 입력</div><form id="specForm"></form></section>
+  <section class="sb-section" id="uploadSection"><div id="uploadZone"><div id="uploadFilename" style="display:none"></div></div></section>
   <input id="fileInput" type="file">
   <span id="uploadFileInfo" hidden></span><span id="uploadError" hidden></span>
   <div id="adjPanel" hidden>
@@ -15,7 +15,7 @@
     <input id="adjScale" type="range" value="100"><span id="adjScaleVal"></span>
     <button id="resetAdjBtn" type="button">reset</button>
   </div>
-  <button id="runBtn" type="button">run</button><button id="resetBtn" type="button">reset</button>
+  <div class="action-row" id="actionRow"><button id="runBtn" type="button">run</button><button id="resetBtn" type="button">reset</button></div>
   <div class="canvas-tips"></div><div style="width:900px"><canvas id="previewCanvas"></canvas><div id="canvasFileInfo" hidden></div></div>
   <section id="leafletGuide" hidden></section><section id="impositionGuide" hidden></section>
   <section id="reportSection" hidden><div id="reportSummary"></div><div id="reportGrid"></div></section>
@@ -30,6 +30,7 @@
   </script>
   <script src="../../js/print-checker/print-checker.js"></script>
   <script src="../../js/print-checker/defaults-live.js"></script>
+  <script src="../../js/print-checker/booklet-layout-only.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded',async()=>{
       const fail=(message)=>{
@@ -37,7 +38,7 @@
         const out=document.createElement('pre');out.textContent='FAIL '+message;document.body.appendChild(out);
       };
       try{
-        await new Promise(r=>setTimeout(r,60));
+        await new Promise(r=>setTimeout(r,80));
         const initialProduct=PrintChecker.getState().product==='flyer';
         const initialValues=document.getElementById('trimW')?.value==='210'
           &&document.getElementById('trimH')?.value==='297'
@@ -59,7 +60,7 @@
         const customMode=preset.value==='custom';
 
         document.querySelector('[data-product="cover"]')?.click();
-        await new Promise(r=>setTimeout(r,40));
+        await new Promise(r=>setTimeout(r,50));
         const coverDefaults=PrintChecker.getState().product==='cover'
           &&document.getElementById('trimW')?.value==='148'
           &&document.getElementById('trimH')?.value==='210'
@@ -73,12 +74,50 @@
         await new Promise(r=>setTimeout(r,40));
         const quotaCommitted=window.__quotaCommits===1;
         const reportVisible=document.getElementById('reportSection').hidden===false;
-        const ready=document.documentElement.dataset.printCheckerDefaultsLive==='ready';
 
-        const pass=initialProduct&&initialValues&&initialPreset&&initialCanvas&&summaryOk&&presetChanged&&customMode&&coverDefaults&&quotaCommitted&&reportVisible&&ready;
-        if(!pass)throw new Error(`initial=${initialProduct}/${initialValues}/${initialPreset}/${initialCanvas}/${summaryOk} size=${presetChanged}/${customMode} cover=${coverDefaults} quota=${quotaCommitted} report=${reportVisible} ready=${ready}`);
+        document.querySelector('[data-product="booklet"]')?.click();
+        await new Promise(r=>setTimeout(r,100));
+        const bookletPages=document.getElementById('bookletPages');
+        const bookletOnly=PrintChecker.getState().product==='booklet'
+          &&document.querySelectorAll('#specForm .spec-field').length===1
+          &&bookletPages?.value==='8'
+          &&bookletPages?.min==='1'
+          &&!document.getElementById('trimW')
+          &&!document.getElementById('trimH')
+          &&!document.getElementById('bleed')
+          &&!document.getElementById('safeZone')
+          &&!document.getElementById('paperType')
+          &&!document.getElementById('printSizePreset');
+        const bookletMode=document.documentElement.dataset.printCheckerBookletLayoutOnly==='1'
+          &&document.getElementById('uploadSection').classList.contains('pc-booklet-only-hidden')
+          &&document.getElementById('actionRow').classList.contains('pc-booklet-only-hidden')
+          &&document.getElementById('impositionGuide').classList.contains('pc-booklet-only-hidden')
+          &&summary.classList.contains('pc-booklet-only-hidden');
+        const bookletCanvas=document.getElementById('previewCanvas').width>0&&document.getElementById('previewCanvas').height>220;
+
+        bookletPages.value='20';
+        bookletPages.dispatchEvent(new Event('input',{bubbles:true}));
+        await new Promise(r=>setTimeout(r,70));
+        const bookletTwenty=PrintChecker.getState().specs.bookletPages===20
+          &&PrintChecker.computeImposition(20).sheets===5
+          &&document.getElementById('previewCanvas').height>500;
+        const bookletDoesNotCharge=window.__quotaCommits===1;
+
+        document.querySelector('[data-product="flyer"]')?.click();
+        await new Promise(r=>setTimeout(r,80));
+        const restored=PrintChecker.getState().product==='flyer'
+          &&document.documentElement.dataset.printCheckerBookletLayoutOnly==='0'
+          &&!document.getElementById('uploadSection').classList.contains('pc-booklet-only-hidden')
+          &&!document.getElementById('actionRow').classList.contains('pc-booklet-only-hidden')
+          &&document.getElementById('trimW')?.value==='210'
+          &&document.getElementById('trimH')?.value==='297';
+        const ready=document.documentElement.dataset.printCheckerDefaultsLive==='ready'
+          &&document.documentElement.dataset.printCheckerBookletLayout==='ready';
+
+        const pass=initialProduct&&initialValues&&initialPreset&&initialCanvas&&summaryOk&&presetChanged&&customMode&&coverDefaults&&quotaCommitted&&reportVisible&&bookletOnly&&bookletMode&&bookletCanvas&&bookletTwenty&&bookletDoesNotCharge&&restored&&ready;
+        if(!pass)throw new Error(`initial=${initialProduct}/${initialValues}/${initialPreset}/${initialCanvas}/${summaryOk} size=${presetChanged}/${customMode} cover=${coverDefaults} quota=${quotaCommitted} report=${reportVisible} booklet=${bookletOnly}/${bookletMode}/${bookletCanvas}/${bookletTwenty}/${bookletDoesNotCharge} restored=${restored} ready=${ready}`);
         document.documentElement.dataset.printCheckerDefaultsDailyFreeSmoke='pass';
-        const out=document.createElement('pre');out.textContent='PASS: default print specs, presets, custom sizing, live preview and success-only quota are wired';document.body.appendChild(out);
+        const out=document.createElement('pre');out.textContent='PASS: standard print defaults remain intact and booklet is total-pages-only with an imposition-style live layout';document.body.appendChild(out);
       }catch(error){fail(error?.message||String(error));}
     });
   </script>
