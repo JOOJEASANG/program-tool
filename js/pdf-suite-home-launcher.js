@@ -1,20 +1,20 @@
-// Home entry point for the Program Studio PDF all-in-one workspace.
+// Home entry point for the Program Studio PDF workspace.
 (function(){
   'use strict';
-  if(window.__programStudioPdfSuiteHomeV2)return;
-  window.__programStudioPdfSuiteHomeV2=true;
+  if(window.__programStudioPdfSuiteHomeV3)return;
+  window.__programStudioPdfSuiteHomeV3=true;
 
   const SUITE_PROGRAM={
     id:'pdf-suite',
     cat:'pdf',
-    name:'PDF 올인원',
+    name:'PDF 작업실',
     icon:'📄',
     accent:'#2563eb',
     bg:'linear-gradient(135deg,#1e40af,#0891b2)',
     catLabel:'PDF',
-    desc:'PDF 합치기·페이지 추출·회전 같은 기본 작업부터 검사·암호·압축·OCR·전문 인쇄배치까지 한곳에서 찾고 실행합니다.',
+    desc:'PDF 작업은 한 번 들어온 뒤 화면을 옮기지 않고 기능 메뉴만 바꿔서 처리합니다. 합치기·추출·변환·편집·보안·검사 기능을 한 작업실에서 사용합니다.',
     url:'pdf-suite/',
-    tags:['기본 PDF 작업','로컬 처리','전문 기능 연결']
+    tags:['한 화면 PDF 작업','로컬 처리','기능 메뉴 전환']
   };
 
   function consolidatePrograms(){
@@ -66,6 +66,7 @@
     if(!consolidatePrograms())return;
     syncCounts();
     document.documentElement.dataset.pdfHomeUnified='ready';
+    document.documentElement.dataset.pdfHomeWorkspace='single-page';
   }
 
   let observerQueued=false;
@@ -87,6 +88,6 @@
     program:SUITE_PROGRAM,
     consolidatePrograms,
     syncCounts,
-    stage:'pdf-suite-home-unified-v2'
+    stage:'pdf-suite-home-single-workspace-v3'
   });
 })();
