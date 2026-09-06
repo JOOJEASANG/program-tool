@@ -1,8 +1,8 @@
 // Home entry points for the Program Studio print/PDF workspace.
 (function(){
   'use strict';
-  if(window.__programStudioPdfSuiteHomeV4)return;
-  window.__programStudioPdfSuiteHomeV4=true;
+  if(window.__programStudioPdfSuiteHomeV5)return;
+  window.__programStudioPdfSuiteHomeV5=true;
 
   const PROGRAMS=[
     {
@@ -20,26 +20,14 @@
     {
       id:'pdf-editor',
       cat:'pdf',
-      name:'PDF 편집 · N-UP 배치',
+      name:'PDF 편집 · N-UP · 소책자 배치',
       icon:'🖨️',
       accent:'#059669',
       bg:'linear-gradient(135deg,#065f46,#059669)',
-      catLabel:'PDF 편집',
-      desc:'기존 PDF 편집 프로그램에서 페이지를 정리하고 2-up·4-up 등 N-UP 인쇄 배치를 구성합니다.',
+      catLabel:'PDF 편집·배치',
+      desc:'PDF 페이지 편집과 2-up·4-up 등 N-UP 인쇄 배치, 중철·소책자 판짜기를 한 프로그램 영역에서 사용합니다.',
       url:'pdf-editor/',
-      tags:['페이지 편집','N-UP 배치','인쇄 배치']
-    },
-    {
-      id:'booklet',
-      cat:'print',
-      name:'소책자 배치',
-      icon:'📖',
-      accent:'#7c3aed',
-      bg:'linear-gradient(135deg,#4c1d95,#7c3aed)',
-      catLabel:'소책자',
-      desc:'중철·소책자 인쇄를 위한 페이지 순서와 앞뒤 시트 배치를 전용 화면에서 구성합니다.',
-      url:'booklet/',
-      tags:['소책자','중철','페이지 판짜기']
+      tags:['페이지 편집','N-UP 배치','소책자 배치']
     },
     {
       id:'pdf-suite',
@@ -49,7 +37,7 @@
       accent:'#2563eb',
       bg:'linear-gradient(135deg,#1e40af,#0891b2)',
       catLabel:'PDF 유틸리티',
-      desc:'합치기·분할·회전·변환·OCR·압축·암호·검사 등 나머지 PDF 작업을 한곳에서 처리합니다.',
+      desc:'합치기·분할·회전·변환·OCR·압축·암호·검사 등 나머지 PDF 작업을 왼쪽 기능 메뉴와 오른쪽 작업·결과 화면에서 처리합니다.',
       url:'pdf-suite/',
       tags:['합치기·분할','변환·OCR','압축·암호·검사']
     }
@@ -102,7 +90,7 @@
     if(!normalizePrograms())return;
     syncCounts();
     document.documentElement.dataset.pdfHomeUnified='ready';
-    document.documentElement.dataset.pdfHomeWorkspace='four-programs';
+    document.documentElement.dataset.pdfHomeWorkspace='three-programs';
   }
 
   let observerQueued=false;
@@ -124,6 +112,6 @@
     programs:PROGRAMS,
     normalizePrograms,
     syncCounts,
-    stage:'pdf-home-four-programs-v4'
+    stage:'pdf-home-three-programs-v5'
   });
 })();
