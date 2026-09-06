@@ -1,8 +1,8 @@
-// Label specialist PDF engines and support embedding them inside the single PDF workspace.
+// Label specialist PDF engines and support embedding utility features without blurring standalone program roles.
 (function(){
   'use strict';
-  if(window.__programStudioPdfSpecialistLabelV2)return;
-  window.__programStudioPdfSpecialistLabelV2=true;
+  if(window.__programStudioPdfSpecialistLabelV3)return;
+  window.__programStudioPdfSpecialistLabelV3=true;
 
   const params=new URLSearchParams(location.search);
   const embedded=params.get('embed')==='1';
@@ -33,13 +33,13 @@
     const focus=document.createElement('div');
     focus.id='pdfSpecialistFocus';
     focus.className='pdf-specialist-focus';
-    focus.innerHTML='<strong>PDF 작업실에서 선택한 기능</strong> · <span></span>';
-    focus.querySelector('span').textContent=requestedTool||'전문 PDF 작업';
+    focus.innerHTML='<strong>PDF 유틸리티에서 선택한 기능</strong> · <span></span>';
+    focus.querySelector('span').textContent=requestedTool||'PDF 작업';
     container.prepend(focus);
   }
 
   function installPreflight(){
-    document.title=embedded?'PDF 작업실 · 검사·변환':'PDF 검사·변환 · Program Studio';
+    document.title=embedded?'PDF 유틸리티 · 검사·변환':'PDF 검사·변환 · Program Studio';
     const nav=document.querySelector('.nav-title');
     if(nav)nav.textContent='PDF 검사·변환';
     const hero=document.querySelector('.hero');
@@ -52,7 +52,7 @@
       const role=document.createElement('div');
       role.id='pdfSpecialistRole';
       role.className='pdf-specialist-role';
-      role.innerHTML='<strong>PDF 작업실의 전문 엔진</strong> · 일반 PDF 작업은 <a href="../pdf-suite/">PDF 작업실</a>에서 한 화면으로 처리할 수 있습니다.';
+      role.innerHTML='<strong>PDF 유틸리티 내부 엔진</strong> · 일반 PDF 작업은 <a href="../pdf-suite/">PDF 유틸리티</a>에서 한곳에 모아 사용할 수 있습니다.';
       container.prepend(role);
     }
     installFocus(container);
@@ -60,18 +60,18 @@
   }
 
   function installEditor(){
-    document.title=embedded?'PDF 작업실 · 편집·인쇄':'PDF 편집·인쇄배치 · Program Studio';
+    document.title=embedded?'PDF 유틸리티 · 일반 편집':'PDF 편집 · N-UP 배치 · Program Studio';
     const nav=document.querySelector('.nav-title');
-    if(nav)nav.textContent='PDF 편집·인쇄배치';
+    if(nav)nav.textContent=embedded?'PDF 일반 편집':'PDF 편집 · N-UP 배치';
     const aside=document.querySelector('aside');
     const heading=aside?.querySelector('h1');
-    if(heading)heading.textContent='PDF 편집·인쇄배치';
+    if(heading)heading.textContent=embedded?'PDF 일반 편집':'PDF 편집 · N-UP 배치';
     if(aside&&!embedded&&!document.getElementById('pdfEditorSpecialistLink')){
       const link=document.createElement('a');
       link.id='pdfEditorSpecialistLink';
       link.className='pdf-editor-specialist-link';
-      link.href='../pdf-suite/';
-      link.textContent='← PDF 작업실로 돌아가기';
+      link.href='../index.html';
+      link.textContent='← 프로그램 목록으로 돌아가기';
       aside.prepend(link);
     }
     installFocus(aside);
@@ -128,7 +128,7 @@
     if(event.origin!==location.origin||event.data?.type!=='program-pdf-workspace-focus')return;
     requestedTool=String(event.data.tool||'');
     const focus=document.querySelector('#pdfSpecialistFocus span');
-    if(focus)focus.textContent=requestedTool||'전문 PDF 작업';
+    if(focus)focus.textContent=requestedTool||'PDF 작업';
     highlightRequestedTool();
   });
 

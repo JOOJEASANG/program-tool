@@ -1,32 +1,68 @@
-// Home entry point for the Program Studio PDF workspace.
+// Home entry points for the Program Studio print/PDF workspace.
 (function(){
   'use strict';
-  if(window.__programStudioPdfSuiteHomeV3)return;
-  window.__programStudioPdfSuiteHomeV3=true;
+  if(window.__programStudioPdfSuiteHomeV4)return;
+  window.__programStudioPdfSuiteHomeV4=true;
 
-  const SUITE_PROGRAM={
-    id:'pdf-suite',
-    cat:'pdf',
-    name:'PDF 작업실',
-    icon:'📄',
-    accent:'#2563eb',
-    bg:'linear-gradient(135deg,#1e40af,#0891b2)',
-    catLabel:'PDF',
-    desc:'PDF 작업은 한 번 들어온 뒤 화면을 옮기지 않고 기능 메뉴만 바꿔서 처리합니다. 합치기·추출·변환·편집·보안·검사 기능을 한 작업실에서 사용합니다.',
-    url:'pdf-suite/',
-    tags:['한 화면 PDF 작업','로컬 처리','기능 메뉴 전환']
-  };
+  const PROGRAMS=[
+    {
+      id:'print-checker',
+      cat:'print',
+      name:'인쇄물 사전 검토',
+      icon:'🔍',
+      accent:'#1d9bb2',
+      bg:'linear-gradient(135deg,#12396d,#1d9bb2)',
+      catLabel:'인쇄 검토',
+      desc:'외부에서 제작한 인쇄물 PDF의 재단선·안전 영역·접지선·책등·간격을 검토합니다.',
+      url:'print-checker/',
+      tags:['재단선','안전 영역','접지선']
+    },
+    {
+      id:'pdf-editor',
+      cat:'pdf',
+      name:'PDF 편집 · N-UP 배치',
+      icon:'🖨️',
+      accent:'#059669',
+      bg:'linear-gradient(135deg,#065f46,#059669)',
+      catLabel:'PDF 편집',
+      desc:'기존 PDF 편집 프로그램에서 페이지를 정리하고 2-up·4-up 등 N-UP 인쇄 배치를 구성합니다.',
+      url:'pdf-editor/',
+      tags:['페이지 편집','N-UP 배치','인쇄 배치']
+    },
+    {
+      id:'booklet',
+      cat:'print',
+      name:'소책자 배치',
+      icon:'📖',
+      accent:'#7c3aed',
+      bg:'linear-gradient(135deg,#4c1d95,#7c3aed)',
+      catLabel:'소책자',
+      desc:'중철·소책자 인쇄를 위한 페이지 순서와 앞뒤 시트 배치를 전용 화면에서 구성합니다.',
+      url:'booklet/',
+      tags:['소책자','중철','페이지 판짜기']
+    },
+    {
+      id:'pdf-suite',
+      cat:'pdf',
+      name:'PDF 유틸리티',
+      icon:'🧰',
+      accent:'#2563eb',
+      bg:'linear-gradient(135deg,#1e40af,#0891b2)',
+      catLabel:'PDF 유틸리티',
+      desc:'합치기·분할·회전·변환·OCR·압축·암호·검사 등 나머지 PDF 작업을 한곳에서 처리합니다.',
+      url:'pdf-suite/',
+      tags:['합치기·분할','변환·OCR','압축·암호·검사']
+    }
+  ];
 
-  function consolidatePrograms(){
+  function normalizePrograms(){
     const api=window.ProgramStudioHome;
     const programs=api?.PROGRAMS;
     if(!Array.isArray(programs))return false;
-    const before=programs.map(item=>item.id).join(',');
-    const retained=programs.filter(item=>!['pdf-editor','pdf-preflight','pdf-suite'].includes(item.id));
-    retained.push({...SUITE_PROGRAM});
-    programs.splice(0,programs.length,...retained);
-    const changed=before!==programs.map(item=>item.id).join(',');
-    if(changed){
+    const before=programs.map(item=>`${item.id}:${item.name}`).join('|');
+    programs.splice(0,programs.length,...PROGRAMS.map(item=>({...item})));
+    const after=programs.map(item=>`${item.id}:${item.name}`).join('|');
+    if(before!==after){
       try{window.renderGrid?.();}catch(_){ }
       try{window.buildQuickRow?.();}catch(_){ }
     }
@@ -63,10 +99,10 @@
 
   function install(){
     removeLegacyEntry();
-    if(!consolidatePrograms())return;
+    if(!normalizePrograms())return;
     syncCounts();
     document.documentElement.dataset.pdfHomeUnified='ready';
-    document.documentElement.dataset.pdfHomeWorkspace='single-page';
+    document.documentElement.dataset.pdfHomeWorkspace='four-programs';
   }
 
   let observerQueued=false;
@@ -75,7 +111,7 @@
     observerQueued=true;
     queueMicrotask(()=>{
       observerQueued=false;
-      consolidatePrograms();
+      normalizePrograms();
       syncCounts();
     });
   });
@@ -85,9 +121,9 @@
   [50,150,400,900].forEach(delay=>setTimeout(install,delay));
 
   window.ProgramStudioPdfSuiteHome=Object.freeze({
-    program:SUITE_PROGRAM,
-    consolidatePrograms,
+    programs:PROGRAMS,
+    normalizePrograms,
     syncCounts,
-    stage:'pdf-suite-home-single-workspace-v3'
+    stage:'pdf-home-four-programs-v4'
   });
 })();
