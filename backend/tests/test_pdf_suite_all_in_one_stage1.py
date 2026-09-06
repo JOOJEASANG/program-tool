@@ -7,6 +7,7 @@ LOCAL = ROOT / "js" / "pdf-suite" / "local-tools.js"
 HOME = ROOT / "js" / "pdf-suite-home-launcher.js"
 NAV_PREP = ROOT / "js" / "pdf-suite" / "unified-navigation-prep.js"
 SINGLE = ROOT / "js" / "pdf-suite" / "single-page-shell.js"
+PROTECTED_GUARD = ROOT / "js" / "pdf-suite" / "protected-tool-guard.js"
 SPECIALIST = ROOT / "js" / "pdf-suite" / "specialist-label.js"
 HOSTING = ROOT / "scripts" / "prepare_hosting_dist.py"
 
@@ -71,6 +72,7 @@ def test_pdf_suite_is_staged_with_combined_editor_and_split_utility_workspace():
     home = HOME.read_text(encoding="utf-8")
     nav_prep = NAV_PREP.read_text(encoding="utf-8")
     single = SINGLE.read_text(encoding="utf-8")
+    protected_guard = PROTECTED_GUARD.read_text(encoding="utf-8")
     specialist = SPECIALIST.read_text(encoding="utf-8")
 
     for marker in (
@@ -86,6 +88,8 @@ def test_pdf_suite_is_staged_with_combined_editor_and_split_utility_workspace():
         "unified-quota.js",
         "data-pdf-suite-single-page-workspace",
         "single-page-shell.js?v=20260906-3",
+        "data-pdf-suite-protected-tool-guard",
+        "protected-tool-guard.js?v=20260906-1",
         "data-pdf-specialist-label",
         "specialist-label.js?v=20260906-5",
         "_patch_pdf_suite_entry_points()",
@@ -134,6 +138,17 @@ def test_pdf_suite_is_staged_with_combined_editor_and_split_utility_workspace():
         "pdf-utility-split-workspace-v3",
     ):
         assert marker in single
+
+    for marker in (
+        "isProtectedSource",
+        "showLoginRequired",
+        "showAuthChecking",
+        "로그인 후 사용",
+        "iframe[data-pdfu-frame=\"preflight\"]",
+        "pdfUtilityProtectedGuard",
+        "pdf-utility-protected-tool-guard-v1",
+    ):
+        assert marker in protected_guard
 
     for marker in (
         "PDF 편집 · N-UP · 소책자 배치 · Program Studio",
