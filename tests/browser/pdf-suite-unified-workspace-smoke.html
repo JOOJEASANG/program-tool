@@ -15,8 +15,6 @@
   <div id="result">RUNNING</div>
   <script>
     history.replaceState(null,'','/pdf-suite/?smoke=unified');
-    document.querySelectorAll('a[href="/pdf-preflight/"]').forEach(link=>link.setAttribute('href','../pdf-preflight/'));
-    document.querySelectorAll('a[href="/pdf-editor/"]').forEach(link=>link.setAttribute('href','../pdf-editor/'));
     let downloadedName='';
     URL.createObjectURL=()=> 'blob:pdf-unified-smoke';
     URL.revokeObjectURL=()=>{};
@@ -45,6 +43,8 @@
     const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
     const waitFor=async(fn,label,timeout=3000)=>{const started=Date.now();while(Date.now()-started<timeout){if(fn())return;await wait(20);}throw new Error('timeout: '+label);};
   </script>
+  <script src="/js/pdf-suite/unified-navigation-prep.js?v=smoke"></script>
+  <script>document.querySelector('.quick a').setAttribute('href','../pdf-preflight/');</script>
   <script src="/js/pdf-suite/unified-workspace.js?v=smoke"></script>
   <script>
     (async()=>{
@@ -54,10 +54,12 @@
         const workspace=document.getElementById('pdf-primary-workspace');
         if(!workspace)throw new Error('primary workspace missing');
         if(document.documentElement.dataset.pdfSuiteUnified!=='ready')throw new Error('ready marker missing');
+        if(document.documentElement.dataset.pdfUnifiedNavigationPrep!=='ready')throw new Error('navigation prep marker missing');
         const mergeCard=Array.from(document.querySelectorAll('.tool')).find(tool=>tool.querySelector('.tool-name')?.textContent==='PDF 합치기');
         if(mergeCard?.getAttribute('href')!=='#pdf-primary-workspace')throw new Error('merge card not routed locally');
         if(mergeCard?.dataset.status!=='local')throw new Error('merge card local marker missing');
-        if(document.querySelector('.top-link[href="../pdf-preflight/"]')?.textContent!=='전문 검사·변환')throw new Error('specialist navigation label missing');
+        if(document.querySelector('.top-link[href="/pdf-preflight/"]')?.textContent!=='전문 검사·변환')throw new Error('specialist navigation label missing');
+        if(document.querySelector('.quick a')?.getAttribute('href')!=='#pdf-primary-workspace')throw new Error('quick local workspace route missing');
 
         const first=fakeFile('first.pdf',1024,2);
         const second=fakeFile('second.pdf',2048,3);
