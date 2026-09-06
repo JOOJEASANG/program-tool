@@ -3,21 +3,21 @@
 <head><meta charset="utf-8"><title>PDF Workspace Single Page Smoke</title></head>
 <body data-pdf-workspace-single-page-smoke="running">
   <nav class="top">
-    <a class="back" href="../index.html">← 도구 목록</a>
+    <a class="back" href="/index.html">← 도구 목록</a>
     <div class="top-title">PDF 올인원 <span class="top-sub">ALL PDF WORKSPACE</span></div>
     <div class="top-spacer"></div>
-    <a class="top-link" href="../pdf-preflight/">전문 검사·변환</a>
-    <a class="top-link" href="../pdf-editor/">전문 편집·인쇄</a>
+    <a class="top-link" href="/pdf-preflight/">전문 검사·변환</a>
+    <a class="top-link" href="/pdf-editor/">전문 편집·인쇄</a>
   </nav>
   <main class="wrap">
     <section class="hero"><span class="hero-badge">old</span><h1>old</h1><p>old</p><div class="hero-meta"></div></section>
-    <section class="quick"><a href="../pdf-preflight/"><strong>legacy</strong></a></section>
+    <section class="quick"><a href="/pdf-preflight/"><strong>legacy</strong></a></section>
     <section id="pdf-primary-workspace">LOCAL PRIMARY</section>
     <div class="toolbar">SEARCH</div>
     <section class="section" data-category="pages"><a class="tool available" href="#local-tools"><span class="tool-name">전체 페이지 회전</span></a></section>
-    <section class="section" data-category="convert"><a class="tool available" id="preflightTool" href="../pdf-preflight/"><span class="tool-name">PDF 압축</span></a></section>
+    <section class="section" data-category="convert"><a class="tool available" id="preflightTool" href="/pdf-preflight/"><span class="tool-name">PDF 압축</span></a></section>
     <section class="section" data-category="scan"><div class="tool planned"><span class="tool-name">OCR</span></div></section>
-    <section class="section" data-category="edit"><a class="tool available" id="editorTool" href="../pdf-editor/"><span class="tool-name">N-up 다면 배치</span></a></section>
+    <section class="section" data-category="edit"><a class="tool available" id="editorTool" href="/pdf-editor/"><span class="tool-name">N-up 다면 배치</span></a></section>
     <section class="section" data-category="security"><div class="tool planned"><span class="tool-name">보안</span></div></section>
     <section class="section" data-category="optimize"><div class="tool planned"><span class="tool-name">최적화</span></div></section>
     <section class="section" data-category="print"><div class="tool planned"><span class="tool-name">인쇄</span></div></section>
@@ -42,7 +42,7 @@
         if(!document.querySelector('.quick')?.classList.contains('pdfws-legacy-hidden'))throw new Error('legacy quick routes still visible');
         if(document.querySelectorAll('[data-pdf-workspace-group]').length!==4)throw new Error('four workspace groups missing');
         if(!document.querySelector('[data-pdf-workspace-print]'))throw new Error('print checker top route missing');
-        if(document.querySelector('.top-link[href="../pdf-preflight/"]')&&!document.querySelector('.top-link[href="../pdf-preflight/"]').classList.contains('pdfws-legacy-hidden'))throw new Error('specialist top route still exposed');
+        if(document.querySelector('.top-link[href="/pdf-preflight/"]')&&!document.querySelector('.top-link[href="/pdf-preflight/"]').classList.contains('pdfws-legacy-hidden'))throw new Error('specialist top route still exposed');
 
         window.ProgramStudioPdfSinglePageWorkspace.setGroup('convert',{scroll:false});
         if(document.querySelector('[data-category="convert"]').style.display==='none')throw new Error('convert group hidden');
