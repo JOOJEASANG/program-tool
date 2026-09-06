@@ -81,7 +81,7 @@ PDF_SUITE_DAILY_FREE_SNIPPET = (
     f'<script {PDF_SUITE_DAILY_FREE_MARKER} src="/js/pdf-daily-free.js?v=20260906-1"></script>'
 )
 PDF_SUITE_HOME_SNIPPET = (
-    f'<script {PDF_SUITE_HOME_MARKER} defer src="/js/pdf-suite-home-launcher.js?v=20260906-3"></script>'
+    f'<script {PDF_SUITE_HOME_MARKER} defer src="/js/pdf-suite-home-launcher.js?v=20260906-5"></script>'
 )
 PDF_SUITE_ADVANCED_SNIPPET = (
     f'<script {PDF_SUITE_ADVANCED_MARKER} defer '
@@ -105,11 +105,11 @@ PDF_SUITE_UNIFIED_QUOTA_SNIPPET = (
 )
 PDF_SUITE_SINGLE_PAGE_SNIPPET = (
     f'<script {PDF_SUITE_SINGLE_PAGE_MARKER} defer '
-    'src="/js/pdf-suite/single-page-shell.js?v=20260906-1"></script>'
+    'src="/js/pdf-suite/single-page-shell.js?v=20260906-3"></script>'
 )
 PDF_SPECIALIST_LABEL_SNIPPET = (
     f'<script {PDF_SPECIALIST_LABEL_MARKER} defer '
-    'src="/js/pdf-suite/specialist-label.js?v=20260906-2"></script>'
+    'src="/js/pdf-suite/specialist-label.js?v=20260906-4"></script>'
 )
 
 
