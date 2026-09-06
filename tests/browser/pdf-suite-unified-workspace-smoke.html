@@ -51,6 +51,7 @@
       const result=document.getElementById('result');
       try{
         await waitFor(()=>window.ProgramStudioPdfUnifiedWorkspace,'runtime');
+        await waitFor(()=>document.getElementById('pdf-primary-workspace'),'primary workspace');
         const workspace=document.getElementById('pdf-primary-workspace');
         if(!workspace)throw new Error('primary workspace missing');
         if(document.documentElement.dataset.pdfSuiteUnified!=='ready')throw new Error('ready marker missing');
