@@ -18,6 +18,8 @@ PDF_SUITE_UNIFIED_NAV_MARKER = "data-pdf-suite-unified-navigation-prep"
 PDF_SUITE_UNIFIED_MARKER = "data-pdf-suite-unified-workspace"
 PDF_SUITE_UNIFIED_QUOTA_MARKER = "data-pdf-suite-unified-quota"
 PDF_SUITE_SINGLE_PAGE_MARKER = "data-pdf-suite-single-page-workspace"
+PDF_SUITE_DIRECT_BRIDGE_MARKER = "data-pdf-suite-direct-tool-bridge"
+PDF_SUITE_DIRECT_HOOK_MARKER = "data-pdf-suite-direct-tool-hook"
 PDF_SUITE_PROTECTED_GUARD_MARKER = "data-pdf-suite-protected-tool-guard"
 PDF_SPECIALIST_LABEL_MARKER = "data-pdf-specialist-label"
 
@@ -108,6 +110,14 @@ PDF_SUITE_SINGLE_PAGE_SNIPPET = (
     f'<script {PDF_SUITE_SINGLE_PAGE_MARKER} defer '
     'src="/js/pdf-suite/single-page-shell.js?v=20260906-3"></script>'
 )
+PDF_SUITE_DIRECT_BRIDGE_SNIPPET = (
+    f'<script {PDF_SUITE_DIRECT_BRIDGE_MARKER} defer '
+    'src="/js/pdf-suite/direct-tool-bridge.js?v=20260906-1"></script>'
+)
+PDF_SUITE_DIRECT_HOOK_SNIPPET = (
+    f'<script {PDF_SUITE_DIRECT_HOOK_MARKER} defer '
+    'src="/js/pdf-suite/direct-tool-hook.js?v=20260906-1"></script>'
+)
 PDF_SUITE_PROTECTED_GUARD_SNIPPET = (
     f'<script {PDF_SUITE_PROTECTED_GUARD_MARKER} defer '
     'src="/js/pdf-suite/protected-tool-guard.js?v=20260906-1"></script>'
@@ -167,6 +177,8 @@ def _patch_pdf_suite_entry_points() -> None:
     _inject_before(suite, PDF_SUITE_UNIFIED_MARKER, "</body>", PDF_SUITE_UNIFIED_SNIPPET)
     _inject_before(suite, PDF_SUITE_UNIFIED_QUOTA_MARKER, "</body>", PDF_SUITE_UNIFIED_QUOTA_SNIPPET)
     _inject_before(suite, PDF_SUITE_SINGLE_PAGE_MARKER, "</body>", PDF_SUITE_SINGLE_PAGE_SNIPPET)
+    _inject_before(suite, PDF_SUITE_DIRECT_BRIDGE_MARKER, "</body>", PDF_SUITE_DIRECT_BRIDGE_SNIPPET)
+    _inject_before(suite, PDF_SUITE_DIRECT_HOOK_MARKER, "</body>", PDF_SUITE_DIRECT_HOOK_SNIPPET)
     _inject_before(suite, PDF_SUITE_PROTECTED_GUARD_MARKER, "</body>", PDF_SUITE_PROTECTED_GUARD_SNIPPET)
     _inject_before(preflight, PDF_SPECIALIST_LABEL_MARKER, "</body>", PDF_SPECIALIST_LABEL_SNIPPET)
     _inject_before(editor, PDF_SPECIALIST_LABEL_MARKER, "</body>", PDF_SPECIALIST_LABEL_SNIPPET)
