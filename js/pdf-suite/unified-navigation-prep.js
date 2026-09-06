@@ -1,8 +1,8 @@
-// Prepare stable specialist navigation labels before the unified PDF workspace observer starts.
+// Prepare stable specialist navigation labels and remove PDF Editor-owned features before the utility shell collects tools.
 (function(){
   'use strict';
-  if(window.__programStudioPdfUnifiedNavigationPrepV1)return;
-  window.__programStudioPdfUnifiedNavigationPrepV1=true;
+  if(window.__programStudioPdfUnifiedNavigationPrepV2)return;
+  window.__programStudioPdfUnifiedNavigationPrepV2=true;
 
   function normalize(link,path,label){
     if(!link)return;
@@ -10,7 +10,20 @@
     if(link.textContent!==label)link.textContent=label;
   }
 
+  function removeEditorOwnedUtilityTools(){
+    let removed=0;
+    document.querySelectorAll('.section[data-category] .tool').forEach(tool=>{
+      const href=tool.getAttribute('href')||'';
+      if(!/(^|\/)pdf-editor(\/|$)/.test(href))return;
+      tool.remove();
+      removed+=1;
+    });
+    document.documentElement.dataset.pdfUtilityEditorOverlapRemoved=String(removed);
+    return removed;
+  }
+
   function install(){
+    removeEditorOwnedUtilityTools();
     document.querySelectorAll('.top-link').forEach(link=>{
       const href=link.getAttribute('href')||'';
       if(href.includes('pdf-preflight'))normalize(link,'/pdf-preflight/','전문 검사·변환');
@@ -24,6 +37,7 @@
 
   window.ProgramStudioPdfUnifiedNavigationPrep=Object.freeze({
     install,
-    stage:'pdf-suite-unified-navigation-prep-v1'
+    removeEditorOwnedUtilityTools,
+    stage:'pdf-suite-unified-navigation-prep-v2'
   });
 })();
