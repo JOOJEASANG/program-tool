@@ -18,6 +18,13 @@
   let applying = false;
   let resizeTimer = 0;
 
+  function checker() {
+    try {
+      if (typeof PrintChecker !== 'undefined') return PrintChecker;
+    } catch (_) {}
+    return window.PrintChecker || null;
+  }
+
   function signedPercent(value) {
     const number = Math.round((Number(value) || 0) * 10) / 10;
     return `${number > 0 ? '+' : ''}${number}%`;
@@ -37,7 +44,7 @@
   function applyFileRelativeOffsets() {
     if (applying || !sourceX || !sourceY) return;
     const canvas = byId('previewCanvas');
-    if (!canvas || !window.PrintChecker?.getState?.().fileKind) return;
+    if (!canvas || !checker()?.getState?.().fileKind) return;
 
     const width = Number(canvas.width) || Number(canvas.clientWidth) || 0;
     const height = Number(canvas.height) || Number(canvas.clientHeight) || 0;
@@ -117,13 +124,8 @@
     setLabel('adjXVal', 0);
     setLabel('adjYVal', 0);
 
-    byId('resetAdjBtn')?.addEventListener('click', () => {
-      resetRelativeState();
-    });
-
-    byId('resetBtn')?.addEventListener('click', () => {
-      resetRelativeState();
-    });
+    byId('resetAdjBtn')?.addEventListener('click', resetRelativeState);
+    byId('resetBtn')?.addEventListener('click', resetRelativeState);
 
     byId('fileInput')?.addEventListener('change', () => {
       resetRelativeState();
