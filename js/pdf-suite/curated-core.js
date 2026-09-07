@@ -114,13 +114,17 @@
     if(name)name.textContent=alias;
     const oldSearch=String(button.dataset.pdfuSearch||'');
     button.dataset.pdfuSearch=(oldSearch+' '+alias+' pdf 검사 preflight').toLowerCase();
+    const syncAlias=()=>{
+      if(!button.classList.contains('active'))return;
+      const title=$('pdfUtilityStageTitle');
+      const current=title?.textContent?.trim()||'';
+      if(title&&(current===sourceName||(sourceName==='PDF 프리플라이트'&&current==='PDF 기능')))title.textContent=alias;
+      const panelTitle=document.querySelector('#pdfUtilityStageBody .pdfud-panel h3');
+      if(panelTitle&&panelTitle.textContent.trim()===sourceName)panelTitle.textContent=alias;
+    };
     button.addEventListener('click',()=>{
-      setTimeout(()=>{
-        const title=$('pdfUtilityStageTitle');
-        if(title&&title.textContent.trim()===sourceName)title.textContent=alias;
-        const panelTitle=document.querySelector('#pdfUtilityStageBody .pdfud-panel h3');
-        if(panelTitle&&panelTitle.textContent.trim()===sourceName)panelTitle.textContent=alias;
-      },0);
+      setTimeout(syncAlias,0);
+      setTimeout(syncAlias,80);
     });
   }
 
