@@ -1,8 +1,8 @@
 // Administrator controls for public/member PDF daily limits.
 (function(){
   'use strict';
-  if(window.__programAdminPdfUsageSettingsV1)return;
-  window.__programAdminPdfUsageSettingsV1=true;
+  if(window.__programAdminPdfUsageSettingsV2)return;
+  window.__programAdminPdfUsageSettingsV2=true;
 
   const DEFAULTS=Object.freeze({guestLimit:3,memberLimit:10});
   const MIN=1;
@@ -12,6 +12,7 @@
   const PANEL_ID='pdfusage';
   const NAV_ID='adminPdfUsageNav';
   let loaded=false;
+  let memberObserver=null;
 
   const $=id=>document.getElementById(id);
 
@@ -25,6 +26,47 @@
     if(!target)return;
     target.className='status '+(error?'err':'ok');
     target.textContent=message;
+  }
+
+  function retireLegacySubscriptionUi(){
+    if(!$('adminSubscriptionRetiredStyle')){
+      const style=document.createElement('style');
+      style.id='adminSubscriptionRetiredStyle';
+      style.textContent=`
+        #planFilter,#mPro,[data-plan],.badge.free,.badge.pro{display:none!important}
+        #dashboard .metrics{grid-template-columns:repeat(3,minmax(0,1fr))}
+        @media(max-width:1050px){#dashboard .metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
+        @media(max-width:760px){#dashboard .metrics{grid-template-columns:1fr}}
+      `;
+      document.head.appendChild(style);
+    }
+    const memberNav=document.querySelector('[data-tab="members"]');
+    if(memberNav){
+      const icon=memberNav.querySelector('span')?.outerHTML||'<span>👥</span>';
+      memberNav.innerHTML=`${icon}회원 관리`;
+    }
+    const memberPanel=$('members');
+    if(memberPanel){
+      const title=memberPanel.querySelector('.cardtitle');
+      const sub=memberPanel.querySelector('.cardsub');
+      if(title)title.textContent='회원 관리';
+      if(sub)sub.textContent='회원 승인과 이용 중지 상태를 관리합니다. 사용횟수 제한은 PDF 사용횟수 메뉴에서 설정합니다.';
+    }
+    const hero=document.querySelector('#dashboard .hero p');
+    if(hero)hero.textContent='회원 승인·이용 상태, PDF 사용횟수, 사업자 정보와 약관을 관리합니다.';
+    document.querySelectorAll('#memberList .sub,#recentMembers .sub').forEach(node=>{
+      const parts=String(node.textContent||'').split(' · ');
+      if(parts.length>=3&&/^(free|pro)$/i.test(parts[parts.length-1]))node.textContent=parts.slice(0,-1).join(' · ');
+    });
+    document.documentElement.dataset.adminSubscriptionManagement='retired';
+  }
+
+  function observeMemberUi(){
+    if(memberObserver)return;
+    const targets=[$('memberList'),$('recentMembers')].filter(Boolean);
+    if(!targets.length)return;
+    memberObserver=new MutationObserver(retireLegacySubscriptionUi);
+    targets.forEach(target=>memberObserver.observe(target,{childList:true,subtree:true}));
   }
 
   function apply(data={}){
@@ -55,6 +97,8 @@
   }
 
   function installUi(){
+    retireLegacySubscriptionUi();
+    observeMemberUi();
     if($(PANEL_ID))return true;
     const side=document.querySelector('.side');
     const content=document.querySelector('.content');
@@ -77,7 +121,7 @@
       <div class="grid">
         <div class="card wide">
           <div class="cardtitle">PDF 1일 사용횟수</div>
-          <div class="cardsub">PDF 유틸리티와 인쇄물 사전 검토의 하루 무료 처리 횟수를 정합니다. 관리자 계정은 항상 제한 없이 사용합니다.</div>
+          <div class="cardsub">PDF 유틸리티와 인쇄물 사전 검토의 하루 처리 횟수를 정합니다. 관리자 계정은 항상 제한 없이 사용합니다.</div>
           <div class="formgrid">
             <div class="field"><label for="pdfGuestLimit">비회원 1일 사용횟수</label><input id="pdfGuestLimit" type="number" min="${MIN}" max="${MAX}" step="1" inputmode="numeric" value="${DEFAULTS.guestLimit}"></div>
             <div class="field"><label for="pdfMemberLimit">회원 1일 사용횟수</label><input id="pdfMemberLimit" type="number" min="${MIN}" max="${MAX}" step="1" inputmode="numeric" value="${DEFAULTS.memberLimit}"></div>
@@ -150,6 +194,8 @@
   }
 
   function boot(){
+    retireLegacySubscriptionUi();
+    observeMemberUi();
     installUi();
     if(window.auth?.onAuthStateChanged)window.auth.onAuthStateChanged(authorizeAndLoad);
     else if(window.auth?.currentUser)authorizeAndLoad(window.auth.currentUser);
@@ -162,8 +208,9 @@
     load,
     save,
     apply,
+    retireLegacySubscriptionUi,
     get loaded(){return loaded;},
-    stage:'admin-pdf-daily-limits-v1'
+    stage:'admin-pdf-daily-limits-v2-status-only'
   });
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
