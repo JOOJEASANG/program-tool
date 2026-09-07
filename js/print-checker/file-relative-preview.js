@@ -96,8 +96,9 @@
       if (axis === 'x') xPercent = value;
       else yPercent = value;
       replacement.setAttribute('aria-valuetext', signedPercent(value));
-      setLabel(labelId, value, true);
       triggerCoreRedraw();
+      // 코어가 0px 라벨을 쓰고 난 뒤 사용자에게는 파일 기준 %를 다시 표시한다.
+      setLabel(labelId, value, true);
     });
 
     return { source: original, ui: replacement };
@@ -116,9 +117,9 @@
     replacement.addEventListener('input', () => {
       scalePercent = Math.max(10, Number(replacement.value) || 100);
       replacement.setAttribute('aria-valuetext', `${scalePercent}%`);
-      setLabel('adjScaleVal', scalePercent);
       // 코어 배율은 항상 100%로 두고 실제 첨부 파일 drawImage만 확대/축소한다.
       dispatchSource(sourceScale, 100);
+      setLabel('adjScaleVal', scalePercent);
     });
 
     return { source: original, ui: replacement };
@@ -142,6 +143,9 @@
   function redrawAfterResize() {
     patchPreviewDrawImage();
     triggerCoreRedraw();
+    setLabel('adjXVal', xPercent, true);
+    setLabel('adjYVal', yPercent, true);
+    setLabel('adjScaleVal', scalePercent);
   }
 
   function install() {
@@ -170,7 +174,12 @@
 
     byId('resetAdjBtn')?.addEventListener('click', () => {
       resetFileAdjustment();
-      requestAnimationFrame(triggerCoreRedraw);
+      requestAnimationFrame(() => {
+        triggerCoreRedraw();
+        setLabel('adjXVal', 0, true);
+        setLabel('adjYVal', 0, true);
+        setLabel('adjScaleVal', 100);
+      });
     });
     byId('resetBtn')?.addEventListener('click', resetFileAdjustment);
 
@@ -187,6 +196,9 @@
         requestAnimationFrame(() => requestAnimationFrame(() => {
           patchPreviewDrawImage();
           triggerCoreRedraw();
+          setLabel('adjXVal', xPercent, true);
+          setLabel('adjYVal', yPercent, true);
+          setLabel('adjScaleVal', scalePercent);
         }));
       });
     });
