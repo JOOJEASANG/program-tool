@@ -21,6 +21,7 @@ PDF_SUITE_SINGLE_PAGE_MARKER = "data-pdf-suite-single-page-workspace"
 PDF_SUITE_DIRECT_BRIDGE_MARKER = "data-pdf-suite-direct-tool-bridge"
 PDF_SUITE_DIRECT_HOOK_MARKER = "data-pdf-suite-direct-tool-hook"
 PDF_SUITE_PROTECTED_GUARD_MARKER = "data-pdf-suite-protected-tool-guard"
+PDF_SUITE_WORKSPACE_STABILITY_MARKER = "data-pdf-suite-workspace-stability"
 PDF_SPECIALIST_LABEL_MARKER = "data-pdf-specialist-label"
 
 ROOT_FILES = set(DEPLOY_HTML) | {
@@ -122,6 +123,10 @@ PDF_SUITE_PROTECTED_GUARD_SNIPPET = (
     f'<script {PDF_SUITE_PROTECTED_GUARD_MARKER} defer '
     'src="/js/pdf-suite/protected-tool-guard.js?v=20260906-1"></script>'
 )
+PDF_SUITE_WORKSPACE_STABILITY_SNIPPET = (
+    f'<script {PDF_SUITE_WORKSPACE_STABILITY_MARKER} defer '
+    'src="/js/pdf-suite/workspace-stability.js?v=20260907-1"></script>'
+)
 PDF_SPECIALIST_LABEL_SNIPPET = (
     f'<script {PDF_SPECIALIST_LABEL_MARKER} defer '
     'src="/js/pdf-suite/specialist-label.js?v=20260906-5"></script>'
@@ -180,6 +185,7 @@ def _patch_pdf_suite_entry_points() -> None:
     _inject_before(suite, PDF_SUITE_DIRECT_BRIDGE_MARKER, "</body>", PDF_SUITE_DIRECT_BRIDGE_SNIPPET)
     _inject_before(suite, PDF_SUITE_DIRECT_HOOK_MARKER, "</body>", PDF_SUITE_DIRECT_HOOK_SNIPPET)
     _inject_before(suite, PDF_SUITE_PROTECTED_GUARD_MARKER, "</body>", PDF_SUITE_PROTECTED_GUARD_SNIPPET)
+    _inject_before(suite, PDF_SUITE_WORKSPACE_STABILITY_MARKER, "</body>", PDF_SUITE_WORKSPACE_STABILITY_SNIPPET)
     _inject_before(preflight, PDF_SPECIALIST_LABEL_MARKER, "</body>", PDF_SPECIALIST_LABEL_SNIPPET)
     _inject_before(editor, PDF_SPECIALIST_LABEL_MARKER, "</body>", PDF_SPECIALIST_LABEL_SNIPPET)
 
