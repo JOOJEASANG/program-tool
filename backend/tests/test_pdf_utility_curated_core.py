@@ -72,7 +72,7 @@ def test_curated_core_is_staged_and_browser_smoked():
         "PDF 파일 검사",
         "dataset.pdfUtilityCuratedCoreSmoke='pass'",
         "drop.getClientRects().length!==1",
-        "PDF file inspection direct panel missing",
+        "PDF file inspection neither opened nor showed protected login guidance",
         "core menu count",
         "18 essential workflows",
     ):
