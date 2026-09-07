@@ -1,9 +1,9 @@
-/* file-relative-preview.js — 인쇄물 사전 검토 미리보기 이동을 첨부 파일 기준으로 유지 */
+/* file-relative-preview.js — 첨부 파일 레이어만 미리보기에서 조절 */
 (function () {
   'use strict';
 
-  if (window.__printCheckerFileRelativePreviewV1) return;
-  window.__printCheckerFileRelativePreviewV1 = true;
+  if (window.__printCheckerFileRelativePreviewV2) return;
+  window.__printCheckerFileRelativePreviewV2 = true;
 
   const byId = (id) => document.getElementById(id);
   const AXIS_LIMIT = 25;
@@ -11,12 +11,15 @@
 
   let xPercent = 0;
   let yPercent = 0;
+  let scalePercent = 100;
   let sourceX = null;
   let sourceY = null;
+  let sourceScale = null;
   let uiX = null;
   let uiY = null;
-  let applying = false;
+  let uiScale = null;
   let resizeTimer = 0;
+  let patchedContext = null;
 
   function checker() {
     try {
@@ -30,9 +33,10 @@
     return `${number > 0 ? '+' : ''}${number}%`;
   }
 
-  function setLabel(id, value) {
+  function setLabel(id, value, signed = false) {
     const label = byId(id);
-    if (label) label.textContent = signedPercent(value);
+    if (!label) return;
+    label.textContent = signed ? signedPercent(value) : `${Math.round((Number(value) || 0) * 10) / 10}%`;
   }
 
   function dispatchSource(input, value) {
@@ -41,52 +45,50 @@
     input.dispatchEvent(new Event('input'));
   }
 
-  function applyFileRelativeOffsets() {
-    if (applying || !sourceX || !sourceY) return;
-    const canvas = byId('previewCanvas');
-    if (!canvas || !checker()?.getState?.().fileKind) return;
-
-    const width = Number(canvas.width) || Number(canvas.clientWidth) || 0;
-    const height = Number(canvas.height) || Number(canvas.clientHeight) || 0;
-    if (!width || !height) return;
-
-    applying = true;
-    try {
-      // 내부 렌더러에는 현재 캔버스 px가 필요하므로, 사용자 값(파일 대비 %)을
-      // 렌더링 직전에만 px로 환산한다. 상태의 기준값은 항상 첨부 파일 비율이다.
-      dispatchSource(sourceX, width * xPercent / 100);
-      dispatchSource(sourceY, height * yPercent / 100);
-      setLabel('adjXVal', xPercent);
-      setLabel('adjYVal', yPercent);
-    } finally {
-      applying = false;
-    }
+  function triggerCoreRedraw() {
+    // 코어에는 이동 0px, 배율 100%만 전달한다.
+    // 따라서 재단선/안전선/접지선 등 화면 기준 안내선은 움직이지 않는다.
+    if (sourceX) dispatchSource(sourceX, 0);
+    else if (sourceScale) dispatchSource(sourceScale, 100);
   }
 
-  function redrawForCurrentViewport() {
-    if (!sourceX || applying) return;
-    // 기존 drawCanvas를 한 번 실행해 새 화면 폭에 맞는 캔버스 크기를 먼저 얻는다.
-    dispatchSource(sourceX, Number(sourceX.value) || 0);
-    requestAnimationFrame(applyFileRelativeOffsets);
+  function patchPreviewDrawImage() {
+    const canvas = byId('previewCanvas');
+    const context = canvas?.getContext?.('2d');
+    if (!canvas || !context || patchedContext === context || context.__fileOnlyAdjustmentV2) return;
+
+    const nativeDrawImage = context.drawImage.bind(context);
+    context.__fileOnlyAdjustmentV2 = true;
+    context.drawImage = function (image, ...args) {
+      const state = checker()?.getState?.();
+      const isUploadedPreview = Boolean(state?.fileKind) && args.length === 4 && this.canvas === canvas;
+      if (!isUploadedPreview) return nativeDrawImage(image, ...args);
+
+      const [baseX, baseY, baseW, baseH] = args.map(Number);
+      const scale = Math.max(0.1, scalePercent / 100);
+      const drawW = baseW * scale;
+      const drawH = baseH * scale;
+      const shiftX = (Number(canvas.width) || baseW) * xPercent / 100;
+      const shiftY = (Number(canvas.height) || baseH) * yPercent / 100;
+      const drawX = baseX + (baseW - drawW) / 2 + shiftX;
+      const drawY = baseY + (baseH - drawH) / 2 + shiftY;
+
+      return nativeDrawImage(image, drawX, drawY, drawW, drawH);
+    };
+    patchedContext = context;
   }
 
   function upgradeAxis(inputId, labelId, axis) {
     const original = byId(inputId);
-    if (!original || original.dataset.fileRelativeUi === '1') return null;
+    if (!original || original.dataset.fileOnlyUi === '1') return null;
 
     const replacement = original.cloneNode(true);
-    replacement.dataset.fileRelativeUi = '1';
+    replacement.dataset.fileOnlyUi = '1';
     replacement.min = String(-AXIS_LIMIT);
     replacement.max = String(AXIS_LIMIT);
     replacement.step = String(AXIS_STEP);
     replacement.value = '0';
     replacement.setAttribute('aria-valuetext', '0%');
-
-    // 분리된 원본 슬라이더는 PrintChecker 내부 이벤트 리스너를 그대로 보존한다.
-    // 값 제한만 넓혀 화면 px 환산값을 안전하게 전달한다.
-    original.min = '-100000';
-    original.max = '100000';
-    original.step = '0.01';
     original.replaceWith(replacement);
 
     replacement.addEventListener('input', () => {
@@ -94,53 +96,104 @@
       if (axis === 'x') xPercent = value;
       else yPercent = value;
       replacement.setAttribute('aria-valuetext', signedPercent(value));
-      setLabel(labelId, value);
-      applyFileRelativeOffsets();
+      setLabel(labelId, value, true);
+      triggerCoreRedraw();
     });
 
     return { source: original, ui: replacement };
   }
 
-  function resetRelativeState() {
+  function upgradeScale() {
+    const original = byId('adjScale');
+    if (!original || original.dataset.fileOnlyUi === '1') return null;
+
+    const replacement = original.cloneNode(true);
+    replacement.dataset.fileOnlyUi = '1';
+    replacement.value = '100';
+    replacement.setAttribute('aria-valuetext', '100%');
+    original.replaceWith(replacement);
+
+    replacement.addEventListener('input', () => {
+      scalePercent = Math.max(10, Number(replacement.value) || 100);
+      replacement.setAttribute('aria-valuetext', `${scalePercent}%`);
+      setLabel('adjScaleVal', scalePercent);
+      // 코어 배율은 항상 100%로 두고 실제 첨부 파일 drawImage만 확대/축소한다.
+      dispatchSource(sourceScale, 100);
+    });
+
+    return { source: original, ui: replacement };
+  }
+
+  function resetFileAdjustment() {
     xPercent = 0;
     yPercent = 0;
+    scalePercent = 100;
     if (uiX) uiX.value = '0';
     if (uiY) uiY.value = '0';
-    if (uiX) uiX.setAttribute('aria-valuetext', '0%');
-    if (uiY) uiY.setAttribute('aria-valuetext', '0%');
-    setLabel('adjXVal', 0);
-    setLabel('adjYVal', 0);
+    if (uiScale) uiScale.value = '100';
+    setLabel('adjXVal', 0, true);
+    setLabel('adjYVal', 0, true);
+    setLabel('adjScaleVal', 100);
+    if (sourceX) sourceX.value = '0';
+    if (sourceY) sourceY.value = '0';
+    if (sourceScale) sourceScale.value = '100';
+  }
+
+  function redrawAfterResize() {
+    patchPreviewDrawImage();
+    triggerCoreRedraw();
   }
 
   function install() {
+    patchPreviewDrawImage();
+
     const x = upgradeAxis('adjX', 'adjXVal', 'x');
     const y = upgradeAxis('adjY', 'adjYVal', 'y');
-    if (!x || !y) return;
+    const scale = upgradeScale();
+    if (!x || !y || !scale) return;
 
     sourceX = x.source;
     sourceY = y.source;
+    sourceScale = scale.source;
     uiX = x.ui;
     uiY = y.ui;
-    setLabel('adjXVal', 0);
-    setLabel('adjYVal', 0);
+    uiScale = scale.ui;
 
-    byId('resetAdjBtn')?.addEventListener('click', resetRelativeState);
-    byId('resetBtn')?.addEventListener('click', resetRelativeState);
+    // 원래 코어 이벤트 리스너가 붙어 있는 분리 입력은 항상 기본값으로 유지한다.
+    sourceX.min = '-100000';
+    sourceX.max = '100000';
+    sourceY.min = '-100000';
+    sourceY.max = '100000';
+    sourceScale.min = '10';
+    sourceScale.max = '500';
+    resetFileAdjustment();
+
+    byId('resetAdjBtn')?.addEventListener('click', () => {
+      resetFileAdjustment();
+      requestAnimationFrame(triggerCoreRedraw);
+    });
+    byId('resetBtn')?.addEventListener('click', resetFileAdjustment);
 
     byId('fileInput')?.addEventListener('change', () => {
-      resetRelativeState();
-      requestAnimationFrame(applyFileRelativeOffsets);
+      resetFileAdjustment();
+      requestAnimationFrame(() => {
+        patchPreviewDrawImage();
+        triggerCoreRedraw();
+      });
     });
 
     document.querySelectorAll('.side-btn').forEach((button) => {
       button.addEventListener('click', () => {
-        requestAnimationFrame(() => requestAnimationFrame(applyFileRelativeOffsets));
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+          patchPreviewDrawImage();
+          triggerCoreRedraw();
+        }));
       });
     });
 
     window.addEventListener('resize', () => {
       window.clearTimeout(resizeTimer);
-      resizeTimer = window.setTimeout(redrawForCurrentViewport, 80);
+      resizeTimer = window.setTimeout(redrawAfterResize, 80);
     }, { passive: true });
 
     if (typeof ResizeObserver === 'function') {
@@ -148,7 +201,7 @@
       if (wrap) {
         const observer = new ResizeObserver(() => {
           window.clearTimeout(resizeTimer);
-          resizeTimer = window.setTimeout(redrawForCurrentViewport, 60);
+          resizeTimer = window.setTimeout(redrawAfterResize, 60);
         });
         observer.observe(wrap);
       }
