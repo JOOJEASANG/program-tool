@@ -2,8 +2,8 @@
 (function () {
   'use strict';
 
-  if (window.__printCheckerFileRelativePreviewV2) return;
-  window.__printCheckerFileRelativePreviewV2 = true;
+  if (window.__printCheckerFileRelativePreviewV3) return;
+  window.__printCheckerFileRelativePreviewV3 = true;
 
   const byId = (id) => document.getElementById(id);
   const AXIS_LIMIT = 25;
@@ -20,6 +20,7 @@
   let uiScale = null;
   let resizeTimer = 0;
   let patchedContext = null;
+  let resizeObserver = null;
 
   function checker() {
     try {
@@ -45,9 +46,16 @@
     input.dispatchEvent(new Event('input'));
   }
 
+  function neutralizeCoreTransform() {
+    // 코어의 이동/배율은 항상 0 / 0 / 100으로 되돌린다.
+    // 실제 사용자가 지정한 이동/배율은 아래 drawImage 래퍼에서 첨부 파일에만 적용한다.
+    dispatchSource(sourceX, 0);
+    dispatchSource(sourceY, 0);
+    dispatchSource(sourceScale, 100);
+  }
+
   function triggerCoreRedraw() {
-    // 코어에는 이동 0px, 배율 100%만 전달한다.
-    // 따라서 재단선/안전선/접지선 등 화면 기준 안내선은 움직이지 않는다.
+    // 코어 안내선은 이동시키지 않고 redraw만 요청한다.
     if (sourceX) dispatchSource(sourceX, 0);
     else if (sourceScale) dispatchSource(sourceScale, 100);
   }
@@ -55,10 +63,10 @@
   function patchPreviewDrawImage() {
     const canvas = byId('previewCanvas');
     const context = canvas?.getContext?.('2d');
-    if (!canvas || !context || patchedContext === context || context.__fileOnlyAdjustmentV2) return;
+    if (!canvas || !context || patchedContext === context || context.__fileOnlyAdjustmentV3) return;
 
     const nativeDrawImage = context.drawImage.bind(context);
-    context.__fileOnlyAdjustmentV2 = true;
+    context.__fileOnlyAdjustmentV3 = true;
     context.drawImage = function (image, ...args) {
       const state = checker()?.getState?.();
       const isUploadedPreview = Boolean(state?.fileKind) && args.length === 4 && this.canvas === canvas;
@@ -97,7 +105,6 @@
       else yPercent = value;
       replacement.setAttribute('aria-valuetext', signedPercent(value));
       triggerCoreRedraw();
-      // 코어가 0px 라벨을 쓰고 난 뒤 사용자에게는 파일 기준 %를 다시 표시한다.
       setLabel(labelId, value, true);
     });
 
@@ -135,9 +142,6 @@
     setLabel('adjXVal', 0, true);
     setLabel('adjYVal', 0, true);
     setLabel('adjScaleVal', 100);
-    if (sourceX) sourceX.value = '0';
-    if (sourceY) sourceY.value = '0';
-    if (sourceScale) sourceScale.value = '100';
   }
 
   function redrawAfterResize() {
@@ -146,6 +150,18 @@
     setLabel('adjXVal', xPercent, true);
     setLabel('adjYVal', yPercent, true);
     setLabel('adjScaleVal', scalePercent);
+  }
+
+  function installNote() {
+    const panel = byId('adjPanel');
+    if (!panel || byId('fileOnlyAdjustmentNote')) return;
+    const note = document.createElement('div');
+    note.id = 'fileOnlyAdjustmentNote';
+    note.textContent = '이동·크기 조절은 첨부 파일에만 적용되며 재단선·안전영역·책등·접지선은 고정됩니다.';
+    note.style.cssText = 'margin:0 0 9px;padding:8px 9px;border-radius:8px;background:#eff6ff;color:#1e40af;font-size:10px;font-weight:800;line-height:1.45';
+    const kicker = panel.querySelector('.adj-kicker');
+    if (kicker) kicker.insertAdjacentElement('afterend', note);
+    else panel.prepend(note);
   }
 
   function install() {
@@ -163,7 +179,7 @@
     uiY = y.ui;
     uiScale = scale.ui;
 
-    // 원래 코어 이벤트 리스너가 붙어 있는 분리 입력은 항상 기본값으로 유지한다.
+    // 코어 이벤트 리스너가 붙은 원본 입력은 DOM에서 분리되어 있으며 항상 중립값으로 유지한다.
     sourceX.min = '-100000';
     sourceX.max = '100000';
     sourceY.min = '-100000';
@@ -171,23 +187,29 @@
     sourceScale.min = '10';
     sourceScale.max = '500';
     resetFileAdjustment();
+    neutralizeCoreTransform();
+    installNote();
+    document.documentElement.dataset.printCheckerFileOnlyPreview = 'v3';
 
     byId('resetAdjBtn')?.addEventListener('click', () => {
       resetFileAdjustment();
       requestAnimationFrame(() => {
-        triggerCoreRedraw();
+        neutralizeCoreTransform();
         setLabel('adjXVal', 0, true);
         setLabel('adjYVal', 0, true);
         setLabel('adjScaleVal', 100);
       });
     });
-    byId('resetBtn')?.addEventListener('click', resetFileAdjustment);
+    byId('resetBtn')?.addEventListener('click', () => {
+      resetFileAdjustment();
+      requestAnimationFrame(neutralizeCoreTransform);
+    });
 
     byId('fileInput')?.addEventListener('change', () => {
       resetFileAdjustment();
       requestAnimationFrame(() => {
         patchPreviewDrawImage();
-        triggerCoreRedraw();
+        neutralizeCoreTransform();
       });
     });
 
@@ -211,14 +233,15 @@
     if (typeof ResizeObserver === 'function') {
       const wrap = byId('previewCanvas')?.parentElement;
       if (wrap) {
-        const observer = new ResizeObserver(() => {
+        resizeObserver = new ResizeObserver(() => {
           window.clearTimeout(resizeTimer);
           resizeTimer = window.setTimeout(redrawAfterResize, 60);
         });
-        observer.observe(wrap);
+        resizeObserver.observe(wrap);
       }
     }
   }
 
-  document.addEventListener('DOMContentLoaded', install);
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', install, { once: true });
+  else install();
 })();
