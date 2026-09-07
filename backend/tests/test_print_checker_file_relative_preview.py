@@ -39,3 +39,23 @@ def test_preview_scale_is_applied_to_artwork_draw_image_only():
     assert "const drawW = baseW * scale" in js
     assert "const drawH = baseH * scale" in js
     assert "코어 배율은 항상 100%" in js
+
+
+def test_cover_preview_loads_live_calculated_spine_dimension():
+    html = read("print-checker/index.html")
+    js = read("js/print-checker/spine-live-dimension.js")
+    assert "js/print-checker/spine-live-dimension.js?v=20260907-1" in html
+    assert "state.product !== 'cover'" in js
+    assert "api?.__test?.getLayout?.()" in js
+    assert "const spineLeft" in js
+    assert "const spineWidth" in js
+    assert "책등 ${spineMm.toFixed(1)} mm" in js
+    assert "fileHasBleed" in js
+    assert "ResizeObserver" in js
+
+
+def test_print_checker_browser_smoke_avoids_large_png_decode_flake():
+    smoke = read("tests/browser/print-checker-smoke.html")
+    assert "PRINT_CHECKER_SMOKE_PIXEL" in smoke
+    assert "HTMLCanvasElement.prototype.toDataURL" in smoke
+    assert "작은 정상 PNG" in smoke
