@@ -294,14 +294,15 @@
   }
 
   function inlineOpenOverlay(overlay){
-    if(!stageBody||!currentTool)return;
-    overlay.classList.add('pdfu-inline-overlay');
-    if(ADVANCED_SHARED_FILE.has(currentTool.advancedAction)){
+    if(!stageBody||!currentTool||!overlay?.classList.contains('open'))return;
+    const shared=ADVANCED_SHARED_FILE.has(currentTool.advancedAction);
+    if(shared){
       if(overlay.parentElement!==stageBody)stageBody.appendChild(overlay);
-    }else{
+    }else if(overlay.parentElement!==stageBody||stageBody.childElementCount!==1||stageBody.firstElementChild!==overlay){
       stageBody.replaceChildren(overlay);
     }
-    document.body.style.overflow='hidden';
+    if(!overlay.classList.contains('pdfu-inline-overlay'))overlay.classList.add('pdfu-inline-overlay');
+    document.body.style.overflow='';
   }
 
   function observeInlineDialogs(){
