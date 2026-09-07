@@ -8,6 +8,7 @@ HOME = ROOT / "js" / "pdf-suite-home-launcher.js"
 NAV_PREP = ROOT / "js" / "pdf-suite" / "unified-navigation-prep.js"
 SINGLE = ROOT / "js" / "pdf-suite" / "single-page-shell.js"
 PROTECTED_GUARD = ROOT / "js" / "pdf-suite" / "protected-tool-guard.js"
+STABILITY = ROOT / "js" / "pdf-suite" / "workspace-stability.js"
 SPECIALIST = ROOT / "js" / "pdf-suite" / "specialist-label.js"
 HOSTING = ROOT / "scripts" / "prepare_hosting_dist.py"
 
@@ -73,6 +74,7 @@ def test_pdf_suite_is_staged_with_combined_editor_and_split_utility_workspace():
     nav_prep = NAV_PREP.read_text(encoding="utf-8")
     single = SINGLE.read_text(encoding="utf-8")
     protected_guard = PROTECTED_GUARD.read_text(encoding="utf-8")
+    stability = STABILITY.read_text(encoding="utf-8")
     specialist = SPECIALIST.read_text(encoding="utf-8")
 
     for marker in (
@@ -90,6 +92,8 @@ def test_pdf_suite_is_staged_with_combined_editor_and_split_utility_workspace():
         "single-page-shell.js?v=20260906-3",
         "data-pdf-suite-protected-tool-guard",
         "protected-tool-guard.js?v=20260906-1",
+        "data-pdf-suite-workspace-stability",
+        "workspace-stability.js?v=20260907-1",
         "data-pdf-specialist-label",
         "specialist-label.js?v=20260906-5",
         "_patch_pdf_suite_entry_points()",
@@ -149,6 +153,22 @@ def test_pdf_suite_is_staged_with_combined_editor_and_split_utility_workspace():
         "pdf-utility-protected-tool-guard-v1",
     ):
         assert marker in protected_guard
+
+    for marker in (
+        "pdfu-local-workgrid",
+        "pdfu-local-controls",
+        "pdfu-local-result",
+        "책갈피·페이지 라벨 분석",
+        "첨부파일 추출",
+        "접근성·태그 기본 검사",
+        "closeInlineOverlays",
+        "wrapDirectBridge",
+        "document.body.style.overflow=''",
+        "pdfUtilityWorkspaceStability",
+        "pdfUtilityMenuAudit",
+        "pdf-utility-workspace-stability-v1",
+    ):
+        assert marker in stability
 
     for marker in (
         "PDF 편집 · N-UP · 소책자 배치 · Program Studio",
