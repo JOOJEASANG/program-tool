@@ -19,7 +19,7 @@ if not firebase_admin._apps:
 
 from firebase_functions import https_fn, options, scheduler_fn
 from flask import Flask, g, jsonify, request
-from werkzeug.exceptions import MethodNotAllowed, NotFound, RequestEntityTooLarge
+from werkzeug.exceptions import InternalServerError, MethodNotAllowed, NotFound, RequestEntityTooLarge
 
 import routers.pdf as pdf_router
 import routers.pdf_utility as pdf_utility_router
@@ -73,9 +73,12 @@ flask_app.register_blueprint(preflight_auto_fix_bp, url_prefix="/api/preflight")
 
 
 def _request_id() -> str:
-    cached = getattr(g, "api_request_id", None)
-    if isinstance(cached, str) and cached:
-        return cached
+    for attr in ("api_request_id", "_shared_request_id"):
+        cached = getattr(g, attr, None)
+        if isinstance(cached, str) and REQUEST_ID_PATTERN.fullmatch(cached):
+            g.api_request_id = cached
+            g._shared_request_id = cached
+            return cached
     supplied = (request.headers.get("X-Request-ID") or "").strip()
     request_id = (
         supplied
@@ -83,6 +86,7 @@ def _request_id() -> str:
         else uuid.uuid4().hex[:16]
     )
     g.api_request_id = request_id
+    g._shared_request_id = request_id
     return request_id
 
 
@@ -140,6 +144,33 @@ def handle_method_not_allowed(error: MethodNotAllowed):
         "이 API 경로에서 허용되지 않은 요청 방식입니다.",
         405,
         "METHOD_NOT_ALLOWED",
+    )
+
+
+@flask_app.errorhandler(InternalServerError)
+def handle_internal_server_error(error: InternalServerError):
+    if not request.path.startswith("/api/"):
+        return error
+
+    request_id = _request_id()
+    original = getattr(error, "original_exception", None)
+    if original is not None:
+        logger.error(
+            "Unhandled API exception request_id=%s path=%s",
+            request_id,
+            request.path,
+            exc_info=(type(original), original, original.__traceback__),
+        )
+    else:
+        logger.error(
+            "Unhandled API 500 request_id=%s path=%s",
+            request_id,
+            request.path,
+        )
+    return _api_error(
+        "요청 처리 중 오류가 발생했습니다.",
+        500,
+        "INTERNAL_ERROR",
     )
 
 
