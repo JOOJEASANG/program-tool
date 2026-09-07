@@ -63,6 +63,8 @@ run_product_case "pdf-utility-quick-actions-smoke.html" "$OUT_DIR/pdf-utility-qu
 reset_profile
 run_product_case "pdf-utility-menu-audit-smoke.html" "$OUT_DIR/pdf-utility-menu-audit-smoke-dom.html" 'data-pdf-utility-menu-audit-smoke="pass"' 'PASS: all PDF utility menus mount stable right-stage workspaces without scroll lock'
 reset_profile
+run_product_case "pdf-utility-curated-core-smoke.html" "$OUT_DIR/pdf-utility-curated-core-smoke-dom.html" 'data-pdf-utility-curated-core-smoke="pass"' 'PASS: curated PDF Utility keeps 18 essential workflows, restores PDF file inspection, and renders solid upload cards'
+reset_profile
 run_product_case "pdf-preflight-output-tool-dock-smoke.html" "$OUT_DIR/pdf-preflight-output-tool-dock-smoke-dom.html" 'data-pdf-output-tool-dock-smoke="pass"' 'PASS: PDF tool dialogs render inside the right progress/result panel'
 reset_profile
 run_product_case "pdf-utility-background-margin-smoke.html" "$OUT_DIR/pdf-utility-background-margin-smoke-dom.html" 'data-pdf-background-margin-smoke="pass"' 'PASS: background cleanup margin removal follows PDF Utility selected file and stays out of compression'
@@ -84,4 +86,4 @@ reset_profile
 run_product_case "pdf-page-list-quick-add-smoke.html" "$OUT_DIR/pdf-page-list-quick-add-smoke-dom.html" 'data-pdf-page-list-quick-add-smoke="pass"' 'PASS: page list keeps sticky PDF append action and removes legacy jump panel from view'
 
 bash "$ROOT_DIR/scripts/run_pdf_print_workflow_focus_smoke.sh"
-echo "PDF program unified shell, direct utility workflows, utility quick actions, full utility menu audit, output-panel tool docking, background margin removal, storage security, page-list collapse, divider-modal, persistent insert, output-save, fast-insert, page-list quick-add and product-focus browser smokes passed using $BROWSER"
+echo "PDF program unified shell, direct utility workflows, utility quick actions, full utility menu audit, curated utility core, output-panel tool docking, background margin removal, storage security, page-list collapse, divider-modal, persistent insert, output-save, fast-insert, page-list quick-add and product-focus browser smokes passed using $BROWSER"
