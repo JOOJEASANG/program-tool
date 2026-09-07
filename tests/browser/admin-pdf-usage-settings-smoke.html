@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"><title>Admin PDF usage settings smoke</title></head>
+<body>
+  <aside class="side">
+    <button class="navbtn on" data-tab="dashboard"><span>▦</span>대시보드</button>
+    <button class="navbtn" data-tab="members"><span>👥</span>회원·구독</button>
+    <button class="navbtn" data-tab="business"><span>▤</span>사업자·약관</button>
+    <div class="sidefoot"></div>
+  </aside>
+  <header><h1 id="pageTitle">대시보드</h1><p id="pageSub">운영 상태</p><button id="refreshBtn" type="button">새로고침</button></header>
+  <main class="content">
+    <section class="panel on" id="dashboard"></section>
+    <section class="panel" id="members"></section>
+    <section class="panel" id="business"></section>
+  </main>
+  <script>
+    window.__savedPath='';window.__savedPayload=null;window.__savedOptions=null;
+    window.firebase={firestore:{FieldValue:{serverTimestamp(){return 'SERVER_TIMESTAMP';}}}};
+    window.db={
+      collection(name){
+        return {
+          doc(id){
+            const path=`${name}/${id}`;
+            return {
+              async get(){
+                if(path!=='settings/pdf_daily_limits')throw new Error('wrong settings read path '+path);
+                return {exists:true,data(){return {guestLimit:7,memberLimit:21};}};
+              },
+              async set(payload,options){
+                window.__savedPath=path;window.__savedPayload=payload;window.__savedOptions=options;
+              }
+            };
+          }
+        };
+      }
+    };
+    const adminUser={uid:'admin-config-smoke'};
+    window.auth={currentUser:adminUser,onAuthStateChanged(callback){setTimeout(()=>callback(adminUser),0);return()=>{};}};
+    window.ProgramAccess={async isAdmin(){return true;}};
+    const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+    const waitFor=async(fn,label,timeout=4000)=>{const start=Date.now();while(Date.now()-start<timeout){if(fn())return;await wait(20);}throw new Error('timeout: '+label);};
+  </script>
+  <script src="../../js/admin-pdf-usage-settings.js"></script>
+  <script>
+    (async function(){
+      const fail=message=>{document.documentElement.dataset.adminPdfUsageSettingsSmoke='fail';document.body.dataset.error=message;};
+      try{
+        await waitFor(()=>document.documentElement.dataset.adminPdfUsageSettings==='ready','admin settings UI');
+        await waitFor(()=>document.getElementById('pdfGuestLimit')?.value==='7','saved limits load');
+        if(document.getElementById('pdfMemberLimit')?.value!=='21')throw new Error('member limit did not load');
+        const nav=document.getElementById('adminPdfUsageNav');
+        if(!nav||nav.textContent.indexOf('PDF 사용횟수')<0)throw new Error('admin navigation missing');
+        nav.click();
+        if(!document.getElementById('pdfusage')?.classList.contains('on'))throw new Error('admin settings panel did not open');
+        if(document.getElementById('pageTitle')?.textContent!=='PDF 사용횟수')throw new Error('admin page title not updated');
+        document.getElementById('pdfGuestLimit').value='4';
+        document.getElementById('pdfMemberLimit').value='15';
+        document.getElementById('savePdfUsageBtn').click();
+        await waitFor(()=>window.__savedPayload!==null,'settings save');
+        if(window.__savedPath!=='settings/pdf_daily_limits')throw new Error('settings saved to wrong path');
+        if(window.__savedPayload.guestLimit!==4||window.__savedPayload.memberLimit!==15)throw new Error('settings payload incorrect');
+        if(window.__savedPayload.updatedAt!=='SERVER_TIMESTAMP')throw new Error('server timestamp missing');
+        if(window.__savedOptions?.merge!==true)throw new Error('settings save is not merge-safe');
+        const status=document.getElementById('pdfUsageStatus')?.textContent||'';
+        if(!status.includes('비회원 하루 4회')||!status.includes('회원 하루 15회'))throw new Error('save status missing configured values');
+        document.documentElement.dataset.adminPdfUsageSettingsSmoke='pass';
+      }catch(error){fail(error?.message||String(error));}
+    })();
+  </script>
+</body>
+</html>
