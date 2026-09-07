@@ -20,7 +20,7 @@ def test_pdf_utility_menu_names_are_short_clear_and_larger():
     for label in (
         "PDF 검사",
         "PDF 합치기",
-        "배경 지우기",
+        "배경,여백지우기",
         "용량 줄이기",
         "PDF 복구",
         "암호 설정",
