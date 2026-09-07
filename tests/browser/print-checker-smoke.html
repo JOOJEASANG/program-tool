@@ -22,6 +22,11 @@
 
   <script>
     history.replaceState(null,'','/print-checker?product=leaflet');
+    // CI에서는 1800px PDF 렌더 캔버스를 다시 PNG로 디코딩하는 비용이 간헐적으로
+    // virtual-time budget을 넘길 수 있다. 이 smoke는 PDF 메타/면 전환/검사 로직을
+    // 검증하므로, 미리보기 이미지 디코딩만 작은 정상 PNG로 대체한다.
+    const PRINT_CHECKER_SMOKE_PIXEL='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
+    HTMLCanvasElement.prototype.toDataURL=function(){return PRINT_CHECKER_SMOKE_PIXEL;};
     window.pdfjsLib={
       GlobalWorkerOptions:{},
       getDocument(){
