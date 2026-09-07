@@ -4,8 +4,12 @@
   if(window.__programPdfDailyFreeV1)return;
   window.__programPdfDailyFreeV1=true;
 
-  const GUEST_LIMIT=3;
-  const MEMBER_LIMIT=10;
+  const DEFAULT_GUEST_LIMIT=3;
+  const DEFAULT_MEMBER_LIMIT=10;
+  const LIMIT_MIN=1;
+  const LIMIT_MAX=1000;
+  const LIMITS_COLLECTION='settings';
+  const LIMITS_DOCUMENT='pdf_daily_limits';
   const GUEST_ID_KEY='programStudioPdfGuestId';
   const GUEST_USAGE_PREFIX='programStudioPdfUsage:guest:';
   const MEMBER_FALLBACK_PREFIX='programStudioPdfUsage:member:';
@@ -17,6 +21,9 @@
   let refreshPromise=null;
   let pendingSuiteAction=null;
   let suiteGateSerial=0;
+  let cachedLimits=Object.freeze({guest:DEFAULT_GUEST_LIMIT,member:DEFAULT_MEMBER_LIMIT,source:'default'});
+  let limitsLoaded=false;
+  let limitsPromise=null;
 
   function localDateKey(date=new Date()){
     const year=date.getFullYear();
@@ -36,6 +43,11 @@
     return Number.isFinite(value)&&value>0?value:0;
   }
   function writeCount(key,count){return safeStorageSet(key,String(Math.max(0,Number(count)||0)));}
+
+  function normalizeLimit(value,fallback){
+    const parsed=Number.parseInt(String(value??''),10);
+    return Number.isInteger(parsed)&&parsed>=LIMIT_MIN&&parsed<=LIMIT_MAX?parsed:fallback;
+  }
 
   function guestId(){
     let value=safeStorageGet(GUEST_ID_KEY);
@@ -64,6 +76,36 @@
     return false;
   }
 
+  async function loadLimits(options={}){
+    if(limitsLoaded&&!options.force)return cachedLimits;
+    if(limitsPromise)return limitsPromise;
+    limitsPromise=(async()=>{
+      let next={guest:DEFAULT_GUEST_LIMIT,member:DEFAULT_MEMBER_LIMIT,source:'default'};
+      try{
+        if(window.db?.collection){
+          const snap=await window.db.collection(LIMITS_COLLECTION).doc(LIMITS_DOCUMENT).get();
+          if(snap?.exists){
+            const data=snap.data?.()||{};
+            next={
+              guest:normalizeLimit(data.guestLimit,DEFAULT_GUEST_LIMIT),
+              member:normalizeLimit(data.memberLimit,DEFAULT_MEMBER_LIMIT),
+              source:'firestore'
+            };
+          }
+        }
+      }catch(error){
+        console.warn('[pdf-daily-free] limit settings read fallback',error);
+      }
+      cachedLimits=Object.freeze(next);
+      limitsLoaded=true;
+      document.documentElement.dataset.pdfDailyLimitSource=next.source;
+      document.documentElement.dataset.pdfDailyGuestLimit=String(next.guest);
+      document.documentElement.dataset.pdfDailyMemberLimit=String(next.member);
+      return cachedLimits;
+    })().finally(()=>{limitsPromise=null;});
+    return limitsPromise;
+  }
+
   function makeStatus(mode,used,limit,dateKey,extra={}){
     const safeUsed=Math.max(0,Number(used)||0);
     const finite=Number.isFinite(limit);
@@ -78,16 +120,15 @@
     });
   }
 
-  async function memberStatus(user,dateKey){
-    if(await isAdmin(user))return makeStatus('admin',0,Infinity,dateKey,{uid:user.uid});
+  async function memberStatus(user,dateKey,memberLimit){
     const fallbackKey=memberFallbackKey(user.uid,dateKey);
-    const fallback=()=>makeStatus('member',readCount(fallbackKey),MEMBER_LIMIT,dateKey,{uid:user.uid,persistence:'local-fallback'});
+    const fallback=()=>makeStatus('member',readCount(fallbackKey),memberLimit,dateKey,{uid:user.uid,persistence:'local-fallback'});
     try{
       if(!window.db?.collection)return fallback();
       const ref=window.db.collection('users').doc(user.uid).collection('daily_pdf_usage').doc(dateKey);
       const snap=await ref.get();
       const count=snap.exists?Number(snap.data()?.count||0):0;
-      return makeStatus('member',count,MEMBER_LIMIT,dateKey,{uid:user.uid,persistence:'firestore'});
+      return makeStatus('member',count,memberLimit,dateKey,{uid:user.uid,persistence:'firestore'});
     }catch(error){
       console.warn('[pdf-daily-free] member usage read fallback',error);
       return fallback();
@@ -97,8 +138,10 @@
   async function readStatus(options={}){
     const dateKey=localDateKey();
     const user=options.user===undefined?currentUser:options.user;
-    if(user)return memberStatus(user,dateKey);
-    return makeStatus('guest',readCount(guestUsageKey(dateKey)),GUEST_LIMIT,dateKey,{persistence:'local'});
+    if(user&&await isAdmin(user))return makeStatus('admin',0,Infinity,dateKey,{uid:user.uid});
+    const limits=await loadLimits({force:Boolean(options.forceLimits)});
+    if(user)return memberStatus(user,dateKey,limits.member);
+    return makeStatus('guest',readCount(guestUsageKey(dateKey)),limits.guest,dateKey,{persistence:'local'});
   }
 
   function statusText(status){
@@ -130,7 +173,10 @@
 
   async function refresh(options={}){
     if(refreshPromise&&!options.force)return refreshPromise;
-    refreshPromise=readStatus(options).then(status=>{
+    refreshPromise=readStatus({
+      user:options.user,
+      forceLimits:Boolean(options.force)
+    }).then(status=>{
       cachedStatus=status;
       render(status);
       return status;
@@ -139,7 +185,8 @@
   }
 
   function exhaustedMessage(status){
-    if(status.mode==='guest')return '오늘 비회원 무료 사용 3회를 모두 사용했습니다. 내일 다시 무료로 이용하거나 로그인하면 하루 10회 사용할 수 있습니다.';
+    if(status.mode==='guest')return `오늘 비회원 무료 사용 ${status.limit}회를 모두 사용했습니다. 내일 다시 무료로 이용하거나 로그인하면 하루 ${cachedLimits.member}회 사용할 수 있습니다.`;
+    if(status.mode==='member')return `오늘 로그인 무료 사용 ${status.limit}회를 모두 사용했습니다. 내일 다시 이용해 주세요.`;
     return '오늘 무료 사용량을 모두 사용했습니다. 내일 다시 이용해 주세요.';
   }
 
@@ -149,34 +196,34 @@
     return {ok:false,status,action,message:exhaustedMessage(status)};
   }
 
-  async function commitMember(user,dateKey){
+  async function commitMember(user,dateKey,memberLimit){
     const fallbackKey=memberFallbackKey(user.uid,dateKey);
     if(!window.db?.runTransaction){
       const used=readCount(fallbackKey);
-      if(used>=MEMBER_LIMIT)throw new Error(exhaustedMessage(makeStatus('member',used,MEMBER_LIMIT,dateKey)));
+      if(used>=memberLimit)throw new Error(exhaustedMessage(makeStatus('member',used,memberLimit,dateKey)));
       writeCount(fallbackKey,used+1);
-      return makeStatus('member',used+1,MEMBER_LIMIT,dateKey,{uid:user.uid,persistence:'local-fallback'});
+      return makeStatus('member',used+1,memberLimit,dateKey,{uid:user.uid,persistence:'local-fallback'});
     }
     try{
       const ref=window.db.collection('users').doc(user.uid).collection('daily_pdf_usage').doc(dateKey);
       const count=await window.db.runTransaction(async transaction=>{
         const snap=await transaction.get(ref);
         const used=snap.exists?Number(snap.data()?.count||0):0;
-        if(used>=MEMBER_LIMIT)throw new Error('DAILY_LIMIT_REACHED');
+        if(used>=memberLimit)throw new Error('DAILY_LIMIT_REACHED');
         const next=used+1;
         const payload={dateKey,count:next,updatedAt:firebase.firestore.FieldValue.serverTimestamp()};
         if(snap.exists)transaction.update(ref,payload);else transaction.set(ref,payload);
         return next;
       });
       writeCount(fallbackKey,count);
-      return makeStatus('member',count,MEMBER_LIMIT,dateKey,{uid:user.uid,persistence:'firestore'});
+      return makeStatus('member',count,memberLimit,dateKey,{uid:user.uid,persistence:'firestore'});
     }catch(error){
-      if(String(error?.message||'').includes('DAILY_LIMIT_REACHED'))throw new Error(exhaustedMessage(makeStatus('member',MEMBER_LIMIT,MEMBER_LIMIT,dateKey)));
+      if(String(error?.message||'').includes('DAILY_LIMIT_REACHED'))throw new Error(exhaustedMessage(makeStatus('member',memberLimit,memberLimit,dateKey)));
       console.warn('[pdf-daily-free] member usage write fallback',error);
       const used=readCount(fallbackKey);
-      if(used>=MEMBER_LIMIT)throw new Error(exhaustedMessage(makeStatus('member',used,MEMBER_LIMIT,dateKey)));
+      if(used>=memberLimit)throw new Error(exhaustedMessage(makeStatus('member',used,memberLimit,dateKey)));
       writeCount(fallbackKey,used+1);
-      return makeStatus('member',used+1,MEMBER_LIMIT,dateKey,{uid:user.uid,persistence:'local-fallback'});
+      return makeStatus('member',used+1,memberLimit,dateKey,{uid:user.uid,persistence:'local-fallback'});
     }
   }
 
@@ -185,13 +232,16 @@
     const user=currentUser;
     let next;
     if(user&&await isAdmin(user))next=makeStatus('admin',0,Infinity,dateKey,{uid:user.uid});
-    else if(user)next=await commitMember(user,dateKey);
     else{
-      const key=guestUsageKey(dateKey);
-      const used=readCount(key);
-      if(used>=GUEST_LIMIT)throw new Error(exhaustedMessage(makeStatus('guest',used,GUEST_LIMIT,dateKey)));
-      writeCount(key,used+1);
-      next=makeStatus('guest',used+1,GUEST_LIMIT,dateKey,{persistence:'local'});
+      const limits=await loadLimits();
+      if(user)next=await commitMember(user,dateKey,limits.member);
+      else{
+        const key=guestUsageKey(dateKey);
+        const used=readCount(key);
+        if(used>=limits.guest)throw new Error(exhaustedMessage(makeStatus('guest',used,limits.guest,dateKey)));
+        writeCount(key,used+1);
+        next=makeStatus('guest',used+1,limits.guest,dateKey,{persistence:'local'});
+      }
     }
     cachedStatus=next;
     render(next);
@@ -257,6 +307,7 @@
         currentUser=user||null;
         authReady=true;
         cachedStatus=null;
+        limitsLoaded=false;
         refresh({force:true}).catch(error=>console.warn('[pdf-daily-free] refresh failed',error));
       });
     }else{
@@ -273,12 +324,16 @@
   }
 
   window.ProgramPdfDailyFree=Object.freeze({
-    guestLimit:GUEST_LIMIT,
-    memberLimit:MEMBER_LIMIT,
+    defaultGuestLimit:DEFAULT_GUEST_LIMIT,
+    defaultMemberLimit:DEFAULT_MEMBER_LIMIT,
+    get guestLimit(){return cachedLimits.guest;},
+    get memberLimit(){return cachedLimits.member;},
+    maxLimit:LIMIT_MAX,
     suiteActionSelector:SUITE_ACTION_SELECTOR,
     localDateKey,
     guestUsageKey,
     memberFallbackKey,
+    limits:()=>loadLimits({force:true}),
     status:()=>refresh({force:true}),
     peek:()=>cachedStatus,
     canStart,
@@ -287,7 +342,7 @@
     render:()=>render(cachedStatus),
     exhaustedMessage,
     get authReady(){return authReady;},
-    stage:'pdf-daily-free-v1'
+    stage:'pdf-daily-free-v2-admin-configurable'
   });
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});

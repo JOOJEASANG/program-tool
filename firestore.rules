@@ -61,7 +61,17 @@ service cloud.firestore {
         && request.resource.data.dateKey == dateKey
         && request.resource.data.count is int
         && request.resource.data.count >= 1
-        && request.resource.data.count <= 10
+        && request.resource.data.count <= 1000
+        && request.resource.data.updatedAt is timestamp;
+    }
+    function validPdfDailyLimits(){
+      return request.resource.data.keys().hasOnly(['guestLimit','memberLimit','updatedAt'])
+        && request.resource.data.guestLimit is int
+        && request.resource.data.guestLimit >= 1
+        && request.resource.data.guestLimit <= 1000
+        && request.resource.data.memberLimit is int
+        && request.resource.data.memberLimit >= 1
+        && request.resource.data.memberLimit <= 1000
         && request.resource.data.updatedAt is timestamp;
     }
 
@@ -74,6 +84,13 @@ service cloud.firestore {
     match /settings/programs { allow read: if signedIn(); allow write: if isAdmin(); }
     match /settings/config { allow read, write: if isAdmin(); }
     match /settings/business { allow read: if true; allow write: if isAdmin(); }
+    // Public daily PDF limits contain only non-sensitive quota numbers. Anyone may read
+    // them so guests can enforce the same settings; only administrators may change them.
+    match /settings/pdf_daily_limits {
+      allow read: if true;
+      allow create, update: if isAdmin() && validPdfDailyLimits();
+      allow delete: if isAdmin();
+    }
     // Public home navigation/card catalog. Anyone may read the published catalog,
     // while only an administrator may create or change it. Catalog visibility is
     // not program authorization; opening a protected tool still requires its own policy.
@@ -103,8 +120,8 @@ service cloud.firestore {
     }
 
     // Daily-free PDF counters are writable only by the signed-in account itself.
-    // Creation always starts at 1 and each update may advance exactly one successful use,
-    // capped at 10 per local calendar-date document.
+    // Creation always starts at 1 and each update may advance exactly one successful use.
+    // 1000 is the administrator-configurable ceiling; the client enforces the saved limit.
     match /users/{uid}/daily_pdf_usage/{dateKey} {
       allow read: if isOwner(uid);
       allow create: if isOwner(uid)

@@ -24,6 +24,7 @@ PDF_SUITE_PROTECTED_GUARD_MARKER = "data-pdf-suite-protected-tool-guard"
 PDF_SUITE_WORKSPACE_STABILITY_MARKER = "data-pdf-suite-workspace-stability"
 PDF_SUITE_CURATED_CORE_MARKER = "data-pdf-suite-curated-core"
 PDF_SPECIALIST_LABEL_MARKER = "data-pdf-specialist-label"
+ADMIN_PDF_USAGE_MARKER = "data-admin-pdf-usage-settings"
 
 ROOT_FILES = set(DEPLOY_HTML) | {
     PDF_SUITE_HTML,
@@ -83,7 +84,7 @@ PDF_SUITE_DAILY_FREE_SNIPPET = (
     '<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>'
     '<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>'
     '<script src="/js/firebase-config.js"></script>'
-    f'<script {PDF_SUITE_DAILY_FREE_MARKER} src="/js/pdf-daily-free.js?v=20260906-1"></script>'
+    f'<script {PDF_SUITE_DAILY_FREE_MARKER} src="/js/pdf-daily-free.js?v=20260907-2"></script>'
 )
 PDF_SUITE_HOME_SNIPPET = (
     f'<script {PDF_SUITE_HOME_MARKER} defer src="/js/pdf-suite-home-launcher.js?v=20260906-5"></script>'
@@ -136,6 +137,10 @@ PDF_SPECIALIST_LABEL_SNIPPET = (
     f'<script {PDF_SPECIALIST_LABEL_MARKER} defer '
     'src="/js/pdf-suite/specialist-label.js?v=20260906-5"></script>'
 )
+ADMIN_PDF_USAGE_SNIPPET = (
+    f'<script {ADMIN_PDF_USAGE_MARKER} defer '
+    'src="/js/admin-pdf-usage-settings.js?v=20260907-1"></script>'
+)
 
 
 def _copy_file(source: Path, relative: Path) -> None:
@@ -179,6 +184,7 @@ def _patch_pdf_suite_entry_points() -> None:
     suite = OUTPUT / PDF_SUITE_HTML
     preflight = OUTPUT / "pdf-preflight/index.html"
     editor = OUTPUT / "pdf-editor/index.html"
+    admin = OUTPUT / "admin.html"
     _inject_before(home, PDF_SUITE_HOME_MARKER, "</body>", PDF_SUITE_HOME_SNIPPET)
     _inject_before(suite, PDF_SUITE_DAILY_FREE_MARKER, "</head>", PDF_SUITE_DAILY_FREE_SNIPPET)
     _inject_before(suite, PDF_SUITE_ADVANCED_MARKER, "</body>", PDF_SUITE_ADVANCED_SNIPPET)
@@ -194,6 +200,7 @@ def _patch_pdf_suite_entry_points() -> None:
     _inject_before(suite, PDF_SUITE_CURATED_CORE_MARKER, "</body>", PDF_SUITE_CURATED_CORE_SNIPPET)
     _inject_before(preflight, PDF_SPECIALIST_LABEL_MARKER, "</body>", PDF_SPECIALIST_LABEL_SNIPPET)
     _inject_before(editor, PDF_SPECIALIST_LABEL_MARKER, "</body>", PDF_SPECIALIST_LABEL_SNIPPET)
+    _inject_before(admin, ADMIN_PDF_USAGE_MARKER, "</body>", ADMIN_PDF_USAGE_SNIPPET)
 
 
 def build() -> int:
