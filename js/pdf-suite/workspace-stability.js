@@ -18,10 +18,6 @@
     ['한국어·영어 OCR 문자 인식','txt'],
     ['OCR 검색 가능한 PDF','pdf']
   ]);
-  const LOCAL_TOOLS=new Set([
-    '전체 페이지 회전','페이지 순서 역순','메타데이터 확인','문서 메타데이터 분석','메타데이터 정리','폼 평면화',
-    '본문 텍스트 추출 · TXT','첨부파일 추출','접근성·태그 기본 검사','책갈피·페이지 라벨 분석'
-  ]);
   let auditSerial=0;
 
   function installStyle(){
@@ -76,6 +72,31 @@
   function sharedSpec(name=currentName()){return SHARED_ADVANCED.get(name)||null;}
   function inlineSpec(name=currentName()){return INLINE_ADVANCED.get(name)||null;}
 
+  function closeInlineOverlays(){
+    document.querySelectorAll('.pdfadv-overlay.open,.pdfocr-overlay.open').forEach(overlay=>{
+      overlay.classList.remove('open','pdfu-inline-overlay','pdfu-stable-inline');
+      if(overlay.parentElement!==document.body)document.body.appendChild(overlay);
+    });
+    document.body.style.overflow='';
+    document.documentElement.dataset.pdfUtilityOverlayReset='done';
+  }
+
+  function wrapDirectBridge(){
+    const bridge=window.ProgramStudioPdfUtilityDirectBridge;
+    if(!bridge||bridge.__workspaceStabilityWrapped)return;
+    const wrapped=Object.freeze({
+      __workspaceStabilityWrapped:true,
+      activate(tool){closeInlineOverlays();return bridge.activate?.(tool)===true;},
+      handles:name=>bridge.handles?.(name),
+      requiresAuth:name=>bridge.requiresAuth?.(name),
+      reset(){closeInlineOverlays();return bridge.reset?.();},
+      typeFor:name=>bridge.typeFor?.(name),
+      stage:'pdf-utility-direct-tools-stable-v1'
+    });
+    window.ProgramStudioPdfUtilityDirectBridge=wrapped;
+    document.documentElement.dataset.pdfUtilityDirectReset='stable';
+  }
+
   function normalizeOverlay(overlay,name=currentName()){
     const stage=$('pdfUtilityStageBody');if(!stage||!overlay?.classList.contains('open'))return false;
     overlay.classList.add('pdfu-inline-overlay','pdfu-stable-inline');
@@ -83,7 +104,7 @@
     if(shared){
       const panel=ensureLocalStructure(stage.querySelector('#local-tools')||$('local-tools'));
       const slot=panel?.querySelector('.pdfu-local-result-slot');
-      if(slot&&overlay.parentElement!==slot){slot.replaceChildren(overlay);}
+      if(slot&&overlay.parentElement!==slot)slot.replaceChildren(overlay);
     }else if(overlay.parentElement!==stage){stage.replaceChildren(overlay);}
     document.body.style.overflow='';
     document.documentElement.dataset.pdfUtilityInlineOverlay=name||'ready';
@@ -100,9 +121,7 @@
     const overlay=$(spec.overlay);if(overlay?.classList.contains('open'))return normalizeOverlay(overlay,name);
     const api=window.ProgramStudioPdfSuiteAdvanced;
     if(!api?.launch)return false;
-    api.launch(spec.action);
-    setTimeout(()=>normalizeOpenOverlays(name),0);
-    return true;
+    api.launch(spec.action);setTimeout(()=>normalizeOpenOverlays(name),0);return true;
   }
 
   function recoverOcr(name){
@@ -142,7 +161,7 @@
       const localNow=stage.querySelector('#local-tools');if(localNow)ensureLocalStructure(localNow);
       normalizeOpenOverlays(name);
       if(!stageHasContent()){
-        const retried=(stage.dataset.pdfuAuditRetried===name);
+        const retried=stage.dataset.pdfuAuditRetried===name;
         if(!retried){stage.dataset.pdfuAuditRetried=name;window.ProgramStudioPdfSinglePageWorkspace?.selectTool?.(name);setTimeout(()=>auditSelection(name,serial),80);}
         else recoveryCard(name);
       }else{
@@ -170,7 +189,7 @@
   }
 
   function install(){
-    installStyle();ensureLocalStructure();
+    installStyle();ensureLocalStructure();wrapDirectBridge();
     document.addEventListener('click',onMenuClick,false);
     observe();
     setTimeout(()=>{const local=$('pdfUtilityStageBody')?.querySelector('#local-tools');if(local)ensureLocalStructure(local);normalizeOpenOverlays();},0);
@@ -178,5 +197,5 @@
   }
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
-  window.ProgramStudioPdfUtilityWorkspaceStability=Object.freeze({ensureLocalStructure,normalizeOpenOverlays,recoverAdvanced,recoverOcr,stage:'pdf-utility-workspace-stability-v1'});
+  window.ProgramStudioPdfUtilityWorkspaceStability=Object.freeze({ensureLocalStructure,normalizeOpenOverlays,closeInlineOverlays,recoverAdvanced,recoverOcr,stage:'pdf-utility-workspace-stability-v1'});
 })();
