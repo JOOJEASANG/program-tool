@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"><title>Print checker file-only adjustment smoke</title></head>
+<body>
+  <section id="adjPanel">
+    <div class="adj-kicker">미리보기 조절</div>
+    <input id="adjX" type="range" min="-80" max="80" value="0"><span id="adjXVal"></span>
+    <input id="adjY" type="range" min="-80" max="80" value="0"><span id="adjYVal"></span>
+    <input id="adjScale" type="range" min="70" max="130" value="100"><span id="adjScaleVal"></span>
+    <button id="resetAdjBtn" type="button">reset</button>
+  </section>
+  <input id="fileInput" type="file">
+  <button id="resetBtn" type="button">reset all</button>
+  <div style="width:400px"><canvas id="previewCanvas" width="400" height="200"></canvas></div>
+
+  <script>
+    window.__coreEvents=[];
+    ['adjX','adjY','adjScale'].forEach(id=>document.getElementById(id).addEventListener('input',event=>{
+      window.__coreEvents.push(`${id}:${event.target.value}`);
+    }));
+
+    const canvas=document.getElementById('previewCanvas');
+    const context=canvas.getContext('2d');
+    window.__nativeDrawCalls=[];
+    context.drawImage=function(image,...args){window.__nativeDrawCalls.push(args.map(Number));};
+    window.__strokeRectBefore=context.strokeRect;
+    window.PrintChecker={getState(){return {fileKind:'image'};}};
+  </script>
+  <script src="/js/print-checker/file-relative-preview.js?v=smoke"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded',()=>{
+      requestAnimationFrame(()=>requestAnimationFrame(()=>{
+        try{
+          const x=document.getElementById('adjX');
+          const y=document.getElementById('adjY');
+          const scale=document.getElementById('adjScale');
+          x.value='5';x.dispatchEvent(new Event('input',{bubbles:true}));
+          y.value='-5';y.dispatchEvent(new Event('input',{bubbles:true}));
+          scale.value='120';scale.dispatchEvent(new Event('input',{bubbles:true}));
+
+          const ctx=document.getElementById('previewCanvas').getContext('2d');
+          ctx.drawImage({},0,0,400,200);
+          const adjusted=window.__nativeDrawCalls.at(-1)||[];
+          const transformed=adjusted.length===4&&Math.abs(adjusted[0]-(-20))<0.01&&Math.abs(adjusted[1]-(-30))<0.01&&Math.abs(adjusted[2]-480)<0.01&&Math.abs(adjusted[3]-240)<0.01;
+          const coreNeutral=window.__coreEvents.length>0&&window.__coreEvents.every(value=>['adjX:0','adjY:0','adjScale:100'].includes(value));
+          const guidesUntouched=ctx.strokeRect===window.__strokeRectBefore;
+          const labels=document.getElementById('adjXVal').textContent==='+5%'&&document.getElementById('adjYVal').textContent==='-5%'&&document.getElementById('adjScaleVal').textContent==='120%';
+          const ready=document.documentElement.dataset.printCheckerFileOnlyPreview==='v3';
+          const note=Boolean(document.getElementById('fileOnlyAdjustmentNote'));
+          const pass=transformed&&coreNeutral&&guidesUntouched&&labels&&ready&&note;
+          document.documentElement.dataset.printCheckerFileOnlyAdjustmentSmoke=pass?'pass':'fail';
+          const out=document.createElement('pre');
+          out.id='result';
+          out.textContent=pass?'PASS: preview adjustment transforms uploaded artwork only':`FAIL transformed=${transformed} coreNeutral=${coreNeutral} guidesUntouched=${guidesUntouched} labels=${labels} ready=${ready} note=${note} args=${JSON.stringify(adjusted)} core=${JSON.stringify(window.__coreEvents)}`;
+          document.body.appendChild(out);
+        }catch(error){
+          document.documentElement.dataset.printCheckerFileOnlyAdjustmentSmoke='fail';
+          const out=document.createElement('pre');out.textContent='FAIL '+(error?.stack||error);document.body.appendChild(out);
+        }
+      }));
+    });
+  </script>
+</body>
+</html>
