@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>PDF Utility Full Menu Audit Smoke</title>
+  <style>
+    body{margin:0;font-family:sans-serif}.top{height:62px}.wrap{min-height:900px}.tool{display:block}.local-panel{padding:20px}.local-actions{display:grid}.pdfu-tab{display:inline-block}
+  </style>
+</head>
+<body data-pdf-utility-menu-audit-smoke="running">
+  <nav class="top"><div class="top-title">PDF 올인원</div><a class="top-link" href="/pdf-preflight/">검사</a><a class="top-link" href="/pdf-editor/">편집</a></nav>
+  <main class="wrap">
+    <div class="toolbar">legacy toolbar</div>
+    <section id="pdf-primary-workspace">
+      <button class="pdfu-tab active" data-pdf-unified-mode="merge" type="button">PDF 합치기</button>
+      <button class="pdfu-tab" data-pdf-unified-mode="extract" type="button">페이지 추출</button>
+      <div>기본 PDF 작업</div>
+    </section>
+
+    <section class="section" data-category="pages"><div class="tool-grid">
+      <a class="tool available" data-status="available" href="/pdf-preflight/"><span class="tool-icon">🔗</span><span class="tool-name">PDF 합치기</span><span class="tool-desc">여러 PDF 합치기</span></a>
+      <a class="tool available" data-status="available" href="/pdf-preflight/"><span class="tool-icon">✂️</span><span class="tool-name">페이지 추출·나누기</span><span class="tool-desc">페이지 추출</span></a>
+      <a class="tool available" data-status="available" href="/pdf-preflight/"><span class="tool-icon">🗂️</span><span class="tool-name">시각적 페이지 정리</span><span class="tool-desc">페이지 정리</span></a>
+      <a class="tool available" data-status="available" href="/pdf-preflight/"><span class="tool-icon">🧹</span><span class="tool-name">빈 페이지 자동 제거</span><span class="tool-desc">빈 페이지 제거</span></a>
+      <a class="tool available" data-status="local" data-local-action="rotate" href="#local-tools"><span class="tool-icon">🔄</span><span class="tool-name">전체 페이지 회전</span><span class="tool-desc">모든 페이지 회전</span></a>
+      <a class="tool available" data-status="local" data-local-action="reverse" href="#local-tools"><span class="tool-icon">🔃</span><span class="tool-name">페이지 순서 역순</span><span class="tool-desc">페이지 역순</span></a>
+      <a class="tool available" id="editorOwnedPage" href="/pdf-editor/"><span class="tool-name">빈 페이지 삽입</span></a>
+    </div></section>
+
+    <section class="section" data-category="convert"><div class="tool-grid">
+      <a class="tool available" data-status="available" href="/pdf-preflight/"><span class="tool-icon">🖼️</span><span class="tool-name">이미지 → PDF</span><span class="tool-desc">이미지를 PDF로</span></a>
+      <a class="tool available" data-status="available" href="/pdf-preflight/"><span class="tool-icon">📸</span><span class="tool-name">PDF 이미지 변환</span><span class="tool-desc">PDF를 이미지로</span></a>
+      <div class="tool planned" data-status="planned"><span class="status plan">예정</span><span class="tool-icon">🔤</span><span class="tool-name">OCR 문자 인식</span><span class="tool-desc">OCR 문자 인식</span></div>
+      <div class="tool planned" data-status="planned"><span class="status plan">예정</span><span class="tool-icon">📝</span><span class="tool-name">텍스트·문서 추출</span><span class="tool-desc">텍스트 추출</span></div>
+      <div class="tool planned" data-status="planned"><span class="status plan">예정</span><span class="tool-icon">📎</span><span class="tool-name">첨부파일 추출</span><span class="tool-desc">첨부 추출</span></div>
+    </div></section>
+
+    <section class="section" data-category="edit"><div class="tool-grid">
+      <a class="tool available" data-status="available" href="/pdf-preflight/"><span class="tool-icon">📐</span><span class="tool-name">여백·크롭·배경</span><span class="tool-desc">페이지 외곽 정리</span></a>
+      <div class="tool planned" data-status="planned"><span class="tool-icon">✏️</span><span class="tool-name">주석·형광펜·도형</span><span class="tool-desc">확장 예정</span></div>
+      <a class="tool available" id="editorOwnedNup" href="/pdf-editor/"><span class="tool-name">N-up 다면 배치</span></a>
+    </div></section>
+
+    <section class="section" data-category="security"><div class="tool-grid">
+      <a class="tool available" data-status="available" href="/pdf-preflight/"><span class="tool-icon">🔐</span><span class="tool-name">AES-256 암호 설정</span><span class="tool-desc">암호 설정</span></a>
+      <a class="tool available" data-status="available" href="/pdf-preflight/"><span class="tool-icon">🔓</span><span class="tool-name">암호 해제</span><span class="tool-desc">암호 해제</span></a>
+      <a class="tool available" data-status="local" data-local-action="metadata"><span class="tool-icon">ℹ️</span><span class="tool-name">메타데이터 확인</span><span class="tool-desc">메타데이터 확인</span></a>
+      <a class="tool available" data-status="local" data-local-action="sanitize"><span class="tool-icon">🧼</span><span class="tool-name">메타데이터 정리</span><span class="tool-desc">메타데이터 정리</span></a>
+      <a class="tool available" data-status="local" data-local-action="flatten"><span class="tool-icon">📋</span><span class="tool-name">폼 평면화</span><span class="tool-desc">폼 평면화</span></a>
+      <div class="tool planned" data-status="planned"><span class="status plan">예정</span><span class="tool-icon">⬛</span><span class="tool-name">영구 마스킹·Redaction</span><span class="tool-desc">영구 마스킹</span></div>
+      <div class="tool planned" data-status="planned"><span class="tool-icon">✍️</span><span class="tool-name">전자서명</span><span class="tool-desc">확장 예정</span></div>
+    </div></section>
+
+    <section class="section" data-category="print"><div class="tool-grid">
+      <a class="tool available" data-status="available" href="/pdf-preflight/"><span class="tool-icon">✅</span><span class="tool-name">PDF 프리플라이트</span><span class="tool-desc">인쇄 사전 검사</span></a>
+      <a class="tool available" data-status="available" href="/pdf-preflight/"><span class="tool-icon">🛠️</span><span class="tool-name">안전 자동 수정</span><span class="tool-desc">안전 수정</span></a>
+      <a class="tool available" id="printCheckerOwned" href="/print-checker/"><span class="tool-name">인쇄물 사전 검토</span></a>
+    </div></section>
+
+    <section class="section" data-category="scan"><div class="tool-grid">
+      <a class="tool available" data-status="available" href="/pdf-preflight/"><span class="tool-icon">🧹</span><span class="tool-name">스캔 빈 페이지 정리</span><span class="tool-desc">스캔 빈 페이지 제거</span></a>
+      <a class="tool available" data-status="available" href="/pdf-preflight/"><span class="tool-icon">🗜️</span><span class="tool-name">스캔 PDF 압축</span><span class="tool-desc">스캔 PDF 압축</span></a>
+      <div class="tool planned" data-status="planned"><span class="status plan">예정</span><span class="tool-icon">🔤</span><span class="tool-name">검색 가능한 PDF</span><span class="tool-desc">검색 가능한 PDF</span></div>
+      <div class="tool planned" data-status="planned"><span class="tool-icon">📏</span><span class="tool-name">기울기 자동 보정</span><span class="tool-desc">확장 예정</span></div>
+      <div class="tool planned" data-status="planned"><span class="tool-icon">✨</span><span class="tool-name">스캔 노이즈·배경 정리</span><span class="tool-desc">확장 예정</span></div>
+    </div></section>
+
+    <section class="section" data-category="optimize"><div class="tool-grid">
+      <a class="tool available" data-status="available" href="/pdf-preflight/"><span class="tool-icon">🗜️</span><span class="tool-name">PDF 압축</span><span class="tool-desc">PDF 용량 줄이기</span></a>
+      <div class="tool planned" data-status="planned"><span class="tool-icon">🏛️</span><span class="tool-name">PDF/A 장기보존 변환</span><span class="tool-desc">확장 예정</span></div>
+      <div class="tool planned" data-status="planned"><span class="tool-icon">🌐</span><span class="tool-name">웹 빠른보기 최적화</span><span class="tool-desc">확장 예정</span></div>
+      <div class="tool planned" data-status="planned"><span class="tool-icon">🩹</span><span class="tool-name">손상 PDF 복구</span><span class="tool-desc">확장 예정</span></div>
+    </div></section>
+
+    <section class="section" data-category="analyze"><div class="tool-grid">
+      <a class="tool available" data-status="available" href="/pdf-preflight/"><span class="tool-icon">🩺</span><span class="tool-name">문서 구조·인쇄 진단</span><span class="tool-desc">문서 진단</span></a>
+      <a class="tool available" data-status="local" data-local-action="metadata"><span class="tool-icon">🔎</span><span class="tool-name">문서 메타데이터 분석</span><span class="tool-desc">문서 메타데이터 분석</span></a>
+      <div class="tool planned" data-status="planned"><span class="status plan">예정</span><span class="tool-icon">⚖️</span><span class="tool-name">PDF 버전 비교</span><span class="tool-desc">PDF 비교</span></div>
+      <div class="tool planned" data-status="planned"><span class="status plan">예정</span><span class="tool-icon">♿</span><span class="tool-name">접근성·태그 검사</span><span class="tool-desc">접근성 검사</span></div>
+    </div></section>
+
+    <section class="local-panel" id="local-tools">
+      <div class="local-head"><div class="local-head-icon">⚡</div><div><h2 id="localTitle">브라우저 로컬 빠른 처리</h2><p>로컬 처리 설명</p></div><span class="local-badge">서버 업로드 없음</span></div>
+      <label class="drop" id="localDrop" for="localFile"><strong>PDF 한 개를 선택하거나 여기에 놓으세요</strong><span>회전 · 역순 · 메타데이터 · 폼 평면화</span></label>
+      <input id="localFile" type="file" accept="application/pdf,.pdf">
+      <div class="file-note" id="localFileNote"></div>
+      <div class="local-actions">
+        <button class="local-btn" type="button" data-local-run="rotate90" disabled>↻ 90° 회전</button>
+        <button class="local-btn" type="button" data-local-run="rotate180" disabled>↻ 180° 회전</button>
+        <button class="local-btn" type="button" data-local-run="reverse" disabled>🔃 페이지 역순</button>
+        <button class="local-btn" type="button" data-local-run="metadata" disabled>ℹ️ 메타데이터 확인</button>
+        <button class="local-btn" type="button" data-local-run="sanitize" disabled>🧼 메타데이터 정리</button>
+        <button class="local-btn" type="button" data-local-run="flatten" disabled>📋 폼 평면화</button>
+      </div>
+      <div class="local-status" id="localStatus"></div>
+      <div class="meta-box" id="localMetadata"></div>
+    </section>
+
+    <section class="roadmap"><div class="roadmap-tags"><span class="roadmap-tag">한국어 OCR</span><span class="roadmap-tag">검색 가능한 PDF</span><span class="roadmap-tag">PDF/A</span><span class="roadmap-tag">영구 Redaction</span><span class="roadmap-tag">PDF 버전 비교</span><span class="roadmap-tag">접근성·Tagged PDF</span><span class="roadmap-tag">첨부파일 추출</span></div></section>
+  </main>
+  <div id="result">RUNNING</div>
+
+  <script>
+    history.replaceState(null,'','/pdf-suite/?smoke=menu-audit');
+    const authListeners=[];
+    window.auth={
+      currentUser:{uid:'smoke-user',getIdToken:async()=> 'smoke-token'},
+      onAuthStateChanged(callback){authListeners.push(callback);setTimeout(()=>callback(this.currentUser),0);return()=>{};}
+    };
+    const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+    const waitFor=async(fn,label,timeout=4500)=>{const start=Date.now();while(Date.now()-start<timeout){if(fn())return;await wait(20);}throw new Error('timeout: '+label);};
+    const menuButton=name=>[...document.querySelectorAll('[data-pdfu-tool]')].find(node=>node.querySelector('.pdfu-menu-name')?.textContent.trim()===name)||null;
+    const clickMenu=async(name,delay=180)=>{const button=menuButton(name);if(!button)throw new Error('menu missing: '+name);button.click();await wait(delay);return button;};
+    const assertUnlocked=name=>{if(document.body.style.overflow==='hidden')throw new Error('body scroll locked after '+name);};
+    const assertStage=name=>{const stage=document.getElementById('pdfUtilityStageBody');if(!stage||!stage.textContent.trim())throw new Error('empty stage after '+name);const bad=[...document.querySelectorAll('.pdfadv-overlay.open,.pdfocr-overlay.open')].find(node=>!stage.contains(node));if(bad)throw new Error('open overlay escaped stage after '+name+': '+bad.id);};
+  </script>
+  <script src="/js/pdf-suite/local-tools.js?v=smoke"></script>
+  <script src="/js/pdf-suite/advanced-tools.js?v=smoke"></script>
+  <script src="/js/pdf-suite/ocr-tools.js?v=smoke"></script>
+  <script src="/js/pdf-suite/unified-navigation-prep.js?v=smoke"></script>
+  <script src="/js/pdf-suite/single-page-shell.js?v=smoke"></script>
+  <script src="/js/pdf-suite/direct-tool-bridge.js?v=smoke"></script>
+  <script src="/js/pdf-suite/direct-tool-hook.js?v=smoke"></script>
+  <script src="/js/pdf-suite/protected-tool-guard.js?v=smoke"></script>
+  <script src="/js/pdf-suite/workspace-stability.js?v=smoke"></script>
+  <script>
+    (async()=>{
+      const result=document.getElementById('result');
+      try{
+        await waitFor(()=>document.documentElement.dataset.pdfUtilityWorkspaceStability==='ready','stability ready');
+        await waitFor(()=>document.documentElement.dataset.pdfUtilityLayout==='split','split ready');
+        await wait(80);
+        if(document.getElementById('editorOwnedPage')||document.getElementById('editorOwnedNup'))throw new Error('editor-owned tool not removed');
+        if(!menuButton('책갈피·페이지 라벨 분석'))throw new Error('outline menu not promoted');
+        if(!menuButton('접근성·태그 기본 검사'))throw new Error('accessibility menu not promoted');
+        if(!menuButton('본문 텍스트 추출 · TXT'))throw new Error('text menu not promoted');
+        if(!menuButton('한국어·영어 OCR 문자 인식')||!menuButton('OCR 검색 가능한 PDF'))throw new Error('OCR menus not promoted');
+
+        await clickMenu('전체 페이지 회전');
+        const local=document.querySelector('#pdfUtilityStageBody #local-tools');
+        if(!local)throw new Error('rotation local panel not mounted');
+        if(local.dataset.pdfuStableLayout!=='1')throw new Error('rotation stable local layout missing');
+        if(!local.querySelector('.pdfu-local-workgrid')||!local.querySelector('.pdfu-local-controls')||!local.querySelector('.pdfu-local-result'))throw new Error('rotation two-column workspace missing');
+        if(local.querySelector('[data-local-run="rotate90"]').style.display==='none'||local.querySelector('[data-local-run="rotate180"]').style.display==='none')throw new Error('rotation buttons hidden');
+        if(local.querySelector('[data-local-run="reverse"]').style.display!=='none')throw new Error('unrelated reverse button shown in rotation');
+        assertUnlocked('전체 페이지 회전');assertStage('전체 페이지 회전');
+
+        for(const name of ['책갈피·페이지 라벨 분석','첨부파일 추출','접근성·태그 기본 검사']){
+          await clickMenu(name);
+          const ids={'책갈피·페이지 라벨 분석':'pdfAdvancedOutline','첨부파일 추출':'pdfAdvancedAttachments','접근성·태그 기본 검사':'pdfAdvancedAccessibility'};
+          const overlay=document.getElementById(ids[name]);
+          const slot=document.querySelector('#pdfUtilityStageBody .pdfu-local-result-slot');
+          if(!overlay?.classList.contains('open'))throw new Error(name+' overlay not open');
+          if(!slot?.contains(overlay))throw new Error(name+' overlay not docked in result panel');
+          assertUnlocked(name);assertStage(name);
+        }
+
+        for(const name of ['PDF 버전 비교','영구 마스킹·Redaction']){
+          await clickMenu(name);
+          const stage=document.getElementById('pdfUtilityStageBody');
+          const open=stage.querySelector('.pdfadv-overlay.open');
+          if(!open||!open.classList.contains('pdfu-stable-inline'))throw new Error(name+' stable inline overlay missing');
+          assertUnlocked(name);assertStage(name);
+        }
+
+        for(const name of ['한국어·영어 OCR 문자 인식','OCR 검색 가능한 PDF']){
+          await clickMenu(name);
+          const overlay=document.getElementById('pdfSuiteOcrModal');
+          if(!overlay?.classList.contains('open')||!document.getElementById('pdfUtilityStageBody').contains(overlay))throw new Error(name+' inline OCR missing');
+          assertUnlocked(name);assertStage(name);
+        }
+
+        await clickMenu('책갈피·페이지 라벨 분석');
+        const outline=document.getElementById('pdfAdvancedOutline');
+        if(!outline?.classList.contains('open'))throw new Error('outline not open before transition');
+        await clickMenu('PDF 압축');
+        if(outline.classList.contains('open'))throw new Error('outline stayed open after direct transition');
+        if(document.getElementById('pdfUtilityStageBody').contains(outline))throw new Error('outline remained mounted after direct transition');
+        if(!document.querySelector('#pdfUtilityStageBody .pdfud-card'))throw new Error('direct compression panel missing after outline');
+        if(document.querySelector('#pdfUtilityStageBody iframe'))throw new Error('legacy iframe returned after outline-to-compress transition');
+        if(document.documentElement.dataset.pdfUtilityDirectReset!=='stable')throw new Error('direct reset wrapper missing');
+        assertUnlocked('outline → PDF 압축');assertStage('outline → PDF 압축');
+
+        const allButtons=[...document.querySelectorAll('[data-pdfu-tool]')];
+        if(allButtons.length<25)throw new Error('menu audit fixture unexpectedly small: '+allButtons.length);
+        for(const button of allButtons){
+          const name=button.querySelector('.pdfu-menu-name')?.textContent.trim()||'unknown';
+          button.click();await wait(150);
+          assertUnlocked(name);assertStage(name);
+        }
+
+        if(document.documentElement.dataset.pdfUtilityMenuAudit!=='ok')throw new Error('menu audit watchdog did not report ok');
+        document.body.dataset.pdfUtilityMenuAuditSmoke='pass';
+        result.textContent='PASS: all PDF utility menus mount stable right-stage workspaces without scroll lock';
+      }catch(error){
+        document.body.dataset.pdfUtilityMenuAuditSmoke='fail';
+        result.textContent='FAIL: '+String(error?.stack||error);
+      }
+    })();
+  </script>
+</body>
+</html>
