@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>PDF Utility Curated Core Smoke</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;font-family:sans-serif}.top{height:62px}.wrap{min-height:900px}.tool{display:block}.local-panel{padding:20px}.local-actions{display:grid}.pdfu-tab{display:inline-block}
+  </style>
+</head>
+<body data-pdf-utility-curated-core-smoke="running">
+  <nav class="top"><div class="top-title">PDF 올인원</div><a class="top-link" href="/pdf-preflight/">검사</a><a class="top-link" href="/pdf-editor/">편집</a></nav>
+  <main class="wrap" id="fixture">
+    <div class="toolbar">legacy toolbar</div>
+    <section id="pdf-primary-workspace"><button class="pdfu-tab active" data-pdf-unified-mode="merge" type="button">PDF 합치기</button><button class="pdfu-tab" data-pdf-unified-mode="extract" type="button">페이지 추출</button><div>기본 PDF 작업</div></section>
+    <section class="local-panel" id="local-tools">
+      <div class="local-head"><div class="local-head-icon">⚡</div><div><h2 id="localTitle">브라우저 로컬 빠른 처리</h2><p>선택한 PDF는 서버로 업로드하지 않습니다.</p></div><span class="local-badge">서버 업로드 없음</span></div>
+      <label class="drop" id="localDrop" for="localFile"><strong>PDF 한 개를 선택하거나 여기에 놓으세요</strong><span>회전 · 역순 · 메타데이터 · 폼 평면화 / 권장 120MB 이하</span></label>
+      <input id="localFile" type="file" accept="application/pdf,.pdf"><div class="file-note" id="localFileNote"></div>
+      <div class="local-actions"><button class="local-btn" type="button" data-local-run="rotate90" disabled>↻ 90° 회전</button><button class="local-btn" type="button" data-local-run="rotate180" disabled>↻ 180° 회전</button><button class="local-btn" type="button" data-local-run="reverse" disabled>🔃 페이지 역순</button><button class="local-btn" type="button" data-local-run="metadata" disabled>ℹ️ 메타데이터 확인</button><button class="local-btn" type="button" data-local-run="sanitize" disabled>🧼 메타데이터 정리</button><button class="local-btn" type="button" data-local-run="flatten" disabled>📋 폼 평면화</button></div>
+      <div class="local-status" id="localStatus"></div><div class="meta-box" id="localMetadata"></div>
+    </section>
+    <section class="roadmap"><div class="roadmap-tags"></div></section>
+  </main>
+  <div id="result">RUNNING</div>
+
+  <script>
+    history.replaceState(null,'','/pdf-suite/?smoke=curated-core');
+    const fixture=document.getElementById('fixture');
+    const tool=(name,{href='',status='available',local='',planned=false}={})=>`<${href?'a':'div'} class="tool ${planned?'planned':'available'}" data-status="${planned?'planned':status}" ${href?`href="${href}"`:''} ${local?`data-local-action="${local}"`:''}><span class="status ${planned?'plan':status==='local'?'local':'now'}">${planned?'예정':status==='local'?'로컬':'사용'}</span><span class="tool-icon">📄</span><span class="tool-name">${name}</span><span class="tool-desc">${name} 테스트 설명</span></${href?'a':'div'}>`;
+    const addSection=(category,items)=>{const section=document.createElement('section');section.className='section';section.dataset.category=category;section.innerHTML=`<div class="tool-grid">${items.join('')}</div>`;fixture.insertBefore(section,document.getElementById('local-tools'));};
+    addSection('pages',[tool('PDF 합치기',{href:'/pdf-preflight/'}),tool('페이지 추출·나누기',{href:'/pdf-preflight/'}),tool('시각적 페이지 정리',{href:'/pdf-preflight/'}),tool('빈 페이지 자동 제거',{href:'/pdf-preflight/'}),tool('전체 페이지 회전',{href:'#local-tools',status:'local',local:'rotate'}),tool('페이지 순서 역순',{href:'#local-tools',status:'local',local:'reverse'}),tool('빈 페이지 삽입',{href:'/pdf-editor/'})]);
+    addSection('convert',[tool('이미지 → PDF',{href:'/pdf-preflight/'}),tool('PDF 이미지 변환',{href:'/pdf-preflight/'}),tool('OCR 문자 인식',{planned:true}),tool('텍스트·문서 추출',{planned:true}),tool('첨부파일 추출',{planned:true})]);
+    addSection('edit',[tool('여백·크롭·배경',{href:'/pdf-preflight/'}),tool('N-up 다면 배치',{href:'/pdf-editor/'})]);
+    addSection('security',[tool('AES-256 암호 설정',{href:'/pdf-preflight/'}),tool('암호 해제',{href:'/pdf-preflight/'}),tool('메타데이터 확인',{status:'local',local:'metadata'}),tool('메타데이터 정리',{status:'local',local:'sanitize'}),tool('폼 평면화',{status:'local',local:'flatten'}),tool('영구 마스킹·Redaction',{planned:true})]);
+    addSection('print',[tool('PDF 프리플라이트',{href:'/pdf-preflight/'}),tool('안전 자동 수정',{href:'/pdf-preflight/'}),tool('인쇄물 사전 검토',{href:'/print-checker/'})]);
+    addSection('scan',[tool('스캔 빈 페이지 정리',{href:'/pdf-preflight/'}),tool('스캔 PDF 압축',{href:'/pdf-preflight/'}),tool('검색 가능한 PDF',{planned:true})]);
+    addSection('optimize',[tool('PDF 압축',{href:'/pdf-preflight/'}),tool('PDF/A 장기보존 변환',{planned:true})]);
+    addSection('analyze',[tool('문서 구조·인쇄 진단',{href:'/pdf-preflight/'}),tool('문서 메타데이터 분석',{status:'local',local:'metadata'}),tool('PDF 버전 비교',{planned:true}),tool('접근성·태그 검사',{planned:true})]);
+
+    window.auth={currentUser:{uid:'smoke-user',getIdToken:async()=> 'smoke-token'},onAuthStateChanged(callback){setTimeout(()=>callback(this.currentUser),0);return()=>{};}};
+    const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+    const waitFor=async(fn,label,timeout=5000)=>{const start=Date.now();while(Date.now()-start<timeout){if(fn())return;await wait(20);}throw new Error('timeout: '+label);};
+    const names=()=>[...document.querySelectorAll('[data-pdfu-tool] .pdfu-menu-name')].map(node=>node.textContent.trim());
+    const button=name=>[...document.querySelectorAll('[data-pdfu-tool]')].find(node=>node.querySelector('.pdfu-menu-name')?.textContent.trim()===name)||null;
+    const click=async name=>{const b=button(name);if(!b)throw new Error('menu missing: '+name);b.click();await wait(190);return b;};
+    const assertStage=name=>{const stage=document.getElementById('pdfUtilityStageBody');if(!stage||!stage.textContent.trim())throw new Error('empty stage: '+name);if(document.body.style.overflow==='hidden')throw new Error('scroll locked: '+name);};
+    const assertDrop=()=>{const drop=document.querySelector('#pdfUtilityStageBody #localDrop');if(!drop)throw new Error('local upload box missing');const style=getComputedStyle(drop);if(style.display!=='flex')throw new Error('upload label is not a single flex box: '+style.display);if(style.borderLeftStyle!=='dashed'||parseFloat(style.borderLeftWidth)<1.5)throw new Error('upload dashed border missing');if(drop.getClientRects().length!==1)throw new Error('upload border fragmented into multiple inline boxes');if(drop.getBoundingClientRect().width<220)throw new Error('upload box width collapsed');const badge=document.querySelector('#pdfUtilityStageBody .local-badge');if(badge&&badge.getBoundingClientRect().bottom>drop.getBoundingClientRect().top+2)throw new Error('upload badge overlaps drop box');};
+  </script>
+  <script src="/js/pdf-suite/local-tools.js?v=smoke"></script>
+  <script src="/js/pdf-suite/advanced-tools.js?v=smoke"></script>
+  <script src="/js/pdf-suite/ocr-tools.js?v=smoke"></script>
+  <script src="/js/pdf-suite/unified-navigation-prep.js?v=smoke"></script>
+  <script src="/js/pdf-suite/single-page-shell.js?v=smoke"></script>
+  <script src="/js/pdf-suite/direct-tool-bridge.js?v=smoke"></script>
+  <script src="/js/pdf-suite/direct-tool-hook.js?v=smoke"></script>
+  <script src="/js/pdf-suite/protected-tool-guard.js?v=smoke"></script>
+  <script src="/js/pdf-suite/workspace-stability.js?v=smoke"></script>
+  <script src="/js/pdf-suite/curated-core.js?v=smoke"></script>
+  <script>
+    (async()=>{
+      const result=document.getElementById('result');
+      try{
+        await waitFor(()=>document.documentElement.dataset.pdfUtilityCuratedCore==='ready','curated core ready');
+        await wait(100);
+        const expected=['PDF 파일 검사','PDF 압축','안전 자동 수정','PDF 합치기','페이지 추출·나누기','시각적 페이지 정리','빈 페이지 자동 제거','전체 페이지 회전','페이지 순서 역순','여백·크롭·배경','이미지 → PDF','PDF → 이미지','OCR · 검색 가능한 PDF','본문 텍스트 추출 · TXT','PDF 암호 설정 · AES-256','암호 해제','메타데이터 정리','폼 평면화'];
+        const actual=names();
+        if(actual.length!==expected.length)throw new Error(`core menu count ${actual.length} != ${expected.length}: ${actual.join(', ')}`);
+        expected.forEach(name=>{if(!actual.includes(name))throw new Error('essential menu missing: '+name);});
+        for(const removed of ['책갈피·페이지 라벨 분석','접근성·태그 기본 검사','첨부파일 추출','PDF 버전 비교','영구 마스킹·Redaction','메타데이터 확인','문서 구조·인쇄 진단','스캔 PDF 압축','한국어·영어 OCR 문자 인식'])if(actual.includes(removed))throw new Error('non-core menu still visible: '+removed);
+        const groups=[...document.querySelectorAll('[data-pdfu-core-group] .pdfu-menu-group-head strong')].map(node=>node.textContent.trim());
+        if(groups.join('|')!=='PDF 검사 · 최적화|페이지 · 문서|변환 · OCR|보안 · 정리')throw new Error('core groups incorrect: '+groups.join('|'));
+        if(actual[0]!=='PDF 파일 검사')throw new Error('PDF file inspection is not first');
+        if(document.documentElement.dataset.pdfUtilityCoreToolCount!=='18')throw new Error('core count marker missing');
+
+        await click('전체 페이지 회전');assertDrop();assertStage('전체 페이지 회전');
+        await click('페이지 순서 역순');assertDrop();assertStage('페이지 순서 역순');
+
+        await click('PDF 파일 검사');
+        const inspectionPanel=document.querySelector('#pdfUtilityStageBody .pdfud-card');
+        const authRequired=document.documentElement.dataset.pdfUtilityProtectedGuard==='auth-required'&&document.querySelector('[data-pdfu-guard-action="login"]');
+        if(!inspectionPanel&&!authRequired)throw new Error('PDF file inspection neither opened nor showed protected login guidance');
+        if(document.querySelector('#pdfUtilityStageBody iframe'))throw new Error('PDF file inspection fell back to iframe');
+        if(document.getElementById('pdfUtilityStageTitle')?.textContent.trim()!=='PDF 파일 검사')throw new Error('PDF inspection alias not reflected in stage header');
+        assertStage('PDF 파일 검사');
+
+        await click('OCR · 검색 가능한 PDF');
+        const ocr=document.querySelector('#pdfUtilityStageBody #pdfSuiteOcrModal');
+        if(!ocr?.classList.contains('open'))throw new Error('OCR panel missing');
+        const ocrFile=ocr.querySelector('.pdfocr-file');if(!ocrFile||getComputedStyle(ocrFile).display==='inline'||ocrFile.getClientRects().length!==1)throw new Error('OCR upload box fragmented');
+        assertStage('OCR · 검색 가능한 PDF');
+
+        for(const name of expected){await click(name);assertStage(name);}
+        document.body.dataset.pdfUtilityCuratedCoreSmoke='pass';
+        result.textContent='PASS: curated PDF Utility keeps 18 essential workflows, restores PDF file inspection, and renders solid upload cards';
+      }catch(error){document.body.dataset.pdfUtilityCuratedCoreSmoke='fail';result.textContent='FAIL: '+String(error?.stack||error);}
+    })();
+  </script>
+</body>
+</html>
