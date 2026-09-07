@@ -109,7 +109,7 @@
   }
   function loadPreflightRuntime(){
     window.ProgramStudioPreflightRuntimeContext={entryPath:currentPath,load};
-    const ready=load('pdfPreflightRouteRuntimeScriptV1','/js/pdf-preflight/route-runtime.js?v=20260831-1').then(()=>{
+    const ready=load('pdfPreflightRouteRuntimeScriptV1','/js/pdf-preflight/route-runtime.js?v=20260907-2').then(()=>{
       const runtime=window.ProgramStudioPreflightRuntime;
       if(!runtime||typeof runtime.loadAll!=='function')throw new Error('PDF preflight route runtime API is unavailable');
       return runtime.loadAll();

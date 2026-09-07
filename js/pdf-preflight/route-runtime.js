@@ -36,7 +36,7 @@
   const MENU_LABELS=Object.freeze({
     checkBtn:'PDF 검사',
     pdfUtilityMergeBtn:'PDF 합치기',
-    pdfUtilityBackgroundBtn:'배경,여백지우기',
+    pdfUtilityBackgroundBtn:'배경/여백 제거',
     pdfUtilityCompressBtn:'용량 줄이기',
     pdfUtilityRepairBtn:'PDF 복구',
     encryptBtn:'암호 설정',
@@ -55,9 +55,8 @@
     const style=document.createElement('style');
     style.id='pdfUtilityPlainMenuLabelStyles';
     style.textContent=`
-      .action-btn .action-name[data-pdf-plain-menu-label]{display:block!important;font-size:0!important;line-height:1.32!important;min-height:17px;word-break:keep-all}
-      .action-btn .action-name[data-pdf-plain-menu-label]::after{content:attr(data-pdf-plain-menu-label);font-size:13px!important;line-height:1.32!important;font-weight:950!important;letter-spacing:-.18px;color:#0f172a;word-break:keep-all}
-      .pdf-preflight-left-tools .pdfuw-section-title{font-size:13px!important;line-height:1.35!important}
+      .action-btn .action-name[data-pdf-plain-menu-label]{display:block!important;font-size:14px!important;line-height:1.32!important;min-height:18px;word-break:keep-all;font-weight:950!important;letter-spacing:-.18px;color:#0f172a!important}
+      .pdf-preflight-left-tools .pdfuw-section-title{font-size:14px!important;line-height:1.35!important}
       .pdf-preflight-left-tools>.panel-head .panel-title{font-size:17px!important}
     `;
     document.head.appendChild(style);
@@ -74,6 +73,7 @@
       const label=MENU_LABELS[button.id];
       const name=button.querySelector('.action-name');
       if(!label||!name)return;
+      if(name.textContent!==label)name.textContent=label;
       name.dataset.pdfPlainMenuLabel=label;
       const desc=(button.querySelector('.action-desc')?.textContent||'').trim();
       button.setAttribute('aria-label',desc?`${label}. ${desc}`:label);
@@ -86,7 +86,7 @@
     setText('#pdfUtilityWideSingleSection .pdfuw-section-kicker','한 파일');
     setText('#pdfUtilityWideSingleSection .pdfuw-section-title','선택 PDF 작업');
     setText('#pdfUtilityWideSingleSection .pdfuw-section-desc','선택한 PDF 한 개에만 적용됩니다.');
-    document.documentElement.dataset.pdfUtilityPlainMenuLabels='2';
+    document.documentElement.dataset.pdfUtilityPlainMenuLabels='3';
   }
 
   let menuObserver=null;
