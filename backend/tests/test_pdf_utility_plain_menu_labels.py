@@ -6,11 +6,14 @@ ROUTE = ROOT / "js" / "pdf-preflight" / "route-runtime.js"
 LABELS = ROOT / "js" / "pdf-preflight" / "menu-labels.js"
 
 
-def test_pdf_utility_plain_language_menu_is_loaded_last():
+def test_pdf_utility_plain_language_menu_preserves_final_workspace_owner():
     route = ROUTE.read_text(encoding="utf-8")
-    marker = "{id:'pdfUtilityPlainMenuLabelsScriptV1',src:'/js/pdf-preflight/menu-labels.js?v=20260907-1'}"
-    assert marker in route
-    assert route.index("pdfPreflightPanelBalanceScriptV1") < route.index("pdfUtilityPlainMenuLabelsScriptV1")
+    label_marker = "{id:'pdfUtilityPlainMenuLabelsScriptV1',src:'/js/pdf-preflight/menu-labels.js?v=20260907-1'}"
+    final_marker = "{id:'pdfPreflightPanelBalanceScriptV1',src:'/js/pdf-preflight-panel-balance.js?v=20260831-2'}"
+    assert label_marker in route
+    assert final_marker in route
+    assert route.index("pdfUtilityPlainMenuLabelsScriptV1") < route.index("pdfPreflightPanelBalanceScriptV1")
+    assert route.rfind("{id:") == route.index(final_marker)
 
 
 def test_pdf_utility_menu_names_are_plain_and_larger():
