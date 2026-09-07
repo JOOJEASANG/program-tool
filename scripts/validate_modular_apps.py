@@ -95,8 +95,13 @@ def validate() -> None:
     checker_access = read("js/print-checker/access.js")
     if "ProgramAccess.guardTool" in checker_access or "approval-waiting" in checker_access:
         errors.append("print-checker must remain a public daily-free route, not an approval-gated tool")
-    if "daily-free" not in checker_access or "guestLimit:3" not in checker_access or "memberLimit:10" not in checker_access:
-        errors.append("print-checker daily-free access policy is incomplete")
+    if (
+        "daily-free" not in checker_access
+        or "ProgramPdfDailyFree?.guestLimit" not in checker_access
+        or "ProgramPdfDailyFree?.memberLimit" not in checker_access
+        or "quota.status()" not in checker_access
+    ):
+        errors.append("print-checker configurable daily-free access policy is incomplete")
     if "/js/pdf-daily-free.js" not in checker_html:
         errors.append("print-checker/index.html must load the shared daily-free runtime")
 
@@ -142,7 +147,7 @@ def validate() -> None:
             print(f" - {error}", file=sys.stderr)
         raise SystemExit(1)
 
-    print("Modular app architecture OK: public daily-free Print Checker (cover/leaflet/flyer/invitation), real PDF inspection, protected modular PDF editor routes, Firebase rewrites and browser smoke coverage all validated")
+    print("Modular app architecture OK: public configurable daily-free Print Checker (cover/leaflet/flyer/invitation), real PDF inspection, protected modular PDF editor routes, Firebase rewrites and browser smoke coverage all validated")
 
 
 if __name__ == "__main__":
