@@ -7,47 +7,75 @@ def read(path: str) -> str:
     return (ROOT / path).read_text(encoding="utf-8")
 
 
-def test_print_checker_loads_file_relative_preview_controls():
+def test_print_checker_loads_layered_file_preview_controls():
     html = read("print-checker/index.html")
-    assert "js/print-checker/file-relative-preview.js?v=20260907-3" in html
+    assert "js/print-checker/file-relative-preview.js?v=20260907-4" in html
+    assert "css/print-checker.css?v=20260907-4" in html
 
 
-def test_preview_offsets_are_based_on_attached_file_ratio():
+def test_uploaded_artwork_uses_a_separate_canvas_layer():
     js = read("js/print-checker/file-relative-preview.js")
-    assert "canvas.width) || baseW) * xPercent / 100" in js
-    assert "canvas.height) || baseH) * yPercent / 100" in js
-    assert "signedPercent" in js
-    assert "AXIS_LIMIT = 25" in js
-    assert "window.addEventListener('resize'" in js
-    assert "ResizeObserver" in js
+    css = read("css/print-checker.css")
+    assert "FILE_LAYER_ID = 'previewFileLayer'" in js
+    assert "STACK_CLASS = 'preview-canvas-stack'" in js
+    assert "stack.insertBefore(layer, canvas)" in js
+    assert "capturedImage = image" in js
+    assert "capturedFrame = { x, y, w, h }" in js
+    assert "return undefined" in js
+    assert ".preview-canvas-stack #previewCanvas" in css
+    assert "#previewFileLayer" in css
+    assert "pointer-events:none" in css
 
 
-def test_only_uploaded_artwork_moves_while_core_guides_stay_fixed():
+def test_core_preview_canvas_never_receives_user_move_or_scale():
     js = read("js/print-checker/file-relative-preview.js")
-    assert "context.drawImage = function" in js
-    assert "isUploadedPreview" in js
     assert "neutralizeCoreTransform" in js
     assert "dispatchSource(sourceX, 0)" in js
     assert "dispatchSource(sourceY, 0)" in js
     assert "dispatchSource(sourceScale, 100)" in js
-    assert "코어의 이동/배율은 항상 0 / 0 / 100" in js
-    assert "drawX = baseX + (baseW - drawW) / 2 + shiftX" in js
-    assert "drawY = baseY + (baseH - drawH) / 2 + shiftY" in js
-    assert "printCheckerFileOnlyPreview = 'v3'" in js
+    assert "코어 캔버스는 안내선 전용" in js
+    assert "replacement.addEventListener('input'" in js
+    assert "drawFileLayer();" in js
 
 
-def test_preview_scale_is_applied_to_artwork_draw_image_only():
+def test_file_layer_moves_and_scales_without_redrawing_guides():
     js = read("js/print-checker/file-relative-preview.js")
-    assert "scalePercent / 100" in js
+    assert "const shiftX = layer.width * xPercent / 100" in js
+    assert "const shiftY = layer.height * yPercent / 100" in js
+    assert "const scale = Math.max(0.1, scalePercent / 100)" in js
     assert "const drawW = baseW * scale" in js
     assert "const drawH = baseH * scale" in js
-    assert "코어 배율은 항상 100%" in js
+    assert "context.drawImage(capturedImage, drawX, drawY, drawW, drawH)" in js
+    assert "context.fillRect = function" in js
+    assert "isFullPreviewBackground" in js
 
 
-def test_preview_ui_explains_that_guides_are_fixed():
+def test_uploaded_file_can_be_dragged_with_pointer():
     js = read("js/print-checker/file-relative-preview.js")
-    assert "이동·크기 조절은 첨부 파일에만 적용" in js
-    assert "재단선·안전영역·책등·접지선은 고정" in js
+    assert "layer.addEventListener('pointerdown'" in js
+    assert "layer.addEventListener('pointermove'" in js
+    assert "layer.addEventListener('pointerup'" in js
+    assert "layer.setPointerCapture" in js
+    assert "updateFromPointer" in js
+    assert "originX: xPercent" in js
+    assert "originY: yPercent" in js
+    assert "printCheckerFileOnlyPreview = 'v4-layered-drag'" in js
+
+
+def test_preview_ui_explains_fixed_canvas_and_mouse_drag():
+    js = read("js/print-checker/file-relative-preview.js")
+    assert "안내선과 미리보기 캔버스는 고정됩니다" in js
+    assert "마우스로 끌어 이동" in js
+
+
+def test_browser_smoke_checks_fixed_guides_and_dragging():
+    smoke = read("tests/browser/print-checker-file-only-adjustment-smoke.html")
+    runner = read("scripts/run_phase5_browser_smoke.sh")
+    assert "fixedCanvas" in smoke
+    assert "guidesStillFixed" in smoke
+    assert "new PointerEvent('pointermove'" in smoke
+    assert "v4-layered-drag" in smoke
+    assert "print-checker-file-only-adjustment-smoke.html" in runner
 
 
 def test_cover_preview_loads_live_calculated_spine_dimension():
