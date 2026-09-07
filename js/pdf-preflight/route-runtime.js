@@ -36,7 +36,7 @@
   const MENU_LABELS=Object.freeze({
     checkBtn:'PDF 검사',
     pdfUtilityMergeBtn:'PDF 합치기',
-    pdfUtilityBackgroundBtn:'배경 지우기',
+    pdfUtilityBackgroundBtn:'배경,여백지우기',
     pdfUtilityCompressBtn:'용량 줄이기',
     pdfUtilityRepairBtn:'PDF 복구',
     encryptBtn:'암호 설정',
