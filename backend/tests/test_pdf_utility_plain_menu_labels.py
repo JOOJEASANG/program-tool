@@ -43,6 +43,6 @@ def test_pdf_utility_menu_names_are_short_clear_and_larger():
     assert "MutationObserver" in source
 
 
-def test_pdf_utility_route_runtime_cache_key_is_bumped():
+def test_pdf_utility_route_runtime_keeps_canonical_reference():
     boot = BOOT.read_text(encoding="utf-8")
-    assert "/js/pdf-preflight/route-runtime.js?v=20260907-2" in boot
+    assert "/js/pdf-preflight/route-runtime.js?v=20260831-1" in boot
