@@ -14,7 +14,7 @@
     <div class="nav-title">PDF 검사</div>
     <div class="nav-user"><span class="nav-user-name" id="userName">사용자</span><button class="nav-logout">로그아웃</button></div>
   </nav>
-  <main class="container"><section class="hero"><h1>PDF 검사</h1></section></main>
+  <main class="container"><section class="hero"><h1>PDF 검사</h1></section><section class="workspace"><div class="panel">작업 영역</div></section></main>
   <div id="result">PENDING</div>
   <script src="/js/program-shell-unify.js?v=20260824-1"></script>
   <script>
@@ -34,9 +34,12 @@
         assert(bar.querySelector('#userName'),'account node lost');
         assert(bar.querySelector('.nav-logout'),'logout action lost');
         assert(getComputedStyle(document.body).paddingTop==='0px','body top padding remained');
+        assert(getComputedStyle(document.querySelector('.hero')).display==='none','utility hero remained visible');
+        assert(parseFloat(getComputedStyle(container).maxWidth)>=1200,'utility workspace stayed unnecessarily narrow');
         document.body.dataset.shellSmoke='pass';
         document.body.dataset.shellHeaderRemoved='true';
         document.body.dataset.shellActionsPreserved='true';
+        document.body.dataset.shellHeroRemoved='true';
         result.textContent='PASS: PDF utility fixed header removed and account actions preserved in content';
       }catch(error){document.body.dataset.shellSmoke='fail';result.textContent='FAIL: '+String(error?.message||error)}
     })();

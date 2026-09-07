@@ -26,6 +26,19 @@ def test_pdf_tools_remove_fixed_header_without_losing_actions():
         assert marker in source
 
 
+def test_pdf_editor_preview_toolbar_and_utility_workspace_are_polished():
+    source = SHELL.read_text(encoding="utf-8")
+    assert 'data-program-kind="pdf-editor"] #perRowSelect' in source
+    assert 'width:112px!important' in source
+    assert 'min-width:112px!important' in source
+    assert 'flex:0 0 112px!important' in source
+    assert 'data-program-kind="pdf-editor"] .preview-zoom' in source
+    assert 'overflow:visible!important' in source
+    assert 'data-program-kind="pdf-utility"] .hero{display:none!important}' in source
+    assert 'max-width:1240px!important' in source
+    assert 'data-program-kind="pdf-utility"] .workspace{gap:14px!important}' in source
+
+
 def test_runtime_loads_shared_shell_for_pdf_editor_from_canonical_route_manifest():
     runtime = RUNTIME.read_text(encoding="utf-8")
     route_runtime = ROUTE_RUNTIME.read_text(encoding="utf-8")
@@ -40,6 +53,8 @@ def test_browser_smokes_cover_editor_and_utility_shells():
     utility = UTILITY_SMOKE.read_text(encoding="utf-8")
     runner = RUNNER.read_text(encoding="utf-8")
     assert "PDF sidebar remains visible after delayed common/runtime initialization" in editor
+    assert "per-row selector remains fully visible" in editor
     assert "PDF utility fixed header removed and account actions preserved in content" in utility
+    assert "utility hero remained visible" in utility
     assert "pdf-editor-shell-smoke.html" in runner
     assert "pdf-utility-shell-smoke.html" in runner

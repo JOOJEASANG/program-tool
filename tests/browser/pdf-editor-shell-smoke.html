@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <title>PDF Editor Unified Shell Smoke</title>
   <style>
-    :root{--nav-h:52px}*{box-sizing:border-box}body{margin:0;padding-top:var(--nav-h)}.top-nav{height:var(--nav-h)}.app{display:grid;grid-template-columns:360px 1fr;height:calc(100vh - var(--nav-h))}aside{padding:16px}.sec{display:block;border:1px solid #ddd;margin:6px 0}.sec-body{display:block;padding:8px}.sec-body.hidden{display:none}
+    :root{--nav-h:52px}*{box-sizing:border-box}body{margin:0;padding-top:var(--nav-h)}.top-nav{height:var(--nav-h)}.app{display:grid;grid-template-columns:360px 1fr;height:calc(100vh - var(--nav-h))}aside{padding:16px}.sec{display:block;border:1px solid #ddd;margin:6px 0}.sec-body{display:block;padding:8px}.sec-body.hidden{display:none}.preview-info{display:flex;align-items:center;gap:8px}.preview-zoom{display:flex;gap:4px;margin-left:auto}
   </style>
   <script>history.replaceState(null,'','/pdf-editor/index.html?browser-shell-smoke=1');</script>
 </head>
@@ -29,7 +29,16 @@
       <div class="sec" id="editSection"><div class="sec-head collapsed"><span class="sec-title">문서 편집</span></div><div class="sec-body hidden" id="sb-edit">편집 도구</div></div>
       <div class="sec" id="outputSection"><div class="sec-head"><span class="sec-title">출력</span></div><div class="sec-body">출력 도구</div></div>
     </aside>
-    <main></main>
+    <main>
+      <div class="preview-info">
+        <span id="previewInfo">PDF 파일을 업로드하면 미리보기가 표시됩니다.</span>
+        <span id="previewPages"></span>
+        <div class="preview-zoom">
+          <select id="perRowSelect" aria-label="미리보기 한 줄당 페이지 수"><option>줄당 1장</option><option selected>줄당 2장</option></select>
+          <button type="button">-</button><span>466%</span><button type="button">+</button>
+        </div>
+      </div>
+    </main>
   </div>
   <div id="result">PENDING</div>
 
@@ -73,11 +82,17 @@
         assert(!document.getElementById('editorToolRailV1Script'),'legacy tool-rail script was loaded');
         assert(document.body.dataset.pdfSidebarMode==='all-visible-page-list-collapsible','sidebar recovery marker missing');
 
+        const perRow=document.getElementById('perRowSelect');
+        const perRowWidth=parseFloat(getComputedStyle(perRow).width);
+        assert(perRowWidth>=110,'per-row selector remains fully visible: width='+perRowWidth);
+        assert(getComputedStyle(document.querySelector('.preview-zoom')).overflowX!=='hidden','preview toolbar still clips controls');
+
         document.body.dataset.shellSmoke='pass';
         document.body.dataset.shellHeaderRemoved='true';
         document.body.dataset.shellActionsPreserved='true';
         document.body.dataset.shellSidebarStable='true';
-        result.textContent='PASS: PDF sidebar remains visible after delayed common/runtime initialization';
+        document.body.dataset.shellPerRowVisible='true';
+        result.textContent='PASS: PDF sidebar remains visible after delayed common/runtime initialization; per-row selector remains fully visible';
       }catch(error){document.body.dataset.shellSmoke='fail';result.textContent='FAIL: '+String(error?.message||error)}
     })();
   </script>

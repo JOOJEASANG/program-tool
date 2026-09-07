@@ -28,15 +28,28 @@
       .program-local-actions a:hover,.program-local-actions button:hover{border-color:#9fb2c6!important;background:#f8fafc!important;color:#12396d!important;opacity:1!important}
       .program-local-actions .program-account-name{max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#7c8797;font-size:10px;font-weight:750;margin-left:auto}
       .program-local-actions .program-logout{margin-left:0!important}
+
+      /* PDF 배치: 우측 미리보기 도구는 잘리지 않도록 고정 폭을 충분히 확보한다. */
       body[data-program-shell="compact"][data-program-kind="pdf-editor"] .app{height:100vh!important}
       body[data-program-shell="compact"][data-program-kind="pdf-editor"] aside{padding-top:12px!important}
       body[data-program-shell="compact"][data-program-kind="pdf-editor"] .program-local-actions{margin:0 0 10px;flex-wrap:nowrap}
       body[data-program-shell="compact"][data-program-kind="pdf-editor"] .program-local-actions .nav-user-name{display:none!important}
-      body[data-program-shell="compact"][data-program-kind="pdf-utility"] .container{padding-top:18px!important}
-      body[data-program-shell="compact"][data-program-kind="pdf-utility"] .program-local-actions{margin:0 0 12px}
+      body[data-program-shell="compact"][data-program-kind="pdf-editor"] .preview-info{min-width:0!important;overflow:visible!important}
+      body[data-program-shell="compact"][data-program-kind="pdf-editor"] #previewInfo{flex:1 1 auto!important;min-width:0!important}
+      body[data-program-shell="compact"][data-program-kind="pdf-editor"] .preview-zoom{min-width:max-content!important;max-width:none!important;flex:0 0 auto!important;overflow:visible!important;padding-right:2px!important}
+      body[data-program-shell="compact"][data-program-kind="pdf-editor"] #perRowSelect{box-sizing:border-box!important;width:112px!important;min-width:112px!important;max-width:112px!important;flex:0 0 112px!important;height:30px!important;padding:4px 30px 4px 9px!important;line-height:20px!important;overflow:visible!important;text-overflow:clip!important;white-space:nowrap!important}
+      body[data-program-shell="compact"][data-program-kind="pdf-editor"] .preview-zoom>*{flex-shrink:0!important}
+
+      /* PDF 유틸리티: 장식용 대형 헤더를 제거하고 바로 작업 영역이 보이게 한다. */
+      body[data-program-shell="compact"][data-program-kind="pdf-utility"] .container{max-width:1240px!important;padding:12px 18px 54px!important}
+      body[data-program-shell="compact"][data-program-kind="pdf-utility"] .hero{display:none!important}
+      body[data-program-shell="compact"][data-program-kind="pdf-utility"] .program-local-actions{margin:0 0 10px;flex-wrap:nowrap}
       body[data-program-shell="compact"][data-program-kind="pdf-utility"] .program-local-actions .nav-user-name{margin-left:auto}
-      @media(max-width:900px){body[data-program-shell="compact"][data-program-kind="pdf-editor"] .app{height:auto!important;min-height:100vh!important}body[data-program-shell="compact"][data-program-kind="pdf-editor"] main{min-height:100vh!important}.program-local-actions a,.program-local-actions button{font-size:10px!important;padding:6px 8px!important}}
-      @media(max-width:520px){body[data-program-shell="compact"][data-program-kind="pdf-utility"] .container{padding-top:12px!important}.program-local-actions .program-account-name{display:none!important}}
+      body[data-program-shell="compact"][data-program-kind="pdf-utility"] .workspace{gap:14px!important}
+      body[data-program-shell="compact"][data-program-kind="pdf-utility"] .panel{border-radius:16px!important;padding:18px!important;box-shadow:0 5px 18px rgba(15,23,42,.055)!important}
+
+      @media(max-width:900px){body[data-program-shell="compact"][data-program-kind="pdf-editor"] .app{height:auto!important;min-height:100vh!important}body[data-program-shell="compact"][data-program-kind="pdf-editor"] main{min-height:100vh!important}body[data-program-shell="compact"][data-program-kind="pdf-editor"] .preview-info{flex-wrap:wrap!important}body[data-program-shell="compact"][data-program-kind="pdf-editor"] .preview-zoom{width:100%!important;min-width:0!important;overflow-x:auto!important;overflow-y:visible!important;padding-bottom:2px!important}.program-local-actions a,.program-local-actions button{font-size:10px!important;padding:6px 8px!important}}
+      @media(max-width:520px){body[data-program-shell="compact"][data-program-kind="pdf-utility"] .container{padding:10px 10px 42px!important}.program-local-actions .program-account-name{display:none!important}body[data-program-shell="compact"][data-program-kind="pdf-utility"] .program-local-actions{flex-wrap:wrap}}
     `;
     document.head.appendChild(style);
   }
