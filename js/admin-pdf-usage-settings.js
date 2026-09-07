@@ -1,8 +1,8 @@
 // Administrator controls for public/member PDF daily limits.
 (function(){
   'use strict';
-  if(window.__programAdminPdfUsageSettingsV2)return;
-  window.__programAdminPdfUsageSettingsV2=true;
+  if(window.__programAdminPdfUsageSettingsV1)return;
+  window.__programAdminPdfUsageSettingsV1=true;
 
   const DEFAULTS=Object.freeze({guestLimit:3,memberLimit:10});
   const MIN=1;
@@ -210,7 +210,7 @@
     apply,
     retireLegacySubscriptionUi,
     get loaded(){return loaded;},
-    stage:'admin-pdf-daily-limits-v2-status-only'
+    stage:'admin-pdf-daily-limits-v1'
   });
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
