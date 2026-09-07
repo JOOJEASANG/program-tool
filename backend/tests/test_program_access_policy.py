@@ -30,7 +30,9 @@ def test_guard_maps_server_pdf_shells_but_print_checker_is_daily_free():
  frontend=(ROOT/"js"/"firebase-config.js").read_text(encoding="utf-8");checker=(ROOT/"js"/"print-checker"/"access.js").read_text(encoding="utf-8")
  for marker in ("return 'pdf-editor'","return 'preflight'","/pdf-editor/index.html","/pdf-preflight/index.html","ProgramAccess.guardTool({ programId, timeoutMs: 8000 })"): assert marker in frontend
  assert "window.ProgramAccess.guardTool" not in checker
- assert "mode:'daily-free'" in checker and "guestLimit:3" in checker and "memberLimit:10" in checker
+ assert "mode:'daily-free'" in checker
+ assert "ProgramPdfDailyFree?.guestLimit" in checker and "ProgramPdfDailyFree?.memberLimit" in checker
+ assert "quota.status()" in checker and "status.limit" in checker
  for retired in ("/design-editor/","/document-editor/","/image-editor/","return 'document-editor'","return 'image-editor'"): assert retired not in frontend
 def test_deploy_injector_keeps_print_checker_public_and_server_pdf_shells_protected():
  injector=(ROOT/"scripts"/"inject_boot_guard.py").read_text(encoding="utf-8");boot=(ROOT/"js"/"app-boot-guard.js").read_text(encoding="utf-8")
