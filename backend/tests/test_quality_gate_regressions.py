@@ -32,3 +32,14 @@ def test_frontend_failure_logs_are_uploaded():
     assert "python scripts/check_inline_js.py 2>&1 | tee inline-js.log" in source
     assert "inline-js.log" in source
     assert "stale-workflows.log" not in source
+
+
+def test_production_quality_gate_includes_modular_app_boundaries():
+    quality = _read(".github/workflows/quality-gate.yml")
+    deploy = _read(".github/workflows/firebase-deploy.yml")
+
+    assert "workflow_call:" in quality
+    assert "python scripts/validate_modular_apps.py" in quality
+    assert "bash scripts/run_modular_app_shell_smoke.sh" in quality
+    assert "python scripts/validate_hosting_delivery.py" in quality
+    assert "uses: ./.github/workflows/quality-gate.yml" in deploy

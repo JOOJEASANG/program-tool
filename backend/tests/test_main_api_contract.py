@@ -3,8 +3,10 @@ from __future__ import annotations
 import re
 
 import main
+from flask import g
 from utils.permissions import AccessError
-from werkzeug.exceptions import RequestEntityTooLarge
+from utils.storage import get_request_id
+from werkzeug.exceptions import InternalServerError, RequestEntityTooLarge
 
 
 REQUEST_ID_RE = re.compile(r"^[A-Za-z0-9._-]{8,64}$")
@@ -34,6 +36,20 @@ def test_invalid_request_id_is_replaced():
     request_id = response.headers["X-Request-ID"]
     assert request_id != "bad request id"
     assert REQUEST_ID_RE.fullmatch(request_id)
+
+
+def test_request_id_is_shared_between_main_and_storage_helpers():
+    with main.flask_app.test_request_context("/api/pdf/process"):
+        primary = main._request_id()
+        assert get_request_id() == primary
+        assert g.api_request_id == primary
+        assert g._shared_request_id == primary
+
+    with main.flask_app.test_request_context("/api/pdf/process-storage"):
+        shared = get_request_id()
+        assert main._request_id() == shared
+        assert g.api_request_id == shared
+        assert g._shared_request_id == shared
 
 
 def test_permission_error_is_json_and_keeps_request_id(monkeypatch):
@@ -94,3 +110,26 @@ def test_oversized_request_handler_is_json():
     assert payload["request_id"] == "size-test-123"
     assert response.headers["X-Request-ID"] == "size-test-123"
     assert response.headers["Cache-Control"] == "no-store, max-age=0"
+
+
+def test_unhandled_api_error_is_json_and_does_not_leak_exception_text():
+    with main.flask_app.test_request_context(
+        "/api/pdf/process",
+        method="POST",
+        headers={"X-Request-ID": "error-test-123"},
+    ):
+        error = InternalServerError(
+            original_exception=RuntimeError("sensitive internal failure")
+        )
+        response = main.handle_internal_server_error(error)
+        response = main.apply_api_response_contract(response)
+
+    payload = response.get_json()
+    assert response.status_code == 500
+    assert payload == {
+        "detail": "요청 처리 중 오류가 발생했습니다.",
+        "code": "INTERNAL_ERROR",
+        "request_id": "error-test-123",
+    }
+    assert response.headers["X-Request-ID"] == "error-test-123"
+    assert "sensitive internal failure" not in response.get_data(as_text=True)
