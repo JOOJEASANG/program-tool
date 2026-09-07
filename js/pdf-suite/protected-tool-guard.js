@@ -8,10 +8,18 @@
   let lastProtectedTool=null;
 
   const $=id=>document.getElementById(id);
-  const escapeHtml=value=>String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+  const escapeHtml=value=>String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[ch]));
+
+  function sourceNameForButton(button){
+    return button?.dataset.pdfuCoreSource||button?.querySelector('.pdfu-menu-name')?.textContent?.trim()||'';
+  }
+
+  function displayNameForButton(button){
+    return button?.querySelector('.pdfu-menu-name')?.textContent?.trim()||sourceNameForButton(button)||'PDF 기능';
+  }
 
   function sourceForButton(button){
-    const name=button?.querySelector('.pdfu-menu-name')?.textContent?.trim()||'';
+    const name=sourceNameForButton(button);
     if(!name)return null;
     return [...document.querySelectorAll('#pdfUtilitySourceStore .tool')].find(tool=>tool.querySelector('.tool-name')?.textContent?.trim()===name)||null;
   }
@@ -38,9 +46,9 @@
   }
 
   function showLoginRequired(button,source){
-    const name=button?.querySelector('.pdfu-menu-name')?.textContent?.trim()||source?.querySelector('.tool-name')?.textContent?.trim()||'PDF 기능';
+    const name=displayNameForButton(button)||source?.querySelector('.tool-name')?.textContent?.trim()||'PDF 기능';
     const desc=source?.querySelector('.tool-desc')?.textContent?.trim()||'이 기능은 서버 처리가 필요해 로그인 후 사용할 수 있습니다.';
-    lastProtectedTool=name;
+    lastProtectedTool=sourceNameForButton(button)||source?.querySelector('.tool-name')?.textContent?.trim()||name;
     setActiveButton(button);
     setStageHeader(name,desc,'로그인 필요');
     const stage=$('pdfUtilityStageBody');
@@ -53,12 +61,12 @@
   }
 
   function showAuthChecking(button,source){
-    const name=button?.querySelector('.pdfu-menu-name')?.textContent?.trim()||'PDF 기능';
+    const name=displayNameForButton(button);
     const desc=source?.querySelector('.tool-desc')?.textContent?.trim()||'';
     setActiveButton(button);
     setStageHeader(name,desc,'로그인 확인 중');
     const stage=$('pdfUtilityStageBody');
-    if(stage)stage.innerHTML='<section class="pdfu-stage-card"><div class="pdfu-stage-empty"><div><div class="icon">⏳</div><strong>로그인 상태 확인 중</strong><p>확인이 끝나면 선택한 기능을 바로 엽니다.</p></div></div></section>';
+    if(stage)stage.innerHTML=`<section class="pdfu-stage-card"><div class="pdfu-stage-empty"><div><div class="icon">⏳</div><strong>${escapeHtml(name)}</strong><p>로그인 상태를 확인하고 있습니다. 확인이 끝나면 선택한 기능을 바로 엽니다.</p></div></div></section>`;
     document.documentElement.dataset.pdfUtilityProtectedGuard='checking-auth';
   }
 
@@ -76,8 +84,8 @@
     if(window.auth?.currentUser){authStateKnown=true;clearGuardAction();return false;}
     event.preventDefault();
     event.stopImmediatePropagation();
-    const name=button.querySelector('.pdfu-menu-name')?.textContent?.trim()||'';
-    lastProtectedTool=name;
+    const sourceName=sourceNameForButton(button);
+    lastProtectedTool=sourceName;
     if(authStateKnown||!window.auth?.onAuthStateChanged){
       showLoginRequired(button,source);
       return true;
@@ -89,7 +97,7 @@
       settled=true;
       authStateKnown=true;
       refreshProtectedBadges();
-      if(user)openSelectedAfterAuth(name);else showLoginRequired(button,source);
+      if(user)openSelectedAfterAuth(sourceName);else showLoginRequired(button,source);
     };
     try{
       const unsubscribe=window.auth.onAuthStateChanged(user=>{try{unsubscribe?.();}catch(_){ }finish(user);},()=>finish(null));
@@ -119,7 +127,7 @@
         try{
           const path=frame.contentWindow?.location?.pathname||'';
           if(/\/login\.html$/.test(path)){
-            const button=[...document.querySelectorAll('[data-pdfu-tool]')].find(node=>node.querySelector('.pdfu-menu-name')?.textContent?.trim()===lastProtectedTool)||null;
+            const button=[...document.querySelectorAll('[data-pdfu-tool]')].find(node=>sourceNameForButton(node)===lastProtectedTool)||null;
             const source=sourceForButton(button);
             showLoginRequired(button,source);
           }else{
