@@ -70,7 +70,7 @@ def test_curated_core_is_staged_and_browser_smoked():
 
     for marker in (
         "PDF 파일 검사",
-        "data-pdf-utility-curated-core-smoke=\"pass\"",
+        "dataset.pdfUtilityCuratedCoreSmoke='pass'",
         "drop.getClientRects().length!==1",
         "PDF file inspection direct panel missing",
         "core menu count",
