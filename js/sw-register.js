@@ -109,7 +109,7 @@
   }
   function loadPreflightRuntime(){
     window.ProgramStudioPreflightRuntimeContext={entryPath:currentPath,load};
-    const ready=load('pdfPreflightRouteRuntimeScriptV1','/js/pdf-preflight/route-runtime.js?v=20260907-2').then(()=>{
+    const ready=load('pdfPreflightRouteRuntimeScriptV1','/js/pdf-preflight/route-runtime.js?v=20260831-1').then(()=>{
       const runtime=window.ProgramStudioPreflightRuntime;
       if(!runtime||typeof runtime.loadAll!=='function')throw new Error('PDF preflight route runtime API is unavailable');
       return runtime.loadAll();
@@ -156,7 +156,7 @@
       window.ProgramStudioRuntime.helpersReady=true;window.ProgramStudioRuntime.failedHelpers=failed;
       try{window.dispatchEvent(new CustomEvent('programstudio:runtime-ready',{detail:{failed,total:results.length}}));}catch(_){}
     });
-    cleanupLegacyRuntime().catch(error=>console.warn('Legacy runtime cleanup failed',error));
+    cleanupLegacyRuntime().catch(error=>console.warn('Legacy service worker cleanup failed',error));
     if(!protectedPage){reveal();helpersPromise.catch(error=>console.warn('Runtime helper loading failed',error));return;}
     try{await Promise.race([helpersPromise,delay(1000)]);await nextPaint();}
     finally{helpersPromise.catch(error=>console.warn('Runtime helper loading failed',error));}
