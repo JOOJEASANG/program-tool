@@ -9,7 +9,7 @@ def read(path: str) -> str:
 
 def test_print_checker_loads_layered_file_preview_controls():
     html = read("print-checker/index.html")
-    assert "js/print-checker/file-relative-preview.js?v=20260907-4" in html
+    assert "js/print-checker/file-relative-preview.js?v=20260907-5" in html
     assert "css/print-checker.css?v=20260907-4" in html
 
 
@@ -17,6 +17,7 @@ def test_uploaded_artwork_uses_a_separate_canvas_layer():
     js = read("js/print-checker/file-relative-preview.js")
     css = read("css/print-checker.css")
     assert "FILE_LAYER_ID = 'previewFileLayer'" in js
+    assert "GUIDE_LAYER_ID = 'previewGuideLayer'" in js
     assert "STACK_CLASS = 'preview-canvas-stack'" in js
     assert "stack.insertBefore(layer, canvas)" in js
     assert "capturedImage = image" in js
@@ -33,7 +34,9 @@ def test_core_preview_canvas_never_receives_user_move_or_scale():
     assert "dispatchSource(sourceX, 0)" in js
     assert "dispatchSource(sourceY, 0)" in js
     assert "dispatchSource(sourceScale, 100)" in js
-    assert "코어 캔버스는 안내선 전용" in js
+    assert "코어 캔버스는 안내선 계산용" in js
+    assert "stopAdjustmentEvent" in js
+    assert "event.stopImmediatePropagation()" in js
     assert "replacement.addEventListener('input'" in js
     assert "drawFileLayer();" in js
 
@@ -50,6 +53,24 @@ def test_file_layer_moves_and_scales_without_redrawing_guides():
     assert "isFullPreviewBackground" in js
 
 
+def test_visible_guides_use_a_hard_locked_snapshot_layer():
+    js = read("js/print-checker/file-relative-preview.js")
+    assert "function captureGuideLayer()" in js
+    assert "context.drawImage(canvas, 0, 0, guide.width, guide.height)" in js
+    assert "canvas.style.opacity = '0'" in js
+    assert "guideRefreshRequested" in js
+    assert "파일 교체·사양 변경처럼 안내선 갱신이 명시된 경우에만" in js
+    assert "printCheckerFileOnlyPreview = 'v5-hard-guide-lock'" in js
+
+
+def test_live_summary_is_kept_outside_canvas_stack():
+    js = read("js/print-checker/file-relative-preview.js")
+    assert "function stabilizeStack(stack)" in js
+    assert "printCheckerLiveSummary" in js
+    assert "stack.parentElement.insertBefore(summary, stack)" in js
+    assert "MutationObserver" in js
+
+
 def test_uploaded_file_can_be_dragged_with_pointer():
     js = read("js/print-checker/file-relative-preview.js")
     assert "layer.addEventListener('pointerdown'" in js
@@ -59,12 +80,11 @@ def test_uploaded_file_can_be_dragged_with_pointer():
     assert "updateFromPointer" in js
     assert "originX: xPercent" in js
     assert "originY: yPercent" in js
-    assert "printCheckerFileOnlyPreview = 'v4-layered-drag'" in js
 
 
 def test_preview_ui_explains_fixed_canvas_and_mouse_drag():
     js = read("js/print-checker/file-relative-preview.js")
-    assert "안내선과 미리보기 캔버스는 고정됩니다" in js
+    assert "안내선과 미리보기 캔버스는 완전히 고정됩니다" in js
     assert "마우스로 끌어 이동" in js
 
 
@@ -74,7 +94,7 @@ def test_browser_smoke_checks_fixed_guides_and_dragging():
     assert "fixedCanvas" in smoke
     assert "guidesStillFixed" in smoke
     assert "new PointerEvent('pointermove'" in smoke
-    assert "v4-layered-drag" in smoke
+    assert "v5-hard-guide-lock" in smoke
     assert "print-checker-file-only-adjustment-smoke.html" in runner
 
 

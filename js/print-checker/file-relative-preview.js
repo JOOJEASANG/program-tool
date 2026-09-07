@@ -2,13 +2,14 @@
 (function () {
   'use strict';
 
-  if (window.__printCheckerFileRelativePreviewV4) return;
-  window.__printCheckerFileRelativePreviewV4 = true;
+  if (window.__printCheckerFileRelativePreviewV5) return;
+  window.__printCheckerFileRelativePreviewV5 = true;
 
   const byId = (id) => document.getElementById(id);
   const AXIS_LIMIT = 25;
   const AXIS_STEP = 0.5;
   const FILE_LAYER_ID = 'previewFileLayer';
+  const GUIDE_LAYER_ID = 'previewGuideLayer';
   const STACK_CLASS = 'preview-canvas-stack';
 
   let xPercent = 0;
@@ -27,7 +28,10 @@
   let capturedFrame = null;
   let resizeTimer = 0;
   let resizeObserver = null;
+  let stackObserver = null;
   let dragState = null;
+  let guideCaptureRaf = 0;
+  let guideRefreshRequested = true;
 
   function checker() {
     try {
@@ -77,10 +81,25 @@
   }
 
   function neutralizeCoreTransform() {
-    // 코어 캔버스는 안내선 전용이다. 이동/배율은 항상 0 / 0 / 100으로 고정한다.
+    // 코어 캔버스는 안내선 계산용이다. 이동/배율은 항상 0 / 0 / 100으로 고정한다.
     dispatchSource(sourceX, 0);
     dispatchSource(sourceY, 0);
     dispatchSource(sourceScale, 100);
+  }
+
+  function stabilizeStack(stack) {
+    if (!stack) return;
+    const summary = byId('printCheckerLiveSummary');
+    if (summary && summary.parentElement === stack && stack.parentElement) {
+      stack.parentElement.insertBefore(summary, stack);
+    }
+  }
+
+  function watchStack(stack) {
+    if (!stack || stack.dataset.fileLayerObserved === '1' || typeof MutationObserver !== 'function') return;
+    stack.dataset.fileLayerObserved = '1';
+    stackObserver = new MutationObserver(() => stabilizeStack(stack));
+    stackObserver.observe(stack, { childList: true });
   }
 
   function ensureStack() {
@@ -93,6 +112,8 @@
       canvas.parentNode?.insertBefore(stack, canvas);
       stack.appendChild(canvas);
     }
+    stabilizeStack(stack);
+    watchStack(stack);
     return stack;
   }
 
@@ -114,10 +135,75 @@
     return layer;
   }
 
+  function ensureGuideLayer() {
+    const canvas = byId('previewCanvas');
+    const stack = ensureStack();
+    if (!canvas || !stack) return null;
+
+    let layer = byId(GUIDE_LAYER_ID);
+    if (!layer) {
+      layer = document.createElement('canvas');
+      layer.id = GUIDE_LAYER_ID;
+      layer.setAttribute('aria-hidden', 'true');
+      layer.style.cssText = 'position:absolute;inset:0;z-index:3;width:100%;height:100%;border:0;border-radius:10px;background:transparent;pointer-events:none';
+      stack.appendChild(layer);
+    }
+    syncLayerSize(layer, canvas);
+    return layer;
+  }
+
   function syncLayerSize(layer = byId(FILE_LAYER_ID), canvas = byId('previewCanvas')) {
     if (!layer || !canvas) return;
     if (layer.width !== canvas.width) layer.width = Math.max(1, canvas.width);
     if (layer.height !== canvas.height) layer.height = Math.max(1, canvas.height);
+  }
+
+  function syncVisualLayerSizes() {
+    const canvas = byId('previewCanvas');
+    if (!canvas) return;
+    syncLayerSize(byId(FILE_LAYER_ID), canvas);
+    syncLayerSize(byId(GUIDE_LAYER_ID), canvas);
+  }
+
+  function hideGuideSnapshot() {
+    const canvas = byId('previewCanvas');
+    const guide = byId(GUIDE_LAYER_ID);
+    if (guide) guide.hidden = true;
+    if (canvas) canvas.style.opacity = '';
+  }
+
+  function captureGuideLayer() {
+    const state = checker()?.getState?.();
+    const canvas = byId('previewCanvas');
+    if (!canvas || !state?.fileKind) {
+      hideGuideSnapshot();
+      return false;
+    }
+
+    const guide = ensureGuideLayer();
+    if (!guide) return false;
+    syncLayerSize(guide, canvas);
+    const context = guide.getContext('2d');
+    if (!context) return false;
+    context.clearRect(0, 0, guide.width, guide.height);
+    context.drawImage(canvas, 0, 0, guide.width, guide.height);
+    guide.hidden = false;
+    // 실제 코어 캔버스는 계속 계산에 사용하되 화면에는 고정 스냅샷만 보여 준다.
+    canvas.style.opacity = '0';
+    return true;
+  }
+
+  function requestGuideRefresh() {
+    guideRefreshRequested = true;
+  }
+
+  function scheduleGuideCapture() {
+    if (!guideRefreshRequested) return;
+    cancelAnimationFrame(guideCaptureRaf);
+    guideCaptureRaf = requestAnimationFrame(() => {
+      if (!guideRefreshRequested) return;
+      if (captureGuideLayer()) guideRefreshRequested = false;
+    });
   }
 
   function clearFileLayer(options = {}) {
@@ -131,6 +217,7 @@
       capturedImage = null;
       capturedFrame = null;
     }
+    if (options.hideGuide) hideGuideSnapshot();
   }
 
   function drawFileLayer() {
@@ -166,11 +253,11 @@
   function patchPreviewContext() {
     const canvas = byId('previewCanvas');
     const context = canvas?.getContext?.('2d');
-    if (!canvas || !context || patchedContext === context || context.__fileOnlyAdjustmentV4) return;
+    if (!canvas || !context || patchedContext === context || context.__fileOnlyAdjustmentV5) return;
 
     nativeDrawImage = context.drawImage.bind(context);
     nativeFillRect = context.fillRect.bind(context);
-    context.__fileOnlyAdjustmentV4 = true;
+    context.__fileOnlyAdjustmentV5 = true;
 
     // 업로드 파일은 코어 캔버스에 그리지 않고 별도 레이어로 보낸다.
     context.drawImage = function (image, ...args) {
@@ -182,6 +269,8 @@
       capturedImage = image;
       capturedFrame = { x, y, w, h };
       drawFileLayer();
+      // 파일 교체·사양 변경처럼 안내선 갱신이 명시된 경우에만 새 스냅샷을 만든다.
+      scheduleGuideCapture();
       return undefined;
     };
 
@@ -200,6 +289,12 @@
 
     patchedContext = context;
     ensureFileLayer();
+    ensureGuideLayer();
+  }
+
+  function stopAdjustmentEvent(event) {
+    event.stopImmediatePropagation();
+    event.stopPropagation();
   }
 
   function upgradeAxis(inputId, labelId, axis) {
@@ -215,13 +310,15 @@
     replacement.setAttribute('aria-valuetext', '0%');
     original.replaceWith(replacement);
 
-    replacement.addEventListener('input', () => {
+    replacement.addEventListener('input', (event) => {
+      stopAdjustmentEvent(event);
       const value = clamp(replacement.value, -AXIS_LIMIT, AXIS_LIMIT);
       if (axis === 'x') xPercent = value;
       else yPercent = value;
       syncUi();
       drawFileLayer();
-    });
+    }, true);
+    replacement.addEventListener('change', stopAdjustmentEvent, true);
 
     return { source: original, ui: replacement };
   }
@@ -236,11 +333,13 @@
     replacement.setAttribute('aria-valuetext', '100%');
     original.replaceWith(replacement);
 
-    replacement.addEventListener('input', () => {
+    replacement.addEventListener('input', (event) => {
+      stopAdjustmentEvent(event);
       scalePercent = clamp(replacement.value, 10, 500) || 100;
       syncUi();
       drawFileLayer();
-    });
+    }, true);
+    replacement.addEventListener('change', stopAdjustmentEvent, true);
 
     return { source: original, ui: replacement };
   }
@@ -302,22 +401,26 @@
     if (!panel || byId('fileOnlyAdjustmentNote')) return;
     const note = document.createElement('div');
     note.id = 'fileOnlyAdjustmentNote';
-    note.textContent = '안내선과 미리보기 캔버스는 고정됩니다. 첨부 파일만 슬라이더 또는 미리보기에서 마우스로 끌어 이동할 수 있습니다.';
+    note.textContent = '안내선과 미리보기 캔버스는 완전히 고정됩니다. 첨부 파일만 슬라이더 또는 미리보기에서 마우스로 끌어 이동할 수 있습니다.';
     note.style.cssText = 'margin:0 0 9px;padding:8px 9px;border-radius:8px;background:#eff6ff;color:#1e40af;font-size:10px;font-weight:800;line-height:1.45';
     const kicker = panel.querySelector('.adj-kicker');
     if (kicker) kicker.insertAdjacentElement('afterend', note);
     else panel.prepend(note);
   }
 
-  function refreshAfterCoreRender() {
+  function refreshAfterCoreRender(options = {}) {
     patchPreviewContext();
     const state = checker()?.getState?.();
     if (!state?.fileKind) {
-      clearFileLayer({ hide: true, dropSource: true });
+      clearFileLayer({ hide: true, dropSource: true, hideGuide: true });
       return;
     }
-    syncLayerSize();
+    syncVisualLayerSizes();
     drawFileLayer();
+    if (options.captureGuide) {
+      requestGuideRefresh();
+      scheduleGuideCapture();
+    }
   }
 
   function install() {
@@ -345,7 +448,7 @@
     resetFileAdjustment({ redraw: false });
     neutralizeCoreTransform();
     installNote();
-    document.documentElement.dataset.printCheckerFileOnlyPreview = 'v4-layered-drag';
+    document.documentElement.dataset.printCheckerFileOnlyPreview = 'v5-hard-guide-lock';
 
     byId('resetAdjBtn')?.addEventListener('click', () => {
       resetFileAdjustment();
@@ -355,29 +458,37 @@
       resetFileAdjustment({ redraw: false });
       requestAnimationFrame(() => {
         neutralizeCoreTransform();
-        refreshAfterCoreRender();
+        refreshAfterCoreRender({ captureGuide: true });
       });
     });
 
     byId('fileInput')?.addEventListener('change', () => {
       resetFileAdjustment({ redraw: false });
-      clearFileLayer({ hide: true, dropSource: true });
-      requestAnimationFrame(() => requestAnimationFrame(refreshAfterCoreRender));
+      clearFileLayer({ hide: true, dropSource: true, hideGuide: true });
+      requestGuideRefresh();
     });
 
     document.querySelectorAll('.side-btn').forEach((button) => {
       button.addEventListener('click', () => {
-        requestAnimationFrame(() => requestAnimationFrame(refreshAfterCoreRender));
+        requestGuideRefresh();
       });
     });
 
-    byId('specForm')?.addEventListener('input', () => requestAnimationFrame(refreshAfterCoreRender));
-    byId('specForm')?.addEventListener('change', () => requestAnimationFrame(refreshAfterCoreRender));
-    byId('fileHasBleed')?.addEventListener('change', () => requestAnimationFrame(refreshAfterCoreRender));
+    const refreshGuidesSoon = () => {
+      requestGuideRefresh();
+      requestAnimationFrame(() => refreshAfterCoreRender({ captureGuide: true }));
+    };
+    byId('specForm')?.addEventListener('input', refreshGuidesSoon);
+    byId('specForm')?.addEventListener('change', refreshGuidesSoon);
+    byId('fileHasBleed')?.addEventListener('change', refreshGuidesSoon);
 
     window.addEventListener('resize', () => {
       window.clearTimeout(resizeTimer);
-      resizeTimer = window.setTimeout(refreshAfterCoreRender, 80);
+      resizeTimer = window.setTimeout(() => {
+        stabilizeStack(ensureStack());
+        syncVisualLayerSizes();
+        drawFileLayer();
+      }, 80);
     }, { passive: true });
 
     if (typeof ResizeObserver === 'function') {
@@ -385,12 +496,24 @@
       if (wrap) {
         resizeObserver = new ResizeObserver(() => {
           window.clearTimeout(resizeTimer);
-          resizeTimer = window.setTimeout(refreshAfterCoreRender, 60);
+          resizeTimer = window.setTimeout(() => {
+            stabilizeStack(wrap);
+            syncVisualLayerSizes();
+            drawFileLayer();
+          }, 60);
         });
         resizeObserver.observe(wrap);
       }
     }
   }
+
+  window.PrintCheckerFileLayer = Object.freeze({
+    captureGuideLayer,
+    drawFileLayer,
+    requestGuideRefresh,
+    stabilizeStack,
+    stage: 'v5-hard-guide-lock',
+  });
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', install, { once: true });
   else install();

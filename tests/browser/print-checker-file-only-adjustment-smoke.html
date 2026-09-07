@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="utf-8">
-  <title>Print checker layered file adjustment smoke</title>
+  <title>Print checker hard guide lock smoke</title>
   <style>
     body{margin:0}
     .preview-canvas-stack{position:relative;width:400px;height:200px}
@@ -24,7 +24,7 @@
   <input id="fileInput" type="file">
   <input id="fileHasBleed" type="checkbox">
   <button id="resetBtn" type="button">reset all</button>
-  <div style="width:400px"><canvas id="previewCanvas" width="400" height="200"></canvas></div>
+  <div id="canvasWrap" style="width:400px"><canvas id="previewCanvas" width="400" height="200"></canvas></div>
 
   <script>
     window.__coreEvents=[];
@@ -45,46 +45,64 @@
           const sourceCtx=source.getContext('2d');
           sourceCtx.fillStyle='#111';sourceCtx.fillRect(0,0,400,200);
 
-          // 코어가 파일을 그리려는 호출은 파일 전용 레이어로 라우팅된다.
+          // 코어의 파일 그림은 파일 전용 레이어로 라우팅한다.
           ctx.drawImage(source,0,0,400,200);
-          // 고정 안내선 역할의 빨간 기준선을 코어 캔버스에 남긴다.
+          // 코어 캔버스에는 고정 안내선만 남긴다.
           ctx.fillStyle='rgb(255,0,0)';ctx.fillRect(195,0,10,200);
-          const guideBefore=Array.from(ctx.getImageData(200,100,1,1).data);
+          window.PrintCheckerFileLayer.captureGuideLayer();
+
+          const guideLayer=document.getElementById('previewGuideLayer');
+          const guideCtx=guideLayer.getContext('2d');
+          const guideBefore=Array.from(guideCtx.getImageData(200,100,1,1).data);
           const widthBefore=canvas.width;
           const heightBefore=canvas.height;
 
           const x=document.getElementById('adjX');
           const y=document.getElementById('adjY');
           const scale=document.getElementById('adjScale');
+          let lateSliderLeaks=0;
+          x.addEventListener('input',()=>{lateSliderLeaks+=1;});
+          y.addEventListener('input',()=>{lateSliderLeaks+=1;});
+          scale.addEventListener('input',()=>{lateSliderLeaks+=1;});
+
           x.value='10';x.dispatchEvent(new Event('input',{bubbles:true}));
           y.value='5';y.dispatchEvent(new Event('input',{bubbles:true}));
           scale.value='80';scale.dispatchEvent(new Event('input',{bubbles:true}));
 
           const layer=document.getElementById('previewFileLayer');
           const layerCtx=layer.getContext('2d');
-          const guideAfter=Array.from(ctx.getImageData(200,100,1,1).data);
+          const guideAfter=Array.from(guideCtx.getImageData(200,100,1,1).data);
           const edgeAlpha=layerCtx.getImageData(10,10,1,1).data[3];
           const centerAlpha=layerCtx.getImageData(200,100,1,1).data[3];
           const fixedCanvas=canvas.width===widthBefore&&canvas.height===heightBefore&&guideBefore.join(',')===guideAfter.join(',');
           const separateLayer=Boolean(layer)&&edgeAlpha===0&&centerAlpha>0;
           const labels=document.getElementById('adjXVal').textContent==='+10%'&&document.getElementById('adjYVal').textContent==='+5%'&&document.getElementById('adjScaleVal').textContent==='80%';
+          const hardLocked=canvas.style.opacity==='0'&&Boolean(guideLayer)&&guideLayer.hidden===false;
 
-          // 마우스/펜 드래그로도 파일만 이동되는지 확인한다.
+          // 마우스/펜 드래그도 동일한 파일 레이어만 이동한다.
           layer.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,pointerId:7,button:0,clientX:200,clientY:100}));
           layer.dispatchEvent(new PointerEvent('pointermove',{bubbles:true,pointerId:7,button:0,clientX:240,clientY:120}));
           layer.dispatchEvent(new PointerEvent('pointerup',{bubbles:true,pointerId:7,button:0,clientX:240,clientY:120}));
           const dragged=document.getElementById('adjXVal').textContent==='+20%'&&document.getElementById('adjYVal').textContent==='+15%';
-          const guideAfterDrag=Array.from(ctx.getImageData(200,100,1,1).data);
+          const guideAfterDrag=Array.from(guideCtx.getImageData(200,100,1,1).data);
           const guidesStillFixed=guideAfterDrag.join(',')===guideBefore.join(',')&&canvas.width===widthBefore&&canvas.height===heightBefore;
 
+          // 실시간 요약이 스택 내부로 들어와도 즉시 바깥으로 분리한다.
+          const stack=canvas.parentElement;
+          const live=document.createElement('div');live.id='printCheckerLiveSummary';
+          stack.insertBefore(live,canvas);
+          window.PrintCheckerFileLayer.stabilizeStack(stack);
+          const summaryOutside=live.parentElement!==stack&&live.nextElementSibling===stack;
+
           const coreNeutral=window.__coreEvents.length>=3&&window.__coreEvents.every(value=>['adjX:0','adjY:0','adjScale:100'].includes(value));
-          const ready=document.documentElement.dataset.printCheckerFileOnlyPreview==='v4-layered-drag';
-          const note=document.getElementById('fileOnlyAdjustmentNote')?.textContent.includes('마우스로 끌어 이동');
-          const pass=fixedCanvas&&separateLayer&&labels&&dragged&&guidesStillFixed&&coreNeutral&&ready&&note;
+          const isolated=lateSliderLeaks===0;
+          const ready=document.documentElement.dataset.printCheckerFileOnlyPreview==='v5-hard-guide-lock';
+          const note=document.getElementById('fileOnlyAdjustmentNote')?.textContent.includes('완전히 고정');
+          const pass=fixedCanvas&&separateLayer&&labels&&dragged&&guidesStillFixed&&hardLocked&&summaryOutside&&coreNeutral&&isolated&&ready&&note;
           document.documentElement.dataset.printCheckerFileOnlyAdjustmentSmoke=pass?'pass':'fail';
           const out=document.createElement('pre');
           out.id='result';
-          out.textContent=pass?'PASS: canvas/guides stay fixed while uploaded artwork slides, scales and drags independently':`FAIL fixed=${fixedCanvas} separate=${separateLayer} labels=${labels} dragged=${dragged} guides=${guidesStillFixed} core=${coreNeutral} ready=${ready} note=${note} events=${JSON.stringify(window.__coreEvents)}`;
+          out.textContent=pass?'PASS: hard-locked guide canvas stays fixed for sliders and pointer drag':`FAIL fixed=${fixedCanvas} separate=${separateLayer} labels=${labels} dragged=${dragged} guides=${guidesStillFixed} locked=${hardLocked} summary=${summaryOutside} core=${coreNeutral} isolated=${isolated} ready=${ready} note=${note} events=${JSON.stringify(window.__coreEvents)}`;
           document.body.appendChild(out);
         }catch(error){
           document.documentElement.dataset.printCheckerFileOnlyAdjustmentSmoke='fail';
