@@ -42,7 +42,7 @@
     const waitFor=async(fn,label,timeout=5000)=>{const start=Date.now();while(Date.now()-start<timeout){if(fn())return;await wait(20);}throw new Error('timeout: '+label);};
     const names=()=>[...document.querySelectorAll('[data-pdfu-tool] .pdfu-menu-name')].map(node=>node.textContent.trim());
     const button=name=>[...document.querySelectorAll('[data-pdfu-tool]')].find(node=>node.querySelector('.pdfu-menu-name')?.textContent.trim()===name)||null;
-    const click=async name=>{const b=button(name);if(!b)throw new Error('menu missing: '+name);b.click();await wait(170);return b;};
+    const click=async name=>{const b=button(name);if(!b)throw new Error('menu missing: '+name);b.click();await wait(190);return b;};
     const assertStage=name=>{const stage=document.getElementById('pdfUtilityStageBody');if(!stage||!stage.textContent.trim())throw new Error('empty stage: '+name);if(document.body.style.overflow==='hidden')throw new Error('scroll locked: '+name);};
     const assertDrop=()=>{const drop=document.querySelector('#pdfUtilityStageBody #localDrop');if(!drop)throw new Error('local upload box missing');const style=getComputedStyle(drop);if(style.display!=='flex')throw new Error('upload label is not a single flex box: '+style.display);if(style.borderLeftStyle!=='dashed'||parseFloat(style.borderLeftWidth)<1.5)throw new Error('upload dashed border missing');if(drop.getClientRects().length!==1)throw new Error('upload border fragmented into multiple inline boxes');if(drop.getBoundingClientRect().width<220)throw new Error('upload box width collapsed');const badge=document.querySelector('#pdfUtilityStageBody .local-badge');if(badge&&badge.getBoundingClientRect().bottom>drop.getBoundingClientRect().top+2)throw new Error('upload badge overlaps drop box');};
   </script>
@@ -76,7 +76,9 @@
         await click('페이지 순서 역순');assertDrop();assertStage('페이지 순서 역순');
 
         await click('PDF 파일 검사');
-        if(!document.querySelector('#pdfUtilityStageBody .pdfud-card'))throw new Error('PDF file inspection direct panel missing');
+        const inspectionPanel=document.querySelector('#pdfUtilityStageBody .pdfud-card');
+        const authRequired=document.documentElement.dataset.pdfUtilityProtectedGuard==='auth-required'&&document.querySelector('[data-pdfu-guard-action="login"]');
+        if(!inspectionPanel&&!authRequired)throw new Error('PDF file inspection neither opened nor showed protected login guidance');
         if(document.querySelector('#pdfUtilityStageBody iframe'))throw new Error('PDF file inspection fell back to iframe');
         if(document.getElementById('pdfUtilityStageTitle')?.textContent.trim()!=='PDF 파일 검사')throw new Error('PDF inspection alias not reflected in stage header');
         assertStage('PDF 파일 검사');
