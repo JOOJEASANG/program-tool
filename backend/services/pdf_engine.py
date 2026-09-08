@@ -323,6 +323,13 @@ def _render_source_page(
 ) -> None:
     src_doc = src_docs[page_info.file_index]
     src_page = src_doc[page_info.page_index]
+    # The browser editor intentionally renders every source canvas at rotation 0
+    # and then applies user/auto rotation itself. PyMuPDF's page.rect, however,
+    # includes the PDF page's intrinsic /Rotate metadata while show_pdf_page does
+    # not apply that metadata the same way. Normalize it here so 1-up portrait
+    # previews and downloaded vector PDFs use the exact same source geometry.
+    if int(getattr(src_page, "rotation", 0) or 0) % 360:
+        src_page.set_rotation(0)
     clip_rect = _page_clip_rect(src_page.rect, page_info)
     rotation = _resolve_page_rotation(
         page_info,
