@@ -21,16 +21,21 @@
   <pre id="result">RUNNING</pre>
   <script>
     const source=document.createElement('canvas');source.width=100;source.height=200;
+    const lightweightPlaceholder=document.createElement('canvas');
+    lightweightPlaceholder.width=96;lightweightPlaceholder.height=136;lightweightPlaceholder.dataset.lightweightPage='1';
     window.parsedPages=[{
       id:'1',pageType:'pdf',rotation:90,pageRotationLocked:true,thumbCanvas:source,
       cropLeftRatio:.10,cropTopRatio:.05,cropRightRatio:.20,cropBottomRatio:.05,
       nupScale:1.6,nupOffsetX:13,nupOffsetY:-9,
     }];
     const page=window.parsedPages[0];
+    window.uploadedFiles=[{arrayBuffer:async()=>new ArrayBuffer(8)}];
     window.__refreshCount=0;
     window.__applyEvent=null;
+    window.__hydrationRotation=null;
+    window.__hydrationDestroyed=false;
     document.addEventListener('pdf-drag-crop-autofit-applied',event=>{window.__applyEvent=event.detail;});
-    window.getPageSrc=()=>source;
+    window.getPageSrc=p=>p.thumbCanvas;
     window.PdfPageTransformEdit={
       valuesForPage(p){return{
         rotation:Number(p.rotation||0),rotationLocked:!!p.pageRotationLocked,
@@ -60,6 +65,19 @@
       setValues(p,patch){p.nupScale=patch.scale;p.nupOffsetX=patch.offsetX;p.nupOffsetY=patch.offsetY;},
       refresh(){window.__refreshCount+=1;}
     };
+    window.PdfImportTransactionSafety={
+      async safePdfGetDocument(){
+        return{
+          async getPage(){return{cleanup(){}};},
+          async destroy(){window.__hydrationDestroyed=true;}
+        };
+      },
+      async safeRenderPdfPage(pdfPage,scale,rotation){
+        window.__hydrationRotation=rotation;
+        const canvas=document.createElement('canvas');canvas.width=360;canvas.height=240;
+        return canvas;
+      }
+    };
   </script>
   <script src="/js/pdf-editor/drag-crop-autofit.js?v=20260908-1"></script>
   <script>
@@ -80,6 +98,16 @@
 
       const reverse=api.normalizeSelection({left:.8,top:.9,right:0,bottom:0});
       if(reverse.left!==0||reverse.top!==0||!close(reverse.right,.8)||!close(reverse.bottom,.9))return fail('reverse drag to exact top/left edge is not normalized');
+
+      const lightweightPage={
+        id:'2',pageType:'pdf',file_index:0,page_index:3,rotation:0,lightweight:true,
+        pdfPage:{__lightweightPdfPage:true},thumbCanvas:lightweightPlaceholder,
+        cropLeftRatio:0,cropTopRatio:0,cropRightRatio:0,cropBottomRatio:0
+      };
+      const hydrated=await api.resolveDisplaySource(lightweightPage);
+      if(!hydrated||hydrated===lightweightPlaceholder||hydrated.width!==360||hydrated.height!==240)return fail('lightweight page did not use hydrated real source');
+      if(window.__hydrationRotation!==0)return fail('lightweight hydration was not canonical rotation 0');
+      if(!window.__hydrationDestroyed)return fail('lightweight source document was not released');
 
       const composed=api.composeVisualCrop(page,{left:.25,top:.20,right:.75,bottom:.80});
       if(!close(composed.left,.275)||!close(composed.top,.24)||!close(composed.right,.275)||!close(composed.bottom,.34))return fail('existing crop composition is wrong '+JSON.stringify(composed));
@@ -106,7 +134,7 @@
       if(window.__applyEvent?.pageId!=='1')return fail('apply event missing');
 
       document.documentElement.dataset.pdfDragCropAutofitSmoke='pass';
-      document.getElementById('result').textContent='PASS: drag keep-region crop composes current crop, maps rotation, and auto-fits margins';
+      document.getElementById('result').textContent='PASS: drag crop uses hydrated lightweight source, composes crop, maps rotation, and auto-fits margins';
     })().catch(error=>console.error(error));
   </script>
 </body>
