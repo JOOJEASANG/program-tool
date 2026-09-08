@@ -97,7 +97,6 @@ def test_crop_rect_is_resolved_before_rotation_and_after_split():
         crop_right_ratio=0.20,
     ).pages[0]
     split_rect = pdf_engine._page_clip_rect(fitz.Rect(0, 0, 400, 200), split)
-    # Right half is 200..400 first; crop is then relative to that visible half.
     assert split_rect == fitz.Rect(220, 0, 360, 200)
 
 
@@ -187,19 +186,18 @@ def test_one_up_portrait_export_normalizes_intrinsic_pdf_rotation():
         left_word = next(word for word in page.get_text("words") if word[4] == "LEFT-SIDE")
         word_width = left_word[2] - left_word[0]
         word_height = left_word[3] - left_word[1]
-        # Auto-fit should rotate this canonical landscape source into the portrait
-        # 1-up cell, so the rendered word itself is vertical on portrait paper.
         assert word_height > word_width
     finally:
         doc.close()
 
 
-def test_client_exposes_crop_rotate_controls_and_runtime_order():
+def test_client_exposes_crop_rotate_controls_in_advanced_runtime_order():
     source = (ROOT / "js" / "pdf-editor" / "page-transform-edit.js").read_text(encoding="utf-8")
     precision = (ROOT / "js" / "pdf-editor" / "precision-edit-tools.js").read_text(encoding="utf-8")
     regression = (ROOT / "js" / "pdf-editor" / "orientation-scale-regression-fix.js").read_text(encoding="utf-8")
     engine = (ROOT / "backend" / "services" / "pdf_engine.py").read_text(encoding="utf-8")
     core = (ROOT / "js" / "pdf-editor" / "core-runtime.js").read_text(encoding="utf-8")
+    advanced = (ROOT / "js" / "pdf-editor" / "advanced-runtime.js").read_text(encoding="utf-8")
 
     for marker in (
         "회전 · 잘라내기",
@@ -242,15 +240,18 @@ def test_client_exposes_crop_rotate_controls_and_runtime_order():
 
     module_block = core.split("const MODULES=Object.freeze([", 1)[1].split("]);", 1)[0]
     assert module_block.count("src:'/js/pdf-editor/") == 8
-    assert "pdfPageTransformEditScriptV1" in core
-    assert "pdfOrientationScaleRegressionScriptV1" in core
-    assert "pdfPrecisionEditToolsScriptV1" in core
-    assert ".then(()=>loadNupPageAdjust())" in core
-    assert ".then(()=>loadPageTransformEdit())" in core
-    assert ".then(()=>loadEditorInteractionPolish())" in core
-    assert ".then(()=>loadOrientationScaleRegression())" in core
-    assert ".then(()=>loadPrecisionEditTools())" in core
-    assert core.index(".then(()=>loadNupPageAdjust())") < core.index(".then(()=>loadPageTransformEdit())")
-    assert core.index(".then(()=>loadPageTransformEdit())") < core.index(".then(()=>loadNupDirectPreviewEdit())")
-    assert core.index(".then(()=>loadEditorInteractionPolish())") < core.index(".then(()=>loadOrientationScaleRegression())")
-    assert core.index(".then(()=>loadOrientationScaleRegression())") < core.index(".then(()=>loadPrecisionEditTools())")
+    assert "pdfPageTransformEditScriptV1" not in core
+    assert "pdfOrientationScaleRegressionScriptV1" not in core
+    assert "pdfPrecisionEditToolsScriptV1" not in core
+    assert "pdfPageTransformEditScriptV1" in advanced
+    assert "pdfOrientationScaleRegressionScriptV1" in advanced
+    assert "pdfPrecisionEditToolsScriptV1" in advanced
+    assert ".then(()=>loadNupPageAdjust())" in advanced
+    assert ".then(()=>loadPageTransformEdit())" in advanced
+    assert ".then(()=>loadEditorInteractionPolish())" in advanced
+    assert ".then(()=>loadOrientationScaleRegression())" in advanced
+    assert ".then(()=>loadPrecisionEditTools())" in advanced
+    assert advanced.index(".then(()=>loadNupPageAdjust())") < advanced.index(".then(()=>loadPageTransformEdit())")
+    assert advanced.index(".then(()=>loadPageTransformEdit())") < advanced.index(".then(()=>loadNupDirectPreviewEdit())")
+    assert advanced.index(".then(()=>loadEditorInteractionPolish())") < advanced.index(".then(()=>loadOrientationScaleRegression())")
+    assert advanced.index(".then(()=>loadOrientationScaleRegression())") < advanced.index(".then(()=>loadPrecisionEditTools())")
