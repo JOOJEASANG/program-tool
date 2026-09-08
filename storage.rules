@@ -25,8 +25,8 @@ service firebase.storage {
           && firestore.get(/databases/(default)/documents/user_permissions/$(request.auth.uid)).data.status == 'approved'
         );
     }
-    function canUseProgram() {
-      return isApproved();
+    function canUseProgram(programId) {
+      return programId == 'pdf-editor' && isApproved();
     }
     function validPdfUpload(maxBytes) {
       return request.resource != null
@@ -89,10 +89,10 @@ service firebase.storage {
     // Saved editor sessions are persistent user data. New source files are
     // limited to 200 MiB each, carry ownership metadata, and are immutable.
     match /pdf_sessions/{userId}/{sessionId}/{fileName} {
-      allow read, delete: if isOwner(userId) && canUseProgram();
+      allow read, delete: if isOwner(userId) && canUseProgram('pdf-editor');
       allow create: if resource == null
         && isOwner(userId)
-        && canUseProgram()
+        && canUseProgram('pdf-editor')
         && validSessionUpload(userId, sessionId, fileName);
       allow update: if false;
     }
