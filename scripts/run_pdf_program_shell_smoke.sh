@@ -71,7 +71,7 @@ run_product_case "pdf-utility-background-margin-smoke.html" "$OUT_DIR/pdf-utilit
 reset_profile
 run_product_case "pdf-print-output-stage1-smoke.html" "$OUT_DIR/pdf-print-output-stage1-smoke-dom.html" 'data-print-output-smoke="pass"' 'PASS: print-output branding applied without removing PDF editor controls'
 reset_profile
-run_product_case "pdf-security-storage-policy-smoke.html" "$OUT_DIR/pdf-security-storage-policy-smoke-dom.html" 'data-pdf-security-storage-smoke="pass"' 'PASS: PDF encrypt/decrypt uses Storage above 20MB with a 200MB file ceiling'
+run_product_case "pdf-security-storage-policy-smoke.html" "$OUT_DIR/pdf-security-storage-smoke-dom.html" 'data-pdf-security-storage-smoke="pass"' 'PASS: PDF encrypt/decrypt uses Storage above 20MB with a 200MB file ceiling'
 reset_profile
 run_product_case "pdf-editor-workflow-v2-smoke.html" "$OUT_DIR/pdf-editor-workflow-v2-smoke-dom.html" 'data-workflow-v2-smoke="pass"' 'PASS: PDF editor page list collapses while the remaining recovery sidebar controls stay visible'
 reset_profile
@@ -83,9 +83,11 @@ run_product_case "pdf-preview-insert-persistence-smoke.html" "$OUT_DIR/pdf-previ
 reset_profile
 run_product_case "pdf-nup-interaction-stability-smoke.html" "$OUT_DIR/pdf-nup-interaction-stability-smoke-dom.html" 'data-pdf-nup-stability-smoke="pass"' 'PASS: N-up mouse edit keeps scroll/output face fixed and preserves user-selected 200% preview zoom'
 reset_profile
+run_product_case "pdf-editor-interaction-polish-smoke.html" "$OUT_DIR/pdf-editor-interaction-polish-smoke-dom.html" 'data-pdf-editor-interaction-polish-smoke="pass"' 'PASS: asymmetric facing margins coexist with N-up edits, sidebar is number-only, and resize direction is stable'
+reset_profile
 run_product_case "pdf-output-save-actions-smoke.html" "$OUT_DIR/pdf-output-save-smoke-dom.html" 'data-pdf-output-save-smoke="pass"' 'PASS: direct PDF save and print preflight save remain actionable after preview state recovery'
 reset_profile
 run_product_case "pdf-page-list-quick-add-smoke.html" "$OUT_DIR/pdf-page-list-quick-add-smoke-dom.html" 'data-pdf-page-list-quick-add-smoke="pass"' 'PASS: page list keeps sticky PDF append action and removes legacy jump panel from view'
 
 bash "$ROOT_DIR/scripts/run_pdf_print_workflow_focus_smoke.sh"
-echo "PDF program unified shell, direct utility workflows, utility quick actions, full utility menu audit, curated utility core, output-panel tool docking, background margin removal, storage security, page-list collapse, divider-modal, persistent insert, stable N-up direct edit, sticky preview zoom, output-save, fast-insert, page-list quick-add and product-focus browser smokes passed using $BROWSER"
+echo "PDF program unified shell, direct utility workflows, utility quick actions, full utility menu audit, curated utility core, output-panel tool docking, background margin removal, storage security, page-list collapse, divider-modal, persistent insert, stable N-up direct edit, sticky preview zoom, asymmetric margin/N-up bridge, number-only sidebar, stable resize direction, output-save, fast-insert, page-list quick-add and product-focus browser smokes passed using $BROWSER"

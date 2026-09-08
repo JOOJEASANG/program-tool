@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="ko" data-pdf-editor-interaction-polish-host="1" data-pdf-editor-interaction-polish-smoke="pending">
+<head>
+  <meta charset="utf-8">
+  <title>PDF editor interaction polish smoke</title>
+  <style>
+    #thumbArea{width:280px}
+    .thumb-item{width:120px}.thumb-wrap{position:relative;width:100px;height:140px;border:1px solid #ccc}.thumb-wrap canvas{width:100%;height:100%}.thumb-num{position:absolute;bottom:2px;right:2px}
+    .pdf-nup-adjust-hit{position:relative;width:200px;height:280px;margin:40px;border:1px solid #999}
+    .pdf-nup-adjust-handle{position:absolute;right:-6px;bottom:-6px;width:14px;height:14px;background:#2563eb}
+  </style>
+</head>
+<body data-program-kind="pdf-editor">
+  <section id="thumbSection"><div class="sec-head"><span class="sec-title">페이지</span></div><div class="thumb-hint">old hint</div><div id="thumbArea">
+    <div class="thumb-item" data-id="p1" draggable="true"><div class="thumb-wrap"><canvas width="100" height="140"></canvas><div class="thumb-num">1</div><span class="thumb-ex">x</span></div></div>
+    <div class="thumb-item" data-id="p2" draggable="true"><div class="thumb-wrap"><canvas width="100" height="140"></canvas><div class="thumb-num">2</div></div></div>
+  </div></section>
+  <div id="pdfNupAdjustScaleRange"></div><input id="pdfNupAdjustScale" value="100"><input id="pdfNupAdjustState"><div id="pdfNupAdjustBadge"></div>
+  <div class="pdf-nup-adjust-hit" data-page-id="p1"><span class="pdf-nup-adjust-handle"></span><span class="pdf-nup-direct-edit-hint"></span></div>
+
+  <script>
+    window.parsedPages=[
+      {id:'p1',page_index:0,sourceFile:'a.pdf',excluded:false,nupScale:1,nupOffsetX:3,nupOffsetY:-2},
+      {id:'p2',page_index:1,sourceFile:'a.pdf',excluded:false,nupScale:1,nupOffsetX:0,nupOffsetY:0}
+    ];
+    window.__drawCalls=[];
+    window.getSettings=()=>({pw:210,ph:297,gp:5,ml:30,mr:5,mt:12,mb:8,mh:17.5,mv:10});
+    window.PdfEditorLayoutExport={
+      layoutMargins(index){return Number(index)%2===1?{left:5,right:30,top:12,bottom:8}:{left:30,right:5,top:12,bottom:8};},
+      pageNumberAutoReserveEnabled(){return false;},
+      pageNumberApplies(){return false;}
+    };
+    window.PdfNupPageAdjust={
+      valuesForPage(page){return{scale:Number(page.nupScale)||1,offsetX:Number(page.nupOffsetX)||0,offsetY:Number(page.nupOffsetY)||0};},
+      setValues(page,next){if(Number.isFinite(Number(next.scale)))page.nupScale=Math.max(.5,Math.min(3,Number(next.scale)));}
+    };
+    window.groupByNup=pages=>[{n:1,pages}];
+    window.getLayout=()=>({cols:1,rows:1});
+    window.orderLR=true;
+    window.getPageSrc=()=>{const c=document.createElement('canvas');c.width=100;c.height=140;return c;};
+    window.drawPageInCell=(_ctx,_src,x,y,w,h)=>window.__drawCalls.push({x,y,w,h});
+    window.applyDocEdits=()=>{};
+    window.buildOutputPage=()=>document.createElement('canvas');
+    window.buildAllPages=async()=>[];
+  </script>
+  <script src="/js/pdf-editor/editor-interaction-polish.js?v=smoke"></script>
+  <script>
+    setTimeout(async()=>{
+      try{
+        const p=window.parsedPages[0];
+        p.nupScale=1.2;
+        window.__drawCalls=[];
+        const odd=window.buildOutputPage([p],0,1,1,10,false,0);
+        const oddCall=window.__drawCalls.at(-1);
+        window.__drawCalls=[];
+        const even=window.buildOutputPage([p],0,1,1,10,false,1);
+        const evenCall=window.__drawCalls.at(-1);
+        const marginsOk=odd.dataset.marginLeftMm==='30'&&odd.dataset.marginRightMm==='5'
+          &&even.dataset.marginLeftMm==='5'&&even.dataset.marginRightMm==='30'
+          &&oddCall.x>evenCall.x+200;
+
+        window.PdfEditorInteractionPolish.simplifySidebar();
+        const item=document.querySelector('.thumb-item');
+        const canvas=item.querySelector('canvas');
+        const sidebarOk=item.draggable===false
+          &&document.getElementById('thumbArea').dataset.numberOnlyNavigation==='true'
+          &&getComputedStyle(canvas).display==='none'
+          &&document.querySelector('.thumb-hint').textContent.includes('편집은 미리보기 화면에서 합니다.');
+        let contextReached=0;
+        item.querySelector('.thumb-wrap').addEventListener('contextmenu',()=>contextReached++);
+        item.querySelector('.thumb-wrap').dispatchEvent(new MouseEvent('contextmenu',{bubbles:true,cancelable:true}));
+        const editingBlocked=contextReached===0;
+
+        const handle=document.querySelector('.pdf-nup-adjust-handle');
+        const rect=handle.getBoundingClientRect();
+        const sx=rect.left+rect.width/2,sy=rect.top+rect.height/2;
+        p.nupScale=1;
+        handle.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,pointerId:31,button:0,clientX:sx,clientY:sy}));
+        document.dispatchEvent(new PointerEvent('pointermove',{bubbles:true,pointerId:31,button:0,clientX:sx+36,clientY:sy+36}));
+        const grown=p.nupScale;
+        document.dispatchEvent(new PointerEvent('pointerup',{bubbles:true,pointerId:31,button:0,clientX:sx+36,clientY:sy+36}));
+
+        p.nupScale=1;
+        handle.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,pointerId:32,button:0,clientX:sx,clientY:sy}));
+        document.dispatchEvent(new PointerEvent('pointermove',{bubbles:true,pointerId:32,button:0,clientX:sx-36,clientY:sy-36}));
+        const shrunk=p.nupScale;
+        document.dispatchEvent(new PointerEvent('pointerup',{bubbles:true,pointerId:32,button:0,clientX:sx-36,clientY:sy-36}));
+        const scaleOk=grown>1.05&&shrunk<.95;
+
+        const all=await window.buildAllPages(10,false,window.parsedPages);
+        const allPagesOk=all.length===2&&all[0].dataset.marginLeftMm==='30'&&all[1].dataset.marginLeftMm==='5';
+        const pass=marginsOk&&sidebarOk&&editingBlocked&&scaleOk&&allPagesOk;
+        document.documentElement.dataset.pdfEditorInteractionPolishSmoke=pass?'pass':'fail';
+        const out=document.createElement('pre');out.id='result';
+        out.textContent=pass
+          ?'PASS: asymmetric facing margins coexist with N-up edits, sidebar is number-only, and resize direction is stable'
+          :`FAIL margins=${marginsOk} sidebar=${sidebarOk} blocked=${editingBlocked} scale=${scaleOk}/${grown.toFixed(3)}/${shrunk.toFixed(3)} all=${allPagesOk}`;
+        document.body.appendChild(out);
+      }catch(error){
+        document.documentElement.dataset.pdfEditorInteractionPolishSmoke='fail';
+        const out=document.createElement('pre');out.textContent='FAIL '+(error?.stack||error);document.body.appendChild(out);
+      }
+    },260);
+  </script>
+</body>
+</html>
