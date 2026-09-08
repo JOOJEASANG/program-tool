@@ -134,7 +134,7 @@
       if(window.__applyEvent?.pageId!=='1')return fail('apply event missing');
 
       document.documentElement.dataset.pdfDragCropAutofitSmoke='pass';
-      document.getElementById('result').textContent='PASS: drag crop uses hydrated lightweight source, composes crop, maps rotation, and auto-fits margins';
+      document.getElementById('result').textContent='PASS: drag keep-region crop composes current crop, maps rotation, and auto-fits margins';
     })().catch(error=>console.error(error));
   </script>
 </body>
