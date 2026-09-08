@@ -10,6 +10,7 @@ from services import pdf_engine
 ROOT = Path(__file__).resolve().parents[2]
 POLISH = ROOT / "js" / "pdf-editor" / "editor-interaction-polish.js"
 CORE = ROOT / "js" / "pdf-editor" / "core-runtime.js"
+ADVANCED = ROOT / "js" / "pdf-editor" / "advanced-runtime.js"
 
 
 def _source_pdf_bytes() -> bytes:
@@ -71,7 +72,6 @@ def test_adjusted_pages_keep_asymmetric_margins_and_facing_page_swap():
 
     odd_x = _word_x(result, 0)
     even_x = _word_x(result, 1)
-    # Page 1 has the wider left margin; page 2 swaps left/right in facing mode.
     assert odd_x > even_x + 45
 
 
@@ -110,18 +110,20 @@ def test_resize_handle_uses_radial_distance_for_unambiguous_scale_direction():
     assert "direction=next>state.startScale" in source
     assert "'grow'" in source
     assert "'shrink'" in source
-    # The legacy dx-dy formula caused down/right diagonal movement to cancel.
     assert "Math.exp((dx-dy)/180)" not in source
 
 
-def test_polish_loads_after_nup_modules_without_changing_stable_core_manifest():
-    source = CORE.read_text(encoding="utf-8")
-    module_block = source.split("const MODULES=Object.freeze([", 1)[1].split("]);", 1)[0]
+def test_polish_loads_in_advanced_runtime_without_changing_lightweight_core_manifest():
+    core = CORE.read_text(encoding="utf-8")
+    advanced = ADVANCED.read_text(encoding="utf-8")
+    module_block = core.split("const MODULES=Object.freeze([", 1)[1].split("]);", 1)[0]
 
     assert module_block.count("src:'/js/pdf-editor/") == 8
-    direct = source.index(".then(()=>loadNupDirectPreviewEdit())")
-    polish = source.index(".then(()=>loadEditorInteractionPolish())")
+    assert "pdfEditorInteractionPolishScriptV1" not in core
+    direct = advanced.index(".then(()=>loadNupDirectPreviewEdit())")
+    polish = advanced.index(".then(()=>loadEditorInteractionPolish())")
     assert direct < polish
-    assert "pdfEditorInteractionPolishScriptV1" in source
-    assert "/js/pdf-editor/editor-interaction-polish.js?v=20260908-1" in source
-    assert "stage:'pdf-editor-core-runtime-manifest-v1'" in source
+    assert "pdfEditorInteractionPolishScriptV1" in advanced
+    assert "/js/pdf-editor/editor-interaction-polish.js?v=20260908-1" in advanced
+    assert "stage:'pdf-editor-core-runtime-manifest-v1'" in core
+    assert "stage:'pdf-editor-advanced-runtime-v1'" in advanced
