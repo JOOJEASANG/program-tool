@@ -1,6 +1,6 @@
 // Canonical lightweight PDF editor core-module manifest.
 // Keep the default editor close to the 21b36a9 runtime footprint. Advanced
-// page transforms are loaded only from the dedicated advanced editor route.
+// page transforms are loaded only when the dedicated advanced profile is used.
 (function(){
   'use strict';
   if(window.__pdfEditorCoreRuntimeV1)return;
@@ -21,7 +21,8 @@
 
   function isAdvancedProfile(){
     if(document.documentElement.dataset.pdfEditorProfile==='advanced')return true;
-    return /^\/pdf-editor-advanced(?:\/|$)/.test(String(location.pathname||''));
+    const value=new URLSearchParams(String(location.search||'')).get('profile');
+    return String(value||'').trim().toLowerCase()==='advanced';
   }
 
   function ensureBookletStylesheet(){
@@ -108,6 +109,6 @@
     isAdvancedProfile,
     modules:MODULES.map(({id,src})=>({id,src})),
     stage:'pdf-editor-core-runtime-manifest-v1',
-    profileStage:'lightweight-default-advanced-route-v1'
+    profileStage:'lightweight-default-advanced-query-v1'
   };
 })();
