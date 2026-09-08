@@ -7,6 +7,8 @@
   const path=location.pathname.replace(/\/+$/,'')||'/';
   const isUtility=path==='/pdf-preflight'||path==='/pdf-preflight/index.html'||path.endsWith('/pdf-preflight/index.html');
   const isPrint=path==='/pdf-editor'||path==='/pdf-editor/index.html'||path.endsWith('/pdf-editor/index.html')||path.endsWith('/tools/pdf-editor.html');
+  const editorProfile=new URLSearchParams(String(location.search||'')).get('profile');
+  const isAdvancedPrint=isPrint&&String(editorProfile||'').trim().toLowerCase()==='advanced';
   if(!isUtility&&!isPrint)return;
 
   const $=id=>document.getElementById(id);
@@ -48,8 +50,12 @@
     const title=document.querySelector('.app > aside > h1');
     setText(title,'인쇄·출력 도구');
     const sub=document.querySelector('.app > aside > .sub');
-    setText(sub,'N-up · 소책자 · 페이지 편집 · 간지 · 머리말/꼬리말 · 워터마크 · 인쇄용 PDF 저장');
-    document.documentElement.dataset.printOutputStage='subscription-alternative-stage1';
+    setText(sub,isAdvancedPrint
+      ?'페이지 편집 · 간지 · 머리말/꼬리말 · 워터마크 · 정밀 보정 · 인쇄용 PDF 저장'
+      :'N-up · 소책자 · 페이지 편집 · 간지 · 머리말/꼬리말 · 워터마크 · 인쇄용 PDF 저장');
+    document.documentElement.dataset.printOutputStage=isAdvancedPrint
+      ?'advanced-single-page-precision-v1'
+      :'subscription-alternative-stage1';
     return Boolean(title);
   }
 
