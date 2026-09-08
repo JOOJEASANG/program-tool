@@ -14,7 +14,7 @@ def test_pdf_editor_final_check_reuses_generated_output_without_manual_reupload(
  for marker in ("인쇄 전 검사 후 저장","바로 PDF 저장","apiProcessPdf(sources,settings","apiPreflightCheck(file","checkedBlob=blob","downloadBlob(checkedBlob","검사 완료 PDF 저장","문제 있어도 PDF 저장"):assert marker in source
 def test_static_home_keeps_current_programs_only():
  home=read("index.html")
- for label in ("인쇄물 사전 검토","PDF 편집 · 인쇄배치","PDF 도구 모음"):assert label in home
+ for label in ("인쇄물 사전 검토","PDF 배치용","PDF 고급편집용","PDF 도구 모음"):assert label in home
  for retired in ("디자인 편집기","문서 편집기","이미지 편집기"):assert retired not in home
 def test_retired_admin_catalog_and_program_sync_runtime_is_absent():
  runtime=read("js/sw-register.js")
