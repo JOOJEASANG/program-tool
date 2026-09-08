@@ -87,7 +87,7 @@ PDF_SUITE_DAILY_FREE_SNIPPET = (
     f'<script {PDF_SUITE_DAILY_FREE_MARKER} src="/js/pdf-daily-free.js?v=20260907-2"></script>'
 )
 PDF_SUITE_HOME_SNIPPET = (
-    f'<script {PDF_SUITE_HOME_MARKER} defer src="/js/pdf-suite-home-launcher.js?v=20260906-5"></script>'
+    f'<script {PDF_SUITE_HOME_MARKER} defer src="/js/pdf-suite-home-launcher.js?v=20260908-1"></script>'
 )
 PDF_SUITE_ADVANCED_SNIPPET = (
     f'<script {PDF_SUITE_ADVANCED_MARKER} defer '
