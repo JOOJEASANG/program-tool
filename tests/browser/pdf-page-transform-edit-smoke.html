@@ -65,6 +65,13 @@
   <script>
     (async()=>{
       const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+      const waitFor=async(predicate,attempts=30,delay=40)=>{
+        for(let index=0;index<attempts;index+=1){
+          if(predicate())return true;
+          await sleep(delay);
+        }
+        return false;
+      };
       const fail=message=>{
         document.documentElement.dataset.pdfPageTransformSmoke='fail';
         document.getElementById('result').textContent='FAIL: '+message;
@@ -98,17 +105,18 @@
       if(Math.abs(page.cropBottomRatio-.10)>.002)return fail('visual left crop was not mapped to source bottom after 90 rotation');
 
       document.getElementById('pdfPageCropToggleV1').click();
-      await sleep(100);
+      const overlayReady=await waitFor(()=>document.getElementById('pdfPageCropOverlayV1')?.dataset.visible==='true');
+      if(!overlayReady)return fail('crop overlay not visible');
       const overlay=document.getElementById('pdfPageCropOverlayV1');
-      if(!overlay||overlay.dataset.visible!=='true')return fail('crop overlay not visible');
       const rightHandle=overlay.querySelector('[data-edges="right"]');
       const rect=overlay.getBoundingClientRect();
+      if(rect.width<10||rect.height<10)return fail(`crop overlay geometry unavailable: ${rect.width}x${rect.height}`);
       const pointerId=71;
       rightHandle.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,pointerId,button:0,clientX:rect.right,clientY:rect.top+rect.height/2}));
       document.dispatchEvent(new PointerEvent('pointermove',{bubbles:true,pointerId,clientX:rect.right-rect.width*.20,clientY:rect.top+rect.height/2}));
       document.dispatchEvent(new PointerEvent('pointerup',{bubbles:true,pointerId,clientX:rect.right-rect.width*.20,clientY:rect.top+rect.height/2}));
-      await sleep(80);
-      if(Math.abs(page.cropTopRatio-.20)>.025)return fail(`drag crop expected source top 20%, got ${page.cropTopRatio}`);
+      const cropApplied=await waitFor(()=>Math.abs(page.cropTopRatio-.20)<=.025,20,30);
+      if(!cropApplied)return fail(`drag crop expected source top 20%, got ${page.cropTopRatio}`);
 
       const croppedRotated=window.getPageSrc(page,1,false);
       if(croppedRotated.width>=100)return fail('cropped+rotated source width did not shrink');
@@ -123,8 +131,8 @@
       if(!Array.isArray(state.pageTransforms)||state.pageTransforms[0]?.rotation!==90)return fail('session transform state missing');
 
       document.getElementById('pdfPageCropResetV1').click();
-      await sleep(40);
-      if(api.hasCrop(page))return fail('crop reset failed');
+      const resetApplied=await waitFor(()=>!api.hasCrop(page),20,30);
+      if(!resetApplied)return fail('crop reset failed');
 
       document.documentElement.dataset.pdfPageTransformSmoke='pass';
       document.getElementById('result').textContent='PASS: crop -> exact rotation -> scale/move request pipeline is stable';
