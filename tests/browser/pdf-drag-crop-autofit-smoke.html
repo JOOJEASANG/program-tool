@@ -78,6 +78,9 @@
       const button=document.getElementById('pdfDragCropAutoFitV1');
       if(!button)return fail('selection button missing');
 
+      const reverse=api.normalizeSelection({left:.8,top:.9,right:0,bottom:0});
+      if(reverse.left!==0||reverse.top!==0||!close(reverse.right,.8)||!close(reverse.bottom,.9))return fail('reverse drag to exact top/left edge is not normalized');
+
       const composed=api.composeVisualCrop(page,{left:.25,top:.20,right:.75,bottom:.80});
       if(!close(composed.left,.275)||!close(composed.top,.24)||!close(composed.right,.275)||!close(composed.bottom,.34))return fail('existing crop composition is wrong '+JSON.stringify(composed));
       const patch=api.sourcePatchFromVisual(page,composed);
