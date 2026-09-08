@@ -90,8 +90,33 @@
       if(!document.querySelector('[data-sec="nup"] .sec-title').textContent.includes('페이지 위치·크기 보정'))return fail('advanced precision section was not renamed');
       if(/N\s*-?\s*up|소책자/i.test(document.querySelector('.app > aside > .sub').textContent))return fail('advanced branding still advertises N-up/booklet');
 
+      const cropPage={id:'crop-orientation-page',rotation:0,pageRotationLocked:false};
+      window.parsedPages=[cropPage];
+      let transformPatch=null;
+      let selectedPage=null;
+      let refreshCount=0;
+      window.PdfPageTransformEdit={
+        setValues(page,patch){
+          transformPatch={...patch};
+          if(Object.prototype.hasOwnProperty.call(patch,'rotationLocked'))page.pageRotationLocked=!!patch.rotationLocked;
+          if(Object.prototype.hasOwnProperty.call(patch,'rotation'))page.rotation=Number(patch.rotation||0);
+        }
+      };
+      window.PdfNupPageAdjust={
+        selectPage(page){selectedPage=page;},
+        refresh(){refreshCount+=1;}
+      };
+      document.dispatchEvent(new CustomEvent('pdf-drag-crop-autofit-applied',{detail:{pageId:cropPage.id}}));
+      if(cropPage.rotation!==0)return fail('drag crop changed portrait rotation');
+      if(!cropPage.pageRotationLocked)return fail('drag crop did not lock current orientation');
+      if(transformPatch?.rotation!==undefined)return fail('drag crop rewrote explicit rotation');
+      if(transformPatch?.rotationLocked!==true)return fail('drag crop orientation lock patch missing');
+      if(selectedPage!==cropPage)return fail('drag crop page selection sync broke');
+      if(refreshCount<1)return fail('drag crop did not refresh after orientation lock');
+      if(!document.documentElement.dataset.pdfAdvancedDragCropOrientationLock)return fail('drag crop orientation lock marker missing');
+
       document.documentElement.dataset.pdfEditorRuntimeProfileSplitSmoke='pass';
-      result.textContent='PASS: default PDF editor stays lightweight and advanced route loads editing modules separately; advanced editor hides N-up and booklet layout controls';
+      result.textContent='PASS: default PDF editor stays lightweight; advanced route hides N-up/booklet and preserves page orientation after drag crop';
     })().catch(error=>console.error(error));
   </script>
 </body>
