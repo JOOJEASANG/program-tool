@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-pdf-nup-stability-smoke="pending">
+<html lang="ko" data-pdf-nup-stability-smoke="pending" data-pdf-nup-stability-host="1">
 <head>
   <meta charset="utf-8">
   <title>N-up interaction stability smoke</title>
@@ -69,7 +69,7 @@
         const lazyResult=await window.PdfViewportLazyPreview.requestRender(22);
 
         scroll.scrollTop=245;
-        document.dispatchEvent(new Event('scroll',{bubbles:false}));
+        scroll.dispatchEvent(new Event('scroll',{bubbles:false}));
         hit.dispatchEvent(new PointerEvent('pointermove',{bubbles:true,pointerId:11,button:0,clientX:x+35,clientY:y+22}));
         const duringTop=scroll.scrollTop;
 
