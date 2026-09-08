@@ -135,6 +135,21 @@
     return canvas;
   }
 
+  function preserveNupRequestMarker(target,source){
+    if(!target||!source||!source.__pdfNupPageAdjustWrappedV1)return target;
+    // nup-page-adjust periodically maintains its wrappers. Preserve its marker
+    // on the composed outer wrapper so both maintainers recognize one stable
+    // chain instead of wrapping each other forever.
+    target.__pdfNupPageAdjustWrappedV1=true;
+    target.__pdfNupPageAdjustOriginal=source.__pdfNupPageAdjustOriginal||source;
+    return target;
+  }
+
+  function preserveNupStateMarker(target,source){
+    if(target&&source?.__pdfNupPageAdjustStateV1)target.__pdfNupPageAdjustStateV1=true;
+    return target;
+  }
+
   function installRenderWrapper(){
     const current=window.renderPdfPage;
     if(typeof current!=='function')return false;
@@ -335,6 +350,7 @@
     };
     wrapped.__pdfOrientationIntentSyncV1=true;
     wrapped.__pdfOrientationIntentOriginal=original;
+    preserveNupRequestMarker(wrapped,current);
     window.apiProcessPdf=wrapped;
     try{apiProcessPdf=wrapped;}catch(_){}
     apiWrapper=wrapped;
@@ -353,6 +369,7 @@
     };
     wrapped.__pdfOrientationIntentSyncV1=true;
     wrapped.__pdfOrientationIntentOriginal=current;
+    preserveNupRequestMarker(wrapped,current);
     window.fetch=wrapped;
     fetchWrapper=wrapped;
     return true;
@@ -368,6 +385,7 @@
       };
       wrappedCollect.__pdfOrientationIntentSyncV1=true;
       wrappedCollect.__pdfOrientationIntentOriginal=originalCollect;
+      preserveNupStateMarker(wrappedCollect,collect);
       window.collectEditorState=wrappedCollect;
       try{collectEditorState=wrappedCollect;}catch(_){}
       collectWrapper=wrappedCollect;
@@ -384,6 +402,7 @@
       };
       wrappedLoad.__pdfOrientationIntentSyncV1=true;
       wrappedLoad.__pdfOrientationIntentOriginal=originalLoad;
+      preserveNupStateMarker(wrappedLoad,load);
       window.loadEditorSession=wrappedLoad;
       try{loadEditorSession=wrappedLoad;}catch(_){}
       loadWrapper=wrappedLoad;
@@ -413,6 +432,7 @@
     noteRenderedRotation,
     installSafetyRenderWrapper,
     canonicalizeExistingRotatedPages,
+    maintain,
     stage:'canonical-rotation-outward-scale-v1',
   };
 
