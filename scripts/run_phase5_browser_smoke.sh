@@ -103,3 +103,4 @@ run_page "pdf-workspace-single-page-smoke.html" 'data-pdf-workspace-single-page-
 run_page "pdf-suite-advanced-smoke.html" 'data-pdf-suite-advanced-smoke="pass"' "PDF suite advanced browser smoke" "pdf-suite-advanced-smoke-dom.html"
 run_page "pdf-suite-ocr-smoke.html" 'data-pdf-suite-ocr-smoke="pass"' "PDF suite OCR browser smoke" "pdf-suite-ocr-smoke-dom.html"
 run_page "pdf-utility-image-converter-reliability-smoke.html" 'data-pdf-utility-image-converter-reliability-smoke="pass"' "PDF image converter reliability smoke" "pdf-utility-image-converter-reliability-smoke-dom.html"
+run_page "pdf-direct-page-edit-smoke.html" 'data-pdf-direct-page-edit-smoke="pass"' "PDF direct image-style page editing smoke" "pdf-direct-page-edit-smoke-dom.html"

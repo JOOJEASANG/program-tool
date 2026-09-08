@@ -216,6 +216,52 @@ def _page_clip_rect(src_rect: fitz.Rect, page_info) -> fitz.Rect:
     return clip
 
 
+def _page_erase_regions(page_info) -> list:
+    regions = getattr(page_info, "erase_regions", None) or []
+    return list(regions)[:40]
+
+
+def _build_erased_source_document(
+    src_doc: fitz.Document,
+    page_index: int,
+    page_info,
+) -> fitz.Document | None:
+    """Create a one-page vector source with requested cleanup regions white-filled.
+
+    The rectangles are a visual white-out convenience for scanned dirt and stray
+    marks. They intentionally do not claim secure redaction of underlying text.
+    """
+    regions = _page_erase_regions(page_info)
+    if not regions:
+        return None
+    source_page = src_doc[page_index]
+    source_rect = fitz.Rect(source_page.rect)
+    temp_doc = fitz.open()
+    try:
+        temp_page = temp_doc.new_page(width=source_rect.width, height=source_rect.height)
+        temp_page.show_pdf_page(
+            temp_page.rect,
+            src_doc,
+            page_index,
+            keep_proportion=False,
+        )
+        shape = temp_page.new_shape()
+        for region in regions:
+            x0 = source_rect.x0 + source_rect.width * float(region.x0)
+            y0 = source_rect.y0 + source_rect.height * float(region.y0)
+            x1 = source_rect.x0 + source_rect.width * float(region.x1)
+            y1 = source_rect.y0 + source_rect.height * float(region.y1)
+            rect = fitz.Rect(x0, y0, x1, y1)
+            if rect.width > 1e-6 and rect.height > 1e-6:
+                shape.draw_rect(rect)
+        shape.finish(color=None, fill=(1.0, 1.0, 1.0), width=0)
+        shape.commit(overlay=True)
+        return temp_doc
+    except Exception:
+        temp_doc.close()
+        raise
+
+
 def _resolve_page_rotation(
     page_info,
     cell_w: float,
@@ -286,6 +332,7 @@ def _show_source_page(
 def _render_adjusted_source_page(
     out_page: fitz.Page,
     src_doc: fitz.Document,
+    source_page_index: int,
     page_info,
     cell_rect: fitz.Rect,
     clip_rect: fitz.Rect,
@@ -325,7 +372,7 @@ def _render_adjusted_source_page(
             temp_page,
             adjusted_rect,
             src_doc,
-            page_info.page_index,
+            source_page_index,
             rotation,
             clip_rect,
         )
@@ -357,43 +404,52 @@ def _render_source_page(
     # previews and downloaded vector PDFs use the exact same source geometry.
     if int(getattr(src_page, "rotation", 0) or 0) % 360:
         src_page.set_rotation(0)
-    clip_rect = _page_clip_rect(src_page.rect, page_info)
-    rotation = _resolve_page_rotation(
-        page_info,
-        cell_w,
-        cell_h,
-        clip_rect,
-    )
-    fit_rect = _calc_rotated_fit_rect(
-        cell_rect,
-        clip_rect.width,
-        clip_rect.height,
-        rotation,
-    )
-    adjusted = _page_has_placement_adjustment(page_info)
-    if adjusted:
-        _render_adjusted_source_page(
-            out_page,
-            src_doc,
+
+    erased_doc = _build_erased_source_document(src_doc, page_info.page_index, page_info)
+    render_doc = erased_doc or src_doc
+    render_page_index = 0 if erased_doc is not None else page_info.page_index
+    try:
+        clip_rect = _page_clip_rect(src_page.rect, page_info)
+        rotation = _resolve_page_rotation(
             page_info,
+            cell_w,
+            cell_h,
+            clip_rect,
+        )
+        fit_rect = _calc_rotated_fit_rect(
             cell_rect,
-            clip_rect,
+            clip_rect.width,
+            clip_rect.height,
             rotation,
         )
-    else:
-        _show_source_page(
-            out_page,
-            fit_rect,
-            src_doc,
-            page_info.page_index,
-            rotation,
-            clip_rect,
-        )
-    if add_border:
-        shape = out_page.new_shape()
-        shape.draw_rect(cell_rect if adjusted else fit_rect)
-        shape.finish(color=(0.6, 0.6, 0.6), width=0.5)
-        shape.commit()
+        adjusted = _page_has_placement_adjustment(page_info)
+        if adjusted:
+            _render_adjusted_source_page(
+                out_page,
+                render_doc,
+                render_page_index,
+                page_info,
+                cell_rect,
+                clip_rect,
+                rotation,
+            )
+        else:
+            _show_source_page(
+                out_page,
+                fit_rect,
+                render_doc,
+                render_page_index,
+                rotation,
+                clip_rect,
+            )
+        if add_border:
+            shape = out_page.new_shape()
+            shape.draw_rect(cell_rect if adjusted else fit_rect)
+            shape.finish(color=(0.6, 0.6, 0.6), width=0.5)
+            shape.commit()
+    finally:
+        if erased_doc is not None:
+            erased_doc.close()
 
 
 def _render_divider_in_cell(

@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="ko" data-pdf-direct-page-edit-host="1">
+<head>
+  <meta charset="utf-8">
+  <title>PDF direct page edit smoke</title>
+  <style>
+    html,body{margin:0}
+    #previewScroll{position:relative;width:420px;height:520px;overflow:auto}
+    .page-preview{position:relative;width:360px;height:480px;margin:10px}
+    .page-preview>canvas{position:absolute;inset:0;width:360px;height:480px}
+    .pdf-nup-adjust-hit{position:absolute;left:30px;top:30px;width:300px;height:420px}
+    #pdfDragCropOverlayV1{position:fixed;left:500px;top:20px;width:200px;height:200px}
+    #pdfDragCropCanvasV1{width:200px;height:200px}
+    #pdfDragCropSelectionV1{position:absolute;display:none}
+    #pdfDragCropSelectionV1[data-visible="true"]{display:block}
+  </style>
+</head>
+<body>
+  <div id="previewScroll">
+    <div class="page-preview" data-output-index="0">
+      <canvas id="paperCanvas" width="360" height="480"></canvas>
+      <div class="pdf-nup-adjust-hit" data-page-id="p1" data-selected="true"></div>
+    </div>
+  </div>
+  <div id="pdfDragCropOverlayV1">
+    <canvas id="pdfDragCropCanvasV1" width="200" height="200"></canvas>
+    <div id="pdfDragCropSelectionV1"></div>
+    <div id="pdfDragCropShadeV1"></div>
+    <div id="pdfDragCropHintV1">old</div>
+  </div>
+  <div id="pdfDragCropAutoFitControlsV1">
+    <button id="pdfDragCropAutoFitV1">old crop</button>
+    <span id="pdfDragCropAutoFitStatusV1"></span>
+  </div>
+  <button id="pdfPageCropToggleV1">old crop toggle</button>
+  <pre id="result">RUNNING</pre>
+  <script>
+    const source=document.createElement('canvas');
+    source.width=100;source.height=100;
+    const sourceCtx=source.getContext('2d');
+    sourceCtx.fillStyle='#c00';sourceCtx.fillRect(0,0,100,100);
+    var parsedPages=[{
+      id:'p1',thumbCanvas:source,rotation:0,
+      cropLeftRatio:0,cropTopRatio:0,cropRightRatio:0,cropBottomRatio:0,
+      nupScale:1,nupOffsetX:0,nupOffsetY:0,eraseRegions:[]
+    }];
+    var previewRefreshes=0;
+    window.getSettings=()=>({pw:210,ph:297});
+    window.getPageSrc=page=>page.thumbCanvas;
+    window.apiProcessPdf=(files,settings)=>settings;
+    window.collectEditorState=()=>({base:true});
+    window.loadEditorSession=async()=>true;
+    window.PdfPageTransformEdit={
+      valuesForPage(page){return{rotation:page.rotation||0,cropLeft:page.cropLeftRatio||0,cropTop:page.cropTopRatio||0,cropRight:page.cropRightRatio||0,cropBottom:page.cropBottomRatio||0};},
+      visualCrop(value){
+        const s={left:value.cropLeft,top:value.cropTop,right:value.cropRight,bottom:value.cropBottom};
+        if(value.rotation===90)return{left:s.bottom,top:s.left,right:s.top,bottom:s.right};
+        if(value.rotation===180)return{left:s.right,top:s.bottom,right:s.left,bottom:s.top};
+        if(value.rotation===270)return{left:s.top,top:s.right,right:s.bottom,bottom:s.left};
+        return s;
+      },
+      sourceEdgeForVisual(rotation,edge){
+        const maps={0:{left:'left',top:'top',right:'right',bottom:'bottom'},90:{left:'bottom',top:'left',right:'top',bottom:'right'},180:{left:'right',top:'bottom',right:'left',bottom:'top'},270:{left:'top',top:'right',right:'bottom',bottom:'left'}};
+        return (maps[rotation]||maps[0])[edge];
+      },
+      setValues(page,patch){
+        if('cropLeft'in patch)page.cropLeftRatio=Math.max(0,Math.min(.9,patch.cropLeft));
+        if('cropTop'in patch)page.cropTopRatio=Math.max(0,Math.min(.9,patch.cropTop));
+        if('cropRight'in patch)page.cropRightRatio=Math.max(0,Math.min(.9,patch.cropRight));
+        if('cropBottom'in patch)page.cropBottomRatio=Math.max(0,Math.min(.9,patch.cropBottom));
+      }
+    };
+    window.PdfNupPageAdjust={
+      valuesForPage(page){return{scale:page.nupScale||1,offsetX:page.nupOffsetX||0,offsetY:page.nupOffsetY||0};},
+      setValues(page,patch){if('scale'in patch)page.nupScale=Math.max(.5,Math.min(3,Number(patch.scale)||1));},
+      selectPage(){},refresh(){previewRefreshes++;}
+    };
+    window.PdfDragCropAutoFit={isActive:()=>true};
+  </script>
+  <script src="/js/pdf-editor/direct-page-edit-v2.js"></script>
+  <script>
+    (async()=>{
+      const result=document.getElementById('result');
+      const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+      const fail=message=>{
+        document.documentElement.dataset.pdfDirectPageEditSmoke='fail';
+        result.textContent='FAIL: '+message;
+        throw new Error(message);
+      };
+      await wait(180);
+      const api=window.PdfDirectPageEdit;
+      const page=parsedPages[0];
+      if(!api||api.stage!=='advanced-direct-scale-edge-crop-whiteout-v2')return fail('direct edit API missing');
+      if(document.documentElement.dataset.pdfDirectPageEdit!=='1')return fail('direct edit marker missing');
+
+      const frame=document.querySelector('.pdf-direct-page-frame');
+      if(!frame)return fail('direct page frame missing');
+      if(frame.querySelectorAll('.pdf-direct-scale-corner').length!==4)return fail('four scale corners missing');
+      if(frame.querySelectorAll('.pdf-direct-crop-edge').length!==4)return fail('four crop edges missing');
+      if(!frame.querySelector('.pdf-direct-crop-edge')?.title.includes('잘라내기'))return fail('edge crop affordance missing');
+      if(getComputedStyle(document.getElementById('pdfPageCropToggleV1')).display!=='none')return fail('legacy crop mode toggle is still visible');
+
+      page.rotation=90;
+      const sourceRect={x0:.1,y0:.2,x1:.3,y1:.4};
+      const visual=api.sourceRectToVisual(page,sourceRect);
+      const back=api.visualRectToSource(page,visual);
+      const close=(a,b)=>Math.abs(a-b)<.0001;
+      if(!close(visual.x0,.6)||!close(visual.y0,.1)||!close(visual.x1,.8)||!close(visual.y1,.3))return fail('90-degree source-to-visual mapping is wrong');
+      if(!close(back.x0,.1)||!close(back.y0,.2)||!close(back.x1,.3)||!close(back.y1,.4))return fail('rotation mapping is not reversible');
+      page.rotation=0;
+
+      const br=frame.querySelector('[data-corner="br"]');
+      const brRect=br.getBoundingClientRect();
+      br.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,pointerId:11,button:0,clientX:brRect.left+4,clientY:brRect.top+4}));
+      document.dispatchEvent(new PointerEvent('pointermove',{bubbles:true,pointerId:11,clientX:brRect.left+34,clientY:brRect.top+34}));
+      document.dispatchEvent(new PointerEvent('pointerup',{bubbles:true,pointerId:11,clientX:brRect.left+34,clientY:brRect.top+34}));
+      await wait(30);
+      if(!(page.nupScale>1.02))return fail('corner drag did not enlarge page');
+
+      const nextFrame=document.querySelector('.pdf-direct-page-frame');
+      const edge=nextFrame.querySelector('[data-edge="right"]');
+      const edgeRect=edge.getBoundingClientRect();
+      edge.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,pointerId:12,button:0,clientX:edgeRect.left+5,clientY:edgeRect.top+20}));
+      document.dispatchEvent(new PointerEvent('pointermove',{bubbles:true,pointerId:12,clientX:edgeRect.left-25,clientY:edgeRect.top+20}));
+      document.dispatchEvent(new PointerEvent('pointerup',{bubbles:true,pointerId:12,clientX:edgeRect.left-25,clientY:edgeRect.top+20}));
+      await wait(30);
+      if(!(page.cropRightRatio>.02))return fail('right edge drag did not crop page');
+
+      page.cropLeftRatio=page.cropTopRatio=page.cropRightRatio=page.cropBottomRatio=0;
+      const overlay=document.getElementById('pdfDragCropOverlayV1');
+      const overlayRect=overlay.getBoundingClientRect();
+      overlay.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,pointerId:13,button:0,clientX:overlayRect.left+60,clientY:overlayRect.top+60}));
+      document.dispatchEvent(new PointerEvent('pointermove',{bubbles:true,pointerId:13,clientX:overlayRect.left+120,clientY:overlayRect.top+120}));
+      document.dispatchEvent(new PointerEvent('pointerup',{bubbles:true,pointerId:13,clientX:overlayRect.left+120,clientY:overlayRect.top+120}));
+      await wait(30);
+      if(api.eraseRegionsForPage(page).length!==1)return fail('drag erase region was not stored');
+      if(page.cropLeftRatio||page.cropTopRatio||page.cropRightRatio||page.cropBottomRatio)return fail('drag erase incorrectly changed crop geometry');
+
+      const settings=api.enrichSettings({pages:[{file_index:0,page_index:0}]});
+      if(!Array.isArray(settings.pages[0].erase_regions)||settings.pages[0].erase_regions.length!==1)return fail('erase region missing from PDF save request');
+
+      api.setEraseRegions(page,[{x0:.4,y0:.4,x1:.6,y1:.6}]);
+      const painted=api.paintErasesOnSource(page,source);
+      const center=painted.getContext('2d').getImageData(50,50,1,1).data;
+      const corner=painted.getContext('2d').getImageData(10,10,1,1).data;
+      if(center[0]<245||center[1]<245||center[2]<245)return fail('preview white-out did not erase center area');
+      if(!(corner[0]>150&&corner[1]<80&&corner[2]<80))return fail('preview white-out damaged untouched area');
+
+      const eraseLabel=document.getElementById('pdfDragCropAutoFitV1').textContent;
+      if(!eraseLabel.includes('지우기'))return fail('drag crop UI was not repurposed as erase tool');
+      if(!document.getElementById('pdfDragEraseResetV2'))return fail('erase reset control missing');
+      if(previewRefreshes<2)return fail('direct edits did not request preview refresh');
+
+      document.documentElement.dataset.pdfDirectPageEditSmoke='pass';
+      result.textContent='PASS: corners resize, edges crop, rectangle drag white-outs dirty areas, and erase regions are preserved for final PDF output';
+    })().catch(error=>console.error(error));
+  </script>
+</body>
+</html>
