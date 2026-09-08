@@ -1,7 +1,7 @@
 (function(){
   'use strict';
-  if(window.__programStudioBootGuardV4)return;
-  window.__programStudioBootGuardV4=true;
+  if(window.__programStudioBootGuardV5)return;
+  window.__programStudioBootGuardV5=true;
 
   const root=document.documentElement;
   const path=String(location.pathname||'').replace(/\\/g,'/').replace(/\/+$/,'');
@@ -20,6 +20,7 @@
 
   const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
   function isPdfPrintEditor(){return ['/tools/pdf-editor.html','/pdf-editor','/pdf-editor/index.html'].some(item=>path.endsWith(item));}
+  function isHome(){return path===''||path==='/index.html';}
 
   function loadRuntimeScript(id,src,enabled){
     if(!enabled)return null;
@@ -35,6 +36,7 @@
     return script;
   }
 
+  loadRuntimeScript('pdfSuiteHomeLauncherScriptV1','/js/pdf-suite-home-launcher.js?v=20260908-1',isHome());
   loadRuntimeScript('pdfPrintWorkflowFocusScriptV1','/js/pdf-editor/print-workflow-focus.js?v=20260827-1',isPdfPrintEditor());
   // Prime the current preflight presentation behind the boot overlay so the
   // legacy workspace never flashes before clean-workspace-v2 takes ownership.
