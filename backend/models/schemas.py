@@ -22,6 +22,11 @@ class PageInfo(BaseModel):
     excluded: bool = False
     page_type: Literal["normal", "divider", "blank"] = "normal"
     split_side: Optional[Literal["left", "right"]] = None
+    # Per-page placement adjustment inside the assigned N-up cell. These values
+    # are intentionally bounded because they are user-controlled render geometry.
+    content_scale: float = Field(default=1.0, ge=0.5, le=3.0)
+    offset_x_mm: float = Field(default=0.0, ge=-200.0, le=200.0)
+    offset_y_mm: float = Field(default=0.0, ge=-200.0, le=200.0)
     # Allows 30 bounded extra text layers plus their compact metadata.
     divider_content: Optional[str] = Field(default=None, max_length=50_000)
     divider_style: Optional[Literal["simple", "lines", "band"]] = "simple"
