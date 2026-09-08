@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="ko" data-pdf-editor-profile="advanced">
+<head>
+  <meta charset="utf-8">
+  <title>PDF advanced workspace stability smoke</title>
+  <style>
+    html,body{margin:0;height:100%}
+    .app{display:grid;grid-template-columns:360px 1fr;height:760px}
+    aside{overflow:auto}
+    main{display:flex;flex-direction:column;min-width:0;min-height:0}
+    .preview-shell{display:flex;flex-direction:column;flex:1;min-height:0}
+    #previewScroll{height:300px;overflow:auto;position:relative}
+    .preview-row{display:flex;justify-content:center}
+    .page-preview{width:320px;height:500px;margin:12px auto;background:#fff;position:relative}
+    .pdf-nup-adjust-hit{position:absolute;inset:0}
+    .sec{display:block}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside>
+      <div class="sub">PDF 업로드 · 페이지 편집</div>
+      <div class="sec">
+        <div class="sec-head" data-sec="upload"><span class="sec-title">파일 업로드</span></div>
+        <div id="sb-upload" class="sec-body">업로드 영역</div>
+      </div>
+      <div class="sec" id="precisionSection">
+        <div class="sec-head" data-sec="nup"><span class="sec-title">페이지 위치·크기 보정</span></div>
+        <div id="sb-nup" class="sec-body">
+          <div id="pdfNupPageAdjustPanelV1"></div>
+        </div>
+      </div>
+      <div class="sec" id="paperSection">
+        <div class="sec-head" data-sec="paper"><span class="sec-title">용지 설정</span></div>
+        <div id="sb-paper" class="sec-body"></div>
+      </div>
+      <div class="sec" id="editSection">
+        <div class="sec-head" data-sec="edit"><span class="sec-title">문서 편집</span></div>
+        <div id="sb-edit" class="sec-body"></div>
+      </div>
+      <div class="sec" id="thumbSection">
+        <div class="sec-head" data-sec="pages"><span class="sec-title">페이지 목록</span></div>
+        <div id="sb-pages" class="sec-body">
+          <div id="thumbArea">
+            <div class="thumb-item" data-id="p1"><div class="thumb-wrap" data-sidebar-current="true"><span class="thumb-num">1</span></div></div>
+            <div class="thumb-item" data-id="p2"><div class="thumb-wrap"><span class="thumb-num">2</span></div></div>
+          </div>
+          <div class="thumb-hint">페이지 목록</div>
+        </div>
+      </div>
+      <button id="pdfPageRotateLeftV1" type="button">왼쪽</button>
+      <button id="pdfPageRotateRightV1" type="button">오른쪽</button>
+      <button id="pdfPageCropToggleV1" type="button" data-active="false">자르기</button>
+    </aside>
+    <main>
+      <div id="statusBar" style="display:none"><span>상태</span></div>
+      <div class="preview-shell">
+        <div class="preview-info">
+          <select id="perRowSelect"><option value="1">1</option><option value="2" selected>2</option></select>
+          <span></span>
+        </div>
+        <div id="previewScroll">
+          <div class="preview-row"><div class="page-preview" data-output-index="0"><div class="pdf-nup-adjust-hit" data-page-id="p1" data-selected="true"></div></div></div>
+          <div class="preview-row"><div class="page-preview" data-output-index="1"><div class="pdf-nup-adjust-hit" data-page-id="p2" data-selected="false"></div></div></div>
+        </div>
+      </div>
+    </main>
+  </div>
+  <pre id="result">RUNNING</pre>
+  <script>
+    var nup=2;
+    var _previewPerRow=2;
+    var parsedPages=[{id:'p1',excluded:false},{id:'p2',excluded:false}];
+    var rotateLeftCount=0;
+    var rotateRightCount=0;
+    var cropCount=0;
+    document.getElementById('pdfPageRotateLeftV1').addEventListener('click',()=>rotateLeftCount++);
+    document.getElementById('pdfPageRotateRightV1').addEventListener('click',()=>rotateRightCount++);
+    document.getElementById('pdfPageCropToggleV1').addEventListener('click',event=>{
+      cropCount++;
+      event.currentTarget.dataset.active=event.currentTarget.dataset.active==='true'?'false':'true';
+    });
+
+    window.PdfNupPageAdjust={
+      selectPage(page){
+        document.querySelectorAll('.pdf-nup-adjust-hit').forEach(hit=>hit.dataset.selected=String(hit.dataset.pageId===String(page.id)));
+        document.querySelectorAll('#thumbArea .thumb-wrap').forEach(wrap=>{
+          if(wrap.closest('.thumb-item')?.dataset.id===String(page.id))wrap.dataset.sidebarCurrent='true';
+          else delete wrap.dataset.sidebarCurrent;
+        });
+      }
+    };
+    window.PdfPrecisionEditTools={history:{undoCount:1,redoCount:1,undo(){window.undoCalled=true;return true;},redo(){window.redoCalled=true;return true;}}};
+
+    window.showStatus=function(message,type){
+      const status=document.getElementById('statusBar');
+      status.style.display='flex';
+      status.querySelector('span').textContent=message||'';
+    };
+    window.hideStatus=function(){document.getElementById('statusBar').style.display='none';};
+
+    window.displayPreview=function(pages){
+      const scroll=document.getElementById('previewScroll');
+      scroll.innerHTML='';
+      scroll.scrollTop=0;
+      pages.forEach((page,index)=>{
+        const row=document.createElement('div');
+        row.className='preview-row';
+        const wrap=document.createElement('div');
+        wrap.className='page-preview';
+        wrap.dataset.outputIndex=String(index);
+        const hit=document.createElement('div');
+        hit.className='pdf-nup-adjust-hit';
+        hit.dataset.pageId=String(page.id);
+        hit.dataset.selected=String(page.id==='p1');
+        wrap.appendChild(hit);
+        row.appendChild(wrap);
+        scroll.appendChild(row);
+      });
+    };
+  </script>
+  <script src="/js/pdf-editor/advanced-workspace-ux.js"></script>
+  <script>
+    (async()=>{
+      const result=document.getElementById('result');
+      const fail=message=>{
+        document.documentElement.dataset.pdfAdvancedWorkspaceStabilitySmoke='fail';
+        result.textContent='FAIL: '+message;
+        throw new Error(message);
+      };
+      const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+      await wait(140);
+
+      const api=window.PdfEditorAdvancedWorkspaceUX;
+      if(!api||api.stage!=='stable-single-page-workspace-v1')return fail('stable workspace API missing');
+      if(nup!==1)return fail('advanced workspace did not force 1-up');
+      if(_previewPerRow!==1)return fail('advanced workspace did not force one page per row');
+      const perRow=document.getElementById('perRowSelect');
+      if(perRow.value!=='1'||!perRow.disabled)return fail('per-row selector was not locked to one page');
+      if(!document.getElementById('paperSection').hidden)return fail('paper section still visible');
+      if(!document.getElementById('editSection').hidden)return fail('document decoration section still visible');
+      if(document.querySelector('[data-sec="nup"] .sec-title').textContent!=='페이지 편집')return fail('precision section was not simplified');
+      if(!document.getElementById('pdfAdvancedQuickBarV1'))return fail('quick edit toolbar missing');
+      if(getComputedStyle(document.getElementById('thumbArea')).maxHeight!=='136px')return fail('page list does not have a bounded scroll area');
+
+      // Status changes must not change the occupied main-workspace height.
+      const status=document.getElementById('statusBar');
+      const beforeHeight=status.getBoundingClientRect().height;
+      showStatus('미리보기 생성 중...');
+      await wait(20);
+      const visibleHeight=status.getBoundingClientRect().height;
+      if(status.dataset.advancedVisible!=='1')return fail('status did not become visible through stable wrapper');
+      hideStatus();
+      await wait(20);
+      const hiddenHeight=status.getBoundingClientRect().height;
+      if(beforeHeight!==visibleHeight||visibleHeight!==hiddenHeight||hiddenHeight<30)return fail('status visibility still changes workspace height');
+      if(getComputedStyle(status).visibility!=='hidden')return fail('hidden status still consumes visual attention');
+
+      // A full DOM rebuild must restore the same viewport instead of jumping to top.
+      const scroll=document.getElementById('previewScroll');
+      scroll.scrollTop=250;
+      const topBefore=scroll.scrollTop;
+      displayPreview(parsedPages,true);
+      await wait(360);
+      const topAfter=scroll.scrollTop;
+      if(topBefore<150)return fail('smoke setup did not create a scrolled viewport');
+      if(Math.abs(topAfter-topBefore)>4)return fail(`preview rebuild moved viewport (${topBefore} -> ${topAfter})`);
+      if(document.documentElement.dataset.pdfAdvancedViewportRestored!=='1')return fail('viewport restoration marker missing');
+
+      // Quick actions must proxy the existing editing controls/history instead of duplicating logic.
+      document.getElementById('pdfAdvancedRotateLeftV1').click();
+      document.getElementById('pdfAdvancedRotateRightV1').click();
+      document.getElementById('pdfAdvancedCropV1').click();
+      document.getElementById('pdfAdvancedUndoV1').click();
+      document.getElementById('pdfAdvancedRedoV1').click();
+      if(rotateLeftCount!==1||rotateRightCount!==1||cropCount!==1)return fail('quick toolbar did not proxy existing edit buttons');
+      if(!window.undoCalled||!window.redoCalled)return fail('quick toolbar history actions failed');
+
+      document.getElementById('pdfAdvancedNextPageV1').click();
+      await wait(160);
+      if(!document.querySelector('.pdf-nup-adjust-hit[data-page-id="p2"]')?.matches('[data-selected="true"]'))return fail('next-page navigation did not select page 2');
+
+      document.documentElement.dataset.pdfAdvancedWorkspaceStabilitySmoke='pass';
+      result.textContent='PASS: advanced PDF workspace keeps one-page editing, bounded navigation, fixed status height, stable viewport and proxied quick actions';
+    })().catch(error=>console.error(error));
+  </script>
+</body>
+</html>
