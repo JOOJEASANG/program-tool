@@ -12,6 +12,21 @@ class NupValue(int, Enum):
     nine = 9
 
 
+class PageEraseRegion(BaseModel):
+    """Normalized source-page rectangle visually covered with opaque white."""
+
+    x0: float = Field(ge=0.0, le=1.0)
+    y0: float = Field(ge=0.0, le=1.0)
+    x1: float = Field(ge=0.0, le=1.0)
+    y1: float = Field(ge=0.0, le=1.0)
+
+    @model_validator(mode="after")
+    def validate_region(self):
+        if self.x1 <= self.x0 or self.y1 <= self.y0:
+            raise ValueError("지우기 영역은 양의 폭과 높이를 가져야 합니다")
+        return self
+
+
 class PageInfo(BaseModel):
     file_index: int = Field(ge=0, le=100_000)
     page_index: int = Field(ge=0, le=1_000_000)
@@ -33,6 +48,10 @@ class PageInfo(BaseModel):
     crop_top_ratio: float = Field(default=0.0, ge=0.0, le=0.90)
     crop_right_ratio: float = Field(default=0.0, ge=0.0, le=0.90)
     crop_bottom_ratio: float = Field(default=0.0, ge=0.0, le=0.90)
+    # Visual cleanup rectangles are stored in normalized source-page coordinates
+    # before crop/rotation so they follow the page through later direct edits.
+    # This is a white-out convenience feature, not secure redaction.
+    erase_regions: list[PageEraseRegion] = Field(default_factory=list, max_length=40)
     # Per-page placement adjustment inside the assigned N-up cell. These values
     # are intentionally bounded because they are user-controlled render geometry.
     content_scale: float = Field(default=1.0, ge=0.5, le=3.0)
