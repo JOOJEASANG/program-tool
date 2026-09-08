@@ -84,6 +84,13 @@
     return typeof loader==='function' ? loader(id,src) : fallbackLoad(id,src);
   }
 
+  function loadPageTransformEdit(){
+    const id='pdfPageTransformEditScriptV1';
+    const src='/js/pdf-editor/page-transform-edit.js?v=20260908-1';
+    const loader=context().load;
+    return typeof loader==='function' ? loader(id,src) : fallbackLoad(id,src);
+  }
+
   function loadNupDirectPreviewEdit(){
     const id='pdfNupDirectPreviewEditScriptV1';
     const src='/js/pdf-editor/nup-direct-preview-edit.js?v=20260908-1';
@@ -94,6 +101,13 @@
   function loadEditorInteractionPolish(){
     const id='pdfEditorInteractionPolishScriptV1';
     const src='/js/pdf-editor/editor-interaction-polish.js?v=20260908-1';
+    const loader=context().load;
+    return typeof loader==='function' ? loader(id,src) : fallbackLoad(id,src);
+  }
+
+  function loadOrientationScaleRegression(){
+    const id='pdfOrientationScaleRegressionScriptV1';
+    const src='/js/pdf-editor/orientation-scale-regression-fix.js?v=20260908-1';
     const loader=context().load;
     return typeof loader==='function' ? loader(id,src) : fallbackLoad(id,src);
   }
@@ -113,8 +127,10 @@
       .then(()=>loadPreviewZoomPersistence())
       .then(()=>loadNupInteractionStability())
       .then(()=>loadNupPageAdjust())
+      .then(()=>loadPageTransformEdit())
       .then(()=>loadNupDirectPreviewEdit())
       .then(()=>loadEditorInteractionPolish())
+      .then(()=>loadOrientationScaleRegression())
       .then(()=>{
         document.documentElement.dataset.pdfCoreRuntime='1';
         return true;

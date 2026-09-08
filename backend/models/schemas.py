@@ -16,12 +16,20 @@ class PageInfo(BaseModel):
     file_index: int = Field(ge=0, le=100_000)
     page_index: int = Field(ge=0, le=1_000_000)
     rotation: Literal[0, 90, 180, 270] = 0
+    # Keep legacy auto-fit rotation unless the user explicitly rotates a page.
+    rotation_locked: bool = False
     nup_override: Optional[NupValue] = None
     nup_disabled: bool = False
     group_break: bool = False
     excluded: bool = False
     page_type: Literal["normal", "divider", "blank"] = "normal"
     split_side: Optional[Literal["left", "right"]] = None
+    # Non-destructive crop ratios are measured from the visible source region
+    # before rotation. They remain stable if the page is rotated again later.
+    crop_left_ratio: float = Field(default=0.0, ge=0.0, le=0.90)
+    crop_top_ratio: float = Field(default=0.0, ge=0.0, le=0.90)
+    crop_right_ratio: float = Field(default=0.0, ge=0.0, le=0.90)
+    crop_bottom_ratio: float = Field(default=0.0, ge=0.0, le=0.90)
     # Per-page placement adjustment inside the assigned N-up cell. These values
     # are intentionally bounded because they are user-controlled render geometry.
     content_scale: float = Field(default=1.0, ge=0.5, le=3.0)
@@ -30,6 +38,14 @@ class PageInfo(BaseModel):
     # Allows 30 bounded extra text layers plus their compact metadata.
     divider_content: Optional[str] = Field(default=None, max_length=50_000)
     divider_style: Optional[Literal["simple", "lines", "band"]] = "simple"
+
+    @model_validator(mode="after")
+    def validate_crop_region(self):
+        if self.crop_left_ratio + self.crop_right_ratio >= 0.95:
+            raise ValueError("좌우 자르기 합계는 페이지 폭의 95% 미만이어야 합니다")
+        if self.crop_top_ratio + self.crop_bottom_ratio >= 0.95:
+            raise ValueError("상하 자르기 합계는 페이지 높이의 95% 미만이어야 합니다")
+        return self
 
 
 class WatermarkSettings(BaseModel):

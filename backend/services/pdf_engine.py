@@ -185,6 +185,55 @@ def _page_has_placement_adjustment(page_info) -> bool:
     )
 
 
+def _page_clip_rect(src_rect: fitz.Rect, page_info) -> fitz.Rect:
+    """Resolve split + non-destructive crop before rotation and placement."""
+    base = fitz.Rect(src_rect)
+    split_side = getattr(page_info, "split_side", None)
+    if split_side in {"left", "right"}:
+        midpoint = base.x0 + base.width / 2
+        base = fitz.Rect(
+            base.x0 if split_side == "left" else midpoint,
+            base.y0,
+            midpoint if split_side == "left" else base.x1,
+            base.y1,
+        )
+
+    left = float(getattr(page_info, "crop_left_ratio", 0.0) or 0.0)
+    top = float(getattr(page_info, "crop_top_ratio", 0.0) or 0.0)
+    right = float(getattr(page_info, "crop_right_ratio", 0.0) or 0.0)
+    bottom = float(getattr(page_info, "crop_bottom_ratio", 0.0) or 0.0)
+    width = base.width
+    height = base.height
+    clip = fitz.Rect(
+        base.x0 + width * left,
+        base.y0 + height * top,
+        base.x1 - width * right,
+        base.y1 - height * bottom,
+    )
+    if clip.width <= 1e-6 or clip.height <= 1e-6:
+        return base
+    return clip
+
+
+def _resolve_page_rotation(
+    page_info,
+    cell_w: float,
+    cell_h: float,
+    clip_rect: fitz.Rect,
+) -> int:
+    """Use the exact user rotation once locked; otherwise keep legacy auto-fit."""
+    requested = int(getattr(page_info, "rotation", 0) or 0) % 360
+    if bool(getattr(page_info, "rotation_locked", False)):
+        return requested
+    return pdf_ops._best_fit_rotation(
+        cell_w,
+        cell_h,
+        clip_rect.width,
+        clip_rect.height,
+        requested,
+    )
+
+
 def _show_source_page(
     target_page: fitz.Page,
     target_rect: fitz.Rect,
@@ -274,23 +323,19 @@ def _render_source_page(
 ) -> None:
     src_doc = src_docs[page_info.file_index]
     src_page = src_doc[page_info.page_index]
-    src_rect = src_page.rect
-    split_side = getattr(page_info, "split_side", None)
-    clip_rect = src_rect
-    if split_side in {"left", "right"}:
-        midpoint = src_rect.x0 + src_rect.width / 2
-        clip_rect = fitz.Rect(
-            src_rect.x0 if split_side == "left" else midpoint,
-            src_rect.y0,
-            midpoint if split_side == "left" else src_rect.x1,
-            src_rect.y1,
-        )
-    rotation = pdf_ops._best_fit_rotation(
+    # The browser editor intentionally renders every source canvas at rotation 0
+    # and then applies user/auto rotation itself. PyMuPDF's page.rect, however,
+    # includes the PDF page's intrinsic /Rotate metadata while show_pdf_page does
+    # not apply that metadata the same way. Normalize it here so 1-up portrait
+    # previews and downloaded vector PDFs use the exact same source geometry.
+    if int(getattr(src_page, "rotation", 0) or 0) % 360:
+        src_page.set_rotation(0)
+    clip_rect = _page_clip_rect(src_page.rect, page_info)
+    rotation = _resolve_page_rotation(
+        page_info,
         cell_w,
         cell_h,
-        clip_rect.width,
-        clip_rect.height,
-        page_info.rotation,
+        clip_rect,
     )
     fit_rect = pdf_ops._calc_fit_rect(
         cell_rect,
