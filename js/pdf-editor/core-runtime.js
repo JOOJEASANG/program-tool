@@ -229,7 +229,7 @@
 
   function loadDragCropAutoFit(){
     const id='pdfDragCropAutoFitScriptV1';
-    const src='/js/pdf-editor/drag-crop-autofit.js?v=20260908-1';
+    const src='/js/pdf-editor/drag-crop-autofit.js?v=20260908-2';
     const loader=context().load;
     return typeof loader==='function' ? loader(id,src) : fallbackLoad(id,src);
   }
