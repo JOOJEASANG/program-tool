@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="ko" data-pdf-orientation-scale-regression-host="1">
+<head>
+  <meta charset="utf-8">
+  <title>PDF orientation scale regression smoke</title>
+  <style>
+    body{margin:0;font-family:sans-serif}
+    #previewScroll{position:relative;width:420px;height:520px;padding:20px;overflow:auto}
+    .page-preview{position:relative;width:320px;height:420px}
+    .page-preview>canvas{position:absolute;inset:0;width:300px;height:420px}
+    .pdf-nup-adjust-hit{position:absolute;left:50px;top:60px;width:200px;height:280px;border:1px solid #2563eb}
+    .pdf-nup-adjust-handle{position:absolute;right:-7px;bottom:-7px;width:14px;height:14px;background:#2563eb}
+  </style>
+</head>
+<body>
+  <input id="pdfNupAdjustScale" value="100">
+  <input id="pdfNupAdjustScaleRange" value="100">
+  <input id="pdfNupAdjustState" value="기본">
+  <span id="pdfNupAdjustBadge">개별</span>
+  <div id="previewScroll">
+    <div class="page-preview" data-output-index="0">
+      <canvas width="300" height="420"></canvas>
+      <div class="pdf-nup-adjust-hit" data-page-id="1" data-selected="true">
+        <span class="pdf-nup-adjust-handle"></span>
+      </div>
+    </div>
+  </div>
+  <pre id="result">RUNNING</pre>
+
+  <script>
+    const pdfToken={};
+    window.parsedPages=[{
+      id:'1',pageType:'pdf',pdfPage:pdfToken,rotation:0,pageRotationLocked:false,
+      nupScale:1,nupOffsetX:0,nupOffsetY:0,
+    }];
+    window.__renderRotations=[];
+    window.renderPdfPage=async function(pdfPage,scale,rotation){
+      window.__renderRotations.push(Number(rotation||0));
+      const canvas=document.createElement('canvas');
+      const rotated=rotation===90||rotation===270;
+      canvas.width=rotated?100:200;
+      canvas.height=rotated?200:100;
+      return canvas;
+    };
+    window.PdfNupPageAdjust={
+      valuesForPage(page){return{scale:Number(page.nupScale||1),offsetX:Number(page.nupOffsetX||0),offsetY:Number(page.nupOffsetY||0)};},
+      setValues(page,patch){
+        if(Object.prototype.hasOwnProperty.call(patch,'scale'))page.nupScale=Math.max(.5,Math.min(3,Number(patch.scale)||1));
+      },
+      selectPage(){}
+    };
+    window.apiProcessPdf=async()=>true;
+    window.collectEditorState=()=>({});
+    window.loadEditorSession=async()=>true;
+  </script>
+  <script src="/js/pdf-editor/orientation-scale-regression-fix.js?v=20260908-1"></script>
+  <script>
+    (async()=>{
+      const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+      const fail=message=>{
+        document.documentElement.dataset.pdfOrientationScaleRegressionSmoke='fail';
+        document.getElementById('result').textContent='FAIL: '+message;
+        throw new Error(message);
+      };
+      await sleep(180);
+      const api=window.PdfOrientationScaleRegression;
+      if(!api)return fail('regression API missing');
+      if(api.stage!=='canonical-rotation-outward-scale-v1')return fail('regression stage missing');
+
+      const page=window.parsedPages[0];
+      page.rotation=90;
+      const rotatedCanvas=await window.renderPdfPage(pdfToken,.9,90);
+      if(window.__renderRotations.at(-1)!==0)return fail('legacy rotation did not render from canonical rotation 0');
+      if(page.pageRotationLocked!==true)return fail('legacy rotate action was not locked as exact user intent');
+      if(rotatedCanvas.dataset.pdfCanonicalSourceRotation!=='0')return fail('canonical source marker missing');
+
+      page.rotation=0;
+      await window.renderPdfPage(pdfToken,.9,0);
+      if(page.pageRotationLocked!==false)return fail('reverse/undo rotation did not restore previous unlocked state');
+
+      page.rotation=90;
+      await window.renderPdfPage(pdfToken,.9,90);
+      if(page.pageRotationLocked!==true)return fail('redo rotation did not restore exact lock');
+
+      const outward=api.projectedScale(1,0,0,10,10,25,25);
+      const inward=api.projectedScale(1,0,0,10,10,4,4);
+      if(outward<=1.05)return fail(`outward projection did not enlarge: ${outward}`);
+      if(inward>=.95)return fail(`inward projection did not shrink: ${inward}`);
+
+      const hit=document.querySelector('.pdf-nup-adjust-hit');
+      const handle=hit.querySelector('.pdf-nup-adjust-handle');
+      const rect=hit.getBoundingClientRect();
+      let pointerId=81;
+      page.nupScale=1;
+      handle.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,pointerId,button:0,clientX:rect.right,clientY:rect.bottom}));
+      document.dispatchEvent(new PointerEvent('pointermove',{bubbles:true,pointerId,clientX:rect.right+32,clientY:rect.bottom+32}));
+      document.dispatchEvent(new PointerEvent('pointerup',{bubbles:true,pointerId,clientX:rect.right+32,clientY:rect.bottom+32}));
+      if(page.nupScale<=1.05)return fail(`actual outward corner drag did not enlarge: ${page.nupScale}`);
+
+      pointerId=82;
+      page.nupScale=1;
+      handle.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,pointerId,button:0,clientX:rect.right,clientY:rect.bottom}));
+      document.dispatchEvent(new PointerEvent('pointermove',{bubbles:true,pointerId,clientX:rect.right-32,clientY:rect.bottom-32}));
+      document.dispatchEvent(new PointerEvent('pointerup',{bubbles:true,pointerId,clientX:rect.right-32,clientY:rect.bottom-32}));
+      if(page.nupScale>=.95)return fail(`actual inward corner drag did not shrink: ${page.nupScale}`);
+
+      document.documentElement.dataset.pdfOrientationScaleRegressionSmoke='pass';
+      document.getElementById('result').textContent='PASS: legacy rotation stays canonical and corner resize is outward-grow inward-shrink';
+    })().catch(error=>console.error(error));
+  </script>
+</body>
+</html>
