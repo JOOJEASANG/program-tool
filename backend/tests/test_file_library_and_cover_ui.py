@@ -38,8 +38,8 @@ def test_pdf_download_remains_local_and_large_preview_is_explained():
     upload = PDF_UPLOAD.read_text(encoding="utf-8")
     assert "a.download = filename" in html
     assert "showStatus('PDF 저장 완료!'" in html
-    assert "대용량 PDF라 자동 미리보기를 줄였습니다" in upload
+    assert "대용량 PDF라 페이지를 가볍게 등록하고 선택한 출력면 주변만 실제 렌더링합니다." in upload
+    assert "최종 저장은 원본 품질로 처리됩니다." in upload
     assert "EXTREME_PREVIEW_OUTPUT_LIMIT" in upload
     assert "pdf_history" not in html
-
 
