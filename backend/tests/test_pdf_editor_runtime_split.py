@@ -5,6 +5,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 CORE = ROOT / "js" / "pdf-editor" / "core-runtime.js"
 ADVANCED = ROOT / "js" / "pdf-editor" / "advanced-runtime.js"
+RUNTIME_BOOT = ROOT / "js" / "sw-register.js"
 FIREBASE = ROOT / "firebase.json"
 
 
@@ -63,3 +64,13 @@ def test_firebase_exposes_advanced_editor_as_separate_route_to_shared_shell():
 
     assert ("/pdf-editor-advanced", "/pdf-editor/index.html") in pairs
     assert ("/pdf-editor-advanced/**", "/pdf-editor/index.html") in pairs
+
+
+def test_runtime_bootstrap_recognizes_advanced_editor_base_and_nested_routes():
+    source = RUNTIME_BOOT.read_text(encoding="utf-8")
+
+    assert "function isPdfEditorPath()" in source
+    assert "'/pdf-editor-advanced'" in source
+    assert "currentPath.startsWith('/pdf-editor-advanced/')" in source
+    assert "if(isPdfEditorPath())tasks.push(loadPdfEditorRuntime());" in source
+    assert "return isPdfEditorPath()||isPath(" in source
