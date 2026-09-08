@@ -105,6 +105,13 @@
     return typeof loader==='function' ? loader(id,src) : fallbackLoad(id,src);
   }
 
+  function loadOrientationScaleRegression(){
+    const id='pdfOrientationScaleRegressionScriptV1';
+    const src='/js/pdf-editor/orientation-scale-regression-fix.js?v=20260908-1';
+    const loader=context().load;
+    return typeof loader==='function' ? loader(id,src) : fallbackLoad(id,src);
+  }
+
   function loadAll(){
     ensureBookletStylesheet();
     installUploadOrderModeSafety();
@@ -123,6 +130,7 @@
       .then(()=>loadPageTransformEdit())
       .then(()=>loadNupDirectPreviewEdit())
       .then(()=>loadEditorInteractionPolish())
+      .then(()=>loadOrientationScaleRegression())
       .then(()=>{
         document.documentElement.dataset.pdfCoreRuntime='1';
         return true;
