@@ -109,6 +109,12 @@
       if(window.__hydrationRotation!==0)return fail('lightweight hydration was not canonical rotation 0');
       if(!window.__hydrationDestroyed)return fail('lightweight source document was not released');
 
+      const originalSafeRender=window.PdfImportTransactionSafety.safeRenderPdfPage;
+      window.PdfImportTransactionSafety.safeRenderPdfPage=async()=>lightweightPlaceholder;
+      const rejected=await api.resolveDisplaySource({...lightweightPage,id:'3',page_index:4});
+      window.PdfImportTransactionSafety.safeRenderPdfPage=originalSafeRender;
+      if(rejected)return fail('placeholder fallback was accepted as crop source');
+
       const composed=api.composeVisualCrop(page,{left:.25,top:.20,right:.75,bottom:.80});
       if(!close(composed.left,.275)||!close(composed.top,.24)||!close(composed.right,.275)||!close(composed.bottom,.34))return fail('existing crop composition is wrong '+JSON.stringify(composed));
       const patch=api.sourcePatchFromVisual(page,composed);
@@ -121,6 +127,17 @@
       if(!overlay||overlay.dataset.visible!=='true')return fail('selection overlay not visible');
       const rect=overlay.getBoundingClientRect();
       if(rect.width<20||rect.height<20)return fail('selection overlay has no geometry');
+
+      const beforeCancel=[page.cropLeftRatio,page.cropTopRatio,page.cropRightRatio,page.cropBottomRatio,page.nupScale,page.nupOffsetX,page.nupOffsetY].join('|');
+      const cancelPointerId=90;
+      overlay.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,pointerId:cancelPointerId,button:0,clientX:rect.left+rect.width*.20,clientY:rect.top+rect.height*.20}));
+      document.dispatchEvent(new PointerEvent('pointermove',{bubbles:true,pointerId:cancelPointerId,clientX:rect.left+rect.width*.70,clientY:rect.top+rect.height*.70}));
+      document.dispatchEvent(new PointerEvent('pointercancel',{bubbles:true,pointerId:cancelPointerId,clientX:rect.left+rect.width*.70,clientY:rect.top+rect.height*.70}));
+      await sleep(20);
+      const afterCancel=[page.cropLeftRatio,page.cropTopRatio,page.cropRightRatio,page.cropBottomRatio,page.nupScale,page.nupOffsetX,page.nupOffsetY].join('|');
+      if(beforeCancel!==afterCancel)return fail('pointercancel applied an unintended crop');
+      if(!api.isActive())return fail('pointercancel exited selection mode instead of allowing retry');
+
       const pointerId=91;
       overlay.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,pointerId,button:0,clientX:rect.left+rect.width*.25,clientY:rect.top+rect.height*.20}));
       document.dispatchEvent(new PointerEvent('pointermove',{bubbles:true,pointerId,clientX:rect.left+rect.width*.75,clientY:rect.top+rect.height*.80}));
