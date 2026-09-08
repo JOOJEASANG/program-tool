@@ -26,11 +26,32 @@
         const pageId=String(event?.detail?.pageId||'');
         if(!pageId)return;
         const page=editorPages().find(item=>String(item?.id)===pageId);
-        if(page&&typeof window.PdfNupPageAdjust?.selectPage==='function'){
+        if(!page)return;
+
+        // A drag crop changes only the visible region. It must never silently
+        // change a portrait page to landscape (or vice versa) just because the
+        // cropped rectangle would fit the paper better after a 90-degree turn.
+        // Lock the page's current quarter-turn immediately after the crop so
+        // both the browser preview and backend vector export preserve it.
+        const transform=window.PdfPageTransformEdit;
+        if(typeof transform?.setValues==='function'){
+          transform.setValues(page,{rotationLocked:true});
+          document.documentElement.dataset.pdfAdvancedDragCropOrientationLock='1';
+        }else{
+          page.pageRotationLocked=true;
+          document.documentElement.dataset.pdfAdvancedDragCropOrientationLock='fallback';
+        }
+
+        if(typeof window.PdfNupPageAdjust?.selectPage==='function'){
           window.PdfNupPageAdjust.selectPage(page);
         }
+        if(typeof window.PdfNupPageAdjust?.refresh==='function'){
+          window.PdfNupPageAdjust.refresh();
+        }else if(typeof window.PdfEditorLayoutExport?.refresh==='function'){
+          window.PdfEditorLayoutExport.refresh();
+        }
       }catch(error){
-        console.warn('[pdf-advanced-runtime] drag crop placement panel sync failed',error);
+        console.warn('[pdf-advanced-runtime] drag crop orientation/placement sync failed',error);
       }
     },true);
   }
