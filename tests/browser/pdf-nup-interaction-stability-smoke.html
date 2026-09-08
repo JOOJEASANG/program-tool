@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-pdf-nup-stability-smoke="pending" data-pdf-nup-stability-host="1">
+<html lang="ko" data-pdf-nup-stability-smoke="pending" data-pdf-nup-stability-host="1" data-pdf-preview-zoom-persistence-host="1">
 <head>
   <meta charset="utf-8">
   <title>N-up interaction stability smoke</title>
@@ -14,6 +14,12 @@
   </style>
 </head>
 <body>
+  <div id="zoomControls">
+    <button id="zoomOutBtn" type="button">-</button>
+    <span id="zoomLabel">150%</span>
+    <button id="zoomInBtn" type="button">+</button>
+    <button id="zoomResetBtn" type="button">reset</button>
+  </div>
   <div id="previewScroll">
     <div class="spacer"></div>
     <div class="page-preview" data-output-index="17">
@@ -37,6 +43,27 @@
     window.getSettings=()=>({pw:210,ph:297});
     window.__selectedCalls=0;
     window.__lazyCalls=0;
+    window.__previewZoom=1.5;
+    window.__autoFitCalls=0;
+    window.displayPreview=function(_pages,autoFit=false){
+      if(autoFit){
+        window.__autoFitCalls+=1;
+        window.__previewZoom=1.25;
+      }
+      document.getElementById('zoomLabel').textContent=Math.round(window.__previewZoom*100)+'%';
+      return window.__previewZoom;
+    };
+    document.getElementById('zoomInBtn').addEventListener('click',()=>{
+      window.__previewZoom=2;
+      window.displayPreview([],false);
+    });
+    document.getElementById('zoomOutBtn').addEventListener('click',()=>{
+      window.__previewZoom=1.5;
+      window.displayPreview([],false);
+    });
+    document.getElementById('zoomResetBtn').addEventListener('click',()=>{
+      window.displayPreview([],true);
+    });
     window.PdfNupPageAdjust={
       valuesForPage(page){return{scale:page.nupScale,offsetX:page.nupOffsetX,offsetY:page.nupOffsetY};},
       setValues(page,next){
@@ -50,6 +77,7 @@
       requestRender(){window.__lazyCalls+=1;return Promise.resolve(true);}
     };
   </script>
+  <script src="/js/pdf-editor/preview-zoom-persistence.js?v=smoke"></script>
   <script src="/js/pdf-editor/nup-interaction-stability.js?v=smoke"></script>
   <script>
     setTimeout(async()=>{
@@ -58,6 +86,11 @@
         const hit=document.querySelector('.pdf-nup-adjust-hit');
         let legacyPointerDown=0;
         hit.addEventListener('pointerdown',()=>{legacyPointerDown+=1;});
+
+        document.getElementById('zoomInBtn').click();
+        const pinnedAt200=window.__previewZoom===2
+          && document.getElementById('zoomLabel').textContent==='200%'
+          && window.PdfPreviewZoomPersistence?.isPinned?.()===true;
 
         scroll.scrollTop=130;
         const initialTop=scroll.scrollTop;
@@ -76,6 +109,18 @@
         hit.dispatchEvent(new PointerEvent('pointerup',{bubbles:true,pointerId:11,button:0,clientX:x+35,clientY:y+22}));
         hit.dispatchEvent(new MouseEvent('click',{bubbles:true,button:0,clientX:x+35,clientY:y+22}));
 
+        // Simulate a background/canonical refresh asking for auto-fit after editing.
+        window.displayPreview([],true);
+        const sticky200=window.__previewZoom===2
+          && document.getElementById('zoomLabel').textContent==='200%'
+          && window.__autoFitCalls===0;
+
+        // A user-requested reset is allowed to auto-fit and becomes the new chosen zoom.
+        document.getElementById('zoomResetBtn').click();
+        const explicitReset=window.__autoFitCalls===1
+          && window.__previewZoom===1.25
+          && document.getElementById('zoomLabel').textContent==='125%';
+
         setTimeout(()=>{
           const page=window.parsedPages[0];
           const moved=Math.abs(page.nupOffsetX)>0.1||Math.abs(page.nupOffsetY)>0.1;
@@ -84,13 +129,13 @@
           const lazyBlocked=lazyResult===false&&window.__lazyCalls===0;
           const selectedOnce=window.__selectedCalls===1;
           const unlocked=document.documentElement.dataset.pdfNupInteractionLock!=='1';
-          const pass=moved&&fixed&&legacyBlocked&&lazyBlocked&&selectedOnce&&unlocked;
+          const pass=moved&&fixed&&legacyBlocked&&lazyBlocked&&selectedOnce&&unlocked&&pinnedAt200&&sticky200&&explicitReset;
           document.documentElement.dataset.pdfNupStabilitySmoke=pass?'pass':'fail';
           const out=document.createElement('pre');
           out.id='result';
           out.textContent=pass
-            ?'PASS: N-up mouse edit stays on the same output face and scroll position'
-            :`FAIL moved=${moved} fixed=${fixed} legacy=${legacyPointerDown} lazy=${window.__lazyCalls}/${lazyResult} selected=${window.__selectedCalls} unlocked=${unlocked} top=${scroll.scrollTop}/${initialTop}`;
+            ?'PASS: N-up mouse edit keeps scroll/output face fixed and preserves user-selected 200% preview zoom'
+            :`FAIL moved=${moved} fixed=${fixed} legacy=${legacyPointerDown} lazy=${window.__lazyCalls}/${lazyResult} selected=${window.__selectedCalls} unlocked=${unlocked} pinned200=${pinnedAt200} sticky200=${sticky200} reset=${explicitReset} zoom=${window.__previewZoom} autoFit=${window.__autoFitCalls} top=${scroll.scrollTop}/${initialTop}`;
           document.body.appendChild(out);
         },120);
       }catch(error){
@@ -99,7 +144,7 @@
         out.textContent='FAIL '+(error?.stack||error);
         document.body.appendChild(out);
       }
-    },120);
+    },160);
   </script>
 </body>
 </html>
