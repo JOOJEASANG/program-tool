@@ -175,6 +175,7 @@
   const loadNupInteractionStability=()=>load('pdfNupInteractionStabilityScriptV1','/js/pdf-editor/nup-interaction-stability.js?v=20260908-2');
   const loadNupPageAdjust=()=>load('pdfNupPageAdjustScriptV1','/js/pdf-editor/nup-page-adjust.js?v=20260908-1');
   const loadPageTransformEdit=()=>load('pdfPageTransformEditScriptV1','/js/pdf-editor/page-transform-edit.js?v=20260908-1');
+  const loadDirectPageEdit=()=>load('pdfDirectPageEditScriptV2','/js/pdf-editor/direct-page-edit.js?v=20260909-1');
   const loadDragCropAutoFit=()=>load('pdfDragCropAutoFitScriptV1','/js/pdf-editor/drag-crop-autofit.js?v=20260908-2');
   const loadNupDirectPreviewEdit=()=>load('pdfNupDirectPreviewEditScriptV1','/js/pdf-editor/nup-direct-preview-edit.js?v=20260908-1');
   const loadEditorInteractionPolish=()=>load('pdfEditorInteractionPolishScriptV1','/js/pdf-editor/editor-interaction-polish.js?v=20260908-1');
@@ -192,6 +193,7 @@
       .then(()=>loadNupInteractionStability())
       .then(()=>loadNupPageAdjust())
       .then(()=>loadPageTransformEdit())
+      .then(()=>loadDirectPageEdit())
       .then(()=>loadDragCropAutoFit())
       .then(()=>loadNupDirectPreviewEdit())
       .then(()=>loadEditorInteractionPolish())
@@ -213,7 +215,7 @@
     stage:'pdf-editor-advanced-runtime-v1',
     modules:Object.freeze([
       'preview-zoom-persistence','nup-interaction-stability','nup-page-adjust',
-      'page-transform-edit','drag-crop-autofit','nup-direct-preview-edit',
+      'page-transform-edit','direct-page-edit','drag-crop-autofit','nup-direct-preview-edit',
       'editor-interaction-polish','orientation-scale-regression-fix','precision-edit-tools',
       'advanced-workspace-ux'
     ])
