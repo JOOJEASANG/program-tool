@@ -51,6 +51,7 @@ def _request(**page_values) -> PdfProcessRequest:
 def test_crop_schema_defaults_bounds_and_visible_area_guard():
     page = _request().pages[0]
     assert page.rotation_locked is False
+    assert page.fine_rotation_deg == 0
     assert page.crop_left_ratio == 0
     assert page.crop_top_ratio == 0
     assert page.crop_right_ratio == 0
@@ -59,6 +60,7 @@ def test_crop_schema_defaults_bounds_and_visible_area_guard():
     bounded = _request(
         rotation=270,
         rotation_locked=True,
+        fine_rotation_deg=-2.7,
         crop_left_ratio=0.45,
         crop_right_ratio=0.49,
         crop_top_ratio=0.2,
@@ -66,6 +68,7 @@ def test_crop_schema_defaults_bounds_and_visible_area_guard():
     ).pages[0]
     assert bounded.rotation == 270
     assert bounded.rotation_locked is True
+    assert bounded.fine_rotation_deg == pytest.approx(-2.7)
     assert bounded.crop_left_ratio == pytest.approx(0.45)
 
     with pytest.raises(ValidationError):
@@ -74,6 +77,8 @@ def test_crop_schema_defaults_bounds_and_visible_area_guard():
         _request(crop_left_ratio=0.50, crop_right_ratio=0.45)
     with pytest.raises(ValidationError):
         _request(crop_top_ratio=0.80, crop_bottom_ratio=0.15)
+    with pytest.raises(ValidationError):
+        _request(fine_rotation_deg=181)
 
 
 def test_crop_rect_is_resolved_before_rotation_and_after_split():
@@ -107,6 +112,18 @@ def test_explicit_rotation_lock_prevents_legacy_auto_rotation():
     assert pdf_engine._resolve_page_rotation(locked_270, 100, 300, clip) == 270
 
 
+def test_fine_rotation_is_exact_and_uses_rotated_bounding_box():
+    clip = fitz.Rect(0, 0, 400, 200)
+    page = _request(rotation=90, rotation_locked=False, fine_rotation_deg=2.5).pages[0]
+    assert pdf_engine._resolve_page_rotation(page, 100, 300, clip) == pytest.approx(92.5)
+
+    cell = fitz.Rect(0, 0, 300, 200)
+    fitted = pdf_engine._calc_rotated_fit_rect(cell, 400, 200, 45)
+    assert fitted.width == pytest.approx(200, abs=0.01)
+    assert fitted.height == pytest.approx(200, abs=0.01)
+    assert fitted.x0 == pytest.approx(50, abs=0.01)
+
+
 def test_crop_rotate_scale_move_are_combined_in_final_vector_pdf():
     source = _source_pdf_bytes()
     request = _request(
@@ -127,6 +144,28 @@ def test_crop_rotate_scale_move_are_combined_in_final_vector_pdf():
         assert "LEFT-SIDE" not in text
         assert doc[0].rect.width == pytest.approx(210 * 72 / 25.4, abs=0.2)
         assert doc[0].rect.height == pytest.approx(297 * 72 / 25.4, abs=0.2)
+    finally:
+        doc.close()
+
+
+def test_fine_rotation_preserves_vector_text_in_final_pdf():
+    source = _source_pdf_bytes()
+    request = _request(
+        rotation=0,
+        rotation_locked=True,
+        fine_rotation_deg=3.2,
+        crop_left_ratio=0.05,
+    )
+    result = pdf_engine.process_pdf_bytes([source], request)
+
+    doc = fitz.open(stream=result, filetype="pdf")
+    try:
+        assert doc.page_count == 1
+        text = doc[0].get_text()
+        assert "LEFT-SIDE" in text
+        assert "RIGHT-SIDE" in text
+        words = doc[0].get_text("words")
+        assert any(word[4] == "RIGHT-SIDE" for word in words)
     finally:
         doc.close()
 
@@ -157,6 +196,7 @@ def test_one_up_portrait_export_normalizes_intrinsic_pdf_rotation():
 
 def test_client_exposes_crop_rotate_controls_and_runtime_order():
     source = (ROOT / "js" / "pdf-editor" / "page-transform-edit.js").read_text(encoding="utf-8")
+    precision = (ROOT / "js" / "pdf-editor" / "precision-edit-tools.js").read_text(encoding="utf-8")
     regression = (ROOT / "js" / "pdf-editor" / "orientation-scale-regression-fix.js").read_text(encoding="utf-8")
     engine = (ROOT / "backend" / "services" / "pdf_engine.py").read_text(encoding="utf-8")
     core = (ROOT / "js" / "pdf-editor" / "core-runtime.js").read_text(encoding="utf-8")
@@ -178,6 +218,16 @@ def test_client_exposes_crop_rotate_controls_and_runtime_order():
         assert marker in source
 
     for marker in (
+        "pdf-live-margin-guide",
+        "pdf-free-rotate-handle",
+        "pdfFineRotationDegV1",
+        "fine_rotation_deg",
+        "Ctrl+Z",
+        "live-margin-undo-free-rotation-v1",
+    ):
+        assert marker in precision
+
+    for marker in (
         "pdfCanonicalSourceRotation",
         "page.pageRotationLocked=true",
         "projected=dx*ux+dy*uy",
@@ -187,15 +237,20 @@ def test_client_exposes_crop_rotate_controls_and_runtime_order():
         assert marker in regression
 
     assert "src_page.set_rotation(0)" in engine
+    assert "_calc_rotated_fit_rect" in engine
+    assert "fine_rotation_deg" in engine
 
     module_block = core.split("const MODULES=Object.freeze([", 1)[1].split("]);", 1)[0]
     assert module_block.count("src:'/js/pdf-editor/") == 8
     assert "pdfPageTransformEditScriptV1" in core
     assert "pdfOrientationScaleRegressionScriptV1" in core
+    assert "pdfPrecisionEditToolsScriptV1" in core
     assert ".then(()=>loadNupPageAdjust())" in core
     assert ".then(()=>loadPageTransformEdit())" in core
     assert ".then(()=>loadEditorInteractionPolish())" in core
     assert ".then(()=>loadOrientationScaleRegression())" in core
+    assert ".then(()=>loadPrecisionEditTools())" in core
     assert core.index(".then(()=>loadNupPageAdjust())") < core.index(".then(()=>loadPageTransformEdit())")
     assert core.index(".then(()=>loadPageTransformEdit())") < core.index(".then(()=>loadNupDirectPreviewEdit())")
     assert core.index(".then(()=>loadEditorInteractionPolish())") < core.index(".then(()=>loadOrientationScaleRegression())")
+    assert core.index(".then(()=>loadOrientationScaleRegression())") < core.index(".then(()=>loadPrecisionEditTools())")
