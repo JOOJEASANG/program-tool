@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="ko" data-pdf-page-transform-edit-host="1">
+<head>
+  <meta charset="utf-8">
+  <title>PDF page crop rotate smoke</title>
+  <style>
+    body{margin:0;font-family:sans-serif}
+    #previewScroll{position:relative;width:420px;height:520px;overflow:auto;padding:20px}
+    .page-preview{position:relative;width:300px;height:420px}
+    .page-preview>canvas{position:absolute;left:0;top:0;width:300px;height:420px}
+    .pdf-nup-adjust-hit{position:absolute;left:30px;top:50px;width:240px;height:320px}
+  </style>
+</head>
+<body>
+  <div id="pdfNupPageAdjustPanelV1" class="pdf-nup-adjust-panel">
+    <div class="pdf-nup-adjust-head"><div><strong>보정</strong></div></div>
+    <div class="pdf-nup-adjust-grid"></div>
+    <div class="pdf-nup-adjust-actions">
+      <button id="pdfNupAdjustReset" type="button">선택 페이지 초기화</button>
+      <button id="pdfNupAdjustResetAll" type="button">전체 보정 초기화</button>
+    </div>
+    <div class="pdf-nup-adjust-help"></div>
+  </div>
+  <div id="previewScroll">
+    <div class="page-preview" data-output-index="0">
+      <canvas id="previewCanvas" width="300" height="420"></canvas>
+      <div class="pdf-nup-adjust-hit" data-page-id="1" data-selected="true"></div>
+    </div>
+  </div>
+  <pre id="result">RUNNING</pre>
+
+  <script>
+    const source=document.createElement('canvas');
+    source.width=200;source.height=100;
+    const sourceCtx=source.getContext('2d');
+    sourceCtx.fillStyle='#fff';sourceCtx.fillRect(0,0,200,100);
+    sourceCtx.fillStyle='#111';sourceCtx.fillRect(0,0,100,100);
+    sourceCtx.fillStyle='#ddd';sourceCtx.fillRect(100,0,100,100);
+
+    window.parsedPages=[{
+      id:'1',pageType:'pdf',sourceFile:'smoke.pdf',page_index:0,file_index:0,
+      rotation:0,thumbCanvas:source,nupScale:1,nupOffsetX:0,nupOffsetY:0,
+    }];
+    window.__refreshCalls=0;
+    window.__baseDrawCalls=0;
+    window.__apiSettings=null;
+    window.__savedState=null;
+    window.showBorder=false;
+    window.getPageSrc=page=>page.thumbCanvas;
+    window.drawPageInCell=function(ctx,src,x,y,w,h){
+      window.__baseDrawCalls+=1;
+      ctx.drawImage(src,x,y,w,h);
+    };
+    window.PdfNupPageAdjust={
+      refresh(){window.__refreshCalls+=1;},
+      selectPage(page){
+        document.querySelectorAll('.pdf-nup-adjust-hit').forEach(hit=>hit.dataset.selected=String(hit.dataset.pageId===String(page.id)));
+      },
+    };
+    window.apiProcessPdf=function(files,settings){window.__apiSettings=settings;return Promise.resolve(settings);};
+    window.collectEditorState=function(){return{base:true};};
+    window.loadEditorSession=async function(){return true;};
+  </script>
+  <script src="/js/pdf-editor/page-transform-edit.js?v=20260908-1"></script>
+  <script>
+    (async()=>{
+      const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+      const fail=message=>{
+        document.documentElement.dataset.pdfPageTransformSmoke='fail';
+        document.getElementById('result').textContent='FAIL: '+message;
+        throw new Error(message);
+      };
+      await sleep(700);
+      const api=window.PdfPageTransformEdit;
+      if(!api)return fail('transform API missing');
+      if(!document.getElementById('pdfPageTransformControlsV1'))return fail('controls missing');
+      if(document.querySelector('.pdf-nup-adjust-head strong')?.textContent!=='페이지 위치·크기·회전·잘라내기')return fail('unified panel title missing');
+
+      document.getElementById('pdfPageRotateRightV1').click();
+      await sleep(50);
+      const page=window.parsedPages[0];
+      if(page.rotation!==90||page.pageRotationLocked!==true)return fail('right rotation did not lock at 90');
+      if(api.sourceEdgeForVisual(90,'left')!=='bottom')return fail('visual-to-source crop mapping wrong at 90');
+
+      const transformed=window.getPageSrc(page,1,false);
+      if(transformed.width!==100||transformed.height!==200)return fail(`90 degree source dimensions wrong: ${transformed.width}x${transformed.height}`);
+      if(transformed.dataset.pdfManualRotation!=='1')return fail('manual rotation marker missing');
+
+      const drawTarget=document.createElement('canvas');drawTarget.width=240;drawTarget.height=320;
+      window.__baseDrawCalls=0;
+      window.drawPageInCell(drawTarget.getContext('2d'),transformed,0,0,240,320);
+      if(window.__baseDrawCalls!==0)return fail('manual rotation fell back to auto-rotation renderer');
+
+      const leftInput=document.getElementById('pdfPageCropLeftV1');
+      leftInput.value='10';
+      leftInput.dispatchEvent(new Event('input',{bubbles:true}));
+      await sleep(20);
+      if(Math.abs(page.cropBottomRatio-.10)>.002)return fail('visual left crop was not mapped to source bottom after 90 rotation');
+
+      document.getElementById('pdfPageCropToggleV1').click();
+      await sleep(100);
+      const overlay=document.getElementById('pdfPageCropOverlayV1');
+      if(!overlay||overlay.dataset.visible!=='true')return fail('crop overlay not visible');
+      const rightHandle=overlay.querySelector('[data-edges="right"]');
+      const rect=overlay.getBoundingClientRect();
+      const pointerId=71;
+      rightHandle.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,pointerId,button:0,clientX:rect.right,clientY:rect.top+rect.height/2}));
+      document.dispatchEvent(new PointerEvent('pointermove',{bubbles:true,pointerId,clientX:rect.right-rect.width*.20,clientY:rect.top+rect.height/2}));
+      document.dispatchEvent(new PointerEvent('pointerup',{bubbles:true,pointerId,clientX:rect.right-rect.width*.20,clientY:rect.top+rect.height/2}));
+      await sleep(80);
+      if(Math.abs(page.cropTopRatio-.20)>.025)return fail(`drag crop expected source top 20%, got ${page.cropTopRatio}`);
+
+      const croppedRotated=window.getPageSrc(page,1,false);
+      if(croppedRotated.width>=100)return fail('cropped+rotated source width did not shrink');
+      if(croppedRotated.height!==200)return fail('crop-before-rotation source height changed unexpectedly');
+
+      const enriched=api.enrichSettings({pages:[{rotation:0}]});
+      const entry=enriched.pages[0];
+      if(entry.rotation!==90||entry.rotation_locked!==true)return fail('request rotation contract missing');
+      if(Math.abs(entry.crop_top_ratio-.20)>.025||Math.abs(entry.crop_bottom_ratio-.10)>.002)return fail('request crop contract missing');
+
+      const state=window.collectEditorState();
+      if(!Array.isArray(state.pageTransforms)||state.pageTransforms[0]?.rotation!==90)return fail('session transform state missing');
+
+      document.getElementById('pdfPageCropResetV1').click();
+      await sleep(40);
+      if(api.hasCrop(page))return fail('crop reset failed');
+
+      document.documentElement.dataset.pdfPageTransformSmoke='pass';
+      document.getElementById('result').textContent='PASS: crop -> exact rotation -> scale/move request pipeline is stable';
+    })().catch(error=>console.error(error));
+  </script>
+</body>
+</html>
