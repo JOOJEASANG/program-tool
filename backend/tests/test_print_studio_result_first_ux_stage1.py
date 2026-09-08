@@ -1,9 +1,9 @@
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[2]
 def text(path:str)->str:return (ROOT/path).read_text(encoding="utf-8")
-def test_home_exposes_only_the_three_current_programs():
+def test_home_exposes_only_the_four_current_programs():
  source=text("index.html")
- for marker in ("인쇄물 사전 검토","PDF 편집 · 인쇄배치","PDF 도구 모음"): assert marker in source
+ for marker in ("인쇄물 사전 검토","PDF 배치용","PDF 고급편집용","PDF 도구 모음"): assert marker in source
  for retired in ("디자인 편집기","문서 편집기","이미지 편집기"): assert retired not in source
 def test_pdf_editor_lists_controls_without_step_filtering_and_allows_page_list_collapse():
  sidebar=text("js/pdf-editor/simple-sidebar-ui.js"); ui_runtime=text("js/pdf-editor/ui-runtime.js"); shell=text("js/program-shell-unify.js")
