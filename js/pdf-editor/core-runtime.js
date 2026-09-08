@@ -71,15 +71,24 @@
     return typeof loader==='function'?loader(id,src):fallbackLoad(id,src);
   }
 
+  function loadAdvancedProfileScope(){
+    const id='pdfEditorAdvancedProfileScopeScriptV1';
+    const src='/js/pdf-editor/advanced-profile-scope.js?v=20260908-1';
+    const loader=context().load;
+    return typeof loader==='function'?loader(id,src):fallbackLoad(id,src);
+  }
+
   function loadAdvancedRuntime(){
     const id='pdfEditorAdvancedRuntimeScriptV1';
     const src='/js/pdf-editor/advanced-runtime.js?v=20260908-1';
     const loader=context().load;
-    const pending=typeof loader==='function'?loader(id,src):fallbackLoad(id,src);
-    return pending.then(()=>{
-      const runtime=window.PdfEditorAdvancedRuntime;
-      if(!runtime||typeof runtime.loadAll!=='function')throw new Error('PDF advanced runtime API is unavailable');
-      return runtime.loadAll();
+    return loadAdvancedProfileScope().then(()=>{
+      const pending=typeof loader==='function'?loader(id,src):fallbackLoad(id,src);
+      return pending.then(()=>{
+        const runtime=window.PdfEditorAdvancedRuntime;
+        if(!runtime||typeof runtime.loadAll!=='function')throw new Error('PDF advanced runtime API is unavailable');
+        return runtime.loadAll();
+      });
     });
   }
 
