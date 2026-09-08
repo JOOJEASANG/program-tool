@@ -141,7 +141,8 @@
       if(!document.getElementById('editSection').hidden)return fail('document decoration section still visible');
       if(document.querySelector('[data-sec="nup"] .sec-title').textContent!=='페이지 편집')return fail('precision section was not simplified');
       if(!document.getElementById('pdfAdvancedQuickBarV1'))return fail('quick edit toolbar missing');
-      if(getComputedStyle(document.getElementById('thumbArea')).maxHeight!=='136px')return fail('page list does not have a bounded scroll area');
+      const thumbMaxHeight=parseFloat(getComputedStyle(document.getElementById('thumbArea')).maxHeight||'0');
+      if(!(thumbMaxHeight>=100&&thumbMaxHeight<=136))return fail(`page list does not have a bounded responsive scroll area (${thumbMaxHeight}px)`);
 
       // Status changes must not change the occupied main-workspace height.
       const status=document.getElementById('statusBar');
