@@ -15,7 +15,7 @@ def test_nup_mouse_edit_locks_scroll_and_blocks_legacy_rebuild_cycle():
     assert "restoreScroll" in source
     assert "event.stopPropagation()" in source
     assert "prevent the old target-level pointer handler" in source
-    assert "PdfNupPageAdjust?.setValues" in source
+    assert "api?.setValues" in source
     assert "Do not request a new lazy/full preview here" in source
     assert "PdfNupPageAdjust?.selectPage" in source
     assert "stage:'fixed-output-face-direct-edit-v1'" in source
