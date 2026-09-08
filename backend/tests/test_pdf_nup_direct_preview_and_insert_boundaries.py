@@ -13,7 +13,7 @@ def test_large_lazy_preview_keeps_blank_and_divider_controls_on_absolute_output_
 
     for marker in (
         "function ensureLazyBoundaries()",
-        "face.dataset.outputIndex",
+        "face?.dataset?.outputIndex",
         "makePreviewInsertZone(index)",
         "makeVerticalInsertZone(index)",
         "outputIndex(face,index)+1",
@@ -41,6 +41,7 @@ def test_nup_mouse_drag_paints_directly_into_visible_preview_before_final_rerend
         "ctx.drawImage(state.base,0,0)",
         "ctx.drawImage(state.cellImage,drawX,drawY,drawW,drawH)",
         "pointermove",
+        "queueMicrotask",
         "마우스로 위치 이동 중",
         "마우스로 크기 조절 중",
         "live-canvas-direct-manipulation-v1",
