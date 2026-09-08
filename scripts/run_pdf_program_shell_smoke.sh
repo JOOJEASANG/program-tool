@@ -87,7 +87,7 @@ run_product_case "pdf-editor-interaction-polish-smoke.html" "$OUT_DIR/pdf-editor
 reset_profile
 run_product_case "pdf-page-transform-edit-smoke.html" "$OUT_DIR/pdf-page-transform-edit-smoke-dom.html" 'data-pdf-page-transform-smoke="pass"' 'PASS: crop -> exact rotation -> scale/move request pipeline is stable'
 reset_profile
-run_product_case "pdf-drag-crop-autofit-smoke.html" "$OUT_DIR/pdf-drag-crop-autofit-smoke-dom.html" 'data-pdf-drag-crop-autofit-smoke="pass"' 'PASS: drag keep-region crop composes current crop, maps rotation, and auto-fits margins'
+run_product_case "pdf-drag-crop-autofit-smoke.html" "$OUT_DIR/pdf-drag-crop-autofit-smoke-dom.html" 'data-pdf-drag-crop-autofit-smoke="pass"' 'PASS: drag crop uses cached lazy sources, reduced fallback hydration, and keeps pointer crop/autofit semantics'
 reset_profile
 run_product_case "pdf-precision-edit-tools-smoke.html" "$OUT_DIR/pdf-precision-edit-tools-smoke-dom.html" 'data-pdf-precision-edit-tools-smoke="pass"' 'PASS: live margins, focused Ctrl+Z history, crop panel sync, and free-angle rotation stay in sync'
 reset_profile
