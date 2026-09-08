@@ -1,8 +1,8 @@
 // Home entry points for the Program Studio print/PDF workspace.
 (function(){
   'use strict';
-  if(window.__programStudioPdfSuiteHomeV5)return;
-  window.__programStudioPdfSuiteHomeV5=true;
+  if(window.__programStudioPdfSuiteHomeV6)return;
+  window.__programStudioPdfSuiteHomeV6=true;
 
   const PROGRAMS=[
     {
@@ -20,14 +20,26 @@
     {
       id:'pdf-editor',
       cat:'pdf',
-      name:'PDF 편집 · N-UP · 소책자 배치',
+      name:'PDF 배치용',
       icon:'🖨️',
       accent:'#059669',
       bg:'linear-gradient(135deg,#065f46,#059669)',
-      catLabel:'PDF 편집·배치',
-      desc:'PDF 페이지 편집과 2-up·4-up 등 N-UP 인쇄 배치, 중철·소책자 판짜기를 한 프로그램 영역에서 사용합니다.',
+      catLabel:'PDF 인쇄 배치',
+      desc:'페이지 순서 정리, N-UP, 중철·소책자, 간지, 여백 등 출력용 PDF 배치 작업을 가볍게 처리합니다.',
       url:'pdf-editor/',
-      tags:['페이지 편집','N-UP 배치','소책자 배치']
+      tags:['N-UP','소책자','간지·여백']
+    },
+    {
+      id:'pdf-editor-advanced',
+      cat:'pdf',
+      name:'PDF 고급편집용',
+      icon:'✂️',
+      accent:'#7c3aed',
+      bg:'linear-gradient(135deg,#5b21b6,#7c3aed)',
+      catLabel:'PDF 정밀 편집',
+      desc:'페이지별 이동·크기조절, 드래그 잘라내기, 자동 맞춤, 회전·미세 회전 등 정밀 편집 기능을 사용합니다.',
+      url:'pdf-editor-advanced',
+      tags:['이동·크기','드래그 자르기','회전·미세편집']
     },
     {
       id:'pdf-suite',
@@ -90,7 +102,7 @@
     if(!normalizePrograms())return;
     syncCounts();
     document.documentElement.dataset.pdfHomeUnified='ready';
-    document.documentElement.dataset.pdfHomeWorkspace='three-programs';
+    document.documentElement.dataset.pdfHomeWorkspace='four-programs';
   }
 
   let observerQueued=false;
@@ -112,6 +124,6 @@
     programs:PROGRAMS,
     normalizePrograms,
     syncCounts,
-    stage:'pdf-home-three-programs-v5'
+    stage:'pdf-home-four-programs-v6'
   });
 })();
