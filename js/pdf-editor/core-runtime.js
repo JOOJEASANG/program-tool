@@ -15,7 +15,18 @@
     {id:'pdfEditorDividerHelperScriptV1',src:'/js/pdf-editor/divider-helper.js?v=20260731-2'}
   ]);
 
+  const PRECISION_EDIT_INPUT_IDS=new Set([
+    'pdfNupAdjustScaleRange','pdfNupAdjustScale','pdfNupAdjustX','pdfNupAdjustY',
+    'pdfPageCropLeftV1','pdfPageCropTopV1','pdfPageCropRightV1','pdfPageCropBottomV1',
+    'pdfFineRotationDegV1',
+  ]);
+
   const context=()=>window.ProgramStudioPdfEditorRuntimeContext||{};
+
+  function editorPages(){
+    if(Array.isArray(window.parsedPages))return window.parsedPages;
+    try{return typeof parsedPages!=='undefined'&&Array.isArray(parsedPages)?parsedPages:[];}catch(_){return[];}
+  }
 
   function ensureBookletStylesheet(){
     if(document.getElementById('pdfBookletMenuSafeCssV1'))return;
@@ -42,15 +53,45 @@
       try{
         const pageId=String(event?.detail?.pageId||'');
         if(!pageId)return;
-        const pages=Array.isArray(window.parsedPages)
-          ? window.parsedPages
-          : (typeof parsedPages!=='undefined'&&Array.isArray(parsedPages)?parsedPages:[]);
-        const page=pages.find(item=>String(item?.id)===pageId);
+        const page=editorPages().find(item=>String(item?.id)===pageId);
         if(page&&typeof window.PdfNupPageAdjust?.selectPage==='function'){
           window.PdfNupPageAdjust.selectPage(page);
         }
       }catch(error){
         console.warn('[pdf-core-runtime] drag crop placement panel sync failed',error);
+      }
+    },true);
+  }
+
+  function precisionInputPage(){
+    const hit=document.querySelector('.pdf-nup-adjust-hit[data-selected="true"]');
+    const pageId=String(hit?.dataset?.pageId||'');
+    if(!pageId)return null;
+    return editorPages().find(page=>String(page?.id)===pageId)||null;
+  }
+
+  function precisionInputLabel(id){
+    if(id==='pdfFineRotationDegV1')return'미세 회전';
+    if(String(id||'').startsWith('pdfPageCrop'))return'자르기 수치 조정';
+    return'페이지 위치·크기 조정';
+  }
+
+  function installPrecisionInputHistoryBridge(){
+    if(window.__pdfPrecisionInputHistoryBridgeV1)return;
+    window.__pdfPrecisionInputHistoryBridgeV1=true;
+    document.addEventListener('focusin',event=>{
+      const target=event.target;
+      if(!PRECISION_EDIT_INPUT_IDS.has(target?.id))return;
+      try{
+        const history=window.PdfPrecisionEditTools?.history;
+        const page=precisionInputPage();
+        if(!page||typeof history?.begin!=='function')return;
+        // A mouse click begins as a pointer transaction. Focus must own the
+        // transaction before pointerup so typing remains undoable as one edit.
+        if(typeof history.commit==='function')history.commit();
+        history.begin(page,precisionInputLabel(target.id),'focus');
+      }catch(error){
+        console.warn('[pdf-core-runtime] precision input history bridge failed',error);
       }
     },true);
   }
@@ -150,6 +191,7 @@
     ensureBookletStylesheet();
     installUploadOrderModeSafety();
     installDragCropPlacementPanelSync();
+    installPrecisionInputHistoryBridge();
     const seen=new Set();
     const pending=[];
     for(const entry of MODULES){
@@ -173,6 +215,9 @@
         return true;
       });
   }
+
+  installDragCropPlacementPanelSync();
+  installPrecisionInputHistoryBridge();
 
   window.PdfEditorCoreRuntime={
     loadAll,
