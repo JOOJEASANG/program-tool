@@ -208,7 +208,7 @@
 
   window.PdfEditorAdvancedRuntime={
     loadAll,
-    stage:'pdf-editor-advanced-runtime-v2',
+    stage:'pdf-editor-advanced-runtime-v1',
     modules:Object.freeze([
       'preview-zoom-persistence','nup-interaction-stability','nup-page-adjust',
       'page-transform-edit','drag-crop-autofit','nup-direct-preview-edit',
