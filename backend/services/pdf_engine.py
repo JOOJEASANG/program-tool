@@ -6,6 +6,7 @@ for opening and closing sources and for choosing memory or disk output.
 from __future__ import annotations
 
 import io
+import math
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
@@ -220,18 +221,44 @@ def _resolve_page_rotation(
     cell_w: float,
     cell_h: float,
     clip_rect: fitz.Rect,
-) -> int:
-    """Use the exact user rotation once locked; otherwise keep legacy auto-fit."""
-    requested = int(getattr(page_info, "rotation", 0) or 0) % 360
-    if bool(getattr(page_info, "rotation_locked", False)):
+) -> float:
+    """Resolve quarter-turn + fine rotation, preserving legacy auto-fit when untouched."""
+    base_rotation = int(getattr(page_info, "rotation", 0) or 0) % 360
+    fine_rotation = float(getattr(page_info, "fine_rotation_deg", 0.0) or 0.0)
+    requested = (base_rotation + fine_rotation) % 360.0
+    if bool(getattr(page_info, "rotation_locked", False)) or abs(fine_rotation) > 1e-9:
         return requested
-    return pdf_ops._best_fit_rotation(
+    return float(pdf_ops._best_fit_rotation(
         cell_w,
         cell_h,
         clip_rect.width,
         clip_rect.height,
-        requested,
-    )
+        base_rotation,
+    ))
+
+
+def _calc_rotated_fit_rect(
+    cell_rect: fitz.Rect,
+    src_w: float,
+    src_h: float,
+    rotation: float,
+) -> fitz.Rect:
+    """Fit the axis-aligned bounds of an arbitrarily rotated source in a cell."""
+    if src_w <= 0 or src_h <= 0:
+        return fitz.Rect(cell_rect)
+    radians = math.radians(float(rotation) % 360.0)
+    cosine = abs(math.cos(radians))
+    sine = abs(math.sin(radians))
+    bound_w = src_w * cosine + src_h * sine
+    bound_h = src_w * sine + src_h * cosine
+    if bound_w <= 1e-9 or bound_h <= 1e-9:
+        return fitz.Rect(cell_rect)
+    scale = min(cell_rect.width / bound_w, cell_rect.height / bound_h)
+    fitted_w = bound_w * scale
+    fitted_h = bound_h * scale
+    x0 = cell_rect.x0 + (cell_rect.width - fitted_w) / 2
+    y0 = cell_rect.y0 + (cell_rect.height - fitted_h) / 2
+    return fitz.Rect(x0, y0, x0 + fitted_w, y0 + fitted_h)
 
 
 def _show_source_page(
@@ -239,7 +266,7 @@ def _show_source_page(
     target_rect: fitz.Rect,
     src_doc: fitz.Document,
     page_index: int,
-    rotation: int,
+    rotation: float,
     clip_rect: fitz.Rect,
 ) -> None:
     try:
@@ -262,7 +289,7 @@ def _render_adjusted_source_page(
     page_info,
     cell_rect: fitz.Rect,
     clip_rect: fitz.Rect,
-    rotation: int,
+    rotation: float,
 ) -> None:
     """Render one adjusted source through a cell-sized PDF clipping surface.
 
@@ -271,7 +298,7 @@ def _render_adjusted_source_page(
     N-up cell. This prevents one scanned page from covering a neighbouring slot.
     """
     local_cell = fitz.Rect(0, 0, cell_rect.width, cell_rect.height)
-    local_fit = pdf_ops._calc_fit_rect(
+    local_fit = _calc_rotated_fit_rect(
         local_cell,
         clip_rect.width,
         clip_rect.height,
@@ -337,7 +364,7 @@ def _render_source_page(
         cell_h,
         clip_rect,
     )
-    fit_rect = pdf_ops._calc_fit_rect(
+    fit_rect = _calc_rotated_fit_rect(
         cell_rect,
         clip_rect.width,
         clip_rect.height,
