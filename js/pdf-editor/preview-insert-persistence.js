@@ -93,6 +93,17 @@
     return zone;
   }
 
+  function ensureVerticalAfter(face,boundary){
+    let zone=face?.nextElementSibling;
+    if(zone?.classList?.contains('prev-ins-zone-v')&&zone.dataset.pdfInsertBoundary===String(boundary)){
+      return markVertical(zone,boundary);
+    }
+    if(zone?.classList?.contains('prev-ins-zone-v'))zone.remove();
+    zone=makeVertical(boundary);
+    if(zone&&face)face.after(zone);
+    return zone;
+  }
+
   function ensureLazyBoundaries(){
     const scroll=document.getElementById('previewScroll');
     if(!scroll||scroll.querySelector('.empty-state'))return false;
@@ -107,12 +118,15 @@
 
     rows.forEach(row=>{
       const rowFaces=[...row.querySelectorAll(':scope>.page-preview')];
-      row.querySelectorAll(':scope>.prev-ins-zone-v').forEach(zone=>zone.remove());
+      const expectedZones=new Set();
       rowFaces.forEach((face,index)=>{
         if(index>=rowFaces.length-1)return;
         const boundary=outputIndex(face,index)+1;
-        const zone=makeVertical(boundary);
-        if(zone)face.after(zone);
+        const zone=ensureVerticalAfter(face,boundary);
+        if(zone)expectedZones.add(zone);
+      });
+      row.querySelectorAll(':scope>.prev-ins-zone-v').forEach(zone=>{
+        if(!expectedZones.has(zone))zone.remove();
       });
       const lastFace=rowFaces[rowFaces.length-1];
       if(lastFace)ensureHorizontalAfter(row,outputIndex(lastFace,firstBoundary)+1);
