@@ -84,6 +84,13 @@
     return typeof loader==='function' ? loader(id,src) : fallbackLoad(id,src);
   }
 
+  function loadPageTransformEdit(){
+    const id='pdfPageTransformEditScriptV1';
+    const src='/js/pdf-editor/page-transform-edit.js?v=20260908-1';
+    const loader=context().load;
+    return typeof loader==='function' ? loader(id,src) : fallbackLoad(id,src);
+  }
+
   function loadNupDirectPreviewEdit(){
     const id='pdfNupDirectPreviewEditScriptV1';
     const src='/js/pdf-editor/nup-direct-preview-edit.js?v=20260908-1';
@@ -113,6 +120,7 @@
       .then(()=>loadPreviewZoomPersistence())
       .then(()=>loadNupInteractionStability())
       .then(()=>loadNupPageAdjust())
+      .then(()=>loadPageTransformEdit())
       .then(()=>loadNupDirectPreviewEdit())
       .then(()=>loadEditorInteractionPolish())
       .then(()=>{
