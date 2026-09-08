@@ -22,6 +22,19 @@ def _source_pdf_bytes() -> bytes:
     return data
 
 
+def _intrinsic_rotated_source_pdf_bytes() -> bytes:
+    """Landscape media box displayed as portrait through PDF /Rotate=90."""
+    doc = fitz.open()
+    page = doc.new_page(width=400, height=200)
+    page.insert_text((35, 105), "LEFT-SIDE", fontsize=18)
+    page.insert_text((275, 105), "RIGHT-SIDE", fontsize=18)
+    page.draw_rect(fitz.Rect(10, 10, 390, 190), color=(0, 0, 0), width=1)
+    page.set_rotation(90)
+    data = doc.tobytes()
+    doc.close()
+    return data
+
+
 def _request(**page_values) -> PdfProcessRequest:
     page = {"file_index": 0, "page_index": 0}
     page.update(page_values)
@@ -118,8 +131,34 @@ def test_crop_rotate_scale_move_are_combined_in_final_vector_pdf():
         doc.close()
 
 
+def test_one_up_portrait_export_normalizes_intrinsic_pdf_rotation():
+    """A portrait-looking /Rotate=90 source must not save sideways in 1-up."""
+    source = _intrinsic_rotated_source_pdf_bytes()
+    result = pdf_engine.process_pdf_bytes([source], _request())
+
+    doc = fitz.open(stream=result, filetype="pdf")
+    try:
+        assert doc.page_count == 1
+        page = doc[0]
+        assert page.rect.width < page.rect.height
+        text = page.get_text()
+        assert "LEFT-SIDE" in text
+        assert "RIGHT-SIDE" in text
+
+        left_word = next(word for word in page.get_text("words") if word[4] == "LEFT-SIDE")
+        word_width = left_word[2] - left_word[0]
+        word_height = left_word[3] - left_word[1]
+        # Auto-fit should rotate this canonical landscape source into the portrait
+        # 1-up cell, so the rendered word itself is vertical on portrait paper.
+        assert word_height > word_width
+    finally:
+        doc.close()
+
+
 def test_client_exposes_crop_rotate_controls_and_runtime_order():
     source = (ROOT / "js" / "pdf-editor" / "page-transform-edit.js").read_text(encoding="utf-8")
+    regression = (ROOT / "js" / "pdf-editor" / "orientation-scale-regression-fix.js").read_text(encoding="utf-8")
+    engine = (ROOT / "backend" / "services" / "pdf_engine.py").read_text(encoding="utf-8")
     core = (ROOT / "js" / "pdf-editor" / "core-runtime.js").read_text(encoding="utf-8")
 
     for marker in (
@@ -138,10 +177,25 @@ def test_client_exposes_crop_rotate_controls_and_runtime_order():
     ):
         assert marker in source
 
+    for marker in (
+        "pdfCanonicalSourceRotation",
+        "page.pageRotationLocked=true",
+        "projected=dx*ux+dy*uy",
+        "startDistance+projected",
+        "canonical-rotation-outward-scale-v1",
+    ):
+        assert marker in regression
+
+    assert "src_page.set_rotation(0)" in engine
+
     module_block = core.split("const MODULES=Object.freeze([", 1)[1].split("]);", 1)[0]
     assert module_block.count("src:'/js/pdf-editor/") == 8
     assert "pdfPageTransformEditScriptV1" in core
+    assert "pdfOrientationScaleRegressionScriptV1" in core
     assert ".then(()=>loadNupPageAdjust())" in core
     assert ".then(()=>loadPageTransformEdit())" in core
+    assert ".then(()=>loadEditorInteractionPolish())" in core
+    assert ".then(()=>loadOrientationScaleRegression())" in core
     assert core.index(".then(()=>loadNupPageAdjust())") < core.index(".then(()=>loadPageTransformEdit())")
     assert core.index(".then(()=>loadPageTransformEdit())") < core.index(".then(()=>loadNupDirectPreviewEdit())")
+    assert core.index(".then(()=>loadEditorInteractionPolish())") < core.index(".then(()=>loadOrientationScaleRegression())")
