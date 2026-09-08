@@ -78,6 +78,7 @@
     window.showStatus=()=>{};window.hideStatus=()=>{};
   </script>
   <script src="/js/pdf-editor/core-runtime.js?v=20260908-1"></script>
+  <script src="/js/pdf-editor/advanced-runtime.js?v=20260908-1"></script>
   <script src="/js/pdf-editor/precision-edit-tools.js?v=20260908-1"></script>
   <script>
     (async()=>{
@@ -152,8 +153,6 @@
       if(Math.abs(Number(page.fineRotationDeg||0))>.01)return fail('Ctrl+Z did not undo the focused numeric edit');
       if(Math.abs(Number(fineInput.value||0))>.01)return fail('focused numeric control stayed stale after Ctrl+Z '+fineInput.value);
 
-      // Keep the control focused and start a second mouse edit. This must open
-      // a new focus-owned history transaction even though no focusin fires.
       const secondPointerId=79;
       fineInput.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,pointerId:secondPointerId,button:0}));
       fineInput.dispatchEvent(new PointerEvent('pointerup',{bubbles:true,pointerId:secondPointerId,button:0}));
