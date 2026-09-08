@@ -119,6 +119,13 @@
     return typeof loader==='function' ? loader(id,src) : fallbackLoad(id,src);
   }
 
+  function loadPrecisionEditTools(){
+    const id='pdfPrecisionEditToolsScriptV1';
+    const src='/js/pdf-editor/precision-edit-tools.js?v=20260908-1';
+    const loader=context().load;
+    return typeof loader==='function' ? loader(id,src) : fallbackLoad(id,src);
+  }
+
   function loadAll(){
     ensureBookletStylesheet();
     installUploadOrderModeSafety();
@@ -139,6 +146,7 @@
       .then(()=>loadNupDirectPreviewEdit())
       .then(()=>loadEditorInteractionPolish())
       .then(()=>loadOrientationScaleRegression())
+      .then(()=>loadPrecisionEditTools())
       .then(()=>{
         document.documentElement.dataset.pdfCoreRuntime='1';
         return true;
