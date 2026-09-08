@@ -172,7 +172,7 @@
   }
 
   const loadPreviewZoomPersistence=()=>load('pdfPreviewZoomPersistenceScriptV1','/js/pdf-editor/preview-zoom-persistence.js?v=20260908-1');
-  const loadNupInteractionStability=()=>load('pdfNupInteractionStabilityScriptV1','/js/pdf-editor/nup-interaction-stability.js?v=20260908-1');
+  const loadNupInteractionStability=()=>load('pdfNupInteractionStabilityScriptV1','/js/pdf-editor/nup-interaction-stability.js?v=20260908-2');
   const loadNupPageAdjust=()=>load('pdfNupPageAdjustScriptV1','/js/pdf-editor/nup-page-adjust.js?v=20260908-1');
   const loadPageTransformEdit=()=>load('pdfPageTransformEditScriptV1','/js/pdf-editor/page-transform-edit.js?v=20260908-1');
   const loadDragCropAutoFit=()=>load('pdfDragCropAutoFitScriptV1','/js/pdf-editor/drag-crop-autofit.js?v=20260908-2');
