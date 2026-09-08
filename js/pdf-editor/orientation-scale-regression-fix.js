@@ -21,14 +21,13 @@
   let eventsInstalled=false;
   let renderWrapper=null;
   let renderOriginal=null;
+  let safetyWrapper=null;
+  let safetyOriginal=null;
+  let safetyOwner=null;
   let apiWrapper=null;
-  let apiWrappedOriginal=null;
   let fetchWrapper=null;
-  let fetchWrappedOriginal=null;
   let collectWrapper=null;
-  let collectWrappedOriginal=null;
   let loadWrapper=null;
-  let loadWrappedOriginal=null;
 
   function pages(){
     try{return Array.isArray(parsedPages)?parsedPages:[];}catch(_){return[];}
@@ -123,6 +122,12 @@
     });
   }
 
+  function noteMatchingPageIntent(pdfPage,requested){
+    pages().forEach(page=>{
+      if(page?.pdfPage===pdfPage)noteRenderedRotation(page,requested);
+    });
+  }
+
   function markCanonicalCanvas(canvas,requested){
     if(!canvas?.dataset)return canvas;
     canvas.dataset.pdfCanonicalSourceRotation='0';
@@ -145,9 +150,7 @@
       const requested=normalizedRotation(rotation);
       // Existing rotate/context/batch actions change page.rotation before they
       // request a rerender. Observe that transition and lock the exact angle.
-      pages().forEach(page=>{
-        if(page?.pdfPage===pdfPage)noteRenderedRotation(page,requested);
-      });
+      noteMatchingPageIntent(pdfPage,requested);
 
       // All page-transform editing is applied from one canonical rotation-0
       // source. This prevents a legacy rerendered thumbnail from being rotated
@@ -161,6 +164,37 @@
     try{renderPdfPage=wrapped;}catch(_){}
     renderWrapper=wrapped;
     renderOriginal=original;
+    return true;
+  }
+
+  function installSafetyRenderWrapper(){
+    const safety=window.PdfImportTransactionSafety;
+    const current=safety?.safeRenderPdfPage;
+    if(typeof current!=='function')return false;
+    if(current===safetyWrapper&&safety===safetyOwner)return true;
+    if(current.__pdfCanonicalRotationSourceV1){
+      safetyWrapper=current;
+      safetyOriginal=current.__pdfCanonicalRotationOriginal||safetyOriginal;
+      safetyOwner=safety;
+      return true;
+    }
+
+    const original=current;
+    const wrapped=async function canonicalSafetyRender(pdfPage,scale,rotation,heavyMode){
+      const requested=normalizedRotation(rotation);
+      noteMatchingPageIntent(pdfPage,requested);
+      // viewport-lazy-preview uses this safety renderer directly for hydrated
+      // large-document pages, bypassing window.renderPdfPage. Force that path
+      // through the same rotation-0 source contract as ordinary previews.
+      const canvas=await original.call(safety,pdfPage,scale,0,heavyMode);
+      return markCanonicalCanvas(canvas,requested);
+    };
+    wrapped.__pdfCanonicalRotationSourceV1=true;
+    wrapped.__pdfCanonicalRotationOriginal=original;
+    safety.safeRenderPdfPage=wrapped;
+    safetyWrapper=wrapped;
+    safetyOriginal=original;
+    safetyOwner=safety;
     return true;
   }
 
@@ -304,7 +338,6 @@
     window.apiProcessPdf=wrapped;
     try{apiProcessPdf=wrapped;}catch(_){}
     apiWrapper=wrapped;
-    apiWrappedOriginal=original;
     return true;
   }
 
@@ -322,7 +355,6 @@
     wrapped.__pdfOrientationIntentOriginal=current;
     window.fetch=wrapped;
     fetchWrapper=wrapped;
-    fetchWrappedOriginal=current;
     return true;
   }
 
@@ -339,7 +371,6 @@
       window.collectEditorState=wrappedCollect;
       try{collectEditorState=wrappedCollect;}catch(_){}
       collectWrapper=wrappedCollect;
-      collectWrappedOriginal=originalCollect;
     }else if(collect?.__pdfOrientationIntentSyncV1){collectWrapper=collect;}
 
     const load=window.loadEditorSession;
@@ -356,12 +387,12 @@
       window.loadEditorSession=wrappedLoad;
       try{loadEditorSession=wrappedLoad;}catch(_){}
       loadWrapper=wrappedLoad;
-      loadWrappedOriginal=originalLoad;
     }else if(load?.__pdfOrientationIntentSyncV1){loadWrapper=load;}
   }
 
   function maintain(){
     installRenderWrapper();
+    installSafetyRenderWrapper();
     installApiWrapper();
     installFetchWrapper();
     installStateWrappers();
@@ -380,6 +411,7 @@
     projectedScale,
     syncRotationIntent,
     noteRenderedRotation,
+    installSafetyRenderWrapper,
     canonicalizeExistingRotatedPages,
     stage:'canonical-rotation-outward-scale-v1',
   };
