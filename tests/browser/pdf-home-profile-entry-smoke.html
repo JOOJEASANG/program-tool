@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"><title>PDF Home Profile Entry Smoke</title></head>
+<body data-pdf-home-profile-entry-smoke="running">
+  <span id="cnt-all">3</span><span id="cnt-print">1</span><span id="cnt-pdf">2</span><span id="count">3개</span>
+  <div id="programGrid"></div><div id="quickRow"></div><pre id="result">RUNNING</pre>
+  <script>
+    const PROGRAMS=[
+      {id:'print-checker',cat:'print',name:'인쇄물 사전 검토',url:'print-checker/'},
+      {id:'pdf-editor',cat:'pdf',name:'PDF 편집 · 인쇄배치',url:'pdf-editor/'},
+      {id:'pdf-preflight',cat:'pdf',name:'PDF 도구 모음',url:'pdf-preflight/'}
+    ];
+    window.ProgramStudioHome={PROGRAMS,get activeCategory(){return 'all';}};
+    window.renderGrid=()=>{document.getElementById('programGrid').textContent=PROGRAMS.map(item=>`${item.name}:${item.url}`).join('|');};
+    window.buildQuickRow=()=>{document.getElementById('quickRow').textContent=PROGRAMS.map(item=>item.name).join('|');};
+  </script>
+  <script src="/js/pdf-suite-home-launcher.js?v=profile-entry-smoke"></script>
+  <script>
+    setTimeout(()=>{
+      const result=document.getElementById('result');
+      try{
+        const byId=id=>PROGRAMS.find(item=>item.id===id);
+        if(PROGRAMS.length!==4)throw new Error(`expected 4 programs, got ${PROGRAMS.length}`);
+        if(byId('pdf-editor')?.name!=='PDF 배치용'||byId('pdf-editor')?.url!=='pdf-editor/')throw new Error('layout entry mismatch');
+        if(byId('pdf-editor-advanced')?.name!=='PDF 고급편집용'||byId('pdf-editor-advanced')?.url!=='pdf-editor-advanced')throw new Error('advanced entry mismatch');
+        if(document.getElementById('cnt-all').textContent!=='4'||document.getElementById('cnt-pdf').textContent!=='3')throw new Error('counts not synchronized');
+        document.body.dataset.pdfHomeProfileEntrySmoke='pass';
+        result.textContent='PASS: lightweight layout and advanced PDF editor are separate home entries';
+      }catch(error){
+        document.body.dataset.pdfHomeProfileEntrySmoke='fail';
+        result.textContent='FAIL: '+String(error?.stack||error);
+      }
+    },100);
+  </script>
+</body>
+</html>
