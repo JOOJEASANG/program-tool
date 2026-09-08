@@ -64,7 +64,7 @@
       if(document.documentElement.dataset.pdfEditorProfile!=='advanced')return fail('advanced profile marker missing');
 
       document.documentElement.dataset.pdfEditorRuntimeProfileSplitSmoke='pass';
-      result.textContent='PASS: default PDF editor stays lightweight and canonical advanced profile loads editing modules separately';
+      result.textContent='PASS: default PDF editor stays lightweight and advanced route loads editing modules separately';
     })().catch(error=>console.error(error));
   </script>
 </body>
