@@ -105,6 +105,11 @@
         const preflight=document.querySelector('iframe[data-pdfu-frame="preflight"]');
         if(!preflight||!preflight.getAttribute('src').includes('/pdf-preflight/?embed=1'))throw new Error('signed-in preflight not mounted in right result screen');
         if(!document.getElementById('pdfUtilityStageTitle').textContent.includes('PDF 압축'))throw new Error('compression title missing');
+        // This smoke only verifies that the protected tool mounts the correct embedded route.
+        // Detach the full preflight app immediately afterwards so its Firebase/service-worker
+        // background work cannot keep headless Chrome alive after the assertion completes.
+        preflight.src='about:blank';
+        preflight.remove();
         if(window.ProgramStudioPdfSinglePageWorkspace.selectTool('페이지 번호'))throw new Error('removed editor tool is still selectable');
 
         window.ProgramStudioPdfSinglePageWorkspace.selectTool('전체 페이지 회전');
