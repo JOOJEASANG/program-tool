@@ -13,18 +13,23 @@ def test_large_lazy_preview_keeps_blank_and_divider_controls_on_absolute_output_
 
     for marker in (
         "function ensureLazyBoundaries()",
+        "function ensureVerticalAfter(face,boundary)",
         "face?.dataset?.outputIndex",
         "makePreviewInsertZone(index)",
         "makeVerticalInsertZone(index)",
         "outputIndex(face,index)+1",
+        "const expectedZones=new Set()",
+        "if(!expectedZones.has(zone))zone.remove()",
         "pdfPreviewInsertLazyBoundaries",
         "large-document-absolute-insert-boundaries-v3",
+        "multi-file-preview-insert-persistence-v2",
         "+ 빈 페이지",
         "+ 간지",
     ):
         assert marker in source
 
     assert "if(!ensureFastFallback()&&!ensureLazyBoundaries())ensureNormalBoundaries();" in source
+    assert "row.querySelectorAll(':scope>.prev-ins-zone-v').forEach(zone=>zone.remove())" not in source
 
 
 def test_nup_mouse_drag_paints_directly_into_visible_preview_before_final_rerender():
