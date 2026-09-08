@@ -1,6 +1,7 @@
 // Advanced editor profile scope.
 // Keeps the dedicated advanced editor focused on single-page precision editing
-// while N-up and booklet remain available through their standalone tools.
+// while N-up, booklet, blank-page insertion and divider creation stay out of
+// this profile. The default PDF editor keeps those features unchanged.
 (function(){
   'use strict';
   if(window.__pdfEditorAdvancedProfileScopeV1)return;
@@ -14,21 +15,51 @@
   };
   if(!isAdvanced())return;
 
+  const BLOCKED_ACTION_PATTERN=/(빈\s*페이지\s*(삽입|추가)|간지\s*(삽입|추가)|N\s*-?\s*up|N-UP|NUP|소책자)/i;
   let observer=null;
   let applying=false;
 
   function pages(){
+    if(Array.isArray(window.parsedPages))return window.parsedPages;
     try{return typeof parsedPages!=='undefined'&&Array.isArray(parsedPages)?parsedPages:[];}catch(_){return[];}
   }
 
+  function hideElement(node){
+    if(!node)return;
+    node.hidden=true;
+    node.style.setProperty('display','none','important');
+    node.setAttribute('aria-hidden','true');
+  }
+
+  function installMinimalProfileStyles(){
+    if(document.getElementById('pdfAdvancedMinimalProfileStylesV1'))return;
+    const style=document.createElement('style');
+    style.id='pdfAdvancedMinimalProfileStylesV1';
+    style.textContent=`
+      html[data-pdf-editor-profile="advanced"] .prev-ins-zone,
+      html[data-pdf-editor-profile="advanced"] .prev-ins-zone-v,
+      html[data-pdf-editor-profile="advanced"] .mode-btn[data-mode="break"],
+      html[data-pdf-editor-profile="advanced"] #dividerModal,
+      html[data-pdf-editor-profile="advanced"] #nupGrid,
+      html[data-pdf-editor-profile="advanced"] #bookletRow,
+      html[data-pdf-editor-profile="advanced"] #nupQuickGuide,
+      html[data-pdf-editor-profile="advanced"] #fileLayoutControl{
+        display:none!important;
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
   function normalizeSinglePageLayout(){
-    try{if(typeof nup!=='undefined')nup=1;}catch(_){}
+    try{if(typeof nup!=='undefined')nup=1;}catch(_){ }
     try{
       if(typeof fileNupMap!=='undefined'&&fileNupMap&&typeof fileNupMap==='object'){
         Object.keys(fileNupMap).forEach(key=>delete fileNupMap[key]);
       }
-    }catch(_){}
+    }catch(_){ }
     pages().forEach(page=>{
+      // Existing blank/divider pages are part of the user's document. Preserve
+      // them, but do not expose controls that create new ones in advanced mode.
       if(!page||page.pageType==='blank'||page.pageType==='divider')return;
       if(page.nupOverride!=null)page.nupOverride=null;
     });
@@ -44,13 +75,6 @@
     buttons.forEach(button=>button.classList.toggle('active',String(button.dataset.nup)==='1'));
   }
 
-  function hideElement(node){
-    if(!node)return;
-    node.hidden=true;
-    node.style.setProperty('display','none','important');
-    node.setAttribute('aria-hidden','true');
-  }
-
   function hideLayoutControls(){
     hideElement(document.getElementById('nupGrid'));
     hideElement(document.getElementById('bookletRow'));
@@ -58,19 +82,17 @@
     document.querySelectorAll('.nup-popup').forEach(node=>node.remove());
 
     const section=document.querySelector('[data-sec="nup"]');
-    const title=section?.querySelector('.sec-title');
+    const title=section?.querySelector('.sec-title')||section?.closest('.sec')?.querySelector('.sec-title');
     if(title&&/N\s*-?\s*up|N-UP/i.test(title.textContent||''))title.textContent='페이지 위치·크기 보정';
 
     document.querySelectorAll('#sb-nup label').forEach(label=>{
       if(/기본\s*N\s*-?\s*up|페이지당\s*슬라이드/i.test(label.textContent||''))hideElement(label);
     });
 
-    // File-level N-up selectors are generated dynamically with the "배치:" label.
     document.querySelectorAll('#thumbArea span').forEach(label=>{
       if(String(label.textContent||'').trim()==='배치:')hideElement(label.parentElement);
     });
 
-    // Per-page N-up affordances may be created after thumbnail rendering.
     document.querySelectorAll('#thumbArea [class*="nup"],#thumbArea [data-nup]').forEach(hideElement);
     document.querySelectorAll('#thumbArea [title],#thumbArea [aria-label]').forEach(node=>{
       const text=`${node.getAttribute('title')||''} ${node.getAttribute('aria-label')||''}`;
@@ -78,11 +100,29 @@
     });
   }
 
+  function hideInsertAndDividerControls(){
+    document.querySelectorAll('.prev-ins-zone,.prev-ins-zone-v').forEach(hideElement);
+    hideElement(document.getElementById('dividerModal'));
+    hideElement(document.querySelector('.mode-btn[data-mode="break"]'));
+
+    // The thumbnail context menu is rebuilt dynamically, so filter it every
+    // time the profile observer sees a DOM change. Keep rotate/delete actions.
+    document.querySelectorAll('#thumbCtxMenu .ctx-item').forEach(item=>{
+      if(BLOCKED_ACTION_PATTERN.test(String(item.textContent||'')))hideElement(item);
+    });
+
+    // Defensive filtering for dynamically injected insert buttons. Restrict
+    // this to interactive controls so labels for existing blank/divider pages
+    // remain visible and the user's document is never silently altered.
+    document.querySelectorAll('#previewScroll button,#thumbArea button,aside button').forEach(button=>{
+      const text=`${button.textContent||''} ${button.getAttribute('title')||''} ${button.getAttribute('aria-label')||''}`;
+      if(BLOCKED_ACTION_PATTERN.test(text))hideElement(button);
+    });
+  }
+
   function applyBranding(){
     const sub=document.querySelector('.app > aside > .sub');
-    if(sub&&/N\s*-?\s*up|N-UP|소책자/i.test(sub.textContent||'')){
-      sub.textContent='페이지 편집 · 간지 · 머리말/꼬리말 · 워터마크 · 정밀 보정 · 인쇄용 PDF 저장';
-    }
+    if(sub)sub.textContent='파일 업로드 · 페이지 정렬/삭제 · 자르기/회전 · 위치/크기 보정 · PDF 저장';
   }
 
   function apply(){
@@ -90,24 +130,43 @@
     applying=true;
     try{
       root.dataset.pdfEditorAdvancedScope='single-page-precision-v1';
+      root.dataset.pdfEditorAdvancedMinimal='1';
+      installMinimalProfileStyles();
       normalizeSinglePageLayout();
       hideLayoutControls();
+      hideInsertAndDividerControls();
       applyBranding();
       return true;
-    }finally{applying=false;}
+    }finally{
+      applying=false;
+    }
   }
 
   function installObserver(){
     if(observer||!document.body)return;
     observer=new MutationObserver(()=>apply());
-    observer.observe(document.body,{childList:true,subtree:true,characterData:true});
+    observer.observe(document.body,{childList:true,subtree:true});
   }
 
-  document.addEventListener('change',event=>{
+  // Even if a legacy control is briefly inserted before MutationObserver runs,
+  // do not let a blocked creation/layout action execute in advanced mode.
+  document.addEventListener('click',event=>{
     if(!isAdvanced())return;
     const target=event.target;
+    const insertZone=target?.closest?.('.prev-ins-zone,.prev-ins-zone-v,.mode-btn[data-mode="break"]');
+    const menuItem=target?.closest?.('#thumbCtxMenu .ctx-item');
+    const text=menuItem?String(menuItem.textContent||''):'';
+    if(insertZone||(menuItem&&BLOCKED_ACTION_PATTERN.test(text))){
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      apply();
+    }
+  },true);
+
+  document.addEventListener('change',event=>{
+    const target=event.target;
     if(target?.id==='bookletCheck'||target?.closest?.('#nupGrid')||target?.closest?.('#thumbArea')){
-      queueMicrotask(apply);
+      setTimeout(apply,0);
     }
   },true);
 
@@ -123,6 +182,7 @@
   window.PdfEditorAdvancedProfileScope={
     apply,
     normalizeSinglePageLayout,
-    stage:'advanced-single-page-precision-v1'
+    stage:'advanced-single-page-precision-v1',
+    minimal:true
   };
 })();
