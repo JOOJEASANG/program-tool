@@ -6,7 +6,7 @@ def read(path:str)->str:return (ROOT/path).read_text(encoding="utf-8")
 def test_main_home_is_static_and_business_name_only():
  index=read("index.html"); firebase=read("js/firebase-config.js")
  assert 'data-home-static-professional="1"' in index
- for label in ("인쇄물 사전 검토","PDF 편집 · 인쇄배치","PDF 도구 모음"): assert label in index
+ for label in ("인쇄물 사전 검토","PDF 배치용","PDF 고급편집용","PDF 도구 모음"): assert label in index
  assert "대표 " not in firebase and "사업자등록번호 " not in firebase and "business.bizName" in firebase
 def test_version_badge_is_not_rendered():
  source=read("js/app-version.js"); assert "appVersionBadge" not in source; assert "버전 ${currentVersion}" not in source; assert "programStudioVersion" in source
