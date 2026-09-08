@@ -3,7 +3,8 @@
   'use strict';
   if(window.__pdfNupInteractionStabilityV1)return;
   window.__pdfNupInteractionStabilityV1=true;
-  if(!location.pathname.includes('pdf-editor'))return;
+  const smokeHost=document.documentElement.dataset.pdfNupStabilityHost==='1';
+  if(!location.pathname.includes('pdf-editor')&&!smokeHost)return;
 
   const INSTALL_DELAYS=[0,180,420,800,1300,2100,3300,5000];
   const byId=id=>document.getElementById(id);
