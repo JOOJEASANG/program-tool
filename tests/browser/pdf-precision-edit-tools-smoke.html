@@ -51,6 +51,7 @@
         cropLeft:Number(p.cropLeftRatio||0),cropTop:Number(p.cropTopRatio||0),
         cropRight:Number(p.cropRightRatio||0),cropBottom:Number(p.cropBottomRatio||0),
       };},
+      visualCrop(v){return{left:Number(v.cropLeft||0),top:Number(v.cropTop||0),right:Number(v.cropRight||0),bottom:Number(v.cropBottom||0)};},
       setValues(p,patch){
         if('rotation' in patch)p.rotation=patch.rotation;
         if('rotationLocked' in patch)p.pageRotationLocked=!!patch.rotationLocked;
@@ -149,6 +150,20 @@
       fineInput.dispatchEvent(new KeyboardEvent('keydown',{bubbles:true,key:'z',ctrlKey:true}));
       await sleep(40);
       if(Math.abs(Number(page.fineRotationDeg||0))>.01)return fail('Ctrl+Z did not undo the focused numeric edit');
+      if(Math.abs(Number(fineInput.value||0))>.01)return fail('focused numeric control stayed stale after Ctrl+Z '+fineInput.value);
+
+      // Keep the control focused and start a second mouse edit. This must open
+      // a new focus-owned history transaction even though no focusin fires.
+      const secondPointerId=79;
+      fineInput.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,pointerId:secondPointerId,button:0}));
+      fineInput.dispatchEvent(new PointerEvent('pointerup',{bubbles:true,pointerId:secondPointerId,button:0}));
+      fineInput.value='2.5';
+      fineInput.dispatchEvent(new Event('input',{bubbles:true}));
+      if(Math.abs(Number(page.fineRotationDeg)-2.5)>.01)return fail('second already-focused numeric edit did not update fine rotation');
+      fineInput.dispatchEvent(new KeyboardEvent('keydown',{bubbles:true,key:'z',ctrlKey:true}));
+      await sleep(40);
+      if(Math.abs(Number(page.fineRotationDeg||0))>.01)return fail('Ctrl+Z did not undo second already-focused numeric edit');
+      if(Math.abs(Number(fineInput.value||0))>.01)return fail('focused control stayed stale after second Ctrl+Z '+fineInput.value);
       fineInput.blur();
       await sleep(20);
 
