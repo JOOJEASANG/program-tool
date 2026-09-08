@@ -35,6 +35,7 @@ def test_large_lazy_preview_keeps_blank_and_divider_controls_on_absolute_output_
 def test_nup_mouse_drag_paints_directly_into_visible_preview_before_final_rerender():
     source = text("js/pdf-editor/nup-direct-preview-edit.js")
     core = text("js/pdf-editor/core-runtime.js")
+    advanced = text("js/pdf-editor/advanced-runtime.js")
 
     for marker in (
         ".pdf-nup-adjust-hit",
@@ -53,11 +54,13 @@ def test_nup_mouse_drag_paints_directly_into_visible_preview_before_final_rerend
     ):
         assert marker in source
 
-    assert "pdfNupDirectPreviewEditScriptV1" in core
-    assert "/js/pdf-editor/nup-direct-preview-edit.js?v=20260908-1" in core
-    assert ".then(()=>loadNupPageAdjust())" in core
-    assert ".then(()=>loadNupDirectPreviewEdit())" in core
+    assert "pdfNupDirectPreviewEditScriptV1" not in core
+    assert "pdfNupDirectPreviewEditScriptV1" in advanced
+    assert "/js/pdf-editor/nup-direct-preview-edit.js?v=20260908-1" in advanced
+    assert ".then(()=>loadNupPageAdjust())" in advanced
+    assert ".then(()=>loadNupDirectPreviewEdit())" in advanced
 
     module_block = core.split("const MODULES=Object.freeze([", 1)[1].split("]);", 1)[0]
     assert module_block.count("src:'/js/pdf-editor/") == 8
     assert "pdf-editor-core-runtime-manifest-v1" in core
+    assert "pdf-editor-advanced-runtime-v1" in advanced
