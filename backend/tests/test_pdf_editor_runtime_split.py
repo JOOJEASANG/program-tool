@@ -6,6 +6,7 @@ ROOT = Path(__file__).resolve().parents[2]
 CORE = ROOT / "js" / "pdf-editor" / "core-runtime.js"
 ADVANCED = ROOT / "js" / "pdf-editor" / "advanced-runtime.js"
 ADVANCED_SCOPE = ROOT / "js" / "pdf-editor" / "advanced-profile-scope.js"
+ADVANCED_WORKSPACE = ROOT / "js" / "pdf-editor" / "advanced-workspace-ux.js"
 RUNTIME_BOOT = ROOT / "js" / "sw-register.js"
 FIREBASE = ROOT / "firebase.json"
 
@@ -25,6 +26,7 @@ def test_default_pdf_editor_keeps_21b36a9_sized_core_manifest():
         "pdfEditorInteractionPolishScriptV1",
         "pdfOrientationScaleRegressionScriptV1",
         "pdfPrecisionEditToolsScriptV1",
+        "pdfAdvancedWorkspaceUxScriptV1",
     ):
         assert advanced_id not in core
 
@@ -81,6 +83,7 @@ def test_advanced_runtime_owns_all_post_21b36a9_editing_modules():
         "pdfEditorInteractionPolishScriptV1",
         "pdfOrientationScaleRegressionScriptV1",
         "pdfPrecisionEditToolsScriptV1",
+        "pdfAdvancedWorkspaceUxScriptV1",
     )
     for marker in expected:
         assert marker in advanced
@@ -92,6 +95,38 @@ def test_advanced_runtime_owns_all_post_21b36a9_editing_modules():
     assert advanced.index("loadDragCropAutoFit()") < advanced.index("loadNupDirectPreviewEdit()")
     assert advanced.index("loadEditorInteractionPolish()") < advanced.index("loadOrientationScaleRegression()")
     assert advanced.index("loadOrientationScaleRegression()") < advanced.index("loadPrecisionEditTools()")
+    assert advanced.index("loadPrecisionEditTools()") < advanced.index("loadAdvancedWorkspaceUx()")
+
+
+def test_advanced_workspace_prioritizes_a_stationary_single_page_editing_surface():
+    workspace = ADVANCED_WORKSPACE.read_text(encoding="utf-8")
+
+    for marker in (
+        "_previewPerRow=1",
+        "select.value='1'",
+        "select.disabled=true",
+        "max-height:136px",
+        "scrollbar-gutter:stable",
+        "#statusBar{display:flex!important;height:34px!important",
+        "pdfAdvancedQuickBarV1",
+        "pdfAdvancedPrevPageV1",
+        "pdfAdvancedNextPageV1",
+        "pdfAdvancedRotateLeftV1",
+        "pdfAdvancedRotateRightV1",
+        "pdfAdvancedCropV1",
+        "pdfAdvancedUndoV1",
+        "pdfAdvancedRedoV1",
+        "viewportSnapshot",
+        "restoreBurst",
+        "stable-single-page-workspace-v1",
+    ):
+        assert marker in workspace
+
+    assert "hideSection('paper')" in workspace
+    assert "hideSection('edit')" in workspace
+    assert "nup=1" in workspace
+    assert "window.PdfPrecisionEditTools?.history?.undo?.()" in workspace
+    assert "window.PdfPrecisionEditTools?.history?.redo?.()" in workspace
 
 
 def test_firebase_advanced_entry_redirects_to_canonical_protected_editor_profile():
