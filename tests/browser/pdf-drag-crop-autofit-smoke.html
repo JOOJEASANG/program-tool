@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="ko" data-pdf-drag-crop-auto-fit-host="1">
+<head>
+  <meta charset="utf-8">
+  <title>PDF drag crop autofit smoke</title>
+  <style>
+    body{margin:0;font-family:sans-serif}
+    #pdfPageTransformControlsV1{width:320px;padding:10px}
+    #previewScroll{position:relative;width:420px;height:420px;overflow:auto;padding:20px}
+    .page-preview{position:relative;width:300px;height:340px}
+    .pdf-nup-adjust-hit{position:absolute;left:50px;top:20px;width:200px;height:300px;border:1px solid #2563eb}
+  </style>
+</head>
+<body>
+  <div id="pdfPageTransformControlsV1"></div>
+  <div id="previewScroll">
+    <div class="page-preview">
+      <div class="pdf-nup-adjust-hit" data-page-id="1" data-selected="true"></div>
+    </div>
+  </div>
+  <pre id="result">RUNNING</pre>
+  <script>
+    // --dump-dom can defer RAF until after async assertions. The smoke tests
+    // crop semantics, not browser frame scheduling, so make RAF deterministic.
+    window.requestAnimationFrame=callback=>{callback(performance.now());return 0;};
+    window.cancelAnimationFrame=()=>{};
+    const source=document.createElement('canvas');source.width=100;source.height=200;
+    const lightweightPlaceholder=document.createElement('canvas');
+    lightweightPlaceholder.width=96;lightweightPlaceholder.height=136;lightweightPlaceholder.dataset.lightweightPage='1';
+    window.parsedPages=[{
+      id:'1',pageType:'pdf',rotation:90,pageRotationLocked:true,thumbCanvas:source,
+      cropLeftRatio:.10,cropTopRatio:.05,cropRightRatio:.20,cropBottomRatio:.05,
+      nupScale:1.6,nupOffsetX:13,nupOffsetY:-9,
+    }];
+    const page=window.parsedPages[0];
+    window.uploadedFiles=[{arrayBuffer:async()=>new ArrayBuffer(8)}];
+    window.__refreshCount=0;
+    window.__applyEvent=null;
+    window.__hydrationRotation=null;
+    window.__hydrationDestroyed=false;
+    document.addEventListener('pdf-drag-crop-autofit-applied',event=>{window.__applyEvent=event.detail;});
+    window.getPageSrc=p=>p.thumbCanvas;
+    window.PdfPageTransformEdit={
+      valuesForPage(p){return{
+        rotation:Number(p.rotation||0),rotationLocked:!!p.pageRotationLocked,
+        cropLeft:Number(p.cropLeftRatio||0),cropTop:Number(p.cropTopRatio||0),
+        cropRight:Number(p.cropRightRatio||0),cropBottom:Number(p.cropBottomRatio||0),
+      };},
+      visualCrop(v){
+        const s={left:v.cropLeft,top:v.cropTop,right:v.cropRight,bottom:v.cropBottom};
+        if(v.rotation===90)return{left:s.bottom,top:s.left,right:s.top,bottom:s.right};
+        if(v.rotation===180)return{left:s.right,top:s.bottom,right:s.left,bottom:s.top};
+        if(v.rotation===270)return{left:s.top,top:s.right,right:s.bottom,bottom:s.left};
+        return s;
+      },
+      sourceEdgeForVisual(rotation,edge){
+        const maps={0:{left:'left',top:'top',right:'right',bottom:'bottom'},90:{left:'bottom',top:'left',right:'top',bottom:'right'},180:{left:'right',top:'bottom',right:'left',bottom:'top'},270:{left:'top',top:'right',right:'bottom',bottom:'left'}};
+        return maps[rotation][edge];
+      },
+      setValues(p,patch){
+        if('cropLeft' in patch)p.cropLeftRatio=patch.cropLeft;
+        if('cropTop' in patch)p.cropTopRatio=patch.cropTop;
+        if('cropRight' in patch)p.cropRightRatio=patch.cropRight;
+        if('cropBottom' in patch)p.cropBottomRatio=patch.cropBottom;
+      },
+      isCropMode(){return false;},toggleCropMode(){}
+    };
+    window.PdfNupPageAdjust={
+      setValues(p,patch){p.nupScale=patch.scale;p.nupOffsetX=patch.offsetX;p.nupOffsetY=patch.offsetY;},
+      refresh(){window.__refreshCount+=1;}
+    };
+    window.PdfImportTransactionSafety={
+      async safePdfGetDocument(){
+        return{
+          async getPage(){return{cleanup(){}};},
+          async destroy(){window.__hydrationDestroyed=true;}
+        };
+      },
+      async safeRenderPdfPage(pdfPage,scale,rotation){
+        window.__hydrationRotation=rotation;
+        const canvas=document.createElement('canvas');canvas.width=360;canvas.height=240;
+        return canvas;
+      }
+    };
+  </script>
+  <script src="/js/pdf-editor/drag-crop-autofit.js?v=20260908-1"></script>
+  <script>
+    (async()=>{
+      const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+      const close=(a,b)=>Math.abs(a-b)<.012;
+      const fail=message=>{
+        document.documentElement.dataset.pdfDragCropAutofitSmoke='fail';
+        document.getElementById('result').textContent='FAIL: '+message;
+        throw new Error(message);
+      };
+      await sleep(180);
+      const api=window.PdfDragCropAutoFit;
+      if(!api)return fail('API missing');
+      if(api.stage!=='drag-keep-region-crop-autofit-v1')return fail('stage missing');
+      const button=document.getElementById('pdfDragCropAutoFitV1');
+      if(!button)return fail('selection button missing');
+
+      const reverse=api.normalizeSelection({left:.8,top:.9,right:0,bottom:0});
+      if(reverse.left!==0||reverse.top!==0||!close(reverse.right,.8)||!close(reverse.bottom,.9))return fail('reverse drag to exact top/left edge is not normalized');
+
+      const lightweightPage={
+        id:'2',pageType:'pdf',file_index:0,page_index:3,rotation:0,lightweight:true,
+        pdfPage:{__lightweightPdfPage:true},thumbCanvas:lightweightPlaceholder,
+        cropLeftRatio:0,cropTopRatio:0,cropRightRatio:0,cropBottomRatio:0
+      };
+      const hydrated=await api.resolveDisplaySource(lightweightPage);
+      if(!hydrated||hydrated===lightweightPlaceholder||hydrated.width!==360||hydrated.height!==240)return fail('lightweight page did not use hydrated real source');
+      if(window.__hydrationRotation!==0)return fail('lightweight hydration was not canonical rotation 0');
+      if(!window.__hydrationDestroyed)return fail('lightweight source document was not released');
+
+      const originalSafeRender=window.PdfImportTransactionSafety.safeRenderPdfPage;
+      window.PdfImportTransactionSafety.safeRenderPdfPage=async()=>lightweightPlaceholder;
+      const rejected=await api.resolveDisplaySource({...lightweightPage,id:'3',page_index:4});
+      window.PdfImportTransactionSafety.safeRenderPdfPage=originalSafeRender;
+      if(rejected)return fail('placeholder fallback was accepted as crop source');
+
+      const composed=api.composeVisualCrop(page,{left:.25,top:.20,right:.75,bottom:.80});
+      if(!close(composed.left,.275)||!close(composed.top,.24)||!close(composed.right,.275)||!close(composed.bottom,.34))return fail('existing crop composition is wrong '+JSON.stringify(composed));
+      const patch=api.sourcePatchFromVisual(page,composed);
+      if(!close(patch.cropLeft,.24)||!close(patch.cropTop,.275)||!close(patch.cropRight,.34)||!close(patch.cropBottom,.275))return fail('90-degree visual/source crop mapping is wrong '+JSON.stringify(patch));
+
+      button.click();
+      await sleep(80);
+      if(!api.isActive())return fail('selection mode did not activate');
+      const overlay=document.getElementById('pdfDragCropOverlayV1');
+      if(!overlay||overlay.dataset.visible!=='true')return fail('selection overlay not visible');
+      const rect=overlay.getBoundingClientRect();
+      if(rect.width<20||rect.height<20)return fail('selection overlay has no geometry');
+
+      const beforeCancel=[page.cropLeftRatio,page.cropTopRatio,page.cropRightRatio,page.cropBottomRatio,page.nupScale,page.nupOffsetX,page.nupOffsetY].join('|');
+      const cancelPointerId=90;
+      overlay.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,pointerId:cancelPointerId,button:0,clientX:rect.left+rect.width*.20,clientY:rect.top+rect.height*.20}));
+      document.dispatchEvent(new PointerEvent('pointermove',{bubbles:true,pointerId:cancelPointerId,clientX:rect.left+rect.width*.70,clientY:rect.top+rect.height*.70}));
+      document.dispatchEvent(new PointerEvent('pointercancel',{bubbles:true,pointerId:cancelPointerId,clientX:rect.left+rect.width*.70,clientY:rect.top+rect.height*.70}));
+      await sleep(20);
+      const afterCancel=[page.cropLeftRatio,page.cropTopRatio,page.cropRightRatio,page.cropBottomRatio,page.nupScale,page.nupOffsetX,page.nupOffsetY].join('|');
+      if(beforeCancel!==afterCancel)return fail('pointercancel applied an unintended crop');
+      if(!api.isActive())return fail('pointercancel exited selection mode instead of allowing retry');
+
+      const pointerId=91;
+      overlay.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,pointerId,button:0,clientX:rect.left+rect.width*.25,clientY:rect.top+rect.height*.20}));
+      document.dispatchEvent(new PointerEvent('pointermove',{bubbles:true,pointerId,clientX:rect.left+rect.width*.75,clientY:rect.top+rect.height*.80}));
+      document.dispatchEvent(new PointerEvent('pointerup',{bubbles:true,pointerId,clientX:rect.left+rect.width*.75,clientY:rect.top+rect.height*.80}));
+      await sleep(40);
+
+      if(api.isActive())return fail('selection mode did not exit after apply');
+      if(!close(page.cropLeftRatio,.24)||!close(page.cropTopRatio,.275)||!close(page.cropRightRatio,.34)||!close(page.cropBottomRatio,.275))return fail('pointer selection did not apply expected source crop '+JSON.stringify(page));
+      if(page.nupScale!==1||page.nupOffsetX!==0||page.nupOffsetY!==0)return fail('placement was not reset for automatic margin fit');
+      if(window.__refreshCount<1)return fail('preview was not refreshed');
+      if(window.__applyEvent?.pageId!=='1')return fail('apply event missing');
+
+      document.documentElement.dataset.pdfDragCropAutofitSmoke='pass';
+      document.getElementById('result').textContent='PASS: drag keep-region crop composes current crop, maps rotation, and auto-fits margins';
+    })().catch(error=>console.error(error));
+  </script>
+</body>
+</html>

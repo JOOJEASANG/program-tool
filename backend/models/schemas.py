@@ -18,6 +18,9 @@ class PageInfo(BaseModel):
     rotation: Literal[0, 90, 180, 270] = 0
     # Keep legacy auto-fit rotation unless the user explicitly rotates a page.
     rotation_locked: bool = False
+    # Fine rotation is applied after the quarter-turn rotation. Keeping it
+    # separate preserves stable crop coordinates while allowing deskew-style edits.
+    fine_rotation_deg: float = Field(default=0.0, ge=-180.0, le=180.0)
     nup_override: Optional[NupValue] = None
     nup_disabled: bool = False
     group_break: bool = False

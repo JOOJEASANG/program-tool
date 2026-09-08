@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="ko" data-pdf-precision-edit-tools-host="1">
+<head>
+  <meta charset="utf-8">
+  <title>PDF precision edit tools smoke</title>
+  <style>
+    body{margin:0;font-family:sans-serif}
+    #pdfPageTransformControlsV1{width:320px;padding:8px}
+    #previewScroll{position:relative;width:620px;height:780px;overflow:auto;padding:20px}
+    .page-preview{position:relative;width:500px;height:700px}
+    .page-preview>canvas{display:block;width:500px;height:700px}
+    .pdf-nup-adjust-hit{position:absolute;left:50px;top:50px;width:400px;height:600px;border:1px solid #2563eb;box-sizing:border-box}
+  </style>
+</head>
+<body>
+  <input id="marginH" type="number" value="10">
+  <input id="marginV" type="number" value="10">
+  <input id="marginLeft" type="number" value="10">
+  <input id="marginRight" type="number" value="10">
+  <input id="marginTop" type="number" value="10">
+  <input id="marginBottom" type="number" value="10">
+  <div id="pdfPageTransformControlsV1"></div>
+  <div id="previewScroll">
+    <div class="page-preview" data-output-index="0">
+      <canvas id="previewCanvas" width="1000" height="1400"></canvas>
+      <div class="pdf-nup-adjust-hit" data-page-id="1" data-selected="true"></div>
+    </div>
+  </div>
+  <pre id="result">RUNNING</pre>
+  <script>
+    const source=document.createElement('canvas');source.width=200;source.height=300;
+    const sctx=source.getContext('2d');sctx.fillStyle='#fff';sctx.fillRect(0,0,200,300);sctx.fillStyle='#111';sctx.fillRect(30,40,140,220);
+    const preview=document.getElementById('previewCanvas');
+    const pctx=preview.getContext('2d');pctx.fillStyle='#fff';pctx.fillRect(0,0,preview.width,preview.height);pctx.drawImage(source,100,100,800,1200);
+
+    window.parsedPages=[{
+      id:'1',pageType:'pdf',rotation:0,pageRotationLocked:true,thumbCanvas:source,
+      cropLeftRatio:0,cropTopRatio:0,cropRightRatio:0,cropBottomRatio:0,
+      nupScale:1,nupOffsetX:0,nupOffsetY:0,fineRotationDeg:0,
+    }];
+    window.getSettings=()=>({pw:200,ph:280});
+    window.PdfEditorLayoutExport={layoutMargins(){
+      return{
+        left:Number(document.getElementById('marginLeft').value),right:Number(document.getElementById('marginRight').value),
+        top:Number(document.getElementById('marginTop').value),bottom:Number(document.getElementById('marginBottom').value),
+      };
+    }};
+    window.PdfPageTransformEdit={
+      valuesForPage(p){return{
+        rotation:Number(p.rotation||0),rotationLocked:!!p.pageRotationLocked,
+        cropLeft:Number(p.cropLeftRatio||0),cropTop:Number(p.cropTopRatio||0),
+        cropRight:Number(p.cropRightRatio||0),cropBottom:Number(p.cropBottomRatio||0),
+      };},
+      visualCrop(v){return{left:Number(v.cropLeft||0),top:Number(v.cropTop||0),right:Number(v.cropRight||0),bottom:Number(v.cropBottom||0)};},
+      setValues(p,patch){
+        if('rotation' in patch)p.rotation=patch.rotation;
+        if('rotationLocked' in patch)p.pageRotationLocked=!!patch.rotationLocked;
+        if('cropLeft' in patch)p.cropLeftRatio=patch.cropLeft;
+        if('cropTop' in patch)p.cropTopRatio=patch.cropTop;
+        if('cropRight' in patch)p.cropRightRatio=patch.cropRight;
+        if('cropBottom' in patch)p.cropBottomRatio=patch.cropBottom;
+      },
+      refreshOverlay(){}
+    };
+    window.__refreshCount=0;
+    window.__selectedNupPage='';
+    window.PdfNupPageAdjust={
+      valuesForPage(p){return{scale:Number(p.nupScale||1),offsetX:Number(p.nupOffsetX||0),offsetY:Number(p.nupOffsetY||0)};},
+      setValues(p,patch){p.nupScale=patch.scale;p.nupOffsetX=patch.offsetX;p.nupOffsetY=patch.offsetY;},
+      selectPage(p){window.__selectedNupPage=String(p?.id||'');},refresh(){window.__refreshCount+=1;}
+    };
+    window.getPageSrc=p=>p.thumbCanvas;
+    window.__drawnSource=null;
+    window.drawPageInCell=function(ctx,src,x,y,w,h){window.__drawnSource=src;ctx.drawImage(src,x,y,w,h);};
+    window.apiProcessPdf=async(files,settings)=>settings;
+    window.collectEditorState=()=>({});
+    window.loadEditorSession=async()=>true;
+    window.showStatus=()=>{};window.hideStatus=()=>{};
+  </script>
+  <script src="/js/pdf-editor/core-runtime.js?v=20260908-1"></script>
+  <script src="/js/pdf-editor/precision-edit-tools.js?v=20260908-1"></script>
+  <script>
+    (async()=>{
+      const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+      const fail=message=>{
+        document.documentElement.dataset.pdfPrecisionEditToolsSmoke='fail';
+        document.getElementById('result').textContent='FAIL: '+message;
+        throw new Error(message);
+      };
+      const close=(a,b,t=.8)=>Math.abs(a-b)<=t;
+      await sleep(220);
+      const api=window.PdfPrecisionEditTools;
+      const page=window.parsedPages[0];
+      if(!api||api.stage!=='live-margin-undo-free-rotation-v1')return fail('API or stage missing');
+
+      document.dispatchEvent(new CustomEvent('pdf-drag-crop-autofit-applied',{detail:{pageId:'1'}}));
+      if(window.__selectedNupPage!=='1')return fail('drag crop apply did not synchronously select/sync N-up page');
+
+      api.renderMarginGuides();
+      let guide=document.querySelector('.pdf-live-margin-guide');
+      if(!guide)return fail('live margin guide missing');
+      let pageRect=document.querySelector('.page-preview').getBoundingClientRect();
+      let guideRect=guide.getBoundingClientRect();
+      if(!close(guideRect.left-pageRect.left,25,1.2))return fail('initial left margin guide wrong '+(guideRect.left-pageRect.left));
+      if(!close(guideRect.top-pageRect.top,25,1.2))return fail('initial top margin guide wrong '+(guideRect.top-pageRect.top));
+
+      const left=document.getElementById('marginLeft');
+      left.value='20';left.dispatchEvent(new Event('input',{bubbles:true}));
+      await sleep(50);
+      guide=document.querySelector('.pdf-live-margin-guide');guideRect=guide.getBoundingClientRect();pageRect=document.querySelector('.page-preview').getBoundingClientRect();
+      if(!close(guideRect.left-pageRect.left,50,1.2))return fail('margin guide did not move immediately with 20mm setting '+(guideRect.left-pageRect.left));
+      if(guide.dataset.marginLeft!=='20')return fail('guide did not record effective margin');
+
+      const handle=document.querySelector('.pdf-free-rotate-handle');
+      if(!handle)return fail('free rotation handle missing');
+      const hit=document.querySelector('.pdf-nup-adjust-hit');
+      const rect=hit.getBoundingClientRect();
+      const cx=rect.left+rect.width/2,cy=rect.top+rect.height/2;
+      const pointerId=77;
+      handle.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,pointerId,button:0,clientX:cx+100,clientY:cy}));
+      const rad=10*Math.PI/180;
+      window.dispatchEvent(new PointerEvent('pointermove',{bubbles:true,pointerId,button:0,clientX:cx+100*Math.cos(rad),clientY:cy+100*Math.sin(rad)}));
+      window.dispatchEvent(new PointerEvent('pointerup',{bubbles:true,pointerId,button:0,clientX:cx+100*Math.cos(rad),clientY:cy+100*Math.sin(rad)}));
+      await sleep(50);
+      if(Math.abs(Number(page.fineRotationDeg)-10)>.3)return fail('corner drag did not produce ~10 degree rotation '+page.fineRotationDeg);
+      if(page.pageRotationLocked!==true)return fail('fine rotation did not lock explicit rotation');
+      if(api.history.undoCount<1)return fail('free rotation was not added to undo history');
+
+      const ctx=document.createElement('canvas').getContext('2d');ctx.canvas.width=400;ctx.canvas.height=400;
+      const marked=getPageSrc(page);
+      if(Math.abs(Number(marked.dataset.pdfFineRotationDeg)-10)>.3)return fail('fine rotation was not attached to preview source');
+      drawPageInCell(ctx,marked,0,0,300,300);
+      if(!window.__drawnSource||window.__drawnSource===source)return fail('fine rotation did not transform preview draw source');
+      if(window.__drawnSource.width<=source.width||window.__drawnSource.height<=source.height)return fail('arbitrary rotation bounding canvas did not expand');
+
+      window.dispatchEvent(new KeyboardEvent('keydown',{bubbles:true,key:'z',ctrlKey:true}));
+      await sleep(40);
+      if(Math.abs(Number(page.fineRotationDeg||0))>.01)return fail('Ctrl+Z did not undo free rotation');
+
+      api.history.clear();
+      const fineInput=document.getElementById('pdfFineRotationDegV1');
+      if(!fineInput)return fail('fine rotation numeric input missing');
+      const inputPointerId=78;
+      fineInput.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,pointerId:inputPointerId,button:0}));
+      fineInput.focus();
+      fineInput.dispatchEvent(new PointerEvent('pointerup',{bubbles:true,pointerId:inputPointerId,button:0}));
+      fineInput.value='4.5';
+      fineInput.dispatchEvent(new Event('input',{bubbles:true}));
+      if(Math.abs(Number(page.fineRotationDeg)-4.5)>.01)return fail('focused numeric edit did not update fine rotation');
+      fineInput.dispatchEvent(new KeyboardEvent('keydown',{bubbles:true,key:'z',ctrlKey:true}));
+      await sleep(40);
+      if(Math.abs(Number(page.fineRotationDeg||0))>.01)return fail('Ctrl+Z did not undo the focused numeric edit');
+      if(Math.abs(Number(fineInput.value||0))>.01)return fail('focused numeric control stayed stale after Ctrl+Z '+fineInput.value);
+
+      // Keep the control focused and start a second mouse edit. This must open
+      // a new focus-owned history transaction even though no focusin fires.
+      const secondPointerId=79;
+      fineInput.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,pointerId:secondPointerId,button:0}));
+      fineInput.dispatchEvent(new PointerEvent('pointerup',{bubbles:true,pointerId:secondPointerId,button:0}));
+      fineInput.value='2.5';
+      fineInput.dispatchEvent(new Event('input',{bubbles:true}));
+      if(Math.abs(Number(page.fineRotationDeg)-2.5)>.01)return fail('second already-focused numeric edit did not update fine rotation');
+      fineInput.dispatchEvent(new KeyboardEvent('keydown',{bubbles:true,key:'z',ctrlKey:true}));
+      await sleep(40);
+      if(Math.abs(Number(page.fineRotationDeg||0))>.01)return fail('Ctrl+Z did not undo second already-focused numeric edit');
+      if(Math.abs(Number(fineInput.value||0))>.01)return fail('focused control stayed stale after second Ctrl+Z '+fineInput.value);
+      fineInput.blur();
+      await sleep(20);
+
+      api.history.clear();
+      api.history.begin(page,'영역 자르기','smoke');
+      window.PdfPageTransformEdit.setValues(page,{cropLeft:.22,cropTop:.11,cropRight:.05,cropBottom:.03});
+      window.PdfNupPageAdjust.setValues(page,{scale:1.4,offsetX:7,offsetY:-5});
+      api.history.commit();
+      if(api.history.undoCount!==1)return fail('crop/edit history was not committed');
+      window.dispatchEvent(new KeyboardEvent('keydown',{bubbles:true,key:'z',ctrlKey:true}));
+      await sleep(40);
+      if(Math.abs(page.cropLeftRatio)>.001||Math.abs(page.cropTopRatio)>.001)return fail('Ctrl+Z did not restore crop state');
+      if(Math.abs(page.nupScale-1)>.001||Math.abs(page.nupOffsetX)>.001||Math.abs(page.nupOffsetY)>.001)return fail('Ctrl+Z did not restore placement state');
+
+      api.setFine(page,-2.6,true);
+      const enriched=api.enrichSettings({pages:[{file_index:0,page_index:0}]});
+      if(Math.abs(enriched.pages[0].fine_rotation_deg+2.6)>.01)return fail('fine rotation request enrichment missing');
+
+      document.documentElement.dataset.pdfPrecisionEditToolsSmoke='pass';
+      document.getElementById('result').textContent='PASS: live margins, focused Ctrl+Z history, crop panel sync, and free-angle rotation stay in sync';
+    })().catch(error=>console.error(error));
+  </script>
+</body>
+</html>
