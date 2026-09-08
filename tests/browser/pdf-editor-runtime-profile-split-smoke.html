@@ -50,8 +50,10 @@
       if(baseCalls.some(call=>advancedIds.includes(call.id)||call.id==='pdfEditorAdvancedRuntimeScriptV1'))return fail('advanced module loaded in default editor');
       if(baseCalls.filter(call=>String(call.id).startsWith('pdfEditor')&&call.id!=='pdfEditorAdvancedRuntimeScriptV1').length!==8)return fail('default core module count changed');
 
-      history.replaceState({},'', '/pdf-editor-advanced');
-      if(!core.isAdvancedProfile())return fail('advanced route not detected');
+      history.replaceState({},'', '/pdf-editor?profile=advanced');
+      delete document.documentElement.dataset.pdfEditorProfile;
+      if(location.pathname!=='/pdf-editor')return fail('advanced profile left canonical PDF editor path');
+      if(!core.isAdvancedProfile())return fail('advanced query profile not detected');
       await core.loadAll();
       const allCalls=window.__profileSplitCalls;
       if(!allCalls.some(call=>call.id==='pdfEditorAdvancedRuntimeScriptV1'))return fail('advanced runtime loader missing');
@@ -62,7 +64,7 @@
       if(document.documentElement.dataset.pdfEditorProfile!=='advanced')return fail('advanced profile marker missing');
 
       document.documentElement.dataset.pdfEditorRuntimeProfileSplitSmoke='pass';
-      result.textContent='PASS: default PDF editor stays lightweight and advanced route loads editing modules separately';
+      result.textContent='PASS: default PDF editor stays lightweight and canonical advanced profile loads editing modules separately';
     })().catch(error=>console.error(error));
   </script>
 </body>
