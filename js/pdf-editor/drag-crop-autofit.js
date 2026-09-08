@@ -12,6 +12,9 @@
   const INSTALL_DELAYS=[0,120,300,650,1100,1800,3000,5000];
   const MIN_SELECTION=.055;
   const MIN_SOURCE_VISIBLE=.051;
+  const SOURCE_CACHE_LIMIT=12;
+  const SOURCE_CACHE_MAX_SIDE=520;
+  const FALLBACK_HYDRATION_SCALE=.38;
   const byId=id=>document.getElementById(id);
   const clamp=(value,min,max)=>Math.max(min,Math.min(max,value));
 
@@ -19,12 +22,19 @@
   let selectedPageId='';
   let drag=null;
   let overlayFrame=0;
+  let selectionFrame=0;
+  let pendingSelection=null;
   let previewObserver=null;
   let eventsInstalled=false;
   let activeSource=null;
   let activationToken=0;
   let hydratedBasePage=null;
   let hydratedBaseCanvas=null;
+  let sourceCaptureInstalled=false;
+  let drawnSource=null;
+  let drawnWidth=0;
+  let drawnHeight=0;
+  const sourceCache=new Map();
 
   function pages(){
     try{return Array.isArray(parsedPages)?parsedPages:[];}catch(_){return[];}
@@ -138,6 +148,7 @@
     active=false;
     drag=null;
     activeSource=null;
+    pendingSelection=null;
     hideOverlay();
     syncControls('선택 영역 맞춤 완료');
     requestPreview();
@@ -152,6 +163,94 @@
     return!!(
       page?.lightweight||page?.pdfPage?.__lightweightPdfPage||page?.thumbCanvas?.dataset?.lightweightPage==='1'
     );
+  }
+
+  function isUsableSource(source){
+    return!!(
+      source?.width>1&&source?.height>1
+      &&source.dataset?.lazyPreviewError!=='1'
+      &&source.dataset?.lightweightPage!=='1'
+    );
+  }
+
+  function cloneForCache(source){
+    if(!isUsableSource(source))return null;
+    const ratio=Math.min(1,SOURCE_CACHE_MAX_SIDE/Math.max(source.width,source.height));
+    const canvas=document.createElement('canvas');
+    canvas.width=Math.max(1,Math.round(source.width*ratio));
+    canvas.height=Math.max(1,Math.round(source.height*ratio));
+    const context=canvas.getContext('2d',{alpha:false});
+    if(!context)return null;
+    context.fillStyle='#fff';
+    context.fillRect(0,0,canvas.width,canvas.height);
+    context.drawImage(source,0,0,canvas.width,canvas.height);
+    if(source.dataset){
+      ['pdfCanonicalSourceRotation','pdfRequestedRotation','pageRotation'].forEach(key=>{
+        if(source.dataset[key]!=null)canvas.dataset[key]=source.dataset[key];
+      });
+    }
+    canvas.dataset.pdfDragCropCachedSource='1';
+    return canvas;
+  }
+
+  function rememberSource(page,source){
+    const original=pageById(page?.id);
+    if(!original||!isLightweightPage(original)||!isUsableSource(source))return;
+    // A rotated raw thumbnail without the canonical marker can double-rotate
+    // when PageTransformEdit applies the current user rotation. Cache only a
+    // guaranteed canonical source, or a rotation-0 page where raw is canonical.
+    if(Number(original.rotation||0)%360!==0&&source.dataset?.pdfCanonicalSourceRotation!=='0')return;
+    const cached=cloneForCache(source);
+    if(!cached)return;
+    const key=String(original.id);
+    const previous=sourceCache.get(key);
+    if(previous&&previous!==cached){try{previous.width=1;previous.height=1;}catch(_){}}
+    sourceCache.delete(key);
+    sourceCache.set(key,cached);
+    while(sourceCache.size>SOURCE_CACHE_LIMIT){
+      const oldestKey=sourceCache.keys().next().value;
+      const oldest=sourceCache.get(oldestKey);
+      sourceCache.delete(oldestKey);
+      try{oldest.width=1;oldest.height=1;}catch(_){}
+    }
+    document.documentElement.dataset.pdfDragCropCachedSources=String(sourceCache.size);
+  }
+
+  function cachedSource(page){
+    const key=String(page?.id??'');
+    const canvas=sourceCache.get(key);
+    if(!isUsableSource(canvas)){
+      if(canvas)sourceCache.delete(key);
+      return null;
+    }
+    sourceCache.delete(key);
+    sourceCache.set(key,canvas);
+    return canvas;
+  }
+
+  function clearSourceCache(){
+    for(const canvas of sourceCache.values()){
+      try{canvas.width=1;canvas.height=1;}catch(_){}
+    }
+    sourceCache.clear();
+    document.documentElement.dataset.pdfDragCropCachedSources='0';
+  }
+
+  function installGetPageSrcCapture(){
+    if(sourceCaptureInstalled)return true;
+    const current=window.getPageSrc;
+    if(typeof current!=='function')return false;
+    const original=current;
+    const wrapped=function dragCropSourceCapture(page){
+      try{rememberSource(page,page?.thumbCanvas);}catch(_){}
+      return original.apply(this,arguments);
+    };
+    wrapped.__pdfDragCropSourceCaptureV1=true;
+    wrapped.__pdfDragCropSourceCaptureOriginal=original;
+    window.getPageSrc=wrapped;
+    try{getPageSrc=wrapped;}catch(_){}
+    sourceCaptureInstalled=true;
+    return true;
   }
 
   function releaseHydratedBase(){
@@ -176,17 +275,12 @@
         ? await safety.safePdfGetDocument(buffer,true)
         : await pdfjsLib.getDocument({data:buffer,disableAutoFetch:true,disableFontFace:true}).promise;
       pdfPage=await documentHandle.getPage(Number(page?.page_index||0)+1);
-      // Always hydrate a canonical 0-degree source. PageTransformEdit owns the
-      // user's crop/rotation so the selection overlay and vector export share
-      // exactly one transform order.
+      // Selection ratios do not need a large raster. A small canonical source
+      // is substantially faster and the final PDF still uses the vector source.
       const canvas=typeof safety?.safeRenderPdfPage==='function'
-        ? await safety.safeRenderPdfPage(pdfPage,.72,0,true)
-        : await renderPdfPage(pdfPage,.72,0);
-      if(
-        !canvas?.width||!canvas?.height
-        ||canvas.dataset?.lazyPreviewError==='1'
-        ||canvas.dataset?.lightweightPage==='1'
-      )throw new Error('실제 페이지 미리보기를 만들지 못했습니다.');
+        ? await safety.safeRenderPdfPage(pdfPage,FALLBACK_HYDRATION_SCALE,0,true)
+        : await renderPdfPage(pdfPage,FALLBACK_HYDRATION_SCALE,0);
+      if(!isUsableSource(canvas))throw new Error('실제 페이지 미리보기를 만들지 못했습니다.');
       hydratedBasePage=page;
       hydratedBaseCanvas=canvas;
       return canvas;
@@ -211,6 +305,13 @@
   async function resolveDisplaySource(page){
     if(!page)return null;
     if(!isLightweightPage(page))return transformedDisplaySource(page,page?.thumbCanvas);
+
+    // Large-document lazy preview has already rendered the page the user can
+    // see. Capture that source while it is available and reuse it here instead
+    // of reopening and reparsing the entire PDF on every crop activation.
+    const cached=cachedSource(page);
+    if(cached)return transformedDisplaySource(page,cached);
+
     try{
       const base=await renderHydratedBase(page);
       return transformedDisplaySource(page,base);
@@ -235,11 +336,11 @@
       #pdfDragCropAutoFitV1[data-active="true"]{background:#2563eb;color:#fff}
       #pdfDragCropAutoFitV1:disabled{opacity:.42;cursor:not-allowed}
       #pdfDragCropAutoFitStatusV1{min-height:13px;color:#64748b;font-size:8px;font-weight:750;line-height:1.35;text-align:center}
-      #pdfDragCropOverlayV1{position:fixed;z-index:2147483050;display:none;overflow:hidden;border:2px solid #2563eb;border-radius:3px;background:#fff;box-shadow:0 10px 34px rgba(15,23,42,.26);cursor:crosshair;touch-action:none;user-select:none}
+      #pdfDragCropOverlayV1{position:fixed;z-index:2147483050;display:none;overflow:hidden;border:2px solid #2563eb;border-radius:3px;background:#fff;box-shadow:0 10px 34px rgba(15,23,42,.26);cursor:crosshair;touch-action:none;user-select:none;pointer-events:auto;contain:layout paint}
       #pdfDragCropOverlayV1[data-visible="true"]{display:block}
       #pdfDragCropOverlayV1 canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
       #pdfDragCropShadeV1{position:absolute;inset:0;background:rgba(37,99,235,.025);pointer-events:none}
-      #pdfDragCropSelectionV1{position:absolute;display:none;border:2px solid #f59e0b;background:rgba(255,255,255,.08);box-shadow:0 0 0 2000px rgba(15,23,42,.48);pointer-events:none}
+      #pdfDragCropSelectionV1{position:absolute;display:none;border:2px solid #f59e0b;background:rgba(255,255,255,.08);box-shadow:0 0 0 2000px rgba(15,23,42,.48);pointer-events:none;will-change:left,top,width,height}
       #pdfDragCropSelectionV1[data-visible="true"]{display:block}
       #pdfDragCropHintV1{position:absolute;left:50%;top:8px;transform:translateX(-50%);z-index:3;max-width:calc(100% - 16px);padding:4px 8px;border-radius:999px;background:rgba(15,23,42,.86);color:#fff;font-size:8px;font-weight:900;white-space:nowrap;pointer-events:none}
     `;
@@ -276,7 +377,7 @@
     const status=byId('pdfDragCropAutoFitStatusV1');
     if(status){
       if(message)status.textContent=message;
-      else if(active&&page&&!activeSource)status.textContent='실제 원본 페이지를 불러오는 중입니다.';
+      else if(active&&page&&!activeSource)status.textContent='빠른 자르기 화면을 준비하는 중입니다.';
       else if(active&&page)status.textContent='남길 부분을 사각형으로 드래그하세요. 마우스를 놓으면 즉시 적용됩니다. · Esc 취소';
       else status.textContent=page?'선택 부분만 남기고 나머지를 자른 뒤 자동으로 최대 맞춤합니다.':'먼저 미리보기에서 페이지를 선택하세요.';
     }
@@ -288,14 +389,14 @@
     overlay=document.createElement('div');
     overlay.id='pdfDragCropOverlayV1';
     overlay.innerHTML=`<canvas id="pdfDragCropCanvasV1"></canvas><div id="pdfDragCropShadeV1"></div><div id="pdfDragCropSelectionV1"></div><div id="pdfDragCropHintV1">남길 부분을 드래그 · 놓으면 자동 적용</div>`;
-    overlay.addEventListener('pointerdown',beginDrag,true);
+    overlay.addEventListener('pointerdown',beginDrag,{capture:true,passive:false});
     document.body.appendChild(overlay);
     return overlay;
   }
 
   function hideOverlay(){
     const overlay=byId('pdfDragCropOverlayV1');
-    if(overlay)overlay.dataset.visible='false';
+    if(overlay){overlay.dataset.visible='false';delete overlay.dataset.dragging;}
     const selection=byId('pdfDragCropSelectionV1');
     if(selection)selection.dataset.visible='false';
   }
@@ -310,11 +411,16 @@
     if(!canvas||!source)return;
     const w=Math.max(1,Math.round(width));
     const h=Math.max(1,Math.round(height));
+    if(drawnSource===source&&drawnWidth===w&&drawnHeight===h&&canvas.width===w&&canvas.height===h)return;
     if(canvas.width!==w)canvas.width=w;
     if(canvas.height!==h)canvas.height=h;
-    const ctx=canvas.getContext('2d');
-    ctx.clearRect(0,0,w,h);
+    const ctx=canvas.getContext('2d',{alpha:false});
+    ctx.fillStyle='#fff';
+    ctx.fillRect(0,0,w,h);
     ctx.drawImage(source,0,0,w,h);
+    drawnSource=source;
+    drawnWidth=w;
+    drawnHeight=h;
   }
 
   function positionOverlay(){
@@ -354,7 +460,7 @@
     };
   }
 
-  function paintSelection(selection){
+  function paintSelectionNow(selection){
     const box=byId('pdfDragCropSelectionV1');
     if(!box)return;
     const pick=normalizeSelection(selection);
@@ -365,6 +471,25 @@
     box.dataset.visible='true';
   }
 
+  function queueSelectionPaint(selection){
+    pendingSelection=selection;
+    if(selectionFrame)return;
+    selectionFrame=requestAnimationFrame(()=>{
+      selectionFrame=0;
+      const next=pendingSelection;
+      pendingSelection=null;
+      if(next)paintSelectionNow(next);
+    });
+  }
+
+  function clearSelectionPaint(){
+    pendingSelection=null;
+    if(selectionFrame){
+      try{cancelAnimationFrame(selectionFrame);}catch(_){}
+      selectionFrame=0;
+    }
+  }
+
   function beginDrag(event){
     if(!active||!activeSource||event.button!==0)return;
     const page=selectedPage();
@@ -372,9 +497,11 @@
     const rect=overlay?.getBoundingClientRect();
     if(!page||!rect?.width||!rect?.height)return;
     event.preventDefault();event.stopImmediatePropagation();event.stopPropagation();
+    clearSelectionPaint();
     const point=relativePoint(event,rect);
     drag={pointerId:event.pointerId,page,rect,startX:point.x,startY:point.y,currentX:point.x,currentY:point.y};
-    paintSelection({left:point.x,top:point.y,right:point.x,bottom:point.y});
+    overlay.dataset.dragging='true';
+    paintSelectionNow({left:point.x,top:point.y,right:point.x,bottom:point.y});
     try{overlay.setPointerCapture?.(event.pointerId);}catch(_){}
   }
 
@@ -383,7 +510,7 @@
     event.preventDefault();event.stopImmediatePropagation();event.stopPropagation();
     const point=relativePoint(event,drag.rect);
     drag.currentX=point.x;drag.currentY=point.y;
-    paintSelection({left:drag.startX,top:drag.startY,right:drag.currentX,bottom:drag.currentY});
+    queueSelectionPaint({left:drag.startX,top:drag.startY,right:drag.currentX,bottom:drag.currentY});
   }
 
   function endDrag(event){
@@ -392,6 +519,9 @@
     const state=drag;
     const point=relativePoint(event,state.rect);
     drag=null;
+    clearSelectionPaint();
+    const overlay=byId('pdfDragCropOverlayV1');
+    if(overlay)delete overlay.dataset.dragging;
     const selection=normalizeSelection({left:state.startX,top:state.startY,right:point.x,bottom:point.y});
     if(selection.right-selection.left<MIN_SELECTION||selection.bottom-selection.top<MIN_SELECTION){
       hideSelectionBox();
@@ -408,6 +538,9 @@
     if(!drag||event.pointerId!==drag.pointerId)return;
     event.preventDefault();event.stopImmediatePropagation();event.stopPropagation();
     drag=null;
+    clearSelectionPaint();
+    const overlay=byId('pdfDragCropOverlayV1');
+    if(overlay)delete overlay.dataset.dragging;
     hideSelectionBox();
     syncControls('선택 동작이 취소되었습니다. 다시 드래그하세요.');
   }
@@ -420,6 +553,7 @@
     active=true;
     drag=null;
     activeSource=null;
+    clearSelectionPaint();
     hideOverlay();
     syncControls();
     const source=await resolveDisplaySource(page);
@@ -441,6 +575,7 @@
     active=false;
     drag=null;
     activeSource=null;
+    clearSelectionPaint();
     hideOverlay();
     syncControls();
   }
@@ -448,9 +583,9 @@
   function installEvents(){
     if(eventsInstalled)return;
     eventsInstalled=true;
-    document.addEventListener('pointermove',moveDrag,true);
-    document.addEventListener('pointerup',endDrag,true);
-    document.addEventListener('pointercancel',cancelDrag,true);
+    document.addEventListener('pointermove',moveDrag,{capture:true,passive:false});
+    document.addEventListener('pointerup',endDrag,{capture:true,passive:false});
+    document.addEventListener('pointercancel',cancelDrag,{capture:true,passive:false});
     document.addEventListener('keydown',event=>{if(event.key==='Escape'&&active){event.preventDefault();cancel();}},true);
     document.addEventListener('click',event=>{
       const hit=event.target?.closest?.('.pdf-nup-adjust-hit');
@@ -463,6 +598,7 @@
     document.addEventListener('pdf-import-committed',()=>{
       cancel();
       releaseHydratedBase();
+      clearSourceCache();
     });
     window.addEventListener('resize',queueOverlay,{passive:true});
     byId('previewScroll')?.addEventListener('scroll',queueOverlay,{passive:true});
@@ -479,6 +615,7 @@
 
   function install(){
     installStyles();
+    installGetPageSrcCapture();
     installEvents();
     ensureControls();
     installObserver();
@@ -495,8 +632,10 @@
     activate,
     cancel,
     isActive:()=>active,
+    get cachedSourceCount(){return sourceCache.size;},
     refresh:()=>{syncControls();queueOverlay();},
     stage:'drag-keep-region-crop-autofit-v1',
+    performanceStage:'cached-lazy-source-frame-throttle-v1',
   };
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});
