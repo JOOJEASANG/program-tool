@@ -16,6 +16,7 @@
   if(!isAdvanced())return;
 
   const BLOCKED_ACTION_PATTERN=/(빈\s*페이지\s*(삽입|추가)|간지\s*(삽입|추가)|N\s*-?\s*up|N-UP|NUP|소책자)/i;
+  const ADVANCED_SUBTITLE='파일 업로드 · 페이지 정렬/삭제 · 자르기/회전 · 위치/크기 보정 · PDF 저장';
   let observer=null;
   let applying=false;
 
@@ -122,7 +123,7 @@
 
   function applyBranding(){
     const sub=document.querySelector('.app > aside > .sub');
-    if(sub)sub.textContent='파일 업로드 · 페이지 정렬/삭제 · 자르기/회전 · 위치/크기 보정 · PDF 저장';
+    if(sub&&String(sub.textContent||'')!==ADVANCED_SUBTITLE)sub.textContent=ADVANCED_SUBTITLE;
   }
 
   function apply(){
