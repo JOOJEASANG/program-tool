@@ -37,6 +37,8 @@
     window.__refreshCount=0;
     window.__applyEvent=null;
     window.__hydrationRotation=null;
+    window.__hydrationScale=null;
+    window.__hydrationCalls=0;
     window.__hydrationDestroyed=false;
     document.addEventListener('pdf-drag-crop-autofit-applied',event=>{window.__applyEvent=event.detail;});
     window.getPageSrc=p=>p.thumbCanvas;
@@ -77,13 +79,15 @@
         };
       },
       async safeRenderPdfPage(pdfPage,scale,rotation){
+        window.__hydrationCalls+=1;
+        window.__hydrationScale=scale;
         window.__hydrationRotation=rotation;
         const canvas=document.createElement('canvas');canvas.width=360;canvas.height=240;
         return canvas;
       }
     };
   </script>
-  <script src="/js/pdf-editor/drag-crop-autofit.js?v=20260908-1"></script>
+  <script src="/js/pdf-editor/drag-crop-autofit.js?v=20260908-2"></script>
   <script>
     (async()=>{
       const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
@@ -97,6 +101,7 @@
       const api=window.PdfDragCropAutoFit;
       if(!api)return fail('API missing');
       if(api.stage!=='drag-keep-region-crop-autofit-v1')return fail('stage missing');
+      if(api.performanceStage!=='cached-lazy-source-frame-throttle-v1')return fail('performance stage missing');
       const button=document.getElementById('pdfDragCropAutoFitV1');
       if(!button)return fail('selection button missing');
 
@@ -111,6 +116,7 @@
       const hydrated=await api.resolveDisplaySource(lightweightPage);
       if(!hydrated||hydrated===lightweightPlaceholder||hydrated.width!==360||hydrated.height!==240)return fail('lightweight page did not use hydrated real source');
       if(window.__hydrationRotation!==0)return fail('lightweight hydration was not canonical rotation 0');
+      if(Math.abs(Number(window.__hydrationScale)-.38)>.001)return fail('fallback hydration is not using reduced crop scale '+window.__hydrationScale);
       if(!window.__hydrationDestroyed)return fail('lightweight source document was not released');
 
       const originalSafeRender=window.PdfImportTransactionSafety.safeRenderPdfPage;
@@ -118,6 +124,20 @@
       const rejected=await api.resolveDisplaySource({...lightweightPage,id:'3',page_index:4});
       window.PdfImportTransactionSafety.safeRenderPdfPage=originalSafeRender;
       if(rejected)return fail('placeholder fallback was accepted as crop source');
+
+      // Simulate the real lazy-preview path: it passes a temporary hydrated
+      // clone through getPageSrc. Drag crop should retain a small raw source and
+      // reuse it without reparsing/rendering the file on activation.
+      window.parsedPages.push(lightweightPage);
+      const lazyRendered=document.createElement('canvas');
+      lazyRendered.width=1040;lazyRendered.height=520;
+      lazyRendered.dataset.pdfCanonicalSourceRotation='0';
+      getPageSrc({...lightweightPage,thumbCanvas:lazyRendered,lightweight:false,pdfPage:{}});
+      if(api.cachedSourceCount<1)return fail('lazy hydrated source was not captured for crop reuse');
+      const callsBeforeCache=window.__hydrationCalls;
+      const cached=await api.resolveDisplaySource(lightweightPage);
+      if(window.__hydrationCalls!==callsBeforeCache)return fail('cached crop source still triggered PDF hydration');
+      if(!cached||cached.width!==520||cached.height!==260)return fail('cached crop source was not downsampled/reused '+(cached&&`${cached.width}x${cached.height}`));
 
       const composed=api.composeVisualCrop(page,{left:.25,top:.20,right:.75,bottom:.80});
       if(!close(composed.left,.275)||!close(composed.top,.24)||!close(composed.right,.275)||!close(composed.bottom,.34))return fail('existing crop composition is wrong '+JSON.stringify(composed));
@@ -155,7 +175,7 @@
       if(window.__applyEvent?.pageId!=='1')return fail('apply event missing');
 
       document.documentElement.dataset.pdfDragCropAutofitSmoke='pass';
-      document.getElementById('result').textContent='PASS: drag keep-region crop composes current crop, maps rotation, and auto-fits margins';
+      document.getElementById('result').textContent='PASS: drag crop uses cached lazy sources, reduced fallback hydration, and keeps pointer crop/autofit semantics';
     })().catch(error=>console.error(error));
   </script>
 </body>
