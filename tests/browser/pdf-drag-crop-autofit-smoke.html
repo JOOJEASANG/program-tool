@@ -20,6 +20,10 @@
   </div>
   <pre id="result">RUNNING</pre>
   <script>
+    // --dump-dom can defer RAF until after async assertions. The smoke tests
+    // crop semantics, not browser frame scheduling, so make RAF deterministic.
+    window.requestAnimationFrame=callback=>{callback(performance.now());return 0;};
+    window.cancelAnimationFrame=()=>{};
     const source=document.createElement('canvas');source.width=100;source.height=200;
     const lightweightPlaceholder=document.createElement('canvas');
     lightweightPlaceholder.width=96;lightweightPlaceholder.height=136;lightweightPlaceholder.dataset.lightweightPage='1';
