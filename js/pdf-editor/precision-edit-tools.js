@@ -722,10 +722,16 @@
     },true);
 
     document.addEventListener('input',event=>{
-      if(MARGIN_INPUT_IDS.has(event.target?.id))queueDecorations();
+      if(MARGIN_INPUT_IDS.has(event.target?.id)){
+        renderMarginGuides();
+        queueDecorations();
+      }
     },true);
     document.addEventListener('change',event=>{
-      if(MARGIN_INPUT_IDS.has(event.target?.id))queueDecorations();
+      if(MARGIN_INPUT_IDS.has(event.target?.id)){
+        renderMarginGuides();
+        queueDecorations();
+      }
     },true);
 
     window.addEventListener('keydown',event=>{
