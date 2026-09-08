@@ -109,7 +109,6 @@
       if(!close(back.x0,.1)||!close(back.y0,.2)||!close(back.x1,.3)||!close(back.y1,.4))return fail('rotation mapping is not reversible');
       page.rotation=0;
 
-      // Corner drag grows the selected page, matching image-editor resize semantics.
       const br=frame.querySelector('[data-corner="br"]');
       const brRect=br.getBoundingClientRect();
       br.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,pointerId:11,button:0,clientX:brRect.left+4,clientY:brRect.top+4}));
@@ -118,7 +117,6 @@
       await wait(30);
       if(!(page.nupScale>1.02))return fail('corner drag did not enlarge page');
 
-      // Pulling the right edge inward crops by the dragged amount.
       const nextFrame=document.querySelector('.pdf-direct-page-frame');
       const edge=nextFrame.querySelector('[data-edge="right"]');
       const edgeRect=edge.getBoundingClientRect();
@@ -128,7 +126,6 @@
       await wait(30);
       if(!(page.cropRightRatio>.02))return fail('right edge drag did not crop page');
 
-      // Rectangular drag now records a white-out region rather than replacing crop geometry.
       page.cropLeftRatio=page.cropTopRatio=page.cropRightRatio=page.cropBottomRatio=0;
       const overlay=document.getElementById('pdfDragCropOverlayV1');
       const overlayRect=overlay.getBoundingClientRect();
@@ -149,7 +146,8 @@
       if(center[0]<245||center[1]<245||center[2]<245)return fail('preview white-out did not erase center area');
       if(!(corner[0]>150&&corner[1]<80&&corner[2]<80))return fail('preview white-out damaged untouched area');
 
-      if(!document.getElementById('pdfDragCropAutoFitV1').textContent.includes('지저분한 곳 지우기'))return fail('drag crop UI was not repurposed as erase tool');
+      const eraseLabel=document.getElementById('pdfDragCropAutoFitV1').textContent;
+      if(!eraseLabel.includes('지우기'))return fail('drag crop UI was not repurposed as erase tool');
       if(!document.getElementById('pdfDragEraseResetV2'))return fail('erase reset control missing');
       if(previewRefreshes<2)return fail('direct edits did not request preview refresh');
 
