@@ -34,6 +34,7 @@
       nupScale:1,nupOffsetX:0,nupOffsetY:0,
     }];
     window.__renderRotations=[];
+    window.__safeRenderRotations=[];
     window.renderPdfPage=async function(pdfPage,scale,rotation){
       window.__renderRotations.push(Number(rotation||0));
       const canvas=document.createElement('canvas');
@@ -41,6 +42,17 @@
       canvas.width=rotated?100:200;
       canvas.height=rotated?200:100;
       return canvas;
+    };
+    window.PdfImportTransactionSafety={
+      async safeRenderPdfPage(pdfPage,scale,rotation,heavyMode){
+        window.__safeRenderRotations.push(Number(rotation||0));
+        const canvas=document.createElement('canvas');
+        const rotated=rotation===90||rotation===270;
+        canvas.width=rotated?100:200;
+        canvas.height=rotated?200:100;
+        canvas.dataset.heavyMode=String(!!heavyMode);
+        return canvas;
+      }
     };
     window.PdfNupPageAdjust={
       valuesForPage(page){return{scale:Number(page.nupScale||1),offsetX:Number(page.nupOffsetX||0),offsetY:Number(page.nupOffsetY||0)};},
@@ -73,6 +85,11 @@
       if(window.__renderRotations.at(-1)!==0)return fail('legacy rotation did not render from canonical rotation 0');
       if(page.pageRotationLocked!==true)return fail('legacy rotate action was not locked as exact user intent');
       if(rotatedCanvas.dataset.pdfCanonicalSourceRotation!=='0')return fail('canonical source marker missing');
+
+      const safeCanvas=await window.PdfImportTransactionSafety.safeRenderPdfPage(pdfToken,.62,90,true);
+      if(window.__safeRenderRotations.at(-1)!==0)return fail('lazy safety renderer did not render from canonical rotation 0');
+      if(safeCanvas.dataset.pdfCanonicalSourceRotation!=='0')return fail('lazy safety canonical marker missing');
+      if(safeCanvas.dataset.pdfRequestedRotation!=='90')return fail('lazy safety requested rotation marker missing');
 
       page.rotation=0;
       await window.renderPdfPage(pdfToken,.9,0);
