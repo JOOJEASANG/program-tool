@@ -21,9 +21,17 @@
   let overlayFrame=0;
   let previewObserver=null;
   let eventsInstalled=false;
+  let activeSource=null;
+  let activationToken=0;
+  let hydratedBasePage=null;
+  let hydratedBaseCanvas=null;
 
   function pages(){
     try{return Array.isArray(parsedPages)?parsedPages:[];}catch(_){return[];}
+  }
+
+  function files(){
+    try{return Array.isArray(uploadedFiles)?uploadedFiles:[];}catch(_){return[];}
   }
 
   function pageById(id){
@@ -129,6 +137,7 @@
     selectedPageId=String(page.id);
     active=false;
     drag=null;
+    activeSource=null;
     hideOverlay();
     syncControls('선택 영역 맞춤 완료');
     requestPreview();
@@ -136,14 +145,80 @@
     return true;
   }
 
-  function currentSource(page){
+  function isLightweightPage(page){
+    try{
+      if(typeof window.PdfViewportLazyPreview?.isLightweightPage==='function')return window.PdfViewportLazyPreview.isLightweightPage(page);
+    }catch(_){}
+    return!!(
+      page?.lightweight||page?.pdfPage?.__lightweightPdfPage||page?.thumbCanvas?.dataset?.lightweightPage==='1'
+    );
+  }
+
+  function releaseHydratedBase(){
+    if(hydratedBaseCanvas){
+      try{hydratedBaseCanvas.width=1;hydratedBaseCanvas.height=1;}catch(_){}
+    }
+    hydratedBaseCanvas=null;
+    hydratedBasePage=null;
+  }
+
+  async function renderHydratedBase(page){
+    if(hydratedBasePage===page&&hydratedBaseCanvas?.width>1&&hydratedBaseCanvas?.height>1)return hydratedBaseCanvas;
+    releaseHydratedBase();
+    const file=files()[Number(page?.file_index)];
+    if(!file||typeof file.arrayBuffer!=='function')throw new Error('원본 PDF 파일을 찾지 못했습니다.');
+    const buffer=await file.arrayBuffer();
+    const safety=window.PdfImportTransactionSafety;
+    let documentHandle=null;
+    let pdfPage=null;
+    try{
+      documentHandle=typeof safety?.safePdfGetDocument==='function'
+        ? await safety.safePdfGetDocument(buffer,true)
+        : await pdfjsLib.getDocument({data:buffer,disableAutoFetch:true,disableFontFace:true}).promise;
+      pdfPage=await documentHandle.getPage(Number(page?.page_index||0)+1);
+      // Always hydrate a canonical 0-degree source. PageTransformEdit owns the
+      // user's crop/rotation so the selection overlay and vector export share
+      // exactly one transform order.
+      const canvas=typeof safety?.safeRenderPdfPage==='function'
+        ? await safety.safeRenderPdfPage(pdfPage,.72,0,true)
+        : await renderPdfPage(pdfPage,.72,0);
+      if(!canvas?.width||!canvas?.height||canvas.dataset?.lazyPreviewError==='1')throw new Error('실제 페이지 미리보기를 만들지 못했습니다.');
+      hydratedBasePage=page;
+      hydratedBaseCanvas=canvas;
+      return canvas;
+    }finally{
+      try{pdfPage?.cleanup?.();}catch(_){}
+      try{await documentHandle?.destroy?.();}catch(_){}
+    }
+  }
+
+  function transformedDisplaySource(page,baseCanvas){
+    if(!baseCanvas)return null;
     try{
       if(typeof window.getPageSrc==='function'){
-        const source=window.getPageSrc(page);
+        const sourcePage=baseCanvas===page?.thumbCanvas?page:{...page,thumbCanvas:baseCanvas,lightweight:false};
+        const source=window.getPageSrc(sourcePage);
         if(source?.width&&source?.height)return source;
       }
-    }catch(_){}
-    return page?.thumbCanvas||null;
+    }catch(error){console.warn('[pdf-drag-crop-autofit] page transform source failed',error);}
+    return baseCanvas;
+  }
+
+  async function resolveDisplaySource(page){
+    if(!page)return null;
+    if(!isLightweightPage(page))return transformedDisplaySource(page,page?.thumbCanvas);
+    try{
+      const base=await renderHydratedBase(page);
+      return transformedDisplaySource(page,base);
+    }catch(error){
+      console.warn('[pdf-drag-crop-autofit] lightweight source hydration failed',error);
+      return null;
+    }
+  }
+
+  function currentSource(page){
+    if(activeSource?.page===page&&activeSource.canvas?.width&&activeSource.canvas?.height)return activeSource.canvas;
+    return null;
   }
 
   function installStyles(){
@@ -179,7 +254,7 @@
       row.innerHTML=`<button type="button" id="pdfDragCropAutoFitV1">✂ 필요한 영역 드래그 → 여백 자동 맞춤</button><div id="pdfDragCropAutoFitStatusV1">선택 부분만 남기고 나머지를 자른 뒤 자동으로 최대 맞춤합니다.</div>`;
       block.appendChild(row);
       byId('pdfDragCropAutoFitV1')?.addEventListener('click',()=>{
-        if(active)cancel();else activate(selectedPage());
+        if(active)cancel();else void activate(selectedPage());
       });
     }
     syncControls();
@@ -197,6 +272,7 @@
     const status=byId('pdfDragCropAutoFitStatusV1');
     if(status){
       if(message)status.textContent=message;
+      else if(active&&page&&!activeSource)status.textContent='실제 원본 페이지를 불러오는 중입니다.';
       else if(active&&page)status.textContent='남길 부분을 사각형으로 드래그하세요. 마우스를 놓으면 즉시 적용됩니다. · Esc 취소';
       else status.textContent=page?'선택 부분만 남기고 나머지를 자른 뒤 자동으로 최대 맞춤합니다.':'먼저 미리보기에서 페이지를 선택하세요.';
     }
@@ -281,7 +357,7 @@
   }
 
   function beginDrag(event){
-    if(!active||event.button!==0)return;
+    if(!active||!activeSource||event.button!==0)return;
     const page=selectedPage();
     const overlay=byId('pdfDragCropOverlayV1');
     const rect=overlay?.getBoundingClientRect();
@@ -319,20 +395,35 @@
     }
   }
 
-  function activate(page){
+  async function activate(page){
     if(!page)return false;
+    const token=++activationToken;
     selectedPageId=String(page.id);
     if(transformApi()?.isCropMode?.())transformApi().toggleCropMode?.();
     active=true;
     drag=null;
+    activeSource=null;
+    hideOverlay();
+    syncControls();
+    const source=await resolveDisplaySource(page);
+    if(token!==activationToken||!active||selectedPageId!==String(page.id))return false;
+    if(!source?.width||!source?.height){
+      active=false;
+      activeSource=null;
+      syncControls('실제 원본 페이지를 불러오지 못했습니다. 다시 시도하세요.');
+      return false;
+    }
+    activeSource={page,canvas:source};
     syncControls();
     queueOverlay();
     return true;
   }
 
   function cancel(){
+    activationToken+=1;
     active=false;
     drag=null;
+    activeSource=null;
     hideOverlay();
     syncControls();
   }
@@ -347,9 +438,15 @@
     document.addEventListener('click',event=>{
       const hit=event.target?.closest?.('.pdf-nup-adjust-hit');
       if(!hit?.dataset?.pageId)return;
-      selectedPageId=String(hit.dataset.pageId);
-      requestAnimationFrame(()=>{syncControls();if(active)queueOverlay();});
+      const nextId=String(hit.dataset.pageId);
+      if(active&&nextId!==selectedPageId)cancel();
+      selectedPageId=nextId;
+      requestAnimationFrame(()=>syncControls());
     },true);
+    document.addEventListener('pdf-import-committed',()=>{
+      cancel();
+      releaseHydratedBase();
+    });
     window.addEventListener('resize',queueOverlay,{passive:true});
     byId('previewScroll')?.addEventListener('scroll',queueOverlay,{passive:true});
   }
@@ -377,6 +474,7 @@
     composeVisualCrop,
     sourcePatchFromVisual,
     applySelection,
+    resolveDisplaySource,
     activate,
     cancel,
     isActive:()=>active,
