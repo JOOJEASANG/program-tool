@@ -196,6 +196,10 @@
   function rememberSource(page,source){
     const original=pageById(page?.id);
     if(!original||!isLightweightPage(original)||!isUsableSource(source))return;
+    // Cache copies pass through getPageSrc again when current crop/rotation is
+    // applied for the overlay. Never recache those copies or the LRU cleanup
+    // would shrink the very canvas currently being transformed.
+    if(source.dataset?.pdfDragCropCachedSource==='1')return;
     // A rotated raw thumbnail without the canonical marker can double-rotate
     // when PageTransformEdit applies the current user rotation. Cache only a
     // guaranteed canonical source, or a rotation-0 page where raw is canonical.
