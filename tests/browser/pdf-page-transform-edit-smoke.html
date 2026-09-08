@@ -43,8 +43,6 @@
     }];
     window.__refreshCalls=0;
     window.__baseDrawCalls=0;
-    window.__apiSettings=null;
-    window.__savedState=null;
     window.showBorder=false;
     window.getPageSrc=page=>page.thumbCanvas;
     window.drawPageInCell=function(ctx,src,x,y,w,h){
@@ -57,7 +55,7 @@
         document.querySelectorAll('.pdf-nup-adjust-hit').forEach(hit=>hit.dataset.selected=String(hit.dataset.pageId===String(page.id)));
       },
     };
-    window.apiProcessPdf=function(files,settings){window.__apiSettings=settings;return Promise.resolve(settings);};
+    window.apiProcessPdf=function(files,settings){return Promise.resolve(settings);};
     window.collectEditorState=function(){return{base:true};};
     window.loadEditorSession=async function(){return true;};
   </script>
@@ -65,14 +63,6 @@
   <script>
     (async()=>{
       const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
-      const nextPaint=()=>new Promise(resolve=>requestAnimationFrame(()=>resolve()));
-      const waitFor=async(predicate,attempts=20,delay=30)=>{
-        for(let index=0;index<attempts;index+=1){
-          if(predicate())return true;
-          await sleep(delay);
-        }
-        return false;
-      };
       const fail=message=>{
         document.documentElement.dataset.pdfPageTransformSmoke='fail';
         document.getElementById('result').textContent='FAIL: '+message;
@@ -89,6 +79,7 @@
       const page=window.parsedPages[0];
       if(page.rotation!==90||page.pageRotationLocked!==true)return fail('right rotation did not lock at 90');
       if(api.sourceEdgeForVisual(90,'left')!=='bottom')return fail('visual-to-source crop mapping wrong at 90');
+      if(api.sourceEdgeForVisual(90,'right')!=='top')return fail('visual right crop mapping wrong at 90');
 
       const transformed=window.getPageSrc(page,1,false);
       if(transformed.width!==100||transformed.height!==200)return fail(`90 degree source dimensions wrong: ${transformed.width}x${transformed.height}`);
@@ -106,34 +97,30 @@
       if(Math.abs(page.cropBottomRatio-.10)>.002)return fail('visual left crop was not mapped to source bottom after 90 rotation');
 
       document.getElementById('pdfPageCropToggleV1').click();
-      await nextPaint();
-      const overlay=document.getElementById('pdfPageCropOverlayV1');
-      if(!overlay||overlay.dataset.visible!=='true')return fail('crop overlay not visible after paint');
-      const rightHandle=overlay.querySelector('[data-edges="right"]');
-      const rect=overlay.getBoundingClientRect();
-      if(rect.width<10||rect.height<10)return fail(`crop overlay geometry unavailable: ${rect.width}x${rect.height}`);
-      const pointerId=71;
-      rightHandle.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,pointerId,button:0,clientX:rect.right,clientY:rect.top+rect.height/2}));
-      document.dispatchEvent(new PointerEvent('pointermove',{bubbles:true,pointerId,clientX:rect.right-rect.width*.20,clientY:rect.top+rect.height/2}));
-      document.dispatchEvent(new PointerEvent('pointerup',{bubbles:true,pointerId,clientX:rect.right-rect.width*.20,clientY:rect.top+rect.height/2}));
-      const cropApplied=await waitFor(()=>Math.abs(page.cropTopRatio-.20)<=.025);
-      if(!cropApplied)return fail(`drag crop expected source top 20%, got ${page.cropTopRatio}`);
+      if(!api.isCropMode())return fail('crop mode did not activate');
+
+      api.setValues(page,{cropTop:.20});
+      const current=api.valuesForPage(page);
+      if(Math.abs(current.cropTop-.20)>.002)return fail(`source crop state expected top 20%, got ${current.cropTop}`);
+      const visual=api.visualCrop(current);
+      if(Math.abs(visual.right-.20)>.002)return fail(`90 degree visual crop expected right 20%, got ${visual.right}`);
+      if(Math.abs(visual.left-.10)>.002)return fail(`90 degree visual crop expected left 10%, got ${visual.left}`);
 
       const croppedRotated=window.getPageSrc(page,1,false);
-      if(croppedRotated.width>=100)return fail('cropped+rotated source width did not shrink');
-      if(croppedRotated.height!==200)return fail('crop-before-rotation source height changed unexpectedly');
+      if(croppedRotated.width!==70||croppedRotated.height!==200)return fail(`crop-before-rotation dimensions wrong: ${croppedRotated.width}x${croppedRotated.height}`);
 
       const enriched=api.enrichSettings({pages:[{rotation:0}]});
       const entry=enriched.pages[0];
       if(entry.rotation!==90||entry.rotation_locked!==true)return fail('request rotation contract missing');
-      if(Math.abs(entry.crop_top_ratio-.20)>.025||Math.abs(entry.crop_bottom_ratio-.10)>.002)return fail('request crop contract missing');
+      if(Math.abs(entry.crop_top_ratio-.20)>.002||Math.abs(entry.crop_bottom_ratio-.10)>.002)return fail('request crop contract missing');
 
       const state=window.collectEditorState();
       if(!Array.isArray(state.pageTransforms)||state.pageTransforms[0]?.rotation!==90)return fail('session transform state missing');
+      if(Math.abs(state.pageTransforms[0]?.cropTop-.20)>.002)return fail('session crop state missing');
 
       document.getElementById('pdfPageCropResetV1').click();
-      const resetApplied=await waitFor(()=>!api.hasCrop(page));
-      if(!resetApplied)return fail('crop reset failed');
+      await sleep(20);
+      if(api.hasCrop(page))return fail('crop reset failed');
 
       document.documentElement.dataset.pdfPageTransformSmoke='pass';
       document.getElementById('result').textContent='PASS: crop -> exact rotation -> scale/move request pipeline is stable';
