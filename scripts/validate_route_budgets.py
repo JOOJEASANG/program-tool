@@ -21,7 +21,7 @@ def ui_asset(text,script_id):
  if not m:raise AssertionError(f"Could not resolve UI enhancement: {script_id}")
  return normalize(m.group("src"))
 def collect_routes(sw_text,ui_text):
- pdf_marker="if(isPath('/tools/pdf-editor.html','/pdf-editor','/pdf-editor/index.html'))"
+ pdf_marker="if(isPdfEditorPath())"
  common=assets(segment(sw_text,"async function helpers(){",pdf_marker))
  routes={"home":set(common),"admin":set(common),"pdf-editor":common|manifest_assets(PDF_RUNTIME)}
  for route,script_id in UI_ENHANCEMENTS.items():routes[route].add(ui_asset(ui_text,script_id))
