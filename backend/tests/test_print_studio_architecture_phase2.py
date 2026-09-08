@@ -13,7 +13,8 @@ def test_home_is_print_first_from_initial_source_not_generic_category_runtime():
         'data-home-static-professional="1"',
         "url:'print-checker/'",
         "인쇄물 사전 검토",
-        "PDF 편집 · 인쇄배치",
+        "PDF 배치용",
+        "PDF 고급편집용",
         "인쇄 전 검사",
     ):
         assert marker in source
