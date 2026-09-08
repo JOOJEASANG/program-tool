@@ -91,6 +91,13 @@
     return typeof loader==='function' ? loader(id,src) : fallbackLoad(id,src);
   }
 
+  function loadDragCropAutoFit(){
+    const id='pdfDragCropAutoFitScriptV1';
+    const src='/js/pdf-editor/drag-crop-autofit.js?v=20260908-1';
+    const loader=context().load;
+    return typeof loader==='function' ? loader(id,src) : fallbackLoad(id,src);
+  }
+
   function loadNupDirectPreviewEdit(){
     const id='pdfNupDirectPreviewEditScriptV1';
     const src='/js/pdf-editor/nup-direct-preview-edit.js?v=20260908-1';
@@ -128,6 +135,7 @@
       .then(()=>loadNupInteractionStability())
       .then(()=>loadNupPageAdjust())
       .then(()=>loadPageTransformEdit())
+      .then(()=>loadDragCropAutoFit())
       .then(()=>loadNupDirectPreviewEdit())
       .then(()=>loadEditorInteractionPolish())
       .then(()=>loadOrientationScaleRegression())
