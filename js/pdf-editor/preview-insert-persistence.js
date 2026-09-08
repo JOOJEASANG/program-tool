@@ -241,6 +241,7 @@
     ensureNormalBoundaries,
     ensureLazyBoundaries,
     ensureFastFallback,
+    legacyStage:'multi-file-preview-insert-persistence-v2',
     stage:'large-document-absolute-insert-boundaries-v3'
   };
 })();
