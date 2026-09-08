@@ -78,6 +78,7 @@
       const api=window.PdfOrientationScaleRegression;
       if(!api)return fail('regression API missing');
       if(api.stage!=='canonical-rotation-outward-scale-v1')return fail('regression stage missing');
+      if(typeof api.maintain!=='function')return fail('stable wrapper maintainer missing');
 
       const page=window.parsedPages[0];
       page.rotation=90;
@@ -121,8 +122,46 @@
       document.dispatchEvent(new PointerEvent('pointerup',{bubbles:true,pointerId,clientX:rect.right-32,clientY:rect.bottom-32}));
       if(page.nupScale>=.95)return fail(`actual inward corner drag did not shrink: ${page.nupScale}`);
 
+      const nupRequestWrapper=fn=>{
+        const wrapped=function(){return fn.apply(this,arguments);};
+        wrapped.__pdfNupPageAdjustWrappedV1=true;
+        wrapped.__pdfNupPageAdjustOriginal=fn;
+        return wrapped;
+      };
+      const nupStateWrapper=fn=>{
+        const wrapped=function(){return fn.apply(this,arguments);};
+        wrapped.__pdfNupPageAdjustStateV1=true;
+        return wrapped;
+      };
+      window.apiProcessPdf=nupRequestWrapper(window.apiProcessPdf);
+      window.fetch=nupRequestWrapper(window.fetch);
+      window.collectEditorState=nupStateWrapper(window.collectEditorState);
+      window.loadEditorSession=nupStateWrapper(window.loadEditorSession);
+      api.maintain();
+
+      for(const [name,fn,stateMarker] of [
+        ['apiProcessPdf',window.apiProcessPdf,false],
+        ['fetch',window.fetch,false],
+        ['collectEditorState',window.collectEditorState,true],
+        ['loadEditorSession',window.loadEditorSession,true],
+      ]){
+        if(!fn.__pdfOrientationIntentSyncV1)return fail(`${name} lost orientation wrapper marker`);
+        if(stateMarker&&!fn.__pdfNupPageAdjustStateV1)return fail(`${name} lost N-up state marker`);
+        if(!stateMarker&&!fn.__pdfNupPageAdjustWrappedV1)return fail(`${name} lost N-up request marker`);
+      }
+      const stableRefs={
+        apiProcessPdf:window.apiProcessPdf,
+        fetch:window.fetch,
+        collectEditorState:window.collectEditorState,
+        loadEditorSession:window.loadEditorSession,
+      };
+      api.maintain();
+      for(const [name,fn] of Object.entries(stableRefs)){
+        if(window[name]!==fn)return fail(`${name} wrapper identity changed on repeated maintenance`);
+      }
+
       document.documentElement.dataset.pdfOrientationScaleRegressionSmoke='pass';
-      document.getElementById('result').textContent='PASS: legacy rotation stays canonical and corner resize is outward-grow inward-shrink';
+      document.getElementById('result').textContent='PASS: legacy rotation stays canonical and corner resize is outward-grow inward-shrink; wrapper composition remains stable';
     })().catch(error=>console.error(error));
   </script>
 </body>
