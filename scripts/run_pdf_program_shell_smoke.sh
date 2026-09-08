@@ -87,9 +87,11 @@ run_product_case "pdf-editor-interaction-polish-smoke.html" "$OUT_DIR/pdf-editor
 reset_profile
 run_product_case "pdf-page-transform-edit-smoke.html" "$OUT_DIR/pdf-page-transform-edit-smoke-dom.html" 'data-pdf-page-transform-smoke="pass"' 'PASS: crop -> exact rotation -> scale/move request pipeline is stable'
 reset_profile
+run_product_case "pdf-orientation-scale-regression-smoke.html" "$OUT_DIR/pdf-orientation-scale-regression-smoke-dom.html" 'data-pdf-orientation-scale-regression-smoke="pass"' 'PASS: legacy rotation stays canonical and corner resize is outward-grow inward-shrink'
+reset_profile
 run_product_case "pdf-output-save-actions-smoke.html" "$OUT_DIR/pdf-output-save-smoke-dom.html" 'data-pdf-output-save-smoke="pass"' 'PASS: direct PDF save and print preflight save remain actionable after preview state recovery'
 reset_profile
 run_product_case "pdf-page-list-quick-add-smoke.html" "$OUT_DIR/pdf-page-list-quick-add-smoke-dom.html" 'data-pdf-page-list-quick-add-smoke="pass"' 'PASS: page list keeps sticky PDF append action and removes legacy jump panel from view'
 
 bash "$ROOT_DIR/scripts/run_pdf_print_workflow_focus_smoke.sh"
-echo "PDF program unified shell, direct utility workflows, utility quick actions, full utility menu audit, curated utility core, output-panel tool docking, background margin removal, storage security, page-list collapse, divider-modal, persistent insert, stable N-up direct edit, sticky preview zoom, asymmetric margin/N-up bridge, number-only sidebar, stable resize direction, crop/rotation transform editing, output-save, fast-insert, page-list quick-add and product-focus browser smokes passed using $BROWSER"
+echo "PDF program unified shell, direct utility workflows, utility quick actions, full utility menu audit, curated utility core, output-panel tool docking, background margin removal, storage security, page-list collapse, divider-modal, persistent insert, stable N-up direct edit, sticky preview zoom, asymmetric margin/N-up bridge, number-only sidebar, stable resize direction, crop/rotation transform editing, canonical legacy rotation, outward-grow/inward-shrink corner resize, output-save, fast-insert, page-list quick-add and product-focus browser smokes passed using $BROWSER"
