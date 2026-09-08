@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>PDF editor runtime profile split smoke</title>
+</head>
+<body>
+  <pre id="result">RUNNING</pre>
+  <script>
+    (function(){
+      const calls=[];
+      window.__profileSplitCalls=calls;
+      window.ProgramStudioPdfEditorRuntimeContext={
+        load(id,src){
+          calls.push({id,src});
+          if(id==='pdfEditorAdvancedRuntimeScriptV1'&&!window.PdfEditorAdvancedRuntime){
+            return new Promise((resolve,reject)=>{
+              const script=document.createElement('script');
+              script.src=src;
+              script.addEventListener('load',()=>resolve(true),{once:true});
+              script.addEventListener('error',reject,{once:true});
+              document.head.appendChild(script);
+            });
+          }
+          return Promise.resolve(true);
+        }
+      };
+    })();
+  </script>
+  <script src="/js/pdf-editor/core-runtime.js"></script>
+  <script>
+    (async()=>{
+      const result=document.getElementById('result');
+      const fail=message=>{
+        document.documentElement.dataset.pdfEditorRuntimeProfileSplitSmoke='fail';
+        result.textContent='FAIL: '+message;
+        throw new Error(message);
+      };
+      const core=window.PdfEditorCoreRuntime;
+      if(!core)return fail('core runtime missing');
+      await core.loadAll();
+      const baseCalls=window.__profileSplitCalls.slice();
+      const advancedIds=[
+        'pdfPreviewZoomPersistenceScriptV1','pdfNupInteractionStabilityScriptV1',
+        'pdfNupPageAdjustScriptV1','pdfPageTransformEditScriptV1','pdfDragCropAutoFitScriptV1',
+        'pdfNupDirectPreviewEditScriptV1','pdfEditorInteractionPolishScriptV1',
+        'pdfOrientationScaleRegressionScriptV1','pdfPrecisionEditToolsScriptV1'
+      ];
+      if(document.documentElement.dataset.pdfEditorProfile!=='lightweight')return fail('default profile is not lightweight');
+      if(baseCalls.some(call=>advancedIds.includes(call.id)||call.id==='pdfEditorAdvancedRuntimeScriptV1'))return fail('advanced module loaded in default editor');
+      if(baseCalls.filter(call=>String(call.id).startsWith('pdfEditor')&&call.id!=='pdfEditorAdvancedRuntimeScriptV1').length!==8)return fail('default core module count changed');
+
+      history.replaceState({},'', '/pdf-editor-advanced');
+      if(!core.isAdvancedProfile())return fail('advanced route not detected');
+      await core.loadAll();
+      const allCalls=window.__profileSplitCalls;
+      if(!allCalls.some(call=>call.id==='pdfEditorAdvancedRuntimeScriptV1'))return fail('advanced runtime loader missing');
+      for(const id of advancedIds){
+        if(!allCalls.some(call=>call.id===id))return fail('advanced module missing: '+id);
+      }
+      if(document.documentElement.dataset.pdfAdvancedRuntime!=='1')return fail('advanced runtime did not finish');
+      if(document.documentElement.dataset.pdfEditorProfile!=='advanced')return fail('advanced profile marker missing');
+
+      document.documentElement.dataset.pdfEditorRuntimeProfileSplitSmoke='pass';
+      result.textContent='PASS: default PDF editor stays lightweight and advanced route loads editing modules separately';
+    })().catch(error=>console.error(error));
+  </script>
+</body>
+</html>
