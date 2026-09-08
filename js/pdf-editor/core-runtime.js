@@ -35,6 +35,26 @@
     },true);
   }
 
+  function installDragCropPlacementPanelSync(){
+    if(window.__pdfDragCropPlacementPanelSyncV1)return;
+    window.__pdfDragCropPlacementPanelSyncV1=true;
+    document.addEventListener('pdf-drag-crop-autofit-applied',event=>{
+      try{
+        const pageId=String(event?.detail?.pageId||'');
+        if(!pageId)return;
+        const pages=Array.isArray(window.parsedPages)
+          ? window.parsedPages
+          : (typeof parsedPages!=='undefined'&&Array.isArray(parsedPages)?parsedPages:[]);
+        const page=pages.find(item=>String(item?.id)===pageId);
+        if(page&&typeof window.PdfNupPageAdjust?.selectPage==='function'){
+          window.PdfNupPageAdjust.selectPage(page);
+        }
+      }catch(error){
+        console.warn('[pdf-core-runtime] drag crop placement panel sync failed',error);
+      }
+    },true);
+  }
+
   function fallbackLoad(id,src){
     const existing=document.getElementById(id);
     if(existing&&existing.dataset.loaded==='true')return Promise.resolve(true);
@@ -129,6 +149,7 @@
   function loadAll(){
     ensureBookletStylesheet();
     installUploadOrderModeSafety();
+    installDragCropPlacementPanelSync();
     const seen=new Set();
     const pending=[];
     for(const entry of MODULES){
