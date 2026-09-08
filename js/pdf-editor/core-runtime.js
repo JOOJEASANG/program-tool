@@ -63,6 +63,13 @@
     return typeof loader==='function' ? loader(id,src) : fallbackLoad(id,src);
   }
 
+  function loadNupInteractionStability(){
+    const id='pdfNupInteractionStabilityScriptV1';
+    const src='/js/pdf-editor/nup-interaction-stability.js?v=20260908-1';
+    const loader=context().load;
+    return typeof loader==='function' ? loader(id,src) : fallbackLoad(id,src);
+  }
+
   function loadNupPageAdjust(){
     const id='pdfNupPageAdjustScriptV1';
     const src='/js/pdf-editor/nup-page-adjust.js?v=20260908-1';
@@ -89,6 +96,7 @@
     }
     pending.push(loadUploadOrderUi());
     return Promise.all(pending)
+      .then(()=>loadNupInteractionStability())
       .then(()=>loadNupPageAdjust())
       .then(()=>loadNupDirectPreviewEdit())
       .then(()=>{
