@@ -82,9 +82,6 @@
       const history=window.PdfPrecisionEditTools?.history;
       const page=precisionInputPage();
       if(!page||typeof history?.begin!=='function')return;
-      // Commit the prior focused edit (or the no-change pointer transaction)
-      // and immediately start a fresh focus-owned edit. This also works when
-      // the input was already focused and therefore emits no new focusin.
       if(typeof history.commit==='function')history.commit();
       history.begin(page,precisionInputLabel(target.id),'focus');
     }catch(error){
@@ -145,22 +142,14 @@
     if(window.__pdfPrecisionInputHistoryBridgeV1)return;
     window.__pdfPrecisionInputHistoryBridgeV1=true;
 
-    // PrecisionEditTools opens pointer transactions on window capture. This
-    // document-capture listener runs later in the same pointerdown, so it can
-    // safely convert every numeric click into a focus-owned transaction,
-    // including repeated clicks while the control is already focused.
     document.addEventListener('pointerdown',event=>{
       if(PRECISION_EDIT_INPUT_IDS.has(event.target?.id))restartPrecisionInputHistory(event.target);
     },true);
 
-    // Keyboard/tab focus has no pointerdown, so start the same transaction on
-    // focusin as a fallback.
     document.addEventListener('focusin',event=>{
       if(PRECISION_EDIT_INPUT_IDS.has(event.target?.id))restartPrecisionInputHistory(event.target);
     },true);
 
-    // This window listener is registered before PrecisionEditTools. It queues
-    // a post-undo/redo control sync before that module consumes propagation.
     window.addEventListener('keydown',event=>{
       const target=event.target;
       if(!PRECISION_EDIT_INPUT_IDS.has(target?.id))return;
@@ -229,7 +218,7 @@
 
   function loadDragCropAutoFit(){
     const id='pdfDragCropAutoFitScriptV1';
-    const src='/js/pdf-editor/drag-crop-autofit.js?v=20260908-1';
+    const src='/js/pdf-editor/drag-crop-autofit.js?v=20260908-2';
     const loader=context().load;
     return typeof loader==='function' ? loader(id,src) : fallbackLoad(id,src);
   }
