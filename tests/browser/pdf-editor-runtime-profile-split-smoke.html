@@ -7,7 +7,12 @@
 <body>
   <div class="app">
     <aside>
-      <div class="sub">N-up · 소책자 · 페이지 편집 · 인쇄용 PDF 저장</div>
+      <div class="sub">PDF 업로드 · 페이지 편집 · 간지 삽입 · 머리말/꼬리말 · 워터마크 · N-up 인쇄</div>
+      <div class="mode-row">
+        <button class="mode-btn active" data-mode="new">새 파일</button>
+        <button class="mode-btn" data-mode="cont">연속 추가</button>
+        <button class="mode-btn" data-mode="break">비연속 추가</button>
+      </div>
       <section class="sec" data-sec="nup">
         <div class="sec-head"><span class="sec-title">N-up 배치</span></div>
         <div class="sec-body" id="sb-nup">
@@ -19,8 +24,23 @@
           <div id="bookletRow"><input id="bookletCheck" type="checkbox" checked><span>소책자 배치</span></div>
         </div>
       </section>
-      <div id="thumbArea"><div id="fileLayoutControl"><span>배치:</span><select><option>2장</option></select></div></div>
+      <div id="thumbArea">
+        <div id="fileLayoutControl"><span>배치:</span><select><option>2장</option></select></div>
+        <button id="thumbBlankInsert">빈 페이지 삽입</button>
+      </div>
     </aside>
+    <main>
+      <div id="previewScroll">
+        <div class="prev-ins-zone"><button>+ 빈 페이지</button><button>+ 간지</button></div>
+        <div class="prev-ins-zone-v"><button>+빈</button><button>+간지</button></div>
+      </div>
+    </main>
+  </div>
+  <div id="dividerModal">간지 페이지 편집</div>
+  <div id="thumbCtxMenu">
+    <button class="ctx-item" id="ctxBlank">위에 빈 페이지 삽입</button>
+    <button class="ctx-item" id="ctxRotate">시계 방향 90° 회전</button>
+    <button class="ctx-item" id="ctxDelete">페이지 삭제</button>
   </div>
   <pre id="result">RUNNING</pre>
   <script>
@@ -55,6 +75,7 @@
         result.textContent='FAIL: '+message;
         throw new Error(message);
       };
+      const hidden=node=>Boolean(node&&(node.hidden||getComputedStyle(node).display==='none'));
       const core=window.PdfEditorCoreRuntime;
       if(!core)return fail('core runtime missing');
       await core.loadAll();
@@ -68,27 +89,53 @@
       if(document.documentElement.dataset.pdfEditorProfile!=='lightweight')return fail('default profile is not lightweight');
       if(baseCalls.some(call=>advancedIds.includes(call.id)||call.id==='pdfEditorAdvancedRuntimeScriptV1'||call.id==='pdfEditorAdvancedProfileScopeScriptV1'))return fail('advanced module loaded in default editor');
       if(baseCalls.filter(call=>String(call.id).startsWith('pdfEditor')&&call.id!=='pdfEditorAdvancedRuntimeScriptV1').length!==8)return fail('default core module count changed');
+      if(!baseCalls.some(call=>call.id==='pdfEditorNupHelperScriptV1'))return fail('default editor lost N-up helper');
+      if(!baseCalls.some(call=>call.id==='pdfEditorDividerHelperScriptV1'))return fail('default editor lost divider helper');
 
       history.replaceState({},'', '/pdf-editor?profile=advanced');
       delete document.documentElement.dataset.pdfEditorProfile;
       if(location.pathname!=='/pdf-editor')return fail('advanced profile left canonical PDF editor path');
       if(!core.isAdvancedProfile())return fail('advanced query profile not detected');
+      const advancedStart=window.__profileSplitCalls.length;
       await core.loadAll();
       const allCalls=window.__profileSplitCalls;
+      const advancedCalls=allCalls.slice(advancedStart);
       if(!allCalls.some(call=>call.id==='pdfEditorAdvancedProfileScopeScriptV1'))return fail('advanced profile scope loader missing');
       if(!allCalls.some(call=>call.id==='pdfEditorAdvancedRuntimeScriptV1'))return fail('advanced runtime loader missing');
       for(const id of advancedIds){
         if(!allCalls.some(call=>call.id===id))return fail('advanced module missing: '+id);
       }
+      if(advancedCalls.some(call=>call.id==='pdfEditorNupHelperScriptV1'))return fail('advanced editor loaded normal N-up helper');
+      if(advancedCalls.some(call=>call.id==='pdfEditorDividerHelperScriptV1'))return fail('advanced editor loaded divider helper');
       if(document.documentElement.dataset.pdfAdvancedRuntime!=='1')return fail('advanced runtime did not finish');
       if(document.documentElement.dataset.pdfEditorProfile!=='advanced')return fail('advanced profile marker missing');
       if(document.documentElement.dataset.pdfEditorAdvancedScope!=='single-page-precision-v1')return fail('advanced single-page scope marker missing');
-      if(document.getElementById('nupGrid').style.display!=='none')return fail('advanced N-up layout controls are still visible');
-      if(document.getElementById('bookletRow').style.display!=='none')return fail('advanced booklet control is still visible');
+      if(document.documentElement.dataset.pdfEditorAdvancedMinimal!=='1')return fail('advanced minimal profile marker missing');
+      if(!window.PdfEditorAdvancedProfileScope?.minimal)return fail('advanced minimal profile API marker missing');
+      if(!hidden(document.getElementById('nupGrid')))return fail('advanced N-up layout controls are still visible');
+      if(!hidden(document.getElementById('bookletRow')))return fail('advanced booklet control is still visible');
       if(!document.getElementById('bookletCheck').disabled||document.getElementById('bookletCheck').checked)return fail('advanced booklet state was not disabled');
-      if(document.getElementById('fileLayoutControl').style.display!=='none')return fail('advanced file-level N-up selector is still visible');
+      if(!hidden(document.getElementById('fileLayoutControl')))return fail('advanced file-level N-up selector is still visible');
       if(!document.querySelector('[data-sec="nup"] .sec-title').textContent.includes('페이지 위치·크기 보정'))return fail('advanced precision section was not renamed');
-      if(/N\s*-?\s*up|소책자/i.test(document.querySelector('.app > aside > .sub').textContent))return fail('advanced branding still advertises N-up/booklet');
+
+      if(!hidden(document.querySelector('.mode-btn[data-mode="break"]')))return fail('advanced non-contiguous upload mode is still visible');
+      if(!hidden(document.querySelector('.prev-ins-zone')))return fail('advanced horizontal blank/divider insert zone is still visible');
+      if(!hidden(document.querySelector('.prev-ins-zone-v')))return fail('advanced vertical blank/divider insert zone is still visible');
+      if(!hidden(document.getElementById('thumbBlankInsert')))return fail('advanced dynamically injected blank insert button is still visible');
+      if(!hidden(document.getElementById('dividerModal')))return fail('advanced divider editor is still available');
+      if(!hidden(document.getElementById('ctxBlank')))return fail('advanced blank-page context action is still visible');
+      if(hidden(document.getElementById('ctxRotate')))return fail('advanced rotate action was incorrectly removed');
+      if(hidden(document.getElementById('ctxDelete')))return fail('advanced delete action was incorrectly removed');
+      if(/N\s*-?\s*up|소책자|간지|빈\s*페이지/i.test(document.querySelector('.app > aside > .sub').textContent))return fail('advanced branding still advertises non-editing features');
+
+      // Dynamically inserted legacy controls must also be removed by the observer.
+      const late=document.createElement('button');
+      late.className='ctx-item';
+      late.id='lateDividerInsert';
+      late.textContent='아래에 간지 추가';
+      document.getElementById('thumbCtxMenu').appendChild(late);
+      await new Promise(resolve=>setTimeout(resolve,40));
+      if(!hidden(late))return fail('late divider insert action escaped minimal profile filter');
 
       const cropPage={id:'crop-orientation-page',rotation:0,pageRotationLocked:false};
       window.parsedPages=[cropPage];
@@ -116,7 +163,7 @@
       if(!document.documentElement.dataset.pdfAdvancedDragCropOrientationLock)return fail('drag crop orientation lock marker missing');
 
       document.documentElement.dataset.pdfEditorRuntimeProfileSplitSmoke='pass';
-      result.textContent='PASS: default PDF editor stays lightweight and advanced route loads editing modules separately; advanced editor hides N-up/booklet and preserves page orientation after drag crop';
+      result.textContent='PASS: default PDF editor stays lightweight and advanced route loads editing modules separately; advanced profile hides N-up, booklet, blank/divider creation';
     })().catch(error=>console.error(error));
   </script>
 </body>

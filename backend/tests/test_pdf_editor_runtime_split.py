@@ -5,6 +5,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 CORE = ROOT / "js" / "pdf-editor" / "core-runtime.js"
 ADVANCED = ROOT / "js" / "pdf-editor" / "advanced-runtime.js"
+ADVANCED_SCOPE = ROOT / "js" / "pdf-editor" / "advanced-profile-scope.js"
 RUNTIME_BOOT = ROOT / "js" / "sw-register.js"
 FIREBASE = ROOT / "firebase.json"
 
@@ -29,9 +30,43 @@ def test_default_pdf_editor_keeps_21b36a9_sized_core_manifest():
 
     assert "lightweight-default-advanced-query-v1" in core
     assert "advanced-runtime.js?v=20260908-1" in core
+    assert "advanced-profile-scope.js?v=20260908-2" in core
     assert "new URLSearchParams" in core
     assert "get('profile')" in core
     assert "pdfEditorProfile=advanced?'advanced':'lightweight'" in core
+
+
+def test_advanced_profile_skips_normal_nup_booklet_and_divider_helpers():
+    core = CORE.read_text(encoding="utf-8")
+
+    assert "const ADVANCED_UNUSED_CORE_IDS=new Set([" in core
+    assert "'pdfEditorNupHelperScriptV1'" in core
+    assert "'pdfEditorDividerHelperScriptV1'" in core
+    assert "if(!advanced)ensureBookletStylesheet();" in core
+    assert "if(advanced&&ADVANCED_UNUSED_CORE_IDS.has(entry.id))continue;" in core
+
+
+def test_advanced_scope_hides_creation_and_layout_features_but_preserves_existing_pages():
+    scope = ADVANCED_SCOPE.read_text(encoding="utf-8")
+
+    for marker in (
+        "pdfEditorAdvancedMinimal",
+        ".prev-ins-zone,.prev-ins-zone-v",
+        ".mode-btn[data-mode=\"break\"]",
+        "document.getElementById('dividerModal')",
+        "#thumbCtxMenu .ctx-item",
+        "빈\\s*페이지\\s*(삽입|추가)",
+        "간지\\s*(삽입|추가)",
+        "페이지 위치·크기 보정",
+        "파일 업로드 · 페이지 정렬/삭제 · 자르기/회전 · 위치/크기 보정 · PDF 저장",
+        "minimal:true",
+    ):
+        assert marker in scope
+
+    assert "if(!page||page.pageType==='blank'||page.pageType==='divider')return;" in scope
+    assert "parsedPages.splice" not in scope
+    assert "pageType==='blank'" in scope
+    assert "pageType==='divider'" in scope
 
 
 def test_advanced_runtime_owns_all_post_21b36a9_editing_modules():
