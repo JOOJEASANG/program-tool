@@ -70,6 +70,13 @@
     return typeof loader==='function' ? loader(id,src) : fallbackLoad(id,src);
   }
 
+  function loadNupDirectPreviewEdit(){
+    const id='pdfNupDirectPreviewEditScriptV1';
+    const src='/js/pdf-editor/nup-direct-preview-edit.js?v=20260908-1';
+    const loader=context().load;
+    return typeof loader==='function' ? loader(id,src) : fallbackLoad(id,src);
+  }
+
   function loadAll(){
     ensureBookletStylesheet();
     installUploadOrderModeSafety();
@@ -83,6 +90,7 @@
     pending.push(loadUploadOrderUi());
     return Promise.all(pending)
       .then(()=>loadNupPageAdjust())
+      .then(()=>loadNupDirectPreviewEdit())
       .then(()=>{
         document.documentElement.dataset.pdfCoreRuntime='1';
         return true;
