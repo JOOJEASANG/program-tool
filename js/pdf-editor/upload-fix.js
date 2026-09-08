@@ -6,9 +6,11 @@
 
   const RENDER_HEAVY_PAGE_LIMIT = 25;
   const RENDER_HUGE_PAGE_LIMIT = 80;
+  const LIGHTWEIGHT_PAGE_LIMIT = 120;
   const EXTREME_PAGE_LIMIT = 300;
   const RENDER_HEAVY_BYTE_LIMIT = 30 * 1024 * 1024;
   const RENDER_HUGE_BYTE_LIMIT = 80 * 1024 * 1024;
+  const LIGHTWEIGHT_BYTE_LIMIT = 96 * 1024 * 1024;
   const OPTIMIZED_PAGE_LIMIT = 120;
   const OPTIMIZED_BYTE_LIMIT = 160 * 1024 * 1024;
   const EXTREME_PREVIEW_OUTPUT_LIMIT = 24;
@@ -45,13 +47,25 @@
     return { pages, bytes };
   }
 
+  function hasLightweightPages() {
+    try {
+      return parsedPages.some((page) => Boolean(
+        page?.lightweight
+        || page?.pdfPage?.__lightweightPdfPage
+        || page?.thumbCanvas?.dataset?.lightweightPage === '1'
+      ));
+    } catch (_) {
+      return false;
+    }
+  }
+
   function setFastMode(enabled, reason, extreme) {
     window.__pdfEditorFastMode = !!enabled;
     window.__pdfEditorExtremeMode = !!extreme;
     window.__pdfEditorFastModeReason = reason || '';
     const hint = document.getElementById('livePreviewHint');
     if (hint) {
-      hint.textContent = extreme ? '초대용량 목록 모드' : (enabled ? '대용량 문서 · 수동 미리보기' : '실시간 미리보기 ON');
+      hint.textContent = extreme ? '초대용량 목록 모드' : (enabled ? '대용량 문서 · 선택 구간 미리보기' : '실시간 미리보기 ON');
       hint.style.color = enabled ? '#b45309' : '#64748b';
     }
   }
@@ -64,15 +78,16 @@
     if (extreme) {
       return '초대용량 PDF라 실제 페이지 렌더링을 줄이고 번호 목록을 사용합니다. 편집 정보와 최종 저장은 원본 PDF 기준으로 처리합니다.' + suffix;
     }
-    return '대용량 PDF라 자동 미리보기를 줄였습니다. 페이지 편집과 최종 저장은 원본 품질로 처리됩니다.' + suffix;
+    return '대용량 PDF라 페이지를 가볍게 등록하고 선택한 출력면 주변만 실제 렌더링합니다. 최종 저장은 원본 품질로 처리됩니다.' + suffix;
   }
 
   function syncAggregateMode() {
     const { pages, bytes } = aggregateStats();
     const extreme = pages >= EXTREME_PAGE_LIMIT;
-    const optimized = extreme || pages > OPTIMIZED_PAGE_LIMIT || bytes > OPTIMIZED_BYTE_LIMIT;
+    const lightweight = hasLightweightPages();
+    const optimized = lightweight || extreme || pages > OPTIMIZED_PAGE_LIMIT || bytes > OPTIMIZED_BYTE_LIMIT;
     setFastMode(optimized, optimized ? fastModeMessage(pages, bytes, extreme) : '', extreme);
-    return { pages, bytes, extreme, optimized };
+    return { pages, bytes, extreme, lightweight, optimized };
   }
 
   function showFastModePlaceholder(total, fileSize) {
@@ -84,13 +99,13 @@
       + (extreme ? '초대용량 목록 모드' : '대용량 최적화 모드')
       + '</b><br><span style="font-size:12px;color:#92400e;line-height:1.6;display:inline-block;margin-top:6px;max-width:460px;">'
       + msg + '<br>'
-      + (extreme ? `레이아웃 미리보기는 앞 ${EXTREME_PREVIEW_OUTPUT_LIMIT}개 출력면까지 표시합니다.` : '필요할 때 미리보기 버튼으로 실제 내용을 확인하세요.')
+      + (extreme ? `레이아웃 미리보기는 선택한 출력면 주변만 표시합니다.` : '페이지를 선택하거나 미리보기 버튼을 누르면 해당 구간의 실제 내용을 확인할 수 있습니다.')
       + '</span></p></div>';
     const info = document.getElementById('previewInfo');
     const pagesElement = document.getElementById('previewPages');
     if (info) info.textContent = extreme
       ? '초대용량 목록 편집 · 저장은 원본 PDF 기준 처리'
-      : '대용량 최적화 · 페이지 순서·숨김·회전 편집 가능';
+      : '대용량 최적화 · 필요한 출력면만 실제 렌더링';
     if (pagesElement) pagesElement.textContent = total ? `총 ${total}페이지` : '';
   }
 
@@ -307,7 +322,6 @@
     }, true);
   }
 
-
   async function patchedHandleFile(file) {
     const isPdf = !!file && ((file.type || '').includes('pdf') || /\.pdf$/i.test(file.name || ''));
     if (!isPdf) {
@@ -363,11 +377,16 @@
 
       const projectedPages = pageStartIndex + total;
       const extremeMode = total >= EXTREME_PAGE_LIMIT || projectedPages >= EXTREME_PAGE_LIMIT;
+      const lightweightMode = extremeMode
+        || total >= LIGHTWEIGHT_PAGE_LIMIT
+        || projectedPages >= LIGHTWEIGHT_PAGE_LIMIT
+        || file.size >= LIGHTWEIGHT_BYTE_LIMIT;
       const heavyMode = total >= RENDER_HEAVY_PAGE_LIMIT || file.size >= RENDER_HEAVY_BYTE_LIMIT || projectedPages > OPTIMIZED_PAGE_LIMIT;
       const hugeMode = total >= RENDER_HUGE_PAGE_LIMIT || file.size >= RENDER_HUGE_BYTE_LIMIT || projectedPages > OPTIMIZED_PAGE_LIMIT;
 
-      if (extremeMode) {
-        showStatus(`"${shortName}" 초대용량 페이지 목록 등록 중... (0 / ${total})`);
+      if (lightweightMode) {
+        const modeLabel = extremeMode ? '초대용량' : '대용량 경량';
+        showStatus(`"${shortName}" ${modeLabel} 페이지 목록 등록 중... (0 / ${total})`);
         for (let pageNumber = 1; pageNumber <= total; pageNumber += 1) {
           const groupBreak = !isNew && isBreak && pageNumber === 1;
           const lightweightPage = makeLightweightPdfPage(pageNumber, total);
@@ -387,7 +406,7 @@
             lightweight: true,
           });
           if (pageNumber % 50 === 0) {
-            showStatus(`"${shortName}" 초대용량 페이지 목록 등록 중... (${pageNumber} / ${total})`);
+            showStatus(`"${shortName}" ${modeLabel} 페이지 목록 등록 중... (${pageNumber} / ${total})`);
             await new Promise((resolve) => setTimeout(resolve, 0));
           }
         }
@@ -424,7 +443,8 @@
       const mode = syncAggregateMode();
       if (mode.optimized) {
         showFastModePlaceholder(mode.pages, mode.bytes);
-        showStatus(`"${shortName}" ${total}페이지 로드 완료 · ${mode.extreme ? '초대용량 목록 모드' : '대용량 최적화'}`, 'success');
+        const label = mode.extreme ? '초대용량 목록 모드' : (mode.lightweight ? '대용량 경량 모드' : '대용량 최적화');
+        showStatus(`"${shortName}" ${total}페이지 로드 완료 · ${label}`, 'success');
         setTimeout(hideStatus, mode.extreme ? 5000 : 3500);
         return;
       }
@@ -485,6 +505,12 @@
     makeLightweightPdfPage,
     aggregateStats,
     syncAggregateMode,
+    hasLightweightPages,
+    thresholds: {
+      lightweightPages: LIGHTWEIGHT_PAGE_LIMIT,
+      lightweightBytes: LIGHTWEIGHT_BYTE_LIMIT,
+      extremePages: EXTREME_PAGE_LIMIT,
+    },
   };
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => boot(0), { once: true });

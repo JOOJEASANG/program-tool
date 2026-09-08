@@ -63,6 +63,13 @@
     return typeof loader==='function' ? loader(id,src) : fallbackLoad(id,src);
   }
 
+  function loadNupPageAdjust(){
+    const id='pdfNupPageAdjustScriptV1';
+    const src='/js/pdf-editor/nup-page-adjust.js?v=20260908-1';
+    const loader=context().load;
+    return typeof loader==='function' ? loader(id,src) : fallbackLoad(id,src);
+  }
+
   function loadAll(){
     ensureBookletStylesheet();
     installUploadOrderModeSafety();
@@ -74,10 +81,12 @@
       pending.push(loadEntry(entry));
     }
     pending.push(loadUploadOrderUi());
-    return Promise.all(pending).then(()=>{
-      document.documentElement.dataset.pdfCoreRuntime='1';
-      return true;
-    });
+    return Promise.all(pending)
+      .then(()=>loadNupPageAdjust())
+      .then(()=>{
+        document.documentElement.dataset.pdfCoreRuntime='1';
+        return true;
+      });
   }
 
   window.PdfEditorCoreRuntime={
