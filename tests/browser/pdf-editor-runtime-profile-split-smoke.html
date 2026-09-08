@@ -5,6 +5,23 @@
   <title>PDF editor runtime profile split smoke</title>
 </head>
 <body>
+  <div class="app">
+    <aside>
+      <div class="sub">N-up · 소책자 · 페이지 편집 · 인쇄용 PDF 저장</div>
+      <section class="sec" data-sec="nup">
+        <div class="sec-head"><span class="sec-title">N-up 배치</span></div>
+        <div class="sec-body" id="sb-nup">
+          <label>기본 N-up (페이지당 슬라이드 수)</label>
+          <div class="nup-grid" id="nupGrid">
+            <button class="nup-btn active" data-nup="2">2장</button>
+            <button class="nup-btn" data-nup="1">1장</button>
+          </div>
+          <div id="bookletRow"><input id="bookletCheck" type="checkbox" checked><span>소책자 배치</span></div>
+        </div>
+      </section>
+      <div id="thumbArea"><div id="fileLayoutControl"><span>배치:</span><select><option>2장</option></select></div></div>
+    </aside>
+  </div>
   <pre id="result">RUNNING</pre>
   <script>
     (function(){
@@ -13,13 +30,15 @@
       window.ProgramStudioPdfEditorRuntimeContext={
         load(id,src){
           calls.push({id,src});
-          if(id==='pdfEditorAdvancedRuntimeScriptV1'&&!window.PdfEditorAdvancedRuntime){
+          const realRuntime=id==='pdfEditorAdvancedProfileScopeScriptV1'||id==='pdfEditorAdvancedRuntimeScriptV1';
+          if(realRuntime){
             return new Promise((resolve,reject)=>{
-              const script=document.createElement('script');
-              script.src=src;
-              script.addEventListener('load',()=>resolve(true),{once:true});
+              const existing=document.getElementById(id);
+              if(existing?.dataset.loaded==='true')return resolve(true);
+              const script=existing||document.createElement('script');
+              if(!existing){script.id=id;script.src=src;document.head.appendChild(script);}
+              script.addEventListener('load',()=>{script.dataset.loaded='true';resolve(true);},{once:true});
               script.addEventListener('error',reject,{once:true});
-              document.head.appendChild(script);
             });
           }
           return Promise.resolve(true);
@@ -47,7 +66,7 @@
         'pdfOrientationScaleRegressionScriptV1','pdfPrecisionEditToolsScriptV1'
       ];
       if(document.documentElement.dataset.pdfEditorProfile!=='lightweight')return fail('default profile is not lightweight');
-      if(baseCalls.some(call=>advancedIds.includes(call.id)||call.id==='pdfEditorAdvancedRuntimeScriptV1'))return fail('advanced module loaded in default editor');
+      if(baseCalls.some(call=>advancedIds.includes(call.id)||call.id==='pdfEditorAdvancedRuntimeScriptV1'||call.id==='pdfEditorAdvancedProfileScopeScriptV1'))return fail('advanced module loaded in default editor');
       if(baseCalls.filter(call=>String(call.id).startsWith('pdfEditor')&&call.id!=='pdfEditorAdvancedRuntimeScriptV1').length!==8)return fail('default core module count changed');
 
       history.replaceState({},'', '/pdf-editor?profile=advanced');
@@ -56,15 +75,23 @@
       if(!core.isAdvancedProfile())return fail('advanced query profile not detected');
       await core.loadAll();
       const allCalls=window.__profileSplitCalls;
+      if(!allCalls.some(call=>call.id==='pdfEditorAdvancedProfileScopeScriptV1'))return fail('advanced profile scope loader missing');
       if(!allCalls.some(call=>call.id==='pdfEditorAdvancedRuntimeScriptV1'))return fail('advanced runtime loader missing');
       for(const id of advancedIds){
         if(!allCalls.some(call=>call.id===id))return fail('advanced module missing: '+id);
       }
       if(document.documentElement.dataset.pdfAdvancedRuntime!=='1')return fail('advanced runtime did not finish');
       if(document.documentElement.dataset.pdfEditorProfile!=='advanced')return fail('advanced profile marker missing');
+      if(document.documentElement.dataset.pdfEditorAdvancedScope!=='single-page-precision-v1')return fail('advanced single-page scope marker missing');
+      if(document.getElementById('nupGrid').style.display!=='none')return fail('advanced N-up layout controls are still visible');
+      if(document.getElementById('bookletRow').style.display!=='none')return fail('advanced booklet control is still visible');
+      if(!document.getElementById('bookletCheck').disabled||document.getElementById('bookletCheck').checked)return fail('advanced booklet state was not disabled');
+      if(document.getElementById('fileLayoutControl').style.display!=='none')return fail('advanced file-level N-up selector is still visible');
+      if(!document.querySelector('[data-sec="nup"] .sec-title').textContent.includes('페이지 위치·크기 보정'))return fail('advanced precision section was not renamed');
+      if(/N\s*-?\s*up|소책자/i.test(document.querySelector('.app > aside > .sub').textContent))return fail('advanced branding still advertises N-up/booklet');
 
       document.documentElement.dataset.pdfEditorRuntimeProfileSplitSmoke='pass';
-      result.textContent='PASS: default PDF editor stays lightweight and advanced route loads editing modules separately';
+      result.textContent='PASS: default editor keeps layout tools while advanced editor is scoped to single-page precision editing';
     })().catch(error=>console.error(error));
   </script>
 </body>
