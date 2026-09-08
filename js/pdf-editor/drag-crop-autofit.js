@@ -182,7 +182,11 @@
       const canvas=typeof safety?.safeRenderPdfPage==='function'
         ? await safety.safeRenderPdfPage(pdfPage,.72,0,true)
         : await renderPdfPage(pdfPage,.72,0);
-      if(!canvas?.width||!canvas?.height||canvas.dataset?.lazyPreviewError==='1')throw new Error('실제 페이지 미리보기를 만들지 못했습니다.');
+      if(
+        !canvas?.width||!canvas?.height
+        ||canvas.dataset?.lazyPreviewError==='1'
+        ||canvas.dataset?.lightweightPage==='1'
+      )throw new Error('실제 페이지 미리보기를 만들지 못했습니다.');
       hydratedBasePage=page;
       hydratedBaseCanvas=canvas;
       return canvas;
@@ -296,6 +300,11 @@
     if(selection)selection.dataset.visible='false';
   }
 
+  function hideSelectionBox(){
+    const selection=byId('pdfDragCropSelectionV1');
+    if(selection)selection.dataset.visible='false';
+  }
+
   function drawSource(source,width,height){
     const canvas=byId('pdfDragCropCanvasV1');
     if(!canvas||!source)return;
@@ -385,14 +394,22 @@
     drag=null;
     const selection=normalizeSelection({left:state.startX,top:state.startY,right:point.x,bottom:point.y});
     if(selection.right-selection.left<MIN_SELECTION||selection.bottom-selection.top<MIN_SELECTION){
-      const box=byId('pdfDragCropSelectionV1');if(box)box.dataset.visible='false';
+      hideSelectionBox();
       syncControls('선택 영역이 너무 작습니다. 다시 드래그하세요.');
       return;
     }
     if(!applySelection(state.page,selection)){
-      const box=byId('pdfDragCropSelectionV1');if(box)box.dataset.visible='false';
+      hideSelectionBox();
       syncControls('최종 남는 영역은 원본의 약 5% 이상이어야 합니다. 조금 더 크게 선택하세요.');
     }
+  }
+
+  function cancelDrag(event){
+    if(!drag||event.pointerId!==drag.pointerId)return;
+    event.preventDefault();event.stopImmediatePropagation();event.stopPropagation();
+    drag=null;
+    hideSelectionBox();
+    syncControls('선택 동작이 취소되었습니다. 다시 드래그하세요.');
   }
 
   async function activate(page){
@@ -433,7 +450,7 @@
     eventsInstalled=true;
     document.addEventListener('pointermove',moveDrag,true);
     document.addEventListener('pointerup',endDrag,true);
-    document.addEventListener('pointercancel',endDrag,true);
+    document.addEventListener('pointercancel',cancelDrag,true);
     document.addEventListener('keydown',event=>{if(event.key==='Escape'&&active){event.preventDefault();cancel();}},true);
     document.addEventListener('click',event=>{
       const hit=event.target?.closest?.('.pdf-nup-adjust-hit');
