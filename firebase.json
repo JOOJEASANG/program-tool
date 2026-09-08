@@ -22,20 +22,13 @@
       { "source": "/tools/preflight", "destination": "/pdf-preflight", "type": 301 },
       { "source": "/tools/preflight.html", "destination": "/pdf-preflight", "type": 301 },
       { "source": "/tools/pdf-Checker", "destination": "/pdf-preflight", "type": 301 },
-      { "source": "/tools/pdf-Checker.html", "destination": "/pdf-preflight", "type": 301 }
+      { "source": "/tools/pdf-Checker.html", "destination": "/pdf-preflight", "type": 301 },
+      { "source": "/pdf-editor-advanced", "destination": "/pdf-editor?profile=advanced", "type": 302 }
     ],
     "rewrites": [
       {
         "source": "/api/**",
         "function": "api"
-      },
-      {
-        "source": "/pdf-editor-advanced",
-        "destination": "/pdf-editor/index.html"
-      },
-      {
-        "source": "/pdf-editor-advanced/**",
-        "destination": "/pdf-editor/index.html"
       },
       {
         "source": "/print-checker",
