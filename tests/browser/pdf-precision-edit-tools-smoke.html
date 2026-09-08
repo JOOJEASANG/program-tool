@@ -62,10 +62,11 @@
       refreshOverlay(){}
     };
     window.__refreshCount=0;
+    window.__selectedNupPage='';
     window.PdfNupPageAdjust={
       valuesForPage(p){return{scale:Number(p.nupScale||1),offsetX:Number(p.nupOffsetX||0),offsetY:Number(p.nupOffsetY||0)};},
       setValues(p,patch){p.nupScale=patch.scale;p.nupOffsetX=patch.offsetX;p.nupOffsetY=patch.offsetY;},
-      selectPage(){},refresh(){window.__refreshCount+=1;}
+      selectPage(p){window.__selectedNupPage=String(p?.id||'');},refresh(){window.__refreshCount+=1;}
     };
     window.getPageSrc=p=>p.thumbCanvas;
     window.__drawnSource=null;
@@ -75,6 +76,7 @@
     window.loadEditorSession=async()=>true;
     window.showStatus=()=>{};window.hideStatus=()=>{};
   </script>
+  <script src="/js/pdf-editor/core-runtime.js?v=20260908-1"></script>
   <script src="/js/pdf-editor/precision-edit-tools.js?v=20260908-1"></script>
   <script>
     (async()=>{
@@ -89,6 +91,9 @@
       const api=window.PdfPrecisionEditTools;
       const page=window.parsedPages[0];
       if(!api||api.stage!=='live-margin-undo-free-rotation-v1')return fail('API or stage missing');
+
+      document.dispatchEvent(new CustomEvent('pdf-drag-crop-autofit-applied',{detail:{pageId:'1'}}));
+      if(window.__selectedNupPage!=='1')return fail('drag crop apply did not synchronously select/sync N-up page');
 
       api.renderMarginGuides();
       let guide=document.querySelector('.pdf-live-margin-guide');
@@ -132,6 +137,22 @@
       if(Math.abs(Number(page.fineRotationDeg||0))>.01)return fail('Ctrl+Z did not undo free rotation');
 
       api.history.clear();
+      const fineInput=document.getElementById('pdfFineRotationDegV1');
+      if(!fineInput)return fail('fine rotation numeric input missing');
+      const inputPointerId=78;
+      fineInput.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,pointerId:inputPointerId,button:0}));
+      fineInput.focus();
+      fineInput.dispatchEvent(new PointerEvent('pointerup',{bubbles:true,pointerId:inputPointerId,button:0}));
+      fineInput.value='4.5';
+      fineInput.dispatchEvent(new Event('input',{bubbles:true}));
+      if(Math.abs(Number(page.fineRotationDeg)-4.5)>.01)return fail('focused numeric edit did not update fine rotation');
+      fineInput.dispatchEvent(new KeyboardEvent('keydown',{bubbles:true,key:'z',ctrlKey:true}));
+      await sleep(40);
+      if(Math.abs(Number(page.fineRotationDeg||0))>.01)return fail('Ctrl+Z did not undo the focused numeric edit');
+      fineInput.blur();
+      await sleep(20);
+
+      api.history.clear();
       api.history.begin(page,'영역 자르기','smoke');
       window.PdfPageTransformEdit.setValues(page,{cropLeft:.22,cropTop:.11,cropRight:.05,cropBottom:.03});
       window.PdfNupPageAdjust.setValues(page,{scale:1.4,offsetX:7,offsetY:-5});
@@ -147,7 +168,7 @@
       if(Math.abs(enriched.pages[0].fine_rotation_deg+2.6)>.01)return fail('fine rotation request enrichment missing');
 
       document.documentElement.dataset.pdfPrecisionEditToolsSmoke='pass';
-      document.getElementById('result').textContent='PASS: live margin guides, Ctrl+Z edit undo, and free-angle corner rotation stay in sync';
+      document.getElementById('result').textContent='PASS: live margins, focused Ctrl+Z history, crop panel sync, and free-angle rotation stay in sync';
     })().catch(error=>console.error(error));
   </script>
 </body>
