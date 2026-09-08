@@ -24,6 +24,21 @@ def test_nup_mouse_edit_locks_scroll_and_blocks_legacy_rebuild_cycle():
     assert "stage:'fixed-output-face-direct-edit-v1'" in source
 
 
+def test_advanced_precision_edit_keeps_preview_and_window_viewport_anchored():
+    source = STABILITY.read_text(encoding="utf-8")
+
+    assert "data-pdf-advanced-viewport-lock" in source
+    assert "anchorForScroll" in source
+    assert "resolveAnchor" in source
+    assert "MutationObserver(queueLockedRestore)" in source
+    assert "holdEditViewport" in source
+    assert "releaseEditViewport" in source
+    assert "STABLE_EDIT_INPUT_IDS" in source
+    assert "pdfPageCropLeftV1" in source
+    assert "pdfFineRotationDegV1" in source
+    assert "viewportStage:'advanced-edit-fixed-viewport-v1'" in source
+
+
 def test_nup_interaction_stability_suppresses_lazy_refresh_while_pointer_is_active():
     source = STABILITY.read_text(encoding="utf-8")
 
@@ -56,9 +71,9 @@ def test_zoom_persistence_loads_before_nup_interaction_handlers_in_advanced_runt
 
     assert zoom < stability < adjustment < direct
     assert "pdfPreviewZoomPersistenceScriptV1" in source
-    assert "/js/pdf-editor/preview-zoom-persistence.js?v=20260908-1" in source
+    assert "/js/pdf-editor/preview-zoom-persistence.js?v=" in source
     assert "pdfNupInteractionStabilityScriptV1" in source
-    assert "/js/pdf-editor/nup-interaction-stability.js?v=20260908-1" in source
+    assert "/js/pdf-editor/nup-interaction-stability.js?v=" in source
     module_block = core.split("const MODULES=Object.freeze([", 1)[1].split("]);", 1)[0]
     assert module_block.count("src:'/js/pdf-editor/") == 8
     assert "pdfPreviewZoomPersistenceScriptV1" not in core
@@ -66,7 +81,7 @@ def test_zoom_persistence_loads_before_nup_interaction_handlers_in_advanced_runt
     assert "stage:'pdf-editor-advanced-runtime-v1'" in source
 
 
-def test_browser_smoke_verifies_200_percent_stays_fixed_during_nup_edit_and_reset_is_explicit():
+def test_browser_smoke_verifies_zoom_and_precision_viewport_stay_fixed_during_edit():
     source = BROWSER_SMOKE.read_text(encoding="utf-8")
 
     assert "pinnedAt200" in source
@@ -75,3 +90,7 @@ def test_browser_smoke_verifies_200_percent_stays_fixed_during_nup_edit_and_rese
     assert "window.displayPreview([],true)" in source
     assert "zoomLabel').textContent==='200%'" in source
     assert "preserves user-selected 200% preview zoom" in source
+    assert "advancedFixed" in source
+    assert "advancedLocked" in source
+    assert "advancedUnlocked" in source
+    assert "precision edit also keeps the advanced viewport stationary" in source
