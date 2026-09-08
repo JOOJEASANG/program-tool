@@ -81,7 +81,7 @@ def test_pdf_suite_is_staged_with_split_editor_profiles_and_utility_workspace():
         'PDF_SUITE_HTML = "pdf-suite/index.html"',
         "data-pdf-suite-daily-free",
         "pdf-daily-free.js",
-        "pdf-suite-home-launcher.js?v=20260906-5",
+        "pdf-suite-home-launcher.js?v=20260908-1",
         "data-pdf-suite-unified-navigation-prep",
         "unified-navigation-prep.js?v=20260906-2",
         "data-pdf-suite-unified-workspace",
