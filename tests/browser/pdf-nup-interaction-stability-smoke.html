@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="ko" data-pdf-nup-stability-smoke="pending">
+<head>
+  <meta charset="utf-8">
+  <title>N-up interaction stability smoke</title>
+  <style>
+    body{margin:0;min-height:1800px;padding-top:120px}
+    #previewScroll{width:460px;height:320px;overflow:auto;border:1px solid #ccc}
+    .spacer{height:180px}
+    .page-preview{position:relative;width:400px;height:560px;margin:0 auto;background:#eee}
+    canvas{display:block;width:400px;height:560px}
+    .pdf-nup-adjust-overlay{position:absolute;inset:0;pointer-events:none}
+    .pdf-nup-adjust-hit{position:absolute;left:40px;top:70px;width:300px;height:410px;pointer-events:auto;touch-action:none}
+  </style>
+</head>
+<body>
+  <div id="previewScroll">
+    <div class="spacer"></div>
+    <div class="page-preview" data-output-index="17">
+      <canvas width="400" height="560"></canvas>
+      <div class="pdf-nup-adjust-overlay">
+        <div class="pdf-nup-adjust-hit" data-page-id="p1"></div>
+      </div>
+    </div>
+    <div class="spacer"></div>
+  </div>
+  <div id="pdfNupAdjustSelectedLabel"></div>
+  <div id="pdfNupAdjustBadge"></div>
+  <input id="pdfNupAdjustScaleRange" value="100">
+  <input id="pdfNupAdjustScale" value="100">
+  <input id="pdfNupAdjustX" value="0">
+  <input id="pdfNupAdjustY" value="0">
+  <input id="pdfNupAdjustState" value="기본">
+
+  <script>
+    window.parsedPages=[{id:'p1',page_index:0,sourceFile:'scan.pdf',nupScale:1,nupOffsetX:0,nupOffsetY:0}];
+    window.getSettings=()=>({pw:210,ph:297});
+    window.__selectedCalls=0;
+    window.__lazyCalls=0;
+    window.PdfNupPageAdjust={
+      valuesForPage(page){return{scale:page.nupScale,offsetX:page.nupOffsetX,offsetY:page.nupOffsetY};},
+      setValues(page,next){
+        if(Number.isFinite(Number(next.scale)))page.nupScale=Math.max(.5,Math.min(3,Number(next.scale)));
+        if(Number.isFinite(Number(next.offsetX)))page.nupOffsetX=Math.max(-200,Math.min(200,Number(next.offsetX)));
+        if(Number.isFinite(Number(next.offsetY)))page.nupOffsetY=Math.max(-200,Math.min(200,Number(next.offsetY)));
+      },
+      selectPage(){window.__selectedCalls+=1;}
+    };
+    window.PdfViewportLazyPreview={
+      requestRender(){window.__lazyCalls+=1;return Promise.resolve(true);}
+    };
+  </script>
+  <script src="/js/pdf-editor/nup-interaction-stability.js?v=smoke"></script>
+  <script>
+    setTimeout(async()=>{
+      try{
+        const scroll=document.getElementById('previewScroll');
+        const hit=document.querySelector('.pdf-nup-adjust-hit');
+        let legacyPointerDown=0;
+        hit.addEventListener('pointerdown',()=>{legacyPointerDown+=1;});
+
+        scroll.scrollTop=130;
+        const initialTop=scroll.scrollTop;
+        const rect=hit.getBoundingClientRect();
+        const x=rect.left+80;
+        const y=rect.top+120;
+
+        hit.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,pointerId:11,button:0,clientX:x,clientY:y}));
+        const lazyResult=await window.PdfViewportLazyPreview.requestRender(22);
+
+        scroll.scrollTop=245;
+        document.dispatchEvent(new Event('scroll',{bubbles:false}));
+        hit.dispatchEvent(new PointerEvent('pointermove',{bubbles:true,pointerId:11,button:0,clientX:x+35,clientY:y+22}));
+        const duringTop=scroll.scrollTop;
+
+        hit.dispatchEvent(new PointerEvent('pointerup',{bubbles:true,pointerId:11,button:0,clientX:x+35,clientY:y+22}));
+        hit.dispatchEvent(new MouseEvent('click',{bubbles:true,button:0,clientX:x+35,clientY:y+22}));
+
+        setTimeout(()=>{
+          const page=window.parsedPages[0];
+          const moved=Math.abs(page.nupOffsetX)>0.1||Math.abs(page.nupOffsetY)>0.1;
+          const fixed=initialTop===130&&duringTop===initialTop&&scroll.scrollTop===initialTop;
+          const legacyBlocked=legacyPointerDown===0;
+          const lazyBlocked=lazyResult===false&&window.__lazyCalls===0;
+          const selectedOnce=window.__selectedCalls===1;
+          const unlocked=document.documentElement.dataset.pdfNupInteractionLock!=='1';
+          const pass=moved&&fixed&&legacyBlocked&&lazyBlocked&&selectedOnce&&unlocked;
+          document.documentElement.dataset.pdfNupStabilitySmoke=pass?'pass':'fail';
+          const out=document.createElement('pre');
+          out.id='result';
+          out.textContent=pass
+            ?'PASS: N-up mouse edit stays on the same output face and scroll position'
+            :`FAIL moved=${moved} fixed=${fixed} legacy=${legacyPointerDown} lazy=${window.__lazyCalls}/${lazyResult} selected=${window.__selectedCalls} unlocked=${unlocked} top=${scroll.scrollTop}/${initialTop}`;
+          document.body.appendChild(out);
+        },120);
+      }catch(error){
+        document.documentElement.dataset.pdfNupStabilitySmoke='fail';
+        const out=document.createElement('pre');
+        out.textContent='FAIL '+(error?.stack||error);
+        document.body.appendChild(out);
+      }
+    },120);
+  </script>
+</body>
+</html>
