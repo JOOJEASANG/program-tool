@@ -5,6 +5,7 @@ ROOT = Path(__file__).resolve().parents[2]
 STABILITY = ROOT / "js" / "pdf-editor" / "nup-interaction-stability.js"
 ZOOM_PERSISTENCE = ROOT / "js" / "pdf-editor" / "preview-zoom-persistence.js"
 CORE_RUNTIME = ROOT / "js" / "pdf-editor" / "core-runtime.js"
+ADVANCED_RUNTIME = ROOT / "js" / "pdf-editor" / "advanced-runtime.js"
 BROWSER_SMOKE = ROOT / "tests" / "browser" / "pdf-nup-interaction-stability-smoke.html"
 
 
@@ -44,8 +45,9 @@ def test_user_selected_preview_zoom_blocks_background_autofit_until_user_changes
     assert "stage:'user-selected-preview-zoom-sticky-v1'" in source
 
 
-def test_zoom_persistence_loads_before_nup_interaction_handlers_without_changing_core_manifest():
-    source = CORE_RUNTIME.read_text(encoding="utf-8")
+def test_zoom_persistence_loads_before_nup_interaction_handlers_in_advanced_runtime():
+    core = CORE_RUNTIME.read_text(encoding="utf-8")
+    source = ADVANCED_RUNTIME.read_text(encoding="utf-8")
 
     zoom = source.index(".then(()=>loadPreviewZoomPersistence())")
     stability = source.index(".then(()=>loadNupInteractionStability())")
@@ -57,8 +59,11 @@ def test_zoom_persistence_loads_before_nup_interaction_handlers_without_changing
     assert "/js/pdf-editor/preview-zoom-persistence.js?v=20260908-1" in source
     assert "pdfNupInteractionStabilityScriptV1" in source
     assert "/js/pdf-editor/nup-interaction-stability.js?v=20260908-1" in source
-    assert source.count("{id:'pdfEditor") == 8
-    assert "stage:'pdf-editor-core-runtime-manifest-v1'" in source
+    module_block = core.split("const MODULES=Object.freeze([", 1)[1].split("]);", 1)[0]
+    assert module_block.count("src:'/js/pdf-editor/") == 8
+    assert "pdfPreviewZoomPersistenceScriptV1" not in core
+    assert "stage:'pdf-editor-core-runtime-manifest-v1'" in core
+    assert "stage:'pdf-editor-advanced-runtime-v1'" in source
 
 
 def test_browser_smoke_verifies_200_percent_stays_fixed_during_nup_edit_and_reset_is_explicit():
