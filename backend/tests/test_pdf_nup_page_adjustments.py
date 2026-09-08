@@ -99,6 +99,7 @@ def test_page_offset_changes_final_output_position():
 def test_client_exposes_mouse_page_adjustment_and_server_contract():
     source = (ROOT / "js" / "pdf-editor" / "nup-page-adjust.js").read_text(encoding="utf-8")
     core = (ROOT / "js" / "pdf-editor" / "core-runtime.js").read_text(encoding="utf-8")
+    advanced = (ROOT / "js" / "pdf-editor" / "advanced-runtime.js").read_text(encoding="utf-8")
 
     for marker in (
         "스캔 페이지 위치·크기 보정",
@@ -116,9 +117,11 @@ def test_client_exposes_mouse_page_adjustment_and_server_contract():
 
     module_block = core.split("const MODULES=Object.freeze([", 1)[1].split("]);", 1)[0]
     assert module_block.count("src:'/js/pdf-editor/") == 8
-    assert "pdfNupPageAdjustScriptV1" in core
-    assert ".then(()=>loadNupPageAdjust())" in core
+    assert "pdfNupPageAdjustScriptV1" not in core
+    assert "pdfNupPageAdjustScriptV1" in advanced
+    assert ".then(()=>loadNupPageAdjust())" in advanced
     assert "pdf-editor-core-runtime-manifest-v1" in core
+    assert "pdf-editor-advanced-runtime-v1" in advanced
 
 
 def test_large_pdf_registration_switches_to_lightweight_mode_earlier():

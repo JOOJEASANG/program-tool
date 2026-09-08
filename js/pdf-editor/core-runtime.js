@@ -1,4 +1,6 @@
-// Canonical PDF editor core-module manifest.
+// Canonical lightweight PDF editor core-module manifest.
+// Keep the default editor close to the 21b36a9 runtime footprint. Advanced
+// page transforms are loaded only when the dedicated advanced profile is used.
 (function(){
   'use strict';
   if(window.__pdfEditorCoreRuntimeV1)return;
@@ -15,17 +17,12 @@
     {id:'pdfEditorDividerHelperScriptV1',src:'/js/pdf-editor/divider-helper.js?v=20260731-2'}
   ]);
 
-  const PRECISION_EDIT_INPUT_IDS=new Set([
-    'pdfNupAdjustScaleRange','pdfNupAdjustScale','pdfNupAdjustX','pdfNupAdjustY',
-    'pdfPageCropLeftV1','pdfPageCropTopV1','pdfPageCropRightV1','pdfPageCropBottomV1',
-    'pdfFineRotationDegV1',
-  ]);
-
   const context=()=>window.ProgramStudioPdfEditorRuntimeContext||{};
 
-  function editorPages(){
-    if(Array.isArray(window.parsedPages))return window.parsedPages;
-    try{return typeof parsedPages!=='undefined'&&Array.isArray(parsedPages)?parsedPages:[];}catch(_){return[];}
+  function isAdvancedProfile(){
+    if(document.documentElement.dataset.pdfEditorProfile==='advanced')return true;
+    const value=new URLSearchParams(String(location.search||'')).get('profile');
+    return String(value||'').trim().toLowerCase()==='advanced';
   }
 
   function ensureBookletStylesheet(){
@@ -43,131 +40,6 @@
     document.addEventListener('click',event=>{
       if(!event.target?.closest?.('.mode-btn,#uploadZone'))return;
       window.__pdfUploadOrderRequestedMode='';
-    },true);
-  }
-
-  function installDragCropPlacementPanelSync(){
-    if(window.__pdfDragCropPlacementPanelSyncV1)return;
-    window.__pdfDragCropPlacementPanelSyncV1=true;
-    document.addEventListener('pdf-drag-crop-autofit-applied',event=>{
-      try{
-        const pageId=String(event?.detail?.pageId||'');
-        if(!pageId)return;
-        const page=editorPages().find(item=>String(item?.id)===pageId);
-        if(page&&typeof window.PdfNupPageAdjust?.selectPage==='function'){
-          window.PdfNupPageAdjust.selectPage(page);
-        }
-      }catch(error){
-        console.warn('[pdf-core-runtime] drag crop placement panel sync failed',error);
-      }
-    },true);
-  }
-
-  function precisionInputPage(){
-    const hit=document.querySelector('.pdf-nup-adjust-hit[data-selected="true"]');
-    const pageId=String(hit?.dataset?.pageId||'');
-    if(!pageId)return null;
-    return editorPages().find(page=>String(page?.id)===pageId)||null;
-  }
-
-  function precisionInputLabel(id){
-    if(id==='pdfFineRotationDegV1')return'미세 회전';
-    if(String(id||'').startsWith('pdfPageCrop'))return'자르기 수치 조정';
-    return'페이지 위치·크기 조정';
-  }
-
-  function restartPrecisionInputHistory(target){
-    if(!PRECISION_EDIT_INPUT_IDS.has(target?.id))return;
-    try{
-      const history=window.PdfPrecisionEditTools?.history;
-      const page=precisionInputPage();
-      if(!page||typeof history?.begin!=='function')return;
-      // Commit the prior focused edit (or the no-change pointer transaction)
-      // and immediately start a fresh focus-owned edit. This also works when
-      // the input was already focused and therefore emits no new focusin.
-      if(typeof history.commit==='function')history.commit();
-      history.begin(page,precisionInputLabel(target.id),'focus');
-    }catch(error){
-      console.warn('[pdf-core-runtime] precision input history bridge failed',error);
-    }
-  }
-
-  function syncPrecisionInputValue(target){
-    if(!PRECISION_EDIT_INPUT_IDS.has(target?.id))return;
-    const page=precisionInputPage();
-    if(!page)return;
-    try{
-      const id=target.id;
-      if(id==='pdfFineRotationDegV1'){
-        const value=typeof window.PdfPrecisionEditTools?.fineForPage==='function'
-          ? Number(window.PdfPrecisionEditTools.fineForPage(page)||0)
-          : Number(page.fineRotationDeg||0);
-        target.value=Number.isFinite(value)?value.toFixed(1):'0.0';
-        return;
-      }
-      if(id.startsWith('pdfPageCrop')){
-        const api=window.PdfPageTransformEdit;
-        const value=typeof api?.valuesForPage==='function'?api.valuesForPage(page):{
-          cropLeft:Number(page.cropLeftRatio||0),cropTop:Number(page.cropTopRatio||0),
-          cropRight:Number(page.cropRightRatio||0),cropBottom:Number(page.cropBottomRatio||0),
-        };
-        const visual=typeof api?.visualCrop==='function'?api.visualCrop(value):{
-          left:Number(value.cropLeft||0),top:Number(value.cropTop||0),
-          right:Number(value.cropRight||0),bottom:Number(value.cropBottom||0),
-        };
-        const edgeMap={
-          pdfPageCropLeftV1:'left',pdfPageCropTopV1:'top',
-          pdfPageCropRightV1:'right',pdfPageCropBottomV1:'bottom',
-        };
-        const ratio=Number(visual?.[edgeMap[id]]||0);
-        target.value=(Number.isFinite(ratio)?ratio*100:0).toFixed(1);
-        return;
-      }
-      const placement=typeof window.PdfNupPageAdjust?.valuesForPage==='function'
-        ? window.PdfNupPageAdjust.valuesForPage(page)
-        : {scale:Number(page.nupScale||1),offsetX:Number(page.nupOffsetX||0),offsetY:Number(page.nupOffsetY||0)};
-      if(id==='pdfNupAdjustScale'||id==='pdfNupAdjustScaleRange'){
-        const scale=Number(placement?.scale||1);
-        target.value=String(Math.round((Number.isFinite(scale)?scale:1)*100));
-      }else if(id==='pdfNupAdjustX'){
-        const value=Number(placement?.offsetX||0);
-        target.value=(Number.isFinite(value)?value:0).toFixed(1);
-      }else if(id==='pdfNupAdjustY'){
-        const value=Number(placement?.offsetY||0);
-        target.value=(Number.isFinite(value)?value:0).toFixed(1);
-      }
-    }catch(error){
-      console.warn('[pdf-core-runtime] precision input value sync failed',error);
-    }
-  }
-
-  function installPrecisionInputHistoryBridge(){
-    if(window.__pdfPrecisionInputHistoryBridgeV1)return;
-    window.__pdfPrecisionInputHistoryBridgeV1=true;
-
-    // PrecisionEditTools opens pointer transactions on window capture. This
-    // document-capture listener runs later in the same pointerdown, so it can
-    // safely convert every numeric click into a focus-owned transaction,
-    // including repeated clicks while the control is already focused.
-    document.addEventListener('pointerdown',event=>{
-      if(PRECISION_EDIT_INPUT_IDS.has(event.target?.id))restartPrecisionInputHistory(event.target);
-    },true);
-
-    // Keyboard/tab focus has no pointerdown, so start the same transaction on
-    // focusin as a fallback.
-    document.addEventListener('focusin',event=>{
-      if(PRECISION_EDIT_INPUT_IDS.has(event.target?.id))restartPrecisionInputHistory(event.target);
-    },true);
-
-    // This window listener is registered before PrecisionEditTools. It queues
-    // a post-undo/redo control sync before that module consumes propagation.
-    window.addEventListener('keydown',event=>{
-      const target=event.target;
-      if(!PRECISION_EDIT_INPUT_IDS.has(target?.id))return;
-      if(!(event.ctrlKey||event.metaKey)||event.altKey)return;
-      const key=String(event.key||'').toLowerCase();
-      if(key!=='z'&&key!=='y')return;
-      setTimeout(()=>syncPrecisionInputValue(target),0);
     },true);
   }
 
@@ -189,84 +61,31 @@
 
   function loadEntry(entry){
     const loader=context().load;
-    return typeof loader==='function' ? loader(entry.id,entry.src) : fallbackLoad(entry.id,entry.src);
+    return typeof loader==='function'?loader(entry.id,entry.src):fallbackLoad(entry.id,entry.src);
   }
 
   function loadUploadOrderUi(){
     const id='pdfUploadOrderUiScriptV1';
     const src='/js/pdf-editor/upload-order-ui.js?v=20260831-1';
     const loader=context().load;
-    return typeof loader==='function' ? loader(id,src) : fallbackLoad(id,src);
+    return typeof loader==='function'?loader(id,src):fallbackLoad(id,src);
   }
 
-  function loadPreviewZoomPersistence(){
-    const id='pdfPreviewZoomPersistenceScriptV1';
-    const src='/js/pdf-editor/preview-zoom-persistence.js?v=20260908-1';
+  function loadAdvancedRuntime(){
+    const id='pdfEditorAdvancedRuntimeScriptV1';
+    const src='/js/pdf-editor/advanced-runtime.js?v=20260908-1';
     const loader=context().load;
-    return typeof loader==='function' ? loader(id,src) : fallbackLoad(id,src);
-  }
-
-  function loadNupInteractionStability(){
-    const id='pdfNupInteractionStabilityScriptV1';
-    const src='/js/pdf-editor/nup-interaction-stability.js?v=20260908-1';
-    const loader=context().load;
-    return typeof loader==='function' ? loader(id,src) : fallbackLoad(id,src);
-  }
-
-  function loadNupPageAdjust(){
-    const id='pdfNupPageAdjustScriptV1';
-    const src='/js/pdf-editor/nup-page-adjust.js?v=20260908-1';
-    const loader=context().load;
-    return typeof loader==='function' ? loader(id,src) : fallbackLoad(id,src);
-  }
-
-  function loadPageTransformEdit(){
-    const id='pdfPageTransformEditScriptV1';
-    const src='/js/pdf-editor/page-transform-edit.js?v=20260908-1';
-    const loader=context().load;
-    return typeof loader==='function' ? loader(id,src) : fallbackLoad(id,src);
-  }
-
-  function loadDragCropAutoFit(){
-    const id='pdfDragCropAutoFitScriptV1';
-    const src='/js/pdf-editor/drag-crop-autofit.js?v=20260908-2';
-    const loader=context().load;
-    return typeof loader==='function' ? loader(id,src) : fallbackLoad(id,src);
-  }
-
-  function loadNupDirectPreviewEdit(){
-    const id='pdfNupDirectPreviewEditScriptV1';
-    const src='/js/pdf-editor/nup-direct-preview-edit.js?v=20260908-1';
-    const loader=context().load;
-    return typeof loader==='function' ? loader(id,src) : fallbackLoad(id,src);
-  }
-
-  function loadEditorInteractionPolish(){
-    const id='pdfEditorInteractionPolishScriptV1';
-    const src='/js/pdf-editor/editor-interaction-polish.js?v=20260908-1';
-    const loader=context().load;
-    return typeof loader==='function' ? loader(id,src) : fallbackLoad(id,src);
-  }
-
-  function loadOrientationScaleRegression(){
-    const id='pdfOrientationScaleRegressionScriptV1';
-    const src='/js/pdf-editor/orientation-scale-regression-fix.js?v=20260908-1';
-    const loader=context().load;
-    return typeof loader==='function' ? loader(id,src) : fallbackLoad(id,src);
-  }
-
-  function loadPrecisionEditTools(){
-    const id='pdfPrecisionEditToolsScriptV1';
-    const src='/js/pdf-editor/precision-edit-tools.js?v=20260908-1';
-    const loader=context().load;
-    return typeof loader==='function' ? loader(id,src) : fallbackLoad(id,src);
+    const pending=typeof loader==='function'?loader(id,src):fallbackLoad(id,src);
+    return pending.then(()=>{
+      const runtime=window.PdfEditorAdvancedRuntime;
+      if(!runtime||typeof runtime.loadAll!=='function')throw new Error('PDF advanced runtime API is unavailable');
+      return runtime.loadAll();
+    });
   }
 
   function loadAll(){
     ensureBookletStylesheet();
     installUploadOrderModeSafety();
-    installDragCropPlacementPanelSync();
-    installPrecisionInputHistoryBridge();
     const seen=new Set();
     const pending=[];
     for(const entry of MODULES){
@@ -275,28 +94,21 @@
       pending.push(loadEntry(entry));
     }
     pending.push(loadUploadOrderUi());
+    const advanced=isAdvancedProfile();
+    document.documentElement.dataset.pdfEditorProfile=advanced?'advanced':'lightweight';
     return Promise.all(pending)
-      .then(()=>loadPreviewZoomPersistence())
-      .then(()=>loadNupInteractionStability())
-      .then(()=>loadNupPageAdjust())
-      .then(()=>loadPageTransformEdit())
-      .then(()=>loadDragCropAutoFit())
-      .then(()=>loadNupDirectPreviewEdit())
-      .then(()=>loadEditorInteractionPolish())
-      .then(()=>loadOrientationScaleRegression())
-      .then(()=>loadPrecisionEditTools())
+      .then(()=>advanced?loadAdvancedRuntime():true)
       .then(()=>{
         document.documentElement.dataset.pdfCoreRuntime='1';
         return true;
       });
   }
 
-  installDragCropPlacementPanelSync();
-  installPrecisionInputHistoryBridge();
-
   window.PdfEditorCoreRuntime={
     loadAll,
+    isAdvancedProfile,
     modules:MODULES.map(({id,src})=>({id,src})),
-    stage:'pdf-editor-core-runtime-manifest-v1'
+    stage:'pdf-editor-core-runtime-manifest-v1',
+    profileStage:'lightweight-default-advanced-query-v1'
   };
 })();
