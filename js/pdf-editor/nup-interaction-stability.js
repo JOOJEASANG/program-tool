@@ -202,14 +202,23 @@
 
   function finishScrollLock(snapshot){
     const restore=()=>restoreScroll(snapshot);
+    let released=false;
+    const release=()=>{
+      if(released)return;
+      released=true;
+      restore();
+      delete document.documentElement.dataset.pdfNupInteractionLock;
+      delete document.documentElement.dataset.pdfNupInteractionOutput;
+      restore();
+    };
+
     restore();
+    const fallback=setTimeout(release,96);
     requestAnimationFrame(()=>{
       restore();
       requestAnimationFrame(()=>{
-        restore();
-        delete document.documentElement.dataset.pdfNupInteractionLock;
-        delete document.documentElement.dataset.pdfNupInteractionOutput;
-        restore();
+        clearTimeout(fallback);
+        release();
       });
     });
   }
