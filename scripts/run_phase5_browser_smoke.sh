@@ -19,8 +19,6 @@ trap cleanup EXIT
 run_page(){
   local page="$1" marker="$2" label="$3" out="$OUT_DIR/$4"
   local url="http://127.0.0.1:$PORT/tests/browser/$page"
-  local page_profile
-  page_profile="$(mktemp -d)"
 
   for _ in $(seq 1 50); do
     if python3 - "$url" <<'PY' >/dev/null 2>&1
@@ -32,28 +30,51 @@ PY
     sleep 0.1
   done
 
-  if timeout --signal=TERM --kill-after=5s 45s \
-    "$BROWSER" \
-      --headless=new \
-      --disable-gpu \
-      --no-sandbox \
-      --disable-dev-shm-usage \
-      --disable-background-networking \
-      --user-data-dir="$page_profile" \
-      --virtual-time-budget=8000 \
-      --dump-dom "$url" >"$out"
-  then
-    :
-  else
-    local status=$?
+  local status=1
+  local attempt
+  for attempt in 1 2; do
+    local page_profile
+    page_profile="$(mktemp -d)"
+    : >"$out"
+    if timeout --signal=TERM --kill-after=5s 45s \
+      "$BROWSER" \
+        --headless=new \
+        --disable-gpu \
+        --no-sandbox \
+        --disable-dev-shm-usage \
+        --disable-background-networking \
+        --disable-component-update \
+        --disable-default-apps \
+        --disable-domain-reliability \
+        --disable-sync \
+        --metrics-recording-only \
+        --no-first-run \
+        --user-data-dir="$page_profile" \
+        --virtual-time-budget=8000 \
+        --dump-dom "$url" >"$out"
+    then
+      status=0
+    else
+      status=$?
+    fi
     rm -rf "$page_profile"
-    echo "$label browser process failed or timed out (status=$status, page=$page)." >&2
+
+    if [[ "$status" -eq 0 ]]; then
+      break
+    fi
+    if [[ "$attempt" -lt 2 ]]; then
+      echo "$label browser process failed or timed out (status=$status, page=$page); retrying once with a fresh profile." >&2
+      sleep 1
+    fi
+  done
+
+  if [[ "$status" -ne 0 ]]; then
+    echo "$label browser process failed or timed out after retry (status=$status, page=$page)." >&2
     if [[ -f "$out" ]]; then cat "$out" >&2; fi
     echo "----- HTTP server log -----" >&2
     cat "$SERVER_LOG" >&2
     exit 1
   fi
-  rm -rf "$page_profile"
 
   if ! grep -q "$marker" "$out"; then
     echo "$label failed." >&2
@@ -69,7 +90,7 @@ run_page "home-current-shell-smoke.html" 'data-home-current-smoke="pass"' "Curre
 run_page "pdf-home-consolidation-smoke.html" 'data-pdf-home-consolidation-smoke="pass"' "PDF home consolidation smoke" "pdf-home-consolidation-smoke-dom.html"
 run_page "admin-workflow-v2-smoke.html" 'data-admin-v2-smoke="pass"' "Admin workflow v2 browser smoke" "admin-workflow-v2-smoke-dom.html"
 run_page "admin-pdf-usage-settings-smoke.html" 'data-admin-pdf-usage-settings-smoke="pass"' "Admin PDF usage settings smoke" "admin-pdf-usage-settings-smoke-dom.html"
-run_page "pdf-preflight-workflow-v2-smoke.html" 'data-preflight-v2-smoke="pass"' "PDF preflight workflow v2 browser smoke" "pdf-preflight-v2-smoke-dom.html"
+run_page "pdf-preflight-workflow-v2-smoke.html" 'data-preflight-v2-smoke="pass"' "PDF preflight workflow v2 browser smoke" "pdf-preflight-workflow-v2-smoke-dom.html"
 run_page "print-checker-smoke.html" 'data-print-checker-smoke="pass"' "Print checker real PDF browser smoke" "print-checker-smoke-dom.html"
 run_page "print-checker-file-only-adjustment-smoke.html" 'data-print-checker-file-only-adjustment-smoke="pass"' "Print checker file-only adjustment smoke" "print-checker-file-only-adjustment-smoke-dom.html"
 run_page "pdf-daily-free-smoke.html" 'data-pdf-daily-free-smoke="pass"' "PDF daily free guest quota smoke" "pdf-daily-free-smoke-dom.html"
