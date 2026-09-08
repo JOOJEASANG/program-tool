@@ -174,6 +174,95 @@ def _build_page_layout(
     return _PageLayout(cols, rows, cell_w, cell_h, tuple(rects))
 
 
+def _page_has_placement_adjustment(page_info) -> bool:
+    scale = float(getattr(page_info, "content_scale", 1.0) or 1.0)
+    offset_x = float(getattr(page_info, "offset_x_mm", 0.0) or 0.0)
+    offset_y = float(getattr(page_info, "offset_y_mm", 0.0) or 0.0)
+    return (
+        abs(scale - 1.0) > 1e-6
+        or abs(offset_x) > 1e-6
+        or abs(offset_y) > 1e-6
+    )
+
+
+def _show_source_page(
+    target_page: fitz.Page,
+    target_rect: fitz.Rect,
+    src_doc: fitz.Document,
+    page_index: int,
+    rotation: int,
+    clip_rect: fitz.Rect,
+) -> None:
+    try:
+        target_page.show_pdf_page(
+            target_rect,
+            src_doc,
+            page_index,
+            rotate=rotation,
+            keep_proportion=True,
+            clip=clip_rect,
+        )
+    except ValueError as exc:
+        if EMPTY_SOURCE_PAGE_ERROR not in str(exc):
+            raise
+
+
+def _render_adjusted_source_page(
+    out_page: fitz.Page,
+    src_doc: fitz.Document,
+    page_info,
+    cell_rect: fitz.Rect,
+    clip_rect: fitz.Rect,
+    rotation: int,
+) -> None:
+    """Render one adjusted source through a cell-sized PDF clipping surface.
+
+    Scaling above 100% intentionally pushes content outside the temporary page;
+    the temporary page clips that overflow before it is placed into the final
+    N-up cell. This prevents one scanned page from covering a neighbouring slot.
+    """
+    local_cell = fitz.Rect(0, 0, cell_rect.width, cell_rect.height)
+    local_fit = pdf_ops._calc_fit_rect(
+        local_cell,
+        clip_rect.width,
+        clip_rect.height,
+        rotation,
+    )
+    scale = float(getattr(page_info, "content_scale", 1.0) or 1.0)
+    offset_x = float(getattr(page_info, "offset_x_mm", 0.0) or 0.0) * pdf_ops.MM_TO_PT
+    offset_y = float(getattr(page_info, "offset_y_mm", 0.0) or 0.0) * pdf_ops.MM_TO_PT
+    center_x = (local_fit.x0 + local_fit.x1) / 2 + offset_x
+    center_y = (local_fit.y0 + local_fit.y1) / 2 + offset_y
+    width = local_fit.width * scale
+    height = local_fit.height * scale
+    adjusted_rect = fitz.Rect(
+        center_x - width / 2,
+        center_y - height / 2,
+        center_x + width / 2,
+        center_y + height / 2,
+    )
+
+    temp_doc = fitz.open()
+    try:
+        temp_page = temp_doc.new_page(width=cell_rect.width, height=cell_rect.height)
+        _show_source_page(
+            temp_page,
+            adjusted_rect,
+            src_doc,
+            page_info.page_index,
+            rotation,
+            clip_rect,
+        )
+        out_page.show_pdf_page(
+            cell_rect,
+            temp_doc,
+            0,
+            keep_proportion=False,
+        )
+    finally:
+        temp_doc.close()
+
+
 def _render_source_page(
     out_page: fitz.Page,
     src_docs: list[fitz.Document],
@@ -209,21 +298,28 @@ def _render_source_page(
         clip_rect.height,
         rotation,
     )
-    try:
-        out_page.show_pdf_page(
+    adjusted = _page_has_placement_adjustment(page_info)
+    if adjusted:
+        _render_adjusted_source_page(
+            out_page,
+            src_doc,
+            page_info,
+            cell_rect,
+            clip_rect,
+            rotation,
+        )
+    else:
+        _show_source_page(
+            out_page,
             fit_rect,
             src_doc,
             page_info.page_index,
-            rotate=rotation,
-            keep_proportion=True,
-            clip=clip_rect,
+            rotation,
+            clip_rect,
         )
-    except ValueError as exc:
-        if EMPTY_SOURCE_PAGE_ERROR not in str(exc):
-            raise
     if add_border:
         shape = out_page.new_shape()
-        shape.draw_rect(fit_rect)
+        shape.draw_rect(cell_rect if adjusted else fit_rect)
         shape.finish(color=(0.6, 0.6, 0.6), width=0.5)
         shape.commit()
 
