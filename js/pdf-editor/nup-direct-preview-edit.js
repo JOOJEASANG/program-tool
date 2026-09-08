@@ -151,17 +151,22 @@
 
   function move(event){
     if(!drag||event.pointerId!==drag.pointerId)return;
-    // PdfNupPageAdjust's pointer handler updates the model first; this listener
-    // then paints the changed page immediately into the visible N-up canvas.
-    renderLive();
+    // The model update may be registered before or after this helper depending on
+    // script timing. A microtask always paints after all handlers for this event.
+    queueMicrotask(()=>{
+      if(drag&&event.pointerId===drag.pointerId)renderLive();
+    });
   }
 
   function end(event){
     if(!drag||event.pointerId!==drag.pointerId)return;
-    renderLive();
-    drag.hit?.querySelector('.pdf-nup-direct-edit-hint')?.remove();
-    if(drag.hit)delete drag.hit.dataset.directEditing;
-    drag=null;
+    const state=drag;
+    queueMicrotask(()=>{
+      if(drag===state)renderLive();
+      state.hit?.querySelector('.pdf-nup-direct-edit-hint')?.remove();
+      if(state.hit)delete state.hit.dataset.directEditing;
+      if(drag===state)drag=null;
+    });
   }
 
   function install(){
