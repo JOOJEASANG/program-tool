@@ -91,6 +91,13 @@
     return typeof loader==='function' ? loader(id,src) : fallbackLoad(id,src);
   }
 
+  function loadEditorInteractionPolish(){
+    const id='pdfEditorInteractionPolishScriptV1';
+    const src='/js/pdf-editor/editor-interaction-polish.js?v=20260908-1';
+    const loader=context().load;
+    return typeof loader==='function' ? loader(id,src) : fallbackLoad(id,src);
+  }
+
   function loadAll(){
     ensureBookletStylesheet();
     installUploadOrderModeSafety();
@@ -107,6 +114,7 @@
       .then(()=>loadNupInteractionStability())
       .then(()=>loadNupPageAdjust())
       .then(()=>loadNupDirectPreviewEdit())
+      .then(()=>loadEditorInteractionPolish())
       .then(()=>{
         document.documentElement.dataset.pdfCoreRuntime='1';
         return true;
