@@ -180,6 +180,7 @@
   const loadEditorInteractionPolish=()=>load('pdfEditorInteractionPolishScriptV1','/js/pdf-editor/editor-interaction-polish.js?v=20260908-1');
   const loadOrientationScaleRegression=()=>load('pdfOrientationScaleRegressionScriptV1','/js/pdf-editor/orientation-scale-regression-fix.js?v=20260908-1');
   const loadPrecisionEditTools=()=>load('pdfPrecisionEditToolsScriptV1','/js/pdf-editor/precision-edit-tools.js?v=20260908-1');
+  const loadAdvancedWorkspaceUx=()=>load('pdfAdvancedWorkspaceUxScriptV1','/js/pdf-editor/advanced-workspace-ux.js?v=20260909-1');
 
   let loading=null;
   function loadAll(){
@@ -196,6 +197,7 @@
       .then(()=>loadEditorInteractionPolish())
       .then(()=>loadOrientationScaleRegression())
       .then(()=>loadPrecisionEditTools())
+      .then(()=>loadAdvancedWorkspaceUx())
       .then(()=>{
         document.documentElement.dataset.pdfAdvancedRuntime='1';
         return true;
@@ -212,7 +214,8 @@
     modules:Object.freeze([
       'preview-zoom-persistence','nup-interaction-stability','nup-page-adjust',
       'page-transform-edit','drag-crop-autofit','nup-direct-preview-edit',
-      'editor-interaction-polish','orientation-scale-regression-fix','precision-edit-tools'
+      'editor-interaction-polish','orientation-scale-regression-fix','precision-edit-tools',
+      'advanced-workspace-ux'
     ])
   };
 })();
