@@ -10,7 +10,8 @@
   if(!location.pathname.includes('pdf-editor')&&!smokeHost)return;
 
   const INSTALL_DELAYS=[0,120,300,650,1100,1800,3000,5000];
-  const MIN_SELECTION=.025;
+  const MIN_SELECTION=.055;
+  const MIN_SOURCE_VISIBLE=.051;
   const byId=id=>document.getElementById(id);
   const clamp=(value,min,max)=>Math.max(min,Math.min(max,value));
 
@@ -65,10 +66,10 @@
   }
 
   function normalizeSelection(selection){
-    let left=clamp(Number(selection?.left||0),0,1);
-    let top=clamp(Number(selection?.top||0),0,1);
-    let right=clamp(Number(selection?.right||1),0,1);
-    let bottom=clamp(Number(selection?.bottom||1),0,1);
+    let left=clamp(Number(selection?.left??0),0,1);
+    let top=clamp(Number(selection?.top??0),0,1);
+    let right=clamp(Number(selection?.right??1),0,1);
+    let bottom=clamp(Number(selection?.bottom??1),0,1);
     if(right<left)[left,right]=[right,left];
     if(bottom<top)[top,bottom]=[bottom,top];
     return{left,top,right,bottom};
@@ -119,6 +120,9 @@
     const pick=normalizeSelection(selection);
     if(pick.right-pick.left<MIN_SELECTION||pick.bottom-pick.top<MIN_SELECTION)return false;
     const visual=composeVisualCrop(page,pick);
+    const visibleW=1-visual.left-visual.right;
+    const visibleH=1-visual.top-visual.bottom;
+    if(visibleW<MIN_SOURCE_VISIBLE||visibleH<MIN_SOURCE_VISIBLE)return false;
     const patch=sourcePatchFromVisual(page,visual);
     transformApi().setValues(page,patch);
     resetPlacement(page);
@@ -155,7 +159,7 @@
       #pdfDragCropOverlayV1{position:fixed;z-index:2147483050;display:none;overflow:hidden;border:2px solid #2563eb;border-radius:3px;background:#fff;box-shadow:0 10px 34px rgba(15,23,42,.26);cursor:crosshair;touch-action:none;user-select:none}
       #pdfDragCropOverlayV1[data-visible="true"]{display:block}
       #pdfDragCropOverlayV1 canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
-      #pdfDragCropShadeV1{position:absolute;inset:0;background:rgba(15,23,42,.18);pointer-events:none}
+      #pdfDragCropShadeV1{position:absolute;inset:0;background:rgba(37,99,235,.025);pointer-events:none}
       #pdfDragCropSelectionV1{position:absolute;display:none;border:2px solid #f59e0b;background:rgba(255,255,255,.08);box-shadow:0 0 0 2000px rgba(15,23,42,.48);pointer-events:none}
       #pdfDragCropSelectionV1[data-visible="true"]{display:block}
       #pdfDragCropHintV1{position:absolute;left:50%;top:8px;transform:translateX(-50%);z-index:3;max-width:calc(100% - 16px);padding:4px 8px;border-radius:999px;background:rgba(15,23,42,.86);color:#fff;font-size:8px;font-weight:900;white-space:nowrap;pointer-events:none}
@@ -309,7 +313,10 @@
       syncControls('선택 영역이 너무 작습니다. 다시 드래그하세요.');
       return;
     }
-    applySelection(state.page,selection);
+    if(!applySelection(state.page,selection)){
+      const box=byId('pdfDragCropSelectionV1');if(box)box.dataset.visible='false';
+      syncControls('최종 남는 영역은 원본의 약 5% 이상이어야 합니다. 조금 더 크게 선택하세요.');
+    }
   }
 
   function activate(page){
