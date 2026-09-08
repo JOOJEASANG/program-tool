@@ -63,6 +63,13 @@
     return typeof loader==='function' ? loader(id,src) : fallbackLoad(id,src);
   }
 
+  function loadPreviewZoomPersistence(){
+    const id='pdfPreviewZoomPersistenceScriptV1';
+    const src='/js/pdf-editor/preview-zoom-persistence.js?v=20260908-1';
+    const loader=context().load;
+    return typeof loader==='function' ? loader(id,src) : fallbackLoad(id,src);
+  }
+
   function loadNupInteractionStability(){
     const id='pdfNupInteractionStabilityScriptV1';
     const src='/js/pdf-editor/nup-interaction-stability.js?v=20260908-1';
@@ -96,6 +103,7 @@
     }
     pending.push(loadUploadOrderUi());
     return Promise.all(pending)
+      .then(()=>loadPreviewZoomPersistence())
       .then(()=>loadNupInteractionStability())
       .then(()=>loadNupPageAdjust())
       .then(()=>loadNupDirectPreviewEdit())
