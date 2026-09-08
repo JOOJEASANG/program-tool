@@ -32,7 +32,7 @@ PY
     sleep 0.1
   done
 
-  if ! timeout --signal=TERM --kill-after=5s 45s \
+  if timeout --signal=TERM --kill-after=5s 45s \
     "$BROWSER" \
       --headless=new \
       --disable-gpu \
@@ -43,6 +43,8 @@ PY
       --virtual-time-budget=8000 \
       --dump-dom "$url" >"$out"
   then
+    :
+  else
     local status=$?
     rm -rf "$page_profile"
     echo "$label browser process failed or timed out (status=$status, page=$page)." >&2
