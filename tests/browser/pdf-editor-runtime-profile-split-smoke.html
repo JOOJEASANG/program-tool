@@ -163,7 +163,7 @@
       if(!document.documentElement.dataset.pdfAdvancedDragCropOrientationLock)return fail('drag crop orientation lock marker missing');
 
       document.documentElement.dataset.pdfEditorRuntimeProfileSplitSmoke='pass';
-      result.textContent='PASS: default editor keeps full features; advanced editor loads only precision editing UI/runtime and hides N-up, booklet, blank/divider creation';
+      result.textContent='PASS: default PDF editor stays lightweight and advanced route loads editing modules separately; advanced profile hides N-up, booklet, blank/divider creation';
     })().catch(error=>console.error(error));
   </script>
 </body>
