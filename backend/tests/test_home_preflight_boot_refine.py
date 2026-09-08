@@ -28,3 +28,8 @@ def test_optional_helpers_do_not_block_public_first_paint():
 def test_static_home_has_no_retired_overlay_helpers():
  register=read("js/sw-register.js")
  for marker in ("home-dashboard-v2.js","home-header-footer-refine.js","home-hero-upgrade.js","home-pdf-utility-name-sync.js","home-print-workflow.js","home-professional-suite.js","home-program-catalog.js","if(isHome())"): assert marker not in register
+def test_boot_guard_loads_split_pdf_home_entries_only_on_home():
+ boot=read("js/app-boot-guard.js"); launcher=read("js/pdf-suite-home-launcher.js")
+ for marker in ("function isHome()","pdfSuiteHomeLauncherScriptV1","/js/pdf-suite-home-launcher.js?v=20260908-1",",isHome());"): assert marker in boot
+ for marker in ("name:'PDF 배치용'","url:'pdf-editor/'","name:'PDF 고급편집용'","url:'pdf-editor-advanced'","pdf-home-four-programs-v6","pdfHomeWorkspace='four-programs'"): assert marker in launcher
+ assert launcher.index("id:'pdf-editor'") < launcher.index("id:'pdf-editor-advanced'") < launcher.index("id:'pdf-suite'")
