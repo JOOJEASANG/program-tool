@@ -33,12 +33,12 @@
           const realRuntime=id==='pdfEditorAdvancedProfileScopeScriptV1'||id==='pdfEditorAdvancedRuntimeScriptV1';
           if(realRuntime){
             return new Promise((resolve,reject)=>{
-              const existing=document.getElementById(id);
-              if(existing?.dataset.loaded==='true')return resolve(true);
-              const script=existing||document.createElement('script');
-              if(!existing){script.id=id;script.src=src;document.head.appendChild(script);}
+              let script=document.getElementById(id);
+              if(script?.dataset.loaded==='true')return resolve(true);
+              if(!script){script=document.createElement('script');script.id=id;script.src=src;}
               script.addEventListener('load',()=>{script.dataset.loaded='true';resolve(true);},{once:true});
               script.addEventListener('error',reject,{once:true});
+              if(!script.isConnected)document.head.appendChild(script);
             });
           }
           return Promise.resolve(true);
@@ -91,7 +91,7 @@
       if(/N\s*-?\s*up|소책자/i.test(document.querySelector('.app > aside > .sub').textContent))return fail('advanced branding still advertises N-up/booklet');
 
       document.documentElement.dataset.pdfEditorRuntimeProfileSplitSmoke='pass';
-      result.textContent='PASS: default editor keeps layout tools while advanced editor is scoped to single-page precision editing';
+      result.textContent='PASS: default PDF editor stays lightweight and advanced route loads editing modules separately; advanced editor hides N-up and booklet layout controls';
     })().catch(error=>console.error(error));
   </script>
 </body>
