@@ -11,7 +11,7 @@ def test_storage_rules_require_account_approval_for_program_resources():
     backend = PERMISSIONS.read_text(encoding="utf-8")
 
     assert "function canUseProgram(programId)" in rules
-    assert "return isApproved();" in rules
+    assert "return programId == 'pdf-editor' && isApproved();" in rules
     assert "function isPublicProgram(programId)" not in rules
     assert ".data.public[programId] == true" not in rules
 
