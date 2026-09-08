@@ -17,6 +17,15 @@
     {id:'pdfEditorDividerHelperScriptV1',src:'/js/pdf-editor/divider-helper.js?v=20260731-2'}
   ]);
 
+  // These helpers belong to the normal editor's N-UP/booklet/divider workflow.
+  // The advanced profile is intentionally a minimal precision editor and does
+  // not load them. Internal advanced `nup-*` modules are different: they power
+  // single-page position/scale editing and remain loaded by advanced-runtime.
+  const ADVANCED_UNUSED_CORE_IDS=new Set([
+    'pdfEditorNupHelperScriptV1',
+    'pdfEditorDividerHelperScriptV1'
+  ]);
+
   const context=()=>window.ProgramStudioPdfEditorRuntimeContext||{};
 
   function isAdvancedProfile(){
@@ -73,7 +82,7 @@
 
   function loadAdvancedProfileScope(){
     const id='pdfEditorAdvancedProfileScopeScriptV1';
-    const src='/js/pdf-editor/advanced-profile-scope.js?v=20260908-1';
+    const src='/js/pdf-editor/advanced-profile-scope.js?v=20260908-2';
     const loader=context().load;
     return typeof loader==='function'?loader(id,src):fallbackLoad(id,src);
   }
@@ -93,17 +102,18 @@
   }
 
   function loadAll(){
-    ensureBookletStylesheet();
+    const advanced=isAdvancedProfile();
+    if(!advanced)ensureBookletStylesheet();
     installUploadOrderModeSafety();
     const seen=new Set();
     const pending=[];
     for(const entry of MODULES){
       if(!entry.id||!entry.src||seen.has(entry.id))continue;
+      if(advanced&&ADVANCED_UNUSED_CORE_IDS.has(entry.id))continue;
       seen.add(entry.id);
       pending.push(loadEntry(entry));
     }
     pending.push(loadUploadOrderUi());
-    const advanced=isAdvancedProfile();
     document.documentElement.dataset.pdfEditorProfile=advanced?'advanced':'lightweight';
     return Promise.all(pending)
       .then(()=>advanced?loadAdvancedRuntime():true)
