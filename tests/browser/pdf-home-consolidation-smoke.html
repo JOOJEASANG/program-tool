@@ -38,6 +38,7 @@
         }
         if(quick.includes('PDF 도구 모음'))throw new Error('legacy PDF tool still exposed');
         if(document.documentElement.dataset.pdfHomeWorkspace!=='four-programs')throw new Error('four-program home marker missing');
+        if(window.ProgramStudioPdfSuiteHome?.stage!=='pdf-home-four-programs-v6')throw new Error('split home runtime stage missing');
         document.body.dataset.pdfHomeConsolidationSmoke='pass';
         result.textContent='PASS: home separates lightweight PDF layout and advanced editing entry points';
       }catch(error){
