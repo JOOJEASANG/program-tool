@@ -1,4 +1,4 @@
-// Keeps blank-page/divider insertion controls available across multi-file preview rerenders.
+// Keeps blank-page/divider insertion controls available across normal and lazy large-document preview rerenders.
 (function(){
   'use strict';
   if(window.__pdfPreviewInsertPersistenceV1)return;
@@ -16,10 +16,12 @@
     const style=document.createElement('style');
     style.id='pdfPreviewInsertPersistenceStylesV1';
     style.textContent=`
-      #previewScroll .prev-ins-zone.pdf-preview-boundary-insert{opacity:.48!important}
+      #previewScroll .prev-ins-zone.pdf-preview-boundary-insert{opacity:.62!important;visibility:visible!important;pointer-events:auto!important}
       #previewScroll .prev-ins-zone.pdf-preview-boundary-insert:hover{opacity:1!important}
-      #previewScroll .prev-ins-zone-v.pdf-preview-inline-insert{opacity:.36!important}
+      #previewScroll .prev-ins-zone-v.pdf-preview-inline-insert{opacity:.52!important;visibility:visible!important;pointer-events:auto!important}
       #previewScroll .prev-ins-zone-v.pdf-preview-inline-insert:hover{opacity:1!important}
+      #previewScroll[data-lazy-preview="true"] .prev-ins-zone.pdf-preview-boundary-insert,
+      #previewScroll[data-lazy-preview="true"] .prev-ins-zone-v.pdf-preview-inline-insert{display:flex!important}
       #previewScroll .pdf-fast-insert-actions.pdf-preview-fast-fallback{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:6px;margin:12px auto 0;padding:10px 12px;max-width:470px;border:1px solid #dbe4ee;border-radius:10px;background:#fff;box-shadow:0 3px 12px rgba(15,23,42,.05)}
       #previewScroll .pdf-fast-insert-actions.pdf-preview-fast-fallback .prev-ins-btn{position:static!important;opacity:1!important;visibility:visible!important;pointer-events:auto!important;transform:none!important;min-height:32px;padding:6px 11px;border:1px solid #bfdbfe;border-radius:8px;background:#eff6ff;color:#1d4ed8;font-family:inherit;font-size:10px;font-weight:900;cursor:pointer}
       #previewScroll .pdf-fast-insert-actions.pdf-preview-fast-fallback .prev-ins-btn.divider{border-color:#ddd6fe;background:#f5f3ff;color:#6d28d9}
@@ -35,6 +37,13 @@
     return zone;
   }
 
+  function markVertical(zone,index){
+    if(!zone)return null;
+    zone.classList.add('pdf-preview-inline-insert');
+    zone.dataset.pdfInsertBoundary=String(index);
+    return zone;
+  }
+
   function makeHorizontal(index){
     try{
       if(typeof makePreviewInsertZone!=='function')return null;
@@ -43,6 +52,75 @@
       console.warn('[pdf-preview-insert] boundary creation failed',error);
       return null;
     }
+  }
+
+  function makeVertical(index){
+    try{
+      if(typeof makeVerticalInsertZone!=='function')return null;
+      return markVertical(makeVerticalInsertZone(index),index);
+    }catch(error){
+      console.warn('[pdf-preview-insert] inline boundary creation failed',error);
+      return null;
+    }
+  }
+
+  function outputIndex(face,fallback=-1){
+    const value=Number(face?.dataset?.outputIndex);
+    return Number.isFinite(value)&&value>=0?Math.floor(value):fallback;
+  }
+
+  function ensureHorizontalBefore(row,boundary){
+    let zone=row?.previousElementSibling;
+    if(zone?.classList?.contains('prev-ins-zone')&&zone.dataset.pdfInsertBoundary===String(boundary)){
+      markHorizontal(zone,boundary);
+      return zone;
+    }
+    if(zone?.classList?.contains('prev-ins-zone'))zone.remove();
+    zone=makeHorizontal(boundary);
+    if(zone&&row)row.before(zone);
+    return zone;
+  }
+
+  function ensureHorizontalAfter(row,boundary){
+    let zone=row?.nextElementSibling;
+    if(zone?.classList?.contains('prev-ins-zone')&&zone.dataset.pdfInsertBoundary===String(boundary)){
+      markHorizontal(zone,boundary);
+      return zone;
+    }
+    if(zone?.classList?.contains('prev-ins-zone'))zone.remove();
+    zone=makeHorizontal(boundary);
+    if(zone&&row)row.after(zone);
+    return zone;
+  }
+
+  function ensureLazyBoundaries(){
+    const scroll=document.getElementById('previewScroll');
+    if(!scroll||scroll.querySelector('.empty-state'))return false;
+    const rows=[...scroll.children].filter(node=>node.classList?.contains('preview-row'));
+    if(!rows.length||typeof makePreviewInsertZone!=='function'||typeof makeVerticalInsertZone!=='function')return false;
+    const faces=rows.flatMap(row=>[...row.querySelectorAll(':scope>.page-preview')]);
+    if(!faces.some(face=>Number.isFinite(Number(face.dataset.outputIndex))))return false;
+
+    const firstFace=faces[0];
+    const firstBoundary=outputIndex(firstFace,0);
+    ensureHorizontalBefore(rows[0],firstBoundary);
+
+    rows.forEach(row=>{
+      const rowFaces=[...row.querySelectorAll(':scope>.page-preview')];
+      row.querySelectorAll(':scope>.prev-ins-zone-v').forEach(zone=>zone.remove());
+      rowFaces.forEach((face,index)=>{
+        if(index>=rowFaces.length-1)return;
+        const boundary=outputIndex(face,index)+1;
+        const zone=makeVertical(boundary);
+        if(zone)face.after(zone);
+      });
+      const lastFace=rowFaces[rowFaces.length-1];
+      if(lastFace)ensureHorizontalAfter(row,outputIndex(lastFace,firstBoundary)+1);
+    });
+
+    document.documentElement.dataset.pdfPreviewInsertPersistence='1';
+    document.documentElement.dataset.pdfPreviewInsertLazyBoundaries='1';
+    return true;
   }
 
   function ensureNormalBoundaries(){
@@ -119,7 +197,7 @@
 
     const note=document.createElement('div');
     note.className='pdf-preview-fast-note';
-    note.textContent='대용량 최적화 상태에서도 삽입 기능을 유지합니다. 새 항목은 문서 끝에 추가됩니다.';
+    note.textContent='대용량 최적화 상태에서도 삽입 기능을 유지합니다. 실제 미리보기가 열리면 각 출력면 사이에서 빈 페이지와 간지를 넣을 수 있습니다.';
     actions.append(blank,divider,note);
     empty.appendChild(actions);
     document.documentElement.dataset.pdfPreviewInsertPersistence='1';
@@ -131,13 +209,12 @@
     repairing=true;
     try{
       installStyles();
-      if(!ensureFastFallback())ensureNormalBoundaries();
+      if(!ensureFastFallback()&&!ensureLazyBoundaries())ensureNormalBoundaries();
     }finally{repairing=false;}
   }
 
   function queue(){
     if(timer)return;
-    // A zero-delay task keeps restoration reliable in throttled/background/headless states.
     timer=setTimeout(()=>{timer=0;repair();},0);
   }
 
@@ -150,8 +227,6 @@
     installStyles();
     if(!observer){
       observer=new MutationObserver(queue);
-      // Only top-level preview replacement is observed. Repairs do not observe
-      // their own nested button construction, preventing mutation feedback loops.
       observer.observe(scroll,{childList:true});
     }
     queue();
@@ -161,5 +236,11 @@
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>install(0),{once:true});else install(0);
 
-  window.PdfPreviewInsertPersistence={repair,ensureNormalBoundaries,ensureFastFallback,stage:'multi-file-preview-insert-persistence-v2'};
+  window.PdfPreviewInsertPersistence={
+    repair,
+    ensureNormalBoundaries,
+    ensureLazyBoundaries,
+    ensureFastFallback,
+    stage:'large-document-absolute-insert-boundaries-v3'
+  };
 })();
