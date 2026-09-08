@@ -284,24 +284,29 @@
     const area=byId('thumbArea');
     if(!area)return false;
     const total=pages().length;
-    area.dataset.numberOnlyNavigation='true';
+    if(area.dataset.numberOnlyNavigation!=='true')area.dataset.numberOnlyNavigation='true';
     area.querySelectorAll('.thumb-item').forEach((item,index)=>{
+      const pageNumber=String(index+1);
       item.draggable=false;
-      item.setAttribute('draggable','false');
-      item.dataset.pageNumber=String(index+1);
+      if(item.getAttribute('draggable')!=='false')item.setAttribute('draggable','false');
+      if(item.dataset.pageNumber!==pageNumber)item.dataset.pageNumber=pageNumber;
       const wrap=item.querySelector('.thumb-wrap');
       if(!wrap)return;
       const num=wrap.querySelector('.thumb-num');
-      if(num)num.textContent=String(index+1);
-      wrap.setAttribute('role','button');
-      wrap.setAttribute('aria-label',`${index+1}페이지 미리보기 화면으로 이동`);
-      wrap.title=`${index+1}페이지 · 클릭하면 오른쪽 미리보기 화면으로 이동`;
+      if(num&&num.textContent!==pageNumber)num.textContent=pageNumber;
+      if(wrap.getAttribute('role')!=='button')wrap.setAttribute('role','button');
+      const aria=`${pageNumber}페이지 미리보기 화면으로 이동`;
+      if(wrap.getAttribute('aria-label')!==aria)wrap.setAttribute('aria-label',aria);
+      const title=`${pageNumber}페이지 · 클릭하면 오른쪽 미리보기 화면으로 이동`;
+      if(wrap.title!==title)wrap.title=title;
     });
     const hint=document.querySelector('.thumb-hint');
-    if(hint)hint.textContent='페이지 번호 클릭 = 오른쪽 미리보기 화면으로 이동 · 편집은 미리보기 화면에서 합니다.';
+    const hintText='페이지 번호 클릭 = 오른쪽 미리보기 화면으로 이동 · 편집은 미리보기 화면에서 합니다.';
+    if(hint&&hint.textContent!==hintText)hint.textContent=hintText;
     const title=byId('thumbSection')?.querySelector('.sec-title');
-    if(title)title.textContent=total?`페이지 목록 · ${total}p`:'페이지 목록';
-    document.body?.setAttribute('data-pdf-sidebar-page-mode','number-only');
+    const titleText=total?`페이지 목록 · ${total}p`:'페이지 목록';
+    if(title&&title.textContent!==titleText)title.textContent=titleText;
+    if(document.body?.getAttribute('data-pdf-sidebar-page-mode')!=='number-only')document.body?.setAttribute('data-pdf-sidebar-page-mode','number-only');
     return true;
   }
 
@@ -325,7 +330,9 @@
     if(!area||typeof MutationObserver!=='function')return false;
     if(sidebarObserver)return true;
     sidebarObserver=new MutationObserver(queueSidebar);
-    sidebarObserver.observe(area,{childList:true,subtree:true});
+    // renderThumbs() replaces top-level children. Observe only those replacements;
+    // observing the subtree made our own page-number text updates feed back forever.
+    sidebarObserver.observe(area,{childList:true});
     return true;
   }
 
