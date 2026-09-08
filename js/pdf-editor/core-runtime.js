@@ -76,23 +76,98 @@
     return'페이지 위치·크기 조정';
   }
 
+  function restartPrecisionInputHistory(target){
+    if(!PRECISION_EDIT_INPUT_IDS.has(target?.id))return;
+    try{
+      const history=window.PdfPrecisionEditTools?.history;
+      const page=precisionInputPage();
+      if(!page||typeof history?.begin!=='function')return;
+      // Commit the prior focused edit (or the no-change pointer transaction)
+      // and immediately start a fresh focus-owned edit. This also works when
+      // the input was already focused and therefore emits no new focusin.
+      if(typeof history.commit==='function')history.commit();
+      history.begin(page,precisionInputLabel(target.id),'focus');
+    }catch(error){
+      console.warn('[pdf-core-runtime] precision input history bridge failed',error);
+    }
+  }
+
+  function syncPrecisionInputValue(target){
+    if(!PRECISION_EDIT_INPUT_IDS.has(target?.id))return;
+    const page=precisionInputPage();
+    if(!page)return;
+    try{
+      const id=target.id;
+      if(id==='pdfFineRotationDegV1'){
+        const value=typeof window.PdfPrecisionEditTools?.fineForPage==='function'
+          ? Number(window.PdfPrecisionEditTools.fineForPage(page)||0)
+          : Number(page.fineRotationDeg||0);
+        target.value=Number.isFinite(value)?value.toFixed(1):'0.0';
+        return;
+      }
+      if(id.startsWith('pdfPageCrop')){
+        const api=window.PdfPageTransformEdit;
+        const value=typeof api?.valuesForPage==='function'?api.valuesForPage(page):{
+          cropLeft:Number(page.cropLeftRatio||0),cropTop:Number(page.cropTopRatio||0),
+          cropRight:Number(page.cropRightRatio||0),cropBottom:Number(page.cropBottomRatio||0),
+        };
+        const visual=typeof api?.visualCrop==='function'?api.visualCrop(value):{
+          left:Number(value.cropLeft||0),top:Number(value.cropTop||0),
+          right:Number(value.cropRight||0),bottom:Number(value.cropBottom||0),
+        };
+        const edgeMap={
+          pdfPageCropLeftV1:'left',pdfPageCropTopV1:'top',
+          pdfPageCropRightV1:'right',pdfPageCropBottomV1:'bottom',
+        };
+        const ratio=Number(visual?.[edgeMap[id]]||0);
+        target.value=(Number.isFinite(ratio)?ratio*100:0).toFixed(1);
+        return;
+      }
+      const placement=typeof window.PdfNupPageAdjust?.valuesForPage==='function'
+        ? window.PdfNupPageAdjust.valuesForPage(page)
+        : {scale:Number(page.nupScale||1),offsetX:Number(page.nupOffsetX||0),offsetY:Number(page.nupOffsetY||0)};
+      if(id==='pdfNupAdjustScale'||id==='pdfNupAdjustScaleRange'){
+        const scale=Number(placement?.scale||1);
+        target.value=String(Math.round((Number.isFinite(scale)?scale:1)*100));
+      }else if(id==='pdfNupAdjustX'){
+        const value=Number(placement?.offsetX||0);
+        target.value=(Number.isFinite(value)?value:0).toFixed(1);
+      }else if(id==='pdfNupAdjustY'){
+        const value=Number(placement?.offsetY||0);
+        target.value=(Number.isFinite(value)?value:0).toFixed(1);
+      }
+    }catch(error){
+      console.warn('[pdf-core-runtime] precision input value sync failed',error);
+    }
+  }
+
   function installPrecisionInputHistoryBridge(){
     if(window.__pdfPrecisionInputHistoryBridgeV1)return;
     window.__pdfPrecisionInputHistoryBridgeV1=true;
+
+    // PrecisionEditTools opens pointer transactions on window capture. This
+    // document-capture listener runs later in the same pointerdown, so it can
+    // safely convert every numeric click into a focus-owned transaction,
+    // including repeated clicks while the control is already focused.
+    document.addEventListener('pointerdown',event=>{
+      if(PRECISION_EDIT_INPUT_IDS.has(event.target?.id))restartPrecisionInputHistory(event.target);
+    },true);
+
+    // Keyboard/tab focus has no pointerdown, so start the same transaction on
+    // focusin as a fallback.
     document.addEventListener('focusin',event=>{
+      if(PRECISION_EDIT_INPUT_IDS.has(event.target?.id))restartPrecisionInputHistory(event.target);
+    },true);
+
+    // This window listener is registered before PrecisionEditTools. It queues
+    // a post-undo/redo control sync before that module consumes propagation.
+    window.addEventListener('keydown',event=>{
       const target=event.target;
       if(!PRECISION_EDIT_INPUT_IDS.has(target?.id))return;
-      try{
-        const history=window.PdfPrecisionEditTools?.history;
-        const page=precisionInputPage();
-        if(!page||typeof history?.begin!=='function')return;
-        // A mouse click begins as a pointer transaction. Focus must own the
-        // transaction before pointerup so typing remains undoable as one edit.
-        if(typeof history.commit==='function')history.commit();
-        history.begin(page,precisionInputLabel(target.id),'focus');
-      }catch(error){
-        console.warn('[pdf-core-runtime] precision input history bridge failed',error);
-      }
+      if(!(event.ctrlKey||event.metaKey)||event.altKey)return;
+      const key=String(event.key||'').toLowerCase();
+      if(key!=='z'&&key!=='y')return;
+      setTimeout(()=>syncPrecisionInputValue(target),0);
     },true);
   }
 
