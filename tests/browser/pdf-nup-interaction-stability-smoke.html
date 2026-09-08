@@ -21,7 +21,7 @@
     <button id="zoomResetBtn" type="button">reset</button>
   </div>
   <div id="previewScroll">
-    <div class="spacer"></div>
+    <div class="spacer" id="previewLeadSpacer"></div>
     <div class="page-preview" data-output-index="17">
       <canvas width="400" height="560"></canvas>
       <div class="pdf-nup-adjust-overlay">
@@ -37,6 +37,7 @@
   <input id="pdfNupAdjustX" value="0">
   <input id="pdfNupAdjustY" value="0">
   <input id="pdfNupAdjustState" value="기본">
+  <input id="pdfPageCropLeftV1" type="number" value="0">
 
   <script>
     window.parsedPages=[{id:'p1',page_index:0,sourceFile:'scan.pdf',nupScale:1,nupOffsetX:0,nupOffsetY:0}];
@@ -121,23 +122,50 @@
           && window.__previewZoom===1.25
           && document.getElementById('zoomLabel').textContent==='125%';
 
-        setTimeout(()=>{
-          const page=window.parsedPages[0];
-          const moved=Math.abs(page.nupOffsetX)>0.1||Math.abs(page.nupOffsetY)>0.1;
-          const fixed=initialTop===130&&duringTop===initialTop&&scroll.scrollTop===initialTop;
-          const legacyBlocked=legacyPointerDown===0;
-          const lazyBlocked=lazyResult===false&&window.__lazyCalls===0;
-          const selectedOnce=window.__selectedCalls===1;
-          const unlocked=document.documentElement.dataset.pdfNupInteractionLock!=='1';
-          const pass=moved&&fixed&&legacyBlocked&&lazyBlocked&&selectedOnce&&unlocked&&pinnedAt200&&sticky200&&explicitReset;
-          document.documentElement.dataset.pdfNupStabilitySmoke=pass?'pass':'fail';
-          const out=document.createElement('pre');
-          out.id='result';
-          out.textContent=pass
-            ?'PASS: N-up mouse edit keeps scroll/output face fixed and preserves user-selected 200% preview zoom'
-            :`FAIL moved=${moved} fixed=${fixed} legacy=${legacyPointerDown} lazy=${window.__lazyCalls}/${lazyResult} selected=${window.__selectedCalls} unlocked=${unlocked} pinned200=${pinnedAt200} sticky200=${sticky200} reset=${explicitReset} zoom=${window.__previewZoom} autoFit=${window.__autoFitCalls} top=${scroll.scrollTop}/${initialTop}`;
-          document.body.appendChild(out);
-        },120);
+        await new Promise(resolve=>setTimeout(resolve,140));
+        const page=window.parsedPages[0];
+        const moved=Math.abs(page.nupOffsetX)>0.1||Math.abs(page.nupOffsetY)>0.1;
+        const fixed=initialTop===130&&duringTop===initialTop&&scroll.scrollTop===initialTop;
+        const legacyBlocked=legacyPointerDown===0;
+        const lazyBlocked=lazyResult===false&&window.__lazyCalls===0;
+        const selectedOnce=window.__selectedCalls===1;
+        const dragUnlocked=document.documentElement.dataset.pdfNupInteractionLock!=='1';
+
+        // Precision edits used to rebuild the preview and move both the inner
+        // preview scroller and the browser window. Force that failure shape here:
+        // a layout shift before the selected output plus hostile scroll changes.
+        const cropInput=document.getElementById('pdfPageCropLeftV1');
+        const preview=document.querySelector('.page-preview');
+        const spacer=document.getElementById('previewLeadSpacer');
+        window.scrollTo(0,80);
+        scroll.scrollTop=130;
+        const anchorBefore=preview.getBoundingClientRect().top-scroll.getBoundingClientRect().top;
+        const windowBefore=window.scrollY;
+        cropInput.addEventListener('input',()=>{
+          spacer.style.height='260px';
+          scroll.scrollTop=285;
+          window.scrollTo(0,260);
+        });
+        cropInput.focus({preventScroll:true});
+        cropInput.value='12';
+        cropInput.dispatchEvent(new Event('input',{bubbles:true}));
+        await new Promise(resolve=>setTimeout(resolve,240));
+        const anchorAfter=preview.getBoundingClientRect().top-scroll.getBoundingClientRect().top;
+        const advancedFixed=Math.abs(anchorAfter-anchorBefore)<1&&Math.abs(window.scrollY-windowBefore)<1;
+        const advancedLocked=document.documentElement.dataset.pdfAdvancedViewportLock==='1';
+        cropInput.blur();
+        await new Promise(resolve=>setTimeout(resolve,860));
+        const advancedUnlocked=document.documentElement.dataset.pdfAdvancedViewportLock!=='1';
+
+        const pass=moved&&fixed&&legacyBlocked&&lazyBlocked&&selectedOnce&&dragUnlocked
+          &&pinnedAt200&&sticky200&&explicitReset&&advancedFixed&&advancedLocked&&advancedUnlocked;
+        document.documentElement.dataset.pdfNupStabilitySmoke=pass?'pass':'fail';
+        const out=document.createElement('pre');
+        out.id='result';
+        out.textContent=pass
+          ?'PASS: N-up mouse edit keeps scroll/output face fixed and preserves user-selected 200% preview zoom; precision edit also keeps the advanced viewport stationary'
+          :`FAIL moved=${moved} fixed=${fixed} legacy=${legacyPointerDown} lazy=${window.__lazyCalls}/${lazyResult} selected=${window.__selectedCalls} dragUnlocked=${dragUnlocked} pinned200=${pinnedAt200} sticky200=${sticky200} reset=${explicitReset} advancedFixed=${advancedFixed} advancedLocked=${advancedLocked} advancedUnlocked=${advancedUnlocked} anchor=${anchorAfter}/${anchorBefore} window=${window.scrollY}/${windowBefore} top=${scroll.scrollTop}/${initialTop}`;
+        document.body.appendChild(out);
       }catch(error){
         document.documentElement.dataset.pdfNupStabilitySmoke='fail';
         const out=document.createElement('pre');
