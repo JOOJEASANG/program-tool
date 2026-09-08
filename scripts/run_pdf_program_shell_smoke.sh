@@ -89,7 +89,7 @@ run_product_case "pdf-page-transform-edit-smoke.html" "$OUT_DIR/pdf-page-transfo
 reset_profile
 run_product_case "pdf-drag-crop-autofit-smoke.html" "$OUT_DIR/pdf-drag-crop-autofit-smoke-dom.html" 'data-pdf-drag-crop-autofit-smoke="pass"' 'PASS: drag keep-region crop composes current crop, maps rotation, and auto-fits margins'
 reset_profile
-run_product_case "pdf-precision-edit-tools-smoke.html" "$OUT_DIR/pdf-precision-edit-tools-smoke-dom.html" 'data-pdf-precision-edit-tools-smoke="pass"' 'PASS: live margin guides, Ctrl+Z edit undo, and free-angle corner rotation stay in sync'
+run_product_case "pdf-precision-edit-tools-smoke.html" "$OUT_DIR/pdf-precision-edit-tools-smoke-dom.html" 'data-pdf-precision-edit-tools-smoke="pass"' 'PASS: live margins, focused Ctrl+Z history, crop panel sync, and free-angle rotation stay in sync'
 reset_profile
 run_product_case "pdf-orientation-scale-regression-smoke.html" "$OUT_DIR/pdf-orientation-scale-regression-smoke-dom.html" 'data-pdf-orientation-scale-regression-smoke="pass"' 'PASS: legacy rotation stays canonical and corner resize is outward-grow inward-shrink'
 reset_profile
