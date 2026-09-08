@@ -92,6 +92,6 @@
   window.PdfEditorCoreRuntime={
     loadAll,
     modules:MODULES.map(({id,src})=>({id,src})),
-    stage:'pdf-editor-core-runtime-manifest-v2'
+    stage:'pdf-editor-core-runtime-manifest-v1'
   };
 })();
