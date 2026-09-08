@@ -216,7 +216,7 @@ body{font-family:Pretendard,"Noto Sans KR",sans-serif;color:var(--t1);background
     <button class="nav-item active" data-cat="all" type="button">
       <span class="nav-icon">◆</span>
       전체 프로그램
-      <span class="nav-count" id="cnt-all">3</span>
+      <span class="nav-count" id="cnt-all">4</span>
     </button>
     <div class="sb-divider"></div>
     <div class="sb-section-label">카테고리</div>
@@ -228,7 +228,7 @@ body{font-family:Pretendard,"Noto Sans KR",sans-serif;color:var(--t1);background
     <button class="nav-item" data-cat="pdf" type="button">
       <span class="nav-icon">📄</span>
       PDF 프로그램
-      <span class="nav-count" id="cnt-pdf">2</span>
+      <span class="nav-count" id="cnt-pdf">3</span>
     </button>
   </nav>
 
@@ -291,7 +291,7 @@ body{font-family:Pretendard,"Noto Sans KR",sans-serif;color:var(--t1);background
 
     <div class="programs-header">
       <h2 id="sectionTitle">전체 프로그램</h2>
-      <span class="prog-count" id="count">3개</span>
+      <span class="prog-count" id="count">4개</span>
     </div>
     <div class="grid" id="programGrid"></div>
   </div>
@@ -327,7 +327,8 @@ body{font-family:Pretendard,"Noto Sans KR",sans-serif;color:var(--t1);background
 <script>
 const PROGRAMS=[
   {id:'print-checker',cat:'print',name:'인쇄물 사전 검토',icon:'🔍',accent:'#1d9bb2',bg:'linear-gradient(135deg,#12396d,#1d9bb2)',catLabel:'인쇄 검토',desc:'외부 도구로 제작한 인쇄물 파일(PDF)의 책등·재단선·안전 영역·접지선·간격을 한 번에 검토합니다.',url:'print-checker/',tags:['재단선','안전 영역','접지선']},
-  {id:'pdf-editor',cat:'pdf',name:'PDF 편집 · 인쇄배치',icon:'🖨️',accent:'#059669',bg:'linear-gradient(135deg,#065f46,#059669)',catLabel:'PDF',desc:'여러 PDF의 페이지를 정리하고 N-up 배치·간지·여백을 설정해 출력용 PDF를 만듭니다.',url:'pdf-editor/',tags:['페이지 편집','N-up 배치','인쇄 배치']},
+  {id:'pdf-editor',cat:'pdf',name:'PDF 배치용',icon:'🖨️',accent:'#059669',bg:'linear-gradient(135deg,#065f46,#059669)',catLabel:'PDF 배치',desc:'여러 PDF의 페이지를 정리하고 N-up·소책자·간지·여백을 설정해 출력용 PDF를 빠르게 만듭니다.',url:'pdf-editor/',tags:['N-up','소책자','인쇄 배치']},
+  {id:'pdf-editor-advanced',cat:'pdf',name:'PDF 고급편집용',icon:'✂️',accent:'#7c3aed',bg:'linear-gradient(135deg,#4c1d95,#7c3aed)',catLabel:'PDF 고급 편집',desc:'페이지를 직접 이동·크기조절·잘라내기·회전하고 정밀하게 보정해야 할 때 사용하는 편집 화면입니다.',url:'pdf-editor-advanced',tags:['드래그 자르기','크기·위치','정밀 회전']},
   {id:'pdf-preflight',cat:'pdf',name:'PDF 도구 모음',icon:'🧰',accent:'#d97706',bg:'linear-gradient(135deg,#92400e,#d97706)',catLabel:'PDF',desc:'인쇄 전 검사부터 PDF 합치기·나누기·압축·변환까지 자주 쓰는 PDF 작업을 한곳에서 처리합니다.',url:'pdf-preflight/',tags:['검사·진단','합치기·나누기','압축·변환']}
 ];
 
@@ -511,7 +512,7 @@ if(window.auth){
 buildQuickRow();
 renderGrid();
 
-window.ProgramStudioHome={PROGRAMS,CATS,switchCat,get activeCategory(){return activeCat;},stage:'categorized-program-home-v3'};
+window.ProgramStudioHome={PROGRAMS,CATS,switchCat,get activeCategory(){return activeCat;},stage:'categorized-program-home-v4'};
 </script>
 </body>
 </html>
