@@ -68,7 +68,7 @@ def test_pdf_suite_local_tools_are_real_local_pdf_operations():
     assert "XMLHttpRequest" not in source
 
 
-def test_pdf_suite_is_staged_with_combined_editor_and_split_utility_workspace():
+def test_pdf_suite_is_staged_with_split_editor_profiles_and_utility_workspace():
     hosting = HOSTING.read_text(encoding="utf-8")
     home = HOME.read_text(encoding="utf-8")
     nav_prep = NAV_PREP.read_text(encoding="utf-8")
@@ -105,16 +105,19 @@ def test_pdf_suite_is_staged_with_combined_editor_and_split_utility_workspace():
 
     for marker in (
         "name:'인쇄물 사전 검토'",
-        "name:'PDF 편집 · N-UP · 소책자 배치'",
+        "name:'PDF 배치용'",
+        "name:'PDF 고급편집용'",
         "name:'PDF 유틸리티'",
         "print-checker/",
         "pdf-editor/",
+        "pdf-editor-advanced",
         "pdf-suite/",
         "normalizePrograms",
-        "pdf-home-three-programs-v5",
+        "pdf-home-four-programs-v6",
     ):
         assert marker in home
     assert "id:'booklet'" not in home
+    assert home.index("id:'pdf-editor'") < home.index("id:'pdf-editor-advanced'") < home.index("id:'pdf-suite'")
 
     for marker in (
         "removeEditorOwnedUtilityTools",
