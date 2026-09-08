@@ -19,8 +19,10 @@ def test_page_info_supports_spread_half_selection():
 
 def test_pdf_engine_clips_spread_halves_before_layout():
     engine = read("backend/services/pdf_engine.py")
+    assert "def _page_clip_rect(" in engine
     assert 'split_side = getattr(page_info, "split_side", None)' in engine
-    assert "clip_rect = fitz.Rect(" in engine
+    assert 'base = fitz.Rect(' in engine
+    assert 'clip_rect = _page_clip_rect(src_page.rect, page_info)' in engine
     assert "clip=clip_rect" in engine
 
 
