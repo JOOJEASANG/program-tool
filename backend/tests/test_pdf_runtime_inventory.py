@@ -71,7 +71,7 @@ def test_pdf_editor_route_extras_are_owned_by_route_manifest_not_global_bootstra
     assert route.index("/js/pdf-editor/output-save-recovery.js") < route.index("/js/pdf-editor/save-recovery.js")
     assert route.index("/js/pdf-editor/save-recovery.js") < route.index("/js/pdf-editor/session-save-safety.js")
     assert route.index("/js/pdf-editor/session-save-safety.js") < route.index("/js/pdf-editor/file-context-scope.js")
-    assert "/js/pdf-editor/route-runtime.js?v=20260828-1" in register
+    assert "/js/pdf-editor/route-runtime.js?v=20260909-1" in register
     assert "tasks.push(loadPdfEditorRuntime())" in register
     assert "PDF route source-contract compatibility metadata only" in register
 
