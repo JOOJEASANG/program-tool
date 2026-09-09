@@ -7,6 +7,8 @@ CORE = ROOT / "js" / "pdf-editor" / "core-runtime.js"
 ADVANCED = ROOT / "js" / "pdf-editor" / "advanced-runtime.js"
 ADVANCED_SCOPE = ROOT / "js" / "pdf-editor" / "advanced-profile-scope.js"
 ADVANCED_WORKSPACE = ROOT / "js" / "pdf-editor" / "advanced-workspace-ux.js"
+ROUTE_RUNTIME = ROOT / "js" / "pdf-editor" / "route-runtime.js"
+APP_BOOT = ROOT / "js" / "app-boot-guard.js"
 RUNTIME_BOOT = ROOT / "js" / "sw-register.js"
 FIREBASE = ROOT / "firebase.json"
 
@@ -48,6 +50,23 @@ def test_advanced_profile_skips_normal_nup_booklet_and_divider_helpers():
     assert "if(advanced&&ADVANCED_UNUSED_CORE_IDS.has(entry.id))continue;" in core
 
 
+def test_advanced_route_runtime_skips_general_print_layout_helpers():
+    route = ROUTE_RUNTIME.read_text(encoding="utf-8")
+
+    assert "const ADVANCED_UNUSED_ROUTE_IDS=new Set([" in route
+    for module_id in (
+        "pdfPreviewInsertPersistenceScriptV1",
+        "pdfDividerLocalImageUploadScriptV1",
+        "pdfDividerModalLayoutScriptV1",
+        "pdfEditorSpreadSplitScriptV1",
+        "pdfBookletSheetPreviewScriptV1",
+    ):
+        assert f"'{module_id}'" in route
+    assert "if(advanced&&ADVANCED_UNUSED_ROUTE_IDS.has(entry.id))continue;" in route
+    assert "pdfAdvancedRouteModules='minimal'" in route
+    assert "endsWith('/pdf-editor-advanced')" in route
+
+
 def test_advanced_scope_hides_creation_and_layout_features_but_preserves_existing_pages():
     scope = ADVANCED_SCOPE.read_text(encoding="utf-8")
 
@@ -56,6 +75,9 @@ def test_advanced_scope_hides_creation_and_layout_features_but_preserves_existin
         ".prev-ins-zone,.prev-ins-zone-v",
         ".mode-btn[data-mode=\"break\"]",
         "document.getElementById('dividerModal')",
+        "document.getElementById('pdfSpreadSplitPanel')",
+        "#sb-nup > .field:nth-of-type(2)",
+        "슬라이드\\s*순서",
         "#thumbCtxMenu .ctx-item",
         "빈\\s*페이지\\s*(삽입|추가)",
         "간지\\s*(삽입|추가)",
@@ -129,23 +151,29 @@ def test_advanced_workspace_prioritizes_a_stationary_single_page_editing_surface
     assert "window.PdfPrecisionEditTools?.history?.redo?.()" in workspace
 
 
-def test_firebase_advanced_entry_redirects_to_canonical_protected_editor_profile():
+def test_firebase_advanced_entry_is_a_dedicated_rewrite_not_a_query_redirect():
     config = json.loads(FIREBASE.read_text(encoding="utf-8"))
     redirects = config["hosting"]["redirects"]
-    redirect_triples = {
-        (item.get("source"), item.get("destination"), item.get("type"))
-        for item in redirects
-    }
+    redirect_sources = {item.get("source") for item in redirects}
     rewrites = config["hosting"]["rewrites"]
-    rewrite_sources = {item.get("source") for item in rewrites}
+    rewrite_pairs = {(item.get("source"), item.get("destination")) for item in rewrites}
 
-    assert ("/pdf-editor-advanced", "/pdf-editor?profile=advanced", 302) in redirect_triples
-    assert "/pdf-editor-advanced" not in rewrite_sources
-    assert "/pdf-editor-advanced/**" not in rewrite_sources
+    assert "/pdf-editor-advanced" not in redirect_sources
+    assert ("/pdf-editor-advanced", "/pdf-editor/index.html") in rewrite_pairs
 
 
-def test_runtime_bootstrap_stays_on_canonical_pdf_editor_route():
+def test_advanced_alias_is_protected_and_marked_before_editor_runtime_loads():
+    source = APP_BOOT.read_text(encoding="utf-8")
+
+    assert "'/pdf-editor-advanced'" in source
+    assert "path.endsWith('/pdf-editor-advanced')" in source
+    assert "root.dataset.pdfEditorProfile='advanced'" in source
+    assert "#pdfSpreadSplitPanel" in source
+    assert "#sb-nup > .field:nth-of-type(2)" in source
+
+
+def test_runtime_bootstrap_loads_pdf_editor_runtime_for_advanced_alias():
     source = RUNTIME_BOOT.read_text(encoding="utf-8")
 
-    assert "if(isPath('/tools/pdf-editor.html','/pdf-editor','/pdf-editor/index.html'))tasks.push(loadPdfEditorRuntime());" in source
-    assert "pdf-editor-advanced" not in source
+    assert "'/tools/pdf-editor.html','/pdf-editor','/pdf-editor/index.html','/pdf-editor-advanced'" in source
+    assert "'/pdf-editor-advanced'" in source

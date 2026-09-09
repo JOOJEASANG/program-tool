@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
 from urllib.error import HTTPError, URLError
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlparse
 from urllib.request import Request, urlopen
 
 
@@ -82,6 +82,16 @@ def _require_text(result: HttpResult, *needles: str) -> None:
     missing = [needle for needle in needles if needle not in result.text]
     if missing:
         raise SmokeFailure(f"{result.url} 응답에서 필수 문구를 찾지 못했습니다: {missing}")
+
+
+def _require_path_preserved(result: HttpResult, expected_path: str) -> None:
+    _require_status_ok(result)
+    actual_path = urlparse(result.url).path.rstrip("/") or "/"
+    normalized_expected = expected_path.rstrip("/") or "/"
+    if actual_path != normalized_expected:
+        raise SmokeFailure(
+            f"전용 경로가 다른 주소로 이동했습니다: expected={normalized_expected!r}, actual={actual_path!r}"
+        )
 
 
 def _require_same_origin_frame_headers(result: HttpResult) -> None:
@@ -242,6 +252,16 @@ def run_smoke_checks(
                     _require_same_origin_frame_headers(result),
                 )
             )(_fetch(base_url, "/print-checker", timeout)),
+        ),
+        (
+            "고급 PDF 편집 전용 경로",
+            lambda: (
+                lambda result: (
+                    _require_text(result, "PDF 문서 편집기", "js/app-boot-guard.js"),
+                    _require_path_preserved(result, "/pdf-editor-advanced"),
+                    _require_same_origin_frame_headers(result),
+                )
+            )(_fetch(base_url, "/pdf-editor-advanced", timeout)),
         ),
         ("PDF 편집기 canonical 런타임 자산", lambda: _require_pdf_editor_runtime_assets(base_url, timeout)),
         (

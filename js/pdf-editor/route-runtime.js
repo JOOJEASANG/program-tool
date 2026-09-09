@@ -28,11 +28,24 @@
     {id:'pdfBookletSheetPreviewScriptV1',src:'/js/pdf-editor/booklet-sheet-preview.js?v=20260825-1'}
   ]);
 
+  const ADVANCED_UNUSED_ROUTE_IDS=new Set([
+    'pdfPreviewInsertPersistenceScriptV1',
+    'pdfDividerLocalImageUploadScriptV1',
+    'pdfDividerModalLayoutScriptV1',
+    'pdfEditorSpreadSplitScriptV1',
+    'pdfBookletSheetPreviewScriptV1'
+  ]);
+
   const context=()=>window.ProgramStudioPdfEditorRuntimeContext||{};
   const params=()=>new URLSearchParams(location.search);
   const standaloneApp=()=>{
     const value=(params().get('app')||'').trim().toLowerCase();
     return value==='layout'||value==='booklet'?value:'';
+  };
+  const isAdvancedProfile=()=>{
+    if(document.documentElement.dataset.pdfEditorProfile==='advanced')return true;
+    if(String(location.pathname||'').replace(/\/+$/,'').endsWith('/pdf-editor-advanced'))return true;
+    return String(params().get('profile')||'').trim().toLowerCase()==='advanced';
   };
 
   function hostLoadScript(id,src){
@@ -56,17 +69,20 @@
   function loadAll(){
     const seen=new Set();
     const pending=[];
+    const advanced=isAdvancedProfile();
     if(standaloneApp())pending.push(loadStandaloneBoundary());
     for(const entry of MODULES){
       if(!entry.id||!entry.src||seen.has(entry.id)){
         console.warn('[pdf-route-runtime] manifest entry skipped',entry);
         continue;
       }
+      if(advanced&&ADVANCED_UNUSED_ROUTE_IDS.has(entry.id))continue;
       seen.add(entry.id);
       // Start requests in manifest order while allowing the browser to fetch
       // independent helpers without a waterfall.
       pending.push(hostLoad(entry));
     }
+    if(advanced)document.documentElement.dataset.pdfAdvancedRouteModules='minimal';
     return Promise.all(pending).then(()=>{
       document.documentElement.dataset.pdfRouteRuntime='1';
       if(standaloneApp()){
@@ -79,6 +95,7 @@
 
   window.PdfEditorRouteRuntime={
     loadAll,
+    isAdvancedProfile,
     modules:MODULES.map(({id,src})=>({id,src})),
     app:standaloneApp(),
     get profile(){return window.PdfEditorStandaloneApps?.fromLocation?.(location.search)?.key||null;},

@@ -10,6 +10,7 @@
   const root=document.documentElement;
   const isAdvanced=()=>{
     if(root.dataset.pdfEditorProfile==='advanced')return true;
+    if(String(location.pathname||'').replace(/\/+$/,'').endsWith('/pdf-editor-advanced'))return true;
     const value=new URLSearchParams(String(location.search||'')).get('profile');
     return String(value||'').trim().toLowerCase()==='advanced';
   };
@@ -17,6 +18,7 @@
 
   const BLOCKED_ACTION_PATTERN=/(빈\s*페이지\s*(삽입|추가)|간지\s*(삽입|추가)|N\s*-?\s*up|N-UP|NUP|소책자)/i;
   const ADVANCED_SUBTITLE='파일 업로드 · 페이지 정렬/삭제 · 자르기/회전 · 위치/크기 보정 · PDF 저장';
+  const ADVANCED_EDIT_TITLE='페이지 위치·크기 보정';
   let observer=null;
   let applying=false;
 
@@ -44,7 +46,14 @@
       html[data-pdf-editor-profile="advanced"] #nupGrid,
       html[data-pdf-editor-profile="advanced"] #bookletRow,
       html[data-pdf-editor-profile="advanced"] #nupQuickGuide,
-      html[data-pdf-editor-profile="advanced"] #fileLayoutControl{
+      html[data-pdf-editor-profile="advanced"] #fileLayoutControl,
+      html[data-pdf-editor-profile="advanced"] #pdfSpreadSplitPanel,
+      html[data-pdf-editor-profile="advanced"] #pdfPrintWorkflowFocusPanel,
+      html[data-pdf-editor-profile="advanced"] #pdfPrintUtilityRedirectCard,
+      html[data-pdf-editor-profile="advanced"] #sb-nup > .field:nth-of-type(2){
+        display:none!important;
+      }
+      html[data-pdf-editor-profile="advanced"] #sb-nup > .field:first-of-type > label{
         display:none!important;
       }
     `;
@@ -80,14 +89,24 @@
     hideElement(document.getElementById('nupGrid'));
     hideElement(document.getElementById('bookletRow'));
     hideElement(document.getElementById('nupQuickGuide'));
+    hideElement(document.getElementById('pdfSpreadSplitPanel'));
+    hideElement(document.getElementById('pdfPrintWorkflowFocusPanel'));
+    hideElement(document.getElementById('pdfPrintUtilityRedirectCard'));
     document.querySelectorAll('.nup-popup').forEach(node=>node.remove());
 
     const section=document.querySelector('[data-sec="nup"]');
     const title=section?.querySelector('.sec-title')||section?.closest('.sec')?.querySelector('.sec-title');
-    if(title&&/N\s*-?\s*up|N-UP/i.test(title.textContent||''))title.textContent='페이지 위치·크기 보정';
+    // MutationObserver watches childList changes. Reassigning textContent even
+    // to the same string creates another child mutation and can keep the page
+    // in a self-triggering loop, so write only when the title actually differs.
+    if(title&&String(title.textContent||'')!==ADVANCED_EDIT_TITLE)title.textContent=ADVANCED_EDIT_TITLE;
 
-    document.querySelectorAll('#sb-nup label').forEach(label=>{
-      if(/기본\s*N\s*-?\s*up|페이지당\s*슬라이드/i.test(label.textContent||''))hideElement(label);
+    const fields=[...document.querySelectorAll('#sb-nup > .field')];
+    fields.forEach(field=>{
+      const label=field.querySelector(':scope > label');
+      const text=String(label?.textContent||'');
+      if(/슬라이드\s*순서/i.test(text)){hideElement(field);return;}
+      if(/기본\s*N\s*-?\s*up|페이지당\s*슬라이드/i.test(text))hideElement(label);
     });
 
     document.querySelectorAll('#thumbArea span').forEach(label=>{
@@ -172,6 +191,7 @@
   },true);
 
   function boot(){
+    root.dataset.pdfEditorProfile='advanced';
     apply();
     installObserver();
     [80,220,500,900,1500,2400].forEach(delay=>setTimeout(apply,delay));

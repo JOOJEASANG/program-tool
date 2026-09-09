@@ -21,8 +21,11 @@ def ui_asset(text,script_id):
  if not m:raise AssertionError(f"Could not resolve UI enhancement: {script_id}")
  return normalize(m.group("src"))
 def collect_routes(sw_text,ui_text):
- pdf_marker="if(isPath('/tools/pdf-editor.html','/pdf-editor','/pdf-editor/index.html'))"
- common=assets(segment(sw_text,"async function helpers(){",pdf_marker))
+ # The exact PDF-editor path list may grow (for example the dedicated
+ # /pdf-editor-advanced alias). Use the stable runtime action as the boundary
+ # instead of hard-coding every route literal into this budget validator.
+ pdf_runtime_action="tasks.push(loadPdfEditorRuntime());"
+ common=assets(segment(sw_text,"async function helpers(){",pdf_runtime_action))
  routes={"home":set(common),"admin":set(common),"pdf-editor":common|manifest_assets(PDF_RUNTIME)}
  for route,script_id in UI_ENHANCEMENTS.items():routes[route].add(ui_asset(ui_text,script_id))
  return routes

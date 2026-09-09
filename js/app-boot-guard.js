@@ -12,15 +12,16 @@
   const protectedProgram=(function(){
     if(['pdf-layout','booklet'].includes(modularAppKey))return 'pdf-editor';
     if(['cover','poster','flyer','invitation','notice','leaflet'].includes(modularAppKey))return 'design-studio';
-    if(['/tools/pdf-editor.html','/pdf-editor','/pdf-editor/index.html'].some(item=>path.endsWith(item)))return 'pdf-editor';
+    if(['/tools/pdf-editor.html','/pdf-editor','/pdf-editor/index.html','/pdf-editor-advanced'].some(item=>path.endsWith(item)))return 'pdf-editor';
     if(['/tools/preflight.html','/tools/pdf-Checker.html','/pdf-preflight','/pdf-preflight/index.html'].some(item=>path.endsWith(item)))return 'preflight';
     if(['/tools/perfect-binding-cover.html','/perfect-binding-cover','/perfect-binding-cover/index.html'].some(item=>path.endsWith(item)))return 'design-studio';
     return '';
   })();
 
   const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
-  function isPdfPrintEditor(){return ['/tools/pdf-editor.html','/pdf-editor','/pdf-editor/index.html'].some(item=>path.endsWith(item));}
+  function isPdfPrintEditor(){return ['/tools/pdf-editor.html','/pdf-editor','/pdf-editor/index.html','/pdf-editor-advanced'].some(item=>path.endsWith(item));}
   function isAdvancedPdfEditor(){
+    if(path.endsWith('/pdf-editor-advanced'))return true;
     if(!isPdfPrintEditor())return false;
     try{return String(new URLSearchParams(location.search).get('profile')||'').trim().toLowerCase()==='advanced';}
     catch(_){return false;}
@@ -38,12 +39,15 @@
       html[data-pdf-editor-profile="advanced"] #bookletRow,
       html[data-pdf-editor-profile="advanced"] #nupQuickGuide,
       html[data-pdf-editor-profile="advanced"] #fileLayoutControl,
+      html[data-pdf-editor-profile="advanced"] #pdfSpreadSplitPanel,
+      html[data-pdf-editor-profile="advanced"] #sb-nup > .field:nth-of-type(2),
       html[data-pdf-editor-profile="advanced"] .prev-ins-zone,
       html[data-pdf-editor-profile="advanced"] .prev-ins-zone-v,
       html[data-pdf-editor-profile="advanced"] .mode-btn[data-mode="break"],
       html[data-pdf-editor-profile="advanced"] #dividerModal,
       html[data-pdf-editor-profile="advanced"] #pdfPrintWorkflowFocusPanel,
       html[data-pdf-editor-profile="advanced"] #pdfPrintUtilityRedirectCard{display:none!important}
+      html[data-pdf-editor-profile="advanced"] #sb-nup > .field:first-of-type > label{display:none!important}
     `;
     document.head.appendChild(style);
   }
