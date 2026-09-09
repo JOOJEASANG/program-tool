@@ -169,6 +169,7 @@
     });
   }
 
+  // Bubble after the core field listeners so the enhanced formula wins over the legacy fixed-caliper calculation.
   document.addEventListener('change', (event) => {
     const id = event.target?.id;
     if (id === 'paperType') {
@@ -180,7 +181,7 @@
       return;
     }
     if (['pageCount', 'paperGsmV2', 'paperCaliperV2', 'spineAllowanceV2'].includes(id)) calculate();
-  }, true);
+  }, false);
 
   document.addEventListener('input', (event) => {
     const id = event.target?.id;
