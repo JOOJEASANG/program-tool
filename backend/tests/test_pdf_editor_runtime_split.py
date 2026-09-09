@@ -32,6 +32,8 @@ def test_default_pdf_editor_keeps_21b36a9_sized_core_manifest():
     ):
         assert advanced_id not in core
 
+    # Legacy ?profile=advanced compatibility remains isolated inside the general
+    # PDF editor for now. The product route /pdf-editor-advanced no longer uses it.
     assert "lightweight-default-advanced-query-v1" in core
     assert "advanced-runtime.js?v=20260908-1" in core
     assert "advanced-profile-scope.js?v=20260908-2" in core
@@ -40,7 +42,7 @@ def test_default_pdf_editor_keeps_21b36a9_sized_core_manifest():
     assert "pdfEditorProfile=advanced?'advanced':'lightweight'" in core
 
 
-def test_advanced_profile_skips_normal_nup_booklet_and_divider_helpers():
+def test_legacy_advanced_profile_skips_normal_nup_booklet_and_divider_helpers():
     core = CORE.read_text(encoding="utf-8")
 
     assert "const ADVANCED_UNUSED_CORE_IDS=new Set([" in core
@@ -50,7 +52,7 @@ def test_advanced_profile_skips_normal_nup_booklet_and_divider_helpers():
     assert "if(advanced&&ADVANCED_UNUSED_CORE_IDS.has(entry.id))continue;" in core
 
 
-def test_advanced_route_runtime_skips_general_print_layout_helpers():
+def test_legacy_advanced_route_runtime_skips_general_print_layout_helpers():
     route = ROUTE_RUNTIME.read_text(encoding="utf-8")
 
     assert "const ADVANCED_UNUSED_ROUTE_IDS=new Set([" in route
@@ -64,10 +66,9 @@ def test_advanced_route_runtime_skips_general_print_layout_helpers():
         assert f"'{module_id}'" in route
     assert "if(advanced&&ADVANCED_UNUSED_ROUTE_IDS.has(entry.id))continue;" in route
     assert "pdfAdvancedRouteModules='minimal'" in route
-    assert "endsWith('/pdf-editor-advanced')" in route
 
 
-def test_advanced_scope_hides_creation_and_layout_features_but_preserves_existing_pages():
+def test_legacy_advanced_scope_hides_creation_and_layout_features_but_preserves_existing_pages():
     scope = ADVANCED_SCOPE.read_text(encoding="utf-8")
 
     for marker in (
@@ -93,7 +94,7 @@ def test_advanced_scope_hides_creation_and_layout_features_but_preserves_existin
     assert "pageType==='divider'" in scope
 
 
-def test_advanced_runtime_owns_all_post_21b36a9_editing_modules():
+def test_legacy_advanced_runtime_still_owns_compatibility_editing_modules():
     advanced = ADVANCED.read_text(encoding="utf-8")
     expected = (
         "pdfPreviewZoomPersistenceScriptV1",
@@ -120,7 +121,7 @@ def test_advanced_runtime_owns_all_post_21b36a9_editing_modules():
     assert advanced.index("loadPrecisionEditTools()") < advanced.index("loadAdvancedWorkspaceUx()")
 
 
-def test_advanced_workspace_prioritizes_a_stationary_single_page_editing_surface():
+def test_legacy_advanced_workspace_remains_compatibility_only():
     workspace = ADVANCED_WORKSPACE.read_text(encoding="utf-8")
 
     for marker in (
@@ -151,7 +152,7 @@ def test_advanced_workspace_prioritizes_a_stationary_single_page_editing_surface
     assert "window.PdfPrecisionEditTools?.history?.redo?.()" in workspace
 
 
-def test_firebase_advanced_entry_is_a_dedicated_rewrite_not_a_query_redirect():
+def test_firebase_advanced_entry_is_a_standalone_rewrite_not_a_query_redirect():
     config = json.loads(FIREBASE.read_text(encoding="utf-8"))
     redirects = config["hosting"]["redirects"]
     redirect_sources = {item.get("source") for item in redirects}
@@ -159,21 +160,26 @@ def test_firebase_advanced_entry_is_a_dedicated_rewrite_not_a_query_redirect():
     rewrite_pairs = {(item.get("source"), item.get("destination")) for item in rewrites}
 
     assert "/pdf-editor-advanced" not in redirect_sources
-    assert ("/pdf-editor-advanced", "/pdf-editor/index.html") in rewrite_pairs
+    assert ("/pdf-editor-advanced", "/pdf-editor-advanced/index.html") in rewrite_pairs
+    assert ("/pdf-editor-advanced", "/pdf-editor/index.html") not in rewrite_pairs
 
 
-def test_advanced_alias_is_protected_and_marked_before_editor_runtime_loads():
+def test_advanced_standalone_route_shares_access_guard_but_not_layout_boot_logic():
     source = APP_BOOT.read_text(encoding="utf-8")
 
-    assert "'/pdf-editor-advanced'" in source
-    assert "path.endsWith('/pdf-editor-advanced')" in source
-    assert "root.dataset.pdfEditorProfile='advanced'" in source
-    assert "#pdfSpreadSplitPanel" in source
-    assert "#sb-nup > .field:nth-of-type(2)" in source
+    assert "'/pdf-editor-advanced'" in source  # protected access mapping
+    assert "function isStandaloneAdvancedPdfEditor()" in source
+    assert "root.dataset.pdfAdvancedStandaloneRoute='1'" in source
+    assert "root.dataset.pdfPrintWorkflowSuppressed='standalone-advanced'" in source
+    assert "function isPdfPrintEditor(){return ['/tools/pdf-editor.html','/pdf-editor','/pdf-editor/index.html']" in source
+    assert "isPdfPrintEditor()&&!legacyAdvancedProfile" in source
 
 
-def test_runtime_bootstrap_loads_pdf_editor_runtime_for_advanced_alias():
+def test_runtime_bootstrap_protects_advanced_but_never_loads_general_pdf_runtime_for_it():
     source = RUNTIME_BOOT.read_text(encoding="utf-8")
 
-    assert "'/tools/pdf-editor.html','/pdf-editor','/pdf-editor/index.html','/pdf-editor-advanced'" in source
-    assert "'/pdf-editor-advanced'" in source
+    protected_block = source.split("function isProtectedRuntimePage(){", 1)[1].split("const reveal=", 1)[0]
+    helpers_block = source.split("async function helpers(){", 1)[1].split("async function boot(){", 1)[0]
+    assert "'/pdf-editor-advanced'" in protected_block
+    assert "'/pdf-editor-advanced'" not in helpers_block
+    assert "if(isPath('/tools/pdf-editor.html','/pdf-editor','/pdf-editor/index.html'))tasks.push(loadPdfEditorRuntime());" in helpers_block
