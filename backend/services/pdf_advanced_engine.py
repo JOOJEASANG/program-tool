@@ -7,6 +7,8 @@ document overlays owned by the advanced editor.
 """
 from __future__ import annotations
 
+import base64
+import binascii
 import io
 import math
 from pathlib import Path
@@ -26,6 +28,7 @@ _HF_TEXT_FIELDS = (
     "footer_center",
     "footer_right",
 )
+_MAX_OVERLAY_IMAGE_BYTES = 300_000
 
 
 def _advanced_hf_aliases(text: str) -> str:
@@ -190,6 +193,79 @@ def _render_page_content(
             erased_doc.close()
 
 
+def _overlay_rect(overlay, page_width: float, page_height: float) -> fitz.Rect:
+    return fitz.Rect(
+        page_width * float(overlay.x),
+        page_height * float(overlay.y),
+        page_width * float(overlay.x + overlay.width),
+        page_height * float(overlay.y + overlay.height),
+    )
+
+
+def _decode_overlay_image(data_url: str) -> bytes:
+    try:
+        header, encoded = str(data_url or "").split(",", 1)
+    except ValueError as exc:
+        raise ValueError("삽입 이미지 데이터가 올바르지 않습니다") from exc
+    if header.lower() not in {"data:image/png;base64", "data:image/jpeg;base64"}:
+        raise ValueError("삽입 이미지는 PNG 또는 JPEG만 지원합니다")
+    try:
+        data = base64.b64decode(encoded, validate=True)
+    except (binascii.Error, ValueError) as exc:
+        raise ValueError("삽입 이미지 데이터를 읽을 수 없습니다") from exc
+    if not data or len(data) > _MAX_OVERLAY_IMAGE_BYTES:
+        raise ValueError("삽입 이미지 용량이 너무 큽니다")
+    return data
+
+
+def _render_page_overlays(
+    out_page: fitz.Page,
+    page_info: AdvancedPageInfo,
+    page_width: float,
+    page_height: float,
+) -> None:
+    """Render bounded user-added layers after page correction and before page furniture."""
+    for overlay in list(page_info.overlays or [])[:20]:
+        rect = _overlay_rect(overlay, page_width, page_height)
+        if rect.width <= 1 or rect.height <= 1:
+            continue
+        if overlay.type == "image":
+            data = _decode_overlay_image(overlay.data_url)
+            out_page.insert_image(rect, stream=data, keep_proportion=True, overlay=True)
+            continue
+
+        text = str(overlay.text or "")[:500]
+        if not text:
+            continue
+        color = pdf_ops._hex_to_rgb(overlay.color, (0.07, 0.07, 0.07))
+        align = {
+            "left": fitz.TEXT_ALIGN_LEFT,
+            "center": fitz.TEXT_ALIGN_CENTER,
+            "right": fitz.TEXT_ALIGN_RIGHT,
+        }.get(overlay.align, fitz.TEXT_ALIGN_LEFT)
+        font_size = max(5.0, min(96.0, float(overlay.font_size or 18.0)))
+        out_page.insert_textbox(
+            rect,
+            text,
+            fontsize=font_size,
+            fontname=pdf_text_renderer.CJK_FONT_NAME,
+            color=color,
+            align=align,
+            overlay=True,
+        )
+        if overlay.bold:
+            bold_rect = fitz.Rect(rect.x0 + 0.28, rect.y0, rect.x1 + 0.28, rect.y1)
+            out_page.insert_textbox(
+                bold_rect,
+                text,
+                fontsize=font_size,
+                fontname=pdf_text_renderer.CJK_FONT_NAME,
+                color=color,
+                align=align,
+                overlay=True,
+            )
+
+
 def _output_page_size(source_rect: fitz.Rect, page_info: AdvancedPageInfo) -> tuple[float, float]:
     if page_info.output_width_pt is not None and page_info.output_height_pt is not None:
         return float(page_info.output_width_pt), float(page_info.output_height_pt)
@@ -228,6 +304,7 @@ def build_advanced_pdf_document(
             out_page = out_doc.new_page(width=page_width, height=page_height)
             content_box = _content_box(page_width, page_height, request, output_index)
             _render_page_content(out_page, source_doc, page_info, source_rect, content_box)
+            _render_page_overlays(out_page, page_info, page_width, page_height)
 
             pdf_text_renderer.apply_header_footer(
                 out_page,
