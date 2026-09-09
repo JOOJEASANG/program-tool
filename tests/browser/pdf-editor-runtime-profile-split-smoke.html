@@ -118,6 +118,23 @@
       if(!hidden(document.getElementById('fileLayoutControl')))return fail('advanced file-level N-up selector is still visible');
       if(!document.querySelector('[data-sec="nup"] .sec-title').textContent.includes('페이지 위치·크기 보정'))return fail('advanced precision section was not renamed');
 
+      // Exercise the real product boot guard on the advanced canonical URL.
+      // It must not mount the normal print/N-UP workflow before advanced runtime.
+      window.ProgramAccessReady=Promise.resolve({approved:true,status:'approved'});
+      await new Promise((resolve,reject)=>{
+        const script=document.createElement('script');
+        script.id='advancedBootIsolationSmokeScript';
+        script.src='/js/app-boot-guard.js';
+        script.addEventListener('load',resolve,{once:true});
+        script.addEventListener('error',reject,{once:true});
+        document.head.appendChild(script);
+      });
+      await new Promise(resolve=>setTimeout(resolve,80));
+      if(document.getElementById('pdfPrintWorkflowFocusScriptV1'))return fail('advanced boot mounted normal print/N-UP workflow');
+      if(document.documentElement.dataset.pdfPrintWorkflowSuppressed!=='advanced')return fail('advanced boot suppression marker missing');
+      if(document.documentElement.dataset.pdfEditorAdvancedRoute!=='1')return fail('advanced boot route marker missing');
+      if(!document.getElementById('pdfAdvancedEarlyIsolationStylesV1'))return fail('advanced first-paint isolation style missing');
+
       if(!hidden(document.querySelector('.mode-btn[data-mode="break"]')))return fail('advanced non-contiguous upload mode is still visible');
       if(!hidden(document.querySelector('.prev-ins-zone')))return fail('advanced horizontal blank/divider insert zone is still visible');
       if(!hidden(document.querySelector('.prev-ins-zone-v')))return fail('advanced vertical blank/divider insert zone is still visible');
@@ -163,7 +180,7 @@
       if(!document.documentElement.dataset.pdfAdvancedDragCropOrientationLock)return fail('drag crop orientation lock marker missing');
 
       document.documentElement.dataset.pdfEditorRuntimeProfileSplitSmoke='pass';
-      result.textContent='PASS: default PDF editor stays lightweight and advanced route loads editing modules separately; advanced profile hides N-up, booklet, blank/divider creation';
+      result.textContent='PASS: default PDF editor stays lightweight and advanced route loads editing modules separately; advanced profile hides N-up, booklet, blank/divider creation and suppresses normal print workflow at boot';
     })().catch(error=>console.error(error));
   </script>
 </body>
