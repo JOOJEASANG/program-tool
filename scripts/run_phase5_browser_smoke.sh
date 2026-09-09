@@ -31,6 +31,7 @@ PY
   done
 
   local status=1
+  local passed=0
   local attempt
   for attempt in 1 2; do
     local page_profile
@@ -59,26 +60,27 @@ PY
     fi
     rm -rf "$page_profile"
 
-    if [[ "$status" -eq 0 ]]; then
+    if [[ "$status" -eq 0 ]] && grep -q "$marker" "$out"; then
+      passed=1
       break
     fi
     if [[ "$attempt" -lt 2 ]]; then
-      echo "$label browser process failed or timed out (status=$status, page=$page); retrying once with a fresh profile." >&2
+      if [[ "$status" -ne 0 ]]; then
+        echo "$label browser process failed or timed out (status=$status, page=$page); retrying once with a fresh profile." >&2
+      else
+        echo "$label did not reach its completion marker (page=$page); retrying once with a fresh profile." >&2
+      fi
       sleep 1
     fi
   done
 
-  if [[ "$status" -ne 0 ]]; then
-    echo "$label browser process failed or timed out after retry (status=$status, page=$page)." >&2
+  if [[ "$passed" -ne 1 ]]; then
+    if [[ "$status" -ne 0 ]]; then
+      echo "$label browser process failed or timed out after retry (status=$status, page=$page)." >&2
+    else
+      echo "$label failed to reach completion marker after retry." >&2
+    fi
     if [[ -f "$out" ]]; then cat "$out" >&2; fi
-    echo "----- HTTP server log -----" >&2
-    cat "$SERVER_LOG" >&2
-    exit 1
-  fi
-
-  if ! grep -q "$marker" "$out"; then
-    echo "$label failed." >&2
-    cat "$out" >&2
     echo "----- HTTP server log -----" >&2
     cat "$SERVER_LOG" >&2
     exit 1
@@ -93,6 +95,7 @@ run_page "admin-pdf-usage-settings-smoke.html" 'data-admin-pdf-usage-settings-sm
 run_page "pdf-preflight-workflow-v2-smoke.html" 'data-preflight-v2-smoke="pass"' "PDF preflight workflow v2 browser smoke" "pdf-preflight-workflow-v2-smoke-dom.html"
 run_page "print-checker-smoke.html" 'data-print-checker-smoke="pass"' "Print checker real PDF browser smoke" "print-checker-smoke-dom.html"
 run_page "print-checker-file-only-adjustment-smoke.html" 'data-print-checker-file-only-adjustment-smoke="pass"' "Print checker file-only adjustment smoke" "print-checker-file-only-adjustment-smoke-dom.html"
+run_page "print-checker-spine-calculator-smoke.html" 'data-print-checker-spine-calculator-smoke="pass"' "Print checker spine calculator smoke" "print-checker-spine-calculator-smoke-dom.html"
 run_page "pdf-daily-free-smoke.html" 'data-pdf-daily-free-smoke="pass"' "PDF daily free guest quota smoke" "pdf-daily-free-smoke-dom.html"
 run_page "pdf-daily-free-config-smoke.html" 'data-pdf-daily-free-config-smoke="pass"' "PDF configurable daily limit smoke" "pdf-daily-free-config-smoke-dom.html"
 run_page "pdf-daily-free-admin-smoke.html" 'data-pdf-daily-free-admin-smoke="pass"' "PDF daily free admin unlimited smoke" "pdf-daily-free-admin-smoke-dom.html"
