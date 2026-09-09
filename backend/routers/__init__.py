@@ -14,5 +14,7 @@ _install_visual_organizer(_pdf_utility)
 # boundary. It does not register routes on the N-up/booklet implementation.
 from .pdf import pdf_bp as _pdf_bp
 from .pdf_advanced import pdf_advanced_bp as _pdf_advanced_bp
+from .pdf_smart_layout import pdf_smart_layout_bp as _pdf_smart_layout_bp
 
 _pdf_bp.register_blueprint(_pdf_advanced_bp, url_prefix="/advanced")
+_pdf_bp.register_blueprint(_pdf_smart_layout_bp)

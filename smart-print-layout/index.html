@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="ko" data-smart-print-layout="1" style="visibility:hidden">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>스마트 인쇄배치 · Program Studio</title>
+  <meta name="description" content="PDF의 실제 크기를 읽어 용지에 자동 배치하고 앞면·뒷면 양면 위치까지 맞춰 출력용 PDF를 만드는 스마트 인쇄배치 도구">
+  <meta name="robots" content="noindex,nofollow">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+  <link rel="stylesheet" href="/css/smart-print-layout.css?v=20260910-1">
+</head>
+<body>
+  <header class="top-nav">
+    <a class="nav-back" href="/">← 홈</a>
+    <div class="nav-title-wrap">
+      <span class="nav-kicker">SMART IMPOSITION</span>
+      <strong class="nav-title">스마트 인쇄배치</strong>
+    </div>
+    <div class="nav-user">
+      <span id="userName">확인 중…</span>
+      <button id="logoutBtn" type="button">로그아웃</button>
+    </div>
+  </header>
+
+  <div class="layout-app">
+    <aside class="sidebar">
+      <section class="panel first-panel">
+        <div class="step">STEP 1</div>
+        <h2>PDF 파일</h2>
+        <label class="upload-zone" id="uploadZone" for="fileInput" tabindex="0">
+          <span class="upload-icon">📂</span>
+          <strong>PDF 올리기</strong>
+          <small>1페이지는 앞면, 2페이지는 앞·뒷면으로 자동 인식<br>여러 파일을 한꺼번에 넣을 수 있습니다.</small>
+        </label>
+        <input id="fileInput" type="file" accept="application/pdf,.pdf" multiple hidden>
+        <div id="fileList" class="file-list"></div>
+      </section>
+
+      <section class="panel">
+        <div class="step">STEP 2</div>
+        <h2>출력 용지</h2>
+        <label class="field">
+          <span>용지 규격</span>
+          <select id="paperPreset">
+            <option value="a4">A4 · 210 × 297mm</option>
+            <option value="b4">B4 · 257 × 364mm</option>
+            <option value="a3" selected>A3 · 297 × 420mm</option>
+            <option value="sra3">SRA3 · 320 × 450mm</option>
+            <option value="a3plus">A3+ · 329 × 483mm</option>
+            <option value="custom">직접 입력</option>
+          </select>
+        </label>
+        <div class="grid2">
+          <label class="field"><span>가로 mm</span><input id="paperWidth" type="number" min="50" max="2000" step="0.1" value="297"></label>
+          <label class="field"><span>세로 mm</span><input id="paperHeight" type="number" min="50" max="2000" step="0.1" value="420"></label>
+        </div>
+        <div class="grid2">
+          <label class="field"><span>바깥 여백</span><input id="marginMm" type="number" min="0" max="80" step="0.5" value="5"></label>
+          <label class="field"><span>제품 간격</span><input id="gapMm" type="number" min="0" max="50" step="0.5" value="3"></label>
+        </div>
+        <label class="check-row"><input id="allowRotate" type="checkbox" checked><span>90° 회전도 계산해서 더 많이 배치</span></label>
+      </section>
+
+      <section class="panel">
+        <div class="step">STEP 3</div>
+        <h2>앞면 · 뒷면</h2>
+        <label class="field">
+          <span>양면 방식</span>
+          <select id="sideMode">
+            <option value="auto" selected>자동 · 2페이지 PDF가 있으면 양면</option>
+            <option value="single">단면</option>
+            <option value="duplex">양면 강제</option>
+          </select>
+        </label>
+        <div id="flipOptions">
+          <label class="field">
+            <span>용지 뒤집기</span>
+            <select id="flipEdge">
+              <option value="long" selected>긴쪽 넘김</option>
+              <option value="short">짧은쪽 넘김</option>
+            </select>
+          </label>
+          <p class="hint">뒷면의 배치 위치를 뒤집는 방향에 맞춰 자동 반전합니다. 뒷면 그림 자체를 거울처럼 뒤집지는 않습니다.</p>
+        </div>
+        <label class="check-row"><input id="cropMarks" type="checkbox"><span>완성 PDF에 재단표시 추가</span></label>
+      </section>
+
+      <section class="summary-card" id="summaryCard" aria-live="polite">
+        <div class="summary-empty">PDF를 올리면 자동 배치 결과가 여기에 표시됩니다.</div>
+      </section>
+
+      <div class="actions">
+        <button id="downloadBtn" class="primary-btn" type="button" disabled>출력용 PDF 만들기</button>
+        <button id="resetBtn" class="secondary-btn" type="button">전체 초기화</button>
+      </div>
+      <div class="status" id="statusLine" role="status"></div>
+    </aside>
+
+    <main class="workspace">
+      <section class="workspace-head">
+        <div>
+          <span class="workspace-kicker">AUTO LAYOUT PREVIEW</span>
+          <h1>파일 크기를 읽어 가장 효율적인 배치를 계산합니다</h1>
+          <p>수량이나 용지 설정을 바꾸면 다시 계산할 필요 없이 즉시 재배치됩니다.</p>
+        </div>
+        <div class="preview-controls">
+          <button id="prevSheet" type="button" disabled>‹</button>
+          <span id="sheetLabel">용지 0 / 0</span>
+          <button id="nextSheet" type="button" disabled>›</button>
+          <span class="divider"></span>
+          <button id="frontBtn" class="side-btn active" type="button">앞면</button>
+          <button id="backBtn" class="side-btn" type="button" disabled>뒷면</button>
+        </div>
+      </section>
+
+      <section class="canvas-shell" id="canvasShell">
+        <canvas id="layoutCanvas" aria-label="스마트 인쇄배치 미리보기"></canvas>
+        <div id="emptyPreview" class="empty-preview">
+          <div class="empty-icon">▦</div>
+          <strong>PDF를 올리면 바로 자동배치됩니다</strong>
+          <span>PDF의 실제 mm 크기와 페이지 수를 읽어 앞면·뒷면까지 계산합니다.</span>
+        </div>
+      </section>
+
+      <section class="guide-row">
+        <div><strong>자동 회전</strong><span>90° 회전 시 더 많이 들어가면 자동 선택</span></div>
+        <div><strong>혼합 배치</strong><span>서로 다른 크기의 파일도 같은 용지에 함께 계산</span></div>
+        <div><strong>양면 정렬</strong><span>긴쪽·짧은쪽 넘김에 맞춰 뒷면 슬롯 자동 반전</span></div>
+      </section>
+    </main>
+  </div>
+
+  <script defer src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script defer src="/js/firebase-config.js"></script>
+  <script defer src="/js/smart-print-layout/app.js?v=20260910-1"></script>
+</body>
+</html>
