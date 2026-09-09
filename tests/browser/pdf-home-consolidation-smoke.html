@@ -32,19 +32,21 @@
         const advanced=PROGRAMS.find(item=>item.id==='pdf-editor-advanced');
         if(layout?.url!=='pdf-editor/')throw new Error('layout route wrong: '+layout?.url);
         if(advanced?.url!=='pdf-editor-advanced')throw new Error('advanced route wrong: '+advanced?.url);
+        if(layout?.name!=='PDF배치')throw new Error('layout label wrong: '+layout?.name);
+        if(advanced?.name!=='PDF편집')throw new Error('advanced label wrong: '+advanced?.name);
         if(!layout?.tags?.includes('페이지 편집'))throw new Error('layout page-editing search alias missing');
         if(!advanced?.tags?.includes('페이지 편집'))throw new Error('advanced page-editing search alias missing');
         const pageEditingMatches=PROGRAMS.filter(item=>[item.name,item.desc,item.catLabel,...(item.tags||[])].some(value=>String(value||'').includes('페이지 편집')));
         if(!pageEditingMatches.some(item=>item.id==='pdf-editor')||!pageEditingMatches.some(item=>item.id==='pdf-editor-advanced'))throw new Error('legacy page editing search no longer reaches split editors');
         const quick=document.getElementById('quickRow').textContent;
-        for(const name of ['인쇄물 사전 검토','PDF 배치용','PDF 고급편집용','PDF 유틸리티']){
+        for(const name of ['인쇄물 사전 검토','PDF배치','PDF편집','PDF 유틸리티']){
           if(!quick.includes(name))throw new Error('home entry missing: '+name);
         }
         if(quick.includes('PDF 도구 모음'))throw new Error('legacy PDF tool still exposed');
         if(document.documentElement.dataset.pdfHomeWorkspace!=='four-programs')throw new Error('four-program home marker missing');
         if(window.ProgramStudioPdfSuiteHome?.stage!=='pdf-home-four-programs-v6')throw new Error('split home runtime stage missing');
         document.body.dataset.pdfHomeConsolidationSmoke='pass';
-        result.textContent='PASS: home separates lightweight PDF layout and advanced editing entry points and preserves page editing search';
+        result.textContent='PASS: home separates PDF layout and editing entry points with concise names';
       }catch(error){
         document.body.dataset.pdfHomeConsolidationSmoke='fail';
         result.textContent='FAIL: '+String(error?.stack||error);
