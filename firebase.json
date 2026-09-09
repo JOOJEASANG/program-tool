@@ -39,7 +39,7 @@
       },
       {
         "source": "/pdf-editor-advanced",
-        "destination": "/pdf-editor/index.html"
+        "destination": "/pdf-editor-advanced/index.html"
       },
       {
         "source": "/pdf-preflight",
