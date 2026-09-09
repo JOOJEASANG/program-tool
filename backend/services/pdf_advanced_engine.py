@@ -16,6 +16,29 @@ from services import pdf_ops, pdf_text_renderer
 
 
 EMPTY_SOURCE_PAGE_ERROR = "nothing to show - source page empty"
+_HF_TEXT_FIELDS = (
+    "header_left",
+    "header_center",
+    "header_right",
+    "footer_left",
+    "footer_center",
+    "footer_right",
+)
+
+
+def _advanced_hf_aliases(text: str) -> str:
+    """Map advanced-editor friendly variables to the shared renderer tokens."""
+    return str(text or "").replace("{page}", "{n}").replace("{pages}", "{total}")
+
+
+def _advanced_header_footer_settings(settings):
+    cloned = settings.model_copy(deep=True)
+    for field in _HF_TEXT_FIELDS:
+        setattr(cloned, field, _advanced_hf_aliases(getattr(cloned, field, "")))
+    for section in list(getattr(cloned, "sections", []) or []):
+        for field in _HF_TEXT_FIELDS:
+            setattr(section, field, _advanced_hf_aliases(getattr(section, field, "")))
+    return cloned
 
 
 def _clip_rect(source_rect: fitz.Rect, page: AdvancedPageInfo) -> fitz.Rect:
@@ -154,6 +177,7 @@ def build_advanced_pdf_document(
 
     out_doc = fitz.open()
     total_pages = len(active_pages)
+    header_footer = _advanced_header_footer_settings(request.header_footer)
     try:
         for output_index, page_info in enumerate(active_pages):
             if page_info.file_index >= len(source_docs):
@@ -178,7 +202,7 @@ def build_advanced_pdf_document(
 
             pdf_text_renderer.apply_header_footer(
                 out_page,
-                request.header_footer,
+                header_footer,
                 page_width,
                 page_height,
                 output_index + 1,
