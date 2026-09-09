@@ -117,17 +117,22 @@
     }
   }
 
+  function injectedFieldsPresent() {
+    return Boolean(byId('paperGsmV2') && byId('paperCaliperV2') && byId('spineAllowanceV2') && byId('spineFormulaV2'));
+  }
+
   function installFields() {
     const form = byId('specForm');
     const paper = byId('paperType');
     const pages = byId('pageCount');
     const spine = byId('spine');
     if (!form || !paper || !pages || !spine) return false;
-    if (form.dataset.spineCalculatorV2 === 'ready') {
+    if (form.dataset.spineCalculatorV2 === 'ready' && injectedFieldsPresent()) {
       syncPaperPreset(false);
       calculate();
       return true;
     }
+    if (form.dataset.spineCalculatorV2 === 'ready') delete form.dataset.spineCalculatorV2;
 
     const paperField = paper.closest('.spec-field');
     const pageField = pages.closest('.spec-field');
@@ -186,6 +191,10 @@
   document.addEventListener('input', (event) => {
     const id = event.target?.id;
     if (id === 'paperGsmV2') event.target.dataset.userEdited = '1';
+    if (id === 'spineAllowanceV2') {
+      const form = byId('specForm');
+      if (form) form.dataset.spineAllowanceV2 = String(Math.max(0, Number(event.target.value) || 0));
+    }
     if (['pageCount', 'paperGsmV2', 'paperCaliperV2', 'spineAllowanceV2'].includes(id)) calculate();
     if (id === 'spine') {
       if (!event.target.value) {
