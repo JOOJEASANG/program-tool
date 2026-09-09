@@ -16,6 +16,7 @@ PDF_BOOKLET_MARKER = "data-pdf-classic-booklet"
 EXCLUDED_PARTS = {".git", "node_modules", "venv", ".venv", "__pycache__"}
 PROTECTED_HTML = {
     "pdf-editor/index.html",
+    "pdf-editor-advanced/index.html",
     "pdf-preflight/index.html",
     "perfect-binding-cover/index.html",
     "tools/pdf-editor.html",
@@ -46,6 +47,7 @@ PAGE_METADATA = {
     "privacy.html": ("개인정보처리방침 | Program Studio", "Program Studio 개인정보처리방침", "index,follow"),
     "print-checker/index.html": ("인쇄물 사전 검토 | Program Studio", "Program Studio 인쇄물 사전 검토 도구 — 책등·재단선·안전영역·접지선 확인", "noindex,nofollow"),
     "pdf-editor/index.html": ("PDF 편집기 | Program Studio", "Program Studio PDF 병합·페이지·배치·출력 편집기", "noindex,nofollow"),
+    "pdf-editor-advanced/index.html": ("PDF 고급 편집 | Program Studio", "Program Studio 독립 PDF 고급 편집기 — 삭제·확대축소·이동·잘라내기·여백·머리말·꼬리말·페이지번호", "noindex,nofollow"),
     "pdf-preflight/index.html": ("PDF 검사 · 유틸리티 | Program Studio", "Program Studio PDF 인쇄 전 검사·보안·유틸리티 도구", "noindex,nofollow"),
     "perfect-binding-cover/index.html": ("표지 검토 | Program Studio", "Program Studio 무선제본 표지 검토 호환 진입점", "noindex,nofollow"),
     "tools/pdf-editor.html": ("PDF 편집기로 이동 | Program Studio", "Program Studio PDF 편집기 호환 주소", "noindex,nofollow"),
