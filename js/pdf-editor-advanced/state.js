@@ -175,6 +175,7 @@ export function serializeSettings() {
         crop_right_ratio: page.crop.right,
         crop_bottom_ratio: page.crop.bottom,
         erase_regions: clone(page.eraseRegions || []),
+        overlays: clone(page.overlays || []),
         edit_scale: page.scale,
         offset_x_mm: page.offsetX,
         offset_y_mm: page.offsetY,

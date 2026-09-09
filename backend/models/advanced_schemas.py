@@ -1,9 +1,45 @@
 from __future__ import annotations
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 from typing import Literal
 
 from models.schemas import HeaderFooterSettings, PageEraseRegion, PageNumberSettings
+
+
+class AdvancedPageOverlay(BaseModel):
+    """One lightweight user-added text or image layer on an output page."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    id: str = Field(default="", max_length=80)
+    type: Literal["text", "image"]
+    x: float = Field(ge=0.0, le=0.98)
+    y: float = Field(ge=0.0, le=0.98)
+    width: float = Field(gt=0.0, le=1.0)
+    height: float = Field(gt=0.0, le=1.0)
+    text: str = Field(default="", max_length=500)
+    font_size: float = Field(default=18.0, alias="fontSize", ge=5.0, le=96.0)
+    color: str = Field(default="#111111", max_length=16)
+    bold: bool = False
+    align: Literal["left", "center", "right"] = "left"
+    data_url: str = Field(default="", alias="dataUrl", max_length=360_000)
+    name: str = Field(default="", max_length=120)
+
+    @model_validator(mode="after")
+    def validate_overlay(self):
+        if self.x + self.width > 1.001 or self.y + self.height > 1.001:
+            raise ValueError("삽입 항목이 페이지 영역을 벗어났습니다")
+        if self.type == "text":
+            # Empty text is a valid in-progress editor state. The renderer simply
+            # skips it until the user enters content, so downloads never fail just
+            # because a freshly inserted text box is temporarily blank.
+            self.data_url = ""
+        else:
+            prefix = self.data_url[:32].lower()
+            if not (prefix.startswith("data:image/png;base64,") or prefix.startswith("data:image/jpeg;base64,")):
+                raise ValueError("삽입 이미지는 PNG 또는 JPEG 데이터여야 합니다")
+            self.text = ""
+        return self
 
 
 class AdvancedPageInfo(BaseModel):
@@ -24,6 +60,7 @@ class AdvancedPageInfo(BaseModel):
     crop_right_ratio: float = Field(default=0.0, ge=0.0, le=0.90)
     crop_bottom_ratio: float = Field(default=0.0, ge=0.0, le=0.90)
     erase_regions: list[PageEraseRegion] = Field(default_factory=list, max_length=40)
+    overlays: list[AdvancedPageOverlay] = Field(default_factory=list, max_length=20)
     edit_scale: float = Field(default=1.0, ge=0.5, le=3.0)
     offset_x_mm: float = Field(default=0.0, ge=-200.0, le=200.0)
     offset_y_mm: float = Field(default=0.0, ge=-200.0, le=200.0)
