@@ -10,7 +10,7 @@ def read(path: str) -> str:
 
 def test_print_checker_html_loads_stabilized_tool():
     html = read("print-checker/index.html")
-    assert "인쇄물 사전 검토" in html
+    assert "인쇄물 배치 점검" in html
     assert "print-checker.js?v=20260904-2" in html
     assert "print-checker.css?v=20260907-4" in html
     assert "reliability.js?v=20260904-1" in html

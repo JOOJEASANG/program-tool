@@ -14,7 +14,7 @@ def test_desktop_tool_mobile_notice_loads_for_pdf_editor_once_and_not_retired_co
     route = ROUTE_RUNTIME.read_text(encoding="utf-8")
     marker = "desktopToolMobileNoticeScriptV1"
 
-    assert "/js/pdf-editor/route-runtime.js?v=20260828-1" in register
+    assert "/js/pdf-editor/route-runtime.js?v=20260909-1" in register
     assert route.count(marker) == 1
     assert route.count("/js/desktop-tool-mobile-notice.js") == 1
 

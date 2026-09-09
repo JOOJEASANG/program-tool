@@ -78,7 +78,7 @@
   function loadStandaloneBoundary(){
     if(!standaloneApp())return Promise.resolve(true);
     return hostLoadScript('pdfEditorStandaloneAppProfileScriptV1','/js/pdf-editor/standalone-app-profile.js?v=20260831-1')
-      .then(()=>hostLoadScript('pdfEditorAppBoundaryScriptV1','/js/pdf-editor/app-boundary.js?v=20260831-2'));
+      .then(()=>hostLoadScript('pdfEditorAppBoundaryScriptV1','/js/pdf-editor/app-boundary.js?v=20260909-1'));
   }
 
   function loadAll(){

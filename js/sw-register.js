@@ -102,7 +102,7 @@
 
   function loadPdfEditorRuntime(){
     window.ProgramStudioPdfEditorRuntimeContext={entryPath:currentPath,load};
-    return load('pdfEditorRouteRuntimeScriptV1','/js/pdf-editor/route-runtime.js?v=20260828-1').then(()=>{
+    return load('pdfEditorRouteRuntimeScriptV1','/js/pdf-editor/route-runtime.js?v=20260909-1').then(()=>{
       const runtime=window.PdfEditorRouteRuntime;
       if(!runtime||typeof runtime.loadAll!=='function')throw new Error('PDF editor route runtime API is unavailable');
       return runtime.loadAll();

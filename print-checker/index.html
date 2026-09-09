@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>인쇄물 사전 검토 · Program Studio</title>
+  <title>인쇄물 배치 점검 · Program Studio</title>
   <meta name="description" content="표지·리플렛·전단지·초대장·소책자 PDF의 재단 규격, 도련, 안전 영역, 책등, 접지와 페이지 구성을 실제 파일과 비교합니다.">
   <meta name="robots" content="noindex,nofollow">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
@@ -14,10 +14,10 @@
 </head>
 <body class="print-checker-page">
   <div class="app-layout">
-    <aside class="sidebar" aria-label="인쇄물 검토 설정">
+    <aside class="sidebar" aria-label="인쇄물 배치 점검 설정">
       <nav class="sb-nav">
         <a class="sb-nav-back" href="/">← 홈</a>
-        <span class="sb-nav-title">인쇄물 사전 검토</span>
+        <span class="sb-nav-title">인쇄물 배치 점검</span>
         <div class="sb-nav-user">
           <span class="sb-nav-name" id="userName">확인 중…</span>
           <button class="sb-nav-logout" id="logoutBtn" type="button" aria-label="로그아웃">로그아웃</button>
@@ -75,7 +75,7 @@
         <div class="canvas-header-top">
           <div>
             <div class="canvas-header-badge">PRINT SPEC CHECKER</div>
-            <h2>인쇄물 사전 검토</h2>
+            <h2>인쇄물 배치 점검</h2>
           </div>
           <button class="collapse-btn" id="headerCollapseBtn" type="button" aria-expanded="true">접기 ▲</button>
         </div>
@@ -120,6 +120,15 @@
   <script defer src="/js/print-checker/reliability.js?v=20260904-1"></script>
   <script defer src="/js/print-checker/defaults-live.js?v=20260906-1"></script>
   <script defer src="/js/print-checker/booklet-layout-only.js?v=20260906-2"></script>
+  <script>
+    (() => {
+      const url = new URL(location.href);
+      if (!url.searchParams.get('product')) {
+        url.searchParams.set('product', 'cover');
+        history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`);
+      }
+    })();
+  </script>
   <script defer>
     document.addEventListener('DOMContentLoaded', () => {
       const logout = document.getElementById('logoutBtn');
