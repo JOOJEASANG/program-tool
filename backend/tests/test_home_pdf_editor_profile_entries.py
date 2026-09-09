@@ -8,11 +8,13 @@ HOME = ROOT / "index.html"
 def test_home_exposes_layout_and_advanced_pdf_editors_separately():
     home = HOME.read_text(encoding="utf-8")
 
-    assert "name:'PDF 배치용'" in home
+    assert "name:'PDF배치'" in home
     assert "url:'pdf-editor/'" in home
-    assert "name:'PDF 고급편집용'" in home
+    assert "name:'PDF편집'" in home
     assert "url:'pdf-editor-advanced'" in home
     assert "id:'pdf-editor-advanced'" in home
+    assert "name:'PDF 배치용'" not in home
+    assert "name:'PDF 고급편집용'" not in home
     assert "id=\"cnt-all\">4<" in home
     assert "id=\"cnt-pdf\">3<" in home
     assert "id=\"count\">4개<" in home

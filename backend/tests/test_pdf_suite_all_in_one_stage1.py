@@ -105,8 +105,8 @@ def test_pdf_suite_is_staged_with_split_editor_profiles_and_utility_workspace():
 
     for marker in (
         "name:'인쇄물 사전 검토'",
-        "name:'PDF 배치용'",
-        "name:'PDF 고급편집용'",
+        "name:'PDF배치'",
+        "name:'PDF편집'",
         "name:'PDF 유틸리티'",
         "print-checker/",
         "pdf-editor/",
