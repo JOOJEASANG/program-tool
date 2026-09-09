@@ -22,6 +22,23 @@ def test_protected_pages_share_one_program_access_promise():
     assert "accessPromise.finally" in source
 
 
+def test_advanced_pdf_route_maps_to_pdf_editor_access_before_boot_guard_timeout():
+    source = (ROOT / "js" / "firebase-config.js").read_text(encoding="utf-8")
+
+    assert "'/pdf-editor-advanced'" in source
+    mapping_start = source.index("programForPath(pathname)")
+    mapping_end = source.index("async guardTool", mapping_start)
+    mapping_source = source[mapping_start:mapping_end]
+    assert "'/pdf-editor-advanced'" in mapping_source
+    assert "return 'pdf-editor'" in mapping_source
+
+    bootstrap_start = source.index("window.ProgramAccessReady = Promise.resolve(null)")
+    bootstrap_source = source[bootstrap_start:]
+    assert "const programId = ProgramAccess.programForPath(location.pathname)" in bootstrap_source
+    assert "if (!auth || !programId) return" in bootstrap_source
+    assert "window.ProgramAccessReady = accessPromise" in bootstrap_source
+
+
 def test_pdf_editor_uses_shared_access_result_without_direct_firestore_reads():
     source = (ROOT / "pdf-editor" / "index.html").read_text(encoding="utf-8")
     auth_start = source.index("async function initializePdfEditorAccess()")
