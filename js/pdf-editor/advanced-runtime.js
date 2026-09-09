@@ -142,6 +142,7 @@
   const loadOrientationScaleRegression=()=>load('pdfOrientationScaleRegressionScriptV1','/js/pdf-editor/orientation-scale-regression-fix.js?v=20260908-1');
   const loadPrecisionEditTools=()=>load('pdfPrecisionEditToolsScriptV1','/js/pdf-editor/precision-edit-tools.js?v=20260908-1');
   const loadAdvancedWorkspaceUx=()=>load('pdfAdvancedWorkspaceUxScriptV1','/js/pdf-editor/advanced-workspace-ux.js?v=20260909-1');
+  const loadAdvancedShellLayout=()=>load('pdfAdvancedShellLayoutScriptV1','/js/pdf-editor/advanced-shell-layout.js?v=20260909-1');
   const loadDirectPageEditQuickbar=()=>load('pdfDirectPageEditQuickbarScriptV1','/js/pdf-editor/direct-page-edit-quickbar.js?v=20260909-1');
 
   let loading=null;
@@ -160,6 +161,7 @@
       .then(()=>loadOrientationScaleRegression())
       .then(()=>loadPrecisionEditTools())
       .then(()=>loadAdvancedWorkspaceUx())
+      .then(()=>loadAdvancedShellLayout())
       .then(()=>loadDirectPageEditQuickbar())
       .then(()=>{document.documentElement.dataset.pdfAdvancedRuntime='1';return true;});
     return loading;
@@ -174,7 +176,7 @@
       'preview-zoom-persistence','nup-interaction-stability','nup-page-adjust',
       'page-transform-edit','direct-page-edit-v2','drag-crop-autofit','nup-direct-preview-edit',
       'editor-interaction-polish','orientation-scale-regression-fix','precision-edit-tools',
-      'advanced-workspace-ux','direct-page-edit-quickbar'
+      'advanced-workspace-ux','advanced-shell-layout','direct-page-edit-quickbar'
     ])
   };
 })();

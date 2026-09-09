@@ -5,6 +5,8 @@
   <title>PDF advanced workspace stability smoke</title>
   <style>
     html,body{margin:0;height:100%}
+    body{padding-top:52px}
+    .top-nav{height:52px;display:flex}
     .app{display:grid;grid-template-columns:360px 1fr;height:760px}
     aside{overflow:auto}
     main{display:flex;flex-direction:column;min-width:0;min-height:0}
@@ -17,8 +19,16 @@
   </style>
 </head>
 <body>
+  <nav class="top-nav">
+    <a class="nav-back" href="/">목록으로</a>
+    <div class="nav-title">PDF 문서 편집기</div>
+    <button class="nav-history-btn" id="navSessionBtn" type="button">편집 저장</button>
+    <button class="nav-history-btn" id="navSessionLoadBtn" type="button">편집 불러오기</button>
+    <button class="nav-logout" id="navLogout" type="button">로그아웃</button>
+  </nav>
   <div class="app">
     <aside>
+      <h1>PDF 문서 편집기</h1>
       <div class="sub">PDF 업로드 · 페이지 편집</div>
       <div class="sec">
         <div class="sec-head" data-sec="upload"><span class="sec-title">파일 업로드</span></div>
@@ -27,7 +37,17 @@
       <div class="sec" id="precisionSection">
         <div class="sec-head" data-sec="nup"><span class="sec-title">페이지 위치·크기 보정</span></div>
         <div id="sb-nup" class="sec-body">
-          <div id="pdfNupPageAdjustPanelV1"></div>
+          <div id="pdfNupPageAdjustPanelV1">
+            <div class="pdf-nup-adjust-head"><strong>스캔 페이지 위치·크기 보정</strong><span id="pdfNupAdjustSelectedLabel">1페이지</span></div>
+            <div class="pdf-nup-adjust-scale">
+              <input id="pdfNupAdjustScaleRange" type="range" min="50" max="300" value="100">
+              <input id="pdfNupAdjustScale" type="number" value="100">
+            </div>
+            <div class="pdf-nup-adjust-grid">
+              <input id="pdfNupAdjustX" type="number" value="0">
+              <input id="pdfNupAdjustY" type="number" value="0">
+            </div>
+          </div>
         </div>
       </div>
       <div class="sec" id="paperSection">
@@ -70,10 +90,12 @@
   <script>
     var nup=2;
     var _previewPerRow=2;
-    var parsedPages=[{id:'p1',excluded:false},{id:'p2',excluded:false}];
+    var parsedPages=[{id:'p1',excluded:false,nupScale:1,nupOffsetX:0,nupOffsetY:0},{id:'p2',excluded:false,nupScale:1,nupOffsetX:0,nupOffsetY:0}];
     var rotateLeftCount=0;
     var rotateRightCount=0;
     var cropCount=0;
+    var historyBeginCount=0;
+    var historyCommitCount=0;
     document.getElementById('pdfPageRotateLeftV1').addEventListener('click',()=>rotateLeftCount++);
     document.getElementById('pdfPageRotateRightV1').addEventListener('click',()=>rotateRightCount++);
     document.getElementById('pdfPageCropToggleV1').addEventListener('click',event=>{
@@ -81,16 +103,30 @@
       event.currentTarget.dataset.active=event.currentTarget.dataset.active==='true'?'false':'true';
     });
 
+    function selectedSmokePage(){
+      const hit=document.querySelector('.pdf-nup-adjust-hit[data-selected="true"]');
+      return parsedPages.find(page=>String(page.id)===String(hit?.dataset?.pageId||''))||null;
+    }
+    document.getElementById('pdfNupAdjustX').addEventListener('input',event=>{const page=selectedSmokePage();if(page)page.nupOffsetX=Number(event.target.value||0);});
+    document.getElementById('pdfNupAdjustY').addEventListener('input',event=>{const page=selectedSmokePage();if(page)page.nupOffsetY=Number(event.target.value||0);});
+
     window.PdfNupPageAdjust={
+      valuesForPage(page){return{scale:Number(page?.nupScale||1),offsetX:Number(page?.nupOffsetX||0),offsetY:Number(page?.nupOffsetY||0)};},
+      setValues(page,value){if(!page)return;if(value.scale!=null)page.nupScale=Number(value.scale);if(value.offsetX!=null)page.nupOffsetX=Number(value.offsetX);if(value.offsetY!=null)page.nupOffsetY=Number(value.offsetY);},
       selectPage(page){
         document.querySelectorAll('.pdf-nup-adjust-hit').forEach(hit=>hit.dataset.selected=String(hit.dataset.pageId===String(page.id)));
         document.querySelectorAll('#thumbArea .thumb-wrap').forEach(wrap=>{
           if(wrap.closest('.thumb-item')?.dataset.id===String(page.id))wrap.dataset.sidebarCurrent='true';
           else delete wrap.dataset.sidebarCurrent;
         });
+        document.getElementById('pdfNupAdjustSelectedLabel').textContent=String(parsedPages.indexOf(page)+1)+'페이지';
       }
     };
-    window.PdfPrecisionEditTools={history:{undoCount:1,redoCount:1,undo(){window.undoCalled=true;return true;},redo(){window.redoCalled=true;return true;}}};
+    window.PdfPrecisionEditTools={history:{
+      undoCount:1,redoCount:1,
+      begin(){historyBeginCount++;return true;},commit(){historyCommitCount++;return true;},
+      undo(){window.undoCalled=true;return true;},redo(){window.redoCalled=true;return true;}
+    }};
 
     window.showStatus=function(message,type){
       const status=document.getElementById('statusBar');
@@ -120,6 +156,7 @@
     };
   </script>
   <script src="/js/pdf-editor/advanced-workspace-ux.js"></script>
+  <script src="/js/pdf-editor/advanced-shell-layout.js"></script>
   <script>
     (async()=>{
       const result=document.getElementById('result');
@@ -129,10 +166,12 @@
         throw new Error(message);
       };
       const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
-      await wait(140);
+      await wait(180);
 
       const api=window.PdfEditorAdvancedWorkspaceUX;
       if(!api||api.stage!=='stable-single-page-workspace-v1')return fail('stable workspace API missing');
+      const shell=window.PdfAdvancedShellLayout;
+      if(!shell||shell.stage!=='headerless-layout-move-sliders-v1')return fail('advanced headerless shell API missing');
       if(nup!==1)return fail('advanced workspace did not force 1-up');
       if(_previewPerRow!==1)return fail('advanced workspace did not force one page per row');
       const perRow=document.getElementById('perRowSelect');
@@ -143,6 +182,37 @@
       if(!document.getElementById('pdfAdvancedQuickBarV1'))return fail('quick edit toolbar missing');
       const thumbMaxHeight=parseFloat(getComputedStyle(document.getElementById('thumbArea')).maxHeight||'0');
       if(!(thumbMaxHeight>=100&&thumbMaxHeight<=136))return fail(`page list does not have a bounded responsive scroll area (${thumbMaxHeight}px)`);
+
+      // Advanced shell must use the full viewport without the legacy fixed header.
+      const nav=document.querySelector('.top-nav');
+      const sideTools=document.getElementById('pdfAdvancedSidebarNavV1');
+      if(getComputedStyle(nav).display!=='none')return fail('legacy top header still visible');
+      if(parseFloat(getComputedStyle(document.body).paddingTop||'0')!==0)return fail('body still reserves header height');
+      if(!sideTools||!sideTools.contains(document.querySelector('.nav-back'))||!sideTools.contains(document.getElementById('navLogout')))return fail('header actions were not preserved in sidebar');
+      if(document.querySelector('.app>aside>h1')?.textContent!=='PDF 고급 편집')return fail('advanced sidebar title not normalized');
+      if(document.documentElement.dataset.pdfAdvancedHeaderlessShell!=='1')return fail('headerless shell marker missing');
+
+      // X/Y movement controls should behave like the existing scale range.
+      const xRange=document.getElementById('pdfAdvancedMoveXRangeV1');
+      const yRange=document.getElementById('pdfAdvancedMoveYRangeV1');
+      if(!xRange||!yRange)return fail('movement sliders missing');
+      xRange.focus();
+      xRange.value='25.5';xRange.dispatchEvent(new Event('input',{bubbles:true}));
+      yRange.value='-14';yRange.dispatchEvent(new Event('input',{bubbles:true}));
+      await wait(30);
+      if(Math.abs(parsedPages[0].nupOffsetX-25.5)>.01||Math.abs(parsedPages[0].nupOffsetY+14)>.01)return fail('movement sliders did not update page offsets');
+      if(document.getElementById('pdfAdvancedMoveXValueV1').textContent!=='25.5 mm')return fail('X movement value label out of sync');
+      if(document.getElementById('pdfAdvancedMoveYValueV1').textContent!=='-14.0 mm')return fail('Y movement value label out of sync');
+      xRange.blur();
+      await wait(20);
+      if(historyBeginCount<1||historyCommitCount<1)return fail('movement sliders are not connected to edit history');
+      document.getElementById('pdfAdvancedMoveCenterV1').click();
+      await wait(30);
+      if(Math.abs(parsedPages[0].nupOffsetX)>.01||Math.abs(parsedPages[0].nupOffsetY)>.01)return fail('center movement action did not reset X/Y only');
+      const xNumber=document.getElementById('pdfNupAdjustX');
+      xNumber.value='-7.5';xNumber.dispatchEvent(new Event('input',{bubbles:true}));
+      await wait(30);
+      if(Math.abs(Number(xRange.value)+7.5)>.01)return fail('numeric X input did not sync back to movement range');
 
       // Status changes must not change the occupied main-workspace height.
       const status=document.getElementById('statusBar');
@@ -182,7 +252,7 @@
       if(!document.querySelector('.pdf-nup-adjust-hit[data-page-id="p2"]')?.matches('[data-selected="true"]'))return fail('next-page navigation did not select page 2');
 
       document.documentElement.dataset.pdfAdvancedWorkspaceStabilitySmoke='pass';
-      result.textContent='PASS: advanced PDF workspace keeps one-page editing, bounded navigation, fixed status height, stable viewport and proxied quick actions';
+      result.textContent='PASS: advanced PDF workspace keeps one-page editing, headerless layout, X/Y move sliders, fixed status height, stable viewport and proxied quick actions';
     })().catch(error=>console.error(error));
   </script>
 </body>
