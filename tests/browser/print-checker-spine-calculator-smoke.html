@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"><title>Print checker spine calculator smoke</title></head>
+<body>
+  <form id="specForm">
+    <div class="spec-field"><select id="paperType"><option value="mojo80">모조지 80g</option><option value="mojo100">모조지 100g</option><option value="snow100">스노우지 100g</option><option value="custom">직접 입력</option></select></div>
+    <div class="spec-field"><input id="pageCount" type="number" value="80"></div>
+    <div class="spec-field"><label><small class="spec-hint" id="spineHint">기존 계산</small></label><input id="spine" type="number" value=""></div>
+  </form>
+  <button class="product-card" type="button">표지</button><button id="resetBtn" type="button">초기화</button>
+  <script src="/js/print-checker/spine-calculator-v2.js?v=smoke"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded',()=>setTimeout(()=>{
+      try{
+        const paper=document.getElementById('paperType');
+        const pages=document.getElementById('pageCount');
+        const spine=document.getElementById('spine');
+        const gsm=document.getElementById('paperGsmV2');
+        const allowance=document.getElementById('spineAllowanceV2');
+        const caliper=document.getElementById('paperCaliperV2');
+        const fieldsReady=Boolean(gsm&&allowance&&caliper&&document.getElementById('spineFormulaV2'));
+
+        pages.value='80';pages.dispatchEvent(new Event('input',{bubbles:true}));
+        const defaultOk=spine.value==='4.5'&&gsm.value==='80'&&allowance.value==='0.5';
+
+        gsm.value='100';gsm.dispatchEvent(new Event('input',{bubbles:true}));
+        const gsmOk=spine.value==='5.5';
+
+        allowance.value='1.0';allowance.dispatchEvent(new Event('input',{bubbles:true}));
+        const allowanceOk=spine.value==='6.0';
+
+        paper.value='custom';paper.dispatchEvent(new Event('change',{bubbles:true}));
+        pages.value='100';pages.dispatchEvent(new Event('input',{bubbles:true}));
+        caliper.value='0.120';caliper.dispatchEvent(new Event('input',{bubbles:true}));
+        allowance.value='0.5';allowance.dispatchEvent(new Event('input',{bubbles:true}));
+        const customOk=caliper.closest('.spec-field').hidden===false&&spine.value==='6.5';
+
+        const note=document.getElementById('spineFormulaV2').textContent;
+        const noteOk=note.includes('100p = 50장')&&note.includes('제본 여유 0.5mm');
+        const ready=document.documentElement.dataset.printCheckerSpineCalculator==='v2-gsm-allowance';
+        const pass=fieldsReady&&defaultOk&&gsmOk&&allowanceOk&&customOk&&noteOk&&ready;
+        document.documentElement.dataset.printCheckerSpineCalculatorSmoke=pass?'pass':'fail';
+        const out=document.createElement('pre');out.id='result';out.textContent=pass?'PASS: gsm, sheet thickness and binding allowance produce the final spine':`FAIL fields=${fieldsReady} default=${defaultOk} gsm=${gsmOk} allowance=${allowanceOk} custom=${customOk} note=${noteOk} ready=${ready} spine=${spine.value}`;document.body.appendChild(out);
+      }catch(error){
+        document.documentElement.dataset.printCheckerSpineCalculatorSmoke='fail';
+        const out=document.createElement('pre');out.id='result';out.textContent='FAIL '+(error?.stack||error);document.body.appendChild(out);
+      }
+    },80));
+  </script>
+</body>
+</html>
