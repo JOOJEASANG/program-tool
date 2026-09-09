@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>PDF advanced overlay interaction smoke</title>
+  <style>
+    html,body{margin:0;padding:0}
+    body{font-family:Arial,sans-serif;padding:16px}
+    #pageStage{position:relative;width:400px;height:500px;background:#eee}
+    #previewCanvas{display:block;width:400px;height:500px;background:#fff}
+    #pageEditSection{width:320px}
+  </style>
+</head>
+<body tabindex="-1">
+  <div id="statusLine">준비</div>
+  <section id="pageEditSection"></section>
+  <div id="pageList"></div>
+  <div id="pageStage">
+    <canvas id="previewCanvas" width="400" height="500"></canvas>
+  </div>
+  <pre id="result">RUNNING</pre>
+
+  <script type="module">
+    import { advancedState } from '/js/pdf-editor-advanced/state.js';
+
+    const result = document.getElementById('result');
+    const fail = message => {
+      document.documentElement.dataset.pdfAdvancedOverlaysInteractionSmoke = 'fail';
+      result.textContent = 'FAIL: ' + message;
+      throw new Error(message);
+    };
+    const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+    const waitFor = async (predicate, timeout = 4000) => {
+      const started = performance.now();
+      while (performance.now() - started < timeout) {
+        if (predicate()) return true;
+        await wait(30);
+      }
+      return false;
+    };
+
+    advancedState.pages = [{
+      id: 'smoke-page-1', fileIndex: 0, pageIndex: 0, sourceName: 'smoke.pdf',
+      widthPt: 400, heightPt: 500, sourceWidthPt: 400, sourceHeightPt: 500,
+      rotation: 0, intrinsicRotation: 0, fineRotation: 0,
+      crop: { left: 0, top: 0, right: 0, bottom: 0 },
+      eraseRegions: [], overlays: [], scale: 1, offsetX: 0, offsetY: 0,
+    }];
+    advancedState.selectedId = 'smoke-page-1';
+    advancedState.busy = false;
+
+    await import('/js/pdf-editor-advanced/page-overlays.js?overlay-smoke=1');
+    await import('/js/pdf-editor-advanced/page-overlays-runtime-fix.js?overlay-smoke=1');
+    if (!(await waitFor(() => window.PdfAdvancedPageOverlays && window.PdfAdvancedOverlayInteractionFix))) {
+      fail('overlay APIs did not initialize');
+    }
+
+    const addText = document.getElementById('addTextOverlayBtn');
+    if (!addText || addText.disabled) fail('text add button is not available');
+    addText.click();
+    await wait(80);
+
+    let textNode = document.querySelector('.pdf-advanced-overlay.text');
+    if (!textNode) fail('text overlay was not rendered');
+    const beforeX = Number(advancedState.pages[0].overlays[0]?.x || 0);
+    const rect = textNode.getBoundingClientRect();
+    const pointerId = 41;
+    textNode.dispatchEvent(new PointerEvent('pointerdown', {
+      bubbles: true, pointerId, button: 0,
+      clientX: rect.left + 12, clientY: rect.top + 12,
+    }));
+    window.dispatchEvent(new PointerEvent('pointermove', {
+      bubbles: true, pointerId, button: 0,
+      clientX: rect.left + 92, clientY: rect.top + 62,
+    }));
+    window.dispatchEvent(new PointerEvent('pointerup', {
+      bubbles: true, pointerId, button: 0,
+      clientX: rect.left + 92, clientY: rect.top + 62,
+    }));
+    await wait(80);
+
+    const afterX = Number(advancedState.pages[0].overlays[0]?.x || 0);
+    const afterY = Number(advancedState.pages[0].overlays[0]?.y || 0);
+    if (!(afterX > beforeX + .12 && afterY > .20)) {
+      fail(`text drag did not update the live overlay (${beforeX} -> ${afterX}, y=${afterY})`);
+    }
+    textNode = document.querySelector('.pdf-advanced-overlay.text');
+    if (!textNode || parseFloat(textNode.style.left) < 25) fail('text DOM position did not follow drag');
+
+    const sample = document.createElement('canvas');
+    sample.width = 64; sample.height = 32;
+    const ctx = sample.getContext('2d');
+    ctx.fillStyle = '#1d4ed8'; ctx.fillRect(0, 0, 64, 32);
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(8, 8, 48, 16);
+    const blob = await new Promise(resolve => sample.toBlob(resolve, 'image/png'));
+    const file = new File([blob], 'SMOKE.PNG', { type: 'application/octet-stream' });
+    await window.PdfAdvancedOverlayInteractionFix.addImageFile(file);
+
+    if (!(await waitFor(() => advancedState.pages[0].overlays.some(item => item.type === 'image')))) {
+      fail('image overlay was not added');
+    }
+    const image = advancedState.pages[0].overlays.find(item => item.type === 'image');
+    if (!/^data:image\/jpeg;base64,/i.test(String(image.dataUrl || ''))) fail('image was not normalized into a bounded preview payload');
+    if (!document.querySelector('.pdf-advanced-overlay.image')) fail('image overlay was not rendered on the selected page');
+    if (!document.getElementById('statusLine').textContent.includes('이미지를 추가했습니다')) fail('image success feedback missing');
+    if (document.documentElement.dataset.pdfAdvancedOverlayInteractionFix !== 'v2') fail('interaction fix marker missing');
+
+    document.documentElement.dataset.pdfAdvancedOverlaysInteractionSmoke = 'pass';
+    result.textContent = 'PASS: advanced PDF text overlays drag smoothly and PNG/JPG image insertion renders on the selected page';
+  </script>
+</body>
+</html>
