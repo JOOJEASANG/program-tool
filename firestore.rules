@@ -161,6 +161,15 @@ service cloud.firestore {
       allow delete: if isOwner(uid);
     }
 
+    // Advanced PDF editor sessions use the same bounded immutable snapshot schema,
+    // but stay in a separate collection so PDF layout sessions never appear here.
+    match /users/{uid}/pdf_advanced_sessions/{docId} {
+      allow read: if isOwner(uid) && approved(uid);
+      allow create: if isOwner(uid) && approved(uid) && validPdfSessionMetadata();
+      allow update: if false;
+      allow delete: if isOwner(uid);
+    }
+
     match /{document=**} { allow read, write: if false; }
   }
 }
