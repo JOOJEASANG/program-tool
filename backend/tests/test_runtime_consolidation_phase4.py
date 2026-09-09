@@ -43,7 +43,8 @@ def test_pdf_loader_is_enhancement_bootstrap_and_core_manifest_owns_eight_module
 
 def test_pdf_route_manifest_owns_route_helpers_without_editor_state_takeover():
     route = text("js/pdf-editor/route-runtime.js")
-    assert route.count("{id:") == 20
+    assert route.count("{id:") == 21
+    assert "/js/pdf-editor/layout-smooth-preview.js?v=20260909-1" in route
     assert "/js/pdf-editor/preview-insert-persistence.js?v=20260831-2" in route
     assert "/js/pdf-editor/output-save-recovery.js?v=20260831-1" in route
     assert "/js/pdf-editor/save-operation.js" not in route
