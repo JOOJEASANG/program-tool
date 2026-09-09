@@ -20,7 +20,7 @@
     {
       id:'pdf-editor',
       cat:'pdf',
-      name:'PDF 배치용',
+      name:'PDF배치',
       icon:'🖨️',
       accent:'#059669',
       bg:'linear-gradient(135deg,#065f46,#059669)',
@@ -32,7 +32,7 @@
     {
       id:'pdf-editor-advanced',
       cat:'pdf',
-      name:'PDF 고급편집용',
+      name:'PDF편집',
       icon:'✂️',
       accent:'#7c3aed',
       bg:'linear-gradient(135deg,#5b21b6,#7c3aed)',
