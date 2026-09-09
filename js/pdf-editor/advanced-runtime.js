@@ -144,6 +144,7 @@
   const loadPrecisionEditTools=()=>load('pdfPrecisionEditToolsScriptV1','/js/pdf-editor/precision-edit-tools.js?v=20260908-1');
   const loadAdvancedWorkspaceUx=()=>load('pdfAdvancedWorkspaceUxScriptV1','/js/pdf-editor/advanced-workspace-ux.js?v=20260909-1');
   const loadDirectPageEditQuickbar=()=>load('pdfDirectPageEditQuickbarScriptV1','/js/pdf-editor/direct-page-edit-quickbar.js?v=20260909-2');
+  const loadAdvancedEditPersistencePolish=()=>load('pdfAdvancedEditPersistencePolishScriptV1','/js/pdf-editor/advanced-edit-persistence-polish.js?v=20260909-1');
 
   let loading=null;
   function loadAll(){
@@ -165,6 +166,7 @@
       .then(()=>loadPrecisionEditTools())
       .then(()=>loadAdvancedWorkspaceUx())
       .then(()=>loadDirectPageEditQuickbar())
+      .then(()=>loadAdvancedEditPersistencePolish())
       .then(()=>{document.documentElement.dataset.pdfAdvancedRuntime='1';return true;});
     return loading;
   }
@@ -178,7 +180,7 @@
       'advanced-shell-layout','preview-zoom-persistence','nup-interaction-stability','nup-page-adjust',
       'page-transform-edit','direct-page-edit-v2','drag-crop-autofit','nup-direct-preview-edit',
       'editor-interaction-polish','orientation-scale-regression-fix','precision-edit-tools',
-      'advanced-workspace-ux','direct-page-edit-quickbar'
+      'advanced-workspace-ux','direct-page-edit-quickbar','advanced-edit-persistence-polish'
     ])
   };
 })();
