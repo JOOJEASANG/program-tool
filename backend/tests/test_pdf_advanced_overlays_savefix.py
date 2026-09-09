@@ -56,7 +56,8 @@ def test_advanced_standalone_bootstraps_auth_firestore_and_storage_for_edit_save
     assert "window.ProgramAccessReady" in bootstrap
     assert "auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)" in bootstrap
     assert "user_permissions" in bootstrap
-    assert "location.replace('/login.html')" in bootstrap
+    assert "redirect('/login.html')" in bootstrap
+    assert "location.replace(url)" in bootstrap
 
 
 def test_advanced_text_image_tools_are_selected_page_only_and_bounded_for_performance():
