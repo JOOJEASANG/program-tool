@@ -40,6 +40,7 @@ class AdvancedMarginSettings(BaseModel):
     right_mm: float = Field(default=0.0, ge=0.0, le=80.0)
     top_mm: float = Field(default=0.0, ge=0.0, le=80.0)
     bottom_mm: float = Field(default=0.0, ge=0.0, le=80.0)
+    facing_pages: bool = False
 
 
 class PdfAdvancedProcessRequest(BaseModel):
