@@ -133,13 +133,26 @@
     const input=byId('fileInput');
     if(head){head.classList.remove('collapsed');delete head.dataset.advancedAutoCollapsed;}
     if(body){body.classList.remove('hidden');body.hidden=false;body.removeAttribute('aria-hidden');}
-    if(zone){zone.style.pointerEvents='';zone.removeAttribute('aria-disabled');}
-    const sessionSaving=document.body?.dataset?.pdfSessionSaving==='true';
-    if(input&&!sessionSaving){
-      if(input.disabled)input.disabled=false;
-      input.removeAttribute('aria-disabled');
+    const importBusy=zone?.dataset?.importBusy==='1';
+    if(zone){
+      zone.style.pointerEvents='';
+      if(importBusy)zone.setAttribute('aria-disabled','true');
+      else zone.removeAttribute('aria-disabled');
     }
-    if(body&&zone&&input)root.dataset.pdfAdvancedUploadStable='1';
+    const sessionSaving=document.body?.dataset?.pdfSessionSaving==='true';
+    if(input){
+      if(importBusy){
+        if(!input.disabled)input.disabled=true;
+        input.setAttribute('aria-disabled','true');
+      }else if(!sessionSaving){
+        if(input.disabled)input.disabled=false;
+        input.removeAttribute('aria-disabled');
+      }
+    }
+    if(body&&zone&&input){
+      root.dataset.pdfAdvancedUploadStable='1';
+      root.dataset.pdfAdvancedImportBusy=importBusy?'1':'0';
+    }
     return Boolean(body&&zone&&input);
   }
 
@@ -294,11 +307,13 @@
     }
     const uploadHead=document.querySelector('.sec-head[data-sec="upload"]');
     const uploadBody=byId('sb-upload');
+    const uploadZone=byId('uploadZone');
     const fileInput=byId('fileInput');
-    if(uploadHead&&uploadBody&&fileInput&&!uploadObserver){
+    if(uploadHead&&uploadBody&&uploadZone&&fileInput&&!uploadObserver){
       uploadObserver=new MutationObserver(queueStabilize);
       uploadObserver.observe(uploadHead,{attributes:true,attributeFilter:['class']});
       uploadObserver.observe(uploadBody,{attributes:true,attributeFilter:['class','hidden']});
+      uploadObserver.observe(uploadZone,{attributes:true,attributeFilter:['data-import-busy','aria-busy']});
       uploadObserver.observe(fileInput,{attributes:true,attributeFilter:['disabled','aria-disabled']});
     }
     if(document.body&&!bodyObserver){
