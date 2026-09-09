@@ -143,7 +143,7 @@
   const loadOrientationScaleRegression=()=>load('pdfOrientationScaleRegressionScriptV1','/js/pdf-editor/orientation-scale-regression-fix.js?v=20260908-1');
   const loadPrecisionEditTools=()=>load('pdfPrecisionEditToolsScriptV1','/js/pdf-editor/precision-edit-tools.js?v=20260908-1');
   const loadAdvancedWorkspaceUx=()=>load('pdfAdvancedWorkspaceUxScriptV1','/js/pdf-editor/advanced-workspace-ux.js?v=20260909-1');
-  const loadDirectPageEditQuickbar=()=>load('pdfDirectPageEditQuickbarScriptV1','/js/pdf-editor/direct-page-edit-quickbar.js?v=20260909-1');
+  const loadDirectPageEditQuickbar=()=>load('pdfDirectPageEditQuickbarScriptV1','/js/pdf-editor/direct-page-edit-quickbar.js?v=20260909-2');
 
   let loading=null;
   function loadAll(){
