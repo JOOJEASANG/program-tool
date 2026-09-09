@@ -16,6 +16,7 @@ class AdvancedPageInfo(BaseModel):
     file_index: int = Field(ge=0, le=100_000)
     page_index: int = Field(ge=0, le=1_000_000)
     rotation: Literal[0, 90, 180, 270] = 0
+    fine_rotation_deg: float = Field(default=0.0, ge=-15.0, le=15.0)
     crop_left_ratio: float = Field(default=0.0, ge=0.0, le=0.90)
     crop_top_ratio: float = Field(default=0.0, ge=0.0, le=0.90)
     crop_right_ratio: float = Field(default=0.0, ge=0.0, le=0.90)

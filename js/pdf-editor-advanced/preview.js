@@ -6,6 +6,19 @@ const sourceCanvasCache = new Map();
 let lastLayout = null;
 
 function clamp(value, min, max) { return Math.max(min, Math.min(max, value)); }
+function normalizeQuarter(value) {
+  const normalized = ((Number(value || 0) % 360) + 360) % 360;
+  return [0, 90, 180, 270].reduce((best, candidate) => {
+    const distance = Math.min(Math.abs(normalized - candidate), 360 - Math.abs(normalized - candidate));
+    const bestDistance = Math.min(Math.abs(normalized - best), 360 - Math.abs(normalized - best));
+    return distance < bestDistance ? candidate : best;
+  }, 0);
+}
+function normalizeFine(value) {
+  const number = Number(value || 0);
+  if (!Number.isFinite(number)) return 0;
+  return clamp(Math.round(number * 10) / 10, -15, 15);
+}
 
 function cacheSourceCanvas(key, canvas) {
   if (sourceCanvasCache.has(key)) sourceCanvasCache.delete(key);
@@ -47,8 +60,8 @@ export async function sourceCanvasFor(page) {
   return canvas;
 }
 
-function outputPagePoints(page) {
-  const quarter = Number(page.rotation || 0) % 360;
+export function outputPagePoints(page) {
+  const quarter = normalizeQuarter(page.rotation);
   return quarter === 90 || quarter === 270
     ? { width: page.heightPt, height: page.widthPt }
     : { width: page.widthPt, height: page.heightPt };
@@ -95,6 +108,38 @@ function drawSourceWithErase(page, source) {
   return canvas;
 }
 
+function quarterRotatedCanvas(crop, quarter) {
+  if (!quarter) return crop;
+  const rotated = document.createElement('canvas');
+  if (quarter === 90 || quarter === 270) { rotated.width = crop.height; rotated.height = crop.width; }
+  else { rotated.width = crop.width; rotated.height = crop.height; }
+  const ctx = rotated.getContext('2d', { alpha: false });
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, rotated.width, rotated.height);
+  if (quarter === 90) { ctx.translate(crop.height, 0); ctx.rotate(Math.PI / 2); }
+  else if (quarter === 180) { ctx.translate(crop.width, crop.height); ctx.rotate(Math.PI); }
+  else if (quarter === 270) { ctx.translate(0, crop.width); ctx.rotate(-Math.PI / 2); }
+  ctx.drawImage(crop, 0, 0);
+  return rotated;
+}
+
+function fineRotatedCanvas(source, fine) {
+  if (Math.abs(fine) < 0.0001) return source;
+  const radians = fine * Math.PI / 180;
+  const cosine = Math.abs(Math.cos(radians));
+  const sine = Math.abs(Math.sin(radians));
+  const rotated = document.createElement('canvas');
+  rotated.width = Math.max(1, Math.ceil(source.width * cosine + source.height * sine));
+  rotated.height = Math.max(1, Math.ceil(source.width * sine + source.height * cosine));
+  const ctx = rotated.getContext('2d', { alpha: false });
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, rotated.width, rotated.height);
+  ctx.save();
+  ctx.translate(rotated.width / 2, rotated.height / 2);
+  ctx.rotate(radians);
+  ctx.drawImage(source, -source.width / 2, -source.height / 2);
+  ctx.restore();
+  return rotated;
+}
+
 function croppedRotatedCanvas(page, source) {
   const left = clamp(page.crop.left, 0, .9);
   const top = clamp(page.crop.top, 0, .9);
@@ -105,20 +150,23 @@ function croppedRotatedCanvas(page, source) {
   const cw = Math.max(1, Math.round(source.width * (1 - left - right)));
   const ch = Math.max(1, Math.round(source.height * (1 - top - bottom)));
   const crop = document.createElement('canvas'); crop.width = cw; crop.height = ch;
-  crop.getContext('2d', { alpha: false }).drawImage(source, cx, cy, cw, ch, 0, 0, cw, ch);
+  const cropCtx = crop.getContext('2d', { alpha: false });
+  cropCtx.fillStyle = '#fff'; cropCtx.fillRect(0, 0, cw, ch);
+  cropCtx.drawImage(source, cx, cy, cw, ch, 0, 0, cw, ch);
 
-  const rotation = Number(page.rotation || 0) % 360;
-  if (!rotation) return { canvas: crop, cropPx: { x: cx, y: cy, width: cw, height: ch }, full: { width: source.width, height: source.height } };
-  const rotated = document.createElement('canvas');
-  if (rotation === 90 || rotation === 270) { rotated.width = ch; rotated.height = cw; }
-  else { rotated.width = cw; rotated.height = ch; }
-  const ctx = rotated.getContext('2d', { alpha: false });
-  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, rotated.width, rotated.height);
-  if (rotation === 90) { ctx.translate(ch, 0); ctx.rotate(Math.PI / 2); }
-  else if (rotation === 180) { ctx.translate(cw, ch); ctx.rotate(Math.PI); }
-  else if (rotation === 270) { ctx.translate(0, cw); ctx.rotate(-Math.PI / 2); }
-  ctx.drawImage(crop, 0, 0);
-  return { canvas: rotated, cropPx: { x: cx, y: cy, width: cw, height: ch }, full: { width: source.width, height: source.height } };
+  const quarter = normalizeQuarter(page.rotation);
+  const fine = normalizeFine(page.fineRotation);
+  const quarterCanvas = quarterRotatedCanvas(crop, quarter);
+  const finalCanvas = fineRotatedCanvas(quarterCanvas, fine);
+  return {
+    canvas: finalCanvas,
+    cropPx: { x: cx, y: cy, width: cw, height: ch },
+    full: { width: source.width, height: source.height },
+    quarterWidth: quarterCanvas.width,
+    quarterHeight: quarterCanvas.height,
+    rotation: quarter,
+    fineRotation: fine,
+  };
 }
 
 function substitute(text, pageNumber, total) {
@@ -184,15 +232,15 @@ function drawOverlays(ctx, page, out, scaleX, scaleY) {
   }
 }
 
-export async function renderSelectedPreview(canvas) {
-  const page = selectedPage();
-  if (!page) { lastLayout = null; return null; }
+export async function renderPagePreview(page, canvas, options = {}) {
+  if (!page || !canvas) return null;
   const sourceBase = await sourceCanvasFor(page);
   const source = drawSourceWithErase(page, sourceBase);
   const rotated = croppedRotatedCanvas(page, source);
   const out = outputPagePoints(page);
-  const zoom = clamp(advancedState.zoom || 1, .5, 2.5);
-  const maxCssWidth = 900 * zoom, maxCssHeight = 1250 * zoom;
+  const zoom = clamp(options.zoom ?? advancedState.zoom ?? 1, .5, 2.5);
+  const maxCssWidth = Number(options.maxCssWidth || 900) * zoom;
+  const maxCssHeight = Number(options.maxCssHeight || 1250) * zoom;
   const fit = Math.min(maxCssWidth / out.width, maxCssHeight / out.height);
   const cssWidth = Math.max(180, Math.round(out.width * fit));
   const cssHeight = Math.max(180, Math.round(out.height * fit));
@@ -230,7 +278,7 @@ export async function renderSelectedPreview(canvas) {
   }
   drawOverlays(ctx, page, out, scaleX, scaleY);
 
-  lastLayout = {
+  const layout = {
     pageId: page.id,
     canvasWidth: canvas.width, canvasHeight: canvas.height,
     cssWidth, cssHeight,
@@ -239,9 +287,19 @@ export async function renderSelectedPreview(canvas) {
     full: rotated.full,
     rotatedWidth: rotated.canvas.width,
     rotatedHeight: rotated.canvas.height,
-    rotation: Number(page.rotation || 0) % 360,
+    quarterWidth: rotated.quarterWidth,
+    quarterHeight: rotated.quarterHeight,
+    rotation: rotated.rotation,
+    fineRotation: rotated.fineRotation,
   };
-  return lastLayout;
+  if (options.trackLayout) lastLayout = layout;
+  return layout;
+}
+
+export async function renderSelectedPreview(canvas) {
+  const page = selectedPage();
+  if (!page) { lastLayout = null; return null; }
+  return renderPagePreview(page, canvas, { trackLayout: true });
 }
 
 export function currentLayout() { return lastLayout; }
@@ -257,13 +315,24 @@ export function backingPointFromClient(canvas, clientX, clientY) {
 export function sourceNormalizedFromBacking(point, layout = lastLayout) {
   if (!layout) return null;
   const d = layout.dest;
-  const rx = clamp((point.x - d.x) / Math.max(1e-6, d.width), 0, 1) * layout.rotatedWidth;
-  const ry = clamp((point.y - d.y) / Math.max(1e-6, d.height), 0, 1) * layout.rotatedHeight;
+  const fx = clamp((point.x - d.x) / Math.max(1e-6, d.width), 0, 1) * layout.rotatedWidth;
+  const fy = clamp((point.y - d.y) / Math.max(1e-6, d.height), 0, 1) * layout.rotatedHeight;
+
+  let qx = fx, qy = fy;
+  const fine = Number(layout.fineRotation || 0);
+  if (Math.abs(fine) > 0.0001) {
+    const radians = -fine * Math.PI / 180;
+    const dx = fx - layout.rotatedWidth / 2;
+    const dy = fy - layout.rotatedHeight / 2;
+    qx = Math.cos(radians) * dx - Math.sin(radians) * dy + layout.quarterWidth / 2;
+    qy = Math.sin(radians) * dx + Math.cos(radians) * dy + layout.quarterHeight / 2;
+  }
+
   const cw = layout.cropPx.width, ch = layout.cropPx.height;
-  let u = rx, v = ry;
-  if (layout.rotation === 90) { u = ry; v = ch - rx; }
-  else if (layout.rotation === 180) { u = cw - rx; v = ch - ry; }
-  else if (layout.rotation === 270) { u = cw - ry; v = rx; }
+  let u = qx, v = qy;
+  if (layout.rotation === 90) { u = qy; v = ch - qx; }
+  else if (layout.rotation === 180) { u = cw - qx; v = ch - qy; }
+  else if (layout.rotation === 270) { u = cw - qy; v = qx; }
   return {
     x: clamp((layout.cropPx.x + u) / layout.full.width, 0, 1),
     y: clamp((layout.cropPx.y + v) / layout.full.height, 0, 1),
@@ -277,17 +346,18 @@ export function sourceSideForVisualEdge(edge, rotation) {
     180: { left: 'right', right: 'left', top: 'bottom', bottom: 'top' },
     270: { left: 'top', right: 'bottom', top: 'right', bottom: 'left' },
   };
-  return (maps[Number(rotation || 0) % 360] || maps[0])[edge];
+  return (maps[normalizeQuarter(rotation)] || maps[0])[edge];
 }
 
 export async function renderThumbnail(page, canvas) {
   const pdf = advancedState.documents[page.fileIndex];
   if (!pdf) return;
   const pdfPage = await pdf.getPage(page.pageIndex + 1);
-  const base = pdfPage.getViewport({ scale: 1, rotation: 0 });
+  const rotation = normalizeQuarter(page.rotation);
+  const base = pdfPage.getViewport({ scale: 1, rotation });
   const maxW = 72, maxH = 92;
   const scale = clamp(Math.min(maxW / Math.max(1, base.width), maxH / Math.max(1, base.height)), .05, .5);
-  const viewport = pdfPage.getViewport({ scale, rotation: 0 });
+  const viewport = pdfPage.getViewport({ scale, rotation });
   canvas.width = Math.max(1, Math.round(viewport.width));
   canvas.height = Math.max(1, Math.round(viewport.height));
   const ctx = canvas.getContext('2d', { alpha: false });

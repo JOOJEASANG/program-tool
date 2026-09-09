@@ -1,4 +1,5 @@
 import { advancedState, checkpoint, emitStateChange } from './state.js';
+import './workspace-v2.js';
 
 const $ = id => document.getElementById(id);
 

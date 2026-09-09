@@ -13,7 +13,6 @@ import {
 import {
   clearPreviewCache,
   renderSelectedPreview,
-  renderThumbnail,
   currentLayout,
   backingPointFromClient,
   sourceNormalizedFromBacking,
@@ -32,6 +31,15 @@ let eraseGesture = null;
 const controlTransactions = new WeakSet();
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+
+function normalizeQuarter(value) {
+  const normalized = ((Number(value || 0) % 360) + 360) % 360;
+  return [0, 90, 180, 270].reduce((best, candidate) => {
+    const distance = Math.min(Math.abs(normalized - candidate), 360 - Math.abs(normalized - candidate));
+    const bestDistance = Math.min(Math.abs(normalized - best), 360 - Math.abs(normalized - best));
+    return distance < bestDistance ? candidate : best;
+  }, 0);
+}
 
 function setStatus(message, type = 'info') {
   const element = $('statusLine');
@@ -163,13 +171,11 @@ async function rebuildPageList() {
   advancedState.pages.forEach((page, index) => {
     const item = document.createElement('div'); item.className = 'page-item'; item.dataset.pageId = page.id;
     item.classList.toggle('selected', page.id === advancedState.selectedId);
-    const thumb = document.createElement('canvas');
     const info = document.createElement('div'); info.className = 'page-item-info';
     const title = document.createElement('strong'); title.textContent = `${index + 1}페이지`;
-    const source = document.createElement('span'); source.textContent = page.sourceName;
-    info.append(title, source);
+    info.append(title);
     const remove = document.createElement('button'); remove.className = 'page-remove'; remove.type = 'button'; remove.title = '페이지 제외'; remove.textContent = '×';
-    item.append(thumb, info, remove);
+    item.append(info, remove);
     item.addEventListener('click', event => {
       if (event.target === remove) return;
       advancedState.selectedId = page.id; advancedState.eraseMode = false;
@@ -186,7 +192,6 @@ async function rebuildPageList() {
       rebuildPageList(); updatePageCount(); scheduleRender();
     });
     list.appendChild(item);
-    renderThumbnail(page, thumb).catch(() => {});
   });
   updatePageCount();
 }
@@ -219,10 +224,12 @@ async function loadPdfFiles(fileList) {
       for (let pageIndex = 0; pageIndex < pdf.numPages; pageIndex++) {
         const pdfPage = await pdf.getPage(pageIndex + 1);
         const viewport = pdfPage.getViewport({ scale: 1, rotation: 0 });
+        const intrinsicRotation = normalizeQuarter(pdfPage.rotate || 0);
         pages.push({
           id: makePageId(), fileIndex, pageIndex, sourceName: file.name,
           widthPt: viewport.width, heightPt: viewport.height,
-          rotation: 0, crop: { left: 0, top: 0, right: 0, bottom: 0 },
+          rotation: intrinsicRotation, intrinsicRotation, fineRotation: 0,
+          crop: { left: 0, top: 0, right: 0, bottom: 0 },
           eraseRegions: [], scale: 1, offsetX: 0, offsetY: 0,
         });
       }
@@ -359,7 +366,7 @@ function bindUi() {
   $('redoBtn').addEventListener('click',()=>{if(redo()){rebuildPageList();syncGlobalControls();scheduleRender();}});
   $('rotateLeftBtn').addEventListener('click',()=>{const p=selectedPage();if(!p)return;checkpoint('왼쪽 회전');p.rotation=(p.rotation+270)%360;emitStateChange('rotate');scheduleRender();});
   $('rotateRightBtn').addEventListener('click',()=>{const p=selectedPage();if(!p)return;checkpoint('오른쪽 회전');p.rotation=(p.rotation+90)%360;emitStateChange('rotate');scheduleRender();});
-  $('resetPageBtn').addEventListener('click',()=>{const p=selectedPage();if(!p)return;checkpoint('페이지 보정 초기화');Object.assign(p,{rotation:0,crop:{left:0,top:0,right:0,bottom:0},eraseRegions:[],scale:1,offsetX:0,offsetY:0});advancedState.eraseMode=false;emitStateChange('reset-page');scheduleRender();});
+  $('resetPageBtn').addEventListener('click',()=>{const p=selectedPage();if(!p)return;checkpoint('페이지 보정 초기화');Object.assign(p,{rotation:normalizeQuarter(p.intrinsicRotation||0),fineRotation:0,crop:{left:0,top:0,right:0,bottom:0},eraseRegions:[],scale:1,offsetX:0,offsetY:0});advancedState.eraseMode=false;emitStateChange('reset-page');scheduleRender();});
   $('eraseModeBtn').addEventListener('click',()=>{if(!selectedPage())return;advancedState.eraseMode=!advancedState.eraseMode;syncSelectedControls();});
 
   bindRange('scaleRange','크기 조절',(p,v)=>p.scale=clamp(v/100,.5,3));

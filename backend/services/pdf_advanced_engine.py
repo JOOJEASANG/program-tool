@@ -7,6 +7,7 @@ editing plus document overlays owned by the advanced editor.
 from __future__ import annotations
 
 import io
+import math
 from pathlib import Path
 
 import fitz
@@ -88,14 +89,20 @@ def _erased_source_document(
         raise
 
 
-def _fit_rect(box: fitz.Rect, source_width: float, source_height: float, rotation: int) -> fitz.Rect:
-    if rotation in (90, 270):
-        source_width, source_height = source_height, source_width
+def _fit_rect(box: fitz.Rect, source_width: float, source_height: float, rotation: float) -> fitz.Rect:
+    """Fit the axis-aligned bounds of an arbitrarily rotated source into box."""
     if source_width <= 0 or source_height <= 0:
         return fitz.Rect(box)
-    scale = min(box.width / source_width, box.height / source_height)
-    width = source_width * scale
-    height = source_height * scale
+    radians = math.radians(float(rotation) % 360.0)
+    cosine = abs(math.cos(radians))
+    sine = abs(math.sin(radians))
+    bound_width = source_width * cosine + source_height * sine
+    bound_height = source_width * sine + source_height * cosine
+    if bound_width <= 1e-9 or bound_height <= 1e-9:
+        return fitz.Rect(box)
+    scale = min(box.width / bound_width, box.height / bound_height)
+    width = bound_width * scale
+    height = bound_height * scale
     x0 = box.x0 + (box.width - width) / 2
     y0 = box.y0 + (box.height - height) / 2
     return fitz.Rect(x0, y0, x0 + width, y0 + height)
@@ -142,7 +149,7 @@ def _render_page_content(
     render_index = 0 if erased_doc is not None else page_info.page_index
     try:
         clip = _clip_rect(source_rect, page_info)
-        rotation = int(page_info.rotation) % 360
+        rotation = (int(page_info.rotation) + float(page_info.fine_rotation_deg or 0.0)) % 360.0
         local_box = fitz.Rect(0, 0, content_box.width, content_box.height)
         fitted = _fit_rect(local_box, clip.width, clip.height, rotation)
         scale = float(page_info.edit_scale or 1.0)
@@ -206,8 +213,8 @@ def build_advanced_pdf_document(
             if int(getattr(source_page, "rotation", 0) or 0) % 360:
                 source_page.set_rotation(0)
             source_rect = fitz.Rect(source_page.rect)
-            rotation = int(page_info.rotation) % 360
-            if rotation in (90, 270):
+            quarter_rotation = int(page_info.rotation) % 360
+            if quarter_rotation in (90, 270):
                 page_width, page_height = source_rect.height, source_rect.width
             else:
                 page_width, page_height = source_rect.width, source_rect.height
