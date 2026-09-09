@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"><title>PDF layout sidebar title smoke</title></head>
+<body>
+  <div class="app"><aside><h1>PDF 문서 편집기</h1><div class="sub">PDF 업로드 · 페이지 편집</div></aside></div>
+  <pre id="result">WAIT</pre>
+  <script>
+    window.ProgramStudioPdfEditorRuntimeContext={load(){return Promise.resolve(true);}};
+  </script>
+  <script src="/js/pdf-editor/route-runtime.js"></script>
+  <script>
+    (async()=>{
+      const result=document.getElementById('result');
+      const fail=message=>{document.documentElement.dataset.pdfLayoutSidebarTitleSmoke='fail';result.textContent='FAIL: '+message;throw new Error(message);};
+      const runtime=window.PdfEditorRouteRuntime;
+      if(!runtime)return fail('route runtime missing');
+      await runtime.loadAll();
+      if(document.querySelector('.app > aside > h1'))return fail('layout sidebar title still exists');
+      if(document.documentElement.dataset.pdfLayoutSidebarTitleRemoved!=='1')return fail('title removal marker missing');
+      if(!document.querySelector('.app > aside > .sub'))return fail('sidebar description was removed with title');
+      document.documentElement.dataset.pdfLayoutSidebarTitleSmoke='pass';
+      result.textContent='PASS: layout PDF editor removes only the sidebar top title';
+    })().catch(error=>console.error(error));
+  </script>
+</body>
+</html>
