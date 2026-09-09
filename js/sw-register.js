@@ -5,7 +5,7 @@
 
   // Historical filename: this module owns shared runtime loading and retired
   // service-worker cleanup. It intentionally does not register a worker.
-  const VERSION='2026.09.03.001';
+  const VERSION='2026.09.09.001';
   const CACHE_PREFIX='program-studio-';
   const CLEANUP_KEY='program-studio-legacy-runtime-cleanup-'+VERSION;
   const SCRIPT_TIMEOUT_MS=8000;
@@ -102,7 +102,7 @@
 
   function loadPdfEditorRuntime(){
     window.ProgramStudioPdfEditorRuntimeContext={entryPath:currentPath,load};
-    return load('pdfEditorRouteRuntimeScriptV1','/js/pdf-editor/route-runtime.js?v=20260828-1').then(()=>{
+    return load('pdfEditorRouteRuntimeScriptV1','/js/pdf-editor/route-runtime.js?v=20260909-1').then(()=>{
       const runtime=window.PdfEditorRouteRuntime;
       if(!runtime||typeof runtime.loadAll!=='function')throw new Error('PDF editor route runtime API is unavailable');
       return runtime.loadAll();
