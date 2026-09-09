@@ -1,8 +1,9 @@
 """Standalone PDF advanced-editor rendering engine.
 
 This engine intentionally has no N-up, booklet, divider, grouping, or print-layout
-state. It preserves each source page's physical size and applies only direct page
-editing plus document overlays owned by the advanced editor.
+state. It preserves each source page's physical size unless the advanced editor
+explicitly supplies an output page size, and applies only direct page editing plus
+document overlays owned by the advanced editor.
 """
 from __future__ import annotations
 
@@ -189,6 +190,15 @@ def _render_page_content(
             erased_doc.close()
 
 
+def _output_page_size(source_rect: fitz.Rect, page_info: AdvancedPageInfo) -> tuple[float, float]:
+    if page_info.output_width_pt is not None and page_info.output_height_pt is not None:
+        return float(page_info.output_width_pt), float(page_info.output_height_pt)
+    quarter_rotation = int(page_info.rotation) % 360
+    if quarter_rotation in (90, 270):
+        return source_rect.height, source_rect.width
+    return source_rect.width, source_rect.height
+
+
 def build_advanced_pdf_document(
     source_docs: list[fitz.Document],
     request: PdfAdvancedProcessRequest,
@@ -213,11 +223,7 @@ def build_advanced_pdf_document(
             if int(getattr(source_page, "rotation", 0) or 0) % 360:
                 source_page.set_rotation(0)
             source_rect = fitz.Rect(source_page.rect)
-            quarter_rotation = int(page_info.rotation) % 360
-            if quarter_rotation in (90, 270):
-                page_width, page_height = source_rect.height, source_rect.width
-            else:
-                page_width, page_height = source_rect.width, source_rect.height
+            page_width, page_height = _output_page_size(source_rect, page_info)
 
             out_page = out_doc.new_page(width=page_width, height=page_height)
             content_box = _content_box(page_width, page_height, request, output_index)
