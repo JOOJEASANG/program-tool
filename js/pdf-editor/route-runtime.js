@@ -17,9 +17,10 @@
     {id:'pdfSessionSaveSafetyScriptV1',src:'/js/pdf-editor/session-save-safety.js?v=20260831-2'},
     {id:'pdfFileContextScopeScript',src:'/js/pdf-editor/file-context-scope.js?v=20260805-1'},
     {id:'pdfImportTransactionSafetyScriptV1',src:'/js/pdf-editor/import-transaction-safety.js?v=20260806-1'},
-    {id:'pdfViewportLazyPreviewScriptV1',src:'/js/pdf-editor/viewport-lazy-preview.js?v=20260806-1'},
+    {id:'pdfViewportLazyPreviewScriptV1',src:'/js/pdf-editor/viewport-lazy-preview.js?v=20260909-2'},
     {id:'pdfViewportLazyPreviewGuardScriptV1',src:'/js/pdf-editor/viewport-lazy-preview-guard.js?v=20260806-1'},
     {id:'pdfFileNavigationScriptV1',src:'/js/pdf-editor/file-navigation.js?v=20260806-1'},
+    {id:'pdfLayoutSmoothPreviewScriptV1',src:'/js/pdf-editor/layout-smooth-preview.js?v=20260909-1'},
     {id:'pdfPreviewInsertPersistenceScriptV1',src:'/js/pdf-editor/preview-insert-persistence.js?v=20260831-2'},
     {id:'pdfDividerLocalImageUploadScriptV1',src:'/js/pdf-divider-local-image-upload.js?v=20260830-1'},
     {id:'pdfDividerModalLayoutScriptV1',src:'/js/pdf-editor/divider-modal-layout.js?v=20260830-2'},
@@ -29,6 +30,7 @@
   ]);
 
   const ADVANCED_UNUSED_ROUTE_IDS=new Set([
+    'pdfLayoutSmoothPreviewScriptV1',
     'pdfPreviewInsertPersistenceScriptV1',
     'pdfDividerLocalImageUploadScriptV1',
     'pdfDividerModalLayoutScriptV1',
