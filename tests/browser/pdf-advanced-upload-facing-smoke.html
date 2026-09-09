@@ -19,10 +19,10 @@
     const facing=document.getElementById('facingPages');
     facing.checked=true;
     facing.dispatchEvent(new Event('change',{bubbles:true}));
-    if(!advancedState.margins.facingPages)return fail('facing state did not turn on');
-    if(serializeSettings().margins.facing_pages!==true)return fail('facing state was not serialized');
-    if(!document.getElementById('facingHint').textContent.includes('짝수 페이지'))return fail('asymmetric margin guidance missing');
-    if(document.documentElement.dataset.pdfAdvancedUploadFacing!=='1')return fail('upload/facing helper marker missing');
+    if(!advancedState.margins.facingPages)fail('facing state did not turn on');
+    if(serializeSettings().margins.facing_pages!==true)fail('facing state was not serialized');
+    if(!document.getElementById('facingHint').textContent.includes('짝수 페이지'))fail('asymmetric margin guidance missing');
+    if(document.documentElement.dataset.pdfAdvancedUploadFacing!=='1')fail('upload/facing helper marker missing');
     document.documentElement.dataset.pdfAdvancedUploadFacingSmoke='pass';
     result.textContent='PASS: advanced PDF upload parity and facing-page state are active';
   </script>
