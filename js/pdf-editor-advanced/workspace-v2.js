@@ -1,5 +1,5 @@
 import { advancedState, selectedPage, checkpoint, emitStateChange } from './state.js';
-import { renderPagePreview, outputPagePoints, currentLayout } from './preview.js';
+import { renderPagePreview, outputPagePoints } from './preview.js';
 
 const $ = id => document.getElementById(id);
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
@@ -81,11 +81,11 @@ function ensurePairShell() {
     const nav = document.createElement('div');
     nav.id = 'pairNav';
     nav.className = 'pair-nav';
-    nav.innerHTML = '<button id="pairPrevBtn" type="button" aria-label="이전 두 페이지">◀ 이전</button><span id="pairPageLabel">0 / 0</span><button id="pairNextBtn" type="button" aria-label="다음 두 페이지">다음 ▶</button>';
+    nav.innerHTML = '<button id="pairPrevBtn" type="button" aria-label="이전 페이지">◀ 이전</button><span id="pairPageLabel">0 / 0</span><button id="pairNextBtn" type="button" aria-label="다음 페이지">다음 ▶</button>';
     const actions = toolbar.querySelector('.toolbar-actions');
     toolbar.insertBefore(nav, actions || null);
-    $('pairPrevBtn').addEventListener('click', () => navigatePair(-1));
-    $('pairNextBtn').addEventListener('click', () => navigatePair(1));
+    $('pairPrevBtn').addEventListener('click', () => navigatePage(-1));
+    $('pairNextBtn').addEventListener('click', () => navigatePage(1));
   }
   return row;
 }
@@ -103,17 +103,16 @@ function selectPageByIndex(index) {
   } else {
     advancedState.selectedId = page.id;
     advancedState.eraseMode = false;
-    emitStateChange('pair-navigation');
+    emitStateChange('page-navigation');
     requestMainRender();
   }
   setTimeout(() => { syncExtraControls(); schedulePairRender(); }, 0);
 }
 
-function navigatePair(direction) {
+function navigatePage(direction) {
   const index = selectedIndex();
   if (index < 0) return;
-  const start = index - (index % 2);
-  const target = direction < 0 ? Math.max(0, start - 2) : start + 2;
+  const target = index + direction;
   if (target >= 0 && target < advancedState.pages.length) selectPageByIndex(target);
 }
 
@@ -135,8 +134,8 @@ async function renderPair() {
   const start = index - (index % 2);
   const end = Math.min(start + 2, advancedState.pages.length);
   if ($('pairPageLabel')) $('pairPageLabel').textContent = `${start + 1}-${end} / ${advancedState.pages.length}`;
-  if ($('pairPrevBtn')) $('pairPrevBtn').disabled = start <= 0;
-  if ($('pairNextBtn')) $('pairNextBtn').disabled = start + 2 >= advancedState.pages.length;
+  if ($('pairPrevBtn')) $('pairPrevBtn').disabled = index <= 0;
+  if ($('pairNextBtn')) $('pairNextBtn').disabled = index >= advancedState.pages.length - 1;
   if ($('selectedPairBadge')) $('selectedPairBadge').textContent = `${index + 1}페이지 · 편집 중`;
 
   const otherIndex = index % 2 === 0 ? index + 1 : index - 1;
