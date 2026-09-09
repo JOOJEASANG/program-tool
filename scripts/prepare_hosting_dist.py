@@ -39,6 +39,7 @@ HOSTED_DIRS = (
     "css",
     "js",
     "print-checker",
+    "smart-print-layout",
     "pdf-editor",
     "pdf-preflight",
     "perfect-binding-cover",
@@ -87,7 +88,7 @@ PDF_SUITE_DAILY_FREE_SNIPPET = (
     f'<script {PDF_SUITE_DAILY_FREE_MARKER} src="/js/pdf-daily-free.js?v=20260907-2"></script>'
 )
 PDF_SUITE_HOME_SNIPPET = (
-    f'<script {PDF_SUITE_HOME_MARKER} defer src="/js/pdf-suite-home-launcher.js?v=20260908-1"></script>'
+    f'<script {PDF_SUITE_HOME_MARKER} defer src="/js/pdf-suite-home-launcher.js?v=20260910-1"></script>'
 )
 PDF_SUITE_ADVANCED_SNIPPET = (
     f'<script {PDF_SUITE_ADVANCED_MARKER} defer '
@@ -235,6 +236,8 @@ def build() -> int:
 
     if not (OUTPUT / PDF_SUITE_HTML).is_file():
         raise RuntimeError("Hosting stage is missing PDF suite hub")
+    if not (OUTPUT / "smart-print-layout/index.html").is_file():
+        raise RuntimeError("Hosting stage is missing smart print layout")
 
     leaked = sorted(
         path.relative_to(OUTPUT).as_posix()
