@@ -17,7 +17,7 @@
   function isProtectedRuntimePage(){
     return isPath(
       '/print-checker','/print-checker/index.html',
-      '/tools/pdf-editor.html','/pdf-editor','/pdf-editor/index.html',
+      '/tools/pdf-editor.html','/pdf-editor','/pdf-editor/index.html','/pdf-editor-advanced',
       '/tools/preflight.html','/tools/pdf-Checker.html','/pdf-preflight','/pdf-preflight/index.html',
       '/tools/perfect-binding-cover.html','/perfect-binding-cover','/perfect-binding-cover/index.html'
     );
@@ -141,7 +141,7 @@
       tasks.push(load('programStudioPlatformHealthScriptV1','/js/platform-health.js?v='+VERSION).catch(error=>{console.warn('Platform health helper loading failed',error);return null;}));
       tasks.push(load('appVersionHelperScript','/js/app-version.js?v='+VERSION));
     }
-    if(isPath('/tools/pdf-editor.html','/pdf-editor','/pdf-editor/index.html'))tasks.push(loadPdfEditorRuntime());
+    if(isPath('/tools/pdf-editor.html','/pdf-editor','/pdf-editor/index.html','/pdf-editor-advanced'))tasks.push(loadPdfEditorRuntime());
     if(isPath('/tools/pdf-Checker.html','/tools/preflight.html','/pdf-preflight','/pdf-preflight/index.html'))tasks.push(loadPreflightRuntime());
     return Promise.allSettled(tasks);
   }
