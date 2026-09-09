@@ -1,10 +1,21 @@
 import { advancedState, selectedPage } from './state.js';
 
 const PT_PER_MM = 72 / 25.4;
+const MAX_SOURCE_CANVAS_CACHE = 8;
 const sourceCanvasCache = new Map();
 let lastLayout = null;
 
 function clamp(value, min, max) { return Math.max(min, Math.min(max, value)); }
+
+function cacheSourceCanvas(key, canvas) {
+  if (sourceCanvasCache.has(key)) sourceCanvasCache.delete(key);
+  sourceCanvasCache.set(key, canvas);
+  while (sourceCanvasCache.size > MAX_SOURCE_CANVAS_CACHE) {
+    const oldestKey = sourceCanvasCache.keys().next().value;
+    if (oldestKey == null) break;
+    sourceCanvasCache.delete(oldestKey);
+  }
+}
 
 export function clearPreviewCache() {
   sourceCanvasCache.clear();
@@ -13,7 +24,12 @@ export function clearPreviewCache() {
 
 export async function sourceCanvasFor(page) {
   const key = `${page.fileIndex}:${page.pageIndex}`;
-  if (sourceCanvasCache.has(key)) return sourceCanvasCache.get(key);
+  if (sourceCanvasCache.has(key)) {
+    const cached = sourceCanvasCache.get(key);
+    sourceCanvasCache.delete(key);
+    sourceCanvasCache.set(key, cached);
+    return cached;
+  }
   const pdf = advancedState.documents[page.fileIndex];
   if (!pdf) throw new Error('원본 PDF를 찾을 수 없습니다.');
   const pdfPage = await pdf.getPage(page.pageIndex + 1);
@@ -27,7 +43,7 @@ export async function sourceCanvasFor(page) {
   const context = canvas.getContext('2d', { alpha: false });
   context.fillStyle = '#fff'; context.fillRect(0, 0, canvas.width, canvas.height);
   await pdfPage.render({ canvasContext: context, viewport }).promise;
-  sourceCanvasCache.set(key, canvas);
+  cacheSourceCanvas(key, canvas);
   return canvas;
 }
 
@@ -232,12 +248,16 @@ export function sourceSideForVisualEdge(edge, rotation) {
 }
 
 export async function renderThumbnail(page, canvas) {
-  const source = await sourceCanvasFor(page);
+  const pdf = advancedState.documents[page.fileIndex];
+  if (!pdf) return;
+  const pdfPage = await pdf.getPage(page.pageIndex + 1);
+  const base = pdfPage.getViewport({ scale: 1, rotation: 0 });
   const maxW = 72, maxH = 92;
-  const scale = Math.min(maxW / source.width, maxH / source.height);
-  canvas.width = Math.max(1, Math.round(source.width * scale));
-  canvas.height = Math.max(1, Math.round(source.height * scale));
+  const scale = clamp(Math.min(maxW / Math.max(1, base.width), maxH / Math.max(1, base.height)), .05, .5);
+  const viewport = pdfPage.getViewport({ scale, rotation: 0 });
+  canvas.width = Math.max(1, Math.round(viewport.width));
+  canvas.height = Math.max(1, Math.round(viewport.height));
   const ctx = canvas.getContext('2d', { alpha: false });
   ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.drawImage(source, 0, 0, canvas.width, canvas.height);
+  await pdfPage.render({ canvasContext: ctx, viewport }).promise;
 }
