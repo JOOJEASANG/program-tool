@@ -18,6 +18,7 @@
 
   const BLOCKED_ACTION_PATTERN=/(빈\s*페이지\s*(삽입|추가)|간지\s*(삽입|추가)|N\s*-?\s*up|N-UP|NUP|소책자)/i;
   const ADVANCED_SUBTITLE='파일 업로드 · 페이지 정렬/삭제 · 자르기/회전 · 위치/크기 보정 · PDF 저장';
+  const ADVANCED_EDIT_TITLE='페이지 위치·크기 보정';
   let observer=null;
   let applying=false;
 
@@ -95,7 +96,10 @@
 
     const section=document.querySelector('[data-sec="nup"]');
     const title=section?.querySelector('.sec-title')||section?.closest('.sec')?.querySelector('.sec-title');
-    if(title)title.textContent='페이지 위치·크기 보정';
+    // MutationObserver watches childList changes. Reassigning textContent even
+    // to the same string creates another child mutation and can keep the page
+    // in a self-triggering loop, so write only when the title actually differs.
+    if(title&&String(title.textContent||'')!==ADVANCED_EDIT_TITLE)title.textContent=ADVANCED_EDIT_TITLE;
 
     const fields=[...document.querySelectorAll('#sb-nup > .field')];
     fields.forEach(field=>{
