@@ -6,6 +6,7 @@ PORT="${PDF_PROGRAM_SHELL_SMOKE_PORT:-4196}"
 OUT_DIR="${PDF_PROGRAM_SHELL_SMOKE_OUT:-$ROOT_DIR/browser-smoke-artifacts}"
 SERVER_LOG="$OUT_DIR/pdf-program-shell-smoke-server.log"
 PROFILE_DIR="$(mktemp -d)"
+BROWSER_TIMEOUT_SECONDS="${PDF_PROGRAM_SHELL_BROWSER_TIMEOUT:-30}"
 mkdir -p "$OUT_DIR"
 
 find_browser(){ for candidate in google-chrome google-chrome-stable chromium chromium-browser; do if command -v "$candidate" >/dev/null 2>&1; then command -v "$candidate"; return 0; fi; done; return 1; }
@@ -33,11 +34,48 @@ PY
   return 1
 }
 
+browser_dump_once(){
+  local url="$1" out="$2" virtual_budget="$3"
+  timeout --signal=TERM --kill-after=3s "${BROWSER_TIMEOUT_SECONDS}s" \
+    "$BROWSER" \
+    --headless=new \
+    --disable-gpu \
+    --no-sandbox \
+    --disable-dev-shm-usage \
+    --disable-background-networking \
+    --disable-component-update \
+    --disable-default-apps \
+    --disable-sync \
+    --no-first-run \
+    --user-data-dir="$PROFILE_DIR" \
+    --virtual-time-budget="$virtual_budget" \
+    --dump-dom "$url" >"$out"
+}
+
+browser_dump(){
+  local page="$1" url="$2" out="$3" virtual_budget="$4" rc=0
+  echo "PDF browser smoke: $page"
+  if browser_dump_once "$url" "$out" "$virtual_budget"; then
+    return 0
+  else
+    rc=$?
+  fi
+  echo "WARN: Chrome did not finish $page (exit=$rc); retrying once with a fresh profile." >&2
+  reset_profile
+  if browser_dump_once "$url" "$out" "$virtual_budget"; then
+    return 0
+  else
+    rc=$?
+  fi
+  echo "ERROR: Chrome could not finish $page after retry (exit=$rc)." >&2
+  return "$rc"
+}
+
 run_case(){
   local page="$1" out="$2" marker="$3"
   local url="http://127.0.0.1:$PORT/tests/browser/$page"
   wait_for_url "$url"
-  "$BROWSER" --headless=new --disable-gpu --no-sandbox --disable-dev-shm-usage --disable-background-networking --user-data-dir="$PROFILE_DIR" --virtual-time-budget=10000 --dump-dom "$url" >"$out"
+  browser_dump "$page" "$url" "$out" 10000
   grep -q 'data-shell-smoke="pass"' "$out" || { cat "$out" >&2; exit 1; }
   grep -q 'data-shell-header-removed="true"' "$out" || { cat "$out" >&2; exit 1; }
   grep -q 'data-shell-actions-preserved="true"' "$out" || { cat "$out" >&2; exit 1; }
@@ -48,7 +86,7 @@ run_product_case(){
   local page="$1" out="$2" attr="$3" marker="$4"
   local url="http://127.0.0.1:$PORT/tests/browser/$page"
   wait_for_url "$url"
-  "$BROWSER" --headless=new --disable-gpu --no-sandbox --disable-dev-shm-usage --disable-background-networking --user-data-dir="$PROFILE_DIR" --virtual-time-budget=12000 --dump-dom "$url" >"$out"
+  browser_dump "$page" "$url" "$out" 12000
   grep -q "$attr" "$out" || { cat "$out" >&2; exit 1; }
   grep -q "$marker" "$out" || { cat "$out" >&2; exit 1; }
 }
@@ -97,9 +135,9 @@ run_product_case "pdf-output-save-actions-smoke.html" "$OUT_DIR/pdf-output-save-
 reset_profile
 run_product_case "pdf-page-list-quick-add-smoke.html" "$OUT_DIR/pdf-page-list-quick-add-smoke-dom.html" 'data-pdf-page-list-quick-add-smoke="pass"' 'PASS: page list keeps sticky PDF append action and removes legacy jump panel from view'
 reset_profile
-run_product_case "pdf-editor-runtime-profile-split-smoke.html" "$OUT_DIR/pdf-editor-runtime-profile-split-smoke-dom.html" 'data-pdf-editor-runtime-profile-split-smoke="pass"' 'PASS: default PDF editor stays lightweight and advanced route loads editing modules separately'
-reset_profile
 run_product_case "pdf-advanced-sidebar-hard-isolation-smoke.html" "$OUT_DIR/pdf-advanced-sidebar-hard-isolation-smoke-dom.html" 'data-pdf-advanced-sidebar-hard-isolation-smoke="pass"' 'PASS: /pdf-editor-advanced stays advanced, hides spread/N-up/order controls and skips general print-layout modules'
+reset_profile
+run_product_case "pdf-editor-runtime-profile-split-smoke.html" "$OUT_DIR/pdf-editor-runtime-profile-split-smoke-dom.html" 'data-pdf-editor-runtime-profile-split-smoke="pass"' 'PASS: default PDF editor stays lightweight and advanced route loads editing modules separately'
 reset_profile
 run_product_case "pdf-advanced-workspace-stability-smoke.html" "$OUT_DIR/pdf-advanced-workspace-stability-smoke-dom.html" 'data-pdf-advanced-workspace-stability-smoke="pass"' 'PASS: advanced PDF workspace keeps one-page editing, bounded navigation, fixed status height, stable viewport and proxied quick actions'
 
