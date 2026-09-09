@@ -3,7 +3,7 @@ export const advancedState = {
   documents: [],
   pages: [],
   selectedId: null,
-  margins: { left: 0, right: 0, top: 0, bottom: 0 },
+  margins: { left: 0, right: 0, top: 0, bottom: 0, facingPages: false },
   headerFooter: {
     enabled: false,
     headerLeft: '', headerCenter: '', headerRight: '',
@@ -56,7 +56,8 @@ export function snapshotEditableState() {
 function restoreSnapshot(snapshot) {
   advancedState.pages = clone(snapshot.pages || []);
   advancedState.selectedId = snapshot.selectedId || advancedState.pages[0]?.id || null;
-  advancedState.margins = clone(snapshot.margins || { left: 0, right: 0, top: 0, bottom: 0 });
+  advancedState.margins = clone(snapshot.margins || { left: 0, right: 0, top: 0, bottom: 0, facingPages: false });
+  if (typeof advancedState.margins.facingPages !== 'boolean') advancedState.margins.facingPages = false;
   advancedState.headerFooter = clone(snapshot.headerFooter || advancedState.headerFooter);
   advancedState.pageNumbers = clone(snapshot.pageNumbers || advancedState.pageNumbers);
   emitStateChange('history');
@@ -113,7 +114,7 @@ export function resetAllState() {
   advancedState.documents = [];
   advancedState.pages = [];
   advancedState.selectedId = null;
-  advancedState.margins = { left: 0, right: 0, top: 0, bottom: 0 };
+  advancedState.margins = { left: 0, right: 0, top: 0, bottom: 0, facingPages: false };
   advancedState.headerFooter = {
     enabled: false,
     headerLeft: '', headerCenter: '', headerRight: '',
@@ -161,6 +162,7 @@ export function serializeSettings() {
       right_mm: advancedState.margins.right,
       top_mm: advancedState.margins.top,
       bottom_mm: advancedState.margins.bottom,
+      facing_pages: !!advancedState.margins.facingPages,
     },
     header_footer: {
       enabled: advancedState.headerFooter.enabled,
