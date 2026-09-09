@@ -34,6 +34,10 @@
         "destination": "/print-checker/index.html"
       },
       {
+        "source": "/smart-print-layout",
+        "destination": "/smart-print-layout/index.html"
+      },
+      {
         "source": "/apps/**",
         "destination": "/apps/index.html"
       },
