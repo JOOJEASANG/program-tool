@@ -147,6 +147,7 @@ export function serializeSettings() {
       file_index: page.fileIndex,
       page_index: page.pageIndex,
       rotation: page.rotation,
+      fine_rotation_deg: Number(page.fineRotation || 0),
       crop_left_ratio: page.crop.left,
       crop_top_ratio: page.crop.top,
       crop_right_ratio: page.crop.right,
