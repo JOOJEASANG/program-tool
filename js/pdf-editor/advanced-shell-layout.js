@@ -29,7 +29,8 @@
       html[data-pdf-editor-profile="advanced"] .app>main{height:100vh!important;padding:14px!important;gap:10px!important;min-width:0!important}
       html[data-pdf-editor-profile="advanced"] .preview-shell{min-height:0!important;flex:1 1 auto!important}
       #pdfAdvancedSidebarNavV1{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin:-2px 0 10px;padding-bottom:10px;border-bottom:1px solid #e5e7eb}
-      #pdfAdvancedSidebarNavV1 .nav-back,#pdfAdvancedSidebarNavV1 .nav-history-btn,#pdfAdvancedSidebarNavV1 .nav-logout{width:auto!important;min-height:28px!important;display:inline-flex;align-items:center;justify-content:center;gap:4px;border:1px solid #d7dee8!important;border-radius:7px!important;background:#fff!important;color:#475569!important;padding:5px 8px!important;font:inherit!important;font-size:9px!important;font-weight:850!important;text-decoration:none!important;box-shadow:none!important}
+      #pdfAdvancedSidebarNavV1 .nav-back,#pdfAdvancedSidebarNavV1 .nav-history-btn,#pdfAdvancedSidebarNavV1 .nav-logout{width:auto!important;min-height:28px!important;align-items:center;justify-content:center;gap:4px;border:1px solid #d7dee8!important;border-radius:7px!important;background:#fff!important;color:#475569!important;padding:5px 8px!important;font:inherit!important;font-size:9px!important;font-weight:850!important;text-decoration:none!important;box-shadow:none!important}
+      #pdfAdvancedSidebarNavV1 .nav-back,#pdfAdvancedSidebarNavV1 .nav-logout{display:inline-flex!important}
       #pdfAdvancedSidebarNavV1 .nav-back:hover,#pdfAdvancedSidebarNavV1 .nav-history-btn:hover,#pdfAdvancedSidebarNavV1 .nav-logout:hover{background:#f1f5f9!important;border-color:#94a3b8!important;color:#0f172a!important}
       #pdfAdvancedSidebarNavV1 .nav-logout{margin-left:auto!important}
       html[data-pdf-editor-profile="advanced"] aside>h1{font-size:16px!important;margin-bottom:3px!important;letter-spacing:-.4px!important}
@@ -179,8 +180,10 @@
       const input=byId(id);
       if(input&&!input.dataset.advancedMoveSyncBound){
         input.dataset.advancedMoveSyncBound='1';
-        input.addEventListener('input',queueSync);
-        input.addEventListener('change',queueSync);
+        const axis=id==='pdfNupAdjustX'?'x':'y';
+        const syncFromInput=()=>{writeSlider(axis,input.value);queueSync();};
+        input.addEventListener('input',syncFromInput);
+        input.addEventListener('change',syncFromInput);
       }
     });
     const label=byId('pdfNupAdjustSelectedLabel');
