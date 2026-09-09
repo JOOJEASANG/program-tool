@@ -1,4 +1,4 @@
-// Advanced editor shell: headerless two-pane layout + direct X/Y movement sliders.
+// Advanced editor shell: headerless two-pane layout + stable actions/upload + X/Y movement sliders.
 (function(){
   'use strict';
   if(window.__pdfAdvancedShellLayoutV1)return;
@@ -13,9 +13,16 @@
 
   const byId=id=>document.getElementById(id);
   const clamp=(value,min,max)=>Math.max(min,Math.min(max,Number(value)||0));
-  const INSTALL_DELAYS=[0,80,180,360,700,1200,2200,4000];
+  const INSTALL_DELAYS=[0,40,100,220,500,1000,2000,4000];
   let labelObserver=null;
+  let asideObserver=null;
+  let authLoadingObserver=null;
+  let uploadObserver=null;
+  let bodyObserver=null;
+  let authBound=false;
   let syncFrame=0;
+  let stabilizeTimer=0;
+  let stabilizing=false;
 
   function installStyles(){
     if(byId('pdfAdvancedShellLayoutStylesV1'))return;
@@ -26,9 +33,12 @@
       html[data-pdf-editor-profile="advanced"] .top-nav{display:none!important}
       html[data-pdf-editor-profile="advanced"] .app{grid-template-columns:360px minmax(0,1fr)!important;height:100vh!important;min-height:100vh!important}
       html[data-pdf-editor-profile="advanced"] .app>aside{height:100vh!important;top:0!important;padding:16px!important;background:var(--panel,#fff)!important;border-right:1px solid var(--line,#e5e7eb)!important}
-      html[data-pdf-editor-profile="advanced"] .app>main{height:100vh!important;padding:14px!important;gap:10px!important;min-width:0!important}
+      html[data-pdf-editor-profile="advanced"] .app>main{height:100vh!important;padding:14px!important;gap:10px!important;min-width:0!important;position:relative!important}
       html[data-pdf-editor-profile="advanced"] .preview-shell{min-height:0!important;flex:1 1 auto!important}
-      #pdfAdvancedSidebarNavV1{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin:-2px 0 10px;padding-bottom:10px;border-bottom:1px solid #e5e7eb}
+      html[data-pdf-editor-profile="advanced"] #statusBar{position:absolute!important;top:14px!important;left:14px!important;right:14px!important;z-index:45!important;margin:0!important;box-shadow:0 5px 18px rgba(15,23,42,.12)!important}
+      html[data-pdf-editor-profile="advanced"] #sb-upload{display:block!important}
+      html[data-pdf-editor-profile="advanced"] .sec-head[data-sec="upload"] .sec-arrow{transform:none!important}
+      #pdfAdvancedSidebarNavV1{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin:-2px 0 10px;padding-bottom:10px;border-bottom:1px solid #e5e7eb;min-height:39px}
       #pdfAdvancedSidebarNavV1 .nav-back,#pdfAdvancedSidebarNavV1 .nav-history-btn,#pdfAdvancedSidebarNavV1 .nav-logout{width:auto!important;min-height:28px!important;align-items:center;justify-content:center;gap:4px;border:1px solid #d7dee8!important;border-radius:7px!important;background:#fff!important;color:#475569!important;padding:5px 8px!important;font:inherit!important;font-size:9px!important;font-weight:850!important;text-decoration:none!important;box-shadow:none!important}
       #pdfAdvancedSidebarNavV1 .nav-back,#pdfAdvancedSidebarNavV1 .nav-logout{display:inline-flex!important}
       #pdfAdvancedSidebarNavV1 .nav-back:hover,#pdfAdvancedSidebarNavV1 .nav-history-btn:hover,#pdfAdvancedSidebarNavV1 .nav-logout:hover{background:#f1f5f9!important;border-color:#94a3b8!important;color:#0f172a!important}
@@ -50,10 +60,44 @@
         html[data-pdf-editor-profile="advanced"] body{overflow:auto!important}
         html[data-pdf-editor-profile="advanced"] .app{height:auto!important;min-height:100vh!important;display:block!important}
         html[data-pdf-editor-profile="advanced"] .app>aside,html[data-pdf-editor-profile="advanced"] .app>main{height:auto!important;min-height:0!important}
+        html[data-pdf-editor-profile="advanced"] #statusBar{position:fixed!important;top:8px!important;left:8px!important;right:8px!important}
         #pdfAdvancedSidebarNavV1 .nav-logout{margin-left:0!important}
       }
     `;
     document.head.appendChild(style);
+  }
+
+  function authApi(){
+    try{if(window.auth)return window.auth;}catch(_){}
+    try{if(typeof auth!=='undefined')return auth;}catch(_){}
+    return null;
+  }
+
+  function currentUser(){
+    try{return authApi()?.currentUser||null;}catch(_){return null;}
+  }
+
+  function authLoadingVisible(){
+    const loading=byId('authLoading');
+    if(!loading)return false;
+    try{return getComputedStyle(loading).display!=='none';}catch(_){return loading.style.display!=='none';}
+  }
+
+  function syncSidebarActions(){
+    const tools=byId('pdfAdvancedSidebarNavV1');
+    if(!tools)return false;
+    const loading=authLoadingVisible();
+    tools.style.visibility=loading?'hidden':'visible';
+    tools.setAttribute('aria-hidden',loading?'true':'false');
+    const user=currentUser();
+    if(!loading&&user){
+      ['navSessionBtn','navSessionLoadBtn'].forEach(id=>{
+        const node=byId(id);
+        if(node)node.style.setProperty('display','inline-flex','important');
+      });
+      root.dataset.pdfAdvancedActionsStable='1';
+    }
+    return true;
   }
 
   function relocateHeaderActions(){
@@ -63,11 +107,14 @@
     if(!tools){
       tools=document.createElement('div');
       tools.id='pdfAdvancedSidebarNavV1';
+      tools.setAttribute('aria-label','고급 편집 이동 및 계정');
       const first=aside.firstElementChild;
       if(first)aside.insertBefore(tools,first);else aside.appendChild(tools);
+    }else if(tools.parentElement!==aside){
+      aside.insertBefore(tools,aside.firstElementChild||null);
     }
     const nav=document.querySelector('.top-nav');
-    const items=[nav?.querySelector('.nav-back'),byId('navSessionBtn'),byId('navSessionLoadBtn'),byId('navLogout')].filter(Boolean);
+    const items=[document.querySelector('.nav-back'),byId('navSessionBtn'),byId('navSessionLoadBtn'),byId('navLogout')].filter(Boolean);
     items.forEach(node=>{if(node.parentElement!==tools)tools.appendChild(node);});
     if(nav)nav.setAttribute('aria-hidden','true');
     const title=aside.querySelector(':scope>h1');
@@ -75,7 +122,57 @@
     if(title&&title.textContent!=='PDF 고급 편집')title.textContent='PDF 고급 편집';
     if(sub&&sub.textContent!=='파일 업로드 · 페이지 정렬/삭제 · 위치/크기 · 자르기/회전 · PDF 저장')sub.textContent='파일 업로드 · 페이지 정렬/삭제 · 위치/크기 · 자르기/회전 · PDF 저장';
     root.dataset.pdfAdvancedHeaderlessShell='1';
+    syncSidebarActions();
     return true;
+  }
+
+  function stabilizeUpload(){
+    const head=document.querySelector('.sec-head[data-sec="upload"]');
+    const body=byId('sb-upload');
+    const zone=byId('uploadZone');
+    const input=byId('fileInput');
+    if(head){head.classList.remove('collapsed');delete head.dataset.advancedAutoCollapsed;}
+    if(body){body.classList.remove('hidden');body.hidden=false;body.removeAttribute('aria-hidden');}
+    const importBusy=zone?.dataset?.importBusy==='1';
+    if(zone){
+      zone.style.pointerEvents='';
+      if(importBusy)zone.setAttribute('aria-disabled','true');
+      else zone.removeAttribute('aria-disabled');
+    }
+    const sessionSaving=document.body?.dataset?.pdfSessionSaving==='true';
+    if(input){
+      if(importBusy){
+        if(!input.disabled)input.disabled=true;
+        input.setAttribute('aria-disabled','true');
+      }else if(!sessionSaving){
+        if(input.disabled)input.disabled=false;
+        input.removeAttribute('aria-disabled');
+      }
+    }
+    if(body&&zone&&input){
+      root.dataset.pdfAdvancedUploadStable='1';
+      root.dataset.pdfAdvancedImportBusy=importBusy?'1':'0';
+    }
+    return Boolean(body&&zone&&input);
+  }
+
+  function queueStabilize(){
+    if(stabilizeTimer)return;
+    stabilizeTimer=setTimeout(()=>{
+      stabilizeTimer=0;
+      if(stabilizing)return;
+      stabilizing=true;
+      try{relocateHeaderActions();stabilizeUpload();syncSidebarActions();}
+      finally{stabilizing=false;}
+    },0);
+  }
+
+  function bindAuth(){
+    if(authBound)return;
+    const api=authApi();
+    if(!api||typeof api.onAuthStateChanged!=='function')return;
+    authBound=true;
+    try{api.onAuthStateChanged(()=>queueStabilize());}catch(_){}
   }
 
   function selectedPage(){
@@ -136,7 +233,8 @@
 
   function bindMoveRange(id,axis){
     const slider=byId(id);
-    if(!slider)return;
+    if(!slider||slider.dataset.advancedMoveBound==='1')return;
+    slider.dataset.advancedMoveBound='1';
     slider.addEventListener('pointerdown',beginMoveHistory);
     slider.addEventListener('focusin',beginMoveHistory);
     slider.addEventListener('input',event=>applyRange(axis,event.target.value));
@@ -195,26 +293,69 @@
     return true;
   }
 
+  function installObservers(){
+    if(typeof MutationObserver!=='function')return;
+    const aside=document.querySelector('.app>aside');
+    if(aside&&!asideObserver){
+      asideObserver=new MutationObserver(queueStabilize);
+      asideObserver.observe(aside,{childList:true});
+    }
+    const loading=byId('authLoading');
+    if(loading&&!authLoadingObserver){
+      authLoadingObserver=new MutationObserver(queueStabilize);
+      authLoadingObserver.observe(loading,{attributes:true,attributeFilter:['style','class']});
+    }
+    const uploadHead=document.querySelector('.sec-head[data-sec="upload"]');
+    const uploadBody=byId('sb-upload');
+    const uploadZone=byId('uploadZone');
+    const fileInput=byId('fileInput');
+    if(uploadHead&&uploadBody&&uploadZone&&fileInput&&!uploadObserver){
+      uploadObserver=new MutationObserver(queueStabilize);
+      uploadObserver.observe(uploadHead,{attributes:true,attributeFilter:['class']});
+      uploadObserver.observe(uploadBody,{attributes:true,attributeFilter:['class','hidden']});
+      uploadObserver.observe(uploadZone,{attributes:true,attributeFilter:['data-import-busy','aria-busy']});
+      uploadObserver.observe(fileInput,{attributes:true,attributeFilter:['disabled','aria-disabled']});
+    }
+    if(document.body&&!bodyObserver){
+      bodyObserver=new MutationObserver(queueStabilize);
+      bodyObserver.observe(document.body,{attributes:true,attributeFilter:['data-pdf-session-saving']});
+    }
+  }
+
   function installEvents(){
     if(root.dataset.pdfAdvancedShellEvents==='1')return;
     root.dataset.pdfAdvancedShellEvents='1';
-    document.addEventListener('click',event=>{if(event.target?.closest?.('.pdf-nup-adjust-hit,#thumbArea'))setTimeout(queueSync,0);},true);
+    document.addEventListener('click',event=>{
+      if(event.target?.closest?.('#uploadZone'))stabilizeUpload();
+      if(event.target?.closest?.('.pdf-nup-adjust-hit,#thumbArea'))setTimeout(queueSync,0);
+    },true);
+    document.addEventListener('keydown',event=>{
+      if((event.key==='Enter'||event.key===' ')&&event.target?.closest?.('#uploadZone'))stabilizeUpload();
+    },true);
     document.addEventListener('pointerup',event=>{if(event.target?.closest?.('.pdf-nup-adjust-hit,.pdf-nup-adjust-handle,.pdf-direct-scale-corner,.pdf-direct-crop-edge'))setTimeout(queueSync,0);},true);
-    document.addEventListener('pdf-import-committed',()=>setTimeout(()=>{ensureMoveSliders();queueSync();},0));
+    document.addEventListener('pdf-import-committed',()=>setTimeout(()=>{stabilizeUpload();ensureMoveSliders();queueSync();},0));
+    document.addEventListener('pdf-import-failed',()=>setTimeout(stabilizeUpload,0));
   }
 
   function install(){
     root.dataset.pdfEditorProfile='advanced';
     installStyles();
     relocateHeaderActions();
+    stabilizeUpload();
     ensureMoveSliders();
     installEvents();
+    installObservers();
+    bindAuth();
+    syncSidebarActions();
   }
 
   window.PdfAdvancedShellLayout={
     install,
     sync:queueSync,
-    stage:'headerless-layout-move-sliders-v1'
+    stabilizeUpload,
+    stabilizeActions:queueStabilize,
+    stage:'headerless-layout-move-sliders-v1',
+    stabilityStage:'upload-shell-stability-v2'
   };
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();

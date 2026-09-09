@@ -131,6 +131,7 @@
 
   function load(id,src){const loader=context().load;return typeof loader==='function'?loader(id,src):fallbackLoad(id,src);}
 
+  const loadAdvancedShellLayout=()=>load('pdfAdvancedShellLayoutScriptV1','/js/pdf-editor/advanced-shell-layout.js?v=20260909-2');
   const loadPreviewZoomPersistence=()=>load('pdfPreviewZoomPersistenceScriptV1','/js/pdf-editor/preview-zoom-persistence.js?v=20260908-1');
   const loadNupInteractionStability=()=>load('pdfNupInteractionStabilityScriptV1','/js/pdf-editor/nup-interaction-stability.js?v=20260908-2');
   const loadNupPageAdjust=()=>load('pdfNupPageAdjustScriptV1','/js/pdf-editor/nup-page-adjust.js?v=20260908-1');
@@ -142,14 +143,16 @@
   const loadOrientationScaleRegression=()=>load('pdfOrientationScaleRegressionScriptV1','/js/pdf-editor/orientation-scale-regression-fix.js?v=20260908-1');
   const loadPrecisionEditTools=()=>load('pdfPrecisionEditToolsScriptV1','/js/pdf-editor/precision-edit-tools.js?v=20260908-1');
   const loadAdvancedWorkspaceUx=()=>load('pdfAdvancedWorkspaceUxScriptV1','/js/pdf-editor/advanced-workspace-ux.js?v=20260909-1');
-  const loadAdvancedShellLayout=()=>load('pdfAdvancedShellLayoutScriptV1','/js/pdf-editor/advanced-shell-layout.js?v=20260909-1');
   const loadDirectPageEditQuickbar=()=>load('pdfDirectPageEditQuickbarScriptV1','/js/pdf-editor/direct-page-edit-quickbar.js?v=20260909-1');
 
   let loading=null;
   function loadAll(){
     if(loading)return loading;
     installDragCropPlacementPanelSync();installPrecisionInputHistoryBridge();
+    // Load the shell first. Header removal, sidebar actions and upload affordance
+    // must be stable before heavier editing helpers begin their waterfall.
     loading=Promise.resolve()
+      .then(()=>loadAdvancedShellLayout())
       .then(()=>loadPreviewZoomPersistence())
       .then(()=>loadNupInteractionStability())
       .then(()=>loadNupPageAdjust())
@@ -161,7 +164,6 @@
       .then(()=>loadOrientationScaleRegression())
       .then(()=>loadPrecisionEditTools())
       .then(()=>loadAdvancedWorkspaceUx())
-      .then(()=>loadAdvancedShellLayout())
       .then(()=>loadDirectPageEditQuickbar())
       .then(()=>{document.documentElement.dataset.pdfAdvancedRuntime='1';return true;});
     return loading;
@@ -173,10 +175,10 @@
     loadAll,
     stage:'pdf-editor-advanced-runtime-v1',
     modules:Object.freeze([
-      'preview-zoom-persistence','nup-interaction-stability','nup-page-adjust',
+      'advanced-shell-layout','preview-zoom-persistence','nup-interaction-stability','nup-page-adjust',
       'page-transform-edit','direct-page-edit-v2','drag-crop-autofit','nup-direct-preview-edit',
       'editor-interaction-polish','orientation-scale-regression-fix','precision-edit-tools',
-      'advanced-workspace-ux','advanced-shell-layout','direct-page-edit-quickbar'
+      'advanced-workspace-ux','direct-page-edit-quickbar'
     ])
   };
 })();

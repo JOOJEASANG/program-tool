@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="ko" data-pdf-editor-profile="advanced">
+<head>
+  <meta charset="utf-8">
+  <title>Advanced PDF shell/upload stability smoke</title>
+  <style>
+    html,body{margin:0;height:100%}
+    body{padding-top:52px}
+    .top-nav{height:52px;display:flex}
+    .app{display:grid;grid-template-columns:360px 1fr;height:720px}
+    aside{overflow:auto}
+    main{display:flex;flex-direction:column;min-width:0;min-height:0}
+    .preview-shell{display:flex;flex-direction:column;flex:1;min-height:0}
+    #previewScroll{height:280px;overflow:auto}
+    .sec-body.hidden{display:none}
+  </style>
+</head>
+<body>
+  <div id="authLoading" style="display:none"></div>
+  <nav class="top-nav">
+    <a class="nav-back" href="/">목록으로</a>
+    <button class="nav-history-btn" id="navSessionBtn" type="button" style="display:none">편집 저장</button>
+    <button class="nav-history-btn" id="navSessionLoadBtn" type="button" style="display:none">편집 불러오기</button>
+    <button class="nav-logout" id="navLogout" type="button">로그아웃</button>
+  </nav>
+  <div class="app">
+    <aside>
+      <h1>PDF 문서 편집기</h1>
+      <div class="sub">PDF 업로드 · 페이지 편집</div>
+      <div class="sec">
+        <div class="sec-head collapsed" data-sec="upload"><span class="sec-title">파일 업로드</span><span class="sec-arrow">▾</span></div>
+        <div id="sb-upload" class="sec-body hidden">
+          <div id="uploadZone" role="button" tabindex="0">PDF 업로드</div>
+          <input id="fileInput" type="file" disabled>
+        </div>
+      </div>
+      <div class="sec">
+        <div class="sec-head" data-sec="nup"><span class="sec-title">페이지 위치·크기 보정</span></div>
+        <div id="sb-nup" class="sec-body">
+          <div id="pdfNupPageAdjustPanelV1">
+            <div class="pdf-nup-adjust-head"><span id="pdfNupAdjustSelectedLabel">1페이지</span></div>
+            <div class="pdf-nup-adjust-scale"><input id="pdfNupAdjustScaleRange" type="range" value="100"><input id="pdfNupAdjustScale" type="number" value="100"></div>
+            <input id="pdfNupAdjustX" type="number" value="0">
+            <input id="pdfNupAdjustY" type="number" value="0">
+          </div>
+        </div>
+      </div>
+      <div id="thumbArea"></div>
+    </aside>
+    <main>
+      <div id="statusBar" style="display:none"><span>상태</span></div>
+      <div class="preview-shell"><div id="previewScroll"></div></div>
+    </main>
+  </div>
+  <pre id="result">RUNNING</pre>
+  <script>
+    window.auth={currentUser:{uid:'smoke'},onAuthStateChanged(callback){callback(this.currentUser);return()=>{};}};
+    window.parsedPages=[{id:'p1',nupOffsetX:0,nupOffsetY:0,nupScale:1}];
+    window.PdfNupPageAdjust={valuesForPage(page){return{offsetX:page.nupOffsetX||0,offsetY:page.nupOffsetY||0,scale:page.nupScale||1};}};
+    const calls=[];
+    window.ProgramStudioPdfEditorRuntimeContext={
+      load(id,src){
+        calls.push({id,src});
+        if(id!=='pdfAdvancedShellLayoutScriptV1')return Promise.resolve(true);
+        return new Promise((resolve,reject)=>{
+          const script=document.createElement('script');
+          script.id=id;script.src=src;
+          script.addEventListener('load',resolve,{once:true});
+          script.addEventListener('error',reject,{once:true});
+          document.head.appendChild(script);
+        });
+      }
+    };
+  </script>
+  <script src="/js/pdf-editor/advanced-runtime.js"></script>
+  <script>
+    (async()=>{
+      const result=document.getElementById('result');
+      const fail=message=>{
+        document.documentElement.dataset.pdfAdvancedShellUploadStabilitySmoke='fail';
+        result.textContent='FAIL: '+message;
+        throw new Error(message);
+      };
+      const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+      await window.PdfEditorAdvancedRuntime.loadAll();
+      await wait(120);
+
+      if(calls[0]?.id!=='pdfAdvancedShellLayoutScriptV1')return fail('advanced shell was not the first runtime module');
+      const shell=window.PdfAdvancedShellLayout;
+      if(!shell||shell.stabilityStage!=='upload-shell-stability-v2')return fail('shell stability API missing');
+      if(parseFloat(getComputedStyle(document.body).paddingTop||'0')!==0)return fail('legacy header padding remains');
+      if(getComputedStyle(document.querySelector('.top-nav')).display!=='none')return fail('legacy top nav remains visible');
+      const statusPosition=getComputedStyle(document.getElementById('statusBar')).position;
+      if(!['absolute','fixed'].includes(statusPosition))return fail('status bar still consumes top layout space');
+
+      const tools=document.getElementById('pdfAdvancedSidebarNavV1');
+      if(!tools)return fail('stable sidebar action bar missing');
+      for(const id of ['navSessionBtn','navSessionLoadBtn','navLogout']){
+        const node=document.getElementById(id);
+        if(!tools.contains(node))return fail('sidebar action escaped stable bar: '+id);
+      }
+      if(getComputedStyle(document.getElementById('navSessionBtn')).display==='none')return fail('session save action disappeared after auth ready');
+      if(getComputedStyle(document.getElementById('navSessionLoadBtn')).display==='none')return fail('session load action disappeared after auth ready');
+
+      const uploadHead=document.querySelector('.sec-head[data-sec="upload"]');
+      const uploadBody=document.getElementById('sb-upload');
+      const zone=document.getElementById('uploadZone');
+      const input=document.getElementById('fileInput');
+      if(uploadHead.classList.contains('collapsed')||uploadBody.classList.contains('hidden'))return fail('upload panel was not pinned open');
+      if(input.disabled)return fail('file input remained disabled');
+
+      // An active transactional import lock must never be released by shell recovery.
+      zone.dataset.importBusy='1';
+      zone.setAttribute('aria-busy','true');
+      input.disabled=true;
+      shell.stabilizeUpload();
+      await wait(20);
+      if(!input.disabled)return fail('active import lock was released');
+      zone.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true}));
+      if(!input.disabled)return fail('upload click bypassed active import lock');
+
+      // Once the transaction finishes, the observer should clear only a stale leftover lock.
+      zone.dataset.importBusy='0';
+      zone.setAttribute('aria-busy','false');
+      await wait(40);
+      if(input.disabled)return fail('file input did not recover after import lock cleared');
+
+      // Simulate stale disabled state and workspace trying to collapse the upload UI again.
+      input.disabled=true;
+      uploadHead.classList.add('collapsed');
+      uploadBody.classList.add('hidden');
+      await wait(40);
+      if(input.disabled)return fail('stale disabled file input was not recovered');
+      if(uploadHead.classList.contains('collapsed')||uploadBody.classList.contains('hidden'))return fail('upload panel collapsed again');
+
+      // Capture-phase stabilization recovers a stale lock before the normal upload-zone click handler runs.
+      input.disabled=true;
+      zone.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true}));
+      if(input.disabled)return fail('upload click can still hit a stale disabled input window');
+
+      // Simulate another layout pass trying to hide account actions.
+      document.getElementById('navSessionBtn').style.display='none';
+      document.getElementById('navSessionLoadBtn').style.display='none';
+      shell.install();
+      await wait(20);
+      if(getComputedStyle(document.getElementById('navSessionBtn')).display==='none'||getComputedStyle(document.getElementById('navSessionLoadBtn')).display==='none')return fail('sidebar actions can disappear after a later layout pass');
+
+      document.documentElement.dataset.pdfAdvancedShellUploadStabilitySmoke='pass';
+      result.textContent='PASS: advanced shell loads first, removes top gap, pins upload open, recovers file input and keeps sidebar actions visible; active import lock stays protected';
+    })().catch(error=>console.error(error));
+  </script>
+</body>
+</html>
