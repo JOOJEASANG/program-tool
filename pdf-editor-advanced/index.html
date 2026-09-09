@@ -13,13 +13,15 @@
   <div class="advanced-app" id="advancedApp">
     <aside class="advanced-sidebar" aria-label="PDF 고급 편집 도구">
       <div class="sidebar-top">
-        <div>
-          <strong>PDF 고급 편집</strong>
-          <span>페이지 내용을 직접 보정한 뒤 PDF로 다시 저장합니다.</span>
-        </div>
         <div class="top-actions">
-          <a class="icon-btn" href="/index.html" title="프로그램 목록">목록</a>
-          <button class="icon-btn" id="logoutBtn" type="button">로그아웃</button>
+          <a class="icon-btn advanced-nav-icon" id="advancedHomeBtn" href="/index.html" title="프로그램 목록" aria-label="프로그램 목록">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10.5V20h13v-9.5"/><path d="M9.5 20v-6h5v6"/></svg>
+          </a>
+          <button class="icon-btn advanced-session-btn" id="advancedSessionSaveBtn" type="button">편집저장</button>
+          <button class="icon-btn advanced-session-btn" id="advancedSessionLoadBtn" type="button">편집불러오기</button>
+          <button class="icon-btn advanced-nav-icon" id="logoutBtn" type="button" title="로그아웃" aria-label="로그아웃">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M10 4H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h5"/><path d="M14 8l4 4-4 4"/><path d="M18 12H8"/></svg>
+          </button>
         </div>
       </div>
 
@@ -194,5 +196,6 @@
   <script type="module" src="/js/pdf-editor-advanced/app.js?v=20260909-1"></script>
   <script type="module" src="/js/pdf-editor-advanced/facing-upload.js?v=20260909-1"></script>
   <script type="module" src="/js/pdf-editor-advanced/workspace-input-polish.js?v=20260909-1"></script>
+  <script type="module" src="/js/pdf-editor-advanced/session-persistence.js?v=20260909-1"></script>
 </body>
 </html>
