@@ -61,34 +61,56 @@
     return new Promise((resolve,reject)=>{
       let settled=false;
       let unsubscribe=()=>{};
+      let timer=0;
+      const cleanup=()=>{
+        if(timer)clearTimeout(timer);
+        try{unsubscribe();}catch(_){}
+      };
       const finish=value=>{
         if(settled)return;
         settled=true;
-        clearTimeout(timer);
-        try{unsubscribe();}catch(_){}
+        cleanup();
         resolve(value);
       };
-      const redirect=(url)=>{
+      const fail=error=>{
         if(settled)return;
         settled=true;
-        clearTimeout(timer);
-        try{unsubscribe();}catch(_){}
+        cleanup();
+        reject(error instanceof Error?error:new Error(String(error||'로그인 상태를 확인할 수 없습니다.')));
+      };
+      const redirect=url=>{
+        if(settled)return;
+        settled=true;
+        cleanup();
         location.replace(url);
       };
-      const timer=setTimeout(()=>reject(new Error('로그인 상태 확인 시간이 초과되었습니다.')),8000);
+      timer=setTimeout(()=>fail(new Error('로그인 상태 확인 시간이 초과되었습니다.')),8000);
       unsubscribe=auth.onAuthStateChanged(async user=>{
         if(settled)return;
         if(!user){redirect('/login.html');return;}
-        const access=await approved(user);
-        if(!access.allowed){
-          redirect(`/approval-waiting.html?status=${encodeURIComponent(access.status)}&program=pdf-editor`);
-          return;
-        }
-        document.documentElement.dataset.programAccess='pdf-editor';
-        finish(access);
-      },reject);
+        try{
+          const access=await approved(user);
+          if(!access.allowed){
+            redirect(`/approval-waiting.html?status=${encodeURIComponent(access.status)}&program=pdf-editor`);
+            return;
+          }
+          document.documentElement.dataset.programAccess='pdf-editor';
+          finish(access);
+        }catch(error){fail(error);}
+      },fail);
     });
   })();
+
+  const loadSessionOverlayRestore=()=>{
+    if(document.getElementById('pdfAdvancedOverlaySessionRestoreScript'))return;
+    const script=document.createElement('script');
+    script.id='pdfAdvancedOverlaySessionRestoreScript';
+    script.type='module';
+    script.src='/js/pdf-editor-advanced/page-overlay-session-restore.js?v=20260909-1';
+    document.body.appendChild(script);
+  };
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',loadSessionOverlayRestore,{once:true});
+  else loadSessionOverlayRestore();
 
   document.documentElement.dataset.pdfAdvancedFirebase='ready';
 })();
