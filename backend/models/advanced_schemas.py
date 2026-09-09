@@ -17,6 +17,8 @@ class AdvancedPageInfo(BaseModel):
     page_index: int = Field(ge=0, le=1_000_000)
     rotation: Literal[0, 90, 180, 270] = 0
     fine_rotation_deg: float = Field(default=0.0, ge=-15.0, le=15.0)
+    output_width_pt: float | None = Field(default=None, ge=10.0, le=10_000.0)
+    output_height_pt: float | None = Field(default=None, ge=10.0, le=10_000.0)
     crop_left_ratio: float = Field(default=0.0, ge=0.0, le=0.90)
     crop_top_ratio: float = Field(default=0.0, ge=0.0, le=0.90)
     crop_right_ratio: float = Field(default=0.0, ge=0.0, le=0.90)
@@ -33,6 +35,8 @@ class AdvancedPageInfo(BaseModel):
             raise ValueError("좌우 잘라내기 합계는 페이지 폭의 95% 미만이어야 합니다")
         if self.crop_top_ratio + self.crop_bottom_ratio >= 0.95:
             raise ValueError("상하 잘라내기 합계는 페이지 높이의 95% 미만이어야 합니다")
+        if (self.output_width_pt is None) != (self.output_height_pt is None):
+            raise ValueError("출력 페이지 크기는 너비와 높이를 함께 지정해야 합니다")
         return self
 
 
