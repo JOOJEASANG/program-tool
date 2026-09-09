@@ -84,9 +84,8 @@ function applyPaperToPage(page) {
   }
 }
 
-function applyPaperToAll({ recordHistory = false, reason = 'paper-size' } = {}) {
+function applyPaperToAll(reason = 'paper-size') {
   ensurePaperState();
-  if (recordHistory && advancedState.pages.length) checkpoint('페이지 크기');
   advancedState.pages.forEach(applyPaperToPage);
   emitStateChange(reason);
   window.dispatchEvent(new Event('resize'));
@@ -137,16 +136,18 @@ function installSection() {
 
   $('advancedPaperSize').addEventListener('change', () => {
     ensurePaperState();
+    if (advancedState.pages.length) checkpoint('페이지 크기');
     advancedState.paper.preset = $('advancedPaperSize').value;
-    applyPaperToAll({ recordHistory: true, reason: 'paper-size' });
+    applyPaperToAll('paper-size');
     syncUi();
   });
 
   const applyCustom = () => {
     if (advancedState.paper.preset !== 'custom') return;
+    if (advancedState.pages.length) checkpoint('페이지 크기');
     advancedState.paper.customWidthMm = clamp($('advancedPaperCustomW').value, 50, 1200);
     advancedState.paper.customHeightMm = clamp($('advancedPaperCustomH').value, 50, 1200);
-    applyPaperToAll({ recordHistory: true, reason: 'paper-custom-size' });
+    applyPaperToAll('paper-custom-size');
     syncUi();
   };
   $('advancedPaperCustomW').addEventListener('change', applyCustom);
