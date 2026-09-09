@@ -138,7 +138,7 @@ def test_active_runtime_uses_single_pdf_and_preflight_owners():
     app = executable_js(APP_VERSION)
     preflight = PREFLIGHT_RUNTIME.read_text(encoding="utf-8")
 
-    assert "/js/pdf-editor/route-runtime.js?v=20260828-1" in sw
+    assert "/js/pdf-editor/route-runtime.js?v=20260909-1" in sw
     assert "pdf-editor/transfer-limit-guard.js" not in sw
     assert "pdf-divider-local-image-upload.js" not in sw
     assert "pdfEditorTransferLimitGuardScriptV1" not in app
