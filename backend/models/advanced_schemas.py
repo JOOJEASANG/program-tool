@@ -30,8 +30,9 @@ class AdvancedPageOverlay(BaseModel):
         if self.x + self.width > 1.001 or self.y + self.height > 1.001:
             raise ValueError("삽입 항목이 페이지 영역을 벗어났습니다")
         if self.type == "text":
-            if not self.text.strip():
-                raise ValueError("삽입 텍스트가 비어 있습니다")
+            # Empty text is a valid in-progress editor state. The renderer simply
+            # skips it until the user enters content, so downloads never fail just
+            # because a freshly inserted text box is temporarily blank.
             self.data_url = ""
         else:
             prefix = self.data_url[:32].lower()
