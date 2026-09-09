@@ -6,7 +6,7 @@ def read(path:str)->str:return (ROOT/path).read_text(encoding="utf-8")
 def test_main_home_is_static_and_business_name_only():
  index=read("index.html"); firebase=read("js/firebase-config.js")
  assert 'data-home-static-professional="1"' in index
- for label in ("인쇄물 사전 검토","PDF배치","PDF편집","PDF 도구 모음"): assert label in index
+ for label in ("인쇄물 사전 검토","스마트 인쇄배치","PDF배치","PDF편집","PDF 도구 모음"): assert label in index
  assert "대표 " not in firebase and "사업자등록번호 " not in firebase and "business.bizName" in firebase
 def test_version_badge_is_not_rendered():
  source=read("js/app-version.js"); assert "appVersionBadge" not in source; assert "버전 ${currentVersion}" not in source; assert "programStudioVersion" in source
@@ -30,8 +30,8 @@ def test_static_home_has_no_retired_overlay_helpers():
  for marker in ("home-dashboard-v2.js","home-header-footer-refine.js","home-hero-upgrade.js","home-pdf-utility-name-sync.js","home-print-workflow.js","home-professional-suite.js","home-program-catalog.js","if(isHome())"): assert marker not in register
 def test_hosting_stage_loads_split_pdf_home_entries_without_boot_guard_duplication():
  hosting=read("scripts/prepare_hosting_dist.py"); boot=read("js/app-boot-guard.js"); launcher=read("js/pdf-suite-home-launcher.js")
- for marker in ("PDF_SUITE_HOME_MARKER","data-pdf-suite-home-launcher","/js/pdf-suite-home-launcher.js?v=20260908-1","_inject_before(home, PDF_SUITE_HOME_MARKER"): assert marker in hosting
+ for marker in ("PDF_SUITE_HOME_MARKER","data-pdf-suite-home-launcher","/js/pdf-suite-home-launcher.js?v=20260910-1","_inject_before(home, PDF_SUITE_HOME_MARKER","\"smart-print-layout\","): assert marker in hosting
  assert "pdfSuiteHomeLauncherScriptV1" not in boot
  assert "/js/pdf-suite-home-launcher.js" not in boot
- for marker in ("name:'PDF배치'","url:'pdf-editor/'","name:'PDF편집'","url:'pdf-editor-advanced'","pdf-home-four-programs-v6","pdfHomeWorkspace='four-programs'"): assert marker in launcher
- assert launcher.index("id:'pdf-editor'") < launcher.index("id:'pdf-editor-advanced'") < launcher.index("id:'pdf-suite'")
+ for marker in ("name:'스마트 인쇄배치'","url:'smart-print-layout/'","name:'PDF배치'","url:'pdf-editor/'","name:'PDF편집'","url:'pdf-editor-advanced'","pdf-home-five-programs-v7","pdfHomeWorkspace='five-programs'"): assert marker in launcher
+ assert launcher.index("id:'smart-print-layout'") < launcher.index("id:'pdf-editor'") < launcher.index("id:'pdf-editor-advanced'") < launcher.index("id:'pdf-suite'")
