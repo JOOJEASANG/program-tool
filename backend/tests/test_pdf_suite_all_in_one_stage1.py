@@ -81,7 +81,9 @@ def test_pdf_suite_is_staged_with_split_editor_profiles_and_utility_workspace():
         'PDF_SUITE_HTML = "pdf-suite/index.html"',
         "data-pdf-suite-daily-free",
         "pdf-daily-free.js",
-        "pdf-suite-home-launcher.js?v=20260908-1",
+        "pdf-suite-home-launcher.js?v=20260910-1",
+        '"smart-print-layout",',
+        'OUTPUT / "smart-print-layout/index.html"',
         "data-pdf-suite-unified-navigation-prep",
         "unified-navigation-prep.js?v=20260906-2",
         "data-pdf-suite-unified-workspace",
@@ -105,19 +107,21 @@ def test_pdf_suite_is_staged_with_split_editor_profiles_and_utility_workspace():
 
     for marker in (
         "name:'인쇄물 사전 검토'",
+        "name:'스마트 인쇄배치'",
         "name:'PDF배치'",
         "name:'PDF편집'",
         "name:'PDF 유틸리티'",
         "print-checker/",
+        "smart-print-layout/",
         "pdf-editor/",
         "pdf-editor-advanced",
         "pdf-suite/",
         "normalizePrograms",
-        "pdf-home-four-programs-v6",
+        "pdf-home-five-programs-v7",
     ):
         assert marker in home
     assert "id:'booklet'" not in home
-    assert home.index("id:'pdf-editor'") < home.index("id:'pdf-editor-advanced'") < home.index("id:'pdf-suite'")
+    assert home.index("id:'smart-print-layout'") < home.index("id:'pdf-editor'") < home.index("id:'pdf-editor-advanced'") < home.index("id:'pdf-suite'")
 
     for marker in (
         "removeEditorOwnedUtilityTools",
