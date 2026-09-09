@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"><title>Advanced PDF upload facing smoke</title></head>
+<body>
+  <input id="fileInput" type="file" accept="application/pdf,.pdf" multiple hidden>
+  <button id="uploadBtn" class="upload-zone" type="button"><span>PDF 파일 클릭 또는 드래그</span></button>
+  <input id="marginLeft" type="number" value="10">
+  <input id="marginRight" type="number" value="30">
+  <label><input id="facingPages" type="checkbox"><span id="facingHint"></span></label>
+  <pre id="result">WAIT</pre>
+  <script type="module">
+    import { advancedState, serializeSettings } from '/js/pdf-editor-advanced/state.js';
+    await import('/js/pdf-editor-advanced/facing-upload.js');
+    const result=document.getElementById('result');
+    const fail=message=>{document.documentElement.dataset.pdfAdvancedUploadFacingSmoke='fail';result.textContent='FAIL: '+message;throw new Error(message);};
+    advancedState.margins.left=10;
+    advancedState.margins.right=30;
+    document.getElementById('marginLeft').dispatchEvent(new Event('input',{bubbles:true}));
+    const facing=document.getElementById('facingPages');
+    facing.checked=true;
+    facing.dispatchEvent(new Event('change',{bubbles:true}));
+    if(!advancedState.margins.facingPages)fail('facing state did not turn on');
+    if(serializeSettings().margins.facing_pages!==true)fail('facing state was not serialized');
+    if(!document.getElementById('facingHint').textContent.includes('짝수 페이지'))fail('asymmetric margin guidance missing');
+    if(document.documentElement.dataset.pdfAdvancedUploadFacing!=='1')fail('upload/facing helper marker missing');
+    document.documentElement.dataset.pdfAdvancedUploadFacingSmoke='pass';
+    result.textContent='PASS: advanced PDF upload parity and facing-page state are active';
+  </script>
+</body>
+</html>

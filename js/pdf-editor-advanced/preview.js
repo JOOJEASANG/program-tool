@@ -54,6 +54,30 @@ function outputPagePoints(page) {
     : { width: page.widthPt, height: page.heightPt };
 }
 
+function pageNumberFor(page) {
+  const index = advancedState.pages.findIndex(item => item.id === page.id);
+  return index >= 0 ? index + 1 : 1;
+}
+
+function isFacingEvenPage(page) {
+  return !!advancedState.margins.facingPages && pageNumberFor(page) % 2 === 0;
+}
+
+function effectiveMargins(page) {
+  const margin = advancedState.margins;
+  if (isFacingEvenPage(page)) {
+    return { left: margin.right, right: margin.left, top: margin.top, bottom: margin.bottom };
+  }
+  return { left: margin.left, right: margin.right, top: margin.top, bottom: margin.bottom };
+}
+
+function mirroredPosition(position, page) {
+  if (!isFacingEvenPage(page)) return position;
+  if (position.includes('left')) return position.replace('left', 'right');
+  if (position.includes('right')) return position.replace('right', 'left');
+  return position;
+}
+
 function drawSourceWithErase(page, source) {
   if (!page.eraseRegions?.length) return source;
   const canvas = document.createElement('canvas');
@@ -116,20 +140,26 @@ function drawAlignedText(ctx, text, x0, x1, y, align, size, color) {
 function drawOverlays(ctx, page, out, scaleX, scaleY) {
   const index = advancedState.pages.findIndex(item => item.id === page.id);
   const number = index + 1; const total = advancedState.pages.length;
+  const facingEven = isFacingEvenPage(page);
+  const margin = effectiveMargins(page);
   const hf = advancedState.headerFooter;
   if (hf.enabled) {
     const marginY = hf.margin * PT_PER_MM * scaleY;
-    const marginX = Math.max(hf.margin, advancedState.margins.left) * PT_PER_MM * scaleX;
-    const rightMargin = Math.max(hf.margin, advancedState.margins.right) * PT_PER_MM * scaleX;
+    const marginX = Math.max(hf.margin, margin.left) * PT_PER_MM * scaleX;
+    const rightMargin = Math.max(hf.margin, margin.right) * PT_PER_MM * scaleX;
     const fontPx = hf.fontSize * scaleY;
     const left = marginX, right = ctx.canvas.width - rightMargin;
     const topY = marginY, bottomY = Math.max(0, ctx.canvas.height - marginY - fontPx * 1.5);
-    drawAlignedText(ctx, substitute(hf.headerLeft, number, total), left, (left + right) / 2, topY, 'left', fontPx, hf.color);
+    const headerLeft = facingEven ? hf.headerRight : hf.headerLeft;
+    const headerRight = facingEven ? hf.headerLeft : hf.headerRight;
+    const footerLeft = facingEven ? hf.footerRight : hf.footerLeft;
+    const footerRight = facingEven ? hf.footerLeft : hf.footerRight;
+    drawAlignedText(ctx, substitute(headerLeft, number, total), left, (left + right) / 2, topY, 'left', fontPx, hf.color);
     drawAlignedText(ctx, substitute(hf.headerCenter, number, total), left, right, topY, 'center', fontPx, hf.color);
-    drawAlignedText(ctx, substitute(hf.headerRight, number, total), (left + right) / 2, right, topY, 'right', fontPx, hf.color);
-    drawAlignedText(ctx, substitute(hf.footerLeft, number, total), left, (left + right) / 2, bottomY, 'left', fontPx, hf.color);
+    drawAlignedText(ctx, substitute(headerRight, number, total), (left + right) / 2, right, topY, 'right', fontPx, hf.color);
+    drawAlignedText(ctx, substitute(footerLeft, number, total), left, (left + right) / 2, bottomY, 'left', fontPx, hf.color);
     drawAlignedText(ctx, substitute(hf.footerCenter, number, total), left, right, bottomY, 'center', fontPx, hf.color);
-    drawAlignedText(ctx, substitute(hf.footerRight, number, total), (left + right) / 2, right, bottomY, 'right', fontPx, hf.color);
+    drawAlignedText(ctx, substitute(footerRight, number, total), (left + right) / 2, right, bottomY, 'right', fontPx, hf.color);
   }
 
   const pn = advancedState.pageNumbers;
@@ -141,13 +171,16 @@ function drawOverlays(ctx, page, out, scaleX, scaleY) {
     else if (pn.format === '-1-') text = `- ${visible} -`;
     else if (pn.format === '-1/N-') text = `- ${visible}/${visibleTotal} -`;
     const fontPx = pn.fontSize * scaleY;
-    const gapY = pn.margin * PT_PER_MM * scaleY;
-    const gapX = pn.margin * PT_PER_MM * scaleX;
-    const isBottom = pn.position.startsWith('bottom');
-    const y = isBottom ? ctx.canvas.height - gapY - fontPx * 1.45 : gapY;
-    const horizontal = pn.position.split('-')[1];
+    const gapY = Math.max(pn.margin, margin.top) * PT_PER_MM * scaleY;
+    const bottomGapY = Math.max(pn.margin, margin.bottom) * PT_PER_MM * scaleY;
+    const leftGapX = Math.max(pn.margin, margin.left) * PT_PER_MM * scaleX;
+    const rightGapX = Math.max(pn.margin, margin.right) * PT_PER_MM * scaleX;
+    const position = mirroredPosition(pn.position, page);
+    const isBottom = position.startsWith('bottom');
+    const y = isBottom ? ctx.canvas.height - bottomGapY - fontPx * 1.45 : gapY;
+    const horizontal = position.split('-')[1];
     const align = horizontal === 'center' ? 'center' : horizontal;
-    drawAlignedText(ctx, text, gapX, ctx.canvas.width - gapX, y, align, fontPx, pn.color);
+    drawAlignedText(ctx, text, leftGapX, ctx.canvas.width - rightGapX, y, align, fontPx, pn.color);
   }
 }
 
@@ -169,7 +202,7 @@ export async function renderSelectedPreview(canvas) {
   const ctx = canvas.getContext('2d', { alpha: false });
   ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
   const scaleX = canvas.width / out.width, scaleY = canvas.height / out.height;
-  const margin = advancedState.margins;
+  const margin = effectiveMargins(page);
   const content = {
     x: margin.left * PT_PER_MM * scaleX,
     y: margin.top * PT_PER_MM * scaleY,

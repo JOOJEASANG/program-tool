@@ -101,15 +101,30 @@ def _fit_rect(box: fitz.Rect, source_width: float, source_height: float, rotatio
     return fitz.Rect(x0, y0, x0 + width, y0 + height)
 
 
+def _effective_margin_mm(
+    request: PdfAdvancedProcessRequest,
+    output_index: int,
+) -> tuple[float, float, float, float]:
+    left = float(request.margins.left_mm)
+    right = float(request.margins.right_mm)
+    top = float(request.margins.top_mm)
+    bottom = float(request.margins.bottom_mm)
+    if request.margins.facing_pages and (output_index + 1) % 2 == 0:
+        left, right = right, left
+    return left, right, top, bottom
+
+
 def _content_box(
     page_width: float,
     page_height: float,
     request: PdfAdvancedProcessRequest,
+    output_index: int = 0,
 ) -> fitz.Rect:
-    left = request.margins.left_mm * pdf_ops.MM_TO_PT
-    right = request.margins.right_mm * pdf_ops.MM_TO_PT
-    top = request.margins.top_mm * pdf_ops.MM_TO_PT
-    bottom = request.margins.bottom_mm * pdf_ops.MM_TO_PT
+    left_mm, right_mm, top_mm, bottom_mm = _effective_margin_mm(request, output_index)
+    left = left_mm * pdf_ops.MM_TO_PT
+    right = right_mm * pdf_ops.MM_TO_PT
+    top = top_mm * pdf_ops.MM_TO_PT
+    bottom = bottom_mm * pdf_ops.MM_TO_PT
     if left + right >= page_width - 2 or top + bottom >= page_height - 2:
         raise ValueError("설정한 여백이 페이지 크기보다 큽니다")
     return fitz.Rect(left, top, page_width - right, page_height - bottom)
@@ -178,6 +193,7 @@ def build_advanced_pdf_document(
     out_doc = fitz.open()
     total_pages = len(active_pages)
     header_footer = _advanced_header_footer_settings(request.header_footer)
+    facing_pages = bool(request.margins.facing_pages)
     try:
         for output_index, page_info in enumerate(active_pages):
             if page_info.file_index >= len(source_docs):
@@ -197,7 +213,7 @@ def build_advanced_pdf_document(
                 page_width, page_height = source_rect.width, source_rect.height
 
             out_page = out_doc.new_page(width=page_width, height=page_height)
-            content_box = _content_box(page_width, page_height, request)
+            content_box = _content_box(page_width, page_height, request, output_index)
             _render_page_content(out_page, source_doc, page_info, source_rect, content_box)
 
             pdf_text_renderer.apply_header_footer(
@@ -207,13 +223,14 @@ def build_advanced_pdf_document(
                 page_height,
                 output_index + 1,
                 total_pages,
-                False,
+                facing_pages,
             )
+            left_mm, right_mm, top_mm, bottom_mm = _effective_margin_mm(request, output_index)
             paper_margins = (
-                request.margins.left_mm * pdf_ops.MM_TO_PT,
-                request.margins.right_mm * pdf_ops.MM_TO_PT,
-                request.margins.top_mm * pdf_ops.MM_TO_PT,
-                request.margins.bottom_mm * pdf_ops.MM_TO_PT,
+                left_mm * pdf_ops.MM_TO_PT,
+                right_mm * pdf_ops.MM_TO_PT,
+                top_mm * pdf_ops.MM_TO_PT,
+                bottom_mm * pdf_ops.MM_TO_PT,
             )
             pdf_text_renderer.apply_page_numbers(
                 out_page,
@@ -222,7 +239,7 @@ def build_advanced_pdf_document(
                 total_pages,
                 page_width,
                 page_height,
-                False,
+                facing_pages,
                 paper_margins=paper_margins,
             )
 
