@@ -51,18 +51,33 @@ def test_workspace_v2_contract_covers_all_requested_controls():
     workspace = (ROOT / "js" / "pdf-editor-advanced" / "workspace-v2.js").read_text(encoding="utf-8")
     preview = (ROOT / "js" / "pdf-editor-advanced" / "preview.js").read_text(encoding="utf-8")
     state = (ROOT / "js" / "pdf-editor-advanced" / "state.js").read_text(encoding="utf-8")
+    app = (ROOT / "js" / "pdf-editor-advanced" / "app.js").read_text(encoding="utf-8")
     css = (ROOT / "css" / "pdf-editor-advanced-workspace-v2.css").read_text(encoding="utf-8")
     bridge = (ROOT / "js" / "pdf-editor-advanced" / "facing-upload.js").read_text(encoding="utf-8")
 
+    # PDF /Rotate is preserved on import instead of forcing every page to 0°.
+    assert "const intrinsicRotation = normalizeQuarter(pdfPage.rotate || 0);" in app
+    assert "rotation: intrinsicRotation, intrinsicRotation, fineRotation: 0" in app
+
+    # The right workspace displays a two-page pair and previous/next move by one page.
+    assert "pairPreviewRow" in workspace and "pairPrevBtn" in workspace and "pairNextBtn" in workspace
+    assert 'aria-label="이전 페이지"' in workspace and 'aria-label="다음 페이지"' in workspace
+    assert "const target = index + direction;" in workspace
+    assert "index <= 0" in workspace and "index >= advancedState.pages.length - 1" in workspace
+
+    # Manual portrait correction, 0.1 degree fine rotation and text-based batch alignment.
     assert "pdfPage.rotate" in workspace
     assert "intrinsicRotation" in workspace
     assert "세로로 맞춤" in workspace
-    assert "pairPreviewRow" in workspace and "pairPrevBtn" in workspace and "pairNextBtn" in workspace
     assert "fineRotationRange" in workspace and "fineRotateHandle" in workspace
     assert "전체 자동 회전·정렬" in workspace and "getTextContent" in workspace
     assert "textContent?.styles?.[item.fontName]?.vertical" in workspace
     assert "renderPagePreview" in preview and "fineRotation" in preview
     assert "fine_rotation_deg" in state
+
+    # The page list is deliberately lightweight: page number only, no filename or thumbnails.
+    assert "renderThumbnail" not in app
+    assert "source.textContent = page.sourceName" not in app
     assert ".page-item-info span{display:none!important}" in css
     assert "grid-template-columns:1fr 1fr" in css
     assert "import './workspace-v2.js';" in bridge
