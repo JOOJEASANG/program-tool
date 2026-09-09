@@ -77,7 +77,8 @@
 
   /*
    * PDF route source-contract compatibility metadata only. Executable loading
-   * is owned by /js/pdf-editor/route-runtime.js.
+   * is owned by /js/pdf-editor/route-runtime.js for the general layout editor.
+   * The standalone /pdf-editor-advanced route never enters this manifest.
    *
       tasks.push(load('programShellUnifyScriptV1','/js/program-shell-unify.js?v=20260824-1'));
       tasks.push(load('pdfAllInOneStage1ScriptV1','/js/pdf-all-in-one-stage1.js?v=20260824-1'));
@@ -141,7 +142,9 @@
       tasks.push(load('programStudioPlatformHealthScriptV1','/js/platform-health.js?v='+VERSION).catch(error=>{console.warn('Platform health helper loading failed',error);return null;}));
       tasks.push(load('appVersionHelperScript','/js/app-version.js?v='+VERSION));
     }
-    if(isPath('/tools/pdf-editor.html','/pdf-editor','/pdf-editor/index.html','/pdf-editor-advanced'))tasks.push(loadPdfEditorRuntime());
+    // The advanced editor owns /js/pdf-editor-advanced/app.js directly and
+    // must never load the general N-UP/booklet route runtime.
+    if(isPath('/tools/pdf-editor.html','/pdf-editor','/pdf-editor/index.html'))tasks.push(loadPdfEditorRuntime());
     if(isPath('/tools/pdf-Checker.html','/tools/preflight.html','/pdf-preflight','/pdf-preflight/index.html'))tasks.push(loadPreflightRuntime());
     return Promise.allSettled(tasks);
   }

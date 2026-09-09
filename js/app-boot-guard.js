@@ -19,18 +19,19 @@
   })();
 
   const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
-  function isPdfPrintEditor(){return ['/tools/pdf-editor.html','/pdf-editor','/pdf-editor/index.html','/pdf-editor-advanced'].some(item=>path.endsWith(item));}
-  function isAdvancedPdfEditor(){
-    if(path.endsWith('/pdf-editor-advanced'))return true;
+  function isStandaloneAdvancedPdfEditor(){return path.endsWith('/pdf-editor-advanced');}
+  function isPdfPrintEditor(){return ['/tools/pdf-editor.html','/pdf-editor','/pdf-editor/index.html'].some(item=>path.endsWith(item));}
+  function isLegacyAdvancedPdfProfile(){
     if(!isPdfPrintEditor())return false;
     try{return String(new URLSearchParams(location.search).get('profile')||'').trim().toLowerCase()==='advanced';}
     catch(_){return false;}
   }
 
-  const advancedPdfEditor=isAdvancedPdfEditor();
-  if(advancedPdfEditor){
+  const legacyAdvancedProfile=isLegacyAdvancedPdfProfile();
+  const standaloneAdvanced=isStandaloneAdvancedPdfEditor();
+  if(legacyAdvancedProfile){
     root.dataset.pdfEditorProfile='advanced';
-    root.dataset.pdfEditorAdvancedRoute='1';
+    root.dataset.pdfEditorAdvancedRoute='legacy-profile';
     root.dataset.pdfPrintWorkflowSuppressed='advanced';
     const style=document.createElement('style');
     style.id='pdfAdvancedEarlyIsolationStylesV1';
@@ -51,6 +52,10 @@
     `;
     document.head.appendChild(style);
   }
+  if(standaloneAdvanced){
+    root.dataset.pdfAdvancedStandaloneRoute='1';
+    root.dataset.pdfPrintWorkflowSuppressed='standalone-advanced';
+  }
 
   function loadRuntimeScript(id,src,enabled){
     if(!enabled)return null;
@@ -66,10 +71,10 @@
     return script;
   }
 
-  // The normal print-layout workflow owns N-UP/booklet controls. Never mount it
-  // on the dedicated advanced profile: advanced runtime reuses only the
-  // single-page precision transform modules and must stay isolated.
-  loadRuntimeScript('pdfPrintWorkflowFocusScriptV1','/js/pdf-editor/print-workflow-focus.js?v=20260827-1',isPdfPrintEditor()&&!advancedPdfEditor);
+  // N-UP/booklet workflow belongs only to the general PDF layout editor.
+  // The standalone advanced editor never mounts or hides that runtime: it owns
+  // a separate HTML/JS tree and shares only the access guard.
+  loadRuntimeScript('pdfPrintWorkflowFocusScriptV1','/js/pdf-editor/print-workflow-focus.js?v=20260827-1',isPdfPrintEditor()&&!legacyAdvancedProfile);
   // Prime the current preflight presentation behind the boot overlay so the
   // legacy workspace never flashes before clean-workspace-v2 takes ownership.
   loadRuntimeScript('pdfPreflightPanelBalanceScriptV1','/js/pdf-preflight-panel-balance.js?v=20260831-3',protectedProgram==='preflight');

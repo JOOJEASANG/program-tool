@@ -92,67 +92,52 @@
       if(!baseCalls.some(call=>call.id==='pdfEditorNupHelperScriptV1'))return fail('default editor lost N-up helper');
       if(!baseCalls.some(call=>call.id==='pdfEditorDividerHelperScriptV1'))return fail('default editor lost divider helper');
 
+      // Keep the old query-profile path covered only as backwards compatibility.
+      // The real /pdf-editor-advanced product is now a separate HTML/JS application
+      // and is verified by pdf-advanced-sidebar-hard-isolation-smoke.html.
       history.replaceState({},'', '/pdf-editor?profile=advanced');
       delete document.documentElement.dataset.pdfEditorProfile;
-      if(location.pathname!=='/pdf-editor')return fail('advanced profile left canonical PDF editor path');
-      if(!core.isAdvancedProfile())return fail('advanced query profile not detected');
+      if(location.pathname!=='/pdf-editor')return fail('legacy advanced profile left canonical PDF editor path');
+      if(!core.isAdvancedProfile())return fail('legacy advanced query profile not detected');
       const advancedStart=window.__profileSplitCalls.length;
       await core.loadAll();
       const allCalls=window.__profileSplitCalls;
       const advancedCalls=allCalls.slice(advancedStart);
-      if(!allCalls.some(call=>call.id==='pdfEditorAdvancedProfileScopeScriptV1'))return fail('advanced profile scope loader missing');
-      if(!allCalls.some(call=>call.id==='pdfEditorAdvancedRuntimeScriptV1'))return fail('advanced runtime loader missing');
+      if(!allCalls.some(call=>call.id==='pdfEditorAdvancedProfileScopeScriptV1'))return fail('legacy advanced profile scope loader missing');
+      if(!allCalls.some(call=>call.id==='pdfEditorAdvancedRuntimeScriptV1'))return fail('legacy advanced runtime loader missing');
       for(const id of advancedIds){
-        if(!allCalls.some(call=>call.id===id))return fail('advanced module missing: '+id);
+        if(!allCalls.some(call=>call.id===id))return fail('legacy advanced module missing: '+id);
       }
-      if(advancedCalls.some(call=>call.id==='pdfEditorNupHelperScriptV1'))return fail('advanced editor loaded normal N-up helper');
-      if(advancedCalls.some(call=>call.id==='pdfEditorDividerHelperScriptV1'))return fail('advanced editor loaded divider helper');
-      if(document.documentElement.dataset.pdfAdvancedRuntime!=='1')return fail('advanced runtime did not finish');
-      if(document.documentElement.dataset.pdfEditorProfile!=='advanced')return fail('advanced profile marker missing');
-      if(document.documentElement.dataset.pdfEditorAdvancedScope!=='single-page-precision-v1')return fail('advanced single-page scope marker missing');
-      if(document.documentElement.dataset.pdfEditorAdvancedMinimal!=='1')return fail('advanced minimal profile marker missing');
-      if(!window.PdfEditorAdvancedProfileScope?.minimal)return fail('advanced minimal profile API marker missing');
-      if(!hidden(document.getElementById('nupGrid')))return fail('advanced N-up layout controls are still visible');
-      if(!hidden(document.getElementById('bookletRow')))return fail('advanced booklet control is still visible');
-      if(!document.getElementById('bookletCheck').disabled||document.getElementById('bookletCheck').checked)return fail('advanced booklet state was not disabled');
-      if(!hidden(document.getElementById('fileLayoutControl')))return fail('advanced file-level N-up selector is still visible');
-      if(!document.querySelector('[data-sec="nup"] .sec-title').textContent.includes('페이지 위치·크기 보정'))return fail('advanced precision section was not renamed');
+      if(advancedCalls.some(call=>call.id==='pdfEditorNupHelperScriptV1'))return fail('legacy advanced editor loaded normal N-up helper');
+      if(advancedCalls.some(call=>call.id==='pdfEditorDividerHelperScriptV1'))return fail('legacy advanced editor loaded divider helper');
+      if(document.documentElement.dataset.pdfAdvancedRuntime!=='1')return fail('legacy advanced runtime did not finish');
+      if(document.documentElement.dataset.pdfEditorProfile!=='advanced')return fail('legacy advanced profile marker missing');
+      if(document.documentElement.dataset.pdfEditorAdvancedScope!=='single-page-precision-v1')return fail('legacy advanced single-page scope marker missing');
+      if(document.documentElement.dataset.pdfEditorAdvancedMinimal!=='1')return fail('legacy advanced minimal profile marker missing');
+      if(!window.PdfEditorAdvancedProfileScope?.minimal)return fail('legacy advanced minimal profile API marker missing');
+      if(!hidden(document.getElementById('nupGrid')))return fail('legacy advanced N-up layout controls are still visible');
+      if(!hidden(document.getElementById('bookletRow')))return fail('legacy advanced booklet control is still visible');
+      if(!document.getElementById('bookletCheck').disabled||document.getElementById('bookletCheck').checked)return fail('legacy advanced booklet state was not disabled');
+      if(!hidden(document.getElementById('fileLayoutControl')))return fail('legacy advanced file-level N-up selector is still visible');
+      if(!document.querySelector('[data-sec="nup"] .sec-title').textContent.includes('페이지 위치·크기 보정'))return fail('legacy advanced precision section was not renamed');
 
-      // Exercise the real product boot guard on the advanced canonical URL.
-      // It must not mount the normal print/N-UP workflow before advanced runtime.
-      window.ProgramAccessReady=Promise.resolve({approved:true,status:'approved'});
-      await new Promise((resolve,reject)=>{
-        const script=document.createElement('script');
-        script.id='advancedBootIsolationSmokeScript';
-        script.src='/js/app-boot-guard.js';
-        script.addEventListener('load',resolve,{once:true});
-        script.addEventListener('error',reject,{once:true});
-        document.head.appendChild(script);
-      });
-      await new Promise(resolve=>setTimeout(resolve,80));
-      if(document.getElementById('pdfPrintWorkflowFocusScriptV1'))return fail('advanced boot mounted normal print/N-UP workflow');
-      if(document.documentElement.dataset.pdfPrintWorkflowSuppressed!=='advanced')return fail('advanced boot suppression marker missing');
-      if(document.documentElement.dataset.pdfEditorAdvancedRoute!=='1')return fail('advanced boot route marker missing');
-      if(!document.getElementById('pdfAdvancedEarlyIsolationStylesV1'))return fail('advanced first-paint isolation style missing');
+      if(!hidden(document.querySelector('.mode-btn[data-mode="break"]')))return fail('legacy advanced non-contiguous upload mode is still visible');
+      if(!hidden(document.querySelector('.prev-ins-zone')))return fail('legacy advanced horizontal blank/divider insert zone is still visible');
+      if(!hidden(document.querySelector('.prev-ins-zone-v')))return fail('legacy advanced vertical blank/divider insert zone is still visible');
+      if(!hidden(document.getElementById('thumbBlankInsert')))return fail('legacy advanced dynamically injected blank insert button is still visible');
+      if(!hidden(document.getElementById('dividerModal')))return fail('legacy advanced divider editor is still available');
+      if(!hidden(document.getElementById('ctxBlank')))return fail('legacy advanced blank-page context action is still visible');
+      if(hidden(document.getElementById('ctxRotate')))return fail('legacy advanced rotate action was incorrectly removed');
+      if(hidden(document.getElementById('ctxDelete')))return fail('legacy advanced delete action was incorrectly removed');
+      if(/N\s*-?\s*up|소책자|간지|빈\s*페이지/i.test(document.querySelector('.app > aside > .sub').textContent))return fail('legacy advanced branding still advertises non-editing features');
 
-      if(!hidden(document.querySelector('.mode-btn[data-mode="break"]')))return fail('advanced non-contiguous upload mode is still visible');
-      if(!hidden(document.querySelector('.prev-ins-zone')))return fail('advanced horizontal blank/divider insert zone is still visible');
-      if(!hidden(document.querySelector('.prev-ins-zone-v')))return fail('advanced vertical blank/divider insert zone is still visible');
-      if(!hidden(document.getElementById('thumbBlankInsert')))return fail('advanced dynamically injected blank insert button is still visible');
-      if(!hidden(document.getElementById('dividerModal')))return fail('advanced divider editor is still available');
-      if(!hidden(document.getElementById('ctxBlank')))return fail('advanced blank-page context action is still visible');
-      if(hidden(document.getElementById('ctxRotate')))return fail('advanced rotate action was incorrectly removed');
-      if(hidden(document.getElementById('ctxDelete')))return fail('advanced delete action was incorrectly removed');
-      if(/N\s*-?\s*up|소책자|간지|빈\s*페이지/i.test(document.querySelector('.app > aside > .sub').textContent))return fail('advanced branding still advertises non-editing features');
-
-      // Dynamically inserted legacy controls must also be removed by the observer.
       const late=document.createElement('button');
       late.className='ctx-item';
       late.id='lateDividerInsert';
       late.textContent='아래에 간지 추가';
       document.getElementById('thumbCtxMenu').appendChild(late);
       await new Promise(resolve=>setTimeout(resolve,40));
-      if(!hidden(late))return fail('late divider insert action escaped minimal profile filter');
+      if(!hidden(late))return fail('late divider insert action escaped legacy minimal profile filter');
 
       const cropPage={id:'crop-orientation-page',rotation:0,pageRotationLocked:false};
       window.parsedPages=[cropPage];
@@ -180,7 +165,7 @@
       if(!document.documentElement.dataset.pdfAdvancedDragCropOrientationLock)return fail('drag crop orientation lock marker missing');
 
       document.documentElement.dataset.pdfEditorRuntimeProfileSplitSmoke='pass';
-      result.textContent='PASS: default PDF editor stays lightweight and advanced route loads editing modules separately; advanced profile hides N-up, booklet, blank/divider creation and suppresses normal print workflow at boot';
+      result.textContent='PASS: default PDF editor stays lightweight and legacy advanced query compatibility remains isolated; standalone /pdf-editor-advanced is covered separately';
     })().catch(error=>console.error(error));
   </script>
 </body>

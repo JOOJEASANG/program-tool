@@ -84,6 +84,13 @@ def _require_text(result: HttpResult, *needles: str) -> None:
         raise SmokeFailure(f"{result.url} 응답에서 필수 문구를 찾지 못했습니다: {missing}")
 
 
+def _require_absent_text(result: HttpResult, *needles: str) -> None:
+    _require_status_ok(result)
+    leaked = [needle for needle in needles if needle in result.text]
+    if leaked:
+        raise SmokeFailure(f"{result.url} 응답에 금지된 일반 배치 편집기 문구가 남아 있습니다: {leaked}")
+
+
 def _require_path_preserved(result: HttpResult, expected_path: str) -> None:
     _require_status_ok(result)
     actual_path = urlparse(result.url).path.rstrip("/") or "/"
@@ -174,8 +181,17 @@ def _runtime_assets_from_file(relative_path: str, label: str) -> list[tuple[str,
 def pdf_editor_runtime_assets() -> list[tuple[str, str]]:
     return _runtime_assets_from_file(
         "js/pdf-editor/route-runtime.js",
-        "PDF 편집기",
+        "PDF 배치 편집기",
     )
+
+
+def advanced_editor_runtime_assets() -> list[tuple[str, str]]:
+    return [
+        ("advanced-app", "/js/pdf-editor-advanced/app.js"),
+        ("advanced-state", "/js/pdf-editor-advanced/state.js"),
+        ("advanced-preview", "/js/pdf-editor-advanced/preview.js"),
+        ("advanced-api", "/js/pdf-editor-advanced/api.js"),
+    ]
 
 
 def _require_runtime_assets(
@@ -196,8 +212,17 @@ def _require_pdf_editor_runtime_assets(base_url: str, timeout: float) -> None:
     _require_runtime_assets(
         base_url,
         timeout,
-        label="PDF 편집기",
+        label="PDF 배치 편집기",
         entries=pdf_editor_runtime_assets(),
+    )
+
+
+def _require_advanced_editor_runtime_assets(base_url: str, timeout: float) -> None:
+    _require_runtime_assets(
+        base_url,
+        timeout,
+        label="PDF 고급 편집기",
+        entries=advanced_editor_runtime_assets(),
     )
 
 
@@ -254,16 +279,18 @@ def run_smoke_checks(
             )(_fetch(base_url, "/print-checker", timeout)),
         ),
         (
-            "고급 PDF 편집 전용 경로",
+            "고급 PDF 편집 독립 경로",
             lambda: (
                 lambda result: (
-                    _require_text(result, "PDF 문서 편집기", "js/app-boot-guard.js"),
+                    _require_text(result, "PDF 고급 편집", "data-pdf-advanced-standalone=\"1\"", "/js/pdf-editor-advanced/app.js", "js/app-boot-guard.js"),
+                    _require_absent_text(result, "/js/pdf-editor/core-runtime.js", "/js/pdf-editor/advanced-runtime.js", "N-up 배치", "소책자 배치"),
                     _require_path_preserved(result, "/pdf-editor-advanced"),
                     _require_same_origin_frame_headers(result),
                 )
             )(_fetch(base_url, "/pdf-editor-advanced", timeout)),
         ),
-        ("PDF 편집기 canonical 런타임 자산", lambda: _require_pdf_editor_runtime_assets(base_url, timeout)),
+        ("PDF 배치 편집기 canonical 런타임 자산", lambda: _require_pdf_editor_runtime_assets(base_url, timeout)),
+        ("PDF 고급 편집기 독립 런타임 자산", lambda: _require_advanced_editor_runtime_assets(base_url, timeout)),
         (
             "레거시 표지 호환 경로",
             lambda: (

@@ -137,7 +137,7 @@ run_product_case "pdf-page-list-quick-add-smoke.html" "$OUT_DIR/pdf-page-list-qu
 reset_profile
 run_product_case "pdf-advanced-sidebar-hard-isolation-smoke.html" "$OUT_DIR/pdf-advanced-sidebar-hard-isolation-smoke-dom.html" 'data-pdf-advanced-sidebar-hard-isolation-smoke="pass"' 'PASS: /pdf-editor-advanced stays advanced, hides spread/N-up/order controls and skips general print-layout modules'
 reset_profile
-run_product_case "pdf-editor-runtime-profile-split-smoke.html" "$OUT_DIR/pdf-editor-runtime-profile-split-smoke-dom.html" 'data-pdf-editor-runtime-profile-split-smoke="pass"' 'PASS: default PDF editor stays lightweight and advanced route loads editing modules separately'
+run_product_case "pdf-editor-runtime-profile-split-smoke.html" "$OUT_DIR/pdf-editor-runtime-profile-split-smoke-dom.html" 'data-pdf-editor-runtime-profile-split-smoke="pass"' 'PASS: default PDF editor stays lightweight and legacy advanced query compatibility remains isolated; standalone /pdf-editor-advanced is covered separately'
 reset_profile
 run_product_case "pdf-advanced-workspace-stability-smoke.html" "$OUT_DIR/pdf-advanced-workspace-stability-smoke-dom.html" 'data-pdf-advanced-workspace-stability-smoke="pass"' 'PASS: advanced PDF workspace keeps one-page editing, headerless layout, X/Y move sliders, fixed status height, stable viewport and proxied quick actions'
 reset_profile

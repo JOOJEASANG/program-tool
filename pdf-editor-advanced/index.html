@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>PDF 고급 편집 · Program Studio</title>
+  <link rel="stylesheet" href="/css/pdf-editor-advanced.css?v=20260909-1">
+  <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+</head>
+<body data-pdf-advanced-standalone="1">
+  <div class="advanced-app" id="advancedApp">
+    <aside class="advanced-sidebar" aria-label="PDF 고급 편집 도구">
+      <div class="sidebar-top">
+        <div>
+          <strong>PDF 고급 편집</strong>
+          <span>페이지 내용을 직접 보정한 뒤 PDF로 다시 저장합니다.</span>
+        </div>
+        <div class="top-actions">
+          <a class="icon-btn" href="/index.html" title="프로그램 목록">목록</a>
+          <button class="icon-btn" id="logoutBtn" type="button">로그아웃</button>
+        </div>
+      </div>
+
+      <section class="tool-section upload-section">
+        <div class="section-title">파일</div>
+        <input id="fileInput" type="file" accept="application/pdf,.pdf" multiple hidden>
+        <button id="uploadBtn" class="primary-btn" type="button">PDF 불러오기 / 추가</button>
+        <button id="clearAllBtn" class="secondary-btn" type="button" disabled>전체 비우기</button>
+        <div class="status-line" id="statusLine" role="status">PDF 파일을 불러와 주세요.</div>
+      </section>
+
+      <section class="tool-section page-section">
+        <div class="section-title-row">
+          <span class="section-title">페이지</span>
+          <span id="pageCountBadge" class="badge">0</span>
+        </div>
+        <div id="pageList" class="page-list" aria-label="페이지 목록"></div>
+      </section>
+
+      <section class="tool-section" id="pageEditSection">
+        <div class="section-title">선택 페이지 편집</div>
+        <div class="button-grid four">
+          <button id="undoBtn" class="tool-btn" type="button" disabled>실행취소</button>
+          <button id="redoBtn" class="tool-btn" type="button" disabled>다시실행</button>
+          <button id="rotateLeftBtn" class="tool-btn" type="button" disabled>↶ 90°</button>
+          <button id="rotateRightBtn" class="tool-btn" type="button" disabled>↷ 90°</button>
+        </div>
+
+        <label class="field-label" for="scaleRange">확대 · 축소 <output id="scaleValue">100%</output></label>
+        <input id="scaleRange" type="range" min="50" max="300" value="100" step="1" disabled>
+
+        <label class="field-label" for="offsetXRange">좌 · 우 이동 <output id="offsetXValue">0.0 mm</output></label>
+        <input id="offsetXRange" type="range" min="-100" max="100" value="0" step="0.5" disabled>
+
+        <label class="field-label" for="offsetYRange">상 · 하 이동 <output id="offsetYValue">0.0 mm</output></label>
+        <input id="offsetYRange" type="range" min="-100" max="100" value="0" step="0.5" disabled>
+
+        <div class="sub-title">잘라내기 (%)</div>
+        <div class="number-grid four">
+          <label>왼쪽<input id="cropLeft" type="number" min="0" max="90" value="0" step="0.5" disabled></label>
+          <label>위<input id="cropTop" type="number" min="0" max="90" value="0" step="0.5" disabled></label>
+          <label>오른쪽<input id="cropRight" type="number" min="0" max="90" value="0" step="0.5" disabled></label>
+          <label>아래<input id="cropBottom" type="number" min="0" max="90" value="0" step="0.5" disabled></label>
+        </div>
+        <div class="button-grid two">
+          <button id="eraseModeBtn" class="tool-btn accent" type="button" disabled>부분 지우기</button>
+          <button id="resetPageBtn" class="tool-btn" type="button" disabled>페이지 보정 초기화</button>
+        </div>
+        <p class="hint">모서리를 드래그하면 크기 조절, 변을 안쪽으로 드래그하면 잘라내기입니다. 부분 지우기는 인쇄용 흰색 덮기이며 보안 삭제가 아닙니다.</p>
+      </section>
+
+      <section class="tool-section">
+        <div class="section-title">여백</div>
+        <div class="number-grid four">
+          <label>왼쪽<input id="marginLeft" type="number" min="0" max="80" value="0" step="0.5"></label>
+          <label>위<input id="marginTop" type="number" min="0" max="80" value="0" step="0.5"></label>
+          <label>오른쪽<input id="marginRight" type="number" min="0" max="80" value="0" step="0.5"></label>
+          <label>아래<input id="marginBottom" type="number" min="0" max="80" value="0" step="0.5"></label>
+        </div>
+        <p class="hint">출력 페이지 크기는 유지하고 내용이 들어갈 영역에 여백을 확보합니다.</p>
+      </section>
+
+      <section class="tool-section">
+        <label class="toggle-row"><input id="hfEnabled" type="checkbox"><span>머리말 · 꼬리말</span></label>
+        <div id="hfOptions" class="option-body disabled-block">
+          <div class="sub-title">머리말</div>
+          <div class="text-grid three">
+            <input id="headerLeft" type="text" placeholder="왼쪽">
+            <input id="headerCenter" type="text" placeholder="가운데">
+            <input id="headerRight" type="text" placeholder="오른쪽">
+          </div>
+          <div class="sub-title">꼬리말</div>
+          <div class="text-grid three">
+            <input id="footerLeft" type="text" placeholder="왼쪽">
+            <input id="footerCenter" type="text" placeholder="가운데">
+            <input id="footerRight" type="text" placeholder="오른쪽">
+          </div>
+          <div class="number-grid three compact-fields">
+            <label>글자<input id="hfFontSize" type="number" min="5" max="72" value="10" step="0.5"></label>
+            <label>가장자리<input id="hfMargin" type="number" min="0" max="80" value="8" step="0.5"></label>
+            <label>색상<input id="hfColor" type="color" value="#333333"></label>
+          </div>
+          <p class="hint"><code>{page}</code> 현재 페이지, <code>{pages}</code> 전체 페이지를 사용할 수 있습니다.</p>
+        </div>
+      </section>
+
+      <section class="tool-section">
+        <label class="toggle-row"><input id="pnEnabled" type="checkbox"><span>페이지 번호</span></label>
+        <div id="pnOptions" class="option-body disabled-block">
+          <div class="select-grid two">
+            <label>위치
+              <select id="pnPosition">
+                <option value="bottom-center">아래 가운데</option>
+                <option value="bottom-left">아래 왼쪽</option>
+                <option value="bottom-right">아래 오른쪽</option>
+                <option value="top-center">위 가운데</option>
+                <option value="top-left">위 왼쪽</option>
+                <option value="top-right">위 오른쪽</option>
+              </select>
+            </label>
+            <label>표시
+              <select id="pnFormat">
+                <option value="1">1</option>
+                <option value="1/N">1/N</option>
+                <option value="-1-">- 1 -</option>
+                <option value="-1/N-">- 1/N -</option>
+              </select>
+            </label>
+          </div>
+          <div class="number-grid four compact-fields">
+            <label>시작<input id="pnStart" type="number" value="1" step="1"></label>
+            <label>글자<input id="pnFontSize" type="number" min="5" max="72" value="10" step="0.5"></label>
+            <label>간격<input id="pnMargin" type="number" min="0" max="80" value="5" step="0.5"></label>
+            <label>색상<input id="pnColor" type="color" value="#333333"></label>
+          </div>
+          <label class="check-row"><input id="pnExcludeFirst" type="checkbox"> 첫 페이지에는 번호 표시 안 함</label>
+        </div>
+      </section>
+
+      <section class="tool-section output-section">
+        <button id="downloadBtn" class="download-btn" type="button" disabled>편집 PDF 다운로드</button>
+      </section>
+    </aside>
+
+    <main class="advanced-workspace">
+      <div class="workspace-toolbar">
+        <div id="selectionLabel">PDF를 불러오면 편집 화면이 표시됩니다.</div>
+        <div class="toolbar-actions">
+          <button id="zoomOutBtn" type="button">−</button>
+          <span id="zoomLabel">맞춤</span>
+          <button id="zoomInBtn" type="button">＋</button>
+          <button id="zoomFitBtn" type="button">맞춤</button>
+        </div>
+      </div>
+      <div id="previewScroll" class="preview-scroll">
+        <div id="emptyState" class="empty-state">
+          <strong>PDF 고급 편집</strong>
+          <span>왼쪽에서 PDF 파일을 불러와 주세요.</span>
+        </div>
+        <div id="pageStage" class="page-stage" hidden>
+          <canvas id="previewCanvas"></canvas>
+          <div id="interactionLayer" class="interaction-layer" aria-hidden="true">
+            <div class="edit-frame" id="editFrame">
+              <i class="corner nw" data-corner="nw"></i>
+              <i class="corner ne" data-corner="ne"></i>
+              <i class="corner se" data-corner="se"></i>
+              <i class="corner sw" data-corner="sw"></i>
+              <i class="crop-edge left" data-edge="left"><span>✂</span></i>
+              <i class="crop-edge top" data-edge="top"><span>✂</span></i>
+              <i class="crop-edge right" data-edge="right"><span>✂</span></i>
+              <i class="crop-edge bottom" data-edge="bottom"><span>✂</span></i>
+            </div>
+            <div id="eraseRect" class="erase-rect" hidden></div>
+          </div>
+        </div>
+      </div>
+      <div id="busyOverlay" class="busy-overlay" hidden>
+        <div class="spinner"></div>
+        <strong id="busyText">처리 중...</strong>
+      </div>
+    </main>
+  </div>
+
+  <script type="module" src="/js/pdf-editor-advanced/app.js?v=20260909-1"></script>
+</body>
+</html>

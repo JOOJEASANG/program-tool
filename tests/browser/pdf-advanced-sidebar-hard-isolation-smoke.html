@@ -2,47 +2,10 @@
 <html lang="ko">
 <head>
   <meta charset="utf-8">
-  <title>Advanced PDF sidebar hard isolation smoke</title>
-  <style>
-    .field{display:block}.sec{display:block}#pdfSpreadSplitPanel{display:block}
-  </style>
+  <title>Standalone advanced PDF editor isolation smoke</title>
 </head>
 <body>
-  <div class="app">
-    <aside>
-      <div class="sub">PDF 업로드 · 페이지 편집 · 간지 삽입 · N-up 인쇄</div>
-      <div id="sb-upload">
-        <div id="pdfSpreadSplitPanel">펼침면 좌우 분할</div>
-      </div>
-      <div class="sec">
-        <div class="sec-head" data-sec="nup"><span class="sec-title">N-up 배치</span></div>
-        <div id="sb-nup">
-          <div class="field" id="legacyNupField">
-            <label>기본 N-up (페이지당 슬라이드 수)</label>
-            <div id="nupGrid"><button data-nup="1">1장</button><button data-nup="2">2장</button></div>
-            <div id="bookletRow">소책자 배치</div>
-          </div>
-          <div class="field" id="legacyOrderField">
-            <label>슬라이드 순서</label>
-            <div class="orient-row"><button>가로 우선</button><button>세로 우선</button></div>
-          </div>
-        </div>
-      </div>
-    </aside>
-  </div>
-  <div id="dividerModal">간지 편집</div>
   <pre id="result">RUNNING</pre>
-  <script>
-    history.replaceState({},'', '/pdf-editor-advanced');
-    window.ProgramAccessReady=Promise.resolve(true);
-    window.__routeCalls=[];
-    window.ProgramStudioPdfEditorRuntimeContext={
-      load(id,src){window.__routeCalls.push({id,src});return Promise.resolve(true);}
-    };
-  </script>
-  <script src="/js/app-boot-guard.js"></script>
-  <script src="/js/pdf-editor/advanced-profile-scope.js"></script>
-  <script src="/js/pdf-editor/route-runtime.js"></script>
   <script>
     (async()=>{
       const result=document.getElementById('result');
@@ -51,32 +14,52 @@
         result.textContent='FAIL: '+message;
         throw new Error(message);
       };
-      const hidden=node=>Boolean(node&&(node.hidden||getComputedStyle(node).display==='none'));
-      await new Promise(resolve=>setTimeout(resolve,30));
-      if(location.pathname!=='/pdf-editor-advanced')return fail('advanced alias path changed');
-      if(document.documentElement.dataset.pdfEditorProfile!=='advanced')return fail('advanced profile not marked from path');
-      if(document.getElementById('pdfPrintWorkflowFocusScriptV1'))return fail('normal print workflow loaded on advanced alias');
-      if(!hidden(document.getElementById('pdfSpreadSplitPanel')))return fail('spread split panel still visible');
-      if(!hidden(document.getElementById('nupGrid')))return fail('N-up grid still visible');
-      if(!hidden(document.getElementById('bookletRow')))return fail('booklet control still visible');
-      if(!hidden(document.getElementById('legacyOrderField')))return fail('slide order field still visible');
-      if(!document.querySelector('[data-sec="nup"] .sec-title').textContent.includes('페이지 위치·크기 보정'))return fail('advanced edit section title not applied');
+      const text=async path=>{
+        const response=await fetch(path,{cache:'no-store'});
+        if(!response.ok)throw new Error(path+' '+response.status);
+        return response.text();
+      };
 
-      const route=window.PdfEditorRouteRuntime;
-      if(!route||!route.isAdvancedProfile?.())return fail('route runtime did not detect advanced alias');
-      await route.loadAll();
-      const ids=window.__routeCalls.map(call=>call.id);
-      for(const blocked of [
-        'pdfPreviewInsertPersistenceScriptV1',
-        'pdfDividerLocalImageUploadScriptV1',
-        'pdfDividerModalLayoutScriptV1',
-        'pdfEditorSpreadSplitScriptV1',
-        'pdfBookletSheetPreviewScriptV1'
+      const firebase=JSON.parse(await text('/firebase.json'));
+      const rewrite=firebase.hosting.rewrites.find(item=>item.source==='/pdf-editor-advanced');
+      if(!rewrite)return fail('advanced Firebase rewrite missing');
+      if(rewrite.destination!=='/pdf-editor-advanced/index.html')return fail('advanced route still points at general PDF editor');
+
+      const htmlSource=await text('/pdf-editor-advanced/index.html');
+      const documentCopy=new DOMParser().parseFromString(htmlSource,'text/html');
+      if(!documentCopy.body?.dataset?.pdfAdvancedStandalone)return fail('standalone app marker missing');
+      if(!htmlSource.includes('/js/pdf-editor-advanced/app.js'))return fail('standalone app entry missing');
+      for(const forbidden of [
+        '/js/pdf-editor/core-runtime.js',
+        '/js/pdf-editor/advanced-runtime.js',
+        'advanced-profile-scope',
+        'N-up','N-UP','nup','booklet','소책자','간지'
       ]){
-        if(ids.includes(blocked))return fail('advanced route loaded blocked module: '+blocked);
+        if(htmlSource.includes(forbidden))return fail('legacy layout dependency leaked into standalone HTML: '+forbidden);
       }
-      if(!ids.includes('pdfEditorModuleLoaderScript'))return fail('essential editor loader missing');
-      if(document.documentElement.dataset.pdfAdvancedRouteModules!=='minimal')return fail('advanced minimal route marker missing');
+      for(const id of [
+        'uploadBtn','pageList','scaleRange','offsetXRange','offsetYRange',
+        'cropLeft','cropTop','cropRight','cropBottom','eraseModeBtn',
+        'marginLeft','marginTop','marginRight','marginBottom',
+        'hfEnabled','headerLeft','footerRight','pnEnabled','pnPosition','pnFormat','downloadBtn'
+      ]){
+        if(!documentCopy.getElementById(id))return fail('standalone control missing: '+id);
+      }
+      if(documentCopy.querySelector('.top-nav'))return fail('legacy top header exists');
+
+      const stateSource=(await text('/js/pdf-editor-advanced/state.js')).toLowerCase();
+      const appSource=(await text('/js/pdf-editor-advanced/app.js')).toLowerCase();
+      const previewSource=(await text('/js/pdf-editor-advanced/preview.js')).toLowerCase();
+      const apiSource=(await text('/js/pdf-editor-advanced/api.js')).toLowerCase();
+      const combined=[stateSource,appSource,previewSource,apiSource].join('\n');
+      for(const forbidden of ['nupscale','nupoffset','pdfnup','booklet','/js/pdf-editor/']){
+        if(combined.includes(forbidden))return fail('legacy runtime/state dependency leaked: '+forbidden);
+      }
+      if(!stateSource.includes('edit_scale')||!stateSource.includes('offset_x_mm')||!stateSource.includes('offset_y_mm'))return fail('standalone transform serialization missing');
+      if(!stateSource.includes('header_footer')||!stateSource.includes('page_numbers')||!stateSource.includes('margins'))return fail('required document settings missing');
+      if(!apiSource.includes('/api/pdf/advanced/process'))return fail('standalone advanced API missing');
+      if(!previewSource.includes('max_source_canvas_cache = 8'))return fail('bounded preview cache missing');
+      if(!previewSource.includes('renderthumbnail')||previewSource.includes('renderthumbnail(page, canvas) {\n  const source = await sourcecanvasfor'))return fail('thumbnail still consumes high-resolution source cache');
 
       document.documentElement.dataset.pdfAdvancedSidebarHardIsolationSmoke='pass';
       result.textContent='PASS: /pdf-editor-advanced stays advanced, hides spread/N-up/order controls and skips general print-layout modules';

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate the standalone app routes and print-checker/PDF-editor boundaries."""
+"""Validate the standalone app routes and product boundaries."""
 from __future__ import annotations
 
 import json
@@ -31,9 +31,16 @@ def validate() -> None:
         "print-checker/index.html",
         "js/print-checker/access.js",
         "js/print-checker/print-checker.js",
+        "pdf-editor-advanced/index.html",
+        "css/pdf-editor-advanced.css",
+        "js/pdf-editor-advanced/app.js",
+        "js/pdf-editor-advanced/state.js",
+        "js/pdf-editor-advanced/preview.js",
+        "js/pdf-editor-advanced/api.js",
         "tests/browser/modular-app-shell-smoke.html",
         "tests/browser/standalone-boundary-ui-smoke.html",
         "tests/browser/print-checker-smoke.html",
+        "tests/browser/pdf-advanced-sidebar-hard-isolation-smoke.html",
         "scripts/run_modular_app_shell_smoke.sh",
     )
     for relative in required:
@@ -62,6 +69,12 @@ def validate() -> None:
         for rule in rewrites
     ):
         errors.append("Firebase Hosting /print-checker rewrite is missing")
+    if not any(
+        rule.get("source") == "/pdf-editor-advanced"
+        and rule.get("destination") == "/pdf-editor-advanced/index.html"
+        for rule in rewrites
+    ):
+        errors.append("Firebase Hosting standalone /pdf-editor-advanced rewrite is missing")
 
     apps_html = read("apps/index.html")
     if "/print-checker?product=" not in apps_html:
@@ -133,6 +146,43 @@ def validate() -> None:
     if "/pdf-editor/?embed=1&app=layout" not in shell or "/pdf-editor/?embed=1&app=booklet" not in shell:
         errors.append("PDF apps are not routed to the canonical PDF editor")
 
+    advanced_html = read("pdf-editor-advanced/index.html")
+    if 'data-pdf-advanced-standalone="1"' not in advanced_html:
+        errors.append("standalone advanced editor marker is missing")
+    if "/js/pdf-editor-advanced/app.js" not in advanced_html:
+        errors.append("standalone advanced editor entry module is missing")
+    for forbidden in (
+        "/js/pdf-editor/core-runtime.js",
+        "/js/pdf-editor/advanced-runtime.js",
+        "advanced-profile-scope",
+        "N-up",
+        "nup",
+        "booklet",
+        "소책자",
+        "간지",
+    ):
+        if forbidden in advanced_html:
+            errors.append(f"standalone advanced editor leaks legacy layout dependency: {forbidden}")
+    for marker in (
+        'id="scaleRange"', 'id="offsetXRange"', 'id="offsetYRange"',
+        'id="eraseModeBtn"', 'id="marginLeft"', 'id="marginRight"',
+        'id="marginTop"', 'id="marginBottom"', 'id="hfEnabled"',
+        'id="pnEnabled"', 'id="downloadBtn"',
+    ):
+        if marker not in advanced_html:
+            errors.append(f"standalone advanced editor missing required control: {marker}")
+
+    advanced_frontend = "\n".join(
+        read(f"js/pdf-editor-advanced/{name}").lower()
+        for name in ("app.js", "state.js", "preview.js", "api.js")
+    )
+    for forbidden in ("nupscale", "nupoffset", "pdfnup", "booklet", "/js/pdf-editor/"):
+        if forbidden in advanced_frontend:
+            errors.append(f"standalone advanced state/runtime leaks layout dependency: {forbidden}")
+    for required_marker in ("edit_scale", "offset_x_mm", "offset_y_mm", "header_footer", "page_numbers", "margins"):
+        if required_marker not in advanced_frontend:
+            errors.append(f"standalone advanced serialization missing: {required_marker}")
+
     browser_smoke = read("tests/browser/modular-app-shell-smoke.html")
     if "engine started before approval" not in browser_smoke:
         errors.append("browser smoke does not verify approval-before-engine contract")
@@ -147,7 +197,7 @@ def validate() -> None:
             print(f" - {error}", file=sys.stderr)
         raise SystemExit(1)
 
-    print("Modular app architecture OK: public configurable daily-free Print Checker (cover/leaflet/flyer/invitation), real PDF inspection, protected modular PDF editor routes, Firebase rewrites and browser smoke coverage all validated")
+    print("Modular app architecture OK: public Print Checker, canonical N-up/booklet editor, standalone advanced PDF editor, protected routes, Firebase rewrites and browser smoke coverage all validated")
 
 
 if __name__ == "__main__":
