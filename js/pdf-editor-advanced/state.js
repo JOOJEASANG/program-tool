@@ -1,8 +1,11 @@
+const DEFAULT_PAPER = { preset: 'original', customWidthMm: 210, customHeightMm: 297 };
+
 export const advancedState = {
   files: [],
   documents: [],
   pages: [],
   selectedId: null,
+  paper: { ...DEFAULT_PAPER },
   margins: { left: 0, right: 0, top: 0, bottom: 0, facingPages: false },
   headerFooter: {
     enabled: false,
@@ -35,6 +38,15 @@ function clone(value) {
   return JSON.parse(JSON.stringify(value));
 }
 
+function outputPointsForPage(page) {
+  const rotation = ((Number(page?.rotation || 0) % 360) + 360) % 360;
+  const width = Number(page?.widthPt || page?.sourceWidthPt || 0);
+  const height = Number(page?.heightPt || page?.sourceHeightPt || 0);
+  return rotation === 90 || rotation === 270
+    ? { width: height, height: width }
+    : { width, height };
+}
+
 export function selectedPage() {
   return advancedState.pages.find(page => page.id === advancedState.selectedId) || null;
 }
@@ -47,6 +59,7 @@ export function snapshotEditableState() {
   return {
     pages: clone(advancedState.pages),
     selectedId: advancedState.selectedId,
+    paper: clone(advancedState.paper),
     margins: clone(advancedState.margins),
     headerFooter: clone(advancedState.headerFooter),
     pageNumbers: clone(advancedState.pageNumbers),
@@ -56,6 +69,10 @@ export function snapshotEditableState() {
 function restoreSnapshot(snapshot) {
   advancedState.pages = clone(snapshot.pages || []);
   advancedState.selectedId = snapshot.selectedId || advancedState.pages[0]?.id || null;
+  advancedState.paper = clone(snapshot.paper || DEFAULT_PAPER);
+  if (!advancedState.paper.preset) advancedState.paper.preset = 'original';
+  if (!Number.isFinite(Number(advancedState.paper.customWidthMm))) advancedState.paper.customWidthMm = 210;
+  if (!Number.isFinite(Number(advancedState.paper.customHeightMm))) advancedState.paper.customHeightMm = 297;
   advancedState.margins = clone(snapshot.margins || { left: 0, right: 0, top: 0, bottom: 0, facingPages: false });
   if (typeof advancedState.margins.facingPages !== 'boolean') advancedState.margins.facingPages = false;
   advancedState.headerFooter = clone(snapshot.headerFooter || advancedState.headerFooter);
@@ -114,6 +131,7 @@ export function resetAllState() {
   advancedState.documents = [];
   advancedState.pages = [];
   advancedState.selectedId = null;
+  advancedState.paper = { ...DEFAULT_PAPER };
   advancedState.margins = { left: 0, right: 0, top: 0, bottom: 0, facingPages: false };
   advancedState.headerFooter = {
     enabled: false,
@@ -143,21 +161,26 @@ export function resetAllState() {
 
 export function serializeSettings() {
   return {
-    pages: advancedState.pages.map(page => ({
-      file_index: page.fileIndex,
-      page_index: page.pageIndex,
-      rotation: page.rotation,
-      fine_rotation_deg: Number(page.fineRotation || 0),
-      crop_left_ratio: page.crop.left,
-      crop_top_ratio: page.crop.top,
-      crop_right_ratio: page.crop.right,
-      crop_bottom_ratio: page.crop.bottom,
-      erase_regions: clone(page.eraseRegions || []),
-      edit_scale: page.scale,
-      offset_x_mm: page.offsetX,
-      offset_y_mm: page.offsetY,
-      excluded: false,
-    })),
+    pages: advancedState.pages.map(page => {
+      const output = outputPointsForPage(page);
+      return {
+        file_index: page.fileIndex,
+        page_index: page.pageIndex,
+        rotation: page.rotation,
+        fine_rotation_deg: Number(page.fineRotation || 0),
+        output_width_pt: output.width > 0 ? output.width : null,
+        output_height_pt: output.height > 0 ? output.height : null,
+        crop_left_ratio: page.crop.left,
+        crop_top_ratio: page.crop.top,
+        crop_right_ratio: page.crop.right,
+        crop_bottom_ratio: page.crop.bottom,
+        erase_regions: clone(page.eraseRegions || []),
+        edit_scale: page.scale,
+        offset_x_mm: page.offsetX,
+        offset_y_mm: page.offsetY,
+        excluded: false,
+      };
+    }),
     margins: {
       left_mm: advancedState.margins.left,
       right_mm: advancedState.margins.right,
