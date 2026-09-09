@@ -42,14 +42,13 @@ function onStagePointerDown(event) {
   const api = overlayApi();
   if (!page || !api) return;
 
-  // The original overlay module selects the item first. It also rebuilds the
-  // overlay DOM on pointerdown, so resolve the live object after that rebuild
-  // instead of retaining the stale pre-render object reference.
+  // Capture the gesture before the legacy target listener selects the overlay
+  // and rebuilds its DOM. Only stable ids/geometry are retained here; every
+  // pointermove resolves the current live page overlay again by id.
   const overlay = overlayById(page, target.dataset.overlayId);
   const layer = $('pdfAdvancedOverlayLayer');
   if (!overlay || !layer) return;
 
-  try { target.releasePointerCapture?.(event.pointerId); } catch (_) {}
   gesture = {
     pointerId: event.pointerId,
     pageId: page.id,
@@ -259,9 +258,9 @@ function bind() {
   $('addImageOverlayBtn')?.addEventListener('click', () => { input.value = ''; }, true);
   input.addEventListener('change', onImageChange, true);
 
-  // Bubble after the original target listener has selected/re-rendered the
-  // overlay, then own pointer movement at window capture phase.
-  stage.addEventListener('pointerdown', onStagePointerDown);
+  // Capture before the legacy target handler can rebuild the overlay DOM.
+  // Pointer movement is then owned at window capture phase using stable ids.
+  stage.addEventListener('pointerdown', onStagePointerDown, true);
   window.addEventListener('pointermove', onPointerMove, { capture: true, passive: false });
   window.addEventListener('pointerup', finishGesture, { capture: true, passive: false });
   window.addEventListener('pointercancel', finishGesture, { capture: true, passive: false });
