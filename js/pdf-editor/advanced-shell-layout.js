@@ -93,6 +93,17 @@
     return{page,offsetX:Number(value?.offsetX||0),offsetY:Number(value?.offsetY||0)};
   }
 
+  function beginMoveHistory(){
+    const page=placement().page;
+    const history=window.PdfPrecisionEditTools?.history;
+    if(!page||typeof history?.begin!=='function')return;
+    try{history.commit?.();history.begin(page,'페이지 위치 이동','range');}catch(_){}
+  }
+
+  function commitMoveHistory(){
+    try{window.PdfPrecisionEditTools?.history?.commit?.();}catch(_){}
+  }
+
   function writeSlider(axis,value){
     const slider=byId(axis==='x'?'pdfAdvancedMoveXRangeV1':'pdfAdvancedMoveYRangeV1');
     const output=byId(axis==='x'?'pdfAdvancedMoveXValueV1':'pdfAdvancedMoveYValueV1');
@@ -122,6 +133,18 @@
     target.dispatchEvent(new Event('input',{bubbles:true}));
   }
 
+  function bindMoveRange(id,axis){
+    const slider=byId(id);
+    if(!slider)return;
+    slider.addEventListener('pointerdown',beginMoveHistory);
+    slider.addEventListener('focusin',beginMoveHistory);
+    slider.addEventListener('input',event=>applyRange(axis,event.target.value));
+    slider.addEventListener('pointerup',()=>setTimeout(commitMoveHistory,0));
+    slider.addEventListener('pointercancel',()=>setTimeout(commitMoveHistory,0));
+    slider.addEventListener('change',()=>setTimeout(commitMoveHistory,0));
+    slider.addEventListener('focusout',()=>setTimeout(commitMoveHistory,0));
+  }
+
   function ensureMoveSliders(){
     const panel=byId('pdfNupPageAdjustPanelV1');
     if(!panel)return false;
@@ -145,9 +168,13 @@
       </div>
       <div class="pdf-advanced-move-zero"><button type="button" id="pdfAdvancedMoveCenterV1">위치만 가운데로</button></div>`;
     scale.insertAdjacentElement('afterend',box);
-    byId('pdfAdvancedMoveXRangeV1')?.addEventListener('input',event=>applyRange('x',event.target.value));
-    byId('pdfAdvancedMoveYRangeV1')?.addEventListener('input',event=>applyRange('y',event.target.value));
-    byId('pdfAdvancedMoveCenterV1')?.addEventListener('click',()=>{applyRange('x',0);applyRange('y',0);queueSync();});
+    bindMoveRange('pdfAdvancedMoveXRangeV1','x');
+    bindMoveRange('pdfAdvancedMoveYRangeV1','y');
+    byId('pdfAdvancedMoveCenterV1')?.addEventListener('click',()=>{
+      beginMoveHistory();
+      applyRange('x',0);applyRange('y',0);
+      setTimeout(commitMoveHistory,0);queueSync();
+    });
     ['pdfNupAdjustX','pdfNupAdjustY'].forEach(id=>{
       const input=byId(id);
       if(input&&!input.dataset.advancedMoveSyncBound){
