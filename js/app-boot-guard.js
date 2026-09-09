@@ -20,6 +20,33 @@
 
   const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
   function isPdfPrintEditor(){return ['/tools/pdf-editor.html','/pdf-editor','/pdf-editor/index.html'].some(item=>path.endsWith(item));}
+  function isAdvancedPdfEditor(){
+    if(!isPdfPrintEditor())return false;
+    try{return String(new URLSearchParams(location.search).get('profile')||'').trim().toLowerCase()==='advanced';}
+    catch(_){return false;}
+  }
+
+  const advancedPdfEditor=isAdvancedPdfEditor();
+  if(advancedPdfEditor){
+    root.dataset.pdfEditorProfile='advanced';
+    root.dataset.pdfEditorAdvancedRoute='1';
+    root.dataset.pdfPrintWorkflowSuppressed='advanced';
+    const style=document.createElement('style');
+    style.id='pdfAdvancedEarlyIsolationStylesV1';
+    style.textContent=`
+      html[data-pdf-editor-profile="advanced"] #nupGrid,
+      html[data-pdf-editor-profile="advanced"] #bookletRow,
+      html[data-pdf-editor-profile="advanced"] #nupQuickGuide,
+      html[data-pdf-editor-profile="advanced"] #fileLayoutControl,
+      html[data-pdf-editor-profile="advanced"] .prev-ins-zone,
+      html[data-pdf-editor-profile="advanced"] .prev-ins-zone-v,
+      html[data-pdf-editor-profile="advanced"] .mode-btn[data-mode="break"],
+      html[data-pdf-editor-profile="advanced"] #dividerModal,
+      html[data-pdf-editor-profile="advanced"] #pdfPrintWorkflowFocusPanel,
+      html[data-pdf-editor-profile="advanced"] #pdfPrintUtilityRedirectCard{display:none!important}
+    `;
+    document.head.appendChild(style);
+  }
 
   function loadRuntimeScript(id,src,enabled){
     if(!enabled)return null;
@@ -35,7 +62,10 @@
     return script;
   }
 
-  loadRuntimeScript('pdfPrintWorkflowFocusScriptV1','/js/pdf-editor/print-workflow-focus.js?v=20260827-1',isPdfPrintEditor());
+  // The normal print-layout workflow owns N-UP/booklet controls. Never mount it
+  // on the dedicated advanced profile: advanced runtime reuses only the
+  // single-page precision transform modules and must stay isolated.
+  loadRuntimeScript('pdfPrintWorkflowFocusScriptV1','/js/pdf-editor/print-workflow-focus.js?v=20260827-1',isPdfPrintEditor()&&!advancedPdfEditor);
   // Prime the current preflight presentation behind the boot overlay so the
   // legacy workspace never flashes before clean-workspace-v2 takes ownership.
   loadRuntimeScript('pdfPreflightPanelBalanceScriptV1','/js/pdf-preflight-panel-balance.js?v=20260831-3',protectedProgram==='preflight');
