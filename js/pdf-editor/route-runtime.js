@@ -48,6 +48,19 @@
     return String(params().get('profile')||'').trim().toLowerCase()==='advanced';
   };
 
+  function removeStandardSidebarTitle(){
+    if(isAdvancedProfile())return;
+    const remove=()=>{
+      const title=document.querySelector('.app > aside > h1');
+      if(title&&String(title.textContent||'').trim()==='PDF 문서 편집기'){
+        title.remove();
+        document.documentElement.dataset.pdfLayoutSidebarTitleRemoved='1';
+      }
+    };
+    remove();
+    if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',remove,{once:true});
+  }
+
   function hostLoadScript(id,src){
     const loader=context().load;
     if(typeof loader!=='function'){
@@ -70,6 +83,7 @@
     const seen=new Set();
     const pending=[];
     const advanced=isAdvancedProfile();
+    removeStandardSidebarTitle();
     if(standaloneApp())pending.push(loadStandaloneBoundary());
     for(const entry of MODULES){
       if(!entry.id||!entry.src||seen.has(entry.id)){
