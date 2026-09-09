@@ -90,7 +90,8 @@
       if(!shell||shell.stabilityStage!=='upload-shell-stability-v2')return fail('shell stability API missing');
       if(parseFloat(getComputedStyle(document.body).paddingTop||'0')!==0)return fail('legacy header padding remains');
       if(getComputedStyle(document.querySelector('.top-nav')).display!=='none')return fail('legacy top nav remains visible');
-      if(getComputedStyle(document.getElementById('statusBar')).position!=='absolute')return fail('status bar still consumes top layout space');
+      const statusPosition=getComputedStyle(document.getElementById('statusBar')).position;
+      if(!['absolute','fixed'].includes(statusPosition))return fail('status bar still consumes top layout space');
 
       const tools=document.getElementById('pdfAdvancedSidebarNavV1');
       if(!tools)return fail('stable sidebar action bar missing');
