@@ -218,6 +218,34 @@ def _decode_overlay_image(data_url: str) -> bytes:
     return data
 
 
+def _insert_overlay_textbox(
+    page: fitz.Page,
+    rect: fitz.Rect,
+    text: str,
+    font_size: float,
+    color: tuple[float, float, float],
+    align: int,
+) -> float | None:
+    """Draw text, shrinking only when CJK font metrics do not fit the chosen box."""
+    size = max(5.0, min(96.0, float(font_size)))
+    while size >= 5.0:
+        remaining = page.insert_textbox(
+            rect,
+            text,
+            fontsize=size,
+            fontname=pdf_text_renderer.CJK_FONT_NAME,
+            color=color,
+            align=align,
+            overlay=True,
+        )
+        if remaining >= 0:
+            return size
+        if size <= 5.0:
+            break
+        size = max(5.0, size - max(0.5, size * 0.08))
+    return None
+
+
 def _render_page_overlays(
     out_page: fitz.Page,
     page_info: AdvancedPageInfo,
@@ -243,22 +271,22 @@ def _render_page_overlays(
             "center": fitz.TEXT_ALIGN_CENTER,
             "right": fitz.TEXT_ALIGN_RIGHT,
         }.get(overlay.align, fitz.TEXT_ALIGN_LEFT)
-        font_size = max(5.0, min(96.0, float(overlay.font_size or 18.0)))
-        out_page.insert_textbox(
+        used_size = _insert_overlay_textbox(
+            out_page,
             rect,
             text,
-            fontsize=font_size,
-            fontname=pdf_text_renderer.CJK_FONT_NAME,
-            color=color,
-            align=align,
-            overlay=True,
+            float(overlay.font_size or 18.0),
+            color,
+            align,
         )
-        if overlay.bold:
+        if overlay.bold and used_size is not None:
+            # PyMuPDF's built-in Korean font has no bold face. A tiny second pass
+            # creates a print-friendly faux-bold effect without shipping fonts.
             bold_rect = fitz.Rect(rect.x0 + 0.28, rect.y0, rect.x1 + 0.28, rect.y1)
             out_page.insert_textbox(
                 bold_rect,
                 text,
-                fontsize=font_size,
+                fontsize=used_size,
                 fontname=pdf_text_renderer.CJK_FONT_NAME,
                 color=color,
                 align=align,
