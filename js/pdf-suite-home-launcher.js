@@ -1,8 +1,8 @@
 // Home entry points for the Program Studio print/PDF workspace.
 (function(){
   'use strict';
-  if(window.__programStudioPdfSuiteHomeV6)return;
-  window.__programStudioPdfSuiteHomeV6=true;
+  if(window.__programStudioPdfSuiteHomeV7)return;
+  window.__programStudioPdfSuiteHomeV7=true;
 
   const PROGRAMS=[
     {
@@ -16,6 +16,18 @@
       desc:'외부에서 제작한 인쇄물 PDF의 재단선·안전 영역·접지선·책등·간격을 검토합니다.',
       url:'print-checker/',
       tags:['재단선','안전 영역','접지선']
+    },
+    {
+      id:'smart-print-layout',
+      cat:'print',
+      name:'스마트 인쇄배치',
+      icon:'▦',
+      accent:'#0f766e',
+      bg:'linear-gradient(135deg,#115e59,#14b8a6)',
+      catLabel:'스마트 배치',
+      desc:'PDF의 실제 크기와 수량을 읽어 용지에 효율적으로 자동배치하고 앞면·뒷면 양면 위치까지 맞춥니다.',
+      url:'smart-print-layout/',
+      tags:['자동배치','앞면·뒷면','종이 절약']
     },
     {
       id:'pdf-editor',
@@ -102,7 +114,7 @@
     if(!normalizePrograms())return;
     syncCounts();
     document.documentElement.dataset.pdfHomeUnified='ready';
-    document.documentElement.dataset.pdfHomeWorkspace='four-programs';
+    document.documentElement.dataset.pdfHomeWorkspace='five-programs';
   }
 
   let observerQueued=false;
@@ -124,6 +136,6 @@
     programs:PROGRAMS,
     normalizePrograms,
     syncCounts,
-    stage:'pdf-home-four-programs-v6'
+    stage:'pdf-home-five-programs-v7'
   });
 })();

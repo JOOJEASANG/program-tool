@@ -83,6 +83,11 @@ jobs:
             --attempts 10 \
             --delay-seconds 6 \
             --timeout 25
+          python3 scripts/smoke_smart_layout_deployment.py \
+            --base-url https://program-tool.web.app \
+            --attempts 10 \
+            --delay-seconds 6 \
+            --timeout 25
 
   production-status:
     name: 운영 배포 상태 기록
