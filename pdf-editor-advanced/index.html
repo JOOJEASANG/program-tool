@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>PDF 고급 편집 · Program Studio</title>
   <link rel="stylesheet" href="/css/pdf-editor-advanced.css?v=20260909-1">
+  <link rel="stylesheet" href="/css/pdf-editor-advanced-parity.css?v=20260909-1">
   <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
 </head>
@@ -25,7 +26,11 @@
       <section class="tool-section upload-section">
         <div class="section-title">파일</div>
         <input id="fileInput" type="file" accept="application/pdf,.pdf" multiple hidden>
-        <button id="uploadBtn" class="primary-btn" type="button">PDF 불러오기 / 추가</button>
+        <button id="uploadBtn" class="upload-zone" type="button" aria-controls="fileInput" aria-label="PDF 파일 선택">
+          <span class="upload-icon" aria-hidden="true">📂</span>
+          <span class="upload-text">PDF 파일 클릭 또는 드래그</span>
+          <span class="upload-sub">여러 파일을 연속으로 추가할 수 있습니다</span>
+        </button>
         <button id="clearAllBtn" class="secondary-btn" type="button" disabled>전체 비우기</button>
         <div class="status-line" id="statusLine" role="status">PDF 파일을 불러와 주세요.</div>
       </section>
@@ -78,6 +83,10 @@
           <label>오른쪽<input id="marginRight" type="number" min="0" max="80" value="0" step="0.5"></label>
           <label>아래<input id="marginBottom" type="number" min="0" max="80" value="0" step="0.5"></label>
         </div>
+        <label class="facing-row" for="facingPages">
+          <input id="facingPages" type="checkbox">
+          <span><strong>양면 마주보기 (짝수 페이지 좌우 반전)</strong><small id="facingHint">좌·우 여백이 다를 때 짝수 페이지에서 서로 반전합니다.</small></span>
+        </label>
         <p class="hint">출력 페이지 크기는 유지하고 내용이 들어갈 영역에 여백을 확보합니다.</p>
       </section>
 
@@ -183,5 +192,6 @@
   </div>
 
   <script type="module" src="/js/pdf-editor-advanced/app.js?v=20260909-1"></script>
+  <script type="module" src="/js/pdf-editor-advanced/facing-upload.js?v=20260909-1"></script>
 </body>
 </html>
