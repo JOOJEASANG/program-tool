@@ -13,7 +13,6 @@ FAVICON_MARKER = "data-program-studio-favicon"
 META_MARKER = "data-program-studio-meta"
 UI_STYLE_MARKER = "data-program-studio-ui"
 PDF_BOOKLET_MARKER = "data-pdf-classic-booklet"
-MANUAL_LINK_MARKER = "data-program-manual-context"
 EXCLUDED_PARTS = {".git", "node_modules", "venv", ".venv", "__pycache__"}
 PROTECTED_HTML = {
     "pdf-editor/index.html",
@@ -34,14 +33,6 @@ PUBLIC_HTML = {
     "print-checker/index.html",
 }
 DEPLOY_HTML = PUBLIC_HTML | PROTECTED_HTML
-MANUAL_CONTEXT_HTML = {
-    "print-checker/index.html",
-    "smart-print-layout/index.html",
-    "pdf-editor/index.html",
-    "pdf-editor-advanced/index.html",
-    "pdf-suite/index.html",
-    "pdf-preflight/index.html",
-}
 PDF_BOOKLET_HTML = {
     "pdf-editor/index.html",
     "tools/pdf-editor.html",
@@ -116,10 +107,6 @@ def requires_favicon(path: Path) -> bool:
     return relative_path(path) in DEPLOY_HTML
 
 
-def requires_manual_context(path: Path) -> bool:
-    return relative_path(path) in MANUAL_CONTEXT_HTML
-
-
 def page_metadata(path: Path) -> tuple[str, str, str] | None:
     return PAGE_METADATA.get(relative_path(path))
 
@@ -147,12 +134,6 @@ def normalize_metadata(text: str, metadata: tuple[str, str, str] | None) -> str:
 
 
 def should_inject(path: Path, text: str) -> bool:
-    """Return whether the legacy boot/metadata transform still needs work.
-
-    Manual-context links are intentionally checked by inject_all() separately so
-    this long-standing helper remains idempotent for callers/tests that invoke
-    inject_guard() directly without a path-aware manual_context argument.
-    """
     if any(part in EXCLUDED_PARTS for part in path.parts):
         return False
     approval_required = requires_approval(path)
@@ -175,7 +156,6 @@ def inject_guard(
     ui_style: bool = True,
     metadata: tuple[str, str, str] | None = None,
     pdf_booklet: bool = False,
-    manual_context: bool = False,
 ) -> str:
     text = normalize_metadata(text, metadata)
     tags = ""
@@ -195,11 +175,6 @@ def inject_guard(
             f'<script {PDF_BOOKLET_MARKER} defer '
             f'src="/js/pdf-editor/booklet-sheet-preview.js?v={version}"></script>'
         )
-    if manual_context and MANUAL_LINK_MARKER not in text:
-        tags += (
-            f'<script {MANUAL_LINK_MARKER} defer '
-            f'src="/js/program-manuals/context-link.js?v={version}"></script>'
-        )
     if approval_required and "firebase-config.js" not in text:
         tags += FIREBASE_APPROVAL_BOOTSTRAP
     if not tags:
@@ -215,8 +190,7 @@ def inject_all() -> list[Path]:
     changed: list[Path] = []
     for path in sorted(ROOT.rglob("*.html")):
         text = path.read_text(encoding="utf-8")
-        needs_manual_context = requires_manual_context(path) and MANUAL_LINK_MARKER not in text
-        if not should_inject(path, text) and not needs_manual_context:
+        if not should_inject(path, text):
             continue
         updated = inject_guard(
             text,
@@ -226,7 +200,6 @@ def inject_all() -> list[Path]:
             ui_style=requires_favicon(path),
             metadata=page_metadata(path),
             pdf_booklet=is_pdf_booklet_page(path),
-            manual_context=requires_manual_context(path),
         )
         if updated == text:
             continue

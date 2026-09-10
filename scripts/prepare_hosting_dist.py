@@ -38,7 +38,6 @@ HOSTED_DIRS = (
     "apps",
     "css",
     "js",
-    "manuals",
     "print-checker",
     "smart-print-layout",
     "pdf-editor",
@@ -239,8 +238,6 @@ def build() -> int:
         raise RuntimeError("Hosting stage is missing PDF suite hub")
     if not (OUTPUT / "smart-print-layout/index.html").is_file():
         raise RuntimeError("Hosting stage is missing smart print layout")
-    if not (OUTPUT / "manuals/index.html").is_file():
-        raise RuntimeError("Hosting stage is missing program manual center")
 
     leaked = sorted(
         path.relative_to(OUTPUT).as_posix()

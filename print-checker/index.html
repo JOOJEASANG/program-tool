@@ -11,6 +11,7 @@
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
   <link rel="stylesheet" href="/css/print-checker.css?v=20260907-4">
+  <link rel="stylesheet" href="/css/print-checker-production-guides.css?v=20260910-1">
 </head>
 <body class="print-checker-page">
   <div class="app-layout">
@@ -80,13 +81,12 @@
           <button class="collapse-btn" id="headerCollapseBtn" type="button" aria-expanded="true">접기 ▲</button>
         </div>
         <div class="canvas-header-body" id="canvasHeaderBody">
-          <p>제품 사양을 입력하면 안내선을 만들고, PDF를 올리면 실제 페이지를 렌더링해 <strong>페이지 수와 실제 mm 규격</strong>을 입력 사양과 비교합니다. 양면 PDF는 1·2페이지를 앞면·뒷면으로 전환해 확인할 수 있습니다.</p>
-          <div class="canvas-tips">
-            <span class="canvas-tip">작업선 — 도련 외곽</span>
-            <span class="canvas-tip">재단선 — 절단 위치</span>
-            <span class="canvas-tip">안전 영역 — 텍스트 보호</span>
-            <span class="canvas-tip">책등 · 날개</span>
-            <span class="canvas-tip">접지선 · 면 배치</span>
+          <div class="canvas-tips" aria-label="인쇄 안내선 범례">
+            <span class="canvas-tip">작업사이즈 전체 — 파란 실선</span>
+            <span class="canvas-tip">재단선(실제사이즈) — 빨간 실선</span>
+            <span class="canvas-tip">안쪽 여백 — 초록 점선</span>
+            <span class="canvas-tip">책등 — 보라 실선</span>
+            <span class="canvas-tip">접는선 — 주황 쇄선</span>
           </div>
         </div>
       </section>
@@ -114,8 +114,9 @@
   <script defer src="/js/pdf-daily-free.js?v=20260907-2"></script>
   <script defer src="/js/print-checker/access.js?v=20260907-2"></script>
   <script defer src="/js/print-checker/print-checker.js?v=20260904-2"></script>
-  <script defer src="/js/print-checker/spine-calculator-v2.js?v=20260909-1"></script>
+  <script defer src="/js/print-checker/spine-calculator-v2.js?v=20260910-1"></script>
   <script defer src="/js/print-checker/file-relative-preview.js?v=20260907-5"></script>
+  <script defer src="/js/print-checker/production-guides-v2.js?v=20260910-1"></script>
   <script defer src="/js/print-checker/spine-live-dimension.js?v=20260907-1"></script>
   <script defer src="/js/print-checker/reliability.js?v=20260904-1"></script>
   <script defer src="/js/print-checker/defaults-live.js?v=20260906-1"></script>
