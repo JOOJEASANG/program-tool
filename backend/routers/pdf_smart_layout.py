@@ -8,6 +8,7 @@ from flask import Blueprint, Response, jsonify, request
 
 from models.smart_layout_schemas import SmartLayoutRequest
 from services.smart_print_layout import build_layout_plan, inspect_sources, render_layout_pdf
+from services.smart_print_layout_auto import build_auto_fill_layout_plan
 from utils.auth import require_auth
 from utils.storage import get_bucket, get_request_id
 from utils.storage_delivery import upload_pdf_result
@@ -87,16 +88,28 @@ def smart_layout(uid: str):
             docs.append(doc)
 
         source_items, duplex = inspect_sources(docs, settings.jobs, filenames, settings.side_mode)
-        plan = build_layout_plan(
-            source_items,
-            settings.paper.width_mm,
-            settings.paper.height_mm,
-            settings.margin_mm,
-            settings.gap_mm,
-            settings.allow_rotate,
-            duplex,
-            settings.flip_edge,
-        )
+        if settings.auto_fill:
+            plan = build_auto_fill_layout_plan(
+                source_items,
+                settings.paper.width_mm,
+                settings.paper.height_mm,
+                settings.margin_mm,
+                settings.gap_mm,
+                settings.allow_rotate,
+                duplex,
+                settings.flip_edge,
+            )
+        else:
+            plan = build_layout_plan(
+                source_items,
+                settings.paper.width_mm,
+                settings.paper.height_mm,
+                settings.margin_mm,
+                settings.gap_mm,
+                settings.allow_rotate,
+                duplex,
+                settings.flip_edge,
+            )
         output = render_layout_pdf(docs, plan, gap_mm=settings.gap_mm, crop_marks=settings.crop_marks)
     except ValueError as exc:
         return _error(str(exc), 400, 'SMART_LAYOUT_VALIDATION_FAILED')

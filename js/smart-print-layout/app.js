@@ -14,7 +14,6 @@
   const $ = id => document.getElementById(id);
   const state = { items: [], plan: null, sheetIndex: 0, side: 'front', pdfJsPromise: null, busy: false };
 
-  const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
   const mmFromPt = pt => Number(pt || 0) * 25.4 / 72;
   const round1 = value => Math.round(Number(value || 0) * 10) / 10;
 
@@ -94,7 +93,7 @@
       return {
         id: `f-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
         file, name: file.name, pageCount: doc.numPages, widthMm, heightMm,
-        quantity: 1, frontThumb, backThumb
+        frontThumb, backThumb
       };
     } finally {
       try { await doc.destroy?.(); } catch (_) {}
@@ -112,7 +111,7 @@
         const item = await inspectFile(file);
         state.items.push(item);
       }
-      renderFiles(); recalculate(); status('파일을 읽고 자동 배치했습니다.', 'success');
+      renderFiles(); recalculate(); status('용지 한 장에 들어가는 최대 개수로 자동 배치했습니다.', 'success');
     } catch (error) {
       status(error?.message || 'PDF를 읽지 못했습니다.', 'error');
     } finally {
@@ -127,17 +126,12 @@
     state.items.forEach(item => {
       const row = document.createElement('div');
       row.className = 'file-item';
-      row.innerHTML = `<div class="file-top"><div class="file-main"><div class="file-name"></div><div class="file-meta"></div></div><span class="side-pill">${item.pageCount === 2 ? '앞·뒤' : '앞면'}</span><button class="remove-file" type="button" aria-label="파일 삭제">×</button></div><div class="qty-row"><label>수량</label><input type="number" min="1" max="2000" step="1" value="${item.quantity}" aria-label="${item.name} 수량"><span class="file-meta">개</span></div>`;
+      row.innerHTML = `<div class="file-top"><div class="file-main"><div class="file-name"></div><div class="file-meta"></div></div><span class="side-pill">${item.pageCount === 2 ? '앞·뒤' : '앞면'}</span><button class="remove-file" type="button" aria-label="파일 삭제">×</button></div>`;
       row.querySelector('.file-name').textContent = item.name;
-      row.querySelector('.file-meta').textContent = `${round1(item.widthMm)} × ${round1(item.heightMm)}mm · ${item.pageCount}p`;
+      row.querySelector('.file-meta').textContent = `${round1(item.widthMm)} × ${round1(item.heightMm)}mm · ${item.pageCount}p · 수량 자동`;
       row.querySelector('.remove-file').onclick = () => {
         state.items = state.items.filter(value => value.id !== item.id);
         renderFiles(); recalculate();
-      };
-      row.querySelector('input').oninput = event => {
-        item.quantity = clamp(Math.round(Number(event.target.value) || 1), 1, 2000);
-        event.target.value = item.quantity;
-        recalculate();
       };
       list.appendChild(row);
     });
@@ -208,11 +202,53 @@
     return state.items.some(item => item.pageCount === 2);
   }
 
+  function centerSheet(sheet, cfg) {
+    if (!sheet.length) return sheet;
+    const minX = Math.min(...sheet.map(p => p.x));
+    const minY = Math.min(...sheet.map(p => p.y));
+    const maxX = Math.max(...sheet.map(p => p.x + p.width));
+    const maxY = Math.max(...sheet.map(p => p.y + p.height));
+    const groupW = maxX - minX;
+    const groupH = maxY - minY;
+    const dx = (cfg.paperW - groupW) / 2 - minX;
+    const dy = (cfg.paperH - groupH) / 2 - minY;
+    return sheet.map(p => ({ ...p, x: p.x + dx, y: p.y + dy }));
+  }
+
+  function packOneFile(item, fileIndex, cfg, usableW, usableH, remainingCapacity) {
+    const canFit = (item.widthMm + cfg.gap <= usableW + EPS && item.heightMm + cfg.gap <= usableH + EPS) || (cfg.allowRotate && item.heightMm + cfg.gap <= usableW + EPS && item.widthMm + cfg.gap <= usableH + EPS);
+    if (!canFit) throw new Error(`${item.name} (${round1(item.widthMm)}×${round1(item.heightMm)}mm)이 선택한 용지에 들어가지 않습니다.`);
+    if (remainingCapacity <= 0) throw new Error(`자동 배치 결과가 ${MAX_TOTAL_COPIES.toLocaleString()}개를 초과합니다.`);
+
+    const bin = new MaxRectsBin(usableW, usableH);
+    const sheet = [];
+    const reqW = item.widthMm + cfg.gap;
+    const reqH = item.heightMm + cfg.gap;
+
+    for (let copyIndex = 0; copyIndex < remainingCapacity; copyIndex++) {
+      const candidate = bin.candidate(reqW, reqH, cfg.allowRotate);
+      if (!candidate) break;
+      bin.place(candidate.used);
+      sheet.push({
+        fileIndex, copyIndex,
+        x: cfg.margin + candidate.used.x,
+        y: cfg.margin + candidate.used.y,
+        width: candidate.used.width - cfg.gap,
+        height: candidate.used.height - cfg.gap,
+        rotated: candidate.rotated
+      });
+    }
+
+    if (!sheet.length) throw new Error(`${item.name}을 배치할 수 없습니다.`);
+    if (sheet.length === remainingCapacity && bin.candidate(reqW, reqH, cfg.allowRotate)) {
+      throw new Error(`자동 배치 결과가 ${MAX_TOTAL_COPIES.toLocaleString()}개를 초과합니다. 파일 수나 용지 설정을 조정해 주세요.`);
+    }
+    return centerSheet(sheet, cfg);
+  }
+
   function computePlan() {
     const cfg = settings();
-    const totalCopies = state.items.reduce((sum, item) => sum + item.quantity, 0);
     if (!state.items.length) return null;
-    if (totalCopies > MAX_TOTAL_COPIES) throw new Error(`총 수량은 ${MAX_TOTAL_COPIES.toLocaleString()}개 이하로 설정해 주세요.`);
     if (cfg.paperW < 50 || cfg.paperH < 50) throw new Error('용지 크기를 확인해 주세요.');
     if (cfg.margin < 0 || cfg.margin > 80 || cfg.gap < 0 || cfg.gap > 50) throw new Error('여백 또는 간격 값을 확인해 주세요.');
     if (cfg.sideMode === 'single' && state.items.some(item => item.pageCount === 2)) throw new Error('2페이지 PDF가 있습니다. 양면 방식에서 자동 또는 양면을 선택해 주세요.');
@@ -221,41 +257,15 @@
     const usableH = cfg.paperH - 2 * cfg.margin + cfg.gap;
     if (usableW <= 1 || usableH <= 1) throw new Error('용지 여백이 너무 큽니다.');
 
-    const expanded = [];
-    state.items.forEach((item, fileIndex) => {
-      const canFit = (item.widthMm + cfg.gap <= usableW + EPS && item.heightMm + cfg.gap <= usableH + EPS) || (cfg.allowRotate && item.heightMm + cfg.gap <= usableW + EPS && item.widthMm + cfg.gap <= usableH + EPS);
-      if (!canFit) throw new Error(`${item.name} (${round1(item.widthMm)}×${round1(item.heightMm)}mm)이 선택한 용지에 들어가지 않습니다.`);
-      for (let copyIndex = 0; copyIndex < item.quantity; copyIndex++) expanded.push({ item, fileIndex, copyIndex });
-    });
-    expanded.sort((a, b) => Math.max(b.item.widthMm, b.item.heightMm) - Math.max(a.item.widthMm, a.item.heightMm) || (b.item.widthMm * b.item.heightMm) - (a.item.widthMm * a.item.heightMm) || a.fileIndex - b.fileIndex || a.copyIndex - b.copyIndex);
-
-    const bins = [], sheets = [];
-    for (const entry of expanded) {
-      const reqW = entry.item.widthMm + cfg.gap, reqH = entry.item.heightMm + cfg.gap;
-      let best = null;
-      bins.forEach((bin, sheetIndex) => {
-        const candidate = bin.candidate(reqW, reqH, cfg.allowRotate);
-        if (!candidate) return;
-        if (!best || compareScore(candidate.score, best.candidate.score) < 0 || (compareScore(candidate.score, best.candidate.score) === 0 && sheetIndex < best.sheetIndex)) best = { sheetIndex, candidate };
-      });
-      let sheetIndex, candidate, bin;
-      if (!best) {
-        bin = new MaxRectsBin(usableW, usableH);
-        candidate = bin.candidate(reqW, reqH, cfg.allowRotate);
-        if (!candidate) throw new Error(`${entry.item.name}을 배치할 수 없습니다.`);
-        sheetIndex = bins.length; bins.push(bin); sheets.push([]);
-      } else {
-        ({ sheetIndex, candidate } = best); bin = bins[sheetIndex];
-      }
-      bin.place(candidate.used);
-      sheets[sheetIndex].push({
-        fileIndex: entry.fileIndex, copyIndex: entry.copyIndex,
-        x: cfg.margin + candidate.used.x, y: cfg.margin + candidate.used.y,
-        width: candidate.used.width - cfg.gap, height: candidate.used.height - cfg.gap,
-        rotated: candidate.rotated
-      });
+    const sheets = [];
+    let totalCopies = 0;
+    for (let fileIndex = 0; fileIndex < state.items.length; fileIndex++) {
+      const sheet = packOneFile(state.items[fileIndex], fileIndex, cfg, usableW, usableH, MAX_TOTAL_COPIES - totalCopies);
+      sheets.push(sheet);
+      totalCopies += sheet.length;
     }
-    const usedArea = state.items.reduce((sum, item) => sum + item.widthMm * item.heightMm * item.quantity, 0);
+
+    const usedArea = sheets.flat().reduce((sum, placement) => sum + placement.width * placement.height, 0);
     const utilization = sheets.length ? usedArea / (sheets.length * cfg.paperW * cfg.paperH) * 100 : 0;
     return { sheets, totalCopies, utilization, duplex: resolvedDuplex(cfg), cfg };
   }
@@ -272,7 +282,7 @@
     state.sheetIndex = 0;
     try {
       state.plan = computePlan();
-      status(state.plan ? '자동 배치가 갱신되었습니다.' : '');
+      status(state.plan ? '자동 최대 배치와 가운데 정렬이 갱신되었습니다.' : '');
     } catch (error) {
       state.plan = null;
       status(error?.message || '배치 설정을 확인해 주세요.', 'error');
@@ -284,13 +294,14 @@
   function updateSummary() {
     const card = $('summaryCard');
     if (!state.plan) {
-      card.innerHTML = `<div class="summary-empty">${state.items.length ? '현재 설정으로 배치할 수 없습니다. 위 안내를 확인해 주세요.' : 'PDF를 올리면 자동 배치 결과가 여기에 표시됩니다.'}</div>`;
+      card.innerHTML = `<div class="summary-empty">${state.items.length ? '현재 설정으로 배치할 수 없습니다. 위 안내를 확인해 주세요.' : 'PDF를 올리면 용지 한 장에 들어가는 최대 개수를 자동 계산합니다.'}</div>`;
       return;
     }
     const p = state.plan;
     const printSides = p.sheets.length * (p.duplex ? 2 : 1);
-    const firstCount = p.sheets[0]?.length || 0;
-    card.innerHTML = `<div class="summary-grid"><div class="summary-cell"><span>필요 용지</span><strong>${p.sheets.length}장</strong></div><div class="summary-cell"><span>총 인쇄면</span><strong>${printSides}면</strong></div><div class="summary-cell"><span>총 수량</span><strong>${p.totalCopies}개</strong></div><div class="summary-cell"><span>종이 사용률</span><strong>${round1(p.utilization)}%</strong></div></div><div class="summary-note">첫 장 ${firstCount}개 배치 · ${p.duplex ? `양면 / ${p.cfg.flipEdge === 'long' ? '긴쪽' : '짧은쪽'} 넘김` : '단면'}${p.cfg.allowRotate ? ' · 자동 회전 사용' : ''}</div>`;
+    const counts = p.sheets.map((sheet, index) => `${index + 1}번 ${sheet.length}개`);
+    const countText = counts.length <= 3 ? counts.join(' · ') : `${counts.slice(0, 3).join(' · ')} · 외 ${counts.length - 3}개 파일`;
+    card.innerHTML = `<div class="summary-grid"><div class="summary-cell"><span>파일별 용지</span><strong>${p.sheets.length}장</strong></div><div class="summary-cell"><span>총 인쇄면</span><strong>${printSides}면</strong></div><div class="summary-cell"><span>자동 배치</span><strong>${p.totalCopies}개</strong></div><div class="summary-cell"><span>평균 사용률</span><strong>${round1(p.utilization)}%</strong></div></div><div class="summary-note">${countText} · 가운데 정렬 · ${p.duplex ? `양면 / ${p.cfg.flipEdge === 'long' ? '긴쪽' : '짧은쪽'} 넘김` : '단면'}${p.cfg.allowRotate ? ' · 90° 회전 허용' : ''}</div>`;
   }
 
   function updateControls() {
@@ -338,7 +349,7 @@
       ctx.restore();
       ctx.strokeStyle = '#0f766e'; ctx.lineWidth = Math.max(1, dpr * .5); ctx.strokeRect(x, y, w, h);
       const label = `${placement.fileIndex + 1}-${placement.copyIndex + 1}`;
-      ctx.fillStyle = 'rgba(15,118,110,.88)'; ctx.fillRect(x + 2, y + 2, Math.min(44, w - 4), 14); ctx.fillStyle = '#fff'; ctx.font = '800 8px Pretendard'; ctx.textAlign = 'left'; ctx.fillText(label, x + 5, y + 12);
+      ctx.fillStyle = 'rgba(15,118,110,.88)'; ctx.fillRect(x + 2, y + 2, Math.min(44, Math.max(0, w - 4)), 14); ctx.fillStyle = '#fff'; ctx.font = '800 8px Pretendard'; ctx.textAlign = 'left'; ctx.fillText(label, x + 5, y + 12);
     });
     ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 1; ctx.strokeRect(.5, .5, cssW - 1, cssH - 1);
   }
@@ -353,9 +364,10 @@
       const cfg = settings();
       const form = new FormData();
       form.append('settings', JSON.stringify({
-        jobs: state.items.map((item, index) => ({ file_index: index, quantity: item.quantity })),
+        jobs: state.items.map((item, index) => ({ file_index: index, quantity: 1 })),
         paper: { width_mm: cfg.paperW, height_mm: cfg.paperH },
         margin_mm: cfg.margin, gap_mm: cfg.gap, allow_rotate: cfg.allowRotate,
+        auto_fill: true,
         side_mode: cfg.sideMode, flip_edge: cfg.flipEdge, crop_marks: cfg.cropMarks
       }));
       state.items.forEach(item => form.append('files', item.file, item.name));
@@ -422,5 +434,5 @@
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, { once: true }); else boot();
-  window.SmartPrintLayout = { state, recalculate, stage: 'auto-pack-duplex-v1' };
+  window.SmartPrintLayout = { state, recalculate, stage: 'auto-fill-centered-v2' };
 })();

@@ -19,7 +19,8 @@ class SmartLayoutRequest(BaseModel):
     paper: SmartPaperSize = Field(default_factory=SmartPaperSize)
     margin_mm: float = Field(default=5.0, ge=0.0, le=80.0)
     gap_mm: float = Field(default=3.0, ge=0.0, le=50.0)
-    allow_rotate: bool = True
+    allow_rotate: bool = False
+    auto_fill: bool = False
     side_mode: Literal['auto', 'single', 'duplex'] = 'auto'
     flip_edge: Literal['long', 'short'] = 'long'
     crop_marks: bool = False
