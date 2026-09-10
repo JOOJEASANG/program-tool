@@ -4,7 +4,8 @@
 The guard is intentionally path based. It cannot decide whether a code diff is
 semantically user-visible, so program implementation changes are treated
 conservatively: touch the matching manual in the same PR and confirm its content
-still matches the UI/behavior.
+still matches the UI/behavior. Shared backend paths may intentionally require
+more than one program manual.
 """
 from __future__ import annotations
 
@@ -19,8 +20,15 @@ RULES = {
     "print-checker": {
         "name": "인쇄물 사전 검토",
         "manual": "js/program-manuals/print-checker.js",
-        "prefixes": ("print-checker/", "js/print-checker/"),
-        "exact": ("css/print-checker.css",),
+        "prefixes": (
+            "print-checker/",
+            "js/print-checker/",
+            "backend/services/preflight_",
+        ),
+        "exact": (
+            "css/print-checker.css",
+            "backend/routers/preflight.py",
+        ),
     },
     "smart-print-layout": {
         "name": "스마트 인쇄배치",
@@ -30,22 +38,40 @@ RULES = {
             "js/smart-print-layout/",
             "backend/services/smart_print_layout",
         ),
-        "exact": ("css/smart-print-layout.css",),
+        "exact": (
+            "css/smart-print-layout.css",
+            "backend/routers/pdf_smart_layout.py",
+            "backend/models/smart_layout_schemas.py",
+        ),
     },
     "pdf-editor": {
         "name": "PDF배치",
         "manual": "js/program-manuals/pdf-editor.js",
-        "prefixes": ("pdf-editor/", "js/pdf-editor/", "css/pdf-editor"),
+        "prefixes": (
+            "pdf-editor/",
+            "js/pdf-editor/",
+            "css/pdf-editor",
+        ),
         "exact": (
-            "backend/services/pdf_engine.py",
             "backend/routers/pdf.py",
+            "backend/models/schemas.py",
+            "backend/services/pdf_engine.py",
+            "backend/services/pdf_divider_renderer.py",
+            "backend/services/pdf_print_marks.py",
+            "backend/services/pdf_text_renderer.py",
+            "backend/services/pdf_tiling.py",
         ),
     },
     "pdf-editor-advanced": {
         "name": "PDF편집",
         "manual": "js/program-manuals/pdf-editor-advanced.js",
-        "prefixes": ("pdf-editor-advanced/", "js/pdf-editor-advanced/", "css/pdf-editor-advanced"),
+        "prefixes": (
+            "pdf-editor-advanced/",
+            "js/pdf-editor-advanced/",
+            "css/pdf-editor-advanced",
+        ),
         "exact": (
+            "backend/routers/pdf_advanced.py",
             "backend/services/pdf_advanced_engine.py",
             "backend/models/advanced_schemas.py",
         ),
@@ -59,14 +85,21 @@ RULES = {
             "js/pdf-suite/",
             "js/pdf-preflight/",
             "backend/routers/pdf_utility",
-            "backend/routers/preflight",
             "backend/services/pdf_utility",
+            "backend/services/preflight_",
         ),
-        "exact": (),
+        "exact": (
+            "backend/routers/pdf_tools.py",
+            "backend/routers/pdf_large_security.py",
+            "backend/routers/preflight.py",
+            "backend/services/pdf_ops.py",
+            "backend/services/pdf_tiling.py",
+        ),
     },
 }
 
 REQUIRED_MANUAL_FILES = {
+    "manuals/index.html",
     "js/program-manuals/catalog.js",
     "js/program-manuals/app.js",
     "css/program-manuals.css",
@@ -100,8 +133,7 @@ def rule_matches(path: str, rule: dict) -> bool:
 
 
 def verify_manual_assets() -> list[str]:
-    missing = [path for path in sorted(REQUIRED_MANUAL_FILES) if not (ROOT / path).is_file()]
-    return missing
+    return [path for path in sorted(REQUIRED_MANUAL_FILES) if not (ROOT / path).is_file()]
 
 
 def check(changed: set[str]) -> list[tuple[str, str, list[str]]]:
