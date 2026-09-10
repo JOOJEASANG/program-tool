@@ -6,6 +6,7 @@ from services.smart_print_layout import (
     mirror_back_placement,
     render_layout_pdf,
 )
+from services.smart_print_layout_auto import build_auto_fill_layout_plan
 
 
 MM_TO_PT = 72.0 / 25.4
@@ -96,3 +97,46 @@ def test_rendered_duplex_pdf_alternates_front_and_back_pages():
             output.close()
     finally:
         source.close()
+
+
+def test_auto_fill_repeats_one_pdf_to_sheet_capacity_without_rotation():
+    item = SourceItem(0, "card.pdf", 90.0, 50.0, 2, 1)
+    plan = build_auto_fill_layout_plan(
+        [item], 297.0, 420.0, 5.0, 3.0, False, True, "long"
+    )
+
+    assert len(plan.sheets) == 1
+    assert len(plan.sheets[0]) == 21
+    assert plan.total_copies == 21
+    assert not any(placement.rotated for placement in plan.sheets[0])
+
+
+def test_auto_fill_centers_actual_artwork_group_on_sheet():
+    item = SourceItem(0, "card.pdf", 90.0, 50.0, 1, 1)
+    plan = build_auto_fill_layout_plan(
+        [item], 297.0, 420.0, 5.0, 3.0, False, False, "long"
+    )
+    sheet = plan.sheets[0]
+
+    min_x = min(p.x_mm for p in sheet)
+    min_y = min(p.y_mm for p in sheet)
+    max_x = max(p.x_mm + p.width_mm for p in sheet)
+    max_y = max(p.y_mm + p.height_mm for p in sheet)
+    assert abs(min_x - (297.0 - max_x)) < 1e-6
+    assert abs(min_y - (420.0 - max_y)) < 1e-6
+
+
+def test_auto_fill_uses_one_maximized_sheet_per_uploaded_pdf():
+    items = [
+        SourceItem(0, "card-a.pdf", 90.0, 50.0, 1, 1),
+        SourceItem(1, "card-b.pdf", 100.0, 70.0, 1, 1),
+    ]
+    plan = build_auto_fill_layout_plan(
+        items, 297.0, 420.0, 5.0, 3.0, False, False, "long"
+    )
+
+    assert len(plan.sheets) == 2
+    assert {p.file_index for p in plan.sheets[0]} == {0}
+    assert {p.file_index for p in plan.sheets[1]} == {1}
+    assert len(plan.sheets[0]) > 1
+    assert len(plan.sheets[1]) > 1
