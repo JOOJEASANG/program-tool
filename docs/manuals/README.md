@@ -4,7 +4,7 @@
 
 ## 사용자용 설명서 위치
 
-실제 사이트의 사용설명서 화면은 `guide.html`이며, 프로그램별 상세 내용은 아래 파일이 원본입니다.
+실제 사이트의 프로그램별 사용설명서 화면은 `manuals/index.html`입니다. 기존 `guide.html`은 가입·승인·구독·문의·사업자 정보가 포함된 서비스 이용안내이므로 프로그램 설명서 용도로 변경하지 않습니다. 프로그램별 상세 내용은 아래 파일이 원본입니다.
 
 - 인쇄물 사전 검토: `js/program-manuals/print-checker.js`
 - 스마트 인쇄배치: `js/program-manuals/smart-print-layout.js`
@@ -38,7 +38,7 @@
 
 `.github/workflows/manual-sync.yml`이 프로그램 관련 소스 변경과 해당 설명서 파일 변경을 비교합니다. 사용자 기능 소스가 바뀌었는데 설명서가 함께 수정되지 않으면 PR 검사가 실패합니다.
 
-검사는 `scripts/check_manual_sync.py`가 담당합니다. 새 프로그램을 추가하면 이 스크립트의 프로그램-설명서 매핑과 `js/program-manuals/catalog.js`에도 새 프로그램을 등록해야 합니다. `scripts/validate_program_manuals.py`는 설명서 5종의 등록, 필수 섹션, 자동 시연 단계, `guide.html` 연결, 프로그램 화면의 문맥형 설명서 버튼 연결까지 별도로 검사합니다.
+검사는 `scripts/check_manual_sync.py`가 담당합니다. 프런트엔드뿐 아니라 실제 사용자 동작을 정의하는 라우터·스키마·PDF 처리 서비스도 프로그램별 매핑에 포함합니다. 공유 백엔드 파일은 둘 이상의 설명서 갱신을 요구할 수 있습니다. 새 프로그램을 추가하면 이 스크립트의 프로그램-설명서 매핑과 `js/program-manuals/catalog.js`에도 새 프로그램을 등록해야 합니다. `scripts/validate_program_manuals.py`는 설명서 5종의 등록, 빠른 시작 단계, 필수 섹션, 자동 시연 단계, 전용 `manuals/` 경로, 기존 `guide.html` 보존, 프로그램 화면의 문맥형 설명서 버튼 연결까지 별도로 검사합니다.
 
 ## 작성 기준
 
