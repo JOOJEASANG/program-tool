@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate Program Studio's public manual center and program/manual mapping."""
+"""Validate Program Studio manuals, home modal entry points, and sync contract."""
 from __future__ import annotations
 
 import re
@@ -23,13 +23,17 @@ MANUAL_ASSETS = (
     "js/program-manuals/app.js",
 )
 
+HOME_MODAL_ASSETS = (
+    "css/program-manual-home-modal.css",
+    "js/program-manuals/home-modal.js",
+)
+
 REQUIRED_MANUAL_KEYS = (
     "summary:",
     "audience:",
     "before:",
     "quickStart:",
     "sections:",
-    "demo:",
     "troubleshooting:",
     "glossary:",
 )
@@ -59,10 +63,9 @@ def require(condition: bool, message: str) -> None:
 def validate_manual_center() -> None:
     page = read("manuals/index.html")
     require('id="programList"' in page, "manuals/index.html에 프로그램 목록이 없습니다.")
-    require('data-tab="quick"' in page, "manuals/index.html에 빠른 시작 탭이 없습니다.")
-    require('data-tab="details"' in page, "manuals/index.html에 상세 기능 탭이 없습니다.")
-    require('data-tab="demo"' in page, "manuals/index.html에 자동 시연 탭이 없습니다.")
-    require('data-tab="trouble"' in page, "manuals/index.html에 문제 해결 탭이 없습니다.")
+    require('id="manualBody"' in page, "manuals/index.html에 상세설명서 본문이 없습니다.")
+    require("자동 시연" not in page, "manuals/index.html에 삭제된 자동 시연 UI가 남아 있습니다.")
+    require('data-tab="demo"' not in page and 'id="demoPanel"' not in page, "자동 시연 탭 또는 패널이 남아 있습니다.")
     for asset in MANUAL_ASSETS:
         require(f"/{asset}" in page, f"manuals/index.html이 설명서 자산을 로드하지 않습니다: {asset}")
 
@@ -100,8 +103,7 @@ def validate_manual(program_id: str, relative: str) -> None:
         require(key in text, f"{relative}에 필수 설명서 섹션이 없습니다: {key[:-1]}")
     quick = quick_start_block(text)
     quick_count = len(re.findall(r"\{\s*title:\s*'[^']+'\s*,\s*text:", quick))
-    require(quick_count >= 5, f"{relative}의 빠른 시작 단계가 너무 적습니다: {quick_count}")
-    require("scene:" in text, f"{relative}에 자동 시연 scene이 없습니다.")
+    require(quick_count >= 5, f"{relative}의 사용 순서 단계가 너무 적습니다: {quick_count}")
     require("q:" in text and "a:" in text, f"{relative}에 문제 해결 Q&A가 없습니다.")
 
 
@@ -117,12 +119,19 @@ def validate_context_links() -> None:
     require("/manuals/?program=" in context_js, "문맥형 설명서 링크가 전용 설명서 딥링크를 사용하지 않습니다.")
 
 
-def validate_home_links() -> None:
+def validate_home_modal() -> None:
     launcher = read("js/pdf-suite-home-launcher.js")
-    require("installManualEntry" in launcher, "홈에 사용설명서 진입점이 없습니다.")
-    require("link.href='/manuals/'" in launcher, "홈 사용설명서 링크가 전용 설명서 경로를 사용하지 않습니다.")
-    for program_id in PROGRAMS:
-        require(f"manualUrl:'manuals/?program={program_id}'" in launcher, f"홈 프로그램 설명서 딥링크가 없습니다: {program_id}")
+    for asset in HOME_MODAL_ASSETS:
+        read(asset)
+    require("installCardManualButtons" in launcher, "홈 프로그램 카드에 사용설명서 버튼 설치 코드가 없습니다.")
+    require("data-manual-program" in launcher or "dataset.manualProgram" in launcher, "프로그램별 설명서 버튼 식별자가 없습니다.")
+    require("ensureManualModal" in launcher, "설명서 레이어 지연 로더가 없습니다.")
+    require("home-modal.js" in launcher, "홈이 설명서 레이어 모듈을 로드하지 않습니다.")
+    require("program-manual-home-modal.css" in launcher, "홈이 설명서 레이어 스타일을 로드하지 않습니다.")
+    require("programManualTopLink" in launcher and "removeStandaloneManualEntries" in launcher, "기존 전역 설명서 진입점 정리가 없습니다.")
+    modal = read("js/program-manuals/home-modal.js")
+    require("renderDetails" in modal and "renderTrouble" in modal, "레이어 상세설명서 렌더링이 불완전합니다.")
+    require("renderDemo" not in modal and "자동 시연" not in modal, "홈 설명서 레이어에 자동 시연 코드가 남아 있습니다.")
 
 
 def validate_hosting_contract() -> None:
@@ -157,13 +166,13 @@ def main() -> int:
         for program_id, relative in PROGRAMS.items():
             validate_manual(program_id, relative)
         validate_context_links()
-        validate_home_links()
+        validate_home_modal()
         validate_hosting_contract()
         validate_maintenance_contract()
     except AssertionError as error:
         print(f"PROGRAM MANUAL VALIDATION FAILED: {error}", file=sys.stderr)
         return 1
-    print(f"PROGRAM MANUAL VALIDATION PASSED: {len(PROGRAMS)} manuals + dedicated animated center + sync guard")
+    print(f"PROGRAM MANUAL VALIDATION PASSED: {len(PROGRAMS)} detailed manuals + home modal + sync guard")
     return 0
 
 
