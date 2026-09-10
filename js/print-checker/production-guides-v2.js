@@ -4,12 +4,13 @@
   if (window.__printCheckerProductionGuidesV2) return;
   window.__printCheckerProductionGuidesV2 = true;
 
+  const THIN_DOTTED = Object.freeze({ width: 1.2, dash: [4, 4] });
   const LINE_STYLE = Object.freeze({
-    work: { label: '작업사이즈 전체', stroke: '#2563eb', width: 3, dash: [] },
-    trim: { label: '재단선(실제사이즈)', stroke: '#dc2626', width: 2.5, dash: [] },
-    safe: { label: '안쪽 여백', stroke: '#16a34a', width: 2, dash: [10, 7] },
-    fold: { label: '접는선', stroke: '#d97706', width: 3.4, dash: [18, 6, 3, 6] },
-    spine: { label: '책등', stroke: '#7c3aed', width: 2.2, dash: [] },
+    work: { label: '작업사이즈 전체', stroke: '#2563eb', ...THIN_DOTTED },
+    trim: { label: '재단선(실제사이즈)', stroke: '#dc2626', ...THIN_DOTTED },
+    safe: { label: '안쪽 여백', stroke: '#16a34a', ...THIN_DOTTED },
+    fold: { label: '접는선', stroke: '#d97706', ...THIN_DOTTED },
+    spine: { label: '책등', stroke: '#7c3aed', ...THIN_DOTTED },
   });
 
   const LEAFLET_FOLDS = Object.freeze({
@@ -103,7 +104,6 @@
   }
 
   function emphasizedFoldLine(ctx, x1, y1, x2, y2) {
-    line(ctx, x1, y1, x2, y2, { ...LINE_STYLE.fold, stroke: 'rgba(255,255,255,.96)', width: 7 });
     line(ctx, x1, y1, x2, y2, LINE_STYLE.fold);
   }
 
@@ -289,7 +289,7 @@
     if (product === 'invitation') drawInvitationFolds(ctx, specs, trim);
 
     syncFileLayer(g);
-    document.documentElement.dataset.printCheckerProductionGuides = 'v3-separated-fold-guides';
+    document.documentElement.dataset.printCheckerProductionGuides = 'v4-thin-dotted-guides';
   }
 
   function injectInvitationFoldControl() {
@@ -329,6 +329,7 @@
       if (event.target?.closest?.('.product-card,#resetBtn,.side-btn')) setTimeout(queueRender, 0);
     }, true);
     window.addEventListener('programstudio:print-checker-file-rendered', queueRender);
+    window.addEventListener('programstudio:print-checker-zoom-changed', queueRender);
 
     if (typeof ResizeObserver === 'function') {
       resizeObserver = new ResizeObserver(queueRender);
@@ -349,7 +350,7 @@
     drawInvitationFolds,
     lineStyle: LINE_STYLE,
     leafletFolds: LEAFLET_FOLDS,
-    stage: 'v3-separated-fold-guides',
+    stage: 'v4-thin-dotted-guides',
   });
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind, { once: true });
