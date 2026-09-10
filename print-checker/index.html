@@ -12,6 +12,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
   <link rel="stylesheet" href="/css/print-checker.css?v=20260907-4">
   <link rel="stylesheet" href="/css/print-checker-production-guides.css?v=20260910-2">
+  <link rel="stylesheet" href="/css/print-checker-page-layout-v2.css?v=20260910-1">
   <link rel="stylesheet" href="/css/print-checker-content-preflight.css?v=20260910-1">
 </head>
 <body class="print-checker-page">
@@ -73,25 +74,6 @@
     </aside>
 
     <main class="canvas-area" id="printCheckerMain">
-      <section class="canvas-header" id="canvasHeader">
-        <div class="canvas-header-top">
-          <div>
-            <div class="canvas-header-badge">PRINT SPEC CHECKER</div>
-            <h2>인쇄물 배치 점검</h2>
-          </div>
-          <button class="collapse-btn" id="headerCollapseBtn" type="button" aria-expanded="true">접기 ▲</button>
-        </div>
-        <div class="canvas-header-body" id="canvasHeaderBody">
-          <div class="canvas-tips" aria-label="인쇄 안내선 범례">
-            <span class="canvas-tip">작업사이즈 전체 — 파란 점선</span>
-            <span class="canvas-tip">재단선(실제사이즈) — 빨간 점선</span>
-            <span class="canvas-tip">안쪽 여백 — 초록 점선</span>
-            <span class="canvas-tip">책등 — 보라 점선</span>
-            <span class="canvas-tip">접는선 — 주황 점선</span>
-          </div>
-        </div>
-      </section>
-
       <div class="preview-zoom-toolbar" id="previewZoomToolbar" role="group" aria-label="캔버스 미리보기 확대 축소">
         <button class="preview-zoom-btn" id="previewZoomOut" type="button" aria-label="미리보기 축소">−</button>
         <span class="preview-zoom-label" id="previewZoomLabel" aria-live="polite">100%</span>
@@ -143,6 +125,7 @@
   <script defer src="/js/print-checker/reliability.js?v=20260904-1"></script>
   <script defer src="/js/print-checker/defaults-live.js?v=20260906-1"></script>
   <script defer src="/js/print-checker/booklet-layout-only.js?v=20260906-2"></script>
+  <script defer src="/js/print-checker/page-layout-v2.js?v=20260910-1"></script>
   <script>
     (() => {
       const url = new URL(location.href);
@@ -160,13 +143,6 @@
         if (!user) return;
         const name = document.getElementById('userName');
         if (name) name.textContent = user.displayName || user.email || '사용자';
-      });
-      const header = document.getElementById('canvasHeader');
-      const toggle = document.getElementById('headerCollapseBtn');
-      toggle?.addEventListener('click', () => {
-        const collapsed = header?.classList.toggle('collapsed') === true;
-        toggle.textContent = collapsed ? '펼치기 ▼' : '접기 ▲';
-        toggle.setAttribute('aria-expanded', String(!collapsed));
       });
     });
   </script>
