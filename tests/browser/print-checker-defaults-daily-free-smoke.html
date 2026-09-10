@@ -31,6 +31,7 @@
   <script src="../../js/print-checker/print-checker.js"></script>
   <script src="../../js/print-checker/defaults-live.js"></script>
   <script src="../../js/print-checker/booklet-layout-only.js"></script>
+  <script src="../../js/print-checker/page-layout-v2.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded',async()=>{
       const fail=(message)=>{
@@ -77,7 +78,7 @@
         const reportVisible=document.getElementById('reportSection').hidden===false;
 
         document.querySelector('[data-product="booklet"]')?.click();
-        await new Promise(r=>setTimeout(r,100));
+        await new Promise(r=>setTimeout(r,120));
         const bookletPages=document.getElementById('bookletPages');
         const backCoverOption=document.getElementById('bookletUseLastPageAsBackCover');
         const bookletOnly=PrintChecker.getState().product==='booklet'
@@ -91,51 +92,71 @@
           &&!document.getElementById('safeZone')
           &&!document.getElementById('paperType')
           &&!document.getElementById('printSizePreset');
+        const impositionGuide=document.getElementById('impositionGuide');
+        const initialBookletGuide=impositionGuide?.textContent||'';
         const bookletMode=document.documentElement.dataset.printCheckerBookletLayoutOnly==='1'
           &&document.getElementById('uploadSection').classList.contains('pc-booklet-only-hidden')
           &&document.getElementById('actionRow').classList.contains('pc-booklet-only-hidden')
-          &&document.getElementById('impositionGuide').classList.contains('pc-booklet-only-hidden')
+          &&!impositionGuide.classList.contains('pc-booklet-only-hidden')
+          &&impositionGuide.hidden===false
+          &&initialBookletGuide.includes('소책자 페이지 배치')
+          &&initialBookletGuide.includes('앞면 배치')
+          &&initialBookletGuide.includes('뒷면 배치')
+          &&initialBookletGuide.includes('시트 1')
           &&summary.classList.contains('pc-booklet-only-hidden');
         const bookletCanvas=document.getElementById('previewCanvas').width>0&&document.getElementById('previewCanvas').height>220;
 
         bookletPages.value='7';
         bookletPages.dispatchEvent(new Event('input',{bubbles:true}));
-        await new Promise(r=>setTimeout(r,70));
+        await new Promise(r=>setTimeout(r,90));
         const oddNormal=PrintCheckerBookletLayoutOnly.buildLayoutPlan(7,false);
+        const oddNormalGuide=impositionGuide.textContent;
         const oddNormalOk=oddNormal.pages===8
           &&oddNormal.sheets===2
           &&oddNormal.blank===1
           &&same(oddNormal.result[0].front,[null,1])
-          &&same(oddNormal.result[0].back,[2,7]);
+          &&same(oddNormal.result[0].back,[2,7])
+          &&oddNormalGuide.includes('7p → 8p / 2장')
+          &&oddNormalGuide.includes('시트 2');
 
         backCoverOption.checked=true;
         backCoverOption.dispatchEvent(new Event('change',{bubbles:true}));
-        await new Promise(r=>setTimeout(r,70));
+        await new Promise(r=>setTimeout(r,90));
         const oddBackCover=PrintCheckerBookletLayoutOnly.buildLayoutPlan(7,true);
+        const oddBackCoverGuide=impositionGuide.textContent;
         const oddBackCoverOk=oddBackCover.pages===8
           &&oddBackCover.sheets===2
           &&oddBackCover.blank===1
           &&oddBackCover.useLastPageAsBackCover===true
           &&same(oddBackCover.result[0].front,[7,1])
-          &&same(oddBackCover.result[0].back,[2,null]);
+          &&same(oddBackCover.result[0].back,[2,null])
+          &&oddBackCoverGuide.includes('P7 뒤표지 고정');
 
         bookletPages.value='9';
         bookletPages.dispatchEvent(new Event('input',{bubbles:true}));
-        await new Promise(r=>setTimeout(r,70));
+        await new Promise(r=>setTimeout(r,90));
         const nineBackCover=PrintCheckerBookletLayoutOnly.buildLayoutPlan(9,true);
+        const nineBackCoverGuide=impositionGuide.textContent;
         const nineBackCoverOk=nineBackCover.pages===12
           &&nineBackCover.sheets===3
           &&nineBackCover.blank===3
           &&same(nineBackCover.result[0].front,[9,1])
-          &&same(nineBackCover.result[0].back,[2,null]);
+          &&same(nineBackCover.result[0].back,[2,null])
+          &&nineBackCoverGuide.includes('9p → 12p / 3장')
+          &&nineBackCoverGuide.includes('시트 3');
 
         bookletPages.value='20';
         bookletPages.dispatchEvent(new Event('input',{bubbles:true}));
-        await new Promise(r=>setTimeout(r,70));
+        await new Promise(r=>setTimeout(r,90));
+        const twentyGuide=impositionGuide.textContent;
         const bookletTwenty=PrintChecker.getState().specs.bookletPages===20
           &&PrintChecker.computeImposition(20).sheets===5
           &&PrintCheckerBookletLayoutOnly.buildLayoutPlan(20,true).blank===0
-          &&document.getElementById('previewCanvas').height>500;
+          &&document.getElementById('previewCanvas').height>500
+          &&twentyGuide.includes('20p → 20p / 5장')
+          &&twentyGuide.includes('시트 5')
+          &&twentyGuide.includes('앞면 배치')
+          &&twentyGuide.includes('뒷면 배치');
         const bookletDoesNotCharge=window.__quotaCommits===1;
 
         document.querySelector('[data-product="flyer"]')?.click();
@@ -152,7 +173,7 @@
         const pass=initialProduct&&initialValues&&initialPreset&&initialCanvas&&summaryOk&&presetChanged&&customMode&&coverDefaults&&quotaCommitted&&reportVisible&&bookletOnly&&bookletMode&&bookletCanvas&&oddNormalOk&&oddBackCoverOk&&nineBackCoverOk&&bookletTwenty&&bookletDoesNotCharge&&restored&&ready;
         if(!pass)throw new Error(`initial=${initialProduct}/${initialValues}/${initialPreset}/${initialCanvas}/${summaryOk} size=${presetChanged}/${customMode} cover=${coverDefaults} quota=${quotaCommitted} report=${reportVisible} booklet=${bookletOnly}/${bookletMode}/${bookletCanvas} odd=${oddNormalOk}/${oddBackCoverOk}/${nineBackCoverOk} twenty=${bookletTwenty}/${bookletDoesNotCharge} restored=${restored} ready=${ready}`);
         document.documentElement.dataset.printCheckerDefaultsDailyFreeSmoke='pass';
-        const out=document.createElement('pre');out.textContent='PASS: booklet odd-page padding and optional last-page back-cover placement are reflected in the live imposition preview';document.body.appendChild(out);
+        const out=document.createElement('pre');out.textContent='PASS: booklet total-page input keeps the visible sheet front/back imposition board synchronized, including odd-page padding and optional last-page back-cover placement';document.body.appendChild(out);
       }catch(error){fail(error?.message||String(error));}
     });
   </script>
