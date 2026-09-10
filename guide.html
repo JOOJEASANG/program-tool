@@ -3,104 +3,55 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>프로그램 사용설명서 · Program Studio</title>
-  <meta name="description" content="Program Studio 인쇄물 사전 검토, 스마트 인쇄배치, PDF배치, PDF편집, PDF 유틸리티의 상세 사용설명서와 단계별 자동 시연">
+  <title>이용안내 · Program Studio</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
-  <link rel="stylesheet" href="/css/program-manuals.css?v=20260910-1">
-  <link rel="stylesheet" href="/css/program-manuals-business.css?v=20260910-1">
+  <style>
+    *{box-sizing:border-box}body{margin:0;font-family:Pretendard,"Noto Sans KR",sans-serif;color:#172033;background:#f5f7fa}
+    .top{background:#fff;border-bottom:1px solid #e5eaf0;padding:18px 24px}.topin{max-width:980px;margin:auto;display:flex;justify-content:space-between}
+    .brand{font-weight:950;color:#0b2a55}.top a{font-size:12px;text-decoration:none;color:#1769e0;font-weight:850}
+    main{max-width:980px;margin:34px auto;padding:0 20px 70px}.paper{background:#fff;border:1px solid #e4eaf1;border-radius:18px;padding:38px;box-shadow:0 12px 40px #0f172a0d}
+    h1{font-size:30px;margin:0 0 10px}.updated{font-size:11px;color:#7b8799;margin-bottom:30px}
+    h2{font-size:17px;margin:28px 0 10px;color:#0b2a55}p,li{font-size:13px;line-height:1.8;color:#475467}ul{padding-left:20px}
+    .biz{margin-top:36px;padding:20px;background:#f8fafc;border:1px solid #e4eaf1;border-radius:13px;display:grid;grid-template-columns:1fr auto;gap:18px}
+    .biztext{font-size:11px;line-height:1.8;color:#667085}.stamp{width:110px;height:110px;display:grid;place-items:center}.stamp img{max-width:100%;max-height:100%}
+    footer{text-align:center;font-size:11px;color:#98a2b3;padding:24px}@media(max-width:600px){.paper{padding:24px}.biz{grid-template-columns:1fr}}
+  </style>
 </head>
 <body>
-  <div class="pm-mobile-overlay" id="mobileOverlay"></div>
-  <div class="pm-shell">
-    <aside class="pm-sidebar" id="manualSidebar" aria-label="프로그램 사용설명서 목록">
-      <a class="pm-brand" href="/">
-        <span class="pm-brand-mark">PS</span>
-        <span><strong>Program Studio</strong><small>DETAILED USER MANUAL</small></span>
-      </a>
-      <div class="pm-side-label">프로그램별 설명서</div>
-      <nav class="pm-program-list" id="programList"></nav>
-      <div class="pm-side-foot">
-        <a class="pm-home-link" href="/">← 프로그램 목록으로</a>
-      </div>
-    </aside>
-
-    <main class="pm-main" id="manualContent">
-      <header class="pm-topbar">
-        <button class="pm-menu" id="menuBtn" type="button" aria-label="설명서 목록 열기">☰</button>
-        <div class="pm-title-wrap">
-          <div class="pm-kicker">PROGRAM STUDIO MANUAL</div>
-          <div class="pm-current-title" id="currentTitle">사용설명서</div>
-        </div>
-        <div class="pm-top-actions">
-          <button class="pm-open-program" id="printManual" type="button">인쇄</button>
-          <a class="pm-open-program" id="openProgram" href="/">프로그램 열기 →</a>
-        </div>
-      </header>
-
-      <div class="pm-content">
-        <section class="pm-hero">
-          <div class="pm-hero-top">
-            <div class="pm-hero-icon" id="heroIcon">📘</div>
-            <div>
-              <h1 id="heroTitle">프로그램 사용설명서</h1>
-              <p id="heroSummary">프로그램을 선택하면 상세한 사용 방법을 확인할 수 있습니다.</p>
-            </div>
-          </div>
-          <div class="pm-meta">
-            <span id="heroAudience">추천 사용자</span>
-            <span id="heroUpdated">설명서 업데이트</span>
-            <span>빠른 시작 + 상세 기능 + 자동 시연 + 문제 해결</span>
-          </div>
-        </section>
-
-        <nav class="pm-tabs" role="tablist" aria-label="설명서 내용">
-          <button class="pm-tab active" type="button" data-tab="quick" role="tab" aria-selected="true">빠른 시작</button>
-          <button class="pm-tab" type="button" data-tab="details" role="tab" aria-selected="false">상세 기능</button>
-          <button class="pm-tab" type="button" data-tab="demo" role="tab" aria-selected="false">자동 시연</button>
-          <button class="pm-tab" type="button" data-tab="trouble" role="tab" aria-selected="false">문제 해결·용어</button>
-        </nav>
-
-        <section class="pm-panel" id="quickPanel" data-panel="quick"></section>
-        <section class="pm-panel" id="detailsPanel" data-panel="details" hidden></section>
-        <section class="pm-panel" id="demoPanel" data-panel="demo" hidden></section>
-        <section class="pm-panel" id="troublePanel" data-panel="trouble" hidden></section>
-
-        <section class="pm-note pm-print-only">
-          <strong>공통 이용 원칙</strong>
-          <ul>
-            <li>자동 편집·배치 결과는 인쇄, 제출, 납품 전에 사용자가 최종 확인합니다.</li>
-            <li>원본 PDF는 별도로 보관하고 결과 파일은 새 이름으로 저장하는 것을 권장합니다.</li>
-            <li>양면, 소책자, 재단 작업은 프린터와 실제 후가공 방식에 따라 차이가 있으므로 첫 장 시험 출력을 권장합니다.</li>
-          </ul>
-        </section>
-
-        <section class="pm-business" aria-label="서비스 사업자 정보">
-          <div>
-            <strong>Program Studio 서비스 정보</strong>
-            <div class="pm-business-text" id="bizText">사업자 정보를 불러오는 중입니다.</div>
-          </div>
-          <div class="pm-business-stamp" id="stamp"></div>
-        </section>
-      </div>
-    </main>
-  </div>
-
-  <script src="/js/program-manuals/catalog.js?v=20260910-1"></script>
-  <script src="/js/program-manuals/print-checker.js?v=20260910-1"></script>
-  <script src="/js/program-manuals/smart-print-layout.js?v=20260910-1"></script>
-  <script src="/js/program-manuals/pdf-editor.js?v=20260910-1"></script>
-  <script src="/js/program-manuals/pdf-editor-advanced.js?v=20260910-1"></script>
-  <script src="/js/program-manuals/pdf-suite.js?v=20260910-1"></script>
-  <script src="/js/program-manuals/app.js?v=20260910-1"></script>
+  <header class="top"><div class="topin"><div class="brand">Program Studio</div><a href="index.html">홈으로</a></div></header>
+  <main>
+    <article class="paper">
+      <h1>이용안내</h1>
+      <div class="updated">시행일: <span id="effectiveDate"></span></div>
+      <h2>1. 가입과 승인</h2>
+      <p>로그인 후 가입 정보가 등록되며, 운영 정책에 따라 관리자 승인이 필요한 프로그램은 승인 완료 후 이용할 수 있습니다.</p>
+      <h2>2. 프로그램 이용</h2>
+      <ul>
+        <li>상단 카테고리에서 필요한 프로그램을 선택합니다.</li>
+        <li>파일 업로드 전 개인정보와 저작권 포함 여부를 확인합니다.</li>
+        <li>완성 파일은 반드시 미리보기와 실제 출력 규격을 점검합니다.</li>
+      </ul>
+      <h2>3. 구독 등급</h2>
+      <p>현재 운영 중인 프로그램은 관리자 승인 완료 회원에게 공통 제공됩니다. FREE와 PRO는 향후 기능·저장 한도·처리 횟수 정책을 위한 관리 등급이며, 유료 구독 도입 시 가격과 갱신 조건을 결제 전에 안내합니다.</p>
+      <h2>4. 문의 및 장애</h2>
+      <p>서비스 오류가 발생하면 사용 브라우저, 작업 프로그램, 오류 시점과 화면 내용을 함께 전달해 주세요. 민감한 원본 파일은 문의 과정에서 불필요하게 공유하지 마세요.</p>
+      <h2>5. 결과물 확인 책임</h2>
+      <p>자동 편집 기능은 작업을 보조합니다. 인쇄, 제출, 납품 전 문구·페이지 순서·재단 여백·해상도·개인정보를 이용자가 최종 확인해야 합니다.</p>
+      <section class="biz">
+        <div><strong>사업자 정보</strong><div class="biztext" id="bizText">사업자 정보를 불러오는 중입니다.</div></div>
+        <div class="stamp" id="stamp"></div>
+      </section>
+    </article>
+  </main>
+  <footer>© <span id="year"></span> Program Studio. All rights reserved.</footer>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
   <script src="js/firebase-config.js"></script>
   <script src="js/business-info-loader.js"></script>
   <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
     ProgramBusinessInfo.render({
-      textId: 'bizText',
-      stampId: 'stamp',
-      emptyText: '서비스 사업자 정보가 등록되지 않았습니다.'
+      defaultEffectiveDate: new Date().toLocaleDateString('ko-KR')
     });
   </script>
 </body>
