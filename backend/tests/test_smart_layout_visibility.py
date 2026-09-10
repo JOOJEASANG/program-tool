@@ -19,4 +19,4 @@ def test_hosting_allowlist_contains_smart_layout_directory():
 
     assert '"smart-print-layout",' in prepare
     assert 'OUTPUT / "smart-print-layout/index.html"' in prepare
-    assert "pdf-suite-home-launcher.js?v=20260910-2" in prepare
+    assert "pdf-suite-home-launcher.js?v=20260910-3" in prepare
