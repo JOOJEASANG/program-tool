@@ -1,12 +1,15 @@
 /* Transparent production-guide stage: keep the uploaded artwork visible below reusable guide layers. */
 .preview-canvas-stack.production-guide-stack{
   position:relative;
-  width:100%;
+  width:var(--pc-preview-zoom, 100%);
+  max-width:none;
+  margin-inline:auto;
   aspect-ratio:var(--pc-work-ratio, 1 / 1.4142);
   overflow:hidden;
   border-radius:10px;
   background:transparent!important;
   line-height:0;
+  transition:width .12s ease;
 }
 .preview-canvas-stack.production-guide-stack #previewCanvas{
   position:absolute!important;
@@ -41,6 +44,8 @@
 }
 .canvas-wrap{
   position:relative;
+  overflow:auto;
+  overscroll-behavior:contain;
   background:transparent;
 }
 .canvas-wrap::before{
@@ -61,6 +66,41 @@
 .canvas-wrap>*{position:relative;z-index:1}
 .canvas-tips .canvas-tip{white-space:nowrap}
 .invitation-fold-field select{width:100%}
+
+.preview-zoom-toolbar{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:6px;
+  margin:8px 0 10px;
+}
+.preview-zoom-label{
+  min-width:58px;
+  padding:6px 8px;
+  border:1px solid #cbd5e1;
+  border-radius:8px;
+  background:#fff;
+  color:#334155;
+  font-size:12px;
+  font-weight:800;
+  text-align:center;
+}
+.preview-zoom-btn{
+  min-width:34px;
+  height:32px;
+  padding:0 10px;
+  border:1px solid #cbd5e1;
+  border-radius:8px;
+  background:#fff;
+  color:#334155;
+  font-size:15px;
+  font-weight:900;
+  cursor:pointer;
+}
+.preview-zoom-btn:hover{background:#f8fafc;border-color:#94a3b8}
+.preview-zoom-btn:disabled{opacity:.4;cursor:not-allowed}
+.preview-zoom-btn.zoom-reset{font-size:11px;min-width:48px}
+
 .spine-auto-result{
   margin:-2px 0 10px;
   padding:10px 11px;

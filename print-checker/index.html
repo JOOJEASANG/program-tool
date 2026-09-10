@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
   <link rel="stylesheet" href="/css/print-checker.css?v=20260907-4">
-  <link rel="stylesheet" href="/css/print-checker-production-guides.css?v=20260910-1">
+  <link rel="stylesheet" href="/css/print-checker-production-guides.css?v=20260910-2">
   <link rel="stylesheet" href="/css/print-checker-content-preflight.css?v=20260910-1">
 </head>
 <body class="print-checker-page">
@@ -83,14 +83,21 @@
         </div>
         <div class="canvas-header-body" id="canvasHeaderBody">
           <div class="canvas-tips" aria-label="인쇄 안내선 범례">
-            <span class="canvas-tip">작업사이즈 전체 — 파란 실선</span>
-            <span class="canvas-tip">재단선(실제사이즈) — 빨간 실선</span>
+            <span class="canvas-tip">작업사이즈 전체 — 파란 점선</span>
+            <span class="canvas-tip">재단선(실제사이즈) — 빨간 점선</span>
             <span class="canvas-tip">안쪽 여백 — 초록 점선</span>
-            <span class="canvas-tip">책등 — 보라 실선</span>
-            <span class="canvas-tip">접는선 — 주황 쇄선</span>
+            <span class="canvas-tip">책등 — 보라 점선</span>
+            <span class="canvas-tip">접는선 — 주황 점선</span>
           </div>
         </div>
       </section>
+
+      <div class="preview-zoom-toolbar" id="previewZoomToolbar" role="group" aria-label="캔버스 미리보기 확대 축소">
+        <button class="preview-zoom-btn" id="previewZoomOut" type="button" aria-label="미리보기 축소">−</button>
+        <span class="preview-zoom-label" id="previewZoomLabel" aria-live="polite">100%</span>
+        <button class="preview-zoom-btn" id="previewZoomIn" type="button" aria-label="미리보기 확대">+</button>
+        <button class="preview-zoom-btn zoom-reset" id="previewZoomReset" type="button">100%</button>
+      </div>
 
       <section class="canvas-wrap" aria-label="인쇄물 미리보기">
         <canvas id="previewCanvas"></canvas>
@@ -129,7 +136,8 @@
   <script defer src="/js/print-checker/print-checker.js?v=20260904-2"></script>
   <script defer src="/js/print-checker/spine-calculator-v2.js?v=20260910-2"></script>
   <script defer src="/js/print-checker/file-relative-preview.js?v=20260907-5"></script>
-  <script defer src="/js/print-checker/production-guides-v2.js?v=20260910-2"></script>
+  <script defer src="/js/print-checker/production-guides-v2.js?v=20260910-3"></script>
+  <script defer src="/js/print-checker/preview-zoom.js?v=20260910-1"></script>
   <script defer src="/js/print-checker/content-preflight.js?v=20260910-1"></script>
   <script defer src="/js/print-checker/spine-live-dimension.js?v=20260907-1"></script>
   <script defer src="/js/print-checker/reliability.js?v=20260904-1"></script>
