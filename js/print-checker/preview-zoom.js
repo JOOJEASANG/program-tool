@@ -44,6 +44,7 @@
     byId('previewZoomOut')?.addEventListener('click', () => stepZoom(-1));
     byId('previewZoomIn')?.addEventListener('click', () => stepZoom(1));
     byId('previewZoomReset')?.addEventListener('click', () => applyZoom(100));
+    byId('resetBtn')?.addEventListener('click', () => applyZoom(100));
 
     const viewport = document.querySelector('.canvas-wrap');
     viewport?.addEventListener('wheel', (event) => {
