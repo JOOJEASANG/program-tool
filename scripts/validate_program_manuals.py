@@ -18,6 +18,7 @@ PROGRAMS = {
 
 GUIDE_ASSETS = (
     "css/program-manuals.css",
+    "css/program-manuals-business.css",
     "js/program-manuals/catalog.js",
     *PROGRAMS.values(),
     "js/program-manuals/app.js",
@@ -65,6 +66,8 @@ def validate_guide() -> None:
     require('data-tab="trouble"' in guide, "guide.html에 문제 해결 탭이 없습니다.")
     for asset in GUIDE_ASSETS:
         require(f"/{asset}" in guide, f"guide.html이 설명서 자산을 로드하지 않습니다: {asset}")
+    require('src="js/business-info-loader.js"' in guide, "guide.html의 기존 사업자 정보 로더 연결이 없습니다.")
+    require("ProgramBusinessInfo.render(" in guide, "guide.html이 사업자 정보를 안전한 공통 렌더러로 표시하지 않습니다.")
 
 
 def validate_catalog() -> None:
@@ -81,8 +84,8 @@ def validate_manual(program_id: str, relative: str) -> None:
     require(bool(re.fullmatch(r"20\d{2}-\d{2}-\d{2}", updated.group(1))), f"{relative}의 updated 날짜 형식이 올바르지 않습니다.")
     for key in REQUIRED_MANUAL_KEYS:
         require(key in text, f"{relative}에 필수 설명서 섹션이 없습니다: {key[:-1]}")
-    quick_count = len(re.findall(r"\{\s*title:\s*'[^']+'\s*,\s*text:", text))
-    require(quick_count >= 5, f"{relative}의 단계 설명이 너무 적습니다: {quick_count}")
+    step_count = len(re.findall(r"\{\s*title:\s*'[^']+'\s*,\s*text:", text))
+    require(step_count >= 5, f"{relative}의 단계 설명이 너무 적습니다: {step_count}")
     require("scene:" in text, f"{relative}에 자동 시연 scene이 없습니다.")
     require("q:" in text and "a:" in text, f"{relative}에 문제 해결 Q&A가 없습니다.")
 
@@ -102,7 +105,7 @@ def validate_context_links() -> None:
 def validate_home_links() -> None:
     launcher = read("js/pdf-suite-home-launcher.js")
     require("installManualEntry" in launcher, "홈에 사용설명서 진입점이 없습니다.")
-    require("href='/guide.html'" in launcher or "href=\'/guide.html\'" in launcher or "link.href='/guide.html'" in launcher, "홈 사용설명서 링크가 없습니다.")
+    require("link.href='/guide.html'" in launcher, "홈 사용설명서 링크가 없습니다.")
     for program_id in PROGRAMS:
         require(f"manualUrl:'guide.html?program={program_id}'" in launcher, f"홈 프로그램 설명서 딥링크가 없습니다: {program_id}")
 
@@ -120,8 +123,7 @@ def validate_maintenance_contract() -> None:
     agents = read("AGENTS.md")
     copilot = read(".github/copilot-instructions.md")
     claude = read("CLAUDE.md")
-    for program_id, manual in PROGRAMS.items():
-        del program_id
+    for manual in PROGRAMS.values():
         require(manual in agents, f"AGENTS.md에 설명서 매핑이 없습니다: {manual}")
         require(manual in copilot, f"Copilot 지침에 설명서 매핑이 없습니다: {manual}")
         require(manual in claude, f"CLAUDE.md에 설명서 매핑이 없습니다: {manual}")
