@@ -15,6 +15,7 @@
       catLabel:'인쇄 검토',
       desc:'외부에서 제작한 인쇄물 PDF의 재단선·안전 영역·접지선·책등·간격을 검토합니다.',
       url:'print-checker/',
+      manualUrl:'manuals/?program=print-checker',
       tags:['재단선','안전 영역','접지선']
     },
     {
@@ -25,8 +26,9 @@
       accent:'#0f766e',
       bg:'linear-gradient(135deg,#115e59,#14b8a6)',
       catLabel:'스마트 배치',
-      desc:'PDF의 실제 크기와 수량을 읽어 용지에 효율적으로 자동배치하고 앞면·뒷면 양면 위치까지 맞춥니다.',
+      desc:'PDF의 실제 크기를 읽어 용지 한 장에 최대 자동배치하고 앞면·뒷면 양면 위치까지 맞춥니다.',
       url:'smart-print-layout/',
+      manualUrl:'manuals/?program=smart-print-layout',
       tags:['자동배치','앞면·뒷면','종이 절약']
     },
     {
@@ -39,6 +41,7 @@
       catLabel:'PDF 인쇄 배치',
       desc:'페이지 순서 정리, N-UP, 중철·소책자, 간지, 여백 등 출력용 PDF 배치 작업을 가볍게 처리합니다.',
       url:'pdf-editor/',
+      manualUrl:'manuals/?program=pdf-editor',
       tags:['N-UP','소책자','간지·여백','페이지 편집']
     },
     {
@@ -51,6 +54,7 @@
       catLabel:'PDF 정밀 편집',
       desc:'페이지별 이동·크기조절, 드래그 잘라내기, 자동 맞춤, 회전·미세 회전 등 정밀 편집 기능을 사용합니다.',
       url:'pdf-editor-advanced',
+      manualUrl:'manuals/?program=pdf-editor-advanced',
       tags:['이동·크기','드래그 자르기','회전·미세편집','페이지 편집']
     },
     {
@@ -63,6 +67,7 @@
       catLabel:'PDF 유틸리티',
       desc:'합치기·분할·회전·변환·OCR·압축·암호·검사 등 나머지 PDF 작업을 왼쪽 기능 메뉴와 오른쪽 작업·결과 화면에서 처리합니다.',
       url:'pdf-suite/',
+      manualUrl:'manuals/?program=pdf-suite',
       tags:['합치기·분할','변환·OCR','압축·암호·검사']
     }
   ];
@@ -104,6 +109,42 @@
     }
   }
 
+  function installManualEntry(){
+    const nav=document.querySelector('.sb-nav');
+    if(nav&&!document.getElementById('programManualNav')){
+      const divider=document.createElement('div');
+      divider.className='sb-divider';
+      divider.dataset.programManualDivider='1';
+      const link=document.createElement('a');
+      link.id='programManualNav';
+      link.className='nav-item';
+      link.href='/manuals/';
+      link.style.textDecoration='none';
+      link.innerHTML='<span class="nav-icon" aria-hidden="true">?</span><span>사용설명서</span><span class="nav-count">5</span>';
+      nav.append(divider,link);
+    }
+    const topbar=document.querySelector('.topbar-right');
+    if(topbar&&!document.getElementById('programManualTopLink')){
+      const link=document.createElement('a');
+      link.id='programManualTopLink';
+      link.className='tb-btn tb-outline';
+      link.href='/manuals/';
+      link.textContent='사용설명서';
+      topbar.prepend(link);
+    }
+  }
+
+  function annotateProgramCards(){
+    for(const program of PROGRAMS){
+      const candidates=[...document.querySelectorAll('.prog-card[href]')];
+      const card=candidates.find(node=>{
+        const href=node.getAttribute('href')||'';
+        return href===program.url||href.endsWith(`/${program.url}`)||href.replace(/^\.\//,'')===program.url;
+      });
+      if(card)card.dataset.manualUrl=`/${program.manualUrl}`;
+    }
+  }
+
   function removeLegacyEntry(){
     document.getElementById('pdfSuiteHomeEntry')?.remove();
     document.querySelectorAll('[data-pdf-suite-home-chip]').forEach(node=>node.remove());
@@ -113,6 +154,8 @@
     removeLegacyEntry();
     if(!normalizePrograms())return;
     syncCounts();
+    installManualEntry();
+    annotateProgramCards();
     document.documentElement.dataset.pdfHomeUnified='ready';
     document.documentElement.dataset.pdfHomeWorkspace='five-programs';
   }
@@ -125,6 +168,8 @@
       observerQueued=false;
       normalizePrograms();
       syncCounts();
+      installManualEntry();
+      annotateProgramCards();
     });
   });
   if(document.documentElement)observer.observe(document.documentElement,{subtree:true,childList:true});
@@ -136,6 +181,7 @@
     programs:PROGRAMS,
     normalizePrograms,
     syncCounts,
+    installManualEntry,
     stage:'pdf-home-five-programs-v7'
   });
 })();

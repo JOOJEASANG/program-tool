@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="ko" data-program-manuals-smoke="pending">
+<head><meta charset="utf-8"><title>Program manuals smoke</title></head>
+<body>
+  <div id="result">waiting</div>
+  <iframe id="manualFrame" src="/manuals/?program=smart-print-layout" style="width:1200px;height:800px;border:0"></iframe>
+  <script>
+    (() => {
+      const root = document.documentElement;
+      const result = document.getElementById('result');
+      const frame = document.getElementById('manualFrame');
+      const fail = message => {
+        root.dataset.programManualsSmoke = 'fail';
+        result.textContent = `FAIL: ${message}`;
+      };
+      const pass = message => {
+        root.dataset.programManualsSmoke = 'pass';
+        root.dataset.phase7Smoke = 'pass';
+        result.textContent = `PASS: ${message}`;
+      };
+      const waitFor = async (fn, timeout = 5000) => {
+        const started = Date.now();
+        while (Date.now() - started < timeout) {
+          try { if (fn()) return true; } catch (_) {}
+          await new Promise(resolve => setTimeout(resolve, 50));
+        }
+        return false;
+      };
+
+      frame.addEventListener('load', async () => {
+        try {
+          const doc = frame.contentDocument;
+          if (!doc) return fail('iframe document unavailable');
+          if (!await waitFor(() => doc.getElementById('heroTitle')?.textContent === '스마트 인쇄배치')) return fail('smart layout manual did not render');
+          if (doc.querySelectorAll('.pm-quick-step').length < 5) return fail('quick start steps missing');
+          if (doc.querySelectorAll('#detailsPanel .pm-section-card').length < 6) return fail('detailed sections missing');
+          const demoTab = doc.querySelector('[data-tab="demo"]');
+          demoTab?.click();
+          if (!await waitFor(() => !doc.getElementById('demoPanel')?.hidden && doc.getElementById('demoStage'))) return fail('demo panel did not open');
+          const firstTitle = doc.getElementById('demoTitle')?.textContent || '';
+          doc.getElementById('demoNext')?.click();
+          if (!await waitFor(() => (doc.getElementById('demoTitle')?.textContent || '') !== firstTitle)) return fail('demo next step did not advance');
+          const advancedButton = doc.querySelector('[data-program="pdf-editor-advanced"]');
+          advancedButton?.click();
+          if (!await waitFor(() => doc.getElementById('heroTitle')?.textContent === 'PDF편집')) return fail('program manual switching failed');
+          if (!doc.getElementById('openProgram')?.getAttribute('href')?.includes('/pdf-editor-advanced/')) return fail('open program deep link incorrect');
+          const troubleTab = doc.querySelector('[data-tab="trouble"]');
+          troubleTab?.click();
+          if (!await waitFor(() => doc.querySelectorAll('#troublePanel details').length >= 4)) return fail('troubleshooting content missing');
+          pass('manual rendering, switching, animation controls and troubleshooting are working');
+        } catch (error) {
+          fail(error?.stack || error?.message || String(error));
+        }
+      }, { once: true });
+    })();
+  </script>
+</body>
+</html>
