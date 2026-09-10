@@ -1,167 +1,127 @@
-/* spine-calculator-v2.js — 평량·종이 두께·제본 여유를 반영한 표지 책등 계산 */
+/* spine-calculator-v2.js — paper-option-only automatic perfect-binding spine calculation */
 (function () {
   'use strict';
   if (window.__printCheckerSpineCalculatorV2) return;
   window.__printCheckerSpineCalculatorV2 = true;
 
-  const DEFAULT_ALLOWANCE_MM = 0.5;
-  const PROFILE = Object.freeze({
-    mojo80:  { family: '모조지', gsm: 80,  bulk: 1.250 },
-    mojo100: { family: '모조지', gsm: 100, bulk: 1.300 },
-    snow80:  { family: '스노우지', gsm: 80,  bulk: 1.125 },
-    snow100: { family: '스노우지', gsm: 100, bulk: 1.100 },
-    snow120: { family: '스노우지', gsm: 120, bulk: 1.125 },
-    art80:   { family: '아트지', gsm: 80,  bulk: 1.125 },
-    art100:  { family: '아트지', gsm: 100, bulk: 1.050 },
-    art130:  { family: '아트지', gsm: 130, bulk: 1.077 },
-    custom:  { family: '직접 입력', gsm: 0, bulk: null },
+  // Reference profile: Fastbooks/Sodaprint published sheet calipers (mm/sheet).
+  // Perfect binding receives a fixed 0.5 mm adhesive/process allowance, the lower
+  // edge of the published 0.5–1.0 mm recommendation. Final production should still
+  // be checked against the printer's actual paper lot and binding equipment.
+  const BINDING_ALLOWANCE_MM = 0.5;
+  const PAPER_PROFILES = Object.freeze({
+    mojo80:  { label: '모조지 80g', family: '모조지', gsm: 80,  caliper: 0.090 },
+    mojo100: { label: '모조지 100g', family: '모조지', gsm: 100, caliper: 0.114 },
+    mojo150: { label: '모조지 150g', family: '모조지', gsm: 150, caliper: 0.167 },
+    art100:  { label: '아트지 100g', family: '아트지', gsm: 100, caliper: 0.081 },
+    art120:  { label: '아트지 120g', family: '아트지', gsm: 120, caliper: 0.097 },
+    art150:  { label: '아트지 150g', family: '아트지', gsm: 150, caliper: 0.123 },
+    snow100: { label: '스노우지 100g', family: '스노우지', gsm: 100, caliper: 0.081 },
+    snow120: { label: '스노우지 120g', family: '스노우지', gsm: 120, caliper: 0.097 },
+    snow150: { label: '스노우지 150g', family: '스노우지', gsm: 150, caliper: 0.123 },
   });
 
   const byId = (id) => document.getElementById(id);
   let observer = null;
   let installQueued = false;
 
-  function round(value, digits = 3) {
-    const factor = 10 ** digits;
-    return Math.round((Number(value) || 0) * factor) / factor;
+  function roundUpTenth(value) {
+    return Math.ceil((Number(value) || 0) * 10 - 1e-8) / 10;
   }
 
-  function roundSpine(value) {
-    return Math.round((Number(value) || 0) * 10) / 10;
-  }
-
-  function field(id, label, hint, value, unit, step, min, max) {
-    const wrap = document.createElement('div');
-    wrap.className = 'spec-field spine-calc-v2-field';
-    wrap.dataset.spineCalcV2 = id;
-    wrap.innerHTML = `<label class="spec-label" for="${id}">${label}<small class="spec-hint">${hint}</small></label><div class="spec-input-row"><input class="spec-input" id="${id}" type="number" min="${min}" max="${max}" step="${step}" value="${value}"><span class="spec-unit">${unit}</span></div>`;
-    return wrap;
-  }
-
-  function currentProfile() {
-    return PROFILE[byId('paperType')?.value] || null;
-  }
-
-  function sheetThicknessMm() {
-    const profile = currentProfile();
-    if (!profile) return 0;
-    if (profile.bulk == null) return Math.max(0, Number(byId('paperCaliperV2')?.value) || 0);
-    const gsm = Math.max(0, Number(byId('paperGsmV2')?.value) || profile.gsm || 0);
-    return round(gsm * profile.bulk / 1000, 4);
+  function profileFor(value) {
+    return PAPER_PROFILES[String(value || '')] || PAPER_PROFILES.mojo80;
   }
 
   function formulaValues() {
     const pages = Math.max(0, parseInt(byId('pageCount')?.value, 10) || 0);
+    const profile = profileFor(byId('paperType')?.value);
     const sheets = Math.ceil(pages / 2);
-    const thickness = sheetThicknessMm();
-    const allowance = Math.max(0, Number(byId('spineAllowanceV2')?.value) || 0);
-    const body = round(sheets * thickness, 3);
-    const total = roundSpine(body + allowance);
-    return { pages, sheets, thickness, allowance, body, total };
+    const body = sheets * profile.caliper;
+    const total = pages >= 2 ? roundUpTenth(body + BINDING_ALLOWANCE_MM) : 0;
+    return {
+      pages,
+      sheets,
+      body,
+      total,
+      allowance: BINDING_ALLOWANCE_MM,
+      profile,
+    };
   }
 
-  function updateFormulaNote(values, manual = false) {
-    const note = byId('spineFormulaV2');
+  function syncPaperOptions() {
+    const select = byId('paperType');
+    if (!select) return false;
+    const current = PAPER_PROFILES[select.value] ? select.value : 'mojo80';
+    const signature = Object.keys(PAPER_PROFILES).join('|');
+    if (select.dataset.autoPaperProfiles !== signature) {
+      select.replaceChildren(...Object.entries(PAPER_PROFILES).map(([value, profile]) => {
+        const option = document.createElement('option');
+        option.value = value;
+        option.textContent = profile.label;
+        return option;
+      }));
+      select.dataset.autoPaperProfiles = signature;
+    }
+    select.value = current;
+    return true;
+  }
+
+  function updateNote(values) {
+    const note = byId('spineAutoResult');
     if (!note) return;
-    if (manual) {
-      note.innerHTML = '<strong>책등 직접 입력 중</strong><br><span>자동 계산을 다시 사용하려면 책등 값을 지운 뒤 평량·페이지 수·제본 여유를 변경하세요.</span>';
+    if (!values.pages) {
+      note.innerHTML = '<strong>책등 자동 계산</strong><br><span>본문 페이지 수와 종이 옵션을 선택하면 자동으로 계산됩니다.</span>';
       return;
     }
-    if (!values.pages || !values.thickness) {
-      note.innerHTML = '<strong>책등 계산식</strong><br><span>본문 장수 × 종이 1장 두께 + 제본 여유</span>';
-      return;
-    }
-    const profile = currentProfile();
-    const gsm = Math.max(0, Number(byId('paperGsmV2')?.value) || profile?.gsm || 0);
-    const paperText = profile?.bulk == null
-      ? `직접 두께 ${values.thickness.toFixed(3)}mm/장`
-      : `${profile?.family || '종이'} ${gsm}g/㎡ · 약 ${values.thickness.toFixed(3)}mm/장`;
-    note.innerHTML = `<strong>자동 계산 ${values.total.toFixed(1)}mm</strong><br><span>${values.pages}p = ${values.sheets}장 × ${values.thickness.toFixed(3)}mm = ${values.body.toFixed(2)}mm + 제본 여유 ${values.allowance.toFixed(1)}mm</span><br><span>${paperText}</span>`;
+    note.innerHTML = `<strong>자동 책등 ${values.total.toFixed(1)}mm</strong><br><span>${values.profile.label} · ${values.pages}p = ${values.sheets}장 × ${values.profile.caliper.toFixed(3)}mm + 제본 여유 ${values.allowance.toFixed(1)}mm</span><br><span>실제 종이 로트·제본 장비에 따라 오차가 생길 수 있으므로 최종 제작 수치는 인쇄소 사양을 우선하세요.</span>`;
   }
 
-  function calculate(options = {}) {
+  function calculate() {
     const spine = byId('spine');
     if (!spine) return false;
+    syncPaperOptions();
     const values = formulaValues();
-    const manual = spine.dataset.manual === '1';
-    if (manual && !options.force) {
-      updateFormulaNote(values, true);
-      return false;
-    }
-    if (!values.pages || !values.thickness) {
-      updateFormulaNote(values, false);
+    if (!values.pages || values.pages < 2) {
+      spine.value = '';
+      updateNote(values);
       return false;
     }
     const next = values.total.toFixed(1);
     const changed = spine.value !== next;
-    spine.dataset.manual = '';
     spine.value = next;
+    spine.readOnly = true;
+    spine.setAttribute('aria-readonly', 'true');
+    spine.dataset.automaticSpine = '1';
     const hint = byId('spineHint');
-    if (hint) hint.textContent = `평량·장수·제본 여유 반영: ${next}mm`;
-    updateFormulaNote(values, false);
+    if (hint) hint.textContent = '본문 페이지 수와 종이 옵션으로 자동 계산';
+    updateNote(values);
     if (changed) spine.dispatchEvent(new Event('change', { bubbles: true }));
     return true;
   }
 
-  function syncPaperPreset(force = false) {
-    const profile = currentProfile();
-    const gsm = byId('paperGsmV2');
-    const caliperField = byId('paperCaliperV2')?.closest('.spec-field');
-    if (!profile || !gsm) return;
-    if (profile.bulk == null) {
-      if (caliperField) caliperField.hidden = false;
-      if (force && !gsm.value) gsm.value = '80';
-    } else {
-      if (caliperField) caliperField.hidden = true;
-      if (force || !gsm.dataset.userEdited) gsm.value = String(profile.gsm);
-    }
-  }
-
-  function injectedFieldsPresent() {
-    return Boolean(byId('paperGsmV2') && byId('paperCaliperV2') && byId('spineAllowanceV2') && byId('spineFormulaV2'));
-  }
-
-  function installFields() {
+  function install() {
     const form = byId('specForm');
     const paper = byId('paperType');
     const pages = byId('pageCount');
     const spine = byId('spine');
     if (!form || !paper || !pages || !spine) return false;
-    if (form.dataset.spineCalculatorV2 === 'ready' && injectedFieldsPresent()) {
-      syncPaperPreset(false);
-      calculate();
-      return true;
+
+    syncPaperOptions();
+    spine.readOnly = true;
+    spine.setAttribute('aria-readonly', 'true');
+    spine.removeAttribute('data-manual');
+
+    let note = byId('spineAutoResult');
+    if (!note) {
+      note = document.createElement('div');
+      note.id = 'spineAutoResult';
+      note.className = 'spine-auto-result';
+      spine.closest('.spec-field')?.insertAdjacentElement('afterend', note);
     }
-    if (form.dataset.spineCalculatorV2 === 'ready') delete form.dataset.spineCalculatorV2;
-
-    const paperField = paper.closest('.spec-field');
-    const pageField = pages.closest('.spec-field');
-    const spineField = spine.closest('.spec-field');
-    if (!paperField || !pageField || !spineField) return false;
-
-    const gsmField = field('paperGsmV2', '종이 평량', '선택 종이의 평량. 필요하면 직접 수정할 수 있습니다.', currentProfile()?.gsm || 80, 'g/㎡', '1', '40', '400');
-    paperField.insertAdjacentElement('afterend', gsmField);
-
-    const caliperField = field('paperCaliperV2', '종이 1장 두께', '직접 입력 종이에서만 사용합니다.', '0.100', 'mm', '0.001', '0.02', '0.8');
-    gsmField.insertAdjacentElement('afterend', caliperField);
-
-    const allowanceValue = Number.isFinite(Number(form.dataset.spineAllowanceV2))
-      ? Number(form.dataset.spineAllowanceV2)
-      : DEFAULT_ALLOWANCE_MM;
-    const allowanceField = field('spineAllowanceV2', '제본 여유', '접착제·압착·종이 편차를 보정하는 추가 여유입니다.', allowanceValue.toFixed(1), 'mm', '0.1', '0', '10');
-    pageField.insertAdjacentElement('afterend', allowanceField);
-
-    const note = document.createElement('div');
-    note.id = 'spineFormulaV2';
-    note.className = 'spine-formula-v2';
-    note.style.cssText = 'margin:-2px 0 10px;padding:9px 10px;border:1px solid #dbeafe;border-radius:9px;background:#f8fbff;color:#334155;font-size:10px;line-height:1.55';
-    note.innerHTML = '<strong>책등 계산식</strong><br><span>본문 장수 × 종이 1장 두께 + 제본 여유</span>';
-    spineField.insertAdjacentElement('afterend', note);
-
-    form.dataset.spineCalculatorV2 = 'ready';
-    syncPaperPreset(true);
+    form.dataset.spineCalculatorV2 = 'automatic-paper-profile';
+    document.documentElement.dataset.printCheckerSpineCalculator = 'v2-automatic-paper-profile';
     calculate();
-    document.documentElement.dataset.printCheckerSpineCalculator = 'v2-gsm-allowance';
     return true;
   }
 
@@ -170,40 +130,16 @@
     installQueued = true;
     queueMicrotask(() => {
       installQueued = false;
-      installFields();
+      install();
     });
   }
 
-  // Bubble after the core field listeners so the enhanced formula wins over the legacy fixed-caliper calculation.
   document.addEventListener('change', (event) => {
-    const id = event.target?.id;
-    if (id === 'paperType') {
-      byId('paperGsmV2')?.removeAttribute('data-user-edited');
-      syncPaperPreset(true);
-      const spine = byId('spine');
-      if (spine) spine.dataset.manual = '';
-      calculate({ force: true });
-      return;
-    }
-    if (['pageCount', 'paperGsmV2', 'paperCaliperV2', 'spineAllowanceV2'].includes(id)) calculate();
+    if (['paperType', 'pageCount'].includes(event.target?.id)) calculate();
   }, false);
 
   document.addEventListener('input', (event) => {
-    const id = event.target?.id;
-    if (id === 'paperGsmV2') event.target.dataset.userEdited = '1';
-    if (id === 'spineAllowanceV2') {
-      const form = byId('specForm');
-      if (form) form.dataset.spineAllowanceV2 = String(Math.max(0, Number(event.target.value) || 0));
-    }
-    if (['pageCount', 'paperGsmV2', 'paperCaliperV2', 'spineAllowanceV2'].includes(id)) calculate();
-    if (id === 'spine') {
-      if (!event.target.value) {
-        event.target.dataset.manual = '';
-        calculate({ force: true });
-      } else {
-        updateFormulaNote(formulaValues(), true);
-      }
-    }
+    if (event.target?.id === 'pageCount') calculate();
   }, false);
 
   function bind() {
@@ -221,9 +157,10 @@
   window.PrintCheckerSpineCalculator = Object.freeze({
     calculate,
     formulaValues,
-    sheetThicknessMm,
-    profiles: PROFILE,
-    stage: 'v2-gsm-allowance',
+    profileFor,
+    profiles: PAPER_PROFILES,
+    bindingAllowanceMm: BINDING_ALLOWANCE_MM,
+    stage: 'v2-automatic-paper-profile',
   });
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind, { once: true });

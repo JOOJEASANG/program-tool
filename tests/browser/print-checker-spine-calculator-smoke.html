@@ -1,10 +1,10 @@
 <!doctype html>
 <html lang="ko">
-<head><meta charset="utf-8"><title>Print checker spine calculator smoke</title></head>
+<head><meta charset="utf-8"><title>Print checker automatic spine calculator smoke</title></head>
 <body>
   <form id="specForm">
-    <div class="spec-field"><select id="paperType"><option value="mojo80">모조지 80g</option><option value="mojo100">모조지 100g</option><option value="snow100">스노우지 100g</option><option value="custom">직접 입력</option></select></div>
-    <div class="spec-field"><input id="pageCount" type="number" value="80"></div>
+    <div class="spec-field"><select id="paperType"><option value="mojo80">모조지 80g</option><option value="custom">직접 입력</option></select></div>
+    <div class="spec-field"><input id="pageCount" type="number" value="200"></div>
     <div class="spec-field"><label><small class="spec-hint" id="spineHint">기존 계산</small></label><input id="spine" type="number" value=""></div>
   </form>
   <button class="product-card" type="button">표지</button><button id="resetBtn" type="button">초기화</button>
@@ -15,32 +15,30 @@
         const paper=document.getElementById('paperType');
         const pages=document.getElementById('pageCount');
         const spine=document.getElementById('spine');
-        const gsm=document.getElementById('paperGsmV2');
-        const allowance=document.getElementById('spineAllowanceV2');
-        const caliper=document.getElementById('paperCaliperV2');
-        const fieldsReady=Boolean(gsm&&allowance&&caliper&&document.getElementById('spineFormulaV2'));
 
-        pages.value='80';pages.dispatchEvent(new Event('input',{bubbles:true}));
-        const defaultOk=spine.value==='4.5'&&gsm.value==='80'&&allowance.value==='0.5';
+        pages.value='200';pages.dispatchEvent(new Event('input',{bubbles:true}));
+        paper.value='mojo80';paper.dispatchEvent(new Event('change',{bubbles:true}));
+        const mojo80Ok=spine.value==='9.5';
 
-        gsm.value='100';gsm.dispatchEvent(new Event('input',{bubbles:true}));
-        const gsmOk=spine.value==='5.5';
+        paper.value='mojo100';paper.dispatchEvent(new Event('change',{bubbles:true}));
+        const mojo100Ok=spine.value==='11.9';
 
-        allowance.value='1.0';allowance.dispatchEvent(new Event('input',{bubbles:true}));
-        const allowanceOk=spine.value==='6.0';
+        paper.value='art100';paper.dispatchEvent(new Event('change',{bubbles:true}));
+        const art100Ok=spine.value==='8.6';
 
-        paper.value='custom';paper.dispatchEvent(new Event('change',{bubbles:true}));
-        pages.value='100';pages.dispatchEvent(new Event('input',{bubbles:true}));
-        caliper.value='0.120';caliper.dispatchEvent(new Event('input',{bubbles:true}));
-        allowance.value='0.5';allowance.dispatchEvent(new Event('input',{bubbles:true}));
-        const customOk=caliper.closest('.spec-field').hidden===false&&spine.value==='6.5';
+        pages.value='300';pages.dispatchEvent(new Event('input',{bubbles:true}));
+        paper.value='snow120';paper.dispatchEvent(new Event('change',{bubbles:true}));
+        const snow120Ok=spine.value==='15.1';
 
-        const note=document.getElementById('spineFormulaV2').textContent;
-        const noteOk=note.includes('100p = 50장')&&note.includes('제본 여유 0.5mm');
-        const ready=document.documentElement.dataset.printCheckerSpineCalculator==='v2-gsm-allowance';
-        const pass=fieldsReady&&defaultOk&&gsmOk&&allowanceOk&&customOk&&noteOk&&ready;
+        const readOnlyOk=spine.readOnly===true&&spine.getAttribute('aria-readonly')==='true';
+        const customRemoved=paper.querySelector('option[value="custom"]')===null;
+        const manualFieldsRemoved=!document.getElementById('paperGsmV2')&&!document.getElementById('paperCaliperV2')&&!document.getElementById('spineAllowanceV2');
+        const note=document.getElementById('spineAutoResult')?.textContent||'';
+        const noteOk=note.includes('자동 책등 15.1mm')&&note.includes('스노우지 120g')&&note.includes('제본 여유 0.5mm');
+        const ready=document.documentElement.dataset.printCheckerSpineCalculator==='v2-automatic-paper-profile';
+        const pass=mojo80Ok&&mojo100Ok&&art100Ok&&snow120Ok&&readOnlyOk&&customRemoved&&manualFieldsRemoved&&noteOk&&ready;
         document.documentElement.dataset.printCheckerSpineCalculatorSmoke=pass?'pass':'fail';
-        const out=document.createElement('pre');out.id='result';out.textContent=pass?'PASS: gsm, sheet thickness and binding allowance produce the final spine':`FAIL fields=${fieldsReady} default=${defaultOk} gsm=${gsmOk} allowance=${allowanceOk} custom=${customOk} note=${noteOk} ready=${ready} spine=${spine.value}`;document.body.appendChild(out);
+        const out=document.createElement('pre');out.id='result';out.textContent=pass?'PASS: paper option and page count automatically produce a read-only spine':`FAIL m80=${mojo80Ok} m100=${mojo100Ok} art=${art100Ok} snow=${snow120Ok} readonly=${readOnlyOk} custom=${customRemoved} manual=${manualFieldsRemoved} note=${noteOk} ready=${ready} spine=${spine.value}`;document.body.appendChild(out);
       }catch(error){
         document.documentElement.dataset.printCheckerSpineCalculatorSmoke='fail';
         const out=document.createElement('pre');out.id='result';out.textContent='FAIL '+(error?.stack||error);document.body.appendChild(out);

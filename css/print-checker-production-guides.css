@@ -1,0 +1,75 @@
+/* Transparent production-guide stage: keep the uploaded artwork visible below reusable guide layers. */
+.preview-canvas-stack.production-guide-stack{
+  position:relative;
+  width:100%;
+  aspect-ratio:var(--pc-work-ratio, 1 / 1.4142);
+  overflow:hidden;
+  border-radius:10px;
+  background:transparent!important;
+  line-height:0;
+}
+.preview-canvas-stack.production-guide-stack #previewCanvas{
+  position:absolute!important;
+  inset:0!important;
+  width:100%!important;
+  height:100%!important;
+  opacity:0!important;
+  border:0!important;
+  background:transparent!important;
+  pointer-events:none!important;
+}
+.preview-canvas-stack.production-guide-stack #previewGuideLayer{
+  display:none!important;
+}
+.preview-canvas-stack.production-guide-stack #previewFileLayer{
+  position:absolute;
+  z-index:2;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+}
+#productionGuideLayer{
+  position:absolute;
+  inset:0;
+  z-index:5;
+  width:100%;
+  height:100%;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  pointer-events:none;
+}
+.canvas-wrap{
+  position:relative;
+  background:transparent;
+}
+.canvas-wrap::before{
+  content:'';
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  border-radius:14px;
+  background-image:
+    linear-gradient(45deg, rgba(148,163,184,.08) 25%, transparent 25%),
+    linear-gradient(-45deg, rgba(148,163,184,.08) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, rgba(148,163,184,.08) 75%),
+    linear-gradient(-45deg, transparent 75%, rgba(148,163,184,.08) 75%);
+  background-size:22px 22px;
+  background-position:0 0,0 11px,11px -11px,-11px 0;
+  z-index:0;
+}
+.canvas-wrap>*{position:relative;z-index:1}
+.canvas-tips .canvas-tip{white-space:nowrap}
+.invitation-fold-field select{width:100%}
+.spine-auto-result{
+  margin:-2px 0 10px;
+  padding:10px 11px;
+  border:1px solid #ddd6fe;
+  border-radius:9px;
+  background:rgba(250,245,255,.82);
+  color:#334155;
+  font-size:10px;
+  line-height:1.6;
+}
+.spine-auto-result strong{color:#6d28d9;font-size:11px}
+#spine[readonly]{background:#f8fafc;cursor:default}
