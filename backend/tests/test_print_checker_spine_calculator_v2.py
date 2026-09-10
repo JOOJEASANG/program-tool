@@ -16,15 +16,16 @@ def test_print_checker_uses_paper_option_only_automatic_spine_calculator():
     index = text(INDEX)
     source = text(SPINE)
 
-    assert "/js/print-checker/spine-calculator-v2.js?v=20260910-1" in index
+    assert "/js/print-checker/spine-calculator-v2.js?v=20260910-2" in index
     assert "BINDING_ALLOWANCE_MM = 0.5" in source
     assert "PAPER_PROFILES" in source
-    assert "mojo80" in source and "caliper: 0.090" in source
+    assert "mojo80" in source and "caliper: 0.100" in source and "factor: 1.0" in source
     assert "mojo100" in source and "caliper: 0.114" in source
     assert "art100" in source and "caliper: 0.081" in source
     assert "snow100" in source and "caliper: 0.081" in source
     assert "Math.ceil(pages / 2)" in source
     assert "spine.readOnly = true" in source
+    assert "책등계수" in source
     assert "v2-automatic-paper-profile" in source
 
     for retired_manual_input in (
@@ -36,11 +37,13 @@ def test_print_checker_uses_paper_option_only_automatic_spine_calculator():
         assert retired_manual_input not in source
 
 
-def test_spine_browser_smoke_covers_published_paper_profiles_and_read_only_result():
+def test_spine_browser_smoke_covers_paper_profiles_and_80g_factor_one():
     smoke = text(SMOKE)
     runner = text(RUNNER)
 
-    assert "spine.value==='9.5'" in smoke
+    assert "spine.value==='10.5'" in smoke
+    assert "책등계수 1.0" in smoke
+    assert "0.100mm" in smoke
     assert "spine.value==='11.9'" in smoke
     assert "spine.value==='8.6'" in smoke
     assert "spine.value==='15.1'" in smoke
