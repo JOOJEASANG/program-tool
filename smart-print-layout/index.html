@@ -10,23 +10,25 @@
   <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
-  <link rel="stylesheet" href="/css/smart-print-layout.css?v=20260910-1">
+  <link rel="stylesheet" href="/css/smart-print-layout.css?v=20260910-2">
 </head>
 <body>
-  <header class="top-nav">
-    <a class="nav-back" href="/">← 홈</a>
-    <div class="nav-title-wrap">
-      <span class="nav-kicker">SMART IMPOSITION</span>
-      <strong class="nav-title">스마트 인쇄배치</strong>
-    </div>
-    <div class="nav-user">
-      <span id="userName">확인 중…</span>
-      <button id="logoutBtn" type="button">로그아웃</button>
-    </div>
-  </header>
-
   <div class="layout-app">
     <aside class="sidebar">
+      <div class="sidebar-top">
+        <div class="top-actions">
+          <a class="sidebar-action sidebar-nav-icon" id="smartHomeBtn" href="/index.html" title="프로그램 목록" aria-label="프로그램 목록">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10.5V20h13v-9.5"/><path d="M9.5 20v-6h5v6"/></svg>
+          </a>
+          <button class="sidebar-action sidebar-session-btn" id="smartSessionSaveBtn" type="button">편집저장</button>
+          <button class="sidebar-action sidebar-session-btn" id="smartSessionLoadBtn" type="button">불러오기</button>
+          <button class="sidebar-action sidebar-nav-icon" id="logoutBtn" type="button" title="로그아웃" aria-label="로그아웃">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M10 4H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h5"/><path d="M14 8l4 4-4 4"/><path d="M18 12H8"/></svg>
+          </button>
+        </div>
+        <span id="userName" class="sidebar-user-name" aria-live="polite">확인 중…</span>
+      </div>
+
       <section class="panel first-panel">
         <div class="step">STEP 1</div>
         <h2>PDF 파일</h2>
@@ -136,7 +138,9 @@
   <script defer src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
   <script defer src="/js/firebase-config.js"></script>
   <script defer src="/js/smart-print-layout/app.js?v=20260910-2"></script>
+  <script defer src="/js/smart-print-layout/session-persistence.js?v=20260910-1"></script>
 </body>
 </html>

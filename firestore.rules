@@ -170,6 +170,15 @@ service cloud.firestore {
       allow delete: if isOwner(uid);
     }
 
+    // Smart print layout saves use the same immutable source-PDF snapshot schema,
+    // but remain separate from both layout and advanced editor save lists.
+    match /users/{uid}/pdf_smart_layout_sessions/{docId} {
+      allow read: if isOwner(uid) && approved(uid);
+      allow create: if isOwner(uid) && approved(uid) && validPdfSessionMetadata();
+      allow update: if false;
+      allow delete: if isOwner(uid);
+    }
+
     match /{document=**} { allow read, write: if false; }
   }
 }

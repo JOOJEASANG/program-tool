@@ -343,7 +343,16 @@ def cleanup_persistent_user_storage(event: scheduler_fn.ScheduledEvent) -> None:
         "createdAt",
         "storagePaths",
     )
+    smart_layout_session_paths = _trim_firestore_group(
+        db,
+        bucket,
+        "pdf_smart_layout_sessions",
+        MAX_SAVED_PDF_SESSIONS,
+        "createdAt",
+        "storagePaths",
+    )
     session_paths.update(advanced_session_paths)
+    session_paths.update(smart_layout_session_paths)
 
     design_paths = _trim_firestore_group(
         db,
