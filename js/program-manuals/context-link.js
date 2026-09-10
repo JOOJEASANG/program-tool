@@ -28,7 +28,7 @@
 
     const link = document.createElement('a');
     link.id = 'programManualContextLink';
-    link.href = `/guide.html?program=${encodeURIComponent(programId)}`;
+    link.href = `/manuals/?program=${encodeURIComponent(programId)}`;
     link.target = '_blank';
     link.rel = 'noopener';
     link.setAttribute('aria-label', '현재 프로그램 상세 사용설명서 열기');
