@@ -72,6 +72,14 @@
             <li>양면, 소책자, 재단 작업은 프린터와 실제 후가공 방식에 따라 차이가 있으므로 첫 장 시험 출력을 권장합니다.</li>
           </ul>
         </section>
+
+        <section class="pm-business" aria-label="서비스 사업자 정보">
+          <div>
+            <strong>Program Studio 서비스 정보</strong>
+            <div class="pm-business-text" id="bizText">사업자 정보를 불러오는 중입니다.</div>
+          </div>
+          <div class="pm-business-stamp" id="stamp"></div>
+        </section>
       </div>
     </main>
   </div>
@@ -83,5 +91,16 @@
   <script src="/js/program-manuals/pdf-editor-advanced.js?v=20260910-1"></script>
   <script src="/js/program-manuals/pdf-suite.js?v=20260910-1"></script>
   <script src="/js/program-manuals/app.js?v=20260910-1"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="js/firebase-config.js"></script>
+  <script src="js/business-info-loader.js"></script>
+  <script>
+    ProgramBusinessInfo.render({
+      textId: 'bizText',
+      stampId: 'stamp',
+      emptyText: '서비스 사업자 정보가 등록되지 않았습니다.'
+    });
+  </script>
 </body>
 </html>
