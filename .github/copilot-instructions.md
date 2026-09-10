@@ -10,7 +10,9 @@ Manual source files:
 - `js/program-manuals/pdf-editor-advanced.js` for PDF편집
 - `js/program-manuals/pdf-suite.js` for PDF 유틸리티
 
-For a user-visible change, update all manual parts affected by the change: quick-start steps, detailed feature descriptions, defaults/limits, warnings, troubleshooting, glossary, and the animated `demo` flow. Update the manual's `updated` date.
+For a user-visible change, update all manual parts affected by the change: usage steps, detailed feature descriptions, defaults/limits, warnings, troubleshooting, and glossary. Update the manual's `updated` date.
+
+The manual UI is a detailed, scrollable guide. Do not add an animated demo flow unless the product direction explicitly changes again.
 
 Read `docs/manuals/README.md` for the full documentation contract. The `Manual sync guard` GitHub Action checks that program source changes include the matching manual file.
 
