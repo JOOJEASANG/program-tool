@@ -15,7 +15,7 @@
       catLabel:'인쇄 검토',
       desc:'외부에서 제작한 인쇄물 PDF의 재단선·안전 영역·접지선·책등·간격을 검토합니다.',
       url:'print-checker/',
-      manualUrl:'guide.html?program=print-checker',
+      manualUrl:'manuals/?program=print-checker',
       tags:['재단선','안전 영역','접지선']
     },
     {
@@ -28,7 +28,7 @@
       catLabel:'스마트 배치',
       desc:'PDF의 실제 크기를 읽어 용지 한 장에 최대 자동배치하고 앞면·뒷면 양면 위치까지 맞춥니다.',
       url:'smart-print-layout/',
-      manualUrl:'guide.html?program=smart-print-layout',
+      manualUrl:'manuals/?program=smart-print-layout',
       tags:['자동배치','앞면·뒷면','종이 절약']
     },
     {
@@ -41,7 +41,7 @@
       catLabel:'PDF 인쇄 배치',
       desc:'페이지 순서 정리, N-UP, 중철·소책자, 간지, 여백 등 출력용 PDF 배치 작업을 가볍게 처리합니다.',
       url:'pdf-editor/',
-      manualUrl:'guide.html?program=pdf-editor',
+      manualUrl:'manuals/?program=pdf-editor',
       tags:['N-UP','소책자','간지·여백','페이지 편집']
     },
     {
@@ -54,7 +54,7 @@
       catLabel:'PDF 정밀 편집',
       desc:'페이지별 이동·크기조절, 드래그 잘라내기, 자동 맞춤, 회전·미세 회전 등 정밀 편집 기능을 사용합니다.',
       url:'pdf-editor-advanced',
-      manualUrl:'guide.html?program=pdf-editor-advanced',
+      manualUrl:'manuals/?program=pdf-editor-advanced',
       tags:['이동·크기','드래그 자르기','회전·미세편집','페이지 편집']
     },
     {
@@ -67,7 +67,7 @@
       catLabel:'PDF 유틸리티',
       desc:'합치기·분할·회전·변환·OCR·압축·암호·검사 등 나머지 PDF 작업을 왼쪽 기능 메뉴와 오른쪽 작업·결과 화면에서 처리합니다.',
       url:'pdf-suite/',
-      manualUrl:'guide.html?program=pdf-suite',
+      manualUrl:'manuals/?program=pdf-suite',
       tags:['합치기·분할','변환·OCR','압축·암호·검사']
     }
   ];
@@ -118,7 +118,7 @@
       const link=document.createElement('a');
       link.id='programManualNav';
       link.className='nav-item';
-      link.href='/guide.html';
+      link.href='/manuals/';
       link.style.textDecoration='none';
       link.innerHTML='<span class="nav-icon" aria-hidden="true">?</span><span>사용설명서</span><span class="nav-count">5</span>';
       nav.append(divider,link);
@@ -128,7 +128,7 @@
       const link=document.createElement('a');
       link.id='programManualTopLink';
       link.className='tb-btn tb-outline';
-      link.href='/guide.html';
+      link.href='/manuals/';
       link.textContent='사용설명서';
       topbar.prepend(link);
     }
