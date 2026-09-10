@@ -15,8 +15,15 @@
   let timer = 0;
   let guideObserver = null;
 
+  function checker() {
+    try {
+      if (typeof PrintChecker !== 'undefined') return PrintChecker;
+    } catch (_) {}
+    return window.PrintChecker || null;
+  }
+
   function state() {
-    try { return window.PrintChecker?.getState?.() || {}; } catch (_) { return {}; }
+    try { return checker()?.getState?.() || {}; } catch (_) { return {}; }
   }
 
   function pageCell(page, fold) {
@@ -46,7 +53,7 @@
   }
 
   function fallbackBookletPlan(sourcePages) {
-    const imp = window.PrintChecker?.computeImposition?.(sourcePages);
+    const imp = checker()?.computeImposition?.(sourcePages);
     if (!imp) return null;
     return {
       ...imp,
@@ -83,6 +90,7 @@
     const target = byId('impositionGuide');
     if (!target) return;
     if (current.product !== 'booklet') {
+      target.hidden = true;
       target.classList.remove('pc-page-layout-board');
       return;
     }
