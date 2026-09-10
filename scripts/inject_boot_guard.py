@@ -34,10 +34,6 @@ PUBLIC_HTML = {
     "print-checker/index.html",
 }
 DEPLOY_HTML = PUBLIC_HTML | PROTECTED_HTML
-PDF_BOOKLET_HTML = {
-    "pdf-editor/index.html",
-    "tools/pdf-editor.html",
-}
 MANUAL_CONTEXT_HTML = {
     "print-checker/index.html",
     "smart-print-layout/index.html",
@@ -45,6 +41,10 @@ MANUAL_CONTEXT_HTML = {
     "pdf-editor-advanced/index.html",
     "pdf-suite/index.html",
     "pdf-preflight/index.html",
+}
+PDF_BOOKLET_HTML = {
+    "pdf-editor/index.html",
+    "tools/pdf-editor.html",
 }
 PAGE_METADATA = {
     "index.html": ("Program Studio", "PDF·인쇄 실무를 위한 인쇄물 사전 검토·PDF 편집·PDF 유틸리티 플랫폼", "index,follow"),
@@ -147,6 +147,12 @@ def normalize_metadata(text: str, metadata: tuple[str, str, str] | None) -> str:
 
 
 def should_inject(path: Path, text: str) -> bool:
+    """Return whether the legacy boot/metadata transform still needs work.
+
+    Manual-context links are intentionally checked by inject_all() separately so
+    this long-standing helper remains idempotent for callers/tests that invoke
+    inject_guard() directly without a path-aware manual_context argument.
+    """
     if any(part in EXCLUDED_PARTS for part in path.parts):
         return False
     approval_required = requires_approval(path)
@@ -157,8 +163,7 @@ def should_inject(path: Path, text: str) -> bool:
     needs_ui_style = requires_favicon(path) and UI_STYLE_MARKER not in text
     needs_metadata = page_metadata(path) is not None and META_MARKER not in text
     needs_pdf_booklet = is_pdf_booklet_page(path) and PDF_BOOKLET_MARKER not in text
-    needs_manual_context = requires_manual_context(path) and MANUAL_LINK_MARKER not in text
-    return needs_boot or needs_favicon or needs_ui_style or needs_metadata or needs_pdf_booklet or needs_manual_context
+    return needs_boot or needs_favicon or needs_ui_style or needs_metadata or needs_pdf_booklet
 
 
 def inject_guard(
@@ -210,7 +215,8 @@ def inject_all() -> list[Path]:
     changed: list[Path] = []
     for path in sorted(ROOT.rglob("*.html")):
         text = path.read_text(encoding="utf-8")
-        if not should_inject(path, text):
+        needs_manual_context = requires_manual_context(path) and MANUAL_LINK_MARKER not in text
+        if not should_inject(path, text) and not needs_manual_context:
             continue
         updated = inject_guard(
             text,
