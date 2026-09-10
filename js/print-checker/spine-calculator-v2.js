@@ -4,13 +4,12 @@
   if (window.__printCheckerSpineCalculatorV2) return;
   window.__printCheckerSpineCalculatorV2 = true;
 
-  // Reference profile: Fastbooks/Sodaprint published sheet calipers (mm/sheet).
-  // Perfect binding receives a fixed 0.5 mm adhesive/process allowance, the lower
-  // edge of the published 0.5–1.0 mm recommendation. Final production should still
-  // be checked against the printer's actual paper lot and binding equipment.
+  // Production profile. 모조지 80g follows the shop's 1.0 spine factor
+  // (= 0.100 mm/sheet). Other paper profiles retain their existing calipers.
+  // Perfect binding receives a fixed 0.5 mm adhesive/process allowance.
   const BINDING_ALLOWANCE_MM = 0.5;
   const PAPER_PROFILES = Object.freeze({
-    mojo80:  { label: '모조지 80g', family: '모조지', gsm: 80,  caliper: 0.090 },
+    mojo80:  { label: '모조지 80g', family: '모조지', gsm: 80,  caliper: 0.100, factor: 1.0 },
     mojo100: { label: '모조지 100g', family: '모조지', gsm: 100, caliper: 0.114 },
     mojo150: { label: '모조지 150g', family: '모조지', gsm: 150, caliper: 0.167 },
     art100:  { label: '아트지 100g', family: '아트지', gsm: 100, caliper: 0.081 },
@@ -74,7 +73,8 @@
       note.innerHTML = '<strong>책등 자동 계산</strong><br><span>본문 페이지 수와 종이 옵션을 선택하면 자동으로 계산됩니다.</span>';
       return;
     }
-    note.innerHTML = `<strong>자동 책등 ${values.total.toFixed(1)}mm</strong><br><span>${values.profile.label} · ${values.pages}p = ${values.sheets}장 × ${values.profile.caliper.toFixed(3)}mm + 제본 여유 ${values.allowance.toFixed(1)}mm</span><br><span>실제 종이 로트·제본 장비에 따라 오차가 생길 수 있으므로 최종 제작 수치는 인쇄소 사양을 우선하세요.</span>`;
+    const factorText = Number.isFinite(values.profile.factor) ? ` · 책등계수 ${values.profile.factor.toFixed(1)}` : '';
+    note.innerHTML = `<strong>자동 책등 ${values.total.toFixed(1)}mm</strong><br><span>${values.profile.label}${factorText} · ${values.pages}p = ${values.sheets}장 × ${values.profile.caliper.toFixed(3)}mm + 제본 여유 ${values.allowance.toFixed(1)}mm</span><br><span>실제 종이 로트·제본 장비에 따라 오차가 생길 수 있으므로 최종 제작 수치는 인쇄소 사양을 우선하세요.</span>`;
   }
 
   function calculate() {
