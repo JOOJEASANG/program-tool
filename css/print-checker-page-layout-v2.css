@@ -1,0 +1,36 @@
+.print-checker-page .pc-page-layout-board{padding:22px;background:#fff;border:1px solid var(--line);border-radius:18px;box-shadow:0 6px 20px rgba(15,23,42,.06)}
+.print-checker-page .pc-layout-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;margin-bottom:16px}
+.print-checker-page .pc-layout-heading>div{min-width:0}
+.print-checker-page .pc-layout-kicker{display:block;font-size:10px;font-weight:950;letter-spacing:.45px;color:var(--cyan);margin-bottom:5px}
+.print-checker-page .pc-layout-heading h3{margin:0;font-size:18px;font-weight:950;letter-spacing:-.35px;color:#0f172a}
+.print-checker-page .pc-layout-heading p{margin:0;max-width:560px;text-align:right;font-size:11px;font-weight:700;line-height:1.55;color:#64748b}
+.print-checker-page .pc-layout-columns{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;align-items:stretch}
+.print-checker-page .pc-layout-side{min-width:0;min-height:300px;border:1px solid #dbe5ef;border-radius:16px;padding:16px;background:#f8fafc}
+.print-checker-page .pc-layout-side>header{display:flex;align-items:center;gap:10px;padding-bottom:12px;margin-bottom:14px;border-bottom:1px solid #e2e8f0}
+.print-checker-page .pc-layout-side>header>span{flex:none;border-radius:999px;padding:4px 7px;background:#e2e8f0;color:#475569;font-size:8px;font-weight:950;letter-spacing:.5px}
+.print-checker-page .pc-layout-side h4{margin:0;font-size:15px;font-weight:950;color:#0f172a}
+.print-checker-page .pc-layout-side header p{margin:2px 0 0;font-size:10px;font-weight:700;color:#64748b}
+.print-checker-page .pc-layout-front{box-shadow:inset 3px 0 0 #2563eb}
+.print-checker-page .pc-layout-back{box-shadow:inset 3px 0 0 #16a34a}
+.print-checker-page .pc-layout-panel-grid{display:grid;gap:8px;height:220px}
+.print-checker-page .pc-layout-panel-grid.panels-2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.print-checker-page .pc-layout-panel-grid.panels-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.print-checker-page .pc-layout-panel-grid.panels-4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.print-checker-page .pc-layout-page{display:flex;min-width:0;align-items:center;justify-content:center;flex-direction:column;gap:6px;border:1px dashed #94a3b8;border-radius:12px;background:#fff}
+.print-checker-page .pc-layout-page strong{font-size:24px;font-weight:950;color:#334155}
+.print-checker-page .pc-layout-page span{font-size:10px;font-weight:800;color:#64748b}
+.print-checker-page .pc-layout-page.is-key-page{border-color:#2563eb;background:#eff6ff}
+.print-checker-page .pc-layout-page.is-key-page strong{color:#1d4ed8}
+.print-checker-page .pc-booklet-sheets{display:grid;gap:12px}
+.print-checker-page .pc-booklet-sheet{border:1px solid #dbe5ef;border-radius:13px;background:#fff;padding:10px}
+.print-checker-page .pc-booklet-sheet-title{font-size:10px;font-weight:950;color:#64748b;margin-bottom:8px}
+.print-checker-page .pc-booklet-pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.print-checker-page .pc-booklet-page{min-height:126px;border:1px dashed #94a3b8;border-radius:10px;background:#fff;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:5px}
+.print-checker-page .pc-booklet-page strong{font-size:22px;font-weight:950;color:#334155}
+.print-checker-page .pc-booklet-page span{font-size:9px;font-weight:800;color:#64748b}
+.print-checker-page .pc-booklet-page.is-blank{background:#f1f5f9}
+.print-checker-page .pc-booklet-page.is-blank strong{font-size:13px;color:#94a3b8}
+.print-checker-page .pc-booklet-page.is-back-cover{border-color:#2563eb;background:#eff6ff}
+.print-checker-page .pc-booklet-page.is-back-cover strong{color:#1d4ed8}
+@media(max-width:1050px){.print-checker-page .pc-layout-heading{align-items:flex-start;flex-direction:column}.print-checker-page .pc-layout-heading p{text-align:left}.print-checker-page .pc-layout-columns{grid-template-columns:1fr}.print-checker-page .pc-layout-side{min-height:0}}
+@media(max-width:620px){.print-checker-page .pc-page-layout-board{padding:14px}.print-checker-page .pc-layout-panel-grid{height:170px;gap:5px}.print-checker-page .pc-layout-page strong{font-size:18px}.print-checker-page .pc-booklet-page{min-height:96px}}
