@@ -51,7 +51,7 @@ PAGE_METADATA = {
     "login.html": ("로그인 | Program Studio", "Program Studio 로그인 및 회원가입", "noindex,nofollow"),
     "admin.html": ("관리자 | Program Studio", "Program Studio 회원 및 프로그램 운영 관리", "noindex,nofollow"),
     "approval-waiting.html": ("승인 대기 | Program Studio", "Program Studio 계정 승인 상태 확인", "noindex,nofollow"),
-    "guide.html": ("프로그램 사용설명서 | Program Studio", "Program Studio 주요 프로그램의 상세 사용법, 자동 시연, 문제 해결 안내", "index,follow"),
+    "guide.html": ("이용안내 | Program Studio", "Program Studio 주요 프로그램과 이용 방법 안내", "index,follow"),
     "terms.html": ("이용약관 | Program Studio", "Program Studio 서비스 이용약관", "index,follow"),
     "privacy.html": ("개인정보처리방침 | Program Studio", "Program Studio 개인정보처리방침", "index,follow"),
     "print-checker/index.html": ("인쇄물 사전 검토 | Program Studio", "Program Studio 인쇄물 사전 검토 도구 — 책등·재단선·안전영역·접지선 확인", "noindex,nofollow"),
