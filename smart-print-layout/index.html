@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>스마트 인쇄배치 · Program Studio</title>
-  <meta name="description" content="PDF의 실제 크기를 읽어 용지에 자동 배치하고 앞면·뒷면 양면 위치까지 맞춰 출력용 PDF를 만드는 스마트 인쇄배치 도구">
+  <meta name="description" content="PDF의 실제 크기를 읽어 선택한 용지를 자동으로 채우고 앞면·뒷면 양면 위치까지 맞춰 출력용 PDF를 만드는 스마트 인쇄배치 도구">
   <meta name="robots" content="noindex,nofollow">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
@@ -33,7 +33,7 @@
         <label class="upload-zone" id="uploadZone" for="fileInput" tabindex="0">
           <span class="upload-icon">📂</span>
           <strong>PDF 올리기</strong>
-          <small>1페이지는 앞면, 2페이지는 앞·뒷면으로 자동 인식<br>여러 파일을 한꺼번에 넣을 수 있습니다.</small>
+          <small>1페이지는 앞면, 2페이지는 앞·뒷면으로 자동 인식<br>여러 파일은 파일별 용지로 자동 배치합니다.</small>
         </label>
         <input id="fileInput" type="file" accept="application/pdf,.pdf" multiple hidden>
         <div id="fileList" class="file-list"></div>
@@ -61,7 +61,7 @@
           <label class="field"><span>바깥 여백</span><input id="marginMm" type="number" min="0" max="80" step="0.5" value="5"></label>
           <label class="field"><span>제품 간격</span><input id="gapMm" type="number" min="0" max="50" step="0.5" value="3"></label>
         </div>
-        <label class="check-row"><input id="allowRotate" type="checkbox" checked><span>90° 회전도 계산해서 더 많이 배치</span></label>
+        <label class="check-row"><input id="allowRotate" type="checkbox"><span>90° 회전도 계산해서 더 많이 배치</span></label>
       </section>
 
       <section class="panel">
@@ -89,7 +89,7 @@
       </section>
 
       <section class="summary-card" id="summaryCard" aria-live="polite">
-        <div class="summary-empty">PDF를 올리면 자동 배치 결과가 여기에 표시됩니다.</div>
+        <div class="summary-empty">PDF를 올리면 용지 한 장에 들어가는 최대 개수를 자동 계산합니다.</div>
       </section>
 
       <div class="actions">
@@ -103,8 +103,8 @@
       <section class="workspace-head">
         <div>
           <span class="workspace-kicker">AUTO LAYOUT PREVIEW</span>
-          <h1>파일 크기를 읽어 가장 효율적인 배치를 계산합니다</h1>
-          <p>수량이나 용지 설정을 바꾸면 다시 계산할 필요 없이 즉시 재배치됩니다.</p>
+          <h1>파일 크기를 읽어 용지 한 장을 자동으로 채웁니다</h1>
+          <p>PDF나 용지 설정을 바꾸면 최대 배치 수를 다시 계산하고 배치 묶음을 용지 가운데에 맞춥니다.</p>
         </div>
         <div class="preview-controls">
           <button id="prevSheet" type="button" disabled>‹</button>
@@ -121,13 +121,13 @@
         <div id="emptyPreview" class="empty-preview">
           <div class="empty-icon">▦</div>
           <strong>PDF를 올리면 바로 자동배치됩니다</strong>
-          <span>PDF의 실제 mm 크기와 페이지 수를 읽어 앞면·뒷면까지 계산합니다.</span>
+          <span>선택한 용지에 들어갈 수 있는 최대 개수와 앞면·뒷면 위치를 계산합니다.</span>
         </div>
       </section>
 
       <section class="guide-row">
-        <div><strong>자동 회전</strong><span>90° 회전 시 더 많이 들어가면 자동 선택</span></div>
-        <div><strong>혼합 배치</strong><span>서로 다른 크기의 파일도 같은 용지에 함께 계산</span></div>
+        <div><strong>자동 최대 배치</strong><span>수량 입력 없이 용지 한 장을 최대한 채움</span></div>
+        <div><strong>가운데 정렬</strong><span>배치된 전체 묶음을 용지 중앙에 자동 정렬</span></div>
         <div><strong>양면 정렬</strong><span>긴쪽·짧은쪽 넘김에 맞춰 뒷면 슬롯 자동 반전</span></div>
       </section>
     </main>
@@ -137,6 +137,6 @@
   <script defer src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
   <script defer src="/js/firebase-config.js"></script>
-  <script defer src="/js/smart-print-layout/app.js?v=20260910-1"></script>
+  <script defer src="/js/smart-print-layout/app.js?v=20260910-2"></script>
 </body>
 </html>
