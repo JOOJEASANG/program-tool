@@ -13,6 +13,7 @@ FAVICON_MARKER = "data-program-studio-favicon"
 META_MARKER = "data-program-studio-meta"
 UI_STYLE_MARKER = "data-program-studio-ui"
 PDF_BOOKLET_MARKER = "data-pdf-classic-booklet"
+MANUAL_LINK_MARKER = "data-program-manual-context"
 EXCLUDED_PARTS = {".git", "node_modules", "venv", ".venv", "__pycache__"}
 PROTECTED_HTML = {
     "pdf-editor/index.html",
@@ -37,12 +38,20 @@ PDF_BOOKLET_HTML = {
     "pdf-editor/index.html",
     "tools/pdf-editor.html",
 }
+MANUAL_CONTEXT_HTML = {
+    "print-checker/index.html",
+    "smart-print-layout/index.html",
+    "pdf-editor/index.html",
+    "pdf-editor-advanced/index.html",
+    "pdf-suite/index.html",
+    "pdf-preflight/index.html",
+}
 PAGE_METADATA = {
     "index.html": ("Program Studio", "PDF·인쇄 실무를 위한 인쇄물 사전 검토·PDF 편집·PDF 유틸리티 플랫폼", "index,follow"),
     "login.html": ("로그인 | Program Studio", "Program Studio 로그인 및 회원가입", "noindex,nofollow"),
     "admin.html": ("관리자 | Program Studio", "Program Studio 회원 및 프로그램 운영 관리", "noindex,nofollow"),
     "approval-waiting.html": ("승인 대기 | Program Studio", "Program Studio 계정 승인 상태 확인", "noindex,nofollow"),
-    "guide.html": ("이용안내 | Program Studio", "Program Studio 주요 프로그램과 이용 방법 안내", "index,follow"),
+    "guide.html": ("프로그램 사용설명서 | Program Studio", "Program Studio 주요 프로그램의 상세 사용법, 자동 시연, 문제 해결 안내", "index,follow"),
     "terms.html": ("이용약관 | Program Studio", "Program Studio 서비스 이용약관", "index,follow"),
     "privacy.html": ("개인정보처리방침 | Program Studio", "Program Studio 개인정보처리방침", "index,follow"),
     "print-checker/index.html": ("인쇄물 사전 검토 | Program Studio", "Program Studio 인쇄물 사전 검토 도구 — 책등·재단선·안전영역·접지선 확인", "noindex,nofollow"),
@@ -107,6 +116,10 @@ def requires_favicon(path: Path) -> bool:
     return relative_path(path) in DEPLOY_HTML
 
 
+def requires_manual_context(path: Path) -> bool:
+    return relative_path(path) in MANUAL_CONTEXT_HTML
+
+
 def page_metadata(path: Path) -> tuple[str, str, str] | None:
     return PAGE_METADATA.get(relative_path(path))
 
@@ -144,7 +157,8 @@ def should_inject(path: Path, text: str) -> bool:
     needs_ui_style = requires_favicon(path) and UI_STYLE_MARKER not in text
     needs_metadata = page_metadata(path) is not None and META_MARKER not in text
     needs_pdf_booklet = is_pdf_booklet_page(path) and PDF_BOOKLET_MARKER not in text
-    return needs_boot or needs_favicon or needs_ui_style or needs_metadata or needs_pdf_booklet
+    needs_manual_context = requires_manual_context(path) and MANUAL_LINK_MARKER not in text
+    return needs_boot or needs_favicon or needs_ui_style or needs_metadata or needs_pdf_booklet or needs_manual_context
 
 
 def inject_guard(
@@ -156,6 +170,7 @@ def inject_guard(
     ui_style: bool = True,
     metadata: tuple[str, str, str] | None = None,
     pdf_booklet: bool = False,
+    manual_context: bool = False,
 ) -> str:
     text = normalize_metadata(text, metadata)
     tags = ""
@@ -174,6 +189,11 @@ def inject_guard(
         tags += (
             f'<script {PDF_BOOKLET_MARKER} defer '
             f'src="/js/pdf-editor/booklet-sheet-preview.js?v={version}"></script>'
+        )
+    if manual_context and MANUAL_LINK_MARKER not in text:
+        tags += (
+            f'<script {MANUAL_LINK_MARKER} defer '
+            f'src="/js/program-manuals/context-link.js?v={version}"></script>'
         )
     if approval_required and "firebase-config.js" not in text:
         tags += FIREBASE_APPROVAL_BOOTSTRAP
@@ -200,6 +220,7 @@ def inject_all() -> list[Path]:
             ui_style=requires_favicon(path),
             metadata=page_metadata(path),
             pdf_booklet=is_pdf_booklet_page(path),
+            manual_context=requires_manual_context(path),
         )
         if updated == text:
             continue
