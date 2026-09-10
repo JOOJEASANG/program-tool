@@ -22,6 +22,8 @@ def test_booklet_page_input_never_hides_html_imposition_board():
     assert "window.PrintCheckerPageLayout?.render?.()" in booklet
     assert "scheduleDraw" in booklet
 
+    assert "typeof PrintChecker !== 'undefined'" in layout
+    assert "return checker()?.getState?.() || {}" in layout
     assert "bookletPages" in layout
     assert "bookletPlan(sourcePages)" in layout
     assert "앞면 배치" in layout
@@ -29,7 +31,7 @@ def test_booklet_page_input_never_hides_html_imposition_board():
     assert "target.hidden = false" in layout
 
     assert "/js/print-checker/booklet-layout-only.js?v=20260910-3" in index
-    assert "/js/print-checker/page-layout-v2.js?v=20260910-1" in index
+    assert "/js/print-checker/page-layout-v2.js?v=20260910-2" in index
 
 
 def test_booklet_imposition_still_uses_sheet_front_back_pairs():
