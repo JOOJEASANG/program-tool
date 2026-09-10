@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"><title>Print checker product transition smoke</title></head>
+<body>
+  <div id="productGrid"></div>
+  <section id="specSection" hidden><div class="sb-title">사양 입력</div><form id="specForm"></form></section>
+  <section class="sb-section" id="uploadSection"><div id="uploadZone"><div id="uploadFilename" style="display:none"></div></div></section>
+  <input id="fileInput" type="file">
+  <span id="uploadFileInfo" hidden></span><span id="uploadError" hidden></span>
+  <div id="adjPanel" hidden>
+    <div id="sideSelectRow" hidden><button class="side-btn active" data-side="front" type="button">앞면</button><button class="side-btn" data-side="back" type="button">뒷면</button></div>
+    <input type="checkbox" id="fileHasBleed">
+    <input id="adjX" type="range" value="0"><span id="adjXVal"></span>
+    <input id="adjY" type="range" value="0"><span id="adjYVal"></span>
+    <input id="adjScale" type="range" value="100"><span id="adjScaleVal"></span>
+    <button id="resetAdjBtn" type="button">reset</button>
+  </div>
+  <div class="action-row" id="actionRow"><button id="runBtn" type="button">run</button><button id="resetBtn" type="button">reset</button></div>
+
+  <main id="printCheckerMain">
+    <div id="previewZoomToolbar"></div>
+    <section class="canvas-wrap"><canvas id="previewCanvas"></canvas><div id="canvasFileInfo" hidden></div></section>
+    <section id="leafletGuide" hidden></section>
+    <section id="impositionGuide" hidden></section>
+    <section id="contentPreflightSection" hidden><div id="contentPreflightSummary"></div><div id="contentPreflightGrid"></div></section>
+    <section id="reportSection" hidden><div id="reportSummary"></div><div id="reportGrid"></div></section>
+  </main>
+
+  <script>history.replaceState(null,'','/print-checker');</script>
+  <script src="../../js/print-checker/print-checker.js"></script>
+  <script src="../../js/print-checker/production-guides-v2.js"></script>
+  <script src="../../js/print-checker/defaults-live.js"></script>
+  <script src="../../js/print-checker/booklet-layout-only.js"></script>
+  <script src="../../js/print-checker/page-layout-v2.js"></script>
+  <script src="../../js/print-checker/product-transition-v1.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded',async()=>{
+      const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+      const fail=message=>{
+        document.documentElement.dataset.printCheckerProductTransitionSmoke='fail';
+        const out=document.createElement('pre');out.textContent='FAIL '+message;document.body.appendChild(out);
+      };
+      const visible=node=>Boolean(node)&&node.hidden===false&&!node.classList.contains('pc-booklet-only-hidden');
+      try{
+        await sleep(180);
+        const initial=PrintChecker.getState().product==='flyer';
+
+        const cover=document.querySelector('[data-product="cover"]');
+        const booklet=document.querySelector('[data-product="booklet"]');
+        const leaflet=document.querySelector('[data-product="leaflet"]');
+        cover.click();
+        booklet.click();
+        leaflet.click();
+        await sleep(220);
+
+        const stateAfterRapid=PrintChecker.getState();
+        const selected=[...document.querySelectorAll('.product-card.selected')].map(node=>node.dataset.product);
+        const leafletGuide=document.getElementById('leafletGuide');
+        const impositionGuide=document.getElementById('impositionGuide');
+        const uploadSection=document.getElementById('uploadSection');
+        const actionRow=document.getElementById('actionRow');
+        const specTitle=document.querySelector('#specSection .sb-title');
+        const rapidLeaflet=stateAfterRapid.product==='leaflet'
+          &&document.documentElement.dataset.printCheckerProductTransition==='ready'
+          &&document.documentElement.dataset.printCheckerActiveProduct==='leaflet'
+          &&!document.getElementById('printCheckerMain').hasAttribute('aria-busy')
+          &&selected.length===1&&selected[0]==='leaflet'
+          &&document.getElementById('trimW')?.value==='297'
+          &&document.getElementById('trimH')?.value==='210'
+          &&document.getElementById('foldType')?.value==='3roll'
+          &&document.getElementById('gutterMargin')?.value==='3'
+          &&!document.getElementById('spine')
+          &&!document.getElementById('pageCount')
+          &&!document.getElementById('bookletPages')
+          &&visible(leafletGuide)
+          &&leafletGuide.textContent.includes('리플렛 페이지 배치')
+          &&leafletGuide.textContent.includes('앞면 배치')
+          &&leafletGuide.textContent.includes('뒷면 배치')
+          &&impositionGuide.hidden===true
+          &&!uploadSection.classList.contains('pc-booklet-only-hidden')
+          &&!actionRow.classList.contains('pc-booklet-only-hidden')
+          &&specTitle.textContent==='사양 입력';
+
+        document.querySelector('[data-product="booklet"]').click();
+        await sleep(180);
+        const productionLayer=document.getElementById('productionGuideLayer');
+        const bookletClean=PrintChecker.getState().product==='booklet'
+          &&document.documentElement.dataset.printCheckerProductTransition==='ready'
+          &&document.documentElement.dataset.printCheckerActiveProduct==='booklet'
+          &&document.querySelectorAll('#specForm .spec-field').length===1
+          &&document.getElementById('bookletPages')?.value==='8'
+          &&visible(impositionGuide)
+          &&impositionGuide.textContent.includes('소책자 페이지 배치')
+          &&leafletGuide.hidden===true
+          &&uploadSection.classList.contains('pc-booklet-only-hidden')
+          &&actionRow.classList.contains('pc-booklet-only-hidden')
+          &&productionLayer?.style.display==='none'
+          &&specTitle.textContent==='총 페이지 입력';
+
+        document.querySelector('[data-product="invitation"]').click();
+        await sleep(220);
+        const invitationClean=PrintChecker.getState().product==='invitation'
+          &&document.documentElement.dataset.printCheckerProductTransition==='ready'
+          &&document.documentElement.dataset.printCheckerActiveProduct==='invitation'
+          &&document.getElementById('trimW')?.value==='148'
+          &&document.getElementById('trimH')?.value==='210'
+          &&document.getElementById('bleed')?.value==='3'
+          &&document.getElementById('safeZone')?.value==='3'
+          &&document.getElementById('invitationFoldType')?.value==='half'
+          &&!document.getElementById('bookletPages')
+          &&!document.getElementById('foldType')
+          &&!document.getElementById('spine')
+          &&leafletGuide.hidden===true
+          &&impositionGuide.hidden===true
+          &&!uploadSection.classList.contains('pc-booklet-only-hidden')
+          &&!actionRow.classList.contains('pc-booklet-only-hidden')
+          &&productionLayer?.style.display!== 'none'
+          &&specTitle.textContent==='사양 입력';
+
+        if(!(initial&&rapidLeaflet&&bookletClean&&invitationClean)){
+          throw new Error(`initial=${initial} rapidLeaflet=${rapidLeaflet} booklet=${bookletClean} invitation=${invitationClean}`);
+        }
+        document.documentElement.dataset.printCheckerProductTransitionSmoke='pass';
+        const out=document.createElement('pre');out.textContent='PASS: rapid product switches settle on the latest selection with only matching controls, guides, and booklet visibility state';document.body.appendChild(out);
+      }catch(error){fail(error?.message||String(error));}
+    });
+  </script>
+</body>
+</html>
