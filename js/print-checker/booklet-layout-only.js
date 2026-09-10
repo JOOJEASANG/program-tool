@@ -1,8 +1,8 @@
 // Print Checker: booklet mode only needs total pages and an imposition-style layout preview.
 (function(){
   'use strict';
-  if(window.__printCheckerBookletLayoutOnlyV2)return;
-  window.__printCheckerBookletLayoutOnlyV2=true;
+  if(window.__printCheckerBookletLayoutOnlyV3)return;
+  window.__printCheckerBookletLayoutOnlyV3=true;
 
   const $=id=>document.getElementById(id);
   const HIDDEN_CLASS='pc-booklet-only-hidden';
@@ -37,13 +37,26 @@
 
   function suppress(node,hidden){node?.classList.toggle(HIDDEN_CLASS,Boolean(hidden));}
 
+  function keepImpositionGuideAvailable(){
+    const guide=$('impositionGuide');
+    if(!guide)return;
+    suppress(guide,false);
+  }
+
+  function renderHtmlBookletLayout(){
+    keepImpositionGuideAvailable();
+    try{window.PrintCheckerPageLayout?.render?.();}catch(_){}
+  }
+
   function setMode(enabled){
     document.documentElement.dataset.printCheckerBookletLayoutOnly=enabled?'1':'0';
     suppress($('uploadZone')?.closest('.sb-section'),enabled);
     suppress($('adjPanel'),enabled);
     suppress(document.querySelector('.action-row'),enabled);
     suppress($('reportSection'),enabled);
-    suppress($('impositionGuide'),enabled);
+    // impositionGuide is owned by page-layout-v2. Never hide it here: doing so races
+    // with the HTML booklet board whenever the total page input changes.
+    keepImpositionGuideAvailable();
     suppress($('canvasFileInfo'),enabled);
     suppress(document.querySelector('.canvas-tips'),enabled);
     suppress($('printCheckerLiveSummary'),enabled);
@@ -219,7 +232,12 @@
 
   function scheduleDraw(){
     const serial=++drawSerial;
-    const run=()=>{if(serial===drawSerial&&isBooklet())drawBookletLayout();};
+    const run=()=>{
+      if(serial!==drawSerial||!isBooklet())return;
+      drawBookletLayout();
+      // Keep the visible HTML imposition board synchronized with every page edit.
+      renderHtmlBookletLayout();
+    };
     if(window.requestAnimationFrame)requestAnimationFrame(run);else setTimeout(run,0);
   }
 
@@ -268,7 +286,7 @@
     buildLayoutPlan,
     currentProduct,
     isBooklet,
-    stage:'print-checker-booklet-layout-only-v2'
+    stage:'print-checker-booklet-layout-only-v3'
   });
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});
