@@ -18,7 +18,9 @@
 
         pages.value='200';pages.dispatchEvent(new Event('input',{bubbles:true}));
         paper.value='mojo80';paper.dispatchEvent(new Event('change',{bubbles:true}));
-        const mojo80Ok=spine.value==='9.5';
+        const mojo80Ok=spine.value==='10.5';
+        const mojo80Note=document.getElementById('spineAutoResult')?.textContent||'';
+        const mojo80FactorOk=mojo80Note.includes('책등계수 1.0')&&mojo80Note.includes('0.100mm');
 
         paper.value='mojo100';paper.dispatchEvent(new Event('change',{bubbles:true}));
         const mojo100Ok=spine.value==='11.9';
@@ -36,9 +38,9 @@
         const note=document.getElementById('spineAutoResult')?.textContent||'';
         const noteOk=note.includes('자동 책등 15.1mm')&&note.includes('스노우지 120g')&&note.includes('제본 여유 0.5mm');
         const ready=document.documentElement.dataset.printCheckerSpineCalculator==='v2-automatic-paper-profile';
-        const pass=mojo80Ok&&mojo100Ok&&art100Ok&&snow120Ok&&readOnlyOk&&customRemoved&&manualFieldsRemoved&&noteOk&&ready;
+        const pass=mojo80Ok&&mojo80FactorOk&&mojo100Ok&&art100Ok&&snow120Ok&&readOnlyOk&&customRemoved&&manualFieldsRemoved&&noteOk&&ready;
         document.documentElement.dataset.printCheckerSpineCalculatorSmoke=pass?'pass':'fail';
-        const out=document.createElement('pre');out.id='result';out.textContent=pass?'PASS: paper option and page count automatically produce a read-only spine':`FAIL m80=${mojo80Ok} m100=${mojo100Ok} art=${art100Ok} snow=${snow120Ok} readonly=${readOnlyOk} custom=${customRemoved} manual=${manualFieldsRemoved} note=${noteOk} ready=${ready} spine=${spine.value}`;document.body.appendChild(out);
+        const out=document.createElement('pre');out.id='result';out.textContent=pass?'PASS: paper option and page count automatically produce a read-only spine':`FAIL m80=${mojo80Ok} m80factor=${mojo80FactorOk} m100=${mojo100Ok} art=${art100Ok} snow=${snow120Ok} readonly=${readOnlyOk} custom=${customRemoved} manual=${manualFieldsRemoved} note=${noteOk} ready=${ready} spine=${spine.value}`;document.body.appendChild(out);
       }catch(error){
         document.documentElement.dataset.printCheckerSpineCalculatorSmoke='fail';
         const out=document.createElement('pre');out.id='result';out.textContent='FAIL '+(error?.stack||error);document.body.appendChild(out);
