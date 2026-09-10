@@ -89,7 +89,7 @@ def test_top_guide_box_removed_and_large_front_back_layout_is_connected():
     assert "PRINT SPEC CHECKER" not in index
     assert 'class="canvas-tips"' not in index
     assert "/css/print-checker-page-layout-v2.css?v=20260910-1" in index
-    assert "/js/print-checker/page-layout-v2.js?v=20260910-1" in index
+    assert "/js/print-checker/page-layout-v2.js?v=20260910-2" in index
     assert "pc-layout-columns" in layout
     assert "앞면 배치" in layout
     assert "뒷면 배치" in layout
@@ -105,6 +105,7 @@ def test_top_guide_box_removed_and_large_front_back_layout_is_connected():
 def test_booklet_layout_is_restored_as_html_board_even_if_legacy_mode_hides_it():
     layout = text(PAGE_LAYOUT)
 
+    assert "typeof PrintChecker !== 'undefined'" in layout
     assert "window.PrintCheckerBookletLayoutOnly" in layout
     assert "helper?.buildLayoutPlan" in layout
     assert "target.classList.remove('pc-booklet-only-hidden')" in layout
