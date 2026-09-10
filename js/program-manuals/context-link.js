@@ -12,7 +12,20 @@
     : '';
   if (!programId) return;
 
+  function installAdvancedPreviewCentering() {
+    if (programId !== 'pdf-editor-advanced' || document.getElementById('pdfAdvancedEmptyStateCenter')) return;
+    const style = document.createElement('style');
+    style.id = 'pdfAdvancedEmptyStateCenter';
+    style.textContent = `
+      body[data-pdf-advanced-standalone="1"] #previewScroll{position:relative}
+      body[data-pdf-advanced-standalone="1"] #previewScroll>#emptyState{position:absolute;inset:0;width:100%;height:100%;min-height:0;margin:0;padding:24px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;pointer-events:none}
+      body[data-pdf-advanced-standalone="1"] #previewScroll>#emptyState[hidden]{display:none!important}
+    `;
+    document.head.appendChild(style);
+  }
+
   function install() {
+    installAdvancedPreviewCentering();
     if (document.getElementById('programManualContextLink')) return;
     const style = document.createElement('style');
     style.id = 'programManualContextStyle';
