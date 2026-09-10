@@ -100,6 +100,7 @@ run_page "pdf-daily-free-smoke.html" 'data-pdf-daily-free-smoke="pass"' "PDF dai
 run_page "pdf-daily-free-config-smoke.html" 'data-pdf-daily-free-config-smoke="pass"' "PDF configurable daily limit smoke" "pdf-daily-free-config-smoke-dom.html"
 run_page "pdf-daily-free-admin-smoke.html" 'data-pdf-daily-free-admin-smoke="pass"' "PDF daily free admin unlimited smoke" "pdf-daily-free-admin-smoke-dom.html"
 run_page "print-checker-defaults-daily-free-smoke.html" 'data-print-checker-defaults-daily-free-smoke="pass"' "Print checker defaults and daily free smoke" "print-checker-defaults-daily-free-smoke-dom.html"
+run_page "print-checker-product-transition-smoke.html" 'data-print-checker-product-transition-smoke="pass"' "Print checker product transition smoke" "print-checker-product-transition-smoke-dom.html"
 run_page "pdf-suite-hub-smoke.html" 'data-pdf-suite-smoke="pass"' "PDF suite hub browser smoke" "pdf-suite-hub-smoke-dom.html"
 run_page "pdf-suite-unified-workspace-smoke.html" 'data-pdf-suite-unified-smoke="pass"' "PDF suite unified workspace smoke" "pdf-suite-unified-workspace-smoke-dom.html"
 run_page "pdf-workspace-single-page-smoke.html" 'data-pdf-workspace-single-page-smoke="pass"' "PDF single-page workspace smoke" "pdf-workspace-single-page-smoke-dom.html"
