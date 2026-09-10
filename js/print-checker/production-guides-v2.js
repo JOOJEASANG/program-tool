@@ -8,8 +8,15 @@
     work: { label: '작업사이즈 전체', stroke: '#2563eb', width: 3, dash: [] },
     trim: { label: '재단선(실제사이즈)', stroke: '#dc2626', width: 2.5, dash: [] },
     safe: { label: '안쪽 여백', stroke: '#16a34a', width: 2, dash: [10, 7] },
-    fold: { label: '접는선', stroke: '#d97706', width: 2.2, dash: [14, 6, 2, 6] },
+    fold: { label: '접는선', stroke: '#d97706', width: 3.4, dash: [18, 6, 3, 6] },
     spine: { label: '책등', stroke: '#7c3aed', width: 2.2, dash: [] },
+  });
+
+  const LEAFLET_FOLDS = Object.freeze({
+    '2fold': { label: '반접기 (2단)', panels: 2 },
+    '3roll': { label: '말아접기 (3단)', panels: 3 },
+    '3zfold': { label: 'Z접기 (3단)', panels: 3 },
+    '4fold': { label: '4단 접기', panels: 4 },
   });
 
   const byId = (id) => document.getElementById(id);
@@ -40,6 +47,7 @@
       spine: Math.max(0, numberValue('spine', 0)),
       wingW: Math.max(0, numberValue('wingW', 0)),
       hasWing: Boolean(byId('hasWing')?.checked),
+      leafletFoldType: byId('foldType')?.value || '3roll',
       invitationFoldType: byId('invitationFoldType')?.value || 'half',
     };
   }
@@ -92,6 +100,11 @@
     ctx.lineTo(x2, y2);
     ctx.stroke();
     ctx.restore();
+  }
+
+  function emphasizedFoldLine(ctx, x1, y1, x2, y2) {
+    line(ctx, x1, y1, x2, y2, { ...LINE_STYLE.fold, stroke: 'rgba(255,255,255,.96)', width: 7 });
+    line(ctx, x1, y1, x2, y2, LINE_STYLE.fold);
   }
 
   function rect(ctx, x, y, w, h, style) {
@@ -160,22 +173,41 @@
     label(ctx, '앞면 안쪽 여백', frontX + 8, safeY + 18, { color: LINE_STYLE.safe.stroke, size: 15 });
   }
 
+  function drawLeafletFolds(ctx, specs, trim) {
+    const fold = LEAFLET_FOLDS[specs.leafletFoldType] || LEAFLET_FOLDS['3roll'];
+    const count = Math.max(1, fold.panels - 1);
+    for (let index = 1; index < fold.panels; index += 1) {
+      const x = trim.x + (trim.w / fold.panels) * index;
+      emphasizedFoldLine(ctx, x, trim.y, x, trim.y + trim.h);
+      label(ctx, `리플렛 접지선 ${index}/${count}`, x + 9, trim.y + 26, {
+        color: LINE_STYLE.fold.stroke,
+        background: 'rgba(255,247,237,.96)',
+        size: 15,
+      });
+    }
+  }
+
   function drawInvitationFolds(ctx, specs, trim) {
     const type = specs.invitationFoldType || 'half';
     if (type === 'none') return;
     const landscape = specs.trimW >= specs.trimH;
-    const positions = type === 'half' ? [0.5] : [1 / 3, 2 / 3];
-    positions.forEach((ratio, index) => {
-      if (landscape) {
-        const x = trim.x + trim.w * ratio;
-        line(ctx, x, trim.y, x, trim.y + trim.h, LINE_STYLE.fold);
-        label(ctx, `접는선${positions.length > 1 ? ` ${index + 1}` : ''}`, x + 7, trim.y + 24, { color: LINE_STYLE.fold.stroke, size: 15 });
-      } else {
-        const y = trim.y + trim.h * ratio;
-        line(ctx, trim.x, y, trim.x + trim.w, y, LINE_STYLE.fold);
-        label(ctx, `접는선${positions.length > 1 ? ` ${index + 1}` : ''}`, trim.x + 8, y - 18, { color: LINE_STYLE.fold.stroke, size: 15 });
-      }
-    });
+    if (landscape) {
+      const x = trim.x + trim.w / 2;
+      emphasizedFoldLine(ctx, x, trim.y, x, trim.y + trim.h);
+      label(ctx, '초대장 반접기선', x + 9, trim.y + 26, {
+        color: LINE_STYLE.fold.stroke,
+        background: 'rgba(255,247,237,.96)',
+        size: 15,
+      });
+    } else {
+      const y = trim.y + trim.h / 2;
+      emphasizedFoldLine(ctx, trim.x, y, trim.x + trim.w, y);
+      label(ctx, '초대장 반접기선', trim.x + 9, y - 20, {
+        color: LINE_STYLE.fold.stroke,
+        background: 'rgba(255,247,237,.96)',
+        size: 15,
+      });
+    }
   }
 
   function drawStandardSafe(ctx, specs, trim, g) {
@@ -253,10 +285,11 @@
     if (g.isCover) drawCoverGuides(ctx, g, specs, trim);
     else drawStandardSafe(ctx, specs, trim, g);
 
+    if (product === 'leaflet') drawLeafletFolds(ctx, specs, trim);
     if (product === 'invitation') drawInvitationFolds(ctx, specs, trim);
 
     syncFileLayer(g);
-    document.documentElement.dataset.printCheckerProductionGuides = 'v2-transparent-production-overlay';
+    document.documentElement.dataset.printCheckerProductionGuides = 'v3-separated-fold-guides';
   }
 
   function injectInvitationFoldControl() {
@@ -267,7 +300,7 @@
     if (!safeField) return false;
     const wrap = document.createElement('div');
     wrap.className = 'spec-field invitation-fold-field';
-    wrap.innerHTML = '<label class="spec-label" for="invitationFoldType">접는선<small class="spec-hint">초대장·안내장의 완성 접지 위치를 표시합니다.</small></label><select class="spec-input" id="invitationFoldType"><option value="half">반접기 · 가운데 1줄</option><option value="tri_z">3단 Z접기 · 2줄</option><option value="tri_roll">3단 말아접기 · 2줄</option><option value="none">접지 없음</option></select>';
+    wrap.innerHTML = '<label class="spec-label" for="invitationFoldType">접는선<small class="spec-hint">초대장·안내장은 반접기선만 별도로 표시합니다.</small></label><select class="spec-input" id="invitationFoldType"><option value="half">반접기 · 가운데 1줄</option><option value="none">접지 없음</option></select>';
     safeField.insertAdjacentElement('afterend', wrap);
     return true;
   }
@@ -312,9 +345,11 @@
     render,
     geometry,
     drawCoverGuides,
+    drawLeafletFolds,
     drawInvitationFolds,
     lineStyle: LINE_STYLE,
-    stage: 'v2-transparent-production-overlay',
+    leafletFolds: LEAFLET_FOLDS,
+    stage: 'v3-separated-fold-guides',
   });
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind, { once: true });
