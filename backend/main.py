@@ -38,6 +38,15 @@ from utils.permissions import AccessError, require_program_access_for_request
 flask_app = Flask(__name__)
 logger = logging.getLogger(__name__)
 REQUEST_ID_PATTERN = re.compile(r"^[A-Za-z0-9._-]{8,64}$")
+PDF_SESSION_ID_PATTERN = re.compile(r"^[A-Za-z0-9_-]{8,40}$")
+PDF_SESSION_SOURCE_PATTERN = re.compile(
+    r"^pdf_sessions/[^/]+/[A-Za-z0-9_-]{8,40}/src_[0-9]{1,2}[.]pdf$"
+)
+PDF_SESSION_COLLECTIONS = frozenset({
+    "pdf_sessions",
+    "pdf_advanced_sessions",
+    "pdf_smart_layout_sessions",
+})
 MIB = 1024 * 1024
 PDF_STORAGE_FILE_BYTES = 200 * MIB
 PDF_STORAGE_TOTAL_BYTES = 300 * MIB
@@ -217,13 +226,55 @@ def _delete_blob_paths(bucket, paths) -> None:
             logger.warning("Persistent quota blob cleanup failed path=%s", value, exc_info=True)
 
 
-def _normalize_document_paths(data: dict, paths_field: str) -> list[str]:
+def _normalize_document_paths(
+    data: dict,
+    paths_field: str,
+    *,
+    uid: str = "",
+    collection_id: str = "",
+) -> list[str]:
+    """Return only Storage paths that are safe for server-side quota cleanup.
+
+    PDF session metadata is client-created. Scheduled cleanup runs with Admin SDK
+    privileges, so it must never trust an arbitrary path stored in Firestore.
+    Every PDF session path is constrained to the authenticated owner's persistent
+    session prefix and the session id stored in the same immutable document.
+    """
     raw_paths = data.get(paths_field)
     if isinstance(raw_paths, list):
-        return [str(path) for path in raw_paths if path]
-    if raw_paths:
-        return [str(raw_paths)]
-    return []
+        paths = [str(path).strip() for path in raw_paths if str(path).strip()]
+    elif raw_paths:
+        paths = [str(raw_paths).strip()]
+    else:
+        paths = []
+
+    if collection_id not in PDF_SESSION_COLLECTIONS:
+        return paths
+
+    session_id = str(data.get("sessionId") or "").strip()
+    if not uid or not PDF_SESSION_ID_PATTERN.fullmatch(session_id):
+        logger.warning(
+            "Ignoring persistent PDF paths with invalid ownership metadata collection=%s uid=%s session=%s",
+            collection_id,
+            uid,
+            session_id,
+        )
+        return []
+
+    expected_prefix = f"pdf_sessions/{uid}/{session_id}/"
+    safe_paths: list[str] = []
+    for path in paths:
+        if path.startswith(expected_prefix) and PDF_SESSION_SOURCE_PATTERN.fullmatch(path):
+            safe_paths.append(path)
+            continue
+        logger.warning(
+            "Ignoring unsafe persistent PDF path collection=%s uid=%s session=%s path=%s",
+            collection_id,
+            uid,
+            session_id,
+            path,
+        )
+    return safe_paths
 
 
 def _trim_firestore_group(db, bucket, collection_id: str, limit: int, timestamp_field: str, paths_field: str):
@@ -248,9 +299,23 @@ def _trim_firestore_group(db, bucket, collection_id: str, limit: int, timestamp_
         keep = ordered[:limit]
         remove = ordered[limit:]
         for snapshot in keep:
-            referenced.update(_normalize_document_paths(snapshot.to_dict() or {}, paths_field))
+            data = snapshot.to_dict() or {}
+            referenced.update(
+                _normalize_document_paths(
+                    data,
+                    paths_field,
+                    uid=uid,
+                    collection_id=collection_id,
+                )
+            )
         for snapshot in remove:
-            paths = _normalize_document_paths(snapshot.to_dict() or {}, paths_field)
+            data = snapshot.to_dict() or {}
+            paths = _normalize_document_paths(
+                data,
+                paths_field,
+                uid=uid,
+                collection_id=collection_id,
+            )
             try:
                 # Remove the database reference first. If this fails, keep the
                 # blobs protected as referenced data rather than breaking a live
