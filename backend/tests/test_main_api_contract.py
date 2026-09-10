@@ -26,6 +26,65 @@ def test_health_response_has_trace_and_security_contract():
     assert response.headers["Cache-Control"] == "no-store, max-age=0"
 
 
+def test_nested_pdf_routes_are_registered_in_the_real_flask_app():
+    routes = {rule.rule for rule in main.flask_app.url_map.iter_rules()}
+
+    assert "/api/pdf/advanced/process" in routes
+    assert "/api/pdf/advanced/process-storage" in routes
+    assert "/api/pdf/smart-layout" in routes
+
+
+def test_persistent_pdf_cleanup_accepts_only_owner_session_source_paths():
+    data = {
+        "sessionId": "session_ab12",
+        "storagePaths": [
+            "pdf_sessions/owner-1/session_ab12/src_0.pdf",
+            "pdf_sessions/owner-1/session_ab12/src_12.pdf",
+            "pdf_sessions/other-user/session_ab12/src_0.pdf",
+            "pdf_sessions/owner-1/other_session/src_0.pdf",
+            "pdf_sessions/owner-1/session_ab12/not-source.pdf",
+            "design_projects/owner-1/project/rev.design.json",
+        ],
+    }
+
+    safe = main._normalize_document_paths(
+        data,
+        "storagePaths",
+        uid="owner-1",
+        collection_id="pdf_advanced_sessions",
+    )
+
+    assert safe == [
+        "pdf_sessions/owner-1/session_ab12/src_0.pdf",
+        "pdf_sessions/owner-1/session_ab12/src_12.pdf",
+    ]
+
+
+def test_persistent_pdf_cleanup_rejects_invalid_session_metadata():
+    data = {
+        "sessionId": "../other-user",
+        "storagePaths": ["pdf_sessions/owner-1/session_ab12/src_0.pdf"],
+    }
+
+    assert main._normalize_document_paths(
+        data,
+        "storagePaths",
+        uid="owner-1",
+        collection_id="pdf_sessions",
+    ) == []
+
+
+def test_non_pdf_persistent_cleanup_paths_keep_existing_behavior():
+    data = {"storagePath": "design_projects/owner-1/project/rev.design.json"}
+
+    assert main._normalize_document_paths(
+        data,
+        "storagePath",
+        uid="owner-1",
+        collection_id="design_projects",
+    ) == ["design_projects/owner-1/project/rev.design.json"]
+
+
 def test_invalid_request_id_is_replaced():
     client = main.flask_app.test_client()
     response = client.get(
