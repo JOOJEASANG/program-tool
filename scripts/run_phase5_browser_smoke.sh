@@ -94,6 +94,7 @@ run_page "admin-workflow-v2-smoke.html" 'data-admin-v2-smoke="pass"' "Admin work
 run_page "admin-pdf-usage-settings-smoke.html" 'data-admin-pdf-usage-settings-smoke="pass"' "Admin PDF usage settings smoke" "admin-pdf-usage-settings-smoke-dom.html"
 run_page "pdf-preflight-workflow-v2-smoke.html" 'data-preflight-v2-smoke="pass"' "PDF preflight workflow v2 browser smoke" "pdf-preflight-workflow-v2-smoke-dom.html"
 run_page "print-checker-smoke.html" 'data-print-checker-smoke="pass"' "Print checker real PDF browser smoke" "print-checker-smoke-dom.html"
+run_page "print-checker-simple-editor-smoke.html" 'data-print-checker-simple-editor-smoke="pass"' "Print production simple editor smoke" "print-checker-simple-editor-smoke-dom.html"
 run_page "print-checker-file-only-adjustment-smoke.html" 'data-print-checker-file-only-adjustment-smoke="pass"' "Print checker file-only adjustment smoke" "print-checker-file-only-adjustment-smoke-dom.html"
 run_page "print-checker-spine-calculator-smoke.html" 'data-print-checker-spine-calculator-smoke="pass"' "Print checker spine calculator smoke" "print-checker-spine-calculator-smoke-dom.html"
 run_page "pdf-daily-free-smoke.html" 'data-pdf-daily-free-smoke="pass"' "PDF daily free guest quota smoke" "pdf-daily-free-smoke-dom.html"
