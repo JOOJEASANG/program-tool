@@ -1,8 +1,8 @@
-// Stabilize every PDF Utility right-stage transition without recursive MutationObserver churn.
+// Stabilize every PDF Utility right-stage transition and reject stale async overlays.
 (function(){
   'use strict';
-  if(window.__programStudioPdfUtilityWorkspaceStabilityV1)return;
-  window.__programStudioPdfUtilityWorkspaceStabilityV1=true;
+  if(window.__programStudioPdfUtilityWorkspaceStabilityV2)return;
+  window.__programStudioPdfUtilityWorkspaceStabilityV2=true;
 
   const $=id=>document.getElementById(id);
   const SHARED_ADVANCED=new Map([
@@ -65,13 +65,24 @@
 
   function sharedSpec(name=currentName()){return SHARED_ADVANCED.get(name)||null;}
   function inlineSpec(name=currentName()){return INLINE_ADVANCED.get(name)||null;}
+  function expectedOverlayIds(name=currentName()){
+    const ids=new Set();
+    const shared=sharedSpec(name),inline=inlineSpec(name);
+    if(shared?.overlay)ids.add(shared.overlay);
+    if(inline?.overlay)ids.add(inline.overlay);
+    if(OCR_TOOLS.has(name))ids.add('pdfSuiteOcrModal');
+    return ids;
+  }
+
+  function closeOverlay(overlay){
+    if(!overlay)return;
+    removeClass(overlay,'open','pdfu-inline-overlay','pdfu-stable-inline');
+    if(overlay.parentElement!==document.body)document.body.appendChild(overlay);
+  }
 
   function closeInlineOverlays(){
     setSharedMode(false);
-    document.querySelectorAll('.pdfadv-overlay.open,.pdfocr-overlay.open').forEach(overlay=>{
-      removeClass(overlay,'open','pdfu-inline-overlay','pdfu-stable-inline');
-      if(overlay.parentElement!==document.body)document.body.appendChild(overlay);
-    });
+    document.querySelectorAll('.pdfadv-overlay.open,.pdfocr-overlay.open,.pdfadv-overlay.pdfu-inline-overlay,.pdfocr-overlay.pdfu-inline-overlay,.pdfadv-overlay.pdfu-stable-inline,.pdfocr-overlay.pdfu-stable-inline').forEach(closeOverlay);
     document.body.style.overflow='';
     document.documentElement.dataset.pdfUtilityOverlayReset='done';
   }
@@ -84,13 +95,14 @@
       activate(tool){closeInlineOverlays();return bridge.activate?.(tool)===true;},
       handles:name=>bridge.handles?.(name),requiresAuth:name=>bridge.requiresAuth?.(name),
       reset(){closeInlineOverlays();return bridge.reset?.();},typeFor:name=>bridge.typeFor?.(name),
-      stage:'pdf-utility-direct-tools-stable-v1'
+      stage:'pdf-utility-direct-tools-stable-v2'
     });
     document.documentElement.dataset.pdfUtilityDirectReset='stable';
   }
 
   function normalizeOverlay(overlay,name=currentName()){
     const target=stage();if(!target||!overlay?.classList.contains('open'))return false;
+    if(!expectedOverlayIds(name).has(overlay.id)){closeOverlay(overlay);return false;}
     addClass(overlay,'pdfu-inline-overlay','pdfu-stable-inline');
     const shared=SHARED_ADVANCED.has(name);setSharedMode(shared);
     if(shared){
@@ -105,7 +117,11 @@
   }
 
   function normalizeOpenOverlays(name=currentName()){
-    document.querySelectorAll('.pdfadv-overlay.open,.pdfocr-overlay.open').forEach(overlay=>normalizeOverlay(overlay,name));
+    const expected=expectedOverlayIds(name);
+    document.querySelectorAll('.pdfadv-overlay.open,.pdfocr-overlay.open').forEach(overlay=>{
+      if(expected.has(overlay.id))normalizeOverlay(overlay,name);
+      else closeOverlay(overlay);
+    });
     if(document.body.style.overflow==='hidden'&&stage()?.querySelector('.pdfadv-overlay.open,.pdfocr-overlay.open'))document.body.style.overflow='';
   }
 
@@ -136,7 +152,7 @@
   }
 
   function auditSelection(name,serial){
-    if(serial!==auditSerial)return;
+    if(serial!==auditSerial||name!==currentName())return;
     const target=stage();if(!target)return;
     const local=target.querySelector('#local-tools');if(local)ensureLocalStructure(local);
     normalizeOpenOverlays(name);
@@ -144,7 +160,7 @@
     if(advanced&&!$(advanced.overlay)?.classList.contains('open'))recoverAdvanced(name);
     if(OCR_TOOLS.has(name)&&!$('pdfSuiteOcrModal')?.classList.contains('open'))recoverOcr(name);
     setTimeout(()=>{
-      if(serial!==auditSerial)return;
+      if(serial!==auditSerial||name!==currentName())return;
       const localNow=target.querySelector('#local-tools');if(localNow)ensureLocalStructure(localNow);
       normalizeOpenOverlays(name);
       if(!stageHasContent()){
@@ -157,10 +173,20 @@
     },120);
   }
 
-  function onMenuClick(event){
+  function onMenuBeforeChange(event){
     const button=event.target.closest?.('[data-pdfu-tool]');if(!button)return;
-    const name=button.querySelector('.pdfu-menu-name')?.textContent?.trim()||'';setSharedMode(false);
-    const serial=++auditSerial;setTimeout(()=>auditSelection(name,serial),0);
+    auditSerial+=1;
+    setSharedMode(false);
+    closeInlineOverlays();
+    const target=stage();if(target)delete target.dataset.pdfuAuditRetried;
+    document.documentElement.dataset.pdfUtilityMenuAudit='transition';
+  }
+
+  function onMenuAfterChange(event){
+    const button=event.target.closest?.('[data-pdfu-tool]');if(!button)return;
+    const name=button.querySelector('.pdfu-menu-name')?.textContent?.trim()||'';
+    const serial=auditSerial;
+    setTimeout(()=>auditSelection(name,serial),0);
   }
 
   function observe(){
@@ -171,11 +197,15 @@
   }
 
   function install(){
-    installStyle();ensureLocalStructure();wrapDirectBridge();document.addEventListener('click',onMenuClick,false);observe();
+    installStyle();ensureLocalStructure();wrapDirectBridge();
+    document.addEventListener('click',onMenuBeforeChange,true);
+    document.addEventListener('click',onMenuAfterChange,false);
+    observe();
     setTimeout(()=>{const local=stage()?.querySelector('#local-tools');if(local)ensureLocalStructure(local);normalizeOpenOverlays();},0);
     document.documentElement.dataset.pdfUtilityWorkspaceStability='ready';
+    document.documentElement.dataset.pdfUtilityWorkspaceStabilityVersion='v2';
   }
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
-  window.ProgramStudioPdfUtilityWorkspaceStability=Object.freeze({ensureLocalStructure,normalizeOpenOverlays,closeInlineOverlays,recoverAdvanced,recoverOcr,stage:'pdf-utility-workspace-stability-v1'});
+  window.ProgramStudioPdfUtilityWorkspaceStability=Object.freeze({ensureLocalStructure,normalizeOpenOverlays,closeInlineOverlays,recoverAdvanced,recoverOcr,expectedOverlayIds,stage:'pdf-utility-workspace-stability-v2'});
 })();
