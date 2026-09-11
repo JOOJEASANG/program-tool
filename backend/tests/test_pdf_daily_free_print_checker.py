@@ -116,7 +116,7 @@ def test_print_checker_is_public_daily_free_and_reads_runtime_limit():
 
     assert "/js/pdf-daily-free.js?v=20260907-2" in html
     assert "/js/print-checker/access.js?v=20260907-2" in html
-    assert "/js/print-checker/defaults-live.js?v=20260911-2" in html
+    assert "/js/print-checker/defaults-live.js?v=20260911-3" in html
     assert html.index("pdf-daily-free.js") < html.index("defaults-live.js")
 
 
@@ -130,11 +130,12 @@ def test_print_checker_defaults_cover_all_inputs_and_live_size_modes():
         "B5 · 182 × 257 mm",
         "명함 · 90 × 50 mm",
         "직접 입력",
-        "flyer:{size:'a4',trimW:210,trimH:297,bleed:3,safeZone:3}",
-        "invitation:{size:'a5',trimW:148,trimH:210,bleed:3,safeZone:3}",
-        "leaflet:{size:'a4l',trimW:297,trimH:210,foldType:'3roll',gutterMargin:3,bleed:3,safeZone:3}",
-        "cover:{size:'a5',trimW:148,trimH:210,paperType:'mojo80',pageCount:100,spine:5,hasWing:false,wingW:90,bleed:3,safeZone:3}",
-        "booklet:{size:'a5',trimW:148,trimH:210,bookletPages:8,paperType:'mojo80',bleed:3,safeZone:3}",
+        "const DEFAULT_WING_MM=90",
+        "flyer:{size:'a4',trimW:210,trimH:297,bleed:3,safeZone:10}",
+        "invitation:{size:'a5',trimW:148,trimH:210,bleed:3,safeZone:10}",
+        "leaflet:{size:'a4l',trimW:297,trimH:210,foldType:'3roll',gutterMargin:3,bleed:3,safeZone:10}",
+        "cover:{size:'a5',trimW:148,trimH:210,paperType:'mojo80',pageCount:100,spine:5,hasWing:false,wingW:DEFAULT_WING_MM,bleed:3,safeZone:10}",
+        "booklet:{size:'a5',trimW:148,trimH:210,bookletPages:8,paperType:'mojo80',bleed:3,safeZone:10}",
         "printSizePreset",
         "matchingPreset",
         "notifyCore",
@@ -143,6 +144,11 @@ def test_print_checker_defaults_cover_all_inputs_and_live_size_modes():
         "waitForCore",
         "ensureRenderedProduct",
         "seedProductAsync",
+        "syncWingControls",
+        "bindWingControls",
+        "input.disabled=!enabled",
+        "group.hidden=!enabled",
+        "stage:'print-checker-defaults-live-v2-safe10-cover-wing'",
         "quota.canStart('print-checker')",
         "quota.commitSuccess('print-checker')",
     ):
