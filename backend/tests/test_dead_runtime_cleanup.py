@@ -33,7 +33,15 @@ def test_removed_orphan_frontend_helpers_do_not_return():
     for path in (
         "js/program-registry.js",
         "js/cover-jspdf-loader.js",
-        "js/editor-enhancements.js",
-        "js/common-context-menu.js",
     ):
         assert not (ROOT / path).exists()
+
+
+def test_live_pdf_preflight_helpers_remain_available():
+    preflight = read("pdf-preflight/index.html")
+    for path in (
+        "js/common-context-menu.js",
+        "js/editor-enhancements.js",
+    ):
+        assert (ROOT / path).is_file()
+        assert Path(path).name in preflight
