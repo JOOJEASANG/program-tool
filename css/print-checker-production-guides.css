@@ -67,6 +67,15 @@
 .canvas-tips .canvas-tip{white-space:nowrap}
 .invitation-fold-field select{width:100%}
 
+/* Maximize preview space: compact the top edge and keep dimensions outside the canvas. */
+.print-checker-page #printCheckerMain.canvas-area{
+  padding-top:8px;
+  gap:8px;
+}
+.print-checker-page .canvas-wrap{
+  padding:4px 8px 8px;
+}
+
 /* Booklet mode only needs the front/back imposition board. Hide every artwork-preview surface. */
 html[data-print-checker-booklet-layout-only="1"] #previewZoomToolbar,
 html[data-print-checker-booklet-layout-only="1"] .canvas-wrap,
@@ -82,7 +91,9 @@ html[data-print-checker-booklet-layout-only="1"] #reportSection{
   align-items:center;
   justify-content:flex-end;
   gap:6px;
-  margin:8px 0 10px;
+  flex-wrap:wrap;
+  min-height:30px;
+  margin:0 0 2px;
 }
 .preview-zoom-label{
   min-width:58px;

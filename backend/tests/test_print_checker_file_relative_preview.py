@@ -101,7 +101,7 @@ def test_browser_smoke_checks_fixed_guides_and_dragging():
 def test_cover_preview_loads_live_work_and_separate_spine_dimensions():
     html = read("print-checker/index.html")
     js = read("js/print-checker/spine-live-dimension.js")
-    assert "js/print-checker/spine-live-dimension.js?v=20260911-2" in html
+    assert "js/print-checker/spine-live-dimension.js?v=20260911-3" in html
     assert "state.product !== 'cover'" in js
     assert "coverLiveDimensions" in js
     assert "실시간 치수" in js
@@ -109,6 +109,9 @@ def test_cover_preview_loads_live_work_and_separate_spine_dimensions():
     assert "data-cover-work-dimension" in js
     assert "data-cover-spine-dimension" in js
     assert "workW = trimW * 2 + spine + wing * 2 + bleed * 2" in js
+    assert "byId('previewZoomToolbar')" in js
+    assert "toolbar.prepend(bar)" in js
+    assert "wrap.prepend(bar)" not in js
     assert "ResizeObserver" in js
 
 

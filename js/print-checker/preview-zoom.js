@@ -1,8 +1,8 @@
 /* preview-zoom.js — fit-to-screen preview zoom without changing print dimensions */
 (function () {
   'use strict';
-  if (window.__printCheckerPreviewZoomV2) return;
-  window.__printCheckerPreviewZoomV2 = true;
+  if (window.__printCheckerPreviewZoomV3) return;
+  window.__printCheckerPreviewZoomV3 = true;
 
   const MIN_ZOOM = 25;
   const MAX_ZOOM = 200;
@@ -84,11 +84,8 @@
     const style = getComputedStyle(wrap);
     const topPad = parseFloat(style.paddingTop) || 0;
     const bottomPad = parseFloat(style.paddingBottom) || 0;
-    const dimensionBar = byId('coverLiveDimensions');
-    const dimensionHeight = dimensionBar && getComputedStyle(dimensionBar).display !== 'none'
-      ? dimensionBar.getBoundingClientRect().height + 10
-      : 0;
-    return Math.max(180, viewportBottom - rect.top - topPad - bottomPad - dimensionHeight - 18);
+    // 실시간 치수는 캔버스 밖 상단 툴바에 있으므로 wrap 높이에서 다시 차감하지 않는다.
+    return Math.max(180, viewportBottom - rect.top - topPad - bottomPad - 8);
   }
 
   function fitToScreen() {
@@ -140,7 +137,7 @@
 
     mode = 'fit';
     scheduleFit({ force: true, delay: 40 });
-    document.documentElement.dataset.printCheckerPreviewZoom = 'v2-fit-to-screen';
+    document.documentElement.dataset.printCheckerPreviewZoom = 'v3-fit-compact-top';
   }
 
   window.PrintCheckerPreviewZoom = Object.freeze({
@@ -152,7 +149,7 @@
     min: MIN_ZOOM,
     max: MAX_ZOOM,
     step: STEP,
-    stage: 'v2-fit-to-screen',
+    stage: 'v3-fit-compact-top',
   });
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind, { once: true });

@@ -2,8 +2,8 @@
 (function () {
   'use strict';
 
-  if (window.__printCheckerSpineLiveDimensionV2) return;
-  window.__printCheckerSpineLiveDimensionV2 = true;
+  if (window.__printCheckerSpineLiveDimensionV3) return;
+  window.__printCheckerSpineLiveDimensionV3 = true;
 
   const BAR_ID = 'coverLiveDimensions';
   const STYLE_ID = 'spineLiveDimensionStyle';
@@ -23,26 +23,27 @@
     const style = document.createElement('style');
     style.id = STYLE_ID;
     style.textContent = `
-      #${BAR_ID}{display:none;align-items:center;justify-content:flex-end;gap:8px;margin:0 0 10px;line-height:1.2}
-      #${BAR_ID} .cover-live-dimension-chip{display:inline-flex;align-items:center;gap:6px;min-height:30px;padding:6px 10px;border:1px solid #cbd5e1;border-radius:9px;background:#fff;box-shadow:0 2px 8px rgba(15,23,42,.05);color:#334155;font:800 11px Pretendard,'Noto Sans KR',sans-serif;white-space:nowrap}
+      #${BAR_ID}{display:none;align-items:center;justify-content:flex-start;gap:6px;flex:1 1 auto;min-width:0;margin:0;line-height:1.2}
+      #${BAR_ID} .cover-live-dimension-chip{display:inline-flex;align-items:center;gap:5px;min-height:28px;padding:5px 9px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;box-shadow:0 1px 5px rgba(15,23,42,.04);color:#334155;font:800 10px Pretendard,'Noto Sans KR',sans-serif;white-space:nowrap}
       #${BAR_ID} .cover-live-dimension-label{color:#64748b;font-weight:800}
       #${BAR_ID} .cover-live-dimension-value{color:#0f172a;font-variant-numeric:tabular-nums;font-weight:900}
       #${BAR_ID} .cover-spine-dimension{border-color:#ddd6fe;background:#faf5ff}
       #${BAR_ID} .cover-spine-dimension .cover-live-dimension-label,#${BAR_ID} .cover-spine-dimension .cover-live-dimension-value{color:#6d28d9}
-      @media(max-width:620px){#${BAR_ID}{flex-wrap:wrap;justify-content:flex-start}#${BAR_ID} .cover-live-dimension-chip{font-size:10px}}
+      @media(max-width:760px){#${BAR_ID}{order:-1;flex-basis:100%;width:100%;flex-wrap:wrap}#${BAR_ID} .cover-live-dimension-chip{font-size:9px}}
     `;
     document.head.appendChild(style);
   }
 
   function ensureBar() {
     installStyle();
-    const wrap = document.querySelector('.canvas-wrap');
-    if (!wrap) return null;
+    const toolbar = byId('previewZoomToolbar');
+    if (!toolbar) return null;
     let bar = byId(BAR_ID);
     if (!bar) {
       bar = document.createElement('div');
       bar.id = BAR_ID;
       bar.setAttribute('aria-live', 'polite');
+      bar.setAttribute('aria-label', '표지 실시간 치수');
       bar.innerHTML = `
         <span class="cover-live-dimension-chip cover-work-dimension">
           <span class="cover-live-dimension-label">실시간 치수</span>
@@ -52,8 +53,8 @@
           <span class="cover-live-dimension-label">책등</span>
           <strong class="cover-live-dimension-value" data-cover-spine-dimension>—</strong>
         </span>`;
-      wrap.prepend(bar);
     }
+    if (bar.parentElement !== toolbar) toolbar.prepend(bar);
     return bar;
   }
 
@@ -122,10 +123,10 @@
     window.addEventListener('programstudio:print-checker-file-rendered', scheduleSync);
     window.addEventListener('resize', scheduleSync, { passive: true });
 
-    const wrap = document.querySelector('.canvas-wrap');
-    if (wrap && typeof ResizeObserver === 'function') {
+    const toolbar = byId('previewZoomToolbar');
+    if (toolbar && typeof ResizeObserver === 'function') {
       resizeObserver = new ResizeObserver(scheduleSync);
-      resizeObserver.observe(wrap);
+      resizeObserver.observe(toolbar);
     }
 
     const form = byId('specForm');
@@ -138,7 +139,7 @@
 
   window.PrintCheckerCoverLiveDimensions = Object.freeze({
     sync: scheduleSync,
-    stage: 'v2-work-size-plus-spine',
+    stage: 'v3-toolbar-left-compact',
   });
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind, { once: true });
