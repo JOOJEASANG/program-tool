@@ -98,20 +98,21 @@ def test_browser_smoke_checks_fixed_guides_and_dragging():
     assert "print-checker-file-only-adjustment-smoke.html" in runner
 
 
-def test_cover_preview_loads_live_work_and_separate_spine_dimensions():
+def test_preview_loads_product_wide_live_dimensions_in_toolbar():
     html = read("print-checker/index.html")
     js = read("js/print-checker/spine-live-dimension.js")
-    assert "js/print-checker/spine-live-dimension.js?v=20260911-3" in html
-    assert "state.product !== 'cover'" in js
+    assert "js/print-checker/spine-live-dimension.js?v=20260911-4" in html
+    assert "PRODUCT_LABELS" in js
     assert "coverLiveDimensions" in js
-    assert "실시간 치수" in js
-    assert "cover-spine-dimension" in js
-    assert "data-cover-work-dimension" in js
-    assert "data-cover-spine-dimension" in js
+    assert "제품 실시간 치수" in js
+    assert "data-live-trim-dimension" in js
+    assert "data-live-work-dimension" in js
+    assert "data-live-spine-dimension" in js
     assert "workW = trimW * 2 + spine + wing * 2 + bleed * 2" in js
     assert "byId('previewZoomToolbar')" in js
     assert "toolbar.prepend(bar)" in js
     assert "wrap.prepend(bar)" not in js
+    assert "v4-all-products-toolbar-left" in js
     assert "ResizeObserver" in js
 
 

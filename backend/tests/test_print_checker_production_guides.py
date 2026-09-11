@@ -24,7 +24,7 @@ def test_print_checker_uses_distinct_transparent_production_guide_layers():
     css = text(GUIDE_CSS)
 
     assert "/css/print-checker-production-guides.css?v=20260911-2" in index
-    assert "/js/print-checker/production-guides-v2.js?v=20260910-3" in index
+    assert "/js/print-checker/production-guides-v2.js?v=20260911-4" in index
     assert "v4-thin-dotted-guides" in source
     assert "const THIN_DOTTED = Object.freeze({ width: 1.2, dash: [4, 4] });" in source
     assert "drawCoverGuides" in source
@@ -33,6 +33,8 @@ def test_print_checker_uses_distinct_transparent_production_guide_layers():
     assert "작업사이즈 전체" in source
     assert "재단선(실제사이즈)" in source
     assert "rgba(255,255,255,.96)" not in source
+    assert "`책등 ${specs.spine.toFixed(1)}mm`" not in source
+    assert "label(ctx, '책등'" in source
     assert "#previewGuideLayer" in css and "display:none!important" in css
     assert "#previewCanvas" in css and "opacity:0!important" in css
     assert "#productionGuideLayer" in css and "background:transparent!important" in css
@@ -88,30 +90,47 @@ def test_preview_canvas_starts_fit_to_screen_and_keeps_manual_zoom_controls():
     assert "overflow:auto" in css
 
 
-def test_cover_live_dimensions_are_outside_canvas_at_toolbar_left():
+def test_all_product_live_dimensions_are_outside_canvas_at_toolbar_left():
     index = text(INDEX)
     source = text(SPINE_LIVE)
     css = text(GUIDE_CSS)
 
-    assert "/js/print-checker/spine-live-dimension.js?v=20260911-3" in index
+    assert "/js/print-checker/spine-live-dimension.js?v=20260911-4" in index
     assert "coverLiveDimensions" in source
-    assert "실시간 치수" in source
-    assert "cover-spine-dimension" in source
-    assert ">책등</span>" in source
-    assert "data-cover-work-dimension" in source
-    assert "data-cover-spine-dimension" in source
+    assert "제품 실시간 치수" in source
+    for label in ("표지", "리플렛", "전단지/포스터", "초대장/안내장", "소책자"):
+        assert label in source
+    assert "data-live-trim-dimension" in source
+    assert "data-live-work-dimension" in source
+    assert "data-live-spine-dimension" in source
+    assert "product === 'cover'" in source
     assert "workW = trimW * 2 + spine + wing * 2 + bleed * 2" in source
+    assert "product === 'booklet'" in source
     assert "byId('previewZoomToolbar')" in source
     assert "toolbar.prepend(bar)" in source
     assert "wrap.prepend(bar)" not in source
     assert "justify-content:flex-start" in source
-    assert "v3-toolbar-left-compact" in source
+    assert "v4-all-products-toolbar-left" in source
+    assert "window.PrintCheckerLiveDimensions = api" in source
     assert ".print-checker-page #printCheckerMain.canvas-area" in css
     assert "padding-top:8px" in css
     assert "gap:8px" in css
     assert ".print-checker-page .canvas-wrap" in css
     assert "padding:4px 8px 8px" in css
     assert "margin:0 0 2px" in css
+
+
+def test_leaflet_page_layout_is_compact_but_booklet_layout_remains_large():
+    index = text(INDEX)
+    css = text(PAGE_LAYOUT_CSS)
+
+    assert "/css/print-checker-page-layout-v2.css?v=20260911-2" in index
+    assert "#leafletGuide.pc-page-layout-board" in css
+    assert "width:min(100%,780px)" in css
+    assert "#leafletGuide .pc-layout-panel-grid{height:58px" in css
+    assert "#leafletGuide .pc-layout-heading p{display:none}" in css
+    assert "#leafletGuide .pc-layout-side{min-height:0" in css
+    assert ".pc-booklet-page{min-height:126px" in css
 
 
 def test_booklet_mode_hides_preview_canvas_and_keeps_imposition_board_only():
@@ -135,7 +154,7 @@ def test_top_guide_box_removed_and_large_front_back_layout_is_connected():
     assert 'id="canvasHeader"' not in index
     assert "PRINT SPEC CHECKER" not in index
     assert 'class="canvas-tips"' not in index
-    assert "/css/print-checker-page-layout-v2.css?v=20260910-1" in index
+    assert "/css/print-checker-page-layout-v2.css?v=20260911-2" in index
     assert "/js/print-checker/page-layout-v2.js?v=20260910-2" in index
     assert "pc-layout-columns" in layout
     assert "앞면 배치" in layout
