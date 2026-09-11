@@ -157,7 +157,7 @@
     if (specs.spine > 0) {
       line(ctx, mmX(spineStartMm), trim.y, mmX(spineStartMm), trim.y + trim.h, LINE_STYLE.spine);
       line(ctx, mmX(spineEndMm), trim.y, mmX(spineEndMm), trim.y + trim.h, LINE_STYLE.spine);
-      label(ctx, `책등 ${specs.spine.toFixed(1)}mm`, (mmX(spineStartMm) + mmX(spineEndMm)) / 2 - 48, trim.y + 22, { color: LINE_STYLE.spine.stroke, size: 16 });
+      label(ctx, '책등', (mmX(spineStartMm) + mmX(spineEndMm)) / 2 - 24, trim.y + 22, { color: LINE_STYLE.spine.stroke, size: 16 });
     }
 
     const safeY = mmY(safe);
