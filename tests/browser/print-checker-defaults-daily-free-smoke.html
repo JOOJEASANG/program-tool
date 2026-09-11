@@ -45,12 +45,12 @@
         const initialValues=document.getElementById('trimW')?.value==='210'
           &&document.getElementById('trimH')?.value==='297'
           &&document.getElementById('bleed')?.value==='3'
-          &&document.getElementById('safeZone')?.value==='3';
+          &&document.getElementById('safeZone')?.value==='10';
         const preset=document.getElementById('printSizePreset');
         const initialPreset=preset?.value==='a4';
         const summary=document.getElementById('printCheckerLiveSummary');
         const initialCanvas=document.getElementById('previewCanvas').width>0&&document.getElementById('previewCanvas').height>0;
-        const summaryOk=summary?.textContent.includes('A4')&&summary.textContent.includes('210 × 297 mm');
+        const summaryOk=summary?.textContent.includes('A4')&&summary.textContent.includes('210 × 297 mm')&&summary.textContent.includes('안전 10 mm');
 
         preset.value='a5';
         preset.dispatchEvent(new Event('change',{bubbles:true}));
@@ -70,7 +70,38 @@
           &&document.getElementById('pageCount')?.value==='100'
           &&document.getElementById('spine')?.value==='5'
           &&document.getElementById('bleed')?.value==='3'
-          &&document.getElementById('safeZone')?.value==='3';
+          &&document.getElementById('safeZone')?.value==='10';
+
+        const wingToggle=document.getElementById('hasWing');
+        const wingGroup=document.getElementById('wingWGroup');
+        const wingInput=document.getElementById('wingW');
+        const wingInitial=wingToggle?.checked===false
+          &&wingGroup?.hidden===true
+          &&wingInput?.disabled===true
+          &&wingInput?.value==='90';
+        wingToggle.checked=true;
+        wingToggle.dispatchEvent(new Event('change',{bubbles:true}));
+        await new Promise(r=>setTimeout(r,40));
+        const canvas=document.getElementById('previewCanvas');
+        const heightWith90=canvas.height;
+        const wingEnabled=wingGroup.hidden===false
+          &&wingGroup.dataset.wingEnabled==='1'
+          &&wingInput.disabled===false
+          &&wingInput.getAttribute('aria-label')==='날개 폭'
+          &&PrintChecker.getState().specs.hasWing===true
+          &&PrintChecker.getState().specs.wingW===90;
+        wingInput.value='75';
+        wingInput.dispatchEvent(new Event('input',{bubbles:true}));
+        await new Promise(r=>setTimeout(r,40));
+        const wingApplied=PrintChecker.getState().specs.hasWing===true
+          &&PrintChecker.getState().specs.wingW===75
+          &&canvas.height>heightWith90;
+        wingToggle.checked=false;
+        wingToggle.dispatchEvent(new Event('change',{bubbles:true}));
+        await new Promise(r=>setTimeout(r,30));
+        const wingDisabled=wingGroup.hidden===true
+          &&wingInput.disabled===true
+          &&PrintChecker.getState().specs.hasWing===false;
 
         document.getElementById('runBtn').click();
         await new Promise(r=>setTimeout(r,40));
@@ -166,14 +197,15 @@
           &&!document.getElementById('uploadSection').classList.contains('pc-booklet-only-hidden')
           &&!document.getElementById('actionRow').classList.contains('pc-booklet-only-hidden')
           &&document.getElementById('trimW')?.value==='210'
-          &&document.getElementById('trimH')?.value==='297';
+          &&document.getElementById('trimH')?.value==='297'
+          &&document.getElementById('safeZone')?.value==='10';
         const ready=document.documentElement.dataset.printCheckerDefaultsLive==='ready'
           &&document.documentElement.dataset.printCheckerBookletLayout==='ready';
 
-        const pass=initialProduct&&initialValues&&initialPreset&&initialCanvas&&summaryOk&&presetChanged&&customMode&&coverDefaults&&quotaCommitted&&reportVisible&&bookletOnly&&bookletMode&&bookletCanvas&&oddNormalOk&&oddBackCoverOk&&nineBackCoverOk&&bookletTwenty&&bookletDoesNotCharge&&restored&&ready;
-        if(!pass)throw new Error(`initial=${initialProduct}/${initialValues}/${initialPreset}/${initialCanvas}/${summaryOk} size=${presetChanged}/${customMode} cover=${coverDefaults} quota=${quotaCommitted} report=${reportVisible} booklet=${bookletOnly}/${bookletMode}/${bookletCanvas} odd=${oddNormalOk}/${oddBackCoverOk}/${nineBackCoverOk} twenty=${bookletTwenty}/${bookletDoesNotCharge} restored=${restored} ready=${ready}`);
+        const pass=initialProduct&&initialValues&&initialPreset&&initialCanvas&&summaryOk&&presetChanged&&customMode&&coverDefaults&&wingInitial&&wingEnabled&&wingApplied&&wingDisabled&&quotaCommitted&&reportVisible&&bookletOnly&&bookletMode&&bookletCanvas&&oddNormalOk&&oddBackCoverOk&&nineBackCoverOk&&bookletTwenty&&bookletDoesNotCharge&&restored&&ready;
+        if(!pass)throw new Error(`initial=${initialProduct}/${initialValues}/${initialPreset}/${initialCanvas}/${summaryOk} size=${presetChanged}/${customMode} cover=${coverDefaults} wing=${wingInitial}/${wingEnabled}/${wingApplied}/${wingDisabled} quota=${quotaCommitted} report=${reportVisible} booklet=${bookletOnly}/${bookletMode}/${bookletCanvas} odd=${oddNormalOk}/${oddBackCoverOk}/${nineBackCoverOk} twenty=${bookletTwenty}/${bookletDoesNotCharge} restored=${restored} ready=${ready}`);
         document.documentElement.dataset.printCheckerDefaultsDailyFreeSmoke='pass';
-        const out=document.createElement('pre');out.textContent='PASS: booklet total-page input keeps the visible sheet front/back imposition board synchronized, including odd-page padding and optional last-page back-cover placement';document.body.appendChild(out);
+        const out=document.createElement('pre');out.textContent='PASS: safe zone defaults to 10mm and cover wing toggle exposes an editable width whose value updates the cover layout immediately';document.body.appendChild(out);
       }catch(error){fail(error?.message||String(error));}
     });
   </script>

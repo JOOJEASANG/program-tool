@@ -1,10 +1,11 @@
-// Print Checker: practical defaults, size presets, and daily-free run guard.
+// Print Checker: practical defaults, size presets, cover wing controls, and daily-free run guard.
 (function(){
   'use strict';
-  if(window.__printCheckerDefaultsLiveV1)return;
-  window.__printCheckerDefaultsLiveV1=true;
+  if(window.__printCheckerDefaultsLiveV2)return;
+  window.__printCheckerDefaultsLiveV2=true;
 
   const $=id=>document.getElementById(id);
+  const DEFAULT_WING_MM=90;
   const SIZE_PRESETS=Object.freeze({
     a3:{label:'A3 · 297 × 420 mm',w:297,h:420},
     a3l:{label:'A3 가로 · 420 × 297 mm',w:420,h:297},
@@ -20,15 +21,16 @@
   });
 
   const PRODUCT_DEFAULTS=Object.freeze({
-    flyer:{size:'a4',trimW:210,trimH:297,bleed:3,safeZone:3},
-    invitation:{size:'a5',trimW:148,trimH:210,bleed:3,safeZone:3},
-    leaflet:{size:'a4l',trimW:297,trimH:210,foldType:'3roll',gutterMargin:3,bleed:3,safeZone:3},
-    cover:{size:'a5',trimW:148,trimH:210,paperType:'mojo80',pageCount:100,spine:5,hasWing:false,wingW:90,bleed:3,safeZone:3},
-    booklet:{size:'a5',trimW:148,trimH:210,bookletPages:8,paperType:'mojo80',bleed:3,safeZone:3}
+    flyer:{size:'a4',trimW:210,trimH:297,bleed:3,safeZone:10},
+    invitation:{size:'a5',trimW:148,trimH:210,bleed:3,safeZone:10},
+    leaflet:{size:'a4l',trimW:297,trimH:210,foldType:'3roll',gutterMargin:3,bleed:3,safeZone:10},
+    cover:{size:'a5',trimW:148,trimH:210,paperType:'mojo80',pageCount:100,spine:5,hasWing:false,wingW:DEFAULT_WING_MM,bleed:3,safeZone:10},
+    booklet:{size:'a5',trimW:148,trimH:210,bookletPages:8,paperType:'mojo80',bleed:3,safeZone:10}
   });
 
   let guardBusy=false;
   let booted=false;
+  let lastWingMm=DEFAULT_WING_MM;
 
   function sleep(ms){return new Promise(resolve=>setTimeout(resolve,ms));}
   function checker(){
@@ -47,6 +49,9 @@
       .pc-size-preset .spec-label{margin-bottom:7px}.pc-size-note{display:block;margin-top:6px;font-size:10px;line-height:1.45;color:#64748b;font-weight:700}
       .pc-live-summary{display:flex;align-items:center;justify-content:center;gap:7px;flex-wrap:wrap;margin:0 auto 10px;padding:7px 11px;width:fit-content;max-width:100%;border:1px solid #cbd5e1;border-radius:999px;background:rgba(255,255,255,.92);font-size:10px;font-weight:900;color:#475569;box-shadow:0 5px 15px rgba(15,23,42,.07)}
       .pc-live-summary strong{color:#0f4c81}.pc-default-chip{display:inline-flex;border-radius:999px;background:#dbeafe;color:#1d4ed8;padding:2px 6px;font-size:9px}
+      #wingWGroup[data-wing-enabled="1"]{display:block}
+      #wingWGroup .pc-wing-label{display:block;margin:0 0 6px;font-size:11px;font-weight:900;color:#334155}
+      #wingW:disabled{opacity:.55;cursor:not-allowed}
       @media(max-width:620px){.pc-live-summary{border-radius:12px}}
     `;
     document.head.appendChild(style);
@@ -93,6 +98,71 @@
     if(!form)return;
     form.dispatchEvent(new Event('input',{bubbles:true}));
     form.dispatchEvent(new Event('change',{bubbles:true}));
+  }
+
+  function refreshPreviewDimensions(){
+    try{window.PrintCheckerLiveDimensions?.sync?.();}catch(_){}
+    try{window.PrintCheckerCoverLiveDimensions?.sync?.();}catch(_){}
+  }
+
+  function syncWingControls({focus=false,notify=false}={}){
+    const toggle=$('hasWing');
+    const group=$('wingWGroup');
+    const input=$('wingW');
+    if(!toggle||!group||!input)return false;
+
+    const enabled=Boolean(toggle.checked);
+    const numeric=Number(input.value);
+    if(Number.isFinite(numeric)&&numeric>0)lastWingMm=numeric;
+    if(enabled&&input.value==='')input.value=String(lastWingMm||DEFAULT_WING_MM);
+
+    group.hidden=!enabled;
+    group.dataset.wingEnabled=enabled?'1':'0';
+    group.setAttribute('aria-hidden',enabled?'false':'true');
+    input.disabled=!enabled;
+    input.setAttribute('aria-disabled',enabled?'false':'true');
+    input.setAttribute('aria-label','날개 폭');
+    input.placeholder=String(DEFAULT_WING_MM);
+
+    let label=group.querySelector('.pc-wing-label');
+    if(!label){
+      label=document.createElement('label');
+      label.className='pc-wing-label';
+      label.htmlFor='wingW';
+      label.textContent='날개 폭';
+      group.prepend(label);
+    }
+
+    document.documentElement.dataset.printCheckerCoverWing=enabled?'enabled':'disabled';
+    if(notify)notifyCore();
+    refreshPreviewDimensions();
+    if(enabled&&focus)requestAnimationFrame(()=>input.focus());
+    return true;
+  }
+
+  function bindWingControls(){
+    const toggle=$('hasWing');
+    const input=$('wingW');
+    if(!toggle||!input)return false;
+    if(toggle.dataset.wingControlsBound!=='1'){
+      toggle.dataset.wingControlsBound='1';
+      toggle.addEventListener('change',()=>syncWingControls({focus:toggle.checked,notify:true}));
+    }
+    if(input.dataset.wingControlsBound!=='1'){
+      input.dataset.wingControlsBound='1';
+      input.addEventListener('input',()=>{
+        const value=Number(input.value);
+        if(Number.isFinite(value)&&value>0)lastWingMm=value;
+        refreshPreviewDimensions();
+      });
+      input.addEventListener('change',()=>{
+        const value=Number(input.value);
+        if(Number.isFinite(value)&&value>0)lastWingMm=value;
+        notifyCore();
+        refreshPreviewDimensions();
+      });
+    }
+    return syncWingControls();
   }
 
   function matchingPreset(){
@@ -155,14 +225,14 @@
       if(!node)return;
       if(force||node.value===''||node.value===undefined)assign(key,value);
     });
-    const wingGroup=$('wingWGroup');
-    if(wingGroup)wingGroup.hidden=!Boolean($('hasWing')?.checked);
     const spine=$('spine');
     if(spine)delete spine.dataset.manual;
     bindManualSize();
+    bindWingControls();
     notifyCore();
     preset.value=matchingPreset();
     updateSummary();
+    refreshPreviewDimensions();
     document.documentElement.dataset.printCheckerDefaultsLive='ready';
     document.documentElement.dataset.printCheckerDefaultProduct=product;
     return true;
@@ -269,8 +339,9 @@
     seedProductAsync,
     matchingPreset,
     updateSummary,
+    syncWingControls,
     guardedRun,
-    stage:'print-checker-defaults-live-v1'
+    stage:'print-checker-defaults-live-v2-safe10-cover-wing'
   });
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{boot();},{once:true});

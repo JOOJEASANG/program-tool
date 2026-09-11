@@ -17,7 +17,7 @@ def test_print_checker_html_loads_stabilized_tool():
     assert "firebase-firestore-compat.js" in html
     assert "js/print-checker/access.js?v=20260907-2" in html
     assert "js/pdf-daily-free.js?v=20260907-2" in html
-    assert "js/print-checker/defaults-live.js?v=20260911-2" in html
+    assert "js/print-checker/defaults-live.js?v=20260911-3" in html
     for element_id in (
         "productGrid", "uploadZone", "specForm", "reportSection", "previewCanvas",
         "uploadFileInfo", "canvasFileInfo", "sideSelectRow",
