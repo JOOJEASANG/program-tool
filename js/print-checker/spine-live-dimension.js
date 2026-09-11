@@ -2,8 +2,8 @@
 (function () {
   'use strict';
 
-  if (window.__printCheckerSpineLiveDimensionV4) return;
-  window.__printCheckerSpineLiveDimensionV4 = true;
+  if (window.__printCheckerSpineLiveDimensionV5) return;
+  window.__printCheckerSpineLiveDimensionV5 = true;
 
   const BAR_ID = 'coverLiveDimensions';
   const STYLE_ID = 'spineLiveDimensionStyle';
@@ -17,6 +17,8 @@
   const byId = (id) => document.getElementById(id);
   let raf = 0;
   let resizeObserver = null;
+  let rootObserver = null;
+  let settleTimer = 0;
 
   function checker() {
     try {
@@ -89,9 +91,17 @@
     if (bar) bar.style.display = 'none';
   }
 
+  function stableProduct(state) {
+    const root = document.documentElement;
+    if (root.dataset.printCheckerProductTransition === 'loading') return '';
+    const active = String(root.dataset.printCheckerActiveProduct || '');
+    if (active && PRODUCT_LABELS[active] && active === state?.product) return active;
+    return state?.product || '';
+  }
+
   function syncNow() {
     const state = checker()?.getState?.();
-    const product = state?.product;
+    const product = stableProduct(state);
     if (!product || !PRODUCT_LABELS[product]) {
       hide();
       return;
@@ -142,12 +152,19 @@
 
     if (workChip) workChip.hidden = false;
     if (workValue) workValue.textContent = fmtPair(workW, workH);
+    bar.dataset.liveProduct = product;
     bar.style.display = 'flex';
   }
 
   function scheduleSync() {
     cancelAnimationFrame(raf);
     raf = requestAnimationFrame(() => requestAnimationFrame(syncNow));
+  }
+
+  function scheduleSettledSync() {
+    scheduleSync();
+    window.clearTimeout(settleTimer);
+    settleTimer = window.setTimeout(scheduleSync, 130);
   }
 
   function bind() {
@@ -159,9 +176,9 @@
       if (event.target?.closest?.('#specForm') || event.target?.id === 'fileInput') scheduleSync();
     }, true);
     document.addEventListener('click', (event) => {
-      if (event.target?.closest?.('.product-card,#resetBtn')) scheduleSync();
+      if (event.target?.closest?.('.product-card,#resetBtn')) scheduleSettledSync();
     }, true);
-    window.addEventListener('programstudio:print-checker-product-stable', scheduleSync);
+    window.addEventListener('programstudio:print-checker-product-stable', scheduleSettledSync);
     window.addEventListener('programstudio:print-checker-file-rendered', scheduleSync);
     window.addEventListener('resize', scheduleSync, { passive: true });
 
@@ -176,12 +193,25 @@
       new MutationObserver(scheduleSync).observe(form, { childList: true, subtree: true });
     }
 
-    scheduleSync();
+    if (typeof MutationObserver === 'function') {
+      rootObserver = new MutationObserver((records) => {
+        if (records.some((record) => record.attributeName === 'data-print-checker-active-product'
+          || record.attributeName === 'data-print-checker-product-transition')) {
+          scheduleSettledSync();
+        }
+      });
+      rootObserver.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['data-print-checker-active-product', 'data-print-checker-product-transition'],
+      });
+    }
+
+    scheduleSettledSync();
   }
 
   const api = Object.freeze({
-    sync: scheduleSync,
-    stage: 'v4-all-products-toolbar-left',
+    sync: scheduleSettledSync,
+    stage: 'v5-stable-product-toolbar-left',
   });
   window.PrintCheckerCoverLiveDimensions = api;
   window.PrintCheckerLiveDimensions = api;
