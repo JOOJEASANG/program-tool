@@ -23,7 +23,7 @@ def test_print_checker_uses_distinct_transparent_production_guide_layers():
     source = text(GUIDES)
     css = text(GUIDE_CSS)
 
-    assert "/css/print-checker-production-guides.css?v=20260911-1" in index
+    assert "/css/print-checker-production-guides.css?v=20260911-2" in index
     assert "/js/print-checker/production-guides-v2.js?v=20260910-3" in index
     assert "v4-thin-dotted-guides" in source
     assert "const THIN_DOTTED = Object.freeze({ width: 1.2, dash: [4, 4] });" in source
@@ -67,7 +67,7 @@ def test_preview_canvas_starts_fit_to_screen_and_keeps_manual_zoom_controls():
     zoom = text(ZOOM)
     css = text(GUIDE_CSS)
 
-    assert "/js/print-checker/preview-zoom.js?v=20260911-2" in index
+    assert "/js/print-checker/preview-zoom.js?v=20260911-3" in index
     for control_id in ("previewZoomOut", "previewZoomLabel", "previewZoomIn", "previewZoomReset"):
         assert f'id="{control_id}"' in index
 
@@ -82,15 +82,18 @@ def test_preview_canvas_starts_fit_to_screen_and_keeps_manual_zoom_controls():
     assert "programstudio:print-checker-product-stable" in zoom
     assert "programstudio:print-checker-zoom-changed" in zoom
     assert "event.ctrlKey" in zoom and "event.metaKey" in zoom
+    assert "dimensionHeight" not in zoom
+    assert "v3-fit-compact-top" in zoom
     assert "width:var(--pc-preview-zoom, 100%)" in css
     assert "overflow:auto" in css
 
 
-def test_cover_live_dimensions_show_spine_as_separate_right_hand_value():
+def test_cover_live_dimensions_are_outside_canvas_at_toolbar_left():
     index = text(INDEX)
     source = text(SPINE_LIVE)
+    css = text(GUIDE_CSS)
 
-    assert "/js/print-checker/spine-live-dimension.js?v=20260911-2" in index
+    assert "/js/print-checker/spine-live-dimension.js?v=20260911-3" in index
     assert "coverLiveDimensions" in source
     assert "실시간 치수" in source
     assert "cover-spine-dimension" in source
@@ -98,8 +101,17 @@ def test_cover_live_dimensions_show_spine_as_separate_right_hand_value():
     assert "data-cover-work-dimension" in source
     assert "data-cover-spine-dimension" in source
     assert "workW = trimW * 2 + spine + wing * 2 + bleed * 2" in source
-    assert "bar.style.display = 'flex'" in source
-    assert "v2-work-size-plus-spine" in source
+    assert "byId('previewZoomToolbar')" in source
+    assert "toolbar.prepend(bar)" in source
+    assert "wrap.prepend(bar)" not in source
+    assert "justify-content:flex-start" in source
+    assert "v3-toolbar-left-compact" in source
+    assert ".print-checker-page #printCheckerMain.canvas-area" in css
+    assert "padding-top:8px" in css
+    assert "gap:8px" in css
+    assert ".print-checker-page .canvas-wrap" in css
+    assert "padding:4px 8px 8px" in css
+    assert "margin:0 0 2px" in css
 
 
 def test_booklet_mode_hides_preview_canvas_and_keeps_imposition_board_only():
