@@ -19,6 +19,7 @@
   })();
 
   const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+  function isHomeRoute(){return path===''||path==='/index.html';}
   function isStandaloneAdvancedPdfEditor(){return path.endsWith('/pdf-editor-advanced');}
   function isPdfPrintEditor(){return ['/tools/pdf-editor.html','/pdf-editor','/pdf-editor/index.html'].some(item=>path.endsWith(item));}
   function isLegacyAdvancedPdfProfile(){
@@ -26,6 +27,41 @@
     try{return String(new URLSearchParams(location.search).get('profile')||'').trim().toLowerCase()==='advanced';}
     catch(_){return false;}
   }
+
+  let homeCatalogObserver=null;
+  let homeCatalogTimer=0;
+  let homeCatalogStyle=null;
+  function releaseHomeCatalog(stage='ready'){
+    if(!root.classList.contains('program-home-booting'))return;
+    root.classList.remove('program-home-booting');
+    root.dataset.homeCatalogFirstPaint=stage;
+    if(homeCatalogObserver){homeCatalogObserver.disconnect();homeCatalogObserver=null;}
+    if(homeCatalogTimer){clearTimeout(homeCatalogTimer);homeCatalogTimer=0;}
+    homeCatalogStyle?.remove();homeCatalogStyle=null;
+  }
+  function installHomeCatalogGuard(){
+    if(!isHomeRoute())return;
+    root.classList.add('program-home-booting');
+    root.dataset.homeCatalogFirstPaint='waiting';
+    homeCatalogStyle=document.createElement('style');
+    homeCatalogStyle.id='programStudioHomeCatalogFirstPaintStyle';
+    homeCatalogStyle.textContent=`
+      html.program-home-booting #quickSection,
+      html.program-home-booting .programs-header,
+      html.program-home-booting #programGrid{visibility:hidden!important}
+    `;
+    document.head.appendChild(homeCatalogStyle);
+    const sync=()=>{
+      if(root.dataset.pdfHomeUnified==='ready')releaseHomeCatalog('ready');
+    };
+    if(typeof MutationObserver==='function'){
+      homeCatalogObserver=new MutationObserver(sync);
+      homeCatalogObserver.observe(root,{attributes:true,attributeFilter:['data-pdf-home-unified']});
+    }
+    homeCatalogTimer=setTimeout(()=>releaseHomeCatalog('fallback'),4000);
+    sync();
+  }
+  installHomeCatalogGuard();
 
   const legacyAdvancedProfile=isLegacyAdvancedPdfProfile();
   const standaloneAdvanced=isStandaloneAdvancedPdfEditor();
@@ -92,6 +128,7 @@
 
   window.ProgramStudioBoot={...(window.ProgramStudioBoot||{}),reveal,protectedProgram};
   window.ProgramStudioBoot.modularAppKey=modularAppKey;
+  window.ProgramStudioBoot.releaseHomeCatalog=releaseHomeCatalog;
 
   if(!protectedProgram){reveal('public');return;}
 
@@ -146,6 +183,20 @@
     return ready;
   }
 
+  async function waitForPdfEditorFunctionalReady(){
+    if(!isPdfPrintEditor()||legacyAdvancedProfile)return true;
+    const ready=await waitUntil(()=>{
+      const api=window.PdfPrintWorkflowFocus;
+      const panel=document.getElementById('pdfPrintWorkflowFocusPanel');
+      const mode=String(root.dataset.pdfPrintMode||'');
+      return api?.stage==='pdf-print-workflow-focus-v1'&&Boolean(panel)&&(mode==='normal'||mode==='booklet');
+    },1400);
+    root.dataset.pdfEditorFunctionalReady=ready?'1':'0';
+    root.dataset.pdfEditorRevealStage=ready?'print-workflow-ready':'access-unblocked';
+    if(!ready)console.warn('PDF layout editor opened after access while print workflow presentation continues loading.');
+    return ready;
+  }
+
   function retryApprovalWait(){
     if(revealed||Date.now()-started>=11000)return;
     setTimeout(waitForApproval,60);
@@ -158,7 +209,9 @@
       Promise.resolve(ready).then(async access=>{
         if(!access){retryApprovalWait();return;}
         clearTimeout(failClosedTimer);
-        const functional=await waitForPreflightFunctionalReady();
+        let functional=true;
+        if(protectedProgram==='preflight')functional=await waitForPreflightFunctionalReady();
+        else if(protectedProgram==='pdf-editor')functional=await waitForPdfEditorFunctionalReady();
         reveal(functional?'functional-runtime':'functional-timeout');
       }).catch(error=>{
         console.warn('Program access readiness promise failed before reveal.',error);
