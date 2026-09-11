@@ -27,3 +27,13 @@ def test_modular_shell_contains_only_live_pdf_apps():
 def test_removed_design_runtime_directory_does_not_return():
     assert not (ROOT / "js" / "design-editor").exists()
     assert not (ROOT / "design-editor").exists()
+
+
+def test_removed_orphan_frontend_helpers_do_not_return():
+    for path in (
+        "js/program-registry.js",
+        "js/cover-jspdf-loader.js",
+        "js/editor-enhancements.js",
+        "js/common-context-menu.js",
+    ):
+        assert not (ROOT / path).exists()
