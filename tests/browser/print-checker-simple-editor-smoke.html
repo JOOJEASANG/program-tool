@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>Print Checker Simple Editor Smoke</title>
+  <link rel="stylesheet" href="/css/print-checker.css?v=20260907-4">
+  <link rel="stylesheet" href="/css/print-checker-simple-editor.css?v=20260911-1">
+</head>
+<body class="print-checker-page" data-print-checker-workspace="review" data-print-checker-simple-editor-smoke="pending">
+  <div class="app-layout">
+    <aside class="sidebar">
+      <section class="sb-section"><input id="trimW" value="210"><input id="trimH" value="297"><input id="bleed" value="3"><input id="spine" value="10"><input id="wingW" value="90"><input id="hasWing" type="checkbox" checked></section>
+      <section class="sb-section" id="fileCompareSection"><div id="uploadZone"></div></section>
+      <section id="adjPanel"></section>
+      <div class="action-row" id="reviewActionRow"></div>
+    </aside>
+    <main class="canvas-area" id="printCheckerMain">
+      <div id="previewZoomToolbar"></div>
+      <section class="canvas-wrap"></section>
+      <section id="leafletGuide"></section>
+      <section id="impositionGuide"></section>
+      <section id="contentPreflightSection"></section>
+      <section id="reportSection"></section>
+    </main>
+  </div>
+  <p id="result">PENDING</p>
+  <script>
+    window.PrintChecker={
+      getState(){return {product:'cover',specs:{trimW:210,trimH:297,bleed:3,spine:10,hasWing:true,wingW:90}};},
+      async inspectFile(){return true;}
+    };
+    document.documentElement.dataset.printCheckerActiveProduct='cover';
+  </script>
+  <script src="/js/print-checker/simple-editor.js?v=20260911-1"></script>
+  <script>
+    (()=>{
+      const result=document.getElementById('result');
+      const assert=(value,message)=>{if(!value)throw new Error(message);};
+      const clickText=(text)=>{
+        const button=[...document.querySelectorAll('button')].find(node=>node.textContent.includes(text));
+        assert(button,`button missing: ${text}`);
+        button.click();
+        return button;
+      };
+      setTimeout(()=>{
+        try{
+          assert(window.PrintCheckerSimpleEditor?.stage==='print-production-simple-editor-v1','editor API missing');
+          assert(document.getElementById('pcWorkspaceModebar'),'mode bar missing');
+          clickText('간편 편집');
+          assert(document.body.dataset.printCheckerWorkspace==='editor','editor mode not active');
+          assert(document.getElementById('pcSimpleEditorWorkspace'),'editor workspace missing');
+          assert(document.getElementById('pcEditorBoardSize').textContent.includes('616'),'cover full width did not include spine, wings, bleed');
+          clickText('사각형');
+          assert(document.querySelectorAll('#pcEditorObjects [data-editor-object]').length===1,'shape not inserted');
+          clickText('복제');
+          assert(document.querySelectorAll('#pcEditorObjects [data-editor-object]').length===2,'duplicate failed');
+          clickText('가운데');
+          const selected=document.querySelector('#pcEditorObjects .is-selected');
+          assert(selected,'selection lost after align');
+          clickText('인쇄 검토');
+          assert(document.body.dataset.printCheckerWorkspace==='review','review mode not restored');
+          document.body.dataset.printCheckerSimpleEditorSmoke='pass';
+          result.textContent='PASS: simple editor mode, product-sized board, shape insert, align and duplicate work';
+        }catch(error){
+          document.body.dataset.printCheckerSimpleEditorSmoke='fail';
+          result.textContent='FAIL: '+String(error.message||error);
+        }
+      },120);
+    })();
+  </script>
+</body>
+</html>
