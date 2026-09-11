@@ -204,7 +204,7 @@ def test_booklet_layout_is_restored_as_html_board_even_if_legacy_mode_hides_it()
     assert "모든 시트의 뒷면" in layout
 
 
-def test_program_manual_subsystem_is_not_injected_or_packaged_anymore():
+def test_standalone_program_manual_subsystem_stays_removed():
     inject = text(INJECT)
     hosting = text(HOSTING)
 
@@ -214,19 +214,11 @@ def test_program_manual_subsystem_is_not_injected_or_packaged_anymore():
 
     retired = (
         ".github/workflows/manual-sync.yml",
-        "css/program-manual-home-modal.css",
         "css/program-manuals.css",
         "docs/manuals/README.md",
         "manuals/index.html",
         "js/program-manuals/app.js",
-        "js/program-manuals/catalog.js",
         "js/program-manuals/context-link.js",
-        "js/program-manuals/home-modal.js",
-        "js/program-manuals/pdf-editor-advanced.js",
-        "js/program-manuals/pdf-editor.js",
-        "js/program-manuals/pdf-suite.js",
-        "js/program-manuals/print-checker.js",
-        "js/program-manuals/smart-print-layout.js",
         "scripts/check_manual_sync.py",
         "scripts/run_program_manuals_browser_smoke.sh",
         "scripts/validate_program_manuals.py",
