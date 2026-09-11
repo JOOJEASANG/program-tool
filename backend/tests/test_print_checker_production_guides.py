@@ -24,10 +24,12 @@ def test_print_checker_uses_distinct_transparent_production_guide_layers():
     css = text(GUIDE_CSS)
 
     assert "/css/print-checker-production-guides.css?v=20260911-2" in index
-    assert "/js/print-checker/production-guides-v2.js?v=20260911-4" in index
-    assert "v4-thin-dotted-guides" in source
+    assert "/js/print-checker/production-guides-v2.js?v=20260911-5" in index
+    assert "v5-panel-safe-guides" in source
     assert "const THIN_DOTTED = Object.freeze({ width: 1.2, dash: [4, 4] });" in source
     assert "drawCoverGuides" in source
+    assert "drawPanelSafeGuides" in source
+    assert "panelRectsForProduct" in source
     assert "뒷면 안쪽 여백" in source
     assert "앞면 안쪽 여백" in source
     assert "작업사이즈 전체" in source
@@ -62,6 +64,23 @@ def test_leaflet_and_invitation_fold_guides_are_separated():
     assert 'value="tri_z"' not in source
     assert 'value="tri_roll"' not in source
     assert "초대장·안내장은 반접기선만 별도로 표시합니다." in source
+
+
+def test_folded_products_draw_safe_guides_for_each_panel_instead_of_one_full_page():
+    source = text(GUIDES)
+
+    assert "function panelRectsForProduct(product, specs, trim)" in source
+    assert "const panels = Math.max(1, fold.panels);" in source
+    assert "Array.from({ length: panels }" in source
+    assert "product === 'invitation'" in source
+    assert "const panelW = trim.w / 2" in source
+    assert "const panelH = trim.h / 2" in source
+    assert "function drawPanelSafeGuides(ctx, product, specs, trim, g)" in source
+    assert "panels.forEach((panel) =>" in source
+    assert "panel.x + insetX" in source
+    assert "panel.y + insetY" in source
+    assert "else if (product === 'leaflet' || product === 'invitation') drawPanelSafeGuides" in source
+    assert "else drawStandardSafe(ctx, specs, trim, g);" in source
 
 
 def test_preview_canvas_starts_fit_to_screen_and_keeps_manual_zoom_controls():
