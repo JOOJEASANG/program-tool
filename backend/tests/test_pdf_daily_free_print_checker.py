@@ -53,7 +53,6 @@ def test_admin_pdf_usage_is_unlimited_and_never_enters_member_counter_or_limit_r
     assert "if(user&&await isAdmin(user))next=makeStatus('admin',0,Infinity" in source
     assert "관리자 · PDF 무료 사용 제한 없음" in source
     assert "allowed:!finite||safeUsed<limit" in source
-    # Admin short-circuits before loadLimits(), preserving unlimited/no-counter behavior.
     assert source.index("if(user&&await isAdmin(user))return makeStatus('admin',0,Infinity") < source.index("const limits=await loadLimits({force:Boolean(options.forceLimits)})")
 
 
@@ -117,7 +116,7 @@ def test_print_checker_is_public_daily_free_and_reads_runtime_limit():
 
     assert "/js/pdf-daily-free.js?v=20260907-2" in html
     assert "/js/print-checker/access.js?v=20260907-2" in html
-    assert "/js/print-checker/defaults-live.js?v=20260906-1" in html
+    assert "/js/print-checker/defaults-live.js?v=20260911-2" in html
     assert html.index("pdf-daily-free.js") < html.index("defaults-live.js")
 
 
