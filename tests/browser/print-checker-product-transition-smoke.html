@@ -1,6 +1,10 @@
 <!doctype html>
 <html lang="ko">
-<head><meta charset="utf-8"><title>Print checker product transition smoke</title></head>
+<head>
+  <meta charset="utf-8">
+  <title>Print checker product transition smoke</title>
+  <link rel="stylesheet" href="../../css/print-checker-production-guides.css">
+</head>
 <body>
   <div id="productGrid"></div>
   <section id="specSection" hidden><div class="sb-title">사양 입력</div><form id="specForm"></form></section>
@@ -18,7 +22,7 @@
   <div class="action-row" id="actionRow"><button id="runBtn" type="button">run</button><button id="resetBtn" type="button">reset</button></div>
 
   <main id="printCheckerMain">
-    <div id="previewZoomToolbar"></div>
+    <div class="preview-zoom-toolbar" id="previewZoomToolbar"></div>
     <section class="canvas-wrap"><canvas id="previewCanvas"></canvas><div id="canvasFileInfo" hidden></div></section>
     <section id="leafletGuide" hidden></section>
     <section id="impositionGuide" hidden></section>
@@ -60,6 +64,8 @@
         const uploadSection=document.getElementById('uploadSection');
         const actionRow=document.getElementById('actionRow');
         const specTitle=document.querySelector('#specSection .sb-title');
+        const zoomToolbar=document.getElementById('previewZoomToolbar');
+        const canvasWrap=document.querySelector('.canvas-wrap');
         const rapidLeaflet=stateAfterRapid.product==='leaflet'
           &&document.documentElement.dataset.printCheckerProductTransition==='ready'
           &&document.documentElement.dataset.printCheckerActiveProduct==='leaflet'
@@ -79,6 +85,8 @@
           &&impositionGuide.hidden===true
           &&!uploadSection.classList.contains('pc-booklet-only-hidden')
           &&!actionRow.classList.contains('pc-booklet-only-hidden')
+          &&getComputedStyle(zoomToolbar).display!=='none'
+          &&getComputedStyle(canvasWrap).display!=='none'
           &&specTitle.textContent==='사양 입력';
 
         document.querySelector('[data-product="booklet"]').click();
@@ -91,9 +99,15 @@
           &&document.getElementById('bookletPages')?.value==='8'
           &&visible(impositionGuide)
           &&impositionGuide.textContent.includes('소책자 페이지 배치')
+          &&impositionGuide.textContent.includes('앞면 배치')
+          &&impositionGuide.textContent.includes('뒷면 배치')
           &&leafletGuide.hidden===true
           &&uploadSection.classList.contains('pc-booklet-only-hidden')
           &&actionRow.classList.contains('pc-booklet-only-hidden')
+          &&getComputedStyle(zoomToolbar).display==='none'
+          &&getComputedStyle(canvasWrap).display==='none'
+          &&getComputedStyle(document.getElementById('contentPreflightSection')).display==='none'
+          &&getComputedStyle(document.getElementById('reportSection')).display==='none'
           &&productionLayer?.style.display==='none'
           &&specTitle.textContent==='총 페이지 입력';
 
@@ -114,6 +128,8 @@
           &&impositionGuide.hidden===true
           &&!uploadSection.classList.contains('pc-booklet-only-hidden')
           &&!actionRow.classList.contains('pc-booklet-only-hidden')
+          &&getComputedStyle(zoomToolbar).display!=='none'
+          &&getComputedStyle(canvasWrap).display!=='none'
           &&productionLayer?.style.display!== 'none'
           &&specTitle.textContent==='사양 입력';
 
@@ -121,7 +137,7 @@
           throw new Error(`initial=${initial} rapidLeaflet=${rapidLeaflet} booklet=${bookletClean} invitation=${invitationClean}`);
         }
         document.documentElement.dataset.printCheckerProductTransitionSmoke='pass';
-        const out=document.createElement('pre');out.textContent='PASS: rapid product switches settle on the latest selection with only matching controls, guides, and booklet visibility state';document.body.appendChild(out);
+        const out=document.createElement('pre');out.textContent='PASS: booklet shows only the front/back imposition board while preview canvas and zoom controls stay hidden, then normal preview returns for other products';document.body.appendChild(out);
       }catch(error){fail(error?.message||String(error));}
     });
   </script>

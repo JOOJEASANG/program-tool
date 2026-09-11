@@ -22,7 +22,7 @@ def test_print_checker_uses_distinct_transparent_production_guide_layers():
     source = text(GUIDES)
     css = text(GUIDE_CSS)
 
-    assert "/css/print-checker-production-guides.css?v=20260910-2" in index
+    assert "/css/print-checker-production-guides.css?v=20260911-1" in index
     assert "/js/print-checker/production-guides-v2.js?v=20260910-3" in index
     assert "v4-thin-dotted-guides" in source
     assert "const THIN_DOTTED = Object.freeze({ width: 1.2, dash: [4, 4] });" in source
@@ -78,6 +78,19 @@ def test_preview_canvas_has_zoom_controls_without_changing_print_dimensions():
     assert "event.ctrlKey" in zoom and "event.metaKey" in zoom
     assert "width:var(--pc-preview-zoom, 100%)" in css
     assert "overflow:auto" in css
+
+
+def test_booklet_mode_hides_preview_canvas_and_keeps_imposition_board_only():
+    css = text(GUIDE_CSS)
+
+    marker = 'html[data-print-checker-booklet-layout-only="1"]'
+    assert f"{marker} #previewZoomToolbar" in css
+    assert f"{marker} .canvas-wrap" in css
+    assert f"{marker} #leafletGuide" in css
+    assert f"{marker} #contentPreflightSection" in css
+    assert f"{marker} #reportSection" in css
+    assert "display:none!important" in css
+    assert f"{marker} #impositionGuide" not in css
 
 
 def test_top_guide_box_removed_and_large_front_back_layout_is_connected():
