@@ -4,8 +4,9 @@
   <meta charset="utf-8">
   <title>Print checker product transition smoke</title>
   <link rel="stylesheet" href="../../css/print-checker-production-guides.css">
+  <link rel="stylesheet" href="../../css/print-checker-page-layout-v2.css">
 </head>
-<body>
+<body class="print-checker-page">
   <div id="productGrid"></div>
   <section id="specSection" hidden><div class="sb-title">사양 입력</div><form id="specForm"></form></section>
   <section class="sb-section" id="uploadSection"><div id="uploadZone"><div id="uploadFilename" style="display:none"></div></div></section>
@@ -21,7 +22,7 @@
   </div>
   <div class="action-row" id="actionRow"><button id="runBtn" type="button">run</button><button id="resetBtn" type="button">reset</button></div>
 
-  <main id="printCheckerMain">
+  <main id="printCheckerMain" class="canvas-area">
     <div class="preview-zoom-toolbar" id="previewZoomToolbar"></div>
     <section class="canvas-wrap"><canvas id="previewCanvas"></canvas><div id="canvasFileInfo" hidden></div></section>
     <section id="leafletGuide" hidden></section>
@@ -33,6 +34,7 @@
   <script>history.replaceState(null,'','/print-checker');</script>
   <script src="../../js/print-checker/print-checker.js"></script>
   <script src="../../js/print-checker/production-guides-v2.js"></script>
+  <script src="../../js/print-checker/spine-live-dimension.js"></script>
   <script src="../../js/print-checker/defaults-live.js"></script>
   <script src="../../js/print-checker/booklet-layout-only.js"></script>
   <script src="../../js/print-checker/page-layout-v2.js"></script>
@@ -55,7 +57,7 @@
         cover.click();
         booklet.click();
         leaflet.click();
-        await sleep(220);
+        await sleep(240);
 
         const stateAfterRapid=PrintChecker.getState();
         const selected=[...document.querySelectorAll('.product-card.selected')].map(node=>node.dataset.product);
@@ -66,6 +68,8 @@
         const specTitle=document.querySelector('#specSection .sb-title');
         const zoomToolbar=document.getElementById('previewZoomToolbar');
         const canvasWrap=document.querySelector('.canvas-wrap');
+        const liveDimensions=document.getElementById('coverLiveDimensions');
+        const leafletHeight=leafletGuide.getBoundingClientRect().height;
         const rapidLeaflet=stateAfterRapid.product==='leaflet'
           &&document.documentElement.dataset.printCheckerProductTransition==='ready'
           &&document.documentElement.dataset.printCheckerActiveProduct==='leaflet'
@@ -82,11 +86,18 @@
           &&leafletGuide.textContent.includes('리플렛 페이지 배치')
           &&leafletGuide.textContent.includes('앞면 배치')
           &&leafletGuide.textContent.includes('뒷면 배치')
+          &&leafletHeight>0&&leafletHeight<150
+          &&getComputedStyle(leafletGuide).width!=='auto'
           &&impositionGuide.hidden===true
           &&!uploadSection.classList.contains('pc-booklet-only-hidden')
           &&!actionRow.classList.contains('pc-booklet-only-hidden')
           &&getComputedStyle(zoomToolbar).display!=='none'
           &&getComputedStyle(canvasWrap).display!=='none'
+          &&liveDimensions?.parentElement===zoomToolbar
+          &&getComputedStyle(liveDimensions).display==='flex'
+          &&liveDimensions.textContent.includes('리플렛')
+          &&liveDimensions.textContent.includes('297.0 × 210.0 mm')
+          &&liveDimensions.textContent.includes('303.0 × 216.0 mm')
           &&specTitle.textContent==='사양 입력';
 
         document.querySelector('[data-product="booklet"]').click();
@@ -112,7 +123,8 @@
           &&specTitle.textContent==='총 페이지 입력';
 
         document.querySelector('[data-product="invitation"]').click();
-        await sleep(220);
+        await sleep(240);
+        const invitationDimensions=document.getElementById('coverLiveDimensions');
         const invitationClean=PrintChecker.getState().product==='invitation'
           &&document.documentElement.dataset.printCheckerProductTransition==='ready'
           &&document.documentElement.dataset.printCheckerActiveProduct==='invitation'
@@ -131,13 +143,17 @@
           &&getComputedStyle(zoomToolbar).display!=='none'
           &&getComputedStyle(canvasWrap).display!=='none'
           &&productionLayer?.style.display!== 'none'
+          &&getComputedStyle(invitationDimensions).display==='flex'
+          &&invitationDimensions.textContent.includes('초대장/안내장')
+          &&invitationDimensions.textContent.includes('148.0 × 210.0 mm')
+          &&invitationDimensions.textContent.includes('154.0 × 216.0 mm')
           &&specTitle.textContent==='사양 입력';
 
         if(!(initial&&rapidLeaflet&&bookletClean&&invitationClean)){
-          throw new Error(`initial=${initial} rapidLeaflet=${rapidLeaflet} booklet=${bookletClean} invitation=${invitationClean}`);
+          throw new Error(`initial=${initial} rapidLeaflet=${rapidLeaflet} leafletHeight=${leafletHeight} booklet=${bookletClean} invitation=${invitationClean}`);
         }
         document.documentElement.dataset.printCheckerProductTransitionSmoke='pass';
-        const out=document.createElement('pre');out.textContent='PASS: booklet shows only the front/back imposition board while preview canvas and zoom controls stay hidden, then normal preview returns for other products';document.body.appendChild(out);
+        const out=document.createElement('pre');out.textContent='PASS: leaflet uses a compact front/back board, live dimensions stay in the toolbar, booklet remains layout-only, and normal preview returns for other products';document.body.appendChild(out);
       }catch(error){fail(error?.message||String(error));}
     });
   </script>
