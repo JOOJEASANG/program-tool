@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="ko" data-phase7-smoke="pending">
+<head>
+  <meta charset="utf-8">
+  <title>Home program card manual layer smoke</title>
+</head>
+<body>
+  <div id="programGrid">
+    <a class="prog-card" href="/print-checker/">
+      <div class="card-header">
+        <div class="card-icon-wrap">🔍</div>
+        <div class="card-cat">인쇄 검토</div>
+      </div>
+      <div class="card-body">
+        <div class="card-name">인쇄물 사전 검토</div>
+        <div class="card-desc">외부에서 제작한 인쇄물 PDF의 재단선·안전 영역을 검토합니다.</div>
+        <div class="card-tags"><span>재단선</span></div>
+      </div>
+      <div class="card-footer"><span>바로 사용</span><span class="card-cta">시작하기 →</span></div>
+    </a>
+  </div>
+  <span id="cnt-all"></span><span id="cnt-print"></span><span id="cnt-pdf"></span><span id="count"></span>
+  <pre id="result">PENDING</pre>
+  <script>
+    window.ProgramStudioHome={PROGRAMS:[{id:'legacy',name:'legacy'}],activeCategory:'all'};
+  </script>
+  <script src="../../js/pdf-suite-home-launcher.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded',async()=>{
+      const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+      const result=document.getElementById('result');
+      const assert=(value,message)=>{if(!value)throw new Error(message);};
+      try{
+        await sleep(250);
+        const card=document.querySelector('.prog-card');
+        const header=card?.querySelector('.card-header');
+        const body=card?.querySelector('.card-body');
+        const titleRow=header?.querySelector('.card-title-row');
+        const name=titleRow?.querySelector('.card-name');
+        const help=titleRow?.querySelector('.card-manual-btn');
+
+        assert(card?.dataset.homeCardLayout==='title-manual','current home card layout marker missing');
+        assert(header?.querySelector('.card-icon-wrap'),'program icon missing');
+        assert(name?.textContent.trim()==='인쇄물 사전 검토','large program title is not beside the icon');
+        assert(help?.textContent.trim()==='?','manual question icon missing beside title');
+        assert(!card.querySelector('.card-cat'),'category label should be removed');
+        assert(!card.querySelector('.card-tags'),'tag row should be removed');
+        assert(!card.querySelector('.card-footer'),'footer CTA should be removed');
+        assert(body?.children.length===1&&body.firstElementChild?.classList.contains('card-desc'),'card lower area should contain description only');
+        assert(help?.getAttribute('aria-label')?.includes('사용설명서'),'manual icon accessible label missing');
+
+        const before=location.href;
+        help.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true}));
+        await sleep(500);
+        const layer=document.getElementById('programManualLayer');
+        assert(location.href===before,'manual icon click navigated the program card');
+        assert(layer?.classList.contains('open'),'manual layer did not open');
+        assert(layer.querySelector('#programManualLayerTitle')?.textContent.includes('인쇄물 사전 검토 사용설명서'),'manual layer title mismatch');
+        assert(!layer.querySelector('.ps-manual-error'),'manual layer reported a loading error');
+        assert(layer.querySelector('.ps-manual-section'),'manual content did not render');
+
+        document.documentElement.dataset.phase7Smoke='pass';
+        result.textContent='PASS: icon + large title + question help button render in the header, description is the only lower content, and the manual opens in a layer without card navigation';
+      }catch(error){
+        document.documentElement.dataset.phase7Smoke='fail';
+        result.textContent='FAIL: '+String(error?.message||error);
+      }
+    });
+  </script>
+</body>
+</html>
