@@ -1,0 +1,104 @@
+/* Leaflet page-layout control: dimensions left, layout button center, zoom controls right. */
+.print-checker-page .preview-zoom-toolbar.pc-leaflet-popover-toolbar{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);
+  align-items:center;
+  gap:8px;
+}
+.print-checker-page .preview-zoom-toolbar.pc-leaflet-popover-toolbar #coverLiveDimensions{
+  grid-column:1;
+  justify-self:start;
+  flex:none;
+  width:auto;
+  max-width:100%;
+}
+.print-checker-page .pc-leaflet-layout-popover-wrap{
+  grid-column:2;
+  justify-self:center;
+  position:relative;
+  z-index:40;
+}
+.print-checker-page .pc-preview-zoom-controls{
+  grid-column:3;
+  justify-self:end;
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+.print-checker-page .pc-leaflet-layout-button{
+  min-width:112px;
+  height:30px;
+  padding:0 12px;
+  border-color:#bfdbfe;
+  background:#eff6ff;
+  color:#1d4ed8;
+  font-size:11px;
+  font-weight:950;
+  white-space:nowrap;
+}
+.print-checker-page .pc-leaflet-layout-button:hover,
+.print-checker-page .pc-leaflet-layout-button:focus-visible,
+.print-checker-page .pc-leaflet-layout-button[aria-expanded="true"]{
+  border-color:#60a5fa;
+  background:#dbeafe;
+  outline:none;
+}
+.print-checker-page .pc-leaflet-layout-popover-layer{
+  position:absolute;
+  top:calc(100% + 8px);
+  left:50%;
+  transform:translateX(-50%);
+  width:min(760px,calc(100vw - 24px));
+  max-width:calc(100vw - 24px);
+  padding:0;
+  z-index:120;
+  filter:drop-shadow(0 18px 30px rgba(15,23,42,.18));
+}
+.print-checker-page .pc-leaflet-layout-popover-layer[hidden]{display:none!important}
+.print-checker-page .pc-leaflet-layout-popover-layer::before{
+  content:'';
+  position:absolute;
+  left:50%;
+  top:-6px;
+  width:12px;
+  height:12px;
+  transform:translateX(-50%) rotate(45deg);
+  background:#fff;
+  border-left:1px solid var(--line);
+  border-top:1px solid var(--line);
+  z-index:2;
+}
+.print-checker-page .pc-leaflet-layout-popover-layer #leafletGuide.pc-page-layout-board{
+  width:100%;
+  max-width:none;
+  margin:0;
+  position:relative;
+  z-index:1;
+  border-radius:12px;
+  box-shadow:none;
+}
+
+@media(max-width:900px){
+  .print-checker-page .preview-zoom-toolbar.pc-leaflet-popover-toolbar{
+    grid-template-columns:minmax(0,1fr) auto;
+  }
+  .print-checker-page .preview-zoom-toolbar.pc-leaflet-popover-toolbar #coverLiveDimensions{
+    grid-column:1/-1;
+    width:100%;
+  }
+  .print-checker-page .pc-leaflet-layout-popover-wrap{grid-column:1;justify-self:start}
+  .print-checker-page .pc-preview-zoom-controls{grid-column:2}
+}
+
+@media(max-width:620px){
+  .print-checker-page .pc-leaflet-layout-popover-layer{
+    position:fixed;
+    top:82px;
+    left:12px;
+    right:12px;
+    width:auto;
+    max-width:none;
+    transform:none;
+  }
+  .print-checker-page .pc-leaflet-layout-popover-layer::before{display:none}
+}
