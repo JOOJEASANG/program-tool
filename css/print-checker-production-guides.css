@@ -67,6 +67,16 @@
 .canvas-tips .canvas-tip{white-space:nowrap}
 .invitation-fold-field select{width:100%}
 
+/* Booklet mode only needs the front/back imposition board. Hide every artwork-preview surface. */
+html[data-print-checker-booklet-layout-only="1"] #previewZoomToolbar,
+html[data-print-checker-booklet-layout-only="1"] .canvas-wrap,
+html[data-print-checker-booklet-layout-only="1"] .canvas-tips,
+html[data-print-checker-booklet-layout-only="1"] #leafletGuide,
+html[data-print-checker-booklet-layout-only="1"] #contentPreflightSection,
+html[data-print-checker-booklet-layout-only="1"] #reportSection{
+  display:none!important;
+}
+
 .preview-zoom-toolbar{
   display:flex;
   align-items:center;
