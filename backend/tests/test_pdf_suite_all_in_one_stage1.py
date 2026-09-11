@@ -79,6 +79,7 @@ def test_pdf_suite_is_staged_with_split_editor_profiles_and_utility_workspace():
 
     for marker in (
         'PDF_SUITE_HTML = "pdf-suite/index.html"',
+        "data-pdf-suite-first-paint-guard",
         "data-pdf-suite-daily-free",
         "pdf-daily-free.js",
         "pdf-suite-home-launcher.js?v=20260910-3",
@@ -91,11 +92,11 @@ def test_pdf_suite_is_staged_with_split_editor_profiles_and_utility_workspace():
         "data-pdf-suite-unified-quota",
         "unified-quota.js",
         "data-pdf-suite-single-page-workspace",
-        "single-page-shell.js?v=20260906-3",
+        "single-page-shell.js?v=20260911-4",
         "data-pdf-suite-protected-tool-guard",
         "protected-tool-guard.js?v=20260906-1",
         "data-pdf-suite-workspace-stability",
-        "workspace-stability.js?v=20260907-1",
+        "workspace-stability.js?v=20260911-2",
         "data-pdf-specialist-label",
         "specialist-label.js?v=20260906-5",
         "_patch_pdf_suite_entry_points()",
@@ -168,12 +169,13 @@ def test_pdf_suite_is_staged_with_split_editor_profiles_and_utility_workspace():
         "책갈피·페이지 라벨 분석",
         "첨부파일 추출",
         "접근성·태그 기본 검사",
+        "expectedOverlayIds",
         "closeInlineOverlays",
         "wrapDirectBridge",
         "document.body.style.overflow=''",
         "pdfUtilityWorkspaceStability",
         "pdfUtilityMenuAudit",
-        "pdf-utility-workspace-stability-v1",
+        "pdf-utility-workspace-stability-v2",
     ):
         assert marker in stability
 
