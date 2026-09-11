@@ -101,7 +101,7 @@ def test_browser_smoke_checks_fixed_guides_and_dragging():
 def test_preview_loads_product_wide_live_dimensions_in_toolbar():
     html = read("print-checker/index.html")
     js = read("js/print-checker/spine-live-dimension.js")
-    assert "js/print-checker/spine-live-dimension.js?v=20260911-5" in html
+    assert "js/print-checker/spine-live-dimension.js?v=20260911-6" in html
     assert "PRODUCT_LABELS" in js
     assert "coverLiveDimensions" in js
     assert "제품 실시간 치수" in js
@@ -114,7 +114,8 @@ def test_preview_loads_product_wide_live_dimensions_in_toolbar():
     assert "wrap.prepend(bar)" not in js
     assert "data-print-checker-active-product" in js
     assert "data-print-checker-product-transition" in js
-    assert "v5-stable-product-toolbar-left" in js
+    assert "syncSettledNow" in js
+    assert "v6-ready-sync-toolbar-left" in js
     assert "ResizeObserver" in js
     assert "MutationObserver" in js
 
