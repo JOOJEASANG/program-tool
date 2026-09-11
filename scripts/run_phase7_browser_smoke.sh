@@ -41,6 +41,8 @@ PY
 }
 
 run_page "public-boot-guard-v4-smoke.html" "Public boot guard Phase 7 smoke" "public-boot-guard-v4-smoke-dom.html"
+run_page "home-catalog-first-paint-smoke.html" "Home catalog first-paint smoke" "home-catalog-first-paint-smoke-dom.html"
+run_page "pdf-layout-functional-first-paint-smoke.html" "PDF layout functional first-paint smoke" "pdf-layout-functional-first-paint-smoke-dom.html"
 run_page "runtime-public-first-paint-v4-smoke.html" "Runtime public first-paint Phase 7 smoke" "runtime-public-first-paint-v4-smoke-dom.html"
 run_page "protected-preflight-boot-nonblocking-smoke.html" "Protected preflight nonblocking boot smoke" "protected-preflight-boot-nonblocking-smoke-dom.html"
 run_page "pdf-utility-cost-guard-stability-smoke.html" "PDF utility cost guard stability smoke" "pdf-utility-cost-guard-stability-smoke-dom.html"
