@@ -27,8 +27,6 @@ def test_advanced_editor_empty_preview_is_hard_centered():
     ):
         assert marker in css
 
-    # Deployment also carries an inline guard so an older cached stylesheet cannot
-    # regress the initial empty-state alignment.
     assert 'PDF_ADVANCED_EMPTY_STATE_MARKER = "data-pdf-advanced-empty-state-center"' in hosting
     assert "PDF_ADVANCED_EMPTY_STATE_SNIPPET" in hosting
     assert "place-content:center!important" in hosting
@@ -49,7 +47,6 @@ def test_pdf_suite_hides_legacy_first_paint_until_split_workspace_is_ready():
     ):
         assert marker in hosting
 
-    # Changed runtime files must use a fresh URL in the generated Hosting HTML.
     assert "single-page-shell.js?v=20260911-4" in hosting
     assert "workspace-stability.js?v=20260911-2" in hosting
 
@@ -77,7 +74,7 @@ def test_full_pdf_utility_menu_browser_audit_remains_in_quality_gate():
     smoke = read(MENU_SMOKE)
     runner = read(RUNNER)
 
-    assert "data-pdf-utility-menu-audit-smoke=\"pass\"" in smoke
+    assert "dataset.pdfUtilityMenuAuditSmoke='pass'" in smoke
     assert "for(const button of allButtons)" in smoke
     assert "assertUnlocked(name);assertStage(name);" in smoke
     assert "pdf-utility-menu-audit-smoke.html" in runner
