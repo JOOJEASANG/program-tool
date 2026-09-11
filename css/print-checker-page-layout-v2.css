@@ -32,5 +32,23 @@
 .print-checker-page .pc-booklet-page.is-blank strong{font-size:13px;color:#94a3b8}
 .print-checker-page .pc-booklet-page.is-back-cover{border-color:#2563eb;background:#eff6ff}
 .print-checker-page .pc-booklet-page.is-back-cover strong{color:#1d4ed8}
-@media(max-width:1050px){.print-checker-page .pc-layout-heading{align-items:flex-start;flex-direction:column}.print-checker-page .pc-layout-heading p{text-align:left}.print-checker-page .pc-layout-columns{grid-template-columns:1fr}.print-checker-page .pc-layout-side{min-height:0}}
-@media(max-width:620px){.print-checker-page .pc-page-layout-board{padding:14px}.print-checker-page .pc-layout-panel-grid{height:170px;gap:5px}.print-checker-page .pc-layout-page strong{font-size:18px}.print-checker-page .pc-booklet-page{min-height:96px}}
+
+/* Leaflet needs only a quick front/back reference below the main preview. */
+.print-checker-page #leafletGuide.pc-page-layout-board{align-self:flex-start;width:min(100%,780px);padding:8px 10px;border-radius:11px;box-shadow:0 2px 8px rgba(15,23,42,.04)}
+.print-checker-page #leafletGuide .pc-layout-heading{align-items:center;gap:8px;margin-bottom:6px}
+.print-checker-page #leafletGuide .pc-layout-heading p{display:none}
+.print-checker-page #leafletGuide .pc-layout-kicker{font-size:8px;letter-spacing:.25px;margin-bottom:1px}
+.print-checker-page #leafletGuide .pc-layout-heading h3{font-size:12px;letter-spacing:-.15px}
+.print-checker-page #leafletGuide .pc-layout-columns{gap:7px}
+.print-checker-page #leafletGuide .pc-layout-side{min-height:0;padding:6px 7px;border-radius:9px}
+.print-checker-page #leafletGuide .pc-layout-side>header{gap:5px;padding-bottom:4px;margin-bottom:5px}
+.print-checker-page #leafletGuide .pc-layout-side>header>span{display:none}
+.print-checker-page #leafletGuide .pc-layout-side h4{font-size:10px}
+.print-checker-page #leafletGuide .pc-layout-side header p{margin:0;font-size:7.5px;line-height:1.2}
+.print-checker-page #leafletGuide .pc-layout-panel-grid{height:58px;gap:3px}
+.print-checker-page #leafletGuide .pc-layout-page{gap:0;border-radius:6px}
+.print-checker-page #leafletGuide .pc-layout-page strong{font-size:14px}
+.print-checker-page #leafletGuide .pc-layout-page span{font-size:7px}
+
+@media(max-width:1050px){.print-checker-page .pc-layout-heading{align-items:flex-start;flex-direction:column}.print-checker-page .pc-layout-heading p{text-align:left}.print-checker-page .pc-layout-columns{grid-template-columns:1fr}.print-checker-page .pc-layout-side{min-height:0}.print-checker-page #leafletGuide .pc-layout-heading{align-items:center;flex-direction:row}.print-checker-page #leafletGuide .pc-layout-columns{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:620px){.print-checker-page .pc-page-layout-board{padding:14px}.print-checker-page .pc-layout-panel-grid{height:170px;gap:5px}.print-checker-page .pc-layout-page strong{font-size:18px}.print-checker-page .pc-booklet-page{min-height:96px}.print-checker-page #leafletGuide.pc-page-layout-board{width:100%;padding:7px}.print-checker-page #leafletGuide .pc-layout-columns{grid-template-columns:1fr}.print-checker-page #leafletGuide .pc-layout-panel-grid{height:54px;gap:3px}.print-checker-page #leafletGuide .pc-layout-page strong{font-size:13px}}
