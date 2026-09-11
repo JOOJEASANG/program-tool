@@ -31,7 +31,16 @@
     <section id="reportSection" hidden><div id="reportSummary"></div><div id="reportGrid"></div></section>
   </main>
 
-  <script>history.replaceState(null,'','/print-checker');</script>
+  <script>
+    history.replaceState(null,'','/print-checker');
+    window.__previewCanvasTextCalls=[];
+    const __nativeFillText=CanvasRenderingContext2D.prototype.fillText;
+    CanvasRenderingContext2D.prototype.fillText=function(text,...args){
+      if(this?.canvas?.id==='previewCanvas') window.__previewCanvasTextCalls.push(String(text??''));
+      return __nativeFillText.call(this,text,...args);
+    };
+  </script>
+  <script src="../../js/print-checker/canvas-dimension-cleanup.js"></script>
   <script src="../../js/print-checker/print-checker.js"></script>
   <script src="../../js/print-checker/production-guides-v2.js"></script>
   <script src="../../js/print-checker/spine-live-dimension.js"></script>
@@ -149,11 +158,13 @@
           &&invitationDimensions.textContent.includes('154.0 × 216.0 mm')
           &&specTitle.textContent==='사양 입력';
 
-        if(!(initial&&rapidLeaflet&&bookletClean&&invitationClean)){
-          throw new Error(`initial=${initial} rapidLeaflet=${rapidLeaflet} leafletHeight=${leafletHeight} booklet=${bookletClean} invitation=${invitationClean}`);
+        const canvasDimensionClean=!window.__previewCanvasTextCalls.some(value=>/\b(?:\d+(?:\.\d+)?|\?)\s*(?:×\s*(?:\d+(?:\.\d+)?|\?)\s*)?mm\b/i.test(value));
+
+        if(!(initial&&rapidLeaflet&&bookletClean&&invitationClean&&canvasDimensionClean)){
+          throw new Error(`initial=${initial} rapidLeaflet=${rapidLeaflet} leafletHeight=${leafletHeight} booklet=${bookletClean} invitation=${invitationClean} canvasDimensionClean=${canvasDimensionClean} calls=${window.__previewCanvasTextCalls.join('|')}`);
         }
         document.documentElement.dataset.printCheckerProductTransitionSmoke='pass';
-        const out=document.createElement('pre');out.textContent='PASS: leaflet uses a compact front/back board, live dimensions stay in the toolbar, booklet remains layout-only, and normal preview returns for other products';document.body.appendChild(out);
+        const out=document.createElement('pre');out.textContent='PASS: leaflet uses a compact front/back board, live dimensions stay in the toolbar, no mm dimensions render inside previewCanvas, booklet remains layout-only, and normal preview returns for other products';document.body.appendChild(out);
       }catch(error){fail(error?.message||String(error));}
     });
   </script>
