@@ -173,6 +173,59 @@
     label(ctx, '앞면 안쪽 여백', frontX + 8, safeY + 18, { color: LINE_STYLE.safe.stroke, size: 15 });
   }
 
+  function panelRectsForProduct(product, specs, trim) {
+    if (product === 'leaflet') {
+      const fold = LEAFLET_FOLDS[specs.leafletFoldType] || LEAFLET_FOLDS['3roll'];
+      const panels = Math.max(1, fold.panels);
+      const panelW = trim.w / panels;
+      return Array.from({ length: panels }, (_, index) => ({
+        x: trim.x + panelW * index,
+        y: trim.y,
+        w: panelW,
+        h: trim.h,
+      }));
+    }
+
+    if (product === 'invitation' && (specs.invitationFoldType || 'half') !== 'none') {
+      const landscape = specs.trimW >= specs.trimH;
+      if (landscape) {
+        const panelW = trim.w / 2;
+        return [
+          { x: trim.x, y: trim.y, w: panelW, h: trim.h },
+          { x: trim.x + panelW, y: trim.y, w: panelW, h: trim.h },
+        ];
+      }
+      const panelH = trim.h / 2;
+      return [
+        { x: trim.x, y: trim.y, w: trim.w, h: panelH },
+        { x: trim.x, y: trim.y + panelH, w: trim.w, h: panelH },
+      ];
+    }
+
+    return [{ x: trim.x, y: trim.y, w: trim.w, h: trim.h }];
+  }
+
+  function drawPanelSafeGuides(ctx, product, specs, trim, g) {
+    const scaleX = trim.w / g.trimWidth;
+    const scaleY = trim.h / g.trimHeight;
+    const safeX = Math.max(0, specs.safeZone * scaleX);
+    const safeY = Math.max(0, specs.safeZone * scaleY);
+    const panels = panelRectsForProduct(product, specs, trim);
+
+    panels.forEach((panel) => {
+      const insetX = Math.min(safeX, Math.max(0, panel.w / 2 - 1));
+      const insetY = Math.min(safeY, Math.max(0, panel.h / 2 - 1));
+      rect(
+        ctx,
+        panel.x + insetX,
+        panel.y + insetY,
+        Math.max(0, panel.w - insetX * 2),
+        Math.max(0, panel.h - insetY * 2),
+        LINE_STYLE.safe
+      );
+    });
+  }
+
   function drawLeafletFolds(ctx, specs, trim) {
     const fold = LEAFLET_FOLDS[specs.leafletFoldType] || LEAFLET_FOLDS['3roll'];
     const count = Math.max(1, fold.panels - 1);
@@ -283,13 +336,14 @@
     rect(ctx, trim.x, trim.y, trim.w, trim.h, LINE_STYLE.trim);
 
     if (g.isCover) drawCoverGuides(ctx, g, specs, trim);
+    else if (product === 'leaflet' || product === 'invitation') drawPanelSafeGuides(ctx, product, specs, trim, g);
     else drawStandardSafe(ctx, specs, trim, g);
 
     if (product === 'leaflet') drawLeafletFolds(ctx, specs, trim);
     if (product === 'invitation') drawInvitationFolds(ctx, specs, trim);
 
     syncFileLayer(g);
-    document.documentElement.dataset.printCheckerProductionGuides = 'v4-thin-dotted-guides';
+    document.documentElement.dataset.printCheckerProductionGuides = 'v5-panel-safe-guides';
   }
 
   function injectInvitationFoldControl() {
@@ -346,11 +400,13 @@
     render,
     geometry,
     drawCoverGuides,
+    drawPanelSafeGuides,
+    panelRectsForProduct,
     drawLeafletFolds,
     drawInvitationFolds,
     lineStyle: LINE_STYLE,
     leafletFolds: LEAFLET_FOLDS,
-    stage: 'v4-thin-dotted-guides',
+    stage: 'v5-panel-safe-guides',
   });
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind, { once: true });
