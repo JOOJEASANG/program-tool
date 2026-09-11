@@ -10,6 +10,7 @@ from inject_boot_guard import DEPLOY_HTML
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / ".firebase-hosting"
 PDF_SUITE_HTML = "pdf-suite/index.html"
+PDF_SUITE_FIRST_PAINT_MARKER = "data-pdf-suite-first-paint-guard"
 PDF_SUITE_DAILY_FREE_MARKER = "data-pdf-suite-daily-free"
 PDF_SUITE_HOME_MARKER = "data-pdf-suite-home-launcher"
 PDF_SUITE_ADVANCED_MARKER = "data-pdf-suite-advanced-tools"
@@ -23,6 +24,7 @@ PDF_SUITE_DIRECT_HOOK_MARKER = "data-pdf-suite-direct-tool-hook"
 PDF_SUITE_PROTECTED_GUARD_MARKER = "data-pdf-suite-protected-tool-guard"
 PDF_SUITE_WORKSPACE_STABILITY_MARKER = "data-pdf-suite-workspace-stability"
 PDF_SUITE_CURATED_CORE_MARKER = "data-pdf-suite-curated-core"
+PDF_ADVANCED_EMPTY_STATE_MARKER = "data-pdf-advanced-empty-state-center"
 PDF_SPECIALIST_LABEL_MARKER = "data-pdf-specialist-label"
 ADMIN_PDF_USAGE_MARKER = "data-admin-pdf-usage-settings"
 
@@ -80,6 +82,27 @@ FORBIDDEN_OUTPUT_NAMES = {
     "PROGRAM_STRUCTURE.md",
 }
 
+PDF_SUITE_FIRST_PAINT_SNIPPET = (
+    f'<script {PDF_SUITE_FIRST_PAINT_MARKER}>'
+    "(()=>{const root=document.documentElement;root.classList.add('pdf-suite-booting');"
+    "let done=false;const reveal=()=>{if(done)return;done=true;root.classList.remove('pdf-suite-booting');"
+    "root.dataset.pdfUtilityFirstPaint='ready';observer?.disconnect?.();};"
+    "const observer=new MutationObserver(()=>{if(root.dataset.pdfUtilityLayout==='split')reveal();});"
+    "observer.observe(root,{attributes:true,attributeFilter:['data-pdf-utility-layout']});"
+    "if(root.dataset.pdfUtilityLayout==='split')reveal();setTimeout(reveal,8000);})();"
+    "</script>"
+    "<style>"
+    "html.pdf-suite-booting body{overflow:hidden!important;pointer-events:none!important}"
+    "html.pdf-suite-booting body>*{visibility:hidden!important}"
+    "html.pdf-suite-booting body::before{content:'';position:fixed;inset:0;z-index:2147483646;"
+    "background:#eef3f7;visibility:visible!important}"
+    "html.pdf-suite-booting body::after{content:'';position:fixed;left:50%;top:50%;z-index:2147483647;"
+    "width:34px;height:34px;margin:-17px 0 0 -17px;border-radius:50%;border:3px solid #dbe5ee;"
+    "border-top-color:#1769e0;animation:pdfSuiteBootSpin .72s linear infinite;visibility:visible!important}"
+    "@keyframes pdfSuiteBootSpin{to{transform:rotate(360deg)}}"
+    "@media(prefers-reduced-motion:reduce){html.pdf-suite-booting body::after{animation-duration:1.4s}}"
+    "</style>"
+)
 PDF_SUITE_DAILY_FREE_SNIPPET = (
     '<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>'
     '<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>'
@@ -112,7 +135,7 @@ PDF_SUITE_UNIFIED_QUOTA_SNIPPET = (
 )
 PDF_SUITE_SINGLE_PAGE_SNIPPET = (
     f'<script {PDF_SUITE_SINGLE_PAGE_MARKER} defer '
-    'src="/js/pdf-suite/single-page-shell.js?v=20260906-3"></script>'
+    'src="/js/pdf-suite/single-page-shell.js?v=20260911-4"></script>'
 )
 PDF_SUITE_DIRECT_BRIDGE_SNIPPET = (
     f'<script {PDF_SUITE_DIRECT_BRIDGE_MARKER} defer '
@@ -128,11 +151,22 @@ PDF_SUITE_PROTECTED_GUARD_SNIPPET = (
 )
 PDF_SUITE_WORKSPACE_STABILITY_SNIPPET = (
     f'<script {PDF_SUITE_WORKSPACE_STABILITY_MARKER} defer '
-    'src="/js/pdf-suite/workspace-stability.js?v=20260907-1"></script>'
+    'src="/js/pdf-suite/workspace-stability.js?v=20260911-2"></script>'
 )
 PDF_SUITE_CURATED_CORE_SNIPPET = (
     f'<script {PDF_SUITE_CURATED_CORE_MARKER} defer '
     'src="/js/pdf-suite/curated-core.js?v=20260907-1"></script>'
+)
+PDF_ADVANCED_EMPTY_STATE_SNIPPET = (
+    f'<style {PDF_ADVANCED_EMPTY_STATE_MARKER}>'
+    'body[data-pdf-advanced-standalone="1"] #previewScroll{position:relative;align-items:center!important;justify-content:center!important}'
+    'body[data-pdf-advanced-standalone="1"] #previewScroll>#emptyState{position:absolute!important;inset:0!important;margin:0!important;'
+    'min-width:100%!important;min-height:100%!important;display:grid!important;place-content:center!important;place-items:center!important;'
+    'align-content:center!important;justify-content:center!important;text-align:center!important;padding:24px;pointer-events:none}'
+    'body[data-pdf-advanced-standalone="1"] #previewScroll>#emptyState strong,'
+    'body[data-pdf-advanced-standalone="1"] #previewScroll>#emptyState span{display:block!important;width:100%!important;text-align:center!important}'
+    'body[data-pdf-advanced-standalone="1"] #previewScroll>#emptyState[hidden]{display:none!important}'
+    '</style>'
 )
 PDF_SPECIALIST_LABEL_SNIPPET = (
     f'<script {PDF_SPECIALIST_LABEL_MARKER} defer '
@@ -185,8 +219,10 @@ def _patch_pdf_suite_entry_points() -> None:
     suite = OUTPUT / PDF_SUITE_HTML
     preflight = OUTPUT / "pdf-preflight/index.html"
     editor = OUTPUT / "pdf-editor/index.html"
+    advanced_editor = OUTPUT / "pdf-editor-advanced/index.html"
     admin = OUTPUT / "admin.html"
     _inject_before(home, PDF_SUITE_HOME_MARKER, "</body>", PDF_SUITE_HOME_SNIPPET)
+    _inject_before(suite, PDF_SUITE_FIRST_PAINT_MARKER, "</head>", PDF_SUITE_FIRST_PAINT_SNIPPET)
     _inject_before(suite, PDF_SUITE_DAILY_FREE_MARKER, "</head>", PDF_SUITE_DAILY_FREE_SNIPPET)
     _inject_before(suite, PDF_SUITE_ADVANCED_MARKER, "</body>", PDF_SUITE_ADVANCED_SNIPPET)
     _inject_before(suite, PDF_SUITE_OCR_MARKER, "</body>", PDF_SUITE_OCR_SNIPPET)
@@ -199,6 +235,7 @@ def _patch_pdf_suite_entry_points() -> None:
     _inject_before(suite, PDF_SUITE_PROTECTED_GUARD_MARKER, "</body>", PDF_SUITE_PROTECTED_GUARD_SNIPPET)
     _inject_before(suite, PDF_SUITE_WORKSPACE_STABILITY_MARKER, "</body>", PDF_SUITE_WORKSPACE_STABILITY_SNIPPET)
     _inject_before(suite, PDF_SUITE_CURATED_CORE_MARKER, "</body>", PDF_SUITE_CURATED_CORE_SNIPPET)
+    _inject_before(advanced_editor, PDF_ADVANCED_EMPTY_STATE_MARKER, "</head>", PDF_ADVANCED_EMPTY_STATE_SNIPPET)
     _inject_before(preflight, PDF_SPECIALIST_LABEL_MARKER, "</body>", PDF_SPECIALIST_LABEL_SNIPPET)
     _inject_before(editor, PDF_SPECIALIST_LABEL_MARKER, "</body>", PDF_SPECIALIST_LABEL_SNIPPET)
     _inject_before(admin, ADMIN_PDF_USAGE_MARKER, "</body>", ADMIN_PDF_USAGE_SNIPPET)
