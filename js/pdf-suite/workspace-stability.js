@@ -16,7 +16,8 @@
   ]);
   const OCR_TOOLS=new Map([
     ['한국어·영어 OCR 문자 인식','txt'],
-    ['OCR 검색 가능한 PDF','pdf']
+    ['OCR 검색 가능한 PDF','pdf'],
+    ['OCR · 검색 가능한 PDF','pdf']
   ]);
   let auditSerial=0;
 
