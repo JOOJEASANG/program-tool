@@ -18,7 +18,7 @@ def test_legacy_live_summary_is_kept_out_of_preview_canvas_even_with_cached_defa
     cleanup = text(SUMMARY_CLEANUP)
 
     cleanup_src = "/js/print-checker/live-summary-cleanup.js?v=20260911-1"
-    defaults_src = "/js/print-checker/defaults-live.js?v=20260911-2"
+    defaults_src = "/js/print-checker/defaults-live.js?v=20260911-3"
     assert cleanup_src in index
     assert defaults_src in index
     assert index.index(cleanup_src) < index.index(defaults_src)
