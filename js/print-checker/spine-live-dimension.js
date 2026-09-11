@@ -1,15 +1,15 @@
-/* spine-live-dimension.js — 표지 미리보기 책등 실시간 치수 표시 */
+/* spine-live-dimension.js — 표지 실시간 작업 치수 + 책등 별도 표시 */
 (function () {
   'use strict';
 
-  if (window.__printCheckerSpineLiveDimensionV1) return;
-  window.__printCheckerSpineLiveDimensionV1 = true;
+  if (window.__printCheckerSpineLiveDimensionV2) return;
+  window.__printCheckerSpineLiveDimensionV2 = true;
 
-  const OVERLAY_ID = 'spineLiveDimension';
+  const BAR_ID = 'coverLiveDimensions';
   const STYLE_ID = 'spineLiveDimensionStyle';
   const byId = (id) => document.getElementById(id);
-  let resizeObserver = null;
   let raf = 0;
+  let resizeObserver = null;
 
   function checker() {
     try {
@@ -23,95 +23,83 @@
     const style = document.createElement('style');
     style.id = STYLE_ID;
     style.textContent = `
-      .canvas-wrap{position:relative}
-      #${OVERLAY_ID}{position:absolute;top:34px;height:18px;z-index:7;pointer-events:none;display:none;border-top:2px solid #dc2626;transform:translateZ(0)}
-      #${OVERLAY_ID}::before,#${OVERLAY_ID}::after{content:'';position:absolute;top:-6px;width:2px;height:12px;background:#dc2626}
-      #${OVERLAY_ID}::before{left:0}#${OVERLAY_ID}::after{right:0}
-      #${OVERLAY_ID} .spine-live-label{position:absolute;left:50%;bottom:8px;transform:translateX(-50%);white-space:nowrap;padding:4px 7px;border:1px solid rgba(220,38,38,.28);border-radius:999px;background:rgba(255,255,255,.95);box-shadow:0 2px 7px rgba(15,23,42,.12);color:#b91c1c;font:900 11px Pretendard,'Noto Sans KR',sans-serif;letter-spacing:-.1px}
-      #${OVERLAY_ID}[data-narrow='1'] .spine-live-label{bottom:9px}
+      #${BAR_ID}{display:none;align-items:center;justify-content:flex-end;gap:8px;margin:0 0 10px;line-height:1.2}
+      #${BAR_ID} .cover-live-dimension-chip{display:inline-flex;align-items:center;gap:6px;min-height:30px;padding:6px 10px;border:1px solid #cbd5e1;border-radius:9px;background:#fff;box-shadow:0 2px 8px rgba(15,23,42,.05);color:#334155;font:800 11px Pretendard,'Noto Sans KR',sans-serif;white-space:nowrap}
+      #${BAR_ID} .cover-live-dimension-label{color:#64748b;font-weight:800}
+      #${BAR_ID} .cover-live-dimension-value{color:#0f172a;font-variant-numeric:tabular-nums;font-weight:900}
+      #${BAR_ID} .cover-spine-dimension{border-color:#ddd6fe;background:#faf5ff}
+      #${BAR_ID} .cover-spine-dimension .cover-live-dimension-label,#${BAR_ID} .cover-spine-dimension .cover-live-dimension-value{color:#6d28d9}
+      @media(max-width:620px){#${BAR_ID}{flex-wrap:wrap;justify-content:flex-start}#${BAR_ID} .cover-live-dimension-chip{font-size:10px}}
     `;
     document.head.appendChild(style);
   }
 
-  function ensureOverlay() {
+  function ensureBar() {
     installStyle();
-    const canvas = byId('previewCanvas');
-    const wrap = canvas?.closest('.canvas-wrap') || canvas?.parentElement;
-    if (!canvas || !wrap) return null;
-    let overlay = byId(OVERLAY_ID);
-    if (!overlay) {
-      overlay = document.createElement('div');
-      overlay.id = OVERLAY_ID;
-      overlay.setAttribute('aria-hidden', 'true');
-      overlay.innerHTML = '<span class="spine-live-label"></span>';
-      wrap.appendChild(overlay);
+    const wrap = document.querySelector('.canvas-wrap');
+    if (!wrap) return null;
+    let bar = byId(BAR_ID);
+    if (!bar) {
+      bar = document.createElement('div');
+      bar.id = BAR_ID;
+      bar.setAttribute('aria-live', 'polite');
+      bar.innerHTML = `
+        <span class="cover-live-dimension-chip cover-work-dimension">
+          <span class="cover-live-dimension-label">실시간 치수</span>
+          <strong class="cover-live-dimension-value" data-cover-work-dimension>—</strong>
+        </span>
+        <span class="cover-live-dimension-chip cover-spine-dimension">
+          <span class="cover-live-dimension-label">책등</span>
+          <strong class="cover-live-dimension-value" data-cover-spine-dimension>—</strong>
+        </span>`;
+      wrap.prepend(bar);
     }
-    return overlay;
+    return bar;
   }
 
-  function currentPdfWidthMm(state) {
-    if (state?.fileKind !== 'pdf' || !state.pdfPages) return 0;
-    const page = state.fileSide === 'back' && state.pdfPages['2'] ? state.pdfPages['2'] : state.pdfPages['1'];
-    return Number(page?.widthMm) || 0;
+  function mmValue(id, fallback = 0) {
+    const value = Number(byId(id)?.value);
+    return Number.isFinite(value) ? value : fallback;
+  }
+
+  function fmt(value) {
+    return `${Number(value || 0).toFixed(1)} mm`;
   }
 
   function hide() {
-    const overlay = byId(OVERLAY_ID);
-    if (overlay) overlay.style.display = 'none';
+    const bar = byId(BAR_ID);
+    if (bar) bar.style.display = 'none';
   }
 
   function syncNow() {
-    const api = checker();
-    const state = api?.getState?.();
-    const canvas = byId('previewCanvas');
-    if (!state || !canvas || state.product !== 'cover') {
+    const state = checker()?.getState?.();
+    if (!state || state.product !== 'cover') {
       hide();
       return;
     }
 
-    const spineMm = Number(state.specs?.spine) || 0;
-    const trimW = Number(state.specs?.trimW) || 0;
-    if (spineMm <= 0 || trimW <= 0 || !canvas.width) {
+    const trimW = Math.max(0, mmValue('trimW', Number(state.specs?.trimW) || 0));
+    const trimH = Math.max(0, mmValue('trimH', Number(state.specs?.trimH) || 0));
+    const spine = Math.max(0, mmValue('spine', Number(state.specs?.spine) || 0));
+    const bleed = Math.max(0, mmValue('bleed', Number(state.specs?.bleed) || 0));
+    const hasWing = Boolean(byId('hasWing')?.checked ?? state.specs?.hasWing);
+    const wing = hasWing ? Math.max(0, mmValue('wingW', Number(state.specs?.wingW) || 0)) : 0;
+
+    if (!trimW || !trimH) {
       hide();
       return;
     }
 
-    const layout = api?.__test?.getLayout?.();
-    if (!layout?.fileW) {
-      hide();
-      return;
-    }
+    const workW = trimW * 2 + spine + wing * 2 + bleed * 2;
+    const workH = trimH + bleed * 2;
+    const bar = ensureBar();
+    if (!bar) return;
 
-    const overlay = ensureOverlay();
-    if (!overlay) return;
-
-    const rect = canvas.getBoundingClientRect();
-    if (!rect.width) {
-      hide();
-      return;
-    }
-
-    const guideWidthMm = currentPdfWidthMm(state) || Number(layout.fileW) || 0;
-    if (!guideWidthMm) {
-      hide();
-      return;
-    }
-
-    const mmToCanvas = canvas.width / guideWidthMm;
-    const bleedMm = byId('fileHasBleed')?.checked ? Number(layout.bleedMm || 0) : 0;
-    const trimLeft = bleedMm * mmToCanvas;
-    const spineLeft = trimLeft + Number(layout.wingMm || 0) * mmToCanvas + trimW * mmToCanvas;
-    const spineWidth = spineMm * mmToCanvas;
-    const cssScale = rect.width / canvas.width;
-    const cssLeft = spineLeft * cssScale;
-    const cssWidth = Math.max(1, spineWidth * cssScale);
-
-    overlay.style.left = `${cssLeft}px`;
-    overlay.style.width = `${cssWidth}px`;
-    overlay.style.display = 'block';
-    overlay.dataset.narrow = cssWidth < 18 ? '1' : '0';
-    const label = overlay.querySelector('.spine-live-label');
-    if (label) label.textContent = `책등 ${spineMm.toFixed(1)} mm`;
+    const workValue = bar.querySelector('[data-cover-work-dimension]');
+    const spineValue = bar.querySelector('[data-cover-spine-dimension]');
+    if (workValue) workValue.textContent = `${workW.toFixed(1)} × ${workH.toFixed(1)} mm`;
+    if (spineValue) spineValue.textContent = fmt(spine);
+    bar.style.display = 'flex';
   }
 
   function scheduleSync() {
@@ -120,26 +108,24 @@
   }
 
   function bind() {
-    ensureOverlay();
+    ensureBar();
     document.addEventListener('input', (event) => {
-      if (event.target?.closest?.('#specForm') || event.target?.id === 'fileHasBleed') scheduleSync();
-    });
+      if (event.target?.closest?.('#specForm')) scheduleSync();
+    }, true);
     document.addEventListener('change', (event) => {
-      if (event.target?.closest?.('#specForm') || event.target?.id === 'fileHasBleed' || event.target?.id === 'fileInput') scheduleSync();
-    });
+      if (event.target?.closest?.('#specForm') || event.target?.id === 'fileInput') scheduleSync();
+    }, true);
     document.addEventListener('click', (event) => {
-      if (event.target?.closest?.('.product-card,.side-btn,#resetBtn,#resetAdjBtn')) scheduleSync();
-    });
+      if (event.target?.closest?.('.product-card,#resetBtn')) scheduleSync();
+    }, true);
+    window.addEventListener('programstudio:print-checker-product-stable', scheduleSync);
+    window.addEventListener('programstudio:print-checker-file-rendered', scheduleSync);
     window.addEventListener('resize', scheduleSync, { passive: true });
 
-    if (typeof ResizeObserver === 'function') {
-      const canvas = byId('previewCanvas');
-      const wrap = canvas?.closest('.canvas-wrap') || canvas?.parentElement;
-      if (wrap) {
-        resizeObserver = new ResizeObserver(scheduleSync);
-        resizeObserver.observe(wrap);
-        resizeObserver.observe(canvas);
-      }
+    const wrap = document.querySelector('.canvas-wrap');
+    if (wrap && typeof ResizeObserver === 'function') {
+      resizeObserver = new ResizeObserver(scheduleSync);
+      resizeObserver.observe(wrap);
     }
 
     const form = byId('specForm');
@@ -149,6 +135,11 @@
 
     scheduleSync();
   }
+
+  window.PrintCheckerCoverLiveDimensions = Object.freeze({
+    sync: scheduleSync,
+    stage: 'v2-work-size-plus-spine',
+  });
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind, { once: true });
   else bind();

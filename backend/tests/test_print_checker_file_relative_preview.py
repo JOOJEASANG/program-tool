@@ -98,16 +98,17 @@ def test_browser_smoke_checks_fixed_guides_and_dragging():
     assert "print-checker-file-only-adjustment-smoke.html" in runner
 
 
-def test_cover_preview_loads_live_calculated_spine_dimension():
+def test_cover_preview_loads_live_work_and_separate_spine_dimensions():
     html = read("print-checker/index.html")
     js = read("js/print-checker/spine-live-dimension.js")
-    assert "js/print-checker/spine-live-dimension.js?v=20260907-1" in html
+    assert "js/print-checker/spine-live-dimension.js?v=20260911-2" in html
     assert "state.product !== 'cover'" in js
-    assert "api?.__test?.getLayout?.()" in js
-    assert "const spineLeft" in js
-    assert "const spineWidth" in js
-    assert "책등 ${spineMm.toFixed(1)} mm" in js
-    assert "fileHasBleed" in js
+    assert "coverLiveDimensions" in js
+    assert "실시간 치수" in js
+    assert "cover-spine-dimension" in js
+    assert "data-cover-work-dimension" in js
+    assert "data-cover-spine-dimension" in js
+    assert "workW = trimW * 2 + spine + wing * 2 + bleed * 2" in js
     assert "ResizeObserver" in js
 
 
