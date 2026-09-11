@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>인쇄물 배치 점검 · Program Studio</title>
-  <meta name="description" content="표지·리플렛·전단지·초대장·소책자 PDF의 재단 규격, 도련, 안전 영역, 책등, 접지와 페이지 구성을 실제 파일과 비교합니다.">
+  <title>인쇄물 제작·검토 · Program Studio</title>
+  <meta name="description" content="표지·리플렛·전단지·초대장·소책자의 간단한 글씨·도형·이미지 배치 작업과 재단 규격, 도련, 안전 영역, 책등, 접지 검토를 한곳에서 처리합니다.">
   <meta name="robots" content="noindex,nofollow">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
@@ -15,13 +15,14 @@
   <link rel="stylesheet" href="/css/print-checker-page-layout-v2.css?v=20260911-2">
   <link rel="stylesheet" href="/css/print-checker-leaflet-popover.css?v=20260911-1">
   <link rel="stylesheet" href="/css/print-checker-content-preflight.css?v=20260910-1">
+  <link rel="stylesheet" href="/css/print-checker-simple-editor.css?v=20260911-1">
 </head>
-<body class="print-checker-page">
+<body class="print-checker-page" data-print-checker-workspace="review">
   <div class="app-layout">
-    <aside class="sidebar" aria-label="인쇄물 배치 점검 설정">
+    <aside class="sidebar" aria-label="인쇄물 제작·검토 설정">
       <nav class="sb-nav">
         <a class="sb-nav-back" href="/">← 홈</a>
-        <span class="sb-nav-title">인쇄물 배치 점검</span>
+        <span class="sb-nav-title">인쇄물 제작·검토</span>
         <div class="sb-nav-user">
           <span class="sb-nav-name" id="userName">확인 중…</span>
           <button class="sb-nav-logout" id="logoutBtn" type="button" aria-label="로그아웃">로그아웃</button>
@@ -40,7 +41,7 @@
         <form id="specForm" onsubmit="return false"></form>
       </section>
 
-      <section class="sb-section">
+      <section class="sb-section" id="fileCompareSection">
         <div class="sb-kicker">STEP 3 · 선택</div>
         <div class="sb-title">완성 파일 대조</div>
         <div class="upload-zone" id="uploadZone" role="button" tabindex="0" aria-label="PDF 또는 이미지 파일 업로드">
@@ -68,7 +69,7 @@
         <button class="reset-adj-btn" id="resetAdjBtn" type="button">조절 초기화</button>
       </section>
 
-      <div class="action-row">
+      <div class="action-row" id="reviewActionRow">
         <button class="run-btn" id="runBtn" type="button">검토 실행</button>
         <button class="reset-btn" id="resetBtn" type="button">초기화</button>
       </div>
@@ -131,6 +132,7 @@
   <script defer src="/js/print-checker/page-layout-v2.js?v=20260910-2"></script>
   <script defer src="/js/print-checker/leaflet-layout-popover.js?v=20260911-1"></script>
   <script defer src="/js/print-checker/product-transition-v1.js?v=20260911-1"></script>
+  <script defer src="/js/print-checker/simple-editor.js?v=20260911-1"></script>
   <script>
     (() => {
       const url = new URL(location.href);
