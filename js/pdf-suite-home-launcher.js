@@ -6,7 +6,7 @@
 
   const MANUAL_ASSET_VERSION='20260911-2';
   const PROGRAMS=[
-    {id:'print-checker',cat:'print',name:'인쇄물 사전 검토',icon:'🔍',accent:'#1d9bb2',bg:'linear-gradient(135deg,#12396d,#1d9bb2)',catLabel:'인쇄 검토',desc:'외부에서 제작한 인쇄물 PDF의 재단선·안전 영역·접지선·책등·간격을 검토합니다.',url:'print-checker/',manualUrl:'manuals/?program=print-checker',tags:['재단선','안전 영역','접지선']},
+    {id:'print-checker',cat:'print',name:'인쇄물 제작·검토',icon:'🔍',accent:'#1d9bb2',bg:'linear-gradient(135deg,#12396d,#1d9bb2)',catLabel:'제작 · 검토',desc:'간단한 글씨·도형·이미지 배치 작업부터 재단선·안전 영역·접지선·책등 검토까지 한곳에서 처리합니다.',url:'print-checker/',manualUrl:'manuals/?program=print-checker',tags:['간편 편집','이미지 배치','인쇄 검토']},
     {id:'smart-print-layout',cat:'print',name:'스마트 인쇄배치',icon:'▦',accent:'#0f766e',bg:'linear-gradient(135deg,#115e59,#14b8a6)',catLabel:'스마트 배치',desc:'PDF의 실제 크기를 읽어 용지 한 장에 최대 자동배치하고 앞면·뒷면 양면 위치까지 맞춥니다.',url:'smart-print-layout/',manualUrl:'manuals/?program=smart-print-layout',tags:['자동배치','앞면·뒷면','종이 절약']},
     {id:'pdf-editor',cat:'pdf',name:'PDF배치',icon:'🖨️',accent:'#059669',bg:'linear-gradient(135deg,#065f46,#059669)',catLabel:'PDF 인쇄 배치',desc:'페이지 순서 정리, N-UP, 중철·소책자, 간지, 여백 등 출력용 PDF 배치 작업을 가볍게 처리합니다.',url:'pdf-editor/',manualUrl:'manuals/?program=pdf-editor',tags:['N-UP','소책자','간지·여백','페이지 편집']},
     {id:'pdf-editor-advanced',cat:'pdf',name:'PDF편집',icon:'✂️',accent:'#7c3aed',bg:'linear-gradient(135deg,#5b21b6,#7c3aed)',catLabel:'PDF 정밀 편집',desc:'페이지별 이동·크기조절, 드래그 잘라내기, 자동 맞춤, 회전·미세 회전 등 정밀 편집 기능을 사용합니다.',url:'pdf-editor-advanced',manualUrl:'manuals/?program=pdf-editor-advanced',tags:['이동·크기','드래그 자르기','회전·미세편집','페이지 편집']},
