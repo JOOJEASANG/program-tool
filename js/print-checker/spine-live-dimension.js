@@ -2,8 +2,8 @@
 (function () {
   'use strict';
 
-  if (window.__printCheckerSpineLiveDimensionV4) return;
-  window.__printCheckerSpineLiveDimensionV4 = true;
+  if (window.__printCheckerSpineLiveDimensionV6) return;
+  window.__printCheckerSpineLiveDimensionV6 = true;
 
   const BAR_ID = 'coverLiveDimensions';
   const STYLE_ID = 'spineLiveDimensionStyle';
@@ -17,6 +17,8 @@
   const byId = (id) => document.getElementById(id);
   let raf = 0;
   let resizeObserver = null;
+  let rootObserver = null;
+  let settleTimer = 0;
 
   function checker() {
     try {
@@ -86,15 +88,29 @@
 
   function hide() {
     const bar = byId(BAR_ID);
-    if (bar) bar.style.display = 'none';
+    if (bar) {
+      bar.style.display = 'none';
+      bar.removeAttribute('data-live-product');
+    }
+  }
+
+  function stableProduct(state) {
+    const root = document.documentElement;
+    if (root.dataset.printCheckerProductTransition === 'loading') return '';
+    const active = String(root.dataset.printCheckerActiveProduct || '');
+    if (active && PRODUCT_LABELS[active]) {
+      if (active !== state?.product) return '';
+      return active;
+    }
+    return state?.product || '';
   }
 
   function syncNow() {
     const state = checker()?.getState?.();
-    const product = state?.product;
+    const product = stableProduct(state);
     if (!product || !PRODUCT_LABELS[product]) {
       hide();
-      return;
+      return false;
     }
 
     const trimW = Math.max(0, mmValue('trimW', Number(state.specs?.trimW) || 0));
@@ -102,11 +118,11 @@
     const bleed = Math.max(0, mmValue('bleed', Number(state.specs?.bleed) || 0));
     if (!trimW || !trimH) {
       hide();
-      return;
+      return false;
     }
 
     const bar = ensureBar();
-    if (!bar) return;
+    if (!bar) return false;
 
     const productNode = bar.querySelector('[data-live-product]');
     const trimLabel = bar.querySelector('[data-live-trim-label]');
@@ -123,8 +139,9 @@
     if (product === 'booklet') {
       if (workChip) workChip.hidden = true;
       if (spineChip) spineChip.hidden = true;
+      bar.dataset.liveProduct = product;
       bar.style.display = 'flex';
-      return;
+      return true;
     }
 
     let workW = trimW + bleed * 2;
@@ -142,12 +159,20 @@
 
     if (workChip) workChip.hidden = false;
     if (workValue) workValue.textContent = fmtPair(workW, workH);
+    bar.dataset.liveProduct = product;
     bar.style.display = 'flex';
+    return true;
   }
 
   function scheduleSync() {
     cancelAnimationFrame(raf);
     raf = requestAnimationFrame(() => requestAnimationFrame(syncNow));
+  }
+
+  function syncSettledNow() {
+    syncNow();
+    window.clearTimeout(settleTimer);
+    settleTimer = window.setTimeout(syncNow, 130);
   }
 
   function bind() {
@@ -159,9 +184,11 @@
       if (event.target?.closest?.('#specForm') || event.target?.id === 'fileInput') scheduleSync();
     }, true);
     document.addEventListener('click', (event) => {
-      if (event.target?.closest?.('.product-card,#resetBtn')) scheduleSync();
+      if (!event.target?.closest?.('.product-card,#resetBtn')) return;
+      hide();
+      window.setTimeout(syncSettledNow, 0);
     }, true);
-    window.addEventListener('programstudio:print-checker-product-stable', scheduleSync);
+    window.addEventListener('programstudio:print-checker-product-stable', syncSettledNow);
     window.addEventListener('programstudio:print-checker-file-rendered', scheduleSync);
     window.addEventListener('resize', scheduleSync, { passive: true });
 
@@ -176,12 +203,27 @@
       new MutationObserver(scheduleSync).observe(form, { childList: true, subtree: true });
     }
 
-    scheduleSync();
+    if (typeof MutationObserver === 'function') {
+      rootObserver = new MutationObserver(() => {
+        const root = document.documentElement;
+        if (root.dataset.printCheckerProductTransition === 'loading') {
+          hide();
+          return;
+        }
+        syncSettledNow();
+      });
+      rootObserver.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['data-print-checker-active-product', 'data-print-checker-product-transition'],
+      });
+    }
+
+    syncSettledNow();
   }
 
   const api = Object.freeze({
-    sync: scheduleSync,
-    stage: 'v4-all-products-toolbar-left',
+    sync: syncSettledNow,
+    stage: 'v6-ready-sync-toolbar-left',
   });
   window.PrintCheckerCoverLiveDimensions = api;
   window.PrintCheckerLiveDimensions = api;

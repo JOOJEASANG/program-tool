@@ -95,7 +95,7 @@ def test_all_product_live_dimensions_are_outside_canvas_at_toolbar_left():
     source = text(SPINE_LIVE)
     css = text(GUIDE_CSS)
 
-    assert "/js/print-checker/spine-live-dimension.js?v=20260911-4" in index
+    assert "/js/print-checker/spine-live-dimension.js?v=20260911-6" in index
     assert "coverLiveDimensions" in source
     assert "제품 실시간 치수" in source
     for label in ("표지", "리플렛", "전단지/포스터", "초대장/안내장", "소책자"):
@@ -110,7 +110,11 @@ def test_all_product_live_dimensions_are_outside_canvas_at_toolbar_left():
     assert "toolbar.prepend(bar)" in source
     assert "wrap.prepend(bar)" not in source
     assert "justify-content:flex-start" in source
-    assert "v4-all-products-toolbar-left" in source
+    assert "data-print-checker-active-product" in source
+    assert "data-print-checker-product-transition" in source
+    assert "syncSettledNow" in source
+    assert "window.addEventListener('programstudio:print-checker-product-stable', syncSettledNow)" in source
+    assert "v6-ready-sync-toolbar-left" in source
     assert "window.PrintCheckerLiveDimensions = api" in source
     assert ".print-checker-page #printCheckerMain.canvas-area" in css
     assert "padding-top:8px" in css
