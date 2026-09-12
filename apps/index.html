@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Program Studio 작업실</title>
-  <meta name="description" content="Program Studio 독립 작업 프로그램">
+  <meta name="description" content="Program Studio PDF 독립 작업 프로그램">
   <meta name="robots" content="noindex,nofollow">
   <script>
     (function(){
@@ -21,9 +21,9 @@
   <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
-  <link rel="stylesheet" href="/css/studio-app-shell.css?v=20260901-3">
+  <link rel="stylesheet" href="/css/studio-app-shell.css?v=20260911-1">
   <script data-program-studio-boot-guard src="/js/app-boot-guard.js?v=2026.08.31.004"></script>
-  <script defer src="/js/studio-app-shell.js?v=20260901-7"></script>
+  <script defer src="/js/studio-app-shell.js?v=20260911-1"></script>
   <script defer data-program-studio-approval-bootstrap src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
@@ -38,31 +38,31 @@
           <a class="home-button" href="/" aria-label="Program Studio 홈으로">←</a>
           <div class="brand-lockup">
             <span class="brand-mark">PS</span>
-            <span class="brand-copy"><strong>Program Studio</strong><small id="appCategory">PRINT PRODUCTION</small></span>
+            <span class="brand-copy"><strong>Program Studio</strong><small id="appCategory">PDF WORKSPACE</small></span>
           </div>
           <span class="header-divider" aria-hidden="true"></span>
           <div class="app-identity">
-            <strong id="appTitle">작업 프로그램</strong>
+            <strong id="appTitle">PDF 작업 프로그램</strong>
             <span id="appDescription">프로그램을 준비하는 중입니다.</span>
           </div>
         </div>
         <div class="header-right">
           <span class="engine-chip"><i></i><span id="engineLabel">공통 엔진 연결 중</span></span>
-          <a class="legacy-link" id="legacyLink" href="/" hidden>통합 편집기</a>
+          <a class="legacy-link" id="legacyLink" href="/pdf-editor/" hidden>PDF 편집기</a>
         </div>
       </div>
       <div class="product-context" id="productContext">
         <div class="product-context-identity">
-          <span class="product-symbol" id="appSymbol" aria-hidden="true">PS</span>
-          <span class="product-context-copy"><strong id="appWorkspaceTitle">전용 작업실</strong><small id="appWorkspaceHint">작업 목적에 맞는 도구를 준비하고 있습니다.</small></span>
+          <span class="product-symbol" id="appSymbol" aria-hidden="true">PDF</span>
+          <span class="product-context-copy"><strong id="appWorkspaceTitle">PDF 작업실</strong><small id="appWorkspaceHint">PDF 작업 환경을 준비하고 있습니다.</small></span>
         </div>
-        <nav class="product-quick-actions" id="appQuickActions" aria-label="현재 프로그램 핵심 작업" hidden></nav>
+        <nav id="appQuickActions" hidden aria-hidden="true"></nav>
       </div>
     </header>
     <main class="workspace">
-      <iframe id="appFrame" class="workspace-frame" title="Program Studio 작업영역" allow="clipboard-read; clipboard-write"></iframe>
+      <iframe id="appFrame" class="workspace-frame" title="Program Studio PDF 작업영역" allow="clipboard-read; clipboard-write"></iframe>
       <div class="workspace-loading" id="workspaceLoading" role="status" aria-live="polite">
-        <div class="loading-card"><span class="loader"></span><strong id="loadingTitle">작업 환경을 준비하고 있습니다</strong><p id="loadingMessage">공통 편집 엔진과 전용 기능을 연결하는 중입니다.</p></div>
+        <div class="loading-card"><span class="loader"></span><strong id="loadingTitle">작업 환경을 준비하고 있습니다</strong><p id="loadingMessage">PDF 엔진을 연결하는 중입니다.</p></div>
       </div>
       <div class="workspace-error" id="workspaceError" hidden>
         <div><strong>작업 프로그램을 불러오지 못했습니다.</strong><p>새로고침 후 다시 시도해 주세요.</p><button type="button" id="retryBtn">다시 불러오기</button></div>
