@@ -16,5 +16,4 @@ def test_print_checker_core_api_is_loaded_immediately_after_core():
     assert core in index and bridge in index and duplex in index
     assert index.index(core) < index.index(bridge) < index.index(duplex)
     assert "window.PrintChecker = PrintChecker" in source
-    assert "data" not in () if False else True
     assert "printCheckerCoreApi = 'v1'" in source
