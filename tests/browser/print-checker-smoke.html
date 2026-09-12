@@ -4,11 +4,11 @@
 <body>
   <div id="productGrid"></div>
   <section id="specSection" hidden><form id="specForm"></form></section>
-  <div id="uploadZone"><div id="uploadFilename" style="display:none"></div></div>
+  <div id="uploadZone"><div class="upload-sub"></div><div id="uploadFilename" style="display:none"></div></div>
   <input id="fileInput" type="file">
   <span id="uploadFileInfo" hidden></span><span id="uploadError" hidden></span>
   <div id="adjPanel" hidden>
-    <div id="sideSelectRow" hidden><button class="side-btn active" data-side="front" type="button">앞면</button><button class="side-btn" data-side="back" type="button">뒷면</button></div>
+    <div id="sideSelectRow" hidden><span class="side-label">PDF 면 선택</span><button class="side-btn active" data-side="front" type="button">앞면</button><button class="side-btn" data-side="back" type="button">뒷면</button></div>
     <input type="checkbox" id="fileHasBleed">
     <input id="adjX" type="range" value="0"><span id="adjXVal"></span>
     <input id="adjY" type="range" value="0"><span id="adjYVal"></span>
@@ -22,17 +22,19 @@
 
   <script>
     history.replaceState(null,'','/print-checker?product=leaflet');
-    // CI에서는 1800px PDF 렌더 캔버스를 다시 PNG로 디코딩하는 비용이 간헐적으로
-    // virtual-time budget을 넘길 수 있다. 이 smoke는 PDF 메타/면 전환/검사 로직을
-    // 검증하므로, 미리보기 이미지 디코딩만 작은 정상 PNG로 대체한다.
+    // CI에서는 큰 PDF 렌더 캔버스를 다시 PNG로 디코딩하는 비용이 간헐적으로
+    // virtual-time budget을 넘길 수 있다. 이 smoke는 메타/면 전환/접지 로직을
+    // 검증하므로 미리보기 이미지 디코딩만 작은 정상 PNG로 대체한다.
     const PRINT_CHECKER_SMOKE_PIXEL='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
     HTMLCanvasElement.prototype.toDataURL=function(){return PRINT_CHECKER_SMOKE_PIXEL;};
+    window.__mockPdfWidthPt=841.8898;
+    window.__mockPdfHeightPt=595.2756;
     window.pdfjsLib={
       GlobalWorkerOptions:{},
       getDocument(){
         const page=(n)=>({
           rotate:0,
-          getViewport({scale}){return {width:841.8898*scale,height:595.2756*scale,rotation:0};},
+          getViewport({scale}){return {width:window.__mockPdfWidthPt*scale,height:window.__mockPdfHeightPt*scale,rotation:0};},
           render({canvasContext,viewport}){canvasContext.fillStyle=n===1?'#ddd':'#eee';canvasContext.fillRect(0,0,viewport.width,viewport.height);return {promise:Promise.resolve()};}
         });
         return {promise:Promise.resolve({numPages:2,getPage:async n=>page(n),destroy:async()=>{}})};
@@ -40,16 +42,19 @@
     };
   </script>
   <script src="/js/print-checker/print-checker.js"></script>
+  <script src="/js/print-checker/core-api.js"></script>
+  <script src="/js/print-checker/production-guides-v2.js"></script>
+  <script src="/js/print-checker/invitation-duplex-fold.js"></script>
   <script src="/js/print-checker/reliability.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded',async()=>{
       try{
-        await new Promise(r=>setTimeout(r,30));
+        await new Promise(r=>setTimeout(r,50));
         const autoSelected=PrintChecker.getState().product==='leaflet'&&document.querySelector('[data-product="leaflet"]')?.classList.contains('selected');
         document.getElementById('trimW').value='297';
         document.getElementById('trimH').value='210';
         document.getElementById('bleed').value='3';
-        document.getElementById('safeZone').value='3';
+        document.getElementById('safeZone').value='10';
         const file=new File([new Uint8Array([37,80,68,70,45,49,46,55])],'leaflet.pdf',{type:'application/pdf'});
         const inspected=await PrintChecker.inspectFile(file);
         const state1=PrintChecker.getState();
@@ -73,9 +78,47 @@
         await Promise.resolve();
         const failedLoaderRemoved=!document.getElementById('printCheckerPdfJs');
 
-        const pass=autoSelected&&metaOk&&sideVisible&&sideOk&&ran&&actualOk&&uniqueInfoIds&&staleResultHidden&&failedLoaderRemoved;
+        // 초대장·안내장: 제품 전환 직후 동적 사양 입력란 생성을 보장한 뒤
+        // 2페이지 PDF의 앞/뒤와 중앙이 아닌 실제 접는선 위치까지 확인한다.
+        PrintChecker.selectProduct('invitation',{syncUrl:false});
+        window.PrintCheckerInvitationDuplexFold?.ensureControls?.();
+        for(let attempt=0;attempt<20&&!document.getElementById('invitationFoldDirection');attempt+=1){
+          await new Promise(r=>setTimeout(r,10));
+          window.PrintCheckerInvitationDuplexFold?.ensureControls?.();
+        }
+        const invitationControlsReady=Boolean(document.getElementById('invitationFoldDirection')&&document.getElementById('invitationFoldPosition'));
+        if(!invitationControlsReady)throw new Error('invitation variable fold controls not ready after product transition');
+
+        document.getElementById('trimW').value='148';
+        document.getElementById('trimH').value='210';
+        document.getElementById('bleed').value='3';
+        document.getElementById('safeZone').value='10';
+        document.getElementById('invitationFoldType').value='half';
+        document.getElementById('invitationFoldDirection').value='vertical';
+        document.getElementById('invitationFoldPosition').value='60';
+        document.getElementById('invitationFoldPosition').dispatchEvent(new Event('input',{bubbles:true}));
+        window.__mockPdfWidthPt=419.5276;
+        window.__mockPdfHeightPt=595.2756;
+        const inviteFile=new File([new Uint8Array([37,80,68,70,45,49,46,55])],'invitation-duplex.pdf',{type:'application/pdf'});
+        const inviteInspected=await PrintChecker.inspectFile(inviteFile);
+        await new Promise(r=>setTimeout(r,80));
+        const fold=window.PrintCheckerInvitationDuplexFold?.resolvedFold?.();
+        const variableFoldOk=fold?.direction==='vertical'&&Math.abs(fold.position-60)<0.01&&Math.abs(fold.ratio-(60/148))<0.001;
+        const inviteSideVisible=document.getElementById('sideSelectRow').hidden===false&&document.querySelector('#sideSelectRow .side-label')?.textContent.includes('초대장');
+        await PrintChecker.setFileSide('back');
+        const inviteBackOk=PrintChecker.getState().fileSide==='back'&&PrintChecker.getState().pdfPageCount===2;
+        const inviteRan=PrintChecker.runCheck();
+        window.PrintCheckerInvitationDuplexFold?.syncDuplexReport?.();
+        await new Promise(r=>setTimeout(r,80));
+        const duplexReport=document.getElementById('invitationDuplexReportCard')?.textContent||'';
+        const duplexReportOk=duplexReport.includes('앞면 1p')&&duplexReport.includes('뒷면 2p');
+        const guideRendered=document.documentElement.dataset.printCheckerInvitationGuides==='v1-duplex-variable-fold'&&document.getElementById('productionGuideLayer')?.width>0;
+        const inviteDesc=document.querySelector('[data-product="invitation"] .pc-desc')?.textContent||'';
+        const inviteUiOk=inviteDesc.includes('앞면·뒷면')&&document.querySelector('#uploadZone .upload-sub')?.textContent.includes('2페이지 PDF');
+
+        const pass=autoSelected&&metaOk&&sideVisible&&sideOk&&ran&&actualOk&&uniqueInfoIds&&staleResultHidden&&failedLoaderRemoved&&invitationControlsReady&&inviteInspected&&variableFoldOk&&inviteSideVisible&&inviteBackOk&&inviteRan&&duplexReportOk&&guideRendered&&inviteUiOk;
         document.documentElement.dataset.printCheckerSmoke=pass?'pass':'fail';
-        const out=document.createElement('pre');out.id='result';out.textContent=pass?'PASS: print checker renders PDF, switches sides, validates dimensions, invalidates stale results and recovers failed loader':`FAIL auto=${autoSelected} meta=${metaOk} side=${sideVisible}/${sideOk} ran=${ran} actual=${actualOk} stale=${staleResultHidden} retry=${failedLoaderRemoved}`;document.body.appendChild(out);
+        const out=document.createElement('pre');out.id='result';out.textContent=pass?'PASS: print checker renders duplex PDFs, switches sides, validates dimensions and supports variable invitation folds':`FAIL auto=${autoSelected} meta=${metaOk} side=${sideVisible}/${sideOk} ran=${ran} actual=${actualOk} stale=${staleResultHidden} retry=${failedLoaderRemoved} controls=${invitationControlsReady} invite=${inviteInspected}/${variableFoldOk}/${inviteSideVisible}/${inviteBackOk}/${inviteRan}/${duplexReportOk}/${guideRendered}/${inviteUiOk}`;document.body.appendChild(out);
       }catch(error){document.documentElement.dataset.printCheckerSmoke='fail';const out=document.createElement('pre');out.textContent='FAIL '+(error&&error.stack||error);document.body.appendChild(out);}
     });
   </script>
