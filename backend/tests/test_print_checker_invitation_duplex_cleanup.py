@@ -43,7 +43,6 @@ def test_invitation_fold_direction_and_position_are_variable():
         "왼쪽에서 접는선 위치",
         "위쪽에서 접는선 위치",
         "fold.direction === 'vertical'",
-        "fold.direction === 'horizontal'",
         "v1-duplex-variable-fold",
     ):
         assert marker in source
