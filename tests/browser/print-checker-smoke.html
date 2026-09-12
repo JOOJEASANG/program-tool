@@ -75,9 +75,17 @@
         await Promise.resolve();
         const failedLoaderRemoved=!document.getElementById('printCheckerPdfJs');
 
-        // 초대장·안내장: 2페이지 PDF의 앞/뒤와 중앙이 아닌 접는선 위치까지 확인한다.
+        // 초대장·안내장: 제품 전환 직후 동적 사양 입력란 생성을 보장한 뒤
+        // 2페이지 PDF의 앞/뒤와 중앙이 아닌 실제 접는선 위치까지 확인한다.
         PrintChecker.selectProduct('invitation',{syncUrl:false});
-        await new Promise(r=>setTimeout(r,60));
+        window.PrintCheckerInvitationDuplexFold?.ensureControls?.();
+        for(let attempt=0;attempt<20&&!document.getElementById('invitationFoldDirection');attempt+=1){
+          await new Promise(r=>setTimeout(r,10));
+          window.PrintCheckerInvitationDuplexFold?.ensureControls?.();
+        }
+        const invitationControlsReady=Boolean(document.getElementById('invitationFoldDirection')&&document.getElementById('invitationFoldPosition'));
+        if(!invitationControlsReady)throw new Error('invitation variable fold controls not ready after product transition');
+
         document.getElementById('trimW').value='148';
         document.getElementById('trimH').value='210';
         document.getElementById('bleed').value='3';
@@ -97,6 +105,7 @@
         await PrintChecker.setFileSide('back');
         const inviteBackOk=PrintChecker.getState().fileSide==='back'&&PrintChecker.getState().pdfPageCount===2;
         const inviteRan=PrintChecker.runCheck();
+        window.PrintCheckerInvitationDuplexFold?.syncDuplexReport?.();
         await new Promise(r=>setTimeout(r,80));
         const duplexReport=document.getElementById('invitationDuplexReportCard')?.textContent||'';
         const duplexReportOk=duplexReport.includes('앞면 1p')&&duplexReport.includes('뒷면 2p');
@@ -104,9 +113,9 @@
         const inviteDesc=document.querySelector('[data-product="invitation"] .pc-desc')?.textContent||'';
         const inviteUiOk=inviteDesc.includes('앞면·뒷면')&&document.querySelector('#uploadZone .upload-sub')?.textContent.includes('2페이지 PDF');
 
-        const pass=autoSelected&&metaOk&&sideVisible&&sideOk&&ran&&actualOk&&uniqueInfoIds&&staleResultHidden&&failedLoaderRemoved&&inviteInspected&&variableFoldOk&&inviteSideVisible&&inviteBackOk&&inviteRan&&duplexReportOk&&guideRendered&&inviteUiOk;
+        const pass=autoSelected&&metaOk&&sideVisible&&sideOk&&ran&&actualOk&&uniqueInfoIds&&staleResultHidden&&failedLoaderRemoved&&invitationControlsReady&&inviteInspected&&variableFoldOk&&inviteSideVisible&&inviteBackOk&&inviteRan&&duplexReportOk&&guideRendered&&inviteUiOk;
         document.documentElement.dataset.printCheckerSmoke=pass?'pass':'fail';
-        const out=document.createElement('pre');out.id='result';out.textContent=pass?'PASS: print checker renders duplex PDFs, switches sides, validates dimensions and supports variable invitation folds':`FAIL auto=${autoSelected} meta=${metaOk} side=${sideVisible}/${sideOk} ran=${ran} actual=${actualOk} stale=${staleResultHidden} retry=${failedLoaderRemoved} invite=${inviteInspected}/${variableFoldOk}/${inviteSideVisible}/${inviteBackOk}/${inviteRan}/${duplexReportOk}/${guideRendered}/${inviteUiOk}`;document.body.appendChild(out);
+        const out=document.createElement('pre');out.id='result';out.textContent=pass?'PASS: print checker renders duplex PDFs, switches sides, validates dimensions and supports variable invitation folds':`FAIL auto=${autoSelected} meta=${metaOk} side=${sideVisible}/${sideOk} ran=${ran} actual=${actualOk} stale=${staleResultHidden} retry=${failedLoaderRemoved} controls=${invitationControlsReady} invite=${inviteInspected}/${variableFoldOk}/${inviteSideVisible}/${inviteBackOk}/${inviteRan}/${duplexReportOk}/${guideRendered}/${inviteUiOk}`;document.body.appendChild(out);
       }catch(error){document.documentElement.dataset.printCheckerSmoke='fail';const out=document.createElement('pre');out.textContent='FAIL '+(error&&error.stack||error);document.body.appendChild(out);}
     });
   </script>
