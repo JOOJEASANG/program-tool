@@ -92,6 +92,7 @@ run_page "home-current-shell-smoke.html" 'data-home-current-smoke="pass"' "Curre
 run_page "pdf-home-consolidation-smoke.html" 'data-pdf-home-consolidation-smoke="pass"' "PDF home consolidation smoke" "pdf-home-consolidation-smoke-dom.html"
 run_page "admin-workflow-v2-smoke.html" 'data-admin-v2-smoke="pass"' "Admin workflow v2 browser smoke" "admin-workflow-v2-smoke-dom.html"
 run_page "admin-pdf-usage-settings-smoke.html" 'data-admin-pdf-usage-settings-smoke="pass"' "Admin PDF usage settings smoke" "admin-pdf-usage-settings-smoke-dom.html"
+run_page "program-usage-output-guard-smoke.html" 'data-program-usage-output-guard-smoke="pass"' "Program usage output guard smoke" "program-usage-output-guard-smoke-dom.html"
 run_page "pdf-preflight-workflow-v2-smoke.html" 'data-preflight-v2-smoke="pass"' "PDF preflight workflow v2 browser smoke" "pdf-preflight-workflow-v2-smoke-dom.html"
 run_page "print-checker-smoke.html" 'data-print-checker-smoke="pass"' "Print checker real PDF browser smoke" "print-checker-smoke-dom.html"
 run_page "print-checker-file-only-adjustment-smoke.html" 'data-print-checker-file-only-adjustment-smoke="pass"' "Print checker file-only adjustment smoke" "print-checker-file-only-adjustment-smoke-dom.html"
