@@ -25,6 +25,7 @@
     {id:'pdfPreviewInsertPersistenceScriptV1',src:'/js/pdf-editor/preview-insert-persistence.js?v=20260914-3'},
     {id:'pdfDividerLocalImageUploadScriptV1',src:'/js/pdf-divider-local-image-upload.js?v=20260830-1'},
     {id:'pdfDividerModalLayoutScriptV1',src:'/js/pdf-editor/divider-modal-layout.js?v=20260830-2'},
+    {id:'pdfDividerUiCorrectionsScriptV1',src:'/js/pdf-editor/divider-ui-corrections.js?v=20260914-1'},
     {id:'pdfEditorFinalCheckScriptV1',src:'/js/pdf-editor-final-check.js?v=20260828-1'},
     {id:'pdfEditorSpreadSplitScriptV1',src:'/js/pdf-editor/spread-split.js?v=20260825-1'},
     {id:'pdfBookletSheetPreviewScriptV1',src:'/js/pdf-editor/booklet-sheet-preview.js?v=20260825-1'}
@@ -35,6 +36,7 @@
     'pdfPreviewInsertPersistenceScriptV1',
     'pdfDividerLocalImageUploadScriptV1',
     'pdfDividerModalLayoutScriptV1',
+    'pdfDividerUiCorrectionsScriptV1',
     'pdfEditorSpreadSplitScriptV1',
     'pdfBookletSheetPreviewScriptV1'
   ]);
@@ -129,6 +131,6 @@
     modules:MODULES.map(({id,src})=>({id,src})),
     app:standaloneApp(),
     get profile(){return window.PdfEditorStandaloneApps?.fromLocation?.(location.search)?.key||null;},
-    stage:'pdf-editor-route-runtime-manifest-v3-usage-output-guard'
+    stage:'pdf-editor-route-runtime-manifest-v4-divider-ui-corrections'
   };
 })();
