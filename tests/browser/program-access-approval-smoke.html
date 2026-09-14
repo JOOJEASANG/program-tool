@@ -1,0 +1,14 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>Program Access Approval Smoke</title></head><body data-program-access-approval-smoke="pending"><div id="result">PENDING</div><script>
+const state={approved:true,assigned:true,status:'approved'};
+window.auth={currentUser:{uid:'member-1'},onAuthStateChanged(cb){cb(this.currentUser);return()=>{};}};
+window.ProgramUsageCatalog={resolve:()=> 'pdf-editor',get:id=>({name:id==='pdf-editor'?'PDF배치':id})};
+window.ProgramAccess={canUseProgram:async()=>({allowed:state.approved&&state.assigned,approved:state.approved,assigned:state.assigned,status:state.status,admin:false,profile:{}})};
+</script><script src="/js/pdf-daily-free.js?v=smoke"></script><script>(async()=>{const result=document.getElementById('result'),assert=(v,m)=>{if(!v)throw new Error(m)};try{
+assert(window.ProgramUsagePolicy,'policy missing');
+let r=await window.ProgramUsagePolicy.forProgram('pdf-editor').canStart('PDF 저장');assert(r.ok===true,'approved member should pass');
+state.assigned=false;r=await window.ProgramUsagePolicy.forProgram('pdf-editor').canStart('PDF 저장');assert(r.ok===false&&/프로그램 권한/.test(r.message),'per-program denial missing');
+state.approved=false;state.status='pending';r=await window.ProgramUsagePolicy.forProgram('pdf-editor').canStart('PDF 저장');assert(r.ok===false&&/관리자 승인/.test(r.message),'member approval denial missing');
+const committed=await window.ProgramUsagePolicy.forProgram('pdf-editor').commitSuccess('PDF 저장');assert(committed.remaining===null&&committed.limit===null,'usage counter should be retired');
+assert(document.documentElement.dataset.programUsagePolicy==='approval-only','approval policy marker missing');
+document.body.dataset.programAccessApprovalSmoke='pass';result.textContent='PASS: member + per-program approval without usage counters';
+}catch(error){document.body.dataset.programAccessApprovalSmoke='fail';result.textContent='FAIL: '+String(error.message||error)}})();</script></body></html>
