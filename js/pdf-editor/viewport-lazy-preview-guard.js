@@ -9,6 +9,7 @@
   let observer = null;
   let refreshFrame = 0;
   let refreshing = false;
+  let previewRefreshToken = 0;
 
   const byId = (id) => document.getElementById(id);
 
@@ -29,17 +30,19 @@
     return `${sheet}번 용지 ${side} · 출력면 ${oneBased}`;
   }
 
-  function disableInsertionControls(root) {
+  function enableInsertionControls(root) {
     const zones = root?.querySelectorAll?.('.prev-ins-zone,.prev-ins-zone-v') || [];
     zones.forEach((zone) => {
-      zone.hidden = true;
-      zone.setAttribute('aria-hidden', 'true');
+      zone.hidden = false;
+      zone.removeAttribute?.('aria-hidden');
       zone.querySelectorAll('button').forEach((button) => {
-        button.disabled = true;
-        button.tabIndex = -1;
-        button.setAttribute('aria-disabled', 'true');
+        button.disabled = false;
+        button.tabIndex = 0;
+        button.setAttribute('aria-disabled', 'false');
+        button.style?.removeProperty?.('pointer-events');
       });
     });
+    if (zones.length) document.documentElement.dataset.pdfLazyPreviewCanvasInsert = 'enabled';
     return zones.length;
   }
 
@@ -72,6 +75,79 @@
     return corrected;
   }
 
+  function editorPages() {
+    try { return Array.isArray(parsedPages) ? parsedPages : []; }
+    catch (_) { return []; }
+  }
+
+  function selectedRotationSnapshot() {
+    const ids = window.PdfEditorPageSelection?.selectedIds;
+    if (!ids || typeof ids.has !== 'function') return [];
+    return editorPages()
+      .filter((page) => ids.has(Number(page?.id)) && page?.pageType === 'pdf' && page?.pdfPage)
+      .map((page) => ({ id: Number(page.id), rotation: Number(page.rotation || 0) }));
+  }
+
+  function allSelectedRotationsChanged(snapshot) {
+    if (!snapshot.length) return true;
+    const pages = editorPages();
+    return snapshot.every((before) => {
+      const page = pages.find((entry) => Number(entry?.id) === before.id);
+      return page && Number(page.rotation || 0) !== before.rotation;
+    });
+  }
+
+  function refreshRightPreview(reason) {
+    const token = ++previewRefreshToken;
+    try {
+      const lazy = window.PdfViewportLazyPreview;
+      if (lazyActive() && lazy && typeof lazy.requestRender === 'function') {
+        const outputIndex = typeof lazy.getCurrentOutputIndex === 'function' ? lazy.getCurrentOutputIndex() : 0;
+        Promise.resolve(lazy.requestRender(outputIndex)).finally(() => {
+          if (token === previewRefreshToken) document.documentElement.dataset.pdfBatchPreviewSync = reason || 'lazy-render';
+        });
+        return true;
+      }
+    } catch (error) {
+      console.warn('[pdf-lazy-guard] lazy preview refresh failed', error);
+    }
+    try {
+      if (typeof triggerPreview === 'function') {
+        Promise.resolve(triggerPreview()).finally(() => {
+          if (token === previewRefreshToken) document.documentElement.dataset.pdfBatchPreviewSync = reason || 'preview-render';
+        });
+        return true;
+      }
+    } catch (error) {
+      console.warn('[pdf-lazy-guard] preview refresh failed', error);
+    }
+    try {
+      if (typeof schedulePreview === 'function') {
+        schedulePreview(0);
+        document.documentElement.dataset.pdfBatchPreviewSync = reason || 'scheduled-render';
+        return true;
+      }
+    } catch (error) {
+      console.warn('[pdf-lazy-guard] scheduled preview refresh failed', error);
+    }
+    return false;
+  }
+
+  function waitForBatchRotation(snapshot, attempt) {
+    if (allSelectedRotationsChanged(snapshot) || attempt >= 40) {
+      refreshRightPreview('batch-rotation');
+      return;
+    }
+    setTimeout(() => waitForBatchRotation(snapshot, attempt + 1), 40);
+  }
+
+  function onContextAction(event) {
+    const item = event.target?.closest?.('#thumbCtxMenu .ctx-item');
+    if (!item || !String(item.textContent || '').includes('회전')) return;
+    const snapshot = selectedRotationSnapshot();
+    setTimeout(() => waitForBatchRotation(snapshot, 0), 0);
+  }
+
   function refresh() {
     refreshFrame = 0;
     if (refreshing || !lazyActive()) return false;
@@ -80,7 +156,7 @@
     refreshing = true;
     try {
       root.dataset.lazyPreviewGuard = 'true';
-      disableInsertionControls(root);
+      enableInsertionControls(root);
       correctGlobalLabels(root);
       return true;
     } finally {
@@ -99,22 +175,15 @@
     style.id = 'pdfViewportLazyPreviewGuardStyles';
     style.textContent = `
       #previewScroll[data-lazy-preview="true"] .prev-ins-zone,
-      #previewScroll[data-lazy-preview="true"] .prev-ins-zone-v{display:none!important;pointer-events:none!important}
+      #previewScroll[data-lazy-preview="true"] .prev-ins-zone-v{visibility:visible!important;pointer-events:auto!important}
+      #previewScroll[data-lazy-preview="true"] .prev-ins-zone{display:flex!important}
+      #previewScroll[data-lazy-preview="true"] .prev-ins-zone-v{display:flex!important}
+      #previewScroll[data-lazy-preview="true"] .prev-ins-btn,
+      #previewScroll[data-lazy-preview="true"] .prev-ins-btn-v{pointer-events:auto!important;cursor:pointer!important}
       #previewScroll[data-lazy-preview="true"] .pdf-output-source-label{display:none!important}
       #previewScroll[data-lazy-preview="true"] .pdf-lazy-global-label{position:absolute;top:5px;right:5px;z-index:4;border-radius:999px;padding:3px 7px;background:rgba(15,23,42,.82);color:#fff;font-size:9px;font-weight:850;pointer-events:none}
     `;
     document.head.appendChild(style);
-  }
-
-  function blockStaleInsertion(event) {
-    if (!lazyActive()) return;
-    const button = event.target?.closest?.('.prev-ins-btn,.prev-ins-btn-v');
-    if (!button || !byId('previewScroll')?.contains(button)) return;
-    event.preventDefault();
-    event.stopImmediatePropagation();
-    event.stopPropagation();
-    try { window.showStatus?.('대용량 구간 미리보기에서는 삽입 위치 오류 방지를 위해 이 버튼을 사용하지 않습니다. 왼쪽 페이지 목록에서 추가해 주세요.', 'error'); }
-    catch (_) {}
   }
 
   function installObserver() {
@@ -134,21 +203,26 @@
 
   if (document.documentElement.dataset.pdfLazyPreviewGuardEvents !== '1') {
     document.documentElement.dataset.pdfLazyPreviewGuardEvents = '1';
-    document.addEventListener('click', blockStaleInsertion, true);
-    document.addEventListener('keydown', (event) => {
-      if (event.key === 'Enter' || event.key === ' ') blockStaleInsertion(event);
-    }, true);
+    document.addEventListener('click', onContextAction, true);
     document.addEventListener('pdf-import-committed', scheduleRefresh);
+    document.addEventListener('pdf-preview-page-inserted', () => {
+      scheduleRefresh();
+      if (lazyActive()) refreshRightPreview('canvas-page-insert');
+    });
+    document.addEventListener('pdf-preview-page-insert-requested', scheduleRefresh);
   }
 
   window.PdfViewportLazyPreviewGuard = {
     lazyActive,
     globalFaceLabel,
-    disableInsertionControls,
+    enableInsertionControls,
     correctGlobalLabels,
+    selectedRotationSnapshot,
+    allSelectedRotationsChanged,
+    refreshRightPreview,
     refresh,
     scheduleRefresh,
-    stage: 'disable-local-insert-global-output-labels',
+    stage: 'canvas-insert-and-right-preview-sync-v3',
   };
 
   for (const delay of INSTALL_DELAYS) setTimeout(install, delay);

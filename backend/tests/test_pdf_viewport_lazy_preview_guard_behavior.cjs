@@ -18,7 +18,9 @@ function node(className = '') {
     textContent: '',
     children: [],
     attrs: {},
+    style: { removeProperty() {} },
     setAttribute(name, value) { this.attrs[name] = String(value); },
+    removeAttribute(name) { delete this.attrs[name]; },
     appendChild(child) { this.children.push(child); return child; },
     querySelector(selector) {
       if (selector === '.lazy-preview-face-label') return this.primary || null;
@@ -30,16 +32,16 @@ function node(className = '') {
       if (selector === '.pdf-output-source-label') return this.legacyLabels || [];
       return [];
     },
-    closest(selector) {
-      if (selector === '.prev-ins-btn,.prev-ins-btn-v' && this.isInsertButton) return this;
-      return null;
-    },
   };
 }
 
 const insertButton = node('prev-ins-btn');
-insertButton.isInsertButton = true;
+insertButton.disabled = true;
+insertButton.tabIndex = -1;
+insertButton.attrs['aria-disabled'] = 'true';
 const zone = node('prev-ins-zone');
+zone.hidden = true;
+zone.attrs['aria-hidden'] = 'true';
 zone.buttons = [insertButton];
 const primary = node('lazy-preview-face-label');
 const legacy = node('pdf-output-source-label');
@@ -49,7 +51,6 @@ page.primary = primary;
 page.legacyLabels = [legacy];
 const previewScroll = node('preview-scroll');
 previewScroll.dataset.lazyPreview = 'true';
-previewScroll.contains = (target) => target === insertButton;
 previewScroll.querySelectorAll = (selector) => {
   if (selector === '.prev-ins-zone,.prev-ins-zone-v') return [zone];
   if (selector === '.page-preview[data-output-index]') return [page];
@@ -61,6 +62,7 @@ const elements = new Map([
   ['bookletCheck', booklet],
 ]);
 const listeners = {};
+const timers = [];
 const document = {
   documentElement: { dataset: {} },
   head: { appendChild() {} },
@@ -75,31 +77,46 @@ class MutationObserver {
   disconnect() {}
 }
 
+const pages = [
+  { id: 1, pageType: 'pdf', pdfPage: {}, rotation: 0 },
+  { id: 2, pageType: 'pdf', pdfPage: {}, rotation: 0 },
+  { id: 3, pageType: 'blank', rotation: 0 },
+];
+let lazyRenderCount = 0;
+let lazyRenderIndex = null;
 const context = {
   console,
   document,
   MutationObserver,
   location: { pathname: '/pdf-editor/index.html' },
   requestAnimationFrame(callback) { callback(); return 0; },
-  setTimeout(callback) { callback(); return 0; },
+  setTimeout(callback) { timers.push(callback); return timers.length; },
   Number,
   String,
   Math,
+  Promise,
+  parsedPages: pages,
 };
 context.window = context;
 context.__pdfEditorLazyPreviewActive = true;
+context.PdfEditorPageSelection = { selectedIds: new Set([1, 2, 3]) };
+context.PdfViewportLazyPreview = {
+  getCurrentOutputIndex() { return 12; },
+  requestRender(index) { lazyRenderIndex = index; lazyRenderCount += 1; return Promise.resolve(true); },
+};
 vm.createContext(context);
 vm.runInContext(source, context, { filename: 'viewport-lazy-preview-guard.js' });
 const api = context.PdfViewportLazyPreviewGuard;
-assert.equal(api.stage, 'disable-local-insert-global-output-labels');
+assert.equal(api.stage, 'canvas-insert-and-right-preview-sync-v3');
 assert.equal(api.lazyActive(), true);
 assert.equal(api.globalFaceLabel(47), '출력면 48');
 assert.equal(api.refresh(), true);
-assert.equal(zone.hidden, true);
-assert.equal(zone.attrs['aria-hidden'], 'true');
-assert.equal(insertButton.disabled, true);
-assert.equal(insertButton.tabIndex, -1);
-assert.equal(insertButton.attrs['aria-disabled'], 'true');
+assert.equal(zone.hidden, false);
+assert.equal(zone.attrs['aria-hidden'], undefined);
+assert.equal(insertButton.disabled, false);
+assert.equal(insertButton.tabIndex, 0);
+assert.equal(insertButton.attrs['aria-disabled'], 'false');
+assert.equal(document.documentElement.dataset.pdfLazyPreviewCanvasInsert, 'enabled');
 assert.equal(legacy.hidden, true);
 assert.equal(primary.textContent, '출력면 48');
 assert.equal(primary.dataset.globalOutputIndex, '47');
@@ -110,16 +127,18 @@ assert.equal(api.globalFaceLabel(47), '24번 용지 뒷면 · 출력면 48');
 api.correctGlobalLabels(previewScroll);
 assert.equal(primary.textContent, '24번 용지 뒷면 · 출력면 48');
 
-let prevented = false;
-let stoppedImmediate = false;
-let stopped = false;
+const rotationSnapshot = Array.from(
+  api.selectedRotationSnapshot(),
+  (entry) => ({ id: entry.id, rotation: entry.rotation }),
+);
+assert.deepEqual(rotationSnapshot, [{ id: 1, rotation: 0 }, { id: 2, rotation: 0 }]);
+const rotateItem = { textContent: '↻ 선택 시계방향 90° 회전' };
 listeners.click({
-  target: insertButton,
-  preventDefault() { prevented = true; },
-  stopImmediatePropagation() { stoppedImmediate = true; },
-  stopPropagation() { stopped = true; },
+  target: { closest(selector) { return selector === '#thumbCtxMenu .ctx-item' ? rotateItem : null; } },
 });
-assert.equal(prevented, true);
-assert.equal(stoppedImmediate, true);
-assert.equal(stopped, true);
+pages[0].rotation = 90;
+pages[1].rotation = 90;
+while (timers.length) timers.shift()();
+assert.equal(lazyRenderCount, 1);
+assert.equal(lazyRenderIndex, 12);
 console.log('pdf-viewport-lazy-preview-guard behavior passed');

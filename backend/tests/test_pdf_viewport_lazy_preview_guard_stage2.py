@@ -17,16 +17,36 @@ def test_lazy_preview_guard_loads_after_lazy_preview_once():
     assert source.count("/js/pdf-editor/viewport-lazy-preview-guard.js") == 1
 
 
-def test_lazy_preview_guard_disables_local_insertion_controls():
+def test_lazy_preview_guard_keeps_canvas_insertion_controls_enabled():
     source = GUARD.read_text(encoding="utf-8")
     for marker in (
-        "function disableInsertionControls(root)",
+        "function enableInsertionControls(root)",
         ".prev-ins-zone,.prev-ins-zone-v",
-        "zone.hidden = true",
-        "button.disabled = true",
-        "button.tabIndex = -1",
-        "event.stopImmediatePropagation()",
-        "왼쪽 페이지 목록에서 추가해 주세요",
+        "zone.hidden = false",
+        "button.disabled = false",
+        "button.tabIndex = 0",
+        "button.setAttribute('aria-disabled', 'false')",
+        "pdfLazyPreviewCanvasInsert = 'enabled'",
+    ):
+        assert marker in source
+
+    assert "왼쪽 페이지 목록에서 추가해 주세요" not in source
+    assert "blockStaleInsertion" not in source
+
+
+def test_lazy_preview_guard_syncs_batch_rotation_to_right_preview_canvas():
+    source = GUARD.read_text(encoding="utf-8")
+    for marker in (
+        "window.PdfEditorPageSelection?.selectedIds",
+        "function selectedRotationSnapshot()",
+        "function allSelectedRotationsChanged(snapshot)",
+        "#thumbCtxMenu .ctx-item",
+        "includes('회전')",
+        "window.PdfViewportLazyPreview",
+        "lazy.requestRender(outputIndex)",
+        "typeof triggerPreview === 'function'",
+        "typeof schedulePreview === 'function'",
+        "document.addEventListener('click', onContextAction, true)",
     ):
         assert marker in source
 
@@ -51,7 +71,9 @@ def test_lazy_preview_guard_reapplies_after_preview_mutations():
         "new MutationObserver(scheduleRefresh)",
         "observer.observe(root, { childList: true, subtree: true, attributes: true",
         "document.addEventListener('pdf-import-committed', scheduleRefresh)",
-        "stage: 'disable-local-insert-global-output-labels'",
+        "document.addEventListener('pdf-preview-page-inserted', () =>",
+        "refreshRightPreview('canvas-page-insert')",
+        "stage: 'canvas-insert-and-right-preview-sync-v3'",
     ):
         assert marker in source
     assert "setInterval(" not in source
