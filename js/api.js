@@ -11,6 +11,19 @@ function _firebaseProjectId() {
   catch (_) { return 'program-tool'; }
 }
 
+function _currentProgramId() {
+  const fromAccess = window.ProgramAccess?.programForPath?.(location.pathname);
+  const fromCatalog = window.ProgramUsageCatalog?.resolve?.(location.pathname);
+  return String(fromAccess || fromCatalog || document.documentElement?.dataset?.usageProgramId || '').trim();
+}
+
+function _programHeaders(token, extra = {}) {
+  const headers = { Authorization: `Bearer ${token}`, ...extra };
+  const programId = _currentProgramId();
+  if (programId) headers['X-Program-ID'] = programId;
+  return headers;
+}
+
 function _longPdfApiUrl(path) {
   const suffix = String(path || '').startsWith('/') ? String(path) : '/' + String(path || '');
   return `https://${PDF_LONG_API_REGION}-${_firebaseProjectId()}.cloudfunctions.net/api${suffix}`;
@@ -40,7 +53,7 @@ async function _getToken() {
 
 async function _authHeaders() {
   const token = await _getToken();
-  return { Authorization: `Bearer ${token}` };
+  return _programHeaders(token);
 }
 
 async function _readApiError(resp, fallback) {
@@ -233,7 +246,7 @@ async function _processPdfDirect(files, settings, token, signal, onStatus, onPro
 
   const resp = await _fetchLongPdfApi('/api/pdf/process', {
     method: 'POST',
-    headers: { Authorization: `Bearer ${token}` },
+    headers: _programHeaders(token),
     body: form,
     signal,
   });
@@ -246,13 +259,6 @@ async function _processPdfDirect(files, settings, token, signal, onStatus, onPro
   return _readPdfDelivery(resp, { signal });
 }
 
-/**
- * Process PDF with backend.
- * @param {File[]} files
- * @param {object} settings
- * @param {{ onStatus?: Function, onProgress?: Function, signal?: AbortSignal }} [opts]
- * @returns {Promise<Blob>}
- */
 async function apiProcessPdf(files, settings, options = {}) {
   const preparedOptions = _preparePdfOptions(options);
   const { onStatus, onProgress, signal, __managedOperation } = preparedOptions;
@@ -295,7 +301,7 @@ async function apiProcessPdf(files, settings, options = {}) {
     _reportProgress(onProgress, 'server', 45, '서버에서 PDF 생성 중');
     const resp = await _fetchLongPdfApi('/api/pdf/process-storage', {
       method: 'POST',
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      headers: _programHeaders(token, { 'Content-Type': 'application/json' }),
       body: JSON.stringify({ storage_paths: storagePaths, settings }),
       signal: controller.signal,
     });
@@ -412,7 +418,7 @@ async function _preflightStorageRequest(endpoint, file, { expectBlob = false, on
   try {
     const resp = await fetch(`/api/preflight/${endpoint}`, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      headers: _programHeaders(token, { 'Content-Type': 'application/json' }),
       body: JSON.stringify({ storage_path: path, filename: file.name || 'document.pdf' }),
     });
     if (!resp.ok) {
@@ -421,7 +427,6 @@ async function _preflightStorageRequest(endpoint, file, { expectBlob = false, on
     }
     return expectBlob ? _readPdfDelivery(resp) : resp.json();
   } finally {
-    // Storage-backed endpoints delete the object server-side. Never reuse that path.
     __preflightTemp = null;
   }
 }
