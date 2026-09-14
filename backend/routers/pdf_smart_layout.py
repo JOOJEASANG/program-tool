@@ -9,6 +9,7 @@ from flask import Blueprint, Response, jsonify, request
 from models.smart_layout_schemas import SmartLayoutRequest
 from services.smart_print_layout import build_layout_plan, inspect_sources, render_layout_pdf
 from services.smart_print_layout_auto import build_auto_fill_layout_plan
+from services.smart_print_numbering import apply_layout_numbering
 from utils.auth import require_auth
 from utils.storage import get_bucket, get_request_id
 from utils.storage_delivery import upload_pdf_result
@@ -52,7 +53,8 @@ def _add_summary_headers(response, plan):
 @require_auth
 def smart_layout(uid: str):
     try:
-        settings = SmartLayoutRequest.model_validate(json.loads(request.form.get('settings', '{}')))
+        raw_settings = json.loads(request.form.get('settings', '{}'))
+        settings = SmartLayoutRequest.model_validate(raw_settings)
     except Exception:
         return _error('스마트 배치 설정이 올바르지 않습니다.', 422, 'SMART_LAYOUT_INVALID_SETTINGS')
 
@@ -111,6 +113,7 @@ def smart_layout(uid: str):
                 settings.flip_edge,
             )
         output = render_layout_pdf(docs, plan, gap_mm=settings.gap_mm, crop_marks=settings.crop_marks)
+        output = apply_layout_numbering(output, plan, raw_settings.get('numbering'))
     except ValueError as exc:
         return _error(str(exc), 400, 'SMART_LAYOUT_VALIDATION_FAILED')
     except Exception:
