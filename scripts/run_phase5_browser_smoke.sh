@@ -93,6 +93,7 @@ run_page "pdf-home-consolidation-smoke.html" 'data-pdf-home-consolidation-smoke=
 run_page "pdf-layout-sidebar-title-smoke.html" 'data-pdf-layout-sidebar-title-smoke="pass"' "PDF layout sidebar label cleanup smoke" "pdf-layout-sidebar-title-smoke-dom.html"
 run_page "pdf-preview-insert-persistence-smoke.html" 'data-pdf-preview-insert-persistence-smoke="pass"' "PDF preview blank/divider insertion smoke" "pdf-preview-insert-persistence-smoke-dom.html"
 run_page "pdf-result-download-delivery-smoke.html" 'data-pdf-result-download-delivery-smoke="pass"' "PDF result download delivery smoke" "pdf-result-download-delivery-smoke-dom.html"
+run_page "pdf-divider-ui-corrections-smoke.html" 'data-pdf-divider-ui-corrections-smoke="pass"' "PDF divider styles and shape preview smoke" "pdf-divider-ui-corrections-smoke-dom.html"
 run_page "admin-workflow-v2-smoke.html" 'data-admin-v2-smoke="pass"' "Admin workflow v2 browser smoke" "admin-workflow-v2-smoke-dom.html"
 run_page "admin-pdf-usage-settings-smoke.html" 'data-admin-pdf-usage-settings-smoke="pass"' "Admin PDF usage settings smoke" "admin-pdf-usage-settings-smoke-dom.html"
 run_page "program-usage-output-guard-smoke.html" 'data-program-usage-output-guard-smoke="pass"' "Program usage output guard smoke" "program-usage-output-guard-smoke-dom.html"
