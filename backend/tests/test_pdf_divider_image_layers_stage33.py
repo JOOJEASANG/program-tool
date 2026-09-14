@@ -52,7 +52,7 @@ def test_route_keeps_single_pdf_program_and_loads_new_divider_layer_revision():
     assert route.count("{id:") == 22
     assert "/js/pdf-editor/page-selection-preview-focus.js?v=20260914-1" in route
     assert "/js/pdf-editor/layout-smooth-preview.js?v=20260909-1" in route
-    assert "/js/pdf-editor/preview-insert-persistence.js?v=20260831-2" in route
+    assert "/js/pdf-editor/preview-insert-persistence.js?v=20260914-3" in route
     assert "/js/pdf-divider-local-image-upload.js?v=20260830-1" in route
     assert "/js/pdf-editor/divider-modal-layout.js?v=20260830-2" in route
 
