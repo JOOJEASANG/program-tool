@@ -1,4 +1,4 @@
-// Keeps blank-page/divider insertion controls available across normal and lazy large-document preview rerenders.
+// Keeps blank-page/divider insertion controls available and functional across normal and lazy preview rerenders.
 (function(){
   'use strict';
   if(window.__pdfPreviewInsertPersistenceV1)return;
@@ -10,6 +10,7 @@
   let observer=null;
   let timer=0;
   let repairing=false;
+  let actionBridgeBound=false;
 
   function installStyles(){
     if(document.getElementById('pdfPreviewInsertPersistenceStylesV1'))return;
@@ -152,8 +153,9 @@
     }else markHorizontal(top,0);
 
     rows.forEach(row=>{
-      row.querySelectorAll(':scope>.prev-ins-zone-v').forEach(zone=>zone.classList.add('pdf-preview-inline-insert'));
-      rendered+=row.querySelectorAll(':scope>.page-preview').length;
+      const faces=[...row.querySelectorAll(':scope>.page-preview')];
+      row.querySelectorAll(':scope>.prev-ins-zone-v').forEach((zone,index)=>markVertical(zone,rendered+index+1));
+      rendered+=faces.length;
       let next=row.nextElementSibling;
       if(!next?.classList?.contains('prev-ins-zone')){
         next=makeHorizontal(rendered);
@@ -172,22 +174,116 @@
     if(pages)pages.textContent=count?`총 ${count}페이지`:'';
   }
 
-  function appendFastBlank(){
-    try{
-      if(!Array.isArray(parsedPages)||typeof makeBlankPage!=='function')return;
-      parsedPages.splice(parsedPages.length,0,makeBlankPage());
-      if(typeof renderThumbs==='function')renderThumbs();
-      window.PdfUploadOptimization?.syncAggregateMode?.();
-      refreshFastPageCount();
-      if(typeof showStatus==='function')showStatus('문서 끝에 빈 페이지를 추가했습니다.','success');
-    }catch(error){console.warn('[pdf-preview-insert] fast blank insertion failed',error);}
+  function currentInsertPoints(){
+    try{if(Array.isArray(_previewInsertPoints)&&_previewInsertPoints.length)return _previewInsertPoints;}catch(_){}
+    try{if(typeof buildPreviewInsertPoints==='function'){const points=buildPreviewInsertPoints();if(Array.isArray(points))return points;}}catch(error){console.warn('[pdf-preview-insert] insert point rebuild failed',error);}
+    return [];
   }
 
-  function openFastDivider(){
+  function boundaryFromZone(zone){
+    const direct=Number(zone?.dataset?.pdfInsertBoundary);
+    if(Number.isFinite(direct)&&direct>=0)return Math.floor(direct);
+    const scroll=document.getElementById('previewScroll');
+    if(!scroll||!zone)return -1;
+    let boundary=0;
+    for(const node of [...scroll.children]){
+      if(node===zone)return boundary;
+      if(node.classList?.contains('preview-row')){
+        if(node.contains(zone)){
+          for(const child of [...node.children]){
+            if(child===zone)return boundary;
+            if(child.classList?.contains('page-preview'))boundary+=1;
+          }
+          return boundary;
+        }
+        boundary+=node.querySelectorAll(':scope>.page-preview').length;
+      }
+    }
+    return -1;
+  }
+
+  function spliceIndexForZone(zone){
+    let length=0;
+    try{length=Array.isArray(parsedPages)?parsedPages.length:0;}catch(_){return 0;}
+    if(zone?.closest?.('.pdf-preview-fast-fallback'))return length;
+    const boundary=boundaryFromZone(zone);
+    const points=currentInsertPoints();
+    const mapped=boundary>=0?Number(points[boundary]):NaN;
+    if(Number.isFinite(mapped))return Math.max(0,Math.min(length,Math.floor(mapped)));
+    return length;
+  }
+
+  function requestPreviewRefresh(){
+    if(window.__pdfEditorFastMode){refreshFastPageCount();queue();return;}
     try{
-      if(!Array.isArray(parsedPages)||typeof window.openDividerInsert!=='function')return;
-      window.openDividerInsert(parsedPages.length);
-    }catch(error){console.warn('[pdf-preview-insert] fast divider insertion failed',error);}
+      if(typeof triggerPreview==='function'){
+        Promise.resolve(triggerPreview()).catch(error=>console.warn('[pdf-preview-insert] preview refresh failed',error)).finally(()=>setTimeout(queue,0));
+        return;
+      }
+    }catch(error){console.warn('[pdf-preview-insert] preview refresh failed',error);}
+    try{if(typeof schedulePreview==='function'){schedulePreview(0);setTimeout(queue,80);return;}}catch(_){}
+    setTimeout(queue,0);
+  }
+
+  function refreshAfterInsert(message){
+    try{if(typeof renderThumbs==='function')renderThumbs();}catch(error){console.warn('[pdf-preview-insert] thumbnail refresh failed',error);}
+    try{window.PdfUploadOptimization?.syncAggregateMode?.();}catch(_){}
+    refreshFastPageCount();
+    try{if(typeof showStatus==='function')showStatus(message,'success');}catch(_){}
+    requestPreviewRefresh();
+  }
+
+  function insertBlankAt(index){
+    try{
+      if(!Array.isArray(parsedPages)||typeof makeBlankPage!=='function')return false;
+      const safe=Math.max(0,Math.min(parsedPages.length,Number(index)||0));
+      parsedPages.splice(safe,0,makeBlankPage());
+      refreshAfterInsert('빈 페이지를 추가했습니다.');
+      document.dispatchEvent(new CustomEvent('pdf-preview-page-inserted',{detail:{type:'blank',index:safe}}));
+      return true;
+    }catch(error){console.warn('[pdf-preview-insert] blank insertion failed',error);return false;}
+  }
+
+  function openDividerAt(index){
+    let opener=null;
+    try{if(typeof openDividerInsert==='function')opener=openDividerInsert;}catch(_){}
+    if(!opener&&typeof window.openDividerInsert==='function')opener=window.openDividerInsert;
+    if(!opener)return false;
+    try{
+      let length=0;try{length=Array.isArray(parsedPages)?parsedPages.length:0;}catch(_){}
+      const safe=Math.max(0,Math.min(length,Number(index)||0));
+      opener(safe);
+      document.dispatchEvent(new CustomEvent('pdf-preview-page-insert-requested',{detail:{type:'divider',index:safe}}));
+      return true;
+    }catch(error){console.warn('[pdf-preview-insert] divider insertion failed',error);return false;}
+  }
+
+  function bindActionBridge(){
+    const scroll=document.getElementById('previewScroll');
+    if(!scroll||actionBridgeBound)return false;
+    actionBridgeBound=true;
+    scroll.addEventListener('click',event=>{
+      const button=event.target.closest?.('.prev-ins-btn,.prev-ins-btn-v');
+      if(!button||!scroll.contains(button))return;
+      const zone=button.closest('.prev-ins-zone,.prev-ins-zone-v,.pdf-preview-fast-fallback');
+      const divider=button.classList.contains('divider')||String(button.textContent||'').includes('간지');
+      const blank=!divider&&String(button.textContent||'').includes('빈');
+      if(!divider&&!blank)return;
+      const index=spliceIndexForZone(zone);
+      const handled=divider?openDividerAt(index):insertBlankAt(index);
+      if(!handled)return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    },true);
+    document.documentElement.dataset.pdfPreviewInsertActionBridge='1';
+    return true;
+  }
+
+  function appendFastBlank(){insertBlankAt((()=>{try{return Array.isArray(parsedPages)?parsedPages.length:0;}catch(_){return 0;}})());}
+
+  function openFastDivider(){
+    let length=0;try{length=Array.isArray(parsedPages)?parsedPages.length:0;}catch(_){}
+    openDividerAt(length);
   }
 
   function ensureFastFallback(){
@@ -203,11 +299,9 @@
 
     const blank=document.createElement('button');
     blank.type='button';blank.className='prev-ins-btn';blank.textContent='+ 빈 페이지';
-    blank.addEventListener('click',event=>{event.preventDefault();event.stopPropagation();appendFastBlank();});
 
     const divider=document.createElement('button');
     divider.type='button';divider.className='prev-ins-btn divider';divider.textContent='+ 간지';
-    divider.addEventListener('click',event=>{event.preventDefault();event.stopPropagation();openFastDivider();});
 
     const note=document.createElement('div');
     note.className='pdf-preview-fast-note';
@@ -223,6 +317,7 @@
     repairing=true;
     try{
       installStyles();
+      bindActionBridge();
       if(!ensureFastFallback()&&!ensureLazyBoundaries())ensureNormalBoundaries();
     }finally{repairing=false;}
   }
@@ -239,6 +334,7 @@
       return false;
     }
     installStyles();
+    bindActionBridge();
     if(!observer){
       observer=new MutationObserver(queue);
       observer.observe(scroll,{childList:true});
@@ -255,7 +351,10 @@
     ensureNormalBoundaries,
     ensureLazyBoundaries,
     ensureFastFallback,
+    insertBlankAt,
+    openDividerAt,
+    spliceIndexForZone,
     legacyStage:'multi-file-preview-insert-persistence-v2',
-    stage:'large-document-absolute-insert-boundaries-v3'
+    stage:'preview-insert-actions-functional-v4'
   };
 })();
