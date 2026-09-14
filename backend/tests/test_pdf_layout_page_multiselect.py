@@ -12,7 +12,7 @@ def test_layout_route_loads_page_selection_before_generic_thumbnail_navigation()
     route = ROUTE_RUNTIME.read_text(encoding="utf-8")
 
     selection_path = "/js/pdf-editor/page-selection-preview-focus.js?v=20260914-2"
-    loader_path = "/js/pdf-editor/loader.js?v=20260828-1"
+    loader_path = "/js/pdf-editor/loader.js?v=20260914-4"
     assert "pdfLayoutPageSelectionScriptV1" in route
     assert f"src:'{selection_path}',app:'layout'" in route
     assert route.index(selection_path) < route.index(loader_path)
