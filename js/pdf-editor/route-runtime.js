@@ -82,6 +82,11 @@
       .then(()=>hostLoadScript('pdfEditorAppBoundaryScriptV1','/js/pdf-editor/app-boundary.js?v=20260909-1'));
   }
 
+  function loadImageInput(){
+    return hostLoadScript('programImagePdfAdapterScriptV1','/js/image-pdf-adapter.js?v=20260915-1')
+      .then(()=>hostLoadScript('pdfEditorImageInputBridgeScriptV1','/js/pdf-editor/image-input-bridge.js?v=20260915-1'));
+  }
+
   function loadAll(){
     const seen=new Set();
     const pending=[];
@@ -114,6 +119,10 @@
     }
     if(advanced)document.documentElement.dataset.pdfAdvancedRouteModules='minimal';
     return Promise.all(pending)
+      // Images are converted to normal one-page PDFs before entering the canonical
+      // editor state. The existing PDF parser, page model, save path and backend
+      // therefore remain unchanged for both /pdf-editor and app=layout.
+      .then(()=>advanced?true:loadImageInput())
       // Divider correction is deliberately post-manifest: it must run after the
       // parallel core/local-image helpers have finished so it can settle renderer
       // ownership without adding another route-bootstrap manifest asset.
@@ -134,6 +143,6 @@
     modules:MODULES.map(({id,src})=>({id,src})),
     app:standaloneApp(),
     get profile(){return window.PdfEditorStandaloneApps?.fromLocation?.(location.search)?.key||null;},
-    stage:'pdf-editor-route-runtime-manifest-v4-divider-ui-corrections'
+    stage:'pdf-editor-route-runtime-manifest-v5-image-input-adapter'
   };
 })();
