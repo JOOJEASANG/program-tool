@@ -9,6 +9,22 @@ service cloud.firestore {
     function isAdmin(){ return hasAdminClaim() || legacyAdmin(); }
     function permission(uid){ return get(/databases/$(database)/documents/user_permissions/$(uid)); }
     function approved(uid){ return isAdmin() || (exists(/databases/$(database)/documents/user_permissions/$(uid)) && permission(uid).data.status == 'approved'); }
+    function programApproved(uid, programId){
+      let data = permission(uid).data;
+      return isAdmin() || (
+        exists(/databases/$(database)/documents/user_permissions/$(uid))
+        && data.status == 'approved'
+        && (
+          !data.keys().hasAny(['programsAll'])
+          || data.programsAll == true
+          || (
+            data.programs is map
+            && data.programs.keys().hasAny([programId])
+            && data.programs[programId] == true
+          )
+        )
+      );
+    }
     function isOwner(uid){ return signedIn() && request.auth.uid == uid; }
     function validDesignProjectMetadata(uid, projectId){
       return request.resource.data.keys().hasOnly(['id','name','presetId','width','height','storagePath','size','updatedAt','createdAt'])
@@ -56,14 +72,6 @@ service cloud.firestore {
         && request.resource.data.state.size() <= 900000
         && request.resource.data.createdAt is timestamp;
     }
-    function validDailyPdfUsage(dateKey){
-      return request.resource.data.keys().hasOnly(['dateKey','count','updatedAt'])
-        && request.resource.data.dateKey == dateKey
-        && request.resource.data.count is int
-        && request.resource.data.count >= 1
-        && request.resource.data.count <= 1000
-        && request.resource.data.updatedAt is timestamp;
-    }
     function validPdfDailyLimits(){
       return request.resource.data.keys().hasOnly(['guestLimit','memberLimit','updatedAt'])
         && request.resource.data.guestLimit is int
@@ -91,19 +99,6 @@ service cloud.firestore {
         && request.resource.data.memberLimit <= 1000
         && request.resource.data.updatedAt is timestamp;
     }
-    function validProgramUsage(){
-      return request.resource.data.keys().hasOnly(['programId','period','periodKey','count','updatedAt'])
-        && request.resource.data.programId is string
-        && request.resource.data.programId.matches('^[a-z0-9][a-z0-9-]{1,63}$')
-        && request.resource.data.period in ['daily','monthly']
-        && request.resource.data.periodKey is string
-        && request.resource.data.periodKey.size() >= 7
-        && request.resource.data.periodKey.size() <= 10
-        && request.resource.data.count is int
-        && request.resource.data.count >= 1
-        && request.resource.data.count <= 1000
-        && request.resource.data.updatedAt is timestamp;
-    }
 
     match /settings/admin {
       allow read: if isAdmin();
@@ -114,74 +109,53 @@ service cloud.firestore {
     match /settings/programs { allow read: if signedIn(); allow write: if isAdmin(); }
     match /settings/config { allow read, write: if isAdmin(); }
     match /settings/business { allow read: if true; allow write: if isAdmin(); }
-    // Legacy shared PDF limits are kept readable during migration to per-program settings.
+    // Legacy usage-limit documents remain readable for rollback compatibility only.
     match /settings/pdf_daily_limits {
       allow read: if true;
       allow create, update: if isAdmin() && validPdfDailyLimits();
       allow delete: if isAdmin();
     }
-    // Extensible program quota documents. New programs need no rules change as long as
-    // they use a valid program id and this bounded schema.
     match /program_usage_limits/{programId} {
       allow read: if true;
       allow create, update: if isAdmin() && validProgramUsageLimit(programId);
       allow delete: if isAdmin();
     }
-    // Public home navigation/card catalog. Anyone may read the published catalog,
-    // while only an administrator may create or change it. Catalog visibility is
-    // not program authorization; opening a protected tool still requires its own policy.
     match /settings/public_program_catalog { allow read: if true; allow write: if isAdmin(); }
-    // Public home metadata for the professional suite. Tool access itself is separately gated.
     match /settings/professional_program_suite { allow read: if true; allow write: if isAdmin(); }
 
     match /user_permissions/{uid} {
       allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
       allow create: if signedIn() && request.auth.uid == uid
         && request.auth.token.keys().hasAll(['email'])
-        && request.resource.data.keys().hasOnly(['uid','email','displayName','status','plan','programs','createdAt'])
+        && request.resource.data.keys().hasOnly(['uid','email','displayName','status','plan','programsAll','programs','createdAt'])
         && request.resource.data.uid == uid
         && request.resource.data.email == request.auth.token.email.lower()
         && request.resource.data.displayName is string
         && request.resource.data.displayName.size() <= 100
         && request.resource.data.status == 'pending'
         && request.resource.data.plan == 'free'
+        && request.resource.data.programsAll == false
         && request.resource.data.programs is map
-        && request.resource.data.programs.keys().hasOnly(['pdf-editor','preflight','design-studio'])
+        && request.resource.data.programs.keys().hasOnly(['print-checker','smart-print-layout','pdf-editor','pdf-editor-advanced','pdf-preflight'])
+        && request.resource.data.programs['print-checker'] == false
+        && request.resource.data.programs['smart-print-layout'] == false
         && request.resource.data.programs['pdf-editor'] == false
-        && request.resource.data.programs.preflight == false
-        && request.resource.data.programs['design-studio'] == false
+        && request.resource.data.programs['pdf-editor-advanced'] == false
+        && request.resource.data.programs['pdf-preflight'] == false
         && request.resource.data.createdAt is timestamp;
       allow update: if isAdmin();
       allow delete: if isAdmin();
     }
 
-    // Legacy shared daily PDF counters remain valid for already-recorded usage.
+    // Historical usage counters are read-only. The product now uses approval-based access,
+    // so normal operation no longer spends Firestore writes on per-action counters.
     match /users/{uid}/daily_pdf_usage/{dateKey} {
       allow read: if isOwner(uid);
-      allow create: if isOwner(uid)
-        && validDailyPdfUsage(dateKey)
-        && request.resource.data.count == 1;
-      allow update: if isOwner(uid)
-        && validDailyPdfUsage(dateKey)
-        && request.resource.data.dateKey == resource.data.dateKey
-        && request.resource.data.count == resource.data.count + 1;
-      allow delete: if false;
+      allow create, update, delete: if false;
     }
-
-    // Program-specific member counters. Each successful use advances exactly one step;
-    // the client applies the administrator's per-program limit and period.
     match /users/{uid}/program_usage/{usageKey} {
       allow read: if isOwner(uid);
-      allow create: if isOwner(uid)
-        && validProgramUsage()
-        && request.resource.data.count == 1;
-      allow update: if isOwner(uid)
-        && validProgramUsage()
-        && request.resource.data.programId == resource.data.programId
-        && request.resource.data.period == resource.data.period
-        && request.resource.data.periodKey == resource.data.periodKey
-        && request.resource.data.count == resource.data.count + 1;
-      allow delete: if false;
+      allow create, update, delete: if false;
     }
 
     match /users/{uid}/design_projects/{projectId} {
@@ -194,37 +168,28 @@ service cloud.firestore {
       allow delete: if isOwner(uid);
     }
 
-    // Legacy administrator-provided cover/service image records are retired.
-    // Members cannot read them and the web app cannot create or modify them.
-    // Administrators retain read/delete access only so old records can be cleaned up safely.
     match /cover_templates/{templateId} {
       allow read, delete: if isAdmin();
       allow create, update: if false;
     }
 
     match /users/{uid}/pdf_sessions/{docId} {
-      allow read: if isOwner(uid) && approved(uid);
-      allow create: if isOwner(uid) && approved(uid) && validPdfSessionMetadata();
-      // Saved sessions are immutable snapshots. A new save creates another snapshot;
-      // clients may delete old snapshots during the bounded-session cleanup flow.
+      allow read: if isOwner(uid) && programApproved(uid, 'pdf-editor');
+      allow create: if isOwner(uid) && programApproved(uid, 'pdf-editor') && validPdfSessionMetadata();
       allow update: if false;
       allow delete: if isOwner(uid);
     }
 
-    // Advanced PDF editor sessions use the same bounded immutable snapshot schema,
-    // but stay in a separate collection so PDF layout sessions never appear here.
     match /users/{uid}/pdf_advanced_sessions/{docId} {
-      allow read: if isOwner(uid) && approved(uid);
-      allow create: if isOwner(uid) && approved(uid) && validPdfSessionMetadata();
+      allow read: if isOwner(uid) && programApproved(uid, 'pdf-editor-advanced');
+      allow create: if isOwner(uid) && programApproved(uid, 'pdf-editor-advanced') && validPdfSessionMetadata();
       allow update: if false;
       allow delete: if isOwner(uid);
     }
 
-    // Smart print layout saves use the same immutable source-PDF snapshot schema,
-    // but remain separate from both layout and advanced editor save lists.
     match /users/{uid}/pdf_smart_layout_sessions/{docId} {
-      allow read: if isOwner(uid) && approved(uid);
-      allow create: if isOwner(uid) && approved(uid) && validPdfSessionMetadata();
+      allow read: if isOwner(uid) && programApproved(uid, 'smart-print-layout');
+      allow create: if isOwner(uid) && programApproved(uid, 'smart-print-layout') && validPdfSessionMetadata();
       allow update: if false;
       allow delete: if isOwner(uid);
     }
