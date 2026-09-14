@@ -13,7 +13,7 @@
     {id:'pdfEditorModuleLoaderScript',src:'/js/pdf-editor/loader.js?v=20260828-1'},
     {id:'pdfEditorTransferLimitGuardScriptV1',src:'/js/pdf-editor/transfer-limit-guard.js?v=20260831-2'},
     {id:'pdfCropMarksScript',src:'/js/pdf-editor/crop-marks.js?v=20260731-4'},
-    {id:'pdfOutputSaveRecoveryScriptV1',src:'/js/pdf-editor/output-save-recovery.js?v=20260831-1'},
+    {id:'pdfOutputSaveRecoveryScriptV1',src:'/js/pdf-editor/output-save-recovery.js?v=20260914-2'},
     {id:'pdfSaveRecoveryScript',src:'/js/pdf-editor/save-recovery.js?v=20260803-1'},
     {id:'pdfSessionSaveSafetyScriptV1',src:'/js/pdf-editor/session-save-safety.js?v=20260831-2'},
     {id:'pdfFileContextScopeScript',src:'/js/pdf-editor/file-context-scope.js?v=20260805-1'},

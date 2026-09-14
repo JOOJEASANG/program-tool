@@ -42,7 +42,7 @@
       document.body.dataset.directSave='1';
     });
   </script>
-  <script src="/js/pdf-editor/output-save-recovery.js?v=20260831-1"></script>
+  <script src="/js/pdf-editor/output-save-recovery.js?v=20260914-2"></script>
   <script src="/js/pdf-editor-final-check.js?v=20260828-1"></script>
   <script>
     (async()=>{
@@ -51,7 +51,7 @@
       const waitFor=async(predicate,label,timeout=4000)=>{const started=Date.now();while(Date.now()-started<timeout){if(predicate())return;await wait(25);}throw new Error('timeout: '+label);};
       const assert=(value,message)=>{if(!value)throw new Error(message)};
       try{
-        await waitFor(()=>document.documentElement.dataset.pdfOutputSaveRecovery==='1','save recovery install');
+        await waitFor(()=>document.documentElement.dataset.pdfOutputSaveRecovery==='2','save recovery install');
         await waitFor(()=>!!document.getElementById('pdfEditorFinalCheckBtn'),'final check control');
 
         document.getElementById('previewBtn').disabled=false;

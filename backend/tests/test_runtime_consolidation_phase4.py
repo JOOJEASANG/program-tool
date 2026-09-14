@@ -48,7 +48,7 @@ def test_pdf_route_manifest_owns_route_helpers_without_editor_state_takeover():
     assert "app:'layout'" in route
     assert "/js/pdf-editor/layout-smooth-preview.js?v=20260909-1" in route
     assert "/js/pdf-editor/preview-insert-persistence.js?v=20260914-3" in route
-    assert "/js/pdf-editor/output-save-recovery.js?v=20260831-1" in route
+    assert "/js/pdf-editor/output-save-recovery.js?v=20260914-2" in route
     assert "/js/pdf-editor/save-operation.js" not in route
     assert "/js/pdf-editor/divider-modal-layout.js?v=20260830-2" in route
     assert "ProgramStudioPdfEditorRuntimeContext" in route
@@ -75,7 +75,7 @@ def test_pdf_output_save_recovery_keeps_core_click_handler_and_uses_bounded_obse
         "previewObserver.observe(preview,{attributes:true,attributeFilter:['disabled']})",
         "thumbObserver.observe(thumbs,{childList:true})",
         "direct.disabled=false",
-        "core-save-button-recovery-v1",
+        "core-save-button-recovery-v2-result-download",
     ):
         assert marker in source
     assert "stopImmediatePropagation" not in source
@@ -83,3 +83,25 @@ def test_pdf_output_save_recovery_keeps_core_click_handler_and_uses_bounded_obse
     assert "setInterval(" not in source
     assert "subtree:true" not in source
 
+
+def test_pdf_result_download_survives_immediate_blob_url_revoke():
+    source = text("js/pdf-editor/output-save-recovery.js")
+
+    for marker in (
+        "const DOWNLOAD_URL_GRACE_MS=30000",
+        "function installResultDownloadDelivery()",
+        "href.startsWith('blob:')",
+        "document.body.appendChild(this)",
+        "protectedUrls.add(href)",
+        "scheduleRelease(href)",
+        "window.URL.revokeObjectURL=guardedRevoke",
+        "pdfResultDownloadDispatch='mounted-blob-v2'",
+        "pdfResultDownloadDelivery='blob-grace-v2'",
+    ):
+        assert marker in source
+
+    # The route helper must not replace the core PDF-save click handler. It only
+    # makes the browser delivery step robust after the backend returns the Blob.
+    assert "apiProcessPdf(" not in source
+    assert "preventDefault" not in source
+    assert "stopPropagation" not in source
