@@ -23,8 +23,7 @@
   <script>
     history.replaceState(null,'','/print-checker?product=leaflet');
     // CI에서는 큰 PDF 렌더 캔버스를 다시 PNG로 디코딩하는 비용이 간헐적으로
-    // virtual-time budget을 넘길 수 있다. 이 smoke는 메타/면 전환/접지 로직을
-    // 검증하므로 미리보기 이미지 디코딩만 작은 정상 PNG로 대체한다.
+    // virtual-time budget을 넘길 수 있어 미리보기 이미지 디코딩만 작은 정상 PNG로 대체한다.
     const PRINT_CHECKER_SMOKE_PIXEL='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
     HTMLCanvasElement.prototype.toDataURL=function(){return PRINT_CHECKER_SMOKE_PIXEL;};
     window.__mockPdfWidthPt=841.8898;
@@ -78,8 +77,6 @@
         await Promise.resolve();
         const failedLoaderRemoved=!document.getElementById('printCheckerPdfJs');
 
-        // 초대장·안내장: 제품 전환 직후 동적 사양 입력란 생성을 보장한 뒤
-        // 2페이지 PDF의 앞/뒤와 중앙이 아닌 실제 접는선 위치까지 확인한다.
         PrintChecker.selectProduct('invitation',{syncUrl:false});
         window.PrintCheckerInvitationDuplexFold?.ensureControls?.();
         for(let attempt=0;attempt<20&&!document.getElementById('invitationFoldDirection');attempt+=1){
@@ -101,10 +98,21 @@
         window.__mockPdfHeightPt=595.2756;
         const inviteFile=new File([new Uint8Array([37,80,68,70,45,49,46,55])],'invitation-duplex.pdf',{type:'application/pdf'});
         const inviteInspected=await PrintChecker.inspectFile(inviteFile);
-        await new Promise(r=>setTimeout(r,80));
+
+        // 제품 전환/파일 렌더 이벤트가 초대장 보조 UI를 비동기로 꾸미므로
+        // 한 프레임의 순서 차이로 면 선택 라벨 검사가 흔들리지 않도록 짧게 기다린다.
+        let inviteSideVisible=false;
+        for(let attempt=0;attempt<30&&!inviteSideVisible;attempt+=1){
+          const row=document.getElementById('sideSelectRow');
+          const label=document.querySelector('#sideSelectRow .side-label')?.textContent||'';
+          inviteSideVisible=Boolean(row&&!row.hidden&&label.includes('초대장'));
+          if(!inviteSideVisible){
+            window.dispatchEvent(new CustomEvent('programstudio:print-checker-product-stable'));
+            await new Promise(r=>setTimeout(r,10));
+          }
+        }
         const fold=window.PrintCheckerInvitationDuplexFold?.resolvedFold?.();
         const variableFoldOk=fold?.direction==='vertical'&&Math.abs(fold.position-60)<0.01&&Math.abs(fold.ratio-(60/148))<0.001;
-        const inviteSideVisible=document.getElementById('sideSelectRow').hidden===false&&document.querySelector('#sideSelectRow .side-label')?.textContent.includes('초대장');
         await PrintChecker.setFileSide('back');
         const inviteBackOk=PrintChecker.getState().fileSide==='back'&&PrintChecker.getState().pdfPageCount===2;
         const inviteRan=PrintChecker.runCheck();
