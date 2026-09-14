@@ -155,6 +155,6 @@
   function boot(){if(typeof MutationObserver==='function')observer=new MutationObserver(queue);document.addEventListener('click',blockToggle,true);sync();[80,220,600,1200,2200].forEach(delay=>setTimeout(queue,delay));}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 
-  const api={sync,removePrintOutputToolLabel,stage:'single-sidebar-page-list-collapsible-hotfix-v5'};
+  const api={sync,removePrintOutputToolLabel,stage:'single-sidebar-page-list-collapsible-hotfix-v4',revision:'print-output-label-cleanup-v5'};
   window.PdfEditorSimpleSidebarUi=api;window.PdfEditorWorkflowUi=api;window.PdfEditorWorkspaceLayout=api;
 })();
