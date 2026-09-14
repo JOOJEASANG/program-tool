@@ -1,50 +1,36 @@
-// Print Checker is public with a daily-free usage policy.
+// Print Checker uses the shared administrator-approved program access policy.
 (function(){
   'use strict';
   if(window.__printCheckerDailyFreeAccessV1)return;
   window.__printCheckerDailyFreeAccessV1=true;
 
-  function reveal(){
+  function revealIfApproved(){
+    if(document.documentElement.dataset.accessReady!=='true')return false;
     document.documentElement.style.visibility='visible';
-    document.documentElement.dataset.printCheckerAccess='daily-free';
-  }
-
-  function syncGuestLabel(name){
-    if(!name)return;
-    const quota=window.ProgramPdfDailyFree;
-    name.textContent='비회원 · 무료 사용';
-    if(!quota?.status)return;
-    quota.status().then(status=>{
-      if(window.auth?.currentUser)return;
-      if(status?.mode==='guest'&&Number.isFinite(status.limit))name.textContent=`비회원 · 하루 ${status.limit}회 무료`;
-    }).catch(()=>{});
+    document.documentElement.dataset.printCheckerAccess='admin-approved';
+    return true;
   }
 
   function syncUser(user){
     const name=document.getElementById('userName');
     const logout=document.getElementById('logoutBtn');
-    if(name){
-      if(user)name.textContent=user.displayName||user.email||'로그인 사용자';
-      else syncGuestLabel(name);
-    }
+    if(name)name.textContent=user?(user.displayName||user.email||'승인 회원'):'로그인 필요';
     if(logout)logout.hidden=!user;
   }
 
   function boot(){
-    reveal();
     if(window.auth?.onAuthStateChanged){
-      window.auth.onAuthStateChanged(user=>{
-        syncUser(user||null);
-        reveal();
-      });
-    }else syncUser(null);
+      window.auth.onAuthStateChanged(user=>{syncUser(user||null);revealIfApproved();});
+    }
+    Promise.resolve(window.ProgramAccessReady).then(access=>{
+      if(access?.allowed||access?.admin)revealIfApproved();
+    }).catch(()=>{});
   }
 
   window.PrintCheckerAccess=Object.freeze({
-    mode:'daily-free',
-    get guestLimit(){return window.ProgramPdfDailyFree?.guestLimit??3;},
-    get memberLimit(){return window.ProgramPdfDailyFree?.memberLimit??10;},
-    stage:'print-checker-daily-free-v2-configurable'
+    mode:'admin-approved',
+    programId:'print-checker',
+    stage:'print-checker-admin-approved-v3'
   });
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});
