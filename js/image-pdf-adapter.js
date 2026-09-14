@@ -8,6 +8,8 @@
   const MAX_PIXELS=40*1000*1000;
   const IMAGE_EXT=/\.(?:jpe?g|png|webp)$/i;
   const PDF_EXT=/\.pdf$/i;
+  const JSPDF_SRC='https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js';
+  let jsPdfPromise=null;
 
   function isPdf(file){
     return Boolean(file&&((file.type||'').toLowerCase()==='application/pdf'||PDF_EXT.test(file.name||'')));
@@ -43,10 +45,26 @@
     }
   }
 
-  function getJsPdf(){
-    const ctor=window.jspdf?.jsPDF;
-    if(typeof ctor!=='function')throw new Error('이미지 PDF 변환 모듈(jsPDF)을 불러오지 못했습니다.');
-    return ctor;
+  async function getJsPdf(){
+    const current=window.jspdf?.jsPDF;
+    if(typeof current==='function')return current;
+    if(!jsPdfPromise){
+      jsPdfPromise=new Promise((resolve,reject)=>{
+        const existing=document.querySelector(`script[data-program-image-jspdf="1"]`)||
+          Array.from(document.scripts||[]).find(script=>String(script.src||'').includes('/jspdf@2.5.1/'));
+        const script=existing||document.createElement('script');
+        let timer;
+        const cleanup=()=>{clearTimeout(timer);script.removeEventListener('load',onLoad);script.removeEventListener('error',onError);};
+        const onLoad=()=>{const ctor=window.jspdf?.jsPDF;cleanup();if(typeof ctor==='function')resolve(ctor);else reject(new Error('이미지 PDF 변환 모듈을 초기화하지 못했습니다.'));};
+        const onError=()=>{cleanup();reject(new Error('이미지 PDF 변환 모듈을 불러오지 못했습니다.'));};
+        script.addEventListener('load',onLoad,{once:true});
+        script.addEventListener('error',onError,{once:true});
+        timer=setTimeout(onError,15000);
+        if(!existing){script.src=JSPDF_SRC;script.async=true;script.dataset.programImageJspdf='1';document.head.appendChild(script);}
+        else if(typeof window.jspdf?.jsPDF==='function')onLoad();
+      }).catch(error=>{jsPdfPromise=null;throw error;});
+    }
+    return jsPdfPromise;
   }
 
   function safeBaseName(name){
@@ -80,7 +98,7 @@
 
     const widthMm=width/dpi*25.4;
     const heightMm=height/dpi*25.4;
-    const JsPdf=getJsPdf();
+    const JsPdf=await getJsPdf();
     const pdf=new JsPdf({
       orientation:widthMm>heightMm?'landscape':'portrait',
       unit:'mm',
@@ -91,6 +109,7 @@
     const jpeg=canvasToJpeg(canvas,Number(options.quality)||0.92);
     pdf.addImage(jpeg,'JPEG',0,0,widthMm,heightMm,undefined,'FAST');
     const blob=pdf.output('blob');
+    canvas.width=1;canvas.height=1;
     const pdfFile=new File([blob],`${safeBaseName(file.name)}.pdf`,{type:'application/pdf',lastModified:file.lastModified||Date.now()});
     Object.defineProperties(pdfFile,{
       __sourceType:{value:'image',enumerable:false},
@@ -118,6 +137,7 @@
   window.ProgramImagePdfAdapter={
     isPdf,isImage,isSupported,acceptString,imageToPdf,normalizeFile,normalizeFiles,
     defaultDpi:DEFAULT_DPI,
+    jsPdfSource:JSPDF_SRC,
     stage:'image-pdf-adapter-v1-pdf-core-isolation'
   };
 })();
