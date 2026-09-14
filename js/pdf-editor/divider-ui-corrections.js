@@ -48,14 +48,48 @@
     return true;
   }
 
+  function dispatchInput(control,value){
+    if(!control)return;
+    control.value=String(value);
+    control.dispatchEvent(new Event('input',{bubbles:true}));
+    control.dispatchEvent(new Event('change',{bubbles:true}));
+  }
+
+  function makeTitleBoxesVisible(){
+    let changed=false;
+    document.querySelectorAll('#dividerShapeList .divider-shape-card').forEach(card=>{
+      const name=String(card.querySelector('.divider-extra-name')?.textContent||'');
+      if(!name.includes('타이틀 박스'))return;
+      const fill=card.querySelector('[data-key="fill"]');
+      const stroke=card.querySelector('[data-key="stroke"]');
+      const strokeWidth=card.querySelector('[data-key="strokeWidth"]');
+      const opacity=card.querySelector('[data-key="opacity"]');
+      const invisible=String(fill?.value||'').toLowerCase()==='#ffffff' &&
+        String(stroke?.value||'').toLowerCase()==='#ffffff' && Number(strokeWidth?.value||0)===0;
+      if(!invisible)return;
+      dispatchInput(fill,'#dbeafe');
+      dispatchInput(stroke,'#2563eb');
+      dispatchInput(strokeWidth,'1');
+      dispatchInput(opacity,'0.72');
+      changed=true;
+    });
+    if(changed)requestAnimationFrame(requestPreview);
+    return changed;
+  }
+
   function bindShapes(){
     const list=$('dividerShapeList');
     const card=list?.closest('.divider-settings-card');
     if(!card||card.dataset.dividerShapeCorrectionBound==='true')return false;
     card.dataset.dividerShapeCorrectionBound='true';
     card.addEventListener('click',event=>{
-      if(!event.target.closest?.('[data-add-shape],[data-action]'))return;
-      requestAnimationFrame(()=>requestAnimationFrame(requestPreview));
+      const addButton=event.target.closest?.('[data-add-shape]');
+      const actionButton=event.target.closest?.('[data-action]');
+      if(!addButton&&!actionButton)return;
+      requestAnimationFrame(()=>requestAnimationFrame(()=>{
+        if(addButton?.dataset?.addShape==='titleBox')makeTitleBoxesVisible();
+        requestPreview();
+      }));
     },true);
     card.addEventListener('input',()=>requestAnimationFrame(requestPreview),true);
     card.addEventListener('change',()=>requestAnimationFrame(requestPreview),true);
@@ -110,6 +144,7 @@
     simplifyUi();
     bindStyles();
     bindShapes();
+    makeTitleBoxesVisible();
     const restored=reassertStudioRenderer();
     if(restored&&styleBound&&shapeBound){
       document.documentElement.dataset.pdfDividerUiCorrections='ready';
@@ -128,7 +163,7 @@
     },delay));
   }
 
-  window.PdfDividerUiCorrections={apply,reassertStudioRenderer,stage:'divider-ui-corrections-v1-style-shape-preview'};
+  window.PdfDividerUiCorrections={apply,reassertStudioRenderer,makeTitleBoxesVisible,stage:'divider-ui-corrections-v1-style-shape-preview'};
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});
   else boot();
 })();
