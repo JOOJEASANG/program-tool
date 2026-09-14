@@ -51,7 +51,7 @@ def test_pdf_route_manifest_owns_route_helpers_without_editor_state_takeover():
     assert "/js/pdf-editor/output-save-recovery.js?v=20260914-2" in route
     assert "/js/pdf-editor/save-operation.js" not in route
     assert "/js/pdf-editor/divider-modal-layout.js?v=20260830-2" in route
-    assert "/js/pdf-editor/divider-ui-corrections.js?v=20260914-1" in route
+    assert "/js/pdf-editor/divider-ui-corrections.js?v=20260914-2" in route
     assert "pdfDividerUiCorrectionsScriptV1" in route
     assert "post-manifest" in route
     assert "ProgramStudioPdfEditorRuntimeContext" in route
@@ -121,8 +121,20 @@ def test_divider_ui_corrections_keep_studio_renderer_and_simplify_conflicting_co
         "makeTitleBoxesVisible",
         "#dbeafe",
         "#2563eb",
-        "divider-ui-corrections-v1-style-shape-preview",
+        "divider-ui-corrections-v2-wide-sidebar-ux",
     ):
         assert marker in source
+
+    for ux_marker in (
+        "clamp(480px,42vw,640px)",
+        "dividerQuickNav",
+        "data-divider-jump=\"basic\"",
+        "data-divider-jump=\"shape\"",
+        "data-divider-jump=\"text\"",
+        "pdfDividerUx='enhanced-v2'",
+        "dividerSidebarWide='true'",
+        "실시간 미리보기",
+    ):
+        assert ux_marker in source
 
     assert "setInterval(" not in source
