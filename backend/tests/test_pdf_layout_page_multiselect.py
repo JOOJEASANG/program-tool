@@ -11,7 +11,7 @@ MANUAL = ROOT / "js" / "program-manuals" / "pdf-editor.js"
 def test_layout_route_loads_page_selection_before_generic_thumbnail_navigation():
     route = ROUTE_RUNTIME.read_text(encoding="utf-8")
 
-    selection_path = "/js/pdf-editor/page-selection-preview-focus.js?v=20260914-1"
+    selection_path = "/js/pdf-editor/page-selection-preview-focus.js?v=20260914-2"
     loader_path = "/js/pdf-editor/loader.js?v=20260828-1"
     assert "pdfLayoutPageSelectionScriptV1" in route
     assert f"src:'{selection_path}',app:'layout'" in route
@@ -27,33 +27,50 @@ def test_layout_boundary_keeps_selection_toolbar_visible():
     assert "pdf-layout-booklet-boundary-v4" in boundary
 
 
-def test_page_selection_supports_partial_range_all_and_batch_context_actions():
+def test_page_selection_freezes_full_context_selection_for_every_batch_action():
     source = SELECTION.read_text(encoding="utf-8")
 
     for marker in (
         "const selectedIds = new Set();",
-        "event.ctrlKey || event.metaKey",
-        "event.shiftKey",
-        "data-selection-action=\"all\"",
-        "data-selection-action=\"clear\"",
-        "function selectAll()",
-        "function clearSelection()",
-        "function rotateSelected(degrees)",
-        "function setSelectedExcluded(excluded)",
-        "function deleteSelected()",
-        "function insertBlank(relative)",
-        "선택한 페이지 ${targets.length}개",
-        "선택 페이지 숨기기",
-        "선택 페이지 다시 포함",
-        "선택 시계방향 90° 회전",
-        "선택 시계반대방향 90° 회전",
-        "선택 180° 회전",
-        "선택 페이지 삭제",
+        "let contextSelectionIds = [];",
+        "function snapshotSelectedIds()",
+        "contextSelectionIds = snapshotSelectedIds();",
+        "const actionIds = contextIdsForPage(page);",
+        "setPagesExcluded(actionIds, true)",
+        "setPagesExcluded(actionIds, false)",
+        "rotatePages(actionIds, 90)",
+        "rotatePages(actionIds, -90)",
+        "rotatePages(actionIds, 180)",
+        "insertBlankForIds(actionIds, 'before')",
+        "insertBlankForIds(actionIds, 'after')",
+        "deletePages(actionIds)",
+        "menu.dataset.selectionIds = actionIds.join(',')",
+        "menu.dataset.selectionCount = String(actionIds.length)",
+        "page-selection-batch-snapshot-canvas-v2",
     ):
         assert marker in source
 
-    assert source.index("installClickSelection();") < source.index("patchRenderThumbs();")
+    assert "event.ctrlKey || event.metaKey" in source
+    assert "event.shiftKey" in source
     assert "event.stopImmediatePropagation();" in source
+
+
+def test_sidebar_stays_source_portrait_while_output_rotation_updates_preview_source():
+    source = SELECTION.read_text(encoding="utf-8")
+
+    for marker in (
+        "#thumbArea{display:flex!important;flex-direction:column!important",
+        "aspect-ratio:210/297!important",
+        "object-fit:contain!important",
+        "function ensureSourceThumb(page)",
+        "page.sourceThumbCanvas",
+        "canvas.dataset.sidebarSourcePreview = 'true'",
+        "page.thumbCanvas = await renderPdfPage(page.pdfPage, 0.9, page.rotation);",
+        "refreshRightPreview(options.reason || 'batch-action')",
+        "window.PdfViewportLazyPreviewGuard?.refreshRightPreview",
+        "pdfSidebarPageView = 'source-portrait'",
+    ):
+        assert marker in source
 
 
 def test_pdf_editor_manual_documents_multiselect_shortcuts_and_batch_context_menu():

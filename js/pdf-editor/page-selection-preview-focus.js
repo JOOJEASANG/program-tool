@@ -1,12 +1,14 @@
 // Page selection, batch context actions, and preview focus preservation.
 (function () {
   'use strict';
-  if (window.__pdfEditorPageSelectionV1) return;
+  if (window.__pdfEditorPageSelectionV2) return;
+  window.__pdfEditorPageSelectionV2 = true;
   window.__pdfEditorPageSelectionV1 = true;
 
   const selectedIds = new Set();
   let anchorId = null;
   let primaryId = null;
+  let contextSelectionIds = [];
   let renderPatched = false;
   let previewPatched = false;
   let attempts = 0;
@@ -26,17 +28,28 @@
     return parsedPages.find((page) => pageId(page) === Number(id)) || null;
   }
 
-  function orderedSelectedPages() {
+  function pagesForIds(ids) {
     if (!editorReady()) return [];
-    return parsedPages.filter((page) => selectedIds.has(pageId(page)));
+    const wanted = new Set((ids || []).map(Number).filter(Number.isFinite));
+    return parsedPages.filter((page) => wanted.has(pageId(page)));
+  }
+
+  function orderedSelectedPages() {
+    return pagesForIds([...selectedIds]);
   }
 
   function cleanupSelection() {
     if (!editorReady()) return;
     const valid = new Set(parsedPages.map(pageId).filter((id) => id !== null));
     [...selectedIds].forEach((id) => { if (!valid.has(id)) selectedIds.delete(id); });
+    contextSelectionIds = contextSelectionIds.filter((id) => valid.has(Number(id)));
     if (!valid.has(anchorId)) anchorId = null;
     if (!valid.has(primaryId)) primaryId = selectedIds.size ? [...selectedIds][0] : null;
+  }
+
+  function snapshotSelectedIds() {
+    cleanupSelection();
+    return orderedSelectedPages().map(pageId).filter((id) => id !== null);
   }
 
   function installStyles() {
@@ -48,6 +61,11 @@
       .page-selection-count{font-size:9px;font-weight:900;color:#334155;margin-right:auto;white-space:nowrap}
       .page-selection-btn{border:1px solid #cbd5e1;border-radius:7px;background:#fff;color:#475569;padding:4px 7px;font:800 9px Pretendard,"Noto Sans KR",sans-serif;cursor:pointer}
       .page-selection-btn:hover{border-color:#93c5fd;background:#eff6ff;color:#1d4ed8}
+      #thumbArea{display:flex!important;flex-direction:column!important;gap:7px!important}
+      #thumbArea .thumb-item{width:100%!important;display:flex!important;flex-direction:column!important}
+      #thumbArea .thumb-wrap{width:100%!important;aspect-ratio:210/297!important;display:flex!important;align-items:center!important;justify-content:center!important;background:#fff!important;overflow:hidden!important}
+      #thumbArea .thumb-wrap canvas{width:100%!important;height:100%!important;object-fit:contain!important;transform:none!important;background:#fff!important}
+      #thumbArea .thumb-wrap .divider-thumb{width:100%!important;height:100%!important;aspect-ratio:auto!important}
       .thumb-item.page-selected .thumb-wrap{outline:3px solid #2563eb!important;outline-offset:2px;box-shadow:0 0 0 5px rgba(37,99,235,.12)!important}
       .thumb-item.page-selected .thumb-num{background:#2563eb!important;color:#fff!important}
       .thumb-item.page-selection-anchor .thumb-wrap{outline-color:#0f766e!important}
@@ -77,7 +95,52 @@
       else clearSelection();
     });
     const hint = area.parentElement.querySelector('.thumb-hint');
-    if (hint) hint.textContent = '클릭=선택 · Ctrl/Shift=다중선택 · 우클릭=숨김/회전/삭제 · 드래그=순서변경';
+    if (hint) hint.textContent = '왼쪽은 기본 페이지 목록 · Ctrl/Shift=다중선택 · 우클릭 작업은 오른쪽 미리보기에 반영';
+  }
+
+  function rememberSourceThumb(page) {
+    if (!page || page.pageType !== 'pdf' || !page.pdfPage || page.sourceThumbCanvas) return;
+    if (Number(page.rotation || 0) === 0 && page.thumbCanvas) page.sourceThumbCanvas = page.thumbCanvas;
+  }
+
+  async function ensureSourceThumb(page) {
+    if (!page || page.pageType !== 'pdf' || !page.pdfPage) return null;
+    if (page.sourceThumbCanvas) return page.sourceThumbCanvas;
+    if (Number(page.rotation || 0) === 0 && page.thumbCanvas) {
+      page.sourceThumbCanvas = page.thumbCanvas;
+      return page.sourceThumbCanvas;
+    }
+    try {
+      page.sourceThumbCanvas = await renderPdfPage(page.pdfPage, 0.9, 0);
+      return page.sourceThumbCanvas;
+    } catch (error) {
+      console.warn('[pdf-selection] source thumbnail render failed', error);
+      return null;
+    }
+  }
+
+  function drawSourceThumbIntoItem(item, page) {
+    if (!item || !page || page.pageType !== 'pdf') return;
+    rememberSourceThumb(page);
+    const source = page.sourceThumbCanvas;
+    const canvas = item.querySelector('.thumb-wrap canvas');
+    if (!source || !canvas || typeof canvas.getContext !== 'function') return;
+    try {
+      canvas.width = source.width;
+      canvas.height = source.height;
+      canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+      canvas.getContext('2d').drawImage(source, 0, 0);
+      canvas.dataset.sidebarSourcePreview = 'true';
+    } catch (_) {}
+  }
+
+  function syncSidebarSourceThumbs() {
+    if (!editorReady()) return;
+    document.querySelectorAll('#thumbArea .thumb-item').forEach((item) => {
+      const page = pageById(Number(item.dataset.id));
+      drawSourceThumbIntoItem(item, page);
+    });
+    document.documentElement.dataset.pdfSidebarPageView = 'source-portrait';
   }
 
   function syncSelectionUi() {
@@ -97,6 +160,7 @@
         wrap.appendChild(mark);
       } else if (!selected && mark) mark.remove();
     });
+    syncSidebarSourceThumbs();
     const count = byId('pageSelectionCount');
     if (count) count.textContent = `선택 ${selectedIds.size}개`;
     highlightPreviewTarget();
@@ -111,6 +175,7 @@
     });
     anchorId = parsedPages.length ? pageId(parsedPages[0]) : null;
     primaryId = parsedPages.length ? pageId(parsedPages[parsedPages.length - 1]) : null;
+    contextSelectionIds = [];
     syncSelectionUi();
   }
 
@@ -118,6 +183,7 @@
     selectedIds.clear();
     anchorId = null;
     primaryId = null;
+    contextSelectionIds = [];
     syncSelectionUi();
   }
 
@@ -149,14 +215,15 @@
     }
 
     primaryId = selectedIds.has(id) ? id : (selectedIds.size ? [...selectedIds][selectedIds.size - 1] : null);
+    contextSelectionIds = [];
     syncSelectionUi();
     if (primaryId !== null) focusPreviewForPage(pageById(primaryId), true);
   }
 
   function installClickSelection() {
     const area = byId('thumbArea');
-    if (!area || area.dataset.pageSelectionBoundV1) return;
-    area.dataset.pageSelectionBoundV1 = '1';
+    if (!area || area.dataset.pageSelectionBoundV2) return;
+    area.dataset.pageSelectionBoundV2 = '1';
 
     area.addEventListener('click', (event) => {
       if (event.target.closest('select,input,button,.thumb-file-sep')) return;
@@ -180,9 +247,12 @@
         selectedIds.clear();
         selectedIds.add(id);
         anchorId = id;
-        primaryId = id;
-        syncSelectionUi();
-      } else primaryId = id;
+      }
+      primaryId = id;
+      syncSelectionUi();
+      // Freeze the complete selection before any context-menu click handlers run.
+      contextSelectionIds = snapshotSelectedIds();
+      document.documentElement.dataset.pdfContextSelectionCount = String(contextSelectionIds.length);
     }, true);
   }
 
@@ -219,7 +289,7 @@
 
   function annotatePreviewPages() {
     document.querySelectorAll('#previewScroll .page-preview').forEach((element, index) => {
-      element.dataset.outputIndex = String(index);
+      if (!element.dataset.outputIndex) element.dataset.outputIndex = String(index);
     });
   }
 
@@ -244,7 +314,7 @@
   function focusPreviewForPage(page, smooth) {
     if (!page) return false;
     if (page.excluded) {
-      try { if (typeof showStatus === 'function') showStatus('숨긴 페이지는 미리보기에 표시되지 않습니다. 우클릭 메뉴에서 다시 포함할 수 있습니다.', 'info'); } catch (_) {}
+      try { if (typeof showStatus === 'function') showStatus('숨긴 페이지는 오른쪽 미리보기에서 제외됩니다. 우클릭 메뉴에서 다시 포함할 수 있습니다.', 'info'); } catch (_) {}
       return false;
     }
     annotatePreviewPages();
@@ -280,7 +350,7 @@
   function patchDisplayPreview() {
     try {
       if (typeof displayPreview !== 'function') return false;
-      if (displayPreview.__pageSelectionFocusPatchedV1) return true;
+      if (displayPreview.__pageSelectionFocusPatchedV2) return true;
       const original = displayPreview;
       const wrapped = function displayPreviewKeepingFocus() {
         const previousIndex = currentVisiblePreviewIndex();
@@ -295,7 +365,7 @@
         });
         return result;
       };
-      wrapped.__pageSelectionFocusPatchedV1 = true;
+      wrapped.__pageSelectionFocusPatchedV2 = true;
       displayPreview = wrapped;
       window.displayPreview = wrapped;
       previewPatched = true;
@@ -309,7 +379,7 @@
   function patchRenderThumbs() {
     try {
       if (typeof renderThumbs !== 'function') return false;
-      if (renderThumbs.__pageSelectionPatchedV1) return true;
+      if (renderThumbs.__pageSelectionPatchedV2) return true;
       const original = renderThumbs;
       const wrapped = function renderThumbsKeepingSelection() {
         const result = original.apply(this, arguments);
@@ -319,7 +389,7 @@
         }, 0);
         return result;
       };
-      wrapped.__pageSelectionPatchedV1 = true;
+      wrapped.__pageSelectionPatchedV2 = true;
       renderThumbs = wrapped;
       window.renderThumbs = wrapped;
       renderPatched = true;
@@ -339,10 +409,11 @@
     element.appendChild(iconElement);
     element.appendChild(document.createTextNode(label));
     element.addEventListener('click', (event) => {
-      event.stopPropagation();
+      event.preventDefault();
+      event.stopImmediatePropagation();
       menu.classList.remove('open');
       handler();
-    });
+    }, true);
     return element;
   }
 
@@ -352,88 +423,166 @@
     return element;
   }
 
-  function refreshAfterBatch() {
-    try { renderThumbs(); } catch (_) {}
-    try { if (typeof schedulePreview === 'function') schedulePreview(250); } catch (_) {}
+  function refreshRightPreview(reason) {
+    try {
+      if (window.PdfViewportLazyPreviewGuard?.refreshRightPreview) {
+        window.PdfViewportLazyPreviewGuard.refreshRightPreview(reason || 'batch-action');
+        return true;
+      }
+    } catch (_) {}
+    try {
+      const lazy = window.PdfViewportLazyPreview;
+      const scroll = byId('previewScroll');
+      if ((window.__pdfEditorLazyPreviewActive || scroll?.dataset?.lazyPreview === 'true') && lazy?.requestRender) {
+        const index = typeof lazy.getCurrentOutputIndex === 'function' ? lazy.getCurrentOutputIndex() : 0;
+        lazy.requestRender(index);
+        document.documentElement.dataset.pdfBatchPreviewSync = reason || 'batch-action';
+        return true;
+      }
+    } catch (_) {}
+    try {
+      if (typeof triggerPreview === 'function') {
+        Promise.resolve(triggerPreview()).finally(() => {
+          document.documentElement.dataset.pdfBatchPreviewSync = reason || 'batch-action';
+        });
+        return true;
+      }
+    } catch (_) {}
+    try {
+      if (typeof schedulePreview === 'function') {
+        schedulePreview(0);
+        document.documentElement.dataset.pdfBatchPreviewSync = reason || 'batch-action';
+        return true;
+      }
+    } catch (_) {}
+    return false;
   }
 
-  async function rotateSelected(degrees) {
-    const targets = orderedSelectedPages().filter((page) => page.pageType === 'pdf' && page.pdfPage);
-    if (!targets.length) return;
-    try { if (typeof showStatus === 'function') showStatus(`선택 ${targets.length}페이지 회전 중...`); } catch (_) {}
+  function announceBatch(type, ids) {
+    document.documentElement.dataset.pdfBatchActionCount = String((ids || []).length);
+    document.documentElement.dataset.pdfBatchActionType = type;
+    try {
+      document.dispatchEvent(new CustomEvent('pdf-batch-pages-changed', { detail: { type, ids: [...(ids || [])] } }));
+    } catch (_) {}
+  }
+
+  function refreshAfterBatch(options = {}) {
+    if (options.renderList !== false) {
+      try { renderThumbs(); } catch (_) {}
+    } else syncSelectionUi();
+    refreshRightPreview(options.reason || 'batch-action');
+  }
+
+  async function rotatePages(ids, degrees) {
+    const actionIds = [...(ids || [])];
+    const targets = pagesForIds(actionIds).filter((page) => page.pageType === 'pdf' && page.pdfPage);
+    if (!targets.length) return false;
+    try { if (typeof showStatus === 'function') showStatus(`선택 ${targets.length}페이지를 오른쪽 미리보기에 회전 반영 중...`); } catch (_) {}
     for (const page of targets) {
+      await ensureSourceThumb(page);
       page.rotation = ((page.rotation || 0) + degrees + 360) % 360;
+      // Keep thumbCanvas as the canonical rotated/output source used by the preview/export,
+      // while sourceThumbCanvas remains untouched for the left sidebar.
       page.thumbCanvas = await renderPdfPage(page.pdfPage, 0.9, page.rotation);
       page.hiCanvas = null;
     }
     try { if (typeof hideStatus === 'function') hideStatus(); } catch (_) {}
-    refreshAfterBatch();
+    announceBatch('rotation', actionIds);
+    refreshAfterBatch({ renderList: true, reason: 'batch-rotation' });
+    return true;
   }
 
-  function setSelectedExcluded(excluded) {
-    const targets = orderedSelectedPages();
+  function setPagesExcluded(ids, excluded) {
+    const actionIds = [...(ids || [])];
+    const targets = pagesForIds(actionIds);
+    if (!targets.length) return false;
     targets.forEach((page) => { page.excluded = excluded; });
-    refreshAfterBatch();
+    announceBatch(excluded ? 'hide' : 'include', actionIds);
+    refreshAfterBatch({ renderList: true, reason: excluded ? 'batch-hide' : 'batch-include' });
+    return true;
   }
 
-  function deleteSelected() {
-    const ids = new Set(selectedIds);
-    if (!ids.size || !editorReady()) return;
-    parsedPages = parsedPages.filter((page) => !ids.has(pageId(page)));
-    selectedIds.clear();
-    anchorId = null;
-    primaryId = null;
-    refreshAfterBatch();
+  function deletePages(ids) {
+    const actionIds = [...(ids || [])];
+    const idSet = new Set(actionIds.map(Number));
+    if (!idSet.size || !editorReady()) return false;
+    const before = parsedPages.length;
+    parsedPages = parsedPages.filter((page) => !idSet.has(pageId(page)));
+    if (parsedPages.length === before) return false;
+    actionIds.forEach((id) => selectedIds.delete(Number(id)));
+    anchorId = selectedIds.size ? [...selectedIds][0] : null;
+    primaryId = anchorId;
+    contextSelectionIds = [];
+    announceBatch('delete', actionIds);
+    refreshAfterBatch({ renderList: true, reason: 'batch-delete' });
+    return true;
   }
 
-  function insertBlank(relative) {
-    const selected = orderedSelectedPages();
-    if (!selected.length || !editorReady()) return;
+  function insertBlankForIds(ids, relative) {
+    const actionIds = [...(ids || [])];
+    const selected = pagesForIds(actionIds);
+    if (!selected.length || !editorReady()) return false;
     const indices = selected.map((page) => parsedPages.indexOf(page)).filter((index) => index >= 0);
+    if (!indices.length) return false;
     const index = relative === 'before' ? Math.min(...indices) : Math.max(...indices) + 1;
     parsedPages.splice(index, 0, makeBlankPage());
-    refreshAfterBatch();
+    announceBatch(relative === 'before' ? 'insert-blank-before' : 'insert-blank-after', actionIds);
+    refreshAfterBatch({ renderList: true, reason: 'batch-insert-blank' });
+    return true;
+  }
+
+  function contextIdsForPage(page) {
+    const id = pageId(page);
+    if (id === null) return [];
+    if (!selectedIds.has(id)) {
+      selectedIds.clear();
+      selectedIds.add(id);
+      anchorId = id;
+    }
+    primaryId = id;
+    syncSelectionUi();
+    const snapshot = snapshotSelectedIds();
+    contextSelectionIds = snapshot.slice();
+    document.documentElement.dataset.pdfContextSelectionCount = String(snapshot.length);
+    return snapshot;
   }
 
   function installContextMenu() {
-    if (!byId('thumbCtxMenu') || window.__pdfSelectionContextMenuInstalledV1) return false;
+    if (!byId('thumbCtxMenu') || window.__pdfSelectionContextMenuInstalledV2) return false;
+    window.__pdfSelectionContextMenuInstalledV2 = true;
     window.__pdfSelectionContextMenuInstalledV1 = true;
     window._openThumbCtxMenu = function openSelectedPageContextMenu(event, page) {
       event.preventDefault();
-      event.stopPropagation();
-      const id = pageId(page);
-      if (!selectedIds.has(id)) {
-        selectedIds.clear();
-        selectedIds.add(id);
-        anchorId = id;
-      }
-      primaryId = id;
-      syncSelectionUi();
+      event.stopImmediatePropagation();
+      const actionIds = contextIdsForPage(page);
+      if (!actionIds.length) return;
 
       const menu = byId('thumbCtxMenu');
-      const targets = orderedSelectedPages();
+      const targets = pagesForIds(actionIds);
       const hiddenCount = targets.filter((entry) => entry.excluded).length;
       const visibleCount = targets.length - hiddenCount;
       menu.innerHTML = '';
+      menu.dataset.selectionIds = actionIds.join(',');
+      menu.dataset.selectionCount = String(actionIds.length);
 
       const heading = document.createElement('div');
       heading.className = 'ctx-heading';
-      heading.textContent = `선택한 페이지 ${targets.length}개`;
+      heading.textContent = `선택한 페이지 ${actionIds.length}개 · 오른쪽 미리보기에 적용`;
       menu.appendChild(heading);
-      if (visibleCount) menu.appendChild(menuItem(menu, '◌', `선택 페이지 숨기기 (${visibleCount})`, '', () => setSelectedExcluded(true)));
-      if (hiddenCount) menu.appendChild(menuItem(menu, '◉', `선택 페이지 다시 포함 (${hiddenCount})`, '', () => setSelectedExcluded(false)));
+      if (visibleCount) menu.appendChild(menuItem(menu, '◌', `선택 페이지 숨기기 (${visibleCount})`, '', () => setPagesExcluded(actionIds, true)));
+      if (hiddenCount) menu.appendChild(menuItem(menu, '◉', `선택 페이지 다시 포함 (${hiddenCount})`, '', () => setPagesExcluded(actionIds, false)));
       menu.appendChild(separator());
-      menu.appendChild(menuItem(menu, '↻', '선택 시계방향 90° 회전', '', () => rotateSelected(90)));
-      menu.appendChild(menuItem(menu, '↺', '선택 시계반대방향 90° 회전', '', () => rotateSelected(-90)));
-      menu.appendChild(menuItem(menu, '⇅', '선택 180° 회전', '', () => rotateSelected(180)));
+      menu.appendChild(menuItem(menu, '↻', `선택 ${actionIds.length}개 시계방향 90° 회전`, '', () => rotatePages(actionIds, 90)));
+      menu.appendChild(menuItem(menu, '↺', `선택 ${actionIds.length}개 시계반대방향 90° 회전`, '', () => rotatePages(actionIds, -90)));
+      menu.appendChild(menuItem(menu, '⇅', `선택 ${actionIds.length}개 180° 회전`, '', () => rotatePages(actionIds, 180)));
       menu.appendChild(separator());
-      menu.appendChild(menuItem(menu, '⬆', '선택 영역 위에 빈 페이지 삽입', '', () => insertBlank('before')));
-      menu.appendChild(menuItem(menu, '⬇', '선택 영역 아래에 빈 페이지 삽입', '', () => insertBlank('after')));
+      menu.appendChild(menuItem(menu, '⬆', '선택 영역 위에 빈 페이지 삽입', '', () => insertBlankForIds(actionIds, 'before')));
+      menu.appendChild(menuItem(menu, '⬇', '선택 영역 아래에 빈 페이지 삽입', '', () => insertBlankForIds(actionIds, 'after')));
       menu.appendChild(separator());
       menu.appendChild(menuItem(menu, '☑', '전체 페이지 선택', 'all-rotate', selectAll));
       menu.appendChild(menuItem(menu, '□', '선택 해제', 'all-rotate', clearSelection));
       menu.appendChild(separator());
-      menu.appendChild(menuItem(menu, '🗑', `선택 페이지 삭제 (${targets.length})`, 'danger', deleteSelected));
+      menu.appendChild(menuItem(menu, '🗑', `선택 페이지 삭제 (${actionIds.length})`, 'danger', () => deletePages(actionIds)));
 
       menu.classList.add('open');
       const viewportWidth = window.innerWidth;
@@ -459,6 +608,7 @@
       }
       return;
     }
+    parsedPages.forEach(rememberSourceThumb);
     ensureToolbar();
     installClickSelection();
     patchRenderThumbs();
@@ -476,7 +626,17 @@
     selectedIds,
     selectAll,
     clearSelection,
+    snapshotSelectedIds,
+    pagesForIds,
+    rotatePages,
+    setPagesExcluded,
+    deletePages,
+    insertBlankForIds,
+    refreshRightPreview,
+    syncSidebarSourceThumbs,
     focusPage: (id) => focusPreviewForPage(pageById(id), true),
+    get contextSelectionIds() { return contextSelectionIds.slice(); },
+    stage: 'page-selection-batch-snapshot-canvas-v2',
   };
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, { once: true });
