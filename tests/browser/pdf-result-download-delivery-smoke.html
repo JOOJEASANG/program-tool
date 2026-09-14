@@ -37,14 +37,16 @@
       };
       try{
         await wait(()=>window.PdfOutputSaveRecovery,'recovery api');
+        const blobUrl=URL.createObjectURL(new Blob(['%PDF-1.4\nsmoke\n%%EOF'],{type:'application/pdf'}));
         const link=document.createElement('a');
-        link.href='blob:booklet-result';
+        link.href=blobUrl;
         link.download='booklet.pdf';
         link.click();
-        URL.revokeObjectURL('blob:booklet-result');
+        URL.revokeObjectURL(blobUrl);
 
         assert(window.__nativeAnchorClicks.length===1,'native anchor click missing');
         assert(window.__nativeAnchorClicks[0].connected===true,'result anchor was not mounted before click');
+        assert(window.__nativeAnchorClicks[0].href.startsWith('blob:'),'real blob URL was not used');
         assert(window.__nativeRevokeCalls.length===0,'blob url was revoked immediately');
         assert(document.documentElement.dataset.pdfResultDownloadDispatch==='mounted-blob-v2','download dispatch marker missing');
         assert(document.documentElement.dataset.pdfResultDownloadDelivery==='blob-grace-v2','download delivery marker missing');
