@@ -305,17 +305,19 @@ def _draw_shape_layer(page: fitz.Page, item: dict):
         shape.commit(overlay=True)
         return
 
-    radius_pt = 0.0
+    # PyMuPDF draw_rect radius is a ratio of the smaller side (0..0.5),
+    # while the editor stores a 0..50 percentage for the visible corner radius.
+    radius_ratio = 0.0
     if kind == "pill":
-        radius_pt = min(width, height) / 2
+        radius_ratio = 0.5
     elif kind == "roundRect":
-        radius_pt = min(width, height) * radius / 100
+        radius_ratio = min(0.5, radius / 100)
     page.draw_rect(
         rect,
         color=stroke if stroke_width > 0 or kind == "outline" else None,
         fill=None if kind == "outline" else fill,
         width=max(0.5, stroke_width),
-        radius=radius_pt if radius_pt > 0 else None,
+        radius=radius_ratio if radius_ratio > 0 else None,
         stroke_opacity=opacity,
         fill_opacity=opacity,
         overlay=True,
