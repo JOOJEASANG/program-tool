@@ -190,6 +190,15 @@ def health():
 
 
 @https_fn.on_request(
+    cors=options.CorsOptions(
+        cors_origins=[
+            r"^https://program-tool[.]web[.]app$",
+            r"^https://program-tool[.]firebaseapp[.]com$",
+            r"^https://program-tool--[A-Za-z0-9-]+[.]web[.]app$",
+            r"^http://(?:localhost|127[.]0[.]0[.]1)(?::[0-9]+)?$",
+        ],
+        cors_methods=["get", "post", "delete", "options"],
+    ),
     memory=options.MemoryOption.GB_2,
     timeout_sec=300,
     min_instances=0,
