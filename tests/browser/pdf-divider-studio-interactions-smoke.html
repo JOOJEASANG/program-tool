@@ -90,7 +90,7 @@
     }
     window.PdfEditorPageSelection={selectedIds:new Set(),clearSelection(){this.selectedIds.clear();},refreshRightPreview(){previewRefreshes+=1;},syncSidebarSourceThumbs(){},focusPage(){}};
   </script>
-  <script src="/js/pdf-editor/divider-interaction-stability.js?v=20260914-1"></script>
+  <script src="/js/pdf-editor/divider-interaction-stability.js?v=20260914-2"></script>
   <script src="/js/pdf-editor/divider-studio.js?v=20260914-4"></script>
   <script>
     function assert(condition,message){if(!condition)throw new Error(message);}
@@ -111,11 +111,11 @@
       assert(twoLine.title.includes('\n'),'two-line title was not preserved');
 
       $('dividerNoBg').checked=false;$('dividerNoBg').dispatchEvent(new Event('change',{bubbles:true}));
-      const gradient=$('[data-bg-style="gradient"]');assert(gradient,'gradient background button missing');gradient.click();
+      const gradient=document.querySelector('[data-bg-style="gradient"]');assert(gradient,'gradient background button missing');gradient.click();
       $('dividerBg2').value='#dbeafe';$('dividerBg2').dispatchEvent(new Event('input',{bubbles:true}));
       assert(window.getDividerContent().bgStyle==='gradient','background style did not update');
 
-      const titleBoxBtn=$('[data-add-shape="titleBox"]');assert(titleBoxBtn,'title box button missing');titleBoxBtn.click();
+      const titleBoxBtn=document.querySelector('[data-add-shape="titleBox"]');assert(titleBoxBtn,'title box button missing');titleBoxBtn.click();
       await wait(30);
       let shapes=window.PdfDividerStudio.getShapes();assert(shapes.length===1,'title box was not added');
       const shapeId=shapes[0].id;
