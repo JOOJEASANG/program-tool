@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>PDF divider UI corrections smoke</title>
+  <style>
+    body{font-family:Arial,sans-serif;margin:0}
+    #dividerModal{position:fixed;inset:0;background:#ddd;display:none}
+    .modal-box{width:1100px;height:760px;background:#fff;margin:0 auto}
+    .divider-prev-wrap{width:420px;height:594px;position:relative;background:#fff}
+    #dividerPrevCanvas{width:100%;height:100%}
+    .field{margin:6px 0}
+  </style>
+</head>
+<body>
+  <div id="dividerModal">
+    <div class="modal-box">
+      <div class="modal-head">간지 페이지 편집 <button id="dividerModalClose" type="button">닫기</button></div>
+      <div class="divider-prev-wrap"><canvas id="dividerPrevCanvas"></canvas></div>
+      <div class="field"><label>제목</label><input type="text" id="dividerTitle" value=""></div>
+      <div class="field"><label>부제목</label><input type="text" id="dividerSubtitle" value=""></div>
+      <div class="field"><label>하단 메모</label><input type="text" id="dividerNote" value=""></div>
+      <div class="field"><label><input type="checkbox" id="dividerNoBg" checked> 배경 없음</label></div>
+      <div class="field"><label>배경색</label><input type="color" id="dividerBg" value="#ffffff"></div>
+      <div class="field"><label>글자색</label><input type="color" id="dividerFg" value="#111827"></div>
+      <div class="field"><label>스타일</label><div id="dividerStyleRow"><button type="button" class="style-btn active" data-style="simple">심플</button><button type="button" class="style-btn" data-style="band">밴드</button><button type="button" class="style-btn" data-style="lines">라인</button></div></div>
+      <div class="field" id="legacyTextPositionField"><label>텍스트 위치</label><div id="dividerVAlignRow"><button type="button" data-valign="top">상단</button><button type="button" class="active" data-valign="center">중앙</button><button type="button" data-valign="bottom">하단</button></div><input type="range" id="dividerVOffset" min="-40" max="40" value="0"></div>
+      <div class="modal-footer"><button type="button" id="dividerSaveBtn">저장</button></div>
+    </div>
+  </div>
+
+  <script>
+    let _editingDividerPage=null;
+    function $(id){return document.getElementById(id);}
+    function currentStyle(){return $('dividerStyleRow').querySelector('[data-style].active')?.dataset.style||'simple';}
+    function renderDividerCanvas(content,width,height){
+      const canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;
+      const ctx=canvas.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,width,height);return canvas;
+    }
+    function getDividerContent(){
+      return {title:$('dividerTitle').value,subtitle:$('dividerSubtitle').value,note:$('dividerNote').value,noBg:$('dividerNoBg').checked,bg:$('dividerBg').value,fg:$('dividerFg').value,style:currentStyle(),textVOffset:Number($('dividerVOffset').value)||0,titleX:50,subtitleX:50,noteX:50,titleY:45,subtitleY:55,noteY:88};
+    }
+    function updateDividerPreview(){
+      const canvas=$('dividerPrevCanvas'),wrap=canvas.parentElement,w=wrap.clientWidth||420,h=wrap.clientHeight||594;
+      canvas.width=w;canvas.height=h;const tmp=renderDividerCanvas(getDividerContent(),w,h);canvas.getContext('2d').drawImage(tmp,0,0,w,h);
+    }
+    function openDividerInsert(){
+      _editingDividerPage=null;$('dividerModal').style.display='flex';$('dividerTitle').value='';$('dividerSubtitle').value='';$('dividerNote').value='';$('dividerNoBg').checked=true;$('dividerBg').value='#ffffff';$('dividerFg').value='#111827';$('dividerStyleRow').querySelectorAll('[data-style]').forEach(b=>b.classList.toggle('active',b.dataset.style==='simple'));updateDividerPreview();
+    }
+    function editDivider(page){_editingDividerPage=page;openDividerInsert();}
+  </script>
+  <script src="/js/pdf-editor/divider-studio.js?v=20260914-4"></script>
+  <script src="/js/pdf-editor/divider-ui-corrections.js?v=20260914-1"></script>
+  <script>
+    const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+    function assert(condition,message){if(!condition)throw new Error(message);}
+    function hasInk(canvas,x0,y0,x1,y1){
+      const ctx=canvas.getContext('2d'),data=ctx.getImageData(Math.max(0,x0),Math.max(0,y0),Math.max(1,x1-x0),Math.max(1,y1-y0)).data;
+      for(let i=0;i<data.length;i+=4){if(data[i]<245||data[i+1]<245||data[i+2]<245)return true;}
+      return false;
+    }
+    async function run(){
+      await wait(1100);
+      openDividerInsert();
+      await wait(120);
+      window.PdfDividerUiCorrections.apply();
+      await wait(80);
+
+      assert(document.documentElement.dataset.pdfDividerUiCorrections==='ready','correction layer not ready');
+      assert(!$('dividerBackgroundStudioCard'),'background style card was not removed');
+      const legacyField=$('dividerVAlignRow')?.closest('.field');
+      assert(legacyField&&legacyField.style.display==='none','legacy text position field is still visible');
+      assert(legacyField.dataset.dividerLegacyTextPositionHidden==='true','legacy text position marker missing');
+
+      const frame=document.querySelector('#dividerStyleRow [data-style="frame"]');
+      assert(frame,'frame style button missing');frame.click();await wait(80);
+      assert(window.getDividerContent().style==='frame','style click did not change active style');
+      const canvas=$('dividerPrevCanvas');
+      assert(hasInk(canvas,22,22,40,40),'frame style was not rendered in right preview');
+
+      const titleBox=document.querySelector('[data-add-shape="titleBox"]');
+      assert(titleBox,'title box button missing');titleBox.click();await wait(120);
+      window.PdfDividerUiCorrections.makeTitleBoxesVisible();await wait(80);
+      const shapes=window.PdfDividerStudio.getShapes();
+      assert(shapes.length===1,'title box was not added');
+      assert(String(shapes[0].fill).toLowerCase()==='#dbeafe','title box fill is still invisible');
+      assert(String(shapes[0].stroke).toLowerCase()==='#2563eb','title box stroke is still invisible');
+      assert(Number(shapes[0].strokeWidth)>=1,'title box stroke width was not corrected');
+      assert(hasInk(canvas,170,230,250,305),'title box was not rendered in right preview');
+
+      assert(document.documentElement.dataset.pdfDividerRendererOwner==='studio-corrected-v1','studio renderer is not authoritative');
+      document.body.setAttribute('data-pdf-divider-ui-corrections-smoke','pass');
+    }
+    run().catch(error=>{document.body.setAttribute('data-pdf-divider-ui-corrections-smoke','fail');document.body.textContent=error.stack||String(error);});
+  </script>
+</body>
+</html>
