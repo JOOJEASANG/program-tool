@@ -9,7 +9,7 @@ from __future__ import annotations
 import os
 import threading
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 import google.auth
@@ -74,7 +74,7 @@ def _periods(now: datetime) -> dict[str, tuple[datetime, datetime]]:
     day_start = pacific.replace(hour=0, minute=0, second=0, microsecond=0).astimezone(timezone.utc)
     month_start = now.astimezone(timezone.utc).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     # Gauge metrics only need recent samples; seven days covers delayed daily bucket-size reports.
-    gauge_start = now - __import__("datetime").timedelta(days=7)
+    gauge_start = now - timedelta(days=7)
     return {
         "day": (day_start, now),
         "month": (month_start, now),
