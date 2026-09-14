@@ -19,7 +19,8 @@
     {id:'pdfFileContextScopeScript',src:'/js/pdf-editor/file-context-scope.js?v=20260805-1'},
     {id:'pdfImportTransactionSafetyScriptV1',src:'/js/pdf-editor/import-transaction-safety.js?v=20260806-1'},
     {id:'pdfViewportLazyPreviewScriptV1',src:'/js/pdf-editor/viewport-lazy-preview.js?v=20260909-2'},
-    {id:'pdfViewportLazyPreviewGuardScriptV1',src:'/js/pdf-editor/viewport-lazy-preview-guard.js?v=20260806-1'},
+    {id:'pdfViewportLazyPreviewGuardScriptV1',src:'/js/pdf-editor/viewport-lazy-preview-guard.js?v=20260914-1'},
+    {id:'pdfPreviewCanvasActionSyncScriptV1',src:'/js/pdf-editor/preview-canvas-action-sync.js?v=20260914-1',app:'layout'},
     {id:'pdfFileNavigationScriptV1',src:'/js/pdf-editor/file-navigation.js?v=20260806-1'},
     {id:'pdfLayoutSmoothPreviewScriptV1',src:'/js/pdf-editor/layout-smooth-preview.js?v=20260909-1'},
     {id:'pdfPreviewInsertPersistenceScriptV1',src:'/js/pdf-editor/preview-insert-persistence.js?v=20260914-3'},
@@ -129,6 +130,6 @@
     modules:MODULES.map(({id,src})=>({id,src})),
     app:standaloneApp(),
     get profile(){return window.PdfEditorStandaloneApps?.fromLocation?.(location.search)?.key||null;},
-    stage:'pdf-editor-route-runtime-manifest-v3-usage-output-guard'
+    stage:'pdf-editor-route-runtime-manifest-v4-canvas-actions'
   };
 })();
