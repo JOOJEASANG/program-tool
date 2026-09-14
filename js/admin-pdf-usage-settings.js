@@ -1,4 +1,4 @@
-// Compatibility bootstrap: legacy admin filename now loads the extensible program usage settings UI.
+// Compatibility bootstrap for the retired usage-count administration entry point.
 (function(){
   'use strict';
   if(window.__programAdminUsageCompatibilityBootstrapV1)return;
@@ -13,26 +13,24 @@
         existing.addEventListener('error',reject,{once:true});
         return;
       }
-      const script=document.createElement('script');
-      script.id=id;script.src=src;script.async=false;
+      const script=document.createElement('script');script.id=id;script.src=src;script.async=false;
       script.addEventListener('load',()=>{script.dataset.loaded='true';resolve(script);},{once:true});
-      script.addEventListener('error',reject,{once:true});
-      document.head.appendChild(script);
+      script.addEventListener('error',reject,{once:true});document.head.appendChild(script);
     });
   }
 
   async function boot(){
-    if(!window.ProgramUsageCatalog)await loadScript('programUsageCatalogScriptV1','/js/program-usage-catalog.js?v=20260914-1');
-    if(!window.ProgramAdminUsageSettings)await loadScript('adminProgramUsageSettingsScriptV2','/js/admin-program-usage-settings.js?v=20260914-1');
-    document.documentElement.dataset.adminProgramUsageBootstrap='ready';
+    if(!window.ProgramAdminAccessControl)await loadScript('programAccessAdminScriptV1','/js/admin-access-control.js?v=20260914-1');
+    if(!window.AdminFirebaseUsage)await loadScript('firebaseUsageAdminScriptV1','/js/admin-firebase-usage.js?v=20260914-1');
+    document.documentElement.dataset.adminProgramUsageBootstrap='approval-only';
   }
 
   window.ProgramAdminPdfUsageSettings=Object.freeze({
-    load:()=>window.ProgramAdminUsageSettings?.load?.({showStatus:true}),
-    save:()=>window.ProgramAdminUsageSettings?.saveAll?.(),
-    get loaded(){return Boolean(window.ProgramAdminUsageSettings?.loaded);},
-    stage:'admin-pdf-usage-compatibility-bootstrap-v2'
+    load:()=>window.ProgramAdminAccessControl?.refresh?.(),
+    save:()=>false,
+    get loaded(){return Boolean(window.ProgramAdminAccessControl);},
+    stage:'admin-usage-count-retired-approval-compat-v3'
   });
 
-  boot().catch(error=>console.error('[admin-program-usage] bootstrap failed',error));
+  boot().catch(error=>console.error('[admin-access] compatibility bootstrap failed',error));
 })();
