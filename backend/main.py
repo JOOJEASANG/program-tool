@@ -197,7 +197,7 @@ def health():
             r"^https://program-tool[.]web[.]app$",
             r"^https://program-tool[.]firebaseapp[.]com$",
             r"^https://program-tool--[A-Za-z0-9-]+[.]web[.]app$",
-            r"^http://(?:localhost|127[.]0[.]1)(?::[0-9]+)?$",
+            r"^http://(?:localhost|127[.]0[.]0[.]1)(?::[0-9]+)?$",
         ],
         cors_methods=["get", "post", "delete", "options"],
     ),
