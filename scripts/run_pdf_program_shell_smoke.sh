@@ -117,7 +117,7 @@ run_product_case "pdf-divider-modal-layout-smoke.html" "$OUT_DIR/pdf-divider-mod
 reset_profile
 run_product_case "pdf-fast-insert-actions-smoke.html" "$OUT_DIR/pdf-fast-insert-smoke-dom.html" 'data-pdf-fast-insert-smoke="pass"' 'PASS: large PDF optimized preview keeps blank-page and divider insertion actions'
 reset_profile
-run_product_case "pdf-preview-insert-persistence-smoke.html" "$OUT_DIR/pdf-preview-insert-persistence-smoke-dom.html" 'data-pdf-preview-insert-persistence-smoke="pass"' 'PASS: multi-file preview rerenders keep blank-page and divider insertion controls at every row boundary'
+run_product_case "pdf-preview-insert-persistence-smoke.html" "$OUT_DIR/pdf-preview-insert-persistence-smoke-dom.html" 'data-pdf-preview-insert-persistence-smoke="pass"' 'PASS: blank-page and divider controls remain visible and mutate the real page model after preview rerenders'
 reset_profile
 run_product_case "pdf-nup-interaction-stability-smoke.html" "$OUT_DIR/pdf-nup-interaction-stability-smoke-dom.html" 'data-pdf-nup-stability-smoke="pass"' 'PASS: N-up mouse edit keeps scroll/output face fixed and preserves user-selected 200% preview zoom'
 reset_profile
@@ -135,7 +135,7 @@ run_product_case "pdf-output-save-actions-smoke.html" "$OUT_DIR/pdf-output-save-
 reset_profile
 run_product_case "pdf-page-list-quick-add-smoke.html" "$OUT_DIR/pdf-page-list-quick-add-smoke-dom.html" 'data-pdf-page-list-quick-add-smoke="pass"' 'PASS: page list keeps sticky PDF append action and removes legacy jump panel from view'
 reset_profile
-run_product_case "pdf-layout-sidebar-title-smoke.html" "$OUT_DIR/pdf-layout-sidebar-title-smoke-dom.html" 'data-pdf-layout-sidebar-title-smoke="pass"' 'PASS: layout PDF editor removes only the sidebar top title'
+run_product_case "pdf-layout-sidebar-title-smoke.html" "$OUT_DIR/pdf-layout-sidebar-title-smoke-dom.html" 'data-pdf-layout-sidebar-title-smoke="pass"' 'PASS: layout PDF editor removes sidebar titles and the legacy print/output tools label'
 reset_profile
 run_product_case "pdf-advanced-upload-facing-smoke.html" "$OUT_DIR/pdf-advanced-upload-facing-smoke-dom.html" 'data-pdf-advanced-upload-facing-smoke="pass"' 'PASS: advanced PDF upload parity and facing-page state are active'
 reset_profile
