@@ -52,7 +52,8 @@
         coreReceived.length=0;
         const imported=await window.SmartPrintLayoutImageInput.importImages([pdfFile,imageFile]);
         if(!imported)throw new Error('bridge import failed');
-        await new Promise(r=>setTimeout(r,30));
+        // replayThroughInput() dispatches change synchronously after normalization,
+        // so the canonical receiver must already have both PDF files here.
         if(coreReceived.length!==2)throw new Error(`canonical app received ${coreReceived.length} files`);
         if(coreReceived.some(file=>file.type!=='application/pdf'))throw new Error('canonical smart app received non-PDF');
         if(document.documentElement.dataset.smartPrintImageImport!=='complete')throw new Error('completion marker missing');
