@@ -117,7 +117,7 @@
       // Divider correction is deliberately post-manifest: it must run after the
       // parallel core/local-image helpers have finished so it can settle renderer
       // ownership without adding another route-bootstrap manifest asset.
-      .then(()=>advanced?true:hostLoadScript('pdfDividerUiCorrectionsScriptV1','/js/pdf-editor/divider-ui-corrections.js?v=20260914-1'))
+      .then(()=>advanced?true:hostLoadScript('pdfDividerUiCorrectionsScriptV1','/js/pdf-editor/divider-ui-corrections.js?v=20260914-2'))
       .then(()=>{
         document.documentElement.dataset.pdfRouteRuntime='1';
         if(app){
