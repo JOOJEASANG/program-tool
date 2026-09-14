@@ -47,7 +47,7 @@ def test_pdf_route_manifest_owns_route_helpers_without_editor_state_takeover():
     assert "/js/pdf-editor/page-selection-preview-focus.js?v=20260914-1" in route
     assert "app:'layout'" in route
     assert "/js/pdf-editor/layout-smooth-preview.js?v=20260909-1" in route
-    assert "/js/pdf-editor/preview-insert-persistence.js?v=20260831-2" in route
+    assert "/js/pdf-editor/preview-insert-persistence.js?v=20260914-3" in route
     assert "/js/pdf-editor/output-save-recovery.js?v=20260831-1" in route
     assert "/js/pdf-editor/save-operation.js" not in route
     assert "/js/pdf-editor/divider-modal-layout.js?v=20260830-2" in route
