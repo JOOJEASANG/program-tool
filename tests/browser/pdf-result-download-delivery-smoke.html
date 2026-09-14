@@ -43,7 +43,8 @@
       };
       try{
         await wait(()=>window.PdfOutputSaveRecovery,'recovery api');
-        await wait(()=>document.documentElement.dataset.pdfResultDownloadDelivery==='blob-grace-v3-storage-direct','download delivery install');
+        await wait(()=>document.documentElement.dataset.pdfResultDownloadDelivery==='blob-grace-v2','blob download delivery install');
+        await wait(()=>document.documentElement.dataset.pdfStorageDirectDelivery==='browser-direct-v1','storage direct delivery install');
         await wait(()=>document.documentElement.dataset.pdfStorageDirectBridge==='1','storage direct bridge');
 
         const blobUrl=URL.createObjectURL(new Blob(['%PDF-1.4\nsmoke\n%%EOF'],{type:'application/pdf'}));
