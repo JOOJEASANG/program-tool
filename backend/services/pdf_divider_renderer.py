@@ -59,7 +59,7 @@ def _text_rect(page_w: float, x_pct: float, y0: float, y1: float, pad: float):
 def _insert_textbox(page: fitz.Page, text: str, x_pct: float, y: float, size: float, color, opacity: float = 1.0):
     if not text:
         return
-    rect, align = _text_rect(page.rect.width, x_pct, max(0, y - size), min(page.rect.height, y + size), 40)
+    rect, align = _text_rect(page.rect.width, x_pct, max(0, y - size * 1.15), min(page.rect.height, y + size * 1.15), 40)
     page.insert_textbox(rect, text, fontsize=size, fontname=CJK_FONT_NAME, color=color, align=align, fill_opacity=opacity, overlay=True)
 
 
@@ -147,7 +147,6 @@ def _decode_local_image_data_url(data_url) -> tuple[bytes, str] | None:
 
 
 def _local_image_bytes(content: dict) -> bytes | None:
-    """Backward-compatible decoder for the original single divider image."""
     decoded = _decode_local_image_data_url(content.get("localImageDataUrl"))
     return decoded[0] if decoded else None
 
@@ -223,6 +222,119 @@ def _insert_image_layer(page: fitz.Page, layer: dict) -> bool:
         return False
 
 
+def _draw_pattern(page: fitz.Page, content: dict):
+    pattern = str(content.get("pattern") or "none").lower()
+    if pattern not in {"dots", "grid", "diagonal"}:
+        return
+    color = _color(content.get("patternColor"), (1.0, 1.0, 1.0))
+    opacity = _number(content.get("patternOpacity"), 0.10, 0.02, 0.30)
+    width, height = page.rect.width, page.rect.height
+    gap = max(22.0, min(width, height) / 14)
+    shape = page.new_shape()
+    if pattern == "dots":
+        radius = max(0.8, gap * 0.045)
+        y = gap / 2
+        while y < height:
+            x = gap / 2
+            while x < width:
+                shape.draw_circle(fitz.Point(x, y), radius)
+                x += gap
+            y += gap
+        shape.finish(color=None, fill=color, fill_opacity=opacity)
+    elif pattern == "grid":
+        x = gap
+        while x < width:
+            shape.draw_line(fitz.Point(x, 0), fitz.Point(x, height))
+            x += gap
+        y = gap
+        while y < height:
+            shape.draw_line(fitz.Point(0, y), fitz.Point(width, y))
+            y += gap
+        shape.finish(color=color, width=max(0.5, width / 900), stroke_opacity=opacity)
+    else:
+        x = -height
+        while x < width:
+            shape.draw_line(fitz.Point(x, 0), fitz.Point(x + height, height))
+            x += gap
+        shape.finish(color=color, width=max(0.5, width / 900), stroke_opacity=opacity)
+    shape.commit(overlay=True)
+
+
+def _draw_frame_and_accent(page: fitz.Page, content: dict):
+    width, height = page.rect.width, page.rect.height
+    border_style = str(content.get("borderStyle") or "none").lower()
+    border_color = _color(content.get("borderColor"), (1.0, 1.0, 1.0))
+    border_width = _number(content.get("borderWidth"), 3, 1, 12) * min(width, height) / 600
+    if border_style in {"thin", "double"}:
+        inset = border_width * 2
+        page.draw_rect(
+            fitz.Rect(inset, inset, width - inset, height - inset),
+            color=border_color,
+            width=max(0.6, border_width),
+            overlay=True,
+        )
+        if border_style == "double":
+            inset2 = inset + border_width * 3
+            page.draw_rect(
+                fitz.Rect(inset2, inset2, width - inset2, height - inset2),
+                color=border_color,
+                width=max(0.6, border_width),
+                overlay=True,
+            )
+
+    accent_style = str(content.get("accentStyle") or "none").lower()
+    accent = _color(content.get("accentColor"), (0.33, 0.78, 0.83))
+    thickness = max(5.0, min(width, height) * 0.018)
+    if accent_style == "top":
+        page.draw_rect(fitz.Rect(0, 0, width, thickness), color=None, fill=accent, overlay=True)
+    elif accent_style == "bottom":
+        page.draw_rect(fitz.Rect(0, height - thickness, width, height), color=None, fill=accent, overlay=True)
+    elif accent_style == "left":
+        page.draw_rect(fitz.Rect(0, 0, thickness, height), color=None, fill=accent, overlay=True)
+    elif accent_style == "corners":
+        length = min(width, height) * 0.12
+        for rect in (
+            fitz.Rect(0, 0, length, thickness),
+            fitz.Rect(0, 0, thickness, length),
+            fitz.Rect(width - length, height - thickness, width, height),
+            fitz.Rect(width - thickness, height - length, width, height),
+        ):
+            page.draw_rect(rect, color=None, fill=accent, overlay=True)
+
+
+def _draw_badge(page: fitz.Page, content: dict):
+    text = _text(content.get("badgeText"))[:40]
+    if not text:
+        return
+    width = page.rect.width
+    bg = _color(content.get("badgeBg"), (0.09, 0.41, 0.88))
+    size = max(8.0, min(14.0, width * 0.022))
+    text_width = min(width * 0.45, _measure_text(text, size))
+    pad_x, pad_y = size * 0.8, size * 0.55
+    badge_w = text_width + pad_x * 2
+    badge_h = size + pad_y * 2
+    position = str(content.get("badgePosition") or "top-left").lower()
+    margin = max(14.0, width * 0.035)
+    if position == "top-center":
+        x0 = (width - badge_w) / 2
+    elif position == "top-right":
+        x0 = width - margin - badge_w
+    else:
+        x0 = margin
+    y0 = margin
+    rect = fitz.Rect(x0, y0, x0 + badge_w, y0 + badge_h)
+    page.draw_rect(rect, color=None, fill=bg, fill_opacity=0.94, overlay=True)
+    page.insert_textbox(
+        rect,
+        text,
+        fontsize=size,
+        fontname=CJK_FONT_NAME,
+        color=(1.0, 1.0, 1.0),
+        align=fitz.TEXT_ALIGN_CENTER,
+        overlay=True,
+    )
+
+
 def render_divider_page(out_doc: fitz.Document, content_raw: str, style: str, paper_w_pt: float, paper_h_pt: float):
     content = pdf_ops._parse_divider_content(content_raw)
     title = _text(content.get("title"))
@@ -233,18 +345,36 @@ def render_divider_page(out_doc: fitz.Document, content_raw: str, style: str, pa
     fg = _color(content.get("fg"), (0.0, 0.0, 0.0))
     bg = _color(content.get("bg"), (1.0, 1.0, 1.0))
     offset = _number(content.get("textVOffset"), 0, -40, 40)
-    title_y_pct = _number(content.get("titleY"), 45, 5, 95) + offset
-    subtitle_y_pct = _number(content.get("subtitleY"), 55, 5, 95) + offset
-    note_y_pct = _number(content.get("noteY"), 88, 5, 95) + offset
-    title_x_pct = _number(content.get("titleX"), 50, 5, 95)
-    subtitle_x_pct = _number(content.get("subtitleX"), 50, 5, 95)
-    note_x_pct = _number(content.get("noteX"), 50, 5, 95)
+
+    # New divider-design documents carry textAlign/titleSize. Older saved files
+    # keep the historical positions and font sizes unchanged.
+    modern_design = "textAlign" in content or "titleSize" in content
+    if modern_design:
+        align_name = str(content.get("textAlign") or "center").lower()
+        x_pct = 10 if align_name == "left" else 90 if align_name == "right" else 50
+        valign = str(content.get("textVAlign") or "center").lower()
+        base_y = 22 if valign == "top" else 78 if valign == "bottom" else 50
+        title_y_pct = base_y - (5.5 if subtitle else 0) + offset
+        subtitle_y_pct = base_y + 8 + offset
+        note_y_pct = 88
+        title_x_pct = subtitle_x_pct = note_x_pct = x_pct
+        title_size = _number(content.get("titleSize"), 52, 24, 90)
+        subtitle_size = _number(content.get("subtitleSize"), 28, 12, 50)
+        note_size = _number(content.get("noteSize"), 16, 8, 30)
+    else:
+        title_y_pct = _number(content.get("titleY"), 45, 5, 95) + offset
+        subtitle_y_pct = _number(content.get("subtitleY"), 55, 5, 95) + offset
+        note_y_pct = _number(content.get("noteY"), 88, 5, 95) + offset
+        title_x_pct = _number(content.get("titleX"), 50, 5, 95)
+        subtitle_x_pct = _number(content.get("subtitleX"), 50, 5, 95)
+        note_x_pct = _number(content.get("noteX"), 50, 5, 95)
+        title_size, subtitle_size, note_size = 42, 24, 15
+
     title_y = paper_h_pt * _number(title_y_pct, 45, 0, 100) / 100
     subtitle_y = paper_h_pt * _number(subtitle_y_pct, 55, 0, 100) / 100
     note_y = paper_h_pt * _number(note_y_pct, 88, 0, 100) / 100
     page = out_doc.new_page(width=paper_w_pt, height=paper_h_pt)
 
-    # A divider without a selected background is always plain white.
     if not no_bg:
         page.draw_rect(page.rect, color=None, fill=bg, overlay=True)
 
@@ -254,7 +384,6 @@ def render_divider_page(out_doc: fitz.Document, content_raw: str, style: str, pa
         if _insert_image_layer(page, layer):
             inserted_layers += 1
 
-    # Old saved dividers without localImageLayers keep their original full-page behavior.
     legacy_image = None
     if not layers:
         legacy_image = _local_image_bytes(content)
@@ -263,6 +392,8 @@ def render_divider_page(out_doc: fitz.Document, content_raw: str, style: str, pa
                 page.insert_image(page.rect, stream=legacy_image, keep_proportion=False, overlay=True)
             except Exception:
                 legacy_image = None
+
+    _draw_pattern(page, content)
 
     has_visual_background = inserted_layers > 0 or legacy_image is not None or not no_bg
     if has_visual_background and resolved_style == "band":
@@ -289,9 +420,12 @@ def render_divider_page(out_doc: fitz.Document, content_raw: str, style: str, pa
             stroke_opacity=0.28,
         )
         shape.commit(overlay=True)
-    _insert_textbox(page, title, title_x_pct, title_y, 42, fg, 1)
-    _insert_textbox(page, subtitle, subtitle_x_pct, subtitle_y, 24, fg, 0.82)
-    _insert_textbox(page, note, note_x_pct, note_y, 15, fg, 0.68)
+
+    _draw_frame_and_accent(page, content)
+    _draw_badge(page, content)
+    _insert_textbox(page, title, title_x_pct, title_y, title_size, fg, 1)
+    _insert_textbox(page, subtitle, subtitle_x_pct, subtitle_y, subtitle_size, fg, 0.82)
+    _insert_textbox(page, note, note_x_pct, note_y, note_size, fg, 0.68)
     extra_texts = content.get("extraTexts")
     if isinstance(extra_texts, list):
         for item in extra_texts[:MAX_EXTRA_TEXTS]:
