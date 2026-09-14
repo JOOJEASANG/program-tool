@@ -15,6 +15,12 @@
     window.parsedPages=[{excluded:false}];
     window.PdfOperationManager={active:()=>false};
 
+    window.__nativeReadCalls=[];
+    window._readPdfDelivery=async function(resp){
+      window.__nativeReadCalls.push('blob');
+      return resp.blob();
+    };
+
     window.__nativeRevokeCalls=[];
     URL.revokeObjectURL=function(url){window.__nativeRevokeCalls.push(String(url));};
 
@@ -37,7 +43,9 @@
       };
       try{
         await wait(()=>window.PdfOutputSaveRecovery,'recovery api');
-        await wait(()=>document.documentElement.dataset.pdfResultDownloadDelivery==='blob-grace-v2','download delivery install');
+        await wait(()=>document.documentElement.dataset.pdfResultDownloadDelivery==='blob-grace-v3-storage-direct','download delivery install');
+        await wait(()=>document.documentElement.dataset.pdfStorageDirectBridge==='1','storage direct bridge');
+
         const blobUrl=URL.createObjectURL(new Blob(['%PDF-1.4\nsmoke\n%%EOF'],{type:'application/pdf'}));
         const link=document.createElement('a');
         link.href=blobUrl;
@@ -45,15 +53,47 @@
         link.click();
         URL.revokeObjectURL(blobUrl);
 
-        assert(window.__nativeAnchorClicks.length===1,'native anchor click missing');
-        assert(window.__nativeAnchorClicks[0].connected===true,'result anchor was not mounted before click');
+        assert(window.__nativeAnchorClicks.length===1,'native blob anchor click missing');
+        assert(window.__nativeAnchorClicks[0].connected===true,'blob result anchor was not mounted before click');
         assert(window.__nativeAnchorClicks[0].href.startsWith('blob:'),'real blob URL was not used');
         assert(window.__nativeRevokeCalls.length===0,'blob url was revoked immediately');
-        assert(document.documentElement.dataset.pdfResultDownloadDispatch==='mounted-blob-v2','download dispatch marker missing');
-        assert(document.documentElement.dataset.pdfResultDownloadDelivery==='blob-grace-v2','download delivery marker missing');
-        assert(document.querySelector('a[data-pdf-result-download="1"]'),'mounted result anchor missing');
+        assert(document.documentElement.dataset.pdfResultDownloadDispatch==='mounted-blob-v2','blob dispatch marker missing');
+
+        document.getElementById('downloadBtn').click();
+        assert(document.documentElement.dataset.pdfStorageDirectSave==='armed','direct save intent was not armed');
+
+        const storageUrl='https://firebasestorage.googleapis.com/v0/b/program-tool.firebasestorage.app/o/pdf_results%2Fsmoke%2Foutput.pdf?alt=media&token=smoke-token';
+        const storageResponse=new Response(JSON.stringify({
+          delivery:'storage',
+          filename:'output.pdf',
+          storage_path:'pdf_results/smoke/output.pdf',
+          download_url:storageUrl,
+          expires_at:'2026-09-14T07:00:00+00:00',
+          size_bytes:52428800
+        }),{headers:{'content-type':'application/json'}});
+        const storageDelivery=await window._readPdfDelivery(storageResponse,{});
+
+        assert(storageDelivery?.__pdfStorageBrowserDeliveryV1===true,'storage delivery was buffered instead of preserved');
+        assert(window.__nativeReadCalls.length===0,'native blob reader should not run for direct storage save');
+        assert(document.documentElement.dataset.pdfStorageResultTransport==='browser-direct-v1','storage transport marker missing');
+
+        const directUrl=URL.createObjectURL(storageDelivery);
+        assert(directUrl===storageUrl,'storage delivery did not become its direct HTTPS URL');
+        const directLink=document.createElement('a');
+        directLink.href=directUrl;
+        directLink.download='booklet-large.pdf';
+        directLink.click();
+        URL.revokeObjectURL(directUrl);
+
+        assert(window.__nativeAnchorClicks.length===2,'native storage anchor click missing');
+        assert(window.__nativeAnchorClicks[1].connected===true,'storage result anchor was not mounted before click');
+        assert(window.__nativeAnchorClicks[1].href===storageUrl,'storage result used the wrong URL');
+        assert(window.__nativeRevokeCalls.length===0,'storage URL was passed to native revokeObjectURL');
+        assert(document.documentElement.dataset.pdfResultDownloadDispatch==='mounted-storage-direct-v1','storage direct dispatch marker missing');
+        assert(document.documentElement.dataset.pdfStorageResultObjectUrl==='remote-v1','storage object-url marker missing');
+
         document.body.dataset.pdfResultDownloadDeliverySmoke='pass';
-        result.textContent='PASS: mounted result anchor and deferred blob URL revoke';
+        result.textContent='PASS: blob delivery is deferred and large Storage results stream directly through the browser';
       }catch(error){
         document.body.dataset.pdfResultDownloadDeliverySmoke='fail';
         result.textContent='FAIL: '+String(error.message||error);
