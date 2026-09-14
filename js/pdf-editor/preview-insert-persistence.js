@@ -23,6 +23,7 @@
       #previewScroll .prev-ins-zone-v.pdf-preview-inline-insert:hover{opacity:1!important}
       #previewScroll[data-lazy-preview="true"] .prev-ins-zone.pdf-preview-boundary-insert,
       #previewScroll[data-lazy-preview="true"] .prev-ins-zone-v.pdf-preview-inline-insert{display:flex!important}
+      #previewScroll .prev-ins-btn,#previewScroll .prev-ins-btn-v{pointer-events:auto!important;cursor:pointer!important}
       #previewScroll .pdf-fast-insert-actions.pdf-preview-fast-fallback{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:6px;margin:12px auto 0;padding:10px 12px;max-width:470px;border:1px solid #dbe4ee;border-radius:10px;background:#fff;box-shadow:0 3px 12px rgba(15,23,42,.05)}
       #previewScroll .pdf-fast-insert-actions.pdf-preview-fast-fallback .prev-ins-btn{position:static!important;opacity:1!important;visibility:visible!important;pointer-events:auto!important;transform:none!important;min-height:32px;padding:6px 11px;border:1px solid #bfdbfe;border-radius:8px;background:#eff6ff;color:#1d4ed8;font-family:inherit;font-size:10px;font-weight:900;cursor:pointer}
       #previewScroll .pdf-fast-insert-actions.pdf-preview-fast-fallback .prev-ins-btn.divider{border-color:#ddd6fe;background:#f5f3ff;color:#6d28d9}
@@ -31,18 +32,29 @@
     document.head.appendChild(style);
   }
 
+  function prepareZoneButtons(zone){
+    if(!zone)return zone;
+    zone.querySelectorAll('.prev-ins-btn,.prev-ins-btn-v').forEach(button=>{
+      if(button.tagName==='BUTTON')button.type='button';
+      button.removeAttribute('disabled');
+      button.setAttribute('aria-disabled','false');
+      button.style.pointerEvents='auto';
+    });
+    return zone;
+  }
+
   function markHorizontal(zone,index){
     if(!zone)return null;
     zone.classList.add('pdf-preview-boundary-insert');
     zone.dataset.pdfInsertBoundary=String(index);
-    return zone;
+    return prepareZoneButtons(zone);
   }
 
   function markVertical(zone,index){
     if(!zone)return null;
     zone.classList.add('pdf-preview-inline-insert');
     zone.dataset.pdfInsertBoundary=String(index);
-    return zone;
+    return prepareZoneButtons(zone);
   }
 
   function makeHorizontal(index){
@@ -210,7 +222,7 @@
     const points=currentInsertPoints();
     const mapped=boundary>=0?Number(points[boundary]):NaN;
     if(Number.isFinite(mapped))return Math.max(0,Math.min(length,Math.floor(mapped)));
-    return length;
+    return Math.max(0,Math.min(length,boundary>=0?boundary:length));
   }
 
   function requestPreviewRefresh(){
@@ -237,7 +249,9 @@
     try{
       if(!Array.isArray(parsedPages)||typeof makeBlankPage!=='function')return false;
       const safe=Math.max(0,Math.min(parsedPages.length,Number(index)||0));
+      const before=parsedPages.length;
       parsedPages.splice(safe,0,makeBlankPage());
+      if(parsedPages.length!==before+1)throw new Error('blank page was not inserted');
       refreshAfterInsert('빈 페이지를 추가했습니다.');
       document.dispatchEvent(new CustomEvent('pdf-preview-page-inserted',{detail:{type:'blank',index:safe}}));
       return true;
@@ -253,29 +267,43 @@
       let length=0;try{length=Array.isArray(parsedPages)?parsedPages.length:0;}catch(_){}
       const safe=Math.max(0,Math.min(length,Number(index)||0));
       opener(safe);
+      const modal=document.getElementById('dividerModal');
+      if(modal){modal.style.display='flex';modal.removeAttribute('hidden');modal.setAttribute('aria-hidden','false');}
+      document.getElementById('dividerTitle')?.focus?.();
       document.dispatchEvent(new CustomEvent('pdf-preview-page-insert-requested',{detail:{type:'divider',index:safe}}));
       return true;
     }catch(error){console.warn('[pdf-preview-insert] divider insertion failed',error);return false;}
   }
 
+  function notifyFailure(type){
+    const label=type==='divider'?'간지':'빈 페이지';
+    try{if(typeof showStatus==='function')showStatus(`${label} 추가 기능을 초기화하지 못했습니다. 페이지를 새로고침한 뒤 다시 시도해 주세요.`,'error');}
+    catch(_){}
+  }
+
   function bindActionBridge(){
-    const scroll=document.getElementById('previewScroll');
-    if(!scroll||actionBridgeBound)return false;
+    if(actionBridgeBound)return true;
     actionBridgeBound=true;
-    scroll.addEventListener('click',event=>{
-      const button=event.target.closest?.('.prev-ins-btn,.prev-ins-btn-v');
-      if(!button||!scroll.contains(button))return;
+    document.addEventListener('click',event=>{
+      const button=event.target.closest?.('#previewScroll .prev-ins-btn,#previewScroll .prev-ins-btn-v');
+      if(!button)return;
+      const scroll=button.closest('#previewScroll');
+      if(!scroll)return;
       const zone=button.closest('.prev-ins-zone,.prev-ins-zone-v,.pdf-preview-fast-fallback');
       const divider=button.classList.contains('divider')||String(button.textContent||'').includes('간지');
       const blank=!divider&&String(button.textContent||'').includes('빈');
       if(!divider&&!blank)return;
-      const index=spliceIndexForZone(zone);
-      const handled=divider?openDividerAt(index):insertBlankAt(index);
-      if(!handled)return;
+
+      // Own these controls in capture phase. Some preview rerenders replace the
+      // original zones and their element-level listeners, so relying on the old
+      // listener makes the visible button appear dead.
       event.preventDefault();
       event.stopImmediatePropagation();
+      const index=spliceIndexForZone(zone);
+      const handled=divider?openDividerAt(index):insertBlankAt(index);
+      if(!handled)notifyFailure(divider?'divider':'blank');
     },true);
-    document.documentElement.dataset.pdfPreviewInsertActionBridge='1';
+    document.documentElement.dataset.pdfPreviewInsertActionBridge='document-capture-v2';
     return true;
   }
 
@@ -318,6 +346,7 @@
     try{
       installStyles();
       bindActionBridge();
+      document.querySelectorAll('#previewScroll .prev-ins-zone,#previewScroll .prev-ins-zone-v').forEach(prepareZoneButtons);
       if(!ensureFastFallback()&&!ensureLazyBoundaries())ensureNormalBoundaries();
     }finally{repairing=false;}
   }
@@ -329,15 +358,15 @@
 
   function install(attempt=0){
     const scroll=document.getElementById('previewScroll');
+    bindActionBridge();
     if(!scroll){
       if(attempt<20)setTimeout(()=>install(attempt+1),100+attempt*30);
       return false;
     }
     installStyles();
-    bindActionBridge();
     if(!observer){
       observer=new MutationObserver(queue);
-      observer.observe(scroll,{childList:true});
+      observer.observe(scroll,{childList:true,subtree:true});
     }
     queue();
     [180,500,1200].forEach(delay=>setTimeout(queue,delay));
@@ -355,6 +384,6 @@
     openDividerAt,
     spliceIndexForZone,
     legacyStage:'multi-file-preview-insert-persistence-v2',
-    stage:'preview-insert-actions-functional-v4'
+    stage:'preview-insert-actions-functional-v5-document-bridge'
   };
 })();
