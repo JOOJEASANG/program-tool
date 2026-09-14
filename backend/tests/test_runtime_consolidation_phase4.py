@@ -43,7 +43,7 @@ def test_pdf_loader_is_enhancement_bootstrap_and_core_manifest_owns_eight_module
 
 def test_pdf_route_manifest_owns_route_helpers_without_editor_state_takeover():
     route = text("js/pdf-editor/route-runtime.js")
-    assert route.count("{id:") == 22
+    assert route.count("{id:") == 23
     assert "/js/pdf-editor/page-selection-preview-focus.js?v=20260914-2" in route
     assert "app:'layout'" in route
     assert "/js/pdf-editor/layout-smooth-preview.js?v=20260909-1" in route
@@ -51,11 +51,13 @@ def test_pdf_route_manifest_owns_route_helpers_without_editor_state_takeover():
     assert "/js/pdf-editor/output-save-recovery.js?v=20260914-2" in route
     assert "/js/pdf-editor/save-operation.js" not in route
     assert "/js/pdf-editor/divider-modal-layout.js?v=20260830-2" in route
+    assert "/js/pdf-editor/divider-ui-corrections.js?v=20260914-1" in route
+    assert "pdfDividerUiCorrectionsScriptV1" in route
     assert "ProgramStudioPdfEditorRuntimeContext" in route
     assert "Promise.all(pending)" in route
     assert "programUsageOutputGuardScriptV1" in route
     assert "/js/program-usage-output-guard.js?v=20260914-1" in route
-    assert "pdf-editor-route-runtime-manifest-v3-usage-output-guard" in route
+    assert "pdf-editor-route-runtime-manifest-v4-divider-ui-corrections" in route
 
     for forbidden in (
         "parsedPages =",
@@ -105,3 +107,21 @@ def test_pdf_result_download_survives_immediate_blob_url_revoke():
     assert "apiProcessPdf(" not in source
     assert "preventDefault" not in source
     assert "stopPropagation" not in source
+
+
+def test_divider_ui_corrections_keep_studio_renderer_and_simplify_conflicting_controls():
+    source = text("js/pdf-editor/divider-ui-corrections.js")
+
+    for marker in (
+        "dividerLegacyTextPositionHidden",
+        "dividerBackgroundStudioCard",
+        "pdfDividerRendererOwner='studio-corrected-v1'",
+        "window.__pdfDividerStudioRenderPatchedV3=false",
+        "makeTitleBoxesVisible",
+        "#dbeafe",
+        "#2563eb",
+        "divider-ui-corrections-v1-style-shape-preview",
+    ):
+        assert marker in source
+
+    assert "setInterval(" not in source
