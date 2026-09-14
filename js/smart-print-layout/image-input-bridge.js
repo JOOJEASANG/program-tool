@@ -9,6 +9,7 @@
   const $=id=>document.getElementById(id);
   let replaying=false;
   let busy=false;
+  let fileListObserver=null;
 
   const adapter=()=>window.ProgramImagePdfAdapter;
 
@@ -17,6 +18,45 @@
     if(!line)return;
     line.textContent=message;
     line.className=`status${type?` ${type}`:''}`;
+  }
+
+  function syncImageLabels(){
+    const items=window.SmartPrintLayout?.state?.items;
+    const list=$('fileList');
+    if(!Array.isArray(items)||!list)return 0;
+    const rows=Array.from(list.querySelectorAll('.file-item'));
+    let decorated=0;
+    items.forEach((item,index)=>{
+      const file=item?.file;
+      if(file?.__sourceType!=='image')return;
+      const row=rows[index];
+      if(!row)return;
+      const displayName=file.__displayName||item.displayName||file.name||item.name||'이미지';
+      const imageMeta=file.__imageMeta&&typeof file.__imageMeta==='object'?{...file.__imageMeta}:null;
+      item.sourceType='image';
+      item.sourceOriginalName=displayName;
+      item.imageMeta=imageMeta;
+      const name=row.querySelector('.file-name');
+      if(name&&name.textContent!==displayName)name.textContent=displayName;
+      const pill=row.querySelector('.side-pill');
+      if(pill&&pill.textContent!=='이미지')pill.textContent='이미지';
+      const meta=row.querySelector('.file-meta');
+      const dpi=Math.round(Number(imageMeta?.dpi)||300);
+      const marker=`이미지 ${dpi}dpi`;
+      if(meta&&!meta.textContent.includes(marker))meta.textContent=`${meta.textContent} · ${marker}`;
+      row.dataset.sourceType='image';
+      decorated++;
+    });
+    if(decorated)document.documentElement.dataset.smartPrintImageLabels=String(decorated);
+    return decorated;
+  }
+
+  function bindFileListObserver(){
+    const list=$('fileList');
+    if(!list||fileListObserver)return Boolean(list);
+    fileListObserver=new MutationObserver(()=>syncImageLabels());
+    fileListObserver.observe(list,{childList:true,subtree:true});
+    return true;
   }
 
   function updateUi(){
@@ -32,7 +72,7 @@
     const emptySub=$('emptyPreview')?.querySelector('span');
     if(heading)heading.textContent='PDF · 이미지 파일';
     if(strong)strong.textContent='PDF / 이미지 올리기';
-    if(small)small.innerHTML='PDF · JPG · PNG · WEBP<br>이미지는 300dpi 기준 1페이지 PDF로 안전하게 변환합니다.';
+    if(small)small.innerHTML='PDF · JPG · PNG · WEBP<br>이미지는 300dpi 기준 1페이지 PDF로 안전하게 변환해 기존 자동배치 엔진을 사용합니다.';
     if(summary&&summary.textContent.includes('PDF'))summary.textContent='PDF 또는 이미지를 올리면 용지 한 장에 들어가는 최대 개수를 자동 계산합니다.';
     if(emptyStrong)emptyStrong.textContent='PDF 또는 이미지를 올리면 바로 자동배치됩니다';
     if(emptySub)emptySub.textContent='선택한 용지에 들어갈 수 있는 최대 개수와 앞면·뒷면 위치를 계산합니다.';
@@ -89,6 +129,7 @@
     try{
       const normalized=await normalizeForSmart(files);
       replayThroughInput(normalized);
+      queueMicrotask(syncImageLabels);
       document.documentElement.dataset.smartPrintImageImport='complete';
       return true;
     }catch(error){
@@ -139,11 +180,13 @@
     updateUi();
     bindInput();
     bindDrop();
+    bindFileListObserver();
+    syncImageLabels();
   }
 
   window.SmartPrintLayoutImageInput={
-    importImages,normalizeForSmart,updateUi,
-    stage:'smart-print-image-input-v1-pdf-replay-isolation'
+    importImages,normalizeForSmart,updateUi,syncImageLabels,
+    stage:'smart-print-image-input-v2-source-metadata'
   };
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});

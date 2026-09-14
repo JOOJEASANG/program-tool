@@ -84,7 +84,7 @@
 
   function loadImageInput(){
     return hostLoadScript('programImagePdfAdapterScriptV1','/js/image-pdf-adapter.js?v=20260915-1')
-      .then(()=>hostLoadScript('pdfEditorImageInputBridgeScriptV1','/js/pdf-editor/image-input-bridge.js?v=20260915-1'));
+      .then(()=>hostLoadScript('pdfEditorImageInputBridgeScriptV1','/js/pdf-editor/image-input-bridge.js?v=20260915-2'));
   }
 
   function loadAll(){

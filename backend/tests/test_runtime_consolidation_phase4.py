@@ -59,7 +59,7 @@ def test_pdf_route_manifest_owns_route_helpers_without_editor_state_takeover():
     assert "programUsageOutputGuardScriptV1" in route
     assert "/js/program-usage-output-guard.js?v=20260914-1" in route
     assert "/js/image-pdf-adapter.js?v=20260915-1" in route
-    assert "/js/pdf-editor/image-input-bridge.js?v=20260915-1" in route
+    assert "/js/pdf-editor/image-input-bridge.js?v=20260915-2" in route
     assert "pdf-editor-route-runtime-manifest-v5-image-input-adapter" in route
 
     for forbidden in (
@@ -95,12 +95,17 @@ def test_pdf_editor_image_input_is_adapter_isolated_from_pdf_state():
         "PDF / 이미지 클릭 또는 드래그",
         "300dpi 기준 1페이지",
         "event.stopImmediatePropagation()",
-        "pdf-editor-image-input-v1-adapter-isolated",
+        "pdf-editor-image-input-v2-source-metadata",
+        "tagImportedImagePages",
+        "sourceType='image'",
+        "sourceOriginalName",
+        "imageMeta",
     ):
         assert marker in bridge
 
-    # The bridge may intercept only image-bearing input/drop events. It must not
-    # own canonical PDF page arrays, output generation, or backend settings.
+    # The bridge may annotate new image-backed pages after canonical PDF import,
+    # but it must not own/reassign canonical page arrays, output generation, or
+    # backend settings. Raw images still stop at the adapter boundary.
     for forbidden in (
         "parsedPages =",
         "uploadedFiles =",
