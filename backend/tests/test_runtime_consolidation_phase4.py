@@ -53,7 +53,9 @@ def test_pdf_route_manifest_owns_route_helpers_without_editor_state_takeover():
     assert "/js/pdf-editor/divider-modal-layout.js?v=20260830-2" in route
     assert "ProgramStudioPdfEditorRuntimeContext" in route
     assert "Promise.all(pending)" in route
-    assert "pdf-editor-route-runtime-manifest-v2" in route
+    assert "programUsageOutputGuardScriptV1" in route
+    assert "/js/program-usage-output-guard.js?v=20260914-1" in route
+    assert "pdf-editor-route-runtime-manifest-v3-usage-output-guard" in route
 
     for forbidden in (
         "parsedPages =",
