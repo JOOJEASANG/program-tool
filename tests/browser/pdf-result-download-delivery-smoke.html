@@ -37,6 +37,7 @@
       };
       try{
         await wait(()=>window.PdfOutputSaveRecovery,'recovery api');
+        await wait(()=>document.documentElement.dataset.pdfResultDownloadDelivery==='blob-grace-v2','download delivery install');
         const blobUrl=URL.createObjectURL(new Blob(['%PDF-1.4\nsmoke\n%%EOF'],{type:'application/pdf'}));
         const link=document.createElement('a');
         link.href=blobUrl;
