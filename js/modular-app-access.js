@@ -9,9 +9,9 @@
   const programId=['pdf-layout','booklet'].includes(key)?'pdf-editor':'';
   if(!programId)return;
 
-  // The modular shell now owns only the protected PDF layout/booklet routes.
-  // Print-checker design routes are redirected synchronously by apps/index.html
-  // and must not retain a dependency on the retired design-editor runtime.
+  // The modular shell owns only the protected PDF layout/booklet routes.
+  // Print-checker design routes redirect synchronously in apps/index.html and
+  // therefore do not share this access adapter or any retired design runtime.
   if(!window.ProgramAccess||typeof window.ProgramAccess.guardTool!=='function'){
     console.error('[modular-app-access] shared ProgramAccess guard is unavailable');
     return;
