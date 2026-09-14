@@ -37,7 +37,7 @@ def test_pdf_editor_runtime_keeps_the_approved_eight_modules_in_core_manifest():
         positions.append(core.index(needle))
     assert positions == sorted(positions)
     assert core.count("src:'/js/pdf-editor/") == 8
-    assert "/js/pdf-editor/core-runtime.js?v=20260828-1" in loader
+    assert "/js/pdf-editor/core-runtime.js?v=20260914-2" in loader
     assert "Stable-eight source contract only" in loader
     assert "MODULES.forEach(loadScript)" not in loader
 
