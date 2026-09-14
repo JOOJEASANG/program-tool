@@ -43,7 +43,9 @@ def test_pdf_loader_is_enhancement_bootstrap_and_core_manifest_owns_eight_module
 
 def test_pdf_route_manifest_owns_route_helpers_without_editor_state_takeover():
     route = text("js/pdf-editor/route-runtime.js")
-    assert route.count("{id:") == 21
+    assert route.count("{id:") == 22
+    assert "/js/pdf-editor/page-selection-preview-focus.js?v=20260914-1" in route
+    assert "app:'layout'" in route
     assert "/js/pdf-editor/layout-smooth-preview.js?v=20260909-1" in route
     assert "/js/pdf-editor/preview-insert-persistence.js?v=20260831-2" in route
     assert "/js/pdf-editor/output-save-recovery.js?v=20260831-1" in route
@@ -51,7 +53,7 @@ def test_pdf_route_manifest_owns_route_helpers_without_editor_state_takeover():
     assert "/js/pdf-editor/divider-modal-layout.js?v=20260830-2" in route
     assert "ProgramStudioPdfEditorRuntimeContext" in route
     assert "Promise.all(pending)" in route
-    assert "pdf-editor-route-runtime-manifest-v1" in route
+    assert "pdf-editor-route-runtime-manifest-v2" in route
 
     for forbidden in (
         "parsedPages =",
@@ -78,5 +80,4 @@ def test_pdf_output_save_recovery_keeps_core_click_handler_and_uses_bounded_obse
     assert "downloadBtn').addEventListener('click'" not in source
     assert "setInterval(" not in source
     assert "subtree:true" not in source
-
 
