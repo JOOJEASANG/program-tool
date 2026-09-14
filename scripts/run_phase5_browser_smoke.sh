@@ -95,6 +95,7 @@ run_page "pdf-preview-insert-persistence-smoke.html" 'data-pdf-preview-insert-pe
 run_page "pdf-result-download-delivery-smoke.html" 'data-pdf-result-download-delivery-smoke="pass"' "PDF result download delivery smoke" "pdf-result-download-delivery-smoke-dom.html"
 run_page "pdf-divider-ui-corrections-smoke.html" 'data-pdf-divider-ui-corrections-smoke="pass"' "PDF divider styles and shape preview smoke" "pdf-divider-ui-corrections-smoke-dom.html"
 run_page "pdf-editor-image-input-smoke.html" 'data-pdf-editor-image-input-smoke="pass"' "PDF editor and layout image input smoke" "pdf-editor-image-input-smoke-dom.html"
+run_page "smart-print-layout-image-input-smoke.html" 'data-smart-print-layout-image-input-smoke="pass"' "Smart print layout image input smoke" "smart-print-layout-image-input-smoke-dom.html"
 run_page "admin-workflow-v2-smoke.html" 'data-admin-v2-smoke="pass"' "Admin workflow v2 browser smoke" "admin-workflow-v2-smoke-dom.html"
 run_page "admin-pdf-usage-settings-smoke.html" 'data-admin-pdf-usage-settings-smoke="pass"' "Admin PDF usage settings smoke" "admin-pdf-usage-settings-smoke-dom.html"
 run_page "program-usage-output-guard-smoke.html" 'data-program-usage-output-guard-smoke="pass"' "Program usage output guard smoke" "program-usage-output-guard-smoke-dom.html"
