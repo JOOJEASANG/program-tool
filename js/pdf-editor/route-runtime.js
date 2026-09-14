@@ -89,14 +89,9 @@
     const advanced=isAdvancedProfile();
     removeStandardSidebarTitle();
     if(app==='layout'){
-      // The layout-only selection menu owns hide/show actions for every selected
-      // page, so the generic loader must not append its single-page hide action.
       window.__pdfEditorHiddenContextActionV1=true;
     }
     if(app)pending.push(loadStandaloneBoundary());
-    // The output guard is intentionally outside MODULES so it stays a small,
-    // shared cross-program policy layer rather than becoming PDF editor state.
-    // It lazily loads the quota catalog/policy only when the user generates a result.
     if(!advanced)pending.push(hostLoadScript('programUsageOutputGuardScriptV1','/js/program-usage-output-guard.js?v=20260914-1'));
     for(const entry of MODULES){
       if(!entry.id||!entry.src||seen.has(entry.id)){
@@ -106,21 +101,19 @@
       if(entry.app&&entry.app!==app)continue;
       if(advanced&&ADVANCED_UNUSED_ROUTE_IDS.has(entry.id))continue;
       seen.add(entry.id);
-      // Start requests in manifest order while allowing the browser to fetch
-      // independent helpers without a waterfall. The layout selection helper is
-      // intentionally inserted before loader.js so its capture listener owns
-      // Ctrl/Cmd/Shift thumbnail selection before generic click navigation.
       pending.push(hostLoad(entry));
     }
     if(advanced)document.documentElement.dataset.pdfAdvancedRouteModules='minimal';
-    return Promise.all(pending).then(()=>{
-      document.documentElement.dataset.pdfRouteRuntime='1';
-      if(app){
-        const profile=window.PdfEditorStandaloneApps?.fromLocation?.(location.search);
-        document.documentElement.dataset.pdfStandaloneApp=profile?.key||app;
-      }
-      return true;
-    });
+    return Promise.all(pending)
+      .then(()=>advanced?null:hostLoadScript('pdfDividerDesignToolsScriptV1','/js/pdf-editor/divider-design-tools.js?v=20260914-1'))
+      .then(()=>{
+        document.documentElement.dataset.pdfRouteRuntime='1';
+        if(app){
+          const profile=window.PdfEditorStandaloneApps?.fromLocation?.(location.search);
+          document.documentElement.dataset.pdfStandaloneApp=profile?.key||app;
+        }
+        return true;
+      });
   }
 
   window.PdfEditorRouteRuntime={
@@ -129,6 +122,6 @@
     modules:MODULES.map(({id,src})=>({id,src})),
     app:standaloneApp(),
     get profile(){return window.PdfEditorStandaloneApps?.fromLocation?.(location.search)?.key||null;},
-    stage:'pdf-editor-route-runtime-manifest-v3-usage-output-guard'
+    stage:'pdf-editor-route-runtime-manifest-v4-divider-design-tools'
   };
 })();
