@@ -6,22 +6,17 @@
   const path=String(location.pathname||'').replace(/\\/g,'/').replace(/\/+$/,'');
   const match=path.match(/^\/apps\/([^/]+)$/i);
   const key=match?String(match[1]||'').toLowerCase():'';
-  const programId=['pdf-layout','booklet'].includes(key)
-    ?'pdf-editor'
-    :(['cover','poster','flyer','invitation','notice','leaflet'].includes(key)?'design-studio':'');
+  const programId=['pdf-layout','booklet'].includes(key)?'pdf-editor':'';
   if(!programId)return;
 
-  // firebase-config historically auto-guards only canonical editor paths. The
-  // modular shell deliberately reuses the same guard rather than duplicating
-  // authentication or permission rules.
+  // The modular shell now owns only the protected PDF layout/booklet routes.
+  // Print-checker design routes are redirected synchronously by apps/index.html
+  // and must not retain a dependency on the retired design-editor runtime.
   if(!window.ProgramAccess||typeof window.ProgramAccess.guardTool!=='function'){
     console.error('[modular-app-access] shared ProgramAccess guard is unavailable');
     return;
   }
 
-  // sw-register is injected by firebase-config as a deferred compatibility
-  // loader. On /apps/* it does not own access control, so prevent an external
-  // reveal until the shared permission guard marks this route ready.
   const boot=window.ProgramStudioBoot;
   if(boot&&typeof boot.reveal==='function'&&!boot.__modularRevealWrapped){
     const reveal=boot.reveal.bind(boot);
@@ -45,5 +40,5 @@
     delete root.dataset.accessChecking;
   });
 
-  window.ProgramStudioModularAppAccess={key,programId,stage:'shared-program-access-adapter-v1'};
+  window.ProgramStudioModularAppAccess={key,programId,stage:'shared-pdf-program-access-adapter-v2'};
 })();
