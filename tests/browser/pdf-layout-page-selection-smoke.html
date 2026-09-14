@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>PDF Layout Page Selection Smoke</title>
+  <style>
+    #thumbArea{display:flex;gap:8px}.thumb-wrap{width:60px;height:80px;border:1px solid #ccc;position:relative}.page-preview{height:40px}.ctx-item{padding:2px}
+  </style>
+</head>
+<body data-pdf-layout-page-selection-smoke="running">
+  <div id="result">RUNNING</div>
+  <div id="sidebarFixture">
+    <div class="thumb-hint"></div>
+    <div id="thumbArea"></div>
+  </div>
+  <div id="previewScroll"></div>
+  <div id="thumbCtxMenu"></div>
+
+  <script>
+    window.parsedPages = [1, 2, 3, 4].map(id => ({ id, pageType: 'blank', excluded: false, rotation: 0 }));
+    window.nup = 1;
+    window.BOOKLET_STRIPS = {};
+    window.groupByNup = pages => [{ n: 1, pages }];
+    window.getLayout = () => ({ cols: 1, rows: 1 });
+    window.schedulePreview = () => {};
+    window.showStatus = () => {};
+    window.hideStatus = () => {};
+    window.makeBlankPage = () => ({ id: Date.now(), pageType: 'blank', excluded: false, rotation: 0 });
+    window.displayPreview = () => {};
+
+    window.renderThumbs = function renderThumbs() {
+      const area = document.getElementById('thumbArea');
+      area.innerHTML = '';
+      parsedPages.forEach((page, index) => {
+        const item = document.createElement('div');
+        item.className = 'thumb-item';
+        item.dataset.id = page.id;
+        const wrap = document.createElement('div');
+        wrap.className = 'thumb-wrap';
+        const num = document.createElement('span');
+        num.className = 'thumb-num';
+        num.textContent = String(index + 1);
+        wrap.appendChild(num);
+        wrap.addEventListener('contextmenu', event => window._openThumbCtxMenu?.(event, page, index));
+        item.appendChild(wrap);
+        area.appendChild(item);
+      });
+
+      const preview = document.getElementById('previewScroll');
+      preview.innerHTML = '';
+      parsedPages.filter(page => !page.excluded).forEach(() => {
+        const node = document.createElement('div');
+        node.className = 'page-preview';
+        preview.appendChild(node);
+      });
+    };
+    renderThumbs();
+  </script>
+  <script src="/js/pdf-editor/page-selection-preview-focus.js?v=20260914-1"></script>
+  <script>
+    (async () => {
+      const result = document.getElementById('result');
+      const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+      const fail = error => {
+        document.body.dataset.pdfLayoutPageSelectionSmoke = 'fail';
+        result.textContent = 'FAIL: ' + String(error?.stack || error);
+      };
+      const click = (index, options = {}) => {
+        const wrap = document.querySelectorAll('#thumbArea .thumb-wrap')[index];
+        wrap.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, ...options }));
+      };
+      const rightClick = index => {
+        const wrap = document.querySelectorAll('#thumbArea .thumb-wrap')[index];
+        wrap.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: 20, clientY: 20 }));
+      };
+
+      try {
+        await wait(250);
+        if (!document.getElementById('pageSelectionToolbar')) throw new Error('selection toolbar missing');
+
+        click(0);
+        click(2, { ctrlKey: true });
+        await wait(30);
+        if (document.querySelectorAll('#thumbArea .page-selected').length !== 2) throw new Error('Ctrl multi-selection failed');
+        if (document.getElementById('pageSelectionCount')?.textContent !== '선택 2개') throw new Error('selection count mismatch');
+
+        rightClick(0);
+        await wait(20);
+        const heading = document.querySelector('#thumbCtxMenu .ctx-heading');
+        if (heading?.textContent !== '선택한 페이지 2개') throw new Error('batch context heading mismatch');
+        const hide = [...document.querySelectorAll('#thumbCtxMenu .ctx-item')].find(node => node.textContent.includes('선택 페이지 숨기기'));
+        if (!hide) throw new Error('batch hide action missing');
+        hide.click();
+        await wait(30);
+        if (!parsedPages[0].excluded || !parsedPages[2].excluded || parsedPages[1].excluded) throw new Error('batch hide did not target selection');
+
+        document.querySelector('[data-selection-action="clear"]').click();
+        click(0);
+        click(3, { shiftKey: true });
+        await wait(30);
+        if (document.querySelectorAll('#thumbArea .page-selected').length !== 4) throw new Error('Shift range selection failed');
+
+        document.querySelector('[data-selection-action="clear"]').click();
+        document.querySelector('[data-selection-action="all"]').click();
+        await wait(20);
+        if (document.querySelectorAll('#thumbArea .page-selected').length !== 4) throw new Error('select all failed');
+
+        document.body.dataset.pdfLayoutPageSelectionSmoke = 'pass';
+        result.textContent = 'PASS: PDF layout page multi-selection and batch context actions';
+      } catch (error) {
+        fail(error);
+      }
+    })();
+  </script>
+</body>
+</html>
