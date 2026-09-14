@@ -22,11 +22,11 @@ def test_print_checker_is_renamed_and_defaults_to_cover():
     assert "url.searchParams.set('product', 'cover')" in page
 
 
-def test_layout_sidebar_removes_requested_control_clusters_and_keeps_collapse_working():
+def test_layout_sidebar_removes_requested_clutter_but_keeps_page_selection_and_collapse_working():
     source = text(APP_BOUNDARY)
     assert "aside.querySelector(':scope>.sub')?.remove()" in source
     assert "pdfUploadOrderQuickBarV1" in source
-    assert "pageSelectionToolbar" in source
+    assert "byId('pageSelectionToolbar')?.remove();" not in source
     assert "연속 추가" in source and "새 묶음 추가" in source
     assert "다중 선택" in source and "페이지 번호" in source
     assert "syncPageSectionState" in source
