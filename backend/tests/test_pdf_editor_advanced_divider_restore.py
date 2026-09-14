@@ -7,6 +7,7 @@ ROOT = Path(__file__).resolve().parents[2]
 PDF_JS = ROOT / "js" / "pdf-editor"
 HELPER = PDF_JS / "divider-helper.js"
 STUDIO = PDF_JS / "divider-studio.js"
+INTERACTIONS = PDF_JS / "divider-studio-interactions.js"
 LOADER = PDF_JS / "loader.js"
 BACKEND = ROOT / "backend" / "services" / "pdf_divider_renderer.py"
 
@@ -18,12 +19,16 @@ def source(path: Path) -> str:
 def test_advanced_divider_studio_is_single_initialized_without_polling():
     helper = source(HELPER)
     studio = source(STUDIO)
+    interactions = source(INTERACTIONS)
     assert "__pdfEditorDividerHelperV4" in helper
     assert "__pdfDividerStudioV2" in studio
+    assert "__pdfDividerStudioInteractionsV1" in interactions
     assert "data-divider-studio" in helper
-    assert "divider-studio.js?v=20260731-2" in helper
+    assert "divider-studio.js?v=20260914-4" in helper
+    assert "divider-studio-interactions.js?v=20260914-1" in helper
     assert "setInterval(" not in helper
     assert "setInterval(" not in studio
+    assert "setInterval(" not in interactions
     assert "attempt<16" in studio or "attempt < 16" in studio
 
 
@@ -44,6 +49,38 @@ def test_full_screen_divider_studio_restores_dynamic_text_layers():
         "data-key=\"opacity\"",
     ):
         assert marker in studio
+
+
+def test_divider_shape_layers_support_canvas_drag_direct_delete_and_wider_sidebar():
+    interactions = source(INTERACTIONS)
+    for marker in (
+        "grid-template-columns:minmax(390px,42%) minmax(0,58%)",
+        "divider-shape-drag-hint",
+        "hitTestShape",
+        "setShapePosition",
+        "pointerdown",
+        "pointermove",
+        "dividerShapeDeleteFloat",
+        "removeActiveShape",
+        "event.key !== 'Delete'",
+        "스타일 제거 · 심플로 되돌리기",
+    ):
+        assert marker in interactions
+
+
+def test_created_divider_design_can_be_copied_and_edited_again():
+    interactions = source(INTERACTIONS)
+    for marker in (
+        "deepClone(page.dividerContent",
+        "makeDividerPageObj(content)",
+        "parsedPages.splice(index + 1, 0, copy)",
+        "간지 디자인 수정",
+        "간지 디자인 복사",
+        "window.editDivider(page)",
+        "dblclick",
+        "divider-design-duplicate",
+    ):
+        assert marker in interactions
 
 
 def test_divider_background_and_styles_are_not_forced_to_white():

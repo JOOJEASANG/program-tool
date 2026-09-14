@@ -285,12 +285,27 @@
     canvas.addEventListener('pointercancel', end);
   }
 
-  function loadDividerStudio() {
-    if (window.__pdfDividerStudioV2 || document.querySelector('script[data-divider-studio="v2"]')) return;
+  function loadDividerInteractions() {
+    if (window.__pdfDividerStudioInteractionsV1 || document.querySelector('script[data-divider-interactions="v1"]')) return;
     const script = document.createElement('script');
-    script.src = '/js/pdf-editor/divider-studio.js?v=20260731-2';
+    script.src = '/js/pdf-editor/divider-studio-interactions.js?v=20260914-1';
+    script.async = false;
+    script.dataset.dividerInteractions = 'v1';
+    script.addEventListener('error', () => console.error('[divider] interaction layer failed to load'), { once: true });
+    document.head.appendChild(script);
+  }
+
+  function loadDividerStudio() {
+    if (window.__pdfDividerStudioV2) {
+      loadDividerInteractions();
+      return;
+    }
+    if (document.querySelector('script[data-divider-studio="v2"]')) return;
+    const script = document.createElement('script');
+    script.src = '/js/pdf-editor/divider-studio.js?v=20260914-4';
     script.async = false;
     script.dataset.dividerStudio = 'v2';
+    script.addEventListener('load', loadDividerInteractions, { once: true });
     script.addEventListener('error', () => console.error('[divider] advanced studio failed to load'), { once: true });
     document.head.appendChild(script);
   }
