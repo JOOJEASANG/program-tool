@@ -12,19 +12,22 @@
 
   <script>
     history.replaceState(null,'','/pdf-editor/index.html?preview-insert-persistence-smoke=1');
-    var parsedPages=[{id:1},{id:2},{id:3}];
+    var parsedPages=[{id:1,pageType:'pdf'},{id:2,pageType:'pdf'},{id:3,pageType:'pdf'}];
+    var _previewInsertPoints=[0,1,2,3];
+    function buildPreviewInsertPoints(){return _previewInsertPoints;}
     function makePreviewInsertZone(zoneIdx){
       const zone=document.createElement('div');
       zone.className='prev-ins-zone';
       const buttons=document.createElement('div');buttons.className='prev-ins-btns';
-      const blank=document.createElement('button');blank.className='prev-ins-btn';blank.textContent='+ 빈 페이지';blank.addEventListener('click',()=>document.body.dataset.boundaryBlankIndex=String(zoneIdx));
-      const divider=document.createElement('button');divider.className='prev-ins-btn divider';divider.textContent='+ 간지';divider.addEventListener('click',()=>document.body.dataset.boundaryDividerIndex=String(zoneIdx));
+      const blank=document.createElement('button');blank.className='prev-ins-btn';blank.textContent='+ 빈 페이지';blank.addEventListener('click',()=>document.body.dataset.legacyBoundaryBlankIndex=String(zoneIdx));
+      const divider=document.createElement('button');divider.className='prev-ins-btn divider';divider.textContent='+ 간지';divider.addEventListener('click',()=>document.body.dataset.legacyBoundaryDividerIndex=String(zoneIdx));
       buttons.append(blank,divider);zone.appendChild(buttons);return zone;
     }
-    function makeBlankPage(){return{id:'blank-'+Date.now()};}
-    function renderThumbs(){document.body.dataset.fastThumbs='1';}
-    function showStatus(message){document.body.dataset.fastStatus=message;}
-    window.openDividerInsert=index=>{document.body.dataset.fastDividerIndex=String(index);};
+    function makeBlankPage(){return{id:'blank-'+Date.now(),pageType:'blank'};}
+    function renderThumbs(){document.body.dataset.insertThumbs=String(Number(document.body.dataset.insertThumbs||0)+1);}
+    function triggerPreview(){document.body.dataset.insertPreview=String(Number(document.body.dataset.insertPreview||0)+1);return Promise.resolve();}
+    function showStatus(message){document.body.dataset.insertStatus=message;}
+    window.openDividerInsert=index=>{document.body.dataset.dividerIndex=String(index);};
 
     function row(count,withInline=true){
       const node=document.createElement('div');node.className='preview-row';
@@ -37,7 +40,7 @@
     const scroll=document.getElementById('previewScroll');
     scroll.append(row(2),row(1,false));
   </script>
-  <script src="/js/pdf-editor/preview-insert-persistence.js?v=20260831-2"></script>
+  <script src="/js/pdf-editor/preview-insert-persistence.js?v=20260914-3"></script>
   <script>
     (async()=>{
       const result=document.getElementById('result');
@@ -47,29 +50,43 @@
       const boundaryValues=()=>[...scroll.querySelectorAll(':scope>.prev-ins-zone.pdf-preview-boundary-insert')].map(node=>node.dataset.pdfInsertBoundary).join(',');
       try{
         await waitFor(()=>boundaryValues()==='0,2,3','initial row insertion boundaries');
+        assert(document.documentElement.dataset.pdfPreviewInsertActionBridge==='1','functional insert action bridge must be active');
         let boundaries=[...scroll.querySelectorAll(':scope>.prev-ins-zone.pdf-preview-boundary-insert')];
         assert(boundaries.length===3,'two preview rows must expose top, row-boundary and end insertion controls');
-        assert(scroll.querySelector('.prev-ins-zone-v.pdf-preview-inline-insert'),'same-row insertion control must remain visible');
-        boundaries[1].querySelector('button').click();
-        assert(document.body.dataset.boundaryBlankIndex==='2','row-boundary blank-page action must point between output pages');
+        const inline=scroll.querySelector('.prev-ins-zone-v.pdf-preview-inline-insert');
+        assert(inline&&inline.dataset.pdfInsertBoundary==='1','same-row insertion control must keep a functional boundary index');
 
+        boundaries[1].querySelector('.prev-ins-btn').click();
+        await waitFor(()=>parsedPages.length===4,'row-boundary blank page insertion');
+        assert(parsedPages[2].pageType==='blank','row-boundary blank action must insert into the real page model');
+        assert(!document.body.dataset.legacyBoundaryBlankIndex,'delegated action bridge must prevent stale button handlers from double-running');
+        assert(Number(document.body.dataset.insertThumbs||0)>=1,'blank insertion must refresh thumbnails');
+        assert(Number(document.body.dataset.insertPreview||0)>=1,'blank insertion must request preview refresh');
+
+        _previewInsertPoints=[0,1,2,3,4];
         scroll.replaceChildren(row(2),row(2));
         await waitFor(()=>boundaryValues()==='0,2,4','multi-file rerender insertion boundaries');
         boundaries=[...scroll.querySelectorAll(':scope>.prev-ins-zone.pdf-preview-boundary-insert')];
         assert(boundaries.length===3,'multi-file preview rerender must restore all row-boundary controls');
+        boundaries[2].querySelector('.prev-ins-btn.divider').click();
+        assert(document.body.dataset.dividerIndex==='4','divider action must open at the resolved document boundary');
+        assert(!document.body.dataset.legacyBoundaryDividerIndex,'delegated divider bridge must prevent stale legacy handlers');
 
         parsedPages=[{id:1},{id:2},{id:3},{id:4}];
+        _previewInsertPoints=[0,1,2,3,4];
         window.__pdfEditorFastMode=true;
         scroll.innerHTML='<div class="empty-state"><p>대용량 최적화 모드</p></div>';
         await waitFor(()=>!!document.getElementById('pdfFastInsertActionsV1'),'optimized preview insertion actions');
         const fast=document.getElementById('pdfFastInsertActionsV1');
         const fastButtons=fast.querySelectorAll('button');
         assert(fastButtons.length===2&&fastButtons[0].textContent.includes('빈 페이지')&&fastButtons[1].textContent.includes('간지'),'optimized preview must expose blank and divider actions');
+        fastButtons[0].click();
+        assert(parsedPages.length===5&&parsedPages[4].pageType==='blank','optimized blank action must append to the real page model');
         fastButtons[1].click();
-        assert(document.body.dataset.fastDividerIndex==='4','optimized divider insertion must use the current document end');
+        assert(document.body.dataset.dividerIndex==='5','optimized divider insertion must use the current document end');
 
         document.body.dataset.pdfPreviewInsertPersistenceSmoke='pass';
-        result.textContent='PASS: multi-file preview rerenders keep blank-page and divider insertion controls at every row boundary';
+        result.textContent='PASS: blank-page and divider controls remain visible and mutate the real page model after preview rerenders';
       }catch(error){
         document.body.dataset.pdfPreviewInsertPersistenceSmoke='fail';
         result.textContent='FAIL: '+String(error?.stack||error?.message||error);
