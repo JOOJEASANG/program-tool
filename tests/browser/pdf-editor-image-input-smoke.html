@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"><title>PDF editor image input smoke</title></head>
+<body>
+  <div id="uploadZone"><span id="uploadZoneText">PDF 파일</span><span id="uploadZoneSub"></span></div>
+  <input id="fileInput" type="file" accept="application/pdf,.pdf" multiple>
+  <div id="statusBar"></div>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+  <script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+    const imported=[];
+    window.showStatus=function(message,type){document.body.dataset.status=type||'info';document.body.dataset.message=message;};
+    window.handleFile=async function(file){imported.push(file);};
+  </script>
+  <script src="/js/image-pdf-adapter.js?v=smoke"></script>
+  <script src="/js/pdf-editor/image-input-bridge.js?v=smoke"></script>
+  <script>
+    (async()=>{
+      const fail=message=>{document.documentElement.dataset.pdfEditorImageInputSmoke='fail';document.body.dataset.error=message;};
+      try{
+        await new Promise(r=>setTimeout(r,200));
+        const api=window.ProgramImagePdfAdapter;
+        if(!api)throw new Error('adapter missing');
+        if(!window.PdfEditorImageInput)throw new Error('bridge missing');
+        if(!document.getElementById('fileInput').accept.includes('image/png'))throw new Error('image accept missing');
+        if(!document.getElementById('uploadZoneText').textContent.includes('이미지'))throw new Error('upload label not updated');
+
+        const canvas=document.createElement('canvas');canvas.width=300;canvas.height=600;
+        const ctx=canvas.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,300,600);ctx.fillStyle='#12396d';ctx.fillRect(30,40,240,520);
+        const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));
+        const imageFile=new File([blob],'sample.png',{type:'image/png',lastModified:123});
+        const converted=await api.imageToPdf(imageFile,{dpi:300});
+        if(converted.type!=='application/pdf'||!converted.name.endsWith('.pdf'))throw new Error('conversion did not return PDF File');
+        const doc=await pdfjsLib.getDocument({data:await converted.arrayBuffer()}).promise;
+        if(doc.numPages!==1)throw new Error('converted image is not one-page PDF');
+        const page=await doc.getPage(1);const vp=page.getViewport({scale:1});
+        const wmm=vp.width*25.4/72,hmm=vp.height*25.4/72;
+        if(Math.abs(wmm-25.4)>0.8||Math.abs(hmm-50.8)>0.8)throw new Error(`unexpected page size ${wmm}x${hmm}`);
+        await doc.destroy();
+
+        await window.PdfEditorImageInput.importFiles([imageFile]);
+        if(imported.length!==1)throw new Error('bridge did not import converted image');
+        if(imported[0].type!=='application/pdf')throw new Error('bridge passed non-PDF into canonical editor');
+        if(imported[0].__sourceType!=='image')throw new Error('source marker missing');
+        document.documentElement.dataset.pdfEditorImageInputSmoke='pass';
+      }catch(error){fail(error?.message||String(error));}
+    })();
+  </script>
+</body>
+</html>
