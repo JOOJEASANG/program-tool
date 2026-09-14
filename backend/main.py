@@ -24,6 +24,7 @@ from werkzeug.exceptions import InternalServerError, MethodNotAllowed, NotFound,
 import routers.pdf as pdf_router
 import routers.pdf_utility as pdf_utility_router
 import routers.preflight as preflight_router
+from routers.admin_usage import admin_usage_bp
 from routers.pdf import pdf_bp
 from routers.pdf_large_security import pdf_large_security_bp
 from routers.pdf_tools import pdf_tools_bp
@@ -79,6 +80,7 @@ flask_app.register_blueprint(pdf_utility_margin_crop_bp, url_prefix="/api/pdf-ut
 flask_app.register_blueprint(pdf_utility_tiling_bp, url_prefix="/api/pdf-utility")
 flask_app.register_blueprint(preflight_bp, url_prefix="/api/preflight")
 flask_app.register_blueprint(preflight_auto_fix_bp, url_prefix="/api/preflight")
+flask_app.register_blueprint(admin_usage_bp, url_prefix="/api/admin")
 
 
 def _request_id() -> str:
@@ -195,7 +197,7 @@ def health():
             r"^https://program-tool[.]web[.]app$",
             r"^https://program-tool[.]firebaseapp[.]com$",
             r"^https://program-tool--[A-Za-z0-9-]+[.]web[.]app$",
-            r"^http://(?:localhost|127[.]0[.]0[.]1)(?::[0-9]+)?$",
+            r"^http://(?:localhost|127[.]0[.]1)(?::[0-9]+)?$",
         ],
         cors_methods=["get", "post", "delete", "options"],
     ),
@@ -326,9 +328,6 @@ def _trim_firestore_group(db, bucket, collection_id: str, limit: int, timestamp_
                 collection_id=collection_id,
             )
             try:
-                # Remove the database reference first. If this fails, keep the
-                # blobs protected as referenced data rather than breaking a live
-                # session/project. Blob cleanup can safely retry later.
                 snapshot.reference.delete()
             except Exception:
                 referenced.update(paths)
