@@ -17,16 +17,36 @@
   <div id="thumbCtxMenu"></div>
 
   <script>
-    window.parsedPages = [1, 2, 3, 4].map(id => ({ id, pageType: 'blank', excluded: false, rotation: 0 }));
+    const sourceCanvas = () => {
+      const c = document.createElement('canvas');
+      c.width = 60; c.height = 80;
+      return c;
+    };
+    window.parsedPages = [1, 2, 3, 4].map(id => ({
+      id,
+      pageType: 'pdf',
+      pdfPage: { id },
+      thumbCanvas: sourceCanvas(),
+      excluded: false,
+      rotation: 0,
+    }));
     window.nup = 1;
     window.BOOKLET_STRIPS = {};
     window.groupByNup = pages => [{ n: 1, pages }];
     window.getLayout = () => ({ cols: 1, rows: 1 });
-    window.schedulePreview = () => {};
+    window.schedulePreviewCalls = 0;
+    window.triggerPreviewCalls = 0;
+    window.schedulePreview = () => { window.schedulePreviewCalls += 1; };
+    window.triggerPreview = () => { window.triggerPreviewCalls += 1; return Promise.resolve(); };
     window.showStatus = () => {};
     window.hideStatus = () => {};
-    window.makeBlankPage = () => ({ id: Date.now(), pageType: 'blank', excluded: false, rotation: 0 });
+    window.makeBlankPage = () => ({ id: Date.now(), pageType: 'blank', excluded: false, rotation: 0, thumbCanvas: sourceCanvas() });
     window.displayPreview = () => {};
+    window.renderPdfPage = async (_page, _scale, rotation) => {
+      const c = sourceCanvas();
+      c.dataset.rotation = String(rotation || 0);
+      return c;
+    };
 
     window.renderThumbs = function renderThumbs() {
       const area = document.getElementById('thumbArea');
@@ -37,6 +57,12 @@
         item.dataset.id = page.id;
         const wrap = document.createElement('div');
         wrap.className = 'thumb-wrap';
+        if (page.thumbCanvas) {
+          const canvas = document.createElement('canvas');
+          canvas.width = page.thumbCanvas.width;
+          canvas.height = page.thumbCanvas.height;
+          wrap.appendChild(canvas);
+        }
         const num = document.createElement('span');
         num.className = 'thumb-num';
         num.textContent = String(index + 1);
@@ -51,12 +77,15 @@
       parsedPages.filter(page => !page.excluded).forEach(() => {
         const node = document.createElement('div');
         node.className = 'page-preview';
+        node.getBoundingClientRect = () => ({ top: 0 });
         preview.appendChild(node);
       });
     };
+    document.getElementById('previewScroll').getBoundingClientRect = () => ({ top: 0 });
+    document.getElementById('previewScroll').scrollTo = () => {};
     renderThumbs();
   </script>
-  <script src="/js/pdf-editor/page-selection-preview-focus.js?v=20260914-1"></script>
+  <script src="/js/pdf-editor/page-selection-preview-focus.js?v=20260914-2"></script>
   <script>
     (async () => {
       const result = document.getElementById('result');
@@ -73,10 +102,12 @@
         const wrap = document.querySelectorAll('#thumbArea .thumb-wrap')[index];
         wrap.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: 20, clientY: 20 }));
       };
+      const menuItem = text => [...document.querySelectorAll('#thumbCtxMenu .ctx-item')].find(node => node.textContent.includes(text));
 
       try {
         await wait(250);
         if (!document.getElementById('pageSelectionToolbar')) throw new Error('selection toolbar missing');
+        if (document.documentElement.dataset.pdfSidebarPageView !== 'source-portrait') throw new Error('sidebar source portrait mode missing');
 
         click(0);
         click(2, { ctrlKey: true });
@@ -87,12 +118,31 @@
         rightClick(0);
         await wait(20);
         const heading = document.querySelector('#thumbCtxMenu .ctx-heading');
-        if (heading?.textContent !== '선택한 페이지 2개') throw new Error('batch context heading mismatch');
-        const hide = [...document.querySelectorAll('#thumbCtxMenu .ctx-item')].find(node => node.textContent.includes('선택 페이지 숨기기'));
+        if (!heading?.textContent.includes('선택한 페이지 2개')) throw new Error('batch context heading mismatch');
+        if (document.getElementById('thumbCtxMenu')?.dataset.selectionCount !== '2') throw new Error('context selection snapshot count mismatch');
+
+        // Prove that menu actions use the frozen right-click selection, not a later
+        // single/live selection. Clearing the live set after opening the menu must
+        // not shrink the action target.
+        window.PdfEditorPageSelection.clearSelection();
+        const rotate = menuItem('시계방향 90° 회전');
+        if (!rotate) throw new Error('batch rotate action missing');
+        rotate.click();
+        await wait(120);
+        if (parsedPages[0].rotation !== 90 || parsedPages[2].rotation !== 90) throw new Error('batch rotate did not update every snapshotted page');
+        if (parsedPages[1].rotation !== 0 || parsedPages[3].rotation !== 0) throw new Error('batch rotate touched an unselected page');
+        if (window.triggerPreviewCalls + window.schedulePreviewCalls < 1) throw new Error('right preview was not refreshed after batch rotation');
+        if (!parsedPages[0].sourceThumbCanvas || !parsedPages[2].sourceThumbCanvas) throw new Error('source sidebar thumbnail was not preserved');
+
+        click(0);
+        click(2, { ctrlKey: true });
+        rightClick(0);
+        await wait(20);
+        const hide = menuItem('선택 페이지 숨기기');
         if (!hide) throw new Error('batch hide action missing');
         hide.click();
-        await wait(30);
-        if (!parsedPages[0].excluded || !parsedPages[2].excluded || parsedPages[1].excluded) throw new Error('batch hide did not target selection');
+        await wait(60);
+        if (!parsedPages[0].excluded || !parsedPages[2].excluded || parsedPages[1].excluded) throw new Error('batch hide did not target full selection');
 
         document.querySelector('[data-selection-action="clear"]').click();
         click(0);
@@ -106,7 +156,7 @@
         if (document.querySelectorAll('#thumbArea .page-selected').length !== 4) throw new Error('select all failed');
 
         document.body.dataset.pdfLayoutPageSelectionSmoke = 'pass';
-        result.textContent = 'PASS: PDF layout page multi-selection and batch context actions';
+        result.textContent = 'PASS: frozen multi-selection, full batch actions, source sidebar and right preview refresh';
       } catch (error) {
         fail(error);
       }
