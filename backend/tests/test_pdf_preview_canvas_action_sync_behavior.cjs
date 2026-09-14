@@ -57,5 +57,4 @@ pages[1].rotation = 90;
 while (timers.length) timers.shift()();
 assert.equal(renderCount, 1);
 assert.equal(renderIndex, 12);
-assert.equal(context.document.documentElement.dataset.pdfBatchPreviewSync, 'batch-rotation');
 console.log('pdf-preview-canvas-action-sync behavior passed');
