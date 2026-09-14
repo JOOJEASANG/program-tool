@@ -6,20 +6,34 @@
     <h2>PDF 파일</h2>
     <label id="uploadZone"><strong>PDF 올리기</strong><small>PDF only</small></label>
     <input id="fileInput" type="file" accept="application/pdf,.pdf" multiple>
+    <div id="fileList"></div>
   </section>
   <section id="summaryCard"><div class="summary-empty">PDF를 올리면 자동 계산합니다.</div></section>
   <div id="emptyPreview"><strong>PDF를 올리면 바로 자동배치됩니다</strong><span>설명</span></div>
   <div id="statusLine"></div>
   <script>
     const coreReceived=[];
-    window.SmartPrintLayout={state:{busy:false}};
+    window.SmartPrintLayout={state:{busy:false,items:[]}};
     window.jspdf={jsPDF:class FakeJsPdf{
       constructor(options){this.options=options;this.images=[];}
       addImage(){this.images.push(Array.from(arguments));}
       output(kind){if(kind!=='blob')throw new Error('unexpected output kind');return new Blob(['%PDF-1.4\n% smart image smoke\n'],{type:'application/pdf'});}
     }};
+    function renderCoreRows(){
+      const list=document.getElementById('fileList');list.replaceChildren();
+      window.SmartPrintLayout.state.items.forEach(item=>{
+        const row=document.createElement('div');row.className='file-item';
+        row.innerHTML='<div class="file-name"></div><div class="file-meta"></div><span class="side-pill">앞면</span>';
+        row.querySelector('.file-name').textContent=item.name;
+        row.querySelector('.file-meta').textContent='25.4 × 50.8mm · 1p · 수량 자동';
+        list.appendChild(row);
+      });
+    }
     document.getElementById('fileInput').addEventListener('change',event=>{
-      coreReceived.push(...Array.from(event.target.files||[]));
+      const files=Array.from(event.target.files||[]);
+      coreReceived.push(...files);
+      window.SmartPrintLayout.state.items=files.map(file=>({file,name:file.name,pageCount:1,widthMm:25.4,heightMm:50.8}));
+      renderCoreRows();
       event.target.value='';
     });
   </script>
@@ -48,14 +62,23 @@
         if(normalized[0]!==pdfFile)throw new Error('original PDF was unnecessarily replaced');
         if(normalized[1].type!=='application/pdf'||!normalized[1].name.endsWith('.pdf'))throw new Error('image did not normalize to PDF');
         if(normalized[1].__sourceType!=='image')throw new Error('image source marker missing');
+        if(normalized[1].__displayName!=='photo.png')throw new Error('image original display name missing');
+        if(Number(normalized[1].__imageMeta?.dpi)!==300)throw new Error('image dpi metadata missing');
 
         coreReceived.length=0;
         const imported=await window.SmartPrintLayoutImageInput.importImages([pdfFile,imageFile]);
         if(!imported)throw new Error('bridge import failed');
-        // replayThroughInput() dispatches change synchronously after normalization,
-        // so the canonical receiver must already have both PDF files here.
         if(coreReceived.length!==2)throw new Error(`canonical app received ${coreReceived.length} files`);
         if(coreReceived.some(file=>file.type!=='application/pdf'))throw new Error('canonical smart app received non-PDF');
+        const decorated=window.SmartPrintLayoutImageInput.syncImageLabels();
+        if(decorated!==1)throw new Error(`expected one decorated image row, got ${decorated}`);
+        const rows=document.querySelectorAll('#fileList .file-item');
+        if(rows.length!==2)throw new Error('smart file rows missing');
+        if(rows[0].querySelector('.file-name').textContent!=='original.pdf')throw new Error('PDF label was changed');
+        if(rows[1].querySelector('.file-name').textContent!=='photo.png')throw new Error('image original filename not restored');
+        if(rows[1].querySelector('.side-pill').textContent!=='이미지')throw new Error('image badge missing');
+        if(!rows[1].querySelector('.file-meta').textContent.includes('이미지 300dpi'))throw new Error('image dpi label missing');
+        if(window.SmartPrintLayout.state.items[1].sourceType!=='image')throw new Error('smart state image source metadata missing');
         if(document.documentElement.dataset.smartPrintImageImport!=='complete')throw new Error('completion marker missing');
         document.documentElement.dataset.smartPrintLayoutImageInputSmoke='pass';
       }catch(error){fail(error?.message||String(error));}
