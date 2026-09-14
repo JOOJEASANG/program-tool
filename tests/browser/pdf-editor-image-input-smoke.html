@@ -8,13 +8,19 @@
   <script>
     const imported=[];
     const pdfCalls=[];
+    let thumbRefreshes=0;
+    var parsedPages=[];
     window.jspdf={jsPDF:class FakeJsPdf{
       constructor(options){this.options=options;this.images=[];pdfCalls.push(this);}
       addImage(){this.images.push(Array.from(arguments));}
       output(kind){if(kind!=='blob')throw new Error('unexpected output kind');return new Blob(['%PDF-1.4\n% image adapter smoke\n'],{type:'application/pdf'});}
     }};
     window.showStatus=function(message,type){document.body.dataset.status=type||'info';document.body.dataset.message=message;};
-    window.handleFile=async function(file){imported.push(file);};
+    window.renderThumbs=function(){thumbRefreshes++;};
+    window.handleFile=async function(file){
+      imported.push(file);
+      parsedPages.push({id:`p${parsedPages.length+1}`,pageType:'pdf',sourceFile:file.name,rotation:0});
+    };
   </script>
   <script src="/js/image-pdf-adapter.js?v=smoke"></script>
   <script src="/js/pdf-editor/image-input-bridge.js?v=smoke"></script>
@@ -47,6 +53,19 @@
         if(imported.length!==1)throw new Error('bridge did not import converted image');
         if(imported[0].type!=='application/pdf')throw new Error('bridge passed non-PDF into canonical editor');
         if(imported[0].__sourceType!=='image')throw new Error('bridge source marker missing');
+        if(parsedPages.length!==1)throw new Error('editor page was not created');
+        if(parsedPages[0].sourceType!=='image')throw new Error('editor page image source marker missing');
+        if(parsedPages[0].sourceFile!=='sample.png')throw new Error('editor page original filename not restored');
+        if(parsedPages[0].sourceOriginalName!=='sample.png')throw new Error('editor original source name missing');
+        if(Number(parsedPages[0].imageMeta?.dpi)!==300)throw new Error('editor image dpi metadata missing');
+        if(Number(parsedPages[0].imageMeta?.widthPx)!==300||Number(parsedPages[0].imageMeta?.heightPx)!==600)throw new Error('editor image pixel metadata missing');
+        if(thumbRefreshes<1)throw new Error('thumbnail labels were not refreshed');
+
+        const pdfFile=new File([new Blob(['%PDF-1.4\n'],{type:'application/pdf'})],'original.pdf',{type:'application/pdf',lastModified:456});
+        await window.PdfEditorImageInput.importFiles([pdfFile]);
+        if(parsedPages.length!==2)throw new Error('PDF page was not added');
+        if(parsedPages[1].sourceType==='image')throw new Error('ordinary PDF was marked as image');
+        if(parsedPages[1].sourceFile!=='original.pdf')throw new Error('ordinary PDF label changed');
         document.documentElement.dataset.pdfEditorImageInputSmoke='pass';
       }catch(error){fail(error?.message||String(error));}
     })();
