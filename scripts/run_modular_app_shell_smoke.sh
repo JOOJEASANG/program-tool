@@ -60,4 +60,8 @@ out="$OUT_DIR/pdf-layout-page-selection-smoke-dom.html"
 url="http://127.0.0.1:$PORT/tests/browser/pdf-layout-page-selection-smoke.html"
 run_browser_case "$url" "$out" 'data-pdf-layout-page-selection-smoke="pass"'
 
-echo "Modular app browser smoke passed for current PDF layout/booklet shell, boundary UI, and PDF layout page selection using $BROWSER"
+out="$OUT_DIR/pdf-preview-insert-persistence-smoke-dom.html"
+url="http://127.0.0.1:$PORT/tests/browser/pdf-preview-insert-persistence-smoke.html"
+run_browser_case "$url" "$out" 'data-pdf-preview-insert-persistence-smoke="pass"'
+
+echo "Modular app browser smoke passed for current PDF layout/booklet shell, full batch page actions, and preview blank/divider insertion using $BROWSER"
