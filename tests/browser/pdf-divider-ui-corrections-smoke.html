@@ -50,7 +50,7 @@
     function editDivider(page){_editingDividerPage=page;openDividerInsert();}
   </script>
   <script src="/js/pdf-editor/divider-studio.js?v=20260914-4"></script>
-  <script src="/js/pdf-editor/divider-ui-corrections.js?v=20260914-1"></script>
+  <script src="/js/pdf-editor/divider-ui-corrections.js?v=20260914-2"></script>
   <script>
     const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
     function assert(condition,message){if(!condition)throw new Error(message);}
@@ -70,6 +70,14 @@
       await wait(80);
 
       assert(document.documentElement.dataset.pdfDividerUiCorrections==='ready','correction layer not ready');
+      assert(document.documentElement.dataset.pdfDividerUx==='enhanced-v2','divider ux enhancement marker missing');
+      const sidebar=document.querySelector('#dividerModal .divider-studio-controls');
+      assert(sidebar&&sidebar.dataset.dividerSidebarWide==='true','wide sidebar marker missing');
+      const uxStyle=$('pdfDividerUxStyles');
+      assert(uxStyle&&uxStyle.textContent.includes('clamp(480px,42vw,640px)'),'wide desktop sidebar rule missing');
+      const quickNav=$('dividerQuickNav');
+      assert(quickNav&&quickNav.querySelectorAll('[data-divider-jump]').length===4,'quick navigation was not installed');
+      assert(quickNav.querySelector('[data-divider-jump="shape"]'),'shape quick navigation missing');
       assert(!$('dividerBackgroundStudioCard'),'background style card was not removed');
       const legacyField=$('dividerVAlignRow')?.closest('.field');
       assert(legacyField&&legacyField.style.display==='none','legacy text position field is still visible');
@@ -93,6 +101,7 @@
       assert(hasInkPct(canvas,44,41,56,49),'title box was not rendered in right preview');
 
       assert(document.documentElement.dataset.pdfDividerRendererOwner==='studio-corrected-v1','studio renderer is not authoritative');
+      assert(window.PdfDividerUiCorrections.stage==='divider-ui-corrections-v2-wide-sidebar-ux','ux stage marker mismatch');
       document.body.setAttribute('data-pdf-divider-ui-corrections-smoke','pass');
     }
     run().catch(error=>{document.body.setAttribute('data-pdf-divider-ui-corrections-smoke','fail');document.body.textContent=error.stack||String(error);});
