@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"><title>Smart print layout image input smoke</title></head>
+<body>
+  <section class="panel first-panel">
+    <h2>PDF 파일</h2>
+    <label id="uploadZone"><strong>PDF 올리기</strong><small>PDF only</small></label>
+    <input id="fileInput" type="file" accept="application/pdf,.pdf" multiple>
+  </section>
+  <section id="summaryCard"><div class="summary-empty">PDF를 올리면 자동 계산합니다.</div></section>
+  <div id="emptyPreview"><strong>PDF를 올리면 바로 자동배치됩니다</strong><span>설명</span></div>
+  <div id="statusLine"></div>
+  <script>
+    const coreReceived=[];
+    window.SmartPrintLayout={state:{busy:false}};
+    window.jspdf={jsPDF:class FakeJsPdf{
+      constructor(options){this.options=options;this.images=[];}
+      addImage(){this.images.push(Array.from(arguments));}
+      output(kind){if(kind!=='blob')throw new Error('unexpected output kind');return new Blob(['%PDF-1.4\n% smart image smoke\n'],{type:'application/pdf'});}
+    }};
+    document.getElementById('fileInput').addEventListener('change',event=>{
+      coreReceived.push(...Array.from(event.target.files||[]));
+      event.target.value='';
+    });
+  </script>
+  <script src="/js/image-pdf-adapter.js?v=smoke"></script>
+  <script src="/js/smart-print-layout/image-input-bridge.js?v=smoke"></script>
+  <script>
+    (async()=>{
+      const fail=message=>{document.documentElement.dataset.smartPrintLayoutImageInputSmoke='fail';document.body.dataset.error=message;};
+      try{
+        await new Promise(r=>setTimeout(r,120));
+        if(!window.ProgramImagePdfAdapter)throw new Error('adapter missing');
+        if(!window.SmartPrintLayoutImageInput)throw new Error('smart bridge missing');
+        if(!document.getElementById('fileInput').accept.includes('image/webp'))throw new Error('image accept missing');
+        if(!document.querySelector('.first-panel h2').textContent.includes('이미지'))throw new Error('heading not updated');
+        if(!document.querySelector('#uploadZone strong').textContent.includes('이미지'))throw new Error('upload copy not updated');
+
+        const canvas=document.createElement('canvas');canvas.width=300;canvas.height=600;
+        const ctx=canvas.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,300,600);ctx.fillStyle='#155e75';ctx.fillRect(30,40,240,520);
+        const png=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));
+        if(!png)throw new Error('sample png creation failed');
+        const imageFile=new File([png],'photo.png',{type:'image/png',lastModified:123});
+        const pdfFile=new File([new Blob(['%PDF-1.4\n'],{type:'application/pdf'})],'original.pdf',{type:'application/pdf',lastModified:456});
+
+        const normalized=await window.SmartPrintLayoutImageInput.normalizeForSmart([pdfFile,imageFile]);
+        if(normalized.length!==2)throw new Error('mixed normalize count mismatch');
+        if(normalized[0]!==pdfFile)throw new Error('original PDF was unnecessarily replaced');
+        if(normalized[1].type!=='application/pdf'||!normalized[1].name.endsWith('.pdf'))throw new Error('image did not normalize to PDF');
+        if(normalized[1].__sourceType!=='image')throw new Error('image source marker missing');
+
+        coreReceived.length=0;
+        const imported=await window.SmartPrintLayoutImageInput.importImages([pdfFile,imageFile]);
+        if(!imported)throw new Error('bridge import failed');
+        await new Promise(r=>setTimeout(r,30));
+        if(coreReceived.length!==2)throw new Error(`canonical app received ${coreReceived.length} files`);
+        if(coreReceived.some(file=>file.type!=='application/pdf'))throw new Error('canonical smart app received non-PDF');
+        if(document.documentElement.dataset.smartPrintImageImport!=='complete')throw new Error('completion marker missing');
+        document.documentElement.dataset.smartPrintLayoutImageInputSmoke='pass';
+      }catch(error){fail(error?.message||String(error));}
+    })();
+  </script>
+</body>
+</html>
