@@ -4,7 +4,7 @@ from __future__ import annotations
 from typing import Optional
 
 from firebase_admin import auth, firestore
-from flask import g, request
+from flask import g, has_request_context, request
 
 
 # API families may be shared by multiple front-end programs. The client sends
@@ -38,13 +38,15 @@ def _program_family_for_path(path: str) -> tuple[str, tuple[str, ...]] | None:
     return None
 
 
-def program_for_path(path: str) -> Optional[str]:
+def program_for_path(path: str, requested_program: str | None = None) -> Optional[str]:
     """Resolve and validate the caller's program id for a managed API path."""
     family = _program_family_for_path(path)
     if family is None:
         return None
     prefix, allowed = family
-    requested = (request.headers.get("X-Program-ID") or "").strip().lower()
+    if requested_program is None and has_request_context():
+        requested_program = request.headers.get("X-Program-ID")
+    requested = str(requested_program or "").strip().lower()
     if requested:
         if requested not in allowed:
             raise AccessError("이 프로그램에서는 요청한 서버 기능을 사용할 수 없습니다.", 403)
