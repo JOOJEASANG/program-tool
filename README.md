@@ -1,6 +1,6 @@
 # Program Studio
 
-Firebase Hosting과 Python Cloud Functions로 운영하는 PDF 제작·검수 도구입니다.
+Firebase Hosting과 Python Cloud Functions로 운영하는 PDF·인쇄 실무 도구입니다.
 
 - 운영 주소: <https://program-tool.web.app>
 - Firebase 프로젝트: `program-tool`
@@ -8,18 +8,51 @@ Firebase Hosting과 Python Cloud Functions로 운영하는 PDF 제작·검수 �
 - 백엔드: Flask, Firebase Functions, PyMuPDF
 - 데이터: Firebase Authentication, Firestore, Cloud Storage
 
-## 주요 기능
+## 현재 운영 기능
 
-- PDF 편집기: 여러 PDF 병합, N-up 배치, 소책자 배열, 여백·페이지 번호·인쇄 표시
-- PDF 검사: 문서 정보, 크기, 색상·투명도 위험 신호, 보안 설정 검사와 제한적인 자동 수정
-- 책표지 제작: 통합 디자인 편집기의 표지 모드에서 판형·쪽수·종이에 따른 표지 크기 계산 및 300 DPI RGB 출력
-- 통합 디자인 편집기: 표지·포스터·전단·리플렛 편집, 인쇄 전 최종검사, 표준/고품질 PDF, 로컬·클라우드 프로젝트 저장
+### 인쇄물 사전 검토
 
-PDF 검수 결과는 인쇄소의 RIP/프리플라이트 결과를 대체하지 않습니다. 브라우저 표지 출력도 RGB 래스터 이미지이며, 실제 CMYK 납품물에는 인쇄소 ICC 프로파일을 적용한 별도 변환 단계가 필요합니다.
+`/print-checker`가 표지·전단·리플렛·초대장/안내장 등 인쇄물의 규격과 안전영역을 확인하는 공개 도구입니다.
+
+- 재단선·도련·안전영역 확인
+- 표지 책등 검토
+- 리플렛 접지선 확인
+- 초대장/안내장 1p 앞면 · 2p 뒷면 확인과 가변 접지 위치 검토
+- 공용 일일 무료 사용량 정책 적용
+
+과거 `design-editor`, `document-editor`, `image-editor`, `simple-editor` 런타임은 운영 트리에서 제거됐습니다. `/apps/cover`, `/apps/poster`, `/apps/flyer`, `/apps/invitation`, `/apps/notice`, `/apps/leaflet`은 인쇄물 사전 검토 화면으로 연결됩니다.
+
+### PDF 도구
+
+- `/pdf-editor`: PDF 페이지 편집, N-up 배치, 소책자 배열, 출력 설정
+- `/apps/pdf-layout`: PDF 배치 전용 셸 → canonical `/pdf-editor` 엔진 사용
+- `/apps/booklet`: 소책자 제작 전용 셸 → canonical `/pdf-editor` 엔진 사용
+- `/pdf-editor-advanced`: 확대/축소·이동·여백·머리말/꼬리말·페이지 번호 등 독립 고급 편집
+- `/pdf-preflight`: PDF 검사·보안·유틸리티
+- `/smart-print-layout`: 인쇄 배치 보조 도구
+- `/perfect-binding-cover`, `/tools/*.html`: 기존 공개 URL 호환 진입점
+
+PDF 검수 결과는 인쇄소의 RIP/프리플라이트 결과를 대체하지 않습니다.
+
+## 저장소 구조
+
+- `apps/`: PDF 배치/소책자용 공통 앱 셸과 인쇄물 사전 검토 리다이렉트
+- `print-checker/`, `js/print-checker/`, `css/print-checker.css`: 인쇄물 사전 검토
+- `pdf-editor/`, `js/pdf-editor/`: canonical PDF 편집 엔진
+- `pdf-editor-advanced/`, `js/pdf-editor-advanced/`: 독립 고급 PDF 편집기
+- `pdf-preflight/`, `js/pdf-preflight/`: PDF 검사·유틸리티
+- `pdf-suite/`, `js/pdf-suite/`: PDF 통합 도구 보조 런타임
+- `smart-print-layout/`, `js/smart-print-layout/`: 인쇄 배치 도구
+- `backend/`: Firebase Functions / Flask API
+- `scripts/`: 배포 준비·정적 검사·브라우저 smoke 실행기
+- `tests/`, `backend/tests/`: 프런트·백엔드·Firebase 규칙 회귀검사
+- `docs/`: 운영·보안·구조 문서
+
+실제 Firebase Hosting 배포물은 저장소 전체가 아니라 `scripts/prepare_hosting_dist.py`가 생성하는 `.firebase-hosting/` allowlist 디렉터리입니다.
 
 ## 로컬 개발
 
-Python 3.11과 Node.js 20을 기준으로 합니다.
+CI 기준 런타임은 Python 3.11, Node.js 24입니다.
 
 ```bash
 python3.11 -m venv .venv
@@ -28,7 +61,7 @@ python -m pip install -r backend/requirements-dev.txt
 npm ci
 ```
 
-백엔드 테스트와 정적 검사를 실행합니다.
+백엔드와 저장소 정적 검사를 실행합니다.
 
 ```bash
 cd backend
@@ -41,43 +74,36 @@ node --check sw.js
 python scripts/check_inline_js.py
 python scripts/check_version_sync.py
 python scripts/validate_static_references.py
+python scripts/validate_runtime_assets.py
+python scripts/validate_route_budgets.py
+python scripts/validate_modular_apps.py
 python scripts/validate_release_hygiene.py
 ```
 
-`validate_release_hygiene.py`는 Hosting 보안·캐시 계약도 함께 검사하고, 실제 배포 대상은 `.firebase-hosting/`에 allowlist 방식으로 생성합니다. 저장소 루트 전체를 Hosting에 직접 공개하지 않습니다.
-
-Firebase 규칙은 에뮬레이터로 실제 허용·거부 동작을 검사합니다.
+Firebase Rules 검사는 CI와 동일하게 Firebase CLI 15.28.1을 사용할 수 있습니다.
 
 ```bash
-npx firebase-tools@14.27.0 emulators:exec \
+npx firebase-tools@15.28.1 emulators:exec \
   --only firestore,storage \
   --project demo-program-tool \
   "npm run test:rules"
 ```
 
-## 처리 한도와 결과 전달
-
-- 직접 multipart 업로드: 합계 20 MiB 이하
-- PDF 편집기·검수용 Storage 입력: 파일당 최대 500 MiB
-- 표지 입력 이미지: 최대 15 MiB, 5천만 픽셀
-- 디자인 클라우드 프로젝트: 사용자당 최대 8개, 프로젝트 파일당 최대 30 MiB
-- 20 MiB를 넘는 생성 결과: `pdf_results/{uid}/{resultId}/{filename}`에 저장한 뒤 임시 다운로드 URL 반환
-- 임시 입력과 결과: 예약 함수가 6시간이 지난 객체를 6시간마다 정리
-
-Cloud Storage 버킷에도 방어적인 수명 주기 정책을 적용할 수 있습니다.
-
-```bash
-gcloud storage buckets update gs://program-tool.firebasestorage.app \
-  --lifecycle-file=storage-lifecycle.json
-```
-
 ## 배포
 
-`main` 브랜치에 푸시하면 `.github/workflows/firebase-deploy.yml`이 품질 검사를 통과한 뒤 Hosting, Functions, Firestore 규칙·인덱스, Storage 규칙을 배포합니다. Hosting 배포 직전 `scripts/firebase_ci.sh`가 `scripts/validate_hosting_delivery.py`를 실행해 보안 헤더를 검사하고 `.firebase-hosting/` 배포 디렉터리를 새로 만듭니다.
+`main` 브랜치 배포 전 품질 게이트에서 다음을 확인합니다.
 
-GitHub Actions에 `GCP_WORKLOAD_IDENTITY_PROVIDER`와 `GCP_SERVICE_ACCOUNT`가 모두 설정되어 있으면 short-lived Workload Identity Federation 자격정보를 사용합니다. 아직 WIF가 구성되지 않은 환경에서는 기존 `FIREBASE_TOKEN`을 임시 fallback으로 사용합니다. 두 WIF secret 중 하나만 설정된 경우와 WIF 설정 후 ADC 자격정보가 만들어지지 않은 경우에는 legacy token으로 우회하지 않고 배포를 실패시킵니다. 모든 Firebase CI 명령은 `scripts/firebase_ci.sh`를 거치며 WIF/ADC가 있으면 legacy token을 제거하고 ADC를 우선 사용합니다.
+- Python compile + pytest
+- JavaScript 및 inline JavaScript 문법
+- JSON 형식
+- 정적 자산 경로와 runtime asset manifest
+- route bootstrap budget
+- 브라우저 smoke
+- 독립 앱 경계
+- Firebase Firestore/Storage Rules
+- Hosting allowlist, 보안 헤더, 캐시 정책
 
-수동 배포:
+수동 검증·배포:
 
 ```bash
 python scripts/inject_boot_guard.py
@@ -85,42 +111,24 @@ python scripts/validate_hosting_delivery.py
 firebase deploy --project program-tool --force --non-interactive
 ```
 
-화면 동작이 바뀌면 `version.json`, `sw.js`, `js/sw-register.js`, `js/firebase-config.js`의 버전을 함께 갱신해야 합니다. `scripts/check_version_sync.py`가 불일치를 차단합니다.
+Hosting 배포 직전 `scripts/prepare_hosting_dist.py`가 `.firebase-hosting/`을 새로 만들기 때문에 저장소에 남아 있는 개발 문서·테스트·백엔드 소스는 정적 Hosting으로 공개되지 않습니다.
 
-## 구조
-
-- `pdf-editor/`: PDF 인쇄·출력 도구의 정식 화면
-- `pdf-preflight/`: PDF 검사·보안·변환 도구의 정식 화면
-- `design-editor/`: 표지·포스터·전단·리플렛 통합 디자인 편집기. 책표지는 `/?mode=cover` 진입을 사용
-- `perfect-binding-cover/`, `tools/*.html`, `legal/*.html`, `dashboard.html`: 기존 공개 URL을 보존하는 호환 이동 페이지
-- `document-editor/`, `image-editor/`: 문서·이미지 작업 화면
-- `docs/`: 운영·보안·기능 구조와 구현 참고 문서
-- `js/api.js`: 인증, 직접/Storage 업로드, 결과 다운로드 공통 API
-- `js/sw-register.js`: 화면별 런타임 모듈 로더. 일반 디자인 편집기는 `DESIGN_EDITOR_RUNTIME_SCRIPTS` 순서 목록으로 기능 의존성을 관리
-- `backend/routers/`: Flask API 진입점
-- `backend/services/pdf_engine.py`: PDF 레이아웃 렌더링의 단일 구현
-- `backend/services/preflight_svc.py`: PDF 검수
-- `backend/utils/storage_delivery.py`: 대용량 결과의 비공개 임시 전달
-- `backend/scripts/sync_admin_claims.py`: 관리자 custom claim dry-run·적용·검증 도구
-- `scripts/prepare_hosting_dist.py`: 공개 가능한 프런트 파일만 `.firebase-hosting/`에 복사하는 Hosting allowlist 빌더
-- `scripts/validate_hosting_delivery.py`: Hosting allowlist, 보안 헤더, 캐시 정책 검증
-- `scripts/firebase_ci.sh`: WIF/ADC 우선, `FIREBASE_TOKEN` fallback Firebase CI 실행기
-- `firestore.rules`, `storage.rules`, `tests/firebase-rules.test.mjs`: 접근 제어와 회귀 테스트
-- `docs/admin-security-migration.md`: 관리자 claim-only 권한과 WIF 배포 인증의 실제 전환 체크리스트
+화면 동작이 바뀌는 릴리스에서는 `version.json`, `sw.js`, `js/sw-register.js`, `js/firebase-config.js`의 버전 계약을 함께 확인해야 하며 `scripts/check_version_sync.py`가 불일치를 차단합니다.
 
 ## 운영 보안
 
-API는 Firebase ID 토큰과 프로그램 승인 상태를 모두 확인합니다. 관리자 권한의 최종 기준은 Firebase custom claim의 `admin: true`입니다. 기존 Firestore 이메일 목록 fallback은 실제 운영 관리자 전원의 claim 적용 여부를 확인하기 위한 마이그레이션 호환 경로로만 유지합니다.
+- API는 Firebase ID 토큰과 프로그램 접근 상태를 확인합니다.
+- 관리자 권한의 목표 source of truth는 Firebase custom claim `admin: true`입니다.
+- Firestore와 Storage는 허용한 경로 외 default deny 원칙을 사용합니다.
+- Hosting은 allowlist staging과 보안 헤더 검사를 통과한 파일만 배포합니다.
+- GitHub Actions 배포 인증은 WIF/ADC를 우선하며, 구성 상태에 따라 기존 `FIREBASE_TOKEN` fallback을 사용할 수 있습니다.
 
-관리자 claim 전환 전후에는 다음 검증을 사용합니다.
+관리자 claim 전환 절차는 `docs/admin-security-migration.md`를 참고합니다.
 
-```bash
-cd backend
-python -m scripts.sync_admin_claims
-python -m scripts.sync_admin_claims --apply
-python -m scripts.sync_admin_claims --verify
-```
+## 정리 원칙
 
-`--verify`가 성공하기 전에는 legacy 이메일 fallback을 제거하지 않습니다. 자세한 전환 순서와 rollback 기준은 `docs/admin-security-migration.md`를 따릅니다.
-
-Cloud 배포는 장기 refresh token보다 Workload Identity Federation/Application Default Credentials를 우선합니다. WIF로 PR 미리보기와 `production-smoke`까지 성공한 것을 확인한 뒤 `FIREBASE_TOKEN` secret을 제거합니다.
+1. 실제 운영 경로에서 사용하지 않는 독립 화면·실험 파일은 운영 트리에 남기지 않습니다.
+2. 기능은 canonical runtime 한 곳에서 소유하고 호환 URL은 얇은 진입점으로 유지합니다.
+3. `/apps/pdf-layout`과 `/apps/booklet`은 PDF 엔진을 복제하지 않습니다.
+4. 인쇄물 디자인 편집기 계열의 제거 상태를 유지하고, 디자인 제품 경로는 `/print-checker`로 연결합니다.
+5. 배포 대상 여부는 파일 위치가 아니라 Hosting allowlist를 기준으로 판단합니다.

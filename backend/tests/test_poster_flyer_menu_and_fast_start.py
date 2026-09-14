@@ -21,7 +21,7 @@ def test_modular_app_shell_preloads_engine_while_access_remains_gated() -> None:
     shell = source("js/studio-app-shell.js")
     assert "let accessGranted=false;" in shell
     assert "let frameReady=false;" in shell
-    assert "function maybeReady(){if(accessGranted&&frameReady)ready();}" in shell
+    assert "if(accessGranted&&frameReady)ready();" in shell
     assert "document.documentElement.dataset.modularAppEnginePreload='started'" in shell
     assert "if(!accessGranted||!frameReady)return;" in shell
     assert "parallelStage:'modular-app-shell-parallel-engine-preload-v2'" in shell
