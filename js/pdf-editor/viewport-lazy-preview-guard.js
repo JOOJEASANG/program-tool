@@ -29,17 +29,19 @@
     return `${sheet}번 용지 ${side} · 출력면 ${oneBased}`;
   }
 
-  function disableInsertionControls(root) {
+  function enableInsertionControls(root) {
     const zones = root?.querySelectorAll?.('.prev-ins-zone,.prev-ins-zone-v') || [];
     zones.forEach((zone) => {
-      zone.hidden = true;
-      zone.setAttribute('aria-hidden', 'true');
+      zone.hidden = false;
+      zone.removeAttribute?.('aria-hidden');
       zone.querySelectorAll('button').forEach((button) => {
-        button.disabled = true;
-        button.tabIndex = -1;
-        button.setAttribute('aria-disabled', 'true');
+        button.disabled = false;
+        button.tabIndex = 0;
+        button.setAttribute('aria-disabled', 'false');
+        button.style?.removeProperty?.('pointer-events');
       });
     });
+    if (zones.length) document.documentElement.dataset.pdfLazyPreviewCanvasInsert = 'enabled';
     return zones.length;
   }
 
@@ -80,7 +82,7 @@
     refreshing = true;
     try {
       root.dataset.lazyPreviewGuard = 'true';
-      disableInsertionControls(root);
+      enableInsertionControls(root);
       correctGlobalLabels(root);
       return true;
     } finally {
@@ -99,22 +101,15 @@
     style.id = 'pdfViewportLazyPreviewGuardStyles';
     style.textContent = `
       #previewScroll[data-lazy-preview="true"] .prev-ins-zone,
-      #previewScroll[data-lazy-preview="true"] .prev-ins-zone-v{display:none!important;pointer-events:none!important}
+      #previewScroll[data-lazy-preview="true"] .prev-ins-zone-v{visibility:visible!important;pointer-events:auto!important}
+      #previewScroll[data-lazy-preview="true"] .prev-ins-zone{display:flex!important}
+      #previewScroll[data-lazy-preview="true"] .prev-ins-zone-v{display:flex!important}
+      #previewScroll[data-lazy-preview="true"] .prev-ins-btn,
+      #previewScroll[data-lazy-preview="true"] .prev-ins-btn-v{pointer-events:auto!important;cursor:pointer!important}
       #previewScroll[data-lazy-preview="true"] .pdf-output-source-label{display:none!important}
       #previewScroll[data-lazy-preview="true"] .pdf-lazy-global-label{position:absolute;top:5px;right:5px;z-index:4;border-radius:999px;padding:3px 7px;background:rgba(15,23,42,.82);color:#fff;font-size:9px;font-weight:850;pointer-events:none}
     `;
     document.head.appendChild(style);
-  }
-
-  function blockStaleInsertion(event) {
-    if (!lazyActive()) return;
-    const button = event.target?.closest?.('.prev-ins-btn,.prev-ins-btn-v');
-    if (!button || !byId('previewScroll')?.contains(button)) return;
-    event.preventDefault();
-    event.stopImmediatePropagation();
-    event.stopPropagation();
-    try { window.showStatus?.('대용량 구간 미리보기에서는 삽입 위치 오류 방지를 위해 이 버튼을 사용하지 않습니다. 왼쪽 페이지 목록에서 추가해 주세요.', 'error'); }
-    catch (_) {}
   }
 
   function installObserver() {
@@ -122,7 +117,7 @@
     if (!root || typeof MutationObserver !== 'function') return false;
     if (observer) observer.disconnect();
     observer = new MutationObserver(scheduleRefresh);
-    observer.observe(root, { childList: true, subtree: true, attributes: true, attributeFilter: ['data-output-index', 'data-lazy-preview'] });
+    observer.observe(root, { childList: true, subtree: true, attributes: true, attributeFilter: ['data-output-index', 'data-lazy-preview', 'hidden', 'disabled', 'aria-disabled'] });
     return true;
   }
 
@@ -134,21 +129,19 @@
 
   if (document.documentElement.dataset.pdfLazyPreviewGuardEvents !== '1') {
     document.documentElement.dataset.pdfLazyPreviewGuardEvents = '1';
-    document.addEventListener('click', blockStaleInsertion, true);
-    document.addEventListener('keydown', (event) => {
-      if (event.key === 'Enter' || event.key === ' ') blockStaleInsertion(event);
-    }, true);
     document.addEventListener('pdf-import-committed', scheduleRefresh);
+    document.addEventListener('pdf-preview-page-inserted', scheduleRefresh);
+    document.addEventListener('pdf-preview-page-insert-requested', scheduleRefresh);
   }
 
   window.PdfViewportLazyPreviewGuard = {
     lazyActive,
     globalFaceLabel,
-    disableInsertionControls,
+    enableInsertionControls,
     correctGlobalLabels,
     refresh,
     scheduleRefresh,
-    stage: 'disable-local-insert-global-output-labels',
+    stage: 'canvas-insert-global-output-labels-v2',
   };
 
   for (const delay of INSTALL_DELAYS) setTimeout(install, delay);
