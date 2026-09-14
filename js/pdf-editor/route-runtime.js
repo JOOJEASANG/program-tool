@@ -9,6 +9,7 @@
     {id:'programShellUnifyScriptV1',src:'/js/program-shell-unify.js?v=20260831-1'},
     {id:'pdfAllInOneStage1ScriptV1',src:'/js/pdf-all-in-one-stage1.js?v=20260824-1'},
     {id:'desktopToolMobileNoticeScriptV1',src:'/js/desktop-tool-mobile-notice.js?v=20260807-1'},
+    {id:'pdfLayoutPageSelectionScriptV1',src:'/js/pdf-editor/page-selection-preview-focus.js?v=20260914-1',app:'layout'},
     {id:'pdfEditorModuleLoaderScript',src:'/js/pdf-editor/loader.js?v=20260828-1'},
     {id:'pdfEditorTransferLimitGuardScriptV1',src:'/js/pdf-editor/transfer-limit-guard.js?v=20260831-2'},
     {id:'pdfCropMarksScript',src:'/js/pdf-editor/crop-marks.js?v=20260731-4'},
@@ -84,26 +85,39 @@
   function loadAll(){
     const seen=new Set();
     const pending=[];
+    const app=standaloneApp();
     const advanced=isAdvancedProfile();
     removeStandardSidebarTitle();
-    if(standaloneApp())pending.push(loadStandaloneBoundary());
+    if(app==='layout'){
+      // The layout-only selection menu owns hide/show actions for every selected
+      // page, so the generic loader must not append its single-page hide action.
+      window.__pdfEditorHiddenContextActionV1=true;
+    }
+    if(app)pending.push(loadStandaloneBoundary());
+    // The output guard is intentionally outside MODULES so it stays a small,
+    // shared cross-program policy layer rather than becoming PDF editor state.
+    // It lazily loads the quota catalog/policy only when the user generates a result.
+    if(!advanced)pending.push(hostLoadScript('programUsageOutputGuardScriptV1','/js/program-usage-output-guard.js?v=20260914-1'));
     for(const entry of MODULES){
       if(!entry.id||!entry.src||seen.has(entry.id)){
         console.warn('[pdf-route-runtime] manifest entry skipped',entry);
         continue;
       }
+      if(entry.app&&entry.app!==app)continue;
       if(advanced&&ADVANCED_UNUSED_ROUTE_IDS.has(entry.id))continue;
       seen.add(entry.id);
       // Start requests in manifest order while allowing the browser to fetch
-      // independent helpers without a waterfall.
+      // independent helpers without a waterfall. The layout selection helper is
+      // intentionally inserted before loader.js so its capture listener owns
+      // Ctrl/Cmd/Shift thumbnail selection before generic click navigation.
       pending.push(hostLoad(entry));
     }
     if(advanced)document.documentElement.dataset.pdfAdvancedRouteModules='minimal';
     return Promise.all(pending).then(()=>{
       document.documentElement.dataset.pdfRouteRuntime='1';
-      if(standaloneApp()){
+      if(app){
         const profile=window.PdfEditorStandaloneApps?.fromLocation?.(location.search);
-        document.documentElement.dataset.pdfStandaloneApp=profile?.key||standaloneApp();
+        document.documentElement.dataset.pdfStandaloneApp=profile?.key||app;
       }
       return true;
     });
@@ -115,6 +129,6 @@
     modules:MODULES.map(({id,src})=>({id,src})),
     app:standaloneApp(),
     get profile(){return window.PdfEditorStandaloneApps?.fromLocation?.(location.search)?.key||null;},
-    stage:'pdf-editor-route-runtime-manifest-v1'
+    stage:'pdf-editor-route-runtime-manifest-v3-usage-output-guard'
   };
 })();

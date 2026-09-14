@@ -1,22 +1,22 @@
 <!doctype html>
-<html lang="ko">
-<head><meta charset="utf-8"><title>PDF daily free configurable limit smoke</title></head>
+<html lang="ko" data-usage-program-id="print-checker">
+<head><meta charset="utf-8"><title>Per-program configurable usage smoke</title></head>
 <body>
   <script>
     for(const key of Object.keys(localStorage)){
-      if(key.startsWith('programStudioPdfUsage:')||key==='programStudioPdfGuestId')localStorage.removeItem(key);
+      if(key.startsWith('programStudioUsage:')||key.startsWith('programStudioPdfUsage:')||key==='programStudioUsageGuestId'||key==='programStudioPdfGuestId')localStorage.removeItem(key);
     }
     window.__limitReads=0;
     window.db={
       collection(name){
-        if(name!=='settings')throw new Error('guest config smoke should only read settings');
+        if(name!=='program_usage_limits')throw new Error('guest config smoke should only read program_usage_limits');
         return {
           doc(id){
-            if(id!=='pdf_daily_limits')throw new Error('wrong settings document');
+            if(id!=='print-checker')throw new Error('wrong program settings document '+id);
             return {
               async get(){
                 window.__limitReads+=1;
-                return {exists:true,data(){return {guestLimit:5,memberLimit:12};}};
+                return {exists:true,data(){return {programId:'print-checker',label:'인쇄물 사전 검토',enabled:true,period:'daily',guestLimit:5,memberLimit:12};}};
               }
             };
           }
@@ -24,17 +24,19 @@
       }
     };
   </script>
+  <script src="../../js/program-usage-catalog.js"></script>
   <script src="../../js/pdf-daily-free.js"></script>
   <script>
     (async function(){
       const fail=message=>{document.documentElement.dataset.pdfDailyFreeConfigSmoke='fail';document.body.dataset.error=message;};
       try{
-        const api=window.ProgramPdfDailyFree;
-        if(!api)throw new Error('daily free API missing');
+        const api=window.ProgramUsagePolicy?.forProgram('print-checker');
+        if(!api)throw new Error('program usage API missing');
         const initial=await api.status();
-        if(initial.mode!=='guest'||initial.limit!==5||initial.remaining!==5||!initial.allowed)throw new Error('configured guest limit not loaded');
-        if(api.guestLimit!==5||api.memberLimit!==12)throw new Error('configured limits not exposed');
-        if(document.documentElement.dataset.pdfDailyLimitSource!=='firestore')throw new Error('limit source marker is not firestore');
+        if(initial.programId!=='print-checker'||initial.mode!=='guest'||initial.limit!==5||initial.remaining!==5||!initial.allowed)throw new Error('configured guest limit not loaded');
+        const limits=await api.limits();
+        if(limits.guest!==5||limits.member!==12||limits.period!=='daily')throw new Error('configured limits not exposed');
+        if(document.documentElement.dataset.programUsageLimitSource!=='firestore')throw new Error('limit source marker is not firestore');
         for(let i=0;i<5;i+=1){
           const gate=await api.canStart(`configured-${i}`);
           if(!gate.ok)throw new Error(`configured action ${i} blocked early`);
@@ -45,7 +47,7 @@
         const blocked=await api.canStart('configured-six');
         if(blocked.ok)throw new Error('configured sixth action was allowed');
         if(!String(blocked.message||'').includes('5회')||!String(blocked.message||'').includes('12회'))throw new Error('configured exhausted message is stale');
-        if(window.__limitReads<1)throw new Error('settings document was never read');
+        if(window.__limitReads<1)throw new Error('program settings document was never read');
         document.documentElement.dataset.pdfDailyFreeConfigSmoke='pass';
       }catch(error){fail(error?.message||String(error));}
     })();

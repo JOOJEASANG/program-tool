@@ -95,7 +95,7 @@
       </section>
 
       <div class="actions">
-        <button id="downloadBtn" class="primary-btn" type="button" disabled>출력용 PDF 만들기</button>
+        <button id="downloadBtn" class="primary-btn" type="button" disabled data-program-usage-action="출력용 PDF 만들기" data-program-usage-program="smart-print-layout">출력용 PDF 만들기</button>
         <button id="resetBtn" class="secondary-btn" type="button">전체 초기화</button>
       </div>
       <div class="status" id="statusLine" role="status"></div>
@@ -140,6 +140,7 @@
   <script defer src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
   <script defer src="/js/firebase-config.js"></script>
+  <script defer src="/js/program-usage-output-guard.js?v=20260914-1"></script>
   <script defer src="/js/smart-print-layout/app.js?v=20260910-2"></script>
   <script defer src="/js/smart-print-layout/session-persistence.js?v=20260910-1"></script>
 </body>

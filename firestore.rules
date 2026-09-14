@@ -74,6 +74,36 @@ service cloud.firestore {
         && request.resource.data.memberLimit <= 1000
         && request.resource.data.updatedAt is timestamp;
     }
+    function validProgramUsageLimit(programId){
+      return request.resource.data.keys().hasOnly(['programId','label','enabled','period','guestLimit','memberLimit','updatedAt'])
+        && programId.matches('^[a-z0-9][a-z0-9-]{1,63}$')
+        && request.resource.data.programId == programId
+        && request.resource.data.label is string
+        && request.resource.data.label.size() > 0
+        && request.resource.data.label.size() <= 80
+        && request.resource.data.enabled is bool
+        && request.resource.data.period in ['daily','monthly']
+        && request.resource.data.guestLimit is int
+        && request.resource.data.guestLimit >= -1
+        && request.resource.data.guestLimit <= 1000
+        && request.resource.data.memberLimit is int
+        && request.resource.data.memberLimit >= -1
+        && request.resource.data.memberLimit <= 1000
+        && request.resource.data.updatedAt is timestamp;
+    }
+    function validProgramUsage(){
+      return request.resource.data.keys().hasOnly(['programId','period','periodKey','count','updatedAt'])
+        && request.resource.data.programId is string
+        && request.resource.data.programId.matches('^[a-z0-9][a-z0-9-]{1,63}$')
+        && request.resource.data.period in ['daily','monthly']
+        && request.resource.data.periodKey is string
+        && request.resource.data.periodKey.size() >= 7
+        && request.resource.data.periodKey.size() <= 10
+        && request.resource.data.count is int
+        && request.resource.data.count >= 1
+        && request.resource.data.count <= 1000
+        && request.resource.data.updatedAt is timestamp;
+    }
 
     match /settings/admin {
       allow read: if isAdmin();
@@ -84,11 +114,17 @@ service cloud.firestore {
     match /settings/programs { allow read: if signedIn(); allow write: if isAdmin(); }
     match /settings/config { allow read, write: if isAdmin(); }
     match /settings/business { allow read: if true; allow write: if isAdmin(); }
-    // Public daily PDF limits contain only non-sensitive quota numbers. Anyone may read
-    // them so guests can enforce the same settings; only administrators may change them.
+    // Legacy shared PDF limits are kept readable during migration to per-program settings.
     match /settings/pdf_daily_limits {
       allow read: if true;
       allow create, update: if isAdmin() && validPdfDailyLimits();
+      allow delete: if isAdmin();
+    }
+    // Extensible program quota documents. New programs need no rules change as long as
+    // they use a valid program id and this bounded schema.
+    match /program_usage_limits/{programId} {
+      allow read: if true;
+      allow create, update: if isAdmin() && validProgramUsageLimit(programId);
       allow delete: if isAdmin();
     }
     // Public home navigation/card catalog. Anyone may read the published catalog,
@@ -119,9 +155,7 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
-    // Daily-free PDF counters are writable only by the signed-in account itself.
-    // Creation always starts at 1 and each update may advance exactly one successful use.
-    // 1000 is the administrator-configurable ceiling; the client enforces the saved limit.
+    // Legacy shared daily PDF counters remain valid for already-recorded usage.
     match /users/{uid}/daily_pdf_usage/{dateKey} {
       allow read: if isOwner(uid);
       allow create: if isOwner(uid)
@@ -130,6 +164,22 @@ service cloud.firestore {
       allow update: if isOwner(uid)
         && validDailyPdfUsage(dateKey)
         && request.resource.data.dateKey == resource.data.dateKey
+        && request.resource.data.count == resource.data.count + 1;
+      allow delete: if false;
+    }
+
+    // Program-specific member counters. Each successful use advances exactly one step;
+    // the client applies the administrator's per-program limit and period.
+    match /users/{uid}/program_usage/{usageKey} {
+      allow read: if isOwner(uid);
+      allow create: if isOwner(uid)
+        && validProgramUsage()
+        && request.resource.data.count == 1;
+      allow update: if isOwner(uid)
+        && validProgramUsage()
+        && request.resource.data.programId == resource.data.programId
+        && request.resource.data.period == resource.data.period
+        && request.resource.data.periodKey == resource.data.periodKey
         && request.resource.data.count == resource.data.count + 1;
       allow delete: if false;
     }

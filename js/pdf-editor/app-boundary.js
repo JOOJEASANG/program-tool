@@ -64,7 +64,6 @@
     if(!aside)return;
     aside.querySelector(':scope>.sub')?.remove();
     byId('pdfUploadOrderQuickBarV1')?.remove();
-    byId('pageSelectionToolbar')?.remove();
 
     const uploadButtons=[...aside.querySelectorAll('button')];
     const appendButton=uploadButtons.find(button=>compactText(button.textContent).includes('연속 추가'));
@@ -168,5 +167,5 @@
     const tick=()=>{attempts+=1;const ready=focusMode();if((!ready||attempts<4)&&attempts<30)setTimeout(tick,120);};tick();
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
-  window.PdfEditorAppBoundary={app,profile:profile?.key||app,sync:focusMode,stage:'pdf-layout-booklet-boundary-v3'};
+  window.PdfEditorAppBoundary={app,profile:profile?.key||app,sync:focusMode,stage:'pdf-layout-booklet-boundary-v4'};
 })();

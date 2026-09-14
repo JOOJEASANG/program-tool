@@ -56,4 +56,8 @@ for app in layout booklet; do
   grep -q "data-boundary-app=\"$app\"" "$out" || { cat "$out" >&2; exit 1; }
 done
 
-echo "Modular app browser smoke passed for current PDF layout/booklet shell and boundary UI using $BROWSER"
+out="$OUT_DIR/pdf-layout-page-selection-smoke-dom.html"
+url="http://127.0.0.1:$PORT/tests/browser/pdf-layout-page-selection-smoke.html"
+run_browser_case "$url" "$out" 'data-pdf-layout-page-selection-smoke="pass"'
+
+echo "Modular app browser smoke passed for current PDF layout/booklet shell, boundary UI, and PDF layout page selection using $BROWSER"

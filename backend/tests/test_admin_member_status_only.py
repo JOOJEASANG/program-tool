@@ -31,9 +31,16 @@ def test_admin_bulk_actions_keep_status_controls_but_drop_plan_controls():
     assert "applyBulk('plan'" not in bulk
 
 
-def test_admin_pdf_usage_limits_remain_the_operating_quota_control():
-    js = read("js/admin-pdf-usage-settings.js")
-    assert "PDF 1일 사용횟수" in js
-    assert "pdfGuestLimit" in js
-    assert "pdfMemberLimit" in js
-    assert "savePdfUsageBtn" in js
+def test_admin_program_usage_limits_are_the_extensible_operating_quota_control():
+    compat = read("js/admin-pdf-usage-settings.js")
+    js = read("js/admin-program-usage-settings.js")
+
+    assert "admin-pdf-usage-compatibility-bootstrap-v2" in compat
+    assert "/js/admin-program-usage-settings.js?v=20260914-1" in compat
+    assert "프로그램별 사용횟수" in js
+    assert "program_usage_limits" in js
+    assert "guestLimit" in js
+    assert "memberLimit" in js
+    assert "saveProgram" in js
+    assert "saveAll" in js
+    assert "addCustomProgram" in js
