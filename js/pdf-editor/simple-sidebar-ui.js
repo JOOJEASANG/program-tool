@@ -72,6 +72,21 @@
     const main=app.querySelector('main');if(main)main.style.gridColumn='';
   }
 
+  function removePrintOutputToolLabel(){
+    const sidebar=document.querySelector('.app>aside:first-of-type');
+    if(!sidebar)return;
+    const normalize=value=>String(value||'').replace(/[\s,，·ㆍ/|:：]+/g,'');
+    const matches=[...sidebar.querySelectorAll('*')].filter(node=>normalize(node.textContent)==='인쇄출력도구');
+    matches.sort((a,b)=>b.querySelectorAll('*').length-a.querySelectorAll('*').length);
+    matches.forEach(node=>{
+      if(!node.isConnected)return;
+      const nested=[...node.children].some(child=>normalize(child.textContent)==='인쇄출력도구');
+      if(nested)return;
+      node.remove();
+    });
+    document.documentElement.dataset.pdfSidebarPrintOutputLabel='removed';
+  }
+
   function removeLegacyUi(){
     document.querySelectorAll('.ps-sidebar-toggle,#pdfWorkflowHead,#pdfResultBar,#pdfEditorWorkflowV2,#pdfEditorWorkflowErrorV2,#pdfOutputSummaryV2').forEach(node=>node.remove());
     const sidebar=document.querySelector('.app>aside:first-of-type');
@@ -120,7 +135,7 @@
 
   function sync(){
     observer?.disconnect?.();
-    try{installStyles();neutralizeToolRail();restoreOutputRail();removeLegacyUi();keepSectionsOpen();compactLogout();document.body.dataset.pdfSidebarMode='all-visible-page-list-collapsible';document.documentElement.dataset.pdfSimpleSidebarUi='1';}
+    try{installStyles();neutralizeToolRail();restoreOutputRail();removeLegacyUi();removePrintOutputToolLabel();keepSectionsOpen();compactLogout();document.body.dataset.pdfSidebarMode='all-visible-page-list-collapsible';document.documentElement.dataset.pdfSimpleSidebarUi='1';}
     finally{observer?.observe(document.querySelector('.app')||document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['class','style','hidden','aria-hidden']});}
   }
 
@@ -140,6 +155,6 @@
   function boot(){if(typeof MutationObserver==='function')observer=new MutationObserver(queue);document.addEventListener('click',blockToggle,true);sync();[80,220,600,1200,2200].forEach(delay=>setTimeout(queue,delay));}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 
-  const api={sync,stage:'single-sidebar-page-list-collapsible-hotfix-v4'};
+  const api={sync,removePrintOutputToolLabel,stage:'single-sidebar-page-list-collapsible-hotfix-v5'};
   window.PdfEditorSimpleSidebarUi=api;window.PdfEditorWorkflowUi=api;window.PdfEditorWorkspaceLayout=api;
 })();
