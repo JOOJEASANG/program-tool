@@ -113,14 +113,19 @@
       pending.push(hostLoad(entry));
     }
     if(advanced)document.documentElement.dataset.pdfAdvancedRouteModules='minimal';
-    return Promise.all(pending).then(()=>{
-      document.documentElement.dataset.pdfRouteRuntime='1';
-      if(app){
-        const profile=window.PdfEditorStandaloneApps?.fromLocation?.(location.search);
-        document.documentElement.dataset.pdfStandaloneApp=profile?.key||app;
-      }
-      return true;
-    });
+    return Promise.all(pending)
+      // Divider correction is deliberately post-manifest: it must run after the
+      // parallel core/local-image helpers have finished so it can settle renderer
+      // ownership without adding another route-bootstrap manifest asset.
+      .then(()=>advanced?true:hostLoadScript('pdfDividerUiCorrectionsScriptV1','/js/pdf-editor/divider-ui-corrections.js?v=20260914-2'))
+      .then(()=>{
+        document.documentElement.dataset.pdfRouteRuntime='1';
+        if(app){
+          const profile=window.PdfEditorStandaloneApps?.fromLocation?.(location.search);
+          document.documentElement.dataset.pdfStandaloneApp=profile?.key||app;
+        }
+        return true;
+      });
   }
 
   window.PdfEditorRouteRuntime={
@@ -129,6 +134,6 @@
     modules:MODULES.map(({id,src})=>({id,src})),
     app:standaloneApp(),
     get profile(){return window.PdfEditorStandaloneApps?.fromLocation?.(location.search)?.key||null;},
-    stage:'pdf-editor-route-runtime-manifest-v3-usage-output-guard'
+    stage:'pdf-editor-route-runtime-manifest-v4-divider-ui-corrections'
   };
 })();
