@@ -62,6 +62,7 @@ const elements = new Map([
   ['bookletCheck', booklet],
 ]);
 const listeners = {};
+const timers = [];
 const document = {
   documentElement: { dataset: {} },
   head: { appendChild() {} },
@@ -76,23 +77,37 @@ class MutationObserver {
   disconnect() {}
 }
 
+const pages = [
+  { id: 1, pageType: 'pdf', pdfPage: {}, rotation: 0 },
+  { id: 2, pageType: 'pdf', pdfPage: {}, rotation: 0 },
+  { id: 3, pageType: 'blank', rotation: 0 },
+];
+let lazyRenderCount = 0;
+let lazyRenderIndex = null;
 const context = {
   console,
   document,
   MutationObserver,
   location: { pathname: '/pdf-editor/index.html' },
   requestAnimationFrame(callback) { callback(); return 0; },
-  setTimeout(callback) { callback(); return 0; },
+  setTimeout(callback) { timers.push(callback); return timers.length; },
   Number,
   String,
   Math,
+  Promise,
+  parsedPages: pages,
 };
 context.window = context;
 context.__pdfEditorLazyPreviewActive = true;
+context.PdfEditorPageSelection = { selectedIds: new Set([1, 2, 3]) };
+context.PdfViewportLazyPreview = {
+  getCurrentOutputIndex() { return 12; },
+  requestRender(index) { lazyRenderIndex = index; lazyRenderCount += 1; return Promise.resolve(true); },
+};
 vm.createContext(context);
 vm.runInContext(source, context, { filename: 'viewport-lazy-preview-guard.js' });
 const api = context.PdfViewportLazyPreviewGuard;
-assert.equal(api.stage, 'canvas-insert-global-output-labels-v2');
+assert.equal(api.stage, 'canvas-insert-and-right-preview-sync-v3');
 assert.equal(api.lazyActive(), true);
 assert.equal(api.globalFaceLabel(47), '출력면 48');
 assert.equal(api.refresh(), true);
@@ -111,6 +126,19 @@ assert.equal(api.globalFaceLabel(46), '24번 용지 앞면 · 출력면 47');
 assert.equal(api.globalFaceLabel(47), '24번 용지 뒷면 · 출력면 48');
 api.correctGlobalLabels(previewScroll);
 assert.equal(primary.textContent, '24번 용지 뒷면 · 출력면 48');
-assert.equal(typeof listeners.click, 'undefined');
-assert.equal(typeof listeners.keydown, 'undefined');
+
+const rotationSnapshot = Array.from(
+  api.selectedRotationSnapshot(),
+  (entry) => ({ id: entry.id, rotation: entry.rotation }),
+);
+assert.deepEqual(rotationSnapshot, [{ id: 1, rotation: 0 }, { id: 2, rotation: 0 }]);
+const rotateItem = { textContent: '↻ 선택 시계방향 90° 회전' };
+listeners.click({
+  target: { closest(selector) { return selector === '#thumbCtxMenu .ctx-item' ? rotateItem : null; } },
+});
+pages[0].rotation = 90;
+pages[1].rotation = 90;
+while (timers.length) timers.shift()();
+assert.equal(lazyRenderCount, 1);
+assert.equal(lazyRenderIndex, 12);
 console.log('pdf-viewport-lazy-preview-guard behavior passed');
