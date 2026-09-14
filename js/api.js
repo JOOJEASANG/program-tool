@@ -1,7 +1,36 @@
 /**
- * API client — calls /api/** on the same domain.
- * Firebase Hosting rewrites /api/** → Cloud Function "api".
+ * API client.
+ * 일반 API는 Firebase Hosting의 /api/** rewrite를 사용하고,
+ * 60초를 넘길 수 있는 PDF 생성 작업은 Cloud Functions 직접 URL을 사용한다.
  */
+
+const PDF_LONG_API_REGION = 'us-central1';
+
+function _firebaseProjectId() {
+  try { return firebase.app().options.projectId || 'program-tool'; }
+  catch (_) { return 'program-tool'; }
+}
+
+function _longPdfApiUrl(path) {
+  const suffix = String(path || '').startsWith('/') ? String(path) : '/' + String(path || '');
+  return `https://${PDF_LONG_API_REGION}-${_firebaseProjectId()}.cloudfunctions.net/api${suffix}`;
+}
+
+async function _fetchLongPdfApi(path, init = {}) {
+  try {
+    return await fetch(_longPdfApiUrl(path), {
+      ...init,
+      mode: 'cors',
+      credentials: 'omit',
+    });
+  } catch (error) {
+    if (error?.name === 'AbortError') throw error;
+    throw new Error(
+      'PDF 처리 서버 연결에 실패했습니다. 네트워크 상태를 확인한 뒤 다시 시도하세요: '
+      + (error?.message || '연결 오류')
+    );
+  }
+}
 
 async function _getToken() {
   const user = auth.currentUser;
@@ -53,15 +82,56 @@ async function _ensureStorage() {
   return window.storage;
 }
 
-async function _readPdfDelivery(resp) {
+function _delayWithSignal(ms, signal) {
+  if (!signal) return new Promise(resolve => setTimeout(resolve, ms));
+  if (signal.aborted) return Promise.reject(_makeAbortError());
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      signal.removeEventListener('abort', onAbort);
+      resolve();
+    }, ms);
+    const onAbort = () => {
+      clearTimeout(timer);
+      signal.removeEventListener('abort', onAbort);
+      reject(_makeAbortError());
+    };
+    signal.addEventListener('abort', onAbort, { once: true });
+  });
+}
+
+async function _fetchPdfResult(downloadUrl, { signal, attempts = 3 } = {}) {
+  let lastError = null;
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    try {
+      const resultResp = await fetch(downloadUrl, {
+        cache: 'no-store',
+        credentials: 'omit',
+        signal,
+      });
+      if (!resultResp.ok) {
+        throw new Error(`완성 PDF 다운로드 실패 (${resultResp.status})`);
+      }
+      return resultResp;
+    } catch (error) {
+      if (error?.name === 'AbortError' || signal?.aborted) throw error;
+      lastError = error;
+      if (attempt < attempts) await _delayWithSignal(attempt * 700, signal);
+    }
+  }
+  throw new Error(
+    '완성 PDF 다운로드 연결에 실패했습니다. 네트워크 상태를 확인한 뒤 다시 시도하세요: '
+    + (lastError?.message || '연결 오류')
+  );
+}
+
+async function _readPdfDelivery(resp, { signal } = {}) {
   const contentType = resp.headers.get('content-type') || '';
   if (!contentType.includes('application/json')) return resp.blob();
   const delivery = await resp.json();
   if (delivery?.delivery !== 'storage' || !delivery.download_url) {
     throw new Error('PDF 다운로드 정보가 올바르지 않습니다.');
   }
-  const resultResp = await fetch(delivery.download_url, { cache: 'no-store' });
-  if (!resultResp.ok) throw new Error('완성 PDF를 내려받지 못했습니다.');
+  const resultResp = await _fetchPdfResult(delivery.download_url, { signal });
   const blob = await resultResp.blob();
   if (delivery.storage_path) {
     try {
@@ -161,7 +231,7 @@ async function _processPdfDirect(files, settings, token, signal, onStatus, onPro
   files.forEach(f => form.append('files', f));
   form.append('settings', JSON.stringify(settings));
 
-  const resp = await fetch('/api/pdf/process', {
+  const resp = await _fetchLongPdfApi('/api/pdf/process', {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}` },
     body: form,
@@ -173,7 +243,7 @@ async function _processPdfDirect(files, settings, token, signal, onStatus, onPro
     throw new Error(msg || 'PDF 처리 중 오류가 발생했습니다.');
   }
   _reportProgress(onProgress, 'download', 92, '완성 PDF 내려받는 중');
-  return _readPdfDelivery(resp);
+  return _readPdfDelivery(resp, { signal });
 }
 
 /**
@@ -221,9 +291,9 @@ async function apiProcessPdf(files, settings, options = {}) {
       });
     }
 
-    onStatus && onStatus('서버에서 PDF 생성 중... (페이지가 많으면 1~2분 소요될 수 있습니다)');
+    onStatus && onStatus('서버에서 PDF 생성 중... (대용량·소책자 작업은 몇 분 걸릴 수 있습니다)');
     _reportProgress(onProgress, 'server', 45, '서버에서 PDF 생성 중');
-    const resp = await fetch('/api/pdf/process-storage', {
+    const resp = await _fetchLongPdfApi('/api/pdf/process-storage', {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ storage_paths: storagePaths, settings }),
@@ -236,7 +306,7 @@ async function apiProcessPdf(files, settings, options = {}) {
     }
 
     _reportProgress(onProgress, 'download', 92, '완성 PDF 내려받는 중');
-    const blob = await _readPdfDelivery(resp);
+    const blob = await _readPdfDelivery(resp, { signal: controller.signal });
     _reportProgress(onProgress, 'complete', 100, 'PDF 생성 완료');
     _finishManagedPdfOperation(__managedOperation, 'success', 'PDF 생성이 완료되었습니다.');
     return blob;
