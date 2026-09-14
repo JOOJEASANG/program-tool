@@ -94,6 +94,10 @@
       window.__pdfEditorHiddenContextActionV1=true;
     }
     if(app)pending.push(loadStandaloneBoundary());
+    // The output guard is intentionally outside MODULES so it stays a small,
+    // shared cross-program policy layer rather than becoming PDF editor state.
+    // It lazily loads the quota catalog/policy only when the user generates a result.
+    if(!advanced)pending.push(hostLoadScript('programUsageOutputGuardScriptV1','/js/program-usage-output-guard.js?v=20260914-1'));
     for(const entry of MODULES){
       if(!entry.id||!entry.src||seen.has(entry.id)){
         console.warn('[pdf-route-runtime] manifest entry skipped',entry);
@@ -125,6 +129,6 @@
     modules:MODULES.map(({id,src})=>({id,src})),
     app:standaloneApp(),
     get profile(){return window.PdfEditorStandaloneApps?.fromLocation?.(location.search)?.key||null;},
-    stage:'pdf-editor-route-runtime-manifest-v2'
+    stage:'pdf-editor-route-runtime-manifest-v3-usage-output-guard'
   };
 })();
