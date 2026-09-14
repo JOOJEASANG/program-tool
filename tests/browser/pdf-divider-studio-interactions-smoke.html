@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>PDF divider studio interactions smoke</title>
+  <style>
+    body{font-family:Arial,sans-serif;margin:0}
+    #dividerModal{position:fixed;inset:0;background:#ddd;display:none}
+    .modal-box{width:1100px;height:760px;background:#fff;margin:0 auto}
+    .divider-prev-wrap{width:420px;height:594px;position:relative;background:#fff}
+    #dividerPrevCanvas{width:100%;height:100%}
+    #thumbCtxMenu{position:fixed;display:none;background:#fff;border:1px solid #aaa}
+    #thumbCtxMenu.open{display:block}
+    .thumb-item{width:100px;height:140px;border:1px solid #ccc}
+  </style>
+</head>
+<body>
+  <div id="dividerModal">
+    <div class="modal-box">
+      <div class="modal-head">간지 페이지 편집 <button id="dividerModalClose" type="button">닫기</button></div>
+      <div class="divider-prev-wrap"><canvas id="dividerPrevCanvas"></canvas></div>
+      <div class="field"><label>제목</label><input type="text" id="dividerTitle" value=""></div>
+      <div class="field"><label>부제목</label><input type="text" id="dividerSubtitle" value=""></div>
+      <div class="field"><label>하단 메모</label><input type="text" id="dividerNote" value=""></div>
+      <div class="field"><label><input type="checkbox" id="dividerNoBg" checked> 배경 없음</label></div>
+      <div class="field"><label>배경색</label><input type="color" id="dividerBg" value="#ffffff"></div>
+      <div class="field"><label>글자색</label><input type="color" id="dividerFg" value="#111827"></div>
+      <div class="field"><label>세로 보정</label><input type="range" id="dividerVOffset" min="-40" max="40" value="0"></div>
+      <div id="dividerStyleRow"><button type="button" class="style-btn active" data-style="simple">심플</button><button type="button" class="style-btn" data-style="band">밴드</button><button type="button" class="style-btn" data-style="lines">라인</button></div>
+      <div class="modal-footer"><button type="button" id="dividerSaveBtn">저장</button></div>
+    </div>
+  </div>
+  <div id="thumbArea"></div>
+  <div id="thumbCtxMenu"></div>
+
+  <script>
+    let parsedPages = [];
+    let nextPageId = 1;
+    let _editingDividerPage = null;
+    let previewRefreshes = 0;
+
+    function $(id){ return document.getElementById(id); }
+    function currentStyle(){ return $('dividerStyleRow').querySelector('[data-style].active')?.dataset.style || 'simple'; }
+    function renderDividerCanvas(content,width,height){
+      const canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;
+      const ctx=canvas.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,width,height);
+      ctx.fillStyle='#111';ctx.fillText(String(content?.title||''),20,40);return canvas;
+    }
+    function getDividerContent(){
+      return {
+        title:$('dividerTitle').value,subtitle:$('dividerSubtitle').value,note:$('dividerNote').value,
+        noBg:$('dividerNoBg').checked,bg:$('dividerBg').value,fg:$('dividerFg').value,style:currentStyle(),
+        textVOffset:Number($('dividerVOffset').value)||0,
+        titleX:Number($('dividerTitleX')?.value||50),subtitleX:Number($('dividerSubtitleX')?.value||50),noteX:Number($('dividerNoteX')?.value||50),
+        titleY:Number($('dividerTitleY')?.value||45),subtitleY:Number($('dividerSubtitleY')?.value||55),noteY:Number($('dividerNoteY')?.value||88)
+      };
+    }
+    function updateDividerPreview(){
+      previewRefreshes += 1;
+      const canvas=$('dividerPrevCanvas'),wrap=canvas.parentElement;
+      const w=wrap.clientWidth||420,h=wrap.clientHeight||594;canvas.width=w;canvas.height=h;
+      const tmp=renderDividerCanvas(getDividerContent(),w,h);canvas.getContext('2d').drawImage(tmp,0,0,w,h);
+    }
+    function openDividerInsert(){
+      _editingDividerPage=null;$('dividerModal').style.display='flex';
+      $('dividerTitle').value='';$('dividerSubtitle').value='';$('dividerNote').value='';
+      $('dividerNoBg').checked=true;$('dividerBg').value='#ffffff';$('dividerFg').value='#111827';
+      $('dividerStyleRow').querySelectorAll('[data-style]').forEach((b)=>b.classList.toggle('active',b.dataset.style==='simple'));
+      updateDividerPreview();
+    }
+    function editDivider(page){
+      _editingDividerPage=page;const c=page.dividerContent||{};$('dividerModal').style.display='flex';
+      $('dividerTitle').value=c.title||'';$('dividerSubtitle').value=c.subtitle||'';$('dividerNote').value=c.note||'';
+      $('dividerNoBg').checked=c.noBg!==false;$('dividerBg').value=c.bg||'#ffffff';$('dividerFg').value=c.fg||'#111827';
+      $('dividerStyleRow').querySelectorAll('[data-style]').forEach((b)=>b.classList.toggle('active',b.dataset.style===(c.style||'simple')));
+      updateDividerPreview();
+    }
+    function makeDividerPageObj(content){
+      return {id:nextPageId++,pdfPage:null,thumbCanvas:renderDividerCanvas(content,200,283),excluded:false,nupOverride:null,nupDisabled:true,sourceFile:'간지',groupBreak:false,rotation:0,pageType:'divider',dividerContent:{...content}};
+    }
+    function renderThumbs(){
+      $('thumbArea').innerHTML='';parsedPages.forEach((page)=>{const item=document.createElement('div');item.className='thumb-item';item.dataset.id=String(page.id);item.textContent='간지 '+page.id;$('thumbArea').appendChild(item);});
+    }
+    function triggerPreview(){ previewRefreshes += 1; }
+    function schedulePreview(){ previewRefreshes += 1; }
+    function showStatus(message){ document.documentElement.dataset.lastStatus=message; }
+    function hideStatus(){}
+    function _openThumbCtxMenu(event,page){
+      const menu=$('thumbCtxMenu');menu.innerHTML='<div class="ctx-item">기본 메뉴</div>';menu.dataset.selectionCount='1';menu.classList.add('open');menu.style.left=(event?.clientX||5)+'px';menu.style.top=(event?.clientY||5)+'px';return page;
+    }
+    window.PdfEditorPageSelection={selectedIds:new Set(),clearSelection(){this.selectedIds.clear();},refreshRightPreview(){previewRefreshes+=1;},syncSidebarSourceThumbs(){},focusPage(){}};
+  </script>
+  <script src="/js/pdf-editor/divider-interaction-stability.js?v=20260914-1"></script>
+  <script src="/js/pdf-editor/divider-studio.js?v=20260914-4"></script>
+  <script>
+    function assert(condition,message){if(!condition)throw new Error(message);}
+    function wait(ms){return new Promise((resolve)=>setTimeout(resolve,ms));}
+
+    async function run(){
+      await wait(700);
+      assert(window.PdfDividerStudio,'divider studio did not boot');
+      assert(window.PdfDividerStudioInteractions,'stable interactions did not boot');
+      assert($('pdfDividerInteractionStabilityStyles')?.textContent.includes('minmax(500px,50%)'),'wider 50% sidebar rule missing');
+
+      openDividerInsert();
+      await wait(80);
+      assert($('dividerTitle')?.tagName==='TEXTAREA','title input was not upgraded to textarea');
+      $('dividerTitle').value='첫 번째 제목 줄\n두 번째 제목 줄';
+      $('dividerTitle').dispatchEvent(new Event('input',{bubbles:true}));
+      const twoLine=window.getDividerContent();
+      assert(twoLine.title.includes('\n'),'two-line title was not preserved');
+
+      $('dividerNoBg').checked=false;$('dividerNoBg').dispatchEvent(new Event('change',{bubbles:true}));
+      const gradient=$('[data-bg-style="gradient"]');assert(gradient,'gradient background button missing');gradient.click();
+      $('dividerBg2').value='#dbeafe';$('dividerBg2').dispatchEvent(new Event('input',{bubbles:true}));
+      assert(window.getDividerContent().bgStyle==='gradient','background style did not update');
+
+      const titleBoxBtn=$('[data-add-shape="titleBox"]');assert(titleBoxBtn,'title box button missing');titleBoxBtn.click();
+      await wait(30);
+      let shapes=window.PdfDividerStudio.getShapes();assert(shapes.length===1,'title box was not added');
+      const shapeId=shapes[0].id;
+      const shapeCard=document.querySelector(`[data-shape-id="${shapeId}"]`);assert(shapeCard,'shape settings card missing');
+      window.PdfDividerStudioInteractions.selectShape(shapeId);
+      assert(shapeCard.classList.contains('divider-shape-selected'),'shape selection UI did not update');
+      assert(window.PdfDividerStudioInteractions.applyShapePosition(shapeId,63,37),'shape position update failed');
+      await wait(40);
+      shapes=window.PdfDividerStudio.getShapes();
+      assert(Math.abs(shapes[0].x-63)<0.2&&Math.abs(shapes[0].y-37)<0.2,'shape model did not follow position controls');
+
+      window.PdfDividerStudioInteractions.selectShape('');shapeCard.dispatchEvent(new MouseEvent('click',{bubbles:true}));
+      assert(window.PdfDividerStudioInteractions.activeShapeId===shapeId,'shape card click did not select shape');
+      document.dispatchEvent(new KeyboardEvent('keydown',{key:'Delete',bubbles:true}));
+      await wait(30);
+      assert(window.PdfDividerStudio.getShapes().length===0,'Delete key did not remove selected shape');
+
+      titleBoxBtn.click();$('dividerAddTextBtn').click();await wait(30);
+      const textInput=document.querySelector('#dividerExtraList [data-key="text"]');assert(textInput,'extra text input missing');
+      textInput.value='추가 텍스트';textInput.dispatchEvent(new Event('input',{bubbles:true}));
+      const content=window.getDividerContent();
+      assert(content.shapeLayers.length===1,'shape layer was not collected');
+      assert(content.extraTexts.length===1&&content.extraTexts[0].text==='추가 텍스트','extra text layer was not collected');
+
+      const original=makeDividerPageObj(content);parsedPages.push(original);renderThumbs();
+      const copy=window.PdfDividerStudioInteractions.duplicateDividerPage(original);assert(copy,'divider copy failed');
+      assert(parsedPages.length===2&&parsedPages[1]===copy,'copied divider was not inserted after source');
+      assert(copy.dividerContent.shapeLayers!==original.dividerContent.shapeLayers,'shape layers were not deep-copied');
+      const sourceX=original.dividerContent.shapeLayers[0].x;copy.dividerContent.shapeLayers[0].x=sourceX+9;
+      assert(original.dividerContent.shapeLayers[0].x===sourceX,'copy mutated the original divider');
+
+      assert(window.PdfDividerStudioInteractions.editDividerPage(copy),'copied divider could not be reopened for edit');
+      await wait(30);
+      assert(document.documentElement.dataset.dividerDesignEditing===String(copy.id),'edit marker missing');
+      assert($('dividerTitle').value===copy.dividerContent.title,'edit did not restore divider title');
+
+      _openThumbCtxMenu(new MouseEvent('contextmenu',{clientX:20,clientY:20}),copy);await wait(0);
+      assert($('thumbCtxMenu').querySelector('[data-divider-design-action="edit"]'),'context edit action missing');
+      assert($('thumbCtxMenu').querySelector('[data-divider-design-action="copy"]'),'context copy action missing');
+      const copyThumb=$('thumbArea').querySelector(`[data-id="${copy.id}"]`);assert(copyThumb,'copied divider thumbnail missing');
+      copyThumb.dispatchEvent(new MouseEvent('dblclick',{bubbles:true}));await wait(20);
+      assert(document.documentElement.dataset.dividerDesignEditing===String(copy.id),'double-click edit failed');
+
+      assert(previewRefreshes>3,'preview did not refresh during editing');
+      document.documentElement.dataset.pdfDividerStudioInteractionsSmoke='pass';
+      document.body.setAttribute('data-pdf-divider-studio-interactions-smoke','pass');
+    }
+
+    run().catch((error)=>{document.documentElement.dataset.pdfDividerStudioInteractionsSmoke='fail';document.body.setAttribute('data-pdf-divider-studio-interactions-smoke','fail');document.body.textContent=error.stack||String(error);});
+  </script>
+</body>
+</html>
