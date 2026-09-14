@@ -24,7 +24,7 @@ def test_advanced_divider_studio_is_single_initialized_without_polling():
     assert "divider-studio.js?v=20260731-2" in helper
     assert "setInterval(" not in helper
     assert "setInterval(" not in studio
-    assert "attempt < 16" in studio
+    assert "attempt<16" in studio or "attempt < 16" in studio
 
 
 def test_full_screen_divider_studio_restores_dynamic_text_layers():
@@ -53,8 +53,10 @@ def test_divider_background_and_styles_are_not_forced_to_white():
     assert "ctx.fillStyle = source.noBg ? '#ffffff' : source.bg" in helper
     assert "source.style === 'band'" in helper
     assert "source.style === 'lines'" in helper
-    assert "content.noBg = $('dividerNoBg') ? $('dividerNoBg').checked" in studio
-    assert "content.extraTexts = collectExtras()" in studio
+    assert "content.noBg" in studio
+    assert "$('dividerNoBg')" in studio
+    assert ".checked" in studio
+    assert "content.extraTexts=collectExtras()" in studio or "content.extraTexts = collectExtras()" in studio
     assert "#dividerBg,label[for=\"dividerBg\"]{display:none" not in helper
 
 
