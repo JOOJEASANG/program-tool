@@ -25,7 +25,6 @@
     {id:'pdfPreviewInsertPersistenceScriptV1',src:'/js/pdf-editor/preview-insert-persistence.js?v=20260914-3'},
     {id:'pdfDividerLocalImageUploadScriptV1',src:'/js/pdf-divider-local-image-upload.js?v=20260830-1'},
     {id:'pdfDividerModalLayoutScriptV1',src:'/js/pdf-editor/divider-modal-layout.js?v=20260830-2'},
-    {id:'pdfDividerUiCorrectionsScriptV1',src:'/js/pdf-editor/divider-ui-corrections.js?v=20260914-1'},
     {id:'pdfEditorFinalCheckScriptV1',src:'/js/pdf-editor-final-check.js?v=20260828-1'},
     {id:'pdfEditorSpreadSplitScriptV1',src:'/js/pdf-editor/spread-split.js?v=20260825-1'},
     {id:'pdfBookletSheetPreviewScriptV1',src:'/js/pdf-editor/booklet-sheet-preview.js?v=20260825-1'}
@@ -36,7 +35,6 @@
     'pdfPreviewInsertPersistenceScriptV1',
     'pdfDividerLocalImageUploadScriptV1',
     'pdfDividerModalLayoutScriptV1',
-    'pdfDividerUiCorrectionsScriptV1',
     'pdfEditorSpreadSplitScriptV1',
     'pdfBookletSheetPreviewScriptV1'
   ]);
@@ -115,14 +113,19 @@
       pending.push(hostLoad(entry));
     }
     if(advanced)document.documentElement.dataset.pdfAdvancedRouteModules='minimal';
-    return Promise.all(pending).then(()=>{
-      document.documentElement.dataset.pdfRouteRuntime='1';
-      if(app){
-        const profile=window.PdfEditorStandaloneApps?.fromLocation?.(location.search);
-        document.documentElement.dataset.pdfStandaloneApp=profile?.key||app;
-      }
-      return true;
-    });
+    return Promise.all(pending)
+      // Divider correction is deliberately post-manifest: it must run after the
+      // parallel core/local-image helpers have finished so it can settle renderer
+      // ownership without adding another route-bootstrap manifest asset.
+      .then(()=>advanced?true:hostLoadScript('pdfDividerUiCorrectionsScriptV1','/js/pdf-editor/divider-ui-corrections.js?v=20260914-1'))
+      .then(()=>{
+        document.documentElement.dataset.pdfRouteRuntime='1';
+        if(app){
+          const profile=window.PdfEditorStandaloneApps?.fromLocation?.(location.search);
+          document.documentElement.dataset.pdfStandaloneApp=profile?.key||app;
+        }
+        return true;
+      });
   }
 
   window.PdfEditorRouteRuntime={
