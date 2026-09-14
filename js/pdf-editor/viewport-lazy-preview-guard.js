@@ -191,7 +191,7 @@
     if (!root || typeof MutationObserver !== 'function') return false;
     if (observer) observer.disconnect();
     observer = new MutationObserver(scheduleRefresh);
-    observer.observe(root, { childList: true, subtree: true, attributes: true, attributeFilter: ['data-output-index', 'data-lazy-preview', 'hidden', 'disabled', 'aria-disabled'] });
+    observer.observe(root, { childList: true, subtree: true, attributes: true, attributeFilter: ['data-output-index', 'data-lazy-preview'] });
     return true;
   }
 
