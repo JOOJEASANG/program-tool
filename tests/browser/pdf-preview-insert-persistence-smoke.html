@@ -50,7 +50,7 @@
       const boundaryValues=()=>[...scroll.querySelectorAll(':scope>.prev-ins-zone.pdf-preview-boundary-insert')].map(node=>node.dataset.pdfInsertBoundary).join(',');
       try{
         await waitFor(()=>boundaryValues()==='0,2,3','initial row insertion boundaries');
-        assert(document.documentElement.dataset.pdfPreviewInsertActionBridge==='1','functional insert action bridge must be active');
+        assert(document.documentElement.dataset.pdfPreviewInsertActionBridge==='document-capture-v2','functional insert action bridge must be active');
         let boundaries=[...scroll.querySelectorAll(':scope>.prev-ins-zone.pdf-preview-boundary-insert')];
         assert(boundaries.length===3,'two preview rows must expose top, row-boundary and end insertion controls');
         const inline=scroll.querySelector('.prev-ins-zone-v.pdf-preview-inline-insert');

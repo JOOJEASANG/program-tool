@@ -24,7 +24,7 @@ def test_large_lazy_preview_keeps_blank_and_divider_controls_on_absolute_output_
         "function bindActionBridge()",
         "function spliceIndexForZone(zone)",
         "insertBlankAt(index)",
-        "preview-insert-actions-functional-v4",
+        "preview-insert-actions-functional-v5-document-bridge",
         "multi-file-preview-insert-persistence-v2",
         "+ 빈 페이지",
         "+ 간지",
