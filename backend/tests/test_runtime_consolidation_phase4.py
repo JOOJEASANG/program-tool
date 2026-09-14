@@ -58,7 +58,9 @@ def test_pdf_route_manifest_owns_route_helpers_without_editor_state_takeover():
     assert "Promise.all(pending)" in route
     assert "programUsageOutputGuardScriptV1" in route
     assert "/js/program-usage-output-guard.js?v=20260914-1" in route
-    assert "pdf-editor-route-runtime-manifest-v4-divider-ui-corrections" in route
+    assert "/js/image-pdf-adapter.js?v=20260915-1" in route
+    assert "/js/pdf-editor/image-input-bridge.js?v=20260915-1" in route
+    assert "pdf-editor-route-runtime-manifest-v5-image-input-adapter" in route
 
     for forbidden in (
         "parsedPages =",
@@ -69,6 +71,43 @@ def test_pdf_route_manifest_owns_route_helpers_without_editor_state_takeover():
         "eval(",
     ):
         assert forbidden not in route
+
+
+def test_pdf_editor_image_input_is_adapter_isolated_from_pdf_state():
+    adapter = text("js/image-pdf-adapter.js")
+    bridge = text("js/pdf-editor/image-input-bridge.js")
+
+    for marker in (
+        "image/jpeg",
+        "image/png",
+        "image/webp",
+        "DEFAULT_DPI=300",
+        "MAX_PIXELS=40*1000*1000",
+        "new File([blob]",
+        "type:'application/pdf'",
+        "image-pdf-adapter-v1-pdf-core-isolation",
+    ):
+        assert marker in adapter
+
+    for marker in (
+        "window.ProgramImagePdfAdapter",
+        "window.handleFile",
+        "PDF / 이미지 클릭 또는 드래그",
+        "300dpi 기준 1페이지",
+        "event.stopImmediatePropagation()",
+        "pdf-editor-image-input-v1-adapter-isolated",
+    ):
+        assert marker in bridge
+
+    # The bridge may intercept only image-bearing input/drop events. It must not
+    # own canonical PDF page arrays, output generation, or backend settings.
+    for forbidden in (
+        "parsedPages =",
+        "uploadedFiles =",
+        "apiProcessPdf(",
+        "fetch('/api/pdf",
+    ):
+        assert forbidden not in bridge
 
 
 def test_pdf_output_save_recovery_keeps_core_click_handler_and_uses_bounded_observers():
