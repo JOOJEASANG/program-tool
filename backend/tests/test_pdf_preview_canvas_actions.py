@@ -13,7 +13,7 @@ def test_layout_route_uses_updated_lazy_preview_canvas_guard_without_extra_asset
     assert "preview-canvas-action-sync.js" not in source
     assert "pdf-editor-route-runtime-manifest-v5-image-input-adapter" in source
     assert "/js/image-pdf-adapter.js?v=20260915-1" in source
-    assert "/js/pdf-editor/image-input-bridge.js?v=20260915-1" in source
+    assert "/js/pdf-editor/image-input-bridge.js?v=20260915-2" in source
 
 
 def test_batch_rotation_sync_targets_right_preview_not_only_sidebar_thumbnails():
