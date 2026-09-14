@@ -16,6 +16,7 @@
       id:String(entry.id),
       name:String(entry.name||entry.id),
       paths:Object.freeze(paths),
+      outputActionSelector:String(entry.outputActionSelector||'').trim(),
       defaultGuestLimit:Number.isInteger(entry.defaultGuestLimit)?entry.defaultGuestLimit:DEFAULT_GUEST_LIMIT,
       defaultMemberLimit:Number.isInteger(entry.defaultMemberLimit)?entry.defaultMemberLimit:DEFAULT_MEMBER_LIMIT,
       defaultPeriod:entry.defaultPeriod==='monthly'?'monthly':DEFAULT_PERIOD,
@@ -32,9 +33,9 @@
 
   [
     {id:'print-checker',name:'인쇄물 사전 검토',paths:['/print-checker'],source:'built-in'},
-    {id:'smart-print-layout',name:'스마트 인쇄배치',paths:['/smart-print-layout'],source:'built-in'},
-    {id:'pdf-editor',name:'PDF배치',paths:['/pdf-editor'],source:'built-in'},
-    {id:'pdf-editor-advanced',name:'PDF편집',paths:['/pdf-editor-advanced'],source:'built-in'},
+    {id:'smart-print-layout',name:'스마트 인쇄배치',paths:['/smart-print-layout'],outputActionSelector:'#downloadBtn',source:'built-in'},
+    {id:'pdf-editor',name:'PDF배치',paths:['/pdf-editor'],outputActionSelector:'#downloadBtn',source:'built-in'},
+    {id:'pdf-editor-advanced',name:'PDF편집',paths:['/pdf-editor-advanced'],outputActionSelector:'#downloadBtn',source:'built-in'},
     {id:'pdf-preflight',name:'PDF 도구 모음',paths:['/pdf-preflight','/pdf-suite','/tools/preflight','/tools/pdf-Checker'],source:'built-in'}
   ].forEach(register);
 
@@ -65,6 +66,6 @@
     defaultMemberLimit:DEFAULT_MEMBER_LIMIT,
     defaultPeriod:DEFAULT_PERIOD,
     idPattern:ID_RE.source,
-    stage:'program-usage-catalog-v1'
+    stage:'program-usage-catalog-v2-output-actions'
   });
 })();
