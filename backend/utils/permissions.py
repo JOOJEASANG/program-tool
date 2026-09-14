@@ -1,4 +1,4 @@
-"""Server-side authentication and authorization for managed PDF tools."""
+"""Server-side authentication and per-program authorization for managed tools."""
 from __future__ import annotations
 
 from typing import Optional
@@ -7,12 +7,20 @@ from firebase_admin import auth, firestore
 from flask import g, request
 
 
-PROGRAM_BY_PREFIX: tuple[tuple[str, str], ...] = (
-    ("/api/pdf-tools", "preflight"),
-    ("/api/pdf", "pdf-editor"),
-    ("/api/pdf-utility", "preflight"),
-    ("/api/preflight", "preflight"),
+# API families may be shared by multiple front-end programs. The client sends
+# X-Program-ID and the server accepts it only when it belongs to that API family.
+PROGRAMS_BY_PREFIX: tuple[tuple[str, tuple[str, ...]], ...] = (
+    ("/api/pdf-tools", ("pdf-preflight", "print-checker")),
+    ("/api/pdf", ("pdf-editor", "pdf-editor-advanced", "smart-print-layout")),
+    ("/api/pdf-utility", ("pdf-preflight", "print-checker")),
+    ("/api/preflight", ("pdf-preflight", "print-checker")),
 )
+DEFAULT_PROGRAM_BY_PREFIX = {
+    "/api/pdf-tools": "pdf-preflight",
+    "/api/pdf": "pdf-editor",
+    "/api/pdf-utility": "pdf-preflight",
+    "/api/preflight": "pdf-preflight",
+}
 
 
 class AccessError(Exception):
@@ -23,12 +31,25 @@ class AccessError(Exception):
         self.status_code = status_code
 
 
-def program_for_path(path: str) -> Optional[str]:
-    """Return the managed program id for an API path, or None for public paths."""
-    for prefix, program_id in PROGRAM_BY_PREFIX:
+def _program_family_for_path(path: str) -> tuple[str, tuple[str, ...]] | None:
+    for prefix, programs in PROGRAMS_BY_PREFIX:
         if path == prefix or path.startswith(prefix + "/"):
-            return program_id
+            return prefix, programs
     return None
+
+
+def program_for_path(path: str) -> Optional[str]:
+    """Resolve and validate the caller's program id for a managed API path."""
+    family = _program_family_for_path(path)
+    if family is None:
+        return None
+    prefix, allowed = family
+    requested = (request.headers.get("X-Program-ID") or "").strip().lower()
+    if requested:
+        if requested not in allowed:
+            raise AccessError("이 프로그램에서는 요청한 서버 기능을 사용할 수 없습니다.", 403)
+        return requested
+    return DEFAULT_PROGRAM_BY_PREFIX[prefix]
 
 
 def verify_bearer_token() -> dict:
@@ -50,12 +71,11 @@ def _normalized_email(decoded: dict) -> str:
 
 
 def _has_admin_claim(decoded: dict) -> bool:
-    """Return True only for the trusted Firebase custom claim."""
     return decoded.get("admin") is True
 
 
 def _is_legacy_admin(db: firestore.Client, email: str) -> bool:
-    """Temporary migration fallback for administrators without a custom claim yet."""
+    """Temporary fallback for administrators that do not yet have admin=true."""
     if not email:
         return False
     snapshot = db.collection("settings").document("admin").get()
@@ -79,37 +99,40 @@ def _snapshot_data(snapshot) -> dict:
 
 
 def _program_access_from_snapshots(program_snapshot, permission_snapshot, program_id: str) -> bool:
-    """Evaluate the shared administrator-approval policy.
+    """Evaluate account approval plus explicit program assignment.
 
-    Program catalog/public metadata is intentionally ignored for authorization.
-    Every non-administrator account must have ``status == 'approved'`` before it
-    can use any managed program. The legacy ``programs`` map remains only for
-    document compatibility and is not an authorization input.
+    Existing approved users created before ``programsAll`` was introduced retain
+    all-program access until an administrator saves an explicit policy. This keeps
+    the migration non-breaking while every new account starts with no programs.
     """
-    del program_snapshot, program_id
-    permission_data = _snapshot_data(permission_snapshot)
-    return permission_data.get("status") == "approved"
+    del program_snapshot
+    data = _snapshot_data(permission_snapshot)
+    if data.get("status") != "approved":
+        return False
+    if "programsAll" not in data:
+        return True
+    if data.get("programsAll") is True:
+        return True
+    programs = data.get("programs")
+    return isinstance(programs, dict) and programs.get(program_id) is True
+
+
+def _permission_snapshot(db: firestore.Client, uid: str):
+    reference = db.collection("user_permissions").document(uid)
+    snapshots = list(db.get_all([reference]))
+    return snapshots[0] if snapshots else None
 
 
 def _has_program_access(db: firestore.Client, uid: str, program_id: str) -> bool:
-    """Return whether the account itself has administrator approval.
-
-    Keep the existing ``get_all`` lookup shape so authorization remains compatible
-    with the repository's Firestore batching/mocking path while no longer reading
-    public-program settings for access decisions.
-    """
-    permission_ref = db.collection("user_permissions").document(uid)
-    snapshots = list(db.get_all([permission_ref]))
-    permission_snapshot = snapshots[0] if snapshots else None
-    return _program_access_from_snapshots(None, permission_snapshot, program_id)
+    return _program_access_from_snapshots(
+        None,
+        _permission_snapshot(db, uid),
+        program_id,
+    )
 
 
 def require_program_access_for_request():
-    """Flask before_request hook enforcing one shared program-access policy.
-
-    The verified identity is stored on ``flask.g`` so route decorators can reuse
-    it instead of verifying the same Firebase ID token a second time.
-    """
+    """Flask before_request hook enforcing administrator-approved program access."""
     program_id = program_for_path(request.path)
     if not program_id:
         return None
@@ -122,10 +145,21 @@ def require_program_access_for_request():
     try:
         db = firestore.client()
         is_admin = _has_admin_claim(decoded)
+        permission_snapshot = None
+
+        # Normal members use only one Firestore permission read. The legacy
+        # administrator document is consulted only when the member policy did not
+        # already allow the request, reducing reads on the common path.
         if not is_admin:
-            is_admin = _is_legacy_admin(db, _normalized_email(decoded))
-        if not is_admin and not _has_program_access(db, uid, program_id):
-            raise AccessError("관리자 승인 후 이 프로그램을 사용할 수 있습니다.", 403)
+            permission_snapshot = _permission_snapshot(db, uid)
+            has_access = _program_access_from_snapshots(None, permission_snapshot, program_id)
+            if not has_access:
+                is_admin = _is_legacy_admin(db, _normalized_email(decoded))
+                if not is_admin:
+                    data = _snapshot_data(permission_snapshot)
+                    if data.get("status") != "approved":
+                        raise AccessError("관리자가 회원 승인을 완료한 후 사용할 수 있습니다.", 403)
+                    raise AccessError("이 프로그램의 사용 권한이 없습니다. 관리자에게 권한 승인을 요청해 주세요.", 403)
     except AccessError:
         raise
     except Exception as exc:
