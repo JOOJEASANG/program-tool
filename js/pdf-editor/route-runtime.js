@@ -10,6 +10,7 @@
     {id:'pdfAllInOneStage1ScriptV1',src:'/js/pdf-all-in-one-stage1.js?v=20260824-1'},
     {id:'desktopToolMobileNoticeScriptV1',src:'/js/desktop-tool-mobile-notice.js?v=20260807-1'},
     {id:'pdfLayoutPageSelectionScriptV1',src:'/js/pdf-editor/page-selection-preview-focus.js?v=20260914-2',app:'layout'},
+    {id:'pdfDividerInteractionStabilityScriptV2',src:'/js/pdf-editor/divider-interaction-stability.js?v=20260914-1'},
     {id:'pdfEditorModuleLoaderScript',src:'/js/pdf-editor/loader.js?v=20260828-1'},
     {id:'pdfEditorTransferLimitGuardScriptV1',src:'/js/pdf-editor/transfer-limit-guard.js?v=20260831-2'},
     {id:'pdfCropMarksScript',src:'/js/pdf-editor/crop-marks.js?v=20260731-4'},
@@ -31,6 +32,7 @@
   ]);
 
   const ADVANCED_UNUSED_ROUTE_IDS=new Set([
+    'pdfDividerInteractionStabilityScriptV2',
     'pdfLayoutSmoothPreviewScriptV1',
     'pdfPreviewInsertPersistenceScriptV1',
     'pdfDividerLocalImageUploadScriptV1',
@@ -110,6 +112,8 @@
       // independent helpers without a waterfall. The layout selection helper is
       // intentionally inserted before loader.js so its capture listener owns
       // Ctrl/Cmd/Shift thumbnail selection before generic click navigation.
+      // The divider stability layer is likewise inserted before loader.js so it
+      // can claim the interaction slot before divider-helper loads its legacy one.
       pending.push(hostLoad(entry));
     }
     if(advanced)document.documentElement.dataset.pdfAdvancedRouteModules='minimal';
@@ -129,6 +133,6 @@
     modules:MODULES.map(({id,src})=>({id,src})),
     app:standaloneApp(),
     get profile(){return window.PdfEditorStandaloneApps?.fromLocation?.(location.search)?.key||null;},
-    stage:'pdf-editor-route-runtime-manifest-v3-usage-output-guard'
+    stage:'pdf-editor-route-runtime-manifest-v4-divider-stability'
   };
 })();
