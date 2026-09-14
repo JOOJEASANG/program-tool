@@ -286,12 +286,12 @@
   }
 
   function loadDividerInteractions() {
-    if (window.__pdfDividerStudioInteractionsV1 || document.querySelector('script[data-divider-interactions="v1"]')) return;
+    if (window.__pdfDividerInteractionStabilityV2 || document.querySelector('script[data-divider-interactions="stable-v2"]')) return;
     const script = document.createElement('script');
-    script.src = '/js/pdf-editor/divider-studio-interactions.js?v=20260914-1';
+    script.src = '/js/pdf-editor/divider-interaction-stability.js?v=20260914-2';
     script.async = false;
-    script.dataset.dividerInteractions = 'v1';
-    script.addEventListener('error', () => console.error('[divider] interaction layer failed to load'), { once: true });
+    script.dataset.dividerInteractions = 'stable-v2';
+    script.addEventListener('error', () => console.error('[divider] stable interaction layer failed to load'), { once: true });
     document.head.appendChild(script);
   }
 

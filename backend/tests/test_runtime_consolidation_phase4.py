@@ -20,7 +20,7 @@ def test_pdf_loader_is_enhancement_bootstrap_and_core_manifest_owns_eight_module
     loader = executable_text("js/pdf-editor/loader.js")
     core = text("js/pdf-editor/core-runtime.js")
 
-    assert "/js/pdf-editor/core-runtime.js?v=20260828-1" in loader
+    assert "/js/pdf-editor/core-runtime.js?v=20260914-2" in loader
     assert "pdf-editor-enhancement-bootstrap-v19" in loader
     assert "const MODULES" not in loader
     assert "MODULES.forEach(loadScript)" not in loader
