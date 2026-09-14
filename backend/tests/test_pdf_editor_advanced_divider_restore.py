@@ -7,8 +7,9 @@ ROOT = Path(__file__).resolve().parents[2]
 PDF_JS = ROOT / "js" / "pdf-editor"
 HELPER = PDF_JS / "divider-helper.js"
 STUDIO = PDF_JS / "divider-studio.js"
-INTERACTIONS = PDF_JS / "divider-studio-interactions.js"
+INTERACTIONS = PDF_JS / "divider-interaction-stability.js"
 LOADER = PDF_JS / "loader.js"
+CORE_RUNTIME = PDF_JS / "core-runtime.js"
 BACKEND = ROOT / "backend" / "services" / "pdf_divider_renderer.py"
 
 
@@ -22,10 +23,10 @@ def test_advanced_divider_studio_is_single_initialized_without_polling():
     interactions = source(INTERACTIONS)
     assert "__pdfEditorDividerHelperV4" in helper
     assert "__pdfDividerStudioV2" in studio
-    assert "__pdfDividerStudioInteractionsV1" in interactions
+    assert "__pdfDividerInteractionStabilityV2" in interactions
     assert "data-divider-studio" in helper
     assert "divider-studio.js?v=20260914-4" in helper
-    assert "divider-studio-interactions.js?v=20260914-1" in helper
+    assert "divider-interaction-stability.js?v=20260914-2" in helper
     assert "setInterval(" not in helper
     assert "setInterval(" not in studio
     assert "setInterval(" not in interactions
@@ -54,16 +55,19 @@ def test_full_screen_divider_studio_restores_dynamic_text_layers():
 def test_divider_shape_layers_support_canvas_drag_direct_delete_and_wider_sidebar():
     interactions = source(INTERACTIONS)
     for marker in (
-        "grid-template-columns:minmax(390px,42%) minmax(0,58%)",
+        "grid-template-columns:minmax(500px,50%) minmax(0,50%)",
         "divider-shape-drag-hint",
         "hitTestShape",
-        "setShapePosition",
+        "applyShapePosition",
+        "scheduleShapePosition",
         "pointerdown",
         "pointermove",
         "dividerShapeDeleteFloat",
         "removeActiveShape",
         "event.key !== 'Delete'",
         "스타일 제거 · 심플로 되돌리기",
+        "divider-shape-selection-overlay",
+        "divider-shape-card",
     ):
         assert marker in interactions
 
@@ -81,6 +85,15 @@ def test_created_divider_design_can_be_copied_and_edited_again():
         "divider-design-duplicate",
     ):
         assert marker in interactions
+
+
+def test_divider_runtime_cache_chain_points_to_current_helper():
+    loader = source(LOADER)
+    core = source(CORE_RUNTIME)
+    helper = source(HELPER)
+    assert 'core-runtime.js?v=20260914-2' in loader
+    assert 'divider-helper.js?v=20260914-5' in core
+    assert 'divider-interaction-stability.js?v=20260914-2' in helper
 
 
 def test_divider_background_and_styles_are_not_forced_to_white():
