@@ -55,7 +55,9 @@ def test_pdf_route_manifest_owns_route_helpers_without_editor_state_takeover():
     assert "Promise.all(pending)" in route
     assert "programUsageOutputGuardScriptV1" in route
     assert "/js/program-usage-output-guard.js?v=20260914-1" in route
-    assert "pdf-editor-route-runtime-manifest-v3-usage-output-guard" in route
+    assert "pdfDividerDesignToolsScriptV1" in route
+    assert "/js/pdf-editor/divider-design-tools.js?v=20260914-1" in route
+    assert "pdf-editor-route-runtime-manifest-v4-divider-design-tools" in route
 
     for forbidden in (
         "parsedPages =",
@@ -82,4 +84,3 @@ def test_pdf_output_save_recovery_keeps_core_click_handler_and_uses_bounded_obse
     assert "downloadBtn').addEventListener('click'" not in source
     assert "setInterval(" not in source
     assert "subtree:true" not in source
-
