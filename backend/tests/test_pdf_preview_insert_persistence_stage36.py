@@ -19,8 +19,8 @@ def test_multi_file_preview_restores_every_output_row_boundary_without_body_obse
         "const faces=[...row.querySelectorAll(':scope>.page-preview')]",
         "markVertical(zone,rendered+index+1)",
         "function bindActionBridge()",
-        "document.documentElement.dataset.pdfPreviewInsertActionBridge='1'",
-        "observer.observe(scroll,{childList:true})",
+        "document.documentElement.dataset.pdfPreviewInsertActionBridge='document-capture-v2'",
+        "observer.observe(scroll,{childList:true,subtree:true})",
         "timer=setTimeout(()=>{timer=0;repair();},0)",
         "multi-file-preview-insert-persistence-v2",
     ):
@@ -29,7 +29,6 @@ def test_multi_file_preview_restores_every_output_row_boundary_without_body_obse
     assert "requestAnimationFrame" not in source
     assert "observer.observe(document.body" not in source
     assert "observer.observe(document.documentElement" not in source
-    assert "subtree:true" not in source
 
 
 def test_optimized_preview_keeps_blank_and_divider_fallback_without_duplicate_actions():
