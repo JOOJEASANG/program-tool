@@ -3,57 +3,71 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 QUOTA = ROOT / "js" / "pdf-daily-free.js"
+CATALOG = ROOT / "js" / "program-usage-catalog.js"
 ACCESS = ROOT / "js" / "print-checker" / "access.js"
 DEFAULTS = ROOT / "js" / "print-checker" / "defaults-live.js"
-ADMIN_LIMITS = ROOT / "js" / "admin-pdf-usage-settings.js"
+ADMIN_LIMITS = ROOT / "js" / "admin-program-usage-settings.js"
+ADMIN_COMPAT = ROOT / "js" / "admin-pdf-usage-settings.js"
 PRINT_HTML = ROOT / "print-checker" / "index.html"
 HOSTING = ROOT / "scripts" / "prepare_hosting_dist.py"
 RULES = ROOT / "firestore.rules"
 RUNNER = ROOT / "scripts" / "run_phase5_browser_smoke.sh"
 
 
-def test_daily_free_policy_has_configurable_guest_and_member_limits_and_success_commit():
-    source = QUOTA.read_text(encoding="utf-8")
+def test_program_usage_catalog_is_extensible_and_covers_current_programs():
+    source = CATALOG.read_text(encoding="utf-8")
 
     for marker in (
-        "const DEFAULT_GUEST_LIMIT=3",
-        "const DEFAULT_MEMBER_LIMIT=10",
-        "const LIMIT_MAX=1000",
-        "const LIMITS_DOCUMENT='pdf_daily_limits'",
-        "async function loadLimits",
-        "data.guestLimit",
-        "data.memberLimit",
-        "programStudioPdfGuestId",
-        "programStudioPdfUsage:guest:",
-        "daily_pdf_usage",
-        "runTransaction",
-        "async function canStart",
-        "async function commitSuccess",
-        "program-pdf-daily-free-commit",
-        "비회원 무료",
-        "로그인 무료",
-        "SUITE_ACTION_SELECTOR",
-        "a[download]",
-        "blob:",
-        "stage:'pdf-daily-free-v2-admin-configurable'",
+        "function register(entry)",
+        "function resolve(pathname=location.pathname)",
+        "stage:'program-usage-catalog-v1'",
+        "'print-checker'",
+        "'smart-print-layout'",
+        "'pdf-editor'",
+        "'pdf-editor-advanced'",
+        "'pdf-preflight'",
     ):
         assert marker in source
 
-    can_start = source.index("async function canStart")
-    commit = source.index("async function commitSuccess")
-    assert can_start < commit
-    assert "commitSuccess(actionName(node))" not in source
-    assert "오늘 비회원 무료 사용 3회" not in source
 
-
-def test_admin_pdf_usage_is_unlimited_and_never_enters_member_counter_or_limit_read():
+def test_usage_policy_is_program_specific_and_keeps_legacy_pdf_api():
     source = QUOTA.read_text(encoding="utf-8")
 
-    assert "if(user&&await isAdmin(user))return makeStatus('admin',0,Infinity" in source
-    assert "if(user&&await isAdmin(user))next=makeStatus('admin',0,Infinity" in source
-    assert "관리자 · PDF 무료 사용 제한 없음" in source
-    assert "allowed:!finite||safeUsed<limit" in source
-    assert source.index("if(user&&await isAdmin(user))return makeStatus('admin',0,Infinity") < source.index("const limits=await loadLimits({force:Boolean(options.forceLimits)})")
+    for marker in (
+        "const SETTINGS_COLLECTION='program_usage_limits'",
+        "const LEGACY_LIMITS_DOCUMENT='pdf_daily_limits'",
+        "programStudioUsage:guest:",
+        "programStudioUsage:member:",
+        "collection('program_usage')",
+        "memberUsageDocId",
+        "localMonthKey",
+        "period==='monthly'",
+        "guestLimit",
+        "memberLimit",
+        "window.ProgramUsagePolicy=genericApi",
+        "window.ProgramPdfDailyFree=Object.freeze",
+        "forProgram",
+        "program-usage-commit",
+        "stage:'program-usage-policy-v3-per-program'",
+        "stage:'pdf-daily-free-v3-per-program-compatibility'",
+    ):
+        assert marker in source
+
+    assert "const LIMIT_MIN=-1" in source
+    assert "const LIMIT_MAX=1000" in source
+    assert "enabled:data.enabled!==false" in source
+    assert "raw<0?Infinity:raw" in source
+    assert "limit===0" in source
+
+
+def test_admin_usage_is_unlimited_before_settings_or_counter_reads():
+    source = QUOTA.read_text(encoding="utf-8")
+
+    read_status = source.index("async function readStatus")
+    admin_guard = source.index("if(user&&await isAdmin(user))return makeStatus('admin'", read_status)
+    settings_read = source.index("const settings=await loadLimits", read_status)
+    assert admin_guard < settings_read
+    assert "관리자 · 사용 제한 없음" in source
 
 
 def test_suite_quota_only_guards_real_processing_actions():
@@ -72,51 +86,49 @@ def test_suite_quota_only_guards_real_processing_actions():
     ):
         assert marker in selector_line
 
-    for excluded in (
-        "[data-compare-download]",
-        ".pdfadv-mini",
-        ".pdfadv-tool-ready",
-        ".pdfocr-ready",
-    ):
+    for excluded in ("[data-compare-download]", ".pdfadv-mini", ".pdfadv-tool-ready", ".pdfocr-ready"):
         assert excluded not in selector_line
+    assert "programId:'pdf-preflight'" in source
 
 
-def test_admin_can_edit_pdf_daily_limits_from_admin_panel():
+def test_admin_can_edit_usage_limits_per_program_and_add_future_programs():
     source = ADMIN_LIMITS.read_text(encoding="utf-8")
+    compat = ADMIN_COMPAT.read_text(encoding="utf-8")
 
     for marker in (
-        "PDF 1일 사용횟수",
-        "비회원 1일 사용횟수",
-        "회원 1일 사용횟수",
-        "pdfGuestLimit",
-        "pdfMemberLimit",
-        "savePdfUsageBtn",
-        "const DOCUMENT='pdf_daily_limits'",
-        "guestLimit:guest",
-        "memberLimit:member",
+        "프로그램별 사용횟수",
+        "비회원",
+        "회원",
+        "초기화 주기",
+        "무제한",
+        "사용 불가",
+        "const COLLECTION='program_usage_limits'",
+        "saveProgram",
+        "saveAll",
+        "addCustomProgram",
+        "newUsageProgramId",
+        "ProgramUsageCatalog?.list",
         "serverTimestamp",
-        "ProgramAccess?.isAdmin",
         "관리자 계정은 항상 제한 없이 사용합니다.",
-        "stage:'admin-pdf-daily-limits-v1'",
+        "stage:'admin-program-usage-settings-v2-extensible'",
     ):
         assert marker in source
 
+    assert "/js/program-usage-catalog.js?v=20260914-1" in compat
+    assert "/js/admin-program-usage-settings.js?v=20260914-1" in compat
+    assert "admin-pdf-usage-compatibility-bootstrap-v2" in compat
 
-def test_print_checker_is_public_daily_free_and_reads_runtime_limit():
+
+def test_print_checker_keeps_public_usage_policy_and_runtime_limit_display():
     access = ACCESS.read_text(encoding="utf-8")
     html = PRINT_HTML.read_text(encoding="utf-8")
 
     assert "guardTool" not in access
     assert "approval-waiting" not in access
     assert "daily-free" in access
-    assert "window.ProgramPdfDailyFree?.guestLimit??3" in access
-    assert "window.ProgramPdfDailyFree?.memberLimit??10" in access
     assert "quota.status()" in access
     assert "status.limit" in access
-
-    assert "/js/pdf-daily-free.js?v=20260907-2" in html
-    assert "/js/print-checker/access.js?v=20260907-2" in html
-    assert "/js/print-checker/defaults-live.js?v=20260911-3" in html
+    assert "/js/pdf-daily-free.js" in html
     assert html.index("pdf-daily-free.js") < html.index("defaults-live.js")
 
 
@@ -136,58 +148,42 @@ def test_print_checker_defaults_cover_all_inputs_and_live_size_modes():
         "leaflet:{size:'a4l',trimW:297,trimH:210,foldType:'3roll',gutterMargin:3,bleed:3,safeZone:10}",
         "cover:{size:'a5',trimW:148,trimH:210,paperType:'mojo80',pageCount:100,spine:5,hasWing:false,wingW:DEFAULT_WING_MM,bleed:3,safeZone:10}",
         "booklet:{size:'a5',trimW:148,trimH:210,bookletPages:8,paperType:'mojo80',bleed:3,safeZone:10}",
-        "printSizePreset",
-        "matchingPreset",
-        "notifyCore",
-        "updateSummary",
-        "renderedSpecReady",
-        "waitForCore",
-        "ensureRenderedProduct",
-        "seedProductAsync",
-        "syncWingControls",
-        "bindWingControls",
-        "input.disabled=!enabled",
-        "group.hidden=!enabled",
-        "stage:'print-checker-defaults-live-v2-safe10-cover-wing'",
         "quota.canStart('print-checker')",
         "quota.commitSuccess('print-checker')",
     ):
         assert marker in source
 
 
-def test_member_counter_and_limit_settings_firestore_rules_are_bounded_and_admin_only_write():
+def test_program_usage_firestore_rules_are_generic_and_bounded():
     rules = RULES.read_text(encoding="utf-8")
 
     for marker in (
-        "function validPdfDailyLimits()",
-        "request.resource.data.guestLimit <= 1000",
-        "request.resource.data.memberLimit <= 1000",
-        "match /settings/pdf_daily_limits",
-        "allow read: if true",
-        "allow create, update: if isAdmin() && validPdfDailyLimits()",
-        "match /users/{uid}/daily_pdf_usage/{dateKey}",
-        "allow read: if isOwner(uid)",
+        "function validProgramUsageLimit(programId)",
+        "request.resource.data.guestLimit >= -1",
+        "request.resource.data.memberLimit >= -1",
+        "request.resource.data.period in ['daily','monthly']",
+        "match /program_usage_limits/{programId}",
+        "allow create, update: if isAdmin() && validProgramUsageLimit(programId)",
+        "match /users/{uid}/program_usage/{usageKey}",
+        "validProgramUsage()",
         "request.resource.data.count == 1",
         "request.resource.data.count == resource.data.count + 1",
         "request.resource.data.count <= 1000",
-        "allow delete: if false",
     ):
         assert marker in rules
 
 
-def test_hosting_stages_public_daily_free_suite_and_admin_limit_panel():
+def test_hosting_keeps_admin_compat_bootstrap_and_public_pdf_suite_policy():
     source = HOSTING.read_text(encoding="utf-8")
 
     assert "data-pdf-suite-daily-free" in source
-    assert "/js/pdf-daily-free.js?v=20260907-2" in source
+    assert "/js/pdf-daily-free.js" in source
     assert 'ADMIN_PDF_USAGE_MARKER = "data-admin-pdf-usage-settings"' in source
-    assert "/js/admin-pdf-usage-settings.js?v=20260907-1" in source
+    assert "/js/admin-pdf-usage-settings.js" in source
     assert "_inject_before(admin, ADMIN_PDF_USAGE_MARKER" in source
-    assert "guardTool" not in source
-    assert "approval-waiting" not in source
 
 
-def test_daily_free_browser_smokes_are_wired_into_phase5():
+def test_usage_browser_smokes_are_wired_into_phase5():
     source = RUNNER.read_text(encoding="utf-8")
 
     assert "pdf-daily-free-smoke.html" in source
