@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>PDF Result Download Delivery Smoke</title>
+  <script>history.replaceState(null,'','/pdf-editor?result-download-smoke=1');</script>
+</head>
+<body data-pdf-result-download-delivery-smoke="pending">
+  <button id="previewBtn">미리보기</button>
+  <button id="downloadBtn">PDF 저장</button>
+  <div id="thumbArea"></div>
+  <div id="result">PENDING</div>
+  <script>
+    window.uploadedFiles=[{name:'booklet.pdf'}];
+    window.parsedPages=[{excluded:false}];
+    window.PdfOperationManager={active:()=>false};
+
+    window.__nativeRevokeCalls=[];
+    URL.revokeObjectURL=function(url){window.__nativeRevokeCalls.push(String(url));};
+
+    window.__nativeAnchorClicks=[];
+    HTMLAnchorElement.prototype.click=function(){
+      window.__nativeAnchorClicks.push({connected:this.isConnected,href:this.href,download:this.download});
+    };
+  </script>
+  <script src="/js/pdf-editor/output-save-recovery.js?v=smoke"></script>
+  <script>
+    (async()=>{
+      const result=document.getElementById('result');
+      const assert=(value,message)=>{if(!value)throw new Error(message);};
+      const wait=async(predicate,label)=>{
+        for(let i=0;i<100;i++){
+          if(predicate())return;
+          await new Promise(resolve=>setTimeout(resolve,20));
+        }
+        throw new Error('timeout: '+label);
+      };
+      try{
+        await wait(()=>window.PdfOutputSaveRecovery,'recovery api');
+        const link=document.createElement('a');
+        link.href='blob:booklet-result';
+        link.download='booklet.pdf';
+        link.click();
+        URL.revokeObjectURL('blob:booklet-result');
+
+        assert(window.__nativeAnchorClicks.length===1,'native anchor click missing');
+        assert(window.__nativeAnchorClicks[0].connected===true,'result anchor was not mounted before click');
+        assert(window.__nativeRevokeCalls.length===0,'blob url was revoked immediately');
+        assert(document.documentElement.dataset.pdfResultDownloadDispatch==='mounted-blob-v2','download dispatch marker missing');
+        assert(document.documentElement.dataset.pdfResultDownloadDelivery==='blob-grace-v2','download delivery marker missing');
+        assert(document.querySelector('a[data-pdf-result-download="1"]'),'mounted result anchor missing');
+        document.body.dataset.pdfResultDownloadDeliverySmoke='pass';
+        result.textContent='PASS: mounted result anchor and deferred blob URL revoke';
+      }catch(error){
+        document.body.dataset.pdfResultDownloadDeliverySmoke='fail';
+        result.textContent='FAIL: '+String(error.message||error);
+      }
+    })();
+  </script>
+</body>
+</html>
