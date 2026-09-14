@@ -25,6 +25,16 @@ window.db = db;
 window.googleProvider = googleProvider;
 window.firebaseConfig = firebaseConfig;
 
+const PROGRAM_ACCESS_CATALOG = Object.freeze([
+  Object.freeze({ id: 'print-checker', name: '인쇄물 사전 검토' }),
+  Object.freeze({ id: 'smart-print-layout', name: '스마트 인쇄배치' }),
+  Object.freeze({ id: 'pdf-editor', name: 'PDF배치' }),
+  Object.freeze({ id: 'pdf-editor-advanced', name: 'PDF편집' }),
+  Object.freeze({ id: 'pdf-preflight', name: 'PDF 도구 모음' })
+]);
+const PROGRAM_ACCESS_IDS = Object.freeze(PROGRAM_ACCESS_CATALOG.map(item => item.id));
+window.ProgramAccessCatalog = PROGRAM_ACCESS_CATALOG;
+
 (() => {
   const UI_VERSION = '20260902-01';
   const existingUiStyles = document.getElementById('programStudioUiV2Styles')
@@ -75,6 +85,7 @@ window.firebaseConfig = firebaseConfig;
 window.ProgramAccess = {
   _cache: new Map(),
   _cacheTtlMs: 30000,
+  catalog: PROGRAM_ACCESS_CATALOG,
 
   normalizeEmail(value) {
     return String(value || '').trim().toLowerCase();
@@ -143,17 +154,15 @@ window.ProgramAccess = {
     const reference = db.collection('user_permissions').doc(user.uid);
     const snapshot = await reference.get();
     if (!snapshot.exists) {
+      const programs = Object.fromEntries(PROGRAM_ACCESS_IDS.map(id => [id, false]));
       const data = {
         uid: user.uid,
         email: this.normalizeEmail(user.email),
         displayName: user.displayName || '',
         status: 'pending',
         plan: 'free',
-        programs: {
-          'pdf-editor': false,
-          preflight: false,
-          'design-studio': false
-        },
+        programsAll: false,
+        programs,
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       };
       await reference.set(data);
@@ -221,15 +230,29 @@ window.ProgramAccess = {
         status: 'signed_out',
         admin: false,
         public: false,
+        assigned: false,
         profile: null
       };
     }
 
     const access = await this.getAccess(user);
-    const assigned = access.status === 'approved';
+    const profile = access.profile || {};
+    let assigned = Boolean(access.admin);
+    if (!assigned && access.status === 'approved') {
+      const hasExplicitPolicy = Object.prototype.hasOwnProperty.call(profile, 'programsAll');
+      if (!hasExplicitPolicy) {
+        // Existing approved accounts predate per-program permissions. Preserve their
+        // current access until an administrator explicitly saves a new policy.
+        assigned = true;
+      } else if (profile.programsAll === true) {
+        assigned = true;
+      } else {
+        assigned = profile.programs && profile.programs[programId] === true;
+      }
+    }
     return {
       ...access,
-      allowed: access.approved,
+      allowed: Boolean(access.admin || (access.approved && assigned)),
       public: false,
       assigned,
       programId
@@ -246,15 +269,15 @@ window.ProgramAccess = {
   },
 
   programForPath(pathname) {
-    const path = String(pathname || '').replace(/\\/g, '/').replace(/\/+$/, '');
-    if (['/tools/pdf-editor.html', '/pdf-editor', '/pdf-editor/index.html', '/pdf-editor-advanced', '/booklet', '/booklet/index.html'].some(item => path.endsWith(item))) {
+    const path = String(pathname || '').replace(/\\/g, '/').replace(/\/+$/, '') || '/';
+    if (path === '/print-checker' || path.endsWith('/print-checker/index.html')) return 'print-checker';
+    if (path === '/smart-print-layout' || path.endsWith('/smart-print-layout/index.html')) return 'smart-print-layout';
+    if (path === '/pdf-editor-advanced' || path.endsWith('/pdf-editor-advanced/index.html')) return 'pdf-editor-advanced';
+    if (['/tools/pdf-editor.html', '/pdf-editor', '/pdf-editor/index.html', '/booklet', '/booklet/index.html', '/apps/pdf-layout', '/apps/booklet'].some(item => path === item || path.endsWith(item))) {
       return 'pdf-editor';
     }
-    if (['/tools/preflight.html', '/tools/pdf-Checker.html', '/pdf-preflight', '/pdf-preflight/index.html'].some(item => path.endsWith(item))) {
-      return 'preflight';
-    }
-    if (['/tools/perfect-binding-cover.html', '/perfect-binding-cover', '/perfect-binding-cover/index.html'].some(item => path.endsWith(item))) {
-      return 'design-studio';
+    if (['/tools/preflight.html', '/tools/pdf-Checker.html', '/pdf-preflight', '/pdf-preflight/index.html', '/pdf-suite'].some(item => path === item || path.endsWith(item))) {
+      return 'pdf-preflight';
     }
     return '';
   },
@@ -351,6 +374,18 @@ window.ProgramAccessReady = Promise.resolve(null);
     root.style.visibility = '';
     delete root.dataset.accessChecking;
   });
+})();
+
+(() => {
+  const path=(location.pathname||'/').replace(/\/+$/,'')||'/';
+  if(path!=='/admin'&&path!=='/admin.html')return;
+  const load=(id,src)=>{
+    if(document.getElementById(id))return;
+    const script=document.createElement('script');
+    script.id=id;script.src=src;script.defer=true;document.head.appendChild(script);
+  };
+  load('programAccessAdminScriptV1','/js/admin-access-control.js?v=20260914-1');
+  load('firebaseUsageAdminScriptV1','/js/admin-firebase-usage.js?v=20260914-1');
 })();
 
 window.addEventListener('DOMContentLoaded', async () => {
