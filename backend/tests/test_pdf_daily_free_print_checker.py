@@ -4,11 +4,15 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 QUOTA = ROOT / "js" / "pdf-daily-free.js"
 CATALOG = ROOT / "js" / "program-usage-catalog.js"
+OUTPUT_GUARD = ROOT / "js" / "program-usage-output-guard.js"
 ACCESS = ROOT / "js" / "print-checker" / "access.js"
 DEFAULTS = ROOT / "js" / "print-checker" / "defaults-live.js"
 ADMIN_LIMITS = ROOT / "js" / "admin-program-usage-settings.js"
 ADMIN_COMPAT = ROOT / "js" / "admin-pdf-usage-settings.js"
 PRINT_HTML = ROOT / "print-checker" / "index.html"
+SMART_HTML = ROOT / "smart-print-layout" / "index.html"
+PDF_ROUTE = ROOT / "js" / "pdf-editor" / "route-runtime.js"
+ADVANCED_BOOT = ROOT / "js" / "pdf-editor-advanced" / "firebase-bootstrap.js"
 HOSTING = ROOT / "scripts" / "prepare_hosting_dist.py"
 RULES = ROOT / "firestore.rules"
 RUNNER = ROOT / "scripts" / "run_phase5_browser_smoke.sh"
@@ -20,7 +24,8 @@ def test_program_usage_catalog_is_extensible_and_covers_current_programs():
     for marker in (
         "function register(entry)",
         "function resolve(pathname=location.pathname)",
-        "stage:'program-usage-catalog-v1'",
+        "outputActionSelector",
+        "stage:'program-usage-catalog-v2-output-actions'",
         "'print-checker'",
         "'smart-print-layout'",
         "'pdf-editor'",
@@ -28,6 +33,8 @@ def test_program_usage_catalog_is_extensible_and_covers_current_programs():
         "'pdf-preflight'",
     ):
         assert marker in source
+
+    assert source.count("outputActionSelector:'#downloadBtn'") == 3
 
 
 def test_usage_policy_is_program_specific_and_keeps_legacy_pdf_api():
@@ -89,6 +96,42 @@ def test_suite_quota_only_guards_real_processing_actions():
     for excluded in ("[data-compare-download]", ".pdfadv-mini", ".pdfadv-tool-ready", ".pdfocr-ready"):
         assert excluded not in selector_line
     assert "programId:'pdf-preflight'" in source
+
+
+def test_result_generation_guard_is_lazy_reusable_and_commits_only_after_download():
+    source = OUTPUT_GUARD.read_text(encoding="utf-8")
+
+    for marker in (
+        "[data-program-usage-action]",
+        "outputActionSelector",
+        "ensureDependencies",
+        "policy.forProgram(programId)",
+        "api.canStart(action)",
+        "node.dataset.programUsagePass='1'",
+        "a[download]",
+        "commitPending",
+        "commitSuccess(item.action)",
+        "program-usage-output-committed",
+        "stage:'program-usage-output-guard-v1-lazy'",
+    ):
+        assert marker in source
+
+    assert source.index("api.canStart(action)") < source.index("node.click()")
+    assert source.index("a[download]") < source.index("commitPending();")
+
+
+def test_current_result_programs_load_the_shared_output_guard():
+    smart = SMART_HTML.read_text(encoding="utf-8")
+    route = PDF_ROUTE.read_text(encoding="utf-8")
+    advanced = ADVANCED_BOOT.read_text(encoding="utf-8")
+
+    assert 'data-program-usage-program="smart-print-layout"' in smart
+    assert '/js/program-usage-output-guard.js?v=20260914-1' in smart
+    assert "programUsageOutputGuardScriptV1" in route
+    assert "/js/program-usage-output-guard.js?v=20260914-1" in route
+    assert "if(!advanced)pending.push" in route
+    assert "loadUsageOutputGuard" in advanced
+    assert "/js/program-usage-output-guard.js?v=20260914-1" in advanced
 
 
 def test_admin_can_edit_usage_limits_per_program_and_add_future_programs():
