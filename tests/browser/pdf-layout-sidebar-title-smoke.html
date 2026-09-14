@@ -1,25 +1,32 @@
 <!doctype html>
 <html lang="ko">
 <head><meta charset="utf-8"><title>PDF layout sidebar title smoke</title></head>
-<body>
-  <div class="app"><aside><h1>PDF 문서 편집기</h1><div class="sub">PDF 업로드 · 페이지 편집</div></aside></div>
+<body data-program-kind="pdf-editor">
+  <div class="app"><aside><h1>PDF 문서 편집기</h1><div class="legacy-print-output-label">인쇄,출력 도구</div><div class="sub">PDF 업로드 · 페이지 편집</div></aside><main></main></div>
   <pre id="result">WAIT</pre>
   <script>
+    history.replaceState(null,'','/pdf-editor/?app=layout&sidebar-title-smoke=1');
     window.ProgramStudioPdfEditorRuntimeContext={load(){return Promise.resolve(true);}};
   </script>
   <script src="/js/pdf-editor/route-runtime.js"></script>
+  <script src="/js/pdf-editor/simple-sidebar-ui.js"></script>
   <script>
     (async()=>{
       const result=document.getElementById('result');
+      const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
       const fail=message=>{document.documentElement.dataset.pdfLayoutSidebarTitleSmoke='fail';result.textContent='FAIL: '+message;throw new Error(message);};
       const runtime=window.PdfEditorRouteRuntime;
       if(!runtime)return fail('route runtime missing');
       await runtime.loadAll();
+      await wait(80);
       if(document.querySelector('.app > aside > h1'))return fail('layout sidebar title still exists');
       if(document.documentElement.dataset.pdfLayoutSidebarTitleRemoved!=='1')return fail('title removal marker missing');
       if(!document.querySelector('.app > aside > .sub'))return fail('sidebar description was removed with title');
+      const sidebarText=String(document.querySelector('.app > aside')?.textContent||'').replace(/[\s,，·ㆍ/|:：]+/g,'');
+      if(sidebarText.includes('인쇄출력도구'))return fail('legacy print/output tools label still exists');
+      if(document.documentElement.dataset.pdfSidebarPrintOutputLabel!=='removed')return fail('print/output tools label cleanup marker missing');
       document.documentElement.dataset.pdfLayoutSidebarTitleSmoke='pass';
-      result.textContent='PASS: layout PDF editor removes only the sidebar top title';
+      result.textContent='PASS: layout PDF editor removes sidebar titles and the legacy print/output tools label';
     })().catch(error=>console.error(error));
   </script>
 </body>
