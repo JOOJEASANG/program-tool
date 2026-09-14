@@ -43,7 +43,7 @@ def test_pdf_loader_is_enhancement_bootstrap_and_core_manifest_owns_eight_module
 
 def test_pdf_route_manifest_owns_route_helpers_without_editor_state_takeover():
     route = text("js/pdf-editor/route-runtime.js")
-    assert route.count("{id:") == 23
+    assert route.count("{id:") == 22
     assert "/js/pdf-editor/page-selection-preview-focus.js?v=20260914-2" in route
     assert "app:'layout'" in route
     assert "/js/pdf-editor/layout-smooth-preview.js?v=20260909-1" in route
@@ -53,6 +53,7 @@ def test_pdf_route_manifest_owns_route_helpers_without_editor_state_takeover():
     assert "/js/pdf-editor/divider-modal-layout.js?v=20260830-2" in route
     assert "/js/pdf-editor/divider-ui-corrections.js?v=20260914-1" in route
     assert "pdfDividerUiCorrectionsScriptV1" in route
+    assert "post-manifest" in route
     assert "ProgramStudioPdfEditorRuntimeContext" in route
     assert "Promise.all(pending)" in route
     assert "programUsageOutputGuardScriptV1" in route
