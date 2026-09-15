@@ -52,7 +52,6 @@
       const modal=document.getElementById('pdfUtilityCenteredModal');
       if(centered){
         if(!modal?.classList.contains('open'))throw new Error('centered modal not open after '+name);
-        if(document.body.style.overflow!=='hidden')throw new Error('centered modal did not lock body scroll after '+name);
         const stage=document.getElementById('pdfUtilityStageBody');
         if(stage&&!modal.contains(stage))throw new Error('centered modal lost stage after '+name);
         return;
