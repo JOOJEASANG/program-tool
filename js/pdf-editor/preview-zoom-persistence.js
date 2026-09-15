@@ -84,9 +84,16 @@
     const control=event.target?.closest?.('#zoomInBtn,#zoomOutBtn,#zoomResetBtn');
     if(!control)return;
     if(control.id==='zoomResetBtn'){
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      fitToViewport();
+      if(fitToViewport()){
+        event.preventDefault();
+        event.stopImmediatePropagation();
+      }else{
+        // Test/minimal hosts may not expose previewCanvases. Preserve the historical
+        // reset contract there while still allowing one explicit auto-fit through
+        // the sticky wrapper.
+        explicitAutoFit=true;
+        queueMicrotask(capturePinnedZoom);
+      }
       return;
     }
     markPinned();
@@ -133,7 +140,7 @@
     if(document.documentElement.dataset.pdfPreviewZoomPersistenceEvents==='2')return;
     document.documentElement.dataset.pdfPreviewZoomPersistenceEvents='2';
     // Capture before the editor target handlers. The fit control intentionally owns
-    // the old reset button so it can fit both width and available viewport height.
+    // the old reset button when full preview geometry is available.
     document.addEventListener('click',onZoomControl,true);
   }
 
