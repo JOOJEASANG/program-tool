@@ -19,17 +19,18 @@ def test_storage_rules_require_account_approval_for_program_resources():
     assert '.get("public")' not in backend
 
 
-def test_pdf_utility_temp_storage_is_owner_scoped_without_program_access_dependency():
+def test_pdf_utility_temp_storage_requires_approved_owner_without_program_catalog_dependency():
     rules = STORAGE_RULES.read_text(encoding="utf-8")
 
     pdf_temp_start = rules.index("match /pdf_temp/{userId}/{sessionId}/{fileName}")
     preflight_temp_start = rules.index("match /preflight_temp/{userId}/{sessionId}/{fileName}")
     pdf_temp_block = rules[pdf_temp_start:preflight_temp_start]
 
-    assert "allow read: if isOwner(userId);" in pdf_temp_block
-    assert "allow delete: if isOwner(userId);" in pdf_temp_block
+    assert "allow read: if isOwner(userId) && isApproved();" in pdf_temp_block
+    assert "allow delete: if isOwner(userId) && isApproved();" in pdf_temp_block
     assert "allow create: if resource == null" in pdf_temp_block
     assert "isOwner(userId)" in pdf_temp_block
+    assert "isApproved()" in pdf_temp_block
     assert "canUseProgram(" not in pdf_temp_block
     assert "validStagePath(sessionId, fileName)" in pdf_temp_block
     assert "validPdfUpload(209715200)" in pdf_temp_block
@@ -37,17 +38,18 @@ def test_pdf_utility_temp_storage_is_owner_scoped_without_program_access_depende
     assert "request.resource.contentType == 'application/pdf'" in rules
 
 
-def test_preflight_temp_storage_is_owner_scoped_without_program_access_dependency():
+def test_preflight_temp_storage_requires_approved_owner_without_program_catalog_dependency():
     rules = STORAGE_RULES.read_text(encoding="utf-8")
 
     start = rules.index("match /preflight_temp/{userId}/{sessionId}/{fileName}")
     end = rules.index("match /pdf_sessions/{userId}/{sessionId}/{fileName}")
     block = rules[start:end]
 
-    assert "allow read: if isOwner(userId);" in block
-    assert "allow delete: if isOwner(userId);" in block
+    assert "allow read: if isOwner(userId) && isApproved();" in block
+    assert "allow delete: if isOwner(userId) && isApproved();" in block
     assert "allow create: if resource == null" in block
     assert "isOwner(userId)" in block
+    assert "isApproved()" in block
     assert "canUseProgram(" not in block
     assert "validStagePath(sessionId, fileName)" in block
     assert "validPdfUpload(209715200)" in block
