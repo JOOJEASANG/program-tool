@@ -143,6 +143,8 @@
     pin:capturePinnedZoom,
     fitToViewport,
     calculateViewportFit,
+    wrapDisplayPreview,
+    install,
     stage:'user-selected-preview-zoom-sticky-fit-v2'
   };
 
