@@ -33,7 +33,8 @@ def test_functions_and_storage_transfer_limits_stay_cost_bounded():
     assert "MAX_FILE_BYTES = 200 * 1024 * 1024" in session
     assert "MAX_SESSION_BYTES = 300 * 1024 * 1024" in session
     assert "MAX_FILE_BYTES = 200 * 1024 * 1024" in transfer
-    assert "MAX_TOTAL_BYTES = 300 * 1024 * 1024" in transfer
+    assert "MAX_WORKSPACE_TOTAL_BYTES = 800 * 1024 * 1024" in transfer
+    assert "MAX_SESSION_TOTAL_BYTES = 300 * 1024 * 1024" in transfer
     compact = "".join(utility.split())
     assert "MAX_FILE_BYTES=200*1024*1024" in compact
     assert "MAX_TOTAL_BYTES=300*1024*1024" in compact
