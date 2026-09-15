@@ -25,6 +25,7 @@
   <div id="result">WAIT</div>
 
   <script>
+    history.replaceState(null,'','/pdf-editor/?quick-add-retired-smoke=1');
     var parsedPages = [{ id: 'p1' }, { id: 'p2' }];
     var uploadedFiles = [];
     var fileNupMap = {};
@@ -47,7 +48,7 @@
   </script>
   <script src="/js/pdf-editor/preview-row-default.js?v=20260831-1"></script>
   <script src="/js/pdf-editor/upload-order-ui.js?v=20260831-1"></script>
-  <script src="/js/pdf-editor/layout-ui-refinements.js?v=20260915-1"></script>
+  <script src="/js/pdf-editor/layout-ui-refinements.js?v=20260915-2"></script>
   <script>
     setTimeout(async function () {
       var legacy = document.getElementById('pdfFileNavigation');
