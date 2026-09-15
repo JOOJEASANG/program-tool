@@ -43,6 +43,23 @@
     const style=document.createElement('style');
     style.id='pdfUtilityCuratedCoreStyle';
     style.textContent=`
+      /* Centered mode replaces the legacy two-column shell. The shell itself must span the full viewport. */
+      html[data-pdf-utility-layout="centered"] #pdfUtilitySplit{
+        display:block!important;
+        grid-template-columns:none!important;
+        grid-template-rows:none!important;
+        width:100%!important;
+        max-width:none!important;
+        height:auto!important;
+        min-height:calc(100vh - 62px)!important;
+        overflow:visible!important;
+        background:#eef3f7!important;
+      }
+      html[data-pdf-utility-layout="centered"] #pdfUtilitySplit>.pdfuc-home{
+        display:block!important;
+        width:100%!important;
+        max-width:none!important;
+      }
       /* A label is inline by default. Force one solid upload box so dashed borders never fragment. */
       .pdfu-local-controls .drop,
       .pdfu-shared-advanced-stage #local-tools .drop{

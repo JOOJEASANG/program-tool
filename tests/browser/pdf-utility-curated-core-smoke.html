@@ -72,6 +72,13 @@
           if(categories.join('|')!=='페이지 · 문서|변환 · OCR|편집 · 보안|최적화 · 검사')throw new Error('centered categories incorrect: '+categories.join('|'));
           if(!document.getElementById('pdfUtilityCenteredUpload'))throw new Error('centered upload missing');
           if(actual[0]!=='PDF 합치기')throw new Error('page/document category is not first');
+          const shell=document.getElementById('pdfUtilitySplit');
+          const home=shell?.querySelector(':scope>.pdfuc-home');
+          if(!shell||!home)throw new Error('centered full-width shell missing');
+          const shellWidth=shell.getBoundingClientRect().width;
+          const homeWidth=home.getBoundingClientRect().width;
+          if(getComputedStyle(shell).display==='grid')throw new Error('legacy split grid still active in centered mode');
+          if(shellWidth>0&&homeWidth<shellWidth*.9)throw new Error(`centered home collapsed into old sidebar column: ${homeWidth}/${shellWidth}`);
         }else{
           const groups=[...document.querySelectorAll('[data-pdfu-core-group] .pdfu-menu-group-head strong')].map(node=>node.textContent.trim());
           if(groups.join('|')!=='PDF 검사 · 최적화|페이지 · 문서|변환 · OCR|보안 · 정리')throw new Error('core groups incorrect: '+groups.join('|'));
@@ -98,7 +105,7 @@
 
         for(const name of expected){await click(name);assertStage(name);}
         document.body.dataset.pdfUtilityCuratedCoreSmoke='pass';
-        result.textContent='PASS: curated PDF Utility keeps 18 essential workflows, restores PDF file inspection, and renders solid upload cards';
+        result.textContent='PASS: curated PDF Utility keeps 18 essential workflows, uses the full-width centered shell, restores PDF file inspection, and renders solid upload cards';
       }catch(error){document.body.dataset.pdfUtilityCuratedCoreSmoke='fail';result.textContent='FAIL: '+String(error?.stack||error);}
     })();
   </script>
