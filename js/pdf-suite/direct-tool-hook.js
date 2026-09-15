@@ -29,15 +29,22 @@
     });
   }
   function ensureLargeStorage(){return ensureScript('pdfUtilityDirectLargeStorageScript','/js/pdf-suite/direct-tool-large-storage.js?v=20260915-1',()=>Boolean(window.__programStudioPdfUtilityLargeStorageV1));}
-  function ensureCenteredWorkspace(){return ensureScript('pdfUtilityCenteredWorkspaceScript','/js/pdf-suite/centered-workspace.js?v=20260915-2',()=>Boolean(window.__programStudioPdfUtilityCenteredV1));}
-  function ensureCenteredFixes(){return ensureScript('pdfUtilityCenteredFixesScript','/js/pdf-suite/centered-workspace-fixes.js?v=20260915-1',()=>Boolean(window.__programStudioPdfUtilityCenteredFixesV1));}
+  function ensureCenteredWorkspace(){return ensureScript('pdfUtilityCenteredWorkspaceScript','/js/pdf-suite/centered-workspace.js?v=20260915-3',()=>Boolean(window.__programStudioPdfUtilityCenteredV2));}
+  function ensureCenteredFixes(){return ensureScript('pdfUtilityCenteredFixesScript','/js/pdf-suite/centered-workspace-fixes.js?v=20260915-2',()=>Boolean(window.__programStudioPdfUtilityCenteredFixesV2));}
 
+  let installed=false;
   function install(){
+    if(installed)return;installed=true;
     document.addEventListener('click',event=>{const button=event.target.closest?.('[data-pdfu-tool]');if(button)activate(button,event);},true);
     document.addEventListener('change',event=>{const input=event.target;if(!input?.matches?.('.pdfud-file-input[multiple]'))return;setTimeout(()=>{const out=input.closest('.pdfud-card')?.querySelector('.pdfud-selected');if(out){const files=Array.from(input.files||[]);out.textContent=files.length?`${files.length}개 · ${files.map(file=>file.name).join(', ')}`:'';}},0);});
     document.documentElement.dataset.pdfUtilityDirectHook='ready-v2';
   }
-  function boot(){Promise.allSettled([ensureLargeStorage(),ensureCenteredWorkspace().then(ensureCenteredFixes)]).finally(install);}
+  function boot(){
+    // Direct tool routing must not wait for the optional centered-shell scripts.
+    // This prevents a quick click from falling back to the legacy/default merge workspace.
+    install();
+    Promise.allSettled([ensureLargeStorage(),ensureCenteredWorkspace().then(ensureCenteredFixes)]);
+  }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
   window.ProgramStudioPdfUtilityDirectHook=Object.freeze({activate,stage:'pdf-utility-direct-hook-v2'});
 })();

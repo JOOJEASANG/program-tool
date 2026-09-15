@@ -72,7 +72,10 @@ def test_curated_core_is_staged_and_browser_smoked():
         "PDF 파일 검사",
         "dataset.pdfUtilityCuratedCoreSmoke='pass'",
         "drop.getClientRects().length!==1",
-        "PDF file inspection neither opened nor showed protected login guidance",
+        "legacy shared upload still visible",
+        "direct workflow mismatch",
+        "merge-specific layer missing",
+        "tool-first upload flow marker missing",
         "core menu count",
         "18 essential workflows",
     ):
