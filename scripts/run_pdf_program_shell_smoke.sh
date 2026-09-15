@@ -101,7 +101,7 @@ run_product_case "pdf-utility-quick-actions-smoke.html" "$OUT_DIR/pdf-utility-qu
 reset_profile
 run_product_case "pdf-utility-menu-audit-smoke.html" "$OUT_DIR/pdf-utility-menu-audit-smoke-dom.html" 'data-pdf-utility-menu-audit-smoke="pass"' 'PASS: all PDF utility menus mount stable right-stage workspaces without scroll lock'
 reset_profile
-run_product_case "pdf-utility-curated-core-smoke.html" "$OUT_DIR/pdf-utility-curated-core-smoke-dom.html" 'data-pdf-utility-curated-core-smoke="pass"' 'PASS: curated PDF Utility keeps 18 essential workflows, uses the full-width centered shell, restores PDF file inspection, and renders solid upload cards'
+run_product_case "pdf-utility-curated-core-smoke.html" "$OUT_DIR/pdf-utility-curated-core-smoke-dom.html" 'data-pdf-utility-curated-core-smoke="pass"' 'PASS: curated PDF Utility keeps 18 essential workflows, supports drag upload, reveals progress/results only after run, and uses the renamed background/margin tool'
 reset_profile
 run_product_case "pdf-preflight-output-tool-dock-smoke.html" "$OUT_DIR/pdf-preflight-output-tool-dock-smoke-dom.html" 'data-pdf-output-tool-dock-smoke="pass"' 'PASS: PDF tool dialogs render inside the right progress/result panel'
 reset_profile

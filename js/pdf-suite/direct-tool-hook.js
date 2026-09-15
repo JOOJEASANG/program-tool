@@ -31,6 +31,7 @@
   function ensureLargeStorage(){return ensureScript('pdfUtilityDirectLargeStorageScript','/js/pdf-suite/direct-tool-large-storage.js?v=20260915-1',()=>Boolean(window.__programStudioPdfUtilityLargeStorageV1));}
   function ensureCenteredWorkspace(){return ensureScript('pdfUtilityCenteredWorkspaceScript','/js/pdf-suite/centered-workspace.js?v=20260915-3',()=>Boolean(window.__programStudioPdfUtilityCenteredV2));}
   function ensureCenteredFixes(){return ensureScript('pdfUtilityCenteredFixesScript','/js/pdf-suite/centered-workspace-fixes.js?v=20260915-3',()=>Boolean(window.__programStudioPdfUtilityCenteredFixesV3));}
+  function ensureToolModalFlow(){return ensureScript('pdfUtilityToolModalFlowScript','/js/pdf-suite/tool-modal-flow.js?v=20260915-1',()=>Boolean(window.__programStudioPdfUtilityToolModalFlowV1));}
 
   let installed=false;
   function install(){
@@ -43,7 +44,10 @@
     // Direct tool routing must not wait for the optional centered-shell scripts.
     // This prevents a quick click from falling back to the legacy/default merge workspace.
     install();
-    Promise.allSettled([ensureLargeStorage(),ensureCenteredWorkspace().then(ensureCenteredFixes)]);
+    Promise.allSettled([
+      ensureLargeStorage(),
+      ensureCenteredWorkspace().then(ensureCenteredFixes).then(ensureToolModalFlow)
+    ]);
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
   window.ProgramStudioPdfUtilityDirectHook=Object.freeze({activate,stage:'pdf-utility-direct-hook-v2'});
