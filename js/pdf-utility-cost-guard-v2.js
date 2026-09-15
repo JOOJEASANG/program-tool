@@ -1,15 +1,15 @@
 // PDF Utility transfer policy + multi-file upload owner.
 (function(){
   'use strict';
-  if(window.__pdfUtilityCostGuardV3)return;
-  window.__pdfUtilityCostGuardV3=true;
+  if(window.__pdfUtilityCostGuardV4)return;
+  window.__pdfUtilityCostGuardV4=true;
 
   const path=location.pathname.replace(/\/+$/,'')||'/';
   if(!(path==='/pdf-preflight'||path.endsWith('/pdf-preflight/index.html')))return;
 
   const MAX_FILES=10;
-  const MAX_FILE_BYTES=200*1024*1024;
-  const MAX_TOTAL_BYTES=300*1024*1024;
+  const MAX_FILE_BYTES=500*1024*1024;
+  const MAX_TOTAL_BYTES=800*1024*1024;
   const DIRECT_SECURITY_BYTES=20*1024*1024;
   const $=id=>document.getElementById(id);
   const fileKey=file=>`${file.name}|${file.size}|${file.lastModified}`;
@@ -35,24 +35,24 @@
     const invalid=unique.find(file=>!isPdf(file));
     if(invalid)return{ok:false,message:'PDF 파일만 업로드할 수 있습니다.'};
     const tooLarge=unique.find(file=>Number(file.size||0)>MAX_FILE_BYTES);
-    if(tooLarge)return{ok:false,message:`${tooLarge.name}: PDF 한 파일은 최대 200MB까지 가능합니다.`};
+    if(tooLarge)return{ok:false,message:`${tooLarge.name}: PDF 한 파일은 최대 500MB까지 가능합니다.`};
     if(current.files.length+unique.length>MAX_FILES)return{ok:false,message:`PDF는 최대 ${MAX_FILES}개까지 등록할 수 있습니다.`};
     const nextTotal=totalBytes()+unique.reduce((sum,file)=>sum+Number(file?.size||0),0);
-    if(nextTotal>MAX_TOTAL_BYTES)return{ok:false,message:'한 번 작업에 등록하는 PDF 전체 합계는 최대 300MB까지 가능합니다.'};
+    if(nextTotal>MAX_TOTAL_BYTES)return{ok:false,message:'한 번 작업에 등록하는 PDF 전체 합계는 최대 800MB까지 가능합니다.'};
     return{ok:true,files:unique,nextTotal};
   }
 
   function rewritePolicyUi(){
     const count=state()?.files?.length||0;
-    setText($('pdfUtilityFileSummary'),`${count} / ${MAX_FILES} · ${mb(totalBytes())} / 300MB`);
-    setText(document.querySelector('.pdfu-limit-note'),'PDF는 최대 10개, 한 파일 최대 200MB, 한 번 작업 전체 합계 300MB까지 등록할 수 있습니다. 대용량 변환은 별도 페이지·해상도 한도가 적용됩니다.');
-    setHtml(document.querySelector('.upload-sub'),'클릭하거나 여러 PDF를 끌어다 놓으세요.<br>최대 10개 · 파일당 200MB · 전체 합계 300MB · PDF 형식만 지원');
+    setText($('pdfUtilityFileSummary'),`${count} / ${MAX_FILES} · ${mb(totalBytes())} / 800MB`);
+    setText(document.querySelector('.pdfu-limit-note'),'PDF는 최대 10개, 한 파일 최대 500MB, 한 번 작업 전체 합계 800MB까지 등록할 수 있습니다. 큰 파일은 브라우저 메모리에 무리하게 올리지 않고 Storage 기반 서버 처리로 자동 전환됩니다.');
+    setHtml(document.querySelector('.upload-sub'),'클릭하거나 여러 PDF를 끌어다 놓으세요.<br>최대 10개 · 파일당 500MB · 전체 합계 800MB · PDF 형식만 지원');
     for(const id of ['encryptBtn','decryptBtn']){
       const button=$(id);
-      const title='20MB 초과~200MB PDF는 Storage 기반 암호 작업을 사용합니다.';
+      const title='20MB 초과~500MB PDF는 Storage 기반 암호 작업을 사용합니다.';
       if(button&&button.title!==title)button.title=title;
     }
-    document.documentElement.dataset.pdfUtilityCostPolicy='200mb-file-300mb-job-v2';
+    document.documentElement.dataset.pdfUtilityCostPolicy='500mb-file-800mb-job-v4';
   }
 
   function addFiles(rawFiles){
@@ -108,8 +108,6 @@
 
   function observeUi(){
     if(observer)return;
-    // Observe only the actual file rows. The policy rewrite updates the summary
-    // text outside this node, so its own DOM writes cannot retrigger the observer.
     const items=$('pdfUtilityFileItems');
     if(!items)return;
     observer=new MutationObserver(()=>{
@@ -139,7 +137,7 @@
       maxFileBytes:MAX_FILE_BYTES,
       maxTotalBytes:MAX_TOTAL_BYTES,
       directSecurityBytes:DIRECT_SECURITY_BYTES,
-      stage:'pdf-utility-200mb-file-300mb-job-v2'
+      stage:'pdf-utility-500mb-file-800mb-job-v4'
     };
     installed=true;
   }
