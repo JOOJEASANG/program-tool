@@ -15,7 +15,10 @@
     const coreReceived=[];
     window.SmartPrintLayout={state:{busy:false,items:[]}};
     // Keep this smoke deterministic under headless virtual time. Production
-    // decoder timeout/resource cleanup is covered by source-contract tests.
+    // decoder/encoder timeout and resource cleanup are covered separately.
+    HTMLCanvasElement.prototype.toBlob=function(callback,type){
+      callback(new Blob(['smoke-canvas'],{type:type||'image/png'}));
+    };
     window.createImageBitmap=async function(){
       const canvas=document.createElement('canvas');canvas.width=300;canvas.height=600;
       const ctx=canvas.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,300,600);ctx.fillStyle='#155e75';ctx.fillRect(30,40,240,520);
