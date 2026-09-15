@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-pdf-preview-zoom-persistence-host="1">
+<html lang="ko" data-pdf-preview-zoom-persistence-host="1" data-pdf-orientation-sidebar-cleanup-host="1">
 <head><meta charset="utf-8"><title>PDF layout sidebar and workflow smoke</title></head>
 <body data-program-kind="pdf-editor">
   <div class="app">
@@ -9,6 +9,14 @@
       <div class="sub">PDF 업로드 · 페이지 편집</div>
       <label><input id="showBorder" type="checkbox" checked>슬라이드 테두리 표시</label>
       <div id="pdfPageListQuickAddV1"><button>＋ 연속 추가</button><button>＋ 새 묶음 추가</button></div>
+      <div id="pdfFileNavigation"><strong>편집 페이지</strong><button>이동</button><button>모두 접기</button></div>
+      <div id="pageProductivityPanelV3" class="page-productivity-panel">
+        <div class="page-productivity-top">
+          <button id="pageSelectionModeBtnV3">다중 선택</button><button>전체</button><button>해제</button><span id="pageSelectionCountV3" class="page-selection-count">선택 0</span>
+        </div>
+        <div class="page-productivity-jump"><input id="pageJumpInputV3" value="1"><button>이동</button><button id="pageUndoBtnV3">↶ 취소</button><button id="pageRedoBtnV3">↷ 다시</button></div>
+        <div class="page-productivity-actions"><button data-batch-action="true">회전</button></div>
+      </div>
       <div id="thumbArea">
         <div class="thumb-file-sep" data-file-nav-header="true" data-file-index="0"><span class="thumb-file-sep-label">A.pdf</span></div>
         <div class="thumb-item" data-id="1"><div class="thumb-wrap"><span class="thumb-num">1</span></div></div>
@@ -50,7 +58,11 @@
     const smokeCanvas=document.createElement('canvas');smokeCanvas.width=700;smokeCanvas.height=990;
     let previewCanvases=[smokeCanvas];
     let lastAutoFit=null;
+    let lastRawRotation=null;
+    let lastSafetyRotation=null;
     function displayPreview(pages,autoFit=false){lastAutoFit=!!autoFit;if(autoFit)_previewZoom=2;document.getElementById('zoomLabel').textContent=Math.round(_previewZoom*100)+'%';}
+    async function renderPdfPage(pdfPage,scale,rotation){lastRawRotation=rotation;const canvas=document.createElement('canvas');canvas.width=700;canvas.height=990;return canvas;}
+    window.PdfImportTransactionSafety={safeRenderPdfPage:async function(pdfPage,scale,rotation){lastSafetyRotation=rotation;const canvas=document.createElement('canvas');canvas.width=700;canvas.height=990;return canvas;}};
     function renderThumbs(){}
     function schedulePreview(){}
     function showStatus(){}
@@ -60,6 +72,7 @@
   <script src="/js/pdf-editor/simple-sidebar-ui.js"></script>
   <script src="/js/pdf-editor/preview-zoom-persistence.js"></script>
   <script src="/js/pdf-editor/layout-ui-refinements.js"></script>
+  <script src="/js/pdf-editor/orientation-sidebar-cleanup.js"></script>
   <script>
     (async()=>{
       const result=document.getElementById('result');
@@ -78,9 +91,11 @@
 
       const zoomApi=window.PdfPreviewZoomPersistence;
       const layoutApi=window.PdfLayoutUiRefinements;
-      if(!zoomApi||!layoutApi)return fail('layout refinement APIs missing');
+      const cleanupApi=window.PdfOrientationSidebarCleanup;
+      if(!zoomApi||!layoutApi||!cleanupApi)return fail('layout refinement APIs missing');
       zoomApi.install();
       layoutApi.sync();
+      cleanupApi.sync();
 
       if(document.getElementById('pdfPageListQuickAddV1'))return fail('page-list quick add bar still exists');
       if(document.getElementById('showBorder').checked||showBorder!==false)return fail('slide border did not default off');
@@ -89,6 +104,23 @@
       if(nav.parentElement!==document.querySelector('.preview-info'))return fail('previous/next controls were not moved into preview toolbar');
       if(document.getElementById('pdfLazyPreviewRange'))return fail('lazy preview range text still exists');
       if(document.getElementById('previewInfo').hidden!==true)return fail('redundant fast preview message still visible');
+
+      const fileNav=document.getElementById('pdfFileNavigation');
+      if(getComputedStyle(fileNav).display!=='none')return fail('edit-page navigation card is still visible');
+      const productivity=document.getElementById('pageProductivityPanelV3');
+      const topLabels=[...productivity.querySelectorAll('.page-productivity-top button')].map(button=>button.textContent.trim()).join(',');
+      if(topLabels!=='다중 선택,전체,해제')return fail('compact selection controls are not the requested three buttons');
+      if(getComputedStyle(document.getElementById('pageSelectionCountV3')).display!=='none')return fail('selection count is still visible');
+      if(getComputedStyle(productivity.querySelector('.page-productivity-jump')).display!=='none')return fail('page jump/undo row is still visible');
+      if(getComputedStyle(productivity.querySelector('.page-productivity-actions')).display!=='none')return fail('batch action row is still visible');
+
+      const rotatedPdf={rotate:90};
+      const sourceCanvas=await window.renderPdfPage(rotatedPdf,.9,0);
+      if(lastRawRotation!==90)return fail('intrinsic PDF rotation was not preserved in thumbnail renderer');
+      if(sourceCanvas.dataset.pdfIntrinsicSourceRotation!=='90'||sourceCanvas.dataset.pdfCanonicalSourceRotation!=='0')return fail('intrinsic rotation source markers are incorrect');
+      const safetyCanvas=await window.PdfImportTransactionSafety.safeRenderPdfPage(rotatedPdf,.9,0,false);
+      if(lastSafetyRotation!==90)return fail('intrinsic PDF rotation was not preserved in lazy/safety renderer');
+      if(safetyCanvas.dataset.pdfIntrinsicSourceRotation!=='90')return fail('lazy intrinsic rotation marker missing');
 
       _previewZoom=.6;
       zoomApi.pin();
@@ -108,7 +140,7 @@
       if(Number(fileNupMap[0])!==4||Number(fileNupMap[1])!==2)return fail('per-file layout settings were not remapped');
 
       document.documentElement.dataset.pdfLayoutSidebarTitleSmoke='pass';
-      result.textContent='PASS: layout PDF editor compact toolbar, sticky zoom, file reorder and clean defaults';
+      result.textContent='PASS: layout PDF editor compact toolbar, sticky zoom, file reorder and clean defaults; intrinsic PDF rotation is preserved and only the three-button selection toolbar remains';
     })().catch(error=>console.error(error));
   </script>
 </body>
