@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="utf-8">
-  <title>PDF page list quick add smoke</title>
+  <title>PDF page list quick add retired smoke</title>
 </head>
 <body>
   <div class="preview-zoom"><span>줄당</span><select id="perRowSelect"><option value="2">2</option></select></div>
@@ -27,6 +27,8 @@
   <script>
     var parsedPages = [{ id: 'p1' }, { id: 'p2' }];
     var uploadedFiles = [];
+    var fileNupMap = {};
+    var showBorder = false;
     var _uploadMode = 'cont';
     window.__pickerClicks = 0;
     window.__handledFiles = [];
@@ -36,6 +38,8 @@
       parsedPages.push({ id: 'loaded-' + file.name });
     }
     window.handleFile = handleFile;
+    function renderThumbs() {}
+    function schedulePreview() {}
     document.querySelectorAll('.mode-btn').forEach(function (button) {
       button.addEventListener('click', function () { _uploadMode = button.dataset.mode; });
     });
@@ -43,19 +47,20 @@
   </script>
   <script src="/js/pdf-editor/preview-row-default.js?v=20260831-1"></script>
   <script src="/js/pdf-editor/upload-order-ui.js?v=20260831-1"></script>
+  <script src="/js/pdf-editor/layout-ui-refinements.js?v=20260915-1"></script>
   <script>
     setTimeout(async function () {
-      var bar = document.getElementById('pdfPageListQuickAddV1');
-      var continuous = bar && bar.querySelector('[data-quick-upload-mode="cont"]');
-      var separate = bar && bar.querySelector('[data-quick-upload-mode="break"]');
       var legacy = document.getElementById('pdfFileNavigation');
       var panel = document.getElementById('pageProductivityPanelV3');
       var area = document.getElementById('thumbArea');
       var utility = document.getElementById('pdfPrintUtilityRedirectCard');
-      if (!bar || !continuous || !separate || !legacy || !panel || !area || !utility) return;
+      if (!legacy || !panel || !area || !utility || !window.PdfUploadOrderUi || !window.PdfLayoutUiRefinements) return;
 
-      separate.click();
-      if (window.__pickerClicks !== 1 || _uploadMode !== 'break') return;
+      // The old page-list quick append box is intentionally retired. Upload order
+      // staging still remains available through the normal upload workflow.
+      window.PdfLayoutUiRefinements.removePageListQuickAdd();
+      if (document.getElementById('pdfPageListQuickAddV1')) return;
+      if (document.documentElement.dataset.pdfPageListQuickAdd !== 'removed') return;
 
       var first = new File(['1'], '01-first.pdf', { type: 'application/pdf' });
       var second = new File(['2'], '02-second.pdf', { type: 'application/pdf' });
@@ -70,16 +75,12 @@
 
       var handled = window.__handledFiles.map(function (entry) { return entry.name + ':' + entry.mode; }).join(',');
       var passed = handled === '03-third.pdf:cont,01-first.pdf:cont,02-second.pdf:cont'
-        && bar.nextElementSibling === panel
-        && panel.nextElementSibling === area
         && getComputedStyle(legacy).display === 'none'
-        && getComputedStyle(bar).position === 'sticky'
         && getComputedStyle(utility).display === 'none'
-        && continuous.textContent.includes('연속 추가')
-        && separate.textContent.includes('새 묶음 추가');
+        && !document.getElementById('pdfPageListQuickAddV1');
       if (!passed) return;
       document.documentElement.dataset.pdfPageListQuickAddSmoke = 'pass';
-      document.getElementById('result').textContent = 'PASS: page list keeps sticky PDF append action and removes legacy jump panel from view';
+      document.getElementById('result').textContent = 'PASS: retired page-list quick add stays removed while upload-order staging remains intact';
     }, 180);
   </script>
 </body>
