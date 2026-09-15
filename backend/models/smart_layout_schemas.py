@@ -11,6 +11,7 @@ class SmartPaperSize(BaseModel):
 
 class SmartLayoutJob(BaseModel):
     file_index: int = Field(ge=0, le=49)
+    back_file_index: int | None = Field(default=None, ge=0, le=49)
     quantity: int = Field(default=1, ge=1, le=2000)
 
 
@@ -27,8 +28,18 @@ class SmartLayoutRequest(BaseModel):
 
     @model_validator(mode='after')
     def validate_totals(self):
-        if len({job.file_index for job in self.jobs}) != len(self.jobs):
+        front_indexes = [job.file_index for job in self.jobs]
+        if len(set(front_indexes)) != len(front_indexes):
             raise ValueError('같은 파일의 작업 설정이 중복되었습니다')
+
+        back_indexes = [job.back_file_index for job in self.jobs if job.back_file_index is not None]
+        if len(set(back_indexes)) != len(back_indexes):
+            raise ValueError('같은 파일을 여러 작업의 뒷면으로 사용할 수 없습니다')
+        if set(front_indexes) & set(back_indexes):
+            raise ValueError('하나의 파일을 앞면 작업과 다른 작업의 뒷면으로 동시에 사용할 수 없습니다')
+        if any(job.back_file_index == job.file_index for job in self.jobs):
+            raise ValueError('같은 파일을 자신의 뒷면으로 사용할 수 없습니다')
+
         total = sum(job.quantity for job in self.jobs)
         if total > 2000:
             raise ValueError('한 번에 배치할 총 수량은 2,000개 이하로 설정해 주세요')

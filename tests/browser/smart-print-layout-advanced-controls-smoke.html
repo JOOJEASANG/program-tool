@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"><title>Smart print advanced controls smoke</title></head>
+<body>
+  <section class="panel">
+    <label class="field"><select id="paperPreset"><option value="a3" selected>A3</option><option value="custom">custom</option></select></label>
+    <input id="paperWidth" type="number" value="297"><input id="paperHeight" type="number" value="420">
+    <input id="marginMm" type="number" value="5"><input id="gapMm" type="number" value="3">
+    <input id="allowRotate" type="checkbox">
+  </section>
+  <section class="panel">
+    <select id="sideMode"><option value="auto" selected>auto</option><option value="single">single</option><option value="duplex">duplex</option></select>
+    <select id="flipEdge"><option value="long" selected>long</option><option value="short">short</option></select>
+    <label><input id="cropMarks" type="checkbox">crop</label>
+  </section>
+  <div id="fileList">
+    <div class="file-item"><span class="side-pill">앞면</span></div>
+    <div class="file-item"><span class="side-pill">앞면</span></div>
+  </div>
+  <section id="summaryCard"><div class="summary-empty">empty</div></section>
+  <button id="prevSheet"></button><span id="sheetLabel"></span><button id="nextSheet"></button>
+  <button id="frontBtn"></button><button id="backBtn"></button>
+  <button id="downloadBtn"></button><button id="resetBtn"></button>
+  <input id="fileInput" type="file">
+  <div id="statusLine"></div>
+  <div id="canvasShell" style="position:relative;width:800px;height:600px;padding:12px">
+    <canvas id="layoutCanvas" width="800" height="1100" style="display:block;width:400px;height:550px"></canvas>
+  </div>
+  <section class="guide-row"><div>A</div><div>B</div><div>C</div></section>
+
+  <script>
+    const makePlan=()=>({
+      sheets:[
+        [{fileIndex:0,copyIndex:0,x:10,y:10,width:90,height:50,rotated:false}],
+        [{fileIndex:1,copyIndex:0,x:10,y:10,width:90,height:50,rotated:false}]
+      ],
+      totalCopies:2,utilization:20,duplex:false,
+      cfg:{paperW:Number(document.getElementById('paperWidth').value),paperH:Number(document.getElementById('paperHeight').value),flipEdge:'long',allowRotate:false}
+    });
+    const thumb=document.createElement('canvas');thumb.width=90;thumb.height=50;
+    const state={
+      items:[
+        {id:'front',name:'front.pdf',pageCount:1,widthMm:90,heightMm:50,frontThumb:thumb,backThumb:null,file:new File(['front'],'front.pdf',{type:'application/pdf'})},
+        {id:'back',name:'back.pdf',pageCount:1,widthMm:90,heightMm:50,frontThumb:thumb,backThumb:null,file:new File(['back'],'back.pdf',{type:'application/pdf'})}
+      ],
+      plan:null,sheetIndex:0,side:'front',busy:false
+    };
+    window.SmartPrintLayout={state,recalculate(){state.plan=makePlan();return state.plan;}};
+    state.plan=makePlan();
+    let capturedSettings=null;
+    window.fetch=async function(input,init={}){
+      if(String(input).includes('/api/pdf/smart-layout')&&init.body instanceof FormData){
+        capturedSettings=JSON.parse(init.body.get('settings'));
+      }
+      return new Response(new Blob(['ok'],{type:'application/pdf'}),{status:200,headers:{'content-type':'application/pdf'}});
+    };
+  </script>
+  <script src="/js/smart-print-layout/advanced-controls.js?v=smoke"></script>
+  <script>
+    (()=>{
+      const fail=message=>{document.documentElement.dataset.smartPrintAdvancedSmoke='fail';document.body.dataset.error=message;};
+      try{
+        // The production module waits for DOMContentLoaded. Trigger the same boot path
+        // synchronously so this smoke is deterministic under Chrome virtual time.
+        document.dispatchEvent(new Event('DOMContentLoaded'));
+        const api=window.SmartPrintAdvancedControls;
+        if(!api)throw new Error('advanced controls missing');
+        if(!document.getElementById('paperOrientation'))throw new Error('paper orientation missing');
+        if(document.querySelector('.guide-row'))throw new Error('preview guide cards were not removed');
+
+        const orientation=document.getElementById('paperOrientation');
+        orientation.value='landscape';
+        api.applyOrientation();
+        if(Number(document.getElementById('paperWidth').value)!==420||Number(document.getElementById('paperHeight').value)!==297)throw new Error('A3 landscape dimensions not applied');
+
+        api.syncPairControls();
+        const pair=document.querySelectorAll('.duplex-pair-row input')[0];
+        if(!pair)throw new Error('back-side checkbox missing');
+        pair.checked=true;
+        pair.dispatchEvent(new Event('change',{bubbles:true}));
+        if(state.items[1].backForId!=='front')throw new Error('back file was not paired');
+        if(state.items[0].pageCount!==2)throw new Error('front item was not promoted to duplex preview');
+        if(state.plan.sheets.length!==1)throw new Error('paired back file still created its own sheet');
+
+        const enabled=document.getElementById('advNumberingEnabled');
+        enabled.checked=true;enabled.dispatchEvent(new Event('change',{bubbles:true}));
+        document.getElementById('advNumberingFont').value='times';
+        document.getElementById('advNumberingPosition').value='top-center';
+        document.getElementById('advNumberingMarginX').value='4';
+        document.getElementById('advNumberingMarginY').value='5';
+        if(document.getElementById('advNumberingFont').disabled)throw new Error('numbering controls did not enable');
+
+        const form=new FormData();
+        form.append('settings',JSON.stringify({jobs:[{file_index:0,quantity:1},{file_index:1,quantity:1}],paper:{width_mm:420,height_mm:297},auto_fill:true,side_mode:'auto'}));
+        state.items.forEach(item=>form.append('files',item.file,item.name));
+        fetch('/api/pdf/smart-layout',{method:'POST',body:form});
+        if(!capturedSettings)throw new Error('adapted request not captured');
+        if(capturedSettings.jobs.length!==1||capturedSettings.jobs[0].file_index!==0||capturedSettings.jobs[0].back_file_index!==1)throw new Error('duplex request mapping incorrect');
+        if(capturedSettings.numbering.font!=='times'||capturedSettings.numbering.position!=='top-center')throw new Error('numbering font or position missing');
+        if(Number(capturedSettings.numbering.margin_x_mm)!==4||Number(capturedSettings.numbering.margin_y_mm)!==5)throw new Error('numbering margins missing');
+
+        // Numbering overlay is rendered on requestAnimationFrame. Its production code path is
+        // covered by the static contract test; this browser smoke verifies the synchronous
+        // configuration and request mapping without racing Chrome's virtual frame scheduler.
+        if(!document.documentElement.dataset.smartPrintAdvanced)throw new Error('advanced stage marker missing');
+        document.documentElement.dataset.smartPrintAdvancedSmoke='pass';
+      }catch(error){fail(error?.message||String(error));}
+    })();
+  </script>
+</body>
+</html>

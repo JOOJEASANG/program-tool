@@ -21,6 +21,7 @@ MAX_DIRECT_FILE_BYTES = 20 * 1024 * 1024
 MAX_DIRECT_TOTAL_BYTES = 20 * 1024 * 1024
 MAX_DIRECT_RESPONSE_BYTES = 18 * 1024 * 1024
 MAX_FILES = 30
+MM_TO_PT = 72.0 / 25.4
 
 
 def _error(detail: str, status: int, code: str):
@@ -47,6 +48,55 @@ def _add_summary_headers(response, plan):
     response.headers['X-Smart-Layout-Utilization'] = str(summary['utilization'])
     response.headers['X-Request-ID'] = get_request_id()
     return response
+
+
+def _page_size_mm(page: fitz.Page) -> tuple[float, float]:
+    return page.rect.width / MM_TO_PT, page.rect.height / MM_TO_PT
+
+
+def _prepare_separate_back_files(
+    docs: list[fitz.Document],
+    jobs,
+    filenames: list[str],
+) -> tuple[list[fitz.Document], list[fitz.Document]]:
+    """Turn a front one-page PDF + a selected back one-page PDF into one logical 2-page source.
+
+    The layout/render engine already has mature duplex mirroring for ordinary two-page PDFs.
+    Building an in-memory two-page source here lets the separate-image workflow reuse the exact
+    same placement and flip-edge behavior without changing uploaded source files.
+    """
+    render_docs = list(docs)
+    combined_docs: list[fitz.Document] = []
+
+    for job in jobs:
+        back_index = job.back_file_index
+        if back_index is None:
+            continue
+        if job.file_index >= len(docs) or back_index >= len(docs):
+            raise ValueError('앞면·뒷면 파일 연결 정보가 올바르지 않습니다')
+
+        front_doc = docs[job.file_index]
+        back_doc = docs[back_index]
+        if front_doc.page_count != 1:
+            raise ValueError(f'{filenames[job.file_index]}은 이미 2페이지 양면 파일이므로 별도 뒷면을 연결할 수 없습니다')
+        if back_doc.page_count != 1:
+            raise ValueError(f'{filenames[back_index]}은 별도 뒷면으로 사용할 때 1페이지 파일이어야 합니다')
+
+        front_w, front_h = _page_size_mm(front_doc[0])
+        back_w, back_h = _page_size_mm(back_doc[0])
+        if abs(front_w - back_w) > 0.8 or abs(front_h - back_h) > 0.8:
+            raise ValueError(
+                f'{filenames[back_index]}의 크기가 앞면과 다릅니다. '
+                f'앞면 {front_w:.1f}×{front_h:.1f}mm / 뒷면 {back_w:.1f}×{back_h:.1f}mm'
+            )
+
+        combined = fitz.open()
+        combined.insert_pdf(front_doc, from_page=0, to_page=0)
+        combined.insert_pdf(back_doc, from_page=0, to_page=0)
+        render_docs[job.file_index] = combined
+        combined_docs.append(combined)
+
+    return render_docs, combined_docs
 
 
 @pdf_smart_layout_bp.route('/smart-layout', methods=['POST'])
@@ -81,6 +131,7 @@ def smart_layout(uid: str):
         filenames.append(filename)
 
     docs: list[fitz.Document] = []
+    combined_docs: list[fitz.Document] = []
     try:
         for index, data in enumerate(file_bytes):
             try:
@@ -89,7 +140,8 @@ def smart_layout(uid: str):
                 raise ValueError(f'유효한 PDF가 아닙니다: {filenames[index]}') from exc
             docs.append(doc)
 
-        source_items, duplex = inspect_sources(docs, settings.jobs, filenames, settings.side_mode)
+        render_docs, combined_docs = _prepare_separate_back_files(docs, settings.jobs, filenames)
+        source_items, duplex = inspect_sources(render_docs, settings.jobs, filenames, settings.side_mode)
         if settings.auto_fill:
             plan = build_auto_fill_layout_plan(
                 source_items,
@@ -112,7 +164,7 @@ def smart_layout(uid: str):
                 duplex,
                 settings.flip_edge,
             )
-        output = render_layout_pdf(docs, plan, gap_mm=settings.gap_mm, crop_marks=settings.crop_marks)
+        output = render_layout_pdf(render_docs, plan, gap_mm=settings.gap_mm, crop_marks=settings.crop_marks)
         output = apply_layout_numbering(output, plan, raw_settings.get('numbering'))
     except ValueError as exc:
         return _error(str(exc), 400, 'SMART_LAYOUT_VALIDATION_FAILED')
@@ -120,6 +172,11 @@ def smart_layout(uid: str):
         logger.exception('Smart print layout failed request_id=%s', get_request_id())
         return _error('스마트 인쇄배치 처리 중 오류가 발생했습니다.', 500, 'SMART_LAYOUT_INTERNAL_ERROR')
     finally:
+        for doc in combined_docs:
+            try:
+                doc.close()
+            except Exception:
+                pass
         for doc in docs:
             try:
                 doc.close()
