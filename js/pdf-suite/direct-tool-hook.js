@@ -29,7 +29,7 @@
     });
   }
   function ensureLargeStorage(){return ensureScript('pdfUtilityDirectLargeStorageScript','/js/pdf-suite/direct-tool-large-storage.js?v=20260915-1',()=>Boolean(window.__programStudioPdfUtilityLargeStorageV1));}
-  function ensureCenteredWorkspace(){return ensureScript('pdfUtilityCenteredWorkspaceScript','/js/pdf-suite/centered-workspace.js?v=20260915-3',()=>Boolean(window.__programStudioPdfUtilityCenteredV2));}
+  function ensureCenteredWorkspace(){return ensureScript('pdfUtilityCenteredWorkspaceScript','/js/pdf-suite/centered-workspace.js?v=20260915-4',()=>Boolean(window.__programStudioPdfUtilityCenteredV2));}
   function ensureCenteredFixes(){return ensureScript('pdfUtilityCenteredFixesScript','/js/pdf-suite/centered-workspace-fixes.js?v=20260915-3',()=>Boolean(window.__programStudioPdfUtilityCenteredFixesV3));}
   function ensureToolModalFlow(){return ensureScript('pdfUtilityToolModalFlowScript','/js/pdf-suite/tool-modal-flow.js?v=20260915-1',()=>Boolean(window.__programStudioPdfUtilityToolModalFlowV1));}
 
