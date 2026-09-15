@@ -129,8 +129,16 @@
     clearInterval(state.timer);state.observer?.disconnect?.();progressStates.delete(root);
   }
 
+  function hasFinalResult(root){
+    const panel=root?.querySelector('.pdfud-result');
+    if(!panel||panel.querySelector('.pdfud-flow-progress'))return false;
+    if(panel.querySelector('.pdfud-score,.pdfud-checks,.pdfud-visual-grid,.pdfud-page'))return true;
+    const text=String(panel.textContent||'').trim();
+    return Boolean(text&&!/처리 결과와 미리보기가 이곳에 표시됩니다/.test(text));
+  }
+
   function setProgress(root,value,text,error=false){
-    const panel=root.querySelector('.pdfud-result');if(!panel)return;
+    const panel=root.querySelector('.pdfud-result');if(!panel||hasFinalResult(root))return;
     let box=panel.querySelector('.pdfud-flow-progress');
     if(!box){
       panel.innerHTML='<div class="pdfud-flow-progress"><strong>작업을 준비하는 중입니다.</strong><p>파일을 확인하고 처리 엔진을 준비합니다.</p><div class="pdfud-flow-track"><div class="pdfud-flow-bar"></div></div><div class="pdfud-flow-percent">0%</div></div>';
@@ -151,6 +159,7 @@
     setProgress(root,value,`${toolLabel(root)} 작업을 시작합니다.`);
     const status=root.querySelector('.pdfud-status');
     const observer=new MutationObserver(()=>{
+      if(hasFinalResult(root)){stopProgress(root);return;}
       const text=String(status?.textContent||'').trim();
       const match=text.match(/(\d{1,3})\s*%/);
       if(match){value=Math.max(value,Math.min(96,Number(match[1])));setProgress(root,value,text);}
@@ -160,7 +169,7 @@
     });
     if(status)observer.observe(status,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['class']});
     const timer=setInterval(()=>{
-      if(!root.isConnected){stopProgress(root);return;}
+      if(!root.isConnected||hasFinalResult(root)){stopProgress(root);return;}
       value=Math.min(88,value+(value<35?5:value<65?3:1));
       setProgress(root,value,String(status?.textContent||'').trim()||'파일을 처리하고 있습니다.');
     },520);
