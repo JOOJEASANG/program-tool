@@ -5,9 +5,20 @@
   if(window.__pdfEditorImageInputBridgeV1)return;
   window.__pdfEditorImageInputBridgeV1=true;
 
+  const NORMALIZE_TIMEOUT_MS=30000;
+  const HANDLE_FILE_TIMEOUT_MS=45000;
   const adapter=()=>window.ProgramImagePdfAdapter;
   const $=id=>document.getElementById(id);
   let busy=false;
+  let importSerial=0;
+
+  function withTimeout(promise,timeoutMs,message){
+    let timer;
+    return Promise.race([
+      Promise.resolve(promise),
+      new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error(message)),timeoutMs);})
+    ]).finally(()=>clearTimeout(timer));
+  }
 
   function showError(message){
     try{
@@ -64,15 +75,23 @@
     const api=adapter();
     if(!api||typeof window.handleFile!=='function'){
       showError('이미지 입력 모듈을 준비하지 못했습니다.');
-      return;
+      return false;
     }
+    if(busy){
+      showError('현재 파일을 불러오는 중입니다. 완료 후 다시 시도해 주세요.');
+      return false;
+    }
+
     const incoming=Array.from(files||[]);
     const supported=incoming.filter(api.isSupported);
     const rejected=incoming.filter(file=>!api.isSupported(file));
     if(rejected.length)showError('PDF, JPG, PNG, WEBP 파일만 사용할 수 있습니다.');
-    if(!supported.length)return;
+    if(!supported.length)return false;
 
+    const runId=++importSerial;
     busy=true;
+    document.documentElement.dataset.pdfImageImport='working';
+    let importedCount=0;
     try{
       for(const original of supported){
         let normalized=original;
@@ -80,19 +99,36 @@
         if(imageSource){
           try{
             if(typeof window.showStatus==='function')window.showStatus(`"${original.name}" 이미지 변환 중...`);
-            normalized=await api.normalizeFile(original,{dpi:300,quality:0.92});
+            normalized=await withTimeout(
+              api.normalizeFile(original,{dpi:300,quality:0.92}),
+              NORMALIZE_TIMEOUT_MS,
+              `${original.name}: 이미지 변환 시간이 초과되었습니다. 파일 크기를 줄이거나 다시 저장한 뒤 시도해 주세요.`
+            );
           }catch(error){
             showError(error?.message||`${original.name}: 이미지를 변환하지 못했습니다.`);
             continue;
           }
         }
+
         const beforeIds=imageSource?pageIdSnapshot():null;
-        await window.handleFile(normalized);
+        try{
+          await withTimeout(
+            window.handleFile(normalized),
+            HANDLE_FILE_TIMEOUT_MS,
+            `${original.name}: PDF 불러오기 시간이 초과되었습니다. 파일을 확인한 뒤 다시 시도해 주세요.`
+          );
+        }catch(error){
+          showError(error?.message||`${original.name}: 파일을 불러오지 못했습니다.`);
+          continue;
+        }
+        if(runId!==importSerial)break;
         if(imageSource)tagImportedImagePages(original,normalized,beforeIds);
+        importedCount++;
       }
-      document.documentElement.dataset.pdfImageImport='complete';
+      document.documentElement.dataset.pdfImageImport=importedCount?'complete':'failed';
+      return importedCount>0;
     }finally{
-      busy=false;
+      if(runId===importSerial)busy=false;
     }
   }
 
@@ -106,8 +142,13 @@
     if(!input||input.dataset.imageBridgeBound==='true')return false;
     input.dataset.imageBridgeBound='true';
     input.addEventListener('change',event=>{
-      if(busy||!hasImage(event.target.files))return;
+      if(!hasImage(event.target.files))return;
       event.stopImmediatePropagation();
+      if(busy){
+        showError('현재 파일을 불러오는 중입니다. 완료 후 다시 시도해 주세요.');
+        event.target.value='';
+        return;
+      }
       const files=Array.from(event.target.files||[]);
       event.target.value='';
       importFiles(files);
@@ -119,9 +160,13 @@
     if(document.documentElement.dataset.pdfImageDropBridge==='true')return true;
     document.documentElement.dataset.pdfImageDropBridge='true';
     document.addEventListener('drop',event=>{
-      if(busy||!event.dataTransfer?.files?.length||!hasImage(event.dataTransfer.files))return;
+      if(!event.dataTransfer?.files?.length||!hasImage(event.dataTransfer.files))return;
       event.preventDefault();
       event.stopImmediatePropagation();
+      if(busy){
+        showError('현재 파일을 불러오는 중입니다. 완료 후 다시 시도해 주세요.');
+        return;
+      }
       importFiles(Array.from(event.dataTransfer.files));
     },true);
     return true;
@@ -137,7 +182,8 @@
     importFiles,
     updateUi,
     tagImportedImagePages,
-    stage:'pdf-editor-image-input-v2-source-metadata'
+    get busy(){return busy;},
+    stage:'pdf-editor-image-input-v3-production-hardening'
   };
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});

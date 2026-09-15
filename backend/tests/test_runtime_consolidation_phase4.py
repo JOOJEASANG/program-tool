@@ -82,10 +82,14 @@ def test_pdf_editor_image_input_is_adapter_isolated_from_pdf_state():
         "image/png",
         "image/webp",
         "DEFAULT_DPI=300",
-        "MAX_PIXELS=40*1000*1000",
+        "MAX_PIXELS=24*1000*1000",
+        "IMAGE_DECODE_TIMEOUT_MS=12000",
+        "JPEG_ENCODE_TIMEOUT_MS=12000",
+        "canvas.toBlob",
+        "new Uint8Array(await blob.arrayBuffer())",
         "new File([blob]",
         "type:'application/pdf'",
-        "image-pdf-adapter-v1-pdf-core-isolation",
+        "image-pdf-adapter-v2-production-hardening",
     ):
         assert marker in adapter
 
@@ -95,13 +99,17 @@ def test_pdf_editor_image_input_is_adapter_isolated_from_pdf_state():
         "PDF / 이미지 클릭 또는 드래그",
         "300dpi 기준 1페이지",
         "event.stopImmediatePropagation()",
-        "pdf-editor-image-input-v2-source-metadata",
+        "NORMALIZE_TIMEOUT_MS=30000",
+        "HANDLE_FILE_TIMEOUT_MS=45000",
+        "pdf-editor-image-input-v3-production-hardening",
         "tagImportedImagePages",
         "sourceType='image'",
         "sourceOriginalName",
         "imageMeta",
     ):
         assert marker in bridge
+
+    assert "canvas.toDataURL" not in adapter
 
     # The bridge may annotate new image-backed pages after canonical PDF import,
     # but it must not own/reassign canonical page arrays, output generation, or
