@@ -65,6 +65,17 @@
         if(normalized[1].__displayName!=='photo.png')throw new Error('image original display name missing');
         if(Number(normalized[1].__imageMeta?.dpi)!==300)throw new Error('image dpi metadata missing');
 
+        let rejectedMixed=false;
+        try{
+          await window.SmartPrintLayoutImageInput.normalizeForSmart([
+            pdfFile,
+            new File(['not-supported'],'notes.txt',{type:'text/plain'})
+          ]);
+        }catch(error){
+          rejectedMixed=String(error?.message||error).includes('지원하지 않는 파일');
+        }
+        if(!rejectedMixed)throw new Error('unsupported mixed input was silently dropped');
+
         coreReceived.length=0;
         const imported=await window.SmartPrintLayoutImageInput.importImages([pdfFile,imageFile]);
         if(!imported)throw new Error('bridge import failed');
@@ -80,6 +91,39 @@
         if(!rows[1].querySelector('.file-meta').textContent.includes('이미지 300dpi'))throw new Error('image dpi label missing');
         if(window.SmartPrintLayout.state.items[1].sourceType!=='image')throw new Error('smart state image source metadata missing');
         if(document.documentElement.dataset.smartPrintImageImport!=='complete')throw new Error('completion marker missing');
+
+        // Regression: while one image is still normalizing, a second raw image
+        // must be intercepted by the bridge rather than leaking into the PDF-only core.
+        const api=window.ProgramImagePdfAdapter;
+        const originalNormalize=api.normalizeFile;
+        let releaseSlow=null;
+        api.normalizeFile=function(file,options){
+          if(file.name!=='slow.png')return originalNormalize.call(api,file,options);
+          return new Promise((resolve,reject)=>{
+            releaseSlow=()=>originalNormalize.call(api,file,options).then(resolve,reject);
+          });
+        };
+        try{
+          const beforeBusyCount=coreReceived.length;
+          const slowFile=new File([png],'slow.png',{type:'image/png',lastModified:789});
+          const busyLeakFile=new File([png],'busy-leak.png',{type:'image/png',lastModified:790});
+          const slowImport=window.SmartPrintLayoutImageInput.importImages([slowFile]);
+          for(let i=0;i<40&&!releaseSlow;i++)await new Promise(r=>setTimeout(r,5));
+          if(!releaseSlow||!window.SmartPrintLayoutImageInput.busy)throw new Error('busy regression setup failed');
+          const transfer=new DataTransfer();transfer.items.add(busyLeakFile);
+          const input=document.getElementById('fileInput');input.files=transfer.files;
+          input.dispatchEvent(new Event('change',{bubbles:true}));
+          await new Promise(r=>setTimeout(r,20));
+          if(coreReceived.length!==beforeBusyCount)throw new Error('raw image leaked into canonical core while bridge was busy');
+          if(!document.getElementById('statusLine').textContent.includes('현재 파일을 변환하는 중'))throw new Error('busy status was not shown');
+          releaseSlow();
+          if(!await slowImport)throw new Error('slow import did not recover');
+          if(coreReceived.length!==beforeBusyCount+1)throw new Error('slow normalized PDF did not reach canonical core once');
+          if(coreReceived.at(-1)?.type!=='application/pdf')throw new Error('slow raw image reached canonical core');
+        }finally{
+          api.normalizeFile=originalNormalize;
+        }
+
         document.documentElement.dataset.smartPrintLayoutImageInputSmoke='pass';
       }catch(error){fail(error?.message||String(error));}
     })();
