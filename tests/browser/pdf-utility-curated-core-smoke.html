@@ -46,7 +46,7 @@
     const stage=()=>document.getElementById('pdfUtilityStageBody');
     const modal=()=>document.getElementById('pdfUtilityCenteredModal');
     const assertLayer=name=>{if(!stage()||!stage().textContent.trim())throw new Error('empty stage: '+name);if(!modal()?.classList.contains('open')||!modal().contains(stage()))throw new Error('centered layer stage missing: '+name);if(document.getElementById('pdfUtilityCenteredModalTitle')?.textContent.trim()!==name)throw new Error('modal title mismatch: '+name+' / '+document.getElementById('pdfUtilityCenteredModalTitle')?.textContent);};
-    const assertDirect=(display,source)=>{assertLayer(display);const panel=stage().querySelector(`.pdfud-card[data-pdfud-tool="${source}"]`);if(!panel)throw new Error(`direct workflow mismatch: ${display} did not mount ${source}`);if(stage().querySelector('[data-pdfuc-server-tool="merge"]'))throw new Error(display+' incorrectly shows merge workflow');if(!panel.querySelector('.pdfud-file-input'))throw new Error(display+' tool-specific upload missing');};
+    const assertDirect=(display,source)=>{assertLayer(display);const panel=stage().querySelector(`.pdfud-card[data-pdfud-tool="${source}"]`);if(!panel)throw new Error(`direct workflow mismatch: ${display} did not mount ${source}`);if(stage().querySelector('[data-pdfuc-server-tool="merge"]'))throw new Error(display+' incorrectly shows merge workflow');if(!panel.querySelector('.pdfud-file-input'))throw new Error(display+' tool-specific upload missing');return panel;};
     const assertDrop=()=>{const drop=stage().querySelector('#localDrop');if(!drop)throw new Error('local upload box missing');const style=getComputedStyle(drop);if(style.display!=='flex')throw new Error('upload label is not a single flex box: '+style.display);if(style.borderLeftStyle!=='dashed'||parseFloat(style.borderLeftWidth)<1.5)throw new Error('upload dashed border missing');if(drop.getClientRects().length!==1)throw new Error('upload border fragmented into multiple inline boxes');};
   </script>
   <script src="/js/pdf-suite/local-tools.js?v=smoke"></script>
@@ -65,11 +65,13 @@
       try{
         await waitFor(()=>document.documentElement.dataset.pdfUtilityCuratedCore==='ready','curated core ready');
         await waitFor(()=>document.documentElement.dataset.pdfUtilityCentered==='tool-first-v2','tool-first centered ready');
+        await waitFor(()=>document.documentElement.dataset.pdfUtilityToolModalFlow==='upload-first-reveal-v1','tool modal flow ready');
         await wait(120);
-        const expected=['PDF 파일 검사','PDF 압축','안전 자동 수정','PDF 합치기','페이지 추출·나누기','시각적 페이지 정리','빈 페이지 자동 제거','전체 페이지 회전','페이지 순서 역순','여백·크롭·배경','이미지 → PDF','PDF → 이미지','OCR · 검색 가능한 PDF','본문 텍스트 추출 · TXT','PDF 암호 설정 · AES-256','암호 해제','메타데이터 정리','폼 평면화'];
+        const expected=['PDF 파일 검사','PDF 압축','안전 자동 수정','PDF 합치기','페이지 추출·나누기','시각적 페이지 정리','빈 페이지 자동 제거','전체 페이지 회전','페이지 순서 역순','배경/여백 제거','이미지 → PDF','PDF → 이미지','OCR · 검색 가능한 PDF','본문 텍스트 추출 · TXT','PDF 암호 설정 · AES-256','암호 해제','메타데이터 정리','폼 평면화'];
         const actual=names();
         if(actual.length!==expected.length)throw new Error(`core menu count ${actual.length} != ${expected.length}: ${actual.join(', ')}`);
         expected.forEach(name=>{if(!actual.includes(name))throw new Error('essential menu missing: '+name);});
+        if(actual.includes('여백·크롭·배경'))throw new Error('old background/crop label still visible');
         if(document.getElementById('pdfUtilityCenteredUpload'))throw new Error('legacy shared upload still visible');
         if(document.documentElement.dataset.pdfUtilityUploadFlow!=='tool-first')throw new Error('tool-first upload flow marker missing');
         const categories=[...document.querySelectorAll('#pdfUtilityCenteredCategories>.pdfuc-category>.pdfuc-cat-head>strong')].map(node=>node.textContent.trim());
@@ -86,13 +88,36 @@
         const mergeInput=merge.querySelector('.pdfuc-tool-input');
         if(!mergeInput?.multiple)throw new Error('merge upload must accept multiple PDFs');
         if(!merge.querySelector('.pdfuc-tool-upload'))throw new Error('merge tool upload box missing');
+        await waitFor(()=>merge.dataset.pdfucModalFlow==='idle','merge progressive flow');
+        if(merge.querySelector('.pdfuc-flow-feedback')&&getComputedStyle(merge.querySelector('.pdfuc-flow-feedback')).display!=='none')throw new Error('merge feedback should stay hidden before run');
 
-        await click('PDF 파일 검사');assertDirect('PDF 파일 검사','PDF 프리플라이트');
+        await click('PDF 파일 검사');
+        const inspection=assertDirect('PDF 파일 검사','PDF 프리플라이트');
+        await waitFor(()=>inspection.dataset.pdfudModalFlow==='idle','inspection progressive flow');
+        if(getComputedStyle(inspection.querySelector('.pdfud-result')).display!=='none')throw new Error('inspection result should stay hidden before run');
+        const inspectionDrop=inspection.querySelector('.pdfud-file');
+        const inspectionInput=inspection.querySelector('.pdfud-file-input');
+        const transfer=new DataTransfer();transfer.items.add(new File(['%PDF-1.4\n%%EOF'],'drag-inspection.pdf',{type:'application/pdf'}));
+        inspectionDrop.dispatchEvent(new DragEvent('dragover',{bubbles:true,cancelable:true,dataTransfer:transfer}));
+        inspectionDrop.dispatchEvent(new DragEvent('drop',{bubbles:true,cancelable:true,dataTransfer:transfer}));
+        await wait(60);
+        if(inspectionInput.files?.[0]?.name!=='drag-inspection.pdf')throw new Error('direct upload drag/drop did not populate file input');
+        const nativeFetch=window.fetch;
+        window.fetch=async(input,init)=>{
+          if(String(input).includes('/api/preflight/check'))return new Response(JSON.stringify({score:98,filename:'drag-inspection.pdf',page_count:1,checks:[{severity:'pass',label:'구조',detail:'정상'}]}),{status:200,headers:{'Content-Type':'application/json'}});
+          return nativeFetch(input,init);
+        };
+        inspection.querySelector('.pdfud-run').click();
+        await waitFor(()=>inspection.dataset.pdfudModalFlow==='active','inspection result reveal');
+        if(!inspection.querySelector('.pdfud-flow-track'))throw new Error('inspection progress bar missing after diagnosis start');
+        await waitFor(()=>inspection.querySelector('.pdfud-score')?.textContent.trim()==='98','inspection result rendered');
+        window.fetch=nativeFetch;
+
         await click('PDF 압축');assertDirect('PDF 압축','PDF 압축');
         await click('안전 자동 수정');assertDirect('안전 자동 수정','안전 자동 수정');
         await click('빈 페이지 자동 제거');assertDirect('빈 페이지 자동 제거','빈 페이지 자동 제거');
         await click('시각적 페이지 정리');assertDirect('시각적 페이지 정리','시각적 페이지 정리');
-        await click('여백·크롭·배경');assertDirect('여백·크롭·배경','여백·크롭·배경');
+        await click('배경/여백 제거');assertDirect('배경/여백 제거','여백·크롭·배경');
         await click('이미지 → PDF');assertDirect('이미지 → PDF','이미지 → PDF');
         await click('PDF → 이미지');assertDirect('PDF → 이미지','PDF 이미지 변환');
         await click('PDF 암호 설정 · AES-256');assertDirect('PDF 암호 설정 · AES-256','AES-256 암호 설정');
@@ -120,7 +145,7 @@
 
         for(const name of expected){await click(name);assertLayer(name);}
         document.body.dataset.pdfUtilityCuratedCoreSmoke='pass';
-        result.textContent='PASS: curated PDF Utility keeps 18 essential workflows, uses the full-width centered shell, restores PDF file inspection, and renders solid upload cards';
+        result.textContent='PASS: curated PDF Utility keeps 18 essential workflows, supports drag upload, reveals progress/results only after run, and uses the renamed background/margin tool';
       }catch(error){document.body.dataset.pdfUtilityCuratedCoreSmoke='fail';result.textContent='FAIL: '+String(error?.stack||error);}
     })();
   </script>
