@@ -7,6 +7,13 @@
   window.__programStudioPdfUtilityCenteredFixesV2=true;
   window.__programStudioPdfUtilityCenteredFixesV1=true;
 
+  const CATEGORY_COPY={
+    pages:'합치기 · 빈 페이지 · 회전 · 배경/여백',
+    convert:'PDF ↔ 이미지 · OCR · 텍스트',
+    security:'페이지 정리 · 추출 · 암호 · 개인정보',
+    inspect:'검사 · 압축 · 인쇄 문제 자동 수정'
+  };
+
   function installStyle(){
     if(document.getElementById('pdfUtilityCenteredFixesStyle'))return;
     const style=document.createElement('style');
@@ -62,8 +69,25 @@
     document.head.appendChild(style);
   }
 
+  function syncCategoryCopy(){
+    const root=document.getElementById('pdfUtilityCenteredCategories');
+    if(!root)return false;
+    Object.entries(CATEGORY_COPY).forEach(([category,text])=>{
+      const description=root.querySelector(`.pdfuc-category[data-category="${category}"] .pdfuc-cat-head>span:not(.pdfuc-cat-icon)`);
+      if(description)description.textContent=text;
+    });
+    return true;
+  }
+
   function install(){
     installStyle();
+    if(!syncCategoryCopy()){
+      let tries=0;
+      const timer=setInterval(()=>{
+        tries+=1;
+        if(syncCategoryCopy()||tries>=80)clearInterval(timer);
+      },25);
+    }
     document.documentElement.dataset.pdfUtilityCenteredRefinements='tool-first-v4-large-layout';
   }
 
