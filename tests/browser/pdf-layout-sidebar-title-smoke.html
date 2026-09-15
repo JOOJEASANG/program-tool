@@ -140,7 +140,7 @@
       if(Number(fileNupMap[0])!==4||Number(fileNupMap[1])!==2)return fail('per-file layout settings were not remapped');
 
       document.documentElement.dataset.pdfLayoutSidebarTitleSmoke='pass';
-      result.textContent='PASS: layout PDF editor keeps intrinsic PDF rotation and only the compact three-button selection toolbar';
+      result.textContent='PASS: layout PDF editor removes sidebar titles and the legacy print/output tools label; keeps intrinsic PDF rotation and only the compact three-button selection toolbar';
     })().catch(error=>console.error(error));
   </script>
 </body>
