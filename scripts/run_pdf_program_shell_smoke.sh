@@ -101,7 +101,7 @@ run_product_case "pdf-utility-quick-actions-smoke.html" "$OUT_DIR/pdf-utility-qu
 reset_profile
 run_product_case "pdf-utility-menu-audit-smoke.html" "$OUT_DIR/pdf-utility-menu-audit-smoke-dom.html" 'data-pdf-utility-menu-audit-smoke="pass"' 'PASS: all PDF utility menus mount stable right-stage workspaces without scroll lock'
 reset_profile
-run_product_case "pdf-utility-curated-core-smoke.html" "$OUT_DIR/pdf-utility-curated-core-smoke-dom.html" 'data-pdf-utility-curated-core-smoke="pass"' 'PASS: curated PDF Utility keeps 18 essential workflows, supports drag upload, reveals progress/results only after run, and uses the renamed background/margin tool'
+run_product_case "pdf-utility-curated-core-smoke.html" "$OUT_DIR/pdf-utility-curated-core-smoke-dom.html" 'data-pdf-utility-curated-core-smoke="pass"' 'PASS: curated PDF Utility keeps 16 essential workflows, removes metadata/form cleanup tools, moves page cleanup/extract to edit/security, uses the renamed print auto-fix tool, and keeps the enlarged centered layout'
 reset_profile
 run_product_case "pdf-merge-reorder-smoke.html" "$OUT_DIR/pdf-merge-reorder-smoke-dom.html" 'data-pdf-merge-reorder-smoke="pass"' 'PASS: PDF merge files reorder by buttons and mouse drag'
 reset_profile
@@ -121,7 +121,7 @@ run_product_case "pdf-fast-insert-actions-smoke.html" "$OUT_DIR/pdf-fast-insert-
 reset_profile
 run_product_case "pdf-preview-insert-persistence-smoke.html" "$OUT_DIR/pdf-preview-insert-persistence-smoke-dom.html" 'data-pdf-preview-insert-persistence-smoke="pass"' 'PASS: blank-page and divider controls remain visible and mutate the real page model after preview rerenders'
 reset_profile
-run_product_case "pdf-nup-interaction-stability-smoke.html" "$OUT_DIR/pdf-nup-interaction-stability-smoke-dom.html" 'data-pdf-nup-stability-smoke="pass"' 'PASS: N-up mouse edit keeps scroll/output face fixed and preserves user-selected 200% preview zoom'
+run_product_case "pdf-nup-interaction-stability-smoke.html" "$OUT_DIR/pdf-nup-stability-smoke-dom.html" 'data-pdf-nup-stability-smoke="pass"' 'PASS: N-up mouse edit keeps scroll/output face fixed and preserves user-selected 200% preview zoom'
 reset_profile
 run_product_case "pdf-editor-interaction-polish-smoke.html" "$OUT_DIR/pdf-editor-interaction-polish-smoke-dom.html" 'data-pdf-editor-interaction-polish-smoke="pass"' 'PASS: asymmetric facing margins coexist with N-up edits, sidebar is number-only, and resize direction is stable'
 reset_profile

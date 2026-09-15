@@ -15,28 +15,32 @@ def test_pdf_utility_curated_core_keeps_only_practical_workflows():
         "PDF 검사 · 최적화",
         "페이지 · 문서",
         "변환 · OCR",
-        "보안 · 정리",
+        "편집 · 보안",
         "'PDF 프리플라이트','PDF 압축','안전 자동 수정'",
-        "'PDF 합치기','페이지 추출·나누기','시각적 페이지 정리','빈 페이지 자동 제거','전체 페이지 회전','페이지 순서 역순','여백·크롭·배경'",
+        "'PDF 합치기','빈 페이지 자동 제거','전체 페이지 회전','페이지 순서 역순','여백·크롭·배경'",
         "'이미지 → PDF','PDF 이미지 변환','OCR 검색 가능한 PDF','본문 텍스트 추출 · TXT'",
-        "'AES-256 암호 설정','암호 해제','메타데이터 정리','폼 평면화'",
+        "'페이지 추출·나누기','시각적 페이지 정리','AES-256 암호 설정','암호 해제'",
         "['PDF 프리플라이트','PDF 파일 검사']",
         "['PDF 이미지 변환','PDF → 이미지']",
         "['OCR 검색 가능한 PDF','OCR · 검색 가능한 PDF']",
+        "['안전 자동 수정','인쇄 문제 자동 수정']",
         "pdfUtilityCuratedCore='ready'",
         "pdf-utility-curated-core-v1",
     ):
         assert marker in source
 
-    # These specialist engines remain available internally, but are not part of the curated menu allowlist.
+    group_source = source.split("const GROUPS=[", 1)[1].split("const ALIASES", 1)[0]
+    # These specialist/removed tools remain available internally when needed, but are not part of the curated menu allowlist.
     for non_core in (
+        "메타데이터 정리",
+        "폼 평면화",
         "책갈피·페이지 라벨 분석",
         "접근성·태그 기본 검사",
         "첨부파일 추출",
         "PDF 버전 비교",
         "영구 마스킹·Redaction",
     ):
-        assert f"'{non_core}'" not in source.split("const GROUPS=[", 1)[1].split("const ALIASES", 1)[0]
+        assert f"'{non_core}'" not in group_source
 
 
 def test_pdf_utility_upload_card_is_forced_to_one_solid_box():
@@ -62,7 +66,7 @@ def test_curated_core_is_staged_and_browser_smoked():
 
     for marker in (
         'PDF_SUITE_CURATED_CORE_MARKER = "data-pdf-suite-curated-core"',
-        'curated-core.js?v=20260907-1',
+        'curated-core.js?v=20260915-2',
         "PDF_SUITE_CURATED_CORE_SNIPPET",
         "PDF_SUITE_CURATED_CORE_MARKER",
     ):
@@ -70,6 +74,7 @@ def test_curated_core_is_staged_and_browser_smoked():
 
     for marker in (
         "PDF 파일 검사",
+        "인쇄 문제 자동 수정",
         "dataset.pdfUtilityCuratedCoreSmoke='pass'",
         "drop.getClientRects().length!==1",
         "legacy shared upload still visible",
@@ -77,7 +82,7 @@ def test_curated_core_is_staged_and_browser_smoked():
         "merge-specific layer missing",
         "tool-first upload flow marker missing",
         "core menu count",
-        "18 essential workflows",
+        "16 essential workflows",
     ):
         assert marker in smoke
 

@@ -143,7 +143,7 @@ PDF_SUITE_DIRECT_BRIDGE_SNIPPET = (
 )
 PDF_SUITE_DIRECT_HOOK_SNIPPET = (
     f'<script {PDF_SUITE_DIRECT_HOOK_MARKER} defer '
-    'src="/js/pdf-suite/direct-tool-hook.js?v=20260906-1"></script>'
+    'src="/js/pdf-suite/direct-tool-hook.js?v=20260915-2"></script>'
 )
 PDF_SUITE_PROTECTED_GUARD_SNIPPET = (
     f'<script {PDF_SUITE_PROTECTED_GUARD_MARKER} defer '
@@ -155,7 +155,7 @@ PDF_SUITE_WORKSPACE_STABILITY_SNIPPET = (
 )
 PDF_SUITE_CURATED_CORE_SNIPPET = (
     f'<script {PDF_SUITE_CURATED_CORE_MARKER} defer '
-    'src="/js/pdf-suite/curated-core.js?v=20260907-1"></script>'
+    'src="/js/pdf-suite/curated-core.js?v=20260915-2"></script>'
 )
 PDF_ADVANCED_EMPTY_STATE_SNIPPET = (
     f'<style {PDF_ADVANCED_EMPTY_STATE_MARKER}>'
