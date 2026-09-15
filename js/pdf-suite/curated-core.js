@@ -34,7 +34,8 @@
     ['PDF 프리플라이트','PDF 파일 검사'],
     ['PDF 이미지 변환','PDF → 이미지'],
     ['OCR 검색 가능한 PDF','OCR · 검색 가능한 PDF'],
-    ['AES-256 암호 설정','PDF 암호 설정 · AES-256']
+    ['AES-256 암호 설정','PDF 암호 설정 · AES-256'],
+    ['여백·크롭·배경','배경/여백 제거']
   ]);
   const $=id=>document.getElementById(id);
 
