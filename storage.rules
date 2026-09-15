@@ -63,10 +63,10 @@ service firebase.storage {
         && request.resource.metadata.format == 'program-studio-design-project';
     }
 
-    // Short-lived PDF staging is limited to approved accounts. The managed API
-    // requires the same approval, so pending accounts cannot consume Storage
-    // bandwidth with large objects that the backend would refuse to process.
-    // Objects remain immutable, PDF-only, size-bounded, and owner-scoped.
+    // Short-lived PDF staging is available only to approved accounts. Utility
+    // jobs may stage a single PDF up to 500 MiB; editor/session persistence keeps
+    // its separate 200 MiB source limit below. All staging objects are immutable,
+    // PDF-only, owner-scoped, and removed by scheduled/lifecycle cleanup.
     match /pdf_temp/{userId}/{sessionId}/{fileName} {
       allow read: if isOwner(userId) && isApproved();
       allow delete: if isOwner(userId) && isApproved();
@@ -74,7 +74,7 @@ service firebase.storage {
         && isOwner(userId)
         && isApproved()
         && validStagePath(sessionId, fileName)
-        && validPdfUpload(209715200);
+        && validPdfUpload(524288000);
       allow update: if false;
     }
     match /preflight_temp/{userId}/{sessionId}/{fileName} {
@@ -84,7 +84,7 @@ service firebase.storage {
         && isOwner(userId)
         && isApproved()
         && validStagePath(sessionId, fileName)
-        && validPdfUpload(209715200);
+        && validPdfUpload(524288000);
       allow update: if false;
     }
 
