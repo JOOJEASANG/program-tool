@@ -39,10 +39,10 @@ def test_centered_workspace_is_loaded_by_pdf_suite_direct_hook():
     hook = (ROOT / "js/pdf-suite/direct-tool-hook.js").read_text(encoding="utf-8")
 
     assert "centered-workspace.js?v=20260915-4" in hook
-    assert "centered-workspace-fixes.js?v=20260915-3" in hook
+    assert "centered-workspace-fixes.js?v=20260915-4" in hook
     assert "tool-modal-flow.js?v=20260915-1" in hook
     assert "__programStudioPdfUtilityCenteredV2" in hook
-    assert "__programStudioPdfUtilityCenteredFixesV3" in hook
+    assert "__programStudioPdfUtilityCenteredFixesV4" in hook
     assert "__programStudioPdfUtilityToolModalFlowV1" in hook
     assert "ensureCenteredWorkspace" in hook
     assert "ensureCenteredFixes" in hook
@@ -53,14 +53,15 @@ def test_centered_workspace_is_loaded_by_pdf_suite_direct_hook():
 def test_centered_workspace_tool_first_readability_refinements():
     source = (ROOT / "js/pdf-suite/centered-workspace-fixes.js").read_text(encoding="utf-8")
 
-    assert ".pdfuc-inner{width:min(1360px,100%)!important}" in source
-    assert ".pdfuc-category{padding:18px!important;border-radius:22px!important}" in source
-    assert ".pdfuc-cat-icon{width:62px!important;height:62px!important" in source
-    assert ".pdfuc-category .pdfu-menu-item{grid-template-columns:40px minmax(0,1fr) auto!important" in source
-    assert ".pdfuc-category .pdfu-menu-icon{font-size:24px!important" in source
-    assert ".pdfuc-category .pdfu-menu-name{font-size:14px!important" in source
-    assert ".pdfuc-tool-upload{min-height:126px!important" in source
-    assert "pdfUtilityCenteredRefinements='tool-first-v3'" in source
+    assert ".pdfuc-inner{width:min(1480px,100%)!important}" in source
+    assert ".pdfuc-category{padding:22px!important;border-radius:24px!important" in source
+    assert ".pdfuc-cat-icon{width:70px!important;height:70px!important" in source
+    assert ".pdfuc-category .pdfu-menu-item{grid-template-columns:46px minmax(0,1fr) auto!important" in source
+    assert ".pdfuc-category .pdfu-menu-icon{font-size:27px!important" in source
+    assert ".pdfuc-category .pdfu-menu-name{font-size:15.5px!important" in source
+    assert ".pdfuc-tool-upload{min-height:142px!important" in source
+    assert ".pdfuc-dialog{width:min(1340px,100%)!important" in source
+    assert "pdfUtilityCenteredRefinements='tool-first-v4-large-layout'" in source
     assert "pdfUtilityCenteredUpload" not in source
     assert "ProgramStudioPdfUtilityCentered?.addFiles" not in source
 
