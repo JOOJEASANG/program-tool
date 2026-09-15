@@ -26,15 +26,15 @@
       return {ok:true,status:200,headers:{get:()=> 'application/json'}};
     };
   </script>
-  <script src="/js/pdf-utility/security-large-file.js?v=20260831-2"></script>
+  <script src="/js/pdf-utility/security-large-file.js?v=20260915-1"></script>
   <script>
     (async()=>{
       const result=document.getElementById('result');
       const assert=(value,message)=>{if(!value)throw new Error(message)};
       const waitFor=async(predicate,label,timeout=4000)=>{const started=Date.now();while(Date.now()-started<timeout){if(predicate())return;await new Promise(resolve=>setTimeout(resolve,20));}throw new Error('timeout: '+label)};
       try{
-        await waitFor(()=>window.PdfSecurityLargeFile?.stage==='pdf-security-storage-200mb-v2','security storage bridge');
-        assert(window.PdfSecurityLargeFile.maxFileBytes===200*1024*1024,'200MB cap missing');
+        await waitFor(()=>window.PdfSecurityLargeFile?.stage==='pdf-security-storage-500mb-v3','security storage bridge');
+        assert(window.PdfSecurityLargeFile.maxFileBytes===500*1024*1024,'500MB cap missing');
         assert(window.PdfSecurityLargeFile.directMax===20*1024*1024,'20MB direct threshold missing');
 
         const large={name:'locked-large.pdf',type:'application/pdf',size:25*1024*1024};
@@ -51,12 +51,12 @@
         assert(calls.original.length===1&&calls.original[0].op==='compress','normal PDF operation was not preserved');
 
         let tooLargeMessage='';
-        try{await window.apiPdfTool('encrypt',{name:'too-large.pdf',type:'application/pdf',size:201*1024*1024},{password:'1234'})}catch(error){tooLargeMessage=String(error.message||error)}
-        assert(tooLargeMessage.includes('200MB'),'201MB rejection missing');
+        try{await window.apiPdfTool('encrypt',{name:'too-large.pdf',type:'application/pdf',size:501*1024*1024},{password:'1234'})}catch(error){tooLargeMessage=String(error.message||error)}
+        assert(tooLargeMessage.includes('500MB'),'501MB rejection missing');
         assert(calls.fetches.length===1,'oversized file must not reach security endpoint');
 
         document.body.dataset.pdfSecurityStorageSmoke='pass';
-        result.textContent='PASS: PDF encrypt/decrypt uses Storage above 20MB with a 200MB file ceiling';
+        result.textContent='PASS: PDF encrypt/decrypt uses Storage above 20MB with a 500MB file ceiling';
       }catch(error){
         document.body.dataset.pdfSecurityStorageSmoke='fail';
         result.textContent='FAIL: '+String(error?.stack||error?.message||error);
