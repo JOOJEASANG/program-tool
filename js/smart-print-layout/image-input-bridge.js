@@ -6,12 +6,21 @@
   window.__smartPrintLayoutImageInputBridgeV1=true;
 
   const MAX_NORMALIZED_PDF_BYTES=20*1024*1024;
+  const NORMALIZE_TIMEOUT_MS=45000;
   const $=id=>document.getElementById(id);
   let replaying=false;
   let busy=false;
   let fileListObserver=null;
 
   const adapter=()=>window.ProgramImagePdfAdapter;
+
+  function withTimeout(promise,timeoutMs,message){
+    let timer;
+    return Promise.race([
+      Promise.resolve(promise),
+      new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error(message)),timeoutMs);})
+    ]).finally(()=>clearTimeout(timer));
+  }
 
   function setStatus(message,type=''){
     const line=$('statusLine');
@@ -92,8 +101,13 @@
   async function normalizeForSmart(files){
     const api=adapter();
     if(!api)throw new Error('이미지 입력 모듈을 준비하지 못했습니다.');
-    const source=supportedFiles(files);
+    const incoming=Array.from(files||[]);
+    const source=supportedFiles(incoming);
     if(!source.length)throw new Error('PDF, JPG, PNG, WEBP 파일만 사용할 수 있습니다.');
+    if(source.length!==incoming.length){
+      const rejected=incoming.filter(file=>!api.isSupported(file)).map(file=>file?.name||'알 수 없는 파일').slice(0,3);
+      throw new Error(`지원하지 않는 파일이 포함되어 있습니다: ${rejected.join(', ')}. PDF, JPG, PNG, WEBP만 사용해 주세요.`);
+    }
     const result=[];
     for(const file of source){
       if(api.isPdf(file)){
@@ -101,13 +115,26 @@
         continue;
       }
       setStatus(`"${file.name}" 이미지를 300dpi 기준으로 변환하는 중...`);
-      const converted=await api.normalizeFile(file,{dpi:300,quality:0.88});
+      const converted=await withTimeout(
+        api.normalizeFile(file,{dpi:300,quality:0.88}),
+        NORMALIZE_TIMEOUT_MS,
+        `${file.name}: 이미지 변환 시간이 초과되었습니다. 파일 크기를 줄이거나 다시 저장한 뒤 시도해 주세요.`
+      );
       if(converted.size>MAX_NORMALIZED_PDF_BYTES){
         throw new Error(`${file.name}: 변환 결과가 20MB를 초과합니다. 이미지 크기나 해상도를 줄여 주세요.`);
       }
       result.push(converted);
     }
     return result;
+  }
+
+  function releaseReplayIfStuck(input){
+    queueMicrotask(()=>{
+      if(!replaying)return;
+      replaying=false;
+      if(input&&!window.SmartPrintLayout?.state?.busy)input.disabled=false;
+      console.warn('[smart-print-image-input] synthetic change was not observed; replay state recovered');
+    });
   }
 
   function replayThroughInput(files){
@@ -117,13 +144,23 @@
     const transfer=new DataTransfer();
     files.forEach(file=>transfer.items.add(file));
     replaying=true;
-    input.files=transfer.files;
-    input.dispatchEvent(new Event('change',{bubbles:true}));
+    try{
+      input.files=transfer.files;
+      input.dispatchEvent(new Event('change',{bubbles:true}));
+    }catch(error){
+      replaying=false;
+      throw error;
+    }
+    releaseReplayIfStuck(input);
   }
 
   async function importImages(files){
-    if(busy)return false;
+    if(busy){
+      setStatus('현재 파일을 변환하는 중입니다. 완료 후 다시 시도해 주세요.','error');
+      return false;
+    }
     busy=true;
+    document.documentElement.dataset.smartPrintImageImport='working';
     const input=$('fileInput');
     if(input)input.disabled=true;
     try{
@@ -133,13 +170,14 @@
       document.documentElement.dataset.smartPrintImageImport='complete';
       return true;
     }catch(error){
+      document.documentElement.dataset.smartPrintImageImport='failed';
       setStatus(error?.message||'이미지를 불러오지 못했습니다.','error');
       return false;
     }finally{
       busy=false;
       // Existing app may still be inspecting the replayed PDFs; its own busy state
       // owns the final disabled value after the synthetic change reaches it.
-      if(input&&replaying===false&& !window.SmartPrintLayout?.state?.busy)input.disabled=false;
+      if(input&&replaying===false&&!window.SmartPrintLayout?.state?.busy)input.disabled=false;
     }
   }
 
@@ -152,10 +190,14 @@
         replaying=false;
         return;
       }
-      if(busy||!containsImage(event.target.files))return;
-      const files=Array.from(event.target.files||[]);
+      if(!containsImage(event.target.files))return;
       event.stopImmediatePropagation();
+      const files=Array.from(event.target.files||[]);
       event.target.value='';
+      if(busy){
+        setStatus('현재 파일을 변환하는 중입니다. 완료 후 다시 시도해 주세요.','error');
+        return;
+      }
       importImages(files);
     },true);
     return true;
@@ -166,11 +208,15 @@
     if(!zone||zone.dataset.smartImageDropBound==='true')return false;
     zone.dataset.smartImageDropBound='true';
     zone.addEventListener('drop',event=>{
-      if(busy||!event.dataTransfer?.files?.length||!containsImage(event.dataTransfer.files))return;
+      if(!event.dataTransfer?.files?.length||!containsImage(event.dataTransfer.files))return;
       const files=Array.from(event.dataTransfer.files||[]);
       event.preventDefault();
       event.stopImmediatePropagation();
       zone.classList.remove('drag');
+      if(busy){
+        setStatus('현재 파일을 변환하는 중입니다. 완료 후 다시 시도해 주세요.','error');
+        return;
+      }
       importImages(files);
     },true);
     return true;
@@ -186,7 +232,8 @@
 
   window.SmartPrintLayoutImageInput={
     importImages,normalizeForSmart,updateUi,syncImageLabels,
-    stage:'smart-print-image-input-v2-source-metadata'
+    get busy(){return busy;},
+    stage:'smart-print-image-input-v3-production-hardening'
   };
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});
