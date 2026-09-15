@@ -16,12 +16,31 @@
   const JSPDF_SRC='https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js';
   let jsPdfPromise=null;
 
-  function withTimeout(promise,timeoutMs,message){
+  function withTimeout(promise,timeoutMs,message,onTimeout){
     let timer;
-    return Promise.race([
-      Promise.resolve(promise),
-      new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error(message)),timeoutMs);})
-    ]).finally(()=>clearTimeout(timer));
+    let settled=false;
+    return new Promise((resolve,reject)=>{
+      timer=setTimeout(()=>{
+        if(settled)return;
+        settled=true;
+        try{onTimeout?.();}catch(_){ }
+        reject(new Error(message));
+      },timeoutMs);
+      Promise.resolve(promise).then(
+        value=>{
+          if(settled)return;
+          settled=true;
+          clearTimeout(timer);
+          resolve(value);
+        },
+        error=>{
+          if(settled)return;
+          settled=true;
+          clearTimeout(timer);
+          reject(error);
+        }
+      );
+    }).finally(()=>clearTimeout(timer));
   }
 
   function isPdf(file){
@@ -40,14 +59,25 @@
     return 'application/pdf,.pdf,image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp';
   }
 
+  async function bitmapAttempt(factory,timeoutMessage){
+    let expired=false;
+    let candidate;
+    try{candidate=Promise.resolve(factory());}catch(error){throw error;}
+    candidate.then(bitmap=>{
+      if(!expired)return;
+      try{bitmap?.close?.();}catch(_){ }
+    },()=>{});
+    return withTimeout(candidate,IMAGE_DECODE_TIMEOUT_MS,timeoutMessage,()=>{expired=true;});
+  }
+
   async function loadBitmap(file){
     const timeoutMessage=`${file?.name||'이미지'}: 이미지 읽기 시간이 초과되었습니다. 파일을 다시 저장하거나 크기를 줄여 주세요.`;
     if(typeof createImageBitmap==='function'){
       try{
-        return await withTimeout(createImageBitmap(file,{imageOrientation:'from-image'}),IMAGE_DECODE_TIMEOUT_MS,timeoutMessage);
+        return await bitmapAttempt(()=>createImageBitmap(file,{imageOrientation:'from-image'}),timeoutMessage);
       }catch(_){ }
       try{
-        return await withTimeout(createImageBitmap(file),IMAGE_DECODE_TIMEOUT_MS,timeoutMessage);
+        return await bitmapAttempt(()=>createImageBitmap(file),timeoutMessage);
       }catch(_){ }
     }
     const url=URL.createObjectURL(file);
