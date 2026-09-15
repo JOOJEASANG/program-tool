@@ -43,7 +43,7 @@
     const names=()=>[...document.querySelectorAll('[data-pdfu-tool] .pdfu-menu-name')].map(node=>node.textContent.trim());
     const button=name=>[...document.querySelectorAll('[data-pdfu-tool]')].find(node=>node.querySelector('.pdfu-menu-name')?.textContent.trim()===name)||null;
     const click=async name=>{const b=button(name);if(!b)throw new Error('menu missing: '+name);b.click();await wait(190);return b;};
-    const assertStage=name=>{const stage=document.getElementById('pdfUtilityStageBody');if(!stage||!stage.textContent.trim())throw new Error('empty stage: '+name);if(document.body.style.overflow==='hidden')throw new Error('scroll locked: '+name);};
+    const assertStage=name=>{const stage=document.getElementById('pdfUtilityStageBody');if(!stage||!stage.textContent.trim())throw new Error('empty stage: '+name);if(document.documentElement.dataset.pdfUtilityLayout==='centered'){const modal=document.getElementById('pdfUtilityCenteredModal');if(!modal?.classList.contains('open')||!modal.contains(stage))throw new Error('centered layer stage missing: '+name);}else if(document.body.style.overflow==='hidden')throw new Error('scroll locked: '+name);};
     const assertDrop=()=>{const drop=document.querySelector('#pdfUtilityStageBody #localDrop');if(!drop)throw new Error('local upload box missing');const style=getComputedStyle(drop);if(style.display!=='flex')throw new Error('upload label is not a single flex box: '+style.display);if(style.borderLeftStyle!=='dashed'||parseFloat(style.borderLeftWidth)<1.5)throw new Error('upload dashed border missing');if(drop.getClientRects().length!==1)throw new Error('upload border fragmented into multiple inline boxes');if(drop.getBoundingClientRect().width<220)throw new Error('upload box width collapsed');const badge=document.querySelector('#pdfUtilityStageBody .local-badge');if(badge&&badge.getBoundingClientRect().bottom>drop.getBoundingClientRect().top+2)throw new Error('upload badge overlaps drop box');};
   </script>
   <script src="/js/pdf-suite/local-tools.js?v=smoke"></script>
@@ -67,9 +67,16 @@
         if(actual.length!==expected.length)throw new Error(`core menu count ${actual.length} != ${expected.length}: ${actual.join(', ')}`);
         expected.forEach(name=>{if(!actual.includes(name))throw new Error('essential menu missing: '+name);});
         for(const removed of ['책갈피·페이지 라벨 분석','접근성·태그 기본 검사','첨부파일 추출','PDF 버전 비교','영구 마스킹·Redaction','메타데이터 확인','문서 구조·인쇄 진단','스캔 PDF 압축','한국어·영어 OCR 문자 인식'])if(actual.includes(removed))throw new Error('non-core menu still visible: '+removed);
-        const groups=[...document.querySelectorAll('[data-pdfu-core-group] .pdfu-menu-group-head strong')].map(node=>node.textContent.trim());
-        if(groups.join('|')!=='PDF 검사 · 최적화|페이지 · 문서|변환 · OCR|보안 · 정리')throw new Error('core groups incorrect: '+groups.join('|'));
-        if(actual[0]!=='PDF 파일 검사')throw new Error('PDF file inspection is not first');
+        if(document.documentElement.dataset.pdfUtilityLayout==='centered'){
+          const categories=[...document.querySelectorAll('#pdfUtilityCenteredCategories>.pdfuc-category>.pdfuc-cat-head>strong')].map(node=>node.textContent.trim());
+          if(categories.join('|')!=='페이지 · 문서|변환 · OCR|편집 · 보안|최적화 · 검사')throw new Error('centered categories incorrect: '+categories.join('|'));
+          if(!document.getElementById('pdfUtilityCenteredUpload'))throw new Error('centered upload missing');
+          if(actual[0]!=='PDF 합치기')throw new Error('page/document category is not first');
+        }else{
+          const groups=[...document.querySelectorAll('[data-pdfu-core-group] .pdfu-menu-group-head strong')].map(node=>node.textContent.trim());
+          if(groups.join('|')!=='PDF 검사 · 최적화|페이지 · 문서|변환 · OCR|보안 · 정리')throw new Error('core groups incorrect: '+groups.join('|'));
+          if(actual[0]!=='PDF 파일 검사')throw new Error('PDF file inspection is not first');
+        }
         if(document.documentElement.dataset.pdfUtilityCoreToolCount!=='18')throw new Error('core count marker missing');
 
         await click('전체 페이지 회전');assertDrop();assertStage('전체 페이지 회전');

@@ -47,7 +47,17 @@
     const waitFor=async(fn,label,timeout=4500)=>{const start=Date.now();while(Date.now()-start<timeout){if(fn())return;await wait(20);}throw new Error('timeout: '+label);};
     const menuButton=name=>[...document.querySelectorAll('[data-pdfu-tool]')].find(node=>node.querySelector('.pdfu-menu-name')?.textContent.trim()===name)||null;
     const clickMenu=async(name,delay=180)=>{const button=menuButton(name);if(!button)throw new Error('menu missing: '+name);button.click();await wait(delay);return button;};
-    const assertUnlocked=name=>{if(document.body.style.overflow==='hidden')throw new Error('body scroll locked after '+name);};
+    const assertUnlocked=name=>{
+      const centered=document.documentElement.dataset.pdfUtilityLayout==='centered';
+      const modal=document.getElementById('pdfUtilityCenteredModal');
+      if(centered){
+        if(!modal?.classList.contains('open'))throw new Error('centered modal not open after '+name);
+        const stage=document.getElementById('pdfUtilityStageBody');
+        if(stage&&!modal.contains(stage))throw new Error('centered modal lost stage after '+name);
+        return;
+      }
+      if(document.body.style.overflow==='hidden')throw new Error('body scroll locked after '+name);
+    };
     const assertStage=name=>{const stage=document.getElementById('pdfUtilityStageBody');if(!stage||!stage.textContent.trim())throw new Error('empty stage after '+name);const bad=[...document.querySelectorAll('.pdfadv-overlay.open,.pdfocr-overlay.open')].find(node=>!stage.contains(node));if(bad)throw new Error('open overlay escaped stage after '+name+': '+bad.id);};
   </script>
   <script src="/js/pdf-suite/local-tools.js?v=smoke"></script>
@@ -64,8 +74,13 @@
       const result=document.getElementById('result');
       try{
         await waitFor(()=>document.documentElement.dataset.pdfUtilityWorkspaceStability==='ready','stability ready');
-        await waitFor(()=>document.documentElement.dataset.pdfUtilityLayout==='split','split ready');
+        await waitFor(()=>['split','centered'].includes(document.documentElement.dataset.pdfUtilityLayout),'utility layout ready');
         await wait(80);
+        if(document.documentElement.dataset.pdfUtilityCentered==='ready-v1'){
+          if(document.documentElement.dataset.pdfUtilityLayout!=='centered')throw new Error('centered utility layout marker missing');
+          if(document.querySelectorAll('#pdfUtilityCenteredCategories > .pdfuc-category').length!==4)throw new Error('centered four-category grid missing');
+          if(!document.getElementById('pdfUtilityCenteredUpload'))throw new Error('centered upload box missing');
+        }
         if(document.getElementById('editorOwnedPage')||document.getElementById('editorOwnedNup'))throw new Error('editor-owned tool not removed');
         for(const name of ['책갈피·페이지 라벨 분석','접근성·태그 기본 검사','본문 텍스트 추출 · TXT','한국어·영어 OCR 문자 인식','OCR 검색 가능한 PDF'])if(!menuButton(name))throw new Error('promoted menu missing: '+name);
 
