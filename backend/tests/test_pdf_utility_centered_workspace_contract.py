@@ -33,10 +33,13 @@ def test_centered_workspace_is_loaded_by_pdf_suite_direct_hook():
 
     assert "centered-workspace.js?v=20260915-3" in hook
     assert "centered-workspace-fixes.js?v=20260915-3" in hook
+    assert "tool-modal-flow.js?v=20260915-1" in hook
     assert "__programStudioPdfUtilityCenteredV2" in hook
     assert "__programStudioPdfUtilityCenteredFixesV3" in hook
+    assert "__programStudioPdfUtilityToolModalFlowV1" in hook
     assert "ensureCenteredWorkspace" in hook
     assert "ensureCenteredFixes" in hook
+    assert "ensureToolModalFlow" in hook
     assert "ProgramStudioPdfUtilityCentered" in hook
 
 
@@ -53,6 +56,21 @@ def test_centered_workspace_tool_first_readability_refinements():
     assert "pdfUtilityCenteredRefinements='tool-first-v3'" in source
     assert "pdfUtilityCenteredUpload" not in source
     assert "ProgramStudioPdfUtilityCentered?.addFiles" not in source
+
+
+def test_tool_modal_flow_supports_drag_drop_and_progressive_results():
+    source = (ROOT / "js/pdf-suite/tool-modal-flow.js").read_text(encoding="utf-8")
+    curated = (ROOT / "js/pdf-suite/curated-core.js").read_text(encoding="utf-8")
+
+    assert "DROP_SELECTOR='.pdfud-file,.pdfuc-tool-upload,.pdfocr-file,.pdfadv-file,#localDrop,.drop,[data-pdfu-drop-zone]'" in source
+    assert "new DataTransfer()" in source
+    assert "input.dispatchEvent(new Event('change',{bubbles:true}))" in source
+    assert "data-pdfud-modal-flow" in source
+    assert "data-pdfuc-modal-flow" in source
+    assert "pdfud-flow-track" in source
+    assert "startProgress(root)" in source
+    assert "pdfUtilityToolModalFlow='upload-first-reveal-v1'" in source
+    assert "['여백·크롭·배경','배경/여백 제거']" in curated
 
 
 def test_backend_runtime_keeps_transient_utility_500_800_limits():
