@@ -87,6 +87,11 @@
       .then(()=>hostLoadScript('pdfEditorImageInputBridgeScriptV1','/js/pdf-editor/image-input-bridge.js?v=20260915-2'));
   }
 
+  function loadLayoutUiRefinements(){
+    return hostLoadScript('pdfPreviewZoomPersistenceScriptV2','/js/pdf-editor/preview-zoom-persistence.js?v=20260915-3')
+      .then(()=>hostLoadScript('pdfLayoutUiRefinementsScriptV1','/js/pdf-editor/layout-ui-refinements.js?v=20260915-2'));
+  }
+
   function loadAll(){
     const seen=new Set();
     const pending=[];
@@ -123,6 +128,10 @@
       // editor state. The existing PDF parser, page model, save path and backend
       // therefore remain unchanged for both /pdf-editor and app=layout.
       .then(()=>advanced?true:loadImageInput())
+      // Preview zoom persistence and compact file-order/navigation UI are normal
+      // editor route helpers rather than stable-eight core modules. Load them after
+      // file navigation/lazy preview have settled so they can safely wrap those APIs.
+      .then(()=>advanced?true:loadLayoutUiRefinements())
       // Divider correction is deliberately post-manifest: it must run after the
       // parallel core/local-image helpers have finished so it can settle renderer
       // ownership without adding another route-bootstrap manifest asset.
