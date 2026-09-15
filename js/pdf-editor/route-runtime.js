@@ -153,6 +153,6 @@
     modules:MODULES.map(({id,src})=>({id,src})),
     app:standaloneApp(),
     get profile(){return window.PdfEditorStandaloneApps?.fromLocation?.(location.search)?.key||null;},
-    stage:'pdf-editor-route-runtime-manifest-v6-intrinsic-rotation-sidebar-cleanup'
+    stage:'pdf-editor-route-runtime-manifest-v5-image-input-adapter'
   };
 })();
