@@ -14,8 +14,6 @@
     {id:'pdfEditorPageCountHintScriptV1',src:'/js/pdf-editor/page-count-hint.js?v=20260731-1'},
     {id:'pdfEditorNupHelperScriptV1',src:'/js/pdf-editor/nup-helper.js?v=20260830-1'},
     {id:'pdfEditorPreviewRowDefaultScriptV1',src:'/js/pdf-editor/preview-row-default.js?v=20260831-1'},
-    {id:'pdfPreviewZoomPersistenceScriptV2',src:'/js/pdf-editor/preview-zoom-persistence.js?v=20260915-2'},
-    {id:'pdfLayoutUiRefinementsScriptV1',src:'/js/pdf-editor/layout-ui-refinements.js?v=20260915-1'},
     {id:'pdfEditorDividerHelperScriptV1',src:'/js/pdf-editor/divider-helper.js?v=20260914-5'}
   ]);
 
@@ -25,9 +23,7 @@
   // single-page position/scale editing and remain loaded by advanced-runtime.
   const ADVANCED_UNUSED_CORE_IDS=new Set([
     'pdfEditorNupHelperScriptV1',
-    'pdfEditorDividerHelperScriptV1',
-    'pdfPreviewZoomPersistenceScriptV2',
-    'pdfLayoutUiRefinementsScriptV1'
+    'pdfEditorDividerHelperScriptV1'
   ]);
 
   const context=()=>window.ProgramStudioPdfEditorRuntimeContext||{};
