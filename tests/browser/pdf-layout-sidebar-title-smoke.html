@@ -44,10 +44,10 @@
     history.replaceState(null,'','/pdf-editor/?app=layout&sidebar-title-smoke=1');
     window.ProgramStudioPdfEditorRuntimeContext={load(){return Promise.resolve(true);}};
     let parsedPages=[
-      {id:1,file_index:0,page_index:0,sourceFile:'A.pdf',pageType:'pdf',groupBreak:false},
-      {id:2,file_index:0,page_index:1,sourceFile:'A.pdf',pageType:'pdf',groupBreak:false},
+      {id:1,file_index:0,page_index:0,sourceFile:'A.pdf',pageType:'pdf',groupBreak:false,rotation:0},
+      {id:2,file_index:0,page_index:1,sourceFile:'A.pdf',pageType:'pdf',groupBreak:false,rotation:0},
       {id:3,pageType:'divider',sourceFile:'간지'},
-      {id:4,file_index:1,page_index:0,sourceFile:'B.pdf',pageType:'pdf',groupBreak:true}
+      {id:4,file_index:1,page_index:0,sourceFile:'B.pdf',pageType:'pdf',groupBreak:true,rotation:0}
     ];
     let uploadedFiles=[new File(['a'],'A.pdf',{type:'application/pdf'}),new File(['b'],'B.pdf',{type:'application/pdf'})];
     let fileNupMap={0:2,1:4};
@@ -60,9 +60,20 @@
     let lastAutoFit=null;
     let lastRawRotation=null;
     let lastSafetyRotation=null;
+    let originalDrawCalls=0;
+    let lastOutputSettings=null;
     function displayPreview(pages,autoFit=false){lastAutoFit=!!autoFit;if(autoFit)_previewZoom=2;document.getElementById('zoomLabel').textContent=Math.round(_previewZoom*100)+'%';}
     async function renderPdfPage(pdfPage,scale,rotation){lastRawRotation=rotation;const canvas=document.createElement('canvas');canvas.width=700;canvas.height=990;return canvas;}
     window.PdfImportTransactionSafety={safeRenderPdfPage:async function(pdfPage,scale,rotation){lastSafetyRotation=rotation;const canvas=document.createElement('canvas');canvas.width=700;canvas.height=990;return canvas;}};
+    function drawPageInCell(ctx,src,cellX,cellY,cellW,cellH){
+      originalDrawCalls++;
+      const s0=Math.min(cellW/src.width,cellH/src.height);
+      const s90=Math.min(cellW/src.height,cellH/src.width);
+      const rot=s90>s0*1.10;
+      if(rot){ctx.save();ctx.translate(cellX+cellW/2,cellY+cellH/2);ctx.rotate(Math.PI/2);ctx.drawImage(src,-src.width*s90/2,-src.height*s90/2,src.width*s90,src.height*s90);ctx.restore();return{rotated:true};}
+      ctx.drawImage(src,cellX,cellY,src.width*s0,src.height*s0);return{rotated:false};
+    }
+    async function apiProcessPdf(files,settings){lastOutputSettings=settings;return new Blob(['pdf'],{type:'application/pdf'});}
     function renderThumbs(){}
     function schedulePreview(){}
     function showStatus(){}
@@ -115,12 +126,31 @@
       if(getComputedStyle(productivity.querySelector('.page-productivity-actions')).display!=='none')return fail('batch action row is still visible');
 
       const rotatedPdf={rotate:90};
+      parsedPages[0].pdfPage=rotatedPdf;
       const sourceCanvas=await window.renderPdfPage(rotatedPdf,.9,0);
       if(lastRawRotation!==90)return fail('intrinsic PDF rotation was not preserved in thumbnail renderer');
-      if(sourceCanvas.dataset.pdfIntrinsicSourceRotation!=='90'||sourceCanvas.dataset.pdfCanonicalSourceRotation!=='0')return fail('intrinsic rotation source markers are incorrect');
+      if(sourceCanvas.dataset.pdfIntrinsicSourceRotation!=='90'||sourceCanvas.dataset.pdfEffectiveSourceRotation!=='90')return fail('intrinsic/effective rotation source markers are incorrect');
       const safetyCanvas=await window.PdfImportTransactionSafety.safeRenderPdfPage(rotatedPdf,.9,0,false);
       if(lastSafetyRotation!==90)return fail('intrinsic PDF rotation was not preserved in lazy/safety renderer');
-      if(safetyCanvas.dataset.pdfIntrinsicSourceRotation!=='90')return fail('lazy intrinsic rotation marker missing');
+      if(safetyCanvas.dataset.pdfEffectiveSourceRotation!=='90')return fail('lazy effective rotation marker missing');
+
+      await window.renderPdfPage(rotatedPdf,.9,90);
+      if(lastRawRotation!==180)return fail('explicit user rotation was not added to intrinsic PDF orientation');
+
+      originalDrawCalls=0;
+      const out=document.createElement('canvas');out.width=1000;out.height=500;
+      const drawResult=window.drawPageInCell(out.getContext('2d'),sourceCanvas,0,0,1000,500);
+      if(originalDrawCalls!==0)return fail('fit-based legacy draw path still auto-rotates PDF preview');
+      if(drawResult?.rotated!==false)return fail('PDF preview source was rotated automatically for fit');
+      if(document.documentElement.dataset.pdfAutoFitRotation!=='disabled')return fail('auto-fit rotation policy marker missing');
+
+      parsedPages[0].rotation=0;
+      await window.apiProcessPdf(uploadedFiles,{pages:[{rotation:0},{rotation:0},{},{rotation:0}]},{});
+      if(lastOutputSettings?.pages?.[0]?.rotation!==90||lastOutputSettings?.pages?.[0]?.rotation_locked!==true)return fail('final PDF output did not lock intrinsic visible orientation');
+      parsedPages[0].rotation=90;
+      await window.apiProcessPdf(uploadedFiles,{pages:[{rotation:90},{rotation:0},{},{rotation:0}]},{});
+      if(lastOutputSettings?.pages?.[0]?.rotation!==180||lastOutputSettings?.pages?.[0]?.rotation_locked!==true)return fail('final PDF output did not preserve intrinsic plus user rotation');
+      parsedPages[0].rotation=0;
 
       _previewZoom=.6;
       zoomApi.pin();
@@ -140,7 +170,7 @@
       if(Number(fileNupMap[0])!==4||Number(fileNupMap[1])!==2)return fail('per-file layout settings were not remapped');
 
       document.documentElement.dataset.pdfLayoutSidebarTitleSmoke='pass';
-      result.textContent='PASS: layout PDF editor compact toolbar, sticky zoom, file reorder and clean defaults; intrinsic PDF rotation is preserved and only the three-button selection toolbar remains';
+      result.textContent='PASS: layout PDF editor compact toolbar, sticky zoom, file reorder and clean defaults; PDF visible orientation stays exact with no fit-based clockwise 90-degree turn';
     })().catch(error=>console.error(error));
   </script>
 </body>

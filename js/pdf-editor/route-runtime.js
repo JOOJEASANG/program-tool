@@ -90,7 +90,7 @@
   function loadLayoutUiRefinements(){
     return hostLoadScript('pdfPreviewZoomPersistenceScriptV2','/js/pdf-editor/preview-zoom-persistence.js?v=20260915-3')
       .then(()=>hostLoadScript('pdfLayoutUiRefinementsScriptV1','/js/pdf-editor/layout-ui-refinements.js?v=20260915-2'))
-      .then(()=>hostLoadScript('pdfOrientationSidebarCleanupScriptV1','/js/pdf-editor/orientation-sidebar-cleanup.js?v=20260915-1'));
+      .then(()=>hostLoadScript('pdfOrientationSidebarCleanupScriptV2','/js/pdf-editor/orientation-sidebar-cleanup.js?v=20260915-2'));
   }
 
   function loadAll(){
@@ -129,8 +129,8 @@
       // editor state. The existing PDF parser, page model, save path and backend
       // therefore remain unchanged for both /pdf-editor and app=layout.
       .then(()=>advanced?true:loadImageInput())
-      // Preview zoom persistence, compact file-order/navigation UI and intrinsic
-      // PDF rotation cleanup are normal editor route helpers rather than stable-eight
+      // Preview zoom persistence, compact file-order/navigation UI and exact PDF
+      // visible-orientation handling are route helpers rather than stable-eight
       // core modules. Load them after file navigation/lazy preview have settled.
       .then(()=>advanced?true:loadLayoutUiRefinements())
       // Divider correction is deliberately post-manifest: it must run after the
