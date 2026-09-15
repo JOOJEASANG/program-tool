@@ -63,24 +63,26 @@ service firebase.storage {
         && request.resource.metadata.format == 'program-studio-design-project';
     }
 
-    // Short-lived PDF staging is available to any signed-in owner. These objects
-    // are immutable, PDF-only, size-bounded, and scoped to the authenticated UID.
-    // Backend processing endpoints independently validate that the Storage UID
-    // matches the authenticated request before reading a staged object.
+    // Short-lived PDF staging is limited to approved accounts. The managed API
+    // requires the same approval, so pending accounts cannot consume Storage
+    // bandwidth with large objects that the backend would refuse to process.
+    // Objects remain immutable, PDF-only, size-bounded, and owner-scoped.
     match /pdf_temp/{userId}/{sessionId}/{fileName} {
-      allow read: if isOwner(userId);
-      allow delete: if isOwner(userId);
+      allow read: if isOwner(userId) && isApproved();
+      allow delete: if isOwner(userId) && isApproved();
       allow create: if resource == null
         && isOwner(userId)
+        && isApproved()
         && validStagePath(sessionId, fileName)
         && validPdfUpload(209715200);
       allow update: if false;
     }
     match /preflight_temp/{userId}/{sessionId}/{fileName} {
-      allow read: if isOwner(userId);
-      allow delete: if isOwner(userId);
+      allow read: if isOwner(userId) && isApproved();
+      allow delete: if isOwner(userId) && isApproved();
       allow create: if resource == null
         && isOwner(userId)
+        && isApproved()
         && validStagePath(sessionId, fileName)
         && validPdfUpload(209715200);
       allow update: if false;
