@@ -14,6 +14,13 @@
   <script>
     const coreReceived=[];
     window.SmartPrintLayout={state:{busy:false,items:[]}};
+    // Keep this smoke deterministic under headless virtual time. Production
+    // decoder timeout/resource cleanup is covered by source-contract tests.
+    window.createImageBitmap=async function(){
+      const canvas=document.createElement('canvas');canvas.width=300;canvas.height=600;
+      const ctx=canvas.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,300,600);ctx.fillStyle='#155e75';ctx.fillRect(30,40,240,520);
+      return canvas;
+    };
     window.jspdf={jsPDF:class FakeJsPdf{
       constructor(options){this.options=options;this.images=[];}
       addImage(){this.images.push(Array.from(arguments));}
