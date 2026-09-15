@@ -75,15 +75,21 @@ def test_divider_source_upload_is_local_only_and_internal_embedding_is_bounded()
     assert "maxEmbeddedBytes: MAX_EMBED_BYTES" in source
 
 
-def test_pdf_editor_session_and_utility_enforce_cost_bounded_working_sets():
+def test_pdf_editor_workspace_is_roomy_but_session_and_server_paths_stay_cost_bounded():
     editor = EDITOR_POLICY.read_text(encoding="utf-8")
     session = SESSION_SAVE.read_text(encoding="utf-8")
     utility = UTILITY_POLICY.read_text(encoding="utf-8")
 
     assert "MAX_FILE_BYTES = 200 * 1024 * 1024" in editor
-    assert "MAX_TOTAL_BYTES = 300 * 1024 * 1024" in editor
+    assert "MAX_WORKSPACE_TOTAL_BYTES = 800 * 1024 * 1024" in editor
+    assert "MAX_SESSION_TOTAL_BYTES = 300 * 1024 * 1024" in editor
+    assert "totalBytes > MAX_WORKSPACE_TOTAL_BYTES" in editor
+    assert "total <= MAX_SESSION_TOTAL_BYTES" in editor
+    assert "maxWorkspaceTotalBytes: MAX_WORKSPACE_TOTAL_BYTES" in editor
+    assert "maxSessionTotalBytes: MAX_SESSION_TOTAL_BYTES" in editor
     assert "document.addEventListener('change', onChange, true)" in editor
     assert "document.addEventListener('drop', onDrop, true)" in editor
+    assert ".thumb-item[hidden],.thumb-item[data-file-collapsed=\"true\"]{display:none!important;}" in editor
 
     assert "MAX_FILE_BYTES = 200 * 1024 * 1024" in session
     assert "MAX_SESSION_BYTES = 300 * 1024 * 1024" in session
