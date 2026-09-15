@@ -109,7 +109,7 @@ run_product_case "pdf-utility-background-margin-smoke.html" "$OUT_DIR/pdf-utilit
 reset_profile
 run_product_case "pdf-print-output-stage1-smoke.html" "$OUT_DIR/pdf-print-output-stage1-smoke-dom.html" 'data-print-output-smoke="pass"' 'PASS: print-output branding applied without removing PDF editor controls'
 reset_profile
-run_product_case "pdf-security-storage-policy-smoke.html" "$OUT_DIR/pdf-security-storage-smoke-dom.html" 'data-pdf-security-storage-smoke="pass"' 'PASS: PDF encrypt/decrypt uses Storage above 20MB with a 200MB file ceiling'
+run_product_case "pdf-security-storage-policy-smoke.html" "$OUT_DIR/pdf-security-storage-smoke-dom.html" 'data-pdf-security-storage-smoke="pass"' 'PASS: PDF encrypt/decrypt uses Storage above 20MB with a 500MB file ceiling'
 reset_profile
 run_product_case "pdf-editor-workflow-v2-smoke.html" "$OUT_DIR/pdf-editor-workflow-v2-smoke-dom.html" 'data-workflow-v2-smoke="pass"' 'PASS: PDF editor page list collapses while the remaining recovery sidebar controls stay visible'
 reset_profile
