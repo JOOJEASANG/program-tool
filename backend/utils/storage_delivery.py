@@ -9,7 +9,7 @@ from urllib.parse import quote
 
 
 RESULT_TTL_HOURS = 1
-MAX_RESULT_BYTES = 300 * 1024 * 1024
+MAX_RESULT_BYTES = 800 * 1024 * 1024
 
 
 def _safe_filename(filename: str | None) -> str:
@@ -49,7 +49,7 @@ def upload_pdf_result(
     if size_bytes <= 0:
         raise ValueError("완성 PDF 파일이 비어 있습니다.")
     if size_bytes > MAX_RESULT_BYTES:
-        raise ValueError("완성 PDF는 최대 300MB까지 다운로드할 수 있습니다.")
+        raise ValueError("완성 PDF는 최대 800MB까지 다운로드할 수 있습니다.")
 
     safe_uid = re.sub(r"[^A-Za-z0-9_-]+", "_", str(uid))[:128]
     if not safe_uid:
