@@ -152,7 +152,8 @@
     calculateViewportFit,
     wrapDisplayPreview,
     install,
-    stage:'user-selected-preview-zoom-sticky-fit-v2'
+    stage:'user-selected-preview-zoom-sticky-v1',
+    fitStage:'user-selected-preview-zoom-sticky-fit-v2'
   };
 
   for(const delay of INSTALL_DELAYS)setTimeout(install,delay);
