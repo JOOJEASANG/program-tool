@@ -1,15 +1,65 @@
 <!doctype html>
-<html lang="ko">
-<head><meta charset="utf-8"><title>PDF layout sidebar title smoke</title></head>
+<html lang="ko" data-pdf-preview-zoom-persistence-host="1">
+<head><meta charset="utf-8"><title>PDF layout sidebar and workflow smoke</title></head>
 <body data-program-kind="pdf-editor">
-  <div class="app"><aside><h1>PDF 문서 편집기</h1><div class="legacy-print-output-label">인쇄,출력 도구</div><div class="sub">PDF 업로드 · 페이지 편집</div></aside><main></main></div>
+  <div class="app">
+    <aside>
+      <h1>PDF 문서 편집기</h1>
+      <div class="legacy-print-output-label">인쇄,출력 도구</div>
+      <div class="sub">PDF 업로드 · 페이지 편집</div>
+      <label><input id="showBorder" type="checkbox" checked>슬라이드 테두리 표시</label>
+      <div id="pdfPageListQuickAddV1"><button>＋ 연속 추가</button><button>＋ 새 묶음 추가</button></div>
+      <div id="thumbArea">
+        <div class="thumb-file-sep" data-file-nav-header="true" data-file-index="0"><span class="thumb-file-sep-label">A.pdf</span></div>
+        <div class="thumb-item" data-id="1"><div class="thumb-wrap"><span class="thumb-num">1</span></div></div>
+        <div class="thumb-file-sep" data-file-nav-header="true" data-file-index="1"><span class="thumb-file-sep-label">B.pdf</span></div>
+        <div class="thumb-item" data-id="4"><div class="thumb-wrap"><span class="thumb-num">4</span></div></div>
+      </div>
+    </aside>
+    <main>
+      <div class="preview-info">
+        <span id="previewInfo">대용량 작업 미리보기 · 선택한 페이지 주변만 실제 표시</span>
+        <span id="previewPages">전체 100개 중 1–7 출력면</span>
+        <div class="preview-zoom">
+          <select id="perRowSelect"><option value="1">줄당 1장</option><option value="2" selected>줄당 2장</option></select>
+          <button id="zoomOutBtn">−</button><span id="zoomLabel">60%</span><button id="zoomInBtn">＋</button><button id="zoomResetBtn">↺</button>
+        </div>
+      </div>
+      <div id="pdfLazyPreviewNav" data-active="true">
+        <button id="pdfLazyPreviewPrevious">‹ 이전</button><input id="pdfLazyPreviewOutputNumber" value="1"><span id="pdfLazyPreviewCount">/ 100</span><button id="pdfLazyPreviewNext">다음 ›</button><span id="pdfLazyPreviewRange">현재 출력면 주변만 표시</span>
+      </div>
+      <div id="previewScroll" style="width:900px;height:520px;overflow:auto"></div>
+    </main>
+  </div>
   <pre id="result">WAIT</pre>
   <script>
     history.replaceState(null,'','/pdf-editor/?app=layout&sidebar-title-smoke=1');
     window.ProgramStudioPdfEditorRuntimeContext={load(){return Promise.resolve(true);}};
+    let parsedPages=[
+      {id:1,file_index:0,page_index:0,sourceFile:'A.pdf',pageType:'pdf',groupBreak:false},
+      {id:2,file_index:0,page_index:1,sourceFile:'A.pdf',pageType:'pdf',groupBreak:false},
+      {id:3,pageType:'divider',sourceFile:'간지'},
+      {id:4,file_index:1,page_index:0,sourceFile:'B.pdf',pageType:'pdf',groupBreak:true}
+    ];
+    let uploadedFiles=[new File(['a'],'A.pdf',{type:'application/pdf'}),new File(['b'],'B.pdf',{type:'application/pdf'})];
+    let fileNupMap={0:2,1:4};
+    let showBorder=true;
+    let _previewZoom=.6;
+    let _previewPerRow=2;
+    const ZOOM_BASE_H=280;
+    const smokeCanvas=document.createElement('canvas');smokeCanvas.width=700;smokeCanvas.height=990;
+    let previewCanvases=[smokeCanvas];
+    let lastAutoFit=null;
+    function displayPreview(pages,autoFit=false){lastAutoFit=!!autoFit;if(autoFit)_previewZoom=2;document.getElementById('zoomLabel').textContent=Math.round(_previewZoom*100)+'%';}
+    function renderThumbs(){}
+    function schedulePreview(){}
+    function showStatus(){}
+    function hideStatus(){}
   </script>
   <script src="/js/pdf-editor/route-runtime.js"></script>
   <script src="/js/pdf-editor/simple-sidebar-ui.js"></script>
+  <script src="/js/pdf-editor/preview-zoom-persistence.js"></script>
+  <script src="/js/pdf-editor/layout-ui-refinements.js"></script>
   <script>
     (async()=>{
       const result=document.getElementById('result');
@@ -25,8 +75,40 @@
       const sidebarText=String(document.querySelector('.app > aside')?.textContent||'').replace(/[\s,，·ㆍ/|:：]+/g,'');
       if(sidebarText.includes('인쇄출력도구'))return fail('legacy print/output tools label still exists');
       if(document.documentElement.dataset.pdfSidebarPrintOutputLabel!=='removed')return fail('print/output tools label cleanup marker missing');
+
+      const zoomApi=window.PdfPreviewZoomPersistence;
+      const layoutApi=window.PdfLayoutUiRefinements;
+      if(!zoomApi||!layoutApi)return fail('layout refinement APIs missing');
+      zoomApi.install();
+      layoutApi.sync();
+
+      if(document.getElementById('pdfPageListQuickAddV1'))return fail('page-list quick add bar still exists');
+      if(document.getElementById('showBorder').checked||showBorder!==false)return fail('slide border did not default off');
+      if(document.getElementById('zoomResetBtn').textContent.trim()!=='화면 맞춤')return fail('fit-to-screen button missing');
+      const nav=document.getElementById('pdfLazyPreviewNav');
+      if(nav.parentElement!==document.querySelector('.preview-info'))return fail('previous/next controls were not moved into preview toolbar');
+      if(document.getElementById('pdfLazyPreviewRange'))return fail('lazy preview range text still exists');
+      if(document.getElementById('previewInfo').hidden!==true)return fail('redundant fast preview message still visible');
+
+      _previewZoom=.6;
+      zoomApi.pin();
+      displayPreview(previewCanvases,true);
+      if(lastAutoFit!==false)return fail('lazy rerender still requested auto-fit after user zoom');
+      if(Math.abs(_previewZoom-.6)>.001)return fail('user zoom was not preserved');
+      if(!zoomApi.fitToViewport())return fail('fit-to-screen calculation failed');
+      if(!Number.isFinite(_previewZoom)||_previewZoom<=0)return fail('fit-to-screen produced invalid zoom');
+
+      layoutApi.decorateFileHeaders();
+      if(document.querySelectorAll('.pdf-file-order-handle').length!==2)return fail('file drag handles missing');
+      if(!layoutApi.reorderFiles(1,0,false))return fail('file reorder operation failed');
+      if(uploadedFiles[0]?.name!=='B.pdf'||uploadedFiles[1]?.name!=='A.pdf')return fail('uploaded file order did not change');
+      if(parsedPages[0]?.sourceFile!=='B.pdf'||parsedPages[0]?.file_index!==0)return fail('page blocks did not follow file order');
+      const firstA=parsedPages.find(page=>page.sourceFile==='A.pdf'&&page.pageType==='pdf');
+      if(firstA?.file_index!==1)return fail('file_index was not remapped after file reorder');
+      if(Number(fileNupMap[0])!==4||Number(fileNupMap[1])!==2)return fail('per-file layout settings were not remapped');
+
       document.documentElement.dataset.pdfLayoutSidebarTitleSmoke='pass';
-      result.textContent='PASS: layout PDF editor removes sidebar titles and the legacy print/output tools label';
+      result.textContent='PASS: layout PDF editor compact toolbar, sticky zoom, file reorder and clean defaults';
     })().catch(error=>console.error(error));
   </script>
 </body>
