@@ -29,8 +29,8 @@
     });
   }
   function ensureLargeStorage(){return ensureScript('pdfUtilityDirectLargeStorageScript','/js/pdf-suite/direct-tool-large-storage.js?v=20260915-1',()=>Boolean(window.__programStudioPdfUtilityLargeStorageV1));}
-  function ensureCenteredWorkspace(){return ensureScript('pdfUtilityCenteredWorkspaceScript','/js/pdf-suite/centered-workspace.js?v=20260915-2',()=>Boolean(window.__programStudioPdfUtilityCenteredV1));}
-  function ensureCenteredFixes(){return ensureScript('pdfUtilityCenteredFixesScript','/js/pdf-suite/centered-workspace-fixes.js?v=20260915-1',()=>Boolean(window.__programStudioPdfUtilityCenteredFixesV1));}
+  function ensureCenteredWorkspace(){return ensureScript('pdfUtilityCenteredWorkspaceScript','/js/pdf-suite/centered-workspace.js?v=20260915-3',()=>Boolean(window.__programStudioPdfUtilityCenteredV2));}
+  function ensureCenteredFixes(){return ensureScript('pdfUtilityCenteredFixesScript','/js/pdf-suite/centered-workspace-fixes.js?v=20260915-2',()=>Boolean(window.__programStudioPdfUtilityCenteredFixesV2));}
 
   function install(){
     document.addEventListener('click',event=>{const button=event.target.closest?.('[data-pdfu-tool]');if(button)activate(button,event);},true);
