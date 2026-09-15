@@ -11,7 +11,7 @@
     {id:'desktopToolMobileNoticeScriptV1',src:'/js/desktop-tool-mobile-notice.js?v=20260807-1'},
     {id:'pdfLayoutPageSelectionScriptV1',src:'/js/pdf-editor/page-selection-preview-focus.js?v=20260914-2',app:'layout'},
     {id:'pdfEditorModuleLoaderScript',src:'/js/pdf-editor/loader.js?v=20260914-4'},
-    {id:'pdfEditorTransferLimitGuardScriptV1',src:'/js/pdf-editor/transfer-limit-guard.js?v=20260831-2'},
+    {id:'pdfEditorTransferLimitGuardScriptV1',src:'/js/pdf-editor/transfer-limit-guard.js?v=20260915-1'},
     {id:'pdfCropMarksScript',src:'/js/pdf-editor/crop-marks.js?v=20260731-4'},
     {id:'pdfOutputSaveRecoveryScriptV1',src:'/js/pdf-editor/output-save-recovery.js?v=20260914-2'},
     {id:'pdfSaveRecoveryScript',src:'/js/pdf-editor/save-recovery.js?v=20260803-1'},
