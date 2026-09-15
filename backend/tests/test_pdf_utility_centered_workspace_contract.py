@@ -32,9 +32,9 @@ def test_centered_workspace_is_loaded_by_pdf_suite_direct_hook():
     hook = (ROOT / "js/pdf-suite/direct-tool-hook.js").read_text(encoding="utf-8")
 
     assert "centered-workspace.js?v=20260915-3" in hook
-    assert "centered-workspace-fixes.js?v=20260915-2" in hook
+    assert "centered-workspace-fixes.js?v=20260915-3" in hook
     assert "__programStudioPdfUtilityCenteredV2" in hook
-    assert "__programStudioPdfUtilityCenteredFixesV2" in hook
+    assert "__programStudioPdfUtilityCenteredFixesV3" in hook
     assert "ensureCenteredWorkspace" in hook
     assert "ensureCenteredFixes" in hook
     assert "ProgramStudioPdfUtilityCentered" in hook
@@ -43,11 +43,14 @@ def test_centered_workspace_is_loaded_by_pdf_suite_direct_hook():
 def test_centered_workspace_tool_first_readability_refinements():
     source = (ROOT / "js/pdf-suite/centered-workspace-fixes.js").read_text(encoding="utf-8")
 
-    assert ".pdfuc-cat-icon{width:52px!important;height:52px!important" in source
-    assert ".pdfuc-category .pdfu-menu-icon{font-size:20px!important" in source
-    assert ".pdfuc-category .pdfu-menu-name{font-size:12.5px!important" in source
+    assert ".pdfuc-inner{width:min(1360px,100%)!important}" in source
+    assert ".pdfuc-category{padding:18px!important;border-radius:22px!important}" in source
+    assert ".pdfuc-cat-icon{width:62px!important;height:62px!important" in source
+    assert ".pdfuc-category .pdfu-menu-item{grid-template-columns:40px minmax(0,1fr) auto!important" in source
+    assert ".pdfuc-category .pdfu-menu-icon{font-size:24px!important" in source
+    assert ".pdfuc-category .pdfu-menu-name{font-size:14px!important" in source
     assert ".pdfuc-tool-upload{min-height:126px!important" in source
-    assert "pdfUtilityCenteredRefinements='tool-first-v2'" in source
+    assert "pdfUtilityCenteredRefinements='tool-first-v3'" in source
     assert "pdfUtilityCenteredUpload" not in source
     assert "ProgramStudioPdfUtilityCentered?.addFiles" not in source
 
