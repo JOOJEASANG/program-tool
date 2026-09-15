@@ -13,6 +13,7 @@
   let safetyWrapper=null;
   let safetyOwner=null;
   let observer=null;
+  let syncQueued=false;
 
   function normalizedRotation(value){
     const number=Number(value);
@@ -127,35 +128,48 @@
     document.head.appendChild(style);
   }
 
+  function setTextIfNeeded(node,text){
+    if(node&&String(node.textContent||'').trim()!==text)node.textContent=text;
+  }
+
   function markSidebarState(){
     const fileNav=byId('pdfFileNavigation');
     if(fileNav){
-      fileNav.setAttribute('aria-hidden','true');
-      fileNav.dataset.retiredFromLayout='1';
+      if(fileNav.getAttribute('aria-hidden')!=='true')fileNav.setAttribute('aria-hidden','true');
+      if(fileNav.dataset.retiredFromLayout!=='1')fileNav.dataset.retiredFromLayout='1';
     }
     const panel=byId('pageProductivityPanelV3');
     if(panel){
-      panel.dataset.compactSelectionOnly='1';
+      if(panel.dataset.compactSelectionOnly!=='1')panel.dataset.compactSelectionOnly='1';
       const mode=byId('pageSelectionModeBtnV3');
-      if(mode)mode.textContent='다중 선택';
+      setTextIfNeeded(mode,'다중 선택');
       const buttons=panel.querySelectorAll('.page-productivity-top button');
-      if(buttons[1])buttons[1].textContent='전체';
-      if(buttons[2])buttons[2].textContent='해제';
+      setTextIfNeeded(buttons[1],'전체');
+      setTextIfNeeded(buttons[2],'해제');
     }
-    document.documentElement.dataset.pdfFileNavigationPanel='retired';
-    document.documentElement.dataset.pdfPageSelectionToolbar='compact-three';
+    if(document.documentElement.dataset.pdfFileNavigationPanel!=='retired')document.documentElement.dataset.pdfFileNavigationPanel='retired';
+    if(document.documentElement.dataset.pdfPageSelectionToolbar!=='compact-three')document.documentElement.dataset.pdfPageSelectionToolbar='compact-three';
   }
 
   function sync(){
+    syncQueued=false;
     installStyles();
     installRenderWrapper();
     installSafetyWrapper();
     markSidebarState();
   }
 
+  function scheduleSync(){
+    if(syncQueued)return;
+    syncQueued=true;
+    // Coalesce bursts from thumbnail/file-list rerenders. A macrotask avoids a
+    // MutationObserver -> textContent -> microtask feedback loop in headless Chrome.
+    setTimeout(sync,0);
+  }
+
   function installObserver(){
     if(observer||!document.body)return;
-    observer=new MutationObserver(()=>queueMicrotask(sync));
+    observer=new MutationObserver(scheduleSync);
     observer.observe(document.body,{childList:true,subtree:true});
   }
 
@@ -163,8 +177,8 @@
     sync();
     installObserver();
     INSTALL_DELAYS.forEach(delay=>setTimeout(sync,delay));
-    document.addEventListener('pdf-import-committed',sync);
-    window.addEventListener('pageshow',sync);
+    document.addEventListener('pdf-import-committed',scheduleSync);
+    window.addEventListener('pageshow',scheduleSync);
     document.documentElement.dataset.pdfOrientationSidebarCleanup='1';
   }
 
