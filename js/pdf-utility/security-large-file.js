@@ -1,14 +1,14 @@
 // Storage bridge for encrypt/decrypt PDFs that exceed the direct 20 MiB request path.
 (function(){
   'use strict';
-  if(window.__pdfSecurityLargeFileV2)return;
-  window.__pdfSecurityLargeFileV2=true;
+  if(window.__pdfSecurityLargeFileV3)return;
+  window.__pdfSecurityLargeFileV3=true;
 
   const path=location.pathname.replace(/\/+$/,'')||'/';
   if(!(path==='/pdf-preflight'||path.endsWith('/pdf-preflight/index.html')))return;
 
   const DIRECT_MAX=20*1024*1024;
-  const MAX_FILE_BYTES=200*1024*1024;
+  const MAX_FILE_BYTES=500*1024*1024;
   const SECURITY_ENDPOINT='/api/pdf-utility/security-storage';
   let originalApiPdfTool=null;
   let attempts=0;
@@ -45,6 +45,7 @@
     if(window.storage?.ref)return window.storage;
     if(typeof firebase==='undefined'||!firebase.storage)throw new Error('Firebase Storage를 사용할 수 없습니다.');
     window.storage=firebase.storage();
+    try{window.storage.setMaxUploadRetryTime?.(20*60*1000);window.storage.setMaxOperationRetryTime?.(10*60*1000);}catch(_){}
     return window.storage;
   }
   async function readError(response){
@@ -68,7 +69,7 @@
   async function runStorageSecurity(operation,file,params={}){
     if(!file)throw new Error('먼저 PDF 파일을 선택하세요.');
     if(!isPdf(file))throw new Error('PDF 파일만 사용할 수 있습니다.');
-    if(Number(file.size||0)>MAX_FILE_BYTES)throw new Error('PDF 암호 설정·해제는 최대 200MB 파일을 지원합니다.');
+    if(Number(file.size||0)>MAX_FILE_BYTES)throw new Error('PDF 암호 설정·해제는 최대 500MB 파일을 지원합니다.');
     const user=await currentUser();
     if(!user)throw new Error('로그인이 필요합니다.');
     const storage=await ensureStorage();
@@ -77,27 +78,37 @@
     const ref=storage.ref(storagePath);
     let uploaded=false;
     try{
-      showStatus('20MB를 초과한 PDF를 암호 처리용으로 업로드하는 중입니다…');
+      showStatus('대용량 PDF를 Storage 기반 암호 처리로 업로드하는 중입니다…');
       if(typeof window._uploadStorageFile==='function'){
         await window._uploadStorageFile(ref,file,{timeoutMs:30*60*1000});
       }else{
         await ref.put(file,{contentType:'application/pdf'});
       }
       uploaded=true;
+      showStatus('업로드 완료 · 서버에서 PDF 암호 처리를 진행하고 있습니다…');
       const token=await user.getIdToken(true);
-      const response=await fetch(SECURITY_ENDPOINT,{
-        method:'POST',
-        headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},
-        body:JSON.stringify({
-          storage_path:storagePath,
-          operation,
-          password:String(params?.password||''),
-          filename:String(file.name||'document.pdf')
-        })
-      });
+      const controller=new AbortController();
+      const timer=setTimeout(()=>controller.abort(),9*60*1000);
+      let response;
+      try{
+        response=await fetch(SECURITY_ENDPOINT,{
+          method:'POST',
+          headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},
+          body:JSON.stringify({
+            storage_path:storagePath,
+            operation,
+            password:String(params?.password||''),
+            filename:String(file.name||'document.pdf')
+          }),
+          signal:controller.signal
+        });
+      }finally{clearTimeout(timer);}
       if(!response.ok)throw new Error(await readError(response));
       const blob=await readDelivery(response,storage);
       return{blob,meta:{large_security:true,operation}};
+    }catch(error){
+      if(error?.name==='AbortError')throw new Error('대용량 PDF 처리 시간이 초과되었습니다. 잠시 후 다시 시도해 주세요.');
+      throw error;
     }finally{
       if(uploaded){try{await ref.delete();}catch(_){}}
     }
@@ -105,19 +116,19 @@
 
   function patchApi(){
     if(typeof window.apiPdfTool!=='function')return false;
-    if(window.apiPdfTool.__securityStorageV2)return true;
+    if(window.apiPdfTool.__securityStorageV3)return true;
     originalApiPdfTool=window.apiPdfTool;
     const wrapped=async function(operation,fileOrFiles,params={}){
       const security=operation==='encrypt'||operation==='decrypt';
       const file=Array.isArray(fileOrFiles)?null:fileOrFiles;
       if(security&&file){
         const size=Number(file.size||0);
-        if(size>MAX_FILE_BYTES)throw new Error('PDF 암호 설정·해제는 최대 200MB 파일을 지원합니다.');
+        if(size>MAX_FILE_BYTES)throw new Error('PDF 암호 설정·해제는 최대 500MB 파일을 지원합니다.');
         if(size>DIRECT_MAX)return runStorageSecurity(operation,file,params);
       }
       return originalApiPdfTool.apply(this,arguments);
     };
-    wrapped.__securityStorageV2=true;
+    wrapped.__securityStorageV3=true;
     wrapped.__original=originalApiPdfTool;
     window.apiPdfTool=wrapped;
     return true;
@@ -125,12 +136,12 @@
 
   function patchAutoDecrypt(){
     if(typeof window.runAutoDecrypt!=='function')return false;
-    if(window.runAutoDecrypt.__securityStorageV2)return true;
+    if(window.runAutoDecrypt.__securityStorageV3)return true;
     const original=window.runAutoDecrypt;
     const wrapped=async function(){
       const file=activeFile();
       if(!file||Number(file.size||0)<=DIRECT_MAX)return original.apply(this,arguments);
-      if(Number(file.size||0)>MAX_FILE_BYTES)return showError('암호 해제는 최대 200MB PDF를 지원합니다.');
+      if(Number(file.size||0)>MAX_FILE_BYTES)return showError('암호 해제는 최대 500MB PDF를 지원합니다.');
       if(typeof window.setPageBusy==='function')window.setPageBusy(true,'암호 해제');
       try{
         showStatus('PDF 암호를 확인하고 해제하는 중입니다…');
@@ -150,7 +161,7 @@
         if(typeof window.setPageBusy==='function')window.setPageBusy(false);
       }
     };
-    wrapped.__securityStorageV2=true;
+    wrapped.__securityStorageV3=true;
     wrapped.__original=original;
     window.runAutoDecrypt=wrapped;
     return true;
@@ -165,9 +176,9 @@
         runStorageSecurity,
         directMax:DIRECT_MAX,
         maxFileBytes:MAX_FILE_BYTES,
-        stage:'pdf-security-storage-200mb-v2'
+        stage:'pdf-security-storage-500mb-v3'
       };
-      document.documentElement.dataset.pdfSecurityStorage='200mb-v2';
+      document.documentElement.dataset.pdfSecurityStorage='500mb-v3';
       return;
     }
     if(attempts<80)setTimeout(install,100);
