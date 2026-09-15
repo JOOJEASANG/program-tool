@@ -10,10 +10,12 @@
     const pdfCalls=[];
     let thumbRefreshes=0;
     var parsedPages=[];
-    // Headless Chromium image decoding can be nondeterministic under a short
-    // virtual-time budget. The smoke validates adapter/bridge behavior, so use a
-    // deterministic CanvasImageSource while production decode timeout behavior
-    // is covered by the source-contract regression tests.
+    // Headless Chromium image decoding/encoding can be nondeterministic under a
+    // short virtual-time budget. This smoke validates adapter/bridge behavior,
+    // while production decoder timeout/resource cleanup is covered separately.
+    HTMLCanvasElement.prototype.toBlob=function(callback,type){
+      callback(new Blob(['smoke-canvas'],{type:type||'image/png'}));
+    };
     window.createImageBitmap=async function(){
       const canvas=document.createElement('canvas');canvas.width=300;canvas.height=600;
       const ctx=canvas.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,300,600);ctx.fillStyle='#12396d';ctx.fillRect(30,40,240,520);
