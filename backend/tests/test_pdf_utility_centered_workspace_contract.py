@@ -27,9 +27,25 @@ def test_centered_pdf_utility_contract():
 def test_centered_workspace_is_loaded_by_pdf_suite_direct_hook():
     hook = (ROOT / "js/pdf-suite/direct-tool-hook.js").read_text(encoding="utf-8")
 
-    assert "centered-workspace.js?v=20260915-1" in hook
+    assert "centered-workspace.js?v=20260915-2" in hook
+    assert "centered-workspace-fixes.js?v=20260915-1" in hook
     assert "ensureCenteredWorkspace" in hook
+    assert "ensureCenteredFixes" in hook
     assert "ProgramStudioPdfUtilityCentered" in hook
+
+
+def test_centered_workspace_dropzone_and_readability_refinements():
+    source = (ROOT / "js/pdf-suite/centered-workspace-fixes.js").read_text(encoding="utf-8")
+
+    assert "document.addEventListener('dragover',handleDrag,true)" in source
+    assert "document.addEventListener('drop',handleDrop,true)" in source
+    assert "filesFromTransfer" in source
+    assert "dataTransfer.dropEffect='copy'" in source
+    assert "ProgramStudioPdfUtilityCentered?.addFiles?.(files)" in source
+    assert ".pdfuc-cat-icon{width:52px!important;height:52px!important" in source
+    assert ".pdfuc-category .pdfu-menu-icon{font-size:20px!important" in source
+    assert ".pdfuc-category .pdfu-menu-name{font-size:12.5px!important" in source
+    assert "pdfUtilityCenteredDropzone='ready-v2'" in source
 
 
 def test_backend_runtime_keeps_transient_utility_500_800_limits():
