@@ -59,7 +59,10 @@
       try{
         await sleep(40);
         assert(window.PdfUtilityCostPolicy,'cost policy did not install');
-        assert(document.getElementById('pdfUtilityFileSummary').textContent.includes('/ 300MB'),'policy summary was not applied');
+        assert(window.PdfUtilityCostPolicy.maxFileBytes===500*1024*1024,'500MB file policy missing');
+        assert(window.PdfUtilityCostPolicy.maxTotalBytes===800*1024*1024,'800MB job policy missing');
+        assert(document.getElementById('pdfUtilityFileSummary').textContent.includes('/ 800MB'),'policy summary was not applied');
+        assert(document.querySelector('.upload-sub').textContent.includes('파일당 500MB'),'upload file policy missing');
 
         const row=document.createElement('div');
         row.className='pdfu-file-row';
@@ -75,7 +78,7 @@
         assert(window.__costGuardObserverCallbacks<10,'unexpected observer callback burst: '+window.__costGuardObserverCallbacks);
         assert(document.getElementById('uploadZone').dataset.pdfUtilityPolicyOwner==='1','upload zone ownership missing');
         document.body.dataset.phase7Smoke='pass';
-        result.textContent='PASS: PDF utility policy observer settled without starving the main thread';
+        result.textContent='PASS: PDF utility 500MB/800MB policy observer settled without starving the main thread';
       }catch(error){
         document.body.dataset.phase7Smoke='fail';
         result.textContent='FAIL: '+String(error.message||error);

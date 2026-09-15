@@ -4,6 +4,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 BRIDGE = ROOT / "js" / "pdf-suite" / "direct-tool-bridge.js"
 HOOK = ROOT / "js" / "pdf-suite" / "direct-tool-hook.js"
+LARGE = ROOT / "js" / "pdf-suite" / "direct-tool-large-storage.js"
 HOSTING = ROOT / "scripts" / "prepare_hosting_dist.py"
 RUNNER = ROOT / "scripts" / "run_pdf_program_shell_smoke.sh"
 
@@ -11,6 +12,7 @@ RUNNER = ROOT / "scripts" / "run_pdf_program_shell_smoke.sh"
 def test_pdf_utility_menu_has_direct_workflow_bridge():
     bridge = BRIDGE.read_text(encoding="utf-8")
     hook = HOOK.read_text(encoding="utf-8")
+    large = LARGE.read_text(encoding="utf-8")
 
     for marker in (
         "시각적 페이지 정리",
@@ -36,7 +38,10 @@ def test_pdf_utility_menu_has_direct_workflow_bridge():
     assert "ProgramStudioPdfUtilityDirectBridge" in bridge
     assert "stopImmediatePropagation" in hook
     assert "pdfUtilityStageBody" in hook
-    assert "pdf-utility-direct-hook-v1" in hook
+    assert "pdf-utility-direct-hook-v2" in hook
+    assert "direct-tool-large-storage.js?v=20260915-1" in hook
+    assert "pdf-utility-large-storage-v1" in large
+    assert "MAX_FILE_BYTES=500*MIB" in "".join(large.split())
 
 
 def test_direct_bridge_is_hosted_before_protected_guard_and_browser_smoked():

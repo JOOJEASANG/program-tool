@@ -28,6 +28,7 @@ from routers.pdf import pdf_bp
 from routers.pdf_large_security import pdf_large_security_bp
 from routers.pdf_tools import pdf_tools_bp
 from routers.pdf_utility import pdf_utility_bp
+from routers.pdf_utility_large_tools import pdf_utility_large_tools_bp
 from routers.pdf_utility_margin_crop import pdf_utility_margin_crop_bp
 from routers.pdf_utility_tiling import pdf_utility_tiling_bp
 from routers.preflight import preflight_bp
@@ -48,19 +49,23 @@ PDF_SESSION_COLLECTIONS = frozenset({
     "pdf_smart_layout_sessions",
 })
 MIB = 1024 * 1024
+
+# Persistent/editor storage stays deliberately tighter than transient utility work.
 PDF_STORAGE_FILE_BYTES = 200 * MIB
 PDF_STORAGE_TOTAL_BYTES = 300 * MIB
+PDF_UTILITY_FILE_BYTES = 500 * MIB
+PDF_UTILITY_TOTAL_BYTES = 800 * MIB
 MAX_SAVED_PDF_SESSIONS = 10
 MAX_SAVED_DESIGN_PROJECTS = 8
 ORPHAN_GRACE_HOURS = 24
 
-# Storage and backend limits intentionally match. This avoids paying to accept a
-# 500 MiB client object that a downstream PDF route should never need to process.
+# Editor/session limits remain cost-bounded while transient utility jobs get a
+# separate roomy ceiling. Direct HTTP uploads stay small; large jobs use Storage.
 pdf_router.MAX_PDF_FILE_BYTES = PDF_STORAGE_FILE_BYTES
 pdf_router.MAX_TOTAL_PDF_BYTES = PDF_STORAGE_TOTAL_BYTES
-preflight_router.MAX_STORAGE_PDF_BYTES = PDF_STORAGE_FILE_BYTES
-pdf_utility_router.MAX_FILE_BYTES = PDF_STORAGE_FILE_BYTES
-pdf_utility_router.MAX_TOTAL_BYTES = PDF_STORAGE_TOTAL_BYTES
+preflight_router.MAX_STORAGE_PDF_BYTES = PDF_UTILITY_FILE_BYTES
+pdf_utility_router.MAX_FILE_BYTES = PDF_UTILITY_FILE_BYTES
+pdf_utility_router.MAX_TOTAL_BYTES = PDF_UTILITY_TOTAL_BYTES
 
 # Background raster work is intentionally more conservative than simple
 # transfer/merge work because every page consumes CPU and memory.
@@ -75,6 +80,7 @@ flask_app.register_blueprint(pdf_bp, url_prefix="/api/pdf")
 flask_app.register_blueprint(pdf_tools_bp, url_prefix="/api/pdf-tools")
 flask_app.register_blueprint(pdf_utility_bp, url_prefix="/api/pdf-utility")
 flask_app.register_blueprint(pdf_large_security_bp, url_prefix="/api/pdf-utility")
+flask_app.register_blueprint(pdf_utility_large_tools_bp, url_prefix="/api/pdf-utility")
 flask_app.register_blueprint(pdf_utility_margin_crop_bp, url_prefix="/api/pdf-utility")
 flask_app.register_blueprint(pdf_utility_tiling_bp, url_prefix="/api/pdf-utility")
 flask_app.register_blueprint(preflight_bp, url_prefix="/api/preflight")
@@ -199,8 +205,8 @@ def health():
         ],
         cors_methods=["get", "post", "delete", "options"],
     ),
-    memory=options.MemoryOption.GB_2,
-    timeout_sec=300,
+    memory=options.MemoryOption.GB_4,
+    timeout_sec=600,
     min_instances=0,
     max_instances=2,
 )
@@ -326,9 +332,6 @@ def _trim_firestore_group(db, bucket, collection_id: str, limit: int, timestamp_
                 collection_id=collection_id,
             )
             try:
-                # Remove the database reference first. If this fails, keep the
-                # blobs protected as referenced data rather than breaking a live
-                # session/project. Blob cleanup can safely retry later.
                 snapshot.reference.delete()
             except Exception:
                 referenced.update(paths)

@@ -25,20 +25,24 @@ def test_functions_and_storage_transfer_limits_stay_cost_bounded():
 
     assert "PDF_STORAGE_FILE_BYTES = 200 * MIB" in main
     assert "PDF_STORAGE_TOTAL_BYTES = 300 * MIB" in main
+    assert "PDF_UTILITY_FILE_BYTES = 500 * MIB" in main
+    assert "PDF_UTILITY_TOTAL_BYTES = 800 * MIB" in main
     assert 'schedule="every 1 hours"' in main
     assert "timedelta(hours=1)" in main
     assert 'schedule="every 24 hours"' in main
     assert "ORPHAN_GRACE_HOURS = 24" in main
     assert "validPdfUpload(209715200)" in rules
+    assert "validPdfUpload(524288000)" in rules
     assert "MAX_FILE_BYTES = 200 * 1024 * 1024" in session
     assert "MAX_SESSION_BYTES = 300 * 1024 * 1024" in session
     assert "MAX_FILE_BYTES = 200 * 1024 * 1024" in transfer
     assert "MAX_WORKSPACE_TOTAL_BYTES = 800 * 1024 * 1024" in transfer
     assert "MAX_SESSION_TOTAL_BYTES = 300 * 1024 * 1024" in transfer
     compact = "".join(utility.split())
-    assert "MAX_FILE_BYTES=200*1024*1024" in compact
-    assert "MAX_TOTAL_BYTES=300*1024*1024" in compact
-    assert "500MB" not in utility
+    assert "MAX_FILE_BYTES=500*1024*1024" in compact
+    assert "MAX_TOTAL_BYTES=800*1024*1024" in compact
+    assert "500MB" in utility
+    assert "800MB" in utility
 
 
 def test_version_observer_does_not_own_pdf_runtime_modules():

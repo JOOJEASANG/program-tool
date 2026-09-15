@@ -33,7 +33,7 @@ def test_pdf_utility_temp_storage_requires_approved_owner_without_program_catalo
     assert "isApproved()" in pdf_temp_block
     assert "canUseProgram(" not in pdf_temp_block
     assert "validStagePath(sessionId, fileName)" in pdf_temp_block
-    assert "validPdfUpload(209715200)" in pdf_temp_block
+    assert "validPdfUpload(524288000)" in pdf_temp_block
     assert "allow update: if false;" in pdf_temp_block
     assert "request.resource.contentType == 'application/pdf'" in rules
 
@@ -52,7 +52,7 @@ def test_preflight_temp_storage_requires_approved_owner_without_program_catalog_
     assert "isApproved()" in block
     assert "canUseProgram(" not in block
     assert "validStagePath(sessionId, fileName)" in block
-    assert "validPdfUpload(209715200)" in block
+    assert "validPdfUpload(524288000)" in block
     assert "allow update: if false;" in block
 
 

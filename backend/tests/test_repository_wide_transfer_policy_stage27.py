@@ -17,6 +17,8 @@ STORAGE_RULES = ROOT / "storage.rules"
 STORAGE_LIFECYCLE = ROOT / "storage-lifecycle.json"
 MAIN = ROOT / "backend" / "main.py"
 PDF_UTILITY = ROOT / "backend" / "routers" / "pdf_utility.py"
+LARGE_TOOL = ROOT / "backend" / "routers" / "pdf_utility_large_tools.py"
+DIRECT_LARGE = ROOT / "js" / "pdf-suite" / "direct-tool-large-storage.js"
 
 MB = 1024 * 1024
 
@@ -28,9 +30,11 @@ def executable_js(path: Path) -> str:
     return source
 
 
-def test_storage_backed_pdf_policy_is_200mb_file_300mb_job_with_bounded_compute():
-    assert pdf_utility_router.MAX_FILE_BYTES == 200 * MB
-    assert pdf_utility_router.MAX_TOTAL_BYTES == 300 * MB
+def test_storage_backed_pdf_utility_policy_is_500mb_file_800mb_job_with_bounded_compute():
+    # Router defaults remain conservative when imported standalone; production
+    # main explicitly raises transient utility limits without raising editor/session limits.
+    assert pdf_utility_router.MAX_FILE_BYTES <= 500 * MB
+    assert pdf_utility_router.MAX_TOTAL_BYTES <= 800 * MB
     assert pdf_utility_router.MAX_BACKGROUND_PAGES == 100
     assert pdf_utility_router.MAX_BACKGROUND_PIXELS == 90_000_000
     assert pdf_utility_router.BACKGROUND_DPI == 160
@@ -38,6 +42,13 @@ def test_storage_backed_pdf_policy_is_200mb_file_300mb_job_with_bounded_compute(
     main = MAIN.read_text(encoding="utf-8")
     assert "PDF_STORAGE_FILE_BYTES = 200 * MIB" in main
     assert "PDF_STORAGE_TOTAL_BYTES = 300 * MIB" in main
+    assert "PDF_UTILITY_FILE_BYTES = 500 * MIB" in main
+    assert "PDF_UTILITY_TOTAL_BYTES = 800 * MIB" in main
+    assert "preflight_router.MAX_STORAGE_PDF_BYTES = PDF_UTILITY_FILE_BYTES" in main
+    assert "pdf_utility_router.MAX_FILE_BYTES = PDF_UTILITY_FILE_BYTES" in main
+    assert "pdf_utility_router.MAX_TOTAL_BYTES = PDF_UTILITY_TOTAL_BYTES" in main
+    assert "memory=options.MemoryOption.GB_4" in main
+    assert "timeout_sec=600" in main
     assert "min_instances=0" in main
     assert "max_instances=2" in main
 
@@ -53,6 +64,23 @@ def test_pdf_utility_large_storage_routes_use_disk_not_multi_file_memory_buffers
     assert "_download_storage_pdf_to_path" in background
     assert "_clean_background_pdf_path" in background
     assert "shutil.rmtree" in source
+
+
+def test_large_direct_tools_auto_route_storage_and_keep_direct_http_small():
+    backend = LARGE_TOOL.read_text(encoding="utf-8")
+    bridge = DIRECT_LARGE.read_text(encoding="utf-8")
+    assert "MAX_FILE_BYTES = 500 * 1024 * 1024" in backend
+    assert 'route("/remove-blank-storage"' in backend
+    assert "download_to_filename" in backend
+    assert "TemporaryDirectory" in backend
+    assert "const DIRECT_MAX=20*MIB" in bridge
+    assert "const MAX_FILE_BYTES=500*MIB" in bridge
+    assert "/api/preflight/check-storage" in bridge
+    assert "/api/preflight/auto-fix-storage" in bridge
+    assert "/api/preflight/compress-storage" in bridge
+    assert "/api/pdf-utility/security-storage" in bridge
+    assert "/api/pdf-utility/remove-blank-storage" in bridge
+    assert "Storage 업로드 중" in bridge
 
 
 def test_retired_cover_large_file_runtime_policy_is_removed():
@@ -75,7 +103,7 @@ def test_divider_source_upload_is_local_only_and_internal_embedding_is_bounded()
     assert "maxEmbeddedBytes: MAX_EMBED_BYTES" in source
 
 
-def test_pdf_editor_workspace_is_roomy_but_session_and_server_paths_stay_cost_bounded():
+def test_pdf_editor_workspace_stays_bounded_while_utility_gets_separate_roomy_limits():
     editor = EDITOR_POLICY.read_text(encoding="utf-8")
     session = SESSION_SAVE.read_text(encoding="utf-8")
     utility = UTILITY_POLICY.read_text(encoding="utf-8")
@@ -97,30 +125,28 @@ def test_pdf_editor_workspace_is_roomy_but_session_and_server_paths_stay_cost_bo
     assert "원본 PDF 전체 합계는 최대 300MB" in session
 
     compact = "".join(utility.split())
-    assert "constMAX_FILE_BYTES=200*1024*1024" in compact
-    assert "constMAX_TOTAL_BYTES=300*1024*1024" in compact
-    assert "500MB" not in utility
+    assert "constMAX_FILE_BYTES=500*1024*1024" in compact
+    assert "constMAX_TOTAL_BYTES=800*1024*1024" in compact
+    assert "500MB" in utility
+    assert "800MB" in utility
+    assert "500mb-file-800mb-job-v4" in utility
 
 
-def test_storage_rules_keep_temp_pdf_approved_owner_scoped_and_backend_access_bounded():
+def test_storage_rules_allow_500mb_transient_utility_but_keep_sessions_200mb():
     rules = STORAGE_RULES.read_text(encoding="utf-8")
-    assert "validPdfUpload(209715200)" in rules
     pdf_temp = rules[rules.index("match /pdf_temp/"):rules.index("match /preflight_temp/")]
     preflight_temp = rules[rules.index("match /preflight_temp/"):rules.index("match /pdf_sessions/")]
-    assert "allow read: if isOwner(userId) && isApproved();" in pdf_temp
-    assert "allow delete: if isOwner(userId) && isApproved();" in pdf_temp
-    assert "isApproved()" in pdf_temp
-    assert "canUseProgram(" not in pdf_temp
-    assert "validStagePath(sessionId, fileName)" in pdf_temp
-    assert "validPdfUpload(209715200)" in pdf_temp
-    assert "allow update: if false;" in pdf_temp
-    assert "allow read: if isOwner(userId) && isApproved();" in preflight_temp
-    assert "allow delete: if isOwner(userId) && isApproved();" in preflight_temp
-    assert "isApproved()" in preflight_temp
-    assert "canUseProgram(" not in preflight_temp
-    assert "validStagePath(sessionId, fileName)" in preflight_temp
-    assert "validPdfUpload(209715200)" in preflight_temp
-    assert "allow update: if false;" in preflight_temp
+    sessions = rules[rules.index("match /pdf_sessions/"):rules.index("match /pdf_results/")]
+    for block in (pdf_temp, preflight_temp):
+        assert "allow read: if isOwner(userId) && isApproved();" in block
+        assert "allow delete: if isOwner(userId) && isApproved();" in block
+        assert "isApproved()" in block
+        assert "canUseProgram(" not in block
+        assert "validStagePath(sessionId, fileName)" in block
+        assert "validPdfUpload(524288000)" in block
+        assert "allow update: if false;" in block
+    assert "validSessionUpload(userId, sessionId, fileName)" in sessions
+    assert "validPdfUpload(209715200)" in rules
     assert "require_program_access_for_request" in MAIN.read_text(encoding="utf-8")
     results = rules[rules.index("match /pdf_results/"):rules.index("match /design_projects/")]
     assert "allow read: if isOwner(userId);" in results
@@ -155,6 +181,7 @@ def test_active_runtime_uses_single_pdf_and_preflight_owners():
     assert "/js/pdf-preflight/route-runtime.js?v=20260831-1" in sw
     assert "pdfUtilityCostGuardScriptV2" in preflight
     assert "pdfPreflightPanelBalanceScriptV1" in preflight
+    assert "20260915-1" in preflight
     assert "pdfUtilityCostGuardScriptV2" not in app
     assert "pdfPreflightPanelBalanceScriptV1" not in app
     assert "pdf-utility-first-paint.js" not in app
