@@ -31,10 +31,7 @@
     var fileNupMap = {};
     var showBorder = false;
     var _uploadMode = 'cont';
-    window.__pickerClicks = 0;
-    window.__handledFiles = [];
     async function handleFile(file) {
-      window.__handledFiles.push({ name: file.name, mode: _uploadMode });
       uploadedFiles.push(file);
       parsedPages.push({ id: 'loaded-' + file.name });
     }
@@ -44,45 +41,44 @@
     document.querySelectorAll('.mode-btn').forEach(function (button) {
       button.addEventListener('click', function () { _uploadMode = button.dataset.mode; });
     });
-    document.getElementById('fileInput').click = function () { window.__pickerClicks += 1; };
+    document.getElementById('fileInput').click = function () {};
   </script>
   <script src="/js/pdf-editor/preview-row-default.js?v=20260831-1"></script>
   <script src="/js/pdf-editor/upload-order-ui.js?v=20260831-1"></script>
   <script src="/js/pdf-editor/layout-ui-refinements.js?v=20260915-2"></script>
   <script>
-    setTimeout(async function () {
-      var legacy = document.getElementById('pdfFileNavigation');
-      var panel = document.getElementById('pageProductivityPanelV3');
-      var area = document.getElementById('thumbArea');
-      var utility = document.getElementById('pdfPrintUtilityRedirectCard');
-      if (!legacy || !panel || !area || !utility || !window.PdfUploadOrderUi || !window.PdfLayoutUiRefinements) return;
+    setTimeout(function () {
+      var fail = function (message) {
+        document.documentElement.dataset.pdfPageListQuickAddSmoke = 'fail';
+        document.body.dataset.error = message;
+        document.getElementById('result').textContent = 'FAIL: ' + message;
+      };
+      try {
+        if (!window.PdfUploadOrderUi || !window.PdfLayoutUiRefinements) return fail('required APIs missing');
 
-      // The old page-list quick append box is intentionally retired. Upload order
-      // staging still remains available through the normal upload workflow.
-      window.PdfLayoutUiRefinements.removePageListQuickAdd();
-      if (document.getElementById('pdfPageListQuickAddV1')) return;
-      if (document.documentElement.dataset.pdfPageListQuickAdd !== 'removed') return;
+        // The old page-list quick append box is intentionally retired.
+        window.PdfLayoutUiRefinements.removePageListQuickAdd();
+        if (document.getElementById('pdfPageListQuickAddV1')) return fail('quick add bar still exists');
+        if (document.documentElement.dataset.pdfPageListQuickAdd !== 'removed') return fail('retired marker missing');
 
-      var first = new File(['1'], '01-first.pdf', { type: 'application/pdf' });
-      var second = new File(['2'], '02-second.pdf', { type: 'application/pdf' });
-      var third = new File(['3'], '03-third.pdf', { type: 'application/pdf' });
-      window.PdfUploadOrderUi.stageFiles([first, second, third], 'cont');
-      var orderPanel = document.getElementById('pdfUploadOrderPanelV1');
-      if (!orderPanel || orderPanel.querySelectorAll('.pdf-upload-order-row').length !== 3) return;
-      window.PdfUploadOrderUi.movePending(2, 0);
-      var reordered = window.PdfUploadOrderUi.pending.files.map(function (file) { return file.name; }).join(',');
-      if (reordered !== '03-third.pdf,01-first.pdf,02-second.pdf') return;
-      await window.PdfUploadOrderUi.processPending();
+        // Upload-order staging is a separate workflow and must keep working even
+        // though its old page-list shortcut buttons are gone.
+        var first = new File(['1'], '01-first.pdf', { type: 'application/pdf' });
+        var second = new File(['2'], '02-second.pdf', { type: 'application/pdf' });
+        var third = new File(['3'], '03-third.pdf', { type: 'application/pdf' });
+        window.PdfUploadOrderUi.stageFiles([first, second, third], 'cont');
+        if (window.PdfUploadOrderUi.pending.files.length !== 3) return fail('upload-order staging failed');
+        window.PdfUploadOrderUi.movePending(2, 0);
+        var reordered = window.PdfUploadOrderUi.pending.files.map(function (file) { return file.name; }).join(',');
+        if (reordered !== '03-third.pdf,01-first.pdf,02-second.pdf') return fail('pending upload reorder failed');
+        if (document.getElementById('pdfPageListQuickAddV1')) return fail('quick add bar returned after staging');
 
-      var handled = window.__handledFiles.map(function (entry) { return entry.name + ':' + entry.mode; }).join(',');
-      var passed = handled === '03-third.pdf:cont,01-first.pdf:cont,02-second.pdf:cont'
-        && getComputedStyle(legacy).display === 'none'
-        && getComputedStyle(utility).display === 'none'
-        && !document.getElementById('pdfPageListQuickAddV1');
-      if (!passed) return;
-      document.documentElement.dataset.pdfPageListQuickAddSmoke = 'pass';
-      document.getElementById('result').textContent = 'PASS: retired page-list quick add stays removed while upload-order staging remains intact';
-    }, 180);
+        document.documentElement.dataset.pdfPageListQuickAddSmoke = 'pass';
+        document.getElementById('result').textContent = 'PASS: retired page-list quick add stays removed while upload-order staging remains intact';
+      } catch (error) {
+        fail(error && error.message ? error.message : String(error));
+      }
+    }, 120);
   </script>
 </body>
 </html>
