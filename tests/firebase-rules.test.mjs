@@ -162,7 +162,7 @@ test('retired provider storage is not member-readable or writable and remains ad
   await assertSucceeds(deleteObject(ref(adminStorage, path)));
 });
 
-test('temporary PDF input is signed-in owner-only and bounded to the expected path shape', async () => {
+test('temporary PDF input is approved owner-only and bounded to the expected path shape', async () => {
   await seedApprovedUser();
   const ownerStorage = env.authenticatedContext(
     'approved-user',
@@ -216,7 +216,7 @@ test('temporary PDF input is signed-in owner-only and bounded to the expected pa
   );
 });
 
-test('pending signed-in users can stage, read and delete only their own temporary PDF work', async () => {
+test('pending signed-in users cannot stage or access temporary PDF work', async () => {
   await seedPermission('pending-user', 'pending');
   await env.withSecurityRulesDisabled(async context => {
     await uploadString(
@@ -231,7 +231,7 @@ test('pending signed-in users can stage, read and delete only their own temporar
     { email: 'pending@example.com' }
   ).storage();
 
-  await assertSucceeds(
+  await assertFails(
     uploadString(
       ref(pendingStorage, 'pdf_temp/pending-user/session-1/source.pdf'),
       '%PDF-test',
@@ -239,7 +239,7 @@ test('pending signed-in users can stage, read and delete only their own temporar
       { contentType: 'application/pdf' }
     )
   );
-  await assertSucceeds(
+  await assertFails(
     uploadString(
       ref(pendingStorage, 'preflight_temp/pending-user/session-1/source.pdf'),
       '%PDF-test',
@@ -247,10 +247,10 @@ test('pending signed-in users can stage, read and delete only their own temporar
       { contentType: 'application/pdf' }
     )
   );
-  await assertSucceeds(
+  await assertFails(
     getBytes(ref(pendingStorage, 'pdf_temp/pending-user/session-1/existing.pdf'))
   );
-  await assertSucceeds(
+  await assertFails(
     deleteObject(ref(pendingStorage, 'pdf_temp/pending-user/session-1/existing.pdf'))
   );
 });
