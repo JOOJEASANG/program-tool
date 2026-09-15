@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"><title>PDF Merge Reorder Smoke</title></head>
+<body data-pdf-merge-reorder-smoke="running">
+  <div id="pdfUtilitySplit">
+    <div id="pdfUtilityMenu">
+      <div class="pdfu-menu-group" data-pdfu-core-group="pages">
+        <button type="button" data-pdfu-tool data-pdfu-core-source="PDF 합치기"><span class="pdfu-menu-icon">📎</span><span class="pdfu-menu-name">PDF 합치기</span></button>
+      </div>
+    </div>
+    <section class="pdfu-stage"><div class="pdfu-stage-head"><strong id="pdfUtilityStageTitle"></strong><span id="pdfUtilityStageDesc"></span><span id="pdfUtilityStageBadge"></span><button id="pdfUtilityStageAction"></button></div><div class="pdfu-stage-body" id="pdfUtilityStageBody"></div></section>
+  </div>
+  <div id="result">RUNNING</div>
+  <script>
+    window.auth={currentUser:{uid:'merge-smoke',getIdToken:async()=> 'token'}};
+    const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+    const waitFor=async(fn,label,timeout=4000)=>{const start=Date.now();while(Date.now()-start<timeout){if(fn())return;await wait(20);}throw new Error('timeout: '+label);};
+  </script>
+  <script src="/js/pdf-suite/centered-workspace.js?v=smoke"></script>
+  <script>
+    (async()=>{
+      const result=document.getElementById('result');
+      try{
+        await waitFor(()=>document.documentElement.dataset.pdfUtilityCentered==='tool-first-v2','centered workspace');
+        const button=document.querySelector('[data-pdfu-tool]');
+        button.click();
+        await waitFor(()=>document.querySelector('[data-pdfuc-server-tool="merge"]'),'merge card');
+        const merge=document.querySelector('[data-pdfuc-server-tool="merge"]');
+        if(merge.dataset.pdfucMergeOrder!=='drag-buttons-v1')throw new Error('merge reorder marker missing');
+        const input=merge.querySelector('.pdfuc-tool-input');
+        const dt=new DataTransfer();
+        dt.items.add(new File(['%PDF-1.4\n%%EOF'],'first.pdf',{type:'application/pdf',lastModified:1}));
+        dt.items.add(new File(['%PDF-1.4\n%%EOF'],'second.pdf',{type:'application/pdf',lastModified:2}));
+        dt.items.add(new File(['%PDF-1.4\n%%EOF'],'third.pdf',{type:'application/pdf',lastModified:3}));
+        input.files=dt.files;input.dispatchEvent(new Event('change',{bubbles:true}));await wait(50);
+        let rows=[...merge.querySelectorAll('.pdfuc-server-file.is-merge')];
+        if(rows.length!==3)throw new Error('expected 3 merge rows');
+        if(!rows.every(row=>row.draggable))throw new Error('merge rows are not draggable');
+        if(rows[0].querySelectorAll('[data-pdfuc-move]').length!==2)throw new Error('up/down controls missing');
+        rows[0].querySelector('[data-pdfuc-move="1"]').click();await wait(20);
+        let order=[...merge.querySelectorAll('.pdfuc-server-file strong')].map(node=>node.textContent);
+        if(!order[0].includes('second.pdf')||!order[1].includes('first.pdf')||!order[2].includes('third.pdf'))throw new Error('button reorder failed: '+order.join('|'));
+        rows=[...merge.querySelectorAll('.pdfuc-server-file.is-merge')];
+        const source=rows[2],target=rows[0],data=new DataTransfer(),rect=target.getBoundingClientRect();
+        source.dispatchEvent(new DragEvent('dragstart',{bubbles:true,cancelable:true,dataTransfer:data}));
+        target.dispatchEvent(new DragEvent('dragover',{bubbles:true,cancelable:true,dataTransfer:data,clientY:rect.top+1}));
+        target.dispatchEvent(new DragEvent('drop',{bubbles:true,cancelable:true,dataTransfer:data,clientY:rect.top+1}));
+        source.dispatchEvent(new DragEvent('dragend',{bubbles:true,cancelable:true,dataTransfer:data}));await wait(30);
+        order=[...merge.querySelectorAll('.pdfuc-server-file strong')].map(node=>node.textContent);
+        if(!order[0].includes('third.pdf')||!order[1].includes('second.pdf')||!order[2].includes('first.pdf'))throw new Error('drag reorder failed: '+order.join('|'));
+        document.body.dataset.pdfMergeReorderSmoke='pass';
+        result.textContent='PASS: PDF merge files reorder by buttons and mouse drag';
+      }catch(error){document.body.dataset.pdfMergeReorderSmoke='fail';result.textContent='FAIL: '+String(error?.stack||error);}
+    })();
+  </script>
+</body>
+</html>
