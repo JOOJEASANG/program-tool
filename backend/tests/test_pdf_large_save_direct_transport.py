@@ -13,14 +13,15 @@ def test_large_pdf_save_bypasses_hosting_rewrite_timeout():
     assert "_fetchLongPdfApi('/api/pdf/process'" in api_js
 
 
-def test_direct_pdf_function_allows_program_studio_origins():
+def test_direct_pdf_function_allows_program_studio_origins_and_long_storage_jobs():
     main_py = (ROOT / "backend" / "main.py").read_text(encoding="utf-8")
 
     assert "cors=options.CorsOptions(" in main_py
     assert "program-tool[.]web[.]app" in main_py
     assert "program-tool--[A-Za-z0-9-]+[.]web[.]app" in main_py
     assert 'cors_methods=["get", "post", "delete", "options"]' in main_py
-    assert "timeout_sec=300" in main_py
+    assert "timeout_sec=600" in main_py
+    assert "flask_app.config[\"MAX_CONTENT_LENGTH\"] = 25 * MIB" in main_py
 
 
 def test_hosting_csp_allows_direct_cloud_function_connection():
