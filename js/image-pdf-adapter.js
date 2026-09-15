@@ -171,7 +171,7 @@
     });
 
     try{
-      // Uint8Array avoids the extra Base64/string copy created by canvas.toDataURL().
+      // Use binary JPEG bytes to avoid an additional Base64/string copy in memory.
       const jpegBytes=await canvasToJpegBytes(canvas,Number(options.quality)||0.92,file.name);
       pdf.addImage(jpegBytes,'JPEG',0,0,widthMm,heightMm,undefined,'FAST');
       const blob=pdf.output('blob');
