@@ -14,10 +14,14 @@ def test_centered_pdf_utility_contract():
     assert "변환 · OCR" in source
     assert "편집 · 보안" in source
     assert "최적화 · 검사" in source
-    assert "pdfUtilityCenteredUpload" in source
     assert "pdfUtilityCenteredCategories" in source
     assert "pdfUtilityCenteredModal" in source
-    assert "pdfuc-categories{display:grid;grid-template-columns:repeat(4" in source
+    assert "pdfUtilityCenteredUpload" not in source
+    assert "buildUpload" not in source
+    assert "pdfUtilityUploadFlow='tool-first'" in source
+    assert "pdfuc-tool-upload" in source
+    assert "data.pdfucServerTool" not in source
+    assert "card.dataset.pdfucServerTool=isMerge?'merge':'extract'" in source
     assert "/api/pdf-utility/merge-storage" in source
     assert "/api/pdf-utility/extract-storage" in source
     assert "cloudfunctions.net/api" in source
@@ -27,25 +31,25 @@ def test_centered_pdf_utility_contract():
 def test_centered_workspace_is_loaded_by_pdf_suite_direct_hook():
     hook = (ROOT / "js/pdf-suite/direct-tool-hook.js").read_text(encoding="utf-8")
 
-    assert "centered-workspace.js?v=20260915-2" in hook
-    assert "centered-workspace-fixes.js?v=20260915-1" in hook
+    assert "centered-workspace.js?v=20260915-3" in hook
+    assert "centered-workspace-fixes.js?v=20260915-2" in hook
+    assert "__programStudioPdfUtilityCenteredV2" in hook
+    assert "__programStudioPdfUtilityCenteredFixesV2" in hook
     assert "ensureCenteredWorkspace" in hook
     assert "ensureCenteredFixes" in hook
     assert "ProgramStudioPdfUtilityCentered" in hook
 
 
-def test_centered_workspace_dropzone_and_readability_refinements():
+def test_centered_workspace_tool_first_readability_refinements():
     source = (ROOT / "js/pdf-suite/centered-workspace-fixes.js").read_text(encoding="utf-8")
 
-    assert "document.addEventListener('dragover',handleDrag,true)" in source
-    assert "document.addEventListener('drop',handleDrop,true)" in source
-    assert "filesFromTransfer" in source
-    assert "dataTransfer.dropEffect='copy'" in source
-    assert "ProgramStudioPdfUtilityCentered?.addFiles?.(files)" in source
     assert ".pdfuc-cat-icon{width:52px!important;height:52px!important" in source
     assert ".pdfuc-category .pdfu-menu-icon{font-size:20px!important" in source
     assert ".pdfuc-category .pdfu-menu-name{font-size:12.5px!important" in source
-    assert "pdfUtilityCenteredDropzone='ready-v2'" in source
+    assert ".pdfuc-tool-upload{min-height:126px!important" in source
+    assert "pdfUtilityCenteredRefinements='tool-first-v2'" in source
+    assert "pdfUtilityCenteredUpload" not in source
+    assert "ProgramStudioPdfUtilityCentered?.addFiles" not in source
 
 
 def test_backend_runtime_keeps_transient_utility_500_800_limits():
