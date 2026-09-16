@@ -63,23 +63,26 @@ service firebase.storage {
         && request.resource.metadata.format == 'program-studio-design-project';
     }
 
-    // Short-lived PDF staging is owner-scoped and supports one PDF up to 500 MiB.
-    // Program entitlement is enforced by the authenticated backend endpoint before
-    // any staged object is processed, so staging itself only requires a signed-in owner.
+    // Short-lived PDF staging is available only to approved accounts. Utility
+    // jobs may stage a single PDF up to 500 MiB; editor/session persistence keeps
+    // its separate 200 MiB source limit below. All staging objects are immutable,
+    // PDF-only, owner-scoped, and removed by scheduled/lifecycle cleanup.
     match /pdf_temp/{userId}/{sessionId}/{fileName} {
-      allow read: if isOwner(userId);
-      allow delete: if isOwner(userId);
+      allow read: if isOwner(userId) && isApproved();
+      allow delete: if isOwner(userId) && isApproved();
       allow create: if resource == null
         && isOwner(userId)
+        && isApproved()
         && validStagePath(sessionId, fileName)
         && validPdfUpload(524288000);
       allow update: if false;
     }
     match /preflight_temp/{userId}/{sessionId}/{fileName} {
-      allow read: if isOwner(userId);
-      allow delete: if isOwner(userId);
+      allow read: if isOwner(userId) && isApproved();
+      allow delete: if isOwner(userId) && isApproved();
       allow create: if resource == null
         && isOwner(userId)
+        && isApproved()
         && validStagePath(sessionId, fileName)
         && validPdfUpload(524288000);
       allow update: if false;
