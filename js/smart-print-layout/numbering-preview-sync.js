@@ -1,14 +1,34 @@
 (() => {
   'use strict';
-  if (window.__smartPrintNumberingPreviewSyncV5) return;
-  window.__smartPrintNumberingPreviewSyncV5 = true;
+  if (window.__smartPrintNumberingPreviewSyncV6) return;
+  window.__smartPrintNumberingPreviewSyncV6 = true;
 
   const $ = id => document.getElementById(id);
-  const KOREAN_STACK = '"Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR",Arial,sans-serif';
   const DEFAULT_COLOR = '#111827';
+  const DEFAULT_FONT = 'korean-sans';
+  const FONT_OPTIONS = [
+    { value: 'korean-sans', label: '한국어 고딕 · 돋움 (권장)', stack: '"Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR",Arial,sans-serif' },
+    { value: 'korean-serif', label: '한국어 명조 · 바탕', stack: 'Batang,"AppleMyungjo","Noto Serif KR","Times New Roman",serif' },
+    { value: 'helvetica', label: 'Helvetica', stack: 'Arial,Helvetica,"Malgun Gothic",sans-serif' },
+    { value: 'times', label: 'Times Roman', stack: '"Times New Roman",Times,Batang,serif' },
+    { value: 'courier', label: 'Courier', stack: '"Courier New",Courier,"Malgun Gothic",monospace' },
+  ];
+  const FONT_KEYS = new Set(FONT_OPTIONS.map(option => option.value));
+  const LEGACY_FONT_MAP = {
+    korean: 'korean-sans',
+    'helvetica-bold': 'helvetica',
+    'helvetica-oblique': 'helvetica',
+    'helvetica-bold-oblique': 'helvetica',
+    'times-bold': 'times',
+    'times-italic': 'times',
+    'times-bold-italic': 'times',
+    'courier-bold': 'courier',
+    'courier-oblique': 'courier',
+    'courier-bold-oblique': 'courier',
+  };
   const WATCHED_CONTROLS = new Set([
     'numberingEnabled', 'numberingStart', 'numberingEnd', 'numberingPrefix',
-    'numberingFormat', 'numberingPosition', 'numberingFontSize',
+    'numberingFormat', 'numberingFont', 'numberingPosition', 'numberingFontSize',
     'numberingTransparent', 'numberingOffsetX', 'numberingOffsetY', 'numberingTargetSide',
     'numberingBold', 'numberingColor',
   ]);
@@ -26,6 +46,17 @@
     return /^#[0-9a-f]{6}$/i.test(value) ? value.toLowerCase() : DEFAULT_COLOR;
   };
 
+  function fontValue() {
+    const raw = String($('numberingFont')?.value || DEFAULT_FONT).trim().toLowerCase();
+    const normalized = LEGACY_FONT_MAP[raw] || raw;
+    return FONT_KEYS.has(normalized) ? normalized : DEFAULT_FONT;
+  }
+
+  function fontStack() {
+    const selected = FONT_OPTIONS.find(option => option.value === fontValue());
+    return selected?.stack || FONT_OPTIONS[0].stack;
+  }
+
   function formatNumber(value) {
     const format = $('numberingFormat')?.value || 'pad3';
     let number;
@@ -36,23 +67,22 @@
     return prefix ? `${prefix} ${number}` : number;
   }
 
-  function lockFontControl() {
+  function setupFontControl() {
     const fontSelect = $('numberingFont');
     if (!fontSelect) return;
-    fontSelect.value = 'korean';
-    fontSelect.hidden = true;
-    fontSelect.setAttribute('aria-hidden', 'true');
-    const field = fontSelect.closest('.field');
-    if (!field) return;
-    const title = field.querySelector(':scope > span');
-    if (title) title.textContent = '글꼴';
-    let fixed = field.querySelector('.numbering-fixed-font');
-    if (!fixed) {
-      fixed = document.createElement('div');
-      fixed.className = 'numbering-fixed-font';
-      fixed.textContent = '한국어 기본 (고정)';
-      fontSelect.insertAdjacentElement('afterend', fixed);
+    if (fontSelect.dataset.smartFontOptionsReady !== '1') {
+      const previousRaw = String(fontSelect.value || DEFAULT_FONT).toLowerCase();
+      const previous = LEGACY_FONT_MAP[previousRaw] || previousRaw;
+      fontSelect.innerHTML = FONT_OPTIONS
+        .map(option => `<option value="${option.value}">${option.label}</option>`)
+        .join('');
+      fontSelect.value = FONT_KEYS.has(previous) ? previous : DEFAULT_FONT;
+      fontSelect.dataset.smartFontOptionsReady = '1';
     }
+    fontSelect.hidden = false;
+    fontSelect.removeAttribute('aria-hidden');
+    fontSelect.disabled = !$('numberingEnabled')?.checked;
+    fontSelect.closest('.field')?.querySelector('.numbering-fixed-font')?.remove();
   }
 
   function removeLegacyMarginControls() {
@@ -76,14 +106,13 @@
       style.textContent = `
         .numbering-prefix-format-row{column-gap:16px!important}
         .numbering-side-row,.numbering-offset-row,.numbering-appearance-row{column-gap:12px}
-        .numbering-fixed-font{min-height:34px;display:flex;align-items:center;border:1px solid #cfd9e3;border-radius:8px;background:#f8fafc;padding:7px 9px;color:#334155;font-size:11px;font-weight:800}
         .numbering-color-field input[type="color"]{width:100%;height:36px;padding:3px;border:1px solid #cfd9e3;border-radius:8px;background:#fff;cursor:pointer}
         .numbering-bold-check{min-height:36px;margin-top:16px}
       `;
       document.head.appendChild(style);
     }
     prefixRow?.classList.add('numbering-prefix-format-row');
-    lockFontControl();
+    setupFontControl();
     removeLegacyMarginControls();
 
     if (!$('numberingBold') || !$('numberingColor')) {
@@ -116,34 +145,34 @@
     }
 
     const enabled = Boolean($('numberingEnabled')?.checked);
-    for (const id of ['numberingTargetSide', 'numberingOffsetX', 'numberingOffsetY', 'numberingBold', 'numberingColor']) {
+    for (const id of ['numberingFont', 'numberingTargetSide', 'numberingOffsetX', 'numberingOffsetY', 'numberingBold', 'numberingColor']) {
       const control = $(id);
       if (control) control.disabled = !enabled;
     }
-    lockFontControl();
+    setupFontControl();
     removeLegacyMarginControls();
     return true;
   }
 
   function patchEnhancementConfig() {
     const enhancements = window.SmartPrintLayoutEnhancements;
-    if (!enhancements || enhancements.__numberingAppearancePatchedV5) return;
+    if (!enhancements || enhancements.__numberingAppearancePatchedV6) return;
     const original = enhancements.numberingConfig;
     if (typeof original !== 'function') return;
-    enhancements.numberingConfig = function numberingConfigWithFixedFontSideOffsetsAppearance() {
+    enhancements.numberingConfig = function numberingConfigWithFontSideOffsetsAppearance() {
       const config = original();
       config.target_side = $('numberingTargetSide')?.value || 'both';
       config.offset_x_mm = numberValue('numberingOffsetX', 0, -50, 50);
       config.offset_y_mm = numberValue('numberingOffsetY', 0, -50, 50);
       config.prefix = String(config.prefix || '').trim();
-      config.font = 'korean';
+      config.font = fontValue();
       config.bold = Boolean($('numberingBold')?.checked);
       config.color = colorValue();
       delete config.margin_x_mm;
       delete config.margin_y_mm;
       return config;
     };
-    enhancements.__numberingAppearancePatchedV5 = true;
+    enhancements.__numberingAppearancePatchedV6 = true;
   }
 
   function mirrorBack(placement, cfg) {
@@ -194,7 +223,7 @@
   function updateHint() {
     const hint = document.querySelector('#numberingOptions .hint');
     if (!hint) return;
-    hint.textContent = '글꼴은 한국어 기본으로 고정됩니다. 문구와 번호 사이는 한 칸 띄우며, 굵기·글씨색상·적용 면·좌우/상하 위치 조절은 미리보기와 저장 PDF에 동일하게 반영됩니다.';
+    hint.textContent = 'PDF 저장 호환 글꼴 5종을 제공합니다. 한글 문구가 포함된 경우 비한글 글꼴을 선택해도 저장 시 한글 호환 글꼴로 자동 대체되며, 굵기·글씨색상·적용 면·좌우/상하 위치는 미리보기와 저장 PDF에 동일하게 반영됩니다.';
   }
 
   function shouldShowOnCurrentSide(api) {
@@ -234,6 +263,7 @@
     const offsetY = numberValue('numberingOffsetY', 0, -50, 50);
     const bold = Boolean($('numberingBold')?.checked);
     const color = colorValue();
+    const family = fontStack();
 
     let labelIndex = 0;
     sheet.forEach((frontPlacement, index) => {
@@ -244,7 +274,7 @@
       const placement = api.state.side === 'back' ? mirrorBack(frontPlacement, cfg) : frontPlacement;
       const text = formatNumber(value);
       if (element.textContent !== text) element.textContent = text;
-      element.style.fontFamily = KOREAN_STACK;
+      element.style.fontFamily = family;
       element.style.fontWeight = bold ? '700' : '400';
       element.style.fontStyle = 'normal';
       element.style.color = color;
@@ -258,7 +288,7 @@
     settings.numbering.offset_y_mm = numberValue('numberingOffsetY', 0, -50, 50);
     settings.numbering.target_side = $('numberingTargetSide')?.value || 'both';
     settings.numbering.prefix = String(settings.numbering.prefix || '').trim();
-    settings.numbering.font = 'korean';
+    settings.numbering.font = fontValue();
     settings.numbering.bold = Boolean($('numberingBold')?.checked);
     settings.numbering.color = colorValue();
     delete settings.numbering.margin_x_mm;
@@ -267,8 +297,8 @@
   }
 
   function installFetchGuard() {
-    if (window.__smartPrintNumberingFetchGuardV5 || typeof window.fetch !== 'function') return;
-    window.__smartPrintNumberingFetchGuardV5 = true;
+    if (window.__smartPrintNumberingFetchGuardV6 || typeof window.fetch !== 'function') return;
+    window.__smartPrintNumberingFetchGuardV6 = true;
     const originalFetch = window.fetch.bind(window);
     window.fetch = function smartLayoutNumberingFetch(input, init = {}) {
       try {
@@ -317,13 +347,14 @@
       if ($('numberingOffsetY')) $('numberingOffsetY').value = '0';
       if ($('numberingBold')) $('numberingBold').checked = false;
       if ($('numberingColor')) $('numberingColor').value = DEFAULT_COLOR;
-      lockFontControl();
+      if ($('numberingFont')) $('numberingFont').value = DEFAULT_FONT;
+      setupFontControl();
       removeLegacyMarginControls();
       schedule();
     }));
     window.addEventListener('resize', schedule);
     schedule();
-    document.documentElement.dataset.smartLayoutNumberingPreviewSync = 'v5-position-side-bold-color-no-margins';
+    document.documentElement.dataset.smartLayoutNumberingPreviewSync = 'v6-selectable-pdf-safe-fonts-position-side-bold-color-no-margins';
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind, { once: true });
