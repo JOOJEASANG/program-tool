@@ -38,6 +38,9 @@ def test_duplex_preview_back_side_mirrors_layout_and_reuses_numbering_trim_setti
         'offset_x_mm',
         'offset_y_mm',
         'drawTrimGuide',
+        "return prefix ? `${prefix} ${number}` : number",
+        'KOREAN_STACK',
+        "element.style.fontWeight = '400'",
     ):
         assert marker in module
 
