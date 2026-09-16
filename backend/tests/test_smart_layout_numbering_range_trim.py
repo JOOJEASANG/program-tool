@@ -65,7 +65,7 @@ def test_numbering_range_validation_caps_single_job_at_2000_numbers():
         parse_numbering_options({'enabled': True, 'start': 10, 'end': 9})
 
 
-def test_prefix_transparent_background_fixed_font_bold_and_color_are_parsed():
+def test_prefix_transparent_background_selectable_font_bold_and_color_are_parsed():
     options = parse_numbering_options({
         'enabled': True,
         'start': 7,
@@ -78,7 +78,7 @@ def test_prefix_transparent_background_fixed_font_bold_and_color_are_parsed():
     })
     assert options.end == 10
     assert options.prefix == '입장권-'
-    assert options.font == 'korean'
+    assert options.font == 'helvetica'
     assert options.transparent_background is True
     assert options.bold is True
     assert options.color == '#c026d3'
@@ -102,7 +102,7 @@ def test_numbering_target_side_validation_defaults_to_both():
         parse_numbering_options({'enabled': True, 'target_side': 'middle'})
 
 
-def test_legacy_font_setting_is_ignored_and_korean_default_renders_saved_pdf():
+def test_legacy_font_alias_keeps_selection_and_korean_text_renders_saved_pdf():
     source = _source()
     try:
         plan = _auto_plan()

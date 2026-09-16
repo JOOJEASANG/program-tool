@@ -91,8 +91,14 @@ def test_job_schema_rejects_back_file_reused_as_front_job():
         raise AssertionError('back file must not also become a front layout job')
 
 
-def test_numbering_forces_korean_font_ignores_legacy_margins_and_keeps_offsets_appearance():
-    for legacy_font in ('helvetica', 'helvetica-bold', 'times', 'courier'):
+def test_numbering_preserves_supported_font_aliases_ignores_legacy_margins_and_keeps_offsets_appearance():
+    expected_fonts = {
+        'helvetica': 'helvetica',
+        'helvetica-bold': 'helvetica',
+        'times': 'times',
+        'courier': 'courier',
+    }
+    for legacy_font, expected_font in expected_fonts.items():
         options = parse_numbering_options({
             'enabled': True,
             'font': legacy_font,
@@ -105,7 +111,7 @@ def test_numbering_forces_korean_font_ignores_legacy_margins_and_keeps_offsets_a
             'bold': True,
             'color': '#0f766e',
         })
-        assert options.font == 'korean'
+        assert options.font == expected_font
         assert options.position == 'top-center'
         assert options.offset_x_mm == 3.5
         assert options.offset_y_mm == -4.0
@@ -135,9 +141,13 @@ def test_frontend_exposes_orientation_duplex_pairing_and_final_numbering_control
         assert marker in module
 
     # Legacy compatibility controls can remain in the hidden module, but the
-    # final sync removes their margin rows and owns the visible/exported options.
-    assert "config.font = 'korean'" in sync
-    assert '한국어 기본 (고정)' in sync
+    # final sync removes old margins and owns the visible/exported font options.
+    assert "config.font = fontValue()" in sync
+    assert "settings.numbering.font = fontValue()" in sync
+    assert "const DEFAULT_FONT = 'korean-sans'" in sync
+    for marker in ('korean-sans', 'korean-serif', 'helvetica', 'times', 'courier'):
+        assert marker in sync
+    assert '한국어 기본 (고정)' not in sync
     assert 'removeLegacyMarginControls' in sync
     assert 'numberingBold' in sync and 'numberingColor' in sync
     assert "return prefix ? `${prefix} ${number}` : number;" in sync
