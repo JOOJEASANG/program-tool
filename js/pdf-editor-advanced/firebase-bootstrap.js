@@ -101,6 +101,15 @@
     });
   })();
 
+  const loadSidebarActions=()=>{
+    if(document.getElementById('programSidebarActionsScriptV1')||window.__programSidebarActionsV1)return;
+    const script=document.createElement('script');
+    script.id='programSidebarActionsScriptV1';
+    script.src='/js/program-sidebar-actions.js?v=20260916-1';
+    script.async=false;
+    document.head.appendChild(script);
+  };
+
   const loadSessionOverlayRestore=()=>{
     if(document.getElementById('pdfAdvancedOverlaySessionRestoreScript'))return;
     const script=document.createElement('script');
@@ -109,8 +118,12 @@
     script.src='/js/pdf-editor-advanced/page-overlay-session-restore.js?v=20260909-1';
     document.body.appendChild(script);
   };
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',loadSessionOverlayRestore,{once:true});
-  else loadSessionOverlayRestore();
+  const loadStandaloneEnhancements=()=>{
+    loadSidebarActions();
+    loadSessionOverlayRestore();
+  };
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',loadStandaloneEnhancements,{once:true});
+  else loadStandaloneEnhancements();
 
   document.documentElement.dataset.pdfAdvancedFirebase='ready';
 })();
