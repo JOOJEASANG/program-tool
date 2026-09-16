@@ -48,7 +48,8 @@
   <script>
     document.addEventListener('DOMContentLoaded',async()=>{
       try{
-        await new Promise(r=>setTimeout(r,50));
+        const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+        await delay(50);
         const autoSelected=PrintChecker.getState().product==='leaflet'&&document.querySelector('[data-product="leaflet"]')?.classList.contains('selected');
         document.getElementById('trimW').value='297';
         document.getElementById('trimH').value='210';
@@ -79,8 +80,9 @@
 
         PrintChecker.selectProduct('invitation',{syncUrl:false});
         window.PrintCheckerInvitationDuplexFold?.ensureControls?.();
-        for(let attempt=0;attempt<20&&!document.getElementById('invitationFoldDirection');attempt+=1){
-          await new Promise(r=>setTimeout(r,10));
+        for(let attempt=0;attempt<50&&!document.getElementById('invitationFoldDirection');attempt+=1){
+          window.dispatchEvent(new CustomEvent('programstudio:print-checker-product-stable'));
+          await delay(20);
           window.PrintCheckerInvitationDuplexFold?.ensureControls?.();
         }
         const invitationControlsReady=Boolean(document.getElementById('invitationFoldDirection')&&document.getElementById('invitationFoldPosition'));
@@ -99,30 +101,42 @@
         const inviteFile=new File([new Uint8Array([37,80,68,70,45,49,46,55])],'invitation-duplex.pdf',{type:'application/pdf'});
         const inviteInspected=await PrintChecker.inspectFile(inviteFile);
 
-        // 제품 전환/파일 렌더 이벤트가 초대장 보조 UI를 비동기로 꾸미므로
-        // 한 프레임의 순서 차이로 면 선택 라벨 검사가 흔들리지 않도록 짧게 기다린다.
+        // 초대장 보조 모듈은 product/file 이벤트를 두 번의 requestAnimationFrame 뒤에
+        // 반영한다. CI의 virtual-time 실행 순서가 달라도 실제 상태가 준비됐는지
+        // 같은 검증을 유지하도록, 제한된 시간 안에서 공개 동기화 API와 안정화 이벤트를
+        // 반복 호출하며 side label / upload copy / production guide를 함께 기다린다.
         let inviteSideVisible=false;
-        for(let attempt=0;attempt<30&&!inviteSideVisible;attempt+=1){
+        let guideRendered=false;
+        let inviteUiOk=false;
+        for(let attempt=0;attempt<100&&!(inviteSideVisible&&guideRendered&&inviteUiOk);attempt+=1){
+          const helper=window.PrintCheckerInvitationDuplexFold;
+          helper?.ensureControls?.();
+          helper?.drawInvitationGuides?.();
           const row=document.getElementById('sideSelectRow');
           const label=document.querySelector('#sideSelectRow .side-label')?.textContent||'';
           inviteSideVisible=Boolean(row&&!row.hidden&&label.includes('초대장'));
-          if(!inviteSideVisible){
+          guideRendered=document.documentElement.dataset.printCheckerInvitationGuides==='v1-duplex-variable-fold'&&document.getElementById('productionGuideLayer')?.width>0;
+          const inviteDesc=document.querySelector('[data-product="invitation"] .pc-desc')?.textContent||'';
+          inviteUiOk=inviteDesc.includes('앞면·뒷면')&&document.querySelector('#uploadZone .upload-sub')?.textContent.includes('2페이지 PDF');
+          if(!(inviteSideVisible&&guideRendered&&inviteUiOk)){
             window.dispatchEvent(new CustomEvent('programstudio:print-checker-product-stable'));
-            await new Promise(r=>setTimeout(r,10));
+            await delay(20);
           }
         }
+
         const fold=window.PrintCheckerInvitationDuplexFold?.resolvedFold?.();
         const variableFoldOk=fold?.direction==='vertical'&&Math.abs(fold.position-60)<0.01&&Math.abs(fold.ratio-(60/148))<0.001;
         await PrintChecker.setFileSide('back');
         const inviteBackOk=PrintChecker.getState().fileSide==='back'&&PrintChecker.getState().pdfPageCount===2;
         const inviteRan=PrintChecker.runCheck();
-        window.PrintCheckerInvitationDuplexFold?.syncDuplexReport?.();
-        await new Promise(r=>setTimeout(r,80));
-        const duplexReport=document.getElementById('invitationDuplexReportCard')?.textContent||'';
-        const duplexReportOk=duplexReport.includes('앞면 1p')&&duplexReport.includes('뒷면 2p');
-        const guideRendered=document.documentElement.dataset.printCheckerInvitationGuides==='v1-duplex-variable-fold'&&document.getElementById('productionGuideLayer')?.width>0;
-        const inviteDesc=document.querySelector('[data-product="invitation"] .pc-desc')?.textContent||'';
-        const inviteUiOk=inviteDesc.includes('앞면·뒷면')&&document.querySelector('#uploadZone .upload-sub')?.textContent.includes('2페이지 PDF');
+
+        let duplexReportOk=false;
+        for(let attempt=0;attempt<50&&!duplexReportOk;attempt+=1){
+          window.PrintCheckerInvitationDuplexFold?.syncDuplexReport?.();
+          const duplexReport=document.getElementById('invitationDuplexReportCard')?.textContent||'';
+          duplexReportOk=duplexReport.includes('앞면 1p')&&duplexReport.includes('뒷면 2p');
+          if(!duplexReportOk)await delay(20);
+        }
 
         const pass=autoSelected&&metaOk&&sideVisible&&sideOk&&ran&&actualOk&&uniqueInfoIds&&staleResultHidden&&failedLoaderRemoved&&invitationControlsReady&&inviteInspected&&variableFoldOk&&inviteSideVisible&&inviteBackOk&&inviteRan&&duplexReportOk&&guideRendered&&inviteUiOk;
         document.documentElement.dataset.printCheckerSmoke=pass?'pass':'fail';
