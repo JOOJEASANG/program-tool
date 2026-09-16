@@ -48,6 +48,19 @@ service firebase.storage {
         && request.resource.metadata.purpose == 'pdf-session-source'
         && request.resource.metadata.sessionId == sessionId;
     }
+    function validPrintCheckerSessionUpload(userId, sessionId, fileName) {
+      return request.resource != null
+        && request.resource.size > 0
+        && request.resource.size <= 209715200
+        && request.resource.contentType in ['application/pdf', 'image/png', 'image/jpeg', 'image/webp']
+        && sessionId.matches('^[A-Za-z0-9_-]{8,40}$')
+        && fileName.matches('^source[.](pdf|png|jpg|webp)$')
+        && request.resource.metadata != null
+        && request.resource.metadata.keys().hasAll(['ownerUid', 'purpose', 'sessionId'])
+        && request.resource.metadata.ownerUid == userId
+        && request.resource.metadata.purpose == 'print-checker-session-source'
+        && request.resource.metadata.sessionId == sessionId;
+    }
     function isDesignProjectUpload(userId, projectId, fileName) {
       return isOwner(userId)
         && isApproved()
@@ -96,6 +109,14 @@ service firebase.storage {
         && isOwner(userId)
         && canUseProgram('pdf-editor')
         && validSessionUpload(userId, sessionId, fileName);
+      allow update: if false;
+    }
+    match /print_checker_sessions/{userId}/{sessionId}/{fileName} {
+      allow read, delete: if isOwner(userId) && isApproved();
+      allow create: if resource == null
+        && isOwner(userId)
+        && isApproved()
+        && validPrintCheckerSessionUpload(userId, sessionId, fileName);
       allow update: if false;
     }
     match /pdf_results/{userId}/{resultId}/{fileName} {
