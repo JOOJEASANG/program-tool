@@ -91,7 +91,7 @@ Firebase 배포만으로 Cloud Storage lifecycle 파일이 자동 적용된다�
 
 ## 6. 대용량 PDF 부하 테스트
 
-운영 Function은 의도적으로 비용 상한을 두기 위해 `max_instances=2`, 2GB 메모리, 300초 timeout을 사용합니다. 승인 회원 수나 동시 사용량을 늘리기 전에 다음 시나리오를 측정합니다.
+현재 운영 Function 설정은 비용 상한을 위해 `max_instances=2`를 유지하면서, 대용량 PDF 작업을 위해 **4GB 메모리와 600초 timeout**을 허용합니다. 승인 회원 수나 동시 사용량을 늘리기 전에 다음 시나리오를 측정합니다.
 
 - 100MB PDF 3개 동시 처리
 - 200MB PDF 3개 동시 처리
@@ -99,7 +99,7 @@ Firebase 배포만으로 Cloud Storage lifecycle 파일이 자동 적용된다�
 - 암호화/복호화와 일반 PDF 작업 혼합
 - 배경 이미지 처리 포함 작업
 
-측정 항목은 대기시간, 429/5xx, timeout, Function 메모리, Storage egress입니다. 측정 결과 없이 `max_instances`를 올리지 않습니다.
+측정 항목은 대기시간, 429/5xx, timeout, Function 메모리, 실행시간, Storage egress입니다. 측정 결과 없이 `max_instances`를 올리지 않고, 실제 처리시간이 짧다면 메모리/timeout 하향도 검토합니다.
 
 ## 7. 보안 헤더 후속 강화
 
