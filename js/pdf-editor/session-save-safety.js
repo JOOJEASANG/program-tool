@@ -9,12 +9,14 @@
   const MAX_SESSION_FILES = 50;
   const MAX_FILE_BYTES = 200 * 1024 * 1024;
   const MAX_SESSION_BYTES = 300 * 1024 * 1024;
+  const MAX_STATE_BYTES = 780 * 1024;
   let installAttempts = 0;
   let active = false;
   let lockSnapshot = null;
 
   const byId = (id) => document.getElementById(id);
   const totalBytes = (files) => Array.from(files || []).reduce((sum, file) => sum + Number(file?.size || 0), 0);
+  const utf8Bytes = (value) => new TextEncoder().encode(String(value ?? '')).byteLength;
 
   function editorReady() {
     try {
@@ -41,7 +43,7 @@
     return JSON.parse(JSON.stringify(value));
   }
 
-  function validateSnapshot(files, state) {
+  function validateSnapshot(files, state, stateJson = JSON.stringify(state)) {
     if (!Array.isArray(files) || files.length === 0) {
       throw new Error('저장할 원본 PDF가 없습니다.');
     }
@@ -57,6 +59,10 @@
     }
     if (!state || !Array.isArray(state.pages)) {
       throw new Error('편집 페이지 상태를 확인할 수 없습니다.');
+    }
+    const stateBytes = utf8Bytes(stateJson);
+    if (stateBytes > MAX_STATE_BYTES) {
+      throw new Error('편집 상태가 너무 커서 세션을 저장할 수 없습니다. 작업을 나누어 저장해 주세요.');
     }
 
     state.pages.forEach((page, index) => {
@@ -77,6 +83,8 @@
       pageCount: state.pages.length,
       breakCount: state.pages.filter((page) => Boolean(page?.groupBreak)).length,
       totalBytes: bytes,
+      stateBytes,
+      stateJson,
     };
   }
 
@@ -242,7 +250,8 @@
     let snapshotMeta;
     try {
       state = cloneSerializable(collectEditorState());
-      snapshotMeta = validateSnapshot(files, state);
+      const stateJson = JSON.stringify(state);
+      snapshotMeta = validateSnapshot(files, state, stateJson);
     } catch (error) {
       setStatus(`저장 전 확인 실패: ${error.message}`, '#dc2626');
       return false;
@@ -284,7 +293,7 @@
         fileCount: files.length,
         pageCount: state.pages.length,
         totalBytes: snapshotMeta.totalBytes,
-        state: JSON.stringify(state),
+        state: snapshotMeta.stateJson,
         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
       });
 
@@ -360,8 +369,9 @@
     maxSessionBytes: MAX_SESSION_BYTES,
     maxFileBytes: MAX_FILE_BYTES,
     maxSessionFiles: MAX_SESSION_FILES,
-    stage: 'multi-source-snapshot-300mb-cost-guard-v2',
-    reviewFixes: 'thumbnail-lock-not-found-cleanup-owner-metadata',
+    maxStateBytes: MAX_STATE_BYTES,
+    stage: 'multi-source-snapshot-300mb-cost-guard-v3-state-preflight',
+    reviewFixes: 'thumbnail-lock-not-found-cleanup-owner-metadata-state-byte-precheck',
   };
 
   if (document.readyState === 'loading') {
