@@ -11,9 +11,11 @@ service cloud.firestore {
     function approved(uid){ return isAdmin() || (exists(/databases/$(database)/documents/user_permissions/$(uid)) && permission(uid).data.status == 'approved'); }
     function isOwner(uid){ return signedIn() && request.auth.uid == uid; }
     function validBusinessPrivate(){
+      // 700k permits one-time migration of legacy <=500KB images after base64 expansion.
+      // The current admin UI still caps all new stamp uploads at 300KB raw.
       return request.resource.data.keys().hasOnly(['stampData','updatedAt'])
         && (!request.resource.data.keys().hasAny(['stampData'])
-          || (request.resource.data.stampData is string && request.resource.data.stampData.size() <= 420000))
+          || (request.resource.data.stampData is string && request.resource.data.stampData.size() <= 700000))
         && (!request.resource.data.keys().hasAny(['updatedAt']) || request.resource.data.updatedAt is timestamp);
     }
     function validDesignProjectMetadata(uid, projectId){
