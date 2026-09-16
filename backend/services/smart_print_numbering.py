@@ -13,6 +13,7 @@ _ALLOWED_POSITIONS = {
     'top-left', 'top-center', 'top-right',
     'bottom-left', 'bottom-center', 'bottom-right',
 }
+_ALLOWED_TARGET_SIDES = {'front', 'back', 'both'}
 _FONT_NAMES = {
     'korean': 'korea',
     'helvetica': 'helv',
@@ -37,6 +38,7 @@ class NumberingOptions:
     end: int | None = None
     format: str = 'pad3'
     position: str = 'bottom-right'
+    target_side: str = 'both'
     font_size_pt: float = 9.0
     font: str = 'helvetica-bold'
     prefix: str = ''
@@ -59,6 +61,7 @@ def parse_numbering_options(raw) -> NumberingOptions:
         raise ValueError('넘버링 시작·끝번호, 글자 크기와 여백을 확인해 주세요') from exc
     fmt = str(raw.get('format') or 'pad3').strip().lower()
     position = str(raw.get('position') or 'bottom-right').strip().lower()
+    target_side = str(raw.get('target_side') or 'both').strip().lower()
     font = str(raw.get('font') or 'helvetica-bold').strip().lower()
     prefix = str(raw.get('prefix') or '').strip()
     transparent_background = bool(raw.get('transparent_background'))
@@ -75,6 +78,8 @@ def parse_numbering_options(raw) -> NumberingOptions:
         raise ValueError('넘버링 표시 형식을 확인해 주세요')
     if position not in _ALLOWED_POSITIONS:
         raise ValueError('넘버링 위치를 확인해 주세요')
+    if target_side not in _ALLOWED_TARGET_SIDES:
+        raise ValueError('넘버링 적용 면을 확인해 주세요')
     if font not in _FONT_NAMES:
         raise ValueError('넘버링 글꼴을 확인해 주세요')
     if len(prefix) > 40 or any(ord(char) < 32 for char in prefix):
@@ -89,6 +94,7 @@ def parse_numbering_options(raw) -> NumberingOptions:
         end=end,
         format=fmt,
         position=position,
+        target_side=target_side,
         font_size_pt=font_size,
         font=font,
         prefix=prefix,
@@ -228,6 +234,11 @@ def apply_layout_numbering(pdf_bytes: bytes, plan: LayoutPlan, raw_options) -> b
     options = parse_numbering_options(raw_options)
     if not options.enabled:
         return pdf_bytes
+    if options.target_side == 'back' and not plan.duplex:
+        raise ValueError('단면 출력에서는 뒷면 넘버링을 사용할 수 없습니다')
+
+    draw_front = options.target_side in {'front', 'both'}
+    draw_back = options.target_side in {'back', 'both'}
 
     document = fitz.open(stream=pdf_bytes, filetype='pdf')
     try:
@@ -242,22 +253,24 @@ def apply_layout_numbering(pdf_bytes: bytes, plan: LayoutPlan, raw_options) -> b
             labels = [format_number(sequence + index, options.format, options.prefix) for index in range(label_count)]
             if page_index >= document.page_count:
                 raise ValueError('넘버링을 적용할 출력 페이지를 찾을 수 없습니다')
-            front = document[page_index]
-            for placement, label in zip(sheet, labels):
-                _draw_number(front, placement, label, options)
+            if draw_front:
+                front = document[page_index]
+                for placement, label in zip(sheet, labels):
+                    _draw_number(front, placement, label, options)
 
             if plan.duplex:
                 if page_index + 1 >= document.page_count:
                     raise ValueError('양면 넘버링을 적용할 뒷면 페이지를 찾을 수 없습니다')
-                back = document[page_index + 1]
-                for placement, label in zip(sheet, labels):
-                    mirrored = mirror_back_placement(
-                        placement,
-                        plan.paper_width_mm,
-                        plan.paper_height_mm,
-                        plan.flip_edge,
-                    )
-                    _draw_number(back, mirrored, label, options)
+                if draw_back:
+                    back = document[page_index + 1]
+                    for placement, label in zip(sheet, labels):
+                        mirrored = mirror_back_placement(
+                            placement,
+                            plan.paper_width_mm,
+                            plan.paper_height_mm,
+                            plan.flip_edge,
+                        )
+                        _draw_number(back, mirrored, label, options)
                 page_index += 2
             else:
                 page_index += 1
