@@ -74,6 +74,8 @@ test('business stamp stays admin-only while public business details remain reada
   await assertFails(setDoc(doc(memberDb, 'settings/business_private'), { stampData: 'member-write' }, { merge: true }));
   await assertSucceeds(getDoc(doc(adminDb, 'settings/business_private')));
   await assertSucceeds(setDoc(doc(adminDb, 'settings/business_private'), { stampData: 'admin-write' }, { merge: true }));
+  await assertFails(setDoc(doc(adminDb, 'settings/business'), { stampData: 'data:image/png;base64,cHVibGlj' }, { merge: true }));
+  await assertFails(setDoc(doc(adminDb, 'settings/business_private'), { stampData: 'x'.repeat(420001) }, { merge: true }));
 });
 
 test('temporary staging cannot be overwritten after the first upload', async () => {
