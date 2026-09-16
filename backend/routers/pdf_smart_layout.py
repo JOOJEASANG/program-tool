@@ -9,7 +9,7 @@ from flask import Blueprint, Response, jsonify, request
 from models.smart_layout_schemas import SmartLayoutRequest
 from services.smart_print_layout import build_layout_plan, inspect_sources, render_layout_pdf
 from services.smart_print_layout_auto import build_auto_fill_layout_plan
-from services.smart_print_numbering import apply_layout_numbering
+from services.smart_print_numbering import apply_layout_numbering, expand_layout_for_numbering
 from utils.auth import require_auth
 from utils.storage import get_bucket, get_request_id
 from utils.storage_delivery import upload_pdf_result
@@ -164,8 +164,10 @@ def smart_layout(uid: str):
                 duplex,
                 settings.flip_edge,
             )
+        numbering = raw_settings.get('numbering')
+        plan = expand_layout_for_numbering(plan, numbering)
         output = render_layout_pdf(render_docs, plan, gap_mm=settings.gap_mm, crop_marks=settings.crop_marks)
-        output = apply_layout_numbering(output, plan, raw_settings.get('numbering'))
+        output = apply_layout_numbering(output, plan, numbering)
     except ValueError as exc:
         return _error(str(exc), 400, 'SMART_LAYOUT_VALIDATION_FAILED')
     except Exception:
