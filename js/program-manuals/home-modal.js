@@ -2,7 +2,7 @@
   'use strict';
   if (window.ProgramManualHomeModal) return;
 
-  const VERSION = '20260910-1';
+  const VERSION = '20260916-2';
   const SCRIPT_BY_PROGRAM = Object.freeze({
     'print-checker': '/js/program-manuals/print-checker.js',
     'smart-print-layout': '/js/program-manuals/smart-print-layout.js',
