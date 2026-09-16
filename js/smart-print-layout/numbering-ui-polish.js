@@ -1,7 +1,7 @@
 (() => {
   'use strict';
-  if (window.__smartPrintNumberingUiPolishV1) return;
-  window.__smartPrintNumberingUiPolishV1 = true;
+  if (window.__smartPrintNumberingUiPolishV2) return;
+  window.__smartPrintNumberingUiPolishV2 = true;
 
   const $ = id => document.getElementById(id);
 
@@ -38,16 +38,27 @@
       .smart-numbering-panel .numbering-offset-row small{
         display:block;margin-top:4px;color:#8492a6;font-size:8.5px;font-weight:700;line-height:1.25
       }
-      .smart-numbering-panel .numbering-fixed-font{background:#fff}
       .smart-numbering-panel .numbering-color-field input[type="color"]{background:#fff}
       .smart-numbering-panel .numbering-estimate{margin-top:1px}
       .smart-numbering-panel .hint{margin:0;padding:0 2px}
+      .smart-numbering-panel #numberingPrefix,
+      .smart-numbering-panel #numberingPrefix:focus{box-shadow:none!important}
+      .smart-numbering-panel .numbering-wheel-hint{
+        margin:0;padding:7px 9px;border-radius:7px;background:#eef6ff;color:#45627f;font-size:9px;font-weight:750;line-height:1.4
+      }
       @media(max-width:520px){
         .smart-numbering-panel .numbering-ui-group .grid2{grid-template-columns:1fr!important}
         .smart-numbering-panel .numbering-side-row > .field{grid-column:auto}
       }
     `;
     document.head.appendChild(style);
+  }
+
+  function removeWorkspacePreviewDescription() {
+    const descriptions = document.querySelectorAll('.workspace-head p');
+    descriptions.forEach(element => {
+      if (element.textContent.includes('단면과 양면 모두 같은 크기의 중앙 미리보기를 사용합니다.')) element.remove();
+    });
   }
 
   function uniqueRows(ids) {
@@ -73,11 +84,39 @@
     return group;
   }
 
+  function bindWheelControl(input) {
+    if (!input || input.dataset.wheelAdjustBound === '1') return;
+    input.dataset.wheelAdjustBound = '1';
+    input.addEventListener('wheel', event => {
+      if (input.disabled) return;
+      event.preventDefault();
+      const step = Number(input.step) || 0.5;
+      const min = Number.isFinite(Number(input.min)) ? Number(input.min) : -Infinity;
+      const max = Number.isFinite(Number(input.max)) ? Number(input.max) : Infinity;
+      const current = Number(input.value) || 0;
+      const direction = event.deltaY < 0 ? 1 : -1;
+      const decimals = String(step).includes('.') ? String(step).split('.')[1].length : 0;
+      const next = Math.min(max, Math.max(min, current + direction * step));
+      input.value = next.toFixed(decimals);
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+    }, { passive: false });
+  }
+
+  function addWheelHint(group) {
+    if (!group || group.querySelector('.numbering-wheel-hint')) return;
+    const note = document.createElement('p');
+    note.className = 'numbering-wheel-hint';
+    note.textContent = '넘버링 출력위치는 좌우·상하 입력칸에서 마우스 휠로 조절할 수 있습니다.';
+    group.appendChild(note);
+  }
+
   function polish() {
     const options = $('numberingOptions');
     const enabled = $('numberingEnabled');
     if (!options || !enabled) return false;
 
+    removeWorkspacePreviewDescription();
     const labelText = enabled.closest('.check-row')?.querySelector('span');
     if (labelText) labelText.textContent = '넘버링';
 
@@ -86,18 +125,28 @@
     const transparent = $('numberingTransparent')?.closest('.check-row');
     if (transparent) transparent.classList.add('numbering-transparent-check');
 
-    if (options.querySelector('.numbering-ui-group')) return true;
+    bindWheelControl($('numberingOffsetX'));
+    bindWheelControl($('numberingOffsetY'));
+
+    if (options.querySelector('.numbering-ui-group')) {
+      addWheelHint(options.querySelector('.numbering-ui-group[aria-label="출력 위치"]'));
+      return true;
+    }
 
     // numbering-preview-sync.js가 동적으로 추가하는 옵션까지 생성된 뒤 묶는다.
     if (!$('numberingTargetSide') || !$('numberingOffsetX') || !$('numberingBold') || !$('numberingColor')) return false;
 
     makeGroup('기본 설정', uniqueRows(['numberingStart', 'numberingPrefix']));
     makeGroup('표시 설정', uniqueRows(['numberingFont', 'numberingPosition', 'numberingBold']));
-    makeGroup('출력 위치', uniqueRows(['numberingTargetSide', 'numberingOffsetX']));
+    const outputGroup = makeGroup('출력 위치', uniqueRows(['numberingTargetSide', 'numberingOffsetX']));
+    addWheelHint(outputGroup);
+    bindWheelControl($('numberingOffsetX'));
+    bindWheelControl($('numberingOffsetY'));
     return true;
   }
 
   function start() {
+    removeWorkspacePreviewDescription();
     let attempts = 0;
     const tryPolish = () => {
       attempts += 1;
