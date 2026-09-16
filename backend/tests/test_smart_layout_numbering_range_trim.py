@@ -65,7 +65,7 @@ def test_numbering_range_validation_caps_single_job_at_2000_numbers():
         parse_numbering_options({'enabled': True, 'start': 10, 'end': 9})
 
 
-def test_prefix_transparent_background_and_fixed_korean_font_are_parsed():
+def test_prefix_transparent_background_fixed_font_bold_and_color_are_parsed():
     options = parse_numbering_options({
         'enabled': True,
         'start': 7,
@@ -73,12 +73,19 @@ def test_prefix_transparent_background_and_fixed_korean_font_are_parsed():
         'prefix': '입장권-',
         'font': 'helvetica-bold',
         'transparent_background': True,
+        'bold': True,
+        'color': '#C026D3',
     })
     assert options.end == 10
     assert options.prefix == '입장권-'
     assert options.font == 'korean'
     assert options.transparent_background is True
+    assert options.bold is True
+    assert options.color == '#c026d3'
     assert format_number(7, 'pad3', options.prefix) == '입장권- 007'
+
+    with pytest.raises(ValueError, match='글씨 색상'):
+        parse_numbering_options({'enabled': True, 'color': 'red'})
 
 
 def test_prefix_and_number_use_exactly_one_space_after_trimming():
@@ -109,6 +116,8 @@ def test_legacy_font_setting_is_ignored_and_korean_default_renders_saved_pdf():
             'font': 'times-bold-italic',
             'format': 'pad3',
             'transparent_background': True,
+            'bold': True,
+            'color': '#2563eb',
         })
         output = fitz.open(stream=numbered, filetype='pdf')
         try:
@@ -121,22 +130,24 @@ def test_legacy_font_setting_is_ignored_and_korean_default_renders_saved_pdf():
         source.close()
 
 
-def test_numbering_margins_move_saved_pdf_label_from_selected_anchor():
+def test_numbering_offsets_move_saved_pdf_label_from_selected_anchor_and_legacy_margins_are_ignored():
     source = _source()
     try:
         plan = _auto_plan()
         plan = expand_layout_for_numbering(plan, {'enabled': True, 'start': 1, 'end': 1})
         base = render_layout_pdf([source], plan, gap_mm=3.0, crop_marks=False)
 
-        def number_rect(margin_x, margin_y):
+        def number_rect(offset_x, offset_y, legacy_margin=1.5):
             numbered = apply_layout_numbering(base, plan, {
                 'enabled': True,
                 'start': 1,
                 'end': 1,
                 'format': 'pad3',
-                'position': 'bottom-right',
-                'margin_x_mm': margin_x,
-                'margin_y_mm': margin_y,
+                'position': 'top-center',
+                'offset_x_mm': offset_x,
+                'offset_y_mm': offset_y,
+                'margin_x_mm': legacy_margin,
+                'margin_y_mm': legacy_margin,
                 'transparent_background': True,
             })
             output = fitz.open(stream=numbered, filetype='pdf')
@@ -147,10 +158,13 @@ def test_numbering_margins_move_saved_pdf_label_from_selected_anchor():
             finally:
                 output.close()
 
-        near_edge = number_rect(1.5, 1.5)
-        moved_inward = number_rect(8.0, 8.0)
-        assert moved_inward.x0 < near_edge.x0
-        assert moved_inward.y0 < near_edge.y0
+        origin = number_rect(0, 0, 1.5)
+        same_origin_with_old_margin = number_rect(0, 0, 20)
+        moved = number_rect(8, 6, 20)
+        assert abs(same_origin_with_old_margin.x0 - origin.x0) < 0.2
+        assert abs(same_origin_with_old_margin.y0 - origin.y0) < 0.2
+        assert moved.x0 > origin.x0
+        assert moved.y0 > origin.y0
     finally:
         source.close()
 

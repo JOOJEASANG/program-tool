@@ -1,14 +1,16 @@
 (() => {
   'use strict';
-  if (window.__smartPrintNumberingPreviewSyncV4) return;
-  window.__smartPrintNumberingPreviewSyncV4 = true;
+  if (window.__smartPrintNumberingPreviewSyncV5) return;
+  window.__smartPrintNumberingPreviewSyncV5 = true;
 
   const $ = id => document.getElementById(id);
   const KOREAN_STACK = '"Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR",Arial,sans-serif';
+  const DEFAULT_COLOR = '#111827';
   const WATCHED_CONTROLS = new Set([
     'numberingEnabled', 'numberingStart', 'numberingEnd', 'numberingPrefix',
     'numberingFormat', 'numberingPosition', 'numberingFontSize',
     'numberingTransparent', 'numberingOffsetX', 'numberingOffsetY', 'numberingTargetSide',
+    'numberingBold', 'numberingColor',
   ]);
   let frame = 0;
   let shellObserver = null;
@@ -17,6 +19,11 @@
     const value = Number($(id)?.value);
     if (!Number.isFinite(value)) return fallback;
     return Math.min(max, Math.max(min, value));
+  };
+
+  const colorValue = () => {
+    const value = String($('numberingColor')?.value || DEFAULT_COLOR).trim();
+    return /^#[0-9a-f]{6}$/i.test(value) ? value.toLowerCase() : DEFAULT_COLOR;
   };
 
   function formatNumber(value) {
@@ -48,6 +55,15 @@
     }
   }
 
+  function removeLegacyMarginControls() {
+    const rows = new Set();
+    ['numberingMarginX', 'numberingMarginY', 'advNumberingMarginX', 'advNumberingMarginY'].forEach(id => {
+      const control = $(id);
+      if (control) rows.add(control.closest('.grid2') || control.closest('.field'));
+    });
+    rows.forEach(row => row?.remove());
+  }
+
   function ensureControls() {
     const options = $('numberingOptions');
     const positionRow = $('numberingPosition')?.closest('.grid2');
@@ -59,13 +75,25 @@
       style.id = 'numberingPreviewSyncStyles';
       style.textContent = `
         .numbering-prefix-format-row{column-gap:16px!important}
-        .numbering-side-row,.numbering-offset-row{column-gap:12px}
+        .numbering-side-row,.numbering-offset-row,.numbering-appearance-row{column-gap:12px}
         .numbering-fixed-font{min-height:34px;display:flex;align-items:center;border:1px solid #cfd9e3;border-radius:8px;background:#f8fafc;padding:7px 9px;color:#334155;font-size:11px;font-weight:800}
+        .numbering-color-field input[type="color"]{width:100%;height:36px;padding:3px;border:1px solid #cfd9e3;border-radius:8px;background:#fff;cursor:pointer}
+        .numbering-bold-check{min-height:36px;margin-top:16px}
       `;
       document.head.appendChild(style);
     }
     prefixRow?.classList.add('numbering-prefix-format-row');
     lockFontControl();
+    removeLegacyMarginControls();
+
+    if (!$('numberingBold') || !$('numberingColor')) {
+      const appearanceRow = document.createElement('div');
+      appearanceRow.className = 'grid2 numbering-appearance-row';
+      appearanceRow.innerHTML = `
+        <label class="check-row numbering-bold-check"><input id="numberingBold" type="checkbox"><span>굵게 표시</span></label>
+        <label class="field numbering-color-field"><span>글씨 색상</span><input id="numberingColor" type="color" value="${DEFAULT_COLOR}" aria-label="넘버링 글씨 색상"></label>`;
+      positionRow.insertAdjacentElement('afterend', appearanceRow);
+    }
 
     if (!$('numberingTargetSide')) {
       const sideRow = document.createElement('div');
@@ -73,7 +101,8 @@
       sideRow.innerHTML = `
         <label class="field"><span>넘버링 적용 면</span><select id="numberingTargetSide"><option value="front">앞면만</option><option value="back">뒷면만</option><option value="both" selected>앞·뒷면 모두</option></select></label>
         <div></div>`;
-      positionRow.insertAdjacentElement('afterend', sideRow);
+      const appearanceRow = $('numberingBold')?.closest('.grid2') || positionRow;
+      appearanceRow.insertAdjacentElement('afterend', sideRow);
     }
 
     if (!$('numberingOffsetX') || !$('numberingOffsetY')) {
@@ -87,29 +116,34 @@
     }
 
     const enabled = Boolean($('numberingEnabled')?.checked);
-    for (const id of ['numberingTargetSide', 'numberingOffsetX', 'numberingOffsetY']) {
+    for (const id of ['numberingTargetSide', 'numberingOffsetX', 'numberingOffsetY', 'numberingBold', 'numberingColor']) {
       const control = $(id);
       if (control) control.disabled = !enabled;
     }
     lockFontControl();
+    removeLegacyMarginControls();
     return true;
   }
 
   function patchEnhancementConfig() {
     const enhancements = window.SmartPrintLayoutEnhancements;
-    if (!enhancements || enhancements.__numberingSideOffsetsPatchedV3) return;
+    if (!enhancements || enhancements.__numberingAppearancePatchedV5) return;
     const original = enhancements.numberingConfig;
     if (typeof original !== 'function') return;
-    enhancements.numberingConfig = function numberingConfigWithFixedFontSideAndOffsets() {
+    enhancements.numberingConfig = function numberingConfigWithFixedFontSideOffsetsAppearance() {
       const config = original();
       config.target_side = $('numberingTargetSide')?.value || 'both';
       config.offset_x_mm = numberValue('numberingOffsetX', 0, -50, 50);
       config.offset_y_mm = numberValue('numberingOffsetY', 0, -50, 50);
       config.prefix = String(config.prefix || '').trim();
       config.font = 'korean';
+      config.bold = Boolean($('numberingBold')?.checked);
+      config.color = colorValue();
+      delete config.margin_x_mm;
+      delete config.margin_y_mm;
       return config;
     };
-    enhancements.__numberingSideOffsetsPatchedV3 = true;
+    enhancements.__numberingAppearancePatchedV5 = true;
   }
 
   function mirrorBack(placement, cfg) {
@@ -160,7 +194,7 @@
   function updateHint() {
     const hint = document.querySelector('#numberingOptions .hint');
     if (!hint) return;
-    hint.textContent = '넘버링 글꼴은 한국어 기본 하나로 고정됩니다. 문구가 있으면 문구와 번호 사이를 한 칸 띄워 출력합니다. 기준 위치를 선택한 뒤 좌우·상하 값을 -/+로 미세 이동할 수 있으며, 적용 면과 위치는 미리보기와 저장 PDF에 동일하게 반영됩니다.';
+    hint.textContent = '글꼴은 한국어 기본으로 고정됩니다. 문구와 번호 사이는 한 칸 띄우며, 굵기·글씨색상·적용 면·좌우/상하 위치 조절은 미리보기와 저장 PDF에 동일하게 반영됩니다.';
   }
 
   function shouldShowOnCurrentSide(api) {
@@ -198,6 +232,8 @@
     const position = $('numberingPosition')?.value || 'bottom-right';
     const offsetX = numberValue('numberingOffsetX', 0, -50, 50);
     const offsetY = numberValue('numberingOffsetY', 0, -50, 50);
+    const bold = Boolean($('numberingBold')?.checked);
+    const color = colorValue();
 
     let labelIndex = 0;
     sheet.forEach((frontPlacement, index) => {
@@ -209,8 +245,9 @@
       const text = formatNumber(value);
       if (element.textContent !== text) element.textContent = text;
       element.style.fontFamily = KOREAN_STACK;
-      element.style.fontWeight = '400';
+      element.style.fontWeight = bold ? '700' : '400';
       element.style.fontStyle = 'normal';
+      element.style.color = color;
       applyPosition(element, placement, scale, position, offsetX, offsetY);
     });
   }
@@ -222,12 +259,16 @@
     settings.numbering.target_side = $('numberingTargetSide')?.value || 'both';
     settings.numbering.prefix = String(settings.numbering.prefix || '').trim();
     settings.numbering.font = 'korean';
+    settings.numbering.bold = Boolean($('numberingBold')?.checked);
+    settings.numbering.color = colorValue();
+    delete settings.numbering.margin_x_mm;
+    delete settings.numbering.margin_y_mm;
     return settings;
   }
 
   function installFetchGuard() {
-    if (window.__smartPrintNumberingFetchGuardV4 || typeof window.fetch !== 'function') return;
-    window.__smartPrintNumberingFetchGuardV4 = true;
+    if (window.__smartPrintNumberingFetchGuardV5 || typeof window.fetch !== 'function') return;
+    window.__smartPrintNumberingFetchGuardV5 = true;
     const originalFetch = window.fetch.bind(window);
     window.fetch = function smartLayoutNumberingFetch(input, init = {}) {
       try {
@@ -274,12 +315,15 @@
       if ($('numberingTargetSide')) $('numberingTargetSide').value = 'both';
       if ($('numberingOffsetX')) $('numberingOffsetX').value = '0';
       if ($('numberingOffsetY')) $('numberingOffsetY').value = '0';
+      if ($('numberingBold')) $('numberingBold').checked = false;
+      if ($('numberingColor')) $('numberingColor').value = DEFAULT_COLOR;
       lockFontControl();
+      removeLegacyMarginControls();
       schedule();
     }));
     window.addEventListener('resize', schedule);
     schedule();
-    document.documentElement.dataset.smartLayoutNumberingPreviewSync = 'v4-position-side-fixed-font-space';
+    document.documentElement.dataset.smartLayoutNumberingPreviewSync = 'v5-position-side-bold-color-no-margins';
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind, { once: true });

@@ -47,17 +47,17 @@
         <label class="field">
           <span>용지 규격</span>
           <select id="paperPreset">
-            <option value="a4">A4 · 210 × 297mm</option>
+            <option value="a4" selected>A4 · 210 × 297mm</option>
             <option value="b4">B4 · 257 × 364mm</option>
-            <option value="a3" selected>A3 · 297 × 420mm</option>
+            <option value="a3">A3 · 297 × 420mm</option>
             <option value="sra3">SRA3 · 320 × 450mm</option>
             <option value="a3plus">A3+ · 329 × 483mm</option>
             <option value="custom">직접 입력</option>
           </select>
         </label>
         <div class="grid2">
-          <label class="field"><span>가로 mm</span><input id="paperWidth" type="number" min="50" max="2000" step="0.1" value="297"></label>
-          <label class="field"><span>세로 mm</span><input id="paperHeight" type="number" min="50" max="2000" step="0.1" value="420"></label>
+          <label class="field"><span>가로 mm</span><input id="paperWidth" type="number" min="50" max="2000" step="0.1" value="210"></label>
+          <label class="field"><span>세로 mm</span><input id="paperHeight" type="number" min="50" max="2000" step="0.1" value="297"></label>
         </div>
         <div class="grid2">
           <label class="field"><span>바깥 여백</span><input id="marginMm" type="number" min="0" max="80" step="0.5" value="5"></label>
@@ -119,7 +119,7 @@
         <div>
           <span class="workspace-kicker">AUTO LAYOUT PREVIEW</span>
           <h1>출력 방향과 파일 크기에 맞춰 용지를 자동으로 채웁니다</h1>
-          <p>단면은 기존처럼 한 장으로, 양면은 앞면과 뒷면을 좌우에 동시에 표시합니다. 재단크기와 넘버링 설정도 실제 출력 위치에 맞춰 함께 갱신됩니다.</p>
+          <p>단면과 양면 모두 같은 크기의 중앙 미리보기를 사용합니다. 양면은 앞면·뒷면 버튼으로 선택해 확인하며 재단선과 넘버링도 선택한 면에 맞춰 표시됩니다.</p>
         </div>
         <div class="preview-controls">
           <button id="prevSheet" type="button" disabled>‹</button>
@@ -154,8 +154,8 @@
   <script defer src="/js/smart-print-layout/preview-upload.js?v=20260916-1"></script>
   <script defer src="/js/smart-print-layout/advanced-controls.js?v=20260915-1"></script>
   <script defer src="/js/smart-print-layout/final-controls.js?v=20260916-1"></script>
-  <script defer src="/js/smart-print-layout/numbering-preview-sync.js?v=20260916-2"></script>
-  <script defer src="/js/smart-print-layout/duplex-preview.js?v=20260916-1"></script>
+  <script defer src="/js/smart-print-layout/numbering-preview-sync.js?v=20260916-3"></script>
+  <script defer src="/js/smart-print-layout/duplex-preview.js?v=20260916-2"></script>
   <script defer src="/js/smart-print-layout/session-persistence.js?v=20260910-1"></script>
 </body>
 </html>
