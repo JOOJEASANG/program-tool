@@ -22,6 +22,8 @@ def test_retired_admin_catalog_and_program_sync_runtime_is_absent():
  for filename in retired:
   assert filename not in runtime
   assert not (ROOT/"js"/filename).exists()
- assert "/js/admin-workflow-v2.js?v=20260828-1" in read("js/program-studio-ui-v2.js")
+ ui=read("js/program-studio-ui-v2.js")
+ assert "/js/admin-workflow-v2.js?v=20260916-1" in ui
+ assert "window.__adminWorkflowApprovedOnlyV1" in ui
 def test_release_version_is_synchronized_for_new_workflow():
  version=json.loads(read("version.json"));expected=str(version["version"]).strip();sw=read("sw.js");firebase=read("js/firebase-config.js");assert expected and f"APP_VERSION='{expected}'" in sw and f"/js/sw-register.js?v={expected}" in firebase
