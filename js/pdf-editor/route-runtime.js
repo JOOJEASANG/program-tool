@@ -6,6 +6,7 @@
   window.__pdfEditorRouteRuntimeV2=true;
 
   const MODULES=Object.freeze([
+    {id:'programSidebarActionsScriptV1',src:'/js/program-sidebar-actions.js?v=20260916-1'},
     {id:'programShellUnifyScriptV1',src:'/js/program-shell-unify.js?v=20260831-1'},
     {id:'pdfAllInOneStage1ScriptV1',src:'/js/pdf-all-in-one-stage1.js?v=20260824-1'},
     {id:'desktopToolMobileNoticeScriptV1',src:'/js/desktop-tool-mobile-notice.js?v=20260807-1'},
@@ -134,6 +135,6 @@
     modules:MODULES.map(({id,src})=>({id,src})),
     app:standaloneApp(),
     get profile(){return window.PdfEditorStandaloneApps?.fromLocation?.(location.search)?.key||null;},
-    stage:'pdf-editor-route-runtime-manifest-v6-approved-only'
+    stage:'pdf-editor-route-runtime-manifest-v7-unified-sidebar-actions'
   };
 })();
