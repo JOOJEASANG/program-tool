@@ -1,38 +1,23 @@
-// Compatibility bootstrap: legacy admin filename now loads the extensible program usage settings UI.
+// Compatibility shim retained for old cached admin pages.
+// Usage-count controls were retired: approved members may use the service without a quota.
 (function(){
   'use strict';
-  if(window.__programAdminUsageCompatibilityBootstrapV1)return;
-  window.__programAdminUsageCompatibilityBootstrapV1=true;
+  if(window.__programAdminUsageCompatibilityRetiredV1)return;
+  window.__programAdminUsageCompatibilityRetiredV1=true;
 
-  function loadScript(id,src){
-    return new Promise((resolve,reject)=>{
-      const existing=document.getElementById(id);
-      if(existing){
-        if(existing.dataset.loaded==='true')return resolve(existing);
-        existing.addEventListener('load',()=>resolve(existing),{once:true});
-        existing.addEventListener('error',reject,{once:true});
-        return;
-      }
-      const script=document.createElement('script');
-      script.id=id;script.src=src;script.async=false;
-      script.addEventListener('load',()=>{script.dataset.loaded='true';resolve(script);},{once:true});
-      script.addEventListener('error',reject,{once:true});
-      document.head.appendChild(script);
-    });
-  }
-
-  async function boot(){
-    if(!window.ProgramUsageCatalog)await loadScript('programUsageCatalogScriptV1','/js/program-usage-catalog.js?v=20260914-1');
-    if(!window.ProgramAdminUsageSettings)await loadScript('adminProgramUsageSettingsScriptV2','/js/admin-program-usage-settings.js?v=20260914-1');
-    document.documentElement.dataset.adminProgramUsageBootstrap='ready';
+  function cleanup(){
+    document.getElementById('adminProgramUsageNav')?.remove();
+    document.getElementById('programusage')?.remove();
+    document.documentElement.dataset.adminProgramUsageBootstrap='retired';
   }
 
   window.ProgramAdminPdfUsageSettings=Object.freeze({
-    load:()=>window.ProgramAdminUsageSettings?.load?.({showStatus:true}),
-    save:()=>window.ProgramAdminUsageSettings?.saveAll?.(),
-    get loaded(){return Boolean(window.ProgramAdminUsageSettings?.loaded);},
-    stage:'admin-pdf-usage-compatibility-bootstrap-v2'
+    load:async()=>[],
+    save:async()=>true,
+    get loaded(){return true;},
+    stage:'admin-usage-limits-retired'
   });
 
-  boot().catch(error=>console.error('[admin-program-usage] bootstrap failed',error));
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',cleanup,{once:true});
+  else cleanup();
 })();
