@@ -66,8 +66,21 @@
         <label class="check-row"><input id="allowRotate" type="checkbox"><span>90° 회전도 계산해서 더 많이 배치</span></label>
       </section>
 
-      <section class="panel">
+      <section class="panel smart-trim-panel">
         <div class="step">STEP 3</div>
+        <h2>재단크기 입력/비교</h2>
+        <input id="trimGuideEnabled" type="checkbox" checked hidden aria-hidden="true">
+        <div id="trimGuideOptions" class="trim-options">
+          <div class="grid2">
+            <label class="field"><span>재단 가로 mm · 필수</span><input id="trimGuideWidth" type="number" min="2" max="2000" step="0.1" placeholder="예: 90" required aria-required="true"></label>
+            <label class="field"><span>재단 세로 mm · 필수</span><input id="trimGuideHeight" type="number" min="2" max="2000" step="0.1" placeholder="예: 50" required aria-required="true"></label>
+          </div>
+          <p class="hint">재단 가로·세로는 필수입력입니다. 입력한 실제 재단크기를 미리보기에 점선으로 표시해 업로드 원본과 비교하며, ‘재단표시 추가’를 선택하면 완성 PDF도 이 크기를 기준으로 재단표시를 생성합니다.</p>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="step">STEP 4</div>
         <h2>앞면 · 뒷면</h2>
         <label class="field">
           <span>양면 방식</span>
@@ -87,7 +100,7 @@
           </label>
           <p class="hint">뒷면의 배치 위치를 뒤집는 방향에 맞춰 자동 반전합니다. 뒷면 그림 자체를 거울처럼 뒤집지는 않습니다.</p>
         </div>
-        <label class="check-row"><input id="cropMarks" type="checkbox"><span>완성 PDF에 재단표시 추가</span></label>
+        <label class="check-row"><input id="cropMarks" type="checkbox"><span>입력한 재단크기로 완성 PDF에 재단표시 추가</span></label>
       </section>
 
       <section class="summary-card" id="summaryCard" aria-live="polite">
@@ -106,7 +119,7 @@
         <div>
           <span class="workspace-kicker">AUTO LAYOUT PREVIEW</span>
           <h1>출력 방향과 파일 크기에 맞춰 용지를 자동으로 채웁니다</h1>
-          <p>세로·가로 출력, 별도 뒷면 파일, 넘버링 설정을 바꾸면 실제 출력 위치와 동일하게 미리보기를 갱신합니다.</p>
+          <p>재단크기, 세로·가로 출력, 별도 뒷면 파일, 넘버링 설정을 바꾸면 실제 출력 위치와 동일하게 미리보기를 갱신합니다.</p>
         </div>
         <div class="preview-controls">
           <button id="prevSheet" type="button" disabled>‹</button>
@@ -139,6 +152,7 @@
   <script defer src="/js/smart-print-layout/size-numbering.js?v=20260916-2"></script>
   <script defer src="/js/smart-print-layout/image-input-bridge.js?v=20260915-2"></script>
   <script defer src="/js/smart-print-layout/advanced-controls.js?v=20260915-1"></script>
+  <script defer src="/js/smart-print-layout/final-controls.js?v=20260916-1"></script>
   <script defer src="/js/smart-print-layout/session-persistence.js?v=20260910-1"></script>
 </body>
 </html>

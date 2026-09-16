@@ -10,6 +10,7 @@ from models.smart_layout_schemas import SmartLayoutRequest
 from services.smart_print_layout import build_layout_plan, inspect_sources, render_layout_pdf
 from services.smart_print_layout_auto import build_auto_fill_layout_plan
 from services.smart_print_numbering import apply_layout_numbering, expand_layout_for_numbering
+from services.smart_print_trim import apply_trim_crop_marks, parse_trim_size
 from utils.auth import require_auth
 from utils.storage import get_bucket, get_request_id
 from utils.storage_delivery import upload_pdf_result
@@ -108,6 +109,11 @@ def smart_layout(uid: str):
     except Exception:
         return _error('스마트 배치 설정이 올바르지 않습니다.', 422, 'SMART_LAYOUT_INVALID_SETTINGS')
 
+    try:
+        trim_width_mm, trim_height_mm = parse_trim_size(raw_settings, required=settings.crop_marks)
+    except ValueError as exc:
+        return _error(str(exc), 422, 'SMART_LAYOUT_INVALID_TRIM')
+
     uploads = request.files.getlist('files')
     if not uploads:
         return _error('PDF 파일을 추가해 주세요.', 400, 'SMART_LAYOUT_FILES_REQUIRED')
@@ -166,7 +172,19 @@ def smart_layout(uid: str):
             )
         numbering = raw_settings.get('numbering')
         plan = expand_layout_for_numbering(plan, numbering)
-        output = render_layout_pdf(render_docs, plan, gap_mm=settings.gap_mm, crop_marks=settings.crop_marks)
+
+        # The legacy renderer draws marks on the uploaded page edge. Render the
+        # layout without those marks, then draw them at the required finished
+        # trim size entered in STEP 3.
+        output = render_layout_pdf(render_docs, plan, gap_mm=settings.gap_mm, crop_marks=False)
+        output = apply_trim_crop_marks(
+            output,
+            plan,
+            enabled=settings.crop_marks,
+            gap_mm=settings.gap_mm,
+            trim_width_mm=trim_width_mm,
+            trim_height_mm=trim_height_mm,
+        )
         output = apply_layout_numbering(output, plan, numbering)
     except ValueError as exc:
         return _error(str(exc), 400, 'SMART_LAYOUT_VALIDATION_FAILED')
