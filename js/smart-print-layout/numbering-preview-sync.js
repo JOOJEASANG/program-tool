@@ -1,13 +1,13 @@
 (() => {
   'use strict';
-  if (window.__smartPrintNumberingPreviewSyncV3) return;
-  window.__smartPrintNumberingPreviewSyncV3 = true;
+  if (window.__smartPrintNumberingPreviewSyncV4) return;
+  window.__smartPrintNumberingPreviewSyncV4 = true;
 
   const $ = id => document.getElementById(id);
   const KOREAN_STACK = '"Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR",Arial,sans-serif';
   const WATCHED_CONTROLS = new Set([
     'numberingEnabled', 'numberingStart', 'numberingEnd', 'numberingPrefix',
-    'numberingFormat', 'numberingPosition', 'numberingFont', 'numberingFontSize',
+    'numberingFormat', 'numberingPosition', 'numberingFontSize',
     'numberingTransparent', 'numberingOffsetX', 'numberingOffsetY', 'numberingTargetSide',
   ]);
   let frame = 0;
@@ -19,10 +19,6 @@
     return Math.min(max, Math.max(min, value));
   };
 
-  function hasKorean(text) {
-    return /[\u1100-\u11ff\u3130-\u318f\ua960-\ua97f\uac00-\ud7a3\ud7b0-\ud7ff]/u.test(String(text || ''));
-  }
-
   function formatNumber(value) {
     const format = $('numberingFormat')?.value || 'pad3';
     let number;
@@ -30,7 +26,26 @@
     else if (format === 'no-pad3') number = `NO.${String(value).padStart(3, '0')}`;
     else number = String(value).padStart(3, '0');
     const prefix = String($('numberingPrefix')?.value || '').trim();
-    return prefix ? `${prefix}${number}` : number;
+    return prefix ? `${prefix} ${number}` : number;
+  }
+
+  function lockFontControl() {
+    const fontSelect = $('numberingFont');
+    if (!fontSelect) return;
+    fontSelect.value = 'korean';
+    fontSelect.hidden = true;
+    fontSelect.setAttribute('aria-hidden', 'true');
+    const field = fontSelect.closest('.field');
+    if (!field) return;
+    const title = field.querySelector(':scope > span');
+    if (title) title.textContent = '글꼴';
+    let fixed = field.querySelector('.numbering-fixed-font');
+    if (!fixed) {
+      fixed = document.createElement('div');
+      fixed.className = 'numbering-fixed-font';
+      fixed.textContent = '한국어 기본 (고정)';
+      fontSelect.insertAdjacentElement('afterend', fixed);
+    }
   }
 
   function ensureControls() {
@@ -45,10 +60,12 @@
       style.textContent = `
         .numbering-prefix-format-row{column-gap:16px!important}
         .numbering-side-row,.numbering-offset-row{column-gap:12px}
+        .numbering-fixed-font{min-height:34px;display:flex;align-items:center;border:1px solid #cfd9e3;border-radius:8px;background:#f8fafc;padding:7px 9px;color:#334155;font-size:11px;font-weight:800}
       `;
       document.head.appendChild(style);
     }
     prefixRow?.classList.add('numbering-prefix-format-row');
+    lockFontControl();
 
     if (!$('numberingTargetSide')) {
       const sideRow = document.createElement('div');
@@ -74,23 +91,25 @@
       const control = $(id);
       if (control) control.disabled = !enabled;
     }
+    lockFontControl();
     return true;
   }
 
   function patchEnhancementConfig() {
     const enhancements = window.SmartPrintLayoutEnhancements;
-    if (!enhancements || enhancements.__numberingSideOffsetsPatchedV2) return;
+    if (!enhancements || enhancements.__numberingSideOffsetsPatchedV3) return;
     const original = enhancements.numberingConfig;
     if (typeof original !== 'function') return;
-    enhancements.numberingConfig = function numberingConfigWithSideAndOffsets() {
+    enhancements.numberingConfig = function numberingConfigWithFixedFontSideAndOffsets() {
       const config = original();
       config.target_side = $('numberingTargetSide')?.value || 'both';
       config.offset_x_mm = numberValue('numberingOffsetX', 0, -50, 50);
       config.offset_y_mm = numberValue('numberingOffsetY', 0, -50, 50);
       config.prefix = String(config.prefix || '').trim();
+      config.font = 'korean';
       return config;
     };
-    enhancements.__numberingSideOffsetsPatchedV2 = true;
+    enhancements.__numberingSideOffsetsPatchedV3 = true;
   }
 
   function mirrorBack(placement, cfg) {
@@ -141,7 +160,7 @@
   function updateHint() {
     const hint = document.querySelector('#numberingOptions .hint');
     if (!hint) return;
-    hint.textContent = '문구와 번호는 붙여서 출력합니다. 기준 위치를 선택한 뒤 좌우·상하 값을 -/+로 미세 이동할 수 있습니다. 적용 면과 위치는 미리보기와 저장 PDF에 동일하게 반영되며, 한글 문구는 저장 PDF에서 한국어 글꼴로 자동 처리합니다.';
+    hint.textContent = '넘버링 글꼴은 한국어 기본 하나로 고정됩니다. 문구가 있으면 문구와 번호 사이를 한 칸 띄워 출력합니다. 기준 위치를 선택한 뒤 좌우·상하 값을 -/+로 미세 이동할 수 있으며, 적용 면과 위치는 미리보기와 저장 PDF에 동일하게 반영됩니다.';
   }
 
   function shouldShowOnCurrentSide(api) {
@@ -179,7 +198,6 @@
     const position = $('numberingPosition')?.value || 'bottom-right';
     const offsetX = numberValue('numberingOffsetX', 0, -50, 50);
     const offsetY = numberValue('numberingOffsetY', 0, -50, 50);
-    const prefix = String($('numberingPrefix')?.value || '').trim();
 
     let labelIndex = 0;
     sheet.forEach((frontPlacement, index) => {
@@ -190,7 +208,9 @@
       const placement = api.state.side === 'back' ? mirrorBack(frontPlacement, cfg) : frontPlacement;
       const text = formatNumber(value);
       if (element.textContent !== text) element.textContent = text;
-      if (hasKorean(prefix) || hasKorean(text)) element.style.fontFamily = KOREAN_STACK;
+      element.style.fontFamily = KOREAN_STACK;
+      element.style.fontWeight = '400';
+      element.style.fontStyle = 'normal';
       applyPosition(element, placement, scale, position, offsetX, offsetY);
     });
   }
@@ -201,12 +221,13 @@
     settings.numbering.offset_y_mm = numberValue('numberingOffsetY', 0, -50, 50);
     settings.numbering.target_side = $('numberingTargetSide')?.value || 'both';
     settings.numbering.prefix = String(settings.numbering.prefix || '').trim();
+    settings.numbering.font = 'korean';
     return settings;
   }
 
   function installFetchGuard() {
-    if (window.__smartPrintNumberingFetchGuardV3 || typeof window.fetch !== 'function') return;
-    window.__smartPrintNumberingFetchGuardV3 = true;
+    if (window.__smartPrintNumberingFetchGuardV4 || typeof window.fetch !== 'function') return;
+    window.__smartPrintNumberingFetchGuardV4 = true;
     const originalFetch = window.fetch.bind(window);
     window.fetch = function smartLayoutNumberingFetch(input, init = {}) {
       try {
@@ -253,11 +274,12 @@
       if ($('numberingTargetSide')) $('numberingTargetSide').value = 'both';
       if ($('numberingOffsetX')) $('numberingOffsetX').value = '0';
       if ($('numberingOffsetY')) $('numberingOffsetY').value = '0';
+      lockFontControl();
       schedule();
     }));
     window.addEventListener('resize', schedule);
     schedule();
-    document.documentElement.dataset.smartLayoutNumberingPreviewSync = 'v3-position-offset-side-font-safe';
+    document.documentElement.dataset.smartLayoutNumberingPreviewSync = 'v4-position-side-fixed-font-space';
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind, { once: true });

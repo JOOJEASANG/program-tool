@@ -90,25 +90,26 @@ def test_job_schema_rejects_back_file_reused_as_front_job():
         raise AssertionError('back file must not also become a front layout job')
 
 
-def test_numbering_v2_accepts_base14_fonts_positions_and_margins():
-    for font in ('helvetica', 'helvetica-bold', 'times', 'courier'):
+def test_numbering_v2_forces_korean_font_while_preserving_positions_and_margins():
+    for legacy_font in ('helvetica', 'helvetica-bold', 'times', 'courier'):
         options = parse_numbering_options({
             'enabled': True,
-            'font': font,
+            'font': legacy_font,
             'position': 'top-center',
             'font_size_pt': 10,
             'margin_x_mm': 3.5,
             'margin_y_mm': 4.0,
         })
-        assert options.font == font
+        assert options.font == 'korean'
         assert options.position == 'top-center'
         assert options.margin_x_mm == 3.5
         assert options.margin_y_mm == 4.0
 
 
-def test_frontend_exposes_orientation_duplex_pairing_numbering_v2_and_full_preview():
+def test_frontend_exposes_orientation_duplex_pairing_numbering_and_full_preview():
     html = (ROOT / 'smart-print-layout' / 'index.html').read_text(encoding='utf-8')
     module = (ROOT / 'js' / 'smart-print-layout' / 'advanced-controls.js').read_text(encoding='utf-8')
+    sync = (ROOT / 'js' / 'smart-print-layout' / 'numbering-preview-sync.js').read_text(encoding='utf-8')
 
     assert '/js/smart-print-layout/advanced-controls.js?v=20260915-1' in html
     assert 'guide-row' not in html
@@ -118,10 +119,6 @@ def test_frontend_exposes_orientation_duplex_pairing_numbering_v2_and_full_previ
         '가로 출력',
         '뒷면으로 사용',
         'back_file_index',
-        'advNumberingFont',
-        'Helvetica Bold',
-        'Times Roman',
-        'Courier',
         'advNumberingPosition',
         'top-center',
         'advNumberingMarginX',
@@ -131,5 +128,10 @@ def test_frontend_exposes_orientation_duplex_pairing_numbering_v2_and_full_previ
     ):
         assert marker in module
 
+    # Legacy controls may still exist in the compatibility module, but the
+    # final numbering sync owns the visible/exported font and fixes it to Korean.
+    assert "config.font = 'korean'" in sync
+    assert '한국어 기본 (고정)' in sync
+    assert "return prefix ? `${prefix} ${number}` : number;" in sync
     assert '.canvas-shell{flex:1;min-height:0;padding:12px;overflow:hidden}' in module
     assert 'requestFitCanvas' in module
