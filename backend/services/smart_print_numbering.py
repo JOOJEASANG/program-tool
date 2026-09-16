@@ -105,7 +105,32 @@ def format_number(value: int, fmt: str, prefix: str = '') -> str:
         number = f'NO.{value:03d}'
     else:
         number = f'{value:03d}'
-    return f'{prefix}{number}'
+    normalized_prefix = str(prefix or '').strip()
+    return f'{normalized_prefix} {number}' if normalized_prefix else number
+
+
+def _contains_korean(text: str) -> bool:
+    """Return True when text contains Hangul that base PDF fonts cannot encode safely."""
+    for char in str(text or ''):
+        code = ord(char)
+        if (
+            0x1100 <= code <= 0x11FF
+            or 0x3130 <= code <= 0x318F
+            or 0xA960 <= code <= 0xA97F
+            or 0xAC00 <= code <= 0xD7A3
+            or 0xD7B0 <= code <= 0xD7FF
+        ):
+            return True
+    return False
+
+
+def _resolved_font_name(options: NumberingOptions, label: str) -> str:
+    # Browser preview can fall back to a system Korean font automatically, while
+    # PyMuPDF's Latin base fonts cannot. Keep Latin font choices for Latin-only
+    # labels but force the built-in CJK font whenever the rendered label has Hangul.
+    if _contains_korean(label):
+        return 'korea'
+    return _FONT_NAMES[options.font]
 
 
 def expand_layout_for_numbering(plan: LayoutPlan, raw_options) -> LayoutPlan:
@@ -171,7 +196,7 @@ def _draw_number(page: fitz.Page, placement: Placement, label: str, options: Num
     inset_y = options.margin_y_mm * MM_TO_PT
     pad_x = 1.0 * MM_TO_PT
     pad_y = 0.55 * MM_TO_PT
-    font_name = _FONT_NAMES[options.font]
+    font_name = _resolved_font_name(options, label)
     font_size = options.font_size_pt
     base_width = max(1.0, fitz.get_text_length(label, fontname=font_name, fontsize=font_size))
     available_width = max(6.0, rect.width - 2 * inset_x - 2 * pad_x)
