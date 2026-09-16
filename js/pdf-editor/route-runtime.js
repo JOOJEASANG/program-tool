@@ -100,15 +100,9 @@
     const advanced=isAdvancedProfile();
     removeStandardSidebarTitle();
     if(app==='layout'){
-      // The layout-only selection menu owns hide/show actions for every selected
-      // page, so the generic loader must not append its single-page hide action.
       window.__pdfEditorHiddenContextActionV1=true;
     }
     if(app)pending.push(loadStandaloneBoundary());
-    // The output guard is intentionally outside MODULES so it stays a small,
-    // shared cross-program policy layer rather than becoming PDF editor state.
-    // It lazily loads the quota catalog/policy only when the user generates a result.
-    if(!advanced)pending.push(hostLoadScript('programUsageOutputGuardScriptV1','/js/program-usage-output-guard.js?v=20260914-1'));
     for(const entry of MODULES){
       if(!entry.id||!entry.src||seen.has(entry.id)){
         console.warn('[pdf-route-runtime] manifest entry skipped',entry);
@@ -117,25 +111,12 @@
       if(entry.app&&entry.app!==app)continue;
       if(advanced&&ADVANCED_UNUSED_ROUTE_IDS.has(entry.id))continue;
       seen.add(entry.id);
-      // Start requests in manifest order while allowing the browser to fetch
-      // independent helpers without a waterfall. The layout selection helper is
-      // intentionally inserted before loader.js so its capture listener owns
-      // Ctrl/Cmd/Shift thumbnail selection before generic click navigation.
       pending.push(hostLoad(entry));
     }
     if(advanced)document.documentElement.dataset.pdfAdvancedRouteModules='minimal';
     return Promise.all(pending)
-      // Images are converted to normal one-page PDFs before entering the canonical
-      // editor state. The existing PDF parser, page model, save path and backend
-      // therefore remain unchanged for both /pdf-editor and app=layout.
       .then(()=>advanced?true:loadImageInput())
-      // Preview zoom persistence, compact file-order/navigation UI and exact PDF
-      // visible-orientation handling are route helpers rather than stable-eight
-      // core modules. Load them after file navigation/lazy preview have settled.
       .then(()=>advanced?true:loadLayoutUiRefinements())
-      // Divider correction is deliberately post-manifest: it must run after the
-      // parallel core/local-image helpers have finished so it can settle renderer
-      // ownership without adding another route-bootstrap manifest asset.
       .then(()=>advanced?true:hostLoadScript('pdfDividerUiCorrectionsScriptV1','/js/pdf-editor/divider-ui-corrections.js?v=20260914-2'))
       .then(()=>{
         document.documentElement.dataset.pdfRouteRuntime='1';
@@ -153,6 +134,6 @@
     modules:MODULES.map(({id,src})=>({id,src})),
     app:standaloneApp(),
     get profile(){return window.PdfEditorStandaloneApps?.fromLocation?.(location.search)?.key||null;},
-    stage:'pdf-editor-route-runtime-manifest-v5-image-input-adapter'
+    stage:'pdf-editor-route-runtime-manifest-v6-approved-only'
   };
 })();
