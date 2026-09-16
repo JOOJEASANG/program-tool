@@ -22,9 +22,23 @@ def _source(width_mm=90.0, height_mm=50.0):
     return doc
 
 
+def _duplex_source(width_mm=90.0, height_mm=50.0):
+    doc = fitz.open()
+    for label in ('FRONT', 'BACK'):
+        page = doc.new_page(width=width_mm * MM_TO_PT, height=height_mm * MM_TO_PT)
+        page.draw_rect(page.rect, color=None, fill=(0.85, 0.9, 0.95))
+        page.insert_text((12, 22), label)
+    return doc
+
+
 def _auto_plan():
     item = SourceItem(0, 'ticket.pdf', 90.0, 50.0, 1, 1)
     return build_auto_fill_layout_plan([item], 210.0, 297.0, 5.0, 3.0, True, False, 'long')
+
+
+def _duplex_plan():
+    item = SourceItem(0, 'ticket.pdf', 90.0, 50.0, 2, 1)
+    return build_auto_fill_layout_plan([item], 210.0, 297.0, 5.0, 3.0, True, True, 'long')
 
 
 def test_numbering_end_expands_sheets_and_truncates_last_sheet_exactly():
@@ -64,13 +78,21 @@ def test_prefix_transparent_background_and_builtin_fonts_are_parsed():
     assert options.prefix == '입장권-'
     assert options.font == 'korean'
     assert options.transparent_background is True
-    assert format_number(7, 'pad3', options.prefix) == '입장권- 007'
+    assert format_number(7, 'pad3', options.prefix) == '입장권-007'
 
 
-def test_prefix_spacing_is_exactly_one_space_after_trimming():
-    assert format_number(1, 'pad3', '티켓') == '티켓 001'
-    assert format_number(1, 'pad3', '티켓   ') == '티켓 001'
+def test_prefix_and_number_stay_attached_after_trimming():
+    assert format_number(1, 'pad3', '티켓') == '티켓001'
+    assert format_number(1, 'pad3', '티켓   ') == '티켓001'
     assert format_number(1, 'pad3', '') == '001'
+
+
+def test_numbering_target_side_validation_defaults_to_both():
+    assert parse_numbering_options({'enabled': True}).target_side == 'both'
+    assert parse_numbering_options({'enabled': True, 'target_side': 'front'}).target_side == 'front'
+    assert parse_numbering_options({'enabled': True, 'target_side': 'back'}).target_side == 'back'
+    with pytest.raises(ValueError, match='적용 면'):
+        parse_numbering_options({'enabled': True, 'target_side': 'middle'})
 
 
 @pytest.mark.parametrize('font', [
@@ -122,7 +144,9 @@ def test_korean_prefix_is_preserved_in_saved_pdf_even_with_latin_font_selected()
         })
         output = fitz.open(stream=numbered, filetype='pdf')
         try:
-            assert '입장권 001' in output[0].get_text()
+            text = output[0].get_text()
+            assert '입장권001' in text
+            assert '\ufffd' not in text
         finally:
             output.close()
     finally:
@@ -160,5 +184,52 @@ def test_numbering_margins_move_saved_pdf_label_from_selected_anchor():
         moved_inward = number_rect(8.0, 8.0)
         assert moved_inward.x0 < near_edge.x0
         assert moved_inward.y0 < near_edge.y0
+    finally:
+        source.close()
+
+
+@pytest.mark.parametrize(
+    ('target_side', 'front_has_number', 'back_has_number'),
+    [
+        ('front', True, False),
+        ('back', False, True),
+        ('both', True, True),
+    ],
+)
+def test_duplex_numbering_can_target_front_back_or_both(target_side, front_has_number, back_has_number):
+    source = _duplex_source()
+    try:
+        plan = _duplex_plan()
+        plan = expand_layout_for_numbering(plan, {'enabled': True, 'start': 1, 'end': 1})
+        base = render_layout_pdf([source], plan, gap_mm=3.0, crop_marks=False)
+        numbered = apply_layout_numbering(base, plan, {
+            'enabled': True,
+            'start': 1,
+            'end': 1,
+            'target_side': target_side,
+            'format': 'pad3',
+            'transparent_background': True,
+        })
+        output = fitz.open(stream=numbered, filetype='pdf')
+        try:
+            assert ('001' in output[0].get_text()) is front_has_number
+            assert ('001' in output[1].get_text()) is back_has_number
+        finally:
+            output.close()
+    finally:
+        source.close()
+
+
+def test_back_only_numbering_rejects_single_sided_layout():
+    source = _source()
+    try:
+        plan = _auto_plan()
+        base = render_layout_pdf([source], plan, gap_mm=3.0, crop_marks=False)
+        with pytest.raises(ValueError, match='단면 출력'):
+            apply_layout_numbering(base, plan, {
+                'enabled': True,
+                'target_side': 'back',
+                'start': 1,
+            })
     finally:
         source.close()
