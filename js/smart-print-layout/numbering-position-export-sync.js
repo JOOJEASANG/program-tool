@@ -11,6 +11,19 @@
   };
   const hasKorean = text => /[\u1100-\u11ff\u3130-\u318f\ua960-\ua97f\uac00-\ud7a3\ud7b0-\ud7ff]/u.test(String(text || ''));
 
+  function ensureUiSpacing() {
+    const prefix = $('numberingPrefix');
+    const row = prefix?.closest('.grid2');
+    if (!row) return;
+    row.classList.add('numbering-prefix-format-row');
+    if (!$('numberingPositionSyncStyles')) {
+      const style = document.createElement('style');
+      style.id = 'numberingPositionSyncStyles';
+      style.textContent = '.numbering-prefix-format-row{column-gap:16px!important}.numbering-offset-controls{column-gap:12px}';
+      document.head.appendChild(style);
+    }
+  }
+
   function ensureOffsetControls() {
     if ($('numberingMarginX') && $('numberingMarginY')) return true;
     const options = $('numberingOptions');
@@ -74,7 +87,7 @@
   function updateHint() {
     const hint = document.querySelector('#numberingOptions .hint');
     if (!hint) return;
-    hint.textContent = '문구와 번호 사이는 자동으로 한 칸 띄웁니다. 좌우·상하 위치 조절값은 미리보기와 저장 PDF에 동일하게 적용됩니다. 한글 문구는 저장 시 한국어 글꼴로 자동 처리하며, 양면은 앞·뒤에 같은 번호가 들어갑니다.';
+    hint.textContent = '좌우·상하 위치 조절값은 미리보기와 저장 PDF에 동일하게 적용됩니다. 한글 문구는 저장 시 한국어 글꼴로 자동 처리하며, 양면은 앞·뒤에 같은 번호가 들어갑니다.';
   }
 
   function bindReset() {
@@ -86,6 +99,7 @@
   }
 
   function boot() {
+    ensureUiSpacing();
     ensureOffsetControls();
     updateHint();
     installFetchGuard();
