@@ -67,7 +67,7 @@ def test_center_anchor_xy_offsets_move_saved_pdf_text():
         source.close()
 
 
-def test_numbering_ui_keeps_prefix_attached_and_exposes_side_and_xy_controls():
+def test_numbering_ui_uses_one_space_fixed_font_and_exposes_side_and_xy_controls():
     module = (ROOT / 'js' / 'smart-print-layout' / 'numbering-preview-sync.js').read_text(encoding='utf-8')
     backend = (ROOT / 'backend' / 'services' / 'smart_print_numbering.py').read_text(encoding='utf-8')
 
@@ -85,11 +85,13 @@ def test_numbering_ui_keeps_prefix_attached_and_exposes_side_and_xy_controls():
         "config.target_side = $('numberingTargetSide')?.value || 'both'",
         "config.offset_x_mm = numberValue('numberingOffsetX', 0, -50, 50)",
         "config.offset_y_mm = numberValue('numberingOffsetY', 0, -50, 50)",
-        "return prefix ? `${prefix}${number}` : number;",
+        "return prefix ? `${prefix} ${number}` : number;",
+        "config.font = 'korean'",
+        '한국어 기본 (고정)',
     ):
         assert marker in module
 
-    assert "return f'{normalized_prefix}{number}' if normalized_prefix else number" in backend
+    assert "return f'{normalized_prefix} {number}' if normalized_prefix else number" in backend
+    assert "_NUMBERING_FONT_KEY = 'korean'" in backend
     assert "_ALLOWED_TARGET_SIDES = {'front', 'back', 'both'}" in backend
     assert 'offset_x_mm' in backend and 'offset_y_mm' in backend
-    assert '문구와 번호 사이는 자동으로 한 칸 띄웁니다' not in module
