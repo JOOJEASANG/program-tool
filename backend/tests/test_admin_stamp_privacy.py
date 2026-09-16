@@ -33,5 +33,6 @@ def test_business_stamp_uses_admin_only_document_and_migrates_legacy_public_valu
     assert "match /settings/business_private" in rules
     assert "allow read: if isAdmin();" in rules
     assert "allow write: if isAdmin() && validBusinessPrivate();" in rules
+    assert "allow read: if isAdmin() || !resource.data.keys().hasAny(['stampData']);" in rules
     assert "!request.resource.data.keys().hasAny(['stampData'])" in rules
     assert "request.resource.data.stampData.size() <= 700000" in rules
