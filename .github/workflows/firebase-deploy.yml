@@ -13,12 +13,47 @@ concurrency:
 permissions:
   checks: write
   contents: read
+  pull-requests: read
   statuses: write
   id-token: write
 
 jobs:
+  source-guard:
+    name: 운영 배포 소스 확인
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: main 직접 push 배포 차단
+        if: github.event_name == 'push'
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            const sha = context.sha;
+            let mergedPullRequest = null;
+            for (let attempt = 1; attempt <= 6; attempt += 1) {
+              const pulls = await github.paginate(
+                github.rest.repos.listPullRequestsAssociatedWithCommit,
+                { owner: context.repo.owner, repo: context.repo.repo, commit_sha: sha, per_page: 100 }
+              );
+              mergedPullRequest = pulls.find(pr =>
+                Boolean(pr.merged_at) && pr.base?.ref === 'main'
+              );
+              if (mergedPullRequest) break;
+              if (attempt < 6) await new Promise(resolve => setTimeout(resolve, 5000));
+            }
+            if (!mergedPullRequest) {
+              core.setFailed(`운영 배포 차단: ${sha} 는 main 대상의 병합된 PR과 연결되지 않은 직접 push 커밋입니다.`);
+              return;
+            }
+            core.info(`운영 배포 허용: PR #${mergedPullRequest.number} 병합 커밋으로 확인되었습니다.`);
+
+      - name: 수동 재배포 안내
+        if: github.event_name == 'workflow_dispatch'
+        run: echo "수동 workflow_dispatch 운영 재배포를 허용합니다."
+
   quality:
     name: 배포 전 품질 검사
+    needs: source-guard
     uses: ./.github/workflows/quality-gate.yml
 
   deploy:
@@ -91,7 +126,7 @@ jobs:
 
   production-status:
     name: 운영 배포 상태 기록
-    needs: [quality, deploy]
+    needs: [source-guard, quality, deploy]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -99,9 +134,10 @@ jobs:
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
+            const source = '${{ needs.source-guard.result }}';
             const quality = '${{ needs.quality.result }}';
             const deploy = '${{ needs.deploy.result }}';
-            const success = quality === 'success' && deploy === 'success';
+            const success = source === 'success' && quality === 'success' && deploy === 'success';
             const targetUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
             await github.rest.repos.createCommitStatus({
               owner: context.repo.owner,
@@ -111,6 +147,6 @@ jobs:
               context: 'production-smoke',
               description: success
                 ? 'Firebase 운영 배포와 사용자 경로 검증 통과'
-                : `운영 배포 실패 (quality=${quality}, deploy=${deploy})`,
+                : `운영 배포 실패 (source=${source}, quality=${quality}, deploy=${deploy})`,
               target_url: targetUrl,
             });
