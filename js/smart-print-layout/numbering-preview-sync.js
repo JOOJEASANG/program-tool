@@ -71,6 +71,22 @@
     return true;
   }
 
+  function patchEnhancementConfig() {
+    const enhancements = window.SmartPrintLayoutEnhancements;
+    if (!enhancements || enhancements.__numberingSideOffsetsPatched) return;
+    const original = enhancements.numberingConfig;
+    if (typeof original !== 'function') return;
+    enhancements.numberingConfig = function numberingConfigWithSideAndOffsets() {
+      const config = original();
+      config.target_side = $('numberingTargetSide')?.value || 'both';
+      config.margin_x_mm = numberValue('numberingMarginX', 1.5, 0, 50);
+      config.margin_y_mm = numberValue('numberingMarginY', 1.5, 0, 50);
+      config.prefix = String(config.prefix || '').trim();
+      return config;
+    };
+    enhancements.__numberingSideOffsetsPatched = true;
+  }
+
   function mirrorBack(placement, cfg) {
     const portrait = cfg.paperH >= cfg.paperW;
     const mirrorX = (cfg.flipEdge === 'long' && portrait) || (cfg.flipEdge === 'short' && !portrait);
@@ -129,6 +145,7 @@
 
   function syncPreview() {
     ensureControls();
+    patchEnhancementConfig();
     const overlay = $('numberingPreviewOverlay');
     const canvas = $('layoutCanvas');
     const api = window.SmartPrintLayout;
@@ -177,7 +194,6 @@
     settings.numbering.margin_y_mm = numberValue('numberingMarginY', 1.5, 0, 50);
     settings.numbering.target_side = $('numberingTargetSide')?.value || 'both';
     settings.numbering.prefix = String(settings.numbering.prefix || '').trim();
-    if (hasKorean(settings.numbering.prefix)) settings.numbering.font = 'korean';
     return settings;
   }
 
@@ -211,6 +227,7 @@
 
   function bind() {
     ensureControls();
+    patchEnhancementConfig();
     updateHint();
     installFetchGuard();
     const shell = $('canvasShell');
