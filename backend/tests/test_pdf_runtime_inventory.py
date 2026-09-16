@@ -109,9 +109,10 @@ def test_integrated_runtime_features_remain_present():
     assert "activeOperation.controller.abort()" in save
     assert "stage: 'failure-checkpoint-lock-restore'" in recovery
     assert "편집 상태를 저장 시작 전 상태로 복구했습니다." in recovery
-    assert "stage: 'multi-source-snapshot-300mb-cost-guard-v2'" in session
+    assert "stage: 'multi-source-snapshot-300mb-cost-guard-v3-state-preflight'" in session
     assert "MAX_FILE_BYTES = 200 * 1024 * 1024" in session
     assert "MAX_SESSION_BYTES = 300 * 1024 * 1024" in session
+    assert "MAX_STATE_BYTES = 780 * 1024" in session
     assert "MAX_SESSION_FILES = 50" in session
     assert "업로드된 임시 파일 정리를 시도했습니다." in session
     assert "stage: 'discontinuous-file-context-actions'" in file_context
