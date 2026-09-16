@@ -6,7 +6,7 @@ import {
   assertSucceeds,
   initializeTestEnvironment,
 } from '@firebase/rules-unit-testing';
-import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import { deleteField, doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { ref, uploadString } from 'firebase/storage';
 
 const projectId = 'demo-program-tool';
@@ -94,13 +94,12 @@ test('legacy public business document with stamp is hidden until admin migration
   await assertFails(getDoc(doc(publicDb, 'settings/business')));
   await assertFails(getDoc(doc(memberDb, 'settings/business')));
   await assertSucceeds(getDoc(doc(adminDb, 'settings/business')));
+  await assertFails(setDoc(doc(adminDb, 'settings/business'), { stampData: null }, { merge: true }));
 
   await assertSucceeds(setDoc(doc(adminDb, 'settings/business'), {
-    stampData: null,
-  }, { merge: true }).then(async () => {
-    // A null field is still present and therefore must remain non-public.
-    await assertFails(getDoc(doc(publicDb, 'settings/business')));
-  }));
+    stampData: deleteField(),
+  }, { merge: true }));
+  await assertSucceeds(getDoc(doc(publicDb, 'settings/business')));
 });
 
 test('temporary staging cannot be overwritten after the first upload', async () => {
