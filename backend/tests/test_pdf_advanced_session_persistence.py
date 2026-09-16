@@ -51,7 +51,7 @@ def test_advanced_top_actions_match_layout_structure_and_load_session_module():
     assert home < save < load < logout
     assert ">편집저장</button>" in html
     assert ">편집불러오기</button>" in html
-    assert "session-persistence.js?v=20260909-1" in html
+    assert "session-persistence.js?v=20260916-1" in html
 
 
 def test_advanced_session_snapshot_covers_page_and_document_edit_state():
@@ -99,6 +99,15 @@ def test_advanced_session_limits_match_existing_pdf_session_security_contract():
         "MAX_FILES = 50",
         "MAX_FILE_BYTES = 200 * 1024 * 1024",
         "MAX_TOTAL_BYTES = 300 * 1024 * 1024",
-        "serialized.length > 850000",
+        "MAX_STATE_BYTES = 780 * 1024",
+        "new TextEncoder().encode",
+        "const stateBytes = utf8Bytes(serialized)",
+        "stateBytes > MAX_STATE_BYTES",
+        "maxStateBytes: MAX_STATE_BYTES",
+        "advanced-edit-session-source-files-state-restore-v2-state-byte-preflight",
     ):
         assert marker in source
+
+    validate_index = source.index("checked = validateSave(files, state)")
+    upload_index = source.index("await storage.ref(path).put")
+    assert validate_index < upload_index
