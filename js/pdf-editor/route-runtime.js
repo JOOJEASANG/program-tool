@@ -6,7 +6,6 @@
   window.__pdfEditorRouteRuntimeV2=true;
 
   const MODULES=Object.freeze([
-    {id:'programSidebarActionsScriptV1',src:'/js/program-sidebar-actions.js?v=20260916-1'},
     {id:'programShellUnifyScriptV1',src:'/js/program-shell-unify.js?v=20260831-1'},
     {id:'pdfAllInOneStage1ScriptV1',src:'/js/pdf-all-in-one-stage1.js?v=20260824-1'},
     {id:'desktopToolMobileNoticeScriptV1',src:'/js/desktop-tool-mobile-notice.js?v=20260807-1'},
@@ -91,7 +90,8 @@
   function loadLayoutUiRefinements(){
     return hostLoadScript('pdfPreviewZoomPersistenceScriptV2','/js/pdf-editor/preview-zoom-persistence.js?v=20260915-3')
       .then(()=>hostLoadScript('pdfLayoutUiRefinementsScriptV1','/js/pdf-editor/layout-ui-refinements.js?v=20260915-2'))
-      .then(()=>hostLoadScript('pdfOrientationSidebarCleanupScriptV2','/js/pdf-editor/orientation-sidebar-cleanup.js?v=20260915-2'));
+      .then(()=>hostLoadScript('pdfOrientationSidebarCleanupScriptV2','/js/pdf-editor/orientation-sidebar-cleanup.js?v=20260915-2'))
+      .then(()=>hostLoadScript('programSidebarActionsScriptV1','/js/program-sidebar-actions.js?v=20260916-1'));
   }
 
   function loadAll(){
