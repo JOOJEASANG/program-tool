@@ -72,25 +72,29 @@ def test_smart_layout_frontend_keeps_image_size_isolated_and_numbering_optional(
     core = (ROOT / 'js' / 'smart-print-layout' / 'app.js').read_text(encoding='utf-8')
     router = (ROOT / 'backend' / 'routers' / 'pdf_smart_layout.py').read_text(encoding='utf-8')
 
-    assert '/js/smart-print-layout/size-numbering.js?v=20260915-1' in html
-    assert html.index('size-numbering.js?v=20260915-1') < html.index('image-input-bridge.js?v=20260915-2')
+    assert '/js/smart-print-layout/size-numbering.js?v=20260916-2' in html
+    assert html.index('size-numbering.js?v=20260916-2') < html.index('image-input-bridge.js?v=20260915-2')
     for marker in (
-        '이미지 인쇄 크기',
-        '비율 고정',
-        'item.widthMm = widthMm',
-        'item.heightMm = heightMm',
-        'pdf.addImage(jpeg, \'JPEG\', 0, 0, widthMm, heightMm',
+        '이미지 재단·여백',
+        '재단 비율 고정',
+        '사방 여백 mm',
+        'trimWidthMm + marginMm * 2',
+        "pdf.addImage(jpeg, 'JPEG', marginMm, marginMm, trimWidthMm, trimHeightMm",
         'numberingEnabled',
-        'numberingPosition',
-        'numberingFontSize',
+        'numberingEnd',
+        'numberingPrefix',
+        'numberingTransparent',
+        'numberingFont',
+        'trimGuideEnabled',
+        'trim-guide-preview',
         "numbering: numberingConfig()",
-        "stage: 'smart-layout-image-direct-size-numbering-v1'",
+        "smartLayoutSizeNumbering = 'v2-number-range-trim'",
     ):
         assert marker in module
 
     # The established packing engine remains owned by app.js. The extension
-    # only changes image source PDFs and the optional numbered output path.
+    # changes image source PDFs, overlays trim guides, and sends numbered output settings.
     assert 'function packOneFile' in core
     assert 'auto-fill-centered-v2' in core
-    assert 'apply_layout_numbering' in router
+    assert 'expand_layout_for_numbering' in router
     assert "raw_settings.get('numbering')" in router
