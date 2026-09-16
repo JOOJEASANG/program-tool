@@ -1,14 +1,14 @@
 (() => {
   'use strict';
-  if (window.__smartPrintNumberingPreviewSyncV1) return;
-  window.__smartPrintNumberingPreviewSyncV1 = true;
+  if (window.__smartPrintNumberingPreviewSyncV2) return;
+  window.__smartPrintNumberingPreviewSyncV2 = true;
 
   const $ = id => document.getElementById(id);
   const KOREAN_STACK = '"Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR",Arial,sans-serif';
   const WATCHED_CONTROLS = new Set([
     'numberingEnabled', 'numberingStart', 'numberingEnd', 'numberingPrefix',
     'numberingFormat', 'numberingPosition', 'numberingFont', 'numberingFontSize',
-    'numberingTransparent', 'numberingMarginX', 'numberingMarginY',
+    'numberingTransparent', 'numberingMarginX', 'numberingMarginY', 'numberingTargetSide',
   ]);
   let frame = 0;
   let shellObserver = null;
@@ -30,7 +30,45 @@
     else if (format === 'no-pad3') number = `NO.${String(value).padStart(3, '0')}`;
     else number = String(value).padStart(3, '0');
     const prefix = String($('numberingPrefix')?.value || '').trim();
-    return prefix ? `${prefix} ${number}` : number;
+    return prefix ? `${prefix}${number}` : number;
+  }
+
+  function ensureControls() {
+    const options = $('numberingOptions');
+    const positionRow = $('numberingPosition')?.closest('.grid2');
+    const prefixRow = $('numberingPrefix')?.closest('.grid2');
+    if (!options || !positionRow) return false;
+
+    if (!$('numberingPreviewSyncStyles')) {
+      const style = document.createElement('style');
+      style.id = 'numberingPreviewSyncStyles';
+      style.textContent = `
+        .numbering-prefix-format-row{column-gap:16px!important}
+        .numbering-side-row,.numbering-offset-row{column-gap:12px}
+      `;
+      document.head.appendChild(style);
+    }
+    prefixRow?.classList.add('numbering-prefix-format-row');
+
+    if (!$('numberingTargetSide')) {
+      const sideRow = document.createElement('div');
+      sideRow.className = 'grid2 numbering-side-row';
+      sideRow.innerHTML = `
+        <label class="field"><span>넘버링 적용 면</span><select id="numberingTargetSide"><option value="front">앞면만</option><option value="back">뒷면만</option><option value="both" selected>앞·뒷면 모두</option></select></label>
+        <div></div>`;
+      positionRow.insertAdjacentElement('afterend', sideRow);
+    }
+
+    if (!$('numberingMarginX') || !$('numberingMarginY')) {
+      const offsetRow = document.createElement('div');
+      offsetRow.className = 'grid2 numbering-offset-row';
+      offsetRow.innerHTML = `
+        <label class="field"><span>좌우 위치 조절 mm</span><input id="numberingMarginX" type="number" min="0" max="50" step="0.5" value="1.5"></label>
+        <label class="field"><span>상하 위치 조절 mm</span><input id="numberingMarginY" type="number" min="0" max="50" step="0.5" value="1.5"></label>`;
+      const sideRow = $('numberingTargetSide')?.closest('.grid2') || positionRow;
+      sideRow.insertAdjacentElement('afterend', offsetRow);
+    }
+    return true;
   }
 
   function mirrorBack(placement, cfg) {
@@ -80,10 +118,17 @@
   function updateHint() {
     const hint = document.querySelector('#numberingOptions .hint');
     if (!hint) return;
-    hint.textContent = '문구와 번호 사이는 자동으로 한 칸 띄웁니다. 좌우·상하 여백으로 넘버링 위치를 조절하며, 한글 문구는 저장 PDF에서도 자동으로 한국어 글꼴로 처리합니다. 양면은 앞·뒤에 같은 번호가 들어갑니다.';
+    hint.textContent = '문구와 번호는 붙여서 출력합니다. 좌우·상하 위치 조절과 적용 면 선택은 미리보기와 저장 PDF에 동일하게 반영됩니다. 한글 문구는 저장 PDF에서 한국어 글꼴로 자동 처리합니다.';
+  }
+
+  function shouldShowOnCurrentSide(api) {
+    const target = $('numberingTargetSide')?.value || 'both';
+    const side = api?.state?.side === 'back' ? 'back' : 'front';
+    return target === 'both' || target === side;
   }
 
   function syncPreview() {
+    ensureControls();
     const overlay = $('numberingPreviewOverlay');
     const canvas = $('layoutCanvas');
     const api = window.SmartPrintLayout;
@@ -92,6 +137,10 @@
 
     const labels = Array.from(overlay.querySelectorAll('.numbering-preview-label'));
     if (!labels.length) return;
+    const visible = shouldShowOnCurrentSide(api);
+    labels.forEach(label => { label.style.display = visible ? '' : 'none'; });
+    if (!visible) return;
+
     const cfg = plan.cfg;
     const scale = canvas.clientWidth / Number(cfg.paperW || 1);
     if (!Number.isFinite(scale) || scale <= 0) return;
@@ -122,13 +171,48 @@
     });
   }
 
+  function normalizeExportSettings(settings) {
+    if (!settings?.numbering?.enabled) return settings;
+    settings.numbering.margin_x_mm = numberValue('numberingMarginX', 1.5, 0, 50);
+    settings.numbering.margin_y_mm = numberValue('numberingMarginY', 1.5, 0, 50);
+    settings.numbering.target_side = $('numberingTargetSide')?.value || 'both';
+    settings.numbering.prefix = String(settings.numbering.prefix || '').trim();
+    if (hasKorean(settings.numbering.prefix)) settings.numbering.font = 'korean';
+    return settings;
+  }
+
+  function installFetchGuard() {
+    if (window.__smartPrintNumberingFetchGuardV2 || typeof window.fetch !== 'function') return;
+    window.__smartPrintNumberingFetchGuardV2 = true;
+    const originalFetch = window.fetch.bind(window);
+    window.fetch = function smartLayoutNumberingFetch(input, init = {}) {
+      try {
+        const url = typeof input === 'string' ? input : input?.url || '';
+        const body = init?.body;
+        if (/\/api\/pdf\/smart-layout(?:\?|$)/.test(url) && body instanceof FormData) {
+          const raw = body.get('settings');
+          if (typeof raw === 'string') {
+            const settings = JSON.parse(raw);
+            normalizeExportSettings(settings);
+            body.set('settings', JSON.stringify(settings));
+          }
+        }
+      } catch (error) {
+        console.warn('[smart-layout-numbering] export sync failed', error);
+      }
+      return originalFetch(input, init);
+    };
+  }
+
   function schedule() {
     cancelAnimationFrame(frame);
     frame = requestAnimationFrame(() => requestAnimationFrame(syncPreview));
   }
 
   function bind() {
+    ensureControls();
     updateHint();
+    installFetchGuard();
     const shell = $('canvasShell');
     if (shell && typeof MutationObserver === 'function') {
       shellObserver = new MutationObserver(schedule);
@@ -140,12 +224,16 @@
     document.addEventListener('change', event => {
       if (WATCHED_CONTROLS.has(event.target?.id)) schedule();
     }, true);
-    ['prevSheet', 'nextSheet', 'frontBtn', 'backBtn', 'resetBtn'].forEach(id => {
-      $(id)?.addEventListener('click', schedule);
-    });
+    ['prevSheet', 'nextSheet', 'frontBtn', 'backBtn'].forEach(id => $(id)?.addEventListener('click', schedule));
+    $('resetBtn')?.addEventListener('click', () => requestAnimationFrame(() => {
+      if ($('numberingTargetSide')) $('numberingTargetSide').value = 'both';
+      if ($('numberingMarginX')) $('numberingMarginX').value = '1.5';
+      if ($('numberingMarginY')) $('numberingMarginY').value = '1.5';
+      schedule();
+    }));
     window.addEventListener('resize', schedule);
     schedule();
-    document.documentElement.dataset.smartLayoutNumberingPreviewSync = 'v1-position-font-safe';
+    document.documentElement.dataset.smartLayoutNumberingPreviewSync = 'v2-position-side-font-safe';
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind, { once: true });
