@@ -35,11 +35,12 @@ def test_multi_source_session_snapshot_preserves_file_and_break_mapping():
 
 def test_session_save_rejects_broken_source_page_links_before_upload():
     source = MODULE.read_text(encoding="utf-8")
-    validation_at = source.index("validateSnapshot(files, state);")
+    validation_at = source.index("snapshotMeta = validateSnapshot(files, state, stateJson)")
     first_upload_at = source.index("await storage.ref(path).put")
     assert validation_at < first_upload_at
     assert "fileIndex >= files.length" in source
     assert "!Number.isInteger(pageIndex) || pageIndex < 0" in source
+    assert "stateBytes > MAX_STATE_BYTES" in source
     assert "저장 전 확인 실패" in source
 
 
@@ -97,7 +98,7 @@ def test_thumbnail_and_context_menu_are_explicit_mutation_targets():
     assert "function isEditorMutationTarget(target)" in source
     assert "'#thumbArea, #thumbCtxMenu, #uploadZone, .mode-btn, '" in source
     assert "if (!active || !isEditorMutationTarget(event.target)) return" in source
-    assert "reviewFixes: 'thumbnail-lock-not-found-cleanup-owner-metadata'" in source
+    assert "reviewFixes: 'thumbnail-lock-not-found-cleanup-owner-metadata-state-byte-precheck'" in source
 
 
 def test_capture_phase_intercepts_legacy_session_save_handlers_once():
