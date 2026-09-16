@@ -7,40 +7,34 @@ def read(path: str) -> str:
     return (ROOT / path).read_text(encoding="utf-8")
 
 
-def test_admin_member_workflow_retires_subscription_management_ui():
+def test_admin_member_workflow_is_status_only():
+    html = read("admin.html")
     js = read("js/admin-workflow-v2.js")
-    for marker in (
-        "#planFilter,#mPro,[data-plan],.badge.free,.badge.pro{display:none!important}",
-        "회원 관리",
-        "PDF 사용횟수는 별도 메뉴에서 설정합니다.",
-        "상세 관리는 회원 관리에서",
-        "data-admin-subscription-management",
-    ):
-        if marker == "data-admin-subscription-management":
-            assert "adminSubscriptionManagement='retired'" in js
-        else:
-            assert marker in js
+
+    for marker in ("회원 관리", "승인된 회원", "이용 중지"):
+        assert marker in html or marker in js
+
+    for retired in ("planFilter", "mPro", "data-plan", "FREE", "PRO 구독"):
+        assert retired not in html
 
 
-def test_admin_bulk_actions_keep_status_controls_but_drop_plan_controls():
+def test_admin_bulk_actions_only_change_approval_status():
     js = read("js/admin-workflow-v2.js")
-    bulk = js[js.index("function installBulkBar"):js.index("function guardDangerousActions")]
-    assert 'data-bulk-status="approved"' in bulk
-    assert 'data-bulk-status="suspended"' in bulk
-    assert "data-bulk-plan" not in bulk
-    assert "applyBulk('plan'" not in bulk
+    assert 'data-bulk-status="approved"' in js
+    assert 'data-bulk-status="suspended"' in js
+    assert "data-bulk-plan" not in js
+    assert "applyBulk('plan'" not in js
+    assert "user_permissions" in js
 
 
-def test_admin_program_usage_limits_are_the_extensible_operating_quota_control():
+def test_admin_usage_limit_modules_are_retired_compatibility_shims():
     compat = read("js/admin-pdf-usage-settings.js")
-    js = read("js/admin-program-usage-settings.js")
+    settings = read("js/admin-program-usage-settings.js")
 
-    assert "admin-pdf-usage-compatibility-bootstrap-v2" in compat
-    assert "/js/admin-program-usage-settings.js?v=20260914-1" in compat
-    assert "프로그램별 사용횟수" in js
-    assert "program_usage_limits" in js
-    assert "guestLimit" in js
-    assert "memberLimit" in js
-    assert "saveProgram" in js
-    assert "saveAll" in js
-    assert "addCustomProgram" in js
+    assert "admin-usage-limits-retired" in compat
+    assert "admin-program-usage-limits-retired" in settings
+    assert "program_usage_limits" not in compat
+    assert "program_usage_limits" not in settings
+    assert "guestLimit" not in settings
+    assert "memberLimit" not in settings
+    assert "document.getElementById('adminProgramUsageNav')?.remove()" in compat
