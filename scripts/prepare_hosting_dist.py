@@ -11,13 +11,11 @@ ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / ".firebase-hosting"
 PDF_SUITE_HTML = "pdf-suite/index.html"
 PDF_SUITE_FIRST_PAINT_MARKER = "data-pdf-suite-first-paint-guard"
-PDF_SUITE_DAILY_FREE_MARKER = "data-pdf-suite-daily-free"
 PDF_SUITE_HOME_MARKER = "data-pdf-suite-home-launcher"
 PDF_SUITE_ADVANCED_MARKER = "data-pdf-suite-advanced-tools"
 PDF_SUITE_OCR_MARKER = "data-pdf-suite-ocr-tools"
 PDF_SUITE_UNIFIED_NAV_MARKER = "data-pdf-suite-unified-navigation-prep"
 PDF_SUITE_UNIFIED_MARKER = "data-pdf-suite-unified-workspace"
-PDF_SUITE_UNIFIED_QUOTA_MARKER = "data-pdf-suite-unified-quota"
 PDF_SUITE_SINGLE_PAGE_MARKER = "data-pdf-suite-single-page-workspace"
 PDF_SUITE_DIRECT_BRIDGE_MARKER = "data-pdf-suite-direct-tool-bridge"
 PDF_SUITE_DIRECT_HOOK_MARKER = "data-pdf-suite-direct-tool-hook"
@@ -26,7 +24,6 @@ PDF_SUITE_WORKSPACE_STABILITY_MARKER = "data-pdf-suite-workspace-stability"
 PDF_SUITE_CURATED_CORE_MARKER = "data-pdf-suite-curated-core"
 PDF_ADVANCED_EMPTY_STATE_MARKER = "data-pdf-advanced-empty-state-center"
 PDF_SPECIALIST_LABEL_MARKER = "data-pdf-specialist-label"
-ADMIN_PDF_USAGE_MARKER = "data-admin-pdf-usage-settings"
 
 ROOT_FILES = set(DEPLOY_HTML) | {
     PDF_SUITE_HTML,
@@ -43,7 +40,9 @@ HOSTED_DIRS = (
     "print-checker",
     "smart-print-layout",
     "pdf-editor",
+    "pdf-editor-advanced",
     "pdf-preflight",
+    "pdf-suite",
     "perfect-binding-cover",
     "tools",
     "legal",
@@ -52,34 +51,12 @@ HOSTED_DIRS = (
     "fonts",
 )
 STATIC_SUFFIXES = {
-    ".html",
-    ".css",
-    ".js",
-    ".mjs",
-    ".json",
-    ".svg",
-    ".png",
-    ".jpg",
-    ".jpeg",
-    ".webp",
-    ".gif",
-    ".ico",
-    ".woff",
-    ".woff2",
-    ".ttf",
-    ".otf",
-    ".wasm",
-    ".pdf",
+    ".html", ".css", ".js", ".mjs", ".json", ".svg", ".png", ".jpg", ".jpeg",
+    ".webp", ".gif", ".ico", ".woff", ".woff2", ".ttf", ".otf", ".wasm", ".pdf",
 }
 FORBIDDEN_OUTPUT_NAMES = {
-    "firebase.json",
-    "firestore.rules",
-    "storage.rules",
-    "package.json",
-    "package-lock.json",
-    "README.md",
-    "CLAUDE.md",
-    "PROGRAM_STRUCTURE.md",
+    "firebase.json", "firestore.rules", "storage.rules", "package.json", "package-lock.json",
+    "README.md", "CLAUDE.md", "PROGRAM_STRUCTURE.md",
 }
 
 PDF_SUITE_FIRST_PAINT_SNIPPET = (
@@ -103,59 +80,38 @@ PDF_SUITE_FIRST_PAINT_SNIPPET = (
     "@media(prefers-reduced-motion:reduce){html.pdf-suite-booting body::after{animation-duration:1.4s}}"
     "</style>"
 )
-PDF_SUITE_DAILY_FREE_SNIPPET = (
-    '<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>'
-    '<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>'
-    '<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>'
-    '<script src="/js/firebase-config.js"></script>'
-    f'<script {PDF_SUITE_DAILY_FREE_MARKER} src="/js/pdf-daily-free.js?v=20260907-2"></script>'
-)
 PDF_SUITE_HOME_SNIPPET = (
     f'<script {PDF_SUITE_HOME_MARKER} defer src="/js/pdf-suite-home-launcher.js?v=20260910-3"></script>'
 )
 PDF_SUITE_ADVANCED_SNIPPET = (
-    f'<script {PDF_SUITE_ADVANCED_MARKER} defer '
-    'src="/js/pdf-suite/advanced-tools.js?v=20260905-1"></script>'
+    f'<script {PDF_SUITE_ADVANCED_MARKER} defer src="/js/pdf-suite/advanced-tools.js?v=20260905-1"></script>'
 )
 PDF_SUITE_OCR_SNIPPET = (
-    f'<script {PDF_SUITE_OCR_MARKER} defer '
-    'src="/js/pdf-suite/ocr-tools.js?v=20260905-1"></script>'
+    f'<script {PDF_SUITE_OCR_MARKER} defer src="/js/pdf-suite/ocr-tools.js?v=20260905-1"></script>'
 )
 PDF_SUITE_UNIFIED_NAV_SNIPPET = (
-    f'<script {PDF_SUITE_UNIFIED_NAV_MARKER} defer '
-    'src="/js/pdf-suite/unified-navigation-prep.js?v=20260906-2"></script>'
+    f'<script {PDF_SUITE_UNIFIED_NAV_MARKER} defer src="/js/pdf-suite/unified-navigation-prep.js?v=20260906-2"></script>'
 )
 PDF_SUITE_UNIFIED_SNIPPET = (
-    f'<script {PDF_SUITE_UNIFIED_MARKER} defer '
-    'src="/js/pdf-suite/unified-workspace.js?v=20260906-1"></script>'
-)
-PDF_SUITE_UNIFIED_QUOTA_SNIPPET = (
-    f'<script {PDF_SUITE_UNIFIED_QUOTA_MARKER} defer '
-    'src="/js/pdf-suite/unified-quota.js?v=20260906-1"></script>'
+    f'<script {PDF_SUITE_UNIFIED_MARKER} defer src="/js/pdf-suite/unified-workspace.js?v=20260906-1"></script>'
 )
 PDF_SUITE_SINGLE_PAGE_SNIPPET = (
-    f'<script {PDF_SUITE_SINGLE_PAGE_MARKER} defer '
-    'src="/js/pdf-suite/single-page-shell.js?v=20260911-4"></script>'
+    f'<script {PDF_SUITE_SINGLE_PAGE_MARKER} defer src="/js/pdf-suite/single-page-shell.js?v=20260911-4"></script>'
 )
 PDF_SUITE_DIRECT_BRIDGE_SNIPPET = (
-    f'<script {PDF_SUITE_DIRECT_BRIDGE_MARKER} defer '
-    'src="/js/pdf-suite/direct-tool-bridge.js?v=20260906-1"></script>'
+    f'<script {PDF_SUITE_DIRECT_BRIDGE_MARKER} defer src="/js/pdf-suite/direct-tool-bridge.js?v=20260906-1"></script>'
 )
 PDF_SUITE_DIRECT_HOOK_SNIPPET = (
-    f'<script {PDF_SUITE_DIRECT_HOOK_MARKER} defer '
-    'src="/js/pdf-suite/direct-tool-hook.js?v=20260915-2"></script>'
+    f'<script {PDF_SUITE_DIRECT_HOOK_MARKER} defer src="/js/pdf-suite/direct-tool-hook.js?v=20260915-2"></script>'
 )
 PDF_SUITE_PROTECTED_GUARD_SNIPPET = (
-    f'<script {PDF_SUITE_PROTECTED_GUARD_MARKER} defer '
-    'src="/js/pdf-suite/protected-tool-guard.js?v=20260906-1"></script>'
+    f'<script {PDF_SUITE_PROTECTED_GUARD_MARKER} defer src="/js/pdf-suite/protected-tool-guard.js?v=20260906-1"></script>'
 )
 PDF_SUITE_WORKSPACE_STABILITY_SNIPPET = (
-    f'<script {PDF_SUITE_WORKSPACE_STABILITY_MARKER} defer '
-    'src="/js/pdf-suite/workspace-stability.js?v=20260911-2"></script>'
+    f'<script {PDF_SUITE_WORKSPACE_STABILITY_MARKER} defer src="/js/pdf-suite/workspace-stability.js?v=20260911-2"></script>'
 )
 PDF_SUITE_CURATED_CORE_SNIPPET = (
-    f'<script {PDF_SUITE_CURATED_CORE_MARKER} defer '
-    'src="/js/pdf-suite/curated-core.js?v=20260915-2"></script>'
+    f'<script {PDF_SUITE_CURATED_CORE_MARKER} defer src="/js/pdf-suite/curated-core.js?v=20260915-2"></script>'
 )
 PDF_ADVANCED_EMPTY_STATE_SNIPPET = (
     f'<style {PDF_ADVANCED_EMPTY_STATE_MARKER}>'
@@ -169,12 +125,7 @@ PDF_ADVANCED_EMPTY_STATE_SNIPPET = (
     '</style>'
 )
 PDF_SPECIALIST_LABEL_SNIPPET = (
-    f'<script {PDF_SPECIALIST_LABEL_MARKER} defer '
-    'src="/js/pdf-suite/specialist-label.js?v=20260906-5"></script>'
-)
-ADMIN_PDF_USAGE_SNIPPET = (
-    f'<script {ADMIN_PDF_USAGE_MARKER} defer '
-    'src="/js/admin-pdf-usage-settings.js?v=20260907-1"></script>'
+    f'<script {PDF_SPECIALIST_LABEL_MARKER} defer src="/js/pdf-suite/specialist-label.js?v=20260906-5"></script>'
 )
 
 
@@ -220,15 +171,12 @@ def _patch_pdf_suite_entry_points() -> None:
     preflight = OUTPUT / "pdf-preflight/index.html"
     editor = OUTPUT / "pdf-editor/index.html"
     advanced_editor = OUTPUT / "pdf-editor-advanced/index.html"
-    admin = OUTPUT / "admin.html"
     _inject_before(home, PDF_SUITE_HOME_MARKER, "</body>", PDF_SUITE_HOME_SNIPPET)
     _inject_before(suite, PDF_SUITE_FIRST_PAINT_MARKER, "</head>", PDF_SUITE_FIRST_PAINT_SNIPPET)
-    _inject_before(suite, PDF_SUITE_DAILY_FREE_MARKER, "</head>", PDF_SUITE_DAILY_FREE_SNIPPET)
     _inject_before(suite, PDF_SUITE_ADVANCED_MARKER, "</body>", PDF_SUITE_ADVANCED_SNIPPET)
     _inject_before(suite, PDF_SUITE_OCR_MARKER, "</body>", PDF_SUITE_OCR_SNIPPET)
     _inject_before(suite, PDF_SUITE_UNIFIED_NAV_MARKER, "</body>", PDF_SUITE_UNIFIED_NAV_SNIPPET)
     _inject_before(suite, PDF_SUITE_UNIFIED_MARKER, "</body>", PDF_SUITE_UNIFIED_SNIPPET)
-    _inject_before(suite, PDF_SUITE_UNIFIED_QUOTA_MARKER, "</body>", PDF_SUITE_UNIFIED_QUOTA_SNIPPET)
     _inject_before(suite, PDF_SUITE_SINGLE_PAGE_MARKER, "</body>", PDF_SUITE_SINGLE_PAGE_SNIPPET)
     _inject_before(suite, PDF_SUITE_DIRECT_BRIDGE_MARKER, "</body>", PDF_SUITE_DIRECT_BRIDGE_SNIPPET)
     _inject_before(suite, PDF_SUITE_DIRECT_HOOK_MARKER, "</body>", PDF_SUITE_DIRECT_HOOK_SNIPPET)
@@ -238,7 +186,6 @@ def _patch_pdf_suite_entry_points() -> None:
     _inject_before(advanced_editor, PDF_ADVANCED_EMPTY_STATE_MARKER, "</head>", PDF_ADVANCED_EMPTY_STATE_SNIPPET)
     _inject_before(preflight, PDF_SPECIALIST_LABEL_MARKER, "</body>", PDF_SPECIALIST_LABEL_SNIPPET)
     _inject_before(editor, PDF_SPECIALIST_LABEL_MARKER, "</body>", PDF_SPECIALIST_LABEL_SNIPPET)
-    _inject_before(admin, ADMIN_PDF_USAGE_MARKER, "</body>", ADMIN_PDF_USAGE_SNIPPET)
 
 
 def build() -> int:
@@ -263,13 +210,9 @@ def build() -> int:
 
     _patch_pdf_suite_entry_points()
 
-    missing_deploy = sorted(
-        relative for relative in DEPLOY_HTML if not (OUTPUT / relative).is_file()
-    )
+    missing_deploy = sorted(relative for relative in DEPLOY_HTML if not (OUTPUT / relative).is_file())
     if missing_deploy:
-        raise RuntimeError(
-            "Hosting stage is missing deploy HTML: " + ", ".join(missing_deploy)
-        )
+        raise RuntimeError("Hosting stage is missing deploy HTML: " + ", ".join(missing_deploy))
 
     if not (OUTPUT / PDF_SUITE_HTML).is_file():
         raise RuntimeError("Hosting stage is missing PDF suite hub")
