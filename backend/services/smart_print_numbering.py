@@ -14,21 +14,8 @@ _ALLOWED_POSITIONS = {
     'bottom-left', 'bottom-center', 'bottom-right',
 }
 _ALLOWED_TARGET_SIDES = {'front', 'back', 'both'}
-_FONT_NAMES = {
-    'korean': 'korea',
-    'helvetica': 'helv',
-    'helvetica-bold': 'hebo',
-    'helvetica-oblique': 'heit',
-    'helvetica-bold-oblique': 'hebi',
-    'times': 'tiro',
-    'times-bold': 'tibo',
-    'times-italic': 'tiit',
-    'times-bold-italic': 'tibi',
-    'courier': 'cour',
-    'courier-bold': 'cobo',
-    'courier-oblique': 'coit',
-    'courier-bold-oblique': 'cobi',
-}
+_NUMBERING_FONT_KEY = 'korean'
+_NUMBERING_FONT_NAME = 'korea'
 
 
 @dataclass(frozen=True)
@@ -40,7 +27,7 @@ class NumberingOptions:
     position: str = 'bottom-right'
     target_side: str = 'both'
     font_size_pt: float = 9.0
-    font: str = 'helvetica-bold'
+    font: str = _NUMBERING_FONT_KEY
     prefix: str = ''
     transparent_background: bool = False
     margin_x_mm: float = 1.6
@@ -66,7 +53,6 @@ def parse_numbering_options(raw) -> NumberingOptions:
     fmt = str(raw.get('format') or 'pad3').strip().lower()
     position = str(raw.get('position') or 'bottom-right').strip().lower()
     target_side = str(raw.get('target_side') or 'both').strip().lower()
-    font = str(raw.get('font') or 'helvetica-bold').strip().lower()
     prefix = str(raw.get('prefix') or '').strip()
     transparent_background = bool(raw.get('transparent_background'))
     if start < 0 or start > 9_999_999:
@@ -84,8 +70,6 @@ def parse_numbering_options(raw) -> NumberingOptions:
         raise ValueError('넘버링 위치를 확인해 주세요')
     if target_side not in _ALLOWED_TARGET_SIDES:
         raise ValueError('넘버링 적용 면을 확인해 주세요')
-    if font not in _FONT_NAMES:
-        raise ValueError('넘버링 글꼴을 확인해 주세요')
     if len(prefix) > 40 or any(ord(char) < 32 for char in prefix):
         raise ValueError('넘버링 앞 문구는 줄바꿈 없이 40자 이하로 입력해 주세요')
     if font_size < 5 or font_size > 36:
@@ -102,7 +86,7 @@ def parse_numbering_options(raw) -> NumberingOptions:
         position=position,
         target_side=target_side,
         font_size_pt=font_size,
-        font=font,
+        font=_NUMBERING_FONT_KEY,
         prefix=prefix,
         transparent_background=transparent_background,
         margin_x_mm=margin_x,
@@ -120,27 +104,14 @@ def format_number(value: int, fmt: str, prefix: str = '') -> str:
     else:
         number = f'{value:03d}'
     normalized_prefix = str(prefix or '').strip()
-    return f'{normalized_prefix}{number}' if normalized_prefix else number
-
-
-def _contains_korean(text: str) -> bool:
-    for char in str(text or ''):
-        code = ord(char)
-        if (
-            0x1100 <= code <= 0x11FF
-            or 0x3130 <= code <= 0x318F
-            or 0xA960 <= code <= 0xA97F
-            or 0xAC00 <= code <= 0xD7A3
-            or 0xD7B0 <= code <= 0xD7FF
-        ):
-            return True
-    return False
+    return f'{normalized_prefix} {number}' if normalized_prefix else number
 
 
 def _resolved_font_name(options: NumberingOptions, label: str) -> str:
-    if _contains_korean(label):
-        return 'korea'
-    return _FONT_NAMES[options.font]
+    # Numbering deliberately uses one CJK-capable built-in font for every label.
+    # This keeps Korean prefixes and digits consistent across preview/export and
+    # prevents old saved settings from selecting an incompatible Latin font.
+    return _NUMBERING_FONT_NAME
 
 
 def expand_layout_for_numbering(plan: LayoutPlan, raw_options) -> LayoutPlan:
