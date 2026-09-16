@@ -65,6 +65,7 @@ def test_separate_back_file_must_match_front_size():
         settings = SmartLayoutRequest.model_validate({
             'jobs': [{'file_index': 0, 'back_file_index': 1}],
         })
+        render_docs = []
         try:
             _prepare_separate_back_files([front, back], settings.jobs, ['front.pdf', 'back.pdf'])
         except ValueError as exc:
@@ -90,26 +91,35 @@ def test_job_schema_rejects_back_file_reused_as_front_job():
         raise AssertionError('back file must not also become a front layout job')
 
 
-def test_numbering_v2_forces_korean_font_while_preserving_positions_and_margins():
+def test_numbering_forces_korean_font_ignores_legacy_margins_and_keeps_offsets_appearance():
     for legacy_font in ('helvetica', 'helvetica-bold', 'times', 'courier'):
         options = parse_numbering_options({
             'enabled': True,
             'font': legacy_font,
             'position': 'top-center',
             'font_size_pt': 10,
-            'margin_x_mm': 3.5,
-            'margin_y_mm': 4.0,
+            'margin_x_mm': 35,
+            'margin_y_mm': 40,
+            'offset_x_mm': 3.5,
+            'offset_y_mm': -4.0,
+            'bold': True,
+            'color': '#0f766e',
         })
         assert options.font == 'korean'
         assert options.position == 'top-center'
-        assert options.margin_x_mm == 3.5
-        assert options.margin_y_mm == 4.0
+        assert options.offset_x_mm == 3.5
+        assert options.offset_y_mm == -4.0
+        assert options.bold is True
+        assert options.color == '#0f766e'
+        assert not hasattr(options, 'margin_x_mm')
+        assert not hasattr(options, 'margin_y_mm')
 
 
-def test_frontend_exposes_orientation_duplex_pairing_numbering_and_full_preview():
+def test_frontend_exposes_orientation_duplex_pairing_and_final_numbering_controls():
     html = (ROOT / 'smart-print-layout' / 'index.html').read_text(encoding='utf-8')
     module = (ROOT / 'js' / 'smart-print-layout' / 'advanced-controls.js').read_text(encoding='utf-8')
     sync = (ROOT / 'js' / 'smart-print-layout' / 'numbering-preview-sync.js').read_text(encoding='utf-8')
+    preview = (ROOT / 'js' / 'smart-print-layout' / 'duplex-preview.js').read_text(encoding='utf-8')
 
     assert '/js/smart-print-layout/advanced-controls.js?v=20260915-1' in html
     assert 'guide-row' not in html
@@ -119,19 +129,19 @@ def test_frontend_exposes_orientation_duplex_pairing_numbering_and_full_preview(
         '가로 출력',
         '뒷면으로 사용',
         'back_file_index',
-        'advNumberingPosition',
-        'top-center',
-        'advNumberingMarginX',
-        'advNumberingMarginY',
         'settings.numbering = numberingConfig()',
         "stage: 'smart-print-orientation-duplex-numbering-preview-v2'",
     ):
         assert marker in module
 
-    # Legacy controls may still exist in the compatibility module, but the
-    # final numbering sync owns the visible/exported font and fixes it to Korean.
+    # Legacy compatibility controls can remain in the hidden module, but the
+    # final sync removes their margin rows and owns the visible/exported options.
     assert "config.font = 'korean'" in sync
     assert '한국어 기본 (고정)' in sync
+    assert 'removeLegacyMarginControls' in sync
+    assert 'numberingBold' in sync and 'numberingColor' in sync
     assert "return prefix ? `${prefix} ${number}` : number;" in sync
+    assert "preset.value = 'a4'" in preview
+    assert "smartLayoutDuplexPreview = 'v2-selected-side-centered'" in preview
     assert '.canvas-shell{flex:1;min-height:0;padding:12px;overflow:hidden}' in module
     assert 'requestFitCanvas' in module
