@@ -13,6 +13,7 @@
   const MAX_FILE_BYTES=500*MIB;
   const SERVER_TIMEOUT_MS=9*60*1000;
   const STORAGE_TYPES=new Set(['preflight','auto-fix','compress','remove-blank','encrypt','decrypt','background-crop']);
+  const STORAGE_AUTH_RETRY_CODES=new Set(['storage/unauthorized','storage/unauthenticated']);
 
   const esc=value=>String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
   const filenameBase=file=>String(file?.name||'document.pdf').replace(/\.pdf$/i,'').replace(/[\\/:*?"<>|]+/g,'_').slice(0,80)||'document';
@@ -50,7 +51,13 @@
     try{storage.setMaxUploadRetryTime?.(20*60*1000);storage.setMaxOperationRetryTime?.(10*60*1000);}catch(_){}
     return storage;
   }
-  async function uploadWithProgress(ref,file,root){
+  function storageErrorCode(error){return String(error?.code||'').trim().toLowerCase();}
+  async function refreshStorageAuth(user){
+    if(!user?.getIdToken)throw new Error('로그인이 필요합니다.');
+    await user.getIdToken(true);
+    await new Promise(resolve=>setTimeout(resolve,120));
+  }
+  async function uploadOnce(ref,file,root){
     const task=ref.put(file,{contentType:'application/pdf'});
     if(!task?.on)return task;
     await new Promise((resolve,reject)=>{
@@ -60,6 +67,23 @@
         setStatus(root,`대용량 Storage 업로드 중… ${percent}%`);
       },reject,resolve);
     });
+  }
+  async function uploadWithProgress(ref,file,root,user){
+    try{
+      return await uploadOnce(ref,file,root);
+    }catch(error){
+      if(!STORAGE_AUTH_RETRY_CODES.has(storageErrorCode(error)))throw error;
+      setStatus(root,'로그인 권한을 새로 확인한 뒤 업로드를 다시 시도합니다…');
+      await refreshStorageAuth(user);
+      try{
+        return await uploadOnce(ref,file,root);
+      }catch(retryError){
+        if(STORAGE_AUTH_RETRY_CODES.has(storageErrorCode(retryError))){
+          throw new Error('대용량 임시 저장 권한을 확인하지 못했습니다. 다시 로그인한 뒤 시도해 주세요.');
+        }
+        throw retryError;
+      }
+    }
   }
   async function fetchTimed(url,options){
     const controller=new AbortController();
@@ -118,6 +142,8 @@
     const params=validate(type,file,root);
     const user=window.auth?.currentUser;
     if(!user)throw new Error('로그인이 필요합니다.');
+    setStatus(root,'대용량 업로드 권한을 확인하는 중입니다…');
+    await refreshStorageAuth(user);
     const storage=await ensureStorage();
     const sid=`large${Date.now().toString(36)}${Math.random().toString(36).slice(2,8)}`.slice(0,36);
     const prefix=['preflight','auto-fix','compress'].includes(type)?'preflight_temp':'pdf_temp';
@@ -125,7 +151,7 @@
     const ref=storage.ref(path);
     let uploaded=false;
     try{
-      await uploadWithProgress(ref,file,root);uploaded=true;
+      await uploadWithProgress(ref,file,root,user);uploaded=true;
       setStatus(root,'업로드 완료 · 서버에서 처리 중입니다. 큰 파일은 수 분 걸릴 수 있습니다…');
       const headers={Authorization:`Bearer ${await user.getIdToken(true)}`,'Content-Type':'application/json'};
       let endpoint='';
