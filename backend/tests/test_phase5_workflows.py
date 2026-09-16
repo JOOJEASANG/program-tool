@@ -1,7 +1,7 @@
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[2]; GLOBAL_UI=ROOT/"js"/"program-studio-ui-v2.js"; HOME=ROOT/"index.html"; ADMIN=ROOT/"js"/"admin-workflow-v2.js"; PREFLIGHT=ROOT/"js"/"pdf-preflight"/"workflow-v2.js"; PREFLIGHT_RUNTIME=ROOT/"js"/"pdf-preflight"/"route-runtime.js"
 def test_phase5_enhancements_have_single_surface_owners():
- text=GLOBAL_UI.read_text(encoding="utf-8"); runtime=PREFLIGHT_RUNTIME.read_text(encoding="utf-8"); assert "surface==='admin'" in text and "/js/admin-workflow-v2.js?v=20260828-1" in text and "surface==='pdf-preflight'" in text and "surface==='home'" in text; assert "/js/home-dashboard-v2.js" not in text and "/js/pdf-preflight/workflow-v2.js" not in text; assert "pdfPreflightWorkflowV2Script" in runtime and "/js/pdf-preflight/workflow-v2.js?v=20260831-1" in runtime
+ text=GLOBAL_UI.read_text(encoding="utf-8"); runtime=PREFLIGHT_RUNTIME.read_text(encoding="utf-8"); assert "surface==='admin'" in text and "/js/admin-workflow-v2.js?v=20260916-1" in text and "window.__adminWorkflowApprovedOnlyV1" in text and "surface==='pdf-preflight'" in text and "surface==='home'" in text; assert "/js/home-dashboard-v2.js" not in text and "/js/pdf-preflight/workflow-v2.js" not in text; assert "pdfPreflightWorkflowV2Script" in runtime and "/js/pdf-preflight/workflow-v2.js?v=20260831-1" in runtime
 def test_home_workspace_is_static_searchable_and_has_only_live_programs():
  text=HOME.read_text(encoding="utf-8")
  for marker in ('data-home-static-professional="1"',"인쇄물 사전 검토","PDF배치","PDF편집","PDF 도구 모음","search","prog-card"): assert marker in text
