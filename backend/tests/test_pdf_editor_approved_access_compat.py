@@ -56,9 +56,10 @@ def test_pdf_editor_uses_shared_access_result_without_direct_firestore_reads():
 def test_approved_account_policy_is_defined_only_by_program_access():
     source = (ROOT / "js" / "firebase-config.js").read_text(encoding="utf-8")
 
-    assert "const assigned = access.status === 'approved'" in source
     assert "allowed: access.approved" in source
+    assert "assigned: access.approved" in source
     assert "public: false" in source
+    assert "status === 'approved'" in source
     assert "allowed: access.admin || publicAccess || assigned" not in source
     assert "'pdf-editor': true" not in source
     assert "preflight: true" not in source
