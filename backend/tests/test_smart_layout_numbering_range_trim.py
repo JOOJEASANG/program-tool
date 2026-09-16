@@ -65,25 +65,25 @@ def test_numbering_range_validation_caps_single_job_at_2000_numbers():
         parse_numbering_options({'enabled': True, 'start': 10, 'end': 9})
 
 
-def test_prefix_transparent_background_and_builtin_fonts_are_parsed():
+def test_prefix_transparent_background_and_fixed_korean_font_are_parsed():
     options = parse_numbering_options({
         'enabled': True,
         'start': 7,
         'end': 10,
         'prefix': '입장권-',
-        'font': 'korean',
+        'font': 'helvetica-bold',
         'transparent_background': True,
     })
     assert options.end == 10
     assert options.prefix == '입장권-'
     assert options.font == 'korean'
     assert options.transparent_background is True
-    assert format_number(7, 'pad3', options.prefix) == '입장권-007'
+    assert format_number(7, 'pad3', options.prefix) == '입장권- 007'
 
 
-def test_prefix_and_number_stay_attached_after_trimming():
-    assert format_number(1, 'pad3', '티켓') == '티켓001'
-    assert format_number(1, 'pad3', '티켓   ') == '티켓001'
+def test_prefix_and_number_use_exactly_one_space_after_trimming():
+    assert format_number(1, 'pad3', '티켓') == '티켓 001'
+    assert format_number(1, 'pad3', '티켓   ') == '티켓 001'
     assert format_number(1, 'pad3', '') == '001'
 
 
@@ -95,39 +95,7 @@ def test_numbering_target_side_validation_defaults_to_both():
         parse_numbering_options({'enabled': True, 'target_side': 'middle'})
 
 
-@pytest.mark.parametrize('font', [
-    'korean',
-    'helvetica', 'helvetica-bold', 'helvetica-oblique', 'helvetica-bold-oblique',
-    'times', 'times-bold', 'times-italic', 'times-bold-italic',
-    'courier', 'courier-bold', 'courier-oblique', 'courier-bold-oblique',
-])
-def test_all_numbering_font_choices_render_without_external_font_files(font):
-    source = _source()
-    try:
-        plan = _auto_plan()
-        plan = expand_layout_for_numbering(plan, {'enabled': True, 'start': 1, 'end': 1})
-        base = render_layout_pdf([source], plan, gap_mm=3.0, crop_marks=False)
-        prefix = '표-' if font == 'korean' else 'T-'
-        numbered = apply_layout_numbering(base, plan, {
-            'enabled': True,
-            'start': 1,
-            'end': 1,
-            'prefix': prefix,
-            'font': font,
-            'format': 'pad3',
-            'transparent_background': True,
-        })
-        output = fitz.open(stream=numbered, filetype='pdf')
-        try:
-            text = output[0].get_text()
-            assert '001' in text
-        finally:
-            output.close()
-    finally:
-        source.close()
-
-
-def test_korean_prefix_is_preserved_in_saved_pdf_even_with_latin_font_selected():
+def test_legacy_font_setting_is_ignored_and_korean_default_renders_saved_pdf():
     source = _source()
     try:
         plan = _auto_plan()
@@ -138,14 +106,14 @@ def test_korean_prefix_is_preserved_in_saved_pdf_even_with_latin_font_selected()
             'start': 1,
             'end': 1,
             'prefix': '입장권',
-            'font': 'helvetica-bold',
+            'font': 'times-bold-italic',
             'format': 'pad3',
             'transparent_background': True,
         })
         output = fitz.open(stream=numbered, filetype='pdf')
         try:
             text = output[0].get_text()
-            assert '입장권001' in text
+            assert '입장권 001' in text
             assert '\ufffd' not in text
         finally:
             output.close()
@@ -165,7 +133,6 @@ def test_numbering_margins_move_saved_pdf_label_from_selected_anchor():
                 'enabled': True,
                 'start': 1,
                 'end': 1,
-                'font': 'helvetica-bold',
                 'format': 'pad3',
                 'position': 'bottom-right',
                 'margin_x_mm': margin_x,
