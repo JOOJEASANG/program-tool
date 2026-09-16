@@ -106,11 +106,10 @@ def format_number(value: int, fmt: str, prefix: str = '') -> str:
     else:
         number = f'{value:03d}'
     normalized_prefix = str(prefix or '').strip()
-    return f'{normalized_prefix} {number}' if normalized_prefix else number
+    return f'{normalized_prefix}{number}' if normalized_prefix else number
 
 
 def _contains_korean(text: str) -> bool:
-    """Return True when text contains Hangul that base PDF fonts cannot encode safely."""
     for char in str(text or ''):
         code = ord(char)
         if (
@@ -125,21 +124,12 @@ def _contains_korean(text: str) -> bool:
 
 
 def _resolved_font_name(options: NumberingOptions, label: str) -> str:
-    # Browser preview can fall back to a system Korean font automatically, while
-    # PyMuPDF's Latin base fonts cannot. Keep Latin font choices for Latin-only
-    # labels but force the built-in CJK font whenever the rendered label has Hangul.
     if _contains_korean(label):
         return 'korea'
     return _FONT_NAMES[options.font]
 
 
 def expand_layout_for_numbering(plan: LayoutPlan, raw_options) -> LayoutPlan:
-    """Repeat auto-fill sheet templates until the requested numbering range is exhausted.
-
-    The existing auto-fill planner intentionally creates one full sheet per source file. Numbered
-    jobs need physical pages rather than printer-side sheet copies, so a requested end number turns
-    those sheets into templates. The final sheet is truncated to the exact remaining number count.
-    """
     options = parse_numbering_options(raw_options)
     if not options.enabled or options.end is None:
         return plan
