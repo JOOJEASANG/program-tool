@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
+import re
 
 import fitz
 
@@ -16,6 +17,9 @@ _ALLOWED_POSITIONS = {
 _ALLOWED_TARGET_SIDES = {'front', 'back', 'both'}
 _NUMBERING_FONT_KEY = 'korean'
 _NUMBERING_FONT_NAME = 'korea'
+_NUMBERING_INSET_MM = 1.6
+_DEFAULT_COLOR = '#111827'
+_COLOR_RE = re.compile(r'^#[0-9a-fA-F]{6}$')
 
 
 @dataclass(frozen=True)
@@ -30,8 +34,8 @@ class NumberingOptions:
     font: str = _NUMBERING_FONT_KEY
     prefix: str = ''
     transparent_background: bool = False
-    margin_x_mm: float = 1.6
-    margin_y_mm: float = 1.6
+    bold: bool = False
+    color: str = _DEFAULT_COLOR
     offset_x_mm: float = 0.0
     offset_y_mm: float = 0.0
 
@@ -44,8 +48,6 @@ def parse_numbering_options(raw) -> NumberingOptions:
         end_raw = raw.get('end')
         end = None if end_raw in (None, '') else int(end_raw)
         font_size = float(raw.get('font_size_pt', 9.0))
-        margin_x = float(raw.get('margin_x_mm', 1.6))
-        margin_y = float(raw.get('margin_y_mm', 1.6))
         offset_x = float(raw.get('offset_x_mm', 0.0))
         offset_y = float(raw.get('offset_y_mm', 0.0))
     except (TypeError, ValueError) as exc:
@@ -55,6 +57,8 @@ def parse_numbering_options(raw) -> NumberingOptions:
     target_side = str(raw.get('target_side') or 'both').strip().lower()
     prefix = str(raw.get('prefix') or '').strip()
     transparent_background = bool(raw.get('transparent_background'))
+    bold = bool(raw.get('bold'))
+    color = str(raw.get('color') or _DEFAULT_COLOR).strip().lower()
     if start < 0 or start > 9_999_999:
         raise ValueError('넘버링 시작번호는 0~9,999,999 범위로 입력해 주세요')
     if end is not None:
@@ -74,10 +78,10 @@ def parse_numbering_options(raw) -> NumberingOptions:
         raise ValueError('넘버링 앞 문구는 줄바꿈 없이 40자 이하로 입력해 주세요')
     if font_size < 5 or font_size > 36:
         raise ValueError('넘버링 글자 크기는 5~36pt 범위로 입력해 주세요')
-    if not 0 <= margin_x <= 50 or not 0 <= margin_y <= 50:
-        raise ValueError('넘버링 여백은 0~50mm 범위로 입력해 주세요')
     if not -50 <= offset_x <= 50 or not -50 <= offset_y <= 50:
         raise ValueError('넘버링 위치 조절은 -50~50mm 범위로 입력해 주세요')
+    if not _COLOR_RE.fullmatch(color):
+        raise ValueError('넘버링 글씨 색상을 확인해 주세요')
     return NumberingOptions(
         enabled=True,
         start=start,
@@ -89,8 +93,8 @@ def parse_numbering_options(raw) -> NumberingOptions:
         font=_NUMBERING_FONT_KEY,
         prefix=prefix,
         transparent_background=transparent_background,
-        margin_x_mm=margin_x,
-        margin_y_mm=margin_y,
+        bold=bold,
+        color=color,
         offset_x_mm=offset_x,
         offset_y_mm=offset_y,
     )
@@ -108,10 +112,12 @@ def format_number(value: int, fmt: str, prefix: str = '') -> str:
 
 
 def _resolved_font_name(options: NumberingOptions, label: str) -> str:
-    # Numbering deliberately uses one CJK-capable built-in font for every label.
-    # This keeps Korean prefixes and digits consistent across preview/export and
-    # prevents old saved settings from selecting an incompatible Latin font.
     return _NUMBERING_FONT_NAME
+
+
+def _hex_to_rgb(color: str) -> tuple[float, float, float]:
+    value = color.lstrip('#')
+    return tuple(int(value[index:index + 2], 16) / 255 for index in (0, 2, 4))
 
 
 def expand_layout_for_numbering(plan: LayoutPlan, raw_options) -> LayoutPlan:
@@ -167,8 +173,8 @@ def _placement_rect(placement: Placement) -> fitz.Rect:
 
 def _draw_number(page: fitz.Page, placement: Placement, label: str, options: NumberingOptions) -> None:
     rect = _placement_rect(placement)
-    inset_x = options.margin_x_mm * MM_TO_PT
-    inset_y = options.margin_y_mm * MM_TO_PT
+    inset_x = _NUMBERING_INSET_MM * MM_TO_PT
+    inset_y = _NUMBERING_INSET_MM * MM_TO_PT
     pad_x = 1.0 * MM_TO_PT
     pad_y = 0.55 * MM_TO_PT
     font_name = _resolved_font_name(options, label)
@@ -201,13 +207,20 @@ def _draw_number(page: fitz.Page, placement: Placement, label: str, options: Num
     box = fitz.Rect(x0, y0, x0 + box_width, y0 + box_height)
     if not options.transparent_background:
         page.draw_rect(box, color=None, fill=(1, 1, 1), fill_opacity=0.82, overlay=True)
+
+    rgb = _hex_to_rgb(options.color)
+    insert_kwargs = {
+        'fontname': font_name,
+        'fontsize': font_size,
+        'color': rgb,
+        'overlay': True,
+    }
+    if options.bold:
+        insert_kwargs.update({'fill': rgb, 'render_mode': 2, 'border_width': 0.28})
     page.insert_text(
         (box.x0 + pad_x, box.y0 + pad_y + font_size * 0.82),
         label,
-        fontname=font_name,
-        fontsize=font_size,
-        color=(0, 0, 0),
-        overlay=True,
+        **insert_kwargs,
     )
 
 
