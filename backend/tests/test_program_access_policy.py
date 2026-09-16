@@ -104,6 +104,25 @@ def test_all_primary_tool_routes_are_protected():
     assert 'approval_required=requires_approval(path)' in injector
 
 
+def test_open_protected_tools_revoke_access_live_when_member_loses_approval():
+    boot = (ROOT / "js" / "app-boot-guard.js").read_text(encoding="utf-8")
+    for marker in (
+        "function installApprovalRevocationWatch(access)",
+        "access?.admin",
+        "collection('user_permissions').doc(user.uid)",
+        "onSnapshot({includeMetadataChanges:true}",
+        "snapshot.metadata?.fromCache",
+        "status==='approved'",
+        "window.ProgramAccess?.clearCache?.(user)",
+        "root.dataset.approvalLive='revoked'",
+        "new URL('/approval-waiting.html',location.origin)",
+        "installApprovalRevocationWatch(access)",
+    ):
+        assert marker in boot
+    assert "setInterval(" not in boot
+    assert "@media(prefers-reduced-motion:reduce){html.app-booting::after{animation-duration:1.4s}}" in boot
+
+
 def test_print_checker_no_longer_uses_daily_free_access():
     checker = (ROOT / "js" / "print-checker" / "access.js").read_text(encoding="utf-8")
     assert "mode:'approved-only'" in checker
