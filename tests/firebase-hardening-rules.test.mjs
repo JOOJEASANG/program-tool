@@ -79,6 +79,30 @@ test('business stamp stays admin-only while public business details remain reada
   await assertFails(setDoc(doc(adminDb, 'settings/business_private'), { stampData: 'x'.repeat(700001) }, { merge: true }));
 });
 
+test('legacy public business document with stamp is hidden until admin migration removes it', async () => {
+  await env.withSecurityRulesDisabled(async context => {
+    await setDoc(doc(context.firestore(), 'settings/business'), {
+      bizName: 'Legacy Program Studio',
+      stampData: 'data:image/png;base64,bGVnYWN5LXN0YW1w',
+    });
+  });
+
+  const publicDb = env.unauthenticatedContext().firestore();
+  const memberDb = env.authenticatedContext('approved-user', { email: 'member@example.com' }).firestore();
+  const adminDb = env.authenticatedContext('admin-user', { email: 'admin@example.com', admin: true }).firestore();
+
+  await assertFails(getDoc(doc(publicDb, 'settings/business')));
+  await assertFails(getDoc(doc(memberDb, 'settings/business')));
+  await assertSucceeds(getDoc(doc(adminDb, 'settings/business')));
+
+  await assertSucceeds(setDoc(doc(adminDb, 'settings/business'), {
+    stampData: null,
+  }, { merge: true }).then(async () => {
+    // A null field is still present and therefore must remain non-public.
+    await assertFails(getDoc(doc(publicDb, 'settings/business')));
+  }));
+});
+
 test('temporary staging cannot be overwritten after the first upload', async () => {
   await approve('cost-owner');
   const storage = env.authenticatedContext('cost-owner', { email: 'owner@example.com' }).storage();
