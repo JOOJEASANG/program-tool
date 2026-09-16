@@ -59,7 +59,7 @@ def test_pdf_route_manifest_owns_route_helpers_without_editor_state_takeover():
     assert "/js/program-usage-output-guard.js" not in route
     assert "/js/image-pdf-adapter.js?v=20260915-1" in route
     assert "/js/pdf-editor/image-input-bridge.js?v=20260915-2" in route
-    assert "pdf-editor-route-runtime-manifest-v6-approved-only" in route
+    assert "pdf-editor-route-runtime-manifest-v7-unified-sidebar-actions" in route
 
     for forbidden in (
         "parsedPages =",
