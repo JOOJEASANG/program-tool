@@ -9,7 +9,10 @@
     <div id="fileList"></div>
   </section>
   <section id="summaryCard"><div class="summary-empty">PDF를 올리면 자동 계산합니다.</div></section>
-  <div id="emptyPreview"><strong>PDF를 올리면 바로 자동배치됩니다</strong><span>설명</span></div>
+  <section id="canvasShell" class="canvas-shell">
+    <canvas id="layoutCanvas"></canvas>
+    <div id="emptyPreview"><strong>PDF를 올리면 바로 자동배치됩니다</strong><span>설명</span></div>
+  </section>
   <div id="statusLine"></div>
   <script>
     const coreReceived=[];
@@ -49,6 +52,7 @@
   </script>
   <script src="/js/image-pdf-adapter.js?v=smoke"></script>
   <script src="/js/smart-print-layout/image-input-bridge.js?v=smoke"></script>
+  <script src="/js/smart-print-layout/preview-upload.js?v=smoke"></script>
   <script>
     (async()=>{
       const fail=message=>{document.documentElement.dataset.smartPrintLayoutImageInputSmoke='fail';document.body.dataset.error=message;};
@@ -56,9 +60,12 @@
         await new Promise(r=>setTimeout(r,120));
         if(!window.ProgramImagePdfAdapter)throw new Error('adapter missing');
         if(!window.SmartPrintLayoutImageInput)throw new Error('smart bridge missing');
+        if(!window.SmartPrintLayoutPreviewUpload)throw new Error('preview upload bridge missing');
+        if(document.documentElement.dataset.smartPrintPreviewUpload!=='ready')throw new Error('preview upload bridge not bound');
         if(!document.getElementById('fileInput').accept.includes('image/webp'))throw new Error('image accept missing');
         if(!document.querySelector('.first-panel h2').textContent.includes('이미지'))throw new Error('heading not updated');
         if(!document.querySelector('#uploadZone strong').textContent.includes('이미지'))throw new Error('upload copy not updated');
+        if(document.getElementById('emptyPreview').getAttribute('role')!=='button')throw new Error('empty preview upload accessibility missing');
 
         const canvas=document.createElement('canvas');canvas.width=300;canvas.height=600;
         const ctx=canvas.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,300,600);ctx.fillStyle='#155e75';ctx.fillRect(30,40,240,520);
@@ -85,6 +92,21 @@
           rejectedMixed=String(error?.message||error).includes('지원하지 않는 파일');
         }
         if(!rejectedMixed)throw new Error('unsupported mixed input was silently dropped');
+
+        // Regression: dropping mixed PDF/image files on the preview canvas must
+        // route through the same canonical file input path. The image must still
+        // normalize to PDF before the legacy PDF-only core sees it.
+        coreReceived.length=0;
+        const dropTransfer=new DataTransfer();
+        dropTransfer.items.add(pdfFile);
+        dropTransfer.items.add(imageFile);
+        const dropEvent=new Event('drop',{bubbles:true,cancelable:true});
+        Object.defineProperty(dropEvent,'dataTransfer',{value:dropTransfer});
+        document.getElementById('canvasShell').dispatchEvent(dropEvent);
+        for(let i=0;i<100&&(coreReceived.length<2||window.SmartPrintLayoutImageInput.busy);i++)await new Promise(r=>setTimeout(r,20));
+        if(coreReceived.length!==2)throw new Error(`preview canvas drop delivered ${coreReceived.length} files`);
+        if(coreReceived.some(file=>file.type!=='application/pdf'))throw new Error('preview canvas drop leaked raw image into canonical core');
+        if(document.documentElement.dataset.smartPrintImageImport!=='complete')throw new Error('preview canvas image normalization did not complete');
 
         coreReceived.length=0;
         const imported=await window.SmartPrintLayoutImageInput.importImages([pdfFile,imageFile]);
