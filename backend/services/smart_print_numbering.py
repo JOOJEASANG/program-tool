@@ -45,6 +45,8 @@ class NumberingOptions:
     transparent_background: bool = False
     margin_x_mm: float = 1.6
     margin_y_mm: float = 1.6
+    offset_x_mm: float = 0.0
+    offset_y_mm: float = 0.0
 
 
 def parse_numbering_options(raw) -> NumberingOptions:
@@ -57,8 +59,10 @@ def parse_numbering_options(raw) -> NumberingOptions:
         font_size = float(raw.get('font_size_pt', 9.0))
         margin_x = float(raw.get('margin_x_mm', 1.6))
         margin_y = float(raw.get('margin_y_mm', 1.6))
+        offset_x = float(raw.get('offset_x_mm', 0.0))
+        offset_y = float(raw.get('offset_y_mm', 0.0))
     except (TypeError, ValueError) as exc:
-        raise ValueError('넘버링 시작·끝번호, 글자 크기와 여백을 확인해 주세요') from exc
+        raise ValueError('넘버링 시작·끝번호, 글자 크기와 위치값을 확인해 주세요') from exc
     fmt = str(raw.get('format') or 'pad3').strip().lower()
     position = str(raw.get('position') or 'bottom-right').strip().lower()
     target_side = str(raw.get('target_side') or 'both').strip().lower()
@@ -88,6 +92,8 @@ def parse_numbering_options(raw) -> NumberingOptions:
         raise ValueError('넘버링 글자 크기는 5~36pt 범위로 입력해 주세요')
     if not 0 <= margin_x <= 50 or not 0 <= margin_y <= 50:
         raise ValueError('넘버링 여백은 0~50mm 범위로 입력해 주세요')
+    if not -50 <= offset_x <= 50 or not -50 <= offset_y <= 50:
+        raise ValueError('넘버링 위치 조절은 -50~50mm 범위로 입력해 주세요')
     return NumberingOptions(
         enabled=True,
         start=start,
@@ -101,6 +107,8 @@ def parse_numbering_options(raw) -> NumberingOptions:
         transparent_background=transparent_background,
         margin_x_mm=margin_x,
         margin_y_mm=margin_y,
+        offset_x_mm=offset_x,
+        offset_y_mm=offset_y,
     )
 
 
@@ -215,6 +223,8 @@ def _draw_number(page: fitz.Page, placement: Placement, label: str, options: Num
     else:
         y0 = rect.y1 - inset_y - box_height
 
+    x0 += options.offset_x_mm * MM_TO_PT
+    y0 += options.offset_y_mm * MM_TO_PT
     x0 = min(max(rect.x0, x0), max(rect.x0, rect.x1 - box_width))
     y0 = min(max(rect.y0, y0), max(rect.y0, rect.y1 - box_height))
     box = fitz.Rect(x0, y0, x0 + box_width, y0 + box_height)
