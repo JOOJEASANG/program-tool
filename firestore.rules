@@ -138,6 +138,13 @@ service cloud.firestore {
       allow delete: if isOwner(uid);
     }
 
+    match /users/{uid}/print_checker_sessions/{docId} {
+      allow read: if isOwner(uid) && approved(uid);
+      allow create: if isOwner(uid) && approved(uid) && validPdfSessionMetadata();
+      allow update: if false;
+      allow delete: if isOwner(uid);
+    }
+
     match /{document=**} { allow read, write: if false; }
   }
 }
