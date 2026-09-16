@@ -53,14 +53,13 @@ def test_pdf_route_manifest_owns_route_helpers_without_editor_state_takeover():
     assert "/js/pdf-editor/divider-modal-layout.js?v=20260830-2" in route
     assert "/js/pdf-editor/divider-ui-corrections.js?v=20260914-2" in route
     assert "pdfDividerUiCorrectionsScriptV1" in route
-    assert "post-manifest" in route
     assert "ProgramStudioPdfEditorRuntimeContext" in route
     assert "Promise.all(pending)" in route
-    assert "programUsageOutputGuardScriptV1" in route
-    assert "/js/program-usage-output-guard.js?v=20260914-1" in route
+    assert "programUsageOutputGuardScriptV1" not in route
+    assert "/js/program-usage-output-guard.js" not in route
     assert "/js/image-pdf-adapter.js?v=20260915-1" in route
     assert "/js/pdf-editor/image-input-bridge.js?v=20260915-2" in route
-    assert "pdf-editor-route-runtime-manifest-v5-image-input-adapter" in route
+    assert "pdf-editor-route-runtime-manifest-v6-approved-only" in route
 
     for forbidden in (
         "parsedPages =",
