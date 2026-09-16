@@ -19,9 +19,14 @@ def test_business_stamp_uses_admin_only_document_and_migrates_legacy_public_valu
         "migrateLegacyPublicStamp",
         "removeLegacyPublicStamp",
         "scrubLegacyStampCache",
+        "delete safe.stampData",
+        "savePublicBusinessFields",
+        "refresh.dataset.privateBusinessRefresh='1'",
+        "await loadPrivateStamp().catch(()=>{})",
         "input.onchange=onStampChange",
         "remove.onclick=onRemoveStamp",
         "관리자 전용 저장",
+        "private-stamp-v2-sanitized-cache",
     ):
         assert marker in workflow
 
