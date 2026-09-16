@@ -9,6 +9,7 @@
 
   const $=id=>document.getElementById(id);
   const selected=new Set();
+  const BUSINESS_FIELDS=['bizName','bizOwner','bizNumber','bizMailOrder','bizPhone','bizEmail','bizAddress','bizPrivacyOfficer','bizHosting'];
   const MAX_STAMP_BYTES=300*1024;
   const MAX_STAMP_EDGE=4096;
   const MAX_STAMP_PIXELS=16*1024*1024;
@@ -93,6 +94,22 @@
     status.className='status '+(isError?'err':'ok');
     status.textContent=message;
   }
+  function cachePublicBusiness(data={}){
+    try{
+      const safe={...data};
+      delete safe.stampData;
+      localStorage.setItem('programStudioBusiness',JSON.stringify(safe));
+    }catch(_){}
+  }
+  function scrubLegacyStampCache(){
+    try{
+      const cached=JSON.parse(localStorage.getItem('programStudioBusiness')||'{}');
+      if(cached&&Object.prototype.hasOwnProperty.call(cached,'stampData')){
+        delete cached.stampData;
+        localStorage.setItem('programStudioBusiness',JSON.stringify(cached));
+      }
+    }catch(_){}
+  }
   function validStampDataUrl(value){return /^data:image\/(?:png|jpeg|webp);base64,/i.test(String(value||''));}
   function setStampPreview(dataUrl=''){
     const preview=$('stampPreview');
@@ -104,15 +121,13 @@
     image.src=dataUrl;
     preview.appendChild(image);
   }
-  function scrubLegacyStampCache(){
-    try{
-      const key='programStudioBusiness';
-      const cached=JSON.parse(localStorage.getItem(key)||'{}');
-      if(cached&&Object.prototype.hasOwnProperty.call(cached,'stampData')){
-        delete cached.stampData;
-        localStorage.setItem(key,JSON.stringify(cached));
-      }
-    }catch(_){}
+  async function loadPrivateStamp(){
+    if(!window.db)return '';
+    const snapshot=await window.db.collection('settings').doc('business_private').get();
+    const stamp=snapshot.exists?String(snapshot.data()?.stampData||''):'';
+    setStampPreview(validStampDataUrl(stamp)?stamp:'');
+    scrubLegacyStampCache();
+    return stamp;
   }
   async function stampDimensions(file){
     if(typeof createImageBitmap==='function'){
@@ -171,17 +186,20 @@
       if(validStampDataUrl(privateStamp)){
         setStampPreview(privateStamp);
         if(legacyStamp)await removeLegacyPublicStamp();
+        scrubLegacyStampCache();
         return;
       }
       if(validStampDataUrl(legacyStamp)){
         await savePrivateStamp(legacyStamp);
         setStampPreview(legacyStamp);
         await removeLegacyPublicStamp();
+        scrubLegacyStampCache();
         setBusinessStatus('기존 공개 직인을 관리자 전용 저장소로 안전하게 이전했습니다.');
         return;
       }
       setStampPreview('');
       if(legacyStamp)await removeLegacyPublicStamp();
+      scrubLegacyStampCache();
     }catch(error){
       stampMigrationAttempted=false;
       console.warn('[admin-stamp] private migration failed',error);
@@ -225,6 +243,41 @@
       stampBusy=false;if(button)button.disabled=false;
     }
   }
+  async function savePublicBusinessFields(){
+    const data={};
+    BUSINESS_FIELDS.forEach(id=>{const node=$(id);data[id]=String(node?.value||'').trim();});
+    try{
+      await window.db.collection('settings').doc('business').set({
+        ...data,
+        updatedAt:window.firebase.firestore.FieldValue.serverTimestamp()
+      },{merge:true});
+      cachePublicBusiness(data);
+      await loadPrivateStamp().catch(()=>{});
+      setBusinessStatus('사업자 정보를 저장했습니다.');
+      return true;
+    }catch(error){
+      setBusinessStatus('서버 저장 실패: '+(error.message||error),true);
+      return false;
+    }
+  }
+  function installBusinessHandlers(){
+    const save=$('saveBusinessBtn');
+    if(save)save.onclick=savePublicBusinessFields;
+    const refresh=$('refreshBtn');
+    if(refresh&&!refresh.dataset.privateBusinessRefresh){
+      refresh.dataset.privateBusinessRefresh='1';
+      const previous=refresh.onclick;
+      refresh.onclick=async event=>{
+        try{
+          if(typeof previous==='function')await Promise.resolve(previous.call(refresh,event));
+        }finally{
+          scrubLegacyStampCache();
+          await migrateLegacyPublicStamp();
+          await loadPrivateStamp().catch(()=>{});
+        }
+      };
+    }
+  }
   function installPrivateStampProtection(){
     const input=$('stampFile'),remove=$('removeStampBtn');
     if(!input||!remove)return false;
@@ -233,6 +286,7 @@
     const subtitle=input.closest('.card')?.querySelector('.cardsub');
     if(subtitle)subtitle.textContent='PNG/JPG/WebP, 최대 300KB · 관리자 전용 저장';
     scrubLegacyStampCache();
+    installBusinessHandlers();
     if(window.auth?.onAuthStateChanged){
       window.auth.onAuthStateChanged(user=>{if(user)migrateLegacyPublicStamp();});
     }else{
@@ -252,7 +306,8 @@
       applyBulk,
       getSelected:()=>[...selected],
       migrateLegacyPublicStamp,
-      stage:'admin-approved-members-only-private-stamp'
+      loadPrivateStamp,
+      stage:'admin-approved-members-only-private-stamp-v2-sanitized-cache'
     };
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>install(),{once:true});else install();
