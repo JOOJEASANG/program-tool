@@ -13,6 +13,7 @@ _ALLOWED_POSITIONS = {
     'top-left', 'top-center', 'top-right',
     'bottom-left', 'bottom-center', 'bottom-right',
 }
+_ALLOWED_TARGET_SIDES = {'front', 'back', 'both'}
 _FONT_NAMES = {
     'korean': 'korea',
     'helvetica': 'helv',
@@ -37,12 +38,15 @@ class NumberingOptions:
     end: int | None = None
     format: str = 'pad3'
     position: str = 'bottom-right'
+    target_side: str = 'both'
     font_size_pt: float = 9.0
     font: str = 'helvetica-bold'
     prefix: str = ''
     transparent_background: bool = False
     margin_x_mm: float = 1.6
     margin_y_mm: float = 1.6
+    offset_x_mm: float = 0.0
+    offset_y_mm: float = 0.0
 
 
 def parse_numbering_options(raw) -> NumberingOptions:
@@ -55,10 +59,13 @@ def parse_numbering_options(raw) -> NumberingOptions:
         font_size = float(raw.get('font_size_pt', 9.0))
         margin_x = float(raw.get('margin_x_mm', 1.6))
         margin_y = float(raw.get('margin_y_mm', 1.6))
+        offset_x = float(raw.get('offset_x_mm', 0.0))
+        offset_y = float(raw.get('offset_y_mm', 0.0))
     except (TypeError, ValueError) as exc:
-        raise ValueError('넘버링 시작·끝번호, 글자 크기와 여백을 확인해 주세요') from exc
+        raise ValueError('넘버링 시작·끝번호, 글자 크기와 위치값을 확인해 주세요') from exc
     fmt = str(raw.get('format') or 'pad3').strip().lower()
     position = str(raw.get('position') or 'bottom-right').strip().lower()
+    target_side = str(raw.get('target_side') or 'both').strip().lower()
     font = str(raw.get('font') or 'helvetica-bold').strip().lower()
     prefix = str(raw.get('prefix') or '').strip()
     transparent_background = bool(raw.get('transparent_background'))
@@ -75,6 +82,8 @@ def parse_numbering_options(raw) -> NumberingOptions:
         raise ValueError('넘버링 표시 형식을 확인해 주세요')
     if position not in _ALLOWED_POSITIONS:
         raise ValueError('넘버링 위치를 확인해 주세요')
+    if target_side not in _ALLOWED_TARGET_SIDES:
+        raise ValueError('넘버링 적용 면을 확인해 주세요')
     if font not in _FONT_NAMES:
         raise ValueError('넘버링 글꼴을 확인해 주세요')
     if len(prefix) > 40 or any(ord(char) < 32 for char in prefix):
@@ -83,18 +92,23 @@ def parse_numbering_options(raw) -> NumberingOptions:
         raise ValueError('넘버링 글자 크기는 5~36pt 범위로 입력해 주세요')
     if not 0 <= margin_x <= 50 or not 0 <= margin_y <= 50:
         raise ValueError('넘버링 여백은 0~50mm 범위로 입력해 주세요')
+    if not -50 <= offset_x <= 50 or not -50 <= offset_y <= 50:
+        raise ValueError('넘버링 위치 조절은 -50~50mm 범위로 입력해 주세요')
     return NumberingOptions(
         enabled=True,
         start=start,
         end=end,
         format=fmt,
         position=position,
+        target_side=target_side,
         font_size_pt=font_size,
         font=font,
         prefix=prefix,
         transparent_background=transparent_background,
         margin_x_mm=margin_x,
         margin_y_mm=margin_y,
+        offset_x_mm=offset_x,
+        offset_y_mm=offset_y,
     )
 
 
@@ -106,11 +120,10 @@ def format_number(value: int, fmt: str, prefix: str = '') -> str:
     else:
         number = f'{value:03d}'
     normalized_prefix = str(prefix or '').strip()
-    return f'{normalized_prefix} {number}' if normalized_prefix else number
+    return f'{normalized_prefix}{number}' if normalized_prefix else number
 
 
 def _contains_korean(text: str) -> bool:
-    """Return True when text contains Hangul that base PDF fonts cannot encode safely."""
     for char in str(text or ''):
         code = ord(char)
         if (
@@ -125,21 +138,12 @@ def _contains_korean(text: str) -> bool:
 
 
 def _resolved_font_name(options: NumberingOptions, label: str) -> str:
-    # Browser preview can fall back to a system Korean font automatically, while
-    # PyMuPDF's Latin base fonts cannot. Keep Latin font choices for Latin-only
-    # labels but force the built-in CJK font whenever the rendered label has Hangul.
     if _contains_korean(label):
         return 'korea'
     return _FONT_NAMES[options.font]
 
 
 def expand_layout_for_numbering(plan: LayoutPlan, raw_options) -> LayoutPlan:
-    """Repeat auto-fill sheet templates until the requested numbering range is exhausted.
-
-    The existing auto-fill planner intentionally creates one full sheet per source file. Numbered
-    jobs need physical pages rather than printer-side sheet copies, so a requested end number turns
-    those sheets into templates. The final sheet is truncated to the exact remaining number count.
-    """
     options = parse_numbering_options(raw_options)
     if not options.enabled or options.end is None:
         return plan
@@ -219,6 +223,8 @@ def _draw_number(page: fitz.Page, placement: Placement, label: str, options: Num
     else:
         y0 = rect.y1 - inset_y - box_height
 
+    x0 += options.offset_x_mm * MM_TO_PT
+    y0 += options.offset_y_mm * MM_TO_PT
     x0 = min(max(rect.x0, x0), max(rect.x0, rect.x1 - box_width))
     y0 = min(max(rect.y0, y0), max(rect.y0, rect.y1 - box_height))
     box = fitz.Rect(x0, y0, x0 + box_width, y0 + box_height)
@@ -238,6 +244,11 @@ def apply_layout_numbering(pdf_bytes: bytes, plan: LayoutPlan, raw_options) -> b
     options = parse_numbering_options(raw_options)
     if not options.enabled:
         return pdf_bytes
+    if options.target_side == 'back' and not plan.duplex:
+        raise ValueError('단면 출력에서는 뒷면 넘버링을 사용할 수 없습니다')
+
+    draw_front = options.target_side in {'front', 'both'}
+    draw_back = options.target_side in {'back', 'both'}
 
     document = fitz.open(stream=pdf_bytes, filetype='pdf')
     try:
@@ -252,22 +263,24 @@ def apply_layout_numbering(pdf_bytes: bytes, plan: LayoutPlan, raw_options) -> b
             labels = [format_number(sequence + index, options.format, options.prefix) for index in range(label_count)]
             if page_index >= document.page_count:
                 raise ValueError('넘버링을 적용할 출력 페이지를 찾을 수 없습니다')
-            front = document[page_index]
-            for placement, label in zip(sheet, labels):
-                _draw_number(front, placement, label, options)
+            if draw_front:
+                front = document[page_index]
+                for placement, label in zip(sheet, labels):
+                    _draw_number(front, placement, label, options)
 
             if plan.duplex:
                 if page_index + 1 >= document.page_count:
                     raise ValueError('양면 넘버링을 적용할 뒷면 페이지를 찾을 수 없습니다')
-                back = document[page_index + 1]
-                for placement, label in zip(sheet, labels):
-                    mirrored = mirror_back_placement(
-                        placement,
-                        plan.paper_width_mm,
-                        plan.paper_height_mm,
-                        plan.flip_edge,
-                    )
-                    _draw_number(back, mirrored, label, options)
+                if draw_back:
+                    back = document[page_index + 1]
+                    for placement, label in zip(sheet, labels):
+                        mirrored = mirror_back_placement(
+                            placement,
+                            plan.paper_width_mm,
+                            plan.paper_height_mm,
+                            plan.flip_edge,
+                        )
+                        _draw_number(back, mirrored, label, options)
                 page_index += 2
             else:
                 page_index += 1
