@@ -140,7 +140,7 @@
     html.app-booting::before{content:"";position:fixed;inset:0;z-index:2147483646;background:rgba(248,250,252,.96);visibility:visible!important}
     html.app-booting::after{content:"";position:fixed;left:50%;top:50%;z-index:2147483647;width:34px;height:34px;margin:-17px 0 0 -17px;border-radius:50%;border:3px solid #dbe5ee;border-top-color:#1769e0;animation:programStudioBootSpin .72s linear infinite;visibility:visible!important}
     @keyframes programStudioBootSpin{to{transform:rotate(360deg)}}
-    @media(prefers-reduced-motion:reduce){html.app-booting body::after{animation-duration:1.4s}}
+    @media(prefers-reduced-motion:reduce){html.app-booting::after{animation-duration:1.4s}}
   `;
   document.head.appendChild(style);
 
