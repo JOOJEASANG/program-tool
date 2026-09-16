@@ -20,6 +20,19 @@
     document.head.appendChild(style);
   }
 
+  function applyA4Default() {
+    if (document.documentElement.dataset.smartLayoutA4DefaultApplied === '1') return;
+    const preset = $('paperPreset');
+    const width = $('paperWidth');
+    const height = $('paperHeight');
+    if (!preset || !width || !height) return;
+    preset.value = 'a4';
+    width.value = '210';
+    height.value = '297';
+    document.documentElement.dataset.smartLayoutA4DefaultApplied = '1';
+    preset.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+
   function cleanupLegacyDualPreview() {
     const shell = $('canvasShell');
     shell?.classList.remove('duplex-preview-active');
@@ -27,9 +40,15 @@
     ['layoutCanvasBack', 'duplexBackOverlay', 'duplexFrontLabel', 'duplexBackLabel'].forEach(id => $(id)?.remove());
   }
 
+  function syncCopy() {
+    const copy = document.querySelector('.workspace-head p');
+    if (copy) copy.textContent = '단면과 양면 모두 같은 크기의 중앙 미리보기를 사용합니다. 양면은 앞면·뒷면 버튼으로 선택해 확인하며 재단선과 넘버링도 선택한 면에 맞춰 표시됩니다.';
+  }
+
   function sync() {
     injectStyles();
     cleanupLegacyDualPreview();
+    syncCopy();
     const api = window.SmartPrintLayout;
     const plan = api?.state?.plan;
     const front = $('frontBtn');
@@ -50,7 +69,9 @@
 
   function bind() {
     injectStyles();
+    applyA4Default();
     cleanupLegacyDualPreview();
+    syncCopy();
     document.addEventListener('input', event => {
       if (event.target?.closest?.('.sidebar')) schedule();
     }, true);
