@@ -159,7 +159,7 @@ def test_shared_ui_has_only_live_program_routes():
         assert live in source
 
 
-def test_boot_guard_has_no_retired_editor_runtime_loaders():
+def test_boot_guard_has_no_retired_editor_runtime_loaders_and_protects_live_tools():
     source = _read("js/app-boot-guard.js")
     for dead in [
         "/design-editor/",
@@ -174,7 +174,8 @@ def test_boot_guard_has_no_retired_editor_runtime_loaders():
         "designPrintProductionStage2ScriptV1",
     ]:
         assert dead not in source
-    assert "/print-checker" not in source
+    for live in ("/print-checker", "/smart-print-layout", "/pdf-suite", "/pdf-editor", "/pdf-preflight"):
+        assert live in source
     assert "if(!protectedProgram){reveal('public');return;}" in source
     assert "return 'design-studio'" in source
     assert "/js/pdf-editor/print-workflow-focus.js" in source
@@ -192,6 +193,8 @@ def test_shared_runtime_has_no_retired_editor_routes_or_manifest():
     ]:
         assert dead not in source
     assert "'/print-checker','/print-checker/index.html'" in source
+    assert "'/smart-print-layout','/smart-print-layout/index.html'" in source
+    assert "'/pdf-suite','/pdf-suite/index.html'" in source
     assert "/js/pdf-editor/route-runtime.js" in source
     assert "/js/pdf-preflight/route-runtime.js" in source
 
@@ -210,6 +213,9 @@ def test_access_path_mapper_keeps_only_live_compatibility_routes():
     assert "return 'design-studio'" in source
     assert "/pdf-editor" in source
     assert "/pdf-preflight" in source
+    assert "/print-checker" in source
+    assert "/smart-print-layout" in source
+    assert "/pdf-suite" in source
 
 
 def test_deploy_injector_has_no_retired_image_editor_hooks():
