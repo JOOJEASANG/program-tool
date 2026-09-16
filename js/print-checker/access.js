@@ -4,6 +4,15 @@
   if(window.__printCheckerApprovedAccessV1)return;
   window.__printCheckerApprovedAccessV1=true;
 
+  function loadSidebarActions(){
+    if(document.getElementById('programSidebarActionsScriptV1')||window.__programSidebarActionsV1)return;
+    const script=document.createElement('script');
+    script.id='programSidebarActionsScriptV1';
+    script.src='/js/program-sidebar-actions.js?v=20260916-1';
+    script.async=false;
+    document.head.appendChild(script);
+  }
+
   function syncUser(user){
     const name=document.getElementById('userName');
     const logout=document.getElementById('logoutBtn');
@@ -21,6 +30,8 @@
       console.warn('[print-checker-access] approval state unavailable',error);
     }
   }
+
+  loadSidebarActions();
 
   if(window.auth?.onAuthStateChanged){
     window.auth.onAuthStateChanged(user=>{if(user)syncUser(user);});

@@ -90,7 +90,8 @@
   function loadLayoutUiRefinements(){
     return hostLoadScript('pdfPreviewZoomPersistenceScriptV2','/js/pdf-editor/preview-zoom-persistence.js?v=20260915-3')
       .then(()=>hostLoadScript('pdfLayoutUiRefinementsScriptV1','/js/pdf-editor/layout-ui-refinements.js?v=20260915-2'))
-      .then(()=>hostLoadScript('pdfOrientationSidebarCleanupScriptV2','/js/pdf-editor/orientation-sidebar-cleanup.js?v=20260915-2'));
+      .then(()=>hostLoadScript('pdfOrientationSidebarCleanupScriptV2','/js/pdf-editor/orientation-sidebar-cleanup.js?v=20260915-2'))
+      .then(()=>hostLoadScript('programSidebarActionsScriptV1','/js/program-sidebar-actions.js?v=20260916-1'));
   }
 
   function loadAll(){
@@ -134,6 +135,6 @@
     modules:MODULES.map(({id,src})=>({id,src})),
     app:standaloneApp(),
     get profile(){return window.PdfEditorStandaloneApps?.fromLocation?.(location.search)?.key||null;},
-    stage:'pdf-editor-route-runtime-manifest-v6-approved-only'
+    stage:'pdf-editor-route-runtime-manifest-v7-unified-sidebar-actions'
   };
 })();

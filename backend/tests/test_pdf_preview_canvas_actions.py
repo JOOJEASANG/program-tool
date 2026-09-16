@@ -11,7 +11,7 @@ def test_layout_route_uses_updated_lazy_preview_canvas_guard_without_extra_asset
     assert "/js/pdf-editor/viewport-lazy-preview-guard.js?v=20260914-1" in source
     assert "pdfPreviewCanvasActionSyncScriptV1" not in source
     assert "preview-canvas-action-sync.js" not in source
-    assert "pdf-editor-route-runtime-manifest-v6-approved-only" in source
+    assert "pdf-editor-route-runtime-manifest-v7-unified-sidebar-actions" in source
     assert "/js/image-pdf-adapter.js?v=20260915-1" in source
     assert "/js/pdf-editor/image-input-bridge.js?v=20260915-2" in source
 
