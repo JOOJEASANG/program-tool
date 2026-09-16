@@ -74,7 +74,7 @@ service cloud.firestore {
     match /settings/programs { allow read: if signedIn(); allow write: if isAdmin(); }
     match /settings/config { allow read, write: if isAdmin(); }
     match /settings/business {
-      allow read: if true;
+      allow read: if isAdmin() || !resource.data.keys().hasAny(['stampData']);
       allow write: if isAdmin() && !request.resource.data.keys().hasAny(['stampData']);
     }
     match /settings/business_private {
