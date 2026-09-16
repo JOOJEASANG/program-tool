@@ -31,8 +31,9 @@ def test_layout_session_save_uses_owner_metadata_and_loads_source_files_back():
         "ownerUid: user.uid",
         "purpose: 'pdf-session-source'",
         "sessionId",
-        "state: JSON.stringify(state)",
+        "state: snapshotMeta.stateJson",
         "MAX_SESSION_BYTES = 300 * 1024 * 1024",
+        "MAX_STATE_BYTES = 780 * 1024",
     ):
         assert marker in safety
 
