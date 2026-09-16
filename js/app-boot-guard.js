@@ -140,7 +140,7 @@
     html.app-booting::before{content:"";position:fixed;inset:0;z-index:2147483646;background:rgba(248,250,252,.96);visibility:visible!important}
     html.app-booting::after{content:"";position:fixed;left:50%;top:50%;z-index:2147483647;width:34px;height:34px;margin:-17px 0 0 -17px;border-radius:50%;border:3px solid #dbe5ee;border-top-color:#1769e0;animation:programStudioBootSpin .72s linear infinite;visibility:visible!important}
     @keyframes programStudioBootSpin{to{transform:rotate(360deg)}}
-    @media(prefers-reduced-motion:reduce){html.app-booting::after{animation-duration:1.4s}}
+    @media(prefers-reduced-motion:reduce){html.app-booting body::after{animation-duration:1.4s}}
   `;
   document.head.appendChild(style);
 
@@ -192,6 +192,43 @@
     return ready;
   }
 
+  let approvalUnsubscribe=null;
+  let accessRevoked=false;
+  function installApprovalRevocationWatch(access){
+    if(access?.admin||accessRevoked||approvalUnsubscribe)return;
+    const user=window.auth?.currentUser;
+    const firestore=window.db;
+    if(!user?.uid||!firestore?.collection)return;
+    try{
+      const reference=firestore.collection('user_permissions').doc(user.uid);
+      approvalUnsubscribe=reference.onSnapshot({includeMetadataChanges:true},snapshot=>{
+        if(accessRevoked||snapshot.metadata?.fromCache)return;
+        const status=snapshot.exists?String(snapshot.data()?.status||'pending'):'pending';
+        if(status==='approved'){
+          root.dataset.approvalLive='approved';
+          return;
+        }
+        accessRevoked=true;
+        try{window.ProgramAccess?.clearCache?.(user);}catch(_){}
+        root.dataset.approvalLive='revoked';
+        root.dataset.accessRevoked=status;
+        root.style.visibility='hidden';
+        const target=new URL('/approval-waiting.html',location.origin);
+        target.searchParams.set('status',status||'pending');
+        target.searchParams.set('program',protectedProgram);
+        location.replace(target.href);
+      },error=>{
+        console.warn('Live approval status could not be observed.',error);
+      });
+      window.addEventListener('pagehide',()=>{
+        try{approvalUnsubscribe?.();}catch(_){}
+        approvalUnsubscribe=null;
+      },{once:true});
+    }catch(error){
+      console.warn('Live approval watch could not be installed.',error);
+    }
+  }
+
   function retryApprovalWait(){
     if(revealed||Date.now()-started>=11000)return;
     setTimeout(waitForApproval,60);
@@ -204,6 +241,7 @@
       Promise.resolve(ready).then(async access=>{
         if(!access){retryApprovalWait();return;}
         clearTimeout(failClosedTimer);
+        installApprovalRevocationWatch(access);
         let functional=true;
         if(protectedProgram==='preflight')functional=await waitForPreflightFunctionalReady();
         else if(protectedProgram==='pdf-editor')functional=await waitForPdfEditorFunctionalReady();
