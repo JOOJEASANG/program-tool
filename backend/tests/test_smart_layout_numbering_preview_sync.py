@@ -7,10 +7,12 @@ ROOT = Path(__file__).resolve().parents[2]
 def test_numbering_preview_sync_is_loaded_after_final_controls():
     html = (ROOT / 'smart-print-layout' / 'index.html').read_text(encoding='utf-8')
     final_marker = '/js/smart-print-layout/final-controls.js?v=20260916-1'
-    sync_marker = '/js/smart-print-layout/numbering-preview-sync.js?v=20260916-1'
+    sync_marker = '/js/smart-print-layout/numbering-preview-sync.js?v=20260916-2'
+    duplex_marker = '/js/smart-print-layout/duplex-preview.js?v=20260916-1'
     assert final_marker in html
     assert sync_marker in html
-    assert html.index(final_marker) < html.index(sync_marker)
+    assert duplex_marker in html
+    assert html.index(final_marker) < html.index(sync_marker) < html.index(duplex_marker)
 
 
 def test_numbering_preview_sync_uses_true_xy_offsets_compact_prefix_and_side_selector():
