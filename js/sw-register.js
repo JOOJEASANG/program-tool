@@ -5,7 +5,7 @@
 
   // Historical filename: this module owns shared runtime loading and retired
   // service-worker cleanup. It intentionally does not register a worker.
-  const VERSION='2026.09.10.002';
+  const VERSION='2026.09.16.001';
   const CACHE_PREFIX='program-studio-';
   const CLEANUP_KEY='program-studio-legacy-runtime-cleanup-'+VERSION;
   const SCRIPT_TIMEOUT_MS=8000;
@@ -17,7 +17,9 @@
   function isProtectedRuntimePage(){
     return isPath(
       '/print-checker','/print-checker/index.html',
-      '/tools/pdf-editor.html','/pdf-editor','/pdf-editor/index.html','/pdf-editor-advanced',
+      '/smart-print-layout','/smart-print-layout/index.html',
+      '/pdf-suite','/pdf-suite/index.html',
+      '/tools/pdf-editor.html','/pdf-editor','/pdf-editor/index.html','/pdf-editor-advanced','/pdf-editor-advanced/index.html',
       '/tools/preflight.html','/tools/pdf-Checker.html','/pdf-preflight','/pdf-preflight/index.html',
       '/tools/perfect-binding-cover.html','/perfect-binding-cover','/perfect-binding-cover/index.html'
     );
@@ -102,7 +104,7 @@
 
   function loadPdfEditorRuntime(){
     window.ProgramStudioPdfEditorRuntimeContext={entryPath:currentPath,load};
-    return load('pdfEditorRouteRuntimeScriptV1','/js/pdf-editor/route-runtime.js?v=20260909-1').then(()=>{
+    return load('pdfEditorRouteRuntimeScriptV1','/js/pdf-editor/route-runtime.js?v=20260916-1').then(()=>{
       const runtime=window.PdfEditorRouteRuntime;
       if(!runtime||typeof runtime.loadAll!=='function')throw new Error('PDF editor route runtime API is unavailable');
       return runtime.loadAll();
@@ -142,8 +144,6 @@
       tasks.push(load('programStudioPlatformHealthScriptV1','/js/platform-health.js?v='+VERSION).catch(error=>{console.warn('Platform health helper loading failed',error);return null;}));
       tasks.push(load('appVersionHelperScript','/js/app-version.js?v='+VERSION));
     }
-    // The advanced editor owns /js/pdf-editor-advanced/app.js directly and
-    // must never load the general N-UP/booklet route runtime.
     if(isPath('/tools/pdf-editor.html','/pdf-editor','/pdf-editor/index.html'))tasks.push(loadPdfEditorRuntime());
     if(isPath('/tools/pdf-Checker.html','/tools/preflight.html','/pdf-preflight','/pdf-preflight/index.html'))tasks.push(loadPreflightRuntime());
     return Promise.allSettled(tasks);

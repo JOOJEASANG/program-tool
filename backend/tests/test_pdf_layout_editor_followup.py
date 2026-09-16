@@ -39,9 +39,9 @@ def test_layout_runtime_cache_chain_is_versioned_to_new_boundary():
     boot = text(SW_REGISTER)
     config = text(FIREBASE_CONFIG)
     assert "app-boundary.js?v=20260909-1" in route
-    assert "route-runtime.js?v=20260909-1" in boot
-    assert "const VERSION='2026.09.10.002'" in boot
-    assert "sw-register.js?v=2026.09.10.002" in config
+    assert "route-runtime.js?v=20260916-1" in boot
+    assert "const VERSION='2026.09.16.001'" in boot
+    assert "sw-register.js?v=2026.09.16.001" in config
 
 
 def test_advanced_editor_accepts_preview_drop_and_preserves_erase_mode():

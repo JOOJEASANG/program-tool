@@ -1,7 +1,7 @@
 (function(){
   'use strict';
-  if(window.__programStudioBootGuardV4)return;
-  window.__programStudioBootGuardV4=true;
+  if(window.__programStudioBootGuardV5)return;
+  window.__programStudioBootGuardV5=true;
 
   const root=document.documentElement;
   const path=String(location.pathname||'').replace(/\\/g,'/').replace(/\/+$/,'');
@@ -12,7 +12,10 @@
   const protectedProgram=(function(){
     if(['pdf-layout','booklet'].includes(modularAppKey))return 'pdf-editor';
     if(['cover','poster','flyer','invitation','notice','leaflet'].includes(modularAppKey))return 'design-studio';
-    if(['/tools/pdf-editor.html','/pdf-editor','/pdf-editor/index.html','/pdf-editor-advanced'].some(item=>path.endsWith(item)))return 'pdf-editor';
+    if(['/print-checker','/print-checker/index.html'].some(item=>path.endsWith(item)))return 'print-checker';
+    if(['/smart-print-layout','/smart-print-layout/index.html'].some(item=>path.endsWith(item)))return 'smart-print-layout';
+    if(['/pdf-suite','/pdf-suite/index.html'].some(item=>path.endsWith(item)))return 'pdf-suite';
+    if(['/tools/pdf-editor.html','/pdf-editor','/pdf-editor/index.html','/pdf-editor-advanced','/pdf-editor-advanced/index.html'].some(item=>path.endsWith(item)))return 'pdf-editor';
     if(['/tools/preflight.html','/tools/pdf-Checker.html','/pdf-preflight','/pdf-preflight/index.html'].some(item=>path.endsWith(item)))return 'preflight';
     if(['/tools/perfect-binding-cover.html','/perfect-binding-cover','/perfect-binding-cover/index.html'].some(item=>path.endsWith(item)))return 'design-studio';
     return '';
@@ -20,7 +23,7 @@
 
   const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
   function isHomeRoute(){return path===''||path==='/index.html';}
-  function isStandaloneAdvancedPdfEditor(){return path.endsWith('/pdf-editor-advanced');}
+  function isStandaloneAdvancedPdfEditor(){return path.endsWith('/pdf-editor-advanced')||path.endsWith('/pdf-editor-advanced/index.html');}
   function isPdfPrintEditor(){return ['/tools/pdf-editor.html','/pdf-editor','/pdf-editor/index.html'].some(item=>path.endsWith(item));}
   function isLegacyAdvancedPdfProfile(){
     if(!isPdfPrintEditor())return false;
@@ -107,12 +110,7 @@
     return script;
   }
 
-  // N-UP/booklet workflow belongs only to the general PDF layout editor.
-  // The standalone advanced editor never mounts or hides that runtime: it owns
-  // a separate HTML/JS tree and shares only the access guard.
   loadRuntimeScript('pdfPrintWorkflowFocusScriptV1','/js/pdf-editor/print-workflow-focus.js?v=20260827-1',isPdfPrintEditor()&&!legacyAdvancedProfile);
-  // Prime the current preflight presentation behind the boot overlay so the
-  // legacy workspace never flashes before clean-workspace-v2 takes ownership.
   loadRuntimeScript('pdfPreflightPanelBalanceScriptV1','/js/pdf-preflight-panel-balance.js?v=20260831-3',protectedProgram==='preflight');
 
   let revealed=false;
@@ -171,9 +169,6 @@
 
   async function waitForPreflightFunctionalReady(){
     if(protectedProgram!=='preflight')return true;
-    // Access approval is the only hard gate for this route. The full preflight
-    // runtime may continue wiring utilities after first paint, so never hold the
-    // page behind the overlay while every optional module settles.
     const runtimeStarted=await waitUntil(()=>Boolean(window.ProgramStudioPreflightRuntimeReady),220);
     const uiReady=await waitUntil(()=>document.body?.dataset?.pdfPreflightUi==='clean-workspace-v2',480);
     const ready=runtimeStarted&&uiReady;
@@ -197,6 +192,43 @@
     return ready;
   }
 
+  let approvalUnsubscribe=null;
+  let accessRevoked=false;
+  function installApprovalRevocationWatch(access){
+    if(access?.admin||accessRevoked||approvalUnsubscribe)return;
+    const user=window.auth?.currentUser;
+    const firestore=window.db;
+    if(!user?.uid||!firestore?.collection)return;
+    try{
+      const reference=firestore.collection('user_permissions').doc(user.uid);
+      approvalUnsubscribe=reference.onSnapshot({includeMetadataChanges:true},snapshot=>{
+        if(accessRevoked||snapshot.metadata?.fromCache)return;
+        const status=snapshot.exists?String(snapshot.data()?.status||'pending'):'pending';
+        if(status==='approved'){
+          root.dataset.approvalLive='approved';
+          return;
+        }
+        accessRevoked=true;
+        try{window.ProgramAccess?.clearCache?.(user);}catch(_){}
+        root.dataset.approvalLive='revoked';
+        root.dataset.accessRevoked=status;
+        root.style.visibility='hidden';
+        const target=new URL('/approval-waiting.html',location.origin);
+        target.searchParams.set('status',status||'pending');
+        target.searchParams.set('program',protectedProgram);
+        location.replace(target.href);
+      },error=>{
+        console.warn('Live approval status could not be observed.',error);
+      });
+      window.addEventListener('pagehide',()=>{
+        try{approvalUnsubscribe?.();}catch(_){}
+        approvalUnsubscribe=null;
+      },{once:true});
+    }catch(error){
+      console.warn('Live approval watch could not be installed.',error);
+    }
+  }
+
   function retryApprovalWait(){
     if(revealed||Date.now()-started>=11000)return;
     setTimeout(waitForApproval,60);
@@ -209,6 +241,7 @@
       Promise.resolve(ready).then(async access=>{
         if(!access){retryApprovalWait();return;}
         clearTimeout(failClosedTimer);
+        installApprovalRevocationWatch(access);
         let functional=true;
         if(protectedProgram==='preflight')functional=await waitForPreflightFunctionalReady();
         else if(protectedProgram==='pdf-editor')functional=await waitForPdfEditorFunctionalReady();

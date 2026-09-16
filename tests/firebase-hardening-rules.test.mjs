@@ -6,7 +6,7 @@ import {
   assertSucceeds,
   initializeTestEnvironment,
 } from '@firebase/rules-unit-testing';
-import { doc, setDoc, updateDoc } from 'firebase/firestore';
+import { deleteField, doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { ref, uploadString } from 'firebase/storage';
 
 const projectId = 'demo-program-tool';
@@ -54,6 +54,52 @@ test('storage rules keep the 200 MiB single-object ceiling and explicit default 
   assert.match(storageRules, /validPdfUpload\(209715200\)/);
   assert.match(storageRules, /match \/\{allPaths=\*\*\}/);
   assert.match(storageRules, /allow read, write: if false/);
+});
+
+test('business stamp stays admin-only while public business details remain readable', async () => {
+  await env.withSecurityRulesDisabled(async context => {
+    const db = context.firestore();
+    await setDoc(doc(db, 'settings/business'), { bizName: 'Program Studio' });
+    await setDoc(doc(db, 'settings/business_private'), { stampData: 'data:image/png;base64,c2VhbA==' });
+  });
+  await approve('approved-user');
+
+  const publicDb = env.unauthenticatedContext().firestore();
+  const memberDb = env.authenticatedContext('approved-user', { email: 'member@example.com' }).firestore();
+  const adminDb = env.authenticatedContext('admin-user', { email: 'admin@example.com', admin: true }).firestore();
+
+  await assertSucceeds(getDoc(doc(publicDb, 'settings/business')));
+  await assertFails(getDoc(doc(publicDb, 'settings/business_private')));
+  await assertFails(getDoc(doc(memberDb, 'settings/business_private')));
+  await assertFails(setDoc(doc(memberDb, 'settings/business_private'), { stampData: 'member-write' }, { merge: true }));
+  await assertSucceeds(getDoc(doc(adminDb, 'settings/business_private')));
+  await assertSucceeds(setDoc(doc(adminDb, 'settings/business_private'), { stampData: 'admin-write' }, { merge: true }));
+  await assertFails(setDoc(doc(adminDb, 'settings/business'), { stampData: 'data:image/png;base64,cHVibGlj' }, { merge: true }));
+  await assertSucceeds(setDoc(doc(adminDb, 'settings/business_private'), { stampData: 'x'.repeat(690000) }, { merge: true }));
+  await assertFails(setDoc(doc(adminDb, 'settings/business_private'), { stampData: 'x'.repeat(700001) }, { merge: true }));
+});
+
+test('legacy public business document with stamp is hidden until admin migration removes it', async () => {
+  await env.withSecurityRulesDisabled(async context => {
+    await setDoc(doc(context.firestore(), 'settings/business'), {
+      bizName: 'Legacy Program Studio',
+      stampData: 'data:image/png;base64,bGVnYWN5LXN0YW1w',
+    });
+  });
+
+  const publicDb = env.unauthenticatedContext().firestore();
+  const memberDb = env.authenticatedContext('approved-user', { email: 'member@example.com' }).firestore();
+  const adminDb = env.authenticatedContext('admin-user', { email: 'admin@example.com', admin: true }).firestore();
+
+  await assertFails(getDoc(doc(publicDb, 'settings/business')));
+  await assertFails(getDoc(doc(memberDb, 'settings/business')));
+  await assertSucceeds(getDoc(doc(adminDb, 'settings/business')));
+  await assertFails(setDoc(doc(adminDb, 'settings/business'), { stampData: null }, { merge: true }));
+
+  await assertSucceeds(setDoc(doc(adminDb, 'settings/business'), {
+    stampData: deleteField(),
+  }, { merge: true }));
+  await assertSucceeds(getDoc(doc(publicDb, 'settings/business')));
 });
 
 test('temporary staging cannot be overwritten after the first upload', async () => {

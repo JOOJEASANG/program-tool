@@ -121,6 +121,11 @@ def test_pdf_editor_workspace_stays_bounded_while_utility_gets_separate_roomy_li
 
     assert "MAX_FILE_BYTES = 200 * 1024 * 1024" in session
     assert "MAX_SESSION_BYTES = 300 * 1024 * 1024" in session
+    assert "MAX_STATE_BYTES = 780 * 1024" in session
+    assert "new TextEncoder().encode" in session
+    assert "stateBytes > MAX_STATE_BYTES" in session
+    assert "state: snapshotMeta.stateJson" in session
+    assert "maxStateBytes: MAX_STATE_BYTES" in session
     assert "totalBytes: snapshotMeta.totalBytes" in session
     assert "원본 PDF 전체 합계는 최대 300MB" in session
 
@@ -172,7 +177,7 @@ def test_active_runtime_uses_single_pdf_and_preflight_owners():
     app = executable_js(APP_VERSION)
     preflight = PREFLIGHT_RUNTIME.read_text(encoding="utf-8")
 
-    assert "/js/pdf-editor/route-runtime.js?v=20260909-1" in sw
+    assert "/js/pdf-editor/route-runtime.js?v=20260916-1" in sw
     assert "pdf-editor/transfer-limit-guard.js" not in sw
     assert "pdf-divider-local-image-upload.js" not in sw
     assert "pdfEditorTransferLimitGuardScriptV1" not in app
@@ -202,4 +207,4 @@ def test_retired_admin_catalog_runtime_stays_removed_and_admin_workflow_remains_
     ):
         assert filename not in runtime
         assert not (ROOT / "js" / filename).exists()
-    assert "/js/admin-workflow-v2.js?v=20260828-1" in ui
+    assert "/js/admin-workflow-v2.js?v=20260916-1" in ui

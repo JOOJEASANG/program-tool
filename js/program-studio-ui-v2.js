@@ -68,7 +68,7 @@
     }
     if(surface==='pdf-editor'||surface==='pdf-preflight'||surface==='print-checker'||surface==='home')return;
     if(surface==='admin'){
-      loadEnhancement('adminWorkflowV2Script','/js/admin-workflow-v2.js?v=20260828-1',()=>Boolean(window.__adminWorkflowV2),'관리자 편의 기능을 불러오지 못했습니다.');
+      loadEnhancement('adminWorkflowV2Script','/js/admin-workflow-v2.js?v=20260916-1',()=>Boolean(window.__adminWorkflowApprovedOnlyV1),'관리자 편의 기능을 불러오지 못했습니다.');
     }
   }
 
@@ -244,5 +244,5 @@
     observeNewControls();
   });
 
-  window.ProgramStudioUI={version:'2026.09.04.001',surface,designSystem:'unified-v3',openPalette,closePalette};
+  window.ProgramStudioUI={version:'2026.09.16.001',surface,designSystem:'unified-v3',openPalette,closePalette};
 })();

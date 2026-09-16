@@ -11,12 +11,14 @@ const MAX_SESSIONS = 10;
 const MAX_FILES = 50;
 const MAX_FILE_BYTES = 200 * 1024 * 1024;
 const MAX_TOTAL_BYTES = 300 * 1024 * 1024;
+const MAX_STATE_BYTES = 780 * 1024;
 const SESSION_COLLECTION = 'pdf_advanced_sessions';
 const SESSION_FORMAT = 'program-studio-advanced-pdf-session';
 let operationBusy = false;
 
 const clone = value => JSON.parse(JSON.stringify(value));
 const totalBytes = files => [...(files || [])].reduce((sum, file) => sum + Number(file?.size || 0), 0);
+const utf8Bytes = value => new TextEncoder().encode(String(value ?? '')).byteLength;
 const pageKey = page => `${Number(page?.fileIndex)}:${Number(page?.pageIndex)}`;
 
 function storageApi() {
@@ -141,8 +143,9 @@ function validateSave(files, state) {
     if (!Number.isInteger(page.pageIndex) || page.pageIndex < 0) throw new Error(`${index + 1}페이지의 원본 페이지 정보가 올바르지 않습니다.`);
   }
   const serialized = JSON.stringify(state);
-  if (serialized.length > 850000) throw new Error('편집 내용이 너무 커서 저장할 수 없습니다. 부분 지우기 영역 수를 줄여 주세요.');
-  return { bytes, serialized };
+  const stateBytes = utf8Bytes(serialized);
+  if (stateBytes > MAX_STATE_BYTES) throw new Error('편집 내용이 너무 커서 저장할 수 없습니다. 부분 지우기 영역 수를 줄여 주세요.');
+  return { bytes, serialized, stateBytes };
 }
 
 async function cleanupStoragePaths(paths, storage = storageApi()) {
@@ -457,6 +460,7 @@ window.PdfAdvancedSessionPersistence = {
   restoreState,
   loadSession,
   collection: SESSION_COLLECTION,
-  stage: 'advanced-edit-session-source-files-state-restore-v1',
+  maxStateBytes: MAX_STATE_BYTES,
+  stage: 'advanced-edit-session-source-files-state-restore-v2-state-byte-preflight',
 };
 document.documentElement.dataset.pdfAdvancedSessionPersistence = '1';

@@ -109,20 +109,8 @@
     script.src='/js/pdf-editor-advanced/page-overlay-session-restore.js?v=20260909-1';
     document.body.appendChild(script);
   };
-  const loadUsageOutputGuard=()=>{
-    if(document.getElementById('programUsageOutputGuardScriptV1'))return;
-    const script=document.createElement('script');
-    script.id='programUsageOutputGuardScriptV1';
-    script.src='/js/program-usage-output-guard.js?v=20260914-1';
-    script.async=false;
-    document.head.appendChild(script);
-  };
-  const loadRuntimeHelpers=()=>{
-    loadSessionOverlayRestore();
-    loadUsageOutputGuard();
-  };
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',loadRuntimeHelpers,{once:true});
-  else loadRuntimeHelpers();
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',loadSessionOverlayRestore,{once:true});
+  else loadSessionOverlayRestore();
 
   document.documentElement.dataset.pdfAdvancedFirebase='ready';
 })();

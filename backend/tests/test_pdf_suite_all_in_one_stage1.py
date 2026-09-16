@@ -80,8 +80,6 @@ def test_pdf_suite_is_staged_with_split_editor_profiles_and_utility_workspace():
     for marker in (
         'PDF_SUITE_HTML = "pdf-suite/index.html"',
         "data-pdf-suite-first-paint-guard",
-        "data-pdf-suite-daily-free",
-        "pdf-daily-free.js",
         "pdf-suite-home-launcher.js?v=20260910-3",
         '"smart-print-layout",',
         'OUTPUT / "smart-print-layout/index.html"',
@@ -89,8 +87,6 @@ def test_pdf_suite_is_staged_with_split_editor_profiles_and_utility_workspace():
         "unified-navigation-prep.js?v=20260906-2",
         "data-pdf-suite-unified-workspace",
         "unified-workspace.js",
-        "data-pdf-suite-unified-quota",
-        "unified-quota.js",
         "data-pdf-suite-single-page-workspace",
         "single-page-shell.js?v=20260911-4",
         "data-pdf-suite-protected-tool-guard",
@@ -103,6 +99,15 @@ def test_pdf_suite_is_staged_with_split_editor_profiles_and_utility_workspace():
     ):
         assert marker in hosting
 
+    # Usage-count/quota injection is retired. Access is now handled only by the
+    # shared login + administrator-approval gate.
+    for retired in (
+        "data-pdf-suite-daily-free",
+        "pdf-daily-free.js",
+        "data-pdf-suite-unified-quota",
+        "unified-quota.js",
+    ):
+        assert retired not in hosting
     assert "guardTool" not in hosting
     assert 'programId:"preflight"' not in hosting
 

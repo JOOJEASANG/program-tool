@@ -15,9 +15,9 @@ def test_print_checker_html_loads_stabilized_tool():
     assert "print-checker.css?v=20260907-4" in html
     assert "reliability.js?v=20260904-1" in html
     assert "firebase-firestore-compat.js" in html
-    assert "js/print-checker/access.js?v=20260907-2" in html
-    assert "js/pdf-daily-free.js?v=20260907-2" in html
-    assert "js/print-checker/defaults-live.js?v=20260911-3" in html
+    assert "js/print-checker/access.js?v=20260916-1" in html
+    assert "js/pdf-daily-free.js" not in html
+    assert "js/print-checker/defaults-live.js?v=20260916-1" in html
     for element_id in (
         "productGrid", "uploadZone", "specForm", "reportSection", "previewCanvas",
         "uploadFileInfo", "canvasFileInfo", "sideSelectRow",
@@ -113,16 +113,21 @@ def test_print_checker_reliability_guard_recovers_pdf_loader_and_invalidates_sta
     assert "fileInput.value = ''" in js
 
 
-def test_print_checker_uses_public_configurable_daily_free_access_policy():
+def test_print_checker_uses_shared_approved_member_access_policy():
     access = read("js/print-checker/access.js")
-    assert "ProgramAccess.guardTool" not in access
-    assert "approval-waiting.html" not in access
-    assert "mode:'daily-free'" in access
-    assert "window.ProgramPdfDailyFree?.guestLimit??3" in access
-    assert "window.ProgramPdfDailyFree?.memberLimit??10" in access
-    assert "quota.status()" in access
-    assert "status.limit" in access
-    assert "비회원 · 하루 ${status.limit}회 무료" in access
+    assert "Promise.resolve(window.ProgramAccessReady)" in access
+    assert "if(!access?.approved)return;" in access
+    assert "mode:'approved-only'" in access
+    assert "print-checker-approved-member-access-v1" in access
+    assert "document.documentElement.dataset.printCheckerAccess='approved'" in access
+    for retired in (
+        "daily-free",
+        "ProgramPdfDailyFree",
+        "guestLimit",
+        "memberLimit",
+        "quota.status()",
+    ):
+        assert retired not in access
 
 
 def test_apps_index_redirects_design_shortcuts_with_product_context():

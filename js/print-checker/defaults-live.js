@@ -1,4 +1,4 @@
-// Print Checker: practical defaults, size presets, cover wing controls, and daily-free run guard.
+// Print Checker: practical defaults, size presets, cover wing controls, and run handling.
 (function(){
   'use strict';
   if(window.__printCheckerDefaultsLiveV2)return;
@@ -275,16 +275,7 @@
     const button=$('runBtn');
     if(button)button.disabled=true;
     try{
-      const quota=window.ProgramPdfDailyFree;
-      if(quota){
-        const gate=await quota.canStart('print-checker');
-        if(!gate.ok){alert(gate.message);return;}
-      }
-      const ok=checker()?.runCheck?.()===true;
-      if(ok&&quota){
-        try{await quota.commitSuccess('print-checker');}
-        catch(error){console.warn('[print-checker] quota commit failed',error);}
-      }
+      checker()?.runCheck?.();
     }finally{
       guardBusy=false;
       if(button)button.disabled=false;
@@ -341,7 +332,7 @@
     updateSummary,
     syncWingControls,
     guardedRun,
-    stage:'print-checker-defaults-live-v2-safe10-cover-wing'
+    stage:'print-checker-defaults-live-v3-approved-only'
   });
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{boot();},{once:true});

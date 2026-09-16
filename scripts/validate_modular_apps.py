@@ -47,7 +47,6 @@ def validate() -> None:
         if not (ROOT / relative).is_file():
             errors.append(f"missing asset: {relative}")
 
-    # Design editor must be gone — print checker replaced it
     design_editor_remnants = (
         "js/design-editor/core-runtime.js",
         "js/design-editor/shell-runtime.js",
@@ -106,17 +105,12 @@ def validate() -> None:
             errors.append(f"print-checker.js does not handle fold type: {fold}")
 
     checker_access = read("js/print-checker/access.js")
-    if "ProgramAccess.guardTool" in checker_access or "approval-waiting" in checker_access:
-        errors.append("print-checker must remain a public daily-free route, not an approval-gated tool")
-    if (
-        "daily-free" not in checker_access
-        or "ProgramPdfDailyFree?.guestLimit" not in checker_access
-        or "ProgramPdfDailyFree?.memberLimit" not in checker_access
-        or "quota.status()" not in checker_access
-    ):
-        errors.append("print-checker configurable daily-free access policy is incomplete")
-    if "/js/pdf-daily-free.js" not in checker_html:
-        errors.append("print-checker/index.html must load the shared daily-free runtime")
+    if "mode:'approved-only'" not in checker_access or "ProgramAccessReady" not in checker_access:
+        errors.append("print-checker must require the shared approved-member access state")
+    if "daily-free" in checker_access or "ProgramPdfDailyFree" in checker_access:
+        errors.append("print-checker still contains retired daily-free access logic")
+    if "/js/pdf-daily-free.js" in checker_html:
+        errors.append("print-checker/index.html still loads the retired usage quota runtime")
 
     access = read("js/modular-app-access.js")
     for key in PDF_KEYS:
@@ -197,7 +191,7 @@ def validate() -> None:
             print(f" - {error}", file=sys.stderr)
         raise SystemExit(1)
 
-    print("Modular app architecture OK: public Print Checker, canonical N-up/booklet editor, standalone advanced PDF editor, protected routes, Firebase rewrites and browser smoke coverage all validated")
+    print("Modular app architecture OK: approved-member Print Checker, canonical N-up/booklet editor, standalone advanced PDF editor, protected routes, Firebase rewrites and browser smoke coverage all validated")
 
 
 if __name__ == "__main__":

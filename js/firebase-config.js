@@ -26,7 +26,7 @@ window.googleProvider = googleProvider;
 window.firebaseConfig = firebaseConfig;
 
 (() => {
-  const UI_VERSION = '20260902-01';
+  const UI_VERSION = '20260916-01';
   const existingUiStyles = document.getElementById('programStudioUiV2Styles')
     || document.querySelector('link[data-program-studio-ui]');
   if (existingUiStyles) {
@@ -67,7 +67,7 @@ window.firebaseConfig = firebaseConfig;
   if (document.getElementById('programStudioCacheBootstrap')) return;
   const script = document.createElement('script');
   script.id = 'programStudioCacheBootstrap';
-  script.src = '/js/sw-register.js?v=2026.09.10.002';
+  script.src = '/js/sw-register.js?v=2026.09.16.001';
   script.defer = true;
   document.head.appendChild(script);
 })();
@@ -148,29 +148,12 @@ window.ProgramAccess = {
         email: this.normalizeEmail(user.email),
         displayName: user.displayName || '',
         status: 'pending',
-        plan: 'free',
-        programs: {
-          'pdf-editor': false,
-          preflight: false,
-          'design-studio': false
-        },
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       };
       await reference.set(data);
       return data;
     }
     return snapshot.data();
-  },
-
-  async getPublicPrograms() {
-    const cached = this._cacheGet('public-programs');
-    if (cached !== undefined) return cached;
-    const snapshot = await db.collection('settings').doc('programs').get().catch(() => null);
-    const data = snapshot && snapshot.exists ? snapshot.data() : {};
-    const publicPrograms = data && typeof data.public === 'object' && data.public
-      ? data.public
-      : {};
-    return this._cacheSet('public-programs', publicPrograms);
   },
 
   async getAccess(user) {
@@ -221,17 +204,17 @@ window.ProgramAccess = {
         status: 'signed_out',
         admin: false,
         public: false,
-        profile: null
+        profile: null,
+        programId: programId || ''
       };
     }
 
     const access = await this.getAccess(user);
-    const assigned = access.status === 'approved';
     return {
       ...access,
       allowed: access.approved,
       public: false,
-      assigned,
+      assigned: access.approved,
       programId
     };
   },
@@ -247,7 +230,16 @@ window.ProgramAccess = {
 
   programForPath(pathname) {
     const path = String(pathname || '').replace(/\\/g, '/').replace(/\/+$/, '');
-    if (['/tools/pdf-editor.html', '/pdf-editor', '/pdf-editor/index.html', '/pdf-editor-advanced', '/booklet', '/booklet/index.html'].some(item => path.endsWith(item))) {
+    if (['/print-checker', '/print-checker/index.html'].some(item => path.endsWith(item))) {
+      return 'print-checker';
+    }
+    if (['/smart-print-layout', '/smart-print-layout/index.html'].some(item => path.endsWith(item))) {
+      return 'smart-print-layout';
+    }
+    if (['/pdf-suite', '/pdf-suite/index.html'].some(item => path.endsWith(item))) {
+      return 'pdf-suite';
+    }
+    if (['/tools/pdf-editor.html', '/pdf-editor', '/pdf-editor/index.html', '/pdf-editor-advanced', '/pdf-editor-advanced/index.html', '/booklet', '/booklet/index.html'].some(item => path.endsWith(item))) {
       return 'pdf-editor';
     }
     if (['/tools/preflight.html', '/tools/pdf-Checker.html', '/pdf-preflight', '/pdf-preflight/index.html'].some(item => path.endsWith(item))) {

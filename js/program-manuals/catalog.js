@@ -27,5 +27,5 @@
     return [...listed, ...extras];
   }
 
-  window.ProgramManuals = Object.freeze({ order, register, get, all, version: '2026-09-10' });
+  window.ProgramManuals = Object.freeze({ order, register, get, all, version: '2026-09-16' });
 })();
