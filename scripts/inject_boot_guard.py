@@ -15,6 +15,9 @@ UI_STYLE_MARKER = "data-program-studio-ui"
 PDF_BOOKLET_MARKER = "data-pdf-classic-booklet"
 EXCLUDED_PARTS = {".git", "node_modules", "venv", ".venv", "__pycache__"}
 PROTECTED_HTML = {
+    "print-checker/index.html",
+    "smart-print-layout/index.html",
+    "pdf-suite/index.html",
     "pdf-editor/index.html",
     "pdf-editor-advanced/index.html",
     "pdf-preflight/index.html",
@@ -30,7 +33,6 @@ PUBLIC_HTML = {
     "guide.html",
     "terms.html",
     "privacy.html",
-    "print-checker/index.html",
 }
 DEPLOY_HTML = PUBLIC_HTML | PROTECTED_HTML
 PDF_BOOKLET_HTML = {
@@ -40,12 +42,14 @@ PDF_BOOKLET_HTML = {
 PAGE_METADATA = {
     "index.html": ("Program Studio", "PDF·인쇄 실무를 위한 인쇄물 사전 검토·PDF 편집·PDF 유틸리티 플랫폼", "index,follow"),
     "login.html": ("로그인 | Program Studio", "Program Studio 로그인 및 회원가입", "noindex,nofollow"),
-    "admin.html": ("관리자 | Program Studio", "Program Studio 회원 및 프로그램 운영 관리", "noindex,nofollow"),
+    "admin.html": ("관리자 | Program Studio", "Program Studio 회원 승인 및 운영 정보 관리", "noindex,nofollow"),
     "approval-waiting.html": ("승인 대기 | Program Studio", "Program Studio 계정 승인 상태 확인", "noindex,nofollow"),
     "guide.html": ("이용안내 | Program Studio", "Program Studio 주요 프로그램과 이용 방법 안내", "index,follow"),
     "terms.html": ("이용약관 | Program Studio", "Program Studio 서비스 이용약관", "index,follow"),
     "privacy.html": ("개인정보처리방침 | Program Studio", "Program Studio 개인정보처리방침", "index,follow"),
     "print-checker/index.html": ("인쇄물 사전 검토 | Program Studio", "Program Studio 인쇄물 사전 검토 도구 — 책등·재단선·안전영역·접지선 확인", "noindex,nofollow"),
+    "smart-print-layout/index.html": ("스마트 인쇄배치 | Program Studio", "Program Studio 스마트 인쇄배치 도구", "noindex,nofollow"),
+    "pdf-suite/index.html": ("PDF 올인원 | Program Studio", "Program Studio PDF 올인원 도구 모음", "noindex,nofollow"),
     "pdf-editor/index.html": ("PDF 편집기 | Program Studio", "Program Studio PDF 병합·페이지·배치·출력 편집기", "noindex,nofollow"),
     "pdf-editor-advanced/index.html": ("PDF 고급 편집 | Program Studio", "Program Studio 독립 PDF 고급 편집기 — 삭제·확대축소·이동·잘라내기·여백·머리말·꼬리말·페이지번호", "noindex,nofollow"),
     "pdf-preflight/index.html": ("PDF 검사 · 유틸리티 | Program Studio", "Program Studio PDF 인쇄 전 검사·보안·유틸리티 도구", "noindex,nofollow"),
