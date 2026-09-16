@@ -1,14 +1,14 @@
 (() => {
   'use strict';
-  if (window.__smartPrintNumberingPreviewSyncV2) return;
-  window.__smartPrintNumberingPreviewSyncV2 = true;
+  if (window.__smartPrintNumberingPreviewSyncV3) return;
+  window.__smartPrintNumberingPreviewSyncV3 = true;
 
   const $ = id => document.getElementById(id);
   const KOREAN_STACK = '"Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR",Arial,sans-serif';
   const WATCHED_CONTROLS = new Set([
     'numberingEnabled', 'numberingStart', 'numberingEnd', 'numberingPrefix',
     'numberingFormat', 'numberingPosition', 'numberingFont', 'numberingFontSize',
-    'numberingTransparent', 'numberingMarginX', 'numberingMarginY', 'numberingTargetSide',
+    'numberingTransparent', 'numberingOffsetX', 'numberingOffsetY', 'numberingTargetSide',
   ]);
   let frame = 0;
   let shellObserver = null;
@@ -59,32 +59,38 @@
       positionRow.insertAdjacentElement('afterend', sideRow);
     }
 
-    if (!$('numberingMarginX') || !$('numberingMarginY')) {
+    if (!$('numberingOffsetX') || !$('numberingOffsetY')) {
       const offsetRow = document.createElement('div');
       offsetRow.className = 'grid2 numbering-offset-row';
       offsetRow.innerHTML = `
-        <label class="field"><span>좌우 위치 조절 mm</span><input id="numberingMarginX" type="number" min="0" max="50" step="0.5" value="1.5"></label>
-        <label class="field"><span>상하 위치 조절 mm</span><input id="numberingMarginY" type="number" min="0" max="50" step="0.5" value="1.5"></label>`;
+        <label class="field"><span>좌우 위치 조절 mm</span><input id="numberingOffsetX" type="number" min="-50" max="50" step="0.5" value="0"><small>- 왼쪽 / + 오른쪽</small></label>
+        <label class="field"><span>상하 위치 조절 mm</span><input id="numberingOffsetY" type="number" min="-50" max="50" step="0.5" value="0"><small>- 위 / + 아래</small></label>`;
       const sideRow = $('numberingTargetSide')?.closest('.grid2') || positionRow;
       sideRow.insertAdjacentElement('afterend', offsetRow);
+    }
+
+    const enabled = Boolean($('numberingEnabled')?.checked);
+    for (const id of ['numberingTargetSide', 'numberingOffsetX', 'numberingOffsetY']) {
+      const control = $(id);
+      if (control) control.disabled = !enabled;
     }
     return true;
   }
 
   function patchEnhancementConfig() {
     const enhancements = window.SmartPrintLayoutEnhancements;
-    if (!enhancements || enhancements.__numberingSideOffsetsPatched) return;
+    if (!enhancements || enhancements.__numberingSideOffsetsPatchedV2) return;
     const original = enhancements.numberingConfig;
     if (typeof original !== 'function') return;
     enhancements.numberingConfig = function numberingConfigWithSideAndOffsets() {
       const config = original();
       config.target_side = $('numberingTargetSide')?.value || 'both';
-      config.margin_x_mm = numberValue('numberingMarginX', 1.5, 0, 50);
-      config.margin_y_mm = numberValue('numberingMarginY', 1.5, 0, 50);
+      config.offset_x_mm = numberValue('numberingOffsetX', 0, -50, 50);
+      config.offset_y_mm = numberValue('numberingOffsetY', 0, -50, 50);
       config.prefix = String(config.prefix || '').trim();
       return config;
     };
-    enhancements.__numberingSideOffsetsPatched = true;
+    enhancements.__numberingSideOffsetsPatchedV2 = true;
   }
 
   function mirrorBack(placement, cfg) {
@@ -95,38 +101,39 @@
       : { ...placement, y: cfg.paperH - placement.y - placement.height };
   }
 
-  function applyPosition(element, placement, scale, position, marginX, marginY) {
+  function applyPosition(element, placement, scale, position, offsetX, offsetY) {
     const left = placement.x * scale;
     const top = placement.y * scale;
     const width = placement.width * scale;
     const height = placement.height * scale;
-    const insetX = marginX * scale;
-    const insetY = marginY * scale;
+    const inset = 1.6 * scale;
+    const dx = offsetX * scale;
+    const dy = offsetY * scale;
 
     element.style.margin = '0';
     if (position === 'top-left') {
-      element.style.left = `${left + insetX}px`;
-      element.style.top = `${top + insetY}px`;
+      element.style.left = `${left + inset + dx}px`;
+      element.style.top = `${top + inset + dy}px`;
       element.style.transform = 'none';
     } else if (position === 'top-center') {
-      element.style.left = `${left + width / 2}px`;
-      element.style.top = `${top + insetY}px`;
+      element.style.left = `${left + width / 2 + dx}px`;
+      element.style.top = `${top + inset + dy}px`;
       element.style.transform = 'translateX(-50%)';
     } else if (position === 'top-right') {
-      element.style.left = `${left + width - insetX}px`;
-      element.style.top = `${top + insetY}px`;
+      element.style.left = `${left + width - inset + dx}px`;
+      element.style.top = `${top + inset + dy}px`;
       element.style.transform = 'translateX(-100%)';
     } else if (position === 'bottom-left') {
-      element.style.left = `${left + insetX}px`;
-      element.style.top = `${top + height - insetY}px`;
+      element.style.left = `${left + inset + dx}px`;
+      element.style.top = `${top + height - inset + dy}px`;
       element.style.transform = 'translateY(-100%)';
     } else if (position === 'bottom-center') {
-      element.style.left = `${left + width / 2}px`;
-      element.style.top = `${top + height - insetY}px`;
+      element.style.left = `${left + width / 2 + dx}px`;
+      element.style.top = `${top + height - inset + dy}px`;
       element.style.transform = 'translate(-50%,-100%)';
     } else {
-      element.style.left = `${left + width - insetX}px`;
-      element.style.top = `${top + height - insetY}px`;
+      element.style.left = `${left + width - inset + dx}px`;
+      element.style.top = `${top + height - inset + dy}px`;
       element.style.transform = 'translate(-100%,-100%)';
     }
   }
@@ -134,7 +141,7 @@
   function updateHint() {
     const hint = document.querySelector('#numberingOptions .hint');
     if (!hint) return;
-    hint.textContent = '문구와 번호는 붙여서 출력합니다. 좌우·상하 위치 조절과 적용 면 선택은 미리보기와 저장 PDF에 동일하게 반영됩니다. 한글 문구는 저장 PDF에서 한국어 글꼴로 자동 처리합니다.';
+    hint.textContent = '문구와 번호는 붙여서 출력합니다. 기준 위치를 선택한 뒤 좌우·상하 값을 -/+로 미세 이동할 수 있습니다. 적용 면과 위치는 미리보기와 저장 PDF에 동일하게 반영되며, 한글 문구는 저장 PDF에서 한국어 글꼴로 자동 처리합니다.';
   }
 
   function shouldShowOnCurrentSide(api) {
@@ -170,8 +177,8 @@
     const rawEnd = String($('numberingEnd')?.value || '').trim();
     const end = rawEnd === '' ? null : Math.round(numberValue('numberingEnd', start, 0, 9_999_999));
     const position = $('numberingPosition')?.value || 'bottom-right';
-    const marginX = numberValue('numberingMarginX', 1.5, 0, 50);
-    const marginY = numberValue('numberingMarginY', 1.5, 0, 50);
+    const offsetX = numberValue('numberingOffsetX', 0, -50, 50);
+    const offsetY = numberValue('numberingOffsetY', 0, -50, 50);
     const prefix = String($('numberingPrefix')?.value || '').trim();
 
     let labelIndex = 0;
@@ -184,22 +191,22 @@
       const text = formatNumber(value);
       if (element.textContent !== text) element.textContent = text;
       if (hasKorean(prefix) || hasKorean(text)) element.style.fontFamily = KOREAN_STACK;
-      applyPosition(element, placement, scale, position, marginX, marginY);
+      applyPosition(element, placement, scale, position, offsetX, offsetY);
     });
   }
 
   function normalizeExportSettings(settings) {
     if (!settings?.numbering?.enabled) return settings;
-    settings.numbering.margin_x_mm = numberValue('numberingMarginX', 1.5, 0, 50);
-    settings.numbering.margin_y_mm = numberValue('numberingMarginY', 1.5, 0, 50);
+    settings.numbering.offset_x_mm = numberValue('numberingOffsetX', 0, -50, 50);
+    settings.numbering.offset_y_mm = numberValue('numberingOffsetY', 0, -50, 50);
     settings.numbering.target_side = $('numberingTargetSide')?.value || 'both';
     settings.numbering.prefix = String(settings.numbering.prefix || '').trim();
     return settings;
   }
 
   function installFetchGuard() {
-    if (window.__smartPrintNumberingFetchGuardV2 || typeof window.fetch !== 'function') return;
-    window.__smartPrintNumberingFetchGuardV2 = true;
+    if (window.__smartPrintNumberingFetchGuardV3 || typeof window.fetch !== 'function') return;
+    window.__smartPrintNumberingFetchGuardV3 = true;
     const originalFetch = window.fetch.bind(window);
     window.fetch = function smartLayoutNumberingFetch(input, init = {}) {
       try {
@@ -244,13 +251,13 @@
     ['prevSheet', 'nextSheet', 'frontBtn', 'backBtn'].forEach(id => $(id)?.addEventListener('click', schedule));
     $('resetBtn')?.addEventListener('click', () => requestAnimationFrame(() => {
       if ($('numberingTargetSide')) $('numberingTargetSide').value = 'both';
-      if ($('numberingMarginX')) $('numberingMarginX').value = '1.5';
-      if ($('numberingMarginY')) $('numberingMarginY').value = '1.5';
+      if ($('numberingOffsetX')) $('numberingOffsetX').value = '0';
+      if ($('numberingOffsetY')) $('numberingOffsetY').value = '0';
       schedule();
     }));
     window.addEventListener('resize', schedule);
     schedule();
-    document.documentElement.dataset.smartLayoutNumberingPreviewSync = 'v2-position-side-font-safe';
+    document.documentElement.dataset.smartLayoutNumberingPreviewSync = 'v3-position-offset-side-font-safe';
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind, { once: true });
