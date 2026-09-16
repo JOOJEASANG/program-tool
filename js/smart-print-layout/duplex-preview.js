@@ -4,21 +4,7 @@
   window.__smartPrintDuplexPreviewV1 = true;
 
   const $ = id => document.getElementById(id);
-  const FONT_PREVIEW = {
-    korean: '"Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR",Arial,sans-serif',
-    helvetica: 'Arial, Helvetica, sans-serif',
-    'helvetica-bold': 'Arial, Helvetica, sans-serif',
-    'helvetica-oblique': 'Arial, Helvetica, sans-serif',
-    'helvetica-bold-oblique': 'Arial, Helvetica, sans-serif',
-    times: '"Times New Roman", Times, serif',
-    'times-bold': '"Times New Roman", Times, serif',
-    'times-italic': '"Times New Roman", Times, serif',
-    'times-bold-italic': '"Times New Roman", Times, serif',
-    courier: '"Courier New", Courier, monospace',
-    'courier-bold': '"Courier New", Courier, monospace',
-    'courier-oblique': '"Courier New", Courier, monospace',
-    'courier-bold-oblique': '"Courier New", Courier, monospace',
-  };
+  const KOREAN_STACK = '"Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR",Arial,sans-serif';
   let frame = 0;
   let fileObserver = null;
   let recalculatePatched = false;
@@ -227,7 +213,7 @@
     else if (config.format === 'no-pad3') number = `NO.${String(value).padStart(3, '0')}`;
     else number = String(value).padStart(3, '0');
     const prefix = String(config.prefix || '').trim();
-    return prefix ? `${prefix}${number}` : number;
+    return prefix ? `${prefix} ${number}` : number;
   }
 
   function applyNumberPosition(element, placement, scale, config) {
@@ -263,9 +249,9 @@
     element.textContent = formatNumber(value, config);
     const fontPx = Math.max(7, Number(config.font_size_pt || 9) * 25.4 / 72 * scale);
     element.style.fontSize = `${fontPx}px`;
-    element.style.fontFamily = FONT_PREVIEW[config.font] || FONT_PREVIEW['helvetica-bold'];
-    element.style.fontWeight = String(config.font || '').includes('bold') ? '700' : '400';
-    element.style.fontStyle = /italic|oblique/.test(String(config.font || '')) ? 'italic' : 'normal';
+    element.style.fontFamily = KOREAN_STACK;
+    element.style.fontWeight = '400';
+    element.style.fontStyle = 'normal';
     applyNumberPosition(element, placement, scale, config);
     overlay.appendChild(element);
   }
