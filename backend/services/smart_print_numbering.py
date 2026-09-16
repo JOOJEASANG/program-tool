@@ -15,8 +15,26 @@ _ALLOWED_POSITIONS = {
     'bottom-left', 'bottom-center', 'bottom-right',
 }
 _ALLOWED_TARGET_SIDES = {'front', 'back', 'both'}
-_NUMBERING_FONT_KEY = 'korean'
-_NUMBERING_FONT_NAME = 'korea'
+_DEFAULT_NUMBERING_FONT_KEY = 'korean-sans'
+_NUMBERING_FONT_MAP = {
+    'korean-sans': 'korea',
+    'korean-serif': 'korea-s',
+    'helvetica': 'helv',
+    'times': 'tiro',
+    'courier': 'cour',
+}
+_LEGACY_FONT_ALIASES = {
+    'korean': 'korean-sans',
+    'helvetica-bold': 'helvetica',
+    'helvetica-oblique': 'helvetica',
+    'helvetica-bold-oblique': 'helvetica',
+    'times-bold': 'times',
+    'times-italic': 'times',
+    'times-bold-italic': 'times',
+    'courier-bold': 'courier',
+    'courier-oblique': 'courier',
+    'courier-bold-oblique': 'courier',
+}
 _NUMBERING_INSET_MM = 1.6
 _DEFAULT_COLOR = '#111827'
 _COLOR_RE = re.compile(r'^#[0-9a-fA-F]{6}$')
@@ -31,7 +49,7 @@ class NumberingOptions:
     position: str = 'bottom-right'
     target_side: str = 'both'
     font_size_pt: float = 9.0
-    font: str = _NUMBERING_FONT_KEY
+    font: str = _DEFAULT_NUMBERING_FONT_KEY
     prefix: str = ''
     transparent_background: bool = False
     bold: bool = False
@@ -55,6 +73,8 @@ def parse_numbering_options(raw) -> NumberingOptions:
     fmt = str(raw.get('format') or 'pad3').strip().lower()
     position = str(raw.get('position') or 'bottom-right').strip().lower()
     target_side = str(raw.get('target_side') or 'both').strip().lower()
+    raw_font = str(raw.get('font') or _DEFAULT_NUMBERING_FONT_KEY).strip().lower()
+    font = _LEGACY_FONT_ALIASES.get(raw_font, raw_font)
     prefix = str(raw.get('prefix') or '').strip()
     transparent_background = bool(raw.get('transparent_background'))
     bold = bool(raw.get('bold'))
@@ -74,6 +94,8 @@ def parse_numbering_options(raw) -> NumberingOptions:
         raise ValueError('넘버링 위치를 확인해 주세요')
     if target_side not in _ALLOWED_TARGET_SIDES:
         raise ValueError('넘버링 적용 면을 확인해 주세요')
+    if font not in _NUMBERING_FONT_MAP:
+        raise ValueError('넘버링 글꼴을 확인해 주세요')
     if len(prefix) > 40 or any(ord(char) < 32 for char in prefix):
         raise ValueError('넘버링 앞 문구는 줄바꿈 없이 40자 이하로 입력해 주세요')
     if font_size < 5 or font_size > 36:
@@ -90,7 +112,7 @@ def parse_numbering_options(raw) -> NumberingOptions:
         position=position,
         target_side=target_side,
         font_size_pt=font_size,
-        font=_NUMBERING_FONT_KEY,
+        font=font,
         prefix=prefix,
         transparent_background=transparent_background,
         bold=bold,
@@ -111,8 +133,17 @@ def format_number(value: int, fmt: str, prefix: str = '') -> str:
     return f'{normalized_prefix} {number}' if normalized_prefix else number
 
 
+def _contains_extended_text(label: str) -> bool:
+    return any(ord(char) > 255 for char in label)
+
+
 def _resolved_font_name(options: NumberingOptions, label: str) -> str:
-    return _NUMBERING_FONT_NAME
+    font_key = options.font if options.font in _NUMBERING_FONT_MAP else _DEFAULT_NUMBERING_FONT_KEY
+    if _contains_extended_text(label):
+        if font_key in {'korean-serif', 'times'}:
+            return 'korea-s'
+        return 'korea'
+    return _NUMBERING_FONT_MAP[font_key]
 
 
 def _hex_to_rgb(color: str) -> tuple[float, float, float]:
