@@ -19,9 +19,10 @@ class _FakeResponse:
         }).encode("utf-8")
 
 
-def test_generate_cover_image_uses_official_image_contract(monkeypatch):
+def test_generate_cover_image_uses_stable_image_contract(monkeypatch):
     monkeypatch.setenv("OPENAI_API_KEY", "test-key")
     monkeypatch.delenv("OPENAI_AI_IMAGE_MODEL", raising=False)
+    monkeypatch.delenv("OPENAI_AI_IMAGE_TIMEOUT_SECONDS", raising=False)
     monkeypatch.setenv("OPENAI_AI_IMAGE_QUALITY", "high")
     captured = {}
 
@@ -42,6 +43,7 @@ def test_generate_cover_image_uses_official_image_contract(monkeypatch):
         }, uid="user-1")
 
     body = captured["body"]
+    assert captured["timeout"] == 180
     assert body["model"] == "gpt-image-2"
     assert body["quality"] == "high"
     assert body["background"] == "opaque"
@@ -50,8 +52,16 @@ def test_generate_cover_image_uses_official_image_contract(monkeypatch):
     assert body["n"] == 1
     width, height = map(int, body["size"].split("x"))
     assert width % 16 == 0 and height % 16 == 0
-    assert max(width, height) <= 3840
-    assert 655_360 <= width * height <= 8_294_400
+    assert max(width, height) <= ai_cover_image.STABLE_MAX_EDGE
+    assert 655_360 <= width * height <= ai_cover_image.STABLE_MAX_PIXELS
     assert max(width, height) / min(width, height) <= 3
     assert result["model"] == "gpt-image-2"
     assert result["image_base64"] == "ZmFrZS1wbmc="
+    assert result["prompt_version"] == "cover-background-v3-stable-image2"
+
+
+def test_timeout_env_is_clamped(monkeypatch):
+    monkeypatch.setenv("OPENAI_AI_IMAGE_TIMEOUT_SECONDS", "999")
+    assert ai_cover_image._image_timeout_seconds() == 300
+    monkeypatch.setenv("OPENAI_AI_IMAGE_TIMEOUT_SECONDS", "30")
+    assert ai_cover_image._image_timeout_seconds() == 60
