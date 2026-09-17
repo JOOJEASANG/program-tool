@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
+import math
 import os
 import urllib.error
 import urllib.request
@@ -17,8 +19,17 @@ from typing import Any
 OPENAI_IMAGES_URL = "https://api.openai.com/v1/images/generations"
 DEFAULT_IMAGE_MODEL = "gpt-image-2"
 DEFAULT_IMAGE_QUALITY = "high"
+DEFAULT_IMAGE_TIMEOUT_SECONDS = 180
+# OpenAI documents outputs above 2560x1440 total pixels as experimental.
+# Stay just below that threshold for the production default while preserving the
+# exact requested cover aspect ratio. The browser still composites/export at the
+# user's exact millimetre geometry and 300dpi.
+STABLE_MAX_PIXELS = 3_600_000
+STABLE_MAX_EDGE = 2560
 MAX_STYLE = 2200
 MAX_CONTEXT = 900
+
+logger = logging.getLogger(__name__)
 
 
 class AiCoverImageError(RuntimeError):
@@ -96,27 +107,28 @@ def normalize_cover_request(payload: dict[str, Any]) -> CoverImageRequest:
     return request
 
 
-def _multiple_of_16(value: float, *, minimum: int = 512, maximum: int = 3840) -> int:
-    rounded = int(round(value / 16.0) * 16)
-    return max(minimum, min(maximum, rounded))
+def _multiple_of_16_floor(value: float, *, minimum: int = 512, maximum: int = STABLE_MAX_EDGE) -> int:
+    floored = int(math.floor(float(value) / 16.0) * 16)
+    return max(minimum, min(maximum, floored))
 
 
 def choose_image_size(req: CoverImageRequest) -> str:
+    """Choose a stable GPT Image 2 resolution while preserving spread ratio.
+
+    GPT Image 2 supports arbitrary 16px-aligned resolutions, but very large
+    outputs are documented as experimental. Production cover generation stays
+    below that experimental pixel threshold; exact print dimensions are owned by
+    the browser's millimetre/300dpi compositor.
+    """
     ratio = req.work_width_mm / req.work_height_mm
-    long_edge = 3840
-    short_edge = 2160
     if ratio >= 1:
-        height = min(short_edge, long_edge / ratio)
-        width = height * ratio
-        width = _multiple_of_16(width, minimum=1024, maximum=long_edge)
-        height = _multiple_of_16(width / ratio, minimum=1024, maximum=short_edge)
-        width = _multiple_of_16(height * ratio, minimum=1024, maximum=long_edge)
+        height_cap = min(STABLE_MAX_EDGE / ratio, math.sqrt(STABLE_MAX_PIXELS / ratio))
+        height = _multiple_of_16_floor(height_cap)
+        width = _multiple_of_16_floor(height * ratio)
     else:
-        width = min(short_edge, long_edge * ratio)
-        height = width / ratio
-        height = _multiple_of_16(height, minimum=1024, maximum=long_edge)
-        width = _multiple_of_16(height * ratio, minimum=1024, maximum=short_edge)
-        height = _multiple_of_16(width / ratio, minimum=1024, maximum=long_edge)
+        width_cap = min(STABLE_MAX_EDGE * ratio, math.sqrt(STABLE_MAX_PIXELS * ratio))
+        width = _multiple_of_16_floor(width_cap)
+        height = _multiple_of_16_floor(width / ratio)
     return f"{width}x{height}"
 
 
@@ -171,25 +183,87 @@ Return one polished, coherent background artwork with a clear flap/back/spine/fr
 """.strip()
 
 
-def _public_error_from_http(exc: urllib.error.HTTPError) -> AiCoverImageError:
+def _read_provider_error(exc: urllib.error.HTTPError) -> tuple[str, str, str]:
+    provider_code = ""
+    provider_type = ""
     detail = ""
     try:
         payload = json.loads(exc.read().decode("utf-8"))
-        detail = str((payload.get("error") or {}).get("message") or "")
+        error = payload.get("error") if isinstance(payload.get("error"), dict) else {}
+        provider_code = str(error.get("code") or "")
+        provider_type = str(error.get("type") or "")
+        detail = str(error.get("message") or "")
     except Exception:
         pass
+    return provider_code, provider_type, detail
+
+
+def _public_error_from_http(exc: urllib.error.HTTPError) -> AiCoverImageError:
+    provider_code, provider_type, detail = _read_provider_error(exc)
+    request_id = ""
+    try:
+        request_id = str(exc.headers.get("x-request-id") or "")
+    except Exception:
+        pass
+    logger.warning(
+        "OpenAI cover image request failed status=%s provider_code=%s provider_type=%s request_id=%s detail=%s",
+        exc.code,
+        provider_code or "-",
+        provider_type or "-",
+        request_id or "-",
+        detail[:500] or "-",
+    )
+    detail_lower = detail.lower()
+    code_lower = provider_code.lower()
+
+    if code_lower == "moderation_blocked":
+        return AiCoverImageError(
+            "입력한 디자인 요청이 이미지 안전 정책에 의해 처리되지 않았습니다.",
+            status_code=400,
+            code="OPENAI_IMAGE_MODERATION_BLOCKED",
+        )
+    if (
+        "organization verification" in detail_lower
+        or "organisation verification" in detail_lower
+        or "verify your organization" in detail_lower
+        or code_lower in {"organization_verification_required", "org_verification_required"}
+    ):
+        return AiCoverImageError(
+            "GPT Image 사용을 위해 OpenAI API 조직 인증이 필요합니다.",
+            status_code=503,
+            code="OPENAI_IMAGE_VERIFICATION_REQUIRED",
+        )
+    if (
+        code_lower in {"model_not_found", "model_not_available", "unsupported_model"}
+        or "does not exist" in detail_lower
+        or "do not have access to model" in detail_lower
+        or "not have access to model" in detail_lower
+    ):
+        return AiCoverImageError(
+            "현재 OpenAI 프로젝트에서 GPT Image 2 모델을 사용할 수 없습니다.",
+            status_code=503,
+            code="OPENAI_IMAGE_MODEL_UNAVAILABLE",
+        )
     if exc.code in {401, 403}:
-        return AiCoverImageError("OpenAI API 키 또는 이미지 모델 권한을 확인해 주세요.", status_code=503, code="OPENAI_AUTH_FAILED")
+        return AiCoverImageError(
+            "OpenAI API 키 또는 이미지 모델 권한을 확인해 주세요.",
+            status_code=503,
+            code="OPENAI_AUTH_FAILED",
+        )
     if exc.code == 429:
-        return AiCoverImageError("AI 이미지 사용량 한도에 도달했습니다. 잠시 후 다시 시도해 주세요.", status_code=429, code="OPENAI_RATE_LIMIT")
+        return AiCoverImageError(
+            "AI 이미지 사용량 한도에 도달했습니다. 잠시 후 다시 시도해 주세요.",
+            status_code=429,
+            code="OPENAI_RATE_LIMIT",
+        )
     if exc.code == 400:
         return AiCoverImageError(
-            f"AI 이미지 생성 입력값을 처리하지 못했습니다.{(' ' + detail[:160]) if detail else ''}",
+            "AI 이미지 생성 입력값을 처리하지 못했습니다.",
             status_code=400,
             code="OPENAI_IMAGE_REQUEST_INVALID",
         )
     return AiCoverImageError(
-        f"OpenAI 이미지 생성 요청에 실패했습니다.{(' ' + detail[:160]) if detail else ''}",
+        "OpenAI 이미지 생성 요청에 실패했습니다.",
         status_code=502,
         code="OPENAI_IMAGE_REQUEST_FAILED",
     )
@@ -200,11 +274,24 @@ def _allowed_qualities(model: str) -> set[str]:
     return {"low", "medium", "high", "auto"}
 
 
+def _image_timeout_seconds() -> int:
+    return int(_number(
+        os.environ.get("OPENAI_AI_IMAGE_TIMEOUT_SECONDS"),
+        minimum=60,
+        maximum=300,
+        default=DEFAULT_IMAGE_TIMEOUT_SECONDS,
+    ))
+
+
 def generate_cover_image(payload: dict[str, Any], *, uid: str) -> dict[str, Any]:
     req = normalize_cover_request(payload)
     api_key = os.environ.get("OPENAI_API_KEY", "").strip()
     if not api_key:
-        raise AiCoverImageError("관리자 OpenAI API 키가 아직 서버에 설정되지 않았습니다.", status_code=503, code="OPENAI_API_KEY_MISSING")
+        raise AiCoverImageError(
+            "관리자 OpenAI API 키가 아직 서버에 설정되지 않았습니다.",
+            status_code=503,
+            code="OPENAI_API_KEY_MISSING",
+        )
 
     model = os.environ.get("OPENAI_AI_IMAGE_MODEL", DEFAULT_IMAGE_MODEL).strip() or DEFAULT_IMAGE_MODEL
     quality = os.environ.get("OPENAI_AI_IMAGE_QUALITY", DEFAULT_IMAGE_QUALITY).strip().lower() or DEFAULT_IMAGE_QUALITY
@@ -228,19 +315,36 @@ def generate_cover_image(payload: dict[str, Any], *, uid: str) -> dict[str, Any]
         headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
         method="POST",
     )
+    timeout_seconds = _image_timeout_seconds()
     try:
-        with urllib.request.urlopen(request, timeout=120) as response:
+        with urllib.request.urlopen(request, timeout=timeout_seconds) as response:
             data = json.loads(response.read().decode("utf-8"))
     except urllib.error.HTTPError as exc:
         raise _public_error_from_http(exc) from exc
-    except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as exc:
-        raise AiCoverImageError("AI 이미지 서버 응답을 받지 못했습니다. 다시 시도해 주세요.", status_code=502, code="OPENAI_IMAGE_UNAVAILABLE") from exc
+    except (urllib.error.URLError, TimeoutError) as exc:
+        logger.warning("OpenAI cover image request timed out/unavailable after %ss: %r", timeout_seconds, exc)
+        raise AiCoverImageError(
+            "AI 이미지 생성이 지연되거나 서버 응답을 받지 못했습니다. 다시 시도해 주세요.",
+            status_code=504,
+            code="OPENAI_IMAGE_TIMEOUT",
+        ) from exc
+    except json.JSONDecodeError as exc:
+        logger.warning("OpenAI cover image response was not valid JSON: %r", exc)
+        raise AiCoverImageError(
+            "AI 이미지 서버 응답을 해석하지 못했습니다. 다시 시도해 주세요.",
+            status_code=502,
+            code="OPENAI_IMAGE_UNAVAILABLE",
+        ) from exc
 
     images = data.get("data") if isinstance(data.get("data"), list) else []
     first = images[0] if images and isinstance(images[0], dict) else {}
     image_base64 = str(first.get("b64_json") or "")
     if not image_base64:
-        raise AiCoverImageError("AI 이미지 결과를 받지 못했습니다.", status_code=502, code="OPENAI_IMAGE_EMPTY")
+        raise AiCoverImageError(
+            "AI 이미지 결과를 받지 못했습니다.",
+            status_code=502,
+            code="OPENAI_IMAGE_EMPTY",
+        )
 
     return {
         "image_base64": image_base64,
@@ -248,7 +352,7 @@ def generate_cover_image(payload: dict[str, Any], *, uid: str) -> dict[str, Any]
         "model": str(data.get("model") or model),
         "size": str(data.get("size") or size),
         "quality": str(data.get("quality") or quality),
-        "prompt_version": "cover-background-v2-shared-spec",
+        "prompt_version": "cover-background-v3-stable-image2",
         "geometry": {
             "trim_width_mm": req.trim_width_mm,
             "trim_height_mm": req.trim_height_mm,
