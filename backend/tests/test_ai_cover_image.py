@@ -2,10 +2,15 @@ import pytest
 
 from services.ai_cover_image import (
     AiCoverImageError,
+    DEFAULT_IMAGE_MODEL,
     build_cover_prompt,
     choose_image_size,
     normalize_cover_request,
 )
+
+
+def test_default_image_model_is_gpt_image_2():
+    assert DEFAULT_IMAGE_MODEL == "gpt-image-2"
 
 
 def test_normalize_cover_defaults_to_a4():
@@ -16,7 +21,7 @@ def test_normalize_cover_defaults_to_a4():
     assert req.bleed_mm == 3
 
 
-def test_choose_image_size_is_valid_multiple_of_16():
+def test_choose_image_size_matches_gpt_image_2_contract():
     req = normalize_cover_request({
         "trim_width_mm": 210,
         "trim_height_mm": 297,
@@ -27,9 +32,10 @@ def test_choose_image_size_is_valid_multiple_of_16():
     width, height = map(int, choose_image_size(req).split("x"))
     assert width % 16 == 0
     assert height % 16 == 0
-    assert 1024 <= width <= 3072
-    assert 1024 <= height <= 3072
-    assert (1 / 3) <= width / height <= 3
+    assert width <= 3840
+    assert height <= 3840
+    assert width * height <= 8_294_400
+    assert max(width, height) / min(width, height) <= 3
 
 
 def test_prompt_is_background_only_and_spine_aware():
