@@ -34,7 +34,7 @@ def test_choose_image_size_matches_gpt_image_2_contract():
     assert height % 16 == 0
     assert width <= 3840
     assert height <= 3840
-    assert width * height <= 8_294_400
+    assert 655_360 <= width * height <= 8_294_400
     assert max(width, height) / min(width, height) <= 3
 
 
