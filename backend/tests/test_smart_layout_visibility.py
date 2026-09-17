@@ -10,7 +10,7 @@ def test_deployed_home_launcher_keeps_smart_layout_entry():
     assert "id:'smart-print-layout'" in launcher
     assert "name:'스마트 인쇄배치'" in launcher
     assert "url:'smart-print-layout/'" in launcher
-    assert "pdf-home-five-programs-v7" in launcher
+    assert "pdf-home-five-programs-v8" in launcher
     assert "four-programs" not in launcher
 
 
