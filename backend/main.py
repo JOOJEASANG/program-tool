@@ -43,10 +43,14 @@ PDF_SESSION_ID_PATTERN = re.compile(r"^[A-Za-z0-9_-]{8,40}$")
 PDF_SESSION_SOURCE_PATTERN = re.compile(
     r"^pdf_sessions/[^/]+/[A-Za-z0-9_-]{8,40}/src_[0-9]{1,2}[.]pdf$"
 )
+PRINT_CHECKER_SESSION_SOURCE_PATTERN = re.compile(
+    r"^print_checker_sessions/[^/]+/[A-Za-z0-9_-]{8,40}/source[.](?:pdf|png|jpg|webp)$"
+)
 PDF_SESSION_COLLECTIONS = frozenset({
     "pdf_sessions",
     "pdf_advanced_sessions",
     "pdf_smart_layout_sessions",
+    "print_checker_sessions",
 })
 MIB = 1024 * 1024
 
@@ -250,9 +254,9 @@ def _normalize_document_paths(
 ) -> list[str]:
     """Return only Storage paths that are safe for server-side quota cleanup.
 
-    PDF session metadata is client-created. Scheduled cleanup runs with Admin SDK
+    Session metadata is client-created. Scheduled cleanup runs with Admin SDK
     privileges, so it must never trust an arbitrary path stored in Firestore.
-    Every PDF session path is constrained to the authenticated owner's persistent
+    Every saved-session path is constrained to the authenticated owner's persistent
     session prefix and the session id stored in the same immutable document.
     """
     raw_paths = data.get(paths_field)
@@ -276,10 +280,16 @@ def _normalize_document_paths(
         )
         return []
 
-    expected_prefix = f"pdf_sessions/{uid}/{session_id}/"
+    if collection_id == "print_checker_sessions":
+        expected_prefix = f"print_checker_sessions/{uid}/{session_id}/"
+        source_pattern = PRINT_CHECKER_SESSION_SOURCE_PATTERN
+    else:
+        expected_prefix = f"pdf_sessions/{uid}/{session_id}/"
+        source_pattern = PDF_SESSION_SOURCE_PATTERN
+
     safe_paths: list[str] = []
     for path in paths:
-        if path.startswith(expected_prefix) and PDF_SESSION_SOURCE_PATTERN.fullmatch(path):
+        if path.startswith(expected_prefix) and source_pattern.fullmatch(path):
             safe_paths.append(path)
             continue
         logger.warning(
@@ -428,6 +438,14 @@ def cleanup_persistent_user_storage(event: scheduler_fn.ScheduledEvent) -> None:
         "createdAt",
         "storagePaths",
     )
+    print_checker_session_paths = _trim_firestore_group(
+        db,
+        bucket,
+        "print_checker_sessions",
+        MAX_SAVED_PDF_SESSIONS,
+        "createdAt",
+        "storagePaths",
+    )
     session_paths.update(advanced_session_paths)
     session_paths.update(smart_layout_session_paths)
 
@@ -441,4 +459,5 @@ def cleanup_persistent_user_storage(event: scheduler_fn.ScheduledEvent) -> None:
     )
 
     _delete_old_orphans(bucket, "pdf_sessions/", session_paths, cutoff)
+    _delete_old_orphans(bucket, "print_checker_sessions/", print_checker_session_paths, cutoff)
     _delete_old_orphans(bucket, "design_projects/", design_paths, cutoff)
