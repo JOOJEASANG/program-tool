@@ -12,8 +12,8 @@
         <div class="card-cat">인쇄 검토</div>
       </div>
       <div class="card-body">
-        <div class="card-name">인쇄물 사전 검토</div>
-        <div class="card-desc">외부에서 제작한 인쇄물 PDF의 재단선·안전 영역을 검토합니다.</div>
+        <div class="card-name">디자인 검토/제작</div>
+        <div class="card-desc">인쇄물 디자인을 검토하고 같은 화면에서 AI 표지 제작을 진행합니다.</div>
         <div class="card-tags"><span>재단선</span></div>
       </div>
       <div class="card-footer"><span>바로 사용</span><span class="card-cta">시작하기 →</span></div>
@@ -41,7 +41,7 @@
 
         assert(card?.dataset.homeCardLayout==='title-manual','current home card layout marker missing');
         assert(header?.querySelector('.card-icon-wrap'),'program icon missing');
-        assert(name?.textContent.trim()==='인쇄물 사전 검토','large program title is not beside the icon');
+        assert(name?.textContent.trim()==='디자인 검토/제작','large program title is not beside the icon');
         assert(help?.textContent.trim()==='?','manual question icon missing beside title');
         assert(!card.querySelector('.card-cat'),'category label should be removed');
         assert(!card.querySelector('.card-tags'),'tag row should be removed');
@@ -55,7 +55,7 @@
         const layer=document.getElementById('programManualLayer');
         assert(location.href===before,'manual icon click navigated the program card');
         assert(layer?.classList.contains('open'),'manual layer did not open');
-        assert(layer.querySelector('#programManualLayerTitle')?.textContent.includes('인쇄물 사전 검토 사용설명서'),'manual layer title mismatch');
+        assert(layer.querySelector('#programManualLayerTitle')?.textContent.includes('디자인 검토/제작 사용설명서'),'manual layer title mismatch');
         assert(!layer.querySelector('.ps-manual-error'),'manual layer reported a loading error');
         assert(layer.querySelector('.ps-manual-section'),'manual content did not render');
 
