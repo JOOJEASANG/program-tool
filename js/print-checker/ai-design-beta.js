@@ -86,7 +86,7 @@
           </div>
           <div class="ai-design-group"><label class="ai-design-label" for="aiBody">본문/설명</label><textarea class="ai-design-field" id="aiBody" maxlength="500"></textarea></div>
           <div class="ai-design-group" id="aiBackTextWrap"><label class="ai-design-label" for="aiBackText">뒤표지 글</label><textarea class="ai-design-field" id="aiBackText" maxlength="500" placeholder="뒤표지에 넣을 소개문이나 문구"></textarea></div>
-          <div class="ai-design-group"><span class="ai-design-label">하단 로고</span><div class="ai-design-logo-box"><img class="ai-design-logo-thumb" id="aiLogoThumb" alt="로고 미리보기" hidden><input type="file" id="aiLogo" accept="image/png,image/jpeg,image/webp,image/svg+xml"></div></div>
+          <div class="ai-design-group"><span class="ai-design-label">하단 로고</span><div class="ai-design-logo-box"><img class="ai-design-logo-thumb" id="aiLogoThumb" alt="로고 미리보기" hidden><input type="file" id="aiLogo" accept="image/png,image/jpeg,image/webp"></div></div>
           <div class="ai-design-group"><label class="ai-design-label" for="aiStyle">디자인 요구사항</label><textarea class="ai-design-field" id="aiStyle" maxlength="1200" placeholder="예: 밝고 고급스럽게, 교육기관 보고서 느낌, 제목은 강하게, 하단 여백은 충분히"></textarea><div class="ai-design-hint">AI는 배경과 배치만 설계합니다. 글자는 생성 후 직접 수정할 수 있습니다.</div></div>
           <div class="ai-design-actions"><button id="aiGenerate" class="ai-design-generate" type="button">AI 디자인 생성</button><div id="aiStatus" class="ai-design-status">내용을 입력한 뒤 생성 버튼을 누르세요.</div></div>
         </form>
@@ -478,7 +478,7 @@
 
   function handleLogo(event) {
     const file=event.target.files?.[0]; if(!file)return;
-    if(!/^image\/(png|jpeg|webp|svg\+xml)$/i.test(file.type||'')){ setStatus('로고는 PNG·JPEG·WEBP·SVG만 사용할 수 있습니다.','error'); event.target.value=''; return; }
+    if(!/^image\/(png|jpeg|webp)$/i.test(file.type||'')){ setStatus('로고는 PNG·JPEG·WEBP만 사용할 수 있습니다.','error'); event.target.value=''; return; }
     if(state.logoUrl) URL.revokeObjectURL(state.logoUrl);
     state.logoFile=file; state.logoUrl=URL.createObjectURL(file);
     const thumb=$('aiLogoThumb'); thumb.src=state.logoUrl; thumb.hidden=false;
