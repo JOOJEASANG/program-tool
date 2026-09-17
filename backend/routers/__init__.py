@@ -2,7 +2,7 @@
 
 from firebase_functions import options as _function_options
 
-# The AI design beta reads OPENAI_API_KEY only from Cloud Secret Manager.  The
+# AI cover generation reads OPENAI_API_KEY only from Cloud Secret Manager. The
 # current backend is deployed as one shared HTTP API function, so the secret must
 # be available to that function at deployment/runtime and is never shipped to the
 # browser or committed to source control.
