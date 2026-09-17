@@ -268,16 +268,17 @@
     const mode = currentMode();
     if (mode === 'single') side = 'front';
 
-    if (side === 'back' && autoPdfDuplex) {
-      activeSide = 'back';
+    if (autoPdfDuplex) {
+      activeSide = side;
       syncUi();
       try {
-        await checker()?.setFileSide?.('back');
-        announceSideChange('back', 'pdf-2p');
+        await checker()?.setFileSide?.(side);
+        setMessage(`${side === 'front' ? '앞면(PDF 1p)' : '뒷면(PDF 2p)'} 미리보기를 표시하고 있습니다.`, 'ok');
+        announceSideChange(side, 'pdf-2p');
         return true;
       } catch (error) {
-        console.error('[print-checker duplex] PDF back side failed', error);
-        setMessage('PDF 2페이지 미리보기를 전환하지 못했습니다.', 'error');
+        console.error('[print-checker duplex] PDF side switch failed', error);
+        setMessage(`PDF ${side === 'front' ? '1' : '2'}페이지 미리보기를 전환하지 못했습니다.`, 'error');
         return false;
       }
     }
@@ -288,7 +289,6 @@
       return false;
     }
     activeSide = side;
-    autoPdfDuplex = false;
     syncUi();
     const ok = await activateProcessingFile(file);
     if (ok && options.redetect && side === 'front' && mode === 'duplex') void detectPdfDuplex(file);
