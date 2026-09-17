@@ -8,6 +8,7 @@ import re
 
 from models.schemas import CheckItem, CheckSeverity
 from services.preflight_geometry import run_geometry_checks
+from services.preflight_ink_analysis import run_advanced_print_checks
 from services.preflight_print_metadata import run_print_metadata_checks
 from services.preflight_svc import run_all_checks
 
@@ -43,7 +44,7 @@ def mark_sampled_pass_as_warning(item: CheckItem) -> CheckItem:
 
 
 def run_reliable_checks(doc, file_size_bytes: int | None = None) -> list[CheckItem]:
-    """Run normal checks plus geometry and print-production metadata checks."""
+    """Run normal checks plus geometry and print-production checks."""
     checks = [
         item
         for item in run_all_checks(doc, file_size_bytes)
@@ -51,4 +52,5 @@ def run_reliable_checks(doc, file_size_bytes: int | None = None) -> list[CheckIt
     ]
     checks.extend(run_geometry_checks(doc, file_size_bytes))
     checks.extend(run_print_metadata_checks(doc, file_size_bytes))
+    checks.extend(run_advanced_print_checks(doc, file_size_bytes))
     return [mark_sampled_pass_as_warning(item) for item in checks]
