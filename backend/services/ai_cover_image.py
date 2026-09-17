@@ -15,7 +15,7 @@ from dataclasses import dataclass
 from typing import Any
 
 OPENAI_IMAGES_URL = "https://api.openai.com/v1/images/generations"
-DEFAULT_IMAGE_MODEL = "gpt-image-2"
+DEFAULT_IMAGE_MODEL = "gpt-image-2.5-sunburst"
 DEFAULT_IMAGE_QUALITY = "high"
 MAX_STYLE = 2200
 MAX_CONTEXT = 900
@@ -99,10 +99,11 @@ def _multiple_of_16(value: float, *, minimum: int = 512, maximum: int = 3840) ->
 
 
 def choose_image_size(req: CoverImageRequest) -> str:
-    """Return a high-resolution gpt-image-2 size inside the documented limits.
+    """Return a high-resolution GPT Image 2.5 size inside the documented limits.
 
-    gpt-image-2 requires both edges to be multiples of 16, each edge <= 3840,
-    a long/short edge ratio <= 3:1, and total pixels <= 8,294,400.
+    GPT Image 2.5 supports arbitrary WIDTHxHEIGHT sizes when both edges are
+    multiples of 16, the aspect ratio is between 1:3 and 3:1, and the request
+    stays within the current maximum resolution/pixel limits.
     """
     ratio = req.work_width_mm / req.work_height_mm
     long_edge = 3840
@@ -196,6 +197,13 @@ def _public_error_from_http(exc: urllib.error.HTTPError) -> AiCoverImageError:
     )
 
 
+def _allowed_qualities(model: str) -> set[str]:
+    qualities = {"low", "medium", "high", "auto"}
+    if model.startswith("gpt-image-2.5-"):
+        qualities.update({"xhigh", "max"})
+    return qualities
+
+
 def generate_cover_image(payload: dict[str, Any], *, uid: str) -> dict[str, Any]:
     req = normalize_cover_request(payload)
     api_key = os.environ.get("OPENAI_API_KEY", "").strip()
@@ -208,7 +216,7 @@ def generate_cover_image(payload: dict[str, Any], *, uid: str) -> dict[str, Any]
 
     model = os.environ.get("OPENAI_AI_IMAGE_MODEL", DEFAULT_IMAGE_MODEL).strip() or DEFAULT_IMAGE_MODEL
     quality = os.environ.get("OPENAI_AI_IMAGE_QUALITY", DEFAULT_IMAGE_QUALITY).strip().lower() or DEFAULT_IMAGE_QUALITY
-    if quality not in {"low", "medium", "high", "auto"}:
+    if quality not in _allowed_qualities(model):
         quality = DEFAULT_IMAGE_QUALITY
     size = choose_image_size(req)
     body = {
