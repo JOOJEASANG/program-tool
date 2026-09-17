@@ -14,7 +14,7 @@ class _FakeResponse:
     def read(self):
         return json.dumps({
             "data": [{"b64_json": "ZmFrZS1wbmc="}],
-            "model": "gpt-image-2",
+            "model": "gpt-image-2.5-sunburst",
             "quality": "high",
         }).encode("utf-8")
 
@@ -42,7 +42,7 @@ def test_generate_cover_image_uses_official_image_contract(monkeypatch):
         }, uid="user-1")
 
     body = captured["body"]
-    assert body["model"] == "gpt-image-2"
+    assert body["model"] == "gpt-image-2.5-sunburst"
     assert body["quality"] == "high"
     assert body["background"] == "opaque"
     assert body["output_format"] == "png"
@@ -52,5 +52,5 @@ def test_generate_cover_image_uses_official_image_contract(monkeypatch):
     assert width % 16 == 0 and height % 16 == 0
     assert max(width, height) <= 3840
     assert width * height <= 8_294_400
-    assert result["model"] == "gpt-image-2"
+    assert result["model"] == "gpt-image-2.5-sunburst"
     assert result["image_base64"] == "ZmFrZS1wbmc="
