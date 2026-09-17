@@ -25,7 +25,22 @@ def test_normalize_cover_defaults_to_a4():
     assert req.trim_width_mm == 210
     assert req.trim_height_mm == 297
     assert req.spine_mm == 0
+    assert req.wing_mm == 0
     assert req.bleed_mm == 3
+
+
+def test_review_wing_width_is_included_in_full_spread_geometry():
+    req = normalize_cover_request({
+        "trim_width_mm": 176,
+        "trim_height_mm": 248,
+        "spine_mm": 12,
+        "wing_mm": 90,
+        "bleed_mm": 3,
+        "style_request": "premium editorial",
+    })
+    assert req.wing_mm == 90
+    assert req.work_width_mm == 176 * 2 + 12 + 90 * 2 + 3 * 2
+    assert req.work_height_mm == 248 + 3 * 2
 
 
 def test_choose_image_size_matches_gpt_image_2_contract():
@@ -62,6 +77,20 @@ def test_prompt_is_background_only_and_spine_aware():
     assert "12.00 mm" in prompt
     assert "front cover" in prompt.lower()
     assert "back cover" in prompt.lower()
+
+
+def test_prompt_is_wing_aware_when_review_option_has_flaps():
+    req = normalize_cover_request({
+        "trim_width_mm": 176,
+        "trim_height_mm": 248,
+        "spine_mm": 10,
+        "wing_mm": 85,
+        "bleed_mm": 3,
+        "style_request": "clean editorial cover",
+    })
+    prompt = build_cover_prompt(req)
+    assert "Outer flaps: 85.00 mm" in prompt
+    assert "flap zones" in prompt
 
 
 def test_style_request_is_required():
