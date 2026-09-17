@@ -9,6 +9,7 @@ from urllib.parse import quote
 
 
 RESULT_TTL_HOURS = 1
+SIGNED_URL_TTL_MINUTES = 15
 MAX_RESULT_BYTES = 800 * 1024 * 1024
 
 
@@ -27,6 +28,31 @@ def _result_size(*, data: bytes | None, source_path: str | Path | None) -> int:
     return Path(source_path).stat().st_size
 
 
+def _v4_signed_download_url(blob, safe_name: str) -> str | None:
+    """Return a short-lived V4 URL when the runtime credential can sign it.
+
+    Some Cloud Functions credentials do not expose a local signing key. In that
+    environment ``generate_signed_url`` raises and delivery must fall back to the
+    existing Firebase download-token contract until IAM signing is configured.
+    """
+    generator = getattr(blob, "generate_signed_url", None)
+    if not callable(generator):
+        return None
+    try:
+        value = generator(
+            version="v4",
+            expiration=timedelta(minutes=SIGNED_URL_TTL_MINUTES),
+            method="GET",
+            response_disposition=f'attachment; filename="{safe_name}"',
+        )
+    except Exception:
+        return None
+    value = str(value or "").strip()
+    if not value.startswith("https://"):
+        return None
+    return value
+
+
 def upload_pdf_result(
     bucket,
     uid: str,
@@ -38,10 +64,11 @@ def upload_pdf_result(
 ) -> dict:
     """Upload one generated PDF and return a short-retention download contract.
 
-    Firebase download-token URLs do not have a cryptographic expiry timestamp.
-    The returned ``expires_at`` therefore represents the server cleanup deadline,
-    not a signed-URL guarantee. The client deletes the object immediately after a
-    successful download and the scheduled cleanup removes abandoned results.
+    A cryptographically expiring V4 signed URL is preferred when the runtime
+    service account can sign URLs. If signing is not configured, the established
+    Firebase download-token URL remains as a compatibility fallback. Either way,
+    the object is removed by the client after a successful download and by the
+    scheduled cleanup after ``RESULT_TTL_HOURS``.
     """
     if (data is None) == (source_path is None):
         raise ValueError("data 또는 source_path 중 하나만 제공해야 합니다.")
@@ -59,13 +86,14 @@ def upload_pdf_result(
     token = str(uuid.uuid4())
     safe_name = _safe_filename(filename)
     storage_path = f"pdf_results/{safe_uid}/{result_id}/{safe_name}"
-    expires_at = datetime.now(timezone.utc) + timedelta(hours=RESULT_TTL_HOURS)
+    now = datetime.now(timezone.utc)
+    cleanup_at = now + timedelta(hours=RESULT_TTL_HOURS)
 
     blob = bucket.blob(storage_path)
     blob.metadata = {
         "firebaseStorageDownloadTokens": token,
         "temporary": "true",
-        "cleanupAfter": expires_at.isoformat(),
+        "cleanupAfter": cleanup_at.isoformat(),
         **(metadata or {}),
     }
     blob.content_disposition = f'attachment; filename="{safe_name}"'
@@ -73,6 +101,20 @@ def upload_pdf_result(
         blob.upload_from_string(data, content_type="application/pdf")
     else:
         blob.upload_from_filename(str(source_path), content_type="application/pdf")
+
+    signed_url = _v4_signed_download_url(blob, safe_name)
+    if signed_url:
+        signed_expires_at = now + timedelta(minutes=SIGNED_URL_TTL_MINUTES)
+        return {
+            "delivery": "storage",
+            "filename": safe_name,
+            "storage_path": storage_path,
+            "download_url": signed_url,
+            "expires_at": signed_expires_at.isoformat(),
+            "cleanup_at": cleanup_at.isoformat(),
+            "expiration_mode": "signed-url-v4",
+            "size_bytes": size_bytes,
+        }
 
     encoded_path = quote(storage_path, safe="")
     download_url = (
@@ -84,7 +126,8 @@ def upload_pdf_result(
         "filename": safe_name,
         "storage_path": storage_path,
         "download_url": download_url,
-        "expires_at": expires_at.isoformat(),
+        "expires_at": cleanup_at.isoformat(),
+        "cleanup_at": cleanup_at.isoformat(),
         "expiration_mode": "scheduled-delete",
         "size_bytes": size_bytes,
     }
