@@ -15,7 +15,7 @@ from dataclasses import dataclass
 from typing import Any
 
 OPENAI_IMAGES_URL = "https://api.openai.com/v1/images/generations"
-DEFAULT_IMAGE_MODEL = "gpt-image-2.5-sunburst"
+DEFAULT_IMAGE_MODEL = "gpt-image-2"
 DEFAULT_IMAGE_QUALITY = "high"
 MAX_STYLE = 2200
 MAX_CONTEXT = 900
@@ -99,10 +99,10 @@ def _multiple_of_16(value: float, *, minimum: int = 512, maximum: int = 3840) ->
 
 
 def choose_image_size(req: CoverImageRequest) -> str:
-    """Return the largest practical size inside the Image API 3840x2160 envelope.
+    """Return a high-resolution gpt-image-2 size inside the documented limits.
 
-    The API accepts portrait equivalents, so the long edge may reach 3840 while
-    the short edge stays at or below 2160. Both dimensions remain divisible by 16.
+    gpt-image-2 requires both edges to be multiples of 16, each edge <= 3840,
+    a long/short edge ratio <= 3:1, and total pixels <= 8,294,400.
     """
     ratio = req.work_width_mm / req.work_height_mm
     long_edge = 3840
@@ -208,7 +208,7 @@ def generate_cover_image(payload: dict[str, Any], *, uid: str) -> dict[str, Any]
 
     model = os.environ.get("OPENAI_AI_IMAGE_MODEL", DEFAULT_IMAGE_MODEL).strip() or DEFAULT_IMAGE_MODEL
     quality = os.environ.get("OPENAI_AI_IMAGE_QUALITY", DEFAULT_IMAGE_QUALITY).strip().lower() or DEFAULT_IMAGE_QUALITY
-    if quality not in {"low", "medium", "high", "xhigh", "max", "auto"}:
+    if quality not in {"low", "medium", "high", "auto"}:
         quality = DEFAULT_IMAGE_QUALITY
     size = choose_image_size(req)
     body = {
