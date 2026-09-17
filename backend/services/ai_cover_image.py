@@ -15,7 +15,7 @@ from dataclasses import dataclass
 from typing import Any
 
 OPENAI_IMAGES_URL = "https://api.openai.com/v1/images/generations"
-DEFAULT_IMAGE_MODEL = "gpt-image-2.5-sunburst"
+DEFAULT_IMAGE_MODEL = "gpt-image-2"
 DEFAULT_IMAGE_QUALITY = "high"
 MAX_STYLE = 2200
 MAX_CONTEXT = 900
@@ -99,9 +99,9 @@ def _multiple_of_16(value: float, *, minimum: int = 512, maximum: int = 3840) ->
 
 
 def choose_image_size(req: CoverImageRequest) -> str:
-    """Return a high-resolution GPT Image 2.5 size inside the documented limits.
+    """Return a high-resolution GPT Image 2 size inside the documented limits.
 
-    GPT Image 2.5 supports arbitrary WIDTHxHEIGHT sizes when both edges are
+    GPT Image 2 supports arbitrary WIDTHxHEIGHT sizes when both edges are
     multiples of 16, the aspect ratio is between 1:3 and 3:1, and the request
     stays within the current maximum resolution/pixel limits.
     """
@@ -198,10 +198,8 @@ def _public_error_from_http(exc: urllib.error.HTTPError) -> AiCoverImageError:
 
 
 def _allowed_qualities(model: str) -> set[str]:
-    qualities = {"low", "medium", "high", "auto"}
-    if model.startswith("gpt-image-2.5-"):
-        qualities.update({"xhigh", "max"})
-    return qualities
+    del model
+    return {"low", "medium", "high", "auto"}
 
 
 def generate_cover_image(payload: dict[str, Any], *, uid: str) -> dict[str, Any]:
