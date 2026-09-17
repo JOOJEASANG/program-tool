@@ -1,0 +1,105 @@
+/* Integrated Design Review / AI Cover Maker */
+.print-checker-page .ai-design-launch{display:none!important}
+.print-checker-page .design-mode-switch{padding:12px 14px;background:#f8fafc;border-bottom:1px solid var(--line);display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.print-checker-page .design-mode-btn{border:1.5px solid #dbe4ee;background:#fff;color:#475569;border-radius:10px;padding:10px 7px;font-size:11px;font-weight:950;cursor:pointer;line-height:1.25;transition:.16s}
+.print-checker-page .design-mode-btn:hover{border-color:#8bcbd6;color:var(--navy)}
+.print-checker-page .design-mode-btn.is-active{border-color:var(--cyan);color:#0c4a6e;background:linear-gradient(180deg,#ecfeff,#fff);box-shadow:0 0 0 2px rgba(29,155,178,.14)}
+.print-checker-page .design-mode-btn small{display:block;font-size:8px;font-weight:750;color:#94a3b8;margin-top:3px}
+.print-checker-page .design-mode-btn.is-active small{color:#4d8792}
+
+.print-checker-page .cover-maker-panel{display:none;padding:14px 14px 20px;background:#fff}
+.print-checker-page.is-cover-maker .cover-maker-panel{display:block}
+.print-checker-page.is-cover-maker .review-only{display:none!important}
+.print-checker-page.is-cover-maker #previewZoomToolbar,
+.print-checker-page.is-cover-maker #leafletGuide,
+.print-checker-page.is-cover-maker #impositionGuide,
+.print-checker-page.is-cover-maker #contentPreflightSection,
+.print-checker-page.is-cover-maker #reportSection{display:none!important}
+.print-checker-page.is-cover-maker .canvas-wrap{padding:14px;min-height:460px;display:flex;align-items:flex-start;justify-content:center;overflow:auto;background:#e9eff5}
+.print-checker-page.is-cover-maker .canvas-wrap>.preview-canvas-stack,
+.print-checker-page.is-cover-maker .canvas-wrap>#previewCanvas,
+.print-checker-page.is-cover-maker .canvas-wrap>#canvasFileInfo{display:none!important}
+
+.print-checker-page .cm-head{padding:2px 2px 12px;border-bottom:1px solid #e8eef4;margin-bottom:12px}
+.print-checker-page .cm-kicker{font-size:9px;font-weight:950;color:var(--cyan);letter-spacing:.6px;margin-bottom:5px}
+.print-checker-page .cm-title{font-size:14px;font-weight:950;color:#0f172a;margin-bottom:4px}
+.print-checker-page .cm-desc{font-size:9px;color:#64748b;line-height:1.55}
+.print-checker-page .cm-group{padding:11px 0;border-bottom:1px solid #edf2f7}
+.print-checker-page .cm-group:last-of-type{border-bottom:0}
+.print-checker-page .cm-group-title{font-size:10px;font-weight:950;color:#334155;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:6px}
+.print-checker-page .cm-group-title small{font-size:8px;font-weight:700;color:#94a3b8}
+.print-checker-page .cm-grid2{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.print-checker-page .cm-grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+.print-checker-page .cm-field{display:flex;flex-direction:column;gap:4px;margin-bottom:7px;min-width:0}
+.print-checker-page .cm-field:last-child{margin-bottom:0}
+.print-checker-page .cm-label{font-size:9px;font-weight:900;color:#475569}
+.print-checker-page .cm-label .req{color:#dc2626}
+.print-checker-page .cm-input,.print-checker-page .cm-select,.print-checker-page .cm-textarea{width:100%;border:1.5px solid #dbe4ee;border-radius:8px;background:#fff;color:#172033;font:700 10px Pretendard,"Noto Sans KR",sans-serif;outline:none;transition:.15s}
+.print-checker-page .cm-input,.print-checker-page .cm-select{height:34px;padding:0 8px}
+.print-checker-page .cm-textarea{padding:8px;resize:vertical;min-height:64px;line-height:1.55}
+.print-checker-page .cm-textarea.cm-prompt{min-height:118px;font-size:9.5px}
+.print-checker-page .cm-input:focus,.print-checker-page .cm-select:focus,.print-checker-page .cm-textarea:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(29,155,178,.1)}
+.print-checker-page .cm-input-row{display:flex;align-items:center;gap:5px}
+.print-checker-page .cm-unit{font-size:9px;font-weight:900;color:#64748b;white-space:nowrap}
+.print-checker-page .cm-hint{font-size:8px;color:#94a3b8;line-height:1.45;margin-top:3px}
+.print-checker-page .cm-check{display:flex;align-items:center;gap:6px;font-size:9px;font-weight:800;color:#475569;cursor:pointer;margin:4px 0 6px}
+.print-checker-page .cm-check input{accent-color:var(--cyan)}
+.print-checker-page .cm-spine-policy{border-radius:8px;padding:7px 8px;font-size:8.5px;font-weight:800;line-height:1.45;margin-top:5px;background:#f8fafc;border:1px solid #e2e8f0;color:#64748b}
+.print-checker-page .cm-spine-policy.is-warn{background:#fff7ed;border-color:#fed7aa;color:#9a3412}
+.print-checker-page .cm-spine-policy.is-ok{background:#f0fdf4;border-color:#bbf7d0;color:#166534}
+.print-checker-page .cm-color-row{display:grid;grid-template-columns:1fr 42px;gap:6px;align-items:center}
+.print-checker-page .cm-color{width:42px;height:34px;border:1.5px solid #dbe4ee;border-radius:8px;background:#fff;padding:3px;cursor:pointer}
+.print-checker-page .cm-actions{position:sticky;bottom:0;background:linear-gradient(180deg,rgba(255,255,255,.86),#fff 24%);padding-top:12px;z-index:4}
+.print-checker-page .cm-generate{width:100%;border:0;border-radius:10px;background:linear-gradient(135deg,#12396d,#1d9bb2);color:#fff;padding:11px 12px;font-size:12px;font-weight:950;cursor:pointer;box-shadow:0 5px 14px rgba(18,57,109,.18)}
+.print-checker-page .cm-generate:disabled{opacity:.55;cursor:wait}
+.print-checker-page .cm-status{font-size:8.5px;color:#64748b;line-height:1.5;margin-top:7px;min-height:26px}
+.print-checker-page .cm-status.is-ok{color:#15803d}
+.print-checker-page .cm-status.is-error{color:#b91c1c}
+
+.print-checker-page .cover-maker-workspace{display:none;width:100%}
+.print-checker-page.is-cover-maker .cover-maker-workspace{display:block}
+.print-checker-page .cm-workbar{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:12px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:10px 12px;box-shadow:0 4px 14px rgba(15,23,42,.045)}
+.print-checker-page .cm-workbar-title{font-size:11px;font-weight:950;color:#172033;margin-right:auto}
+.print-checker-page .cm-workbar-meta{font-size:8.5px;color:#64748b;font-weight:750}
+.print-checker-page .cm-tool{border:1px solid #dbe4ee;background:#fff;color:#475569;border-radius:8px;padding:7px 9px;font-size:9px;font-weight:900;cursor:pointer}
+.print-checker-page .cm-tool:hover{border-color:var(--cyan);color:#0c4a6e}
+.print-checker-page .cm-tool.primary{border-color:#12396d;background:#12396d;color:#fff}
+.print-checker-page .cm-tool:disabled{opacity:.45;cursor:not-allowed}
+
+.print-checker-page .cm-stage-scroll{width:100%;overflow:auto;padding:16px;display:flex;justify-content:center;align-items:flex-start;min-height:420px}
+.print-checker-page .cm-stage{position:relative;flex:0 0 auto;background:#fff;box-shadow:0 12px 38px rgba(15,23,42,.16);overflow:hidden;user-select:none;transform-origin:top center}
+.print-checker-page .cm-stage-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:fill;display:block;z-index:1}
+.print-checker-page .cm-stage-empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:30px;background:linear-gradient(135deg,#f8fafc,#eef6fa);z-index:1;color:#64748b;font-size:12px;font-weight:850;line-height:1.7}
+.print-checker-page .cm-stage.has-image .cm-stage-empty{display:none}
+.print-checker-page .cm-guide{position:absolute;z-index:8;pointer-events:none}
+.print-checker-page .cm-guide.trim{border:1px dashed rgba(15,23,42,.58)}
+.print-checker-page .cm-guide.spine{border-left:1.5px solid rgba(220,38,38,.75);border-right:1.5px solid rgba(220,38,38,.75);background:rgba(255,255,255,.04)}
+.print-checker-page .cm-guide.safe{border:1px dashed rgba(14,116,144,.48)}
+.print-checker-page .cm-guide-label{position:absolute;z-index:9;pointer-events:none;background:rgba(15,23,42,.72);color:#fff;border-radius:5px;padding:2px 5px;font-size:7px;font-weight:850;white-space:nowrap}
+
+.print-checker-page .cm-text-layer{position:absolute;z-index:12;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.28);outline:none;white-space:pre-wrap;word-break:keep-all;overflow-wrap:anywhere;line-height:1.2;cursor:text;transition:outline .12s,background .12s}
+.print-checker-page .cm-text-layer:hover,.print-checker-page .cm-text-layer:focus{outline:1px dashed rgba(14,165,233,.8);background:rgba(255,255,255,.07)}
+.print-checker-page .cm-front-title{font-weight:900;letter-spacing:-.035em}
+.print-checker-page .cm-front-subtitle{font-weight:700;line-height:1.35}
+.print-checker-page .cm-front-meta{font-weight:750;line-height:1.45}
+.print-checker-page .cm-front-org{font-weight:850}
+.print-checker-page .cm-back-copy{font-weight:600;line-height:1.55}
+.print-checker-page .cm-back-contact{font-weight:750;line-height:1.45}
+.print-checker-page .cm-spine-text{font-weight:900;text-align:center;white-space:nowrap;transform-origin:center center;display:flex;align-items:center;justify-content:center;overflow:visible}
+.print-checker-page .cm-spine-text.vertical{writing-mode:vertical-rl;text-orientation:upright;white-space:normal;letter-spacing:.05em;display:block}
+.print-checker-page .cm-spine-date,.print-checker-page .cm-spine-company{font-weight:800;text-align:center;white-space:nowrap;transform-origin:center center;display:flex;align-items:center;justify-content:center;overflow:visible}
+.print-checker-page .cm-stage-note{position:absolute;right:7px;bottom:6px;z-index:15;background:rgba(15,23,42,.68);color:#fff;border-radius:5px;padding:3px 6px;font-size:7px;font-weight:750;pointer-events:none}
+
+.print-checker-page .cm-preview-title{font-size:10px;font-weight:950;color:#0f172a;margin-bottom:7px}
+.print-checker-page .cm-no-image-note{font-size:9px;color:#64748b;line-height:1.55;text-align:center;padding:8px 10px}
+
+@media(max-width:900px){
+  .print-checker-page .design-mode-switch{position:sticky;top:0;z-index:9}
+  .print-checker-page.is-cover-maker .canvas-wrap{min-height:380px}
+  .print-checker-page .cm-stage-scroll{min-height:340px;padding:8px}
+}
+@media(max-width:520px){
+  .print-checker-page .cm-grid2,.print-checker-page .cm-grid3{grid-template-columns:1fr}
+  .print-checker-page .cm-workbar{align-items:flex-start}
+  .print-checker-page .cm-workbar-title{width:100%;margin-right:0}
+}

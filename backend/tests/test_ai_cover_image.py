@@ -1,0 +1,82 @@
+import pytest
+
+from services.ai_cover_image import (
+    AiCoverImageError,
+    DEFAULT_IMAGE_MODEL,
+    _allowed_qualities,
+    build_cover_prompt,
+    choose_image_size,
+    normalize_cover_request,
+)
+
+
+def test_default_image_model_is_gpt_image_2():
+    assert DEFAULT_IMAGE_MODEL == "gpt-image-2"
+
+
+def test_gpt_image_2_quality_levels_match_official_contract():
+    assert _allowed_qualities("gpt-image-2") == {"low", "medium", "high", "auto"}
+    assert "xhigh" not in _allowed_qualities("gpt-image-2")
+    assert "max" not in _allowed_qualities("gpt-image-2")
+
+
+def test_normalize_cover_defaults_to_a4():
+    req = normalize_cover_request({"style_request": "premium editorial"})
+    assert req.trim_width_mm == 210
+    assert req.trim_height_mm == 297
+    assert req.spine_mm == 0
+    assert req.bleed_mm == 3
+
+
+def test_choose_image_size_matches_gpt_image_2_contract():
+    req = normalize_cover_request({
+        "trim_width_mm": 210,
+        "trim_height_mm": 297,
+        "spine_mm": 8,
+        "bleed_mm": 3,
+        "style_request": "clean public report",
+    })
+    width, height = map(int, choose_image_size(req).split("x"))
+    assert width % 16 == 0
+    assert height % 16 == 0
+    assert width <= 3840
+    assert height <= 3840
+    assert 655_360 <= width * height <= 8_294_400
+    assert max(width, height) / min(width, height) <= 3
+
+
+def test_prompt_is_background_only_and_spine_aware():
+    req = normalize_cover_request({
+        "trim_width_mm": 176,
+        "trim_height_mm": 248,
+        "spine_mm": 12,
+        "bleed_mm": 3,
+        "style_request": "minimal premium education report",
+        "theme_context": "education, community, collaboration",
+        "preset_name": "공공기관·교육청",
+    })
+    prompt = build_cover_prompt(req)
+    assert "BACKGROUND ARTWORK ONLY" in prompt
+    assert "Do not draw any words" in prompt
+    assert "spine" in prompt.lower()
+    assert "12.00 mm" in prompt
+    assert "front cover" in prompt.lower()
+    assert "back cover" in prompt.lower()
+
+
+def test_style_request_is_required():
+    with pytest.raises(AiCoverImageError) as exc_info:
+        normalize_cover_request({})
+    assert exc_info.value.code == "AI_COVER_STYLE_REQUIRED"
+
+
+def test_extreme_cover_ratio_is_rejected():
+    with pytest.raises(AiCoverImageError) as exc_info:
+        normalize_cover_request({
+            "trim_width_mm": 50,
+            "trim_height_mm": 1000,
+            "spine_mm": 0,
+            "bleed_mm": 0,
+            "style_request": "minimal",
+        })
+    assert exc_info.value.code == "AI_COVER_RATIO_UNSUPPORTED"

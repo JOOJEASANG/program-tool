@@ -10,17 +10,20 @@ Firebase Hosting과 Python Cloud Functions로 운영하는 PDF·인쇄 실무 �
 
 ## 현재 운영 기능
 
-### 인쇄물 사전 검토
+### 디자인 검토/제작
 
-`/print-checker`가 표지·전단·리플렛·초대장/안내장 등 인쇄물의 규격과 안전영역을 확인하는 공개 도구입니다.
+`/print-checker`는 표지·전단·리플렛·초대장/안내장 등 인쇄물의 규격과 안전영역을 검토하고, 같은 화면에서 AI 표지 제작으로 전환할 수 있는 도구입니다.
 
 - 재단선·도련·안전영역 확인
 - 표지 책등 검토
 - 리플렛 접지선 확인
 - 초대장/안내장 1p 앞면 · 2p 뒷면 확인과 가변 접지 위치 검토
-- 공용 일일 무료 사용량 정책 적용
+- 완성 규격 기본 A4 210×297mm 및 입력 치수 기억
+- AI 제작은 표지 전용이며 뒤표지 + 책등 + 앞표지 전체 펼침 배경을 `gpt-image-2`로 생성
+- 정확한 한글 제목·날짜·회사명·책등 글자는 편집 가능한 브라우저 레이어로 처리
+- 책등 세로글씨 및 90도 양방향 회전 지원
 
-과거 `design-editor`, `document-editor`, `image-editor`, `simple-editor` 런타임은 운영 트리에서 제거됐습니다. `/apps/cover`, `/apps/poster`, `/apps/flyer`, `/apps/invitation`, `/apps/notice`, `/apps/leaflet`은 인쇄물 사전 검토 화면으로 연결됩니다.
+과거 `design-editor`, `document-editor`, `image-editor`, `simple-editor` 런타임은 운영 트리에서 제거된 상태를 유지합니다. `/apps/cover`, `/apps/poster`, `/apps/flyer`, `/apps/invitation`, `/apps/notice`, `/apps/leaflet`은 디자인 검토/제작 화면으로 연결됩니다.
 
 ### PDF 도구
 
@@ -36,8 +39,8 @@ PDF 검수 결과는 인쇄소의 RIP/프리플라이트 결과를 대체하지 
 
 ## 저장소 구조
 
-- `apps/`: PDF 배치/소책자용 공통 앱 셸과 인쇄물 사전 검토 리다이렉트
-- `print-checker/`, `js/print-checker/`, `css/print-checker.css`: 인쇄물 사전 검토
+- `apps/`: PDF 배치/소책자용 공통 앱 셸과 디자인 검토/제작 리다이렉트
+- `print-checker/`, `js/print-checker/`, `css/print-checker.css`: 디자인 검토/제작
 - `pdf-editor/`, `js/pdf-editor/`: canonical PDF 편집 엔진
 - `pdf-editor-advanced/`, `js/pdf-editor-advanced/`: 독립 고급 PDF 편집기
 - `pdf-preflight/`, `js/pdf-preflight/`: PDF 검사·유틸리티
@@ -115,6 +118,16 @@ Hosting 배포 직전 `scripts/prepare_hosting_dist.py`가 `.firebase-hosting/`�
 
 화면 동작이 바뀌는 릴리스에서는 `version.json`, `sw.js`, `js/sw-register.js`, `js/firebase-config.js`의 버전 계약을 함께 확인해야 하며 `scripts/check_version_sync.py`가 불일치를 차단합니다.
 
+## AI 표지 제작 서버 설정
+
+AI 표지 제작은 서버의 OpenAI 키를 사용하며 브라우저에 키를 노출하지 않습니다. 기본 이미지 모델은 `gpt-image-2`, 기본 품질은 `high`이며 품질은 `low`, `medium`, `high`, `auto` 중에서 설정할 수 있습니다.
+
+```env
+OPENAI_API_KEY=
+OPENAI_AI_IMAGE_MODEL=gpt-image-2
+OPENAI_AI_IMAGE_QUALITY=high
+```
+
 ## 운영 보안
 
 - API는 Firebase ID 토큰과 프로그램 접근 상태를 확인합니다.
@@ -130,5 +143,5 @@ Hosting 배포 직전 `scripts/prepare_hosting_dist.py`가 `.firebase-hosting/`�
 1. 실제 운영 경로에서 사용하지 않는 독립 화면·실험 파일은 운영 트리에 남기지 않습니다.
 2. 기능은 canonical runtime 한 곳에서 소유하고 호환 URL은 얇은 진입점으로 유지합니다.
 3. `/apps/pdf-layout`과 `/apps/booklet`은 PDF 엔진을 복제하지 않습니다.
-4. 인쇄물 디자인 편집기 계열의 제거 상태를 유지하고, 디자인 제품 경로는 `/print-checker`로 연결합니다.
+4. 제거된 독립 디자인 편집기 계열은 되살리지 않고, 디자인 검토와 AI 표지 제작은 `/print-checker`의 통합 런타임에서 제공합니다.
 5. 배포 대상 여부는 파일 위치가 아니라 Hosting allowlist를 기준으로 판단합니다.
