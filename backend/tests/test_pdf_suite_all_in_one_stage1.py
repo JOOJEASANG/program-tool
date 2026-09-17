@@ -112,7 +112,7 @@ def test_pdf_suite_is_staged_with_split_editor_profiles_and_utility_workspace():
     assert 'programId:"preflight"' not in hosting
 
     for marker in (
-        "name:'인쇄물 사전 검토'",
+        "name:'디자인 검토/제작'",
         "name:'스마트 인쇄배치'",
         "name:'PDF배치'",
         "name:'PDF편집'",
@@ -123,7 +123,7 @@ def test_pdf_suite_is_staged_with_split_editor_profiles_and_utility_workspace():
         "pdf-editor-advanced",
         "pdf-suite/",
         "normalizePrograms",
-        "pdf-home-five-programs-v7",
+        "pdf-home-five-programs-v8",
     ):
         assert marker in home
     assert "id:'booklet'" not in home
