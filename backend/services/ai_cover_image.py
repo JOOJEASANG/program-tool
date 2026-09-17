@@ -1,8 +1,8 @@
 """AI-generated background artwork for print cover spreads.
 
 The image model creates background artwork only. Exact Korean copy, spine text,
-company names, dates and other typography are rendered by the browser as editable
-vector-like text layers so print output remains accurate and controllable.
+company names, dates and other typography are rendered by the browser so print
+output remains accurate and controllable.
 """
 from __future__ import annotations
 
@@ -33,6 +33,7 @@ class CoverImageRequest:
     trim_width_mm: float
     trim_height_mm: float
     spine_mm: float
+    wing_mm: float
     bleed_mm: float
     style_request: str
     theme_context: str
@@ -40,7 +41,7 @@ class CoverImageRequest:
 
     @property
     def work_width_mm(self) -> float:
-        return self.trim_width_mm * 2 + self.spine_mm + self.bleed_mm * 2
+        return self.trim_width_mm * 2 + self.spine_mm + self.wing_mm * 2 + self.bleed_mm * 2
 
     @property
     def work_height_mm(self) -> float:
@@ -63,6 +64,7 @@ def normalize_cover_request(payload: dict[str, Any]) -> CoverImageRequest:
     trim_width = _number(payload.get("trim_width_mm"), minimum=50, maximum=1000, default=210)
     trim_height = _number(payload.get("trim_height_mm"), minimum=50, maximum=1000, default=297)
     spine = _number(payload.get("spine_mm"), minimum=0, maximum=100, default=0)
+    wing = _number(payload.get("wing_mm"), minimum=0, maximum=300, default=0)
     bleed = _number(payload.get("bleed_mm"), minimum=0, maximum=20, default=3)
     style_request = _clean(payload.get("style_request"), MAX_STYLE)
     theme_context = _clean(payload.get("theme_context"), MAX_CONTEXT)
@@ -78,6 +80,7 @@ def normalize_cover_request(payload: dict[str, Any]) -> CoverImageRequest:
         trim_width_mm=trim_width,
         trim_height_mm=trim_height,
         spine_mm=spine,
+        wing_mm=wing,
         bleed_mm=bleed,
         style_request=style_request,
         theme_context=theme_context,
@@ -99,12 +102,6 @@ def _multiple_of_16(value: float, *, minimum: int = 512, maximum: int = 3840) ->
 
 
 def choose_image_size(req: CoverImageRequest) -> str:
-    """Return a high-resolution GPT Image 2 size inside the documented limits.
-
-    GPT Image 2 supports arbitrary WIDTHxHEIGHT sizes when both edges are
-    multiples of 16, the aspect ratio is between 1:3 and 3:1, and the request
-    stays within the current maximum resolution/pixel limits.
-    """
     ratio = req.work_width_mm / req.work_height_mm
     long_edge = 3840
     short_edge = 2160
@@ -124,20 +121,28 @@ def choose_image_size(req: CoverImageRequest) -> str:
 
 
 def build_cover_prompt(req: CoverImageRequest) -> str:
-    spine_share = req.spine_mm / req.work_width_mm * 100 if req.work_width_mm else 0
-    front_start = (req.bleed_mm + req.trim_width_mm + req.spine_mm) / req.work_width_mm * 100
-    back_end = (req.bleed_mm + req.trim_width_mm) / req.work_width_mm * 100
+    work_width = req.work_width_mm
+    spine_share = req.spine_mm / work_width * 100 if work_width else 0
+    back_start_mm = req.bleed_mm + req.wing_mm
+    back_end_mm = back_start_mm + req.trim_width_mm
+    front_start_mm = back_end_mm + req.spine_mm
+    front_end_mm = front_start_mm + req.trim_width_mm
+    flap_note = (
+        f"- Outer flaps: {req.wing_mm:.2f} mm on both far left and far right; keep them visually continuous and low-detail."
+        if req.wing_mm > 0
+        else "- No outer flaps are included."
+    )
     return f"""
 Create a premium, production-ready FULL SPREAD PRINT COVER BACKGROUND viewed perfectly flat and straight-on.
 This is not a mockup and not a photo of a physical book. It is the actual 2D artwork background for printing.
 
 GEOMETRY
-- Total spread including bleed: {req.work_width_mm:.2f} × {req.work_height_mm:.2f} mm.
-- Left area: back cover, trim width {req.trim_width_mm:.2f} mm.
-- Center area: spine, width {req.spine_mm:.2f} mm, about {spine_share:.2f}% of the full spread.
-- Right area: front cover, trim width {req.trim_width_mm:.2f} mm.
+- Total spread including bleed and flaps: {req.work_width_mm:.2f} × {req.work_height_mm:.2f} mm.
+- Back cover trim: {req.trim_width_mm:.2f} mm wide, from about {back_start_mm / work_width * 100:.2f}% to {back_end_mm / work_width * 100:.2f}% of total width.
+- Center spine: {req.spine_mm:.2f} mm wide, about {spine_share:.2f}% of the full spread.
+- Front cover trim: {req.trim_width_mm:.2f} mm wide, from about {front_start_mm / work_width * 100:.2f}% to {front_end_mm / work_width * 100:.2f}% of total width.
+{flap_note}
 - Bleed: {req.bleed_mm:.2f} mm around the outside.
-- Back-cover trim ends at about {back_end:.2f}% of total width; front-cover trim starts at about {front_start:.2f}%.
 
 CRITICAL TYPOGRAPHY RULE
 Generate BACKGROUND ARTWORK ONLY. Do not draw any words, letters, numbers, logos, signatures, pseudo-text,
@@ -145,11 +150,12 @@ watermarks, QR codes, barcodes, fake labels, placeholder type, or typographic ma
 
 LAYOUT REQUIREMENTS
 - Keep the spine visually continuous with the overall artwork, but relatively low-detail and calm so vertical or rotated spine text can be placed cleanly.
-- Reserve intentional negative space on the front cover for a strong title hierarchy and smaller subtitle/date/company text.
-- Reserve a quieter information zone on the back cover for body copy and company/contact information.
+- Reserve intentional negative space inside the front-cover trim for a strong title hierarchy and smaller subtitle/date/company text.
+- Reserve a quieter information zone inside the back-cover trim for body copy and company/contact information.
+- If flaps exist, continue the artwork naturally into them without moving the front/back focal areas into the flap zones.
 - Do not create visible boxes that look like text placeholders; use natural composition and negative space instead.
-- Keep important decorative focal points away from the outer bleed edge and away from the spine folds.
-- Make the front cover feel strongest, the back cover supportive, and the spine integrated rather than pasted in.
+- Keep important decorative focal points away from the outer bleed edge, flap folds, and spine folds.
+- Make the front cover feel strongest, the back cover supportive, and the spine/flaps integrated rather than pasted in.
 - Use sophisticated editorial design, refined spacing, controlled contrast, professional print sensibility, and contemporary Korean publication aesthetics.
 - Avoid cheap flyer aesthetics, generic template looks, clip-art, childish decoration, random icons, overbusy gradients, excessive glow, and stock-photo collage style.
 - No crop marks, trim marks, rulers, registration marks, 3D perspective, book shadows, hands, desks, or environmental mockup context.
@@ -161,7 +167,7 @@ Preset: {req.preset_name or 'custom'}
 SEMANTIC CONTEXT ONLY — use this to inspire visual language, never render it as text:
 {req.theme_context or 'professional report / publication cover'}
 
-Return one polished, coherent background artwork with a clear front/back/spine rhythm and enough clean space for precise typography overlays.
+Return one polished, coherent background artwork with a clear flap/back/spine/front/flap rhythm where applicable and enough clean space for precise typography overlays.
 """.strip()
 
 
@@ -173,17 +179,9 @@ def _public_error_from_http(exc: urllib.error.HTTPError) -> AiCoverImageError:
     except Exception:
         pass
     if exc.code in {401, 403}:
-        return AiCoverImageError(
-            "OpenAI API 키 또는 이미지 모델 권한을 확인해 주세요.",
-            status_code=503,
-            code="OPENAI_AUTH_FAILED",
-        )
+        return AiCoverImageError("OpenAI API 키 또는 이미지 모델 권한을 확인해 주세요.", status_code=503, code="OPENAI_AUTH_FAILED")
     if exc.code == 429:
-        return AiCoverImageError(
-            "AI 이미지 사용량 한도에 도달했습니다. 잠시 후 다시 시도해 주세요.",
-            status_code=429,
-            code="OPENAI_RATE_LIMIT",
-        )
+        return AiCoverImageError("AI 이미지 사용량 한도에 도달했습니다. 잠시 후 다시 시도해 주세요.", status_code=429, code="OPENAI_RATE_LIMIT")
     if exc.code == 400:
         return AiCoverImageError(
             f"AI 이미지 생성 입력값을 처리하지 못했습니다.{(' ' + detail[:160]) if detail else ''}",
@@ -206,11 +204,7 @@ def generate_cover_image(payload: dict[str, Any], *, uid: str) -> dict[str, Any]
     req = normalize_cover_request(payload)
     api_key = os.environ.get("OPENAI_API_KEY", "").strip()
     if not api_key:
-        raise AiCoverImageError(
-            "관리자 OpenAI API 키가 아직 서버에 설정되지 않았습니다.",
-            status_code=503,
-            code="OPENAI_API_KEY_MISSING",
-        )
+        raise AiCoverImageError("관리자 OpenAI API 키가 아직 서버에 설정되지 않았습니다.", status_code=503, code="OPENAI_API_KEY_MISSING")
 
     model = os.environ.get("OPENAI_AI_IMAGE_MODEL", DEFAULT_IMAGE_MODEL).strip() or DEFAULT_IMAGE_MODEL
     quality = os.environ.get("OPENAI_AI_IMAGE_QUALITY", DEFAULT_IMAGE_QUALITY).strip().lower() or DEFAULT_IMAGE_QUALITY
@@ -231,10 +225,7 @@ def generate_cover_image(payload: dict[str, Any], *, uid: str) -> dict[str, Any]
     request = urllib.request.Request(
         OPENAI_IMAGES_URL,
         data=json.dumps(body, ensure_ascii=False).encode("utf-8"),
-        headers={
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json",
-        },
+        headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
         method="POST",
     )
     try:
@@ -243,21 +234,13 @@ def generate_cover_image(payload: dict[str, Any], *, uid: str) -> dict[str, Any]
     except urllib.error.HTTPError as exc:
         raise _public_error_from_http(exc) from exc
     except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as exc:
-        raise AiCoverImageError(
-            "AI 이미지 서버 응답을 받지 못했습니다. 다시 시도해 주세요.",
-            status_code=502,
-            code="OPENAI_IMAGE_UNAVAILABLE",
-        ) from exc
+        raise AiCoverImageError("AI 이미지 서버 응답을 받지 못했습니다. 다시 시도해 주세요.", status_code=502, code="OPENAI_IMAGE_UNAVAILABLE") from exc
 
     images = data.get("data") if isinstance(data.get("data"), list) else []
     first = images[0] if images and isinstance(images[0], dict) else {}
     image_base64 = str(first.get("b64_json") or "")
     if not image_base64:
-        raise AiCoverImageError(
-            "AI 이미지 결과를 받지 못했습니다.",
-            status_code=502,
-            code="OPENAI_IMAGE_EMPTY",
-        )
+        raise AiCoverImageError("AI 이미지 결과를 받지 못했습니다.", status_code=502, code="OPENAI_IMAGE_EMPTY")
 
     return {
         "image_base64": image_base64,
@@ -265,11 +248,12 @@ def generate_cover_image(payload: dict[str, Any], *, uid: str) -> dict[str, Any]
         "model": str(data.get("model") or model),
         "size": str(data.get("size") or size),
         "quality": str(data.get("quality") or quality),
-        "prompt_version": "cover-background-v1",
+        "prompt_version": "cover-background-v2-shared-spec",
         "geometry": {
             "trim_width_mm": req.trim_width_mm,
             "trim_height_mm": req.trim_height_mm,
             "spine_mm": req.spine_mm,
+            "wing_mm": req.wing_mm,
             "bleed_mm": req.bleed_mm,
             "work_width_mm": req.work_width_mm,
             "work_height_mm": req.work_height_mm,
