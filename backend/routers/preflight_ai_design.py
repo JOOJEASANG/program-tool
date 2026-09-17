@@ -11,6 +11,15 @@ from utils.storage import get_request_id
 
 logger = logging.getLogger(__name__)
 
+_PUBLIC_AI_ERRORS = {
+    "AI_DESIGN_TITLE_REQUIRED": "제목을 입력해 주세요.",
+    "OPENAI_API_KEY_MISSING": "관리자 OpenAI API 키가 아직 서버에 설정되지 않았습니다.",
+    "OPENAI_AUTH_FAILED": "OpenAI API 키 또는 프로젝트 권한을 확인해 주세요.",
+    "OPENAI_RATE_LIMIT": "AI 사용량 한도에 도달했습니다. 잠시 후 다시 시도해 주세요.",
+    "OPENAI_REQUEST_FAILED": "OpenAI 디자인 요청에 실패했습니다. 잠시 후 다시 시도해 주세요.",
+    "AI_DESIGN_FAILED": "AI 디자인 요청을 처리하지 못했습니다. 다시 시도해 주세요.",
+}
+
 
 def _error(detail: str, status: int, code: str):
     response = jsonify({
@@ -20,6 +29,12 @@ def _error(detail: str, status: int, code: str):
     })
     response.status_code = status
     return response
+
+
+def _public_ai_error(exc: AiDesignError):
+    code = exc.code if exc.code in _PUBLIC_AI_ERRORS else "AI_DESIGN_FAILED"
+    status = exc.status_code if 400 <= int(exc.status_code) <= 599 else 502
+    return _error(_PUBLIC_AI_ERRORS[code], status, code)
 
 
 def install(preflight_module) -> None:
@@ -41,9 +56,9 @@ def install(preflight_module) -> None:
             response.headers["X-Request-ID"] = get_request_id()
             return response
         except AiDesignError as exc:
-            return _error(str(exc), exc.status_code, exc.code)
+            return _public_ai_error(exc)
         except Exception:
-            logger.exception("AI design layout failed request_id=%s", get_request_id())
+            logger.exception("AI design layout failed")
             return _error(
                 "AI 디자인을 생성하는 중 오류가 발생했습니다.",
                 500,
