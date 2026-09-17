@@ -24,6 +24,7 @@ from werkzeug.exceptions import InternalServerError, MethodNotAllowed, NotFound,
 import routers.pdf as pdf_router
 import routers.pdf_utility as pdf_utility_router
 import routers.preflight as preflight_router
+from routers.ai_print_design import ai_print_design_bp
 from routers.pdf import pdf_bp
 from routers.pdf_large_security import pdf_large_security_bp
 from routers.pdf_tools import pdf_tools_bp
@@ -89,6 +90,7 @@ flask_app.register_blueprint(pdf_utility_margin_crop_bp, url_prefix="/api/pdf-ut
 flask_app.register_blueprint(pdf_utility_tiling_bp, url_prefix="/api/pdf-utility")
 flask_app.register_blueprint(preflight_bp, url_prefix="/api/preflight")
 flask_app.register_blueprint(preflight_auto_fix_bp, url_prefix="/api/preflight")
+flask_app.register_blueprint(ai_print_design_bp, url_prefix="/api/preflight")
 
 
 def _request_id() -> str:
@@ -213,6 +215,7 @@ def health():
     timeout_sec=600,
     min_instances=0,
     max_instances=2,
+    secrets=["OPENAI_API_KEY"],
 )
 def api(req: https_fn.Request) -> https_fn.Response:
     with flask_app.request_context(req.environ):
