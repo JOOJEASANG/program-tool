@@ -19,7 +19,7 @@ Firebase Hosting과 Python Cloud Functions로 운영하는 PDF·인쇄 실무 �
 - 리플렛 접지선 확인
 - 초대장/안내장 1p 앞면 · 2p 뒷면 확인과 가변 접지 위치 검토
 - 완성 규격 기본 A4 210×297mm 및 입력 치수 기억
-- AI 제작은 표지 전용이며 뒤표지 + 책등 + 앞표지 전체 펼침 배경을 `gpt-image-2.5-sunburst`로 생성
+- AI 제작은 표지 전용이며 뒤표지 + 책등 + 앞표지 전체 펼침 배경을 `gpt-image-2`로 생성
 - 정확한 한글 제목·날짜·회사명·책등 글자는 편집 가능한 브라우저 레이어로 처리
 - 책등 세로글씨 및 90도 양방향 회전 지원
 
@@ -120,11 +120,11 @@ Hosting 배포 직전 `scripts/prepare_hosting_dist.py`가 `.firebase-hosting/`�
 
 ## AI 표지 제작 서버 설정
 
-AI 표지 제작은 서버의 OpenAI 키를 사용하며 브라우저에 키를 노출하지 않습니다. 기본 품질은 `high`이며, Sunburst에서는 필요에 따라 `xhigh` 또는 `max`도 선택할 수 있습니다.
+AI 표지 제작은 서버의 OpenAI 키를 사용하며 브라우저에 키를 노출하지 않습니다. 기본 이미지 모델은 `gpt-image-2`, 기본 품질은 `high`이며 품질은 `low`, `medium`, `high`, `auto` 중에서 설정할 수 있습니다.
 
 ```env
 OPENAI_API_KEY=
-OPENAI_AI_IMAGE_MODEL=gpt-image-2.5-sunburst
+OPENAI_AI_IMAGE_MODEL=gpt-image-2
 OPENAI_AI_IMAGE_QUALITY=high
 ```
 
