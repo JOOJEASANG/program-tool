@@ -1,5 +1,13 @@
 """Router package initialization."""
 
+from firebase_functions import options as _function_options
+
+# The AI design beta reads OPENAI_API_KEY only from Cloud Secret Manager.  The
+# current backend is deployed as one shared HTTP API function, so the secret must
+# be available to that function at deployment/runtime and is never shipped to the
+# browser or committed to source control.
+_function_options.set_global_options(secrets=["OPENAI_API_KEY"])
+
 # Importing the PDF utility through this package gives us stable extension hooks
 # while keeping the canonical public blueprint and shared limits in pdf_utility.py.
 from . import pdf_utility as _pdf_utility
