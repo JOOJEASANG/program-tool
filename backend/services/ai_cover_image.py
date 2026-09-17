@@ -93,21 +93,32 @@ def normalize_cover_request(payload: dict[str, Any]) -> CoverImageRequest:
     return request
 
 
-def _multiple_of_16(value: float, *, minimum: int = 512, maximum: int = 3072) -> int:
+def _multiple_of_16(value: float, *, minimum: int = 512, maximum: int = 3840) -> int:
     rounded = int(round(value / 16.0) * 16)
     return max(minimum, min(maximum, rounded))
 
 
 def choose_image_size(req: CoverImageRequest) -> str:
+    """Return the largest practical size inside the Image API 3840x2160 envelope.
+
+    The API accepts portrait equivalents, so the long edge may reach 3840 while
+    the short edge stays at or below 2160. Both dimensions remain divisible by 16.
+    """
     ratio = req.work_width_mm / req.work_height_mm
+    long_edge = 3840
+    short_edge = 2160
     if ratio >= 1:
-        width = 3072
-        height = _multiple_of_16(width / ratio, minimum=1024, maximum=3072)
-        width = _multiple_of_16(height * ratio, minimum=1024, maximum=3072)
+        height = min(short_edge, long_edge / ratio)
+        width = height * ratio
+        width = _multiple_of_16(width, minimum=1024, maximum=long_edge)
+        height = _multiple_of_16(width / ratio, minimum=1024, maximum=short_edge)
+        width = _multiple_of_16(height * ratio, minimum=1024, maximum=long_edge)
     else:
-        height = 3072
-        width = _multiple_of_16(height * ratio, minimum=1024, maximum=3072)
-        height = _multiple_of_16(width / ratio, minimum=1024, maximum=3072)
+        width = min(short_edge, long_edge * ratio)
+        height = width / ratio
+        height = _multiple_of_16(height, minimum=1024, maximum=long_edge)
+        width = _multiple_of_16(height * ratio, minimum=1024, maximum=short_edge)
+        height = _multiple_of_16(width / ratio, minimum=1024, maximum=long_edge)
     return f"{width}x{height}"
 
 
