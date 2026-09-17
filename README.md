@@ -23,7 +23,7 @@ Firebase Hosting과 Python Cloud Functions로 운영하는 PDF·인쇄 실무 �
 - 정확한 한글 제목·날짜·회사명·책등 글자는 편집 가능한 브라우저 레이어로 처리
 - 책등 세로글씨 및 90도 양방향 회전 지원
 
-과거 `design-editor`, `document-editor`, `image-editor`, `simple-editor` 독립 런타임은 운영 트리에서 제거된 상태를 유지합니다. `/apps/cover`, `/apps/poster`, `/apps/flyer`, `/apps/invitation`, `/apps/notice`, `/apps/leaflet`은 디자인 검토/제작 화면으로 연결됩니다.
+과거 `design-editor`, `document-editor`, `image-editor`, `simple-editor` 런타임은 운영 트리에서 제거된 상태를 유지합니다. `/apps/cover`, `/apps/poster`, `/apps/flyer`, `/apps/invitation`, `/apps/notice`, `/apps/leaflet`은 디자인 검토/제작 화면으로 연결됩니다.
 
 ### PDF 도구
 

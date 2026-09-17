@@ -17,8 +17,8 @@ def text(path: Path) -> str:
 
 def test_print_checker_is_renamed_and_defaults_to_cover():
     page = text(PRINT_CHECKER)
-    assert "인쇄물 배치 점검 · Program Studio" in page
-    assert '<span class="sb-nav-title">인쇄물 배치 점검</span>' in page
+    assert "디자인 검토/제작 · Program Studio" in page
+    assert '<span class="sb-nav-title">디자인 검토/제작</span>' in page
     assert "url.searchParams.set('product', 'cover')" in page
 
 
