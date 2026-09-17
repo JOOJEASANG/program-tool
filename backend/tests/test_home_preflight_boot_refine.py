@@ -33,5 +33,5 @@ def test_hosting_stage_loads_split_pdf_home_entries_without_boot_guard_duplicati
  for marker in ("PDF_SUITE_HOME_MARKER","data-pdf-suite-home-launcher","/js/pdf-suite-home-launcher.js?v=20260910-3","_inject_before(home, PDF_SUITE_HOME_MARKER","\"smart-print-layout\","): assert marker in hosting
  assert "pdfSuiteHomeLauncherScriptV1" not in boot
  assert "/js/pdf-suite-home-launcher.js" not in boot
- for marker in ("name:'스마트 인쇄배치'","url:'smart-print-layout/'","name:'PDF배치'","url:'pdf-editor/'","name:'PDF편집'","url:'pdf-editor-advanced'","pdf-home-five-programs-v7","pdfHomeWorkspace='five-programs'"): assert marker in launcher
+ for marker in ("name:'스마트 인쇄배치'","url:'smart-print-layout/'","name:'PDF배치'","url:'pdf-editor/'","name:'PDF편집'","url:'pdf-editor-advanced'","pdf-home-five-programs-v8","pdfHomeWorkspace='five-programs'"): assert marker in launcher
  assert launcher.index("id:'smart-print-layout'") < launcher.index("id:'pdf-editor'") < launcher.index("id:'pdf-editor-advanced'") < launcher.index("id:'pdf-suite'")
