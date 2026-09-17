@@ -9,6 +9,13 @@ from .pdf_utility_visual import install as _install_visual_organizer
 _install_background_cleanup(_pdf_utility)
 _install_visual_organizer(_pdf_utility)
 
+# Print design features extend the canonical preflight blueprint so they inherit
+# the same authentication/program-access boundary and remain removable as one module.
+from . import preflight as _preflight
+from .preflight_ai_design import install as _install_preflight_ai_design
+
+_install_preflight_ai_design(_preflight)
+
 # The advanced editor owns a separate blueprint and rendering engine, but it is
 # nested under /api/pdf/advanced so it reuses only the shared authentication
 # boundary. It does not register routes on the N-up/booklet implementation.
