@@ -10,12 +10,13 @@ from services.ai_cover_image import (
 )
 
 
-def test_default_image_model_is_gpt_image_2_5_sunburst():
-    assert DEFAULT_IMAGE_MODEL == "gpt-image-2.5-sunburst"
+def test_default_image_model_is_gpt_image_2():
+    assert DEFAULT_IMAGE_MODEL == "gpt-image-2"
 
 
-def test_sunburst_supports_extended_quality_levels():
-    assert {"low", "medium", "high", "xhigh", "max", "auto"} <= _allowed_qualities("gpt-image-2.5-sunburst")
+def test_gpt_image_2_quality_levels_match_official_contract():
+    assert _allowed_qualities("gpt-image-2") == {"low", "medium", "high", "auto"}
+    assert "xhigh" not in _allowed_qualities("gpt-image-2")
     assert "max" not in _allowed_qualities("gpt-image-2")
 
 
@@ -27,7 +28,7 @@ def test_normalize_cover_defaults_to_a4():
     assert req.bleed_mm == 3
 
 
-def test_choose_image_size_matches_gpt_image_2_5_contract():
+def test_choose_image_size_matches_gpt_image_2_contract():
     req = normalize_cover_request({
         "trim_width_mm": 210,
         "trim_height_mm": 297,
