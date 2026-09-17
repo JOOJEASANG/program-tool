@@ -28,9 +28,12 @@
         if(document.getElementById('cnt-all').textContent!=='5')throw new Error('all count wrong');
         if(document.getElementById('cnt-print').textContent!=='2')throw new Error('print count wrong');
         if(document.getElementById('cnt-pdf').textContent!=='3')throw new Error('pdf count wrong');
+        const checker=PROGRAMS.find(item=>item.id==='print-checker');
         const smart=PROGRAMS.find(item=>item.id==='smart-print-layout');
         const layout=PROGRAMS.find(item=>item.id==='pdf-editor');
         const advanced=PROGRAMS.find(item=>item.id==='pdf-editor-advanced');
+        if(checker?.name!=='디자인 검토/제작')throw new Error('design review label wrong: '+checker?.name);
+        if(!checker?.desc?.includes('AI로 뒤표지·책등·앞표지 전체 펼침 표지를 제작'))throw new Error('design review description is stale');
         if(smart?.url!=='smart-print-layout/')throw new Error('smart layout route wrong: '+smart?.url);
         if(smart?.name!=='스마트 인쇄배치')throw new Error('smart layout label wrong: '+smart?.name);
         if(layout?.url!=='pdf-editor/')throw new Error('layout route wrong: '+layout?.url);
@@ -42,14 +45,15 @@
         const pageEditingMatches=PROGRAMS.filter(item=>[item.name,item.desc,item.catLabel,...(item.tags||[])].some(value=>String(value||'').includes('페이지 편집')));
         if(!pageEditingMatches.some(item=>item.id==='pdf-editor')||!pageEditingMatches.some(item=>item.id==='pdf-editor-advanced'))throw new Error('legacy page editing search no longer reaches split editors');
         const quick=document.getElementById('quickRow').textContent;
-        for(const name of ['인쇄물 사전 검토','스마트 인쇄배치','PDF배치','PDF편집','PDF 유틸리티']){
+        for(const name of ['디자인 검토/제작','스마트 인쇄배치','PDF배치','PDF편집','PDF 유틸리티']){
           if(!quick.includes(name))throw new Error('home entry missing: '+name);
         }
+        if(quick.includes('인쇄물 사전 검토'))throw new Error('legacy print checker label still exposed');
         if(quick.includes('PDF 도구 모음'))throw new Error('legacy PDF tool still exposed');
         if(document.documentElement.dataset.pdfHomeWorkspace!=='five-programs')throw new Error('five-program home marker missing');
-        if(window.ProgramStudioPdfSuiteHome?.stage!=='pdf-home-five-programs-v7')throw new Error('five-program home runtime stage missing');
+        if(window.ProgramStudioPdfSuiteHome?.stage!=='pdf-home-five-programs-v8')throw new Error('five-program home runtime stage missing');
         document.body.dataset.pdfHomeConsolidationSmoke='pass';
-        result.textContent='PASS: home exposes smart print layout and keeps PDF layout/editing entry points separate';
+        result.textContent='PASS: home exposes renamed design review entry and keeps PDF layout/editing entry points separate';
       }catch(error){
         document.body.dataset.pdfHomeConsolidationSmoke='fail';
         result.textContent='FAIL: '+String(error?.stack||error);
