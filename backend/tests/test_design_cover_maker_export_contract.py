@@ -36,7 +36,7 @@ def test_design_review_no_longer_loads_ai_maker_runtime():
     assert 'id="previewCanvas"' in maker
     assert 'id="generateBtn"' in maker
     assert 'id="exportBtn"' in maker
-    assert "/js/ai-design-maker.js?v=20260918-14" in maker
+    assert "/js/ai-design-maker.js?v=20260918-15" in maker
 
 
 def test_ai_design_maker_has_easy_cover_workflow_and_diagnostics():
@@ -200,7 +200,7 @@ def test_ai_design_selected_text_supports_line_breaks_and_typography_controls():
     style = (ROOT / "css/ai-design-maker.css").read_text(encoding="utf-8")
 
     assert '<textarea id="title"' in page
-    assert 'Enter로 원하는 위치에서 줄바꿈' in page
+    assert 'Enter로 줄바꿈할 수 있습니다.' in page
     for field_id in (
         "textStylePanel",
         "selectedTextValue",
@@ -313,3 +313,63 @@ def test_front_cover_mode_is_prominent_at_top_of_sidebar():
     assert "전체 펼침 디자인" in page
     assert ".cover-scope-card{" in style
     assert ".cover-mode-picker-prominent" in style
+
+
+def test_ai_design_print_sizes_are_a4_b5_a5_and_custom():
+    page = (ROOT / "ai-design-maker/index.html").read_text(encoding="utf-8")
+    source = (ROOT / "js/ai-design-maker.js").read_text(encoding="utf-8")
+
+    assert 'data-size-id="a4" data-size="210,297"' in page
+    assert 'data-size-id="b5" data-size="182,257"' in page
+    assert 'data-size-id="a5" data-size="148,210"' in page
+    assert 'data-size-id="custom"' in page
+    assert "176×248" not in page
+    assert "sizeMode: 'a4'" in source
+    assert "function syncSizeMode()" in source
+    assert "state.sizeMode='custom'" in source
+
+
+def test_ai_design_copy_fields_use_realistic_examples_and_larger_default_typography():
+    page = (ROOT / "ai-design-maker/index.html").read_text(encoding="utf-8")
+    source = (ROOT / "js/ai-design-maker.js").read_text(encoding="utf-8")
+
+    for example in (
+        "2026 천안마을교육 운영사례집",
+        "학교와 마을이 함께 만드는 지속가능한 교육공동체",
+        "충청남도천안교육지원청",
+        "천안축구센터 다목적홀",
+        "천안 마을교육 포럼 기획위원회",
+        "학교와 마을이 함께 만든 교육 실천 사례",
+    ):
+        assert example in page
+
+    assert "let pt=trimW<140?36:50" in source
+    assert "fontPt:21,weight:700" in source
+    assert "fontPt:11.5,weight:720" in source
+    assert "fontPt:13.5,weight:850" in source
+
+
+def test_ai_design_gallery_saves_finished_cover_and_prompt_to_user_storage():
+    page = (ROOT / "ai-design-maker/index.html").read_text(encoding="utf-8")
+    source = (ROOT / "js/ai-design-maker.js").read_text(encoding="utf-8")
+    style = (ROOT / "css/ai-design-maker.css").read_text(encoding="utf-8")
+    firebase_config = (ROOT / "js/firebase-config.js").read_text(encoding="utf-8")
+    firestore_rules = (ROOT / "firestore.rules").read_text(encoding="utf-8")
+    storage_rules = (ROOT / "storage.rules").read_text(encoding="utf-8")
+
+    assert "firebase-storage-compat.js" in page
+    for field_id in ("galleryBtn", "saveGalleryBtn", "galleryModal", "gallerySearch", "galleryGrid", "galleryDetailModal"):
+        assert f'id="{field_id}"' in page
+    assert "async function saveCurrentDesignToGallery()" in source
+    assert "async function buildGalleryPreviewBlob()" in source
+    assert "async function loadGallery()" in source
+    assert "function renderGallery(query='')" in source
+    assert "state.lastGeneratedPrompt=prompt" in source
+    assert "ai_design_gallery/" in source
+    assert ".orderBy('createdAt','desc').limit(100)" in source
+    assert ".gallery-grid{" in style
+    assert "window.storage = storage" in firebase_config
+    assert "match /users/{uid}/ai_design_gallery/{designId}" in firestore_rules
+    assert "validAiDesignGalleryMetadata" in firestore_rules
+    assert "match /ai_design_gallery/{userId}/{designId}/{fileName}" in storage_rules
+    assert "validAiDesignGalleryUpload" in storage_rules
