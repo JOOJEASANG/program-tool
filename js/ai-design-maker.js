@@ -7,7 +7,9 @@
 
   const EXPORT_DPI = 300;
   const MAX_EXPORT_PIXELS = 60_000_000;
-  const STORAGE_KEY = 'program-studio:ai-design-maker:cover:v1';
+  const STORAGE_KEY_PREFIX = 'program-studio:ai-design-maker:cover:v2';
+  const LEGACY_STORAGE_KEY = 'program-studio:ai-design-maker:cover:v1';
+  let STORAGE_KEY = '';
   const TEXT_LAYOUT_SCHEMA_VERSION = 2;
   const AI_COVER_PATH = '/api/preflight/ai-design-maker/cover-background';
   const AI_DIRECT_API_ORIGIN = 'https://api-7a5qpwzezq-uc.a.run.app';
@@ -1539,6 +1541,8 @@
         const access=await window.ProgramAccess.getAccess(user);
         if(!access.approved){message.textContent='관리자 승인 후 사용할 수 있습니다.';login.hidden=true;shell.hidden=true;gate.hidden=false;return;}
         if($('userName'))$('userName').textContent=user.displayName||user.email||'사용자';
+        STORAGE_KEY=STORAGE_KEY_PREFIX+':'+user.uid;
+        try{localStorage.removeItem(LEGACY_STORAGE_KEY);}catch(_){}
         gate.hidden=true;shell.hidden=false;bind();
       }catch(error){message.textContent='사용 권한을 확인하지 못했습니다. 잠시 후 새로고침해 주세요.';login.hidden=false;}
     });
