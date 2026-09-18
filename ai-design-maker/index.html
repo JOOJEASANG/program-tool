@@ -8,7 +8,7 @@
   <meta name="robots" content="noindex,nofollow">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
-  <link rel="stylesheet" href="/css/ai-design-maker.css?v=20260918-6">
+  <link rel="stylesheet" href="/css/ai-design-maker.css?v=20260918-7">
   <link rel="stylesheet" href="/css/program-manual-home-modal.css?v=20260918-1">
 </head>
 <body>
@@ -118,7 +118,17 @@
               <label class="field color-field"><span>글자색</span><input id="textColor" type="color" value="#ffffff"></label>
             </div>
             <label class="field"><span>주제·키워드</span><textarea id="theme" rows="3" maxlength="900" placeholder="예: 교육, 지역공동체, 협력, 성장"></textarea></label>
-            <label class="field"><span>추가 디자인 요청</span><textarea id="stylePrompt" rows="5" maxlength="2200" placeholder="프리셋 선택 시 자동으로 채워집니다. 원하는 내용을 자유롭게 수정하세요."></textarea></label>
+            <div class="field prompt-field">
+              <div class="field-title-row">
+                <span>추가 디자인 요청</span>
+                <div class="language-toggle" id="promptLanguageToggle" role="radiogroup" aria-label="추가 디자인 요청 언어">
+                  <label><input type="radio" name="promptLanguage" value="ko" checked><span>한글</span></label>
+                  <label><input type="radio" name="promptLanguage" value="en"><span>English</span></label>
+                </div>
+              </div>
+              <textarea id="stylePrompt" rows="5" maxlength="2200" placeholder="프리셋 선택 시 자동으로 채워집니다. 원하는 내용을 자유롭게 수정하세요."></textarea>
+              <small class="field-help" id="promptLanguageHint">한글 모드 · 프리셋 설명도 한글로 입력됩니다.</small>
+            </div>
 
             <div class="subsection-title">로고 <small>선택</small></div>
             <div class="logo-row">
@@ -144,7 +154,12 @@
           </div>
           <div class="toolbar-actions">
             <label class="mini-switch"><input id="guideToggle" type="checkbox" checked><span>가이드</span></label>
-            <button class="secondary-button compact" id="exportBtn" type="button" disabled>300dpi PNG 저장</button>
+            <label class="mini-switch"><input id="cropMarkToggle" type="checkbox" checked><span>재단선</span></label>
+            <select class="export-format" id="exportFormat" aria-label="다운로드 형식">
+              <option value="png">이미지 · PNG</option>
+              <option value="pdf">PDF</option>
+            </select>
+            <button class="secondary-button compact" id="exportBtn" type="button" disabled>300dpi 다운로드</button>
           </div>
         </div>
 
@@ -153,12 +168,21 @@
             <span id="geometrySummary">규격을 계산하고 있습니다.</span>
             <span class="legend"><i class="blue"></i>재단 <i class="green"></i>안전 <i class="red"></i>책등</span>
           </div>
+          <div class="title-edit-bar" id="titleEditBar">
+            <span><strong>타이틀 편집</strong> · 타이틀을 클릭해 이동하고 오른쪽 아래 핸들을 드래그해 크기를 조절하세요.</span>
+            <div class="title-edit-actions" aria-label="타이틀 정렬">
+              <button type="button" data-title-align="left" class="active">좌측</button>
+              <button type="button" data-title-align="center">가운데</button>
+              <button type="button" data-title-align="right">우측</button>
+              <button type="button" id="resetTitleLayout">위치 초기화</button>
+            </div>
+          </div>
           <div class="canvas-scroll" id="canvasScroll">
             <div class="canvas-stage" id="canvasStage">
               <canvas id="previewCanvas" aria-label="전체 펼침 표지 미리보기"></canvas>
             </div>
           </div>
-          <div class="canvas-help">AI는 배경 그래픽만 만들고 제목·기관명·책등 문구는 프로그램이 별도 레이어로 합성합니다.</div>
+          <div class="canvas-help">AI는 배경 그래픽만 만들고 제목·기관명·책등 문구는 프로그램이 별도 레이어로 합성합니다. 타이틀은 마우스로 직접 이동·크기 조절·정렬할 수 있으며 재단선 표시 여부도 다운로드에 반영됩니다.</div>
         </section>
 
         <section class="status-panel" aria-live="polite">
@@ -179,6 +203,6 @@
   <script defer src="/js/firebase-config.js"></script>
   <script defer src="/js/program-manuals/home-modal.js?v=20260918-1"></script>
   <script defer src="/js/program-sidebar-actions.js?v=20260918-2"></script>
-  <script defer src="/js/ai-design-maker.js?v=20260918-7"></script>
+  <script defer src="/js/ai-design-maker.js?v=20260918-8"></script>
 </body>
 </html>
