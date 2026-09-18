@@ -13,15 +13,14 @@ def test_standalone_ai_design_maker_uses_300dpi_png_metadata_contract():
     assert "MAX_EXPORT_PIXELS" in source
 
 
+
 def test_standalone_cover_export_keeps_print_typography_and_spine_rotation():
     source = (ROOT / "js/ai-design-maker.js").read_text(encoding="utf-8")
     assert "item.fontPt*EXPORT_DPI/72" in source
     assert "ctx.rotate(item.rotate*Math.PI/180)" in source
     assert "function vertical(" in source
     assert "spec.spine>=4" in source
-    assert "spec.spine>=8" in source
-    assert "spec.spine>=16" in source
-
+    assert "spineTitle" in source
 
 def test_design_review_no_longer_loads_ai_maker_runtime():
     review = (ROOT / "print-checker/index.html").read_text(encoding="utf-8")
@@ -36,7 +35,7 @@ def test_design_review_no_longer_loads_ai_maker_runtime():
     assert 'id="previewCanvas"' in maker
     assert 'id="generateBtn"' in maker
     assert 'id="exportBtn"' in maker
-    assert "/js/ai-design-maker.js?v=20260918-17" in maker
+    assert "/js/ai-design-maker.js?v=20260918-18" in maker
 
 
 def test_ai_design_maker_has_easy_cover_workflow_and_diagnostics():
@@ -96,8 +95,7 @@ def test_ai_design_maker_uses_editorial_presets_and_exact_spine_guidance():
     assert "Do not create a visible center spine strip" in source
     assert "책등 '+spec.spine.toFixed(1)+'mm" in source
     assert "spineInset=Math.min(sw*.18,1.5*scale)" in source
-    assert "책등 12~15.9mm" in source
-    assert "책등 16mm 이상" in source
+    assert "책등 8mm 이상: 책등 문구를 안정적으로 표시할 수 있습니다." in source
 
 
 def test_ai_design_manual_button_sits_next_to_program_title():
@@ -112,12 +110,15 @@ def test_ai_design_manual_button_sits_next_to_program_title():
     assert '.program-title-copy strong{' in style
 
 
-def test_ai_design_maker_supports_bilingual_requests_and_event_copy_fields():
+
+def test_ai_design_maker_supports_bilingual_requests_and_simplified_cover_copy():
     page = (ROOT / "ai-design-maker/index.html").read_text(encoding="utf-8")
     source = (ROOT / "js/ai-design-maker.js").read_text(encoding="utf-8")
 
-    for field_id in ("eventDate", "eventPlace", "hostText", "organizerText", "customFields", "addCustomFieldBtn"):
+    for field_id in ("title", "backText", "customFields", "addCustomFieldBtn", "spineTitle"):
         assert f'id="{field_id}"' in page
+    for removed_id in ("subtitle", "dateText", "department", "organization", "eventDate", "eventPlace", "hostText", "organizerText", "contact", "spineDate", "spineCompany"):
+        assert f'id="{removed_id}"' not in page
     assert 'name="promptLanguage" value="ko"' in page
     assert 'name="promptLanguage" value="en"' in page
     assert "PRESET_PROMPTS_KO" in source
@@ -125,7 +126,8 @@ def test_ai_design_maker_supports_bilingual_requests_and_event_copy_fields():
     assert "function renderCustomFields()" in source
     assert "function addCustomField()" in source
     assert "추가 항목은 최대 12개" in source
-    assert "const eventEntries=[" in source
+    assert "surface: 'front'" in source
+    assert "item?.surface === 'back' ? 'back' : 'front'" in source
 
 
 def test_ai_design_maker_all_text_is_mouse_editable_and_persisted():
@@ -134,6 +136,8 @@ def test_ai_design_maker_all_text_is_mouse_editable_and_persisted():
 
     assert 'id="textEditBar"' in page
     assert 'id="selectedTextLabel"' in page
+    assert 'id="textStylePanel"' in page
+    assert 'class="text-inspector"' in page
     for align in ("left", "center", "right"):
         assert f'data-text-align="{align}"' in page
     assert 'id="resetTextLayout"' in page
@@ -146,9 +150,9 @@ def test_ai_design_maker_all_text_is_mouse_editable_and_persisted():
     assert "canvas.addEventListener('pointermove'" in source
     assert "widthScale" in source
     assert "fontScale" in source
-    for field_id in ("title", "subtitle", "eventDate", "eventPlace", "hostText", "organizerText", "dateText", "department", "organization", "backText", "contact", "spineTitle", "spineDate", "spineCompany"):
+    for field_id in ("title", "backText", "spineTitle"):
         assert f"id:'{field_id}'" in source
-
+    assert "id:'custom:'+entry.id" in source
 
 def test_ai_design_maker_exports_png_pdf_and_crop_marks():
     page = (ROOT / "ai-design-maker/index.html").read_text(encoding="utf-8")
@@ -198,6 +202,7 @@ def test_forum_preset_is_bright_pastel_and_full_bleed_generation_is_explicit():
     assert "cover-background-v6-clean-report-front-mode" in backend
 
 
+
 def test_ai_design_selected_text_supports_line_breaks_and_typography_controls():
     page = (ROOT / "ai-design-maker/index.html").read_text(encoding="utf-8")
     source = (ROOT / "js/ai-design-maker.js").read_text(encoding="utf-8")
@@ -213,6 +218,7 @@ def test_ai_design_selected_text_supports_line_breaks_and_typography_controls():
         "selectedFontWeight",
         "selectedLineHeight",
         "selectedTextColor",
+        "textInspectorFields",
     ):
         assert f'id="{field_id}"' in page
 
@@ -231,8 +237,8 @@ def test_ai_design_selected_text_supports_line_breaks_and_typography_controls():
     assert "selectedFontWeight" in source
     assert "selectedLineHeight" in source
     assert "selectedTextColor" in source
-    assert ".text-style-panel{" in style
-
+    assert ".text-inspector{" in style
+    assert ".text-style-controls{display:grid;grid-template-columns:1fr" in style
 
 def test_ai_design_maker_supports_front_cover_only_mode():
     page = (ROOT / "ai-design-maker/index.html").read_text(encoding="utf-8")
@@ -333,25 +339,22 @@ def test_ai_design_print_sizes_are_a4_b5_a5_and_custom():
     assert "state.sizeMode='custom'" in source
 
 
-def test_ai_design_copy_fields_use_realistic_examples_and_larger_default_typography():
+
+def test_ai_design_copy_fields_are_front_back_first_and_additive():
     page = (ROOT / "ai-design-maker/index.html").read_text(encoding="utf-8")
     source = (ROOT / "js/ai-design-maker.js").read_text(encoding="utf-8")
 
-    for example in (
-        "2026 천안마을교육 운영사례집",
-        "학교와 마을이 함께 만드는 지속가능한 교육공동체",
-        "충청남도천안교육지원청",
-        "천안축구센터 다목적홀",
-        "천안 마을교육 포럼 기획위원회",
-        "학교와 마을이 함께 만든 교육 실천 사례",
-    ):
-        assert example in page
+    assert "앞표지 문구" in page
+    assert "뒤표지 문구" in page
+    assert "+ 문구 추가" in page
+    assert "앞표지·뒤표지를 선택한 뒤 필요한 항목만 추가하세요." in page
+    for removed_label in ("일시", "장소", "주최", "주관", "발행일·연도", "발행 부서", "기관·회사명", "뒤표지 하단 정보"):
+        assert removed_label not in page
 
     assert "let pt=trimW<140?36:50" in source
-    assert "fontPt:21,weight:700" in source
-    assert "fontPt:11.5,weight:720" in source
-    assert "fontPt:13.5,weight:850" in source
-
+    assert "fontPt:titlePt(v.title,spec.trimW)" in source
+    assert "fontPt:14,weight:650" in source
+    assert "fontPt:12,weight:700" in source
 
 def test_ai_design_gallery_saves_finished_cover_and_prompt_to_user_storage():
     page = (ROOT / "ai-design-maker/index.html").read_text(encoding="utf-8")
@@ -379,10 +382,11 @@ def test_ai_design_gallery_saves_finished_cover_and_prompt_to_user_storage():
     assert "validAiDesignGalleryUpload" in storage_rules
 
 
+
 def test_ai_design_preview_font_size_migration_does_not_force_default_text_to_4pt():
     source = (ROOT / "js/ai-design-maker.js").read_text(encoding="utf-8")
 
-    assert "const TEXT_LAYOUT_SCHEMA_VERSION = 2" in source
+    assert "const TEXT_LAYOUT_SCHEMA_VERSION = 3" in source
     assert "textLayoutSchemaVersion: TEXT_LAYOUT_SCHEMA_VERSION" in source
     assert "legacyTextLayout" in source
     assert "rawFontSize <= 4" in source
@@ -391,10 +395,38 @@ def test_ai_design_preview_font_size_migration_does_not_force_default_text_to_4p
     assert "let pt=trimW<140?36:50" in source
 
 
-def test_ai_design_empty_event_fields_do_not_render_labels_on_blank_preview():
+def test_ai_design_maker_has_no_fixed_event_fields_and_custom_copy_renders_only_when_present():
+    page = (ROOT / "ai-design-maker/index.html").read_text(encoding="utf-8")
     source = (ROOT / "js/ai-design-maker.js").read_text(encoding="utf-8")
 
-    assert "].filter(item=>String(item.text||'').trim());" in source
-    assert "].filter(item=>String(item.text||item.label||'').trim());" not in source
-    for label in ("일시", "장소", "주최", "주관"):
-        assert f"label:'{label}'" in source
+    for removed_id in ("eventDate", "eventPlace", "hostText", "organizerText"):
+        assert f'id="{removed_id}"' not in page
+        assert f"id:'{removed_id}'" not in source
+    assert "const text=label&&value?label+'  '+value:(value||label);" in source
+    assert "if(!String(item.text||'').trim())return;" in source
+
+def test_ai_design_maker_snaps_text_to_front_or_back_cover_centers():
+    page = (ROOT / "ai-design-maker/index.html").read_text(encoding="utf-8")
+    source = (ROOT / "js/ai-design-maker.js").read_text(encoding="utf-8")
+
+    assert "자석처럼 맞춰집니다" in page
+    assert "const SNAP_PX=9" in source
+    assert "function textSurfaceForId(" in source
+    assert "function coverSurfaceRect(" in source
+    assert "function drawSnapGuide(" in source
+    assert "Math.abs(candidateCenterX-zoneCenterX)<=SNAP_PX" in source
+    assert "Math.abs(candidateCenterY-zoneCenterY)<=SNAP_PX" in source
+    assert "state.snapGuide={zone:drag.zone" in source
+
+
+def test_ai_design_prompt_context_includes_all_cover_copy_and_theme_keywords():
+    source = (ROOT / "js/ai-design-maker.js").read_text(encoding="utf-8")
+    backend = (ROOT / "backend/services/ai_cover_image.py").read_text(encoding="utf-8")
+
+    assert "앞표지 문구의 의미 참고:" in source
+    assert "뒤표지 문구의 의미 참고:" in source
+    assert "추가 문구:" in source
+    assert "주제·키워드:" in source
+    assert "theme_context:themeContext()" in source
+    assert "SEMANTIC CONTEXT ONLY" in backend
+    assert "never render it as text" in backend

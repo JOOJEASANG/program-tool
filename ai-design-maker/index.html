@@ -8,7 +8,7 @@
   <meta name="robots" content="noindex,nofollow">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
-  <link rel="stylesheet" href="/css/ai-design-maker.css?v=20260918-14">
+  <link rel="stylesheet" href="/css/ai-design-maker.css?v=20260918-15">
   <link rel="stylesheet" href="/css/program-manual-home-modal.css?v=20260918-1">
 </head>
 <body>
@@ -93,44 +93,26 @@
         </details>
 
         <details class="control-section" id="copySection" open>
-          <summary><span class="step-no">2</span><span><strong>표지 문구</strong><small>한글은 별도 레이어로 정확하게</small></span><span class="section-state" id="copyState">제목 필요</span></summary>
+          <summary><span class="step-no">2</span><span><strong>표지 문구</strong><small>앞·뒤 기본 1개 + 필요한 문구만 추가</small></span><span class="section-state" id="copyState">앞표지 필요</span></summary>
           <div class="section-body">
-            <label class="field"><span>앞표지 제목 <b>*</b></span><textarea id="title" maxlength="180" rows="2" placeholder="2026 천안마을교육 운영사례집&#10;함께 만드는 배움의 마을"></textarea></label>
-            <label class="field"><span>부제</span><input id="subtitle" maxlength="220" placeholder="학교와 마을이 함께 만드는 지속가능한 교육공동체"></label>
-            <div class="field-grid two">
-              <label class="field"><span>발행일·연도</span><input id="dateText" maxlength="80" placeholder="2026. 9."></label>
-              <label class="field"><span>발행 부서</span><input id="department" maxlength="120" placeholder="교육협력과"></label>
-            </div>
-            <label class="field"><span>기관·회사명</span><input id="organization" maxlength="160" placeholder="충청남도천안교육지원청"></label>
+            <label class="field"><span>앞표지 문구 <b>*</b></span><textarea id="title" maxlength="700" rows="4" placeholder="2026 천안마을교육 운영사례집&#10;함께 만드는 배움의 마을"></textarea></label>
 
-            <div class="subsection-title copy-meta-title"><span>행사·발행 정보</span><small>선택 입력</small></div>
-            <div class="field-grid two">
-              <label class="field"><span>일시</span><input id="eventDate" maxlength="120" placeholder="2026. 9. 28.(월) 10:00"></label>
-              <label class="field"><span>장소</span><input id="eventPlace" maxlength="160" placeholder="천안축구센터 다목적홀"></label>
-              <label class="field"><span>주최</span><input id="hostText" maxlength="180" placeholder="천안 마을교육 포럼 기획위원회"></label>
-              <label class="field"><span>주관</span><input id="organizerText" maxlength="180" placeholder="천안마을교육 사회적협동조합"></label>
+            <div id="backCoverFields">
+              <label class="field"><span>뒤표지 문구</span><textarea id="backText" maxlength="700" rows="4" placeholder="학교와 마을이 함께 만든 교육 실천 사례와 지역 연계 성과를 담았습니다."></textarea></label>
             </div>
+
             <div class="custom-fields-box">
               <div class="custom-fields-head">
-                <div><strong>추가 문구 항목</strong><small>후원·대상·문의·운영 등 필요한 항목을 추가하세요.</small></div>
-                <button id="addCustomFieldBtn" class="mini-action" type="button">+ 항목 추가</button>
+                <div><strong>추가 문구</strong><small>앞표지·뒤표지를 선택한 뒤 필요한 항목만 추가하세요.</small></div>
+                <button id="addCustomFieldBtn" class="mini-action" type="button">+ 문구 추가</button>
               </div>
               <div id="customFields" class="custom-fields" aria-live="polite"></div>
             </div>
 
-            <div id="backCoverFields">
-              <label class="field"><span>뒤표지 소개문</span><textarea id="backText" maxlength="700" rows="4" placeholder="학교와 마을이 함께 만든 교육 실천 사례와 지역 연계 성과를 담았습니다."></textarea></label>
-              <label class="field"><span>뒤표지 하단 정보</span><textarea id="contact" maxlength="360" rows="2" placeholder="www.example.or.kr · 041-000-0000 · 충남 천안시"></textarea></label>
-            </div>
-
             <div id="spineFields">
-              <div class="subsection-title spine-title-row"><span>책등</span><button id="fillSpineBtn" class="mini-action" type="button">표지 정보로 자동 채우기</button></div>
-              <label class="check-row"><input id="spineSync" type="checkbox" checked><span>앞표지 제목을 책등 제목으로 자동 사용</span></label>
-              <label class="field"><span>책등 제목</span><input id="spineTitle" maxlength="180" placeholder="2026 천안마을교육 운영사례집"></label>
-              <div class="field-grid two">
-                <label class="field"><span>책등 날짜</span><input id="spineDate" maxlength="60" placeholder="2026"></label>
-                <label class="field"><span>책등 회사명</span><input id="spineCompany" maxlength="100" placeholder="충청남도천안교육지원청"></label>
-              </div>
+              <div class="subsection-title"><span>책등 문구</span><small>선택</small></div>
+              <label class="check-row"><input id="spineSync" type="checkbox" checked><span>앞표지 문구를 책등에 자동 사용</span></label>
+              <label class="field"><span>책등 문구</span><input id="spineTitle" maxlength="180" placeholder="2026 천안마을교육 운영사례집"></label>
               <label class="field"><span>책등 방향</span>
                 <select id="spineOrientation">
                   <option value="rotate-up">아래 → 위</option>
@@ -218,43 +200,7 @@
             <span class="legend"><i class="blue"></i>재단 <i class="green"></i>안전 <i class="red"></i>책등</span>
           </div>
           <div class="text-edit-bar" id="textEditBar">
-            <span><strong>문구 편집</strong> · <b id="selectedTextLabel">문구를 클릭해 선택</b> · 드래그로 이동하고 오른쪽 아래 핸들로 크기를 조절하세요.</span>
-            <div class="text-edit-actions" aria-label="선택 문구 정렬">
-              <button type="button" data-text-align="left">좌측</button>
-              <button type="button" data-text-align="center">가운데</button>
-              <button type="button" data-text-align="right">우측</button>
-              <button type="button" id="resetTextLayout">선택 문구 초기화</button>
-            </div>
-          </div>
-          <div class="text-style-panel" id="textStylePanel" hidden>
-            <label class="text-style-copy">
-              <span>내용</span>
-              <textarea id="selectedTextValue" rows="2" maxlength="700" placeholder="선택한 문구를 편집하세요. Enter로 줄바꿈할 수 있습니다."></textarea>
-            </label>
-            <div class="text-style-controls">
-              <label><span>폰트</span>
-                <select id="selectedFontFamily">
-                  <option value="Pretendard">Pretendard</option>
-                  <option value="Noto Sans KR">Noto Sans KR</option>
-                  <option value="Malgun Gothic">맑은 고딕</option>
-                  <option value="Nanum Gothic">나눔고딕</option>
-                  <option value="Nanum Myeongjo">나눔명조</option>
-                  <option value="Batang">바탕</option>
-                </select>
-              </label>
-              <label><span>크기(pt)</span><input id="selectedFontSize" type="number" min="4" max="160" step="0.5"></label>
-              <label><span>굵기</span>
-                <select id="selectedFontWeight">
-                  <option value="400">보통</option>
-                  <option value="500">중간</option>
-                  <option value="700">굵게</option>
-                  <option value="800">매우 굵게</option>
-                  <option value="900">최대 굵게</option>
-                </select>
-              </label>
-              <label><span>행간</span><input id="selectedLineHeight" type="number" min="0.8" max="2.2" step="0.05" value="1.2"></label>
-              <label><span>글자색</span><input id="selectedTextColor" type="color" value="#ffffff"></label>
-            </div>
+            <span><strong>문구 편집</strong> · <b id="selectedTextLabel">문구를 클릭해 선택</b> · 드래그하면 앞표지·뒤표지 가운데선에 자석처럼 맞춰집니다.</span>
           </div>
           <div class="canvas-scroll" id="canvasScroll">
             <div class="canvas-stage" id="canvasStage">
@@ -278,6 +224,57 @@
           </div>
         </section>
       </main>
+
+      <aside class="text-inspector" id="textStylePanel" aria-label="선택 문구 편집">
+        <div class="text-inspector-head">
+          <span>TEXT EDITOR</span>
+          <strong>문구 편집</strong>
+          <small id="inspectorSelectedLabel">미리보기에서 문구를 선택하세요.</small>
+        </div>
+        <div class="text-inspector-empty" id="textInspectorEmpty">
+          앞표지 또는 뒤표지 문구를 클릭하면 내용·폰트·크기·굵기·행간·색상·정렬을 여기서 편집할 수 있습니다.
+        </div>
+        <div class="text-inspector-fields" id="textInspectorFields" hidden>
+          <label class="text-style-copy">
+            <span>내용</span>
+            <textarea id="selectedTextValue" rows="5" maxlength="700" placeholder="선택한 문구를 편집하세요. Enter로 줄바꿈할 수 있습니다."></textarea>
+          </label>
+          <div class="text-style-controls">
+            <label><span>폰트</span>
+              <select id="selectedFontFamily">
+                <option value="Pretendard">Pretendard</option>
+                <option value="Noto Sans KR">Noto Sans KR</option>
+                <option value="Malgun Gothic">맑은 고딕</option>
+                <option value="Nanum Gothic">나눔고딕</option>
+                <option value="Nanum Myeongjo">나눔명조</option>
+                <option value="Batang">바탕</option>
+              </select>
+            </label>
+            <label><span>크기 (pt)</span><input id="selectedFontSize" type="number" min="4" max="160" step="0.5"></label>
+            <label><span>굵기</span>
+              <select id="selectedFontWeight">
+                <option value="400">보통</option>
+                <option value="500">중간</option>
+                <option value="700">굵게</option>
+                <option value="800">매우 굵게</option>
+                <option value="900">최대 굵게</option>
+              </select>
+            </label>
+            <label><span>행간</span><input id="selectedLineHeight" type="number" min="0.8" max="2.2" step="0.05" value="1.2"></label>
+            <label><span>글자색</span><input id="selectedTextColor" type="color" value="#ffffff"></label>
+          </div>
+          <div class="text-inspector-align" aria-label="선택 문구 정렬">
+            <span>문단 정렬</span>
+            <div>
+              <button type="button" data-text-align="left">좌측</button>
+              <button type="button" data-text-align="center">가운데</button>
+              <button type="button" data-text-align="right">우측</button>
+            </div>
+          </div>
+          <button type="button" class="text-reset-button" id="resetTextLayout">선택 문구 위치·서식 초기화</button>
+          <div class="text-snap-help">이동 중 표지의 가로·세로 중앙선에 가까워지면 자동으로 스냅됩니다.</div>
+        </div>
+      </aside>
     </div>
   </div>
 
@@ -321,6 +318,6 @@
   <script defer src="/js/firebase-config.js"></script>
   <script defer src="/js/program-manuals/home-modal.js?v=20260918-1"></script>
   <script defer src="/js/program-sidebar-actions.js?v=20260918-2"></script>
-  <script defer src="/js/ai-design-maker.js?v=20260918-17"></script>
+  <script defer src="/js/ai-design-maker.js?v=20260918-18"></script>
 </body>
 </html>
