@@ -20,7 +20,7 @@ def test_standalone_cover_export_keeps_print_typography_and_spine_rotation():
     assert "function vertical(" in source
     assert "spec.spine>=4" in source
     assert "spec.spine>=8" in source
-    assert "spec.spine>=12" in source
+    assert "spec.spine>=16" in source
 
 
 def test_design_review_no_longer_loads_ai_maker_runtime():
@@ -36,7 +36,7 @@ def test_design_review_no_longer_loads_ai_maker_runtime():
     assert 'id="previewCanvas"' in maker
     assert 'id="generateBtn"' in maker
     assert 'id="exportBtn"' in maker
-    assert "/js/ai-design-maker.js?v=20260918-6" in maker
+    assert "/js/ai-design-maker.js?v=20260918-7" in maker
 
 
 def test_ai_design_maker_has_easy_cover_workflow_and_diagnostics():
@@ -81,3 +81,16 @@ def test_ai_design_maker_uses_sidebar_only_layout_and_bottom_actions():
     assert "color:#fff!important" in style
     assert "generate-button span{color:#fff!important}" in style
     assert "ProgramManualHomeModal?.open('ai-design-maker'" in source
+
+
+def test_ai_design_maker_uses_editorial_presets_and_exact_spine_guidance():
+    source = (ROOT / "js/ai-design-maker.js").read_text(encoding="utf-8")
+
+    for label in ("프리미엄 미니멀", "업무·행정", "포럼·행사", "교육·사례집", "공공·정책"):
+        assert label in source
+    assert "preset: 'premium'" in source
+    assert "Do not create a visible center spine strip" in source
+    assert "책등 '+spec.spine.toFixed(1)+'mm" in source
+    assert "spineInset=Math.min(sw*.18,1.5*scale)" in source
+    assert "책등 12~15.9mm" in source
+    assert "책등 16mm 이상" in source
