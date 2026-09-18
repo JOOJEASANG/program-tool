@@ -582,6 +582,7 @@
     $('wingEnabled')?.addEventListener('change',()=>{syncWing();saveLocal();scheduleRender();});
     $('spineSync')?.addEventListener('change',()=>{syncSpineTitle();saveLocal();updateProgress();scheduleRender();});
     $('fillSpineBtn')?.addEventListener('click',fillSpineFromCover);
+    $('manualBtn')?.addEventListener('click',event=>window.ProgramManualHomeModal?.open('ai-design-maker',event.currentTarget));
     $('aiDesignSessionSaveBtn')?.addEventListener('click',saveSessionNow);
     $('aiDesignSessionLoadBtn')?.addEventListener('click',loadSessionNow);
     qa('[data-jump]').forEach(button=>button.addEventListener('click',()=>jumpToSection(button.dataset.jump)));

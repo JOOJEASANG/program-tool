@@ -36,7 +36,7 @@ def test_design_review_no_longer_loads_ai_maker_runtime():
     assert 'id="previewCanvas"' in maker
     assert 'id="generateBtn"' in maker
     assert 'id="exportBtn"' in maker
-    assert "/js/ai-design-maker.js?v=20260918-5" in maker
+    assert "/js/ai-design-maker.js?v=20260918-6" in maker
 
 
 def test_ai_design_maker_has_easy_cover_workflow_and_diagnostics():
@@ -62,5 +62,22 @@ def test_ai_design_preview_starts_transparent_and_fills_workspace():
     assert "clientWidth || 1000) - 20" in source
     assert "clientHeight || 700) - 20" in source
     assert "background:transparent" in style
-    assert "height:calc(100vh - 188px)" in style
+    assert "height:calc(100vh - 120px)" in style
     assert "padding:10px" in style
+
+
+def test_ai_design_maker_uses_sidebar_only_layout_and_bottom_actions():
+    page = (ROOT / "ai-design-maker/index.html").read_text(encoding="utf-8")
+    style = (ROOT / "css/ai-design-maker.css").read_text(encoding="utf-8")
+    source = (ROOT / "js/ai-design-maker.js").read_text(encoding="utf-8")
+
+    assert '<header class="maker-header">' not in page
+    assert 'id="productPickerTitle">디자인 종류' in page
+    assert 'id="manualBtn"' in page
+    assert 'program-manual-home-modal.css' in page
+    assert 'program-manuals/home-modal.js' in page
+    assert 'program-sidebar-actions.js?v=20260918-2' in page
+    assert "position:static" in style
+    assert "color:#fff!important" in style
+    assert "generate-button span{color:#fff!important}" in style
+    assert "ProgramManualHomeModal?.open('ai-design-maker'" in source

@@ -56,7 +56,7 @@
       html[data-program-sidebar-actions="print-checker"] .sb-nav-title,
       html[data-program-sidebar-actions="print-checker"] .sb-nav-user{display:none!important}
       html[data-program-sidebar-actions="ai-design-maker"] .ps-program-sidebar-top{
-        top:-18px!important;margin:-18px -18px 12px!important;padding:12px 18px!important;
+        top:0!important;margin:0 -18px 12px!important;padding:12px 18px!important;
       }
       html[data-program-sidebar-actions="pdf-editor"]{--nav-h:0px!important}
       html[data-program-sidebar-actions="pdf-editor"] body{padding-top:0!important}
@@ -218,10 +218,7 @@
 
   function mountAiDesignMaker() {
     const sidebar = document.querySelector('.control-panel');
-    const home = document.querySelector('.maker-header .home-link');
-    const logout = document.getElementById('logoutBtn');
-    const userName = document.getElementById('userName');
-    if (!sidebar || !home || !logout) return false;
+    if (!sidebar) return false;
 
     let bar = sidebar.querySelector(':scope > .ps-program-sidebar-top');
     if (!bar) {
@@ -233,15 +230,35 @@
       grid = makeGrid();
       bar.appendChild(grid);
     }
+
+    let home = document.getElementById('aiDesignHomeBtn');
+    if (!home) {
+      home = document.createElement('a');
+      home.id = 'aiDesignHomeBtn';
+      home.href = '/index.html';
+    }
     const save = document.getElementById('aiDesignSessionSaveBtn') || makeButton('aiDesignSessionSaveBtn', '편집저장');
     const load = document.getElementById('aiDesignSessionLoadBtn') || makeButton('aiDesignSessionLoadBtn', '불러오기');
+    let logout = document.getElementById('logoutBtn');
+    if (!logout) {
+      logout = document.createElement('button');
+      logout.id = 'logoutBtn';
+      logout.type = 'button';
+    }
+    let userName = document.getElementById('userName');
+    if (!userName) {
+      userName = document.createElement('span');
+      userName.id = 'userName';
+      userName.textContent = '확인 중…';
+    }
+
     setHome(home);
     setSession(save, '편집저장');
     setSession(load, '불러오기');
     setLogout(logout);
     markUserName(userName);
     grid.replaceChildren(home, save, load, logout);
-    if (userName) bar.appendChild(userName);
+    bar.replaceChildren(grid, userName);
     return true;
   }
 
@@ -277,5 +294,5 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mount, { once: true });
   else mount();
 
-  window.ProgramSidebarActions = Object.freeze({ route, stage: 'unified-sidebar-actions-v1' });
+  window.ProgramSidebarActions = Object.freeze({ route, stage: 'unified-sidebar-actions-v2' });
 })();

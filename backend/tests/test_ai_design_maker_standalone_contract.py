@@ -16,7 +16,7 @@ def test_ai_design_maker_is_separate_from_review_ui():
     assert "https://api-7a5qpwzezq-uc.a.run.app" in maker_js
     assert "resolveApiUrl" in maker_js
     assert "X-Request-ID" in maker_js
-    assert "program-sidebar-actions.js?v=20260918-1" in maker_html
+    assert "program-sidebar-actions.js?v=20260918-2" in maker_html
     assert "/api/preflight/ai-design/cover-image" not in maker_js
 
 
@@ -50,3 +50,13 @@ def test_ai_design_maker_bypasses_hosting_timeout_and_uses_shared_sidebar_action
     assert "aiDesignSessionLoadBtn" in sidebar_js
     assert "https://*.a.run.app" in firebase
     assert "timeout_sec=600" in main_py
+
+
+def test_ai_design_maker_common_sidebar_no_longer_depends_on_header():
+    sidebar_js = (ROOT / "js" / "program-sidebar-actions.js").read_text(encoding="utf-8")
+
+    assert "document.getElementById('aiDesignHomeBtn')" in sidebar_js
+    assert "document.createElement('a')" in sidebar_js
+    assert "document.createElement('button')" in sidebar_js
+    assert ".maker-header .home-link" not in sidebar_js
+    assert "unified-sidebar-actions-v2" in sidebar_js

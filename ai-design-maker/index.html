@@ -8,7 +8,8 @@
   <meta name="robots" content="noindex,nofollow">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
-  <link rel="stylesheet" href="/css/ai-design-maker.css?v=20260918-4">
+  <link rel="stylesheet" href="/css/ai-design-maker.css?v=20260918-5">
+  <link rel="stylesheet" href="/css/program-manual-home-modal.css?v=20260918-1">
 </head>
 <body>
   <div class="auth-gate" id="authGate">
@@ -21,24 +22,24 @@
   </div>
 
   <div class="maker-shell" id="makerShell" hidden>
-    <header class="maker-header">
-      <div class="header-left">
-        <a class="home-link" href="/" aria-label="홈으로 이동">← 홈</a>
-        <div class="brand-block">
-          <span class="brand-kicker">AI DESIGN MAKER</span>
-          <strong>AI 디자인 제작</strong>
-          <span class="phase-badge">표지</span>
-        </div>
-      </div>
-      <div class="header-right">
-        <span class="save-state" id="saveState">자동 저장</span>
-        <span class="user-name" id="userName"></span>
-        <button class="ghost-button" id="logoutBtn" type="button">로그아웃</button>
-      </div>
-    </header>
-
     <div class="maker-body">
       <aside class="control-panel" aria-label="표지 제작 설정">
+        <section class="product-picker" aria-labelledby="productPickerTitle">
+          <div class="product-picker-head">
+            <div>
+              <span class="product-picker-kicker">AI DESIGN MAKER</span>
+              <strong id="productPickerTitle">디자인 종류</strong>
+            </div>
+            <button class="ai-manual-btn" id="manualBtn" type="button" title="사용설명서" aria-label="AI 디자인 제작 사용설명서">?</button>
+          </div>
+          <div class="product-tabs" aria-label="AI 디자인 제작 종류">
+            <button class="product-tab active" type="button" aria-current="page"><strong>표지</strong><small>현재 사용</small></button>
+            <button class="product-tab" type="button" disabled><strong>전단지</strong><small>준비중</small></button>
+            <button class="product-tab" type="button" disabled><strong>초대장</strong><small>준비중</small></button>
+            <button class="product-tab" type="button" disabled><strong>리플렛</strong><small>준비중</small></button>
+          </div>
+        </section>
+
         <div class="panel-intro">
           <strong>표지 전체 펼침 제작</strong>
           <p>규격 → 문구 → 스타일 순서로 입력하면 됩니다. 변경 내용은 미리보기에 바로 반영됩니다.</p>
@@ -49,13 +50,6 @@
           <button type="button" data-jump="copySection"><span>2</span>문구</button>
           <button type="button" data-jump="styleSection"><span>3</span>디자인</button>
         </nav>
-
-        <div class="product-tabs" aria-label="AI 디자인 제작 종류">
-          <button class="product-tab active" type="button" aria-current="page"><strong>표지</strong><small>현재 사용</small></button>
-          <button class="product-tab" type="button" disabled><strong>전단지</strong><small>다음 추가</small></button>
-          <button class="product-tab" type="button" disabled><strong>초대장</strong><small>다음 추가</small></button>
-          <button class="product-tab" type="button" disabled><strong>리플렛</strong><small>다음 추가</small></button>
-        </div>
 
         <details class="control-section" id="specSection" open>
           <summary><span class="step-no">1</span><span><strong>인쇄 규격</strong><small>완성 크기와 책등</small></span><span class="section-state" id="specState">확인</span></summary>
@@ -177,7 +171,8 @@
   <script defer src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
   <script defer src="/js/firebase-config.js"></script>
-  <script defer src="/js/program-sidebar-actions.js?v=20260918-1"></script>
-  <script defer src="/js/ai-design-maker.js?v=20260918-5"></script>
+  <script defer src="/js/program-manuals/home-modal.js?v=20260918-1"></script>
+  <script defer src="/js/program-sidebar-actions.js?v=20260918-2"></script>
+  <script defer src="/js/ai-design-maker.js?v=20260918-6"></script>
 </body>
 </html>
