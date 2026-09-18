@@ -148,7 +148,19 @@ venv/bin/python scripts/sync_admin_claims.py --verify
 - Firebase Auth/권한 401·403 급증
 - GitHub production deployment 실패
 
-## 11. Firebase CI 인증 WIF 전환 — 마지막 단계
+## 11. 백업·복구 확인
+
+저장소 배포가 정상이어도 Firestore/Storage 운영 데이터 복구 설정은 별도 확인이 필요합니다.
+
+- Firestore PITR 또는 정기 백업 정책 활성 여부 확인
+- 사용자 저장 프로젝트·세션·AI 디자인 보관함 데이터의 복구 범위 확인
+- Cloud Storage soft delete/versioning/별도 백업 중 실제 적용 정책 확인
+- 삭제·오작동 상황을 가정해 테스트 데이터 1건 이상 복원 절차 검증
+- 복구 권한이 배포 서비스 계정보다 과도하게 넓지 않은지 확인
+
+백업 기능이 켜져 있다는 사실만으로 완료 처리하지 않고, 실제 복원 절차와 담당 계정을 확인합니다.
+
+## 12. Firebase CI 인증 WIF 전환 — 마지막 단계
 
 현재 운영 안정화와 실제 기능 검증을 먼저 완료하고, WIF 전환은 마지막 단계로 진행합니다. 워크플로는 Workload Identity Federation(WIF)을 우선 사용할 수 있게 준비되어 있고 기존 `FIREBASE_TOKEN`은 현재 fallback으로 유지합니다.
 
