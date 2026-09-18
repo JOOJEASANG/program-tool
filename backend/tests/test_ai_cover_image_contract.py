@@ -57,7 +57,7 @@ def test_generate_cover_image_uses_stable_image_contract(monkeypatch):
     assert max(width, height) / min(width, height) <= 3
     assert result["model"] == "gpt-image-2"
     assert result["image_base64"] == "ZmFrZS1wbmc="
-    assert result["prompt_version"] == "cover-background-v5-full-bleed-pastel-editorial"
+    assert result["prompt_version"] == "cover-background-v6-clean-report-front-mode"
 
 
 def test_timeout_env_is_clamped(monkeypatch):
@@ -65,3 +65,23 @@ def test_timeout_env_is_clamped(monkeypatch):
     assert ai_cover_image._image_timeout_seconds() == 300
     monkeypatch.setenv("OPENAI_AI_IMAGE_TIMEOUT_SECONDS", "30")
     assert ai_cover_image._image_timeout_seconds() == 60
+
+
+def test_front_cover_mode_uses_single_cover_geometry():
+    req = ai_cover_image.normalize_cover_request({
+        "cover_mode": "front",
+        "trim_width_mm": 210,
+        "trim_height_mm": 297,
+        "spine_mm": 20,
+        "wing_mm": 70,
+        "bleed_mm": 3,
+        "style_request": "clean annual report",
+    })
+    assert req.cover_mode == "front"
+    assert req.spine_mm == 0
+    assert req.wing_mm == 0
+    assert req.work_width_mm == 216
+    assert req.work_height_mm == 303
+    prompt = ai_cover_image.build_cover_prompt(req)
+    assert "FRONT COVER ONLY" in prompt
+    assert "Do not invent a back cover, spine" in prompt
