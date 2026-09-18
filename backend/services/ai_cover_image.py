@@ -168,7 +168,7 @@ Create premium, production-ready {mode_title} BACKGROUND ARTWORK, perfectly flat
 This is actual 2D print artwork, not a mockup and not a photograph of a physical book.
 
 GEOMETRY
-{geometry}- The OUTER BLEED BOUNDARY is the exact artwork canvas boundary. Artwork must reach the canvas edge.
+{geometry}- The OUTER BLEED BOUNDARY is the exact artwork canvas boundary. Fill the entire canvas edge-to-edge with finished artwork; artwork must reach the canvas edge.
 
 CRITICAL TYPOGRAPHY RULE
 Generate BACKGROUND ARTWORK ONLY.
