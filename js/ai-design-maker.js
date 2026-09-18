@@ -537,7 +537,13 @@
     layout.text=String(value||'').slice(0,700);
     if(DIRECT_TEXT_SOURCE_IDS.has(id)&&$(id)){
       $(id).value=layout.text;
-      if(id==='title')syncSpineTitle();
+      if(id==='title'){
+        syncSpineTitle();
+        if($('spineSync')?.checked){
+          const spineLayout=state.textLayouts.spineTitle;
+          if(spineLayout&&Object.prototype.hasOwnProperty.call(spineLayout,'text'))delete spineLayout.text;
+        }
+      }
     }
     saveLocal();updateProgress();scheduleRender();
   }
