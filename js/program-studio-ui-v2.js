@@ -13,10 +13,12 @@
     if(path.includes('/pdf-editor'))return 'pdf-editor';
     if(path.includes('/pdf-preflight'))return 'pdf-preflight';
     if(path.includes('/print-checker'))return 'print-checker';
+    if(path.includes('/ai-design-maker'))return 'ai-design-maker';
     return 'general';
   })();
   const simpleRoute=(()=>{
     if(path==='/print-checker'||path.endsWith('/print-checker/index.html'))return 'print-checker';
+    if(path==='/ai-design-maker'||path.endsWith('/ai-design-maker/index.html'))return 'ai-design-maker';
     if(path==='/smart-print-layout'||path.endsWith('/smart-print-layout/index.html'))return 'smart-print-layout';
     if(path==='/pdf-editor-advanced'||path.endsWith('/pdf-editor-advanced/index.html'))return 'pdf-editor-advanced';
     if(path==='/pdf-editor'||path.endsWith('/pdf-editor/index.html')||path.endsWith('/tools/pdf-editor.html'))return 'pdf-editor';
@@ -30,14 +32,15 @@
   if(simpleRoute)document.documentElement.dataset.simpleProgramUx=simpleRoute;
 
   const TOOLS=[
-    {name:'인쇄물 사전 검토',description:'표지 · 전단 · 리플렛 · 초대장 인쇄 규격 확인',icon:'✓',url:'/print-checker/'},
+    {name:'디자인 검토',description:'표지 · 전단 · 리플렛 · 초대장 인쇄 규격 확인',icon:'✓',url:'/print-checker/'},
+    {name:'AI 디자인 제작',description:'표지 전체 펼침 AI 배경 · 한글 문구 · 300dpi 출력',icon:'✦',url:'/ai-design-maker/'},
     {name:'PDF 편집기',description:'병합 · 페이지 편집 · N-up · 소책자',icon:'📄',url:'/pdf-editor/'},
     {name:'PDF 검사 · 유틸리티',description:'인쇄 전 검사 · 보안 · 합치기 · 복구',icon:'🔍',url:'/pdf-preflight/'}
   ];
 
   const SIMPLE_HELP=Object.freeze({
     'print-checker':{
-      name:'인쇄물 사전 검토',
+      name:'디자인 검토',
       steps:[
         ['인쇄물 종류 선택','표지·전단·리플렛 등 확인하려는 종류를 고릅니다.'],
         ['완성 크기 입력','인쇄 후 최종 크기와 화면에 표시되는 필수 정보만 입력합니다.'],
