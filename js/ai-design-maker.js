@@ -454,57 +454,102 @@
     return clamp(pt,7,12.5,8);
   }
 
+  function textLayoutState(id, fallbackAlign = 'left') {
+    const current=state.textLayouts[id] || {};
+    const normalized={
+      dx:clamp(current.dx,-2000,2000,0),
+      dy:clamp(current.dy,-2000,2000,0),
+      widthScale:clamp(current.widthScale,.25,2.5,1),
+      fontScale:clamp(current.fontScale,.35,3,1),
+      align:['left','center','right'].includes(current.align)?current.align:fallbackAlign
+    };
+    state.textLayouts[id]=normalized;
+    return normalized;
+  }
+
+  function textItemLabel(id) {
+    const fixed={
+      title:'앞표지 제목',subtitle:'부제',eventDate:'일시',eventPlace:'장소',hostText:'주최',organizerText:'주관',
+      dateText:'발행일·연도',department:'발행 부서',organization:'기관·회사명',
+      backText:'뒤표지 소개문',contact:'뒤표지 하단 정보',
+      spineTitle:'책등 제목',spineDate:'책등 날짜',spineCompany:'책등 회사명'
+    };
+    if(fixed[id])return fixed[id];
+    if(String(id||'').startsWith('custom:')){
+      const customId=String(id).slice(7);
+      const item=state.customFields.find(entry=>entry.id===customId);
+      return String(item?.label||'추가 문구').trim()||'추가 문구';
+    }
+    return '문구';
+  }
+
+  function applyTextEdit(item,spec,scale) {
+    if(!item.id)return item;
+    const edit=textLayoutState(item.id,item.align||'left');
+    item.x+=edit.dx*scale;
+    item.y+=edit.dy*scale;
+    item.w=Math.max(item.minW||5*scale,item.w*edit.widthScale);
+    item.fontPt=clamp(item.fontPt*edit.fontScale,4,160,item.fontPt);
+    item.align=edit.align;
+    return item;
+  }
+
   function textLayout(spec,scale) {
     const v=readText(), b=spec.bleed*scale, wing=spec.wing*scale, tw=spec.trimW*scale, th=spec.trimH*scale, sw=spec.spine*scale;
     const backX=b+wing, spineX=backX+tw, frontX=spineX+sw;
     const safe=Math.min(spec.safe,spec.trimW*.15,spec.trimH*.15)*scale;
     const ptPx=pt=>pt*25.4/72*scale;
-    const list=[], add=item=>{if(String(item.text||'').trim())list.push(item);};
-    const baseTitleW=Math.max(1,tw-safe*2);
-    add({
-      id:'title',
-      text:v.title,
-      x:frontX+safe+state.titleLayout.dx*scale,
-      y:b+th*.12+state.titleLayout.dy*scale,
-      w:Math.max(tw*.20,baseTitleW*state.titleLayout.widthScale),
-      h:th*.24,
-      fontPt:titlePt(v.title,spec.trimW)*state.titleLayout.fontScale,
-      weight:900,
-      align:state.titleLayout.align
+    const list=[];
+    const add=item=>{
+      if(!String(item.text||'').trim())return;
+      applyTextEdit(item,spec,scale);
+      item.fontPx=ptPx(item.fontPt);
+      list.push(item);
+    };
+    const contentW=Math.max(1,tw-safe*2);
+    add({id:'title',text:v.title,x:frontX+safe,y:b+th*.12,w:contentW,h:th*.24,fontPt:titlePt(v.title,spec.trimW),weight:900,align:'left'});
+    add({id:'subtitle',text:v.subtitle,x:frontX+safe,y:b+th*.34,w:contentW,h:th*.12,fontPt:17,weight:700,align:'left'});
+
+    const eventEntries=[
+      {id:'eventDate',label:'일시',text:v.eventDate},
+      {id:'eventPlace',label:'장소',text:v.eventPlace},
+      {id:'hostText',label:'주최',text:v.hostText},
+      {id:'organizerText',label:'주관',text:v.organizerText},
+      ...v.customFields.map(item=>({
+        id:'custom:'+item.id,
+        label:String(item.label||'').trim(),
+        text:String(item.value||'').trim()
+      }))
+    ].filter(item=>String(item.text||item.label||'').trim());
+    const infoStart=b+th*.52;
+    const infoArea=th*.205;
+    const infoStep=eventEntries.length?Math.min(th*.047,infoArea/eventEntries.length):0;
+    eventEntries.forEach((entry,index)=>{
+      const text=entry.label&&entry.text?entry.label+'  '+entry.text:(entry.text||entry.label);
+      add({id:entry.id,text,x:frontX+safe,y:infoStart+index*infoStep,w:contentW,h:Math.max(th*.035,infoStep*.98),fontPt:9.2,weight:720,align:'left'});
     });
-    add({id:'subtitle',text:v.subtitle,x:frontX+safe,y:b+th*.34,w:Math.max(1,tw-safe*2),h:th*.12,fontPt:17,weight:700});
-    const eventLines=[
-      v.eventDate ? '일시  '+v.eventDate : '',
-      v.eventPlace ? '장소  '+v.eventPlace : '',
-      v.hostText ? '주최  '+v.hostText : '',
-      v.organizerText ? '주관  '+v.organizerText : '',
-      ...v.customFields.map(item => {
-        const label=String(item.label||'').trim(), value=String(item.value||'').trim();
-        return label && value ? label+'  '+value : value || label;
-      })
-    ].filter(Boolean);
-    add({id:'eventInfo',text:eventLines.join('\n'),x:frontX+safe,y:b+th*.52,w:Math.max(1,tw-safe*2),h:th*.22,fontPt:9.2,weight:720});
-    add({text:v.dateText,x:frontX+safe,y:b+th*.77,w:Math.max(1,tw-safe*2),h:th*.045,fontPt:9.5,weight:700});
-    add({text:v.department,x:frontX+safe,y:b+th*.82,w:Math.max(1,tw-safe*2),h:th*.045,fontPt:9.5,weight:700});
-    add({text:v.organization,x:frontX+safe,y:b+th*.89,w:Math.max(1,tw-safe*2),h:th*.06,fontPt:11,weight:850});
-    add({text:v.backText,x:backX+safe,y:b+th*.16,w:Math.max(1,tw-safe*2),h:th*.58,fontPt:10.5,weight:600});
-    add({text:v.contact,x:backX+safe,y:b+th*.84,w:Math.max(1,tw-safe*2),h:th*.12,fontPt:9,weight:750});
+
+    add({id:'dateText',text:v.dateText,x:frontX+safe,y:b+th*.77,w:contentW,h:th*.045,fontPt:9.5,weight:700,align:'left'});
+    add({id:'department',text:v.department,x:frontX+safe,y:b+th*.82,w:contentW,h:th*.045,fontPt:9.5,weight:700,align:'left'});
+    add({id:'organization',text:v.organization,x:frontX+safe,y:b+th*.89,w:contentW,h:th*.06,fontPt:11,weight:850,align:'left'});
+    add({id:'backText',text:v.backText,x:backX+safe,y:b+th*.16,w:contentW,h:th*.58,fontPt:10.5,weight:600,align:'left'});
+    add({id:'contact',text:v.contact,x:backX+safe,y:b+th*.84,w:contentW,h:th*.12,fontPt:9,weight:750,align:'left'});
+
     if(spec.spine>=4&&v.spineTitle){
       const fp=spinePt(spec.spine,v.spineTitle);
-      if(v.spineOrientation==='vertical')add({text:v.spineTitle,x:spineX+sw*.12,y:b+th*.18,w:sw*.76,h:th*.62,fontPt:fp,weight:900,vertical:true,align:'center'});
-      else add({text:v.spineTitle,x:spineX+sw/2-th*.31,y:b+th/2-sw*.34,w:th*.62,h:sw*.68,fontPt:fp,weight:900,rotate:v.spineOrientation==='rotate-down'?90:-90,align:'center'});
+      if(v.spineOrientation==='vertical')add({id:'spineTitle',text:v.spineTitle,x:spineX+sw*.12,y:b+th*.18,w:sw*.76,h:th*.62,fontPt:fp,weight:900,vertical:true,align:'center'});
+      else add({id:'spineTitle',text:v.spineTitle,x:spineX+sw/2-th*.31,y:b+th/2-sw*.34,w:th*.62,h:sw*.68,fontPt:fp,weight:900,rotate:v.spineOrientation==='rotate-down'?90:-90,align:'center'});
     }
     if(spec.spine>=8&&v.spineDate){
       const fp=clamp(spinePt(spec.spine,v.spineDate)-2,7,10,8);
-      if(v.spineOrientation==='vertical')add({text:v.spineDate,x:spineX+sw*.18,y:b+th*.06,w:sw*.64,h:th*.10,fontPt:fp,weight:800,vertical:true,align:'center'});
-      else add({text:v.spineDate,x:spineX+sw/2-th*.09,y:b+th*.14-sw*.25,w:th*.18,h:sw*.5,fontPt:fp,weight:800,rotate:v.spineOrientation==='rotate-down'?90:-90,align:'center'});
+      if(v.spineOrientation==='vertical')add({id:'spineDate',text:v.spineDate,x:spineX+sw*.18,y:b+th*.06,w:sw*.64,h:th*.10,fontPt:fp,weight:800,vertical:true,align:'center'});
+      else add({id:'spineDate',text:v.spineDate,x:spineX+sw/2-th*.09,y:b+th*.14-sw*.25,w:th*.18,h:sw*.5,fontPt:fp,weight:800,rotate:v.spineOrientation==='rotate-down'?90:-90,align:'center'});
     }
     if(spec.spine>=16&&v.spineCompany){
       const fp=clamp(spinePt(spec.spine,v.spineCompany)-3,7,9.5,8);
-      if(v.spineOrientation==='vertical')add({text:v.spineCompany,x:spineX+sw*.18,y:b+th*.82,w:sw*.64,h:th*.13,fontPt:fp,weight:800,vertical:true,align:'center'});
-      else add({text:v.spineCompany,x:spineX+sw/2-th*.12,y:b+th*.86-sw*.25,w:th*.24,h:sw*.5,fontPt:fp,weight:800,rotate:v.spineOrientation==='rotate-down'?90:-90,align:'center'});
+      if(v.spineOrientation==='vertical')add({id:'spineCompany',text:v.spineCompany,x:spineX+sw*.18,y:b+th*.82,w:sw*.64,h:th*.13,fontPt:fp,weight:800,vertical:true,align:'center'});
+      else add({id:'spineCompany',text:v.spineCompany,x:spineX+sw/2-th*.12,y:b+th*.86-sw*.25,w:th*.24,h:sw*.5,fontPt:fp,weight:800,rotate:v.spineOrientation==='rotate-down'?90:-90,align:'center'});
     }
-    list.forEach(item=>item.fontPx=ptPx(item.fontPt));
     return list;
   }
 
