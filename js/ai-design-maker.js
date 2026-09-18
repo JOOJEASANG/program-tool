@@ -21,7 +21,8 @@
     proposal: '프리미엄 사업 제안서 표지를 만들어 주세요. 화이트 또는 차콜·딥블루 기반에 코발트·에메랄드·시안 같은 선명한 포인트를 사용하고, 대각선 분할·강한 에디토리얼 프레임·레이어 깊이·정교한 이미지 크롭 등 설득력 있는 비즈니스 프레젠테이션 감각을 주세요. 너무 연하거나 밋밋하지 않게 대비를 분명히 해주세요.',
     event: '행사·포럼·컨퍼런스용 표지를 만들어 주세요. 단순 보고서 도형에서 벗어나 포스터처럼 리듬감 있고 시선을 끄는 구성을 사용하세요. 블루·퍼플·코랄·오렌지 등 세련된 중채도 포인트와 빛·움직임·공간감·사진 또는 일러스트 요소를 활용할 수 있습니다. 단, 실제 글자나 로고는 생성하지 말고 제목 영역은 확보해 주세요.',
     workbook: '문제집·워크북 표지를 만들어 주세요. 학습용으로 명확하고 정돈된 인상을 주면서 번호 배지, 섹션 탭, 노트·격자·학습 구조를 연상시키는 시각 요소를 현대적으로 사용하세요. 학생 친화적이지만 유치하지 않게, 밝은 배경과 선명한 블루·그린·오렌지 포인트로 영역 구분이 분명하게 보이도록 해주세요.',
-    education: '교육자료집·사례집 표지를 만들어 주세요. 따뜻함과 전문성을 함께 살리고 책·배움·성장·협업·교실·지역공동체를 연상시키는 일러스트, 아이콘, 사진적 장면 또는 에디토리얼 구성을 활용하세요. 민트·블루·그린·오렌지 계열을 너무 흐리지 않은 중채도로 사용하고, 어린이용 만화처럼 보이지 않도록 세련된 출판물 수준을 유지해 주세요.'
+    education: '교육자료집·사례집 표지를 만들어 주세요. 따뜻함과 전문성을 함께 살리고 책·배움·성장·협업·교실·지역공동체를 연상시키는 일러스트, 아이콘, 사진적 장면 또는 에디토리얼 구성을 활용하세요. 민트·블루·그린·오렌지 계열을 너무 흐리지 않은 중채도로 사용하고, 어린이용 만화처럼 보이지 않도록 세련된 출판물 수준을 유지해 주세요.',
+    other: '특정 문서 유형에 제한되지 않는 자유 용도의 표지를 만들어 주세요. 주제·키워드와 사용자가 입력한 디자인 요청문구를 가장 우선해서 해석하고, 내용에 맞는 사진·일러스트·에디토리얼·도형·혼합형 구성을 선택하세요. 정해진 보고서 템플릿에 억지로 맞추지 말고 목적에 어울리는 전문적인 인쇄물 수준의 시각 언어와 충분한 타이포그래피 안전영역을 확보해 주세요.'
   });
 
   const PRESETS = Object.freeze({
@@ -66,6 +67,12 @@
       note: '교육·사례집 · 따뜻하고 전문적으로',
       prompt: 'Create a refined educational publication cover balancing warmth and professionalism. Use learning, growth, collaboration, classroom or community motifs through editorial illustration, tasteful iconography, photography or hybrid layouts. Use medium-strength mint, blue, green or orange accents and avoid washed-out pastel or childish cartoon styling.',
       primaryColor: '#dcecdf', textColor: '#315b45'
+    },
+    other: {
+      name: '기타',
+      note: '자유 용도 · 요청문구 중심',
+      prompt: 'Create a professional print cover for a custom or uncategorized purpose. Treat the user theme, keywords and custom style request as the primary art direction, and choose the most appropriate editorial, photographic, illustrated, geometric or hybrid visual language. Do not force the result into a report template; preserve clear typography-safe space and production-ready hierarchy.',
+      primaryColor: '#e2e5e9', textColor: '#263746'
     }
   });
 
