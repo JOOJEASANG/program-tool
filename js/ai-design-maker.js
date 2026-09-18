@@ -59,6 +59,7 @@
     customFields: [],
     textLayouts: {},
     selectedTextId: '',
+    selectedTextUiId: '',
     textPointer: null,
     backgroundSource: ''
   };
@@ -71,6 +72,21 @@
     const node = $(id);
     return node && String(node.value).trim() !== '' ? Number(node.value) : fallback;
   };
+  const FONT_FAMILIES = new Set(['Pretendard','Noto Sans KR','Malgun Gothic','Nanum Gothic','Nanum Myeongjo','Batang']);
+  const FONT_WEIGHTS = new Set([400,500,700,800,900]);
+  const normalizeFontFamily = value => FONT_FAMILIES.has(String(value||'')) ? String(value) : '';
+  const normalizeFontWeight = value => FONT_WEIGHTS.has(Number(value)) ? Number(value) : 0;
+  const normalizeColor = value => /^#[0-9a-f]{6}$/i.test(String(value||'')) ? String(value).toLowerCase() : '';
+  const fontStack = family => {
+    const name=normalizeFontFamily(family)||'Pretendard';
+    if(name==='Pretendard')return 'Pretendard, "Noto Sans KR", "Malgun Gothic", Arial, sans-serif';
+    if(name==='Noto Sans KR')return '"Noto Sans KR", Pretendard, "Malgun Gothic", Arial, sans-serif';
+    if(name==='Malgun Gothic')return '"Malgun Gothic", Pretendard, Arial, sans-serif';
+    if(name==='Nanum Gothic')return '"Nanum Gothic", Pretendard, "Malgun Gothic", Arial, sans-serif';
+    if(name==='Nanum Myeongjo')return '"Nanum Myeongjo", Batang, serif';
+    return 'Batang, "Times New Roman", serif';
+  };
+
 
   function currentSpec() {
     const trimW = clamp(num('trimW', 210), 50, 1000, 210);
@@ -154,13 +170,22 @@
         label: String(item?.label || '').slice(0, 40),
         value: String(item?.value || '').slice(0, 220)
       }));
-      const normalizeTextLayout = (layout, fallbackAlign = 'left') => ({
-        dx: clamp(layout?.dx, -2000, 2000, 0),
-        dy: clamp(layout?.dy, -2000, 2000, 0),
-        widthScale: clamp(layout?.widthScale, .25, 2.5, 1),
-        fontScale: clamp(layout?.fontScale, .35, 3, 1),
-        align: ['left','center','right'].includes(layout?.align) ? layout.align : fallbackAlign
-      });
+      const normalizeTextLayout = (layout, fallbackAlign = 'left') => {
+        const normalized={
+          dx: clamp(layout?.dx, -2000, 2000, 0),
+          dy: clamp(layout?.dy, -2000, 2000, 0),
+          widthScale: clamp(layout?.widthScale, .25, 2.5, 1),
+          fontScale: clamp(layout?.fontScale, .35, 3, 1),
+          align: ['left','center','right'].includes(layout?.align) ? layout.align : fallbackAlign,
+          fontFamily: normalizeFontFamily(layout?.fontFamily),
+          fontSizePt: Number.isFinite(Number(layout?.fontSizePt)) ? clamp(layout.fontSizePt,4,160,0) : 0,
+          fontWeight: normalizeFontWeight(layout?.fontWeight),
+          lineHeight: clamp(layout?.lineHeight,.8,2.2,1.2),
+          color: normalizeColor(layout?.color)
+        };
+        if(Object.prototype.hasOwnProperty.call(layout||{},'text'))normalized.text=String(layout.text||'').slice(0,700);
+        return normalized;
+      };
       if (data.textLayouts && typeof data.textLayouts === 'object') {
         Object.entries(data.textLayouts).forEach(([id,layout]) => {
           state.textLayouts[String(id)] = normalizeTextLayout(layout);
@@ -467,8 +492,14 @@
       dy:clamp(current.dy,-2000,2000,0),
       widthScale:clamp(current.widthScale,.25,2.5,1),
       fontScale:clamp(current.fontScale,.35,3,1),
-      align:['left','center','right'].includes(current.align)?current.align:fallbackAlign
+      align:['left','center','right'].includes(current.align)?current.align:fallbackAlign,
+      fontFamily:normalizeFontFamily(current.fontFamily),
+      fontSizePt:Number.isFinite(Number(current.fontSizePt))?clamp(current.fontSizePt,4,160,0):0,
+      fontWeight:normalizeFontWeight(current.fontWeight),
+      lineHeight:clamp(current.lineHeight,.8,2.2,1.2),
+      color:normalizeColor(current.color)
     };
+    if(Object.prototype.hasOwnProperty.call(current,'text'))normalized.text=String(current.text||'').slice(0,700);
     state.textLayouts[id]=normalized;
     return normalized;
   }
@@ -492,11 +523,17 @@
   function applyTextEdit(item,spec,scale) {
     if(!item.id)return item;
     const edit=textLayoutState(item.id,item.align||'left');
+    if(Object.prototype.hasOwnProperty.call(edit,'text'))item.text=edit.text;
     item.x+=edit.dx*scale;
     item.y+=edit.dy*scale;
     item.w=Math.max(item.minW||5*scale,item.w*edit.widthScale);
-    item.fontPt=clamp(item.fontPt*edit.fontScale,4,160,item.fontPt);
+    const basePt=edit.fontSizePt||item.fontPt;
+    item.fontPt=clamp(basePt*edit.fontScale,4,160,basePt);
     item.align=edit.align;
+    item.fontFamily=edit.fontFamily||item.fontFamily||'Pretendard';
+    item.weight=edit.fontWeight||item.weight||700;
+    item.lineHeight=edit.lineHeight||item.lineHeight||1.2;
+    item.color=edit.color||item.color||'';
     return item;
   }
 
@@ -507,8 +544,8 @@
     const ptPx=pt=>pt*25.4/72*scale;
     const list=[];
     const add=item=>{
-      if(!String(item.text||'').trim())return;
       applyTextEdit(item,spec,scale);
+      if(!String(item.text||'').trim())return;
       item.fontPx=ptPx(item.fontPt);
       list.push(item);
     };
@@ -599,28 +636,28 @@
 
   function drawTextItem(ctx,item,color,fontOverride){
     if(!String(item.text||'').trim())return;
-    const font=fontOverride||item.fontPx;
-    ctx.save();ctx.fillStyle=color;ctx.font=(item.weight||700)+' '+font+'px Pretendard, "Noto Sans KR", Arial, sans-serif';ctx.textBaseline='top';
-    if(item.vertical)vertical(ctx,item.text,item.x,item.y,item.w,item.h,font*1.14);
-    else if(item.rotate){const cx=item.x+item.w/2,cy=item.y+item.h/2;ctx.translate(cx,cy);ctx.rotate(item.rotate*Math.PI/180);wrapped(ctx,item.text,-item.w/2,-item.h/2,item.w,font*1.16,item.align||'center',item.h);}
-    else wrapped(ctx,item.text,item.x,item.y,item.w,font*1.2,item.align||'left',item.h);
+    const font=fontOverride||item.fontPx,lineHeight=font*clamp(item.lineHeight,.8,2.2,1.2);
+    ctx.save();ctx.fillStyle=item.color||color;ctx.font=(item.weight||700)+' '+font+'px '+fontStack(item.fontFamily);ctx.textBaseline='top';
+    if(item.vertical)vertical(ctx,item.text,item.x,item.y,item.w,item.h,lineHeight);
+    else if(item.rotate){const cx=item.x+item.w/2,cy=item.y+item.h/2;ctx.translate(cx,cy);ctx.rotate(item.rotate*Math.PI/180);wrapped(ctx,item.text,-item.w/2,-item.h/2,item.w,lineHeight,item.align||'center',item.h);}
+    else wrapped(ctx,item.text,item.x,item.y,item.w,lineHeight,item.align||'left',item.h);
     ctx.restore();
   }
 
   function textVisualBounds(ctx,item,fontOverride){
     const font=fontOverride||item.fontPx;
     ctx.save();
-    ctx.font=(item.weight||700)+' '+font+'px Pretendard, "Noto Sans KR", Arial, sans-serif';
+    ctx.font=(item.weight||700)+' '+font+'px '+fontStack(item.fontFamily);
     ctx.textBaseline='top';
     if(item.vertical){
       const chars=[...String(item.text||'').replace(/\s+/g,'')].length;
-      const lineHeight=font*1.14;
+      const lineHeight=font*clamp(item.lineHeight,.8,2.2,1.2);
       const h=Math.min(item.h,Math.max(lineHeight,chars*lineHeight));
       const w=Math.min(item.w,Math.max(font*1.25,font));
       ctx.restore();
       return {x:item.x+(item.w-w)/2,y:item.y,w,h};
     }
-    const lineHeight=font*(item.rotate?1.16:1.2);
+    const lineHeight=font*clamp(item.lineHeight,.8,2.2,1.2);
     const metrics=wrappedLayout(ctx,item.text,item.w,lineHeight,item.h);
     const rawW=Math.min(item.w,Math.max(font*.55,metrics.width));
     const rawH=Math.min(item.h,Math.max(lineHeight,metrics.height));
