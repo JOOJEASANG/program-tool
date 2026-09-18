@@ -94,3 +94,15 @@ def test_ai_design_maker_uses_editorial_presets_and_exact_spine_guidance():
     assert "spineInset=Math.min(sw*.18,1.5*scale)" in source
     assert "책등 12~15.9mm" in source
     assert "책등 16mm 이상" in source
+
+
+def test_ai_design_manual_button_sits_next_to_program_title():
+    page = (ROOT / "ai-design-maker/index.html").read_text(encoding="utf-8")
+    style = (ROOT / "css/ai-design-maker.css").read_text(encoding="utf-8")
+
+    assert 'class="program-title-row"' in page
+    assert '<strong>AI 디자인 제작</strong>' in page
+    assert 'id="manualBtn"' in page
+    assert page.index('<strong>AI 디자인 제작</strong>') < page.index('id="productPickerTitle"')
+    assert '.program-title-row{' in style
+    assert '.program-title-copy strong{' in style
