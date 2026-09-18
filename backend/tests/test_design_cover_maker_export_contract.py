@@ -35,7 +35,7 @@ def test_design_review_no_longer_loads_ai_maker_runtime():
     assert 'id="previewCanvas"' in maker
     assert 'id="generateBtn"' in maker
     assert 'id="exportBtn"' in maker
-    assert "/js/ai-design-maker.js?v=20260918-18" in maker
+    assert "/js/ai-design-maker.js?v=20260918-19" in maker
 
 
 def test_ai_design_maker_has_easy_cover_workflow_and_diagnostics():
@@ -86,17 +86,17 @@ def test_ai_design_maker_uses_sidebar_only_layout_and_bottom_actions():
     assert "ProgramManualHomeModal?.open('ai-design-maker'" in source
 
 
-def test_ai_design_maker_uses_editorial_presets_and_exact_spine_guidance():
+
+def test_ai_design_maker_uses_category_presets_and_exact_spine_guidance():
     source = (ROOT / "js/ai-design-maker.js").read_text(encoding="utf-8")
 
-    for label in ("클린 리포트", "업무·행정", "포럼·행사", "교육·사례집", "공공·정책"):
-        assert label in source
-    assert "preset: 'premium'" in source
+    for label in ("보고서", "행정", "공공기관", "제안서", "행사", "문제집", "교육자료집"):
+        assert f"name: '{label}'" in source
+    assert "preset: 'report'" in source
     assert "Do not create a visible center spine strip" in source
     assert "책등 '+spec.spine.toFixed(1)+'mm" in source
     assert "spineInset=Math.min(sw*.18,1.5*scale)" in source
     assert "책등 8mm 이상: 책등 문구를 안정적으로 표시할 수 있습니다." in source
-
 
 def test_ai_design_manual_button_sits_next_to_program_title():
     page = (ROOT / "ai-design-maker/index.html").read_text(encoding="utf-8")
@@ -111,24 +111,25 @@ def test_ai_design_manual_button_sits_next_to_program_title():
 
 
 
-def test_ai_design_maker_supports_bilingual_requests_and_simplified_cover_copy():
+
+def test_ai_design_maker_supports_bilingual_requests_and_per_side_extra_copy():
     page = (ROOT / "ai-design-maker/index.html").read_text(encoding="utf-8")
     source = (ROOT / "js/ai-design-maker.js").read_text(encoding="utf-8")
 
-    for field_id in ("title", "backText", "customFields", "addCustomFieldBtn", "spineTitle"):
+    for field_id in ("title", "backText", "frontExtraFields", "backExtraFields", "addFrontTextBtn", "addBackTextBtn", "spineTitle"):
         assert f'id="{field_id}"' in page
+    assert 'id="customFields"' not in page
+    assert 'id="addCustomFieldBtn"' not in page
     for removed_id in ("subtitle", "dateText", "department", "organization", "eventDate", "eventPlace", "hostText", "organizerText", "contact", "spineDate", "spineCompany"):
         assert f'id="{removed_id}"' not in page
     assert 'name="promptLanguage" value="ko"' in page
     assert 'name="promptLanguage" value="en"' in page
-    assert "PRESET_PROMPTS_KO" in source
-    assert "promptLanguage: 'ko'" in source
     assert "function renderCustomFields()" in source
-    assert "function addCustomField()" in source
-    assert "추가 항목은 최대 12개" in source
-    assert "surface: 'front'" in source
-    assert "item?.surface === 'back' ? 'back' : 'front'" in source
-
+    assert "function addCustomField(surface='front')" in source
+    assert "추가 문구는 최대 12개" in source
+    assert "addCustomField('front')" in source
+    assert "addCustomField('back')" in source
+    assert "label.type = 'text'" not in source
 
 def test_ai_design_maker_all_text_is_mouse_editable_and_persisted():
     page = (ROOT / "ai-design-maker/index.html").read_text(encoding="utf-8")
@@ -188,27 +189,28 @@ def test_ai_design_maker_can_place_custom_full_spread_background_and_removes_bot
     assert 'class="canvas-help"' not in page
 
 
-def test_forum_preset_is_bright_pastel_and_full_bleed_generation_is_explicit():
+
+def test_event_and_default_generation_use_richer_color_and_full_bleed():
     source = (ROOT / "js/ai-design-maker.js").read_text(encoding="utf-8")
     backend = (ROOT / "backend/services/ai_cover_image.py").read_text(encoding="utf-8")
 
-    assert "밝고 세련된 포럼·컨퍼런스" in source
-    assert "powder blue, sage, pale lavender, peach or blush" in source
-    assert "primaryColor: '#edf6fb'" in source
-    assert "textColor: '#315b72'" in source
+    assert "행사·포럼·컨퍼런스용 표지" in source
+    assert "refined medium saturation" in source
+    assert "washed-out pastel" in source
+    assert "VISUAL_MODE_PROMPTS" in source
+    assert "COLOR_INTENSITY_PROMPTS" in source
+    assert "COMPOSITION_VARIANTS" in source
     assert "OUTER BLEED BOUNDARY" in source
     assert "OUTER BLEED BOUNDARY" in backend
     assert "Fill the entire canvas edge-to-edge" in backend
-    assert "cover-background-v6-clean-report-front-mode" in backend
-
-
+    assert "cover-background-v7-category-visual-diversity" in backend
 
 def test_ai_design_selected_text_supports_line_breaks_and_typography_controls():
     page = (ROOT / "ai-design-maker/index.html").read_text(encoding="utf-8")
     source = (ROOT / "js/ai-design-maker.js").read_text(encoding="utf-8")
     style = (ROOT / "css/ai-design-maker.css").read_text(encoding="utf-8")
 
-    assert '<textarea id="title"' in page
+    assert '<textarea class="cover-copy-input" id="title"' in page
     assert 'Enter로 줄바꿈할 수 있습니다.' in page
     for field_id in (
         "textStylePanel",
@@ -263,18 +265,20 @@ def test_ai_design_maker_supports_front_cover_only_mode():
     assert 'FRONT COVER ONLY' in backend
 
 
-def test_ai_design_reference_direction_is_clean_white_space_report_style():
+
+def test_ai_design_reference_direction_supports_multiple_visual_languages():
+    page = (ROOT / "ai-design-maker/index.html").read_text(encoding="utf-8")
     source = (ROOT / "js/ai-design-maker.js").read_text(encoding="utf-8")
     backend = (ROOT / "backend/services/ai_cover_image.py").read_text(encoding="utf-8")
 
-    assert "화이트 또는 아주 연한 오프화이트 바탕을 70% 이상" in source
-    assert "70–85% white or off-white negative space" in source
-    assert "clean modern annual-report" in backend
-    assert "70–85% of the composition white" in backend
-    assert "thin translucent blue/cyan flowing curves" in backend
-    assert "sparse geometric network lines" in backend
-    assert "Giant circles or semicircles" in backend
-
+    for field_id in ("visualMode", "colorIntensity", "designMood"):
+        assert f'id="{field_id}"' in page
+    for mode in ("editorial", "geometry", "infographic", "photo", "illustration", "hybrid"):
+        assert f'value="{mode}"' in page
+    assert "editorial illustration, symbolic scenes, iconographic or infographic structures" in backend
+    assert "washed-out, foggy, low-contrast or weak" in backend
+    assert "Repeating the same thin-line, circle, wave or geometric-network formula" in backend
+    assert "selectedDesignDirection()" in source
 
 def test_ai_design_maker_supports_standard_300dpi_and_high_quality_generation_modes():
     page = (ROOT / "ai-design-maker/index.html").read_text(encoding="utf-8")
@@ -340,14 +344,19 @@ def test_ai_design_print_sizes_are_a4_b5_a5_and_custom():
 
 
 
+
 def test_ai_design_copy_fields_are_front_back_first_and_additive():
     page = (ROOT / "ai-design-maker/index.html").read_text(encoding="utf-8")
     source = (ROOT / "js/ai-design-maker.js").read_text(encoding="utf-8")
 
     assert "앞표지 문구" in page
     assert "뒤표지 문구" in page
-    assert "+ 문구 추가" in page
-    assert "앞표지·뒤표지를 선택한 뒤 필요한 항목만 추가하세요." in page
+    assert page.count(">+ 추가</button>") == 2
+    assert 'id="addFrontTextBtn"' in page
+    assert 'id="addBackTextBtn"' in page
+    assert 'id="frontExtraFields"' in page
+    assert 'id="backExtraFields"' in page
+    assert "항목명" not in page
     for removed_label in ("일시", "장소", "주최", "주관", "발행일·연도", "발행 부서", "기관·회사명", "뒤표지 하단 정보"):
         assert removed_label not in page
 
@@ -355,6 +364,7 @@ def test_ai_design_copy_fields_are_front_back_first_and_additive():
     assert "fontPt:titlePt(v.title,spec.trimW)" in source
     assert "fontPt:14,weight:650" in source
     assert "fontPt:12,weight:700" in source
+    assert "const text=String(entry.value||'').trim();" in source
 
 def test_ai_design_gallery_saves_finished_cover_and_prompt_to_user_storage():
     page = (ROOT / "ai-design-maker/index.html").read_text(encoding="utf-8")
@@ -386,7 +396,7 @@ def test_ai_design_gallery_saves_finished_cover_and_prompt_to_user_storage():
 def test_ai_design_preview_font_size_migration_does_not_force_default_text_to_4pt():
     source = (ROOT / "js/ai-design-maker.js").read_text(encoding="utf-8")
 
-    assert "const TEXT_LAYOUT_SCHEMA_VERSION = 3" in source
+    assert "const TEXT_LAYOUT_SCHEMA_VERSION = 4" in source
     assert "textLayoutSchemaVersion: TEXT_LAYOUT_SCHEMA_VERSION" in source
     assert "legacyTextLayout" in source
     assert "rawFontSize <= 4" in source
@@ -402,22 +412,26 @@ def test_ai_design_maker_has_no_fixed_event_fields_and_custom_copy_renders_only_
     for removed_id in ("eventDate", "eventPlace", "hostText", "organizerText"):
         assert f'id="{removed_id}"' not in page
         assert f"id:'{removed_id}'" not in source
-    assert "const text=label&&value?label+'  '+value:(value||label);" in source
+    assert "const text=String(entry.value||'').trim();" in source
     assert "if(!String(item.text||'').trim())return;" in source
 
-def test_ai_design_maker_snaps_text_to_front_or_back_cover_centers():
+
+def test_ai_design_maker_uses_safe_area_snap_and_dual_alignment():
     page = (ROOT / "ai-design-maker/index.html").read_text(encoding="utf-8")
     source = (ROOT / "js/ai-design-maker.js").read_text(encoding="utf-8")
 
-    assert "자석처럼 맞춰집니다" in page
+    assert "안전영역 가로·세로 중심" in page
     assert "const SNAP_PX=9" in source
-    assert "function textSurfaceForId(" in source
     assert "function coverSurfaceRect(" in source
-    assert "function drawSnapGuide(" in source
-    assert "Math.abs(candidateCenterX-zoneCenterX)<=SNAP_PX" in source
+    assert "const safe=Math.min(spec.safe" in source
+    assert "Math.abs(xCandidates[0].delta)<=SNAP_PX" in source
     assert "Math.abs(candidateCenterY-zoneCenterY)<=SNAP_PX" in source
-    assert "state.snapGuide={zone:drag.zone" in source
-
+    for align in ("left", "center", "right"):
+        assert f'data-box-align="{align}"' in page
+        assert f'data-text-align="{align}"' in page
+    assert "function alignSelectedTextBox(mode)" in source
+    assert "layout.boxAlign=mode" in source
+    assert "textLayoutState(state.selectedTextId).align=button.dataset.textAlign" in source
 
 def test_ai_design_prompt_context_includes_all_cover_copy_and_theme_keywords():
     source = (ROOT / "js/ai-design-maker.js").read_text(encoding="utf-8")

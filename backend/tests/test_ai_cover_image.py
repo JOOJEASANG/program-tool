@@ -82,15 +82,15 @@ def test_prompt_is_background_only_and_spine_aware():
     })
     prompt = build_cover_prompt(req)
     assert "BACKGROUND ARTWORK ONLY" in prompt
-    assert "Do not draw any words" in prompt
+    assert "Do not draw readable words" in prompt
     assert "spine" in prompt.lower()
     assert "12.00 mm" in prompt
     assert "front cover" in prompt.lower()
     assert "back cover" in prompt.lower()
     assert "Do not draw a visible center spine strip" in prompt
-    assert "disciplined editorial grid" in prompt
-    assert "Avoid outdated public brochure aesthetics" in prompt
-    assert "one base color family plus one or two accents" in prompt
+    assert "editorial illustration, symbolic scenes, iconographic or infographic structures" in prompt
+    assert "refined medium saturation" in prompt
+    assert "Washed-out low-contrast pastel" in prompt
 
 
 def test_prompt_is_wing_aware_when_review_option_has_flaps():
