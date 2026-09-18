@@ -102,7 +102,7 @@ def validate() -> None:
     for marker in ('data-ai-design-maker="cover-v1"', 'id="previewCanvas"', 'id="generateBtn"', 'id="exportBtn"'):
         if marker not in maker_html:
             errors.append(f"ai-design-maker/index.html is missing element: {marker}")
-    for marker in ("const EXPORT_DPI = 300", "/api/preflight/ai-design/cover-image", "localStorage.setItem(STORAGE_KEY", "AI 배경 생성 실패"):
+    for marker in ("const EXPORT_DPI = 300", "/api/preflight/ai-design-maker/cover-background", "localStorage.setItem(STORAGE_KEY", "AI 배경 생성 실패"):
         if marker not in maker_js:
             errors.append(f"js/ai-design-maker.js is missing contract: {marker}")
 
