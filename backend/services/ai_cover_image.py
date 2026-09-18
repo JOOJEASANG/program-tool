@@ -18,7 +18,7 @@ from typing import Any
 
 OPENAI_IMAGES_URL = "https://api.openai.com/v1/images/generations"
 DEFAULT_IMAGE_MODEL = "gpt-image-2"
-DEFAULT_IMAGE_QUALITY = "high"
+DEFAULT_IMAGE_QUALITY = "medium"
 DEFAULT_IMAGE_TIMEOUT_SECONDS = 180
 # OpenAI documents outputs above 2560x1440 total pixels as experimental.
 # Stay just below that threshold for the production default while preserving the
@@ -335,9 +335,10 @@ def generate_cover_image(payload: dict[str, Any], *, uid: str) -> dict[str, Any]
         )
 
     model = os.environ.get("OPENAI_AI_IMAGE_MODEL", DEFAULT_IMAGE_MODEL).strip() or DEFAULT_IMAGE_MODEL
-    quality = os.environ.get("OPENAI_AI_IMAGE_QUALITY", DEFAULT_IMAGE_QUALITY).strip().lower() or DEFAULT_IMAGE_QUALITY
-    if quality not in _allowed_qualities(model):
-        quality = DEFAULT_IMAGE_QUALITY
+    requested_quality = os.environ.get("OPENAI_AI_IMAGE_QUALITY", DEFAULT_IMAGE_QUALITY).strip().lower() or DEFAULT_IMAGE_QUALITY
+    quality = requested_quality if requested_quality in _allowed_qualities(model) else DEFAULT_IMAGE_QUALITY
+    if quality == "high":
+        quality = "medium"
     size = choose_image_size(req)
     body = {
         "model": model,
