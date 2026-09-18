@@ -65,7 +65,11 @@ service cloud.firestore {
         && request.resource.data.trimHeight >= 50
         && request.resource.data.trimHeight <= 1000
         && request.resource.data.imagePath is string
-        && request.resource.data.imagePath.matches('^ai_design_gallery/' + uid + '/' + designId + '/preview[.]jpg
+        && request.resource.data.imagePath.matches('^ai_design_gallery/' + uid + '/' + designId + '/preview[.]jpg$')
+        && request.resource.data.createdAt is timestamp;
+    }
+
+    function validPdfSessionMetadata(){
       return request.resource.data.keys().hasOnly(['name','sessionId','storagePaths','fileCount','pageCount','totalBytes','state','createdAt'])
         && request.resource.data.name is string
         && request.resource.data.name.size() > 0
