@@ -178,6 +178,7 @@ fake labels, placeholder type, or typographic marks. Exact Korean text will be a
 
 REFERENCE VISUAL TARGET
 - Match the visual discipline of clean modern annual-report, business-proposal, brochure-cover and editorial-report templates.
+- Use a disciplined editorial grid, generous negative space, precise spacing, and controlled asymmetry.
 - Keep approximately 70–85% of the composition white, ivory, or very light neutral whenever compatible with the requested style.
 - Use ONE restrained graphic language only:
   1) thin translucent blue/cyan flowing curves,
@@ -188,6 +189,7 @@ REFERENCE VISUAL TARGET
 - Preserve a large, quiet, clean title area.
 - Use crisp flat 2D print design, fine line work, gentle transparency, precise spacing, and controlled asymmetry.
 - Prefer light sky blue, powder blue, cyan, mint, pale sage, soft lavender, pale peach, and cool light gray accents.
+- Keep the palette restrained: usually one base color family plus one or two accents.
 - Use only one main accent family plus at most one secondary accent.
 
 LAYOUT RULES
@@ -197,6 +199,7 @@ LAYOUT RULES
 - No crop marks, trim marks, rulers, registration marks, 3D perspective, book shadows, hands, desks, or environmental mockup context.
 
 STRICT AVOID LIST
+- Avoid outdated public brochure aesthetics and generic government handout styling.
 - Giant circles or semicircles dominating the page.
 - Dark navy or saturated blue covering large areas.
 - Thick corporate wave bands, glossy swooshes, ribbon graphics, bevels, metallic shine, lens flare, or fake 3D.
