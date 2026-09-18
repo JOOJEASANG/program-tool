@@ -87,7 +87,7 @@
   }
 
   function specKey(spec = currentSpec()) {
-    return [spec.trimW,spec.trimH,spec.spine,spec.bleed,spec.safe,spec.wing].map(v => Number(v).toFixed(2)).join('|');
+    return [spec.trimW,spec.trimH,spec.spine,spec.bleed,spec.wing].map(v => Number(v).toFixed(2)).join('|');
   }
 
   function readText() {
