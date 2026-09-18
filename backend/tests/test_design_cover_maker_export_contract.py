@@ -36,7 +36,7 @@ def test_design_review_no_longer_loads_ai_maker_runtime():
     assert 'id="previewCanvas"' in maker
     assert 'id="generateBtn"' in maker
     assert 'id="exportBtn"' in maker
-    assert "/js/ai-design-maker.js?v=20260918-4" in maker
+    assert "/js/ai-design-maker.js?v=20260918-5" in maker
 
 
 def test_ai_design_maker_has_easy_cover_workflow_and_diagnostics():
@@ -51,3 +51,16 @@ def test_ai_design_maker_has_easy_cover_workflow_and_diagnostics():
     assert "request_id:" in source
     assert "AI 배경 생성 실패" in source
     assert "state.generatedSpecKey!==specKey(spec)" in source
+
+
+def test_ai_design_preview_starts_transparent_and_fills_workspace():
+    source = (ROOT / "js/ai-design-maker.js").read_text(encoding="utf-8")
+    style = (ROOT / "css/ai-design-maker.css").read_text(encoding="utf-8")
+
+    assert "ctx.clearRect(0,0,fit.width,fit.height)" in source
+    assert "drawEmpty(" not in source
+    assert "clientWidth || 1000) - 20" in source
+    assert "clientHeight || 700) - 20" in source
+    assert "background:transparent" in style
+    assert "height:calc(100vh - 188px)" in style
+    assert "padding:10px" in style
