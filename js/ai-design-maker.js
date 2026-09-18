@@ -63,7 +63,9 @@
     textPointer: null,
     backgroundSource: '',
     coverMode: 'spread',
-    generationQuality: 'standard'
+    generationQuality: 'standard',
+    generationProgress: 0,
+    generationProgressTimer: null
   };
 
   const clamp = (value, min, max, fallback) => {
@@ -234,6 +236,42 @@
     if ($('statusMessage')) $('statusMessage').textContent = message;
     if ($('statusDetails')) $('statusDetails').hidden = !debug;
     if ($('statusDebug')) $('statusDebug').textContent = debug || '';
+  }
+
+  function setGenerationProgress(value) {
+    state.generationProgress=clamp(value,0,100,0);
+    const root=$('generationProgress'),bar=$('generationProgressBar'),label=$('generationProgressText');
+    if(root)root.hidden=false;
+    if(label){label.hidden=false;label.textContent=Math.round(state.generationProgress)+'%';}
+    if(bar)bar.style.width=state.generationProgress+'%';
+  }
+
+  function startGenerationProgress() {
+    if(state.generationProgressTimer)clearInterval(state.generationProgressTimer);
+    setGenerationProgress(4);
+    state.generationProgressTimer=setInterval(()=>{
+      const p=state.generationProgress;
+      const step=p<25?4:p<55?3:p<78?2:p<90?1:.35;
+      setGenerationProgress(Math.min(94,p+step));
+    },650);
+  }
+
+  function finishGenerationProgress(success=true) {
+    if(state.generationProgressTimer){clearInterval(state.generationProgressTimer);state.generationProgressTimer=null;}
+    if(success){
+      setGenerationProgress(100);
+      setTimeout(()=>{
+        const root=$('generationProgress'),label=$('generationProgressText');
+        if(root)root.hidden=true;
+        if(label)label.hidden=true;
+      },900);
+    }else{
+      const root=$('generationProgress'),label=$('generationProgressText'),bar=$('generationProgressBar');
+      if(root)root.hidden=true;
+      if(label)label.hidden=true;
+      if(bar)bar.style.width='0%';
+      state.generationProgress=0;
+    }
   }
 
   function presetPrompt(id = state.preset) {
@@ -1011,6 +1049,7 @@
     if(ratio<1/3||ratio>3){setStatus('현재 표지 비율을 생성할 수 없습니다.','완성 규격·책등·날개 폭을 확인해 주세요.','error');return;}
     const button=$('generateBtn');button.disabled=true;
     setStatus('AI 배경을 생성하고 있습니다.',state.generationQuality==='high'?'고품질 AI 배경을 생성 중입니다. 최종 저장은 300dpi로 출력됩니다.':'기본 품질 AI 배경을 생성 중입니다. 최종 저장은 300dpi로 출력됩니다.','busy');
+    startGenerationProgress();
     try{
       const prompt=String($('stylePrompt')?.value||presetPrompt()).trim();
       const designGuardrails=[
@@ -1044,9 +1083,11 @@
       $('exportBtn').disabled=false;scheduleRender();
       updateProgress();
       setStatus('AI 배경 생성 완료',spec.coverMode==='front'?'앞표지 배경과 문구 레이어를 자유롭게 편집할 수 있습니다.':'문구는 별도 레이어로 유지됩니다. 문구나 색상을 수정하면 미리보기에 바로 반영됩니다.','ok');
+      finishGenerationProgress(true);
     }catch(error){
       const debug=['HTTP: '+(error.status||'unknown'),'code: '+(error.code||'unknown'),'request_id: '+(error.requestId||'none'),'transport: '+(error.transport||'direct-function'),error.raw?'response: '+error.raw:''].filter(Boolean).join('\n');
       setStatus('AI 배경 생성 실패',error.message||'AI 표지 생성 요청에 실패했습니다.','error',debug);
+      finishGenerationProgress(false);
     }finally{button.disabled=false;}
   }
 
