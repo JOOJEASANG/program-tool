@@ -40,9 +40,11 @@ def verify(base_url: str, timeout: float) -> None:
         "id:'smart-print-layout'",
         "name:'스마트 인쇄배치'",
         "url:'smart-print-layout/'",
-        "pdf-home-five-programs-v8",
-        "name:'디자인 검토/제작'",
-        "AI로 뒤표지·책등·앞표지 전체 펼침 표지를 제작합니다.",
+        "pdf-home-six-programs-v9",
+        "name:'디자인 검토'",
+        "name:'AI 디자인 제작'",
+        "url:'ai-design-maker/'",
+        "완성 인쇄물의 재단 규격·도련·안전 영역·책등·접지와 실제 파일 구성을 대조하고 인쇄 전 오류를 점검합니다.",
     ):
         if marker not in launcher:
             raise RuntimeError(f"운영 홈 런처에서 필수 항목을 찾지 못했습니다: {marker}")
