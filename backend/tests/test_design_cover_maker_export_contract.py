@@ -95,8 +95,7 @@ def test_ai_design_maker_uses_editorial_presets_and_exact_spine_guidance():
     assert "Do not create a visible center spine strip" in source
     assert "책등 '+spec.spine.toFixed(1)+'mm" in source
     assert "spineInset=Math.min(sw*.18,1.5*scale)" in source
-    assert "책등 12~15.9mm" in source
-    assert "책등 16mm 이상" in source
+    assert "책등 8mm 이상: 책등 문구를 안정적으로 표시할 수 있습니다." in source
 
 
 def test_ai_design_manual_button_sits_next_to_program_title():
