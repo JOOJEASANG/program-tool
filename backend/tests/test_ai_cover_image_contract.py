@@ -57,7 +57,7 @@ def test_generate_cover_image_uses_stable_image_contract(monkeypatch):
     assert max(width, height) / min(width, height) <= 3
     assert result["model"] == "gpt-image-2"
     assert result["image_base64"] == "ZmFrZS1wbmc="
-    assert result["prompt_version"] == "cover-background-v6-clean-report-front-mode"
+    assert result["prompt_version"] == "cover-background-v7-category-visual-diversity"
 
 
 def test_timeout_env_is_clamped(monkeypatch):
