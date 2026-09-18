@@ -11,8 +11,8 @@
   const AI_COVER_PATH = '/api/preflight/ai-design-maker/cover-background';
   const AI_DIRECT_API_ORIGIN = 'https://api-7a5qpwzezq-uc.a.run.app';
   const PRESET_PROMPTS_KO = Object.freeze({
-    premium: '여백을 넉넉히 사용한 고급 편집디자인 표지를 만들어 주세요. 정돈된 그리드와 세련된 비대칭 구성, 절제된 주조색과 1~2개의 포인트 색상을 사용하고 장식보다 비율·리듬·크기 대비로 완성도를 높여 주세요. 앞표지는 명확한 중심을 두고 뒤표지는 더 차분하게 연결해 주세요. 광택 효과, 물결 리본, 흔한 기업 브로슈어 느낌, 과도한 그라데이션, 클립아트는 피해주세요.',
-    admin: '현대적인 업무·행정 보고서 표지를 만들어 주세요. 정확한 편집 그리드, 안정적인 여백, 신뢰감 있는 정보 구조와 절제된 비대칭 구성을 사용해 주세요. 딥 네이비, 차콜, 뮤트 블루, 웜 그레이, 딥 틸 계열을 중심으로 고급 연차보고서처럼 보이게 해주세요. 오래된 관공서 브로슈어, 파란 물결, 광택 리본, 입체 도형과 장식 과다는 피해주세요.',
+    premium: '화이트 또는 아주 연한 오프화이트 바탕을 70% 이상 유지한 깔끔한 연차보고서·기업 브로슈어 표지를 만들어 주세요. 얇은 블루 계열 라인, 투명한 곡선 레이어, 작은 기하 도형 또는 미세한 네트워크 패턴 중 한 가지 시각 언어만 선택하고 넓은 여백을 유지해 주세요. 제목이 들어갈 중앙 또는 좌상단 영역은 비워 두고 장식은 가장자리와 하단·좌측에 제한하세요. 2018~2030 annual report 같은 정돈된 편집물 느낌으로, 거대한 원형·무거운 네이비 덩어리·복잡한 포스터 구성·과한 그라데이션은 피해주세요.',
+    admin: '밝은 화이트 베이스의 현대적인 업무·행정 연차보고서 표지를 만들어 주세요. 가는 블루·민트 선, 반투명 사선 또는 아주 얕은 웨이브를 가장자리 한쪽에만 두고 본문 영역은 넓게 비워 주세요. 작은 컬러 블록을 사용할 경우 3~5개 이하로 제한하고 전체 면적의 15%를 넘기지 마세요. 신뢰감 있는 기업 보고서처럼 깔끔해야 하며 관공서 파란 물결, 진한 남색 대면적, 입체 도형, 광택 리본은 피해주세요.',
     forum: '밝고 세련된 포럼·컨퍼런스 출판물 표지를 만들어 주세요. 아이보리·오프화이트처럼 밝은 바탕에 파우더 블루, 세이지, 연보라, 피치, 블러시 계열의 부드러운 파스텔 포인트를 1~2개 사용하고 넓은 여백과 섬세한 편집 그리드로 구성해 주세요. 거대한 원·반원·두꺼운 네이비 블록처럼 흔한 관공서 브로슈어 도형은 피하고, 작은 기하학적 리듬이나 얇은 선, 은은한 질감으로 현대적인 문화·포럼 아이덴티티처럼 보여 주세요. 앞표지는 밝고 산뜻하며 제목이 들어갈 공간이 충분해야 하고 뒤표지는 더 차분하게 연결해 주세요.',
     education: '따뜻하지만 유치하지 않은 교육·사례집 표지를 만들어 주세요. 부드러운 편집 구조와 우아한 여백, 절제된 유기적 또는 기하학적 형태, 자연스럽고 차분한 색감에 하나의 포인트 색상을 사용해 주세요. 전문 출판물처럼 정돈하고 어린이용 일러스트, 만화 아이콘, 낙서, 복잡한 콜라주, 오래된 브로슈어 물결 그래픽은 피해주세요.',
     public: '명확하고 품격 있는 공공·정책 출판물 표지를 만들어 주세요. 정돈된 그리드, 충분한 여백, 절제된 추상 구조와 차분한 색상으로 프리미엄 정책보고서나 기관 출판물처럼 구성해 주세요. 흔한 관공서 이미지, 파란 물결, 상징 클립아트, 광택 그라데이션, 과도한 엠블럼과 오래된 행정 템플릿 느낌은 피해주세요.'
@@ -20,19 +20,19 @@
 
   const PRESETS = Object.freeze({
     premium: {
-      name: '프리미엄 미니멀',
-      note: '가장 세련되고 절제된 편집디자인',
-      prompt: 'Create an elegant premium editorial cover system with generous negative space, disciplined grid logic, refined asymmetry, one quiet base tone and one or two restrained accent colors. Build visual interest through proportion, rhythm, scale, subtle geometry and carefully controlled depth rather than decoration. The front cover should feel art-directed and contemporary, the back cover quieter, and the whole spread should look like a high-end publication rather than a template. Avoid glossy effects, decorative waves, corporate swooshes, stock brochure layouts, obvious gradients, clip-art, and generic office graphics.'
+      name: '클린 리포트',
+      note: '화이트 베이스 · 얇은 블루 그래픽',
+      prompt: 'Create a clean modern annual-report cover inspired by premium corporate editorial templates: 70–85% white or off-white negative space, one restrained blue/cyan accent family, and only one visual device such as thin flowing curves, translucent layered ribbons, a sparse geometric network, or a few small color blocks. Keep decoration near edges, corners, lower third, or one side. Reserve a large calm title area. Use crisp flat 2D print design, subtle line texture, and excellent spacing. Avoid giant circles, dark full-bleed navy fields, heavy blocks, busy poster compositions, excessive gradients, glossy 3D effects, and old government-brochure styling.', primaryColor: '#eaf5fb', textColor: '#14558a'
     },
     admin: {
       name: '업무·행정',
       note: '현대적이고 신뢰감 있는 보고서',
-      prompt: 'Create a contemporary business and administrative publication cover with a precise editorial grid, calm authority, strong spacing and sophisticated information architecture. Use clean geometry, restrained asymmetry, subtle line or block systems, and a professional palette such as deep navy, charcoal, muted blue, warm gray or dark teal. It should resemble a premium annual report or institutional publication, not an old government brochure. Avoid blue ribbon waves, glossy swooshes, generic corporate templates, beveled shapes, clip-art icons, and decorative clutter.'
+      prompt: 'Create a bright corporate annual-report cover on a white background with generous empty space. Use very thin blue/cyan line work, a restrained translucent curve or diagonal sweep placed mainly along one edge, and at most a few small flat geometric color blocks. Keep the middle title zone quiet and readable. The visual language should resemble a polished modern business proposal or annual report template. Avoid dark backgrounds, giant circles, thick waves, glossy swooshes, bevels, 3D effects, clip-art, and crowded government brochure layouts.', primaryColor: '#eef8fc', textColor: '#245b78'
     },
     forum: {
       name: '포럼·행사',
       note: '컨퍼런스 아이덴티티처럼 세련되게',
-      prompt: 'Create a bright, airy and sophisticated conference/forum publication cover. Use an off-white or ivory base with soft pastel accents such as powder blue, sage, pale lavender, peach or blush. Favor generous whitespace, fine editorial grids, subtle line work, restrained small-scale geometry and gentle texture. The result should feel like a contemporary cultural conference identity or premium editorial booklet. Avoid dark navy dominance, giant circles or semicircles, heavy geometric blocks, government-brochure styling, ribbon waves, neon, glossy effects, excessive gradients and stock-template aesthetics.', primaryColor: '#dbeaf4', textColor: '#27445f'
+      prompt: 'Create a bright, airy conference/forum booklet cover using 70–85% white or ivory negative space. Add only delicate pastel blue, sage, pale lavender, peach or blush accents through thin lines, sparse network points, small squares, or one translucent soft curve. Keep the title zone large, calm and clean. Make it feel like a contemporary annual-report or conference editorial template, not an event poster. Avoid dark navy dominance, giant circles or semicircles, heavy geometric blocks, thick ribbon waves, neon, glossy effects, busy gradients and government-brochure styling.', primaryColor: '#edf6fb', textColor: '#315b72'
     },
     education: {
       name: '교육·사례집',
@@ -61,7 +61,8 @@
     selectedTextId: '',
     selectedTextUiId: '',
     textPointer: null,
-    backgroundSource: ''
+    backgroundSource: '',
+    coverMode: 'spread'
   };
 
   const clamp = (value, min, max, fallback) => {
@@ -89,21 +90,22 @@
 
 
   function currentSpec() {
+    const coverMode=state.coverMode==='front'?'front':'spread';
     const trimW = clamp(num('trimW', 210), 50, 1000, 210);
     const trimH = clamp(num('trimH', 297), 50, 1000, 297);
-    const spine = clamp(num('spine', 10), 0, 100, 10);
     const bleed = clamp(num('bleed', 3), 0, 20, 3);
     const safe = clamp(num('safeZone', 5), 0, 80, 5);
-    const wing = $('wingEnabled')?.checked ? clamp(num('wingW', 70), 20, 300, 70) : 0;
+    const spine = coverMode==='front' ? 0 : clamp(num('spine', 10), 0, 100, 10);
+    const wing = coverMode==='front' ? 0 : ($('wingEnabled')?.checked ? clamp(num('wingW', 70), 20, 300, 70) : 0);
     return {
-      trimW, trimH, spine, bleed, safe, wing,
-      workW: trimW * 2 + spine + wing * 2 + bleed * 2,
+      coverMode, trimW, trimH, spine, bleed, safe, wing,
+      workW: coverMode==='front' ? trimW + bleed * 2 : trimW * 2 + spine + wing * 2 + bleed * 2,
       workH: trimH + bleed * 2
     };
   }
 
   function specKey(spec = currentSpec()) {
-    return [spec.trimW,spec.trimH,spec.spine,spec.bleed,spec.wing].map(v => Number(v).toFixed(2)).join('|');
+    return [spec.coverMode,spec.trimW,spec.trimH,spec.spine,spec.bleed,spec.wing].map(v => typeof v==='number'?Number(v).toFixed(2):v).join('|');
   }
 
   function readText() {
@@ -135,7 +137,8 @@
       spineSync: Boolean($('spineSync')?.checked),
       promptLanguage: state.promptLanguage,
       customFields: state.customFields,
-      textLayouts: state.textLayouts
+      textLayouts: state.textLayouts,
+      coverMode: state.coverMode
     };
     ids.forEach(id => { if ($(id)) data[id] = $(id).value; });
     return data;
@@ -164,6 +167,7 @@
       if (typeof data.wingEnabled === 'boolean') $('wingEnabled').checked = data.wingEnabled;
       if (typeof data.spineSync === 'boolean') $('spineSync').checked = data.spineSync;
       if (data.preset && PRESETS[data.preset]) state.preset = data.preset;
+      if (data.coverMode === 'front' || data.coverMode === 'spread') state.coverMode = data.coverMode;
       if (data.promptLanguage === 'en' || data.promptLanguage === 'ko') state.promptLanguage = data.promptLanguage;
       if (Array.isArray(data.customFields)) state.customFields = data.customFields.slice(0, 12).map(item => ({
         id: String(item?.id || ('custom-'+Math.random().toString(36).slice(2))),
