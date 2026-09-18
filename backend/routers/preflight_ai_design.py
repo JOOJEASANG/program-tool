@@ -84,6 +84,28 @@ def install(preflight_module) -> None:
                 "AI_DESIGN_INTERNAL_ERROR",
             )
 
+
+    @blueprint.route("/ai-design-maker/cover-background", methods=["POST"])
+    @require_auth
+    def ai_design_maker_cover_background(uid):
+        payload = request.get_json(silent=True)
+        if not isinstance(payload, dict):
+            return _error("AI 디자인 제작 입력값을 확인해 주세요.", 400, "AI_DESIGN_MAKER_PAYLOAD_INVALID")
+        try:
+            result = generate_cover_image(payload, uid=uid)
+            response = jsonify(result)
+            response.headers["X-Request-ID"] = get_request_id()
+            return response
+        except AiCoverImageError as exc:
+            return _public_ai_error(exc)
+        except Exception:
+            logger.exception("Standalone AI design maker cover generation failed")
+            return _error(
+                "AI 디자인 제작 중 표지 배경을 생성하지 못했습니다.",
+                500,
+                "AI_DESIGN_MAKER_INTERNAL_ERROR",
+            )
+
     @blueprint.route("/ai-design/cover-image", methods=["POST"])
     @require_auth
     def ai_design_cover_image(uid):
