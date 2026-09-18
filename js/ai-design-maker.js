@@ -480,16 +480,21 @@
 
   function drawGuides(ctx,spec,scale) {
     if (!$('guideToggle')?.checked) return;
-    const b=spec.bleed*scale, wing=spec.wing*scale, tw=spec.trimW*scale, th=spec.trimH*scale, sw=spec.spine*scale, safe=spec.safe*scale;
-    const backX=b+wing, spineX=backX+tw, frontX=spineX+sw, frontWingX=frontX+tw;
+    const b=spec.bleed*scale, tw=spec.trimW*scale, th=spec.trimH*scale, safe=spec.safe*scale;
     if(spec.bleed>0) rect(ctx,.5,.5,spec.workW*scale-1,spec.workH*scale-1,'#db2777',[7,5]);
+    if(spec.coverMode==='front'){
+      const frontX=b;
+      rect(ctx,frontX,b,tw,th,'#2563eb',[6,4]);
+      if(safe>0)rect(ctx,frontX+safe,b+safe,Math.max(0,tw-safe*2),Math.max(0,th-safe*2),'#16a34a');
+      zone(ctx,'앞표지',frontX,b,tw,th);
+      return;
+    }
+    const wing=spec.wing*scale,sw=spec.spine*scale;
+    const backX=b+wing, spineX=backX+tw, frontX=spineX+sw, frontWingX=frontX+tw;
     rect(ctx,backX,b,tw,th,'#2563eb',[6,4]);rect(ctx,frontX,b,tw,th,'#2563eb',[6,4]);
     if(safe>0){rect(ctx,backX+safe,b+safe,Math.max(0,tw-safe*2),Math.max(0,th-safe*2),'#16a34a');rect(ctx,frontX+safe,b+safe,Math.max(0,tw-safe*2),Math.max(0,th-safe*2),'#16a34a');}
     if(sw>0){
-      ctx.save();
-      ctx.fillStyle='rgba(239,68,68,.055)';
-      ctx.fillRect(spineX,b,sw,th);
-      ctx.restore();
+      ctx.save();ctx.fillStyle='rgba(239,68,68,.055)';ctx.fillRect(spineX,b,sw,th);ctx.restore();
       line(ctx,spineX,b,spineX,b+th,'#ef4444',[6,4]);
       line(ctx,frontX,b,frontX,b+th,'#ef4444',[6,4]);
       const spineInset=Math.min(sw*.18,1.5*scale);
@@ -599,8 +604,11 @@
   }
 
   function textLayout(spec,scale) {
-    const v=readText(), b=spec.bleed*scale, wing=spec.wing*scale, tw=spec.trimW*scale, th=spec.trimH*scale, sw=spec.spine*scale;
-    const backX=b+wing, spineX=backX+tw, frontX=spineX+sw;
+    const v=readText(), b=spec.bleed*scale, tw=spec.trimW*scale, th=spec.trimH*scale;
+    const wing=spec.wing*scale,sw=spec.spine*scale;
+    const backX=spec.coverMode==='front'?b:b+wing;
+    const spineX=backX+tw;
+    const frontX=spec.coverMode==='front'?b:spineX+sw;
     const safe=Math.min(spec.safe,spec.trimW*.15,spec.trimH*.15)*scale;
     const ptPx=pt=>pt*25.4/72*scale;
     const list=[];
@@ -636,20 +644,22 @@
     add({id:'dateText',text:v.dateText,x:frontX+safe,y:b+th*.77,w:contentW,h:th*.045,fontPt:9.5,weight:700,align:'left'});
     add({id:'department',text:v.department,x:frontX+safe,y:b+th*.82,w:contentW,h:th*.045,fontPt:9.5,weight:700,align:'left'});
     add({id:'organization',text:v.organization,x:frontX+safe,y:b+th*.89,w:contentW,h:th*.06,fontPt:11,weight:850,align:'left'});
-    add({id:'backText',text:v.backText,x:backX+safe,y:b+th*.16,w:contentW,h:th*.58,fontPt:10.5,weight:600,align:'left'});
-    add({id:'contact',text:v.contact,x:backX+safe,y:b+th*.84,w:contentW,h:th*.12,fontPt:9,weight:750,align:'left'});
+    if(spec.coverMode==='spread'){
+      add({id:'backText',text:v.backText,x:backX+safe,y:b+th*.16,w:contentW,h:th*.58,fontPt:10.5,weight:600,align:'left'});
+      add({id:'contact',text:v.contact,x:backX+safe,y:b+th*.84,w:contentW,h:th*.12,fontPt:9,weight:750,align:'left'});
+    }
 
-    if(spec.spine>=4&&v.spineTitle){
+    if(spec.coverMode==='spread'&&spec.spine>=4&&v.spineTitle){
       const fp=spinePt(spec.spine,v.spineTitle);
       if(v.spineOrientation==='vertical')add({id:'spineTitle',text:v.spineTitle,x:spineX+sw*.12,y:b+th*.18,w:sw*.76,h:th*.62,fontPt:fp,weight:900,vertical:true,align:'center'});
       else add({id:'spineTitle',text:v.spineTitle,x:spineX+sw/2-th*.31,y:b+th/2-sw*.34,w:th*.62,h:sw*.68,fontPt:fp,weight:900,rotate:v.spineOrientation==='rotate-down'?90:-90,align:'center'});
     }
-    if(spec.spine>=8&&v.spineDate){
+    if(spec.coverMode==='spread'&&spec.spine>=8&&v.spineDate){
       const fp=clamp(spinePt(spec.spine,v.spineDate)-2,7,10,8);
       if(v.spineOrientation==='vertical')add({id:'spineDate',text:v.spineDate,x:spineX+sw*.18,y:b+th*.06,w:sw*.64,h:th*.10,fontPt:fp,weight:800,vertical:true,align:'center'});
       else add({id:'spineDate',text:v.spineDate,x:spineX+sw/2-th*.09,y:b+th*.14-sw*.25,w:th*.18,h:sw*.5,fontPt:fp,weight:800,rotate:v.spineOrientation==='rotate-down'?90:-90,align:'center'});
     }
-    if(spec.spine>=16&&v.spineCompany){
+    if(spec.coverMode==='spread'&&spec.spine>=16&&v.spineCompany){
       const fp=clamp(spinePt(spec.spine,v.spineCompany)-3,7,9.5,8);
       if(v.spineOrientation==='vertical')add({id:'spineCompany',text:v.spineCompany,x:spineX+sw*.18,y:b+th*.82,w:sw*.64,h:th*.13,fontPt:fp,weight:800,vertical:true,align:'center'});
       else add({id:'spineCompany',text:v.spineCompany,x:spineX+sw/2-th*.12,y:b+th*.86-sw*.25,w:th*.24,h:sw*.5,fontPt:fp,weight:800,rotate:v.spineOrientation==='rotate-down'?90:-90,align:'center'});
@@ -737,7 +747,7 @@
   function logoRect(spec,scale){
     if(!state.logo)return null;
     const b=spec.bleed*scale,wing=spec.wing*scale,tw=spec.trimW*scale,th=spec.trimH*scale,sw=spec.spine*scale,safe=spec.safe*scale;
-    const frontX=b+wing+tw+sw;
+    const frontX=spec.coverMode==='front'?b:b+wing+tw+sw;
     const maxW=tw*.24,maxH=th*.08,ratio=state.logo.naturalWidth/state.logo.naturalHeight;
     let w=maxW,h=w/ratio;if(h>maxH){h=maxH;w=h*ratio;}
     return {x:frontX+tw-safe-w,y:b+th*.88-h,w,h};
