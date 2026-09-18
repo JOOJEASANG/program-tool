@@ -161,6 +161,7 @@ def build_cover_prompt(req: CoverImageRequest) -> str:
         if req.cover_mode == "front"
         else
         "- Let the artwork flow continuously across back cover, exact spine, and front cover. Do not draw a visible spine strip, seam, fold, or artificial center band.\n"
+        "- If flaps exist, continue artwork naturally through the flap zones while keeping focal content inside the trim areas.\n"
         "- Keep the front cover visually strongest and the back cover quieter, with the exact spine calm and low-detail.\n"
     )
     return f"""
@@ -172,7 +173,7 @@ GEOMETRY
 
 CRITICAL TYPOGRAPHY RULE
 Generate BACKGROUND ARTWORK ONLY.
-Do not draw words, letters, numbers, logos, signatures, pseudo-text, watermarks, QR codes, barcodes,
+Do not draw any words, letters, numbers, logos, signatures, pseudo-text, watermarks, QR codes, barcodes,
 fake labels, placeholder type, or typographic marks. Exact Korean text will be added later by the application.
 
 REFERENCE VISUAL TARGET
