@@ -8,7 +8,7 @@
   <meta name="robots" content="noindex,nofollow">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
-  <link rel="stylesheet" href="/css/ai-design-maker.css?v=20260918-11">
+  <link rel="stylesheet" href="/css/ai-design-maker.css?v=20260918-13">
   <link rel="stylesheet" href="/css/program-manual-home-modal.css?v=20260918-1">
 </head>
 <body>
@@ -51,6 +51,17 @@
           <p id="coverModeDescription">앞표지·책등·뒤표지를 한 번에 제작합니다. 규격 → 문구 → 스타일 순서로 입력하세요.</p>
         </div>
 
+        <section class="cover-scope-card" aria-labelledby="coverScopeTitle">
+          <div class="cover-scope-head">
+            <strong id="coverScopeTitle">제작 범위</strong>
+            <small>먼저 선택하세요</small>
+          </div>
+          <div class="cover-mode-picker cover-mode-picker-prominent" role="radiogroup" aria-label="표지 제작 범위">
+            <label><input type="radio" name="coverMode" value="front"><span><strong>앞표지만 디자인</strong><small>앞면 단면 표지 · A4/A5 등</small></span></label>
+            <label><input type="radio" name="coverMode" value="spread" checked><span><strong>전체 펼침 디자인</strong><small>뒤표지 + 책등 + 앞표지</small></span></label>
+          </div>
+        </section>
+
         <nav class="workflow-nav" aria-label="표지 제작 단계 바로가기">
           <button type="button" data-jump="specSection"><span>1</span>규격</button>
           <button type="button" data-jump="copySection"><span>2</span>문구</button>
@@ -64,10 +75,6 @@
               <button type="button" class="size-chip active" data-size="210,297">A4</button>
               <button type="button" class="size-chip" data-size="176,248">176×248</button>
               <button type="button" class="size-chip" data-size="148,210">A5</button>
-            </div>
-            <div class="cover-mode-picker" role="radiogroup" aria-label="표지 제작 범위">
-              <label><input type="radio" name="coverMode" value="spread" checked><span><strong>전체 펼침</strong><small>뒤표지 + 책등 + 앞표지</small></span></label>
-              <label><input type="radio" name="coverMode" value="front"><span><strong>앞표지만</strong><small>단면 표지 디자인</small></span></label>
             </div>
             <div class="field-grid two">
               <label class="field"><span>완성 가로 <em>mm</em></span><input id="trimW" type="number" min="50" max="1000" step="0.1" value="210"></label>
@@ -254,8 +261,14 @@
         <section class="status-panel" aria-live="polite">
           <div class="status-icon" id="statusIcon">✓</div>
           <div class="status-copy">
-            <strong id="statusTitle">표지를 만들 준비가 됐습니다.</strong>
+            <div class="status-title-row">
+              <strong id="statusTitle">표지를 만들 준비가 됐습니다.</strong>
+              <span id="generationProgressText" class="generation-progress-text" hidden>0%</span>
+            </div>
             <p id="statusMessage">규격과 문구를 입력한 뒤 AI 배경 생성을 눌러주세요.</p>
+            <div class="generation-progress" id="generationProgress" hidden aria-label="AI 디자인 생성 진행률">
+              <div class="generation-progress-track"><span id="generationProgressBar"></span></div>
+            </div>
             <details id="statusDetails" hidden><summary>오류 세부정보</summary><pre id="statusDebug"></pre></details>
           </div>
         </section>
@@ -269,6 +282,6 @@
   <script defer src="/js/firebase-config.js"></script>
   <script defer src="/js/program-manuals/home-modal.js?v=20260918-1"></script>
   <script defer src="/js/program-sidebar-actions.js?v=20260918-2"></script>
-  <script defer src="/js/ai-design-maker.js?v=20260918-12"></script>
+  <script defer src="/js/ai-design-maker.js?v=20260918-14"></script>
 </body>
 </html>
