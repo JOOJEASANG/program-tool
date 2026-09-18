@@ -13,7 +13,7 @@
   const PRESET_PROMPTS_KO = Object.freeze({
     premium: '여백을 넉넉히 사용한 고급 편집디자인 표지를 만들어 주세요. 정돈된 그리드와 세련된 비대칭 구성, 절제된 주조색과 1~2개의 포인트 색상을 사용하고 장식보다 비율·리듬·크기 대비로 완성도를 높여 주세요. 앞표지는 명확한 중심을 두고 뒤표지는 더 차분하게 연결해 주세요. 광택 효과, 물결 리본, 흔한 기업 브로슈어 느낌, 과도한 그라데이션, 클립아트는 피해주세요.',
     admin: '현대적인 업무·행정 보고서 표지를 만들어 주세요. 정확한 편집 그리드, 안정적인 여백, 신뢰감 있는 정보 구조와 절제된 비대칭 구성을 사용해 주세요. 딥 네이비, 차콜, 뮤트 블루, 웜 그레이, 딥 틸 계열을 중심으로 고급 연차보고서처럼 보이게 해주세요. 오래된 관공서 브로슈어, 파란 물결, 광택 리본, 입체 도형과 장식 과다는 피해주세요.',
-    forum: '현대적인 포럼·컨퍼런스 아이덴티티 느낌의 표지를 만들어 주세요. 모듈형 기하 도형, 강약이 분명한 크기 대비, 넓은 여백, 2~3색 중심의 절제된 팔레트와 자신감 있는 포인트 색상을 사용해 주세요. 앞표지에는 시선이 모이는 중심을 만들고 뒤표지까지 자연스럽게 연결해 주세요. 축제 포스터처럼 복잡한 구성, 네온, 과도한 그라데이션, 오래된 행사 브로슈어 느낌은 피해주세요.',
+    forum: '밝고 세련된 포럼·컨퍼런스 출판물 표지를 만들어 주세요. 아이보리·오프화이트처럼 밝은 바탕에 파우더 블루, 세이지, 연보라, 피치, 블러시 계열의 부드러운 파스텔 포인트를 1~2개 사용하고 넓은 여백과 섬세한 편집 그리드로 구성해 주세요. 거대한 원·반원·두꺼운 네이비 블록처럼 흔한 관공서 브로슈어 도형은 피하고, 작은 기하학적 리듬이나 얇은 선, 은은한 질감으로 현대적인 문화·포럼 아이덴티티처럼 보여 주세요. 앞표지는 밝고 산뜻하며 제목이 들어갈 공간이 충분해야 하고 뒤표지는 더 차분하게 연결해 주세요.',
     education: '따뜻하지만 유치하지 않은 교육·사례집 표지를 만들어 주세요. 부드러운 편집 구조와 우아한 여백, 절제된 유기적 또는 기하학적 형태, 자연스럽고 차분한 색감에 하나의 포인트 색상을 사용해 주세요. 전문 출판물처럼 정돈하고 어린이용 일러스트, 만화 아이콘, 낙서, 복잡한 콜라주, 오래된 브로슈어 물결 그래픽은 피해주세요.',
     public: '명확하고 품격 있는 공공·정책 출판물 표지를 만들어 주세요. 정돈된 그리드, 충분한 여백, 절제된 추상 구조와 차분한 색상으로 프리미엄 정책보고서나 기관 출판물처럼 구성해 주세요. 흔한 관공서 이미지, 파란 물결, 상징 클립아트, 광택 그라데이션, 과도한 엠블럼과 오래된 행정 템플릿 느낌은 피해주세요.'
   });
@@ -32,7 +32,7 @@
     forum: {
       name: '포럼·행사',
       note: '컨퍼런스 아이덴티티처럼 세련되게',
-      prompt: 'Create a sophisticated conference and forum booklet cover with a strong contemporary identity system. Use bold but controlled editorial composition, modular geometry, clean abstract forms, deliberate scale contrast, generous whitespace and a limited 2–3 color palette with one confident accent. The artwork should feel like a modern cultural or professional conference identity, with a clear focal area on the front cover and quieter continuation across the back. Avoid festival-poster clutter, dated public-event brochure graphics, ribbon waves, neon glow, excessive gradients, and stock template aesthetics.'
+      prompt: 'Create a bright, airy and sophisticated conference/forum publication cover. Use an off-white or ivory base with soft pastel accents such as powder blue, sage, pale lavender, peach or blush. Favor generous whitespace, fine editorial grids, subtle line work, restrained small-scale geometry and gentle texture. The result should feel like a contemporary cultural conference identity or premium editorial booklet. Avoid dark navy dominance, giant circles or semicircles, heavy geometric blocks, government-brochure styling, ribbon waves, neon, glossy effects, excessive gradients and stock-template aesthetics.', primaryColor: '#dbeaf4', textColor: '#27445f'
     },
     education: {
       name: '교육·사례집',
@@ -57,9 +57,10 @@
     renderQueued: false,
     promptLanguage: 'ko',
     customFields: [],
-    titleLayout: { dx: 0, dy: 0, widthScale: 1, fontScale: 1, align: 'left' },
-    titleSelected: false,
-    titlePointer: null
+    textLayouts: {},
+    selectedTextId: '',
+    textPointer: null,
+    backgroundSource: ''
   };
 
   const clamp = (value, min, max, fallback) => {
@@ -86,7 +87,7 @@
   }
 
   function specKey(spec = currentSpec()) {
-    return [spec.trimW,spec.trimH,spec.spine,spec.bleed,spec.safe,spec.wing].map(v => Number(v).toFixed(2)).join('|');
+    return [spec.trimW,spec.trimH,spec.spine,spec.bleed,spec.wing].map(v => Number(v).toFixed(2)).join('|');
   }
 
   function readText() {
@@ -118,7 +119,7 @@
       spineSync: Boolean($('spineSync')?.checked),
       promptLanguage: state.promptLanguage,
       customFields: state.customFields,
-      titleLayout: state.titleLayout
+      textLayouts: state.textLayouts
     };
     ids.forEach(id => { if ($(id)) data[id] = $(id).value; });
     return data;
@@ -153,14 +154,20 @@
         label: String(item?.label || '').slice(0, 40),
         value: String(item?.value || '').slice(0, 220)
       }));
-      if (data.titleLayout && typeof data.titleLayout === 'object') {
-        state.titleLayout = {
-          dx: clamp(data.titleLayout.dx, -1000, 1000, 0),
-          dy: clamp(data.titleLayout.dy, -1000, 1000, 0),
-          widthScale: clamp(data.titleLayout.widthScale, .35, 1.6, 1),
-          fontScale: clamp(data.titleLayout.fontScale, .45, 2.2, 1),
-          align: ['left','center','right'].includes(data.titleLayout.align) ? data.titleLayout.align : 'left'
-        };
+      const normalizeTextLayout = (layout, fallbackAlign = 'left') => ({
+        dx: clamp(layout?.dx, -2000, 2000, 0),
+        dy: clamp(layout?.dy, -2000, 2000, 0),
+        widthScale: clamp(layout?.widthScale, .25, 2.5, 1),
+        fontScale: clamp(layout?.fontScale, .35, 3, 1),
+        align: ['left','center','right'].includes(layout?.align) ? layout.align : fallbackAlign
+      });
+      if (data.textLayouts && typeof data.textLayouts === 'object') {
+        Object.entries(data.textLayouts).forEach(([id,layout]) => {
+          state.textLayouts[String(id)] = normalizeTextLayout(layout);
+        });
+      }
+      if (data.titleLayout && typeof data.titleLayout === 'object' && !state.textLayouts.title) {
+        state.textLayouts.title = normalizeTextLayout(data.titleLayout);
       }
     } catch (_) {}
   }
@@ -175,6 +182,9 @@
     setupPresetCards();
     syncWing();
     syncSpineTitle();
+    renderCustomFields();
+    syncPromptLanguageUi(false);
+    syncTextEditUi();
     updateGeometry();
     updateProgress();
     scheduleRender();
@@ -245,8 +255,11 @@
       };
       label.addEventListener('input', update); value.addEventListener('input', update);
       remove.addEventListener('click', () => {
+        const textId='custom:'+item.id;
         state.customFields = state.customFields.filter(x => x.id !== item.id);
-        renderCustomFields(); saveLocal(); scheduleRender();
+        delete state.textLayouts[textId];
+        if(state.selectedTextId===textId)state.selectedTextId='';
+        renderCustomFields();syncTextEditUi();saveLocal();scheduleRender();
       });
       row.append(label,value,remove); root.appendChild(row);
     });
@@ -289,7 +302,10 @@
       button.setAttribute('aria-checked', String(active));
     });
     if (replacePrompt && $('stylePrompt')) $('stylePrompt').value = presetPrompt(id);
+    if (replacePrompt && PRESETS[id]?.primaryColor && $('primaryColor')) $('primaryColor').value = PRESETS[id].primaryColor;
+    if (replacePrompt && PRESETS[id]?.textColor && $('textColor')) $('textColor').value = PRESETS[id].textColor;
     saveLocal();
+    scheduleRender();
   }
 
   function syncWing() {
@@ -329,7 +345,7 @@
     const stale=Boolean(state.background&&!generated);
     const badge=$('generationState');
     if(badge){
-      badge.textContent=generated?'AI 배경 완료':stale?'규격 변경 · 재생성':'생성 전';
+      badge.textContent=generated?(state.backgroundSource==='upload'?'직접 표지 적용':'AI 배경 완료'):stale?'규격 변경 · 배경 재적용':'생성 전';
       badge.classList.toggle('ready',generated);
       badge.classList.toggle('stale',stale);
     }
@@ -375,7 +391,7 @@
     updateProgress();
     const stale = Boolean(state.background && state.generatedSpecKey && state.generatedSpecKey !== specKey(spec));
     if ($('exportBtn')) $('exportBtn').disabled = !state.background || stale;
-    if (stale) setStatus('규격이 변경되었습니다.','현재 규격에 맞게 AI 배경을 다시 생성해 주세요.','busy');
+    if (stale) setStatus('규격이 변경되었습니다.','현재 규격에 맞게 AI 배경을 다시 생성하거나 직접 만든 표지 이미지를 다시 불러와 주세요.','busy');
   }
 
   function scheduleRender() {
@@ -444,64 +460,110 @@
     return clamp(pt,7,12.5,8);
   }
 
+  function textLayoutState(id, fallbackAlign = 'left') {
+    const current=state.textLayouts[id] || {};
+    const normalized={
+      dx:clamp(current.dx,-2000,2000,0),
+      dy:clamp(current.dy,-2000,2000,0),
+      widthScale:clamp(current.widthScale,.25,2.5,1),
+      fontScale:clamp(current.fontScale,.35,3,1),
+      align:['left','center','right'].includes(current.align)?current.align:fallbackAlign
+    };
+    state.textLayouts[id]=normalized;
+    return normalized;
+  }
+
+  function textItemLabel(id) {
+    const fixed={
+      title:'앞표지 제목',subtitle:'부제',eventDate:'일시',eventPlace:'장소',hostText:'주최',organizerText:'주관',
+      dateText:'발행일·연도',department:'발행 부서',organization:'기관·회사명',
+      backText:'뒤표지 소개문',contact:'뒤표지 하단 정보',
+      spineTitle:'책등 제목',spineDate:'책등 날짜',spineCompany:'책등 회사명'
+    };
+    if(fixed[id])return fixed[id];
+    if(String(id||'').startsWith('custom:')){
+      const customId=String(id).slice(7);
+      const item=state.customFields.find(entry=>entry.id===customId);
+      return String(item?.label||'추가 문구').trim()||'추가 문구';
+    }
+    return '문구';
+  }
+
+  function applyTextEdit(item,spec,scale) {
+    if(!item.id)return item;
+    const edit=textLayoutState(item.id,item.align||'left');
+    item.x+=edit.dx*scale;
+    item.y+=edit.dy*scale;
+    item.w=Math.max(item.minW||5*scale,item.w*edit.widthScale);
+    item.fontPt=clamp(item.fontPt*edit.fontScale,4,160,item.fontPt);
+    item.align=edit.align;
+    return item;
+  }
+
   function textLayout(spec,scale) {
     const v=readText(), b=spec.bleed*scale, wing=spec.wing*scale, tw=spec.trimW*scale, th=spec.trimH*scale, sw=spec.spine*scale;
     const backX=b+wing, spineX=backX+tw, frontX=spineX+sw;
     const safe=Math.min(spec.safe,spec.trimW*.15,spec.trimH*.15)*scale;
     const ptPx=pt=>pt*25.4/72*scale;
-    const list=[], add=item=>{if(String(item.text||'').trim())list.push(item);};
-    const baseTitleW=Math.max(1,tw-safe*2);
-    add({
-      id:'title',
-      text:v.title,
-      x:frontX+safe+state.titleLayout.dx*scale,
-      y:b+th*.12+state.titleLayout.dy*scale,
-      w:Math.max(tw*.20,baseTitleW*state.titleLayout.widthScale),
-      h:th*.24,
-      fontPt:titlePt(v.title,spec.trimW)*state.titleLayout.fontScale,
-      weight:900,
-      align:state.titleLayout.align
+    const list=[];
+    const add=item=>{
+      if(!String(item.text||'').trim())return;
+      applyTextEdit(item,spec,scale);
+      item.fontPx=ptPx(item.fontPt);
+      list.push(item);
+    };
+    const contentW=Math.max(1,tw-safe*2);
+    add({id:'title',text:v.title,x:frontX+safe,y:b+th*.12,w:contentW,h:th*.24,fontPt:titlePt(v.title,spec.trimW),weight:900,align:'left'});
+    add({id:'subtitle',text:v.subtitle,x:frontX+safe,y:b+th*.34,w:contentW,h:th*.12,fontPt:17,weight:700,align:'left'});
+
+    const eventEntries=[
+      {id:'eventDate',label:'일시',text:v.eventDate},
+      {id:'eventPlace',label:'장소',text:v.eventPlace},
+      {id:'hostText',label:'주최',text:v.hostText},
+      {id:'organizerText',label:'주관',text:v.organizerText},
+      ...v.customFields.map(item=>({
+        id:'custom:'+item.id,
+        label:String(item.label||'').trim(),
+        text:String(item.value||'').trim()
+      }))
+    ].filter(item=>String(item.text||item.label||'').trim());
+    const infoStart=b+th*.52;
+    const infoArea=th*.205;
+    const infoStep=eventEntries.length?Math.min(th*.047,infoArea/eventEntries.length):0;
+    eventEntries.forEach((entry,index)=>{
+      const text=entry.label&&entry.text?entry.label+'  '+entry.text:(entry.text||entry.label);
+      add({id:entry.id,text,x:frontX+safe,y:infoStart+index*infoStep,w:contentW,h:Math.max(th*.035,infoStep*.98),fontPt:9.2,weight:720,align:'left'});
     });
-    add({id:'subtitle',text:v.subtitle,x:frontX+safe,y:b+th*.34,w:Math.max(1,tw-safe*2),h:th*.12,fontPt:17,weight:700});
-    const eventLines=[
-      v.eventDate ? '일시  '+v.eventDate : '',
-      v.eventPlace ? '장소  '+v.eventPlace : '',
-      v.hostText ? '주최  '+v.hostText : '',
-      v.organizerText ? '주관  '+v.organizerText : '',
-      ...v.customFields.map(item => {
-        const label=String(item.label||'').trim(), value=String(item.value||'').trim();
-        return label && value ? label+'  '+value : value || label;
-      })
-    ].filter(Boolean);
-    add({id:'eventInfo',text:eventLines.join('\n'),x:frontX+safe,y:b+th*.52,w:Math.max(1,tw-safe*2),h:th*.22,fontPt:9.2,weight:720});
-    add({text:v.dateText,x:frontX+safe,y:b+th*.77,w:Math.max(1,tw-safe*2),h:th*.045,fontPt:9.5,weight:700});
-    add({text:v.department,x:frontX+safe,y:b+th*.82,w:Math.max(1,tw-safe*2),h:th*.045,fontPt:9.5,weight:700});
-    add({text:v.organization,x:frontX+safe,y:b+th*.89,w:Math.max(1,tw-safe*2),h:th*.06,fontPt:11,weight:850});
-    add({text:v.backText,x:backX+safe,y:b+th*.16,w:Math.max(1,tw-safe*2),h:th*.58,fontPt:10.5,weight:600});
-    add({text:v.contact,x:backX+safe,y:b+th*.84,w:Math.max(1,tw-safe*2),h:th*.12,fontPt:9,weight:750});
+
+    add({id:'dateText',text:v.dateText,x:frontX+safe,y:b+th*.77,w:contentW,h:th*.045,fontPt:9.5,weight:700,align:'left'});
+    add({id:'department',text:v.department,x:frontX+safe,y:b+th*.82,w:contentW,h:th*.045,fontPt:9.5,weight:700,align:'left'});
+    add({id:'organization',text:v.organization,x:frontX+safe,y:b+th*.89,w:contentW,h:th*.06,fontPt:11,weight:850,align:'left'});
+    add({id:'backText',text:v.backText,x:backX+safe,y:b+th*.16,w:contentW,h:th*.58,fontPt:10.5,weight:600,align:'left'});
+    add({id:'contact',text:v.contact,x:backX+safe,y:b+th*.84,w:contentW,h:th*.12,fontPt:9,weight:750,align:'left'});
+
     if(spec.spine>=4&&v.spineTitle){
       const fp=spinePt(spec.spine,v.spineTitle);
-      if(v.spineOrientation==='vertical')add({text:v.spineTitle,x:spineX+sw*.12,y:b+th*.18,w:sw*.76,h:th*.62,fontPt:fp,weight:900,vertical:true,align:'center'});
-      else add({text:v.spineTitle,x:spineX+sw/2-th*.31,y:b+th/2-sw*.34,w:th*.62,h:sw*.68,fontPt:fp,weight:900,rotate:v.spineOrientation==='rotate-down'?90:-90,align:'center'});
+      if(v.spineOrientation==='vertical')add({id:'spineTitle',text:v.spineTitle,x:spineX+sw*.12,y:b+th*.18,w:sw*.76,h:th*.62,fontPt:fp,weight:900,vertical:true,align:'center'});
+      else add({id:'spineTitle',text:v.spineTitle,x:spineX+sw/2-th*.31,y:b+th/2-sw*.34,w:th*.62,h:sw*.68,fontPt:fp,weight:900,rotate:v.spineOrientation==='rotate-down'?90:-90,align:'center'});
     }
     if(spec.spine>=8&&v.spineDate){
       const fp=clamp(spinePt(spec.spine,v.spineDate)-2,7,10,8);
-      if(v.spineOrientation==='vertical')add({text:v.spineDate,x:spineX+sw*.18,y:b+th*.06,w:sw*.64,h:th*.10,fontPt:fp,weight:800,vertical:true,align:'center'});
-      else add({text:v.spineDate,x:spineX+sw/2-th*.09,y:b+th*.14-sw*.25,w:th*.18,h:sw*.5,fontPt:fp,weight:800,rotate:v.spineOrientation==='rotate-down'?90:-90,align:'center'});
+      if(v.spineOrientation==='vertical')add({id:'spineDate',text:v.spineDate,x:spineX+sw*.18,y:b+th*.06,w:sw*.64,h:th*.10,fontPt:fp,weight:800,vertical:true,align:'center'});
+      else add({id:'spineDate',text:v.spineDate,x:spineX+sw/2-th*.09,y:b+th*.14-sw*.25,w:th*.18,h:sw*.5,fontPt:fp,weight:800,rotate:v.spineOrientation==='rotate-down'?90:-90,align:'center'});
     }
     if(spec.spine>=16&&v.spineCompany){
       const fp=clamp(spinePt(spec.spine,v.spineCompany)-3,7,9.5,8);
-      if(v.spineOrientation==='vertical')add({text:v.spineCompany,x:spineX+sw*.18,y:b+th*.82,w:sw*.64,h:th*.13,fontPt:fp,weight:800,vertical:true,align:'center'});
-      else add({text:v.spineCompany,x:spineX+sw/2-th*.12,y:b+th*.86-sw*.25,w:th*.24,h:sw*.5,fontPt:fp,weight:800,rotate:v.spineOrientation==='rotate-down'?90:-90,align:'center'});
+      if(v.spineOrientation==='vertical')add({id:'spineCompany',text:v.spineCompany,x:spineX+sw*.18,y:b+th*.82,w:sw*.64,h:th*.13,fontPt:fp,weight:800,vertical:true,align:'center'});
+      else add({id:'spineCompany',text:v.spineCompany,x:spineX+sw/2-th*.12,y:b+th*.86-sw*.25,w:th*.24,h:sw*.5,fontPt:fp,weight:800,rotate:v.spineOrientation==='rotate-down'?90:-90,align:'center'});
     }
-    list.forEach(item=>item.fontPx=ptPx(item.fontPt));
     return list;
   }
 
-  function wrapped(ctx,text,x,y,maxWidth,lineHeight,align='left',maxHeight=Infinity){
-    let cy=y;
+  function wrappedLayout(ctx,text,maxWidth,lineHeight,maxHeight=Infinity){
+    const rows=[];
+    let cy=0,maxLineWidth=0;
     for(const paragraph of String(text||'').split(/\n/)){
-      if(cy+lineHeight>y+maxHeight)break;
+      if(cy+lineHeight>maxHeight)break;
       const lines=[];let lineText='';
       for(const char of [...paragraph]){
         const test=lineText+char;
@@ -509,13 +571,25 @@
       }
       if(lineText||!paragraph.length)lines.push(lineText);
       for(const value of lines){
-        if(cy+lineHeight>y+maxHeight)break;
-        let dx=x;ctx.textAlign=align;
-        if(align==='center')dx=x+maxWidth/2;else if(align==='right')dx=x+maxWidth;
-        ctx.fillText(value,dx,cy);cy+=lineHeight;
+        if(cy+lineHeight>maxHeight)break;
+        const width=Math.min(maxWidth,ctx.measureText(value).width);
+        rows.push({text:value,y:cy,width});
+        maxLineWidth=Math.max(maxLineWidth,width);
+        cy+=lineHeight;
       }
       cy+=lineHeight*.12;
     }
+    return {rows,width:maxLineWidth,height:Math.min(maxHeight,Math.max(0,cy-lineHeight*.12))};
+  }
+
+  function wrapped(ctx,text,x,y,maxWidth,lineHeight,align='left',maxHeight=Infinity){
+    const layout=wrappedLayout(ctx,text,maxWidth,lineHeight,maxHeight);
+    for(const row of layout.rows){
+      let dx=x;ctx.textAlign=align;
+      if(align==='center')dx=x+maxWidth/2;else if(align==='right')dx=x+maxWidth;
+      ctx.fillText(row.text,dx,y+row.y);
+    }
+    return layout;
   }
 
   function vertical(ctx,text,x,y,w,h,lineHeight){
@@ -533,6 +607,35 @@
     ctx.restore();
   }
 
+  function textVisualBounds(ctx,item,fontOverride){
+    const font=fontOverride||item.fontPx;
+    ctx.save();
+    ctx.font=(item.weight||700)+' '+font+'px Pretendard, "Noto Sans KR", Arial, sans-serif';
+    ctx.textBaseline='top';
+    if(item.vertical){
+      const chars=[...String(item.text||'').replace(/\s+/g,'')].length;
+      const lineHeight=font*1.14;
+      const h=Math.min(item.h,Math.max(lineHeight,chars*lineHeight));
+      const w=Math.min(item.w,Math.max(font*1.25,font));
+      ctx.restore();
+      return {x:item.x+(item.w-w)/2,y:item.y,w,h};
+    }
+    const lineHeight=font*(item.rotate?1.16:1.2);
+    const metrics=wrappedLayout(ctx,item.text,item.w,lineHeight,item.h);
+    const rawW=Math.min(item.w,Math.max(font*.55,metrics.width));
+    const rawH=Math.min(item.h,Math.max(lineHeight,metrics.height));
+    if(item.rotate){
+      const cx=item.x+item.w/2,cy=item.y+item.h/2;
+      ctx.restore();
+      return {x:cx-rawH/2,y:cy-rawW/2,w:rawH,h:rawW};
+    }
+    let x=item.x;
+    if((item.align||'left')==='center')x=item.x+(item.w-rawW)/2;
+    else if(item.align==='right')x=item.x+item.w-rawW;
+    ctx.restore();
+    return {x,y:item.y,w:rawW,h:rawH};
+  }
+
   function logoRect(spec,scale){
     if(!state.logo)return null;
     const b=spec.bleed*scale,wing=spec.wing*scale,tw=spec.trimW*scale,th=spec.trimH*scale,sw=spec.spine*scale,safe=spec.safe*scale;
@@ -546,19 +649,34 @@
     const r=logoRect(spec,scale);if(!r)return;ctx.drawImage(state.logo,r.x,r.y,r.w,r.h);
   }
 
+  function drawBackgroundImage(ctx,image,w,h){
+    if(!image?.naturalWidth||!image?.naturalHeight)return;
+    const sourceRatio=image.naturalWidth/image.naturalHeight,targetRatio=w/h;
+    let sx=0,sy=0,sw=image.naturalWidth,sh=image.naturalHeight;
+    if(sourceRatio>targetRatio){
+      sw=image.naturalHeight*targetRatio;
+      sx=(image.naturalWidth-sw)/2;
+    }else if(sourceRatio<targetRatio){
+      sh=image.naturalWidth/targetRatio;
+      sy=(image.naturalHeight-sh)/2;
+    }
+    ctx.drawImage(image,sx,sy,sw,sh,0,0,w,h);
+  }
+
   function renderPreview(){
     const canvas=$('previewCanvas'),spec=currentSpec();if(!canvas)return;
     const fit=canvasFitSize(spec),dpr=Math.min(window.devicePixelRatio||1,2);
     canvas.style.width=fit.width+'px';canvas.style.height=fit.height+'px';canvas.width=Math.round(fit.width*dpr);canvas.height=Math.round(fit.height*dpr);
     const ctx=canvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);
     ctx.clearRect(0,0,fit.width,fit.height);
-    if(state.background?.naturalWidth)ctx.drawImage(state.background,0,0,fit.width,fit.height);
+    if(state.background?.naturalWidth)drawBackgroundImage(ctx,state.background,fit.width,fit.height);
     drawLogo(ctx,spec,fit.scale);
     const color=$('textColor')?.value||'#ffffff';
-    textLayout(spec,fit.scale).forEach(item=>drawTextItem(ctx,item,color));
+    const items=textLayout(spec,fit.scale);
+    items.forEach(item=>drawTextItem(ctx,item,color));
     drawGuides(ctx,spec,fit.scale);
-    if ($('cropMarkToggle')?.checked) drawCropMarks(ctx,spec,fit.scale);
-    drawTitleSelection(ctx,spec,fit.scale);
+    if($('cropMarkToggle')?.checked)drawCropMarks(ctx,spec,fit.scale);
+    drawTextSelection(ctx,items);
     updateGeometry();
   }
 
@@ -580,17 +698,15 @@
     ctx.restore();
   }
 
-  function titleItem(spec=currentSpec(),scale=1) {
-    return textLayout(spec,scale).find(item => item.id === 'title') || null;
-  }
-
-  function drawTitleSelection(ctx,spec,scale) {
-    if (!state.titleSelected || !String($('title')?.value || '').trim()) return;
-    const item=titleItem(spec,scale); if(!item)return;
+  function drawTextSelection(ctx,items){
+    if(!state.selectedTextId)return;
+    const item=items.find(entry=>entry.id===state.selectedTextId);if(!item)return;
+    const bounds=textVisualBounds(ctx,item);
     ctx.save();
-    ctx.strokeStyle='#7c3aed';ctx.lineWidth=1.5;ctx.setLineDash([5,4]);ctx.strokeRect(item.x-3,item.y-3,item.w+6,item.h+6);
+    ctx.strokeStyle='#7c3aed';ctx.lineWidth=1.5;ctx.setLineDash([5,4]);
+    ctx.strokeRect(bounds.x-4,bounds.y-4,bounds.w+8,bounds.h+8);
     ctx.setLineDash([]);ctx.fillStyle='#7c3aed';
-    const hs=10;ctx.fillRect(item.x+item.w-hs/2,item.y+item.h-hs/2,hs,hs);
+    const hs=10;ctx.fillRect(bounds.x+bounds.w-hs/2,bounds.y+bounds.h-hs/2,hs,hs);
     ctx.restore();
   }
 
@@ -600,48 +716,87 @@
     return {x:(event.clientX-rect.left)*(canvas.clientWidth/rect.width),y:(event.clientY-rect.top)*(canvas.clientHeight/rect.height)};
   }
 
-  function bindTitleCanvasEditing() {
-    const canvas=$('previewCanvas'); if(!canvas)return;
+  function pointInBounds(point,bounds,padding=5){
+    return point.x>=bounds.x-padding&&point.x<=bounds.x+bounds.w+padding&&point.y>=bounds.y-padding&&point.y<=bounds.y+bounds.h+padding;
+  }
+
+  function findTextAtPoint(ctx,items,point){
+    for(let index=items.length-1;index>=0;index--){
+      const item=items[index],bounds=textVisualBounds(ctx,item);
+      if(pointInBounds(point,bounds,6))return {item,bounds};
+    }
+    return null;
+  }
+
+  function syncTextEditUi(){
+    const selected=state.selectedTextId;
+    const label=$('selectedTextLabel');
+    if(label)label.textContent=selected?textItemLabel(selected):'문구를 클릭해 선택';
+    const layout=selected?textLayoutState(selected):null;
+    qa('[data-text-align]').forEach(button=>{
+      button.disabled=!selected;
+      button.classList.toggle('active',Boolean(layout&&button.dataset.textAlign===layout.align));
+    });
+    if($('resetTextLayout'))$('resetTextLayout').disabled=!selected;
+  }
+
+  function bindTextCanvasEditing(){
+    const canvas=$('previewCanvas');if(!canvas)return;
     canvas.addEventListener('pointerdown',event=>{
-      const point=canvasPoint(event),spec=currentSpec(),fit=canvasFitSize(spec),item=titleItem(spec,fit.scale);
-      if(!point||!item||!String(item.text||'').trim())return;
-      const hs=18;
-      const onHandle=point.x>=item.x+item.w-hs&&point.x<=item.x+item.w+hs&&point.y>=item.y+item.h-hs&&point.y<=item.y+item.h+hs;
-      const inside=point.x>=item.x-5&&point.x<=item.x+item.w+5&&point.y>=item.y-5&&point.y<=item.y+item.h+5;
-      if(!inside&&!onHandle){state.titleSelected=false;scheduleRender();return;}
-      event.preventDefault();state.titleSelected=true;canvas.setPointerCapture?.(event.pointerId);
-      state.titlePointer={
-        id:event.pointerId,mode:onHandle?'resize':'move',startX:point.x,startY:point.y,
-        start:{...state.titleLayout},baseW:Math.max(1,item.w/state.titleLayout.widthScale),baseH:item.h,scale:fit.scale
+      const point=canvasPoint(event),spec=currentSpec(),fit=canvasFitSize(spec),ctx=canvas.getContext('2d');
+      if(!point||!ctx)return;
+      const items=textLayout(spec,fit.scale);
+      let selected=items.find(item=>item.id===state.selectedTextId)||null;
+      let selectedBounds=selected?textVisualBounds(ctx,selected):null;
+      const hs=16;
+      const onHandle=selectedBounds&&point.x>=selectedBounds.x+selectedBounds.w-hs&&point.x<=selectedBounds.x+selectedBounds.w+hs&&point.y>=selectedBounds.y+selectedBounds.h-hs&&point.y<=selectedBounds.y+selectedBounds.h+hs;
+      let hit=onHandle&&selected?{item:selected,bounds:selectedBounds}:findTextAtPoint(ctx,items,point);
+      if(!hit){
+        state.selectedTextId='';state.textPointer=null;syncTextEditUi();scheduleRender();return;
+      }
+      event.preventDefault();
+      state.selectedTextId=hit.item.id;
+      const layout=textLayoutState(hit.item.id,hit.item.align||'left');
+      canvas.setPointerCapture?.(event.pointerId);
+      state.textPointer={
+        id:event.pointerId,
+        textId:hit.item.id,
+        mode:onHandle&&selected?.id===hit.item.id?'resize':'move',
+        startX:point.x,startY:point.y,start:{...layout},
+        baseW:Math.max(24,hit.bounds.w),baseH:Math.max(18,hit.bounds.h),scale:fit.scale
       };
-      scheduleRender();
+      syncTextEditUi();scheduleRender();
     });
     canvas.addEventListener('pointermove',event=>{
-      const drag=state.titlePointer;if(!drag||drag.id!==event.pointerId)return;
+      const drag=state.textPointer;
+      if(!drag||drag.id!==event.pointerId)return;
       const point=canvasPoint(event);if(!point)return;event.preventDefault();
       const dx=point.x-drag.startX,dy=point.y-drag.startY;
+      const layout=textLayoutState(drag.textId);
       if(drag.mode==='move'){
-        state.titleLayout.dx=clamp(drag.start.dx+dx/drag.scale,-currentSpec().trimW,currentSpec().trimW,0);
-        state.titleLayout.dy=clamp(drag.start.dy+dy/drag.scale,-currentSpec().trimH,currentSpec().trimH,0);
+        const spec=currentSpec();
+        layout.dx=clamp(drag.start.dx+dx/drag.scale,-spec.workW,spec.workW,0);
+        layout.dy=clamp(drag.start.dy+dy/drag.scale,-spec.workH,spec.workH,0);
       }else{
-        state.titleLayout.widthScale=clamp(drag.start.widthScale+dx/drag.baseW,.35,1.6,1);
-        state.titleLayout.fontScale=clamp(drag.start.fontScale+dy/Math.max(70,drag.baseH)*1.5,.45,2.2,1);
+        layout.widthScale=clamp(drag.start.widthScale*(1+dx/drag.baseW),.25,2.5,1);
+        layout.fontScale=clamp(drag.start.fontScale*(1+dy/drag.baseH),.35,3,1);
       }
-      saveLocal();scheduleRender();
+      saveLocal();syncTextEditUi();scheduleRender();
     });
     const finish=event=>{
-      if(state.titlePointer&&(!event||state.titlePointer.id===event.pointerId)){state.titlePointer=null;saveLocal();scheduleRender();}
+      if(state.textPointer&&(!event||state.textPointer.id===event.pointerId)){
+        state.textPointer=null;saveLocal();syncTextEditUi();scheduleRender();
+      }
     };
-    canvas.addEventListener('pointerup',finish);canvas.addEventListener('pointercancel',finish);
+    canvas.addEventListener('pointerup',finish);
+    canvas.addEventListener('pointercancel',finish);
   }
 
-  function resetTitleLayout() {
-    state.titleLayout={dx:0,dy:0,widthScale:1,fontScale:1,align:'left'};
-    state.titleSelected=true;syncTitleAlignButtons();saveLocal();scheduleRender();
-  }
-
-  function syncTitleAlignButtons() {
-    qa('[data-title-align]').forEach(button=>button.classList.toggle('active',button.dataset.titleAlign===state.titleLayout.align));
+  function resetSelectedTextLayout(){
+    if(!state.selectedTextId)return;
+    const item=textLayout(currentSpec(),1).find(entry=>entry.id===state.selectedTextId);
+    state.textLayouts[state.selectedTextId]={dx:0,dy:0,widthScale:1,fontScale:1,align:item?.rotate||item?.vertical?'center':'left'};
+    saveLocal();syncTextEditUi();scheduleRender();
   }
 
   function waitForImage(image){
@@ -719,8 +874,10 @@
       const prompt=String($('stylePrompt')?.value||presetPrompt()).trim();
       const designGuardrails=[
         'Art direction: contemporary editorial publication design; polished, restrained, confident, and print-focused.',
+        'The OUTER BLEED BOUNDARY is the artwork canvas. Fill the entire canvas edge-to-edge; background and decorative forms must continue through trim into bleed and crop naturally at the outside edge. Never leave a white outer frame or inset border.',
         'Use generous negative space, a disciplined grid, controlled contrast, and a limited cohesive color system.',
         'Do not create a visible center spine strip, seam, fold, vertical band, or color break. The artwork must flow continuously through the exact spine area; the application will overlay the exact spine guides and text later.',
+        state.preset==='forum'?'For forum/event work, prefer a bright off-white or very light pastel base with powder blue, sage, blush, pale lavender or peach accents. Avoid dark navy dominance and giant corporate circles or heavy geometric blocks.':'',
         'Avoid outdated public brochure aesthetics, ribbon waves, glossy corporate swooshes, generic stock templates, bevels, lens flares, excessive glow, busy gradients, clip-art, pseudo-3D decoration, and random decorative icons.'
       ].join('\n');
       const data=await authFetch(AI_COVER_PATH,{
@@ -734,7 +891,11 @@
       });
       if(!data.image_base64)throw new Error('AI 이미지 결과가 비어 있습니다.');
       const image=new Image();image.src='data:'+(data.mime_type||'image/png')+';base64,'+data.image_base64;await waitForImage(image);
-      state.background=image;state.backgroundUrl=image.src;state.generatedSpecKey=specKey(spec);
+      if(state.backgroundSource==='upload'&&state.backgroundUrl?.startsWith('blob:'))URL.revokeObjectURL(state.backgroundUrl);
+      state.background=image;state.backgroundUrl=image.src;state.backgroundSource='ai';state.generatedSpecKey=specKey(spec);
+      if($('backgroundInput'))$('backgroundInput').value='';
+      if($('backgroundName'))$('backgroundName').textContent='AI 생성 배경';
+      if($('clearBackground'))$('clearBackground').hidden=false;
       $('exportBtn').disabled=false;scheduleRender();
       updateProgress();
       setStatus('AI 배경 생성 완료','문구는 별도 레이어로 유지됩니다. 문구나 색상을 수정하면 미리보기에 바로 반영됩니다.','ok');
@@ -773,7 +934,7 @@
     if(pixels>MAX_EXPORT_PIXELS)throw Object.assign(new Error('현재 규격은 '+(pixels/1e6).toFixed(1)+'MP로 300dpi 저장 한도를 초과합니다.'),{code:'EXPORT_PIXEL_LIMIT'});
     await document.fonts?.ready;
     const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;const ctx=canvas.getContext('2d');
-    ctx.drawImage(state.background,0,0,w,h);
+    drawBackgroundImage(ctx,state.background,w,h);
     drawLogo(ctx,spec,ppm);
     const color=$('textColor')?.value||'#ffffff';
     textLayout(spec,ppm).forEach(item=>drawTextItem(ctx,item,color,item.fontPt*EXPORT_DPI/72));
@@ -782,9 +943,9 @@
   }
 
   async function exportPng(){
-    if(!state.background){setStatus('먼저 AI 배경을 생성해 주세요.','생성된 배경이 있어야 300dpi로 저장할 수 있습니다.','error');return;}
+    if(!state.background){setStatus('배경을 먼저 준비해 주세요.','AI 배경을 생성하거나 직접 만든 표지 이미지를 불러와야 300dpi로 저장할 수 있습니다.','error');return;}
     const spec=currentSpec();
-    if(state.generatedSpecKey!==specKey(spec)){setStatus('규격이 변경되었습니다.','현재 규격으로 AI 배경을 다시 생성한 뒤 저장해 주세요.','error');return;}
+    if(state.generatedSpecKey!==specKey(spec)){setStatus('규격이 변경되었습니다.','현재 규격으로 AI 배경을 다시 생성하거나 직접 만든 표지 이미지를 다시 불러온 뒤 저장해 주세요.','error');return;}
     const button=$('exportBtn');button.disabled=true;
     setStatus('300dpi PNG를 만들고 있습니다.','배경·문구·책등·로고'+($('cropMarkToggle')?.checked?'·재단선':'')+'을 실제 인쇄 크기로 합성하는 중입니다.','busy');
     try{
@@ -829,9 +990,9 @@
   }
 
   async function exportPdf(){
-    if(!state.background){setStatus('먼저 AI 배경을 생성해 주세요.','생성된 배경이 있어야 PDF로 저장할 수 있습니다.','error');return;}
+    if(!state.background){setStatus('배경을 먼저 준비해 주세요.','AI 배경을 생성하거나 직접 만든 표지 이미지를 불러와야 PDF로 저장할 수 있습니다.','error');return;}
     const spec=currentSpec();
-    if(state.generatedSpecKey!==specKey(spec)){setStatus('규격이 변경되었습니다.','현재 규격으로 AI 배경을 다시 생성한 뒤 저장해 주세요.','error');return;}
+    if(state.generatedSpecKey!==specKey(spec)){setStatus('규격이 변경되었습니다.','현재 규격으로 AI 배경을 다시 생성하거나 직접 만든 표지 이미지를 다시 불러온 뒤 저장해 주세요.','error');return;}
     const button=$('exportBtn');button.disabled=true;
     setStatus('인쇄용 PDF를 만들고 있습니다.','300dpi 디자인을 실제 전체 펼침 크기의 1페이지 PDF로 만드는 중입니다.','busy');
     try{
@@ -854,6 +1015,37 @@
     location.reload();
   }
 
+  async function loadBackground(file){
+    if(!file)return;
+    if(!/^image\/(png|jpeg|webp)$/.test(file.type)){
+      setStatus('지원하지 않는 표지 이미지입니다.','PNG, JPEG, WEBP만 사용할 수 있습니다.','error');return;
+    }
+    const url=URL.createObjectURL(file),image=new Image();image.src=url;
+    try{
+      await waitForImage(image);
+      if(state.backgroundSource==='upload'&&state.backgroundUrl?.startsWith('blob:'))URL.revokeObjectURL(state.backgroundUrl);
+      state.background=image;state.backgroundUrl=url;state.backgroundSource='upload';state.generatedSpecKey=specKey(currentSpec());
+      if($('backgroundName'))$('backgroundName').textContent=file.name;
+      if($('clearBackground'))$('clearBackground').hidden=false;
+      if($('exportBtn'))$('exportBtn').disabled=false;
+      scheduleRender();updateProgress();
+      setStatus('직접 만든 표지를 배치했습니다.','이미지는 바깥 적색선 전체 영역을 꽉 채우고, 문구 레이어는 그 위에서 자유롭게 편집할 수 있습니다.','ok');
+    }catch(error){
+      URL.revokeObjectURL(url);
+      setStatus('표지 이미지를 읽지 못했습니다.',error.message||'이미지 파일을 확인해 주세요.','error');
+    }
+  }
+
+  function clearBackground(){
+    if(state.backgroundSource==='upload'&&state.backgroundUrl?.startsWith('blob:'))URL.revokeObjectURL(state.backgroundUrl);
+    state.background=null;state.backgroundUrl='';state.backgroundSource='';state.generatedSpecKey='';
+    if($('backgroundInput'))$('backgroundInput').value='';
+    if($('backgroundName'))$('backgroundName').textContent='없음';
+    if($('clearBackground'))$('clearBackground').hidden=true;
+    if($('exportBtn'))$('exportBtn').disabled=true;
+    scheduleRender();updateProgress();
+  }
+
   async function loadLogo(file){
     if(!file)return;
     if(!/^image\/(png|jpeg|webp)$/.test(file.type)){setStatus('지원하지 않는 로고 파일입니다.','PNG, JPEG, WEBP만 사용할 수 있습니다.','error');return;}
@@ -868,7 +1060,7 @@
   }
 
   function bind(){
-    loadLocal();setupPresetCards();syncWing();syncSpineTitle();renderCustomFields();syncPromptLanguageUi(false);syncTitleAlignButtons();syncExportButton();
+    loadLocal();setupPresetCards();syncWing();syncSpineTitle();renderCustomFields();syncPromptLanguageUi(false);syncTextEditUi();syncExportButton();
     if(!$('stylePrompt').value)$('stylePrompt').value=presetPrompt();
     qa('.size-chip').forEach(button=>button.addEventListener('click',()=>{
       const [w,h]=button.dataset.size.split(',');$('trimW').value=w;$('trimH').value=h;qa('.size-chip').forEach(x=>x.classList.toggle('active',x===button));saveLocal();scheduleRender();
@@ -897,13 +1089,16 @@
       saveLocal();updateProgress();
       if(previous!==state.promptLanguage)scheduleRender();
     }));
-    qa('[data-title-align]').forEach(button=>button.addEventListener('click',()=>{
-      state.titleLayout.align=button.dataset.titleAlign;
-      state.titleSelected=true;syncTitleAlignButtons();saveLocal();scheduleRender();
+    qa('[data-text-align]').forEach(button=>button.addEventListener('click',()=>{
+      if(!state.selectedTextId)return;
+      textLayoutState(state.selectedTextId).align=button.dataset.textAlign;
+      syncTextEditUi();saveLocal();scheduleRender();
     }));
-    $('resetTitleLayout')?.addEventListener('click',resetTitleLayout);
-    bindTitleCanvasEditing();
+    $('resetTextLayout')?.addEventListener('click',resetSelectedTextLayout);
+    bindTextCanvasEditing();
     $('resetBtn')?.addEventListener('click',resetAll);
+    $('backgroundInput')?.addEventListener('change',event=>loadBackground(event.target.files?.[0]));
+    $('clearBackground')?.addEventListener('click',clearBackground);
     $('logoInput')?.addEventListener('change',event=>loadLogo(event.target.files?.[0]));
     $('clearLogo')?.addEventListener('click',clearLogo);
     $('logoutBtn')?.addEventListener('click',()=>window.auth?.signOut().then(()=>location.replace('/')));

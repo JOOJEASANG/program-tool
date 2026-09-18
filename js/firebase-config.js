@@ -26,7 +26,7 @@ window.googleProvider = googleProvider;
 window.firebaseConfig = firebaseConfig;
 
 (() => {
-  const UI_VERSION = '20260916-01';
+  const UI_VERSION = '20260918-02';
   const existingUiStyles = document.getElementById('programStudioUiV2Styles')
     || document.querySelector('link[data-program-studio-ui]');
   if (existingUiStyles) {

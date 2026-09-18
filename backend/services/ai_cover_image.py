@@ -155,6 +155,7 @@ GEOMETRY
 - Front cover trim: {req.trim_width_mm:.2f} mm wide, from about {front_start_mm / work_width * 100:.2f}% to {front_end_mm / work_width * 100:.2f}% of total width.
 {flap_note}
 - Bleed: {req.bleed_mm:.2f} mm around the outside.
+- The OUTER BLEED BOUNDARY is the exact artwork canvas boundary. Fill the entire canvas edge-to-edge with finished artwork; never leave a white/unpainted border, frame, or inset margin at the outside edge.
 
 CRITICAL TYPOGRAPHY RULE
 Generate BACKGROUND ARTWORK ONLY. Do not draw any words, letters, numbers, logos, signatures, pseudo-text,
@@ -174,10 +175,11 @@ LAYOUT REQUIREMENTS
 - Reserve a quieter information zone inside the back-cover trim for body copy and company/contact information.
 - If flaps exist, continue the artwork naturally into them without moving the front/back focal areas into the flap zones.
 - Do not create visible boxes that look like text placeholders; use natural composition and negative space instead.
-- Keep important decorative focal points away from the outer bleed edge, flap folds, and spine folds.
+- Background color, texture, photographs, abstract forms and decorative artwork MUST continue through the trim into the full bleed and reach/crop naturally at the outer canvas edge. Keep only essential focal content away from cut/fold risk areas.
 - Make the front cover feel strongest, the back cover supportive, and the spine/flaps integrated rather than pasted in.
 - Use sophisticated editorial design, refined spacing, controlled contrast, professional print sensibility, and contemporary Korean publication aesthetics.
-- Avoid outdated public brochure aesthetics, generic government handout styling, ribbon waves, glossy corporate swooshes, beveled shapes, lens flares, fake metallic shine, clip-art, childish decoration, random icons, stock-photo collage, pseudo-3D graphics, busy gradients, excessive glow, and generic template looks.
+- Avoid outdated public brochure aesthetics, generic government handout styling, giant corporate circles/arcs, heavy navy blocks, ribbon waves, glossy corporate swooshes, beveled shapes, lens flares, fake metallic shine, clip-art, childish decoration, random icons, stock-photo collage, pseudo-3D graphics, busy gradients, excessive glow, and generic template looks.
+- When the requested style is forum/event/conference, prefer an airy contemporary editorial identity with a bright off-white or very light pastel base, soft powder blue/sage/blush/lavender/peach accents, fine typographic-friendly structure and generous breathing room. Do not default to dark-blue public-agency brochure styling.
 - No crop marks, trim marks, rulers, registration marks, 3D perspective, book shadows, hands, desks, or environmental mockup context.
 
 STYLE DIRECTION
@@ -367,7 +369,7 @@ def generate_cover_image(payload: dict[str, Any], *, uid: str) -> dict[str, Any]
         "model": str(data.get("model") or model),
         "size": str(data.get("size") or size),
         "quality": str(data.get("quality") or quality),
-        "prompt_version": "cover-background-v4-editorial-spine",
+        "prompt_version": "cover-background-v5-full-bleed-pastel-editorial",
         "geometry": {
             "trim_width_mm": req.trim_width_mm,
             "trim_height_mm": req.trim_height_mm,
