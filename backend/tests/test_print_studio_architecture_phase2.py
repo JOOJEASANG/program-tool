@@ -12,7 +12,9 @@ def test_home_is_print_first_from_initial_source_not_generic_category_runtime():
     for marker in (
         'data-home-static-professional="1"',
         "url:'print-checker/'",
-        "디자인 검토/제작",
+        "디자인 검토",
+        "AI 디자인 제작",
+        "url:\'ai-design-maker/\'",
         "PDF배치",
         "PDF편집",
         "인쇄 전 검사",
