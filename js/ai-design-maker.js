@@ -62,7 +62,8 @@
     selectedTextUiId: '',
     textPointer: null,
     backgroundSource: '',
-    coverMode: 'spread'
+    coverMode: 'spread',
+    generationQuality: 'standard'
   };
 
   const clamp = (value, min, max, fallback) => {
@@ -138,7 +139,8 @@
       promptLanguage: state.promptLanguage,
       customFields: state.customFields,
       textLayouts: state.textLayouts,
-      coverMode: state.coverMode
+      coverMode: state.coverMode,
+      generationQuality: state.generationQuality
     };
     ids.forEach(id => { if ($(id)) data[id] = $(id).value; });
     return data;
@@ -168,6 +170,7 @@
       if (typeof data.spineSync === 'boolean') $('spineSync').checked = data.spineSync;
       if (data.preset && PRESETS[data.preset]) state.preset = data.preset;
       if (data.coverMode === 'front' || data.coverMode === 'spread') state.coverMode = data.coverMode;
+      if (data.generationQuality === 'high' || data.generationQuality === 'standard') state.generationQuality = data.generationQuality;
       if (data.promptLanguage === 'en' || data.promptLanguage === 'ko') state.promptLanguage = data.promptLanguage;
       if (Array.isArray(data.customFields)) state.customFields = data.customFields.slice(0, 12).map(item => ({
         id: String(item?.id || ('custom-'+Math.random().toString(36).slice(2))),
@@ -210,6 +213,7 @@
     loadLocal();
     setupPresetCards();
     syncCoverMode();
+    syncGenerationQuality();
     syncSpineTitle();
     renderCustomFields();
     syncPromptLanguageUi(false);
@@ -365,6 +369,12 @@
     updateGeometry();
     syncTextEditUi();
     scheduleRender();
+  }
+
+  function syncGenerationQuality() {
+    qa('input[name="generationQuality"]').forEach(input=>{
+      input.checked=input.value===state.generationQuality;
+    });
   }
 
   function syncSpineTitle() {
@@ -1000,7 +1010,7 @@
     const spec=currentSpec(), ratio=spec.workW/spec.workH;
     if(ratio<1/3||ratio>3){setStatus('현재 표지 비율을 생성할 수 없습니다.','완성 규격·책등·날개 폭을 확인해 주세요.','error');return;}
     const button=$('generateBtn');button.disabled=true;
-    setStatus('AI 배경을 생성하고 있습니다.','표지 비율에 맞는 배경을 만드는 중입니다. 생성에는 시간이 걸릴 수 있습니다.','busy');
+    setStatus('AI 배경을 생성하고 있습니다.',state.generationQuality==='high'?'고품질 AI 배경을 생성 중입니다. 최종 저장은 300dpi로 출력됩니다.':'기본 품질 AI 배경을 생성 중입니다. 최종 저장은 300dpi로 출력됩니다.','busy');
     try{
       const prompt=String($('stylePrompt')?.value||presetPrompt()).trim();
       const designGuardrails=[
@@ -1018,7 +1028,7 @@
       const data=await authFetch(AI_COVER_PATH,{
         method:'POST',
         body:JSON.stringify({
-          cover_mode:spec.coverMode,trim_width_mm:spec.trimW,trim_height_mm:spec.trimH,spine_mm:spec.spine,wing_mm:spec.wing,bleed_mm:spec.bleed,
+          cover_mode:spec.coverMode,quality_mode:state.generationQuality,trim_width_mm:spec.trimW,trim_height_mm:spec.trimH,spine_mm:spec.spine,wing_mm:spec.wing,bleed_mm:spec.bleed,
           preset_name:PRESETS[state.preset].name,
           style_request:prompt+'\n'+designGuardrails+'\nPreferred dominant color: '+($('primaryColor')?.value||'#315c8c')+'.',
           theme_context:themeContext()
@@ -1196,7 +1206,7 @@
   }
 
   function bind(){
-    loadLocal();setupPresetCards();syncCoverMode();syncSpineTitle();renderCustomFields();syncPromptLanguageUi(false);syncTextEditUi();syncExportButton();
+    loadLocal();setupPresetCards();syncCoverMode();syncGenerationQuality();syncSpineTitle();renderCustomFields();syncPromptLanguageUi(false);syncTextEditUi();syncExportButton();
     if(!$('stylePrompt').value)$('stylePrompt').value=presetPrompt();
     qa('.size-chip').forEach(button=>button.addEventListener('click',()=>{
       const [w,h]=button.dataset.size.split(',');$('trimW').value=w;$('trimH').value=h;qa('.size-chip').forEach(x=>x.classList.toggle('active',x===button));saveLocal();scheduleRender();
@@ -1211,6 +1221,10 @@
         setStatus('표지 범위가 변경되었습니다.','새 범위에 맞게 AI 배경을 다시 생성하거나 표지 이미지를 다시 불러와 주세요.','busy');
       }
       syncCoverMode();saveLocal();
+    }));
+    qa('input[name="generationQuality"]').forEach(input=>input.addEventListener('change',()=>{
+      state.generationQuality=input.value==='high'?'high':'standard';
+      syncGenerationQuality();saveLocal();
     }));
     const watched=['trimW','trimH','spine','bleed','safeZone','wingW','title','subtitle','dateText','department','organization','eventDate','eventPlace','hostText','organizerText','backText','contact','spineTitle','spineDate','spineCompany','spineOrientation','primaryColor','textColor','theme','stylePrompt'];
     watched.forEach(id=>$(id)?.addEventListener('input',()=>{
