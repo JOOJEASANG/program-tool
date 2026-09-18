@@ -88,7 +88,7 @@ def test_prompt_is_background_only_and_spine_aware():
     assert "front cover" in prompt.lower()
     assert "back cover" in prompt.lower()
     assert "Do not draw a visible center spine strip" in prompt
-    assert "Photography, editorial illustration, iconographic or infographic structures" in prompt
+    assert "editorial illustration, symbolic scenes, iconographic or infographic structures" in prompt
     assert "refined medium saturation" in prompt
     assert "washed-out low-contrast pastel" in prompt
 
