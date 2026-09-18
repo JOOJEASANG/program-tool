@@ -161,12 +161,12 @@ def build_cover_prompt(req: CoverImageRequest) -> str:
     )
     mode_rules = (
         "- Compose ONE portrait front cover only. Do not invent a back cover, spine, fold, mockup, second panel, or book perspective.\n"
-        "- Reserve a large calm title zone in the upper-middle or left-middle area.\n"
+        "- Keep one clearly usable typography-safe zone inside the trim area.\n"
         if req.cover_mode == "front"
         else
-        "- Let the artwork flow continuously across back cover, exact spine, and front cover. Do not draw a visible center spine strip, seam, fold, or artificial center band.\n"
+        "- Let artwork flow continuously across back cover, exact spine, and front cover. Do not draw a visible center spine strip, seam, fold, or artificial center band.\n"
         "- If flaps exist, continue artwork naturally through the flap zones while keeping focal content inside the trim areas.\n"
-        "- Keep the front cover visually strongest and the back cover quieter, with the exact spine calm and low-detail.\n"
+        "- Keep the front cover visually strongest and the back cover supportive rather than duplicating the same composition.\n"
     )
     return f"""
 Create premium, production-ready {mode_title} BACKGROUND ARTWORK, perfectly flat and straight-on.
@@ -177,56 +177,50 @@ GEOMETRY
 
 CRITICAL TYPOGRAPHY RULE
 Generate BACKGROUND ARTWORK ONLY.
-Do not draw any words, letters, numbers, logos, signatures, pseudo-text, watermarks, QR codes, barcodes,
-fake labels, placeholder type, or typographic marks. Exact Korean text will be added later by the application.
+Do not draw readable words, letters, numbers, logos, signatures, QR codes, barcodes, fake labels, placeholder type, pseudo-text or typographic marks.
+Exact Korean text will be added later by the application.
 
-REFERENCE VISUAL TARGET
-- Match the visual discipline of clean modern annual-report, business-proposal, brochure-cover and editorial-report templates.
-- Use a disciplined editorial grid, generous negative space, precise spacing, and controlled asymmetry.
-- Keep approximately 70–85% of the composition white, ivory, or very light neutral whenever compatible with the requested style.
-- Use ONE restrained graphic language only:
-  1) thin translucent blue/cyan flowing curves,
-  2) sparse geometric network lines and tiny points,
-  3) a few small flat squares/rectangles in blue/mint/pastel accents,
-  4) one light diagonal or edge sweep with fine line texture.
-- Decorative graphics should stay mainly along one edge, one corner, the lower third, or a narrow side area.
-- Preserve a large, quiet, clean title area.
-- Use crisp flat 2D print design, fine line work, gentle transparency, precise spacing, and controlled asymmetry.
-- Prefer light sky blue, powder blue, cyan, mint, pale sage, soft lavender, pale peach, and cool light gray accents.
-- Keep the palette restrained: usually one base color family plus one or two accents.
-- Use only one main accent family plus at most one secondary accent.
+ART DIRECTION
+- Follow the selected document category and user visual direction instead of forcing every result into the same abstract geometric template.
+- Professional visual approaches may include editorial grids, photography, photo-collage, architectural imagery, material texture, editorial illustration, symbolic scenes, iconographic or infographic structures, framing, image crops, layered fields, modular layouts, refined geometry or a coherent hybrid.
+- If photography is requested, create sophisticated text-free editorial imagery with no readable signage, brands or labels.
+- If illustration is requested, use publication-grade editorial illustration rather than childish cartoon or clip-art.
+- If infographic/icon styling is requested, use symbolic visual structures without generating readable labels or text.
+- Keep a clear typography-safe zone, but the rest of the page may carry a stronger focal image or richer visual composition where appropriate.
+- Use refined medium saturation by default: slightly richer and more confident than pale pastel, with crisp professional contrast and print-friendly tones.
+- Pale colors are allowed as supporting tones, but do not make the entire result washed-out, foggy, low-contrast or weak.
+- Dark navy, charcoal, deep teal, emerald, cobalt, purple, coral, orange and other stronger accents are allowed when appropriate to the selected category and mood.
+- Prefer a professionally art-directed visual hierarchy over repetitive circles, waves, line networks or generic abstract patterns.
 
 LAYOUT RULES
 {mode_rules}- Background and decorative artwork may extend through trim into bleed and crop naturally at the outside edge.
-- Keep key visual accents away from text zones so overlaid Korean typography remains clear.
+- Keep important focal elements away from the application's typography-safe zone.
 - Do not draw visible text-placeholder boxes.
-- No crop marks, trim marks, rulers, registration marks, 3D perspective, book shadows, hands, desks, or environmental mockup context.
+- No crop marks, trim marks, rulers, registration marks, 3D book perspective, book shadows, hands, desks, or environmental mockup context.
 
 STRICT AVOID LIST
-- Avoid outdated public brochure aesthetics and generic government handout styling.
-- Giant circles or semicircles dominating the page.
-- Dark navy or saturated blue covering large areas.
-- Thick corporate wave bands, glossy swooshes, ribbon graphics, bevels, metallic shine, lens flare, or fake 3D.
-- Busy gradients, neon glow, clip-art, random icons, stock-photo collage, childish decoration, or crowded poster composition.
-- Dated government/public-agency brochure styling and generic low-end template aesthetics.
-- Filling every area with graphics. White space is a primary design element.
+- Washed-out low-contrast pastel covering the entire composition.
+- Repeating the same thin-line, circle, wave or geometric-network formula regardless of document type.
+- Dated government-brochure styling, generic blue wave motifs, glossy swooshes, bevels, metallic shine, lens flare or fake 3D.
+- Random clip-art, childish decoration, incoherent collage, fake text, visible logos or generic low-end stock-template aesthetics.
+- Crowding every area and leaving no useful typography-safe space.
 
 STYLE DIRECTION
 Preset: {req.preset_name or 'custom'}
 {req.style_request}
 
-SEMANTIC CONTEXT ONLY — use this to inspire visual language, never render it as text:
-{req.theme_context or 'professional report / publication cover'}
+SEMANTIC CONTEXT ONLY — use this to inspire imagery, subject matter, visual metaphor and art direction; never render it as text:
+{req.theme_context or 'professional publication cover'}
 
 QUALITY BAR
-- The result should look like a polished contemporary annual report or professional cover template before typography is added.
-- Prefer one coherent visual idea over multiple decorative motifs.
-- Keep the layout timeless, restrained, print-safe, and easy to typeset.
-- Make the composition feel professionally art-directed rather than AI-decorated.
+- The result should feel intentionally designed for the selected category: report, administration, public institution, proposal, event, workbook or educational publication.
+- Make composition, imagery and visual language meaningfully different across categories and visual modes.
+- Prefer one coherent visual concept over unrelated decoration.
+- Keep the result contemporary, premium, print-safe and easy to typeset.
+- Make it feel professionally art-directed rather than AI-decorated.
 
-Return one finished background artwork with generous breathing room and a clear text-friendly hierarchy.
+Return one finished background artwork with clear hierarchy, confident color and useful text-safe space.
 """.strip()
-
 
 def _read_provider_error(exc: urllib.error.HTTPError) -> tuple[str, str, str]:
     provider_code = ""
@@ -395,7 +389,7 @@ def generate_cover_image(payload: dict[str, Any], *, uid: str) -> dict[str, Any]
         "model": str(data.get("model") or model),
         "size": str(data.get("size") or size),
         "quality": str(data.get("quality") or quality),
-        "prompt_version": "cover-background-v6-clean-report-front-mode",
+        "prompt_version": "cover-background-v7-category-visual-diversity",
         "geometry": {
             "cover_mode": req.cover_mode,
             "quality_mode": req.quality_mode,
