@@ -173,6 +173,47 @@
     if ($('spineSync')?.checked && $('spineTitle')) $('spineTitle').value = $('title')?.value || '';
   }
 
+  function fillSpineFromCover() {
+    if ($('spineTitle')) $('spineTitle').value = $('title')?.value || '';
+    if ($('spineDate')) $('spineDate').value = $('dateText')?.value || '';
+    if ($('spineCompany')) $('spineCompany').value = $('organization')?.value || '';
+    if ($('spineSync')) $('spineSync').checked = true;
+    saveLocal();
+    scheduleRender();
+    setStatus('책등 문구를 채웠습니다.','앞표지 제목·날짜·기관명 기준으로 책등 입력값을 정리했습니다.','ok');
+  }
+
+  function updateProgress() {
+    const spec=currentSpec();
+    const validSpec=spec.trimW>=50&&spec.trimH>=50&&spec.spine>=0&&spec.bleed>=0;
+    const hasTitle=Boolean(String($('title')?.value||'').trim());
+    const hasStyle=Boolean(String($('stylePrompt')?.value||'').trim());
+    const setState=(id,done,doneText,pendingText)=>{
+      const node=$(id); if(!node)return;
+      node.textContent=done?doneText:pendingText;
+      node.classList.toggle('done',done);
+      node.classList.toggle('need',!done);
+    };
+    setState('specState',validSpec,'완료','확인');
+    setState('copyState',hasTitle,'완료','제목 필요');
+    setState('styleState',hasStyle,'완료','스타일 필요');
+    const generated=Boolean(state.background&&state.generatedSpecKey===specKey(spec));
+    const stale=Boolean(state.background&&!generated);
+    const badge=$('generationState');
+    if(badge){
+      badge.textContent=generated?'AI 배경 완료':stale?'규격 변경 · 재생성':'생성 전';
+      badge.classList.toggle('ready',generated);
+      badge.classList.toggle('stale',stale);
+    }
+  }
+
+  function jumpToSection(id) {
+    const section=$(id); if(!section)return;
+    section.open=true;
+    section.scrollIntoView({behavior:'smooth',block:'start'});
+    setTimeout(()=>section.querySelector('input,textarea,select,button')?.focus({preventScroll:true}),260);
+  }
+
   function updateSpinePolicy() {
     const spine = currentSpec().spine;
     const box = $('spinePolicy');
@@ -200,6 +241,7 @@
     if ($('geometryHint')) $('geometryHint').textContent = text;
     if ($('geometrySummary')) $('geometrySummary').textContent = text;
     updateSpinePolicy();
+    updateProgress();
     const stale = Boolean(state.background && state.generatedSpecKey && state.generatedSpecKey !== specKey(spec));
     if ($('exportBtn')) $('exportBtn').disabled = !state.background || stale;
     if (stale) setStatus('규격이 변경되었습니다.','현재 규격에 맞게 AI 배경을 다시 생성해 주세요.','busy');
@@ -418,6 +460,7 @@
       const image=new Image();image.src='data:'+(data.mime_type||'image/png')+';base64,'+data.image_base64;await waitForImage(image);
       state.background=image;state.backgroundUrl=image.src;state.generatedSpecKey=specKey(spec);
       $('exportBtn').disabled=false;scheduleRender();
+      updateProgress();
       setStatus('AI 배경 생성 완료','문구는 별도 레이어로 유지됩니다. 문구나 색상을 수정하면 미리보기에 바로 반영됩니다.','ok');
     }catch(error){
       const debug=['HTTP: '+(error.status||'unknown'),'code: '+(error.code||'unknown'),'request_id: '+(error.requestId||'none'),error.raw?'response: '+error.raw:''].filter(Boolean).join('\n');
@@ -497,9 +540,11 @@
       const [w,h]=button.dataset.size.split(',');$('trimW').value=w;$('trimH').value=h;qa('.size-chip').forEach(x=>x.classList.toggle('active',x===button));saveLocal();scheduleRender();
     }));
     const watched=['trimW','trimH','spine','bleed','safeZone','wingW','title','subtitle','dateText','department','organization','backText','contact','spineTitle','spineDate','spineCompany','spineOrientation','primaryColor','textColor','theme','stylePrompt'];
-    watched.forEach(id=>$(id)?.addEventListener('input',()=>{if(id==='title')syncSpineTitle();saveLocal();scheduleRender();}));
+    watched.forEach(id=>$(id)?.addEventListener('input',()=>{if(id==='title')syncSpineTitle();saveLocal();updateProgress();scheduleRender();}));
     $('wingEnabled')?.addEventListener('change',()=>{syncWing();saveLocal();scheduleRender();});
-    $('spineSync')?.addEventListener('change',()=>{syncSpineTitle();saveLocal();scheduleRender();});
+    $('spineSync')?.addEventListener('change',()=>{syncSpineTitle();saveLocal();updateProgress();scheduleRender();});
+    $('fillSpineBtn')?.addEventListener('click',fillSpineFromCover);
+    qa('[data-jump]').forEach(button=>button.addEventListener('click',()=>jumpToSection(button.dataset.jump)));
     $('guideToggle')?.addEventListener('change',scheduleRender);
     $('generateBtn')?.addEventListener('click',generate);
     $('exportBtn')?.addEventListener('click',exportPng);
@@ -508,7 +553,7 @@
     $('clearLogo')?.addEventListener('click',clearLogo);
     $('logoutBtn')?.addEventListener('click',()=>window.auth?.signOut().then(()=>location.replace('/')));
     window.addEventListener('resize',()=>scheduleRender());
-    updateGeometry();scheduleRender();
+    updateGeometry();updateProgress();scheduleRender();
   }
 
   async function authorize(){

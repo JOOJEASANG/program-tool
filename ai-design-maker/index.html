@@ -8,7 +8,7 @@
   <meta name="robots" content="noindex,nofollow">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
-  <link rel="stylesheet" href="/css/ai-design-maker.css?v=20260918-2">
+  <link rel="stylesheet" href="/css/ai-design-maker.css?v=20260918-3">
 </head>
 <body>
   <div class="auth-gate" id="authGate">
@@ -44,6 +44,12 @@
           <p>규격 → 문구 → 스타일 순서로 입력하면 됩니다. 변경 내용은 미리보기에 바로 반영됩니다.</p>
         </div>
 
+        <nav class="workflow-nav" aria-label="표지 제작 단계 바로가기">
+          <button type="button" data-jump="specSection"><span>1</span>규격</button>
+          <button type="button" data-jump="copySection"><span>2</span>문구</button>
+          <button type="button" data-jump="styleSection"><span>3</span>디자인</button>
+        </nav>
+
         <div class="product-tabs" aria-label="AI 디자인 제작 종류">
           <button class="product-tab active" type="button" aria-current="page"><strong>표지</strong><small>현재 사용</small></button>
           <button class="product-tab" type="button" disabled><strong>전단지</strong><small>다음 추가</small></button>
@@ -51,8 +57,8 @@
           <button class="product-tab" type="button" disabled><strong>리플렛</strong><small>다음 추가</small></button>
         </div>
 
-        <details class="control-section" open>
-          <summary><span class="step-no">1</span><span><strong>인쇄 규격</strong><small>완성 크기와 책등</small></span></summary>
+        <details class="control-section" id="specSection" open>
+          <summary><span class="step-no">1</span><span><strong>인쇄 규격</strong><small>완성 크기와 책등</small></span><span class="section-state" id="specState">확인</span></summary>
           <div class="section-body">
             <div class="preset-size-row">
               <button type="button" class="size-chip active" data-size="210,297">A4</button>
@@ -72,8 +78,8 @@
           </div>
         </details>
 
-        <details class="control-section" open>
-          <summary><span class="step-no">2</span><span><strong>표지 문구</strong><small>한글은 별도 레이어로 정확하게</small></span></summary>
+        <details class="control-section" id="copySection" open>
+          <summary><span class="step-no">2</span><span><strong>표지 문구</strong><small>한글은 별도 레이어로 정확하게</small></span><span class="section-state" id="copyState">제목 필요</span></summary>
           <div class="section-body">
             <label class="field"><span>앞표지 제목 <b>*</b></span><input id="title" maxlength="180" placeholder="예: 2026 마을교육 운영사례집"></label>
             <label class="field"><span>부제</span><input id="subtitle" maxlength="220" placeholder="선택 입력"></label>
@@ -85,7 +91,7 @@
             <label class="field"><span>뒤표지 소개문</span><textarea id="backText" maxlength="700" rows="4" placeholder="뒤표지에 들어갈 소개문이나 설명"></textarea></label>
             <label class="field"><span>뒤표지 하단 정보</span><textarea id="contact" maxlength="360" rows="2" placeholder="홈페이지 · 문의처 · 주소 등"></textarea></label>
 
-            <div class="subsection-title">책등</div>
+            <div class="subsection-title spine-title-row"><span>책등</span><button id="fillSpineBtn" class="mini-action" type="button">표지 정보로 자동 채우기</button></div>
             <label class="check-row"><input id="spineSync" type="checkbox" checked><span>앞표지 제목을 책등 제목으로 자동 사용</span></label>
             <label class="field"><span>책등 제목</span><input id="spineTitle" maxlength="180"></label>
             <div class="field-grid two">
@@ -103,8 +109,8 @@
           </div>
         </details>
 
-        <details class="control-section" open>
-          <summary><span class="step-no">3</span><span><strong>AI 디자인</strong><small>원하는 분위기를 간단하게</small></span></summary>
+        <details class="control-section" id="styleSection" open>
+          <summary><span class="step-no">3</span><span><strong>AI 디자인</strong><small>원하는 분위기를 간단하게</small></span><span class="section-state" id="styleState">준비</span></summary>
           <div class="section-body">
             <div class="style-cards" id="styleCards" role="radiogroup" aria-label="디자인 스타일"></div>
             <div class="field-grid two">
@@ -134,6 +140,7 @@
           <div>
             <span class="workspace-kicker">PRINT PREVIEW</span>
             <strong>전체 펼침 미리보기</strong>
+            <span class="generation-state" id="generationState">생성 전</span>
           </div>
           <div class="toolbar-actions">
             <label class="mini-switch"><input id="guideToggle" type="checkbox" checked><span>가이드</span></label>
@@ -170,6 +177,6 @@
   <script defer src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
   <script defer src="/js/firebase-config.js"></script>
-  <script defer src="/js/ai-design-maker.js?v=20260918-2"></script>
+  <script defer src="/js/ai-design-maker.js?v=20260918-3"></script>
 </body>
 </html>
