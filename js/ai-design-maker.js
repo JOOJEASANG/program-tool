@@ -11,8 +11,8 @@
   const AI_COVER_PATH = '/api/preflight/ai-design-maker/cover-background';
   const AI_DIRECT_API_ORIGIN = 'https://api-7a5qpwzezq-uc.a.run.app';
   const PRESET_PROMPTS_KO = Object.freeze({
-    premium: '여백을 넉넉히 사용한 고급 편집디자인 표지를 만들어 주세요. 정돈된 그리드와 세련된 비대칭 구성, 절제된 주조색과 1~2개의 포인트 색상을 사용하고 장식보다 비율·리듬·크기 대비로 완성도를 높여 주세요. 앞표지는 명확한 중심을 두고 뒤표지는 더 차분하게 연결해 주세요. 광택 효과, 물결 리본, 흔한 기업 브로슈어 느낌, 과도한 그라데이션, 클립아트는 피해주세요.',
-    admin: '현대적인 업무·행정 보고서 표지를 만들어 주세요. 정확한 편집 그리드, 안정적인 여백, 신뢰감 있는 정보 구조와 절제된 비대칭 구성을 사용해 주세요. 딥 네이비, 차콜, 뮤트 블루, 웜 그레이, 딥 틸 계열을 중심으로 고급 연차보고서처럼 보이게 해주세요. 오래된 관공서 브로슈어, 파란 물결, 광택 리본, 입체 도형과 장식 과다는 피해주세요.',
+    premium: '화이트 또는 아주 연한 오프화이트 바탕을 70% 이상 유지한 깔끔한 연차보고서·기업 브로슈어 표지를 만들어 주세요. 얇은 블루 계열 라인, 투명한 곡선 레이어, 작은 기하 도형 또는 미세한 네트워크 패턴 중 한 가지 시각 언어만 선택하고 넓은 여백을 유지해 주세요. 제목이 들어갈 중앙 또는 좌상단 영역은 비워 두고 장식은 가장자리와 하단·좌측에 제한하세요. 2018~2030 annual report 같은 정돈된 편집물 느낌으로, 거대한 원형·무거운 네이비 덩어리·복잡한 포스터 구성·과한 그라데이션은 피해주세요.',
+    admin: '밝은 화이트 베이스의 현대적인 업무·행정 연차보고서 표지를 만들어 주세요. 가는 블루·민트 선, 반투명 사선 또는 아주 얕은 웨이브를 가장자리 한쪽에만 두고 본문 영역은 넓게 비워 주세요. 작은 컬러 블록을 사용할 경우 3~5개 이하로 제한하고 전체 면적의 15%를 넘기지 마세요. 신뢰감 있는 기업 보고서처럼 깔끔해야 하며 관공서 파란 물결, 진한 남색 대면적, 입체 도형, 광택 리본은 피해주세요.',
     forum: '밝고 세련된 포럼·컨퍼런스 출판물 표지를 만들어 주세요. 아이보리·오프화이트처럼 밝은 바탕에 파우더 블루, 세이지, 연보라, 피치, 블러시 계열의 부드러운 파스텔 포인트를 1~2개 사용하고 넓은 여백과 섬세한 편집 그리드로 구성해 주세요. 거대한 원·반원·두꺼운 네이비 블록처럼 흔한 관공서 브로슈어 도형은 피하고, 작은 기하학적 리듬이나 얇은 선, 은은한 질감으로 현대적인 문화·포럼 아이덴티티처럼 보여 주세요. 앞표지는 밝고 산뜻하며 제목이 들어갈 공간이 충분해야 하고 뒤표지는 더 차분하게 연결해 주세요.',
     education: '따뜻하지만 유치하지 않은 교육·사례집 표지를 만들어 주세요. 부드러운 편집 구조와 우아한 여백, 절제된 유기적 또는 기하학적 형태, 자연스럽고 차분한 색감에 하나의 포인트 색상을 사용해 주세요. 전문 출판물처럼 정돈하고 어린이용 일러스트, 만화 아이콘, 낙서, 복잡한 콜라주, 오래된 브로슈어 물결 그래픽은 피해주세요.',
     public: '명확하고 품격 있는 공공·정책 출판물 표지를 만들어 주세요. 정돈된 그리드, 충분한 여백, 절제된 추상 구조와 차분한 색상으로 프리미엄 정책보고서나 기관 출판물처럼 구성해 주세요. 흔한 관공서 이미지, 파란 물결, 상징 클립아트, 광택 그라데이션, 과도한 엠블럼과 오래된 행정 템플릿 느낌은 피해주세요.'
@@ -20,19 +20,19 @@
 
   const PRESETS = Object.freeze({
     premium: {
-      name: '프리미엄 미니멀',
-      note: '가장 세련되고 절제된 편집디자인',
-      prompt: 'Create an elegant premium editorial cover system with generous negative space, disciplined grid logic, refined asymmetry, one quiet base tone and one or two restrained accent colors. Build visual interest through proportion, rhythm, scale, subtle geometry and carefully controlled depth rather than decoration. The front cover should feel art-directed and contemporary, the back cover quieter, and the whole spread should look like a high-end publication rather than a template. Avoid glossy effects, decorative waves, corporate swooshes, stock brochure layouts, obvious gradients, clip-art, and generic office graphics.'
+      name: '클린 리포트',
+      note: '화이트 베이스 · 얇은 블루 그래픽',
+      prompt: 'Create a clean modern annual-report cover inspired by premium corporate editorial templates: 70–85% white or off-white negative space, one restrained blue/cyan accent family, and only one visual device such as thin flowing curves, translucent layered ribbons, a sparse geometric network, or a few small color blocks. Keep decoration near edges, corners, lower third, or one side. Reserve a large calm title area. Use crisp flat 2D print design, subtle line texture, and excellent spacing. Avoid giant circles, dark full-bleed navy fields, heavy blocks, busy poster compositions, excessive gradients, glossy 3D effects, and old government-brochure styling.', primaryColor: '#eaf5fb', textColor: '#14558a'
     },
     admin: {
       name: '업무·행정',
       note: '현대적이고 신뢰감 있는 보고서',
-      prompt: 'Create a contemporary business and administrative publication cover with a precise editorial grid, calm authority, strong spacing and sophisticated information architecture. Use clean geometry, restrained asymmetry, subtle line or block systems, and a professional palette such as deep navy, charcoal, muted blue, warm gray or dark teal. It should resemble a premium annual report or institutional publication, not an old government brochure. Avoid blue ribbon waves, glossy swooshes, generic corporate templates, beveled shapes, clip-art icons, and decorative clutter.'
+      prompt: 'Create a bright corporate annual-report cover on a white background with generous empty space. Use very thin blue/cyan line work, a restrained translucent curve or diagonal sweep placed mainly along one edge, and at most a few small flat geometric color blocks. Keep the middle title zone quiet and readable. The visual language should resemble a polished modern business proposal or annual report template. Avoid dark backgrounds, giant circles, thick waves, glossy swooshes, bevels, 3D effects, clip-art, and crowded government brochure layouts.', primaryColor: '#eef8fc', textColor: '#245b78'
     },
     forum: {
       name: '포럼·행사',
       note: '컨퍼런스 아이덴티티처럼 세련되게',
-      prompt: 'Create a bright, airy and sophisticated conference/forum publication cover. Use an off-white or ivory base with soft pastel accents such as powder blue, sage, pale lavender, peach or blush. Favor generous whitespace, fine editorial grids, subtle line work, restrained small-scale geometry and gentle texture. The result should feel like a contemporary cultural conference identity or premium editorial booklet. Avoid dark navy dominance, giant circles or semicircles, heavy geometric blocks, government-brochure styling, ribbon waves, neon, glossy effects, excessive gradients and stock-template aesthetics.', primaryColor: '#dbeaf4', textColor: '#27445f'
+      prompt: 'Create a bright, airy conference/forum booklet cover using 70–85% white or ivory negative space. Add only delicate pastel blue, sage, pale lavender, peach or blush accents through thin lines, sparse network points, small squares, or one translucent soft curve. Keep the title zone large, calm and clean. Make it feel like a contemporary annual-report or conference editorial template, not an event poster. Avoid dark navy dominance, giant circles or semicircles, heavy geometric blocks, thick ribbon waves, neon, glossy effects, busy gradients and government-brochure styling.', primaryColor: '#edf6fb', textColor: '#315b72'
     },
     education: {
       name: '교육·사례집',
@@ -61,7 +61,8 @@
     selectedTextId: '',
     selectedTextUiId: '',
     textPointer: null,
-    backgroundSource: ''
+    backgroundSource: '',
+    coverMode: 'spread'
   };
 
   const clamp = (value, min, max, fallback) => {
@@ -89,21 +90,22 @@
 
 
   function currentSpec() {
+    const coverMode=state.coverMode==='front'?'front':'spread';
     const trimW = clamp(num('trimW', 210), 50, 1000, 210);
     const trimH = clamp(num('trimH', 297), 50, 1000, 297);
-    const spine = clamp(num('spine', 10), 0, 100, 10);
     const bleed = clamp(num('bleed', 3), 0, 20, 3);
     const safe = clamp(num('safeZone', 5), 0, 80, 5);
-    const wing = $('wingEnabled')?.checked ? clamp(num('wingW', 70), 20, 300, 70) : 0;
+    const spine = coverMode==='front' ? 0 : clamp(num('spine', 10), 0, 100, 10);
+    const wing = coverMode==='front' ? 0 : ($('wingEnabled')?.checked ? clamp(num('wingW', 70), 20, 300, 70) : 0);
     return {
-      trimW, trimH, spine, bleed, safe, wing,
-      workW: trimW * 2 + spine + wing * 2 + bleed * 2,
+      coverMode, trimW, trimH, spine, bleed, safe, wing,
+      workW: coverMode==='front' ? trimW + bleed * 2 : trimW * 2 + spine + wing * 2 + bleed * 2,
       workH: trimH + bleed * 2
     };
   }
 
   function specKey(spec = currentSpec()) {
-    return [spec.trimW,spec.trimH,spec.spine,spec.bleed,spec.wing].map(v => Number(v).toFixed(2)).join('|');
+    return [spec.coverMode,spec.trimW,spec.trimH,spec.spine,spec.bleed,spec.wing].map(v => typeof v==='number'?Number(v).toFixed(2):v).join('|');
   }
 
   function readText() {
@@ -135,7 +137,8 @@
       spineSync: Boolean($('spineSync')?.checked),
       promptLanguage: state.promptLanguage,
       customFields: state.customFields,
-      textLayouts: state.textLayouts
+      textLayouts: state.textLayouts,
+      coverMode: state.coverMode
     };
     ids.forEach(id => { if ($(id)) data[id] = $(id).value; });
     return data;
@@ -164,6 +167,7 @@
       if (typeof data.wingEnabled === 'boolean') $('wingEnabled').checked = data.wingEnabled;
       if (typeof data.spineSync === 'boolean') $('spineSync').checked = data.spineSync;
       if (data.preset && PRESETS[data.preset]) state.preset = data.preset;
+      if (data.coverMode === 'front' || data.coverMode === 'spread') state.coverMode = data.coverMode;
       if (data.promptLanguage === 'en' || data.promptLanguage === 'ko') state.promptLanguage = data.promptLanguage;
       if (Array.isArray(data.customFields)) state.customFields = data.customFields.slice(0, 12).map(item => ({
         id: String(item?.id || ('custom-'+Math.random().toString(36).slice(2))),
@@ -205,7 +209,7 @@
   function loadSessionNow() {
     loadLocal();
     setupPresetCards();
-    syncWing();
+    syncCoverMode();
     syncSpineTitle();
     renderCustomFields();
     syncPromptLanguageUi(false);
@@ -343,6 +347,26 @@
     if ($('wingField')) $('wingField').hidden = !enabled;
   }
 
+  function syncCoverMode() {
+    const selected=document.querySelector('input[name="coverMode"]:checked');
+    if(selected)state.coverMode=selected.value==='front'?'front':'spread';
+    qa('input[name="coverMode"]').forEach(input=>{input.checked=input.value===state.coverMode;});
+    document.documentElement.dataset.coverMode=state.coverMode;
+    const front=state.coverMode==='front';
+    if($('coverModeHeading'))$('coverModeHeading').textContent=front?'앞표지 단면 제작':'표지 전체 펼침 제작';
+    if($('coverModeDescription'))$('coverModeDescription').textContent=front
+      ?'앞표지 한 면만 실제 인쇄 규격으로 디자인합니다. 제목·행사정보·기관명 등을 자유롭게 배치하세요.'
+      :'앞표지·책등·뒤표지를 한 번에 제작합니다. 규격 → 문구 → 스타일 순서로 입력하세요.';
+    if($('previewModeTitle'))$('previewModeTitle').textContent=front?'앞표지 미리보기':'전체 펼침 미리보기';
+    if($('backgroundModeHint'))$('backgroundModeHint').textContent=front
+      ?'직접 만든 앞표지 이미지를 불러오면 도련 포함 바깥 적색선 전체 영역을 꽉 채워 배치합니다.'
+      :'직접 만든 전체 펼침 표지를 불러오면 바깥 적색선 전체 영역을 꽉 채워 배치합니다. 그 위에 문구를 자유롭게 편집할 수 있습니다.';
+    syncWing();
+    updateGeometry();
+    syncTextEditUi();
+    scheduleRender();
+  }
+
   function syncSpineTitle() {
     if ($('spineSync')?.checked && $('spineTitle')) $('spineTitle').value = $('title')?.value || '';
   }
@@ -414,10 +438,12 @@
   function updateGeometry() {
     const spec = currentSpec();
     const wing = spec.wing ? ' · 날개 '+spec.wing.toFixed(1)+'mm×2' : '';
-    const text = '완성 '+spec.trimW.toFixed(1)+'×'+spec.trimH.toFixed(1)+'mm · 책등 '+spec.spine.toFixed(1)+'mm · 도련 '+spec.bleed.toFixed(1)+'mm'+wing+' · 전체 '+spec.workW.toFixed(1)+'×'+spec.workH.toFixed(1)+'mm';
+    const text = spec.coverMode==='front'
+      ? '앞표지 '+spec.trimW.toFixed(1)+'×'+spec.trimH.toFixed(1)+'mm · 도련 '+spec.bleed.toFixed(1)+'mm · 작업 '+spec.workW.toFixed(1)+'×'+spec.workH.toFixed(1)+'mm'
+      : '완성 '+spec.trimW.toFixed(1)+'×'+spec.trimH.toFixed(1)+'mm · 책등 '+spec.spine.toFixed(1)+'mm · 도련 '+spec.bleed.toFixed(1)+'mm'+wing+' · 전체 '+spec.workW.toFixed(1)+'×'+spec.workH.toFixed(1)+'mm';
     if ($('geometryHint')) $('geometryHint').textContent = text;
     if ($('geometrySummary')) $('geometrySummary').textContent = text;
-    updateSpinePolicy();
+    if(spec.coverMode==='spread')updateSpinePolicy();
     updateProgress();
     const stale = Boolean(state.background && state.generatedSpecKey && state.generatedSpecKey !== specKey(spec));
     if ($('exportBtn')) $('exportBtn').disabled = !state.background || stale;
@@ -454,16 +480,21 @@
 
   function drawGuides(ctx,spec,scale) {
     if (!$('guideToggle')?.checked) return;
-    const b=spec.bleed*scale, wing=spec.wing*scale, tw=spec.trimW*scale, th=spec.trimH*scale, sw=spec.spine*scale, safe=spec.safe*scale;
-    const backX=b+wing, spineX=backX+tw, frontX=spineX+sw, frontWingX=frontX+tw;
+    const b=spec.bleed*scale, tw=spec.trimW*scale, th=spec.trimH*scale, safe=spec.safe*scale;
     if(spec.bleed>0) rect(ctx,.5,.5,spec.workW*scale-1,spec.workH*scale-1,'#db2777',[7,5]);
+    if(spec.coverMode==='front'){
+      const frontX=b;
+      rect(ctx,frontX,b,tw,th,'#2563eb',[6,4]);
+      if(safe>0)rect(ctx,frontX+safe,b+safe,Math.max(0,tw-safe*2),Math.max(0,th-safe*2),'#16a34a');
+      zone(ctx,'앞표지',frontX,b,tw,th);
+      return;
+    }
+    const wing=spec.wing*scale,sw=spec.spine*scale;
+    const backX=b+wing, spineX=backX+tw, frontX=spineX+sw, frontWingX=frontX+tw;
     rect(ctx,backX,b,tw,th,'#2563eb',[6,4]);rect(ctx,frontX,b,tw,th,'#2563eb',[6,4]);
     if(safe>0){rect(ctx,backX+safe,b+safe,Math.max(0,tw-safe*2),Math.max(0,th-safe*2),'#16a34a');rect(ctx,frontX+safe,b+safe,Math.max(0,tw-safe*2),Math.max(0,th-safe*2),'#16a34a');}
     if(sw>0){
-      ctx.save();
-      ctx.fillStyle='rgba(239,68,68,.055)';
-      ctx.fillRect(spineX,b,sw,th);
-      ctx.restore();
+      ctx.save();ctx.fillStyle='rgba(239,68,68,.055)';ctx.fillRect(spineX,b,sw,th);ctx.restore();
       line(ctx,spineX,b,spineX,b+th,'#ef4444',[6,4]);
       line(ctx,frontX,b,frontX,b+th,'#ef4444',[6,4]);
       const spineInset=Math.min(sw*.18,1.5*scale);
@@ -573,8 +604,11 @@
   }
 
   function textLayout(spec,scale) {
-    const v=readText(), b=spec.bleed*scale, wing=spec.wing*scale, tw=spec.trimW*scale, th=spec.trimH*scale, sw=spec.spine*scale;
-    const backX=b+wing, spineX=backX+tw, frontX=spineX+sw;
+    const v=readText(), b=spec.bleed*scale, tw=spec.trimW*scale, th=spec.trimH*scale;
+    const wing=spec.wing*scale,sw=spec.spine*scale;
+    const backX=spec.coverMode==='front'?b:b+wing;
+    const spineX=backX+tw;
+    const frontX=spec.coverMode==='front'?b:spineX+sw;
     const safe=Math.min(spec.safe,spec.trimW*.15,spec.trimH*.15)*scale;
     const ptPx=pt=>pt*25.4/72*scale;
     const list=[];
@@ -610,20 +644,22 @@
     add({id:'dateText',text:v.dateText,x:frontX+safe,y:b+th*.77,w:contentW,h:th*.045,fontPt:9.5,weight:700,align:'left'});
     add({id:'department',text:v.department,x:frontX+safe,y:b+th*.82,w:contentW,h:th*.045,fontPt:9.5,weight:700,align:'left'});
     add({id:'organization',text:v.organization,x:frontX+safe,y:b+th*.89,w:contentW,h:th*.06,fontPt:11,weight:850,align:'left'});
-    add({id:'backText',text:v.backText,x:backX+safe,y:b+th*.16,w:contentW,h:th*.58,fontPt:10.5,weight:600,align:'left'});
-    add({id:'contact',text:v.contact,x:backX+safe,y:b+th*.84,w:contentW,h:th*.12,fontPt:9,weight:750,align:'left'});
+    if(spec.coverMode==='spread'){
+      add({id:'backText',text:v.backText,x:backX+safe,y:b+th*.16,w:contentW,h:th*.58,fontPt:10.5,weight:600,align:'left'});
+      add({id:'contact',text:v.contact,x:backX+safe,y:b+th*.84,w:contentW,h:th*.12,fontPt:9,weight:750,align:'left'});
+    }
 
-    if(spec.spine>=4&&v.spineTitle){
+    if(spec.coverMode==='spread'&&spec.spine>=4&&v.spineTitle){
       const fp=spinePt(spec.spine,v.spineTitle);
       if(v.spineOrientation==='vertical')add({id:'spineTitle',text:v.spineTitle,x:spineX+sw*.12,y:b+th*.18,w:sw*.76,h:th*.62,fontPt:fp,weight:900,vertical:true,align:'center'});
       else add({id:'spineTitle',text:v.spineTitle,x:spineX+sw/2-th*.31,y:b+th/2-sw*.34,w:th*.62,h:sw*.68,fontPt:fp,weight:900,rotate:v.spineOrientation==='rotate-down'?90:-90,align:'center'});
     }
-    if(spec.spine>=8&&v.spineDate){
+    if(spec.coverMode==='spread'&&spec.spine>=8&&v.spineDate){
       const fp=clamp(spinePt(spec.spine,v.spineDate)-2,7,10,8);
       if(v.spineOrientation==='vertical')add({id:'spineDate',text:v.spineDate,x:spineX+sw*.18,y:b+th*.06,w:sw*.64,h:th*.10,fontPt:fp,weight:800,vertical:true,align:'center'});
       else add({id:'spineDate',text:v.spineDate,x:spineX+sw/2-th*.09,y:b+th*.14-sw*.25,w:th*.18,h:sw*.5,fontPt:fp,weight:800,rotate:v.spineOrientation==='rotate-down'?90:-90,align:'center'});
     }
-    if(spec.spine>=16&&v.spineCompany){
+    if(spec.coverMode==='spread'&&spec.spine>=16&&v.spineCompany){
       const fp=clamp(spinePt(spec.spine,v.spineCompany)-3,7,9.5,8);
       if(v.spineOrientation==='vertical')add({id:'spineCompany',text:v.spineCompany,x:spineX+sw*.18,y:b+th*.82,w:sw*.64,h:th*.13,fontPt:fp,weight:800,vertical:true,align:'center'});
       else add({id:'spineCompany',text:v.spineCompany,x:spineX+sw/2-th*.12,y:b+th*.86-sw*.25,w:th*.24,h:sw*.5,fontPt:fp,weight:800,rotate:v.spineOrientation==='rotate-down'?90:-90,align:'center'});
@@ -711,7 +747,7 @@
   function logoRect(spec,scale){
     if(!state.logo)return null;
     const b=spec.bleed*scale,wing=spec.wing*scale,tw=spec.trimW*scale,th=spec.trimH*scale,sw=spec.spine*scale,safe=spec.safe*scale;
-    const frontX=b+wing+tw+sw;
+    const frontX=spec.coverMode==='front'?b:b+wing+tw+sw;
     const maxW=tw*.24,maxH=th*.08,ratio=state.logo.naturalWidth/state.logo.naturalHeight;
     let w=maxW,h=w/ratio;if(h>maxH){h=maxH;w=h*ratio;}
     return {x:frontX+tw-safe-w,y:b+th*.88-h,w,h};
@@ -947,13 +983,14 @@
   }
 
   function themeContext(){
-    const t=readText();
+    const t=readText(),spec=currentSpec();
     return [
-      '표지 용도: 인쇄용 책/보고서 전체 펼침 표지',
+      spec.coverMode==='front'?'표지 용도: 인쇄용 앞표지 단면':'표지 용도: 인쇄용 책/보고서 전체 펼침 표지',
       t.title?'주제 참고 제목: '+t.title:'',
       t.organization?'기관 성격: '+t.organization:'',
       $('theme')?.value?'핵심 키워드: '+$('theme').value:'',
-      '선호 주조색: '+($('primaryColor')?.value||'#315c8c')
+      '선호 주조색: '+($('primaryColor')?.value||'#315c8c'),
+      '스타일 기준: clean annual report / brochure cover, white-space dominant, thin blue or pastel graphic accents'
     ].filter(Boolean).join('\n');
   }
 
@@ -967,17 +1004,21 @@
     try{
       const prompt=String($('stylePrompt')?.value||presetPrompt()).trim();
       const designGuardrails=[
-        'Art direction: contemporary editorial publication design; polished, restrained, confident, and print-focused.',
-        'The OUTER BLEED BOUNDARY is the artwork canvas. Fill the entire canvas edge-to-edge; background and decorative forms must continue through trim into bleed and crop naturally at the outside edge. Never leave a white outer frame or inset border.',
-        'Use generous negative space, a disciplined grid, controlled contrast, and a limited cohesive color system.',
-        'Do not create a visible center spine strip, seam, fold, vertical band, or color break. The artwork must flow continuously through the exact spine area; the application will overlay the exact spine guides and text later.',
-        state.preset==='forum'?'For forum/event work, prefer a bright off-white or very light pastel base with powder blue, sage, blush, pale lavender or peach accents. Avoid dark navy dominance and giant corporate circles or heavy geometric blocks.':'',
-        'Avoid outdated public brochure aesthetics, ribbon waves, glossy corporate swooshes, generic stock templates, bevels, lens flares, excessive glow, busy gradients, clip-art, pseudo-3D decoration, and random decorative icons.'
+        'Visual target: clean modern annual-report, business-proposal and editorial brochure covers with strong white space.',
+        'Keep roughly 70–85% of the surface white, ivory, or very light neutral whenever the requested style allows it.',
+        'Use ONE restrained graphic system only: thin translucent curves, sparse line-network geometry, a few small colored squares/rectangles, or a light diagonal/edge sweep.',
+        'Decorative graphics should live mainly at one edge, corner, side, or lower third. Preserve a large calm title area and never fill every region.',
+        'The OUTER BLEED BOUNDARY is the artwork canvas. Fill the entire canvas edge-to-edge; artwork may crop naturally at the outside edge.',
+        spec.coverMode==='spread'
+          ?'Do not create a visible center spine strip, seam, fold, vertical band, or color break. The artwork must flow continuously through the exact spine area.'
+          :'This is FRONT COVER ONLY. Compose one portrait cover, not a spread, not a mockup, and do not invent a back cover or spine.',
+        state.preset==='forum'?'For forum/event work use an airy white/off-white base with powder blue, sage, pale lavender, peach or blush accents and fine editorial line work.':'',
+        'Avoid giant circles/semicircles, dark navy dominance, thick wave bands, oversized heavy blocks, glossy swooshes, generic government brochure motifs, stock-template clutter, bevels, lens flares, pseudo-3D decoration, and excessive gradients.'
       ].join('\n');
       const data=await authFetch(AI_COVER_PATH,{
         method:'POST',
         body:JSON.stringify({
-          trim_width_mm:spec.trimW,trim_height_mm:spec.trimH,spine_mm:spec.spine,wing_mm:spec.wing,bleed_mm:spec.bleed,
+          cover_mode:spec.coverMode,trim_width_mm:spec.trimW,trim_height_mm:spec.trimH,spine_mm:spec.spine,wing_mm:spec.wing,bleed_mm:spec.bleed,
           preset_name:PRESETS[state.preset].name,
           style_request:prompt+'\n'+designGuardrails+'\nPreferred dominant color: '+($('primaryColor')?.value||'#315c8c')+'.',
           theme_context:themeContext()
@@ -992,7 +1033,7 @@
       if($('clearBackground'))$('clearBackground').hidden=false;
       $('exportBtn').disabled=false;scheduleRender();
       updateProgress();
-      setStatus('AI 배경 생성 완료','문구는 별도 레이어로 유지됩니다. 문구나 색상을 수정하면 미리보기에 바로 반영됩니다.','ok');
+      setStatus('AI 배경 생성 완료',spec.coverMode==='front'?'앞표지 배경과 문구 레이어를 자유롭게 편집할 수 있습니다.':'문구는 별도 레이어로 유지됩니다. 문구나 색상을 수정하면 미리보기에 바로 반영됩니다.','ok');
     }catch(error){
       const debug=['HTTP: '+(error.status||'unknown'),'code: '+(error.code||'unknown'),'request_id: '+(error.requestId||'none'),'transport: '+(error.transport||'direct-function'),error.raw?'response: '+error.raw:''].filter(Boolean).join('\n');
       setStatus('AI 배경 생성 실패',error.message||'AI 표지 생성 요청에 실패했습니다.','error',debug);
@@ -1045,8 +1086,8 @@
     try{
       const {canvas}=await buildExportCanvas();
       const raw=await canvasBlob(canvas),png=await withPngDpi(raw,EXPORT_DPI),url=URL.createObjectURL(png),a=document.createElement('a');
-      a.href=url;a.download='cover-'+spec.trimW+'x'+spec.trimH+'-spine-'+spec.spine+'mm-300dpi.png';a.click();setTimeout(()=>URL.revokeObjectURL(url),4000);
-      setStatus('PNG 저장 완료','실제 전체 펼침 규격과 300dpi 메타데이터로 이미지를 저장했습니다.','ok');
+      a.href=url;a.download=(spec.coverMode==='front'?'front-cover-'+spec.trimW+'x'+spec.trimH:'cover-'+spec.trimW+'x'+spec.trimH+'-spine-'+spec.spine+'mm')+'-300dpi.png';a.click();setTimeout(()=>URL.revokeObjectURL(url),4000);
+      setStatus('PNG 저장 완료',spec.coverMode==='front'?'앞표지 실제 규격과 300dpi 메타데이터로 저장했습니다.':'실제 전체 펼침 규격과 300dpi 메타데이터로 이미지를 저장했습니다.','ok');
     }catch(error){setStatus('PNG 저장 실패',error.message||'파일 저장 중 오류가 발생했습니다.','error');}
     finally{button.disabled=false;}
   }
@@ -1094,8 +1135,8 @@
       const jpegBlob=await new Promise((resolve,reject)=>canvas.toBlob(blob=>blob?resolve(blob):reject(new Error('PDF용 이미지 데이터를 만들지 못했습니다.')),'image/jpeg',.98));
       const jpeg=new Uint8Array(await jpegBlob.arrayBuffer());
       const pdf=pdfFromJpeg(jpeg,w,h,spec.workW*72/25.4,spec.workH*72/25.4),url=URL.createObjectURL(pdf),a=document.createElement('a');
-      a.href=url;a.download='cover-'+spec.trimW+'x'+spec.trimH+'-spine-'+spec.spine+'mm-300dpi.pdf';a.click();setTimeout(()=>URL.revokeObjectURL(url),4000);
-      setStatus('PDF 저장 완료','전체 펼침 실제 규격의 인쇄용 PDF로 저장했습니다.','ok');
+      a.href=url;a.download=(spec.coverMode==='front'?'front-cover-'+spec.trimW+'x'+spec.trimH:'cover-'+spec.trimW+'x'+spec.trimH+'-spine-'+spec.spine+'mm')+'-300dpi.pdf';a.click();setTimeout(()=>URL.revokeObjectURL(url),4000);
+      setStatus('PDF 저장 완료',spec.coverMode==='front'?'앞표지 실제 규격의 인쇄용 PDF로 저장했습니다.':'전체 펼침 실제 규격의 인쇄용 PDF로 저장했습니다.','ok');
     }catch(error){setStatus('PDF 저장 실패',error.message||'PDF 저장 중 오류가 발생했습니다.','error');}
     finally{button.disabled=false;}
   }
@@ -1123,7 +1164,8 @@
       if($('clearBackground'))$('clearBackground').hidden=false;
       if($('exportBtn'))$('exportBtn').disabled=false;
       scheduleRender();updateProgress();
-      setStatus('직접 만든 표지를 배치했습니다.','이미지는 바깥 적색선 전체 영역을 꽉 채우고, 문구 레이어는 그 위에서 자유롭게 편집할 수 있습니다.','ok');
+      const spec=currentSpec();
+      setStatus('직접 만든 표지를 배치했습니다.',spec.coverMode==='front'?'앞표지 이미지를 도련 포함 전체 영역에 꽉 채워 배치했습니다.':'이미지는 바깥 적색선 전체 영역을 꽉 채우고, 문구 레이어는 그 위에서 자유롭게 편집할 수 있습니다.','ok');
     }catch(error){
       URL.revokeObjectURL(url);
       setStatus('표지 이미지를 읽지 못했습니다.',error.message||'이미지 파일을 확인해 주세요.','error');
@@ -1154,10 +1196,21 @@
   }
 
   function bind(){
-    loadLocal();setupPresetCards();syncWing();syncSpineTitle();renderCustomFields();syncPromptLanguageUi(false);syncTextEditUi();syncExportButton();
+    loadLocal();setupPresetCards();syncCoverMode();syncSpineTitle();renderCustomFields();syncPromptLanguageUi(false);syncTextEditUi();syncExportButton();
     if(!$('stylePrompt').value)$('stylePrompt').value=presetPrompt();
     qa('.size-chip').forEach(button=>button.addEventListener('click',()=>{
       const [w,h]=button.dataset.size.split(',');$('trimW').value=w;$('trimH').value=h;qa('.size-chip').forEach(x=>x.classList.toggle('active',x===button));saveLocal();scheduleRender();
+    }));
+    qa('input[name="coverMode"]').forEach(input=>input.addEventListener('change',()=>{
+      state.coverMode=input.value==='front'?'front':'spread';
+      state.selectedTextId='';
+      state.selectedTextUiId='';
+      if(state.background){
+        state.generatedSpecKey='';
+        if($('exportBtn'))$('exportBtn').disabled=true;
+        setStatus('표지 범위가 변경되었습니다.','새 범위에 맞게 AI 배경을 다시 생성하거나 표지 이미지를 다시 불러와 주세요.','busy');
+      }
+      syncCoverMode();saveLocal();
     }));
     const watched=['trimW','trimH','spine','bleed','safeZone','wingW','title','subtitle','dateText','department','organization','eventDate','eventPlace','hostText','organizerText','backText','contact','spineTitle','spineDate','spineCompany','spineOrientation','primaryColor','textColor','theme','stylePrompt'];
     watched.forEach(id=>$(id)?.addEventListener('input',()=>{

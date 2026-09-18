@@ -36,7 +36,7 @@ def test_design_review_no_longer_loads_ai_maker_runtime():
     assert 'id="previewCanvas"' in maker
     assert 'id="generateBtn"' in maker
     assert 'id="exportBtn"' in maker
-    assert "/js/ai-design-maker.js?v=20260918-10" in maker
+    assert "/js/ai-design-maker.js?v=20260918-11" in maker
 
 
 def test_ai_design_maker_has_easy_cover_workflow_and_diagnostics():
@@ -86,7 +86,7 @@ def test_ai_design_maker_uses_sidebar_only_layout_and_bottom_actions():
 def test_ai_design_maker_uses_editorial_presets_and_exact_spine_guidance():
     source = (ROOT / "js/ai-design-maker.js").read_text(encoding="utf-8")
 
-    for label in ("프리미엄 미니멀", "업무·행정", "포럼·행사", "교육·사례집", "공공·정책"):
+    for label in ("클린 리포트", "업무·행정", "포럼·행사", "교육·사례집", "공공·정책"):
         assert label in source
     assert "preset: 'premium'" in source
     assert "Do not create a visible center spine strip" in source
@@ -186,12 +186,12 @@ def test_forum_preset_is_bright_pastel_and_full_bleed_generation_is_explicit():
 
     assert "밝고 세련된 포럼·컨퍼런스" in source
     assert "powder blue, sage, pale lavender, peach or blush" in source
-    assert "primaryColor: '#dbeaf4'" in source
-    assert "textColor: '#27445f'" in source
+    assert "primaryColor: '#edf6fb'" in source
+    assert "textColor: '#315b72'" in source
     assert "OUTER BLEED BOUNDARY" in source
     assert "OUTER BLEED BOUNDARY" in backend
     assert "Fill the entire canvas edge-to-edge" in backend
-    assert "cover-background-v5-full-bleed-pastel-editorial" in backend
+    assert "cover-background-v6-clean-report-front-mode" in backend
 
 
 def test_ai_design_selected_text_supports_line_breaks_and_typography_controls():
@@ -228,3 +228,39 @@ def test_ai_design_selected_text_supports_line_breaks_and_typography_controls():
     assert "selectedLineHeight" in source
     assert "selectedTextColor" in source
     assert ".text-style-panel{" in style
+
+
+def test_ai_design_maker_supports_front_cover_only_mode():
+    page = (ROOT / "ai-design-maker/index.html").read_text(encoding="utf-8")
+    source = (ROOT / "js/ai-design-maker.js").read_text(encoding="utf-8")
+    style = (ROOT / "css/ai-design-maker.css").read_text(encoding="utf-8")
+    backend = (ROOT / "backend/services/ai_cover_image.py").read_text(encoding="utf-8")
+
+    assert 'name="coverMode" value="spread"' in page
+    assert 'name="coverMode" value="front"' in page
+    assert 'id="coverModeHeading"' in page
+    assert 'id="previewModeTitle"' in page
+    assert 'id="backCoverFields"' in page
+    assert 'id="spineFields"' in page
+    assert "coverMode: 'spread'" in source
+    assert "coverMode==='front'" in source
+    assert "coverMode==='front' ? trimW + bleed * 2" in source
+    assert "cover_mode:spec.coverMode" in source
+    assert "front-cover-" in source
+    assert 'html[data-cover-mode="front"] #spineField' in style
+    assert 'cover_mode: str' in backend
+    assert 'if self.cover_mode == "front"' in backend
+    assert 'FRONT COVER ONLY' in backend
+
+
+def test_ai_design_reference_direction_is_clean_white_space_report_style():
+    source = (ROOT / "js/ai-design-maker.js").read_text(encoding="utf-8")
+    backend = (ROOT / "backend/services/ai_cover_image.py").read_text(encoding="utf-8")
+
+    assert "화이트 또는 아주 연한 오프화이트 바탕을 70% 이상" in source
+    assert "70–85% white or off-white negative space" in source
+    assert "clean modern annual-report" in backend
+    assert "70–85% of the composition white" in backend
+    assert "thin translucent blue/cyan flowing curves" in backend
+    assert "sparse geometric network lines" in backend
+    assert "Giant circles or semicircles" in backend

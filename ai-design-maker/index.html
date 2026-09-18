@@ -8,7 +8,7 @@
   <meta name="robots" content="noindex,nofollow">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
-  <link rel="stylesheet" href="/css/ai-design-maker.css?v=20260918-9">
+  <link rel="stylesheet" href="/css/ai-design-maker.css?v=20260918-10">
   <link rel="stylesheet" href="/css/program-manual-home-modal.css?v=20260918-1">
 </head>
 <body>
@@ -47,8 +47,8 @@
         </section>
 
         <div class="panel-intro">
-          <strong>표지 전체 펼침 제작</strong>
-          <p>규격 → 문구 → 스타일 순서로 입력하면 됩니다. 변경 내용은 미리보기에 바로 반영됩니다.</p>
+          <strong id="coverModeHeading">표지 전체 펼침 제작</strong>
+          <p id="coverModeDescription">앞표지·책등·뒤표지를 한 번에 제작합니다. 규격 → 문구 → 스타일 순서로 입력하세요.</p>
         </div>
 
         <nav class="workflow-nav" aria-label="표지 제작 단계 바로가기">
@@ -65,14 +65,18 @@
               <button type="button" class="size-chip" data-size="176,248">176×248</button>
               <button type="button" class="size-chip" data-size="148,210">A5</button>
             </div>
+            <div class="cover-mode-picker" role="radiogroup" aria-label="표지 제작 범위">
+              <label><input type="radio" name="coverMode" value="spread" checked><span><strong>전체 펼침</strong><small>뒤표지 + 책등 + 앞표지</small></span></label>
+              <label><input type="radio" name="coverMode" value="front"><span><strong>앞표지만</strong><small>단면 표지 디자인</small></span></label>
+            </div>
             <div class="field-grid two">
               <label class="field"><span>완성 가로 <em>mm</em></span><input id="trimW" type="number" min="50" max="1000" step="0.1" value="210"></label>
               <label class="field"><span>완성 세로 <em>mm</em></span><input id="trimH" type="number" min="50" max="1000" step="0.1" value="297"></label>
-              <label class="field"><span>책등 <em>mm</em></span><input id="spine" type="number" min="0" max="100" step="0.1" value="10"></label>
+              <label class="field" id="spineField"><span>책등 <em>mm</em></span><input id="spine" type="number" min="0" max="100" step="0.1" value="10"></label>
               <label class="field"><span>도련 <em>mm</em></span><input id="bleed" type="number" min="0" max="20" step="0.1" value="3"></label>
               <label class="field"><span>안전영역 <em>mm</em></span><input id="safeZone" type="number" min="0" max="80" step="0.1" value="5"></label>
             </div>
-            <label class="switch-row"><input id="wingEnabled" type="checkbox"><span class="switch-ui"></span><span><strong>날개 사용</strong><small>책날개가 있는 표지만 켜세요.</small></span></label>
+            <label class="switch-row" id="wingToggleRow"><input id="wingEnabled" type="checkbox"><span class="switch-ui"></span><span><strong>날개 사용</strong><small>책날개가 있는 표지만 켜세요.</small></span></label>
             <label class="field" id="wingField" hidden><span>날개 폭 <em>mm</em></span><input id="wingW" type="number" min="20" max="300" step="0.1" value="70"></label>
             <div class="hint-card" id="geometryHint"></div>
           </div>
@@ -104,24 +108,28 @@
               <div id="customFields" class="custom-fields" aria-live="polite"></div>
             </div>
 
-            <label class="field"><span>뒤표지 소개문</span><textarea id="backText" maxlength="700" rows="4" placeholder="뒤표지에 들어갈 소개문이나 설명"></textarea></label>
-            <label class="field"><span>뒤표지 하단 정보</span><textarea id="contact" maxlength="360" rows="2" placeholder="홈페이지 · 문의처 · 주소 등"></textarea></label>
-
-            <div class="subsection-title spine-title-row"><span>책등</span><button id="fillSpineBtn" class="mini-action" type="button">표지 정보로 자동 채우기</button></div>
-            <label class="check-row"><input id="spineSync" type="checkbox" checked><span>앞표지 제목을 책등 제목으로 자동 사용</span></label>
-            <label class="field"><span>책등 제목</span><input id="spineTitle" maxlength="180"></label>
-            <div class="field-grid two">
-              <label class="field"><span>책등 날짜</span><input id="spineDate" maxlength="60"></label>
-              <label class="field"><span>책등 회사명</span><input id="spineCompany" maxlength="100"></label>
+            <div id="backCoverFields">
+              <label class="field"><span>뒤표지 소개문</span><textarea id="backText" maxlength="700" rows="4" placeholder="뒤표지에 들어갈 소개문이나 설명"></textarea></label>
+              <label class="field"><span>뒤표지 하단 정보</span><textarea id="contact" maxlength="360" rows="2" placeholder="홈페이지 · 문의처 · 주소 등"></textarea></label>
             </div>
-            <label class="field"><span>책등 방향</span>
-              <select id="spineOrientation">
-                <option value="rotate-up">아래 → 위</option>
-                <option value="rotate-down">위 → 아래</option>
-                <option value="vertical">한글 세로쓰기</option>
-              </select>
-            </label>
-            <div class="spine-policy" id="spinePolicy"></div>
+
+            <div id="spineFields">
+              <div class="subsection-title spine-title-row"><span>책등</span><button id="fillSpineBtn" class="mini-action" type="button">표지 정보로 자동 채우기</button></div>
+              <label class="check-row"><input id="spineSync" type="checkbox" checked><span>앞표지 제목을 책등 제목으로 자동 사용</span></label>
+              <label class="field"><span>책등 제목</span><input id="spineTitle" maxlength="180"></label>
+              <div class="field-grid two">
+                <label class="field"><span>책등 날짜</span><input id="spineDate" maxlength="60"></label>
+                <label class="field"><span>책등 회사명</span><input id="spineCompany" maxlength="100"></label>
+              </div>
+              <label class="field"><span>책등 방향</span>
+                <select id="spineOrientation">
+                  <option value="rotate-up">아래 → 위</option>
+                  <option value="rotate-down">위 → 아래</option>
+                  <option value="vertical">한글 세로쓰기</option>
+                </select>
+              </label>
+              <div class="spine-policy" id="spinePolicy"></div>
+            </div>
           </div>
         </details>
 
@@ -130,8 +138,8 @@
           <div class="section-body">
             <div class="style-cards" id="styleCards" role="radiogroup" aria-label="디자인 스타일"></div>
             <div class="field-grid two">
-              <label class="field color-field"><span>배경 주조색</span><input id="primaryColor" type="color" value="#315c8c"></label>
-              <label class="field color-field"><span>글자색</span><input id="textColor" type="color" value="#ffffff"></label>
+              <label class="field color-field"><span>배경 주조색</span><input id="primaryColor" type="color" value="#eaf5fb"></label>
+              <label class="field color-field"><span>글자색</span><input id="textColor" type="color" value="#14558a"></label>
             </div>
             <label class="field"><span>주제·키워드</span><textarea id="theme" rows="3" maxlength="900" placeholder="예: 교육, 지역공동체, 협력, 성장"></textarea></label>
             <div class="field prompt-field">
@@ -152,7 +160,7 @@
               <span id="backgroundName">없음</span>
               <button id="clearBackground" type="button" class="text-button" hidden>삭제</button>
             </div>
-            <div class="hint-card">직접 만든 전체 펼침 표지를 불러오면 바깥 적색선 전체 영역을 꽉 채워 배치합니다. 그 위에 문구를 자유롭게 편집할 수 있습니다.</div>
+            <div class="hint-card" id="backgroundModeHint">직접 만든 전체 펼침 표지를 불러오면 바깥 적색선 전체 영역을 꽉 채워 배치합니다. 그 위에 문구를 자유롭게 편집할 수 있습니다.</div>
 
             <div class="subsection-title">로고 <small>선택</small></div>
             <div class="logo-row">
@@ -173,7 +181,7 @@
         <div class="workspace-toolbar">
           <div>
             <span class="workspace-kicker">PRINT PREVIEW</span>
-            <strong>전체 펼침 미리보기</strong>
+            <strong id="previewModeTitle">전체 펼침 미리보기</strong>
             <span class="generation-state" id="generationState">생성 전</span>
           </div>
           <div class="toolbar-actions">
@@ -233,7 +241,7 @@
           </div>
           <div class="canvas-scroll" id="canvasScroll">
             <div class="canvas-stage" id="canvasStage">
-              <canvas id="previewCanvas" aria-label="전체 펼침 표지 미리보기"></canvas>
+              <canvas id="previewCanvas" aria-label="표지 미리보기"></canvas>
             </div>
           </div>
         </section>
@@ -256,6 +264,6 @@
   <script defer src="/js/firebase-config.js"></script>
   <script defer src="/js/program-manuals/home-modal.js?v=20260918-1"></script>
   <script defer src="/js/program-sidebar-actions.js?v=20260918-2"></script>
-  <script defer src="/js/ai-design-maker.js?v=20260918-10"></script>
+  <script defer src="/js/ai-design-maker.js?v=20260918-11"></script>
 </body>
 </html>
