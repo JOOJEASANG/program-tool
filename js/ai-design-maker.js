@@ -447,7 +447,9 @@
   }
 
   function syncSpineTitle() {
-    if ($('spineSync')?.checked && $('spineTitle')) $('spineTitle').value = $('title')?.value || '';
+    if ($('spineSync')?.checked && $('spineTitle')) {
+      $('spineTitle').value = String($('title')?.value || '').split(/\n/)[0].slice(0,180);
+    }
   }
 
   function updateProgress() {
