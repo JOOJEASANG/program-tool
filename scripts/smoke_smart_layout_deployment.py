@@ -40,14 +40,15 @@ def verify(base_url: str, timeout: float) -> None:
         "id:'smart-print-layout'",
         "name:'스마트 인쇄배치'",
         "url:'smart-print-layout/'",
-        "pdf-home-five-programs-v8",
-        "name:'디자인 검토/제작'",
-        "AI로 뒤표지·책등·앞표지 전체 펼침 표지를 제작합니다.",
+        "pdf-home-six-programs-v9",
+        "name:'디자인 검토'",
+        "name:'AI 디자인 제작'",
     ):
         if marker not in launcher:
             raise RuntimeError(f"운영 홈 런처에서 필수 항목을 찾지 못했습니다: {marker}")
-    if "name:'인쇄물 사전 검토'" in launcher:
-        raise RuntimeError("운영 홈 런처에 예전 프로그램명이 남아 있습니다.")
+    for retired in ("name:'인쇄물 사전 검토'", "name:'디자인 검토/제작'"):
+        if retired in launcher:
+            raise RuntimeError(f"운영 홈 런처에 예전 프로그램명이 남아 있습니다: {retired}")
 
 
 def main() -> int:
