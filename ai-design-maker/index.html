@@ -8,7 +8,7 @@
   <meta name="robots" content="noindex,nofollow">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
-  <link rel="stylesheet" href="/css/ai-design-maker.css?v=20260918-1">
+  <link rel="stylesheet" href="/css/ai-design-maker.css?v=20260918-2">
 </head>
 <body>
   <div class="auth-gate" id="authGate">
@@ -42,6 +42,13 @@
         <div class="panel-intro">
           <strong>표지 전체 펼침 제작</strong>
           <p>규격 → 문구 → 스타일 순서로 입력하면 됩니다. 변경 내용은 미리보기에 바로 반영됩니다.</p>
+        </div>
+
+        <div class="product-tabs" aria-label="AI 디자인 제작 종류">
+          <button class="product-tab active" type="button" aria-current="page"><strong>표지</strong><small>현재 사용</small></button>
+          <button class="product-tab" type="button" disabled><strong>전단지</strong><small>다음 추가</small></button>
+          <button class="product-tab" type="button" disabled><strong>초대장</strong><small>다음 추가</small></button>
+          <button class="product-tab" type="button" disabled><strong>리플렛</strong><small>다음 추가</small></button>
         </div>
 
         <details class="control-section" open>
@@ -163,6 +170,6 @@
   <script defer src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
   <script defer src="/js/firebase-config.js"></script>
-  <script defer src="/js/ai-design-maker.js?v=20260918-1"></script>
+  <script defer src="/js/ai-design-maker.js?v=20260918-2"></script>
 </body>
 </html>
