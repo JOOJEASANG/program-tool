@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 
@@ -7,6 +8,7 @@ APP_BOUNDARY = ROOT / "js" / "pdf-editor" / "app-boundary.js"
 ROUTE_RUNTIME = ROOT / "js" / "pdf-editor" / "route-runtime.js"
 SW_REGISTER = ROOT / "js" / "sw-register.js"
 FIREBASE_CONFIG = ROOT / "js" / "firebase-config.js"
+VERSION_FILE = ROOT / "version.json"
 ADVANCED_INDEX = ROOT / "pdf-editor-advanced" / "index.html"
 ADVANCED_POLISH = ROOT / "js" / "pdf-editor-advanced" / "workspace-input-polish.js"
 
@@ -38,10 +40,11 @@ def test_layout_runtime_cache_chain_is_versioned_to_new_boundary():
     route = text(ROUTE_RUNTIME)
     boot = text(SW_REGISTER)
     config = text(FIREBASE_CONFIG)
+    version = json.loads(text(VERSION_FILE))["version"]
     assert "app-boundary.js?v=20260909-1" in route
     assert "route-runtime.js?v=20260916-1" in boot
-    assert "const VERSION='2026.09.16.001'" in boot
-    assert "sw-register.js?v=2026.09.16.001" in config
+    assert f"const VERSION='{version}'" in boot
+    assert f"sw-register.js?v={version}" in config
 
 
 def test_advanced_editor_accepts_preview_drop_and_preserves_erase_mode():

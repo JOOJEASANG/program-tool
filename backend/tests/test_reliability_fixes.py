@@ -91,11 +91,12 @@ def test_guide_uses_shared_safe_business_renderer() -> None:
     assert "bizText').innerHTML" not in source
 
 
-def test_program_registry_does_not_render_firestore_html() -> None:
-    source = _read("js/program-registry.js")
-    assert ".innerHTML" not in source
-    assert "textContent" in source
-    assert "safeUrl" in source
+def test_obsolete_program_registry_is_removed() -> None:
+    assert not (ROOT / "js" / "program-registry.js").exists()
+    home = _read("index.html")
+    launcher = _read("js/pdf-suite-home-launcher.js")
+    assert "window.ProgramStudioHome" in home
+    assert "normalizePrograms" in launcher
 
 
 def test_obsolete_generated_editor_workflow_is_removed() -> None:

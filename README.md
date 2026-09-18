@@ -10,20 +10,27 @@ Firebase Hosting과 Python Cloud Functions로 운영하는 PDF·인쇄 실무 �
 
 ## 현재 운영 기능
 
-### 디자인 검토/제작
+### 디자인 검토
 
-`/print-checker`는 표지·전단·리플렛·초대장/안내장 등 인쇄물의 규격과 안전영역을 검토하고, 같은 화면에서 AI 표지 제작으로 전환할 수 있는 도구입니다.
+`/print-checker`는 표지·전단·리플렛·초대장/안내장 등 완성 인쇄물의 규격과 실제 파일 구성을 대조하는 검토 도구입니다.
 
 - 재단선·도련·안전영역 확인
 - 표지 책등 검토
 - 리플렛 접지선 확인
 - 초대장/안내장 1p 앞면 · 2p 뒷면 확인과 가변 접지 위치 검토
-- 완성 규격 기본 A4 210×297mm 및 입력 치수 기억
-- AI 제작은 표지 전용이며 뒤표지 + 책등 + 앞표지 전체 펼침 배경을 `gpt-image-2`로 생성
-- 정확한 한글 제목·날짜·회사명·책등 글자는 편집 가능한 브라우저 레이어로 처리
-- 책등 세로글씨 및 90도 양방향 회전 지원
+- PDF/이미지 원본의 실제 규격과 설정값 비교
 
-과거 `design-editor`, `document-editor`, `image-editor`, `simple-editor` 런타임은 운영 트리에서 제거된 상태를 유지합니다. `/apps/cover`, `/apps/poster`, `/apps/flyer`, `/apps/invitation`, `/apps/notice`, `/apps/leaflet`은 디자인 검토/제작 화면으로 연결됩니다.
+### AI 디자인 제작
+
+`/ai-design-maker`는 승인 회원용 독립 표지 제작 도구입니다.
+
+- 뒤표지 + 책등 + 앞표지 전체 펼침 배경을 `gpt-image-2`로 생성
+- 정확한 한글 제목·날짜·기관명·책등 글자는 브라우저 레이어로 합성
+- 책등 세로쓰기 및 양방향 회전 지원
+- 실제 인쇄 규격 기준 300dpi PNG 저장
+- 장시간 이미지 생성 요청은 인증된 Functions 서비스로 직접 호출
+
+과거 `design-editor`, `document-editor`, `image-editor`, `simple-editor` 런타임은 운영 트리에서 제거된 상태를 유지합니다. `/apps/cover`, `/apps/poster`, `/apps/flyer`, `/apps/invitation`, `/apps/notice`, `/apps/leaflet`은 호환 주소로서 디자인 검토 화면으로 연결됩니다.
 
 ### PDF 도구
 
@@ -39,8 +46,9 @@ PDF 검수 결과는 인쇄소의 RIP/프리플라이트 결과를 대체하지 
 
 ## 저장소 구조
 
-- `apps/`: PDF 배치/소책자용 공통 앱 셸과 디자인 검토/제작 리다이렉트
-- `print-checker/`, `js/print-checker/`, `css/print-checker.css`: 디자인 검토/제작
+- `apps/`: PDF 배치/소책자용 공통 앱 셸과 디자인 검토 호환 리다이렉트
+- `print-checker/`, `js/print-checker/`, `css/print-checker.css`: 디자인 검토
+- `ai-design-maker/`, `js/ai-design-maker.js`, `css/ai-design-maker.css`: AI 디자인 제작
 - `pdf-editor/`, `js/pdf-editor/`: canonical PDF 편집 엔진
 - `pdf-editor-advanced/`, `js/pdf-editor-advanced/`: 독립 고급 PDF 편집기
 - `pdf-preflight/`, `js/pdf-preflight/`: PDF 검사·유틸리티
@@ -143,5 +151,5 @@ OPENAI_AI_IMAGE_QUALITY=high
 1. 실제 운영 경로에서 사용하지 않는 독립 화면·실험 파일은 운영 트리에 남기지 않습니다.
 2. 기능은 canonical runtime 한 곳에서 소유하고 호환 URL은 얇은 진입점으로 유지합니다.
 3. `/apps/pdf-layout`과 `/apps/booklet`은 PDF 엔진을 복제하지 않습니다.
-4. 제거된 독립 디자인 편집기 계열은 되살리지 않고, 디자인 검토와 AI 표지 제작은 `/print-checker`의 통합 런타임에서 제공합니다.
+4. 제거된 독립 디자인 편집기 계열은 되살리지 않고, 디자인 검토는 `/print-checker`, AI 표지 제작은 `/ai-design-maker`가 각각 한 곳에서 소유합니다.
 5. 배포 대상 여부는 파일 위치가 아니라 Hosting allowlist를 기준으로 판단합니다.
