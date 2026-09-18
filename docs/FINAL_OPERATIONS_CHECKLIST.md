@@ -10,6 +10,7 @@
 - 자동 실행: 관련 운영 설정 파일이 `main`에 변경될 때
 - 검사 항목: `main` 보호 상태, WIF Secret 쌍, Firebase 인증 fallback, 관리자 Claim 마이그레이션 도구, Storage lifecycle 파일, Functions 용량/cleanup 계약
 - WIF Secret 두 값이 모두 존재하면 실제 Google Cloud WIF 인증까지 수행
+- WIF 인증 성공 후 실제 Storage bucket lifecycle과 `settings/admin` 대상의 `admin=true` Claim 상태를 읽기 전용으로 확인
 - Secret 값 자체는 로그나 결과 파일에 출력하지 않음
 - 외부 설정이 아직 미완료인 경우는 WARN, 저장소 계약 파손·WIF 반쪽 설정·CI 인증 완전 부재는 FAIL
 
