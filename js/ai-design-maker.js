@@ -8,6 +8,7 @@
   const EXPORT_DPI = 300;
   const MAX_EXPORT_PIXELS = 60_000_000;
   const STORAGE_KEY = 'program-studio:ai-design-maker:cover:v1';
+  const TEXT_LAYOUT_SCHEMA_VERSION = 2;
   const AI_COVER_PATH = '/api/preflight/ai-design-maker/cover-background';
   const AI_DIRECT_API_ORIGIN = 'https://api-7a5qpwzezq-uc.a.run.app';
   const PRESET_PROMPTS_KO = Object.freeze({
@@ -147,7 +148,8 @@
       textLayouts: state.textLayouts,
       coverMode: state.coverMode,
       generationQuality: state.generationQuality,
-      sizeMode: state.sizeMode
+      sizeMode: state.sizeMode,
+      textLayoutSchemaVersion: TEXT_LAYOUT_SCHEMA_VERSION
     };
     ids.forEach(id => { if ($(id)) data[id] = $(id).value; });
     return data;
@@ -189,7 +191,10 @@
         label: String(item?.label || '').slice(0, 40),
         value: String(item?.value || '').slice(0, 220)
       }));
+      const legacyTextLayout = Number(data.textLayoutSchemaVersion || 0) < TEXT_LAYOUT_SCHEMA_VERSION;
       const normalizeTextLayout = (layout, fallbackAlign = 'left') => {
+        const rawFontSize=Number(layout?.fontSizePt);
+        const hasCustomFontSize=Number.isFinite(rawFontSize) && rawFontSize > 0 && !(legacyTextLayout && rawFontSize <= 4);
         const normalized={
           dx: clamp(layout?.dx, -2000, 2000, 0),
           dy: clamp(layout?.dy, -2000, 2000, 0),
@@ -197,7 +202,7 @@
           fontScale: clamp(layout?.fontScale, .35, 3, 1),
           align: ['left','center','right'].includes(layout?.align) ? layout.align : fallbackAlign,
           fontFamily: normalizeFontFamily(layout?.fontFamily),
-          fontSizePt: Number.isFinite(Number(layout?.fontSizePt)) ? clamp(layout.fontSizePt,4,160,0) : 0,
+          fontSizePt: hasCustomFontSize ? clamp(rawFontSize,4,160,0) : 0,
           fontWeight: normalizeFontWeight(layout?.fontWeight),
           lineHeight: clamp(layout?.lineHeight,.8,2.2,1.2),
           color: normalizeColor(layout?.color)
@@ -588,6 +593,7 @@
 
   function textLayoutState(id, fallbackAlign = 'left') {
     const current=state.textLayouts[id] || {};
+    const rawFontSize=Number(current.fontSizePt);
     const normalized={
       dx:clamp(current.dx,-2000,2000,0),
       dy:clamp(current.dy,-2000,2000,0),
@@ -595,7 +601,7 @@
       fontScale:clamp(current.fontScale,.35,3,1),
       align:['left','center','right'].includes(current.align)?current.align:fallbackAlign,
       fontFamily:normalizeFontFamily(current.fontFamily),
-      fontSizePt:Number.isFinite(Number(current.fontSizePt))?clamp(current.fontSizePt,4,160,0):0,
+      fontSizePt:Number.isFinite(rawFontSize)&&rawFontSize>0?clamp(rawFontSize,4,160,0):0,
       fontWeight:normalizeFontWeight(current.fontWeight),
       lineHeight:clamp(current.lineHeight,.8,2.2,1.2),
       color:normalizeColor(current.color)
