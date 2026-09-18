@@ -2,6 +2,23 @@
 
 최종 운영 배포 전에 코드 품질 검사와 별도로 확인해야 하는 계정·인프라 설정을 정리한 문서입니다. 이 항목은 저장소 코드만으로 강제할 수 없는 운영 경계입니다.
 
+## 자동 준비상태 점검
+
+저장소 측 운영 계약과 외부 설정 신호는 `운영 설정 준비상태 점검` workflow로 함께 확인합니다.
+
+- 수동 실행: GitHub Actions → `운영 설정 준비상태 점검` → Run workflow
+- 자동 실행: 관련 운영 설정 파일이 `main`에 변경될 때
+- 검사 항목: `main` 보호 상태, WIF Secret 쌍, Firebase 인증 fallback, 관리자 Claim 마이그레이션 도구, Storage lifecycle 파일, Functions 용량/cleanup 계약
+- WIF Secret 두 값이 모두 존재하면 실제 Google Cloud WIF 인증까지 수행
+- Secret 값 자체는 로그나 결과 파일에 출력하지 않음
+- 외부 설정이 아직 미완료인 경우는 WARN, 저장소 계약 파손·WIF 반쪽 설정·CI 인증 완전 부재는 FAIL
+
+로컬에서도 다음 명령으로 저장소 측 계약을 확인할 수 있습니다.
+
+```bash
+python3 scripts/check_operations_readiness.py --json-out /tmp/operations-readiness.json
+```
+
 ## 1. GitHub main 보호
 
 현재 `main`은 자동 Firebase 운영 배포의 기준 브랜치입니다. GitHub 저장소 설정에서 다음을 적용합니다.
