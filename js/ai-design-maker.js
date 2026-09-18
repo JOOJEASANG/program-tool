@@ -324,6 +324,8 @@
       surface.setAttribute('aria-label','문구 배치 면');
       surface.innerHTML = '<option value="front">앞표지</option><option value="back">뒤표지</option>';
       surface.value = item.surface === 'back' ? 'back' : 'front';
+      const backOption=surface.querySelector('option[value="back"]');
+      if(backOption)backOption.disabled=state.coverMode==='front';
 
       const label = document.createElement('input');
       label.type = 'text'; label.maxLength = 40; label.placeholder = '항목명 (선택)'; label.value = item.label;
@@ -417,6 +419,7 @@
     if(selected)state.coverMode=selected.value==='front'?'front':'spread';
     qa('input[name="coverMode"]').forEach(input=>{input.checked=input.value===state.coverMode;});
     document.documentElement.dataset.coverMode=state.coverMode;
+    renderCustomFields();
     const front=state.coverMode==='front';
     if($('coverModeHeading'))$('coverModeHeading').textContent=front?'앞표지 단면 제작':'표지 전체 펼침 제작';
     if($('coverModeDescription'))$('coverModeDescription').textContent=front
