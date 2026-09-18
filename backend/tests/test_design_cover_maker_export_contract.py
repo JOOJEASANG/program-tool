@@ -244,7 +244,7 @@ def test_ai_design_maker_supports_front_cover_only_mode():
     assert 'id="spineFields"' in page
     assert "coverMode: 'spread'" in source
     assert "coverMode==='front'" in source
-    assert "spec.coverMode==='front' ? trimW + bleed * 2" in source
+    assert "coverMode==='front' ? trimW + bleed * 2" in source
     assert "cover_mode:spec.coverMode" in source
     assert "front-cover-" in source
     assert 'html[data-cover-mode="front"] #spineField' in style
