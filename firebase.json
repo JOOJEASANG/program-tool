@@ -19,10 +19,26 @@
     "cleanUrls": true,
     "trailingSlash": false,
     "redirects": [
-      { "source": "/tools/preflight", "destination": "/pdf-preflight", "type": 301 },
-      { "source": "/tools/preflight.html", "destination": "/pdf-preflight", "type": 301 },
-      { "source": "/tools/pdf-Checker", "destination": "/pdf-preflight", "type": 301 },
-      { "source": "/tools/pdf-Checker.html", "destination": "/pdf-preflight", "type": 301 }
+      {
+        "source": "/tools/preflight",
+        "destination": "/pdf-preflight",
+        "type": 301
+      },
+      {
+        "source": "/tools/preflight.html",
+        "destination": "/pdf-preflight",
+        "type": 301
+      },
+      {
+        "source": "/tools/pdf-Checker",
+        "destination": "/pdf-preflight",
+        "type": 301
+      },
+      {
+        "source": "/tools/pdf-Checker.html",
+        "destination": "/pdf-preflight",
+        "type": 301
+      }
     ],
     "rewrites": [
       {
@@ -32,6 +48,10 @@
       {
         "source": "/print-checker",
         "destination": "/print-checker/index.html"
+      },
+      {
+        "source": "/ai-design-maker",
+        "destination": "/ai-design-maker/index.html"
       },
       {
         "source": "/smart-print-layout",
@@ -58,14 +78,38 @@
       {
         "source": "**",
         "headers": [
-          { "key": "Cache-Control", "value": "no-cache, must-revalidate" },
-          { "key": "Strict-Transport-Security", "value": "max-age=31536000; includeSubDomains" },
-          { "key": "X-Content-Type-Options", "value": "nosniff" },
-          { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
-          { "key": "X-Frame-Options", "value": "SAMEORIGIN" },
-          { "key": "Cross-Origin-Opener-Policy", "value": "same-origin-allow-popups" },
-          { "key": "Cross-Origin-Resource-Policy", "value": "same-site" },
-          { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=()" },
+          {
+            "key": "Cache-Control",
+            "value": "no-cache, must-revalidate"
+          },
+          {
+            "key": "Strict-Transport-Security",
+            "value": "max-age=31536000; includeSubDomains"
+          },
+          {
+            "key": "X-Content-Type-Options",
+            "value": "nosniff"
+          },
+          {
+            "key": "Referrer-Policy",
+            "value": "strict-origin-when-cross-origin"
+          },
+          {
+            "key": "X-Frame-Options",
+            "value": "SAMEORIGIN"
+          },
+          {
+            "key": "Cross-Origin-Opener-Policy",
+            "value": "same-origin-allow-popups"
+          },
+          {
+            "key": "Cross-Origin-Resource-Policy",
+            "value": "same-site"
+          },
+          {
+            "key": "Permissions-Policy",
+            "value": "camera=(), microphone=(), geolocation=()"
+          },
           {
             "key": "Content-Security-Policy",
             "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://apis.google.com https://accounts.google.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; img-src 'self' data: blob: https:; font-src 'self' data: https://cdn.jsdelivr.net https://fonts.gstatic.com; connect-src 'self' https://cdn.jsdelivr.net https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://*.google.com https://*.cloudfunctions.net; frame-src 'self' https://*.firebaseapp.com https://accounts.google.com https://apis.google.com; worker-src 'self' blob: https://cdn.jsdelivr.net; object-src 'none'; base-uri 'self'; frame-ancestors 'self'; form-action 'self'"
@@ -75,32 +119,50 @@
       {
         "source": "**/*.html",
         "headers": [
-          { "key": "Cache-Control", "value": "no-store, must-revalidate" }
+          {
+            "key": "Cache-Control",
+            "value": "no-store, must-revalidate"
+          }
         ]
       },
       {
         "source": "/",
         "headers": [
-          { "key": "Cache-Control", "value": "no-store, must-revalidate" }
+          {
+            "key": "Cache-Control",
+            "value": "no-store, must-revalidate"
+          }
         ]
       },
       {
         "source": "/sw.js",
         "headers": [
-          { "key": "Cache-Control", "value": "no-store, must-revalidate" },
-          { "key": "Service-Worker-Allowed", "value": "/" }
+          {
+            "key": "Cache-Control",
+            "value": "no-store, must-revalidate"
+          },
+          {
+            "key": "Service-Worker-Allowed",
+            "value": "/"
+          }
         ]
       },
       {
         "source": "/version.json",
         "headers": [
-          { "key": "Cache-Control", "value": "no-store, must-revalidate" }
+          {
+            "key": "Cache-Control",
+            "value": "no-store, must-revalidate"
+          }
         ]
       },
       {
         "source": "**/*.@(js|css)",
         "headers": [
-          { "key": "Cache-Control", "value": "no-cache" }
+          {
+            "key": "Cache-Control",
+            "value": "no-cache"
+          }
         ]
       }
     ]
