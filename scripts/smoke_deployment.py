@@ -270,13 +270,23 @@ def run_smoke_checks(
             lambda: _require_text(_fetch(base_url, "/login.html", timeout), "Google로 계속하기", "js/firebase-config.js"),
         ),
         (
-            "인쇄물 사전 검토 도구",
+            "디자인 검토 도구",
             lambda: (
                 lambda result: (
-                    _require_text(result, "인쇄물 사전 검토", "Program Studio"),
+                    _require_text(result, "디자인 검토", "Program Studio"),
                     _require_same_origin_frame_headers(result),
                 )
             )(_fetch(base_url, "/print-checker", timeout)),
+        ),
+        (
+            "AI 디자인 제작 독립 경로",
+            lambda: (
+                lambda result: (
+                    _require_text(result, "AI 디자인 제작", 'data-ai-design-maker="cover-v1"', "/js/ai-design-maker.js"),
+                    _require_path_preserved(result, "/ai-design-maker"),
+                    _require_same_origin_frame_headers(result),
+                )
+            )(_fetch(base_url, "/ai-design-maker", timeout)),
         ),
         (
             "고급 PDF 편집 독립 경로",

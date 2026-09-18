@@ -6,6 +6,7 @@
   const SIMPLE_HELP_NOTICE = '프로그램 화면의 “사용법” 버튼을 누르면 핵심 사용 순서를 30초 안내로 바로 확인할 수 있습니다. 화면에서는 쉬운 표현을 먼저 사용하고 필요한 곳에만 인쇄 전문용어를 함께 표시합니다.';
   const order = [
     'print-checker',
+    'ai-design-maker',
     'smart-print-layout',
     'pdf-editor',
     'pdf-editor-advanced',

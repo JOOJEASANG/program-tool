@@ -30,6 +30,9 @@ def validate() -> None:
         "js/pdf-editor/route-runtime.js",
         "print-checker/index.html",
         "js/print-checker/access.js",
+        "ai-design-maker/index.html",
+        "css/ai-design-maker.css",
+        "js/ai-design-maker.js",
         "js/print-checker/print-checker.js",
         "pdf-editor-advanced/index.html",
         "css/pdf-editor-advanced.css",
@@ -69,6 +72,11 @@ def validate() -> None:
     ):
         errors.append("Firebase Hosting /print-checker rewrite is missing")
     if not any(
+        rule.get("source") == "/ai-design-maker" and rule.get("destination") == "/ai-design-maker/index.html"
+        for rule in rewrites
+    ):
+        errors.append("Firebase Hosting /ai-design-maker rewrite is missing")
+    if not any(
         rule.get("source") == "/pdf-editor-advanced"
         and rule.get("destination") == "/pdf-editor-advanced/index.html"
         for rule in rewrites
@@ -85,6 +93,18 @@ def validate() -> None:
     for marker in ("productGrid", "uploadZone", "specForm", "reportSection", "previewCanvas"):
         if marker not in checker_html:
             errors.append(f"print-checker/index.html is missing element: {marker}")
+
+    if "design-cover-maker.js" in checker_html or "design-cover-maker.css" in checker_html:
+        errors.append("print-checker must not load AI design maker runtime")
+
+    maker_html = read("ai-design-maker/index.html")
+    maker_js = read("js/ai-design-maker.js")
+    for marker in ('data-ai-design-maker="cover-v1"', 'id="previewCanvas"', 'id="generateBtn"', 'id="exportBtn"'):
+        if marker not in maker_html:
+            errors.append(f"ai-design-maker/index.html is missing element: {marker}")
+    for marker in ("const EXPORT_DPI = 300", "/api/preflight/ai-design/cover-image", "localStorage.setItem(STORAGE_KEY", "AI 배경 생성 실패"):
+        if marker not in maker_js:
+            errors.append(f"js/ai-design-maker.js is missing contract: {marker}")
 
     checker_css = read("css/print-checker.css")
     if "/css/print-checker.css" not in checker_html:
@@ -184,6 +204,8 @@ def validate() -> None:
     hosting = read("scripts/prepare_hosting_dist.py")
     if '"apps",' not in hosting:
         errors.append("Hosting allowlist does not include apps directory")
+    if '"ai-design-maker",' not in hosting:
+        errors.append("Hosting allowlist does not include ai-design-maker directory")
 
     if errors:
         print("Modular app validation failed:", file=sys.stderr)

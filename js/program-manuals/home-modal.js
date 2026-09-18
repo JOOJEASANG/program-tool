@@ -2,9 +2,10 @@
   'use strict';
   if (window.ProgramManualHomeModal) return;
 
-  const VERSION = '20260916-2';
+  const VERSION = '20260918-1';
   const SCRIPT_BY_PROGRAM = Object.freeze({
     'print-checker': '/js/program-manuals/print-checker.js',
+    'ai-design-maker': '/js/program-manuals/ai-design-maker.js',
     'smart-print-layout': '/js/program-manuals/smart-print-layout.js',
     'pdf-editor': '/js/program-manuals/pdf-editor.js',
     'pdf-editor-advanced': '/js/program-manuals/pdf-editor-advanced.js',

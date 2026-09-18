@@ -32,6 +32,7 @@ def test_home_manual_layer_assets_exist_for_all_current_programs():
         "js/program-manuals/catalog.js",
         "js/program-manuals/home-modal.js",
         "js/program-manuals/print-checker.js",
+        "js/program-manuals/ai-design-maker.js",
         "js/program-manuals/smart-print-layout.js",
         "js/program-manuals/pdf-editor.js",
         "js/program-manuals/pdf-editor-advanced.js",

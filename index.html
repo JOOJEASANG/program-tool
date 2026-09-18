@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Program Studio · 인쇄·출력 실무 도구</title>
-<meta name="description" content="디자인 검토·AI 표지 제작, PDF 편집·검사를 카테고리별로 제공하는 인쇄·출력 실무 웹 도구">
+<meta name="description" content="디자인 검토, AI 디자인 제작, PDF 편집·검사를 카테고리별로 제공하는 인쇄·출력 실무 웹 도구">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
 <style>
 :root{--sb-w:252px;--tb-h:78px;--sb-bg:#0c1526;--sb-hover:rgba(255,255,255,.07);--sb-active:#1e40af;--sb-text:#b0c6de;--sb-dim:#7a96b4;--sb-border:rgba(255,255,255,.1);--bg:#f0f4f8;--card:#fff;--accent:#2563eb;--accent-d:#1d4ed8;--t1:#0f172a;--t2:#475569;--t3:#94a3b8;--line:#e2e8f0;--r:16px}
@@ -217,14 +217,14 @@ html.ps-ui-v2 .search:focus,html.ps-ui-v2 .search:focus-visible{outline:0!import
     <button class="nav-item active" data-cat="all" type="button">
       <span class="nav-icon">◆</span>
       전체 프로그램
-      <span class="nav-count" id="cnt-all">5</span>
+      <span class="nav-count" id="cnt-all">6</span>
     </button>
     <div class="sb-divider"></div>
     <div class="sb-section-label">카테고리</div>
     <button class="nav-item" data-cat="print" type="button">
       <span class="nav-icon">🖨️</span>
       인쇄 · 배치
-      <span class="nav-count" id="cnt-print">2</span>
+      <span class="nav-count" id="cnt-print">3</span>
     </button>
     <button class="nav-item" data-cat="pdf" type="button">
       <span class="nav-icon">📄</span>
@@ -292,7 +292,7 @@ html.ps-ui-v2 .search:focus,html.ps-ui-v2 .search:focus-visible{outline:0!import
 
     <div class="programs-header">
       <h2 id="sectionTitle">전체 프로그램</h2>
-      <span class="prog-count" id="count">5개</span>
+      <span class="prog-count" id="count">6개</span>
     </div>
     <div class="grid" id="programGrid"></div>
   </div>
@@ -327,7 +327,8 @@ html.ps-ui-v2 .search:focus,html.ps-ui-v2 .search:focus-visible{outline:0!import
 <script src="js/firebase-config.js"></script>
 <script>
 const PROGRAMS=[
-  {id:'print-checker',cat:'print',name:'디자인 검토/제작',icon:'🔍',accent:'#1d9bb2',bg:'linear-gradient(135deg,#12396d,#1d9bb2)',catLabel:'디자인 검토·제작',desc:'완성 인쇄물의 규격·책등·도련을 검토하거나 같은 화면에서 AI로 전체 펼침 표지를 제작합니다.',url:'print-checker/',tags:['디자인 검토','AI 표지','책등']},
+  {id:'print-checker',cat:'print',name:'디자인 검토',icon:'🔍',accent:'#1d9bb2',bg:'linear-gradient(135deg,#12396d,#1d9bb2)',catLabel:'인쇄 디자인 검토',desc:'완성 인쇄물의 규격·책등·도련·안전영역·접지와 실제 파일을 대조해 인쇄 전 오류를 점검합니다.',url:'print-checker/',tags:['디자인 검토','도련','책등','접지']},
+  {id:'ai-design-maker',cat:'print',name:'AI 디자인 제작',icon:'✦',accent:'#7c3aed',bg:'linear-gradient(135deg,#312e81,#7c3aed 58%,#db2777)',catLabel:'AI 인쇄 디자인',desc:'표지의 앞표지·책등·뒤표지를 실제 인쇄 규격으로 설계하고 AI 배경과 한글 문구를 합성해 300dpi로 저장합니다.',url:'ai-design-maker/',tags:['AI 표지','전체 펼침','책등','300dpi']},
   {id:'smart-print-layout',cat:'print',name:'스마트 인쇄배치',icon:'▦',accent:'#0f766e',bg:'linear-gradient(135deg,#115e59,#14b8a6)',catLabel:'스마트 배치',desc:'PDF의 실제 크기와 수량을 읽어 용지에 효율적으로 자동배치하고 앞면·뒷면 양면 위치까지 맞춥니다.',url:'smart-print-layout/',tags:['자동배치','앞면·뒷면','종이 절약']},
   {id:'pdf-editor',cat:'pdf',name:'PDF배치',icon:'🖨️',accent:'#059669',bg:'linear-gradient(135deg,#065f46,#059669)',catLabel:'PDF 배치',desc:'여러 PDF의 페이지를 정리하고 N-up·소책자·간지·여백을 설정해 출력용 PDF를 빠르게 만듭니다.',url:'pdf-editor/',tags:['N-up','소책자','인쇄 배치']},
   {id:'pdf-editor-advanced',cat:'pdf',name:'PDF편집',icon:'✂️',accent:'#7c3aed',bg:'linear-gradient(135deg,#4c1d95,#7c3aed)',catLabel:'PDF 고급 편집',desc:'페이지를 직접 이동·크기조절·잘라내기·회전하고 정밀하게 보정해야 할 때 사용하는 편집 화면입니다.',url:'pdf-editor-advanced',tags:['드래그 자르기','크기·위치','정밀 회전']},

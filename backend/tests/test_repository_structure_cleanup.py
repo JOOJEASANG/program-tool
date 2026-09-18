@@ -227,7 +227,7 @@ def test_deploy_injector_has_no_retired_image_editor_hooks():
         "image-editor-pdf-layout.css",
     ]:
         assert dead not in source
-    assert "인쇄물 사전 검토·PDF 편집·PDF 유틸리티 플랫폼" in source
+    assert "디자인 검토·AI 디자인 제작·PDF 편집을 위한 인쇄·출력 실무 플랫폼" in source
 
 
 def test_phase7_runner_only_exercises_live_boot_surfaces():

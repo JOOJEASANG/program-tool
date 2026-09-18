@@ -17,7 +17,7 @@
         assert(doc.querySelector('#search'),'current program search missing');
         assert(doc.querySelector('[data-cat="print"]'),'print category missing');
         assert(doc.querySelector('[data-cat="pdf"]'),'pdf category missing');
-        for(const id of ['print-checker','pdf-editor','pdf-preflight']){
+        for(const id of ['print-checker','ai-design-maker','pdf-editor','pdf-preflight']){
           assert(html.includes(`id:'${id}'`),`current program missing: ${id}`);
         }
         for(const dead of ['/design-editor/','/document-editor/','/image-editor/']){
@@ -25,7 +25,7 @@
         }
         assert(html.includes("name:'PDF 도구 모음'"),'current PDF utility label missing');
         document.body.dataset.homeCurrentSmoke='pass';
-        result.textContent='PASS: current three-program home shell is intact';
+        result.textContent='PASS: current home shell includes review and standalone AI design maker';
       }catch(error){
         document.body.dataset.homeCurrentSmoke='fail';
         result.textContent='FAIL: '+String(error.message||error);

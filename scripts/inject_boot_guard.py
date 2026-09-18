@@ -16,6 +16,7 @@ PDF_BOOKLET_MARKER = "data-pdf-classic-booklet"
 EXCLUDED_PARTS = {".git", "node_modules", "venv", ".venv", "__pycache__"}
 PROTECTED_HTML = {
     "print-checker/index.html",
+    "ai-design-maker/index.html",
     "smart-print-layout/index.html",
     "pdf-suite/index.html",
     "pdf-editor/index.html",
@@ -40,14 +41,15 @@ PDF_BOOKLET_HTML = {
     "tools/pdf-editor.html",
 }
 PAGE_METADATA = {
-    "index.html": ("Program Studio", "PDF·인쇄 실무를 위한 인쇄물 사전 검토·PDF 편집·PDF 유틸리티 플랫폼", "index,follow"),
+    "index.html": ("Program Studio", "디자인 검토·AI 디자인 제작·PDF 편집을 위한 인쇄·출력 실무 플랫폼", "index,follow"),
     "login.html": ("로그인 | Program Studio", "Program Studio 로그인 및 회원가입", "noindex,nofollow"),
     "admin.html": ("관리자 | Program Studio", "Program Studio 회원 승인 및 운영 정보 관리", "noindex,nofollow"),
     "approval-waiting.html": ("승인 대기 | Program Studio", "Program Studio 계정 승인 상태 확인", "noindex,nofollow"),
     "guide.html": ("이용안내 | Program Studio", "Program Studio 주요 프로그램과 이용 방법 안내", "index,follow"),
     "terms.html": ("이용약관 | Program Studio", "Program Studio 서비스 이용약관", "index,follow"),
     "privacy.html": ("개인정보처리방침 | Program Studio", "Program Studio 개인정보처리방침", "index,follow"),
-    "print-checker/index.html": ("인쇄물 사전 검토 | Program Studio", "Program Studio 인쇄물 사전 검토 도구 — 책등·재단선·안전영역·접지선 확인", "noindex,nofollow"),
+    "print-checker/index.html": ("디자인 검토 | Program Studio", "Program Studio 인쇄물 디자인 검토 도구 — 책등·재단선·안전영역·접지선 확인", "noindex,nofollow"),
+    "ai-design-maker/index.html": ("AI 디자인 제작 | Program Studio", "앞표지·책등·뒤표지를 실제 인쇄 규격으로 설계하고 AI 배경과 한글 문구를 합성하는 표지 제작 도구", "noindex,nofollow"),
     "smart-print-layout/index.html": ("스마트 인쇄배치 | Program Studio", "Program Studio 스마트 인쇄배치 도구", "noindex,nofollow"),
     "pdf-suite/index.html": ("PDF 올인원 | Program Studio", "Program Studio PDF 올인원 도구 모음", "noindex,nofollow"),
     "pdf-editor/index.html": ("PDF 편집기 | Program Studio", "Program Studio PDF 병합·페이지·배치·출력 편집기", "noindex,nofollow"),

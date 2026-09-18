@@ -7,6 +7,7 @@ ROOT = Path(__file__).resolve().parents[2]
 MANUAL_DIR = ROOT / "js" / "program-manuals"
 MANUALS = (
     "print-checker.js",
+    "ai-design-maker.js",
     "smart-print-layout.js",
     "pdf-editor.js",
     "pdf-editor-advanced.js",
@@ -46,4 +47,4 @@ def test_manual_registry_enforces_policy_for_future_manuals_too():
     ):
         assert marker in catalog
 
-    assert "const VERSION = '20260916-2'" in modal
+    assert "const VERSION = '20260918-1'" in modal
