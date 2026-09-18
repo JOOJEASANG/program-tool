@@ -62,7 +62,7 @@ def test_ai_design_preview_starts_transparent_and_fills_workspace():
     assert "clientWidth || 1000) - 20" in source
     assert "clientHeight || 700) - 20" in source
     assert "background:transparent" in style
-    assert "height:calc(100vh - 120px)" in style
+    assert "height:calc(100vh - 240px)" in style
     assert "padding:10px" in style
 
 
