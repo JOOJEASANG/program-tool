@@ -81,7 +81,9 @@ def test_pdf_suite_is_staged_with_split_editor_profiles_and_utility_workspace():
         'PDF_SUITE_HTML = "pdf-suite/index.html"',
         "data-pdf-suite-first-paint-guard",
         "pdf-suite-home-launcher.js?v=20260910-3",
+        '"ai-design-maker",',
         '"smart-print-layout",',
+        'OUTPUT / "ai-design-maker/index.html"',
         'OUTPUT / "smart-print-layout/index.html"',
         "data-pdf-suite-unified-navigation-prep",
         "unified-navigation-prep.js?v=20260906-2",
@@ -112,7 +114,8 @@ def test_pdf_suite_is_staged_with_split_editor_profiles_and_utility_workspace():
     assert 'programId:"preflight"' not in hosting
 
     for marker in (
-        "name:'디자인 검토/제작'",
+        "name:'디자인 검토'",
+        "name:'AI 디자인 제작'",
         "name:'스마트 인쇄배치'",
         "name:'PDF배치'",
         "name:'PDF편집'",
@@ -123,11 +126,11 @@ def test_pdf_suite_is_staged_with_split_editor_profiles_and_utility_workspace():
         "pdf-editor-advanced",
         "pdf-suite/",
         "normalizePrograms",
-        "pdf-home-five-programs-v8",
+        "pdf-home-six-programs-v9",
     ):
         assert marker in home
     assert "id:'booklet'" not in home
-    assert home.index("id:'smart-print-layout'") < home.index("id:'pdf-editor'") < home.index("id:'pdf-editor-advanced'") < home.index("id:'pdf-suite'")
+    assert home.index("id:'ai-design-maker'") < home.index("id:'smart-print-layout'") < home.index("id:'pdf-editor'") < home.index("id:'pdf-editor-advanced'") < home.index("id:'pdf-suite'")
 
     for marker in (
         "removeEditorOwnedUtilityTools",
