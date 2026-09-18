@@ -36,7 +36,7 @@ def test_design_review_no_longer_loads_ai_maker_runtime():
     assert 'id="previewCanvas"' in maker
     assert 'id="generateBtn"' in maker
     assert 'id="exportBtn"' in maker
-    assert "/js/ai-design-maker.js?v=20260918-9" in maker
+    assert "/js/ai-design-maker.js?v=20260918-10" in maker
 
 
 def test_ai_design_maker_has_easy_cover_workflow_and_diagnostics():
@@ -62,7 +62,7 @@ def test_ai_design_preview_starts_transparent_and_fills_workspace():
     assert "clientWidth || 1000) - 20" in source
     assert "clientHeight || 700) - 20" in source
     assert "background:transparent" in style
-    assert "height:calc(100vh - 240px)" in style
+    assert "height:calc(100vh - 330px)" in style
     assert "padding:10px" in style
 
 
@@ -192,3 +192,39 @@ def test_forum_preset_is_bright_pastel_and_full_bleed_generation_is_explicit():
     assert "OUTER BLEED BOUNDARY" in backend
     assert "Fill the entire canvas edge-to-edge" in backend
     assert "cover-background-v5-full-bleed-pastel-editorial" in backend
+
+
+def test_ai_design_selected_text_supports_line_breaks_and_typography_controls():
+    page = (ROOT / "ai-design-maker/index.html").read_text(encoding="utf-8")
+    source = (ROOT / "js/ai-design-maker.js").read_text(encoding="utf-8")
+    style = (ROOT / "css/ai-design-maker.css").read_text(encoding="utf-8")
+
+    assert '<textarea id="title"' in page
+    assert 'Enter로 원하는 위치에서 줄바꿈' in page
+    for field_id in (
+        "textStylePanel",
+        "selectedTextValue",
+        "selectedFontFamily",
+        "selectedFontSize",
+        "selectedFontWeight",
+        "selectedLineHeight",
+        "selectedTextColor",
+    ):
+        assert f'id="{field_id}"' in page
+
+    assert "function setSelectedTextContent(value)" in source
+    assert "layout.text=String(value||'').slice(0,700)" in source
+    assert "fontFamily:" in source
+    assert "fontSizePt:" in source
+    assert "fontWeight:" in source
+    assert "lineHeight:" in source
+    assert "color:" in source
+    assert "fontStack(item.fontFamily)" in source
+    assert "item.color||color" in source
+    assert "selectedTextValue" in source
+    assert "selectedFontFamily" in source
+    assert "selectedFontSize" in source
+    assert "selectedFontWeight" in source
+    assert "selectedLineHeight" in source
+    assert "selectedTextColor" in source
+    assert ".text-style-panel{" in style
