@@ -491,7 +491,7 @@
   }
 
   function bind(){
-    setupPresetCards();loadLocal();syncWing();syncSpineTitle();
+    loadLocal();setupPresetCards();syncWing();syncSpineTitle();
     if(!$('stylePrompt').value)$('stylePrompt').value=PRESETS[state.preset].prompt;
     qa('.size-chip').forEach(button=>button.addEventListener('click',()=>{
       const [w,h]=button.dataset.size.split(',');$('trimW').value=w;$('trimH').value=h;qa('.size-chip').forEach(x=>x.classList.toggle('active',x===button));saveLocal();scheduleRender();
