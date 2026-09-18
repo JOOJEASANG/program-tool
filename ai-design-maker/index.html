@@ -8,7 +8,7 @@
   <meta name="robots" content="noindex,nofollow">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
-  <link rel="stylesheet" href="/css/ai-design-maker.css?v=20260918-15">
+  <link rel="stylesheet" href="/css/ai-design-maker.css?v=20260918-16">
   <link rel="stylesheet" href="/css/program-manual-home-modal.css?v=20260918-1">
 </head>
 <body>
@@ -95,18 +95,22 @@
         <details class="control-section" id="copySection" open>
           <summary><span class="step-no">2</span><span><strong>표지 문구</strong><small>앞·뒤 기본 1개 + 필요한 문구만 추가</small></span><span class="section-state" id="copyState">앞표지 필요</span></summary>
           <div class="section-body">
-            <label class="field"><span>앞표지 문구 <b>*</b></span><textarea id="title" maxlength="700" rows="4" placeholder="2026 천안마을교육 운영사례집&#10;함께 만드는 배움의 마을"></textarea></label>
-
-            <div id="backCoverFields">
-              <label class="field"><span>뒤표지 문구</span><textarea id="backText" maxlength="700" rows="4" placeholder="학교와 마을이 함께 만든 교육 실천 사례와 지역 연계 성과를 담았습니다."></textarea></label>
+            <div class="copy-surface-group">
+              <div class="copy-surface-head">
+                <span>앞표지 문구 <b>*</b></span>
+                <button id="addFrontTextBtn" class="mini-action" type="button">+ 추가</button>
+              </div>
+              <textarea class="cover-copy-input" id="title" maxlength="700" rows="4" placeholder="2026 천안마을교육 운영사례집&#10;함께 만드는 배움의 마을"></textarea>
+              <div id="frontExtraFields" class="extra-copy-fields" aria-live="polite"></div>
             </div>
 
-            <div class="custom-fields-box">
-              <div class="custom-fields-head">
-                <div><strong>추가 문구</strong><small>앞표지·뒤표지를 선택한 뒤 필요한 항목만 추가하세요.</small></div>
-                <button id="addCustomFieldBtn" class="mini-action" type="button">+ 문구 추가</button>
+            <div id="backCoverFields" class="copy-surface-group">
+              <div class="copy-surface-head">
+                <span>뒤표지 문구</span>
+                <button id="addBackTextBtn" class="mini-action" type="button">+ 추가</button>
               </div>
-              <div id="customFields" class="custom-fields" aria-live="polite"></div>
+              <textarea class="cover-copy-input" id="backText" maxlength="700" rows="4" placeholder="학교와 마을이 함께 만든 교육 실천 사례와 지역 연계 성과를 담았습니다."></textarea>
+              <div id="backExtraFields" class="extra-copy-fields" aria-live="polite"></div>
             </div>
 
             <div id="spineFields">
@@ -133,10 +137,41 @@
               <label><input type="radio" name="generationQuality" value="standard" checked><span><strong>기본 300dpi</strong><small>비용 절약 · 최종 출력 300dpi</small></span></label>
               <label><input type="radio" name="generationQuality" value="high"><span><strong>고품질</strong><small>AI 배경 High · 최종 출력 300dpi</small></span></label>
             </div>
-            <div class="style-cards" id="styleCards" role="radiogroup" aria-label="디자인 스타일"></div>
+            <div class="subsection-title">디자인 용도</div>
+            <div class="style-cards style-cards-purpose" id="styleCards" role="radiogroup" aria-label="디자인 용도"></div>
             <div class="field-grid two">
-              <label class="field color-field"><span>배경 주조색</span><input id="primaryColor" type="color" value="#eaf5fb"></label>
-              <label class="field color-field"><span>글자색</span><input id="textColor" type="color" value="#14558a"></label>
+              <label class="field"><span>비주얼 방식</span>
+                <select id="visualMode">
+                  <option value="auto">자동 다양화</option>
+                  <option value="editorial">에디토리얼</option>
+                  <option value="geometry">도형·패턴</option>
+                  <option value="infographic">아이콘·인포그래픽</option>
+                  <option value="photo">사진·포토포스터</option>
+                  <option value="illustration">일러스트</option>
+                  <option value="hybrid">혼합형</option>
+                </select>
+              </label>
+              <label class="field"><span>색감 강도</span>
+                <select id="colorIntensity">
+                  <option value="refined" selected>세련된 기본</option>
+                  <option value="soft">소프트</option>
+                  <option value="vivid">선명</option>
+                  <option value="premium">고급·딥톤</option>
+                </select>
+              </label>
+            </div>
+            <label class="field"><span>분위기</span>
+              <select id="designMood">
+                <option value="auto" selected>용도에 맞게 자동</option>
+                <option value="trust">신뢰감</option>
+                <option value="refined">세련됨</option>
+                <option value="warm">따뜻함</option>
+                <option value="dynamic">역동적</option>
+              </select>
+            </label>
+            <div class="field-grid two">
+              <label class="field color-field"><span>배경 주조색</span><input id="primaryColor" type="color" value="#dbeaf3"></label>
+              <label class="field color-field"><span>글자색</span><input id="textColor" type="color" value="#164e6d"></label>
             </div>
             <label class="field"><span>주제·키워드</span><textarea id="theme" rows="3" maxlength="900" placeholder="마을교육, 지역공동체, 협력, 성장, 연결"></textarea></label>
             <div class="field prompt-field">
@@ -263,16 +298,24 @@
             <label><span>행간</span><input id="selectedLineHeight" type="number" min="0.8" max="2.2" step="0.05" value="1.2"></label>
             <label><span>글자색</span><input id="selectedTextColor" type="color" value="#ffffff"></label>
           </div>
-          <div class="text-inspector-align" aria-label="선택 문구 정렬">
-            <span>문단 정렬</span>
+          <div class="text-inspector-align" aria-label="문구 박스 위치 정렬">
+            <span>문구박스 위치 · 안전영역 기준</span>
             <div>
-              <button type="button" data-text-align="left">좌측</button>
+              <button type="button" data-box-align="left">왼쪽</button>
+              <button type="button" data-box-align="center">가운데</button>
+              <button type="button" data-box-align="right">오른쪽</button>
+            </div>
+          </div>
+          <div class="text-inspector-align" aria-label="박스 안 글씨 정렬">
+            <span>박스 안 글씨 정렬</span>
+            <div>
+              <button type="button" data-text-align="left">왼쪽</button>
               <button type="button" data-text-align="center">가운데</button>
-              <button type="button" data-text-align="right">우측</button>
+              <button type="button" data-text-align="right">오른쪽</button>
             </div>
           </div>
           <button type="button" class="text-reset-button" id="resetTextLayout">선택 문구 위치·서식 초기화</button>
-          <div class="text-snap-help">이동 중 표지의 가로·세로 중앙선에 가까워지면 자동으로 스냅됩니다.</div>
+          <div class="text-snap-help">드래그할 때도 해당 표지의 안전영역 가로·세로 중심에 자석처럼 맞춰집니다.</div>
         </div>
       </aside>
     </div>
@@ -318,6 +361,6 @@
   <script defer src="/js/firebase-config.js"></script>
   <script defer src="/js/program-manuals/home-modal.js?v=20260918-1"></script>
   <script defer src="/js/program-sidebar-actions.js?v=20260918-2"></script>
-  <script defer src="/js/ai-design-maker.js?v=20260918-18"></script>
+  <script defer src="/js/ai-design-maker.js?v=20260918-19"></script>
 </body>
 </html>
