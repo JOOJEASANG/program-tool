@@ -78,6 +78,7 @@ def test_front_cover_mode_uses_single_cover_geometry():
         "style_request": "clean annual report",
     })
     assert req.cover_mode == "front"
+    assert req.quality_mode == "standard"
     assert req.spine_mm == 0
     assert req.wing_mm == 0
     assert req.work_width_mm == 216
@@ -87,10 +88,9 @@ def test_front_cover_mode_uses_single_cover_geometry():
     assert "Do not invent a back cover, spine" in prompt
 
 
-def test_default_ai_cover_quality_is_medium_and_high_env_is_capped(monkeypatch):
+def test_default_ai_cover_quality_is_medium(monkeypatch):
     assert ai_cover_image.DEFAULT_IMAGE_QUALITY == "medium"
     monkeypatch.setenv("OPENAI_API_KEY", "test-key")
-    monkeypatch.setenv("OPENAI_AI_IMAGE_QUALITY", "high")
     captured = {}
 
     def fake_urlopen(request, timeout):
@@ -98,8 +98,9 @@ def test_default_ai_cover_quality_is_medium_and_high_env_is_capped(monkeypatch):
         return _FakeResponse()
 
     with patch("services.ai_cover_image.urllib.request.urlopen", side_effect=fake_urlopen):
-        ai_cover_image.generate_cover_image({
+        result = ai_cover_image.generate_cover_image({
             "cover_mode": "front",
+            "quality_mode": "standard",
             "trim_width_mm": 210,
             "trim_height_mm": 297,
             "bleed_mm": 3,
@@ -107,3 +108,26 @@ def test_default_ai_cover_quality_is_medium_and_high_env_is_capped(monkeypatch):
         }, uid="user-medium")
 
     assert captured["body"]["quality"] == "medium"
+    assert result["geometry"]["quality_mode"] == "standard"
+
+
+def test_high_quality_mode_uses_high_image_quality(monkeypatch):
+    monkeypatch.setenv("OPENAI_API_KEY", "test-key")
+    captured = {}
+
+    def fake_urlopen(request, timeout):
+        captured["body"] = json.loads(request.data.decode("utf-8"))
+        return _FakeResponse()
+
+    with patch("services.ai_cover_image.urllib.request.urlopen", side_effect=fake_urlopen):
+        result = ai_cover_image.generate_cover_image({
+            "cover_mode": "front",
+            "quality_mode": "high",
+            "trim_width_mm": 210,
+            "trim_height_mm": 297,
+            "bleed_mm": 3,
+            "style_request": "clean annual report cover",
+        }, uid="user-high")
+
+    assert captured["body"]["quality"] == "high"
+    assert result["geometry"]["quality_mode"] == "high"
