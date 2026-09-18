@@ -160,7 +160,7 @@ def build_cover_prompt(req: CoverImageRequest) -> str:
         "- Reserve a large calm title zone in the upper-middle or left-middle area.\n"
         if req.cover_mode == "front"
         else
-        "- Let the artwork flow continuously across back cover, exact spine, and front cover. Do not draw a visible spine strip, seam, fold, or artificial center band.\n"
+        "- Let the artwork flow continuously across back cover, exact spine, and front cover. Do not draw a visible center spine strip, seam, fold, or artificial center band.\n"
         "- If flaps exist, continue artwork naturally through the flap zones while keeping focal content inside the trim areas.\n"
         "- Keep the front cover visually strongest and the back cover quieter, with the exact spine calm and low-detail.\n"
     )
