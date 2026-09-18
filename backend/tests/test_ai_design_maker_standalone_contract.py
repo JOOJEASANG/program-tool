@@ -60,3 +60,12 @@ def test_ai_design_maker_common_sidebar_no_longer_depends_on_header():
     assert "document.createElement('button')" in sidebar_js
     assert ".maker-header .home-link" not in sidebar_js
     assert "unified-sidebar-actions-v2" in sidebar_js
+
+
+def test_ai_design_maker_exposes_custom_other_purpose_preset():
+    maker_js = (ROOT / "js" / "ai-design-maker.js").read_text(encoding="utf-8")
+
+    assert "other: '특정 문서 유형에 제한되지 않는 자유 용도의 표지를 만들어 주세요." in maker_js
+    assert "name: '기타'" in maker_js
+    assert "note: '자유 용도 · 요청문구 중심'" in maker_js
+    assert "Create a professional print cover for a custom or uncategorized purpose." in maker_js
