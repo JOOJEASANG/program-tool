@@ -11,6 +11,7 @@
     if (path === '/pdf-preflight' || path.endsWith('/pdf-preflight/index.html')) return 'utility';
     if (path === '/smart-print-layout' || path.endsWith('/smart-print-layout/index.html')) return 'smart-print-layout';
     if (path === '/print-checker' || path.endsWith('/print-checker/index.html')) return 'print-checker';
+    if (path === '/ai-design-maker' || path.endsWith('/ai-design-maker/index.html')) return 'ai-design-maker';
     if (path === '/pdf-editor-advanced' || path.endsWith('/pdf-editor-advanced/index.html')) return 'pdf-advanced';
     if (path === '/pdf-editor' || path.endsWith('/pdf-editor/index.html') || path.endsWith('/tools/pdf-editor.html')) return 'pdf-editor';
     return '';
@@ -54,6 +55,9 @@
       html[data-program-sidebar-actions="print-checker"] .ps-program-sidebar-top{top:0!important;margin:0 0 8px!important;padding:12px 14px!important}
       html[data-program-sidebar-actions="print-checker"] .sb-nav-title,
       html[data-program-sidebar-actions="print-checker"] .sb-nav-user{display:none!important}
+      html[data-program-sidebar-actions="ai-design-maker"] .ps-program-sidebar-top{
+        top:-18px!important;margin:-18px -18px 12px!important;padding:12px 18px!important;
+      }
       html[data-program-sidebar-actions="pdf-editor"]{--nav-h:0px!important}
       html[data-program-sidebar-actions="pdf-editor"] body{padding-top:0!important}
       html[data-program-sidebar-actions="pdf-editor"] .top-nav{display:none!important}
@@ -212,6 +216,35 @@
     return true;
   }
 
+  function mountAiDesignMaker() {
+    const sidebar = document.querySelector('.control-panel');
+    const home = document.querySelector('.maker-header .home-link');
+    const logout = document.getElementById('logoutBtn');
+    const userName = document.getElementById('userName');
+    if (!sidebar || !home || !logout) return false;
+
+    let bar = sidebar.querySelector(':scope > .ps-program-sidebar-top');
+    if (!bar) {
+      bar = makeBar();
+      sidebar.insertBefore(bar, sidebar.firstChild);
+    }
+    let grid = bar.querySelector('.ps-program-actions-grid');
+    if (!grid) {
+      grid = makeGrid();
+      bar.appendChild(grid);
+    }
+    const save = document.getElementById('aiDesignSessionSaveBtn') || makeButton('aiDesignSessionSaveBtn', '편집저장');
+    const load = document.getElementById('aiDesignSessionLoadBtn') || makeButton('aiDesignSessionLoadBtn', '불러오기');
+    setHome(home);
+    setSession(save, '편집저장');
+    setSession(load, '불러오기');
+    setLogout(logout);
+    markUserName(userName);
+    grid.replaceChildren(home, save, load, logout);
+    if (userName) bar.appendChild(userName);
+    return true;
+  }
+
   function loadScript(id, src) {
     if (document.getElementById(id)) return;
     const script = document.createElement('script');
@@ -229,6 +262,7 @@
     else if (route === 'pdf-advanced') mounted = mountAdvanced();
     else if (route === 'pdf-editor') mounted = mountPdfEditor();
     else if (route === 'print-checker') mounted = mountPrintChecker();
+    else if (route === 'ai-design-maker') mounted = mountAiDesignMaker();
 
     if (!mounted) {
       console.warn('[program-sidebar-actions] expected action host was not found', route);

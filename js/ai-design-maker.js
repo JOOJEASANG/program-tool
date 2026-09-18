@@ -8,6 +8,8 @@
   const EXPORT_DPI = 300;
   const MAX_EXPORT_PIXELS = 60_000_000;
   const STORAGE_KEY = 'program-studio:ai-design-maker:cover:v1';
+  const AI_COVER_PATH = '/api/preflight/ai-design-maker/cover-background';
+  const AI_DIRECT_API_ORIGIN = 'https://api-7a5qpwzezq-uc.a.run.app';
   const PRESETS = Object.freeze({
     public: {
       name: '공공·교육',
@@ -121,6 +123,22 @@
       if (typeof data.spineSync === 'boolean') $('spineSync').checked = data.spineSync;
       if (data.preset && PRESETS[data.preset]) state.preset = data.preset;
     } catch (_) {}
+  }
+
+  function saveSessionNow() {
+    saveLocal();
+    setStatus('편집 내용을 저장했습니다.','현재 표지 규격과 문구·디자인 설정을 이 브라우저에 저장했습니다.','ok');
+  }
+
+  function loadSessionNow() {
+    loadLocal();
+    setupPresetCards();
+    syncWing();
+    syncSpineTitle();
+    updateGeometry();
+    updateProgress();
+    scheduleRender();
+    setStatus('저장한 편집 내용을 불러왔습니다.','저장된 규격과 문구·디자인 설정을 다시 적용했습니다.','ok');
   }
 
   function setStatus(title, message, tone = 'ok', debug = '') {
@@ -412,17 +430,50 @@
     return new Promise((resolve,reject)=>{image.addEventListener('load',resolve,{once:true});image.addEventListener('error',()=>reject(new Error('이미지를 읽지 못했습니다.')),{once:true});});
   }
 
+  function deployedAiHost() {
+    const host=String(location.hostname||'').toLowerCase();
+    return host==='program-tool.web.app'
+      || host==='program-tool.firebaseapp.com'
+      || (host.startsWith('program-tool--')&&host.endsWith('.web.app'));
+  }
+
+  function resolveApiUrl(url) {
+    if(url===AI_COVER_PATH&&deployedAiHost())return AI_DIRECT_API_ORIGIN+url;
+    return url;
+  }
+
+  function clientRequestId() {
+    if(globalThis.crypto?.randomUUID)return 'ai-'+crypto.randomUUID();
+    return 'ai-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,10);
+  }
+
   async function authFetch(url,options={}){
     const user=window.auth?.currentUser;
     if(!user)throw Object.assign(new Error('로그인이 필요합니다.'),{status:401,code:'AUTH_REQUIRED'});
     const token=await user.getIdToken();
-    const headers=new Headers(options.headers||{});headers.set('Authorization','Bearer '+token);headers.set('Content-Type','application/json');
-    const response=await fetch(url,{...options,headers});
+    const requestId=clientRequestId();
+    const target=resolveApiUrl(url);
+    const headers=new Headers(options.headers||{});
+    headers.set('Authorization','Bearer '+token);
+    headers.set('Content-Type','application/json');
+    headers.set('X-Request-ID',requestId);
+    let response;
+    try{
+      response=await fetch(target,{...options,headers});
+    }catch(cause){
+      const err=new Error('AI 생성 서버에 연결하지 못했습니다. 네트워크 상태를 확인한 뒤 다시 시도해 주세요.');
+      err.status=0;err.code='AI_DIRECT_API_NETWORK';err.requestId=requestId;err.raw=String(cause?.message||cause||'');err.transport=target.startsWith(AI_DIRECT_API_ORIGIN)?'direct-function':'hosting';throw err;
+    }
     const raw=await response.text();
-    let data={};try{data=raw?JSON.parse(raw):{};}catch(_){data={detail:raw.slice(0,600)};}
+    let data={};try{data=raw?JSON.parse(raw):{};}catch(_){data={detail:''};}
     if(!response.ok){
-      const err=new Error(data.detail||'AI 표지 생성 요청에 실패했습니다.');
-      err.status=response.status;err.code=data.code||'';err.requestId=data.request_id||response.headers.get('x-request-id')||'';err.raw=raw.slice(0,1200);throw err;
+      const htmlGateway=/^\s*<!doctype html/i.test(raw)||/^\s*<html/i.test(raw);
+      const code=data.code||(htmlGateway&&response.status>=500?'AI_GATEWAY_ERROR':'');
+      const message=data.detail||(htmlGateway&&response.status>=500
+        ?'AI 생성 서버 연결이 중간에서 종료되었습니다. 잠시 후 다시 시도해 주세요.'
+        :'AI 표지 생성 요청에 실패했습니다.');
+      const err=new Error(message);
+      err.status=response.status;err.code=code;err.requestId=data.request_id||response.headers.get('x-request-id')||requestId;err.raw=raw.slice(0,1200);err.transport=target.startsWith(AI_DIRECT_API_ORIGIN)?'direct-function':'hosting';throw err;
     }
     return data;
   }
@@ -447,7 +498,7 @@
     setStatus('AI 배경을 생성하고 있습니다.','표지 비율에 맞는 배경을 만드는 중입니다. 생성에는 시간이 걸릴 수 있습니다.','busy');
     try{
       const prompt=String($('stylePrompt')?.value||PRESETS[state.preset].prompt).trim();
-      const data=await authFetch('/api/preflight/ai-design-maker/cover-background',{
+      const data=await authFetch(AI_COVER_PATH,{
         method:'POST',
         body:JSON.stringify({
           trim_width_mm:spec.trimW,trim_height_mm:spec.trimH,spine_mm:spec.spine,wing_mm:spec.wing,bleed_mm:spec.bleed,
@@ -463,7 +514,7 @@
       updateProgress();
       setStatus('AI 배경 생성 완료','문구는 별도 레이어로 유지됩니다. 문구나 색상을 수정하면 미리보기에 바로 반영됩니다.','ok');
     }catch(error){
-      const debug=['HTTP: '+(error.status||'unknown'),'code: '+(error.code||'unknown'),'request_id: '+(error.requestId||'none'),error.raw?'response: '+error.raw:''].filter(Boolean).join('\n');
+      const debug=['HTTP: '+(error.status||'unknown'),'code: '+(error.code||'unknown'),'request_id: '+(error.requestId||'none'),'transport: '+(error.transport||'direct-function'),error.raw?'response: '+error.raw:''].filter(Boolean).join('\n');
       setStatus('AI 배경 생성 실패',error.message||'AI 표지 생성 요청에 실패했습니다.','error',debug);
     }finally{button.disabled=false;}
   }
@@ -544,6 +595,8 @@
     $('wingEnabled')?.addEventListener('change',()=>{syncWing();saveLocal();scheduleRender();});
     $('spineSync')?.addEventListener('change',()=>{syncSpineTitle();saveLocal();updateProgress();scheduleRender();});
     $('fillSpineBtn')?.addEventListener('click',fillSpineFromCover);
+    $('aiDesignSessionSaveBtn')?.addEventListener('click',saveSessionNow);
+    $('aiDesignSessionLoadBtn')?.addEventListener('click',loadSessionNow);
     qa('[data-jump]').forEach(button=>button.addEventListener('click',()=>jumpToSection(button.dataset.jump)));
     $('guideToggle')?.addEventListener('change',scheduleRender);
     $('generateBtn')?.addEventListener('click',generate);
