@@ -179,12 +179,12 @@
       backText: $('backText')?.value || '',
       spineTitle: $('spineTitle')?.value || '',
       spineOrientation: $('spineOrientation')?.value || 'rotate-up',
-      customFields: state.customFields.filter(item => String(item.label || '').trim() || String(item.value || '').trim())
+      customFields: state.customFields.filter(item => String(item.value || '').trim())
     };
   }
 
   function serializableState() {
-    const ids = ['trimW','trimH','spine','bleed','safeZone','wingW','title','backText','spineTitle','spineOrientation','primaryColor','textColor','theme','stylePrompt'];
+    const ids = ['trimW','trimH','spine','bleed','safeZone','wingW','title','backText','spineTitle','spineOrientation','visualMode','colorIntensity','designMood','primaryColor','textColor','theme','stylePrompt'];
     const data = {
       preset: state.preset,
       wingEnabled: Boolean($('wingEnabled')?.checked),
@@ -643,6 +643,7 @@
       widthScale:clamp(current.widthScale,.25,2.5,1),
       fontScale:clamp(current.fontScale,.35,3,1),
       align:['left','center','right'].includes(current.align)?current.align:fallbackAlign,
+      boxAlign:['left','center','right'].includes(current.boxAlign)?current.boxAlign:'',
       fontFamily:normalizeFontFamily(current.fontFamily),
       fontSizePt:Number.isFinite(rawFontSize)&&rawFontSize>0?clamp(rawFontSize,4,160,0):0,
       fontWeight:normalizeFontWeight(current.fontWeight),
@@ -664,9 +665,7 @@
     if(String(id||'').startsWith('custom:')){
       const customId=String(id).slice(7);
       const item=state.customFields.find(entry=>entry.id===customId);
-      const side=item?.surface==='back'?'뒤표지':'앞표지';
-      const name=String(item?.label||'추가 문구').trim()||'추가 문구';
-      return side+' · '+name;
+      return (item?.surface==='back'?'뒤표지':'앞표지')+' · 추가 문구';
     }
     return '문구';
   }
@@ -689,6 +688,14 @@
           const spineLayout=state.textLayouts.spineTitle;
           if(spineLayout&&Object.prototype.hasOwnProperty.call(spineLayout,'text'))delete spineLayout.text;
         }
+      }
+    }else if(String(id).startsWith('custom:')){
+      const customId=String(id).slice(7);
+      const custom=state.customFields.find(entry=>entry.id===customId);
+      if(custom){
+        custom.value=layout.text;
+        const input=document.querySelector('[data-custom-id="'+customId+'"] textarea');
+        if(input&&document.activeElement!==input)input.value=layout.text;
       }
     }
     saveLocal();updateProgress();scheduleRender();
@@ -742,9 +749,7 @@
     const addCustomEntries=(entries,surface,x,startY,areaH)=>{
       const step=entries.length?Math.min(th*.075,areaH/entries.length):0;
       entries.forEach((entry,index)=>{
-        const label=String(entry.label||'').trim();
-        const value=String(entry.value||'').trim();
-        const text=label&&value?label+'  '+value:(value||label);
+        const text=String(entry.value||'').trim();
         add({id:'custom:'+entry.id,surface,text,x:x+safe,y:startY+index*step,w:contentW,h:Math.max(th*.052,step*.95),fontPt:12,weight:700,align:'left'});
       });
     };
@@ -880,12 +885,14 @@
 
   function coverSurfaceRect(surface,spec,scale){
     const b=spec.bleed*scale,tw=spec.trimW*scale,th=spec.trimH*scale,wing=spec.wing*scale,sw=spec.spine*scale;
+    const safe=Math.min(spec.safe,spec.trimW*.15,spec.trimH*.15)*scale;
+    const safeW=Math.max(1,tw-safe*2),safeH=Math.max(1,th-safe*2);
     if(surface==='front'){
-      const x=spec.coverMode==='front'?b:b+wing+tw+sw;
-      return {x,y:b,w:tw,h:th,surface:'front'};
+      const trimX=spec.coverMode==='front'?b:b+wing+tw+sw;
+      return {x:trimX+safe,y:b+safe,w:safeW,h:safeH,surface:'front'};
     }
     if(surface==='back'&&spec.coverMode==='spread'){
-      return {x:b+wing,y:b,w:tw,h:th,surface:'back'};
+      return {x:b+wing+safe,y:b+safe,w:safeW,h:safeH,surface:'back'};
     }
     return null;
   }
@@ -982,6 +989,12 @@
       button.disabled=!active;
       button.classList.toggle('active',Boolean(layout&&button.dataset.textAlign===layout.align));
     });
+    qa('[data-box-align]').forEach(button=>{
+      const surface=active?textSurfaceForId(selected):'';
+      const boxEnabled=active&&surface!=='spine';
+      button.disabled=!boxEnabled;
+      button.classList.toggle('active',Boolean(boxEnabled&&layout&&button.dataset.boxAlign===layout.boxAlign));
+    });
     if($('resetTextLayout'))$('resetTextLayout').disabled=!active;
     if(!active){
       state.selectedTextUiId='';
@@ -995,6 +1008,23 @@
     if($('selectedLineHeight')&&document.activeElement!==$('selectedLineHeight'))$('selectedLineHeight').value=Number(item.lineHeight||1.2).toFixed(2);
     if($('selectedTextColor'))$('selectedTextColor').value=normalizeColor(item.color)||normalizeColor($('textColor')?.value)||'#ffffff';
     state.selectedTextUiId=selected;
+  }
+
+  function alignSelectedTextBox(mode){
+    if(!state.selectedTextId||!['left','center','right'].includes(mode))return;
+    const spec=currentSpec(),surface=textSurfaceForId(state.selectedTextId);
+    if(surface==='spine')return;
+    const item=textLayout(spec,1).find(entry=>entry.id===state.selectedTextId);
+    const zone=coverSurfaceRect(surface,spec,1);
+    if(!item||!zone)return;
+    const layout=textLayoutState(state.selectedTextId,item.align||'left');
+    let targetX=zone.x;
+    if(mode==='center')targetX=zone.x+(zone.w-item.w)/2;
+    else if(mode==='right')targetX=zone.x+zone.w-item.w;
+    layout.dx=clamp(layout.dx+(targetX-item.x),-spec.workW,spec.workW,0);
+    layout.boxAlign=mode;
+    state.snapGuide=null;
+    saveLocal();syncTextEditUi();scheduleRender();
   }
 
   function bindTextCanvasEditing(){
@@ -1049,6 +1079,7 @@
           if(snapX||snapY)state.snapGuide={zone:drag.zone,centerX:zoneCenterX,centerY:zoneCenterY,snapX,snapY};
         }
         const spec=currentSpec();
+        layout.boxAlign='';
         layout.dx=clamp(drag.start.dx+dx/drag.scale,-spec.workW,spec.workW,0);
         layout.dy=clamp(drag.start.dy+dy/drag.scale,-spec.workH,spec.workH,0);
       }else{
@@ -1071,7 +1102,7 @@
     const current=textLayoutState(state.selectedTextId);
     const item=textLayout(currentSpec(),1).find(entry=>entry.id===state.selectedTextId);
     const reset={
-      dx:0,dy:0,widthScale:1,fontScale:1,align:item?.rotate||item?.vertical?'center':'left',
+      dx:0,dy:0,widthScale:1,fontScale:1,align:item?.rotate||item?.vertical?'center':'left',boxAlign:'',
       fontFamily:'',fontSizePt:0,fontWeight:0,lineHeight:1.2,color:''
     };
     if(Object.prototype.hasOwnProperty.call(current,'text'))reset.text=current.text;
@@ -1133,24 +1164,35 @@
     return data;
   }
 
+  function selectedDesignDirection(){
+    const visual=$('visualMode')?.value||'auto';
+    const intensity=$('colorIntensity')?.value||'refined';
+    const mood=$('designMood')?.value||'auto';
+    const variant=COMPOSITION_VARIANTS[Math.floor(Math.random()*COMPOSITION_VARIANTS.length)];
+    return [
+      'Visual approach: '+(VISUAL_MODE_PROMPTS[visual]||VISUAL_MODE_PROMPTS.auto),
+      'Color direction: '+(COLOR_INTENSITY_PROMPTS[intensity]||COLOR_INTENSITY_PROMPTS.refined),
+      'Mood direction: '+(MOOD_PROMPTS[mood]||MOOD_PROMPTS.auto),
+      'Composition variation for this generation: '+variant
+    ].join('\n');
+  }
+
   function themeContext(){
     const t=readText(),spec=currentSpec();
     const custom=t.customFields.map(item=>{
-      const side=item.surface==='back'?'뒤표지':'앞표지';
-      const label=String(item.label||'').trim();
       const value=String(item.value||'').trim();
-      if(!label&&!value)return '';
-      return side+' 추가 문구: '+[label,value].filter(Boolean).join(' — ');
+      if(!value)return '';
+      return (item.surface==='back'?'뒤표지':'앞표지')+' 추가 문구: '+value;
     }).filter(Boolean);
     return [
       spec.coverMode==='front'?'표지 용도: 인쇄용 앞표지 단면':'표지 용도: 인쇄용 책/보고서 전체 펼침 표지',
+      '디자인 종류: '+(PRESETS[state.preset]?.name||'보고서'),
       t.title?'앞표지 문구의 의미 참고: '+t.title:'',
       spec.coverMode==='spread'&&t.backText?'뒤표지 문구의 의미 참고: '+t.backText:'',
       ...custom,
       $('theme')?.value?'주제·키워드: '+$('theme').value:'',
       '선호 주조색: '+($('primaryColor')?.value||'#315c8c'),
-      '주의: 위 문구는 배경 콘셉트의 의미 참고용이며 이미지 안에 실제 글자로 그리지 않는다.',
-      '스타일 기준: clean annual report / brochure cover, white-space dominant, thin blue or pastel graphic accents'
+      '주의: 위 문구는 배경 콘셉트의 의미 참고용이며 이미지 안에 실제 글자로 그리지 않는다.'
     ].filter(Boolean).join('\n');
   }
 
@@ -1165,23 +1207,24 @@
     try{
       const prompt=String($('stylePrompt')?.value||presetPrompt()).trim();
       const designGuardrails=[
-        'Visual target: clean modern annual-report, business-proposal and editorial brochure covers with strong white space.',
-        'Keep roughly 70–85% of the surface white, ivory, or very light neutral whenever the requested style allows it.',
-        'Use ONE restrained graphic system only: thin translucent curves, sparse line-network geometry, a few small colored squares/rectangles, or a light diagonal/edge sweep.',
-        'Decorative graphics should live mainly at one edge, corner, side, or lower third. Preserve a large calm title area and never fill every region.',
+        'Create a contemporary, production-ready print cover with professional art direction and clear hierarchy.',
+        'Default color treatment should be slightly richer and more sophisticated than pale pastel: refined medium saturation, crisp contrast, and print-friendly tones.',
+        'Do not default every design to thin lines, circles, waves, geometric networks or abstract patterns. Let the selected document category and visual approach determine the visual language.',
+        'Photography, editorial illustration, iconographic/infographic structures, image crops, frames, grids, layered fields, architectural composition and refined geometry are all allowed when they fit the selected visual approach.',
+        'Preserve a clear text-safe area for the application typography and never generate readable words, letters, logos, labels or pseudo-text.',
         'The OUTER BLEED BOUNDARY is the artwork canvas. Fill the entire canvas edge-to-edge; artwork may crop naturally at the outside edge.',
         spec.coverMode==='spread'
-          ?'Do not create a visible center spine strip, seam, fold, vertical band, or color break. The artwork must flow continuously through the exact spine area.'
+          ?'Do not create a visible center spine strip, seam, fold, vertical band, or abrupt color break. The artwork must flow continuously through the exact spine area.'
           :'This is FRONT COVER ONLY. Compose one portrait cover, not a spread, not a mockup, and do not invent a back cover or spine.',
-        state.preset==='forum'?'For forum/event work use an airy white/off-white base with powder blue, sage, pale lavender, peach or blush accents and fine editorial line work.':'',
-        'Avoid giant circles/semicircles, dark navy dominance, thick wave bands, oversized heavy blocks, glossy swooshes, generic government brochure motifs, stock-template clutter, bevels, lens flares, pseudo-3D decoration, and excessive gradients.'
+        'Avoid washed-out low-contrast pastel, dated government brochure waves, generic stock-template decoration, glossy 3D effects, fake text and clutter.'
       ].join('\n');
+      const designDirection=selectedDesignDirection();
       const data=await authFetch(AI_COVER_PATH,{
         method:'POST',
         body:JSON.stringify({
           cover_mode:spec.coverMode,quality_mode:state.generationQuality,trim_width_mm:spec.trimW,trim_height_mm:spec.trimH,spine_mm:spec.spine,wing_mm:spec.wing,bleed_mm:spec.bleed,
           preset_name:PRESETS[state.preset].name,
-          style_request:prompt+'\n'+designGuardrails+'\nPreferred dominant color: '+($('primaryColor')?.value||'#315c8c')+'.',
+          style_request:prompt+'\n'+designDirection+'\n'+designGuardrails+'\nPreferred dominant color: '+($('primaryColor')?.value||'#315c8c')+'.',
           theme_context:themeContext()
         })
       });
@@ -1536,7 +1579,7 @@
       state.generationQuality=input.value==='high'?'high':'standard';
       syncGenerationQuality();saveLocal();
     }));
-    const watched=['trimW','trimH','spine','bleed','safeZone','wingW','title','backText','spineTitle','spineOrientation','primaryColor','textColor','theme','stylePrompt'];
+    const watched=['trimW','trimH','spine','bleed','safeZone','wingW','title','backText','spineTitle','spineOrientation','visualMode','colorIntensity','designMood','primaryColor','textColor','theme','stylePrompt'];
     watched.forEach(id=>$(id)?.addEventListener('input',()=>{
       if(id==='trimW'||id==='trimH'){state.sizeMode='custom';syncSizeMode();}
       if(['title','backText','spineTitle'].includes(id))clearTextOverrideForSource(id);
@@ -1559,7 +1602,8 @@
     qa('[data-gallery-detail-close]').forEach(node=>node.addEventListener('click',closeGalleryDetail));
     $('exportBtn')?.addEventListener('click',exportDesign);
     $('exportFormat')?.addEventListener('change',syncExportButton);
-    $('addCustomFieldBtn')?.addEventListener('click',addCustomField);
+    $('addFrontTextBtn')?.addEventListener('click',()=>addCustomField('front'));
+    $('addBackTextBtn')?.addEventListener('click',()=>addCustomField('back'));
     qa('input[name="promptLanguage"]').forEach(input=>input.addEventListener('change',()=>{
       const previous=state.promptLanguage;
       const oldDefaults=Object.keys(PRESETS).flatMap(id=>[PRESETS[id].prompt,PRESET_PROMPTS_KO[id]]);
@@ -1569,6 +1613,7 @@
       saveLocal();updateProgress();
       if(previous!==state.promptLanguage)scheduleRender();
     }));
+    qa('[data-box-align]').forEach(button=>button.addEventListener('click',()=>alignSelectedTextBox(button.dataset.boxAlign)));
     qa('[data-text-align]').forEach(button=>button.addEventListener('click',()=>{
       if(!state.selectedTextId)return;
       textLayoutState(state.selectedTextId).align=button.dataset.textAlign;
