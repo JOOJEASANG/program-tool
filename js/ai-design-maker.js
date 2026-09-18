@@ -209,7 +209,7 @@
   function loadSessionNow() {
     loadLocal();
     setupPresetCards();
-    syncWing();
+    syncCoverMode();
     syncSpineTitle();
     renderCustomFields();
     syncPromptLanguageUi(false);
@@ -347,6 +347,26 @@
     if ($('wingField')) $('wingField').hidden = !enabled;
   }
 
+  function syncCoverMode() {
+    const selected=document.querySelector('input[name="coverMode"]:checked');
+    if(selected)state.coverMode=selected.value==='front'?'front':'spread';
+    qa('input[name="coverMode"]').forEach(input=>{input.checked=input.value===state.coverMode;});
+    document.documentElement.dataset.coverMode=state.coverMode;
+    const front=state.coverMode==='front';
+    if($('coverModeHeading'))$('coverModeHeading').textContent=front?'앞표지 단면 제작':'표지 전체 펼침 제작';
+    if($('coverModeDescription'))$('coverModeDescription').textContent=front
+      ?'앞표지 한 면만 실제 인쇄 규격으로 디자인합니다. 제목·행사정보·기관명 등을 자유롭게 배치하세요.'
+      :'앞표지·책등·뒤표지를 한 번에 제작합니다. 규격 → 문구 → 스타일 순서로 입력하세요.';
+    if($('previewModeTitle'))$('previewModeTitle').textContent=front?'앞표지 미리보기':'전체 펼침 미리보기';
+    if($('backgroundModeHint'))$('backgroundModeHint').textContent=front
+      ?'직접 만든 앞표지 이미지를 불러오면 도련 포함 바깥 적색선 전체 영역을 꽉 채워 배치합니다.'
+      :'직접 만든 전체 펼침 표지를 불러오면 바깥 적색선 전체 영역을 꽉 채워 배치합니다. 그 위에 문구를 자유롭게 편집할 수 있습니다.';
+    syncWing();
+    updateGeometry();
+    syncTextEditUi();
+    scheduleRender();
+  }
+
   function syncSpineTitle() {
     if ($('spineSync')?.checked && $('spineTitle')) $('spineTitle').value = $('title')?.value || '';
   }
@@ -418,10 +438,12 @@
   function updateGeometry() {
     const spec = currentSpec();
     const wing = spec.wing ? ' · 날개 '+spec.wing.toFixed(1)+'mm×2' : '';
-    const text = '완성 '+spec.trimW.toFixed(1)+'×'+spec.trimH.toFixed(1)+'mm · 책등 '+spec.spine.toFixed(1)+'mm · 도련 '+spec.bleed.toFixed(1)+'mm'+wing+' · 전체 '+spec.workW.toFixed(1)+'×'+spec.workH.toFixed(1)+'mm';
+    const text = spec.coverMode==='front'
+      ? '앞표지 '+spec.trimW.toFixed(1)+'×'+spec.trimH.toFixed(1)+'mm · 도련 '+spec.bleed.toFixed(1)+'mm · 작업 '+spec.workW.toFixed(1)+'×'+spec.workH.toFixed(1)+'mm'
+      : '완성 '+spec.trimW.toFixed(1)+'×'+spec.trimH.toFixed(1)+'mm · 책등 '+spec.spine.toFixed(1)+'mm · 도련 '+spec.bleed.toFixed(1)+'mm'+wing+' · 전체 '+spec.workW.toFixed(1)+'×'+spec.workH.toFixed(1)+'mm';
     if ($('geometryHint')) $('geometryHint').textContent = text;
     if ($('geometrySummary')) $('geometrySummary').textContent = text;
-    updateSpinePolicy();
+    if(spec.coverMode==='spread')updateSpinePolicy();
     updateProgress();
     const stale = Boolean(state.background && state.generatedSpecKey && state.generatedSpecKey !== specKey(spec));
     if ($('exportBtn')) $('exportBtn').disabled = !state.background || stale;
