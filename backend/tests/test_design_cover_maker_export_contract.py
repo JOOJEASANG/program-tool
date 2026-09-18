@@ -36,7 +36,7 @@ def test_design_review_no_longer_loads_ai_maker_runtime():
     assert 'id="previewCanvas"' in maker
     assert 'id="generateBtn"' in maker
     assert 'id="exportBtn"' in maker
-    assert "/js/ai-design-maker.js?v=20260918-11" in maker
+    assert "/js/ai-design-maker.js?v=20260918-12" in maker
 
 
 def test_ai_design_maker_has_easy_cover_workflow_and_diagnostics():
@@ -264,3 +264,20 @@ def test_ai_design_reference_direction_is_clean_white_space_report_style():
     assert "thin translucent blue/cyan flowing curves" in backend
     assert "sparse geometric network lines" in backend
     assert "Giant circles or semicircles" in backend
+
+
+def test_ai_design_maker_supports_standard_300dpi_and_high_quality_generation_modes():
+    page = (ROOT / "ai-design-maker/index.html").read_text(encoding="utf-8")
+    source = (ROOT / "js/ai-design-maker.js").read_text(encoding="utf-8")
+    backend = (ROOT / "backend/services/ai_cover_image.py").read_text(encoding="utf-8")
+
+    assert 'name="generationQuality" value="standard"' in page
+    assert 'name="generationQuality" value="high"' in page
+    assert "기본 300dpi" in page
+    assert "고품질" in page
+    assert "generationQuality: 'standard'" in source
+    assert "quality_mode:state.generationQuality" in source
+    assert "state.generationQuality=input.value==='high'?'high':'standard'" in source
+    assert 'quality_mode = "high" if quality_mode == "high" else "standard"' in backend
+    assert 'quality = "high" if req.quality_mode == "high" else "medium"' in backend
+    assert "const EXPORT_DPI = 300" in source
