@@ -703,7 +703,7 @@
         label:String(item.label||'').trim(),
         text:String(item.value||'').trim()
       }))
-    ].filter(item=>String(item.text||item.label||'').trim());
+    ].filter(item=>String(item.text||'').trim());
     const infoStart=b+th*.52;
     const infoArea=th*.205;
     const infoStep=eventEntries.length?Math.min(th*.047,infoArea/eventEntries.length):0;
