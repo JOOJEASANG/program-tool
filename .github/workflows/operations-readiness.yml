@@ -11,6 +11,7 @@ on:
       - '.github/workflows/operations-readiness.yml'
       - 'scripts/firebase_ci.sh'
       - 'scripts/check_operations_readiness.py'
+      - 'scripts/check_cloud_external_state.py'
       - 'backend/main.py'
       - 'backend/scripts/sync_admin_claims.py'
       - 'storage-lifecycle.json'
@@ -23,7 +24,7 @@ jobs:
   readiness:
     name: Operations readiness audit
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     env:
       WIF_PROVIDER: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
       WIF_SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }}
@@ -67,6 +68,18 @@ jobs:
           create_credentials_file: true
           export_environment_variables: true
 
+      - name: Cloud 상태 읽기 의존성 설치
+        if: env.WIF_PROVIDER != '' && env.WIF_SERVICE_ACCOUNT != ''
+        run: python3 -m pip install -r backend/requirements.txt
+
+      - name: 실제 Storage lifecycle · 관리자 Claim 읽기 검증
+        if: env.WIF_PROVIDER != '' && env.WIF_SERVICE_ACCOUNT != ''
+        continue-on-error: true
+        run: |
+          python3 scripts/check_cloud_external_state.py \
+            --bucket program-tool.firebasestorage.app \
+            --json-out /tmp/cloud-external-state.json
+
       - name: 감사 결과 요약
         if: always()
         shell: bash
@@ -91,6 +104,23 @@ jobs:
           for item in report['checks']:
               detail = str(item['detail']).replace('|', '\\|')
               print(f'| {item["name"]} | {item["status"]} | {detail} |')
+
+          cloud_path = Path('/tmp/cloud-external-state.json')
+          if cloud_path.exists():
+              cloud = json.loads(cloud_path.read_text(encoding='utf-8'))
+              print()
+              print('## 실제 Cloud/Firebase 읽기 검증')
+              print()
+              print(f'**Overall:** {cloud["overall"]}')
+              print()
+              print('| 항목 | 상태 | 내용 |')
+              print('|---|---|---|')
+              for item in cloud['checks']:
+                  detail = str(item['detail']).replace('|', '\\|')
+                  print(f'| {item["name"]} | {item["status"]} | {detail} |')
+          else:
+              print()
+              print('> WIF가 아직 구성되지 않아 실제 Cloud/Firebase 읽기 검증은 건너뛰었습니다.')
           PY
 
       - name: 감사 리포트 업로드
@@ -98,6 +128,8 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: operations-readiness-report
-          path: /tmp/operations-readiness.json
+          path: |
+            /tmp/operations-readiness.json
+            /tmp/cloud-external-state.json
           retention-days: 14
           if-no-files-found: ignore
