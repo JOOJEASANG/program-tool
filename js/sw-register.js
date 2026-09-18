@@ -17,6 +17,7 @@
   function isProtectedRuntimePage(){
     return isPath(
       '/print-checker','/print-checker/index.html',
+      '/ai-design-maker','/ai-design-maker/index.html',
       '/smart-print-layout','/smart-print-layout/index.html',
       '/pdf-suite','/pdf-suite/index.html',
       '/tools/pdf-editor.html','/pdf-editor','/pdf-editor/index.html','/pdf-editor-advanced','/pdf-editor-advanced/index.html',
