@@ -67,7 +67,7 @@ GitHub Branch Protection은 여전히 별도로 켜야 합니다. 보호 규칙 
 
 ## 5. Storage lifecycle 실제 버킷 적용 확인
 
-애플리케이션은 `every 24 hours` 스케줄의 cleanup function으로 `pdf_temp/`, `preflight_temp/`, `pdf_results/` 등의 임시 결과 정리를 수행합니다. 별도의 장애 안전망으로 `storage-lifecycle.json`도 실제 Cloud Storage 버킷에 적용되어 있어야 합니다.
+애플리케이션은 `every 1 hours` 스케줄의 `cleanup_temporary_pdfs` function으로 `pdf_temp/`, `preflight_temp/`, `pdf_results/`의 오래된 임시 결과를 정리합니다. 별도로 `cleanup_persistent_user_storage`는 `every 24 hours`마다 저장 세션/프로젝트 quota와 orphan 객체를 정리합니다. 장애 안전망으로 `storage-lifecycle.json`도 실제 Cloud Storage 버킷에 적용되어 있어야 합니다.
 
 확인할 정책:
 
