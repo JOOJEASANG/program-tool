@@ -35,7 +35,7 @@ def test_design_review_no_longer_loads_ai_maker_runtime():
     assert 'id="previewCanvas"' in maker
     assert 'id="generateBtn"' in maker
     assert 'id="exportBtn"' in maker
-    assert "/js/ai-design-maker.js?v=20260918-19" in maker
+    assert "/js/ai-design-maker.js?v=20260918-20" in maker
 
 
 def test_ai_design_maker_has_easy_cover_workflow_and_diagnostics():
