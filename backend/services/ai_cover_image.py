@@ -42,6 +42,7 @@ class AiCoverImageError(RuntimeError):
 @dataclass(frozen=True)
 class CoverImageRequest:
     cover_mode: str
+    quality_mode: str
     trim_width_mm: float
     trim_height_mm: float
     spine_mm: float
@@ -77,6 +78,8 @@ def _clean(value: Any, limit: int) -> str:
 def normalize_cover_request(payload: dict[str, Any]) -> CoverImageRequest:
     cover_mode = _clean(payload.get("cover_mode"), 20).lower()
     cover_mode = "front" if cover_mode == "front" else "spread"
+    quality_mode = _clean(payload.get("quality_mode"), 20).lower()
+    quality_mode = "high" if quality_mode == "high" else "standard"
     trim_width = _number(payload.get("trim_width_mm"), minimum=50, maximum=1000, default=210)
     trim_height = _number(payload.get("trim_height_mm"), minimum=50, maximum=1000, default=297)
     spine = _number(payload.get("spine_mm"), minimum=0, maximum=100, default=0)
@@ -97,6 +100,7 @@ def normalize_cover_request(payload: dict[str, Any]) -> CoverImageRequest:
         wing = 0
     request = CoverImageRequest(
         cover_mode=cover_mode,
+        quality_mode=quality_mode,
         trim_width_mm=trim_width,
         trim_height_mm=trim_height,
         spine_mm=spine,
@@ -335,10 +339,7 @@ def generate_cover_image(payload: dict[str, Any], *, uid: str) -> dict[str, Any]
         )
 
     model = os.environ.get("OPENAI_AI_IMAGE_MODEL", DEFAULT_IMAGE_MODEL).strip() or DEFAULT_IMAGE_MODEL
-    requested_quality = os.environ.get("OPENAI_AI_IMAGE_QUALITY", DEFAULT_IMAGE_QUALITY).strip().lower() or DEFAULT_IMAGE_QUALITY
-    quality = requested_quality if requested_quality in _allowed_qualities(model) else DEFAULT_IMAGE_QUALITY
-    if quality == "high":
-        quality = "medium"
+    quality = "high" if req.quality_mode == "high" else "medium"
     size = choose_image_size(req)
     body = {
         "model": model,
@@ -397,6 +398,7 @@ def generate_cover_image(payload: dict[str, Any], *, uid: str) -> dict[str, Any]
         "prompt_version": "cover-background-v6-clean-report-front-mode",
         "geometry": {
             "cover_mode": req.cover_mode,
+            "quality_mode": req.quality_mode,
             "trim_width_mm": req.trim_width_mm,
             "trim_height_mm": req.trim_height_mm,
             "spine_mm": req.spine_mm,
