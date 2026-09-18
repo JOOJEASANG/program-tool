@@ -1,0 +1,103 @@
+name: 운영 설정 준비상태 점검
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/firebase-deploy.yml'
+      - '.github/workflows/firebase-preview.yml'
+      - '.github/workflows/operations-readiness.yml'
+      - 'scripts/firebase_ci.sh'
+      - 'scripts/check_operations_readiness.py'
+      - 'backend/main.py'
+      - 'backend/scripts/sync_admin_claims.py'
+      - 'storage-lifecycle.json'
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  readiness:
+    name: Operations readiness audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      WIF_PROVIDER: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+      WIF_SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+      FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+    steps:
+      - name: 코드 체크아웃
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Python 3.11 설정
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.11'
+
+      - name: main 보호 상태 조회
+        id: main-protection
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          result-encoding: string
+          script: |
+            const { data } = await github.rest.repos.getBranch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              branch: 'main',
+            });
+            return String(Boolean(data.protected));
+
+      - name: 저장소·외부 설정 준비상태 감사
+        env:
+          MAIN_PROTECTED: ${{ steps.main-protection.outputs.result }}
+          GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ env.WIF_PROVIDER }}
+          GCP_SERVICE_ACCOUNT: ${{ env.WIF_SERVICE_ACCOUNT }}
+        run: python3 scripts/check_operations_readiness.py --json-out /tmp/operations-readiness.json
+
+      - name: Google Cloud WIF 실제 인증 확인
+        if: env.WIF_PROVIDER != '' && env.WIF_SERVICE_ACCOUNT != ''
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
+        with:
+          project_id: program-tool
+          workload_identity_provider: ${{ env.WIF_PROVIDER }}
+          service_account: ${{ env.WIF_SERVICE_ACCOUNT }}
+          create_credentials_file: true
+          export_environment_variables: true
+
+      - name: 감사 결과 요약
+        if: always()
+        shell: bash
+        run: |
+          if [ ! -f /tmp/operations-readiness.json ]; then
+            echo "## 운영 설정 준비상태" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "감사 리포트가 생성되지 않았습니다." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          python3 - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json
+          from pathlib import Path
+
+          report = json.loads(Path('/tmp/operations-readiness.json').read_text(encoding='utf-8'))
+          print('## 운영 설정 준비상태')
+          print()
+          print(f'**Overall:** {report["overall"]}')
+          print()
+          print('| 항목 | 상태 | 내용 |')
+          print('|---|---|---|')
+          for item in report['checks']:
+              detail = str(item['detail']).replace('|', '\\|')
+              print(f'| {item["name"]} | {item["status"]} | {detail} |')
+          PY
+
+      - name: 감사 리포트 업로드
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: operations-readiness-report
+          path: /tmp/operations-readiness.json
+          retention-days: 14
+          if-no-files-found: ignore
