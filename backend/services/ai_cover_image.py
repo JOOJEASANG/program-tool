@@ -160,8 +160,16 @@ CRITICAL TYPOGRAPHY RULE
 Generate BACKGROUND ARTWORK ONLY. Do not draw any words, letters, numbers, logos, signatures, pseudo-text,
 watermarks, QR codes, barcodes, fake labels, placeholder type, or typographic marks. Exact Korean text will be added later by the application.
 
+ART DIRECTION
+- Treat this as a contemporary art-directed editorial publication, not a brochure template.
+- Use a disciplined editorial grid, generous negative space, refined asymmetry, clear focal hierarchy, controlled scale contrast, and a limited cohesive color system.
+- Build sophistication through proportion, rhythm, spacing, geometry, subtle texture, and restrained depth rather than decorative effects.
+- The result should feel suitable for a premium annual report, cultural publication, policy report, professional forum booklet, or high-end educational casebook.
+
 LAYOUT REQUIREMENTS
-- Keep the spine visually continuous with the overall artwork, but relatively low-detail and calm so vertical or rotated spine text can be placed cleanly.
+- The exact spine is {req.spine_mm:.2f} mm wide. Do NOT invent a wider or narrower visual spine.
+- Do not draw a visible center spine strip, seam, fold, contrasting vertical band, or artificial color break. Let the artwork flow continuously through the exact center spine area; the application will overlay exact spine guides and typography later.
+- Keep the exact spine area relatively calm and low-detail so vertical or rotated spine text remains clear.
 - Reserve intentional negative space inside the front-cover trim for a strong title hierarchy and smaller subtitle/date/company text.
 - Reserve a quieter information zone inside the back-cover trim for body copy and company/contact information.
 - If flaps exist, continue the artwork naturally into them without moving the front/back focal areas into the flap zones.
@@ -169,7 +177,7 @@ LAYOUT REQUIREMENTS
 - Keep important decorative focal points away from the outer bleed edge, flap folds, and spine folds.
 - Make the front cover feel strongest, the back cover supportive, and the spine/flaps integrated rather than pasted in.
 - Use sophisticated editorial design, refined spacing, controlled contrast, professional print sensibility, and contemporary Korean publication aesthetics.
-- Avoid cheap flyer aesthetics, generic template looks, clip-art, childish decoration, random icons, overbusy gradients, excessive glow, and stock-photo collage style.
+- Avoid outdated public brochure aesthetics, generic government handout styling, ribbon waves, glossy corporate swooshes, beveled shapes, lens flares, fake metallic shine, clip-art, childish decoration, random icons, stock-photo collage, pseudo-3D graphics, busy gradients, excessive glow, and generic template looks.
 - No crop marks, trim marks, rulers, registration marks, 3D perspective, book shadows, hands, desks, or environmental mockup context.
 
 STYLE DIRECTION
@@ -178,6 +186,13 @@ Preset: {req.preset_name or 'custom'}
 
 SEMANTIC CONTEXT ONLY — use this to inspire visual language, never render it as text:
 {req.theme_context or 'professional report / publication cover'}
+
+QUALITY BAR
+- Prefer one strong, coherent visual idea over many decorative elements.
+- Keep the palette restrained: usually one base color family plus one or two accents.
+- Preserve visual breathing room. Do not fill every area.
+- Favor timeless editorial composition over trendy effects that will date quickly.
+- The artwork must remain elegant when Korean typography is added later.
 
 Return one polished, coherent background artwork with a clear flap/back/spine/front/flap rhythm where applicable and enough clean space for precise typography overlays.
 """.strip()
@@ -352,7 +367,7 @@ def generate_cover_image(payload: dict[str, Any], *, uid: str) -> dict[str, Any]
         "model": str(data.get("model") or model),
         "size": str(data.get("size") or size),
         "quality": str(data.get("quality") or quality),
-        "prompt_version": "cover-background-v3-stable-image2",
+        "prompt_version": "cover-background-v4-editorial-spine",
         "geometry": {
             "trim_width_mm": req.trim_width_mm,
             "trim_height_mm": req.trim_height_mm,

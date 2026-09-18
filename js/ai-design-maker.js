@@ -11,37 +11,37 @@
   const AI_COVER_PATH = '/api/preflight/ai-design-maker/cover-background';
   const AI_DIRECT_API_ORIGIN = 'https://api-7a5qpwzezq-uc.a.run.app';
   const PRESETS = Object.freeze({
-    public: {
-      name: '공공·교육',
-      note: '정돈되고 신뢰감 있게',
-      prompt: '한국 공공기관과 교육기관의 고급 보고서 표지처럼 신뢰감 있고 정돈된 편집 디자인. 넓은 여백, 절제된 기하학 요소, 명확한 정보 위계, 안정적인 그리드와 세련된 색 조합. 행정서식처럼 딱딱하거나 값싼 템플릿처럼 보이지 않게 한다.'
-    },
     premium: {
-      name: '프리미엄',
-      note: '고급 보고서·백서',
-      prompt: '프리미엄 컨설팅 리포트와 현대적인 에디토리얼 디자인을 결합한 표지. 충분한 네거티브 스페이스, 정교한 균형, 절제된 그래픽, 깊이감 있는 색 조합. 앞표지부터 책등과 뒤표지까지 하나의 시스템으로 연결한다.'
-    },
-    warm: {
-      name: '따뜻한 교육',
-      note: '사례집·교육자료',
-      prompt: '교육, 성장, 협력, 지역공동체의 분위기를 따뜻하고 현대적으로 표현한다. 밝고 부드러운 색감과 유기적이지만 정돈된 형태를 사용하고 친근하되 유치하지 않게 한다.'
-    },
-    forum: {
-      name: '포럼·행사',
-      note: '역동적 에디토리얼',
-      prompt: '포럼, 세미나, 워크숍 자료집에 맞는 현대적이고 감각적인 에디토리얼 표지. 역동적인 그래픽 리듬과 대담한 면 분할 또는 추상 그래픽을 사용하되 산만하지 않고 인쇄물로서 고급스럽게 마감한다.'
+      name: '프리미엄 미니멀',
+      note: '가장 세련되고 절제된 편집디자인',
+      prompt: 'Create an elegant premium editorial cover system with generous negative space, disciplined grid logic, refined asymmetry, one quiet base tone and one or two restrained accent colors. Build visual interest through proportion, rhythm, scale, subtle geometry and carefully controlled depth rather than decoration. The front cover should feel art-directed and contemporary, the back cover quieter, and the whole spread should look like a high-end publication rather than a template. Avoid glossy effects, decorative waves, corporate swooshes, stock brochure layouts, obvious gradients, clip-art, and generic office graphics.'
     },
     admin: {
       name: '업무·행정',
-      note: '차분하고 단정하게',
-      prompt: '행정·업무용 보고서에 적합한 차분하고 안정적인 표지. 낮은 장식 밀도, 분명한 구조, 절제된 색상과 단정한 시각 흐름. 구식 서식처럼 보이지 않도록 현대적인 편집 감각을 적용한다.'
+      note: '현대적이고 신뢰감 있는 보고서',
+      prompt: 'Create a contemporary business and administrative publication cover with a precise editorial grid, calm authority, strong spacing and sophisticated information architecture. Use clean geometry, restrained asymmetry, subtle line or block systems, and a professional palette such as deep navy, charcoal, muted blue, warm gray or dark teal. It should resemble a premium annual report or institutional publication, not an old government brochure. Avoid blue ribbon waves, glossy swooshes, generic corporate templates, beveled shapes, clip-art icons, and decorative clutter.'
+    },
+    forum: {
+      name: '포럼·행사',
+      note: '컨퍼런스 아이덴티티처럼 세련되게',
+      prompt: 'Create a sophisticated conference and forum booklet cover with a strong contemporary identity system. Use bold but controlled editorial composition, modular geometry, clean abstract forms, deliberate scale contrast, generous whitespace and a limited 2–3 color palette with one confident accent. The artwork should feel like a modern cultural or professional conference identity, with a clear focal area on the front cover and quieter continuation across the back. Avoid festival-poster clutter, dated public-event brochure graphics, ribbon waves, neon glow, excessive gradients, and stock template aesthetics.'
+    },
+    education: {
+      name: '교육·사례집',
+      note: '따뜻하지만 유치하지 않은 자료집',
+      prompt: 'Create a refined educational and case-study publication cover that feels warm, intelligent, contemporary and trustworthy. Use soft editorial structure, elegant spacing, restrained organic or geometric forms, subtle depth and a calm visual rhythm. Use light neutrals or muted natural colors with one controlled accent. Keep the result professional and publication-like rather than playful. Avoid childish illustrations, school-poster styling, cartoon icons, decorative doodles, busy collage layouts, dated brochure waves, and low-end template graphics.'
+    },
+    public: {
+      name: '공공·정책',
+      note: '고급 공공출판물·정책보고서',
+      prompt: 'Create a high-end public institution or policy publication cover with clarity, dignity and contemporary editorial quality. Use a disciplined grid, clean negative space, subtle abstract structure, restrained color and a memorable but quiet visual system. The result should feel like a premium policy report or museum-quality institutional publication rather than a generic government handout. Avoid patriotic clichés, government clip-art, blue wave motifs, symbolic stock imagery, glossy gradients, crowded emblems, and dated administrative templates.'
     }
   });
 
   const $ = id => document.getElementById(id);
   const qa = selector => [...document.querySelectorAll(selector)];
   const state = {
-    preset: 'public',
+    preset: 'premium',
     background: null,
     backgroundUrl: '',
     generatedSpecKey: '',
@@ -246,9 +246,12 @@
     } else if (spine < 12) {
       box.classList.add('ok');
       box.textContent = '책등 8~11.9mm: 제목과 날짜를 표시합니다.';
+    } else if (spine < 16) {
+      box.classList.add('ok');
+      box.textContent = '책등 12~15.9mm: 제목과 날짜를 우선 표시합니다. 회사명은 16mm 이상에서 자동 표시됩니다.';
     } else {
       box.classList.add('ok');
-      box.textContent = '책등 12mm 이상: 제목·날짜·회사명을 모두 표시할 수 있습니다.';
+      box.textContent = '책등 16mm 이상: 제목·날짜·회사명을 모두 표시할 수 있습니다.';
     }
   }
 
@@ -300,7 +303,20 @@
     if(spec.bleed>0) rect(ctx,.5,.5,spec.workW*scale-1,spec.workH*scale-1,'#db2777',[7,5]);
     rect(ctx,backX,b,tw,th,'#2563eb',[6,4]);rect(ctx,frontX,b,tw,th,'#2563eb',[6,4]);
     if(safe>0){rect(ctx,backX+safe,b+safe,Math.max(0,tw-safe*2),Math.max(0,th-safe*2),'#16a34a');rect(ctx,frontX+safe,b+safe,Math.max(0,tw-safe*2),Math.max(0,th-safe*2),'#16a34a');}
-    if(sw>0){line(ctx,spineX,b,spineX,b+th,'#ef4444',[6,4]);line(ctx,frontX,b,frontX,b+th,'#ef4444',[6,4]);zone(ctx,'책등',spineX,b,sw,th);}
+    if(sw>0){
+      ctx.save();
+      ctx.fillStyle='rgba(239,68,68,.055)';
+      ctx.fillRect(spineX,b,sw,th);
+      ctx.restore();
+      line(ctx,spineX,b,spineX,b+th,'#ef4444',[6,4]);
+      line(ctx,frontX,b,frontX,b+th,'#ef4444',[6,4]);
+      const spineInset=Math.min(sw*.18,1.5*scale);
+      if(sw>spineInset*2+2){
+        line(ctx,spineX+spineInset,b,spineX+spineInset,b+th,'rgba(239,68,68,.65)',[2,3]);
+        line(ctx,frontX-spineInset,b,frontX-spineInset,b+th,'rgba(239,68,68,.65)',[2,3]);
+      }
+      zone(ctx,'책등 '+spec.spine.toFixed(1)+'mm',spineX,b,sw,th);
+    }
     if(wing>0){line(ctx,backX,b,backX,b+th,'#f59e0b',[8,4]);line(ctx,frontWingX,b,frontWingX,b+th,'#f59e0b',[8,4]);zone(ctx,'뒷날개',b,b,wing,th);zone(ctx,'앞날개',frontWingX,b,wing,th);}
     zone(ctx,'뒤표지',backX,b,tw,th);zone(ctx,'앞표지',frontX,b,tw,th);
   }
@@ -312,10 +328,10 @@
     return clamp(pt,22,44,32);
   }
   function spinePt(spine,text) {
-    let pt=clamp(spine*.95+4,8,15,9);
+    let pt=clamp(spine*.58+4.2,7.5,12.5,9);
     const n=[...String(text||'')].length;
-    if(n>18)pt-=1.5;if(n>28)pt-=1.5;
-    return clamp(pt,7,15,8);
+    if(n>18)pt-=1;if(n>28)pt-=1.2;if(n>40)pt-=1;
+    return clamp(pt,7,12.5,8);
   }
 
   function textLayout(spec,scale) {
@@ -341,7 +357,7 @@
       if(v.spineOrientation==='vertical')add({text:v.spineDate,x:spineX+sw*.18,y:b+th*.06,w:sw*.64,h:th*.10,fontPt:fp,weight:800,vertical:true,align:'center'});
       else add({text:v.spineDate,x:spineX+sw/2-th*.09,y:b+th*.14-sw*.25,w:th*.18,h:sw*.5,fontPt:fp,weight:800,rotate:v.spineOrientation==='rotate-down'?90:-90,align:'center'});
     }
-    if(spec.spine>=12&&v.spineCompany){
+    if(spec.spine>=16&&v.spineCompany){
       const fp=clamp(spinePt(spec.spine,v.spineCompany)-3,7,9.5,8);
       if(v.spineOrientation==='vertical')add({text:v.spineCompany,x:spineX+sw*.18,y:b+th*.82,w:sw*.64,h:th*.13,fontPt:fp,weight:800,vertical:true,align:'center'});
       else add({text:v.spineCompany,x:spineX+sw/2-th*.12,y:b+th*.86-sw*.25,w:th*.24,h:sw*.5,fontPt:fp,weight:800,rotate:v.spineOrientation==='rotate-down'?90:-90,align:'center'});
@@ -485,12 +501,18 @@
     setStatus('AI 배경을 생성하고 있습니다.','표지 비율에 맞는 배경을 만드는 중입니다. 생성에는 시간이 걸릴 수 있습니다.','busy');
     try{
       const prompt=String($('stylePrompt')?.value||PRESETS[state.preset].prompt).trim();
+      const designGuardrails=[
+        'Art direction: contemporary editorial publication design; polished, restrained, confident, and print-focused.',
+        'Use generous negative space, a disciplined grid, controlled contrast, and a limited cohesive color system.',
+        'Do not create a visible center spine strip, seam, fold, vertical band, or color break. The artwork must flow continuously through the exact spine area; the application will overlay the exact spine guides and text later.',
+        'Avoid outdated public brochure aesthetics, ribbon waves, glossy corporate swooshes, generic stock templates, bevels, lens flares, excessive glow, busy gradients, clip-art, pseudo-3D decoration, and random decorative icons.'
+      ].join('\n');
       const data=await authFetch(AI_COVER_PATH,{
         method:'POST',
         body:JSON.stringify({
           trim_width_mm:spec.trimW,trim_height_mm:spec.trimH,spine_mm:spec.spine,wing_mm:spec.wing,bleed_mm:spec.bleed,
           preset_name:PRESETS[state.preset].name,
-          style_request:prompt+'\nPreferred dominant color: '+($('primaryColor')?.value||'#315c8c')+'.',
+          style_request:prompt+'\n'+designGuardrails+'\nPreferred dominant color: '+($('primaryColor')?.value||'#315c8c')+'.',
           theme_context:themeContext()
         })
       });
