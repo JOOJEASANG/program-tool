@@ -405,7 +405,7 @@
     setStatus('AI 배경을 생성하고 있습니다.','표지 비율에 맞는 배경을 만드는 중입니다. 생성에는 시간이 걸릴 수 있습니다.','busy');
     try{
       const prompt=String($('stylePrompt')?.value||PRESETS[state.preset].prompt).trim();
-      const data=await authFetch('/api/preflight/ai-design/cover-image',{
+      const data=await authFetch('/api/preflight/ai-design-maker/cover-background',{
         method:'POST',
         body:JSON.stringify({
           trim_width_mm:spec.trimW,trim_height_mm:spec.trimH,spine_mm:spec.spine,wing_mm:spec.wing,bleed_mm:spec.bleed,
