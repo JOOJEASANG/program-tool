@@ -13,7 +13,7 @@
   const PRESET_PROMPTS_KO = Object.freeze({
     premium: '여백을 넉넉히 사용한 고급 편집디자인 표지를 만들어 주세요. 정돈된 그리드와 세련된 비대칭 구성, 절제된 주조색과 1~2개의 포인트 색상을 사용하고 장식보다 비율·리듬·크기 대비로 완성도를 높여 주세요. 앞표지는 명확한 중심을 두고 뒤표지는 더 차분하게 연결해 주세요. 광택 효과, 물결 리본, 흔한 기업 브로슈어 느낌, 과도한 그라데이션, 클립아트는 피해주세요.',
     admin: '현대적인 업무·행정 보고서 표지를 만들어 주세요. 정확한 편집 그리드, 안정적인 여백, 신뢰감 있는 정보 구조와 절제된 비대칭 구성을 사용해 주세요. 딥 네이비, 차콜, 뮤트 블루, 웜 그레이, 딥 틸 계열을 중심으로 고급 연차보고서처럼 보이게 해주세요. 오래된 관공서 브로슈어, 파란 물결, 광택 리본, 입체 도형과 장식 과다는 피해주세요.',
-    forum: '현대적인 포럼·컨퍼런스 아이덴티티 느낌의 표지를 만들어 주세요. 모듈형 기하 도형, 강약이 분명한 크기 대비, 넓은 여백, 2~3색 중심의 절제된 팔레트와 자신감 있는 포인트 색상을 사용해 주세요. 앞표지에는 시선이 모이는 중심을 만들고 뒤표지까지 자연스럽게 연결해 주세요. 축제 포스터처럼 복잡한 구성, 네온, 과도한 그라데이션, 오래된 행사 브로슈어 느낌은 피해주세요.',
+    forum: '밝고 세련된 포럼·컨퍼런스 출판물 표지를 만들어 주세요. 아이보리·오프화이트처럼 밝은 바탕에 파우더 블루, 세이지, 연보라, 피치, 블러시 계열의 부드러운 파스텔 포인트를 1~2개 사용하고 넓은 여백과 섬세한 편집 그리드로 구성해 주세요. 거대한 원·반원·두꺼운 네이비 블록처럼 흔한 관공서 브로슈어 도형은 피하고, 작은 기하학적 리듬이나 얇은 선, 은은한 질감으로 현대적인 문화·포럼 아이덴티티처럼 보여 주세요. 앞표지는 밝고 산뜻하며 제목이 들어갈 공간이 충분해야 하고 뒤표지는 더 차분하게 연결해 주세요.',
     education: '따뜻하지만 유치하지 않은 교육·사례집 표지를 만들어 주세요. 부드러운 편집 구조와 우아한 여백, 절제된 유기적 또는 기하학적 형태, 자연스럽고 차분한 색감에 하나의 포인트 색상을 사용해 주세요. 전문 출판물처럼 정돈하고 어린이용 일러스트, 만화 아이콘, 낙서, 복잡한 콜라주, 오래된 브로슈어 물결 그래픽은 피해주세요.',
     public: '명확하고 품격 있는 공공·정책 출판물 표지를 만들어 주세요. 정돈된 그리드, 충분한 여백, 절제된 추상 구조와 차분한 색상으로 프리미엄 정책보고서나 기관 출판물처럼 구성해 주세요. 흔한 관공서 이미지, 파란 물결, 상징 클립아트, 광택 그라데이션, 과도한 엠블럼과 오래된 행정 템플릿 느낌은 피해주세요.'
   });
@@ -32,7 +32,7 @@
     forum: {
       name: '포럼·행사',
       note: '컨퍼런스 아이덴티티처럼 세련되게',
-      prompt: 'Create a sophisticated conference and forum booklet cover with a strong contemporary identity system. Use bold but controlled editorial composition, modular geometry, clean abstract forms, deliberate scale contrast, generous whitespace and a limited 2–3 color palette with one confident accent. The artwork should feel like a modern cultural or professional conference identity, with a clear focal area on the front cover and quieter continuation across the back. Avoid festival-poster clutter, dated public-event brochure graphics, ribbon waves, neon glow, excessive gradients, and stock template aesthetics.'
+      prompt: 'Create a bright, airy and sophisticated conference/forum publication cover. Use an off-white or ivory base with soft pastel accents such as powder blue, sage, pale lavender, peach or blush. Favor generous whitespace, fine editorial grids, subtle line work, restrained small-scale geometry and gentle texture. The result should feel like a contemporary cultural conference identity or premium editorial booklet. Avoid dark navy dominance, giant circles or semicircles, heavy geometric blocks, government-brochure styling, ribbon waves, neon, glossy effects, excessive gradients and stock-template aesthetics.', primaryColor: '#dbeaf4', textColor: '#27445f'
     },
     education: {
       name: '교육·사례집',
@@ -57,9 +57,10 @@
     renderQueued: false,
     promptLanguage: 'ko',
     customFields: [],
-    titleLayout: { dx: 0, dy: 0, widthScale: 1, fontScale: 1, align: 'left' },
-    titleSelected: false,
-    titlePointer: null
+    textLayouts: {},
+    selectedTextId: '',
+    textPointer: null,
+    backgroundSource: ''
   };
 
   const clamp = (value, min, max, fallback) => {
@@ -118,7 +119,7 @@
       spineSync: Boolean($('spineSync')?.checked),
       promptLanguage: state.promptLanguage,
       customFields: state.customFields,
-      titleLayout: state.titleLayout
+      textLayouts: state.textLayouts
     };
     ids.forEach(id => { if ($(id)) data[id] = $(id).value; });
     return data;
@@ -153,14 +154,20 @@
         label: String(item?.label || '').slice(0, 40),
         value: String(item?.value || '').slice(0, 220)
       }));
-      if (data.titleLayout && typeof data.titleLayout === 'object') {
-        state.titleLayout = {
-          dx: clamp(data.titleLayout.dx, -1000, 1000, 0),
-          dy: clamp(data.titleLayout.dy, -1000, 1000, 0),
-          widthScale: clamp(data.titleLayout.widthScale, .35, 1.6, 1),
-          fontScale: clamp(data.titleLayout.fontScale, .45, 2.2, 1),
-          align: ['left','center','right'].includes(data.titleLayout.align) ? data.titleLayout.align : 'left'
-        };
+      const normalizeTextLayout = (layout, fallbackAlign = 'left') => ({
+        dx: clamp(layout?.dx, -2000, 2000, 0),
+        dy: clamp(layout?.dy, -2000, 2000, 0),
+        widthScale: clamp(layout?.widthScale, .25, 2.5, 1),
+        fontScale: clamp(layout?.fontScale, .35, 3, 1),
+        align: ['left','center','right'].includes(layout?.align) ? layout.align : fallbackAlign
+      });
+      if (data.textLayouts && typeof data.textLayouts === 'object') {
+        Object.entries(data.textLayouts).forEach(([id,layout]) => {
+          state.textLayouts[String(id)] = normalizeTextLayout(layout);
+        });
+      }
+      if (data.titleLayout && typeof data.titleLayout === 'object' && !state.textLayouts.title) {
+        state.textLayouts.title = normalizeTextLayout(data.titleLayout);
       }
     } catch (_) {}
   }
@@ -289,7 +296,10 @@
       button.setAttribute('aria-checked', String(active));
     });
     if (replacePrompt && $('stylePrompt')) $('stylePrompt').value = presetPrompt(id);
+    if (replacePrompt && PRESETS[id]?.primaryColor && $('primaryColor')) $('primaryColor').value = PRESETS[id].primaryColor;
+    if (replacePrompt && PRESETS[id]?.textColor && $('textColor')) $('textColor').value = PRESETS[id].textColor;
     saveLocal();
+    scheduleRender();
   }
 
   function syncWing() {
