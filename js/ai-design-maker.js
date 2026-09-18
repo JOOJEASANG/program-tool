@@ -276,24 +276,10 @@
 
   function canvasFitSize(spec) {
     const scroll = $('canvasScroll');
-    const maxW = Math.max(340, (scroll?.clientWidth || 1000) - 72);
-    const maxH = Math.max(300, (scroll?.clientHeight || 700) - 72);
-    const scale = Math.min(maxW / spec.workW, maxH / spec.workH, 2.2);
+    const maxW = Math.max(340, (scroll?.clientWidth || 1000) - 20);
+    const maxH = Math.max(300, (scroll?.clientHeight || 700) - 20);
+    const scale = Math.min(maxW / spec.workW, maxH / spec.workH, 4);
     return { width: Math.max(300, Math.round(spec.workW * scale)), height: Math.max(220, Math.round(spec.workH * scale)), scale };
-  }
-
-  function drawEmpty(ctx,w,h) {
-    const gradient = ctx.createLinearGradient(0,0,w,h);
-    gradient.addColorStop(0,'#f8fafc');
-    gradient.addColorStop(.55,'#eef2ff');
-    gradient.addColorStop(1,'#fdf2f8');
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0,0,w,h);
-    ctx.save();
-    ctx.globalAlpha = .22;
-    ctx.strokeStyle = '#94a3b8';
-    for(let x=-h;x<w+h;x+=44){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x+h,h);ctx.stroke();}
-    ctx.restore();
   }
 
   function line(ctx,x1,y1,x2,y2,color,dash=[]) {
@@ -417,7 +403,8 @@
     const fit=canvasFitSize(spec),dpr=Math.min(window.devicePixelRatio||1,2);
     canvas.style.width=fit.width+'px';canvas.style.height=fit.height+'px';canvas.width=Math.round(fit.width*dpr);canvas.height=Math.round(fit.height*dpr);
     const ctx=canvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);
-    if(state.background?.naturalWidth)ctx.drawImage(state.background,0,0,fit.width,fit.height);else drawEmpty(ctx,fit.width,fit.height);
+    ctx.clearRect(0,0,fit.width,fit.height);
+    if(state.background?.naturalWidth)ctx.drawImage(state.background,0,0,fit.width,fit.height);
     drawLogo(ctx,spec,fit.scale);
     const color=$('textColor')?.value||'#ffffff';
     textLayout(spec,fit.scale).forEach(item=>drawTextItem(ctx,item,color));
