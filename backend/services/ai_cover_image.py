@@ -41,6 +41,7 @@ class AiCoverImageError(RuntimeError):
 
 @dataclass(frozen=True)
 class CoverImageRequest:
+    cover_mode: str
     trim_width_mm: float
     trim_height_mm: float
     spine_mm: float
@@ -52,6 +53,8 @@ class CoverImageRequest:
 
     @property
     def work_width_mm(self) -> float:
+        if self.cover_mode == "front":
+            return self.trim_width_mm + self.bleed_mm * 2
         return self.trim_width_mm * 2 + self.spine_mm + self.wing_mm * 2 + self.bleed_mm * 2
 
     @property
@@ -72,6 +75,8 @@ def _clean(value: Any, limit: int) -> str:
 
 
 def normalize_cover_request(payload: dict[str, Any]) -> CoverImageRequest:
+    cover_mode = _clean(payload.get("cover_mode"), 20).lower()
+    cover_mode = "front" if cover_mode == "front" else "spread"
     trim_width = _number(payload.get("trim_width_mm"), minimum=50, maximum=1000, default=210)
     trim_height = _number(payload.get("trim_height_mm"), minimum=50, maximum=1000, default=297)
     spine = _number(payload.get("spine_mm"), minimum=0, maximum=100, default=0)
@@ -87,7 +92,11 @@ def normalize_cover_request(payload: dict[str, Any]) -> CoverImageRequest:
             code="AI_COVER_STYLE_REQUIRED",
         )
 
+    if cover_mode == "front":
+        spine = 0
+        wing = 0
     request = CoverImageRequest(
+        cover_mode=cover_mode,
         trim_width_mm=trim_width,
         trim_height_mm=trim_height,
         spine_mm=spine,
@@ -100,7 +109,7 @@ def normalize_cover_request(payload: dict[str, Any]) -> CoverImageRequest:
     ratio = request.work_width_mm / request.work_height_mm
     if ratio < (1 / 3) or ratio > 3:
         raise AiCoverImageError(
-            "전체 펼침 표지 비율이 이미지 생성 지원 범위를 벗어났습니다.",
+            "표지 비율이 이미지 생성 지원 범위를 벗어났습니다.",
             status_code=400,
             code="AI_COVER_RATIO_UNSUPPORTED",
         )
@@ -133,54 +142,66 @@ def choose_image_size(req: CoverImageRequest) -> str:
 
 
 def build_cover_prompt(req: CoverImageRequest) -> str:
-    work_width = req.work_width_mm
-    spine_share = req.spine_mm / work_width * 100 if work_width else 0
-    back_start_mm = req.bleed_mm + req.wing_mm
-    back_end_mm = back_start_mm + req.trim_width_mm
-    front_start_mm = back_end_mm + req.spine_mm
-    front_end_mm = front_start_mm + req.trim_width_mm
-    flap_note = (
-        f"- Outer flaps: {req.wing_mm:.2f} mm on both far left and far right; keep them visually continuous and low-detail."
-        if req.wing_mm > 0
-        else "- No outer flaps are included."
+    mode_title = "FRONT COVER ONLY" if req.cover_mode == "front" else "FULL SPREAD PRINT COVER"
+    geometry = (
+        f"- Front cover including bleed: {req.work_width_mm:.2f} × {req.work_height_mm:.2f} mm.\n"
+        f"- Trim size: {req.trim_width_mm:.2f} × {req.trim_height_mm:.2f} mm.\n"
+        f"- Bleed: {req.bleed_mm:.2f} mm around all outside edges.\n"
+        if req.cover_mode == "front"
+        else
+        f"- Total spread including bleed and flaps: {req.work_width_mm:.2f} × {req.work_height_mm:.2f} mm.\n"
+        f"- Back and front trim: {req.trim_width_mm:.2f} × {req.trim_height_mm:.2f} mm each.\n"
+        f"- Exact center spine: {req.spine_mm:.2f} mm.\n"
+        f"- Outer flaps: {req.wing_mm:.2f} mm each side.\n"
+        f"- Bleed: {req.bleed_mm:.2f} mm around the outside.\n"
+    )
+    mode_rules = (
+        "- Compose ONE portrait front cover only. Do not invent a back cover, spine, fold, mockup, second panel, or book perspective.\n"
+        "- Reserve a large calm title zone in the upper-middle or left-middle area.\n"
+        if req.cover_mode == "front"
+        else
+        "- Let the artwork flow continuously across back cover, exact spine, and front cover. Do not draw a visible spine strip, seam, fold, or artificial center band.\n"
+        "- Keep the front cover visually strongest and the back cover quieter, with the exact spine calm and low-detail.\n"
     )
     return f"""
-Create a premium, production-ready FULL SPREAD PRINT COVER BACKGROUND viewed perfectly flat and straight-on.
-This is not a mockup and not a photo of a physical book. It is the actual 2D artwork background for printing.
+Create premium, production-ready {mode_title} BACKGROUND ARTWORK, perfectly flat and straight-on.
+This is actual 2D print artwork, not a mockup and not a photograph of a physical book.
 
 GEOMETRY
-- Total spread including bleed and flaps: {req.work_width_mm:.2f} × {req.work_height_mm:.2f} mm.
-- Back cover trim: {req.trim_width_mm:.2f} mm wide, from about {back_start_mm / work_width * 100:.2f}% to {back_end_mm / work_width * 100:.2f}% of total width.
-- Center spine: {req.spine_mm:.2f} mm wide, about {spine_share:.2f}% of the full spread.
-- Front cover trim: {req.trim_width_mm:.2f} mm wide, from about {front_start_mm / work_width * 100:.2f}% to {front_end_mm / work_width * 100:.2f}% of total width.
-{flap_note}
-- Bleed: {req.bleed_mm:.2f} mm around the outside.
-- The OUTER BLEED BOUNDARY is the exact artwork canvas boundary. Fill the entire canvas edge-to-edge with finished artwork; never leave a white/unpainted border, frame, or inset margin at the outside edge.
+{geometry}- The OUTER BLEED BOUNDARY is the exact artwork canvas boundary. Artwork must reach the canvas edge.
 
 CRITICAL TYPOGRAPHY RULE
-Generate BACKGROUND ARTWORK ONLY. Do not draw any words, letters, numbers, logos, signatures, pseudo-text,
-watermarks, QR codes, barcodes, fake labels, placeholder type, or typographic marks. Exact Korean text will be added later by the application.
+Generate BACKGROUND ARTWORK ONLY.
+Do not draw words, letters, numbers, logos, signatures, pseudo-text, watermarks, QR codes, barcodes,
+fake labels, placeholder type, or typographic marks. Exact Korean text will be added later by the application.
 
-ART DIRECTION
-- Treat this as a contemporary art-directed editorial publication, not a brochure template.
-- Use a disciplined editorial grid, generous negative space, refined asymmetry, clear focal hierarchy, controlled scale contrast, and a limited cohesive color system.
-- Build sophistication through proportion, rhythm, spacing, geometry, subtle texture, and restrained depth rather than decorative effects.
-- The result should feel suitable for a premium annual report, cultural publication, policy report, professional forum booklet, or high-end educational casebook.
+REFERENCE VISUAL TARGET
+- Match the visual discipline of clean modern annual-report, business-proposal, brochure-cover and editorial-report templates.
+- Keep approximately 70–85% of the composition white, ivory, or very light neutral whenever compatible with the requested style.
+- Use ONE restrained graphic language only:
+  1) thin translucent blue/cyan flowing curves,
+  2) sparse geometric network lines and tiny points,
+  3) a few small flat squares/rectangles in blue/mint/pastel accents,
+  4) one light diagonal or edge sweep with fine line texture.
+- Decorative graphics should stay mainly along one edge, one corner, the lower third, or a narrow side area.
+- Preserve a large, quiet, clean title area.
+- Use crisp flat 2D print design, fine line work, gentle transparency, precise spacing, and controlled asymmetry.
+- Prefer light sky blue, powder blue, cyan, mint, pale sage, soft lavender, pale peach, and cool light gray accents.
+- Use only one main accent family plus at most one secondary accent.
 
-LAYOUT REQUIREMENTS
-- The exact spine is {req.spine_mm:.2f} mm wide. Do NOT invent a wider or narrower visual spine.
-- Do not draw a visible center spine strip, seam, fold, contrasting vertical band, or artificial color break. Let the artwork flow continuously through the exact center spine area; the application will overlay exact spine guides and typography later.
-- Keep the exact spine area relatively calm and low-detail so vertical or rotated spine text remains clear.
-- Reserve intentional negative space inside the front-cover trim for a strong title hierarchy and smaller subtitle/date/company text.
-- Reserve a quieter information zone inside the back-cover trim for body copy and company/contact information.
-- If flaps exist, continue the artwork naturally into them without moving the front/back focal areas into the flap zones.
-- Do not create visible boxes that look like text placeholders; use natural composition and negative space instead.
-- Background color, texture, photographs, abstract forms and decorative artwork MUST continue through the trim into the full bleed and reach/crop naturally at the outer canvas edge. Keep only essential focal content away from cut/fold risk areas.
-- Make the front cover feel strongest, the back cover supportive, and the spine/flaps integrated rather than pasted in.
-- Use sophisticated editorial design, refined spacing, controlled contrast, professional print sensibility, and contemporary Korean publication aesthetics.
-- Avoid outdated public brochure aesthetics, generic government handout styling, giant corporate circles/arcs, heavy navy blocks, ribbon waves, glossy corporate swooshes, beveled shapes, lens flares, fake metallic shine, clip-art, childish decoration, random icons, stock-photo collage, pseudo-3D graphics, busy gradients, excessive glow, and generic template looks.
-- When the requested style is forum/event/conference, prefer an airy contemporary editorial identity with a bright off-white or very light pastel base, soft powder blue/sage/blush/lavender/peach accents, fine typographic-friendly structure and generous breathing room. Do not default to dark-blue public-agency brochure styling.
+LAYOUT RULES
+{mode_rules}- Background and decorative artwork may extend through trim into bleed and crop naturally at the outside edge.
+- Keep key visual accents away from text zones so overlaid Korean typography remains clear.
+- Do not draw visible text-placeholder boxes.
 - No crop marks, trim marks, rulers, registration marks, 3D perspective, book shadows, hands, desks, or environmental mockup context.
+
+STRICT AVOID LIST
+- Giant circles or semicircles dominating the page.
+- Dark navy or saturated blue covering large areas.
+- Thick corporate wave bands, glossy swooshes, ribbon graphics, bevels, metallic shine, lens flare, or fake 3D.
+- Busy gradients, neon glow, clip-art, random icons, stock-photo collage, childish decoration, or crowded poster composition.
+- Dated government/public-agency brochure styling and generic low-end template aesthetics.
+- Filling every area with graphics. White space is a primary design element.
 
 STYLE DIRECTION
 Preset: {req.preset_name or 'custom'}
@@ -190,13 +211,12 @@ SEMANTIC CONTEXT ONLY — use this to inspire visual language, never render it a
 {req.theme_context or 'professional report / publication cover'}
 
 QUALITY BAR
-- Prefer one strong, coherent visual idea over many decorative elements.
-- Keep the palette restrained: usually one base color family plus one or two accents.
-- Preserve visual breathing room. Do not fill every area.
-- Favor timeless editorial composition over trendy effects that will date quickly.
-- The artwork must remain elegant when Korean typography is added later.
+- The result should look like a polished contemporary annual report or professional cover template before typography is added.
+- Prefer one coherent visual idea over multiple decorative motifs.
+- Keep the layout timeless, restrained, print-safe, and easy to typeset.
+- Make the composition feel professionally art-directed rather than AI-decorated.
 
-Return one polished, coherent background artwork with a clear flap/back/spine/front/flap rhythm where applicable and enough clean space for precise typography overlays.
+Return one finished background artwork with generous breathing room and a clear text-friendly hierarchy.
 """.strip()
 
 
@@ -369,8 +389,9 @@ def generate_cover_image(payload: dict[str, Any], *, uid: str) -> dict[str, Any]
         "model": str(data.get("model") or model),
         "size": str(data.get("size") or size),
         "quality": str(data.get("quality") or quality),
-        "prompt_version": "cover-background-v5-full-bleed-pastel-editorial",
+        "prompt_version": "cover-background-v6-clean-report-front-mode",
         "geometry": {
+            "cover_mode": req.cover_mode,
             "trim_width_mm": req.trim_width_mm,
             "trim_height_mm": req.trim_height_mm,
             "spine_mm": req.spine_mm,
