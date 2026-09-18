@@ -18,7 +18,7 @@
   })();
   const simpleRoute=(()=>{
     if(path==='/print-checker'||path.endsWith('/print-checker/index.html'))return 'print-checker';
-    if(path==='/ai-design-maker'||path.endsWith('/ai-design-maker/index.html'))return 'ai-design-maker';
+    if(path==='/ai-design-maker'||path.endsWith('/ai-design-maker/index.html'))return '';
     if(path==='/smart-print-layout'||path.endsWith('/smart-print-layout/index.html'))return 'smart-print-layout';
     if(path==='/pdf-editor-advanced'||path.endsWith('/pdf-editor-advanced/index.html'))return 'pdf-editor-advanced';
     if(path==='/pdf-editor'||path.endsWith('/pdf-editor/index.html')||path.endsWith('/tools/pdf-editor.html'))return 'pdf-editor';
@@ -368,7 +368,7 @@
     return backdrop;
   }
   function mountSimpleHelpTrigger(){
-    if(!simpleRoute||document.getElementById('psSimpleHelpTrigger'))return;
+    if(!simpleRoute||!SIMPLE_HELP[simpleRoute]||document.getElementById('psSimpleHelpTrigger'))return;
     ensureSimpleHelp();
     const button=document.createElement('button');
     button.id='psSimpleHelpTrigger';
