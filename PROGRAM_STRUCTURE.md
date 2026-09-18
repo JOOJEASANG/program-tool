@@ -1,27 +1,29 @@
 # Program Studio 구조
 
-이 문서는 2026-09-14 기준 운영 `main` 구조를 설명합니다. 과거 디자인/문서/이미지 편집기 실험 구조는 현재 운영 트리에서 제거되어 있으며, 실제 배포 경로와 canonical runtime을 기준으로만 기록합니다.
+이 문서는 2026-09-18 기준 운영 `main` 구조를 설명합니다. 과거 디자인/문서/이미지 편집기 실험 구조는 현재 운영 트리에서 제거되어 있으며, 실제 배포 경로와 canonical runtime을 기준으로만 기록합니다.
 
 ## 1. 운영 화면
 
-### 공개 화면
+### 기본/계정 화면
 
 - `index.html`: 서비스 홈
 - `login.html`: 로그인·회원가입
 - `approval-waiting.html`: 승인 대기 상태
 - `guide.html`: 이용안내
 - `terms.html`, `privacy.html`: 약관·개인정보처리방침
-- `print-checker/index.html`: 인쇄물 사전 검토
 
-`print-checker`는 표지·전단·리플렛·초대장/안내장 등 인쇄물의 규격, 재단선, 도련, 안전영역, 책등, 접지선을 확인하는 현재 디자인 계열 canonical 화면입니다.
+### 승인 회원 운영 프로그램
 
-### 보호된 PDF 화면
+홈 런처는 다음 6개 프로그램을 운영합니다.
 
-- `pdf-editor/index.html`: PDF 편집·N-up·소책자 배치의 canonical 엔진
-- `pdf-editor-advanced/index.html`: 독립 고급 PDF 편집기
-- `pdf-preflight/index.html`: PDF 검사·보안·유틸리티
-- `smart-print-layout/index.html`: 인쇄 배치 보조 도구
-- `pdf-suite/index.html`: PDF 도구 허브
+- `print-checker/index.html`: 디자인 검토
+- `ai-design-maker/index.html`: AI 디자인 제작
+- `smart-print-layout/index.html`: 스마트 인쇄배치
+- `pdf-editor/index.html`: PDF배치
+- `pdf-editor-advanced/index.html`: PDF편집
+- `pdf-suite/index.html`: PDF 유틸리티
+
+`pdf-preflight/index.html`은 PDF 검사·보안·유틸리티 전문 경로로 유지됩니다. 모든 운영 프로그램은 로그인과 관리자 승인 상태를 공통 접근 조건으로 사용합니다.
 
 ### 호환 진입점
 
@@ -64,7 +66,9 @@ Firebase Hosting은 `/apps/**`를 `apps/index.html`로 연결합니다.
 
 PDF 기능 자체는 `/apps/**`에 복제하지 않고 `pdf-editor` canonical runtime이 소유합니다.
 
-## 3. 인쇄물 사전 검토
+## 3. 디자인 검토와 AI 제작 경계
+
+### 디자인 검토
 
 주요 파일:
 
@@ -77,13 +81,31 @@ PDF 기능 자체는 `/apps/**`에 복제하지 않고 `pdf-editor` canonical ru
 
 현재 정책:
 
-- 일반 인쇄물 안전영역 기본값 10mm
+- 완성 인쇄물의 규격·도련·안전영역·책등·접지와 실제 파일을 대조
 - 초대장/안내장 2페이지 PDF는 1p 앞면 · 2p 뒷면으로 사용
 - 초대장/안내장 접지는 방향과 실제 위치(mm)를 지정 가능
 - 리플렛 기존 접지 로직 유지
-- 공개 daily-free 정책은 공통 `pdf-daily-free` 런타임과 연동
+- 사용횟수 제한 없이 승인 회원 여부만 접근 조건으로 사용
 
-`docs/print-checker-current-audit.md`와 관련 회귀검사가 제거된 편집기 자산이 다시 유입되지 않도록 경계를 고정합니다.
+### AI 디자인 제작
+
+주요 파일:
+
+- `ai-design-maker/index.html`
+- `css/ai-design-maker.css`
+- `js/ai-design-maker.js`
+- `backend/routers/preflight_ai_design.py`
+- `backend/services/ai_cover_image.py`
+
+현재 정책:
+
+- 표지 전체 펼침 배경은 서버의 `gpt-image-2`로 생성
+- OpenAI API 키는 브라우저에 노출하지 않음
+- 한글 제목·기관명·책등 문구와 로고는 브라우저 레이어로 합성
+- 장시간 생성 요청은 Firebase ID 토큰을 포함해 Functions 직접 URL로 전송
+- 300dpi PNG 출력은 브라우저가 실제 mm 규격을 기준으로 합성
+
+관련 회귀검사는 제거된 편집기 자산이 다시 유입되지 않도록 경계를 고정합니다.
 
 ## 4. PDF 프런트엔드 소유권
 
@@ -155,7 +177,7 @@ Firebase Hosting의 `public`은 저장소 루트가 아니라 `.firebase-hosting
 `scripts/prepare_hosting_dist.py`가 다음 원칙으로 배포 디렉터리를 생성합니다.
 
 - 필수 root HTML/정적 파일만 복사
-- `apps`, `css`, `js`, `print-checker`, `smart-print-layout`, `pdf-editor`, `pdf-preflight`, `perfect-binding-cover`, `tools`, `legal` 등 허용된 정적 디렉터리만 복사
+- `apps`, `css`, `js`, `print-checker`, `ai-design-maker`, `smart-print-layout`, `pdf-editor`, `pdf-preflight`, `perfect-binding-cover`, `tools`, `legal` 등 허용된 정적 디렉터리만 복사
 - `backend`, `docs`, `tests`, `.github`, Markdown, Python 소스는 Hosting에서 제외
 - 배포 단계에서 필요한 PDF 보조 런타임을 명시적으로 주입
 - 금지 파일이 `.firebase-hosting`으로 누출되면 실패
@@ -192,7 +214,7 @@ Firebase Hosting의 `public`은 저장소 루트가 아니라 `.firebase-hosting
 
 1. 기능 모듈은 하나의 canonical runtime만 소유합니다.
 2. 호환 URL은 기능을 복제하지 않고 canonical 화면으로 연결합니다.
-3. 인쇄물 디자인 계열은 `print-checker`를 사용하며 제거된 편집기 런타임을 다시 추가하지 않습니다.
+3. 디자인 검토는 `print-checker`, AI 표지 제작은 `ai-design-maker`가 소유하며 제거된 편집기 런타임을 다시 추가하지 않습니다.
 4. PDF layout/booklet 독립 앱은 `pdf-editor` 엔진을 재사용합니다.
 5. 독립 고급 PDF 편집기는 N-up/소책자 runtime과 분리합니다.
 6. 배포 가능 여부는 Firebase Hosting allowlist를 기준으로 판단합니다.
