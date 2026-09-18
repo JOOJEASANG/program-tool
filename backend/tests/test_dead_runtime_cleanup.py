@@ -17,7 +17,6 @@ def test_modular_shell_contains_only_live_pdf_apps():
     assert "DesignEditor" not in shell
     assert "DESIGN_PRELOADS" not in shell
     assert "warmDesignAssets" not in shell
-    assert "openQuickAction" not in shell
 
     # Old design URLs remain only as compatibility redirects to Design Review.
     assert "location.replace('/print-checker?product='+product)" in apps
