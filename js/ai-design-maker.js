@@ -65,7 +65,11 @@
     coverMode: 'spread',
     generationQuality: 'standard',
     generationProgress: 0,
-    generationProgressTimer: null
+    generationProgressTimer: null,
+    sizeMode: 'a4',
+    galleryItems: [],
+    lastGeneratedPrompt: '',
+    lastGeneratedPresetName: ''
   };
 
   const clamp = (value, min, max, fallback) => {
@@ -142,7 +146,8 @@
       customFields: state.customFields,
       textLayouts: state.textLayouts,
       coverMode: state.coverMode,
-      generationQuality: state.generationQuality
+      generationQuality: state.generationQuality,
+      sizeMode: state.sizeMode
     };
     ids.forEach(id => { if ($(id)) data[id] = $(id).value; });
     return data;
@@ -172,6 +177,11 @@
       if (typeof data.spineSync === 'boolean') $('spineSync').checked = data.spineSync;
       if (data.preset && PRESETS[data.preset]) state.preset = data.preset;
       if (data.coverMode === 'front' || data.coverMode === 'spread') state.coverMode = data.coverMode;
+      if (['a4','b5','a5','custom'].includes(data.sizeMode)) state.sizeMode = data.sizeMode;
+      else {
+        const w=Number(data.trimW),h=Number(data.trimH);
+        state.sizeMode = w===210&&h===297?'a4':w===182&&h===257?'b5':w===148&&h===210?'a5':'custom';
+      }
       if (data.generationQuality === 'high' || data.generationQuality === 'standard') state.generationQuality = data.generationQuality;
       if (data.promptLanguage === 'en' || data.promptLanguage === 'ko') state.promptLanguage = data.promptLanguage;
       if (Array.isArray(data.customFields)) state.customFields = data.customFields.slice(0, 12).map(item => ({
@@ -215,6 +225,7 @@
     loadLocal();
     setupPresetCards();
     syncCoverMode();
+    syncSizeMode();
     syncGenerationQuality();
     syncSpineTitle();
     renderCustomFields();
@@ -409,6 +420,11 @@
     scheduleRender();
   }
 
+  function syncSizeMode() {
+    qa('.size-chip').forEach(button=>button.classList.toggle('active',button.dataset.sizeId===state.sizeMode));
+    if($('customSizeFields'))$('customSizeFields').hidden=state.sizeMode!=='custom';
+  }
+
   function syncGenerationQuality() {
     qa('input[name="generationQuality"]').forEach(input=>{
       input.checked=input.value===state.generationQuality;
@@ -557,10 +573,10 @@
   }
 
   function titlePt(text,trimW) {
-    let pt=trimW<140?30:42;
+    let pt=trimW<140?36:50;
     const n=[...String(text||'')].length;
-    if(n>18)pt-=5;if(n>30)pt-=5;if(n>44)pt-=4;
-    return clamp(pt,22,44,32);
+    if(n>18)pt-=5;if(n>30)pt-=6;if(n>44)pt-=5;
+    return clamp(pt,26,52,38);
   }
   function spinePt(spine,text) {
     let pt=clamp(spine*.58+4.2,7.5,12.5,9);
@@ -668,7 +684,7 @@
     };
     const contentW=Math.max(1,tw-safe*2);
     add({id:'title',text:v.title,x:frontX+safe,y:b+th*.12,w:contentW,h:th*.24,fontPt:titlePt(v.title,spec.trimW),weight:900,align:'left'});
-    add({id:'subtitle',text:v.subtitle,x:frontX+safe,y:b+th*.34,w:contentW,h:th*.12,fontPt:17,weight:700,align:'left'});
+    add({id:'subtitle',text:v.subtitle,x:frontX+safe,y:b+th*.34,w:contentW,h:th*.12,fontPt:21,weight:700,align:'left'});
 
     const eventEntries=[
       {id:'eventDate',label:'일시',text:v.eventDate},
@@ -686,15 +702,15 @@
     const infoStep=eventEntries.length?Math.min(th*.047,infoArea/eventEntries.length):0;
     eventEntries.forEach((entry,index)=>{
       const text=entry.label&&entry.text?entry.label+'  '+entry.text:(entry.text||entry.label);
-      add({id:entry.id,text,x:frontX+safe,y:infoStart+index*infoStep,w:contentW,h:Math.max(th*.035,infoStep*.98),fontPt:9.2,weight:720,align:'left'});
+      add({id:entry.id,text,x:frontX+safe,y:infoStart+index*infoStep,w:contentW,h:Math.max(th*.035,infoStep*.98),fontPt:11.5,weight:720,align:'left'});
     });
 
-    add({id:'dateText',text:v.dateText,x:frontX+safe,y:b+th*.77,w:contentW,h:th*.045,fontPt:9.5,weight:700,align:'left'});
-    add({id:'department',text:v.department,x:frontX+safe,y:b+th*.82,w:contentW,h:th*.045,fontPt:9.5,weight:700,align:'left'});
-    add({id:'organization',text:v.organization,x:frontX+safe,y:b+th*.89,w:contentW,h:th*.06,fontPt:11,weight:850,align:'left'});
+    add({id:'dateText',text:v.dateText,x:frontX+safe,y:b+th*.77,w:contentW,h:th*.045,fontPt:11.5,weight:700,align:'left'});
+    add({id:'department',text:v.department,x:frontX+safe,y:b+th*.82,w:contentW,h:th*.045,fontPt:11.5,weight:700,align:'left'});
+    add({id:'organization',text:v.organization,x:frontX+safe,y:b+th*.89,w:contentW,h:th*.06,fontPt:13.5,weight:850,align:'left'});
     if(spec.coverMode==='spread'){
-      add({id:'backText',text:v.backText,x:backX+safe,y:b+th*.16,w:contentW,h:th*.58,fontPt:10.5,weight:600,align:'left'});
-      add({id:'contact',text:v.contact,x:backX+safe,y:b+th*.84,w:contentW,h:th*.12,fontPt:9,weight:750,align:'left'});
+      add({id:'backText',text:v.backText,x:backX+safe,y:b+th*.16,w:contentW,h:th*.58,fontPt:12.5,weight:600,align:'left'});
+      add({id:'contact',text:v.contact,x:backX+safe,y:b+th*.84,w:contentW,h:th*.12,fontPt:10.5,weight:750,align:'left'});
     }
 
     if(spec.coverMode==='spread'&&spec.spine>=4&&v.spineTitle){
@@ -1247,10 +1263,16 @@
   }
 
   function bind(){
-    loadLocal();setupPresetCards();syncCoverMode();syncGenerationQuality();syncSpineTitle();renderCustomFields();syncPromptLanguageUi(false);syncTextEditUi();syncExportButton();
+    loadLocal();setupPresetCards();syncCoverMode();syncSizeMode();syncGenerationQuality();syncSpineTitle();renderCustomFields();syncPromptLanguageUi(false);syncTextEditUi();syncExportButton();
     if(!$('stylePrompt').value)$('stylePrompt').value=presetPrompt();
     qa('.size-chip').forEach(button=>button.addEventListener('click',()=>{
-      const [w,h]=button.dataset.size.split(',');$('trimW').value=w;$('trimH').value=h;qa('.size-chip').forEach(x=>x.classList.toggle('active',x===button));saveLocal();scheduleRender();
+      state.sizeMode=button.dataset.sizeId||'custom';
+      if(state.sizeMode!=='custom'&&button.dataset.size){
+        const [w,h]=button.dataset.size.split(',');
+        $('trimW').value=w;$('trimH').value=h;
+      }
+      syncSizeMode();saveLocal();updateGeometry();scheduleRender();
+      if(state.sizeMode==='custom')requestAnimationFrame(()=>$('trimW')?.focus());
     }));
     qa('input[name="coverMode"]').forEach(input=>input.addEventListener('change',()=>{
       state.coverMode=input.value==='front'?'front':'spread';
@@ -1269,6 +1291,7 @@
     }));
     const watched=['trimW','trimH','spine','bleed','safeZone','wingW','title','subtitle','dateText','department','organization','eventDate','eventPlace','hostText','organizerText','backText','contact','spineTitle','spineDate','spineCompany','spineOrientation','primaryColor','textColor','theme','stylePrompt'];
     watched.forEach(id=>$(id)?.addEventListener('input',()=>{
+      if(id==='trimW'||id==='trimH'){state.sizeMode='custom';syncSizeMode();}
       if(['title','subtitle','dateText','department','organization','eventDate','eventPlace','hostText','organizerText','backText','contact','spineTitle','spineDate','spineCompany'].includes(id))clearTextOverrideForSource(id);
       if(id==='title')syncSpineTitle();
       saveLocal();updateProgress();syncTextEditUi();scheduleRender();
