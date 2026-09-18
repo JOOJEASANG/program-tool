@@ -8,7 +8,7 @@
   <meta name="robots" content="noindex,nofollow">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
-  <link rel="stylesheet" href="/css/ai-design-maker.css?v=20260918-8">
+  <link rel="stylesheet" href="/css/ai-design-maker.css?v=20260918-9">
   <link rel="stylesheet" href="/css/program-manual-home-modal.css?v=20260918-1">
 </head>
 <body>
@@ -81,7 +81,7 @@
         <details class="control-section" id="copySection" open>
           <summary><span class="step-no">2</span><span><strong>표지 문구</strong><small>한글은 별도 레이어로 정확하게</small></span><span class="section-state" id="copyState">제목 필요</span></summary>
           <div class="section-body">
-            <label class="field"><span>앞표지 제목 <b>*</b></span><input id="title" maxlength="180" placeholder="예: 2026 마을교육 운영사례집"></label>
+            <label class="field"><span>앞표지 제목 <b>*</b></span><textarea id="title" maxlength="180" rows="2" placeholder="예: 2026 마을교육 운영사례집&#10;Enter로 원하는 위치에서 줄바꿈할 수 있습니다."></textarea></label>
             <label class="field"><span>부제</span><input id="subtitle" maxlength="220" placeholder="선택 입력"></label>
             <div class="field-grid two">
               <label class="field"><span>발행일·연도</span><input id="dateText" maxlength="80" placeholder="2026. 09."></label>
@@ -201,6 +201,36 @@
               <button type="button" id="resetTextLayout">선택 문구 초기화</button>
             </div>
           </div>
+          <div class="text-style-panel" id="textStylePanel" hidden>
+            <label class="text-style-copy">
+              <span>내용</span>
+              <textarea id="selectedTextValue" rows="2" maxlength="700" placeholder="선택한 문구를 편집하세요. Enter로 줄바꿈할 수 있습니다."></textarea>
+            </label>
+            <div class="text-style-controls">
+              <label><span>폰트</span>
+                <select id="selectedFontFamily">
+                  <option value="Pretendard">Pretendard</option>
+                  <option value="Noto Sans KR">Noto Sans KR</option>
+                  <option value="Malgun Gothic">맑은 고딕</option>
+                  <option value="Nanum Gothic">나눔고딕</option>
+                  <option value="Nanum Myeongjo">나눔명조</option>
+                  <option value="Batang">바탕</option>
+                </select>
+              </label>
+              <label><span>크기(pt)</span><input id="selectedFontSize" type="number" min="4" max="160" step="0.5"></label>
+              <label><span>굵기</span>
+                <select id="selectedFontWeight">
+                  <option value="400">보통</option>
+                  <option value="500">중간</option>
+                  <option value="700">굵게</option>
+                  <option value="800">매우 굵게</option>
+                  <option value="900">최대 굵게</option>
+                </select>
+              </label>
+              <label><span>행간</span><input id="selectedLineHeight" type="number" min="0.8" max="2.2" step="0.05" value="1.2"></label>
+              <label><span>글자색</span><input id="selectedTextColor" type="color" value="#ffffff"></label>
+            </div>
+          </div>
           <div class="canvas-scroll" id="canvasScroll">
             <div class="canvas-stage" id="canvasStage">
               <canvas id="previewCanvas" aria-label="전체 펼침 표지 미리보기"></canvas>
@@ -226,6 +256,6 @@
   <script defer src="/js/firebase-config.js"></script>
   <script defer src="/js/program-manuals/home-modal.js?v=20260918-1"></script>
   <script defer src="/js/program-sidebar-actions.js?v=20260918-2"></script>
-  <script defer src="/js/ai-design-maker.js?v=20260918-9"></script>
+  <script defer src="/js/ai-design-maker.js?v=20260918-10"></script>
 </body>
 </html>
