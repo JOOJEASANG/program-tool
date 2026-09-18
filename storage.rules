@@ -64,7 +64,20 @@ service firebase.storage {
     function validAiDesignGalleryUpload(userId, designId, fileName) {
       return isOwner(userId)
         && isApproved()
-        && designId.matches('^[A-Za-z0-9_-]{8,80}
+        && designId.matches('^[A-Za-z0-9_-]{8,80}$')
+        && fileName == 'preview.jpg'
+        && request.resource != null
+        && request.resource.size > 0
+        && request.resource.size <= 5242880
+        && request.resource.contentType == 'image/jpeg'
+        && request.resource.metadata != null
+        && request.resource.metadata.keys().hasAll(['ownerUid','purpose','designId'])
+        && request.resource.metadata.ownerUid == userId
+        && request.resource.metadata.purpose == 'ai-design-gallery-preview'
+        && request.resource.metadata.designId == designId;
+    }
+
+    function isDesignProjectUpload(userId, projectId, fileName) {
       return isOwner(userId)
         && isApproved()
         && projectId.matches('^[A-Za-z0-9_-]{1,80}$')
