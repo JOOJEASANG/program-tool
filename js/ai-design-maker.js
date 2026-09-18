@@ -742,7 +742,7 @@
     };
     const contentW=Math.max(1,tw-safe*2);
 
-    add({id:'title',surface:'front',text:v.title,x:frontX+safe,y:b+th*.15,w:contentW,h:th*.38,fontPt:titlePt(v.title,spec.trimW),weight:900,align:'left'});
+    add({id:'title',surface:'front',text:v.title,x:frontX+safe,y:b+th*.15,w:contentW*.86,h:th*.38,fontPt:titlePt(v.title,spec.trimW),weight:900,align:'left'});
 
     const frontCustom=v.customFields.filter(item=>item.surface!=='back');
     const backCustom=spec.coverMode==='spread'?v.customFields.filter(item=>item.surface==='back'):[];
@@ -750,13 +750,13 @@
       const step=entries.length?Math.min(th*.075,areaH/entries.length):0;
       entries.forEach((entry,index)=>{
         const text=String(entry.value||'').trim();
-        add({id:'custom:'+entry.id,surface,text,x:x+safe,y:startY+index*step,w:contentW,h:Math.max(th*.052,step*.95),fontPt:12,weight:700,align:'left'});
+        add({id:'custom:'+entry.id,surface,text,x:x+safe,y:startY+index*step,w:contentW*.72,h:Math.max(th*.052,step*.95),fontPt:12,weight:700,align:'left'});
       });
     };
     addCustomEntries(frontCustom,'front',frontX,b+th*.60,th*.30);
 
     if(spec.coverMode==='spread'){
-      add({id:'backText',surface:'back',text:v.backText,x:backX+safe,y:b+th*.16,w:contentW,h:th*.48,fontPt:14,weight:650,align:'left'});
+      add({id:'backText',surface:'back',text:v.backText,x:backX+safe,y:b+th*.16,w:contentW*.82,h:th*.48,fontPt:14,weight:650,align:'left'});
       addCustomEntries(backCustom,'back',backX,b+th*.70,th*.22);
     }
 
@@ -1053,7 +1053,7 @@
         textId:hit.item.id,
         mode:onHandle&&selected?.id===hit.item.id?'resize':'move',
         startX:point.x,startY:point.y,start:{...layout},
-        startBounds:{...hit.bounds},zone,
+        startBounds:{...hit.bounds},startBox:{x:hit.item.x,y:hit.item.y,w:hit.item.w,h:hit.item.h},zone,
         baseW:Math.max(24,hit.bounds.w),baseH:Math.max(18,hit.bounds.h),scale:fit.scale
       };
       state.snapGuide=null;
@@ -1067,22 +1067,28 @@
       const layout=textLayoutState(drag.textId);
       if(drag.mode==='move'){
         state.snapGuide=null;
-        if(drag.zone&&drag.startBounds){
-          const zoneCenterX=drag.zone.x+drag.zone.w/2;
+        if(drag.zone&&drag.startBounds&&drag.startBox){
+          const zoneLeft=drag.zone.x,zoneCenterX=drag.zone.x+drag.zone.w/2,zoneRight=drag.zone.x+drag.zone.w;
           const zoneCenterY=drag.zone.y+drag.zone.h/2;
-          const candidateCenterX=drag.startBounds.x+drag.startBounds.w/2+dx;
+          const boxLeft=drag.startBox.x+dx,boxCenter=drag.startBox.x+drag.startBox.w/2+dx,boxRight=drag.startBox.x+drag.startBox.w+dx;
+          const xCandidates=[
+            {delta:zoneLeft-boxLeft,lineX:zoneLeft},
+            {delta:zoneCenterX-boxCenter,lineX:zoneCenterX},
+            {delta:zoneRight-boxRight,lineX:zoneRight}
+          ].sort((a,b)=>Math.abs(a.delta)-Math.abs(b.delta));
+          const xSnap=xCandidates[0]&&Math.abs(xCandidates[0].delta)<=SNAP_PX?xCandidates[0]:null;
           const candidateCenterY=drag.startBounds.y+drag.startBounds.h/2+dy;
-          const snapX=Math.abs(candidateCenterX-zoneCenterX)<=SNAP_PX;
           const snapY=Math.abs(candidateCenterY-zoneCenterY)<=SNAP_PX;
-          if(snapX)dx+=zoneCenterX-candidateCenterX;
+          if(xSnap)dx+=xSnap.delta;
           if(snapY)dy+=zoneCenterY-candidateCenterY;
-          if(snapX||snapY)state.snapGuide={zone:drag.zone,centerX:zoneCenterX,centerY:zoneCenterY,snapX,snapY};
+          if(xSnap||snapY)state.snapGuide={zone:drag.zone,centerX:xSnap?.lineX||zoneCenterX,centerY:zoneCenterY,snapX:Boolean(xSnap),snapY};
         }
         const spec=currentSpec();
         layout.boxAlign='';
         layout.dx=clamp(drag.start.dx+dx/drag.scale,-spec.workW,spec.workW,0);
         layout.dy=clamp(drag.start.dy+dy/drag.scale,-spec.workH,spec.workH,0);
       }else{
+        layout.boxAlign='';
         layout.widthScale=clamp(drag.start.widthScale*(1+dx/drag.baseW),.25,2.5,1);
         layout.fontScale=clamp(drag.start.fontScale*(1+dy/drag.baseH),.35,3,1);
       }
