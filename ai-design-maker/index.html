@@ -88,6 +88,22 @@
               <label class="field"><span>발행 부서</span><input id="department" maxlength="120" placeholder="교육협력팀"></label>
             </div>
             <label class="field"><span>기관·회사명</span><input id="organization" maxlength="160" placeholder="기관명 또는 회사명"></label>
+
+            <div class="subsection-title copy-meta-title"><span>행사·발행 정보</span><small>선택 입력</small></div>
+            <div class="field-grid two">
+              <label class="field"><span>일시</span><input id="eventDate" maxlength="120" placeholder="2026. 9. 28.(월) 10:00"></label>
+              <label class="field"><span>장소</span><input id="eventPlace" maxlength="160" placeholder="천안축구센터 다목적홀"></label>
+              <label class="field"><span>주최</span><input id="hostText" maxlength="180" placeholder="천안마을교육포럼 기획위원회"></label>
+              <label class="field"><span>주관</span><input id="organizerText" maxlength="180" placeholder="천안마을교육 사회적협동조합"></label>
+            </div>
+            <div class="custom-fields-box">
+              <div class="custom-fields-head">
+                <div><strong>추가 문구 항목</strong><small>후원·대상·문의·운영 등 필요한 항목을 추가하세요.</small></div>
+                <button id="addCustomFieldBtn" class="mini-action" type="button">+ 항목 추가</button>
+              </div>
+              <div id="customFields" class="custom-fields" aria-live="polite"></div>
+            </div>
+
             <label class="field"><span>뒤표지 소개문</span><textarea id="backText" maxlength="700" rows="4" placeholder="뒤표지에 들어갈 소개문이나 설명"></textarea></label>
             <label class="field"><span>뒤표지 하단 정보</span><textarea id="contact" maxlength="360" rows="2" placeholder="홈페이지 · 문의처 · 주소 등"></textarea></label>
 
