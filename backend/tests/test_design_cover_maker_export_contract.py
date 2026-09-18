@@ -210,7 +210,7 @@ def test_ai_design_selected_text_supports_line_breaks_and_typography_controls():
     source = (ROOT / "js/ai-design-maker.js").read_text(encoding="utf-8")
     style = (ROOT / "css/ai-design-maker.css").read_text(encoding="utf-8")
 
-    assert '<textarea id="title"' in page
+    assert '<textarea class="cover-copy-input" id="title"' in page
     assert 'Enter로 줄바꿈할 수 있습니다.' in page
     for field_id in (
         "textStylePanel",
@@ -275,7 +275,7 @@ def test_ai_design_reference_direction_supports_multiple_visual_languages():
         assert f'id="{field_id}"' in page
     for mode in ("editorial", "geometry", "infographic", "photo", "illustration", "hybrid"):
         assert f'value="{mode}"' in page
-    assert "Photography, editorial illustration, iconographic/infographic structures" in backend
+    assert "editorial illustration, symbolic scenes, iconographic or infographic structures" in backend
     assert "washed-out, foggy, low-contrast or weak" in backend
     assert "Repeating the same thin-line, circle, wave or geometric-network formula" in backend
     assert "selectedDesignDirection()" in source
@@ -412,7 +412,7 @@ def test_ai_design_maker_has_no_fixed_event_fields_and_custom_copy_renders_only_
     for removed_id in ("eventDate", "eventPlace", "hostText", "organizerText"):
         assert f'id="{removed_id}"' not in page
         assert f"id:'{removed_id}'" not in source
-    assert "const text=label&&value?label+'  '+value:(value||label);" in source
+    assert "const text=String(entry.value||'').trim();" in source
     assert "if(!String(item.text||'').trim())return;" in source
 
 
@@ -424,7 +424,7 @@ def test_ai_design_maker_uses_safe_area_snap_and_dual_alignment():
     assert "const SNAP_PX=9" in source
     assert "function coverSurfaceRect(" in source
     assert "const safe=Math.min(spec.safe" in source
-    assert "Math.abs(candidateCenterX-zoneCenterX)<=SNAP_PX" in source
+    assert "Math.abs(xCandidates[0].delta)<=SNAP_PX" in source
     assert "Math.abs(candidateCenterY-zoneCenterY)<=SNAP_PX" in source
     for align in ("left", "center", "right"):
         assert f'data-box-align="{align}"' in page
