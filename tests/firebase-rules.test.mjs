@@ -467,3 +467,65 @@ test('cloud design storage is owner-only, approved-only and validates json metad
   ));
   await assertSucceeds(deleteObject(ref(ownerStorage, path)));
 });
+
+test('AI design gallery metadata and preview image are owner-only and approved-only', async () => {
+  await seedPermission('gallery-owner', 'approved');
+  const ownerContext = env.authenticatedContext('gallery-owner', { email: 'gallery@example.com' });
+  const otherContext = env.authenticatedContext('gallery-other', { email: 'other@example.com' });
+  const ownerDb = ownerContext.firestore();
+  const otherDb = otherContext.firestore();
+  const ownerStorage = ownerContext.storage();
+  const otherStorage = otherContext.storage();
+  const designId = 'design_gallery01';
+  const imagePath = 'ai_design_gallery/gallery-owner/' + designId + '/preview.jpg';
+  const metadataPath = 'users/gallery-owner/ai_design_gallery/' + designId;
+  const metadata = {
+    id: designId,
+    title: '2026 천안마을교육 운영사례집',
+    prompt: '화이트 배경에 얇은 파스텔 블루 라인을 사용한 클린 리포트 표지',
+    presetId: 'premium',
+    presetName: '클린 리포트',
+    coverMode: 'front',
+    qualityMode: 'standard',
+    trimWidth: 210,
+    trimHeight: 297,
+    imagePath,
+    createdAt: new Date('2026-09-18T07:30:00Z'),
+  };
+
+  await assertSucceeds(setDoc(doc(ownerDb, metadataPath), metadata));
+  await assertSucceeds(getDoc(doc(ownerDb, metadataPath)));
+  await assertFails(getDoc(doc(otherDb, metadataPath)));
+  await assertFails(updateDoc(doc(ownerDb, metadataPath), { title: '변경 금지' }));
+
+  await assertSucceeds(uploadString(
+    ref(ownerStorage, imagePath),
+    'fake-jpeg-data',
+    'raw',
+    {
+      contentType: 'image/jpeg',
+      customMetadata: {
+        ownerUid: 'gallery-owner',
+        purpose: 'ai-design-gallery-preview',
+        designId,
+      },
+    }
+  ));
+  await assertSucceeds(getBytes(ref(ownerStorage, imagePath)));
+  await assertFails(getBytes(ref(otherStorage, imagePath)));
+  await assertFails(uploadString(
+    ref(otherStorage, 'ai_design_gallery/gallery-owner/design_gallery02/preview.jpg'),
+    'fake-jpeg-data',
+    'raw',
+    {
+      contentType: 'image/jpeg',
+      customMetadata: {
+        ownerUid: 'gallery-owner',
+        purpose: 'ai-design-gallery-preview',
+        designId: 'design_gallery02',
+      },
+    }
+  ));
+  await assertSucceeds(deleteObject(ref(ownerStorage, imagePath)));
+  await assertSucceeds(deleteDoc(doc(ownerDb, metadataPath)));
+});

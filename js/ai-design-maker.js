@@ -65,7 +65,11 @@
     coverMode: 'spread',
     generationQuality: 'standard',
     generationProgress: 0,
-    generationProgressTimer: null
+    generationProgressTimer: null,
+    sizeMode: 'a4',
+    galleryItems: [],
+    lastGeneratedPrompt: '',
+    lastGeneratedPresetName: ''
   };
 
   const clamp = (value, min, max, fallback) => {
@@ -142,7 +146,8 @@
       customFields: state.customFields,
       textLayouts: state.textLayouts,
       coverMode: state.coverMode,
-      generationQuality: state.generationQuality
+      generationQuality: state.generationQuality,
+      sizeMode: state.sizeMode
     };
     ids.forEach(id => { if ($(id)) data[id] = $(id).value; });
     return data;
@@ -172,6 +177,11 @@
       if (typeof data.spineSync === 'boolean') $('spineSync').checked = data.spineSync;
       if (data.preset && PRESETS[data.preset]) state.preset = data.preset;
       if (data.coverMode === 'front' || data.coverMode === 'spread') state.coverMode = data.coverMode;
+      if (['a4','b5','a5','custom'].includes(data.sizeMode)) state.sizeMode = data.sizeMode;
+      else {
+        const w=Number(data.trimW),h=Number(data.trimH);
+        state.sizeMode = w===210&&h===297?'a4':w===182&&h===257?'b5':w===148&&h===210?'a5':'custom';
+      }
       if (data.generationQuality === 'high' || data.generationQuality === 'standard') state.generationQuality = data.generationQuality;
       if (data.promptLanguage === 'en' || data.promptLanguage === 'ko') state.promptLanguage = data.promptLanguage;
       if (Array.isArray(data.customFields)) state.customFields = data.customFields.slice(0, 12).map(item => ({
@@ -215,6 +225,7 @@
     loadLocal();
     setupPresetCards();
     syncCoverMode();
+    syncSizeMode();
     syncGenerationQuality();
     syncSpineTitle();
     renderCustomFields();
@@ -409,6 +420,11 @@
     scheduleRender();
   }
 
+  function syncSizeMode() {
+    qa('.size-chip').forEach(button=>button.classList.toggle('active',button.dataset.sizeId===state.sizeMode));
+    if($('customSizeFields'))$('customSizeFields').hidden=state.sizeMode!=='custom';
+  }
+
   function syncGenerationQuality() {
     qa('input[name="generationQuality"]').forEach(input=>{
       input.checked=input.value===state.generationQuality;
@@ -451,6 +467,7 @@
       badge.classList.toggle('ready',generated);
       badge.classList.toggle('stale',stale);
     }
+    if($('saveGalleryBtn'))$('saveGalleryBtn').disabled=!generated;
   }
 
   function jumpToSection(id) {
@@ -557,10 +574,10 @@
   }
 
   function titlePt(text,trimW) {
-    let pt=trimW<140?30:42;
+    let pt=trimW<140?36:50;
     const n=[...String(text||'')].length;
-    if(n>18)pt-=5;if(n>30)pt-=5;if(n>44)pt-=4;
-    return clamp(pt,22,44,32);
+    if(n>18)pt-=5;if(n>30)pt-=6;if(n>44)pt-=5;
+    return clamp(pt,26,52,38);
   }
   function spinePt(spine,text) {
     let pt=clamp(spine*.58+4.2,7.5,12.5,9);
@@ -668,7 +685,7 @@
     };
     const contentW=Math.max(1,tw-safe*2);
     add({id:'title',text:v.title,x:frontX+safe,y:b+th*.12,w:contentW,h:th*.24,fontPt:titlePt(v.title,spec.trimW),weight:900,align:'left'});
-    add({id:'subtitle',text:v.subtitle,x:frontX+safe,y:b+th*.34,w:contentW,h:th*.12,fontPt:17,weight:700,align:'left'});
+    add({id:'subtitle',text:v.subtitle,x:frontX+safe,y:b+th*.34,w:contentW,h:th*.12,fontPt:21,weight:700,align:'left'});
 
     const eventEntries=[
       {id:'eventDate',label:'일시',text:v.eventDate},
@@ -686,15 +703,15 @@
     const infoStep=eventEntries.length?Math.min(th*.047,infoArea/eventEntries.length):0;
     eventEntries.forEach((entry,index)=>{
       const text=entry.label&&entry.text?entry.label+'  '+entry.text:(entry.text||entry.label);
-      add({id:entry.id,text,x:frontX+safe,y:infoStart+index*infoStep,w:contentW,h:Math.max(th*.035,infoStep*.98),fontPt:9.2,weight:720,align:'left'});
+      add({id:entry.id,text,x:frontX+safe,y:infoStart+index*infoStep,w:contentW,h:Math.max(th*.035,infoStep*.98),fontPt:11.5,weight:720,align:'left'});
     });
 
-    add({id:'dateText',text:v.dateText,x:frontX+safe,y:b+th*.77,w:contentW,h:th*.045,fontPt:9.5,weight:700,align:'left'});
-    add({id:'department',text:v.department,x:frontX+safe,y:b+th*.82,w:contentW,h:th*.045,fontPt:9.5,weight:700,align:'left'});
-    add({id:'organization',text:v.organization,x:frontX+safe,y:b+th*.89,w:contentW,h:th*.06,fontPt:11,weight:850,align:'left'});
+    add({id:'dateText',text:v.dateText,x:frontX+safe,y:b+th*.77,w:contentW,h:th*.045,fontPt:11.5,weight:700,align:'left'});
+    add({id:'department',text:v.department,x:frontX+safe,y:b+th*.82,w:contentW,h:th*.045,fontPt:11.5,weight:700,align:'left'});
+    add({id:'organization',text:v.organization,x:frontX+safe,y:b+th*.89,w:contentW,h:th*.06,fontPt:13.5,weight:850,align:'left'});
     if(spec.coverMode==='spread'){
-      add({id:'backText',text:v.backText,x:backX+safe,y:b+th*.16,w:contentW,h:th*.58,fontPt:10.5,weight:600,align:'left'});
-      add({id:'contact',text:v.contact,x:backX+safe,y:b+th*.84,w:contentW,h:th*.12,fontPt:9,weight:750,align:'left'});
+      add({id:'backText',text:v.backText,x:backX+safe,y:b+th*.16,w:contentW,h:th*.58,fontPt:12.5,weight:600,align:'left'});
+      add({id:'contact',text:v.contact,x:backX+safe,y:b+th*.84,w:contentW,h:th*.12,fontPt:10.5,weight:750,align:'left'});
     }
 
     if(spec.coverMode==='spread'&&spec.spine>=4&&v.spineTitle){
@@ -1077,6 +1094,8 @@
       const image=new Image();image.src='data:'+(data.mime_type||'image/png')+';base64,'+data.image_base64;await waitForImage(image);
       if(state.backgroundSource==='upload'&&state.backgroundUrl?.startsWith('blob:'))URL.revokeObjectURL(state.backgroundUrl);
       state.background=image;state.backgroundUrl=image.src;state.backgroundSource='ai';state.generatedSpecKey=specKey(spec);
+      state.lastGeneratedPrompt=prompt;
+      state.lastGeneratedPresetName=PRESETS[state.preset].name;
       if($('backgroundInput'))$('backgroundInput').value='';
       if($('backgroundName'))$('backgroundName').textContent='AI 생성 배경';
       if($('clearBackground'))$('clearBackground').hidden=false;
@@ -1195,6 +1214,152 @@
   function exportDesign(){return $('exportFormat')?.value==='pdf'?exportPdf():exportPng();}
   function syncExportButton(){if($('exportBtn'))$('exportBtn').textContent=$('exportFormat')?.value==='pdf'?'300dpi PDF 저장':'300dpi PNG 저장';}
 
+  function galleryDateText(value){
+    const date=value?.toDate?.()||null;
+    if(!date)return '방금 저장';
+    return date.toLocaleString('ko-KR',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
+  }
+
+  async function buildGalleryPreviewBlob(){
+    if(!state.background)throw new Error('저장할 표지 디자인이 없습니다.');
+    const spec=currentSpec(),maxEdge=1600;
+    const scale=Math.min(maxEdge/spec.workW,maxEdge/spec.workH);
+    const w=Math.max(320,Math.round(spec.workW*scale)),h=Math.max(320,Math.round(spec.workH*scale));
+    await document.fonts?.ready;
+    const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
+    const ctx=canvas.getContext('2d');
+    drawBackgroundImage(ctx,state.background,w,h);
+    drawLogo(ctx,spec,scale);
+    const color=$('textColor')?.value||'#ffffff';
+    textLayout(spec,scale).forEach(item=>drawTextItem(ctx,item,color));
+    return new Promise((resolve,reject)=>canvas.toBlob(
+      blob=>blob?resolve(blob):reject(new Error('보관함용 미리보기 이미지를 만들지 못했습니다.')),
+      'image/jpeg',.88
+    ));
+  }
+
+  async function saveCurrentDesignToGallery(){
+    const spec=currentSpec(),user=window.auth?.currentUser,button=$('saveGalleryBtn');
+    if(!user){setStatus('로그인이 필요합니다.','디자인 보관함은 로그인 후 사용할 수 있습니다.','error');return;}
+    if(!window.storage||!window.db){setStatus('보관함 연결을 사용할 수 없습니다.','Firebase Storage 연결을 확인해 주세요.','error');return;}
+    if(!state.background||state.generatedSpecKey!==specKey(spec)){setStatus('저장할 디자인이 없습니다.','현재 규격에 맞는 디자인을 먼저 생성해 주세요.','error');return;}
+    const title=String($('title')?.value||'').trim()||'제목 없는 표지';
+    const prompt=String(state.lastGeneratedPrompt||$('stylePrompt')?.value||presetPrompt()).trim().slice(0,5000);
+    const designId='design_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8);
+    const imagePath='ai_design_gallery/'+user.uid+'/'+designId+'/preview.jpg';
+    const imageRef=window.storage.ref(imagePath);
+    if(button){button.disabled=true;button.textContent='저장 중...';}
+    setStatus('디자인을 보관함에 저장하고 있습니다.','완성된 표지 이미지와 디자인 요청문구를 함께 저장하는 중입니다.','busy');
+    let uploaded=false;
+    try{
+      const blob=await buildGalleryPreviewBlob();
+      await imageRef.put(blob,{
+        contentType:'image/jpeg',
+        customMetadata:{ownerUid:user.uid,purpose:'ai-design-gallery-preview',designId}
+      });
+      uploaded=true;
+      await window.db.collection('users').doc(user.uid).collection('ai_design_gallery').doc(designId).set({
+        id:designId,
+        title:title.slice(0,180),
+        prompt,
+        presetId:String(state.preset||'').slice(0,80),
+        presetName:String(state.lastGeneratedPresetName||PRESETS[state.preset]?.name||'').slice(0,120),
+        coverMode:spec.coverMode,
+        qualityMode:state.generationQuality,
+        trimWidth:spec.trimW,
+        trimHeight:spec.trimH,
+        imagePath,
+        createdAt:firebase.firestore.FieldValue.serverTimestamp()
+      });
+      setStatus('디자인 보관함에 저장했습니다.','보관함에서 이미지와 요청문구를 검색해 다시 볼 수 있습니다.','ok');
+      await openGallery(true);
+    }catch(error){
+      if(uploaded)try{await imageRef.delete();}catch(_){}
+      setStatus('디자인 저장 실패',error.message||'보관함 저장 중 오류가 발생했습니다.','error');
+    }finally{
+      if(button){button.textContent='현재 디자인 저장';button.disabled=!state.background||state.generatedSpecKey!==specKey(currentSpec());}
+    }
+  }
+
+  function closeGallery(){
+    if($('galleryModal'))$('galleryModal').hidden=true;
+  }
+
+  function closeGalleryDetail(){
+    if($('galleryDetailModal'))$('galleryDetailModal').hidden=true;
+    if($('galleryDetailImage'))$('galleryDetailImage').removeAttribute('src');
+  }
+
+  function openGalleryDetail(item){
+    if(!item)return;
+    if($('galleryDetailImage'))$('galleryDetailImage').src=item.imageUrl||'';
+    if($('galleryDetailTitle'))$('galleryDetailTitle').textContent=item.title||'저장된 디자인';
+    if($('galleryDetailMeta'))$('galleryDetailMeta').textContent=[
+      item.presetName||'',
+      item.coverMode==='front'?'앞표지만':'전체 펼침',
+      (item.trimWidth&&item.trimHeight)?item.trimWidth+'×'+item.trimHeight+'mm':'',
+      galleryDateText(item.createdAt)
+    ].filter(Boolean).join(' · ');
+    if($('galleryDetailPrompt'))$('galleryDetailPrompt').textContent=item.prompt||'요청문구 없음';
+    if($('galleryDetailModal'))$('galleryDetailModal').hidden=false;
+  }
+
+  function renderGallery(query=''){
+    const root=$('galleryGrid'),empty=$('galleryEmpty'),count=$('galleryCount');
+    if(!root)return;
+    const needle=String(query||'').trim().toLowerCase();
+    const items=state.galleryItems.filter(item=>{
+      const hay=[item.title,item.prompt,item.presetName,item.coverMode].join(' ').toLowerCase();
+      return !needle||hay.includes(needle);
+    });
+    root.replaceChildren();
+    if(count)count.textContent=items.length+'개';
+    if(empty)empty.hidden=items.length>0;
+    items.forEach(item=>{
+      const card=document.createElement('button');
+      card.type='button';card.className='gallery-card';
+      const imageWrap=document.createElement('span');imageWrap.className='gallery-card-image';
+      const image=document.createElement('img');image.loading='lazy';image.alt=(item.title||'저장된 표지')+' 미리보기';image.src=item.imageUrl||'';
+      imageWrap.appendChild(image);
+      const copy=document.createElement('span');copy.className='gallery-card-copy';
+      const title=document.createElement('strong');title.textContent=item.title||'제목 없는 표지';
+      const prompt=document.createElement('p');prompt.textContent=item.prompt||'요청문구 없음';
+      const meta=document.createElement('span');meta.textContent=[item.presetName||'',galleryDateText(item.createdAt)].filter(Boolean).join(' · ');
+      copy.append(title,prompt,meta);card.append(imageWrap,copy);
+      card.addEventListener('click',()=>openGalleryDetail(item));
+      root.appendChild(card);
+    });
+  }
+
+  async function loadGallery(){
+    const user=window.auth?.currentUser;
+    if(!user||!window.db||!window.storage)throw new Error('디자인 보관함 연결을 사용할 수 없습니다.');
+    const snapshot=await window.db.collection('users').doc(user.uid).collection('ai_design_gallery')
+      .orderBy('createdAt','desc').limit(100).get();
+    const items=await Promise.all(snapshot.docs.map(async doc=>{
+      const item={id:doc.id,...doc.data(),imageUrl:''};
+      try{item.imageUrl=await window.storage.ref(item.imagePath).getDownloadURL();}catch(_){}
+      return item;
+    }));
+    state.galleryItems=items;
+    renderGallery($('gallerySearch')?.value||'');
+  }
+
+  async function openGallery(forceReload=false){
+    if($('galleryModal'))$('galleryModal').hidden=false;
+    if(!state.galleryItems.length||forceReload){
+      if($('galleryGrid'))$('galleryGrid').replaceChildren();
+      if($('galleryEmpty')){$('galleryEmpty').hidden=false;$('galleryEmpty').textContent='보관함을 불러오는 중입니다.';}
+      try{
+        await loadGallery();
+        if($('galleryEmpty'))$('galleryEmpty').textContent='저장한 디자인이 없습니다.';
+      }catch(error){
+        if($('galleryEmpty')){$('galleryEmpty').hidden=false;$('galleryEmpty').textContent='보관함을 불러오지 못했습니다.';}
+        setStatus('디자인 보관함 불러오기 실패',error.message||'잠시 후 다시 시도해 주세요.','error');
+      }
+    }else renderGallery($('gallerySearch')?.value||'');
+  }
+
   function resetAll(){
     if(!confirm('입력한 문구와 설정을 초기화할까요?'))return;
     try{localStorage.removeItem(STORAGE_KEY);}catch(_){}
@@ -1211,6 +1376,8 @@
       await waitForImage(image);
       if(state.backgroundSource==='upload'&&state.backgroundUrl?.startsWith('blob:'))URL.revokeObjectURL(state.backgroundUrl);
       state.background=image;state.backgroundUrl=url;state.backgroundSource='upload';state.generatedSpecKey=specKey(currentSpec());
+      state.lastGeneratedPrompt=String($('stylePrompt')?.value||presetPrompt()).trim();
+      state.lastGeneratedPresetName=PRESETS[state.preset]?.name||'직접 배경';
       if($('backgroundName'))$('backgroundName').textContent=file.name;
       if($('clearBackground'))$('clearBackground').hidden=false;
       if($('exportBtn'))$('exportBtn').disabled=false;
@@ -1230,6 +1397,7 @@
     if($('backgroundName'))$('backgroundName').textContent='없음';
     if($('clearBackground'))$('clearBackground').hidden=true;
     if($('exportBtn'))$('exportBtn').disabled=true;
+    if($('saveGalleryBtn'))$('saveGalleryBtn').disabled=true;
     scheduleRender();updateProgress();
   }
 
@@ -1247,10 +1415,16 @@
   }
 
   function bind(){
-    loadLocal();setupPresetCards();syncCoverMode();syncGenerationQuality();syncSpineTitle();renderCustomFields();syncPromptLanguageUi(false);syncTextEditUi();syncExportButton();
+    loadLocal();setupPresetCards();syncCoverMode();syncSizeMode();syncGenerationQuality();syncSpineTitle();renderCustomFields();syncPromptLanguageUi(false);syncTextEditUi();syncExportButton();
     if(!$('stylePrompt').value)$('stylePrompt').value=presetPrompt();
     qa('.size-chip').forEach(button=>button.addEventListener('click',()=>{
-      const [w,h]=button.dataset.size.split(',');$('trimW').value=w;$('trimH').value=h;qa('.size-chip').forEach(x=>x.classList.toggle('active',x===button));saveLocal();scheduleRender();
+      state.sizeMode=button.dataset.sizeId||'custom';
+      if(state.sizeMode!=='custom'&&button.dataset.size){
+        const [w,h]=button.dataset.size.split(',');
+        $('trimW').value=w;$('trimH').value=h;
+      }
+      syncSizeMode();saveLocal();updateGeometry();scheduleRender();
+      if(state.sizeMode==='custom')requestAnimationFrame(()=>$('trimW')?.focus());
     }));
     qa('input[name="coverMode"]').forEach(input=>input.addEventListener('change',()=>{
       state.coverMode=input.value==='front'?'front':'spread';
@@ -1269,6 +1443,7 @@
     }));
     const watched=['trimW','trimH','spine','bleed','safeZone','wingW','title','subtitle','dateText','department','organization','eventDate','eventPlace','hostText','organizerText','backText','contact','spineTitle','spineDate','spineCompany','spineOrientation','primaryColor','textColor','theme','stylePrompt'];
     watched.forEach(id=>$(id)?.addEventListener('input',()=>{
+      if(id==='trimW'||id==='trimH'){state.sizeMode='custom';syncSizeMode();}
       if(['title','subtitle','dateText','department','organization','eventDate','eventPlace','hostText','organizerText','backText','contact','spineTitle','spineDate','spineCompany'].includes(id))clearTextOverrideForSource(id);
       if(id==='title')syncSpineTitle();
       saveLocal();updateProgress();syncTextEditUi();scheduleRender();
@@ -1283,6 +1458,11 @@
     $('guideToggle')?.addEventListener('change',scheduleRender);
     $('cropMarkToggle')?.addEventListener('change',scheduleRender);
     $('generateBtn')?.addEventListener('click',generate);
+    $('galleryBtn')?.addEventListener('click',()=>openGallery(false));
+    $('saveGalleryBtn')?.addEventListener('click',saveCurrentDesignToGallery);
+    $('gallerySearch')?.addEventListener('input',event=>renderGallery(event.target.value));
+    qa('[data-gallery-close]').forEach(node=>node.addEventListener('click',closeGallery));
+    qa('[data-gallery-detail-close]').forEach(node=>node.addEventListener('click',closeGalleryDetail));
     $('exportBtn')?.addEventListener('click',exportDesign);
     $('exportFormat')?.addEventListener('change',syncExportButton);
     $('addCustomFieldBtn')?.addEventListener('click',addCustomField);
@@ -1336,6 +1516,11 @@
     $('clearLogo')?.addEventListener('click',clearLogo);
     $('logoutBtn')?.addEventListener('click',()=>window.auth?.signOut().then(()=>location.replace('/')));
     window.addEventListener('resize',()=>scheduleRender());
+    window.addEventListener('keydown',event=>{
+      if(event.key!=='Escape')return;
+      if(!$('galleryDetailModal')?.hidden)closeGalleryDetail();
+      else if(!$('galleryModal')?.hidden)closeGallery();
+    });
     updateGeometry();updateProgress();scheduleRender();
   }
 

@@ -8,7 +8,7 @@
   <meta name="robots" content="noindex,nofollow">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
-  <link rel="stylesheet" href="/css/ai-design-maker.css?v=20260918-13">
+  <link rel="stylesheet" href="/css/ai-design-maker.css?v=20260918-14">
   <link rel="stylesheet" href="/css/program-manual-home-modal.css?v=20260918-1">
 </head>
 <body>
@@ -72,13 +72,16 @@
           <summary><span class="step-no">1</span><span><strong>인쇄 규격</strong><small>완성 크기와 책등</small></span><span class="section-state" id="specState">확인</span></summary>
           <div class="section-body">
             <div class="preset-size-row">
-              <button type="button" class="size-chip active" data-size="210,297">A4</button>
-              <button type="button" class="size-chip" data-size="176,248">176×248</button>
-              <button type="button" class="size-chip" data-size="148,210">A5</button>
+              <button type="button" class="size-chip active" data-size-id="a4" data-size="210,297">A4 <small>210×297</small></button>
+              <button type="button" class="size-chip" data-size-id="b5" data-size="182,257">B5 <small>182×257</small></button>
+              <button type="button" class="size-chip" data-size-id="a5" data-size="148,210">A5 <small>148×210</small></button>
+              <button type="button" class="size-chip" data-size-id="custom">직접입력</button>
             </div>
-            <div class="field-grid two">
+            <div class="field-grid two custom-size-fields" id="customSizeFields" hidden>
               <label class="field"><span>완성 가로 <em>mm</em></span><input id="trimW" type="number" min="50" max="1000" step="0.1" value="210"></label>
               <label class="field"><span>완성 세로 <em>mm</em></span><input id="trimH" type="number" min="50" max="1000" step="0.1" value="297"></label>
+            </div>
+            <div class="field-grid two">
               <label class="field" id="spineField"><span>책등 <em>mm</em></span><input id="spine" type="number" min="0" max="100" step="0.1" value="10"></label>
               <label class="field"><span>도련 <em>mm</em></span><input id="bleed" type="number" min="0" max="20" step="0.1" value="3"></label>
               <label class="field"><span>안전영역 <em>mm</em></span><input id="safeZone" type="number" min="0" max="80" step="0.1" value="5"></label>
@@ -92,19 +95,19 @@
         <details class="control-section" id="copySection" open>
           <summary><span class="step-no">2</span><span><strong>표지 문구</strong><small>한글은 별도 레이어로 정확하게</small></span><span class="section-state" id="copyState">제목 필요</span></summary>
           <div class="section-body">
-            <label class="field"><span>앞표지 제목 <b>*</b></span><textarea id="title" maxlength="180" rows="2" placeholder="예: 2026 마을교육 운영사례집&#10;Enter로 원하는 위치에서 줄바꿈할 수 있습니다."></textarea></label>
-            <label class="field"><span>부제</span><input id="subtitle" maxlength="220" placeholder="선택 입력"></label>
+            <label class="field"><span>앞표지 제목 <b>*</b></span><textarea id="title" maxlength="180" rows="2" placeholder="2026 천안마을교육 운영사례집&#10;함께 만드는 배움의 마을"></textarea></label>
+            <label class="field"><span>부제</span><input id="subtitle" maxlength="220" placeholder="학교와 마을이 함께 만드는 지속가능한 교육공동체"></label>
             <div class="field-grid two">
-              <label class="field"><span>발행일·연도</span><input id="dateText" maxlength="80" placeholder="2026. 09."></label>
-              <label class="field"><span>발행 부서</span><input id="department" maxlength="120" placeholder="교육협력팀"></label>
+              <label class="field"><span>발행일·연도</span><input id="dateText" maxlength="80" placeholder="2026. 9."></label>
+              <label class="field"><span>발행 부서</span><input id="department" maxlength="120" placeholder="교육협력과"></label>
             </div>
-            <label class="field"><span>기관·회사명</span><input id="organization" maxlength="160" placeholder="기관명 또는 회사명"></label>
+            <label class="field"><span>기관·회사명</span><input id="organization" maxlength="160" placeholder="충청남도천안교육지원청"></label>
 
             <div class="subsection-title copy-meta-title"><span>행사·발행 정보</span><small>선택 입력</small></div>
             <div class="field-grid two">
               <label class="field"><span>일시</span><input id="eventDate" maxlength="120" placeholder="2026. 9. 28.(월) 10:00"></label>
               <label class="field"><span>장소</span><input id="eventPlace" maxlength="160" placeholder="천안축구센터 다목적홀"></label>
-              <label class="field"><span>주최</span><input id="hostText" maxlength="180" placeholder="천안마을교육포럼 기획위원회"></label>
+              <label class="field"><span>주최</span><input id="hostText" maxlength="180" placeholder="천안 마을교육 포럼 기획위원회"></label>
               <label class="field"><span>주관</span><input id="organizerText" maxlength="180" placeholder="천안마을교육 사회적협동조합"></label>
             </div>
             <div class="custom-fields-box">
@@ -116,17 +119,17 @@
             </div>
 
             <div id="backCoverFields">
-              <label class="field"><span>뒤표지 소개문</span><textarea id="backText" maxlength="700" rows="4" placeholder="뒤표지에 들어갈 소개문이나 설명"></textarea></label>
-              <label class="field"><span>뒤표지 하단 정보</span><textarea id="contact" maxlength="360" rows="2" placeholder="홈페이지 · 문의처 · 주소 등"></textarea></label>
+              <label class="field"><span>뒤표지 소개문</span><textarea id="backText" maxlength="700" rows="4" placeholder="학교와 마을이 함께 만든 교육 실천 사례와 지역 연계 성과를 담았습니다."></textarea></label>
+              <label class="field"><span>뒤표지 하단 정보</span><textarea id="contact" maxlength="360" rows="2" placeholder="www.example.or.kr · 041-000-0000 · 충남 천안시"></textarea></label>
             </div>
 
             <div id="spineFields">
               <div class="subsection-title spine-title-row"><span>책등</span><button id="fillSpineBtn" class="mini-action" type="button">표지 정보로 자동 채우기</button></div>
               <label class="check-row"><input id="spineSync" type="checkbox" checked><span>앞표지 제목을 책등 제목으로 자동 사용</span></label>
-              <label class="field"><span>책등 제목</span><input id="spineTitle" maxlength="180"></label>
+              <label class="field"><span>책등 제목</span><input id="spineTitle" maxlength="180" placeholder="2026 천안마을교육 운영사례집"></label>
               <div class="field-grid two">
-                <label class="field"><span>책등 날짜</span><input id="spineDate" maxlength="60"></label>
-                <label class="field"><span>책등 회사명</span><input id="spineCompany" maxlength="100"></label>
+                <label class="field"><span>책등 날짜</span><input id="spineDate" maxlength="60" placeholder="2026"></label>
+                <label class="field"><span>책등 회사명</span><input id="spineCompany" maxlength="100" placeholder="충청남도천안교육지원청"></label>
               </div>
               <label class="field"><span>책등 방향</span>
                 <select id="spineOrientation">
@@ -153,7 +156,7 @@
               <label class="field color-field"><span>배경 주조색</span><input id="primaryColor" type="color" value="#eaf5fb"></label>
               <label class="field color-field"><span>글자색</span><input id="textColor" type="color" value="#14558a"></label>
             </div>
-            <label class="field"><span>주제·키워드</span><textarea id="theme" rows="3" maxlength="900" placeholder="예: 교육, 지역공동체, 협력, 성장"></textarea></label>
+            <label class="field"><span>주제·키워드</span><textarea id="theme" rows="3" maxlength="900" placeholder="마을교육, 지역공동체, 협력, 성장, 연결"></textarea></label>
             <div class="field prompt-field">
               <div class="field-title-row">
                 <span>추가 디자인 요청</span>
@@ -199,6 +202,8 @@
           <div class="toolbar-actions">
             <label class="mini-switch"><input id="guideToggle" type="checkbox" checked><span>가이드</span></label>
             <label class="mini-switch"><input id="cropMarkToggle" type="checkbox" checked><span>재단선</span></label>
+            <button class="secondary-button compact gallery-open-button" id="galleryBtn" type="button">디자인 보관함</button>
+            <button class="secondary-button compact" id="saveGalleryBtn" type="button" disabled>현재 디자인 저장</button>
             <select class="export-format" id="exportFormat" aria-label="다운로드 형식">
               <option value="png">이미지 · PNG</option>
               <option value="pdf">PDF</option>
@@ -276,12 +281,46 @@
     </div>
   </div>
 
+  <div class="gallery-modal" id="galleryModal" hidden>
+    <div class="gallery-modal-backdrop" data-gallery-close></div>
+    <section class="gallery-board" role="dialog" aria-modal="true" aria-labelledby="galleryTitle">
+      <header class="gallery-board-head">
+        <div>
+          <span>AI DESIGN ARCHIVE</span>
+          <strong id="galleryTitle">디자인 보관함</strong>
+        </div>
+        <button type="button" class="gallery-close" data-gallery-close aria-label="보관함 닫기">×</button>
+      </header>
+      <div class="gallery-search-row">
+        <input id="gallerySearch" type="search" placeholder="제목·요청문구·스타일로 검색">
+        <span id="galleryCount">0개</span>
+      </div>
+      <div class="gallery-grid" id="galleryGrid"></div>
+      <div class="gallery-empty" id="galleryEmpty" hidden>저장한 디자인이 없습니다.</div>
+    </section>
+  </div>
+
+  <div class="gallery-detail-modal" id="galleryDetailModal" hidden>
+    <div class="gallery-modal-backdrop" data-gallery-detail-close></div>
+    <section class="gallery-detail" role="dialog" aria-modal="true" aria-labelledby="galleryDetailTitle">
+      <button type="button" class="gallery-close detail-close" data-gallery-detail-close aria-label="상세보기 닫기">×</button>
+      <div class="gallery-detail-image-wrap"><img id="galleryDetailImage" alt="저장된 표지 디자인"></div>
+      <div class="gallery-detail-copy">
+        <strong id="galleryDetailTitle">저장된 디자인</strong>
+        <span id="galleryDetailMeta"></span>
+        <h3>디자인 요청문구</h3>
+        <pre id="galleryDetailPrompt"></pre>
+      </div>
+    </section>
+  </div>
+
   <script defer src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
   <script defer src="/js/firebase-config.js"></script>
   <script defer src="/js/program-manuals/home-modal.js?v=20260918-1"></script>
   <script defer src="/js/program-sidebar-actions.js?v=20260918-2"></script>
-  <script defer src="/js/ai-design-maker.js?v=20260918-14"></script>
+  <script defer src="/js/ai-design-maker.js?v=20260918-15"></script>
 </body>
 </html>

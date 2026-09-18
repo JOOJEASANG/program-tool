@@ -41,6 +41,34 @@ service cloud.firestore {
         && request.resource.data.updatedAt is timestamp
         && request.resource.data.createdAt is timestamp;
     }
+    function validAiDesignGalleryMetadata(uid, designId){
+      return request.resource.data.keys().hasOnly([
+          'id','title','prompt','presetId','presetName','coverMode','qualityMode',
+          'trimWidth','trimHeight','imagePath','createdAt'
+        ])
+        && request.resource.data.id == designId
+        && request.resource.data.title is string
+        && request.resource.data.title.size() > 0
+        && request.resource.data.title.size() <= 180
+        && request.resource.data.prompt is string
+        && request.resource.data.prompt.size() <= 5000
+        && request.resource.data.presetId is string
+        && request.resource.data.presetId.size() <= 80
+        && request.resource.data.presetName is string
+        && request.resource.data.presetName.size() <= 120
+        && request.resource.data.coverMode in ['front','spread']
+        && request.resource.data.qualityMode in ['standard','high']
+        && request.resource.data.trimWidth is number
+        && request.resource.data.trimWidth >= 50
+        && request.resource.data.trimWidth <= 1000
+        && request.resource.data.trimHeight is number
+        && request.resource.data.trimHeight >= 50
+        && request.resource.data.trimHeight <= 1000
+        && request.resource.data.imagePath is string
+        && request.resource.data.imagePath.matches('^ai_design_gallery/' + uid + '/' + designId + '/preview[.]jpg$')
+        && request.resource.data.createdAt is timestamp;
+    }
+
     function validPdfSessionMetadata(){
       return request.resource.data.keys().hasOnly(['name','sessionId','storagePaths','fileCount','pageCount','totalBytes','state','createdAt'])
         && request.resource.data.name is string
@@ -115,6 +143,13 @@ service cloud.firestore {
     match /cover_templates/{templateId} {
       allow read, delete: if isAdmin();
       allow create, update: if false;
+    }
+
+    match /users/{uid}/ai_design_gallery/{designId} {
+      allow read: if isOwner(uid) && approved(uid);
+      allow create: if isOwner(uid) && approved(uid) && validAiDesignGalleryMetadata(uid, designId);
+      allow update: if false;
+      allow delete: if isOwner(uid);
     }
 
     match /users/{uid}/pdf_sessions/{docId} {
