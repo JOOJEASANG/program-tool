@@ -17,8 +17,11 @@ def test_retired_runtime_surfaces_stay_removed():
         "js/design-editor/core-runtime.js",
         "js/design-editor/shell-runtime.js",
         "js/design-editor/app.js",
+        "js/design-editor/output.js",
         "js/print-checker/simple-editor.js",
         "css/print-checker-simple-editor.css",
+        "js/program-registry.js",
+        "js/cover-jspdf-loader.js",
         "reset-cache.html",
         "booklet/index.html",
     )
@@ -34,7 +37,13 @@ def test_modular_shell_owns_only_pdf_apps():
     assert "/print-checker?product=" in apps_html
     assert "design-editor/general" not in apps_html
 
-    for marker in ("design-editor", "DesignEditor", "DESIGN_PRELOADS", "design-studio"):
+    for marker in (
+        "design-editor",
+        "DesignEditor",
+        "DESIGN_PRELOADS",
+        "warmDesignAssets",
+        "design-studio",
+    ):
         assert marker not in shell
         assert marker not in access
 
@@ -43,6 +52,25 @@ def test_modular_shell_owns_only_pdf_apps():
     assert "/pdf-editor/?embed=1&app=layout" in shell
     assert "/pdf-editor/?embed=1&app=booklet" in shell
     assert "['pdf-layout','booklet']" in access
+
+
+def test_retired_cover_entrypoint_redirects_without_old_pdf_runtime():
+    html = read("perfect-binding-cover/index.html")
+
+    assert "location.replace('/print-checker?product=cover')" in html
+    assert 'http-equiv="refresh"' in html
+    assert not (ROOT / "js" / "cover-jspdf-loader.js").exists()
+    assert not (ROOT / "js" / "design-editor" / "output.js").exists()
+
+
+def test_live_pdf_preflight_helpers_remain_available():
+    preflight = read("pdf-preflight/index.html")
+    for relative in (
+        "js/common-context-menu.js",
+        "js/editor-enhancements.js",
+    ):
+        assert (ROOT / relative).is_file()
+        assert Path(relative).name in preflight
 
 
 def test_current_docs_describe_removed_design_runtime_as_retired():
