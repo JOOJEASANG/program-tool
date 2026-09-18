@@ -40,6 +40,7 @@ flask_app = Flask(__name__)
 logger = logging.getLogger(__name__)
 REQUEST_ID_PATTERN = re.compile(r"^[A-Za-z0-9._-]{8,64}$")
 PDF_SESSION_ID_PATTERN = re.compile(r"^[A-Za-z0-9_-]{8,40}$")
+AI_GALLERY_ID_PATTERN = re.compile(r"^[A-Za-z0-9_-]{8,80}$")
 PDF_SESSION_SOURCE_PATTERN = re.compile(
     r"^pdf_sessions/[^/]+/[A-Za-z0-9_-]{8,40}/src_[0-9]{1,2}[.]pdf$"
 )
@@ -61,6 +62,7 @@ PDF_UTILITY_FILE_BYTES = 500 * MIB
 PDF_UTILITY_TOTAL_BYTES = 800 * MIB
 MAX_SAVED_PDF_SESSIONS = 10
 MAX_SAVED_DESIGN_PROJECTS = 8
+MAX_SAVED_AI_DESIGNS = 100
 ORPHAN_GRACE_HOURS = 24
 
 # Editor/session limits remain cost-bounded while transient utility jobs get a
@@ -267,6 +269,30 @@ def _normalize_document_paths(
     else:
         paths = []
 
+    if collection_id == "ai_design_gallery":
+        design_id = str(data.get("id") or "").strip()
+        if not uid or not AI_GALLERY_ID_PATTERN.fullmatch(design_id):
+            logger.warning(
+                "Ignoring AI gallery path with invalid ownership metadata uid=%s design=%s",
+                uid,
+                design_id,
+            )
+            return []
+
+        expected_path = f"ai_design_gallery/{uid}/{design_id}/preview.jpg"
+        safe_paths: list[str] = []
+        for path in paths:
+            if path == expected_path:
+                safe_paths.append(path)
+                continue
+            logger.warning(
+                "Ignoring unsafe AI gallery path uid=%s design=%s path=%s",
+                uid,
+                design_id,
+                path,
+            )
+        return safe_paths
+
     if collection_id not in PDF_SESSION_COLLECTIONS:
         return paths
 
@@ -457,7 +483,16 @@ def cleanup_persistent_user_storage(event: scheduler_fn.ScheduledEvent) -> None:
         "updatedAt",
         "storagePath",
     )
+    gallery_paths = _trim_firestore_group(
+        db,
+        bucket,
+        "ai_design_gallery",
+        MAX_SAVED_AI_DESIGNS,
+        "createdAt",
+        "imagePath",
+    )
 
     _delete_old_orphans(bucket, "pdf_sessions/", session_paths, cutoff)
     _delete_old_orphans(bucket, "print_checker_sessions/", print_checker_session_paths, cutoff)
     _delete_old_orphans(bucket, "design_projects/", design_paths, cutoff)
+    _delete_old_orphans(bucket, "ai_design_gallery/", gallery_paths, cutoff)
