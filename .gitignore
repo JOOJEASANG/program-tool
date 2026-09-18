@@ -34,3 +34,5 @@ Thumbs.db
 
 # Repository backup archives belong in GitHub Actions artifacts
 backups/*.zip
+pdf-load-test-report.json
+pdf-load-test-report-*.json

@@ -136,6 +136,37 @@ venv/bin/python scripts/sync_admin_claims.py --verify
 
 현재 운영 Function 설정은 비용 상한을 위해 `max_instances=2`를 유지하면서, 대용량 PDF 작업을 위해 **4GB 메모리와 600초 timeout**을 허용합니다. 승인 회원 수나 동시 사용량을 늘리기 전에 다음 시나리오를 측정합니다.
 
+저장소에는 운영 부하를 실수로 발생시키지 않도록 보호된 테스트 도구가 포함되어 있습니다. 먼저 전송 크기용 fixture를 생성할 수 있습니다.
+
+```bash
+backend/venv/bin/python scripts/generate_pdf_load_fixture.py \
+  --output /tmp/load-100mb.pdf \
+  --size-mb 100
+```
+
+실행기는 확인 문자열이 없으면 항상 dry-run으로 끝나며 Storage 업로드나 API 호출을 하지 않습니다.
+
+```bash
+backend/venv/bin/python scripts/run_pdf_storage_load_test.py \
+  /tmp/load-100mb.pdf \
+  --jobs 3
+```
+
+실제 운영 부하 테스트는 승인된 점검 시간에만 진행합니다. 실행 전 승인 회원의 Firebase ID 토큰을 `FIREBASE_ID_TOKEN` 환경변수에 넣고, Google ADC/WIF에 `program-tool.firebasestorage.app` 업로드·삭제 권한이 있어야 합니다. 토큰 값은 명령줄 인자로 넘기지 않습니다.
+
+```bash
+export FIREBASE_ID_TOKEN='<approved-user-id-token>'
+backend/venv/bin/python scripts/run_pdf_storage_load_test.py \
+  /tmp/load-100mb.pdf \
+  --jobs 3 \
+  --report /tmp/pdf-load-test-report-100mb.json \
+  --confirm RUN_PRODUCTION_LOAD
+```
+
+200MB 시나리오는 같은 방식으로 200MB fixture를 만들고 실행합니다. 중간 크기 동시 작업은 `--jobs 5`~`--jobs 10` 범위에서 수행합니다. 테스트 실행기는 각 요청을 고유한 `pdf_temp/{uid}/loadtest-...` 경로에 staging하고 동시에 처리 요청을 시작한 뒤 남은 입력/결과 객체를 정리합니다. 리포트에는 토큰이나 다운로드 URL을 저장하지 않고 HTTP 상태, request ID, 처리시간, 성공/실패 수, median/p95만 기록합니다.
+
+fixture는 **전송 크기·Storage staging·대기열 검증용**으로 PDF 뒤에 padding을 붙인 파일입니다. CPU/메모리 렌더링 성능까지 판단할 때는 실제 복잡한 이미지·폰트·다페이지 PDF를 별도로 사용합니다.
+
 - 100MB PDF 3개 동시 처리
 - 200MB PDF 3개 동시 처리
 - 중간 크기 작업 5~10개 동시 요청
