@@ -90,7 +90,7 @@ def test_prompt_is_background_only_and_spine_aware():
     assert "Do not draw a visible center spine strip" in prompt
     assert "editorial illustration, symbolic scenes, iconographic or infographic structures" in prompt
     assert "refined medium saturation" in prompt
-    assert "washed-out low-contrast pastel" in prompt
+    assert "Washed-out low-contrast pastel" in prompt
 
 
 def test_prompt_is_wing_aware_when_review_option_has_flaps():
