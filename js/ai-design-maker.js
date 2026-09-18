@@ -467,6 +467,7 @@
       badge.classList.toggle('ready',generated);
       badge.classList.toggle('stale',stale);
     }
+    if($('saveGalleryBtn'))$('saveGalleryBtn').disabled=!generated;
   }
 
   function jumpToSection(id) {
@@ -1093,6 +1094,8 @@
       const image=new Image();image.src='data:'+(data.mime_type||'image/png')+';base64,'+data.image_base64;await waitForImage(image);
       if(state.backgroundSource==='upload'&&state.backgroundUrl?.startsWith('blob:'))URL.revokeObjectURL(state.backgroundUrl);
       state.background=image;state.backgroundUrl=image.src;state.backgroundSource='ai';state.generatedSpecKey=specKey(spec);
+      state.lastGeneratedPrompt=prompt;
+      state.lastGeneratedPresetName=PRESETS[state.preset].name;
       if($('backgroundInput'))$('backgroundInput').value='';
       if($('backgroundName'))$('backgroundName').textContent='AI 생성 배경';
       if($('clearBackground'))$('clearBackground').hidden=false;
@@ -1211,6 +1214,152 @@
   function exportDesign(){return $('exportFormat')?.value==='pdf'?exportPdf():exportPng();}
   function syncExportButton(){if($('exportBtn'))$('exportBtn').textContent=$('exportFormat')?.value==='pdf'?'300dpi PDF 저장':'300dpi PNG 저장';}
 
+  function galleryDateText(value){
+    const date=value?.toDate?.()||null;
+    if(!date)return '방금 저장';
+    return date.toLocaleString('ko-KR',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
+  }
+
+  async function buildGalleryPreviewBlob(){
+    if(!state.background)throw new Error('저장할 표지 디자인이 없습니다.');
+    const spec=currentSpec(),maxEdge=1600;
+    const scale=Math.min(maxEdge/spec.workW,maxEdge/spec.workH);
+    const w=Math.max(320,Math.round(spec.workW*scale)),h=Math.max(320,Math.round(spec.workH*scale));
+    await document.fonts?.ready;
+    const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
+    const ctx=canvas.getContext('2d');
+    drawBackgroundImage(ctx,state.background,w,h);
+    drawLogo(ctx,spec,scale);
+    const color=$('textColor')?.value||'#ffffff';
+    textLayout(spec,scale).forEach(item=>drawTextItem(ctx,item,color));
+    return new Promise((resolve,reject)=>canvas.toBlob(
+      blob=>blob?resolve(blob):reject(new Error('보관함용 미리보기 이미지를 만들지 못했습니다.')),
+      'image/jpeg',.88
+    ));
+  }
+
+  async function saveCurrentDesignToGallery(){
+    const spec=currentSpec(),user=window.auth?.currentUser,button=$('saveGalleryBtn');
+    if(!user){setStatus('로그인이 필요합니다.','디자인 보관함은 로그인 후 사용할 수 있습니다.','error');return;}
+    if(!window.storage||!window.db){setStatus('보관함 연결을 사용할 수 없습니다.','Firebase Storage 연결을 확인해 주세요.','error');return;}
+    if(!state.background||state.generatedSpecKey!==specKey(spec)){setStatus('저장할 디자인이 없습니다.','현재 규격에 맞는 디자인을 먼저 생성해 주세요.','error');return;}
+    const title=String($('title')?.value||'').trim()||'제목 없는 표지';
+    const prompt=String(state.lastGeneratedPrompt||$('stylePrompt')?.value||presetPrompt()).trim().slice(0,5000);
+    const designId='design_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8);
+    const imagePath='ai_design_gallery/'+user.uid+'/'+designId+'/preview.jpg';
+    const imageRef=window.storage.ref(imagePath);
+    if(button){button.disabled=true;button.textContent='저장 중...';}
+    setStatus('디자인을 보관함에 저장하고 있습니다.','완성된 표지 이미지와 디자인 요청문구를 함께 저장하는 중입니다.','busy');
+    let uploaded=false;
+    try{
+      const blob=await buildGalleryPreviewBlob();
+      await imageRef.put(blob,{
+        contentType:'image/jpeg',
+        customMetadata:{ownerUid:user.uid,purpose:'ai-design-gallery-preview',designId}
+      });
+      uploaded=true;
+      await window.db.collection('users').doc(user.uid).collection('ai_design_gallery').doc(designId).set({
+        id:designId,
+        title:title.slice(0,180),
+        prompt,
+        presetId:String(state.preset||'').slice(0,80),
+        presetName:String(state.lastGeneratedPresetName||PRESETS[state.preset]?.name||'').slice(0,120),
+        coverMode:spec.coverMode,
+        qualityMode:state.generationQuality,
+        trimWidth:spec.trimW,
+        trimHeight:spec.trimH,
+        imagePath,
+        createdAt:firebase.firestore.FieldValue.serverTimestamp()
+      });
+      setStatus('디자인 보관함에 저장했습니다.','보관함에서 이미지와 요청문구를 검색해 다시 볼 수 있습니다.','ok');
+      await openGallery(true);
+    }catch(error){
+      if(uploaded)try{await imageRef.delete();}catch(_){}
+      setStatus('디자인 저장 실패',error.message||'보관함 저장 중 오류가 발생했습니다.','error');
+    }finally{
+      if(button){button.textContent='현재 디자인 저장';button.disabled=!state.background||state.generatedSpecKey!==specKey(currentSpec());}
+    }
+  }
+
+  function closeGallery(){
+    if($('galleryModal'))$('galleryModal').hidden=true;
+  }
+
+  function closeGalleryDetail(){
+    if($('galleryDetailModal'))$('galleryDetailModal').hidden=true;
+    if($('galleryDetailImage'))$('galleryDetailImage').removeAttribute('src');
+  }
+
+  function openGalleryDetail(item){
+    if(!item)return;
+    if($('galleryDetailImage'))$('galleryDetailImage').src=item.imageUrl||'';
+    if($('galleryDetailTitle'))$('galleryDetailTitle').textContent=item.title||'저장된 디자인';
+    if($('galleryDetailMeta'))$('galleryDetailMeta').textContent=[
+      item.presetName||'',
+      item.coverMode==='front'?'앞표지만':'전체 펼침',
+      (item.trimWidth&&item.trimHeight)?item.trimWidth+'×'+item.trimHeight+'mm':'',
+      galleryDateText(item.createdAt)
+    ].filter(Boolean).join(' · ');
+    if($('galleryDetailPrompt'))$('galleryDetailPrompt').textContent=item.prompt||'요청문구 없음';
+    if($('galleryDetailModal'))$('galleryDetailModal').hidden=false;
+  }
+
+  function renderGallery(query=''){
+    const root=$('galleryGrid'),empty=$('galleryEmpty'),count=$('galleryCount');
+    if(!root)return;
+    const needle=String(query||'').trim().toLowerCase();
+    const items=state.galleryItems.filter(item=>{
+      const hay=[item.title,item.prompt,item.presetName,item.coverMode].join(' ').toLowerCase();
+      return !needle||hay.includes(needle);
+    });
+    root.replaceChildren();
+    if(count)count.textContent=items.length+'개';
+    if(empty)empty.hidden=items.length>0;
+    items.forEach(item=>{
+      const card=document.createElement('button');
+      card.type='button';card.className='gallery-card';
+      const imageWrap=document.createElement('span');imageWrap.className='gallery-card-image';
+      const image=document.createElement('img');image.loading='lazy';image.alt=(item.title||'저장된 표지')+' 미리보기';image.src=item.imageUrl||'';
+      imageWrap.appendChild(image);
+      const copy=document.createElement('span');copy.className='gallery-card-copy';
+      const title=document.createElement('strong');title.textContent=item.title||'제목 없는 표지';
+      const prompt=document.createElement('p');prompt.textContent=item.prompt||'요청문구 없음';
+      const meta=document.createElement('span');meta.textContent=[item.presetName||'',galleryDateText(item.createdAt)].filter(Boolean).join(' · ');
+      copy.append(title,prompt,meta);card.append(imageWrap,copy);
+      card.addEventListener('click',()=>openGalleryDetail(item));
+      root.appendChild(card);
+    });
+  }
+
+  async function loadGallery(){
+    const user=window.auth?.currentUser;
+    if(!user||!window.db||!window.storage)throw new Error('디자인 보관함 연결을 사용할 수 없습니다.');
+    const snapshot=await window.db.collection('users').doc(user.uid).collection('ai_design_gallery')
+      .orderBy('createdAt','desc').limit(100).get();
+    const items=await Promise.all(snapshot.docs.map(async doc=>{
+      const item={id:doc.id,...doc.data(),imageUrl:''};
+      try{item.imageUrl=await window.storage.ref(item.imagePath).getDownloadURL();}catch(_){}
+      return item;
+    }));
+    state.galleryItems=items;
+    renderGallery($('gallerySearch')?.value||'');
+  }
+
+  async function openGallery(forceReload=false){
+    if($('galleryModal'))$('galleryModal').hidden=false;
+    if(!state.galleryItems.length||forceReload){
+      if($('galleryGrid'))$('galleryGrid').replaceChildren();
+      if($('galleryEmpty')){$('galleryEmpty').hidden=false;$('galleryEmpty').textContent='보관함을 불러오는 중입니다.';}
+      try{
+        await loadGallery();
+        if($('galleryEmpty'))$('galleryEmpty').textContent='저장한 디자인이 없습니다.';
+      }catch(error){
+        if($('galleryEmpty')){$('galleryEmpty').hidden=false;$('galleryEmpty').textContent='보관함을 불러오지 못했습니다.';}
+        setStatus('디자인 보관함 불러오기 실패',error.message||'잠시 후 다시 시도해 주세요.','error');
+      }
+    }else renderGallery($('gallerySearch')?.value||'');
+  }
+
   function resetAll(){
     if(!confirm('입력한 문구와 설정을 초기화할까요?'))return;
     try{localStorage.removeItem(STORAGE_KEY);}catch(_){}
@@ -1227,6 +1376,8 @@
       await waitForImage(image);
       if(state.backgroundSource==='upload'&&state.backgroundUrl?.startsWith('blob:'))URL.revokeObjectURL(state.backgroundUrl);
       state.background=image;state.backgroundUrl=url;state.backgroundSource='upload';state.generatedSpecKey=specKey(currentSpec());
+      state.lastGeneratedPrompt=String($('stylePrompt')?.value||presetPrompt()).trim();
+      state.lastGeneratedPresetName=PRESETS[state.preset]?.name||'직접 배경';
       if($('backgroundName'))$('backgroundName').textContent=file.name;
       if($('clearBackground'))$('clearBackground').hidden=false;
       if($('exportBtn'))$('exportBtn').disabled=false;
@@ -1246,6 +1397,7 @@
     if($('backgroundName'))$('backgroundName').textContent='없음';
     if($('clearBackground'))$('clearBackground').hidden=true;
     if($('exportBtn'))$('exportBtn').disabled=true;
+    if($('saveGalleryBtn'))$('saveGalleryBtn').disabled=true;
     scheduleRender();updateProgress();
   }
 
@@ -1306,6 +1458,11 @@
     $('guideToggle')?.addEventListener('change',scheduleRender);
     $('cropMarkToggle')?.addEventListener('change',scheduleRender);
     $('generateBtn')?.addEventListener('click',generate);
+    $('galleryBtn')?.addEventListener('click',()=>openGallery(false));
+    $('saveGalleryBtn')?.addEventListener('click',saveCurrentDesignToGallery);
+    $('gallerySearch')?.addEventListener('input',event=>renderGallery(event.target.value));
+    qa('[data-gallery-close]').forEach(node=>node.addEventListener('click',closeGallery));
+    qa('[data-gallery-detail-close]').forEach(node=>node.addEventListener('click',closeGalleryDetail));
     $('exportBtn')?.addEventListener('click',exportDesign);
     $('exportFormat')?.addEventListener('change',syncExportButton);
     $('addCustomFieldBtn')?.addEventListener('click',addCustomField);
@@ -1359,6 +1516,11 @@
     $('clearLogo')?.addEventListener('click',clearLogo);
     $('logoutBtn')?.addEventListener('click',()=>window.auth?.signOut().then(()=>location.replace('/')));
     window.addEventListener('resize',()=>scheduleRender());
+    window.addEventListener('keydown',event=>{
+      if(event.key!=='Escape')return;
+      if(!$('galleryDetailModal')?.hidden)closeGalleryDetail();
+      else if(!$('galleryModal')?.hidden)closeGallery();
+    });
     updateGeometry();updateProgress();scheduleRender();
   }
 
