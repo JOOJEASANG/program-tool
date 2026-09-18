@@ -983,13 +983,14 @@
   }
 
   function themeContext(){
-    const t=readText();
+    const t=readText(),spec=currentSpec();
     return [
-      '표지 용도: 인쇄용 책/보고서 전체 펼침 표지',
+      spec.coverMode==='front'?'표지 용도: 인쇄용 앞표지 단면':'표지 용도: 인쇄용 책/보고서 전체 펼침 표지',
       t.title?'주제 참고 제목: '+t.title:'',
       t.organization?'기관 성격: '+t.organization:'',
       $('theme')?.value?'핵심 키워드: '+$('theme').value:'',
-      '선호 주조색: '+($('primaryColor')?.value||'#315c8c')
+      '선호 주조색: '+($('primaryColor')?.value||'#315c8c'),
+      '스타일 기준: clean annual report / brochure cover, white-space dominant, thin blue or pastel graphic accents'
     ].filter(Boolean).join('\n');
   }
 
@@ -1003,17 +1004,21 @@
     try{
       const prompt=String($('stylePrompt')?.value||presetPrompt()).trim();
       const designGuardrails=[
-        'Art direction: contemporary editorial publication design; polished, restrained, confident, and print-focused.',
-        'The OUTER BLEED BOUNDARY is the artwork canvas. Fill the entire canvas edge-to-edge; background and decorative forms must continue through trim into bleed and crop naturally at the outside edge. Never leave a white outer frame or inset border.',
-        'Use generous negative space, a disciplined grid, controlled contrast, and a limited cohesive color system.',
-        'Do not create a visible center spine strip, seam, fold, vertical band, or color break. The artwork must flow continuously through the exact spine area; the application will overlay the exact spine guides and text later.',
-        state.preset==='forum'?'For forum/event work, prefer a bright off-white or very light pastel base with powder blue, sage, blush, pale lavender or peach accents. Avoid dark navy dominance and giant corporate circles or heavy geometric blocks.':'',
-        'Avoid outdated public brochure aesthetics, ribbon waves, glossy corporate swooshes, generic stock templates, bevels, lens flares, excessive glow, busy gradients, clip-art, pseudo-3D decoration, and random decorative icons.'
+        'Visual target: clean modern annual-report, business-proposal and editorial brochure covers with strong white space.',
+        'Keep roughly 70–85% of the surface white, ivory, or very light neutral whenever the requested style allows it.',
+        'Use ONE restrained graphic system only: thin translucent curves, sparse line-network geometry, a few small colored squares/rectangles, or a light diagonal/edge sweep.',
+        'Decorative graphics should live mainly at one edge, corner, side, or lower third. Preserve a large calm title area and never fill every region.',
+        'The OUTER BLEED BOUNDARY is the artwork canvas. Fill the entire canvas edge-to-edge; artwork may crop naturally at the outside edge.',
+        spec.coverMode==='spread'
+          ?'Do not create a visible center spine strip, seam, fold, vertical band, or color break. The artwork must flow continuously through the exact spine area.'
+          :'This is FRONT COVER ONLY. Compose one portrait cover, not a spread, not a mockup, and do not invent a back cover or spine.',
+        state.preset==='forum'?'For forum/event work use an airy white/off-white base with powder blue, sage, pale lavender, peach or blush accents and fine editorial line work.':'',
+        'Avoid giant circles/semicircles, dark navy dominance, thick wave bands, oversized heavy blocks, glossy swooshes, generic government brochure motifs, stock-template clutter, bevels, lens flares, pseudo-3D decoration, and excessive gradients.'
       ].join('\n');
       const data=await authFetch(AI_COVER_PATH,{
         method:'POST',
         body:JSON.stringify({
-          trim_width_mm:spec.trimW,trim_height_mm:spec.trimH,spine_mm:spec.spine,wing_mm:spec.wing,bleed_mm:spec.bleed,
+          cover_mode:spec.coverMode,trim_width_mm:spec.trimW,trim_height_mm:spec.trimH,spine_mm:spec.spine,wing_mm:spec.wing,bleed_mm:spec.bleed,
           preset_name:PRESETS[state.preset].name,
           style_request:prompt+'\n'+designGuardrails+'\nPreferred dominant color: '+($('primaryColor')?.value||'#315c8c')+'.',
           theme_context:themeContext()
@@ -1028,7 +1033,7 @@
       if($('clearBackground'))$('clearBackground').hidden=false;
       $('exportBtn').disabled=false;scheduleRender();
       updateProgress();
-      setStatus('AI 배경 생성 완료','문구는 별도 레이어로 유지됩니다. 문구나 색상을 수정하면 미리보기에 바로 반영됩니다.','ok');
+      setStatus('AI 배경 생성 완료',spec.coverMode==='front'?'앞표지 배경과 문구 레이어를 자유롭게 편집할 수 있습니다.':'문구는 별도 레이어로 유지됩니다. 문구나 색상을 수정하면 미리보기에 바로 반영됩니다.','ok');
     }catch(error){
       const debug=['HTTP: '+(error.status||'unknown'),'code: '+(error.code||'unknown'),'request_id: '+(error.requestId||'none'),'transport: '+(error.transport||'direct-function'),error.raw?'response: '+error.raw:''].filter(Boolean).join('\n');
       setStatus('AI 배경 생성 실패',error.message||'AI 표지 생성 요청에 실패했습니다.','error',debug);
@@ -1081,8 +1086,8 @@
     try{
       const {canvas}=await buildExportCanvas();
       const raw=await canvasBlob(canvas),png=await withPngDpi(raw,EXPORT_DPI),url=URL.createObjectURL(png),a=document.createElement('a');
-      a.href=url;a.download='cover-'+spec.trimW+'x'+spec.trimH+'-spine-'+spec.spine+'mm-300dpi.png';a.click();setTimeout(()=>URL.revokeObjectURL(url),4000);
-      setStatus('PNG 저장 완료','실제 전체 펼침 규격과 300dpi 메타데이터로 이미지를 저장했습니다.','ok');
+      a.href=url;a.download=(spec.coverMode==='front'?'front-cover-'+spec.trimW+'x'+spec.trimH:'cover-'+spec.trimW+'x'+spec.trimH+'-spine-'+spec.spine+'mm')+'-300dpi.png';a.click();setTimeout(()=>URL.revokeObjectURL(url),4000);
+      setStatus('PNG 저장 완료',spec.coverMode==='front'?'앞표지 실제 규격과 300dpi 메타데이터로 저장했습니다.':'실제 전체 펼침 규격과 300dpi 메타데이터로 이미지를 저장했습니다.','ok');
     }catch(error){setStatus('PNG 저장 실패',error.message||'파일 저장 중 오류가 발생했습니다.','error');}
     finally{button.disabled=false;}
   }
@@ -1130,8 +1135,8 @@
       const jpegBlob=await new Promise((resolve,reject)=>canvas.toBlob(blob=>blob?resolve(blob):reject(new Error('PDF용 이미지 데이터를 만들지 못했습니다.')),'image/jpeg',.98));
       const jpeg=new Uint8Array(await jpegBlob.arrayBuffer());
       const pdf=pdfFromJpeg(jpeg,w,h,spec.workW*72/25.4,spec.workH*72/25.4),url=URL.createObjectURL(pdf),a=document.createElement('a');
-      a.href=url;a.download='cover-'+spec.trimW+'x'+spec.trimH+'-spine-'+spec.spine+'mm-300dpi.pdf';a.click();setTimeout(()=>URL.revokeObjectURL(url),4000);
-      setStatus('PDF 저장 완료','전체 펼침 실제 규격의 인쇄용 PDF로 저장했습니다.','ok');
+      a.href=url;a.download=(spec.coverMode==='front'?'front-cover-'+spec.trimW+'x'+spec.trimH:'cover-'+spec.trimW+'x'+spec.trimH+'-spine-'+spec.spine+'mm')+'-300dpi.pdf';a.click();setTimeout(()=>URL.revokeObjectURL(url),4000);
+      setStatus('PDF 저장 완료',spec.coverMode==='front'?'앞표지 실제 규격의 인쇄용 PDF로 저장했습니다.':'전체 펼침 실제 규격의 인쇄용 PDF로 저장했습니다.','ok');
     }catch(error){setStatus('PDF 저장 실패',error.message||'PDF 저장 중 오류가 발생했습니다.','error');}
     finally{button.disabled=false;}
   }
@@ -1159,7 +1164,8 @@
       if($('clearBackground'))$('clearBackground').hidden=false;
       if($('exportBtn'))$('exportBtn').disabled=false;
       scheduleRender();updateProgress();
-      setStatus('직접 만든 표지를 배치했습니다.','이미지는 바깥 적색선 전체 영역을 꽉 채우고, 문구 레이어는 그 위에서 자유롭게 편집할 수 있습니다.','ok');
+      const spec=currentSpec();
+      setStatus('직접 만든 표지를 배치했습니다.',spec.coverMode==='front'?'앞표지 이미지를 도련 포함 전체 영역에 꽉 채워 배치했습니다.':'이미지는 바깥 적색선 전체 영역을 꽉 채우고, 문구 레이어는 그 위에서 자유롭게 편집할 수 있습니다.','ok');
     }catch(error){
       URL.revokeObjectURL(url);
       setStatus('표지 이미지를 읽지 못했습니다.',error.message||'이미지 파일을 확인해 주세요.','error');
@@ -1190,10 +1196,21 @@
   }
 
   function bind(){
-    loadLocal();setupPresetCards();syncWing();syncSpineTitle();renderCustomFields();syncPromptLanguageUi(false);syncTextEditUi();syncExportButton();
+    loadLocal();setupPresetCards();syncCoverMode();syncSpineTitle();renderCustomFields();syncPromptLanguageUi(false);syncTextEditUi();syncExportButton();
     if(!$('stylePrompt').value)$('stylePrompt').value=presetPrompt();
     qa('.size-chip').forEach(button=>button.addEventListener('click',()=>{
       const [w,h]=button.dataset.size.split(',');$('trimW').value=w;$('trimH').value=h;qa('.size-chip').forEach(x=>x.classList.toggle('active',x===button));saveLocal();scheduleRender();
+    }));
+    qa('input[name="coverMode"]').forEach(input=>input.addEventListener('change',()=>{
+      state.coverMode=input.value==='front'?'front':'spread';
+      state.selectedTextId='';
+      state.selectedTextUiId='';
+      if(state.background){
+        state.generatedSpecKey='';
+        if($('exportBtn'))$('exportBtn').disabled=true;
+        setStatus('표지 범위가 변경되었습니다.','새 범위에 맞게 AI 배경을 다시 생성하거나 표지 이미지를 다시 불러와 주세요.','busy');
+      }
+      syncCoverMode();saveLocal();
     }));
     const watched=['trimW','trimH','spine','bleed','safeZone','wingW','title','subtitle','dateText','department','organization','eventDate','eventPlace','hostText','organizerText','backText','contact','spineTitle','spineDate','spineCompany','spineOrientation','primaryColor','textColor','theme','stylePrompt'];
     watched.forEach(id=>$(id)?.addEventListener('input',()=>{
