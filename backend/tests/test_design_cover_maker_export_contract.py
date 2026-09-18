@@ -36,7 +36,7 @@ def test_design_review_no_longer_loads_ai_maker_runtime():
     assert 'id="previewCanvas"' in maker
     assert 'id="generateBtn"' in maker
     assert 'id="exportBtn"' in maker
-    assert "/js/ai-design-maker.js?v=20260918-15" in maker
+    assert "/js/ai-design-maker.js?v=20260918-16" in maker
 
 
 def test_ai_design_maker_has_easy_cover_workflow_and_diagnostics():
@@ -373,3 +373,15 @@ def test_ai_design_gallery_saves_finished_cover_and_prompt_to_user_storage():
     assert "validAiDesignGalleryMetadata" in firestore_rules
     assert "match /ai_design_gallery/{userId}/{designId}/{fileName}" in storage_rules
     assert "validAiDesignGalleryUpload" in storage_rules
+
+
+def test_ai_design_preview_font_size_migration_does_not_force_default_text_to_4pt():
+    source = (ROOT / "js/ai-design-maker.js").read_text(encoding="utf-8")
+
+    assert "const TEXT_LAYOUT_SCHEMA_VERSION = 2" in source
+    assert "textLayoutSchemaVersion: TEXT_LAYOUT_SCHEMA_VERSION" in source
+    assert "legacyTextLayout" in source
+    assert "rawFontSize <= 4" in source
+    assert "fontSizePt: hasCustomFontSize ? clamp(rawFontSize,4,160,0) : 0" in source
+    assert "Number.isFinite(rawFontSize)&&rawFontSize>0?clamp(rawFontSize,4,160,0):0" in source
+    assert "let pt=trimW<140?36:50" in source
