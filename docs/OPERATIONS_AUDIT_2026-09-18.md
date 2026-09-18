@@ -97,3 +97,22 @@ AI 디자인 제작의 OpenAI API 키는 서버 환경변수에서만 읽습니�
 감사 시점의 `main`은 최신 production smoke, backend tests, browser smoke, Firebase Rules emulator, Hosting 검증, CodeQL을 통과한 상태입니다. 이번 정리 PR은 운영 기능을 늘리지 않고 죽은 코드·낡은 문서·릴리스 추적 정보를 정리합니다.
 
 코드/배포 파이프라인에서 새로 발견된 치명적 또는 높음 등급 결함은 없었습니다. 다만 최종 운영 설정 완료로 표시하려면 GitHub main 보호, WIF, 관리자 claim, 실제 Storage lifecycle 확인과 부하/알림 검증을 별도로 마감해야 합니다.
+
+
+## 2026-09-18 최종 재점검 — AI 디자인 변경 반영
+
+PR #581 운영 감사 이후 `main`은 `e3a8983fdc9786a700f3803d4a09d44b58aaa53e`까지 9개 커밋이 추가되었고, 변경 범위는 주로 AI 디자인 제작 UI·OpenAI 표지 생성·디자인 보관함 및 관련 Firestore/Storage Rules입니다.
+
+재점검한 최신 운영 배포 run `35322958997`은 backend tests, Firebase Rules emulator, frontend/repository checks, standalone app browser smoke, PDF shell smoke, CodeQL, Firebase deploy, production smoke까지 모두 성공했습니다.
+
+추가로 확인된 운영 리스크는 AI 디자인 보관함의 지속 저장량입니다. 프런트는 최근 100개만 조회하지만 서버 정리에는 `ai_design_gallery`가 포함되지 않아 승인 사용자가 계속 저장할 경우 오래된 미리보기 객체가 계속 누적될 수 있었습니다. 최종 운영 정리 브랜치에서는 다음 방어를 추가합니다.
+
+- 사용자별 최근 100개 보관
+- 초과한 오래된 Firestore 메타데이터와 미리보기 이미지 동시 정리
+- Firestore 문서가 사라진 고아 이미지는 24시간 유예 후 정리
+- Admin SDK cleanup이 클라이언트 기록 경로를 임의로 삭제하지 못하도록 `uid/designId/preview.jpg` 정확 경로만 허용
+- 경로 변조 회귀 테스트와 보관 상한 회귀 테스트 추가
+
+기존 외부 미완료 항목은 그대로 유효합니다. 특히 `main` Branch Protection, WIF 전환, 관리자 Custom Claim 검증, 실제 Storage lifecycle 적용, 대용량 부하 테스트, Functions/Storage/AI 비용 알림을 완료해야 최종 운영 마감으로 볼 수 있습니다.
+
+추가로 재해복구 설정은 저장소 코드만으로 확인할 수 없습니다. Firestore PITR/백업과 Storage 복구 정책(soft delete 또는 별도 백업)을 실제 프로젝트 설정에서 확인하고, 운영 데이터 복원 절차를 한 번 이상 검증하는 것이 필요합니다.

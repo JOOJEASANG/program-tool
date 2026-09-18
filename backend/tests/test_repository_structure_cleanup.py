@@ -45,6 +45,16 @@ def test_legacy_legal_pages_redirect_to_canonical_pages():
     assert "../terms.html" in _read("legal/terms.html")
 
 
+def test_privacy_notice_matches_current_approved_member_and_ai_workflow():
+    privacy = _read("privacy.html")
+    assert "구독 등급" not in privacy
+    assert "구독·결제·환불" not in privacy
+    assert "Google Firebase" in privacy
+    assert "OpenAI API" in privacy
+    assert "AI 디자인 보관함" in privacy
+    assert "defaultEffectiveDate:'2026.09.18'" in privacy
+
+
 def test_obsolete_cover_editor_pages_are_removed():
     removed = [
         "tool-access.html",

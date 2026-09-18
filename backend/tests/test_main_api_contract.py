@@ -85,6 +85,31 @@ def test_non_pdf_persistent_cleanup_paths_keep_existing_behavior():
     ) == ["design_projects/owner-1/project/rev.design.json"]
 
 
+def test_ai_gallery_cleanup_accepts_only_owner_preview_path():
+    data = {
+        "id": "design_gallery01",
+        "imagePath": "ai_design_gallery/owner-1/design_gallery01/preview.jpg",
+    }
+
+    assert main._normalize_document_paths(
+        data,
+        "imagePath",
+        uid="owner-1",
+        collection_id="ai_design_gallery",
+    ) == ["ai_design_gallery/owner-1/design_gallery01/preview.jpg"]
+
+    tampered = {
+        "id": "design_gallery01",
+        "imagePath": "ai_design_gallery/other-user/design_gallery01/preview.jpg",
+    }
+    assert main._normalize_document_paths(
+        tampered,
+        "imagePath",
+        uid="owner-1",
+        collection_id="ai_design_gallery",
+    ) == []
+
+
 def test_invalid_request_id_is_replaced():
     client = main.flask_app.test_client()
     response = client.get(

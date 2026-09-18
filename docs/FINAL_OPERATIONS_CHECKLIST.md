@@ -65,7 +65,20 @@ GitHub Branch Protection은 여전히 별도로 켜야 합니다. 보호 규칙 
 
 편집 상태와 원본 연결을 **Storage 업로드 전에 검증**하여, Firestore 문서 크기 한계 또는 잘못된 페이지 연결 때문에 수백 MB 원본을 먼저 업로드하는 상황을 줄입니다. Firestore Rules에서도 세션 스키마와 상태 문자열 크기, 총 원본 크기를 별도로 제한합니다.
 
-## 5. Storage lifecycle 실제 버킷 적용 확인
+## 5. AI 디자인 보관함 지속 저장 경계
+
+AI 디자인 보관함은 사용자별 최근 100개를 운영 보관 상한으로 유지합니다.
+
+- Firestore: `users/{uid}/ai_design_gallery/{designId}`
+- Storage: `ai_design_gallery/{uid}/{designId}/preview.jpg`
+- 최근 100개를 초과한 오래된 메타데이터와 연결 이미지는 하루 1회 서버 정리
+- Firestore 문서가 사라진 고아 이미지는 24시간 유예 후 정리
+- 서버 정리에서는 Firestore에 기록된 경로를 그대로 신뢰하지 않고 `uid + designId + preview.jpg` 정확한 소유 경로만 삭제 허용
+- 프런트 보관함 조회도 최근 100개이므로 사용자 화면과 서버 보관 상한을 일치시킴
+
+사용자별 저장 개수 상한을 변경할 때는 `MAX_SAVED_AI_DESIGNS`와 프런트 조회 `.limit(...)`을 함께 조정합니다.
+
+## 6. Storage lifecycle 실제 버킷 적용 확인
 
 애플리케이션은 `every 1 hours` 스케줄의 `cleanup_temporary_pdfs` function으로 `pdf_temp/`, `preflight_temp/`, `pdf_results/`의 오래된 임시 결과를 정리합니다. 별도로 `cleanup_persistent_user_storage`는 `every 24 hours`마다 저장 세션/프로젝트 quota와 orphan 객체를 정리합니다. 장애 안전망으로 `storage-lifecycle.json`도 실제 Cloud Storage 버킷에 적용되어 있어야 합니다.
 
@@ -77,7 +90,7 @@ GitHub Branch Protection은 여전히 별도로 켜야 합니다. 보호 규칙 
 
 Firebase 배포만으로 Cloud Storage lifecycle 파일이 자동 적용된다고 가정하지 않습니다. Google Cloud Console 또는 권한이 있는 GCS 관리 도구에서 실제 버킷 정책을 조회하여 확인합니다.
 
-## 6. 관리자 Custom Claim 마이그레이션 완료
+## 7. 관리자 Custom Claim 마이그레이션 완료
 
 최종 목표는 Firebase Auth의 `admin=true` Custom Claim을 유일한 관리자 권한 원천으로 사용하는 것입니다. 기존 `settings/admin` 이메일 fallback은 마이그레이션 완료 전까지만 유지합니다.
 
@@ -102,7 +115,7 @@ venv/bin/python scripts/sync_admin_claims.py --verify
 
 `--verify`가 성공하기 전에는 Firestore/Storage/Backend의 legacy admin fallback을 제거하지 않습니다. 검증이 완료되면 fallback 제거는 별도 보안 PR로 진행합니다.
 
-## 7. 대용량 PDF 부하 테스트
+## 8. 대용량 PDF 부하 테스트
 
 현재 운영 Function 설정은 비용 상한을 위해 `max_instances=2`를 유지하면서, 대용량 PDF 작업을 위해 **4GB 메모리와 600초 timeout**을 허용합니다. 승인 회원 수나 동시 사용량을 늘리기 전에 다음 시나리오를 측정합니다.
 
@@ -114,7 +127,7 @@ venv/bin/python scripts/sync_admin_claims.py --verify
 
 측정 항목은 대기시간, 429/5xx, timeout, Function 메모리, 실행시간, Storage egress입니다. 측정 결과 없이 `max_instances`를 올리지 않고, 실제 처리시간이 짧다면 메모리/timeout 하향도 검토합니다.
 
-## 8. 보안 헤더 후속 강화
+## 9. 보안 헤더 후속 강화
 
 현재 CSP/HSTS/nosniff/frame 제한 등 기본 보안 헤더는 적용되어 있습니다. 다음은 호환성 영향이 커서 단계적으로 진행합니다.
 
@@ -124,7 +137,7 @@ venv/bin/python scripts/sync_admin_claims.py --verify
 
 운영 기능을 깨면서 한 번에 CSP를 강화하지 않습니다.
 
-## 9. 운영 모니터링
+## 10. 운영 모니터링
 
 최소 알림/관찰 항목:
 
@@ -135,7 +148,19 @@ venv/bin/python scripts/sync_admin_claims.py --verify
 - Firebase Auth/권한 401·403 급증
 - GitHub production deployment 실패
 
-## 10. Firebase CI 인증 WIF 전환 — 마지막 단계
+## 11. 백업·복구 확인
+
+저장소 배포가 정상이어도 Firestore/Storage 운영 데이터 복구 설정은 별도 확인이 필요합니다.
+
+- Firestore PITR 또는 정기 백업 정책 활성 여부 확인
+- 사용자 저장 프로젝트·세션·AI 디자인 보관함 데이터의 복구 범위 확인
+- Cloud Storage soft delete/versioning/별도 백업 중 실제 적용 정책 확인
+- 삭제·오작동 상황을 가정해 테스트 데이터 1건 이상 복원 절차 검증
+- 복구 권한이 배포 서비스 계정보다 과도하게 넓지 않은지 확인
+
+백업 기능이 켜져 있다는 사실만으로 완료 처리하지 않고, 실제 복원 절차와 담당 계정을 확인합니다.
+
+## 12. Firebase CI 인증 WIF 전환 — 마지막 단계
 
 현재 운영 안정화와 실제 기능 검증을 먼저 완료하고, WIF 전환은 마지막 단계로 진행합니다. 워크플로는 Workload Identity Federation(WIF)을 우선 사용할 수 있게 준비되어 있고 기존 `FIREBASE_TOKEN`은 현재 fallback으로 유지합니다.
 

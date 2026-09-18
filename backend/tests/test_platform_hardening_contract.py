@@ -30,7 +30,9 @@ def test_functions_and_storage_transfer_limits_stay_cost_bounded():
     assert 'schedule="every 1 hours"' in main
     assert "timedelta(hours=1)" in main
     assert 'schedule="every 24 hours"' in main
+    assert "MAX_SAVED_AI_DESIGNS = 100" in main
     assert "ORPHAN_GRACE_HOURS = 24" in main
+    assert '_delete_old_orphans(bucket, "ai_design_gallery/", gallery_paths, cutoff)' in main
     assert "validPdfUpload(209715200)" in rules
     assert "validPdfUpload(524288000)" in rules
     assert "MAX_FILE_BYTES = 200 * 1024 * 1024" in session
