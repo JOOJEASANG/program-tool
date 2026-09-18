@@ -36,7 +36,7 @@ def test_design_review_no_longer_loads_ai_maker_runtime():
     assert 'id="previewCanvas"' in maker
     assert 'id="generateBtn"' in maker
     assert 'id="exportBtn"' in maker
-    assert "/js/ai-design-maker.js?v=20260918-13" in maker
+    assert "/js/ai-design-maker.js?v=20260918-14" in maker
 
 
 def test_ai_design_maker_has_easy_cover_workflow_and_diagnostics():
@@ -299,3 +299,17 @@ def test_ai_design_status_panel_is_flush_to_bottom_and_generation_has_progress_b
     assert "function finishGenerationProgress(success=true)" in source
     assert "setGenerationProgress(100)" in source
     assert "startGenerationProgress();" in source
+
+
+def test_front_cover_mode_is_prominent_at_top_of_sidebar():
+    page = (ROOT / "ai-design-maker/index.html").read_text(encoding="utf-8")
+    style = (ROOT / "css/ai-design-maker.css").read_text(encoding="utf-8")
+
+    assert 'class="cover-scope-card"' in page
+    assert 'id="coverScopeTitle">제작 범위' in page
+    assert page.count('name="coverMode" value="front"') == 1
+    assert page.count('name="coverMode" value="spread"') == 1
+    assert "앞표지만 디자인" in page
+    assert "전체 펼침 디자인" in page
+    assert ".cover-scope-card{" in style
+    assert ".cover-mode-picker-prominent" in style
