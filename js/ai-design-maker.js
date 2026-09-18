@@ -339,7 +339,7 @@
     const stale=Boolean(state.background&&!generated);
     const badge=$('generationState');
     if(badge){
-      badge.textContent=generated?'AI 배경 완료':stale?'규격 변경 · 재생성':'생성 전';
+      badge.textContent=generated?(state.backgroundSource==='upload'?'직접 표지 적용':'AI 배경 완료'):stale?'규격 변경 · 배경 재적용':'생성 전';
       badge.classList.toggle('ready',generated);
       badge.classList.toggle('stale',stale);
     }
@@ -385,7 +385,7 @@
     updateProgress();
     const stale = Boolean(state.background && state.generatedSpecKey && state.generatedSpecKey !== specKey(spec));
     if ($('exportBtn')) $('exportBtn').disabled = !state.background || stale;
-    if (stale) setStatus('규격이 변경되었습니다.','현재 규격에 맞게 AI 배경을 다시 생성해 주세요.','busy');
+    if (stale) setStatus('규격이 변경되었습니다.','현재 규격에 맞게 AI 배경을 다시 생성하거나 직접 만든 표지 이미지를 다시 불러와 주세요.','busy');
   }
 
   function scheduleRender() {
@@ -868,8 +868,10 @@
       const prompt=String($('stylePrompt')?.value||presetPrompt()).trim();
       const designGuardrails=[
         'Art direction: contemporary editorial publication design; polished, restrained, confident, and print-focused.',
+        'The OUTER BLEED BOUNDARY is the artwork canvas. Fill the entire canvas edge-to-edge; background and decorative forms must continue through trim into bleed and crop naturally at the outside edge. Never leave a white outer frame or inset border.',
         'Use generous negative space, a disciplined grid, controlled contrast, and a limited cohesive color system.',
         'Do not create a visible center spine strip, seam, fold, vertical band, or color break. The artwork must flow continuously through the exact spine area; the application will overlay the exact spine guides and text later.',
+        state.preset==='forum'?'For forum/event work, prefer a bright off-white or very light pastel base with powder blue, sage, blush, pale lavender or peach accents. Avoid dark navy dominance and giant corporate circles or heavy geometric blocks.':'',
         'Avoid outdated public brochure aesthetics, ribbon waves, glossy corporate swooshes, generic stock templates, bevels, lens flares, excessive glow, busy gradients, clip-art, pseudo-3D decoration, and random decorative icons.'
       ].join('\n');
       const data=await authFetch(AI_COVER_PATH,{
@@ -883,7 +885,11 @@
       });
       if(!data.image_base64)throw new Error('AI 이미지 결과가 비어 있습니다.');
       const image=new Image();image.src='data:'+(data.mime_type||'image/png')+';base64,'+data.image_base64;await waitForImage(image);
-      state.background=image;state.backgroundUrl=image.src;state.generatedSpecKey=specKey(spec);
+      if(state.backgroundSource==='upload'&&state.backgroundUrl?.startsWith('blob:'))URL.revokeObjectURL(state.backgroundUrl);
+      state.background=image;state.backgroundUrl=image.src;state.backgroundSource='ai';state.generatedSpecKey=specKey(spec);
+      if($('backgroundInput'))$('backgroundInput').value='';
+      if($('backgroundName'))$('backgroundName').textContent='AI 생성 배경';
+      if($('clearBackground'))$('clearBackground').hidden=false;
       $('exportBtn').disabled=false;scheduleRender();
       updateProgress();
       setStatus('AI 배경 생성 완료','문구는 별도 레이어로 유지됩니다. 문구나 색상을 수정하면 미리보기에 바로 반영됩니다.','ok');
@@ -922,7 +928,7 @@
     if(pixels>MAX_EXPORT_PIXELS)throw Object.assign(new Error('현재 규격은 '+(pixels/1e6).toFixed(1)+'MP로 300dpi 저장 한도를 초과합니다.'),{code:'EXPORT_PIXEL_LIMIT'});
     await document.fonts?.ready;
     const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;const ctx=canvas.getContext('2d');
-    ctx.drawImage(state.background,0,0,w,h);
+    drawBackgroundImage(ctx,state.background,w,h);
     drawLogo(ctx,spec,ppm);
     const color=$('textColor')?.value||'#ffffff';
     textLayout(spec,ppm).forEach(item=>drawTextItem(ctx,item,color,item.fontPt*EXPORT_DPI/72));
@@ -931,9 +937,9 @@
   }
 
   async function exportPng(){
-    if(!state.background){setStatus('먼저 AI 배경을 생성해 주세요.','생성된 배경이 있어야 300dpi로 저장할 수 있습니다.','error');return;}
+    if(!state.background){setStatus('배경을 먼저 준비해 주세요.','AI 배경을 생성하거나 직접 만든 표지 이미지를 불러와야 300dpi로 저장할 수 있습니다.','error');return;}
     const spec=currentSpec();
-    if(state.generatedSpecKey!==specKey(spec)){setStatus('규격이 변경되었습니다.','현재 규격으로 AI 배경을 다시 생성한 뒤 저장해 주세요.','error');return;}
+    if(state.generatedSpecKey!==specKey(spec)){setStatus('규격이 변경되었습니다.','현재 규격으로 AI 배경을 다시 생성하거나 직접 만든 표지 이미지를 다시 불러온 뒤 저장해 주세요.','error');return;}
     const button=$('exportBtn');button.disabled=true;
     setStatus('300dpi PNG를 만들고 있습니다.','배경·문구·책등·로고'+($('cropMarkToggle')?.checked?'·재단선':'')+'을 실제 인쇄 크기로 합성하는 중입니다.','busy');
     try{
@@ -978,9 +984,9 @@
   }
 
   async function exportPdf(){
-    if(!state.background){setStatus('먼저 AI 배경을 생성해 주세요.','생성된 배경이 있어야 PDF로 저장할 수 있습니다.','error');return;}
+    if(!state.background){setStatus('배경을 먼저 준비해 주세요.','AI 배경을 생성하거나 직접 만든 표지 이미지를 불러와야 PDF로 저장할 수 있습니다.','error');return;}
     const spec=currentSpec();
-    if(state.generatedSpecKey!==specKey(spec)){setStatus('규격이 변경되었습니다.','현재 규격으로 AI 배경을 다시 생성한 뒤 저장해 주세요.','error');return;}
+    if(state.generatedSpecKey!==specKey(spec)){setStatus('규격이 변경되었습니다.','현재 규격으로 AI 배경을 다시 생성하거나 직접 만든 표지 이미지를 다시 불러온 뒤 저장해 주세요.','error');return;}
     const button=$('exportBtn');button.disabled=true;
     setStatus('인쇄용 PDF를 만들고 있습니다.','300dpi 디자인을 실제 전체 펼침 크기의 1페이지 PDF로 만드는 중입니다.','busy');
     try{
@@ -1003,6 +1009,37 @@
     location.reload();
   }
 
+  async function loadBackground(file){
+    if(!file)return;
+    if(!/^image\/(png|jpeg|webp)$/.test(file.type)){
+      setStatus('지원하지 않는 표지 이미지입니다.','PNG, JPEG, WEBP만 사용할 수 있습니다.','error');return;
+    }
+    const url=URL.createObjectURL(file),image=new Image();image.src=url;
+    try{
+      await waitForImage(image);
+      if(state.backgroundSource==='upload'&&state.backgroundUrl?.startsWith('blob:'))URL.revokeObjectURL(state.backgroundUrl);
+      state.background=image;state.backgroundUrl=url;state.backgroundSource='upload';state.generatedSpecKey=specKey(currentSpec());
+      if($('backgroundName'))$('backgroundName').textContent=file.name;
+      if($('clearBackground'))$('clearBackground').hidden=false;
+      if($('exportBtn'))$('exportBtn').disabled=false;
+      scheduleRender();updateProgress();
+      setStatus('직접 만든 표지를 배치했습니다.','이미지는 바깥 적색선 전체 영역을 꽉 채우고, 문구 레이어는 그 위에서 자유롭게 편집할 수 있습니다.','ok');
+    }catch(error){
+      URL.revokeObjectURL(url);
+      setStatus('표지 이미지를 읽지 못했습니다.',error.message||'이미지 파일을 확인해 주세요.','error');
+    }
+  }
+
+  function clearBackground(){
+    if(state.backgroundSource==='upload'&&state.backgroundUrl?.startsWith('blob:'))URL.revokeObjectURL(state.backgroundUrl);
+    state.background=null;state.backgroundUrl='';state.backgroundSource='';state.generatedSpecKey='';
+    if($('backgroundInput'))$('backgroundInput').value='';
+    if($('backgroundName'))$('backgroundName').textContent='없음';
+    if($('clearBackground'))$('clearBackground').hidden=true;
+    if($('exportBtn'))$('exportBtn').disabled=true;
+    scheduleRender();updateProgress();
+  }
+
   async function loadLogo(file){
     if(!file)return;
     if(!/^image\/(png|jpeg|webp)$/.test(file.type)){setStatus('지원하지 않는 로고 파일입니다.','PNG, JPEG, WEBP만 사용할 수 있습니다.','error');return;}
@@ -1017,7 +1054,7 @@
   }
 
   function bind(){
-    loadLocal();setupPresetCards();syncWing();syncSpineTitle();renderCustomFields();syncPromptLanguageUi(false);syncTitleAlignButtons();syncExportButton();
+    loadLocal();setupPresetCards();syncWing();syncSpineTitle();renderCustomFields();syncPromptLanguageUi(false);syncTextEditUi();syncExportButton();
     if(!$('stylePrompt').value)$('stylePrompt').value=presetPrompt();
     qa('.size-chip').forEach(button=>button.addEventListener('click',()=>{
       const [w,h]=button.dataset.size.split(',');$('trimW').value=w;$('trimH').value=h;qa('.size-chip').forEach(x=>x.classList.toggle('active',x===button));saveLocal();scheduleRender();
@@ -1046,13 +1083,16 @@
       saveLocal();updateProgress();
       if(previous!==state.promptLanguage)scheduleRender();
     }));
-    qa('[data-title-align]').forEach(button=>button.addEventListener('click',()=>{
-      state.titleLayout.align=button.dataset.titleAlign;
-      state.titleSelected=true;syncTitleAlignButtons();saveLocal();scheduleRender();
+    qa('[data-text-align]').forEach(button=>button.addEventListener('click',()=>{
+      if(!state.selectedTextId)return;
+      textLayoutState(state.selectedTextId).align=button.dataset.textAlign;
+      syncTextEditUi();saveLocal();scheduleRender();
     }));
-    $('resetTitleLayout')?.addEventListener('click',resetTitleLayout);
-    bindTitleCanvasEditing();
+    $('resetTextLayout')?.addEventListener('click',resetSelectedTextLayout);
+    bindTextCanvasEditing();
     $('resetBtn')?.addEventListener('click',resetAll);
+    $('backgroundInput')?.addEventListener('change',event=>loadBackground(event.target.files?.[0]));
+    $('clearBackground')?.addEventListener('click',clearBackground);
     $('logoInput')?.addEventListener('change',event=>loadLogo(event.target.files?.[0]));
     $('clearLogo')?.addEventListener('click',clearLogo);
     $('logoutBtn')?.addEventListener('click',()=>window.auth?.signOut().then(()=>location.replace('/')));
