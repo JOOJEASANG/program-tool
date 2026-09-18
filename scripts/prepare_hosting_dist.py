@@ -38,6 +38,7 @@ HOSTED_DIRS = (
     "css",
     "js",
     "print-checker",
+    "ai-design-maker",
     "smart-print-layout",
     "pdf-editor",
     "pdf-editor-advanced",
@@ -218,6 +219,8 @@ def build() -> int:
         raise RuntimeError("Hosting stage is missing PDF suite hub")
     if not (OUTPUT / "smart-print-layout/index.html").is_file():
         raise RuntimeError("Hosting stage is missing smart print layout")
+    if not (OUTPUT / "ai-design-maker/index.html").is_file():
+        raise RuntimeError("Hosting stage is missing AI design maker")
 
     leaked = sorted(
         path.relative_to(OUTPUT).as_posix()
