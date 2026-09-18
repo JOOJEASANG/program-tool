@@ -233,6 +233,9 @@ window.ProgramAccess = {
     if (['/print-checker', '/print-checker/index.html'].some(item => path.endsWith(item))) {
       return 'print-checker';
     }
+    if (['/ai-design-maker', '/ai-design-maker/index.html'].some(item => path.endsWith(item))) {
+      return 'ai-design-maker';
+    }
     if (['/smart-print-layout', '/smart-print-layout/index.html'].some(item => path.endsWith(item))) {
       return 'smart-print-layout';
     }
