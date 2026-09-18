@@ -182,6 +182,9 @@
     setupPresetCards();
     syncWing();
     syncSpineTitle();
+    renderCustomFields();
+    syncPromptLanguageUi(false);
+    syncTextEditUi();
     updateGeometry();
     updateProgress();
     scheduleRender();
@@ -252,8 +255,11 @@
       };
       label.addEventListener('input', update); value.addEventListener('input', update);
       remove.addEventListener('click', () => {
+        const textId='custom:'+item.id;
         state.customFields = state.customFields.filter(x => x.id !== item.id);
-        renderCustomFields(); saveLocal(); scheduleRender();
+        delete state.textLayouts[textId];
+        if(state.selectedTextId===textId)state.selectedTextId='';
+        renderCustomFields();syncTextEditUi();saveLocal();scheduleRender();
       });
       row.append(label,value,remove); root.appendChild(row);
     });
