@@ -10,7 +10,7 @@
   const STORAGE_KEY_PREFIX = 'program-studio:ai-design-maker:cover:v2';
   const LEGACY_STORAGE_KEY = 'program-studio:ai-design-maker:cover:v1';
   let STORAGE_KEY = '';
-  const TEXT_LAYOUT_SCHEMA_VERSION = 2;
+  const TEXT_LAYOUT_SCHEMA_VERSION = 3;
   const AI_COVER_PATH = '/api/preflight/ai-design-maker/cover-background';
   const AI_DIRECT_API_ORIGIN = 'https://api-7a5qpwzezq-uc.a.run.app';
   const PRESET_PROMPTS_KO = Object.freeze({
@@ -64,6 +64,7 @@
     selectedTextId: '',
     selectedTextUiId: '',
     textPointer: null,
+    snapGuide: null,
     backgroundSource: '',
     coverMode: 'spread',
     generationQuality: 'standard',
@@ -121,26 +122,15 @@
   function readText() {
     return {
       title: $('title')?.value || '',
-      subtitle: $('subtitle')?.value || '',
-      dateText: $('dateText')?.value || '',
-      department: $('department')?.value || '',
-      organization: $('organization')?.value || '',
       backText: $('backText')?.value || '',
-      contact: $('contact')?.value || '',
       spineTitle: $('spineTitle')?.value || '',
-      spineDate: $('spineDate')?.value || '',
-      spineCompany: $('spineCompany')?.value || '',
       spineOrientation: $('spineOrientation')?.value || 'rotate-up',
-      eventDate: $('eventDate')?.value || '',
-      eventPlace: $('eventPlace')?.value || '',
-      hostText: $('hostText')?.value || '',
-      organizerText: $('organizerText')?.value || '',
       customFields: state.customFields.filter(item => String(item.label || '').trim() || String(item.value || '').trim())
     };
   }
 
   function serializableState() {
-    const ids = ['trimW','trimH','spine','bleed','safeZone','wingW','title','subtitle','dateText','department','organization','eventDate','eventPlace','hostText','organizerText','backText','contact','spineTitle','spineDate','spineCompany','spineOrientation','primaryColor','textColor','theme','stylePrompt'];
+    const ids = ['trimW','trimH','spine','bleed','safeZone','wingW','title','backText','spineTitle','spineOrientation','primaryColor','textColor','theme','stylePrompt'];
     const data = {
       preset: state.preset,
       wingEnabled: Boolean($('wingEnabled')?.checked),
@@ -190,8 +180,9 @@
       if (data.promptLanguage === 'en' || data.promptLanguage === 'ko') state.promptLanguage = data.promptLanguage;
       if (Array.isArray(data.customFields)) state.customFields = data.customFields.slice(0, 12).map(item => ({
         id: String(item?.id || ('custom-'+Math.random().toString(36).slice(2))),
+        surface: item?.surface === 'back' ? 'back' : 'front',
         label: String(item?.label || '').slice(0, 40),
-        value: String(item?.value || '').slice(0, 220)
+        value: String(item?.value || '').slice(0, 700)
       }));
       const legacyTextLayout = Number(data.textLayoutSchemaVersion || 0) < TEXT_LAYOUT_SCHEMA_VERSION;
       const normalizeTextLayout = (layout, fallbackAlign = 'left') => {
@@ -319,7 +310,7 @@
     if (!state.customFields.length) {
       const empty = document.createElement('div');
       empty.className = 'custom-field-empty';
-      empty.textContent = '추가 항목이 없습니다.';
+      empty.textContent = '추가 문구가 없습니다.';
       root.appendChild(empty);
       return;
     }
@@ -327,16 +318,27 @@
       const row = document.createElement('div');
       row.className = 'custom-field-row';
       row.dataset.customId = item.id;
+
+      const surface = document.createElement('select');
+      surface.dataset.customSurface = '1';
+      surface.setAttribute('aria-label','문구 배치 면');
+      surface.innerHTML = '<option value="front">앞표지</option><option value="back">뒤표지</option>';
+      surface.value = item.surface === 'back' ? 'back' : 'front';
+
       const label = document.createElement('input');
-      label.type = 'text'; label.maxLength = 40; label.placeholder = '항목명'; label.value = item.label;
-      label.dataset.customLabel = '1'; label.setAttribute('aria-label','추가 항목명');
-      const value = document.createElement('input');
-      value.type = 'text'; value.maxLength = 220; value.placeholder = '내용'; value.value = item.value;
-      value.dataset.customValue = '1'; value.setAttribute('aria-label','추가 항목 내용');
+      label.type = 'text'; label.maxLength = 40; label.placeholder = '항목명 (선택)'; label.value = item.label;
+      label.dataset.customLabel = '1'; label.setAttribute('aria-label','추가 문구 항목명');
+
+      const value = document.createElement('textarea');
+      value.maxLength = 700; value.rows = 2; value.placeholder = '추가할 문구'; value.value = item.value;
+      value.dataset.customValue = '1'; value.setAttribute('aria-label','추가 문구 내용');
+
       const remove = document.createElement('button');
       remove.type = 'button'; remove.className = 'custom-field-remove'; remove.textContent = '×';
-      remove.title = '항목 삭제'; remove.setAttribute('aria-label','추가 항목 삭제');
+      remove.title = '문구 삭제'; remove.setAttribute('aria-label','추가 문구 삭제');
+
       const update = () => {
+        item.surface = surface.value === 'back' ? 'back' : 'front';
         item.label = label.value;
         item.value = value.value;
         const textId='custom:'+item.id;
@@ -347,7 +349,9 @@
         syncTextEditUi();
         scheduleRender();
       };
-      label.addEventListener('input', update); value.addEventListener('input', update);
+      surface.addEventListener('change', update);
+      label.addEventListener('input', update);
+      value.addEventListener('input', update);
       remove.addEventListener('click', () => {
         const textId='custom:'+item.id;
         state.customFields = state.customFields.filter(x => x.id !== item.id);
@@ -355,7 +359,8 @@
         if(state.selectedTextId===textId)state.selectedTextId='';
         renderCustomFields();syncTextEditUi();saveLocal();scheduleRender();
       });
-      row.append(label,value,remove); root.appendChild(row);
+      row.append(surface,label,value,remove);
+      root.appendChild(row);
     });
   }
 
@@ -364,7 +369,7 @@
       setStatus('추가 항목은 최대 12개까지 가능합니다.','필요 없는 항목을 삭제한 뒤 다시 추가해 주세요.','error');
       return;
     }
-    const item = { id: 'custom-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,6), label: '', value: '' };
+    const item = { id: 'custom-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,6), surface: 'front', label: '', value: '' };
     state.customFields.push(item);
     renderCustomFields(); saveLocal(); scheduleRender();
     requestAnimationFrame(() => document.querySelector('[data-custom-id="'+item.id+'"] input')?.focus());
@@ -415,7 +420,7 @@
     const front=state.coverMode==='front';
     if($('coverModeHeading'))$('coverModeHeading').textContent=front?'앞표지 단면 제작':'표지 전체 펼침 제작';
     if($('coverModeDescription'))$('coverModeDescription').textContent=front
-      ?'앞표지 한 면만 실제 인쇄 규격으로 디자인합니다. 제목·행사정보·기관명 등을 자유롭게 배치하세요.'
+      ?'앞표지 한 면만 실제 인쇄 규격으로 디자인합니다. 기본 문구 1개와 필요한 추가 문구를 자유롭게 배치하세요.'
       :'앞표지·책등·뒤표지를 한 번에 제작합니다. 규격 → 문구 → 스타일 순서로 입력하세요.';
     if($('previewModeTitle'))$('previewModeTitle').textContent=front?'앞표지 미리보기':'전체 펼침 미리보기';
     if($('backgroundModeHint'))$('backgroundModeHint').textContent=front
@@ -442,16 +447,6 @@
     if ($('spineSync')?.checked && $('spineTitle')) $('spineTitle').value = $('title')?.value || '';
   }
 
-  function fillSpineFromCover() {
-    if ($('spineTitle')) $('spineTitle').value = $('title')?.value || '';
-    if ($('spineDate')) $('spineDate').value = $('dateText')?.value || '';
-    if ($('spineCompany')) $('spineCompany').value = $('organization')?.value || '';
-    if ($('spineSync')) $('spineSync').checked = true;
-    saveLocal();
-    scheduleRender();
-    setStatus('책등 문구를 채웠습니다.','앞표지 제목·날짜·기관명 기준으로 책등 입력값을 정리했습니다.','ok');
-  }
-
   function updateProgress() {
     const spec=currentSpec();
     const validSpec=spec.trimW>=50&&spec.trimH>=50&&spec.spine>=0&&spec.bleed>=0;
@@ -464,7 +459,7 @@
       node.classList.toggle('need',!done);
     };
     setState('specState',validSpec,'완료','확인');
-    setState('copyState',hasTitle,'완료','제목 필요');
+    setState('copyState',hasTitle,'완료','앞표지 필요');
     setState('styleState',hasStyle,'완료','스타일 필요');
     const generated=Boolean(state.background&&state.generatedSpecKey===specKey(spec));
     const stale=Boolean(state.background&&!generated);
@@ -495,15 +490,9 @@
     } else if (spine < 8) {
       box.classList.add('warn');
       box.textContent = '책등 4~7.9mm: 제목만 표시합니다.';
-    } else if (spine < 12) {
-      box.classList.add('ok');
-      box.textContent = '책등 8~11.9mm: 제목과 날짜를 표시합니다.';
-    } else if (spine < 16) {
-      box.classList.add('ok');
-      box.textContent = '책등 12~15.9mm: 제목과 날짜를 우선 표시합니다. 회사명은 16mm 이상에서 자동 표시됩니다.';
     } else {
       box.classList.add('ok');
-      box.textContent = '책등 16mm 이상: 제목·날짜·회사명을 모두 표시할 수 있습니다.';
+      box.textContent = '책등 8mm 이상: 책등 문구를 안정적으로 표시할 수 있습니다.';
     }
   }
 
@@ -615,20 +604,21 @@
 
   function textItemLabel(id) {
     const fixed={
-      title:'앞표지 제목',subtitle:'부제',eventDate:'일시',eventPlace:'장소',hostText:'주최',organizerText:'주관',
-      dateText:'발행일·연도',department:'발행 부서',organization:'기관·회사명',
-      backText:'뒤표지 소개문',contact:'뒤표지 하단 정보',
-      spineTitle:'책등 제목',spineDate:'책등 날짜',spineCompany:'책등 회사명'
+      title:'앞표지 문구',
+      backText:'뒤표지 문구',
+      spineTitle:'책등 문구'
     };
     if(fixed[id])return fixed[id];
     if(String(id||'').startsWith('custom:')){
       const customId=String(id).slice(7);
       const item=state.customFields.find(entry=>entry.id===customId);
-      return String(item?.label||'추가 문구').trim()||'추가 문구';
+      const side=item?.surface==='back'?'뒤표지':'앞표지';
+      const name=String(item?.label||'추가 문구').trim()||'추가 문구';
+      return side+' · '+name;
     }
     return '문구';
   }
-  const DIRECT_TEXT_SOURCE_IDS = new Set(['title','subtitle','dateText','department','organization','backText','contact','spineTitle','spineDate','spineCompany']);
+  const DIRECT_TEXT_SOURCE_IDS = new Set(['title','backText','spineTitle']);
 
   function selectedTextItem(){
     if(!state.selectedTextId)return null;
@@ -692,50 +682,31 @@
       list.push(item);
     };
     const contentW=Math.max(1,tw-safe*2);
-    add({id:'title',text:v.title,x:frontX+safe,y:b+th*.12,w:contentW,h:th*.24,fontPt:titlePt(v.title,spec.trimW),weight:900,align:'left'});
-    add({id:'subtitle',text:v.subtitle,x:frontX+safe,y:b+th*.34,w:contentW,h:th*.12,fontPt:21,weight:700,align:'left'});
 
-    const eventEntries=[
-      {id:'eventDate',label:'일시',text:v.eventDate},
-      {id:'eventPlace',label:'장소',text:v.eventPlace},
-      {id:'hostText',label:'주최',text:v.hostText},
-      {id:'organizerText',label:'주관',text:v.organizerText},
-      ...v.customFields.map(item=>({
-        id:'custom:'+item.id,
-        label:String(item.label||'').trim(),
-        text:String(item.value||'').trim()
-      }))
-    ].filter(item=>String(item.text||'').trim());
-    const infoStart=b+th*.52;
-    const infoArea=th*.205;
-    const infoStep=eventEntries.length?Math.min(th*.047,infoArea/eventEntries.length):0;
-    eventEntries.forEach((entry,index)=>{
-      const text=entry.label&&entry.text?entry.label+'  '+entry.text:(entry.text||entry.label);
-      add({id:entry.id,text,x:frontX+safe,y:infoStart+index*infoStep,w:contentW,h:Math.max(th*.035,infoStep*.98),fontPt:11.5,weight:720,align:'left'});
-    });
+    add({id:'title',surface:'front',text:v.title,x:frontX+safe,y:b+th*.15,w:contentW,h:th*.38,fontPt:titlePt(v.title,spec.trimW),weight:900,align:'left'});
 
-    add({id:'dateText',text:v.dateText,x:frontX+safe,y:b+th*.77,w:contentW,h:th*.045,fontPt:11.5,weight:700,align:'left'});
-    add({id:'department',text:v.department,x:frontX+safe,y:b+th*.82,w:contentW,h:th*.045,fontPt:11.5,weight:700,align:'left'});
-    add({id:'organization',text:v.organization,x:frontX+safe,y:b+th*.89,w:contentW,h:th*.06,fontPt:13.5,weight:850,align:'left'});
+    const frontCustom=v.customFields.filter(item=>item.surface!=='back');
+    const backCustom=spec.coverMode==='spread'?v.customFields.filter(item=>item.surface==='back'):[];
+    const addCustomEntries=(entries,surface,x,startY,areaH)=>{
+      const step=entries.length?Math.min(th*.075,areaH/entries.length):0;
+      entries.forEach((entry,index)=>{
+        const label=String(entry.label||'').trim();
+        const value=String(entry.value||'').trim();
+        const text=label&&value?label+'  '+value:(value||label);
+        add({id:'custom:'+entry.id,surface,text,x:x+safe,y:startY+index*step,w:contentW,h:Math.max(th*.052,step*.95),fontPt:12,weight:700,align:'left'});
+      });
+    };
+    addCustomEntries(frontCustom,'front',frontX,b+th*.60,th*.30);
+
     if(spec.coverMode==='spread'){
-      add({id:'backText',text:v.backText,x:backX+safe,y:b+th*.16,w:contentW,h:th*.58,fontPt:12.5,weight:600,align:'left'});
-      add({id:'contact',text:v.contact,x:backX+safe,y:b+th*.84,w:contentW,h:th*.12,fontPt:10.5,weight:750,align:'left'});
+      add({id:'backText',surface:'back',text:v.backText,x:backX+safe,y:b+th*.16,w:contentW,h:th*.48,fontPt:14,weight:650,align:'left'});
+      addCustomEntries(backCustom,'back',backX,b+th*.70,th*.22);
     }
 
     if(spec.coverMode==='spread'&&spec.spine>=4&&v.spineTitle){
       const fp=spinePt(spec.spine,v.spineTitle);
-      if(v.spineOrientation==='vertical')add({id:'spineTitle',text:v.spineTitle,x:spineX+sw*.12,y:b+th*.18,w:sw*.76,h:th*.62,fontPt:fp,weight:900,vertical:true,align:'center'});
-      else add({id:'spineTitle',text:v.spineTitle,x:spineX+sw/2-th*.31,y:b+th/2-sw*.34,w:th*.62,h:sw*.68,fontPt:fp,weight:900,rotate:v.spineOrientation==='rotate-down'?90:-90,align:'center'});
-    }
-    if(spec.coverMode==='spread'&&spec.spine>=8&&v.spineDate){
-      const fp=clamp(spinePt(spec.spine,v.spineDate)-2,7,10,8);
-      if(v.spineOrientation==='vertical')add({id:'spineDate',text:v.spineDate,x:spineX+sw*.18,y:b+th*.06,w:sw*.64,h:th*.10,fontPt:fp,weight:800,vertical:true,align:'center'});
-      else add({id:'spineDate',text:v.spineDate,x:spineX+sw/2-th*.09,y:b+th*.14-sw*.25,w:th*.18,h:sw*.5,fontPt:fp,weight:800,rotate:v.spineOrientation==='rotate-down'?90:-90,align:'center'});
-    }
-    if(spec.coverMode==='spread'&&spec.spine>=16&&v.spineCompany){
-      const fp=clamp(spinePt(spec.spine,v.spineCompany)-3,7,9.5,8);
-      if(v.spineOrientation==='vertical')add({id:'spineCompany',text:v.spineCompany,x:spineX+sw*.18,y:b+th*.82,w:sw*.64,h:th*.13,fontPt:fp,weight:800,vertical:true,align:'center'});
-      else add({id:'spineCompany',text:v.spineCompany,x:spineX+sw/2-th*.12,y:b+th*.86-sw*.25,w:th*.24,h:sw*.5,fontPt:fp,weight:800,rotate:v.spineOrientation==='rotate-down'?90:-90,align:'center'});
+      if(v.spineOrientation==='vertical')add({id:'spineTitle',surface:'spine',text:v.spineTitle,x:spineX+sw*.12,y:b+th*.18,w:sw*.76,h:th*.62,fontPt:fp,weight:900,vertical:true,align:'center'});
+      else add({id:'spineTitle',surface:'spine',text:v.spineTitle,x:spineX+sw/2-th*.31,y:b+th/2-sw*.34,w:th*.62,h:sw*.68,fontPt:fp,weight:900,rotate:v.spineOrientation==='rotate-down'?90:-90,align:'center'});
     }
     return list;
   }
@@ -844,6 +815,40 @@
     ctx.drawImage(image,sx,sy,sw,sh,0,0,w,h);
   }
 
+  function textSurfaceForId(id){
+    if(id==='title')return 'front';
+    if(id==='backText')return 'back';
+    if(id==='spineTitle')return 'spine';
+    if(String(id||'').startsWith('custom:')){
+      const customId=String(id).slice(7);
+      return state.customFields.find(item=>item.id===customId)?.surface==='back'?'back':'front';
+    }
+    return 'front';
+  }
+
+  function coverSurfaceRect(surface,spec,scale){
+    const b=spec.bleed*scale,tw=spec.trimW*scale,th=spec.trimH*scale,wing=spec.wing*scale,sw=spec.spine*scale;
+    if(surface==='front'){
+      const x=spec.coverMode==='front'?b:b+wing+tw+sw;
+      return {x,y:b,w:tw,h:th,surface:'front'};
+    }
+    if(surface==='back'&&spec.coverMode==='spread'){
+      return {x:b+wing,y:b,w:tw,h:th,surface:'back'};
+    }
+    return null;
+  }
+
+  function drawSnapGuide(ctx){
+    const guide=state.snapGuide;if(!guide)return;
+    ctx.save();
+    ctx.strokeStyle='rgba(124,58,237,.92)';
+    ctx.lineWidth=1.2;
+    ctx.setLineDash([4,4]);
+    if(guide.snapX){ctx.beginPath();ctx.moveTo(guide.centerX,guide.zone.y);ctx.lineTo(guide.centerX,guide.zone.y+guide.zone.h);ctx.stroke();}
+    if(guide.snapY){ctx.beginPath();ctx.moveTo(guide.zone.x,guide.centerY);ctx.lineTo(guide.zone.x+guide.zone.w,guide.centerY);ctx.stroke();}
+    ctx.restore();
+  }
+
   function renderPreview(){
     const canvas=$('previewCanvas'),spec=currentSpec();if(!canvas)return;
     const fit=canvasFitSize(spec),dpr=Math.min(window.devicePixelRatio||1,2);
@@ -857,6 +862,7 @@
     items.forEach(item=>drawTextItem(ctx,item,color));
     drawGuides(ctx,spec,fit.scale);
     if($('cropMarkToggle')?.checked)drawCropMarks(ctx,spec,fit.scale);
+    drawSnapGuide(ctx);
     drawTextSelection(ctx,items);
     updateGeometry();
   }
@@ -912,17 +918,20 @@
   function syncTextEditUi(){
     const selected=state.selectedTextId;
     const label=$('selectedTextLabel');
-    if(label)label.textContent=selected?textItemLabel(selected):'문구를 클릭해 선택';
-    const layout=selected?textLayoutState(selected):null;
+    const inspectorLabel=$('inspectorSelectedLabel');
     const item=selected?selectedTextItem():null;
-    const panel=$('textStylePanel');
-    if(panel)panel.hidden=!selected||!item;
+    const active=Boolean(selected&&item);
+    if(label)label.textContent=active?textItemLabel(selected):'문구를 클릭해 선택';
+    if(inspectorLabel)inspectorLabel.textContent=active?textItemLabel(selected):'미리보기에서 문구를 선택하세요.';
+    if($('textInspectorEmpty'))$('textInspectorEmpty').hidden=active;
+    if($('textInspectorFields'))$('textInspectorFields').hidden=!active;
+    const layout=active?textLayoutState(selected):null;
     qa('[data-text-align]').forEach(button=>{
-      button.disabled=!selected;
+      button.disabled=!active;
       button.classList.toggle('active',Boolean(layout&&button.dataset.textAlign===layout.align));
     });
-    if($('resetTextLayout'))$('resetTextLayout').disabled=!selected;
-    if(!selected||!item){
+    if($('resetTextLayout'))$('resetTextLayout').disabled=!active;
+    if(!active){
       state.selectedTextUiId='';
       return;
     }
@@ -938,6 +947,7 @@
 
   function bindTextCanvasEditing(){
     const canvas=$('previewCanvas');if(!canvas)return;
+    const SNAP_PX=9;
     canvas.addEventListener('pointerdown',event=>{
       const point=canvasPoint(event),spec=currentSpec(),fit=canvasFitSize(spec),ctx=canvas.getContext('2d');
       if(!point||!ctx)return;
@@ -948,28 +958,44 @@
       const onHandle=selectedBounds&&point.x>=selectedBounds.x+selectedBounds.w-hs&&point.x<=selectedBounds.x+selectedBounds.w+hs&&point.y>=selectedBounds.y+selectedBounds.h-hs&&point.y<=selectedBounds.y+selectedBounds.h+hs;
       let hit=onHandle&&selected?{item:selected,bounds:selectedBounds}:findTextAtPoint(ctx,items,point);
       if(!hit){
-        state.selectedTextId='';state.textPointer=null;syncTextEditUi();scheduleRender();return;
+        state.selectedTextId='';state.textPointer=null;state.snapGuide=null;syncTextEditUi();scheduleRender();return;
       }
       event.preventDefault();
       state.selectedTextId=hit.item.id;
       const layout=textLayoutState(hit.item.id,hit.item.align||'left');
+      const surface=textSurfaceForId(hit.item.id);
+      const zone=coverSurfaceRect(surface,spec,fit.scale);
       canvas.setPointerCapture?.(event.pointerId);
       state.textPointer={
         id:event.pointerId,
         textId:hit.item.id,
         mode:onHandle&&selected?.id===hit.item.id?'resize':'move',
         startX:point.x,startY:point.y,start:{...layout},
+        startBounds:{...hit.bounds},zone,
         baseW:Math.max(24,hit.bounds.w),baseH:Math.max(18,hit.bounds.h),scale:fit.scale
       };
+      state.snapGuide=null;
       syncTextEditUi();scheduleRender();
     });
     canvas.addEventListener('pointermove',event=>{
       const drag=state.textPointer;
       if(!drag||drag.id!==event.pointerId)return;
       const point=canvasPoint(event);if(!point)return;event.preventDefault();
-      const dx=point.x-drag.startX,dy=point.y-drag.startY;
+      let dx=point.x-drag.startX,dy=point.y-drag.startY;
       const layout=textLayoutState(drag.textId);
       if(drag.mode==='move'){
+        state.snapGuide=null;
+        if(drag.zone&&drag.startBounds){
+          const zoneCenterX=drag.zone.x+drag.zone.w/2;
+          const zoneCenterY=drag.zone.y+drag.zone.h/2;
+          const candidateCenterX=drag.startBounds.x+drag.startBounds.w/2+dx;
+          const candidateCenterY=drag.startBounds.y+drag.startBounds.h/2+dy;
+          const snapX=Math.abs(candidateCenterX-zoneCenterX)<=SNAP_PX;
+          const snapY=Math.abs(candidateCenterY-zoneCenterY)<=SNAP_PX;
+          if(snapX)dx+=zoneCenterX-candidateCenterX;
+          if(snapY)dy+=zoneCenterY-candidateCenterY;
+          if(snapX||snapY)state.snapGuide={zone:drag.zone,centerX:zoneCenterX,centerY:zoneCenterY,snapX,snapY};
+        }
         const spec=currentSpec();
         layout.dx=clamp(drag.start.dx+dx/drag.scale,-spec.workW,spec.workW,0);
         layout.dy=clamp(drag.start.dy+dy/drag.scale,-spec.workH,spec.workH,0);
@@ -981,7 +1007,7 @@
     });
     const finish=event=>{
       if(state.textPointer&&(!event||state.textPointer.id===event.pointerId)){
-        state.textPointer=null;saveLocal();syncTextEditUi();scheduleRender();
+        state.textPointer=null;state.snapGuide=null;saveLocal();syncTextEditUi();scheduleRender();
       }
     };
     canvas.addEventListener('pointerup',finish);
@@ -1057,19 +1083,28 @@
 
   function themeContext(){
     const t=readText(),spec=currentSpec();
+    const custom=t.customFields.map(item=>{
+      const side=item.surface==='back'?'뒤표지':'앞표지';
+      const label=String(item.label||'').trim();
+      const value=String(item.value||'').trim();
+      if(!label&&!value)return '';
+      return side+' 추가 문구: '+[label,value].filter(Boolean).join(' — ');
+    }).filter(Boolean);
     return [
       spec.coverMode==='front'?'표지 용도: 인쇄용 앞표지 단면':'표지 용도: 인쇄용 책/보고서 전체 펼침 표지',
-      t.title?'주제 참고 제목: '+t.title:'',
-      t.organization?'기관 성격: '+t.organization:'',
-      $('theme')?.value?'핵심 키워드: '+$('theme').value:'',
+      t.title?'앞표지 문구의 의미 참고: '+t.title:'',
+      spec.coverMode==='spread'&&t.backText?'뒤표지 문구의 의미 참고: '+t.backText:'',
+      ...custom,
+      $('theme')?.value?'주제·키워드: '+$('theme').value:'',
       '선호 주조색: '+($('primaryColor')?.value||'#315c8c'),
+      '주의: 위 문구는 배경 콘셉트의 의미 참고용이며 이미지 안에 실제 글자로 그리지 않는다.',
       '스타일 기준: clean annual report / brochure cover, white-space dominant, thin blue or pastel graphic accents'
     ].filter(Boolean).join('\n');
   }
 
   async function generate(){
     const title=String($('title')?.value||'').trim();
-    if(!title){setStatus('제목을 먼저 입력해 주세요.','앞표지 제목은 필수입니다.','error');$('title')?.focus();return;}
+    if(!title){setStatus('앞표지 문구를 먼저 입력해 주세요.','앞표지 기본 문구는 필수입니다.','error');$('title')?.focus();return;}
     const spec=currentSpec(), ratio=spec.workW/spec.workH;
     if(ratio<1/3||ratio>3){setStatus('현재 표지 비율을 생성할 수 없습니다.','완성 규격·책등·날개 폭을 확인해 주세요.','error');return;}
     const button=$('generateBtn');button.disabled=true;
@@ -1449,16 +1484,15 @@
       state.generationQuality=input.value==='high'?'high':'standard';
       syncGenerationQuality();saveLocal();
     }));
-    const watched=['trimW','trimH','spine','bleed','safeZone','wingW','title','subtitle','dateText','department','organization','eventDate','eventPlace','hostText','organizerText','backText','contact','spineTitle','spineDate','spineCompany','spineOrientation','primaryColor','textColor','theme','stylePrompt'];
+    const watched=['trimW','trimH','spine','bleed','safeZone','wingW','title','backText','spineTitle','spineOrientation','primaryColor','textColor','theme','stylePrompt'];
     watched.forEach(id=>$(id)?.addEventListener('input',()=>{
       if(id==='trimW'||id==='trimH'){state.sizeMode='custom';syncSizeMode();}
-      if(['title','subtitle','dateText','department','organization','eventDate','eventPlace','hostText','organizerText','backText','contact','spineTitle','spineDate','spineCompany'].includes(id))clearTextOverrideForSource(id);
+      if(['title','backText','spineTitle'].includes(id))clearTextOverrideForSource(id);
       if(id==='title')syncSpineTitle();
       saveLocal();updateProgress();syncTextEditUi();scheduleRender();
     }));
     $('wingEnabled')?.addEventListener('change',()=>{syncWing();saveLocal();scheduleRender();});
     $('spineSync')?.addEventListener('change',()=>{syncSpineTitle();saveLocal();updateProgress();scheduleRender();});
-    $('fillSpineBtn')?.addEventListener('click',fillSpineFromCover);
     $('manualBtn')?.addEventListener('click',event=>window.ProgramManualHomeModal?.open('ai-design-maker',event.currentTarget));
     $('aiDesignSessionSaveBtn')?.addEventListener('click',saveSessionNow);
     $('aiDesignSessionLoadBtn')?.addEventListener('click',loadSessionNow);
