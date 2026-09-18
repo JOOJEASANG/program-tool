@@ -22,7 +22,8 @@ def test_phase9_favicon_asset_and_deploy_inventory():
     assert len(inject.DEPLOY_HTML) == 17
     assert set(inject.DEPLOY_HTML) == set(inject.PAGE_METADATA)
     assert "index.html" in inject.DEPLOY_HTML
-    assert "print-checker/index.html" in inject.DEPLOY_HTML\n    assert "ai-design-maker/index.html" in inject.DEPLOY_HTML
+    assert "print-checker/index.html" in inject.DEPLOY_HTML
+    assert "ai-design-maker/index.html" in inject.DEPLOY_HTML
     assert "smart-print-layout/index.html" in inject.DEPLOY_HTML
     assert "pdf-suite/index.html" in inject.DEPLOY_HTML
     assert "pdf-editor/index.html" in inject.DEPLOY_HTML
