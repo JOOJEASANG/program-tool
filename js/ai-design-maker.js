@@ -10,49 +10,103 @@
   const STORAGE_KEY_PREFIX = 'program-studio:ai-design-maker:cover:v2';
   const LEGACY_STORAGE_KEY = 'program-studio:ai-design-maker:cover:v1';
   let STORAGE_KEY = '';
-  const TEXT_LAYOUT_SCHEMA_VERSION = 3;
+  const TEXT_LAYOUT_SCHEMA_VERSION = 4;
   const AI_COVER_PATH = '/api/preflight/ai-design-maker/cover-background';
   const AI_DIRECT_API_ORIGIN = 'https://api-7a5qpwzezq-uc.a.run.app';
+  const PRESET_MIGRATION = Object.freeze({premium:'report',forum:'event'});
   const PRESET_PROMPTS_KO = Object.freeze({
-    premium: '화이트 또는 아주 연한 오프화이트 바탕을 70% 이상 유지한 깔끔한 연차보고서·기업 브로슈어 표지를 만들어 주세요. 얇은 블루 계열 라인, 투명한 곡선 레이어, 작은 기하 도형 또는 미세한 네트워크 패턴 중 한 가지 시각 언어만 선택하고 넓은 여백을 유지해 주세요. 제목이 들어갈 중앙 또는 좌상단 영역은 비워 두고 장식은 가장자리와 하단·좌측에 제한하세요. 2018~2030 annual report 같은 정돈된 편집물 느낌으로, 거대한 원형·무거운 네이비 덩어리·복잡한 포스터 구성·과한 그라데이션은 피해주세요.',
-    admin: '밝은 화이트 베이스의 현대적인 업무·행정 연차보고서 표지를 만들어 주세요. 가는 블루·민트 선, 반투명 사선 또는 아주 얕은 웨이브를 가장자리 한쪽에만 두고 본문 영역은 넓게 비워 주세요. 작은 컬러 블록을 사용할 경우 3~5개 이하로 제한하고 전체 면적의 15%를 넘기지 마세요. 신뢰감 있는 기업 보고서처럼 깔끔해야 하며 관공서 파란 물결, 진한 남색 대면적, 입체 도형, 광택 리본은 피해주세요.',
-    forum: '밝고 세련된 포럼·컨퍼런스 출판물 표지를 만들어 주세요. 아이보리·오프화이트처럼 밝은 바탕에 파우더 블루, 세이지, 연보라, 피치, 블러시 계열의 부드러운 파스텔 포인트를 1~2개 사용하고 넓은 여백과 섬세한 편집 그리드로 구성해 주세요. 거대한 원·반원·두꺼운 네이비 블록처럼 흔한 관공서 브로슈어 도형은 피하고, 작은 기하학적 리듬이나 얇은 선, 은은한 질감으로 현대적인 문화·포럼 아이덴티티처럼 보여 주세요. 앞표지는 밝고 산뜻하며 제목이 들어갈 공간이 충분해야 하고 뒤표지는 더 차분하게 연결해 주세요.',
-    education: '따뜻하지만 유치하지 않은 교육·사례집 표지를 만들어 주세요. 부드러운 편집 구조와 우아한 여백, 절제된 유기적 또는 기하학적 형태, 자연스럽고 차분한 색감에 하나의 포인트 색상을 사용해 주세요. 전문 출판물처럼 정돈하고 어린이용 일러스트, 만화 아이콘, 낙서, 복잡한 콜라주, 오래된 브로슈어 물결 그래픽은 피해주세요.',
-    public: '명확하고 품격 있는 공공·정책 출판물 표지를 만들어 주세요. 정돈된 그리드, 충분한 여백, 절제된 추상 구조와 차분한 색상으로 프리미엄 정책보고서나 기관 출판물처럼 구성해 주세요. 흔한 관공서 이미지, 파란 물결, 상징 클립아트, 광택 그라데이션, 과도한 엠블럼과 오래된 행정 템플릿 느낌은 피해주세요.'
+    report: '세련된 현대 보고서 표지를 만들어 주세요. 밝은 바탕을 유지하되 색을 지나치게 희석하지 말고 중채도의 블루·딥티얼·코발트·슬레이트 계열 포인트를 사용해 명확한 대비를 주세요. 에디토리얼 그리드, 큰 면 분할, 얇은 프레임, 정돈된 이미지 영역, 선형 요소 등에서 한두 가지를 선택해 전문 출판물처럼 구성하세요. 도형만 반복하지 말고 타이포그래피가 올라갈 공간과 시각적 초점을 분명히 나눠 주세요.',
+    admin: '업무·행정 문서에 맞는 신뢰감 있는 표지를 만들어 주세요. 화이트·라이트그레이 바탕과 네이비·블루그레이·딥티얼의 또렷한 포인트를 사용하고, 정보 문서다운 그리드와 정돈된 구획, 얇은 라인, 데이터·문서 구조를 연상시키는 시각 요소를 활용하세요. 흔한 파란 물결이나 낡은 관공서 템플릿은 피하고 현대적인 행정 보고서처럼 보여 주세요.',
+    public: '공공기관·정책자료 표지를 만들어 주세요. 신뢰성과 공공성을 유지하면서 박물관·공공디자인 기관의 현대 출판물처럼 세련되게 구성하세요. 절제된 네이비·청록·블루·그린 계열과 높은 가독성, 구조적 그리드, 지역·정책·시민성을 암시하는 상징적 시각 언어를 사용하되 흔한 클립아트와 파란 물결은 피해주세요.',
+    proposal: '프리미엄 사업 제안서 표지를 만들어 주세요. 화이트 또는 차콜·딥블루 기반에 코발트·에메랄드·시안 같은 선명한 포인트를 사용하고, 대각선 분할·강한 에디토리얼 프레임·레이어 깊이·정교한 이미지 크롭 등 설득력 있는 비즈니스 프레젠테이션 감각을 주세요. 너무 연하거나 밋밋하지 않게 대비를 분명히 해주세요.',
+    event: '행사·포럼·컨퍼런스용 표지를 만들어 주세요. 단순 보고서 도형에서 벗어나 포스터처럼 리듬감 있고 시선을 끄는 구성을 사용하세요. 블루·퍼플·코랄·오렌지 등 세련된 중채도 포인트와 빛·움직임·공간감·사진 또는 일러스트 요소를 활용할 수 있습니다. 단, 실제 글자나 로고는 생성하지 말고 제목 영역은 확보해 주세요.',
+    workbook: '문제집·워크북 표지를 만들어 주세요. 학습용으로 명확하고 정돈된 인상을 주면서 번호 배지, 섹션 탭, 노트·격자·학습 구조를 연상시키는 시각 요소를 현대적으로 사용하세요. 학생 친화적이지만 유치하지 않게, 밝은 배경과 선명한 블루·그린·오렌지 포인트로 영역 구분이 분명하게 보이도록 해주세요.',
+    education: '교육자료집·사례집 표지를 만들어 주세요. 따뜻함과 전문성을 함께 살리고 책·배움·성장·협업·교실·지역공동체를 연상시키는 일러스트, 아이콘, 사진적 장면 또는 에디토리얼 구성을 활용하세요. 민트·블루·그린·오렌지 계열을 너무 흐리지 않은 중채도로 사용하고, 어린이용 만화처럼 보이지 않도록 세련된 출판물 수준을 유지해 주세요.'
   });
 
   const PRESETS = Object.freeze({
-    premium: {
-      name: '클린 리포트',
-      note: '화이트 베이스 · 얇은 블루 그래픽',
-      prompt: 'Create a clean modern annual-report cover inspired by premium corporate editorial templates: 70–85% white or off-white negative space, one restrained blue/cyan accent family, and only one visual device such as thin flowing curves, translucent layered ribbons, a sparse geometric network, or a few small color blocks. Keep decoration near edges, corners, lower third, or one side. Reserve a large calm title area. Use crisp flat 2D print design, subtle line texture, and excellent spacing. Avoid giant circles, dark full-bleed navy fields, heavy blocks, busy poster compositions, excessive gradients, glossy 3D effects, and old government-brochure styling.', primaryColor: '#eaf5fb', textColor: '#14558a'
+    report: {
+      name: '보고서',
+      note: '정돈된 에디토리얼 · 전문 보고서',
+      prompt: 'Create a sophisticated modern report cover with clear editorial hierarchy, stronger mid-saturation blue, teal, cobalt or slate accents, refined contrast, structured grids, clean framing and optional image-led composition. Avoid washed-out pastel styling and avoid relying only on abstract geometric patterns.',
+      primaryColor: '#d9e8f1', textColor: '#164e6d'
     },
     admin: {
-      name: '업무·행정',
-      note: '현대적이고 신뢰감 있는 보고서',
-      prompt: 'Create a bright corporate annual-report cover on a white background with generous empty space. Use very thin blue/cyan line work, a restrained translucent curve or diagonal sweep placed mainly along one edge, and at most a few small flat geometric color blocks. Keep the middle title zone quiet and readable. The visual language should resemble a polished modern business proposal or annual report template. Avoid dark backgrounds, giant circles, thick waves, glossy swooshes, bevels, 3D effects, clip-art, and crowded government brochure layouts.', primaryColor: '#eef8fc', textColor: '#245b78'
-    },
-    forum: {
-      name: '포럼·행사',
-      note: '컨퍼런스 아이덴티티처럼 세련되게',
-      prompt: 'Create a bright, airy conference/forum booklet cover using 70–85% white or ivory negative space. Add only delicate pastel blue, sage, pale lavender, peach or blush accents through thin lines, sparse network points, small squares, or one translucent soft curve. Keep the title zone large, calm and clean. Make it feel like a contemporary annual-report or conference editorial template, not an event poster. Avoid dark navy dominance, giant circles or semicircles, heavy geometric blocks, thick ribbon waves, neon, glossy effects, busy gradients and government-brochure styling.', primaryColor: '#edf6fb', textColor: '#315b72'
-    },
-    education: {
-      name: '교육·사례집',
-      note: '따뜻하지만 유치하지 않은 자료집',
-      prompt: 'Create a refined educational and case-study publication cover that feels warm, intelligent, contemporary and trustworthy. Use soft editorial structure, elegant spacing, restrained organic or geometric forms, subtle depth and a calm visual rhythm. Use light neutrals or muted natural colors with one controlled accent. Keep the result professional and publication-like rather than playful. Avoid childish illustrations, school-poster styling, cartoon icons, decorative doodles, busy collage layouts, dated brochure waves, and low-end template graphics.'
+      name: '행정',
+      note: '업무문서 · 신뢰감 있는 구조',
+      prompt: 'Create a contemporary administrative publication cover with a clean institutional grid, crisp blue-gray, navy or deep-teal accents, clear information architecture and refined editorial structure. It should feel modern and authoritative, never like an old government brochure or a generic wave template.',
+      primaryColor: '#d8e6ee', textColor: '#1f5067'
     },
     public: {
-      name: '공공·정책',
-      note: '고급 공공출판물·정책보고서',
-      prompt: 'Create a high-end public institution or policy publication cover with clarity, dignity and contemporary editorial quality. Use a disciplined grid, clean negative space, subtle abstract structure, restrained color and a memorable but quiet visual system. The result should feel like a premium policy report or museum-quality institutional publication rather than a generic government handout. Avoid patriotic clichés, government clip-art, blue wave motifs, symbolic stock imagery, glossy gradients, crowded emblems, and dated administrative templates.'
+      name: '공공기관',
+      note: '정책·기관 출판물 · 현대적 공공디자인',
+      prompt: 'Create a premium public-institution or policy publication cover with civic clarity, strong editorial discipline, refined navy, teal, blue or green accents, and symbolic visual storytelling. Use contemporary institutional design rather than generic government graphics.',
+      primaryColor: '#dce9e6', textColor: '#174f55'
+    },
+    proposal: {
+      name: '제안서',
+      note: '비즈니스 · 설득력 있는 프리미엄',
+      prompt: 'Create a premium proposal or pitch-document cover with stronger contrast, sophisticated business styling, bold but controlled composition, layered depth, editorial image crops or architectural geometry, and confident cobalt, emerald, cyan, charcoal or deep-blue accents. Do not make it pale or timid.',
+      primaryColor: '#d8e4f0', textColor: '#183f66'
+    },
+    event: {
+      name: '행사',
+      note: '포럼·컨퍼런스 · 역동적인 포스터 감각',
+      prompt: 'Create a polished event, forum or conference cover with dynamic poster energy, refined mid-saturation blue, purple, coral or orange accents, expressive rhythm, light, movement, photography or illustration when appropriate. Avoid reducing the design to only thin lines and geometric patterns.',
+      primaryColor: '#eadff1', textColor: '#56346f'
+    },
+    workbook: {
+      name: '문제집',
+      note: '학습용 · 명확한 구획과 집중도',
+      prompt: 'Create a modern workbook or study-material cover with clear learning-oriented sections, badges, tabs, grid or notebook cues, simple educational iconography and crisp blue, green or orange accents. Keep it organized, approachable and professional rather than childish.',
+      primaryColor: '#e2ead8', textColor: '#35592f'
+    },
+    education: {
+      name: '교육자료집',
+      note: '교육·사례집 · 따뜻하고 전문적으로',
+      prompt: 'Create a refined educational publication cover balancing warmth and professionalism. Use learning, growth, collaboration, classroom or community motifs through editorial illustration, tasteful iconography, photography or hybrid layouts. Use medium-strength mint, blue, green or orange accents and avoid washed-out pastel or childish cartoon styling.',
+      primaryColor: '#dcecdf', textColor: '#315b45'
     }
   });
+
+  const VISUAL_MODE_PROMPTS = Object.freeze({
+    auto: 'Choose a visual approach that best fits the document type. Vary the composition between generations instead of defaulting to geometric patterns.',
+    editorial: 'Use editorial art direction: strong grid, framing, asymmetric page architecture, image windows, rules, crops and premium publication spacing.',
+    geometry: 'Use refined geometry or pattern as the main visual language, with controlled shapes, lines, grids or modular forms and clear hierarchy.',
+    infographic: 'Use tasteful iconographic or infographic-inspired visual cues, diagram-like structures, data marks or symbolic objects without any readable text.',
+    photo: 'Use a sophisticated photographic or photo-collage background approach with a believable subject, architectural, environmental, material or thematic imagery. Leave clear text-safe space and never include readable signage or text.',
+    illustration: 'Use a professional editorial illustration approach with thematic scenes, objects or symbolic visual storytelling. Keep it publication-grade rather than cartoonish.',
+    hybrid: 'Combine one photographic or illustrated focal element with restrained editorial geometry, framing or graphic accents. Keep the composition coherent and premium.'
+  });
+
+  const COLOR_INTENSITY_PROMPTS = Object.freeze({
+    soft: 'Use a soft but still legible palette; avoid washed-out or low-contrast results.',
+    refined: 'Use refined medium saturation with slightly richer color, clean contrast and sophisticated print-friendly tones. Do not make the palette faded or overly pastel.',
+    vivid: 'Use noticeably clearer, more energetic color contrast while staying professional and print-safe; avoid neon.',
+    premium: 'Use deeper premium tones such as navy, charcoal, deep teal, emerald or cobalt with controlled lighter counterpoints and elegant contrast.'
+  });
+
+  const MOOD_PROMPTS = Object.freeze({
+    auto: 'Infer the most appropriate mood from the selected document type and semantic context.',
+    trust: 'Emphasize trust, stability, clarity and institutional confidence.',
+    refined: 'Emphasize elegant contemporary art direction, premium spacing and sophisticated visual restraint.',
+    warm: 'Emphasize warmth, approachability, human connection and calm optimism without becoming childish.',
+    dynamic: 'Emphasize movement, energy, visual rhythm and strong focal composition while preserving text readability.'
+  });
+
+  const COMPOSITION_VARIANTS = Object.freeze([
+    'Use an asymmetric editorial composition with the visual focus weighted toward one corner and a quiet opposing text zone.',
+    'Use a framed publication composition with a strong edge, cropped image or illustration field and generous clean interior space.',
+    'Use a vertical editorial rhythm with one dominant visual column and a separate calm title field.',
+    'Use a diagonal or layered composition with one strong visual movement and restrained supporting accents.',
+    'Use a modular grid composition with distinct visual zones, subtle depth and a clear hierarchy rather than one repeated pattern.',
+    'Use a focal-image composition with one thematic photographic or illustrated subject and minimal supporting graphics.'
+  ]);
 
   const $ = id => document.getElementById(id);
   const qa = selector => [...document.querySelectorAll(selector)];
   const state = {
-    preset: 'premium',
+    preset: 'report',
     background: null,
     backgroundUrl: '',
     generatedSpecKey: '',
@@ -169,7 +223,8 @@
       });
       if (typeof data.wingEnabled === 'boolean') $('wingEnabled').checked = data.wingEnabled;
       if (typeof data.spineSync === 'boolean') $('spineSync').checked = data.spineSync;
-      if (data.preset && PRESETS[data.preset]) state.preset = data.preset;
+      const restoredPreset=PRESET_MIGRATION[data.preset]||data.preset;
+      if (restoredPreset && PRESETS[restoredPreset]) state.preset = restoredPreset;
       if (data.coverMode === 'front' || data.coverMode === 'spread') state.coverMode = data.coverMode;
       if (['a4','b5','a5','custom'].includes(data.sizeMode)) state.sizeMode = data.sizeMode;
       else {
@@ -178,12 +233,15 @@
       }
       if (data.generationQuality === 'high' || data.generationQuality === 'standard') state.generationQuality = data.generationQuality;
       if (data.promptLanguage === 'en' || data.promptLanguage === 'ko') state.promptLanguage = data.promptLanguage;
-      if (Array.isArray(data.customFields)) state.customFields = data.customFields.slice(0, 12).map(item => ({
-        id: String(item?.id || ('custom-'+Math.random().toString(36).slice(2))),
-        surface: item?.surface === 'back' ? 'back' : 'front',
-        label: String(item?.label || '').slice(0, 40),
-        value: String(item?.value || '').slice(0, 700)
-      }));
+      if (Array.isArray(data.customFields)) state.customFields = data.customFields.slice(0, 12).map(item => {
+        const legacyLabel=String(item?.label || '').trim();
+        const legacyValue=String(item?.value || '').trim();
+        return {
+          id: String(item?.id || ('custom-'+Math.random().toString(36).slice(2))),
+          surface: item?.surface === 'back' ? 'back' : 'front',
+          value: (legacyLabel && legacyValue ? legacyLabel+' '+legacyValue : (legacyValue || legacyLabel)).slice(0,700)
+        };
+      });
       const legacyTextLayout = Number(data.textLayoutSchemaVersion || 0) < TEXT_LAYOUT_SCHEMA_VERSION;
       const normalizeTextLayout = (layout, fallbackAlign = 'left') => {
         const rawFontSize=Number(layout?.fontSizePt);
@@ -194,6 +252,7 @@
           widthScale: clamp(layout?.widthScale, .25, 2.5, 1),
           fontScale: clamp(layout?.fontScale, .35, 3, 1),
           align: ['left','center','right'].includes(layout?.align) ? layout.align : fallbackAlign,
+          boxAlign: ['left','center','right'].includes(layout?.boxAlign) ? layout.boxAlign : '',
           fontFamily: normalizeFontFamily(layout?.fontFamily),
           fontSizePt: hasCustomFontSize ? clamp(rawFontSize,4,160,0) : 0,
           fontWeight: normalizeFontWeight(layout?.fontWeight),
@@ -304,77 +363,65 @@
   }
 
   function renderCustomFields() {
-    const root = $('customFields');
-    if (!root) return;
-    root.replaceChildren();
-    if (!state.customFields.length) {
-      const empty = document.createElement('div');
-      empty.className = 'custom-field-empty';
-      empty.textContent = '추가 문구가 없습니다.';
-      root.appendChild(empty);
-      return;
-    }
-    state.customFields.forEach(item => {
-      const row = document.createElement('div');
-      row.className = 'custom-field-row';
-      row.dataset.customId = item.id;
+    const roots={front:$('frontExtraFields'),back:$('backExtraFields')};
+    Object.values(roots).forEach(root=>root?.replaceChildren());
+    ['front','back'].forEach(surface=>{
+      const root=roots[surface];if(!root)return;
+      const items=state.customFields.filter(item=>item.surface===surface);
+      if(!items.length){
+        const empty=document.createElement('div');
+        empty.className='custom-field-empty';
+        empty.textContent='추가 문구 없음';
+        root.appendChild(empty);
+        return;
+      }
+      items.forEach((item,index)=>{
+        const row=document.createElement('div');
+        row.className='extra-copy-row';
+        row.dataset.customId=item.id;
 
-      const surface = document.createElement('select');
-      surface.dataset.customSurface = '1';
-      surface.setAttribute('aria-label','문구 배치 면');
-      surface.innerHTML = '<option value="front">앞표지</option><option value="back">뒤표지</option>';
-      surface.value = item.surface === 'back' ? 'back' : 'front';
-      const backOption=surface.querySelector('option[value="back"]');
-      if(backOption)backOption.disabled=state.coverMode==='front';
+        const value=document.createElement('textarea');
+        value.maxLength=700;value.rows=2;
+        value.placeholder=(surface==='front'?'앞표지':'뒤표지')+' 추가 문구 '+(index+1);
+        value.value=item.value||'';
+        value.dataset.customValue='1';
+        value.setAttribute('aria-label',(surface==='front'?'앞표지':'뒤표지')+' 추가 문구');
 
-      const label = document.createElement('input');
-      label.type = 'text'; label.maxLength = 40; label.placeholder = '항목명 (선택)'; label.value = item.label;
-      label.dataset.customLabel = '1'; label.setAttribute('aria-label','추가 문구 항목명');
+        const remove=document.createElement('button');
+        remove.type='button';remove.className='custom-field-remove';remove.textContent='×';
+        remove.title='문구 삭제';remove.setAttribute('aria-label','추가 문구 삭제');
 
-      const value = document.createElement('textarea');
-      value.maxLength = 700; value.rows = 2; value.placeholder = '추가할 문구'; value.value = item.value;
-      value.dataset.customValue = '1'; value.setAttribute('aria-label','추가 문구 내용');
-
-      const remove = document.createElement('button');
-      remove.type = 'button'; remove.className = 'custom-field-remove'; remove.textContent = '×';
-      remove.title = '문구 삭제'; remove.setAttribute('aria-label','추가 문구 삭제');
-
-      const update = () => {
-        item.surface = surface.value === 'back' ? 'back' : 'front';
-        item.label = label.value;
-        item.value = value.value;
-        const textId='custom:'+item.id;
-        const layout=state.textLayouts[textId];
-        if(layout&&Object.prototype.hasOwnProperty.call(layout,'text'))delete layout.text;
-        if(state.selectedTextId===textId)state.selectedTextUiId='';
-        saveLocal();
-        syncTextEditUi();
-        scheduleRender();
-      };
-      surface.addEventListener('change', update);
-      label.addEventListener('input', update);
-      value.addEventListener('input', update);
-      remove.addEventListener('click', () => {
-        const textId='custom:'+item.id;
-        state.customFields = state.customFields.filter(x => x.id !== item.id);
-        delete state.textLayouts[textId];
-        if(state.selectedTextId===textId)state.selectedTextId='';
-        renderCustomFields();syncTextEditUi();saveLocal();scheduleRender();
+        value.addEventListener('input',()=>{
+          item.value=value.value;
+          const textId='custom:'+item.id;
+          const layout=state.textLayouts[textId];
+          if(layout&&Object.prototype.hasOwnProperty.call(layout,'text'))delete layout.text;
+          if(state.selectedTextId===textId)state.selectedTextUiId='';
+          saveLocal();syncTextEditUi();scheduleRender();
+        });
+        remove.addEventListener('click',()=>{
+          const textId='custom:'+item.id;
+          state.customFields=state.customFields.filter(entry=>entry.id!==item.id);
+          delete state.textLayouts[textId];
+          if(state.selectedTextId===textId)state.selectedTextId='';
+          renderCustomFields();syncTextEditUi();saveLocal();scheduleRender();
+        });
+        row.append(value,remove);
+        root.appendChild(row);
       });
-      row.append(surface,label,value,remove);
-      root.appendChild(row);
     });
   }
 
-  function addCustomField() {
+  function addCustomField(surface='front') {
     if (state.customFields.length >= 12) {
-      setStatus('추가 항목은 최대 12개까지 가능합니다.','필요 없는 항목을 삭제한 뒤 다시 추가해 주세요.','error');
+      setStatus('추가 문구는 최대 12개까지 가능합니다.','필요 없는 문구를 삭제한 뒤 다시 추가해 주세요.','error');
       return;
     }
-    const item = { id: 'custom-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,6), surface: 'front', label: '', value: '' };
+    if(surface==='back'&&state.coverMode==='front')return;
+    const item={id:'custom-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,6),surface:surface==='back'?'back':'front',value:''};
     state.customFields.push(item);
-    renderCustomFields(); saveLocal(); scheduleRender();
-    requestAnimationFrame(() => document.querySelector('[data-custom-id="'+item.id+'"] input')?.focus());
+    renderCustomFields();saveLocal();scheduleRender();
+    requestAnimationFrame(()=>document.querySelector('[data-custom-id="'+item.id+'"] textarea')?.focus());
   }
 
   function setupPresetCards() {
