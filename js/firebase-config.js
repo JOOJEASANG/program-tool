@@ -18,10 +18,12 @@ const authPersistenceReady = auth
     })
   : Promise.resolve();
 const db = firebase.firestore();
+const storage = typeof firebase.storage === 'function' ? firebase.storage() : null;
 
 window.auth = auth;
 window.authPersistenceReady = authPersistenceReady;
 window.db = db;
+window.storage = storage;
 window.googleProvider = googleProvider;
 window.firebaseConfig = firebaseConfig;
 
