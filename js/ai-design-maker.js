@@ -10,6 +10,14 @@
   const STORAGE_KEY = 'program-studio:ai-design-maker:cover:v1';
   const AI_COVER_PATH = '/api/preflight/ai-design-maker/cover-background';
   const AI_DIRECT_API_ORIGIN = 'https://api-7a5qpwzezq-uc.a.run.app';
+  const PRESET_PROMPTS_KO = Object.freeze({
+    premium: '여백을 넉넉히 사용한 고급 편집디자인 표지를 만들어 주세요. 정돈된 그리드와 세련된 비대칭 구성, 절제된 주조색과 1~2개의 포인트 색상을 사용하고 장식보다 비율·리듬·크기 대비로 완성도를 높여 주세요. 앞표지는 명확한 중심을 두고 뒤표지는 더 차분하게 연결해 주세요. 광택 효과, 물결 리본, 흔한 기업 브로슈어 느낌, 과도한 그라데이션, 클립아트는 피해주세요.',
+    admin: '현대적인 업무·행정 보고서 표지를 만들어 주세요. 정확한 편집 그리드, 안정적인 여백, 신뢰감 있는 정보 구조와 절제된 비대칭 구성을 사용해 주세요. 딥 네이비, 차콜, 뮤트 블루, 웜 그레이, 딥 틸 계열을 중심으로 고급 연차보고서처럼 보이게 해주세요. 오래된 관공서 브로슈어, 파란 물결, 광택 리본, 입체 도형과 장식 과다는 피해주세요.',
+    forum: '현대적인 포럼·컨퍼런스 아이덴티티 느낌의 표지를 만들어 주세요. 모듈형 기하 도형, 강약이 분명한 크기 대비, 넓은 여백, 2~3색 중심의 절제된 팔레트와 자신감 있는 포인트 색상을 사용해 주세요. 앞표지에는 시선이 모이는 중심을 만들고 뒤표지까지 자연스럽게 연결해 주세요. 축제 포스터처럼 복잡한 구성, 네온, 과도한 그라데이션, 오래된 행사 브로슈어 느낌은 피해주세요.',
+    education: '따뜻하지만 유치하지 않은 교육·사례집 표지를 만들어 주세요. 부드러운 편집 구조와 우아한 여백, 절제된 유기적 또는 기하학적 형태, 자연스럽고 차분한 색감에 하나의 포인트 색상을 사용해 주세요. 전문 출판물처럼 정돈하고 어린이용 일러스트, 만화 아이콘, 낙서, 복잡한 콜라주, 오래된 브로슈어 물결 그래픽은 피해주세요.',
+    public: '명확하고 품격 있는 공공·정책 출판물 표지를 만들어 주세요. 정돈된 그리드, 충분한 여백, 절제된 추상 구조와 차분한 색상으로 프리미엄 정책보고서나 기관 출판물처럼 구성해 주세요. 흔한 관공서 이미지, 파란 물결, 상징 클립아트, 광택 그라데이션, 과도한 엠블럼과 오래된 행정 템플릿 느낌은 피해주세요.'
+  });
+
   const PRESETS = Object.freeze({
     premium: {
       name: '프리미엄 미니멀',
@@ -46,7 +54,12 @@
     backgroundUrl: '',
     generatedSpecKey: '',
     logo: null,
-    renderQueued: false
+    renderQueued: false,
+    promptLanguage: 'ko',
+    customFields: [],
+    titleLayout: { dx: 0, dy: 0, widthScale: 1, fontScale: 1, align: 'left' },
+    titleSelected: false,
+    titlePointer: null
   };
 
   const clamp = (value, min, max, fallback) => {
@@ -88,13 +101,25 @@
       spineTitle: $('spineTitle')?.value || '',
       spineDate: $('spineDate')?.value || '',
       spineCompany: $('spineCompany')?.value || '',
-      spineOrientation: $('spineOrientation')?.value || 'rotate-up'
+      spineOrientation: $('spineOrientation')?.value || 'rotate-up',
+      eventDate: $('eventDate')?.value || '',
+      eventPlace: $('eventPlace')?.value || '',
+      hostText: $('hostText')?.value || '',
+      organizerText: $('organizerText')?.value || '',
+      customFields: state.customFields.filter(item => String(item.label || '').trim() || String(item.value || '').trim())
     };
   }
 
   function serializableState() {
-    const ids = ['trimW','trimH','spine','bleed','safeZone','wingW','title','subtitle','dateText','department','organization','backText','contact','spineTitle','spineDate','spineCompany','spineOrientation','primaryColor','textColor','theme','stylePrompt'];
-    const data = { preset: state.preset, wingEnabled: Boolean($('wingEnabled')?.checked), spineSync: Boolean($('spineSync')?.checked) };
+    const ids = ['trimW','trimH','spine','bleed','safeZone','wingW','title','subtitle','dateText','department','organization','eventDate','eventPlace','hostText','organizerText','backText','contact','spineTitle','spineDate','spineCompany','spineOrientation','primaryColor','textColor','theme','stylePrompt'];
+    const data = {
+      preset: state.preset,
+      wingEnabled: Boolean($('wingEnabled')?.checked),
+      spineSync: Boolean($('spineSync')?.checked),
+      promptLanguage: state.promptLanguage,
+      customFields: state.customFields,
+      titleLayout: state.titleLayout
+    };
     ids.forEach(id => { if ($(id)) data[id] = $(id).value; });
     return data;
   }
@@ -122,6 +147,21 @@
       if (typeof data.wingEnabled === 'boolean') $('wingEnabled').checked = data.wingEnabled;
       if (typeof data.spineSync === 'boolean') $('spineSync').checked = data.spineSync;
       if (data.preset && PRESETS[data.preset]) state.preset = data.preset;
+      if (data.promptLanguage === 'en' || data.promptLanguage === 'ko') state.promptLanguage = data.promptLanguage;
+      if (Array.isArray(data.customFields)) state.customFields = data.customFields.slice(0, 12).map(item => ({
+        id: String(item?.id || ('custom-'+Math.random().toString(36).slice(2))),
+        label: String(item?.label || '').slice(0, 40),
+        value: String(item?.value || '').slice(0, 220)
+      }));
+      if (data.titleLayout && typeof data.titleLayout === 'object') {
+        state.titleLayout = {
+          dx: clamp(data.titleLayout.dx, -1000, 1000, 0),
+          dy: clamp(data.titleLayout.dy, -1000, 1000, 0),
+          widthScale: clamp(data.titleLayout.widthScale, .35, 1.6, 1),
+          fontScale: clamp(data.titleLayout.fontScale, .45, 2.2, 1),
+          align: ['left','center','right'].includes(data.titleLayout.align) ? data.titleLayout.align : 'left'
+        };
+      }
     } catch (_) {}
   }
 
@@ -153,6 +193,76 @@
     if ($('statusDebug')) $('statusDebug').textContent = debug || '';
   }
 
+  function presetPrompt(id = state.preset) {
+    if (state.promptLanguage === 'ko') return PRESET_PROMPTS_KO[id] || PRESET_PROMPTS_KO.public;
+    return PRESETS[id]?.prompt || PRESETS.public.prompt;
+  }
+
+  function syncPromptLanguageUi(replaceDefault = false) {
+    qa('input[name="promptLanguage"]').forEach(input => { input.checked = input.value === state.promptLanguage; });
+    const hint = $('promptLanguageHint');
+    if (hint) hint.textContent = state.promptLanguage === 'ko'
+      ? '한글 모드 · 프리셋 설명도 한글로 입력됩니다.'
+      : 'English mode · preset instructions are written in English.';
+    const prompt = $('stylePrompt');
+    if (prompt) {
+      prompt.placeholder = state.promptLanguage === 'ko'
+        ? '원하는 디자인 방향을 한글로 자유롭게 입력하세요.'
+        : 'Describe the desired design direction in English.';
+      if (replaceDefault || !String(prompt.value || '').trim()) prompt.value = presetPrompt();
+    }
+  }
+
+  function renderCustomFields() {
+    const root = $('customFields');
+    if (!root) return;
+    root.replaceChildren();
+    if (!state.customFields.length) {
+      const empty = document.createElement('div');
+      empty.className = 'custom-field-empty';
+      empty.textContent = '추가 항목이 없습니다.';
+      root.appendChild(empty);
+      return;
+    }
+    state.customFields.forEach(item => {
+      const row = document.createElement('div');
+      row.className = 'custom-field-row';
+      row.dataset.customId = item.id;
+      const label = document.createElement('input');
+      label.type = 'text'; label.maxLength = 40; label.placeholder = '항목명'; label.value = item.label;
+      label.dataset.customLabel = '1'; label.setAttribute('aria-label','추가 항목명');
+      const value = document.createElement('input');
+      value.type = 'text'; value.maxLength = 220; value.placeholder = '내용'; value.value = item.value;
+      value.dataset.customValue = '1'; value.setAttribute('aria-label','추가 항목 내용');
+      const remove = document.createElement('button');
+      remove.type = 'button'; remove.className = 'custom-field-remove'; remove.textContent = '×';
+      remove.title = '항목 삭제'; remove.setAttribute('aria-label','추가 항목 삭제');
+      const update = () => {
+        item.label = label.value;
+        item.value = value.value;
+        saveLocal();
+        scheduleRender();
+      };
+      label.addEventListener('input', update); value.addEventListener('input', update);
+      remove.addEventListener('click', () => {
+        state.customFields = state.customFields.filter(x => x.id !== item.id);
+        renderCustomFields(); saveLocal(); scheduleRender();
+      });
+      row.append(label,value,remove); root.appendChild(row);
+    });
+  }
+
+  function addCustomField() {
+    if (state.customFields.length >= 12) {
+      setStatus('추가 항목은 최대 12개까지 가능합니다.','필요 없는 항목을 삭제한 뒤 다시 추가해 주세요.','error');
+      return;
+    }
+    const item = { id: 'custom-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,6), label: '', value: '' };
+    state.customFields.push(item);
+    renderCustomFields(); saveLocal(); scheduleRender();
+    requestAnimationFrame(() => document.querySelector('[data-custom-id="'+item.id+'"] input')?.focus());
+  }
+
   function setupPresetCards() {
     const root = $('styleCards');
     if (!root) return;
@@ -178,7 +288,7 @@
       button.classList.toggle('active', active);
       button.setAttribute('aria-checked', String(active));
     });
-    if (replacePrompt && $('stylePrompt')) $('stylePrompt').value = PRESETS[id].prompt;
+    if (replacePrompt && $('stylePrompt')) $('stylePrompt').value = presetPrompt(id);
     saveLocal();
   }
 
@@ -340,11 +450,33 @@
     const safe=Math.min(spec.safe,spec.trimW*.15,spec.trimH*.15)*scale;
     const ptPx=pt=>pt*25.4/72*scale;
     const list=[], add=item=>{if(String(item.text||'').trim())list.push(item);};
-    add({text:v.title,x:frontX+safe,y:b+th*.12,w:Math.max(1,tw-safe*2),h:th*.20,fontPt:titlePt(v.title,spec.trimW),weight:900});
-    add({text:v.subtitle,x:frontX+safe,y:b+th*.34,w:Math.max(1,tw-safe*2),h:th*.12,fontPt:17,weight:700});
-    add({text:v.dateText,x:frontX+safe,y:b+th*.61,w:Math.max(1,tw-safe*2),h:th*.06,fontPt:10,weight:700});
-    add({text:v.department,x:frontX+safe,y:b+th*.68,w:Math.max(1,tw-safe*2),h:th*.07,fontPt:10,weight:700});
-    add({text:v.organization,x:frontX+safe,y:b+th*.87,w:Math.max(1,tw-safe*2),h:th*.07,fontPt:11,weight:850});
+    const baseTitleW=Math.max(1,tw-safe*2);
+    add({
+      id:'title',
+      text:v.title,
+      x:frontX+safe+state.titleLayout.dx*scale,
+      y:b+th*.12+state.titleLayout.dy*scale,
+      w:Math.max(tw*.20,baseTitleW*state.titleLayout.widthScale),
+      h:th*.24,
+      fontPt:titlePt(v.title,spec.trimW)*state.titleLayout.fontScale,
+      weight:900,
+      align:state.titleLayout.align
+    });
+    add({id:'subtitle',text:v.subtitle,x:frontX+safe,y:b+th*.34,w:Math.max(1,tw-safe*2),h:th*.12,fontPt:17,weight:700});
+    const eventLines=[
+      v.eventDate ? '일시  '+v.eventDate : '',
+      v.eventPlace ? '장소  '+v.eventPlace : '',
+      v.hostText ? '주최  '+v.hostText : '',
+      v.organizerText ? '주관  '+v.organizerText : '',
+      ...v.customFields.map(item => {
+        const label=String(item.label||'').trim(), value=String(item.value||'').trim();
+        return label && value ? label+'  '+value : value || label;
+      })
+    ].filter(Boolean);
+    add({id:'eventInfo',text:eventLines.join('\n'),x:frontX+safe,y:b+th*.52,w:Math.max(1,tw-safe*2),h:th*.22,fontPt:9.2,weight:720});
+    add({text:v.dateText,x:frontX+safe,y:b+th*.77,w:Math.max(1,tw-safe*2),h:th*.045,fontPt:9.5,weight:700});
+    add({text:v.department,x:frontX+safe,y:b+th*.82,w:Math.max(1,tw-safe*2),h:th*.045,fontPt:9.5,weight:700});
+    add({text:v.organization,x:frontX+safe,y:b+th*.89,w:Math.max(1,tw-safe*2),h:th*.06,fontPt:11,weight:850});
     add({text:v.backText,x:backX+safe,y:b+th*.16,w:Math.max(1,tw-safe*2),h:th*.58,fontPt:10.5,weight:600});
     add({text:v.contact,x:backX+safe,y:b+th*.84,w:Math.max(1,tw-safe*2),h:th*.12,fontPt:9,weight:750});
     if(spec.spine>=4&&v.spineTitle){
@@ -425,7 +557,91 @@
     const color=$('textColor')?.value||'#ffffff';
     textLayout(spec,fit.scale).forEach(item=>drawTextItem(ctx,item,color));
     drawGuides(ctx,spec,fit.scale);
+    if ($('cropMarkToggle')?.checked) drawCropMarks(ctx,spec,fit.scale);
+    drawTitleSelection(ctx,spec,fit.scale);
     updateGeometry();
+  }
+
+  function drawCropMarks(ctx,spec,scale) {
+    const b=spec.bleed*scale,w=spec.workW*scale,h=spec.workH*scale;
+    const left=b,right=w-b,top=b,bottom=h-b;
+    const len=Math.max(5,Math.min(18,(spec.bleed||3)*scale*.82));
+    const gap=Math.max(1,.45*scale);
+    ctx.save();ctx.strokeStyle='rgba(15,23,42,.92)';ctx.lineWidth=Math.max(.65,.22*scale);ctx.setLineDash([]);
+    const seg=(x1,y1,x2,y2)=>{ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();};
+    seg(left,Math.max(0,top-gap-len),left,Math.max(0,top-gap));
+    seg(right,Math.max(0,top-gap-len),right,Math.max(0,top-gap));
+    seg(left,Math.min(h,bottom+gap),left,Math.min(h,bottom+gap+len));
+    seg(right,Math.min(h,bottom+gap),right,Math.min(h,bottom+gap+len));
+    seg(Math.max(0,left-gap-len),top,Math.max(0,left-gap),top);
+    seg(Math.max(0,left-gap-len),bottom,Math.max(0,left-gap),bottom);
+    seg(Math.min(w,right+gap),top,Math.min(w,right+gap+len),top);
+    seg(Math.min(w,right+gap),bottom,Math.min(w,right+gap+len),bottom);
+    ctx.restore();
+  }
+
+  function titleItem(spec=currentSpec(),scale=1) {
+    return textLayout(spec,scale).find(item => item.id === 'title') || null;
+  }
+
+  function drawTitleSelection(ctx,spec,scale) {
+    if (!state.titleSelected || !String($('title')?.value || '').trim()) return;
+    const item=titleItem(spec,scale); if(!item)return;
+    ctx.save();
+    ctx.strokeStyle='#7c3aed';ctx.lineWidth=1.5;ctx.setLineDash([5,4]);ctx.strokeRect(item.x-3,item.y-3,item.w+6,item.h+6);
+    ctx.setLineDash([]);ctx.fillStyle='#7c3aed';
+    const hs=10;ctx.fillRect(item.x+item.w-hs/2,item.y+item.h-hs/2,hs,hs);
+    ctx.restore();
+  }
+
+  function canvasPoint(event) {
+    const canvas=$('previewCanvas'),rect=canvas?.getBoundingClientRect();
+    if(!canvas||!rect||!rect.width||!rect.height)return null;
+    return {x:(event.clientX-rect.left)*(canvas.clientWidth/rect.width),y:(event.clientY-rect.top)*(canvas.clientHeight/rect.height)};
+  }
+
+  function bindTitleCanvasEditing() {
+    const canvas=$('previewCanvas'); if(!canvas)return;
+    canvas.addEventListener('pointerdown',event=>{
+      const point=canvasPoint(event),spec=currentSpec(),fit=canvasFitSize(spec),item=titleItem(spec,fit.scale);
+      if(!point||!item||!String(item.text||'').trim())return;
+      const hs=18;
+      const onHandle=point.x>=item.x+item.w-hs&&point.x<=item.x+item.w+hs&&point.y>=item.y+item.h-hs&&point.y<=item.y+item.h+hs;
+      const inside=point.x>=item.x-5&&point.x<=item.x+item.w+5&&point.y>=item.y-5&&point.y<=item.y+item.h+5;
+      if(!inside&&!onHandle){state.titleSelected=false;scheduleRender();return;}
+      event.preventDefault();state.titleSelected=true;canvas.setPointerCapture?.(event.pointerId);
+      state.titlePointer={
+        id:event.pointerId,mode:onHandle?'resize':'move',startX:point.x,startY:point.y,
+        start:{...state.titleLayout},baseW:Math.max(1,item.w/state.titleLayout.widthScale),baseH:item.h,scale:fit.scale
+      };
+      scheduleRender();
+    });
+    canvas.addEventListener('pointermove',event=>{
+      const drag=state.titlePointer;if(!drag||drag.id!==event.pointerId)return;
+      const point=canvasPoint(event);if(!point)return;event.preventDefault();
+      const dx=point.x-drag.startX,dy=point.y-drag.startY;
+      if(drag.mode==='move'){
+        state.titleLayout.dx=clamp(drag.start.dx+dx/drag.scale,-currentSpec().trimW,currentSpec().trimW,0);
+        state.titleLayout.dy=clamp(drag.start.dy+dy/drag.scale,-currentSpec().trimH,currentSpec().trimH,0);
+      }else{
+        state.titleLayout.widthScale=clamp(drag.start.widthScale+dx/drag.baseW,.35,1.6,1);
+        state.titleLayout.fontScale=clamp(drag.start.fontScale+dy/Math.max(70,drag.baseH)*1.5,.45,2.2,1);
+      }
+      saveLocal();scheduleRender();
+    });
+    const finish=event=>{
+      if(state.titlePointer&&(!event||state.titlePointer.id===event.pointerId)){state.titlePointer=null;saveLocal();scheduleRender();}
+    };
+    canvas.addEventListener('pointerup',finish);canvas.addEventListener('pointercancel',finish);
+  }
+
+  function resetTitleLayout() {
+    state.titleLayout={dx:0,dy:0,widthScale:1,fontScale:1,align:'left'};
+    state.titleSelected=true;syncTitleAlignButtons();saveLocal();scheduleRender();
+  }
+
+  function syncTitleAlignButtons() {
+    qa('[data-title-align]').forEach(button=>button.classList.toggle('active',button.dataset.titleAlign===state.titleLayout.align));
   }
 
   function waitForImage(image){
@@ -500,7 +716,7 @@
     const button=$('generateBtn');button.disabled=true;
     setStatus('AI 배경을 생성하고 있습니다.','표지 비율에 맞는 배경을 만드는 중입니다. 생성에는 시간이 걸릴 수 있습니다.','busy');
     try{
-      const prompt=String($('stylePrompt')?.value||PRESETS[state.preset].prompt).trim();
+      const prompt=String($('stylePrompt')?.value||presetPrompt()).trim();
       const designGuardrails=[
         'Art direction: contemporary editorial publication design; polished, restrained, confident, and print-focused.',
         'Use generous negative space, a disciplined grid, controlled contrast, and a limited cohesive color system.',
@@ -552,27 +768,85 @@
     return new Blob(parts,{type:'image/png'});
   }
 
+  async function buildExportCanvas() {
+    const spec=currentSpec(),ppm=EXPORT_DPI/25.4,w=Math.round(spec.workW*ppm),h=Math.round(spec.workH*ppm),pixels=w*h;
+    if(pixels>MAX_EXPORT_PIXELS)throw Object.assign(new Error('현재 규격은 '+(pixels/1e6).toFixed(1)+'MP로 300dpi 저장 한도를 초과합니다.'),{code:'EXPORT_PIXEL_LIMIT'});
+    await document.fonts?.ready;
+    const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;const ctx=canvas.getContext('2d');
+    ctx.drawImage(state.background,0,0,w,h);
+    drawLogo(ctx,spec,ppm);
+    const color=$('textColor')?.value||'#ffffff';
+    textLayout(spec,ppm).forEach(item=>drawTextItem(ctx,item,color,item.fontPt*EXPORT_DPI/72));
+    if($('cropMarkToggle')?.checked)drawCropMarks(ctx,spec,ppm);
+    return {canvas,spec,w,h};
+  }
+
   async function exportPng(){
     if(!state.background){setStatus('먼저 AI 배경을 생성해 주세요.','생성된 배경이 있어야 300dpi로 저장할 수 있습니다.','error');return;}
     const spec=currentSpec();
     if(state.generatedSpecKey!==specKey(spec)){setStatus('규격이 변경되었습니다.','현재 규격으로 AI 배경을 다시 생성한 뒤 저장해 주세요.','error');return;}
-    const ppm=EXPORT_DPI/25.4,w=Math.round(spec.workW*ppm),h=Math.round(spec.workH*ppm),pixels=w*h;
-    if(pixels>MAX_EXPORT_PIXELS){setStatus('300dpi 저장 한도를 초과했습니다.','현재 규격은 '+(pixels/1e6).toFixed(1)+'MP입니다. 규격 또는 날개 폭을 확인해 주세요.','error');return;}
     const button=$('exportBtn');button.disabled=true;
-    setStatus('300dpi 파일을 만들고 있습니다.','배경과 한글 문구·책등·로고를 실제 인쇄 크기로 합성하는 중입니다.','busy');
+    setStatus('300dpi PNG를 만들고 있습니다.','배경·문구·책등·로고'+($('cropMarkToggle')?.checked?'·재단선':'')+'을 실제 인쇄 크기로 합성하는 중입니다.','busy');
     try{
-      await document.fonts?.ready;
-      const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;const ctx=canvas.getContext('2d');
-      ctx.drawImage(state.background,0,0,w,h);
-      drawLogo(ctx,spec,ppm);
-      const color=$('textColor')?.value||'#ffffff';
-      textLayout(spec,ppm).forEach(item=>drawTextItem(ctx,item,color,item.fontPt*EXPORT_DPI/72));
+      const {canvas}=await buildExportCanvas();
       const raw=await canvasBlob(canvas),png=await withPngDpi(raw,EXPORT_DPI),url=URL.createObjectURL(png),a=document.createElement('a');
       a.href=url;a.download='cover-'+spec.trimW+'x'+spec.trimH+'-spine-'+spec.spine+'mm-300dpi.png';a.click();setTimeout(()=>URL.revokeObjectURL(url),4000);
-      setStatus('300dpi 저장 완료','실제 전체 펼침 규격과 300dpi 메타데이터로 PNG를 저장했습니다.','ok');
+      setStatus('PNG 저장 완료','실제 전체 펼침 규격과 300dpi 메타데이터로 이미지를 저장했습니다.','ok');
     }catch(error){setStatus('PNG 저장 실패',error.message||'파일 저장 중 오류가 발생했습니다.','error');}
     finally{button.disabled=false;}
   }
+
+  function asciiBytes(text){return new TextEncoder().encode(text);}
+  function concatBytes(parts){const size=parts.reduce((n,p)=>n+p.length,0),out=new Uint8Array(size);let off=0;parts.forEach(p=>{out.set(p,off);off+=p.length;});return out;}
+  function pdfFromJpeg(jpeg,width,height,pageWidthPt,pageHeightPt){
+    const content='q '+pageWidthPt.toFixed(3)+' 0 0 '+pageHeightPt.toFixed(3)+' 0 0 cm /Im0 Do Q';
+    const bodies=[
+      '<< /Type /Catalog /Pages 2 0 R >>',
+      '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+      '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 '+pageWidthPt.toFixed(3)+' '+pageHeightPt.toFixed(3)+'] /Resources << /XObject << /Im0 4 0 R >> >> /Contents 5 0 R >>',
+      null,
+      '<< /Length '+asciiBytes(content).length+' >>\nstream\n'+content+'\nendstream'
+    ];
+    const parts=[asciiBytes('%PDF-1.4\n%AI Design Maker\n')],offsets=[0];
+    let offset=parts[0].length;
+    for(let i=0;i<5;i++){
+      offsets[i+1]=offset;
+      const head=asciiBytes((i+1)+' 0 obj\n');
+      let body;
+      if(i===3){
+        const meta=asciiBytes('<< /Type /XObject /Subtype /Image /Width '+width+' /Height '+height+' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length '+jpeg.length+' >>\nstream\n');
+        body=concatBytes([meta,jpeg,asciiBytes('\nendstream')]);
+      }else body=asciiBytes(bodies[i]);
+      const tail=asciiBytes('\nendobj\n');
+      parts.push(head,body,tail);offset+=head.length+body.length+tail.length;
+    }
+    const xrefOffset=offset;
+    let xref='xref\n0 6\n0000000000 65535 f \n';
+    for(let i=1;i<=5;i++)xref+=String(offsets[i]).padStart(10,'0')+' 00000 n \n';
+    xref+='trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n'+xrefOffset+'\n%%EOF';
+    parts.push(asciiBytes(xref));
+    return new Blob(parts,{type:'application/pdf'});
+  }
+
+  async function exportPdf(){
+    if(!state.background){setStatus('먼저 AI 배경을 생성해 주세요.','생성된 배경이 있어야 PDF로 저장할 수 있습니다.','error');return;}
+    const spec=currentSpec();
+    if(state.generatedSpecKey!==specKey(spec)){setStatus('규격이 변경되었습니다.','현재 규격으로 AI 배경을 다시 생성한 뒤 저장해 주세요.','error');return;}
+    const button=$('exportBtn');button.disabled=true;
+    setStatus('인쇄용 PDF를 만들고 있습니다.','300dpi 디자인을 실제 전체 펼침 크기의 1페이지 PDF로 만드는 중입니다.','busy');
+    try{
+      const {canvas,w,h}=await buildExportCanvas();
+      const jpegBlob=await new Promise((resolve,reject)=>canvas.toBlob(blob=>blob?resolve(blob):reject(new Error('PDF용 이미지 데이터를 만들지 못했습니다.')),'image/jpeg',.98));
+      const jpeg=new Uint8Array(await jpegBlob.arrayBuffer());
+      const pdf=pdfFromJpeg(jpeg,w,h,spec.workW*72/25.4,spec.workH*72/25.4),url=URL.createObjectURL(pdf),a=document.createElement('a');
+      a.href=url;a.download='cover-'+spec.trimW+'x'+spec.trimH+'-spine-'+spec.spine+'mm-300dpi.pdf';a.click();setTimeout(()=>URL.revokeObjectURL(url),4000);
+      setStatus('PDF 저장 완료','전체 펼침 실제 규격의 인쇄용 PDF로 저장했습니다.','ok');
+    }catch(error){setStatus('PDF 저장 실패',error.message||'PDF 저장 중 오류가 발생했습니다.','error');}
+    finally{button.disabled=false;}
+  }
+
+  function exportDesign(){return $('exportFormat')?.value==='pdf'?exportPdf():exportPng();}
+  function syncExportButton(){if($('exportBtn'))$('exportBtn').textContent=$('exportFormat')?.value==='pdf'?'300dpi PDF 저장':'300dpi PNG 저장';}
 
   function resetAll(){
     if(!confirm('입력한 문구와 설정을 초기화할까요?'))return;
@@ -594,12 +868,12 @@
   }
 
   function bind(){
-    loadLocal();setupPresetCards();syncWing();syncSpineTitle();
-    if(!$('stylePrompt').value)$('stylePrompt').value=PRESETS[state.preset].prompt;
+    loadLocal();setupPresetCards();syncWing();syncSpineTitle();renderCustomFields();syncPromptLanguageUi(false);syncTitleAlignButtons();syncExportButton();
+    if(!$('stylePrompt').value)$('stylePrompt').value=presetPrompt();
     qa('.size-chip').forEach(button=>button.addEventListener('click',()=>{
       const [w,h]=button.dataset.size.split(',');$('trimW').value=w;$('trimH').value=h;qa('.size-chip').forEach(x=>x.classList.toggle('active',x===button));saveLocal();scheduleRender();
     }));
-    const watched=['trimW','trimH','spine','bleed','safeZone','wingW','title','subtitle','dateText','department','organization','backText','contact','spineTitle','spineDate','spineCompany','spineOrientation','primaryColor','textColor','theme','stylePrompt'];
+    const watched=['trimW','trimH','spine','bleed','safeZone','wingW','title','subtitle','dateText','department','organization','eventDate','eventPlace','hostText','organizerText','backText','contact','spineTitle','spineDate','spineCompany','spineOrientation','primaryColor','textColor','theme','stylePrompt'];
     watched.forEach(id=>$(id)?.addEventListener('input',()=>{if(id==='title')syncSpineTitle();saveLocal();updateProgress();scheduleRender();}));
     $('wingEnabled')?.addEventListener('change',()=>{syncWing();saveLocal();scheduleRender();});
     $('spineSync')?.addEventListener('change',()=>{syncSpineTitle();saveLocal();updateProgress();scheduleRender();});
@@ -609,8 +883,26 @@
     $('aiDesignSessionLoadBtn')?.addEventListener('click',loadSessionNow);
     qa('[data-jump]').forEach(button=>button.addEventListener('click',()=>jumpToSection(button.dataset.jump)));
     $('guideToggle')?.addEventListener('change',scheduleRender);
+    $('cropMarkToggle')?.addEventListener('change',scheduleRender);
     $('generateBtn')?.addEventListener('click',generate);
-    $('exportBtn')?.addEventListener('click',exportPng);
+    $('exportBtn')?.addEventListener('click',exportDesign);
+    $('exportFormat')?.addEventListener('change',syncExportButton);
+    $('addCustomFieldBtn')?.addEventListener('click',addCustomField);
+    qa('input[name="promptLanguage"]').forEach(input=>input.addEventListener('change',()=>{
+      const previous=state.promptLanguage;
+      const oldDefaults=Object.keys(PRESETS).flatMap(id=>[PRESETS[id].prompt,PRESET_PROMPTS_KO[id]]);
+      const current=String($('stylePrompt')?.value||'').trim();
+      state.promptLanguage=input.value==='en'?'en':'ko';
+      syncPromptLanguageUi(!current||oldDefaults.includes(current));
+      saveLocal();updateProgress();
+      if(previous!==state.promptLanguage)scheduleRender();
+    }));
+    qa('[data-title-align]').forEach(button=>button.addEventListener('click',()=>{
+      state.titleLayout.align=button.dataset.titleAlign;
+      state.titleSelected=true;syncTitleAlignButtons();saveLocal();scheduleRender();
+    }));
+    $('resetTitleLayout')?.addEventListener('click',resetTitleLayout);
+    bindTitleCanvasEditing();
     $('resetBtn')?.addEventListener('click',resetAll);
     $('logoInput')?.addEventListener('change',event=>loadLogo(event.target.files?.[0]));
     $('clearLogo')?.addEventListener('click',clearLogo);

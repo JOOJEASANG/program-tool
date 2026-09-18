@@ -36,14 +36,14 @@ def test_design_review_no_longer_loads_ai_maker_runtime():
     assert 'id="previewCanvas"' in maker
     assert 'id="generateBtn"' in maker
     assert 'id="exportBtn"' in maker
-    assert "/js/ai-design-maker.js?v=20260918-7" in maker
+    assert "/js/ai-design-maker.js?v=20260918-8" in maker
 
 
 def test_ai_design_maker_has_easy_cover_workflow_and_diagnostics():
     page = (ROOT / "ai-design-maker/index.html").read_text(encoding="utf-8")
     source = (ROOT / "js/ai-design-maker.js").read_text(encoding="utf-8")
 
-    for label in ("인쇄 규격", "표지 문구", "AI 디자인", "전체 펼침 미리보기", "AI 배경 생성", "300dpi PNG 저장"):
+    for label in ("인쇄 규격", "표지 문구", "AI 디자인", "전체 펼침 미리보기", "AI 배경 생성", "300dpi 다운로드"):
         assert label in page
     for field_id in ("trimW", "trimH", "spine", "bleed", "safeZone", "wingEnabled", "wingW"):
         assert f'id="{field_id}"' in page
@@ -106,3 +106,52 @@ def test_ai_design_manual_button_sits_next_to_program_title():
     assert page.index('<strong>AI 디자인 제작</strong>') < page.index('id="productPickerTitle"')
     assert '.program-title-row{' in style
     assert '.program-title-copy strong{' in style
+
+
+def test_ai_design_maker_supports_bilingual_requests_and_event_copy_fields():
+    page = (ROOT / "ai-design-maker/index.html").read_text(encoding="utf-8")
+    source = (ROOT / "js/ai-design-maker.js").read_text(encoding="utf-8")
+
+    for field_id in ("eventDate", "eventPlace", "hostText", "organizerText", "customFields", "addCustomFieldBtn"):
+        assert f'id="{field_id}"' in page
+    assert 'name="promptLanguage" value="ko"' in page
+    assert 'name="promptLanguage" value="en"' in page
+    assert "PRESET_PROMPTS_KO" in source
+    assert "promptLanguage: 'ko'" in source
+    assert "function renderCustomFields()" in source
+    assert "function addCustomField()" in source
+    assert "추가 항목은 최대 12개" in source
+    assert "eventLines.join('\\n')" in source
+
+
+def test_ai_design_maker_title_is_mouse_editable_and_persisted():
+    page = (ROOT / "ai-design-maker/index.html").read_text(encoding="utf-8")
+    source = (ROOT / "js/ai-design-maker.js").read_text(encoding="utf-8")
+
+    assert 'id="titleEditBar"' in page
+    for align in ("left", "center", "right"):
+        assert f'data-title-align="{align}"' in page
+    assert 'id="resetTitleLayout"' in page
+    assert "titleLayout:" in source
+    assert "bindTitleCanvasEditing()" in source
+    assert "canvas.addEventListener('pointerdown'" in source
+    assert "canvas.addEventListener('pointermove'" in source
+    assert "widthScale" in source
+    assert "fontScale" in source
+    assert "syncTitleAlignButtons()" in source
+
+
+def test_ai_design_maker_exports_png_pdf_and_crop_marks():
+    page = (ROOT / "ai-design-maker/index.html").read_text(encoding="utf-8")
+    source = (ROOT / "js/ai-design-maker.js").read_text(encoding="utf-8")
+
+    assert 'id="cropMarkToggle"' in page
+    assert '<option value="png">이미지 · PNG</option>' in page
+    assert '<option value="pdf">PDF</option>' in page
+    assert "function drawCropMarks(" in source
+    assert "if($('cropMarkToggle')?.checked)drawCropMarks" in source
+    assert "async function exportPng()" in source
+    assert "async function exportPdf()" in source
+    assert "function pdfFromJpeg(" in source
+    assert "application/pdf" in source
+    assert "exportDesign()" in source
