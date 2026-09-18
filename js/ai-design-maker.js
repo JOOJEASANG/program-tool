@@ -275,7 +275,12 @@
       const update = () => {
         item.label = label.value;
         item.value = value.value;
+        const textId='custom:'+item.id;
+        const layout=state.textLayouts[textId];
+        if(layout&&Object.prototype.hasOwnProperty.call(layout,'text'))delete layout.text;
+        if(state.selectedTextId===textId)state.selectedTextUiId='';
         saveLocal();
+        syncTextEditUi();
         scheduleRender();
       };
       label.addEventListener('input', update); value.addEventListener('input', update);
@@ -519,6 +524,30 @@
     }
     return '문구';
   }
+  const DIRECT_TEXT_SOURCE_IDS = new Set(['title','subtitle','dateText','department','organization','backText','contact','spineTitle','spineDate','spineCompany']);
+
+  function selectedTextItem(){
+    if(!state.selectedTextId)return null;
+    return textLayout(currentSpec(),1).find(item=>item.id===state.selectedTextId)||null;
+  }
+
+  function setSelectedTextContent(value){
+    const id=state.selectedTextId;if(!id)return;
+    const layout=textLayoutState(id);
+    layout.text=String(value||'').slice(0,700);
+    if(DIRECT_TEXT_SOURCE_IDS.has(id)&&$(id)){
+      $(id).value=layout.text;
+      if(id==='title')syncSpineTitle();
+    }
+    saveLocal();updateProgress();scheduleRender();
+  }
+
+  function clearTextOverrideForSource(id){
+    const layout=state.textLayouts[id];
+    if(layout&&Object.prototype.hasOwnProperty.call(layout,'text'))delete layout.text;
+    if(state.selectedTextId===id)state.selectedTextUiId='';
+  }
+
 
   function applyTextEdit(item,spec,scale) {
     if(!item.id)return item;
@@ -770,11 +799,26 @@
     const label=$('selectedTextLabel');
     if(label)label.textContent=selected?textItemLabel(selected):'문구를 클릭해 선택';
     const layout=selected?textLayoutState(selected):null;
+    const item=selected?selectedTextItem():null;
+    const panel=$('textStylePanel');
+    if(panel)panel.hidden=!selected||!item;
     qa('[data-text-align]').forEach(button=>{
       button.disabled=!selected;
       button.classList.toggle('active',Boolean(layout&&button.dataset.textAlign===layout.align));
     });
     if($('resetTextLayout'))$('resetTextLayout').disabled=!selected;
+    if(!selected||!item){
+      state.selectedTextUiId='';
+      return;
+    }
+    const content=$('selectedTextValue');
+    if(content&&(state.selectedTextUiId!==selected||document.activeElement!==content))content.value=item.text||'';
+    if($('selectedFontFamily'))$('selectedFontFamily').value=normalizeFontFamily(item.fontFamily)||'Pretendard';
+    if($('selectedFontSize')&&document.activeElement!==$('selectedFontSize'))$('selectedFontSize').value=Number(item.fontPt||10).toFixed(1);
+    if($('selectedFontWeight'))$('selectedFontWeight').value=String(normalizeFontWeight(item.weight)||700);
+    if($('selectedLineHeight')&&document.activeElement!==$('selectedLineHeight'))$('selectedLineHeight').value=Number(item.lineHeight||1.2).toFixed(2);
+    if($('selectedTextColor'))$('selectedTextColor').value=normalizeColor(item.color)||normalizeColor($('textColor')?.value)||'#ffffff';
+    state.selectedTextUiId=selected;
   }
 
   function bindTextCanvasEditing(){
@@ -831,8 +875,15 @@
 
   function resetSelectedTextLayout(){
     if(!state.selectedTextId)return;
+    const current=textLayoutState(state.selectedTextId);
     const item=textLayout(currentSpec(),1).find(entry=>entry.id===state.selectedTextId);
-    state.textLayouts[state.selectedTextId]={dx:0,dy:0,widthScale:1,fontScale:1,align:item?.rotate||item?.vertical?'center':'left'};
+    const reset={
+      dx:0,dy:0,widthScale:1,fontScale:1,align:item?.rotate||item?.vertical?'center':'left',
+      fontFamily:'',fontSizePt:0,fontWeight:0,lineHeight:1.2,color:''
+    };
+    if(Object.prototype.hasOwnProperty.call(current,'text'))reset.text=current.text;
+    state.textLayouts[state.selectedTextId]=reset;
+    state.selectedTextUiId='';
     saveLocal();syncTextEditUi();scheduleRender();
   }
 
@@ -1103,7 +1154,11 @@
       const [w,h]=button.dataset.size.split(',');$('trimW').value=w;$('trimH').value=h;qa('.size-chip').forEach(x=>x.classList.toggle('active',x===button));saveLocal();scheduleRender();
     }));
     const watched=['trimW','trimH','spine','bleed','safeZone','wingW','title','subtitle','dateText','department','organization','eventDate','eventPlace','hostText','organizerText','backText','contact','spineTitle','spineDate','spineCompany','spineOrientation','primaryColor','textColor','theme','stylePrompt'];
-    watched.forEach(id=>$(id)?.addEventListener('input',()=>{if(id==='title')syncSpineTitle();saveLocal();updateProgress();scheduleRender();}));
+    watched.forEach(id=>$(id)?.addEventListener('input',()=>{
+      if(['title','subtitle','dateText','department','organization','eventDate','eventPlace','hostText','organizerText','backText','contact','spineTitle','spineDate','spineCompany'].includes(id))clearTextOverrideForSource(id);
+      if(id==='title')syncSpineTitle();
+      saveLocal();updateProgress();syncTextEditUi();scheduleRender();
+    }));
     $('wingEnabled')?.addEventListener('change',()=>{syncWing();saveLocal();scheduleRender();});
     $('spineSync')?.addEventListener('change',()=>{syncSpineTitle();saveLocal();updateProgress();scheduleRender();});
     $('fillSpineBtn')?.addEventListener('click',fillSpineFromCover);
@@ -1131,6 +1186,33 @@
       textLayoutState(state.selectedTextId).align=button.dataset.textAlign;
       syncTextEditUi();saveLocal();scheduleRender();
     }));
+    $('selectedTextValue')?.addEventListener('input',event=>setSelectedTextContent(event.target.value));
+    $('selectedFontFamily')?.addEventListener('change',event=>{
+      if(!state.selectedTextId)return;
+      textLayoutState(state.selectedTextId).fontFamily=normalizeFontFamily(event.target.value);
+      saveLocal();syncTextEditUi();scheduleRender();
+    });
+    $('selectedFontSize')?.addEventListener('input',event=>{
+      if(!state.selectedTextId)return;
+      const layout=textLayoutState(state.selectedTextId);
+      layout.fontSizePt=clamp(event.target.value,4,160,10);layout.fontScale=1;
+      saveLocal();scheduleRender();
+    });
+    $('selectedFontWeight')?.addEventListener('change',event=>{
+      if(!state.selectedTextId)return;
+      textLayoutState(state.selectedTextId).fontWeight=normalizeFontWeight(event.target.value)||700;
+      saveLocal();syncTextEditUi();scheduleRender();
+    });
+    $('selectedLineHeight')?.addEventListener('input',event=>{
+      if(!state.selectedTextId)return;
+      textLayoutState(state.selectedTextId).lineHeight=clamp(event.target.value,.8,2.2,1.2);
+      saveLocal();scheduleRender();
+    });
+    $('selectedTextColor')?.addEventListener('input',event=>{
+      if(!state.selectedTextId)return;
+      textLayoutState(state.selectedTextId).color=normalizeColor(event.target.value);
+      saveLocal();scheduleRender();
+    });
     $('resetTextLayout')?.addEventListener('click',resetSelectedTextLayout);
     bindTextCanvasEditing();
     $('resetBtn')?.addEventListener('click',resetAll);
