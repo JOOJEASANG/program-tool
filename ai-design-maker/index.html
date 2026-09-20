@@ -8,7 +8,7 @@
   <meta name="robots" content="noindex,nofollow">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
-  <link rel="stylesheet" href="/css/ai-design-maker.css?v=20260920-6">
+  <link rel="stylesheet" href="/css/ai-design-maker.css?v=20260920-7">
   <link rel="stylesheet" href="/css/program-manual-home-modal.css?v=20260918-1">
 </head>
 <body>
@@ -184,8 +184,26 @@
               </select>
             </label>
             <div class="field-grid two">
-              <label class="field color-field"><span>배경 주조색</span><input id="primaryColor" type="color" value="#dbeaf3"></label>
-              <label class="field color-field"><span>글자색</span><input id="textColor" type="color" value="#164e6d"></label>
+              <div class="field cmyk-field"><span>배경 주조색 <em>CMYK</em></span>
+                <input id="primaryColor" type="hidden" value="#dbeaf3">
+                <div class="cmyk-grid" data-cmyk-group="primaryColor">
+                  <label>C<input id="primaryC" type="number" min="0" max="100" step="1"></label>
+                  <label>M<input id="primaryM" type="number" min="0" max="100" step="1"></label>
+                  <label>Y<input id="primaryY" type="number" min="0" max="100" step="1"></label>
+                  <label>K<input id="primaryK" type="number" min="0" max="100" step="1"></label>
+                  <i class="cmyk-swatch" id="primaryCmykSwatch" aria-hidden="true"></i>
+                </div>
+              </div>
+              <div class="field cmyk-field"><span>기본 글자색 <em>CMYK</em></span>
+                <input id="textColor" type="hidden" value="#164e6d">
+                <div class="cmyk-grid" data-cmyk-group="textColor">
+                  <label>C<input id="textC" type="number" min="0" max="100" step="1"></label>
+                  <label>M<input id="textM" type="number" min="0" max="100" step="1"></label>
+                  <label>Y<input id="textY" type="number" min="0" max="100" step="1"></label>
+                  <label>K<input id="textK" type="number" min="0" max="100" step="1"></label>
+                  <i class="cmyk-swatch" id="textCmykSwatch" aria-hidden="true"></i>
+                </div>
+              </div>
             </div>
             <label class="field"><span>주제·키워드</span><textarea id="theme" rows="3" maxlength="900" placeholder="마을교육, 지역공동체, 협력, 성장, 연결"></textarea></label>
             <div class="field prompt-field">
@@ -279,10 +297,50 @@
             <button class="secondary-button compact inspector-export-button" id="exportBtn" type="button" disabled>300dpi 다운로드</button>
           </div>
         </div>
+        <div class="element-toolbox" aria-label="편집 요소 추가">
+          <div class="element-toolbox-head"><span>ELEMENTS</span><strong>요소 추가</strong></div>
+          <div class="element-tool-buttons">
+            <button type="button" data-add-shape="line">선</button>
+            <button type="button" data-add-shape="rect">박스</button>
+            <button type="button" data-add-shape="roundRect">둥근박스</button>
+            <button type="button" data-add-shape="ellipse">원</button>
+          </div>
+          <small>방향키 0.2mm · Shift+방향키 1mm 정밀 이동</small>
+        </div>
         <div class="text-inspector-head">
-          <span>TEXT EDITOR</span>
-          <strong>문구 편집</strong>
-          <small id="inspectorSelectedLabel">미리보기에서 문구를 선택하세요.</small>
+          <span>EDITOR</span>
+          <strong id="inspectorModeTitle">문구 편집</strong>
+          <small id="inspectorSelectedLabel">미리보기에서 문구나 도형을 선택하세요.</small>
+        </div>
+        <div class="shape-inspector" id="shapeInspector" hidden>
+          <div class="shape-inspector-row">
+            <strong id="shapeInspectorTitle">도형</strong>
+            <button type="button" id="deleteShapeBtn" class="shape-delete-button">삭제</button>
+          </div>
+          <div class="shape-style-controls">
+            <label><span>선 두께 (mm)</span><input id="shapeStrokeWidth" type="number" min="0.1" max="12" step="0.1" value="0.5"></label>
+            <label><span>투명도 (%)</span><input id="shapeOpacity" type="number" min="5" max="100" step="1" value="100"></label>
+          </div>
+          <div class="shape-color-section" id="shapeFillSection">
+            <span>채움색 · CMYK</span>
+            <div class="cmyk-grid cmyk-grid-compact" data-cmyk-group="shapeFill">
+              <label>C<input id="shapeFillC" type="number" min="0" max="100" step="1"></label>
+              <label>M<input id="shapeFillM" type="number" min="0" max="100" step="1"></label>
+              <label>Y<input id="shapeFillY" type="number" min="0" max="100" step="1"></label>
+              <label>K<input id="shapeFillK" type="number" min="0" max="100" step="1"></label>
+              <i class="cmyk-swatch" id="shapeFillCmykSwatch" aria-hidden="true"></i>
+            </div>
+          </div>
+          <div class="shape-color-section">
+            <span>선색 · CMYK</span>
+            <div class="cmyk-grid cmyk-grid-compact" data-cmyk-group="shapeStroke">
+              <label>C<input id="shapeStrokeC" type="number" min="0" max="100" step="1"></label>
+              <label>M<input id="shapeStrokeM" type="number" min="0" max="100" step="1"></label>
+              <label>Y<input id="shapeStrokeY" type="number" min="0" max="100" step="1"></label>
+              <label>K<input id="shapeStrokeK" type="number" min="0" max="100" step="1"></label>
+              <i class="cmyk-swatch" id="shapeStrokeCmykSwatch" aria-hidden="true"></i>
+            </div>
+          </div>
         </div>
         <div class="text-inspector-empty" id="textInspectorEmpty">
           앞표지·뒤표지·책등 문구를 클릭하면 내용·폰트·크기·굵기·행간·색상·정렬을 여기서 편집할 수 있습니다.
@@ -314,7 +372,16 @@
               </select>
             </label>
             <label><span>행간</span><input id="selectedLineHeight" type="number" min="0.8" max="2.2" step="0.05" value="1.2"></label>
-            <label><span>글자색</span><input id="selectedTextColor" type="color" value="#ffffff"></label>
+            <div class="selected-cmyk-control">
+              <span>글자색 · CMYK</span>
+              <div class="cmyk-grid cmyk-grid-compact" data-cmyk-group="selectedText">
+                <label>C<input id="selectedTextC" type="number" min="0" max="100" step="1"></label>
+                <label>M<input id="selectedTextM" type="number" min="0" max="100" step="1"></label>
+                <label>Y<input id="selectedTextY" type="number" min="0" max="100" step="1"></label>
+                <label>K<input id="selectedTextK" type="number" min="0" max="100" step="1"></label>
+                <i class="cmyk-swatch" id="selectedTextCmykSwatch" aria-hidden="true"></i>
+              </div>
+            </div>
           </div>
           <div class="text-inspector-align" aria-label="문구 박스 위치 정렬">
             <span>문구박스 위치 · 안전영역 기준</span>
@@ -380,6 +447,6 @@
   <script defer src="/js/firebase-config.js"></script>
   <script defer src="/js/program-manuals/home-modal.js?v=20260918-1"></script>
   <script defer src="/js/program-sidebar-actions.js?v=20260918-2"></script>
-  <script defer src="/js/ai-design-maker.js?v=20260920-5"></script>
+  <script defer src="/js/ai-design-maker.js?v=20260920-6"></script>
 </body>
 </html>
