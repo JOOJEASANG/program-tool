@@ -492,7 +492,7 @@ def test_ai_design_maker_has_lightweight_cmyk_shape_editor():
     assert "function applyColorChoice(group,hex)" in source
     assert "function createShape(type)" in source
     assert "function drawShape(ctx,shape,scale)" in source
-    assert "strokeEnabled:type==='line'?true:item?.strokeEnabled!==false" in source
+    assert "strokeEnabled:type==='line'?true:item?.strokeEnabled===true" in source
     assert "shape.strokeEnabled=!event.target.checked" in source
     assert "shape.opacity=clamp(Number(event.target.value)/100,0,1,1)" in source
     assert "function alignSelectedElements(mode)" in source
