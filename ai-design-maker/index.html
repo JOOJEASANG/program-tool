@@ -8,7 +8,7 @@
   <meta name="robots" content="noindex,nofollow">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
-  <link rel="stylesheet" href="/css/ai-design-maker.css?v=20260918-16">
+  <link rel="stylesheet" href="/css/ai-design-maker.css?v=20260920-1">
   <link rel="stylesheet" href="/css/program-manual-home-modal.css?v=20260918-1">
 </head>
 <body>
@@ -114,9 +114,22 @@
             </div>
 
             <div id="spineFields">
-              <div class="subsection-title"><span>책등 문구</span><small>선택</small></div>
-              <label class="check-row"><input id="spineSync" type="checkbox" checked><span>앞표지 문구를 책등에 자동 사용</span></label>
-              <label class="field"><span>책등 문구</span><input id="spineTitle" maxlength="180" placeholder="2026 천안마을교육 운영사례집"></label>
+              <div class="subsection-title"><span>책등 문구</span><small>상 · 중 · 하 독립 배치</small></div>
+              <label class="check-row"><input id="spineSync" type="checkbox" checked><span>앞표지 첫 줄을 책등 중 문구에 자동 사용</span></label>
+              <div class="spine-copy-list">
+                <div class="spine-copy-row">
+                  <label class="field"><span>상 문구</span><input id="spineTop" maxlength="180" placeholder="발행기관 · 시리즈명"></label>
+                  <label class="field"><span>배치</span><select id="spineTopPlacement"><option value="auto" selected>자동정렬</option><option value="free">자유배치</option></select></label>
+                </div>
+                <div class="spine-copy-row">
+                  <label class="field"><span>중 문구</span><input id="spineMiddle" maxlength="180" placeholder="2026 천안마을교육 운영사례집"></label>
+                  <label class="field"><span>배치</span><select id="spineMiddlePlacement"><option value="auto" selected>자동정렬</option><option value="free">자유배치</option></select></label>
+                </div>
+                <div class="spine-copy-row">
+                  <label class="field"><span>하 문구</span><input id="spineBottom" maxlength="180" placeholder="천안마을교육 사회적협동조합"></label>
+                  <label class="field"><span>배치</span><select id="spineBottomPlacement"><option value="auto" selected>자동정렬</option><option value="free">자유배치</option></select></label>
+                </div>
+              </div>
               <label class="field"><span>책등 방향</span>
                 <select id="spineOrientation">
                   <option value="rotate-up">아래 → 위</option>
@@ -124,6 +137,7 @@
                   <option value="vertical">한글 세로쓰기</option>
                 </select>
               </label>
+              <div class="spine-placement-help">자동정렬은 상·중·하 권장 위치에 맞춰 배치합니다. 자유배치를 선택하거나 미리보기에서 문구를 드래그하면 원하는 위치로 옮길 수 있습니다.</div>
               <div class="spine-policy" id="spinePolicy"></div>
             </div>
           </div>
@@ -235,7 +249,7 @@
             <span class="legend"><i class="blue"></i>재단 <i class="green"></i>안전 <i class="red"></i>책등</span>
           </div>
           <div class="text-edit-bar" id="textEditBar">
-            <span><strong>문구 편집</strong> · <b id="selectedTextLabel">문구를 클릭해 선택</b> · 드래그하면 앞표지·뒤표지 가운데선에 자석처럼 맞춰집니다.</span>
+            <span><strong>문구 편집</strong> · <b id="selectedTextLabel">문구를 클릭해 선택</b> · 앞·뒤 문구는 안전영역에 스냅되고 책등 문구는 자유롭게 배치할 수 있습니다.</span>
           </div>
           <div class="canvas-scroll" id="canvasScroll">
             <div class="canvas-stage" id="canvasStage">
@@ -267,7 +281,7 @@
           <small id="inspectorSelectedLabel">미리보기에서 문구를 선택하세요.</small>
         </div>
         <div class="text-inspector-empty" id="textInspectorEmpty">
-          앞표지 또는 뒤표지 문구를 클릭하면 내용·폰트·크기·굵기·행간·색상·정렬을 여기서 편집할 수 있습니다.
+          앞표지·뒤표지·책등 문구를 클릭하면 내용·폰트·크기·굵기·행간·색상·정렬을 여기서 편집할 수 있습니다.
         </div>
         <div class="text-inspector-fields" id="textInspectorFields" hidden>
           <label class="text-style-copy">
@@ -361,6 +375,6 @@
   <script defer src="/js/firebase-config.js"></script>
   <script defer src="/js/program-manuals/home-modal.js?v=20260918-1"></script>
   <script defer src="/js/program-sidebar-actions.js?v=20260918-2"></script>
-  <script defer src="/js/ai-design-maker.js?v=20260918-20"></script>
+  <script defer src="/js/ai-design-maker.js?v=20260920-1"></script>
 </body>
 </html>
