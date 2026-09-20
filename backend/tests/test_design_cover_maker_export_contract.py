@@ -36,7 +36,7 @@ def test_design_review_no_longer_loads_ai_maker_runtime():
     assert 'id="safeZone" type="number" min="0" max="80" step="0.1" value="10"' in maker
     assert 'id="generateBtn"' in maker
     assert 'id="exportBtn"' in maker
-    assert "/js/ai-design-maker.js?v=20260920-8" in maker
+    assert "/js/ai-design-maker.js?v=20260920-9" in maker
 
 
 def test_ai_design_maker_has_easy_cover_workflow_and_diagnostics():
@@ -535,3 +535,24 @@ def test_ai_design_maker_delete_key_and_decoration_templates():
     assert "function createDecorationTemplate(templateId)" in source
     assert "state.selectedElements=items.map(item=>selectionKey('shape',item.id))" in source
     assert ".decoration-template-buttons{" in style
+
+
+def test_ai_design_maker_grouping_and_clean_selection_outline():
+    page = (ROOT / "ai-design-maker/index.html").read_text(encoding="utf-8")
+    source = (ROOT / "js/ai-design-maker.js").read_text(encoding="utf-8")
+    style = (ROOT / "css/ai-design-maker.css").read_text(encoding="utf-8")
+
+    assert 'id="groupSelectionBtn"' in page
+    assert 'id="ungroupSelectionBtn"' in page
+    assert "function groupSelectedElements()" in source
+    assert "function ungroupSelectedElements()" in source
+    assert "function groupSelectionKeys(keys)" in source
+    assert "groups: state.groups" in source
+    assert "state.groups={}" in source
+    assert "(event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='g'" in source
+    assert "if(event.shiftKey)ungroupSelectedElements();else groupSelectedElements()" in source
+    assert "groupSelectionKeys(items.map(item=>selectionKey('shape',item.id)))" in source
+    assert "descriptors.forEach(({bounds})=>ctx.strokeRect" not in source
+    assert "ctx.setLineDash([]);ctx.strokeRect(group.x-4" in source
+    assert "ctx.setLineDash([5,4])" not in source
+    assert ".group-action-buttons{" in style
