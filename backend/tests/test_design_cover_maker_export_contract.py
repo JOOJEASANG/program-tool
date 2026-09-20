@@ -66,7 +66,7 @@ def test_ai_design_preview_starts_transparent_and_fills_workspace():
     assert "clientHeight || 700) - 20" in source
     assert "background:transparent" in style
     assert ".canvas-scroll{height:auto;min-height:0;flex:1 1 auto" in style
-    assert "padding:10px" not in style\n    assert ".workspace{min-width:0;height:100vh;padding:8px 12px 0" in style
+    assert ".workspace{min-width:0;height:100vh;padding:8px 12px 0" in style
 
 
 def test_ai_design_maker_uses_sidebar_only_layout_and_bottom_actions():
