@@ -127,7 +127,9 @@
     textPointer: null,
     shapes: [],
     selectedShapeId: '',
+    selectedElements: [],
     shapePointer: null,
+    groupPointer: null,
     snapGuide: null,
     backgroundSource: '',
     coverMode: 'spread',
@@ -180,9 +182,9 @@
   });
   function setCmykInputs(group,value){
     const meta=CMYK_GROUPS[group];if(!meta)return;
-    const v=normalizeCmyk(value);
-    ['C','M','Y','K'].forEach(key=>{const node=$(meta.prefix+key);if(node&&document.activeElement!==node)node.value=Math.round(v[key.toLowerCase()]);});
-    const swatch=$(meta.prefix+'CmykSwatch');if(swatch)swatch.style.background=cmykCss(v);
+    const v=normalizeCmyk(value),hex=cmykToHex(v);
+    ['C','M','Y','K'].forEach(key=>{const node=$(meta.prefix+key);if(node)node.value=Math.round(v[key.toLowerCase()]);});
+    const picker=$(meta.prefix+'ColorPicker');if(picker&&document.activeElement!==picker)picker.value=hex;
   }
   function readCmykInputs(group,fallback={c:0,m:0,y:0,k:100}){
     const meta=CMYK_GROUPS[group];if(!meta)return normalizeCmyk(fallback);
@@ -199,6 +201,46 @@
     const meta=CMYK_GROUPS[group],node=meta?.target?$(meta.target):null;if(!meta||!node)return;
     const value=readCmykInputs(group,hexToCmyk(node.value));
     node.value=cmykToHex(value);setCmykInputs(group,value);saveLocal();scheduleRender();
+  }
+  function applyColorChoice(group,hex){
+    const value=hexToCmyk(hex),meta=CMYK_GROUPS[group];if(!meta)return;
+    if(meta.target){
+      const node=$(meta.target);if(!node)return;node.value=cmykToHex(value);setCmykInputs(group,value);saveLocal();scheduleRender();return;
+    }
+    if(group==='selectedText'){
+      if(!state.selectedTextId)return;const layout=textLayoutState(state.selectedTextId);
+      layout.cmyk=value;layout.color=cmykToHex(value);setCmykInputs(group,value);saveLocal();scheduleRender();return;
+    }
+    const shape=selectedShape();if(!shape)return;
+    if(group==='shapeFill')shape.fillCmyk=value;
+    else if(group==='shapeStroke')shape.strokeCmyk=value;
+    else return;
+    setCmykInputs(group,value);saveLocal();scheduleRender();
+  }
+  const selectionKey=(kind,id)=>kind+':'+String(id||'');
+  const parseSelectionKey=key=>String(key||'').startsWith('text:')
+    ?{kind:'text',id:String(key).slice(5)}
+    :String(key||'').startsWith('shape:')?{kind:'shape',id:String(key).slice(6)}:null;
+  function selectionCount(){return Array.isArray(state.selectedElements)?state.selectedElements.length:0;}
+  function selectionHas(kind,id){return state.selectedElements.includes(selectionKey(kind,id));}
+  function clearSelection(){
+    state.selectedElements=[];state.selectedTextId='';state.selectedShapeId='';state.selectedTextUiId='';state.textPointer=null;state.shapePointer=null;state.groupPointer=null;
+  }
+  function setSingleSelection(kind,id){
+    const key=selectionKey(kind,id);state.selectedElements=[key];state.selectedTextId=kind==='text'?String(id):'';state.selectedShapeId=kind==='shape'?String(id):'';state.selectedTextUiId='';
+  }
+  function syncPrimarySelection(preferredKey=''){
+    const keys=state.selectedElements;
+    const key=keys.includes(preferredKey)?preferredKey:(keys[keys.length-1]||'');
+    const parsed=parseSelectionKey(key);
+    state.selectedTextId=parsed?.kind==='text'?parsed.id:'';
+    state.selectedShapeId=parsed?.kind==='shape'?parsed.id:'';
+    state.selectedTextUiId='';
+  }
+  function toggleSelection(kind,id){
+    const key=selectionKey(kind,id),index=state.selectedElements.indexOf(key);
+    if(index>=0)state.selectedElements.splice(index,1);else state.selectedElements.push(key);
+    syncPrimarySelection(index>=0?'':key);
   }
   const fontStack = family => {
     const name=normalizeFontFamily(family)||'Pretendard';
