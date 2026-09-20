@@ -36,7 +36,7 @@ def test_design_review_no_longer_loads_ai_maker_runtime():
     assert 'id="safeZone" type="number" min="0" max="80" step="0.1" value="10"' in maker
     assert 'id="generateBtn"' in maker
     assert 'id="exportBtn"' in maker
-    assert "/js/ai-design-maker.js?v=20260920-7" in maker
+    assert "/js/ai-design-maker.js?v=20260920-8" in maker
 
 
 def test_ai_design_maker_has_easy_cover_workflow_and_diagnostics():
@@ -518,3 +518,20 @@ def test_readme_lists_current_operating_programs():
         assert f"`{route}`" in readme
     assert "Shift+클릭 문구·도형 다중선택" in readme
     assert "별·반짝임·다이아몬드 포인트 아이콘" in readme
+
+
+def test_ai_design_maker_delete_key_and_decoration_templates():
+    page = (ROOT / "ai-design-maker/index.html").read_text(encoding="utf-8")
+    source = (ROOT / "js/ai-design-maker.js").read_text(encoding="utf-8")
+    style = (ROOT / "css/ai-design-maker.css").read_text(encoding="utf-8")
+
+    for template in ("minimal-corner", "editorial-line", "premium-frame", "modern-accent"):
+        assert f'data-decoration-template="{template}"' in page
+    assert "Del 선택 삭제" in page
+    assert "function deleteSelectedElements()" in source
+    assert "(event.key==='Delete'||event.key==='Backspace')&&selectionCount()" in source
+    assert "textIds.forEach(deleteTextElement)" in source
+    assert "state.shapes=state.shapes.filter(item=>!shapeIds.has(item.id))" in source
+    assert "function createDecorationTemplate(templateId)" in source
+    assert "state.selectedElements=items.map(item=>selectionKey('shape',item.id))" in source
+    assert ".decoration-template-buttons{" in style
