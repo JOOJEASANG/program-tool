@@ -166,7 +166,7 @@
     const trimW = clamp(num('trimW', 210), 50, 1000, 210);
     const trimH = clamp(num('trimH', 297), 50, 1000, 297);
     const bleed = clamp(num('bleed', 3), 0, 20, 3);
-    const safe = clamp(num('safeZone', 5), 0, 80, 5);
+    const safe = clamp(num('safeZone', 10), 0, 80, 10);
     const spine = coverMode==='front' ? 0 : clamp(num('spine', 10), 0, 100, 10);
     const wing = coverMode==='front' ? 0 : ($('wingEnabled')?.checked ? clamp(num('wingW', 70), 20, 300, 70) : 0);
     return {
@@ -639,13 +639,12 @@
     rect(ctx,backX,b,tw,th,'#2563eb',[6,4]);rect(ctx,frontX,b,tw,th,'#2563eb',[6,4]);
     if(safe>0){rect(ctx,backX+safe,b+safe,Math.max(0,tw-safe*2),Math.max(0,th-safe*2),'#16a34a');rect(ctx,frontX+safe,b+safe,Math.max(0,tw-safe*2),Math.max(0,th-safe*2),'#16a34a');}
     if(sw>0){
-      ctx.save();ctx.fillStyle='rgba(239,68,68,.055)';ctx.fillRect(spineX,b,sw,th);ctx.restore();
-      line(ctx,spineX,b,spineX,b+th,'#ef4444',[6,4]);
-      line(ctx,frontX,b,frontX,b+th,'#ef4444',[6,4]);
+      line(ctx,spineX,b,spineX,b+th,'rgba(37,99,235,.68)',[6,4]);
+      line(ctx,frontX,b,frontX,b+th,'rgba(37,99,235,.68)',[6,4]);
       const spineInset=Math.min(sw*.18,1.5*scale);
       if(sw>spineInset*2+2){
-        line(ctx,spineX+spineInset,b,spineX+spineInset,b+th,'rgba(239,68,68,.65)',[2,3]);
-        line(ctx,frontX-spineInset,b,frontX-spineInset,b+th,'rgba(239,68,68,.65)',[2,3]);
+        line(ctx,spineX+spineInset,b,spineX+spineInset,b+th,'rgba(22,163,74,.52)',[2,3]);
+        line(ctx,frontX-spineInset,b,frontX-spineInset,b+th,'rgba(22,163,74,.52)',[2,3]);
       }
       zone(ctx,'책등 '+spec.spine.toFixed(1)+'mm',spineX,b,sw,th);
     }
