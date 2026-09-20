@@ -1011,7 +1011,7 @@
     return {x,y:item.y,w:rawW,h:rawH};
   }
 
-  const SHAPE_TYPES=new Set(['line','rect','roundRect','ellipse']);
+  const SHAPE_TYPES=new Set(['line','rect','roundRect','ellipse','star','sparkle','diamond']);
   function normalizeShape(item,index=0){
     const type=SHAPE_TYPES.has(item?.type)?item.type:'rect';
     const fallbackStroke={c:100,m:65,y:0,k:10},fallbackFill={c:12,m:4,y:0,k:0};
@@ -1023,21 +1023,24 @@
       strokeWidth:clamp(item?.strokeWidth,.1,12,.5),
       strokeCmyk:normalizeCmyk(item?.strokeCmyk||fallbackStroke),
       fillCmyk:normalizeCmyk(item?.fillCmyk||fallbackFill),
-      opacity:clamp(item?.opacity,.05,1,1)
+      strokeEnabled:type==='line'?true:item?.strokeEnabled!==false,
+      opacity:clamp(item?.opacity,0,1,1)
     };
   }
   function selectedShape(){return state.shapes.find(item=>item.id===state.selectedShapeId)||null;}
-  function shapeLabel(type){return {line:'선',rect:'박스',roundRect:'둥근박스',ellipse:'원'}[type]||'도형';}
+  function shapeLabel(type){return {line:'선',rect:'박스',roundRect:'둥근박스',ellipse:'원',star:'별 아이콘',sparkle:'반짝임 아이콘',diamond:'다이아몬드 아이콘'}[type]||'도형';}
   function createShape(type){
     if(!SHAPE_TYPES.has(type))return;
     const spec=currentSpec(),zone=coverSurfaceRect('front',spec,1)||{x:spec.bleed,y:spec.bleed,w:spec.trimW,h:spec.trimH};
-    const w=Math.min(60,zone.w*.55),h=type==='line'?.1:Math.min(type==='ellipse'?36:42,zone.h*.18);
+    const icon=['star','sparkle','diamond'].includes(type),w=icon?18:Math.min(60,zone.w*.55),h=type==='line'?.1:(icon?18:Math.min(type==='ellipse'?36:42,zone.h*.18));
     const shape=normalizeShape({
       id:'shape-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,6),type,
       x:zone.x+(zone.w-w)/2,y:zone.y+zone.h*.56,w,h,
-      opacity:type==='line'?1:.82
+      opacity:type==='line'?1:(icon?.92:.82),
+      strokeWidth:icon?.35:.5,
+      strokeEnabled:type==='line'?true:!icon
     });
-    state.shapes.push(shape);state.selectedShapeId=shape.id;state.selectedTextId='';state.selectedTextUiId='';
+    state.shapes.push(shape);setSingleSelection('shape',shape.id);
     saveLocal();syncTextEditUi();scheduleRender();
   }
   function shapePixelBounds(shape,scale){
@@ -1048,12 +1051,27 @@
     const radius=Math.min(Math.abs(w)/2,Math.abs(h)/2,r);
     ctx.beginPath();ctx.moveTo(x+radius,y);ctx.lineTo(x+w-radius,y);ctx.quadraticCurveTo(x+w,y,x+w,y+radius);ctx.lineTo(x+w,y+h-radius);ctx.quadraticCurveTo(x+w,y+h,x+w-radius,y+h);ctx.lineTo(x+radius,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-radius);ctx.lineTo(x,y+radius);ctx.quadraticCurveTo(x,y,x+radius,y);ctx.closePath();
   }
+  function drawStarPath(ctx,x,y,w,h,points=5,inner=.45){
+    const cx=x+w/2,cy=y+h/2,rx=Math.abs(w)/2,ry=Math.abs(h)/2;ctx.beginPath();
+    for(let i=0;i<points*2;i++){const r=i%2?inner:1,a=-Math.PI/2+i*Math.PI/points,px=cx+Math.cos(a)*rx*r,py=cy+Math.sin(a)*ry*r;i?ctx.lineTo(px,py):ctx.moveTo(px,py);}ctx.closePath();
+  }
+  function drawSparklePath(ctx,x,y,w,h){
+    const cx=x+w/2,cy=y+h/2;ctx.beginPath();ctx.moveTo(cx,y);ctx.lineTo(cx+w*.12,cy-h*.12);ctx.lineTo(x+w,cy);ctx.lineTo(cx+w*.12,cy+h*.12);ctx.lineTo(cx,y+h);ctx.lineTo(cx-w*.12,cy+h*.12);ctx.lineTo(x,cy);ctx.lineTo(cx-w*.12,cy-h*.12);ctx.closePath();
+  }
+  function drawDiamondPath(ctx,x,y,w,h){ctx.beginPath();ctx.moveTo(x+w/2,y);ctx.lineTo(x+w,y+h/2);ctx.lineTo(x+w/2,y+h);ctx.lineTo(x,y+h/2);ctx.closePath();}
   function drawShape(ctx,shape,scale){
     const x=shape.x*scale,y=shape.y*scale,w=shape.w*scale,h=shape.h*scale;
     ctx.save();ctx.globalAlpha=shape.opacity;ctx.strokeStyle=cmykCss(shape.strokeCmyk);ctx.fillStyle=cmykCss(shape.fillCmyk);ctx.lineWidth=Math.max(.7,shape.strokeWidth*scale);
     if(shape.type==='line'){ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+w,y+h);ctx.stroke();}
-    else if(shape.type==='ellipse'){ctx.beginPath();ctx.ellipse(x+w/2,y+h/2,Math.abs(w/2),Math.abs(h/2),0,0,Math.PI*2);ctx.fill();ctx.stroke();}
-    else{if(shape.type==='roundRect')drawRoundRectPath(ctx,x,y,w,h,Math.min(5*scale,Math.abs(w)*.18,Math.abs(h)*.18));else{ctx.beginPath();ctx.rect(x,y,w,h);}ctx.fill();ctx.stroke();}
+    else{
+      if(shape.type==='ellipse'){ctx.beginPath();ctx.ellipse(x+w/2,y+h/2,Math.abs(w/2),Math.abs(h/2),0,0,Math.PI*2);}
+      else if(shape.type==='roundRect')drawRoundRectPath(ctx,x,y,w,h,Math.min(5*scale,Math.abs(w)*.18,Math.abs(h)*.18));
+      else if(shape.type==='star')drawStarPath(ctx,x,y,w,h);
+      else if(shape.type==='sparkle')drawSparklePath(ctx,x,y,w,h);
+      else if(shape.type==='diamond')drawDiamondPath(ctx,x,y,w,h);
+      else{ctx.beginPath();ctx.rect(x,y,w,h);}
+      ctx.fill();if(shape.strokeEnabled)ctx.stroke();
+    }
     ctx.restore();
   }
   function pointSegmentDistance(point,x1,y1,x2,y2){
@@ -1070,12 +1088,12 @@
     return null;
   }
   function drawShapeSelection(ctx,scale){
-    const shape=selectedShape();if(!shape)return;
+    if(selectionCount()!==1)return;const shape=selectedShape();if(!shape)return;
     const bounds=shapePixelBounds(shape,scale);ctx.save();ctx.strokeStyle='#2563eb';ctx.lineWidth=1.4;ctx.setLineDash([4,3]);ctx.strokeRect(bounds.x-4,bounds.y-4,bounds.w+8,bounds.h+8);ctx.setLineDash([]);ctx.fillStyle='#2563eb';ctx.fillRect(bounds.x+bounds.w-5,bounds.y+bounds.h-5,10,10);ctx.restore();
   }
   function deleteSelectedShape(){
     if(!state.selectedShapeId)return;
-    state.shapes=state.shapes.filter(item=>item.id!==state.selectedShapeId);state.selectedShapeId='';state.shapePointer=null;saveLocal();syncTextEditUi();scheduleRender();
+    const id=state.selectedShapeId;state.shapes=state.shapes.filter(item=>item.id!==id);state.selectedElements=state.selectedElements.filter(key=>key!==selectionKey('shape',id));syncPrimarySelection();state.shapePointer=null;saveLocal();syncTextEditUi();scheduleRender();
   }
 
   function logoRect(spec,scale){
