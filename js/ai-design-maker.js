@@ -583,8 +583,11 @@
     const text = spec.coverMode==='front'
       ? '앞표지 '+spec.trimW.toFixed(1)+'×'+spec.trimH.toFixed(1)+'mm · 도련 '+spec.bleed.toFixed(1)+'mm · 작업 '+spec.workW.toFixed(1)+'×'+spec.workH.toFixed(1)+'mm'
       : '완성 '+spec.trimW.toFixed(1)+'×'+spec.trimH.toFixed(1)+'mm · 책등 '+spec.spine.toFixed(1)+'mm · 도련 '+spec.bleed.toFixed(1)+'mm'+wing+' · 전체 '+spec.workW.toFixed(1)+'×'+spec.workH.toFixed(1)+'mm';
+    const compact = spec.coverMode==='front'
+      ? spec.trimW.toFixed(1)+'×'+spec.trimH.toFixed(1)+'mm · 작업 '+spec.workW.toFixed(1)+'×'+spec.workH.toFixed(1)+'mm'
+      : spec.trimW.toFixed(1)+'×'+spec.trimH.toFixed(1)+'mm · 책등 '+spec.spine.toFixed(1)+'mm · 전체 '+spec.workW.toFixed(1)+'×'+spec.workH.toFixed(1)+'mm';
     if ($('geometryHint')) $('geometryHint').textContent = text;
-    if ($('geometrySummary')) $('geometrySummary').textContent = text;
+    if ($('geometrySummary')) $('geometrySummary').textContent = compact;
     if(spec.coverMode==='spread')updateSpinePolicy();
     updateProgress();
     const stale = Boolean(state.background && state.generatedSpecKey && state.generatedSpecKey !== specKey(spec));
