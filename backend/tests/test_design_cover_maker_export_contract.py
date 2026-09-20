@@ -167,7 +167,7 @@ def test_ai_design_maker_exports_png_pdf_and_crop_marks():
     source = (ROOT / "js/ai-design-maker.js").read_text(encoding="utf-8")
 
     assert 'id="cropMarkToggle"' in page
-    assert '<option value="png">이미지 · PNG</option>' in page
+    assert '<option value="png">PNG</option>' in page
     assert '<option value="pdf">PDF</option>' in page
     assert "function drawCropMarks(" in source
     assert "if($('cropMarkToggle')?.checked)drawCropMarks" in source
@@ -313,7 +313,7 @@ def test_ai_design_status_panel_is_flush_to_bottom_and_generation_has_progress_b
     assert 'id="generationProgressBar"' in page
     assert 'id="generationProgressText"' in page
     assert ".workspace{min-width:0;height:100vh;padding:8px 12px 0" in style
-    assert ".status-panel{margin:8px 0 0" in style
+    assert ".status-panel{margin:5px 0 0" in style
     assert "border-bottom:0" in style
     assert "function startGenerationProgress()" in source
     assert "function setGenerationProgress(value)" in source
