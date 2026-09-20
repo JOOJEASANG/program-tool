@@ -259,7 +259,10 @@ def test_ai_design_selected_text_supports_line_breaks_and_typography_controls():
     assert "selectedFontSize" in source
     assert "selectedFontWeight" in source
     assert "selectedLineHeight" in source
-    assert "selectedTextColor" in source
+    assert "selectedTextC" in source
+    assert "selectedTextM" in source
+    assert "selectedTextY" in source
+    assert "selectedTextK" in source
     assert ".text-inspector{" in style
     assert ".text-style-controls{display:grid;grid-template-columns:1fr" in style
 
