@@ -149,6 +149,8 @@ def test_ai_design_maker_all_text_is_mouse_editable_and_persisted():
     assert page.index('id="exportBtn"') > page.index('id="textStylePanel"')
     assert page.index('id="exportFormat"') < page.index('class="text-inspector-head"')
     assert 'class="inspector-export-row"' in page
+    assert "grid-template-columns:96px minmax(0,1fr)" in style
+    assert ".inspector-export-button{min-width:0;padding:7px 4px!important" in style
     assert 'class="workspace-info-line" id="textEditBar"' in page
     assert "앞·뒤 안전영역 스냅 · 책등 자유배치" in page
     assert "textLayouts:" in source
