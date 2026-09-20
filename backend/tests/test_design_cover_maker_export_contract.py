@@ -36,7 +36,7 @@ def test_design_review_no_longer_loads_ai_maker_runtime():
     assert 'id="safeZone" type="number" min="0" max="80" step="0.1" value="10"' in maker
     assert 'id="generateBtn"' in maker
     assert 'id="exportBtn"' in maker
-    assert "/js/ai-design-maker.js?v=20260920-6" in maker
+    assert "/js/ai-design-maker.js?v=20260920-7" in maker
 
 
 def test_ai_design_maker_has_easy_cover_workflow_and_diagnostics():
