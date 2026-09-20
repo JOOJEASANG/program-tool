@@ -1181,6 +1181,7 @@
     drawSnapGuide(ctx);
     drawTextSelection(ctx,items);
     drawShapeSelection(ctx,fit.scale);
+    drawMultiSelection(ctx,items,fit.scale);
     updateGeometry();
   }
 
@@ -1203,7 +1204,7 @@
   }
 
   function drawTextSelection(ctx,items){
-    if(!state.selectedTextId)return;
+    if(selectionCount()!==1||!state.selectedTextId)return;
     const item=items.find(entry=>entry.id===state.selectedTextId);if(!item)return;
     const bounds=textVisualBounds(ctx,item);
     ctx.save();
@@ -1232,21 +1233,102 @@
     return null;
   }
 
+  function selectionDescriptors(ctx,items,scale){
+    const descriptors=[];
+    state.selectedElements.forEach(key=>{
+      const parsed=parseSelectionKey(key);if(!parsed)return;
+      if(parsed.kind==='text'){
+        const item=items.find(entry=>entry.id===parsed.id);if(!item)return;
+        descriptors.push({key,kind:'text',id:parsed.id,item,bounds:textVisualBounds(ctx,item)});
+      }else{
+        const shape=state.shapes.find(entry=>entry.id===parsed.id);if(!shape)return;
+        descriptors.push({key,kind:'shape',id:parsed.id,shape,bounds:shapePixelBounds(shape,scale)});
+      }
+    });
+    return descriptors;
+  }
+  function descriptorGroupBounds(descriptors){
+    if(!descriptors.length)return null;
+    const left=Math.min(...descriptors.map(d=>d.bounds.x)),top=Math.min(...descriptors.map(d=>d.bounds.y));
+    const right=Math.max(...descriptors.map(d=>d.bounds.x+d.bounds.w)),bottom=Math.max(...descriptors.map(d=>d.bounds.y+d.bounds.h));
+    return {x:left,y:top,w:right-left,h:bottom-top};
+  }
+  function drawMultiSelection(ctx,items,scale){
+    if(selectionCount()<2)return;
+    const descriptors=selectionDescriptors(ctx,items,scale),group=descriptorGroupBounds(descriptors);if(!group)return;
+    ctx.save();ctx.lineWidth=1.15;ctx.strokeStyle='rgba(37,99,235,.72)';ctx.setLineDash([3,3]);
+    descriptors.forEach(({bounds})=>ctx.strokeRect(bounds.x-3,bounds.y-3,bounds.w+6,bounds.h+6));
+    ctx.strokeStyle='#7c3aed';ctx.lineWidth=1.6;ctx.setLineDash([6,4]);ctx.strokeRect(group.x-6,group.y-6,group.w+12,group.h+12);ctx.restore();
+  }
+  function captureSelectionSnapshot(){
+    return state.selectedElements.map(key=>{
+      const parsed=parseSelectionKey(key);if(!parsed)return null;
+      if(parsed.kind==='text'){
+        const layout=textLayoutState(parsed.id);return {key,kind:'text',id:parsed.id,dx:layout.dx,dy:layout.dy};
+      }
+      const shape=state.shapes.find(entry=>entry.id===parsed.id);return shape?{key,kind:'shape',id:parsed.id,x:shape.x,y:shape.y}:null;
+    }).filter(Boolean);
+  }
+  function applySelectionSnapshotMove(snapshot,dx,dy){
+    snapshot.forEach(entry=>{
+      if(entry.kind==='text'){
+        const layout=textLayoutState(entry.id);layout.boxAlign='';layout.dx=entry.dx+dx;layout.dy=entry.dy+dy;
+        if(textSurfaceForId(entry.id)==='spine')setSpinePlacementMode(entry.id,'free');
+      }else{
+        const shape=state.shapes.find(item=>item.id===entry.id);if(shape){shape.x=entry.x+dx;shape.y=entry.y+dy;}
+      }
+    });
+  }
+  function nudgeSelectedElements(dx,dy){
+    const spec=currentSpec();if(!selectionCount())return;
+    state.selectedElements.forEach(key=>{
+      const parsed=parseSelectionKey(key);if(!parsed)return;
+      if(parsed.kind==='text'){
+        const layout=textLayoutState(parsed.id);layout.boxAlign='';
+        if(textSurfaceForId(parsed.id)==='spine')setSpinePlacementMode(parsed.id,'free');
+        layout.dx=clamp(layout.dx+dx,-spec.workW,spec.workW,0);layout.dy=clamp(layout.dy+dy,-spec.workH,spec.workH,0);
+      }else{
+        const shape=state.shapes.find(item=>item.id===parsed.id);if(!shape)return;
+        shape.x=clamp(shape.x+dx,0,Math.max(0,spec.workW-shape.w),shape.x);shape.y=clamp(shape.y+dy,0,Math.max(0,spec.workH-shape.h),shape.y);
+      }
+    });
+    saveLocal();syncTextEditUi();scheduleRender();
+  }
+  function alignSelectedElements(mode){
+    if(selectionCount()<2||!['left','center','right'].includes(mode))return;
+    const canvas=$('previewCanvas'),ctx=canvas?.getContext('2d'),spec=currentSpec(),fit=canvasFitSize(spec);if(!ctx)return;
+    const items=textLayout(spec,fit.scale),descriptors=selectionDescriptors(ctx,items,fit.scale),group=descriptorGroupBounds(descriptors);if(!group)return;
+    const groupCenter=group.x+group.w/2,groupRight=group.x+group.w;
+    descriptors.forEach(desc=>{
+      const target=mode==='left'?group.x:mode==='center'?groupCenter-desc.bounds.w/2:groupRight-desc.bounds.w;
+      const delta=(target-desc.bounds.x)/fit.scale;
+      if(desc.kind==='text'){
+        const layout=textLayoutState(desc.id);layout.boxAlign='';layout.dx+=delta;
+        if(textSurfaceForId(desc.id)==='spine')setSpinePlacementMode(desc.id,'free');
+      }else desc.shape.x+=delta;
+    });
+    saveLocal();syncTextEditUi();scheduleRender();
+  }
+
   function syncTextEditUi(){
-    const selected=state.selectedTextId,shape=selectedShape();
+    const count=selectionCount(),multi=count>1,selected=state.selectedTextId,shape=selectedShape();
     const label=$('selectedTextLabel'),inspectorLabel=$('inspectorSelectedLabel'),modeTitle=$('inspectorModeTitle');
-    const item=selected?selectedTextItem():null,active=Boolean(selected&&item),shapeActive=Boolean(shape);
-    if(label)label.textContent=active?textItemLabel(selected):(shapeActive?shapeLabel(shape.type):'문구·도형을 클릭해 선택');
-    if(inspectorLabel)inspectorLabel.textContent=active?textItemLabel(selected):(shapeActive?shapeLabel(shape.type)+' 선택됨':'미리보기에서 문구나 도형을 선택하세요.');
-    if(modeTitle)modeTitle.textContent=shapeActive?'도형 편집':'문구 편집';
+    const item=count===1&&selected?selectedTextItem():null,active=Boolean(item),shapeActive=Boolean(count===1&&shape);
+    if($('multiSelectPanel'))$('multiSelectPanel').hidden=!multi;
+    if($('multiSelectCount'))$('multiSelectCount').textContent=count+'개 요소 선택';
+    if(label)label.textContent=multi?count+'개 요소 선택':active?textItemLabel(selected):(shapeActive?shapeLabel(shape.type):'문구·도형을 클릭해 선택');
+    if(inspectorLabel)inspectorLabel.textContent=multi?'선택한 요소를 함께 이동·정렬할 수 있습니다.':active?textItemLabel(selected):(shapeActive?shapeLabel(shape.type)+' 선택됨':'미리보기에서 문구나 도형을 선택하세요.');
+    if(modeTitle)modeTitle.textContent=multi?'다중 요소 편집':shapeActive?'도형 편집':'문구 편집';
     if($('shapeInspector'))$('shapeInspector').hidden=!shapeActive;
-    if($('textInspectorEmpty'))$('textInspectorEmpty').hidden=active||shapeActive;
+    if($('textInspectorEmpty'))$('textInspectorEmpty').hidden=active||shapeActive||multi;
     if($('textInspectorFields'))$('textInspectorFields').hidden=!active;
     if(shapeActive){
       if($('shapeInspectorTitle'))$('shapeInspectorTitle').textContent=shapeLabel(shape.type);
       if($('shapeStrokeWidth')&&document.activeElement!==$('shapeStrokeWidth'))$('shapeStrokeWidth').value=Number(shape.strokeWidth).toFixed(1);
       if($('shapeOpacity')&&document.activeElement!==$('shapeOpacity'))$('shapeOpacity').value=Math.round(shape.opacity*100);
       if($('shapeFillSection'))$('shapeFillSection').hidden=shape.type==='line';
+      if($('shapeStrokeToggleRow'))$('shapeStrokeToggleRow').hidden=shape.type==='line';
+      if($('shapeStrokeTransparent'))$('shapeStrokeTransparent').checked=shape.type!=='line'&&!shape.strokeEnabled;
       setCmykInputs('shapeFill',shape.fillCmyk);setCmykInputs('shapeStroke',shape.strokeCmyk);
     }
     const layout=active?textLayoutState(selected):null;
@@ -1266,7 +1348,6 @@
     setCmykInputs('selectedText',layout?.cmyk||hexToCmyk(normalizeColor(item.color)||normalizeColor($('textColor')?.value)||'#ffffff'));
     state.selectedTextUiId=selected;
   }
-
   function alignSelectedTextBox(mode){
     if(!state.selectedTextId||!['left','center','right'].includes(mode))return;
     const spec=currentSpec(),surface=textSurfaceForId(state.selectedTextId);
