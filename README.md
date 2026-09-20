@@ -67,7 +67,7 @@ Firebase Hosting과 Python Cloud Functions로 운영하는 PDF·인쇄 실무 �
 
 PDF 검수 결과는 인쇄소의 RIP/프리플라이트 결과를 대체하지 않습니다.
 
-과거 `design-editor`, `document-editor`, `image-editor`, `simple-editor` 독립 런타임은 운영 트리에서 제거된 상태를 유지합니다. 기능은 현재 canonical runtime에서 관리하고 호환 URL은 얇은 진입점으로 유지합니다.
+과거 `design-editor`, `document-editor`, `image-editor`, `simple-editor` 런타임은 운영 트리에서 제거된 상태를 유지합니다. 기능은 현재 canonical runtime에서 관리하고 호환 URL은 얇은 진입점으로 유지합니다.
 
 ## 저장소 구조
 
