@@ -35,7 +35,7 @@ def test_design_review_no_longer_loads_ai_maker_runtime():
     assert 'id="previewCanvas"' in maker
     assert 'id="generateBtn"' in maker
     assert 'id="exportBtn"' in maker
-    assert "/js/ai-design-maker.js?v=20260920-3" in maker
+    assert "/js/ai-design-maker.js?v=20260920-4" in maker
 
 
 def test_ai_design_maker_has_easy_cover_workflow_and_diagnostics():
@@ -145,6 +145,10 @@ def test_ai_design_maker_all_text_is_mouse_editable_and_persisted():
     assert 'class="inspector-preview-actions"' in page
     assert page.index('id="guideToggle"') > page.index('id="textStylePanel"')
     assert page.index('id="galleryBtn"') > page.index('id="textStylePanel"')
+    assert page.index('id="exportFormat"') > page.index('id="textStylePanel"')
+    assert page.index('id="exportBtn"') > page.index('id="textStylePanel"')
+    assert page.index('id="exportFormat"') < page.index('class="text-inspector-head"')
+    assert 'class="inspector-export-row"' in page
     assert 'class="workspace-info-line" id="textEditBar"' in page
     assert "앞·뒤 안전영역 스냅 · 책등 자유배치" in page
     assert "textLayouts:" in source
