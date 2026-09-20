@@ -237,7 +237,10 @@ def test_ai_design_selected_text_supports_line_breaks_and_typography_controls():
         "selectedFontSize",
         "selectedFontWeight",
         "selectedLineHeight",
-        "selectedTextColor",
+        "selectedTextC",
+        "selectedTextM",
+        "selectedTextY",
+        "selectedTextK",
         "textInspectorFields",
     ):
         assert f'id="{field_id}"' in page
@@ -481,7 +484,7 @@ def test_ai_design_maker_has_lightweight_cmyk_shape_editor():
                      "shapeFillC", "shapeFillM", "shapeFillY", "shapeFillK",
                      "shapeStrokeC", "shapeStrokeM", "shapeStrokeY", "shapeStrokeK"):
         assert f'id="{field_id}"' in page
-    assert "function cmykToRgb" in source
+    assert "const cmykToRgb =" in source
     assert "function createShape(type)" in source
     assert "function drawShape(ctx,shape,scale)" in source
     assert "state.shapes.forEach(shape=>drawShape(ctx,shape,ppm))" in source
