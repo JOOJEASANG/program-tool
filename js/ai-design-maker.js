@@ -10,7 +10,7 @@
   const STORAGE_KEY_PREFIX = 'program-studio:ai-design-maker:cover:v2';
   const LEGACY_STORAGE_KEY = 'program-studio:ai-design-maker:cover:v1';
   let STORAGE_KEY = '';
-  const TEXT_LAYOUT_SCHEMA_VERSION = 4;
+  const TEXT_LAYOUT_SCHEMA_VERSION = 5;
   const AI_COVER_PATH = '/api/preflight/ai-design-maker/cover-background';
   const AI_DIRECT_API_ORIGIN = 'https://api-7a5qpwzezq-uc.a.run.app';
   const PRESET_MIGRATION = Object.freeze({premium:'report',forum:'event'});
@@ -184,14 +184,19 @@
     return {
       title: $('title')?.value || '',
       backText: $('backText')?.value || '',
-      spineTitle: $('spineTitle')?.value || '',
+      spineTop: $('spineTop')?.value || '',
+      spineMiddle: $('spineMiddle')?.value || '',
+      spineBottom: $('spineBottom')?.value || '',
+      spineTopPlacement: $('spineTopPlacement')?.value === 'free' ? 'free' : 'auto',
+      spineMiddlePlacement: $('spineMiddlePlacement')?.value === 'free' ? 'free' : 'auto',
+      spineBottomPlacement: $('spineBottomPlacement')?.value === 'free' ? 'free' : 'auto',
       spineOrientation: $('spineOrientation')?.value || 'rotate-up',
       customFields: state.customFields.filter(item => String(item.value || '').trim())
     };
   }
 
   function serializableState() {
-    const ids = ['trimW','trimH','spine','bleed','safeZone','wingW','title','backText','spineTitle','spineOrientation','visualMode','colorIntensity','designMood','primaryColor','textColor','theme','stylePrompt'];
+    const ids = ['trimW','trimH','spine','bleed','safeZone','wingW','title','backText','spineTop','spineMiddle','spineBottom','spineTopPlacement','spineMiddlePlacement','spineBottomPlacement','spineOrientation','visualMode','colorIntensity','designMood','primaryColor','textColor','theme','stylePrompt'];
     const data = {
       preset: state.preset,
       wingEnabled: Boolean($('wingEnabled')?.checked),
@@ -230,6 +235,9 @@
       });
       if (typeof data.wingEnabled === 'boolean') $('wingEnabled').checked = data.wingEnabled;
       if (typeof data.spineSync === 'boolean') $('spineSync').checked = data.spineSync;
+      if (!String($('spineMiddle')?.value || '').trim() && String(data.spineTitle || '').trim() && $('spineMiddle')) {
+        $('spineMiddle').value = String(data.spineTitle).slice(0,180);
+      }
       const restoredPreset=PRESET_MIGRATION[data.preset]||data.preset;
       if (restoredPreset && PRESETS[restoredPreset]) state.preset = restoredPreset;
       if (data.coverMode === 'front' || data.coverMode === 'spread') state.coverMode = data.coverMode;
@@ -273,6 +281,10 @@
         Object.entries(data.textLayouts).forEach(([id,layout]) => {
           state.textLayouts[String(id)] = normalizeTextLayout(layout);
         });
+      }
+      if (state.textLayouts.spineTitle && !state.textLayouts.spineMiddle) {
+        state.textLayouts.spineMiddle = state.textLayouts.spineTitle;
+        delete state.textLayouts.spineTitle;
       }
       if (data.titleLayout && typeof data.titleLayout === 'object' && !state.textLayouts.title) {
         state.textLayouts.title = normalizeTextLayout(data.titleLayout);
@@ -501,8 +513,10 @@
   }
 
   function syncSpineTitle() {
-    if ($('spineSync')?.checked && $('spineTitle')) {
-      $('spineTitle').value = String($('title')?.value || '').split(/\n/)[0].slice(0,180);
+    if ($('spineSync')?.checked && $('spineMiddle')) {
+      $('spineMiddle').value = String($('title')?.value || '').split(/\n/)[0].slice(0,180);
+      const middleLayout=state.textLayouts.spineMiddle;
+      if(middleLayout&&Object.prototype.hasOwnProperty.call(middleLayout,'text'))delete middleLayout.text;
     }
   }
 
@@ -548,10 +562,10 @@
       box.textContent = '책등 4mm 미만: 인쇄 안정성을 위해 책등 문구는 출력에서 제외됩니다.';
     } else if (spine < 8) {
       box.classList.add('warn');
-      box.textContent = '책등 4~7.9mm: 제목만 표시합니다.';
+      box.textContent = '책등 4~7.9mm: 상·중·하 문구가 표시되지만 폭이 좁아 작은 글자 크기가 적용될 수 있습니다.';
     } else {
       box.classList.add('ok');
-      box.textContent = '책등 8mm 이상: 책등 문구를 안정적으로 표시할 수 있습니다.';
+      box.textContent = '책등 8mm 이상: 상·중·하 문구를 각각 자동정렬하거나 자유배치할 수 있습니다.';
     }
   }
 
@@ -662,11 +676,30 @@
     return normalized;
   }
 
+  const SPINE_TEXT_IDS = new Set(['spineTop','spineMiddle','spineBottom']);
+
+  function spinePlacementControlId(id){
+    return SPINE_TEXT_IDS.has(id) ? id+'Placement' : '';
+  }
+
+  function spinePlacementMode(id){
+    const controlId=spinePlacementControlId(id);
+    return controlId&&$(controlId)?.value==='free'?'free':'auto';
+  }
+
+  function setSpinePlacementMode(id,mode){
+    const controlId=spinePlacementControlId(id);
+    const control=controlId?$(controlId):null;
+    if(control)control.value=mode==='free'?'free':'auto';
+  }
+
   function textItemLabel(id) {
     const fixed={
       title:'앞표지 문구',
       backText:'뒤표지 문구',
-      spineTitle:'책등 문구'
+      spineTop:'책등 · 상 문구',
+      spineMiddle:'책등 · 중 문구',
+      spineBottom:'책등 · 하 문구'
     };
     if(fixed[id])return fixed[id];
     if(String(id||'').startsWith('custom:')){
@@ -676,7 +709,7 @@
     }
     return '문구';
   }
-  const DIRECT_TEXT_SOURCE_IDS = new Set(['title','backText','spineTitle']);
+  const DIRECT_TEXT_SOURCE_IDS = new Set(['title','backText','spineTop','spineMiddle','spineBottom']);
 
   function selectedTextItem(){
     if(!state.selectedTextId)return null;
@@ -689,10 +722,11 @@
     layout.text=String(value||'').slice(0,700);
     if(DIRECT_TEXT_SOURCE_IDS.has(id)&&$(id)){
       $(id).value=layout.text;
+      if(id==='spineMiddle'&&$('spineSync')?.checked)$('spineSync').checked=false;
       if(id==='title'){
         syncSpineTitle();
         if($('spineSync')?.checked){
-          const spineLayout=state.textLayouts.spineTitle;
+          const spineLayout=state.textLayouts.spineMiddle;
           if(spineLayout&&Object.prototype.hasOwnProperty.call(spineLayout,'text'))delete spineLayout.text;
         }
       }
@@ -719,8 +753,11 @@
     if(!item.id)return item;
     const edit=textLayoutState(item.id,item.align||'left');
     if(Object.prototype.hasOwnProperty.call(edit,'text'))item.text=edit.text;
-    item.x+=edit.dx*scale;
-    item.y+=edit.dy*scale;
+    const autoSpine=item.surface==='spine'&&SPINE_TEXT_IDS.has(item.id)&&spinePlacementMode(item.id)==='auto';
+    if(!autoSpine){
+      item.x+=edit.dx*scale;
+      item.y+=edit.dy*scale;
+    }
     item.w=Math.max(item.minW||5*scale,item.w*edit.widthScale);
     const basePt=edit.fontSizePt||item.fontPt;
     item.fontPt=clamp(basePt*edit.fontScale,4,160,basePt);
@@ -767,10 +804,23 @@
       addCustomEntries(backCustom,'back',backX,b+th*.70,th*.22);
     }
 
-    if(spec.coverMode==='spread'&&spec.spine>=4&&v.spineTitle){
-      const fp=spinePt(spec.spine,v.spineTitle);
-      if(v.spineOrientation==='vertical')add({id:'spineTitle',surface:'spine',text:v.spineTitle,x:spineX+sw*.12,y:b+th*.18,w:sw*.76,h:th*.62,fontPt:fp,weight:900,vertical:true,align:'center'});
-      else add({id:'spineTitle',surface:'spine',text:v.spineTitle,x:spineX+sw/2-th*.31,y:b+th/2-sw*.34,w:th*.62,h:sw*.68,fontPt:fp,weight:900,rotate:v.spineOrientation==='rotate-down'?90:-90,align:'center'});
+    if(spec.coverMode==='spread'&&spec.spine>=4){
+      const spineEntries=[
+        {id:'spineTop',text:v.spineTop,slot:'top',center:.17},
+        {id:'spineMiddle',text:v.spineMiddle,slot:'middle',center:.50},
+        {id:'spineBottom',text:v.spineBottom,slot:'bottom',center:.83}
+      ];
+      spineEntries.forEach(entry=>{
+        if(!String(entry.text||'').trim())return;
+        const fp=spinePt(spec.spine,entry.text);
+        if(v.spineOrientation==='vertical'){
+          const slotH=th*.26;
+          add({id:entry.id,surface:'spine',text:entry.text,x:spineX+sw*.12,y:b+th*entry.center-slotH/2,w:sw*.76,h:slotH,fontPt:fp,weight:900,vertical:true,align:'center',spineSlot:entry.slot});
+        }else{
+          const slotW=th*.26,slotH=sw*.72;
+          add({id:entry.id,surface:'spine',text:entry.text,x:spineX+sw/2-slotW/2,y:b+th*entry.center-slotH/2,w:slotW,h:slotH,fontPt:fp,weight:900,rotate:v.spineOrientation==='rotate-down'?90:-90,align:'center',spineSlot:entry.slot});
+        }
+      });
     }
     return list;
   }
@@ -882,7 +932,7 @@
   function textSurfaceForId(id){
     if(id==='title')return 'front';
     if(id==='backText')return 'back';
-    if(id==='spineTitle')return 'spine';
+    if(SPINE_TEXT_IDS.has(id))return 'spine';
     if(String(id||'').startsWith('custom:')){
       const customId=String(id).slice(7);
       return state.customFields.find(item=>item.id===customId)?.surface==='back'?'back':'front';
@@ -900,6 +950,11 @@
     }
     if(surface==='back'&&spec.coverMode==='spread'){
       return {x:b+wing+safe,y:b+safe,w:safeW,h:safeH,surface:'back'};
+    }
+    if(surface==='spine'&&spec.coverMode==='spread'&&sw>0){
+      const spineX=b+wing+tw;
+      const spineSafeX=Math.min(sw*.12,1.2*scale);
+      return {x:spineX+spineSafeX,y:b+safe,w:Math.max(1,sw-spineSafeX*2),h:Math.max(1,th-safe*2),surface:'spine'};
     }
     return null;
   }
@@ -1073,6 +1128,7 @@
       let dx=point.x-drag.startX,dy=point.y-drag.startY;
       const layout=textLayoutState(drag.textId);
       if(drag.mode==='move'){
+        if(textSurfaceForId(drag.textId)==='spine')setSpinePlacementMode(drag.textId,'free');
         state.snapGuide=null;
         if(drag.zone&&drag.startBounds&&drag.startBox){
           const zoneLeft=drag.zone.x,zoneCenterX=drag.zone.x+drag.zone.w/2,zoneRight=drag.zone.x+drag.zone.w;
@@ -1120,6 +1176,7 @@
     };
     if(Object.prototype.hasOwnProperty.call(current,'text'))reset.text=current.text;
     state.textLayouts[state.selectedTextId]=reset;
+    if(SPINE_TEXT_IDS.has(state.selectedTextId))setSpinePlacementMode(state.selectedTextId,'auto');
     state.selectedTextUiId='';
     saveLocal();syncTextEditUi();scheduleRender();
   }
@@ -1592,13 +1649,27 @@
       state.generationQuality=input.value==='high'?'high':'standard';
       syncGenerationQuality();saveLocal();
     }));
-    const watched=['trimW','trimH','spine','bleed','safeZone','wingW','title','backText','spineTitle','spineOrientation','visualMode','colorIntensity','designMood','primaryColor','textColor','theme','stylePrompt'];
+    const watched=['trimW','trimH','spine','bleed','safeZone','wingW','title','backText','spineTop','spineMiddle','spineBottom','spineOrientation','visualMode','colorIntensity','designMood','primaryColor','textColor','theme','stylePrompt'];
     watched.forEach(id=>$(id)?.addEventListener('input',()=>{
       if(id==='trimW'||id==='trimH'){state.sizeMode='custom';syncSizeMode();}
-      if(['title','backText','spineTitle'].includes(id))clearTextOverrideForSource(id);
+      if(['title','backText','spineTop','spineMiddle','spineBottom'].includes(id))clearTextOverrideForSource(id);
+      if(id==='spineMiddle'&&$('spineSync')?.checked)$('spineSync').checked=false;
       if(id==='title')syncSpineTitle();
       saveLocal();updateProgress();syncTextEditUi();scheduleRender();
     }));
+    SPINE_TEXT_IDS.forEach(id=>{
+      const control=$(id+'Placement');
+      control?.addEventListener('change',()=>{
+        const layout=textLayoutState(id,'center');
+        if(control.value!=='free'){
+          control.value='auto';
+          layout.dx=0;
+          layout.dy=0;
+          layout.boxAlign='';
+        }
+        saveLocal();syncTextEditUi();scheduleRender();
+      });
+    });
     $('wingEnabled')?.addEventListener('change',()=>{syncWing();saveLocal();scheduleRender();});
     $('spineSync')?.addEventListener('change',()=>{syncSpineTitle();saveLocal();updateProgress();scheduleRender();});
     $('manualBtn')?.addEventListener('click',event=>window.ProgramManualHomeModal?.open('ai-design-maker',event.currentTarget));
