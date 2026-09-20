@@ -36,7 +36,7 @@ def test_design_review_no_longer_loads_ai_maker_runtime():
     assert 'id="safeZone" type="number" min="0" max="80" step="0.1" value="10"' in maker
     assert 'id="generateBtn"' in maker
     assert 'id="exportBtn"' in maker
-    assert "/js/ai-design-maker.js?v=20260920-9" in maker
+    assert "/js/ai-design-maker.js?v=20260920-10" in maker
 
 
 def test_ai_design_maker_has_easy_cover_workflow_and_diagnostics():
@@ -517,24 +517,28 @@ def test_readme_lists_current_operating_programs():
     ):
         assert f"`{route}`" in readme
     assert "Shift+클릭 문구·도형 다중선택" in readme
-    assert "별·반짝임·다이아몬드 포인트 아이콘" in readme
+    assert "별·반짝임·다이아몬드·작은원 포인트 아이콘" in readme
 
 
-def test_ai_design_maker_delete_key_and_decoration_templates():
+def test_ai_design_maker_delete_key_and_shape_defaults():
     page = (ROOT / "ai-design-maker/index.html").read_text(encoding="utf-8")
     source = (ROOT / "js/ai-design-maker.js").read_text(encoding="utf-8")
     style = (ROOT / "css/ai-design-maker.css").read_text(encoding="utf-8")
 
-    for template in ("minimal-corner", "editorial-line", "premium-frame", "modern-accent"):
-        assert f'data-decoration-template="{template}"' in page
+    assert 'data-add-shape="dot"' in page
+    assert 'id="shapeCornerRadius"' in page
     assert "Del 선택 삭제" in page
     assert "function deleteSelectedElements()" in source
     assert "(event.key==='Delete'||event.key==='Backspace')&&selectionCount()" in source
     assert "textIds.forEach(deleteTextElement)" in source
     assert "state.shapes=state.shapes.filter(item=>!shapeIds.has(item.id))" in source
-    assert "function createDecorationTemplate(templateId)" in source
-    assert "groupSelectionKeys(items.map(item=>selectionKey('shape',item.id)))" in source
-    assert ".decoration-template-buttons{" in style
+    assert "strokeEnabled:type==='line'?true:item?.strokeEnabled===true" in source
+    assert "cornerRadius:clamp(item?.cornerRadius,0,50,type==='roundRect'?5:0)" in source
+    assert "shape.type==='ellipse'||shape.type==='dot'" in source
+    assert "shape.type==='rect'||shape.type==='roundRect'" in source
+    assert "function createDecorationTemplate(templateId)" not in source
+    assert "data-decoration-template" not in page
+    assert ".decoration-template-buttons{" not in style
 
 
 def test_ai_design_maker_grouping_and_clean_selection_outline():
@@ -551,7 +555,6 @@ def test_ai_design_maker_grouping_and_clean_selection_outline():
     assert "state.groups={}" in source
     assert "(event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='g'" in source
     assert "if(event.shiftKey)ungroupSelectedElements();else groupSelectedElements()" in source
-    assert "groupSelectionKeys(items.map(item=>selectionKey('shape',item.id)))" in source
     assert "descriptors.forEach(({bounds})=>ctx.strokeRect" not in source
     assert "ctx.setLineDash([])" in source
     assert "ctx.strokeRect(group.x-4,group.y-4,group.w+8,group.h+8)" in source
