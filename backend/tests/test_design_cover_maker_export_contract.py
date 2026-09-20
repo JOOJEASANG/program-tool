@@ -533,7 +533,7 @@ def test_ai_design_maker_delete_key_and_decoration_templates():
     assert "textIds.forEach(deleteTextElement)" in source
     assert "state.shapes=state.shapes.filter(item=>!shapeIds.has(item.id))" in source
     assert "function createDecorationTemplate(templateId)" in source
-    assert "state.selectedElements=items.map(item=>selectionKey('shape',item.id))" in source
+    assert "groupSelectionKeys(items.map(item=>selectionKey('shape',item.id)))" in source
     assert ".decoration-template-buttons{" in style
 
 
@@ -553,6 +553,7 @@ def test_ai_design_maker_grouping_and_clean_selection_outline():
     assert "if(event.shiftKey)ungroupSelectedElements();else groupSelectedElements()" in source
     assert "groupSelectionKeys(items.map(item=>selectionKey('shape',item.id)))" in source
     assert "descriptors.forEach(({bounds})=>ctx.strokeRect" not in source
-    assert "ctx.setLineDash([]);ctx.strokeRect(group.x-4" in source
+    assert "ctx.setLineDash([])" in source
+    assert "ctx.strokeRect(group.x-4,group.y-4,group.w+8,group.h+8)" in source
     assert "ctx.setLineDash([5,4])" not in source
     assert ".group-action-buttons{" in style
