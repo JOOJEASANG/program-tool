@@ -480,21 +480,41 @@ def test_ai_design_maker_has_lightweight_cmyk_shape_editor():
     source = (ROOT / "js/ai-design-maker.js").read_text(encoding="utf-8")
     style = (ROOT / "css/ai-design-maker.css").read_text(encoding="utf-8")
 
-    for shape in ("line", "rect", "roundRect", "ellipse"):
+    for shape in ("line", "rect", "roundRect", "ellipse", "star", "sparkle", "diamond"):
         assert f'data-add-shape="{shape}"' in page
-    for field_id in ("primaryC", "primaryM", "primaryY", "primaryK", "textC", "textM", "textY", "textK",
-                     "selectedTextC", "selectedTextM", "selectedTextY", "selectedTextK",
-                     "shapeFillC", "shapeFillM", "shapeFillY", "shapeFillK",
-                     "shapeStrokeC", "shapeStrokeM", "shapeStrokeY", "shapeStrokeK"):
+    for field_id in ("primaryColorPicker", "textColorPicker", "selectedTextColorPicker",
+                     "shapeFillColorPicker", "shapeStrokeColorPicker", "shapeStrokeTransparent",
+                     "shapeOpacity", "multiSelectPanel", "multiSelectCount"):
         assert f'id="{field_id}"' in page
+    for align in ("left", "center", "right"):
+        assert f'data-multi-align="{align}"' in page
     assert "const cmykToRgb =" in source
+    assert "function applyColorChoice(group,hex)" in source
     assert "function createShape(type)" in source
     assert "function drawShape(ctx,shape,scale)" in source
+    assert "strokeEnabled:type==='line'?true:item?.strokeEnabled!==false" in source
+    assert "shape.strokeEnabled=!event.target.checked" in source
+    assert "shape.opacity=clamp(Number(event.target.value)/100,0,1,1)" in source
+    assert "function alignSelectedElements(mode)" in source
+    assert "function applySelectionSnapshotMove(snapshot,dx,dy)" in source
+    assert "state.groupPointer=" in source
+    assert "event.shiftKey" in source
     assert "state.shapes.forEach(shape=>drawShape(ctx,shape,ppm))" in source
     assert "state.shapes.forEach(shape=>drawShape(ctx,shape,scale))" in source
     assert "const step=event.shiftKey?1:.2" in source
-    assert "scheduleRender();return;" in source
-    assert "state.shapes:" not in source
     assert "shapes: state.shapes" in source
     assert ".element-tool-buttons{" in style
-    assert ".cmyk-grid{" in style
+    assert ".print-color-picker{" in style
+    assert ".multi-select-panel{" in style
+
+
+def test_readme_lists_current_operating_programs():
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    for route in (
+        "/print-checker", "/ai-design-maker", "/smart-print-layout", "/pdf-suite",
+        "/pdf-editor", "/pdf-editor-advanced", "/pdf-preflight", "/perfect-binding-cover",
+        "/tools/pdf-editor.html", "/tools/perfect-binding-cover.html",
+    ):
+        assert f"`{route}`" in readme
+    assert "Shift+클릭 문구·도형 다중선택" in readme
+    assert "별·반짝임·다이아몬드 포인트 아이콘" in readme
