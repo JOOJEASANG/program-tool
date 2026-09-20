@@ -8,41 +8,66 @@ Firebase Hosting과 Python Cloud Functions로 운영하는 PDF·인쇄 실무 �
 - 백엔드: Flask, Firebase Functions, PyMuPDF
 - 데이터: Firebase Authentication, Firestore, Cloud Storage
 
-## 현재 운영 기능
+## 현재 운영 프로그램
+
+| 프로그램 | 운영 경로 | 주요 기능 |
+| --- | --- | --- |
+| 디자인 검토 | `/print-checker` | 표지·전단·리플렛·초대장·안내장 등 완성 인쇄물의 규격, 재단선, 도련, 안전영역, 책등, 접지선 검토 |
+| AI 디자인 제작 | `/ai-design-maker` | 실제 인쇄 규격 기반 AI 표지 배경 생성, 문구·도형 편집, CMYK 기준 색상 선택, 300dpi PNG/PDF 출력 |
+| 스마트 인쇄배치 | `/smart-print-layout` | PDF·이미지 실제 크기를 읽어 용지를 자동 배치하고 양면 위치를 맞춘 출력용 PDF 생성 |
+| PDF 올인원 | `/pdf-suite` | PDF 페이지 구성·변환·편집·보안·인쇄·OCR 확장·최적화·검사 기능 허브 |
+| PDF 문서 편집기 | `/pdf-editor` | 페이지 편집, N-up 배치, 소책자 배열, 출력 설정을 담당하는 canonical PDF 편집 엔진 |
+| PDF 고급 편집 | `/pdf-editor-advanced` | 확대/축소·이동·삭제·잘라내기·여백·머리말/꼬리말·페이지 번호 등 독립 고급 편집 |
+| PDF 검사 | `/pdf-preflight` | PDF 인쇄 전 검사와 암호 설정·해제 등 보안·유틸리티 |
+| 표지 검토 호환 진입점 | `/perfect-binding-cover` | 기존 무선제본 표지 주소를 현재 디자인 검토 흐름으로 연결 |
+| PDF 편집 호환 진입점 | `/tools/pdf-editor.html` | 기존 PDF 편집 URL을 canonical PDF 편집기로 연결 |
+| 표지 검토 호환 진입점 | `/tools/perfect-binding-cover.html` | 기존 표지 검토 URL을 현재 디자인 검토 흐름으로 연결 |
 
 ### 디자인 검토
 
-`/print-checker`는 표지·전단·리플렛·초대장/안내장 등 완성 인쇄물의 규격과 실제 파일 구성을 대조하는 검토 도구입니다.
+`/print-checker`는 완성된 인쇄물 파일을 제작 규격과 대조하는 검토 도구입니다.
 
 - 재단선·도련·안전영역 확인
 - 표지 책등 검토
 - 리플렛 접지선 확인
 - 초대장/안내장 1p 앞면 · 2p 뒷면 확인과 가변 접지 위치 검토
 - PDF/이미지 원본의 실제 규격과 설정값 비교
+- `/apps/cover`, `/apps/poster`, `/apps/flyer`, `/apps/invitation`, `/apps/notice`, `/apps/leaflet` 호환 주소 지원
 
 ### AI 디자인 제작
 
-`/ai-design-maker`는 승인 회원용 독립 표지 제작 도구입니다.
+`/ai-design-maker`는 승인 회원용 인쇄 표지 제작 도구입니다.
 
-- 뒤표지 + 책등 + 앞표지 전체 펼침 배경을 `gpt-image-2`로 생성
-- 정확한 한글 제목·날짜·기관명·책등 글자는 브라우저 레이어로 합성
-- 책등 세로쓰기 및 양방향 회전 지원
-- 실제 인쇄 규격 기준 300dpi PNG 저장
-- 장시간 이미지 생성 요청은 인증된 Functions 서비스로 직접 호출
+- 뒤표지 + 책등 + 앞표지 전체 펼침 또는 앞표지 단독 배경을 `gpt-image-2`로 생성
+- 정확한 한글 문구를 브라우저 편집 레이어로 합성
+- 앞·뒤 안전영역 스냅, 책등 자유배치, 0.2mm 단위 정밀 이동
+- 선·박스·둥근박스·원 및 별·반짝임·다이아몬드 포인트 아이콘
+- 도형 선 두께·테두리 없음·투명도·채움/선 색상 편집
+- 대표색 팔레트와 색상바 선택값을 내부 CMYK 값으로 변환해 편집 상태에 저장
+- Shift+클릭 문구·도형 다중선택, 선택 묶음 왼쪽·가운데·오른쪽 정렬, 그룹 드래그
+- 디자인 보관함 저장과 300dpi PNG/PDF 완성 파일 출력
+- 드래그 중에는 화면 렌더만 갱신하고 종료 시 저장하여 편집 반응성을 유지
 
-과거 `design-editor`, `document-editor`, `image-editor`, `simple-editor` 런타임은 운영 트리에서 제거된 상태를 유지합니다. `/apps/cover`, `/apps/poster`, `/apps/flyer`, `/apps/invitation`, `/apps/notice`, `/apps/leaflet`은 호환 주소로서 디자인 검토 화면으로 연결됩니다.
+### 스마트 인쇄배치
+
+`/smart-print-layout`은 PDF와 이미지의 실제 크기를 기준으로 출력 용지를 자동 구성합니다.
+
+- 출력 방향과 파일 크기에 따른 자동 배치
+- 앞면·뒷면 양면 위치 보정
+- 출력용 PDF 생성
 
 ### PDF 도구
 
-- `/pdf-editor`: PDF 페이지 편집, N-up 배치, 소책자 배열, 출력 설정
-- `/apps/pdf-layout`: PDF 배치 전용 셸 → canonical `/pdf-editor` 엔진 사용
-- `/apps/booklet`: 소책자 제작 전용 셸 → canonical `/pdf-editor` 엔진 사용
-- `/pdf-editor-advanced`: 확대/축소·이동·여백·머리말/꼬리말·페이지 번호 등 독립 고급 편집
+- `/pdf-suite`: PDF 올인원 허브
+- `/pdf-editor`: canonical PDF 문서 편집 엔진
+- `/pdf-editor-advanced`: 독립 고급 PDF 편집기
 - `/pdf-preflight`: PDF 검사·보안·유틸리티
-- `/smart-print-layout`: 인쇄 배치 보조 도구
+- `/apps/pdf-layout`, `/apps/booklet`: `/apps/**` 호환 셸을 통한 PDF 작업 진입
 - `/perfect-binding-cover`, `/tools/*.html`: 기존 공개 URL 호환 진입점
 
 PDF 검수 결과는 인쇄소의 RIP/프리플라이트 결과를 대체하지 않습니다.
+
+과거 `design-editor`, `document-editor`, `image-editor`, `simple-editor` 독립 런타임은 운영 트리에서 제거된 상태를 유지합니다. 기능은 현재 canonical runtime에서 관리하고 호환 URL은 얇은 진입점으로 유지합니다.
 
 ## 저장소 구조
 
