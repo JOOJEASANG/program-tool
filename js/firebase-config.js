@@ -69,7 +69,7 @@ window.firebaseConfig = firebaseConfig;
   if (document.getElementById('programStudioCacheBootstrap')) return;
   const script = document.createElement('script');
   script.id = 'programStudioCacheBootstrap';
-  script.src = '/js/sw-register.js?v=2026.09.20.011';
+  script.src = '/js/sw-register.js?v=2026.09.20.012';
   script.defer = true;
   document.head.appendChild(script);
 })();
