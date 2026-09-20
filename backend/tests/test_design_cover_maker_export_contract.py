@@ -35,7 +35,7 @@ def test_design_review_no_longer_loads_ai_maker_runtime():
     assert 'id="previewCanvas"' in maker
     assert 'id="generateBtn"' in maker
     assert 'id="exportBtn"' in maker
-    assert "/js/ai-design-maker.js?v=20260918-20" in maker
+    assert "/js/ai-design-maker.js?v=20260920-1" in maker
 
 
 def test_ai_design_maker_has_easy_cover_workflow_and_diagnostics():
@@ -96,7 +96,7 @@ def test_ai_design_maker_uses_category_presets_and_exact_spine_guidance():
     assert "Do not create a visible center spine strip" in source
     assert "책등 '+spec.spine.toFixed(1)+'mm" in source
     assert "spineInset=Math.min(sw*.18,1.5*scale)" in source
-    assert "책등 8mm 이상: 책등 문구를 안정적으로 표시할 수 있습니다." in source
+    assert "책등 8mm 이상: 상·중·하 문구를 각각 자동정렬하거나 자유배치할 수 있습니다." in source
 
 def test_ai_design_manual_button_sits_next_to_program_title():
     page = (ROOT / "ai-design-maker/index.html").read_text(encoding="utf-8")
@@ -116,7 +116,7 @@ def test_ai_design_maker_supports_bilingual_requests_and_per_side_extra_copy():
     page = (ROOT / "ai-design-maker/index.html").read_text(encoding="utf-8")
     source = (ROOT / "js/ai-design-maker.js").read_text(encoding="utf-8")
 
-    for field_id in ("title", "backText", "frontExtraFields", "backExtraFields", "addFrontTextBtn", "addBackTextBtn", "spineTitle"):
+    for field_id in ("title", "backText", "frontExtraFields", "backExtraFields", "addFrontTextBtn", "addBackTextBtn", "spineTop", "spineMiddle", "spineBottom", "spineTopPlacement", "spineMiddlePlacement", "spineBottomPlacement"):
         assert f'id="{field_id}"' in page
     assert 'id="customFields"' not in page
     assert 'id="addCustomFieldBtn"' not in page
@@ -151,8 +151,10 @@ def test_ai_design_maker_all_text_is_mouse_editable_and_persisted():
     assert "canvas.addEventListener('pointermove'" in source
     assert "widthScale" in source
     assert "fontScale" in source
-    for field_id in ("title", "backText", "spineTitle"):
+    for field_id in ("title", "backText", "spineTop", "spineMiddle", "spineBottom"):
         assert f"id:'{field_id}'" in source
+    assert "const SPINE_TEXT_IDS = new Set(['spineTop','spineMiddle','spineBottom'])" in source
+    assert "setSpinePlacementMode(drag.textId,'free')" in source
     assert "id:'custom:'+entry.id" in source
 
 def test_ai_design_maker_exports_png_pdf_and_crop_marks():
@@ -396,7 +398,7 @@ def test_ai_design_gallery_saves_finished_cover_and_prompt_to_user_storage():
 def test_ai_design_preview_font_size_migration_does_not_force_default_text_to_4pt():
     source = (ROOT / "js/ai-design-maker.js").read_text(encoding="utf-8")
 
-    assert "const TEXT_LAYOUT_SCHEMA_VERSION = 4" in source
+    assert "const TEXT_LAYOUT_SCHEMA_VERSION = 5" in source
     assert "textLayoutSchemaVersion: TEXT_LAYOUT_SCHEMA_VERSION" in source
     assert "legacyTextLayout" in source
     assert "rawFontSize <= 4" in source
