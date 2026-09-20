@@ -134,6 +134,7 @@ def test_ai_design_maker_supports_bilingual_requests_and_per_side_extra_copy():
 def test_ai_design_maker_all_text_is_mouse_editable_and_persisted():
     page = (ROOT / "ai-design-maker/index.html").read_text(encoding="utf-8")
     source = (ROOT / "js/ai-design-maker.js").read_text(encoding="utf-8")
+    style = (ROOT / "css/ai-design-maker.css").read_text(encoding="utf-8")
 
     assert 'id="textEditBar"' in page
     assert 'id="selectedTextLabel"' in page
