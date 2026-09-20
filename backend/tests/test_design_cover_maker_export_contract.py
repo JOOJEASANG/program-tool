@@ -36,7 +36,7 @@ def test_design_review_no_longer_loads_ai_maker_runtime():
     assert 'id="safeZone" type="number" min="0" max="80" step="0.1" value="10"' in maker
     assert 'id="generateBtn"' in maker
     assert 'id="exportBtn"' in maker
-    assert "/js/ai-design-maker.js?v=20260920-5" in maker
+    assert "/js/ai-design-maker.js?v=20260920-6" in maker
 
 
 def test_ai_design_maker_has_easy_cover_workflow_and_diagnostics():
@@ -467,3 +467,28 @@ def test_ai_design_prompt_context_includes_all_cover_copy_and_theme_keywords():
     assert "theme_context:themeContext()" in source
     assert "SEMANTIC CONTEXT ONLY" in backend
     assert "never render it as text" in backend
+
+
+def test_ai_design_maker_has_lightweight_cmyk_shape_editor():
+    page = (ROOT / "ai-design-maker/index.html").read_text(encoding="utf-8")
+    source = (ROOT / "js/ai-design-maker.js").read_text(encoding="utf-8")
+    style = (ROOT / "css/ai-design-maker.css").read_text(encoding="utf-8")
+
+    for shape in ("line", "rect", "roundRect", "ellipse"):
+        assert f'data-add-shape="{shape}"' in page
+    for field_id in ("primaryC", "primaryM", "primaryY", "primaryK", "textC", "textM", "textY", "textK",
+                     "selectedTextC", "selectedTextM", "selectedTextY", "selectedTextK",
+                     "shapeFillC", "shapeFillM", "shapeFillY", "shapeFillK",
+                     "shapeStrokeC", "shapeStrokeM", "shapeStrokeY", "shapeStrokeK"):
+        assert f'id="{field_id}"' in page
+    assert "function cmykToRgb" in source
+    assert "function createShape(type)" in source
+    assert "function drawShape(ctx,shape,scale)" in source
+    assert "state.shapes.forEach(shape=>drawShape(ctx,shape,ppm))" in source
+    assert "state.shapes.forEach(shape=>drawShape(ctx,shape,scale))" in source
+    assert "const step=event.shiftKey?1:.2" in source
+    assert "scheduleRender();return;" in source
+    assert "state.shapes:" not in source
+    assert "shapes: state.shapes" in source
+    assert ".element-tool-buttons{" in style
+    assert ".cmyk-grid{" in style
