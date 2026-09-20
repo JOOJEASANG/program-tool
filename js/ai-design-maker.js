@@ -294,7 +294,11 @@
 
   function saveSessionNow() {
     saveLocal();
-    setStatus('편집 내용을 저장했습니다.','현재 표지 규격과 문구·디자인 설정을 이 브라우저에 저장했습니다.','ok');
+    setStatus(
+      '편집 설정을 저장했습니다.',
+      '규격·문구·배치 설정은 이 브라우저에 저장됩니다. AI 배경 이미지와 완성 디자인은 상단의 “현재 디자인 저장”으로 디자인 보관함에 별도 저장해 주세요.',
+      'ok'
+    );
   }
 
   function loadSessionNow() {
@@ -310,7 +314,11 @@
     updateGeometry();
     updateProgress();
     scheduleRender();
-    setStatus('저장한 편집 내용을 불러왔습니다.','저장된 규격과 문구·디자인 설정을 다시 적용했습니다.','ok');
+    setStatus(
+      '저장한 편집 설정을 불러왔습니다.',
+      '브라우저에 저장된 규격·문구·배치 설정을 다시 적용했습니다. AI 배경 이미지는 디자인 보관함에서 확인해 주세요.',
+      'ok'
+    );
   }
 
   function setStatus(title, message, tone = 'ok', debug = '') {
@@ -1428,6 +1436,16 @@
     return date.toLocaleString('ko-KR',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
   }
 
+  function galleryErrorDebug(error,stage=''){
+    return [
+      stage?'단계: '+stage:'',
+      error?.code?'code: '+error.code:'',
+      error?.name?'name: '+error.name:'',
+      error?.message?'message: '+error.message:'',
+      error?.serverResponse?'response: '+String(error.serverResponse).slice(0,1200):''
+    ].filter(Boolean).join('\n');
+  }
+
   async function buildGalleryPreviewBlob(){
     if(!state.background)throw new Error('저장할 표지 디자인이 없습니다.');
     const spec=currentSpec(),maxEdge=1600;
@@ -1449,24 +1467,30 @@
   async function saveCurrentDesignToGallery(){
     const spec=currentSpec(),user=window.auth?.currentUser,button=$('saveGalleryBtn');
     if(!user){setStatus('로그인이 필요합니다.','디자인 보관함은 로그인 후 사용할 수 있습니다.','error');return;}
-    if(!window.storage||!window.db){setStatus('보관함 연결을 사용할 수 없습니다.','Firebase Storage 연결을 확인해 주세요.','error');return;}
+    if(!window.storage||!window.db){setStatus('보관함 연결을 사용할 수 없습니다.','Firebase 저장 연결을 확인해 주세요.','error','stage: initialize\nstorage: '+Boolean(window.storage)+'\nfirestore: '+Boolean(window.db));return;}
     if(!state.background||state.generatedSpecKey!==specKey(spec)){setStatus('저장할 디자인이 없습니다.','현재 규격에 맞는 디자인을 먼저 생성해 주세요.','error');return;}
     const title=String($('title')?.value||'').trim()||'제목 없는 표지';
     const prompt=String(state.lastGeneratedPrompt||$('stylePrompt')?.value||presetPrompt()).trim().slice(0,5000);
     const designId='design_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8);
     const imagePath='ai_design_gallery/'+user.uid+'/'+designId+'/preview.jpg';
     const imageRef=window.storage.ref(imagePath);
+    const docRef=window.db.collection('users').doc(user.uid).collection('ai_design_gallery').doc(designId);
     if(button){button.disabled=true;button.textContent='저장 중...';}
     setStatus('디자인을 보관함에 저장하고 있습니다.','완성된 표지 이미지와 디자인 요청문구를 함께 저장하는 중입니다.','busy');
-    let uploaded=false;
+    let uploaded=false,stage='인증 갱신';
     try{
+      await user.getIdToken(true);
+      stage='미리보기 생성';
       const blob=await buildGalleryPreviewBlob();
+      stage='미리보기 업로드';
       await imageRef.put(blob,{
         contentType:'image/jpeg',
         customMetadata:{ownerUid:user.uid,purpose:'ai-design-gallery-preview',designId}
       });
       uploaded=true;
-      await window.db.collection('users').doc(user.uid).collection('ai_design_gallery').doc(designId).set({
+      stage='보관함 기록 저장';
+      const createdAt=firebase.firestore.Timestamp.now();
+      await docRef.set({
         id:designId,
         title:title.slice(0,180),
         prompt,
@@ -1477,13 +1501,16 @@
         trimWidth:spec.trimW,
         trimHeight:spec.trimH,
         imagePath,
-        createdAt:firebase.firestore.FieldValue.serverTimestamp()
+        createdAt
       });
-      setStatus('디자인 보관함에 저장했습니다.','보관함에서 이미지와 요청문구를 검색해 다시 볼 수 있습니다.','ok');
+      stage='저장 결과 확인';
+      const verified=await docRef.get();
+      if(!verified.exists)throw Object.assign(new Error('저장한 디자인 기록을 다시 확인하지 못했습니다.'),{code:'gallery/verify-failed'});
+      setStatus('디자인 보관함에 저장했습니다.','저장 기록을 다시 확인했습니다. 디자인 보관함에서 바로 확인할 수 있습니다.','ok');
       await openGallery(true);
     }catch(error){
       if(uploaded)try{await imageRef.delete();}catch(_){}
-      setStatus('디자인 저장 실패',error.message||'보관함 저장 중 오류가 발생했습니다.','error');
+      setStatus('디자인 저장 실패',error.message||'보관함 저장 중 오류가 발생했습니다.','error',galleryErrorDebug(error,stage));
     }finally{
       if(button){button.textContent='현재 디자인 저장';button.disabled=!state.background||state.generatedSpecKey!==specKey(currentSpec());}
     }
@@ -1527,8 +1554,13 @@
       const card=document.createElement('button');
       card.type='button';card.className='gallery-card';
       const imageWrap=document.createElement('span');imageWrap.className='gallery-card-image';
-      const image=document.createElement('img');image.loading='lazy';image.alt=(item.title||'저장된 표지')+' 미리보기';image.src=item.imageUrl||'';
-      imageWrap.appendChild(image);
+      if(item.imageUrl){
+        const image=document.createElement('img');image.loading='lazy';image.alt=(item.title||'저장된 표지')+' 미리보기';image.src=item.imageUrl;
+        imageWrap.appendChild(image);
+      }else{
+        const missing=document.createElement('span');missing.className='gallery-card-no-image';missing.textContent='미리보기 없음';
+        imageWrap.appendChild(missing);
+      }
       const copy=document.createElement('span');copy.className='gallery-card-copy';
       const title=document.createElement('strong');title.textContent=item.title||'제목 없는 표지';
       const prompt=document.createElement('p');prompt.textContent=item.prompt||'요청문구 없음';
@@ -1541,14 +1573,28 @@
 
   async function loadGallery(){
     const user=window.auth?.currentUser;
-    if(!user||!window.db||!window.storage)throw new Error('디자인 보관함 연결을 사용할 수 없습니다.');
-    const snapshot=await window.db.collection('users').doc(user.uid).collection('ai_design_gallery')
-      .orderBy('createdAt','desc').limit(100).get();
+    if(!user||!window.db)throw new Error('디자인 보관함 데이터 연결을 사용할 수 없습니다.');
+    try{await user.getIdToken();}catch(_){}
+    let snapshot;
+    try{
+      snapshot=await window.db.collection('users').doc(user.uid).collection('ai_design_gallery')
+        .orderBy('createdAt','desc').limit(100).get();
+    }catch(error){
+      if(!['failed-precondition','unimplemented'].includes(String(error?.code||'')))throw error;
+      snapshot=await window.db.collection('users').doc(user.uid).collection('ai_design_gallery').limit(100).get();
+    }
     const items=await Promise.all(snapshot.docs.map(async doc=>{
-      const item={id:doc.id,...doc.data(),imageUrl:''};
-      try{item.imageUrl=await window.storage.ref(item.imagePath).getDownloadURL();}catch(_){}
+      const item={id:doc.id,...doc.data(),imageUrl:'',previewError:''};
+      if(window.storage&&item.imagePath){
+        try{item.imageUrl=await window.storage.ref(item.imagePath).getDownloadURL();}
+        catch(error){item.previewError=String(error?.code||error?.message||'preview-unavailable');}
+      }
       return item;
     }));
+    items.sort((a,b)=>{
+      const at=a.createdAt?.toMillis?.()||0,bt=b.createdAt?.toMillis?.()||0;
+      return bt-at;
+    });
     state.galleryItems=items;
     renderGallery($('gallerySearch')?.value||'');
   }
@@ -1563,7 +1609,7 @@
         if($('galleryEmpty'))$('galleryEmpty').textContent='저장한 디자인이 없습니다.';
       }catch(error){
         if($('galleryEmpty')){$('galleryEmpty').hidden=false;$('galleryEmpty').textContent='보관함을 불러오지 못했습니다.';}
-        setStatus('디자인 보관함 불러오기 실패',error.message||'잠시 후 다시 시도해 주세요.','error');
+        setStatus('디자인 보관함 불러오기 실패',error.message||'잠시 후 다시 시도해 주세요.','error',galleryErrorDebug(error,'보관함 목록 조회'));
       }
     }else renderGallery($('gallerySearch')?.value||'');
   }
@@ -1681,6 +1727,7 @@
     $('generateBtn')?.addEventListener('click',generate);
     $('galleryBtn')?.addEventListener('click',()=>openGallery(false));
     $('saveGalleryBtn')?.addEventListener('click',saveCurrentDesignToGallery);
+    $('galleryRefreshBtn')?.addEventListener('click',()=>openGallery(true));
     $('gallerySearch')?.addEventListener('input',event=>renderGallery(event.target.value));
     qa('[data-gallery-close]').forEach(node=>node.addEventListener('click',closeGallery));
     qa('[data-gallery-detail-close]').forEach(node=>node.addEventListener('click',closeGalleryDetail));
