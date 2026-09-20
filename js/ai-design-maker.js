@@ -1370,36 +1370,55 @@
     const SNAP_PX=9;
     canvas.addEventListener('pointerdown',event=>{
       const point=canvasPoint(event),spec=currentSpec(),fit=canvasFitSize(spec),ctx=canvas.getContext('2d');if(!point||!ctx)return;
-      const items=textLayout(spec,fit.scale);
-      const selectedText=items.find(item=>item.id===state.selectedTextId)||null,selectedTextBounds=selectedText?textVisualBounds(ctx,selectedText):null;
-      const selectedShapeItem=selectedShape(),selectedShapeBounds=selectedShapeItem?shapePixelBounds(selectedShapeItem,fit.scale):null,hs=16;
+      const items=textLayout(spec,fit.scale),single=selectionCount()===1;
+      const selectedText=single&&state.selectedTextId?items.find(item=>item.id===state.selectedTextId)||null:null;
+      const selectedTextBounds=selectedText?textVisualBounds(ctx,selectedText):null;
+      const selectedShapeItem=single?selectedShape():null,selectedShapeBounds=selectedShapeItem?shapePixelBounds(selectedShapeItem,fit.scale):null,hs=16;
       const onTextHandle=selectedTextBounds&&point.x>=selectedTextBounds.x+selectedTextBounds.w-hs&&point.x<=selectedTextBounds.x+selectedTextBounds.w+hs&&point.y>=selectedTextBounds.y+selectedTextBounds.h-hs&&point.y<=selectedTextBounds.y+selectedTextBounds.h+hs;
       const onShapeHandle=selectedShapeBounds&&point.x>=selectedShapeBounds.x+selectedShapeBounds.w-hs&&point.x<=selectedShapeBounds.x+selectedShapeBounds.w+hs&&point.y>=selectedShapeBounds.y+selectedShapeBounds.h-hs&&point.y<=selectedShapeBounds.y+selectedShapeBounds.h+hs;
-      let textHit=onTextHandle&&selectedText?{item:selectedText,bounds:selectedTextBounds}:findTextAtPoint(ctx,items,point);
-      if(!textHit&&!onShapeHandle){
-        const shapeHit=findShapeAtPoint(point,fit.scale);
-        if(shapeHit){
-          event.preventDefault();state.selectedShapeId=shapeHit.id;state.selectedTextId='';state.selectedTextUiId='';state.textPointer=null;state.snapGuide=null;
-          const bounds=shapePixelBounds(shapeHit,fit.scale);canvas.setPointerCapture?.(event.pointerId);
-          state.shapePointer={id:event.pointerId,shapeId:shapeHit.id,mode:'move',startX:point.x,startY:point.y,start:{...shapeHit},startBounds:bounds,scale:fit.scale};
-          syncTextEditUi();scheduleRender();return;
-        }
+      const textHit=onTextHandle&&selectedText?{item:selectedText,bounds:selectedTextBounds}:findTextAtPoint(ctx,items,point);
+      const shapeHit=!textHit?findShapeAtPoint(point,fit.scale):null;
+      const hitKind=textHit?'text':shapeHit?'shape':'',hitId=textHit?.item.id||shapeHit?.id||'';
+      if(event.shiftKey){
+        if(hitKind&&hitId){event.preventDefault();toggleSelection(hitKind,hitId);state.textPointer=null;state.shapePointer=null;state.groupPointer=null;state.snapGuide=null;syncTextEditUi();scheduleRender();}
+        return;
       }
-      if(onShapeHandle&&selectedShapeItem&&!textHit){
-        event.preventDefault();state.selectedShapeId=selectedShapeItem.id;state.selectedTextId='';state.textPointer=null;canvas.setPointerCapture?.(event.pointerId);
-        state.shapePointer={id:event.pointerId,shapeId:selectedShapeItem.id,mode:'resize',startX:point.x,startY:point.y,start:{...selectedShapeItem},startBounds:selectedShapeBounds,scale:fit.scale};
+      if(!hitKind&&!onShapeHandle&&!onTextHandle){
+        clearSelection();state.snapGuide=null;syncTextEditUi();scheduleRender();return;
+      }
+      const effectiveKind=onShapeHandle&&selectedShapeItem&&!textHit?'shape':hitKind;
+      const effectiveId=onShapeHandle&&selectedShapeItem&&!textHit?selectedShapeItem.id:hitId;
+      if(!effectiveKind||!effectiveId)return;
+      event.preventDefault();
+      if(selectionCount()>1&&selectionHas(effectiveKind,effectiveId)){
+        const descriptors=selectionDescriptors(ctx,items,fit.scale),group=descriptorGroupBounds(descriptors);if(!group)return;
+        canvas.setPointerCapture?.(event.pointerId);state.textPointer=null;state.shapePointer=null;state.snapGuide=null;
+        state.groupPointer={id:event.pointerId,startX:point.x,startY:point.y,scale:fit.scale,canvasW:fit.width,canvasH:fit.height,groupBounds:group,snapshot:captureSelectionSnapshot()};
         syncTextEditUi();scheduleRender();return;
       }
-      if(!textHit){
-        state.selectedTextId='';state.selectedShapeId='';state.textPointer=null;state.shapePointer=null;state.snapGuide=null;syncTextEditUi();scheduleRender();return;
+      if(!selectionHas(effectiveKind,effectiveId)||selectionCount()!==1)setSingleSelection(effectiveKind,effectiveId);
+      if(effectiveKind==='shape'){
+        const shape=state.shapes.find(item=>item.id===effectiveId);if(!shape)return;
+        const bounds=shapePixelBounds(shape,fit.scale);canvas.setPointerCapture?.(event.pointerId);state.textPointer=null;state.groupPointer=null;state.snapGuide=null;
+        const resize=Boolean(onShapeHandle&&selectedShapeItem?.id===effectiveId);
+        state.shapePointer={id:event.pointerId,shapeId:effectiveId,mode:resize?'resize':'move',startX:point.x,startY:point.y,start:{...shape},startBounds:bounds,scale:fit.scale};
+        syncTextEditUi();scheduleRender();return;
       }
-      event.preventDefault();state.selectedTextId=textHit.item.id;state.selectedShapeId='';state.shapePointer=null;
-      const layout=textLayoutState(textHit.item.id,textHit.item.align||'left'),surface=textSurfaceForId(textHit.item.id),zone=coverSurfaceRect(surface,spec,fit.scale);
-      canvas.setPointerCapture?.(event.pointerId);
-      state.textPointer={id:event.pointerId,textId:textHit.item.id,mode:onTextHandle&&selectedText?.id===textHit.item.id?'resize':'move',startX:point.x,startY:point.y,start:{...layout},startBounds:{...textHit.bounds},startBox:{x:textHit.item.x,y:textHit.item.y,w:textHit.item.w,h:textHit.item.h},zone,baseW:Math.max(24,textHit.bounds.w),baseH:Math.max(18,textHit.bounds.h),scale:fit.scale};
+      const hit=textHit&&textHit.item.id===effectiveId?textHit:{item:items.find(item=>item.id===effectiveId),bounds:null};if(!hit.item)return;
+      if(!hit.bounds)hit.bounds=textVisualBounds(ctx,hit.item);
+      const layout=textLayoutState(effectiveId,hit.item.align||'left'),surface=textSurfaceForId(effectiveId),zone=coverSurfaceRect(surface,spec,fit.scale);
+      canvas.setPointerCapture?.(event.pointerId);state.shapePointer=null;state.groupPointer=null;
+      state.textPointer={id:event.pointerId,textId:effectiveId,mode:onTextHandle&&selectedText?.id===effectiveId?'resize':'move',startX:point.x,startY:point.y,start:{...layout},startBounds:{...hit.bounds},startBox:{x:hit.item.x,y:hit.item.y,w:hit.item.w,h:hit.item.h},zone,baseW:Math.max(24,hit.bounds.w),baseH:Math.max(18,hit.bounds.h),scale:fit.scale};
       state.snapGuide=null;syncTextEditUi();scheduleRender();
     });
     canvas.addEventListener('pointermove',event=>{
+      const groupDrag=state.groupPointer;
+      if(groupDrag&&groupDrag.id===event.pointerId){
+        const point=canvasPoint(event);if(!point)return;event.preventDefault();
+        const g=groupDrag.groupBounds,rawDx=point.x-groupDrag.startX,rawDy=point.y-groupDrag.startY;
+        const dx=Math.max(-g.x,Math.min(groupDrag.canvasW-(g.x+g.w),rawDx)),dy=Math.max(-g.y,Math.min(groupDrag.canvasH-(g.y+g.h),rawDy));
+        applySelectionSnapshotMove(groupDrag.snapshot,dx/groupDrag.scale,dy/groupDrag.scale);scheduleRender();return;
+      }
       const shapeDrag=state.shapePointer;
       if(shapeDrag&&shapeDrag.id===event.pointerId){
         const point=canvasPoint(event),shape=state.shapes.find(item=>item.id===shapeDrag.shapeId);if(!point||!shape)return;event.preventDefault();
@@ -1434,8 +1453,8 @@
       scheduleRender();
     });
     const finish=event=>{
-      const textDone=state.textPointer&&(!event||state.textPointer.id===event.pointerId),shapeDone=state.shapePointer&&(!event||state.shapePointer.id===event.pointerId);
-      if(textDone||shapeDone){state.textPointer=null;state.shapePointer=null;state.snapGuide=null;saveLocal();syncTextEditUi();scheduleRender();}
+      const textDone=state.textPointer&&(!event||state.textPointer.id===event.pointerId),shapeDone=state.shapePointer&&(!event||state.shapePointer.id===event.pointerId),groupDone=state.groupPointer&&(!event||state.groupPointer.id===event.pointerId);
+      if(textDone||shapeDone||groupDone){state.textPointer=null;state.shapePointer=null;state.groupPointer=null;state.snapGuide=null;saveLocal();syncTextEditUi();scheduleRender();}
     };
     canvas.addEventListener('pointerup',finish);canvas.addEventListener('pointercancel',finish);
   }
