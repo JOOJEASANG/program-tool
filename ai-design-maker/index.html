@@ -8,7 +8,7 @@
   <meta name="robots" content="noindex,nofollow">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
-  <link rel="stylesheet" href="/css/ai-design-maker.css?v=20260920-9">
+  <link rel="stylesheet" href="/css/ai-design-maker.css?v=20260920-10">
   <link rel="stylesheet" href="/css/program-manual-home-modal.css?v=20260918-1">
 </head>
 <body>
@@ -340,7 +340,11 @@
             <button type="button" data-multi-align="center">가운데</button>
             <button type="button" data-multi-align="right">오른쪽</button>
           </div>
-          <small>선택 요소 묶음의 왼쪽·가운데·오른쪽 기준으로 정렬하며 함께 드래그할 수 있습니다.</small>
+          <div class="group-action-buttons" aria-label="선택 요소 그룹">
+            <button type="button" id="groupSelectionBtn">묶기 <kbd>Ctrl+G</kbd></button>
+            <button type="button" id="ungroupSelectionBtn">묶음풀기 <kbd>Ctrl+Shift+G</kbd></button>
+          </div>
+          <small>선택 요소를 하나의 그룹으로 묶어 함께 이동할 수 있습니다. 그룹·다중선택은 외곽선 하나만 표시합니다.</small>
         </div>
         <div class="text-inspector-head">
           <span>EDITOR</span>
@@ -504,6 +508,6 @@
   <script defer src="/js/firebase-config.js"></script>
   <script defer src="/js/program-manuals/home-modal.js?v=20260918-1"></script>
   <script defer src="/js/program-sidebar-actions.js?v=20260918-2"></script>
-  <script defer src="/js/ai-design-maker.js?v=20260920-8"></script>
+  <script defer src="/js/ai-design-maker.js?v=20260920-9"></script>
 </body>
 </html>
