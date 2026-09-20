@@ -298,7 +298,7 @@
     state.groups[groupId]=selected;state.selectedElements=[...selected];syncPrimarySelection(selected[selected.length-1]);return groupId;
   }
   function groupSelectedElements(){
-    if(selectionCount()<2)return;
+    if(selectionCount()<2||exactSelectedGroupId())return;
     groupSelectionKeys(state.selectedElements);saveLocal();syncTextEditUi();scheduleRender();
   }
   function ungroupSelectedElements(){
@@ -1549,6 +1549,12 @@
         syncTextEditUi();scheduleRender();return;
       }
       if(!selectionHas(effectiveKind,effectiveId)||selectionCount()!==1)setSingleSelection(effectiveKind,effectiveId);
+      if(selectionCount()>1&&selectionHas(effectiveKind,effectiveId)){
+        const descriptors=selectionDescriptors(ctx,items,fit.scale),group=descriptorGroupBounds(descriptors);if(!group)return;
+        canvas.setPointerCapture?.(event.pointerId);state.textPointer=null;state.shapePointer=null;state.snapGuide=null;
+        state.groupPointer={id:event.pointerId,startX:point.x,startY:point.y,scale:fit.scale,canvasW:fit.width,canvasH:fit.height,groupBounds:group,snapshot:captureSelectionSnapshot()};
+        syncTextEditUi();scheduleRender();return;
+      }
       if(effectiveKind==='shape'){
         const shape=state.shapes.find(item=>item.id===effectiveId);if(!shape)return;
         const bounds=shapePixelBounds(shape,fit.scale);canvas.setPointerCapture?.(event.pointerId);state.textPointer=null;state.groupPointer=null;state.snapGuide=null;
