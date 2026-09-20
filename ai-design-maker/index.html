@@ -8,7 +8,7 @@
   <meta name="robots" content="noindex,nofollow">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
-  <link rel="stylesheet" href="/css/ai-design-maker.css?v=20260920-7">
+  <link rel="stylesheet" href="/css/ai-design-maker.css?v=20260920-8">
   <link rel="stylesheet" href="/css/program-manual-home-modal.css?v=20260918-1">
 </head>
 <body>
@@ -184,24 +184,38 @@
               </select>
             </label>
             <div class="field-grid two">
-              <div class="field cmyk-field"><span>배경 주조색 <em>CMYK</em></span>
+              <div class="field cmyk-field"><span>배경 주조색 <em>CMYK 변환</em></span>
                 <input id="primaryColor" type="hidden" value="#dbeaf3">
-                <div class="cmyk-grid" data-cmyk-group="primaryColor">
-                  <label>C<input id="primaryC" type="number" min="0" max="100" step="1"></label>
-                  <label>M<input id="primaryM" type="number" min="0" max="100" step="1"></label>
-                  <label>Y<input id="primaryY" type="number" min="0" max="100" step="1"></label>
-                  <label>K<input id="primaryK" type="number" min="0" max="100" step="1"></label>
-                  <i class="cmyk-swatch" id="primaryCmykSwatch" aria-hidden="true"></i>
+                <input id="primaryC" type="hidden"><input id="primaryM" type="hidden"><input id="primaryY" type="hidden"><input id="primaryK" type="hidden">
+                <div class="print-color-picker" data-color-group="primaryColor">
+                  <input id="primaryColorPicker" class="color-bar-input" type="color" value="#dbeaf3" aria-label="배경 주조색 색상바">
+                  <div class="print-color-palette" aria-label="배경 주조색 대표색">
+                    <button type="button" data-color-group="primaryColor" data-color-preset="#000000" style="--sw:#000000" aria-label="검정"></button>
+                    <button type="button" data-color-group="primaryColor" data-color-preset="#ffffff" style="--sw:#ffffff" aria-label="흰색"></button>
+                    <button type="button" data-color-group="primaryColor" data-color-preset="#1d4ed8" style="--sw:#1d4ed8" aria-label="파랑"></button>
+                    <button type="button" data-color-group="primaryColor" data-color-preset="#0f766e" style="--sw:#0f766e" aria-label="청록"></button>
+                    <button type="button" data-color-group="primaryColor" data-color-preset="#16a34a" style="--sw:#16a34a" aria-label="초록"></button>
+                    <button type="button" data-color-group="primaryColor" data-color-preset="#f59e0b" style="--sw:#f59e0b" aria-label="주황"></button>
+                    <button type="button" data-color-group="primaryColor" data-color-preset="#dc2626" style="--sw:#dc2626" aria-label="빨강"></button>
+                    <button type="button" data-color-group="primaryColor" data-color-preset="#7c3aed" style="--sw:#7c3aed" aria-label="보라"></button>
+                  </div>
                 </div>
               </div>
-              <div class="field cmyk-field"><span>기본 글자색 <em>CMYK</em></span>
+              <div class="field cmyk-field"><span>기본 글자색 <em>CMYK 변환</em></span>
                 <input id="textColor" type="hidden" value="#164e6d">
-                <div class="cmyk-grid" data-cmyk-group="textColor">
-                  <label>C<input id="textC" type="number" min="0" max="100" step="1"></label>
-                  <label>M<input id="textM" type="number" min="0" max="100" step="1"></label>
-                  <label>Y<input id="textY" type="number" min="0" max="100" step="1"></label>
-                  <label>K<input id="textK" type="number" min="0" max="100" step="1"></label>
-                  <i class="cmyk-swatch" id="textCmykSwatch" aria-hidden="true"></i>
+                <input id="textC" type="hidden"><input id="textM" type="hidden"><input id="textY" type="hidden"><input id="textK" type="hidden">
+                <div class="print-color-picker" data-color-group="textColor">
+                  <input id="textColorPicker" class="color-bar-input" type="color" value="#164e6d" aria-label="기본 글자색 색상바">
+                  <div class="print-color-palette" aria-label="기본 글자색 대표색">
+                    <button type="button" data-color-group="textColor" data-color-preset="#000000" style="--sw:#000000" aria-label="검정"></button>
+                    <button type="button" data-color-group="textColor" data-color-preset="#ffffff" style="--sw:#ffffff" aria-label="흰색"></button>
+                    <button type="button" data-color-group="textColor" data-color-preset="#1d4ed8" style="--sw:#1d4ed8" aria-label="파랑"></button>
+                    <button type="button" data-color-group="textColor" data-color-preset="#0f766e" style="--sw:#0f766e" aria-label="청록"></button>
+                    <button type="button" data-color-group="textColor" data-color-preset="#16a34a" style="--sw:#16a34a" aria-label="초록"></button>
+                    <button type="button" data-color-group="textColor" data-color-preset="#f59e0b" style="--sw:#f59e0b" aria-label="주황"></button>
+                    <button type="button" data-color-group="textColor" data-color-preset="#dc2626" style="--sw:#dc2626" aria-label="빨강"></button>
+                    <button type="button" data-color-group="textColor" data-color-preset="#7c3aed" style="--sw:#7c3aed" aria-label="보라"></button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -304,8 +318,20 @@
             <button type="button" data-add-shape="rect">박스</button>
             <button type="button" data-add-shape="roundRect">둥근박스</button>
             <button type="button" data-add-shape="ellipse">원</button>
+            <button type="button" data-add-shape="star">★ 별</button>
+            <button type="button" data-add-shape="sparkle">✦ 반짝임</button>
+            <button type="button" data-add-shape="diamond">◆ 다이아</button>
           </div>
-          <small>방향키 0.2mm · Shift+방향키 1mm 정밀 이동</small>
+          <small>방향키 0.2mm · Shift+방향키 1mm · Shift+클릭 다중선택</small>
+        </div>
+        <div class="multi-select-panel" id="multiSelectPanel" hidden>
+          <div class="multi-select-head"><strong id="multiSelectCount">2개 요소 선택</strong><small>Shift+클릭으로 추가·해제</small></div>
+          <div class="multi-align-buttons" aria-label="선택 요소 가로 정렬">
+            <button type="button" data-multi-align="left">왼쪽</button>
+            <button type="button" data-multi-align="center">가운데</button>
+            <button type="button" data-multi-align="right">오른쪽</button>
+          </div>
+          <small>선택 요소 묶음의 왼쪽·가운데·오른쪽 기준으로 정렬하며 함께 드래그할 수 있습니다.</small>
         </div>
         <div class="text-inspector-head">
           <span>EDITOR</span>
@@ -319,27 +345,42 @@
           </div>
           <div class="shape-style-controls">
             <label><span>선 두께 (mm)</span><input id="shapeStrokeWidth" type="number" min="0.1" max="12" step="0.1" value="0.5"></label>
-            <label><span>투명도 (%)</span><input id="shapeOpacity" type="number" min="5" max="100" step="1" value="100"></label>
+            <label><span>도형 투명도 (%)</span><input id="shapeOpacity" type="number" min="0" max="100" step="1" value="100"></label>
           </div>
+          <label class="shape-stroke-toggle" id="shapeStrokeToggleRow"><input id="shapeStrokeTransparent" type="checkbox"><span>테두리 없음 · 투명</span></label>
           <div class="shape-color-section" id="shapeFillSection">
-            <span>채움색 · CMYK</span>
-            <div class="cmyk-grid cmyk-grid-compact" data-cmyk-group="shapeFill">
-              <label>C<input id="shapeFillC" type="number" min="0" max="100" step="1"></label>
-              <label>M<input id="shapeFillM" type="number" min="0" max="100" step="1"></label>
-              <label>Y<input id="shapeFillY" type="number" min="0" max="100" step="1"></label>
-              <label>K<input id="shapeFillK" type="number" min="0" max="100" step="1"></label>
-              <i class="cmyk-swatch" id="shapeFillCmykSwatch" aria-hidden="true"></i>
-            </div>
+            <span>채움색 · CMYK 변환</span>
+            <input id="shapeFillC" type="hidden"><input id="shapeFillM" type="hidden"><input id="shapeFillY" type="hidden"><input id="shapeFillK" type="hidden">
+            <div class="print-color-picker" data-color-group="shapeFill">
+                  <input id="shapeFillColorPicker" class="color-bar-input" type="color" value="#dbeafe" aria-label="도형 채움색 색상바">
+                  <div class="print-color-palette" aria-label="도형 채움색 대표색">
+                    <button type="button" data-color-group="shapeFill" data-color-preset="#000000" style="--sw:#000000" aria-label="검정"></button>
+                    <button type="button" data-color-group="shapeFill" data-color-preset="#ffffff" style="--sw:#ffffff" aria-label="흰색"></button>
+                    <button type="button" data-color-group="shapeFill" data-color-preset="#1d4ed8" style="--sw:#1d4ed8" aria-label="파랑"></button>
+                    <button type="button" data-color-group="shapeFill" data-color-preset="#0f766e" style="--sw:#0f766e" aria-label="청록"></button>
+                    <button type="button" data-color-group="shapeFill" data-color-preset="#16a34a" style="--sw:#16a34a" aria-label="초록"></button>
+                    <button type="button" data-color-group="shapeFill" data-color-preset="#f59e0b" style="--sw:#f59e0b" aria-label="주황"></button>
+                    <button type="button" data-color-group="shapeFill" data-color-preset="#dc2626" style="--sw:#dc2626" aria-label="빨강"></button>
+                    <button type="button" data-color-group="shapeFill" data-color-preset="#7c3aed" style="--sw:#7c3aed" aria-label="보라"></button>
+                  </div>
+                </div>
           </div>
           <div class="shape-color-section">
-            <span>선색 · CMYK</span>
-            <div class="cmyk-grid cmyk-grid-compact" data-cmyk-group="shapeStroke">
-              <label>C<input id="shapeStrokeC" type="number" min="0" max="100" step="1"></label>
-              <label>M<input id="shapeStrokeM" type="number" min="0" max="100" step="1"></label>
-              <label>Y<input id="shapeStrokeY" type="number" min="0" max="100" step="1"></label>
-              <label>K<input id="shapeStrokeK" type="number" min="0" max="100" step="1"></label>
-              <i class="cmyk-swatch" id="shapeStrokeCmykSwatch" aria-hidden="true"></i>
-            </div>
+            <span>선색 · CMYK 변환</span>
+            <input id="shapeStrokeC" type="hidden"><input id="shapeStrokeM" type="hidden"><input id="shapeStrokeY" type="hidden"><input id="shapeStrokeK" type="hidden">
+            <div class="print-color-picker" data-color-group="shapeStroke">
+                  <input id="shapeStrokeColorPicker" class="color-bar-input" type="color" value="#2563eb" aria-label="도형 선색 색상바">
+                  <div class="print-color-palette" aria-label="도형 선색 대표색">
+                    <button type="button" data-color-group="shapeStroke" data-color-preset="#000000" style="--sw:#000000" aria-label="검정"></button>
+                    <button type="button" data-color-group="shapeStroke" data-color-preset="#ffffff" style="--sw:#ffffff" aria-label="흰색"></button>
+                    <button type="button" data-color-group="shapeStroke" data-color-preset="#1d4ed8" style="--sw:#1d4ed8" aria-label="파랑"></button>
+                    <button type="button" data-color-group="shapeStroke" data-color-preset="#0f766e" style="--sw:#0f766e" aria-label="청록"></button>
+                    <button type="button" data-color-group="shapeStroke" data-color-preset="#16a34a" style="--sw:#16a34a" aria-label="초록"></button>
+                    <button type="button" data-color-group="shapeStroke" data-color-preset="#f59e0b" style="--sw:#f59e0b" aria-label="주황"></button>
+                    <button type="button" data-color-group="shapeStroke" data-color-preset="#dc2626" style="--sw:#dc2626" aria-label="빨강"></button>
+                    <button type="button" data-color-group="shapeStroke" data-color-preset="#7c3aed" style="--sw:#7c3aed" aria-label="보라"></button>
+                  </div>
+                </div>
           </div>
         </div>
         <div class="text-inspector-empty" id="textInspectorEmpty">
@@ -373,14 +414,21 @@
             </label>
             <label><span>행간</span><input id="selectedLineHeight" type="number" min="0.8" max="2.2" step="0.05" value="1.2"></label>
             <div class="selected-cmyk-control">
-              <span>글자색 · CMYK</span>
-              <div class="cmyk-grid cmyk-grid-compact" data-cmyk-group="selectedText">
-                <label>C<input id="selectedTextC" type="number" min="0" max="100" step="1"></label>
-                <label>M<input id="selectedTextM" type="number" min="0" max="100" step="1"></label>
-                <label>Y<input id="selectedTextY" type="number" min="0" max="100" step="1"></label>
-                <label>K<input id="selectedTextK" type="number" min="0" max="100" step="1"></label>
-                <i class="cmyk-swatch" id="selectedTextCmykSwatch" aria-hidden="true"></i>
-              </div>
+              <span>글자색 · CMYK 변환</span>
+              <input id="selectedTextC" type="hidden"><input id="selectedTextM" type="hidden"><input id="selectedTextY" type="hidden"><input id="selectedTextK" type="hidden">
+              <div class="print-color-picker" data-color-group="selectedText">
+                  <input id="selectedTextColorPicker" class="color-bar-input" type="color" value="#164e6d" aria-label="선택 문구색 색상바">
+                  <div class="print-color-palette" aria-label="선택 문구색 대표색">
+                    <button type="button" data-color-group="selectedText" data-color-preset="#000000" style="--sw:#000000" aria-label="검정"></button>
+                    <button type="button" data-color-group="selectedText" data-color-preset="#ffffff" style="--sw:#ffffff" aria-label="흰색"></button>
+                    <button type="button" data-color-group="selectedText" data-color-preset="#1d4ed8" style="--sw:#1d4ed8" aria-label="파랑"></button>
+                    <button type="button" data-color-group="selectedText" data-color-preset="#0f766e" style="--sw:#0f766e" aria-label="청록"></button>
+                    <button type="button" data-color-group="selectedText" data-color-preset="#16a34a" style="--sw:#16a34a" aria-label="초록"></button>
+                    <button type="button" data-color-group="selectedText" data-color-preset="#f59e0b" style="--sw:#f59e0b" aria-label="주황"></button>
+                    <button type="button" data-color-group="selectedText" data-color-preset="#dc2626" style="--sw:#dc2626" aria-label="빨강"></button>
+                    <button type="button" data-color-group="selectedText" data-color-preset="#7c3aed" style="--sw:#7c3aed" aria-label="보라"></button>
+                  </div>
+                </div>
             </div>
           </div>
           <div class="text-inspector-align" aria-label="문구 박스 위치 정렬">
@@ -447,6 +495,6 @@
   <script defer src="/js/firebase-config.js"></script>
   <script defer src="/js/program-manuals/home-modal.js?v=20260918-1"></script>
   <script defer src="/js/program-sidebar-actions.js?v=20260918-2"></script>
-  <script defer src="/js/ai-design-maker.js?v=20260920-6"></script>
+  <script defer src="/js/ai-design-maker.js?v=20260920-7"></script>
 </body>
 </html>
