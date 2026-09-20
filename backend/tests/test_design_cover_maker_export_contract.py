@@ -35,7 +35,7 @@ def test_design_review_no_longer_loads_ai_maker_runtime():
     assert 'id="previewCanvas"' in maker
     assert 'id="generateBtn"' in maker
     assert 'id="exportBtn"' in maker
-    assert "/js/ai-design-maker.js?v=20260920-1" in maker
+    assert "/js/ai-design-maker.js?v=20260920-2" in maker
 
 
 def test_ai_design_maker_has_easy_cover_workflow_and_diagnostics():
@@ -377,12 +377,17 @@ def test_ai_design_gallery_saves_finished_cover_and_prompt_to_user_storage():
     storage_rules = (ROOT / "storage.rules").read_text(encoding="utf-8")
 
     assert "firebase-storage-compat.js" in page
-    for field_id in ("galleryBtn", "saveGalleryBtn", "galleryModal", "gallerySearch", "galleryGrid", "galleryDetailModal"):
+    for field_id in ("galleryBtn", "saveGalleryBtn", "galleryRefreshBtn", "galleryModal", "gallerySearch", "galleryGrid", "galleryDetailModal"):
         assert f'id="{field_id}"' in page
     assert "async function saveCurrentDesignToGallery()" in source
     assert "async function buildGalleryPreviewBlob()" in source
     assert "async function loadGallery()" in source
     assert "function renderGallery(query='')" in source
+    assert "firebase.firestore.Timestamp.now()" in source
+    assert "galleryErrorDebug(error,stage)" in source
+    assert "if(!user||!window.db)throw new Error('디자인 보관함 데이터 연결을 사용할 수 없습니다.')" in source
+    assert "if(window.storage&&item.imagePath)" in source
+    assert "galleryRefreshBtn" in source
     assert "state.lastGeneratedPrompt=prompt" in source
     assert "ai_design_gallery/" in source
     assert ".orderBy('createdAt','desc').limit(100)" in source
