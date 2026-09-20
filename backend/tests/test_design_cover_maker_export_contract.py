@@ -33,9 +33,10 @@ def test_design_review_no_longer_loads_ai_maker_runtime():
 
     assert 'data-ai-design-maker="cover-v1"' in maker
     assert 'id="previewCanvas"' in maker
+    assert 'id="safeZone" type="number" min="0" max="80" step="0.1" value="10"' in maker
     assert 'id="generateBtn"' in maker
     assert 'id="exportBtn"' in maker
-    assert "/js/ai-design-maker.js?v=20260920-4" in maker
+    assert "/js/ai-design-maker.js?v=20260920-5" in maker
 
 
 def test_ai_design_maker_has_easy_cover_workflow_and_diagnostics():
@@ -157,6 +158,9 @@ def test_ai_design_maker_all_text_is_mouse_editable_and_persisted():
     assert "textLayouts:" in source
     assert "selectedTextId:" in source
     assert "function bindTextCanvasEditing()" in source
+    assert "const safe = clamp(num('safeZone', 10), 0, 80, 10);" in source
+    assert "rgba(239,68,68,.055)" not in source
+    assert "line(ctx,spineX,b,spineX,b+th,'rgba(37,99,235,.68)'" in source
     assert "function textVisualBounds(" in source
     assert "function findTextAtPoint(" in source
     assert "canvas.addEventListener('pointerdown'" in source
