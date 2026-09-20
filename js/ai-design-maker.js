@@ -1096,6 +1096,79 @@
     if(!state.selectedShapeId)return;
     const id=state.selectedShapeId;state.shapes=state.shapes.filter(item=>item.id!==id);state.selectedElements=state.selectedElements.filter(key=>key!==selectionKey('shape',id));syncPrimarySelection();state.shapePointer=null;saveLocal();syncTextEditUi();scheduleRender();
   }
+  function deleteTextElement(id){
+    if(!id)return;
+    if(String(id).startsWith('custom:')){
+      const customId=String(id).slice(7);
+      state.customFields=state.customFields.filter(item=>item.id!==customId);
+      delete state.textLayouts[id];
+      return;
+    }
+    if(!DIRECT_TEXT_SOURCE_IDS.has(id))return;
+    const input=$(id);if(input)input.value='';
+    const layout=textLayoutState(id);layout.text='';
+    if(id==='spineMiddle'&&$('spineSync')?.checked)$('spineSync').checked=false;
+    if(id==='title'&&$('spineSync')?.checked)syncSpineTitle();
+  }
+  function deleteSelectedElements(){
+    if(!selectionCount())return;
+    const keys=[...state.selectedElements],shapeIds=new Set(),textIds=[];
+    keys.forEach(key=>{
+      const parsed=parseSelectionKey(key);if(!parsed)return;
+      if(parsed.kind==='shape')shapeIds.add(parsed.id);
+      else if(parsed.kind==='text')textIds.push(parsed.id);
+    });
+    if(shapeIds.size)state.shapes=state.shapes.filter(item=>!shapeIds.has(item.id));
+    textIds.forEach(deleteTextElement);
+    clearSelection();renderCustomFields();saveLocal();updateProgress();syncTextEditUi();scheduleRender();
+  }
+  function templateShape(type,props={}){
+    return normalizeShape({
+      id:'shape-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,7),
+      type,strokeWidth:.45,strokeEnabled:type==='line'?true:false,opacity:.9,
+      strokeCmyk:hexToCmyk('#334155'),fillCmyk:hexToCmyk('#7c3aed'),...props
+    });
+  }
+  function createDecorationTemplate(templateId){
+    const spec=currentSpec(),zone=coverSurfaceRect('front',spec,1);if(!zone)return;
+    if(state.shapes.length>68){setStatus('꾸밈 요소가 많습니다.','기존 도형을 일부 삭제한 뒤 꾸밈 템플릿을 추가해 주세요.','error');return;}
+    const x=zone.x,y=zone.y,w=zone.w,h=zone.h,accent=hexToCmyk('#7c3aed'),ink=hexToCmyk('#334155'),soft=hexToCmyk('#c4b5fd');
+    let items=[];
+    if(templateId==='minimal-corner'){
+      const len=Math.min(24,w*.16),gap=Math.min(5,w*.03);
+      items=[
+        templateShape('line',{x:x+gap,y:y+gap,w:len,h:.1,strokeCmyk:ink,strokeWidth:.35,opacity:.78}),
+        templateShape('line',{x:x+gap,y:y+gap,w:.5,h:len,strokeCmyk:ink,strokeWidth:.35,opacity:.78}),
+        templateShape('line',{x:x+w-gap-len,y:y+h-gap,w:len,h:.1,strokeCmyk:ink,strokeWidth:.35,opacity:.78}),
+        templateShape('line',{x:x+w-gap,y:y+h-gap-len,w:.5,h:len,strokeCmyk:ink,strokeWidth:.35,opacity:.78})
+      ];
+    }else if(templateId==='editorial-line'){
+      items=[
+        templateShape('line',{x:x+w*.08,y:y+h*.17,w:.5,h:h*.60,strokeCmyk:ink,strokeWidth:.5,opacity:.72}),
+        templateShape('sparkle',{x:x+w*.055,y:y+h*.10,w:10,h:10,fillCmyk:accent,opacity:.88}),
+        templateShape('diamond',{x:x+w*.07,y:y+h*.81,w:7,h:7,fillCmyk:soft,opacity:.84})
+      ];
+    }else if(templateId==='premium-frame'){
+      const inset=Math.min(7,w*.04),fw=w-inset*2,fh=h-inset*2;
+      items=[
+        templateShape('line',{x:x+inset,y:y+inset,w:fw,h:.1,strokeCmyk:ink,strokeWidth:.32,opacity:.58}),
+        templateShape('line',{x:x+inset,y:y+h-inset,w:fw,h:.1,strokeCmyk:ink,strokeWidth:.32,opacity:.58}),
+        templateShape('line',{x:x+inset,y:y+inset,w:.5,h:fh,strokeCmyk:ink,strokeWidth:.32,opacity:.58}),
+        templateShape('line',{x:x+w-inset,y:y+inset,w:.5,h:fh,strokeCmyk:ink,strokeWidth:.32,opacity:.58}),
+        templateShape('diamond',{x:x+w*.48,y:y+inset-3,w:8,h:8,fillCmyk:accent,opacity:.85})
+      ];
+    }else if(templateId==='modern-accent'){
+      items=[
+        templateShape('ellipse',{x:x+w*.76,y:y+h*.08,w:24,h:24,fillCmyk:soft,opacity:.34}),
+        templateShape('sparkle',{x:x+w*.83,y:y+h*.11,w:12,h:12,fillCmyk:accent,opacity:.92}),
+        templateShape('diamond',{x:x+w*.74,y:y+h*.16,w:7,h:7,fillCmyk:ink,opacity:.75}),
+        templateShape('line',{x:x+w*.66,y:y+h*.23,w:w*.24,h:.1,strokeCmyk:ink,strokeWidth:.35,opacity:.55})
+      ];
+    }
+    if(!items.length)return;
+    state.shapes.push(...items);state.selectedElements=items.map(item=>selectionKey('shape',item.id));syncPrimarySelection(state.selectedElements[state.selectedElements.length-1]);
+    saveLocal();syncTextEditUi();scheduleRender();
+  }
 
   function logoRect(spec,scale){
     if(!state.logo)return null;
@@ -2031,6 +2104,7 @@
       if(previous!==state.promptLanguage)scheduleRender();
     }));
     qa('[data-add-shape]').forEach(button=>button.addEventListener('click',()=>createShape(button.dataset.addShape)));
+    qa('[data-decoration-template]').forEach(button=>button.addEventListener('click',()=>createDecorationTemplate(button.dataset.decorationTemplate)));
     $('deleteShapeBtn')?.addEventListener('click',deleteSelectedShape);
     $('shapeStrokeWidth')?.addEventListener('input',event=>{const shape=selectedShape();if(!shape)return;shape.strokeWidth=clamp(event.target.value,.1,12,.5);saveLocal();scheduleRender();});
     $('shapeOpacity')?.addEventListener('input',event=>{const shape=selectedShape();if(!shape)return;shape.opacity=clamp(Number(event.target.value)/100,0,1,1);saveLocal();scheduleRender();});
@@ -2088,7 +2162,7 @@
         return;
       }
       const target=event.target,typing=target&&(target.matches?.('input,textarea,select')||target.isContentEditable);if(typing)return;
-      if((event.key==='Delete'||event.key==='Backspace')&&selectionCount()===1&&state.selectedShapeId){event.preventDefault();deleteSelectedShape();return;}
+      if((event.key==='Delete'||event.key==='Backspace')&&selectionCount()){event.preventDefault();deleteSelectedElements();return;}
       if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(event.key)||!selectionCount())return;
       const step=event.shiftKey?1:.2,dx=event.key==='ArrowLeft'?-step:event.key==='ArrowRight'?step:0,dy=event.key==='ArrowUp'?-step:event.key==='ArrowDown'?step:0;
       event.preventDefault();nudgeSelectedElements(dx,dy);
