@@ -259,8 +259,8 @@ def test_ai_design_selected_text_supports_line_breaks_and_typography_controls():
     assert "selectedFontSize" in source
     assert "selectedFontWeight" in source
     assert "selectedLineHeight" in source
-    assert "$('selectedText'+key)" in source
-    assert "readCmykInputs('selectedText'" in source
+    assert "function applyColorChoice(group,hex)" in source
+    assert "if(group==='selectedText')" in source
     assert "layout.cmyk=value" in source
     assert "layout.color=cmykToHex(value)" in source
     assert ".text-inspector{" in style
