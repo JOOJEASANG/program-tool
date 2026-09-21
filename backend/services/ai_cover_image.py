@@ -216,16 +216,19 @@ Do not draw readable words, letters, numbers, logos, signatures, QR codes, barco
 Exact Korean text will be added later by the application.
 
 ART DIRECTION
-- Follow the selected document category and user visual direction instead of forcing every result into the same abstract geometric template.
-- Professional visual approaches may include editorial grids, photography, photo-collage, architectural imagery, material texture, editorial illustration, symbolic scenes, iconographic or infographic structures, framing, image crops, layered fields, modular layouts, refined geometry or a coherent hybrid.
-- If photography is requested, create sophisticated text-free editorial imagery with no readable signage, brands or labels.
-- If illustration is requested, use publication-grade editorial illustration rather than childish cartoon or clip-art.
-- If infographic/icon styling is requested, use symbolic visual structures without generating readable labels or text.
-- Keep a clear typography-safe zone, but the rest of the page may carry a stronger focal image or richer visual composition where appropriate.
-- Use refined medium saturation by default: slightly richer and more confident than pale pastel, with crisp professional contrast and print-friendly tones.
-- Pale colors are allowed as supporting tones, but do not make the entire result washed-out, foggy, low-contrast or weak.
-- Dark navy, charcoal, deep teal, emerald, cobalt, purple, coral, orange and other stronger accents are allowed when appropriate to the selected category and mood.
-- Prefer a professionally art-directed visual hierarchy over repetitive circles, waves, line networks or generic abstract patterns.
+- Follow the selected document category, subject matter and user visual direction, but do not force every generation into one repeated house style.
+- Prefer variety with control: different generations may use very different visual languages, while every result must remain believable, professional, printable and useful as a real document cover.
+- Choose ONE coherent cover concept per generation rather than mixing every possible style at once.
+- Professional directions may include minimal editorial composition, corporate proposal styling, public-sector report design, educational publication design, eco/nature themes, technology or business graphics, company-profile styling, photo-led editorial layouts, city or architectural imagery, geometric presentation covers, restrained wave-based report covers, symbolic illustration, infographic-inspired structures, modular grids, layered fields, material texture, framing, image crops or a coherent hybrid.
+- Photography, editorial illustration, clean iconographic structures, waves, diagonal panels, geometric framing, circles, line work, gradients and abstract forms are all allowed when they genuinely support the chosen concept.
+- Do not reject familiar report or presentation design language merely because it is conventional; execute it with clean hierarchy, current proportions and professional restraint.
+- If photography is used, create sophisticated text-free editorial imagery with no readable signage, brands or labels.
+- If illustration is used, prefer publication-grade editorial illustration rather than childish cartoon or clip-art.
+- If infographic/icon styling is used, use symbolic visual structures without generating readable labels or text.
+- Keep a generous typography-safe zone appropriate to the selected concept. Visual accents may sit at the top, bottom, sides, corners or within framed image areas instead of always occupying the same location.
+- Use refined, print-friendly contrast. Blue, navy, sky blue, teal, mint, green, gray and neutral palettes are welcome, but restrained indigo, purple, coral, orange, burgundy, charcoal or other suitable accents may also be used.
+- Pale colors may support the composition, but avoid making every result washed-out or low-contrast.
+- Do not make every result use the same palette, the same wave, the same circles, the same diagonal cut, or the same abstract-network formula.
 
 LAYOUT RULES
 {mode_rules}- Background and decorative artwork may extend through trim into bleed and crop naturally at the outside edge.
@@ -234,11 +237,13 @@ LAYOUT RULES
 - No crop marks, trim marks, rulers, registration marks, 3D book perspective, book shadows, hands, desks, or environmental mockup context.
 
 STRICT AVOID LIST
-- Washed-out low-contrast pastel covering the entire composition.
-- Repeating the same thin-line, circle, wave or geometric-network formula regardless of document type.
-- Dated government-brochure styling, generic blue wave motifs, glossy swooshes, bevels, metallic shine, lens flare or fake 3D.
-- Random clip-art, childish decoration, incoherent collage, fake text, visible logos or generic low-end stock-template aesthetics.
+- Washed-out low-contrast treatment that makes the entire composition weak.
+- Repeating the same thin-line, circle, wave, diagonal panel or geometric-network formula across unrelated generations.
+- Generic low-effort decoration with no relationship to the document category or requested mood.
+- Dated effects such as glossy swooshes, bevels, metallic shine, lens flare or fake 3D unless the user explicitly asks for that visual era.
+- Random clip-art, childish decoration, incoherent collage, fake text, visible logos or obvious low-end stock-template aesthetics.
 - Crowding every area and leaving no useful typography-safe space.
+- Treating blue waves, geometric framing, photo inserts or familiar business-report motifs as forbidden; they are allowed when executed intentionally and professionally.
 
 STYLE DIRECTION
 Preset: {req.preset_name or 'custom'}
@@ -248,13 +253,14 @@ SEMANTIC CONTEXT ONLY — use this to inspire imagery, subject matter, visual me
 {req.theme_context or 'professional publication cover'}
 
 QUALITY BAR
-- The result should feel intentionally designed for the selected category: report, administration, public institution, proposal, event, workbook or educational publication.
-- Make composition, imagery and visual language meaningfully different across categories and visual modes.
-- Prefer one coherent visual concept over unrelated decoration.
-- Keep the result contemporary, premium, print-safe and easy to typeset.
+- The result should feel intentionally designed for the selected category: report, administration, public institution, proposal, company profile, event, workbook or educational publication.
+- Favor concept diversity across generations. One output may be minimal, another photo-led, another geometric, another wave-based, another eco-oriented or another editorial, as long as each is coherent and professionally finished.
+- Familiar business/report cover conventions are acceptable when they look current, deliberate and well composed.
+- Prefer one strong visual concept over unrelated decoration.
+- Keep the result contemporary, print-safe, easy to typeset and suitable for real office, institutional or commercial use.
 - Make it feel professionally art-directed rather than AI-decorated.
 
-Return one finished background artwork with clear hierarchy, confident color and useful text-safe space.
+Return one finished background artwork with clear hierarchy, useful text-safe space and a visual concept that does not unnecessarily repeat the previous generation formula.
 """.strip()
 
 def _read_provider_error(exc: urllib.error.HTTPError) -> tuple[str, str, str]:
@@ -424,7 +430,7 @@ def generate_cover_image(payload: dict[str, Any], *, uid: str) -> dict[str, Any]
         "model": str(data.get("model") or model),
         "size": str(data.get("size") or size),
         "quality": str(data.get("quality") or quality),
-        "prompt_version": "cover-background-v8-four-cover-modes",
+        "prompt_version": "cover-background-v9-diverse-professional-covers",
         "geometry": {
             "cover_mode": req.cover_mode,
             "quality_mode": req.quality_mode,
