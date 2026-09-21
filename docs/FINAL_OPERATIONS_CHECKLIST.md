@@ -31,9 +31,13 @@ python3 scripts/check_operations_readiness.py --json-out /tmp/operations-readine
 - 최소 필수 검사: `Repository quality gate`, `Modular app architecture`
 - 운영 정책에 따라 PR preview 검사도 필수 검사로 추가
 
-현재 저장소 설정상 `main` Branch Protection/Ruleset은 아직 활성화되지 않았습니다. 이를 대신할 수는 없지만, `.github/workflows/firebase-deploy.yml`에 방어 계층을 추가하여 **push 이벤트의 운영 배포는 현재 main SHA와 정확히 일치하는 `main` 대상 병합 PR의 `merge_commit_sha`일 때만 진행**합니다. PR과 연결되지 않은 직접 push나 과거 PR 커밋의 강제 이동은 자동 운영 배포 단계에서 차단합니다. `workflow_dispatch`는 장애 복구용 수동 재배포 경로로 유지합니다.
-
-GitHub Branch Protection은 여전히 별도로 켜야 합니다. 보호 규칙 적용 후 테스트 PR에서 실패한 검사를 가진 변경이 병합되지 않는지 확인합니다.
+현재 `main protection` Ruleset이 활성화되어 있습니다. PR 병합, review thread 해결,
+최신 필수 검사 통과를 요구하며 branch delete와 force push를 차단합니다. 별도의 방어
+계층으로 `.github/workflows/firebase-deploy.yml`에서도 **push 이벤트의 운영 배포는
+현재 main SHA와 정확히 일치하는 `main` 대상 병합 PR의 `merge_commit_sha`일 때만
+진행**합니다. PR과 연결되지 않은 직접 push나 과거 PR 커밋의 강제 이동은 자동 운영
+배포 단계에서 차단합니다. `workflow_dispatch`는 장애 복구용 수동 재배포 경로로
+유지합니다.
 
 ## 2. 현재 회원 운영 정책과 즉시 승인 취소
 
@@ -211,9 +215,12 @@ fixture는 **전송 크기·Storage staging·대기열 검증용**으로 PDF 뒤
 
 ## 12. Firebase CI 인증 WIF 전환 — 마지막 단계
 
-현재 운영 안정화와 실제 기능 검증을 먼저 완료하고, WIF 전환은 마지막 단계로 진행합니다. 워크플로는 Workload Identity Federation(WIF)을 우선 사용할 수 있게 준비되어 있고 기존 `FIREBASE_TOKEN`은 현재 fallback으로 유지합니다.
+GitHub Actions repository secrets에 Workload Identity Federation(WIF) 구성이 완료되어
+워크플로가 단기 ADC 자격증명을 우선 사용합니다. 운영 준비상태 점검에서 실제 WIF
+인증이 성공했으며, 기존 `FIREBASE_TOKEN`은 PR preview와 production 배포 검증을
+모두 마칠 때까지만 fallback으로 유지합니다.
 
-나중에 GitHub Actions secrets에 아래 두 값을 함께 구성합니다.
+GitHub Actions repository secrets에는 아래 두 값이 함께 구성되어 있습니다.
 
 - `GCP_WORKLOAD_IDENTITY_PROVIDER`
 - `GCP_SERVICE_ACCOUNT`
