@@ -1334,6 +1334,11 @@
     seg(Math.max(0,left-gap-len),bottom,Math.max(0,left-gap),bottom);
     seg(Math.min(w,right+gap),top,Math.min(w,right+gap+len),top);
     seg(Math.min(w,right+gap),bottom,Math.min(w,right+gap+len),bottom);
+    if(spec.coverMode==='frontBack'){
+      const seam=(spec.bleed+spec.trimW)*scale;
+      seg(seam,Math.max(0,top-gap-len),seam,Math.max(0,top-gap));
+      seg(seam,Math.min(h,bottom+gap),seam,Math.min(h,bottom+gap+len));
+    }
     ctx.restore();
   }
 
@@ -1932,7 +1937,7 @@
     if(!user){setStatus('로그인이 필요합니다.','디자인 보관함은 로그인 후 사용할 수 있습니다.','error');return;}
     if(!window.storage||!window.db){setStatus('보관함 연결을 사용할 수 없습니다.','Firebase 저장 연결을 확인해 주세요.','error','stage: initialize\nstorage: '+Boolean(window.storage)+'\nfirestore: '+Boolean(window.db));return;}
     if(!state.background||state.generatedSpecKey!==specKey(spec)){setStatus('저장할 디자인이 없습니다.','현재 규격에 맞는 디자인을 먼저 생성해 주세요.','error');return;}
-    const title=String($('title')?.value||'').trim()||'제목 없는 표지';
+    const title=(spec.coverMode==='back'?String($('backText')?.value||'').trim():String($('title')?.value||'').trim())||'제목 없는 표지';
     const prompt=String(state.lastGeneratedPrompt||$('stylePrompt')?.value||presetPrompt()).trim().slice(0,5000);
     const designId='design_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8);
     const imagePath='ai_design_gallery/'+user.uid+'/'+designId+'/preview.jpg';
