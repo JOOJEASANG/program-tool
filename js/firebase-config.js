@@ -115,27 +115,9 @@ window.ProgramAccess = {
 
     try {
       const tokenResult = await user.getIdTokenResult(false);
-      if (tokenResult?.claims?.admin === true) {
-        return this._cacheSet(cacheKey, true);
-      }
+      return this._cacheSet(cacheKey, tokenResult?.claims?.admin === true);
     } catch (error) {
       console.warn('Admin claim could not be read.', error);
-    }
-
-    const email = this.normalizeEmail(user.email);
-    if (!email) return this._cacheSet(cacheKey, false);
-
-    // Temporary migration fallback. Remove after every administrator has admin=true.
-    try {
-      const snapshot = await db.collection('settings').doc('admin').get();
-      const emails = snapshot.exists && Array.isArray(snapshot.data().emails)
-        ? snapshot.data().emails
-        : [];
-      return this._cacheSet(
-        cacheKey,
-        emails.map(value => this.normalizeEmail(value)).includes(email)
-      );
-    } catch (_) {
       return this._cacheSet(cacheKey, false);
     }
   },
