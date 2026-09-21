@@ -227,7 +227,7 @@ ART DIRECTION
 - If infographic/icon styling is used, use symbolic visual structures without generating readable labels or text.
 - Keep a generous typography-safe zone appropriate to the selected concept. Visual accents may sit at the top, bottom, sides, corners or within framed image areas instead of always occupying the same location.
 - Use refined, print-friendly contrast. Blue, navy, sky blue, teal, mint, green, gray and neutral palettes are welcome, but restrained indigo, purple, coral, orange, burgundy, charcoal or other suitable accents may also be used.
-- Pale colors may support the composition, but avoid making every result washed-out or low-contrast.
+- Pale colors may support the composition, but do not make the entire result washed-out, foggy, low-contrast or weak.
 - Do not make every result use the same palette, the same wave, the same circles, the same diagonal cut, or the same abstract-network formula.
 
 LAYOUT RULES
