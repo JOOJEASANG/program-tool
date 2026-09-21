@@ -266,7 +266,7 @@ def test_ai_design_selected_text_supports_line_breaks_and_typography_controls():
     assert ".text-inspector{" in style
     assert ".text-style-controls{display:grid;grid-template-columns:1fr" in style
 
-def test_ai_design_maker_supports_front_cover_only_mode():
+def test_ai_design_maker_supports_four_cover_work_modes():
     page = (ROOT / "ai-design-maker/index.html").read_text(encoding="utf-8")
     source = (ROOT / "js/ai-design-maker.js").read_text(encoding="utf-8")
     style = (ROOT / "css/ai-design-maker.css").read_text(encoding="utf-8")
@@ -274,19 +274,26 @@ def test_ai_design_maker_supports_front_cover_only_mode():
 
     assert 'name="coverMode" value="spread"' in page
     assert 'name="coverMode" value="front"' in page
+    assert 'name="coverMode" value="back"' in page
+    assert 'name="coverMode" value="frontBack"' in page
     assert 'id="coverModeHeading"' in page
     assert 'id="previewModeTitle"' in page
     assert 'id="backCoverFields"' in page
     assert 'id="spineFields"' in page
     assert "coverMode: 'spread'" in source
-    assert "coverMode==='front'" in source
-    assert "coverMode==='front' ? trimW + bleed * 2" in source
-    assert "cover_mode:spec.coverMode" in source
+    assert "const COVER_MODES = new Set(['front','back','frontBack','spread'])" in source
+    assert "coverMode==='frontBack'" in source
+    assert "backendCoverMode(spec.coverMode)" in source
     assert "front-cover-" in source
+    assert "back-cover-" in source
+    assert "front-back-covers-" in source
     assert 'html[data-cover-mode="front"] #spineField' in style
+    assert 'html[data-cover-mode="back"] #spineField' in style
+    assert 'html[data-cover-mode="frontBack"] #spineField' in style
     assert 'cover_mode: str' in backend
-    assert 'if self.cover_mode == "front"' in backend
-    assert 'FRONT COVER ONLY' in backend
+    assert '"front_back"' in backend
+    assert 'BACK COVER ONLY' in backend
+    assert 'PAIRED FRONT AND BACK COVERS' in backend
 
 
 
@@ -346,8 +353,12 @@ def test_front_cover_mode_is_prominent_at_top_of_sidebar():
     assert 'class="cover-scope-card"' in page
     assert 'id="coverScopeTitle">제작 범위' in page
     assert page.count('name="coverMode" value="front"') == 1
+    assert page.count('name="coverMode" value="back"') == 1
+    assert page.count('name="coverMode" value="frontBack"') == 1
     assert page.count('name="coverMode" value="spread"') == 1
-    assert "앞표지만 디자인" in page
+    assert "앞표지 디자인" in page
+    assert "뒷표지 디자인" in page
+    assert "앞·뒤표지 동시" in page
     assert "전체 펼침 디자인" in page
     assert ".cover-scope-card{" in style
     assert ".cover-mode-picker-prominent" in style
