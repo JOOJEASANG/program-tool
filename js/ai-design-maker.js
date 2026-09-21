@@ -143,6 +143,13 @@
     lastGeneratedPresetName: ''
   };
 
+  const COVER_MODES = new Set(['front','back','frontBack','spread']);
+  const normalizeCoverMode = value => COVER_MODES.has(value) ? value : 'spread';
+  const modeHasFront = mode => mode==='front'||mode==='frontBack'||mode==='spread';
+  const modeHasBack = mode => mode==='back'||mode==='frontBack'||mode==='spread';
+  const modeHasSpine = mode => mode==='spread';
+  const isSingleCoverMode = mode => mode==='front'||mode==='back';
+  const backendCoverMode = mode => mode==='frontBack' ? 'front_back' : mode;
   const clamp = (value, min, max, fallback) => {
     const number = Number(value);
     return Math.max(min, Math.min(max, Number.isFinite(number) ? number : fallback));
@@ -317,18 +324,20 @@
 
 
   function currentSpec() {
-    const coverMode=state.coverMode==='front'?'front':'spread';
+    const coverMode=normalizeCoverMode(state.coverMode);
     const trimW = clamp(num('trimW', 210), 50, 1000, 210);
     const trimH = clamp(num('trimH', 297), 50, 1000, 297);
     const bleed = clamp(num('bleed', 3), 0, 20, 3);
     const safe = clamp(num('safeZone', 10), 0, 80, 10);
-    const spine = coverMode==='front' ? 0 : clamp(num('spine', 10), 0, 100, 10);
-    const wing = coverMode==='front' ? 0 : ($('wingEnabled')?.checked ? clamp(num('wingW', 70), 20, 300, 70) : 0);
-    return {
-      coverMode, trimW, trimH, spine, bleed, safe, wing,
-      workW: coverMode==='front' ? trimW + bleed * 2 : trimW * 2 + spine + wing * 2 + bleed * 2,
-      workH: trimH + bleed * 2
-    };
+    const spread=coverMode==='spread';
+    const spine = spread ? clamp(num('spine', 10), 0, 100, 10) : 0;
+    const wing = spread && $('wingEnabled')?.checked ? clamp(num('wingW', 70), 20, 300, 70) : 0;
+    const workW=isSingleCoverMode(coverMode)
+      ? trimW + bleed * 2
+      : coverMode==='frontBack'
+        ? trimW * 2 + bleed * 2
+        : trimW * 2 + spine + wing * 2 + bleed * 2;
+    return {coverMode, trimW, trimH, spine, bleed, safe, wing, workW, workH:trimH + bleed * 2};
   }
 
   function specKey(spec = currentSpec()) {
@@ -397,7 +406,7 @@
       }
       const restoredPreset=PRESET_MIGRATION[data.preset]||data.preset;
       if (restoredPreset && PRESETS[restoredPreset]) state.preset = restoredPreset;
-      if (data.coverMode === 'front' || data.coverMode === 'spread') state.coverMode = data.coverMode;
+      if (COVER_MODES.has(data.coverMode)) state.coverMode = data.coverMode;
       if (['a4','b5','a5','custom'].includes(data.sizeMode)) state.sizeMode = data.sizeMode;
       else {
         const w=Number(data.trimW),h=Number(data.trimH);
@@ -616,7 +625,8 @@
       setStatus('추가 문구는 최대 12개까지 가능합니다.','필요 없는 문구를 삭제한 뒤 다시 추가해 주세요.','error');
       return;
     }
-    if(surface==='back'&&state.coverMode==='front')return;
+    if(surface==='back'&&!modeHasBack(state.coverMode))return;
+    if(surface==='front'&&!modeHasFront(state.coverMode))return;
     const item={id:'custom-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,6),surface:surface==='back'?'back':'front',value:''};
     state.customFields.push(item);
     renderCustomFields();saveLocal();scheduleRender();
@@ -663,19 +673,20 @@
 
   function syncCoverMode() {
     const selected=document.querySelector('input[name="coverMode"]:checked');
-    if(selected)state.coverMode=selected.value==='front'?'front':'spread';
+    if(selected)state.coverMode=normalizeCoverMode(selected.value);
     qa('input[name="coverMode"]').forEach(input=>{input.checked=input.value===state.coverMode;});
     document.documentElement.dataset.coverMode=state.coverMode;
     renderCustomFields();
-    const front=state.coverMode==='front';
-    if($('coverModeHeading'))$('coverModeHeading').textContent=front?'앞표지 단면 제작':'표지 전체 펼침 제작';
-    if($('coverModeDescription'))$('coverModeDescription').textContent=front
-      ?'앞표지 한 면만 실제 인쇄 규격으로 디자인합니다. 기본 문구 1개와 필요한 추가 문구를 자유롭게 배치하세요.'
-      :'앞표지·책등·뒤표지를 한 번에 제작합니다. 규격 → 문구 → 스타일 순서로 입력하세요.';
-    if($('previewModeTitle'))$('previewModeTitle').textContent=front?'앞표지 미리보기':'전체 펼침 미리보기';
-    if($('backgroundModeHint'))$('backgroundModeHint').textContent=front
-      ?'직접 만든 앞표지 이미지를 불러오면 도련 포함 바깥 적색선 전체 영역을 꽉 채워 배치합니다.'
-      :'직접 만든 전체 펼침 표지를 불러오면 바깥 적색선 전체 영역을 꽉 채워 배치합니다. 그 위에 문구를 자유롭게 편집할 수 있습니다.';
+    const copy={
+      front:['앞표지 단면 제작','앞표지 한 면만 실제 인쇄 규격으로 디자인합니다.','앞표지 미리보기','직접 만든 앞표지 이미지를 불러오면 도련 포함 전체 영역을 꽉 채워 배치합니다.'],
+      back:['뒷표지 단면 제작','뒷표지 한 면만 실제 인쇄 규격으로 디자인합니다.','뒷표지 미리보기','직접 만든 뒷표지 이미지를 불러오면 도련 포함 전체 영역을 꽉 채워 배치합니다.'],
+      frontBack:['앞·뒤표지 동시 제작','책등 없이 뒷표지와 앞표지를 나란히 놓고 한 번에 디자인합니다.','앞·뒤표지 동시 미리보기','앞·뒤표지 2면이 나란히 구성된 이미지를 불러오면 전체 작업 영역을 꽉 채워 배치합니다.'],
+      spread:['표지 전체 펼침 제작','앞표지·책등·뒤표지를 한 번에 제작합니다. 규격 → 문구 → 스타일 순서로 입력하세요.','전체 펼침 미리보기','직접 만든 전체 펼침 표지를 불러오면 바깥 적색선 전체 영역을 꽉 채워 배치합니다. 그 위에 문구를 자유롭게 편집할 수 있습니다.']
+    }[state.coverMode];
+    if($('coverModeHeading'))$('coverModeHeading').textContent=copy[0];
+    if($('coverModeDescription'))$('coverModeDescription').textContent=copy[1];
+    if($('previewModeTitle'))$('previewModeTitle').textContent=copy[2];
+    if($('backgroundModeHint'))$('backgroundModeHint').textContent=copy[3];
     syncWing();
     updateGeometry();
     syncTextEditUi();
@@ -705,6 +716,8 @@
     const spec=currentSpec();
     const validSpec=spec.trimW>=50&&spec.trimH>=50&&spec.spine>=0&&spec.bleed>=0;
     const hasTitle=Boolean(String($('title')?.value||'').trim());
+    const hasBackText=Boolean(String($('backText')?.value||'').trim());
+    const copyReady=state.coverMode==='back'?hasBackText:hasTitle;
     const hasStyle=Boolean(String($('stylePrompt')?.value||'').trim());
     const setState=(id,done,doneText,pendingText)=>{
       const node=$(id); if(!node)return;
@@ -713,7 +726,7 @@
       node.classList.toggle('need',!done);
     };
     setState('specState',validSpec,'완료','확인');
-    setState('copyState',hasTitle,'완료','앞표지 필요');
+    setState('copyState',copyReady,'완료',state.coverMode==='back'?'뒷표지 필요':'앞표지 필요');
     setState('styleState',hasStyle,'완료','스타일 필요');
     const generated=Boolean(state.background&&state.generatedSpecKey===specKey(spec));
     const stale=Boolean(state.background&&!generated);
@@ -753,12 +766,17 @@
   function updateGeometry() {
     const spec = currentSpec();
     const wing = spec.wing ? ' · 날개 '+spec.wing.toFixed(1)+'mm×2' : '';
-    const text = spec.coverMode==='front'
-      ? '앞표지 '+spec.trimW.toFixed(1)+'×'+spec.trimH.toFixed(1)+'mm · 도련 '+spec.bleed.toFixed(1)+'mm · 작업 '+spec.workW.toFixed(1)+'×'+spec.workH.toFixed(1)+'mm'
-      : '완성 '+spec.trimW.toFixed(1)+'×'+spec.trimH.toFixed(1)+'mm · 책등 '+spec.spine.toFixed(1)+'mm · 도련 '+spec.bleed.toFixed(1)+'mm'+wing+' · 전체 '+spec.workW.toFixed(1)+'×'+spec.workH.toFixed(1)+'mm';
-    const compact = spec.coverMode==='front'
-      ? spec.trimW.toFixed(1)+'×'+spec.trimH.toFixed(1)+'mm · 작업 '+spec.workW.toFixed(1)+'×'+spec.workH.toFixed(1)+'mm'
-      : spec.trimW.toFixed(1)+'×'+spec.trimH.toFixed(1)+'mm · 책등 '+spec.spine.toFixed(1)+'mm · 전체 '+spec.workW.toFixed(1)+'×'+spec.workH.toFixed(1)+'mm';
+    const singleLabel=spec.coverMode==='back'?'뒷표지':'앞표지';
+    const text = isSingleCoverMode(spec.coverMode)
+      ? singleLabel+' '+spec.trimW.toFixed(1)+'×'+spec.trimH.toFixed(1)+'mm · 도련 '+spec.bleed.toFixed(1)+'mm · 작업 '+spec.workW.toFixed(1)+'×'+spec.workH.toFixed(1)+'mm'
+      : spec.coverMode==='frontBack'
+        ? '앞·뒤표지 각 '+spec.trimW.toFixed(1)+'×'+spec.trimH.toFixed(1)+'mm · 도련 '+spec.bleed.toFixed(1)+'mm · 동시 작업 '+spec.workW.toFixed(1)+'×'+spec.workH.toFixed(1)+'mm'
+        : '완성 '+spec.trimW.toFixed(1)+'×'+spec.trimH.toFixed(1)+'mm · 책등 '+spec.spine.toFixed(1)+'mm · 도련 '+spec.bleed.toFixed(1)+'mm'+wing+' · 전체 '+spec.workW.toFixed(1)+'×'+spec.workH.toFixed(1)+'mm';
+    const compact = isSingleCoverMode(spec.coverMode)
+      ? spec.trimW.toFixed(1)+'×'+spec.trimH.toFixed(1)+'mm · '+singleLabel
+      : spec.coverMode==='frontBack'
+        ? spec.trimW.toFixed(1)+'×'+spec.trimH.toFixed(1)+'mm × 2 · 앞·뒤 동시'
+        : spec.trimW.toFixed(1)+'×'+spec.trimH.toFixed(1)+'mm · 책등 '+spec.spine.toFixed(1)+'mm · 전체 '+spec.workW.toFixed(1)+'×'+spec.workH.toFixed(1)+'mm';
     if ($('geometryHint')) $('geometryHint').textContent = text;
     if ($('geometrySummary')) $('geometrySummary').textContent = compact;
     if(spec.coverMode==='spread')updateSpinePolicy();
@@ -2087,7 +2105,7 @@
       if(state.sizeMode==='custom')requestAnimationFrame(()=>$('trimW')?.focus());
     }));
     qa('input[name="coverMode"]').forEach(input=>input.addEventListener('change',()=>{
-      state.coverMode=input.value==='front'?'front':'spread';
+      state.coverMode=normalizeCoverMode(input.value);
       clearSelection();
       if(state.background){
         state.generatedSpecKey='';
