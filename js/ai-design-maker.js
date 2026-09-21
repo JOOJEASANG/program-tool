@@ -818,11 +818,19 @@
     if (!$('guideToggle')?.checked) return;
     const b=spec.bleed*scale, tw=spec.trimW*scale, th=spec.trimH*scale, safe=spec.safe*scale;
     if(spec.bleed>0) rect(ctx,.5,.5,spec.workW*scale-1,spec.workH*scale-1,'#db2777',[7,5]);
-    if(spec.coverMode==='front'){
-      const frontX=b;
-      rect(ctx,frontX,b,tw,th,'#2563eb',[6,4]);
-      if(safe>0)rect(ctx,frontX+safe,b+safe,Math.max(0,tw-safe*2),Math.max(0,th-safe*2),'#16a34a');
-      zone(ctx,'앞표지',frontX,b,tw,th);
+    if(isSingleCoverMode(spec.coverMode)){
+      const label=spec.coverMode==='back'?'뒷표지':'앞표지',x=b;
+      rect(ctx,x,b,tw,th,'#2563eb',[6,4]);
+      if(safe>0)rect(ctx,x+safe,b+safe,Math.max(0,tw-safe*2),Math.max(0,th-safe*2),'#16a34a');
+      zone(ctx,label,x,b,tw,th);
+      return;
+    }
+    if(spec.coverMode==='frontBack'){
+      const backX=b,frontX=b+tw;
+      rect(ctx,backX,b,tw,th,'#2563eb',[6,4]);rect(ctx,frontX,b,tw,th,'#2563eb',[6,4]);
+      if(safe>0){rect(ctx,backX+safe,b+safe,Math.max(0,tw-safe*2),Math.max(0,th-safe*2),'#16a34a');rect(ctx,frontX+safe,b+safe,Math.max(0,tw-safe*2),Math.max(0,th-safe*2),'#16a34a');}
+      line(ctx,frontX,b,frontX,b+th,'rgba(37,99,235,.55)');
+      zone(ctx,'뒷표지',backX,b,tw,th);zone(ctx,'앞표지',frontX,b,tw,th);
       return;
     }
     const wing=spec.wing*scale,sw=spec.spine*scale;
@@ -974,9 +982,9 @@
   function textLayout(spec,scale) {
     const v=readText(), b=spec.bleed*scale, tw=spec.trimW*scale, th=spec.trimH*scale;
     const wing=spec.wing*scale,sw=spec.spine*scale;
-    const backX=spec.coverMode==='front'?b:b+wing;
+    const backX=spec.coverMode==='spread'?b+wing:b;
     const spineX=backX+tw;
-    const frontX=spec.coverMode==='front'?b:spineX+sw;
+    const frontX=spec.coverMode==='front'?b:spec.coverMode==='frontBack'?b+tw:spineX+sw;
     const safe=Math.min(spec.safe,spec.trimW*.15,spec.trimH*.15)*scale;
     const ptPx=pt=>pt*25.4/72*scale;
     const list=[];
@@ -988,10 +996,10 @@
     };
     const contentW=Math.max(1,tw-safe*2);
 
-    add({id:'title',surface:'front',text:v.title,x:frontX+safe,y:b+th*.15,w:contentW*.86,h:th*.38,fontPt:titlePt(v.title,spec.trimW),weight:900,align:'left'});
+    if(modeHasFront(spec.coverMode))add({id:'title',surface:'front',text:v.title,x:frontX+safe,y:b+th*.15,w:contentW*.86,h:th*.38,fontPt:titlePt(v.title,spec.trimW),weight:900,align:'left'});
 
-    const frontCustom=v.customFields.filter(item=>item.surface!=='back');
-    const backCustom=spec.coverMode==='spread'?v.customFields.filter(item=>item.surface==='back'):[];
+    const frontCustom=modeHasFront(spec.coverMode)?v.customFields.filter(item=>item.surface!=='back'):[];
+    const backCustom=modeHasBack(spec.coverMode)?v.customFields.filter(item=>item.surface==='back'):[];
     const addCustomEntries=(entries,surface,x,startY,areaH)=>{
       const step=entries.length?Math.min(th*.075,areaH/entries.length):0;
       entries.forEach((entry,index)=>{
@@ -999,14 +1007,14 @@
         add({id:'custom:'+entry.id,surface,text,x:x+safe,y:startY+index*step,w:contentW*.72,h:Math.max(th*.052,step*.95),fontPt:12,weight:700,align:'left'});
       });
     };
-    addCustomEntries(frontCustom,'front',frontX,b+th*.60,th*.30);
+    if(modeHasFront(spec.coverMode))addCustomEntries(frontCustom,'front',frontX,b+th*.60,th*.30);
 
-    if(spec.coverMode==='spread'){
+    if(modeHasBack(spec.coverMode)){
       add({id:'backText',surface:'back',text:v.backText,x:backX+safe,y:b+th*.16,w:contentW*.82,h:th*.48,fontPt:14,weight:650,align:'left'});
       addCustomEntries(backCustom,'back',backX,b+th*.70,th*.22);
     }
 
-    if(spec.coverMode==='spread'&&spec.spine>=4){
+    if(modeHasSpine(spec.coverMode)&&spec.spine>=4){
       const spineEntries=[
         {id:'spineTop',text:v.spineTop,slot:'top',center:.17},
         {id:'spineMiddle',text:v.spineMiddle,slot:'middle',center:.50},
@@ -1222,11 +1230,12 @@
 
   function logoRect(spec,scale){
     if(!state.logo)return null;
-    const b=spec.bleed*scale,wing=spec.wing*scale,tw=spec.trimW*scale,th=spec.trimH*scale,sw=spec.spine*scale,safe=spec.safe*scale;
-    const frontX=spec.coverMode==='front'?b:b+wing+tw+sw;
+    const b=spec.bleed*scale,tw=spec.trimW*scale,th=spec.trimH*scale,safe=spec.safe*scale;
+    const surface=spec.coverMode==='back'?'back':'front',zone=coverSurfaceRect(surface,spec,scale);if(!zone)return null;
+    const trimX=zone.x-safe,trimY=zone.y-safe;
     const maxW=tw*.24,maxH=th*.08,ratio=state.logo.naturalWidth/state.logo.naturalHeight;
     let w=maxW,h=w/ratio;if(h>maxH){h=maxH;w=h*ratio;}
-    return {x:frontX+tw-safe-w,y:b+th*.88-h,w,h};
+    return {x:trimX+tw-safe-w,y:trimY+th*.88-h,w,h};
   }
 
   function drawLogo(ctx,spec,scale){
@@ -1262,14 +1271,15 @@
     const b=spec.bleed*scale,tw=spec.trimW*scale,th=spec.trimH*scale,wing=spec.wing*scale,sw=spec.spine*scale;
     const safe=Math.min(spec.safe,spec.trimW*.15,spec.trimH*.15)*scale;
     const safeW=Math.max(1,tw-safe*2),safeH=Math.max(1,th-safe*2);
-    if(surface==='front'){
-      const trimX=spec.coverMode==='front'?b:b+wing+tw+sw;
+    if(surface==='front'&&modeHasFront(spec.coverMode)){
+      const trimX=spec.coverMode==='front'?b:spec.coverMode==='frontBack'?b+tw:b+wing+tw+sw;
       return {x:trimX+safe,y:b+safe,w:safeW,h:safeH,surface:'front'};
     }
-    if(surface==='back'&&spec.coverMode==='spread'){
-      return {x:b+wing+safe,y:b+safe,w:safeW,h:safeH,surface:'back'};
+    if(surface==='back'&&modeHasBack(spec.coverMode)){
+      const trimX=spec.coverMode==='spread'?b+wing:b;
+      return {x:trimX+safe,y:b+safe,w:safeW,h:safeH,surface:'back'};
     }
-    if(surface==='spine'&&spec.coverMode==='spread'&&sw>0){
+    if(surface==='spine'&&modeHasSpine(spec.coverMode)&&sw>0){
       const spineX=b+wing+tw;
       const spineSafeX=Math.min(sw*.12,1.2*scale);
       return {x:spineX+spineSafeX,y:b+safe,w:Math.max(1,sw-spineSafeX*2),h:Math.max(1,th-safe*2),surface:'spine'};
