@@ -17,7 +17,7 @@ def _status(report, name: str) -> str:
     return next(item["status"] for item in report["checks"] if item["name"] == name)
 
 
-def test_operations_readiness_reports_current_external_gaps_without_failing(monkeypatch):
+def test_operations_readiness_requires_wif_even_if_legacy_token_exists(monkeypatch):
     auditor = _load_auditor()
     monkeypatch.setenv("MAIN_PROTECTED", "false")
     monkeypatch.delenv("GCP_WORKLOAD_IDENTITY_PROVIDER", raising=False)
@@ -26,16 +26,16 @@ def test_operations_readiness_reports_current_external_gaps_without_failing(monk
 
     report, exit_code = auditor.audit()
 
-    assert exit_code == 0
-    assert report["overall"] == "WARN"
+    assert exit_code == 1
+    assert report["overall"] == "FAIL"
     assert report["secrets_redacted"] is True
     assert _status(report, "storage_lifecycle_contract") == "PASS"
     assert _status(report, "admin_claim_migration_tool") == "PASS"
     assert _status(report, "wif_repository_contract") == "PASS"
     assert _status(report, "pdf_runtime_capacity_contract") == "PASS"
     assert _status(report, "github_main_protection") == "WARN"
-    assert _status(report, "wif_secret_pair") == "WARN"
-    assert _status(report, "firebase_ci_authentication") == "WARN"
+    assert _status(report, "wif_secret_pair") == "FAIL"
+    assert _status(report, "firebase_ci_authentication") == "FAIL"
 
 
 def test_operations_readiness_fails_partial_wif_configuration(monkeypatch):
@@ -53,6 +53,7 @@ def test_operations_readiness_fails_partial_wif_configuration(monkeypatch):
     assert exit_code == 1
     assert report["overall"] == "FAIL"
     assert _status(report, "wif_secret_pair") == "FAIL"
+    assert _status(report, "firebase_ci_authentication") == "FAIL"
 
 
 def test_operations_readiness_workflow_checks_external_state_without_printing_secrets():
@@ -65,5 +66,6 @@ def test_operations_readiness_workflow_checks_external_state_without_printing_se
     assert "scripts/check_operations_readiness.py" in workflow
     assert "GCP_WORKLOAD_IDENTITY_PROVIDER" in workflow
     assert "GCP_SERVICE_ACCOUNT" in workflow
+    assert "FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}" not in workflow
     assert "Google Cloud WIF 실제 인증 확인" in workflow
     assert "operations-readiness-report" in workflow
