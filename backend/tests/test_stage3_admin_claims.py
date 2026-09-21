@@ -1,6 +1,8 @@
 from types import SimpleNamespace
 from unittest.mock import Mock
 
+import pytest
+
 from utils import permissions
 
 
@@ -20,7 +22,7 @@ def test_admin_claim_is_strict_boolean_true():
     assert permissions._has_admin_claim({}) is False
 
 
-def test_claimed_admin_skips_legacy_admin_document(monkeypatch):
+def test_claimed_admin_skips_member_permission_lookup(monkeypatch):
     db = Mock()
     monkeypatch.setattr(permissions, "verify_bearer_token", lambda: {
         "uid": "admin-user", "email": "admin@example.com", "admin": True,
@@ -32,6 +34,28 @@ def test_claimed_admin_skips_legacy_admin_document(monkeypatch):
         assert decoded["admin"] is True
         assert permissions.g.is_admin is True
     db.collection.assert_not_called()
+
+
+def test_email_list_membership_without_claim_is_not_admin(monkeypatch):
+    permission_ref = SimpleNamespace(path="user_permissions/admin-user")
+    users_collection = Mock()
+    users_collection.document.return_value = permission_ref
+    db = Mock()
+    db.collection.return_value = users_collection
+    db.get_all.return_value = [Snapshot(permission_ref.path, exists=False)]
+    monkeypatch.setattr(permissions, "verify_bearer_token", lambda: {
+        "uid": "admin-user",
+        "email": "admin@example.com",
+    })
+    monkeypatch.setattr(permissions.firestore, "client", lambda: db)
+    app = __import__("flask").Flask(__name__)
+
+    with app.test_request_context("/api/pdf/process", headers={"Authorization": "Bearer token"}):
+        with pytest.raises(permissions.AccessError) as exc_info:
+            permissions.require_program_access_for_request()
+
+    assert exc_info.value.status_code == 403
+    db.collection.assert_called_once_with("user_permissions")
 
 
 def test_program_access_uses_one_batched_permission_lookup():
