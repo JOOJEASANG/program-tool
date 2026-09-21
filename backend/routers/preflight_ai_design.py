@@ -7,6 +7,7 @@ from flask import jsonify, request
 
 from services.ai_cover_image import AiCoverImageError, generate_cover_image
 from services.ai_design_layout import AiDesignError, generate_layout
+from services.ai_usage_guard import AiUsageGuardError, guard_ai_usage
 from utils.auth import require_auth
 from utils.storage import get_request_id
 
@@ -30,10 +31,13 @@ _PUBLIC_AI_ERRORS = {
     "OPENAI_IMAGE_EMPTY": "AI 표지 이미지 결과를 받지 못했습니다.",
     "AI_COVER_IMAGE_FAILED": "AI 표지 이미지 생성 요청을 처리하지 못했습니다.",
     "AI_DESIGN_FAILED": "AI 디자인 요청을 처리하지 못했습니다. 다시 시도해 주세요.",
+    "AI_REQUEST_IN_PROGRESS": "이미 처리 중인 AI 요청이 있습니다. 완료 후 다시 시도해 주세요.",
+    "AI_REQUEST_RATE_LIMITED": "짧은 시간에 AI 요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.",
+    "AI_GUARD_UNAVAILABLE": "AI 사용 보호 상태를 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.",
 }
 
 
-def _error(detail: str, status: int, code: str):
+def _error(detail: str, status: int, code: str, *, retry_after: int = 0):
     response = jsonify({
         "detail": detail,
         "code": code,
@@ -41,6 +45,8 @@ def _error(detail: str, status: int, code: str):
     })
     response.status_code = status
     response.headers["X-Request-ID"] = get_request_id()
+    if retry_after > 0:
+        response.headers["Retry-After"] = str(retry_after)
     return response
 
 
@@ -54,6 +60,16 @@ def _public_ai_error(exc):
         status = 502
     status = status if 400 <= status <= 599 else 502
     return _error(_PUBLIC_AI_ERRORS[code], status, code)
+
+
+def _public_usage_guard_error(exc: AiUsageGuardError):
+    code = exc.code if exc.code in _PUBLIC_AI_ERRORS else "AI_GUARD_UNAVAILABLE"
+    return _error(
+        _PUBLIC_AI_ERRORS[code],
+        exc.status_code,
+        code,
+        retry_after=exc.retry_after,
+    )
 
 
 def install(preflight_module) -> None:
@@ -70,10 +86,13 @@ def install(preflight_module) -> None:
         if not isinstance(payload, dict):
             return _error("디자인 입력값을 확인해 주세요.", 400, "AI_DESIGN_PAYLOAD_INVALID")
         try:
-            result = generate_layout(payload, uid=uid)
+            with guard_ai_usage(uid, "layout"):
+                result = generate_layout(payload, uid=uid)
             response = jsonify(result)
             response.headers["X-Request-ID"] = get_request_id()
             return response
+        except AiUsageGuardError as exc:
+            return _public_usage_guard_error(exc)
         except AiDesignError as exc:
             return _public_ai_error(exc)
         except Exception:
@@ -92,10 +111,13 @@ def install(preflight_module) -> None:
         if not isinstance(payload, dict):
             return _error("AI 디자인 제작 입력값을 확인해 주세요.", 400, "AI_DESIGN_MAKER_PAYLOAD_INVALID")
         try:
-            result = generate_cover_image(payload, uid=uid)
+            with guard_ai_usage(uid, "image"):
+                result = generate_cover_image(payload, uid=uid)
             response = jsonify(result)
             response.headers["X-Request-ID"] = get_request_id()
             return response
+        except AiUsageGuardError as exc:
+            return _public_usage_guard_error(exc)
         except AiCoverImageError as exc:
             return _public_ai_error(exc)
         except Exception:
@@ -113,10 +135,13 @@ def install(preflight_module) -> None:
         if not isinstance(payload, dict):
             return _error("표지 제작 입력값을 확인해 주세요.", 400, "AI_COVER_PAYLOAD_INVALID")
         try:
-            result = generate_cover_image(payload, uid=uid)
+            with guard_ai_usage(uid, "image"):
+                result = generate_cover_image(payload, uid=uid)
             response = jsonify(result)
             response.headers["X-Request-ID"] = get_request_id()
             return response
+        except AiUsageGuardError as exc:
+            return _public_usage_guard_error(exc)
         except AiCoverImageError as exc:
             return _public_ai_error(exc)
         except Exception:

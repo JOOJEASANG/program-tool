@@ -159,6 +159,8 @@ Hosting 배포 직전 `scripts/prepare_hosting_dist.py`가 `.firebase-hosting/`�
 
 AI 표지 제작은 서버의 OpenAI 키를 사용하며 브라우저에 키를 노출하지 않습니다. 기본 이미지 모델은 `gpt-image-2`, 기본 품질은 `high`이며 품질은 `low`, `medium`, `high`, `auto` 중에서 설정할 수 있습니다.
 
+비용이 발생하는 AI endpoint는 Firestore transaction 기반 사용자별 보호를 적용합니다. 이미지 생성은 10분에 5회, 레이아웃 생성은 10분에 15회까지 시작할 수 있으며 유형별 동시 실행은 1개로 제한합니다. 이는 승인 회원의 일일 사용량을 제한하는 상품 quota가 아니라 자동화된 과다 호출과 중복 실행을 차단하는 운영 안전장치입니다.
+
 ```env
 OPENAI_API_KEY=
 OPENAI_AI_IMAGE_MODEL=gpt-image-2
