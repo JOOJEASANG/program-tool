@@ -1689,7 +1689,7 @@
 
   function themeContext(){
     const t=readText(),spec=currentSpec();
-    const custom=t.customFields.map(item=>{
+    const custom=t.customFields.filter(item=>item.surface==='back'?modeHasBack(spec.coverMode):modeHasFront(spec.coverMode)).map(item=>{
       const value=String(item.value||'').trim();
       if(!value)return '';
       return (item.surface==='back'?'뒤표지':'앞표지')+' 추가 문구: '+value;
@@ -1868,7 +1868,8 @@
     const spec=currentSpec();
     if(state.generatedSpecKey!==specKey(spec)){setStatus('규격이 변경되었습니다.','현재 규격으로 AI 배경을 다시 생성하거나 직접 만든 표지 이미지를 다시 불러온 뒤 저장해 주세요.','error');return;}
     const button=$('exportBtn');button.disabled=true;
-    setStatus('인쇄용 PDF를 만들고 있습니다.','300dpi 디자인을 실제 전체 펼침 크기의 1페이지 PDF로 만드는 중입니다.','busy');
+    const pdfModeText=spec.coverMode==='front'?'앞표지':spec.coverMode==='back'?'뒷표지':spec.coverMode==='frontBack'?'앞·뒤표지 동시 작업':'전체 펼침';
+    setStatus('인쇄용 PDF를 만들고 있습니다.','300dpi 디자인을 '+pdfModeText+' 실제 작업 크기의 1페이지 PDF로 만드는 중입니다.','busy');
     try{
       const {canvas,w,h}=await buildExportCanvas();
       const jpegBlob=await new Promise((resolve,reject)=>canvas.toBlob(blob=>blob?resolve(blob):reject(new Error('PDF용 이미지 데이터를 만들지 못했습니다.')),'image/jpeg',.98));
@@ -1993,7 +1994,7 @@
     if($('galleryDetailTitle'))$('galleryDetailTitle').textContent=item.title||'저장된 디자인';
     if($('galleryDetailMeta'))$('galleryDetailMeta').textContent=[
       item.presetName||'',
-      item.coverMode==='front'?'앞표지만':'전체 펼침',
+      item.coverMode==='front'?'앞표지':item.coverMode==='back'?'뒷표지':item.coverMode==='frontBack'?'앞·뒤표지 동시':'전체 펼침',
       (item.trimWidth&&item.trimHeight)?item.trimWidth+'×'+item.trimHeight+'mm':'',
       galleryDateText(item.createdAt)
     ].filter(Boolean).join(' · ');
@@ -2099,7 +2100,11 @@
       if($('exportBtn'))$('exportBtn').disabled=false;
       scheduleRender();updateProgress();
       const spec=currentSpec();
-      setStatus('직접 만든 표지를 배치했습니다.',spec.coverMode==='front'?'앞표지 이미지를 도련 포함 전체 영역에 꽉 채워 배치했습니다.':'이미지는 바깥 적색선 전체 영역을 꽉 채우고, 문구 레이어는 그 위에서 자유롭게 편집할 수 있습니다.','ok');
+      const uploadText=spec.coverMode==='front'?'앞표지 이미지를 도련 포함 전체 영역에 꽉 채워 배치했습니다.'
+        :spec.coverMode==='back'?'뒷표지 이미지를 도련 포함 전체 영역에 꽉 채워 배치했습니다.'
+        :spec.coverMode==='frontBack'?'앞·뒤표지 동시 작업 이미지를 전체 영역에 꽉 채워 배치했습니다.'
+        :'이미지는 바깥 적색선 전체 영역을 꽉 채우고, 문구 레이어는 그 위에서 자유롭게 편집할 수 있습니다.';
+      setStatus('직접 만든 표지를 배치했습니다.',uploadText,'ok');
     }catch(error){
       URL.revokeObjectURL(url);
       setStatus('표지 이미지를 읽지 못했습니다.',error.message||'이미지 파일을 확인해 주세요.','error');
