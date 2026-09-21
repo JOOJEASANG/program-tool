@@ -44,32 +44,9 @@ def verify_bearer_token() -> dict:
         raise AccessError("로그인 정보가 유효하지 않습니다.", 401) from exc
 
 
-def _normalized_email(decoded: dict) -> str:
-    email = decoded.get("email")
-    return email.strip().lower() if isinstance(email, str) else ""
-
-
 def _has_admin_claim(decoded: dict) -> bool:
     """Return True only for the trusted Firebase custom claim."""
     return decoded.get("admin") is True
-
-
-def _is_legacy_admin(db: firestore.Client, email: str) -> bool:
-    """Temporary migration fallback for administrators without a custom claim yet."""
-    if not email:
-        return False
-    snapshot = db.collection("settings").document("admin").get()
-    if not snapshot.exists:
-        return False
-    data = snapshot.to_dict() or {}
-    emails = data.get("emails")
-    if not isinstance(emails, list):
-        return False
-    return email in {
-        value.strip().lower()
-        for value in emails
-        if isinstance(value, str) and value.strip()
-    }
 
 
 def _snapshot_data(snapshot) -> dict:
@@ -122,8 +99,6 @@ def require_program_access_for_request():
     try:
         db = firestore.client()
         is_admin = _has_admin_claim(decoded)
-        if not is_admin:
-            is_admin = _is_legacy_admin(db, _normalized_email(decoded))
         if not is_admin and not _has_program_access(db, uid, program_id):
             raise AccessError("관리자 승인 후 이 프로그램을 사용할 수 있습니다.", 403)
     except AccessError:
