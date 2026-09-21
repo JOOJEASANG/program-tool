@@ -80,7 +80,7 @@ def verify_admin_claims() -> int:
     if failures:
         print(
             f"Admin claim verification failed for {failures} account(s). "
-            "Keep the legacy email fallback enabled."
+            "Restore the missing claims before relying on administrator access."
         )
         return failures
 

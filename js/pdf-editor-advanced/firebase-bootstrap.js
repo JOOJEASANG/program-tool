@@ -32,17 +32,10 @@
     : Promise.resolve();
   window.authPersistenceReady=persistenceReady;
 
-  function normalizedEmail(value){return String(value||'').trim().toLowerCase();}
   async function isAdmin(user){
     try{
       const token=await user.getIdTokenResult(false);
-      if(token?.claims?.admin===true)return true;
-    }catch(_){}
-    if(!db||!user?.email)return false;
-    try{
-      const snap=await db.collection('settings').doc('admin').get();
-      const emails=snap.exists&&Array.isArray(snap.data()?.emails)?snap.data().emails:[];
-      return emails.map(normalizedEmail).includes(normalizedEmail(user.email));
+      return token?.claims?.admin===true;
     }catch(_){return false;}
   }
   async function approved(user){

@@ -8,16 +8,7 @@ service firebase.storage {
         && request.auth.token.keys().hasAll(['admin'])
         && request.auth.token.admin == true;
     }
-    function legacyAdmin() {
-      return signedIn()
-        && request.auth.token.keys().hasAll(['email'])
-        && request.auth.token.email != null
-        && firestore.get(/databases/(default)/documents/settings/admin).data.emails.hasAny([
-          request.auth.token.email,
-          request.auth.token.email.lower()
-        ]);
-    }
-    function isAdmin() { return hasAdminClaim() || legacyAdmin(); }
+    function isAdmin() { return hasAdminClaim(); }
     function isApproved() {
       return isAdmin()
         || (

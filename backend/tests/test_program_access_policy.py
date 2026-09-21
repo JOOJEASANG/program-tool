@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from utils.permissions import _has_admin_claim, _is_legacy_admin, _program_access_from_snapshots
+from utils.permissions import _has_admin_claim, _program_access_from_snapshots
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -14,40 +14,10 @@ class FakeSnapshot:
         return self._data
 
 
-class FakeDocument:
-    def __init__(self, snapshot):
-        self.snapshot = snapshot
-
-    def get(self):
-        return self.snapshot
-
-
-class FakeCollection:
-    def __init__(self, documents):
-        self.documents = documents
-
-    def document(self, document_id):
-        return FakeDocument(FakeSnapshot(self.documents.get(document_id)))
-
-
-class FakeDb:
-    def __init__(self, collections):
-        self.collections = collections
-
-    def collection(self, name):
-        return FakeCollection(self.collections.get(name, {}))
-
-
 def test_admin_claim_requires_exact_boolean_true():
     assert _has_admin_claim({"admin": True}) is True
     assert _has_admin_claim({"admin": "true"}) is False
     assert _has_admin_claim({}) is False
-
-
-def test_legacy_admin_fallback_uses_normalized_email_list():
-    db = FakeDb({"settings": {"admin": {"emails": ["Admin@Example.com"]}}})
-    assert _is_legacy_admin(db, "admin@example.com") is True
-    assert _is_legacy_admin(db, "other@example.com") is False
 
 
 def test_only_approved_accounts_can_use_managed_programs():
@@ -64,7 +34,10 @@ def test_only_approved_accounts_can_use_managed_programs():
 
 def test_frontend_and_backend_share_account_approval_policy():
     frontend = (ROOT / "js" / "firebase-config.js").read_text(encoding="utf-8")
+    advanced = (ROOT / "js" / "pdf-editor-advanced" / "firebase-bootstrap.js").read_text(encoding="utf-8")
     backend = (ROOT / "backend" / "utils" / "permissions.py").read_text(encoding="utf-8")
+    firestore_rules = (ROOT / "firestore.rules").read_text(encoding="utf-8")
+    storage_rules = (ROOT / "storage.rules").read_text(encoding="utf-8")
     for marker in (
         "getIdTokenResult",
         "claims?.admin === true",
@@ -75,11 +48,17 @@ def test_frontend_and_backend_share_account_approval_policy():
         assert marker in frontend
     for marker in (
         "def _has_admin_claim",
-        "def _is_legacy_admin",
         "def _program_access_from_snapshots",
         'return permission_data.get("status") == "approved"',
     ):
         assert marker in backend
+    for retired_marker in (
+        "_is_legacy_admin",
+        "settings').doc('admin')",
+        "legacyAdmin",
+    ):
+        for source in (frontend, advanced, backend, firestore_rules, storage_rules):
+            assert retired_marker not in source
 
 
 def test_all_primary_tool_routes_are_protected():

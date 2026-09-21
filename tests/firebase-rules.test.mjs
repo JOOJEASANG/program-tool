@@ -162,6 +162,30 @@ test('retired provider storage is not member-readable or writable and remains ad
   await assertSucceeds(deleteObject(ref(adminStorage, path)));
 });
 
+test('administrator email list alone grants no Firestore or Storage privileges', async () => {
+  await seedApprovedUser();
+  await env.withSecurityRulesDisabled(async context => {
+    await setDoc(
+      doc(context.firestore(), 'settings', 'admin'),
+      { emails: ['admin@example.com'] }
+    );
+  });
+  const emailOnlyContext = env.authenticatedContext(
+    'admin-user',
+    { email: 'admin@example.com' }
+  );
+
+  await assertFails(
+    getDoc(doc(emailOnlyContext.firestore(), 'cover_templates', 'public-template'))
+  );
+  await assertFails(
+    getBytes(ref(
+      emailOnlyContext.storage(),
+      'cover_templates/public-template/legacy.png'
+    ))
+  );
+});
+
 test('temporary PDF input is approved owner-only and bounded to the expected path shape', async () => {
   await seedApprovedUser();
   const ownerStorage = env.authenticatedContext(
