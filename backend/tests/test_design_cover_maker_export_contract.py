@@ -36,7 +36,7 @@ def test_design_review_no_longer_loads_ai_maker_runtime():
     assert 'id="safeZone" type="number" min="0" max="80" step="0.1" value="10"' in maker
     assert 'id="generateBtn"' in maker
     assert 'id="exportBtn"' in maker
-    assert "/js/ai-design-maker.js?v=20260920-10" in maker
+    assert "/js/ai-design-maker.js?v=20260921-1" in maker
 
 
 def test_ai_design_maker_has_easy_cover_workflow_and_diagnostics():
@@ -221,7 +221,7 @@ def test_event_and_default_generation_use_richer_color_and_full_bleed():
     assert "OUTER BLEED BOUNDARY" in source
     assert "OUTER BLEED BOUNDARY" in backend
     assert "Fill the entire canvas edge-to-edge" in backend
-    assert "cover-background-v7-category-visual-diversity" in backend
+    assert "cover-background-v8-four-cover-modes" in backend
 
 def test_ai_design_selected_text_supports_line_breaks_and_typography_controls():
     page = (ROOT / "ai-design-maker/index.html").read_text(encoding="utf-8")
