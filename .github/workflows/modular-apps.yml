@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   modular-apps:
-    name: Standalone app boundaries
+    name: Modular app architecture validation
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
