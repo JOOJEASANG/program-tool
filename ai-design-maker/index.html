@@ -8,7 +8,7 @@
   <meta name="robots" content="noindex,nofollow">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
-  <link rel="stylesheet" href="/css/ai-design-maker.css?v=20260920-11">
+  <link rel="stylesheet" href="/css/ai-design-maker.css?v=20260921-1">
   <link rel="stylesheet" href="/css/program-manual-home-modal.css?v=20260918-1">
 </head>
 <body>
@@ -57,7 +57,9 @@
             <small>먼저 선택하세요</small>
           </div>
           <div class="cover-mode-picker cover-mode-picker-prominent" role="radiogroup" aria-label="표지 제작 범위">
-            <label><input type="radio" name="coverMode" value="front"><span><strong>앞표지만 디자인</strong><small>앞면 단면 표지 · A4/A5 등</small></span></label>
+            <label><input type="radio" name="coverMode" value="front"><span><strong>앞표지 디자인</strong><small>앞표지 한 면만 작업</small></span></label>
+            <label><input type="radio" name="coverMode" value="back"><span><strong>뒷표지 디자인</strong><small>뒷표지 한 면만 작업</small></span></label>
+            <label><input type="radio" name="coverMode" value="frontBack"><span><strong>앞·뒤표지 동시</strong><small>뒷표지 + 앞표지 나란히</small></span></label>
             <label><input type="radio" name="coverMode" value="spread" checked><span><strong>전체 펼침 디자인</strong><small>뒤표지 + 책등 + 앞표지</small></span></label>
           </div>
         </section>
@@ -95,7 +97,7 @@
         <details class="control-section" id="copySection" open>
           <summary><span class="step-no">2</span><span><strong>표지 문구</strong><small>앞·뒤 기본 1개 + 필요한 문구만 추가</small></span><span class="section-state" id="copyState">앞표지 필요</span></summary>
           <div class="section-body">
-            <div class="copy-surface-group">
+            <div class="copy-surface-group" id="frontCoverFields">
               <div class="copy-surface-head">
                 <span>앞표지 문구 <b>*</b></span>
                 <button id="addFrontTextBtn" class="mini-action" type="button">+ 추가</button>
@@ -501,6 +503,6 @@
   <script defer src="/js/firebase-config.js"></script>
   <script defer src="/js/program-manuals/home-modal.js?v=20260918-1"></script>
   <script defer src="/js/program-sidebar-actions.js?v=20260918-2"></script>
-  <script defer src="/js/ai-design-maker.js?v=20260920-10"></script>
+  <script defer src="/js/ai-design-maker.js?v=20260921-1"></script>
 </body>
 </html>

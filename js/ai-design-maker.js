@@ -143,6 +143,13 @@
     lastGeneratedPresetName: ''
   };
 
+  const COVER_MODES = new Set(['front','back','frontBack','spread']);
+  const normalizeCoverMode = value => COVER_MODES.has(value) ? value : 'spread';
+  const modeHasFront = mode => mode==='front'||mode==='frontBack'||mode==='spread';
+  const modeHasBack = mode => mode==='back'||mode==='frontBack'||mode==='spread';
+  const modeHasSpine = mode => mode==='spread';
+  const isSingleCoverMode = mode => mode==='front'||mode==='back';
+  const backendCoverMode = mode => mode==='frontBack' ? 'front_back' : mode;
   const clamp = (value, min, max, fallback) => {
     const number = Number(value);
     return Math.max(min, Math.min(max, Number.isFinite(number) ? number : fallback));
@@ -317,18 +324,20 @@
 
 
   function currentSpec() {
-    const coverMode=state.coverMode==='front'?'front':'spread';
+    const coverMode=normalizeCoverMode(state.coverMode);
     const trimW = clamp(num('trimW', 210), 50, 1000, 210);
     const trimH = clamp(num('trimH', 297), 50, 1000, 297);
     const bleed = clamp(num('bleed', 3), 0, 20, 3);
     const safe = clamp(num('safeZone', 10), 0, 80, 10);
-    const spine = coverMode==='front' ? 0 : clamp(num('spine', 10), 0, 100, 10);
-    const wing = coverMode==='front' ? 0 : ($('wingEnabled')?.checked ? clamp(num('wingW', 70), 20, 300, 70) : 0);
-    return {
-      coverMode, trimW, trimH, spine, bleed, safe, wing,
-      workW: coverMode==='front' ? trimW + bleed * 2 : trimW * 2 + spine + wing * 2 + bleed * 2,
-      workH: trimH + bleed * 2
-    };
+    const spread=coverMode==='spread';
+    const spine = spread ? clamp(num('spine', 10), 0, 100, 10) : 0;
+    const wing = spread && $('wingEnabled')?.checked ? clamp(num('wingW', 70), 20, 300, 70) : 0;
+    const workW=isSingleCoverMode(coverMode)
+      ? trimW + bleed * 2
+      : coverMode==='frontBack'
+        ? trimW * 2 + bleed * 2
+        : trimW * 2 + spine + wing * 2 + bleed * 2;
+    return {coverMode, trimW, trimH, spine, bleed, safe, wing, workW, workH:trimH + bleed * 2};
   }
 
   function specKey(spec = currentSpec()) {
@@ -397,7 +406,7 @@
       }
       const restoredPreset=PRESET_MIGRATION[data.preset]||data.preset;
       if (restoredPreset && PRESETS[restoredPreset]) state.preset = restoredPreset;
-      if (data.coverMode === 'front' || data.coverMode === 'spread') state.coverMode = data.coverMode;
+      if (COVER_MODES.has(data.coverMode)) state.coverMode = data.coverMode;
       if (['a4','b5','a5','custom'].includes(data.sizeMode)) state.sizeMode = data.sizeMode;
       else {
         const w=Number(data.trimW),h=Number(data.trimH);
@@ -616,7 +625,8 @@
       setStatus('추가 문구는 최대 12개까지 가능합니다.','필요 없는 문구를 삭제한 뒤 다시 추가해 주세요.','error');
       return;
     }
-    if(surface==='back'&&state.coverMode==='front')return;
+    if(surface==='back'&&!modeHasBack(state.coverMode))return;
+    if(surface==='front'&&!modeHasFront(state.coverMode))return;
     const item={id:'custom-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,6),surface:surface==='back'?'back':'front',value:''};
     state.customFields.push(item);
     renderCustomFields();saveLocal();scheduleRender();
@@ -663,19 +673,20 @@
 
   function syncCoverMode() {
     const selected=document.querySelector('input[name="coverMode"]:checked');
-    if(selected)state.coverMode=selected.value==='front'?'front':'spread';
+    if(selected)state.coverMode=normalizeCoverMode(selected.value);
     qa('input[name="coverMode"]').forEach(input=>{input.checked=input.value===state.coverMode;});
     document.documentElement.dataset.coverMode=state.coverMode;
     renderCustomFields();
-    const front=state.coverMode==='front';
-    if($('coverModeHeading'))$('coverModeHeading').textContent=front?'앞표지 단면 제작':'표지 전체 펼침 제작';
-    if($('coverModeDescription'))$('coverModeDescription').textContent=front
-      ?'앞표지 한 면만 실제 인쇄 규격으로 디자인합니다. 기본 문구 1개와 필요한 추가 문구를 자유롭게 배치하세요.'
-      :'앞표지·책등·뒤표지를 한 번에 제작합니다. 규격 → 문구 → 스타일 순서로 입력하세요.';
-    if($('previewModeTitle'))$('previewModeTitle').textContent=front?'앞표지 미리보기':'전체 펼침 미리보기';
-    if($('backgroundModeHint'))$('backgroundModeHint').textContent=front
-      ?'직접 만든 앞표지 이미지를 불러오면 도련 포함 바깥 적색선 전체 영역을 꽉 채워 배치합니다.'
-      :'직접 만든 전체 펼침 표지를 불러오면 바깥 적색선 전체 영역을 꽉 채워 배치합니다. 그 위에 문구를 자유롭게 편집할 수 있습니다.';
+    const copy={
+      front:['앞표지 단면 제작','앞표지 한 면만 실제 인쇄 규격으로 디자인합니다.','앞표지 미리보기','직접 만든 앞표지 이미지를 불러오면 도련 포함 전체 영역을 꽉 채워 배치합니다.'],
+      back:['뒷표지 단면 제작','뒷표지 한 면만 실제 인쇄 규격으로 디자인합니다.','뒷표지 미리보기','직접 만든 뒷표지 이미지를 불러오면 도련 포함 전체 영역을 꽉 채워 배치합니다.'],
+      frontBack:['앞·뒤표지 동시 제작','책등 없이 뒷표지와 앞표지를 나란히 놓고 한 번에 디자인합니다.','앞·뒤표지 동시 미리보기','앞·뒤표지 2면이 나란히 구성된 이미지를 불러오면 전체 작업 영역을 꽉 채워 배치합니다.'],
+      spread:['표지 전체 펼침 제작','앞표지·책등·뒤표지를 한 번에 제작합니다. 규격 → 문구 → 스타일 순서로 입력하세요.','전체 펼침 미리보기','직접 만든 전체 펼침 표지를 불러오면 바깥 적색선 전체 영역을 꽉 채워 배치합니다. 그 위에 문구를 자유롭게 편집할 수 있습니다.']
+    }[state.coverMode];
+    if($('coverModeHeading'))$('coverModeHeading').textContent=copy[0];
+    if($('coverModeDescription'))$('coverModeDescription').textContent=copy[1];
+    if($('previewModeTitle'))$('previewModeTitle').textContent=copy[2];
+    if($('backgroundModeHint'))$('backgroundModeHint').textContent=copy[3];
     syncWing();
     updateGeometry();
     syncTextEditUi();
@@ -705,6 +716,8 @@
     const spec=currentSpec();
     const validSpec=spec.trimW>=50&&spec.trimH>=50&&spec.spine>=0&&spec.bleed>=0;
     const hasTitle=Boolean(String($('title')?.value||'').trim());
+    const hasBackText=Boolean(String($('backText')?.value||'').trim());
+    const copyReady=state.coverMode==='back'?hasBackText:hasTitle;
     const hasStyle=Boolean(String($('stylePrompt')?.value||'').trim());
     const setState=(id,done,doneText,pendingText)=>{
       const node=$(id); if(!node)return;
@@ -713,7 +726,7 @@
       node.classList.toggle('need',!done);
     };
     setState('specState',validSpec,'완료','확인');
-    setState('copyState',hasTitle,'완료','앞표지 필요');
+    setState('copyState',copyReady,'완료',state.coverMode==='back'?'뒷표지 필요':'앞표지 필요');
     setState('styleState',hasStyle,'완료','스타일 필요');
     const generated=Boolean(state.background&&state.generatedSpecKey===specKey(spec));
     const stale=Boolean(state.background&&!generated);
@@ -753,12 +766,17 @@
   function updateGeometry() {
     const spec = currentSpec();
     const wing = spec.wing ? ' · 날개 '+spec.wing.toFixed(1)+'mm×2' : '';
-    const text = spec.coverMode==='front'
-      ? '앞표지 '+spec.trimW.toFixed(1)+'×'+spec.trimH.toFixed(1)+'mm · 도련 '+spec.bleed.toFixed(1)+'mm · 작업 '+spec.workW.toFixed(1)+'×'+spec.workH.toFixed(1)+'mm'
-      : '완성 '+spec.trimW.toFixed(1)+'×'+spec.trimH.toFixed(1)+'mm · 책등 '+spec.spine.toFixed(1)+'mm · 도련 '+spec.bleed.toFixed(1)+'mm'+wing+' · 전체 '+spec.workW.toFixed(1)+'×'+spec.workH.toFixed(1)+'mm';
-    const compact = spec.coverMode==='front'
-      ? spec.trimW.toFixed(1)+'×'+spec.trimH.toFixed(1)+'mm · 작업 '+spec.workW.toFixed(1)+'×'+spec.workH.toFixed(1)+'mm'
-      : spec.trimW.toFixed(1)+'×'+spec.trimH.toFixed(1)+'mm · 책등 '+spec.spine.toFixed(1)+'mm · 전체 '+spec.workW.toFixed(1)+'×'+spec.workH.toFixed(1)+'mm';
+    const singleLabel=spec.coverMode==='back'?'뒷표지':'앞표지';
+    const text = isSingleCoverMode(spec.coverMode)
+      ? singleLabel+' '+spec.trimW.toFixed(1)+'×'+spec.trimH.toFixed(1)+'mm · 도련 '+spec.bleed.toFixed(1)+'mm · 작업 '+spec.workW.toFixed(1)+'×'+spec.workH.toFixed(1)+'mm'
+      : spec.coverMode==='frontBack'
+        ? '앞·뒤표지 각 '+spec.trimW.toFixed(1)+'×'+spec.trimH.toFixed(1)+'mm · 도련 '+spec.bleed.toFixed(1)+'mm · 동시 작업 '+spec.workW.toFixed(1)+'×'+spec.workH.toFixed(1)+'mm'
+        : '완성 '+spec.trimW.toFixed(1)+'×'+spec.trimH.toFixed(1)+'mm · 책등 '+spec.spine.toFixed(1)+'mm · 도련 '+spec.bleed.toFixed(1)+'mm'+wing+' · 전체 '+spec.workW.toFixed(1)+'×'+spec.workH.toFixed(1)+'mm';
+    const compact = isSingleCoverMode(spec.coverMode)
+      ? spec.trimW.toFixed(1)+'×'+spec.trimH.toFixed(1)+'mm · '+singleLabel
+      : spec.coverMode==='frontBack'
+        ? spec.trimW.toFixed(1)+'×'+spec.trimH.toFixed(1)+'mm × 2 · 앞·뒤 동시'
+        : spec.trimW.toFixed(1)+'×'+spec.trimH.toFixed(1)+'mm · 책등 '+spec.spine.toFixed(1)+'mm · 전체 '+spec.workW.toFixed(1)+'×'+spec.workH.toFixed(1)+'mm';
     if ($('geometryHint')) $('geometryHint').textContent = text;
     if ($('geometrySummary')) $('geometrySummary').textContent = compact;
     if(spec.coverMode==='spread')updateSpinePolicy();
@@ -800,11 +818,19 @@
     if (!$('guideToggle')?.checked) return;
     const b=spec.bleed*scale, tw=spec.trimW*scale, th=spec.trimH*scale, safe=spec.safe*scale;
     if(spec.bleed>0) rect(ctx,.5,.5,spec.workW*scale-1,spec.workH*scale-1,'#db2777',[7,5]);
-    if(spec.coverMode==='front'){
-      const frontX=b;
-      rect(ctx,frontX,b,tw,th,'#2563eb',[6,4]);
-      if(safe>0)rect(ctx,frontX+safe,b+safe,Math.max(0,tw-safe*2),Math.max(0,th-safe*2),'#16a34a');
-      zone(ctx,'앞표지',frontX,b,tw,th);
+    if(isSingleCoverMode(spec.coverMode)){
+      const label=spec.coverMode==='back'?'뒷표지':'앞표지',x=b;
+      rect(ctx,x,b,tw,th,'#2563eb',[6,4]);
+      if(safe>0)rect(ctx,x+safe,b+safe,Math.max(0,tw-safe*2),Math.max(0,th-safe*2),'#16a34a');
+      zone(ctx,label,x,b,tw,th);
+      return;
+    }
+    if(spec.coverMode==='frontBack'){
+      const backX=b,frontX=b+tw;
+      rect(ctx,backX,b,tw,th,'#2563eb',[6,4]);rect(ctx,frontX,b,tw,th,'#2563eb',[6,4]);
+      if(safe>0){rect(ctx,backX+safe,b+safe,Math.max(0,tw-safe*2),Math.max(0,th-safe*2),'#16a34a');rect(ctx,frontX+safe,b+safe,Math.max(0,tw-safe*2),Math.max(0,th-safe*2),'#16a34a');}
+      line(ctx,frontX,b,frontX,b+th,'rgba(37,99,235,.55)');
+      zone(ctx,'뒷표지',backX,b,tw,th);zone(ctx,'앞표지',frontX,b,tw,th);
       return;
     }
     const wing=spec.wing*scale,sw=spec.spine*scale;
@@ -956,9 +982,9 @@
   function textLayout(spec,scale) {
     const v=readText(), b=spec.bleed*scale, tw=spec.trimW*scale, th=spec.trimH*scale;
     const wing=spec.wing*scale,sw=spec.spine*scale;
-    const backX=spec.coverMode==='front'?b:b+wing;
+    const backX=spec.coverMode==='spread'?b+wing:b;
     const spineX=backX+tw;
-    const frontX=spec.coverMode==='front'?b:spineX+sw;
+    const frontX=spec.coverMode==='front'?b:spec.coverMode==='frontBack'?b+tw:spineX+sw;
     const safe=Math.min(spec.safe,spec.trimW*.15,spec.trimH*.15)*scale;
     const ptPx=pt=>pt*25.4/72*scale;
     const list=[];
@@ -970,10 +996,10 @@
     };
     const contentW=Math.max(1,tw-safe*2);
 
-    add({id:'title',surface:'front',text:v.title,x:frontX+safe,y:b+th*.15,w:contentW*.86,h:th*.38,fontPt:titlePt(v.title,spec.trimW),weight:900,align:'left'});
+    if(modeHasFront(spec.coverMode))add({id:'title',surface:'front',text:v.title,x:frontX+safe,y:b+th*.15,w:contentW*.86,h:th*.38,fontPt:titlePt(v.title,spec.trimW),weight:900,align:'left'});
 
-    const frontCustom=v.customFields.filter(item=>item.surface!=='back');
-    const backCustom=spec.coverMode==='spread'?v.customFields.filter(item=>item.surface==='back'):[];
+    const frontCustom=modeHasFront(spec.coverMode)?v.customFields.filter(item=>item.surface!=='back'):[];
+    const backCustom=modeHasBack(spec.coverMode)?v.customFields.filter(item=>item.surface==='back'):[];
     const addCustomEntries=(entries,surface,x,startY,areaH)=>{
       const step=entries.length?Math.min(th*.075,areaH/entries.length):0;
       entries.forEach((entry,index)=>{
@@ -981,14 +1007,14 @@
         add({id:'custom:'+entry.id,surface,text,x:x+safe,y:startY+index*step,w:contentW*.72,h:Math.max(th*.052,step*.95),fontPt:12,weight:700,align:'left'});
       });
     };
-    addCustomEntries(frontCustom,'front',frontX,b+th*.60,th*.30);
+    if(modeHasFront(spec.coverMode))addCustomEntries(frontCustom,'front',frontX,b+th*.60,th*.30);
 
-    if(spec.coverMode==='spread'){
+    if(modeHasBack(spec.coverMode)){
       add({id:'backText',surface:'back',text:v.backText,x:backX+safe,y:b+th*.16,w:contentW*.82,h:th*.48,fontPt:14,weight:650,align:'left'});
       addCustomEntries(backCustom,'back',backX,b+th*.70,th*.22);
     }
 
-    if(spec.coverMode==='spread'&&spec.spine>=4){
+    if(modeHasSpine(spec.coverMode)&&spec.spine>=4){
       const spineEntries=[
         {id:'spineTop',text:v.spineTop,slot:'top',center:.17},
         {id:'spineMiddle',text:v.spineMiddle,slot:'middle',center:.50},
@@ -1107,7 +1133,7 @@
   function shapeLabel(type){return {line:'선',rect:'박스',roundRect:'둥근박스',ellipse:'원',star:'별 아이콘',sparkle:'반짝임 아이콘',diamond:'다이아몬드 아이콘',dot:'작은원 포인트'}[type]||'도형';}
   function createShape(type){
     if(!SHAPE_TYPES.has(type))return;
-    const spec=currentSpec(),zone=coverSurfaceRect('front',spec,1)||{x:spec.bleed,y:spec.bleed,w:spec.trimW,h:spec.trimH};
+    const spec=currentSpec(),defaultSurface=spec.coverMode==='back'?'back':'front',zone=coverSurfaceRect(defaultSurface,spec,1)||{x:spec.bleed,y:spec.bleed,w:spec.trimW,h:spec.trimH};
     const point=['star','sparkle','diamond','dot'].includes(type);
     const w=type==='dot'?7:(point?18:Math.min(60,zone.w*.55));
     const h=type==='line'?.1:(type==='dot'?7:(point?18:Math.min(type==='ellipse'?36:42,zone.h*.18)));
@@ -1204,11 +1230,12 @@
 
   function logoRect(spec,scale){
     if(!state.logo)return null;
-    const b=spec.bleed*scale,wing=spec.wing*scale,tw=spec.trimW*scale,th=spec.trimH*scale,sw=spec.spine*scale,safe=spec.safe*scale;
-    const frontX=spec.coverMode==='front'?b:b+wing+tw+sw;
+    const b=spec.bleed*scale,tw=spec.trimW*scale,th=spec.trimH*scale,safe=spec.safe*scale;
+    const surface=spec.coverMode==='back'?'back':'front',zone=coverSurfaceRect(surface,spec,scale);if(!zone)return null;
+    const trimX=zone.x-safe,trimY=zone.y-safe;
     const maxW=tw*.24,maxH=th*.08,ratio=state.logo.naturalWidth/state.logo.naturalHeight;
     let w=maxW,h=w/ratio;if(h>maxH){h=maxH;w=h*ratio;}
-    return {x:frontX+tw-safe-w,y:b+th*.88-h,w,h};
+    return {x:trimX+tw-safe-w,y:trimY+th*.88-h,w,h};
   }
 
   function drawLogo(ctx,spec,scale){
@@ -1244,14 +1271,15 @@
     const b=spec.bleed*scale,tw=spec.trimW*scale,th=spec.trimH*scale,wing=spec.wing*scale,sw=spec.spine*scale;
     const safe=Math.min(spec.safe,spec.trimW*.15,spec.trimH*.15)*scale;
     const safeW=Math.max(1,tw-safe*2),safeH=Math.max(1,th-safe*2);
-    if(surface==='front'){
-      const trimX=spec.coverMode==='front'?b:b+wing+tw+sw;
+    if(surface==='front'&&modeHasFront(spec.coverMode)){
+      const trimX=spec.coverMode==='front'?b:spec.coverMode==='frontBack'?b+tw:b+wing+tw+sw;
       return {x:trimX+safe,y:b+safe,w:safeW,h:safeH,surface:'front'};
     }
-    if(surface==='back'&&spec.coverMode==='spread'){
-      return {x:b+wing+safe,y:b+safe,w:safeW,h:safeH,surface:'back'};
+    if(surface==='back'&&modeHasBack(spec.coverMode)){
+      const trimX=spec.coverMode==='spread'?b+wing:b;
+      return {x:trimX+safe,y:b+safe,w:safeW,h:safeH,surface:'back'};
     }
-    if(surface==='spine'&&spec.coverMode==='spread'&&sw>0){
+    if(surface==='spine'&&modeHasSpine(spec.coverMode)&&sw>0){
       const spineX=b+wing+tw;
       const spineSafeX=Math.min(sw*.12,1.2*scale);
       return {x:spineX+spineSafeX,y:b+safe,w:Math.max(1,sw-spineSafeX*2),h:Math.max(1,th-safe*2),surface:'spine'};
@@ -1306,6 +1334,11 @@
     seg(Math.max(0,left-gap-len),bottom,Math.max(0,left-gap),bottom);
     seg(Math.min(w,right+gap),top,Math.min(w,right+gap+len),top);
     seg(Math.min(w,right+gap),bottom,Math.min(w,right+gap+len),bottom);
+    if(spec.coverMode==='frontBack'){
+      const seam=(spec.bleed+spec.trimW)*scale;
+      seg(seam,Math.max(0,top-gap-len),seam,Math.max(0,top-gap));
+      seg(seam,Math.min(h,bottom+gap),seam,Math.min(h,bottom+gap+len));
+    }
     ctx.restore();
   }
 
@@ -1661,16 +1694,19 @@
 
   function themeContext(){
     const t=readText(),spec=currentSpec();
-    const custom=t.customFields.map(item=>{
+    const custom=t.customFields.filter(item=>item.surface==='back'?modeHasBack(spec.coverMode):modeHasFront(spec.coverMode)).map(item=>{
       const value=String(item.value||'').trim();
       if(!value)return '';
       return (item.surface==='back'?'뒤표지':'앞표지')+' 추가 문구: '+value;
     }).filter(Boolean);
     return [
-      spec.coverMode==='front'?'표지 용도: 인쇄용 앞표지 단면':'표지 용도: 인쇄용 책/보고서 전체 펼침 표지',
+      spec.coverMode==='front'?'표지 용도: 인쇄용 앞표지 단면'
+        :spec.coverMode==='back'?'표지 용도: 인쇄용 뒷표지 단면'
+        :spec.coverMode==='frontBack'?'표지 용도: 앞표지·뒷표지 동시 디자인'
+        :'표지 용도: 인쇄용 책/보고서 전체 펼침 표지',
       '디자인 종류: '+(PRESETS[state.preset]?.name||'보고서'),
-      t.title?'앞표지 문구의 의미 참고: '+t.title:'',
-      spec.coverMode==='spread'&&t.backText?'뒤표지 문구의 의미 참고: '+t.backText:'',
+      modeHasFront(spec.coverMode)&&t.title?'앞표지 문구의 의미 참고: '+t.title:'',
+      modeHasBack(spec.coverMode)&&t.backText?'뒤표지 문구의 의미 참고: '+t.backText:'',
       ...custom,
       $('theme')?.value?'주제·키워드: '+$('theme').value:'',
       '선호 주조색: '+($('primaryColor')?.value||'#315c8c'),
@@ -1679,9 +1715,10 @@
   }
 
   async function generate(){
-    const title=String($('title')?.value||'').trim();
-    if(!title){setStatus('앞표지 문구를 먼저 입력해 주세요.','앞표지 기본 문구는 필수입니다.','error');$('title')?.focus();return;}
-    const spec=currentSpec(), ratio=spec.workW/spec.workH;
+    const spec=currentSpec(),title=String($('title')?.value||'').trim(),backText=String($('backText')?.value||'').trim();
+    if(spec.coverMode==='back'&&!backText){setStatus('뒷표지 문구를 먼저 입력해 주세요.','뒷표지 기본 문구는 필수입니다.','error');$('backText')?.focus();return;}
+    if(spec.coverMode!=='back'&&!title){setStatus('앞표지 문구를 먼저 입력해 주세요.','앞표지 기본 문구는 필수입니다.','error');$('title')?.focus();return;}
+    const ratio=spec.workW/spec.workH;
     if(ratio<1/3||ratio>3){setStatus('현재 표지 비율을 생성할 수 없습니다.','완성 규격·책등·날개 폭을 확인해 주세요.','error');return;}
     const button=$('generateBtn');button.disabled=true;
     setStatus('AI 배경을 생성하고 있습니다.',state.generationQuality==='high'?'고품질 AI 배경을 생성 중입니다. 최종 저장은 300dpi로 출력됩니다.':'기본 품질 AI 배경을 생성 중입니다. 최종 저장은 300dpi로 출력됩니다.','busy');
@@ -1697,14 +1734,18 @@
         'The OUTER BLEED BOUNDARY is the artwork canvas. Fill the entire canvas edge-to-edge; artwork may crop naturally at the outside edge.',
         spec.coverMode==='spread'
           ?'Do not create a visible center spine strip, seam, fold, vertical band, or abrupt color break. The artwork must flow continuously through the exact spine area.'
-          :'This is FRONT COVER ONLY. Compose one portrait cover, not a spread, not a mockup, and do not invent a back cover or spine.',
+          :spec.coverMode==='back'
+            ?'This is BACK COVER ONLY. Compose one portrait back cover, not a spread, not a mockup, and do not invent a front cover or spine.'
+            :spec.coverMode==='frontBack'
+              ?'Compose a coordinated two-panel print design: BACK COVER on the left and FRONT COVER on the right, with no spine panel between them. Keep both panels visually related while giving the front stronger hierarchy.'
+              :'This is FRONT COVER ONLY. Compose one portrait cover, not a spread, not a mockup, and do not invent a back cover or spine.',
         'Avoid washed-out low-contrast pastel, dated government brochure waves, generic stock-template decoration, glossy 3D effects, fake text and clutter.'
       ].join('\n');
       const designDirection=selectedDesignDirection();
       const data=await authFetch(AI_COVER_PATH,{
         method:'POST',
         body:JSON.stringify({
-          cover_mode:spec.coverMode,quality_mode:state.generationQuality,trim_width_mm:spec.trimW,trim_height_mm:spec.trimH,spine_mm:spec.spine,wing_mm:spec.wing,bleed_mm:spec.bleed,
+          cover_mode:backendCoverMode(spec.coverMode),quality_mode:state.generationQuality,trim_width_mm:spec.trimW,trim_height_mm:spec.trimH,spine_mm:spec.spine,wing_mm:spec.wing,bleed_mm:spec.bleed,
           preset_name:PRESETS[state.preset].name,
           style_request:prompt+'\n'+designDirection+'\n'+designGuardrails+'\nPreferred dominant color: '+($('primaryColor')?.value||'#315c8c')+'.',
           theme_context:themeContext()
@@ -1721,7 +1762,11 @@
       if($('clearBackground'))$('clearBackground').hidden=false;
       $('exportBtn').disabled=false;scheduleRender();
       updateProgress();
-      setStatus('AI 배경 생성 완료',spec.coverMode==='front'?'앞표지 배경과 문구 레이어를 자유롭게 편집할 수 있습니다.':'문구는 별도 레이어로 유지됩니다. 문구나 색상을 수정하면 미리보기에 바로 반영됩니다.','ok');
+      const doneText=spec.coverMode==='front'?'앞표지 배경과 문구 레이어를 자유롭게 편집할 수 있습니다.'
+        :spec.coverMode==='back'?'뒷표지 배경과 문구 레이어를 자유롭게 편집할 수 있습니다.'
+        :spec.coverMode==='frontBack'?'앞표지와 뒷표지를 한 화면에서 함께 편집할 수 있습니다.'
+        :'문구는 별도 레이어로 유지됩니다. 문구나 색상을 수정하면 미리보기에 바로 반영됩니다.';
+      setStatus('AI 배경 생성 완료',doneText,'ok');
       finishGenerationProgress(true);
     }catch(error){
       const debug=['HTTP: '+(error.status||'unknown'),'code: '+(error.code||'unknown'),'request_id: '+(error.requestId||'none'),'transport: '+(error.transport||'direct-function'),error.raw?'response: '+error.raw:''].filter(Boolean).join('\n');
@@ -1777,8 +1822,16 @@
     try{
       const {canvas}=await buildExportCanvas();
       const raw=await canvasBlob(canvas),png=await withPngDpi(raw,EXPORT_DPI),url=URL.createObjectURL(png),a=document.createElement('a');
-      a.href=url;a.download=(spec.coverMode==='front'?'front-cover-'+spec.trimW+'x'+spec.trimH:'cover-'+spec.trimW+'x'+spec.trimH+'-spine-'+spec.spine+'mm')+'-300dpi.png';a.click();setTimeout(()=>URL.revokeObjectURL(url),4000);
-      setStatus('PNG 저장 완료',spec.coverMode==='front'?'앞표지 실제 규격과 300dpi 메타데이터로 저장했습니다.':'실제 전체 펼침 규격과 300dpi 메타데이터로 이미지를 저장했습니다.','ok');
+      const baseName=spec.coverMode==='front'?'front-cover-'+spec.trimW+'x'+spec.trimH
+        :spec.coverMode==='back'?'back-cover-'+spec.trimW+'x'+spec.trimH
+        :spec.coverMode==='frontBack'?'front-back-covers-'+spec.trimW+'x'+spec.trimH
+        :'cover-'+spec.trimW+'x'+spec.trimH+'-spine-'+spec.spine+'mm';
+      a.href=url;a.download=baseName+'-300dpi.png';a.click();setTimeout(()=>URL.revokeObjectURL(url),4000);
+      const savedText=spec.coverMode==='front'?'앞표지 실제 규격과 300dpi 메타데이터로 저장했습니다.'
+        :spec.coverMode==='back'?'뒷표지 실제 규격과 300dpi 메타데이터로 저장했습니다.'
+        :spec.coverMode==='frontBack'?'앞·뒤표지 동시 작업 규격과 300dpi 메타데이터로 저장했습니다.'
+        :'실제 전체 펼침 규격과 300dpi 메타데이터로 이미지를 저장했습니다.';
+      setStatus('PNG 저장 완료',savedText,'ok');
     }catch(error){setStatus('PNG 저장 실패',error.message||'파일 저장 중 오류가 발생했습니다.','error');}
     finally{button.disabled=false;}
   }
@@ -1820,14 +1873,23 @@
     const spec=currentSpec();
     if(state.generatedSpecKey!==specKey(spec)){setStatus('규격이 변경되었습니다.','현재 규격으로 AI 배경을 다시 생성하거나 직접 만든 표지 이미지를 다시 불러온 뒤 저장해 주세요.','error');return;}
     const button=$('exportBtn');button.disabled=true;
-    setStatus('인쇄용 PDF를 만들고 있습니다.','300dpi 디자인을 실제 전체 펼침 크기의 1페이지 PDF로 만드는 중입니다.','busy');
+    const pdfModeText=spec.coverMode==='front'?'앞표지':spec.coverMode==='back'?'뒷표지':spec.coverMode==='frontBack'?'앞·뒤표지 동시 작업':'전체 펼침';
+    setStatus('인쇄용 PDF를 만들고 있습니다.','300dpi 디자인을 '+pdfModeText+' 실제 작업 크기의 1페이지 PDF로 만드는 중입니다.','busy');
     try{
       const {canvas,w,h}=await buildExportCanvas();
       const jpegBlob=await new Promise((resolve,reject)=>canvas.toBlob(blob=>blob?resolve(blob):reject(new Error('PDF용 이미지 데이터를 만들지 못했습니다.')),'image/jpeg',.98));
       const jpeg=new Uint8Array(await jpegBlob.arrayBuffer());
       const pdf=pdfFromJpeg(jpeg,w,h,spec.workW*72/25.4,spec.workH*72/25.4),url=URL.createObjectURL(pdf),a=document.createElement('a');
-      a.href=url;a.download=(spec.coverMode==='front'?'front-cover-'+spec.trimW+'x'+spec.trimH:'cover-'+spec.trimW+'x'+spec.trimH+'-spine-'+spec.spine+'mm')+'-300dpi.pdf';a.click();setTimeout(()=>URL.revokeObjectURL(url),4000);
-      setStatus('PDF 저장 완료',spec.coverMode==='front'?'앞표지 실제 규격의 인쇄용 PDF로 저장했습니다.':'전체 펼침 실제 규격의 인쇄용 PDF로 저장했습니다.','ok');
+      const baseName=spec.coverMode==='front'?'front-cover-'+spec.trimW+'x'+spec.trimH
+        :spec.coverMode==='back'?'back-cover-'+spec.trimW+'x'+spec.trimH
+        :spec.coverMode==='frontBack'?'front-back-covers-'+spec.trimW+'x'+spec.trimH
+        :'cover-'+spec.trimW+'x'+spec.trimH+'-spine-'+spec.spine+'mm';
+      a.href=url;a.download=baseName+'-300dpi.pdf';a.click();setTimeout(()=>URL.revokeObjectURL(url),4000);
+      const savedText=spec.coverMode==='front'?'앞표지 실제 규격의 인쇄용 PDF로 저장했습니다.'
+        :spec.coverMode==='back'?'뒷표지 실제 규격의 인쇄용 PDF로 저장했습니다.'
+        :spec.coverMode==='frontBack'?'앞·뒤표지 동시 작업 규격의 인쇄용 PDF로 저장했습니다.'
+        :'전체 펼침 실제 규격의 인쇄용 PDF로 저장했습니다.';
+      setStatus('PDF 저장 완료',savedText,'ok');
     }catch(error){setStatus('PDF 저장 실패',error.message||'PDF 저장 중 오류가 발생했습니다.','error');}
     finally{button.disabled=false;}
   }
@@ -1875,7 +1937,7 @@
     if(!user){setStatus('로그인이 필요합니다.','디자인 보관함은 로그인 후 사용할 수 있습니다.','error');return;}
     if(!window.storage||!window.db){setStatus('보관함 연결을 사용할 수 없습니다.','Firebase 저장 연결을 확인해 주세요.','error','stage: initialize\nstorage: '+Boolean(window.storage)+'\nfirestore: '+Boolean(window.db));return;}
     if(!state.background||state.generatedSpecKey!==specKey(spec)){setStatus('저장할 디자인이 없습니다.','현재 규격에 맞는 디자인을 먼저 생성해 주세요.','error');return;}
-    const title=String($('title')?.value||'').trim()||'제목 없는 표지';
+    const title=(spec.coverMode==='back'?String($('backText')?.value||'').trim():String($('title')?.value||'').trim())||'제목 없는 표지';
     const prompt=String(state.lastGeneratedPrompt||$('stylePrompt')?.value||presetPrompt()).trim().slice(0,5000);
     const designId='design_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8);
     const imagePath='ai_design_gallery/'+user.uid+'/'+designId+'/preview.jpg';
@@ -1937,7 +1999,7 @@
     if($('galleryDetailTitle'))$('galleryDetailTitle').textContent=item.title||'저장된 디자인';
     if($('galleryDetailMeta'))$('galleryDetailMeta').textContent=[
       item.presetName||'',
-      item.coverMode==='front'?'앞표지만':'전체 펼침',
+      item.coverMode==='front'?'앞표지':item.coverMode==='back'?'뒷표지':item.coverMode==='frontBack'?'앞·뒤표지 동시':'전체 펼침',
       (item.trimWidth&&item.trimHeight)?item.trimWidth+'×'+item.trimHeight+'mm':'',
       galleryDateText(item.createdAt)
     ].filter(Boolean).join(' · ');
@@ -2043,7 +2105,11 @@
       if($('exportBtn'))$('exportBtn').disabled=false;
       scheduleRender();updateProgress();
       const spec=currentSpec();
-      setStatus('직접 만든 표지를 배치했습니다.',spec.coverMode==='front'?'앞표지 이미지를 도련 포함 전체 영역에 꽉 채워 배치했습니다.':'이미지는 바깥 적색선 전체 영역을 꽉 채우고, 문구 레이어는 그 위에서 자유롭게 편집할 수 있습니다.','ok');
+      const uploadText=spec.coverMode==='front'?'앞표지 이미지를 도련 포함 전체 영역에 꽉 채워 배치했습니다.'
+        :spec.coverMode==='back'?'뒷표지 이미지를 도련 포함 전체 영역에 꽉 채워 배치했습니다.'
+        :spec.coverMode==='frontBack'?'앞·뒤표지 동시 작업 이미지를 전체 영역에 꽉 채워 배치했습니다.'
+        :'이미지는 바깥 적색선 전체 영역을 꽉 채우고, 문구 레이어는 그 위에서 자유롭게 편집할 수 있습니다.';
+      setStatus('직접 만든 표지를 배치했습니다.',uploadText,'ok');
     }catch(error){
       URL.revokeObjectURL(url);
       setStatus('표지 이미지를 읽지 못했습니다.',error.message||'이미지 파일을 확인해 주세요.','error');
@@ -2087,7 +2153,7 @@
       if(state.sizeMode==='custom')requestAnimationFrame(()=>$('trimW')?.focus());
     }));
     qa('input[name="coverMode"]').forEach(input=>input.addEventListener('change',()=>{
-      state.coverMode=input.value==='front'?'front':'spread';
+      state.coverMode=normalizeCoverMode(input.value);
       clearSelection();
       if(state.background){
         state.generatedSpecKey='';
