@@ -238,7 +238,7 @@ LAYOUT RULES
 
 STRICT AVOID LIST
 - Washed-out low-contrast treatment that makes the entire composition weak.
-- Repeating the same thin-line, circle, wave, diagonal panel or geometric-network formula across unrelated generations.
+- Repeating the same thin-line, circle, wave or geometric-network formula across unrelated generations; diagonal-panel formulas should not be repeated mechanically either.
 - Generic low-effort decoration with no relationship to the document category or requested mood.
 - Dated effects such as glossy swooshes, bevels, metallic shine, lens flare or fake 3D unless the user explicitly asks for that visual era.
 - Random clip-art, childish decoration, incoherent collage, fake text, visible logos or obvious low-end stock-template aesthetics.
