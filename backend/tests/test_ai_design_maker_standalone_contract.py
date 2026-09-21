@@ -69,3 +69,15 @@ def test_ai_design_maker_exposes_custom_other_purpose_preset():
     assert "name: '기타'" in maker_js
     assert "note: '자유 용도 · 요청문구 중심'" in maker_js
     assert "Create a professional print cover for a custom or uncategorized purpose." in maker_js
+
+
+def test_ai_design_maker_guardrails_preserve_professional_style_diversity():
+    maker_js = (ROOT / "js" / "ai-design-maker.js").read_text(encoding="utf-8")
+
+    assert "Prefer variety with control" in maker_js
+    assert "minimal editorial" in maker_js
+    assert "photo-led editorial" in maker_js
+    assert "restrained wave-based report" in maker_js
+    assert "Familiar business-report and presentation-cover conventions are allowed" in maker_js
+    assert "Do not make every result use the same palette" in maker_js
+    assert "Do not reject professional waves, geometric framing or photo inserts" in maker_js
