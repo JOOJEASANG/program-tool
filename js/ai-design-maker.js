@@ -1726,10 +1726,13 @@
     try{
       const prompt=String($('stylePrompt')?.value||presetPrompt()).trim();
       const designGuardrails=[
-        'Create a contemporary, production-ready print cover with professional art direction and clear hierarchy.',
-        'Default color treatment should be slightly richer and more sophisticated than pale pastel: refined medium saturation, crisp contrast, and print-friendly tones.',
-        'Do not default every design to thin lines, circles, waves, geometric networks or abstract patterns. Let the selected document category and visual approach determine the visual language.',
-        'Photography, editorial illustration, iconographic/infographic structures, image crops, frames, grids, layered fields, architectural composition and refined geometry are all allowed when they fit the selected visual approach.',
+        'Create a contemporary, production-ready print cover with professional art direction, clear hierarchy and a generous usable text-safe area.',
+        'Prefer variety with control. Do not force every generation into one repeated visual formula or one fixed corporate style.',
+        'Choose one coherent concept per generation. Valid directions include minimal editorial, corporate proposal, public report, education, eco/nature, technology/business, company profile, photo-led editorial, city or architecture, geometric presentation, restrained wave-based report, symbolic illustration and infographic-inspired composition.',
+        'Photography, editorial illustration, iconographic structures, image crops, frames, grids, layered fields, waves, circles, line work, diagonal panels, gradients and refined geometry are all allowed when they genuinely support the selected concept.',
+        'Familiar business-report and presentation-cover conventions are allowed. Make them current, intentional and professionally composed rather than banning them for being conventional.',
+        'Use refined print-friendly contrast. Blue, navy, sky blue, teal, mint, green, gray and neutral palettes are welcome, but restrained indigo, purple, coral, orange, burgundy or charcoal accents may be used when appropriate.',
+        'Do not make every result use the same palette, the same wave, the same circle motif, the same diagonal cut, or the same geometric-network formula.',
         'Preserve a clear text-safe area for the application typography and never generate readable words, letters, logos, labels or pseudo-text.',
         'The OUTER BLEED BOUNDARY is the artwork canvas. Fill the entire canvas edge-to-edge; artwork may crop naturally at the outside edge.',
         spec.coverMode==='spread'
@@ -1739,7 +1742,7 @@
             :spec.coverMode==='frontBack'
               ?'Compose a coordinated two-panel print design: BACK COVER on the left and FRONT COVER on the right, with no spine panel between them. Keep both panels visually related while giving the front stronger hierarchy.'
               :'This is FRONT COVER ONLY. Compose one portrait cover, not a spread, not a mockup, and do not invent a back cover or spine.',
-        'Avoid washed-out low-contrast pastel, dated government brochure waves, generic stock-template decoration, glossy 3D effects, fake text and clutter.'
+        'Avoid clutter, childish decoration, fake text, low-effort stock-template decoration, fake 3D effects and incoherent collage. Do not reject professional waves, geometric framing or photo inserts when they suit the concept.'
       ].join('\n');
       const designDirection=selectedDesignDirection();
       const data=await authFetch(AI_COVER_PATH,{

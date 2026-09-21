@@ -89,8 +89,11 @@ def test_prompt_is_background_only_and_spine_aware():
     assert "back cover" in prompt.lower()
     assert "Do not draw a visible center spine strip" in prompt
     assert "editorial illustration, symbolic scenes, iconographic or infographic structures" in prompt
-    assert "refined medium saturation" in prompt
-    assert "Washed-out low-contrast pastel" in prompt
+    assert "Prefer variety with control" in prompt
+    assert "wave-based report covers" in prompt
+    assert "Photography, editorial illustration" in prompt
+    assert "Treating blue waves, geometric framing, photo inserts" in prompt
+    assert "Favor concept diversity across generations" in prompt
 
 
 def test_prompt_is_wing_aware_when_review_option_has_flaps():
