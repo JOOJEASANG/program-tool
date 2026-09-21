@@ -494,6 +494,27 @@ test('AI design gallery metadata and preview image are owner-only and approved-o
   };
 
   await assertSucceeds(setDoc(doc(ownerDb, metadataPath), metadata));
+
+  for (const coverMode of ['back', 'frontBack', 'spread']) {
+    const modeDesignId = 'design_gallery_' + coverMode;
+    const modeImagePath = 'ai_design_gallery/gallery-owner/' + modeDesignId + '/preview.jpg';
+    const modeMetadataPath = 'users/gallery-owner/ai_design_gallery/' + modeDesignId;
+    await assertSucceeds(setDoc(doc(ownerDb, modeMetadataPath), {
+      ...metadata,
+      id: modeDesignId,
+      coverMode,
+      imagePath: modeImagePath,
+    }));
+    await assertSucceeds(deleteDoc(doc(ownerDb, modeMetadataPath)));
+  }
+
+  await assertFails(setDoc(doc(ownerDb, 'users/gallery-owner/ai_design_gallery/design_gallery_invalid'), {
+    ...metadata,
+    id: 'design_gallery_invalid',
+    coverMode: 'invalid',
+    imagePath: 'ai_design_gallery/gallery-owner/design_gallery_invalid/preview.jpg',
+  }));
+
   await assertSucceeds(getDoc(doc(ownerDb, metadataPath)));
   await assertFails(getDoc(doc(otherDb, metadataPath)));
   await assertFails(updateDoc(doc(ownerDb, metadataPath), { title: '변경 금지' }));
