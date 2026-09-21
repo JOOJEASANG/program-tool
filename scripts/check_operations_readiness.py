@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 """Audit repository-side and externally supplied operations readiness signals.
 
-The command never prints secret values. Missing external hardening is reported as
-WARN so the current fallback deployment can continue. Repository regressions,
-partial WIF configuration, or a complete loss of CI authentication fail the run.
+The command never prints secret values. Repository regressions, missing or partial
+WIF configuration, and a complete loss of CI authentication fail the run.
 """
 from __future__ import annotations
 
@@ -95,20 +94,25 @@ def audit() -> tuple[dict[str, object], int]:
     deploy = _read(".github/workflows/firebase-deploy.yml")
     preview = _read(".github/workflows/firebase-preview.yml")
     firebase_ci = _read("scripts/firebase_ci.sh")
-    wif_contract = all(
-        marker in deploy and marker in preview
-        for marker in ("GCP_WORKLOAD_IDENTITY_PROVIDER", "GCP_SERVICE_ACCOUNT", "Google Cloud WIF 인증")
-    ) and all(
-        marker in firebase_ci
-        for marker in ("GOOGLE_APPLICATION_CREDENTIALS", "FIREBASE_TOKEN", "Refusing legacy token fallback")
+    wif_contract = (
+        all(
+            marker in deploy and marker in preview
+            for marker in ("GCP_WORKLOAD_IDENTITY_PROVIDER", "GCP_SERVICE_ACCOUNT", "Google Cloud WIF 인증")
+        )
+        and "FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}" not in deploy
+        and "FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}" not in preview
+        and "GOOGLE_APPLICATION_CREDENTIALS" in firebase_ci
+        and "unset FIREBASE_TOKEN" in firebase_ci
+        and 'exec firebase "$@"' in firebase_ci
+        and '--token "$FIREBASE_TOKEN"' not in firebase_ci
     )
     _record(
         checks,
         "wif_repository_contract",
         "PASS" if wif_contract else "FAIL",
-        "preview/production prefer WIF and retain guarded legacy fallback"
+        "preview/production require WIF ADC and legacy token fallback is removed"
         if wif_contract
-        else "WIF workflow/fallback contract is incomplete",
+        else "WIF-only workflow contract is incomplete",
     )
     hard_failure = (not wif_contract) or hard_failure
 
@@ -143,8 +147,6 @@ def audit() -> tuple[dict[str, object], int]:
 
     provider = bool(os.environ.get("GCP_WORKLOAD_IDENTITY_PROVIDER", "").strip())
     service_account = bool(os.environ.get("GCP_SERVICE_ACCOUNT", "").strip())
-    firebase_token = bool(os.environ.get("FIREBASE_TOKEN", "").strip())
-
     if provider != service_account:
         _record(
             checks,
@@ -156,28 +158,22 @@ def audit() -> tuple[dict[str, object], int]:
     elif provider and service_account:
         _record(checks, "wif_secret_pair", "PASS", "both WIF secrets are configured")
     else:
-        _record(checks, "wif_secret_pair", "WARN", "WIF secrets are not configured yet")
+        _record(checks, "wif_secret_pair", "FAIL", "WIF secrets are not configured")
+        hard_failure = True
 
     if provider and service_account:
         _record(
             checks,
             "firebase_ci_authentication",
             "PASS",
-            "WIF is selected; legacy token may be removed only after preview/production validation",
-        )
-    elif firebase_token:
-        _record(
-            checks,
-            "firebase_ci_authentication",
-            "WARN",
-            "legacy FIREBASE_TOKEN fallback is currently providing CI authentication",
+            "WIF is the required Firebase CI authentication path",
         )
     else:
         _record(
             checks,
             "firebase_ci_authentication",
             "FAIL",
-            "neither WIF nor FIREBASE_TOKEN is configured",
+            "WIF authentication is not fully configured",
         )
         hard_failure = True
 
