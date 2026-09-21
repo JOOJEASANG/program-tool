@@ -114,7 +114,9 @@ Firebase 배포만으로 Cloud Storage lifecycle 파일이 자동 적용된다�
 
 ## 7. 관리자 Custom Claim 마이그레이션 완료
 
-최종 목표는 Firebase Auth의 `admin=true` Custom Claim을 유일한 관리자 권한 원천으로 사용하는 것입니다. 기존 `settings/admin` 이메일 fallback은 마이그레이션 완료 전까지만 유지합니다.
+Firebase Auth의 `admin=true` Custom Claim을 유일한 관리자 권한 원천으로 사용합니다.
+`settings/admin` 이메일 목록은 Claim 동기화 대상 명단일 뿐 런타임 권한 판단에는
+사용하지 않습니다.
 
 백엔드 가상환경에서 먼저 dry-run을 실행합니다.
 
@@ -135,7 +137,9 @@ venv/bin/python scripts/sync_admin_claims.py --apply --revoke-missing
 venv/bin/python scripts/sync_admin_claims.py --verify
 ```
 
-`--verify`가 성공하기 전에는 Firestore/Storage/Backend의 legacy admin fallback을 제거하지 않습니다. 검증이 완료되면 fallback 제거는 별도 보안 PR로 진행합니다.
+`--verify`가 성공한 뒤 Firestore Rules, Storage Rules, Backend와 브라우저의 legacy
+이메일 fallback을 제거했습니다. 이후 관리자 추가·변경 시에도 Claim 동기화와
+`--verify`를 완료한 뒤 관리자가 ID token을 갱신하도록 합니다.
 
 ## 8. 대용량 PDF 부하 테스트
 
@@ -217,8 +221,8 @@ fixture는 **전송 크기·Storage staging·대기열 검증용**으로 PDF 뒤
 
 GitHub Actions repository secrets에 Workload Identity Federation(WIF) 구성이 완료되어
 워크플로가 단기 ADC 자격증명을 우선 사용합니다. 운영 준비상태 점검에서 실제 WIF
-인증이 성공했으며, 기존 `FIREBASE_TOKEN`은 PR preview와 production 배포 검증을
-모두 마칠 때까지만 fallback으로 유지합니다.
+인증이 성공했고 PR preview와 production 전체 배포도 WIF로 통과했습니다. 기존
+`FIREBASE_TOKEN`과 사용하지 않는 서비스 계정 Secret은 제거했습니다.
 
 GitHub Actions repository secrets에는 아래 두 값이 함께 구성되어 있습니다.
 
