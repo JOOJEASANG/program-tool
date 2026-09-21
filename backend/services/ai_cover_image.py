@@ -54,8 +54,10 @@ class CoverImageRequest:
 
     @property
     def work_width_mm(self) -> float:
-        if self.cover_mode == "front":
+        if self.cover_mode in {"front", "back"}:
             return self.trim_width_mm + self.bleed_mm * 2
+        if self.cover_mode == "front_back":
+            return self.trim_width_mm * 2 + self.bleed_mm * 2
         return self.trim_width_mm * 2 + self.spine_mm + self.wing_mm * 2 + self.bleed_mm * 2
 
     @property
@@ -77,7 +79,10 @@ def _clean(value: Any, limit: int) -> str:
 
 def normalize_cover_request(payload: dict[str, Any]) -> CoverImageRequest:
     cover_mode = _clean(payload.get("cover_mode"), 20).lower()
-    cover_mode = "front" if cover_mode == "front" else "spread"
+    aliases = {"frontback": "front_back", "front-back": "front_back"}
+    cover_mode = aliases.get(cover_mode, cover_mode)
+    if cover_mode not in {"front", "back", "front_back", "spread"}:
+        cover_mode = "spread"
     quality_mode = _clean(payload.get("quality_mode"), 20).lower()
     quality_mode = "high" if quality_mode == "high" else "standard"
     trim_width = _number(payload.get("trim_width_mm"), minimum=50, maximum=1000, default=210)
@@ -95,7 +100,7 @@ def normalize_cover_request(payload: dict[str, Any]) -> CoverImageRequest:
             code="AI_COVER_STYLE_REQUIRED",
         )
 
-    if cover_mode == "front":
+    if cover_mode != "spread":
         spine = 0
         wing = 0
     request = CoverImageRequest(
@@ -146,28 +151,58 @@ def choose_image_size(req: CoverImageRequest) -> str:
 
 
 def build_cover_prompt(req: CoverImageRequest) -> str:
-    mode_title = "FRONT COVER ONLY" if req.cover_mode == "front" else "FULL SPREAD PRINT COVER"
-    geometry = (
-        f"- Front cover including bleed: {req.work_width_mm:.2f} × {req.work_height_mm:.2f} mm.\n"
-        f"- Trim size: {req.trim_width_mm:.2f} × {req.trim_height_mm:.2f} mm.\n"
-        f"- Bleed: {req.bleed_mm:.2f} mm around all outside edges.\n"
-        if req.cover_mode == "front"
-        else
-        f"- Total spread including bleed and flaps: {req.work_width_mm:.2f} × {req.work_height_mm:.2f} mm.\n"
-        f"- Back and front trim: {req.trim_width_mm:.2f} × {req.trim_height_mm:.2f} mm each.\n"
-        f"- Exact center spine: {req.spine_mm:.2f} mm.\n"
-        f"- Outer flaps: {req.wing_mm:.2f} mm each side.\n"
-        f"- Bleed: {req.bleed_mm:.2f} mm around the outside.\n"
-    )
-    mode_rules = (
-        "- Compose ONE portrait front cover only. Do not invent a back cover, spine, fold, mockup, second panel, or book perspective.\n"
-        "- Keep one clearly usable typography-safe zone inside the trim area.\n"
-        if req.cover_mode == "front"
-        else
-        "- Let artwork flow continuously across back cover, exact spine, and front cover. Do not draw a visible center spine strip, seam, fold, or artificial center band.\n"
-        "- If flaps exist, continue artwork naturally through the flap zones while keeping focal content inside the trim areas.\n"
-        "- Keep the front cover visually strongest and the back cover supportive rather than duplicating the same composition.\n"
-    )
+    mode_titles = {
+        "front": "FRONT COVER ONLY",
+        "back": "BACK COVER ONLY",
+        "front_back": "PAIRED FRONT AND BACK COVERS",
+        "spread": "FULL SPREAD PRINT COVER",
+    }
+    mode_title = mode_titles.get(req.cover_mode, mode_titles["spread"])
+    if req.cover_mode in {"front", "back"}:
+        label = "Front" if req.cover_mode == "front" else "Back"
+        geometry = (
+            f"- {label} cover including bleed: {req.work_width_mm:.2f} × {req.work_height_mm:.2f} mm.\n"
+            f"- Trim size: {req.trim_width_mm:.2f} × {req.trim_height_mm:.2f} mm.\n"
+            f"- Bleed: {req.bleed_mm:.2f} mm around all outside edges.\n"
+        )
+    elif req.cover_mode == "front_back":
+        geometry = (
+            f"- Paired cover canvas including bleed: {req.work_width_mm:.2f} × {req.work_height_mm:.2f} mm.\n"
+            f"- Back cover is the LEFT panel and front cover is the RIGHT panel.\n"
+            f"- Each trim size: {req.trim_width_mm:.2f} × {req.trim_height_mm:.2f} mm.\n"
+            f"- There is NO spine panel between the two covers.\n"
+            f"- Bleed: {req.bleed_mm:.2f} mm around the outside.\n"
+        )
+    else:
+        geometry = (
+            f"- Total spread including bleed and flaps: {req.work_width_mm:.2f} × {req.work_height_mm:.2f} mm.\n"
+            f"- Back and front trim: {req.trim_width_mm:.2f} × {req.trim_height_mm:.2f} mm each.\n"
+            f"- Exact center spine: {req.spine_mm:.2f} mm.\n"
+            f"- Outer flaps: {req.wing_mm:.2f} mm each side.\n"
+            f"- Bleed: {req.bleed_mm:.2f} mm around the outside.\n"
+        )
+    if req.cover_mode == "front":
+        mode_rules = (
+            "- Compose ONE portrait front cover only. Do not invent a back cover, spine, fold, mockup, second panel, or book perspective.\n"
+            "- Keep one clearly usable typography-safe zone inside the trim area.\n"
+        )
+    elif req.cover_mode == "back":
+        mode_rules = (
+            "- Compose ONE portrait back cover only. Do not invent a front cover, spine, fold, mockup, second panel, or book perspective.\n"
+            "- Keep generous space for description copy, publisher information, logo, barcode or QR placement.\n"
+        )
+    elif req.cover_mode == "front_back":
+        mode_rules = (
+            "- Compose TWO coordinated flat panels: BACK COVER on the LEFT and FRONT COVER on the RIGHT.\n"
+            "- Do not invent a spine strip, center book binding, mockup, fold or perspective.\n"
+            "- Keep both panels visually related while giving the front cover stronger hierarchy and the back cover calmer supporting space.\n"
+        )
+    else:
+        mode_rules = (
+            "- Let artwork flow continuously across back cover, exact spine, and front cover. Do not draw a visible center spine strip, seam, fold, or artificial center band.\n"
+            "- If flaps exist, continue artwork naturally through the flap zones while keeping focal content inside the trim areas.\n"
+            "- Keep the front cover visually strongest and the back cover supportive rather than duplicating the same composition.\n"
+        )
     return f"""
 Create premium, production-ready {mode_title} BACKGROUND ARTWORK, perfectly flat and straight-on.
 This is actual 2D print artwork, not a mockup and not a photograph of a physical book.
@@ -389,7 +424,7 @@ def generate_cover_image(payload: dict[str, Any], *, uid: str) -> dict[str, Any]
         "model": str(data.get("model") or model),
         "size": str(data.get("size") or size),
         "quality": str(data.get("quality") or quality),
-        "prompt_version": "cover-background-v7-category-visual-diversity",
+        "prompt_version": "cover-background-v8-four-cover-modes",
         "geometry": {
             "cover_mode": req.cover_mode,
             "quality_mode": req.quality_mode,
