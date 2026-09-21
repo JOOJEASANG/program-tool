@@ -1133,7 +1133,7 @@
   function shapeLabel(type){return {line:'선',rect:'박스',roundRect:'둥근박스',ellipse:'원',star:'별 아이콘',sparkle:'반짝임 아이콘',diamond:'다이아몬드 아이콘',dot:'작은원 포인트'}[type]||'도형';}
   function createShape(type){
     if(!SHAPE_TYPES.has(type))return;
-    const spec=currentSpec(),zone=coverSurfaceRect('front',spec,1)||{x:spec.bleed,y:spec.bleed,w:spec.trimW,h:spec.trimH};
+    const spec=currentSpec(),defaultSurface=spec.coverMode==='back'?'back':'front',zone=coverSurfaceRect(defaultSurface,spec,1)||{x:spec.bleed,y:spec.bleed,w:spec.trimW,h:spec.trimH};
     const point=['star','sparkle','diamond','dot'].includes(type);
     const w=type==='dot'?7:(point?18:Math.min(60,zone.w*.55));
     const h=type==='line'?.1:(type==='dot'?7:(point?18:Math.min(type==='ellipse'?36:42,zone.h*.18)));
@@ -1695,10 +1695,13 @@
       return (item.surface==='back'?'뒤표지':'앞표지')+' 추가 문구: '+value;
     }).filter(Boolean);
     return [
-      spec.coverMode==='front'?'표지 용도: 인쇄용 앞표지 단면':'표지 용도: 인쇄용 책/보고서 전체 펼침 표지',
+      spec.coverMode==='front'?'표지 용도: 인쇄용 앞표지 단면'
+        :spec.coverMode==='back'?'표지 용도: 인쇄용 뒷표지 단면'
+        :spec.coverMode==='frontBack'?'표지 용도: 앞표지·뒷표지 동시 디자인'
+        :'표지 용도: 인쇄용 책/보고서 전체 펼침 표지',
       '디자인 종류: '+(PRESETS[state.preset]?.name||'보고서'),
-      t.title?'앞표지 문구의 의미 참고: '+t.title:'',
-      spec.coverMode==='spread'&&t.backText?'뒤표지 문구의 의미 참고: '+t.backText:'',
+      modeHasFront(spec.coverMode)&&t.title?'앞표지 문구의 의미 참고: '+t.title:'',
+      modeHasBack(spec.coverMode)&&t.backText?'뒤표지 문구의 의미 참고: '+t.backText:'',
       ...custom,
       $('theme')?.value?'주제·키워드: '+$('theme').value:'',
       '선호 주조색: '+($('primaryColor')?.value||'#315c8c'),
@@ -1707,9 +1710,10 @@
   }
 
   async function generate(){
-    const title=String($('title')?.value||'').trim();
-    if(!title){setStatus('앞표지 문구를 먼저 입력해 주세요.','앞표지 기본 문구는 필수입니다.','error');$('title')?.focus();return;}
-    const spec=currentSpec(), ratio=spec.workW/spec.workH;
+    const spec=currentSpec(),title=String($('title')?.value||'').trim(),backText=String($('backText')?.value||'').trim();
+    if(spec.coverMode==='back'&&!backText){setStatus('뒷표지 문구를 먼저 입력해 주세요.','뒷표지 기본 문구는 필수입니다.','error');$('backText')?.focus();return;}
+    if(spec.coverMode!=='back'&&!title){setStatus('앞표지 문구를 먼저 입력해 주세요.','앞표지 기본 문구는 필수입니다.','error');$('title')?.focus();return;}
+    const ratio=spec.workW/spec.workH;
     if(ratio<1/3||ratio>3){setStatus('현재 표지 비율을 생성할 수 없습니다.','완성 규격·책등·날개 폭을 확인해 주세요.','error');return;}
     const button=$('generateBtn');button.disabled=true;
     setStatus('AI 배경을 생성하고 있습니다.',state.generationQuality==='high'?'고품질 AI 배경을 생성 중입니다. 최종 저장은 300dpi로 출력됩니다.':'기본 품질 AI 배경을 생성 중입니다. 최종 저장은 300dpi로 출력됩니다.','busy');
@@ -1725,14 +1729,18 @@
         'The OUTER BLEED BOUNDARY is the artwork canvas. Fill the entire canvas edge-to-edge; artwork may crop naturally at the outside edge.',
         spec.coverMode==='spread'
           ?'Do not create a visible center spine strip, seam, fold, vertical band, or abrupt color break. The artwork must flow continuously through the exact spine area.'
-          :'This is FRONT COVER ONLY. Compose one portrait cover, not a spread, not a mockup, and do not invent a back cover or spine.',
+          :spec.coverMode==='back'
+            ?'This is BACK COVER ONLY. Compose one portrait back cover, not a spread, not a mockup, and do not invent a front cover or spine.'
+            :spec.coverMode==='frontBack'
+              ?'Compose a coordinated two-panel print design: BACK COVER on the left and FRONT COVER on the right, with no spine panel between them. Keep both panels visually related while giving the front stronger hierarchy.'
+              :'This is FRONT COVER ONLY. Compose one portrait cover, not a spread, not a mockup, and do not invent a back cover or spine.',
         'Avoid washed-out low-contrast pastel, dated government brochure waves, generic stock-template decoration, glossy 3D effects, fake text and clutter.'
       ].join('\n');
       const designDirection=selectedDesignDirection();
       const data=await authFetch(AI_COVER_PATH,{
         method:'POST',
         body:JSON.stringify({
-          cover_mode:spec.coverMode,quality_mode:state.generationQuality,trim_width_mm:spec.trimW,trim_height_mm:spec.trimH,spine_mm:spec.spine,wing_mm:spec.wing,bleed_mm:spec.bleed,
+          cover_mode:backendCoverMode(spec.coverMode),quality_mode:state.generationQuality,trim_width_mm:spec.trimW,trim_height_mm:spec.trimH,spine_mm:spec.spine,wing_mm:spec.wing,bleed_mm:spec.bleed,
           preset_name:PRESETS[state.preset].name,
           style_request:prompt+'\n'+designDirection+'\n'+designGuardrails+'\nPreferred dominant color: '+($('primaryColor')?.value||'#315c8c')+'.',
           theme_context:themeContext()
@@ -1749,7 +1757,11 @@
       if($('clearBackground'))$('clearBackground').hidden=false;
       $('exportBtn').disabled=false;scheduleRender();
       updateProgress();
-      setStatus('AI 배경 생성 완료',spec.coverMode==='front'?'앞표지 배경과 문구 레이어를 자유롭게 편집할 수 있습니다.':'문구는 별도 레이어로 유지됩니다. 문구나 색상을 수정하면 미리보기에 바로 반영됩니다.','ok');
+      const doneText=spec.coverMode==='front'?'앞표지 배경과 문구 레이어를 자유롭게 편집할 수 있습니다.'
+        :spec.coverMode==='back'?'뒷표지 배경과 문구 레이어를 자유롭게 편집할 수 있습니다.'
+        :spec.coverMode==='frontBack'?'앞표지와 뒷표지를 한 화면에서 함께 편집할 수 있습니다.'
+        :'문구는 별도 레이어로 유지됩니다. 문구나 색상을 수정하면 미리보기에 바로 반영됩니다.';
+      setStatus('AI 배경 생성 완료',doneText,'ok');
       finishGenerationProgress(true);
     }catch(error){
       const debug=['HTTP: '+(error.status||'unknown'),'code: '+(error.code||'unknown'),'request_id: '+(error.requestId||'none'),'transport: '+(error.transport||'direct-function'),error.raw?'response: '+error.raw:''].filter(Boolean).join('\n');
@@ -1805,8 +1817,16 @@
     try{
       const {canvas}=await buildExportCanvas();
       const raw=await canvasBlob(canvas),png=await withPngDpi(raw,EXPORT_DPI),url=URL.createObjectURL(png),a=document.createElement('a');
-      a.href=url;a.download=(spec.coverMode==='front'?'front-cover-'+spec.trimW+'x'+spec.trimH:'cover-'+spec.trimW+'x'+spec.trimH+'-spine-'+spec.spine+'mm')+'-300dpi.png';a.click();setTimeout(()=>URL.revokeObjectURL(url),4000);
-      setStatus('PNG 저장 완료',spec.coverMode==='front'?'앞표지 실제 규격과 300dpi 메타데이터로 저장했습니다.':'실제 전체 펼침 규격과 300dpi 메타데이터로 이미지를 저장했습니다.','ok');
+      const baseName=spec.coverMode==='front'?'front-cover-'+spec.trimW+'x'+spec.trimH
+        :spec.coverMode==='back'?'back-cover-'+spec.trimW+'x'+spec.trimH
+        :spec.coverMode==='frontBack'?'front-back-covers-'+spec.trimW+'x'+spec.trimH
+        :'cover-'+spec.trimW+'x'+spec.trimH+'-spine-'+spec.spine+'mm';
+      a.href=url;a.download=baseName+'-300dpi.png';a.click();setTimeout(()=>URL.revokeObjectURL(url),4000);
+      const savedText=spec.coverMode==='front'?'앞표지 실제 규격과 300dpi 메타데이터로 저장했습니다.'
+        :spec.coverMode==='back'?'뒷표지 실제 규격과 300dpi 메타데이터로 저장했습니다.'
+        :spec.coverMode==='frontBack'?'앞·뒤표지 동시 작업 규격과 300dpi 메타데이터로 저장했습니다.'
+        :'실제 전체 펼침 규격과 300dpi 메타데이터로 이미지를 저장했습니다.';
+      setStatus('PNG 저장 완료',savedText,'ok');
     }catch(error){setStatus('PNG 저장 실패',error.message||'파일 저장 중 오류가 발생했습니다.','error');}
     finally{button.disabled=false;}
   }
@@ -1854,8 +1874,16 @@
       const jpegBlob=await new Promise((resolve,reject)=>canvas.toBlob(blob=>blob?resolve(blob):reject(new Error('PDF용 이미지 데이터를 만들지 못했습니다.')),'image/jpeg',.98));
       const jpeg=new Uint8Array(await jpegBlob.arrayBuffer());
       const pdf=pdfFromJpeg(jpeg,w,h,spec.workW*72/25.4,spec.workH*72/25.4),url=URL.createObjectURL(pdf),a=document.createElement('a');
-      a.href=url;a.download=(spec.coverMode==='front'?'front-cover-'+spec.trimW+'x'+spec.trimH:'cover-'+spec.trimW+'x'+spec.trimH+'-spine-'+spec.spine+'mm')+'-300dpi.pdf';a.click();setTimeout(()=>URL.revokeObjectURL(url),4000);
-      setStatus('PDF 저장 완료',spec.coverMode==='front'?'앞표지 실제 규격의 인쇄용 PDF로 저장했습니다.':'전체 펼침 실제 규격의 인쇄용 PDF로 저장했습니다.','ok');
+      const baseName=spec.coverMode==='front'?'front-cover-'+spec.trimW+'x'+spec.trimH
+        :spec.coverMode==='back'?'back-cover-'+spec.trimW+'x'+spec.trimH
+        :spec.coverMode==='frontBack'?'front-back-covers-'+spec.trimW+'x'+spec.trimH
+        :'cover-'+spec.trimW+'x'+spec.trimH+'-spine-'+spec.spine+'mm';
+      a.href=url;a.download=baseName+'-300dpi.pdf';a.click();setTimeout(()=>URL.revokeObjectURL(url),4000);
+      const savedText=spec.coverMode==='front'?'앞표지 실제 규격의 인쇄용 PDF로 저장했습니다.'
+        :spec.coverMode==='back'?'뒷표지 실제 규격의 인쇄용 PDF로 저장했습니다.'
+        :spec.coverMode==='frontBack'?'앞·뒤표지 동시 작업 규격의 인쇄용 PDF로 저장했습니다.'
+        :'전체 펼침 실제 규격의 인쇄용 PDF로 저장했습니다.';
+      setStatus('PDF 저장 완료',savedText,'ok');
     }catch(error){setStatus('PDF 저장 실패',error.message||'PDF 저장 중 오류가 발생했습니다.','error');}
     finally{button.disabled=false;}
   }
