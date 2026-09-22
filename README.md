@@ -175,7 +175,7 @@ OPENAI_AI_IMAGE_QUALITY=high
 - `OPENAI_PROJECT_ID`: Program Studio가 사용하는 OpenAI 프로젝트 ID입니다. 설정하면 비용과 이미지 사용량을 해당 프로젝트로 제한합니다.
 - `OPENAI_PROJECT_ID`를 설정하지 않으면 화면에 **OpenAI 조직 전체 비용**이라고 명확히 표시합니다.
 - OpenAI 비용 집계에는 짧은 반영 지연이 있을 수 있습니다.
-- Program Studio는 성공한 AI 표지 배경 생성 횟수를 Firestore의 서버 전용 일별 집계로 별도 기록합니다. 이 횟수는 운영 분석용이며 OpenAI의 실제 청구 금액을 대체하지 않습니다.
+- Program Studio는 성공한 AI 표지 배경 생성 횟수를 Firestore의 서버 전용 일별 집계로 별도 기록합니다. 내부 생성 횟수는 이 기능이 배포되는 2026-09-22 이후 성공 생성부터 누적되며, 운영 분석용으로 OpenAI의 실제 청구 금액을 대체하지 않습니다.
 
 ## 운영 보안
 
