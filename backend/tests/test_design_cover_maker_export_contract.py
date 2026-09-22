@@ -50,8 +50,12 @@ def test_ai_design_maker_has_easy_cover_workflow_and_diagnostics():
     assert '<details class="control-section" id="specSection" open>' not in page
     assert '<details class="control-section" id="copySection" open>' not in page
     assert '<details class="control-section" id="styleSection" open>' not in page
-    assert 'class="manual-assets-block"' in page
-    assert page.index('id="stylePrompt"') < page.index('class="manual-assets-block"')
+    assert '<section class="manual-assets-block" aria-labelledby="manualAssetsTitle">' in page
+    style_section_start = page.index('id="styleSection"')
+    style_section_end = page.index('</details>', style_section_start)
+    upload_section = page.index('class="manual-assets-block"')
+    panel_actions = page.index('class="panel-actions"')
+    assert style_section_end < upload_section < panel_actions
     assert page.index('id="backgroundInput"') < page.index('id="logoInput"')
     assert 'width:32px;height:32px' in style
     assert 'background:linear-gradient(135deg,#7c3aed,#2563eb)' in style
