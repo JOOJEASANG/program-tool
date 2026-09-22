@@ -408,6 +408,7 @@ def test_ai_design_gallery_saves_private_work_and_shares_safe_settings():
     firebase_config = (ROOT / "js/firebase-config.js").read_text(encoding="utf-8")
     firestore_rules = (ROOT / "firestore.rules").read_text(encoding="utf-8")
     storage_rules = (ROOT / "storage.rules").read_text(encoding="utf-8")
+    backend_main = (ROOT / "backend/main.py").read_text(encoding="utf-8")
 
     assert "firebase-storage-compat.js" in page
     for field_id in (
@@ -455,6 +456,12 @@ def test_ai_design_gallery_saves_private_work_and_shares_safe_settings():
     assert "validPublicAiDesignGalleryUpload" in storage_rules
     assert "match /ai_design_gallery/{userId}/{designId}/{fileName}" in storage_rules
     assert "validAiDesignGalleryUpload" in storage_rules
+
+    assert 'for field in ("imagePath", "backgroundPath", "publicPreviewPath")' in backend_main
+    assert 'db.collection("ai_design_public_gallery").document(snapshot.id)' in backend_main
+    assert "def _trim_public_ai_design_gallery(" in backend_main
+    assert '_delete_old_orphans(bucket, "ai_design_public_gallery/", public_gallery_paths, cutoff)' in backend_main
+    assert "input.checked=input.value===state.coverMode" in source
 
 
 def test_ai_design_preview_font_size_migration_does_not_force_default_text_to_4pt():
