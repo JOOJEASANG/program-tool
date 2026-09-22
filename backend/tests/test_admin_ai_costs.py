@@ -10,6 +10,7 @@ from services.openai_admin_usage import (
     OPENAI_COSTS_URL,
     OpenAIAdminUsageError,
     _fetch_pages,
+    _report_window,
     summarize_cost_buckets,
     summarize_image_buckets,
 )
@@ -51,6 +52,40 @@ def test_openai_cost_summary_tracks_today_week_month_and_line_items():
     assert summary["line_items"][0] == {"name": "image output", "amount": pytest.approx(0.12)}
 
 
+def test_openai_cost_summary_keeps_week_and_month_correct_across_boundary():
+    now = datetime(2026, 10, 3, 5, 0, tzinfo=timezone.utc)
+    buckets = [
+        {
+            "start_time": _stamp(2026, 9, 30),
+            "results": [
+                {"amount": {"value": 0.10, "currency": "usd"}, "line_item": "previous month"},
+            ],
+        },
+        {
+            "start_time": _stamp(2026, 10, 1),
+            "results": [
+                {"amount": {"value": 0.20, "currency": "usd"}, "line_item": "image output"},
+            ],
+        },
+        {
+            "start_time": _stamp(2026, 10, 3),
+            "results": [
+                {"amount": {"value": 0.30, "currency": "usd"}, "line_item": "image output"},
+            ],
+        },
+    ]
+
+    summary = summarize_cost_buckets(buckets, now=now)
+    query_start, month_start, _ = _report_window(now)
+
+    assert query_start.astimezone(SEOUL).date().isoformat() == "2026-09-27"
+    assert month_start.astimezone(SEOUL).date().isoformat() == "2026-10-01"
+    assert summary["last_7_days"] == pytest.approx(0.60)
+    assert summary["month_to_date"] == pytest.approx(0.50)
+    assert [item["date"] for item in summary["daily"]] == ["2026-10-01", "2026-10-03"]
+    assert summary["line_items"] == [{"name": "image output", "amount": pytest.approx(0.50)}]
+
+
 def test_openai_image_usage_summary_tracks_model_request_counts():
     buckets = [
         {
@@ -69,6 +104,27 @@ def test_openai_image_usage_summary_tracks_model_request_counts():
     assert summary["month_images"] == 4
     assert summary["by_model"][0]["model"] == "gpt-image-2"
     assert summary["by_model"][0]["requests"] == 3
+
+
+def test_openai_image_usage_month_total_excludes_previous_month():
+    now = datetime(2026, 10, 3, 5, 0, tzinfo=timezone.utc)
+    buckets = [
+        {
+            "start_time": _stamp(2026, 9, 30),
+            "results": [{"model": "gpt-image-2", "num_model_requests": 2, "images": 2}],
+        },
+        {
+            "start_time": _stamp(2026, 10, 3),
+            "results": [{"model": "gpt-image-2", "num_model_requests": 3, "images": 3}],
+        },
+    ]
+
+    summary = summarize_image_buckets(buckets, now=now)
+
+    assert summary["today_requests"] == 3
+    assert summary["month_requests"] == 3
+    assert summary["month_images"] == 3
+    assert summary["by_model"] == [{"model": "gpt-image-2", "requests": 3, "images": 3}]
 
 
 def test_openai_cost_fetch_requires_admin_key(monkeypatch):
