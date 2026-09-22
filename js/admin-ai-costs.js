@@ -136,7 +136,7 @@
     setText('aiProgramMonth',integer(program.month_requests)+'회');
     setText('aiProgramToday',integer(program.today_requests)+'회');
     setText('aiProgramWeek',integer(program.last_7_days_requests)+'회');
-    setText('aiProgramQuality','기본 '+integer(program.standard_requests)+' · 고품질 '+integer(program.high_requests));
+    setText('aiProgramQuality','기능 적용 이후 · 기본 '+integer(program.standard_requests)+' · 고품질 '+integer(program.high_requests));
     renderProgramDaily(program);
     renderModels(data);
 
