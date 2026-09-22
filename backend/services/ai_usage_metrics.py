@@ -35,29 +35,29 @@ def record_image_generation(result: dict[str, Any], *, now: datetime | None = No
     geometry = geometry if isinstance(geometry, dict) else {}
     quality = "high" if str(geometry.get("quality_mode") or "").lower() == "high" else "standard"
     model = str(result.get("model") or "unknown").strip() or "unknown"
-    db = firestore.client()
-    reference = db.collection(COLLECTION).document(day.isoformat())
-    transaction = db.transaction()
-
-    @firestore.transactional
-    def update_in_transaction(current_transaction):
-        snapshot = reference.get(transaction=current_transaction)
-        state = snapshot.to_dict() if snapshot.exists else {}
-        state = state or {}
-        model_counts = state.get("model_counts")
-        model_counts = dict(model_counts) if isinstance(model_counts, dict) else {}
-        model_counts[model] = _safe_int(model_counts.get(model)) + 1
-        payload = {
-            "date": day.isoformat(),
-            "image_requests": _safe_int(state.get("image_requests")) + 1,
-            "standard_requests": _safe_int(state.get("standard_requests")) + (1 if quality == "standard" else 0),
-            "high_requests": _safe_int(state.get("high_requests")) + (1 if quality == "high" else 0),
-            "model_counts": model_counts,
-            "last_generated_at": now or datetime.now(timezone.utc),
-        }
-        current_transaction.set(reference, payload, merge=True)
-
     try:
+        db = firestore.client()
+        reference = db.collection(COLLECTION).document(day.isoformat())
+        transaction = db.transaction()
+
+        @firestore.transactional
+        def update_in_transaction(current_transaction):
+            snapshot = reference.get(transaction=current_transaction)
+            state = snapshot.to_dict() if snapshot.exists else {}
+            state = state or {}
+            model_counts = state.get("model_counts")
+            model_counts = dict(model_counts) if isinstance(model_counts, dict) else {}
+            model_counts[model] = _safe_int(model_counts.get(model)) + 1
+            payload = {
+                "date": day.isoformat(),
+                "image_requests": _safe_int(state.get("image_requests")) + 1,
+                "standard_requests": _safe_int(state.get("standard_requests")) + (1 if quality == "standard" else 0),
+                "high_requests": _safe_int(state.get("high_requests")) + (1 if quality == "high" else 0),
+                "model_counts": model_counts,
+                "last_generated_at": now or datetime.now(timezone.utc),
+            }
+            current_transaction.set(reference, payload, merge=True)
+
         update_in_transaction(transaction)
     except Exception:
         logger.warning("AI image usage telemetry write failed", exc_info=True)
