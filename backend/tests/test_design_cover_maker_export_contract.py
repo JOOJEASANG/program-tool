@@ -36,7 +36,7 @@ def test_design_review_no_longer_loads_ai_maker_runtime():
     assert 'id="safeZone" type="number" min="0" max="80" step="0.1" value="10"' in maker
     assert 'id="generateBtn"' in maker
     assert 'id="exportBtn"' in maker
-    assert "/js/ai-design-maker.js?v=20260922-1" in maker
+    assert "/js/ai-design-maker.js?v=20260922-2" in maker
 
 
 def test_ai_design_maker_has_easy_cover_workflow_and_diagnostics():
@@ -414,7 +414,7 @@ def test_ai_design_gallery_saves_private_work_and_shares_safe_settings():
     for field_id in (
         "galleryBtn", "saveGalleryBtn", "galleryRefreshBtn", "galleryModal",
         "gallerySearch", "galleryGrid", "galleryDetailModal",
-        "galleryUseSettingsBtn", "galleryLoadOwnBtn",
+        "galleryUseSettingsBtn", "galleryLoadOwnBtn", "galleryDeleteOwnBtn",
     ):
         assert f'id="{field_id}"' in page
     assert 'data-gallery-scope="all"' in page
@@ -427,6 +427,11 @@ def test_ai_design_gallery_saves_private_work_and_shares_safe_settings():
     assert "function renderGallery(query='')" in source
     assert "function applySharedGallerySettings(item)" in source
     assert "async function loadOwnGalleryWork(item)" in source
+    assert "async function deleteOwnGalleryDesign(item)" in source
+    assert "batch.delete(privateRef)" in source
+    assert "batch.delete(publicRef)" in source
+    assert "내 보관함과 전체 디자인에서 모두 삭제됩니다." in source
+    assert "state.galleryItems=state.galleryItems.filter(entry=>entry.id!==item.id)" in source
     assert "firebase.firestore.Timestamp.now()" in source
     assert "galleryErrorDebug(error,stage)" in source
     assert "if(!user||!window.db)throw new Error('디자인 보관함 데이터 연결을 사용할 수 없습니다.')" in source

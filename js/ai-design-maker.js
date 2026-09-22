@@ -2110,6 +2110,7 @@
     if($('galleryDetailPrompt'))$('galleryDetailPrompt').textContent=item.prompt||'요청문구 없음';
     if($('galleryUseSettingsBtn'))$('galleryUseSettingsBtn').hidden=false;
     if($('galleryLoadOwnBtn'))$('galleryLoadOwnBtn').hidden=!item.isOwner;
+    if($('galleryDeleteOwnBtn'))$('galleryDeleteOwnBtn').hidden=!item.isOwner;
     if($('galleryDetailNotice'))$('galleryDetailNotice').textContent=item.isOwner
       ? '디자인 설정만 가져오거나, 내 디자인은 저장 당시 편집 설정과 AI 배경까지 다시 불러올 수 있습니다.'
       : '공유 디자인에서는 규격·제목·기관명·로고 같은 작업 정보는 가져오지 않고 디자인 설정만 적용합니다.';
@@ -2333,6 +2334,65 @@
     }
   }
 
+  async function deleteOwnGalleryDesign(item){
+    const user=window.auth?.currentUser;
+    if(!item?.isOwner||!user||!window.db||!window.storage)return;
+    const title=galleryDisplayTitle(item,true);
+    if(!confirm('“'+title+'” 디자인을 삭제할까요?\n\n내 보관함과 전체 디자인에서 모두 삭제됩니다.'))return;
+
+    const button=$('galleryDeleteOwnBtn');
+    if(button){button.disabled=true;button.textContent='삭제 중...';}
+    setStatus('디자인을 삭제하고 있습니다.','개인 작업기록과 공유 보관함 기록을 함께 정리하는 중입니다.','busy');
+
+    const privateRef=window.db.collection('users').doc(user.uid).collection('ai_design_gallery').doc(item.id);
+    const publicRef=window.db.collection('ai_design_public_gallery').doc(item.id);
+    try{
+      const [privateSnap,publicSnap]=await Promise.all([privateRef.get(),publicRef.get()]);
+      const privateData=privateSnap.exists?privateSnap.data()||{}:{};
+      const publicData=publicSnap.exists?publicSnap.data()||{}:{};
+      if(publicSnap.exists&&publicData.ownerUid!==user.uid)throw Object.assign(new Error('공유 디자인 소유자 정보가 일치하지 않습니다.'),{code:'gallery/delete-owner-mismatch'});
+
+      const batch=window.db.batch();
+      if(privateSnap.exists)batch.delete(privateRef);
+      if(publicSnap.exists)batch.delete(publicRef);
+      await batch.commit();
+
+      const paths=new Set([
+        privateData.imagePath,
+        privateData.backgroundPath,
+        privateData.publicPreviewPath,
+        publicData.imagePath,
+        item.ownerImagePath,
+        item.backgroundPath,
+        item.imagePath
+      ].map(value=>String(value||'').trim()).filter(Boolean));
+
+      let storageFailures=0;
+      await Promise.all([...paths].map(async path=>{
+        try{await window.storage.ref(path).delete();}
+        catch(error){
+          if(String(error?.code||'')!=='storage/object-not-found')storageFailures+=1;
+        }
+      }));
+
+      state.galleryItems=state.galleryItems.filter(entry=>entry.id!==item.id);
+      state.gallerySelectedItem=null;
+      closeGalleryDetail();
+      renderGallery($('gallerySearch')?.value||'');
+      setStatus(
+        '디자인을 삭제했습니다.',
+        storageFailures
+          ? '보관함 기록은 삭제했습니다. 남은 이미지 파일은 자동 정리 작업에서 제거됩니다.'
+          : '내 보관함과 전체 디자인에서 모두 제거했습니다.',
+        storageFailures?'busy':'ok'
+      );
+    }catch(error){
+      setStatus('디자인 삭제 실패',error.message||'삭제 중 오류가 발생했습니다.','error',galleryErrorDebug(error,'디자인 삭제'));
+    }finally{
+      if(button){button.disabled=false;button.textContent='내 디자인 삭제';}
+    }
+  }
+
   function resetAll(){
     if(!confirm('입력한 문구와 설정을 초기화할까요?'))return;
     try{localStorage.removeItem(STORAGE_KEY);}catch(_){}
@@ -2454,6 +2514,7 @@
     qa('[data-gallery-scope]').forEach(button=>button.addEventListener('click',()=>setGalleryScope(button.dataset.galleryScope)));
     $('galleryUseSettingsBtn')?.addEventListener('click',()=>applySharedGallerySettings(state.gallerySelectedItem));
     $('galleryLoadOwnBtn')?.addEventListener('click',()=>loadOwnGalleryWork(state.gallerySelectedItem));
+    $('galleryDeleteOwnBtn')?.addEventListener('click',()=>deleteOwnGalleryDesign(state.gallerySelectedItem));
     qa('[data-gallery-close]').forEach(node=>node.addEventListener('click',closeGallery));
     qa('[data-gallery-detail-close]').forEach(node=>node.addEventListener('click',closeGalleryDetail));
     $('exportBtn')?.addEventListener('click',exportDesign);
