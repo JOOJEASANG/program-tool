@@ -193,6 +193,7 @@ def test_admin_ai_cost_dashboard_contract():
     auth = (ROOT / "backend" / "utils" / "auth.py").read_text(encoding="utf-8")
     preflight = (ROOT / "backend" / "routers" / "preflight_ai_design.py").read_text(encoding="utf-8")
     env = (ROOT / "backend" / ".env.example").read_text(encoding="utf-8")
+    router_init = (ROOT / "backend" / "routers" / "__init__.py").read_text(encoding="utf-8")
 
     for marker in (
         'data-tab="aiCosts"',
@@ -218,3 +219,4 @@ def test_admin_ai_cost_dashboard_contract():
     assert preflight.count("record_image_generation(result)") == 2
     assert "OPENAI_ADMIN_KEY=" in env
     assert "OPENAI_PROJECT_ID=" in env
+    assert 'secrets=["OPENAI_API_KEY", "OPENAI_ADMIN_KEY"]' in router_init
