@@ -520,6 +520,21 @@ test('AI design gallery private metadata and source images stay owner-only', asy
 
   await assertSucceeds(setDoc(doc(ownerDb, metadataPath), metadata));
 
+  const savedDesignId = 'design_gallery_saved';
+  const savedImagePath = 'ai_design_gallery/gallery-owner/' + savedDesignId + '/preview.jpg';
+  const savedBackgroundPath = 'ai_design_gallery/gallery-owner/' + savedDesignId + '/background.jpg';
+  const savedPublicPreviewPath = 'ai_design_public_gallery/gallery-owner/' + savedDesignId + '/preview.jpg';
+  const savedMetadataPath = 'users/gallery-owner/ai_design_gallery/' + savedDesignId;
+  await assertSucceeds(setDoc(doc(ownerDb, savedMetadataPath), {
+    ...metadata,
+    id: savedDesignId,
+    imagePath: savedImagePath,
+    backgroundPath: savedBackgroundPath,
+    publicPreviewPath: savedPublicPreviewPath,
+    stateJson: '{"preset":"report","coverMode":"front"}',
+  }));
+  await assertFails(getDoc(doc(otherDb, savedMetadataPath)));
+
   for (const coverMode of ['back', 'frontBack', 'spread']) {
     const modeDesignId = 'design_gallery_' + coverMode;
     const modeImagePath = 'ai_design_gallery/gallery-owner/' + modeDesignId + '/preview.jpg';
@@ -559,6 +574,23 @@ test('AI design gallery private metadata and source images stay owner-only', asy
   ));
   await assertSucceeds(getBytes(ref(ownerStorage, imagePath)));
   await assertFails(getBytes(ref(otherStorage, imagePath)));
+
+  await assertSucceeds(uploadString(
+    ref(ownerStorage, savedBackgroundPath),
+    'fake-background-data',
+    'raw',
+    {
+      contentType: 'image/jpeg',
+      customMetadata: {
+        ownerUid: 'gallery-owner',
+        purpose: 'ai-design-gallery-background',
+        designId: savedDesignId,
+      },
+    }
+  ));
+  await assertSucceeds(getBytes(ref(ownerStorage, savedBackgroundPath)));
+  await assertFails(getBytes(ref(otherStorage, savedBackgroundPath)));
+
   await assertFails(uploadString(
     ref(otherStorage, 'ai_design_gallery/gallery-owner/design_gallery02/preview.jpg'),
     'fake-jpeg-data',
@@ -573,6 +605,8 @@ test('AI design gallery private metadata and source images stay owner-only', asy
     }
   ));
   await assertSucceeds(deleteObject(ref(ownerStorage, imagePath)));
+  await assertSucceeds(deleteObject(ref(ownerStorage, savedBackgroundPath)));
+  await assertSucceeds(deleteDoc(doc(ownerDb, savedMetadataPath)));
   await assertSucceeds(deleteDoc(doc(ownerDb, metadataPath)));
 });
 
