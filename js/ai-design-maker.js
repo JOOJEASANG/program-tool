@@ -2185,14 +2185,12 @@
       fetchCollection(window.db.collection('users').doc(user.uid).collection('ai_design_gallery'))
     ]);
     const privateMap=new Map(privateSnapshot.docs.map(doc=>[doc.id,{id:doc.id,...doc.data()}]));
-    const items=[];
-
-    for(const doc of publicSnapshot.docs){
+    const publicItems=publicSnapshot.docs.map(doc=>{
       const data={id:doc.id,...doc.data()};
       const own=data.ownerUid===user.uid;
       const privateData=own?privateMap.get(doc.id):null;
       if(own)privateMap.delete(doc.id);
-      const item={
+      return {
         ...data,
         visibility:'public',
         isOwner:own,
@@ -2203,25 +2201,25 @@
         imageUrl:'',
         ownerImageUrl:''
       };
+    });
+    const privateItems=[...privateMap.values()].map(privateData=>({
+      ...privateData,
+      visibility:'private',
+      isOwner:true,
+      privateTitle:privateData.title||'',
+      ownerImagePath:privateData.imagePath||'',
+      imageUrl:'',
+      ownerImageUrl:''
+    }));
+    await Promise.all(publicItems.map(async item=>{
       item.imageUrl=await galleryDownloadUrl(item.imagePath);
-      if(own&&item.ownerImagePath)item.ownerImageUrl=await galleryDownloadUrl(item.ownerImagePath);
-      items.push(item);
-    }
-
-    for(const privateData of privateMap.values()){
-      const item={
-        ...privateData,
-        visibility:'private',
-        isOwner:true,
-        privateTitle:privateData.title||'',
-        ownerImagePath:privateData.imagePath||'',
-        imageUrl:'',
-        ownerImageUrl:''
-      };
+      if(item.isOwner&&item.ownerImagePath)item.ownerImageUrl=await galleryDownloadUrl(item.ownerImagePath);
+    }));
+    await Promise.all(privateItems.map(async item=>{
       item.ownerImageUrl=await galleryDownloadUrl(item.ownerImagePath);
       item.imageUrl=item.ownerImageUrl;
-      items.push(item);
-    }
+    }));
+    const items=[...publicItems,...privateItems];
 
     items.sort((a,b)=>{
       const at=a.createdAt?.toMillis?.()||0,bt=b.createdAt?.toMillis?.()||0;
