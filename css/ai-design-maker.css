@@ -177,3 +177,7 @@ html[data-cover-mode="frontBack"] #spineFields{display:none!important}
   .gallery-detail-actions{flex-direction:column}
   .gallery-detail-actions button{width:100%}
 }
+
+.gallery-danger-button{min-height:42px;padding:0 15px;border:1px solid #fecaca;border-radius:10px;background:#fff;color:#b91c1c;font:800 13px/1 Pretendard,sans-serif;cursor:pointer}
+.gallery-danger-button:hover{background:#fef2f2;border-color:#fca5a5}
+.gallery-danger-button:disabled{opacity:.55;cursor:not-allowed}
