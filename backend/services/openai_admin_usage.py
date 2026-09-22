@@ -185,7 +185,6 @@ def summarize_cost_buckets(
     today = current.astimezone(SEOUL).date()
     week_start = today - timedelta(days=6)
     daily: dict[date, float] = defaultdict(float)
-    line_items: dict[str, float] = defaultdict(float)
     currency = "usd"
 
     for bucket in buckets:
@@ -204,16 +203,10 @@ def summarize_cost_buckets(
             value = _number(amount.get("value"))
             currency = str(amount.get("currency") or currency).lower()
             daily[bucket_day] += value
-            label = str(result.get("line_item") or "기타").strip() or "기타"
-            line_items[label] += value
 
     ordered_daily = [
         {"date": item.isoformat(), "amount": round(daily[item], 8)}
         for item in sorted(daily)
-    ]
-    ordered_lines = [
-        {"name": name, "amount": round(value, 8)}
-        for name, value in sorted(line_items.items(), key=lambda pair: pair[1], reverse=True)
     ]
     month_daily = {
         item: value
@@ -268,7 +261,6 @@ def summarize_image_buckets(
     today = current.astimezone(SEOUL).date()
     daily_requests: dict[date, int] = defaultdict(int)
     daily_images: dict[date, int] = defaultdict(int)
-    models: dict[str, dict[str, int]] = defaultdict(lambda: {"requests": 0, "images": 0})
 
     for bucket in buckets:
         bucket_day = _bucket_date(bucket)
@@ -282,11 +274,8 @@ def summarize_image_buckets(
                 continue
             requests = _integer(result.get("num_model_requests"))
             images = _integer(result.get("images"))
-            model = str(result.get("model") or "미지정").strip() or "미지정"
             daily_requests[bucket_day] += requests
             daily_images[bucket_day] += images
-            models[model]["requests"] += requests
-            models[model]["images"] += images
 
     month_requests = sum(
         value for item, value in daily_requests.items()
