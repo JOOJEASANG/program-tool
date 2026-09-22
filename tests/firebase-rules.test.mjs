@@ -492,8 +492,9 @@ test('cloud design storage is owner-only, approved-only and validates json metad
   await assertSucceeds(deleteObject(ref(ownerStorage, path)));
 });
 
-test('AI design gallery metadata and preview image are owner-only and approved-only', async () => {
+test('AI design gallery private metadata and source images stay owner-only', async () => {
   await seedPermission('gallery-owner', 'approved');
+  await seedPermission('gallery-other', 'approved');
   const ownerContext = env.authenticatedContext('gallery-owner', { email: 'gallery@example.com' });
   const otherContext = env.authenticatedContext('gallery-other', { email: 'other@example.com' });
   const ownerDb = ownerContext.firestore();
@@ -518,6 +519,21 @@ test('AI design gallery metadata and preview image are owner-only and approved-o
   };
 
   await assertSucceeds(setDoc(doc(ownerDb, metadataPath), metadata));
+
+  const savedDesignId = 'design_gallery_saved';
+  const savedImagePath = 'ai_design_gallery/gallery-owner/' + savedDesignId + '/preview.jpg';
+  const savedBackgroundPath = 'ai_design_gallery/gallery-owner/' + savedDesignId + '/background.jpg';
+  const savedPublicPreviewPath = 'ai_design_public_gallery/gallery-owner/' + savedDesignId + '/preview.jpg';
+  const savedMetadataPath = 'users/gallery-owner/ai_design_gallery/' + savedDesignId;
+  await assertSucceeds(setDoc(doc(ownerDb, savedMetadataPath), {
+    ...metadata,
+    id: savedDesignId,
+    imagePath: savedImagePath,
+    backgroundPath: savedBackgroundPath,
+    publicPreviewPath: savedPublicPreviewPath,
+    stateJson: '{"preset":"report","coverMode":"front"}',
+  }));
+  await assertFails(getDoc(doc(otherDb, savedMetadataPath)));
 
   for (const coverMode of ['back', 'frontBack', 'spread']) {
     const modeDesignId = 'design_gallery_' + coverMode;
@@ -558,6 +574,23 @@ test('AI design gallery metadata and preview image are owner-only and approved-o
   ));
   await assertSucceeds(getBytes(ref(ownerStorage, imagePath)));
   await assertFails(getBytes(ref(otherStorage, imagePath)));
+
+  await assertSucceeds(uploadString(
+    ref(ownerStorage, savedBackgroundPath),
+    'fake-background-data',
+    'raw',
+    {
+      contentType: 'image/jpeg',
+      customMetadata: {
+        ownerUid: 'gallery-owner',
+        purpose: 'ai-design-gallery-background',
+        designId: savedDesignId,
+      },
+    }
+  ));
+  await assertSucceeds(getBytes(ref(ownerStorage, savedBackgroundPath)));
+  await assertFails(getBytes(ref(otherStorage, savedBackgroundPath)));
+
   await assertFails(uploadString(
     ref(otherStorage, 'ai_design_gallery/gallery-owner/design_gallery02/preview.jpg'),
     'fake-jpeg-data',
@@ -572,5 +605,93 @@ test('AI design gallery metadata and preview image are owner-only and approved-o
     }
   ));
   await assertSucceeds(deleteObject(ref(ownerStorage, imagePath)));
+  await assertSucceeds(deleteObject(ref(ownerStorage, savedBackgroundPath)));
+  await assertSucceeds(deleteDoc(doc(ownerDb, savedMetadataPath)));
   await assertSucceeds(deleteDoc(doc(ownerDb, metadataPath)));
 });
+
+test('AI design public gallery is readable by approved members but writable only by its owner', async () => {
+  await seedPermission('public-gallery-owner', 'approved');
+  await seedPermission('public-gallery-member', 'approved');
+  const ownerContext = env.authenticatedContext('public-gallery-owner', { email: 'owner@example.com' });
+  const memberContext = env.authenticatedContext('public-gallery-member', { email: 'member@example.com' });
+  const pendingContext = env.authenticatedContext('public-gallery-pending', { email: 'pending@example.com' });
+  const publicContext = env.unauthenticatedContext();
+  const ownerDb = ownerContext.firestore();
+  const memberDb = memberContext.firestore();
+  const pendingDb = pendingContext.firestore();
+  const publicDb = publicContext.firestore();
+  const ownerStorage = ownerContext.storage();
+  const memberStorage = memberContext.storage();
+  const pendingStorage = pendingContext.storage();
+  const publicStorage = publicContext.storage();
+  const designId = 'design_public01';
+  const imagePath = 'ai_design_public_gallery/public-gallery-owner/' + designId + '/preview.jpg';
+  const metadataPath = 'ai_design_public_gallery/' + designId;
+  const metadata = {
+    id: designId,
+    ownerUid: 'public-gallery-owner',
+    prompt: '세련된 에디토리얼 그리드와 딥티얼 포인트를 사용하는 보고서 표지',
+    presetId: 'report',
+    presetName: '보고서',
+    coverMode: 'spread',
+    qualityMode: 'standard',
+    trimWidth: 210,
+    trimHeight: 297,
+    imagePath,
+    visualMode: 'editorial',
+    colorIntensity: 'refined',
+    designMood: 'trust',
+    primaryColor: '#315c8c',
+    textColor: '#ffffff',
+    promptLanguage: 'ko',
+    createdAt: new Date('2026-09-22T06:20:00Z'),
+  };
+
+  await assertSucceeds(setDoc(doc(ownerDb, metadataPath), metadata));
+  await assertSucceeds(getDoc(doc(ownerDb, metadataPath)));
+  await assertSucceeds(getDoc(doc(memberDb, metadataPath)));
+  await assertFails(getDoc(doc(pendingDb, metadataPath)));
+  await assertFails(getDoc(doc(publicDb, metadataPath)));
+  await assertFails(updateDoc(doc(ownerDb, metadataPath), { designMood: 'dynamic' }));
+  await assertFails(setDoc(doc(memberDb, 'ai_design_public_gallery/design_public02'), {
+    ...metadata,
+    id: 'design_public02',
+    ownerUid: 'public-gallery-owner',
+    imagePath: 'ai_design_public_gallery/public-gallery-owner/design_public02/preview.jpg',
+  }));
+
+  await assertSucceeds(uploadString(
+    ref(ownerStorage, imagePath),
+    'safe-preview',
+    'raw',
+    {
+      contentType: 'image/jpeg',
+      customMetadata: {
+        ownerUid: 'public-gallery-owner',
+        purpose: 'ai-design-public-preview',
+        designId,
+      },
+    }
+  ));
+  await assertSucceeds(getBytes(ref(memberStorage, imagePath)));
+  await assertFails(getBytes(ref(pendingStorage, imagePath)));
+  await assertFails(getBytes(ref(publicStorage, imagePath)));
+  await assertFails(uploadString(
+    ref(memberStorage, 'ai_design_public_gallery/public-gallery-owner/design_public02/preview.jpg'),
+    'hijack',
+    'raw',
+    {
+      contentType: 'image/jpeg',
+      customMetadata: {
+        ownerUid: 'public-gallery-owner',
+        purpose: 'ai-design-public-preview',
+        designId: 'design_public02',
+      },
+    }
+  ));
+
+  await assertSucceeds(deleteObject(ref(ownerStorage, imagePath)));
+  await assertSucceeds(deleteDoc(doc(ownerDb, metadataPath)));
+});
+

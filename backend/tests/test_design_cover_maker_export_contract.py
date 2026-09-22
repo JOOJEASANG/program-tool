@@ -36,7 +36,7 @@ def test_design_review_no_longer_loads_ai_maker_runtime():
     assert 'id="safeZone" type="number" min="0" max="80" step="0.1" value="10"' in maker
     assert 'id="generateBtn"' in maker
     assert 'id="exportBtn"' in maker
-    assert "/js/ai-design-maker.js?v=20260921-1" in maker
+    assert "/js/ai-design-maker.js?v=20260922-1" in maker
 
 
 def test_ai_design_maker_has_easy_cover_workflow_and_diagnostics():
@@ -401,36 +401,67 @@ def test_ai_design_copy_fields_are_front_back_first_and_additive():
     assert "fontPt:12,weight:700" in source
     assert "const text=String(entry.value||'').trim();" in source
 
-def test_ai_design_gallery_saves_finished_cover_and_prompt_to_user_storage():
+def test_ai_design_gallery_saves_private_work_and_shares_safe_settings():
     page = (ROOT / "ai-design-maker/index.html").read_text(encoding="utf-8")
     source = (ROOT / "js/ai-design-maker.js").read_text(encoding="utf-8")
     style = (ROOT / "css/ai-design-maker.css").read_text(encoding="utf-8")
     firebase_config = (ROOT / "js/firebase-config.js").read_text(encoding="utf-8")
     firestore_rules = (ROOT / "firestore.rules").read_text(encoding="utf-8")
     storage_rules = (ROOT / "storage.rules").read_text(encoding="utf-8")
+    backend_main = (ROOT / "backend/main.py").read_text(encoding="utf-8")
 
     assert "firebase-storage-compat.js" in page
-    for field_id in ("galleryBtn", "saveGalleryBtn", "galleryRefreshBtn", "galleryModal", "gallerySearch", "galleryGrid", "galleryDetailModal"):
+    for field_id in (
+        "galleryBtn", "saveGalleryBtn", "galleryRefreshBtn", "galleryModal",
+        "gallerySearch", "galleryGrid", "galleryDetailModal",
+        "galleryUseSettingsBtn", "galleryLoadOwnBtn",
+    ):
         assert f'id="{field_id}"' in page
+    assert 'data-gallery-scope="all"' in page
+    assert 'data-gallery-scope="mine"' in page
+
     assert "async function saveCurrentDesignToGallery()" in source
-    assert "async function buildGalleryPreviewBlob()" in source
+    assert "async function buildGalleryPreviewBlob(publicSafe=false)" in source
+    assert "async function buildGalleryBackgroundBlob()" in source
     assert "async function loadGallery()" in source
     assert "function renderGallery(query='')" in source
+    assert "function applySharedGallerySettings(item)" in source
+    assert "async function loadOwnGalleryWork(item)" in source
     assert "firebase.firestore.Timestamp.now()" in source
     assert "galleryErrorDebug(error,stage)" in source
     assert "if(!user||!window.db)throw new Error('디자인 보관함 데이터 연결을 사용할 수 없습니다.')" in source
-    assert "if(window.storage&&item.imagePath)" in source
-    assert "galleryRefreshBtn" in source
-    assert "state.lastGeneratedPrompt=prompt" in source
+    assert "collection('ai_design_public_gallery')" in source
+    assert "collection('users').doc(user.uid).collection('ai_design_gallery')" in source
+    assert "ai_design_public_gallery/" in source
     assert "ai_design_gallery/" in source
-    assert ".orderBy('createdAt','desc').limit(100)" in source
+    assert "backgroundPath" in source
+    assert "stateJson" in source
+    assert "buildGalleryPreviewBlob(true)" in source
+    assert "if(!publicSafe)" in source
+    assert "drawLogo(ctx,spec,scale)" in source
+    assert "galleryDownloadUrl(item.imagePath)" in source
+    assert "orderBy('createdAt','desc').limit(200)" in source
+    assert "현재 규격과 작업 문구는 유지했습니다." in source
+
     assert ".gallery-grid{" in style
+    assert ".gallery-scope-tabs{" in style
     assert "window.storage = storage" in firebase_config
+
+    assert "match /ai_design_public_gallery/{designId}" in firestore_rules
+    assert "validPublicAiDesignGalleryMetadata" in firestore_rules
     assert "match /users/{uid}/ai_design_gallery/{designId}" in firestore_rules
     assert "validAiDesignGalleryMetadata" in firestore_rules
+
+    assert "match /ai_design_public_gallery/{userId}/{designId}/{fileName}" in storage_rules
+    assert "validPublicAiDesignGalleryUpload" in storage_rules
     assert "match /ai_design_gallery/{userId}/{designId}/{fileName}" in storage_rules
     assert "validAiDesignGalleryUpload" in storage_rules
 
+    assert 'for field in ("imagePath", "backgroundPath", "publicPreviewPath")' in backend_main
+    assert 'db.collection("ai_design_public_gallery").document(snapshot.id)' in backend_main
+    assert "def _trim_public_ai_design_gallery(" in backend_main
+    assert '_delete_old_orphans(bucket, "ai_design_public_gallery/", public_gallery_paths, cutoff)' in backend_main
+    assert "input.checked=input.value===state.coverMode" in source
 
 
 def test_ai_design_preview_font_size_migration_does_not_force_default_text_to_4pt():

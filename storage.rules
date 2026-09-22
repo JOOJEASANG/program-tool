@@ -56,6 +56,25 @@ service firebase.storage {
       return isOwner(userId)
         && isApproved()
         && designId.matches('^[A-Za-z0-9_-]{8,80}$')
+        && fileName in ['preview.jpg','background.jpg']
+        && request.resource != null
+        && request.resource.size > 0
+        && request.resource.size <= 5242880
+        && request.resource.contentType == 'image/jpeg'
+        && request.resource.metadata != null
+        && request.resource.metadata.keys().hasAll(['ownerUid','purpose','designId'])
+        && request.resource.metadata.ownerUid == userId
+        && (
+          (fileName == 'preview.jpg' && request.resource.metadata.purpose == 'ai-design-gallery-preview')
+          || (fileName == 'background.jpg' && request.resource.metadata.purpose == 'ai-design-gallery-background')
+        )
+        && request.resource.metadata.designId == designId;
+    }
+
+    function validPublicAiDesignGalleryUpload(userId, designId, fileName) {
+      return isOwner(userId)
+        && isApproved()
+        && designId.matches('^[A-Za-z0-9_-]{8,80}$')
         && fileName == 'preview.jpg'
         && request.resource != null
         && request.resource.size > 0
@@ -64,7 +83,7 @@ service firebase.storage {
         && request.resource.metadata != null
         && request.resource.metadata.keys().hasAll(['ownerUid','purpose','designId'])
         && request.resource.metadata.ownerUid == userId
-        && request.resource.metadata.purpose == 'ai-design-gallery-preview'
+        && request.resource.metadata.purpose == 'ai-design-public-preview'
         && request.resource.metadata.designId == designId;
     }
 
@@ -138,6 +157,14 @@ service firebase.storage {
       allow read, delete: if isOwner(userId) && isApproved();
       allow create: if resource == null
         && validAiDesignGalleryUpload(userId, designId, fileName);
+      allow update: if false;
+    }
+
+    match /ai_design_public_gallery/{userId}/{designId}/{fileName} {
+      allow read: if isApproved();
+      allow delete: if isOwner(userId);
+      allow create: if resource == null
+        && validPublicAiDesignGalleryUpload(userId, designId, fileName);
       allow update: if false;
     }
 

@@ -139,6 +139,8 @@
     generationProgressTimer: null,
     sizeMode: 'a4',
     galleryItems: [],
+    galleryScope: 'all',
+    gallerySelectedItem: null,
     lastGeneratedPrompt: '',
     lastGeneratedPresetName: ''
   };
@@ -1916,7 +1918,7 @@
     ].filter(Boolean).join('\n');
   }
 
-  async function buildGalleryPreviewBlob(){
+  async function buildGalleryPreviewBlob(publicSafe=false){
     if(!state.background)throw new Error('저장할 표지 디자인이 없습니다.');
     const spec=currentSpec(),maxEdge=1600;
     const scale=Math.min(maxEdge/spec.workW,maxEdge/spec.workH);
@@ -1926,12 +1928,28 @@
     const ctx=canvas.getContext('2d');
     drawBackgroundImage(ctx,state.background,w,h);
     state.shapes.forEach(shape=>drawShape(ctx,shape,scale));
-    drawLogo(ctx,spec,scale);
-    const color=$('textColor')?.value||'#ffffff';
-    textLayout(spec,scale).forEach(item=>drawTextItem(ctx,item,color));
+    if(!publicSafe){
+      drawLogo(ctx,spec,scale);
+      const color=$('textColor')?.value||'#ffffff';
+      textLayout(spec,scale).forEach(item=>drawTextItem(ctx,item,color));
+    }
     return new Promise((resolve,reject)=>canvas.toBlob(
       blob=>blob?resolve(blob):reject(new Error('보관함용 미리보기 이미지를 만들지 못했습니다.')),
       'image/jpeg',.88
+    ));
+  }
+
+  async function buildGalleryBackgroundBlob(){
+    if(!state.background)throw new Error('저장할 AI 배경이 없습니다.');
+    const spec=currentSpec(),maxEdge=2400;
+    const scale=Math.min(maxEdge/spec.workW,maxEdge/spec.workH);
+    const w=Math.max(480,Math.round(spec.workW*scale)),h=Math.max(480,Math.round(spec.workH*scale));
+    const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
+    const ctx=canvas.getContext('2d');
+    drawBackgroundImage(ctx,state.background,w,h);
+    return new Promise((resolve,reject)=>canvas.toBlob(
+      blob=>blob?resolve(blob):reject(new Error('보관함용 배경 이미지를 만들지 못했습니다.')),
+      'image/jpeg',.92
     ));
   }
 
@@ -1941,46 +1959,105 @@
     if(!window.storage||!window.db){setStatus('보관함 연결을 사용할 수 없습니다.','Firebase 저장 연결을 확인해 주세요.','error','stage: initialize\nstorage: '+Boolean(window.storage)+'\nfirestore: '+Boolean(window.db));return;}
     if(!state.background||state.generatedSpecKey!==specKey(spec)){setStatus('저장할 디자인이 없습니다.','현재 규격에 맞는 디자인을 먼저 생성해 주세요.','error');return;}
     const title=(spec.coverMode==='back'?String($('backText')?.value||'').trim():String($('title')?.value||'').trim())||'제목 없는 표지';
-    const prompt=String(state.lastGeneratedPrompt||$('stylePrompt')?.value||presetPrompt()).trim().slice(0,5000);
+    const privatePrompt=String(state.lastGeneratedPrompt||$('stylePrompt')?.value||presetPrompt()).trim().slice(0,5000);
+    const sharedPrompt=String($('stylePrompt')?.value||presetPrompt()).trim().slice(0,5000);
     const designId='design_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8);
-    const imagePath='ai_design_gallery/'+user.uid+'/'+designId+'/preview.jpg';
-    const imageRef=window.storage.ref(imagePath);
-    const docRef=window.db.collection('users').doc(user.uid).collection('ai_design_gallery').doc(designId);
+    const ownerPreviewPath='ai_design_gallery/'+user.uid+'/'+designId+'/preview.jpg';
+    const backgroundPath='ai_design_gallery/'+user.uid+'/'+designId+'/background.jpg';
+    const publicPreviewPath='ai_design_public_gallery/'+user.uid+'/'+designId+'/preview.jpg';
+    const ownerPreviewRef=window.storage.ref(ownerPreviewPath);
+    const backgroundRef=window.storage.ref(backgroundPath);
+    const publicPreviewRef=window.storage.ref(publicPreviewPath);
+    const privateDocRef=window.db.collection('users').doc(user.uid).collection('ai_design_gallery').doc(designId);
+    const publicDocRef=window.db.collection('ai_design_public_gallery').doc(designId);
     if(button){button.disabled=true;button.textContent='저장 중...';}
-    setStatus('디자인을 보관함에 저장하고 있습니다.','완성된 표지 이미지와 디자인 요청문구를 함께 저장하는 중입니다.','busy');
-    let uploaded=false,stage='인증 갱신';
+    setStatus('디자인을 보관함에 저장하고 있습니다.','내 작업기록과 공유용 안전 미리보기를 분리해 저장하는 중입니다.','busy');
+    const uploadedRefs=[];
+    let privateWritten=false,publicWritten=false,stage='인증 갱신';
     try{
       await user.getIdToken(true);
       stage='미리보기 생성';
-      const blob=await buildGalleryPreviewBlob();
-      stage='미리보기 업로드';
-      await imageRef.put(blob,{
+      const [ownerPreviewBlob,publicPreviewBlob,backgroundBlob]=await Promise.all([
+        buildGalleryPreviewBlob(false),
+        buildGalleryPreviewBlob(true),
+        buildGalleryBackgroundBlob()
+      ]);
+      const stateJson=JSON.stringify(serializableState());
+      if(stateJson.length>450000)throw Object.assign(new Error('현재 작업 설정이 보관함 저장 한도를 초과했습니다.'),{code:'gallery/state-too-large'});
+
+      stage='내 미리보기 업로드';
+      await ownerPreviewRef.put(ownerPreviewBlob,{
         contentType:'image/jpeg',
         customMetadata:{ownerUid:user.uid,purpose:'ai-design-gallery-preview',designId}
       });
-      uploaded=true;
-      stage='보관함 기록 저장';
+      uploadedRefs.push(ownerPreviewRef);
+
+      stage='내 배경 업로드';
+      await backgroundRef.put(backgroundBlob,{
+        contentType:'image/jpeg',
+        customMetadata:{ownerUid:user.uid,purpose:'ai-design-gallery-background',designId}
+      });
+      uploadedRefs.push(backgroundRef);
+
+      stage='공유 미리보기 업로드';
+      await publicPreviewRef.put(publicPreviewBlob,{
+        contentType:'image/jpeg',
+        customMetadata:{ownerUid:user.uid,purpose:'ai-design-public-preview',designId}
+      });
+      uploadedRefs.push(publicPreviewRef);
+
       const createdAt=firebase.firestore.Timestamp.now();
-      await docRef.set({
+      stage='내 작업기록 저장';
+      await privateDocRef.set({
         id:designId,
         title:title.slice(0,180),
-        prompt,
+        prompt:privatePrompt,
         presetId:String(state.preset||'').slice(0,80),
         presetName:String(state.lastGeneratedPresetName||PRESETS[state.preset]?.name||'').slice(0,120),
         coverMode:spec.coverMode,
         qualityMode:state.generationQuality,
         trimWidth:spec.trimW,
         trimHeight:spec.trimH,
-        imagePath,
+        imagePath:ownerPreviewPath,
+        backgroundPath,
+        publicPreviewPath,
+        stateJson,
         createdAt
       });
+      privateWritten=true;
+
+      stage='공유 디자인 기록 저장';
+      await publicDocRef.set({
+        id:designId,
+        ownerUid:user.uid,
+        prompt:sharedPrompt,
+        presetId:String(state.preset||'').slice(0,80),
+        presetName:String(state.lastGeneratedPresetName||PRESETS[state.preset]?.name||'').slice(0,120),
+        coverMode:spec.coverMode,
+        qualityMode:state.generationQuality,
+        trimWidth:spec.trimW,
+        trimHeight:spec.trimH,
+        imagePath:publicPreviewPath,
+        visualMode:String($('visualMode')?.value||'auto').slice(0,40),
+        colorIntensity:String($('colorIntensity')?.value||'refined').slice(0,40),
+        designMood:String($('designMood')?.value||'auto').slice(0,40),
+        primaryColor:normalizeColor($('primaryColor')?.value)||'#315c8c',
+        textColor:normalizeColor($('textColor')?.value)||'#ffffff',
+        promptLanguage:state.promptLanguage==='en'?'en':'ko',
+        createdAt
+      });
+      publicWritten=true;
+
       stage='저장 결과 확인';
-      const verified=await docRef.get();
-      if(!verified.exists)throw Object.assign(new Error('저장한 디자인 기록을 다시 확인하지 못했습니다.'),{code:'gallery/verify-failed'});
-      setStatus('디자인 보관함에 저장했습니다.','저장 기록을 다시 확인했습니다. 디자인 보관함에서 바로 확인할 수 있습니다.','ok');
+      const [privateVerified,publicVerified]=await Promise.all([privateDocRef.get(),publicDocRef.get()]);
+      if(!privateVerified.exists||!publicVerified.exists)throw Object.assign(new Error('저장한 디자인 기록을 다시 확인하지 못했습니다.'),{code:'gallery/verify-failed'});
+      setStatus('디자인 보관함에 저장했습니다.','전체 디자인에는 문구·로고를 제외한 미리보기와 디자인 요청 설정만 공유됩니다.','ok');
+      state.galleryScope='mine';
       await openGallery(true);
     }catch(error){
-      if(uploaded)try{await imageRef.delete();}catch(_){}
+      if(publicWritten)try{await publicDocRef.delete();}catch(_){}
+      if(privateWritten)try{await privateDocRef.delete();}catch(_){}
+      for(const ref of uploadedRefs.reverse())try{await ref.delete();}catch(_){}
       setStatus('디자인 저장 실패',error.message||'보관함 저장 중 오류가 발생했습니다.','error',galleryErrorDebug(error,stage));
     }finally{
       if(button){button.textContent='현재 디자인 저장';button.disabled=!state.background||state.generatedSpecKey!==specKey(currentSpec());}
@@ -1994,74 +2071,156 @@
   function closeGalleryDetail(){
     if($('galleryDetailModal'))$('galleryDetailModal').hidden=true;
     if($('galleryDetailImage'))$('galleryDetailImage').removeAttribute('src');
+    state.gallerySelectedItem=null;
+  }
+
+  function galleryDisplayTitle(item,ownView=false){
+    if(ownView&&item?.privateTitle)return item.privateTitle;
+    return (item?.presetName||PRESETS[item?.presetId]?.name||'AI')+' 디자인';
+  }
+
+  function syncGalleryScopeUi(){
+    qa('[data-gallery-scope]').forEach(button=>{
+      const active=button.dataset.galleryScope===state.galleryScope;
+      button.classList.toggle('active',active);
+      button.setAttribute('aria-selected',String(active));
+    });
+  }
+
+  function setGalleryScope(scope){
+    state.galleryScope=scope==='mine'?'mine':'all';
+    syncGalleryScopeUi();
+    renderGallery($('gallerySearch')?.value||'');
   }
 
   function openGalleryDetail(item){
     if(!item)return;
-    if($('galleryDetailImage'))$('galleryDetailImage').src=item.imageUrl||'';
-    if($('galleryDetailTitle'))$('galleryDetailTitle').textContent=item.title||'저장된 디자인';
+    state.gallerySelectedItem=item;
+    const ownView=state.galleryScope==='mine'&&item.isOwner;
+    const imageUrl=ownView?(item.ownerImageUrl||item.imageUrl):item.imageUrl;
+    if($('galleryDetailImage'))$('galleryDetailImage').src=imageUrl||'';
+    if($('galleryDetailTitle'))$('galleryDetailTitle').textContent=galleryDisplayTitle(item,ownView);
     if($('galleryDetailMeta'))$('galleryDetailMeta').textContent=[
       item.presetName||'',
       item.coverMode==='front'?'앞표지':item.coverMode==='back'?'뒷표지':item.coverMode==='frontBack'?'앞·뒤표지 동시':'전체 펼침',
       (item.trimWidth&&item.trimHeight)?item.trimWidth+'×'+item.trimHeight+'mm':'',
+      item.isOwner?'내 디자인':'공유 디자인',
       galleryDateText(item.createdAt)
     ].filter(Boolean).join(' · ');
     if($('galleryDetailPrompt'))$('galleryDetailPrompt').textContent=item.prompt||'요청문구 없음';
+    if($('galleryUseSettingsBtn'))$('galleryUseSettingsBtn').hidden=false;
+    if($('galleryLoadOwnBtn'))$('galleryLoadOwnBtn').hidden=!item.isOwner;
+    if($('galleryDetailNotice'))$('galleryDetailNotice').textContent=item.isOwner
+      ? '디자인 설정만 가져오거나, 내 디자인은 저장 당시 편집 설정과 AI 배경까지 다시 불러올 수 있습니다.'
+      : '공유 디자인에서는 규격·제목·기관명·로고 같은 작업 정보는 가져오지 않고 디자인 설정만 적용합니다.';
     if($('galleryDetailModal'))$('galleryDetailModal').hidden=false;
   }
 
   function renderGallery(query=''){
     const root=$('galleryGrid'),empty=$('galleryEmpty'),count=$('galleryCount');
     if(!root)return;
+    syncGalleryScopeUi();
     const needle=String(query||'').trim().toLowerCase();
-    const items=state.galleryItems.filter(item=>{
-      const hay=[item.title,item.prompt,item.presetName,item.coverMode].join(' ').toLowerCase();
+    const visible=state.galleryItems.filter(item=>state.galleryScope==='mine'?item.isOwner:item.visibility==='public');
+    const items=visible.filter(item=>{
+      const hay=[
+        state.galleryScope==='mine'?item.privateTitle:'',
+        item.prompt,item.presetName,item.coverMode,item.visualMode,item.colorIntensity,item.designMood
+      ].join(' ').toLowerCase();
       return !needle||hay.includes(needle);
     });
     root.replaceChildren();
     if(count)count.textContent=items.length+'개';
-    if(empty)empty.hidden=items.length>0;
+    if(empty){
+      empty.hidden=items.length>0;
+      empty.textContent=state.galleryScope==='mine'?'내가 저장한 디자인이 없습니다.':'공유된 디자인이 없습니다.';
+    }
     items.forEach(item=>{
       const card=document.createElement('button');
-      card.type='button';card.className='gallery-card';
+      card.type='button';card.className='gallery-card'+(item.isOwner?' mine':'');
       const imageWrap=document.createElement('span');imageWrap.className='gallery-card-image';
-      if(item.imageUrl){
-        const image=document.createElement('img');image.loading='lazy';image.alt=(item.title||'저장된 표지')+' 미리보기';image.src=item.imageUrl;
+      const cardImageUrl=state.galleryScope==='mine'&&item.isOwner?(item.ownerImageUrl||item.imageUrl):item.imageUrl;
+      if(cardImageUrl){
+        const image=document.createElement('img');image.loading='lazy';image.alt=galleryDisplayTitle(item,state.galleryScope==='mine')+' 미리보기';image.src=cardImageUrl;
         imageWrap.appendChild(image);
       }else{
         const missing=document.createElement('span');missing.className='gallery-card-no-image';missing.textContent='미리보기 없음';
         imageWrap.appendChild(missing);
       }
       const copy=document.createElement('span');copy.className='gallery-card-copy';
-      const title=document.createElement('strong');title.textContent=item.title||'제목 없는 표지';
+      const title=document.createElement('strong');title.textContent=galleryDisplayTitle(item,state.galleryScope==='mine'&&item.isOwner);
       const prompt=document.createElement('p');prompt.textContent=item.prompt||'요청문구 없음';
       const meta=document.createElement('span');meta.textContent=[item.presetName||'',galleryDateText(item.createdAt)].filter(Boolean).join(' · ');
-      copy.append(title,prompt,meta);card.append(imageWrap,copy);
+      copy.append(title,prompt,meta);
+      if(item.isOwner){
+        const badge=document.createElement('span');badge.className='gallery-card-badge';badge.textContent='내 디자인';copy.appendChild(badge);
+      }
+      card.append(imageWrap,copy);
       card.addEventListener('click',()=>openGalleryDetail(item));
       root.appendChild(card);
     });
+  }
+
+  async function galleryDownloadUrl(path){
+    if(!window.storage||!path)return '';
+    try{return await window.storage.ref(path).getDownloadURL();}
+    catch(_){return '';}
   }
 
   async function loadGallery(){
     const user=window.auth?.currentUser;
     if(!user||!window.db)throw new Error('디자인 보관함 데이터 연결을 사용할 수 없습니다.');
     try{await user.getIdToken();}catch(_){}
-    let snapshot;
-    try{
-      snapshot=await window.db.collection('users').doc(user.uid).collection('ai_design_gallery')
-        .orderBy('createdAt','desc').limit(100).get();
-    }catch(error){
-      if(!['failed-precondition','unimplemented'].includes(String(error?.code||'')))throw error;
-      snapshot=await window.db.collection('users').doc(user.uid).collection('ai_design_gallery').limit(100).get();
-    }
-    const items=await Promise.all(snapshot.docs.map(async doc=>{
-      const item={id:doc.id,...doc.data(),imageUrl:'',previewError:''};
-      if(window.storage&&item.imagePath){
-        try{item.imageUrl=await window.storage.ref(item.imagePath).getDownloadURL();}
-        catch(error){item.previewError=String(error?.code||error?.message||'preview-unavailable');}
+
+    const fetchCollection=async ref=>{
+      try{return await ref.orderBy('createdAt','desc').limit(200).get();}
+      catch(error){
+        if(!['failed-precondition','unimplemented'].includes(String(error?.code||'')))throw error;
+        return ref.limit(200).get();
       }
-      return item;
+    };
+
+    const [publicSnapshot,privateSnapshot]=await Promise.all([
+      fetchCollection(window.db.collection('ai_design_public_gallery')),
+      fetchCollection(window.db.collection('users').doc(user.uid).collection('ai_design_gallery'))
+    ]);
+    const privateMap=new Map(privateSnapshot.docs.map(doc=>[doc.id,{id:doc.id,...doc.data()}]));
+    const publicItems=publicSnapshot.docs.map(doc=>{
+      const data={id:doc.id,...doc.data()};
+      const own=data.ownerUid===user.uid;
+      const privateData=own?privateMap.get(doc.id):null;
+      if(own)privateMap.delete(doc.id);
+      return {
+        ...data,
+        visibility:'public',
+        isOwner:own,
+        privateTitle:privateData?.title||'',
+        stateJson:privateData?.stateJson||'',
+        backgroundPath:privateData?.backgroundPath||'',
+        ownerImagePath:privateData?.imagePath||'',
+        imageUrl:'',
+        ownerImageUrl:''
+      };
+    });
+    const privateItems=[...privateMap.values()].map(privateData=>({
+      ...privateData,
+      visibility:'private',
+      isOwner:true,
+      privateTitle:privateData.title||'',
+      ownerImagePath:privateData.imagePath||'',
+      imageUrl:'',
+      ownerImageUrl:''
     }));
+    await Promise.all(publicItems.map(async item=>{
+      item.imageUrl=await galleryDownloadUrl(item.imagePath);
+      if(item.isOwner&&item.ownerImagePath)item.ownerImageUrl=await galleryDownloadUrl(item.ownerImagePath);
+    }));
+    await Promise.all(privateItems.map(async item=>{
+      item.ownerImageUrl=await galleryDownloadUrl(item.ownerImagePath);
+      item.imageUrl=item.ownerImageUrl;
+    }));
+    const items=[...publicItems,...privateItems];
+
     items.sort((a,b)=>{
       const at=a.createdAt?.toMillis?.()||0,bt=b.createdAt?.toMillis?.()||0;
       return bt-at;
@@ -2072,17 +2231,106 @@
 
   async function openGallery(forceReload=false){
     if($('galleryModal'))$('galleryModal').hidden=false;
+    syncGalleryScopeUi();
     if(!state.galleryItems.length||forceReload){
       if($('galleryGrid'))$('galleryGrid').replaceChildren();
       if($('galleryEmpty')){$('galleryEmpty').hidden=false;$('galleryEmpty').textContent='보관함을 불러오는 중입니다.';}
       try{
         await loadGallery();
-        if($('galleryEmpty'))$('galleryEmpty').textContent='저장한 디자인이 없습니다.';
       }catch(error){
         if($('galleryEmpty')){$('galleryEmpty').hidden=false;$('galleryEmpty').textContent='보관함을 불러오지 못했습니다.';}
         setStatus('디자인 보관함 불러오기 실패',error.message||'잠시 후 다시 시도해 주세요.','error',galleryErrorDebug(error,'보관함 목록 조회'));
       }
     }else renderGallery($('gallerySearch')?.value||'');
+  }
+
+  function applySharedGallerySettings(item){
+    if(!item)return;
+    const preset=PRESET_MIGRATION[item.presetId]||item.presetId;
+    if(preset&&PRESETS[preset])state.preset=preset;
+    state.promptLanguage=item.promptLanguage==='en'?'en':'ko';
+    const values={
+      visualMode:item.visualMode,
+      colorIntensity:item.colorIntensity,
+      designMood:item.designMood,
+      primaryColor:normalizeColor(item.primaryColor),
+      textColor:normalizeColor(item.textColor),
+      stylePrompt:item.prompt
+    };
+    Object.entries(values).forEach(([id,value])=>{
+      const node=$(id);if(node&&value)node.value=value;
+    });
+    selectPreset(state.preset,false);
+    syncPromptLanguageUi(false);
+    syncGlobalCmykFromHex('primaryColor');
+    syncGlobalCmykFromHex('textColor');
+    saveLocal();updateProgress();scheduleRender();
+    closeGalleryDetail();closeGallery();
+    jumpToSection('styleSection');
+    setStatus('디자인 설정을 불러왔습니다.','현재 규격과 작업 문구는 유지했습니다. AI 배경 생성을 누르면 가져온 요청 설정으로 새 디자인을 만들 수 있습니다.','ok');
+  }
+
+  function syncLoadedGalleryStateUi(){
+    setupPresetCards();
+    qa('input[name="coverMode"]').forEach(input=>{input.checked=input.value===state.coverMode;});
+    syncCoverMode();
+    syncSizeMode();
+    syncGenerationQuality();
+    syncSpineTitle();
+    renderCustomFields();
+    syncPromptLanguageUi(false);
+    syncGlobalCmykFromHex('primaryColor');
+    syncGlobalCmykFromHex('textColor');
+    clearSelection();
+    syncTextEditUi();
+    updateGeometry();
+    updateProgress();
+    scheduleRender();
+  }
+
+  async function loadOwnGalleryWork(item){
+    if(!item?.isOwner)return;
+    let privateData=item;
+    if(!privateData.stateJson){
+      const user=window.auth?.currentUser;
+      if(!user||!window.db)return;
+      const snap=await window.db.collection('users').doc(user.uid).collection('ai_design_gallery').doc(item.id).get();
+      if(snap.exists)privateData={...item,...snap.data()};
+    }
+    if(!privateData.stateJson){
+      applySharedGallerySettings(item);
+      setStatus('이전 저장 기록의 디자인 설정을 불러왔습니다.','이 디자인은 전체 편집 설정 저장 기능이 추가되기 전에 저장되어 요청 설정만 적용했습니다.','ok');
+      return;
+    }
+    try{
+      const restored=JSON.parse(privateData.stateJson);
+      localStorage.setItem(STORAGE_KEY,JSON.stringify(restored));
+      state.textLayouts={};state.shapes=[];state.groups={};state.customFields=[];
+      loadLocal();
+      state.background=null;state.backgroundUrl='';state.backgroundSource='';state.generatedSpecKey='';
+      state.logo=null;
+      if($('logoInput'))$('logoInput').value='';
+      if($('logoName'))$('logoName').textContent='없음';
+      if($('clearLogo'))$('clearLogo').hidden=true;
+      syncLoadedGalleryStateUi();
+
+      if(privateData.backgroundPath&&window.storage){
+        const url=await galleryDownloadUrl(privateData.backgroundPath);
+        if(url){
+          const image=new Image();image.src=url;await waitForImage(image);
+          state.background=image;state.backgroundUrl=url;state.backgroundSource='gallery';state.generatedSpecKey=specKey(currentSpec());
+          state.lastGeneratedPrompt=String($('stylePrompt')?.value||presetPrompt()).trim();
+          state.lastGeneratedPresetName=PRESETS[state.preset]?.name||privateData.presetName||'';
+          if($('backgroundName'))$('backgroundName').textContent='보관함 저장 배경';
+          if($('clearBackground'))$('clearBackground').hidden=false;
+        }
+      }
+      syncLoadedGalleryStateUi();
+      closeGalleryDetail();closeGallery();
+      setStatus('내 작업 설정을 불러왔습니다.','저장 당시 편집 설정과 AI 배경을 복원했습니다. 로고 원본 파일은 별도로 다시 불러와 주세요.','ok');
+    }catch(error){
+      setStatus('내 작업 불러오기 실패',error.message||'저장된 작업 설정을 읽지 못했습니다.','error',galleryErrorDebug(error,'내 작업 설정 복원'));
+    }
   }
 
   function resetAll(){
@@ -2203,6 +2451,9 @@
     $('saveGalleryBtn')?.addEventListener('click',saveCurrentDesignToGallery);
     $('galleryRefreshBtn')?.addEventListener('click',()=>openGallery(true));
     $('gallerySearch')?.addEventListener('input',event=>renderGallery(event.target.value));
+    qa('[data-gallery-scope]').forEach(button=>button.addEventListener('click',()=>setGalleryScope(button.dataset.galleryScope)));
+    $('galleryUseSettingsBtn')?.addEventListener('click',()=>applySharedGallerySettings(state.gallerySelectedItem));
+    $('galleryLoadOwnBtn')?.addEventListener('click',()=>loadOwnGalleryWork(state.gallerySelectedItem));
     qa('[data-gallery-close]').forEach(node=>node.addEventListener('click',closeGallery));
     qa('[data-gallery-detail-close]').forEach(node=>node.addEventListener('click',closeGalleryDetail));
     $('exportBtn')?.addEventListener('click',exportDesign);

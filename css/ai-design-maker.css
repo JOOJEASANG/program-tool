@@ -155,3 +155,25 @@ html[data-cover-mode="frontBack"] #spineFields{display:none!important}
 
 @media(max-width:900px){.gallery-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.gallery-detail{grid-template-columns:1fr}.gallery-detail-image-wrap{min-height:320px;max-height:50vh}.gallery-detail-copy{max-height:38vh}}
 @media(max-width:520px){.preset-size-row{grid-template-columns:1fr 1fr}.gallery-modal,.gallery-detail-modal{padding:8px}.gallery-grid{grid-template-columns:1fr 1fr;gap:8px;padding:10px}.gallery-board-head{padding:14px}.gallery-search-row{padding:10px}.gallery-detail-copy{padding:16px}}
+
+
+/* Shared AI design gallery */
+.gallery-scope-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:0 0 12px}
+.gallery-scope-row>small{color:#64748b;font-size:12px;line-height:1.45;text-align:right}
+.gallery-scope-tabs{display:inline-flex;align-items:center;gap:4px;padding:4px;border:1px solid #dbe4ef;border-radius:12px;background:#f8fafc}
+.gallery-scope-tab{min-height:36px;padding:0 15px;border:0;border-radius:9px;background:transparent;color:#64748b;font:800 13px/1 Pretendard,sans-serif;cursor:pointer}
+.gallery-scope-tab:hover{background:#eef2ff;color:#334155}
+.gallery-scope-tab.active{background:#fff;color:#312e81;box-shadow:0 1px 5px rgba(15,23,42,.12)}
+.gallery-card.mine{outline:1px solid rgba(79,70,229,.18)}
+.gallery-card-badge{display:inline-flex;align-items:center;width:max-content;margin-top:3px;padding:3px 7px;border-radius:999px;background:#eef2ff;color:#4338ca;font-size:10px;font-weight:800}
+.gallery-detail-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+.gallery-detail-actions .primary-button,.gallery-detail-actions .secondary-button{min-height:42px}
+.gallery-detail-notice{display:block;margin-top:9px;color:#64748b;font-size:12px;line-height:1.55}
+@media(max-width:760px){
+  .gallery-scope-row{align-items:flex-start;flex-direction:column}
+  .gallery-scope-row>small{text-align:left}
+  .gallery-scope-tabs{width:100%}
+  .gallery-scope-tab{flex:1}
+  .gallery-detail-actions{flex-direction:column}
+  .gallery-detail-actions button{width:100%}
+}

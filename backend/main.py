@@ -261,14 +261,6 @@ def _normalize_document_paths(
     Every saved-session path is constrained to the authenticated owner's persistent
     session prefix and the session id stored in the same immutable document.
     """
-    raw_paths = data.get(paths_field)
-    if isinstance(raw_paths, list):
-        paths = [str(path).strip() for path in raw_paths if str(path).strip()]
-    elif raw_paths:
-        paths = [str(raw_paths).strip()]
-    else:
-        paths = []
-
     if collection_id == "ai_design_gallery":
         design_id = str(data.get("id") or "").strip()
         if not uid or not AI_GALLERY_ID_PATTERN.fullmatch(design_id):
@@ -279,10 +271,19 @@ def _normalize_document_paths(
             )
             return []
 
-        expected_path = f"ai_design_gallery/{uid}/{design_id}/preview.jpg"
+        expected_paths = {
+            f"ai_design_gallery/{uid}/{design_id}/preview.jpg",
+            f"ai_design_gallery/{uid}/{design_id}/background.jpg",
+            f"ai_design_public_gallery/{uid}/{design_id}/preview.jpg",
+        }
+        paths = [
+            str(data.get(field) or "").strip()
+            for field in ("imagePath", "backgroundPath", "publicPreviewPath")
+            if str(data.get(field) or "").strip()
+        ]
         safe_paths: list[str] = []
         for path in paths:
-            if path == expected_path:
+            if path in expected_paths:
                 safe_paths.append(path)
                 continue
             logger.warning(
@@ -292,6 +293,14 @@ def _normalize_document_paths(
                 path,
             )
         return safe_paths
+
+    raw_paths = data.get(paths_field)
+    if isinstance(raw_paths, list):
+        paths = [str(path).strip() for path in raw_paths if str(path).strip()]
+    elif raw_paths:
+        paths = [str(raw_paths).strip()]
+    else:
+        paths = []
 
     if collection_id not in PDF_SESSION_COLLECTIONS:
         return paths
@@ -368,7 +377,13 @@ def _trim_firestore_group(db, bucket, collection_id: str, limit: int, timestamp_
                 collection_id=collection_id,
             )
             try:
-                snapshot.reference.delete()
+                if collection_id == "ai_design_gallery":
+                    batch = db.batch()
+                    batch.delete(snapshot.reference)
+                    batch.delete(db.collection("ai_design_public_gallery").document(snapshot.id))
+                    batch.commit()
+                else:
+                    snapshot.reference.delete()
             except Exception:
                 referenced.update(paths)
                 logger.warning("Persistent quota document cleanup failed path=%s", snapshot.reference.path, exc_info=True)
@@ -378,6 +393,75 @@ def _trim_firestore_group(db, bucket, collection_id: str, limit: int, timestamp_
                 "Persistent quota trimmed collection=%s uid=%s document=%s",
                 collection_id,
                 uid,
+                snapshot.id,
+            )
+    return referenced
+
+
+def _normalize_public_ai_gallery_paths(data: dict, design_id: str) -> list[str]:
+    """Return the one public preview path allowed for a shared gallery record."""
+    owner_uid = str(data.get("ownerUid") or "").strip()
+    document_id = str(design_id or "").strip()
+    if not owner_uid or not AI_GALLERY_ID_PATTERN.fullmatch(document_id):
+        logger.warning(
+            "Ignoring public AI gallery path with invalid ownership metadata owner=%s design=%s",
+            owner_uid,
+            document_id,
+        )
+        return []
+
+    path = str(data.get("imagePath") or "").strip()
+    expected_path = f"ai_design_public_gallery/{owner_uid}/{document_id}/preview.jpg"
+    if path == expected_path:
+        return [path]
+    if path:
+        logger.warning(
+            "Ignoring unsafe public AI gallery path owner=%s design=%s path=%s",
+            owner_uid,
+            document_id,
+            path,
+        )
+    return []
+
+
+def _trim_public_ai_design_gallery(db, bucket, limit: int) -> set[str]:
+    """Bound shared gallery records per owner and return survivor preview paths."""
+    grouped = defaultdict(list)
+    for snapshot in db.collection("ai_design_public_gallery").stream():
+        data = snapshot.to_dict() or {}
+        owner_uid = str(data.get("ownerUid") or "").strip()
+        if not owner_uid:
+            logger.warning("Public AI gallery record has no owner path=%s", snapshot.reference.path)
+            continue
+        grouped[owner_uid].append(snapshot)
+
+    referenced: set[str] = set()
+    for owner_uid, snapshots in grouped.items():
+        ordered = sorted(
+            snapshots,
+            key=lambda item: _safe_time((item.to_dict() or {}).get("createdAt")),
+            reverse=True,
+        )
+        for snapshot in ordered[:limit]:
+            referenced.update(
+                _normalize_public_ai_gallery_paths(snapshot.to_dict() or {}, snapshot.id)
+            )
+        for snapshot in ordered[limit:]:
+            paths = _normalize_public_ai_gallery_paths(snapshot.to_dict() or {}, snapshot.id)
+            try:
+                snapshot.reference.delete()
+            except Exception:
+                referenced.update(paths)
+                logger.warning(
+                    "Public AI gallery quota cleanup failed path=%s",
+                    snapshot.reference.path,
+                    exc_info=True,
+                )
+                continue
+            _delete_blob_paths(bucket, paths)
+            logger.info(
+                "Public AI gallery quota trimmed owner=%s document=%s",
+                owner_uid,
                 snapshot.id,
             )
     return referenced
@@ -491,8 +575,14 @@ def cleanup_persistent_user_storage(event: scheduler_fn.ScheduledEvent) -> None:
         "createdAt",
         "imagePath",
     )
+    public_gallery_paths = _trim_public_ai_design_gallery(
+        db,
+        bucket,
+        MAX_SAVED_AI_DESIGNS,
+    )
 
     _delete_old_orphans(bucket, "pdf_sessions/", session_paths, cutoff)
     _delete_old_orphans(bucket, "print_checker_sessions/", print_checker_session_paths, cutoff)
     _delete_old_orphans(bucket, "design_projects/", design_paths, cutoff)
     _delete_old_orphans(bucket, "ai_design_gallery/", gallery_paths, cutoff)
+    _delete_old_orphans(bucket, "ai_design_public_gallery/", public_gallery_paths, cutoff)
