@@ -2272,6 +2272,7 @@
 
   function syncLoadedGalleryStateUi(){
     setupPresetCards();
+    qa('input[name="coverMode"]').forEach(input=>{input.checked=input.value===state.coverMode;});
     syncCoverMode();
     syncSizeMode();
     syncGenerationQuality();
