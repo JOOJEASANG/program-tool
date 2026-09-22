@@ -155,6 +155,8 @@ def test_admin_ai_cost_dashboard_contract():
     assert "getIdToken()" in client
     assert "OpenAI Costs API" in html
     assert "@require_admin" in router
+    assert "_PUBLIC_OPENAI_ADMIN_ERRORS" in router
+    assert '"detail": str(exc)' not in router
     assert "def require_admin" in auth
     assert 'decoded.get("admin") is not True' in auth
     assert preflight.count("record_image_generation(result)") == 2
