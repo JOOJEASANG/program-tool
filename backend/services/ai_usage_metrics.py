@@ -63,8 +63,10 @@ def record_image_generation(result: dict[str, Any], *, now: datetime | None = No
         logger.warning("AI image usage telemetry write failed", exc_info=True)
 
 
-def _month_dates(today: date) -> list[date]:
-    cursor = today.replace(day=1)
+def _report_dates(today: date) -> list[date]:
+    month_start = today.replace(day=1)
+    week_start = today - timedelta(days=6)
+    cursor = min(month_start, week_start)
     dates: list[date] = []
     while cursor <= today:
         dates.append(cursor)
@@ -74,7 +76,7 @@ def _month_dates(today: date) -> list[date]:
 
 def load_program_studio_image_summary(*, now: datetime | None = None) -> dict[str, Any]:
     today = _local_day(now)
-    dates = _month_dates(today)
+    dates = _report_dates(today)
     db = firestore.client()
     references = [db.collection(COLLECTION).document(day.isoformat()) for day in dates]
     snapshots = list(db.get_all(references)) if references else []
@@ -93,13 +95,14 @@ def load_program_studio_image_summary(*, now: datetime | None = None) -> dict[st
         requests = _safe_int(state.get("image_requests"))
         standard = _safe_int(state.get("standard_requests"))
         high = _safe_int(state.get("high_requests"))
-        month_requests += requests
-        month_standard += standard
-        month_high += high
-        raw_models = state.get("model_counts")
-        if isinstance(raw_models, dict):
-            for model, count in raw_models.items():
-                model_counts[str(model)] += _safe_int(count)
+        if day.year == today.year and day.month == today.month:
+            month_requests += requests
+            month_standard += standard
+            month_high += high
+            raw_models = state.get("model_counts")
+            if isinstance(raw_models, dict):
+                for model, count in raw_models.items():
+                    model_counts[str(model)] += _safe_int(count)
         daily.append(
             {
                 "date": day.isoformat(),
@@ -116,7 +119,7 @@ def load_program_studio_image_summary(*, now: datetime | None = None) -> dict[st
         if date.fromisoformat(item["date"]) >= week_start
     )
     return {
-        "tracked_from": dates[0].isoformat() if dates else today.isoformat(),
+        "tracked_from": "2026-09-22",
         "today_requests": daily[-1]["requests"] if daily else 0,
         "last_7_days_requests": last_7_days,
         "month_requests": month_requests,
