@@ -234,31 +234,32 @@
               <small class="field-help" id="promptLanguageHint">한글 모드 · 프리셋 설명도 한글로 입력됩니다.</small>
             </div>
 
-            <div class="manual-assets-block">
-              <div class="manual-assets-head">
-                <strong>직접 파일 업로드</strong>
-                <small>AI 디자인 메뉴 하단 · 선택</small>
-              </div>
-              <div class="manual-assets-section">
-                <div class="subsection-title">직접 만든 표지 배경</div>
-                <div class="background-row">
-                  <label class="file-button">표지 이미지 불러오기<input id="backgroundInput" type="file" accept="image/png,image/jpeg,image/webp"></label>
-                  <span id="backgroundName">없음</span>
-                  <button id="clearBackground" type="button" class="text-button" hidden>삭제</button>
-                </div>
-                <div class="hint-card" id="backgroundModeHint">직접 만든 전체 펼침 표지를 불러오면 바깥 적색선 전체 영역을 꽉 채워 배치합니다. 그 위에 문구를 자유롭게 편집할 수 있습니다.</div>
-              </div>
-              <div class="manual-assets-section">
-                <div class="subsection-title">로고 파일</div>
-                <div class="logo-row">
-                  <label class="file-button">로고 불러오기<input id="logoInput" type="file" accept="image/png,image/jpeg,image/webp"></label>
-                  <span id="logoName">없음</span>
-                  <button id="clearLogo" type="button" class="text-button" hidden>삭제</button>
-                </div>
-              </div>
-            </div>
           </div>
         </details>
+
+        <section class="manual-assets-block" aria-labelledby="manualAssetsTitle">
+          <div class="manual-assets-head">
+            <strong id="manualAssetsTitle">직접 파일 업로드</strong>
+            <small>별도 업로드 · 선택</small>
+          </div>
+          <div class="manual-assets-section">
+            <div class="subsection-title">직접 만든 표지 배경</div>
+            <div class="background-row">
+              <label class="file-button">표지 이미지 불러오기<input id="backgroundInput" type="file" accept="image/png,image/jpeg,image/webp"></label>
+              <span id="backgroundName">없음</span>
+              <button id="clearBackground" type="button" class="text-button" hidden>삭제</button>
+            </div>
+            <div class="hint-card" id="backgroundModeHint">직접 만든 전체 펼침 표지를 불러오면 바깥 적색선 전체 영역을 꽉 채워 배치합니다. 그 위에 문구를 자유롭게 편집할 수 있습니다.</div>
+          </div>
+          <div class="manual-assets-section">
+            <div class="subsection-title">로고 파일</div>
+            <div class="logo-row">
+              <label class="file-button">로고 불러오기<input id="logoInput" type="file" accept="image/png,image/jpeg,image/webp"></label>
+              <span id="logoName">없음</span>
+              <button id="clearLogo" type="button" class="text-button" hidden>삭제</button>
+            </div>
+          </div>
+        </section>
 
         <div class="panel-actions">
           <button class="generate-button" id="generateBtn" type="button"><span>✦</span> AI 배경 생성</button>
