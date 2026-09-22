@@ -36,12 +36,25 @@ def test_design_review_no_longer_loads_ai_maker_runtime():
     assert 'id="safeZone" type="number" min="0" max="80" step="0.1" value="10"' in maker
     assert 'id="generateBtn"' in maker
     assert 'id="exportBtn"' in maker
-    assert "/js/ai-design-maker.js?v=20260922-2" in maker
+    assert "/js/ai-design-maker.js?v=20260922-3" in maker
 
 
 def test_ai_design_maker_has_easy_cover_workflow_and_diagnostics():
     page = (ROOT / "ai-design-maker/index.html").read_text(encoding="utf-8")
     source = (ROOT / "js/ai-design-maker.js").read_text(encoding="utf-8")
+    style = (ROOT / "css/ai-design-maker.css").read_text(encoding="utf-8")
+
+    assert '<details class="control-section" id="specSection">' in page
+    assert '<details class="control-section" id="copySection">' in page
+    assert '<details class="control-section" id="styleSection">' in page
+    assert '<details class="control-section" id="specSection" open>' not in page
+    assert '<details class="control-section" id="copySection" open>' not in page
+    assert '<details class="control-section" id="styleSection" open>' not in page
+    assert 'class="manual-assets-block"' in page
+    assert page.index('id="stylePrompt"') < page.index('class="manual-assets-block"')
+    assert page.index('id="backgroundInput"') < page.index('id="logoInput"')
+    assert 'width:32px;height:32px' in style
+    assert 'font-size:23px' in style
 
     for label in ("인쇄 규격", "표지 문구", "AI 디자인", "전체 펼침 미리보기", "AI 배경 생성", "300dpi 다운로드"):
         assert label in page
