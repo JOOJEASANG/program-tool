@@ -53,13 +53,19 @@ def _timeout_seconds() -> int:
     return max(5, min(60, value))
 
 
-def _month_window(now: datetime | None = None) -> tuple[datetime, datetime]:
+def _report_window(now: datetime | None = None) -> tuple[datetime, datetime, datetime]:
     current = now or datetime.now(timezone.utc)
     if current.tzinfo is None:
         current = current.replace(tzinfo=timezone.utc)
     local = current.astimezone(SEOUL)
-    start_local = local.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-    return start_local.astimezone(timezone.utc), current.astimezone(timezone.utc)
+    month_start_local = local.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    week_start_local = (local - timedelta(days=6)).replace(hour=0, minute=0, second=0, microsecond=0)
+    query_start_local = min(month_start_local, week_start_local)
+    return (
+        query_start_local.astimezone(timezone.utc),
+        month_start_local.astimezone(timezone.utc),
+        current.astimezone(timezone.utc),
+    )
 
 
 def _query_pairs(params: dict[str, Any]) -> list[tuple[str, str]]:
@@ -209,7 +215,31 @@ def summarize_cost_buckets(
         {"name": name, "amount": round(value, 8)}
         for name, value in sorted(line_items.items(), key=lambda pair: pair[1], reverse=True)
     ]
-    month_total = sum(daily.values())
+    month_daily = {
+        item: value
+        for item, value in daily.items()
+        if item.year == today.year and item.month == today.month
+    }
+    month_line_items: dict[str, float] = defaultdict(float)
+    for bucket in buckets:
+        bucket_day = _bucket_date(bucket)
+        if bucket_day is None or bucket_day.year != today.year or bucket_day.month != today.month:
+            continue
+        results = bucket.get("results")
+        if not isinstance(results, list):
+            continue
+        for result in results:
+            if not isinstance(result, dict):
+                continue
+            amount = result.get("amount")
+            if not isinstance(amount, dict):
+                continue
+            label = str(result.get("line_item") or "기타").strip() or "기타"
+            month_line_items[label] += _number(amount.get("value"))
+    ordered_lines = [
+        {"name": name, "amount": round(value, 8)}
+        for name, value in sorted(month_line_items.items(), key=lambda pair: pair[1], reverse=True)
+    ]
     return {
         "currency": currency,
         "today": round(daily.get(today, 0.0), 8),
@@ -217,8 +247,12 @@ def summarize_cost_buckets(
             sum(value for item, value in daily.items() if week_start <= item <= today),
             8,
         ),
-        "month_to_date": round(month_total, 8),
-        "daily": ordered_daily,
+        "month_to_date": round(sum(month_daily.values()), 8),
+        "daily": [
+            item for item in ordered_daily
+            if date.fromisoformat(item["date"]).year == today.year
+            and date.fromisoformat(item["date"]).month == today.month
+        ],
         "line_items": ordered_lines,
     }
 
@@ -254,14 +288,36 @@ def summarize_image_buckets(
             models[model]["requests"] += requests
             models[model]["images"] += images
 
+    month_requests = sum(
+        value for item, value in daily_requests.items()
+        if item.year == today.year and item.month == today.month
+    )
+    month_images = sum(
+        value for item, value in daily_images.items()
+        if item.year == today.year and item.month == today.month
+    )
+    month_models: dict[str, dict[str, int]] = defaultdict(lambda: {"requests": 0, "images": 0})
+    for bucket in buckets:
+        bucket_day = _bucket_date(bucket)
+        if bucket_day is None or bucket_day.year != today.year or bucket_day.month != today.month:
+            continue
+        results = bucket.get("results")
+        if not isinstance(results, list):
+            continue
+        for result in results:
+            if not isinstance(result, dict):
+                continue
+            model = str(result.get("model") or "미지정").strip() or "미지정"
+            month_models[model]["requests"] += _integer(result.get("num_model_requests"))
+            month_models[model]["images"] += _integer(result.get("images"))
     return {
         "today_requests": daily_requests.get(today, 0),
-        "month_requests": sum(daily_requests.values()),
-        "month_images": sum(daily_images.values()),
+        "month_requests": month_requests,
+        "month_images": month_images,
         "by_model": [
             {"model": model, **values}
             for model, values in sorted(
-                models.items(),
+                month_models.items(),
                 key=lambda pair: pair[1]["requests"],
                 reverse=True,
             )
@@ -270,7 +326,7 @@ def summarize_image_buckets(
 
 
 def fetch_openai_billing_summary(*, now: datetime | None = None) -> dict[str, Any]:
-    start, end = _month_window(now)
+    start, month_start, end = _report_window(now)
     project_id = _project_id()
     shared = {
         "start_time": int(start.timestamp()),
@@ -303,7 +359,7 @@ def fetch_openai_billing_summary(*, now: datetime | None = None) -> dict[str, An
         "scope": "project" if project_id else "organization",
         "scope_label": "Program Studio OpenAI 프로젝트" if project_id else "OpenAI 조직 전체",
         "period": {
-            "start": start.astimezone(SEOUL).date().isoformat(),
+            "start": month_start.astimezone(SEOUL).date().isoformat(),
             "end": current.date().isoformat(),
             "timezone": "Asia/Seoul",
         },
