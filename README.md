@@ -172,7 +172,7 @@ OPENAI_AI_IMAGE_QUALITY=high
 관리자 화면의 **AI 비용** 메뉴는 OpenAI의 `/organization/costs`와 `/organization/usage/images` 관리자 API를 서버에서 조회합니다. 실제 청구 집계는 USD로 표시하며, 브라우저에는 OpenAI 키를 노출하지 않습니다.
 
 - `OPENAI_ADMIN_KEY`: 실제 비용·조직 사용량 조회에 필요한 OpenAI Admin API 키입니다. 일반 프로젝트 API 키와 별도이며 서버 환경에만 설정합니다.
-- 운영 배포는 이 키가 없어도 정상 진행됩니다. Firebase Secret Manager에 `OPENAI_ADMIN_KEY`를 만든 뒤 GitHub Repository Variable `BIND_OPENAI_ADMIN_KEY=true`를 설정하면 다음 배포부터 관리자 실제 비용 조회가 활성화됩니다.
+- 운영 환경은 Firebase Secret Manager의 `OPENAI_ADMIN_KEY`를 함수에 바인딩합니다. Secret을 등록한 뒤 다음 운영 배포부터 관리자 실제 비용 조회가 활성화됩니다.
 - `OPENAI_PROJECT_ID`: Program Studio가 사용하는 OpenAI 프로젝트 ID입니다. 설정하면 비용과 이미지 사용량을 해당 프로젝트로 제한합니다.
 - `OPENAI_PROJECT_ID`를 설정하지 않으면 화면에 **OpenAI 조직 전체 비용**이라고 명확히 표시합니다.
 - OpenAI 비용 집계에는 짧은 반영 지연이 있을 수 있습니다.

@@ -223,4 +223,4 @@ def test_admin_ai_cost_dashboard_contract():
     assert '_openai_secrets = ["OPENAI_API_KEY"]' in router_init
     assert 'os.environ.get("BIND_OPENAI_ADMIN_KEY"' in router_init
     assert '_openai_secrets.append("OPENAI_ADMIN_KEY")' in router_init
-    assert 'BIND_OPENAI_ADMIN_KEY: ${{ vars.BIND_OPENAI_ADMIN_KEY }}' in deploy_workflow
+    assert 'BIND_OPENAI_ADMIN_KEY: "true"' in deploy_workflow
