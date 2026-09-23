@@ -163,9 +163,19 @@ AI 표지 제작은 서버의 OpenAI 키를 사용하며 브라우저에 키를 
 
 ```env
 OPENAI_API_KEY=
+OPENAI_ADMIN_KEY=
+OPENAI_PROJECT_ID=
 OPENAI_AI_IMAGE_MODEL=gpt-image-2
 OPENAI_AI_IMAGE_QUALITY=high
 ```
+
+관리자 화면의 **AI 비용** 메뉴는 OpenAI의 `/organization/costs`와 `/organization/usage/images` 관리자 API를 서버에서 조회합니다. 실제 청구 집계는 USD로 표시하며, 브라우저에는 OpenAI 키를 노출하지 않습니다.
+
+- `OPENAI_ADMIN_KEY`: 실제 비용·조직 사용량 조회에 필요한 OpenAI Admin API 키입니다. 일반 프로젝트 API 키와 별도이며 서버 환경에만 설정합니다.
+- `OPENAI_PROJECT_ID`: Program Studio가 사용하는 OpenAI 프로젝트 ID입니다. 설정하면 비용과 이미지 사용량을 해당 프로젝트로 제한합니다.
+- `OPENAI_PROJECT_ID`를 설정하지 않으면 화면에 **OpenAI 조직 전체 비용**이라고 명확히 표시합니다.
+- OpenAI 비용 집계에는 짧은 반영 지연이 있을 수 있습니다.
+- Program Studio는 성공한 AI 표지 배경 생성 횟수를 Firestore의 서버 전용 일별 집계로 별도 기록합니다. 내부 생성 횟수는 이 기능이 배포되는 2026-09-22 이후 성공 생성부터 누적되며, 운영 분석용으로 OpenAI의 실제 청구 금액을 대체하지 않습니다.
 
 ## 운영 보안
 

@@ -8,6 +8,7 @@ from flask import jsonify, request
 from services.ai_cover_image import AiCoverImageError, generate_cover_image
 from services.ai_design_layout import AiDesignError, generate_layout
 from services.ai_usage_guard import AiUsageGuardError, guard_ai_usage
+from services.ai_usage_metrics import record_image_generation
 from utils.auth import require_auth
 from utils.storage import get_request_id
 
@@ -113,6 +114,7 @@ def install(preflight_module) -> None:
         try:
             with guard_ai_usage(uid, "image"):
                 result = generate_cover_image(payload, uid=uid)
+            record_image_generation(result)
             response = jsonify(result)
             response.headers["X-Request-ID"] = get_request_id()
             return response
@@ -137,6 +139,7 @@ def install(preflight_module) -> None:
         try:
             with guard_ai_usage(uid, "image"):
                 result = generate_cover_image(payload, uid=uid)
+            record_image_generation(result)
             response = jsonify(result)
             response.headers["X-Request-ID"] = get_request_id()
             return response

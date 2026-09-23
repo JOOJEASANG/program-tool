@@ -24,6 +24,7 @@ from werkzeug.exceptions import InternalServerError, MethodNotAllowed, NotFound,
 import routers.pdf as pdf_router
 import routers.pdf_utility as pdf_utility_router
 import routers.preflight as preflight_router
+from routers.admin_ai_usage import admin_ai_usage_bp
 from routers.pdf import pdf_bp
 from routers.pdf_large_security import pdf_large_security_bp
 from routers.pdf_tools import pdf_tools_bp
@@ -82,6 +83,7 @@ pdf_utility_router.BACKGROUND_DPI = 160
 # Large PDFs use Firebase Storage. Direct multipart requests remain below the
 # Cloud Functions request/response quota with a small boundary allowance.
 flask_app.config["MAX_CONTENT_LENGTH"] = 25 * MIB
+flask_app.register_blueprint(admin_ai_usage_bp, url_prefix="/api/admin")
 flask_app.register_blueprint(pdf_bp, url_prefix="/api/pdf")
 flask_app.register_blueprint(pdf_tools_bp, url_prefix="/api/pdf-tools")
 flask_app.register_blueprint(pdf_utility_bp, url_prefix="/api/pdf-utility")
