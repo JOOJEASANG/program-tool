@@ -1,12 +1,16 @@
 """Router package initialization."""
 
+import os
+
 from firebase_functions import options as _function_options
 
-# AI generation and administrator billing read their OpenAI credentials only from
-# Cloud Secret Manager. The backend is deployed as one shared HTTP API function,
-# so both secrets must be bound to that function and are never shipped to the
-# browser or committed to source control.
-_function_options.set_global_options(secrets=["OPENAI_API_KEY", "OPENAI_ADMIN_KEY"])
+# AI generation reads its OpenAI credential from Cloud Secret Manager. The
+# administrator billing key is optional so a missing billing integration can
+# never block deployment of the rest of Program Studio.
+_openai_secrets = ["OPENAI_API_KEY"]
+if os.environ.get("BIND_OPENAI_ADMIN_KEY", "").strip().lower() in {"1", "true", "yes", "on"}:
+    _openai_secrets.append("OPENAI_ADMIN_KEY")
+_function_options.set_global_options(secrets=_openai_secrets)
 
 # Importing the PDF utility through this package gives us stable extension hooks
 # while keeping the canonical public blueprint and shared limits in pdf_utility.py.
