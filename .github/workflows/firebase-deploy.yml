@@ -67,6 +67,7 @@ jobs:
     env:
       WIF_PROVIDER: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
       WIF_SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+      BIND_OPENAI_ADMIN_KEY: ${{ vars.BIND_OPENAI_ADMIN_KEY }}
     steps:
       - name: 코드 체크아웃
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
