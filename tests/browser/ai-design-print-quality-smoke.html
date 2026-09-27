@@ -4,7 +4,9 @@
   const assert=(ok,message)=>{if(!ok)throw new Error(message);};
   const frame=document.createElement('iframe');document.body.appendChild(frame);
   const html=await(await fetch('/ai-design-maker/index.html')).text();
-  frame.srcdoc=html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,'').replace(/<link[^>]+https:[^>]+>/gi,'');
+  const parsed=new DOMParser().parseFromString(html,'text/html');
+  parsed.querySelectorAll('script,link[href^="https:"]').forEach(node=>node.remove());
+  frame.srcdoc='<!doctype html>'+parsed.documentElement.outerHTML;
   await new Promise(resolve=>frame.onload=resolve);
   const w=frame.contentWindow;
   const source=await(await fetch('/js/ai-design-maker.js')).text();
