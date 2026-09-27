@@ -318,10 +318,11 @@
           <div class="inspector-export-row">
             <select class="export-format" id="exportFormat" aria-label="완성 파일 형식">
               <option value="png">PNG</option>
-              <option value="pdf">PDF</option>
+              <option value="pdf">벡터 PDF (Pretendard)</option><option value="pdf-raster">300dpi 이미지 PDF (모든 글꼴)</option>
             </select>
             <button class="secondary-button compact inspector-export-button" id="exportBtn" type="button" disabled>300dpi 다운로드</button>
           </div>
+            <p id="resolutionInfo" role="status" style="font-size:11px;line-height:1.5;color:#475569">출력 색상: RGB</p>
         </div>
         <div class="element-toolbox" aria-label="편집 요소 추가">
           <div class="element-toolbox-head"><span>ELEMENTS</span><strong>요소 추가</strong></div>
@@ -526,6 +527,7 @@
   <script defer src="/js/firebase-config.js"></script>
   <script defer src="/js/program-manuals/home-modal.js?v=20260918-1"></script>
   <script defer src="/js/program-sidebar-actions.js?v=20260918-2"></script>
-  <script defer src="/js/ai-design-maker.js?v=20260922-3"></script>
+  <script defer src="/js/ai-design-print-export.js?v=20260927-1"></script>
+  <script defer src="/js/ai-design-maker.js?v=20260927-1"></script>
 </body>
 </html>

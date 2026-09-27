@@ -120,3 +120,27 @@ def test_image_route_returns_retry_after_without_calling_provider(monkeypatch):
         "request_id": "guard-test-123",
     }
     provider.assert_not_called()
+
+
+def test_global_caps_are_opt_in_and_invalid_configuration_fails_closed(monkeypatch):
+    from services.ai_usage_guard import _budget_limits
+    monkeypatch.delenv('AI_IMAGE_DAILY_LIMIT', raising=False)
+    monkeypatch.delenv('AI_IMAGE_MONTHLY_LIMIT', raising=False)
+    assert _budget_limits() == {}
+    monkeypatch.setenv('AI_IMAGE_DAILY_LIMIT', '100')
+    monkeypatch.setenv('AI_IMAGE_MONTHLY_LIMIT', '1000')
+    assert _budget_limits() == {'daily': 100, 'monthly': 1000}
+    monkeypatch.setenv('AI_IMAGE_DAILY_LIMIT', '-1')
+    with pytest.raises(AiUsageGuardError):
+        _budget_limits()
+
+
+def test_global_cap_last_slot_and_exhaustion():
+    from services.ai_usage_guard import _budget_update
+    assert _budget_update({'request_count': 9}, 10, NOW)['request_count'] == 10
+    with pytest.raises(AiUsageGuardError) as exc:
+        _budget_update({'request_count': 10}, 10, NOW)
+    assert exc.value.code == 'AI_SERVICE_BUDGET_EXHAUSTED'
+    assert exc.value.status_code == 429
+    with pytest.raises(AiUsageGuardError):
+        _budget_update({'request_count': 'corrupt'}, 10, NOW)

@@ -36,7 +36,7 @@ def test_design_review_no_longer_loads_ai_maker_runtime():
     assert 'id="safeZone" type="number" min="0" max="80" step="0.1" value="10"' in maker
     assert 'id="generateBtn"' in maker
     assert 'id="exportBtn"' in maker
-    assert "/js/ai-design-maker.js?v=20260922-3" in maker
+    assert "/js/ai-design-maker.js?v=20260927-1" in maker
 
 
 def test_ai_design_maker_has_easy_cover_workflow_and_diagnostics():
@@ -198,11 +198,11 @@ def test_ai_design_maker_exports_png_pdf_and_crop_marks():
 
     assert 'id="cropMarkToggle"' in page
     assert '<option value="png">PNG</option>' in page
-    assert '<option value="pdf">PDF</option>' in page
+    assert '<option value="pdf">벡터 PDF (Pretendard)</option>' in page
     assert "function drawCropMarks(" in source
     assert "if($('cropMarkToggle')?.checked)drawCropMarks" in source
     assert "async function exportPng()" in source
-    assert "async function exportPdf()" in source
+    assert "async function exportPdf(vector=true)" in source
     assert "function pdfFromJpeg(" in source
     assert "application/pdf" in source
     assert "exportDesign()" in source
@@ -481,7 +481,7 @@ def test_ai_design_gallery_saves_private_work_and_shares_safe_settings():
     assert "match /ai_design_gallery/{userId}/{designId}/{fileName}" in storage_rules
     assert "validAiDesignGalleryUpload" in storage_rules
 
-    assert 'for field in ("imagePath", "backgroundPath", "publicPreviewPath")' in backend_main
+    assert 'for field in ("imagePath", "backgroundPath", "logoPath", "publicPreviewPath")' in backend_main
     assert 'db.collection("ai_design_public_gallery").document(snapshot.id)' in backend_main
     assert "def _trim_public_ai_design_gallery(" in backend_main
     assert '_delete_old_orphans(bucket, "ai_design_public_gallery/", public_gallery_paths, cutoff)' in backend_main
@@ -557,7 +557,7 @@ def test_ai_design_maker_has_lightweight_cmyk_shape_editor():
     assert "const cmykToRgb =" in source
     assert "function applyColorChoice(group,hex)" in source
     assert "function createShape(type)" in source
-    assert "function drawShape(ctx,shape,scale)" in source
+    assert "function drawShape(ctx,shape,scale,minStroke=.7)" in source
     assert "strokeEnabled:type==='line'?true:item?.strokeEnabled===true" in source
     assert "shape.strokeEnabled=!event.target.checked" in source
     assert "shape.opacity=clamp(Number(event.target.value)/100,0,1,1)" in source

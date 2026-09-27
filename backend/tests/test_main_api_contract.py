@@ -217,3 +217,14 @@ def test_unhandled_api_error_is_json_and_does_not_leak_exception_text():
     }
     assert response.headers["X-Request-ID"] == "error-test-123"
     assert "sensitive internal failure" not in response.get_data(as_text=True)
+
+
+def test_gallery_cleanup_preserves_originals_but_rejects_cross_owner_paths():
+    data = {
+        'id': 'design_original01',
+        'backgroundPath': 'ai_design_gallery/owner-1/design_original01/background.original',
+        'logoPath': 'ai_design_gallery/owner-1/design_original01/logo.original',
+    }
+    assert main._normalize_document_paths(data, 'imagePath', uid='owner-1', collection_id='ai_design_gallery') == [data['backgroundPath'], data['logoPath']]
+    data['logoPath'] = 'ai_design_gallery/other-user/design_original01/logo.original'
+    assert main._normalize_document_paths(data, 'imagePath', uid='owner-1', collection_id='ai_design_gallery') == [data['backgroundPath']]

@@ -1166,9 +1166,9 @@
     const cx=x+w/2,cy=y+h/2;ctx.beginPath();ctx.moveTo(cx,y);ctx.lineTo(cx+w*.12,cy-h*.12);ctx.lineTo(x+w,cy);ctx.lineTo(cx+w*.12,cy+h*.12);ctx.lineTo(cx,y+h);ctx.lineTo(cx-w*.12,cy+h*.12);ctx.lineTo(x,cy);ctx.lineTo(cx-w*.12,cy-h*.12);ctx.closePath();
   }
   function drawDiamondPath(ctx,x,y,w,h){ctx.beginPath();ctx.moveTo(x+w/2,y);ctx.lineTo(x+w,y+h/2);ctx.lineTo(x+w/2,y+h);ctx.lineTo(x,y+h/2);ctx.closePath();}
-  function drawShape(ctx,shape,scale){
+  function drawShape(ctx,shape,scale,minStroke=.7){
     const x=shape.x*scale,y=shape.y*scale,w=shape.w*scale,h=shape.h*scale;
-    ctx.save();ctx.globalAlpha=shape.opacity;ctx.strokeStyle=cmykCss(shape.strokeCmyk);ctx.fillStyle=cmykCss(shape.fillCmyk);ctx.lineWidth=Math.max(.7,shape.strokeWidth*scale);
+    ctx.save();ctx.globalAlpha=shape.opacity;ctx.strokeStyle=cmykCss(shape.strokeCmyk);ctx.fillStyle=cmykCss(shape.fillCmyk);ctx.lineWidth=Math.max(minStroke,shape.strokeWidth*scale);
     if(shape.type==='line'){ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+w,y+h);ctx.stroke();}
     else{
       if(shape.type==='ellipse'||shape.type==='dot'){ctx.beginPath();ctx.ellipse(x+w/2,y+h/2,Math.abs(w/2),Math.abs(h/2),0,0,Math.PI*2);}
@@ -1301,6 +1301,7 @@
   }
 
   function renderPreview(){
+    updateResolutionInfo();
     const canvas=$('previewCanvas'),spec=currentSpec();if(!canvas)return;
     const fit=canvasFitSize(spec),dpr=Math.min(window.devicePixelRatio||1,2);
     canvas.style.width=fit.width+'px';canvas.style.height=fit.height+'px';canvas.width=Math.round(fit.width*dpr);canvas.height=Math.round(fit.height*dpr);
@@ -1873,23 +1874,29 @@
     return new Blob(parts,{type:'application/pdf'});
   }
 
-  async function exportPdf(){
+  async function exportPdf(vector=true){
     if(!state.background){setStatus('배경을 먼저 준비해 주세요.','AI 배경을 생성하거나 직접 만든 표지 이미지를 불러와야 PDF로 저장할 수 있습니다.','error');return;}
     const spec=currentSpec();
     if(state.generatedSpecKey!==specKey(spec)){setStatus('규격이 변경되었습니다.','현재 규격으로 AI 배경을 다시 생성하거나 직접 만든 표지 이미지를 다시 불러온 뒤 저장해 주세요.','error');return;}
     const button=$('exportBtn');button.disabled=true;
     const pdfModeText=spec.coverMode==='front'?'앞표지':spec.coverMode==='back'?'뒷표지':spec.coverMode==='frontBack'?'앞·뒤표지 동시 작업':'전체 펼침';
-    setStatus('인쇄용 PDF를 만들고 있습니다.','300dpi 디자인을 '+pdfModeText+' 실제 작업 크기의 1페이지 PDF로 만드는 중입니다.','busy');
+    setStatus('인쇄용 PDF를 만들고 있습니다.',vector?'원본 배경과 벡터 문구·도형을 실제 규격의 RGB PDF로 저장합니다.':'300dpi 디자인을 '+pdfModeText+' 실제 작업 크기의 RGB 이미지 PDF로 만드는 중입니다.','busy');
     try{
-      const {canvas,w,h}=await buildExportCanvas();
-      const jpegBlob=await new Promise((resolve,reject)=>canvas.toBlob(blob=>blob?resolve(blob):reject(new Error('PDF용 이미지 데이터를 만들지 못했습니다.')),'image/jpeg',.98));
-      const jpeg=new Uint8Array(await jpegBlob.arrayBuffer());
-      const pdf=pdfFromJpeg(jpeg,w,h,spec.workW*72/25.4,spec.workH*72/25.4),url=URL.createObjectURL(pdf),a=document.createElement('a');
+      let pdf;
+      if(vector){
+        const scale=72/25.4;
+        pdf=await window.ProgramStudioPrintExport.create({spec,background:state.background,logo:state.logo,logoRect:logoRect(spec,scale),shapes:state.shapes,drawShape,textItems:textLayout(spec,scale),wrappedLayout,drawCropMarks,cropMarks:Boolean($('cropMarkToggle')?.checked),textColor:$('textColor')?.value||'#ffffff'});
+      }else{
+        const {canvas,w,h}=await buildExportCanvas();
+        const jpegBlob=await new Promise((resolve,reject)=>canvas.toBlob(blob=>blob?resolve(blob):reject(new Error('PDF용 이미지 데이터를 만들지 못했습니다.')),'image/jpeg',.98));
+        pdf=pdfFromJpeg(new Uint8Array(await jpegBlob.arrayBuffer()),w,h,spec.workW*72/25.4,spec.workH*72/25.4);
+      }
+      const url=URL.createObjectURL(pdf),a=document.createElement('a');
       const baseName=spec.coverMode==='front'?'front-cover-'+spec.trimW+'x'+spec.trimH
         :spec.coverMode==='back'?'back-cover-'+spec.trimW+'x'+spec.trimH
         :spec.coverMode==='frontBack'?'front-back-covers-'+spec.trimW+'x'+spec.trimH
         :'cover-'+spec.trimW+'x'+spec.trimH+'-spine-'+spec.spine+'mm';
-      a.href=url;a.download=baseName+'-300dpi.pdf';a.click();setTimeout(()=>URL.revokeObjectURL(url),4000);
+      a.href=url;a.download=baseName+(vector?'-vector-rgb.pdf':'-300dpi-rgb.pdf');a.click();setTimeout(()=>URL.revokeObjectURL(url),4000);
       const savedText=spec.coverMode==='front'?'앞표지 실제 규격의 인쇄용 PDF로 저장했습니다.'
         :spec.coverMode==='back'?'뒷표지 실제 규격의 인쇄용 PDF로 저장했습니다.'
         :spec.coverMode==='frontBack'?'앞·뒤표지 동시 작업 규격의 인쇄용 PDF로 저장했습니다.'
@@ -1899,8 +1906,8 @@
     finally{button.disabled=false;}
   }
 
-  function exportDesign(){return $('exportFormat')?.value==='pdf'?exportPdf():exportPng();}
-  function syncExportButton(){if($('exportBtn'))$('exportBtn').textContent=$('exportFormat')?.value==='pdf'?'300dpi PDF 저장':'300dpi PNG 저장';}
+  function exportDesign(){const format=$('exportFormat')?.value;return format==='pdf'?exportPdf(true):format==='pdf-raster'?exportPdf(false):exportPng();}
+  function syncExportButton(){if($('exportBtn'))$('exportBtn').textContent=$('exportFormat')?.value==='pdf'?'벡터 PDF 저장':$('exportFormat')?.value==='pdf-raster'?'이미지 PDF 저장':'300dpi PNG 저장';}
 
   function galleryDateText(value){
     const date=value?.toDate?.()||null;
@@ -1939,18 +1946,26 @@
     ));
   }
 
+  async function originalImageBlob(image) {
+    if(!image?.src)throw new Error('원본 이미지가 없습니다.');
+    const response=await fetch(image.src);
+    if(!response.ok)throw new Error('원본 이미지를 읽지 못했습니다. 다시 불러와 주세요.');
+    const blob=await response.blob();
+    if(!/^image\/(png|jpeg|webp)$/.test(blob.type))throw new Error('원본은 PNG, JPEG, WEBP 형식이어야 합니다.');
+    if(blob.size>32*1024*1024)throw new Error('보관함 원본은 파일당 32MB까지 저장할 수 있습니다. 원본을 별도로 보관해 주세요.');
+    return blob;
+  }
+
   async function buildGalleryBackgroundBlob(){
-    if(!state.background)throw new Error('저장할 AI 배경이 없습니다.');
-    const spec=currentSpec(),maxEdge=2400;
-    const scale=Math.min(maxEdge/spec.workW,maxEdge/spec.workH);
-    const w=Math.max(480,Math.round(spec.workW*scale)),h=Math.max(480,Math.round(spec.workH*scale));
-    const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
-    const ctx=canvas.getContext('2d');
-    drawBackgroundImage(ctx,state.background,w,h);
-    return new Promise((resolve,reject)=>canvas.toBlob(
-      blob=>blob?resolve(blob):reject(new Error('보관함용 배경 이미지를 만들지 못했습니다.')),
-      'image/jpeg',.92
-    ));
+    return originalImageBlob(state.background);
+  }
+
+  function updateResolutionInfo(){
+    const node=$('resolutionInfo');if(!node)return;
+    if(!state.background){node.textContent='배경을 불러오면 실제 인쇄 해상도를 확인할 수 있습니다. 출력 색상: RGB';return;}
+    const spec=currentSpec(),image=state.background;
+    const dpi=Math.min(image.naturalWidth/spec.workW,image.naturalHeight/spec.workH)*25.4;
+    node.textContent='배경 원본 '+image.naturalWidth+'×'+image.naturalHeight+'px · 현재 규격 약 '+Math.round(dpi)+'dpi · 출력 색상: RGB'+(dpi<299.5?' · 300dpi로 저장해도 원본 세부 묘사가 증가하지 않습니다.':'');
   }
 
   async function saveCurrentDesignToGallery(){
@@ -1963,10 +1978,12 @@
     const sharedPrompt=String($('stylePrompt')?.value||presetPrompt()).trim().slice(0,5000);
     const designId='design_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8);
     const ownerPreviewPath='ai_design_gallery/'+user.uid+'/'+designId+'/preview.jpg';
-    const backgroundPath='ai_design_gallery/'+user.uid+'/'+designId+'/background.jpg';
+    const backgroundPath='ai_design_gallery/'+user.uid+'/'+designId+'/background.original';
+    const logoPath=state.logo?'ai_design_gallery/'+user.uid+'/'+designId+'/logo.original':'';
     const publicPreviewPath='ai_design_public_gallery/'+user.uid+'/'+designId+'/preview.jpg';
     const ownerPreviewRef=window.storage.ref(ownerPreviewPath);
     const backgroundRef=window.storage.ref(backgroundPath);
+    const logoRef=logoPath?window.storage.ref(logoPath):null;
     const publicPreviewRef=window.storage.ref(publicPreviewPath);
     const privateDocRef=window.db.collection('users').doc(user.uid).collection('ai_design_gallery').doc(designId);
     const publicDocRef=window.db.collection('ai_design_public_gallery').doc(designId);
@@ -1977,10 +1994,11 @@
     try{
       await user.getIdToken(true);
       stage='미리보기 생성';
-      const [ownerPreviewBlob,publicPreviewBlob,backgroundBlob]=await Promise.all([
+      const [ownerPreviewBlob,publicPreviewBlob,backgroundBlob,logoBlob]=await Promise.all([
         buildGalleryPreviewBlob(false),
         buildGalleryPreviewBlob(true),
-        buildGalleryBackgroundBlob()
+        buildGalleryBackgroundBlob(),
+        state.logo?originalImageBlob(state.logo):Promise.resolve(null)
       ]);
       const stateJson=JSON.stringify(serializableState());
       if(stateJson.length>450000)throw Object.assign(new Error('현재 작업 설정이 보관함 저장 한도를 초과했습니다.'),{code:'gallery/state-too-large'});
@@ -1994,10 +2012,15 @@
 
       stage='내 배경 업로드';
       await backgroundRef.put(backgroundBlob,{
-        contentType:'image/jpeg',
+        contentType:backgroundBlob.type,
         customMetadata:{ownerUid:user.uid,purpose:'ai-design-gallery-background',designId}
       });
       uploadedRefs.push(backgroundRef);
+      if(logoBlob){
+        stage='로고 원본 업로드';
+        await logoRef.put(logoBlob,{contentType:logoBlob.type,customMetadata:{ownerUid:user.uid,purpose:'ai-design-gallery-logo',designId}});
+        uploadedRefs.push(logoRef);
+      }
 
       stage='공유 미리보기 업로드';
       await publicPreviewRef.put(publicPreviewBlob,{
@@ -2020,6 +2043,7 @@
         trimHeight:spec.trimH,
         imagePath:ownerPreviewPath,
         backgroundPath,
+        ...(logoPath?{logoPath}:{}),
         publicPreviewPath,
         stateJson,
         createdAt
@@ -2318,7 +2342,7 @@
       if(privateData.backgroundPath&&window.storage){
         const url=await galleryDownloadUrl(privateData.backgroundPath);
         if(url){
-          const image=new Image();image.src=url;await waitForImage(image);
+          const image=new Image();image.crossOrigin='anonymous';image.src=url;await waitForImage(image);
           state.background=image;state.backgroundUrl=url;state.backgroundSource='gallery';state.generatedSpecKey=specKey(currentSpec());
           state.lastGeneratedPrompt=String($('stylePrompt')?.value||presetPrompt()).trim();
           state.lastGeneratedPresetName=PRESETS[state.preset]?.name||privateData.presetName||'';
@@ -2326,9 +2350,16 @@
           if($('clearBackground'))$('clearBackground').hidden=false;
         }
       }
+      if(privateData.logoPath&&window.storage){
+        const url=await galleryDownloadUrl(privateData.logoPath);
+        if(!url)throw new Error('저장한 로고 원본을 불러오지 못했습니다.');
+        const image=new Image();image.crossOrigin='anonymous';image.src=url;await waitForImage(image);state.logo=image;
+        if($('logoName'))$('logoName').textContent='보관함 로고 원본';
+        if($('clearLogo'))$('clearLogo').hidden=false;
+      }
       syncLoadedGalleryStateUi();
       closeGalleryDetail();closeGallery();
-      setStatus('내 작업 설정을 불러왔습니다.','저장 당시 편집 설정과 AI 배경을 복원했습니다. 로고 원본 파일은 별도로 다시 불러와 주세요.','ok');
+      setStatus('내 작업 설정을 불러왔습니다.',privateData.logoPath?'편집 설정·배경·로고 원본을 복원했습니다.':'편집 설정과 배경을 복원했습니다. 이전 기록에 없는 로고는 다시 불러와 주세요.','ok');
     }catch(error){
       setStatus('내 작업 불러오기 실패',error.message||'저장된 작업 설정을 읽지 못했습니다.','error',galleryErrorDebug(error,'내 작업 설정 복원'));
     }
@@ -2360,6 +2391,7 @@
       const paths=new Set([
         privateData.imagePath,
         privateData.backgroundPath,
+        privateData.logoPath,
         privateData.publicPreviewPath,
         publicData.imagePath,
         item.ownerImagePath,
@@ -2401,6 +2433,7 @@
 
   async function loadBackground(file){
     if(!file)return;
+    if(file.size>32*1024*1024){setStatus('이미지가 너무 큽니다.','파일당 32MB 이하로 준비해 주세요.','error');return;}
     if(!/^image\/(png|jpeg|webp)$/.test(file.type)){
       setStatus('지원하지 않는 표지 이미지입니다.','PNG, JPEG, WEBP만 사용할 수 있습니다.','error');return;
     }
@@ -2440,6 +2473,7 @@
 
   async function loadLogo(file){
     if(!file)return;
+    if(file.size>32*1024*1024){setStatus('이미지가 너무 큽니다.','파일당 32MB 이하로 준비해 주세요.','error');return;}
     if(!/^image\/(png|jpeg|webp)$/.test(file.type)){setStatus('지원하지 않는 로고 파일입니다.','PNG, JPEG, WEBP만 사용할 수 있습니다.','error');return;}
     const url=URL.createObjectURL(file),image=new Image();image.src=url;
     try{await waitForImage(image);state.logo=image;if($('logoName'))$('logoName').textContent=file.name;if($('clearLogo'))$('clearLogo').hidden=false;scheduleRender();setStatus('로고를 불러왔습니다.','앞표지 하단에 자동 배치했습니다.','ok');}

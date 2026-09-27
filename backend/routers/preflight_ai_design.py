@@ -15,6 +15,7 @@ from utils.storage import get_request_id
 logger = logging.getLogger(__name__)
 
 _PUBLIC_AI_ERRORS = {
+    "AI_SERVICE_BUDGET_EXHAUSTED": "서비스 전체 AI 생성 한도에 도달했습니다. 관리자에게 문의해 주세요.",
     "AI_DESIGN_TITLE_REQUIRED": "제목을 입력해 주세요.",
     "AI_COVER_STYLE_REQUIRED": "디자인 스타일을 선택하거나 입력해 주세요.",
     "AI_COVER_RATIO_UNSUPPORTED": "전체 펼침 표지 비율이 이미지 생성 지원 범위를 벗어났습니다.",
