@@ -36,7 +36,7 @@ def test_design_review_no_longer_loads_ai_maker_runtime():
     assert 'id="safeZone" type="number" min="0" max="80" step="0.1" value="10"' in maker
     assert 'id="generateBtn"' in maker
     assert 'id="exportBtn"' in maker
-    assert "/js/ai-design-maker.js?v=20260927-1" in maker
+    assert "/js/ai-design-maker.js?v=20260927-2" in maker
 
 
 def test_ai_design_maker_has_easy_cover_workflow_and_diagnostics():
@@ -113,7 +113,7 @@ def test_ai_design_maker_uses_category_presets_and_exact_spine_guidance():
     for label in ("보고서", "행정", "공공기관", "제안서", "행사", "문제집", "교육자료집"):
         assert f"name: '{label}'" in source
     assert "preset: 'report'" in source
-    assert "Do not create a visible center spine strip" in source
+    assert "Do not draw a visible center spine strip" in (ROOT / "backend/services/ai_cover_image.py").read_text()
     assert "책등 '+spec.spine.toFixed(1)+'mm" in source
     assert "spineInset=Math.min(sw*.18,1.5*scale)" in source
     assert "책등 8mm 이상: 상·중·하 문구를 각각 자동정렬하거나 자유배치할 수 있습니다." in source
@@ -237,10 +237,9 @@ def test_event_and_default_generation_use_richer_color_and_full_bleed():
     assert "VISUAL_MODE_PROMPTS" in source
     assert "COLOR_INTENSITY_PROMPTS" in source
     assert "COMPOSITION_VARIANTS" in source
-    assert "OUTER BLEED BOUNDARY" in source
     assert "OUTER BLEED BOUNDARY" in backend
     assert "Fill the entire canvas edge-to-edge" in backend
-    assert "cover-background-v9-diverse-professional-covers" in backend
+    assert "cover-background-v10-model-user-direction" in backend
 
 def test_ai_design_selected_text_supports_line_breaks_and_typography_controls():
     page = (ROOT / "ai-design-maker/index.html").read_text(encoding="utf-8")
@@ -325,9 +324,9 @@ def test_ai_design_reference_direction_supports_multiple_visual_languages():
         assert f'id="{field_id}"' in page
     for mode in ("editorial", "geometry", "infographic", "photo", "illustration", "hybrid"):
         assert f'value="{mode}"' in page
-    assert "editorial illustration, symbolic scenes, iconographic or infographic structures" in backend
-    assert "washed-out, foggy, low-contrast or weak" in backend
-    assert "Repeating the same thin-line, circle, wave or geometric-network formula" in backend
+    assert "ONE coherent visual concept" in backend
+    assert "Do not force pale colors" in backend
+    assert "additional visual request as the highest-priority aesthetic preference" in backend
     assert "selectedDesignDirection()" in source
 
 def test_ai_design_maker_supports_standard_300dpi_and_high_quality_generation_modes():

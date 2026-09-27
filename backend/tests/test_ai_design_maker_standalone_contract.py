@@ -74,10 +74,8 @@ def test_ai_design_maker_exposes_custom_other_purpose_preset():
 def test_ai_design_maker_guardrails_preserve_professional_style_diversity():
     maker_js = (ROOT / "js" / "ai-design-maker.js").read_text(encoding="utf-8")
 
-    assert "Prefer variety with control" in maker_js
-    assert "minimal editorial" in maker_js
-    assert "photo-led editorial" in maker_js
-    assert "restrained wave-based report" in maker_js
-    assert "Familiar business-report and presentation-cover conventions are allowed" in maker_js
-    assert "Do not make every result use the same palette" in maker_js
-    assert "Do not reject professional waves, geometric framing or photo inserts" in maker_js
+    backend = (ROOT / "backend/services/ai_cover_image.py").read_text(encoding="utf-8")
+    assert "Do not force pale colors, blue waves, photography or a geometric template" in backend
+    assert "additional_prompt:" in maker_js
+    assert "visual_direction:selectedDesignDirection()" in maker_js
+    assert "designGuardrails" not in maker_js

@@ -362,7 +362,7 @@
   }
 
   function serializableState() {
-    const ids = ['trimW','trimH','spine','bleed','safeZone','wingW','title','backText','spineTop','spineMiddle','spineBottom','spineTopPlacement','spineMiddlePlacement','spineBottomPlacement','spineOrientation','visualMode','colorIntensity','designMood','primaryColor','textColor','theme','stylePrompt'];
+    const ids = ['trimW','trimH','spine','bleed','safeZone','wingW','title','backText','spineTop','spineMiddle','spineBottom','spineTopPlacement','spineMiddlePlacement','spineBottomPlacement','spineOrientation','visualMode','colorIntensity','designMood','primaryColor','textColor','theme','stylePrompt','imageModel','additionalPrompt'];
     const data = {
       preset: state.preset,
       wingEnabled: Boolean($('wingEnabled')?.checked),
@@ -401,6 +401,7 @@
         if (!node || key === 'wingEnabled' || key === 'spineSync') return;
         node.value = value;
       });
+      if ($('imageModel') && !$('imageModel').value) $('imageModel').value='gpt-image-2';
       if (typeof data.wingEnabled === 'boolean') $('wingEnabled').checked = data.wingEnabled;
       if (typeof data.spineSync === 'boolean') $('spineSync').checked = data.spineSync;
       if (!String($('spineMiddle')?.value || '').trim() && String(data.spineTitle || '').trim() && $('spineMiddle')) {
@@ -1717,6 +1718,18 @@
     ].filter(Boolean).join('\n');
   }
 
+  function buildGenerationRequest(spec,prompt){
+    return {
+          cover_mode:backendCoverMode(spec.coverMode),quality_mode:state.generationQuality,trim_width_mm:spec.trimW,trim_height_mm:spec.trimH,spine_mm:spec.spine,wing_mm:spec.wing,bleed_mm:spec.bleed,
+          preset_name:PRESETS[state.preset].name,
+          model:$('imageModel')?.value||'gpt-image-2',
+          style_request:prompt,
+          additional_prompt:String($('additionalPrompt')?.value||'').trim(),
+          visual_direction:selectedDesignDirection(),
+          theme_context:themeContext()
+        };
+  }
+
   async function generate(){
     const spec=currentSpec(),title=String($('title')?.value||'').trim(),backText=String($('backText')?.value||'').trim();
     if(spec.coverMode==='back'&&!backText){setStatus('뒷표지 문구를 먼저 입력해 주세요.','뒷표지 기본 문구는 필수입니다.','error');$('backText')?.focus();return;}
@@ -1728,34 +1741,9 @@
     startGenerationProgress();
     try{
       const prompt=String($('stylePrompt')?.value||presetPrompt()).trim();
-      const designGuardrails=[
-        'Create a contemporary, production-ready print cover with professional art direction, clear hierarchy and a generous usable text-safe area.',
-        'Prefer variety with control. Do not force every generation into one repeated visual formula or one fixed corporate style.',
-        'Choose one coherent concept per generation. Valid directions include minimal editorial, corporate proposal, public report, education, eco/nature, technology/business, company profile, photo-led editorial, city or architecture, geometric presentation, restrained wave-based report, symbolic illustration and infographic-inspired composition.',
-        'Photography, editorial illustration, iconographic structures, image crops, frames, grids, layered fields, waves, circles, line work, diagonal panels, gradients and refined geometry are all allowed when they genuinely support the selected concept.',
-        'Familiar business-report and presentation-cover conventions are allowed. Make them current, intentional and professionally composed rather than banning them for being conventional.',
-        'Use refined print-friendly contrast. Blue, navy, sky blue, teal, mint, green, gray and neutral palettes are welcome, but restrained indigo, purple, coral, orange, burgundy or charcoal accents may be used when appropriate.',
-        'Do not make every result use the same palette, the same wave, the same circle motif, the same diagonal cut, or the same geometric-network formula.',
-        'Preserve a clear text-safe area for the application typography and never generate readable words, letters, logos, labels or pseudo-text.',
-        'The OUTER BLEED BOUNDARY is the artwork canvas. Fill the entire canvas edge-to-edge; artwork may crop naturally at the outside edge.',
-        spec.coverMode==='spread'
-          ?'Do not create a visible center spine strip, seam, fold, vertical band, or abrupt color break. The artwork must flow continuously through the exact spine area.'
-          :spec.coverMode==='back'
-            ?'This is BACK COVER ONLY. Compose one portrait back cover, not a spread, not a mockup, and do not invent a front cover or spine.'
-            :spec.coverMode==='frontBack'
-              ?'Compose a coordinated two-panel print design: BACK COVER on the left and FRONT COVER on the right, with no spine panel between them. Keep both panels visually related while giving the front stronger hierarchy.'
-              :'This is FRONT COVER ONLY. Compose one portrait cover, not a spread, not a mockup, and do not invent a back cover or spine.',
-        'Avoid clutter, childish decoration, fake text, low-effort stock-template decoration, fake 3D effects and incoherent collage. Do not reject professional waves, geometric framing or photo inserts when they suit the concept.'
-      ].join('\n');
-      const designDirection=selectedDesignDirection();
       const data=await authFetch(AI_COVER_PATH,{
         method:'POST',
-        body:JSON.stringify({
-          cover_mode:backendCoverMode(spec.coverMode),quality_mode:state.generationQuality,trim_width_mm:spec.trimW,trim_height_mm:spec.trimH,spine_mm:spec.spine,wing_mm:spec.wing,bleed_mm:spec.bleed,
-          preset_name:PRESETS[state.preset].name,
-          style_request:prompt+'\n'+designDirection+'\n'+designGuardrails+'\nPreferred dominant color: '+($('primaryColor')?.value||'#315c8c')+'.',
-          theme_context:themeContext()
-        })
+        body:JSON.stringify(buildGenerationRequest(spec,prompt))
       });
       if(!data.image_base64)throw new Error('AI 이미지 결과가 비어 있습니다.');
       const image=new Image();image.src='data:'+(data.mime_type||'image/png')+';base64,'+data.image_base64;await waitForImage(image);
@@ -2511,7 +2499,7 @@
       state.generationQuality=input.value==='high'?'high':'standard';
       syncGenerationQuality();saveLocal();
     }));
-    const watched=['trimW','trimH','spine','bleed','safeZone','wingW','title','backText','spineTop','spineMiddle','spineBottom','spineOrientation','visualMode','colorIntensity','designMood','primaryColor','textColor','theme','stylePrompt'];
+    const watched=['trimW','trimH','spine','bleed','safeZone','wingW','title','backText','spineTop','spineMiddle','spineBottom','spineOrientation','visualMode','colorIntensity','designMood','primaryColor','textColor','theme','stylePrompt','imageModel','additionalPrompt'];
     watched.forEach(id=>$(id)?.addEventListener('input',()=>{
       if(id==='trimW'||id==='trimH'){state.sizeMode='custom';syncSizeMode();}
       if(['title','backText','spineTop','spineMiddle','spineBottom'].includes(id))clearTextOverrideForSource(id);

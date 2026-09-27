@@ -166,6 +166,9 @@ AI 표지 제작은 서버의 OpenAI 키를 사용하며 브라우저에 키를 
 OPENAI_API_KEY=
 OPENAI_ADMIN_KEY=
 OPENAI_PROJECT_ID=
+# Legacy clients without a model selection use this default.
+# UI supports gpt-image-2, gpt-image-2.5-flare, gpt-image-2.5-sunburst,
+# gpt-image-1.5 and gpt-image-1-mini; project access is required.
 OPENAI_AI_IMAGE_MODEL=gpt-image-2
 OPENAI_AI_IMAGE_QUALITY=high
 ```
