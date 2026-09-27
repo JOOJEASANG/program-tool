@@ -59,7 +59,7 @@ def test_ai_design_maker_common_sidebar_no_longer_depends_on_header():
     assert "document.createElement('a')" in sidebar_js
     assert "document.createElement('button')" in sidebar_js
     assert ".maker-header .home-link" not in sidebar_js
-    assert "unified-sidebar-actions-v2" in sidebar_js
+    assert "unified-sidebar-actions-v3" in sidebar_js
 
 
 def test_ai_design_maker_exposes_custom_other_purpose_preset():
