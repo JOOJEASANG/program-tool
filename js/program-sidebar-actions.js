@@ -58,6 +58,28 @@
       html[data-program-sidebar-actions="ai-design-maker"] .ps-program-sidebar-top{
         top:0!important;margin:0 -18px 12px!important;padding:12px 18px!important;
       }
+      html[data-program-sidebar-actions="ai-design-maker"] .manual-assets-block[data-file-add-mode="1"]{
+        gap:8px!important;padding:12px!important;background:linear-gradient(135deg,#f8faff,#faf5ff)!important;
+      }
+      html[data-program-sidebar-actions="ai-design-maker"] .manual-assets-block[data-file-add-mode="1"] .manual-assets-head{
+        padding-bottom:8px!important;
+      }
+      html[data-program-sidebar-actions="ai-design-maker"] .manual-assets-block[data-file-add-mode="1"] .logo-row{
+        min-height:38px!important;gap:9px!important;
+      }
+      html[data-program-sidebar-actions="ai-design-maker"] .ps-ai-file-add-button{
+        width:36px!important;height:36px!important;min-width:36px!important;padding:0!important;border:0!important;border-radius:11px!important;
+        display:grid!important;place-items:center!important;background:linear-gradient(135deg,#7c3aed,#2563eb)!important;color:#fff!important;
+        box-shadow:0 6px 14px rgba(79,70,229,.22)!important;font-size:0!important;cursor:pointer!important;
+      }
+      html[data-program-sidebar-actions="ai-design-maker"] .ps-ai-file-add-button:hover,
+      html[data-program-sidebar-actions="ai-design-maker"] .ps-ai-file-add-button:focus-within{
+        filter:brightness(1.06)!important;box-shadow:0 8px 18px rgba(79,70,229,.28)!important;
+      }
+      html[data-program-sidebar-actions="ai-design-maker"] .ps-ai-file-add-plus{
+        display:block!important;font-size:25px!important;font-weight:600!important;line-height:1!important;transform:translateY(-1px)!important;
+      }
+      html[data-program-sidebar-actions="ai-design-maker"] .ps-ai-file-add-button input{display:none!important}
       html[data-program-sidebar-actions="pdf-editor"]{--nav-h:0px!important}
       html[data-program-sidebar-actions="pdf-editor"] body{padding-top:0!important}
       html[data-program-sidebar-actions="pdf-editor"] .top-nav{display:none!important}
@@ -216,6 +238,39 @@
     return true;
   }
 
+  function normalizeAiDesignAssets() {
+    const block = document.querySelector('.manual-assets-block');
+    if (!block) return;
+
+    const directCoverSection = document.getElementById('backgroundInput')?.closest('.manual-assets-section');
+    if (directCoverSection) directCoverSection.remove();
+
+    const title = document.getElementById('manualAssetsTitle');
+    if (title) title.textContent = '파일 추가';
+    const helper = block.querySelector('.manual-assets-head small');
+    if (helper) helper.textContent = 'PNG · JPG · WEBP';
+
+    const fileSection = document.getElementById('logoInput')?.closest('.manual-assets-section');
+    fileSection?.querySelector('.subsection-title')?.remove();
+
+    const label = fileSection?.querySelector('.file-button');
+    const input = document.getElementById('logoInput');
+    if (label && input) {
+      const plus = document.createElement('span');
+      plus.className = 'ps-ai-file-add-plus';
+      plus.textContent = '+';
+      plus.setAttribute('aria-hidden', 'true');
+      label.replaceChildren(plus, input);
+      label.classList.add('ps-ai-file-add-button');
+      label.setAttribute('title', '파일 추가');
+      label.setAttribute('aria-label', '파일 추가');
+    }
+
+    const clear = document.getElementById('clearLogo');
+    if (clear) clear.textContent = '삭제';
+    block.dataset.fileAddMode = '1';
+  }
+
   function mountAiDesignMaker() {
     const sidebar = document.querySelector('.control-panel');
     if (!sidebar) return false;
@@ -259,6 +314,7 @@
     markUserName(userName);
     grid.replaceChildren(home, save, load, logout);
     bar.replaceChildren(grid, userName);
+    normalizeAiDesignAssets();
     return true;
   }
 
@@ -294,5 +350,5 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mount, { once: true });
   else mount();
 
-  window.ProgramSidebarActions = Object.freeze({ route, stage: 'unified-sidebar-actions-v2' });
+  window.ProgramSidebarActions = Object.freeze({ route, stage: 'unified-sidebar-actions-v3' });
 })();
