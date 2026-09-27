@@ -88,12 +88,9 @@ def test_prompt_is_background_only_and_spine_aware():
     assert "front cover" in prompt.lower()
     assert "back cover" in prompt.lower()
     assert "Do not draw a visible center spine strip" in prompt
-    assert "editorial illustration, symbolic scenes, iconographic or infographic structures" in prompt
-    assert "Prefer variety with control" in prompt
-    assert "wave-based report covers" in prompt
-    assert "Photography, editorial illustration" in prompt
-    assert "Treating blue waves, geometric framing, photo inserts" in prompt
-    assert "Favor concept diversity across generations" in prompt
+    assert "ONE coherent visual concept" in prompt
+    assert "negative space" in prompt
+    assert "additional visual request" in prompt
 
 
 def test_prompt_is_wing_aware_when_review_option_has_flaps():
@@ -167,3 +164,39 @@ def test_openai_moderation_block_is_distinct():
     ))
     assert error.code == "OPENAI_IMAGE_MODERATION_BLOCKED"
     assert error.status_code == 400
+
+
+@pytest.mark.parametrize("model", ["gpt-image-2", "gpt-image-2.5-flare", "gpt-image-2.5-sunburst", "gpt-image-1.5", "gpt-image-1-mini"])
+@pytest.mark.parametrize("mode", ["front", "spread"])
+def test_selected_model_reaches_provider_with_supported_size(monkeypatch, model, mode):
+    from services.ai_cover_image import generate_cover_image
+    sent = []
+    def fake_open(request, **kwargs):
+        sent.append(json.loads(request.data))
+        return BytesIO(json.dumps({"data": [{"b64_json": "aW1hZ2U="}]}).encode())
+    monkeypatch.setenv("OPENAI_API_KEY", "test-key")
+    monkeypatch.setattr("urllib.request.urlopen", fake_open)
+    result = generate_cover_image({"model": model, "cover_mode": mode, "quality_mode": "high", "style_request": "a" * 2200, "additional_prompt": "아이보리 숲 " * 250 + "마지막 요청", "visual_direction": "paper texture"}, uid="test-user")
+    assert result["model"] == sent[0]["model"] == model
+    assert sent[0]["quality"] == "high"
+    assert "마지막 요청" in sent[0]["prompt"]
+    assert "paper texture" in sent[0]["prompt"]
+    if model in {"gpt-image-1.5", "gpt-image-1-mini"}:
+        assert sent[0]["size"] in {"1024x1024", "1024x1536", "1536x1024"}
+    else:
+        w, h = map(int, sent[0]["size"].split("x"))
+        assert w % 16 == h % 16 == 0
+        assert 655360 <= w * h <= STABLE_MAX_PIXELS
+
+
+@pytest.mark.parametrize("payload,code", [({"model": "unknown"}, "AI_COVER_MODEL_INVALID"), ({"additional_prompt": "가" * 2001}, "AI_COVER_PROMPT_TOO_LONG")])
+def test_invalid_model_or_additional_prompt_rejected(payload, code):
+    with pytest.raises(AiCoverImageError) as error:
+        normalize_cover_request({"style_request": "minimal", **payload})
+    assert error.value.code == code
+    assert error.value.status_code == 400
+
+
+def test_legacy_client_uses_server_model_default(monkeypatch):
+    monkeypatch.setenv("OPENAI_AI_IMAGE_MODEL", "gpt-image-1.5")
+    assert normalize_cover_request({"style_request": "minimal"}).model == "gpt-image-1.5"

@@ -276,11 +276,13 @@ def _normalize_document_paths(
         expected_paths = {
             f"ai_design_gallery/{uid}/{design_id}/preview.jpg",
             f"ai_design_gallery/{uid}/{design_id}/background.jpg",
+            f"ai_design_gallery/{uid}/{design_id}/background.original",
+            f"ai_design_gallery/{uid}/{design_id}/logo.original",
             f"ai_design_public_gallery/{uid}/{design_id}/preview.jpg",
         }
         paths = [
             str(data.get(field) or "").strip()
-            for field in ("imagePath", "backgroundPath", "publicPreviewPath")
+            for field in ("imagePath", "backgroundPath", "logoPath", "publicPreviewPath")
             if str(data.get(field) or "").strip()
         ]
         safe_paths: list[str] = []

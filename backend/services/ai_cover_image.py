@@ -28,6 +28,8 @@ STABLE_MAX_PIXELS = 3_600_000
 STABLE_MAX_EDGE = 2560
 MAX_STYLE = 2200
 MAX_CONTEXT = 900
+IMAGE_MODELS = frozenset({"gpt-image-2", "gpt-image-2.5-flare", "gpt-image-2.5-sunburst", "gpt-image-1.5", "gpt-image-1-mini"})
+FIXED_SIZE_MODELS = frozenset({"gpt-image-1.5", "gpt-image-1-mini"})
 
 logger = logging.getLogger(__name__)
 
@@ -51,6 +53,9 @@ class CoverImageRequest:
     style_request: str
     theme_context: str
     preset_name: str
+    model: str = DEFAULT_IMAGE_MODEL
+    additional_prompt: str = ""
+    visual_direction: str = ""
 
     @property
     def work_width_mm(self) -> float:
@@ -78,6 +83,13 @@ def _clean(value: Any, limit: int) -> str:
 
 
 def normalize_cover_request(payload: dict[str, Any]) -> CoverImageRequest:
+    model = str(payload.get("model") or os.environ.get("OPENAI_AI_IMAGE_MODEL") or DEFAULT_IMAGE_MODEL).strip()
+    if model not in IMAGE_MODELS:
+        raise AiCoverImageError("지원하는 이미지 모델을 선택해 주세요.", status_code=400, code="AI_COVER_MODEL_INVALID")
+    additional_prompt = str(payload.get("additional_prompt") or "").replace("\x00", " ").strip()
+    visual_direction = str(payload.get("visual_direction") or "").replace("\x00", " ").strip()
+    if len(additional_prompt) > 2000 or len(visual_direction) > 2000:
+        raise AiCoverImageError("추가 요청은 2,000자 이내로 입력해 주세요.", status_code=400, code="AI_COVER_PROMPT_TOO_LONG")
     cover_mode = _clean(payload.get("cover_mode"), 20).lower()
     aliases = {"frontback": "front_back", "front-back": "front_back"}
     cover_mode = aliases.get(cover_mode, cover_mode)
@@ -114,6 +126,9 @@ def normalize_cover_request(payload: dict[str, Any]) -> CoverImageRequest:
         style_request=style_request,
         theme_context=theme_context,
         preset_name=preset_name,
+        model=model,
+        additional_prompt=additional_prompt,
+        visual_direction=visual_direction,
     )
     ratio = request.work_width_mm / request.work_height_mm
     if ratio < (1 / 3) or ratio > 3:
@@ -139,6 +154,10 @@ def choose_image_size(req: CoverImageRequest) -> str:
     the browser's millimetre/300dpi compositor.
     """
     ratio = req.work_width_mm / req.work_height_mm
+    if req.model in FIXED_SIZE_MODELS:
+        sizes = [(1024, 1024), (1536, 1024), (1024, 1536)]
+        width, height = min(sizes, key=lambda size: abs(math.log((size[0] / size[1]) / ratio)))
+        return f"{width}x{height}"
     if ratio >= 1:
         height_cap = min(STABLE_MAX_EDGE / ratio, math.sqrt(STABLE_MAX_PIXELS / ratio))
         height = _multiple_of_16_floor(height_cap)
@@ -216,34 +235,17 @@ Do not draw readable words, letters, numbers, logos, signatures, QR codes, barco
 Exact Korean text will be added later by the application.
 
 ART DIRECTION
-- Follow the selected document category, subject matter and user visual direction, but do not force every generation into one repeated house style.
-- Prefer variety with control: different generations may use very different visual languages, while every result must remain believable, professional, printable and useful as a real document cover.
-- Choose ONE coherent cover concept per generation rather than mixing every possible style at once.
-- Professional directions may include minimal editorial composition, corporate proposal styling, public-sector report design, educational publication design, eco/nature themes, technology or business graphics, company-profile styling, photo-led editorial layouts, city or architectural imagery, geometric presentation covers, restrained wave-based report covers, editorial illustration, symbolic scenes, iconographic or infographic structures, modular grids, layered fields, material texture, framing, image crops or a coherent hybrid.
-- Photography, editorial illustration, clean iconographic structures, waves, diagonal panels, geometric framing, circles, line work, gradients and abstract forms are all allowed when they genuinely support the chosen concept.
-- Do not reject familiar report or presentation design language merely because it is conventional; execute it with clean hierarchy, current proportions and professional restraint.
-- If photography is used, create sophisticated text-free editorial imagery with no readable signage, brands or labels.
-- If illustration is used, prefer publication-grade editorial illustration rather than childish cartoon or clip-art.
-- If infographic/icon styling is used, use symbolic visual structures without generating readable labels or text.
-- Keep a generous typography-safe zone appropriate to the selected concept. Visual accents may sit at the top, bottom, sides, corners or within framed image areas instead of always occupying the same location.
-- Use refined, print-friendly contrast. Blue, navy, sky blue, teal, mint, green, gray and neutral palettes are welcome, but restrained indigo, purple, coral, orange, burgundy, charcoal or other suitable accents may also be used.
-- Pale colors may support the composition, but do not make the entire result washed-out, foggy, low-contrast or weak.
-- Do not make every result use the same palette, the same wave, the same circles, the same diagonal cut, or the same abstract-network formula.
+- Choose ONE coherent visual concept tied to the subject, audience and intended publication.
+- Treat preset suggestions as defaults, selected visual controls as refinements, and the user's additional visual request as the highest-priority aesthetic preference. Never let these override geometry or the background-only rule.
+- Use specific materials, lighting, shapes and a deliberate focal point appropriate to the requested medium. Keep edges intentional, details clean and colors controlled.
+- Do not force pale colors, blue waves, photography or a geometric template when the user asks for a different direction.
 
 LAYOUT RULES
-{mode_rules}- Background and decorative artwork may extend through trim into bleed and crop naturally at the outside edge.
-- Keep important focal elements away from the application's typography-safe zone.
-- Do not draw visible text-placeholder boxes.
-- No crop marks, trim marks, rulers, registration marks, 3D book perspective, book shadows, hands, desks, or environmental mockup context.
-
-STRICT AVOID LIST
-- Washed-out low-contrast treatment that makes the entire composition weak.
-- Repeating the same thin-line, circle, wave or geometric-network formula across unrelated generations; diagonal-panel formulas should not be repeated mechanically either.
-- Generic low-effort decoration with no relationship to the document category or requested mood.
-- Dated effects such as glossy swooshes, bevels, metallic shine, lens flare or fake 3D unless the user explicitly asks for that visual era.
-- Random clip-art, childish decoration, incoherent collage, fake text, visible logos or obvious low-end stock-template aesthetics.
-- Crowding every area and leaving no useful typography-safe space.
-- Treating blue waves, geometric framing, photo inserts or familiar business-report motifs as forbidden; they are allowed when executed intentionally and professionally.
+{mode_rules}- Extend background through bleed; keep essential subjects well inside trim and away from panel boundaries.
+- Reserve calm, low-detail negative space for application typography; avoid high-contrast edges behind the title.
+- Balance one dominant visual with supporting details. Do not crowd every area or duplicate the focal subject across panels.
+- For fixed-ratio models, allow extra cropping room around focal subjects because the application crops the image to the exact cover ratio.
+- No crop marks, rulers, placeholder boxes, mockups, book shadows, desks, fake text or logos.
 
 STYLE DIRECTION
 Preset: {req.preset_name or 'custom'}
@@ -252,15 +254,18 @@ Preset: {req.preset_name or 'custom'}
 SEMANTIC CONTEXT ONLY — use this to inspire imagery, subject matter, visual metaphor and art direction; never render it as text:
 {req.theme_context or 'professional publication cover'}
 
-QUALITY BAR
-- The result should feel intentionally designed for the selected category: report, administration, public institution, proposal, company profile, event, workbook or educational publication.
-- Favor concept diversity across generations. One output may be minimal, another photo-led, another geometric, another wave-based, another eco-oriented or another editorial, as long as each is coherent and professionally finished.
-- Familiar business/report cover conventions are acceptable when they look current, deliberate and well composed.
-- Prefer one strong visual concept over unrelated decoration.
-- Keep the result contemporary, print-safe, easy to typeset and suitable for real office, institutional or commercial use.
-- Make it feel professionally art-directed rather than AI-decorated.
+SELECTED VISUAL CONTROLS (suggestions subordinate to the user's additional visual request)
+{req.visual_direction or 'Use the preset direction.'}
 
-Return one finished background artwork with clear hierarchy, useful text-safe space and a visual concept that does not unnecessarily repeat the previous generation formula.
+USER ADDITIONAL VISUAL REQUEST
+{req.additional_prompt or 'No additional request; follow the preset and selected controls.'}
+
+FINAL CHECK
+Resolve conflicting aesthetic suggestions in favor of the additional visual request. Keep one coherent concept,
+intentional contrast, clean details and useful typography space. The output must still be flat, edge-to-edge,
+text-free background artwork in the specified panel order. Never render the instructions or semantic context as text.
+Return one finished background image.
+
 """.strip()
 
 def _read_provider_error(exc: urllib.error.HTTPError) -> tuple[str, str, str]:
@@ -320,7 +325,7 @@ def _public_error_from_http(exc: urllib.error.HTTPError) -> AiCoverImageError:
         or "not have access to model" in detail_lower
     ):
         return AiCoverImageError(
-            "현재 OpenAI 프로젝트에서 GPT Image 2 모델을 사용할 수 없습니다.",
+            "현재 OpenAI 프로젝트에서 선택한 이미지 모델을 사용할 수 없습니다. 다른 모델을 선택해 주세요.",
             status_code=503,
             code="OPENAI_IMAGE_MODEL_UNAVAILABLE",
         )
@@ -373,7 +378,7 @@ def generate_cover_image(payload: dict[str, Any], *, uid: str) -> dict[str, Any]
             code="OPENAI_API_KEY_MISSING",
         )
 
-    model = os.environ.get("OPENAI_AI_IMAGE_MODEL", DEFAULT_IMAGE_MODEL).strip() or DEFAULT_IMAGE_MODEL
+    model = req.model
     quality = "high" if req.quality_mode == "high" else "medium"
     size = choose_image_size(req)
     body = {
@@ -430,7 +435,7 @@ def generate_cover_image(payload: dict[str, Any], *, uid: str) -> dict[str, Any]
         "model": str(data.get("model") or model),
         "size": str(data.get("size") or size),
         "quality": str(data.get("quality") or quality),
-        "prompt_version": "cover-background-v9-diverse-professional-covers",
+        "prompt_version": "cover-background-v10-model-user-direction",
         "geometry": {
             "cover_mode": req.cover_mode,
             "quality_mode": req.quality_mode,

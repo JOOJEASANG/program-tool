@@ -1,0 +1,53 @@
+<!doctype html><meta charset="utf-8"><title>AI print quality regression</title>
+<body data-status="running"><pre id="result">running</pre><script>
+(async()=>{
+  const assert=(ok,message)=>{if(!ok)throw new Error(message);};
+  const frame=document.createElement('iframe');document.body.appendChild(frame);
+  const html=await(await fetch('/ai-design-maker/index.html')).text();
+  const parsed=new DOMParser().parseFromString(html,'text/html');
+  parsed.querySelectorAll('script,link[href^="https:"]').forEach(node=>node.remove());
+  frame.srcdoc='<!doctype html>'+parsed.documentElement.outerHTML;
+  await new Promise(resolve=>frame.onload=resolve);
+  const w=frame.contentWindow;
+  const source=await(await fetch('/js/ai-design-maker.js')).text();
+  w.eval(source.replace("  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',authorize,{once:true});else authorize();",'window.printTest={state,buildGenerationRequest,currentSpec,serializableState,selectPreset,syncPromptLanguageUi,saveLocal,loadLocal,selectedDesignDirection,drawShape,wrappedLayout,drawCropMarks,buildGalleryBackgroundBlob,originalImageBlob,updateResolutionInfo};'));
+  w.eval(await(await fetch('/js/ai-design-print-export.js')).text());
+  const api=w.printTest;
+  const extra=w.document.getElementById('additionalPrompt'),model=w.document.getElementById('imageModel');
+  extra.value='아이보리 숲, 사진 제외';model.value='gpt-image-1.5';
+  api.selectPreset('report',true);api.state.promptLanguage='en';api.syncPromptLanguageUi(true);
+  assert(extra.value==='아이보리 숲, 사진 제외','preset/language erased additional request');
+  api.saveLocal();extra.value='';model.value='gpt-image-2';api.loadLocal();
+  assert(extra.value==='아이보리 숲, 사진 제외'&&model.value==='gpt-image-1.5','saved model/prompt not restored');
+  const payload=api.buildGenerationRequest(api.currentSpec(),'기본 방향');
+  assert(payload.model==='gpt-image-1.5'&&payload.additional_prompt===extra.value&&payload.style_request==='기본 방향','generation payload lost model or user prompt');
+  assert(api.selectedDesignDirection().length<=2000,'visual controls exceed server limit');
+  const canvas=w.document.createElement('canvas');canvas.width=3200;canvas.height=2000;
+  const ctx=canvas.getContext('2d');ctx.fillStyle='#f4f7fa';ctx.fillRect(0,0,3200,2000);ctx.fillStyle='#aaccee';ctx.fillRect(0,1400,3200,600);
+  const raw=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));
+  const image=new w.Image();image.src=w.URL.createObjectURL(raw);await image.decode();api.state.background=image;
+  const stored=await api.buildGalleryBackgroundBlob();
+  assert(stored.type==='image/png','original MIME changed');
+  const before=new Uint8Array(await raw.arrayBuffer()),after=new Uint8Array(await stored.arrayBuffer());
+  assert(before.length===after.length&&before.every((value,index)=>value===after[index]),'original bytes changed');
+  api.updateResolutionInfo();assert(w.document.getElementById('resolutionInfo').textContent.includes('3200×2000px'),'resolution display missing');
+  const logoCanvas=w.document.createElement('canvas');logoCanvas.width=200;logoCanvas.height=100;const lc=logoCanvas.getContext('2d');lc.fillStyle='#ff0000';lc.fillRect(30,30,100,40);
+  const logo=new w.Image();logo.src=logoCanvas.toDataURL('image/png');await logo.decode();
+  const logoBlob=await api.originalImageBlob(logo);assert(logoBlob.type==='image/png','logo alpha format changed');
+  const options={spec:{workW:216,workH:303,bleed:3,trimW:210,trimH:297,coverMode:'front'},background:image,logo,logoRect:{x:400,y:700,w:100,h:50},
+    shapes:[{type:'rect',x:10,y:15,w:50,h:25,cornerRadius:3,opacity:.6,strokeWidth:.3,strokeEnabled:true,strokeCmyk:{c:100,m:0,y:0,k:0},fillCmyk:{c:0,m:70,y:20,k:0}}],
+    drawShape:api.drawShape,wrappedLayout:api.wrappedLayout,drawCropMarks:api.drawCropMarks,cropMarks:true,textColor:'#164e6d',
+    textItems:[{text:'한글 인쇄 품질',x:50,y:170,w:450,h:80,fontPt:28,weight:700,fontFamily:'Pretendard',align:'left'},
+      {text:'회전 책등',x:120,y:300,w:160,h:50,fontPt:16,weight:700,fontFamily:'Pretendard',align:'center',rotate:90},
+      {text:'세로',x:350,y:300,w:40,h:100,fontPt:16,weight:700,fontFamily:'Pretendard',vertical:true}]
+  };
+  const pdf=await w.ProgramStudioPrintExport.create(options);
+  const bytes=new Uint8Array(await pdf.arrayBuffer());
+  let binary='';for(const byte of bytes)binary+=String.fromCharCode(byte);
+  const output=document.createElement('pre');output.id='pdf-output';output.textContent=btoa(binary);document.body.appendChild(output);
+  let rejected=false;try{await w.ProgramStudioPrintExport.create({...options,textItems:[{...options.textItems[0],fontFamily:'Batang'}]});}catch(error){rejected=error.message.includes('Pretendard');}
+  assert(rejected,'unsupported font silently substituted');
+  document.getElementById('result').textContent='PASS: original bytes, effective DPI, vector PDF, Korean, rotation, shapes, unsupported-font guard';
+  document.body.dataset.status='pass';
+})().catch(error=>{document.body.dataset.status='fail';document.getElementById('result').textContent=error.stack;});
+</script>

@@ -36,7 +36,7 @@ def test_design_review_no_longer_loads_ai_maker_runtime():
     assert 'id="safeZone" type="number" min="0" max="80" step="0.1" value="10"' in maker
     assert 'id="generateBtn"' in maker
     assert 'id="exportBtn"' in maker
-    assert "/js/ai-design-maker.js?v=20260922-3" in maker
+    assert "/js/ai-design-maker.js?v=20260927-2" in maker
 
 
 def test_ai_design_maker_has_easy_cover_workflow_and_diagnostics():
@@ -113,7 +113,7 @@ def test_ai_design_maker_uses_category_presets_and_exact_spine_guidance():
     for label in ("보고서", "행정", "공공기관", "제안서", "행사", "문제집", "교육자료집"):
         assert f"name: '{label}'" in source
     assert "preset: 'report'" in source
-    assert "Do not create a visible center spine strip" in source
+    assert "Do not draw a visible center spine strip" in (ROOT / "backend/services/ai_cover_image.py").read_text()
     assert "책등 '+spec.spine.toFixed(1)+'mm" in source
     assert "spineInset=Math.min(sw*.18,1.5*scale)" in source
     assert "책등 8mm 이상: 상·중·하 문구를 각각 자동정렬하거나 자유배치할 수 있습니다." in source
@@ -198,11 +198,11 @@ def test_ai_design_maker_exports_png_pdf_and_crop_marks():
 
     assert 'id="cropMarkToggle"' in page
     assert '<option value="png">PNG</option>' in page
-    assert '<option value="pdf">PDF</option>' in page
+    assert '<option value="pdf">벡터 PDF (Pretendard)</option>' in page
     assert "function drawCropMarks(" in source
     assert "if($('cropMarkToggle')?.checked)drawCropMarks" in source
     assert "async function exportPng()" in source
-    assert "async function exportPdf()" in source
+    assert "async function exportPdf(vector=true)" in source
     assert "function pdfFromJpeg(" in source
     assert "application/pdf" in source
     assert "exportDesign()" in source
@@ -237,10 +237,9 @@ def test_event_and_default_generation_use_richer_color_and_full_bleed():
     assert "VISUAL_MODE_PROMPTS" in source
     assert "COLOR_INTENSITY_PROMPTS" in source
     assert "COMPOSITION_VARIANTS" in source
-    assert "OUTER BLEED BOUNDARY" in source
     assert "OUTER BLEED BOUNDARY" in backend
     assert "Fill the entire canvas edge-to-edge" in backend
-    assert "cover-background-v9-diverse-professional-covers" in backend
+    assert "cover-background-v10-model-user-direction" in backend
 
 def test_ai_design_selected_text_supports_line_breaks_and_typography_controls():
     page = (ROOT / "ai-design-maker/index.html").read_text(encoding="utf-8")
@@ -325,9 +324,9 @@ def test_ai_design_reference_direction_supports_multiple_visual_languages():
         assert f'id="{field_id}"' in page
     for mode in ("editorial", "geometry", "infographic", "photo", "illustration", "hybrid"):
         assert f'value="{mode}"' in page
-    assert "editorial illustration, symbolic scenes, iconographic or infographic structures" in backend
-    assert "washed-out, foggy, low-contrast or weak" in backend
-    assert "Repeating the same thin-line, circle, wave or geometric-network formula" in backend
+    assert "ONE coherent visual concept" in backend
+    assert "Do not force pale colors" in backend
+    assert "additional visual request as the highest-priority aesthetic preference" in backend
     assert "selectedDesignDirection()" in source
 
 def test_ai_design_maker_supports_standard_300dpi_and_high_quality_generation_modes():
@@ -481,7 +480,7 @@ def test_ai_design_gallery_saves_private_work_and_shares_safe_settings():
     assert "match /ai_design_gallery/{userId}/{designId}/{fileName}" in storage_rules
     assert "validAiDesignGalleryUpload" in storage_rules
 
-    assert 'for field in ("imagePath", "backgroundPath", "publicPreviewPath")' in backend_main
+    assert 'for field in ("imagePath", "backgroundPath", "logoPath", "publicPreviewPath")' in backend_main
     assert 'db.collection("ai_design_public_gallery").document(snapshot.id)' in backend_main
     assert "def _trim_public_ai_design_gallery(" in backend_main
     assert '_delete_old_orphans(bucket, "ai_design_public_gallery/", public_gallery_paths, cutoff)' in backend_main
@@ -557,7 +556,7 @@ def test_ai_design_maker_has_lightweight_cmyk_shape_editor():
     assert "const cmykToRgb =" in source
     assert "function applyColorChoice(group,hex)" in source
     assert "function createShape(type)" in source
-    assert "function drawShape(ctx,shape,scale)" in source
+    assert "function drawShape(ctx,shape,scale,minStroke=.7)" in source
     assert "strokeEnabled:type==='line'?true:item?.strokeEnabled===true" in source
     assert "shape.strokeEnabled=!event.target.checked" in source
     assert "shape.opacity=clamp(Number(event.target.value)/100,0,1,1)" in source

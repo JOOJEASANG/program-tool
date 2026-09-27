@@ -15,7 +15,10 @@ from utils.storage import get_request_id
 logger = logging.getLogger(__name__)
 
 _PUBLIC_AI_ERRORS = {
+    "AI_SERVICE_BUDGET_EXHAUSTED": "서비스 전체 AI 생성 한도에 도달했습니다. 관리자에게 문의해 주세요.",
     "AI_DESIGN_TITLE_REQUIRED": "제목을 입력해 주세요.",
+    "AI_COVER_MODEL_INVALID": "지원하는 이미지 모델을 선택해 주세요.",
+    "AI_COVER_PROMPT_TOO_LONG": "추가 요청은 2,000자 이내로 입력해 주세요.",
     "AI_COVER_STYLE_REQUIRED": "디자인 스타일을 선택하거나 입력해 주세요.",
     "AI_COVER_RATIO_UNSUPPORTED": "전체 펼침 표지 비율이 이미지 생성 지원 범위를 벗어났습니다.",
     "OPENAI_API_KEY_MISSING": "관리자 OpenAI API 키가 아직 서버에 설정되지 않았습니다.",
@@ -27,7 +30,7 @@ _PUBLIC_AI_ERRORS = {
     "OPENAI_IMAGE_UNAVAILABLE": "AI 이미지 서버 응답을 받지 못했습니다. 다시 시도해 주세요.",
     "OPENAI_IMAGE_TIMEOUT": "AI 이미지 생성이 지연되었습니다. 잠시 후 다시 시도해 주세요.",
     "OPENAI_IMAGE_VERIFICATION_REQUIRED": "GPT Image 사용을 위해 OpenAI API 조직 인증이 필요합니다.",
-    "OPENAI_IMAGE_MODEL_UNAVAILABLE": "현재 OpenAI 프로젝트에서 GPT Image 2 모델을 사용할 수 없습니다.",
+    "OPENAI_IMAGE_MODEL_UNAVAILABLE": "현재 OpenAI 프로젝트에서 선택한 이미지 모델을 사용할 수 없습니다. 다른 모델을 선택해 주세요.",
     "OPENAI_IMAGE_MODERATION_BLOCKED": "입력한 디자인 요청이 이미지 안전 정책에 의해 처리되지 않았습니다. 프롬프트를 수정해 주세요.",
     "OPENAI_IMAGE_EMPTY": "AI 표지 이미지 결과를 받지 못했습니다.",
     "AI_COVER_IMAGE_FAILED": "AI 표지 이미지 생성 요청을 처리하지 못했습니다.",

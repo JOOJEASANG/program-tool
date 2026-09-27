@@ -695,3 +695,23 @@ test('AI design public gallery is readable by approved members but writable only
   await assertSucceeds(deleteDoc(doc(ownerDb, metadataPath)));
 });
 
+
+test('gallery originals preserve PNG/WebP privately and reject foreign paths or MIME', async () => {
+  await seedPermission('original-owner');await seedPermission('original-other');
+  const owner=env.authenticatedContext('original-owner'),other=env.authenticatedContext('original-other');
+  const designId='design_original01',prefix='ai_design_gallery/original-owner/'+designId+'/';
+  for(const [file,type,purpose] of [['background.original','image/webp','ai-design-gallery-background'],['logo.original','image/png','ai-design-gallery-logo']]){
+    await assertSucceeds(uploadString(ref(owner.storage(),prefix+file),'original bytes','raw',{contentType:type,customMetadata:{ownerUid:'original-owner',designId,purpose}}));
+    await assertSucceeds(getBytes(ref(owner.storage(),prefix+file)));
+    await assertFails(getBytes(ref(other.storage(),prefix+file)));
+    await assertFails(getBytes(ref(env.unauthenticatedContext().storage(),prefix+file)));
+  }
+  const metadata={id:designId,title:'원본 보관',prompt:'',presetId:'report',presetName:'보고서',coverMode:'front',qualityMode:'standard',trimWidth:210,trimHeight:297,imagePath:prefix+'preview.jpg',backgroundPath:prefix+'background.original',logoPath:prefix+'logo.original',createdAt:new Date()};
+  const path='users/original-owner/ai_design_gallery/'+designId;
+  await assertSucceeds(setDoc(doc(owner.firestore(),path),metadata));
+  await assertFails(getDoc(doc(other.firestore(),path)));
+  const badId='design_original02',badPrefix='ai_design_gallery/original-owner/'+badId+'/';
+  await assertFails(setDoc(doc(owner.firestore(),'users/original-owner/ai_design_gallery/'+badId),{...metadata,id:badId,imagePath:badPrefix+'preview.jpg',backgroundPath:badPrefix+'background.original',logoPath:'ai_design_gallery/original-other/'+badId+'/logo.original'}));
+  await assertFails(uploadString(ref(owner.storage(),badPrefix+'logo.original'),'bad','raw',{contentType:'image/svg+xml',customMetadata:{ownerUid:'original-owner',designId:badId,purpose:'ai-design-gallery-logo'}}));
+  await assertFails(uploadString(ref(other.storage(),badPrefix+'logo.original'),'bad','raw',{contentType:'image/png',customMetadata:{ownerUid:'original-owner',designId:badId,purpose:'ai-design-gallery-logo'}}));
+});

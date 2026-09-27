@@ -49,7 +49,8 @@ Firebase Hosting과 Python Cloud Functions로 운영하는 PDF·인쇄 실무 �
 - Ctrl+G 묶기 / Ctrl+Shift+G 묶음풀기, 그룹 단위 이동·정렬·삭제
 - 다중선택·그룹은 개별 점선을 숨기고 전체 외곽선 하나만 표시해 재단선·안전영역과 시각적 충돌 최소화
 - 선택한 문구·선·도형·포인트 아이콘을 Del/Backspace로 단일 또는 일괄 삭제
-- 디자인 보관함 저장과 300dpi PNG/PDF 완성 파일 출력
+- 디자인 보관함에 배경·로고 원본 보존(파일당 32MB), PNG/이미지 PDF 300dpi 및 Pretendard 벡터 PDF 출력
+- 배경 실효 dpi 표시, RGB 출력 명시. CMYK PDF 변환은 인쇄소 프로파일에 맞춘 별도 공정
 - 드래그 중에는 화면 렌더만 갱신하고 종료 시 저장하여 편집 반응성을 유지
 
 ### 스마트 인쇄배치
@@ -165,6 +166,9 @@ AI 표지 제작은 서버의 OpenAI 키를 사용하며 브라우저에 키를 
 OPENAI_API_KEY=
 OPENAI_ADMIN_KEY=
 OPENAI_PROJECT_ID=
+# Legacy clients without a model selection use this default.
+# UI supports gpt-image-2, gpt-image-2.5-flare, gpt-image-2.5-sunburst,
+# gpt-image-1.5 and gpt-image-1-mini; project access is required.
 OPENAI_AI_IMAGE_MODEL=gpt-image-2
 OPENAI_AI_IMAGE_QUALITY=high
 ```
@@ -195,3 +199,11 @@ OPENAI_AI_IMAGE_QUALITY=high
 3. `/apps/pdf-layout`과 `/apps/booklet`은 PDF 엔진을 복제하지 않습니다.
 4. 제거된 독립 디자인 편집기 계열은 되살리지 않고, 디자인 검토는 `/print-checker`, AI 표지 제작은 `/ai-design-maker`가 각각 한 곳에서 소유합니다.
 5. 배포 대상 여부는 파일 위치가 아니라 Hosting allowlist를 기준으로 판단합니다.
+
+### 인쇄 출력과 AI 전체 사용량 보호 (2026-09-27)
+
+벡터 PDF는 배경 원본 픽셀, Pretendard 문구의 벡터 윤곽선, 도형 경로, 로고 투명도를 보존하며 재단/도련 박스를 기록합니다. 시스템 글꼴은 임의 대체하지 않으며 기존 이미지 PDF를 선택할 수 있습니다. 원본 해상도보다 큰 300dpi 출력은 배경을 확대하는 것이므로 화면의 실효 dpi를 확인합니다. 모든 출력은 RGB입니다.
+
+보관함은 새 배경/로고 원본을 개인 경로에 저장하며, 다른 승인 회원에게는 별도 공유 미리보기만 제공합니다. 새 Storage/Firestore Rules와 Functions 정리 코드도 함께 배포해야 합니다. 기존 background.jpg 기록은 계속 읽습니다.
+
+운영자가 `backend/.env.program-tool` 등 배포 환경에 `AI_IMAGE_DAILY_LIMIT`, `AI_IMAGE_MONTHLY_LIMIT`를 양의 정수로 설정하면 서비스 전체 이미지 생성 **시도 횟수**를 서울 시간의 일/월 단위로 제한합니다. 0 또는 미설정은 기존 정책대로 제한을 비활성화합니다. 사용자 제한과 전체 제한은 같은 Firestore 트랜잭션으로 예약하므로 동시 요청으로 초과할 수 없습니다. 실패 요청도 차감하며, 두 별칭 이미지 endpoint에 공통 적용됩니다. 금액 기준 청구 상한이 아니며 실제 비용은 관리자 AI 비용 화면에서 확인합니다. 한도는 실제 사용 규모에 맞춰 운영자가 설정합니다.

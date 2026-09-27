@@ -36,3 +36,6 @@ Thumbs.db
 backups/*.zip
 pdf-load-test-report.json
 pdf-load-test-report-*.json
+
+# Generated browser verification artifacts
+browser-smoke-artifacts/

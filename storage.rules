@@ -53,22 +53,25 @@ service firebase.storage {
         && request.resource.metadata.sessionId == sessionId;
     }
     function validAiDesignGalleryUpload(userId, designId, fileName) {
-      return isOwner(userId)
-        && isApproved()
+      return isOwner(userId) && isApproved()
         && designId.matches('^[A-Za-z0-9_-]{8,80}$')
-        && fileName in ['preview.jpg','background.jpg']
-        && request.resource != null
-        && request.resource.size > 0
-        && request.resource.size <= 5242880
-        && request.resource.contentType == 'image/jpeg'
+        && request.resource != null && request.resource.size > 0
         && request.resource.metadata != null
         && request.resource.metadata.keys().hasAll(['ownerUid','purpose','designId'])
         && request.resource.metadata.ownerUid == userId
+        && request.resource.metadata.designId == designId
         && (
-          (fileName == 'preview.jpg' && request.resource.metadata.purpose == 'ai-design-gallery-preview')
-          || (fileName == 'background.jpg' && request.resource.metadata.purpose == 'ai-design-gallery-background')
-        )
-        && request.resource.metadata.designId == designId;
+          (fileName in ['preview.jpg','background.jpg']
+            && request.resource.size <= 5242880
+            && request.resource.contentType == 'image/jpeg'
+            && ((fileName == 'preview.jpg' && request.resource.metadata.purpose == 'ai-design-gallery-preview')
+              || (fileName == 'background.jpg' && request.resource.metadata.purpose == 'ai-design-gallery-background')))
+          || (fileName in ['background.original','logo.original']
+            && request.resource.size <= 33554432
+            && request.resource.contentType in ['image/png','image/jpeg','image/webp']
+            && ((fileName == 'background.original' && request.resource.metadata.purpose == 'ai-design-gallery-background')
+              || (fileName == 'logo.original' && request.resource.metadata.purpose == 'ai-design-gallery-logo')))
+        );
     }
 
     function validPublicAiDesignGalleryUpload(userId, designId, fileName) {

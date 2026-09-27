@@ -4,11 +4,13 @@ from __future__ import annotations
 import hashlib
 import logging
 import math
+import os
 import uuid
 from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Mapping
+from zoneinfo import ZoneInfo
 
 from firebase_admin import firestore
 
@@ -108,14 +110,40 @@ def _document_id(uid: str, kind: str) -> str:
     return hashlib.sha256(f"{kind}:{uid}".encode("utf-8")).hexdigest()
 
 
+def _budget_limits() -> dict[str, int]:
+    """Optional service-wide attempt caps; zero preserves existing access policy."""
+    limits = {}
+    for period in ("daily", "monthly"):
+        try:
+            value = int(os.environ.get(f"AI_IMAGE_{period.upper()}_LIMIT", "0"))
+            if value < 0:
+                raise ValueError("negative limit")
+        except ValueError as exc:
+            raise AiUsageGuardError("AI_GUARD_UNAVAILABLE", status_code=503) from exc
+        if value:
+            limits[period] = value
+    return limits
+
+
+def _budget_update(state, limit: int, now: datetime) -> dict:
+    count = (state or {}).get("request_count", 0)
+    if not isinstance(count, int) or isinstance(count, bool) or count < 0:
+        raise AiUsageGuardError("AI_GUARD_UNAVAILABLE", status_code=503)
+    if count >= limit:
+        raise AiUsageGuardError("AI_SERVICE_BUDGET_EXHAUSTED", status_code=429)
+    return {"request_count": count + 1, "updated_at": now}
+
+
 def _reserve(uid: str, kind: str) -> tuple[object, str]:
     policy = POLICIES.get(kind)
     if policy is None:
         raise ValueError(f"Unsupported AI usage kind: {kind}")
 
     token = uuid.uuid4().hex
-    reference = firestore.client().collection(_COLLECTION).document(_document_id(uid, kind))
-    transaction = firestore.client().transaction()
+    db = firestore.client()
+    reference = db.collection(_COLLECTION).document(_document_id(uid, kind))
+    transaction = db.transaction()
+    limits = _budget_limits() if kind == "image" else {}
 
     @firestore.transactional
     def reserve_in_transaction(current_transaction):
@@ -129,7 +157,18 @@ def _reserve(uid: str, kind: str) -> tuple[object, str]:
             token=token,
         )
         update["kind"] = kind
+        local_now = now.astimezone(ZoneInfo("Asia/Seoul"))
+        budget_writes = []
+        for period, limit in limits.items():
+            stamp = local_now.strftime("%Y-%m-%d" if period == "daily" else "%Y-%m")
+            budget_ref = db.collection(_COLLECTION).document(f"image-{period}-{stamp}")
+            budget_snapshot = budget_ref.get(transaction=current_transaction)
+            budget_state = budget_snapshot.to_dict() if budget_snapshot.exists else {}
+            budget_writes.append((budget_ref, _budget_update(budget_state, limit, now)))
+        # All reads precede writes. User and service reservations commit atomically.
         current_transaction.set(reference, update, merge=True)
+        for budget_ref, budget_update in budget_writes:
+            current_transaction.set(budget_ref, budget_update, merge=True)
 
     try:
         reserve_in_transaction(transaction)

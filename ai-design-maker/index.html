@@ -148,6 +148,16 @@
         <details class="control-section" id="styleSection">
           <summary><span class="step-no">3</span><span><strong>AI 디자인</strong><small>원하는 분위기를 간단하게</small></span><span class="section-state" id="styleState">준비</span></summary>
           <div class="section-body">
+            <label class="field"><span>AI 이미지 모델</span>
+              <select id="imageModel" aria-describedby="imageModelHint">
+                <option value="gpt-image-2" selected>GPT Image 2 (기본)</option>
+                <option value="gpt-image-2.5-flare">GPT Image 2.5 Flare</option>
+                <option value="gpt-image-2.5-sunburst">GPT Image 2.5 Sunburst</option>
+                <option value="gpt-image-1.5">GPT Image 1.5</option>
+                <option value="gpt-image-1-mini">GPT Image 1 Mini</option>
+              </select>
+              <small class="field-help" id="imageModelHint">모델별 비용·처리 시간과 계정 사용 권한이 다릅니다. 1.5·1 Mini는 고정 비율 이미지를 표지에 맞춰 자르므로 가장자리 일부가 제외될 수 있습니다.</small>
+            </label>
             <div class="subsection-title">생성 품질</div>
             <div class="quality-mode-picker" role="radiogroup" aria-label="AI 배경 생성 품질">
               <label><input type="radio" name="generationQuality" value="standard" checked><span><strong>기본 300dpi</strong><small>비용 절약 · 최종 출력 300dpi</small></span></label>
@@ -224,15 +234,19 @@
             <label class="field"><span>주제·키워드</span><textarea id="theme" rows="3" maxlength="900" placeholder="마을교육, 지역공동체, 협력, 성장, 연결"></textarea></label>
             <div class="field prompt-field">
               <div class="field-title-row">
-                <span>추가 디자인 요청</span>
-                <div class="language-toggle" id="promptLanguageToggle" role="radiogroup" aria-label="추가 디자인 요청 언어">
+                <span>기본 디자인 방향</span>
+                <div class="language-toggle" id="promptLanguageToggle" role="radiogroup" aria-label="기본 디자인 방향 언어">
                   <label><input type="radio" name="promptLanguage" value="ko" checked><span>한글</span></label>
                   <label><input type="radio" name="promptLanguage" value="en"><span>English</span></label>
                 </div>
               </div>
-              <textarea id="stylePrompt" rows="5" maxlength="2200" placeholder="프리셋 선택 시 자동으로 채워집니다. 원하는 내용을 자유롭게 수정하세요."></textarea>
+              <textarea id="stylePrompt" aria-label="기본 디자인 방향" rows="5" maxlength="2200" placeholder="프리셋 선택 시 자동으로 채워집니다. 원하는 내용을 자유롭게 수정하세요."></textarea>
               <small class="field-help" id="promptLanguageHint">한글 모드 · 프리셋 설명도 한글로 입력됩니다.</small>
             </div>
+            <label class="field"><span>나만의 추가 요청 (선택)</span>
+              <textarea id="additionalPrompt" rows="4" maxlength="2000" placeholder="예: 따뜻한 아이보리 바탕, 오른쪽 아래에 종이 질감의 숲 일러스트. 제목 위쪽은 넓게 비우고 파란색·사진은 제외해 주세요."></textarea>
+              <small class="field-help">최대 2,000자 · 원하는 소재·구도·색상·피할 요소를 구체적으로 적어 주세요. 기본 방향보다 우선 반영하며 프리셋·언어 변경 시 유지됩니다. 내 작업에만 저장되며 전체 디자인에는 공유하지 않습니다. 실제 문구는 2단계에서 입력하세요.</small>
+            </label>
 
           </div>
         </details>
@@ -318,10 +332,11 @@
           <div class="inspector-export-row">
             <select class="export-format" id="exportFormat" aria-label="완성 파일 형식">
               <option value="png">PNG</option>
-              <option value="pdf">PDF</option>
+              <option value="pdf">벡터 PDF (Pretendard)</option><option value="pdf-raster">300dpi 이미지 PDF (모든 글꼴)</option>
             </select>
             <button class="secondary-button compact inspector-export-button" id="exportBtn" type="button" disabled>300dpi 다운로드</button>
           </div>
+            <p id="resolutionInfo" role="status" style="font-size:11px;line-height:1.5;color:#475569">출력 색상: RGB</p>
         </div>
         <div class="element-toolbox" aria-label="편집 요소 추가">
           <div class="element-toolbox-head"><span>ELEMENTS</span><strong>요소 추가</strong></div>
@@ -526,6 +541,7 @@
   <script defer src="/js/firebase-config.js"></script>
   <script defer src="/js/program-manuals/home-modal.js?v=20260918-1"></script>
   <script defer src="/js/program-sidebar-actions.js?v=20260918-2"></script>
-  <script defer src="/js/ai-design-maker.js?v=20260922-3"></script>
+  <script defer src="/js/ai-design-print-export.js?v=20260927-2"></script>
+  <script defer src="/js/ai-design-maker.js?v=20260927-2"></script>
 </body>
 </html>
