@@ -10,7 +10,7 @@
   await new Promise(resolve=>frame.onload=resolve);
   const w=frame.contentWindow;
   const source=await(await fetch('/js/ai-design-maker.js')).text();
-  w.eval(source.replace("  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',authorize,{once:true});else authorize();",'window.printTest={state,buildGenerationRequest,currentSpec,serializableState,selectPreset,syncPromptLanguageUi,saveLocal,loadLocal,selectedDesignDirection,drawShape,wrappedLayout,drawCropMarks,buildGalleryBackgroundBlob,originalImageBlob,updateResolutionInfo};'));
+  w.eval(source.replace("  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',authorize,{once:true});else authorize();",'window.printTest={generate,textLayout,setAuthFetch:fn=>{authFetch=fn;},state,buildGenerationRequest,currentSpec,serializableState,selectPreset,syncPromptLanguageUi,saveLocal,loadLocal,selectedDesignDirection,drawShape,wrappedLayout,drawCropMarks,buildGalleryBackgroundBlob,originalImageBlob,updateResolutionInfo};'));
   w.eval(await(await fetch('/js/ai-design-print-export.js')).text());
   const api=w.printTest;
   const extra=w.document.getElementById('additionalPrompt'),model=w.document.getElementById('imageModel');
@@ -24,6 +24,18 @@
   assert(api.selectedDesignDirection().length<=2000,'visual controls exceed server limit');
   const canvas=w.document.createElement('canvas');canvas.width=3200;canvas.height=2000;
   const ctx=canvas.getContext('2d');ctx.fillStyle='#f4f7fa';ctx.fillRect(0,0,3200,2000);ctx.fillStyle='#aaccee';ctx.fillRect(0,1400,3200,600);
+  let requests=0;
+  api.setAuthFetch(async()=>{requests++;return {image_base64:canvas.toDataURL('image/png').split(',')[1],mime_type:'image/png'};});
+  for(const mode of ['front','back','frontBack','spread']){
+    api.state.coverMode=mode;
+    api.state.generatedSpecKey='';
+    await api.generate();
+    assert(api.state.generatedSpecKey&&api.state.background,'empty-copy generation failed: '+mode);
+    assert(api.textLayout(api.currentSpec(),1).length===0,'blank copy created text layers: '+mode);
+    assert(!w.document.getElementById('exportBtn').disabled,'background-only export blocked: '+mode);
+    assert(w.document.getElementById('copyState').textContent==='선택 사항','copy incorrectly marked required');
+  }
+  assert(requests===4,'empty-copy request did not reach API for every cover mode');
   const raw=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));
   const image=new w.Image();image.src=w.URL.createObjectURL(raw);await image.decode();api.state.background=image;
   const stored=await api.buildGalleryBackgroundBlob();
