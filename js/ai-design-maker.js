@@ -684,7 +684,7 @@
       front:['앞표지 단면 제작','앞표지 한 면만 실제 인쇄 규격으로 디자인합니다.','앞표지 미리보기','직접 만든 앞표지 이미지를 불러오면 도련 포함 전체 영역을 꽉 채워 배치합니다.'],
       back:['뒷표지 단면 제작','뒷표지 한 면만 실제 인쇄 규격으로 디자인합니다.','뒷표지 미리보기','직접 만든 뒷표지 이미지를 불러오면 도련 포함 전체 영역을 꽉 채워 배치합니다.'],
       frontBack:['앞·뒤표지 동시 제작','책등 없이 뒷표지와 앞표지를 나란히 놓고 한 번에 디자인합니다.','앞·뒤표지 동시 미리보기','앞·뒤표지 2면이 나란히 구성된 이미지를 불러오면 전체 작업 영역을 꽉 채워 배치합니다.'],
-      spread:['표지 전체 펼침 제작','앞표지·책등·뒤표지를 한 번에 제작합니다. 규격 → 문구 → 스타일 순서로 입력하세요.','전체 펼침 미리보기','직접 만든 전체 펼침 표지를 불러오면 바깥 적색선 전체 영역을 꽉 채워 배치합니다. 그 위에 문구를 자유롭게 편집할 수 있습니다.']
+      spread:['표지 전체 펼침 제작','앞표지·책등·뒤표지를 한 번에 제작합니다. 규격과 스타일만으로 배경을 생성할 수 있습니다. 문구는 선택 사항입니다.','전체 펼침 미리보기','직접 만든 전체 펼침 표지를 불러오면 바깥 적색선 전체 영역을 꽉 채워 배치합니다. 그 위에 문구를 자유롭게 편집할 수 있습니다.']
     }[state.coverMode];
     if($('coverModeHeading'))$('coverModeHeading').textContent=copy[0];
     if($('coverModeDescription'))$('coverModeDescription').textContent=copy[1];
@@ -729,7 +729,7 @@
       node.classList.toggle('need',!done);
     };
     setState('specState',validSpec,'완료','확인');
-    setState('copyState',copyReady,'완료',state.coverMode==='back'?'뒷표지 필요':'앞표지 필요');
+    setState('copyState',true,copyReady?'입력됨':'선택 사항','선택 사항');
     setState('styleState',hasStyle,'완료','스타일 필요');
     const generated=Boolean(state.background&&state.generatedSpecKey===specKey(spec));
     const stale=Boolean(state.background&&!generated);
@@ -1731,9 +1731,7 @@
   }
 
   async function generate(){
-    const spec=currentSpec(),title=String($('title')?.value||'').trim(),backText=String($('backText')?.value||'').trim();
-    if(spec.coverMode==='back'&&!backText){setStatus('뒷표지 문구를 먼저 입력해 주세요.','뒷표지 기본 문구는 필수입니다.','error');$('backText')?.focus();return;}
-    if(spec.coverMode!=='back'&&!title){setStatus('앞표지 문구를 먼저 입력해 주세요.','앞표지 기본 문구는 필수입니다.','error');$('title')?.focus();return;}
+    const spec=currentSpec();
     const ratio=spec.workW/spec.workH;
     if(ratio<1/3||ratio>3){setStatus('현재 표지 비율을 생성할 수 없습니다.','완성 규격·책등·날개 폭을 확인해 주세요.','error');return;}
     const button=$('generateBtn');button.disabled=true;

@@ -48,7 +48,7 @@
 
         <div class="panel-intro">
           <strong id="coverModeHeading">표지 전체 펼침 제작</strong>
-          <p id="coverModeDescription">앞표지·책등·뒤표지를 한 번에 제작합니다. 규격 → 문구 → 스타일 순서로 입력하세요.</p>
+          <p id="coverModeDescription">앞표지·책등·뒤표지를 한 번에 제작합니다. 규격과 스타일만으로 배경을 생성할 수 있습니다. 문구는 선택 사항입니다.</p>
         </div>
 
         <section class="cover-scope-card" aria-labelledby="coverScopeTitle">
@@ -95,11 +95,11 @@
         </details>
 
         <details class="control-section" id="copySection">
-          <summary><span class="step-no">2</span><span><strong>표지 문구</strong><small>앞·뒤 기본 1개 + 필요한 문구만 추가</small></span><span class="section-state" id="copyState">앞표지 필요</span></summary>
+          <summary><span class="step-no">2</span><span><strong>표지 문구</strong><small>선택 사항 · 배경만 생성할 때는 생략</small></span><span class="section-state" id="copyState">선택 사항</span></summary>
           <div class="section-body">
             <div class="copy-surface-group" id="frontCoverFields">
               <div class="copy-surface-head">
-                <span>앞표지 문구 <b>*</b></span>
+                <span>앞표지 문구 (선택)</span>
                 <button id="addFrontTextBtn" class="mini-action" type="button">+ 추가</button>
               </div>
               <textarea class="cover-copy-input" id="title" maxlength="700" rows="4" placeholder="2026 천안마을교육 운영사례집&#10;함께 만드는 배움의 마을"></textarea>
@@ -108,7 +108,7 @@
 
             <div id="backCoverFields" class="copy-surface-group">
               <div class="copy-surface-head">
-                <span>뒤표지 문구</span>
+                <span>뒤표지 문구 (선택)</span>
                 <button id="addBackTextBtn" class="mini-action" type="button">+ 추가</button>
               </div>
               <textarea class="cover-copy-input" id="backText" maxlength="700" rows="4" placeholder="학교와 마을이 함께 만든 교육 실천 사례와 지역 연계 성과를 담았습니다."></textarea>
@@ -309,7 +309,7 @@
               <strong id="statusTitle">표지를 만들 준비가 됐습니다.</strong>
               <span id="generationProgressText" class="generation-progress-text" hidden>0%</span>
             </div>
-            <p id="statusMessage">규격과 문구를 입력한 뒤 AI 배경 생성을 눌러주세요.</p>
+            <p id="statusMessage">규격과 스타일을 선택한 뒤 AI 배경 생성을 눌러주세요. 문구 없이 배경만 생성할 수 있습니다.</p>
             <div class="generation-progress" id="generationProgress" hidden aria-label="AI 디자인 생성 진행률">
               <div class="generation-progress-track"><span id="generationProgressBar"></span></div>
             </div>
@@ -541,7 +541,7 @@
   <script defer src="/js/firebase-config.js"></script>
   <script defer src="/js/program-manuals/home-modal.js?v=20260918-1"></script>
   <script defer src="/js/program-sidebar-actions.js?v=20260918-2"></script>
-  <script defer src="/js/ai-design-print-export.js?v=20260927-2"></script>
-  <script defer src="/js/ai-design-maker.js?v=20260927-2"></script>
+  <script defer src="/js/ai-design-print-export.js?v=20260928-2"></script>
+  <script defer src="/js/ai-design-maker.js?v=20260928-2"></script>
 </body>
 </html>
