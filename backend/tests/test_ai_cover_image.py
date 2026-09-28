@@ -90,7 +90,7 @@ def test_prompt_is_background_only_and_spine_aware():
     assert "Do not draw a visible center spine strip" in prompt
     assert "ONE coherent visual concept" in prompt
     assert "negative space" in prompt
-    assert "additional visual request" in prompt
+    assert "additional requests supplement the base rather than replacing it" in prompt
 
 
 def test_prompt_is_wing_aware_when_review_option_has_flaps():
