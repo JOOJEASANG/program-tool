@@ -239,7 +239,7 @@ def test_event_and_default_generation_use_richer_color_and_full_bleed():
     assert "COMPOSITION_VARIANTS" in source
     assert "OUTER BLEED BOUNDARY" in backend
     assert "Fill the entire canvas edge-to-edge" in backend
-    assert "cover-background-v10-model-user-direction" in backend
+    assert "cover-background-v11-additive-user-direction" in backend
 
 def test_ai_design_selected_text_supports_line_breaks_and_typography_controls():
     page = (ROOT / "ai-design-maker/index.html").read_text(encoding="utf-8")
@@ -326,7 +326,7 @@ def test_ai_design_reference_direction_supports_multiple_visual_languages():
         assert f'value="{mode}"' in page
     assert "ONE coherent visual concept" in backend
     assert "Do not force pale colors" in backend
-    assert "additional visual request as the highest-priority aesthetic preference" in backend
+    assert "additional requests supplement the base rather than replacing it" in backend
     assert "selectedDesignDirection()" in source
 
 def test_ai_design_maker_supports_standard_300dpi_and_high_quality_generation_modes():

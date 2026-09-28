@@ -90,7 +90,7 @@ def test_prompt_is_background_only_and_spine_aware():
     assert "Do not draw a visible center spine strip" in prompt
     assert "ONE coherent visual concept" in prompt
     assert "negative space" in prompt
-    assert "additional visual request" in prompt
+    assert "additional requests supplement the base rather than replacing it" in prompt
 
 
 def test_prompt_is_wing_aware_when_review_option_has_flaps():
@@ -179,6 +179,7 @@ def test_selected_model_reaches_provider_with_supported_size(monkeypatch, model,
     result = generate_cover_image({"model": model, "cover_mode": mode, "quality_mode": "high", "style_request": "a" * 2200, "additional_prompt": "아이보리 숲 " * 250 + "마지막 요청", "visual_direction": "paper texture"}, uid="test-user")
     assert result["model"] == sent[0]["model"] == model
     assert sent[0]["quality"] == "high"
+    assert "a" * 2200 in sent[0]["prompt"]
     assert "마지막 요청" in sent[0]["prompt"]
     assert "paper texture" in sent[0]["prompt"]
     if model in {"gpt-image-1.5", "gpt-image-1-mini"}:
