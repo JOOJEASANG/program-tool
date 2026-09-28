@@ -236,7 +236,7 @@ Exact Korean text will be added later by the application.
 
 ART DIRECTION
 - Choose ONE coherent visual concept tied to the subject, audience and intended publication.
-- Treat preset suggestions as defaults, selected visual controls as refinements, and the user's additional visual request as the highest-priority aesthetic preference. Never let these override geometry or the background-only rule.
+- Keep the base style direction as the design foundation. Combine it with the selected visual controls and ALL compatible additional requests; additional requests supplement the base rather than replacing it. Preserve every base requirement the user has not explicitly asked to change. Never override geometry or the background-only rule.
 - Use specific materials, lighting, shapes and a deliberate focal point appropriate to the requested medium. Keep edges intentional, details clean and colors controlled.
 - Do not force pale colors, blue waves, photography or a geometric template when the user asks for a different direction.
 
@@ -254,14 +254,14 @@ Preset: {req.preset_name or 'custom'}
 SEMANTIC CONTEXT ONLY — use this to inspire imagery, subject matter, visual metaphor and art direction; never render it as text:
 {req.theme_context or 'professional publication cover'}
 
-SELECTED VISUAL CONTROLS (suggestions subordinate to the user's additional visual request)
+SELECTED VISUAL CONTROLS (combine with the base style direction)
 {req.visual_direction or 'Use the preset direction.'}
 
-USER ADDITIONAL VISUAL REQUEST
+USER ADDITIONAL VISUAL REQUEST (apply together with the base, not instead of it)
 {req.additional_prompt or 'No additional request; follow the preset and selected controls.'}
 
 FINAL CHECK
-Resolve conflicting aesthetic suggestions in favor of the additional visual request. Keep one coherent concept,
+Check the base direction and each additional request together before finishing. Include requested subjects, colors, placement and exclusions while preserving the original overall direction. If an additional request explicitly changes a base detail, change only that detail; retain all other base requirements. Keep one coherent concept,
 intentional contrast, clean details and useful typography space. The output must still be flat, edge-to-edge,
 text-free background artwork in the specified panel order. Never render the instructions or semantic context as text.
 Return one finished background image.
@@ -435,7 +435,7 @@ def generate_cover_image(payload: dict[str, Any], *, uid: str) -> dict[str, Any]
         "model": str(data.get("model") or model),
         "size": str(data.get("size") or size),
         "quality": str(data.get("quality") or quality),
-        "prompt_version": "cover-background-v10-model-user-direction",
+        "prompt_version": "cover-background-v11-additive-user-direction",
         "geometry": {
             "cover_mode": req.cover_mode,
             "quality_mode": req.quality_mode,
