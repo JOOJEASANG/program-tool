@@ -1,0 +1,27 @@
+.print-checker-page .canvas-wrap{background:#e4eaf1;border-color:#c5ced8;box-shadow:0 8px 24px rgba(15,23,42,.10)}
+.print-checker-page .canvas-wrap canvas{border-color:#aeb9c7;box-shadow:inset 0 0 0 1px rgba(15,23,42,.04)}
+.print-checker-page .preview-canvas-stack{background:#c8d2dd;border:1px solid #9aa8b8;box-shadow:inset 0 0 0 2px rgba(255,255,255,.32),0 8px 18px rgba(15,23,42,.10)}
+.print-checker-page .preview-canvas-stack #previewFileLayer{background:#d7dfe8!important}
+.print-checker-page #bookReviewCanvas{display:none;background:#aeb9c7!important;border:1px solid #8493a5!important;border-radius:12px;box-shadow:0 10px 24px rgba(15,23,42,.16)}
+.print-checker-page .book-review-custom-sheet{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.print-checker-page .book-review-page-nav{display:none;padding:12px;border:1px solid #cbd5e1;border-radius:12px;background:#f8fafc}
+.print-checker-page .book-review-nav-title{font-size:11px;font-weight:950;color:#334155;margin-bottom:8px}
+.print-checker-page .book-review-nav-row{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center}
+.print-checker-page .book-review-nav-row button{border:1px solid #cbd5e1;background:#fff;color:#334155;border-radius:8px;padding:6px 9px;font-size:10px;font-weight:900;cursor:pointer}
+.print-checker-page .book-review-nav-row button:disabled{opacity:.38;cursor:not-allowed}
+.print-checker-page .book-review-nav-row strong{text-align:center;font-size:11px;color:#0f172a}
+.print-checker-page .book-review-page-nav small{display:block;margin-top:7px;color:#64748b;font-size:9px;line-height:1.45}
+.print-checker-page.book-review-active #bookReviewCanvas{display:block}
+.print-checker-page.book-review-active .preview-canvas-stack,
+.print-checker-page.book-review-active .canvas-wrap>#previewCanvas{display:none!important}
+.print-checker-page.book-review-active #previewZoomToolbar{display:none!important}
+.print-checker-page.book-review-active #bookReviewPageNav{display:block}
+.print-checker-page.book-review-active #adjPanel>.adj-kicker,
+.print-checker-page.book-review-active #adjPanel>.side-select-row,
+.print-checker-page.book-review-active #adjPanel>.adj-check-row,
+.print-checker-page.book-review-active #adjPanel>.adj-row,
+.print-checker-page.book-review-active #adjPanel>.reset-adj-btn{display:none!important}
+.print-checker-page.book-review-active .canvas-wrap{background:#c5ced8;border-color:#94a3b8}
+.print-checker-page .book-review-card.selected{border-color:#6d28d9;background:linear-gradient(180deg,#f5f3ff,#fff);box-shadow:0 0 0 2px rgba(109,40,217,.15)}
+.print-checker-page .book-review-error{color:#b91c1c}
+@media(max-width:520px){.print-checker-page .book-review-custom-sheet{grid-template-columns:1fr}.print-checker-page .book-review-nav-row{grid-template-columns:1fr 1fr}.print-checker-page .book-review-nav-row strong{grid-column:1/-1;grid-row:1}.print-checker-page #bookReviewCanvas{min-height:320px}}
