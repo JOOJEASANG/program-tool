@@ -51,6 +51,6 @@ $('removeStampBtn').onclick=async()=>{try{await db.collection('settings').doc('b
 function gate(title,text,actions=true){$('gateSpin').classList.add('hidden');$('gateTitle').textContent=title;$('gateText').textContent=text;$('gateActions').classList.toggle('hidden',!actions)}
 if(!window.auth){gate('Firebase 인증 오류','인증 모듈을 불러오지 못했습니다.');}else{auth.onAuthStateChanged(async user=>{if(!user){gate('로그인이 필요합니다','관리자 계정으로 로그인해 주세요.');return}try{const admin=await ProgramAccess.isAdmin(user);if(!admin){gate('관리자 권한이 없습니다',`${user.email||'현재 계정'}은 관리자 계정이 아닙니다.`);return}$('gate').classList.add('hidden');$('app').classList.remove('hidden');await Promise.allSettled([loadMembers(),loadBusiness()])}catch(e){gate('관리자 확인 오류',e.message||'권한 확인 중 오류가 발생했습니다.')}})}
 </script>
-<script src="/js/admin-ai-costs.js?v=20260922-1"></script>
+<script src="/js/admin-ai-costs.js?v=20260929-2"></script>
 </body>
 </html>
