@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import pytest
 
@@ -8,6 +9,7 @@ from services.openai_admin_usage import _total_report_start, sum_cost_buckets
 
 
 ROOT = Path(__file__).resolve().parents[2]
+SEOUL = ZoneInfo("Asia/Seoul")
 
 
 def test_sum_cost_buckets_returns_cumulative_amount():
@@ -30,8 +32,7 @@ def test_total_report_start_defaults_to_current_year(monkeypatch):
 
     start = _total_report_start(now)
 
-    assert start.astimezone(exchange_rate.timezone.utc).year == 2025 or start.year in {2025, 2026}
-    assert start.astimezone(__import__("zoneinfo").ZoneInfo("Asia/Seoul")).date().isoformat() == "2026-01-01"
+    assert start.astimezone(SEOUL).date().isoformat() == "2026-01-01"
 
 
 def test_total_report_start_accepts_configured_date(monkeypatch):
@@ -40,7 +41,7 @@ def test_total_report_start_accepts_configured_date(monkeypatch):
 
     start = _total_report_start(now)
 
-    assert start.astimezone(__import__("zoneinfo").ZoneInfo("Asia/Seoul")).date().isoformat() == "2026-07-15"
+    assert start.astimezone(SEOUL).date().isoformat() == "2026-07-15"
 
 
 def test_exchange_rate_uses_primary_provider_and_cache(monkeypatch):
