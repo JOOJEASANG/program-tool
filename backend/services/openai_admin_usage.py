@@ -153,7 +153,8 @@ def _fetch_pages(url: str, params: dict[str, Any]) -> list[dict[str, Any]]:
 
     data: list[dict[str, Any]] = []
     page = ""
-    for _ in range(20):
+    max_pages = 20
+    for _ in range(max_pages):
         current = dict(params)
         if page:
             current["page"] = page
@@ -188,11 +189,20 @@ def _fetch_pages(url: str, params: dict[str, Any]) -> list[dict[str, Any]]:
         if isinstance(buckets, list):
             data.extend(item for item in buckets if isinstance(item, dict))
         if not bool(payload.get("has_more")):
-            break
+            return data
         page = str(payload.get("next_page") or "")
         if not page:
-            break
-    return data
+            raise OpenAIAdminUsageError(
+                "OpenAI 비용 조회 결과가 완전하지 않아 합계를 확정할 수 없습니다.",
+                code="OPENAI_ADMIN_USAGE_INCOMPLETE",
+                status_code=502,
+            )
+
+    raise OpenAIAdminUsageError(
+        "OpenAI 비용 조회 페이지 한도를 초과해 전체 범위를 집계하지 못했습니다.",
+        code="OPENAI_ADMIN_USAGE_INCOMPLETE",
+        status_code=502,
+    )
 
 
 def _bucket_date(bucket: dict[str, Any]) -> date | None:
@@ -394,7 +404,7 @@ def fetch_openai_billing_summary(*, now: datetime | None = None) -> dict[str, An
             "start_time": int(total_start.timestamp()),
             "end_time": int(end.timestamp()) + 1,
             "bucket_width": "1d",
-            "limit": 31,
+            "limit": 180,
         }
         if project_id:
             total_params["project_ids"] = [project_id]
