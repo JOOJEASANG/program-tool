@@ -1,11 +1,12 @@
+import json
 from datetime import datetime, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
 import pytest
 
-from services import exchange_rate
-from services.openai_admin_usage import _total_report_start, sum_cost_buckets
+from services import exchange_rate, openai_admin_usage
+from services.openai_admin_usage import OpenAIAdminUsageError, _total_report_start, sum_cost_buckets
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -85,6 +86,34 @@ def test_exchange_rate_falls_back_to_frankfurter(monkeypatch):
     assert result["available"] is True
     assert result["provider"] == "frankfurter.app"
     assert result["rate"] == pytest.approx(1380.10)
+
+
+def test_openai_pagination_cap_never_returns_partial_costs(monkeypatch):
+    monkeypatch.setenv("OPENAI_ADMIN_KEY", "test-admin-key")
+
+    class FakeResponse:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def read(self):
+            return json.dumps({"data": [], "has_more": True, "next_page": "next"}).encode("utf-8")
+
+    monkeypatch.setattr(
+        openai_admin_usage.urllib.request,
+        "urlopen",
+        lambda request, timeout: FakeResponse(),
+    )
+
+    with pytest.raises(OpenAIAdminUsageError) as exc_info:
+        openai_admin_usage._fetch_pages(
+            openai_admin_usage.OPENAI_COSTS_URL,
+            {"start_time": 1, "end_time": 2, "bucket_width": "1d", "limit": 180},
+        )
+
+    assert exc_info.value.code == "OPENAI_ADMIN_USAGE_INCOMPLETE"
 
 
 def test_admin_ai_cost_client_contains_krw_and_total_contract():
