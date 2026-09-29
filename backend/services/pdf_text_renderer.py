@@ -263,7 +263,9 @@ def apply_page_numbers(
         rect,
         text,
         fontsize=fontsize,
-        fontname=CJK_FONT_NAME,
+        # Page numbers contain only ASCII digits and separators. CJK fonts
+        # advance each digit by a full em, producing excessive digit spacing.
+        fontname="helv",
         color=color,
         align=align,
         overlay=True,
