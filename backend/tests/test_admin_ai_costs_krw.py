@@ -74,7 +74,7 @@ def test_exchange_rate_falls_back_to_frankfurter(monkeypatch):
     exchange_rate._cache.clear()
 
     def fake_fetch(url):
-        if "open.er-api.com" in url:
+        if url == exchange_rate._OPEN_ER_API_URL:
             raise ValueError("primary unavailable")
         return {"date": "2026-09-29", "rates": {"KRW": 1380.10}}
 
