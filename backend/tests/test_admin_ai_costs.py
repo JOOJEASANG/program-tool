@@ -205,7 +205,7 @@ def test_admin_ai_cost_dashboard_contract():
         'id="aiCostDaily"',
         'id="aiCostLineItems"',
         'id="aiCostModels"',
-        '/js/admin-ai-costs.js?v=20260922-1',
+        '/js/admin-ai-costs.js?v=20260929-2',
     ):
         assert marker in html
 
