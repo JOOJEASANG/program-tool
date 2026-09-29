@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import urllib.error
 import urllib.parse
@@ -11,9 +12,12 @@ from datetime import date, datetime, timedelta, timezone
 from typing import Any
 from zoneinfo import ZoneInfo
 
+from services.exchange_rate import fetch_usd_krw_rate
+
 OPENAI_COSTS_URL = "https://api.openai.com/v1/organization/costs"
 OPENAI_IMAGES_USAGE_URL = "https://api.openai.com/v1/organization/usage/images"
 SEOUL = ZoneInfo("Asia/Seoul")
+logger = logging.getLogger(__name__)
 
 
 class OpenAIAdminUsageError(RuntimeError):
@@ -66,6 +70,31 @@ def _report_window(now: datetime | None = None) -> tuple[datetime, datetime, dat
         month_start_local.astimezone(timezone.utc),
         current.astimezone(timezone.utc),
     )
+
+
+def _total_report_start(now: datetime | None = None) -> datetime:
+    """Return the start of the cumulative cost window in Seoul time.
+
+    OPENAI_COST_TOTAL_START_DATE may be set to YYYY-MM-DD. Without it the
+    cumulative total starts on January 1 of the current year, which keeps the
+    admin dashboard useful without requiring another secret or configuration.
+    """
+    current = now or datetime.now(timezone.utc)
+    if current.tzinfo is None:
+        current = current.replace(tzinfo=timezone.utc)
+    local = current.astimezone(SEOUL)
+    raw = str(os.environ.get("OPENAI_COST_TOTAL_START_DATE") or "").strip()
+    parsed: date | None = None
+    if raw:
+        try:
+            parsed = date.fromisoformat(raw)
+        except ValueError:
+            logger.warning("Ignoring invalid OPENAI_COST_TOTAL_START_DATE=%s", raw)
+    if parsed is None:
+        parsed = date(local.year, 1, 1)
+    if parsed > local.date():
+        parsed = local.date()
+    return datetime(parsed.year, parsed.month, parsed.day, tzinfo=SEOUL).astimezone(timezone.utc)
 
 
 def _query_pairs(params: dict[str, Any]) -> list[tuple[str, str]]:
@@ -172,6 +201,22 @@ def _bucket_date(bucket: dict[str, Any]) -> date | None:
     except (TypeError, ValueError):
         return None
     return datetime.fromtimestamp(stamp, tz=timezone.utc).astimezone(SEOUL).date()
+
+
+def sum_cost_buckets(buckets: list[dict[str, Any]]) -> float:
+    """Return the exact sum for every cost result in the supplied buckets."""
+    total = 0.0
+    for bucket in buckets:
+        results = bucket.get("results")
+        if not isinstance(results, list):
+            continue
+        for result in results:
+            if not isinstance(result, dict):
+                continue
+            amount = result.get("amount")
+            if isinstance(amount, dict):
+                total += _number(amount.get("value"))
+    return round(total, 8)
 
 
 def summarize_cost_buckets(
@@ -316,6 +361,7 @@ def summarize_image_buckets(
 
 def fetch_openai_billing_summary(*, now: datetime | None = None) -> dict[str, Any]:
     start, month_start, end = _report_window(now)
+    total_start = _total_report_start(end)
     project_id = _project_id()
     shared = {
         "start_time": int(start.timestamp()),
@@ -341,7 +387,30 @@ def fetch_openai_billing_summary(*, now: datetime | None = None) -> dict[str, An
             "limit": 31,
         },
     )
+
+    total_available = True
+    try:
+        total_params: dict[str, Any] = {
+            "start_time": int(total_start.timestamp()),
+            "end_time": int(end.timestamp()) + 1,
+            "bucket_width": "1d",
+            "limit": 31,
+        }
+        if project_id:
+            total_params["project_ids"] = [project_id]
+        total_costs = costs if total_start == start else _fetch_pages(OPENAI_COSTS_URL, total_params)
+        total_to_date: float | None = sum_cost_buckets(total_costs)
+    except OpenAIAdminUsageError as exc:
+        logger.warning("OpenAI cumulative cost query unavailable code=%s", exc.code)
+        total_available = False
+        total_to_date = None
+
+    costs_summary = summarize_cost_buckets(costs, now=end)
+    costs_summary["total_to_date"] = total_to_date
+    costs_summary["total_available"] = total_available
+
     current = end.astimezone(SEOUL)
+    exchange_rate = fetch_usd_krw_rate()
     return {
         "available": True,
         "source": "openai_costs_api",
@@ -352,6 +421,12 @@ def fetch_openai_billing_summary(*, now: datetime | None = None) -> dict[str, An
             "end": current.date().isoformat(),
             "timezone": "Asia/Seoul",
         },
-        "costs": summarize_cost_buckets(costs, now=end),
+        "total_period": {
+            "start": total_start.astimezone(SEOUL).date().isoformat(),
+            "end": current.date().isoformat(),
+            "timezone": "Asia/Seoul",
+        },
+        "costs": costs_summary,
+        "exchange_rate": exchange_rate,
         "openai_images": summarize_image_buckets(images, now=end),
     }
