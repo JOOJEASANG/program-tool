@@ -1,4 +1,19 @@
-const DEFAULT_PAPER = { preset: 'original', customWidthMm: 210, customHeightMm: 297 };
+const DEFAULT_PAPER = {
+  preset: 'original',
+  customWidthMm: 210,
+  customHeightMm: 297,
+  landscape: false,
+  cropMarks: false,
+};
+
+const PAPER_PRESETS_MM = {
+  a5: { width: 148, height: 210 },
+  b5: { width: 182, height: 257 },
+  a4: { width: 210, height: 297 },
+  b4: { width: 257, height: 364 },
+  a3: { width: 297, height: 420 },
+};
+const PT_PER_MM = 72 / 25.4;
 
 export const advancedState = {
   files: [],
@@ -47,6 +62,35 @@ function outputPointsForPage(page) {
     : { width, height };
 }
 
+export function isSheetLayoutMode() {
+  return String(advancedState.paper?.preset || 'original') !== 'original';
+}
+
+export function paperSizeMmForPage(page) {
+  if (!isSheetLayoutMode()) {
+    const points = outputPointsForPage(page);
+    return { width: points.width / PT_PER_MM, height: points.height / PT_PER_MM };
+  }
+  const preset = String(advancedState.paper?.preset || 'a4').toLowerCase();
+  let size = PAPER_PRESETS_MM[preset];
+  if (!size) {
+    size = {
+      width: Math.max(20, Math.min(1200, Number(advancedState.paper?.customWidthMm) || 210)),
+      height: Math.max(20, Math.min(1200, Number(advancedState.paper?.customHeightMm) || 297)),
+    };
+  }
+  const landscape = !!advancedState.paper?.landscape;
+  return landscape
+    ? { width: Math.max(size.width, size.height), height: Math.min(size.width, size.height) }
+    : { width: Math.min(size.width, size.height), height: Math.max(size.width, size.height) };
+}
+
+export function paperPointsForPage(page) {
+  if (!isSheetLayoutMode()) return outputPointsForPage(page);
+  const mm = paperSizeMmForPage(page);
+  return { width: mm.width * PT_PER_MM, height: mm.height * PT_PER_MM };
+}
+
 export function selectedPage() {
   return advancedState.pages.find(page => page.id === advancedState.selectedId) || null;
 }
@@ -69,10 +113,12 @@ export function snapshotEditableState() {
 function restoreSnapshot(snapshot) {
   advancedState.pages = clone(snapshot.pages || []);
   advancedState.selectedId = snapshot.selectedId || advancedState.pages[0]?.id || null;
-  advancedState.paper = clone(snapshot.paper || DEFAULT_PAPER);
+  advancedState.paper = { ...DEFAULT_PAPER, ...clone(snapshot.paper || {}) };
   if (!advancedState.paper.preset) advancedState.paper.preset = 'original';
   if (!Number.isFinite(Number(advancedState.paper.customWidthMm))) advancedState.paper.customWidthMm = 210;
   if (!Number.isFinite(Number(advancedState.paper.customHeightMm))) advancedState.paper.customHeightMm = 297;
+  advancedState.paper.landscape = !!advancedState.paper.landscape;
+  advancedState.paper.cropMarks = !!advancedState.paper.cropMarks;
   advancedState.margins = clone(snapshot.margins || { left: 0, right: 0, top: 0, bottom: 0, facingPages: false });
   if (typeof advancedState.margins.facingPages !== 'boolean') advancedState.margins.facingPages = false;
   advancedState.headerFooter = clone(snapshot.headerFooter || advancedState.headerFooter);
@@ -160,9 +206,10 @@ export function resetAllState() {
 }
 
 export function serializeSettings() {
+  const sheetMode = isSheetLayoutMode();
   return {
     pages: advancedState.pages.map(page => {
-      const output = outputPointsForPage(page);
+      const output = paperPointsForPage(page);
       return {
         file_index: page.fileIndex,
         page_index: page.pageIndex,
@@ -179,6 +226,10 @@ export function serializeSettings() {
         edit_scale: page.scale,
         offset_x_mm: page.offsetX,
         offset_y_mm: page.offsetY,
+        preserve_actual_size: sheetMode,
+        crop_marks: sheetMode && !!advancedState.paper.cropMarks,
+        crop_mark_length_mm: 5,
+        crop_mark_gap_mm: 2,
         excluded: false,
       };
     }),
