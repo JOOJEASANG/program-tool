@@ -68,8 +68,10 @@
     return status;
   }
 
-  function clearLoadingState() {
+  function clearLoadingState(options = {}) {
     window.clearTimeout(settleTimer);
+    settleTimer = 0;
+    if (options.invalidate !== false) serial += 1;
     pendingProduct = '';
     document.documentElement.dataset.printCheckerProductTransition = 'ready';
     document.documentElement.dataset.printCheckerPendingProduct = '';
@@ -93,7 +95,6 @@
     const status = ensureStatus();
     if (status) status.textContent = `${LABELS[pendingProduct] || '선택한 인쇄물'} 화면 준비 중`;
 
-    // Never show a previous product's secondary result while the new form is being built.
     ['leafletGuide', 'impositionGuide', 'reportSection', 'contentPreflightSection'].forEach((id) => {
       const node = byId(id);
       if (node) node.hidden = true;
@@ -112,14 +113,11 @@
 
   function syncBookletMode(product) {
     try { window.PrintCheckerBookletLayoutOnly?.apply?.(); } catch (_) {}
-
     const stack = byId('previewCanvas')?.closest?.('.preview-canvas-stack');
     const productionLayer = byId('productionGuideLayer');
     const fileLayer = byId('previewFileLayer');
     const guideLayer = byId('previewGuideLayer');
-
     if (product === 'booklet') {
-      // Booklet has its own imposition canvas/board; production trim overlays must not cover it.
       stack?.classList.remove('production-guide-stack');
       stack?.style.removeProperty('--pc-work-ratio');
       if (productionLayer) productionLayer.style.display = 'none';
@@ -140,11 +138,7 @@
     const booklet = byId('impositionGuide');
     if (product !== 'leaflet' && leaflet) leaflet.hidden = true;
     if (product !== 'booklet' && booklet) booklet.hidden = true;
-
-    if (product === 'booklet') {
-      const summary = byId('printCheckerLiveSummary');
-      summary?.classList.add('pc-booklet-only-hidden');
-    }
+    if (product === 'booklet') byId('printCheckerLiveSummary')?.classList.add('pc-booklet-only-hidden');
   }
 
   function renderPass(product, token) {
@@ -162,13 +156,10 @@
     if (!renderPass(product, token)) return;
     document.documentElement.dataset.printCheckerProductTransition = 'ready';
     document.documentElement.dataset.printCheckerPendingProduct = '';
-    const main = byId('printCheckerMain');
-    main?.removeAttribute('aria-busy');
+    byId('printCheckerMain')?.removeAttribute('aria-busy');
     const status = ensureStatus();
     if (status) status.textContent = '';
-    window.dispatchEvent(new CustomEvent('programstudio:print-checker-product-stable', {
-      detail: { product, token },
-    }));
+    window.dispatchEvent(new CustomEvent('programstudio:print-checker-product-stable', { detail: { product, token } }));
   }
 
   function stabilize(product, options = {}) {
@@ -180,36 +171,40 @@
     }
     const token = options.token || begin(target);
     if (token !== serial) return false;
-
     if (options.seed !== false) seedDefaults(target);
     renderPass(target, token);
-
     requestAnimationFrame(() => {
       if (!renderPass(target, token)) return;
       requestAnimationFrame(() => renderPass(target, token));
     });
-
     window.clearTimeout(settleTimer);
     settleTimer = window.setTimeout(() => finish(target, token), 96);
     return true;
   }
 
   function bindProductClicks() {
-    // Capture phase blanks stale UI before the core button handler creates the new form.
     document.addEventListener('click', (event) => {
       const card = event.target.closest?.('.product-card');
       if (!card) return;
       const product = String(card.dataset.product || '');
-      if (!product || isExternalProduct(product)) return;
+      if (!product) return;
+      if (isExternalProduct(product)) {
+        clearLoadingState();
+        card.dataset.transitionToken = '';
+        return;
+      }
       card.dataset.transitionToken = String(begin(product));
     }, true);
 
-    // Bubble phase runs after the core selectProduct handler, so all selected-product DOM exists.
     document.addEventListener('click', (event) => {
       const card = event.target.closest?.('.product-card');
       if (!card) return;
       const product = String(card.dataset.product || '');
-      if (!product || isExternalProduct(product)) return;
+      if (!product) return;
+      if (isExternalProduct(product)) {
+        clearLoadingState();
+        return;
+      }
       const token = Number(card.dataset.transitionToken || 0);
       stabilize(product, { token: token || undefined, seed: true });
     });
