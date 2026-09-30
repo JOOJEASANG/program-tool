@@ -103,6 +103,15 @@
     document.head.appendChild(script);
   };
 
+  const loadDirectPrint=()=>{
+    if(document.getElementById('programStudioDirectPrintScript')||window.__programStudioDirectPrintV1)return;
+    const script=document.createElement('script');
+    script.id='programStudioDirectPrintScript';
+    script.src='/js/direct-print.js?v=20260930-1';
+    script.async=false;
+    document.head.appendChild(script);
+  };
+
   const loadSessionOverlayRestore=()=>{
     if(document.getElementById('pdfAdvancedOverlaySessionRestoreScript'))return;
     const script=document.createElement('script');
@@ -113,6 +122,7 @@
   };
   const loadStandaloneEnhancements=()=>{
     loadSidebarActions();
+    loadDirectPrint();
     loadSessionOverlayRestore();
   };
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',loadStandaloneEnhancements,{once:true});
