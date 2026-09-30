@@ -30,9 +30,6 @@ class AdvancedPageOverlay(BaseModel):
         if self.x + self.width > 1.001 or self.y + self.height > 1.001:
             raise ValueError("삽입 항목이 페이지 영역을 벗어났습니다")
         if self.type == "text":
-            # Empty text is a valid in-progress editor state. The renderer simply
-            # skips it until the user enters content, so downloads never fail just
-            # because a freshly inserted text box is temporarily blank.
             self.data_url = ""
         else:
             prefix = self.data_url[:32].lower()
@@ -43,11 +40,7 @@ class AdvancedPageOverlay(BaseModel):
 
 
 class AdvancedPageInfo(BaseModel):
-    """Standalone advanced-editor page state.
-
-    This model deliberately contains no N-up/booklet concepts. Coordinates are
-    source-page based so crop/erase remain stable when a page is moved or scaled.
-    """
+    """Standalone advanced-editor page state."""
 
     file_index: int = Field(ge=0, le=100_000)
     page_index: int = Field(ge=0, le=1_000_000)
@@ -64,6 +57,10 @@ class AdvancedPageInfo(BaseModel):
     edit_scale: float = Field(default=1.0, ge=0.5, le=3.0)
     offset_x_mm: float = Field(default=0.0, ge=-200.0, le=200.0)
     offset_y_mm: float = Field(default=0.0, ge=-200.0, le=200.0)
+    preserve_actual_size: bool = False
+    crop_marks: bool = False
+    crop_mark_length_mm: float = Field(default=5.0, ge=1.0, le=20.0)
+    crop_mark_gap_mm: float = Field(default=2.0, ge=0.0, le=10.0)
     excluded: bool = False
 
     @model_validator(mode="after")
@@ -95,8 +92,6 @@ class PdfAdvancedProcessRequest(BaseModel):
 
     @model_validator(mode="after")
     def propagate_overlay_margins(self):
-        # Header/footer and page-number renderers are shared stateless primitives.
-        # Keep their horizontal anchors aligned with the advanced editor margins.
         if self.header_footer.margin_left_mm is None:
             self.header_footer.margin_left_mm = self.margins.left_mm
         if self.header_footer.margin_right_mm is None:
