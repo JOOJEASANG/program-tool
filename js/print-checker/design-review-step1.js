@@ -8,7 +8,6 @@
   const GEOMETRY_KEY = 'programStudio.designReview.geometry.v1';
   const DEFAULT_GEOMETRY = Object.freeze({ trimW: 210, trimH: 297, spine: 0, bleed: 3 });
   let initialized = false;
-  let documentCardObserver = null;
 
   const $ = (id) => document.getElementById(id);
   const numberOr = (value, fallback) => {
@@ -16,13 +15,6 @@
     return Number.isFinite(number) ? number : fallback;
   };
   const clamp = (value, min, max, fallback = min) => Math.max(min, Math.min(max, numberOr(value, fallback)));
-
-  function isDocumentReviewActive() {
-    return Boolean(
-      document.body?.classList.contains('book-review-active') ||
-      new URLSearchParams(location.search).get('product') === 'book-review'
-    );
-  }
 
   function readRememberedGeometry() {
     try {
@@ -51,7 +43,6 @@
   }
 
   function saveGeometry(source = document) {
-    if (isDocumentReviewActive()) return readRememberedGeometry();
     const geometry = currentGeometry(source);
     try {
       localStorage.setItem(GEOMETRY_KEY, JSON.stringify(geometry));
@@ -66,7 +57,6 @@
   }
 
   function applyGeometry({ force = false } = {}) {
-    if (isDocumentReviewActive()) return;
     const trimW = $('trimW');
     const trimH = $('trimH');
     if (!trimW || !trimH) return;
@@ -97,16 +87,12 @@
     if (!form) return;
 
     const remember = (event) => {
-      if (isDocumentReviewActive()) return;
       if (['trimW', 'trimH', 'spine', 'bleed'].includes(event.target?.id)) saveGeometry();
     };
     form.addEventListener('input', remember);
     form.addEventListener('change', remember);
 
-    const observer = new MutationObserver(() => {
-      if (isDocumentReviewActive()) return;
-      queueMicrotask(() => applyGeometry({ force: false }));
-    });
+    const observer = new MutationObserver(() => queueMicrotask(() => applyGeometry({ force: false })));
     observer.observe(form, { childList: true, subtree: true });
 
     if (!initialized) {
@@ -117,45 +103,8 @@
     }
   }
 
-  function ensureDocumentFileCard() {
-    const grid = $('productGrid');
-    if (!grid) return null;
-
-    let card = grid.querySelector('[data-product="book-review"]');
-    if (!card) {
-      card = document.createElement('button');
-      card.type = 'button';
-      card.className = 'product-card book-review-card';
-      card.dataset.product = 'book-review';
-      card.innerHTML = '<span class="pc-icon">📑</span><strong class="pc-label">문서파일</strong><small class="pc-desc">PDF 문서·재단선·안전영역</small>';
-      grid.appendChild(card);
-    }
-
-    if (card.dataset.documentFileBound !== '1') {
-      card.dataset.documentFileBound = '1';
-      card.addEventListener('click', (event) => {
-        event.preventDefault();
-        event.stopPropagation();
-        window.PrintCheckerBookReview?.activate?.();
-      });
-    }
-    return card;
-  }
-
-  function bindDocumentFileCard() {
-    const grid = $('productGrid');
-    if (!grid) return;
-    ensureDocumentFileCard();
-    documentCardObserver?.disconnect();
-    documentCardObserver = new MutationObserver(() => {
-      if (!grid.querySelector('[data-product="book-review"]')) queueMicrotask(ensureDocumentFileCard);
-    });
-    documentCardObserver.observe(grid, { childList: true });
-  }
-
   function boot() {
     bindGeometryMemory();
-    bindDocumentFileCard();
     window.DesignReviewGeometry = Object.freeze({
       get: readRememberedGeometry,
       save: saveGeometry,
