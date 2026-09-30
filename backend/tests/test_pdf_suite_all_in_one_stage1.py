@@ -13,34 +13,39 @@ SPECIALIST = ROOT / "js" / "pdf-suite" / "specialist-label.js"
 HOSTING = ROOT / "scripts" / "prepare_hosting_dist.py"
 
 
-def test_pdf_suite_exposes_eight_real_work_areas_and_separates_planned_tools():
+def test_pdf_suite_exposes_task_first_workspace_and_separates_planned_tools():
     source = HUB.read_text(encoding="utf-8")
 
     for marker in (
-        "01 · PAGE & DOCUMENT",
-        "02 · CONVERT & EXTRACT",
-        "03 · EDIT & LAYOUT",
-        "04 · SECURITY & PRIVACY",
-        "05 · PRINT & PUBLISHING",
-        "06 · SCAN & OCR",
-        "07 · OPTIMIZE & COMPATIBILITY",
-        "08 · INSPECT & ANALYZE",
+        'data-pdf-suite="workspace-v2"',
+        "하려는 PDF 작업만 찾으면",
+        'id="suiteSearch"',
+        'id="suiteFilters"',
+        "자주 쓰는 작업",
+        "페이지 정리",
+        "변환·압축",
+        "편집·인쇄 배치",
+        "보안·문서 정보",
+        "인쇄·검사",
         "PDF 합치기",
-        "페이지 추출·나누기",
+        "분할·페이지 추출",
+        "PDF 압축",
         "PDF 프리플라이트",
         "AES-256 암호 설정",
         "N-up 다면 배치",
         "대형 분할 출력",
-        "data-status=\"planned\"",
-        "한국어 OCR",
-        "PDF/A",
-        "영구 Redaction",
+        'data-status="planned"',
+        "OCR·검색 가능한 PDF",
+        "PDF/A 장기보존",
+        "영구 마스킹",
         "전자서명",
+        "내 PC에서 빠른 처리",
     ):
         assert marker in source
 
     assert 'href="../pdf-preflight/"' in source
     assert 'href="../pdf-editor/"' in source
+    assert 'href="../pdf-editor-advanced/"' in source
     assert 'href="../print-checker/"' in source
     assert 'src="../js/pdf-suite/local-tools.js"' in source
 
