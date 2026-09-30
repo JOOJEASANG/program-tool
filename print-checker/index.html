@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>인쇄파일 검토 · Program Studio</title>
   <!-- Legacy separation contract only: <title>디자인 검토 · Program Studio</title> <span class="sb-nav-title">디자인 검토</span> -->
-  <meta name="description" content="완성 인쇄파일의 재단 규격, 도련, 안전 영역, 책등, 접지, 문서파일 인쇄용지 배치와 페이지 구성을 실제 파일과 비교하고 검토합니다.">
+  <meta name="description" content="완성 인쇄파일의 재단 규격, 도련, 안전 영역, 책등과 접지 상태를 실제 파일과 비교하고 검토합니다.">
   <meta name="robots" content="noindex,nofollow">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
@@ -16,7 +16,6 @@
   <link rel="stylesheet" href="/css/print-checker-page-layout-v2.css?v=20260911-2">
   <link rel="stylesheet" href="/css/print-checker-leaflet-popover.css?v=20260911-1">
   <link rel="stylesheet" href="/css/print-checker-content-preflight.css?v=20260910-1">
-  <link rel="stylesheet" href="/css/print-checker-book-review.css?v=20260930-3">
 </head>
 <body class="print-checker-page">
   <div class="app-layout">
@@ -138,49 +137,6 @@
   <script defer src="/js/print-checker/design-review-step1.js?v=20260930-5"></script>
   <script defer src="/js/print-checker/book-review.js?v=20260930-3"></script>
   <script defer src="/js/print-checker/preview-surface.js?v=20260930-2"></script>
-  <script>
-    (() => {
-      const dimensions = {
-        a3: [297, 420], b4: [257, 364], a4: [210, 297], b5: [182, 257],
-        isoB5: [176, 250], a5: [148, 210]
-      };
-
-      const repairDocumentReview = () => {
-        if (!document.body?.classList.contains('book-review-active')) return;
-        document.getElementById('printSizePreset')?.closest('.pc-size-preset')?.remove();
-        document.getElementById('printCheckerLiveSummary')?.remove();
-
-        const preset = document.getElementById('bookSheetPreset')?.value || 'b5';
-        const trimW = document.getElementById('trimW');
-        const trimH = document.getElementById('trimH');
-        const [sheetW, sheetH] = dimensions[preset] || [0, 0];
-        const leakedFlyerDefaults = trimW && trimH && Number(trimW.value) === 210 && Number(trimH.value) === 297 && (sheetW !== 210 || sheetH !== 297);
-        if (!leakedFlyerDefaults) return;
-
-        trimW.value = '';
-        trimH.value = '';
-        document.getElementById('specForm')?.dispatchEvent(new Event('input', { bubbles: true }));
-        window.PrintCheckerBookReview?.renderPreview?.();
-      };
-
-      document.addEventListener('click', (event) => {
-        const card = event.target.closest?.('.product-card[data-product="book-review"]');
-        if (!card) return;
-        event.preventDefault();
-        event.stopPropagation();
-        window.PrintCheckerProductTransition?.clearLoadingState?.();
-        window.setTimeout(() => {
-          window.PrintCheckerBookReview?.activate?.();
-          repairDocumentReview();
-          window.setTimeout(repairDocumentReview, 80);
-        }, 0);
-      }, true);
-
-      document.addEventListener('DOMContentLoaded', repairDocumentReview, { once: true });
-
-      window.PrintCheckerDocumentReviewUiFix = Object.freeze({ repair: repairDocumentReview, stage: 'document-review-ui-fix-v2' });
-    })();
-  </script>
   <script>
     (() => {
       const url = new URL(location.href);

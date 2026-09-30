@@ -1,6 +1,6 @@
 # Program Studio 구조
 
-이 문서는 2026-09-18 기준 운영 `main` 구조를 설명합니다. 과거 디자인/문서/이미지 편집기 실험 구조는 현재 운영 트리에서 제거되어 있으며, 실제 배포 경로와 canonical runtime을 기준으로만 기록합니다.
+이 문서는 2026-09-30 기준 운영 `main` 구조를 설명합니다. 과거 디자인/문서/이미지 편집기 실험 구조는 현재 운영 트리에서 제거되어 있으며, 실제 배포 경로와 canonical runtime을 기준으로만 기록합니다.
 
 ## 1. 운영 화면
 
@@ -16,7 +16,7 @@
 
 홈 런처는 다음 6개 프로그램을 운영합니다.
 
-- `print-checker/index.html`: 디자인 검토
+- `print-checker/index.html`: 인쇄파일 검토
 - `ai-design-maker/index.html`: AI 디자인 제작
 - `smart-print-layout/index.html`: 스마트 인쇄배치
 - `pdf-editor/index.html`: PDF배치
@@ -66,9 +66,9 @@ Firebase Hosting은 `/apps/**`를 `apps/index.html`로 연결합니다.
 
 PDF 기능 자체는 `/apps/**`에 복제하지 않고 `pdf-editor` canonical runtime이 소유합니다.
 
-## 3. 디자인 검토와 AI 제작 경계
+## 3. 인쇄파일 검토와 AI 제작 경계
 
-### 디자인 검토
+### 인쇄파일 검토
 
 주요 파일:
 
@@ -85,6 +85,8 @@ PDF 기능 자체는 `/apps/**`에 복제하지 않고 `pdf-editor` canonical ru
 - 초대장/안내장 2페이지 PDF는 1p 앞면 · 2p 뒷면으로 사용
 - 초대장/안내장 접지는 방향과 실제 위치(mm)를 지정 가능
 - 리플렛 기존 접지 로직 유지
+- 문서 PDF의 인쇄용지·재단 규격 검토는 `pdf-editor-advanced`의 **문서 인쇄 검토**가 소유
+- `/print-checker/?product=book-review`는 기존 즐겨찾기를 위한 호환 리다이렉트만 유지
 - 사용횟수 제한 없이 승인 회원 여부만 접근 조건으로 사용
 
 ### AI 디자인 제작
@@ -120,7 +122,7 @@ PDF 기능 자체는 `/apps/**`에 복제하지 않고 `pdf-editor` canonical ru
 
 ### PDF 고급 편집기
 
-`pdf-editor-advanced`는 기존 N-up/소책자 UI를 끌어오지 않는 독립 편집기입니다.
+`pdf-editor-advanced`는 기존 N-up/소책자 UI를 끌어오지 않는 독립 편집기이며 문서 인쇄 검토도 이 runtime이 소유합니다.
 
 - `pdf-editor-advanced/index.html`
 - `css/pdf-editor-advanced.css`
@@ -128,6 +130,8 @@ PDF 기능 자체는 `/apps/**`에 복제하지 않고 `pdf-editor` canonical ru
 - `js/pdf-editor-advanced/state.js`
 - `js/pdf-editor-advanced/preview.js`
 - `js/pdf-editor-advanced/api.js`
+- `js/pdf-editor-advanced/print-review.js`: 인쇄용지 중앙 배치, 재단선·안전영역, 전체 페이지 검사
+- `js/pdf-editor-advanced/print-review-validation.js`: 인쇄 검토 필수 규격 검증
 
 ### PDF 검사·유틸리티
 
@@ -177,7 +181,7 @@ Firebase Hosting의 `public`은 저장소 루트가 아니라 `.firebase-hosting
 `scripts/prepare_hosting_dist.py`가 다음 원칙으로 배포 디렉터리를 생성합니다.
 
 - 필수 root HTML/정적 파일만 복사
-- `apps`, `css`, `js`, `print-checker`, `ai-design-maker`, `smart-print-layout`, `pdf-editor`, `pdf-preflight`, `perfect-binding-cover`, `tools`, `legal` 등 허용된 정적 디렉터리만 복사
+- `apps`, `css`, `js`, `print-checker`, `ai-design-maker`, `smart-print-layout`, `pdf-editor`, `pdf-editor-advanced`, `pdf-preflight`, `pdf-suite`, `perfect-binding-cover`, `tools`, `legal`, `assets`, `images`, `fonts` 등 허용된 정적 디렉터리만 복사
 - `backend`, `docs`, `tests`, `.github`, Markdown, Python 소스는 Hosting에서 제외
 - 배포 단계에서 필요한 PDF 보조 런타임을 명시적으로 주입
 - 금지 파일이 `.firebase-hosting`으로 누출되면 실패
@@ -214,8 +218,9 @@ Firebase Hosting의 `public`은 저장소 루트가 아니라 `.firebase-hosting
 
 1. 기능 모듈은 하나의 canonical runtime만 소유합니다.
 2. 호환 URL은 기능을 복제하지 않고 canonical 화면으로 연결합니다.
-3. 디자인 검토는 `print-checker`, AI 표지 제작은 `ai-design-maker`가 소유하며 제거된 편집기 런타임을 다시 추가하지 않습니다.
-4. PDF layout/booklet 독립 앱은 `pdf-editor` 엔진을 재사용합니다.
-5. 독립 고급 PDF 편집기는 N-up/소책자 runtime과 분리합니다.
-6. 배포 가능 여부는 Firebase Hosting allowlist를 기준으로 판단합니다.
-7. 삭제 전에는 실제 라우팅, Hosting 포함 여부, 회귀검사 의존성을 확인합니다.
+3. 인쇄파일 검토는 `print-checker`, AI 표지 제작은 `ai-design-maker`가 소유하며 제거된 편집기 런타임을 다시 추가하지 않습니다.
+4. 문서 PDF 인쇄 검토는 `pdf-editor-advanced`가 소유하고 `print-checker`에는 호환 리다이렉트만 둡니다.
+5. PDF layout/booklet 독립 앱은 `pdf-editor` 엔진을 재사용합니다.
+6. 독립 고급 PDF 편집기는 N-up/소책자 runtime과 분리합니다.
+7. 배포 가능 여부는 Firebase Hosting allowlist를 기준으로 판단합니다.
+8. 삭제 전에는 실제 라우팅, Hosting 포함 여부, 회귀검사 의존성을 확인합니다.
