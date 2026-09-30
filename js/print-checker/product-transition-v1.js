@@ -11,6 +11,7 @@
     invitation: '초대장/안내장',
     booklet: '소책자',
   });
+  const EXTERNAL_PRODUCTS = new Set(['book-review']);
   const byId = (id) => document.getElementById(id);
   let serial = 0;
   let settleTimer = 0;
@@ -25,6 +26,10 @@
 
   function currentProduct() {
     try { return checker()?.getState?.()?.product || ''; } catch (_) { return ''; }
+  }
+
+  function isExternalProduct(product) {
+    return EXTERNAL_PRODUCTS.has(String(product || ''));
   }
 
   function installStyles() {
@@ -63,7 +68,22 @@
     return status;
   }
 
+  function clearLoadingState() {
+    window.clearTimeout(settleTimer);
+    pendingProduct = '';
+    document.documentElement.dataset.printCheckerProductTransition = 'ready';
+    document.documentElement.dataset.printCheckerPendingProduct = '';
+    const main = byId('printCheckerMain');
+    main?.removeAttribute('aria-busy');
+    const status = ensureStatus();
+    if (status) status.textContent = '';
+  }
+
   function begin(product) {
+    if (isExternalProduct(product)) {
+      clearLoadingState();
+      return 0;
+    }
     const token = ++serial;
     pendingProduct = product || '';
     document.documentElement.dataset.printCheckerProductTransition = 'loading';
@@ -154,6 +174,10 @@
   function stabilize(product, options = {}) {
     const target = product || currentProduct();
     if (!target) return false;
+    if (isExternalProduct(target)) {
+      clearLoadingState();
+      return true;
+    }
     const token = options.token || begin(target);
     if (token !== serial) return false;
 
@@ -176,7 +200,7 @@
       const card = event.target.closest?.('.product-card');
       if (!card) return;
       const product = String(card.dataset.product || '');
-      if (!product) return;
+      if (!product || isExternalProduct(product)) return;
       card.dataset.transitionToken = String(begin(product));
     }, true);
 
@@ -185,6 +209,7 @@
       const card = event.target.closest?.('.product-card');
       if (!card) return;
       const product = String(card.dataset.product || '');
+      if (!product || isExternalProduct(product)) return;
       const token = Number(card.dataset.transitionToken || 0);
       stabilize(product, { token: token || undefined, seed: true });
     });
@@ -203,6 +228,8 @@
     begin,
     stabilize,
     currentProduct,
+    clearLoadingState,
+    isExternalProduct,
     stage: 'v1-latest-selection-wins',
   });
 
