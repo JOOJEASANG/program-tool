@@ -4,14 +4,22 @@
   if (window.__printCheckerBookReviewV1) return;
   window.__printCheckerBookReviewV1 = true;
 
-  function openAdvancedEditor() {
-    location.href = '/pdf-editor-advanced/';
+  function openAdvancedEditor({ replace = false } = {}) {
+    const target = '/pdf-editor-advanced/';
+    if (replace) location.replace(target);
+    else location.href = target;
+  }
+
+  const params = new URLSearchParams(location.search);
+  if (params.get('product') === 'book-review') {
+    openAdvancedEditor({ replace: true });
+    return;
   }
 
   window.PrintCheckerBookReview = Object.freeze({
     activate: openAdvancedEditor,
     deactivate() {},
     renderPreview() {},
-    stage: 'document-review-moved-to-pdf-editor-advanced-v1',
+    stage: 'document-review-moved-to-pdf-editor-advanced-v2',
   });
 })();
