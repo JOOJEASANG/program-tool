@@ -24,6 +24,14 @@ PDF_SUITE_WORKSPACE_STABILITY_MARKER = "data-pdf-suite-workspace-stability"
 PDF_SUITE_CURATED_CORE_MARKER = "data-pdf-suite-curated-core"
 PDF_ADVANCED_EMPTY_STATE_MARKER = "data-pdf-advanced-empty-state-center"
 PDF_SPECIALIST_LABEL_MARKER = "data-pdf-specialist-label"
+DIRECT_PRINT_MARKER = "data-program-studio-direct-print"
+DIRECT_PRINT_TARGETS = (
+    "smart-print-layout/index.html",
+    "pdf-editor/index.html",
+    "pdf-editor-advanced/index.html",
+    "ai-design-maker/index.html",
+    "tools/pdf-editor.html",
+)
 
 ROOT_FILES = set(DEPLOY_HTML) | {
     PDF_SUITE_HTML,
@@ -128,6 +136,9 @@ PDF_ADVANCED_EMPTY_STATE_SNIPPET = (
 PDF_SPECIALIST_LABEL_SNIPPET = (
     f'<script {PDF_SPECIALIST_LABEL_MARKER} defer src="/js/pdf-suite/specialist-label.js?v=20260906-5"></script>'
 )
+DIRECT_PRINT_SNIPPET = (
+    f'<script {DIRECT_PRINT_MARKER} defer src="/js/direct-print.js?v=20260930-2"></script>'
+)
 
 
 def _copy_file(source: Path, relative: Path) -> None:
@@ -187,6 +198,8 @@ def _patch_pdf_suite_entry_points() -> None:
     _inject_before(advanced_editor, PDF_ADVANCED_EMPTY_STATE_MARKER, "</head>", PDF_ADVANCED_EMPTY_STATE_SNIPPET)
     _inject_before(preflight, PDF_SPECIALIST_LABEL_MARKER, "</body>", PDF_SPECIALIST_LABEL_SNIPPET)
     _inject_before(editor, PDF_SPECIALIST_LABEL_MARKER, "</body>", PDF_SPECIALIST_LABEL_SNIPPET)
+    for relative in DIRECT_PRINT_TARGETS:
+        _inject_before(OUTPUT / relative, DIRECT_PRINT_MARKER, "</body>", DIRECT_PRINT_SNIPPET)
 
 
 def build() -> int:
