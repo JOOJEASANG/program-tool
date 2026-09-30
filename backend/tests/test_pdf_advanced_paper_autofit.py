@@ -55,11 +55,23 @@ def test_advanced_paper_size_and_autofit_frontend_contract():
     facing = (ROOT / "js" / "pdf-editor-advanced" / "facing-upload.js").read_text(encoding="utf-8")
     state = (ROOT / "js" / "pdf-editor-advanced" / "state.js").read_text(encoding="utf-8")
 
-    for marker in ["원본 크기 유지", "A4 (210×297mm)", "A3 (297×420mm)", "B4 (250×354mm)", "B5 (176×250mm)", "Letter (216×279mm)", "직접 입력..."]:
+    for marker in [
+        "원본 크기로 편집 · 출력",
+        "A5 (148×210mm)",
+        "B5 (182×257mm)",
+        "A4 (210×297mm)",
+        "B4 (257×364mm)",
+        "A3 (297×420mm)",
+        "직접 입력...",
+    ]:
         assert marker in paper
     assert "sourceWidthPt" in paper and "sourceHeightPt" in paper
-    assert "현재 세로·가로 방향을 유지" in paper
+    assert "100%가 원본 실제 mm 크기" in paper
+    assert "advancedPaperCropMarks" in paper
+    assert "page.widthPt = visibleWidthPt" not in paper
     assert "output_width_pt" in state and "output_height_pt" in state
+    assert "preserve_actual_size: sheetMode" in state
+    assert "crop_marks: sheetMode" in state
     assert "import './paper-size.js';" in facing
     assert "import './layout-v3.js';" in facing
 
