@@ -3,7 +3,11 @@
 .print-checker-page .preview-canvas-stack{background-color:#fff;background-image:linear-gradient(90deg,rgba(203,213,225,.42) 1px,transparent 1px),linear-gradient(rgba(203,213,225,.42) 1px,transparent 1px);background-size:16px 16px;border:1px solid #cbd5e1;box-shadow:0 7px 18px rgba(15,23,42,.07)}
 .print-checker-page .preview-canvas-stack #previewFileLayer{background:transparent!important}
 .print-checker-page #bookReviewCanvas{display:none;background:#fff!important;border:1px solid #cbd5e1!important;border-radius:12px;box-shadow:0 8px 20px rgba(15,23,42,.08)}
-.print-checker-page .book-review-custom-sheet{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.print-checker-page .book-review-custom-sheet{display:grid;grid-template-columns:minmax(0,1fr);gap:8px;width:100%;max-width:100%;min-width:0}
+.print-checker-page .book-review-custom-sheet .spec-field,.print-checker-page.book-review-active #specForm>.spec-field{width:100%;max-width:100%;min-width:0}
+.print-checker-page .book-review-custom-sheet .spec-input-row,.print-checker-page.book-review-active #specForm>.spec-field .spec-input-row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;width:100%;max-width:100%;min-width:0;gap:6px}
+.print-checker-page .book-review-custom-sheet .spec-input,.print-checker-page.book-review-active #specForm .spec-input{width:100%;max-width:100%;min-width:0}
+.print-checker-page.book-review-active #specForm{width:100%;max-width:100%;min-width:0;overflow:hidden}
 .print-checker-page .book-review-page-nav{display:none;padding:12px;border:1px solid #cbd5e1;border-radius:12px;background:#f8fafc}
 .print-checker-page .book-review-nav-title{font-size:11px;font-weight:950;color:#334155;margin-bottom:8px}
 .print-checker-page .book-review-nav-row{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center}
@@ -11,7 +15,7 @@
 .print-checker-page .book-review-nav-row button:disabled{opacity:.38;cursor:not-allowed}
 .print-checker-page .book-review-nav-row strong{text-align:center;font-size:11px;color:#0f172a}
 .print-checker-page .book-review-page-nav small{display:block;margin-top:7px;color:#64748b;font-size:9px;line-height:1.45}
-.print-checker-page.book-review-active #bookReviewCanvas{display:block}
+.print-checker-page.book-review-active #bookReviewCanvas{display:block;width:100%!important;max-width:100%;height:auto!important;margin:0 auto}
 .print-checker-page.book-review-active .preview-canvas-stack,
 .print-checker-page.book-review-active .canvas-wrap>#previewCanvas{display:none!important}
 .print-checker-page.book-review-active #previewZoomToolbar{display:none!important}
@@ -21,7 +25,8 @@
 .print-checker-page.book-review-active #adjPanel>.adj-check-row,
 .print-checker-page.book-review-active #adjPanel>.adj-row,
 .print-checker-page.book-review-active #adjPanel>.reset-adj-btn{display:none!important}
-.print-checker-page.book-review-active .canvas-wrap{background:#fff;border-color:#dbe3ec}
+.print-checker-page.book-review-active .canvas-wrap{width:min(100%,760px);max-width:760px;align-self:center;margin-left:auto;margin-right:auto;background:#fff;border-color:#dbe3ec}
 .print-checker-page .book-review-card.selected{border-color:#6d28d9;background:linear-gradient(180deg,#f5f3ff,#fff);box-shadow:0 0 0 2px rgba(109,40,217,.15)}
 .print-checker-page .book-review-error{color:#b91c1c}
-@media(max-width:520px){.print-checker-page .book-review-custom-sheet{grid-template-columns:1fr}.print-checker-page .book-review-nav-row{grid-template-columns:1fr 1fr}.print-checker-page .book-review-nav-row strong{grid-column:1/-1;grid-row:1}.print-checker-page #bookReviewCanvas{min-height:320px}}
+@media(max-width:900px){.print-checker-page.book-review-active .canvas-wrap{width:100%;max-width:760px}}
+@media(max-width:520px){.print-checker-page .book-review-custom-sheet{grid-template-columns:minmax(0,1fr)}.print-checker-page .book-review-nav-row{grid-template-columns:1fr 1fr}.print-checker-page .book-review-nav-row strong{grid-column:1/-1;grid-row:1}.print-checker-page #bookReviewCanvas{min-height:320px}.print-checker-page.book-review-active .canvas-wrap{max-width:100%}}
