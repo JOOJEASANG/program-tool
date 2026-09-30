@@ -1,11 +1,17 @@
-import { advancedState, selectedPage } from './state.js';
+import {
+  advancedState,
+  selectedPage,
+  paperPointsForPage,
+  isSheetLayoutMode,
+} from './state.js';
 
 const PT_PER_MM = 72 / 25.4;
 const MAX_SOURCE_CANVAS_CACHE = 8;
 const sourceCanvasCache = new Map();
 let lastLayout = null;
 
-function clamp(value, min, max) { return Math.max(min, Math.min(max, value)); }
+const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+
 function normalizeQuarter(value) {
   const normalized = ((Number(value || 0) % 360) + 360) % 360;
   return [0, 90, 180, 270].reduce((best, candidate) => {
@@ -14,6 +20,7 @@ function normalizeQuarter(value) {
     return distance < bestDistance ? candidate : best;
   }, 0);
 }
+
 function normalizeFine(value) {
   const number = Number(value || 0);
   if (!Number.isFinite(number)) return 0;
@@ -54,7 +61,8 @@ export async function sourceCanvasFor(page) {
   canvas.width = Math.max(1, Math.round(viewport.width));
   canvas.height = Math.max(1, Math.round(viewport.height));
   const context = canvas.getContext('2d', { alpha: false });
-  context.fillStyle = '#fff'; context.fillRect(0, 0, canvas.width, canvas.height);
+  context.fillStyle = '#fff';
+  context.fillRect(0, 0, canvas.width, canvas.height);
   await pdfPage.render({ canvasContext: context, viewport }).promise;
   cacheSourceCanvas(key, canvas);
   return canvas;
@@ -94,7 +102,8 @@ function mirroredPosition(position, page) {
 function drawSourceWithErase(page, source) {
   if (!page.eraseRegions?.length) return source;
   const canvas = document.createElement('canvas');
-  canvas.width = source.width; canvas.height = source.height;
+  canvas.width = source.width;
+  canvas.height = source.height;
   const ctx = canvas.getContext('2d', { alpha: false });
   ctx.drawImage(source, 0, 0);
   ctx.fillStyle = '#fff';
@@ -111,10 +120,16 @@ function drawSourceWithErase(page, source) {
 function quarterRotatedCanvas(crop, quarter) {
   if (!quarter) return crop;
   const rotated = document.createElement('canvas');
-  if (quarter === 90 || quarter === 270) { rotated.width = crop.height; rotated.height = crop.width; }
-  else { rotated.width = crop.width; rotated.height = crop.height; }
+  if (quarter === 90 || quarter === 270) {
+    rotated.width = crop.height;
+    rotated.height = crop.width;
+  } else {
+    rotated.width = crop.width;
+    rotated.height = crop.height;
+  }
   const ctx = rotated.getContext('2d', { alpha: false });
-  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, rotated.width, rotated.height);
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, rotated.width, rotated.height);
   if (quarter === 90) { ctx.translate(crop.height, 0); ctx.rotate(Math.PI / 2); }
   else if (quarter === 180) { ctx.translate(crop.width, crop.height); ctx.rotate(Math.PI); }
   else if (quarter === 270) { ctx.translate(0, crop.width); ctx.rotate(-Math.PI / 2); }
@@ -131,7 +146,8 @@ function fineRotatedCanvas(source, fine) {
   rotated.width = Math.max(1, Math.ceil(source.width * cosine + source.height * sine));
   rotated.height = Math.max(1, Math.ceil(source.width * sine + source.height * cosine));
   const ctx = rotated.getContext('2d', { alpha: false });
-  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, rotated.width, rotated.height);
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, rotated.width, rotated.height);
   ctx.save();
   ctx.translate(rotated.width / 2, rotated.height / 2);
   ctx.rotate(radians);
@@ -149,11 +165,13 @@ function croppedRotatedCanvas(page, source) {
   const cy = Math.round(source.height * top);
   const cw = Math.max(1, Math.round(source.width * (1 - left - right)));
   const ch = Math.max(1, Math.round(source.height * (1 - top - bottom)));
-  const crop = document.createElement('canvas'); crop.width = cw; crop.height = ch;
+  const crop = document.createElement('canvas');
+  crop.width = cw;
+  crop.height = ch;
   const cropCtx = crop.getContext('2d', { alpha: false });
-  cropCtx.fillStyle = '#fff'; cropCtx.fillRect(0, 0, cw, ch);
+  cropCtx.fillStyle = '#fff';
+  cropCtx.fillRect(0, 0, cw, ch);
   cropCtx.drawImage(source, cx, cy, cw, ch, 0, 0, cw, ch);
-
   const quarter = normalizeQuarter(page.rotation);
   const fine = normalizeFine(page.fineRotation);
   const quarterCanvas = quarterRotatedCanvas(crop, quarter);
@@ -169,25 +187,40 @@ function croppedRotatedCanvas(page, source) {
   };
 }
 
+function physicalRotatedPoints(page) {
+  let width = Number(page.widthPt || 0) * Math.max(.05, 1 - Number(page.crop.left || 0) - Number(page.crop.right || 0));
+  let height = Number(page.heightPt || 0) * Math.max(.05, 1 - Number(page.crop.top || 0) - Number(page.crop.bottom || 0));
+  const quarter = normalizeQuarter(page.rotation);
+  if (quarter === 90 || quarter === 270) [width, height] = [height, width];
+  const radians = Math.abs(normalizeFine(page.fineRotation)) * Math.PI / 180;
+  const cosine = Math.abs(Math.cos(radians));
+  const sine = Math.abs(Math.sin(radians));
+  return {
+    width: width * cosine + height * sine,
+    height: width * sine + height * cosine,
+  };
+}
+
 function substitute(text, pageNumber, total) {
-  return String(text || '')
-    .replaceAll('{page}', String(pageNumber))
-    .replaceAll('{pages}', String(total));
+  return String(text || '').replaceAll('{page}', String(pageNumber)).replaceAll('{pages}', String(total));
 }
 
 function drawAlignedText(ctx, text, x0, x1, y, align, size, color) {
   if (!text) return;
   ctx.save();
-  ctx.fillStyle = color; ctx.font = `${Math.max(8, size)}px Pretendard, Arial, sans-serif`;
-  ctx.textBaseline = 'top'; ctx.textAlign = align;
+  ctx.fillStyle = color;
+  ctx.font = `${Math.max(8, size)}px Pretendard, Arial, sans-serif`;
+  ctx.textBaseline = 'top';
+  ctx.textAlign = align;
   const x = align === 'left' ? x0 : align === 'right' ? x1 : (x0 + x1) / 2;
   ctx.fillText(text, x, y, Math.max(1, x1 - x0));
   ctx.restore();
 }
 
-function drawOverlays(ctx, page, out, scaleX, scaleY) {
+function drawOverlays(ctx, page, scaleX, scaleY) {
   const index = advancedState.pages.findIndex(item => item.id === page.id);
-  const number = index + 1; const total = advancedState.pages.length;
+  const number = index + 1;
+  const total = advancedState.pages.length;
   const facingEven = isFacingEvenPage(page);
   const margin = effectiveMargins(page);
   const hf = advancedState.headerFooter;
@@ -196,8 +229,10 @@ function drawOverlays(ctx, page, out, scaleX, scaleY) {
     const marginX = Math.max(hf.margin, margin.left) * PT_PER_MM * scaleX;
     const rightMargin = Math.max(hf.margin, margin.right) * PT_PER_MM * scaleX;
     const fontPx = hf.fontSize * scaleY;
-    const left = marginX, right = ctx.canvas.width - rightMargin;
-    const topY = marginY, bottomY = Math.max(0, ctx.canvas.height - marginY - fontPx * 1.5);
+    const left = marginX;
+    const right = ctx.canvas.width - rightMargin;
+    const topY = marginY;
+    const bottomY = Math.max(0, ctx.canvas.height - marginY - fontPx * 1.5);
     const headerLeft = facingEven ? hf.headerRight : hf.headerLeft;
     const headerRight = facingEven ? hf.headerLeft : hf.headerRight;
     const footerLeft = facingEven ? hf.footerRight : hf.footerLeft;
@@ -209,7 +244,6 @@ function drawOverlays(ctx, page, out, scaleX, scaleY) {
     drawAlignedText(ctx, substitute(hf.footerCenter, number, total), left, right, bottomY, 'center', fontPx, hf.color);
     drawAlignedText(ctx, substitute(footerRight, number, total), (left + right) / 2, right, bottomY, 'right', fontPx, hf.color);
   }
-
   const pn = advancedState.pageNumbers;
   if (pn.enabled && !(pn.excludeFirst && index === 0)) {
     const visible = index + pn.start - (pn.excludeFirst ? 1 : 0);
@@ -224,12 +258,34 @@ function drawOverlays(ctx, page, out, scaleX, scaleY) {
     const leftGapX = Math.max(pn.margin, margin.left) * PT_PER_MM * scaleX;
     const rightGapX = Math.max(pn.margin, margin.right) * PT_PER_MM * scaleX;
     const position = mirroredPosition(pn.position, page);
-    const isBottom = position.startsWith('bottom');
-    const y = isBottom ? ctx.canvas.height - bottomGapY - fontPx * 1.45 : gapY;
+    const y = position.startsWith('bottom') ? ctx.canvas.height - bottomGapY - fontPx * 1.45 : gapY;
     const horizontal = position.split('-')[1];
-    const align = horizontal === 'center' ? 'center' : horizontal;
-    drawAlignedText(ctx, text, leftGapX, ctx.canvas.width - rightGapX, y, align, fontPx, pn.color);
+    drawAlignedText(ctx, text, leftGapX, ctx.canvas.width - rightGapX, y, horizontal === 'center' ? 'center' : horizontal, fontPx, pn.color);
   }
+}
+
+function drawCropMarks(ctx, dest, scaleX, scaleY, dpr) {
+  const gapX = 2 * PT_PER_MM * scaleX;
+  const gapY = 2 * PT_PER_MM * scaleY;
+  const lenX = 5 * PT_PER_MM * scaleX;
+  const lenY = 5 * PT_PER_MM * scaleY;
+  ctx.save();
+  ctx.strokeStyle = 'rgba(17,24,39,.9)';
+  ctx.lineWidth = Math.max(1, dpr * .65);
+  ctx.beginPath();
+  for (const y of [dest.y, dest.y + dest.height]) {
+    ctx.moveTo(dest.x - gapX - lenX, y); ctx.lineTo(dest.x - gapX, y);
+    ctx.moveTo(dest.x + dest.width + gapX, y); ctx.lineTo(dest.x + dest.width + gapX + lenX, y);
+  }
+  for (const x of [dest.x, dest.x + dest.width]) {
+    ctx.moveTo(x, dest.y - gapY - lenY); ctx.lineTo(x, dest.y - gapY);
+    ctx.moveTo(x, dest.y + dest.height + gapY); ctx.lineTo(x, dest.y + dest.height + gapY + lenY);
+  }
+  ctx.stroke();
+  ctx.strokeStyle = 'rgba(220,38,38,.48)';
+  ctx.setLineDash([5 * dpr, 4 * dpr]);
+  ctx.strokeRect(dest.x, dest.y, dest.width, dest.height);
+  ctx.restore();
 }
 
 export async function renderPagePreview(page, canvas, options = {}) {
@@ -237,52 +293,70 @@ export async function renderPagePreview(page, canvas, options = {}) {
   const sourceBase = await sourceCanvasFor(page);
   const source = drawSourceWithErase(page, sourceBase);
   const rotated = croppedRotatedCanvas(page, source);
-  const out = outputPagePoints(page);
+  const out = paperPointsForPage(page);
   const zoom = clamp(options.zoom ?? advancedState.zoom ?? 1, .5, 2.5);
-  const maxCssWidth = Number(options.maxCssWidth || 900) * zoom;
-  const maxCssHeight = Number(options.maxCssHeight || 1250) * zoom;
-  const fit = Math.min(maxCssWidth / out.width, maxCssHeight / out.height);
+  const fit = Math.min((Number(options.maxCssWidth || 900) * zoom) / out.width, (Number(options.maxCssHeight || 1250) * zoom) / out.height);
   const cssWidth = Math.max(180, Math.round(out.width * fit));
   const cssHeight = Math.max(180, Math.round(out.height * fit));
   const dpr = clamp(window.devicePixelRatio || 1, 1, 2);
-  canvas.width = Math.round(cssWidth * dpr); canvas.height = Math.round(cssHeight * dpr);
-  canvas.style.width = `${cssWidth}px`; canvas.style.height = `${cssHeight}px`;
+  canvas.width = Math.round(cssWidth * dpr);
+  canvas.height = Math.round(cssHeight * dpr);
+  canvas.style.width = `${cssWidth}px`;
+  canvas.style.height = `${cssHeight}px`;
   const ctx = canvas.getContext('2d', { alpha: false });
-  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
-  const scaleX = canvas.width / out.width, scaleY = canvas.height / out.height;
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  const scaleX = canvas.width / out.width;
+  const scaleY = canvas.height / out.height;
   const margin = effectiveMargins(page);
   const content = {
     x: margin.left * PT_PER_MM * scaleX,
     y: margin.top * PT_PER_MM * scaleY,
-    width: canvas.width - (margin.left + margin.right) * PT_PER_MM * scaleX,
-    height: canvas.height - (margin.top + margin.bottom) * PT_PER_MM * scaleY,
+    width: Math.max(2, canvas.width - (margin.left + margin.right) * PT_PER_MM * scaleX),
+    height: Math.max(2, canvas.height - (margin.top + margin.bottom) * PT_PER_MM * scaleY),
   };
-  content.width = Math.max(2, content.width); content.height = Math.max(2, content.height);
 
-  const fitScale = Math.min(content.width / rotated.canvas.width, content.height / rotated.canvas.height);
-  const baseW = rotated.canvas.width * fitScale, baseH = rotated.canvas.height * fitScale;
-  const pxPerMmX = PT_PER_MM * scaleX, pxPerMmY = PT_PER_MM * scaleY;
-  const destW = baseW * page.scale, destH = baseH * page.scale;
-  const centerX = content.x + content.width / 2 + page.offsetX * pxPerMmX;
-  const centerY = content.y + content.height / 2 + page.offsetY * pxPerMmY;
+  let destW;
+  let destH;
+  if (isSheetLayoutMode()) {
+    const physical = physicalRotatedPoints(page);
+    destW = physical.width * scaleX * page.scale;
+    destH = physical.height * scaleY * page.scale;
+  } else {
+    const fitScale = Math.min(content.width / rotated.canvas.width, content.height / rotated.canvas.height);
+    destW = rotated.canvas.width * fitScale * page.scale;
+    destH = rotated.canvas.height * fitScale * page.scale;
+  }
+  const centerX = content.x + content.width / 2 + page.offsetX * PT_PER_MM * scaleX;
+  const centerY = content.y + content.height / 2 + page.offsetY * PT_PER_MM * scaleY;
   const dest = { x: centerX - destW / 2, y: centerY - destH / 2, width: destW, height: destH };
 
   ctx.save();
-  ctx.beginPath(); ctx.rect(content.x, content.y, content.width, content.height); ctx.clip();
+  ctx.beginPath();
+  ctx.rect(content.x, content.y, content.width, content.height);
+  ctx.clip();
   ctx.drawImage(rotated.canvas, dest.x, dest.y, dest.width, dest.height);
   ctx.restore();
 
   if (margin.left || margin.right || margin.top || margin.bottom) {
-    ctx.save(); ctx.strokeStyle = 'rgba(30,100,190,.45)'; ctx.lineWidth = Math.max(1, dpr); ctx.setLineDash([6*dpr,4*dpr]);
-    ctx.strokeRect(content.x, content.y, content.width, content.height); ctx.restore();
+    ctx.save();
+    ctx.strokeStyle = 'rgba(30,100,190,.45)';
+    ctx.lineWidth = Math.max(1, dpr);
+    ctx.setLineDash([6 * dpr, 4 * dpr]);
+    ctx.strokeRect(content.x, content.y, content.width, content.height);
+    ctx.restore();
   }
-  drawOverlays(ctx, page, out, scaleX, scaleY);
+  if (isSheetLayoutMode() && advancedState.paper.cropMarks) drawCropMarks(ctx, dest, scaleX, scaleY, dpr);
+  drawOverlays(ctx, page, scaleX, scaleY);
 
   const layout = {
     pageId: page.id,
-    canvasWidth: canvas.width, canvasHeight: canvas.height,
-    cssWidth, cssHeight,
-    dest, content,
+    canvasWidth: canvas.width,
+    canvasHeight: canvas.height,
+    cssWidth,
+    cssHeight,
+    dest,
+    content,
     cropPx: rotated.cropPx,
     full: rotated.full,
     rotatedWidth: rotated.canvas.width,
@@ -317,8 +391,8 @@ export function sourceNormalizedFromBacking(point, layout = lastLayout) {
   const d = layout.dest;
   const fx = clamp((point.x - d.x) / Math.max(1e-6, d.width), 0, 1) * layout.rotatedWidth;
   const fy = clamp((point.y - d.y) / Math.max(1e-6, d.height), 0, 1) * layout.rotatedHeight;
-
-  let qx = fx, qy = fy;
+  let qx = fx;
+  let qy = fy;
   const fine = Number(layout.fineRotation || 0);
   if (Math.abs(fine) > 0.0001) {
     const radians = -fine * Math.PI / 180;
@@ -327,9 +401,10 @@ export function sourceNormalizedFromBacking(point, layout = lastLayout) {
     qx = Math.cos(radians) * dx - Math.sin(radians) * dy + layout.quarterWidth / 2;
     qy = Math.sin(radians) * dx + Math.cos(radians) * dy + layout.quarterHeight / 2;
   }
-
-  const cw = layout.cropPx.width, ch = layout.cropPx.height;
-  let u = qx, v = qy;
+  const cw = layout.cropPx.width;
+  const ch = layout.cropPx.height;
+  let u = qx;
+  let v = qy;
   if (layout.rotation === 90) { u = qy; v = ch - qx; }
   else if (layout.rotation === 180) { u = cw - qx; v = ch - qy; }
   else if (layout.rotation === 270) { u = cw - qy; v = qx; }
@@ -355,12 +430,12 @@ export async function renderThumbnail(page, canvas) {
   const pdfPage = await pdf.getPage(page.pageIndex + 1);
   const rotation = normalizeQuarter(page.rotation);
   const base = pdfPage.getViewport({ scale: 1, rotation });
-  const maxW = 72, maxH = 92;
-  const scale = clamp(Math.min(maxW / Math.max(1, base.width), maxH / Math.max(1, base.height)), .05, .5);
+  const scale = clamp(Math.min(72 / Math.max(1, base.width), 92 / Math.max(1, base.height)), .05, .5);
   const viewport = pdfPage.getViewport({ scale, rotation });
   canvas.width = Math.max(1, Math.round(viewport.width));
   canvas.height = Math.max(1, Math.round(viewport.height));
   const ctx = canvas.getContext('2d', { alpha: false });
-  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
   await pdfPage.render({ canvasContext: ctx, viewport }).promise;
 }
