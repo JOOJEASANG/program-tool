@@ -22,6 +22,6 @@ def test_document_file_card_is_persistently_rendered_in_step1():
     ):
         assert marker in bridge
 
-    assert "/js/print-checker/design-review-step1.js?v=20260930-4" in page
+    assert "/js/print-checker/design-review-step1.js?v=20260930-5" in page
     assert "function activate()" in book_review
     assert "document.querySelectorAll('.product-card')" in book_review
