@@ -8,6 +8,7 @@
   const ROUTES = [
     { match: /^\/smart-print-layout(?:\/|$)/, source: '#downloadBtn', label: '프린터 출력', mode: 'pdf' },
     { match: /^\/pdf-editor(?:\/|$)/, source: '#downloadBtn', label: '프린터 출력', mode: 'pdf' },
+    { match: /^\/tools\/pdf-editor\.html$/, source: '#downloadBtn', label: '프린터 출력', mode: 'pdf' },
     { match: /^\/pdf-editor-advanced(?:\/|$)/, source: '#downloadBtn', label: '프린터 출력', mode: 'pdf' },
     { match: /^\/ai-design-maker(?:\/|$)/, source: '#exportBtn', label: '프린터 출력', mode: 'ai-pdf' },
   ];
@@ -42,7 +43,16 @@
       popup.opener = null;
       popup.document.title = 'Program Studio · 프린터 출력';
       popup.document.body.style.cssText = 'margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f8fafc;font-family:Pretendard,Arial,sans-serif;color:#334155';
-      popup.document.body.innerHTML = '<div style="text-align:center;padding:30px"><strong style="display:block;font-size:18px;margin-bottom:8px">인쇄용 PDF 준비 중</strong><span style="font-size:13px;color:#64748b">PDF가 준비되면 인쇄 화면으로 이동합니다.</span></div>';
+      const box = popup.document.createElement('div');
+      box.style.cssText = 'text-align:center;padding:30px';
+      const title = popup.document.createElement('strong');
+      title.style.cssText = 'display:block;font-size:18px;margin-bottom:8px';
+      title.textContent = '인쇄용 PDF 준비 중';
+      const note = popup.document.createElement('span');
+      note.style.cssText = 'font-size:13px;color:#64748b';
+      note.textContent = 'PDF가 준비되면 인쇄 화면으로 이동합니다.';
+      box.append(title, note);
+      popup.document.body.replaceChildren(box);
     } catch (_) {}
     return popup;
   }
@@ -62,14 +72,14 @@
     try {
       normalized = await normalizePdfUrl(href);
     } catch (error) {
-      if (popup) {
+      const target = popup || window.open('', '_blank');
+      if (target) {
         try {
-          popup.location.href = href;
-          popup.focus();
+          target.location.href = href;
+          target.focus();
           return;
         } catch (_) {}
       }
-      window.open(href, '_blank');
       throw error;
     }
 
@@ -162,6 +172,22 @@
     };
   }
 
+  function renderPopupError(popup, message) {
+    if (!popup || popup.closed) return;
+    try {
+      popup.document.body.style.cssText = 'margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f8fafc;font-family:Pretendard,Arial,sans-serif';
+      const box = popup.document.createElement('div');
+      box.style.cssText = 'padding:30px;max-width:520px;color:#991b1b';
+      const title = popup.document.createElement('strong');
+      title.textContent = '인쇄 준비 실패';
+      const note = popup.document.createElement('p');
+      note.style.color = '#64748b';
+      note.textContent = String(message || '인쇄용 PDF를 준비하지 못했습니다.');
+      box.append(title, note);
+      popup.document.body.replaceChildren(box);
+    } catch (_) {}
+  }
+
   function attach(config) {
     const source = document.querySelector(config.source);
     if (!source || source.dataset.directPrintSource === '1') return Boolean(source);
@@ -191,11 +217,7 @@
         button.textContent = '인쇄창 열림';
       } catch (error) {
         console.error('[direct-print]', error);
-        try {
-          if (popup && !popup.closed) {
-            popup.document.body.innerHTML = `<div style="padding:30px;font-family:Pretendard,Arial,sans-serif;color:#991b1b"><strong>인쇄 준비 실패</strong><p style="color:#64748b">${String(error?.message || error || '인쇄용 PDF를 준비하지 못했습니다.')}</p></div>`;
-          }
-        } catch (_) {}
+        renderPopupError(popup, error?.message || error);
         button.textContent = '인쇄 실패';
       } finally {
         restoreAi();
