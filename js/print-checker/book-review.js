@@ -1,4 +1,4 @@
-/* book-review.js — 책자 PDF 인쇄용지/재단 규격 검토 */
+/* book-review.js — 문서파일 PDF 인쇄용지/재단 규격 검토 */
 (function () {
   'use strict';
 
@@ -76,12 +76,20 @@
     const grid = byId('productGrid');
     if (!grid) return null;
     let button = grid.querySelector('[data-product="book-review"]');
-    if (button) return button;
+    if (button) {
+      const label = button.querySelector('.pc-label');
+      const desc = button.querySelector('.pc-desc');
+      const icon = button.querySelector('.pc-icon');
+      if (label) label.textContent = '문서파일';
+      if (desc) desc.textContent = 'PDF 문서·재단선·안전영역';
+      if (icon) icon.textContent = '📑';
+      return button;
+    }
     button = document.createElement('button');
     button.type = 'button';
     button.className = 'product-card book-review-card';
     button.dataset.product = 'book-review';
-    button.innerHTML = '<span class="pc-icon">📕</span><strong class="pc-label">책자검토</strong><small class="pc-desc">인쇄용지·재단선·안전영역</small>';
+    button.innerHTML = '<span class="pc-icon">📑</span><strong class="pc-label">문서파일</strong><small class="pc-desc">PDF 문서·재단선·안전영역</small>';
     button.addEventListener('click', (event) => {
       event.preventDefault();
       event.stopPropagation();
@@ -98,8 +106,10 @@
     if (!canvas) {
       canvas = document.createElement('canvas');
       canvas.id = 'bookReviewCanvas';
-      canvas.setAttribute('aria-label', '책자검토 인쇄용지 미리보기');
+      canvas.setAttribute('aria-label', '문서파일 인쇄용지 미리보기');
       wrap.insertBefore(canvas, wrap.firstChild);
+    } else {
+      canvas.setAttribute('aria-label', '문서파일 인쇄용지 미리보기');
     }
     return canvas;
   }
@@ -112,10 +122,13 @@
       nav = document.createElement('div');
       nav.id = 'bookReviewPageNav';
       nav.className = 'book-review-page-nav';
-      nav.innerHTML = '<div class="book-review-nav-title">책자 페이지 확인</div><div class="book-review-nav-row"><button type="button" id="bookReviewPrev">← 이전</button><strong id="bookReviewPageLabel">PDF 없음</strong><button type="button" id="bookReviewNext">다음 →</button></div><small>PDF 실제 크기를 유지한 채 인쇄용지 중앙에 배치합니다.</small>';
+      nav.innerHTML = '<div class="book-review-nav-title">문서 페이지 확인</div><div class="book-review-nav-row"><button type="button" id="bookReviewPrev">← 이전</button><strong id="bookReviewPageLabel">PDF 없음</strong><button type="button" id="bookReviewNext">다음 →</button></div><small>PDF 실제 크기를 유지한 채 인쇄용지 중앙에 배치합니다.</small>';
       panel.appendChild(nav);
       byId('bookReviewPrev')?.addEventListener('click', () => showPage(currentPage - 1));
       byId('bookReviewNext')?.addEventListener('click', () => showPage(currentPage + 1));
+    } else {
+      const title = nav.querySelector('.book-review-nav-title');
+      if (title) title.textContent = '문서 페이지 확인';
     }
     return nav;
   }
@@ -182,6 +195,7 @@
     document.body.classList.add('book-review-active');
     const core = checker();
     core?.selectProduct?.('flyer', { syncUrl: false });
+    ensureProductCard();
     renderForm();
     ensureCanvas();
     ensurePageNav();
@@ -278,8 +292,8 @@
         syncPageNav();
       }
     } catch (error) {
-      console.error('[book-review] file load failed', error);
-      showBookNotice('책자검토에서 파일을 읽지 못했습니다. PDF를 다시 확인해 주세요.', true);
+      console.error('[document-file-review] file load failed', error);
+      showBookNotice('문서파일에서 파일을 읽지 못했습니다. PDF를 다시 확인해 주세요.', true);
     }
   }
 
@@ -494,7 +508,7 @@
     const info = byId('canvasFileInfo');
     if (info) {
       const trimText = specs.trimW && specs.trimH ? ` · 재단 ${fmt(specs.trimW)}×${fmt(specs.trimH)}mm` : ' · 재단사이즈 입력 필요';
-      info.textContent = `책자검토 · ${sheetLabel()}${meta ? ` · PDF ${pdfMeta.pageCount}p · 현재 ${currentPage}p · 파일 ${fmt(meta.widthMm)}×${fmt(meta.heightMm)}mm` : ''}${trimText}`;
+      info.textContent = `문서파일 · ${sheetLabel()}${meta ? ` · PDF ${pdfMeta.pageCount}p · 현재 ${currentPage}p · 파일 ${fmt(meta.widthMm)}×${fmt(meta.heightMm)}mm` : ''}${trimText}`;
       info.hidden = false;
     }
   }
@@ -532,7 +546,7 @@
       return;
     }
     if (!lastFile) {
-      alert('검토할 책자 PDF를 먼저 올려 주세요.');
+      alert('검토할 문서 PDF를 먼저 올려 주세요.');
       return;
     }
 
@@ -561,7 +575,7 @@
       const marginX = (first.widthMm - specs.trimW) / 2;
       const marginY = (first.heightMm - specs.trimH) / 2;
 
-      items.push(reportItem('PDF 페이지 수', pdfMeta.pageCount % 2 === 0 ? 'pass' : 'warn', `${pdfMeta.pageCount}p`, pdfMeta.pageCount % 2 === 0 ? '짝수 페이지 구성입니다.' : '책자 제작 시 마지막 빈 페이지가 필요한지 확인하세요.'));
+      items.push(reportItem('PDF 페이지 수', pdfMeta.pageCount % 2 === 0 ? 'pass' : 'warn', `${pdfMeta.pageCount}p`, pdfMeta.pageCount % 2 === 0 ? '짝수 페이지 구성입니다.' : '양면 인쇄나 제본 시 마지막 빈 페이지가 필요한지 확인하세요.'));
       items.push(reportItem('전체 페이지 규격', inconsistent.length ? 'fail' : 'pass', `${fmt(first.widthMm)} × ${fmt(first.heightMm)}mm`, inconsistent.length ? `규격이 다른 페이지: ${inconsistent.slice(0, 12).map((meta) => `${meta.pageNumber}p`).join(', ')}${inconsistent.length > 12 ? ' 외' : ''}` : `전체 ${pages.length}페이지의 크기가 동일합니다.`));
       items.push(reportItem('인쇄 용지 배치', oversized.length ? 'fail' : 'pass', sheetLabel(), oversized.length ? `인쇄 용지를 벗어나는 페이지: ${oversized.slice(0, 12).map((meta) => `${meta.pageNumber}p`).join(', ')}${oversized.length > 12 ? ' 외' : ''}` : '모든 PDF 페이지가 선택한 인쇄 용지 안에 실제 크기로 들어옵니다.'));
       items.push(reportItem('실제 재단사이즈', trimOutside || tooSmall.length ? 'fail' : 'pass', `${fmt(specs.trimW)} × ${fmt(specs.trimH)}mm`, trimOutside ? '재단사이즈가 선택한 인쇄 용지보다 큽니다.' : tooSmall.length ? `재단사이즈보다 작은 PDF 페이지가 ${tooSmall.length}개 있습니다.` : 'PDF 안쪽에 재단영역이 포함됩니다.'));
@@ -620,7 +634,7 @@
       event.stopImmediatePropagation();
       runBookCheck().catch((error) => {
         console.error(error);
-        alert('책자검토 중 오류가 발생했습니다.');
+        alert('문서파일 검토 중 오류가 발생했습니다.');
       });
     }, true);
 

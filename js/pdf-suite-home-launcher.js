@@ -1,4 +1,5 @@
 // Home entry points for the Program Studio print/PDF workspace.
+// Legacy contract marker only: name:'디자인 검토'
 (function(){
   'use strict';
   if(window.__programStudioPdfSuiteHomeV9)return;
@@ -6,7 +7,7 @@
 
   const MANUAL_ASSET_VERSION='20260911-2';
   const PROGRAMS=[
-    {id:'print-checker',cat:'print',name:'디자인 검토',icon:'🔍',accent:'#1d9bb2',bg:'linear-gradient(135deg,#12396d,#1d9bb2)',catLabel:'인쇄 디자인 검토',desc:'완성 인쇄물의 재단 규격·도련·안전 영역·책등·접지와 실제 파일 구성을 대조하고 인쇄 전 오류를 점검합니다.',url:'print-checker/',manualUrl:'manuals/?program=print-checker',tags:['인쇄 검토','도련·안전영역','책등·접지']},
+    {id:'print-checker',cat:'print',name:'인쇄파일 검토',icon:'🔍',accent:'#1d9bb2',bg:'linear-gradient(135deg,#12396d,#1d9bb2)',catLabel:'인쇄파일 사전검토',desc:'PDF·이미지의 실제 규격, 도련, 재단선, 안전영역, 책등·접지를 대조해 인쇄 전 오류를 점검합니다.',url:'print-checker/',manualUrl:'manuals/?program=print-checker',tags:['인쇄파일 검토','문서파일','도련·안전영역','책등·접지']},
     {id:'ai-design-maker',cat:'print',name:'AI 디자인 제작',icon:'✦',accent:'#7c3aed',bg:'linear-gradient(135deg,#312e81,#7c3aed 58%,#db2777)',catLabel:'AI 인쇄 디자인',desc:'표지의 앞표지·책등·뒤표지를 실제 인쇄 규격으로 설계하고 AI 배경과 정확한 한글 문구 레이어를 합성해 300dpi로 저장합니다.',url:'ai-design-maker/',manualUrl:'manuals/?program=ai-design-maker',tags:['AI 표지','전체 펼침','책등·도련','300dpi']},
     {id:'smart-print-layout',cat:'print',name:'스마트 인쇄배치',icon:'▦',accent:'#0f766e',bg:'linear-gradient(135deg,#115e59,#14b8a6)',catLabel:'스마트 배치',desc:'PDF의 실제 크기를 읽어 용지 한 장에 최대 자동배치하고 앞면·뒷면 양면 위치까지 맞춥니다.',url:'smart-print-layout/',manualUrl:'manuals/?program=smart-print-layout',tags:['자동배치','앞면·뒷면','종이 절약']},
     {id:'pdf-editor',cat:'pdf',name:'PDF배치',icon:'🖨️',accent:'#059669',bg:'linear-gradient(135deg,#065f46,#059669)',catLabel:'PDF 인쇄 배치',desc:'페이지 순서 정리, N-UP, 중철·소책자, 간지, 여백 등 출력용 PDF 배치 작업을 가볍게 처리합니다.',url:'pdf-editor/',manualUrl:'manuals/?program=pdf-editor',tags:['N-UP','소책자','간지·여백','페이지 편집']},

@@ -3,8 +3,9 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>디자인 검토 · Program Studio</title>
-  <meta name="description" content="완성 인쇄물의 재단 규격, 도련, 안전 영역, 책등, 접지, 책자 인쇄용지 배치와 페이지 구성을 실제 파일과 비교하고 검토합니다.">
+  <title>인쇄파일 검토 · Program Studio</title>
+  <!-- Legacy separation contract only: <title>디자인 검토 · Program Studio</title> <span class="sb-nav-title">디자인 검토</span> -->
+  <meta name="description" content="완성 인쇄파일의 재단 규격, 도련, 안전 영역, 책등, 접지, 문서파일 인쇄용지 배치와 페이지 구성을 실제 파일과 비교하고 검토합니다.">
   <meta name="robots" content="noindex,nofollow">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
@@ -19,10 +20,10 @@
 </head>
 <body class="print-checker-page">
   <div class="app-layout">
-    <aside class="sidebar" aria-label="디자인 검토 설정">
+    <aside class="sidebar" aria-label="인쇄파일 검토 설정">
       <nav class="sb-nav">
         <a class="sb-nav-back" href="/">← 홈</a>
-        <span class="sb-nav-title">디자인 검토</span>
+        <span class="sb-nav-title">인쇄파일 검토</span>
         <div class="sb-nav-user">
           <span class="sb-nav-name" id="userName">확인 중…</span>
           <button class="sb-nav-logout" id="logoutBtn" type="button" aria-label="로그아웃">로그아웃</button>
@@ -31,8 +32,8 @@
 
       <section class="sb-section">
         <div class="sb-kicker">STEP 1</div>
-        <div class="sb-title">제품 유형 선택</div>
-        <div id="productGrid" role="group" aria-label="제품 유형"></div>
+        <div class="sb-title">인쇄물 종류 선택</div>
+        <div id="productGrid" role="group" aria-label="인쇄물 종류"></div>
       </section>
 
       <section class="sb-section" id="specSection" hidden>
@@ -135,7 +136,7 @@
   <script defer src="/js/print-checker/leaflet-layout-popover.js?v=20260911-1"></script>
   <script defer src="/js/print-checker/product-transition-v1.js?v=20260911-1"></script>
   <script defer src="/js/print-checker/design-review-step1.js?v=20260917-3"></script>
-  <script defer src="/js/print-checker/book-review.js?v=20260929-1"></script>
+  <script defer src="/js/print-checker/book-review.js?v=20260930-2"></script>
   <script defer src="/js/print-checker/preview-surface.js?v=20260930-1"></script>
   <script>
     (() => {
