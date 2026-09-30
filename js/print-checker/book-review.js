@@ -28,6 +28,8 @@
   let imagePreview = null;
   let loadSerial = 0;
   let pdfJsPromise = null;
+  let thumbnailObserver = null;
+  let previewResizeFrame = 0;
   let specs = {
     sheetPreset: 'b5',
     sheetW: 182,
@@ -115,20 +117,26 @@
   }
 
   function ensurePageNav() {
-    const panel = byId('adjPanel');
-    if (!panel) return null;
+    const main = byId('printCheckerMain');
+    if (!main) return null;
     let nav = byId('bookReviewPageNav');
     if (!nav) {
-      nav = document.createElement('div');
+      nav = document.createElement('aside');
       nav.id = 'bookReviewPageNav';
       nav.className = 'book-review-page-nav';
-      nav.innerHTML = '<div class="book-review-nav-title">문서 페이지 확인</div><div class="book-review-nav-row"><button type="button" id="bookReviewPrev">← 이전</button><strong id="bookReviewPageLabel">PDF 없음</strong><button type="button" id="bookReviewNext">다음 →</button></div><small>PDF 실제 크기를 유지한 채 인쇄용지 중앙에 배치합니다.</small>';
-      panel.appendChild(nav);
+      nav.setAttribute('aria-label', '문서 전체 페이지 확인');
+      nav.innerHTML = `
+        <div class="book-review-nav-head">
+          <div><div class="book-review-nav-title">전체 페이지</div><div class="book-review-nav-sub">페이지를 눌러 가운데에서 크게 확인합니다.</div></div>
+          <span class="book-review-nav-count" id="bookReviewPageCount">0p</span>
+        </div>
+        <div class="book-review-nav-row"><button type="button" id="bookReviewPrev">← 이전</button><strong id="bookReviewPageLabel">PDF 없음</strong><button type="button" id="bookReviewNext">다음 →</button></div>
+        <div class="book-review-thumbs" id="bookReviewThumbs"><div class="book-review-empty">PDF를 올리면 전체 페이지가 여기에 표시됩니다.</div></div>`;
+      main.appendChild(nav);
       byId('bookReviewPrev')?.addEventListener('click', () => showPage(currentPage - 1));
       byId('bookReviewNext')?.addEventListener('click', () => showPage(currentPage + 1));
-    } else {
-      const title = nav.querySelector('.book-review-nav-title');
-      if (title) title.textContent = '문서 페이지 확인';
+    } else if (nav.parentElement !== main) {
+      main.appendChild(nav);
     }
     return nav;
   }
@@ -202,10 +210,10 @@
     const section = byId('specSection');
     if (section) section.hidden = false;
     document.querySelectorAll('.product-card').forEach((card) => card.classList.toggle('selected', card.dataset.product === 'book-review'));
-    if (byId('adjPanel')) byId('adjPanel').hidden = !lastFile;
     setUrlProduct('book-review');
     clearReport();
     renderPreview();
+    requestAnimationFrame(renderPreview);
     if (lastFile) loadBookFile(lastFile);
   }
 
@@ -274,6 +282,7 @@
         try { await pdfDoc?.destroy?.(); } catch (_) {}
         pdfDoc = documentProxy;
         pdfMeta = { pageCount: documentProxy.numPages, pages: {} };
+        renderPageThumbs();
         await showPage(1, { force: true, serial });
       } else if (/^image\/(png|jpeg|webp)$/i.test(file.type || '')) {
         try { await pdfDoc?.destroy?.(); } catch (_) {}
@@ -288,6 +297,7 @@
         URL.revokeObjectURL(url);
         if (serial !== loadSerial || !active) return;
         imagePreview = image;
+        renderPageThumbs();
         renderPreview();
         syncPageNav();
       }
@@ -330,26 +340,117 @@
     return canvas;
   }
 
+  async function renderThumbnail(pageNumber, button, serial) {
+    if (!pdfDoc || !button || serial !== loadSerial || button.dataset.rendered === '1' || button.dataset.rendering === '1') return;
+    button.dataset.rendering = '1';
+    try {
+      const page = await pdfDoc.getPage(pageNumber);
+      if (serial !== loadSerial || !active) return;
+      const base = page.getViewport({ scale: 1 });
+      if (!pdfMeta.pages[pageNumber]) {
+        pdfMeta.pages[pageNumber] = {
+          pageNumber,
+          widthMm: mm(base.width),
+          heightMm: mm(base.height),
+          rotation: Number(base.rotation || page.rotate || 0),
+        };
+      }
+      const scale = Math.max(0.12, Math.min(0.42, 150 / Math.max(base.width, base.height)));
+      const viewport = page.getViewport({ scale });
+      const canvas = button.querySelector('canvas');
+      if (!canvas) return;
+      canvas.width = Math.max(1, Math.round(viewport.width));
+      canvas.height = Math.max(1, Math.round(viewport.height));
+      const context = canvas.getContext('2d', { alpha: false });
+      context.fillStyle = '#fff';
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      await page.render({ canvasContext: context, viewport, background: '#ffffff' }).promise;
+      if (serial !== loadSerial || !active) return;
+      const meta = pdfMeta.pages[pageNumber];
+      const size = button.querySelector('.book-review-thumb-size');
+      if (size && meta) size.textContent = `${fmt(meta.widthMm)}×${fmt(meta.heightMm)}`;
+      button.dataset.rendered = '1';
+    } catch (error) {
+      console.warn('[document-file-review] thumbnail failed', pageNumber, error);
+    } finally {
+      button.dataset.rendering = '';
+    }
+  }
+
+  function renderPageThumbs() {
+    ensurePageNav();
+    const holder = byId('bookReviewThumbs');
+    if (!holder) return;
+    thumbnailObserver?.disconnect();
+    thumbnailObserver = null;
+    holder.replaceChildren();
+    const total = pdfDoc?.numPages || 0;
+    const count = byId('bookReviewPageCount');
+    if (count) count.textContent = total ? `${total}p` : '0p';
+    if (!total) {
+      const empty = document.createElement('div');
+      empty.className = 'book-review-empty';
+      empty.textContent = imagePreview ? '이미지 파일은 1개 미리보기로 확인합니다.' : 'PDF를 올리면 전체 페이지가 여기에 표시됩니다.';
+      holder.appendChild(empty);
+      return;
+    }
+
+    const serial = loadSerial;
+    if ('IntersectionObserver' in window) {
+      thumbnailObserver = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          thumbnailObserver?.unobserve(entry.target);
+          const pageNumber = Number(entry.target.dataset.page || 0);
+          renderThumbnail(pageNumber, entry.target, serial);
+        });
+      }, { root: holder, rootMargin: '220px 0px' });
+    }
+
+    for (let pageNumber = 1; pageNumber <= total; pageNumber += 1) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'book-review-thumb';
+      button.dataset.page = String(pageNumber);
+      button.setAttribute('aria-label', `${pageNumber}페이지 미리보기`);
+      button.innerHTML = `<canvas aria-hidden="true"></canvas><span class="book-review-thumb-meta"><strong class="book-review-thumb-page">${pageNumber}p</strong><span class="book-review-thumb-size">불러오는 중</span></span>`;
+      button.addEventListener('click', () => showPage(pageNumber));
+      holder.appendChild(button);
+      if (thumbnailObserver) thumbnailObserver.observe(button);
+      else if (pageNumber <= 12) renderThumbnail(pageNumber, button, serial);
+    }
+    syncPageNav();
+  }
+
   async function showPage(pageNumber, options = {}) {
-    if (!pdfDoc) return;
+    if (!pdfDoc) return false;
     const next = Math.max(1, Math.min(pdfDoc.numPages, Number(pageNumber) || 1));
     const serial = options.serial ?? loadSerial;
     currentPage = next;
     await ensurePageMeta(next);
     if (!renderCache.has(next) || options.force) await renderPdfPage(next, serial);
-    if (serial !== loadSerial || !active) return;
+    if (serial !== loadSerial || !active) return false;
     syncPageNav();
     renderPreview();
+    return true;
   }
 
   function syncPageNav() {
     const total = pdfDoc?.numPages || 0;
     const label = byId('bookReviewPageLabel');
     if (label) label.textContent = total ? `${currentPage} / ${total}p` : 'PDF 없음';
+    const count = byId('bookReviewPageCount');
+    if (count) count.textContent = total ? `${total}p` : '0p';
     const prev = byId('bookReviewPrev');
     const next = byId('bookReviewNext');
     if (prev) prev.disabled = !total || currentPage <= 1;
     if (next) next.disabled = !total || currentPage >= total;
+    document.querySelectorAll('.book-review-thumb').forEach((button) => {
+      const selected = Number(button.dataset.page) === currentPage;
+      button.classList.toggle('active', selected);
+      button.setAttribute('aria-current', selected ? 'page' : 'false');
+      if (selected) button.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    });
   }
 
   function sheetLabel() {
@@ -396,16 +497,19 @@
     canvas.hidden = false;
     const context = canvas.getContext('2d');
     const wrap = canvas.parentElement;
-    const displayW = Math.max(420, Math.floor((wrap?.clientWidth || 760) - 36));
+    const wrapWidth = wrap?.clientWidth || 900;
+    const wrapHeight = wrap?.clientHeight || Math.max(560, window.innerHeight - 28);
+    const displayW = Math.max(320, Math.floor(wrapWidth - 20));
+    const displayH = Math.max(340, Math.floor(wrapHeight - 50));
     const sheetW = Math.max(1, specs.sheetW || 182);
     const sheetH = Math.max(1, specs.sheetH || 257);
-    const maxSheetW = displayW - 76;
-    const maxSheetH = 760;
+    const maxSheetW = Math.max(220, displayW - 48);
+    const maxSheetH = Math.max(280, displayH - 56);
     const pxPerMm = Math.min(maxSheetW / sheetW, maxSheetH / sheetH);
     const sheetPxW = sheetW * pxPerMm;
     const sheetPxH = sheetH * pxPerMm;
     canvas.width = displayW;
-    canvas.height = Math.max(420, Math.ceil(sheetPxH + 86));
+    canvas.height = displayH;
 
     context.fillStyle = '#aeb9c7';
     context.fillRect(0, 0, canvas.width, canvas.height);
@@ -427,7 +531,7 @@
     const meta = pdfMeta.pages[currentPage];
     let fileWmm = meta?.widthMm || 0;
     let fileHmm = meta?.heightMm || 0;
-    let source = renderCache.get(currentPage) || imagePreview;
+    const source = renderCache.get(currentPage) || imagePreview;
     if (!fileWmm || !fileHmm) {
       fileWmm = specs.trimW || Math.min(sheetW * 0.72, 133);
       fileHmm = specs.trimH || Math.min(sheetH * 0.78, 203);
@@ -498,11 +602,11 @@
 
     context.save();
     context.fillStyle = '#172033';
-    context.fillRect(16, canvas.height - 46, canvas.width - 32, 30);
+    context.fillRect(16, canvas.height - 42, canvas.width - 32, 27);
     context.fillStyle = '#f8fafc';
     context.font = '700 10px Pretendard, sans-serif';
     context.textAlign = 'center';
-    context.fillText('회색=인쇄용지 밖 · 보라=업로드 파일 · 어두운 영역=재단으로 잘려나갈 부분 · 파랑=실제 재단선 · 초록=안전영역 · 주황=제본쪽', canvas.width / 2, canvas.height - 27);
+    context.fillText('회색=인쇄용지 밖 · 보라=업로드 파일 · 어두운 영역=재단 제외 · 파랑=재단선 · 초록=안전영역 · 주황=제본쪽', canvas.width / 2, canvas.height - 25);
     context.restore();
 
     const info = byId('canvasFileInfo');
@@ -617,10 +721,17 @@
     byId('reportGrid')?.replaceChildren();
   }
 
+  function schedulePreviewFit() {
+    if (!active) return;
+    cancelAnimationFrame(previewResizeFrame);
+    previewResizeFrame = requestAnimationFrame(renderPreview);
+  }
+
   function install() {
     ensureProductCard();
     ensureCanvas();
     ensurePageNav();
+    renderPageThumbs();
 
     document.addEventListener('click', (event) => {
       const card = event.target.closest?.('.product-card');
@@ -648,8 +759,11 @@
         imagePreview = null;
         renderCache = new Map();
         pdfMeta = { pageCount: 0, pages: {} };
+        thumbnailObserver?.disconnect();
+        thumbnailObserver = null;
         try { pdfDoc?.destroy?.(); } catch (_) {}
         pdfDoc = null;
+        renderPageThumbs();
         syncPageNav();
       }, 0);
     });
@@ -666,9 +780,7 @@
       if (active && file) loadBookFile(file);
     });
 
-    window.addEventListener('resize', () => {
-      if (active) renderPreview();
-    });
+    window.addEventListener('resize', schedulePreviewFit);
 
     if (new URLSearchParams(location.search).get('product') === 'book-review') activate();
   }
@@ -678,7 +790,9 @@
 
   window.PrintCheckerBookReview = {
     activate,
+    showPage,
     renderPreview,
+    renderPageThumbs,
     runBookCheck,
     getState: () => ({ active, currentPage, pageCount: pdfMeta.pageCount, specs: { ...specs } }),
   };
