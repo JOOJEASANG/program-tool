@@ -176,18 +176,9 @@
         }, 0);
       }, true);
 
-      document.addEventListener('DOMContentLoaded', () => {
-        repairDocumentReview();
-        if (!document.body) return;
-        new MutationObserver(repairDocumentReview).observe(document.body, {
-          subtree: true,
-          childList: true,
-          attributes: true,
-          attributeFilter: ['class']
-        });
-      }, { once: true });
+      document.addEventListener('DOMContentLoaded', repairDocumentReview, { once: true });
 
-      window.PrintCheckerDocumentReviewUiFix = Object.freeze({ repair: repairDocumentReview, stage: 'document-review-ui-fix-v1' });
+      window.PrintCheckerDocumentReviewUiFix = Object.freeze({ repair: repairDocumentReview, stage: 'document-review-ui-fix-v2' });
     })();
   </script>
   <script>
