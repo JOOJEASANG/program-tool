@@ -17,6 +17,13 @@
   };
   const clamp = (value, min, max, fallback = min) => Math.max(min, Math.min(max, numberOr(value, fallback)));
 
+  function isDocumentReviewActive() {
+    return Boolean(
+      document.body?.classList.contains('book-review-active') ||
+      new URLSearchParams(location.search).get('product') === 'book-review'
+    );
+  }
+
   function readRememberedGeometry() {
     try {
       const raw = localStorage.getItem(GEOMETRY_KEY);
@@ -44,6 +51,7 @@
   }
 
   function saveGeometry(source = document) {
+    if (isDocumentReviewActive()) return readRememberedGeometry();
     const geometry = currentGeometry(source);
     try {
       localStorage.setItem(GEOMETRY_KEY, JSON.stringify(geometry));
@@ -58,6 +66,7 @@
   }
 
   function applyGeometry({ force = false } = {}) {
+    if (isDocumentReviewActive()) return;
     const trimW = $('trimW');
     const trimH = $('trimH');
     if (!trimW || !trimH) return;
@@ -88,12 +97,16 @@
     if (!form) return;
 
     const remember = (event) => {
+      if (isDocumentReviewActive()) return;
       if (['trimW', 'trimH', 'spine', 'bleed'].includes(event.target?.id)) saveGeometry();
     };
     form.addEventListener('input', remember);
     form.addEventListener('change', remember);
 
-    const observer = new MutationObserver(() => queueMicrotask(() => applyGeometry({ force: false })));
+    const observer = new MutationObserver(() => {
+      if (isDocumentReviewActive()) return;
+      queueMicrotask(() => applyGeometry({ force: false }));
+    });
     observer.observe(form, { childList: true, subtree: true });
 
     if (!initialized) {
