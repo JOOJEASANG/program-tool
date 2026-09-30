@@ -12,18 +12,18 @@ Firebase Hosting과 Python Cloud Functions로 운영하는 PDF·인쇄 실무 �
 
 | 프로그램 | 운영 경로 | 주요 기능 |
 | --- | --- | --- |
-| 디자인 검토 | `/print-checker` | 표지·전단·리플렛·초대장·안내장 등 완성 인쇄물의 규격, 재단선, 도련, 안전영역, 책등, 접지선 검토 |
+| 인쇄파일 검토 | `/print-checker` | 표지·전단·리플렛·초대장·안내장 등 완성 인쇄물의 규격, 재단선, 도련, 안전영역, 책등, 접지선 검토 |
 | AI 디자인 제작 | `/ai-design-maker` | 실제 인쇄 규격 기반 AI 표지 배경 생성, 문구·도형 편집, CMYK 기준 색상 선택, 300dpi PNG/PDF 출력 |
 | 스마트 인쇄배치 | `/smart-print-layout` | PDF·이미지 실제 크기를 읽어 용지를 자동 배치하고 양면 위치를 맞춘 출력용 PDF 생성 |
 | PDF 올인원 | `/pdf-suite` | PDF 페이지 구성·변환·편집·보안·인쇄·OCR 확장·최적화·검사 기능 허브 |
 | PDF 문서 편집기 | `/pdf-editor` | 페이지 편집, N-up 배치, 소책자 배열, 출력 설정을 담당하는 canonical PDF 편집 엔진 |
-| PDF 고급 편집 | `/pdf-editor-advanced` | 확대/축소·이동·삭제·잘라내기·여백·머리말/꼬리말·페이지 번호 등 독립 고급 편집 |
+| PDF 고급 편집 | `/pdf-editor-advanced` | 확대/축소·이동·삭제·잘라내기·여백·머리말/꼬리말·페이지 번호와 문서 인쇄 검토를 제공하는 독립 고급 편집기 |
 | PDF 검사 | `/pdf-preflight` | PDF 인쇄 전 검사와 암호 설정·해제 등 보안·유틸리티 |
-| 표지 검토 호환 진입점 | `/perfect-binding-cover` | 기존 무선제본 표지 주소를 현재 디자인 검토 흐름으로 연결 |
+| 표지 검토 호환 진입점 | `/perfect-binding-cover` | 기존 무선제본 표지 주소를 현재 인쇄파일 검토 흐름으로 연결 |
 | PDF 편집 호환 진입점 | `/tools/pdf-editor.html` | 기존 PDF 편집 URL을 canonical PDF 편집기로 연결 |
-| 표지 검토 호환 진입점 | `/tools/perfect-binding-cover.html` | 기존 표지 검토 URL을 현재 디자인 검토 흐름으로 연결 |
+| 표지 검토 호환 진입점 | `/tools/perfect-binding-cover.html` | 기존 표지 검토 URL을 현재 인쇄파일 검토 흐름으로 연결 |
 
-### 디자인 검토
+### 인쇄파일 검토
 
 `/print-checker`는 완성된 인쇄물 파일을 제작 규격과 대조하는 검토 도구입니다.
 
@@ -33,6 +33,7 @@ Firebase Hosting과 Python Cloud Functions로 운영하는 PDF·인쇄 실무 �
 - 초대장/안내장 1p 앞면 · 2p 뒷면 확인과 가변 접지 위치 검토
 - PDF/이미지 원본의 실제 규격과 설정값 비교
 - `/apps/cover`, `/apps/poster`, `/apps/flyer`, `/apps/invitation`, `/apps/notice`, `/apps/leaflet` 호환 주소 지원
+- 문서 PDF의 인쇄용지·재단 규격 검토는 `/pdf-editor-advanced`의 **문서 인쇄 검토**가 담당
 
 ### AI 디자인 제작
 
@@ -65,7 +66,7 @@ Firebase Hosting과 Python Cloud Functions로 운영하는 PDF·인쇄 실무 �
 
 - `/pdf-suite`: PDF 올인원 허브
 - `/pdf-editor`: canonical PDF 문서 편집 엔진
-- `/pdf-editor-advanced`: 독립 고급 PDF 편집기
+- `/pdf-editor-advanced`: 독립 고급 PDF 편집기 + 문서 인쇄 검토
 - `/pdf-preflight`: PDF 검사·보안·유틸리티
 - `/apps/pdf-layout`, `/apps/booklet`: `/apps/**` 호환 셸을 통한 PDF 작업 진입
 - `/perfect-binding-cover`, `/tools/*.html`: 기존 공개 URL 호환 진입점
@@ -76,11 +77,11 @@ PDF 검수 결과는 인쇄소의 RIP/프리플라이트 결과를 대체하지 
 
 ## 저장소 구조
 
-- `apps/`: PDF 배치/소책자용 공통 앱 셸과 디자인 검토 호환 리다이렉트
-- `print-checker/`, `js/print-checker/`, `css/print-checker.css`: 디자인 검토
+- `apps/`: PDF 배치/소책자용 공통 앱 셸과 인쇄파일 검토 호환 리다이렉트
+- `print-checker/`, `js/print-checker/`, `css/print-checker.css`: 인쇄파일 검토
 - `ai-design-maker/`, `js/ai-design-maker.js`, `css/ai-design-maker.css`: AI 디자인 제작
 - `pdf-editor/`, `js/pdf-editor/`: canonical PDF 편집 엔진
-- `pdf-editor-advanced/`, `js/pdf-editor-advanced/`: 독립 고급 PDF 편집기
+- `pdf-editor-advanced/`, `js/pdf-editor-advanced/`: 독립 고급 PDF 편집기와 문서 인쇄 검토
 - `pdf-preflight/`, `js/pdf-preflight/`: PDF 검사·유틸리티
 - `pdf-suite/`, `js/pdf-suite/`: PDF 통합 도구 보조 런타임
 - `smart-print-layout/`, `js/smart-print-layout/`: 인쇄 배치 도구
@@ -197,8 +198,9 @@ OPENAI_AI_IMAGE_QUALITY=high
 1. 실제 운영 경로에서 사용하지 않는 독립 화면·실험 파일은 운영 트리에 남기지 않습니다.
 2. 기능은 canonical runtime 한 곳에서 소유하고 호환 URL은 얇은 진입점으로 유지합니다.
 3. `/apps/pdf-layout`과 `/apps/booklet`은 PDF 엔진을 복제하지 않습니다.
-4. 제거된 독립 디자인 편집기 계열은 되살리지 않고, 디자인 검토는 `/print-checker`, AI 표지 제작은 `/ai-design-maker`가 각각 한 곳에서 소유합니다.
-5. 배포 대상 여부는 파일 위치가 아니라 Hosting allowlist를 기준으로 판단합니다.
+4. 제거된 독립 디자인 편집기 계열은 되살리지 않고, 인쇄파일 검토는 `/print-checker`, AI 표지 제작은 `/ai-design-maker`가 각각 한 곳에서 소유합니다.
+5. 문서 PDF의 인쇄용지·재단 규격 검토는 `/pdf-editor-advanced` 한 곳에서 소유하고 `/print-checker/?product=book-review`는 호환 리다이렉트만 유지합니다.
+6. 배포 대상 여부는 파일 위치가 아니라 Hosting allowlist를 기준으로 판단합니다.
 
 ### 인쇄 출력과 AI 전체 사용량 보호 (2026-09-27)
 
