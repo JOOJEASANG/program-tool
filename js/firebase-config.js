@@ -66,10 +66,25 @@ window.firebaseConfig = firebaseConfig;
 })();
 
 (() => {
+  const path = String(location.pathname || '').replace(/\/+$/, '');
+  const directPrintPath = [
+    '/smart-print-layout', '/smart-print-layout/index.html',
+    '/pdf-editor', '/pdf-editor/index.html', '/tools/pdf-editor.html',
+    '/ai-design-maker', '/ai-design-maker/index.html'
+  ].some(item => path.endsWith(item));
+  if (!directPrintPath || document.getElementById('programStudioDirectPrintScript')) return;
+  const script = document.createElement('script');
+  script.id = 'programStudioDirectPrintScript';
+  script.src = '/js/direct-print.js?v=20260930-1';
+  script.async = false;
+  document.head.appendChild(script);
+})();
+
+(() => {
   if (document.getElementById('programStudioCacheBootstrap')) return;
   const script = document.createElement('script');
   script.id = 'programStudioCacheBootstrap';
-  script.src = '/js/sw-register.js?v=2026.09.29.003';
+  script.src = '/js/sw-register.js?v=2026.09.30.001';
   script.defer = true;
   document.head.appendChild(script);
 })();
