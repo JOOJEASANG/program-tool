@@ -14,6 +14,11 @@ from services.pdf_advanced_engine import (
     process_advanced_pdf_bytes,
     process_advanced_pdf_paths,
 )
+from services.pdf_advanced_sheet_layout import (
+    process_sheet_layout_pdf_bytes,
+    process_sheet_layout_pdf_paths,
+    request_uses_sheet_layout,
+)
 from utils.auth import require_auth
 from utils.storage import get_bucket, get_request_id
 from utils.storage_delivery import upload_pdf_result
@@ -148,6 +153,18 @@ def _internal(message: str):
     return _error("고급 PDF 처리 중 오류가 발생했습니다.", 500, "PDF_ADVANCED_INTERNAL_ERROR")
 
 
+def _process_bytes(data_list: list[bytes], req: PdfAdvancedProcessRequest) -> bytes:
+    if request_uses_sheet_layout(req):
+        return process_sheet_layout_pdf_bytes(data_list, req)
+    return process_advanced_pdf_bytes(data_list, req)
+
+
+def _process_paths(paths: list[Path], req: PdfAdvancedProcessRequest, output_path: Path) -> Path:
+    if request_uses_sheet_layout(req):
+        return process_sheet_layout_pdf_paths(paths, req, output_path)
+    return process_advanced_pdf_paths(paths, req, output_path)
+
+
 @pdf_advanced_bp.route("/process", methods=["POST"])
 @require_auth
 def process(uid):
@@ -181,7 +198,7 @@ def process(uid):
 
     try:
         _validate_bytes(req, data_list)
-        output = process_advanced_pdf_bytes(data_list, req)
+        output = _process_bytes(data_list, req)
     except ValueError as exc:
         return _error(str(exc), 400, "PDF_ADVANCED_VALIDATION_FAILED")
     except Exception:
@@ -257,7 +274,7 @@ def process_storage(uid):
             local_paths.append(path)
 
         _validate_paths(req, local_paths)
-        process_advanced_pdf_paths(local_paths, req, output_path)
+        _process_paths(local_paths, req, output_path)
         delivery = upload_pdf_result(
             bucket,
             uid,
