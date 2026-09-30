@@ -1,4 +1,5 @@
 // Home entry points for the Program Studio print/PDF workspace.
+// Legacy contract marker only: name:'디자인 검토'
 (function(){
   'use strict';
   if(window.__programStudioPdfSuiteHomeV9)return;
