@@ -28,10 +28,14 @@ def test_direct_print_is_injected_into_supported_hosting_apps():
     assert "program-direct-print-btn" in direct_print
     assert "프린터 출력" in direct_print
     assert "target.print()" in direct_print
-    assert "/smart-print-layout/" in direct_print
-    assert "/pdf-editor-advanced/" in direct_print
-    assert "/pdf-editor/" in direct_print
-    assert "/ai-design-maker/" in direct_print
+    for route_marker in (
+        "smart-print-layout",
+        "pdf-editor-advanced",
+        "pdf-editor",
+        "tools\\/pdf-editor",
+        "ai-design-maker",
+    ):
+        assert route_marker in direct_print
 
 
 def test_advanced_editor_reset_keeps_loaded_pdf_and_resets_edits():
