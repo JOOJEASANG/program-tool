@@ -19,4 +19,5 @@ def test_document_review_no_longer_depends_on_print_checker_geometry():
     assert "advancedState" in advanced
     assert "renderPagePreview" in advanced
     assert "문서 인쇄 검토" in advanced
-    assert "location.href = '/pdf-editor-advanced/'" in legacy
+    assert "params.get('product') === 'book-review'" in legacy
+    assert "location.replace(target)" in legacy
