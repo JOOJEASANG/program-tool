@@ -2,6 +2,7 @@ import { advancedState, checkpoint, emitStateChange } from './state.js';
 import './paper-size.js';
 import './workspace-v2.js';
 import './layout-v3.js';
+import './print-review.js';
 
 const $ = id => document.getElementById(id);
 
