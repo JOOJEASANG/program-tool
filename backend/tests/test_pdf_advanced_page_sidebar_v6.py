@@ -18,15 +18,19 @@ def read(path: str) -> str:
 def test_page_sidebar_uses_thumbnail_caption_only_and_navigation_on_top():
     facing = read("js/pdf-editor-advanced/facing-upload.js")
     sidebar = read("js/pdf-editor-advanced/workspace-page-sidebar-v7.js")
+    tabbed = read("js/pdf-editor-advanced/workspace-tabbed-sidebar-v9.js")
     html = read("pdf-editor-advanced/index.html")
 
     assert "import './workspace-page-sidebar-v7.js';" in facing
+    assert "import './workspace-tabbed-sidebar-v9.js';" in facing
     assert "page-section>.pair-nav" in sidebar
     assert "titleRow.insertAdjacentElement('afterend', nav)" in sidebar
     assert ".page-item-info span{display:none!important}" in sidebar
     assert "#selectionLabel{display:none!important}" in sidebar
     assert "MutationObserver" not in sidebar
-    assert "facing-upload.js?v=20261001-5" in html
+    assert "grid-template-columns:1fr!important" in tabbed
+    assert "width:180px!important;height:auto!important" in tabbed
+    assert "facing-upload.js?v=20261001-6" in html
 
 
 def test_trim_size_is_sent_to_output_and_preview_marks_follow_trim_guide():
