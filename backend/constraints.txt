@@ -15,7 +15,7 @@ cffi==2.1.0
 charset-normalizer==3.4.9
 click==8.4.2
 cloudevents==1.12.0
-cryptography==49.0.0
+cryptography==50.0.1
 deprecation==2.1.0
 firebase-admin==7.5.0
 firebase-functions==0.6.0
