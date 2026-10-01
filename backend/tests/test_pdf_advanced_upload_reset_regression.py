@@ -18,10 +18,16 @@ def test_sidebar_hotfix_avoids_competing_subtree_observers():
     assert ".page-item-info span{display:none!important}" in fix
 
 
-def test_workspace_reset_clears_new_trim_state():
+def test_workspace_reset_clears_new_trim_state_and_preserves_bound_objects():
     reset = read("js/pdf-editor-advanced/workspace-reset.js")
 
     assert "trimMode: 'auto'" in reset
     assert "trimWidthMm: 0" in reset
     assert "trimHeightMm: 0" in reset
+    assert "Object.assign(advancedState.paper, DEFAULT_PAPER)" in reset
+    assert "Object.assign(advancedState.margins, DEFAULT_MARGINS)" in reset
+    assert "Object.assign(advancedState.headerFooter, DEFAULT_HEADER_FOOTER)" in reset
+    assert "Object.assign(advancedState.pageNumbers, DEFAULT_PAGE_NUMBERS)" in reset
+    assert "advancedState.margins =" not in reset
+    assert "advancedState.headerFooter =" not in reset
     assert "emitStateChange('workspace-reset')" in reset
