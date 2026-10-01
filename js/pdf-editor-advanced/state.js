@@ -4,6 +4,9 @@ const DEFAULT_PAPER = {
   customHeightMm: 297,
   landscape: false,
   cropMarks: false,
+  trimMode: 'auto',
+  trimWidthMm: 0,
+  trimHeightMm: 0,
 };
 
 const PAPER_PRESETS_MM = {
@@ -13,6 +16,13 @@ const PAPER_PRESETS_MM = {
   b4: { width: 257, height: 364 },
   a3: { width: 297, height: 420 },
 };
+const TRIM_PRESETS_MM = [
+  { name: 'A5', width: 148, height: 210 },
+  { name: 'B5', width: 182, height: 257 },
+  { name: 'A4', width: 210, height: 297 },
+  { name: 'B4', width: 257, height: 364 },
+  { name: 'A3', width: 297, height: 420 },
+];
 const PT_PER_MM = 72 / 25.4;
 
 export const advancedState = {
@@ -60,6 +70,41 @@ function outputPointsForPage(page) {
   return rotation === 90 || rotation === 270
     ? { width: height, height: width }
     : { width, height };
+}
+
+function detectedTrimSizeMm(page) {
+  const points = outputPointsForPage(page);
+  const actualWidth = Math.max(0, points.width / PT_PER_MM);
+  const actualHeight = Math.max(0, points.height / PT_PER_MM);
+  if (!actualWidth || !actualHeight) return { width: 0, height: 0, name: '' };
+  const candidates = [];
+  for (const preset of TRIM_PRESETS_MM) {
+    for (const rotated of [false, true]) {
+      const width = rotated ? preset.height : preset.width;
+      const height = rotated ? preset.width : preset.height;
+      const dw = actualWidth - width;
+      const dh = actualHeight - height;
+      if (dw < -0.6 || dh < -0.6) continue;
+      if (dw / 2 > 10.5 || dh / 2 > 10.5) continue;
+      candidates.push({
+        width,
+        height,
+        name: preset.name,
+        score: Math.abs(dw) + Math.abs(dh) + Math.abs(dw - dh) * 0.25,
+      });
+    }
+  }
+  candidates.sort((a, b) => a.score - b.score);
+  return candidates[0] || { width: actualWidth, height: actualHeight, name: '파일크기' };
+}
+
+export function trimSizeMmForPage(page) {
+  const manualWidth = Number(advancedState.paper?.trimWidthMm || 0);
+  const manualHeight = Number(advancedState.paper?.trimHeightMm || 0);
+  if (String(advancedState.paper?.trimMode || 'auto') === 'manual' && manualWidth > 0 && manualHeight > 0) {
+    return { width: manualWidth, height: manualHeight, name: '직접입력' };
+  }
+  return detectedTrimSizeMm(page);
 }
 
 export function isSheetLayoutMode() {
@@ -119,6 +164,9 @@ function restoreSnapshot(snapshot) {
   if (!Number.isFinite(Number(advancedState.paper.customHeightMm))) advancedState.paper.customHeightMm = 297;
   advancedState.paper.landscape = !!advancedState.paper.landscape;
   advancedState.paper.cropMarks = !!advancedState.paper.cropMarks;
+  advancedState.paper.trimMode = advancedState.paper.trimMode === 'manual' ? 'manual' : 'auto';
+  advancedState.paper.trimWidthMm = Math.max(0, Math.min(1200, Number(advancedState.paper.trimWidthMm) || 0));
+  advancedState.paper.trimHeightMm = Math.max(0, Math.min(1200, Number(advancedState.paper.trimHeightMm) || 0));
   advancedState.margins = clone(snapshot.margins || { left: 0, right: 0, top: 0, bottom: 0, facingPages: false });
   if (typeof advancedState.margins.facingPages !== 'boolean') advancedState.margins.facingPages = false;
   advancedState.headerFooter = clone(snapshot.headerFooter || advancedState.headerFooter);
@@ -210,6 +258,7 @@ export function serializeSettings() {
   return {
     pages: advancedState.pages.map(page => {
       const output = paperPointsForPage(page);
+      const trim = trimSizeMmForPage(page);
       return {
         file_index: page.fileIndex,
         page_index: page.pageIndex,
@@ -228,6 +277,8 @@ export function serializeSettings() {
         offset_y_mm: page.offsetY,
         preserve_actual_size: sheetMode,
         crop_marks: sheetMode && !!advancedState.paper.cropMarks,
+        trim_width_mm: sheetMode && trim.width > 0 ? trim.width : null,
+        trim_height_mm: sheetMode && trim.height > 0 ? trim.height : null,
         crop_mark_length_mm: 5,
         crop_mark_gap_mm: 2,
         excluded: false,
