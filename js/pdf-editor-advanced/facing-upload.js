@@ -4,6 +4,7 @@ import './workspace-v2.js';
 import './layout-v3.js';
 import './workspace-reset.js';
 import './workspace-inline-review-v4.js';
+import './workspace-right-sidebar-v5.js';
 
 const $ = id => document.getElementById(id);
 
