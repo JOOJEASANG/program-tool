@@ -20,6 +20,8 @@ def test_pdf_advanced_uses_inline_workspace_review_instead_of_separate_print_rev
     assert "removeLegacyPrintReview" in shell
     assert "advancedPrintReviewWorkspace" in shell
     assert "print-review-active" in shell
+    assert "new MutationObserver(() => removeLegacyPrintReview())" not in shell
+    assert "subtree: true" not in shell
 
 
 def test_pdf_advanced_moves_page_picker_to_right_sidebar_with_thumbnails():
