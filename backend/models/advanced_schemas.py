@@ -59,6 +59,8 @@ class AdvancedPageInfo(BaseModel):
     offset_y_mm: float = Field(default=0.0, ge=-200.0, le=200.0)
     preserve_actual_size: bool = False
     crop_marks: bool = False
+    trim_width_mm: float | None = Field(default=None, ge=1.0, le=1200.0)
+    trim_height_mm: float | None = Field(default=None, ge=1.0, le=1200.0)
     crop_mark_length_mm: float = Field(default=5.0, ge=1.0, le=20.0)
     crop_mark_gap_mm: float = Field(default=2.0, ge=0.0, le=10.0)
     excluded: bool = False
@@ -71,6 +73,8 @@ class AdvancedPageInfo(BaseModel):
             raise ValueError("상하 잘라내기 합계는 페이지 높이의 95% 미만이어야 합니다")
         if (self.output_width_pt is None) != (self.output_height_pt is None):
             raise ValueError("출력 페이지 크기는 너비와 높이를 함께 지정해야 합니다")
+        if (self.trim_width_mm is None) != (self.trim_height_mm is None):
+            raise ValueError("재단사이즈는 너비와 높이를 함께 지정해야 합니다")
         return self
 
 
