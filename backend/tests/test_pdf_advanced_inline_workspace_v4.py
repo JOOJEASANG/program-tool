@@ -17,8 +17,8 @@ def test_pdf_advanced_uses_inline_workspace_review_instead_of_separate_print_rev
     assert "import './workspace-inline-review-v4.js';" in facing
     assert "import './print-review.js';" not in facing
     assert "import './print-review-validation.js';" not in facing
-    assert "advancedPrintReviewBtn" in shell
     assert "removeLegacyPrintReview" in shell
+    assert "advancedPrintReviewWorkspace" in shell
     assert "print-review-active" in shell
 
 
