@@ -6,7 +6,7 @@ import './workspace-reset.js';
 import './workspace-inline-review-v4.js';
 import './workspace-right-sidebar-v5.js';
 import './workspace-page-sidebar-v7.js';
-import './workspace-settings-sidebar-v8.js';
+import './workspace-tabbed-sidebar-v9.js';
 
 const $ = id => document.getElementById(id);
 
