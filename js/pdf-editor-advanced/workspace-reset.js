@@ -114,10 +114,10 @@ function resetWorkspace() {
   if (!window.confirm('불러온 PDF는 그대로 두고 모든 편집 내용과 출력 설정을 초기화할까요?')) return;
 
   advancedState.pages.forEach(resetPage);
-  advancedState.paper = { ...DEFAULT_PAPER };
-  advancedState.margins = { ...DEFAULT_MARGINS };
-  advancedState.headerFooter = { ...DEFAULT_HEADER_FOOTER };
-  advancedState.pageNumbers = { ...DEFAULT_PAGE_NUMBERS };
+  Object.assign(advancedState.paper, DEFAULT_PAPER);
+  Object.assign(advancedState.margins, DEFAULT_MARGINS);
+  Object.assign(advancedState.headerFooter, DEFAULT_HEADER_FOOTER);
+  Object.assign(advancedState.pageNumbers, DEFAULT_PAGE_NUMBERS);
   advancedState.eraseMode = false;
   advancedState.zoom = 1;
   clearHistory();
