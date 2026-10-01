@@ -17,7 +17,6 @@ let trimHeightMm = 0;
 let guideFrame = 0;
 let thumbnailObserver = null;
 let pageListObserver = null;
-let legacyObserver = null;
 
 function actualSizeMm(page) {
   if (!page) return null;
@@ -115,13 +114,6 @@ function removeLegacyPrintReview() {
   document.querySelector('.advanced-print-review-section')?.remove();
   $('advancedPrintReviewWorkspace')?.remove();
   $('advancedPrintReviewConfig')?.remove();
-}
-
-function watchLegacyPrintReview() {
-  removeLegacyPrintReview();
-  if (!document.body || legacyObserver) return;
-  legacyObserver = new MutationObserver(() => removeLegacyPrintReview());
-  legacyObserver.observe(document.body, { childList: true, subtree: true });
 }
 
 function buildPageSidebar() {
@@ -413,6 +405,7 @@ function installObservers() {
   window.addEventListener('resize', scheduleGuide);
   window.addEventListener('pdf-advanced-state-change', event => {
     const reason = String(event?.detail?.reason || '');
+    if (reason === 'workspace-reset' || reason === 'reset') trimMode = 'auto';
     if (/upload|rotate|orientation|reset|history|paper|crop|fine/.test(reason)) {
       document.querySelectorAll('canvas.page-sidebar-thumb').forEach(canvasNode => {
         canvasNode.dataset.rendered = '0';
@@ -428,7 +421,7 @@ function install() {
   installStyles();
   buildPageSidebar();
   watchPageList();
-  watchLegacyPrintReview();
+  removeLegacyPrintReview();
   installSizeInspector();
   ensureGuides();
   initializeResetPlacement();
