@@ -35,13 +35,20 @@ def test_page_tab_uses_two_column_proportional_thumbnails():
     assert "two-column-v10" in grid
 
 
-def test_canvas_hides_original_file_guide_and_keeps_trim_review():
+def test_canvas_hides_original_outline_and_moves_guide_labels_to_statusbar():
     grid = read("js/pdf-editor-advanced/workspace-page-grid-v10.js")
     inline_review = read("js/pdf-editor-advanced/workspace-inline-review-v4.js")
 
     assert "#advancedActualGuide" in grid
     assert ".advanced-size-guide.actual" in grid
     assert "display:none!important" in grid
+    assert ".advanced-size-guide-label" in grid
+    assert "advanced-guide-status" in grid
+    assert "advancedCanvasStatusBar" in grid
+    assert "원본파일" in grid
+    assert "재단사이즈" in grid
+    assert "#2563eb" in grid
+    assert "#dc2626" in grid
     assert "advancedTrimGuide" in inline_review
     assert "advanced-size-guide trim" in inline_review
 
