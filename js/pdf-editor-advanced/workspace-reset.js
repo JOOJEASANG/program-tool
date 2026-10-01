@@ -8,6 +8,9 @@ const DEFAULT_PAPER = {
   customHeightMm: 297,
   landscape: false,
   cropMarks: false,
+  trimMode: 'auto',
+  trimWidthMm: 0,
+  trimHeightMm: 0,
 };
 const DEFAULT_MARGINS = { left: 0, right: 0, top: 0, bottom: 0, facingPages: false };
 const DEFAULT_HEADER_FOOTER = {
@@ -79,6 +82,13 @@ function syncControls() {
     $('eraseModeBtn').textContent = '부분 지우기';
   }
   $('pageStage')?.classList.remove('erase-active');
+
+  setValue('advancedPaperSize', 'original');
+  if ($('advancedPaperCustomRow')) $('advancedPaperCustomRow').hidden = true;
+  setValue('advancedPaperCustomW', 210);
+  setValue('advancedPaperCustomH', 297);
+  if ($('advancedPaperLandscape')) $('advancedPaperLandscape').checked = false;
+  if ($('advancedPaperCropMarks')) $('advancedPaperCropMarks').checked = false;
 }
 
 function resetPage(page) {
@@ -139,6 +149,7 @@ function install() {
   window.addEventListener('pdf-advanced-state-change', syncDisabled);
   syncDisabled();
 
+  window.PdfAdvancedWorkspaceReset = { reset: resetWorkspace };
   document.documentElement.dataset.pdfAdvancedWorkspaceReset = 'ready';
 }
 
