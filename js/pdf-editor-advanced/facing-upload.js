@@ -8,6 +8,7 @@ import './workspace-right-sidebar-v5.js';
 import './workspace-page-sidebar-v7.js';
 import './workspace-tabbed-sidebar-v9.js';
 import './workspace-page-grid-v10.js';
+import './workspace-thumbnail-ratio-v11.js';
 
 const $ = id => document.getElementById(id);
 
