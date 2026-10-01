@@ -11,9 +11,8 @@ def test_document_file_review_is_moved_to_advanced_editor():
     page = read("print-checker/index.html")
     bridge = read("js/print-checker/design-review-step1.js")
     legacy = read("js/print-checker/book-review.js")
-    advanced = read("js/pdf-editor-advanced/print-review.js")
-    validation = read("js/pdf-editor-advanced/print-review-validation.js")
     loader = read("js/pdf-editor-advanced/facing-upload.js")
+    inline = read("js/pdf-editor-advanced/workspace-inline-review-v4.js")
 
     assert 'data-product="book-review"' not in bridge
     assert "ensureDocumentFileCard" not in bridge
@@ -28,11 +27,10 @@ def test_document_file_review_is_moved_to_advanced_editor():
     assert "location.replace(target)" in legacy
     assert "document-review-moved-to-pdf-editor-advanced-v2" in legacy
 
-    assert "문서 인쇄 검토" in advanced
-    assert "인쇄용지 중앙 배치" in advanced
-    assert "사방 재단표시" in advanced
-    assert "전체 페이지 검사" in advanced
-    assert "실제 재단 폭과 높이를 모두 입력" in validation
-    assert "event.stopImmediatePropagation()" in validation
-    assert "import './print-review.js';" in loader
-    assert "import './print-review-validation.js';" in loader
+    assert "import './workspace-inline-review-v4.js';" in loader
+    assert "import './print-review.js';" not in loader
+    assert "import './print-review-validation.js';" not in loader
+    assert "파일 실제" in inline
+    assert "재단사이즈" in inline
+    assert "advancedTrimGuide" in inline
+    assert "advanced-page-sidebar" in inline
