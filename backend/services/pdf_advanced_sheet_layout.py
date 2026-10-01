@@ -65,6 +65,27 @@ def _render_actual_page_content(out_page: fitz.Page, source_doc: fitz.Document, 
             erased_doc.close()
 
 
+def _crop_mark_trim_rect(content_rect: fitz.Rect, page_info: AdvancedPageInfo) -> fitz.Rect:
+    """Return the physical trim rectangle used by crop marks.
+
+    When the editor supplies an explicit trim size, keep that size in millimetres
+    and center it on the placed page content. Otherwise retain the legacy
+    behavior and use the placed content bounds.
+    """
+    if page_info.trim_width_mm is None or page_info.trim_height_mm is None:
+        return fitz.Rect(content_rect)
+    width = float(page_info.trim_width_mm) * pdf_ops.MM_TO_PT
+    height = float(page_info.trim_height_mm) * pdf_ops.MM_TO_PT
+    center_x = (content_rect.x0 + content_rect.x1) / 2
+    center_y = (content_rect.y0 + content_rect.y1) / 2
+    return fitz.Rect(
+        center_x - width / 2,
+        center_y - height / 2,
+        center_x + width / 2,
+        center_y + height / 2,
+    )
+
+
 def _draw_crop_marks(page: fitz.Page, trim: fitz.Rect, page_info: AdvancedPageInfo) -> None:
     length = float(page_info.crop_mark_length_mm or 5.0) * pdf_ops.MM_TO_PT
     gap = float(page_info.crop_mark_gap_mm or 2.0) * pdf_ops.MM_TO_PT
@@ -109,7 +130,7 @@ def build_sheet_layout_pdf_document(source_docs: list[fitz.Document], request: P
                 pdf_advanced_engine._render_page_content(out_page, source_doc, page_info, source_rect, content_box)
                 trim = content_box
             if page_info.crop_marks:
-                _draw_crop_marks(out_page, trim, page_info)
+                _draw_crop_marks(out_page, _crop_mark_trim_rect(trim, page_info), page_info)
             pdf_advanced_engine._render_page_overlays(out_page, page_info, page_width, page_height)
             pdf_text_renderer.apply_header_footer(out_page, header_footer, page_width, page_height, output_index + 1, total_pages, facing_pages)
             left_mm, right_mm, top_mm, bottom_mm = pdf_advanced_engine._effective_margin_mm(request, output_index)
