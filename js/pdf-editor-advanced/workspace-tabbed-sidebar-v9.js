@@ -1,4 +1,4 @@
-import { advancedState, selectedPage, paperSizeMmForPage, isSheetLayoutMode } from './state.js';
+import { selectedPage, paperSizeMmForPage, isSheetLayoutMode } from './state.js';
 
 const $ = id => document.getElementById(id);
 
@@ -26,7 +26,7 @@ function installStyles() {
     .advanced-page-sidebar .page-section>.pair-nav{flex:0 0 auto!important;margin:0 0 9px!important}
     .advanced-page-sidebar .page-list{display:grid!important;grid-template-columns:1fr!important;align-content:start!important;gap:10px!important;flex:1 1 auto!important;min-height:0!important;max-height:none!important;overflow-y:auto!important;overflow-x:hidden!important;padding:2px 3px 14px!important;scrollbar-gutter:stable}
     .advanced-page-sidebar .page-item{position:relative!important;display:flex!important;flex-direction:column!important;align-items:stretch!important;width:100%!important;min-width:0!important;min-height:0!important;padding:8px!important;gap:6px!important;border:1px solid #dfe5ec!important;border-radius:11px!important;background:#fff!important}
-    .advanced-page-sidebar .page-item canvas.page-sidebar-thumb{order:1!important;display:block!important;width:100%!important;height:184px!important;object-fit:contain!important;background:#fff!important;border:1px solid #e2e8f0!important;border-radius:6px!important}
+    .advanced-page-sidebar .page-item canvas.page-sidebar-thumb{order:1!important;display:block!important;width:180px!important;height:auto!important;max-width:100%!important;margin:0 auto!important;background:#fff!important;border:1px solid #e2e8f0!important;border-radius:6px!important}
     .advanced-page-sidebar .page-item-info{order:2!important;display:block!important;width:100%!important;text-align:center!important;min-width:0!important}
     .advanced-page-sidebar .page-item-info strong{display:block!important;font-size:10px!important;line-height:1.35!important;color:#334155!important;font-weight:900!important}
     .advanced-page-sidebar .page-item-info span{display:none!important}
@@ -69,10 +69,10 @@ function installStyles() {
     .advanced-canvas-paper strong{color:#12396d}
     .advanced-workspace .busy-overlay{inset:0 0 36px!important}
 
-    @media(max-width:1280px){.advanced-app{grid-template-columns:300px minmax(0,1fr) 310px!important}.advanced-page-sidebar .page-item canvas.page-sidebar-thumb{height:172px!important}}
+    @media(max-width:1280px){.advanced-app{grid-template-columns:300px minmax(0,1fr) 310px!important}.advanced-page-sidebar .page-item canvas.page-sidebar-thumb{width:170px!important}}
     @media(max-width:1050px){.advanced-app{grid-template-columns:290px minmax(0,1fr) 300px!important}.advanced-page-sidebar{padding-inline:9px!important}.advanced-page-sidebar .advanced-output-section{margin-inline:-9px!important;padding-inline:9px!important}}
-    @media(max-width:900px){.advanced-app{grid-template-columns:280px minmax(0,1fr) 285px!important}.advanced-page-sidebar .page-item canvas.page-sidebar-thumb{height:158px!important}.advanced-canvas-statusbar{gap:8px;padding-inline:9px}}
-    @media(max-width:720px){.advanced-app{grid-template-columns:1fr!important}.advanced-page-sidebar{height:520px!important;max-height:520px!important;overflow:hidden!important;padding:9px 10px 0!important}.advanced-page-sidebar .page-list{grid-template-columns:1fr!important}.advanced-page-sidebar .page-item canvas.page-sidebar-thumb{height:190px!important}.advanced-page-sidebar .advanced-output-section{margin-inline:-10px!important;padding-inline:10px!important}.advanced-canvas-statusbar{height:auto;min-height:42px;flex:0 0 auto;flex-wrap:wrap;padding-block:6px}.advanced-workspace .busy-overlay{inset:0!important}}
+    @media(max-width:900px){.advanced-app{grid-template-columns:280px minmax(0,1fr) 285px!important}.advanced-page-sidebar .page-item canvas.page-sidebar-thumb{width:158px!important}.advanced-canvas-statusbar{gap:8px;padding-inline:9px}}
+    @media(max-width:720px){.advanced-app{grid-template-columns:1fr!important}.advanced-page-sidebar{height:520px!important;max-height:520px!important;overflow:hidden!important;padding:9px 10px 0!important}.advanced-page-sidebar .page-list{grid-template-columns:1fr!important}.advanced-page-sidebar .page-item canvas.page-sidebar-thumb{width:185px!important;height:auto!important}.advanced-page-sidebar .advanced-output-section{margin-inline:-10px!important;padding-inline:10px!important}.advanced-canvas-statusbar{height:auto;min-height:42px;flex:0 0 auto;flex-wrap:wrap;padding-block:6px}.advanced-workspace .busy-overlay{inset:0!important}}
   `;
   document.head.appendChild(style);
 }
@@ -132,9 +132,8 @@ function ensureSettingsScroller(sidebar) {
 }
 
 function moveSizeSummaryToCanvas(inspector) {
-  const workspace = document.querySelector('.advanced-workspace');
   const preview = $('previewScroll');
-  if (!workspace || !preview || !inspector) return false;
+  if (!preview || !inspector) return false;
   let bar = $('advancedCanvasStatusBar');
   if (!bar) {
     bar = document.createElement('div');
@@ -159,13 +158,11 @@ function moveSizeSummaryToCanvas(inspector) {
 }
 
 function prepareTrimSettings(inspector) {
-  if (!inspector) return;
-  if (!inspector.querySelector('.advanced-settings-title')) {
-    const title = document.createElement('div');
-    title.className = 'advanced-settings-title';
-    title.textContent = '재단 사이즈';
-    inspector.insertBefore(title, inspector.firstChild);
-  }
+  if (!inspector || inspector.querySelector('.advanced-settings-title')) return;
+  const title = document.createElement('div');
+  title.className = 'advanced-settings-title';
+  title.textContent = '재단 사이즈';
+  inspector.insertBefore(title, inspector.firstChild);
 }
 
 function syncPaperStatus() {
@@ -206,12 +203,10 @@ function applyLayout() {
   const scroller = ensureSettingsScroller(sidebar);
   prepareTrimSettings(inspector);
   moveSizeSummaryToCanvas(inspector);
-
   for (const node of [inspector, paper, margin, headerFooter, pageNumbers]) scroller.appendChild(node);
   sidebar.appendChild(output);
   styleResetButton();
   syncPaperStatus();
-
   sidebar.dataset.tabbedLayout = 'right-v9';
   document.querySelector('.advanced-sidebar')?.setAttribute('data-edit-tools-only', '1');
   return true;
