@@ -8,6 +8,9 @@ const DEFAULT_PAPER = {
   customHeightMm: 297,
   landscape: false,
   cropMarks: false,
+  trimMode: 'auto',
+  trimWidthMm: 0,
+  trimHeightMm: 0,
 };
 const DEFAULT_MARGINS = { left: 0, right: 0, top: 0, bottom: 0, facingPages: false };
 const DEFAULT_HEADER_FOOTER = {
@@ -79,6 +82,13 @@ function syncControls() {
     $('eraseModeBtn').textContent = '부분 지우기';
   }
   $('pageStage')?.classList.remove('erase-active');
+
+  setValue('advancedPaperSize', 'original');
+  if ($('advancedPaperCustomRow')) $('advancedPaperCustomRow').hidden = true;
+  setValue('advancedPaperCustomW', 210);
+  setValue('advancedPaperCustomH', 297);
+  if ($('advancedPaperLandscape')) $('advancedPaperLandscape').checked = false;
+  if ($('advancedPaperCropMarks')) $('advancedPaperCropMarks').checked = false;
 }
 
 function resetPage(page) {
@@ -104,10 +114,10 @@ function resetWorkspace() {
   if (!window.confirm('불러온 PDF는 그대로 두고 모든 편집 내용과 출력 설정을 초기화할까요?')) return;
 
   advancedState.pages.forEach(resetPage);
-  Object.assign(advancedState.paper, DEFAULT_PAPER);
-  Object.assign(advancedState.margins, DEFAULT_MARGINS);
-  Object.assign(advancedState.headerFooter, DEFAULT_HEADER_FOOTER);
-  Object.assign(advancedState.pageNumbers, DEFAULT_PAGE_NUMBERS);
+  advancedState.paper = { ...DEFAULT_PAPER };
+  advancedState.margins = { ...DEFAULT_MARGINS };
+  advancedState.headerFooter = { ...DEFAULT_HEADER_FOOTER };
+  advancedState.pageNumbers = { ...DEFAULT_PAGE_NUMBERS };
   advancedState.eraseMode = false;
   advancedState.zoom = 1;
   clearHistory();
@@ -139,6 +149,7 @@ function install() {
   window.addEventListener('pdf-advanced-state-change', syncDisabled);
   syncDisabled();
 
+  window.PdfAdvancedWorkspaceReset = { reset: resetWorkspace };
   document.documentElement.dataset.pdfAdvancedWorkspaceReset = 'ready';
 }
 
