@@ -49,10 +49,42 @@ function installStyles() {
       box-shadow:inset 0 0 0 1px #2563eb!important;
     }
 
-    /* 편집 캔버스에는 실제 재단사이즈 가이드만 표시한다. */
+    /* 원본 파일 외곽 가이드는 캔버스에서 숨기고 재단 가이드만 유지한다. */
     #advancedActualGuide,
     .advanced-size-guide.actual{
       display:none!important;
+    }
+
+    /* 캔버스 안 라벨은 제거하고 의미/수치는 아래 상태바에 분리 표시한다. */
+    .advanced-size-guide-label{
+      display:none!important;
+    }
+    .advanced-canvas-statusbar .advanced-guide-status{
+      position:relative!important;
+      padding-left:24px!important;
+      gap:5px!important;
+    }
+    .advanced-canvas-statusbar .advanced-guide-status::before{
+      content:"";
+      position:absolute;
+      left:0;
+      top:50%;
+      width:17px;
+      border-top:2px solid currentColor;
+      transform:translateY(-50%);
+    }
+    .advanced-canvas-statusbar .advanced-guide-status.actual{
+      color:#2563eb!important;
+    }
+    .advanced-canvas-statusbar .advanced-guide-status.trim{
+      color:#dc2626!important;
+    }
+    .advanced-canvas-statusbar .advanced-guide-status.actual strong,
+    .advanced-canvas-statusbar .advanced-guide-status.trim strong{
+      color:currentColor!important;
+    }
+    .advanced-canvas-statusbar .advanced-guide-status span{
+      color:#334155!important;
     }
 
     @media(max-width:900px){
@@ -66,5 +98,33 @@ function installStyles() {
   document.documentElement.dataset.pdfAdvancedPageGrid = 'two-column-v10';
 }
 
-if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', installStyles, { once: true });
-else installStyles();
+function decorateStatusBar() {
+  const bar = $('advancedCanvasStatusBar');
+  if (!bar) return false;
+  const blocks = [...bar.querySelectorAll('.advanced-size-block')];
+  const actual = blocks[0];
+  const trim = blocks[1];
+  if (!actual || !trim) return false;
+
+  actual.classList.add('advanced-guide-status', 'actual');
+  trim.classList.add('advanced-guide-status', 'trim');
+  const actualTitle = actual.querySelector('strong');
+  const trimTitle = trim.querySelector('strong');
+  if (actualTitle) actualTitle.textContent = '원본파일';
+  if (trimTitle) trimTitle.textContent = '재단사이즈';
+  bar.dataset.guideLegend = 'statusbar-v1';
+  return true;
+}
+
+function install() {
+  installStyles();
+  if (decorateStatusBar()) return;
+  let tries = 0;
+  const timer = window.setInterval(() => {
+    tries += 1;
+    if (decorateStatusBar() || tries >= 80) window.clearInterval(timer);
+  }, 50);
+}
+
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', install, { once: true });
+else install();
