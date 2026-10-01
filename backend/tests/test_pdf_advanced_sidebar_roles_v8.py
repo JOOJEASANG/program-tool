@@ -18,7 +18,8 @@ def test_advanced_editor_separates_edit_tools_and_output_settings():
     assert "advanced-header-footer-section" in layout
     assert "advanced-page-number-section" in layout
     assert "advanced-output-section" in layout
-    assert "tool-section:not(.upload-section):not(#pageEditSection)" in layout
+    assert "tool-section:not(.upload-section):not(#pageEditSection):not(#insertOverlaySection)" in layout
+    assert ".advanced-sidebar #insertOverlaySection{display:block!important}" in layout
     assert "edit-left-settings-right-v8" in layout
 
 
