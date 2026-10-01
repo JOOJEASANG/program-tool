@@ -162,6 +162,13 @@ function ensureSingleThumbnail(item, page) {
   observeCanvas(page, canvas);
 }
 
+function syncPageNavLabel() {
+  const label = $('pairPageLabel');
+  if (!label) return;
+  const index = advancedState.pages.findIndex(page => page.id === advancedState.selectedId);
+  label.textContent = index >= 0 ? `${index + 1} / ${advancedState.pages.length}` : `0 / ${advancedState.pages.length}`;
+}
+
 function normalizeListNow() {
   normalizeFrame = 0;
   const list = $('pageList');
@@ -199,6 +206,7 @@ function normalizeListNow() {
     for (const node of [...list.querySelectorAll(':scope > canvas, :scope > .page-thumb-frame')]) node.remove();
 
     list.dataset.stablePageCount = String(list.querySelectorAll(':scope > .page-item').length);
+    syncPageNavLabel();
   } finally {
     if (observer && list.isConnected) observer.observe(list, { childList: true });
     normalizing = false;
@@ -210,18 +218,36 @@ function scheduleNormalize() {
   normalizeFrame = requestAnimationFrame(() => requestAnimationFrame(normalizeListNow));
 }
 
+function replaceLegacyObservedList() {
+  const legacy = $('pageList');
+  if (!legacy || legacy.dataset.stabilityOwner === 'v12') return legacy;
+  const fresh = legacy.cloneNode(false);
+  fresh.dataset.stabilityOwner = 'v12';
+  legacy.replaceWith(fresh);
+  return fresh;
+}
+
 function install() {
   installStyles();
-  const list = $('pageList');
+  const list = replaceLegacyObservedList();
   if (!list) return;
 
+  // v4's page-list MutationObserver and IntersectionObserver remain attached to the detached legacy node.
+  // v12 is the only module that owns the live #pageList from this point onward.
   observer = new MutationObserver(scheduleNormalize);
   observer.observe(list, { childList: true });
 
+  list.addEventListener('click', () => {
+    window.setTimeout(() => {
+      syncPageNavLabel();
+      window.dispatchEvent(new Event('resize'));
+      scheduleNormalize();
+    }, 0);
+  });
   window.addEventListener('pdf-advanced-state-change', scheduleNormalize);
   window.addEventListener('resize', scheduleNormalize);
   document.addEventListener('click', event => {
-    if (event.target?.closest?.('.page-remove, #advancedPagesTab, #pairPrevBtn, #pairNextBtn')) scheduleNormalize();
+    if (event.target?.closest?.('#advancedPagesTab, #pairPrevBtn, #pairNextBtn')) scheduleNormalize();
   }, true);
 
   normalizeListNow();
