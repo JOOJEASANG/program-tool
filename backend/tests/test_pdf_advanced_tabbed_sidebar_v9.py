@@ -22,13 +22,28 @@ def test_advanced_editor_uses_tabbed_right_sidebar_and_canvas_statusbar():
     assert "grid-template-columns:310px minmax(0,1fr) 320px" in layout
 
 
-def test_page_tab_keeps_single_column_proportional_thumbnails():
-    layout = read("js/pdf-editor-advanced/workspace-tabbed-sidebar-v9.js")
+def test_page_tab_uses_two_column_proportional_thumbnails():
+    facing = read("js/pdf-editor-advanced/facing-upload.js")
+    grid = read("js/pdf-editor-advanced/workspace-page-grid-v10.js")
 
-    assert ".advanced-page-sidebar .page-list{display:grid!important;grid-template-columns:1fr!important" in layout
-    assert "width:180px!important;height:auto!important" in layout
-    assert ".page-item-info span{display:none!important}" in layout
-    assert "right:9px!important;top:9px!important" in layout
+    assert "import './workspace-page-grid-v10.js';" in facing
+    assert "grid-template-columns:repeat(2,minmax(0,1fr))" in grid
+    assert "width:100%!important" in grid
+    assert "height:auto!important" in grid
+    assert ".page-item-info strong" in grid
+    assert ".page-remove" in grid
+    assert "two-column-v10" in grid
+
+
+def test_canvas_hides_original_file_guide_and_keeps_trim_review():
+    grid = read("js/pdf-editor-advanced/workspace-page-grid-v10.js")
+    inline_review = read("js/pdf-editor-advanced/workspace-inline-review-v4.js")
+
+    assert "#advancedActualGuide" in grid
+    assert ".advanced-size-guide.actual" in grid
+    assert "display:none!important" in grid
+    assert "advancedTrimGuide" in inline_review
+    assert "advanced-size-guide trim" in inline_review
 
 
 def test_settings_tab_contains_print_settings_but_output_stays_fixed():
