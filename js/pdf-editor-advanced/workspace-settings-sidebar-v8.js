@@ -23,9 +23,9 @@ function installStyles() {
     .advanced-page-sidebar .advanced-settings-section .number-grid,.advanced-page-sidebar .advanced-settings-section .text-grid,.advanced-page-sidebar .advanced-settings-section .select-grid{gap:6px!important}
     .advanced-page-sidebar .advanced-settings-section input,.advanced-page-sidebar .advanced-settings-section select{min-width:0!important}
 
-    .advanced-sidebar .tool-section:not(.upload-section):not(#pageEditSection){display:none!important}
-    .advanced-sidebar .upload-section,.advanced-sidebar #pageEditSection{display:block!important}
-    .advanced-sidebar #pageEditSection{border-top:1px solid #e7edf3!important}
+    .advanced-sidebar .tool-section:not(.upload-section):not(#pageEditSection):not(#insertOverlaySection){display:none!important}
+    .advanced-sidebar .upload-section,.advanced-sidebar #pageEditSection,.advanced-sidebar #insertOverlaySection{display:block!important}
+    .advanced-sidebar #pageEditSection,.advanced-sidebar #insertOverlaySection{border-top:1px solid #e7edf3!important}
 
     .output-section.advanced-output-grid #advancedWorkspaceResetBtn{border-color:#fecaca!important;background:#fff1f2!important;color:#dc2626!important}
     .output-section.advanced-output-grid #advancedWorkspaceResetBtn:hover:not(:disabled){background:#fee2e2!important;color:#b91c1c!important;border-color:#fca5a5!important;box-shadow:0 0 0 2px rgba(220,38,38,.08)!important}
@@ -36,7 +36,7 @@ function installStyles() {
     @media(max-width:1280px){.advanced-app{grid-template-columns:300px minmax(0,1fr) 340px!important}}
     @media(max-width:1100px){.advanced-app{grid-template-columns:290px minmax(0,1fr) 320px!important}.advanced-page-sidebar .page-list{max-height:260px!important}}
     @media(max-width:900px){.advanced-app{grid-template-columns:280px minmax(0,1fr) 300px!important}.advanced-page-sidebar{padding-inline:9px!important}}
-    @media(max-width:720px){.advanced-app{grid-template-columns:1fr!important}.advanced-sidebar .tool-section:not(.upload-section):not(#pageEditSection){display:none!important}.advanced-page-sidebar{height:auto!important;max-height:none!important;overflow:visible!important}.advanced-page-sidebar .page-list{max-height:320px!important}.advanced-page-sidebar .advanced-output-section{position:static!important;box-shadow:none!important}}
+    @media(max-width:720px){.advanced-app{grid-template-columns:1fr!important}.advanced-sidebar .tool-section:not(.upload-section):not(#pageEditSection):not(#insertOverlaySection){display:none!important}.advanced-page-sidebar{height:auto!important;max-height:none!important;overflow:visible!important}.advanced-page-sidebar .page-list{max-height:320px!important}.advanced-page-sidebar .advanced-output-section{position:static!important;box-shadow:none!important}}
   `;
   document.head.appendChild(style);
 }
