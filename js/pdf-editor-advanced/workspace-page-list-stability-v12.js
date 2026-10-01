@@ -3,6 +3,7 @@ import { renderThumbnail } from './preview.js';
 
 const $ = id => document.getElementById(id);
 let observer = null;
+let thumbnailObserver = null;
 let normalizeFrame = 0;
 let normalizing = false;
 
@@ -99,16 +100,37 @@ function renderCanvas(page, canvas) {
     .finally(() => { canvas.dataset.rendering = '0'; });
 }
 
+function observeCanvas(page, canvas) {
+  if (!page || !canvas) return;
+  if (!('IntersectionObserver' in window)) {
+    renderCanvas(page, canvas);
+    return;
+  }
+  if (!thumbnailObserver) {
+    thumbnailObserver = new IntersectionObserver(entries => {
+      for (const entry of entries) {
+        if (!entry.isIntersecting) continue;
+        const item = entry.target.closest('.page-item');
+        const targetPage = advancedState.pages.find(candidate => String(candidate.id) === String(item?.dataset.pageId));
+        if (targetPage) renderCanvas(targetPage, entry.target);
+      }
+    }, { root: $('pageList'), rootMargin: '240px 0px' });
+  }
+  thumbnailObserver.observe(canvas);
+}
+
 function ensureSingleThumbnail(item, page) {
   const allCanvases = [...item.querySelectorAll('canvas.page-sidebar-thumb')];
   let canvas = allCanvases.shift() || null;
-  for (const extra of allCanvases) extra.remove();
+  for (const extra of allCanvases) {
+    thumbnailObserver?.unobserve(extra);
+    extra.remove();
+  }
 
   const allFrames = [...item.querySelectorAll('.page-thumb-frame')];
-  let frame = allFrames.shift() || null;
+  let frame = (canvas && allFrames.find(candidate => candidate.contains(canvas))) || allFrames[0] || null;
   for (const extra of allFrames) {
-    if (canvas && extra.contains(canvas)) continue;
-    extra.remove();
+    if (extra !== frame) extra.remove();
   }
 
   if (!frame) {
@@ -137,7 +159,7 @@ function ensureSingleThumbnail(item, page) {
   if (canvas.parentElement !== frame) frame.appendChild(canvas);
   if (item.firstElementChild !== frame) item.insertBefore(frame, item.firstElementChild);
 
-  renderCanvas(page, canvas);
+  observeCanvas(page, canvas);
 }
 
 function normalizeListNow() {
@@ -157,6 +179,7 @@ function normalizeListNow() {
       }
       const id = String(child.dataset.pageId || '');
       if (!id || !validIds.has(id) || seen.has(id)) {
+        child.querySelectorAll?.('canvas.page-sidebar-thumb').forEach(canvas => thumbnailObserver?.unobserve(canvas));
         child.remove();
         continue;
       }
@@ -172,7 +195,7 @@ function normalizeListNow() {
       ensureSingleThumbnail(item, page);
     }
 
-    // Any orphan thumbnail/canvas directly under the list is invalid and caused the old ghost first-page symptom.
+    // Old async thumbnail patches could leave a detached first-page canvas at the end of the list.
     for (const node of [...list.querySelectorAll(':scope > canvas, :scope > .page-thumb-frame')]) node.remove();
 
     list.dataset.stablePageCount = String(list.querySelectorAll(':scope > .page-item').length);
