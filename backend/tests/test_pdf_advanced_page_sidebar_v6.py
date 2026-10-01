@@ -26,7 +26,7 @@ def test_page_sidebar_uses_thumbnail_caption_only_and_navigation_on_top():
     assert ".page-item-info span{display:none!important}" in sidebar
     assert "#selectionLabel{display:none!important}" in sidebar
     assert "MutationObserver" not in sidebar
-    assert "facing-upload.js?v=20261001-4" in html
+    assert "facing-upload.js?v=20261001-5" in html
 
 
 def test_trim_size_is_sent_to_output_and_preview_marks_follow_trim_guide():
