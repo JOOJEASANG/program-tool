@@ -15,29 +15,30 @@ def read(path: str) -> str:
     return (ROOT / path).read_text(encoding="utf-8")
 
 
-def test_page_sidebar_uses_thumbnail_caption_only_and_navigation_on_top():
+def test_page_sidebar_uses_stable_two_column_thumbnail_frames():
     facing = read("js/pdf-editor-advanced/facing-upload.js")
     sidebar = read("js/pdf-editor-advanced/workspace-page-sidebar-v7.js")
     grid = read("js/pdf-editor-advanced/workspace-page-grid-v10.js")
-    ratio = read("js/pdf-editor-advanced/workspace-thumbnail-ratio-v11.js")
+    stability = read("js/pdf-editor-advanced/workspace-page-list-stability-v12.js")
     html = read("pdf-editor-advanced/index.html")
 
     assert "import './workspace-page-sidebar-v7.js';" in facing
     assert "import './workspace-tabbed-sidebar-v9.js';" in facing
     assert "import './workspace-page-grid-v10.js';" in facing
-    assert "import './workspace-thumbnail-ratio-v11.js';" in facing
+    assert "import './workspace-page-list-stability-v12.js';" in facing
+    assert "workspace-thumbnail-ratio-v11.js" not in facing
     assert "page-section>.pair-nav" in sidebar
     assert "titleRow.insertAdjacentElement('afterend', nav)" in sidebar
     assert ".page-item-info span{display:none!important}" in sidebar
     assert "#selectionLabel{display:none!important}" in sidebar
-    assert "MutationObserver" not in sidebar
     assert "grid-template-columns:repeat(2,minmax(0,1fr))" in grid
-    assert "height:auto!important" in grid
-    assert "aspect-ratio:var(--advanced-thumb-ratio" in ratio
-    assert "canvas.style.setProperty('aspect-ratio', ratio, 'important')" in ratio
-    assert "canvas.dataset.rendered !== '1'" in ratio
-    assert "MutationObserver" not in ratio
-    assert "facing-upload.js?v=20261001-8" in html
+    assert "grid-auto-rows:max-content" in stability
+    assert ".page-thumb-frame" in stability
+    assert "height:100%!important" in stability
+    assert "seen.has(id)" in stability
+    assert ":scope > canvas, :scope > .page-thumb-frame" in stability
+    assert "observer?.disconnect()" in stability
+    assert "facing-upload.js?v=20261001-9" in html
 
 
 def test_trim_size_is_sent_to_output_and_preview_marks_follow_trim_guide():
