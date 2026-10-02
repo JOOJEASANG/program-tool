@@ -10,49 +10,6 @@
   let selectedFile=null;
   let pdfLibPromise=null;
   let busy=false;
-  let currentLocalAction='';
-
-  function installWorkspaceStyles(){
-    if(document.getElementById('pdfSuiteWorkspaceLayerStyles'))return;
-    const style=document.createElement('style');
-    style.id='pdfSuiteWorkspaceLayerStyles';
-    style.textContent=`
-      .quick-grid{grid-template-columns:repeat(4,minmax(0,1fr))!important}
-      .local-panel{display:none!important;position:fixed!important;z-index:1200!important;inset:clamp(14px,2.6vw,34px)!important;margin:0!important;max-width:none!important;overflow:auto!important;border:1px solid #d7e1ec!important;border-radius:24px!important;background:#fff!important;padding:28px 30px 30px!important;box-shadow:0 0 0 100vmax rgba(15,23,42,.62),0 34px 100px rgba(15,23,42,.34)!important}
-      .local-panel.is-open{display:block!important}
-      body.pdf-suite-layer-open{overflow:hidden!important}
-      .local-panel .layer-close{position:absolute;right:20px;top:20px;width:40px;height:40px;border:1px solid #dfe6ef;border-radius:12px;background:#fff;color:#536174;font-size:24px;line-height:1;cursor:pointer;display:grid;place-items:center;z-index:3;box-shadow:0 4px 12px rgba(15,23,42,.06)}
-      .local-panel .layer-close:hover{background:#f3f6f9;color:#172033}
-      .local-panel .local-header{padding:0 56px 20px 0;border-bottom:1px solid #e7edf4;align-items:center}
-      .local-panel .local-title{gap:14px;align-items:center}
-      .local-panel .local-title-icon{width:48px;height:48px;flex-basis:48px;border-radius:14px;font-size:15px}
-      .local-panel .local-title h2{font-size:21px;letter-spacing:-.45px}
-      .local-panel .local-title p{margin-top:4px;font-size:11px;line-height:1.6}
-      .local-panel .local-badge{padding:7px 10px;font-size:9px}
-      .local-panel .local-body{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(360px,.85fr);gap:20px;margin-top:22px;min-height:calc(100% - 92px)}
-      .local-panel .local-body>div:first-child{display:flex;flex-direction:column;min-height:0}
-      .local-panel .drop{flex:1;min-height:390px;padding:34px;border:2px dashed #a9bfd9;border-radius:18px;background:#f9fbfd}
-      .local-panel .drop:hover,.local-panel .drop.drag{border-color:var(--blue);background:#f3f7ff}
-      .local-panel .drop-mark{width:62px;height:62px;border-radius:18px;font-size:27px}
-      .local-panel .drop strong{margin-top:16px;font-size:15px}
-      .local-panel .drop span{margin-top:6px;font-size:11px}
-      .local-panel .file-note{margin-top:12px;padding:12px 14px;border-radius:11px;font-size:11px;line-height:1.55}
-      .local-panel .action-box{display:flex;flex-direction:column;min-height:100%;padding:22px;border-radius:18px;background:#fbfcfe}
-      .local-panel .action-title{font-size:12px;color:#334155}
-      .local-panel .local-actions{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:13px}
-      .local-panel .local-btn{min-height:52px;padding:12px 13px;border-radius:12px;font-size:11px;text-align:center;background:#fff}
-      .local-panel .local-btn.is-recommended{border-color:#8eb1eb;background:#eef5ff;color:#245eb8;box-shadow:0 0 0 2px rgba(47,111,235,.07)}
-      .local-panel .local-status{min-height:104px;margin-top:16px;padding:15px 16px;border:1px solid #e1e8f0;border-radius:13px;background:#fff;font-size:11px;line-height:1.65;color:#526176}
-      .local-panel .local-status:empty::before{content:'작업 현황이 여기에 표시됩니다.';color:#96a2b2;font-weight:750}
-      .local-panel .local-status.ok{color:#16805b;background:#f5fbf8;border-color:#cfeadd}
-      .local-panel .local-status.err{color:var(--danger);background:#fff7f7;border-color:#f1d4d8}
-      .local-panel .meta-box{margin-top:10px;padding:13px 14px;border-radius:12px;background:#fff;font-size:10px;line-height:1.85;max-height:220px;overflow:auto}
-      @media(max-width:1100px){.quick-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important}.local-panel .local-body{grid-template-columns:minmax(0,1fr) minmax(330px,.82fr)}}
-      @media(max-width:760px){.quick-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}.local-panel{inset:8px!important;padding:20px 18px 22px!important;border-radius:20px!important}.local-panel .layer-close{right:14px;top:14px;width:38px;height:38px}.local-panel .local-header{padding:0 46px 17px 0}.local-panel .local-title-icon{width:42px;height:42px;flex-basis:42px}.local-panel .local-title h2{font-size:18px}.local-panel .local-badge{display:none}.local-panel .local-body{grid-template-columns:1fr;gap:14px;margin-top:17px}.local-panel .drop{min-height:270px;padding:26px 18px}.local-panel .action-box{min-height:auto}.local-panel .local-status{min-height:86px}}
-      @media(max-width:470px){.quick-grid{grid-template-columns:1fr!important}.local-panel .local-actions{grid-template-columns:1fr}.local-panel .drop{min-height:230px}.local-panel .local-title p{font-size:10px}}
-    `;
-    document.head.appendChild(style);
-  }
 
   function safeName(file){
     return String(file?.name||'document.pdf').replace(/\.pdf$/i,'').replace(/[\\/:*?"<>|]+/g,'_').slice(0,90)||'document';
@@ -82,8 +39,6 @@
     });
     const input=$('localFile');
     if(input)input.disabled=value;
-    const close=document.querySelector('#local-tools .layer-close');
-    if(close)close.disabled=value;
   }
 
   function validateFile(file){
@@ -107,8 +62,6 @@
       selectedFile=null;
       const input=$('localFile');
       if(input)input.value='';
-      const note=$('localFileNote');
-      if(note){note.textContent='';note.classList.remove('show');}
       setStatus(error.message||'PDF 파일을 선택할 수 없습니다.','err');
     }
     setBusy(false);
@@ -300,41 +253,6 @@
     }
   }
 
-  function actionButtonsFor(action){
-    if(action==='rotate')return ['rotate90','rotate180','rotate270'];
-    return action?[action]:[];
-  }
-
-  function markRecommended(action){
-    document.querySelectorAll('[data-local-run]').forEach(button=>button.classList.remove('is-recommended'));
-    actionButtonsFor(action).forEach(key=>document.querySelector(`[data-local-run="${key}"]`)?.classList.add('is-recommended'));
-  }
-
-  function closeLayer(force=false){
-    if(busy&&!force)return;
-    const panel=$('local-tools');
-    if(!panel)return;
-    panel.classList.remove('is-open');
-    document.body.classList.remove('pdf-suite-layer-open');
-    currentLocalAction='';
-  }
-
-  function openLayer(action='',label=''){
-    const panel=$('local-tools');
-    if(!panel)return;
-    currentLocalAction=action;
-    const title=$('localTitle');
-    if(title)title.textContent=label||'내 PC에서 빠른 처리';
-    const copy=panel.querySelector('.local-title p');
-    if(copy)copy.textContent='PDF 파일을 올린 뒤 원하는 작업을 실행하세요. 파일은 서버로 업로드되지 않으며 원본도 덮어쓰지 않습니다.';
-    markRecommended(action);
-    panel.classList.add('is-open');
-    document.body.classList.add('pdf-suite-layer-open');
-    if(selectedFile)setStatus(`${label||'로컬 PDF'} 작업을 실행할 준비가 되었습니다.`,'ok');
-    else setStatus('PDF 파일을 선택하면 작업 현황이 여기에 표시됩니다.');
-    requestAnimationFrame(()=>panel.focus({preventScroll:true}));
-  }
-
   function installRotate270(){
     const group=document.querySelector('.local-actions');
     if(!group||group.querySelector('[data-local-run="rotate270"]'))return;
@@ -364,26 +282,6 @@
     }
   }
 
-  function installLayer(){
-    const panel=$('local-tools');
-    if(!panel||panel.dataset.layerBound)return;
-    panel.dataset.layerBound='1';
-    panel.setAttribute('role','dialog');
-    panel.setAttribute('aria-modal','true');
-    panel.tabIndex=-1;
-    const close=document.createElement('button');
-    close.type='button';
-    close.className='layer-close';
-    close.setAttribute('aria-label','작업창 닫기');
-    close.textContent='×';
-    close.addEventListener('click',()=>closeLayer());
-    panel.prepend(close);
-    document.addEventListener('keydown',event=>{
-      if(event.key==='Escape'&&panel.classList.contains('is-open'))closeLayer();
-    });
-    document.querySelectorAll('[data-local-action] .tool-go').forEach(node=>{node.textContent='작업창 열기 →';});
-  }
-
   function installActions(){
     document.querySelectorAll('[data-local-run]').forEach(button=>{
       if(button.dataset.bound)return;
@@ -395,9 +293,10 @@
       link.dataset.localBound='1';
       link.addEventListener('click',event=>{
         event.preventDefault();
-        const action=link.dataset.localAction||'';
-        const label=link.querySelector('.tool-name')?.textContent?.trim()||'내 PC에서 빠른 처리';
-        openLayer(action,label);
+        $('local-tools')?.scrollIntoView({behavior:'smooth',block:'start'});
+        const action=link.dataset.localAction;
+        if(selectedFile&&['metadata','sanitize','flatten'].includes(action))setTimeout(()=>run(action),250);
+        else setStatus('아래에서 PDF 한 개를 선택한 뒤 로컬 작업을 실행하세요.');
       });
     });
   }
@@ -432,23 +331,17 @@
   }
 
   function boot(){
-    installWorkspaceStyles();
     installRotate270();
     installFileInput();
-    installLayer();
     installActions();
     installFilter();
     setBusy(false);
-    setStatus('PDF 파일을 선택하면 작업 현황이 여기에 표시됩니다.');
     window.ProgramStudioPdfSuite=Object.freeze({
-      version:'2026.10.02.001',
+      version:'2026.09.04.001',
       maxLocalBytes:MAX_LOCAL_BYTES,
       pdfLibSource:PDF_LIB_SRC,
       runLocal:run,
-      openLocal:openLayer,
-      closeLocal:closeLayer,
-      getSelectedFile:()=>selectedFile,
-      getCurrentLocalAction:()=>currentLocalAction
+      getSelectedFile:()=>selectedFile
     });
   }
 
