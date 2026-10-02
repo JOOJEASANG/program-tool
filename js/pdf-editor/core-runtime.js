@@ -82,7 +82,7 @@
 
   function loadNupRepeat(){
     const id='pdfNupRepeatScriptV1';
-    const src='/js/pdf-editor/nup-repeat.js?v=20261002-1';
+    const src='/js/pdf-editor/nup-repeat.js?v=20261002-2';
     const loader=context().load;
     return typeof loader==='function'?loader(id,src):fallbackLoad(id,src);
   }
