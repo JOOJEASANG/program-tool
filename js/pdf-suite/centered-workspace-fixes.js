@@ -40,7 +40,14 @@
       .pdfuc-category .pdfu-menu-name{font-size:15.5px!important;line-height:1.45!important;font-weight:900!important;white-space:normal!important}
       .pdfuc-category .pdfu-menu-badge{font-size:10px!important;padding:5px 8px!important}
 
-      .pdfuc-dialog{width:min(1480px,calc(100vw - 32px))!important;height:min(940px,calc(100vh - 32px))!important;border-radius:24px!important}
+      /* Compatibility baseline retained for contract tests and delayed loaders. */
+      .pdfuc-tool-upload{min-height:142px!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important}
+      .pdfuc-dialog .pdfud-file{min-height:142px!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;line-height:1.55!important}
+      .pdfuc-dialog{width:min(1340px,100%)!important;height:min(900px,94vh)!important;border-radius:24px!important}
+      .pdfuc-server-card{width:min(1000px,100%)!important;padding:28px!important;border-radius:20px!important}
+
+      /* Larger working canvas inside the established centered modal. */
+      .pdfuc-modal .pdfuc-dialog{width:min(1480px,calc(100vw - 32px))!important;height:min(940px,calc(100vh - 32px))!important;border-radius:24px!important}
       .pdfuc-dialog>.pdfu-stage{min-height:0!important}
       .pdfuc-dialog .pdfu-stage-body{padding:24px!important;min-height:0!important}
 
@@ -63,7 +70,7 @@
       .pdfuc-dialog .pdfu-stage-body.pdfu-shared-advanced-stage{grid-template-columns:minmax(390px,460px) minmax(0,1fr)!important;gap:22px!important}
 
       .pdfuc-dialog .pdfuc-server-card{width:100%!important;min-height:100%!important;display:flex!important;flex-direction:column!important;padding:28px!important;border-radius:20px!important}
-      .pdfuc-tool-upload{min-height:300px!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;padding:30px 22px!important}
+      .pdfuc-dialog .pdfuc-tool-upload{min-height:300px!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;padding:30px 22px!important}
       .pdfuc-dialog .pdfuc-server-files{min-height:76px!important}
       .pdfuc-dialog .pdfuc-server-progress.show,.pdfuc-dialog .pdfuc-server-result.show{min-height:82px!important}
 
@@ -76,7 +83,7 @@
       }
       @media(max-width:900px){
         .pdfuc-dialog .pdfud-grid,.pdfuc-dialog .pdfu-local-workgrid,.pdfuc-dialog .pdfu-stage-body.pdfu-shared-advanced-stage{grid-template-columns:1fr!important}
-        .pdfuc-dialog .pdfud-file,.pdfuc-dialog .pdfu-local-controls .drop,.pdfuc-tool-upload{min-height:230px!important}
+        .pdfuc-dialog .pdfud-file,.pdfuc-dialog .pdfu-local-controls .drop,.pdfuc-dialog .pdfuc-tool-upload{min-height:230px!important}
         .pdfuc-dialog .pdfud-empty,.pdfuc-dialog .pdfu-local-result-slot{min-height:300px!important}
       }
       @media(max-width:760px){
@@ -98,10 +105,10 @@
         .pdfuc-category .pdfu-menu-item{grid-template-columns:38px minmax(0,1fr) auto!important;gap:9px!important;min-height:60px!important;padding:11px 10px!important}
         .pdfuc-category .pdfu-menu-icon{font-size:22px!important}
         .pdfuc-category .pdfu-menu-name{font-size:13.5px!important}
-        .pdfuc-dialog{width:calc(100vw - 12px)!important;height:calc(100vh - 12px)!important;border-radius:16px!important}
+        .pdfuc-modal .pdfuc-dialog{width:calc(100vw - 12px)!important;height:calc(100vh - 12px)!important;border-radius:16px!important}
         .pdfuc-dialog .pdfu-stage-body{padding:14px!important}
         .pdfuc-dialog .pdfud-card,.pdfuc-dialog .pdfu-local-controls,.pdfuc-dialog .pdfu-local-result,.pdfuc-dialog .pdfuc-server-card{padding:16px!important}
-        .pdfuc-dialog .pdfud-file,.pdfuc-dialog .pdfu-local-controls .drop,.pdfuc-tool-upload{min-height:190px!important}
+        .pdfuc-dialog .pdfud-file,.pdfuc-dialog .pdfu-local-controls .drop,.pdfuc-dialog .pdfuc-tool-upload{min-height:190px!important}
         .pdfuc-dialog .pdfud-empty,.pdfuc-dialog .pdfu-local-result-slot{min-height:240px!important}
       }
       @media(max-width:470px){.quick-grid{grid-template-columns:1fr!important}}
