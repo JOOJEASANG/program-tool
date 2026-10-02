@@ -1,165 +1,91 @@
 <!doctype html>
-<html lang="ko" data-pdf-suite="workspace-v2">
+<html lang="ko" data-pdf-suite="workspace-v3">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>PDF 유틸리티 · Program Studio</title>
-  <meta name="description" content="합치기, 분할, 압축, 변환, 보안, 인쇄 검토까지 PDF 작업을 목적별로 빠르게 찾고 실행하는 Program Studio PDF 유틸리티">
+  <meta name="description" content="합치기, 추출, 회전, 변환, OCR, 압축, 암호, 검사 등 자주 쓰는 PDF 작업을 한 화면에서 실행하는 Program Studio PDF 유틸리티">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
   <style>
-    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-    :root{--navy:#15375f;--navy-2:#0c2746;--blue:#2f6feb;--blue-soft:#eef5ff;--ink:#172033;--muted:#68758a;--line:#dfe6ef;--line-strong:#cdd8e5;--bg:#f5f7fa;--panel:#fff;--green:#0f8a60;--green-soft:#eaf8f1;--amber:#a86516;--amber-soft:#fff7e8;--danger:#bd3342;--shadow:0 14px 35px rgba(24,43,72,.08)}
-    html{scroll-behavior:smooth}
-    body{font-family:Pretendard,"Noto Sans KR",sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;line-height:1.55;-webkit-font-smoothing:antialiased}
-    button,input{font:inherit}button{color:inherit}a{color:inherit}.hidden-tool{display:none!important}
-    .topbar{position:sticky;top:0;z-index:60;height:64px;display:flex;align-items:center;gap:14px;padding:0 24px;background:rgba(255,255,255,.96);border-bottom:1px solid rgba(205,216,229,.9);backdrop-filter:blur(14px)}
-    .brand{display:flex;align-items:center;gap:10px;min-width:0}.back{display:grid;place-items:center;width:36px;height:36px;border:1px solid var(--line);border-radius:11px;text-decoration:none;background:#fff;font-size:17px}.brand-mark{width:32px;height:32px;border-radius:10px;display:grid;place-items:center;background:var(--navy);color:#fff;font-size:13px;font-weight:950;letter-spacing:-.4px}.brand-copy strong{display:block;font-size:14px;font-weight:900;letter-spacing:-.25px}.brand-copy span{display:block;font-size:9px;color:#8a96a8;font-weight:750;letter-spacing:.4px}.top-spacer{flex:1}.topnav{display:flex;align-items:center;gap:6px}.topnav a{text-decoration:none;padding:8px 10px;border-radius:9px;font-size:10px;font-weight:800;color:#5b6779}.topnav a:hover{background:#eef3f8;color:var(--navy)}
-    .shell{max-width:1260px;margin:0 auto;padding:30px 22px 64px}.hero{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(330px,.65fr);gap:18px;align-items:stretch}.hero-main,.hero-side{background:#fff;border:1px solid var(--line);border-radius:24px;box-shadow:0 8px 24px rgba(24,43,72,.045)}
-    .hero-main{padding:30px 32px;position:relative;overflow:hidden}.hero-main::after{content:"";position:absolute;right:-80px;top:-95px;width:260px;height:260px;border-radius:50%;background:linear-gradient(135deg,rgba(47,111,235,.08),rgba(21,55,95,.03));pointer-events:none}.eyebrow{display:flex;align-items:center;gap:7px;color:var(--blue);font-size:10px;font-weight:900;letter-spacing:.7px;text-transform:uppercase}.eyebrow::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--blue)}.hero h1{margin-top:10px;font-size:clamp(28px,4vw,42px);line-height:1.16;letter-spacing:-1.7px;font-weight:950;max-width:720px}.hero-copy{margin-top:10px;max-width:720px;color:var(--muted);font-size:13px}.search-box{position:relative;z-index:2;margin-top:22px;display:flex;align-items:center;gap:10px;height:52px;padding:0 14px;background:#f9fbfd;border:1.5px solid var(--line-strong);border-radius:14px;transition:.16s}.search-box:focus-within{background:#fff;border-color:#7da8f5;box-shadow:0 0 0 4px rgba(47,111,235,.08)}.search-icon{font-size:15px;color:#7f8da1}.search{width:100%;border:0;outline:0;background:transparent;color:var(--ink);font-size:13px;font-weight:650}.search::placeholder{color:#9aa6b7}.search-hint{white-space:nowrap;font-size:9px;color:#9aa6b7;font-weight:750;border:1px solid var(--line);border-radius:7px;padding:3px 6px;background:#fff}.filters{position:relative;z-index:2;display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}.filter{border:1px solid var(--line);background:#fff;border-radius:999px;padding:7px 10px;font-size:9px;font-weight:850;color:#677489;cursor:pointer;transition:.15s}.filter:hover{border-color:#aebfd3;color:var(--navy)}.filter.active{background:var(--navy);border-color:var(--navy);color:#fff}
-    .hero-side{padding:20px}.side-title{display:flex;align-items:center;justify-content:space-between}.side-title strong{font-size:13px;font-weight:900}.side-title span{font-size:9px;color:#91a0b3;font-weight:750}.guide-list{display:grid;gap:8px;margin-top:13px}.guide-row{display:grid;grid-template-columns:30px 1fr;gap:9px;align-items:start;padding:10px;border-radius:12px;background:#f8fafc;border:1px solid #edf1f5}.guide-num{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;background:#fff;border:1px solid var(--line);color:var(--blue);font-size:10px;font-weight:950}.guide-row strong{display:block;font-size:11px;font-weight:900}.guide-row p{margin-top:2px;color:#7a8799;font-size:9px;line-height:1.45}.privacy-note{margin-top:10px;padding:10px 11px;border-radius:11px;background:var(--green-soft);color:#317760;font-size:9px;font-weight:750;line-height:1.5}
-    .block{margin-top:24px}.block-head{display:flex;align-items:end;justify-content:space-between;gap:16px;margin-bottom:11px}.block-head h2{font-size:19px;font-weight:950;letter-spacing:-.5px}.block-head p{font-size:10px;color:#8290a3}.quick-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:9px}.quick-card{display:flex;flex-direction:column;gap:10px;min-height:124px;padding:15px;border-radius:16px;border:1px solid var(--line);background:#fff;text-decoration:none;transition:.16s;box-shadow:0 5px 14px rgba(24,43,72,.03)}.quick-card:hover{transform:translateY(-2px);border-color:#aac3ef;box-shadow:0 10px 24px rgba(47,111,235,.09)}.quick-icon{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:var(--blue-soft);color:var(--blue);font-size:15px;font-weight:950}.quick-card strong{font-size:11px;font-weight:900;letter-spacing:-.15px}.quick-card span{font-size:9px;color:#7d8999;line-height:1.45}.quick-arrow{margin-top:auto;color:#9ba8b9;font-size:10px;font-weight:900}
-    .workspace{margin-top:26px}.workspace-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;padding-bottom:12px;border-bottom:1px solid var(--line)}.workspace-head h2{font-size:21px;font-weight:950;letter-spacing:-.6px}.workspace-head p{margin-top:3px;color:var(--muted);font-size:10px}.legend{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.legend span{display:flex;align-items:center;gap:5px;font-size:9px;color:#7b8798;font-weight:750}.legend i{display:block;width:7px;height:7px;border-radius:50%}.legend .now i{background:var(--green)}.legend .local i{background:var(--blue)}.legend .plan i{background:#a8b1be}
-    .section{margin-top:24px}.section-head{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;margin-bottom:10px}.section-label{font-size:9px;font-weight:900;letter-spacing:.8px;color:var(--blue)}.section h3{margin-top:2px;font-size:16px;font-weight:950;letter-spacing:-.35px}.section-note{font-size:9px;color:#8a97a8}.tool-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}.tool{position:relative;display:flex;flex-direction:column;min-height:132px;padding:15px;border:1px solid var(--line);border-radius:15px;background:#fff;text-decoration:none;transition:.15s;box-shadow:0 4px 12px rgba(24,43,72,.025)}.tool.available{cursor:pointer}.tool.available:hover{transform:translateY(-1px);border-color:#abc4ee;box-shadow:0 9px 22px rgba(47,111,235,.075)}.tool.planned{background:#f8fafc;border-style:dashed;color:#6e7a8c}.tool-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}.tool-icon{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:#f1f5f9;color:#3d5879;font-size:13px;font-weight:950}.status{display:inline-flex;align-items:center;border-radius:999px;padding:4px 7px;font-size:8px;font-weight:900;white-space:nowrap}.status.now{background:var(--green-soft);color:#177352}.status.local{background:var(--blue-soft);color:#2f66be}.status.plan{background:#eef1f5;color:#7d8998}.tool-name{margin-top:10px;font-size:12px;font-weight:950;letter-spacing:-.2px}.tool-desc{margin-top:4px;font-size:9px;color:#768397;line-height:1.5;flex:1}.tool-go{margin-top:10px;font-size:9px;color:#93a0b2;font-weight:850}.tool.available:hover .tool-go{color:var(--blue)}
-    .local-panel{scroll-margin-top:82px;margin-top:28px;border:1px solid #cfe0f7;border-radius:20px;background:linear-gradient(180deg,#fbfdff,#f6faff);padding:20px;box-shadow:0 8px 22px rgba(47,111,235,.05)}.local-header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}.local-title{display:flex;gap:11px;align-items:flex-start}.local-title-icon{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:var(--navy);color:#fff;font-size:14px;font-weight:950;flex:0 0 40px}.local-title h2{font-size:16px;font-weight:950}.local-title p{margin-top:3px;color:#6e7c90;font-size:9px}.local-badge{border:1px solid #bfe8d7;background:#effaf5;color:#177352;border-radius:999px;padding:5px 8px;font-size:8px;font-weight:900;white-space:nowrap}.local-body{display:grid;grid-template-columns:minmax(280px,.9fr) minmax(0,1.1fr);gap:12px;margin-top:15px}.drop{min-height:164px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:20px;border:1.5px dashed #aac2df;border-radius:14px;background:#fff;cursor:pointer;transition:.15s}.drop:hover,.drop.drag{border-color:var(--blue);background:#f4f8ff}.drop-mark{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;background:var(--blue-soft);color:var(--blue);font-size:18px;font-weight:900}.drop strong{margin-top:10px;font-size:11px;font-weight:900}.drop span{margin-top:3px;font-size:9px;color:#8794a6}.file-note{display:none;margin-top:8px;padding:8px 10px;border:1px solid #cfe0f7;border-radius:9px;background:#fff;color:#44617f;font-size:9px;font-weight:800;word-break:break-all}.file-note.show{display:block}#localFile{display:none}.action-box{padding:12px;border:1px solid #e0e8f1;border-radius:14px;background:#fff}.action-title{font-size:10px;font-weight:900;color:#4d5c70}.local-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-top:9px}.local-btn{border:1px solid var(--line);background:#fff;border-radius:10px;padding:9px 8px;font-size:9px;font-weight:850;cursor:pointer;text-align:left;transition:.14s}.local-btn:hover:not(:disabled){border-color:#9fbae6;background:#f5f9ff;color:#245eb8}.local-btn:disabled{opacity:.38;cursor:not-allowed}.local-status{min-height:18px;margin-top:9px;font-size:9px;font-weight:800;color:#2f6feb}.local-status.ok{color:#16805b}.local-status.err{color:var(--danger)}.meta-box{display:none;margin-top:8px;border:1px solid var(--line);border-radius:10px;background:#f8fafc;padding:10px;font-size:9px;color:#58667a;line-height:1.7}.meta-box.show{display:block}.meta-box b{color:#1c2c43}
-    .future-wrap{margin-top:28px;padding:18px;border:1px solid var(--line);border-radius:18px;background:#f1f4f7}.future-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:10px}.future-head h2{font-size:15px;font-weight:950}.future-head p{margin-top:3px;font-size:9px;color:#7b8797}.future-label{font-size:8px;font-weight:900;color:#7c8796;border:1px solid #d4dce6;border-radius:999px;background:#fff;padding:5px 8px;white-space:nowrap}.future-wrap .tool{box-shadow:none;background:#f8fafc}.footer{margin-top:30px;text-align:center;font-size:9px;color:#9aa5b5}
-    @media(max-width:1100px){.hero{grid-template-columns:1fr}.hero-side{display:none}.quick-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.tool-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
-    @media(max-width:760px){.topbar{padding:0 12px}.topnav{display:none}.shell{padding:20px 12px 48px}.hero-main{padding:23px 20px}.search-hint{display:none}.quick-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.tool-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.workspace-head,.section-head{align-items:flex-start}.legend,.section-note{display:none}.local-body{grid-template-columns:1fr}.local-header{flex-wrap:wrap}.local-badge{display:none}}
-    @media(max-width:470px){.brand-copy span{display:none}.hero h1{font-size:27px}.quick-grid,.tool-grid{grid-template-columns:1fr}.quick-card{min-height:104px}.tool{min-height:118px}.local-actions{grid-template-columns:1fr}}
+    *,*::before,*::after{box-sizing:border-box}
+    html,body{margin:0;min-height:100%;font-family:Pretendard,"Noto Sans KR",sans-serif;background:#eef3f7;color:#172033;-webkit-font-smoothing:antialiased}
+    button,input{font:inherit}
+    .suite-topbar{height:62px;display:flex;align-items:center;gap:11px;padding:0 18px;background:#fff;border-bottom:1px solid #dbe4ee}
+    .suite-back{display:grid;place-items:center;width:36px;height:36px;border:1px solid #dbe4ee;border-radius:10px;background:#fff;color:#475569;text-decoration:none;font-size:17px}
+    .suite-brand{display:flex;align-items:center;gap:10px;min-width:0}.suite-brand-mark{display:grid;place-items:center;width:32px;height:32px;border-radius:9px;background:#12396d;color:#fff;font-size:11px;font-weight:950}.suite-brand strong{display:block;font-size:14px;font-weight:950;letter-spacing:-.25px}.suite-brand span{display:block;margin-top:1px;font-size:9px;font-weight:800;letter-spacing:.55px;color:#94a3b8}
+    .wrap{min-height:calc(100vh - 62px)}
+    .suite-loading{min-height:calc(100vh - 62px);display:grid;place-items:center;text-align:center;color:#64748b;font-size:12px}.suite-loading strong{display:block;margin-bottom:5px;color:#0f2f59;font-size:17px}.suite-loading::before{content:"";width:30px;height:30px;margin:0 auto 13px;border:3px solid #dbe5ee;border-top-color:#2563eb;border-radius:50%;animation:suiteSpin .75s linear infinite;display:block}@keyframes suiteSpin{to{transform:rotate(360deg)}}
+    html[data-pdf-utility-layout] .suite-loading{display:none!important}
+    #pdfSuiteSourceCatalog{display:none!important}
+    html:not([data-pdf-utility-layout="centered"]) #pdfUtilitySplit{visibility:hidden!important}
+    .local-panel{background:#fff}.local-head{display:flex;align-items:flex-start;gap:12px}.local-head-icon{width:46px;height:46px;display:grid;place-items:center;border-radius:13px;background:#eff6ff;color:#1d4ed8;font-size:21px;flex:0 0 46px}.local-head>div:nth-child(2){flex:1;min-width:0}.local-head h2{margin:0;font-size:16px}.local-head p{margin:5px 0 0;font-size:10px;color:#64748b;line-height:1.55}.local-badge{border-radius:999px;background:#ecfdf5;color:#047857;padding:5px 8px;font-size:8px;font-weight:900;white-space:nowrap}.drop{display:flex;min-height:160px;flex-direction:column;align-items:center;justify-content:center;margin-top:15px;padding:22px 16px;border:2px dashed #bfd2e5;border-radius:14px;background:#f8fbff;text-align:center;cursor:pointer}.drop:hover,.drop.drag{border-color:#60a5fa;background:#eff6ff}.drop strong{font-size:12px}.drop span{margin-top:5px;font-size:9px;color:#64748b}.file-note{display:none;margin-top:9px;padding:8px 10px;border:1px solid #dbe4ee;border-radius:9px;font-size:9px;color:#475569}.file-note.show{display:block}#localFile{display:none}.local-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:12px}.local-btn{min-height:42px;border:1px solid #dbe4ee;border-radius:10px;background:#fff;color:#334155;font-size:10px;font-weight:900;cursor:pointer}.local-btn:disabled{opacity:.4;cursor:not-allowed}.local-status{min-height:20px;margin-top:10px;font-size:10px;font-weight:800;color:#2563eb}.local-status.ok{color:#15803d}.local-status.err{color:#dc2626}.meta-box{display:none}.meta-box.show{display:block}
+    @media(max-width:620px){.suite-topbar{padding:0 12px}.suite-brand span{display:none}.local-head{flex-wrap:wrap}.local-badge{display:none}.local-actions{grid-template-columns:1fr}}
+    @media(prefers-reduced-motion:reduce){.suite-loading::before{animation-duration:1.5s}}
   </style>
 </head>
 <body>
-  <header class="topbar">
-    <a class="back" href="../index.html" aria-label="도구 목록으로 돌아가기">←</a>
-    <div class="brand"><div class="brand-mark">PDF</div><div class="brand-copy"><strong>PDF 유틸리티</strong><span>PROGRAM STUDIO</span></div></div>
-    <div class="top-spacer"></div>
-    <nav class="topnav" aria-label="PDF 관련 프로그램">
-      <a href="../pdf-preflight/">검사·변환</a>
-      <a href="../pdf-editor/">PDF 배치</a>
-      <a href="../pdf-editor-advanced/">PDF 편집</a>
-      <a href="../print-checker/">인쇄 검토</a>
-    </nav>
+  <header class="suite-topbar">
+    <a class="suite-back" href="../index.html" aria-label="프로그램 목록으로 돌아가기">←</a>
+    <div class="suite-brand"><div class="suite-brand-mark">PDF</div><div><strong>PDF 유틸리티</strong><span>PROGRAM STUDIO</span></div></div>
   </header>
 
-  <main class="shell wrap">
-    <section class="hero">
-      <div class="hero-main">
-        <div class="eyebrow">PDF WORKSPACE</div>
-        <h1>하려는 PDF 작업만 찾으면<br>바로 시작할 수 있습니다.</h1>
-        <p class="hero-copy">합치기·분할·압축·변환·암호·인쇄 검토까지 기능 이름을 몰라도 작업 목적만 검색하면 적합한 도구로 연결합니다.</p>
-        <label class="search-box" for="suiteSearch"><span class="search-icon">⌕</span><input id="suiteSearch" class="search" type="search" placeholder="무엇을 하시나요?  예: PDF 합치기, 압축, 소책자, 암호, 회전" autocomplete="off"><span class="search-hint">기능 검색</span></label>
-        <div class="filters" id="suiteFilters" aria-label="PDF 기능 필터">
-          <button class="filter active" type="button" data-filter="all">전체 도구</button>
-          <button class="filter" type="button" data-filter="available">바로 사용</button>
-          <button class="filter" type="button" data-filter="local">내 PC에서 처리</button>
-          <button class="filter" type="button" data-filter="planned">준비 중</button>
-        </div>
-      </div>
-      <aside class="hero-side" aria-label="PDF 유틸리티 이용 순서">
-        <div class="side-title"><strong>처음 사용한다면</strong><span>3 STEP</span></div>
-        <div class="guide-list">
-          <div class="guide-row"><span class="guide-num">01</span><div><strong>작업을 검색합니다</strong><p>합치기·압축·암호처럼 하고 싶은 일을 입력합니다.</p></div></div>
-          <div class="guide-row"><span class="guide-num">02</span><div><strong>도구를 선택합니다</strong><p>바로 사용 또는 내 PC 처리 표시를 확인합니다.</p></div></div>
-          <div class="guide-row"><span class="guide-num">03</span><div><strong>결과만 확인합니다</strong><p>원본은 유지되고 결과는 새 PDF로 저장됩니다.</p></div></div>
-        </div>
-        <div class="privacy-note">내 PC에서 처리 표시가 있는 간단 작업은 파일을 별도 서버로 올리지 않고 브라우저에서 실행합니다.</div>
-      </aside>
-    </section>
-
-    <section class="block" aria-labelledby="quickTitle">
-      <div class="block-head"><div><h2 id="quickTitle">자주 쓰는 작업</h2><p>가장 많이 사용하는 PDF 작업을 바로 실행합니다.</p></div></div>
-      <div class="quick-grid">
-        <a class="quick-card" href="../pdf-preflight/"><span class="quick-icon">＋</span><div><strong>PDF 합치기</strong><span>여러 PDF를 한 파일로 결합</span></div><span class="quick-arrow">바로 실행 →</span></a>
-        <a class="quick-card" href="../pdf-preflight/"><span class="quick-icon">↥</span><div><strong>페이지 추출·분할</strong><span>필요한 페이지만 새 PDF로 저장</span></div><span class="quick-arrow">바로 실행 →</span></a>
-        <a class="quick-card" href="../pdf-preflight/"><span class="quick-icon">⇣</span><div><strong>PDF 압축</strong><span>업로드·메일용으로 용량 줄이기</span></div><span class="quick-arrow">바로 실행 →</span></a>
-        <a class="quick-card" href="../pdf-preflight/"><span class="quick-icon">⌁</span><div><strong>암호 설정·해제</strong><span>AES-256 보호 및 암호 해제</span></div><span class="quick-arrow">바로 실행 →</span></a>
-        <a class="quick-card" href="../pdf-editor/"><span class="quick-icon">▦</span><div><strong>인쇄용 배치</strong><span>N-up·소책자·출력 배치</span></div><span class="quick-arrow">PDF 배치 →</span></a>
-        <a class="quick-card" href="../print-checker/"><span class="quick-icon">✓</span><div><strong>인쇄 전 검토</strong><span>재단·도련·안전영역 확인</span></div><span class="quick-arrow">검토 시작 →</span></a>
-      </div>
-    </section>
-
-    <section class="workspace" aria-labelledby="allToolsTitle">
-      <div class="workspace-head"><div><h2 id="allToolsTitle">전체 PDF 도구</h2><p>현재 실제로 사용할 수 있는 기능을 먼저 배치했습니다.</p></div><div class="legend"><span class="now"><i></i>바로 사용</span><span class="local"><i></i>내 PC 처리</span><span class="plan"><i></i>준비 중</span></div></div>
-
-      <section class="section" data-category="pages">
-        <div class="section-head"><div><div class="section-label">PAGE</div><h3>페이지 정리</h3></div><span class="section-note">합치기 · 추출 · 순서 · 회전</span></div>
-        <div class="tool-grid">
-          <a class="tool available" data-status="available" data-keywords="합치기 merge 결합 여러 pdf" href="../pdf-preflight/"><div class="tool-top"><span class="tool-icon">＋</span><span class="status now">바로 사용</span></div><span class="tool-name">PDF 합치기</span><span class="tool-desc">여러 PDF를 원하는 순서대로 하나의 문서로 결합합니다.</span><span class="tool-go">검사·변환에서 실행 →</span></a>
-          <a class="tool available" data-status="available" data-keywords="분할 split 추출 페이지 범위" href="../pdf-preflight/"><div class="tool-top"><span class="tool-icon">↥</span><span class="status now">바로 사용</span></div><span class="tool-name">분할·페이지 추출</span><span class="tool-desc">특정 페이지 또는 범위를 골라 별도 PDF로 저장합니다.</span><span class="tool-go">검사·변환에서 실행 →</span></a>
-          <a class="tool available" data-status="available" data-keywords="빈 페이지 제거 blank scan" href="../pdf-preflight/"><div class="tool-top"><span class="tool-icon">−</span><span class="status now">바로 사용</span></div><span class="tool-name">빈 페이지 제거</span><span class="tool-desc">스캔 문서에 섞인 빈 페이지를 감지해 정리합니다.</span><span class="tool-go">검사·변환에서 실행 →</span></a>
-          <a class="tool available" data-status="available" data-keywords="빈 페이지 삽입 추가 blank insert 간지" href="../pdf-editor/"><div class="tool-top"><span class="tool-icon">□</span><span class="status now">바로 사용</span></div><span class="tool-name">빈 페이지·간지 삽입</span><span class="tool-desc">표지·간지·구분용 페이지를 원하는 위치에 추가합니다.</span><span class="tool-go">PDF 배치에서 실행 →</span></a>
-          <a class="tool available" data-status="available" data-keywords="펼침면 분리 spread split 좌우" href="../pdf-editor/"><div class="tool-top"><span class="tool-icon">↔</span><span class="status now">바로 사용</span></div><span class="tool-name">펼침면 좌우 분리</span><span class="tool-desc">한 페이지의 좌·우 면을 각각 독립된 페이지로 나눕니다.</span><span class="tool-go">PDF 배치에서 실행 →</span></a>
-          <a class="tool available" data-status="local" data-local-action="rotate" data-keywords="회전 rotate 90 180 270 방향" href="#local-tools"><div class="tool-top"><span class="tool-icon">↻</span><span class="status local">내 PC 처리</span></div><span class="tool-name">전체 페이지 회전</span><span class="tool-desc">모든 페이지를 90°·180°·270°로 한 번에 회전합니다.</span><span class="tool-go">아래 빠른 처리에서 실행 ↓</span></a>
-          <a class="tool available" data-status="local" data-local-action="reverse" data-keywords="역순 reverse 뒤집기 페이지 순서" href="#local-tools"><div class="tool-top"><span class="tool-icon">⇅</span><span class="status local">내 PC 처리</span></div><span class="tool-name">페이지 순서 역순</span><span class="tool-desc">마지막 페이지부터 첫 페이지까지 순서를 뒤집습니다.</span><span class="tool-go">아래 빠른 처리에서 실행 ↓</span></a>
-        </div>
-      </section>
-
-      <section class="section" data-category="convert">
-        <div class="section-head"><div><div class="section-label">CONVERT</div><h3>변환·압축</h3></div><span class="section-note">이미지 · 용량 · 출력 호환</span></div>
-        <div class="tool-grid">
-          <a class="tool available" data-status="available" data-keywords="이미지 pdf jpg png webp tiff 변환" href="../pdf-preflight/"><div class="tool-top"><span class="tool-icon">IMG</span><span class="status now">바로 사용</span></div><span class="tool-name">이미지 → PDF</span><span class="tool-desc">JPG·PNG·TIFF·WEBP 등의 이미지를 PDF로 변환합니다.</span><span class="tool-go">검사·변환에서 실행 →</span></a>
-          <a class="tool available" data-status="available" data-keywords="pdf 이미지 jpg png 변환 페이지 이미지" href="../pdf-preflight/"><div class="tool-top"><span class="tool-icon">PDF</span><span class="status now">바로 사용</span></div><span class="tool-name">PDF → 이미지</span><span class="tool-desc">PDF 페이지를 이미지 작업용 파일로 변환합니다.</span><span class="tool-go">검사·변환에서 실행 →</span></a>
-          <a class="tool available" data-status="available" data-keywords="압축 compress 용량 줄이기 optimize dpi quality" href="../pdf-preflight/"><div class="tool-top"><span class="tool-icon">⇣</span><span class="status now">바로 사용</span></div><span class="tool-name">PDF 압축</span><span class="tool-desc">품질 프리셋을 선택해 PDF 파일 용량을 줄입니다.</span><span class="tool-go">검사·변환에서 실행 →</span></a>
-          <a class="tool available" data-status="available" data-keywords="정상화 normalize 재저장 출력 호환" href="../pdf-editor/"><div class="tool-top"><span class="tool-icon">↺</span><span class="status now">바로 사용</span></div><span class="tool-name">출력용 PDF 재저장</span><span class="tool-desc">편집·배치 결과를 새 PDF로 저장해 구조를 정리합니다.</span><span class="tool-go">PDF 배치에서 실행 →</span></a>
-        </div>
-      </section>
-
-      <section class="section" data-category="edit">
-        <div class="section-head"><div><div class="section-label">EDIT & LAYOUT</div><h3>편집·인쇄 배치</h3></div><span class="section-note">N-up · 소책자 · 워터마크 · 정밀 편집</span></div>
-        <div class="tool-grid">
-          <a class="tool available" data-status="available" data-keywords="nup n-up 2up 4up 배치 한장 여러 페이지" href="../pdf-editor/"><div class="tool-top"><span class="tool-icon">▦</span><span class="status now">바로 사용</span></div><span class="tool-name">N-up 다면 배치</span><span class="tool-desc">한 장의 출력 용지에 여러 PDF 페이지를 자동 배치합니다.</span><span class="tool-go">PDF 배치에서 실행 →</span></a>
-          <a class="tool available" data-status="available" data-keywords="소책자 booklet 중철 책자 판짜기" href="../pdf-editor/"><div class="tool-top"><span class="tool-icon">≡</span><span class="status now">바로 사용</span></div><span class="tool-name">소책자·중철 배치</span><span class="tool-desc">중철·책자 출력에 맞는 페이지 순서와 시트를 구성합니다.</span><span class="tool-go">PDF 배치에서 실행 →</span></a>
-          <a class="tool available" data-status="available" data-keywords="페이지 번호 쪽번호 numbering 머리말 꼬리말" href="../pdf-editor/"><div class="tool-top"><span class="tool-icon">#</span><span class="status now">바로 사용</span></div><span class="tool-name">페이지 번호·머리말</span><span class="tool-desc">쪽번호와 반복 문구를 페이지 상·하단에 배치합니다.</span><span class="tool-go">PDF 배치에서 실행 →</span></a>
-          <a class="tool available" data-status="available" data-keywords="워터마크 watermark 문구" href="../pdf-editor/"><div class="tool-top"><span class="tool-icon">W</span><span class="status now">바로 사용</span></div><span class="tool-name">워터마크</span><span class="tool-desc">문서 위에 반복되는 텍스트 워터마크를 적용합니다.</span><span class="tool-go">PDF 배치에서 실행 →</span></a>
-          <a class="tool available" data-status="available" data-keywords="여백 margin 자르기 crop 배경 페이지 사이즈" href="../pdf-preflight/"><div class="tool-top"><span class="tool-icon">⌗</span><span class="status now">바로 사용</span></div><span class="tool-name">여백·크롭·배경</span><span class="tool-desc">페이지 외곽 여백과 크롭, 배경을 출력 전에 정리합니다.</span><span class="tool-go">검사·변환에서 실행 →</span></a>
-          <a class="tool available" data-status="available" data-keywords="정밀 편집 텍스트 이미지 이동 삭제 pdf edit advanced" href="../pdf-editor-advanced/"><div class="tool-top"><span class="tool-icon">✎</span><span class="status now">바로 사용</span></div><span class="tool-name">PDF 정밀 편집</span><span class="tool-desc">페이지 내부 요소를 세밀하게 수정해야 할 때 사용합니다.</span><span class="tool-go">PDF 편집으로 이동 →</span></a>
-        </div>
-      </section>
-
-      <section class="section" data-category="security">
-        <div class="section-head"><div><div class="section-label">SECURITY</div><h3>보안·문서 정보</h3></div><span class="section-note">암호 · 메타데이터 · 폼</span></div>
-        <div class="tool-grid">
-          <a class="tool available" data-status="available" data-keywords="암호 비밀번호 encrypt aes256 보호" href="../pdf-preflight/"><div class="tool-top"><span class="tool-icon">KEY</span><span class="status now">바로 사용</span></div><span class="tool-name">AES-256 암호 설정</span><span class="tool-desc">PDF를 열 때 필요한 강력한 비밀번호 보호를 적용합니다.</span><span class="tool-go">검사·변환에서 실행 →</span></a>
-          <a class="tool available" data-status="available" data-keywords="암호 해제 decrypt password unlock" href="../pdf-preflight/"><div class="tool-top"><span class="tool-icon">OPEN</span><span class="status now">바로 사용</span></div><span class="tool-name">암호 해제</span><span class="tool-desc">올바른 비밀번호로 열린 문서를 새 PDF로 저장합니다.</span><span class="tool-go">검사·변환에서 실행 →</span></a>
-          <a class="tool available" data-status="local" data-local-action="metadata" data-keywords="메타데이터 metadata author title 정보 확인" href="#local-tools"><div class="tool-top"><span class="tool-icon">i</span><span class="status local">내 PC 처리</span></div><span class="tool-name">메타데이터 확인</span><span class="tool-desc">제목·작성자·작성 프로그램 등 문서 정보를 확인합니다.</span><span class="tool-go">아래 빠른 처리에서 실행 ↓</span></a>
-          <a class="tool available" data-status="local" data-local-action="sanitize" data-keywords="메타데이터 삭제 제거 개인정보 metadata clean" href="#local-tools"><div class="tool-top"><span class="tool-icon">CLR</span><span class="status local">내 PC 처리</span></div><span class="tool-name">메타데이터 정리</span><span class="tool-desc">일반 문서 메타데이터를 비운 새 PDF를 만듭니다.</span><span class="tool-go">아래 빠른 처리에서 실행 ↓</span></a>
-          <a class="tool available" data-status="local" data-local-action="flatten" data-keywords="폼 평면화 flatten form 입력 필드 고정" href="#local-tools"><div class="tool-top"><span class="tool-icon">FORM</span><span class="status local">내 PC 처리</span></div><span class="tool-name">폼 평면화</span><span class="tool-desc">입력 가능한 PDF 폼을 현재 표시 상태로 고정합니다.</span><span class="tool-go">아래 빠른 처리에서 실행 ↓</span></a>
-        </div>
-      </section>
-
-      <section class="section" data-category="print">
-        <div class="section-head"><div><div class="section-label">PRINT</div><h3>인쇄·검사</h3></div><span class="section-note">프리플라이트 · 재단 · 대형출력</span></div>
-        <div class="tool-grid">
-          <a class="tool available" data-status="available" data-keywords="preflight 인쇄 검사 폰트 해상도 색상 페이지 크기" href="../pdf-preflight/"><div class="tool-top"><span class="tool-icon">CHK</span><span class="status now">바로 사용</span></div><span class="tool-name">PDF 프리플라이트</span><span class="tool-desc">페이지 크기·이미지·폰트·인쇄 위험 요소를 점검합니다.</span><span class="tool-go">검사·변환에서 실행 →</span></a>
-          <a class="tool available" data-status="available" data-keywords="재단 bleed 안전영역 접지 책등 print checker" href="../print-checker/"><div class="tool-top"><span class="tool-icon">CUT</span><span class="status now">바로 사용</span></div><span class="tool-name">인쇄물 사전 검토</span><span class="tool-desc">재단·도련·안전영역·책등·접지 규격을 실제 파일과 비교합니다.</span><span class="tool-go">인쇄 검토로 이동 →</span></a>
-          <a class="tool available" data-status="available" data-keywords="crop mark 재단표시 돈보 register mark 인쇄마크" href="../pdf-editor/"><div class="tool-top"><span class="tool-icon">＋</span><span class="status now">바로 사용</span></div><span class="tool-name">재단·인쇄 마크</span><span class="tool-desc">출력 PDF에 재단표시와 인쇄용 보조 마크를 구성합니다.</span><span class="tool-go">PDF 배치에서 실행 →</span></a>
-          <a class="tool available" data-status="available" data-keywords="대형 타일 tiling 분할 출력 현수막 포스터" href="../pdf-editor/"><div class="tool-top"><span class="tool-icon">TILE</span><span class="status now">바로 사용</span></div><span class="tool-name">대형 분할 출력</span><span class="tool-desc">큰 페이지를 여러 장의 용지로 타일 분할해 출력합니다.</span><span class="tool-go">PDF 배치에서 실행 →</span></a>
-          <a class="tool available" data-status="available" data-keywords="자동 수정 auto fix 인쇄 준비" href="../pdf-preflight/"><div class="tool-top"><span class="tool-icon">FIX</span><span class="status now">바로 사용</span></div><span class="tool-name">안전 자동 수정</span><span class="tool-desc">검사 결과 중 안전하게 교정 가능한 항목을 새 파일로 수정합니다.</span><span class="tool-go">검사·변환에서 실행 →</span></a>
-        </div>
-      </section>
-    </section>
-
-    <section class="local-panel" id="local-tools" aria-labelledby="localTitle">
-      <div class="local-header"><div class="local-title"><div class="local-title-icon">PC</div><div><h2 id="localTitle">내 PC에서 빠른 처리</h2><p>회전·역순·메타데이터·폼 평면화는 브라우저에서 바로 처리합니다. 원본 파일은 덮어쓰지 않습니다.</p></div></div><span class="local-badge">서버 업로드 없음</span></div>
-      <div class="local-body">
-        <div><label class="drop" id="localDrop" for="localFile"><span class="drop-mark">＋</span><strong>PDF 파일을 선택하거나 끌어놓으세요</strong><span>PDF 1개 · 권장/지원 120MB 이하</span></label><input id="localFile" type="file" accept="application/pdf,.pdf"><div class="file-note" id="localFileNote"></div></div>
-        <div class="action-box"><div class="action-title">파일을 선택하면 아래 작업이 활성화됩니다.</div><div class="local-actions"><button class="local-btn" type="button" data-local-run="rotate90" disabled>↻ 90° 회전</button><button class="local-btn" type="button" data-local-run="rotate180" disabled>↻ 180° 회전</button><button class="local-btn" type="button" data-local-run="reverse" disabled>⇅ 페이지 역순</button><button class="local-btn" type="button" data-local-run="metadata" disabled>i 메타데이터 확인</button><button class="local-btn" type="button" data-local-run="sanitize" disabled>CLR 메타데이터 정리</button><button class="local-btn" type="button" data-local-run="flatten" disabled>FORM 폼 평면화</button></div><div class="local-status" id="localStatus" role="status" aria-live="polite"></div><div class="meta-box" id="localMetadata"></div></div>
-      </div>
-    </section>
-
-    <section class="future-wrap section" data-category="future">
-      <div class="future-head"><div><h2>추가 예정 기능</h2><p>전문 엔진과 정확도 검증이 완료된 기능만 실제 실행 기능으로 전환합니다.</p></div><span class="future-label">ROADMAP</span></div>
-      <div class="tool-grid">
-        <div class="tool planned" data-status="planned" data-keywords="ocr searchable 검색 pdf 한국어 영어"><div class="tool-top"><span class="tool-icon">OCR</span><span class="status plan">준비 중</span></div><span class="tool-name">OCR·검색 가능한 PDF</span><span class="tool-desc">스캔 문서에 검색 가능한 텍스트 레이어를 추가합니다.</span></div>
-        <div class="tool planned" data-status="planned" data-keywords="redact 가림 마스킹 개인정보 영구 삭제"><div class="tool-top"><span class="tool-icon">MASK</span><span class="status plan">준비 중</span></div><span class="tool-name">영구 마스킹</span><span class="tool-desc">민감 정보를 실제 PDF 콘텐츠에서 제거하는 기능입니다.</span></div>
-        <div class="tool planned" data-status="planned" data-keywords="전자서명 signature sign 인증서"><div class="tool-top"><span class="tool-icon">SIGN</span><span class="status plan">준비 중</span></div><span class="tool-name">전자서명</span><span class="tool-desc">서명 이미지와 인증서 기반 서명 워크플로를 제공합니다.</span></div>
-        <div class="tool planned" data-status="planned" data-keywords="pdfa pdf/a archive 장기보존 표준"><div class="tool-top"><span class="tool-icon">A</span><span class="status plan">준비 중</span></div><span class="tool-name">PDF/A 장기보존</span><span class="tool-desc">장기 보존 표준에 맞는 PDF/A 변환·검증 기능입니다.</span></div>
-        <div class="tool planned" data-status="planned" data-keywords="compare diff 비교 두 pdf 차이 변경"><div class="tool-top"><span class="tool-icon">VS</span><span class="status plan">준비 중</span></div><span class="tool-name">PDF 버전 비교</span><span class="tool-desc">두 PDF의 페이지·텍스트·시각 차이를 비교합니다.</span></div>
-        <div class="tool planned" data-status="planned" data-keywords="repair 복구 손상 pdf fix 깨진"><div class="tool-top"><span class="tool-icon">FIX</span><span class="status plan">준비 중</span></div><span class="tool-name">손상 PDF 복구</span><span class="tool-desc">열리지 않는 PDF의 구조를 검사하고 복구 가능성을 확인합니다.</span></div>
-      </div>
-    </section>
-
-    <div class="footer">Program Studio · PDF Utility Workspace</div>
+  <main class="wrap">
+    <div class="suite-loading" aria-live="polite"><div><strong>PDF 유틸리티 준비 중</strong>작업 메뉴를 불러오고 있습니다.</div></div>
   </main>
+
+  <!-- 실행 엔진이 읽는 최소 원본 카탈로그입니다. 사용자 화면은 centered workspace가 한 번만 렌더링합니다. -->
+  <div id="pdfSuiteSourceCatalog" aria-hidden="true">
+    <section class="section" data-category="pages">
+      <div class="tool-grid">
+        <a class="tool available" data-status="available" href="../pdf-preflight/"><span class="tool-icon">＋</span><span class="tool-name">PDF 합치기</span><span class="tool-desc">여러 PDF를 원하는 순서대로 하나의 문서로 결합합니다.</span></a>
+        <a class="tool available" data-status="available" href="../pdf-preflight/"><span class="tool-icon">↥</span><span class="tool-name">페이지 추출·나누기</span><span class="tool-desc">원하는 페이지 범위만 골라 새 PDF로 저장합니다.</span></a>
+        <a class="tool available" data-status="available" href="../pdf-preflight/"><span class="tool-icon">▦</span><span class="tool-name">시각적 페이지 정리</span><span class="tool-desc">페이지를 미리보며 회전·삭제·순서를 정리합니다.</span></a>
+        <a class="tool available" data-status="available" href="../pdf-preflight/"><span class="tool-icon">−</span><span class="tool-name">빈 페이지 자동 제거</span><span class="tool-desc">스캔 문서의 빈 페이지를 찾아 제거합니다.</span></a>
+        <a class="tool available" data-status="local" data-local-action="rotate" href="#local-tools"><span class="tool-icon">↻</span><span class="tool-name">전체 페이지 회전</span><span class="tool-desc">문서 전체를 90°·180°·270° 회전합니다.</span></a>
+        <a class="tool available" data-status="local" data-local-action="reverse" href="#local-tools"><span class="tool-icon">⇅</span><span class="tool-name">페이지 순서 역순</span><span class="tool-desc">마지막 페이지부터 첫 페이지까지 순서를 뒤집습니다.</span></a>
+      </div>
+    </section>
+
+    <section class="section" data-category="convert">
+      <div class="tool-grid">
+        <a class="tool available" data-status="available" href="../pdf-preflight/"><span class="tool-icon">IMG</span><span class="tool-name">이미지 → PDF</span><span class="tool-desc">JPG·PNG 등 이미지를 PDF로 변환합니다.</span></a>
+        <a class="tool available" data-status="available" href="../pdf-preflight/"><span class="tool-icon">PDF</span><span class="tool-name">PDF 이미지 변환</span><span class="tool-desc">PDF 페이지를 이미지 파일로 변환합니다.</span></a>
+        <div class="tool planned" data-status="planned"><span class="tool-icon">OCR</span><span class="tool-name">검색 가능한 PDF</span><span class="tool-desc">스캔 페이지를 OCR 처리해 검색 가능한 PDF로 만듭니다.</span></div>
+        <div class="tool planned" data-status="planned"><span class="tool-icon">TXT</span><span class="tool-name">텍스트·문서 추출</span><span class="tool-desc">PDF의 실제 텍스트 레이어를 TXT로 저장합니다.</span></div>
+      </div>
+    </section>
+
+    <section class="section" data-category="security">
+      <div class="tool-grid">
+        <a class="tool available" data-status="available" href="../pdf-preflight/"><span class="tool-icon">⌗</span><span class="tool-name">여백·크롭·배경</span><span class="tool-desc">페이지 외곽 여백·크롭·배경을 정리합니다.</span></a>
+        <a class="tool available" data-status="available" href="../pdf-preflight/"><span class="tool-icon">KEY</span><span class="tool-name">AES-256 암호 설정</span><span class="tool-desc">PDF에 열기 비밀번호를 설정합니다.</span></a>
+        <a class="tool available" data-status="available" href="../pdf-preflight/"><span class="tool-icon">OPEN</span><span class="tool-name">암호 해제</span><span class="tool-desc">올바른 비밀번호로 보호를 해제한 새 PDF를 만듭니다.</span></a>
+      </div>
+    </section>
+
+    <section class="section" data-category="print">
+      <div class="tool-grid">
+        <a class="tool available" data-status="available" href="../pdf-preflight/"><span class="tool-icon">✓</span><span class="tool-name">PDF 프리플라이트</span><span class="tool-desc">PDF 구조와 인쇄 전 주요 위험 요소를 검사합니다.</span></a>
+        <a class="tool available" data-status="available" href="../pdf-preflight/"><span class="tool-icon">FIX</span><span class="tool-name">안전 자동 수정</span><span class="tool-desc">인쇄에 문제가 될 수 있는 항목을 안전 범위에서 자동 보정합니다.</span></a>
+        <a class="tool available" data-status="available" href="../pdf-preflight/"><span class="tool-icon">⇣</span><span class="tool-name">PDF 압축</span><span class="tool-desc">용도에 맞는 품질로 파일 용량을 줄입니다.</span></a>
+      </div>
+    </section>
+
+    <section class="local-panel" id="local-tools">
+      <div class="local-head"><div class="local-head-icon">PDF</div><div><h2 id="localTitle">내 PC에서 처리</h2><p>선택한 PDF는 이 로컬 작업에서 서버로 업로드하지 않습니다.</p></div><span class="local-badge">브라우저 로컬</span></div>
+      <label class="drop" id="localDrop" for="localFile"><strong>PDF 한 개를 선택하거나 여기에 놓으세요</strong><span>회전 · 페이지 역순 · 텍스트 추출용 파일 선택 / 120MB 이하</span></label>
+      <input id="localFile" type="file" accept="application/pdf,.pdf">
+      <div class="file-note" id="localFileNote"></div>
+      <div class="local-actions">
+        <button class="local-btn" type="button" data-local-run="rotate90" disabled>90° 회전</button>
+        <button class="local-btn" type="button" data-local-run="rotate180" disabled>180° 회전</button>
+        <button class="local-btn" type="button" data-local-run="reverse" disabled>페이지 역순</button>
+      </div>
+      <div class="local-status" id="localStatus" role="status" aria-live="polite"></div>
+      <div class="meta-box" id="localMetadata"></div>
+    </section>
+  </div>
+
   <script defer src="../js/pdf-suite/local-tools.js"></script>
 </body>
 </html>

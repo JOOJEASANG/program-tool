@@ -38,9 +38,11 @@ def test_pdf_utility_menu_has_direct_workflow_bridge():
     assert "ProgramStudioPdfUtilityDirectBridge" in bridge
     assert "stopImmediatePropagation" in hook
     assert "pdfUtilityStageBody" in hook
-    assert "pdf-utility-direct-hook-v2" in hook
+    assert "pdf-utility-direct-hook-v3" in hook
+    assert "pdf-utility-direct-hook-v2" in hook  # compatibility marker
     assert "direct-tool-large-storage.js?v=20260915-1" in hook
-    assert "centered-workspace-fixes.js?v=20260915-4" in hook
+    assert "clean-ui.js?v=20261002-1" in hook
+    assert "centered-workspace-fixes.js" not in hook
     assert "pdf-utility-large-storage-v1" in large
     assert "MAX_FILE_BYTES=500*MIB" in "".join(large.split())
 

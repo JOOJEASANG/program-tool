@@ -4,6 +4,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 HUB = ROOT / "pdf-suite" / "index.html"
 LOCAL = ROOT / "js" / "pdf-suite" / "local-tools.js"
+CLEAN = ROOT / "js" / "pdf-suite" / "clean-ui.js"
+DIRECT_HOOK = ROOT / "js" / "pdf-suite" / "direct-tool-hook.js"
 HOME = ROOT / "js" / "pdf-suite-home-launcher.js"
 NAV_PREP = ROOT / "js" / "pdf-suite" / "unified-navigation-prep.js"
 SINGLE = ROOT / "js" / "pdf-suite" / "single-page-shell.js"
@@ -13,41 +15,88 @@ SPECIALIST = ROOT / "js" / "pdf-suite" / "specialist-label.js"
 HOSTING = ROOT / "scripts" / "prepare_hosting_dist.py"
 
 
-def test_pdf_suite_exposes_task_first_workspace_and_separates_planned_tools():
+def test_pdf_suite_source_is_reduced_to_clean_core_catalog():
     source = HUB.read_text(encoding="utf-8")
 
     for marker in (
-        'data-pdf-suite="workspace-v2"',
-        "하려는 PDF 작업만 찾으면",
-        'id="suiteSearch"',
-        'id="suiteFilters"',
-        "자주 쓰는 작업",
-        "페이지 정리",
-        "변환·압축",
-        "편집·인쇄 배치",
-        "보안·문서 정보",
-        "인쇄·검사",
+        'data-pdf-suite="workspace-v3"',
+        'id="pdfSuiteSourceCatalog"',
+        "PDF 유틸리티 준비 중",
         "PDF 합치기",
-        "분할·페이지 추출",
-        "PDF 압축",
-        "PDF 프리플라이트",
+        "페이지 추출·나누기",
+        "시각적 페이지 정리",
+        "빈 페이지 자동 제거",
+        "전체 페이지 회전",
+        "페이지 순서 역순",
+        "이미지 → PDF",
+        "PDF 이미지 변환",
+        "검색 가능한 PDF",
+        "텍스트·문서 추출",
+        "여백·크롭·배경",
         "AES-256 암호 설정",
-        "N-up 다면 배치",
-        "대형 분할 출력",
-        'data-status="planned"',
-        "OCR·검색 가능한 PDF",
-        "PDF/A 장기보존",
-        "영구 마스킹",
-        "전자서명",
-        "내 PC에서 빠른 처리",
+        "암호 해제",
+        "PDF 프리플라이트",
+        "안전 자동 수정",
+        "PDF 압축",
+        'id="local-tools"',
+        'src="../js/pdf-suite/local-tools.js"',
     ):
         assert marker in source
 
-    assert 'href="../pdf-preflight/"' in source
-    assert 'href="../pdf-editor/"' in source
-    assert 'href="../pdf-editor-advanced/"' in source
-    assert 'href="../print-checker/"' in source
-    assert 'src="../js/pdf-suite/local-tools.js"' in source
+    # The old catalog/roadmap UI is no longer user-facing. The source page only
+    # keeps the minimum engine catalog needed by the runtime.
+    for retired in (
+        'id="suiteSearch"',
+        'id="suiteFilters"',
+        "하려는 PDF 작업만 찾으면",
+        "추가 예정 기능",
+        "future-wrap",
+        "N-up 다면 배치",
+        "소책자·중철 배치",
+        "대형 분할 출력",
+        "인쇄물 사전 검토",
+        "PDF 정밀 편집",
+        "메타데이터 정리",
+        "폼 평면화",
+    ):
+        assert retired not in source
+
+    assert '#pdfSuiteSourceCatalog{display:none!important}' in source
+    assert 'html:not([data-pdf-utility-layout="centered"]) #pdfUtilitySplit{visibility:hidden!important}' in source
+
+
+def test_pdf_suite_clean_ui_owns_final_presentation():
+    clean = CLEAN.read_text(encoding="utf-8")
+    hook = DIRECT_HOOK.read_text(encoding="utf-8")
+
+    for marker in (
+        "__programStudioPdfUtilityCleanUiV1",
+        "PDF 합치기",
+        "PDF 파일 검사",
+        "PDF 압축",
+        "PDF 암호 설정",
+        "pdf-clean-quick-grid",
+        "pdfUtilityCleanQuick",
+        "pdfuc-categories",
+        "pdfuc-modal .pdfuc-dialog",
+        "min-height:300px",
+        "pdfUtilityCleanUi='ready-v1'",
+        "pdfUtilityCorePresentation='clean-16-tools'",
+        "pdfUtilityCenteredRefinements='tool-first-v4-large-layout'",
+    ):
+        assert marker in clean
+
+    for marker in (
+        "ensureCenteredWorkspace",
+        "ensureCenteredFixes",
+        "ensureToolModalFlow",
+        "/js/pdf-suite/clean-ui.js?v=20261002-1",
+        "__programStudioPdfUtilityCenteredFixesV4",
+        "pdf-utility-direct-hook-v3",
+    ):
+        assert marker in hook
+
+    assert "centered-workspace-fixes.js" not in hook
 
 
 def test_pdf_suite_local_tools_are_real_local_pdf_operations():
@@ -73,7 +122,7 @@ def test_pdf_suite_local_tools_are_real_local_pdf_operations():
     assert "XMLHttpRequest" not in source
 
 
-def test_pdf_suite_is_staged_with_split_editor_profiles_and_utility_workspace():
+def test_pdf_suite_is_staged_with_existing_engines_and_clean_final_workspace():
     hosting = HOSTING.read_text(encoding="utf-8")
     home = HOME.read_text(encoding="utf-8")
     nav_prep = NAV_PREP.read_text(encoding="utf-8")
@@ -106,7 +155,7 @@ def test_pdf_suite_is_staged_with_split_editor_profiles_and_utility_workspace():
     ):
         assert marker in hosting
 
-    # Usage-count/quota injection is retired. Access is now handled only by the
+    # Usage-count/quota injection is retired. Access is handled only by the
     # shared login + administrator-approval gate.
     for retired in (
         "data-pdf-suite-daily-free",
@@ -137,6 +186,8 @@ def test_pdf_suite_is_staged_with_split_editor_profiles_and_utility_workspace():
     assert "id:'booklet'" not in home
     assert home.index("id:'ai-design-maker'") < home.index("id:'smart-print-layout'") < home.index("id:'pdf-editor'") < home.index("id:'pdf-editor-advanced'") < home.index("id:'pdf-suite'")
 
+    # Transitional engine modules remain available, but the source page no
+    # longer exposes their old UI. They feed the centered/clean final surface.
     for marker in (
         "removeEditorOwnedUtilityTools",
         "pdfUtilityEditorOverlapRemoved",
@@ -150,16 +201,10 @@ def test_pdf_suite_is_staged_with_split_editor_profiles_and_utility_workspace():
         "변환 · OCR",
         "편집 · 보안",
         "최적화 · 검사",
-        "N-up 다면 배치",
-        "소책자·중철 배치",
-        "책자 출력 배치",
-        "인쇄물 사전 검토",
         "removeSeparatedTools",
         "pdfu-sidebar",
         "pdfu-stage",
-        "작업 · 실시간 결과 화면",
         "activateTool",
-        "mountFrame",
         "pdf-utility-split-workspace-v3",
     ):
         assert marker in single
@@ -179,9 +224,6 @@ def test_pdf_suite_is_staged_with_split_editor_profiles_and_utility_workspace():
         "pdfu-local-workgrid",
         "pdfu-local-controls",
         "pdfu-local-result",
-        "책갈피·페이지 라벨 분석",
-        "첨부파일 추출",
-        "접근성·태그 기본 검사",
         "expectedOverlayIds",
         "closeInlineOverlays",
         "wrapDirectBridge",
