@@ -80,6 +80,13 @@
     return typeof loader==='function'?loader(id,src):fallbackLoad(id,src);
   }
 
+  function loadNupRepeat(){
+    const id='pdfNupRepeatScriptV1';
+    const src='/js/pdf-editor/nup-repeat.js?v=20261002-1';
+    const loader=context().load;
+    return typeof loader==='function'?loader(id,src):fallbackLoad(id,src);
+  }
+
   function loadAdvancedProfileScope(){
     const id='pdfEditorAdvancedProfileScopeScriptV1';
     const src='/js/pdf-editor/advanced-profile-scope.js?v=20260908-2';
@@ -116,7 +123,7 @@
     pending.push(loadUploadOrderUi());
     document.documentElement.dataset.pdfEditorProfile=advanced?'advanced':'lightweight';
     return Promise.all(pending)
-      .then(()=>advanced?loadAdvancedRuntime():true)
+      .then(()=>advanced?loadAdvancedRuntime():loadNupRepeat())
       .then(()=>{
         document.documentElement.dataset.pdfCoreRuntime='1';
         return true;
