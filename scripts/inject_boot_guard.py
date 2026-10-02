@@ -166,7 +166,7 @@ def should_inject(path: Path, text: str) -> bool:
     )
     needs_favicon = requires_favicon(path) and FAVICON_MARKER not in text
     needs_ui_style = requires_favicon(path) and UI_STYLE_MARKER not in text
-    needs_home_search = is_home_page(path) and HOME_SEARCH_MARKER not in text
+    needs_home_search = is_home_page(path) and HOME_SEARCH_MARKER not in text and UI_STYLE_MARKER not in text
     needs_metadata = page_metadata(path) is not None and META_MARKER not in text
     needs_pdf_booklet = is_pdf_booklet_page(path) and PDF_BOOKLET_MARKER not in text
     return needs_boot or needs_favicon or needs_ui_style or needs_home_search or needs_metadata or needs_pdf_booklet
