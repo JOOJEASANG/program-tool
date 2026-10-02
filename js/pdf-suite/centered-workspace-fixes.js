@@ -128,9 +128,10 @@
         if(syncCategoryCopy()||tries>=80)clearInterval(timer);
       },25);
     }
-    document.documentElement.dataset.pdfUtilityCenteredRefinements='tool-first-v5-full-workspace';
+    // Keep the established public marker because browser smoke tests and delayed loaders use it as a compatibility contract.
+    document.documentElement.dataset.pdfUtilityCenteredRefinements='tool-first-v4-large-layout';
   }
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
-  window.ProgramStudioPdfUtilityCenteredFixes=Object.freeze({stage:'pdf-utility-centered-fixes-v5'});
+  window.ProgramStudioPdfUtilityCenteredFixes=Object.freeze({stage:'pdf-utility-centered-fixes-v4'});
 })();
