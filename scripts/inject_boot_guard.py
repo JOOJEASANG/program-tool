@@ -12,6 +12,7 @@ ACCESS_MARKER = "data-program-studio-approval-bootstrap"
 FAVICON_MARKER = "data-program-studio-favicon"
 META_MARKER = "data-program-studio-meta"
 UI_STYLE_MARKER = "data-program-studio-ui"
+HOME_SEARCH_MARKER = "data-program-studio-home-search"
 PDF_BOOKLET_MARKER = "data-pdf-classic-booklet"
 EXCLUDED_PARTS = {".git", "node_modules", "venv", ".venv", "__pycache__"}
 PROTECTED_HTML = {
@@ -66,6 +67,19 @@ FIREBASE_APPROVAL_BOOTSTRAP = (
     '<script src="/js/firebase-config.js"></script>'
 )
 FAVICON_TAG = f'<link {FAVICON_MARKER} rel="icon" href="/favicon.svg" type="image/svg+xml">'
+HOME_SEARCH_STYLE = (
+    f'<style {HOME_SEARCH_MARKER}>'
+    'body[data-home-suite] .search-wrap{flex:1!important;max-width:380px!important;height:36px!important;'
+    'gap:0!important;padding:0 12px!important;background:#fff!important;border:1px solid #d8e0e8!important;'
+    'border-radius:8px!important;box-shadow:none!important;transition:none!important}'
+    'body[data-home-suite] .search-wrap:focus-within{background:#fff!important;border-color:#aeb9c6!important;box-shadow:none!important}'
+    'body[data-home-suite] .search-icon{display:none!important}'
+    'body[data-home-suite] .search{padding:0!important;background:transparent!important;border:0!important;outline:0!important;'
+    'box-shadow:none!important;font-size:12px!important;font-weight:500!important;color:#1e293b!important}'
+    'body[data-home-suite] .search::placeholder{color:#9aa5b1!important}'
+    '@media(max-width:768px){body[data-home-suite] .search-wrap{max-width:none!important;height:38px!important}}'
+    '</style>'
+)
 INLINE_BOOT_GUARD_MARKER = "data-program-studio-boot-guard-inline"
 _INLINE_BOOT_CSS = (
     "html.app-booting body{pointer-events:none!important}"
@@ -113,6 +127,10 @@ def requires_favicon(path: Path) -> bool:
     return relative_path(path) in DEPLOY_HTML
 
 
+def is_home_page(path: Path) -> bool:
+    return relative_path(path) == "index.html"
+
+
 def page_metadata(path: Path) -> tuple[str, str, str] | None:
     return PAGE_METADATA.get(relative_path(path))
 
@@ -148,9 +166,10 @@ def should_inject(path: Path, text: str) -> bool:
     )
     needs_favicon = requires_favicon(path) and FAVICON_MARKER not in text
     needs_ui_style = requires_favicon(path) and UI_STYLE_MARKER not in text
+    needs_home_search = is_home_page(path) and HOME_SEARCH_MARKER not in text
     needs_metadata = page_metadata(path) is not None and META_MARKER not in text
     needs_pdf_booklet = is_pdf_booklet_page(path) and PDF_BOOKLET_MARKER not in text
-    return needs_boot or needs_favicon or needs_ui_style or needs_metadata or needs_pdf_booklet
+    return needs_boot or needs_favicon or needs_ui_style or needs_home_search or needs_metadata or needs_pdf_booklet
 
 
 def inject_guard(
@@ -160,6 +179,7 @@ def inject_guard(
     approval_required: bool = False,
     favicon: bool = False,
     ui_style: bool = True,
+    home_search: bool = False,
     metadata: tuple[str, str, str] | None = None,
     pdf_booklet: bool = False,
 ) -> str:
@@ -172,6 +192,8 @@ def inject_guard(
             f'<link {UI_STYLE_MARKER} rel="stylesheet" '
             f'href="/css/program-studio-ui-v2.css?v={version}">'
         )
+    if home_search and HOME_SEARCH_MARKER not in text:
+        tags += HOME_SEARCH_STYLE
     if MARKER not in text:
         if approval_required and INLINE_BOOT_GUARD_MARKER not in text:
             tags += INLINE_BOOT_GUARD_SNIPPET
@@ -204,6 +226,7 @@ def inject_all() -> list[Path]:
             approval_required=requires_approval(path),
             favicon=requires_favicon(path),
             ui_style=requires_favicon(path),
+            home_search=is_home_page(path),
             metadata=page_metadata(path),
             pdf_booklet=is_pdf_booklet_page(path),
         )
