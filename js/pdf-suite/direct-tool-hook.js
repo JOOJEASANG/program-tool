@@ -6,6 +6,7 @@
   window.__programStudioPdfUtilityDirectHookV2=true;
 
   const $=id=>document.getElementById(id);
+  const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
   function sourceNameFor(button){return button?.dataset.pdfuCoreSource||button?.querySelector('.pdfu-menu-name')?.textContent?.trim()||'';}
   function sourceFor(name){return [...document.querySelectorAll('#pdfUtilitySourceStore .tool')].find(node=>node.querySelector('.tool-name')?.textContent?.trim()===name)||null;}
   function toolFor(button){
@@ -63,6 +64,15 @@
   function ensureCenteredFixes(){return ensureScript('pdfUtilityCleanUiScript','/js/pdf-suite/clean-ui.js?v=20261002-1',()=>Boolean(window.__programStudioPdfUtilityCleanUiV1||window.__programStudioPdfUtilityCenteredFixesV4));}
   function ensureToolModalFlow(){return ensureScript('pdfUtilityToolModalFlowScript','/js/pdf-suite/tool-modal-flow.js?v=20260915-1',()=>Boolean(window.__programStudioPdfUtilityToolModalFlowV1));}
 
+  async function waitForCuratedCore(){
+    const deadline=Date.now()+1600;
+    while(Date.now()<deadline){
+      if(document.documentElement.dataset.pdfUtilityCuratedCore==='ready')return 'ready';
+      await delay(25);
+    }
+    return 'timeout';
+  }
+
   let installed=false;
   function install(){
     if(installed)return;installed=true;
@@ -80,7 +90,7 @@
     install();
     Promise.allSettled([
       ensureLargeStorage(),
-      ensureCenteredWorkspace().then(ensureCenteredFixes).then(ensureToolModalFlow)
+      waitForCuratedCore().then(ensureCenteredWorkspace).then(ensureCenteredFixes).then(ensureToolModalFlow)
     ]);
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
