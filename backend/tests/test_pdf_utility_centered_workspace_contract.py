@@ -39,7 +39,7 @@ def test_centered_workspace_is_loaded_by_pdf_suite_direct_hook():
     hook = (ROOT / "js/pdf-suite/direct-tool-hook.js").read_text(encoding="utf-8")
 
     assert "centered-workspace.js?v=20260915-4" in hook
-    assert "centered-workspace-fixes.js?v=20260915-4" in hook
+    assert "clean-ui.js?v=20261002-1" in hook
     assert "tool-modal-flow.js?v=20260915-1" in hook
     assert "__programStudioPdfUtilityCenteredV2" in hook
     assert "__programStudioPdfUtilityCenteredFixesV4" in hook
@@ -48,19 +48,23 @@ def test_centered_workspace_is_loaded_by_pdf_suite_direct_hook():
     assert "ensureCenteredFixes" in hook
     assert "ensureToolModalFlow" in hook
     assert "ProgramStudioPdfUtilityCentered" in hook
+    assert "centered-workspace-fixes.js" not in hook
 
 
-def test_centered_workspace_tool_first_readability_refinements():
-    source = (ROOT / "js/pdf-suite/centered-workspace-fixes.js").read_text(encoding="utf-8")
+def test_clean_ui_owns_centered_workspace_refinements():
+    source = (ROOT / "js/pdf-suite/clean-ui.js").read_text(encoding="utf-8")
 
-    assert ".pdfuc-inner{width:min(1480px,100%)!important}" in source
-    assert ".pdfuc-category{padding:22px!important;border-radius:24px!important" in source
-    assert ".pdfuc-cat-icon{width:70px!important;height:70px!important" in source
-    assert ".pdfuc-category .pdfu-menu-item{grid-template-columns:46px minmax(0,1fr) auto!important" in source
-    assert ".pdfuc-category .pdfu-menu-icon{font-size:27px!important" in source
-    assert ".pdfuc-category .pdfu-menu-name{font-size:15.5px!important" in source
-    assert ".pdfuc-tool-upload{min-height:142px!important" in source
-    assert ".pdfuc-dialog{width:min(1340px,100%)!important" in source
+    assert "__programStudioPdfUtilityCleanUiV1" in source
+    assert ".pdfuc-inner{width:min(1480px,100%)!important" in source
+    assert ".pdf-clean-quick-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr))" in source
+    assert ".pdfuc-categories{grid-template-columns:repeat(4,minmax(0,1fr))!important" in source
+    assert ".pdfuc-category .pdfu-menu-badge{display:none!important}" in source
+    assert ".pdfuc-modal .pdfuc-dialog{width:min(1500px,calc(100vw - 32px))!important" in source
+    assert ".pdfuc-dialog .pdfud-file{display:flex!important;min-height:300px!important" in source
+    assert ".pdfuc-dialog .pdfu-local-controls .drop{display:flex!important;min-height:280px!important" in source
+    assert ".pdfuc-dialog .pdfuc-tool-upload{display:flex!important;min-height:300px!important" in source
+    assert "pdfUtilityCleanUi='ready-v1'" in source
+    assert "pdfUtilityCorePresentation='clean-16-tools'" in source
     assert "pdfUtilityCenteredRefinements='tool-first-v4-large-layout'" in source
     assert "pdfUtilityCenteredUpload" not in source
     assert "ProgramStudioPdfUtilityCentered?.addFiles" not in source
