@@ -94,5 +94,5 @@
     ]);
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
-  window.ProgramStudioPdfUtilityDirectHook=Object.freeze({activate,stage:'pdf-utility-direct-hook-v3'});
+  window.ProgramStudioPdfUtilityDirectHook=Object.freeze({activate,stage:'pdf-utility-direct-hook-v3',legacyStage:'pdf-utility-direct-hook-v2'});
 })();
