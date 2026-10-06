@@ -32,10 +32,13 @@
   if(simpleRoute)document.documentElement.dataset.simpleProgramUx=simpleRoute;
 
   const TOOLS=[
-    {name:'디자인 검토',description:'표지 · 전단 · 리플렛 · 초대장 인쇄 규격 확인',icon:'✓',url:'/print-checker/'},
-    {name:'AI 디자인 제작',description:'표지 전체 펼침 AI 배경 · 한글 문구 · 300dpi 출력',icon:'✦',url:'/ai-design-maker/'},
-    {name:'PDF 편집기',description:'병합 · 페이지 편집 · N-up · 소책자',icon:'📄',url:'/pdf-editor/'},
-    {name:'PDF 검사 · 유틸리티',description:'인쇄 전 검사 · 보안 · 합치기 · 복구',icon:'🔍',url:'/pdf-preflight/'}
+    {id:'print-checker',name:'인쇄파일 검토',description:'표지 · 전단 · 도련 · 안전영역 확인',icon:'⌗',url:'/print-checker/'},
+    {id:'ai-design-maker',name:'AI 디자인 제작',description:'표지 · 책등 · AI 배경 · 300dpi 출력',icon:'✦',url:'/ai-design-maker/'},
+    {id:'smart-print-layout',name:'스마트 인쇄배치',description:'명함 · 쿠폰 · 자동배치 · 양면',icon:'▦',url:'/smart-print-layout/'},
+    {id:'pdf-editor',name:'PDF배치',description:'한 면에 여러 페이지 · N-up · 소책자',icon:'▤',url:'/pdf-editor/'},
+    {id:'pdf-editor-advanced',name:'PDF편집',description:'자르기 · 크기 · 회전 · 문서 인쇄 검토',icon:'✂',url:'/pdf-editor-advanced/'},
+    {id:'pdf-suite',name:'PDF 도구 모음',description:'합치기 · 나누기 · 압축 · 이미지 변환',icon:'⇄',url:'/pdf-suite/'},
+    {id:'pdf-preflight',name:'PDF 검사·보안',description:'인쇄 전 검사 · 암호 설정 · 암호 해제',icon:'✓',url:'/pdf-preflight/'}
   ];
 
   const SIMPLE_HELP=Object.freeze({
@@ -230,6 +233,7 @@
   let paletteInput=null;
   let paletteItems=[];
   let activeIndex=0;
+  let paletteReturnFocus=null;
 
   function renderPalette(query=''){
     if(!palette)return;
@@ -266,10 +270,12 @@
     if(!palette)return;
     palette.classList.remove('open');
     document.body.classList.remove('ps-command-open');
+    paletteReturnFocus?.focus();
   }
 
   function openPalette(){
     ensurePalette();
+    paletteReturnFocus=document.activeElement;
     palette.classList.add('open');
     document.body.classList.add('ps-command-open');
     paletteInput.value='';
@@ -285,7 +291,7 @@
     palette.setAttribute('role','dialog');
     palette.setAttribute('aria-modal','true');
     palette.setAttribute('aria-label','프로그램 빠른 실행');
-    palette.innerHTML='<div class="ps-command-dialog"><div class="ps-command-head"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg><input class="ps-command-input" aria-label="프로그램 검색" placeholder="프로그램 이름이나 작업을 검색하세요"><button class="ps-command-close" type="button" aria-label="닫기">×</button></div><div class="ps-command-list"></div></div>';
+    palette.innerHTML='<div class="ps-command-dialog"><div class="ps-command-head"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg><input class="ps-command-input" aria-label="프로그램 검색" placeholder="프로그램 이름이나 작업을 검색하세요"><button class="ps-command-close" type="button" aria-label="닫기">×</button></div><p class="ps-command-hint">다른 도구로 이동하기 전에 현재 편집을 저장하세요.</p><div class="ps-command-list"></div></div>';
     document.body.appendChild(palette);
     paletteInput=palette.querySelector('.ps-command-input');
     paletteInput.addEventListener('input',()=>renderPalette(paletteInput.value));
@@ -294,6 +300,14 @@
       else if(event.key==='ArrowUp'&&paletteItems.length){event.preventDefault();activeIndex=(activeIndex-1+paletteItems.length)%paletteItems.length;syncPaletteActive();}
       else if(event.key==='Enter'&&paletteItems.length){event.preventDefault();paletteItems[activeIndex].click();}
       else if(event.key==='Escape'){event.preventDefault();closePalette();}
+    });
+    palette.addEventListener('keydown',event=>{
+      if(event.key==='Escape'){event.preventDefault();closePalette();}
+      if(event.key!=='Tab')return;
+      const focusable=[...palette.querySelectorAll('input,button')].filter(el=>!el.disabled);
+      const first=focusable[0],last=focusable[focusable.length-1];
+      if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}
+      else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}
     });
     palette.querySelector('.ps-command-close').addEventListener('click',closePalette);
     palette.addEventListener('click',event=>{if(event.target===palette)closePalette();});
@@ -308,11 +322,11 @@
 
   function mountCommandTrigger(){
     if(surface!=='home')return;
-    const host=document.querySelector('.nav-right');
+    const host=document.querySelector('.topbar-right,.nav-right');
     if(!host||host.querySelector('.ps-command-trigger'))return;
     const button=document.createElement('button');
     button.type='button';
-    button.className='ps-command-trigger';
+    button.className='ps-command-trigger ps-tool-switch';
     button.innerHTML='<span aria-hidden="true">⌕</span><span>빠른 실행</span><kbd>Ctrl K</kbd>';
     button.setAttribute('aria-label','프로그램 빠른 실행 열기');
     button.addEventListener('click',openPalette);
@@ -496,8 +510,54 @@
     }).observe(document.body,{childList:true,subtree:true,characterData:true});
   }
 
+  function mountWorkspace(){
+    if(!document.querySelector('link[href*="studio-workspace.css"]')){
+      const link=document.createElement('link');link.rel='stylesheet';link.href='/css/studio-workspace.css?v=20261007-1';document.head.appendChild(link);
+    }
+    const current=TOOLS.find(tool=>path===tool.url.slice(0,-1)||path===tool.url+'index.html');
+    if(!current||window.self!==window.top)return;
+    try{
+      const stored=JSON.parse(localStorage.getItem('ps-recent-tools')||'[]');
+      const recent=Array.isArray(stored)?stored.filter(id=>TOOLS.some(tool=>tool.id===id)):[];
+      localStorage.setItem('ps-recent-tools',JSON.stringify([current.id,...recent.filter(id=>id!==current.id)].slice(0,6)));
+    }catch(_){}
+    const host=document.querySelector('.control-panel,.advanced-sidebar,.layout-app>.sidebar,.app-layout>.sidebar,.app>aside');
+    const config=SIMPLE_HELP[current.id]||(current.id==='ai-design-maker'?{
+      steps:[['인쇄 규격','완성 크기와 책등 두께를 먼저 확인하세요.'],['문구와 디자인','배경만 필요하면 문구를 생략할 수 있습니다.'],['미리보기와 저장','선택한 작업 범위와 300dpi 출력을 확인하세요.']]
+    }:null);
+    if(host&&config){
+      const guide=document.createElement('section');guide.className='ps-workflow';guide.setAttribute('aria-label','작업 순서 안내');
+      guide.innerHTML='<div class="ps-workflow-top"><strong>'+current.name+'</strong><button type="button">도구 전환 ↗</button></div><details><summary>처음이라면 · 작업 순서 보기</summary><ol>'+config.steps.map(step=>'<li><strong>'+step[0]+'</strong><span>'+step[1]+'</span></li>').join('')+'</ol></details>';
+      guide.querySelector('button').addEventListener('click',openPalette);
+      const anchor=host.querySelector('.sidebar-top,.sb-nav,.program-title-row');
+      if(anchor)anchor.after(guide);else host.prepend(guide);
+      if(current.id==='smart-print-layout')mountPrintPresets(guide);
+    }else{
+      const bar=document.querySelector('.suite-topbar,.top-nav');
+      if(bar){const button=document.createElement('button');button.type='button';button.className='ps-tool-switch';button.textContent='도구 전환 ↗';button.onclick=openPalette;bar.appendChild(button);}
+    }
+  }
+
+  function mountPrintPresets(guide){
+    const presets=[['명함',90,50],['엽서',100,148],['A5 안내장',148,210]];
+    const section=document.createElement('details');
+    section.innerHTML='<summary>자주 쓰는 완성 크기</summary><div class="ps-preset-row"></div><p class="ps-preset-note">재단 가로·세로만 변경합니다. 출력 용지·양면·여백은 그대로 유지됩니다. 원본을 이 크기로 확대·축소하지 않습니다.</p><p class="ps-preset-status" role="status"></p>';
+    const status=section.querySelector('.ps-preset-status');
+    presets.forEach(([name,width,height])=>{
+      const button=document.createElement('button');button.type='button';button.textContent=name+' '+width+'×'+height;
+      button.addEventListener('click',()=>{
+        const w=document.getElementById('trimGuideWidth'),h=document.getElementById('trimGuideHeight');
+        if(!w||!h||w.disabled||h.disabled)return;
+        w.value=String(width);h.value=String(height);
+        for(const input of [w,h]){input.dispatchEvent(new Event('input',{bubbles:true}));input.dispatchEvent(new Event('change',{bubbles:true}));}
+        status.textContent=name+' · '+width+' × '+height+' mm 적용됨. 원본과 안내선이 맞는지 확인하세요.';
+      });section.querySelector('.ps-preset-row').appendChild(button);
+    });guide.appendChild(section);
+  }
+
   onReady(()=>{
     loadSurfaceEnhancements();
+    mountWorkspace();
     mountCommandTrigger();
     mountGlobalKeys();
     improveExternalStateLabels();

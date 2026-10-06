@@ -12,7 +12,7 @@ def test_home_uses_canonical_program_routes_without_obsolete_runtime_mutators():
     register = read("js/sw-register.js")
     assert "url:'print-checker/'" in home
     assert "url:'pdf-editor/'" in home
-    assert "url:'pdf-preflight/'" in home
+    assert "url:'pdf-suite/'" in home
     assert "data-home-static-professional" in home
     for name in ("home-cleanup.js", "program-paths.js", "site-wording-cleanup.js"):
         assert name not in register

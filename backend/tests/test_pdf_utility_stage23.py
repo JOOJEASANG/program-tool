@@ -118,7 +118,7 @@ def test_pdf_utility_name_uses_current_static_home_without_legacy_catalog_runtim
     home = HOME.read_text(encoding="utf-8")
     ui = GLOBAL_UI.read_text(encoding="utf-8")
     assert "PDF 도구 모음" in home
-    assert "PDF 검사 · 유틸리티" in ui
+    assert "PDF 검사·보안" in ui
     assert "url:'/pdf-preflight/'" in ui
     assert not (ROOT / "js" / "program-catalog-core.js").exists()
 

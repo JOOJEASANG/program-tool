@@ -22,7 +22,7 @@ def test_large_encrypt_decrypt_uses_500mb_storage_bridge_and_direct_http_remains
  large=compact(LARGE_DIRECT.read_text(encoding="utf-8")); assert "constDIRECT_MAX=20*MIB" in large and "constMAX_FILE_BYTES=500*MIB" in large and "SERVER_TIMEOUT_MS=9*60*1000" in large
 def test_home_uses_current_pdf_utility_label_without_legacy_sync_overlay():
  loader=SW_REGISTER.read_text(encoding="utf-8"); index=INDEX.read_text(encoding="utf-8"); ui=GLOBAL_UI.read_text(encoding="utf-8")
- assert "PDF 도구 모음" in index; assert "PDF 검사 · 유틸리티" in ui; assert "url:'/pdf-preflight/'" in ui; assert not (ROOT/"js"/"home-pdf-utility-name-sync.js").exists(); assert "homePdfUtilityNameSyncScriptV1" not in loader
+ assert "PDF 도구 모음" in index; assert "PDF 검사·보안" in ui; assert "url:'/pdf-preflight/'" in ui; assert not (ROOT/"js"/"home-pdf-utility-name-sync.js").exists(); assert "homePdfUtilityNameSyncScriptV1" not in loader
 def test_pdf_utility_runtime_has_one_policy_owner_and_functional_finalizer():
  finalizer=FINALIZER.read_text(encoding="utf-8"); runtime=PREFLIGHT_RUNTIME.read_text(encoding="utf-8"); policy=UTILITY_POLICY.read_text(encoding="utf-8")
  assert "/js/pdf-utility-cost-guard-v2.js" in runtime and "/js/pdf-utility-cost-policy-hardening.js" not in runtime and not (ROOT/"js"/"pdf-utility-cost-policy-hardening.js").exists(); assert "loadCostGuard" not in finalizer and "loadCostPolicyHardening" not in finalizer and "document.createElement('script')" not in finalizer; assert "500MB" in policy and "800MB" in policy and "pdfUtilityCostPolicy='500mb-file-800mb-job-v4'" in compact(policy)

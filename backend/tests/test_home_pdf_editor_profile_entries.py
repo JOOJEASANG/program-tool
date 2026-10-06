@@ -17,7 +17,7 @@ def test_home_exposes_layout_and_advanced_pdf_editors_separately():
     assert "name:'PDF 고급편집용'" not in home
     assert "id=\"cnt-all\">6<" in home
     assert "id=\"cnt-pdf\">3<" in home
-    assert "id=\"count\">6개<" in home
+    assert 'id="count" role="status" aria-live="polite">6개<' in home
     assert "categorized-program-home-v4" in home
 
 
