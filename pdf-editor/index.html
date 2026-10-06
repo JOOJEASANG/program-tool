@@ -829,9 +829,9 @@ function collectEditorState() {
     paperSize: $('paperSize').value,
     customW: parseFloat($('customW').value) || 210,
     customH: parseFloat($('customH').value) || 297,
-    marginH: parseFloat($('marginH').value) || 10,
-    marginV: parseFloat($('marginV').value) || 10,
-    gap: parseFloat($('gap').value) || 5,
+    marginH: Number.isFinite(parseFloat($('marginH').value)) ? parseFloat($('marginH').value) : 10,
+    marginV: Number.isFinite(parseFloat($('marginV').value)) ? parseFloat($('marginV').value) : 10,
+    gap: Number.isFinite(parseFloat($('gap').value)) ? parseFloat($('gap').value) : 5,
     actualSizeEnabled,
     actualWidthMm: parseFloat($('actualWidthMm')?.value) || null,
     actualHeightMm: parseFloat($('actualHeightMm')?.value) || null,
@@ -1216,12 +1216,15 @@ function getSettings() {
   } else {
     [pw0, ph0] = PAPER[$('paperSize').value || 'a4'];
   }
+  const marginHValue = parseFloat($('marginH').value);
+  const marginVValue = parseFloat($('marginV').value);
+  const gapValue = parseFloat($('gap').value);
   return {
     pw: landscape ? ph0 : pw0,
     ph: landscape ? pw0 : ph0,
-    mh: parseFloat($('marginH').value) || 10,
-    mv: parseFloat($('marginV').value) || 10,
-    gp: parseFloat($('gap').value) || 5,
+    mh: Number.isFinite(marginHValue) ? marginHValue : 10,
+    mv: Number.isFinite(marginVValue) ? marginVValue : 10,
+    gp: Number.isFinite(gapValue) ? gapValue : 5,
   };
 }
 
