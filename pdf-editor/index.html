@@ -1254,11 +1254,24 @@ function getActualLayoutNup() {
   return nup;
 }
 
+function getBookletLayout(n) {
+  const strips = BOOKLET_STRIPS?.[Number(n)];
+  return strips ? { cols: 2, rows: strips, rotate: false } : getLayout(n);
+}
+
+function isBookletLayoutActive(n = nup) {
+  return Boolean(document.getElementById('bookletCheck')?.checked && BOOKLET_STRIPS?.[Number(n)]);
+}
+
+function getOutputLayout(n) {
+  return isBookletLayoutActive(n) ? getBookletLayout(n) : getLayout(n);
+}
+
 function getActualSizeFit() {
   const size = getActualPlacementSize();
   if (!size.enabled) return null;
   const { pw, ph, mh, mv, gp } = getSettings();
-  const { cols, rows } = getLayout(getActualLayoutNup());
+  const { cols, rows } = getOutputLayout(getActualLayoutNup());
   const cellW = (pw - mh * 2 - gp * (cols - 1)) / cols;
   const cellH = (ph - mv * 2 - gp * (rows - 1)) / rows;
   const fits0 = size.widthMm <= cellW + 0.05 && size.heightMm <= cellH + 0.05;
@@ -2173,14 +2186,24 @@ function updateBookletPadInfo() {
 // ── Build all output pages ────────────────────────────────────────────
 async function buildAllPages(mm2px, useHi, overridePages = null) {
   const active = overridePages || parsedPages.filter(p => !p.excluded);
-  const groups = groupByNup(active);
   const out = [];
-  for (const grp of groups) {
-    const { cols, rows } = getLayout(grp.n);
+  const bookletPreview = overridePages !== null && isBookletLayoutActive(nup);
+  if (bookletPreview) {
+    const { cols, rows } = getBookletLayout(nup);
     const perPage = cols * rows;
-    for (let p = 0; p < Math.ceil(grp.pages.length / perPage); p++) {
-      out.push(buildOutputPage(grp.pages, p, cols, rows, mm2px, useHi));
+    for (let p = 0; p < Math.ceil(active.length / perPage); p++) {
+      out.push(buildOutputPage(active, p, cols, rows, mm2px, useHi));
       await new Promise(r => setTimeout(r, 0));
+    }
+  } else {
+    const groups = groupByNup(active);
+    for (const grp of groups) {
+      const { cols, rows } = getLayout(grp.n);
+      const perPage = cols * rows;
+      for (let p = 0; p < Math.ceil(grp.pages.length / perPage); p++) {
+        out.push(buildOutputPage(grp.pages, p, cols, rows, mm2px, useHi));
+        await new Promise(r => setTimeout(r, 0));
+      }
     }
   }
   // Apply doc edits (a single page failing must not wipe the whole preview)
@@ -2732,7 +2755,7 @@ $('pnExcludeFirst').addEventListener('change', () => { pnExcludeFirst = $('pnExc
 $('pnMarginMm').addEventListener('input', () => { pnMarginMm = parseFloat($('pnMarginMm').value) || 5; schedulePreview(500); });
 $('pnApplyTo').addEventListener('change', () => { pnApplyTo = $('pnApplyTo').value; schedulePreview(300); });
 $('facingPages').addEventListener('change', () => { facingPages = $('facingPages').checked; schedulePreview(300); });
-document.getElementById('bookletCheck')?.addEventListener('change', () => { updateBookletPadInfo(); schedulePreview(); });
+document.getElementById('bookletCheck')?.addEventListener('change', () => { updateBookletPadInfo(); updateActualSizeUi(); schedulePreview(); });
 
 // Reset
 $('resetBtn').addEventListener('click', () => {
