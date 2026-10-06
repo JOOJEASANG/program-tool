@@ -1799,7 +1799,43 @@ function groupByNup(pages) {
 }
 
 // ── Draw one page into a cell (auto-rotates 90° when it gives ≥10% better fit) ──
-function drawPageInCell(ctx, src, cellX, cellY, cellW, cellH) {
+function drawPageInCell(ctx, src, cellX, cellY, cellW, cellH, mm2px = 1) {
+  const actual = window.PdfEditorNupRepeat?.actualSize?.();
+  if (actual?.enabled && actual.widthMm > 0 && actual.heightMm > 0) {
+    const pw = src.width, ph = src.height;
+    const targetW = actual.widthMm * mm2px;
+    const targetH = actual.heightMm * mm2px;
+    const fits0 = targetW <= cellW + 0.01 && targetH <= cellH + 0.01;
+    const fits90 = targetH <= cellW + 0.01 && targetW <= cellH + 0.01;
+    const overflow0 = Math.max(targetW / Math.max(cellW, 0.01), targetH / Math.max(cellH, 0.01));
+    const overflow90 = Math.max(targetH / Math.max(cellW, 0.01), targetW / Math.max(cellH, 0.01));
+    const rot = (!fits0 && fits90) || (!fits0 && !fits90 && overflow90 < overflow0);
+    const dw = rot ? targetH : targetW;
+    const dh = rot ? targetW : targetH;
+    const dx = cellX + (cellW - dw) / 2;
+    const dy = cellY + (cellH - dh) / 2;
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(cellX, cellY, cellW, cellH);
+    ctx.clip();
+    if (rot) {
+      ctx.translate(dx + dw / 2, dy + dh / 2);
+      ctx.rotate(Math.PI / 2);
+      ctx.drawImage(src, -targetW / 2, -targetH / 2, targetW, targetH);
+    } else {
+      ctx.drawImage(src, dx, dy, dw, dh);
+    }
+    if (showBorder) {
+      ctx.strokeStyle = 'rgba(0,0,0,0.22)';
+      ctx.lineWidth = Math.max(0.4, cellW * 0.002);
+      if (rot) ctx.strokeRect(-targetW / 2, -targetH / 2, targetW, targetH);
+      else ctx.strokeRect(dx, dy, dw, dh);
+    }
+    ctx.restore();
+    return;
+  }
+
   const pw = src.width, ph = src.height;
   const s0  = Math.min(cellW / pw, cellH / ph);
   const s90 = Math.min(cellW / ph, cellH / pw);
@@ -1871,7 +1907,7 @@ function buildOutputPage(groupPages, pageIdx, cols, rows, mm2px, useHi) {
     const cellX = (mh + col * (cellW + gp)) * mm2px;
     const cellY = (mv + row * (cellH + gp)) * mm2px;
     const src = getPageSrc(groupPages[idx], mm2px, useHi);
-    drawPageInCell(ctx, src, cellX, cellY, cellW * mm2px, cellH * mm2px);
+    drawPageInCell(ctx, src, cellX, cellY, cellW * mm2px, cellH * mm2px, mm2px);
   }
   return out;
 }
