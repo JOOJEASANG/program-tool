@@ -386,6 +386,103 @@ def _render_adjusted_source_page(
         temp_doc.close()
 
 
+def _placement_size_pt(request: PdfProcessRequest) -> tuple[float, float] | None:
+    width_mm = getattr(request, "placement_width_mm", None)
+    height_mm = getattr(request, "placement_height_mm", None)
+    if width_mm is None or height_mm is None:
+        return None
+    return float(width_mm) * pdf_ops.MM_TO_PT, float(height_mm) * pdf_ops.MM_TO_PT
+
+
+def _rotated_physical_bounds(width: float, height: float, rotation: float) -> tuple[float, float]:
+    radians = math.radians(float(rotation) % 360.0)
+    cosine = abs(math.cos(radians))
+    sine = abs(math.sin(radians))
+    return width * cosine + height * sine, width * sine + height * cosine
+
+
+def _resolve_actual_size_rotation(
+    page_info,
+    cell_w: float,
+    cell_h: float,
+    width_pt: float,
+    height_pt: float,
+) -> float:
+    base_rotation = int(getattr(page_info, "rotation", 0) or 0) % 360
+    fine_rotation = float(getattr(page_info, "fine_rotation_deg", 0.0) or 0.0)
+    requested = (base_rotation + fine_rotation) % 360.0
+    if bool(getattr(page_info, "rotation_locked", False)) or abs(fine_rotation) > 1e-9:
+        return requested
+
+    alternate = (requested + 90.0) % 360.0
+    base_w, base_h = _rotated_physical_bounds(width_pt, height_pt, requested)
+    alt_w, alt_h = _rotated_physical_bounds(width_pt, height_pt, alternate)
+    base_overflow = max(base_w / max(cell_w, 1e-9), base_h / max(cell_h, 1e-9))
+    alt_overflow = max(alt_w / max(cell_w, 1e-9), alt_h / max(cell_h, 1e-9))
+    return alternate if alt_overflow + 1e-9 < base_overflow else requested
+
+
+def _render_actual_size_source_page(
+    out_page: fitz.Page,
+    src_doc: fitz.Document,
+    source_page_index: int,
+    page_info,
+    cell_rect: fitz.Rect,
+    clip_rect: fitz.Rect,
+    rotation: float,
+    width_pt: float,
+    height_pt: float,
+) -> fitz.Rect:
+    bound_w, bound_h = _rotated_physical_bounds(width_pt, height_pt, rotation)
+    offset_x = float(getattr(page_info, "offset_x_mm", 0.0) or 0.0) * pdf_ops.MM_TO_PT
+    offset_y = float(getattr(page_info, "offset_y_mm", 0.0) or 0.0) * pdf_ops.MM_TO_PT
+    center_x = cell_rect.width / 2 + offset_x
+    center_y = cell_rect.height / 2 + offset_y
+    local_target = fitz.Rect(
+        center_x - bound_w / 2,
+        center_y - bound_h / 2,
+        center_x + bound_w / 2,
+        center_y + bound_h / 2,
+    )
+    tolerance = 0.25
+    if (
+        local_target.x0 < -tolerance
+        or local_target.y0 < -tolerance
+        or local_target.x1 > cell_rect.width + tolerance
+        or local_target.y1 > cell_rect.height + tolerance
+    ):
+        cell_w_mm = cell_rect.width / pdf_ops.MM_TO_PT
+        cell_h_mm = cell_rect.height / pdf_ops.MM_TO_PT
+        raise ValueError(
+            "지정한 실제 출력 크기가 현재 배치 칸에 들어가지 않습니다. "
+            f"지정 {width_pt / pdf_ops.MM_TO_PT:.1f}×{height_pt / pdf_ops.MM_TO_PT:.1f}mm, "
+            f"배치 칸 {cell_w_mm:.1f}×{cell_h_mm:.1f}mm. "
+            "용지를 키우거나 여백·간격을 줄여 주세요."
+        )
+
+    clip_doc = fitz.open()
+    try:
+        clip_page = clip_doc.new_page(width=cell_rect.width, height=cell_rect.height)
+        _show_source_page(
+            clip_page,
+            local_target,
+            src_doc,
+            source_page_index,
+            rotation,
+            clip_rect,
+        )
+        out_page.show_pdf_page(cell_rect, clip_doc, 0, keep_proportion=False)
+    finally:
+        clip_doc.close()
+
+    return fitz.Rect(
+        cell_rect.x0 + local_target.x0,
+        cell_rect.y0 + local_target.y0,
+        cell_rect.x0 + local_target.x1,
+        cell_rect.y0 + local_target.y1,
+    )
+
+
 def _render_source_page(
     out_page: fitz.Page,
     src_docs: list[fitz.Document],
@@ -394,6 +491,7 @@ def _render_source_page(
     cell_w: float,
     cell_h: float,
     add_border: bool,
+    placement_size_pt: tuple[float, float] | None = None,
 ) -> None:
     src_doc = src_docs[page_info.file_index]
     src_page = src_doc[page_info.page_index]
@@ -410,6 +508,33 @@ def _render_source_page(
     render_page_index = 0 if erased_doc is not None else page_info.page_index
     try:
         clip_rect = _page_clip_rect(src_page.rect, page_info)
+        if placement_size_pt is not None:
+            width_pt, height_pt = placement_size_pt
+            rotation = _resolve_actual_size_rotation(
+                page_info,
+                cell_w,
+                cell_h,
+                width_pt,
+                height_pt,
+            )
+            fit_rect = _render_actual_size_source_page(
+                out_page,
+                render_doc,
+                render_page_index,
+                page_info,
+                cell_rect,
+                clip_rect,
+                rotation,
+                width_pt,
+                height_pt,
+            )
+            if add_border:
+                shape = out_page.new_shape()
+                shape.draw_rect(fit_rect)
+                shape.finish(color=(0.6, 0.6, 0.6), width=0.5)
+                shape.commit()
+            return
+
         rotation = _resolve_page_rotation(
             page_info,
             cell_w,
@@ -508,6 +633,7 @@ def build_pdf_document(
     gap_pt = pdf_ops._mm_to_pt_safe(
         getattr(request, "gap_mm", 5.0), 5.0, 0.0, 50.0
     )
+    placement_size_pt = _placement_size_pt(request)
 
     active_pages = [page for page in request.pages if not page.excluded]
     if not active_pages:
@@ -607,6 +733,7 @@ def build_pdf_document(
                         layout.cell_w,
                         layout.cell_h,
                         request.add_border,
+                        placement_size_pt=placement_size_pt,
                     )
 
             pdf_text_renderer.apply_watermark(out_page, request.watermark)
