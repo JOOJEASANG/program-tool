@@ -155,6 +155,11 @@ class PdfProcessRequest(BaseModel):
     margin_top_mm: Optional[float] = Field(default=None, ge=0.0, le=80.0)
     margin_bottom_mm: Optional[float] = Field(default=None, ge=0.0, le=80.0)
     gap_mm: float = Field(default=5.0, ge=0.0, le=50.0)
+    # Optional physical size for each placed source page. When both values are
+    # present the layout engine must keep this size instead of scaling to fill
+    # the N-up cell.
+    placement_width_mm: Optional[float] = Field(default=None, ge=1.0, le=2000.0)
+    placement_height_mm: Optional[float] = Field(default=None, ge=1.0, le=2000.0)
     page_order: Literal["row-major", "column-major"] = "row-major"
     watermark: WatermarkSettings = Field(default_factory=WatermarkSettings)
     header_footer: HeaderFooterSettings = Field(default_factory=HeaderFooterSettings)
@@ -165,6 +170,8 @@ class PdfProcessRequest(BaseModel):
 
     @model_validator(mode="after")
     def validate_booklet_imposition(self):
+        if (self.placement_width_mm is None) != (self.placement_height_mm is None):
+            raise ValueError("실제 출력 크기는 가로와 세로를 함께 입력해야 합니다")
         if self.header_footer.margin_left_mm is None:
             self.header_footer.margin_left_mm = (
                 self.margin_left_mm if self.margin_left_mm is not None else self.margin_h_mm
