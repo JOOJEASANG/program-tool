@@ -512,7 +512,7 @@
 
   function mountWorkspace(){
     if(!document.querySelector('link[href*="studio-workspace.css"]')){
-      const link=document.createElement('link');link.rel='stylesheet';link.href='/css/studio-workspace.css?v=20261007-1';document.head.appendChild(link);
+      const link=document.createElement('link');link.rel='stylesheet';link.href='/css/studio-workspace.css?v=20261007-3';document.head.appendChild(link);
     }
     const current=TOOLS.find(tool=>path===tool.url.slice(0,-1)||path===tool.url+'index.html');
     if(!current||window.self!==window.top)return;
@@ -521,22 +521,15 @@
       const recent=Array.isArray(stored)?stored.filter(id=>TOOLS.some(tool=>tool.id===id)):[];
       localStorage.setItem('ps-recent-tools',JSON.stringify([current.id,...recent.filter(id=>id!==current.id)].slice(0,6)));
     }catch(_){}
-    const host=document.querySelector('.control-panel,.advanced-sidebar,.layout-app>.sidebar,.app-layout>.sidebar,.app>aside');
-    const config=SIMPLE_HELP[current.id]||(current.id==='ai-design-maker'?{
-      steps:[['인쇄 규격','완성 크기와 책등 두께를 먼저 확인하세요.'],['문구와 디자인','배경만 필요하면 문구를 생략할 수 있습니다.'],['미리보기와 저장','선택한 작업 범위와 300dpi 출력을 확인하세요.']]
-    }:null);
-    if(host&&config){
-      const guide=document.createElement('section');guide.className='ps-workflow';guide.setAttribute('aria-label','작업 순서 안내');
-      guide.innerHTML='<div class="ps-workflow-top"><strong>'+current.name+'</strong></div><details><summary>처음이라면 · 작업 순서 보기</summary><ol>'+config.steps.map(step=>'<li><strong>'+step[0]+'</strong><span>'+step[1]+'</span></li>').join('')+'</ol></details>';
-      const anchor=host.querySelector('.sidebar-top,.sb-nav,.program-title-row');
-      if(anchor)anchor.after(guide);else host.prepend(guide);
-      if(current.id==='smart-print-layout')mountPrintPresets(guide);
+    if(current.id==='smart-print-layout'){
+      const host=document.querySelector('.smart-trim-panel');
+      if(host)mountPrintPresets(host);
     }
   }
 
-  function mountPrintPresets(guide){
+  function mountPrintPresets(host){
     const presets=[['명함',90,50],['엽서',100,148],['A5 안내장',148,210]];
-    const section=document.createElement('details');
+    const section=document.createElement('details');section.className='ps-trim-presets';
     section.innerHTML='<summary>자주 쓰는 완성 크기</summary><div class="ps-preset-row"></div><p class="ps-preset-note">재단 가로·세로만 변경합니다. 출력 용지·양면·여백은 그대로 유지됩니다. 원본을 이 크기로 확대·축소하지 않습니다.</p><p class="ps-preset-status" role="status"></p>';
     const status=section.querySelector('.ps-preset-status');
     presets.forEach(([name,width,height])=>{
@@ -548,7 +541,7 @@
         for(const input of [w,h]){input.dispatchEvent(new Event('input',{bubbles:true}));input.dispatchEvent(new Event('change',{bubbles:true}));}
         status.textContent=name+' · '+width+' × '+height+' mm 적용됨. 원본과 안내선이 맞는지 확인하세요.';
       });section.querySelector('.ps-preset-row').appendChild(button);
-    });guide.appendChild(section);
+    });host.appendChild(section);
   }
 
   onReady(()=>{

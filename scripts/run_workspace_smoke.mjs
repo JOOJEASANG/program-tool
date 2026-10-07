@@ -61,7 +61,7 @@ try{
  await page.goto(origin+'/smart-print-layout/');
  await page.evaluate(()=>document.documentElement.style.visibility='visible');
  await page.addScriptTag({content:ui});
- assert.equal(await page.locator('.ps-workflow').count(),1);
+ assert.equal(await page.locator('.ps-workflow').count(),0);
  await page.getByText('자주 쓰는 완성 크기',{exact:true}).click();
  await page.locator('#marginMm').fill('7');
  await page.getByRole('button',{name:'명함 90×50',exact:true}).click();
