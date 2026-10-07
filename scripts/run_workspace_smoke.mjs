@@ -1,7 +1,7 @@
 // Local UI regression check. External services and protected engines are not exercised.
 import { chromium } from 'playwright';
 import assert from 'node:assert/strict';
-import { readFile, stat } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { createServer } from 'node:http';
 import path from 'node:path';
@@ -9,9 +9,9 @@ import { fileURLToPath } from 'node:url';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const server=createServer(async(req,res)=>{
  try{
-  let file=path.resolve(root,'.'+decodeURIComponent(new URL(req.url,'http://localhost').pathname));
+  const pathname=decodeURIComponent(new URL(req.url,'http://localhost').pathname);
+  const file=path.resolve(root,'.'+pathname+(pathname.endsWith('/')?'index.html':''));
   if(file!==root&&!file.startsWith(root+path.sep)){res.writeHead(403);return res.end();}
-  if((await stat(file)).isDirectory())file=path.join(file,'index.html');
   res.setHeader('Content-Type',file.endsWith('.js')?'text/javascript':file.endsWith('.css')?'text/css':'text/html');res.end(await readFile(file));
  }catch{res.writeHead(404);res.end();}
 });
