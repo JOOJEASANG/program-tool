@@ -527,14 +527,10 @@
     }:null);
     if(host&&config){
       const guide=document.createElement('section');guide.className='ps-workflow';guide.setAttribute('aria-label','작업 순서 안내');
-      guide.innerHTML='<div class="ps-workflow-top"><strong>'+current.name+'</strong><button type="button">도구 전환 ↗</button></div><details><summary>처음이라면 · 작업 순서 보기</summary><ol>'+config.steps.map(step=>'<li><strong>'+step[0]+'</strong><span>'+step[1]+'</span></li>').join('')+'</ol></details>';
-      guide.querySelector('button').addEventListener('click',openPalette);
+      guide.innerHTML='<div class="ps-workflow-top"><strong>'+current.name+'</strong></div><details><summary>처음이라면 · 작업 순서 보기</summary><ol>'+config.steps.map(step=>'<li><strong>'+step[0]+'</strong><span>'+step[1]+'</span></li>').join('')+'</ol></details>';
       const anchor=host.querySelector('.sidebar-top,.sb-nav,.program-title-row');
       if(anchor)anchor.after(guide);else host.prepend(guide);
       if(current.id==='smart-print-layout')mountPrintPresets(guide);
-    }else{
-      const bar=document.querySelector('.suite-topbar,.top-nav');
-      if(bar){const button=document.createElement('button');button.type='button';button.className='ps-tool-switch';button.textContent='도구 전환 ↗';button.onclick=openPalette;bar.appendChild(button);}
     }
   }
 
