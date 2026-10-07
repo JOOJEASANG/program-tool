@@ -28,7 +28,7 @@ window.googleProvider = googleProvider;
 window.firebaseConfig = firebaseConfig;
 
 (() => {
-  const UI_VERSION = '20261007-01';
+  const UI_VERSION = '20261007-02';
   const existingUiStyles = document.getElementById('programStudioUiV2Styles')
     || document.querySelector('link[data-program-studio-ui]');
   if (existingUiStyles) {
@@ -84,7 +84,7 @@ window.firebaseConfig = firebaseConfig;
   if (document.getElementById('programStudioCacheBootstrap')) return;
   const script = document.createElement('script');
   script.id = 'programStudioCacheBootstrap';
-  script.src = '/js/sw-register.js?v=2026.10.07.001';
+  script.src = '/js/sw-register.js?v=2026.10.07.002';
   script.defer = true;
   document.head.appendChild(script);
 })();
