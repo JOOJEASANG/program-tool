@@ -39,7 +39,7 @@ def test_manual_registry_enforces_policy_for_future_manuals_too():
     modal = read(MANUAL_DIR / "home-modal.js")
 
     for marker in (
-        "POLICY_UPDATED = '2026-09-16'",
+        "POLICY_UPDATED = '2026-10-07'",
         "ACCESS_POLICY_NOTICE",
         "accessPolicy: 'approved-members-only'",
         "usageLimit: null",

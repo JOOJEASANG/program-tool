@@ -17,7 +17,7 @@
         assert(doc.querySelector('#search'),'current program search missing');
         assert(doc.querySelector('[data-cat="print"]'),'print category missing');
         assert(doc.querySelector('[data-cat="pdf"]'),'pdf category missing');
-        for(const id of ['print-checker','ai-design-maker','pdf-editor','pdf-preflight']){
+        for(const id of ['print-checker','ai-design-maker','pdf-editor','pdf-suite']){
           assert(html.includes(`id:'${id}'`),`current program missing: ${id}`);
         }
         for(const dead of ['/design-editor/','/document-editor/','/image-editor/']){
