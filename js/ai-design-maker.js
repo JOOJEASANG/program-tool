@@ -142,7 +142,9 @@
     galleryScope: 'all',
     gallerySelectedItem: null,
     lastGeneratedPrompt: '',
-    lastGeneratedPresetName: ''
+    lastGeneratedPresetName: '',
+    generatedVariants: [],
+    selectedVariant: -1
   };
 
   const COVER_MODES = new Set(['front','back','frontBack','spread']);
@@ -362,7 +364,7 @@
   }
 
   function serializableState() {
-    const ids = ['trimW','trimH','spine','bleed','safeZone','wingW','title','backText','spineTop','spineMiddle','spineBottom','spineTopPlacement','spineMiddlePlacement','spineBottomPlacement','spineOrientation','visualMode','colorIntensity','designMood','primaryColor','textColor','theme','stylePrompt','imageModel','additionalPrompt'];
+    const ids = ['trimW','trimH','spine','bleed','safeZone','wingW','title','backText','spineTop','spineMiddle','spineBottom','spineTopPlacement','spineMiddlePlacement','spineBottomPlacement','spineOrientation','visualMode','colorIntensity','designMood','primaryColor','textColor','theme','stylePrompt','imageModel','additionalPrompt','targetAudience','titleSpace','variantCount'];
     const data = {
       preset: state.preset,
       wingEnabled: Boolean($('wingEnabled')?.checked),
@@ -1683,12 +1685,16 @@
     return data;
   }
 
-  function selectedDesignDirection(){
+  function selectedDesignDirection(index=null){
     const visual=$('visualMode')?.value||'auto';
     const intensity=$('colorIntensity')?.value||'refined';
     const mood=$('designMood')?.value||'auto';
-    const variant=COMPOSITION_VARIANTS[Math.floor(Math.random()*COMPOSITION_VARIANTS.length)];
+    const variant=COMPOSITION_VARIANTS[index===null?Math.floor(Math.random()*COMPOSITION_VARIANTS.length):index%COMPOSITION_VARIANTS.length];
+    const audience={auto:'Follow the publication type.',preschool:'Kindergarten or preschool families; warm and welcoming.',elementary:'Elementary pupils; approachable educational illustrations.',teen:'Teenage students; contemporary and not childish.',adult:'Adult readers; refined publication artwork.',institution:'Institutional readers; professional and trustworthy.'};
+    const title={auto:'Reserve clean space for typography.',top:'Reserve large uncluttered LOW-DETAIL space for the title at the TOP of the FRONT cover.',middle:'Reserve large uncluttered LOW-DETAIL space for the title in the MIDDLE of the FRONT cover.',bottom:'Reserve large uncluttered LOW-DETAIL space for the title at the BOTTOM of the FRONT cover.'};
     return [
+      'Audience: '+(audience[$('targetAudience')?.value]||audience.auto),
+      'Print title-safe space: '+(title[$('titleSpace')?.value]||title.auto),
       'Visual approach: '+(VISUAL_MODE_PROMPTS[visual]||VISUAL_MODE_PROMPTS.auto),
       'Color direction: '+(COLOR_INTENSITY_PROMPTS[intensity]||COLOR_INTENSITY_PROMPTS.refined),
       'Mood direction: '+(MOOD_PROMPTS[mood]||MOOD_PROMPTS.auto),
@@ -1718,52 +1724,101 @@
     ].filter(Boolean).join('\n');
   }
 
-  function buildGenerationRequest(spec,prompt){
+  function buildGenerationRequest(spec,prompt,index=null){
     return {
           cover_mode:backendCoverMode(spec.coverMode),quality_mode:state.generationQuality,trim_width_mm:spec.trimW,trim_height_mm:spec.trimH,spine_mm:spec.spine,wing_mm:spec.wing,bleed_mm:spec.bleed,
           preset_name:PRESETS[state.preset].name,
           model:$('imageModel')?.value||'gpt-image-2',
           style_request:prompt,
           additional_prompt:String($('additionalPrompt')?.value||'').trim(),
-          visual_direction:selectedDesignDirection(),
+          visual_direction:selectedDesignDirection(index),
           theme_context:themeContext()
         };
   }
 
+
+  function resetAiVariants(){
+    state.generatedVariants=[];state.selectedVariant=-1;
+    $('variantList')?.replaceChildren();
+    if($('variantGallery'))$('variantGallery').hidden=true;
+  }
+  function selectAiVariant(i){
+    const item=state.generatedVariants[i];if(!item)return;
+    if(item.key!==specKey(currentSpec())){
+      setStatus('규격이 변경되었습니다.','시안 생성 당시의 규격으로 복원하거나 다시 생성해 주세요.','error');return;
+    }
+    if(state.backgroundSource==='upload'&&state.backgroundUrl?.startsWith('blob:'))URL.revokeObjectURL(state.backgroundUrl);
+    state.background=item.image;state.backgroundUrl=item.image.src;state.backgroundSource='ai';state.generatedSpecKey=item.key;
+    state.lastGeneratedPrompt=item.prompt;state.lastGeneratedPresetName=item.preset;
+    state.selectedVariant=i;
+    if($('backgroundInput'))$('backgroundInput').value='';
+    if($('backgroundName'))$('backgroundName').textContent='AI 생성 시안 '+(i+1);
+    if($('clearBackground'))$('clearBackground').hidden=false;
+    if($('exportBtn'))$('exportBtn').disabled=false;
+    scheduleRender();updateProgress();renderAiVariants();
+  }
+  function renderAiVariants(){
+    const list=$('variantList'),panel=$('variantGallery');if(!list||!panel)return;
+    list.replaceChildren();panel.hidden=!state.generatedVariants.length;
+    state.generatedVariants.forEach((item,i)=>{
+      const button=document.createElement('button');
+      button.type='button';button.className='ai-variant-item';
+      button.setAttribute('aria-pressed',String(i===state.selectedVariant));
+      button.setAttribute('aria-label','표지 시안 '+(i+1)+' 선택');
+      const img=document.createElement('img');img.src=item.preview;img.alt='시안 '+(i+1)+' 미리보기';
+      const label=document.createElement('span');label.textContent='시안 '+(i+1)+(i===state.selectedVariant?' · 선택됨':'');
+      button.append(img,label);button.addEventListener('click',()=>selectAiVariant(i));list.appendChild(button);
+    });
+  }
+  function makeAiPreview(img){
+    const canvas=document.createElement('canvas');
+    const scale=Math.min(1,320/Math.max(img.naturalWidth||img.width,img.naturalHeight||img.height));
+    canvas.width=Math.max(1,Math.round((img.naturalWidth||img.width)*scale));
+    canvas.height=Math.max(1,Math.round((img.naturalHeight||img.height)*scale));
+    canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
+    return canvas.toDataURL('image/jpeg',.75);
+  }
+  function addAiRefinement(text){
+    const node=$('additionalPrompt');if(!node||!text)return;
+    const old=node.value.trim(),next=(old?old+'\n':'')+text;
+    if(next.length>2000){setStatus('요청이 너무 깁니다.','추가 요청을 2,000자 이내로 줄여 주세요.','error');return;}
+    node.value=next;saveLocal();node.focus();
+  }
   async function generate(){
-    const spec=currentSpec();
-    const ratio=spec.workW/spec.workH;
+    const spec=currentSpec(),ratio=spec.workW/spec.workH;
     if(ratio<1/3||ratio>3){setStatus('현재 표지 비율을 생성할 수 없습니다.','완성 규격·책등·날개 폭을 확인해 주세요.','error');return;}
+    const requested=Number($('variantCount')?.value)||1,count=[1,2,4].includes(requested)?requested:1;
+    if(count>1&&!confirm('AI 이미지 '+count+'개를 별도로 생성하며 API 비용이 '+count+'회 발생합니다. 진행할까요?'))return;
     const button=$('generateBtn');button.disabled=true;
-    setStatus('AI 배경을 생성하고 있습니다.',state.generationQuality==='high'?'고품질 AI 배경을 생성 중입니다. 최종 저장은 300dpi로 출력됩니다.':'기본 품질 AI 배경을 생성 중입니다. 최종 저장은 300dpi로 출력됩니다.','busy');
+    const prompt=String($('stylePrompt')?.value||presetPrompt()).trim();
+    const key=specKey(spec);
+    let failure=null;
+    resetAiVariants();
     startGenerationProgress();
     try{
-      const prompt=String($('stylePrompt')?.value||presetPrompt()).trim();
-      const data=await authFetch(AI_COVER_PATH,{
-        method:'POST',
-        body:JSON.stringify(buildGenerationRequest(spec,prompt))
-      });
-      if(!data.image_base64)throw new Error('AI 이미지 결과가 비어 있습니다.');
-      const image=new Image();image.src='data:'+(data.mime_type||'image/png')+';base64,'+data.image_base64;await waitForImage(image);
-      if(state.backgroundSource==='upload'&&state.backgroundUrl?.startsWith('blob:'))URL.revokeObjectURL(state.backgroundUrl);
-      state.background=image;state.backgroundUrl=image.src;state.backgroundSource='ai';state.generatedSpecKey=specKey(spec);
-      state.lastGeneratedPrompt=prompt;
-      state.lastGeneratedPresetName=PRESETS[state.preset].name;
-      if($('backgroundInput'))$('backgroundInput').value='';
-      if($('backgroundName'))$('backgroundName').textContent='AI 생성 배경';
-      if($('clearBackground'))$('clearBackground').hidden=false;
-      $('exportBtn').disabled=false;scheduleRender();
-      updateProgress();
-      const doneText=spec.coverMode==='front'?'앞표지 배경과 문구 레이어를 자유롭게 편집할 수 있습니다.'
-        :spec.coverMode==='back'?'뒷표지 배경과 문구 레이어를 자유롭게 편집할 수 있습니다.'
-        :spec.coverMode==='frontBack'?'앞표지와 뒷표지를 한 화면에서 함께 편집할 수 있습니다.'
-        :'문구는 별도 레이어로 유지됩니다. 문구나 색상을 수정하면 미리보기에 바로 반영됩니다.';
-      setStatus('AI 배경 생성 완료',doneText,'ok');
-      finishGenerationProgress(true);
-    }catch(error){
-      const debug=['HTTP: '+(error.status||'unknown'),'code: '+(error.code||'unknown'),'request_id: '+(error.requestId||'none'),'transport: '+(error.transport||'direct-function'),error.raw?'response: '+error.raw:''].filter(Boolean).join('\n');
-      setStatus('AI 배경 생성 실패',error.message||'AI 표지 생성 요청에 실패했습니다.','error',debug);
-      finishGenerationProgress(false);
+      for(let i=0;i<count;i++){
+        setStatus('AI 시안 생성 중',count+'개 중 '+(i+1)+'개째 생성하고 있습니다.','busy');
+        try{
+          const data=await authFetch(AI_COVER_PATH,{method:'POST',body:JSON.stringify(buildGenerationRequest(spec,prompt,count===1?null:i))});
+          if(!data.image_base64)throw new Error('AI 이미지 결과가 비어 있습니다.');
+          const img=new Image();img.src='data:'+(data.mime_type||'image/png')+';base64,'+data.image_base64;
+          await waitForImage(img);
+          state.generatedVariants.push({image:img,preview:makeAiPreview(img),key,prompt,preset:PRESETS[state.preset].name});
+          if(i===0)selectAiVariant(0);else renderAiVariants();
+        }catch(error){failure=error;break;}
+      }
+      const done=state.generatedVariants.length;
+      if(done){
+        setStatus(failure?'일부 시안 생성 완료':'AI 배경 생성 완료',failure
+          ?done+'개 생성 후 중단됐습니다: '+(failure.message||'오류')+' · 생성된 시안은 이용할 수 있습니다.'
+          :done+'개 시안 중 원하는 이미지를 선택하세요. 문구는 별도 레이어로 유지됩니다.',failure?'error':'ok');
+        finishGenerationProgress(true);
+      }else{
+        const error=failure||new Error('AI 이미지 결과가 비어 있습니다.');
+        const debug=['HTTP: '+(error.status||'unknown'),'code: '+(error.code||'unknown'),'request_id: '+(error.requestId||'none'),'transport: '+(error.transport||'direct-function'),error.raw?'response: '+error.raw:''].filter(Boolean).join('\n');
+        setStatus('AI 배경 생성 실패',error.message||'생성 요청에 실패했습니다.','error',debug);
+        finishGenerationProgress(false);
+      }
     }finally{button.disabled=false;}
   }
 
@@ -2427,7 +2482,7 @@
     try{
       await waitForImage(image);
       if(state.backgroundSource==='upload'&&state.backgroundUrl?.startsWith('blob:'))URL.revokeObjectURL(state.backgroundUrl);
-      state.background=image;state.backgroundUrl=url;state.backgroundSource='upload';state.generatedSpecKey=specKey(currentSpec());
+      resetAiVariants();state.background=image;state.backgroundUrl=url;state.backgroundSource='upload';state.generatedSpecKey=specKey(currentSpec());
       state.lastGeneratedPrompt=String($('stylePrompt')?.value||presetPrompt()).trim();
       state.lastGeneratedPresetName=PRESETS[state.preset]?.name||'직접 배경';
       if($('backgroundName'))$('backgroundName').textContent=file.name;
@@ -2447,6 +2502,7 @@
   }
 
   function clearBackground(){
+    resetAiVariants();
     if(state.backgroundSource==='upload'&&state.backgroundUrl?.startsWith('blob:'))URL.revokeObjectURL(state.backgroundUrl);
     state.background=null;state.backgroundUrl='';state.backgroundSource='';state.generatedSpecKey='';
     if($('backgroundInput'))$('backgroundInput').value='';
@@ -2474,6 +2530,8 @@
   function bind(){
     loadLocal();setupPresetCards();syncCoverMode();syncSizeMode();syncGenerationQuality();syncSpineTitle();renderCustomFields();syncPromptLanguageUi(false);syncGlobalCmykFromHex('primaryColor');syncGlobalCmykFromHex('textColor');syncTextEditUi();syncExportButton();
     if(!$('stylePrompt').value)$('stylePrompt').value=presetPrompt();
+    qa('[data-ai-refine]').forEach(button=>button.addEventListener('click',()=>addAiRefinement(button.dataset.aiRefine||'')));
+    $('variantCount')?.addEventListener('change',saveLocal);
     qa('.size-chip').forEach(button=>button.addEventListener('click',()=>{
       state.sizeMode=button.dataset.sizeId||'custom';
       if(state.sizeMode!=='custom'&&button.dataset.size){
@@ -2491,13 +2549,13 @@
         if($('exportBtn'))$('exportBtn').disabled=true;
         setStatus('표지 범위가 변경되었습니다.','새 범위에 맞게 AI 배경을 다시 생성하거나 표지 이미지를 다시 불러와 주세요.','busy');
       }
-      syncCoverMode();saveLocal();
+      resetAiVariants();syncCoverMode();saveLocal();
     }));
     qa('input[name="generationQuality"]').forEach(input=>input.addEventListener('change',()=>{
       state.generationQuality=input.value==='high'?'high':'standard';
       syncGenerationQuality();saveLocal();
     }));
-    const watched=['trimW','trimH','spine','bleed','safeZone','wingW','title','backText','spineTop','spineMiddle','spineBottom','spineOrientation','visualMode','colorIntensity','designMood','primaryColor','textColor','theme','stylePrompt','imageModel','additionalPrompt'];
+    const watched=['trimW','trimH','spine','bleed','safeZone','wingW','title','backText','spineTop','spineMiddle','spineBottom','spineOrientation','visualMode','colorIntensity','designMood','targetAudience','titleSpace','primaryColor','textColor','theme','stylePrompt','imageModel','additionalPrompt'];
     watched.forEach(id=>$(id)?.addEventListener('input',()=>{
       if(id==='trimW'||id==='trimH'){state.sizeMode='custom';syncSizeMode();}
       if(['title','backText','spineTop','spineMiddle','spineBottom'].includes(id))clearTextOverrideForSource(id);
