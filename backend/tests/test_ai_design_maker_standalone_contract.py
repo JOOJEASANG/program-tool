@@ -77,5 +77,5 @@ def test_ai_design_maker_guardrails_preserve_professional_style_diversity():
     backend = (ROOT / "backend/services/ai_cover_image.py").read_text(encoding="utf-8")
     assert "Do not force pale colors, blue waves, photography or a geometric template" in backend
     assert "additional_prompt:" in maker_js
-    assert "visual_direction:selectedDesignDirection()" in maker_js
+    assert "visual_direction:selectedDesignDirection(index)" in maker_js
     assert "designGuardrails" not in maker_js
