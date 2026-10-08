@@ -84,7 +84,7 @@ window.firebaseConfig = firebaseConfig;
   if (document.getElementById('programStudioCacheBootstrap')) return;
   const script = document.createElement('script');
   script.id = 'programStudioCacheBootstrap';
-  script.src = '/js/sw-register.js?v=2026.10.07.003';
+  script.src = '/js/sw-register.js?v=2026.10.08.004';
   script.defer = true;
   document.head.appendChild(script);
 })();
@@ -248,7 +248,7 @@ window.ProgramAccess = {
       return 'preflight';
     }
     if (['/tools/perfect-binding-cover.html', '/perfect-binding-cover', '/perfect-binding-cover/index.html'].some(item => path.endsWith(item))) {
-      return 'design-studio';
+      return 'print-checker';
     }
     return '';
   },
