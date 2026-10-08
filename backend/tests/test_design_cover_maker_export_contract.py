@@ -36,7 +36,7 @@ def test_design_review_no_longer_loads_ai_maker_runtime():
     assert 'id="safeZone" type="number" min="0" max="80" step="0.1" value="10"' in maker
     assert 'id="generateBtn"' in maker
     assert 'id="exportBtn"' in maker
-    assert "/js/ai-design-maker.js?v=20260928-2" in maker
+    assert 'src="/js/ai-design-maker.js?v=' in maker
 
 
 def test_ai_design_maker_has_easy_cover_workflow_and_diagnostics():
@@ -327,7 +327,7 @@ def test_ai_design_reference_direction_supports_multiple_visual_languages():
     assert "ONE coherent visual concept" in backend
     assert "Do not force pale colors" in backend
     assert "additional requests supplement the base rather than replacing it" in backend
-    assert "selectedDesignDirection()" in source
+    assert "selectedDesignDirection(index)" in source
 
 def test_ai_design_maker_supports_standard_300dpi_and_high_quality_generation_modes():
     page = (ROOT / "ai-design-maker/index.html").read_text(encoding="utf-8")
