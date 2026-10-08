@@ -11,14 +11,14 @@
   })();
   const protectedProgram=(function(){
     if(['pdf-layout','booklet'].includes(modularAppKey))return 'pdf-editor';
-    if(['cover','poster','flyer','invitation','notice','leaflet'].includes(modularAppKey))return 'design-studio';
+    if(['cover','poster','flyer','invitation','notice','leaflet'].includes(modularAppKey))return 'print-checker';
     if(['/print-checker','/print-checker/index.html'].some(item=>path.endsWith(item)))return 'print-checker';
     if(['/ai-design-maker','/ai-design-maker/index.html'].some(item=>path.endsWith(item)))return 'ai-design-maker';
     if(['/smart-print-layout','/smart-print-layout/index.html'].some(item=>path.endsWith(item)))return 'smart-print-layout';
     if(['/pdf-suite','/pdf-suite/index.html'].some(item=>path.endsWith(item)))return 'pdf-suite';
     if(['/tools/pdf-editor.html','/pdf-editor','/pdf-editor/index.html','/pdf-editor-advanced','/pdf-editor-advanced/index.html'].some(item=>path.endsWith(item)))return 'pdf-editor';
     if(['/tools/preflight.html','/tools/pdf-Checker.html','/pdf-preflight','/pdf-preflight/index.html'].some(item=>path.endsWith(item)))return 'preflight';
-    if(['/tools/perfect-binding-cover.html','/perfect-binding-cover','/perfect-binding-cover/index.html'].some(item=>path.endsWith(item)))return 'design-studio';
+    if(['/tools/perfect-binding-cover.html','/perfect-binding-cover','/perfect-binding-cover/index.html'].some(item=>path.endsWith(item)))return 'print-checker';
     return '';
   })();
 
