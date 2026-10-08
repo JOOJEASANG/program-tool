@@ -8,7 +8,7 @@
   <meta name="robots" content="noindex,nofollow">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
-  <link rel="stylesheet" href="/css/ai-design-maker.css?v=20260928-4">
+  <link rel="stylesheet" href="/css/ai-design-maker.css?v=20261008-1">
   <link rel="stylesheet" href="/css/program-manual-home-modal.css?v=20260918-1">
 </head>
 <body>
@@ -186,6 +186,17 @@
                 </select>
               </label>
             </div>
+            <div class="field-grid two ai-guided-fields">
+              <label class="field"><span>대상 독자</span><select id="targetAudience">
+                <option value="auto">자동 선택</option><option value="preschool">유아·어린이집</option>
+                <option value="elementary">초등학생</option><option value="teen">중·고등학생</option>
+                <option value="adult">성인</option><option value="institution">기관·공공</option>
+              </select></label>
+              <label class="field"><span>제목 공간 확보</span><select id="titleSpace">
+                <option value="auto">자동 배치</option><option value="top">상단 여백</option>
+                <option value="middle">중앙 여백</option><option value="bottom">하단 여백</option>
+              </select></label>
+            </div>
             <label class="field"><span>분위기</span>
               <select id="designMood">
                 <option value="auto" selected>용도에 맞게 자동</option>
@@ -243,6 +254,16 @@
               <textarea id="stylePrompt" aria-label="기본 디자인 방향" rows="5" maxlength="2200" placeholder="프리셋 선택 시 자동으로 채워집니다. 원하는 내용을 자유롭게 수정하세요."></textarea>
               <small class="field-help" id="promptLanguageHint">한글 모드 · 프리셋 설명도 한글로 입력됩니다.</small>
             </div>
+            <div class="ai-refine-panel"><strong>추가 디자인 요청</strong>
+              <div class="ai-refine-chips" aria-label="빠른 디자인 보정">
+                <button type="button" data-ai-refine="제목 영역의 장식과 대비를 줄이고 여백을 넓혀 주세요.">제목 공간 넓게</button>
+                <button type="button" data-ai-refine="구성 요소를 줄이고 한층 더 심플하게 정돈해 주세요.">심플하게</button>
+                <button type="button" data-ai-refine="색감을 조금 더 밝고 화사하게 조정해 주세요.">밝게</button>
+                <button type="button" data-ai-refine="색상과 재질을 세련되고 고급스럽게 조정해 주세요.">고급스럽게</button>
+                <button type="button" data-ai-refine="차분한 파스텔 컬러를 활용해 주세요.">파스텔톤</button>
+                <button type="button" data-ai-refine="책등과 앞뒤표지의 배경이 자연스럽게 이어지게 해 주세요.">책등 연결</button>
+              </div><small class="field-help">아래 요청문에 추가됩니다. 시안을 다시 생성할 때 반영됩니다.</small>
+            </div>
             <label class="field"><span>나만의 추가 요청 (선택)</span>
               <textarea id="additionalPrompt" rows="4" maxlength="2000" placeholder="예: 따뜻한 아이보리 바탕, 오른쪽 아래에 종이 질감의 숲 일러스트. 제목 위쪽은 넓게 비우고 파란색·사진은 제외해 주세요."></textarea>
               <small class="field-help">최대 2,000자 · 원하는 소재·구도·색상·피할 요소를 구체적으로 적어 주세요. 기본 디자인 방향은 유지하고 추가 요청을 함께 반영합니다. 기본 설명을 지우거나 다시 적을 필요가 없습니다. 추가 요청은 프리셋·언어 변경 시 유지됩니다. 내 작업에만 저장되며 전체 디자인에는 공유하지 않습니다. 실제 문구는 2단계에서 입력하세요.</small>
@@ -275,10 +296,20 @@
           </div>
         </section>
 
+        <div class="ai-batch-controls">
+          <label for="variantCount">시안 개수</label>
+          <select id="variantCount"><option value="1" selected>1개</option><option value="2">2개</option><option value="4">4개</option></select>
+          <small>2·4개 선택 시 각각 독립 AI 요청 및 비용 발생. 시작 전 확인합니다.</small>
+        </div>
         <div class="panel-actions">
           <button class="generate-button" id="generateBtn" type="button"><span>✦</span> AI 배경 생성</button>
           <button class="secondary-button" id="resetBtn" type="button">입력 초기화</button>
         </div>
+        <section class="ai-variant-gallery" id="variantGallery" hidden aria-label="생성 시안 선택">
+          <strong>생성된 시안 선택</strong>
+          <small>현재 작업 중에만 보관됩니다. 다른 시안을 선택해도 입력한 문구와 도형은 유지됩니다.</small>
+          <div class="ai-variant-list" id="variantList"></div>
+        </section>
       </aside>
 
       <main class="workspace">
@@ -542,6 +573,6 @@
   <script defer src="/js/program-manuals/home-modal.js?v=20260918-1"></script>
   <script defer src="/js/program-sidebar-actions.js?v=20260918-2"></script>
   <script defer src="/js/ai-design-print-export.js?v=20260928-2"></script>
-  <script defer src="/js/ai-design-maker.js?v=20260928-2"></script>
+  <script defer src="/js/ai-design-maker.js?v=20261008-1"></script>
 </body>
 </html>
