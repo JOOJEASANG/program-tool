@@ -15,17 +15,20 @@
         assert(doc.querySelector('#programGrid'),'current program grid missing');
         assert(doc.querySelector('#quickRow'),'current quick-start row missing');
         assert(doc.querySelector('#search'),'current program search missing');
-        assert(doc.querySelector('[data-cat="print"]'),'print category missing');
-        assert(doc.querySelector('[data-cat="pdf"]'),'pdf category missing');
+        for(const cat of ['design','print','edit','utility']){
+          assert(doc.querySelector(`[data-cat="${cat}"]`),`${cat} category missing`);
+        }
         for(const id of ['print-checker','ai-design-maker','pdf-editor','pdf-suite']){
           assert(html.includes(`id:'${id}'`),`current program missing: ${id}`);
         }
         for(const dead of ['/design-editor/','/document-editor/','/image-editor/']){
           assert(!html.includes(dead),`retired route returned to home: ${dead}`);
         }
-        assert(html.includes("name:'PDF 도구 모음'"),'current PDF utility label missing');
+        assert(html.includes("name:'PDF 유틸리티'"),'current PDF utility label missing');
+        assert(html.includes("name:'PDF배치',icon:'🖨️'"),'PDF layout program missing');
+        assert(html.includes("name:'PDF편집',icon:'✂️'"),'PDF edit program missing');
         document.body.dataset.homeCurrentSmoke='pass';
-        result.textContent='PASS: current home shell includes review and standalone AI design maker';
+        result.textContent='PASS: current home shell uses purpose-based program categories';
       }catch(error){
         document.body.dataset.homeCurrentSmoke='fail';
         result.textContent='FAIL: '+String(error.message||error);
