@@ -27,14 +27,14 @@ def test_admin_bulk_actions_only_change_approval_status():
     assert "user_permissions" in js
 
 
-def test_admin_usage_limit_modules_are_retired_compatibility_shims():
-    compat = read("js/admin-pdf-usage-settings.js")
-    settings = read("js/admin-program-usage-settings.js")
+def test_admin_usage_limit_modules_stay_removed():
+    html = read("admin.html")
+    for path in (
+        "js/admin-pdf-usage-settings.js",
+        "js/admin-program-usage-settings.js",
+    ):
+        assert not (ROOT / path).exists(), path
 
-    assert "admin-usage-limits-retired" in compat
-    assert "admin-program-usage-limits-retired" in settings
-    assert "program_usage_limits" not in compat
-    assert "program_usage_limits" not in settings
-    assert "guestLimit" not in settings
-    assert "memberLimit" not in settings
-    assert "document.getElementById('adminProgramUsageNav')?.remove()" in compat
+    assert "adminProgramUsageNav" not in html
+    assert "programusage" not in html
+    assert "program_usage_limits" not in html
