@@ -2,8 +2,8 @@
 // Legacy contract marker only: name:'디자인 검토'
 (function(){
   'use strict';
-  if(window.__programStudioPdfSuiteHomeV9)return;
-  window.__programStudioPdfSuiteHomeV9=true;
+  if(window.__programStudioPdfSuiteHomeV10)return;
+  window.__programStudioPdfSuiteHomeV10=true;
 
   const PROGRAMS=[
     {id:'ai-design-maker',cat:'design',name:'AI 디자인 제작',icon:'✦',accent:'#7c3aed',bg:'linear-gradient(135deg,#312e81,#7c3aed 58%,#db2777)',catLabel:'디자인 제작 · 책 표지',desc:'책 표지와 인쇄용 디자인을 만들 때 사용합니다. 앞표지·책등·뒤표지를 실제 규격으로 설계하고 AI 배경과 문구를 조합해 저장합니다.',url:'ai-design-maker/',tags:['책 표지 제작','AI 배경','책등','300dpi']},
