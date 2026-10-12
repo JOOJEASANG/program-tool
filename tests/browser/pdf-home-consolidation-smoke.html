@@ -57,7 +57,7 @@
         if(quick.includes('인쇄물 사전 검토'))throw new Error('legacy print checker label still exposed');
         if(quick.includes('PDF 도구 모음'))throw new Error('legacy PDF tool still exposed');
         if(document.documentElement.dataset.pdfHomeWorkspace!=='six-programs')throw new Error('six-program home marker missing');
-        if(window.ProgramStudioPdfSuiteHome?.stage!=='pdf-home-six-programs-v9')throw new Error('six-program home runtime stage missing');
+        if(window.ProgramStudioPdfSuiteHome?.stage!=='pdf-home-six-programs-v10')throw new Error('six-program home runtime stage missing');
         document.body.dataset.pdfHomeConsolidationSmoke='pass';
         result.textContent='PASS: home launcher preserves purpose-based program categories';
       }catch(error){

@@ -2,7 +2,7 @@
 <html lang="ko" data-phase7-smoke="pending">
 <head>
   <meta charset="utf-8">
-  <title>Home program card manual layer smoke</title>
+  <title>Home program card title smoke</title>
 </head>
 <body>
   <div id="programGrid">
@@ -40,34 +40,22 @@
         const body=card?.querySelector('.card-body');
         const titleRow=header?.querySelector('.card-title-row');
         const name=titleRow?.querySelector('.card-name');
-        const help=titleRow?.querySelector('.card-manual-btn');
 
-        assert(card?.dataset.homeCardLayout==='title-manual','current home card layout marker missing');
+        assert(card?.dataset.homeCardLayout==='title-card','current home card layout marker missing');
         assert(header?.querySelector('.card-icon-wrap'),'program icon missing');
         assert(name?.textContent.trim()==='인쇄파일 검토','program title is not beside the icon');
         assert(getComputedStyle(name).color!=='rgb(255, 255, 255)','program title is white and invisible on the light card');
         const favorite=document.querySelector('.studio-pin');
         assert(favorite?.textContent.trim()==='☆','favorite star is missing from the program card');
         assert(favorite?.getAttribute('aria-label')==='인쇄파일 검토 즐겨찾기','favorite accessible label mismatch');
-        assert(help?.textContent.trim()==='?','manual question icon missing beside title');
+        assert(!card.querySelector('.card-manual-btn'),'manual button should not render on the home card');
+        assert(!document.getElementById('programManualHomeModalScript'),'home manual modal script should not load');
         assert(!card.querySelector('.card-cat'),'category label should be removed');
         assert(!card.querySelector('.card-tags'),'tag row should be removed');
         assert(!card.querySelector('.card-footer'),'footer CTA should be removed');
         assert(body?.children.length===1&&body.firstElementChild?.classList.contains('card-desc'),'card lower area should contain description only');
-        assert(help?.getAttribute('aria-label')?.includes('사용설명서'),'manual icon accessible label missing');
-
-        const before=location.href;
-        help.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true}));
-        await sleep(500);
-        const layer=document.getElementById('programManualLayer');
-        assert(location.href===before,'manual icon click navigated the program card');
-        assert(layer?.classList.contains('open'),'manual layer did not open');
-        assert(layer.querySelector('#programManualLayerTitle')?.textContent.includes('인쇄파일 검토 사용설명서'),'manual layer title mismatch');
-        assert(!layer.querySelector('.ps-manual-error'),'manual layer reported a loading error');
-        assert(layer.querySelector('.ps-manual-section'),'manual content did not render');
-
         document.documentElement.dataset.phase7Smoke='pass';
-        result.textContent='PASS: favorite star remains visible, the program name is visible beside the icon, and the manual opens in a layer without card navigation';
+        result.textContent='PASS: favorite star remains visible, the program name is visible beside the icon, and no manual button is rendered on the home card';
       }catch(error){
         document.documentElement.dataset.phase7Smoke='fail';
         result.textContent='FAIL: '+String(error?.message||error);

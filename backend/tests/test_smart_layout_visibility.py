@@ -10,7 +10,7 @@ def test_deployed_home_launcher_keeps_smart_layout_entry():
     assert "id:'smart-print-layout'" in launcher
     assert "name:'스마트 인쇄배치'" in launcher
     assert "url:'smart-print-layout/'" in launcher
-    assert "pdf-home-six-programs-v9" in launcher
+    assert "pdf-home-six-programs-v10" in launcher
     assert "five-programs" not in launcher
 
 
@@ -19,4 +19,4 @@ def test_hosting_allowlist_contains_smart_layout_directory():
 
     assert '"smart-print-layout",' in prepare
     assert 'OUTPUT / "smart-print-layout/index.html"' in prepare
-    assert "pdf-suite-home-launcher.js?v=20261012-2" in prepare
+    assert "pdf-suite-home-launcher.js?v=20261012-3" in prepare
