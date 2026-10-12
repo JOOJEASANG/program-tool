@@ -42,6 +42,8 @@ def test_retired_usage_quota_runtime_stays_removed():
         "tests/browser/pdf-daily-free-admin-smoke.html",
         "tests/browser/admin-pdf-usage-settings-smoke.html",
         "tests/browser/program-usage-output-guard-smoke.html",
+        "tests/browser/print-checker-defaults-daily-free-smoke.html",
+        "scripts/run_workspace_smoke.mjs",
     )
     for relative in retired:
         assert not (ROOT / relative).exists(), relative
