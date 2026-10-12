@@ -18,7 +18,7 @@ def test_home_exposes_layout_and_advanced_pdf_editors_separately():
     assert "id=\"cnt-all\">6<" in home
     assert "id=\"cnt-edit\">2<" in home
     assert 'id="count" role="status" aria-live="polite">6개<' in home
-    assert "purpose-grouped-program-home-v5" in home
+    assert "purpose-grouped-program-home-v6" in home
 
 
 def test_home_keeps_advanced_editor_purpose_distinct_from_layout_editor():
