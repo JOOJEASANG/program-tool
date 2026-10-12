@@ -19,7 +19,7 @@ ACTIVE_MODULES = [
     "divider-helper.js",
 ]
 
-DEFERRED_MODULES = [
+RETIRED_WRAPPERS = [
     "page-number-auto-reserve.js",
     "page-number-auto-reserve-layout-v2.js",
     "page-number-preview-parity.js",
@@ -42,14 +42,14 @@ def test_pdf_editor_runtime_keeps_the_approved_eight_modules_in_core_manifest():
     assert "MODULES.forEach(loadScript)" not in loader
 
 
-def test_deferred_feature_wrappers_are_not_loaded_directly():
+def test_retired_feature_wrappers_stay_removed():
     executable_runtime = "\n".join(
         path.read_text(encoding="utf-8")
         for path in (CORE_RUNTIME, ROUTE_RUNTIME)
     )
-    for module in DEFERRED_MODULES:
+    for module in RETIRED_WRAPPERS:
         assert f"/js/pdf-editor/{module}" not in executable_runtime
-        assert (PDF_MODULES / module).exists()
+        assert not (PDF_MODULES / module).exists()
 
 
 def test_pdf_editor_route_extras_are_owned_by_route_manifest_not_global_bootstrap():
