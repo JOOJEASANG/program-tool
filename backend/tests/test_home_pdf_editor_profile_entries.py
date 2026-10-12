@@ -16,7 +16,7 @@ def test_home_exposes_layout_and_advanced_pdf_editors_separately():
     assert "name:'PDF 배치용'" not in home
     assert "name:'PDF 고급편집용'" not in home
     assert "id=\"cnt-all\">6<" in home
-    assert "id=\"cnt-pdf\">3<" in home
+    assert "id=\"cnt-edit\">2<" in home
     assert 'id="count" role="status" aria-live="polite">6개<' in home
     assert "purpose-grouped-program-home-v5" in home
 
@@ -37,5 +37,5 @@ def test_home_exposes_smart_print_layout_as_separate_print_program():
     assert "name:'스마트 인쇄배치'" in home
     assert "url:'smart-print-layout/'" in home
     assert "tags:['한 장에 여러 개','자동배치','앞면·뒷면','종이 절약']" in home
-    assert "id=\"cnt-print\">3<" in home
+    assert "id=\"cnt-print\">2<" in home
     assert "인쇄 준비 · 배치" in home
