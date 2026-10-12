@@ -180,7 +180,7 @@ def test_pdf_suite_is_staged_with_existing_engines_and_clean_final_workspace():
         "pdf-editor-advanced",
         "pdf-suite/",
         "normalizePrograms",
-        "pdf-home-six-programs-v9",
+        "pdf-home-six-programs-v10",
     ):
         assert marker in home
     assert "id:'booklet'" not in home
