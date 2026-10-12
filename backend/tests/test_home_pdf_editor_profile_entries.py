@@ -18,7 +18,7 @@ def test_home_exposes_layout_and_advanced_pdf_editors_separately():
     assert "id=\"cnt-all\">6<" in home
     assert "id=\"cnt-pdf\">3<" in home
     assert 'id="count" role="status" aria-live="polite">6개<' in home
-    assert "categorized-program-home-v4" in home
+    assert "purpose-grouped-program-home-v5" in home
 
 
 def test_home_keeps_advanced_editor_purpose_distinct_from_layout_editor():
@@ -26,8 +26,8 @@ def test_home_keeps_advanced_editor_purpose_distinct_from_layout_editor():
 
     assert "N-up·소책자·간지·여백" in home
     assert "이동·크기조절·잘라내기·회전" in home
-    assert "tags:['N-up','소책자','인쇄 배치']" in home
-    assert "tags:['드래그 자르기','크기·위치','정밀 회전']" in home
+    assert "tags:['페이지 정리','N-up','소책자','실제 출력크기']" in home
+    assert "tags:['페이지 직접 편집','자르기','크기·위치','정밀 회전']" in home
 
 
 def test_home_exposes_smart_print_layout_as_separate_print_program():
@@ -36,6 +36,6 @@ def test_home_exposes_smart_print_layout_as_separate_print_program():
     assert "id:'smart-print-layout'" in home
     assert "name:'스마트 인쇄배치'" in home
     assert "url:'smart-print-layout/'" in home
-    assert "tags:['자동배치','앞면·뒷면','종이 절약']" in home
+    assert "tags:['한 장에 여러 개','자동배치','앞면·뒷면','종이 절약']" in home
     assert "id=\"cnt-print\">3<" in home
-    assert "인쇄 · 배치" in home
+    assert "인쇄 준비 · 배치" in home
