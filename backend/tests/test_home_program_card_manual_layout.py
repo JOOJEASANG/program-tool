@@ -24,6 +24,8 @@ def test_home_cards_keep_only_icon_title_help_and_description():
 
     assert "사용설명서 열기" in source
     assert "card-manual-btn" in source
+    assert 'color:#26372e!important' in source
+    assert 'padding:18px 56px 14px 22px!important' in source
 
 
 def test_home_manual_layer_assets_exist_for_all_current_programs():
