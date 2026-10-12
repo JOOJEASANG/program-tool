@@ -141,7 +141,7 @@ html.ps-ui-v2 .search:focus,html.ps-ui-v2 .search:focus-visible{outline:0!import
 @media(max-width:768px){.sidebar{transform:translateX(-100%)}.sidebar.open{transform:translateX(0)}.main{margin-left:0}.menu-toggle{display:flex}.content{padding:20px 16px 48px}.topbar{padding:10px 16px;gap:10px;flex-wrap:wrap}.search-wrap{order:10;max-width:none;flex:1 0 100%;height:40px}.topbar-right{margin-left:auto}.topbar-login .tb-btn:first-child{display:none}.grid{grid-template-columns:1fr}.footer{padding:20px 16px}}
 @media(max-width:520px){.banner{flex-direction:column;align-items:flex-start;gap:14px}.quick-chip{font-size:11px;padding:8px 11px}.tb-user-name{display:none}}
 </style>
-<link rel="stylesheet" href="/css/studio-workspace.css?v=20261007-3">
+<link rel="stylesheet" href="/css/studio-workspace.css?v=20261012-1">
 </head>
 <body data-home-suite="categorized-programs-v2">
 <div id="loading"><div class="spin"></div></div>
@@ -155,9 +155,11 @@ html.ps-ui-v2 .search:focus,html.ps-ui-v2 .search:focus-visible{outline:0!import
     <div class="sb-section-label">프로그램</div>
     <button class="nav-item active" data-cat="all" type="button"><span class="nav-icon">◆</span>전체 프로그램<span class="nav-count" id="cnt-all">6</span></button>
     <div class="sb-divider"></div>
-    <div class="sb-section-label">카테고리</div>
-    <button class="nav-item" data-cat="print" type="button"><span class="nav-icon">🖨️</span>인쇄 · 배치<span class="nav-count" id="cnt-print">3</span></button>
-    <button class="nav-item" data-cat="pdf" type="button"><span class="nav-icon">📄</span>PDF 프로그램<span class="nav-count" id="cnt-pdf">3</span></button>
+    <div class="sb-section-label">작업 분야</div>
+    <button class="nav-item" data-cat="design" type="button"><span class="nav-icon">✦</span>디자인 제작<span class="nav-count" id="cnt-design">1</span></button>
+    <button class="nav-item" data-cat="print" type="button"><span class="nav-icon">🖨️</span>인쇄 준비 · 배치<span class="nav-count" id="cnt-print">2</span></button>
+    <button class="nav-item" data-cat="edit" type="button"><span class="nav-icon">✂️</span>문서 편집<span class="nav-count" id="cnt-edit">2</span></button>
+    <button class="nav-item" data-cat="utility" type="button"><span class="nav-icon">🧰</span>PDF 유틸리티<span class="nav-count" id="cnt-utility">1</span></button>
   </nav>
   <div class="sb-bottom">
     <div class="sb-user hidden" id="sbUser"><div class="sb-avatar" id="sbAvatar"></div><div class="sb-user-info"><div class="sb-user-name" id="sbUserName"></div><div class="sb-user-email" id="sbUserEmail"></div></div></div>
@@ -190,8 +192,8 @@ html.ps-ui-v2 .search:focus,html.ps-ui-v2 .search:focus-visible{outline:0!import
       <a href="pdf-suite/"><span class="task-symbol">⇄</span><strong>PDF 합치기·변환</strong><small>분할 · 압축 · 이미지 변환</small><span class="task-arrow">↗</span></a>
     </div></section>
     <div class="quick-section" id="quickSection"><div class="quick-label">최근 방문한 도구 <span class="recent-note">이 브라우저 기준 · 작업 파일은 저장되지 않습니다</span></div><div class="quick-row" id="quickRow"></div></div>
-    <div class="programs-header"><h2 id="sectionTitle">전체 프로그램</h2><span class="prog-count" id="count" role="status" aria-live="polite">6개</span><button type="button" id="favoriteFilter" class="studio-filter" aria-pressed="false">☆ 즐겨찾기만</button></div>
-    <div class="grid" id="programGrid"></div><p id="preferenceStatus" role="status" class="studio-storage-note"></p><div class="studio-bottom-note"><strong>작업에 맞는 도구가 헷갈리나요?</strong><span>여러 페이지를 인쇄하려면 <a href="pdf-editor/">PDF배치</a>, 페이지 자체를 자르고 보정하려면 <a href="pdf-editor-advanced/">PDF편집</a>을 선택하세요.</span></div>
+    <div class="programs-header"><h2 id="sectionTitle">프로그램 분야별 보기</h2><span class="prog-count" id="count" role="status" aria-live="polite">6개</span><button type="button" id="favoriteFilter" class="studio-filter" aria-pressed="false">☆ 즐겨찾기만</button></div>
+    <div class="grid" id="programGrid"></div><p id="preferenceStatus" role="status" class="studio-storage-note"></p><div class="studio-bottom-note"><strong>어떤 프로그램을 써야 할지 헷갈리나요?</strong><span><b>디자인 제작</b>은 결과물을 만들 때, <b>인쇄 준비 · 배치</b>는 출력 전 확인과 자동배치에, <b>문서 편집</b>은 PDF 페이지 구성·보정에, <b>PDF 유틸리티</b>는 합치기·나누기·압축·변환 같은 빠른 작업에 사용하세요.</span></div>
   </div>
   <footer class="footer"><div class="footer-inner"><div class="footer-brand">Program Studio</div><div class="footer-links"><button class="footer-link" data-legal="guide.html" data-title="이용안내" type="button">이용안내</button><button class="footer-link" data-legal="terms.html" data-title="이용약관" type="button">이용약관</button><button class="footer-link" data-legal="privacy.html" data-title="개인정보처리방침" type="button">개인정보처리방침</button><span>© <span data-current-year></span> Program Studio</span></div></div></footer>
 </div>
@@ -203,14 +205,20 @@ html.ps-ui-v2 .search:focus,html.ps-ui-v2 .search:focus-visible{outline:0!import
 <script src="js/firebase-config.js"></script>
 <script>
 const PROGRAMS=[
-  {id:'print-checker',cat:'print',name:'인쇄파일 검토',icon:'🔍',accent:'#1d9bb2',bg:'linear-gradient(135deg,#12396d,#1d9bb2)',catLabel:'인쇄파일 사전검토',desc:'PDF·이미지의 실제 규격, 도련, 재단선, 안전영역, 책등·접지를 대조해 인쇄 전 오류를 점검합니다.',url:'print-checker/',tags:['인쇄파일 검토','문서파일','도련','재단선','안전영역']},
-  {id:'ai-design-maker',cat:'print',name:'AI 디자인 제작',icon:'✦',accent:'#7c3aed',bg:'linear-gradient(135deg,#312e81,#7c3aed 58%,#db2777)',catLabel:'AI 인쇄 디자인',desc:'표지의 앞표지·책등·뒤표지를 실제 인쇄 규격으로 설계하고 AI 배경과 한글 문구를 합성해 300dpi로 저장합니다.',url:'ai-design-maker/',tags:['AI 표지','전체 펼침','책등','300dpi']},
-  {id:'smart-print-layout',cat:'print',name:'스마트 인쇄배치',icon:'▦',accent:'#0f766e',bg:'linear-gradient(135deg,#115e59,#14b8a6)',catLabel:'스마트 배치',desc:'PDF의 실제 크기와 수량을 읽어 용지에 효율적으로 자동배치하고 앞면·뒷면 양면 위치까지 맞춥니다.',url:'smart-print-layout/',tags:['자동배치','앞면·뒷면','종이 절약']},
-  {id:'pdf-editor',cat:'pdf',name:'PDF배치',icon:'🖨️',accent:'#059669',bg:'linear-gradient(135deg,#065f46,#059669)',catLabel:'PDF 배치',desc:'여러 PDF의 페이지를 정리하고 N-up·소책자·간지·여백을 설정해 출력용 PDF를 빠르게 만듭니다.',url:'pdf-editor/',tags:['N-up','소책자','인쇄 배치']},
-  {id:'pdf-editor-advanced',cat:'pdf',name:'PDF편집',icon:'✂️',accent:'#7c3aed',bg:'linear-gradient(135deg,#4c1d95,#7c3aed)',catLabel:'PDF 고급 편집',desc:'페이지를 직접 이동·크기조절·잘라내기·회전하고 정밀하게 보정해야 할 때 사용하는 편집 화면입니다.',url:'pdf-editor-advanced',tags:['드래그 자르기','크기·위치','정밀 회전']},
-  {id:'pdf-suite',cat:'pdf',name:'PDF 도구 모음',icon:'🧰',accent:'#d97706',bg:'linear-gradient(135deg,#92400e,#d97706)',catLabel:'PDF',desc:'인쇄 전 검사부터 PDF 합치기·나누기·압축·변환까지 자주 쓰는 PDF 작업을 한곳에서 처리합니다.',url:'pdf-suite/',tags:['검사·진단','합치기·나누기','압축·변환']}
+  {id:'ai-design-maker',cat:'design',name:'AI 디자인 제작',icon:'✦',accent:'#7c3aed',bg:'linear-gradient(135deg,#312e81,#7c3aed 58%,#db2777)',catLabel:'디자인 제작 · 책 표지',desc:'책 표지와 인쇄용 디자인을 만들 때 사용합니다. 앞표지·책등·뒤표지를 실제 규격으로 설계하고 AI 배경과 문구를 조합해 저장합니다.',url:'ai-design-maker/',tags:['책 표지 제작','AI 배경','책등','300dpi']},
+  {id:'print-checker',cat:'print',name:'인쇄파일 검토',icon:'🔍',accent:'#1d9bb2',bg:'linear-gradient(135deg,#12396d,#1d9bb2)',catLabel:'인쇄 준비 · 파일 점검',desc:'인쇄하기 전에 PDF·이미지의 실제 규격, 도련, 재단선, 안전영역, 책등·접지를 확인해 출력 사고를 줄입니다.',url:'print-checker/',tags:['인쇄 전 검사','규격','도련','재단선','안전영역']},
+  {id:'smart-print-layout',cat:'print',name:'스마트 인쇄배치',icon:'▦',accent:'#0f766e',bg:'linear-gradient(135deg,#115e59,#14b8a6)',catLabel:'인쇄 준비 · 자동 배치',desc:'명함·쿠폰·소형 인쇄물처럼 같은 작업물을 한 장의 용지에 여러 개 놓을 때 실제 크기와 수량을 기준으로 자동배치합니다.',url:'smart-print-layout/',tags:['한 장에 여러 개','자동배치','앞면·뒷면','종이 절약']},
+  {id:'pdf-editor',cat:'edit',name:'PDF배치',icon:'🖨️',accent:'#059669',bg:'linear-gradient(135deg,#065f46,#059669)',catLabel:'문서 편집 · 페이지 구성',desc:'여러 PDF 페이지의 순서를 정리하고 N-up·소책자·간지·여백·실제 출력크기를 설정해 출력용 PDF를 만듭니다.',url:'pdf-editor/',tags:['페이지 정리','N-up','소책자','실제 출력크기']},
+  {id:'pdf-editor-advanced',cat:'edit',name:'PDF편집',icon:'✂️',accent:'#7c3aed',bg:'linear-gradient(135deg,#4c1d95,#7c3aed)',catLabel:'문서 편집 · 정밀 보정',desc:'PDF 페이지 자체를 이동·크기조절·잘라내기·회전해서 위치와 영역을 정밀하게 수정할 때 사용합니다.',url:'pdf-editor-advanced',tags:['페이지 직접 편집','자르기','크기·위치','정밀 회전']},
+  {id:'pdf-suite',cat:'utility',name:'PDF 유틸리티',icon:'🧰',accent:'#d97706',bg:'linear-gradient(135deg,#92400e,#d97706)',catLabel:'PDF 유틸리티 · 빠른 작업',desc:'PDF를 편집 화면에 올리지 않고 합치기·나누기·압축·변환·검사처럼 자주 쓰는 간단한 작업을 빠르게 처리합니다.',url:'pdf-suite/',tags:['합치기','나누기','압축','변환','검사']}
 ];
-const CATS={all:{label:'전체 프로그램'},print:{label:'인쇄 · 배치'},pdf:{label:'PDF 프로그램'}};
+const CATS={
+  all:{label:'프로그램 분야별 보기',icon:'◆',desc:'작업 목적에 따라 프로그램을 나눠 표시합니다.'},
+  design:{label:'디자인 제작',icon:'✦',desc:'책 표지와 인쇄용 디자인을 만드는 프로그램'},
+  print:{label:'인쇄 준비 · 배치',icon:'🖨️',desc:'인쇄 전 파일을 확인하고 용지에 효율적으로 배치하는 프로그램'},
+  edit:{label:'문서 편집',icon:'✂️',desc:'PDF 페이지를 재구성하거나 직접 잘라내고 보정하는 프로그램'},
+  utility:{label:'PDF 유틸리티',icon:'🧰',desc:'합치기·나누기·압축·변환 같은 빠른 PDF 작업'}
+};
 let activeCat='all';
 let searchQuery='';
 let favoritesOnly=false;
@@ -227,7 +235,8 @@ function makeCard(p){
   pin.onclick=()=>{if(favorites.has(p.id))favorites.delete(p.id);else favorites.add(p.id);savePreferences('ps-favorite-tools',[...favorites]);renderGrid();document.querySelector('[aria-label="'+p.name+' 즐겨찾기"]')?.focus();};
   wrapper.append(a,pin);return wrapper;
 }
-function renderGrid(){const list=filteredPrograms();const grid=document.getElementById('programGrid');grid.replaceChildren();document.getElementById('sectionTitle').textContent=CATS[activeCat].label;document.getElementById('count').textContent=list.length+'개';if(!list.length){const el=document.createElement('div');el.className='empty-state';el.innerHTML='<div class="empty-icon">⌕</div><div class="empty-text">표시할 도구가 없습니다</div><div class="empty-hint">검색어나 카테고리를 바꾸거나 ☆로 즐겨찾기를 추가해 보세요.</div><button type="button" class="studio-filter">전체 도구 보기</button>';el.querySelector('button').onclick=resetFilters;grid.appendChild(el);return;}list.forEach(p=>grid.appendChild(makeCard(p)));}
+function makeProgramGroup(catKey,programs){const meta=CATS[catKey];const section=document.createElement('section');section.className='program-group';section.dataset.cat=catKey;const head=document.createElement('div');head.className='program-group-head';head.innerHTML='<span class="program-group-icon">'+meta.icon+'</span><div class="program-group-copy"><div class="program-group-title-row"><h3>'+meta.label+'</h3><span>'+programs.length+'개</span></div><p>'+meta.desc+'</p></div>';const cards=document.createElement('div');cards.className='program-group-grid';programs.forEach(p=>cards.appendChild(makeCard(p)));section.append(head,cards);return section;}
+function renderGrid(){const list=filteredPrograms();const grid=document.getElementById('programGrid');grid.replaceChildren();document.getElementById('sectionTitle').textContent=CATS[activeCat].label;document.getElementById('count').textContent=list.length+'개';if(!list.length){const el=document.createElement('div');el.className='empty-state';el.innerHTML='<div class="empty-icon">⌕</div><div class="empty-text">표시할 도구가 없습니다</div><div class="empty-hint">검색어나 작업 분야를 바꾸거나 ☆로 즐겨찾기를 추가해 보세요.</div><button type="button" class="studio-filter">전체 도구 보기</button>';el.querySelector('button').onclick=resetFilters;grid.appendChild(el);return;}if(activeCat==='all'){['design','print','edit','utility'].forEach(catKey=>{const programs=list.filter(p=>p.cat===catKey);if(programs.length)grid.appendChild(makeProgramGroup(catKey,programs));});return;}list.forEach(p=>grid.appendChild(makeCard(p)));}
 function switchCat(key){if(!CATS[key])key='all';activeCat=key;document.querySelectorAll('.nav-item[data-cat]').forEach(btn=>(btn.classList.toggle('active',btn.dataset.cat===key),btn.setAttribute('aria-pressed',String(btn.dataset.cat===key))));renderGrid();}
 function buildQuickRow(){const row=document.getElementById('quickRow');row.replaceChildren();const recent=readPreferences('ps-recent-tools').slice(0,4);document.getElementById('quickSection').hidden=!recent.length;recent.forEach(id=>{const p=PROGRAMS.find(p=>p.id===id);const a=document.createElement('a');a.href=p.url;a.className='quick-chip';a.textContent=p.name+' ↗';row.appendChild(a);});}
 function resetFilters(){searchQuery='';document.getElementById('search').value='';favoritesOnly=false;document.getElementById('favoriteFilter').setAttribute('aria-pressed','false');switchCat('all');}
@@ -241,7 +250,7 @@ const tbUser=document.getElementById('tbUser');tbUser.onclick=e=>{e.stopPropagat
 const legalModal=document.getElementById('legalModal');const legalFrame=document.getElementById('legalFrame');const legalTitle=document.getElementById('legalTitle');function openLegal(url,title){legalTitle.textContent=title;legalFrame.src=url;legalModal.classList.add('open');document.body.style.overflow='hidden';}function closeLegal(){legalModal.classList.remove('open');document.body.style.overflow='';legalFrame.src='about:blank';}document.querySelectorAll('[data-legal]').forEach(btn=>btn.onclick=()=>openLegal(btn.dataset.legal,btn.dataset.title));document.getElementById('legalClose').onclick=closeLegal;legalModal.onclick=e=>{if(e.target===legalModal)closeLegal();};document.addEventListener('keydown',e=>{if(e.key==='Escape'&&legalModal.classList.contains('open'))closeLegal();});
 document.querySelectorAll('[data-current-year]').forEach(el=>el.textContent=new Date().getFullYear());
 if(window.auth){auth.onAuthStateChanged(async user=>{document.getElementById('loading').style.display='none';if(!user)return;showUser(user);try{const access=await ProgramAccess.getAccess(user);if(!access.approved){setBanner('amber-frame','amber','⏳','관리자 승인 대기 중','관리자가 계정을 승인하면 모든 프로그램을 사용할 수 있습니다. 승인 완료 후 페이지를 새로고침하세요.');document.getElementById('quickSection').classList.add('hidden');const grid=document.getElementById('programGrid');grid.style.opacity='0.35';grid.style.pointerEvents='none';return;}const name=user.displayName||(user.email||'').split('@')[0];setBanner('green-frame','green','👋','안녕하세요, '+name+'님!','작업 목적에 맞는 프로그램을 선택해 바로 시작하세요. 빠른 시작 버튼을 눌러 바로 열 수도 있습니다.');if(access.admin){const adminBtn=document.getElementById('tbAdmin');adminBtn.classList.remove('hidden');adminBtn.onclick=()=>location.href='admin.html';}}catch(err){setBanner('amber-frame','amber','⚠️','상태를 확인할 수 없습니다','페이지를 새로고침하거나 잠시 후 다시 시도해 주세요.');}});}else{document.getElementById('loading').style.display='none';}
-buildQuickRow();renderGrid();window.ProgramStudioHome={PROGRAMS,CATS,switchCat,get activeCategory(){return activeCat;},stage:'categorized-program-home-v4'};
+buildQuickRow();renderGrid();window.ProgramStudioHome={PROGRAMS,CATS,switchCat,get activeCategory(){return activeCat;},stage:'purpose-grouped-program-home-v5'};
 </script>
 </body>
 </html>

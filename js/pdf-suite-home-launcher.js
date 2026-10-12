@@ -7,12 +7,12 @@
 
   const MANUAL_ASSET_VERSION='20260911-2';
   const PROGRAMS=[
-    {id:'print-checker',cat:'print',name:'인쇄파일 검토',icon:'🔍',accent:'#1d9bb2',bg:'linear-gradient(135deg,#12396d,#1d9bb2)',catLabel:'인쇄파일 사전검토',desc:'PDF·이미지의 실제 규격, 도련, 재단선, 안전영역, 책등·접지를 대조해 인쇄 전 오류를 점검합니다.',url:'print-checker/',manualUrl:'manuals/?program=print-checker',tags:['인쇄파일 검토','문서파일','도련·안전영역','책등·접지']},
-    {id:'ai-design-maker',cat:'print',name:'AI 디자인 제작',icon:'✦',accent:'#7c3aed',bg:'linear-gradient(135deg,#312e81,#7c3aed 58%,#db2777)',catLabel:'AI 인쇄 디자인',desc:'표지의 앞표지·책등·뒤표지를 실제 인쇄 규격으로 설계하고 AI 배경과 정확한 한글 문구 레이어를 합성해 300dpi로 저장합니다.',url:'ai-design-maker/',manualUrl:'manuals/?program=ai-design-maker',tags:['AI 표지','전체 펼침','책등·도련','300dpi']},
-    {id:'smart-print-layout',cat:'print',name:'스마트 인쇄배치',icon:'▦',accent:'#0f766e',bg:'linear-gradient(135deg,#115e59,#14b8a6)',catLabel:'스마트 배치',desc:'PDF의 실제 크기를 읽어 용지 한 장에 최대 자동배치하고 앞면·뒷면 양면 위치까지 맞춥니다.',url:'smart-print-layout/',manualUrl:'manuals/?program=smart-print-layout',tags:['자동배치','앞면·뒷면','종이 절약']},
-    {id:'pdf-editor',cat:'pdf',name:'PDF배치',icon:'🖨️',accent:'#059669',bg:'linear-gradient(135deg,#065f46,#059669)',catLabel:'PDF 인쇄 배치',desc:'페이지 순서 정리, N-UP, 중철·소책자, 간지, 여백 등 출력용 PDF 배치 작업을 가볍게 처리합니다.',url:'pdf-editor/',manualUrl:'manuals/?program=pdf-editor',tags:['N-UP','소책자','간지·여백','페이지 편집']},
-    {id:'pdf-editor-advanced',cat:'pdf',name:'PDF편집',icon:'✂️',accent:'#7c3aed',bg:'linear-gradient(135deg,#5b21b6,#7c3aed)',catLabel:'PDF 정밀 편집',desc:'페이지별 이동·크기조절, 드래그 잘라내기, 자동 맞춤, 회전·미세 회전 등 정밀 편집 기능을 사용합니다.',url:'pdf-editor-advanced',manualUrl:'manuals/?program=pdf-editor-advanced',tags:['이동·크기','드래그 자르기','회전·미세편집','페이지 편집']},
-    {id:'pdf-suite',cat:'pdf',name:'PDF 유틸리티',icon:'🧰',accent:'#2563eb',bg:'linear-gradient(135deg,#1e40af,#0891b2)',catLabel:'PDF 유틸리티',desc:'합치기·분할·회전·변환·OCR·압축·암호·검사 등 나머지 PDF 작업을 왼쪽 기능 메뉴와 오른쪽 작업·결과 화면에서 처리합니다.',url:'pdf-suite/',manualUrl:'manuals/?program=pdf-suite',tags:['합치기·분할','변환·OCR','압축·암호·검사']}
+    {id:'ai-design-maker',cat:'design',name:'AI 디자인 제작',icon:'✦',accent:'#7c3aed',bg:'linear-gradient(135deg,#312e81,#7c3aed 58%,#db2777)',catLabel:'디자인 제작 · 책 표지',desc:'책 표지와 인쇄용 디자인을 만들 때 사용합니다. 앞표지·책등·뒤표지를 실제 규격으로 설계하고 AI 배경과 문구를 조합해 저장합니다.',url:'ai-design-maker/',manualUrl:'manuals/?program=ai-design-maker',tags:['책 표지 제작','AI 배경','책등','300dpi']},
+    {id:'print-checker',cat:'print',name:'인쇄파일 검토',icon:'🔍',accent:'#1d9bb2',bg:'linear-gradient(135deg,#12396d,#1d9bb2)',catLabel:'인쇄 준비 · 파일 점검',desc:'인쇄하기 전에 PDF·이미지의 실제 규격, 도련, 재단선, 안전영역, 책등·접지를 확인해 출력 사고를 줄입니다.',url:'print-checker/',manualUrl:'manuals/?program=print-checker',tags:['인쇄 전 검사','규격','도련','재단선','안전영역']},
+    {id:'smart-print-layout',cat:'print',name:'스마트 인쇄배치',icon:'▦',accent:'#0f766e',bg:'linear-gradient(135deg,#115e59,#14b8a6)',catLabel:'인쇄 준비 · 자동 배치',desc:'명함·쿠폰·소형 인쇄물처럼 같은 작업물을 한 장의 용지에 여러 개 놓을 때 실제 크기와 수량을 기준으로 자동배치합니다.',url:'smart-print-layout/',manualUrl:'manuals/?program=smart-print-layout',tags:['한 장에 여러 개','자동배치','앞면·뒷면','종이 절약']},
+    {id:'pdf-editor',cat:'edit',name:'PDF배치',icon:'🖨️',accent:'#059669',bg:'linear-gradient(135deg,#065f46,#059669)',catLabel:'문서 편집 · 페이지 구성',desc:'여러 PDF 페이지의 순서를 정리하고 N-up·소책자·간지·여백·실제 출력크기를 설정해 출력용 PDF를 만듭니다.',url:'pdf-editor/',manualUrl:'manuals/?program=pdf-editor',tags:['페이지 정리','N-up','소책자','실제 출력크기']},
+    {id:'pdf-editor-advanced',cat:'edit',name:'PDF편집',icon:'✂️',accent:'#7c3aed',bg:'linear-gradient(135deg,#5b21b6,#7c3aed)',catLabel:'문서 편집 · 정밀 보정',desc:'PDF 페이지 자체를 이동·크기조절·잘라내기·회전해서 위치와 영역을 정밀하게 수정할 때 사용합니다.',url:'pdf-editor-advanced',manualUrl:'manuals/?program=pdf-editor-advanced',tags:['페이지 직접 편집','자르기','크기·위치','정밀 회전']},
+    {id:'pdf-suite',cat:'utility',name:'PDF 유틸리티',icon:'🧰',accent:'#d97706',bg:'linear-gradient(135deg,#92400e,#d97706)',catLabel:'PDF 유틸리티 · 빠른 작업',desc:'PDF를 편집 화면에 올리지 않고 합치기·나누기·압축·변환·검사처럼 자주 쓰는 간단한 작업을 빠르게 처리합니다.',url:'pdf-suite/',manualUrl:'manuals/?program=pdf-suite',tags:['합치기','나누기','압축','변환','검사']}
   ];
   let manualLoaderPromise=null;
 
@@ -34,14 +34,19 @@
     const programs=window.ProgramStudioHome?.PROGRAMS;
     if(!Array.isArray(programs))return;
     const all=programs.length;
-    const print=programs.filter(item=>item.cat==='print').length;
-    const pdf=programs.filter(item=>item.cat==='pdf').length;
+    const counts={
+      design:programs.filter(item=>item.cat==='design').length,
+      print:programs.filter(item=>item.cat==='print').length,
+      edit:programs.filter(item=>item.cat==='edit').length,
+      utility:programs.filter(item=>item.cat==='utility').length
+    };
     const set=(id,value)=>{const node=document.getElementById(id);const next=String(value);if(node&&node.textContent!==next)node.textContent=next;};
-    set('cnt-all',all);set('cnt-print',print);set('cnt-pdf',pdf);
+    set('cnt-all',all);
+    for(const [cat,value] of Object.entries(counts))set('cnt-'+cat,value);
     const count=document.getElementById('count');
     if(count){
       const active=window.ProgramStudioHome?.activeCategory||'all';
-      const visible=active==='all'?all:active==='print'?print:active==='pdf'?pdf:all;
+      const visible=active==='all'?all:(counts[active]??all);
       const next=`${visible}개`;
       if(count.textContent!==next)count.textContent=next;
     }

@@ -117,7 +117,7 @@ def test_pdf_utility_runtime_is_ordered_by_canonical_preflight_manifest():
 def test_pdf_utility_name_uses_current_static_home_without_legacy_catalog_runtime():
     home = HOME.read_text(encoding="utf-8")
     ui = GLOBAL_UI.read_text(encoding="utf-8")
-    assert "PDF 도구 모음" in home
+    assert "PDF 유틸리티" in home
     assert "PDF 검사·보안" in ui
     assert "url:'/pdf-preflight/'" in ui
     assert not (ROOT / "js" / "program-catalog-core.js").exists()
