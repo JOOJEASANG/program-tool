@@ -18,4 +18,4 @@ def test_home_splits_design_review_and_ai_design_maker():
     assert "tags:['인쇄 전 검사','규격','도련','재단선','안전영역']" in launcher
     assert "tags:['책 표지 제작','AI 배경','책등','300dpi']" in launcher
     assert "디자인 검토/제작" not in launcher
-    assert "pdf-home-six-programs-v9" in launcher
+    assert "pdf-home-six-programs-v10" in launcher
