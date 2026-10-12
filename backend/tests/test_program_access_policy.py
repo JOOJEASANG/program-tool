@@ -121,12 +121,15 @@ def test_new_user_document_rules_use_status_only():
     assert "/program_usage/" not in rules
 
 
-def test_quota_runtime_is_retired_and_not_injected_into_hosting():
-    quota = (ROOT / "js" / "pdf-daily-free.js").read_text(encoding="utf-8")
-    output_guard = (ROOT / "js" / "program-usage-output-guard.js").read_text(encoding="utf-8")
+def test_quota_runtime_is_removed_and_not_injected_into_hosting():
+    for path in (
+        ROOT / "js" / "pdf-daily-free.js",
+        ROOT / "js" / "program-usage-output-guard.js",
+        ROOT / "js" / "program-usage-catalog.js",
+    ):
+        assert not path.exists(), path
+
     builder = (ROOT / "scripts" / "prepare_hosting_dist.py").read_text(encoding="utf-8")
-    assert "approved-members-only-no-usage-quota" in quota
-    assert "program-usage-output-guard-retired" in output_guard
     assert "PDF_SUITE_DAILY_FREE_MARKER" not in builder
     assert "PDF_SUITE_UNIFIED_QUOTA_MARKER" not in builder
     assert "ADMIN_PDF_USAGE_MARKER" not in builder

@@ -29,6 +29,25 @@ def test_retired_runtime_surfaces_stay_removed():
         assert not (ROOT / relative).exists(), relative
 
 
+
+def test_retired_usage_quota_runtime_stays_removed():
+    retired = (
+        "js/pdf-daily-free.js",
+        "js/admin-pdf-usage-settings.js",
+        "js/admin-program-usage-settings.js",
+        "js/program-usage-catalog.js",
+        "js/program-usage-output-guard.js",
+        "tests/browser/pdf-daily-free-smoke.html",
+        "tests/browser/pdf-daily-free-config-smoke.html",
+        "tests/browser/pdf-daily-free-admin-smoke.html",
+        "tests/browser/admin-pdf-usage-settings-smoke.html",
+        "tests/browser/program-usage-output-guard-smoke.html",
+        "tests/browser/print-checker-defaults-daily-free-smoke.html",
+        "scripts/run_workspace_smoke.mjs",
+    )
+    for relative in retired:
+        assert not (ROOT / relative).exists(), relative
+
 def test_modular_shell_owns_only_pdf_apps():
     apps_html = read("apps/index.html")
     shell = read("js/studio-app-shell.js")

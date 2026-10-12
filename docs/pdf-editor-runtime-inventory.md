@@ -1,6 +1,6 @@
 # PDF 편집기 활성 런타임 기준
 
-기준일: 2026-09-18
+기준일: 2026-10-12
 
 ## 운영 원칙
 
@@ -55,16 +55,16 @@ PDF 편집기는 하나의 canonical 엔진을 사용하고, 경로별 보조 �
 
 각 스크립트 ID와 경로는 중복 없이 manifest에서 한 곳만 소유해야 합니다.
 
-## 비활성 호환 파일
+## 퇴역 호환 래퍼
 
-다음 파일은 현재 executable runtime에서 직접 로드하지 않지만 회귀 계약 때문에 저장소에 남아 있습니다.
+페이지 번호 자동 여백·미리보기 일치·저장 진행 요약 기능은 현재 canonical runtime에 통합되어 있습니다. 과거 monkeypatch 방식으로 기능을 덧붙이던 다음 래퍼는 실행 경로 참조가 없어 저장소에서 제거했습니다.
 
 - `page-number-auto-reserve.js`
 - `page-number-auto-reserve-layout-v2.js`
 - `page-number-preview-parity.js`
 - `operation-progress-summary.js`
 
-필요 기능은 현재 runtime에 통합돼 있으므로 이 파일을 다시 직접 로드하지 않습니다. 삭제 여부는 별도 참조 0건 확인과 회귀검사를 거쳐 결정합니다.
+회귀검사는 이 파일들이 다시 추가되거나 runtime manifest에서 직접 로드되지 않도록 경계를 고정합니다.
 
 ## 회귀 방지 기준
 
