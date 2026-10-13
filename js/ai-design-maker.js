@@ -152,6 +152,16 @@
   };
 
   const PRODUCT_TYPES = new Set(['cover','flyer','invitation','leaflet']);
+  const PRODUCT_ROUTES = Object.freeze({
+    cover:'/ai-design-maker/?product=cover',
+    flyer:'/ai-design-maker/?product=flyer',
+    invitation:'/ai-design-maker/?product=invitation',
+    leaflet:'/ai-design-maker/?product=leaflet'
+  });
+  const FOLDED_FACE_ROUTES = Object.freeze({
+    invitation:Object.freeze({inside:'/ai-design-maker/?product=invitation&face=inside',outside:'/ai-design-maker/?product=invitation&face=outside'}),
+    leaflet:Object.freeze({inside:'/ai-design-maker/?product=leaflet&face=inside',outside:'/ai-design-maker/?product=leaflet&face=outside'})
+  });
   if(!PRODUCT_TYPES.has(state.productType))state.productType='cover';
   if(state.productType==='flyer'||state.productType==='invitation')state.coverMode='front';
   if(state.productType==='leaflet')state.coverMode='spread';
@@ -2739,18 +2749,16 @@
       if(!PRODUCT_TYPES.has(target)||target===state.productType)return;
       if((state.background||window.DesignWorkspaceLayers?.hasLayers())&&!confirm('현재 작업의 AI 배경 및 업로드 파일은 작업실 전환 시 사라집니다. 완성 파일을 먼저 저장했나요?'))return;
       saveLocal();
-      const next=new URL(location.href);next.searchParams.set('product',target);
-      next.searchParams.delete('face');
-      location.assign(next.pathname+next.search+next.hash);
+      const destination=PRODUCT_ROUTES[target];
+      if(destination)location.assign(destination);
     }));
     qa('[data-print-face]').forEach(button=>button.addEventListener('click',()=>{
       const target=button.dataset.printFace;
       if(!['inside','outside'].includes(target)||target===state.designFace)return;
       if((state.background||window.DesignWorkspaceLayers?.hasLayers())&&!confirm('작업면 전환 시 현재 AI 배경과 업로드 파일이 사라집니다. PDF·PNG를 먼저 저장했나요?'))return;
       saveLocal();
-      const next=new URL(location.href);
-      next.searchParams.set('product',state.productType);next.searchParams.set('face',target);
-      location.assign(next.pathname+next.search+next.hash);
+      const destination=FOLDED_FACE_ROUTES[state.productType]?.[target];
+      if(destination)location.assign(destination);
     }));
     qa('input[name="spineInputMode"]').forEach(input=>input.addEventListener('change',()=>selectSpineMode(input.value)));
     ['spinePageCount','spinePaperThickness','spineBindingAllowance'].forEach(id=>$(id)?.addEventListener('input',()=>{
