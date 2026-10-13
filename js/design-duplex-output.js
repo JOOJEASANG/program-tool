@@ -28,9 +28,9 @@
     const doc=await lib.PDFDocument.create();
     const [source]=await doc.embedPdf(bytes,[0]);
     const scale=72/25.4,{sideWidth,height,shift}=dimensions(spec,scale);
-    for(const [index,name] of ['back','front'].entries()){
+    for(const sourceX of [shift,0]) {
       const page=doc.addPage([sideWidth,height]);
-      page.drawPage(source,{x:index===0?0:-shift,y:0,width:spec.workW*scale,height});
+      page.drawPage(source,{x:-sourceX,y:0,width:spec.workW*scale,height});
       if(spec.bleed>0)page.setTrimBox(spec.bleed*scale,spec.bleed*scale,spec.trimW*scale,spec.trimH*scale);
       page.setBleedBox(0,0,sideWidth,height);
     }
@@ -43,15 +43,15 @@
     const zip=new ZIP();
     const scale=300/25.4,{sideWidth,shift}=dimensions(spec,scale);
     const width=Math.round(sideWidth),step=Math.round(shift);
-    for(const [index,name] of ['back','front'].entries()){
+    for(const [index,name] of ['front','back'].entries()){
       const side=document.createElement('canvas');
       side.width=width;
       side.height=canvas.height;
-      const sx=index===0?0:step;
+      const sx=index===0?step:0;
       side.getContext('2d').drawImage(canvas,sx,0,width,canvas.height,0,0,width,canvas.height);
       const blob=await new Promise((resolve,reject)=>side.toBlob(x=>x?resolve(x):reject(new Error('양면 PNG 생성 실패')),'image/png'));
       const png=await pngWithDpi(blob);
-      zip.file((index===0?'01-back':'02-front')+'-300dpi.png',png);
+      zip.file((index===0?'01-front':'02-back')+'-300dpi.png',png);
       side.width=1;side.height=1;
     }
     return zip.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:5}});
