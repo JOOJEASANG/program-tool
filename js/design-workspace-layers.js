@@ -216,6 +216,31 @@
       }
     }
   }
+  // The preview PDF canvas is deliberately small. Never upscale that preview
+  // for 300dpi image/PDF exports: rerender each PDF page at the requested size.
+  async function drawForExport(ctx,s,scale) {
+    for (const item of layers) {
+      let source=item.image,temporary=null;
+      if(item.type==='pdf'){
+        const pdfPage=await item.pdfDocument.getPage(item.pageNumber);
+        const base=pdfPage.getViewport({scale:1});
+        const ratio=Math.max(item.w*scale/base.width,item.h*scale/base.height);
+        const viewport=pdfPage.getViewport({scale:ratio});
+        if(viewport.width*viewport.height>36_000_000) {
+          throw new Error('이 PDF 레이어의 300dpi 출력 이미지가 안전 용량을 초과합니다. 벡터 PDF로 저장해 주세요.');
+        }
+        temporary=document.createElement('canvas');
+        temporary.width=Math.max(1,Math.ceil(viewport.width));
+        temporary.height=Math.max(1,Math.ceil(viewport.height));
+        await pdfPage.render({canvasContext:temporary.getContext('2d'),viewport}).promise;
+        source=temporary;
+      }
+      const x=item.x*scale,y=item.y*scale,w=item.w*scale,h=item.h*scale;
+      ctx.save();ctx.translate(x+w/2,y+h/2);ctx.rotate(item.angle*Math.PI/180);
+      ctx.drawImage(source,-w/2,-h/2,w,h);ctx.restore();
+      if(temporary){temporary.width=1;temporary.height=1;}
+    }
+  }
   function canvasPoint(e,canvas,s) {
     const rect=canvas.getBoundingClientRect();
     if(!rect.width||!rect.height)return null;
@@ -336,5 +361,5 @@
     editor=options;
     bindCanvas();bindInputs();refresh();
   }
-  window.DesignWorkspaceLayers={configure,importFiles,removeSelected,draw,drawVector,hasLayers,updateReview,zones,get layers(){return layers.slice();},get active(){return selected();}};
+  window.DesignWorkspaceLayers={configure,importFiles,removeSelected,draw,drawForExport,drawVector,hasLayers,updateReview,zones,get layers(){return layers.slice();},get active(){return selected();}};
 })();
