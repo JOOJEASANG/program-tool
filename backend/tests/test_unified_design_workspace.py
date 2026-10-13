@@ -32,7 +32,8 @@ def test_print_export_can_start_without_ai_background_and_preserves_source_pdf()
     vector = VECTOR.read_text(encoding='utf-8')
     layers = LAYERS.read_text(encoding='utf-8')
     assert 'DesignWorkspaceLayers?.hasLayers()' in editor
-    assert 'DesignWorkspaceLayers?.draw?.(ctx,spec,ppm,false)' in editor
+    assert 'DesignWorkspaceLayers.drawForExport(ctx,spec,ppm)' in editor
+    assert 'async function drawForExport(ctx,s,scale)' in layers
     assert 'placedLayers:window.DesignWorkspaceLayers' in editor
     assert 'if(placedLayers?.hasLayers?.())await placedLayers.drawVector' in vector
     assert 'doc.embedPdf(item.bytes,[item.pageNumber-1])' in layers
