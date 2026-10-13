@@ -209,9 +209,10 @@
         ctx.drawImage(item.image,-w/2,-h/2,w,h);ctx.restore();
       }
       if(showHandles&&item.id===activeId) {
-        ctx.save();ctx.strokeStyle='#2563eb';ctx.lineWidth=2;ctx.setLineDash([6,3]);
-        ctx.strokeRect(x,y,w,h);ctx.setLineDash([]);ctx.fillStyle='#2563eb';
-        ctx.fillRect(x+w-6,y+h-6,12,12);ctx.restore();
+        ctx.save();ctx.translate(x+w/2,y+h/2);ctx.rotate(item.angle*Math.PI/180);
+        ctx.strokeStyle='#2563eb';ctx.lineWidth=2;ctx.setLineDash([6,3]);
+        ctx.strokeRect(-w/2,-h/2,w,h);ctx.setLineDash([]);ctx.fillStyle='#2563eb';
+        ctx.fillRect(w/2-6,h/2-6,12,12);ctx.restore();
       }
     }
   }
@@ -220,17 +221,25 @@
     if(!rect.width||!rect.height)return null;
     return {x:(e.clientX-rect.left)*s.workW/rect.width,y:(e.clientY-rect.top)*s.workH/rect.height};
   }
+  function localLayerPoint(item,p) {
+    const x=p.x-(item.x+item.w/2),y=p.y-(item.y+item.h/2);
+    const a=-item.angle*Math.PI/180;
+    return {x:x*Math.cos(a)-y*Math.sin(a)+item.w/2,y:x*Math.sin(a)+y*Math.cos(a)+item.h/2};
+  }
   function bindCanvas() {
     const canvas=$('previewCanvas');if(!canvas)return;
     canvas.addEventListener('pointerdown', e => {
       const s=spec(),p=canvasPoint(e,canvas,s);if(!p)return;
-      const items=[...layers].reverse();
-      const hit=items.find(item=>p.x>=item.x&&p.x<=item.x+item.w&&p.y>=item.y&&p.y<=item.y+item.h);
-      if(!hit)return;
+      const hit=[...layers].reverse().map(item=>({item,point:localLayerPoint(item,p)}))
+        .find(({item,point})=>point.x>=0&&point.x<=item.w&&point.y>=0&&point.y<=item.h);
+      if(!hit) {
+        if(activeId){activeId='';refresh();}
+        return;
+      }
       e.preventDefault();e.stopImmediatePropagation();
-      activeId=hit.id;
-      const resize=p.x>hit.x+hit.w-Math.max(4,12*(s.workW/canvas.clientWidth))&&p.y>hit.y+hit.h-Math.max(4,12*(s.workH/canvas.clientHeight));
-      pointer={id:e.pointerId,start:p,initial:{x:hit.x,y:hit.y,w:hit.w,h:hit.h},mode:resize?'resize':'move',layerId:hit.id};
+      activeId=hit.item.id;
+      const resize=hit.point.x>hit.item.w-Math.max(4,12*(s.workW/canvas.clientWidth))&&hit.point.y>hit.item.h-Math.max(4,12*(s.workH/canvas.clientHeight));
+      pointer={id:e.pointerId,start:p,initial:{x:hit.item.x,y:hit.item.y,w:hit.item.w,h:hit.item.h},mode:resize?'resize':'move',layerId:hit.item.id};
       canvas.setPointerCapture?.(e.pointerId);
       refresh();
     },true);
@@ -244,8 +253,11 @@
         item.y=clamp(pointer.initial.y+dy,-item.h,s.workH);
       }else{
         const lock=$('designLayerLockRatio')?.checked!==false,aspect=pointer.initial.w/pointer.initial.h;
-        item.w=clamp(pointer.initial.w+dx,1,Math.max(1,s.workW*3));
-        item.h=lock?item.w/aspect:clamp(pointer.initial.h+dy,1,Math.max(1,s.workH*3));
+        const a=-item.angle*Math.PI/180;
+        const localDx=dx*Math.cos(a)-dy*Math.sin(a);
+        const localDy=dx*Math.sin(a)+dy*Math.cos(a);
+        item.w=clamp(pointer.initial.w+localDx,1,Math.max(1,s.workW*3));
+        item.h=lock?item.w/aspect:clamp(pointer.initial.h+localDy,1,Math.max(1,s.workH*3));
       }
       updateInspector();updateReview();editor?.render?.();
     },true);
@@ -257,9 +269,16 @@
     stage.addEventListener('dragleave',()=>stage.classList.remove('design-import-dragover'));
     stage.addEventListener('drop',e=>{if(e.dataTransfer?.files?.length){e.preventDefault();stage.classList.remove('design-import-dragover');importFiles(e.dataTransfer.files);}});
     window.addEventListener('keydown',e=>{
-      if(!selected()||!(e.key==='Delete'||e.key==='Backspace'))return;
+      const item=selected();if(!item)return;
       if(e.target?.matches?.('input,textarea,select')||e.target?.isContentEditable)return;
-      e.preventDefault();e.stopImmediatePropagation();removeSelected();
+      if(e.key==='Delete'||e.key==='Backspace'){
+        e.preventDefault();e.stopImmediatePropagation();removeSelected();return;
+      }
+      const arrows={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]};
+      const delta=arrows[e.key];if(!delta||e.ctrlKey||e.metaKey||e.altKey)return;
+      const step=e.shiftKey?1:.2;
+      item.x+=delta[0]*step;item.y+=delta[1]*step;
+      e.preventDefault();e.stopImmediatePropagation();refresh();
     },true);
   }
   async function drawPdfLayer(doc,page,lib,item,scale,height) {
