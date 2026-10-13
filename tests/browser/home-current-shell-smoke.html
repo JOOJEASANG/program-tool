@@ -18,9 +18,11 @@
         for(const cat of ['design','print','edit','utility']){
           assert(doc.querySelector(`[data-cat="${cat}"]`),`${cat} category missing`);
         }
-        for(const id of ['print-checker','ai-design-maker','pdf-editor','pdf-suite']){
+        for(const id of ['ai-design-maker','smart-print-layout','pdf-editor','pdf-suite']){
           assert(html.includes(`id:'${id}'`),`current program missing: ${id}`);
         }
+        assert(!html.includes("id:'print-checker'"),'standalone print checker must be consolidated');
+        assert(html.includes("name:'디자인 제작'"),'unified design entry missing');
         for(const dead of ['/design-editor/','/document-editor/','/image-editor/']){
           assert(!html.includes(dead),`retired route returned to home: ${dead}`);
         }
