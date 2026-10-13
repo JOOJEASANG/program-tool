@@ -55,6 +55,22 @@ def test_spine_math_behavior():
     assert 'calculator behavior passed' in proc.stdout
 
 
+def test_duplex_output_is_two_pages_and_gallery_is_scoped():
+    editor=read('js/ai-design-maker.js')
+    output=read('js/design-duplex-output.js')
+    page=read('ai-design-maker/index.html')
+    for symbol in ('DesignDuplexOutput.splitPdf(pdf,spec)', 'DesignDuplexOutput.pngZip(canvas,spec', 'workshop:WORKSHOP', 'leafletSide:LEAFLET_SIDE'):
+        assert symbol in editor
+    assert "for(const sourceX of [shift,0])" in output
+    assert "['front','back'].entries()" in output
+    assert 'doc.addPage([sideWidth,height])' in output
+    assert '01-front' in output and '02-back' in output
+    assert 'design-duplex-output.js' in page
+    assert 'designDuplexNotice' in page
+    assert "item.workshop||'cover'" in editor
+    assert "(privateData.workshop||'cover')!==WORKSHOP" in editor
+
+
 def test_design_manual_documents_new_workflows():
     manual=read('js/program-manuals/ai-design-maker.js')
     assert "updated: '2026-10-13'" in manual
