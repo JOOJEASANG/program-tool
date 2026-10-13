@@ -30,7 +30,7 @@ const s={trimW:210,trimH:297,bleed:3,workW:426,workH:303};
   assert.equal(pages.length,2);
   assert.equal(sources.length,2);
   assert.ok(sources[0].x<0,'front page must crop the right half of the spread');
-  assert.equal(sources[1].x,0,'back page must crop the left half');
+  assert.equal(Math.abs(sources[1].x),0,'back page must crop the left half');
   const width=(s.trimW+2*s.bleed)*72/25.4;
   assert.ok(Math.abs(pages[0].dims[0]-width)<0.01);
   const canvas={width:5032,height:3579};
