@@ -2,7 +2,7 @@
   'use strict';
   window.ProgramManuals.register({
     id: 'ai-design-maker',
-    name: 'AI 디자인 제작',
+    name: '디자인 제작',
     icon: '✦',
     href: '/ai-design-maker/',
     updated: '2026-09-28',
