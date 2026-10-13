@@ -7,6 +7,7 @@
   const MM_PER_PT = 25.4 / 72;
   const MAX_ITEMS = 16;
   const MAX_BYTES = 40 * 1024 * 1024;
+  const MAX_TOTAL_BYTES = 200 * 1024 * 1024;
   const PDFJS_URL = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js';
   const PDFJS_WORKER = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
   const layers = [];
@@ -100,6 +101,7 @@
     if (!file) return;
     if (layers.length >= MAX_ITEMS) throw new Error('한 작업에 최대 16개 파일을 배치할 수 있습니다.');
     if (file.size > MAX_BYTES) throw new Error('파일 한 개는 40MB 이하만 지원합니다.');
+    if (layers.reduce((sum,item)=>sum+item.bytes.length,0)+file.size > MAX_TOTAL_BYTES) throw new Error('현재 작업의 업로드 용량은 총 200MB까지 지원합니다.');
     const type = fileType(file);
     if (!type) throw new Error('PDF·PNG·JPG·WEBP 파일만 지원합니다.');
     const layer = {
@@ -315,5 +317,5 @@
     editor=options;
     bindCanvas();bindInputs();refresh();
   }
-  window.DesignWorkspaceLayers={configure,draw,drawVector,hasLayers,updateReview,zones,get layers(){return layers.slice();},get active(){return selected();}};
+  window.DesignWorkspaceLayers={configure,importFiles,removeSelected,draw,drawVector,hasLayers,updateReview,zones,get layers(){return layers.slice();},get active(){return selected();}};
 })();
