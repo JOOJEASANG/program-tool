@@ -15,12 +15,14 @@
     if(kind==='leaflet'){
       const middle=number('leafletPanelCenter',left);
       const right=number('leafletPanelRight',left);
-      const type=$('leafletFoldType')?.value==='accordion'?'accordion':'roll';
+      const type=['roll-left','roll-right','accordion'].includes($('leafletFoldType')?.value)?$('leafletFoldType').value:'roll-left';
       workW=b*2+left+middle+right;
       spec.spine=middle;spec.wing=0;foldType=type;
-      const names=type==='roll'
+      const names=type==='roll-left'
         ? side()==='outside'?['접어 넣는 면','뒷면','표지']:['안쪽 왼쪽','안쪽 가운데','안쪽 오른쪽']
-        :side()==='outside'?['왼쪽 면','가운데 면','오른쪽 면']:['안쪽 왼쪽','안쪽 가운데','안쪽 오른쪽'];
+        :type==='roll-right'
+        ? side()==='outside'?['표지','뒷면','접어 넣는 면']:['안쪽 왼쪽','안쪽 가운데','안쪽 오른쪽']
+        :side()==='outside'?['패널 1','패널 2','패널 3']:['안쪽 패널 1','안쪽 패널 2','안쪽 패널 3'];
       panels=[make('back',b,left,names[0]),make('spine',b+left,middle,names[1]),make('front',b+left+middle,right,names[2])];
       folds=[b+left,b+left+middle];
     }else if(kind==='invitation'&&spec.coverMode==='frontBack'&&$('invitationFoldType')?.value!=='flat'){
@@ -58,17 +60,19 @@
   function summary(s){
     if(!s?.panels)return '';
     const p=s.panels.map(x=>x.w.toFixed(1)).join(' + ');
-    const postfix=s.foldType==='half-fold'?'접는 위치 '+s.panels[0].w.toFixed(1)+'mm (왼쪽부터)':s.productType==='leaflet'?(s.foldType==='roll'?'말아접기':'병풍접기'):'';
+    const postfix=s.foldType==='half-fold'?'접는 위치 '+s.panels[0].w.toFixed(1)+'mm (왼쪽부터)':s.productType==='leaflet'?(s.foldType==='accordion'?'병풍접기':'말아접기'):'';
     return s.panels.length+'면 · '+p+'mm · '+s.workW.toFixed(1)+'×'+s.workH.toFixed(1)+'mm'+(postfix?' · '+postfix:'');
   }
   function warnings(s){
     if(!s?.panels)return [];
     const messages=[];
     if(s.productType==='leaflet'){
-      if(s.foldType==='roll'&&Math.min(...s.panelWidths)===Math.max(...s.panelWidths))
+      if(s.foldType!=='accordion'&&Math.min(...s.panelWidths)===Math.max(...s.panelWidths))
         messages.push('말아접기는 접혀 들어가는 패널을 약 1~2mm 좁게 조절하는 경우가 많습니다. 실제 인쇄소 규격을 확인하세요.');
-      if(s.foldType==='roll'&&s.panelWidths[0]>=Math.min(s.panelWidths[1],s.panelWidths[2]))
-        messages.push('말아접기 왼쪽 안쪽 패널이 다른 패널보다 좁은지 확인하세요.');
+      if(s.foldType==='roll-left'&&s.panelWidths[0]>=Math.min(s.panelWidths[1],s.panelWidths[2]))
+        messages.push('왼쪽 말아접기에서는 접어 넣는 왼쪽 패널을 더 좁게 조절하세요.');
+      if(s.foldType==='roll-right'&&s.panelWidths[2]>=Math.min(s.panelWidths[0],s.panelWidths[1]))
+        messages.push('오른쪽 말아접기에서는 접어 넣는 오른쪽 패널을 더 좁게 조절하세요.');
     }
     if(s.foldType==='half-fold'&&Math.abs(s.panels[0].w-s.panels[1].w)>15)
       messages.push('비대칭 접지: 접었을 때 표지 가장자리 겹침과 여백을 검토하세요.');
