@@ -134,7 +134,7 @@ def test_pdf_suite_is_staged_with_existing_engines_and_clean_final_workspace():
     for marker in (
         'PDF_SUITE_HTML = "pdf-suite/index.html"',
         "data-pdf-suite-first-paint-guard",
-        "pdf-suite-home-launcher.js?v=20261012-3",
+        "pdf-suite-home-launcher.js?v=20261013-1",
         '"ai-design-maker",',
         '"smart-print-layout",',
         'OUTPUT / "ai-design-maker/index.html"',
@@ -169,18 +169,18 @@ def test_pdf_suite_is_staged_with_existing_engines_and_clean_final_workspace():
 
     for marker in (
         "name:'디자인 검토'",
-        "name:'AI 디자인 제작'",
+        "name:'디자인 제작'",
         "name:'스마트 인쇄배치'",
         "name:'PDF배치'",
         "name:'PDF편집'",
         "name:'PDF 유틸리티'",
-        "print-checker/",
+        "ai-design-maker/",
         "smart-print-layout/",
         "pdf-editor/",
         "pdf-editor-advanced",
         "pdf-suite/",
         "normalizePrograms",
-        "pdf-home-six-programs-v10",
+        "pdf-home-unified-design-five-programs-v11",
     ):
         assert marker in home
     assert "id:'booklet'" not in home

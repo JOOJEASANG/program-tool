@@ -31,7 +31,7 @@ def test_home_catalog_is_hidden_until_current_five_program_manifest_is_ready():
         assert marker in boot
 
     for marker in (
-        "id:'print-checker'",
+        "id:'ai-design-maker'",
         "id:'smart-print-layout'",
         "id:'pdf-editor'",
         "id:'pdf-editor-advanced'",

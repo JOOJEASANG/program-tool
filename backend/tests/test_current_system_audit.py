@@ -10,7 +10,8 @@ def read(path: str) -> str:
 def test_home_uses_canonical_program_routes_without_obsolete_runtime_mutators():
     home = read("index.html")
     register = read("js/sw-register.js")
-    assert "url:'print-checker/'" in home
+    assert "url:'ai-design-maker/'" in home
+    assert (ROOT / "print-checker" / "index.html").exists()
     assert "url:'pdf-editor/'" in home
     assert "url:'pdf-suite/'" in home
     assert "data-home-static-professional" in home

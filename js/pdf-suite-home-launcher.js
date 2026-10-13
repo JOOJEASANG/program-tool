@@ -6,8 +6,7 @@
   window.__programStudioPdfSuiteHomeV10=true;
 
   const PROGRAMS=[
-    {id:'ai-design-maker',cat:'design',name:'AI 디자인 제작',icon:'✦',accent:'#7c3aed',bg:'linear-gradient(135deg,#312e81,#7c3aed 58%,#db2777)',catLabel:'디자인 제작 · 책 표지',desc:'책 표지와 인쇄용 디자인을 만들 때 사용합니다. 앞표지·책등·뒤표지를 실제 규격으로 설계하고 AI 배경과 문구를 조합해 저장합니다.',url:'ai-design-maker/',tags:['책 표지 제작','AI 배경','책등','300dpi']},
-    {id:'print-checker',cat:'print',name:'인쇄파일 검토',icon:'🔍',accent:'#1d9bb2',bg:'linear-gradient(135deg,#12396d,#1d9bb2)',catLabel:'인쇄 준비 · 파일 점검',desc:'인쇄하기 전에 PDF·이미지의 실제 규격, 도련, 재단선, 안전영역, 책등·접지를 확인해 출력 사고를 줄입니다.',url:'print-checker/',tags:['인쇄 전 검사','규격','도련','재단선','안전영역']},
+    {id:'ai-design-maker',cat:'design',name:'디자인 제작',icon:'✦',accent:'#7c3aed',bg:'linear-gradient(135deg,#312e81,#7c3aed 58%,#db2777)',catLabel:'디자인 제작 · 책 표지',desc:'AI 배경 생성, PDF·이미지 직접 배치 편집, 앞표지·책등·뒷표지 디자인과 인쇄파일 검토까지 한곳에서 작업합니다.',url:'ai-design-maker/',tags:['AI 생성','PDF·이미지 배치','인쇄 검토','책표지']},
     {id:'smart-print-layout',cat:'print',name:'스마트 인쇄배치',icon:'▦',accent:'#0f766e',bg:'linear-gradient(135deg,#115e59,#14b8a6)',catLabel:'인쇄 준비 · 자동 배치',desc:'명함·쿠폰·소형 인쇄물처럼 같은 작업물을 한 장의 용지에 여러 개 놓을 때 실제 크기와 수량을 기준으로 자동배치합니다.',url:'smart-print-layout/',tags:['한 장에 여러 개','자동배치','앞면·뒷면','종이 절약']},
     {id:'pdf-editor',cat:'edit',name:'PDF배치',icon:'🖨️',accent:'#059669',bg:'linear-gradient(135deg,#065f46,#059669)',catLabel:'문서 편집 · 페이지 구성',desc:'여러 PDF 페이지의 순서를 정리하고 N-up·소책자·간지·여백·실제 출력크기를 설정해 출력용 PDF를 만듭니다.',url:'pdf-editor/',tags:['페이지 정리','N-up','소책자','실제 출력크기']},
     {id:'pdf-editor-advanced',cat:'edit',name:'PDF편집',icon:'✂️',accent:'#7c3aed',bg:'linear-gradient(135deg,#5b21b6,#7c3aed)',catLabel:'문서 편집 · 정밀 보정',desc:'PDF 페이지 자체를 이동·크기조절·잘라내기·회전해서 위치와 영역을 정밀하게 수정할 때 사용합니다.',url:'pdf-editor-advanced',tags:['페이지 직접 편집','자르기','크기·위치','정밀 회전']},
@@ -133,7 +132,7 @@
     syncCounts();
     installCardEntry();
     document.documentElement.dataset.pdfHomeUnified='ready';
-    document.documentElement.dataset.pdfHomeWorkspace='six-programs';
+    document.documentElement.dataset.pdfHomeWorkspace='unified-design-five-programs';
   }
 
   let observerQueued=false;
@@ -155,6 +154,6 @@
     syncCounts,
     installCardEntry,
     installCardLayout,
-    stage:'pdf-home-six-programs-v10'
+    stage:'pdf-home-unified-design-five-programs-v11'
   });
 })();

@@ -3,19 +3,23 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 
 
-def test_home_splits_design_review_and_ai_design_maker():
+def test_home_merges_design_creation_and_print_review_into_design_studio():
     index = (ROOT / "index.html").read_text(encoding="utf-8")
     launcher = (ROOT / "js/pdf-suite-home-launcher.js").read_text(encoding="utf-8")
+    studio = (ROOT / "ai-design-maker/index.html").read_text(encoding="utf-8")
 
-    assert "name:'인쇄파일 검토'" in index
-    assert "name:'인쇄파일 검토'" in launcher
-    assert "name:'AI 디자인 제작'" in index
-    assert "name:'AI 디자인 제작'" in launcher
-    assert "url:'ai-design-maker/'" in index
-    assert "url:'ai-design-maker/'" in launcher
-    assert "PDF·이미지의 실제 규격, 도련, 재단선, 안전영역, 책등·접지" in launcher
-    assert "AI 배경과 문구를 조합해 저장합니다" in launcher
-    assert "tags:['인쇄 전 검사','규격','도련','재단선','안전영역']" in launcher
-    assert "tags:['책 표지 제작','AI 배경','책등','300dpi']" in launcher
+    for home in (index, launcher):
+        assert "name:'디자인 제작'" in home
+        assert "name:'인쇄파일 검토'" not in home
+        assert "name:'AI 디자인 제작'" not in home
+        assert "url:'ai-design-maker/'" in home
+        assert "AI 배경 생성" in home
+        assert "PDF·이미지 직접 배치" in home
+        assert "인쇄파일 검토" in home
+
+    assert 'id="designLayerUpload"' in studio
+    assert 'id="designReviewResults"' in studio
+    assert 'id="generateBtn"' in studio
+    assert '/print-checker/' in studio  # compatible route for detailed legacy preflight
     assert "디자인 검토/제작" not in launcher
-    assert "pdf-home-six-programs-v10" in launcher
+    assert "pdf-home-unified-design-five-programs-v11" in launcher

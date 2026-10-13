@@ -56,7 +56,7 @@
     canvas.width=canvas.height=1;return blob.arrayBuffer();
   }
   async function create(options){
-    const {spec,background,logo,logoRect,shapes,drawShape,textItems,wrappedLayout,drawCropMarks,cropMarks,textColor}=options;
+    const {spec,background,placedLayers,logo,logoRect,shapes,drawShape,textItems,wrappedLayout,drawCropMarks,cropMarks,textColor}=options;
     const items=textItems.filter(item=>String(item.text||'').trim());
     if(items.some(item=>item.fontFamily&&item.fontFamily!=='Pretendard'))throw new Error('벡터 PDF는 Pretendard 글꼴을 지원합니다. 다른 글꼴은 300dpi 이미지 PDF로 저장하거나 Pretendard로 변경해 주세요.');
     const [lib,kit]=await Promise.all([
@@ -68,8 +68,13 @@
     doc.setTitle('Program Studio 인쇄 디자인');doc.setCreator('Program Studio');
     if(spec.bleed>0)page.setTrimBox(spec.bleed*scale,spec.bleed*scale,(spec.workW-2*spec.bleed)*scale,(spec.workH-2*spec.bleed)*scale);
     page.setBleedBox(0,0,width,height);
-    const bg=await doc.embedPng(await imagePng(background,width/height));
-    page.drawImage(bg,{x:0,y:0,width,height});
+    if(background?.naturalWidth) {
+      const bg=await doc.embedPng(await imagePng(background,width/height));
+      page.drawImage(bg,{x:0,y:0,width,height});
+    }else{
+      page.drawRectangle({x:0,y:0,width,height,color:lib.rgb(1,1,1)});
+    }
+    if(placedLayers?.hasLayers?.())await placedLayers.drawVector(doc,page,lib,spec,scale,height);
     const shape=shapeContext(page,height,lib);shapes.forEach(item=>drawShape(shape,item,scale,0));
     if(logo&&logoRect){const im=await doc.embedPng(await imagePng(logo));page.drawImage(im,{x:logoRect.x,y:height-logoRect.y-logoRect.h,width:logoRect.w,height:logoRect.h});}
     const parsedFonts=new Map(),ctx=document.createElement('canvas').getContext('2d');
