@@ -134,6 +134,9 @@
     snapGuide: null,
     backgroundSource: '',
     coverMode: 'spread',
+    productType: (new URLSearchParams(location.search).get('product') || 'cover'),
+    spineCalculationMode: 'auto',
+    spineManualValue: 10,
     generationQuality: 'standard',
     generationProgress: 0,
     generationProgressTimer: null,
@@ -147,6 +150,10 @@
     selectedVariant: -1
   };
 
+  const PRODUCT_TYPES = new Set(['cover','flyer','invitation','leaflet']);
+  if(!PRODUCT_TYPES.has(state.productType))state.productType='cover';
+  if(state.productType==='flyer'||state.productType==='invitation')state.coverMode='front';
+  if(state.productType==='leaflet')state.coverMode='spread';
   const COVER_MODES = new Set(['front','back','frontBack','spread']);
   const normalizeCoverMode = value => COVER_MODES.has(value) ? value : 'spread';
   const modeHasFront = mode => mode==='front'||mode==='frontBack'||mode==='spread';
@@ -336,24 +343,25 @@
     const bleed = clamp(num('bleed', 3), 0, 20, 3);
     const safe = clamp(num('safeZone', 10), 0, 80, 10);
     const spread=coverMode==='spread';
-    const spine = spread ? clamp(num('spine', 10), 0, 100, 10) : 0;
-    const wing = spread && $('wingEnabled')?.checked ? clamp(num('wingW', 70), 20, 300, 70) : 0;
+    const spine = spread ? state.productType==='leaflet' ? trimW : state.productType==='cover' ? clamp(num('spine', 10), 0, 100, 10) : 0 : 0;
+    const wing = spread && state.productType==='cover' && $('wingEnabled')?.checked ? clamp(num('wingW', 70), 20, 300, 70) : 0;
     const workW=isSingleCoverMode(coverMode)
       ? trimW + bleed * 2
       : coverMode==='frontBack'
         ? trimW * 2 + bleed * 2
         : trimW * 2 + spine + wing * 2 + bleed * 2;
-    return {coverMode, trimW, trimH, spine, bleed, safe, wing, workW, workH:trimH + bleed * 2};
+    return {productType:state.productType, coverMode, trimW, trimH, spine, bleed, safe, wing, workW, workH:trimH + bleed * 2};
   }
 
   function specKey(spec = currentSpec()) {
-    return [spec.coverMode,spec.trimW,spec.trimH,spec.spine,spec.bleed,spec.wing].map(v => typeof v==='number'?Number(v).toFixed(2):v).join('|');
+    return [spec.productType,spec.coverMode,spec.trimW,spec.trimH,spec.spine,spec.bleed,spec.wing].map(v => typeof v==='number'?Number(v).toFixed(2):v).join('|');
   }
 
   function readText() {
     return {
       title: $('title')?.value || '',
       backText: $('backText')?.value || '',
+      middleText: $('middleText')?.value || '',
       spineTop: $('spineTop')?.value || '',
       spineMiddle: $('spineMiddle')?.value || '',
       spineBottom: $('spineBottom')?.value || '',
@@ -366,7 +374,7 @@
   }
 
   function serializableState() {
-    const ids = ['trimW','trimH','spine','bleed','safeZone','wingW','title','backText','spineTop','spineMiddle','spineBottom','spineTopPlacement','spineMiddlePlacement','spineBottomPlacement','spineOrientation','visualMode','colorIntensity','designMood','primaryColor','textColor','theme','stylePrompt','imageModel','additionalPrompt','targetAudience','titleSpace','variantCount'];
+    const ids = ['trimW','trimH','spine','spinePageCount','spinePaperThickness','spineBindingAllowance','middleText','bleed','safeZone','wingW','title','backText','spineTop','spineMiddle','spineBottom','spineTopPlacement','spineMiddlePlacement','spineBottomPlacement','spineOrientation','visualMode','colorIntensity','designMood','primaryColor','textColor','theme','stylePrompt','imageModel','additionalPrompt','targetAudience','titleSpace','variantCount'];
     const data = {
       preset: state.preset,
       wingEnabled: Boolean($('wingEnabled')?.checked),
@@ -377,6 +385,9 @@
       shapes: state.shapes,
       groups: state.groups,
       coverMode: state.coverMode,
+      productType: state.productType,
+      spineCalculationMode: state.spineCalculationMode,
+      spineManualValue: state.spineManualValue,
       generationQuality: state.generationQuality,
       sizeMode: state.sizeMode,
       textLayoutSchemaVersion: TEXT_LAYOUT_SCHEMA_VERSION
@@ -414,6 +425,8 @@
       const restoredPreset=PRESET_MIGRATION[data.preset]||data.preset;
       if (restoredPreset && PRESETS[restoredPreset]) state.preset = restoredPreset;
       if (COVER_MODES.has(data.coverMode)) state.coverMode = data.coverMode;
+      state.spineCalculationMode=data.spineCalculationMode==='manual'||(!data.spineCalculationMode&&data.spine!==undefined)?'manual':'auto';
+      state.spineManualValue=clamp(data.spineManualValue ?? data.spine ?? 10,0,100,10);
       if (['a4','b5','a5','custom'].includes(data.sizeMode)) state.sizeMode = data.sizeMode;
       else {
         const w=Number(data.trimW),h=Number(data.trimH);
@@ -490,6 +503,8 @@
   function loadSessionNow() {
     loadLocal();
     setupPresetCards();
+    syncProductWorkspace();
+    syncSpineCalculator();
     syncCoverMode();
     syncSizeMode();
     syncGenerationQuality();
@@ -673,6 +688,75 @@
     scheduleRender();
   }
 
+  function syncSpineCalculator(){
+    const auto=state.spineCalculationMode!=='manual';
+    document.querySelectorAll('input[name="spineInputMode"]').forEach(input=>{input.checked=input.value===(auto?'auto':'manual');});
+    if($('spineAutoFields'))$('spineAutoFields').hidden=!auto;
+    if($('spineManualHelp'))$('spineManualHelp').hidden=auto;
+    const spine=$('spine');if(!spine)return;
+    spine.readOnly=auto;
+    const rawPages=Number($('spinePageCount')?.value);
+    const rawPaper=Number($('spinePaperThickness')?.value);
+    const rawAllowance=Number($('spineBindingAllowance')?.value);
+    const valid=Number.isInteger(rawPages)&&rawPages>=2&&rawPages<=2000&&Number.isFinite(rawPaper)&&rawPaper>=.01&&rawPaper<=1&&Number.isFinite(rawAllowance)&&rawAllowance>=0&&rawAllowance<=20;
+    const leaves=valid?Math.ceil(rawPages/2):0;
+    const result=valid?Math.round((leaves*rawPaper+rawAllowance)*10)/10:null;
+    if(auto){
+      if(result!==null && result<=100)spine.value=result.toFixed(1);
+      else spine.value='';
+    }else spine.value=state.spineManualValue.toFixed(1);
+    const node=$('spineAutoResult');
+    if(node){
+      node.textContent='';
+      if(result===null||result>100){node.textContent='페이지 수·종이 두께·보정값을 확인하세요 (책등은 0~100mm).';node.classList.add('invalid');}
+      else{
+        node.classList.remove('invalid');
+        node.append(document.createTextNode(rawPages+'쪽 ÷ 2 = '+leaves+'장 × '+rawPaper.toFixed(2)+'mm + '+rawAllowance.toFixed(1)+'mm = '));
+        const strong=document.createElement('strong');strong.textContent=result.toFixed(1)+'mm';node.append(strong);
+      }
+    }
+  }
+  function selectSpineMode(mode) {
+    if(state.spineCalculationMode==='manual')state.spineManualValue=clamp($('spine')?.value,0,100,10);
+    state.spineCalculationMode=mode==='manual'?'manual':'auto';
+    syncSpineCalculator();saveLocal();updateGeometry();scheduleRender();
+  }
+  function syncProductWorkspace(){
+    const product=state.productType;
+    document.documentElement.dataset.designProduct=product;
+    const data={
+      cover:{name:'책표지',info:'앞·뒤표지·책등·날개를 편집하는 책표지 전용 작업실입니다.',scope:'제작 범위',spec:'완성 크기와 책등',options:{
+        front:['앞표지 디자인','앞표지 한 면만 작업'],back:['뒷표지 디자인','뒷표지 한 면만 작업'],
+        frontBack:['앞·뒤표지 동시','책등 없는 양면 펼침'],spread:['전체 펼침 디자인','뒤표지 + 책등 + 앞표지']}},
+      flyer:{name:'전단지',info:'A4·A5 등 단면 또는 양면 전단지를 인쇄 규격에 맞춰 제작합니다.',scope:'전단지 면 구성',spec:'전단지 완성 크기',options:{
+        front:['전단지 단면','한 면 편집'],frontBack:['전단지 양면','뒷면 + 앞면 펼침']}},
+      invitation:{name:'초대장',info:'단면 카드와 2단 접이식 초대장 겉면을 제작합니다. 안쪽면은 별도 작업 파일로 저장하세요.',scope:'초대장 구성',spec:'초대장 한 면의 크기',options:{
+        front:['단면 초대장','한 장짜리 카드'],frontBack:['2단 접이식','뒷면 + 앞면 접지']}},
+      leaflet:{name:'리플렛',info:'2단 또는 3단 리플렛 펼침 작업실입니다. 접히는 위치와 패널별 디자인을 확인하세요.',scope:'리플렛 접지 구성',spec:'패널 1개 가로·세로 크기',options:{
+        frontBack:['2단 접지','2개 패널 펼침'],spread:['3단 접지','3개 패널 펼침']}}
+    }[product];
+    if(!data.options[state.coverMode])state.coverMode=product==='leaflet'?'spread':'front';
+    document.querySelectorAll('[data-design-product]').forEach(button=>{
+      const active=button.dataset.designProduct===product;
+      button.classList.toggle('active',active);
+      if(active)button.setAttribute('aria-current','page');else button.removeAttribute('aria-current');
+    });
+    if($('designProductNotice'))$('designProductNotice').textContent=data.info;
+    if($('coverScopeTitle'))$('coverScopeTitle').textContent=data.scope;
+    if($('productSpecDescription'))$('productSpecDescription').textContent=data.spec;
+    document.querySelectorAll('[data-scope-mode]').forEach(label=>{
+      const item=data.options[label.dataset.scopeMode];
+      label.hidden=!item;
+      if(item){label.querySelector('strong').textContent=item[0];label.querySelector('small').textContent=item[1];}
+    });
+    if($('spineCalculator'))$('spineCalculator').hidden=product!=='cover';
+    if($('middlePanelFields'))$('middlePanelFields').hidden=product!=='leaflet'||state.coverMode!=='spread';
+    if($('designMiddleTarget')){$('designMiddleTarget').textContent=product==='leaflet'?'가운데 패널':'책등';$('designMiddleTarget').hidden=product!=='cover'&&!(product==='leaflet'&&state.coverMode==='spread');}
+    if($('frontCoverFields'))$('frontCoverFields').querySelector('.copy-surface-head>span').textContent=product==='cover'?'앞표지 문구 (선택)':'오른쪽/앞면 패널 문구 (선택)';
+    if($('backCoverFields'))$('backCoverFields').querySelector('.copy-surface-head>span').textContent=product==='cover'?'뒤표지 문구 (선택)':'왼쪽/뒷면 패널 문구 (선택)';
+    if($('copySection'))$('copySection').querySelector('summary strong').textContent=product==='cover'?'표지 문구':data.name+' 문구';
+    if($('title'))$('title').placeholder=product==='cover'?'2026 천안마을교육 운영사례집\n함께 만드는 배움의 마을':data.name+' 제목과 본문을 입력하세요';
+  }
   function syncWing() {
     const enabled = Boolean($('wingEnabled')?.checked);
     if ($('wingField')) $('wingField').hidden = !enabled;
@@ -684,11 +768,17 @@
     qa('input[name="coverMode"]').forEach(input=>{input.checked=input.value===state.coverMode;});
     document.documentElement.dataset.coverMode=state.coverMode;
     renderCustomFields();
-    const copy={
+    syncProductWorkspace();
+    const copy=state.productType==='cover'?{
       front:['앞표지 단면 제작','앞표지 한 면만 실제 인쇄 규격으로 디자인합니다.','앞표지 미리보기','직접 만든 앞표지 이미지를 불러오면 도련 포함 전체 영역을 꽉 채워 배치합니다.'],
       back:['뒷표지 단면 제작','뒷표지 한 면만 실제 인쇄 규격으로 디자인합니다.','뒷표지 미리보기','직접 만든 뒷표지 이미지를 불러오면 도련 포함 전체 영역을 꽉 채워 배치합니다.'],
       frontBack:['앞·뒤표지 동시 제작','책등 없이 뒷표지와 앞표지를 나란히 놓고 한 번에 디자인합니다.','앞·뒤표지 동시 미리보기','앞·뒤표지 2면이 나란히 구성된 이미지를 불러오면 전체 작업 영역을 꽉 채워 배치합니다.'],
       spread:['표지 전체 펼침 제작','앞표지·책등·뒤표지를 한 번에 제작합니다. 규격과 스타일만으로 배경을 생성할 수 있습니다. 문구는 선택 사항입니다.','전체 펼침 미리보기','직접 만든 전체 펼침 표지를 불러오면 바깥 적색선 전체 영역을 꽉 채워 배치합니다. 그 위에 문구를 자유롭게 편집할 수 있습니다.']
+    }[state.coverMode]:{
+      front:[state.productType==='leaflet'?'리플렛 단면':state.productType==='invitation'?'초대장 단면':'전단지 단면', '인쇄 규격에 맞춰 한 면을 편집합니다.','단면 작업 미리보기','단면 작업판입니다.'],
+      back:['뒷면 제작','뒷면 한 장을 디자인합니다.','뒷면 미리보기','뒷면 작업판입니다.'],
+      frontBack:[state.productType==='leaflet'?'2단 접지 리플렛':state.productType==='invitation'?'2단 접이식 초대장':'양면 전단지','왼쪽과 오른쪽 2개 패널을 인쇄 규격으로 편집합니다.','2면 펼침 미리보기','두 면을 나란히 배치합니다.'],
+      spread:['3단 접지 리플렛','왼쪽·가운데·오른쪽 3개 패널을 펼쳐 편집합니다.','3단 펼침 미리보기','리플렛 패널 3개를 좌우로 펼쳐 작업합니다.']
     }[state.coverMode];
     if($('coverModeHeading'))$('coverModeHeading').textContent=copy[0];
     if($('coverModeDescription'))$('coverModeDescription').textContent=copy[1];
