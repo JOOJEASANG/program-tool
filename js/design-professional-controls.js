@@ -132,10 +132,11 @@
       $('trimW')?.addEventListener('input',()=>{set('leafletPanelLeft',get('trimW'));changed();});
     }
     if(kind==='invitation'){
-      for(const id of ['invitationFoldType','invitationFoldPosition']){
-        $(id)?.addEventListener('input',changed);
-        $(id)?.addEventListener('change',changed);
-      }
+      $('invitationFoldType')?.addEventListener('change',()=>{
+        api.syncCoverMode?.();
+        changed();
+      });
+      $('invitationFoldPosition')?.addEventListener('input',changed);
     }
     if(kind==='flyer')for(const id of ['flyerPurpose','flyerStock'])$(id)?.addEventListener('change',changed);
     if(kind==='invitation')document.querySelectorAll('input[name="coverMode"]').forEach(node=>node.addEventListener('change',()=>queueMicrotask(updateInfo)));
