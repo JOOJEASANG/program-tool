@@ -51,9 +51,8 @@
           row-gap: 8px !important;
         }
         #previewInfo {
-          display: flex !important;
-          align-items: center !important;
           min-height: 36px !important;
+          line-height: 36px !important;
         }
         #previewPages:not(:empty) {
           display: inline-flex !important;
