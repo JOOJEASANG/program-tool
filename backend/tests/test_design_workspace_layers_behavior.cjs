@@ -75,12 +75,13 @@ assert.equal(z.whole.w,442);
 
   // A separate PDF source must be embedded using the original PDF bytes.
   let embeddedPdf=0;
+  let maxRenderedPdfScale=0;
   host.pdfjsLib={
     GlobalWorkerOptions:{},
     getDocument:()=>({promise:Promise.resolve({
       numPages:2,
       getPage:async()=>({
-        getViewport:({scale})=>({width:595*scale,height:842*scale}),
+        getViewport:({scale})=>{maxRenderedPdfScale=Math.max(scale,maxRenderedPdfScale);return {width:595*scale,height:842*scale};},
         render:()=>({promise:Promise.resolve()})
       }),
       destroy(){}
@@ -96,6 +97,9 @@ assert.equal(z.whole.w,442);
   await api.drawVector(pdfDoc,page,{degrees:x=>x},s,72/25.4,303*72/25.4);
   assert.equal(embeddedPdf,1);
   assert.equal(pdf,1,'PDF must draw as a source PDF page, not rasterized preview');
+  await api.drawForExport(ctx,s,300/25.4);
+  assert.ok(maxRenderedPdfScale>3,'300dpi image output must rerender imported PDF instead of scaling preview');
+  assert.equal(drawn,3,'image and PDF must both be composited in final raster export');
   api.removeSelected();
   assert.equal(api.layers.length,1);
   assert.deepEqual(plain(z.front),{x:229,y:3,w:210,h:297});
