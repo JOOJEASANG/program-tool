@@ -736,6 +736,7 @@
         frontBack:['2단 접지','2개 패널 펼침'],spread:['3단 접지','3개 패널 펼침']}}
     }[product];
     if(!data.options[state.coverMode])state.coverMode=product==='leaflet'?'spread':'front';
+    qa('input[name="coverMode"]').forEach(input=>{input.checked=input.value===state.coverMode;});
     document.querySelectorAll('[data-design-product]').forEach(button=>{
       const active=button.dataset.designProduct===product;
       button.classList.toggle('active',active);
