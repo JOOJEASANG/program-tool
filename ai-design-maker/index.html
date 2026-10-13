@@ -8,7 +8,7 @@
   <meta name="robots" content="noindex,nofollow">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
-  <link rel="stylesheet" href="/css/ai-design-maker.css?v=20261013-3">
+  <link rel="stylesheet" href="/css/ai-design-maker.css?v=20261013-2">
   <link rel="stylesheet" href="/css/program-manual-home-modal.css?v=20260918-1">
 </head>
 <body>
@@ -115,46 +115,6 @@
             </div>
             <label class="switch-row" id="wingToggleRow"><input id="wingEnabled" type="checkbox"><span class="switch-ui"></span><span><strong>날개 사용</strong><small>책날개가 있는 표지만 켜세요.</small></span></label>
             <label class="field" id="wingField" hidden><span>날개 폭 <em>mm</em></span><input id="wingW" type="number" min="20" max="300" step="0.1" value="70"></label>
-            <section class="professional-spec" data-product-options="flyer" hidden aria-labelledby="flyerOptionsTitle">
-              <header><strong id="flyerOptionsTitle">전단지 제작 설정</strong><small>한 장짜리 홍보물 · 양면 인쇄</small></header>
-              <div class="professional-fields">
-                <label class="field"><span>인쇄 규격</span><select id="flyerFormat">
-                  <option value="a4">A4 · 210×297mm</option><option value="a5">A5 · 148×210mm</option>
-                  <option value="b5">B5 · 182×257mm</option><option value="a3">A3 · 297×420mm</option>
-                  <option value="poster">홍보 포스터 · 330×480mm</option><option value="custom">사용자 지정</option>
-                </select></label>
-                <label class="field"><span>방향</span><select id="flyerOrientation"><option value="portrait">세로형</option><option value="landscape">가로형</option></select></label>
-                <label class="field"><span>디자인 용도</span><select id="flyerPurpose"><option value="promotion">홍보·광고</option><option value="event">행사 안내</option><option value="menu">메뉴·가격표</option><option value="recruitment">모집·안내</option></select></label>
-                <label class="field"><span>용지 종류</span><select id="flyerStock"><option value="art150">아트지 150g</option><option value="art200">아트지 200g</option><option value="matte150">스노우지 150g</option><option value="uncoated100">백상지 100g</option><option value="custom">인쇄소 별도 지정</option></select></label>
-              </div>
-              <p>전단지 미리보기는 실제 단면 비율로 표시되며 양면 작업 시 두 면이 구분됩니다. 재단선·도련·안전영역은 미리보기 전용 안내선입니다.</p>
-            </section>
-            <section class="professional-spec" data-product-options="invitation" hidden aria-labelledby="invitationOptionsTitle">
-              <header><strong id="invitationOptionsTitle">초대장 제작 설정</strong><small>가로·세로 / 접는 위치 직접 조절</small></header>
-              <div class="professional-fields">
-                <label class="field"><span>완성 규격</span><select id="invitationFormat"><option value="a5">A5 · 148×210mm (한 면)</option><option value="a6">A6 · 105×148mm</option><option value="square">정사각 · 150×150mm</option><option value="dl">DL · 100×210mm</option><option value="custom">사용자 지정</option></select></label>
-                <label class="field"><span>방향</span><select id="invitationOrientation"><option value="portrait">세로형</option><option value="landscape">가로형</option></select></label>
-                <label class="field"><span>제작 형태</span><select id="invitationFoldType"><option value="folded">2단 접이식 초대장</option><option value="flat">단면·양면 카드 (접지 없음)</option></select></label>
-                <label class="field" id="invitationFoldPositionField"><span>왼쪽 기준 접는 위치 <em>mm</em></span><input id="invitationFoldPosition" type="number" min="25" max="1000" step="0.1" value="148"></label>
-              </div>
-              <div class="print-face-switch" id="invitationSidePicker">
-                <a href="/ai-design-maker/?studio=invitation&side=outside" data-invitation-side="outside">접이식 겉면</a>
-                <a href="/ai-design-maker/?studio=invitation&side=inside" data-invitation-side="inside">접이식 안쪽면</a>
-              </div>
-              <p>접이식은 펼친 종이의 왼쪽에서 접는 위치를 지정합니다. 가운데가 아닌 비대칭 접지도 가능하며 겉면·안쪽면을 별도로 저장하고 인쇄합니다.</p>
-            </section>
-            <section class="professional-spec" data-product-options="leaflet" hidden aria-labelledby="leafletOptionsTitle">
-              <header><strong id="leafletOptionsTitle">리플렛 제작 설정</strong><small>접지 방식 · 패널별 실제 폭</small></header>
-              <div class="professional-fields">
-                <label class="field"><span>펼친 종이</span><select id="leafletFormat"><option value="a4">A4 가로 · 297×210mm</option><option value="a3">A3 가로 · 420×297mm</option><option value="custom">패널별 직접 입력</option></select></label>
-                <label class="field"><span>접지 방식</span><select id="leafletFoldType"><option value="roll-left">3단 말아접기 · 왼쪽 안으로</option><option value="roll-right">3단 말아접기 · 오른쪽 안으로</option><option value="accordion">3단 병풍접기 · 지그재그</option></select></label>
-                <label class="field"><span>왼쪽 패널 <em>mm</em></span><input id="leafletPanelLeft" type="number" min="50" max="500" step="0.1" value="98"></label>
-                <label class="field"><span>가운데 패널 <em>mm</em></span><input id="leafletPanelCenter" type="number" min="50" max="500" step="0.1" value="99.5"></label>
-                <label class="field"><span>오른쪽 패널 <em>mm</em></span><input id="leafletPanelRight" type="number" min="50" max="500" step="0.1" value="99.5"></label>
-              </div>
-              <p>펼침 미리보기에 두 개의 접는선과 세 패널을 개별 폭으로 표시합니다. 말아접기는 안으로 들어가는 패널 폭을 작게 잡을 수 있습니다. 인쇄소 접지 공차를 우선 확인하세요.</p>
-            </section>
-            <div class="product-live-measure" id="productLiveMeasure" hidden aria-live="polite"></div>
             <div class="hint-card" id="geometryHint"></div>
           </div>
         </details>
@@ -412,8 +372,6 @@
             <span class="legend legend-compact"><i class="blue"></i>재단 <i class="green"></i>안전 <i class="red"></i>책등</span>
           </div>
         </div>
-
-        <div class="product-canvas-banner" id="productCanvasBanner" hidden><strong id="productCanvasTitle"></strong><span id="productCanvasSubtitle"></span></div>
 
         <section class="preview-card">
           <div class="canvas-scroll" id="canvasScroll">
@@ -691,12 +649,10 @@
   <script defer src="/js/firebase-config.js"></script>
   <script defer src="/js/program-manuals/home-modal.js?v=20260918-1"></script>
   <script defer src="/js/program-sidebar-actions.js?v=20260918-2"></script>
-  <script defer src="/js/design-product-geometry.js?v=20261013-3"></script>
-  <script defer src="/js/design-professional-controls.js?v=20261013-3"></script>
-  <script defer src="/js/design-workshop-modes.js?v=20261013-3"></script>
+  <script defer src="/js/design-workshop-modes.js?v=20261013-2"></script>
   <script defer src="/js/design-duplex-output.js?v=20261013-2"></script>
-  <script defer src="/js/design-workspace-layers.js?v=20261013-3"></script>
+  <script defer src="/js/design-workspace-layers.js?v=20261013-1"></script>
   <script defer src="/js/ai-design-print-export.js?v=20261013-1"></script>
-  <script defer src="/js/ai-design-maker.js?v=20261013-3"></script>
+  <script defer src="/js/ai-design-maker.js?v=20261013-2"></script>
 </body>
 </html>
