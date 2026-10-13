@@ -726,6 +726,16 @@
       }
     }
   }
+  function hasValidSpineGeometry(){
+    if(state.productType!=='cover'||state.coverMode!=='spread'||state.spineCalculationMode!=='auto')return true;
+    const spine=$('spine');
+    return Boolean(spine?.value)&&Number.isFinite(Number(spine.value))&&Number(spine.value)>=0&&Number(spine.value)<=100;
+  }
+  function rejectInvalidSpine(){
+    if(hasValidSpineGeometry())return false;
+    setStatus('책등 자동 계산값을 확인해 주세요.','페이지 수·종이 두께·제본 보정값이 올바르지 않습니다. 값을 수정하거나 직접 mm 입력으로 전환한 뒤 다시 진행하세요.','error');
+    return true;
+  }
   function selectSpineMode(mode) {
     if(state.spineCalculationMode==='manual')state.spineManualValue=clamp($('spine')?.value,0,100,10);
     state.spineCalculationMode=mode==='manual'?'manual':'auto';
@@ -917,7 +927,7 @@
     if(spec.coverMode==='spread'&&state.productType==='cover')updateSpinePolicy();
     updateProgress();
     const stale = Boolean(state.background && state.generatedSpecKey && state.generatedSpecKey !== specKey(spec));
-    if ($('exportBtn')) $('exportBtn').disabled = (!state.background && !window.DesignWorkspaceLayers?.hasLayers()) || stale;
+    if ($('exportBtn')) $('exportBtn').disabled = (!state.background && !window.DesignWorkspaceLayers?.hasLayers()) || stale || !hasValidSpineGeometry();
     window.DesignWorkspaceLayers?.updateReview?.();
     if (stale) setStatus('규격이 변경되었습니다.','현재 규격에 맞게 AI 배경을 다시 생성하거나 직접 만든 표지 이미지를 다시 불러와 주세요.','busy');
   }
@@ -1949,6 +1959,7 @@
     node.value=next;saveLocal();node.focus();
   }
   async function generate(){
+    if(rejectInvalidSpine())return;
     const spec=currentSpec(),ratio=spec.workW/spec.workH;
     if(ratio<1/3||ratio>3){setStatus('현재 표지 비율을 생성할 수 없습니다.','완성 규격·책등·날개 폭을 확인해 주세요.','error');return;}
     const requested=Number($('variantCount')?.value)||1,count=[1,2,4].includes(requested)?requested:1;
@@ -2027,6 +2038,7 @@
   }
 
   async function exportPng(){
+    if(rejectInvalidSpine())return;
     if(!state.background&&!window.DesignWorkspaceLayers?.hasLayers()){setStatus('작업물이 없습니다.','AI 배경을 생성하거나 PDF·이미지 파일을 배치해 주세요.','error');return;}
     const spec=currentSpec();
     if(state.background&&state.generatedSpecKey!==specKey(spec)){setStatus('규격이 변경되었습니다.','현재 규격으로 AI 배경을 다시 생성하거나 직접 만든 표지 이미지를 다시 불러온 뒤 저장해 주세요.','error');return;}
@@ -2083,6 +2095,7 @@
   }
 
   async function exportPdf(vector=true){
+    if(rejectInvalidSpine())return;
     if(!state.background&&!window.DesignWorkspaceLayers?.hasLayers()){setStatus('작업물이 없습니다.','AI 배경을 생성하거나 PDF·이미지 파일을 배치해 주세요.','error');return;}
     const spec=currentSpec();
     if(state.background&&state.generatedSpecKey!==specKey(spec)){setStatus('규격이 변경되었습니다.','현재 규격으로 AI 배경을 다시 생성하거나 직접 만든 표지 이미지를 다시 불러온 뒤 저장해 주세요.','error');return;}
@@ -2100,7 +2113,8 @@
         pdf=pdfFromJpeg(new Uint8Array(await jpegBlob.arrayBuffer()),w,h,spec.workW*72/25.4,spec.workH*72/25.4);
       }
       const url=URL.createObjectURL(pdf),a=document.createElement('a');
-      const baseName=spec.coverMode==='front'?'front-cover-'+spec.trimW+'x'+spec.trimH
+      const baseName=spec.productType!=='cover'?spec.productType+'-'+(state.designFace==='inside'?'inside-':'outside-')+spec.trimW+'x'+spec.trimH+'-'+spec.coverMode
+        :spec.coverMode==='front'?'front-cover-'+spec.trimW+'x'+spec.trimH
         :spec.coverMode==='back'?'back-cover-'+spec.trimW+'x'+spec.trimH
         :spec.coverMode==='frontBack'?'front-back-covers-'+spec.trimW+'x'+spec.trimH
         :'cover-'+spec.trimW+'x'+spec.trimH+'-spine-'+spec.spine+'mm';
@@ -2538,6 +2552,12 @@
     }
     try{
       const restored=JSON.parse(privateData.stateJson);
+      const savedProduct=PRODUCT_TYPES.has(restored.productType)?restored.productType:'cover';
+      const savedFace=restored.designFace==='inside'?'inside':'outside';
+      if(savedProduct!==state.productType||((savedProduct==='invitation'||savedProduct==='leaflet')&&savedFace!==state.designFace)){
+        setStatus('다른 종류의 디자인입니다.','저장된 디자인은 '+({cover:'책표지',flyer:'전단지',invitation:'초대장',leaflet:'리플렛'}[savedProduct]||'표지')+' 작업실'+(savedFace==='inside'?' 안쪽면':' 겉면')+'에서 열어 주세요. 현재 편집 중인 작업은 변경하지 않았습니다.','error');
+        return;
+      }
       localStorage.setItem(STORAGE_KEY,JSON.stringify(restored));
       state.textLayouts={};state.shapes=[];state.groups={};state.customFields=[];
       loadLocal();
