@@ -152,16 +152,6 @@
   };
 
   const PRODUCT_TYPES = new Set(['cover','flyer','invitation','leaflet']);
-  const PRODUCT_ROUTES = Object.freeze({
-    cover:'/ai-design-maker/?product=cover',
-    flyer:'/ai-design-maker/?product=flyer',
-    invitation:'/ai-design-maker/?product=invitation',
-    leaflet:'/ai-design-maker/?product=leaflet'
-  });
-  const FOLDED_FACE_ROUTES = Object.freeze({
-    invitation:Object.freeze({inside:'/ai-design-maker/?product=invitation&face=inside',outside:'/ai-design-maker/?product=invitation&face=outside'}),
-    leaflet:Object.freeze({inside:'/ai-design-maker/?product=leaflet&face=inside',outside:'/ai-design-maker/?product=leaflet&face=outside'})
-  });
   if(!PRODUCT_TYPES.has(state.productType))state.productType='cover';
   if(state.productType==='flyer'||state.productType==='invitation')state.coverMode='front';
   if(state.productType==='leaflet')state.coverMode='spread';
@@ -754,7 +744,7 @@
   function syncProductWorkspace(){
     const product=state.productType;
     document.documentElement.dataset.designProduct=product;
-    const data={
+    const variants={
       cover:{name:'책표지',info:'앞·뒤표지·책등·날개를 편집하는 책표지 전용 작업실입니다.',scope:'제작 범위',spec:'완성 크기와 책등',options:{
         front:['앞표지 디자인','앞표지 한 면만 작업'],back:['뒷표지 디자인','뒷표지 한 면만 작업'],
         frontBack:['앞·뒤표지 동시','책등 없는 양면 펼침'],spread:['전체 펼침 디자인','뒤표지 + 책등 + 앞표지']}},
@@ -764,7 +754,8 @@
         front:['단면 초대장','한 장짜리 카드'],frontBack:['2단 접이식','뒷면 + 앞면 접지']}},
       leaflet:{name:'리플렛',info:'2단·3단 리플렛의 겉면과 안쪽면을 따로 제작합니다. 접지선과 패널별 디자인을 확인하세요.',scope:'리플렛 접지 구성',spec:'패널 1개 가로·세로 크기',options:{
         frontBack:['2단 접지','2개 패널 펼침'],spread:['3단 접지','3개 패널 펼침']}}
-    }[product];
+    };
+    const data=product==='cover'?variants.cover:product==='flyer'?variants.flyer:product==='invitation'?variants.invitation:variants.leaflet;
     if(!data.options[state.coverMode])state.coverMode=product==='leaflet'?'spread':'front';
     qa('input[name="coverMode"]').forEach(input=>{input.checked=input.value===state.coverMode;});
     document.querySelectorAll('[data-design-product]').forEach(button=>{
@@ -784,7 +775,8 @@
     if($('coverScopeTitle'))$('coverScopeTitle').textContent=data.scope;
     if($('productSpecDescription'))$('productSpecDescription').textContent=data.spec;
     document.querySelectorAll('[data-scope-mode]').forEach(label=>{
-      const item=data.options[label.dataset.scopeMode];
+      const mode=label.dataset.scopeMode;
+      const item=mode==='front'?data.options.front:mode==='back'?data.options.back:mode==='frontBack'?data.options.frontBack:data.options.spread;
       label.hidden=!item;
       if(item){label.querySelector('strong').textContent=item[0];label.querySelector('small').textContent=item[1];}
     });
@@ -2565,7 +2557,7 @@
       const savedProduct=PRODUCT_TYPES.has(restored.productType)?restored.productType:'cover';
       const savedFace=restored.designFace==='inside'?'inside':'outside';
       if(savedProduct!==state.productType||((savedProduct==='invitation'||savedProduct==='leaflet')&&savedFace!==state.designFace)){
-        setStatus('다른 종류의 디자인입니다.','저장된 디자인은 '+({cover:'책표지',flyer:'전단지',invitation:'초대장',leaflet:'리플렛'}[savedProduct]||'표지')+' 작업실'+(savedFace==='inside'?' 안쪽면':' 겉면')+'에서 열어 주세요. 현재 편집 중인 작업은 변경하지 않았습니다.','error');
+        setStatus('다른 종류의 디자인입니다.','저장된 디자인은 '+(savedProduct==='cover'?'책표지':savedProduct==='flyer'?'전단지':savedProduct==='invitation'?'초대장':'리플렛')+' 작업실'+(savedFace==='inside'?' 안쪽면':' 겉면')+'에서 열어 주세요. 현재 편집 중인 작업은 변경하지 않았습니다.','error');
         return;
       }
       localStorage.setItem(STORAGE_KEY,JSON.stringify(restored));
@@ -2732,7 +2724,7 @@
       $('trimW').value='99';$('trimH').value='210';state.sizeMode='custom';
     }
     loadLocal();syncSpineCalculator();syncProductWorkspace();setupPresetCards();syncCoverMode();syncSizeMode();syncGenerationQuality();syncSpineTitle();renderCustomFields();syncPromptLanguageUi(false);syncGlobalCmykFromHex('primaryColor');syncGlobalCmykFromHex('textColor');syncTextEditUi();syncExportButton();
-    if(!$('stylePrompt').value)$('stylePrompt').value=PRODUCT_DEFAULT_PROMPTS[state.productType]||presetPrompt();
+    if(!$('stylePrompt').value)$('stylePrompt').value=state.productType==='flyer'?PRODUCT_DEFAULT_PROMPTS.flyer:state.productType==='invitation'?PRODUCT_DEFAULT_PROMPTS.invitation:state.productType==='leaflet'?PRODUCT_DEFAULT_PROMPTS.leaflet:presetPrompt();
     qa('[data-ai-refine]').forEach(button=>button.addEventListener('click',()=>addAiRefinement(button.dataset.aiRefine||'')));
     $('variantCount')?.addEventListener('change',saveLocal);
     qa('.size-chip').forEach(button=>button.addEventListener('click',()=>{
@@ -2749,16 +2741,22 @@
       if(!PRODUCT_TYPES.has(target)||target===state.productType)return;
       if((state.background||window.DesignWorkspaceLayers?.hasLayers())&&!confirm('현재 작업의 AI 배경 및 업로드 파일은 작업실 전환 시 사라집니다. 완성 파일을 먼저 저장했나요?'))return;
       saveLocal();
-      const destination=PRODUCT_ROUTES[target];
-      if(destination)location.assign(destination);
+      const destination=target==='cover'?'/ai-design-maker/?product=cover'
+        :target==='flyer'?'/ai-design-maker/?product=flyer'
+        :target==='invitation'?'/ai-design-maker/?product=invitation'
+        :'/ai-design-maker/?product=leaflet';
+      location.assign(destination);
     }));
     qa('[data-print-face]').forEach(button=>button.addEventListener('click',()=>{
       const target=button.dataset.printFace;
       if(!['inside','outside'].includes(target)||target===state.designFace)return;
       if((state.background||window.DesignWorkspaceLayers?.hasLayers())&&!confirm('작업면 전환 시 현재 AI 배경과 업로드 파일이 사라집니다. PDF·PNG를 먼저 저장했나요?'))return;
       saveLocal();
-      const destination=FOLDED_FACE_ROUTES[state.productType]?.[target];
-      if(destination)location.assign(destination);
+      if(state.productType!=='invitation'&&state.productType!=='leaflet')return;
+      const destination=state.productType==='invitation'
+        ?(target==='inside'?'/ai-design-maker/?product=invitation&face=inside':'/ai-design-maker/?product=invitation&face=outside')
+        :(target==='inside'?'/ai-design-maker/?product=leaflet&face=inside':'/ai-design-maker/?product=leaflet&face=outside');
+      location.assign(destination);
     }));
     qa('input[name="spineInputMode"]').forEach(input=>input.addEventListener('change',()=>selectSpineMode(input.value)));
     ['spinePageCount','spinePaperThickness','spineBindingAllowance'].forEach(id=>$(id)?.addEventListener('input',()=>{
