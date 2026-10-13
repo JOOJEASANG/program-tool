@@ -2119,6 +2119,8 @@
         presetId:String(state.preset||'').slice(0,80),
         presetName:String(state.lastGeneratedPresetName||PRESETS[state.preset]?.name||'').slice(0,120),
         coverMode:spec.coverMode,
+        workshop:WORKSHOP,
+        leafletSide:LEAFLET_SIDE,
         qualityMode:state.generationQuality,
         trimWidth:spec.trimW,
         trimHeight:spec.trimH,
@@ -2139,6 +2141,8 @@
         presetId:String(state.preset||'').slice(0,80),
         presetName:String(state.lastGeneratedPresetName||PRESETS[state.preset]?.name||'').slice(0,120),
         coverMode:spec.coverMode,
+        workshop:WORKSHOP,
+        leafletSide:LEAFLET_SIDE,
         qualityMode:state.generationQuality,
         trimWidth:spec.trimW,
         trimHeight:spec.trimH,
@@ -2227,7 +2231,10 @@
     if(!root)return;
     syncGalleryScopeUi();
     const needle=String(query||'').trim().toLowerCase();
-    const visible=state.galleryItems.filter(item=>state.galleryScope==='mine'?item.isOwner:item.visibility==='public');
+    const visible=state.galleryItems.filter(item=>{
+      const belongs=(item.workshop||'cover')===WORKSHOP&&(WORKSHOP!=='leaflet'||(item.leafletSide||'outside')===LEAFLET_SIDE);
+      return belongs&&(state.galleryScope==='mine'?item.isOwner:item.visibility==='public');
+    });
     const items=visible.filter(item=>{
       const hay=[
         state.galleryScope==='mine'?item.privateTitle:'',
@@ -2299,6 +2306,8 @@
       return {
         ...data,
         visibility:'public',
+        workshop:privateData?.workshop||data.workshop||'cover',
+        leafletSide:privateData?.leafletSide||data.leafletSide||'outside',
         isOwner:own,
         privateTitle:privateData?.title||'',
         stateJson:privateData?.stateJson||'',
@@ -2311,6 +2320,8 @@
     const privateItems=[...privateMap.values()].map(privateData=>({
       ...privateData,
       visibility:'private',
+      workshop:privateData.workshop||'cover',
+      leafletSide:privateData.leafletSide||'outside',
       isOwner:true,
       privateTitle:privateData.title||'',
       ownerImagePath:privateData.imagePath||'',
@@ -2403,6 +2414,11 @@
       const snap=await window.db.collection('users').doc(user.uid).collection('ai_design_gallery').doc(item.id).get();
       if(snap.exists)privateData={...item,...snap.data()};
     }
+    if((privateData.workshop||'cover')!==WORKSHOP||
+       (WORKSHOP==='leaflet'&&(privateData.leafletSide||'outside')!==LEAFLET_SIDE)){
+      setStatus('다른 작업실의 디자인입니다.','해당 디자인의 제품 종류 및 리플렛 면을 선택한 뒤 불러오세요.','error');
+      return;
+    }
     if(!privateData.stateJson){
       applySharedGallerySettings(item);
       setStatus('이전 저장 기록의 디자인 설정을 불러왔습니다.','이 디자인은 전체 편집 설정 저장 기능이 추가되기 전에 저장되어 요청 설정만 적용했습니다.','ok');
@@ -2413,6 +2429,7 @@
       localStorage.setItem(STORAGE_KEY,JSON.stringify(restored));
       state.textLayouts={};state.shapes=[];state.groups={};state.customFields=[];
       loadLocal();
+      window.DesignWorkshopModes?.refresh?.();
       state.background=null;state.backgroundUrl='';state.backgroundSource='';state.generatedSpecKey='';
       state.logo=null;
       if($('logoInput'))$('logoInput').value='';
