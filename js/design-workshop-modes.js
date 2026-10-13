@@ -65,9 +65,9 @@
     if(studio!=='cover'){
       // The pre-existing print/editor engines remain shared, but product presets,
       // tools and saved settings differ by workspace.
-      ctx.state.coverMode=config.mode;
-      ctx.state.sizeMode='custom';
-      if(config.size&&$('trimW')&&$('trimH')) {
+      if(!ctx.hasSavedWorkspace)ctx.state.coverMode=config.mode;
+      if(!ctx.hasSavedWorkspace)ctx.state.sizeMode='custom';
+      if(!ctx.hasSavedWorkspace&&config.size&&$('trimW')&&$('trimH')) {
         $('trimW').value=config.size[0];$('trimH').value=config.size[1];
       }
       if($('wingEnabled'))$('wingEnabled').checked=false;
@@ -90,8 +90,7 @@
         if(label&&studio==='leaflet')label.hidden=node.value!=='spread';
         const strong=label?.querySelector('strong');if(strong)strong.textContent=labels[studio][index];
       });
-      // Leaflet uses the existing 3-zone full spread with equal 99mm panels.
-      // To work on the reverse, save/export one side then start a new side.
+      // Leaflet uses three equal panels; inside and outside have separate session state.
       if(studio==='leaflet'){
         if($('spineFields'))$('spineFields').hidden=true;
         const side=new URLSearchParams(location.search).get('side')==='inside'?'inside':'outside';
