@@ -1894,6 +1894,15 @@
     setStatus('300dpi PNG를 만들고 있습니다.','배경·문구·책등·로고'+($('cropMarkToggle')?.checked?'·재단선':'')+'을 실제 인쇄 크기로 합성하는 중입니다.','busy');
     try{
       const {canvas}=await buildExportCanvas();
+      const duplex=(WORKSHOP==='flyer'||WORKSHOP==='invitation')&&spec.coverMode==='frontBack';
+      if(duplex){
+        const zip=await window.DesignDuplexOutput.pngZip(canvas,spec,blob=>withPngDpi(blob,EXPORT_DPI));
+        const url=URL.createObjectURL(zip),link=document.createElement('a');
+        link.href=url;link.download=WORKSHOP+'-duplex-300dpi.zip';link.click();
+        setTimeout(()=>URL.revokeObjectURL(url),4000);
+        setStatus('양면 PNG 저장 완료','앞면과 뒷면을 각각 300dpi PNG로 나눠 ZIP 파일에 저장했습니다.','ok');
+        return;
+      }
       const raw=await canvasBlob(canvas),png=await withPngDpi(raw,EXPORT_DPI),url=URL.createObjectURL(png),a=document.createElement('a');
       const baseName=WORKSHOP!=='cover'?(WORKSHOP+(WORKSHOP==='leaflet'?'-'+LEAFLET_SIDE:'')+'-'+spec.workW+'x'+spec.workH)
         :spec.coverMode==='front'?'front-cover-'+spec.trimW+'x'+spec.trimH
@@ -1959,6 +1968,9 @@
         const jpegBlob=await new Promise((resolve,reject)=>canvas.toBlob(blob=>blob?resolve(blob):reject(new Error('PDF용 이미지 데이터를 만들지 못했습니다.')),'image/jpeg',.98));
         pdf=pdfFromJpeg(new Uint8Array(await jpegBlob.arrayBuffer()),w,h,spec.workW*72/25.4,spec.workH*72/25.4);
       }
+      if((WORKSHOP==='flyer'||WORKSHOP==='invitation')&&spec.coverMode==='frontBack'){
+        pdf=await window.DesignDuplexOutput.splitPdf(pdf,spec);
+      }
       const url=URL.createObjectURL(pdf),a=document.createElement('a');
       const baseName=WORKSHOP!=='cover'?(WORKSHOP+(WORKSHOP==='leaflet'?'-'+LEAFLET_SIDE:'')+'-'+spec.workW+'x'+spec.workH)
         :spec.coverMode==='front'?'front-cover-'+spec.trimW+'x'+spec.trimH
@@ -1970,7 +1982,7 @@
         :spec.coverMode==='back'?'뒷표지 실제 규격의 인쇄용 PDF로 저장했습니다.'
         :spec.coverMode==='frontBack'?'앞·뒤표지 동시 작업 규격의 인쇄용 PDF로 저장했습니다.'
         :'전체 펼침 실제 규격의 인쇄용 PDF로 저장했습니다.';
-      setStatus('PDF 저장 완료',savedText,'ok');
+      setStatus('PDF 저장 완료',(WORKSHOP==='flyer'||WORKSHOP==='invitation')&&spec.coverMode==='frontBack'?'앞면·뒷면을 인쇄용 PDF 두 페이지로 저장했습니다.':savedText,'ok');
     }catch(error){setStatus('PDF 저장 실패',error.message||'PDF 저장 중 오류가 발생했습니다.','error');}
     finally{button.disabled=false;}
   }
