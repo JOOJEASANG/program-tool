@@ -1035,18 +1035,18 @@
 
     const frontCustom=modeHasFront(spec.coverMode)?v.customFields.filter(item=>item.surface!=='back'):[];
     const backCustom=modeHasBack(spec.coverMode)?v.customFields.filter(item=>item.surface==='back'):[];
-    const addCustomEntries=(entries,surface,x,startY,areaH)=>{
+    const addCustomEntries=(entries,surface,x,startY,areaH,availableW=contentW)=>{
       const step=entries.length?Math.min(th*.075,areaH/entries.length):0;
       entries.forEach((entry,index)=>{
         const text=String(entry.value||'').trim();
-        add({id:'custom:'+entry.id,surface,text,x:x+safe,y:startY+index*step,w:contentW*.72,h:Math.max(th*.052,step*.95),fontPt:12,weight:700,align:'left'});
+        add({id:'custom:'+entry.id,surface,text,x:x+safe,y:startY+index*step,w:availableW*.72,h:Math.max(th*.052,step*.95),fontPt:12,weight:700,align:'left'});
       });
     };
     if(modeHasFront(spec.coverMode))addCustomEntries(frontCustom,'front',frontX,b+th*.60,th*.30);
 
     if(modeHasBack(spec.coverMode)){
       add({id:'backText',surface:'back',text:v.backText,x:(backPanel?backPanel.x*scale:backX)+safe,y:b+th*.16,w:backContentW*.82,h:th*.48,fontPt:14,weight:650,align:'left'});
-      addCustomEntries(backCustom,'back',backX,b+th*.70,th*.22);
+      addCustomEntries(backCustom,'back',backPanel?backPanel.x*scale:backX,b+th*.70,th*.22,backContentW);
     }
 
     if(WORKSHOP==='cover'&&modeHasSpine(spec.coverMode)&&spec.spine>=4){
@@ -2251,7 +2251,7 @@
     syncGalleryScopeUi();
     const needle=String(query||'').trim().toLowerCase();
     const visible=state.galleryItems.filter(item=>{
-      const belongs=(item.workshop||'cover')===WORKSHOP&&(WORKSHOP!=='leaflet'||(item.leafletSide||'outside')===LEAFLET_SIDE);
+      const belongs=(item.workshop||'cover')===WORKSHOP&&((WORKSHOP!=='leaflet'&&WORKSHOP!=='invitation')||(item.leafletSide||'outside')===LEAFLET_SIDE);
       return belongs&&(state.galleryScope==='mine'?item.isOwner:item.visibility==='public');
     });
     const items=visible.filter(item=>{
@@ -2434,7 +2434,7 @@
       if(snap.exists)privateData={...item,...snap.data()};
     }
     if((privateData.workshop||'cover')!==WORKSHOP||
-       (WORKSHOP==='leaflet'&&(privateData.leafletSide||'outside')!==LEAFLET_SIDE)){
+       ((WORKSHOP==='leaflet'||WORKSHOP==='invitation')&&(privateData.leafletSide||'outside')!==LEAFLET_SIDE)){
       setStatus('다른 작업실의 디자인입니다.','해당 디자인의 제품 종류 및 리플렛 면을 선택한 뒤 불러오세요.','error');
       return;
     }
