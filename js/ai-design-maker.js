@@ -7,7 +7,10 @@
 
   const EXPORT_DPI = 300;
   const MAX_EXPORT_PIXELS = 60_000_000;
-  const STORAGE_KEY_PREFIX = 'program-studio:ai-design-maker:cover:v2';
+  const WORKSHOP_ID = new URLSearchParams(location.search).get('studio') || 'cover';
+  const WORKSHOP = ['cover','flyer','invitation','leaflet'].includes(WORKSHOP_ID)?WORKSHOP_ID:'cover';
+  const LEAFLET_SIDE = new URLSearchParams(location.search).get('side')==='inside'?'inside':'outside';
+  const STORAGE_KEY_PREFIX = 'program-studio:ai-design-maker:'+WORKSHOP+(WORKSHOP==='leaflet'?':'+LEAFLET_SIDE:'')+':v2';
   const LEGACY_STORAGE_KEY = 'program-studio:ai-design-maker:cover:v1';
   let STORAGE_KEY = '';
   const TEXT_LAYOUT_SCHEMA_VERSION = 5;
@@ -336,7 +339,7 @@
     const bleed = clamp(num('bleed', 3), 0, 20, 3);
     const safe = clamp(num('safeZone', 10), 0, 80, 10);
     const spread=coverMode==='spread';
-    const spine = spread ? clamp(num('spine', 10), 0, 100, 10) : 0;
+    const spine = spread ? (WORKSHOP==='leaflet'?trimW:clamp(num('spine', 10), 0, 100, 10)) : 0;
     const wing = spread && $('wingEnabled')?.checked ? clamp(num('wingW', 70), 20, 300, 70) : 0;
     const workW=isSingleCoverMode(coverMode)
       ? trimW + bleed * 2
@@ -366,11 +369,12 @@
   }
 
   function serializableState() {
-    const ids = ['trimW','trimH','spine','bleed','safeZone','wingW','title','backText','spineTop','spineMiddle','spineBottom','spineTopPlacement','spineMiddlePlacement','spineBottomPlacement','spineOrientation','visualMode','colorIntensity','designMood','primaryColor','textColor','theme','stylePrompt','imageModel','additionalPrompt','targetAudience','titleSpace','variantCount'];
+    const ids = ['trimW','trimH','spine','spinePages','spineSheetThickness','spineAllowance','bleed','safeZone','wingW','title','backText','spineTop','spineMiddle','spineBottom','spineTopPlacement','spineMiddlePlacement','spineBottomPlacement','spineOrientation','visualMode','colorIntensity','designMood','primaryColor','textColor','theme','stylePrompt','imageModel','additionalPrompt','targetAudience','titleSpace','variantCount'];
     const data = {
       preset: state.preset,
       wingEnabled: Boolean($('wingEnabled')?.checked),
       spineSync: Boolean($('spineSync')?.checked),
+      spineCalcMode:document.querySelector('input[name="spineCalcMode"]:checked')?.value||'auto',
       promptLanguage: state.promptLanguage,
       customFields: state.customFields,
       textLayouts: state.textLayouts,
@@ -408,6 +412,8 @@
       if ($('imageModel') && !$('imageModel').value) $('imageModel').value='gpt-image-2';
       if (typeof data.wingEnabled === 'boolean') $('wingEnabled').checked = data.wingEnabled;
       if (typeof data.spineSync === 'boolean') $('spineSync').checked = data.spineSync;
+      const mode=data.spineCalcMode||(data.spine!==undefined?'manual':'auto');
+      qa('input[name="spineCalcMode"]').forEach(el=>el.checked===false&&el.value===mode?el.checked=true:null);
       if (!String($('spineMiddle')?.value || '').trim() && String(data.spineTitle || '').trim() && $('spineMiddle')) {
         $('spineMiddle').value = String(data.spineTitle).slice(0,180);
       }
@@ -489,6 +495,7 @@
 
   function loadSessionNow() {
     loadLocal();
+    window.DesignWorkshopModes?.refresh?.();
     setupPresetCards();
     syncCoverMode();
     syncSizeMode();
@@ -690,8 +697,9 @@
       frontBack:['앞·뒤표지 동시 제작','책등 없이 뒷표지와 앞표지를 나란히 놓고 한 번에 디자인합니다.','앞·뒤표지 동시 미리보기','앞·뒤표지 2면이 나란히 구성된 이미지를 불러오면 전체 작업 영역을 꽉 채워 배치합니다.'],
       spread:['표지 전체 펼침 제작','앞표지·책등·뒤표지를 한 번에 제작합니다. 규격과 스타일만으로 배경을 생성할 수 있습니다. 문구는 선택 사항입니다.','전체 펼침 미리보기','직접 만든 전체 펼침 표지를 불러오면 바깥 적색선 전체 영역을 꽉 채워 배치합니다. 그 위에 문구를 자유롭게 편집할 수 있습니다.']
     }[state.coverMode];
-    if($('coverModeHeading'))$('coverModeHeading').textContent=copy[0];
-    if($('coverModeDescription'))$('coverModeDescription').textContent=copy[1];
+    if($('coverModeHeading'))$('coverModeHeading').textContent=WORKSHOP==='cover'?copy[0]:({flyer:'전단지 제작',invitation:'초대장 제작',leaflet:'3단 리플렛 제작'})[WORKSHOP];
+    if($('coverModeDescription'))$('coverModeDescription').textContent=WORKSHOP==='cover'?copy[1]:({flyer:'전단지 앞면·뒷면 및 양면 제작',invitation:'초대장 겉면·안쪽면 디자인',leaflet:'3단 리플렛 겉면/안쪽면 · 각 3패널 디자인'})[WORKSHOP];
+    if($('designDuplexNotice'))$('designDuplexNotice').hidden=!((WORKSHOP==='flyer'||WORKSHOP==='invitation')&&state.coverMode==='frontBack');
     if($('previewModeTitle'))$('previewModeTitle').textContent=copy[2];
     if($('backgroundModeHint'))$('backgroundModeHint').textContent=copy[3];
     syncWing();
@@ -778,19 +786,23 @@
     const spec = currentSpec();
     const wing = spec.wing ? ' · 날개 '+spec.wing.toFixed(1)+'mm×2' : '';
     const singleLabel=spec.coverMode==='back'?'뒷표지':'앞표지';
-    const text = isSingleCoverMode(spec.coverMode)
+    const text = WORKSHOP==='leaflet'
+      ? '리플렛 '+(LEAFLET_SIDE==='inside'?'안쪽면':'겉면')+' · '+spec.trimW.toFixed(1)+'mm × 3패널 · 도련 '+spec.bleed.toFixed(1)+'mm · 전체 '+spec.workW.toFixed(1)+'×'+spec.workH.toFixed(1)+'mm'
+      : isSingleCoverMode(spec.coverMode)
       ? singleLabel+' '+spec.trimW.toFixed(1)+'×'+spec.trimH.toFixed(1)+'mm · 도련 '+spec.bleed.toFixed(1)+'mm · 작업 '+spec.workW.toFixed(1)+'×'+spec.workH.toFixed(1)+'mm'
       : spec.coverMode==='frontBack'
         ? '앞·뒤표지 각 '+spec.trimW.toFixed(1)+'×'+spec.trimH.toFixed(1)+'mm · 도련 '+spec.bleed.toFixed(1)+'mm · 동시 작업 '+spec.workW.toFixed(1)+'×'+spec.workH.toFixed(1)+'mm'
         : '완성 '+spec.trimW.toFixed(1)+'×'+spec.trimH.toFixed(1)+'mm · 책등 '+spec.spine.toFixed(1)+'mm · 도련 '+spec.bleed.toFixed(1)+'mm'+wing+' · 전체 '+spec.workW.toFixed(1)+'×'+spec.workH.toFixed(1)+'mm';
-    const compact = isSingleCoverMode(spec.coverMode)
+    const compact = WORKSHOP==='leaflet'
+      ? '3단 리플렛 '+(LEAFLET_SIDE==='inside'?'안쪽면':'겉면')+' · '+spec.workW.toFixed(1)+'×'+spec.workH.toFixed(1)+'mm'
+      : isSingleCoverMode(spec.coverMode)
       ? spec.trimW.toFixed(1)+'×'+spec.trimH.toFixed(1)+'mm · '+singleLabel
       : spec.coverMode==='frontBack'
         ? spec.trimW.toFixed(1)+'×'+spec.trimH.toFixed(1)+'mm × 2 · 앞·뒤 동시'
         : spec.trimW.toFixed(1)+'×'+spec.trimH.toFixed(1)+'mm · 책등 '+spec.spine.toFixed(1)+'mm · 전체 '+spec.workW.toFixed(1)+'×'+spec.workH.toFixed(1)+'mm';
     if ($('geometryHint')) $('geometryHint').textContent = text;
     if ($('geometrySummary')) $('geometrySummary').textContent = compact;
-    if(spec.coverMode==='spread')updateSpinePolicy();
+    if(spec.coverMode==='spread'&&WORKSHOP==='cover')updateSpinePolicy();
     updateProgress();
     const stale = Boolean(state.background && state.generatedSpecKey && state.generatedSpecKey !== specKey(spec));
     if ($('exportBtn')) $('exportBtn').disabled = (!state.background && !window.DesignWorkspaceLayers?.hasLayers()) || stale;
@@ -857,10 +869,11 @@
         line(ctx,spineX+spineInset,b,spineX+spineInset,b+th,'rgba(22,163,74,.52)',[2,3]);
         line(ctx,frontX-spineInset,b,frontX-spineInset,b+th,'rgba(22,163,74,.52)',[2,3]);
       }
-      zone(ctx,'책등 '+spec.spine.toFixed(1)+'mm',spineX,b,sw,th);
+      zone(ctx,WORKSHOP==='leaflet'?'가운데 패널':('책등 '+spec.spine.toFixed(1)+'mm'),spineX,b,sw,th);
     }
     if(wing>0){line(ctx,backX,b,backX,b+th,'#f59e0b',[8,4]);line(ctx,frontWingX,b,frontWingX,b+th,'#f59e0b',[8,4]);zone(ctx,'뒷날개',b,b,wing,th);zone(ctx,'앞날개',frontWingX,b,wing,th);}
-    zone(ctx,'뒤표지',backX,b,tw,th);zone(ctx,'앞표지',frontX,b,tw,th);
+    zone(ctx,WORKSHOP==='leaflet'?'왼쪽 패널':'뒤표지',backX,b,tw,th);
+    zone(ctx,WORKSHOP==='leaflet'?'오른쪽 패널':'앞표지',frontX,b,tw,th);
   }
 
   function titlePt(text,trimW) {
@@ -1720,7 +1733,8 @@
       return (item.surface==='back'?'뒤표지':'앞표지')+' 추가 문구: '+value;
     }).filter(Boolean);
     return [
-      spec.coverMode==='front'?'표지 용도: 인쇄용 앞표지 단면'
+      WORKSHOP!=='cover'?'제작 종류: '+({flyer:'홍보용 전단지',invitation:'행사 초대장',leaflet:'3단 리플렛'})[WORKSHOP]+(WORKSHOP==='leaflet'?' / '+(LEAFLET_SIDE==='inside'?'안쪽면':'겉면')+' / 왼쪽·가운데·오른쪽 3패널':'')
+      :spec.coverMode==='front'?'표지 용도: 인쇄용 앞표지 단면'
         :spec.coverMode==='back'?'표지 용도: 인쇄용 뒷표지 단면'
         :spec.coverMode==='frontBack'?'표지 용도: 앞표지·뒷표지 동시 디자인'
         :'표지 용도: 인쇄용 책/보고서 전체 펼침 표지',
@@ -1736,10 +1750,11 @@
 
   function buildGenerationRequest(spec,prompt,index=null){
     return {
+          product_type:WORKSHOP,leaflet_side:LEAFLET_SIDE,
           cover_mode:backendCoverMode(spec.coverMode),quality_mode:state.generationQuality,trim_width_mm:spec.trimW,trim_height_mm:spec.trimH,spine_mm:spec.spine,wing_mm:spec.wing,bleed_mm:spec.bleed,
           preset_name:PRESETS[state.preset].name,
           model:$('imageModel')?.value||'gpt-image-2',
-          style_request:prompt,
+          style_request:(WORKSHOP==='cover'?'':({flyer:'Create an eye-catching professional printed event flyer, with clear text-safe zones and strong hierarchy. Do not design a book cover.\n',invitation:'Create an elegant printed invitation card composition, with appropriate front and inside card zones. Do not design a book cover.\n',leaflet:'Create one horizontally continuous three-panel trifold brochure spread with clear fold boundaries and readable content-safe areas. No book spine or cover.\n'})[WORKSHOP])+prompt,
           additional_prompt:String($('additionalPrompt')?.value||'').trim(),
           visual_direction:selectedDesignDirection(index),
           theme_context:themeContext()
@@ -1880,8 +1895,18 @@
     setStatus('300dpi PNG를 만들고 있습니다.','배경·문구·책등·로고'+($('cropMarkToggle')?.checked?'·재단선':'')+'을 실제 인쇄 크기로 합성하는 중입니다.','busy');
     try{
       const {canvas}=await buildExportCanvas();
+      const duplex=(WORKSHOP==='flyer'||WORKSHOP==='invitation')&&spec.coverMode==='frontBack';
+      if(duplex){
+        const zip=await window.DesignDuplexOutput.pngZip(canvas,spec,blob=>withPngDpi(blob,EXPORT_DPI));
+        const url=URL.createObjectURL(zip),link=document.createElement('a');
+        link.href=url;link.download=WORKSHOP+'-duplex-300dpi.zip';link.click();
+        setTimeout(()=>URL.revokeObjectURL(url),4000);
+        setStatus('양면 PNG 저장 완료','앞면과 뒷면을 각각 300dpi PNG로 나눠 ZIP 파일에 저장했습니다.','ok');
+        return;
+      }
       const raw=await canvasBlob(canvas),png=await withPngDpi(raw,EXPORT_DPI),url=URL.createObjectURL(png),a=document.createElement('a');
-      const baseName=spec.coverMode==='front'?'front-cover-'+spec.trimW+'x'+spec.trimH
+      const baseName=WORKSHOP!=='cover'?(WORKSHOP+(WORKSHOP==='leaflet'?'-'+LEAFLET_SIDE:'')+'-'+spec.workW+'x'+spec.workH)
+        :spec.coverMode==='front'?'front-cover-'+spec.trimW+'x'+spec.trimH
         :spec.coverMode==='back'?'back-cover-'+spec.trimW+'x'+spec.trimH
         :spec.coverMode==='frontBack'?'front-back-covers-'+spec.trimW+'x'+spec.trimH
         :'cover-'+spec.trimW+'x'+spec.trimH+'-spine-'+spec.spine+'mm';
@@ -1944,8 +1969,12 @@
         const jpegBlob=await new Promise((resolve,reject)=>canvas.toBlob(blob=>blob?resolve(blob):reject(new Error('PDF용 이미지 데이터를 만들지 못했습니다.')),'image/jpeg',.98));
         pdf=pdfFromJpeg(new Uint8Array(await jpegBlob.arrayBuffer()),w,h,spec.workW*72/25.4,spec.workH*72/25.4);
       }
+      if((WORKSHOP==='flyer'||WORKSHOP==='invitation')&&spec.coverMode==='frontBack'){
+        pdf=await window.DesignDuplexOutput.splitPdf(pdf,spec);
+      }
       const url=URL.createObjectURL(pdf),a=document.createElement('a');
-      const baseName=spec.coverMode==='front'?'front-cover-'+spec.trimW+'x'+spec.trimH
+      const baseName=WORKSHOP!=='cover'?(WORKSHOP+(WORKSHOP==='leaflet'?'-'+LEAFLET_SIDE:'')+'-'+spec.workW+'x'+spec.workH)
+        :spec.coverMode==='front'?'front-cover-'+spec.trimW+'x'+spec.trimH
         :spec.coverMode==='back'?'back-cover-'+spec.trimW+'x'+spec.trimH
         :spec.coverMode==='frontBack'?'front-back-covers-'+spec.trimW+'x'+spec.trimH
         :'cover-'+spec.trimW+'x'+spec.trimH+'-spine-'+spec.spine+'mm';
@@ -1954,7 +1983,7 @@
         :spec.coverMode==='back'?'뒷표지 실제 규격의 인쇄용 PDF로 저장했습니다.'
         :spec.coverMode==='frontBack'?'앞·뒤표지 동시 작업 규격의 인쇄용 PDF로 저장했습니다.'
         :'전체 펼침 실제 규격의 인쇄용 PDF로 저장했습니다.';
-      setStatus('PDF 저장 완료',savedText,'ok');
+      setStatus('PDF 저장 완료',(WORKSHOP==='flyer'||WORKSHOP==='invitation')&&spec.coverMode==='frontBack'?'앞면·뒷면을 인쇄용 PDF 두 페이지로 저장했습니다.':savedText,'ok');
     }catch(error){setStatus('PDF 저장 실패',error.message||'PDF 저장 중 오류가 발생했습니다.','error');}
     finally{button.disabled=false;}
   }
@@ -2091,6 +2120,8 @@
         presetId:String(state.preset||'').slice(0,80),
         presetName:String(state.lastGeneratedPresetName||PRESETS[state.preset]?.name||'').slice(0,120),
         coverMode:spec.coverMode,
+        workshop:WORKSHOP,
+        leafletSide:LEAFLET_SIDE,
         qualityMode:state.generationQuality,
         trimWidth:spec.trimW,
         trimHeight:spec.trimH,
@@ -2111,6 +2142,8 @@
         presetId:String(state.preset||'').slice(0,80),
         presetName:String(state.lastGeneratedPresetName||PRESETS[state.preset]?.name||'').slice(0,120),
         coverMode:spec.coverMode,
+        workshop:WORKSHOP,
+        leafletSide:LEAFLET_SIDE,
         qualityMode:state.generationQuality,
         trimWidth:spec.trimW,
         trimHeight:spec.trimH,
@@ -2199,7 +2232,10 @@
     if(!root)return;
     syncGalleryScopeUi();
     const needle=String(query||'').trim().toLowerCase();
-    const visible=state.galleryItems.filter(item=>state.galleryScope==='mine'?item.isOwner:item.visibility==='public');
+    const visible=state.galleryItems.filter(item=>{
+      const belongs=(item.workshop||'cover')===WORKSHOP&&(WORKSHOP!=='leaflet'||(item.leafletSide||'outside')===LEAFLET_SIDE);
+      return belongs&&(state.galleryScope==='mine'?item.isOwner:item.visibility==='public');
+    });
     const items=visible.filter(item=>{
       const hay=[
         state.galleryScope==='mine'?item.privateTitle:'',
@@ -2271,6 +2307,8 @@
       return {
         ...data,
         visibility:'public',
+        workshop:privateData?.workshop||data.workshop||'cover',
+        leafletSide:privateData?.leafletSide||data.leafletSide||'outside',
         isOwner:own,
         privateTitle:privateData?.title||'',
         stateJson:privateData?.stateJson||'',
@@ -2283,6 +2321,8 @@
     const privateItems=[...privateMap.values()].map(privateData=>({
       ...privateData,
       visibility:'private',
+      workshop:privateData.workshop||'cover',
+      leafletSide:privateData.leafletSide||'outside',
       isOwner:true,
       privateTitle:privateData.title||'',
       ownerImagePath:privateData.imagePath||'',
@@ -2375,6 +2415,11 @@
       const snap=await window.db.collection('users').doc(user.uid).collection('ai_design_gallery').doc(item.id).get();
       if(snap.exists)privateData={...item,...snap.data()};
     }
+    if((privateData.workshop||'cover')!==WORKSHOP||
+       (WORKSHOP==='leaflet'&&(privateData.leafletSide||'outside')!==LEAFLET_SIDE)){
+      setStatus('다른 작업실의 디자인입니다.','해당 디자인의 제품 종류 및 리플렛 면을 선택한 뒤 불러오세요.','error');
+      return;
+    }
     if(!privateData.stateJson){
       applySharedGallerySettings(item);
       setStatus('이전 저장 기록의 디자인 설정을 불러왔습니다.','이 디자인은 전체 편집 설정 저장 기능이 추가되기 전에 저장되어 요청 설정만 적용했습니다.','ok');
@@ -2385,6 +2430,7 @@
       localStorage.setItem(STORAGE_KEY,JSON.stringify(restored));
       state.textLayouts={};state.shapes=[];state.groups={};state.customFields=[];
       loadLocal();
+      window.DesignWorkshopModes?.refresh?.();
       state.background=null;state.backgroundUrl='';state.backgroundSource='';state.generatedSpecKey='';
       state.logo=null;
       if($('logoInput'))$('logoInput').value='';
@@ -2540,7 +2586,7 @@
   }
 
   function bind(){
-    loadLocal();setupPresetCards();syncCoverMode();syncSizeMode();syncGenerationQuality();syncSpineTitle();renderCustomFields();syncPromptLanguageUi(false);syncGlobalCmykFromHex('primaryColor');syncGlobalCmykFromHex('textColor');syncTextEditUi();syncExportButton();
+    loadLocal();window.DesignWorkshopModes?.setup?.({studio:WORKSHOP,state,syncCoverMode,syncSizeMode,saveLocal,scheduleRender,updateGeometry,hasSavedWorkspace:Boolean(localStorage.getItem(STORAGE_KEY))});setupPresetCards();syncCoverMode();syncSizeMode();syncGenerationQuality();syncSpineTitle();renderCustomFields();syncPromptLanguageUi(false);syncGlobalCmykFromHex('primaryColor');syncGlobalCmykFromHex('textColor');syncTextEditUi();syncExportButton();
     if(!$('stylePrompt').value)$('stylePrompt').value=presetPrompt();
     qa('[data-ai-refine]').forEach(button=>button.addEventListener('click',()=>addAiRefinement(button.dataset.aiRefine||'')));
     $('variantCount')?.addEventListener('change',saveLocal);

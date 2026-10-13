@@ -230,3 +230,19 @@ html[data-cover-mode="frontBack"] #spineFields{display:none!important}
 .design-review-panel p{margin:0;font-size:10px;line-height:1.5;color:#64748b}
 .design-advanced-check{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;border:1px solid #bfdbfe;border-radius:8px;min-height:32px;color:#1d4ed8;background:#eff6ff;font-size:10.5px;font-weight:850}
 #canvasStage.design-import-dragover{outline:3px dashed #2563eb;outline-offset:-3px;background:rgba(59,130,246,.08)}
+
+/* Specialized product studios and physical book-spine calculator */
+.product-tab[data-studio]{cursor:pointer}
+.product-tab[data-studio]:disabled{cursor:default}
+.spine-calculator{grid-column:1/-1;display:grid;gap:10px;background:#f8fbff;border:1px solid #c9daf2;border-radius:12px;padding:12px;min-width:0}
+.spine-calculator[hidden],.spine-calc-fields[hidden],#spineField[hidden],#spineFields[hidden],.cover-mode-picker label[hidden],#wingToggleRow[hidden]{display:none!important}
+.spine-calc-head{display:flex;flex-wrap:wrap;gap:6px;justify-content:space-between;align-items:center}
+.spine-calc-head strong{font-size:12px;color:#143c75}
+.spine-calc-head span,.spine-calc-note{font-size:10px;color:#64748b;line-height:1.5}
+.spine-method{display:flex;flex-wrap:wrap;gap:12px;font-size:11px;color:#334155}
+.spine-method label{display:inline-flex;align-items:center;gap:5px;cursor:pointer}
+.spine-calc-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.spine-calc-result{grid-column:1/-1;background:#dbeafe;color:#1e3a8a;border-radius:9px;padding:10px;font-size:12px;font-weight:750;line-height:1.6}
+.spine-calc-note{margin:0}
+#spine[readonly]{background:#e8f1ff;border-color:#93c5fd;color:#1e3a8a}
+html[data-design-studio="leaflet"] .product-picker{border-color:#0f766e}

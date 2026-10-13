@@ -8,7 +8,7 @@
   <meta name="robots" content="noindex,nofollow">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
-  <link rel="stylesheet" href="/css/ai-design-maker.css?v=20261013-1">
+  <link rel="stylesheet" href="/css/ai-design-maker.css?v=20261013-2">
   <link rel="stylesheet" href="/css/program-manual-home-modal.css?v=20260918-1">
 </head>
 <body>
@@ -39,12 +39,23 @@
             </div>
           </div>
           <div class="product-tabs" aria-label="디자인 제작 종류">
-            <button class="product-tab active" type="button" aria-current="page"><strong>표지</strong><small>현재 사용</small></button>
-            <button class="product-tab" type="button" disabled><strong>전단지</strong><small>준비중</small></button>
-            <button class="product-tab" type="button" disabled><strong>초대장</strong><small>준비중</small></button>
-            <button class="product-tab" type="button" disabled><strong>리플렛</strong><small>준비중</small></button>
+            <button class="product-tab active" data-studio="cover" type="button" aria-current="page"><strong>책표지</strong><small>표지·책등·뒷표지</small></button>
+            <button class="product-tab" data-studio="flyer" type="button"><strong>전단지</strong><small>단면·양면 홍보물</small></button>
+            <button class="product-tab" data-studio="invitation" type="button"><strong>초대장</strong><small>카드·접이식</small></button>
+            <button class="product-tab" data-studio="leaflet" type="button"><strong>리플렛</strong><small>3단 접지 6면</small></button>
           </div>
         </section>
+
+        <section class="leaflet-side-picker" id="leafletSidePicker" hidden aria-label="리플렛 겉면과 안쪽면 선택">
+          <strong>3단 리플렛 작업 면</strong>
+          <div class="leaflet-side-options">
+            <a href="/ai-design-maker/?studio=leaflet&side=outside" data-leaflet-side="outside">겉면 (3패널)</a>
+            <a href="/ai-design-maker/?studio=leaflet&side=inside" data-leaflet-side="inside">안쪽면 (3패널)</a>
+          </div>
+          <small>겉면과 안쪽면은 별도 작업으로 저장됩니다. 인쇄할 때 각각 PDF를 다운로드하세요.</small>
+        </section>
+
+        <p class="design-duplex-notice" id="designDuplexNotice" hidden>전단지·초대장 양면은 앞면 1페이지, 뒷면 2페이지로 PDF가 저장됩니다. PNG는 앞·뒷면 ZIP 파일로 저장됩니다.</p>
 
         <div class="panel-intro">
           <strong id="coverModeHeading">표지 전체 펼침 제작</strong>
@@ -84,7 +95,21 @@
               <label class="field"><span>완성 세로 <em>mm</em></span><input id="trimH" type="number" min="50" max="1000" step="0.1" value="297"></label>
             </div>
             <div class="field-grid two">
-              <label class="field" id="spineField"><span>책등 <em>mm</em></span><input id="spine" type="number" min="0" max="100" step="0.1" value="10"></label>
+              <div class="spine-calculator" id="spineCalculator">
+                <div class="spine-calc-head"><strong>책등 두께 계산</strong><span>내지 기준 · 실제 종이 두께 확인</span></div>
+                <div class="spine-method" role="radiogroup" aria-label="책등 설정 방식">
+                  <label><input type="radio" name="spineCalcMode" value="auto" checked> 페이지 수로 자동 계산</label>
+                  <label><input type="radio" name="spineCalcMode" value="manual"> 책등 직접 입력</label>
+                </div>
+                <div class="spine-calc-fields" id="spineCalcFields">
+                  <label class="field"><span>내지 페이지 수 <em>p</em></span><input id="spinePages" type="number" min="2" max="20000" step="2" value="200"></label>
+                  <label class="field"><span>종이 한 장 두께 <em>mm</em></span><input id="spineSheetThickness" type="number" min="0.01" max="0.5" step="0.005" value="0.10"></label>
+                  <label class="field"><span>제본 보정 <em>mm</em></span><input id="spineAllowance" type="number" min="0" max="20" step="0.1" value="0"></label>
+                  <div class="spine-calc-result" id="spineCalcResult" aria-live="polite">200페이지 ÷ 2 × 0.10mm = <strong>10.0mm</strong></div>
+                </div>
+                <p class="spine-calc-note">페이지 수는 내지 전체 기준입니다. 계산값은 추정치이며 종이 제조사·제본 방식에 따라 실측과 다를 수 있습니다.</p>
+              </div>
+                            <label class="field" id="spineField"><span>책등 <em>mm</em></span><input id="spine" type="number" min="0" max="100" step="0.1" value="10"></label>
               <label class="field"><span>도련 <em>mm</em></span><input id="bleed" type="number" min="0" max="20" step="0.1" value="3"></label>
               <label class="field"><span>안전영역 <em>mm</em></span><input id="safeZone" type="number" min="0" max="80" step="0.1" value="10"></label>
             </div>
@@ -624,8 +649,10 @@
   <script defer src="/js/firebase-config.js"></script>
   <script defer src="/js/program-manuals/home-modal.js?v=20260918-1"></script>
   <script defer src="/js/program-sidebar-actions.js?v=20260918-2"></script>
+  <script defer src="/js/design-workshop-modes.js?v=20261013-2"></script>
+  <script defer src="/js/design-duplex-output.js?v=20261013-2"></script>
   <script defer src="/js/design-workspace-layers.js?v=20261013-1"></script>
   <script defer src="/js/ai-design-print-export.js?v=20261013-1"></script>
-  <script defer src="/js/ai-design-maker.js?v=20261013-1"></script>
+  <script defer src="/js/ai-design-maker.js?v=20261013-2"></script>
 </body>
 </html>

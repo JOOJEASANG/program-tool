@@ -90,7 +90,7 @@ PDF_SUITE_FIRST_PAINT_SNIPPET = (
     "</style>"
 )
 PDF_SUITE_HOME_SNIPPET = (
-    f'<script {PDF_SUITE_HOME_MARKER} defer src="/js/pdf-suite-home-launcher.js?v=20261013-2"></script>'
+    f'<script {PDF_SUITE_HOME_MARKER} defer src="/js/pdf-suite-home-launcher.js?v=20261013-3"></script>'
 )
 PDF_SUITE_ADVANCED_SNIPPET = (
     f'<script {PDF_SUITE_ADVANCED_MARKER} defer src="/js/pdf-suite/advanced-tools.js?v=20260905-1"></script>'

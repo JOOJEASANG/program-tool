@@ -67,7 +67,8 @@ def test_ai_design_maker_has_easy_cover_workflow_and_diagnostics():
     for field_id in ("trimW", "trimH", "spine", "bleed", "safeZone", "wingEnabled", "wingW"):
         assert f'id="{field_id}"' in page
     assert "localStorage.setItem(STORAGE_KEY" in source
-    assert "STORAGE_KEY_PREFIX = 'program-studio:ai-design-maker:cover:v2'" in source
+    assert "STORAGE_KEY_PREFIX = 'program-studio:ai-design-maker:'+WORKSHOP" in source
+    assert "WORKSHOP==='leaflet'?':'+LEAFLET_SIDE" in source
     assert "LEGACY_STORAGE_KEY = 'program-studio:ai-design-maker:cover:v1'" in source
     assert "STORAGE_KEY=STORAGE_KEY_PREFIX+':'+user.uid" in source
     assert "localStorage.removeItem(LEGACY_STORAGE_KEY)" in source
