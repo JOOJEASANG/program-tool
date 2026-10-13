@@ -47,22 +47,58 @@ assert.equal(z.whole.w,442);
 
 (async()=>{
   const bytes=new Uint8Array([137,80,78,71]).buffer;
-  await api.configure; // no-op, accessor remains available
   const file={name:'A4-front.png',type:'image/png',size:4,arrayBuffer:async()=>bytes};
-  // Simulate input dispatch indirectly through a fresh public binding fixture.
-  // The service exposes local rendering and output APIs without requiring auth.
   assert.equal(api.hasLayers(),false);
-  assert.ok(typeof api.drawVector === 'function');
-  assert.ok(renderCount>=1);
+  await api.importFiles([file]);
+  assert.equal(api.hasLayers(),true);
+  assert.equal(api.layers.length,1);
+  assert.equal(api.active.name,'A4-front.png');
+  assert.ok(Math.abs(api.active.x-229)<1);
+  assert.ok(Math.abs(api.active.w-210)<1);
+  assert.equal(api.active.type,'image');
 
-  const ctx={save(){},restore(){},translate(){},rotate(){},drawImage(){},strokeRect(){},
+  let drawn=0,png=0,pdf=0;
+  const ctx={save(){},restore(){},translate(){},rotate(){},drawImage(){drawn++;},strokeRect(){},
      setLineDash(){},fillRect(){},strokeStyle:'',fillStyle:'',lineWidth:0};
   api.draw(ctx,s,2,false);
-  const page={drawRectangle(){},drawImage(){},drawPage(){}};
-  const doc={embedPdf:async()=>[{}],embedPng:async()=>({}),embedJpg:async()=>({})};
+  assert.equal(drawn,1);
+  api.draw(ctx,s,2,true);
+  assert.equal(drawn,1,'selection handles must not draw imported artwork on top of text');
+  const page={drawRectangle(){},drawImage(){png++;},drawPage(){pdf++;}};
+  const doc={
+    embedPdf:async()=>[{}],
+    embedPng:async()=>({}),
+    embedJpg:async()=>({})
+  };
   await api.drawVector(doc,page,{degrees:x=>x},s,72/25.4,303*72/25.4);
+  assert.equal(png,1,'bitmap must survive vector PDF export');
 
+  // A separate PDF source must be embedded using the original PDF bytes.
+  let embeddedPdf=0;
+  host.pdfjsLib={
+    GlobalWorkerOptions:{},
+    getDocument:()=>({promise:Promise.resolve({
+      numPages:2,
+      getPage:async()=>({
+        getViewport:({scale})=>({width:595*scale,height:842*scale}),
+        render:()=>({promise:Promise.resolve()})
+      }),
+      destroy(){}
+    })})
+  };
+  await api.importFiles([{name:'source.pdf',type:'application/pdf',size:4,arrayBuffer:async()=>bytes}]);
+  assert.equal(api.layers.length,2);
+  assert.equal(api.active.type,'pdf');
+  const pdfDoc={
+    embedPdf:async(payload,indices)=>{embeddedPdf++;assert.equal(indices[0],0);return [{}];},
+    embedPng:async()=>({}),embedJpg:async()=>({})
+  };
+  await api.drawVector(pdfDoc,page,{degrees:x=>x},s,72/25.4,303*72/25.4);
+  assert.equal(embeddedPdf,1);
+  assert.equal(pdf,1,'PDF must draw as a source PDF page, not rasterized preview');
+  api.removeSelected();
+  assert.equal(api.layers.length,1);
   assert.deepEqual(plain(z.front),{x:229,y:3,w:210,h:297});
-  assert.equal(alerts.length,0);
+  assert.equal(alerts.length,2);
   console.log('design workspace layer behavior passed');
 })().catch(err=>{console.error(err);process.exitCode=1;});
