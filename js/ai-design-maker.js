@@ -10,7 +10,7 @@
   const WORKSHOP_ID = new URLSearchParams(location.search).get('studio') || 'cover';
   const WORKSHOP = ['cover','flyer','invitation','leaflet'].includes(WORKSHOP_ID)?WORKSHOP_ID:'cover';
   const LEAFLET_SIDE = new URLSearchParams(location.search).get('side')==='inside'?'inside':'outside';
-  const STORAGE_KEY_PREFIX = 'program-studio:ai-design-maker:'+WORKSHOP+(WORKSHOP==='leaflet'?':'+LEAFLET_SIDE:'')+':v2';
+  const STORAGE_KEY_PREFIX = 'program-studio:ai-design-maker:'+WORKSHOP+((WORKSHOP==='leaflet'||WORKSHOP==='invitation')?':'+LEAFLET_SIDE:'')+':v2';
   const LEGACY_STORAGE_KEY = 'program-studio:ai-design-maker:cover:v1';
   let STORAGE_KEY = '';
   const TEXT_LAYOUT_SCHEMA_VERSION = 5;
@@ -346,11 +346,12 @@
       : coverMode==='frontBack'
         ? trimW * 2 + bleed * 2
         : trimW * 2 + spine + wing * 2 + bleed * 2;
-    return {coverMode, trimW, trimH, spine, bleed, safe, wing, workW, workH:trimH + bleed * 2};
+    const base={coverMode, trimW, trimH, spine, bleed, safe, wing, workW, workH:trimH + bleed * 2};
+    return window.DesignProductGeometry?.adapt?.(base,WORKSHOP)||base;
   }
 
   function specKey(spec = currentSpec()) {
-    return [spec.coverMode,spec.trimW,spec.trimH,spec.spine,spec.bleed,spec.wing].map(v => typeof v==='number'?Number(v).toFixed(2):v).join('|');
+    return [spec.coverMode,spec.trimW,spec.trimH,spec.spine,spec.bleed,spec.wing,...(spec.panelWidths||[]),spec.foldType||'',spec.productSide||''].map(v => typeof v==='number'?Number(v).toFixed(2):v).join('|');
   }
 
   function readText() {
@@ -369,7 +370,7 @@
   }
 
   function serializableState() {
-    const ids = ['trimW','trimH','spine','spinePages','spineSheetThickness','spineAllowance','bleed','safeZone','wingW','title','backText','spineTop','spineMiddle','spineBottom','spineTopPlacement','spineMiddlePlacement','spineBottomPlacement','spineOrientation','visualMode','colorIntensity','designMood','primaryColor','textColor','theme','stylePrompt','imageModel','additionalPrompt','targetAudience','titleSpace','variantCount'];
+    const ids = ['trimW','trimH','spine','spinePages','spineSheetThickness','spineAllowance','bleed','safeZone','wingW','title','backText','spineTop','spineMiddle','spineBottom','spineTopPlacement','spineMiddlePlacement','spineBottomPlacement','spineOrientation','visualMode','colorIntensity','designMood','primaryColor','textColor','theme','stylePrompt','imageModel','additionalPrompt','targetAudience','titleSpace','variantCount','flyerFormat','flyerOrientation','flyerPurpose','flyerStock','invitationFormat','invitationOrientation','invitationFoldType','invitationFoldPosition','leafletFormat','leafletFoldType','leafletPanelLeft','leafletPanelCenter','leafletPanelRight'];
     const data = {
       preset: state.preset,
       wingEnabled: Boolean($('wingEnabled')?.checked),
@@ -699,9 +700,9 @@
     }[state.coverMode];
     if($('coverModeHeading'))$('coverModeHeading').textContent=WORKSHOP==='cover'?copy[0]:({flyer:'전단지 제작',invitation:'초대장 제작',leaflet:'3단 리플렛 제작'})[WORKSHOP];
     if($('coverModeDescription'))$('coverModeDescription').textContent=WORKSHOP==='cover'?copy[1]:({flyer:'전단지 앞면·뒷면 및 양면 제작',invitation:'초대장 겉면·안쪽면 디자인',leaflet:'3단 리플렛 겉면/안쪽면 · 각 3패널 디자인'})[WORKSHOP];
-    if($('designDuplexNotice'))$('designDuplexNotice').hidden=!((WORKSHOP==='flyer'||WORKSHOP==='invitation')&&state.coverMode==='frontBack');
-    if($('previewModeTitle'))$('previewModeTitle').textContent=copy[2];
-    if($('backgroundModeHint'))$('backgroundModeHint').textContent=copy[3];
+    if($('designDuplexNotice'))$('designDuplexNotice').hidden=!((WORKSHOP==='flyer'||WORKSHOP==='invitation')&&state.coverMode==='frontBack'&&(WORKSHOP!=='invitation'||$('invitationFoldType')?.value==='flat'));
+    if($('previewModeTitle'))$('previewModeTitle').textContent=WORKSHOP==='cover'?copy[2]:({flyer:'전단지 인쇄 미리보기',invitation:'초대장 '+(LEAFLET_SIDE==='inside'?'안쪽면':'겉면')+' 미리보기',leaflet:'3단 리플렛 '+(LEAFLET_SIDE==='inside'?'안쪽면':'겉면')+' 미리보기'})[WORKSHOP];
+    if($('backgroundModeHint'))$('backgroundModeHint').textContent=WORKSHOP==='cover'?copy[3]:'선택한 제작물의 실제 펼침 영역과 도련을 기준으로 이미지를 배치합니다.';
     syncWing();
     updateGeometry();
     syncTextEditUi();
@@ -786,14 +787,18 @@
     const spec = currentSpec();
     const wing = spec.wing ? ' · 날개 '+spec.wing.toFixed(1)+'mm×2' : '';
     const singleLabel=spec.coverMode==='back'?'뒷표지':'앞표지';
-    const text = WORKSHOP==='leaflet'
+    const text = WORKSHOP!=='cover'&&spec.panels
+      ? window.DesignProductGeometry?.summary(spec)||''
+      : WORKSHOP==='leaflet'
       ? '리플렛 '+(LEAFLET_SIDE==='inside'?'안쪽면':'겉면')+' · '+spec.trimW.toFixed(1)+'mm × 3패널 · 도련 '+spec.bleed.toFixed(1)+'mm · 전체 '+spec.workW.toFixed(1)+'×'+spec.workH.toFixed(1)+'mm'
       : isSingleCoverMode(spec.coverMode)
       ? singleLabel+' '+spec.trimW.toFixed(1)+'×'+spec.trimH.toFixed(1)+'mm · 도련 '+spec.bleed.toFixed(1)+'mm · 작업 '+spec.workW.toFixed(1)+'×'+spec.workH.toFixed(1)+'mm'
       : spec.coverMode==='frontBack'
         ? '앞·뒤표지 각 '+spec.trimW.toFixed(1)+'×'+spec.trimH.toFixed(1)+'mm · 도련 '+spec.bleed.toFixed(1)+'mm · 동시 작업 '+spec.workW.toFixed(1)+'×'+spec.workH.toFixed(1)+'mm'
         : '완성 '+spec.trimW.toFixed(1)+'×'+spec.trimH.toFixed(1)+'mm · 책등 '+spec.spine.toFixed(1)+'mm · 도련 '+spec.bleed.toFixed(1)+'mm'+wing+' · 전체 '+spec.workW.toFixed(1)+'×'+spec.workH.toFixed(1)+'mm';
-    const compact = WORKSHOP==='leaflet'
+    const compact = WORKSHOP!=='cover'&&spec.panels
+      ? window.DesignProductGeometry?.summary(spec)||''
+      : WORKSHOP==='leaflet'
       ? '3단 리플렛 '+(LEAFLET_SIDE==='inside'?'안쪽면':'겉면')+' · '+spec.workW.toFixed(1)+'×'+spec.workH.toFixed(1)+'mm'
       : isSingleCoverMode(spec.coverMode)
       ? spec.trimW.toFixed(1)+'×'+spec.trimH.toFixed(1)+'mm · '+singleLabel
@@ -802,6 +807,7 @@
         : spec.trimW.toFixed(1)+'×'+spec.trimH.toFixed(1)+'mm · 책등 '+spec.spine.toFixed(1)+'mm · 전체 '+spec.workW.toFixed(1)+'×'+spec.workH.toFixed(1)+'mm';
     if ($('geometryHint')) $('geometryHint').textContent = text;
     if ($('geometrySummary')) $('geometrySummary').textContent = compact;
+    window.DesignProfessionalControls?.refresh?.();
     if(spec.coverMode==='spread'&&WORKSHOP==='cover')updateSpinePolicy();
     updateProgress();
     const stale = Boolean(state.background && state.generatedSpecKey && state.generatedSpecKey !== specKey(spec));
@@ -840,6 +846,7 @@
 
   function drawGuides(ctx,spec,scale) {
     if (!$('guideToggle')?.checked) return;
+    if(window.DesignProductGeometry?.render?.(ctx,spec,scale,{rect,line,zone}))return;
     const b=spec.bleed*scale, tw=spec.trimW*scale, th=spec.trimH*scale, safe=spec.safe*scale;
     if(spec.bleed>0) rect(ctx,.5,.5,spec.workW*scale-1,spec.workH*scale-1,'#db2777',[7,5]);
     if(isSingleCoverMode(spec.coverMode)){
@@ -1009,7 +1016,9 @@
     const wing=spec.wing*scale,sw=spec.spine*scale;
     const backX=spec.coverMode==='spread'?b+wing:b;
     const spineX=backX+tw;
-    const frontX=spec.coverMode==='front'?b:spec.coverMode==='frontBack'?b+tw:spineX+sw;
+    const frontPanel=spec.panels?.find(p=>p.id==='front'),backPanel=spec.panels?.find(p=>p.id==='back');
+    const frontX=frontPanel?frontPanel.x*scale:(spec.coverMode==='front'?b:spec.coverMode==='frontBack'?b+tw:spineX+sw);
+    const frontW=frontPanel?frontPanel.w*scale:tw,backW=backPanel?backPanel.w*scale:tw;
     const safe=Math.min(spec.safe,spec.trimW*.15,spec.trimH*.15)*scale;
     const ptPx=pt=>pt*25.4/72*scale;
     const list=[];
@@ -1019,7 +1028,8 @@
       item.fontPx=ptPx(item.fontPt);
       list.push(item);
     };
-    const contentW=Math.max(1,tw-safe*2);
+    const contentW=Math.max(1,frontW-safe*2);
+    const backContentW=Math.max(1,backW-safe*2);
 
     if(modeHasFront(spec.coverMode))add({id:'title',surface:'front',text:v.title,x:frontX+safe,y:b+th*.15,w:contentW*.86,h:th*.38,fontPt:titlePt(v.title,spec.trimW),weight:900,align:'left'});
 
@@ -1035,11 +1045,11 @@
     if(modeHasFront(spec.coverMode))addCustomEntries(frontCustom,'front',frontX,b+th*.60,th*.30);
 
     if(modeHasBack(spec.coverMode)){
-      add({id:'backText',surface:'back',text:v.backText,x:backX+safe,y:b+th*.16,w:contentW*.82,h:th*.48,fontPt:14,weight:650,align:'left'});
+      add({id:'backText',surface:'back',text:v.backText,x:(backPanel?backPanel.x*scale:backX)+safe,y:b+th*.16,w:backContentW*.82,h:th*.48,fontPt:14,weight:650,align:'left'});
       addCustomEntries(backCustom,'back',backX,b+th*.70,th*.22);
     }
 
-    if(modeHasSpine(spec.coverMode)&&spec.spine>=4){
+    if(WORKSHOP==='cover'&&modeHasSpine(spec.coverMode)&&spec.spine>=4){
       const spineEntries=[
         {id:'spineTop',text:v.spineTop,slot:'top',center:.17},
         {id:'spineMiddle',text:v.spineMiddle,slot:'middle',center:.50},
@@ -1293,6 +1303,11 @@
   }
 
   function coverSurfaceRect(surface,spec,scale){
+    const productPanel=spec.panels?.find(p=>p.id===surface);
+    if(productPanel){
+      const safe=Math.min(spec.safe,productPanel.w*.15,spec.trimH*.15)*scale;
+      return {x:productPanel.x*scale+safe,y:productPanel.y*scale+safe,w:Math.max(1,productPanel.w*scale-2*safe),h:Math.max(1,productPanel.h*scale-2*safe),surface};
+    }
     const b=spec.bleed*scale,tw=spec.trimW*scale,th=spec.trimH*scale,wing=spec.wing*scale,sw=spec.spine*scale;
     const safe=Math.min(spec.safe,spec.trimW*.15,spec.trimH*.15)*scale;
     const safeW=Math.max(1,tw-safe*2),safeH=Math.max(1,th-safe*2);
@@ -1751,11 +1766,14 @@
   function buildGenerationRequest(spec,prompt,index=null){
     return {
           product_type:WORKSHOP,leaflet_side:LEAFLET_SIDE,
+          panel_right_mm:spec.panels?.find(p=>p.id==='front')?.w,
+          fold_position_mm:spec.foldType==='half-fold'?spec.panels?.[0]?.w:undefined,
+          product_fold_type:spec.foldType||'',
           cover_mode:backendCoverMode(spec.coverMode),quality_mode:state.generationQuality,trim_width_mm:spec.trimW,trim_height_mm:spec.trimH,spine_mm:spec.spine,wing_mm:spec.wing,bleed_mm:spec.bleed,
           preset_name:PRESETS[state.preset].name,
           model:$('imageModel')?.value||'gpt-image-2',
           style_request:(WORKSHOP==='cover'?'':({flyer:'Create an eye-catching professional printed event flyer, with clear text-safe zones and strong hierarchy. Do not design a book cover.\n',invitation:'Create an elegant printed invitation card composition, with appropriate front and inside card zones. Do not design a book cover.\n',leaflet:'Create one horizontally continuous three-panel trifold brochure spread with clear fold boundaries and readable content-safe areas. No book spine or cover.\n'})[WORKSHOP])+prompt,
-          additional_prompt:String($('additionalPrompt')?.value||'').trim(),
+          additional_prompt:[String($('additionalPrompt')?.value||'').trim(),window.DesignProfessionalControls?.requestHint?.()||''].filter(Boolean).join('\n'),
           visual_direction:selectedDesignDirection(index),
           theme_context:themeContext()
         };
@@ -1895,7 +1913,7 @@
     setStatus('300dpi PNG를 만들고 있습니다.','배경·문구·책등·로고'+($('cropMarkToggle')?.checked?'·재단선':'')+'을 실제 인쇄 크기로 합성하는 중입니다.','busy');
     try{
       const {canvas}=await buildExportCanvas();
-      const duplex=(WORKSHOP==='flyer'||WORKSHOP==='invitation')&&spec.coverMode==='frontBack';
+      const duplex=(WORKSHOP==='flyer'||(WORKSHOP==='invitation'&&$('invitationFoldType')?.value==='flat'))&&spec.coverMode==='frontBack';
       if(duplex){
         const zip=await window.DesignDuplexOutput.pngZip(canvas,spec,blob=>withPngDpi(blob,EXPORT_DPI));
         const url=URL.createObjectURL(zip),link=document.createElement('a');
@@ -1969,7 +1987,7 @@
         const jpegBlob=await new Promise((resolve,reject)=>canvas.toBlob(blob=>blob?resolve(blob):reject(new Error('PDF용 이미지 데이터를 만들지 못했습니다.')),'image/jpeg',.98));
         pdf=pdfFromJpeg(new Uint8Array(await jpegBlob.arrayBuffer()),w,h,spec.workW*72/25.4,spec.workH*72/25.4);
       }
-      if((WORKSHOP==='flyer'||WORKSHOP==='invitation')&&spec.coverMode==='frontBack'){
+      if((WORKSHOP==='flyer'||(WORKSHOP==='invitation'&&$('invitationFoldType')?.value==='flat'))&&spec.coverMode==='frontBack'){
         pdf=await window.DesignDuplexOutput.splitPdf(pdf,spec);
       }
       const url=URL.createObjectURL(pdf),a=document.createElement('a');
@@ -1983,7 +2001,7 @@
         :spec.coverMode==='back'?'뒷표지 실제 규격의 인쇄용 PDF로 저장했습니다.'
         :spec.coverMode==='frontBack'?'앞·뒤표지 동시 작업 규격의 인쇄용 PDF로 저장했습니다.'
         :'전체 펼침 실제 규격의 인쇄용 PDF로 저장했습니다.';
-      setStatus('PDF 저장 완료',(WORKSHOP==='flyer'||WORKSHOP==='invitation')&&spec.coverMode==='frontBack'?'앞면·뒷면을 인쇄용 PDF 두 페이지로 저장했습니다.':savedText,'ok');
+      setStatus('PDF 저장 완료',(WORKSHOP==='flyer'||(WORKSHOP==='invitation'&&$('invitationFoldType')?.value==='flat'))&&spec.coverMode==='frontBack'?'앞면·뒷면을 인쇄용 PDF 두 페이지로 저장했습니다.':WORKSHOP==='invitation'&&spec.foldType==='half-fold'?'접이식 초대장 '+(LEAFLET_SIDE==='inside'?'안쪽면':'겉면')+' 펼침 PDF를 저장했습니다.':savedText,'ok');
     }catch(error){setStatus('PDF 저장 실패',error.message||'PDF 저장 중 오류가 발생했습니다.','error');}
     finally{button.disabled=false;}
   }
@@ -2586,7 +2604,7 @@
   }
 
   function bind(){
-    loadLocal();window.DesignWorkshopModes?.setup?.({studio:WORKSHOP,state,syncCoverMode,syncSizeMode,saveLocal,scheduleRender,updateGeometry,hasSavedWorkspace:Boolean(localStorage.getItem(STORAGE_KEY))});setupPresetCards();syncCoverMode();syncSizeMode();syncGenerationQuality();syncSpineTitle();renderCustomFields();syncPromptLanguageUi(false);syncGlobalCmykFromHex('primaryColor');syncGlobalCmykFromHex('textColor');syncTextEditUi();syncExportButton();
+    loadLocal();window.DesignWorkshopModes?.setup?.({studio:WORKSHOP,state,syncCoverMode,syncSizeMode,saveLocal,scheduleRender,updateGeometry,currentSpec,hasSavedWorkspace:Boolean(localStorage.getItem(STORAGE_KEY))});setupPresetCards();syncCoverMode();syncSizeMode();syncGenerationQuality();syncSpineTitle();renderCustomFields();syncPromptLanguageUi(false);syncGlobalCmykFromHex('primaryColor');syncGlobalCmykFromHex('textColor');syncTextEditUi();syncExportButton();
     if(!$('stylePrompt').value)$('stylePrompt').value=presetPrompt();
     qa('[data-ai-refine]').forEach(button=>button.addEventListener('click',()=>addAiRefinement(button.dataset.aiRefine||'')));
     $('variantCount')?.addEventListener('change',saveLocal);
