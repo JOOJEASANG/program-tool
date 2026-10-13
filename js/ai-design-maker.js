@@ -871,7 +871,8 @@
       zone(ctx,WORKSHOP==='leaflet'?'가운데 패널':('책등 '+spec.spine.toFixed(1)+'mm'),spineX,b,sw,th);
     }
     if(wing>0){line(ctx,backX,b,backX,b+th,'#f59e0b',[8,4]);line(ctx,frontWingX,b,frontWingX,b+th,'#f59e0b',[8,4]);zone(ctx,'뒷날개',b,b,wing,th);zone(ctx,'앞날개',frontWingX,b,wing,th);}
-    zone(ctx,'뒤표지',backX,b,tw,th);zone(ctx,'앞표지',frontX,b,tw,th);
+    zone(ctx,WORKSHOP==='leaflet'?'왼쪽 패널':'뒤표지',backX,b,tw,th);
+    zone(ctx,WORKSHOP==='leaflet'?'오른쪽 패널':'앞표지',frontX,b,tw,th);
   }
 
   function titlePt(text,trimW) {
