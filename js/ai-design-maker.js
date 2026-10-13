@@ -9,7 +9,8 @@
   const MAX_EXPORT_PIXELS = 60_000_000;
   const WORKSHOP_ID = new URLSearchParams(location.search).get('studio') || 'cover';
   const WORKSHOP = ['cover','flyer','invitation','leaflet'].includes(WORKSHOP_ID)?WORKSHOP_ID:'cover';
-  const STORAGE_KEY_PREFIX = 'program-studio:ai-design-maker:'+WORKSHOP+':v2';
+  const LEAFLET_SIDE = new URLSearchParams(location.search).get('side')==='inside'?'inside':'outside';
+  const STORAGE_KEY_PREFIX = 'program-studio:ai-design-maker:'+WORKSHOP+(WORKSHOP==='leaflet'?':'+LEAFLET_SIDE:'')+':v2';
   const LEGACY_STORAGE_KEY = 'program-studio:ai-design-maker:cover:v1';
   let STORAGE_KEY = '';
   const TEXT_LAYOUT_SCHEMA_VERSION = 5;
@@ -784,19 +785,23 @@
     const spec = currentSpec();
     const wing = spec.wing ? ' · 날개 '+spec.wing.toFixed(1)+'mm×2' : '';
     const singleLabel=spec.coverMode==='back'?'뒷표지':'앞표지';
-    const text = isSingleCoverMode(spec.coverMode)
+    const text = WORKSHOP==='leaflet'
+      ? '리플렛 '+(LEAFLET_SIDE==='inside'?'안쪽면':'겉면')+' · '+spec.trimW.toFixed(1)+'mm × 3패널 · 도련 '+spec.bleed.toFixed(1)+'mm · 전체 '+spec.workW.toFixed(1)+'×'+spec.workH.toFixed(1)+'mm'
+      : isSingleCoverMode(spec.coverMode)
       ? singleLabel+' '+spec.trimW.toFixed(1)+'×'+spec.trimH.toFixed(1)+'mm · 도련 '+spec.bleed.toFixed(1)+'mm · 작업 '+spec.workW.toFixed(1)+'×'+spec.workH.toFixed(1)+'mm'
       : spec.coverMode==='frontBack'
         ? '앞·뒤표지 각 '+spec.trimW.toFixed(1)+'×'+spec.trimH.toFixed(1)+'mm · 도련 '+spec.bleed.toFixed(1)+'mm · 동시 작업 '+spec.workW.toFixed(1)+'×'+spec.workH.toFixed(1)+'mm'
         : '완성 '+spec.trimW.toFixed(1)+'×'+spec.trimH.toFixed(1)+'mm · 책등 '+spec.spine.toFixed(1)+'mm · 도련 '+spec.bleed.toFixed(1)+'mm'+wing+' · 전체 '+spec.workW.toFixed(1)+'×'+spec.workH.toFixed(1)+'mm';
-    const compact = isSingleCoverMode(spec.coverMode)
+    const compact = WORKSHOP==='leaflet'
+      ? '3단 리플렛 '+(LEAFLET_SIDE==='inside'?'안쪽면':'겉면')+' · '+spec.workW.toFixed(1)+'×'+spec.workH.toFixed(1)+'mm'
+      : isSingleCoverMode(spec.coverMode)
       ? spec.trimW.toFixed(1)+'×'+spec.trimH.toFixed(1)+'mm · '+singleLabel
       : spec.coverMode==='frontBack'
         ? spec.trimW.toFixed(1)+'×'+spec.trimH.toFixed(1)+'mm × 2 · 앞·뒤 동시'
         : spec.trimW.toFixed(1)+'×'+spec.trimH.toFixed(1)+'mm · 책등 '+spec.spine.toFixed(1)+'mm · 전체 '+spec.workW.toFixed(1)+'×'+spec.workH.toFixed(1)+'mm';
     if ($('geometryHint')) $('geometryHint').textContent = text;
     if ($('geometrySummary')) $('geometrySummary').textContent = compact;
-    if(spec.coverMode==='spread')updateSpinePolicy();
+    if(spec.coverMode==='spread'&&WORKSHOP==='cover')updateSpinePolicy();
     updateProgress();
     const stale = Boolean(state.background && state.generatedSpecKey && state.generatedSpecKey !== specKey(spec));
     if ($('exportBtn')) $('exportBtn').disabled = (!state.background && !window.DesignWorkspaceLayers?.hasLayers()) || stale;
@@ -863,7 +868,7 @@
         line(ctx,spineX+spineInset,b,spineX+spineInset,b+th,'rgba(22,163,74,.52)',[2,3]);
         line(ctx,frontX-spineInset,b,frontX-spineInset,b+th,'rgba(22,163,74,.52)',[2,3]);
       }
-      zone(ctx,'책등 '+spec.spine.toFixed(1)+'mm',spineX,b,sw,th);
+      zone(ctx,WORKSHOP==='leaflet'?'가운데 패널':('책등 '+spec.spine.toFixed(1)+'mm'),spineX,b,sw,th);
     }
     if(wing>0){line(ctx,backX,b,backX,b+th,'#f59e0b',[8,4]);line(ctx,frontWingX,b,frontWingX,b+th,'#f59e0b',[8,4]);zone(ctx,'뒷날개',b,b,wing,th);zone(ctx,'앞날개',frontWingX,b,wing,th);}
     zone(ctx,'뒤표지',backX,b,tw,th);zone(ctx,'앞표지',frontX,b,tw,th);
