@@ -291,6 +291,7 @@
   function setSingleSelection(kind,id){
     const key=selectionKey(kind,id),keys=groupMembersForKey(key).filter(elementKeyExists);
     state.selectedElements=keys.length?keys:[key];syncPrimarySelection(key);
+    window.DesignWorkspaceLayers?.clearActive?.();
   }
   function toggleSelection(kind,id){
     const key=selectionKey(kind,id),keys=groupMembersForKey(key).filter(elementKeyExists);
@@ -298,6 +299,7 @@
     if(allSelected)state.selectedElements=state.selectedElements.filter(item=>!keys.includes(item));
     else state.selectedElements=[...new Set([...state.selectedElements,...keys])];
     syncPrimarySelection(allSelected?'':key);
+    if(state.selectedElements.length)window.DesignWorkspaceLayers?.clearActive?.();
   }
   function groupSelectionKeys(keys){
     const selected=[...new Set((keys||[]).filter(elementKeyExists))];if(selected.length<2)return '';
@@ -2667,7 +2669,24 @@
     });
     $('resetTextLayout')?.addEventListener('click',resetSelectedTextLayout);
     bindTextCanvasEditing();
-    window.DesignWorkspaceLayers?.configure?.({getSpec:currentSpec,render:scheduleRender,notify:setStatus});
+    window.DesignWorkspaceLayers?.configure?.({
+      getSpec:currentSpec,render:scheduleRender,notify:setStatus,
+      hasNativeSelection:()=>selectionCount()>0,
+      onLayerSelection:()=>{clearSelection();syncTextEditUi();},
+      isTopElementAt:event=>{
+        const point=canvasPoint(event),spec=currentSpec(),fit=canvasFitSize(spec),ctx=$('previewCanvas')?.getContext('2d');
+        if(!point||!ctx)return false;
+        const items=textLayout(spec,fit.scale),single=selectionCount()===1,hs=16;
+        const selectedText=single&&state.selectedTextId?items.find(item=>item.id===state.selectedTextId):null;
+        const textBounds=selectedText?textVisualBounds(ctx,selectedText):null;
+        const shape=single?selectedShape():null,shapeBounds=shape?shapePixelBounds(shape,fit.scale):null;
+        const onHandle=Boolean(
+          (textBounds&&point.x>=textBounds.x+textBounds.w-hs&&point.x<=textBounds.x+textBounds.w+hs&&point.y>=textBounds.y+textBounds.h-hs&&point.y<=textBounds.y+textBounds.h+hs)||
+          (shapeBounds&&point.x>=shapeBounds.x+shapeBounds.w-hs&&point.x<=shapeBounds.x+shapeBounds.w+hs&&point.y>=shapeBounds.y+shapeBounds.h-hs&&point.y<=shapeBounds.y+shapeBounds.h+hs)
+        );
+        return onHandle||Boolean(findTextAtPoint(ctx,items,point)||findShapeAtPoint(point,fit.scale));
+      }
+    });
     $('resetBtn')?.addEventListener('click',resetAll);
     $('backgroundInput')?.addEventListener('change',event=>loadBackground(event.target.files?.[0]));
     $('clearBackground')?.addEventListener('click',clearBackground);
