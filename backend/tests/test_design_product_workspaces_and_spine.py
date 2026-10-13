@@ -20,11 +20,12 @@ def test_each_design_workspace_is_selectable_and_preserved(product: str):
         product in ("flyer", "invitation") and
         "state.productType==='flyer'||state.productType==='invitation'" in SCRIPT
     )
-    assert "next.searchParams.set('product',target)" in SCRIPT
+    assert "const destination=PRODUCT_ROUTES[target]" in SCRIPT
+    assert "Object.freeze({" in SCRIPT
     assert 'id="designPrintFace"' in PAGE
     assert 'data-print-face="inside"' in PAGE
     assert 'data-print-face="outside"' in PAGE
-    assert "next.searchParams.set('face',target)" in SCRIPT
+    assert "const destination=FOLDED_FACE_ROUTES[state.productType]?.[target]" in SCRIPT
     assert "state.designFace==='inside'?':inside':''" in SCRIPT
     assert "state.productType==='cover'?'':':'+state.productType" in SCRIPT
     assert "product_type:spec.productType" in SCRIPT
