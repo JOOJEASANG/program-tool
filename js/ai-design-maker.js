@@ -811,7 +811,7 @@
 
   function updateProgress() {
     const spec=currentSpec();
-    const validSpec=spec.trimW>=50&&spec.trimH>=50&&spec.spine>=0&&spec.bleed>=0;
+    const validSpec=spec.trimW>=50&&spec.trimH>=50&&spec.spine>=0&&spec.bleed>=0&&(!($('spine')?.readOnly&&state.productType==='cover')||$('spine')?.value!=='' );
     const hasTitle=Boolean(String($('title')?.value||'').trim());
     const hasBackText=Boolean(String($('backText')?.value||'').trim());
     const copyReady=state.coverMode==='back'?hasBackText:hasTitle;
@@ -880,7 +880,7 @@
         : spec.trimW.toFixed(1)+'×'+spec.trimH.toFixed(1)+'mm · 책등 '+spec.spine.toFixed(1)+'mm · 전체 '+spec.workW.toFixed(1)+'×'+spec.workH.toFixed(1)+'mm';
     if ($('geometryHint')) $('geometryHint').textContent = text;
     if ($('geometrySummary')) $('geometrySummary').textContent = compact;
-    if(spec.coverMode==='spread')updateSpinePolicy();
+    if(spec.coverMode==='spread'&&state.productType==='cover')updateSpinePolicy();
     updateProgress();
     const stale = Boolean(state.background && state.generatedSpecKey && state.generatedSpecKey !== specKey(spec));
     if ($('exportBtn')) $('exportBtn').disabled = (!state.background && !window.DesignWorkspaceLayers?.hasLayers()) || stale;
@@ -919,6 +919,22 @@
   function drawGuides(ctx,spec,scale) {
     if (!$('guideToggle')?.checked) return;
     const b=spec.bleed*scale, tw=spec.trimW*scale, th=spec.trimH*scale, safe=spec.safe*scale;
+    if(spec.productType!=='cover'){
+      const names=spec.productType==='leaflet'
+        ?spec.coverMode==='spread'?['왼쪽 패널','가운데 패널','오른쪽 패널']:['왼쪽 패널','오른쪽 패널']
+        :spec.productType==='invitation'
+          ?spec.coverMode==='frontBack'?['뒷면','앞면']:['초대장']
+          :spec.coverMode==='frontBack'?['뒷면','앞면']:['전단지'];
+      if(spec.bleed>0)rect(ctx,.5,.5,spec.workW*scale-1,spec.workH*scale-1,'#db2777',[7,5]);
+      names.forEach((name,index)=>{
+        const x=b+index*tw;
+        rect(ctx,x,b,tw,th,'#2563eb',[6,4]);
+        if(safe>0)rect(ctx,x+safe,b+safe,Math.max(0,tw-2*safe),Math.max(0,th-2*safe),'#16a34a');
+        if(index>0)line(ctx,x,b,x,b+th,'#f59e0b',[8,4]);
+        zone(ctx,name,x,b,tw,th);
+      });
+      return;
+    }
     if(spec.bleed>0) rect(ctx,.5,.5,spec.workW*scale-1,spec.workH*scale-1,'#db2777',[7,5]);
     if(isSingleCoverMode(spec.coverMode)){
       const label=spec.coverMode==='back'?'뒷표지':'앞표지',x=b;
@@ -1007,6 +1023,7 @@
 
   function textItemLabel(id) {
     const fixed={
+      middleText:'가운데 패널 문구',
       title:'앞표지 문구',
       backText:'뒤표지 문구',
       spineTop:'책등 · 상 문구',
@@ -1021,7 +1038,7 @@
     }
     return '문구';
   }
-  const DIRECT_TEXT_SOURCE_IDS = new Set(['title','backText','spineTop','spineMiddle','spineBottom']);
+  const DIRECT_TEXT_SOURCE_IDS = new Set(['title','backText','middleText','spineTop','spineMiddle','spineBottom']);
 
   function selectedTextItem(){
     if(!state.selectedTextId)return null;
@@ -1116,7 +1133,10 @@
       addCustomEntries(backCustom,'back',backX,b+th*.70,th*.22);
     }
 
-    if(modeHasSpine(spec.coverMode)&&spec.spine>=4){
+    if(spec.productType==='leaflet'&&spec.coverMode==='spread'){
+      add({id:'middleText',surface:'middle',text:v.middleText,x:spineX+safe,y:b+th*.16,w:contentW*.82,h:th*.48,fontPt:14,weight:700,align:'left'});
+    }
+    if(spec.productType==='cover'&&modeHasSpine(spec.coverMode)&&spec.spine>=4){
       const spineEntries=[
         {id:'spineTop',text:v.spineTop,slot:'top',center:.17},
         {id:'spineMiddle',text:v.spineMiddle,slot:'middle',center:.50},
@@ -1361,6 +1381,7 @@
   function textSurfaceForId(id){
     if(id==='title')return 'front';
     if(id==='backText')return 'back';
+    if(id==='middleText')return 'middle';
     if(SPINE_TEXT_IDS.has(id))return 'spine';
     if(String(id||'').startsWith('custom:')){
       const customId=String(id).slice(7);
@@ -1380,6 +1401,9 @@
     if(surface==='back'&&modeHasBack(spec.coverMode)){
       const trimX=spec.coverMode==='spread'?b+wing:b;
       return {x:trimX+safe,y:b+safe,w:safeW,h:safeH,surface:'back'};
+    }
+    if(surface==='middle'&&spec.productType==='leaflet'&&spec.coverMode==='spread'){
+      return {x:b+tw+safe,y:b+safe,w:safeW,h:safeH,surface:'middle'};
     }
     if(surface==='spine'&&modeHasSpine(spec.coverMode)&&sw>0){
       const spineX=b+wing+tw;
