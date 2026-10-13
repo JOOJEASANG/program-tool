@@ -246,3 +246,29 @@ html[data-cover-mode="frontBack"] #spineFields{display:none!important}
 .spine-calc-note{margin:0}
 #spine[readonly]{background:#e8f1ff;border-color:#93c5fd;color:#1e3a8a}
 html[data-design-studio="leaflet"] .product-picker{border-color:#0f766e}
+
+/* Product-specific professional print controls and actual folding previews */
+.professional-spec{grid-column:1/-1;display:grid;gap:10px;border:1px solid #cad7e9;background:#f8fbff;border-radius:14px;padding:14px;min-width:0}
+.professional-spec[hidden],.product-canvas-banner[hidden],.product-live-measure[hidden],#invitationSidePicker[hidden],#invitationFoldPositionField[hidden]{display:none!important}
+.professional-spec header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:7px}
+.professional-spec header strong{font-size:13px;color:#1e3a8a}
+.professional-spec header small,.professional-spec p{font-size:10.5px;line-height:1.65;color:#64748b;margin:0}
+.professional-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.professional-fields .field{min-width:0;display:flex;flex-direction:column;gap:5px}
+.professional-fields select,.professional-fields input{width:100%;max-width:100%;box-sizing:border-box}
+.print-face-switch{display:flex;gap:7px;flex-wrap:wrap}
+.print-face-switch a{flex:1;min-width:92px;text-align:center;padding:10px 8px;background:#fff;border:1px solid #cbd5e1;color:#475569;border-radius:9px;text-decoration:none;font-size:11px;font-weight:700}
+.print-face-switch a.active{color:#1d4ed8;background:#dbeafe;border-color:#2563eb}
+.product-live-measure{grid-column:1/-1;background:#eff6ff;color:#1e40af;font-size:11px;font-weight:750;padding:10px 12px;border-radius:9px;line-height:1.6}
+.product-canvas-banner{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;padding:11px 14px;border:1px solid #bfdbfe;border-radius:11px 11px 0 0;background:#eff6ff}
+.product-canvas-banner strong{font-size:12px;color:#1e3a8a}
+.product-canvas-banner span{font-size:10px;color:#475569}
+html[data-design-studio="flyer"] #previewCanvas{outline:2px solid rgba(59,130,246,.22)}
+html[data-design-studio="invitation"] #previewCanvas{outline:2px solid rgba(225,29,72,.18)}
+html[data-design-studio="leaflet"] #previewCanvas{outline:2px solid rgba(15,118,110,.22)}
+html[data-design-studio="flyer"] .product-canvas-banner{background:#eff6ff;border-color:#bfdbfe}
+html[data-design-studio="invitation"] .product-canvas-banner{background:#fff1f2;border-color:#fecdd3}
+html[data-design-studio="leaflet"] .product-canvas-banner{background:#ecfdf5;border-color:#99f6e4}
+html[data-design-studio="invitation"] #productCanvasTitle{color:#9f1239}
+html[data-design-studio="leaflet"] #productCanvasTitle{color:#115e59}
+@media(max-width:540px){.professional-fields{grid-template-columns:1fr}.professional-spec{padding:11px}.product-canvas-banner{align-items:flex-start}}
