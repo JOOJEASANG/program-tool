@@ -29,13 +29,13 @@
     style.id='pdfLayoutUiRefinementsStylesV1';
     style.textContent=`
       #pdfPageListQuickAddV1{display:none!important}
-      #pdfLazyPreviewNav{margin:0!important;padding:0!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;flex:0 0 auto!important;gap:4px!important;flex-wrap:nowrap!important;min-width:0!important}
+      #pdfLazyPreviewNav{margin:0!important;padding:0!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;flex:0 0 auto!important;align-items:center!important;gap:6px!important;flex-wrap:nowrap!important;min-width:0!important}
       #pdfLazyPreviewNav[data-active="true"]{display:flex!important}
       #pdfLazyPreviewNav .lazy-preview-range,#pdfLazyPreviewRange{display:none!important}
-      #pdfLazyPreviewNav button{height:27px!important;padding:3px 7px!important;border:1px solid #d6dee8!important;border-radius:6px!important;background:#fff!important;font-size:9.5px!important;white-space:nowrap!important}
-      #pdfLazyPreviewNav input{height:27px!important;width:54px!important;padding:3px 5px!important;font-size:9.5px!important}
-      #pdfLazyPreviewNav .lazy-preview-count{font-size:9.5px!important;white-space:nowrap!important}
-      #zoomResetBtn{min-width:66px!important;padding:3px 7px!important;font-size:9.5px!important;white-space:nowrap!important}
+      #pdfLazyPreviewNav button{box-sizing:border-box!important;height:36px!important;min-height:36px!important;max-height:36px!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;padding:0 10px!important;border:1px solid #d6dee8!important;border-radius:8px!important;background:#fff!important;font-size:11px!important;white-space:nowrap!important}
+      #pdfLazyPreviewNav input{box-sizing:border-box!important;height:36px!important;min-height:36px!important;max-height:36px!important;width:54px!important;padding:0 7px!important;border-radius:8px!important;font-size:11px!important}
+      #pdfLazyPreviewNav .lazy-preview-count{display:inline-flex!important;align-items:center!important;min-height:36px!important;font-size:11px!important;white-space:nowrap!important}
+      #zoomResetBtn{height:36px!important;min-height:36px!important;max-height:36px!important;min-width:80px!important;padding:0 12px!important;border-radius:8px!important;font-size:11px!important;white-space:nowrap!important}
       .thumb-file-sep[data-file-nav-header="true"]{position:relative}
       .pdf-file-order-handle{flex:0 0 22px;width:22px;height:25px;display:grid;place-items:center;border:1px solid #cbd5e1;border-radius:6px;background:#fff;color:#64748b;font:900 13px/1 Arial,sans-serif;cursor:grab;user-select:none}
       .pdf-file-order-handle:active{cursor:grabbing}
