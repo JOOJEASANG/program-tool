@@ -697,8 +697,8 @@
       frontBack:['앞·뒤표지 동시 제작','책등 없이 뒷표지와 앞표지를 나란히 놓고 한 번에 디자인합니다.','앞·뒤표지 동시 미리보기','앞·뒤표지 2면이 나란히 구성된 이미지를 불러오면 전체 작업 영역을 꽉 채워 배치합니다.'],
       spread:['표지 전체 펼침 제작','앞표지·책등·뒤표지를 한 번에 제작합니다. 규격과 스타일만으로 배경을 생성할 수 있습니다. 문구는 선택 사항입니다.','전체 펼침 미리보기','직접 만든 전체 펼침 표지를 불러오면 바깥 적색선 전체 영역을 꽉 채워 배치합니다. 그 위에 문구를 자유롭게 편집할 수 있습니다.']
     }[state.coverMode];
-    if($('coverModeHeading'))$('coverModeHeading').textContent=copy[0];
-    if($('coverModeDescription'))$('coverModeDescription').textContent=copy[1];
+    if($('coverModeHeading'))$('coverModeHeading').textContent=WORKSHOP==='cover'?copy[0]:({flyer:'전단지 제작',invitation:'초대장 제작',leaflet:'3단 리플렛 제작'})[WORKSHOP];
+    if($('coverModeDescription'))$('coverModeDescription').textContent=WORKSHOP==='cover'?copy[1]:({flyer:'전단지 앞면·뒷면 및 양면 제작',invitation:'초대장 겉면·안쪽면 디자인',leaflet:'3단 리플렛 겉면/안쪽면 · 각 3패널 디자인'})[WORKSHOP];
     if($('previewModeTitle'))$('previewModeTitle').textContent=copy[2];
     if($('backgroundModeHint'))$('backgroundModeHint').textContent=copy[3];
     syncWing();
@@ -1731,7 +1731,8 @@
       return (item.surface==='back'?'뒤표지':'앞표지')+' 추가 문구: '+value;
     }).filter(Boolean);
     return [
-      spec.coverMode==='front'?'표지 용도: 인쇄용 앞표지 단면'
+      WORKSHOP!=='cover'?'제작 종류: '+({flyer:'홍보용 전단지',invitation:'행사 초대장',leaflet:'3단 리플렛'})[WORKSHOP]+(WORKSHOP==='leaflet'?' / '+(LEAFLET_SIDE==='inside'?'안쪽면':'겉면')+' / 왼쪽·가운데·오른쪽 3패널':'')
+      :spec.coverMode==='front'?'표지 용도: 인쇄용 앞표지 단면'
         :spec.coverMode==='back'?'표지 용도: 인쇄용 뒷표지 단면'
         :spec.coverMode==='frontBack'?'표지 용도: 앞표지·뒷표지 동시 디자인'
         :'표지 용도: 인쇄용 책/보고서 전체 펼침 표지',
@@ -1750,7 +1751,7 @@
           cover_mode:backendCoverMode(spec.coverMode),quality_mode:state.generationQuality,trim_width_mm:spec.trimW,trim_height_mm:spec.trimH,spine_mm:spec.spine,wing_mm:spec.wing,bleed_mm:spec.bleed,
           preset_name:PRESETS[state.preset].name,
           model:$('imageModel')?.value||'gpt-image-2',
-          style_request:prompt,
+          style_request:(WORKSHOP==='cover'?'':({flyer:'Create an eye-catching professional printed event flyer, with clear text-safe zones and strong hierarchy. Do not design a book cover.\n',invitation:'Create an elegant printed invitation card composition, with appropriate front and inside card zones. Do not design a book cover.\n',leaflet:'Create one horizontally continuous three-panel trifold brochure spread with clear fold boundaries and readable content-safe areas. No book spine or cover.\n'})[WORKSHOP])+prompt,
           additional_prompt:String($('additionalPrompt')?.value||'').trim(),
           visual_direction:selectedDesignDirection(index),
           theme_context:themeContext()
@@ -1892,7 +1893,8 @@
     try{
       const {canvas}=await buildExportCanvas();
       const raw=await canvasBlob(canvas),png=await withPngDpi(raw,EXPORT_DPI),url=URL.createObjectURL(png),a=document.createElement('a');
-      const baseName=spec.coverMode==='front'?'front-cover-'+spec.trimW+'x'+spec.trimH
+      const baseName=WORKSHOP!=='cover'?(WORKSHOP+(WORKSHOP==='leaflet'?'-'+LEAFLET_SIDE:'')+'-'+spec.workW+'x'+spec.workH)
+        :spec.coverMode==='front'?'front-cover-'+spec.trimW+'x'+spec.trimH
         :spec.coverMode==='back'?'back-cover-'+spec.trimW+'x'+spec.trimH
         :spec.coverMode==='frontBack'?'front-back-covers-'+spec.trimW+'x'+spec.trimH
         :'cover-'+spec.trimW+'x'+spec.trimH+'-spine-'+spec.spine+'mm';
@@ -1956,7 +1958,8 @@
         pdf=pdfFromJpeg(new Uint8Array(await jpegBlob.arrayBuffer()),w,h,spec.workW*72/25.4,spec.workH*72/25.4);
       }
       const url=URL.createObjectURL(pdf),a=document.createElement('a');
-      const baseName=spec.coverMode==='front'?'front-cover-'+spec.trimW+'x'+spec.trimH
+      const baseName=WORKSHOP!=='cover'?(WORKSHOP+(WORKSHOP==='leaflet'?'-'+LEAFLET_SIDE:'')+'-'+spec.workW+'x'+spec.workH)
+        :spec.coverMode==='front'?'front-cover-'+spec.trimW+'x'+spec.trimH
         :spec.coverMode==='back'?'back-cover-'+spec.trimW+'x'+spec.trimH
         :spec.coverMode==='frontBack'?'front-back-covers-'+spec.trimW+'x'+spec.trimH
         :'cover-'+spec.trimW+'x'+spec.trimH+'-spine-'+spec.spine+'mm';
