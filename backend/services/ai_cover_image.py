@@ -101,7 +101,10 @@ def normalize_cover_request(payload: dict[str, Any]) -> CoverImageRequest:
     quality_mode = "high" if quality_mode == "high" else "standard"
     trim_width = _number(payload.get("trim_width_mm"), minimum=50, maximum=1000, default=210)
     trim_height = _number(payload.get("trim_height_mm"), minimum=50, maximum=1000, default=297)
-    spine = _number(payload.get("spine_mm"), minimum=0, maximum=100, default=0)
+    product_type = _clean(payload.get("product_type"), 24)
+    if product_type not in {"cover", "flyer", "invitation", "leaflet"}:
+        product_type = "cover"
+    spine = _number(payload.get("spine_mm"), minimum=0, maximum=1000 if product_type == "leaflet" else 100, default=0)
     wing = _number(payload.get("wing_mm"), minimum=0, maximum=300, default=0)
     bleed = _number(payload.get("bleed_mm"), minimum=0, maximum=20, default=3)
     style_request = _clean(payload.get("style_request"), MAX_STYLE)
@@ -131,7 +134,7 @@ def normalize_cover_request(payload: dict[str, Any]) -> CoverImageRequest:
         model=model,
         additional_prompt=additional_prompt,
         visual_direction=visual_direction,
-        product_type=_clean(payload.get("product_type"), 24) if _clean(payload.get("product_type"), 24) in {"cover", "flyer", "invitation", "leaflet"} else "cover",
+        product_type=product_type,
         leaflet_side="inside" if payload.get("leaflet_side") == "inside" else "outside",
     )
     ratio = request.work_width_mm / request.work_height_mm
