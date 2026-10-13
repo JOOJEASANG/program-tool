@@ -57,6 +57,12 @@
     layer.w = w; layer.h = h; layer.angle = 0; layer.target = target;
     return true;
   }
+  function sourceImageFormat(bytes) {
+    if (bytes.length >= 8 && [137,80,78,71,13,10,26,10].every((x,i)=>bytes[i]===x)) return 'png';
+    if (bytes.length >= 3 && bytes[0]===255 && bytes[1]===216 && bytes[2]===255) return 'jpeg';
+    if (bytes.length>=12 && [82,73,70,70].every((x,i)=>bytes[i]===x) && [87,69,66,80].every((x,i)=>bytes[i+8]===x))return 'webp';
+    return '';
+  }
   function fileType(file) {
     if (file?.type === 'application/pdf' || /\.pdf$/i.test(file?.name || '')) return 'pdf';
     if (/^image\/(png|jpeg|webp)$/.test(file?.type || '') || /\.(png|jpe?g|webp)$/i.test(file?.name || '')) return 'image';
@@ -115,6 +121,8 @@
         layer.pageCount = layer.pdfDocument.numPages;
         await renderPdfPage(layer,1);
       } else {
+        layer.imageFormat=sourceImageFormat(layer.bytes);
+        if(!layer.imageFormat)throw new Error('이미지 파일이 올바른 PNG·JPEG·WEBP 형식인지 확인해 주세요.');
         const result = await loadImage(file);
         Object.assign(layer,result);
         // Keep native bitmap dimensions separately for effective-resolution checks.
@@ -190,7 +198,11 @@
       const dpi=effectiveDpi(item);
       if(dpi!==null){infos.push(item.name+' · 유효 '+Math.round(dpi)+'dpi');if(dpi<300)warnings.push(item.name+' · 300dpi 미만(약 '+Math.round(dpi)+'dpi)');}
       else infos.push(item.name+' · PDF 원본 페이지 배치');
-      if(item.x<0||item.y<0||item.x+item.w>s.workW+.01||item.y+item.h>s.workH+.01)warnings.push(item.name+' · 캔버스 범위 이탈');
+      const rotation=item.angle*Math.PI/180,cos=Math.abs(Math.cos(rotation)),sin=Math.abs(Math.sin(rotation));
+      const halfW=(item.w*cos+item.h*sin)/2,halfH=(item.w*sin+item.h*cos)/2;
+      const centerX=item.x+item.w/2,centerY=item.y+item.h/2;
+      if(centerX-halfW<-.01||centerY-halfH<-.01||centerX+halfW>s.workW+.01||centerY+halfH>s.workH+.01)
+        warnings.push(item.name+' · 회전 포함 캔버스 범위 이탈');
     }
     panel.replaceChildren();
     for(const message of infos.concat(warnings.length?warnings:['현재 배치 기준 경고 없음'])) {
@@ -255,6 +267,7 @@
     const canvas=$('previewCanvas');if(!canvas)return;
     canvas.addEventListener('pointerdown', e => {
       const s=spec(),p=canvasPoint(e,canvas,s);if(!p)return;
+      if(editor?.isTopElementAt?.(e))return; // Text and shapes are drawn above file layers.
       const hit=[...layers].reverse().map(item=>({item,point:localLayerPoint(item,p)}))
         .find(({item,point})=>point.x>=0&&point.x<=item.w&&point.y>=0&&point.y<=item.h);
       if(!hit) {
@@ -263,6 +276,7 @@
       }
       e.preventDefault();e.stopImmediatePropagation();
       activeId=hit.item.id;
+      editor?.onLayerSelection?.();
       const resize=hit.point.x>hit.item.w-Math.max(4,12*(s.workW/canvas.clientWidth))&&hit.point.y>hit.item.h-Math.max(4,12*(s.workH/canvas.clientHeight));
       pointer={id:e.pointerId,start:p,initial:{x:hit.item.x,y:hit.item.y,w:hit.item.w,h:hit.item.h},mode:resize?'resize':'move',layerId:hit.item.id};
       canvas.setPointerCapture?.(e.pointerId);
@@ -294,7 +308,7 @@
     stage.addEventListener('dragleave',()=>stage.classList.remove('design-import-dragover'));
     stage.addEventListener('drop',e=>{if(e.dataTransfer?.files?.length){e.preventDefault();stage.classList.remove('design-import-dragover');importFiles(e.dataTransfer.files);}});
     window.addEventListener('keydown',e=>{
-      const item=selected();if(!item)return;
+      const item=selected();if(!item||editor?.hasNativeSelection?.())return;
       if(e.target?.matches?.('input,textarea,select')||e.target?.isContentEditable)return;
       if(e.key==='Delete'||e.key==='Backspace'){
         e.preventDefault();e.stopImmediatePropagation();removeSelected();return;
@@ -315,8 +329,8 @@
       page.drawPage(pdfPages[0],{x,y,width:ptsW,height:ptsH,rotate:lib.degrees(-item.angle)});
     } else {
       let embedded;
-      if(/\.jpe?g$/i.test(item.name))embedded=await doc.embedJpg(item.bytes);
-      else if(/\.png$/i.test(item.name))embedded=await doc.embedPng(item.bytes);
+      if(item.imageFormat==='jpeg')embedded=await doc.embedJpg(item.bytes);
+      else if(item.imageFormat==='png')embedded=await doc.embedPng(item.bytes);
       else {
         const canvas=document.createElement('canvas');canvas.width=item.pixelW;canvas.height=item.pixelH;
         canvas.getContext('2d').drawImage(item.image,0,0,canvas.width,canvas.height);
@@ -353,13 +367,24 @@
       const item=selected();if(!item||item.type!=='pdf')return;
       const num=clamp(Math.round(Number(e.target.value)||1),1,item.pageCount);
       if(num===item.pageNumber)return;
-      try{await renderPdfPage(item,num);refresh();}catch(error){notify('PDF 페이지 오류',error?.message||'다른 페이지를 읽을 수 없습니다.','error');}
+      try{
+        const centerX=item.x+item.w/2,centerY=item.y+item.h/2,area=item.w*item.h;
+        await renderPdfPage(item,num);
+        const ratio=item.sourceW/item.sourceH;
+        item.w=Math.sqrt(area*ratio);item.h=area/item.w;
+        item.x=centerX-item.w/2;item.y=centerY-item.h/2;
+        refresh();
+      }catch(error){notify('PDF 페이지 오류',error?.message||'다른 페이지를 읽을 수 없습니다.','error');}
     });
+  }
+  function clearActive() {
+    if(!activeId)return;
+    activeId='';refresh();
   }
   function configure(options) {
     if(editor)return;
     editor=options;
     bindCanvas();bindInputs();refresh();
   }
-  window.DesignWorkspaceLayers={configure,importFiles,removeSelected,draw,drawForExport,drawVector,hasLayers,updateReview,zones,get layers(){return layers.slice();},get active(){return selected();}};
+  window.DesignWorkspaceLayers={configure,importFiles,removeSelected,clearActive,draw,drawForExport,drawVector,hasLayers,updateReview,zones,get layers(){return layers.slice();},get active(){return selected();}};
 })();
