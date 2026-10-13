@@ -255,3 +255,11 @@ html[data-cover-mode="frontBack"] #spineFields{display:none!important}
 html[data-design-product="flyer"] #spineField,html[data-design-product="flyer"] #wingToggleRow,html[data-design-product="flyer"] #wingField,html[data-design-product="flyer"] #spineFields,
 html[data-design-product="invitation"] #spineField,html[data-design-product="invitation"] #wingToggleRow,html[data-design-product="invitation"] #wingField,html[data-design-product="invitation"] #spineFields,
 html[data-design-product="leaflet"] #spineField,html[data-design-product="leaflet"] #wingToggleRow,html[data-design-product="leaflet"] #wingField,html[data-design-product="leaflet"] #spineFields{display:none!important}
+
+.design-print-face{display:grid;gap:7px;margin:0 0 12px;padding:11px;border:1px solid #bad5f4;border-radius:11px;background:#eff6ff}
+.design-print-face>span{font-size:11px;font-weight:850;color:#1e40af}
+.design-print-face-options{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.design-print-face-options button{padding:10px 8px;border:1px solid #cbd5e1;background:#fff;border-radius:8px;color:#475569;font-size:11px;font-weight:750;cursor:pointer}
+.design-print-face-options button.active{background:#dbeafe;border-color:#2563eb;color:#1e40af}
+.design-print-face small{font-size:9.5px;line-height:1.5;color:#64748b}
+#designPrintFace[hidden],html[data-cover-mode="front"] #spineCalculator,html[data-cover-mode="back"] #spineCalculator,html[data-cover-mode="frontBack"] #spineCalculator{display:none!important}
