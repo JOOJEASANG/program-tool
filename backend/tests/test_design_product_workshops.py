@@ -71,6 +71,13 @@ def test_duplex_output_is_two_pages_and_gallery_is_scoped():
     assert "(privateData.workshop||'cover')!==WORKSHOP" in editor
 
 
+def test_duplex_print_behavior():
+    proc=subprocess.run(['node',str(ROOT/'backend/tests/design_duplex_output.cjs')],
+                        cwd=ROOT,text=True,capture_output=True,check=False)
+    assert proc.returncode==0,proc.stdout+proc.stderr
+    assert 'duplex export behavior passed' in proc.stdout
+
+
 def test_design_manual_documents_new_workflows():
     manual=read('js/program-manuals/ai-design-maker.js')
     assert "updated: '2026-10-13'" in manual
