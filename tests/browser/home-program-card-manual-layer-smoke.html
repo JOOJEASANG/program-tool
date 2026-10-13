@@ -7,19 +7,19 @@
 <body>
   <div id="programGrid">
     <article class="studio-card">
-      <a class="prog-card" href="/print-checker/">
+      <a class="prog-card" href="/ai-design-maker/">
         <div class="card-header">
           <div class="card-icon-wrap">🔍</div>
-          <div class="card-cat">인쇄파일 사전검토</div>
+          <div class="card-cat">AI 생성·파일 편집·인쇄 검토</div>
         </div>
         <div class="card-body">
-          <div class="card-name">인쇄파일 검토</div>
-          <div class="card-desc">PDF·이미지의 실제 규격, 도련, 재단선, 안전영역, 책등·접지를 대조해 인쇄 전 오류를 점검합니다.</div>
+          <div class="card-name">디자인 제작</div>
+          <div class="card-desc">AI 디자인과 내 PDF·이미지 파일을 펼침 표지에 배치하고 인쇄 규격까지 검토합니다.</div>
           <div class="card-tags"><span>재단선</span></div>
         </div>
         <div class="card-footer"><span>바로 사용</span><span class="card-cta">시작하기 →</span></div>
       </a>
-      <button class="studio-pin" type="button" aria-label="인쇄파일 검토 즐겨찾기" aria-pressed="false">☆</button>
+      <button class="studio-pin" type="button" aria-label="디자인 제작 즐겨찾기" aria-pressed="false">☆</button>
     </article>
   </div>
   <span id="cnt-all"></span><span id="cnt-print"></span><span id="cnt-pdf"></span><span id="count"></span>
@@ -43,11 +43,11 @@
 
         assert(card?.dataset.homeCardLayout==='title-card','current home card layout marker missing');
         assert(header?.querySelector('.card-icon-wrap'),'program icon missing');
-        assert(name?.textContent.trim()==='인쇄파일 검토','program title is not beside the icon');
+        assert(name?.textContent.trim()==='디자인 제작','program title is not beside the icon');
         assert(getComputedStyle(name).color!=='rgb(255, 255, 255)','program title is white and invisible on the light card');
         const favorite=document.querySelector('.studio-pin');
         assert(favorite?.textContent.trim()==='☆','favorite star is missing from the program card');
-        assert(favorite?.getAttribute('aria-label')==='인쇄파일 검토 즐겨찾기','favorite accessible label mismatch');
+        assert(favorite?.getAttribute('aria-label')==='디자인 제작 즐겨찾기','favorite accessible label mismatch');
         assert(!card.querySelector('.card-manual-btn'),'manual button should not render on the home card');
         assert(!document.getElementById('programManualHomeModalScript'),'home manual modal script should not load');
         assert(!card.querySelector('.card-cat'),'category label should be removed');
