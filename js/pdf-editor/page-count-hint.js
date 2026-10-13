@@ -396,6 +396,7 @@
       batchInFlight = false;
     }
     refreshAfterMutation(label);
+    return true;
   }
 
   function selectedPagesInOrder() {
