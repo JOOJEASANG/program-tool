@@ -7,7 +7,9 @@
 
   const EXPORT_DPI = 300;
   const MAX_EXPORT_PIXELS = 60_000_000;
-  const STORAGE_KEY_PREFIX = 'program-studio:ai-design-maker:cover:v2';
+  const WORKSHOP_ID = new URLSearchParams(location.search).get('studio') || 'cover';
+  const WORKSHOP = ['cover','flyer','invitation','leaflet'].includes(WORKSHOP_ID)?WORKSHOP_ID:'cover';
+  const STORAGE_KEY_PREFIX = 'program-studio:ai-design-maker:'+WORKSHOP+':v2';
   const LEGACY_STORAGE_KEY = 'program-studio:ai-design-maker:cover:v1';
   let STORAGE_KEY = '';
   const TEXT_LAYOUT_SCHEMA_VERSION = 5;
@@ -336,7 +338,7 @@
     const bleed = clamp(num('bleed', 3), 0, 20, 3);
     const safe = clamp(num('safeZone', 10), 0, 80, 10);
     const spread=coverMode==='spread';
-    const spine = spread ? clamp(num('spine', 10), 0, 100, 10) : 0;
+    const spine = spread ? (WORKSHOP==='leaflet'?trimW:clamp(num('spine', 10), 0, 100, 10)) : 0;
     const wing = spread && $('wingEnabled')?.checked ? clamp(num('wingW', 70), 20, 300, 70) : 0;
     const workW=isSingleCoverMode(coverMode)
       ? trimW + bleed * 2
@@ -366,11 +368,12 @@
   }
 
   function serializableState() {
-    const ids = ['trimW','trimH','spine','bleed','safeZone','wingW','title','backText','spineTop','spineMiddle','spineBottom','spineTopPlacement','spineMiddlePlacement','spineBottomPlacement','spineOrientation','visualMode','colorIntensity','designMood','primaryColor','textColor','theme','stylePrompt','imageModel','additionalPrompt','targetAudience','titleSpace','variantCount'];
+    const ids = ['trimW','trimH','spine','spinePages','spineSheetThickness','spineAllowance','bleed','safeZone','wingW','title','backText','spineTop','spineMiddle','spineBottom','spineTopPlacement','spineMiddlePlacement','spineBottomPlacement','spineOrientation','visualMode','colorIntensity','designMood','primaryColor','textColor','theme','stylePrompt','imageModel','additionalPrompt','targetAudience','titleSpace','variantCount'];
     const data = {
       preset: state.preset,
       wingEnabled: Boolean($('wingEnabled')?.checked),
       spineSync: Boolean($('spineSync')?.checked),
+      spineCalcMode:document.querySelector('input[name="spineCalcMode"]:checked')?.value||'auto',
       promptLanguage: state.promptLanguage,
       customFields: state.customFields,
       textLayouts: state.textLayouts,
@@ -408,6 +411,8 @@
       if ($('imageModel') && !$('imageModel').value) $('imageModel').value='gpt-image-2';
       if (typeof data.wingEnabled === 'boolean') $('wingEnabled').checked = data.wingEnabled;
       if (typeof data.spineSync === 'boolean') $('spineSync').checked = data.spineSync;
+      const mode=data.spineCalcMode||(data.spine!==undefined?'manual':'auto');
+      qa('input[name="spineCalcMode"]').forEach(el=>el.checked===false&&el.value===mode?el.checked=true:null);
       if (!String($('spineMiddle')?.value || '').trim() && String(data.spineTitle || '').trim() && $('spineMiddle')) {
         $('spineMiddle').value = String(data.spineTitle).slice(0,180);
       }
@@ -489,6 +494,7 @@
 
   function loadSessionNow() {
     loadLocal();
+    window.DesignWorkshopModes?.refresh?.();
     setupPresetCards();
     syncCoverMode();
     syncSizeMode();
@@ -2540,7 +2546,7 @@
   }
 
   function bind(){
-    loadLocal();setupPresetCards();syncCoverMode();syncSizeMode();syncGenerationQuality();syncSpineTitle();renderCustomFields();syncPromptLanguageUi(false);syncGlobalCmykFromHex('primaryColor');syncGlobalCmykFromHex('textColor');syncTextEditUi();syncExportButton();
+    loadLocal();window.DesignWorkshopModes?.setup?.({studio:WORKSHOP,state,syncCoverMode,syncSizeMode,saveLocal,scheduleRender,updateGeometry});setupPresetCards();syncCoverMode();syncSizeMode();syncGenerationQuality();syncSpineTitle();renderCustomFields();syncPromptLanguageUi(false);syncGlobalCmykFromHex('primaryColor');syncGlobalCmykFromHex('textColor');syncTextEditUi();syncExportButton();
     if(!$('stylePrompt').value)$('stylePrompt').value=presetPrompt();
     qa('[data-ai-refine]').forEach(button=>button.addEventListener('click',()=>addAiRefinement(button.dataset.aiRefine||'')));
     $('variantCount')?.addEventListener('change',saveLocal);
