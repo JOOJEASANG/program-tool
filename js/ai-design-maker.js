@@ -734,10 +734,11 @@
     setState('copyState',true,copyReady?'입력됨':'선택 사항','선택 사항');
     setState('styleState',hasStyle,'완료','스타일 필요');
     const generated=Boolean(state.background&&state.generatedSpecKey===specKey(spec));
+    const placed=Boolean(window.DesignWorkspaceLayers?.hasLayers());
     const stale=Boolean(state.background&&!generated);
     const badge=$('generationState');
     if(badge){
-      badge.textContent=generated?(state.backgroundSource==='upload'?'직접 표지 적용':'AI 배경 완료'):stale?'규격 변경 · 배경 재적용':'생성 전';
+      badge.textContent=generated?(state.backgroundSource==='upload'?'직접 표지 적용':'AI 배경 완료'):stale?'규격 변경 · 배경 재적용':placed?'직접 파일 배치':'생성 전';
       badge.classList.toggle('ready',generated);
       badge.classList.toggle('stale',stale);
     }
@@ -787,7 +788,8 @@
     if(spec.coverMode==='spread')updateSpinePolicy();
     updateProgress();
     const stale = Boolean(state.background && state.generatedSpecKey && state.generatedSpecKey !== specKey(spec));
-    if ($('exportBtn')) $('exportBtn').disabled = !state.background || stale;
+    if ($('exportBtn')) $('exportBtn').disabled = (!state.background && !window.DesignWorkspaceLayers?.hasLayers()) || stale;
+    window.DesignWorkspaceLayers?.updateReview?.();
     if (stale) setStatus('규격이 변경되었습니다.','현재 규격에 맞게 AI 배경을 다시 생성하거나 직접 만든 표지 이미지를 다시 불러와 주세요.','busy');
   }
 
@@ -1310,7 +1312,9 @@
     canvas.style.width=fit.width+'px';canvas.style.height=fit.height+'px';canvas.width=Math.round(fit.width*dpr);canvas.height=Math.round(fit.height*dpr);
     const ctx=canvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);
     ctx.clearRect(0,0,fit.width,fit.height);
+    ctx.fillStyle='#ffffff';ctx.fillRect(0,0,fit.width,fit.height);
     if(state.background?.naturalWidth)drawBackgroundImage(ctx,state.background,fit.width,fit.height);
+    window.DesignWorkspaceLayers?.draw?.(ctx,spec,fit.scale,false);
     state.shapes.forEach(shape=>drawShape(ctx,shape,fit.scale));
     drawLogo(ctx,spec,fit.scale);
     const color=$('textColor')?.value||'#ffffff';
@@ -1322,6 +1326,7 @@
     drawTextSelection(ctx,items);
     drawShapeSelection(ctx,fit.scale);
     drawMultiSelection(ctx,items,fit.scale);
+    window.DesignWorkspaceLayers?.draw?.(ctx,spec,fit.scale,true);
     updateGeometry();
   }
 
@@ -1851,7 +1856,9 @@
     if(pixels>MAX_EXPORT_PIXELS)throw Object.assign(new Error('현재 규격은 '+(pixels/1e6).toFixed(1)+'MP로 300dpi 저장 한도를 초과합니다.'),{code:'EXPORT_PIXEL_LIMIT'});
     await document.fonts?.ready;
     const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;const ctx=canvas.getContext('2d');
-    drawBackgroundImage(ctx,state.background,w,h);
+    ctx.fillStyle='#ffffff';ctx.fillRect(0,0,w,h);
+    if(state.background?.naturalWidth)drawBackgroundImage(ctx,state.background,w,h);
+    window.DesignWorkspaceLayers?.draw?.(ctx,spec,ppm,false);
     state.shapes.forEach(shape=>drawShape(ctx,shape,ppm));
     drawLogo(ctx,spec,ppm);
     const color=$('textColor')?.value||'#ffffff';
@@ -1861,9 +1868,9 @@
   }
 
   async function exportPng(){
-    if(!state.background){setStatus('배경을 먼저 준비해 주세요.','AI 배경을 생성하거나 직접 만든 표지 이미지를 불러와야 300dpi로 저장할 수 있습니다.','error');return;}
+    if(!state.background&&!window.DesignWorkspaceLayers?.hasLayers()){setStatus('작업물이 없습니다.','AI 배경을 생성하거나 PDF·이미지 파일을 배치해 주세요.','error');return;}
     const spec=currentSpec();
-    if(state.generatedSpecKey!==specKey(spec)){setStatus('규격이 변경되었습니다.','현재 규격으로 AI 배경을 다시 생성하거나 직접 만든 표지 이미지를 다시 불러온 뒤 저장해 주세요.','error');return;}
+    if(state.background&&state.generatedSpecKey!==specKey(spec)){setStatus('규격이 변경되었습니다.','현재 규격으로 AI 배경을 다시 생성하거나 직접 만든 표지 이미지를 다시 불러온 뒤 저장해 주세요.','error');return;}
     const button=$('exportBtn');button.disabled=true;
     setStatus('300dpi PNG를 만들고 있습니다.','배경·문구·책등·로고'+($('cropMarkToggle')?.checked?'·재단선':'')+'을 실제 인쇄 크기로 합성하는 중입니다.','busy');
     try{
@@ -1916,9 +1923,9 @@
   }
 
   async function exportPdf(vector=true){
-    if(!state.background){setStatus('배경을 먼저 준비해 주세요.','AI 배경을 생성하거나 직접 만든 표지 이미지를 불러와야 PDF로 저장할 수 있습니다.','error');return;}
+    if(!state.background&&!window.DesignWorkspaceLayers?.hasLayers()){setStatus('작업물이 없습니다.','AI 배경을 생성하거나 PDF·이미지 파일을 배치해 주세요.','error');return;}
     const spec=currentSpec();
-    if(state.generatedSpecKey!==specKey(spec)){setStatus('규격이 변경되었습니다.','현재 규격으로 AI 배경을 다시 생성하거나 직접 만든 표지 이미지를 다시 불러온 뒤 저장해 주세요.','error');return;}
+    if(state.background&&state.generatedSpecKey!==specKey(spec)){setStatus('규격이 변경되었습니다.','현재 규격으로 AI 배경을 다시 생성하거나 직접 만든 표지 이미지를 다시 불러온 뒤 저장해 주세요.','error');return;}
     const button=$('exportBtn');button.disabled=true;
     const pdfModeText=spec.coverMode==='front'?'앞표지':spec.coverMode==='back'?'뒷표지':spec.coverMode==='frontBack'?'앞·뒤표지 동시 작업':'전체 펼침';
     setStatus('인쇄용 PDF를 만들고 있습니다.',vector?'원본 배경과 벡터 문구·도형을 실제 규격의 RGB PDF로 저장합니다.':'300dpi 디자인을 '+pdfModeText+' 실제 작업 크기의 RGB 이미지 PDF로 만드는 중입니다.','busy');
@@ -1926,7 +1933,7 @@
       let pdf;
       if(vector){
         const scale=72/25.4;
-        pdf=await window.ProgramStudioPrintExport.create({spec,background:state.background,logo:state.logo,logoRect:logoRect(spec,scale),shapes:state.shapes,drawShape,textItems:textLayout(spec,scale),wrappedLayout,drawCropMarks,cropMarks:Boolean($('cropMarkToggle')?.checked),textColor:$('textColor')?.value||'#ffffff'});
+        pdf=await window.ProgramStudioPrintExport.create({spec,background:state.background,placedLayers:window.DesignWorkspaceLayers,logo:state.logo,logoRect:logoRect(spec,scale),shapes:state.shapes,drawShape,textItems:textLayout(spec,scale),wrappedLayout,drawCropMarks,cropMarks:Boolean($('cropMarkToggle')?.checked),textColor:$('textColor')?.value||'#ffffff'});
       }else{
         const {canvas,w,h}=await buildExportCanvas();
         const jpegBlob=await new Promise((resolve,reject)=>canvas.toBlob(blob=>blob?resolve(blob):reject(new Error('PDF용 이미지 데이터를 만들지 못했습니다.')),'image/jpeg',.98));
@@ -2657,6 +2664,7 @@
     });
     $('resetTextLayout')?.addEventListener('click',resetSelectedTextLayout);
     bindTextCanvasEditing();
+    window.DesignWorkspaceLayers?.configure?.({getSpec:currentSpec,render:scheduleRender,notify:setStatus});
     $('resetBtn')?.addEventListener('click',resetAll);
     $('backgroundInput')?.addEventListener('change',event=>loadBackground(event.target.files?.[0]));
     $('clearBackground')?.addEventListener('click',clearBackground);
@@ -2687,7 +2695,7 @@
     const gate=$('authGate'),shell=$('makerShell'),message=$('authMessage'),login=$('authLogin');
     if(!window.auth){message.textContent='로그인 모듈을 불러오지 못했습니다.';login.hidden=false;return;}
     window.auth.onAuthStateChanged(async user=>{
-      if(!user){message.textContent='AI 디자인 제작을 사용하려면 로그인해 주세요.';login.hidden=false;shell.hidden=true;gate.hidden=false;return;}
+      if(!user){message.textContent='디자인 제작을 사용하려면 로그인해 주세요.';login.hidden=false;shell.hidden=true;gate.hidden=false;return;}
       try{
         const access=await window.ProgramAccess.getAccess(user);
         if(!access.approved){message.textContent='관리자 승인 후 사용할 수 있습니다.';login.hidden=true;shell.hidden=true;gate.hidden=false;return;}
