@@ -117,9 +117,9 @@
     document.querySelectorAll('input[name="spineCalcMode"]').forEach(input=>input.addEventListener('change',change));
     ['spinePages','spineSheetThickness','spineAllowance'].forEach(id=>$(id)?.addEventListener('input',()=>{
       if(manual())return;
-      // Invalid values do not replace the previous physical thickness.
       if(recalc())change();
     }));
+    window.DesignProfessionalControls?.setup?.(options);
     refresh();
   }
   window.DesignWorkshopModes={setup,refresh,recalc};
