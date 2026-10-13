@@ -94,8 +94,22 @@
       // To work on the reverse, save/export one side then start a new side.
       if(studio==='leaflet'){
         if($('spineFields'))$('spineFields').hidden=true;
+        const side=new URLSearchParams(location.search).get('side')==='inside'?'inside':'outside';
+        const picker=$('leafletSidePicker');
+        if(picker)picker.hidden=false;
+        document.querySelectorAll('[data-leaflet-side]').forEach(link=>{
+          const active=link.dataset.leafletSide===side;
+          link.classList.toggle('active',active);
+          if(active)link.setAttribute('aria-current','page');else link.removeAttribute('aria-current');
+        });
+        const target=$('designLayerTarget');
+        if(target){
+          const names={back:'왼쪽 패널',spine:'가운데 패널',front:'오른쪽 패널',whole:'전체 펼침'};
+          Array.from(target.options).forEach(option=>{if(names[option.value])option.textContent=names[option.value];});
+        }
+        if($('coverModeDescription'))$('coverModeDescription').textContent='3단 리플렛 '+(side==='inside'?'안쪽면':'겉면')+' · 가로 3패널(각 99mm 기본) · 두 면을 각각 출력하세요.';
         const hint=$('geometryHint');
-        if(hint)hint.title='3단 접지: 왼쪽/가운데/오른쪽 각 99mm로 배치합니다. 반대면은 별도의 파일로 제작하세요.';
+        if(hint)hint.title='3단 접지: 왼쪽/가운데/오른쪽 세 패널입니다. 제조사 접지 공차는 인쇄 전 반드시 확인하세요.';
       }
     }
     if($('coverModeHeading'))$('coverModeHeading').textContent=config.name+' 제작';
