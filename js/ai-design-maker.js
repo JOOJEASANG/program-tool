@@ -1748,6 +1748,7 @@
 
   function buildGenerationRequest(spec,prompt,index=null){
     return {
+          product_type:WORKSHOP,leaflet_side:LEAFLET_SIDE,
           cover_mode:backendCoverMode(spec.coverMode),quality_mode:state.generationQuality,trim_width_mm:spec.trimW,trim_height_mm:spec.trimH,spine_mm:spec.spine,wing_mm:spec.wing,bleed_mm:spec.bleed,
           preset_name:PRESETS[state.preset].name,
           model:$('imageModel')?.value||'gpt-image-2',
