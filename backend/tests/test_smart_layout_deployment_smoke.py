@@ -35,8 +35,8 @@ def test_production_smoke_accepts_current_deployment_assets(deployed_assets):
 @pytest.mark.parametrize(
     ("current", "stale"),
     [
-        ("pdf-home-six-programs-v10", "pdf-home-six-programs-v9"),
-        ("name:'인쇄파일 검토'", "name:'디자인 검토'"),
+        ("pdf-home-unified-design-five-programs-v11", "pdf-home-six-programs-v10"),
+        ("name:'디자인 제작'", "name:'AI 디자인 제작'"),
         ("url:'smart-print-layout/'", "url:'missing-layout/'"),
     ],
 )
