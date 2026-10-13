@@ -19,7 +19,7 @@ const host = {
   },
   parsedPages: makePages(),
   uploadedFiles: [{name: '본문.pdf', size: 100, lastModified: 1}],
-  setTimeout(callback) { if (callback) callback(); return 0; }
+  setTimeout(callback) { if (callback) callback(); return 0; },
   clearTimeout() {},
   requestAnimationFrame() { return 0; },
   queueMicrotask(callback) { callback(); },
