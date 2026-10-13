@@ -308,6 +308,7 @@
       font-size: 13px;
     }
     #thumbCtxMenu.open { display: block; }
+    #thumbCtxMenu .ctx-heading { padding: 8px 13px; border-bottom: 1px solid #e2e8f0; background: #eff6ff; color: #1d4ed8; font-size: 11px; font-weight: 900; }
     .ctx-item {
       display: flex; align-items: center; gap: 8px;
       padding: 7px 14px; cursor: pointer; color: #1e293b;
@@ -2909,28 +2910,55 @@ $('zoomResetBtn').addEventListener('click', () => {
     _ctxPage = page;
     _ctxPageIdx = idx;
 
+    // A right-click ON a checked page acts on the whole checked group.
+    // Right-clicking outside that group retains the usual single-page menu.
+    const batchIds = window.PdfPageProductivity?.contextSelectionIdsForPage?.(page) || [];
+    const isBatch = batchIds.length > 1;
     menu.innerHTML = '';
-    menu.appendChild(item('↻', '시계방향 90° 회전',   '', () => rotateAndRefresh(page, 90)));
-    menu.appendChild(item('↺', '시계반대방향 90° 회전', '', () => rotateAndRefresh(page, -90)));
-    menu.appendChild(item('⇅', '180° 회전',           '', () => rotateAndRefresh(page, 180)));
+    menu.dataset.batchSelectionIds = isBatch ? JSON.stringify(batchIds) : '';
+    const batch = (action, degrees = 0) =>
+      window.PdfPageProductivity?.runContextAction?.(action, batchIds, degrees);
+
+    if (isBatch) {
+      const heading = document.createElement('div');
+      heading.className = 'ctx-heading';
+      heading.textContent = `선택한 ${batchIds.length}페이지에 일괄 적용`;
+      menu.appendChild(heading);
+      menu.appendChild(item('↻', `선택 ${batchIds.length}페이지 시계방향 90° 회전`, '', () => batch('rotate', 90)));
+      menu.appendChild(item('↺', `선택 ${batchIds.length}페이지 시계반대방향 90° 회전`, '', () => batch('rotate', -90)));
+      menu.appendChild(item('⇅', `선택 ${batchIds.length}페이지 180° 회전`, '', () => batch('rotate', 180)));
+    } else {
+      menu.appendChild(item('↻', '시계방향 90° 회전', '', () => rotateAndRefresh(page, 90)));
+      menu.appendChild(item('↺', '시계반대방향 90° 회전', '', () => rotateAndRefresh(page, -90)));
+      menu.appendChild(item('⇅', '180° 회전', '', () => rotateAndRefresh(page, 180)));
+    }
     menu.appendChild(sep());
-    menu.appendChild(item('↻', '전체 시계방향 90° 회전',   'all-rotate', () => rotateAllAndRefresh(90)));
+    menu.appendChild(item('↻', '전체 시계방향 90° 회전', 'all-rotate', () => rotateAllAndRefresh(90)));
     menu.appendChild(item('↺', '전체 시계반대방향 90° 회전', 'all-rotate', () => rotateAllAndRefresh(-90)));
-    menu.appendChild(item('⇅', '전체 180° 회전',           'all-rotate', () => rotateAllAndRefresh(180)));
+    menu.appendChild(item('⇅', '전체 180° 회전', 'all-rotate', () => rotateAllAndRefresh(180)));
     menu.appendChild(sep());
-    menu.appendChild(item('⬆', '위에 빈 페이지 삽입', '', () => {
-      parsedPages.splice(idx, 0, makeBlankPage());
-      renderThumbs(); schedulePreview(300);
-    }));
-    menu.appendChild(item('⬇', '아래에 빈 페이지 삽입', '', () => {
-      parsedPages.splice(idx + 1, 0, makeBlankPage());
-      renderThumbs(); schedulePreview(300);
-    }));
+    if (isBatch) {
+      menu.appendChild(item('⬆', '선택 페이지 각각 앞에 빈 페이지 삽입', '', () => batch('insertBefore')));
+      menu.appendChild(item('⬇', '선택 페이지 각각 뒤에 빈 페이지 삽입', '', () => batch('insertAfter')));
+    } else {
+      menu.appendChild(item('⬆', '위에 빈 페이지 삽입', '', () => {
+        parsedPages.splice(idx, 0, makeBlankPage());
+        renderThumbs(); schedulePreview(300);
+      }));
+      menu.appendChild(item('⬇', '아래에 빈 페이지 삽입', '', () => {
+        parsedPages.splice(idx + 1, 0, makeBlankPage());
+        renderThumbs(); schedulePreview(300);
+      }));
+    }
     menu.appendChild(sep());
-    menu.appendChild(item('🗑', '페이지 삭제', 'danger', () => {
-      parsedPages.splice(idx, 1);
-      renderThumbs(); schedulePreview(300);
-    }));
+    if (isBatch) {
+      menu.appendChild(item('🗑', `선택 ${batchIds.length}페이지 삭제`, 'danger', () => batch('delete')));
+    } else {
+      menu.appendChild(item('🗑', '페이지 삭제', 'danger', () => {
+        parsedPages.splice(idx, 1);
+        renderThumbs(); schedulePreview(300);
+      }));
+    }
 
     // Position menu, keep inside viewport
     menu.classList.add('open');

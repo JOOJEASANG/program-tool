@@ -380,8 +380,8 @@
     redoStack.length = 0;
   }
 
-  async function commitBatchAction(label, mutator) {
-    if (!editorReady() || !selectedIds.size || batchInFlight) return;
+  async function commitBatchAction(label, mutator, actionIds = selectedIds) {
+    if (!editorReady() || !actionIds.size && !actionIds.length || batchInFlight) return false;
     pushUndoSnapshot(label);
     batchInFlight = true;
     internalMutation = true;
@@ -396,10 +396,57 @@
       batchInFlight = false;
     }
     refreshAfterMutation(label);
+    return true;
   }
 
   function selectedPagesInOrder() {
     return editorReady() ? parsedPages.filter((page) => selectedIds.has(page.id)) : [];
+  }
+  
+  // The checkbox model is the single source of truth for right-click group work.
+  // Freeze IDs when the menu opens: each action must use those original pages.
+  function contextSelectionIdsForPage(page) {
+    if (!selectionMode || !page || !selectedIds.has(page.id) || selectedIds.size < 2) return [];
+    return selectedPagesInOrder().map((entry) => entry.id);
+  }
+
+  async function runContextAction(action, ids, delta = 0) {
+    if (!editorReady() || !Array.isArray(ids) || !ids.length || batchInFlight) return false;
+    const wanted = new Set(ids.map(String));
+    const targets = parsedPages.filter((page) => wanted.has(String(page.id)));
+    if (!targets.length) return false;
+    const actions = {
+      rotate: '선택 페이지 회전',
+      hide: '선택 페이지 숨김',
+      show: '선택 페이지 숨김 해제',
+      delete: '선택 페이지 삭제',
+      insertBefore: '선택 페이지 앞에 빈 페이지 삽입',
+      insertAfter: '선택 페이지 뒤에 빈 페이지 삽입',
+    };
+    const label = actions[action];
+    if (!label) return false;
+    return commitBatchAction(label, async () => {
+      if (action === 'rotate') {
+        targets.forEach((page) => {
+          page.rotation = ((Number(page.rotation || 0) + delta) % 360 + 360) % 360;
+        });
+        await rerenderRotatedPdfPages(targets);
+      } else if (action === 'hide' || action === 'show') {
+        targets.forEach((page) => { page.excluded = action === 'hide'; });
+      } else if (action === 'delete') {
+        parsedPages = parsedPages.filter((page) => !wanted.has(String(page.id)));
+        targets.forEach((page) => selectedIds.delete(page.id));
+        lastAnchorIndex = -1;
+      } else {
+        // Insert one blank for EACH selected page, not only at the first/last.
+        const before = action === 'insertBefore';
+        parsedPages = parsedPages.flatMap((page) => {
+          if (!wanted.has(String(page.id))) return [page];
+          const blank = makeBlankPage();
+          return before ? [blank, page] : [page, blank];
+        });
+      }
+    }, targets.map((page) => page.id));
   }
 
   async function rotateSelected(delta) {
@@ -654,6 +701,8 @@
     selectAllPages,
     clearSelection,
     selectedIds,
+    contextSelectionIdsForPage,
+    runContextAction,
     undo,
     redo,
     jumpToOrdinal,
