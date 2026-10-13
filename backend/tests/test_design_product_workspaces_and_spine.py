@@ -21,6 +21,11 @@ def test_each_design_workspace_is_selectable_and_preserved(product: str):
         "state.productType==='flyer'||state.productType==='invitation'" in SCRIPT
     )
     assert "next.searchParams.set('product',target)" in SCRIPT
+    assert 'id="designPrintFace"' in PAGE
+    assert 'data-print-face="inside"' in PAGE
+    assert 'data-print-face="outside"' in PAGE
+    assert "next.searchParams.set('face',target)" in SCRIPT
+    assert "state.designFace==='inside'?':inside':''" in SCRIPT
     assert "state.productType==='cover'?'':':'+state.productType" in SCRIPT
     assert "product_type:spec.productType" in SCRIPT
     assert f"{product}:" in SCRIPT
@@ -61,6 +66,7 @@ def test_spine_auto_calculation_is_default_and_manual_is_preserved():
     assert "state.spineManualValue=clamp(data.spineManualValue ?? data.spine ?? 10" in SCRIPT
     assert "syncSpineCalculator();saveLocal();updateGeometry();scheduleRender()" in SCRIPT
     assert "200쪽" in MANUAL and "10.0mm" in MANUAL
+    assert "겉면과 안쪽면을 각각 작업" in MANUAL
     assert "종이 두께는 실측값" in PAGE
     assert "id=\"spineAutoResult\"" in PAGE
 
