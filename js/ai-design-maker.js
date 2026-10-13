@@ -501,7 +501,7 @@
   }
 
   function loadSessionNow() {
-    loadLocal();
+    loadLocal();syncSpineCalculator();syncProductWorkspace();
     setupPresetCards();
     syncProductWorkspace();
     syncSpineCalculator();
@@ -751,6 +751,7 @@
     });
     if($('spineCalculator'))$('spineCalculator').hidden=product!=='cover';
     if($('middlePanelFields'))$('middlePanelFields').hidden=product!=='leaflet'||state.coverMode!=='spread';
+    if($('designLayerTarget')&&product!=='cover'&&product!=='leaflet'&&$('designLayerTarget').value==='spine')$('designLayerTarget').value='front';
     if($('designMiddleTarget')){$('designMiddleTarget').textContent=product==='leaflet'?'가운데 패널':'책등';$('designMiddleTarget').hidden=product!=='cover'&&!(product==='leaflet'&&state.coverMode==='spread');}
     if($('frontCoverFields'))$('frontCoverFields').querySelector('.copy-surface-head>span').textContent=product==='cover'?'앞표지 문구 (선택)':'오른쪽/앞면 패널 문구 (선택)';
     if($('backCoverFields'))$('backCoverFields').querySelector('.copy-surface-head>span').textContent=product==='cover'?'뒤표지 문구 (선택)':'왼쪽/뒷면 패널 문구 (선택)';
@@ -1834,6 +1835,10 @@
       return (item.surface==='back'?'뒤표지':'앞표지')+' 추가 문구: '+value;
     }).filter(Boolean);
     return [
+      spec.productType==='cover'?'책표지 전문 작업실'
+        :spec.productType==='flyer'?'홍보 전단지: 행사, 홍보, 광고용 단면·양면 인쇄물. Cover/book/spine motifs are inappropriate.'
+        :spec.productType==='invitation'?'초대장: 격식 있는 인사말 및 초청장을 위한 카드/2단 접지. Cover/book/spine motifs are inappropriate.'
+        :'리플렛: fold panels, separate visual hierarchy across every panel, continuous background, no book spine. 2/3-fold brochure.',
       spec.coverMode==='front'?'표지 용도: 인쇄용 앞표지 단면'
         :spec.coverMode==='back'?'표지 용도: 인쇄용 뒷표지 단면'
         :spec.coverMode==='frontBack'?'표지 용도: 앞표지·뒷표지 동시 디자인'
@@ -1995,7 +2000,8 @@
     try{
       const {canvas}=await buildExportCanvas();
       const raw=await canvasBlob(canvas),png=await withPngDpi(raw,EXPORT_DPI),url=URL.createObjectURL(png),a=document.createElement('a');
-      const baseName=spec.coverMode==='front'?'front-cover-'+spec.trimW+'x'+spec.trimH
+      const baseName=spec.productType!=='cover'?spec.productType+'-'+spec.trimW+'x'+spec.trimH+'-'+spec.coverMode
+        :spec.coverMode==='front'?'front-cover-'+spec.trimW+'x'+spec.trimH
         :spec.coverMode==='back'?'back-cover-'+spec.trimW+'x'+spec.trimH
         :spec.coverMode==='frontBack'?'front-back-covers-'+spec.trimW+'x'+spec.trimH
         :'cover-'+spec.trimW+'x'+spec.trimH+'-spine-'+spec.spine+'mm';
@@ -2463,6 +2469,7 @@
   }
 
   function syncLoadedGalleryStateUi(){
+    syncSpineCalculator();syncProductWorkspace();
     setupPresetCards();
     qa('input[name="coverMode"]').forEach(input=>{input.checked=input.value===state.coverMode;});
     syncCoverMode();
@@ -2654,7 +2661,12 @@
   }
 
   function bind(){
-    loadLocal();setupPresetCards();syncCoverMode();syncSizeMode();syncGenerationQuality();syncSpineTitle();renderCustomFields();syncPromptLanguageUi(false);syncGlobalCmykFromHex('primaryColor');syncGlobalCmykFromHex('textColor');syncTextEditUi();syncExportButton();
+    if(state.productType==='invitation'){
+      $('trimW').value='148';$('trimH').value='210';state.sizeMode='a5';
+    }else if(state.productType==='leaflet'){
+      $('trimW').value='99';$('trimH').value='210';state.sizeMode='custom';
+    }
+    loadLocal();syncSpineCalculator();syncProductWorkspace();setupPresetCards();syncCoverMode();syncSizeMode();syncGenerationQuality();syncSpineTitle();renderCustomFields();syncPromptLanguageUi(false);syncGlobalCmykFromHex('primaryColor');syncGlobalCmykFromHex('textColor');syncTextEditUi();syncExportButton();
     if(!$('stylePrompt').value)$('stylePrompt').value=presetPrompt();
     qa('[data-ai-refine]').forEach(button=>button.addEventListener('click',()=>addAiRefinement(button.dataset.aiRefine||'')));
     $('variantCount')?.addEventListener('change',saveLocal);
@@ -2666,6 +2678,18 @@
       }
       syncSizeMode();saveLocal();updateGeometry();scheduleRender();
       if(state.sizeMode==='custom')requestAnimationFrame(()=>$('trimW')?.focus());
+    }));
+    qa('[data-design-product]').forEach(button=>button.addEventListener('click',()=>{
+      const target=button.dataset.designProduct;
+      if(!PRODUCT_TYPES.has(target)||target===state.productType)return;
+      if((state.background||window.DesignWorkspaceLayers?.hasLayers())&&!confirm('현재 작업의 AI 배경 및 업로드 파일은 작업실 전환 시 사라집니다. 완성 파일을 먼저 저장했나요?'))return;
+      saveLocal();
+      const next=new URL(location.href);next.searchParams.set('product',target);
+      location.assign(next.pathname+next.search+next.hash);
+    }));
+    qa('input[name="spineInputMode"]').forEach(input=>input.addEventListener('change',()=>selectSpineMode(input.value)));
+    ['spinePageCount','spinePaperThickness','spineBindingAllowance'].forEach(id=>$(id)?.addEventListener('input',()=>{
+      syncSpineCalculator();saveLocal();updateGeometry();scheduleRender();
     }));
     qa('input[name="coverMode"]').forEach(input=>input.addEventListener('change',()=>{
       state.coverMode=normalizeCoverMode(input.value);
@@ -2681,7 +2705,7 @@
       state.generationQuality=input.value==='high'?'high':'standard';
       syncGenerationQuality();saveLocal();
     }));
-    const watched=['trimW','trimH','spine','bleed','safeZone','wingW','title','backText','spineTop','spineMiddle','spineBottom','spineOrientation','visualMode','colorIntensity','designMood','targetAudience','titleSpace','primaryColor','textColor','theme','stylePrompt','imageModel','additionalPrompt'];
+    const watched=['trimW','trimH','spine','middleText','bleed','safeZone','wingW','title','backText','spineTop','spineMiddle','spineBottom','spineOrientation','visualMode','colorIntensity','designMood','targetAudience','titleSpace','primaryColor','textColor','theme','stylePrompt','imageModel','additionalPrompt'];
     watched.forEach(id=>$(id)?.addEventListener('input',()=>{
       if(id==='trimW'||id==='trimH'){state.sizeMode='custom';syncSizeMode();}
       if(['title','backText','spineTop','spineMiddle','spineBottom'].includes(id))clearTextOverrideForSource(id);
@@ -2836,7 +2860,7 @@
         const access=await window.ProgramAccess.getAccess(user);
         if(!access.approved){message.textContent='관리자 승인 후 사용할 수 있습니다.';login.hidden=true;shell.hidden=true;gate.hidden=false;return;}
         if($('userName'))$('userName').textContent=user.displayName||user.email||'사용자';
-        STORAGE_KEY=STORAGE_KEY_PREFIX+':'+user.uid;
+        STORAGE_KEY=STORAGE_KEY_PREFIX+':'+user.uid+(state.productType==='cover'?'':':'+state.productType);
         try{localStorage.removeItem(LEGACY_STORAGE_KEY);}catch(_){}
         gate.hidden=true;shell.hidden=false;bind();
       }catch(error){message.textContent='사용 권한을 확인하지 못했습니다. 잠시 후 새로고침해 주세요.';login.hidden=false;}
