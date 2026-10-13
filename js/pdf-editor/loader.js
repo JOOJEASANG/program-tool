@@ -44,6 +44,101 @@
         .preview-zoom > * {
           flex-shrink: 0;
         }
+        /* PDF preview controls share the same 36px input/button geometry. */
+        .preview-info {
+          align-items: center !important;
+          column-gap: 8px !important;
+          row-gap: 8px !important;
+        }
+        #previewInfo {
+          display: flex !important;
+          align-items: center !important;
+          min-height: 36px !important;
+        }
+        #previewPages:not(:empty) {
+          display: inline-flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          height: 36px !important;
+          min-height: 36px !important;
+          padding: 0 10px !important;
+          border: 1px solid #bfdbfe !important;
+          border-radius: 8px !important;
+          background: #eff6ff !important;
+          box-sizing: border-box !important;
+        }
+        #previewPages:empty {
+          display: none !important;
+        }
+        .preview-zoom {
+          align-items: center !important;
+          gap: 6px !important;
+          overflow-x: auto !important;
+          overflow-y: hidden !important;
+          scrollbar-width: none;
+        }
+        .preview-zoom::-webkit-scrollbar {
+          display: none;
+        }
+        .preview-info button,
+        .preview-info select,
+        .preview-info input[type="number"],
+        .preview-zoom .zoom-label {
+          box-sizing: border-box !important;
+          height: 36px !important;
+          min-height: 36px !important;
+          max-height: 36px !important;
+          line-height: normal !important;
+          vertical-align: middle !important;
+        }
+        .preview-info button,
+        .preview-zoom .zoom-label {
+          display: inline-flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+        }
+        .preview-info button {
+          flex-shrink: 0 !important;
+          padding: 0 10px !important;
+          border-radius: 8px !important;
+          font-size: 12px !important;
+          font-weight: 800 !important;
+          white-space: nowrap !important;
+        }
+        .preview-zoom .zoom-btn:not(#zoomResetBtn) {
+          width: 36px !important;
+          min-width: 36px !important;
+          padding: 0 !important;
+        }
+        .preview-zoom .zoom-label {
+          min-width: 52px !important;
+          padding: 0 8px !important;
+          border: 1px solid #dbe3ed !important;
+          border-radius: 8px !important;
+          background: #f8fafc !important;
+          color: #475569 !important;
+        }
+        #zoomResetBtn {
+          min-width: 80px !important;
+          padding: 0 12px !important;
+          font-size: 11px !important;
+        }
+        .preview-info select,
+        .preview-info input[type="number"] {
+          padding-top: 0 !important;
+          padding-bottom: 0 !important;
+        }
+        @media (max-width: 900px) {
+          .preview-info {
+            flex-wrap: wrap !important;
+            overflow: visible !important;
+          }
+          .preview-zoom {
+            width: 100% !important;
+            max-width: 100% !important;
+            margin-left: 0 !important;
+          }
+        }
         #thumbArea .thumb-wrap[data-sidebar-current="true"] {
           border-color: #2563eb !important;
           box-shadow: 0 0 0 2px rgba(37,99,235,.18);
