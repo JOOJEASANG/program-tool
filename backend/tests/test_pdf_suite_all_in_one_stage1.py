@@ -134,7 +134,7 @@ def test_pdf_suite_is_staged_with_existing_engines_and_clean_final_workspace():
     for marker in (
         'PDF_SUITE_HTML = "pdf-suite/index.html"',
         "data-pdf-suite-first-paint-guard",
-        "pdf-suite-home-launcher.js?v=20261013-1",
+        "pdf-suite-home-launcher.js?v=20261013-2",
         '"ai-design-maker",',
         '"smart-print-layout",',
         'OUTPUT / "ai-design-maker/index.html"',

@@ -15,14 +15,16 @@
         assert(doc.querySelector('#programGrid'),'current program grid missing');
         assert(doc.querySelector('#quickRow'),'current quick-start row missing');
         assert(doc.querySelector('#search'),'current program search missing');
-        for(const cat of ['design','print','edit','utility']){
+        for(const cat of ['design','edit','utility']){
           assert(doc.querySelector(`[data-cat="${cat}"]`),`${cat} category missing`);
         }
+        assert(!doc.querySelector('[data-cat="print"]'),'empty print category should not remain');
         for(const id of ['ai-design-maker','smart-print-layout','pdf-editor','pdf-suite']){
           assert(html.includes(`id:'${id}'`),`current program missing: ${id}`);
         }
         assert(!html.includes("id:'print-checker'"),'standalone print checker must be consolidated');
         assert(html.includes("name:'디자인 제작'"),'unified design entry missing');
+        assert(html.includes("id:'smart-print-layout',cat:'edit'"),'smart print layout is not under document editing');
         for(const dead of ['/design-editor/','/document-editor/','/image-editor/']){
           assert(!html.includes(dead),`retired route returned to home: ${dead}`);
         }

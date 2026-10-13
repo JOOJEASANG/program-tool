@@ -27,8 +27,8 @@
         if(PROGRAMS.some(item=>item.id==='booklet'))throw new Error('booklet should not remain a separate home program');
         if(document.getElementById('cnt-all').textContent!=='5')throw new Error('all count wrong');
         if(document.getElementById('cnt-design').textContent!=='1')throw new Error('design count wrong');
-        if(document.getElementById('cnt-print').textContent!=='1')throw new Error('print count wrong');
-        if(document.getElementById('cnt-edit').textContent!=='2')throw new Error('edit count wrong');
+        if(document.getElementById('cnt-print').textContent!=='0')throw new Error('print count wrong');
+        if(document.getElementById('cnt-edit').textContent!=='3')throw new Error('edit count wrong');
         if(document.getElementById('cnt-utility').textContent!=='1')throw new Error('utility count wrong');
         if(PROGRAMS.some(item=>item.id==='print-checker'))throw new Error('detailed review is now inside the design workspace');
         const smart=PROGRAMS.find(item=>item.id==='smart-print-layout');
@@ -38,6 +38,7 @@
         if(maker?.name!=='디자인 제작'||maker?.url!=='ai-design-maker/'||maker?.cat!=='design')throw new Error('AI design maker entry wrong');
         if(smart?.url!=='smart-print-layout/')throw new Error('smart layout route wrong: '+smart?.url);
         if(smart?.name!=='스마트 인쇄배치')throw new Error('smart layout label wrong: '+smart?.name);
+        if(smart?.cat!=='edit'||!smart?.catLabel?.includes('문서 편집'))throw new Error('smart layout must be under document editing');
         if(layout?.url!=='pdf-editor/')throw new Error('layout route wrong: '+layout?.url);
         if(advanced?.url!=='pdf-editor-advanced')throw new Error('advanced route wrong: '+advanced?.url);
         if(layout?.name!=='PDF배치')throw new Error('layout label wrong: '+layout?.name);
@@ -45,7 +46,7 @@
         if(layout?.cat!=='edit'||!layout?.catLabel?.includes('페이지 구성')||!layout?.tags?.includes('페이지 정리'))throw new Error('layout purpose metadata wrong');
         if(advanced?.cat!=='edit'||!advanced?.catLabel?.includes('정밀 보정')||!advanced?.tags?.includes('페이지 직접 편집'))throw new Error('advanced purpose metadata wrong');
         const documentEditMatches=PROGRAMS.filter(item=>[item.name,item.desc,item.catLabel,...(item.tags||[])].some(value=>String(value||'').includes('문서 편집')));
-        if(!documentEditMatches.some(item=>item.id==='pdf-editor')||!documentEditMatches.some(item=>item.id==='pdf-editor-advanced'))throw new Error('document editing category no longer reaches split editors');
+        if(!documentEditMatches.some(item=>item.id==='smart-print-layout')||!documentEditMatches.some(item=>item.id==='pdf-editor')||!documentEditMatches.some(item=>item.id==='pdf-editor-advanced'))throw new Error('document editing category no longer reaches split editors');
         const utility=PROGRAMS.find(item=>item.id==='pdf-suite');
         if(utility?.cat!=='utility'||utility?.name!=='PDF 유틸리티')throw new Error('PDF utility category wrong');
         const quick=document.getElementById('quickRow').textContent;
