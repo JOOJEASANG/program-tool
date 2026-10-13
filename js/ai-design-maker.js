@@ -742,7 +742,10 @@
       badge.classList.toggle('ready',generated);
       badge.classList.toggle('stale',stale);
     }
-    if($('saveGalleryBtn'))$('saveGalleryBtn').disabled=!generated;
+    if($('saveGalleryBtn')){
+      $('saveGalleryBtn').disabled=!generated||placed;
+      $('saveGalleryBtn').title=placed?'업로드한 PDF·이미지를 포함한 작업은 인쇄용 PDF·PNG로 다운로드해 주세요. 보관함 저장은 AI 배경 작업만 지원합니다.':'';
+    }
   }
 
   function jumpToSection(id) {
