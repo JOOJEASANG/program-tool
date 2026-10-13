@@ -699,6 +699,7 @@
     }[state.coverMode];
     if($('coverModeHeading'))$('coverModeHeading').textContent=WORKSHOP==='cover'?copy[0]:({flyer:'전단지 제작',invitation:'초대장 제작',leaflet:'3단 리플렛 제작'})[WORKSHOP];
     if($('coverModeDescription'))$('coverModeDescription').textContent=WORKSHOP==='cover'?copy[1]:({flyer:'전단지 앞면·뒷면 및 양면 제작',invitation:'초대장 겉면·안쪽면 디자인',leaflet:'3단 리플렛 겉면/안쪽면 · 각 3패널 디자인'})[WORKSHOP];
+    if($('designDuplexNotice'))$('designDuplexNotice').hidden=!((WORKSHOP==='flyer'||WORKSHOP==='invitation')&&state.coverMode==='frontBack');
     if($('previewModeTitle'))$('previewModeTitle').textContent=copy[2];
     if($('backgroundModeHint'))$('backgroundModeHint').textContent=copy[3];
     syncWing();
