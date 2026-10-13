@@ -1870,7 +1870,7 @@
 
   function buildGenerationRequest(spec,prompt,index=null){
     return {
-          cover_mode:backendCoverMode(spec.coverMode),quality_mode:state.generationQuality,trim_width_mm:spec.trimW,trim_height_mm:spec.trimH,spine_mm:spec.spine,wing_mm:spec.wing,bleed_mm:spec.bleed,
+          product_type:spec.productType,cover_mode:backendCoverMode(spec.coverMode),quality_mode:state.generationQuality,trim_width_mm:spec.trimW,trim_height_mm:spec.trimH,spine_mm:spec.spine,wing_mm:spec.wing,bleed_mm:spec.bleed,
           preset_name:PRESETS[state.preset].name,
           model:$('imageModel')?.value||'gpt-image-2',
           style_request:prompt,
@@ -2712,7 +2712,7 @@
       if(state.background){
         state.generatedSpecKey='';
         if($('exportBtn'))$('exportBtn').disabled=true;
-        setStatus('표지 범위가 변경되었습니다.','새 범위에 맞게 AI 배경을 다시 생성하거나 표지 이미지를 다시 불러와 주세요.','busy');
+        setStatus('작업 범위가 변경되었습니다.','새 범위에 맞게 AI 배경을 다시 생성하거나 디자인 이미지를 다시 불러와 주세요.','busy');
       }
       resetAiVariants();syncCoverMode();saveLocal();
     }));
@@ -2723,7 +2723,8 @@
     const watched=['trimW','trimH','spine','middleText','bleed','safeZone','wingW','title','backText','spineTop','spineMiddle','spineBottom','spineOrientation','visualMode','colorIntensity','designMood','targetAudience','titleSpace','primaryColor','textColor','theme','stylePrompt','imageModel','additionalPrompt'];
     watched.forEach(id=>$(id)?.addEventListener('input',()=>{
       if(id==='trimW'||id==='trimH'){state.sizeMode='custom';syncSizeMode();}
-      if(['title','backText','spineTop','spineMiddle','spineBottom'].includes(id))clearTextOverrideForSource(id);
+      if(id==='spine'&&state.spineCalculationMode==='manual')state.spineManualValue=clamp($('spine').value,0,100,10);
+      if(['title','backText','middleText','spineTop','spineMiddle','spineBottom'].includes(id))clearTextOverrideForSource(id);
       if(id==='spineMiddle'&&$('spineSync')?.checked)$('spineSync').checked=false;
       if(id==='title')syncSpineTitle();
       saveLocal();updateProgress();syncTextEditUi();scheduleRender();
