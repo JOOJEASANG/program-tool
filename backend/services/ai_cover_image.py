@@ -58,9 +58,6 @@ class CoverImageRequest:
     visual_direction: str = ""
     product_type: str = "cover"
     leaflet_side: str = "outside"
-    panel_right_mm: float = 0
-    fold_position_mm: float = 0
-    product_fold_type: str = ""
 
     @property
     def work_width_mm(self) -> float:
@@ -68,8 +65,6 @@ class CoverImageRequest:
             return self.trim_width_mm + self.bleed_mm * 2
         if self.cover_mode == "front_back":
             return self.trim_width_mm * 2 + self.bleed_mm * 2
-        if self.product_type == "leaflet":
-            return self.trim_width_mm + self.spine_mm + (self.panel_right_mm or self.trim_width_mm) + self.bleed_mm * 2
         return self.trim_width_mm * 2 + self.spine_mm + self.wing_mm * 2 + self.bleed_mm * 2
 
     @property
@@ -141,9 +136,6 @@ def normalize_cover_request(payload: dict[str, Any]) -> CoverImageRequest:
         visual_direction=visual_direction,
         product_type=product_type,
         leaflet_side="inside" if payload.get("leaflet_side") == "inside" else "outside",
-        panel_right_mm=_number(payload.get("panel_right_mm"), minimum=0, maximum=1000, default=0),
-        fold_position_mm=_number(payload.get("fold_position_mm"), minimum=0, maximum=1000, default=0),
-        product_fold_type=_clean(payload.get("product_fold_type"), 32),
     )
     ratio = request.work_width_mm / request.work_height_mm
     if ratio < (1 / 3) or ratio > 3:
@@ -194,10 +186,8 @@ def build_cover_prompt(req: CoverImageRequest) -> str:
         role = products[req.product_type]
         if req.product_type == "leaflet":
             geometry = (
-                f"Three adjacent vertical panels with widths LEFT {req.trim_width_mm:.2f} mm, "
-                f"CENTER {req.spine_mm:.2f} mm, RIGHT {(req.panel_right_mm or req.trim_width_mm):.2f} mm; "
-                f"panel height {req.trim_height_mm:.2f} mm, plus {req.bleed_mm:.2f} mm outside bleed. "
-                f"Fold style: {req.product_fold_type or 'roll-left'}. "
+                f"Three adjacent vertical panels, each {req.trim_width_mm:.2f} mm wide × "
+                f"{req.trim_height_mm:.2f} mm tall, plus {req.bleed_mm:.2f} mm outside bleed. "
                 f"Total flat spread {req.work_width_mm:.2f} × {req.work_height_mm:.2f} mm. "
                 f"This is the {req.leaflet_side.upper()} face. LEFT, CENTER and RIGHT panels are fold segments, "
                 "NOT front/back book covers and NOT a book spine. Art must align seamlessly at folds. "
@@ -207,10 +197,7 @@ def build_cover_prompt(req: CoverImageRequest) -> str:
             geometry = (
                 f"Two adjacent flat sides, each {req.trim_width_mm:.2f} × {req.trim_height_mm:.2f} mm; "
                 f"total {req.work_width_mm:.2f} × {req.work_height_mm:.2f} mm including outside bleed. "
-                "LEFT and RIGHT are separately editable print faces with matching visual identity. "
-                + (f"Fold the card at {req.fold_position_mm:.2f} mm from the LEFT TRIM EDGE, NOT necessarily halfway. "
-                   "The panels may be asymmetric and their dimensions must match the given fold position. "
-                   if req.product_type == "invitation" and req.product_fold_type == "half-fold" else "")
+                "LEFT and RIGHT are separately editable print faces with matching visual identity."
             )
         else:
             geometry = (
