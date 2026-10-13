@@ -56,6 +56,8 @@ class CoverImageRequest:
     model: str = DEFAULT_IMAGE_MODEL
     additional_prompt: str = ""
     visual_direction: str = ""
+    product_type: str = "cover"
+    leaflet_side: str = "outside"
 
     @property
     def work_width_mm(self) -> float:
@@ -129,6 +131,8 @@ def normalize_cover_request(payload: dict[str, Any]) -> CoverImageRequest:
         model=model,
         additional_prompt=additional_prompt,
         visual_direction=visual_direction,
+        product_type=_clean(payload.get("product_type"), 24) if _clean(payload.get("product_type"), 24) in {"cover", "flyer", "invitation", "leaflet"} else "cover",
+        leaflet_side="inside" if payload.get("leaflet_side") == "inside" else "outside",
     )
     ratio = request.work_width_mm / request.work_height_mm
     if ratio < (1 / 3) or ratio > 3:
@@ -170,6 +174,46 @@ def choose_image_size(req: CoverImageRequest) -> str:
 
 
 def build_cover_prompt(req: CoverImageRequest) -> str:
+    if req.product_type != "cover":
+        products = {
+            "flyer": "PROFESSIONAL PRINTED PROMOTIONAL FLYER",
+            "invitation": "PRINTED INVITATION CARD",
+            "leaflet": "TRIFOLD PRINT BROCHURE",
+        }
+        role = products[req.product_type]
+        if req.product_type == "leaflet":
+            geometry = (
+                f"Three adjacent vertical panels, each {req.trim_width_mm:.2f} mm wide × "
+                f"{req.trim_height_mm:.2f} mm tall, plus {req.bleed_mm:.2f} mm outside bleed. "
+                f"Total flat spread {req.work_width_mm:.2f} × {req.work_height_mm:.2f} mm. "
+                f"This is the {req.leaflet_side.upper()} face. LEFT, CENTER and RIGHT panels are fold segments, "
+                "NOT front/back book covers and NOT a book spine. Art must align seamlessly at folds. "
+                "Reserve independent typography-safe zones on all three panels; keep important elements away from folds."
+            )
+        elif req.cover_mode == "front_back":
+            geometry = (
+                f"Two adjacent flat sides, each {req.trim_width_mm:.2f} × {req.trim_height_mm:.2f} mm; "
+                f"total {req.work_width_mm:.2f} × {req.work_height_mm:.2f} mm including outside bleed. "
+                "LEFT and RIGHT are separately editable print faces with matching visual identity."
+            )
+        else:
+            geometry = (
+                f"Single flat {req.cover_mode.upper()} face of {req.trim_width_mm:.2f} × "
+                f"{req.trim_height_mm:.2f} mm, outside bleed {req.bleed_mm:.2f} mm. "
+                "Use a clear high-impact editorial hierarchy with a generous text-safe area."
+            )
+        return f"""Create premium professional {role} BACKGROUND ARTWORK ONLY, flat 2D print-ready layout.
+This is a design for its stated print product, NEVER a book mockup, book cover, book spine, or photographic scene of printed sheets.
+GEOMETRY: {geometry}
+Fill all outer bleed areas with artwork, and keep essential subjects away from all cuts and folds.
+CRITICAL: NO readable text, letters, Korean characters, numbers, watermarks, logos, placeholder type, QR codes, crop marks, or fictional inscriptions.
+The application overlays exact editable Korean wording later. Reserve clear, calm text-safe zones.
+Use one coherent professional visual concept with appropriate print-safe composition, color contrast, photos, illustrations or graphics as requested.
+STYLE: {req.preset_name or "custom"}\n{req.style_request}
+SEMANTIC CONTEXT (never draw as text): {req.theme_context}
+VISUAL DIRECTION: {req.visual_direction}
+ADDITIONAL USER REQUEST: {req.additional_prompt}
+"""
     mode_titles = {
         "front": "FRONT COVER ONLY",
         "back": "BACK COVER ONLY",
