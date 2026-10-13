@@ -30,7 +30,7 @@ def test_static_home_has_no_retired_overlay_helpers():
  for marker in ("home-dashboard-v2.js","home-header-footer-refine.js","home-hero-upgrade.js","home-pdf-utility-name-sync.js","home-print-workflow.js","home-professional-suite.js","home-program-catalog.js","if(isHome())"): assert marker not in register
 def test_hosting_stage_loads_split_pdf_home_entries_without_boot_guard_duplication():
  hosting=read("scripts/prepare_hosting_dist.py"); boot=read("js/app-boot-guard.js"); launcher=read("js/pdf-suite-home-launcher.js")
- for marker in ("PDF_SUITE_HOME_MARKER","data-pdf-suite-home-launcher","/js/pdf-suite-home-launcher.js?v=20261012-3","_inject_before(home, PDF_SUITE_HOME_MARKER","\"smart-print-layout\","): assert marker in hosting
+ for marker in ("PDF_SUITE_HOME_MARKER","data-pdf-suite-home-launcher","/js/pdf-suite-home-launcher.js?v=20261013-1","_inject_before(home, PDF_SUITE_HOME_MARKER","\"smart-print-layout\","): assert marker in hosting
  assert "pdfSuiteHomeLauncherScriptV1" not in boot
  assert "/js/pdf-suite-home-launcher.js" not in boot
  for marker in ("name:'디자인 제작'","url:'ai-design-maker/'","name:'스마트 인쇄배치'","url:'smart-print-layout/'","name:'PDF배치'","url:'pdf-editor/'","name:'PDF편집'","url:'pdf-editor-advanced'","pdf-home-unified-design-five-programs-v11","pdfHomeWorkspace='unified-design-five-programs'"): assert marker in launcher
