@@ -46,7 +46,7 @@ assert.equal(z.spine.w,16);
 assert.equal(z.whole.w,442);
 
 (async()=>{
-  const bytes=new Uint8Array([137,80,78,71]).buffer;
+  const bytes=new Uint8Array([137,80,78,71,13,10,26,10]).buffer;
   const file={name:'A4-front.png',type:'image/png',size:4,arrayBuffer:async()=>bytes};
   assert.equal(api.hasLayers(),false);
   await api.importFiles([file]);
