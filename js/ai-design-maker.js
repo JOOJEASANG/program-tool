@@ -2551,7 +2551,7 @@
   }
 
   function bind(){
-    loadLocal();window.DesignWorkshopModes?.setup?.({studio:WORKSHOP,state,syncCoverMode,syncSizeMode,saveLocal,scheduleRender,updateGeometry});setupPresetCards();syncCoverMode();syncSizeMode();syncGenerationQuality();syncSpineTitle();renderCustomFields();syncPromptLanguageUi(false);syncGlobalCmykFromHex('primaryColor');syncGlobalCmykFromHex('textColor');syncTextEditUi();syncExportButton();
+    loadLocal();window.DesignWorkshopModes?.setup?.({studio:WORKSHOP,state,syncCoverMode,syncSizeMode,saveLocal,scheduleRender,updateGeometry,hasSavedWorkspace:Boolean(localStorage.getItem(STORAGE_KEY))});setupPresetCards();syncCoverMode();syncSizeMode();syncGenerationQuality();syncSpineTitle();renderCustomFields();syncPromptLanguageUi(false);syncGlobalCmykFromHex('primaryColor');syncGlobalCmykFromHex('textColor');syncTextEditUi();syncExportButton();
     if(!$('stylePrompt').value)$('stylePrompt').value=presetPrompt();
     qa('[data-ai-refine]').forEach(button=>button.addEventListener('click',()=>addAiRefinement(button.dataset.aiRefine||'')));
     $('variantCount')?.addEventListener('change',saveLocal);
