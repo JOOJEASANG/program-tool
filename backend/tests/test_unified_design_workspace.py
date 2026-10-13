@@ -41,6 +41,16 @@ def test_print_export_can_start_without_ai_background_and_preserves_source_pdf()
     assert 'doc.embedPng(item.bytes)' in layers
     assert 'doc.embedJpg(item.bytes)' in layers
     assert 'if(background?.naturalWidth)' in vector
+    assert 'sourceImageFormat(layer.bytes)' in layers
+    assert "if(item.imageFormat==='jpeg')" in layers
+    assert "if(item.imageFormat==='png')" in layers
+    assert 'editor?.isTopElementAt?.(e)' in layers
+    assert 'editor?.hasNativeSelection?.()' in layers
+    assert 'centerX-halfW<-.01' in layers
+    assert 'const ratio=item.sourceW/item.sourceH' in layers
+    manual=(ROOT / 'js/program-manuals/ai-design-maker.js').read_text(encoding='utf-8')
+    assert "updated: '2026-10-13'" in manual
+    assert '직접 배치한 PDF·이미지 레이어' in manual
     assert 'page.drawRectangle({x:0,y:0,width,height,color:lib.rgb(1,1,1)})' in vector
 
 
