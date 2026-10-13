@@ -1869,10 +1869,11 @@
     }).filter(Boolean);
     return [
       spec.productType==='cover'?'책표지 전문 작업실'
-        :(state.designFace==='inside'?'현재 제작면: 접이식 인쇄물의 안쪽 펼침면':'현재 제작면: 접이식 인쇄물의 겉면')
         :spec.productType==='flyer'?'홍보 전단지: 행사, 홍보, 광고용 단면·양면 인쇄물. Cover/book/spine motifs are inappropriate.'
         :spec.productType==='invitation'?'초대장: 격식 있는 인사말 및 초청장을 위한 카드/2단 접지. Cover/book/spine motifs are inappropriate.'
         :'리플렛: fold panels, separate visual hierarchy across every panel, continuous background, no book spine. 2/3-fold brochure.',
+      (state.productType==='invitation'||state.productType==='leaflet')
+        ?(state.designFace==='inside'?'현재 제작면: 접이식 인쇄물의 안쪽 펼침면':'현재 제작면: 접이식 인쇄물의 겉면'):'',
       spec.coverMode==='front'?'표지 용도: 인쇄용 앞표지 단면'
         :spec.coverMode==='back'?'표지 용도: 인쇄용 뒷표지 단면'
         :spec.coverMode==='frontBack'?'표지 용도: 앞표지·뒷표지 동시 디자인'
