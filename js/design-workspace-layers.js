@@ -202,8 +202,10 @@
     for(const item of layers) {
       if(!item.image)continue;
       const x=item.x*scale,y=item.y*scale,w=item.w*scale,h=item.h*scale;
-      ctx.save();ctx.translate(x+w/2,y+h/2);ctx.rotate(item.angle*Math.PI/180);
-      ctx.drawImage(item.image,-w/2,-h/2,w,h);ctx.restore();
+      if (!showHandles) {
+        ctx.save();ctx.translate(x+w/2,y+h/2);ctx.rotate(item.angle*Math.PI/180);
+        ctx.drawImage(item.image,-w/2,-h/2,w,h);ctx.restore();
+      }
       if(showHandles&&item.id===activeId) {
         ctx.save();ctx.strokeStyle='#2563eb';ctx.lineWidth=2;ctx.setLineDash([6,3]);
         ctx.strokeRect(x,y,w,h);ctx.setLineDash([]);ctx.fillStyle='#2563eb';
