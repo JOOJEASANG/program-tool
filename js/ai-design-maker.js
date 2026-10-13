@@ -429,7 +429,7 @@
       state.spineManualValue=clamp(data.spineManualValue ?? data.spine ?? 10,0,100,10);
       if (['a4','b5','a5','custom'].includes(data.sizeMode)) state.sizeMode = data.sizeMode;
       else {
-        const w=Number(data.trimW),h=Number(data.trimH);
+        const w=Number($('trimW')?.value),h=Number($('trimH')?.value);
         state.sizeMode = w===210&&h===297?'a4':w===182&&h===257?'b5':w===148&&h===210?'a5':'custom';
       }
       if (data.generationQuality === 'high' || data.generationQuality === 'standard') state.generationQuality = data.generationQuality;
@@ -869,6 +869,20 @@
     const spec = currentSpec();
     const wing = spec.wing ? ' · 날개 '+spec.wing.toFixed(1)+'mm×2' : '';
     const singleLabel=spec.coverMode==='back'?'뒷표지':'앞표지';
+    if(spec.productType!=='cover'){
+      const names={flyer:'전단지',invitation:'초대장',leaflet:'리플렛'};
+      const type=names[spec.productType]||'디자인';
+      const panels=spec.coverMode==='spread'?3:spec.coverMode==='frontBack'?2:1;
+      const text=type+' · '+panels+'개 패널 · 각 '+spec.trimW.toFixed(1)+'×'+spec.trimH.toFixed(1)+'mm · 도련 '+spec.bleed.toFixed(1)+'mm · 전체 '+spec.workW.toFixed(1)+'×'+spec.workH.toFixed(1)+'mm';
+      if($('geometryHint'))$('geometryHint').textContent=text;
+      if($('geometrySummary'))$('geometrySummary').textContent=text;
+      updateProgress();
+      const stale=Boolean(state.background&&state.generatedSpecKey&&state.generatedSpecKey!==specKey(spec));
+      if($('exportBtn'))$('exportBtn').disabled=(!state.background&&!window.DesignWorkspaceLayers?.hasLayers())||stale;
+      window.DesignWorkspaceLayers?.updateReview?.();
+      if(stale)setStatus('규격이 변경되었습니다.','현재 규격에 맞춰 AI 배경을 다시 생성하거나 이미지를 불러와 주세요.','busy');
+      return;
+    }
     const text = isSingleCoverMode(spec.coverMode)
       ? singleLabel+' '+spec.trimW.toFixed(1)+'×'+spec.trimH.toFixed(1)+'mm · 도련 '+spec.bleed.toFixed(1)+'mm · 작업 '+spec.workW.toFixed(1)+'×'+spec.workH.toFixed(1)+'mm'
       : spec.coverMode==='frontBack'
