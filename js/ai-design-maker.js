@@ -154,6 +154,13 @@
   if(!PRODUCT_TYPES.has(state.productType))state.productType='cover';
   if(state.productType==='flyer'||state.productType==='invitation')state.coverMode='front';
   if(state.productType==='leaflet')state.coverMode='spread';
+  if(state.productType==='flyer'||state.productType==='invitation')state.preset='event';
+  if(state.productType==='leaflet')state.preset='other';
+  const PRODUCT_DEFAULT_PROMPTS = Object.freeze({
+    flyer:'인쇄용 전단지 배경을 디자인하세요. 행사·상품·혜택이 돋보이는 강한 시각적 초점과 충분한 제목·정보 배치 여백을 확보하고, 실제 글자 없이 선명한 색상과 사진·일러스트 요소를 조화롭게 사용하세요.',
+    invitation:'격식 있고 따뜻한 초대장 배경을 디자인하세요. 초청 문구·날짜·장소가 들어갈 넓은 여백과 절제된 장식, 아름다운 색감 및 접이식 앞뒤 면의 연결감을 살리고 글자는 그리지 마세요.',
+    leaflet:'실제 인쇄용 리플렛 펼침 배경을 디자인하세요. 여러 접지 패널마다 정보 영역을 확보하면서 패널 사이 이미지와 색감이 자연스럽게 이어지도록 제작하세요. 접는 선은 그리지 말고 글자는 절대 넣지 마세요.'
+  });
   const COVER_MODES = new Set(['front','back','frontBack','spread']);
   const normalizeCoverMode = value => COVER_MODES.has(value) ? value : 'spread';
   const modeHasFront = mode => mode==='front'||mode==='frontBack'||mode==='spread';
@@ -2682,7 +2689,7 @@
       $('trimW').value='99';$('trimH').value='210';state.sizeMode='custom';
     }
     loadLocal();syncSpineCalculator();syncProductWorkspace();setupPresetCards();syncCoverMode();syncSizeMode();syncGenerationQuality();syncSpineTitle();renderCustomFields();syncPromptLanguageUi(false);syncGlobalCmykFromHex('primaryColor');syncGlobalCmykFromHex('textColor');syncTextEditUi();syncExportButton();
-    if(!$('stylePrompt').value)$('stylePrompt').value=presetPrompt();
+    if(!$('stylePrompt').value)$('stylePrompt').value=PRODUCT_DEFAULT_PROMPTS[state.productType]||presetPrompt();
     qa('[data-ai-refine]').forEach(button=>button.addEventListener('click',()=>addAiRefinement(button.dataset.aiRefine||'')));
     $('variantCount')?.addEventListener('change',saveLocal);
     qa('.size-chip').forEach(button=>button.addEventListener('click',()=>{
