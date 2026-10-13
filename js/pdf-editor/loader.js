@@ -426,8 +426,11 @@
     let batchIds = [];
     try { batchIds = JSON.parse(menu.dataset.batchSelectionIds || '[]'); } catch (_) {}
     const isBatch = batchIds.length > 1;
-    const scopeLabel = isBatch ? `선택 ${batchIds.length}페이지 ` : '페이지 ';
-    action.innerHTML = `<span class="ctx-icon">${page.excluded ? '👁' : '🙈'}</span>${scopeLabel}${page.excluded ? '숨김 해제' : '숨기기'}`;
+    const singleActionLabel = page.excluded ? '페이지 숨김 해제' : '페이지 숨기기';
+    const actionLabel = isBatch
+      ? `선택 ${batchIds.length}페이지 ${page.excluded ? '숨김 해제' : '숨기기'}`
+      : singleActionLabel;
+    action.innerHTML = `<span class="ctx-icon">${page.excluded ? '👁' : '🙈'}</span>${actionLabel}`;
     action.addEventListener('click', clickEvent => {
       clickEvent.preventDefault();
       clickEvent.stopPropagation();
