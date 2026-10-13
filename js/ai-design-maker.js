@@ -135,6 +135,7 @@
     backgroundSource: '',
     coverMode: 'spread',
     productType: (new URLSearchParams(location.search).get('product') || 'cover'),
+    designFace: new URLSearchParams(location.search).get('face')==='inside'?'inside':'outside',
     spineCalculationMode: 'auto',
     spineManualValue: 10,
     generationQuality: 'standard',
@@ -154,6 +155,7 @@
   if(!PRODUCT_TYPES.has(state.productType))state.productType='cover';
   if(state.productType==='flyer'||state.productType==='invitation')state.coverMode='front';
   if(state.productType==='leaflet')state.coverMode='spread';
+  if(state.productType==='invitation'&&state.designFace==='inside')state.coverMode='frontBack';
   if(state.productType==='flyer'||state.productType==='invitation')state.preset='event';
   if(state.productType==='leaflet')state.preset='other';
   const PRODUCT_DEFAULT_PROMPTS = Object.freeze({
@@ -361,7 +363,7 @@
   }
 
   function specKey(spec = currentSpec()) {
-    return [spec.productType,spec.coverMode,spec.trimW,spec.trimH,spec.spine,spec.bleed,spec.wing].map(v => typeof v==='number'?Number(v).toFixed(2):v).join('|');
+    return [spec.productType,state.designFace,spec.coverMode,spec.trimW,spec.trimH,spec.spine,spec.bleed,spec.wing].map(v => typeof v==='number'?Number(v).toFixed(2):v).join('|');
   }
 
   function readText() {
@@ -393,6 +395,7 @@
       groups: state.groups,
       coverMode: state.coverMode,
       productType: state.productType,
+      designFace: state.designFace,
       spineCalculationMode: state.spineCalculationMode,
       spineManualValue: state.spineManualValue,
       generationQuality: state.generationQuality,
@@ -750,6 +753,14 @@
       if(active)button.setAttribute('aria-current','page');else button.removeAttribute('aria-current');
     });
     if($('designProductNotice'))$('designProductNotice').textContent=data.info;
+    if($('designPrintFace')){
+      $('designPrintFace').hidden=product!=='invitation'&&product!=='leaflet';
+      document.querySelectorAll('[data-print-face]').forEach(button=>{
+        const active=button.dataset.printFace===state.designFace;
+        button.classList.toggle('active',active);
+        button.setAttribute('aria-pressed',String(active));
+      });
+    }
     if($('coverScopeTitle'))$('coverScopeTitle').textContent=data.scope;
     if($('productSpecDescription'))$('productSpecDescription').textContent=data.spec;
     document.querySelectorAll('[data-scope-mode]').forEach(label=>{
@@ -761,8 +772,8 @@
     if($('middlePanelFields'))$('middlePanelFields').hidden=product!=='leaflet'||state.coverMode!=='spread';
     if($('designLayerTarget')&&product!=='cover'&&product!=='leaflet'&&$('designLayerTarget').value==='spine')$('designLayerTarget').value='front';
     if($('designMiddleTarget')){$('designMiddleTarget').textContent=product==='leaflet'?'가운데 패널':'책등';$('designMiddleTarget').hidden=product!=='cover'&&!(product==='leaflet'&&state.coverMode==='spread');}
-    if($('frontCoverFields'))$('frontCoverFields').querySelector('.copy-surface-head>span').textContent=product==='cover'?'앞표지 문구 (선택)':'오른쪽/앞면 패널 문구 (선택)';
-    if($('backCoverFields'))$('backCoverFields').querySelector('.copy-surface-head>span').textContent=product==='cover'?'뒤표지 문구 (선택)':'왼쪽/뒷면 패널 문구 (선택)';
+    if($('frontCoverFields'))$('frontCoverFields').querySelector('.copy-surface-head>span').textContent=product==='cover'?'앞표지 문구 (선택)':state.designFace==='inside'?'안쪽 오른쪽 패널 문구':'오른쪽/앞면 패널 문구 (선택)';
+    if($('backCoverFields'))$('backCoverFields').querySelector('.copy-surface-head>span').textContent=product==='cover'?'뒤표지 문구 (선택)':state.designFace==='inside'?'안쪽 왼쪽 패널 문구':'왼쪽/뒷면 패널 문구 (선택)';
     if($('copySection'))$('copySection').querySelector('summary strong').textContent=product==='cover'?'표지 문구':data.name+' 문구';
     if($('title'))$('title').placeholder=product==='cover'?'2026 천안마을교육 운영사례집\n함께 만드는 배움의 마을':data.name+' 제목과 본문을 입력하세요';
   }
@@ -1858,6 +1869,7 @@
     }).filter(Boolean);
     return [
       spec.productType==='cover'?'책표지 전문 작업실'
+        :(state.designFace==='inside'?'현재 제작면: 접이식 인쇄물의 안쪽 펼침면':'현재 제작면: 접이식 인쇄물의 겉면')
         :spec.productType==='flyer'?'홍보 전단지: 행사, 홍보, 광고용 단면·양면 인쇄물. Cover/book/spine motifs are inappropriate.'
         :spec.productType==='invitation'?'초대장: 격식 있는 인사말 및 초청장을 위한 카드/2단 접지. Cover/book/spine motifs are inappropriate.'
         :'리플렛: fold panels, separate visual hierarchy across every panel, continuous background, no book spine. 2/3-fold brochure.',
@@ -2022,7 +2034,7 @@
     try{
       const {canvas}=await buildExportCanvas();
       const raw=await canvasBlob(canvas),png=await withPngDpi(raw,EXPORT_DPI),url=URL.createObjectURL(png),a=document.createElement('a');
-      const baseName=spec.productType!=='cover'?spec.productType+'-'+spec.trimW+'x'+spec.trimH+'-'+spec.coverMode
+      const baseName=spec.productType!=='cover'?spec.productType+'-'+(state.designFace==='inside'?'inside-':'outside-')+spec.trimW+'x'+spec.trimH+'-'+spec.coverMode
         :spec.coverMode==='front'?'front-cover-'+spec.trimW+'x'+spec.trimH
         :spec.coverMode==='back'?'back-cover-'+spec.trimW+'x'+spec.trimH
         :spec.coverMode==='frontBack'?'front-back-covers-'+spec.trimW+'x'+spec.trimH
@@ -2709,6 +2721,15 @@
       const next=new URL(location.href);next.searchParams.set('product',target);
       location.assign(next.pathname+next.search+next.hash);
     }));
+    qa('[data-print-face]').forEach(button=>button.addEventListener('click',()=>{
+      const target=button.dataset.printFace;
+      if(!['inside','outside'].includes(target)||target===state.designFace)return;
+      if((state.background||window.DesignWorkspaceLayers?.hasLayers())&&!confirm('작업면 전환 시 현재 AI 배경과 업로드 파일이 사라집니다. PDF·PNG를 먼저 저장했나요?'))return;
+      saveLocal();
+      const next=new URL(location.href);
+      next.searchParams.set('product',state.productType);next.searchParams.set('face',target);
+      location.assign(next.pathname+next.search+next.hash);
+    }));
     qa('input[name="spineInputMode"]').forEach(input=>input.addEventListener('change',()=>selectSpineMode(input.value)));
     ['spinePageCount','spinePaperThickness','spineBindingAllowance'].forEach(id=>$(id)?.addEventListener('input',()=>{
       syncSpineCalculator();saveLocal();updateGeometry();scheduleRender();
@@ -2883,7 +2904,7 @@
         const access=await window.ProgramAccess.getAccess(user);
         if(!access.approved){message.textContent='관리자 승인 후 사용할 수 있습니다.';login.hidden=true;shell.hidden=true;gate.hidden=false;return;}
         if($('userName'))$('userName').textContent=user.displayName||user.email||'사용자';
-        STORAGE_KEY=STORAGE_KEY_PREFIX+':'+user.uid+(state.productType==='cover'?'':':'+state.productType);
+        STORAGE_KEY=STORAGE_KEY_PREFIX+':'+user.uid+(state.productType==='cover'?'':':'+state.productType+(state.designFace==='inside'?':inside':''));
         try{localStorage.removeItem(LEGACY_STORAGE_KEY);}catch(_){}
         gate.hidden=true;shell.hidden=false;bind();
       }catch(error){message.textContent='사용 권한을 확인하지 못했습니다. 잠시 후 새로고침해 주세요.';login.hidden=false;}
