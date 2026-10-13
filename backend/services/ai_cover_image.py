@@ -56,6 +56,7 @@ class CoverImageRequest:
     model: str = DEFAULT_IMAGE_MODEL
     additional_prompt: str = ""
     visual_direction: str = ""
+    product_type: str = "cover"
 
     @property
     def work_width_mm(self) -> float:
@@ -95,11 +96,14 @@ def normalize_cover_request(payload: dict[str, Any]) -> CoverImageRequest:
     cover_mode = aliases.get(cover_mode, cover_mode)
     if cover_mode not in {"front", "back", "front_back", "spread"}:
         cover_mode = "spread"
+    product_type = _clean(payload.get("product_type"), 20).lower()
+    if product_type not in {"cover", "flyer", "invitation", "leaflet"}:
+        product_type = "cover"
     quality_mode = _clean(payload.get("quality_mode"), 20).lower()
     quality_mode = "high" if quality_mode == "high" else "standard"
     trim_width = _number(payload.get("trim_width_mm"), minimum=50, maximum=1000, default=210)
     trim_height = _number(payload.get("trim_height_mm"), minimum=50, maximum=1000, default=297)
-    spine = _number(payload.get("spine_mm"), minimum=0, maximum=100, default=0)
+    spine = _number(payload.get("spine_mm"), minimum=0, maximum=trim_width if product_type == "leaflet" else 100, default=0)
     wing = _number(payload.get("wing_mm"), minimum=0, maximum=300, default=0)
     bleed = _number(payload.get("bleed_mm"), minimum=0, maximum=20, default=3)
     style_request = _clean(payload.get("style_request"), MAX_STYLE)
@@ -112,6 +116,12 @@ def normalize_cover_request(payload: dict[str, Any]) -> CoverImageRequest:
             code="AI_COVER_STYLE_REQUIRED",
         )
 
+    if product_type != "cover":
+        wing = 0
+        if product_type == "leaflet" and cover_mode == "spread":
+            spine = trim_width
+        elif cover_mode != "spread":
+            spine = 0
     if cover_mode != "spread":
         spine = 0
         wing = 0
@@ -129,6 +139,7 @@ def normalize_cover_request(payload: dict[str, Any]) -> CoverImageRequest:
         model=model,
         additional_prompt=additional_prompt,
         visual_direction=visual_direction,
+        product_type=product_type,
     )
     ratio = request.work_width_mm / request.work_height_mm
     if ratio < (1 / 3) or ratio > 3:
@@ -170,6 +181,54 @@ def choose_image_size(req: CoverImageRequest) -> str:
 
 
 def build_cover_prompt(req: CoverImageRequest) -> str:
+    if req.product_type != "cover":
+        titles = {
+            "flyer": "single-sheet EVENT OR ADVERTISING FLYER",
+            "invitation": "event INVITATION CARD",
+            "leaflet": "folded BROCHURE / LEAFLET",
+        }
+        panels = 3 if req.cover_mode == "spread" else 2 if req.cover_mode == "front_back" else 1
+        panel_names = (
+            "LEFT panel, MIDDLE panel, RIGHT panel" if panels == 3
+            else "LEFT panel and RIGHT panel" if panels == 2 else "one flat panel"
+        )
+        return f"""
+Create sophisticated, PROFESSIONAL FLAT 2D PRINT ARTWORK for a {titles[req.product_type]}.
+This is NOT a book cover; do NOT create a spine, hardcover, book mockup, book binding or a photograph of a printed object.
+Every printable panel needs a coordinated and purpose-built visual composition.
+
+PRINT GEOMETRY
+- Final trim for one panel: {req.trim_width_mm:.2f} × {req.trim_height_mm:.2f} mm.
+- This flat artwork spans exactly {panels} panel(s): {panel_names}.
+- Combined print canvas including exterior bleed: {req.work_width_mm:.2f} × {req.work_height_mm:.2f} mm.
+- Bleed: {req.bleed_mm:.2f} mm around outer edges only.
+- For multiple panels, organize imagery and clear reading zones by panel and let art continue across the joins.
+- For folded materials, suggest fold boundaries through layout hierarchy only; never draw dashed fold lines in the artwork.
+- For a trifold, the center is a REAL FULL-WIDTH PANEL, NOT a book spine.
+- No book, report cover, notebook, or bound volume imagery unless the subject itself explicitly requires it.
+
+TEXT RULE
+Generate BACKGROUND ARTWORK ONLY. No letters, Korean or English text, fake text,
+symbols resembling words, numerals, logos, barcodes or QR codes.
+Our print editor separately overlays exact Korean wording.
+
+DESIGN PURPOSE
+- Flyer: strong focal image and visible hierarchy for event, offer and contact information.
+- Invitation: welcoming, elegantly framed focal zone and ample text space.
+- Leaflet: balanced inside/outside panels with generous whitespace for multi-section contents.
+
+BASE STYLE
+{req.style_request}
+
+VISUAL DIRECTION
+{req.visual_direction}
+
+OPTIONAL ADDITIONAL REQUEST
+{req.additional_prompt}
+
+CONTENT & AUDIENCE CONTEXT
+{req.theme_context}
+""".strip()
     mode_titles = {
         "front": "FRONT COVER ONLY",
         "back": "BACK COVER ONLY",
@@ -438,6 +497,7 @@ def generate_cover_image(payload: dict[str, Any], *, uid: str) -> dict[str, Any]
         "prompt_version": "cover-background-v11-additive-user-direction",
         "geometry": {
             "cover_mode": req.cover_mode,
+            "product_type": req.product_type,
             "quality_mode": req.quality_mode,
             "trim_width_mm": req.trim_width_mm,
             "trim_height_mm": req.trim_height_mm,

@@ -8,7 +8,7 @@
   <meta name="robots" content="noindex,nofollow">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
-  <link rel="stylesheet" href="/css/ai-design-maker.css?v=20261013-1">
+  <link rel="stylesheet" href="/css/ai-design-maker.css?v=20261013-2">
   <link rel="stylesheet" href="/css/program-manual-home-modal.css?v=20260918-1">
 </head>
 <body>
@@ -39,12 +39,22 @@
             </div>
           </div>
           <div class="product-tabs" aria-label="디자인 제작 종류">
-            <button class="product-tab active" type="button" aria-current="page"><strong>표지</strong><small>현재 사용</small></button>
-            <button class="product-tab" type="button" disabled><strong>전단지</strong><small>준비중</small></button>
-            <button class="product-tab" type="button" disabled><strong>초대장</strong><small>준비중</small></button>
-            <button class="product-tab" type="button" disabled><strong>리플렛</strong><small>준비중</small></button>
+            <button class="product-tab active" type="button" data-design-product="cover" aria-current="page"><strong>책표지</strong><small>앞·책등·뒤</small></button>
+            <button class="product-tab" type="button" data-design-product="flyer"><strong>전단지</strong><small>단면·양면</small></button>
+            <button class="product-tab" type="button" data-design-product="invitation"><strong>초대장</strong><small>카드·접이식</small></button>
+            <button class="product-tab" type="button" data-design-product="leaflet"><strong>리플렛</strong><small>2단·3단 접지</small></button>
           </div>
         </section>
+
+        <p id="designProductNotice" class="design-workspace-notice">책표지 전용 작업실 · 책등과 날개를 포함한 펼침 표지</p>
+        <div id="designPrintFace" class="design-print-face" hidden aria-label="접이식 인쇄물 양면 작업">
+          <span>접이식 인쇄물 작업면</span>
+          <div class="design-print-face-options">
+            <button type="button" data-print-face="outside">겉면 디자인</button>
+            <button type="button" data-print-face="inside">안쪽면 디자인</button>
+          </div>
+          <small>겉면·안쪽면을 각각 작업하고 PDF로 저장해 주세요. 실제 양면 인쇄 시 인쇄소의 뒤집기 방향을 확인하세요.</small>
+        </div>
 
         <div class="panel-intro">
           <strong id="coverModeHeading">표지 전체 펼침 제작</strong>
@@ -57,10 +67,10 @@
             <small>먼저 선택하세요</small>
           </div>
           <div class="cover-mode-picker cover-mode-picker-prominent" role="radiogroup" aria-label="표지 제작 범위">
-            <label><input type="radio" name="coverMode" value="front"><span><strong>앞표지 디자인</strong><small>앞표지 한 면만 작업</small></span></label>
-            <label><input type="radio" name="coverMode" value="back"><span><strong>뒷표지 디자인</strong><small>뒷표지 한 면만 작업</small></span></label>
-            <label><input type="radio" name="coverMode" value="frontBack"><span><strong>앞·뒤표지 동시</strong><small>뒷표지 + 앞표지 나란히</small></span></label>
-            <label><input type="radio" name="coverMode" value="spread" checked><span><strong>전체 펼침 디자인</strong><small>뒤표지 + 책등 + 앞표지</small></span></label>
+            <label data-scope-mode="front"><input type="radio" name="coverMode" value="front"><span><strong>앞표지 디자인</strong><small>앞표지 한 면만 작업</small></span></label>
+            <label data-scope-mode="back"><input type="radio" name="coverMode" value="back"><span><strong>뒷표지 디자인</strong><small>뒷표지 한 면만 작업</small></span></label>
+            <label data-scope-mode="frontBack"><input type="radio" name="coverMode" value="frontBack"><span><strong>앞·뒤표지 동시</strong><small>뒷표지 + 앞표지 나란히</small></span></label>
+            <label data-scope-mode="spread"><input type="radio" name="coverMode" value="spread" checked><span><strong>전체 펼침 디자인</strong><small>뒤표지 + 책등 + 앞표지</small></span></label>
           </div>
         </section>
 
@@ -71,7 +81,7 @@
         </nav>
 
         <details class="control-section" id="specSection">
-          <summary><span class="step-no">1</span><span><strong>인쇄 규격</strong><small>완성 크기와 책등</small></span><span class="section-state" id="specState">확인</span></summary>
+          <summary><span class="step-no">1</span><span><strong>인쇄 규격</strong><small id="productSpecDescription">완성 크기와 책등</small></span><span class="section-state" id="specState">확인</span></summary>
           <div class="section-body">
             <div class="preset-size-row">
               <button type="button" class="size-chip active" data-size-id="a4" data-size="210,297">A4 <small>210×297</small></button>
@@ -88,6 +98,23 @@
               <label class="field"><span>도련 <em>mm</em></span><input id="bleed" type="number" min="0" max="20" step="0.1" value="3"></label>
               <label class="field"><span>안전영역 <em>mm</em></span><input id="safeZone" type="number" min="0" max="80" step="0.1" value="10"></label>
             </div>
+            <section id="spineCalculator" class="spine-calc" aria-label="책등 두께 계산">
+              <div class="spine-calc-head"><strong>책등 두께 설정</strong><small>제본 후에는 실측 권장</small></div>
+              <div class="spine-calc-modes" role="radiogroup" aria-label="책등 두께 입력 방식">
+                <label><input type="radio" name="spineInputMode" value="auto" checked><span>페이지로 자동 계산</span></label>
+                <label><input type="radio" name="spineInputMode" value="manual"><span>직접 mm 입력</span></label>
+              </div>
+              <div id="spineAutoFields" class="spine-auto-fields">
+                <div class="field-grid two">
+                  <label class="field"><span>내지 페이지 수</span><input id="spinePageCount" type="number" min="2" max="2000" step="1" value="200" inputmode="numeric"></label>
+                  <label class="field"><span>종이 두께 <em>mm/장</em></span><input id="spinePaperThickness" type="number" min="0.01" max="1" step="0.01" value="0.10"></label>
+                  <label class="field"><span>제본 보정 <em>mm</em></span><input id="spineBindingAllowance" type="number" min="0" max="20" step="0.1" value="0"></label>
+                </div>
+                <output id="spineAutoResult" class="spine-auto-result" aria-live="polite">200쪽 ÷ 2 × 0.10mm + 0mm = <strong>10.0mm</strong></output>
+                <small class="spine-calc-help">종이 두께는 실측값입니다. 같은 평량(g)이어도 종이 종류·제조사에 따라 두께가 다릅니다. 최종 제본 전 실측 확인이 필요합니다.</small>
+              </div>
+              <small id="spineManualHelp" class="spine-calc-help" hidden>위의 책등(mm) 값을 직접 입력합니다. 자동 계산값은 적용되지 않습니다.</small>
+            </section>
             <label class="switch-row" id="wingToggleRow"><input id="wingEnabled" type="checkbox"><span class="switch-ui"></span><span><strong>날개 사용</strong><small>책날개가 있는 표지만 켜세요.</small></span></label>
             <label class="field" id="wingField" hidden><span>날개 폭 <em>mm</em></span><input id="wingW" type="number" min="20" max="300" step="0.1" value="70"></label>
             <div class="hint-card" id="geometryHint"></div>
@@ -115,6 +142,10 @@
               <div id="backExtraFields" class="extra-copy-fields" aria-live="polite"></div>
             </div>
 
+            <div class="copy-surface-group" id="middlePanelFields" hidden>
+              <div class="copy-surface-head"><span>가운데 패널 문구</span></div>
+              <textarea class="cover-copy-input" id="middleText" maxlength="700" rows="3" placeholder="리플렛 가운데 패널 문구를 입력하세요"></textarea>
+            </div>
             <div id="spineFields">
               <div class="subsection-title"><span>책등 문구</span><small>상 · 중 · 하 독립 배치</small></div>
               <label class="check-row"><input id="spineSync" type="checkbox" checked><span>앞표지 첫 줄을 책등 중 문구에 자동 사용</span></label>
@@ -282,7 +313,7 @@
             <select id="designLayerTarget">
               <option value="front" selected>앞표지</option>
               <option value="back">뒷표지</option>
-              <option value="spine">책등</option>
+              <option value="spine" id="designMiddleTarget">책등</option>
               <option value="whole">전체 펼침</option>
             </select>
           </label>
@@ -624,8 +655,8 @@
   <script defer src="/js/firebase-config.js"></script>
   <script defer src="/js/program-manuals/home-modal.js?v=20260918-1"></script>
   <script defer src="/js/program-sidebar-actions.js?v=20260918-2"></script>
-  <script defer src="/js/design-workspace-layers.js?v=20261013-1"></script>
+  <script defer src="/js/design-workspace-layers.js?v=20261013-2"></script>
   <script defer src="/js/ai-design-print-export.js?v=20261013-1"></script>
-  <script defer src="/js/ai-design-maker.js?v=20261013-1"></script>
+  <script defer src="/js/ai-design-maker.js?v=20261013-2"></script>
 </body>
 </html>
