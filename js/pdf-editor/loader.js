@@ -422,12 +422,21 @@
     const action = document.createElement('div');
     action.className = 'ctx-item';
     action.dataset.pageHiddenAction = 'true';
-    action.innerHTML = `<span class="ctx-icon">${page.excluded ? '👁' : '🙈'}</span>${page.excluded ? '페이지 숨김 해제' : '페이지 숨기기'}`;
+    // The base menu freezes checked-page IDs before this action is injected.
+    let batchIds = [];
+    try { batchIds = JSON.parse(menu.dataset.batchSelectionIds || '[]'); } catch (_) {}
+    const isBatch = batchIds.length > 1;
+    const scopeLabel = isBatch ? `선택 ${batchIds.length}페이지 ` : '페이지 ';
+    action.innerHTML = `<span class="ctx-icon">${page.excluded ? '👁' : '🙈'}</span>${scopeLabel}${page.excluded ? '숨김 해제' : '숨기기'}`;
     action.addEventListener('click', clickEvent => {
       clickEvent.preventDefault();
       clickEvent.stopPropagation();
       menu.classList.remove('open');
-      togglePageHiddenFromContextMenu(page);
+      if (isBatch && window.PdfPageProductivity?.runContextAction) {
+        window.PdfPageProductivity.runContextAction(page.excluded ? 'show' : 'hide', batchIds);
+      } else {
+        togglePageHiddenFromContextMenu(page);
+      }
     });
 
     const separator = document.createElement('div');
