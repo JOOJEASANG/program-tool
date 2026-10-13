@@ -1861,7 +1861,7 @@
     const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;const ctx=canvas.getContext('2d');
     ctx.fillStyle='#ffffff';ctx.fillRect(0,0,w,h);
     if(state.background?.naturalWidth)drawBackgroundImage(ctx,state.background,w,h);
-    window.DesignWorkspaceLayers?.draw?.(ctx,spec,ppm,false);
+    if(window.DesignWorkspaceLayers?.hasLayers())await window.DesignWorkspaceLayers.drawForExport(ctx,spec,ppm);
     state.shapes.forEach(shape=>drawShape(ctx,shape,ppm));
     drawLogo(ctx,spec,ppm);
     const color=$('textColor')?.value||'#ffffff';
