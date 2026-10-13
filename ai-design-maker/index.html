@@ -3,19 +3,19 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>AI 디자인 제작 · Program Studio</title>
-  <meta name="description" content="앞표지·책등·뒤표지를 실제 인쇄 규격으로 설계하고 AI 배경과 정확한 한글 문구 레이어를 합성해 300dpi로 저장하는 표지 제작 도구입니다.">
+  <title>디자인 제작 · Program Studio</title>
+  <meta name="description" content="AI 디자인 생성과 PDF·이미지 직접 배치, 표지 편집 및 인쇄 검토를 한 작업실에서 처리합니다.">
   <meta name="robots" content="noindex,nofollow">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
-  <link rel="stylesheet" href="/css/ai-design-maker.css?v=20261008-1">
+  <link rel="stylesheet" href="/css/ai-design-maker.css?v=20261013-1">
   <link rel="stylesheet" href="/css/program-manual-home-modal.css?v=20260918-1">
 </head>
 <body>
   <div class="auth-gate" id="authGate">
     <div class="auth-card">
       <div class="auth-mark">✦</div>
-      <h1>AI 디자인 제작</h1>
+      <h1>디자인 제작</h1>
       <p id="authMessage">사용 권한을 확인하고 있습니다.</p>
       <a class="primary-button" id="authLogin" href="/login.html" hidden>로그인하기</a>
     </div>
@@ -26,10 +26,10 @@
       <aside class="control-panel" aria-label="표지 제작 설정">
         <div class="program-title-row">
           <div class="program-title-copy">
-            <span class="program-title-kicker">AI DESIGN MAKER</span>
-            <strong>AI 디자인 제작</strong>
+            <span class="program-title-kicker">DESIGN STUDIO</span>
+            <strong>디자인 제작</strong>
           </div>
-          <button class="ai-manual-btn" id="manualBtn" type="button" title="사용설명서" aria-label="AI 디자인 제작 사용설명서">?</button>
+          <button class="ai-manual-btn" id="manualBtn" type="button" title="사용설명서" aria-label="디자인 제작 사용설명서">?</button>
         </div>
 
         <section class="product-picker" aria-labelledby="productPickerTitle">
@@ -38,7 +38,7 @@
               <strong id="productPickerTitle">디자인 종류</strong>
             </div>
           </div>
-          <div class="product-tabs" aria-label="AI 디자인 제작 종류">
+          <div class="product-tabs" aria-label="디자인 제작 종류">
             <button class="product-tab active" type="button" aria-current="page"><strong>표지</strong><small>현재 사용</small></button>
             <button class="product-tab" type="button" disabled><strong>전단지</strong><small>준비중</small></button>
             <button class="product-tab" type="button" disabled><strong>초대장</strong><small>준비중</small></button>
@@ -272,6 +272,29 @@
           </div>
         </details>
 
+        <section class="design-import-panel" aria-labelledby="designImportTitle">
+          <div class="manual-assets-head">
+            <strong id="designImportTitle">내 파일 배치 · 편집</strong>
+            <small>AI 생성 없이도 사용 가능</small>
+          </div>
+          <p class="design-import-intro">PDF·이미지를 펼친 표지의 앞표지·책등·뒷표지에 독립 레이어로 올려 배치합니다.</p>
+          <label class="field"><span>파일 기본 배치 영역</span>
+            <select id="designLayerTarget">
+              <option value="front" selected>앞표지</option>
+              <option value="back">뒷표지</option>
+              <option value="spine">책등</option>
+              <option value="whole">전체 펼침</option>
+            </select>
+          </label>
+          <label class="file-button design-upload-button">+ PDF·이미지 추가
+            <input id="designLayerUpload" type="file" accept=".pdf,application/pdf,image/png,image/jpeg,image/webp" multiple>
+          </label>
+          <div id="designLayerList" class="design-layer-list" aria-label="배치한 파일 레이어">
+            <p class="design-layer-empty">업로드 파일이 없습니다. PDF 또는 이미지를 추가하세요.</p>
+          </div>
+          <p class="design-import-help">캔버스로 파일을 끌어놓을 수도 있습니다. PDF는 원본 페이지를 배치하며, AI 배경 생성과 함께 사용 가능합니다.</p>
+        </section>
+
         <section class="manual-assets-block" aria-labelledby="manualAssetsTitle">
           <div class="manual-assets-head">
             <strong id="manualAssetsTitle">직접 파일 업로드</strong>
@@ -369,6 +392,35 @@
           </div>
             <p id="resolutionInfo" role="status" style="font-size:11px;line-height:1.5;color:#475569">출력 색상: RGB</p>
         </div>
+        <section class="design-layer-inspector" id="designLayerInspector" hidden aria-labelledby="designLayerInspectTitle">
+          <div class="inspector-preview-actions-head"><span>FILE LAYER</span><strong id="designLayerInspectTitle">업로드 파일 편집</strong></div>
+          <strong class="design-active-name" id="designLayerName"></strong>
+          <div class="design-mm-grid">
+            <label>가로 위치 <small>mm</small><input id="designLayerX" type="number" step="0.1"></label>
+            <label>세로 위치 <small>mm</small><input id="designLayerY" type="number" step="0.1"></label>
+            <label>가로 크기 <small>mm</small><input id="designLayerW" type="number" min="1" step="0.1"></label>
+            <label>세로 크기 <small>mm</small><input id="designLayerH" type="number" min="1" step="0.1"></label>
+            <label>회전 <small>°</small><input id="designLayerAngle" type="number" step="1"></label>
+          </div>
+          <label class="design-lock"><input id="designLayerLockRatio" type="checkbox" checked> 가로·세로 비율 유지</label>
+          <div class="design-pdf-page-row" id="designPdfPageRow" hidden>
+            <label>배치할 PDF 페이지 <input id="designPdfPage" type="number" min="1" step="1" value="1"></label>
+          </div>
+          <div class="design-layer-actions">
+            <button id="designLayerFit" type="button">영역 맞춤</button>
+            <button id="designLayerCenter" type="button">가운데 정렬</button>
+            <button id="designLayerForward" type="button">맨 앞으로</button>
+            <button id="designLayerBackward" type="button">뒤로 보내기</button>
+            <button id="designLayerRemove" type="button" class="danger">선택 파일 삭제</button>
+          </div>
+        </section>
+        <section class="design-review-panel" aria-labelledby="designReviewTitle">
+          <div class="inspector-preview-actions-head"><span>PRINT CHECK</span><strong id="designReviewTitle">인쇄파일 검토</strong></div>
+          <span class="design-review-state" id="designReviewCount">기본 검사 준비</span>
+          <div id="designReviewResults" class="design-review-results" aria-live="polite"></div>
+          <p>재단선·안전영역은 위 미리보기에서 확인하세요. PDF 내부 글꼴·색상 등 상세 검사는 전문 검토 도구를 이용할 수 있습니다.</p>
+          <a href="/print-checker/" class="design-advanced-check" target="_blank" rel="noopener noreferrer">고급 PDF·인쇄파일 검토 열기 ↗</a>
+        </section>
         <div class="element-toolbox" aria-label="편집 요소 추가">
           <div class="element-toolbox-head"><span>ELEMENTS</span><strong>요소 추가</strong></div>
           <div class="element-tool-buttons">
@@ -572,7 +624,8 @@
   <script defer src="/js/firebase-config.js"></script>
   <script defer src="/js/program-manuals/home-modal.js?v=20260918-1"></script>
   <script defer src="/js/program-sidebar-actions.js?v=20260918-2"></script>
-  <script defer src="/js/ai-design-print-export.js?v=20260928-2"></script>
-  <script defer src="/js/ai-design-maker.js?v=20261008-1"></script>
+  <script defer src="/js/design-workspace-layers.js?v=20261013-1"></script>
+  <script defer src="/js/ai-design-print-export.js?v=20261013-1"></script>
+  <script defer src="/js/ai-design-maker.js?v=20261013-1"></script>
 </body>
 </html>
