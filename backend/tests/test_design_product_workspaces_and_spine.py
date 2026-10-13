@@ -65,6 +65,9 @@ def test_spine_auto_calculation_is_default_and_manual_is_preserved():
     assert "state.spineCalculationMode=data.spineCalculationMode==='manual'" in SCRIPT
     assert "state.spineManualValue=clamp(data.spineManualValue ?? data.spine ?? 10" in SCRIPT
     assert "syncSpineCalculator();saveLocal();updateGeometry();scheduleRender()" in SCRIPT
+    assert "function hasValidSpineGeometry()" in SCRIPT
+    assert "if(rejectInvalidSpine())return;" in SCRIPT
+    assert "if(savedProduct!==state.productType" in SCRIPT
     assert "200쪽" in MANUAL and "10.0mm" in MANUAL
     assert "겉면과 안쪽면을 각각 작업" in MANUAL
     assert "종이 두께는 실측값" in PAGE
