@@ -191,9 +191,9 @@
     const panel=$('designReviewResults'),s=spec(); if(!panel||!s)return;
     const warnings=[],infos=[];
     infos.push('완성 '+s.trimW.toFixed(1)+'×'+s.trimH.toFixed(1)+'mm · 전체 '+s.workW.toFixed(1)+'×'+s.workH.toFixed(1)+'mm');
-    if(s.coverMode==='spread')infos.push('책등 '+s.spine.toFixed(1)+'mm');
+    if(s.coverMode==='spread')infos.push(s.productType==='leaflet'?'3단 리플렛 가운데 패널 '+s.spine.toFixed(1)+'mm':'책등 '+s.spine.toFixed(1)+'mm');
     if(s.bleed<3)warnings.push('도련 '+s.bleed+'mm: 인쇄소의 권장 도련을 확인하세요.');
-    if(s.coverMode==='spread'&&s.spine<4)warnings.push('책등 폭이 좁아 문구가 잘릴 수 있습니다.');
+    if(s.productType==='cover'&&s.coverMode==='spread'&&s.spine<4)warnings.push('책등 폭이 좁아 문구가 잘릴 수 있습니다.');
     for (const item of layers) {
       const dpi=effectiveDpi(item);
       if(dpi!==null){infos.push(item.name+' · 유효 '+Math.round(dpi)+'dpi');if(dpi<300)warnings.push(item.name+' · 300dpi 미만(약 '+Math.round(dpi)+'dpi)');}
