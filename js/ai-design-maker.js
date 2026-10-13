@@ -740,9 +740,9 @@
         frontBack:['앞·뒤표지 동시','책등 없는 양면 펼침'],spread:['전체 펼침 디자인','뒤표지 + 책등 + 앞표지']}},
       flyer:{name:'전단지',info:'A4·A5 등 단면 또는 양면 전단지를 인쇄 규격에 맞춰 제작합니다.',scope:'전단지 면 구성',spec:'전단지 완성 크기',options:{
         front:['전단지 단면','한 면 편집'],frontBack:['전단지 양면','뒷면 + 앞면 펼침']}},
-      invitation:{name:'초대장',info:'단면 카드와 2단 접이식 초대장 겉면을 제작합니다. 안쪽면은 별도 작업 파일로 저장하세요.',scope:'초대장 구성',spec:'초대장 한 면의 크기',options:{
+      invitation:{name:'초대장',info:'단면 카드·2단 접이식 초대장의 겉면과 안쪽면을 각각 디자인하여 저장할 수 있습니다.',scope:'초대장 구성',spec:'초대장 한 면의 크기',options:{
         front:['단면 초대장','한 장짜리 카드'],frontBack:['2단 접이식','뒷면 + 앞면 접지']}},
-      leaflet:{name:'리플렛',info:'2단 또는 3단 리플렛 펼침 작업실입니다. 접히는 위치와 패널별 디자인을 확인하세요.',scope:'리플렛 접지 구성',spec:'패널 1개 가로·세로 크기',options:{
+      leaflet:{name:'리플렛',info:'2단·3단 리플렛의 겉면과 안쪽면을 따로 제작합니다. 접지선과 패널별 디자인을 확인하세요.',scope:'리플렛 접지 구성',spec:'패널 1개 가로·세로 크기',options:{
         frontBack:['2단 접지','2개 패널 펼침'],spread:['3단 접지','3개 패널 펼침']}}
     }[product];
     if(!data.options[state.coverMode])state.coverMode=product==='leaflet'?'spread':'front';
@@ -957,7 +957,7 @@
       const names=spec.productType==='leaflet'
         ?spec.coverMode==='spread'?['왼쪽 패널','가운데 패널','오른쪽 패널']:['왼쪽 패널','오른쪽 패널']
         :spec.productType==='invitation'
-          ?spec.coverMode==='frontBack'?['뒷면','앞면']:['초대장']
+          ?spec.coverMode==='frontBack'?(state.designFace==='inside'?['안쪽 왼쪽','안쪽 오른쪽']:['뒷면','앞면']):['초대장']
           :spec.coverMode==='frontBack'?['뒷면','앞면']:['전단지'];
       if(spec.bleed>0)rect(ctx,.5,.5,spec.workW*scale-1,spec.workH*scale-1,'#db2777',[7,5]);
       names.forEach((name,index)=>{
@@ -2720,6 +2720,7 @@
       if((state.background||window.DesignWorkspaceLayers?.hasLayers())&&!confirm('현재 작업의 AI 배경 및 업로드 파일은 작업실 전환 시 사라집니다. 완성 파일을 먼저 저장했나요?'))return;
       saveLocal();
       const next=new URL(location.href);next.searchParams.set('product',target);
+      next.searchParams.delete('face');
       location.assign(next.pathname+next.search+next.hash);
     }));
     qa('[data-print-face]').forEach(button=>button.addEventListener('click',()=>{
