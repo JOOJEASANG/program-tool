@@ -339,7 +339,8 @@
         let margins = layoutMargins(resolvedOutputIndex);
         // In repeat mode each cut-out tile is an independent print. Margins
         // apply inside EACH half/quarter rather than only at paper edges.
-        let layoutGap = repeated ? 0 : gp;
+        let layoutGap = gp;
+        if (repeated) layoutGap = 0;
         const cutWidth = pw / cols;
         const cutHeight = ph / rows;
         let usableWidth = repeated

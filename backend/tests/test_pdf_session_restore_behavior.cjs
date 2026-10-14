@@ -28,7 +28,7 @@ class MockFile {
 const mockBlob=marker=>({marker,size:1});
 const context={
   console,File:MockFile,setTimeout(){},confirm(){return true;},
-  document:{createElement(){return {style:{},setAttribute(){},remove(){}};},querySelectorAll(){return[];},querySelector(){return null;}},
+  document:{getElementById:element,createElement(){return {style:{},setAttribute(){},remove(){}};},querySelectorAll(){return[];},querySelector(){return null;}},
   $:element,
   storage:{ref(p){return {async getDownloadURL(){return 'https://local.test/'+p;}};}},
   async fetch(url) {
@@ -87,4 +87,5 @@ vm.runInContext(source.slice(start,end),context);
   assert.match(element('sessionRestoreStatus').textContent,/network failure/);
   assert.ok(buttons.every(b=>!b.disabled));
   console.log('pdf session restore behavior passed');
+  console.log('pdf session mixed file save-load recovery passed');
 })().catch(error=>{console.error(error);process.exitCode=1;});
