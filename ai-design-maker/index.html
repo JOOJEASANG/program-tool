@@ -351,7 +351,7 @@
         </div>
         <div class="panel-actions">
           <button class="generate-button" id="generateBtn" type="button"><span>✦</span> AI 배경 생성</button>
-          <button class="secondary-button" id="resetBtn" type="button">입력 초기화</button>
+          <button class="secondary-button" id="resetBtn" type="button" title="현재 입력값을 처음 상태로 되돌리기">입력 초기화</button>
         </div>
         <section class="ai-variant-gallery" id="variantGallery" hidden aria-label="생성 시안 선택">
           <strong>생성된 시안 선택</strong>
@@ -404,16 +404,16 @@
             <label class="mini-switch"><input id="guideToggle" type="checkbox" checked><span>가이드</span></label>
             <label class="mini-switch"><input id="cropMarkToggle" type="checkbox" checked><span>재단선</span></label>
           </div>
-          <div class="inspector-save-row">
-            <button class="secondary-button compact gallery-open-button" id="galleryBtn" type="button">디자인 보관함</button>
-            <button class="secondary-button compact inspector-save-button" id="saveGalleryBtn" type="button" disabled>디자인 저장</button>
-          </div>
           <div class="inspector-export-row">
             <select class="export-format" id="exportFormat" aria-label="완성 파일 형식">
               <option value="png">PNG</option>
               <option value="pdf">벡터 PDF (Pretendard)</option><option value="pdf-raster">300dpi 이미지 PDF (모든 글꼴)</option>
             </select>
             <button class="secondary-button compact inspector-export-button" id="exportBtn" type="button" disabled>300dpi 다운로드</button>
+          </div>
+          <div class="inspector-save-row">
+            <button class="secondary-button compact gallery-open-button" id="galleryBtn" type="button">디자인 보관함</button>
+            <button class="secondary-button compact inspector-save-button" id="saveGalleryBtn" type="button" disabled>디자인 저장</button>
           </div>
             <p id="resolutionInfo" role="status" style="font-size:11px;line-height:1.5;color:#475569">출력 색상: RGB</p>
         </div>
