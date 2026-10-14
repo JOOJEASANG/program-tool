@@ -517,7 +517,7 @@
     '/js/pdf-editor/font-render-fix.js?v=20260618-1',
     '/js/pdf-editor/upload-fix.js?v=20260724-5',
     '/js/pdf-editor/live-preview.js?v=20260724-4',
-    '/js/pdf-editor/layout-export.js?v=20261014-3',
+    '/js/pdf-editor/layout-export.js?v=20261014-4',
     '/js/pdf-editor/page-count-hint.js?v=20260731-1',
     '/js/pdf-editor/nup-helper.js?v=20260731-1',
     '/js/pdf-editor/preview-row-default.js?v=20260731-1',
@@ -528,7 +528,7 @@
   function loadCoreRuntime() {
     const context = window.ProgramStudioPdfEditorRuntimeContext || {};
     const hostLoad = context.load;
-    const coreSrc = "/js/pdf-editor/core-runtime.js?v=20261014-3";
+    const coreSrc = "/js/pdf-editor/core-runtime.js?v=20261014-4";
     const promise = typeof hostLoad === 'function'
       ? hostLoad('pdfEditorCoreRuntimeScriptV1', coreSrc)
       : new Promise((resolve, reject) => {

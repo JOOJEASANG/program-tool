@@ -183,9 +183,12 @@
   function updateFacingNote() {
     const note = $('pdfMarginFacingNoteV2');
     if (!note) return;
-    note.textContent = facingEnabled()
+    const cutNote = window.PdfEditorNupRepeat?.enabled?.()
+      ? ' 반복배치에서는 재단 후 각각의 인쇄물에 상·하·좌·우 여백을 동일하게 적용합니다.'
+      : '';
+    note.textContent = (facingEnabled()
       ? '양면 마주보기 사용 중: 짝수 출력면은 좌·우 여백을 자동으로 서로 바꿉니다.'
-      : '양면 마주보기를 켜면 짝수 출력면의 좌·우 여백이 자동으로 서로 바뀝니다.';
+      : '양면 마주보기를 켜면 짝수 출력면의 좌·우 여백이 자동으로 서로 바뀝니다.') + cutNote;
   }
 
   function installMarginUi() {
@@ -337,9 +340,20 @@
         const numberSpaceRequested = pageNumberAutoReserveEnabled()
           && pageNumberApplies(resolvedOutputIndex);
         let margins = layoutMargins(resolvedOutputIndex);
-        let layoutGap = gp;
-        let usableWidth = pw - margins.left - margins.right - layoutGap * (cols - 1);
-        let usableHeight = ph - margins.top - margins.bottom - layoutGap * (rows - 1);
+        // In repeat mode each cut-out tile is an independent print. Margins
+        // apply inside EACH half/quarter rather than only at paper edges.
+        let layoutGap = repeated ? 0 : gp;
+        const cutWidth = pw / cols;
+        const cutHeight = ph / rows;
+        let usableWidth = repeated
+          ? cutWidth - margins.left - margins.right
+          : pw - margins.left - margins.right - layoutGap * (cols - 1);
+        let usableHeight = repeated
+          ? cutHeight - margins.top - margins.bottom
+          : ph - margins.top - margins.bottom - layoutGap * (rows - 1);
+        if (repeated && (usableWidth <= 1 || usableHeight <= 1)) {
+          throw new Error('반복배치의 개별 재단 영역보다 여백이 큽니다. 상하좌우 여백을 줄여 주세요.');
+        }
         if (usableWidth <= 1 || usableHeight <= 1) {
           margins = {
             left: FALLBACK_MARGIN_MM,
@@ -352,8 +366,8 @@
           usableHeight = ph - margins.top - margins.bottom - layoutGap * (rows - 1);
         }
 
-        const cellW = usableWidth / cols;
-        const cellH = usableHeight / rows;
+        const cellW = repeated ? usableWidth : usableWidth / cols;
+        const cellH = repeated ? usableHeight : usableHeight / rows;
         const perPage = cols * rows;
         const output = document.createElement('canvas');
         output.width = Math.round(pw * mm2px);
@@ -381,16 +395,21 @@
             column = Math.floor(slot / rows);
             row = slot % rows;
           }
-          const cellX = (margins.left + column * (cellW + layoutGap)) * mm2px;
-          const cellY = (margins.top + row * (cellH + layoutGap)) * mm2px;
+          const cutX = column * cutWidth;
+          const cutY = row * cutHeight;
+          const cellX = (margins.left + (repeated ? cutX : column * (cellW + layoutGap))) * mm2px;
+          const cellY = (margins.top + (repeated ? cutY : row * (cellH + layoutGap))) * mm2px;
           const source = getPageSrc(groupPages[sourceIndex], mm2px, useHi);
           drawPageInCell(context, source, cellX, cellY, cellW * mm2px, cellH * mm2px);
           if (repeated) {
             const overlay = document.createElement('canvas');
-            overlay.width = Math.max(1, Math.round(cellW * mm2px));
-            overlay.height = Math.max(1, Math.round(cellH * mm2px));
+            overlay.width = Math.max(1, Math.round(cutWidth * mm2px));
+            overlay.height = Math.max(1, Math.round(cutHeight * mm2px));
             applyDocEdits(overlay, resolvedOutputIndex, totalOutputPages, mm2px);
-            context.drawImage(overlay, cellX, cellY, cellW * mm2px, cellH * mm2px);
+            // Overlay positions (page numbers, headers, footers) are relative
+            // to the full cut-out print, not the inset content rectangle.
+            context.drawImage(overlay, cutX * mm2px, cutY * mm2px,
+              cutWidth * mm2px, cutHeight * mm2px);
           }
         }
         return output;

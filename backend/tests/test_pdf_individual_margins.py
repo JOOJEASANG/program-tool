@@ -128,7 +128,7 @@ def test_independent_margin_ui_is_integrated_into_the_existing_export_module():
 
     assert loader.count("'/js/pdf-editor/") == 8
     assert "individual-margins-facing-pages.js" not in loader
-    assert "layout-export.js?v=20261014-3" in loader
+    assert "layout-export.js?v=20261014-4" in loader
     assert "__pdfEditorLayoutExportV8" in source
     assert "individualPaperMarginsV2" in source
     for field in ("marginLeft", "marginRight", "marginTop", "marginBottom"):

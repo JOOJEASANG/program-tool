@@ -858,6 +858,7 @@ function collectEditorState() {
     actualWidthMm: parseFloat($('actualWidthMm')?.value) || null,
     actualHeightMm: parseFloat($('actualHeightMm')?.value) || null,
     fileNupMap,
+    fileNames: uploadedFiles.map(file => file.name),
     wmEnabled, wmText, wmOpacity, wmAngle, wmColor,
     hfEnabled, hfHL, hfHC, hfHR, hfFL, hfFC, hfFR,
     hfFontSize, hfColor, hfApplyTo, hfStartPage, hfEndPage,
@@ -996,28 +997,61 @@ async function openSessionList() {
 }
 
 async function loadEditorSession(d, docId) {
-  if (!confirm(`"${d.name}" 편집을 불러올까요?\n현재 작업 중인 내용은 사라집니다.`)) return;
-  $('sessionListModal').style.display = 'none';
-  showStatus('세션 불러오는 중...');
+  if (!confirm(`"${d.name}" 편집을 불러올까요?\n현재 작업은 복원 성공 후 교체됩니다.`)) return false;
+  // Keep the list visible so download or rendering failures are actionable.
+  const sessionBody = $('sessionListBody');
+  let restoreStatus = $('sessionRestoreStatus');
+  if (!restoreStatus) {
+    restoreStatus = document.createElement('div');
+    restoreStatus.id = 'sessionRestoreStatus';
+    restoreStatus.setAttribute('role', 'status');
+    restoreStatus.style.cssText = 'padding:10px;margin-bottom:10px;border:1px solid #bfdbfe;border-radius:8px;background:#eff6ff;color:#1d4ed8;font-size:12px;white-space:pre-wrap;';
+    sessionBody.prepend(restoreStatus);
+  }
+  const reportRestore = message => {
+    restoreStatus.textContent = message;
+    showStatus(message);
+  };
+  restoreStatus.style.color = '#1d4ed8';
+  restoreStatus.style.background = '#eff6ff';
+  reportRestore('세션 불러오는 중...');
+  const restoreButtons = [...sessionBody.querySelectorAll('[data-action="load"]')];
+  restoreButtons.forEach(button => { button.disabled = true; });
 
   // Snapshot previous state for rollback on error
   const prevParsedPages = parsedPages;
   const prevUploadedFiles = uploadedFiles;
   const prevFileNupMap = fileNupMap;
+  const prevPreviewCanvases = previewCanvases;
+  const prevNextId = _nextId;
 
   try {
-    const state = JSON.parse(d.state || '{}');
+    const state = typeof d.state === 'string' ? JSON.parse(d.state) : (d.state || {});
+    if (!Array.isArray(d.storagePaths) || !d.storagePaths.length) {
+      throw new Error('저장된 원본 PDF 경로가 없습니다.');
+    }
 
     // Download source files from Storage
     const files = [];
     for (let i = 0; i < (d.storagePaths || []).length; i++) {
-      showStatus(`원본 파일 다운로드 중... (${i + 1}/${d.storagePaths.length})`);
-      const url = await storage.ref(d.storagePaths[i]).getDownloadURL();
-      const resp = await fetch(url);
-      if (!resp.ok) throw new Error(`파일 다운로드 실패 (${resp.status})`);
-      const buf = await resp.arrayBuffer();
-      const fname = (d.storagePaths[i].split('/').pop()) || `file_${i}.pdf`;
-      files.push(new File([buf], fname, { type: 'application/pdf' }));
+      reportRestore(`원본 파일 다운로드 중... (${i + 1}/${d.storagePaths.length})`);
+      const reference = storage.ref(d.storagePaths[i]);
+      let blob;
+      try {
+        if (typeof reference.getBlob === 'function') {
+          blob = await reference.getBlob();
+        } else {
+          const url = await reference.getDownloadURL();
+          const response = await fetch(url);
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          blob = await response.blob();
+        }
+      } catch (downloadError) {
+        throw new Error(`${i + 1}번째 PDF 다운로드 실패: ${downloadError.message}. 저장소 접근 권한이나 CORS 설정을 확인해 주세요.`);
+      }
+      if (!blob || !blob.size) throw new Error(`${i + 1}번째 원본 파일이 비어 있습니다.`);
+      const fname = state.fileNames?.[i] || (d.storagePaths[i].split('/').pop()) || `file_${i}.pdf`;
+      files.push(new File([blob], fname, { type: 'application/pdf' }));
     }
 
     // Reset state
@@ -1027,29 +1061,53 @@ async function loadEditorSession(d, docId) {
     fileNupMap = {};
     _nextId = 1;
 
-    // Render all source pages into a lookup map keyed by "fileIdx_pageIdx"
+    // Render all source pages into a lookup map keyed by "fileIdx_pageIdx".
+    // Match the upload-time memory limits rather than rendering every page at
+    // 0.9 scale, which can exhaust memory for multi-file saved sessions.
     const renderedMap = new Map();
+    const sourceBytes = files.reduce((total, file) => total + file.size, 0);
+    let restoredPageCount = 0;
     for (let fi = 0; fi < files.length; fi++) {
-      showStatus(`페이지 렌더링 중... (파일 ${fi + 1}/${files.length})`);
+      reportRestore(`페이지 복원 중... (파일 ${fi + 1}/${files.length})`);
       uploadedFiles.push(files[fi]);
       const buf = await files[fi].arrayBuffer();
-      const pdfDoc = await pdfjsLib.getDocument({ data: buf }).promise;
-      for (let pi = 1; pi <= pdfDoc.numPages; pi++) {
-        const pdfPage = await pdfDoc.getPage(pi);
-        const thumbCanvas = await renderPdfPage(pdfPage, 0.9, 0);
+      let pdfDoc;
+      try {
+        pdfDoc = await pdfjsLib.getDocument({ data: new Uint8Array(buf), disableWorker: true }).promise;
+      } catch (parseError) {
+        console.warn('[pdf-session] workerless PDF load failed; retrying', parseError);
+        pdfDoc = await pdfjsLib.getDocument({ data: new Uint8Array(await files[fi].arrayBuffer()) }).promise;
+      }
+      const total = pdfDoc.numPages || 0;
+      if (!total) throw new Error(`${fi + 1}번째 원본 PDF에 페이지가 없습니다.`);
+      const lightweight = total >= 120 || restoredPageCount + total >= 120
+        || files[fi].size >= 96 * 1024 * 1024 || sourceBytes >= 160 * 1024 * 1024;
+      const optimization = window.PdfUploadOptimization;
+      if (lightweight && !optimization?.makePagePlaceholder) {
+        throw new Error('경량 페이지 복원 모듈이 없습니다. 새로고침 후 다시 시도해 주세요.');
+      }
+      for (let pi = 1; pi <= total; pi++) {
+        if (pi % 25 === 1) reportRestore(`페이지 복원 중... (파일 ${fi + 1}/${files.length}, ${pi}/${total})`);
+        const pdfPage = lightweight ? optimization.makeLightweightPdfPage(pi, total) : await pdfDoc.getPage(pi);
+        const thumbCanvas = lightweight
+          ? optimization.makePagePlaceholder(pi, total, 0)
+          : await renderPdfPage(pdfPage, total >= 25 ? 0.42 : 0.75, 0);
         renderedMap.set(`${fi}_${pi - 1}`, {
           id: makeId(), pdfPage, thumbCanvas,
           excluded: false, nupOverride: null, nupDisabled: false,
           file_index: fi, page_index: pi - 1,
           sourceFile: files[fi].name, groupBreak: false,
-          rotation: 0, pageType: 'pdf',
+          rotation: 0, pageType: 'pdf', lightweight,
         });
-        await new Promise(r => setTimeout(r, 0));
+        if (pi % (lightweight ? 50 : 6) === 0) await new Promise(r => setTimeout(r, 0));
       }
+      if (lightweight) await pdfDoc.destroy?.();
+      restoredPageCount += total;
     }
 
     // Reconstruct pages in saved order (preserves positions of blank/divider pages)
     const savedPages = state.pages || [];
+    const usedKeys = new Set();
     for (const s of savedPages) {
       if (s.pageType === 'blank') {
         const p = makeBlankPage();
@@ -1064,21 +1122,28 @@ async function loadEditorSession(d, docId) {
       } else {
         // Normal PDF page — look up by file_index + page_index
         const key = `${s.file_index ?? 0}_${s.page_index ?? 0}`;
-        const p = renderedMap.get(key);
-        if (!p) continue;
-        renderedMap.delete(key);
+        const source = renderedMap.get(key);
+        if (!source) throw new Error(`저장된 원본 페이지 ${key}을(를) 찾지 못했습니다.`);
+        // Repeated/duplicated editor pages may point to the same source.
+        const p = usedKeys.has(key) ? { ...source, id: makeId() } : source;
+        usedKeys.add(key);
         p.rotation = s.rotation || 0;
         p.excluded = !!s.excluded;
         p.nupOverride = s.nupOverride ?? null;
         p.nupDisabled = !!s.nupDisabled;
         p.groupBreak = !!s.groupBreak;
-        if (p.rotation) p.thumbCanvas = await renderPdfPage(p.pdfPage, 0.9, p.rotation);
+        if (p.rotation) p.thumbCanvas = p.lightweight
+          ? window.PdfUploadOptimization.makePagePlaceholder(p.page_index + 1, 0, p.rotation)
+          : await renderPdfPage(p.pdfPage, 0.42, p.rotation);
         parsedPages.push(p);
       }
     }
 
     // Append any rendered pages not referenced in savedPages (fallback for older sessions)
-    for (const p of renderedMap.values()) parsedPages.push(p);
+    for (const [key, p] of renderedMap) {
+      if (!usedKeys.has(key)) parsedPages.push(p);
+    }
+    if (!parsedPages.length) throw new Error('복원할 편집 페이지가 없습니다.');
 
     // Restore settings
     fileNupMap = state.fileNupMap || {};
@@ -1170,17 +1235,29 @@ async function loadEditorSession(d, docId) {
     renderThumbs();
     $('previewBtn').disabled = false;
     $('downloadBtn').disabled = false;
+    $('sessionListModal').style.display = 'none';
+    restoreStatus.remove();
+    window.PdfUploadOptimization?.syncAggregateMode?.();
     hideStatus();
     showStatus(`"${d.name}" 불러오기 완료!`, 'success');
     setTimeout(hideStatus, 2500);
     schedulePreview(300);
+    restoreButtons.forEach(button => { button.disabled = false; });
+    return true;
   } catch(e) {
-    // Rollback to the previous session state so the editor isn't left empty
+    console.error('[pdf-session] session restore failed', e);
     parsedPages = prevParsedPages;
     uploadedFiles = prevUploadedFiles;
+    previewCanvases = prevPreviewCanvases;
     fileNupMap = prevFileNupMap;
+    _nextId = prevNextId;
+    restoreStatus.style.background = '#fef2f2';
+    restoreStatus.style.color = '#b91c1c';
+    restoreStatus.textContent = '편집 불러오기 실패: ' + e.message + '\\n기존 작업은 유지되었습니다.';
     if (parsedPages.length) { renderThumbs(); $('previewBtn').disabled = false; $('downloadBtn').disabled = false; }
     showStatus('불러오기 실패: ' + e.message, 'error');
+    restoreButtons.forEach(button => { button.disabled = false; });
+    return false;
   }
 }
 
@@ -1352,8 +1429,14 @@ function getActualSizeFit() {
   if (!size.enabled) return null;
   const { pw, ph, mh, mv, gp } = getSettings();
   const { cols, rows } = getOutputLayout(getActualLayoutNup());
-  const cellW = (pw - mh * 2 - gp * (cols - 1)) / cols;
-  const cellH = (ph - mv * 2 - gp * (rows - 1)) / rows;
+  const repeating = !!window.PdfEditorNupRepeat?.enabled?.();
+  const margins = window.PdfEditorLayoutExport?.marginValues?.() || {left:mh,right:mh,top:mv,bottom:mv};
+  const cellW = repeating
+    ? pw / cols - margins.left - margins.right
+    : (pw - mh * 2 - gp * (cols - 1)) / cols;
+  const cellH = repeating
+    ? ph / rows - margins.top - margins.bottom
+    : (ph - mv * 2 - gp * (rows - 1)) / rows;
   const fits0 = size.widthMm <= cellW + 0.05 && size.heightMm <= cellH + 0.05;
   const fits90 = size.heightMm <= cellW + 0.05 && size.widthMm <= cellH + 0.05;
   return { fits: fits0 || fits90, fits0, fits90, cellW, cellH, ...size };
@@ -2157,8 +2240,13 @@ function getPageSrc(page, mm2px, useHi) {
 function buildOutputPage(groupPages, pageIdx, cols, rows, mm2px, useHi, repeated = false, outputIdx = 0, totalPages = 1) {
   const { pw, ph, mh, mv, gp } = getSettings();
   const perPage = cols * rows;
-  const cellW = (pw - mh * 2 - gp * (cols - 1)) / cols;
-  const cellH = (ph - mv * 2 - gp * (rows - 1)) / rows;
+  const cutW = pw / cols;
+  const cutH = ph / rows;
+  const cellW = repeated ? cutW - 2 * mh : (pw - mh * 2 - gp * (cols - 1)) / cols;
+  const cellH = repeated ? cutH - 2 * mv : (ph - mv * 2 - gp * (rows - 1)) / rows;
+  if (repeated && (cellW <= 1 || cellH <= 1)) {
+    throw new Error('반복배치의 개별 재단 영역보다 여백이 큽니다. 상하좌우 여백을 줄여 주세요.');
+  }
   const out = document.createElement('canvas');
   out.width  = Math.round(pw * mm2px);
   out.height = Math.round(ph * mm2px);
@@ -2170,16 +2258,18 @@ function buildOutputPage(groupPages, pageIdx, cols, rows, mm2px, useHi, repeated
     let col, row;
     if (orderLR) { col = s % cols; row = Math.floor(s / cols); }
     else          { col = Math.floor(s / rows); row = s % rows; }
-    const cellX = (mh + col * (cellW + gp)) * mm2px;
-    const cellY = (mv + row * (cellH + gp)) * mm2px;
+    const cutX = col * cutW;
+    const cutY = row * cutH;
+    const cellX = (mh + (repeated ? cutX : col * (cellW + gp))) * mm2px;
+    const cellY = (mv + (repeated ? cutY : row * (cellH + gp))) * mm2px;
     const src = getPageSrc(groupPages[idx], mm2px, useHi);
     drawPageInCell(ctx, src, cellX, cellY, cellW * mm2px, cellH * mm2px, mm2px);
     if (repeated) {
       const overlay = document.createElement('canvas');
-      overlay.width = Math.max(1, Math.round(cellW * mm2px));
-      overlay.height = Math.max(1, Math.round(cellH * mm2px));
+      overlay.width = Math.max(1, Math.round(cutW * mm2px));
+      overlay.height = Math.max(1, Math.round(cutH * mm2px));
       applyDocEdits(overlay, outputIdx, totalPages, mm2px);
-      ctx.drawImage(overlay, cellX, cellY, cellW * mm2px, cellH * mm2px);
+      ctx.drawImage(overlay, cutX * mm2px, cutY * mm2px, cutW * mm2px, cutH * mm2px);
     }
   }
   return out;
