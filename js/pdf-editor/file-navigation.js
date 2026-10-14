@@ -95,7 +95,7 @@
       .pdf-file-nav button{height:29px;border:1px solid #93c5fd;border-radius:7px;background:#eff6ff;color:#1d4ed8;font:inherit;font-size:10px;font-weight:850;cursor:pointer}
       .pdf-file-nav-actions{display:flex;gap:5px}.pdf-file-nav-actions button{flex:1;border-color:#cbd5e1;background:#fff;color:#475569}
       .pdf-file-nav-status{min-height:14px;font-size:9px;font-weight:750;color:#64748b;line-height:1.4}
-      .thumb-file-sep[data-file-nav-header="true"]{gap:6px;padding:7px 6px;margin-top:3px;border:1px solid #d8e1eb;border-radius:8px;background:#f8fafc}
+      .thumb-file-sep[data-file-nav-header="true"]{gap:6px;flex-wrap:wrap;padding:7px 6px;margin-top:3px;border:1px solid #d8e1eb;border-radius:8px;background:#f8fafc}
       .thumb-file-sep[data-file-nav-header="true"] .thumb-file-sep-line{display:none}
       .thumb-file-sep[data-file-nav-header="true"] .thumb-file-sep-label{max-width:104px;overflow:hidden;text-overflow:ellipsis;font-size:10px;color:#334155}
       .pdf-file-nav-toggle{flex:0 0 25px;width:25px;height:25px;border:1px solid #cbd5e1;border-radius:7px;background:#fff;color:#475569;font:inherit;font-size:11px;font-weight:900;cursor:pointer}

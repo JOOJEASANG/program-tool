@@ -187,6 +187,7 @@
     const target = Number(fileIndex);
     if (!Number.isInteger(target) || target < 0) return 0;
     const pages = parsedPages.filter(page => Number(page.file_index) === target && page.pageType === 'pdf');
+    if (!pages.length) return 0;
     if (!additive) selectedIds.clear();
     for (const page of pages) {
       const id = pageId(page);
@@ -664,6 +665,13 @@
     patchRenderThumbs();
     patchDisplayPreview();
     installContextMenu();
+    if (!window.__pdfPageSelectionImportResetV1) {
+      window.__pdfPageSelectionImportResetV1 = true;
+      document.addEventListener('pdf-import-committed', event => {
+        if (event?.detail?.mode === 'new') clearSelection();
+      });
+      byId('resetBtn')?.addEventListener('click', clearSelection);
+    }
     annotatePreviewPages();
     syncSelectionUi();
     if ((!renderPatched || !previewPatched || !window._openThumbCtxMenu) && attempts < 14) {

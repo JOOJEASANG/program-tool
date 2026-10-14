@@ -632,6 +632,11 @@ def _draw_repeated_cell_overlays(
     facing: bool,
 ) -> None:
     """Draw vector overlays at each placed card, not on the whole paper sheet."""
+    if not (
+        request.watermark.enabled or request.header_footer.enabled
+        or request.page_numbers.enabled
+    ):
+        return
     for slot_idx, page_info in enumerate(group):
         if slot_idx >= len(layout.cell_rects):
             break
@@ -650,7 +655,8 @@ def _draw_repeated_cell_overlays(
                 cell, request.page_numbers, output_page_idx, total_output_pages,
                 target.width, target.height, facing,
             )
-            out_page.show_pdf_page(target, cell_doc, 0, keep_proportion=False, overlay=True)
+            if cell.get_text("text").strip():
+                out_page.show_pdf_page(target, cell_doc, 0, keep_proportion=False, overlay=True)
         finally:
             cell_doc.close()
 
