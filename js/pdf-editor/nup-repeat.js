@@ -6,15 +6,15 @@
   window.__pdfEditorNupRepeatV2 = true;
   window.__pdfEditorNupRepeatV1 = true;
 
-  const STORAGE_KEY = 'programToolPdfNupRepeatSamePageV1';
   const COUNT_STORAGE_KEY = 'programToolPdfNupRepeatCountV2';
-  const VALID_REPEAT_COUNTS = new Set([2, 3, 4]);
+  const VALID_REPEAT_COUNTS = new Set([2, 4]);
   const MAX_API_PAGES = 2000;
   let originalGroupByNup = null;
   let originalApiProcessPdf = null;
   let originalCollectEditorState = null;
   let originalLoadEditorSession = null;
   let bootAttempts = 0;
+  let repeatCount = 2;
 
   const byId = id => document.getElementById(id);
 
@@ -24,23 +24,16 @@
 
   function normalizeRepeatCount(value) {
     const count = Number(value);
-    return VALID_REPEAT_COUNTS.has(count) ? count : 2;
+    // Migrate an old saved three-up preference to the supported four-up layout.
+    return VALID_REPEAT_COUNTS.has(count) ? count : count === 3 ? 4 : 2;
   }
 
   function selectedRepeatCount() {
-    return normalizeRepeatCount(byId('nupRepeatCount')?.value || readRepeatCount());
+    return repeatCount;
   }
 
   function repeatLayoutN(count = selectedRepeatCount()) {
     return normalizeRepeatCount(count) <= 2 ? 2 : 4;
-  }
-
-  function savePreference(value) {
-    try { localStorage.setItem(STORAGE_KEY, value ? '1' : '0'); } catch (_) {}
-  }
-
-  function readPreference() {
-    try { return localStorage.getItem(STORAGE_KEY) === '1'; } catch (_) { return false; }
   }
 
   function saveRepeatCount(value) {
@@ -59,9 +52,7 @@
     if (!hint) return;
     const count = selectedRepeatCount();
     const layout = repeatLayoutN(count);
-    hint.textContent = count === 3
-      ? '3개 반복: 2×2 배치의 한 칸은 비워 둡니다.'
-      : `${count}개 반복: ${layout === 2 ? '2분할' : '2×2'} 배치로 같은 페이지를 채웁니다.`;
+    hint.textContent = `${count}개 반복 · ${layout === 2 ? '2분할' : '2×2'} · 페이지번호와 머리말·꼬리말도 각 칸에 반복됩니다.`;
   }
 
   function refreshPreviewSummary() {
@@ -71,27 +62,31 @@
     const parts = String(info.textContent).split(' · ');
     const activePart = parts.find(part => part.trim().startsWith('활성 ')) || parts[0] || '';
     const paperPart = [...parts].reverse().find(part => /mm\s+(세로|가로)/.test(part)) || parts[parts.length - 1] || '';
-    const text = `${activePart} · 같은 페이지 반복 ${selectedRepeatCount()}개 · ${paperPart}`;
+    const text = `${activePart} · 반복배치 ${selectedRepeatCount()}개 · ${paperPart}`;
     if (info.textContent !== text) info.textContent = text;
   }
 
   function setRepeatCount(value, { schedule = true, persist = true } = {}) {
     const count = normalizeRepeatCount(value);
-    const select = byId('nupRepeatCount');
-    if (select) select.value = String(count);
+    repeatCount = count;
+    document.querySelectorAll('[data-repeat-count]').forEach(button => {
+      const active = Number(button.dataset.repeatCount) === count;
+      button.setAttribute('aria-pressed', active ? 'true' : 'false');
+      button.classList.toggle('active', active);
+    });
     if (persist) saveRepeatCount(count);
     refreshHint();
     if (schedule && isEnabled() && typeof schedulePreview === 'function') schedulePreview(80);
     return count;
   }
 
-  function setEnabled(value, { schedule = true, persist = true } = {}) {
+  function setEnabled(value, { schedule = true } = {}) {
     const input = byId('nupRepeatSamePage');
     if (!input) return;
     input.checked = Boolean(value);
-    const countSelect = byId('nupRepeatCount');
-    if (countSelect) countSelect.disabled = !input.checked;
-    if (persist) savePreference(input.checked);
+    document.querySelectorAll('[data-repeat-count]').forEach(button => {
+      button.disabled = !input.checked;
+    });
     if (input.checked) {
       const booklet = byId('bookletCheck');
       if (booklet?.checked) booklet.checked = false;
@@ -101,7 +96,16 @@
     if (schedule && typeof schedulePreview === 'function') schedulePreview(80);
   }
 
+  function installButtonStyles() {
+    if (byId('pdfRepeatCountButtonStyle')) return;
+    const style = document.createElement('style');
+    style.id = 'pdfRepeatCountButtonStyle';
+    style.textContent = '.nup-repeat-count-btn.active,.nup-repeat-count-btn[aria-pressed="true"]{background:#dbeafe!important;border-color:#2563eb!important;color:#1d4ed8!important;box-shadow:inset 0 0 0 1px #2563eb}.nup-repeat-count-btn:disabled{opacity:.5;cursor:not-allowed!important}';
+    document.head.appendChild(style);
+  }
+
   function installUi() {
+    installButtonStyles();
     if (byId('nupRepeatSamePage')) return true;
     const grid = byId('nupGrid');
     if (!grid) return false;
@@ -121,25 +125,26 @@
 
     const title = document.createElement('label');
     title.htmlFor = 'nupRepeatSamePage';
-    title.textContent = '같은 페이지 반복 배치';
+    title.textContent = '반복배치';
     title.style.cssText = 'font-size:11px;color:#1f2937;font-weight:850;cursor:pointer;';
 
     const controls = document.createElement('div');
     controls.style.cssText = 'display:flex;align-items:center;gap:6px;flex-wrap:wrap;';
-    const countLabel = document.createElement('label');
-    countLabel.htmlFor = 'nupRepeatCount';
-    countLabel.textContent = '반복 개수';
-    countLabel.style.cssText = 'font-size:9px;color:#475569;font-weight:800;';
-    const countSelect = document.createElement('select');
-    countSelect.id = 'nupRepeatCount';
-    countSelect.style.cssText = 'border:1px solid #bfdbfe;border-radius:6px;padding:3px 22px 3px 6px;font-size:10px;font-weight:850;color:#1d4ed8;background:#fff;';
-    [2, 3, 4].forEach(count => {
-      const option = document.createElement('option');
-      option.value = String(count);
-      option.textContent = `${count}개`;
-      countSelect.appendChild(option);
+    controls.setAttribute('role', 'group');
+    controls.setAttribute('aria-label', '반복배치 개수');
+    [2, 4].forEach(count => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.dataset.repeatCount = String(count);
+      button.textContent = `${count}개`;
+      button.className = 'nup-repeat-count-btn';
+      button.style.cssText = 'border:1px solid #bfdbfe;border-radius:6px;padding:5px 13px;font-size:10px;font-weight:850;color:#1d4ed8;background:#fff;cursor:pointer;';
+      button.addEventListener('click', () => {
+        setRepeatCount(count, { schedule: true, persist: true });
+        if (isEnabled()) setTimeout(refreshPreviewSummary, 0);
+      });
+      controls.appendChild(button);
     });
-    controls.append(countLabel, countSelect);
 
     const hint = document.createElement('small');
     hint.id = 'nupRepeatHint';
@@ -149,16 +154,13 @@
     row.append(input, copy);
     grid.insertAdjacentElement('afterend', row);
 
+    // Always start with repeat placement OFF on a fresh visit, regardless
+    // of any legacy localStorage toggle; saved editor sessions restore explicitly.
     setRepeatCount(readRepeatCount(), { schedule: false, persist: false });
-    setEnabled(readPreference(), { schedule: false, persist: false });
+    setEnabled(false, { schedule: false });
 
     input.addEventListener('change', () => {
       setEnabled(input.checked, { schedule: true, persist: true });
-    });
-
-    countSelect.addEventListener('change', () => {
-      setRepeatCount(countSelect.value, { schedule: true, persist: true });
-      if (isEnabled()) setTimeout(refreshPreviewSummary, 0);
     });
 
     document.querySelectorAll('.nup-btn').forEach(button => {
@@ -210,8 +212,8 @@
 
   function expandSettingsPages(settings) {
     const next = settings && typeof settings === 'object' ? { ...settings } : {};
-    // The normal export now expands before calling the API. Avoid any duplicate
-    // expansion if the legacy API bridge is also active.
+    // Normal download expands at the export boundary. The compatibility API
+    // bridge must not expand the same sheets again.
     if (next.repeat_cell_overlays || !isEnabled() || next.booklet) return next;
 
     const copies = selectedRepeatCount();
@@ -233,7 +235,7 @@
     }
 
     if (expanded.length > MAX_API_PAGES) {
-      throw new Error(`같은 페이지 반복 배치 결과가 서버 처리 한도(${MAX_API_PAGES}페이지)를 초과합니다. 반복 개수 또는 원본 페이지 수를 줄여 주세요.`);
+      throw new Error(`반복배치 결과가 서버 처리 한도(${MAX_API_PAGES}페이지)를 초과합니다. 반복 개수 또는 원본 페이지 수를 줄여 주세요.`);
     }
 
     next.pages = expanded;
@@ -310,7 +312,7 @@
 
     if (uiReady && groupReady && apiReady) {
       document.documentElement.dataset.pdfNupSamePageRepeat = 'ready-v1';
-      document.documentElement.dataset.pdfNupSamePageRepeatMode = 'max4-v2';
+      document.documentElement.dataset.pdfNupSamePageRepeatMode = 'two-four-buttons-v3';
       refreshHint();
       if (isEnabled()) {
         if (typeof schedulePreview === 'function') schedulePreview(80);
@@ -331,7 +333,7 @@
     layoutForCount: repeatLayoutN,
     expandSettingsPages,
     repeatGroups,
-    stage: 'pdf-editor-nup-repeat-v2-max4',
+    stage: 'pdf-editor-nup-repeat-v3-two-four-buttons',
   };
 
   if (document.readyState === 'loading') {
