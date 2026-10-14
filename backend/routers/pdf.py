@@ -153,7 +153,7 @@ def download_session_source(uid):
             .collection("pdf_sessions").document(document_id).get()
         )
     except Exception:
-        logger.exception("Session metadata lookup failed request_id=%s", _request_id())
+        logger.exception("Saved PDF session metadata lookup failed")
         return _error_response("저장된 편집 정보를 읽지 못했습니다.", 503, "SESSION_METADATA_UNAVAILABLE")
     if not snapshot.exists:
         return _error_response("저장된 편집 세션을 찾지 못했습니다.", 404, "SESSION_NOT_FOUND")
@@ -181,7 +181,7 @@ def download_session_source(uid):
         last = min(total, offset + _SESSION_CHUNK_BYTES) - 1
         chunk = blob.download_as_bytes(start=offset, end=last, timeout=60)
     except Exception:
-        logger.exception("Session source download failed request_id=%s", _request_id())
+        logger.exception("Saved PDF session source download failed")
         return _error_response(
             "저장된 PDF를 서버에서 읽지 못했습니다. 잠시 후 다시 시도해 주세요.",
             503,
