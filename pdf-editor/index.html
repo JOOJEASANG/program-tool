@@ -168,6 +168,8 @@
     .thumb-item { display: flex; flex-direction: column; align-items: center; width: 100%; cursor: grab; }
     .thumb-item.dragging { opacity: 0.35; }
     .thumb-item.drag-target { outline: 2px dashed var(--primary); outline-offset: 2px; border-radius: 6px; }
+    .thumb-item.drag-before { box-shadow: -4px 0 0 0 #2563eb; }
+    .thumb-item.drag-after { box-shadow: 4px 0 0 0 #2563eb; }
     .thumb-wrap { position: relative; background: #fff; border: 2px solid var(--line); border-radius: 6px; overflow: hidden; width: 100%; }
     .thumb-wrap:hover { border-color: #93c5fd; }
     .thumb-wrap.excluded { opacity: 0.35; border-color: #fca5a5; }
@@ -1170,6 +1172,25 @@ let actualWidthMm = null;
 let actualHeightMm = null;
 let previewCanvases = [];
 let _dragSrcId = null;
+let _dragPageIds = [];
+function clearThumbDragState() {
+  document.querySelectorAll('#thumbArea .thumb-item').forEach(el => el.classList.remove('dragging','drag-target','drag-before','drag-after'));
+}
+function selectedDragIds(page) {
+  const ids = window.PdfPageProductivity?.contextSelectionIdsForPage?.(page) || [];
+  return Array.isArray(ids) && ids.length > 1 && ids.includes(page.id) ? ids : [page.id];
+}
+function moveDraggedPages(targetId, after) {
+  const moving = new Set(_dragPageIds);
+  if (!moving.size || moving.has(targetId)) return false;
+  const ordered = parsedPages.filter(p => moving.has(p.id));
+  const rest = parsedPages.filter(p => !moving.has(p.id));
+  const targetIndex = rest.findIndex(p => p.id === targetId);
+  if (!ordered.length || targetIndex < 0) return false;
+  rest.splice(targetIndex + (after ? 1 : 0), 0, ...ordered);
+  parsedPages.splice(0, parsedPages.length, ...rest);
+  return true;
+}
 let _nupPopup = null;
 let _nextId = 1;
 let _uploadMode = 'new'; // 'new' | 'cont' | 'break'
@@ -1892,23 +1913,37 @@ function renderThumbs() {
 
     item.addEventListener('dragstart', e => {
       _dragSrcId = page.id;
+      _dragPageIds = selectedDragIds(page);
       e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', page.id);
       setTimeout(() => item.classList.add('dragging'), 0);
     });
-    item.addEventListener('dragend', () => item.classList.remove('dragging'));
-    item.addEventListener('dragover', e => { e.preventDefault(); item.classList.add('drag-target'); });
-    item.addEventListener('dragleave', () => item.classList.remove('drag-target'));
-    item.addEventListener('drop', e => {
-      e.preventDefault(); item.classList.remove('drag-target');
-      if (!_dragSrcId || _dragSrcId === page.id) return;
-      const si = parsedPages.findIndex(p => p.id === _dragSrcId);
-      const ti = parsedPages.findIndex(p => p.id === page.id);
-      if (si < 0 || ti < 0) return;
-      const [moved] = parsedPages.splice(si, 1);
-      parsedPages.splice(si < ti ? ti - 1 : ti, 0, moved);
+    item.addEventListener('dragend', () => {
       _dragSrcId = null;
-      renderThumbs();
-      schedulePreview(300);
+      _dragPageIds = [];
+      clearThumbDragState();
+    });
+    item.addEventListener('dragover', e => {
+      if (!_dragPageIds.length || _dragPageIds.includes(page.id)) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      clearThumbDragState();
+      const after = e.clientX >= item.getBoundingClientRect().left + item.getBoundingClientRect().width / 2;
+      item.classList.add('drag-target', after ? 'drag-after' : 'drag-before');
+    });
+    item.addEventListener('dragleave', () => item.classList.remove('drag-target','drag-before','drag-after'));
+    item.addEventListener('drop', e => {
+      if (!_dragPageIds.length) return;
+      e.preventDefault();
+      const after = e.clientX >= item.getBoundingClientRect().left + item.getBoundingClientRect().width / 2;
+      const moved = moveDraggedPages(page.id, after);
+      _dragSrcId = null;
+      _dragPageIds = [];
+      clearThumbDragState();
+      if (moved) {
+        renderThumbs();
+        schedulePreview(300);
+      }
     });
 
     item.appendChild(wrap);
