@@ -37,7 +37,7 @@ def test_pdf_editor_runtime_keeps_the_approved_eight_modules_in_core_manifest():
         positions.append(core.index(needle))
     assert positions == sorted(positions)
     assert core.count("src:'/js/pdf-editor/") == 8
-    assert "/js/pdf-editor/core-runtime.js?v=20261014-2" in loader
+    assert "/js/pdf-editor/core-runtime.js?v=20261014-3" in loader
     assert "Stable-eight source contract only" in loader
     assert "MODULES.forEach(loadScript)" not in loader
 
@@ -71,7 +71,7 @@ def test_pdf_editor_route_extras_are_owned_by_route_manifest_not_global_bootstra
     assert route.index("/js/pdf-editor/output-save-recovery.js") < route.index("/js/pdf-editor/save-recovery.js")
     assert route.index("/js/pdf-editor/save-recovery.js") < route.index("/js/pdf-editor/session-save-safety.js")
     assert route.index("/js/pdf-editor/session-save-safety.js") < route.index("/js/pdf-editor/file-context-scope.js")
-    assert "/js/pdf-editor/route-runtime.js?v=20261014-3" in register
+    assert "/js/pdf-editor/route-runtime.js?v=20261014-4" in register
     assert "tasks.push(loadPdfEditorRuntime())" in register
     assert "PDF route source-contract compatibility metadata only" in register
 

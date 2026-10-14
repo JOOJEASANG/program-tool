@@ -186,6 +186,14 @@
     const layoutN = repeatLayoutN(count);
     const repeated = [];
     for (const group of groups || []) {
+      // The canonical editor's groupByNup() already returns one repeated
+      // group per source page. Never repeat that group a second time:
+      // 2-up would otherwise emit two sheets of the same content, and 4-up
+      // would emit four sheets before advancing to the next edited page.
+      if (group?.repeated) {
+        repeated.push(group);
+        continue;
+      }
       for (const page of group?.pages || []) {
         repeated.push({
           ...group,

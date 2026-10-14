@@ -3,6 +3,11 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 const src = fs.readFileSync(path.resolve(__dirname, '../../js/pdf-editor/nup-repeat.js'), 'utf8');
+const editor = fs.readFileSync(path.resolve(__dirname, '../../pdf-editor/index.html'), 'utf8');
+const canonicalStart = editor.indexOf('function groupByNup(pages) {');
+const canonicalEnd = editor.indexOf('// ── Draw one page into a cell', canonicalStart);
+assert.ok(canonicalStart !== -1 && canonicalEnd > canonicalStart);
+const canonicalGroupSource = editor.slice(canonicalStart, canonicalEnd);
 const registry = new Map();
 const repeatButtons = [];
 function node(tag) {
@@ -50,7 +55,8 @@ const localStorage = {
 const context = {
   document, localStorage, console,
   setTimeout() {},
-  groupByNup: pages => [{n:2, pages}],
+  // The real inline editor groupByNup() also performs repetition; test that
+  // the extension does not replicate those repeated groups a second time.
   apiProcessPdf(_files, settings) { return settings; },
   collectEditorState() { return {}; },
   async loadEditorSession() {return true;},
@@ -59,6 +65,11 @@ const context = {
 };
 context.window = context;
 vm.createContext(context);
+vm.runInContext(
+  'const NUP_LAYOUTS = {1:{},2:{},4:{}}; const fileNupMap = {}; let nup = 2;\n' + canonicalGroupSource,
+  context,
+  {filename: 'pdf-editor-inline-group-by-nup.js'},
+);
 vm.runInContext(src, context, {filename: 'nup-repeat.js'});
 (async () => {
   const api = context.PdfEditorNupRepeat;
@@ -85,6 +96,47 @@ vm.runInContext(src, context, {filename: 'nup-repeat.js'});
   assert.equal(api.repeatGroups([{n:2,pages:[firstPage]}])[0].pages.length, 4);
   assert.ok(repeatButtons[1].active);
   assert.equal(api.expandSettingsPages(four).pages.length, 4);
+
+  // The mixed source order is the user's actual edited page-list order,
+  // including moving pages from separate uploaded PDFs into the middle.
+  const mixed = [
+    {id: 1, file_index:0, page_index:0, pageType:'pdf', excluded:false},
+    {id: 5, file_index:1, page_index:1, pageType:'pdf', excluded:false},
+    {id: 2, file_index:0, page_index:1, pageType:'pdf', excluded:false},
+    {id: 6, file_index:1, page_index:2, pageType:'pdf', excluded:false},
+    {id: 3, file_index:0, page_index:2, pageType:'pdf', excluded:false},
+  ];
+  for (const count of [2, 4]) {
+    api.setCount(count, {schedule:false, persist:false});
+    const groups = context.groupByNup(mixed);
+    assert.equal(groups.length, mixed.length,
+      `${count}-up: each original edited page must consume exactly one output sheet`);
+    groups.forEach((group, index) => {
+      assert.equal(group.repeated, true);
+      assert.equal(group.n, count);
+      assert.equal(group.pages.length, count, 'same source must appear only in its own sheet');
+      assert.ok(group.pages.every(p => p === mixed[index]),
+        'the NEXT output sheet must advance to the NEXT reordered source page');
+    });
+    const again = api.repeatGroups(groups);
+    assert.equal(again.length, mixed.length);
+    again.forEach((group, index) => {
+      assert.equal(group.pages.length, count, 'repeating a finished group must be idempotent');
+      assert.ok(group.pages.every(p => p === mixed[index]));
+    });
+    const expanded = api.expandSettingsPages({pages:mixed.map(p => ({
+      file_index:p.file_index, page_index:p.page_index, excluded:false,
+    })),booklet:false});
+    assert.equal(expanded.pages.length, mixed.length * count);
+    for (let index = 0; index < mixed.length; index += 1) {
+      const batch = expanded.pages.slice(index * count, (index + 1) * count);
+      assert.ok(batch.every(p => p.file_index === mixed[index].file_index
+        && p.page_index === mixed[index].page_index));
+      assert.equal(batch[0].group_break, true);
+      assert.ok(batch.slice(1).every(p => !p.group_break));
+    }
+    assert.equal(api.expandSettingsPages(expanded).pages.length, mixed.length * count);
+  }
 
   api.setEnabled(false, {schedule:false});
   assert.equal(api.enabled(), false);
