@@ -52,7 +52,7 @@
     if (!hint) return;
     const count = selectedRepeatCount();
     const layout = repeatLayoutN(count);
-    hint.textContent = `${count}개 반복 · ${layout === 2 ? '2분할' : '2×2'} · 페이지번호와 머리말·꼬리말도 각 칸에 반복됩니다.`;
+    hint.textContent = `${count}개 반복 · ${layout === 2 ? '2분할' : '2×2'} · 재단한 각 조각에 상하좌우 여백과 페이지번호·머리말·꼬리말을 동일하게 적용합니다.`;
   }
 
   function refreshPreviewSummary() {
@@ -76,6 +76,7 @@
     });
     if (persist) saveRepeatCount(count);
     refreshHint();
+    window.PdfEditorLayoutExport?.refreshMarginGuide?.();
     if (schedule && isEnabled() && typeof schedulePreview === 'function') schedulePreview(80);
     return count;
   }
@@ -93,6 +94,8 @@
       if (typeof updateBookletPadInfo === 'function') updateBookletPadInfo();
     }
     refreshHint();
+    window.PdfEditorLayoutExport?.refreshMarginGuide?.();
+    if (typeof updateActualSizeUi === 'function') updateActualSizeUi();
     if (schedule && typeof schedulePreview === 'function') schedulePreview(80);
   }
 

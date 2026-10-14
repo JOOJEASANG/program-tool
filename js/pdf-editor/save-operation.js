@@ -104,6 +104,9 @@
       nup: nupValue,
       pageOrder,
       booklet,
+      repeatCopies: window.PdfEditorNupRepeat?.enabled?.()
+        ? window.PdfEditorNupRepeat.count?.() || 2
+        : 0,
       paper: `${paper.pw}×${paper.ph}mm ${paper.pw > paper.ph ? '가로' : '세로'}`,
       margins,
       facing: !!$('facingPages')?.checked,
@@ -223,7 +226,9 @@
       ['페이지', `활성 ${data.activePages}쪽 · 숨김 ${data.hiddenPages}쪽`],
       ['출력 예상', `${data.outputPages}쪽 · 기본 ${data.nup}장/면 · ${data.pageOrder}`],
       ['용지', data.paper],
-      ['개별 여백', `좌 ${data.margins.left} · 우 ${data.margins.right} · 상 ${data.margins.top} · 하 ${data.margins.bottom}mm`],
+      [data.repeatCopies ? '재단 조각별 여백' : '개별 여백',
+        `좌 ${data.margins.left} · 우 ${data.margins.right} · 상 ${data.margins.top} · 하 ${data.margins.bottom}mm`],
+      ...(data.repeatCopies ? [['반복배치 재단', `${data.repeatCopies}등분 · 각 조각 동일 여백 · 간격 없이 중앙 재단`]] : []),
       ['양면 마주보기', data.facing ? '사용 · 짝수면 좌우 교환' : '사용 안 함'],
       ['소책자', data.booklet ? '사용 · 출력 순서 재배치' : '사용 안 함'],
       ['페이지 번호', data.pageNumber],

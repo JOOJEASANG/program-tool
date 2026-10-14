@@ -1352,8 +1352,15 @@ function getActualSizeFit() {
   if (!size.enabled) return null;
   const { pw, ph, mh, mv, gp } = getSettings();
   const { cols, rows } = getOutputLayout(getActualLayoutNup());
-  const cellW = (pw - mh * 2 - gp * (cols - 1)) / cols;
-  const cellH = (ph - mv * 2 - gp * (rows - 1)) / rows;
+  const repeatCut = window.PdfEditorNupRepeat?.enabled?.()
+    ? window.PdfEditorLayoutExport?.repeatCutGeometry?.(
+      pw, ph, cols, rows,
+      window.PdfEditorLayoutExport?.layoutMargins?.(0)
+        || { left: mh, right: mh, top: mv, bottom: mv },
+    )
+    : null;
+  const cellW = repeatCut ? repeatCut.cellW : (pw - mh * 2 - gp * (cols - 1)) / cols;
+  const cellH = repeatCut ? repeatCut.cellH : (ph - mv * 2 - gp * (rows - 1)) / rows;
   const fits0 = size.widthMm <= cellW + 0.05 && size.heightMm <= cellH + 0.05;
   const fits90 = size.heightMm <= cellW + 0.05 && size.widthMm <= cellH + 0.05;
   return { fits: fits0 || fits90, fits0, fits90, cellW, cellH, ...size };
@@ -1741,13 +1748,21 @@ function updateDividerPreview() {
   const ctx = canvas.getContext('2d');
   ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, width, height);
   const scale = width / pw;
-  const cellW = (pw - 2 * mh - gp * (cols - 1)) / cols;
-  const cellH = (ph - 2 * mv - gp * (rows - 1)) / rows;
+  const cut = count > 1 ? window.PdfEditorLayoutExport?.repeatCutGeometry?.(
+    pw, ph, cols, rows,
+    window.PdfEditorLayoutExport?.layoutMargins?.(0)
+      || { left: mh, right: mh, top: mv, bottom: mv },
+  ) : null;
+  const cellW = cut ? cut.cellW : (pw - 2 * mh - gp * (cols - 1)) / cols;
+  const cellH = cut ? cut.cellH : (ph - 2 * mv - gp * (rows - 1)) / rows;
   const src = renderDividerCanvas(getDividerContent(), Math.round(Math.min(pw, ph) * scale), Math.round(Math.max(pw, ph) * scale));
   for (let i = 0; i < count; i++) {
     const col = orderLR ? i % cols : Math.floor(i / rows);
     const row = orderLR ? Math.floor(i / cols) : i % rows;
-    drawPageInCell(ctx, src, (mh + col * (cellW + gp)) * scale, (mv + row * (cellH + gp)) * scale, cellW * scale, cellH * scale, scale);
+    drawPageInCell(ctx, src,
+      (cut ? col * cut.tileW + cut.margins.left : mh + col * (cellW + gp)) * scale,
+      (cut ? row * cut.tileH + cut.margins.top : mv + row * (cellH + gp)) * scale,
+      cellW * scale, cellH * scale, scale);
   }
 }
 
@@ -2157,8 +2172,12 @@ function getPageSrc(page, mm2px, useHi) {
 function buildOutputPage(groupPages, pageIdx, cols, rows, mm2px, useHi, repeated = false, outputIdx = 0, totalPages = 1) {
   const { pw, ph, mh, mv, gp } = getSettings();
   const perPage = cols * rows;
-  const cellW = (pw - mh * 2 - gp * (cols - 1)) / cols;
-  const cellH = (ph - mv * 2 - gp * (rows - 1)) / rows;
+  const cut = repeated ? window.PdfEditorLayoutExport?.repeatCutGeometry?.(
+    pw, ph, cols, rows, window.PdfEditorLayoutExport?.layoutMargins?.(outputIdx)
+      || { left: mh, right: mh, top: mv, bottom: mv },
+  ) : null;
+  const cellW = cut ? cut.cellW : (pw - mh * 2 - gp * (cols - 1)) / cols;
+  const cellH = cut ? cut.cellH : (ph - mv * 2 - gp * (rows - 1)) / rows;
   const out = document.createElement('canvas');
   out.width  = Math.round(pw * mm2px);
   out.height = Math.round(ph * mm2px);
@@ -2170,16 +2189,22 @@ function buildOutputPage(groupPages, pageIdx, cols, rows, mm2px, useHi, repeated
     let col, row;
     if (orderLR) { col = s % cols; row = Math.floor(s / cols); }
     else          { col = Math.floor(s / rows); row = s % rows; }
-    const cellX = (mh + col * (cellW + gp)) * mm2px;
-    const cellY = (mv + row * (cellH + gp)) * mm2px;
+    const cellX = (cut ? col * cut.tileW + cut.margins.left : mh + col * (cellW + gp)) * mm2px;
+    const cellY = (cut ? row * cut.tileH + cut.margins.top : mv + row * (cellH + gp)) * mm2px;
     const src = getPageSrc(groupPages[idx], mm2px, useHi);
     drawPageInCell(ctx, src, cellX, cellY, cellW * mm2px, cellH * mm2px, mm2px);
     if (repeated) {
       const overlay = document.createElement('canvas');
-      overlay.width = Math.max(1, Math.round(cellW * mm2px));
-      overlay.height = Math.max(1, Math.round(cellH * mm2px));
+      overlay.width = Math.max(1, Math.round((cut ? cut.tileW : cellW) * mm2px));
+      overlay.height = Math.max(1, Math.round((cut ? cut.tileH : cellH) * mm2px));
       applyDocEdits(overlay, outputIdx, totalPages, mm2px);
-      ctx.drawImage(overlay, cellX, cellY, cellW * mm2px, cellH * mm2px);
+      ctx.drawImage(
+        overlay,
+        cut ? col * cut.tileW * mm2px : cellX,
+        cut ? row * cut.tileH * mm2px : cellY,
+        (cut ? cut.tileW : cellW) * mm2px,
+        (cut ? cut.tileH : cellH) * mm2px,
+      );
     }
   }
   return out;
