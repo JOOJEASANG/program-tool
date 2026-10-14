@@ -10,9 +10,9 @@
     {id:'pdfEditorFontRenderFixScriptV1',src:'/js/pdf-editor/font-render-fix.js?v=20260618-1'},
     {id:'pdfEditorUploadFixScriptV1',src:'/js/pdf-editor/upload-fix.js?v=20260724-5'},
     {id:'pdfEditorLivePreviewScriptV1',src:'/js/pdf-editor/live-preview.js?v=20260724-4'},
-    {id:'pdfEditorLayoutExportScriptV1',src:'/js/pdf-editor/layout-export.js?v=20261014-3'},
+    {id:'pdfEditorLayoutExportScriptV1',src:'/js/pdf-editor/layout-export.js?v=20261014-4'},
     {id:'pdfEditorPageCountHintScriptV1',src:'/js/pdf-editor/page-count-hint.js?v=20260731-1'},
-    {id:'pdfEditorNupHelperScriptV1',src:'/js/pdf-editor/nup-helper.js?v=20260830-1'},
+    {id:'pdfEditorNupHelperScriptV1',src:'/js/pdf-editor/nup-helper.js?v=20261014-4'},
     {id:'pdfEditorPreviewRowDefaultScriptV1',src:'/js/pdf-editor/preview-row-default.js?v=20260831-1'},
     {id:'pdfEditorDividerHelperScriptV1',src:'/js/pdf-editor/divider-helper.js?v=20260914-5'}
   ]);
@@ -82,7 +82,7 @@
 
   function loadNupRepeat(){
     const id='pdfNupRepeatScriptV1';
-    const src='/js/pdf-editor/nup-repeat.js?v=20261014-3';
+    const src='/js/pdf-editor/nup-repeat.js?v=20261014-4';
     const loader=context().load;
     return typeof loader==='function'?loader(id,src):fallbackLoad(id,src);
   }

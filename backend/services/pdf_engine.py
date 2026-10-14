@@ -32,6 +32,8 @@ class _PageLayout:
     cell_w: float
     cell_h: float
     cell_rects: tuple[fitz.Rect, ...]
+    # Exact physical cut regions, when a source is repeated into independent prints.
+    cut_rects: tuple[fitz.Rect, ...] = ()
 
 
 def _margin_value(request, name: str, legacy_name: str, fallback: float) -> float:
@@ -119,6 +121,7 @@ def _build_page_layout(
     gap_pt: float,
     page_order: str | float = "row-major",
     booklet: bool = False,
+    repeat_cell_overlays: bool = False,
 ) -> _PageLayout:
     """Calculate immutable cell geometry for one output page.
 
@@ -145,6 +148,25 @@ def _build_page_layout(
             cols, rows = rows, cols
 
     left, right, top, bottom = resolved_margins
+    if repeat_cell_overlays and not booklet:
+        # Repeated content must have identical margins AFTER cutting the sheet.
+        # The print regions divide the paper exactly in halves/quarters; the
+        # ordinary N-up gap must not move the cut line or steal edge margins.
+        cut_w = paper_w_pt / cols
+        cut_h = paper_h_pt / rows
+        if cut_w - left - right <= 1 or cut_h - top - bottom <= 1:
+            raise ValueError("반복배치의 개별 재단 영역보다 여백이 큽니다. 상하좌우 여백을 줄여 주세요.")
+        cells: list[fitz.Rect] = []
+        cuts: list[fitz.Rect] = []
+        for slot_idx in range(cols * rows):
+            col = (slot_idx // rows) if resolved_order == "column-major" else (slot_idx % cols)
+            row = (slot_idx % rows) if resolved_order == "column-major" else (slot_idx // cols)
+            x, y = col * cut_w, row * cut_h
+            cuts.append(fitz.Rect(x, y, x + cut_w, y + cut_h))
+            cells.append(fitz.Rect(x + left, y + top, x + cut_w - right, y + cut_h - bottom))
+        return _PageLayout(cols, rows, cut_w - left - right, cut_h - top - bottom,
+                           tuple(cells), tuple(cuts))
+
     usable_w = paper_w_pt - left - right - (cols - 1) * resolved_gap
     usable_h = paper_h_pt - top - bottom - (rows - 1) * resolved_gap
     if usable_w <= 1 or usable_h <= 1:
@@ -642,7 +664,7 @@ def _draw_repeated_cell_overlays(
             break
         if page_info.page_type == "blank":
             continue
-        target = layout.cell_rects[slot_idx]
+        target = layout.cut_rects[slot_idx] if layout.cut_rects else layout.cell_rects[slot_idx]
         cell_doc = fitz.open()
         try:
             cell = cell_doc.new_page(width=target.width, height=target.height)
@@ -731,7 +753,7 @@ def build_pdf_document(
                     gap_pt,
                     page_order,
                     booklet_enabled,
-                )
+                ) + (bool(getattr(request, "repeat_cell_overlays", False)),)
                 layout = layout_cache.get(cache_key)
                 if layout is None:
                     layout = _build_page_layout(
@@ -742,6 +764,7 @@ def build_pdf_document(
                         gap_pt,
                         page_order=page_order,
                         booklet=booklet_enabled,
+                        repeat_cell_overlays=bool(getattr(request, "repeat_cell_overlays", False)),
                     )
                     layout_cache[cache_key] = layout
 
