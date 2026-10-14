@@ -2117,15 +2117,17 @@ function buildOutputPage(groupPages, pageIdx, cols, rows, mm2px, useHi, repeated
     else          { col = Math.floor(s / rows); row = s % rows; }
     const cellX = (mh + col * (cellW + gp)) * mm2px;
     const cellY = (mv + row * (cellH + gp)) * mm2px;
-    let src = getPageSrc(groupPages[idx], mm2px, useHi);
-    if (repeated) {
-      const decorated = document.createElement('canvas');
-      decorated.width = src.width; decorated.height = src.height;
-      decorated.getContext('2d').drawImage(src, 0, 0);
-      applyDocEdits(decorated, outputIdx, totalPages, src.width / Math.min(getSettings().pw, getSettings().ph));
-      src = decorated;
-    }
+    const src = getPageSrc(groupPages[idx], mm2px, useHi);
     drawPageInCell(ctx, src, cellX, cellY, cellW * mm2px, cellH * mm2px, mm2px);
+    if (repeated) {
+      // Render on EACH placement cell after the source has been fitted/rotated.
+      // A sheet-level overlay would put the page number only at the bottom.
+      const cellOverlay = document.createElement('canvas');
+      cellOverlay.width = Math.max(1, Math.round(cellW * mm2px));
+      cellOverlay.height = Math.max(1, Math.round(cellH * mm2px));
+      applyDocEdits(cellOverlay, outputIdx, totalPages, mm2px);
+      ctx.drawImage(cellOverlay, cellX, cellY, cellW * mm2px, cellH * mm2px);
+    }
   }
   return out;
 }
