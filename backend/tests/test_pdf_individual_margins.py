@@ -128,7 +128,7 @@ def test_independent_margin_ui_is_integrated_into_the_existing_export_module():
 
     assert loader.count("'/js/pdf-editor/") == 8
     assert "individual-margins-facing-pages.js" not in loader
-    assert "layout-export.js?v=20260731-3" in loader
+    assert "layout-export.js?v=20261014-1" in loader
     assert "__pdfEditorLayoutExportV8" in source
     assert "individualPaperMarginsV2" in source
     for field in ("marginLeft", "marginRight", "marginTop", "marginBottom"):
@@ -167,7 +167,8 @@ def test_preview_reserves_only_for_the_same_output_pages_as_backend():
     source = LAYOUT_EXPORT.read_text(encoding="utf-8")
 
     assert "function pageNumberApplies(outputPageIndex)" in source
-    assert "excludeFirst && index === 0" in source
+    assert "index + 1 < first || index + 1 > last" in source
+    assert "excludeFirst ? 2 : 1" in source
     assert "applyTo === 'odd' && isOddPage" in source
     assert "applyTo === 'even' && !isOddPage" in source
     assert "pageNumberPosition().startsWith('top-')" in source

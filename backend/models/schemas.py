@@ -105,6 +105,15 @@ class HeaderFooterSettings(BaseModel):
     margin_left_mm: Optional[float] = Field(default=None, ge=0.0, le=80.0)
     margin_right_mm: Optional[float] = Field(default=None, ge=0.0, le=80.0)
     apply_to: Literal["all", "odd", "even"] = "all"
+    start_page: int = Field(default=1, ge=1, le=1_000_000)
+    end_page: Optional[int] = Field(default=None, ge=1, le=1_000_000)
+
+    @model_validator(mode="after")
+    def validate_range(self):
+        if self.end_page is not None and self.end_page < self.start_page:
+            raise ValueError("머리말/꼬리말 끝 캔버스는 시작 캔버스보다 작을 수 없습니다")
+        return self
+
     sections: list[HeaderFooterSection] = Field(default_factory=list, max_length=100)
 
 
@@ -120,8 +129,16 @@ class PageNumberSettings(BaseModel):
     color: str = Field(default="#333333", max_length=32)
     exclude_first: bool = False
     apply_to: Literal["all", "odd", "even"] = "all"
+    start_page: int = Field(default=1, ge=1, le=1_000_000)
+    end_page: Optional[int] = Field(default=None, ge=1, le=1_000_000)
     margin_mm: Optional[float] = Field(default=None, ge=0.0, le=80.0)
     auto_reserve_space: bool = True
+
+    @model_validator(mode="after")
+    def validate_range(self):
+        if self.end_page is not None and self.end_page < self.start_page:
+            raise ValueError("페이지 번호 끝 캔버스는 시작 캔버스보다 작을 수 없습니다")
+        return self
 
 
 class PrintMarkSettings(BaseModel):

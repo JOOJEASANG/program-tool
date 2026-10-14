@@ -78,6 +78,16 @@ def _horizontal_paper_margins(settings, facing_pages: bool, is_odd: bool) -> tup
     return left, right
 
 
+def overlay_canvas_range(settings, total_pages: int, *, exclude_first: bool = False) -> tuple[int, int]:
+    """Inclusive 1-based output sheet range; source PDF indices never participate."""
+    first = max(1, int(getattr(settings, "start_page", 1) or 1))
+    if exclude_first:
+        first = max(first, 2)
+    end = getattr(settings, "end_page", None)
+    last = min(total_pages, int(end)) if end is not None else total_pages
+    return first, last
+
+
 def apply_header_footer(
     page: fitz.Page,
     settings,
@@ -88,6 +98,10 @@ def apply_header_footer(
     facing_pages: bool = False,
 ) -> None:
     if not settings.enabled:
+        return
+
+    first, last = overlay_canvas_range(settings, total_pages)
+    if not first <= output_page_num <= last:
         return
 
     is_odd = output_page_num % 2 == 1
@@ -140,7 +154,7 @@ def apply_header_footer(
 
     def insert(text, base_rect, y, align):
         resolved = _safe_text(
-            pdf_ops._hf_substitute(text, output_page_num, total_pages)
+            pdf_ops._hf_substitute(text, output_page_num - first + 1, last - first + 1)
         )
         if not resolved:
             return
@@ -168,9 +182,13 @@ def apply_header_footer(
 def _page_number_applies(settings, output_idx: int) -> bool:
     if not settings.enabled:
         return False
-    if settings.exclude_first and output_idx == 0:
-        return False
     page_number = output_idx + 1
+    first, last = overlay_canvas_range(
+        settings, max(page_number, int(getattr(settings, "end_page", None) or page_number)),
+        exclude_first=settings.exclude_first,
+    )
+    if not first <= page_number <= last:
+        return False
     is_odd_page = page_number % 2 == 1
     apply_to = getattr(settings, "apply_to", "all")
     return (
@@ -181,10 +199,12 @@ def _page_number_applies(settings, output_idx: int) -> bool:
 
 
 def page_number_value(settings, output_idx: int, total_pages: int) -> tuple[int, int]:
-    """Return visible number and visible total, including cover exclusion."""
-    offset = 1 if settings.exclude_first else 0
-    visible = output_idx + settings.start - offset
-    visible_total = max(0, total_pages - offset) + settings.start - 1
+    """Return the printed number and total for the selected output canvas range."""
+    first, last = overlay_canvas_range(
+        settings, total_pages, exclude_first=settings.exclude_first
+    )
+    visible = output_idx + 1 - first + settings.start
+    visible_total = max(0, last - first + 1) + settings.start - 1
     return visible, visible_total
 
 
