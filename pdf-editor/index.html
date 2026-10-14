@@ -996,6 +996,68 @@ async function openSessionList() {
   }
 }
 
+// Same-origin authenticated fallback for Firebase Storage objects. Some
+// browsers reject cross-origin download URLs even though the source PDF exists.
+async function fetchOwnedSessionPdfInChunks(docId, sourceIndex) {
+  const user = auth.currentUser;
+  if (!user) throw new Error('로그인이 만료되었습니다. 다시 로그인해 주세요.');
+  const token = await user.getIdToken();
+  const blocks = [];
+  let offset = 0;
+  let totalSize = null;
+  const maxSize = 200 * 1024 * 1024;
+  for (let chunkNumber = 0; chunkNumber < 51; chunkNumber++) {
+    const url = '/api/pdf/session-source?' + new URLSearchParams({
+      session: String(docId), index: String(sourceIndex), offset: String(offset),
+    });
+    const response = await fetch(url, {
+      headers: { Authorization: 'Bearer ' + token },
+      credentials: 'omit',
+      cache: 'no-store',
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => null);
+      throw new Error(error?.detail || ('보안 다운로드 실패 (HTTP ' + response.status + ')'));
+    }
+    const advertisedTotal = Number(response.headers.get('X-Session-File-Size'));
+    const advertisedOffset = Number(response.headers.get('X-Session-Offset'));
+    if (!Number.isSafeInteger(advertisedTotal) || advertisedTotal < 1 || advertisedTotal > maxSize ||
+        advertisedOffset !== offset || (totalSize !== null && totalSize !== advertisedTotal)) {
+      throw new Error('서버에서 받은 PDF 크기 또는 분할 정보가 올바르지 않습니다.');
+    }
+    totalSize = advertisedTotal;
+    const bytes = await response.arrayBuffer();
+    if (!bytes.byteLength || bytes.byteLength > 4 * 1024 * 1024 ||
+        bytes.byteLength > totalSize - offset) {
+      throw new Error('PDF 분할 다운로드 데이터가 올바르지 않습니다.');
+    }
+    blocks.push(bytes);
+    offset += bytes.byteLength;
+    if (offset === totalSize) {
+      return new Blob(blocks, { type: 'application/pdf' });
+    }
+  }
+  throw new Error('PDF 분할 다운로드 횟수 제한을 초과했습니다.');
+}
+
+async function downloadSavedEditorSessionPdf(storagePath, docId, sourceIndex) {
+  const reference = storage.ref(storagePath);
+  try {
+    if (typeof reference.getBlob === 'function') return await reference.getBlob();
+    const url = await reference.getDownloadURL();
+    const response = await fetch(url, { cache: 'no-store', credentials: 'omit' });
+    if (!response.ok) throw new Error('HTTP ' + response.status);
+    return await response.blob();
+  } catch (directError) {
+    console.warn('[pdf-session] Storage browser download unavailable; using authenticated fallback', directError);
+    try {
+      return await fetchOwnedSessionPdfInChunks(docId, sourceIndex);
+    } catch (secureError) {
+      throw new Error(secureError.message + ' (직접 다운로드: ' + (directError?.message || '차단됨') + ')');
+    }
+  }
+}
+
 async function loadEditorSession(d, docId) {
   if (!confirm(`"${d.name}" 편집을 불러올까요?\n현재 작업은 복원 성공 후 교체됩니다.`)) return false;
   // Keep the list visible so download or rendering failures are actionable.
@@ -1035,19 +1097,11 @@ async function loadEditorSession(d, docId) {
     const files = [];
     for (let i = 0; i < (d.storagePaths || []).length; i++) {
       reportRestore(`원본 파일 다운로드 중... (${i + 1}/${d.storagePaths.length})`);
-      const reference = storage.ref(d.storagePaths[i]);
       let blob;
       try {
-        if (typeof reference.getBlob === 'function') {
-          blob = await reference.getBlob();
-        } else {
-          const url = await reference.getDownloadURL();
-          const response = await fetch(url);
-          if (!response.ok) throw new Error(`HTTP ${response.status}`);
-          blob = await response.blob();
-        }
+        blob = await downloadSavedEditorSessionPdf(d.storagePaths[i], docId, i);
       } catch (downloadError) {
-        throw new Error(`${i + 1}번째 PDF 다운로드 실패: ${downloadError.message}. 저장소 접근 권한이나 CORS 설정을 확인해 주세요.`);
+        throw new Error(`${i + 1}번째 PDF 다운로드 실패: ${downloadError.message}`);
       }
       if (!blob || !blob.size) throw new Error(`${i + 1}번째 원본 파일이 비어 있습니다.`);
       const fname = state.fileNames?.[i] || (d.storagePaths[i].split('/').pop()) || `file_${i}.pdf`;

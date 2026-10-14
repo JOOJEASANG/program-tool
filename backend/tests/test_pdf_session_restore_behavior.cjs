@@ -3,7 +3,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 const source = fs.readFileSync(path.join(__dirname, '../../pdf-editor/index.html'), 'utf8');
-const start = source.indexOf('async function loadEditorSession(d, docId) {');
+const start = source.indexOf('// Same-origin authenticated fallback for Firebase Storage objects.');
 const end = source.indexOf('// Session modal events', start);
 assert.ok(start >= 0 && end > start);
 const controls = new Map();
@@ -21,18 +21,33 @@ body.querySelectorAll=()=>buttons;
 body.prepend=node=>controls.set(node.id,node);
 let message='';
 let fail=false;
+let directBlocked=false;
+let secureRequests=0;
 class MockFile {
-  constructor(blobs,name){this.name=name;this.marker=blobs[0].marker;this.size=blobs[0].size;this.type='application/pdf';}
-  async arrayBuffer(){return Uint8Array.of(this.marker).buffer;}
+  constructor(blobs,name){this.name=name;this.blob=blobs[0];this.marker=blobs[0].marker;this.size=blobs[0].size;this.type='application/pdf';}
+  async arrayBuffer(){return typeof this.blob.arrayBuffer === 'function' ? this.blob.arrayBuffer() : Uint8Array.of(this.marker).buffer;}
 }
 const mockBlob=marker=>({marker,size:1});
 const context={
-  console,File:MockFile,setTimeout(){},confirm(){return true;},
+  console,File:MockFile,Blob,URLSearchParams,setTimeout(){},confirm(){return true;},
+  auth:{currentUser:{async getIdToken(){return 'verified-user-token';}}},
   document:{getElementById:element,createElement(){return {style:{},setAttribute(){},remove(){}};},querySelectorAll(){return[];},querySelector(){return null;}},
   $:element,
   storage:{ref(p){return {async getDownloadURL(){return 'https://local.test/'+p;}};}},
-  async fetch(url) {
-    if(fail && url.includes('src_1.pdf')) throw Error('network failure');
+  async fetch(url,options={}) {
+    if(url.startsWith('/api/pdf/session-source?')) {
+      secureRequests += 1;
+      assert.equal(options.headers.Authorization, 'Bearer verified-user-token');
+      assert.equal(options.credentials, 'omit');
+      const query=new URLSearchParams(url.split('?')[1]);
+      if(fail) return {ok:false,status:404,async json(){return {detail:'저장된 원본 PDF가 없습니다.'};}};
+      const index=Number(query.get('index'));
+      return {
+        ok:true, headers:{get(key){return key==='X-Session-File-Size' ? '1' : key==='X-Session-Offset' ? '0' : null;}},
+        async arrayBuffer(){return Uint8Array.of(index===1?2:1).buffer;},
+      };
+    }
+    if((fail && url.includes('src_1.pdf')) || directBlocked) throw Error('Failed to fetch');
     return {ok:true,async blob(){return mockBlob(url.includes('src_1.pdf')?2:1);}};
   },
   pdfjsLib:{getDocument({data}){
@@ -83,11 +98,20 @@ vm.runInContext(source.slice(start,end),context);
   assert.equal(context.parsedPages[2].thumbCanvas.rotation,0,'unrotated duplicate must keep its base thumbnail');
   assert.equal(element('sessionListModal').style.display,'none');
   assert.match(message,/불러오기 완료/);
+  // Simulate the actual browser CORS failure and verify the authenticated
+  // same-origin chunk route rescues an otherwise valid saved session.
+  directBlocked=true;
+  const originalRequests=secureRequests;
+  assert.equal(await context.loadEditorSession(data,'id'),true);
+  assert.equal(secureRequests-originalRequests,2);
+  assert.equal(context.parsedPages.length,4);
+  assert.equal(context.parsedPages[0].pdfPage.marker,2);
+  assert.equal(context.parsedPages[1].pdfPage.marker,1);
   const prior=context.parsedPages;
   fail=true;
   assert.equal(await context.loadEditorSession(data,'id'),false);
   assert.equal(context.parsedPages,prior,'failed download must preserve current document');
-  assert.match(element('sessionRestoreStatus').textContent,/network failure/);
+  assert.match(element('sessionRestoreStatus').textContent,/저장된 원본 PDF가 없습니다/);
   assert.ok(buttons.every(b=>!b.disabled));
   console.log('pdf session restore behavior passed');
   console.log('pdf session mixed file save-load recovery passed');

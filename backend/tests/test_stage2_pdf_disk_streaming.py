@@ -47,9 +47,12 @@ def test_validate_pdf_paths_rejects_invalid_pdf(tmp_path):
 def test_storage_route_uses_disk_processing_and_temporary_result_delivery():
     source = Path(pdf_router.__file__).read_text(encoding="utf-8")
 
-    assert "download_to_filename" in source
-    assert "download_as_bytes" not in source
-    assert "process_pdf_paths" in source
+    storage_route = source.split('def process_storage(uid):', 1)[1]
+    assert "download_to_filename" in storage_route
+    # Normal PDF processing must remain disk-backed. The separate, bounded
+    # saved-session source reader intentionally downloads one 4 MiB chunk.
+    assert "download_as_bytes" not in storage_route
+    assert "process_pdf_paths" in storage_route
     assert "upload_pdf_result" in source
     assert "send_file" not in source
 
