@@ -160,10 +160,10 @@ const context = {
     return groups;
   },
   getLayout(n) { return n === 2 ? { cols: 2, rows: 1 } : { cols: 1, rows: 1 }; },
-  buildOutputPage(groupPages, pageIndex, cols, rows, ppm, useHi, outputIndex) {
+  buildOutputPage(groupPages, pageIndex, cols, rows, ppm, useHi, outputIndex, repeated = false, total = 1) {
     const perPage = cols * rows;
     const selected = groupPages.slice(pageIndex * perPage, pageIndex * perPage + perPage);
-    outputCalls.push({ pageIndex, cols, rows, ppm, useHi, outputIndex, selected });
+    outputCalls.push({ pageIndex, cols, rows, ppm, useHi, outputIndex, repeated, total, selected });
     const canvas = createElement('canvas');
     canvas.width = 500;
     canvas.height = 700;
@@ -189,6 +189,7 @@ const context = {
   triggerPreview() {},
 };
 context.window = context;
+context.buildOutputPage.__pdfIndependentMarginOutputV3 = true;
 
 vm.createContext(context);
 vm.runInContext(source, context, { filename: 'viewport-lazy-preview.js' });
@@ -242,6 +243,27 @@ assert.equal(api.isLightweightPage({ pdfPage: { __lightweightPdfPage: true } }),
   assert.equal(previewNodes[1].dataset.lazySelected, 'true');
   assert.equal(elements.get('previewPages').textContent, '전체 2개 중 1–2 출력면');
   assert.equal(elements.get('pdfLazyPreviewOutputNumber').value, '2');
+
+  // Repeated pages in a large-document preview must receive one overlay per
+  // placement cell, with NO extra full-sheet overlay.
+  const defaultGroups = context.groupByNup;
+  context.groupByNup = (pages) => pages.map(page => ({
+    n: 2,
+    repeated: true,
+    pages: [page, page],
+  }));
+  context.PdfEditorNupRepeat = { enabled: () => true };
+  context.parsedPages = [samplePages[0]];
+  outputCalls = [];
+  editCalls = [];
+  assert.equal(await api.renderLazyWindow(0), true);
+  assert.equal(outputCalls.length, 1);
+  assert.equal(outputCalls[0].repeated, true);
+  assert.equal(outputCalls[0].total, 1);
+  assert.equal(outputCalls[0].selected.length, 2);
+  assert.equal(editCalls.length, 0, 'Repeated cells should not get a sheet-level overlay');
+  context.groupByNup = defaultGroups;
+  context.PdfEditorNupRepeat = { enabled: () => false };
 
   const lightweight = {
     id: 99,

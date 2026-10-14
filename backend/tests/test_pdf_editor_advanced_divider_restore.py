@@ -91,7 +91,7 @@ def test_divider_runtime_cache_chain_points_to_current_helper():
     loader = source(LOADER)
     core = source(CORE_RUNTIME)
     helper = source(HELPER)
-    assert 'core-runtime.js?v=20261014-1' in loader
+    assert 'core-runtime.js?v=20261014-2' in loader
     assert 'divider-helper.js?v=20260914-5' in core
     assert 'divider-interaction-stability.js?v=20260914-2' in helper
 

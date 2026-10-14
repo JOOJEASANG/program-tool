@@ -67,6 +67,7 @@
           rows,
           perPage,
           n: group.n,
+          repeated: !!group.repeated,
           groupPages: group.pages,
           sourcePages: group.pages.slice(start, start + perPage),
         });
@@ -301,6 +302,13 @@
         temporary,
       );
     }
+    const repeated = !!descriptor.repeated && !!window.PdfEditorNupRepeat?.enabled?.();
+    // The original and independent-margin page builders have different optional
+    // argument ordering. Pass repetition explicitly so overlays stay in EACH
+    // placement cell rather than being stamped once at the paper bottom.
+    const argumentsAfterScale = buildOutputPage.__pdfIndependentMarginOutputV3
+      ? [descriptor.outputIndex, repeated, total]
+      : [repeated, descriptor.outputIndex, total];
     const canvas = buildOutputPage(
       renderGroup,
       descriptor.pageIndex,
@@ -308,10 +316,12 @@
       descriptor.rows,
       PREVIEW_PPM,
       false,
-      descriptor.outputIndex,
+      ...argumentsAfterScale,
     );
-    try { applyDocEdits(canvas, descriptor.outputIndex, total, PREVIEW_PPM); }
-    catch (error) { console.warn('[lazy-preview] document edit overlay failed', error); }
+    if (!repeated) {
+      try { applyDocEdits(canvas, descriptor.outputIndex, total, PREVIEW_PPM); }
+      catch (error) { console.warn('[lazy-preview] document edit overlay failed', error); }
+    }
     if (window.PdfPrintMarks?.enabled?.()) {
       return window.PdfPrintMarks.addMarksToCanvas(canvas, PREVIEW_PPM);
     }

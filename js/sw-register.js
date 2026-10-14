@@ -5,7 +5,7 @@
 
   // Historical filename: this module owns shared runtime loading and retired
   // service-worker cleanup. It intentionally does not register a worker.
-  const VERSION='2026.10.14.005';
+  const VERSION='2026.10.14.006';
   const CACHE_PREFIX='program-studio-';
   const CLEANUP_KEY='program-studio-legacy-runtime-cleanup-'+VERSION;
   const SCRIPT_TIMEOUT_MS=8000;
@@ -94,7 +94,7 @@
       tasks.push(load('pdfSessionSaveSafetyScriptV1','/js/pdf-editor/session-save-safety.js?v=20260805-2'));
       tasks.push(load('pdfFileContextScopeScript','/js/pdf-editor/file-context-scope.js?v=20260805-1'));
       tasks.push(load('pdfImportTransactionSafetyScriptV1','/js/pdf-editor/import-transaction-safety.js?v=20260806-1'));
-      tasks.push(load('pdfViewportLazyPreviewScriptV1','/js/pdf-editor/viewport-lazy-preview.js?v=20260806-1'));
+      tasks.push(load('pdfViewportLazyPreviewScriptV1','/js/pdf-editor/viewport-lazy-preview.js?v=20261014-3'));
       tasks.push(load('pdfViewportLazyPreviewGuardScriptV1','/js/pdf-editor/viewport-lazy-preview-guard.js?v=20260806-1'));
       tasks.push(load('pdfFileNavigationScriptV1','/js/pdf-editor/file-navigation.js?v=20261014-1'));
       tasks.push(load('pdfDividerLocalImageUploadScriptV1','/js/pdf-divider-local-image-upload.js?v=20260818-2'));
@@ -105,7 +105,7 @@
 
   function loadPdfEditorRuntime(){
     window.ProgramStudioPdfEditorRuntimeContext={entryPath:currentPath,load};
-    return load('pdfEditorRouteRuntimeScriptV1','/js/pdf-editor/route-runtime.js?v=20260916-1').then(()=>{
+    return load('pdfEditorRouteRuntimeScriptV1','/js/pdf-editor/route-runtime.js?v=20261014-3').then(()=>{
       const runtime=window.PdfEditorRouteRuntime;
       if(!runtime||typeof runtime.loadAll!=='function')throw new Error('PDF editor route runtime API is unavailable');
       return runtime.loadAll();

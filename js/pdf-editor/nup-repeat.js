@@ -210,7 +210,9 @@
 
   function expandSettingsPages(settings) {
     const next = settings && typeof settings === 'object' ? { ...settings } : {};
-    if (!isEnabled() || next.booklet) return next;
+    // The normal export now expands before calling the API. Avoid any duplicate
+    // expansion if the legacy API bridge is also active.
+    if (next.repeat_cell_overlays || !isEnabled() || next.booklet) return next;
 
     const copies = selectedRepeatCount();
     const layoutN = repeatLayoutN(copies);
