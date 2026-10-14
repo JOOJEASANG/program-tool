@@ -65,9 +65,9 @@ vm.runInContext(source.slice(start,end),context);
     state:JSON.stringify({
       fileNames:['A.pdf','B.pdf'],
       pages:[
-        {file_index:1,page_index:1,rotation:0},
-        {file_index:0,page_index:0,rotation:0},
         {file_index:1,page_index:1,rotation:90},
+        {file_index:0,page_index:0,rotation:0},
+        {file_index:1,page_index:1,rotation:0},
         {pageType:'blank',groupBreak:true},
       ]
     })
@@ -77,7 +77,10 @@ vm.runInContext(source.slice(start,end),context);
   assert.deepEqual(JSON.parse(JSON.stringify(context.parsedPages.slice(0,3).map(p=>[p.file_index,p.page_index]))),[[1,1],[0,0],[1,1]]);
   assert.notEqual(context.parsedPages[0].id,context.parsedPages[2].id,'duplicated source page needs unique editor ID');
   assert.deepEqual(JSON.parse(JSON.stringify(context.uploadedFiles.map(f=>f.name))),['A.pdf','B.pdf']);
-  assert.equal(context.parsedPages[2].rotation,90);
+  assert.equal(context.parsedPages[0].rotation,90);
+  assert.equal(context.parsedPages[0].thumbCanvas.rotation,90);
+  assert.equal(context.parsedPages[2].rotation,0);
+  assert.equal(context.parsedPages[2].thumbCanvas.rotation,0,'unrotated duplicate must keep its base thumbnail');
   assert.equal(element('sessionListModal').style.display,'none');
   assert.match(message,/불러오기 완료/);
   const prior=context.parsedPages;

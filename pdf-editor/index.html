@@ -1124,8 +1124,10 @@ async function loadEditorSession(d, docId) {
         const key = `${s.file_index ?? 0}_${s.page_index ?? 0}`;
         const source = renderedMap.get(key);
         if (!source) throw new Error(`저장된 원본 페이지 ${key}을(를) 찾지 못했습니다.`);
-        // Repeated/duplicated editor pages may point to the same source.
-        const p = usedKeys.has(key) ? { ...source, id: makeId() } : source;
+        // Each restored placement gets a separate page object. Never mutate
+        // the base thumbnail stored in renderedMap: a rotated first copy must
+        // not leak its preview into a later unrotated copy of the same source.
+        const p = { ...source, id: usedKeys.has(key) ? makeId() : source.id };
         usedKeys.add(key);
         p.rotation = s.rotation || 0;
         p.excluded = !!s.excluded;
