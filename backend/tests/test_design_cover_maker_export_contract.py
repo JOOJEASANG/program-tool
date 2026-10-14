@@ -14,6 +14,18 @@ def test_standalone_ai_design_maker_uses_300dpi_png_metadata_contract():
 
 
 
+def test_low_resolution_background_requires_explicit_confirmation_for_all_exports():
+    source = (ROOT / "js/ai-design-maker.js").read_text(encoding="utf-8")
+    assert "function effectiveBackgroundDpi(spec)" in source
+    assert "function confirmBackgroundPrintResolution(spec)" in source
+    assert "image.naturalWidth / spec.workW" in source
+    assert "image.naturalHeight / spec.workH" in source
+    assert "dpi >= EXPORT_DPI" in source
+    assert "window.confirm(" in source
+    assert source.count("if(!confirmBackgroundPrintResolution(spec))return;") == 2
+    assert "const dpi=effectiveBackgroundDpi(spec);" in source
+
+
 def test_standalone_cover_export_keeps_print_typography_and_spine_rotation():
     source = (ROOT / "js/ai-design-maker.js").read_text(encoding="utf-8")
     assert "item.fontPt*EXPORT_DPI/72" in source

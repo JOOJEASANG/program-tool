@@ -6,6 +6,7 @@ import logging
 from flask import Blueprint, jsonify
 
 from services.ai_usage_metrics import load_program_studio_image_summary
+from services.ai_usage_guard import AiUsageGuardError, _budget_limits
 from services.openai_admin_usage import OpenAIAdminUsageError, fetch_openai_billing_summary
 from utils.auth import require_admin
 
@@ -20,6 +21,20 @@ _PUBLIC_OPENAI_ADMIN_ERRORS = {
     "OPENAI_ADMIN_USAGE_INVALID_RESPONSE": "OpenAI 비용 조회 응답을 해석하지 못했습니다.",
     "OPENAI_ADMIN_USAGE_FAILED": "OpenAI 실제 비용을 조회하지 못했습니다.",
 }
+
+
+def _image_budget_status() -> dict:
+    """Report effective image-generation attempt caps without changing policy."""
+    try:
+        limits = _budget_limits()
+    except AiUsageGuardError:
+        return {"valid": False, "configured": False, "daily": 0, "monthly": 0}
+    return {
+        "valid": True,
+        "configured": bool(limits),
+        "daily": limits.get("daily", 0),
+        "monthly": limits.get("monthly", 0),
+    }
 
 
 def _empty_program_summary() -> dict:
@@ -46,6 +61,8 @@ def ai_costs(uid):
         logger.exception("Program Studio AI usage summary failed")
         program_summary = _empty_program_summary()
         tracking_available = False
+
+    program_summary["image_limits"] = _image_budget_status()
 
     try:
         payload = fetch_openai_billing_summary()

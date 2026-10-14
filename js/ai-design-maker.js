@@ -1887,10 +1887,28 @@
     return {canvas,spec,w,h};
   }
 
+  function effectiveBackgroundDpi(spec) {
+    const image = state.background;
+    if (!image?.naturalWidth || !image?.naturalHeight || !spec?.workW || !spec?.workH) return null;
+    return Math.min(image.naturalWidth / spec.workW, image.naturalHeight / spec.workH) * 25.4;
+  }
+
+  function confirmBackgroundPrintResolution(spec) {
+    const dpi = effectiveBackgroundDpi(spec);
+    if (dpi === null || dpi >= EXPORT_DPI) return true;
+    return window.confirm(
+      '배경 원본의 실제 인쇄 해상도는 약 ' + Math.round(dpi) + 'dpi입니다.\n\n'
+      + '파일을 300dpi 크기로 저장해도 원본 이미지의 디테일은 개선되지 않습니다. '
+      + '고해상도 원본으로 교체하는 것을 권장합니다.\n\n'
+      + '이 해상도로 계속 저장하시겠습니까?'
+    );
+  }
+
   async function exportPng(){
     if(!state.background&&!window.DesignWorkspaceLayers?.hasLayers()){setStatus('작업물이 없습니다.','AI 배경을 생성하거나 PDF·이미지 파일을 배치해 주세요.','error');return;}
     const spec=currentSpec();
     if(state.background&&state.generatedSpecKey!==specKey(spec)){setStatus('규격이 변경되었습니다.','현재 규격으로 AI 배경을 다시 생성하거나 직접 만든 표지 이미지를 다시 불러온 뒤 저장해 주세요.','error');return;}
+    if(!confirmBackgroundPrintResolution(spec))return;
     const button=$('exportBtn');button.disabled=true;
     setStatus('300dpi PNG를 만들고 있습니다.','배경·문구·책등·로고'+($('cropMarkToggle')?.checked?'·재단선':'')+'을 실제 인쇄 크기로 합성하는 중입니다.','busy');
     try{
@@ -1956,6 +1974,7 @@
     if(!state.background&&!window.DesignWorkspaceLayers?.hasLayers()){setStatus('작업물이 없습니다.','AI 배경을 생성하거나 PDF·이미지 파일을 배치해 주세요.','error');return;}
     const spec=currentSpec();
     if(state.background&&state.generatedSpecKey!==specKey(spec)){setStatus('규격이 변경되었습니다.','현재 규격으로 AI 배경을 다시 생성하거나 직접 만든 표지 이미지를 다시 불러온 뒤 저장해 주세요.','error');return;}
+    if(!confirmBackgroundPrintResolution(spec))return;
     const button=$('exportBtn');button.disabled=true;
     const pdfModeText=spec.coverMode==='front'?'앞표지':spec.coverMode==='back'?'뒷표지':spec.coverMode==='frontBack'?'앞·뒤표지 동시 작업':'전체 펼침';
     setStatus('인쇄용 PDF를 만들고 있습니다.',vector?'원본 배경과 벡터 문구·도형을 실제 규격의 RGB PDF로 저장합니다.':'300dpi 디자인을 '+pdfModeText+' 실제 작업 크기의 RGB 이미지 PDF로 만드는 중입니다.','busy');
@@ -2046,7 +2065,7 @@
     const node=$('resolutionInfo');if(!node)return;
     if(!state.background){node.textContent='배경을 불러오면 실제 인쇄 해상도를 확인할 수 있습니다. 출력 색상: RGB';return;}
     const spec=currentSpec(),image=state.background;
-    const dpi=Math.min(image.naturalWidth/spec.workW,image.naturalHeight/spec.workH)*25.4;
+    const dpi=effectiveBackgroundDpi(spec);
     node.textContent='배경 원본 '+image.naturalWidth+'×'+image.naturalHeight+'px · 현재 규격 약 '+Math.round(dpi)+'dpi · 출력 색상: RGB'+(dpi<299.5?' · 300dpi로 저장해도 원본 세부 묘사가 증가하지 않습니다.':'');
   }
 

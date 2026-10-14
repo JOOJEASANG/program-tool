@@ -80,6 +80,6 @@ def test_duplex_print_behavior():
 
 def test_design_manual_documents_new_workflows():
     manual=read('js/program-manuals/ai-design-maker.js')
-    assert "updated: '2026-10-13'" in manual
+    assert "updated: '2026-10-14'" in manual
     for word in ('책표지','전단지','초대장','리플렛','200페이지','10.0mm','책등 자동 계산','책등 직접 입력'):
         assert word in manual
