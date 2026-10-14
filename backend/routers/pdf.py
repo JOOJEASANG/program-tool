@@ -1,10 +1,12 @@
 import json
 import logging
+import re
 import shutil
 import tempfile
 from pathlib import Path
 
 import fitz
+import firebase_admin.firestore as fa_firestore
 from flask import (
     Blueprint,
     Response,
@@ -114,6 +116,92 @@ def _validate_page_references(req: PdfProcessRequest, docs: list[fitz.Document])
             raise ValueError("페이지 정보의 파일 번호가 올바르지 않습니다")
         if page.page_index < 0 or page.page_index >= len(docs[page.file_index]):
             raise ValueError("페이지 정보의 페이지 번호가 올바르지 않습니다")
+
+
+
+# A signed-in user's historical editor source must be downloaded through an
+# owner-checked route when cross-origin Firebase Storage fetch is blocked.
+# Each request stays below Cloud Functions' response size limit; large PDFs
+# are assembled in the browser without making them publicly readable.
+_SESSION_DOC_ID_RE = re.compile(r"^[A-Za-z0-9_-]{1,128}$")
+_SESSION_ID_RE = re.compile(r"^[A-Za-z0-9_-]{8,40}$")
+_SESSION_CHUNK_BYTES = 4 * 1024 * 1024
+
+
+@pdf_bp.route("/session-source", methods=["GET"])
+@require_auth
+def download_session_source(uid):
+    document_id = (request.args.get("session") or "").strip()
+    index_raw = (request.args.get("index") or "").strip()
+    offset_raw = (request.args.get("offset") or "").strip()
+    if not _SESSION_DOC_ID_RE.fullmatch(document_id):
+        return _error_response("저장 세션 번호가 유효하지 않습니다.", 400, "SESSION_INVALID_ID")
+    if not index_raw.isascii() or not index_raw.isdecimal() or len(index_raw) > 3:
+        return _error_response("파일 순번이 올바르지 않습니다.", 400, "SESSION_INVALID_INDEX")
+    index = int(index_raw)
+    if index > 49:
+        return _error_response("파일 순번이 허용 범위를 넘었습니다.", 400, "SESSION_INVALID_INDEX")
+    if not offset_raw.isascii() or not offset_raw.isdecimal() or len(offset_raw) > 10:
+        return _error_response("다운로드 위치가 올바르지 않습니다.", 400, "SESSION_INVALID_OFFSET")
+    offset = int(offset_raw)
+    if offset > MAX_PDF_FILE_BYTES:
+        return _error_response("다운로드 위치가 범위를 넘었습니다.", 416, "SESSION_INVALID_OFFSET")
+
+    try:
+        snapshot = (
+            fa_firestore.client().collection("users").document(uid)
+            .collection("pdf_sessions").document(document_id).get()
+        )
+    except Exception:
+        logger.exception("Session metadata lookup failed request_id=%s", _request_id())
+        return _error_response("저장된 편집 정보를 읽지 못했습니다.", 503, "SESSION_METADATA_UNAVAILABLE")
+    if not snapshot.exists:
+        return _error_response("저장된 편집 세션을 찾지 못했습니다.", 404, "SESSION_NOT_FOUND")
+    data = snapshot.to_dict() or {}
+    paths = data.get("storagePaths")
+    session_id = data.get("sessionId")
+    if not isinstance(session_id, str) or not _SESSION_ID_RE.fullmatch(session_id):
+        return _error_response("저장된 편집 세션의 파일 정보가 올바르지 않습니다.", 422, "SESSION_INVALID_SOURCE")
+    if not isinstance(paths, list) or index >= len(paths):
+        return _error_response("저장된 원본 PDF를 찾지 못했습니다.", 404, "SESSION_FILE_NOT_FOUND")
+    expected_path = f"pdf_sessions/{uid}/{session_id}/src_{index}.pdf"
+    if paths[index] != expected_path:
+        return _error_response("저장된 PDF의 경로를 확인할 수 없습니다.", 403, "SESSION_SOURCE_FORBIDDEN")
+
+    try:
+        blob = _bucket().blob(expected_path)
+        blob.reload(timeout=30)
+        total = int(blob.size or 0)
+        if total < 1:
+            return _error_response("저장된 PDF가 비어 있습니다.", 404, "SESSION_EMPTY_FILE")
+        if total > MAX_PDF_FILE_BYTES:
+            return _error_response("저장된 PDF가 파일 한도를 초과합니다.", 413, "SESSION_FILE_TOO_LARGE")
+        if offset >= total:
+            return _error_response("다운로드 위치가 파일 끝을 넘었습니다.", 416, "SESSION_INVALID_OFFSET")
+        last = min(total, offset + _SESSION_CHUNK_BYTES) - 1
+        chunk = blob.download_as_bytes(start=offset, end=last, timeout=60)
+    except Exception:
+        logger.exception("Session source download failed request_id=%s", _request_id())
+        return _error_response(
+            "저장된 PDF를 서버에서 읽지 못했습니다. 잠시 후 다시 시도해 주세요.",
+            503,
+            "SESSION_STORAGE_UNAVAILABLE",
+        )
+
+    expected_length = last - offset + 1
+    if len(chunk) != expected_length:
+        return _error_response("PDF 다운로드 내용이 완전하지 않습니다.", 503, "SESSION_INCOMPLETE_CHUNK")
+    return _attach_request_id(Response(
+        chunk,
+        status=200,
+        mimetype="application/octet-stream",
+        headers={
+            "X-Session-File-Size": str(total),
+            "X-Session-Offset": str(offset),
+            "X-Session-Chunk-Bytes": str(len(chunk)),
+            "Cache-Control": "no-store",
+        },
+    ))
 
 
 def _validate_pdf_request(req: PdfProcessRequest, file_bytes_list: list[bytes]) -> None:
