@@ -25,7 +25,7 @@
 </head>
 <body>
   <header class="suite-topbar">
-    <a class="suite-back" href="../index.html" aria-label="프로그램 목록으로 돌아가기">←</a>
+    <a class="suite-back" href="../index.html" title="프로그램 홈" aria-label="프로그램 홈"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10.5V20h13v-9.5"/><path d="M9.5 20v-6h5v6"/></svg></a>
     <div class="suite-brand"><div class="suite-brand-mark">PDF</div><div><strong>PDF 유틸리티</strong><span>PROGRAM STUDIO</span></div></div>
   </header>
 
@@ -76,7 +76,7 @@
       <label class="drop" id="localDrop" for="localFile"><strong>PDF 한 개를 선택하거나 여기에 놓으세요</strong><span>회전 · 페이지 역순 · 텍스트 추출용 파일 선택 / 120MB 이하</span></label>
       <input id="localFile" type="file" accept="application/pdf,.pdf">
       <div class="file-note" id="localFileNote"></div>
-      <div class="local-actions">
+      <div class="local-actions" aria-label="PDF 빠른 작업: 회전 후 페이지 순서 변경">
         <button class="local-btn" type="button" data-local-run="rotate90" disabled>90° 회전</button>
         <button class="local-btn" type="button" data-local-run="rotate180" disabled>180° 회전</button>
         <button class="local-btn" type="button" data-local-run="reverse" disabled>페이지 역순</button>
