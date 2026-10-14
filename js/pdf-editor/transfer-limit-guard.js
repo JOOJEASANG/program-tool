@@ -101,7 +101,7 @@
     const note = document.createElement('div');
     note.id = 'pdfEditorTransferPolicyNote';
     note.style.cssText = 'margin-top:7px;padding:7px 9px;border:1px solid #dbe5ee;border-radius:8px;background:#f8fafc;color:#64748b;font-size:9px;line-height:1.45;font-weight:700';
-    note.textContent = 'PDF N-UP 작업공간: 한 파일 최대 200MB · 여러 파일 합계 최대 800MB. 저장 세션은 안정성을 위해 원본 합계 300MB까지 지원합니다.';
+    note.textContent = '편집 작업공간: 파일당 200MB · 합계 800MB. 단, 최종 PDF 생성 및 편집 세션 저장은 원본 파일 합계 300MB까지만 지원합니다.';
     zone.insertAdjacentElement('afterend', note);
     return true;
   }

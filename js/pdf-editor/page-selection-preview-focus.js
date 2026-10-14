@@ -61,6 +61,7 @@
       .page-selection-count{font-size:9px;font-weight:900;color:#334155;margin-right:auto;white-space:nowrap}
       .page-selection-btn{border:1px solid #cbd5e1;border-radius:7px;background:#fff;color:#475569;padding:4px 7px;font:800 9px Pretendard,"Noto Sans KR",sans-serif;cursor:pointer}
       .page-selection-btn:hover{border-color:#93c5fd;background:#eff6ff;color:#1d4ed8}
+      .pdf-page-select-checkbox{position:absolute;left:7px;top:7px;z-index:8;width:18px;height:18px;accent-color:#2563eb;cursor:pointer;background:#fff;border-radius:3px;box-shadow:0 0 0 2px rgba(255,255,255,.8)}
       #thumbArea{display:flex!important;flex-direction:column!important;gap:7px!important}
       #thumbArea .thumb-item{width:100%!important;display:flex!important;flex-direction:column!important}
       #thumbArea .thumb-wrap{width:100%!important;aspect-ratio:210/297!important;display:flex!important;align-items:center!important;justify-content:center!important;background:#fff!important;overflow:hidden!important}
@@ -152,6 +153,20 @@
       item.classList.toggle('page-selection-anchor', selected && id === anchorId);
       const wrap = item.querySelector('.thumb-wrap');
       if (!wrap) return;
+      if (!wrap.style.position) wrap.style.position = 'relative';
+      let checkbox = wrap.querySelector('.pdf-page-select-checkbox');
+      if (!checkbox) {
+        checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.className = 'pdf-page-select-checkbox';
+        checkbox.setAttribute('aria-label', '이 페이지 선택');
+        checkbox.addEventListener('change', () => {
+          const target = pageById(Number(item.dataset.id));
+          if (target) selectPage(target, { ctrlKey: true, metaKey: false, shiftKey: false });
+        });
+        wrap.appendChild(checkbox);
+      }
+      checkbox.checked = selected;
       let mark = wrap.querySelector('.page-selection-mark');
       if (selected && !mark) {
         mark = document.createElement('span');
@@ -163,7 +178,42 @@
     syncSidebarSourceThumbs();
     const count = byId('pageSelectionCount');
     if (count) count.textContent = `선택 ${selectedIds.size}개`;
+    document.dispatchEvent(new CustomEvent('pdf-page-selection-change', { detail: { count: selectedIds.size } }));
     highlightPreviewTarget();
+  }
+
+  function selectFile(fileIndex, { additive = false } = {}) {
+    if (!editorReady()) return 0;
+    const target = Number(fileIndex);
+    if (!Number.isInteger(target) || target < 0) return 0;
+    const pages = parsedPages.filter(page => Number(page.file_index) === target && page.pageType === 'pdf');
+    if (!additive) selectedIds.clear();
+    for (const page of pages) {
+      const id = pageId(page);
+      if (id !== null) selectedIds.add(id);
+    }
+    anchorId = pages.length ? pageId(pages[0]) : null;
+    primaryId = pages.length ? pageId(pages[pages.length - 1]) : null;
+    contextSelectionIds = [];
+    syncSelectionUi();
+    return pages.length;
+  }
+
+  function clearFile(fileIndex) {
+    if (!editorReady()) return 0;
+    const target = Number(fileIndex);
+    const pages = parsedPages.filter(page => Number(page.file_index) === target && page.pageType === 'pdf');
+    for (const page of pages) selectedIds.delete(pageId(page));
+    anchorId = null;
+    primaryId = selectedIds.size ? [...selectedIds][0] : null;
+    contextSelectionIds = [];
+    syncSelectionUi();
+    return pages.length;
+  }
+
+  function selectedCountForFile(fileIndex) {
+    if (!editorReady()) return 0;
+    return parsedPages.filter(page => Number(page.file_index) === Number(fileIndex) && page.pageType === 'pdf' && selectedIds.has(pageId(page))).length;
   }
 
   function selectAll() {
@@ -625,6 +675,9 @@
   window.PdfEditorPageSelection = {
     selectedIds,
     selectAll,
+    selectFile,
+    clearFile,
+    selectedCountForFile,
     clearSelection,
     snapshotSelectedIds,
     pagesForIds,

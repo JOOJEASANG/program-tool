@@ -845,6 +845,7 @@ const $ = id => document.getElementById(id);
 function collectEditorState() {
   return {
     nup,
+    orderLR,
     landscape,
     showBorder,
     paperSize: $('paperSize').value,
@@ -964,13 +965,14 @@ async function openSessionList() {
       item.innerHTML = `
         <div class="fh-icon">🗂</div>
         <div class="fh-info">
-          <div class="fh-name">${d.name || '편집 세션'}</div>
+          <div class="fh-name"></div>
           <div class="fh-meta">${dateStr} · ${d.pageCount || 0}p · 파일 ${d.fileCount || 0}개</div>
         </div>
         <div class="fh-actions">
           <button class="fh-btn" data-action="load">📂 불러오기</button>
           <button class="fh-btn del" data-action="del">🗑</button>
         </div>`;
+      item.querySelector('.fh-name').textContent = d.name || '편집 세션';
       item.querySelector('[data-action="load"]').addEventListener('click', () =>
         loadEditorSession(d, doc.id));
       item.querySelector('[data-action="del"]').addEventListener('click', async () => {
@@ -985,7 +987,11 @@ async function openSessionList() {
       body.appendChild(item);
     });
   } catch(e) {
-    body.innerHTML = `<div class="fh-empty">오류: ${e.message}</div>`;
+    body.replaceChildren();
+    const errorMessage = document.createElement('div');
+    errorMessage.className = 'fh-empty';
+    errorMessage.textContent = '오류: ' + e.message;
+    body.appendChild(errorMessage);
   }
 }
 
@@ -1077,6 +1083,7 @@ async function loadEditorSession(d, docId) {
     // Restore settings
     fileNupMap = state.fileNupMap || {};
     nup = state.nup ?? 2;
+    orderLR = state.orderLR ?? true;
     landscape = state.landscape ?? false;
     showBorder = state.showBorder ?? true;
     if ($('paperSize') && state.paperSize) $('paperSize').value = state.paperSize;
@@ -1122,6 +1129,31 @@ async function loadEditorSession(d, docId) {
     renderHfSections();
     updateActualSizeUi();
 
+    // Restore visual controls together with engine state.
+    $('orderLR').classList.toggle('active', orderLR);
+    $('orderTB').classList.toggle('active', !orderLR);
+    $('wmEnabled').checked = wmEnabled;
+    $('wmSettings').style.display = wmEnabled ? 'block' : 'none';
+    $('wmText').value = wmText;
+    $('wmOpacity').value = wmOpacity;
+    $('wmOpacityVal').textContent = Math.round(wmOpacity * 100) + '%';
+    $('wmAngle').value = wmAngle;
+    $('wmAngleVal').textContent = wmAngle + '°';
+    $('wmColor').value = wmColor;
+    $('hfEnabled').checked = hfEnabled;
+    $('hfSettings').style.display = hfEnabled ? 'block' : 'none';
+    [['hfHL', hfHL], ['hfHC', hfHC], ['hfHR', hfHR], ['hfFL', hfFL],
+     ['hfFC', hfFC], ['hfFR', hfFR], ['hfFontSize', hfFontSize],
+     ['hfColor', hfColor], ['hfApplyTo', hfApplyTo]].forEach(([id, value]) => { $(id).value = value; });
+    $('pnEnabled').checked = pnEnabled;
+    $('pnSettings').style.display = pnEnabled ? 'block' : 'none';
+    [['pnFormat', pnFormat], ['pnStart', pnStart], ['pnFontSize', pnFontSize],
+     ['pnColor', pnColor], ['pnApplyTo', pnApplyTo], ['showBorder', showBorder],
+     ['facingPages', facingPages], ['pnExcludeFirst', pnExcludeFirst]].forEach(([id, value]) => {
+       if ($(id).type === 'checkbox') $(id).checked = value;
+       else $(id).value = value;
+    });
+    document.querySelectorAll('.pn-pos-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.pos === pnPosition));
     // Sync orientation UI
     $('orientLand').classList.toggle('active', landscape);
     $('orientPort').classList.toggle('active', !landscape);
@@ -1375,9 +1407,15 @@ function updateActualSizeUi() {
 function showStatus(msg, type='info') {
   const el = $('statusBar'); el.style.display = 'flex';
   el.className = 'status-bar' + (type==='error' ? ' error' : type==='success' ? ' success' : '');
-  el.innerHTML = type==='info'
-    ? `<div class="spinner"></div><span>${msg}</span>`
-    : `<span>${type==='error' ? '❌' : '✅'} ${msg}</span>`;
+  el.replaceChildren();
+  if (type === 'info') {
+    const spinner = document.createElement('div');
+    spinner.className = 'spinner';
+    el.appendChild(spinner);
+  }
+  const label = document.createElement('span');
+  label.textContent = (type === 'error' ? '오류: ' : type === 'success' ? '완료: ' : '') + String(msg);
+  el.appendChild(label);
 }
 function hideStatus() { $('statusBar').style.display = 'none'; }
 
@@ -2134,15 +2172,15 @@ function buildOutputPage(groupPages, pageIdx, cols, rows, mm2px, useHi, repeated
     else          { col = Math.floor(s / rows); row = s % rows; }
     const cellX = (mh + col * (cellW + gp)) * mm2px;
     const cellY = (mv + row * (cellH + gp)) * mm2px;
-    let src = getPageSrc(groupPages[idx], mm2px, useHi);
-    if (repeated) {
-      const decorated = document.createElement('canvas');
-      decorated.width = src.width; decorated.height = src.height;
-      decorated.getContext('2d').drawImage(src, 0, 0);
-      applyDocEdits(decorated, outputIdx, totalPages, src.width / Math.min(getSettings().pw, getSettings().ph));
-      src = decorated;
-    }
+    const src = getPageSrc(groupPages[idx], mm2px, useHi);
     drawPageInCell(ctx, src, cellX, cellY, cellW * mm2px, cellH * mm2px, mm2px);
+    if (repeated) {
+      const overlay = document.createElement('canvas');
+      overlay.width = Math.max(1, Math.round(cellW * mm2px));
+      overlay.height = Math.max(1, Math.round(cellH * mm2px));
+      applyDocEdits(overlay, outputIdx, totalPages, mm2px);
+      ctx.drawImage(overlay, cellX, cellY, cellW * mm2px, cellH * mm2px);
+    }
   }
   return out;
 }
@@ -2594,6 +2632,12 @@ $('downloadBtn').addEventListener('click', async () => {
     return;
   }
 
+  const exportBytes = uploadedFiles.reduce((sum, file) => sum + Number(file?.size || 0), 0);
+  if (exportBytes > 300 * 1024 * 1024) {
+    showStatus('PDF배치 최종 저장은 원본 파일 전체 합계 300MB까지 지원합니다. 편집 작업공간 800MB 한도와 다르므로 파일을 줄인 후 저장해 주세요.', 'error');
+    return;
+  }
+
   showStatus('파일 업로드 중...');
   $('downloadBtn').disabled = true;
   try {
@@ -2612,8 +2656,21 @@ $('downloadBtn').addEventListener('click', async () => {
       return;
     }
 
-    // Map pnFormat string to backend enum
-    const pnFormatMap = { number: '1', 'number-total': '1/N', dash: '-1-', 'dash-total': '-1/N-' };
+    // The option values, preview format and server format must agree.
+    const pnFormatMap = { number: '1', 'page-of': '1/N', 'number-total': '1/N', dash: '-1-', 'dash-total': '-1/N-' };
+    const invalidRange = ['pn', 'hf'].find(prefix => {
+      const enabled = $(prefix + 'Enabled')?.checked;
+      const first = $(prefix + 'StartPage');
+      const last = $(prefix + 'EndPage');
+      return enabled && (first?.value.trim() === '' || !first?.checkValidity()
+        || (last?.value.trim() !== '' && (!last?.checkValidity() || Number(last.value) < Number(first.value))));
+    });
+    if (invalidRange) {
+      showStatus((invalidRange === 'pn' ? '페이지 번호' : '머리말/꼬리말') + ' 적용 캔버스의 시작·끝 범위를 확인해 주세요.', 'error');
+      $('downloadBtn').disabled = false;
+      $(invalidRange + 'StartPage').focus();
+      return;
+    }
 
     const VALID_NUP = new Set([1, 2, 4, 6, 8, 9]);
     const settings = {
@@ -2637,6 +2694,7 @@ $('downloadBtn').addEventListener('click', async () => {
         };
       }),
       nup_default: nup,
+      page_order: orderLR ? 'row-major' : 'column-major',
       paper: { width_mm: pw, height_mm: ph },
       margin_h_mm: mh,
       margin_v_mm: mv,
@@ -2833,13 +2891,17 @@ function bindCanvasPageRange(prefix, update) {
 bindCanvasPageRange('hf', (start, end) => { hfStartPage = start; hfEndPage = end; });
 
 // HF Sections (per-range overrides)
+function escapeHfInput(value) {
+  return String(value || '').replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
 function renderHfSections() {
   const list = $('hfSectionsList');
   list.innerHTML = hfSections.map(s => `
     <div class="hf-section-card" data-sid="${s._id}">
       <div class="hf-section-head">
         <span class="hf-section-label">구간</span>
-        <input class="hf-range-input" placeholder="페이지 범위 (예: 1-5,7,9-12)" value="${(s.ranges||'').replace(/"/g,'&quot;')}">
+        <input class="hf-range-input" placeholder="페이지 범위 (예: 1-5,7,9-12)" value="${escapeHfInput(s.ranges)}">
         <button type="button" class="hf-section-del" title="구간 삭제">×</button>
       </div>
       <div class="grid3" style="margin-bottom:2px;">
@@ -2849,15 +2911,15 @@ function renderHfSections() {
       </div>
       <div class="hf-row-label">머리말</div>
       <div class="hf-grid" style="margin-bottom:5px;">
-        <input class="hf-input" data-fld="header_left"   placeholder="좌"      value="${(s.header_left||'').replace(/"/g,'&quot;')}">
-        <input class="hf-input" data-fld="header_center" placeholder="가운데"  value="${(s.header_center||'').replace(/"/g,'&quot;')}">
-        <input class="hf-input" data-fld="header_right"  placeholder="우"      value="${(s.header_right||'').replace(/"/g,'&quot;')}">
+        <input class="hf-input" data-fld="header_left"   placeholder="좌"      value="${escapeHfInput(s.header_left)}">
+        <input class="hf-input" data-fld="header_center" placeholder="가운데"  value="${escapeHfInput(s.header_center)}">
+        <input class="hf-input" data-fld="header_right"  placeholder="우"      value="${escapeHfInput(s.header_right)}">
       </div>
       <div class="hf-row-label">꼬리말</div>
       <div class="hf-grid">
-        <input class="hf-input" data-fld="footer_left"   placeholder="좌"      value="${(s.footer_left||'').replace(/"/g,'&quot;')}">
-        <input class="hf-input" data-fld="footer_center" placeholder="가운데"  value="${(s.footer_center||'').replace(/"/g,'&quot;')}">
-        <input class="hf-input" data-fld="footer_right"  placeholder="우"      value="${(s.footer_right||'').replace(/"/g,'&quot;')}">
+        <input class="hf-input" data-fld="footer_left"   placeholder="좌"      value="${escapeHfInput(s.footer_left)}">
+        <input class="hf-input" data-fld="footer_center" placeholder="가운데"  value="${escapeHfInput(s.footer_center)}">
+        <input class="hf-input" data-fld="footer_right"  placeholder="우"      value="${escapeHfInput(s.footer_right)}">
       </div>
     </div>
   `).join('');
