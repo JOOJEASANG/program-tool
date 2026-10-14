@@ -326,6 +326,8 @@
         mm2px,
         useHi,
         outputPageIndex,
+        repeated = false,
+        totalOutputPages = 1,
       ) {
         const { pw, ph, gp } = patchedGetSettings();
         const resolvedOutputIndex = Number.isInteger(outputPageIndex) ? outputPageIndex : pageIdx;
@@ -380,6 +382,13 @@
           const cellY = (margins.top + row * (cellH + layoutGap)) * mm2px;
           const source = getPageSrc(groupPages[sourceIndex], mm2px, useHi);
           drawPageInCell(context, source, cellX, cellY, cellW * mm2px, cellH * mm2px);
+          if (repeated) {
+            const overlay = document.createElement('canvas');
+            overlay.width = Math.max(1, Math.round(cellW * mm2px));
+            overlay.height = Math.max(1, Math.round(cellH * mm2px));
+            applyDocEdits(overlay, resolvedOutputIndex, totalOutputPages, mm2px);
+            context.drawImage(overlay, cellX, cellY, cellW * mm2px, cellH * mm2px);
+          }
         }
         return output;
       };
@@ -387,7 +396,12 @@
       const patchedBuildAllPages = async function independentMarginAllPages(mm2px, useHi, overridePages) {
         const active = overridePages || parsedPages.filter((page) => !page.excluded);
         const output = [];
-        for (const group of groupByNup(active)) {
+        const groups = groupByNup(active);
+        const totalOutputPages = groups.reduce((total, group) => {
+          const layout = getLayout(group.n);
+          return total + Math.ceil(group.pages.length / (layout.cols * layout.rows));
+        }, 0);
+        for (const group of groups) {
           const { cols, rows } = getLayout(group.n);
           const perPage = cols * rows;
           for (let pageIndex = 0; pageIndex < Math.ceil(group.pages.length / perPage); pageIndex += 1) {
@@ -399,11 +413,15 @@
               mm2px,
               useHi,
               output.length,
+              !!group.repeated,
+              totalOutputPages,
             ));
             await new Promise((resolve) => setTimeout(resolve, 0));
           }
         }
+        const repeated = !!window.PdfEditorNupRepeat?.enabled?.();
         output.forEach((canvas, index) => {
+          if (repeated) return; // Repeated sheets already have per-cell overlays.
           try { applyDocEdits(canvas, index, output.length, mm2px); }
           catch (error) { console.warn('[pdf-margin] document overlay failed', index, error); }
         });
