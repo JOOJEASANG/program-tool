@@ -1624,11 +1624,25 @@ function getDividerContent() {
 function updateDividerPreview() {
   const canvas = $('dividerPrevCanvas');
   const wrap = canvas.parentElement;
-  const w = wrap.clientWidth || 300;
-  const h = Math.round(w / 0.707);
-  canvas.width = w; canvas.height = h;
-  const tmp = renderDividerCanvas(getDividerContent(), w, h);
-  canvas.getContext('2d').drawImage(tmp, 0, 0);
+  const width = Math.max(180, wrap.clientWidth || 300);
+  const { pw, ph, mh, mv, gp } = getSettings();
+  const repeat = window.PdfEditorNupRepeat;
+  const count = repeat?.enabled?.() ? Math.max(1, Math.floor(Number(repeat.count?.()) || 1)) : 1;
+  const n = count > 1 ? (Number(repeat.layoutForCount?.(count)) || count) : 1;
+  const { cols, rows } = getLayout(NUP_LAYOUTS[n] ? n : 2);
+  const height = Math.round(width * ph / pw);
+  canvas.width = width; canvas.height = height;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, width, height);
+  const scale = width / pw;
+  const cellW = (pw - 2 * mh - gp * (cols - 1)) / cols;
+  const cellH = (ph - 2 * mv - gp * (rows - 1)) / rows;
+  const src = renderDividerCanvas(getDividerContent(), Math.round(Math.min(pw, ph) * scale), Math.round(Math.max(pw, ph) * scale));
+  for (let i = 0; i < count; i++) {
+    const col = orderLR ? i % cols : Math.floor(i / rows);
+    const row = orderLR ? Math.floor(i / cols) : i % rows;
+    drawPageInCell(ctx, src, (mh + col * (cellW + gp)) * scale, (mv + row * (cellH + gp)) * scale, cellW * scale, cellH * scale, scale);
+  }
 }
 
 ['dividerTitle','dividerSubtitle','dividerNote'].forEach(id =>
@@ -1904,6 +1918,12 @@ function showNupPopup(btn, page) {
 // ── Group pages by N-up ───────────────────────────────────────────────
 function groupByNup(pages) {
   if (!pages.length) return [];
+  const repeat = window.PdfEditorNupRepeat;
+  if (repeat?.enabled?.()) {
+    const count = Math.max(1, Math.floor(Number(repeat.count?.()) || 1));
+    const n = Number(repeat.layoutForCount?.(count)) || count;
+    return pages.map(page => ({ n: NUP_LAYOUTS[n] ? n : 2, pages: Array(count).fill(page), repeated: true }));
+  }
   const groups = [];
   for (const page of pages) {
     if (page.nupDisabled) {
@@ -1998,12 +2018,12 @@ function drawPageInCell(ctx, src, cellX, cellY, cellW, cellH, mm2px = 1) {
 function getPageSrc(page, mm2px, useHi) {
   if (page.pageType === 'divider') {
     const { pw, ph } = getSettings();
-    return renderDividerCanvas(page.dividerContent, Math.round(pw * mm2px), Math.round(ph * mm2px));
+    return renderDividerCanvas(page.dividerContent, Math.round(Math.min(pw, ph) * mm2px), Math.round(Math.max(pw, ph) * mm2px));
   }
   if (page.pageType === 'blank') {
     const { pw, ph } = getSettings();
     const c = document.createElement('canvas');
-    c.width = Math.round(pw * mm2px); c.height = Math.round(ph * mm2px);
+    c.width = Math.round(Math.min(pw, ph) * mm2px); c.height = Math.round(Math.max(pw, ph) * mm2px);
     c.getContext('2d').fillStyle = '#fff';
     c.getContext('2d').fillRect(0, 0, c.width, c.height);
     return c;
@@ -2012,7 +2032,7 @@ function getPageSrc(page, mm2px, useHi) {
 }
 
 // ── Build one output page ─────────────────────────────────────────────
-function buildOutputPage(groupPages, pageIdx, cols, rows, mm2px, useHi) {
+function buildOutputPage(groupPages, pageIdx, cols, rows, mm2px, useHi, repeated = false, outputIdx = 0, totalPages = 1) {
   const { pw, ph, mh, mv, gp } = getSettings();
   const perPage = cols * rows;
   const cellW = (pw - mh * 2 - gp * (cols - 1)) / cols;
@@ -2030,7 +2050,14 @@ function buildOutputPage(groupPages, pageIdx, cols, rows, mm2px, useHi) {
     else          { col = Math.floor(s / rows); row = s % rows; }
     const cellX = (mh + col * (cellW + gp)) * mm2px;
     const cellY = (mv + row * (cellH + gp)) * mm2px;
-    const src = getPageSrc(groupPages[idx], mm2px, useHi);
+    let src = getPageSrc(groupPages[idx], mm2px, useHi);
+    if (repeated) {
+      const decorated = document.createElement('canvas');
+      decorated.width = src.width; decorated.height = src.height;
+      decorated.getContext('2d').drawImage(src, 0, 0);
+      applyDocEdits(decorated, outputIdx, totalPages, src.width / Math.min(getSettings().pw, getSettings().ph));
+      src = decorated;
+    }
     drawPageInCell(ctx, src, cellX, cellY, cellW * mm2px, cellH * mm2px, mm2px);
   }
   return out;
@@ -2188,7 +2215,8 @@ function updateBookletPadInfo() {
 async function buildAllPages(mm2px, useHi, overridePages = null) {
   const active = overridePages || parsedPages.filter(p => !p.excluded);
   const out = [];
-  const bookletPreview = overridePages !== null && isBookletLayoutActive(nup);
+  const repeatMode = !!window.PdfEditorNupRepeat?.enabled?.();
+  const bookletPreview = !repeatMode && overridePages !== null && isBookletLayoutActive(nup);
   if (bookletPreview) {
     const { cols, rows } = getBookletLayout(nup);
     const perPage = cols * rows;
@@ -2198,17 +2226,19 @@ async function buildAllPages(mm2px, useHi, overridePages = null) {
     }
   } else {
     const groups = groupByNup(active);
+    const totalOutput = groups.reduce((sum, grp) => { const { cols, rows } = getLayout(grp.n); return sum + Math.ceil(grp.pages.length / (cols * rows)); }, 0);
     for (const grp of groups) {
       const { cols, rows } = getLayout(grp.n);
       const perPage = cols * rows;
       for (let p = 0; p < Math.ceil(grp.pages.length / perPage); p++) {
-        out.push(buildOutputPage(grp.pages, p, cols, rows, mm2px, useHi));
+        out.push(buildOutputPage(grp.pages, p, cols, rows, mm2px, useHi, !!grp.repeated, out.length, totalOutput));
         await new Promise(r => setTimeout(r, 0));
       }
     }
   }
   // Apply doc edits (a single page failing must not wipe the whole preview)
   out.forEach((canvas, idx) => {
+    if (repeatMode) return;
     try { applyDocEdits(canvas, idx, out.length, mm2px); }
     catch (e) { console.warn('[preview] applyDocEdits failed on page', idx, e); }
   });
