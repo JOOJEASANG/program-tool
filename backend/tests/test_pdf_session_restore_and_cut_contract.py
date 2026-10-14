@@ -14,7 +14,7 @@ def test_editor_restores_sessions_without_resurrecting_deleted_pages():
     for marker in (
         "fileNames: uploadedFiles.map(file => file.name)",
         "if (!savedPages.length)",
-        "const p = usedKeys.has(key) ? { ...source, id: makeId() } : source",
+        "const p = { ...source, id: usedKeys.has(key) ? makeId() : source.id }",
         "const prevParsedPages = parsedPages",
         "parsedPages = prevParsedPages",
         "if (lightweight) await pdfDoc.destroy?.()",
