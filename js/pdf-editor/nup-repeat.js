@@ -289,6 +289,7 @@
           repeatCount = normalizeRepeatCount(saved?.repeatSamePageCount || repeatCount);
         } catch (_) {}
         const result = await originalLoadEditorSession.call(this, data, ...rest);
+        if (result === false) return false;
         setRepeatCount(repeatCount, { schedule: false, persist: true });
         setEnabled(repeat, { schedule: false, persist: true });
         if (typeof schedulePreview === 'function') schedulePreview(80);

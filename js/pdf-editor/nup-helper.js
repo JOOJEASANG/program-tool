@@ -338,6 +338,7 @@
 
     const loadWithBookletGuide = async function loadWithBookletGuide(data, documentId) {
       const result = await originalLoad.apply(this, arguments);
+      if (result === false) return false;
       try {
         const state = typeof data?.state === 'string' ? JSON.parse(data.state) : (data?.state || {});
         const select = byId('bookletFlipSelectV2');

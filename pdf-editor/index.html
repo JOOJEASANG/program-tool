@@ -1139,9 +1139,10 @@ async function loadEditorSession(d, docId) {
       }
     }
 
-    // Append any rendered pages not referenced in savedPages (fallback for older sessions)
-    for (const [key, p] of renderedMap) {
-      if (!usedKeys.has(key)) parsedPages.push(p);
+    // Do not resurrect pages the user deleted before saving. Only sessions
+    // from the old format without a page manifest need the full-source fallback.
+    if (!savedPages.length) {
+      for (const p of renderedMap.values()) parsedPages.push(p);
     }
     if (!parsedPages.length) throw new Error('복원할 편집 페이지가 없습니다.');
 

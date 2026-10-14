@@ -183,12 +183,9 @@
   function updateFacingNote() {
     const note = $('pdfMarginFacingNoteV2');
     if (!note) return;
-    const cutNote = window.PdfEditorNupRepeat?.enabled?.()
-      ? ' 반복배치에서는 재단 후 각각의 인쇄물에 상·하·좌·우 여백을 동일하게 적용합니다.'
-      : '';
-    note.textContent = (facingEnabled()
+    note.textContent = facingEnabled()
       ? '양면 마주보기 사용 중: 짝수 출력면은 좌·우 여백을 자동으로 서로 바꿉니다.'
-      : '양면 마주보기를 켜면 짝수 출력면의 좌·우 여백이 자동으로 서로 바뀝니다.') + cutNote;
+      : '양면 마주보기를 켜면 짝수 출력면의 좌·우 여백이 자동으로 서로 바뀝니다.';
   }
 
   function installMarginUi() {
@@ -342,8 +339,7 @@
         let margins = layoutMargins(resolvedOutputIndex);
         // In repeat mode each cut-out tile is an independent print. Margins
         // apply inside EACH half/quarter rather than only at paper edges.
-        let layoutGap = gp;
-        if (repeated) layoutGap = 0;
+        let layoutGap = repeated ? 0 : gp;
         const cutWidth = pw / cols;
         const cutHeight = ph / rows;
         let usableWidth = repeated
@@ -529,6 +525,7 @@
         let previousPages = null;
         try { previousPages = parsedPages; } catch (_) {}
         const result = await originalLoad.apply(this, arguments);
+        if (result === false) return false;
         let loaded = false;
         try { loaded = Array.isArray(parsedPages) && parsedPages !== previousPages; } catch (_) {}
         if (loaded) {
