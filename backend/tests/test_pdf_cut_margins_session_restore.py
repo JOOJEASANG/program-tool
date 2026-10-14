@@ -43,7 +43,7 @@ def test_repeat_cut_margin_geometry_is_shared_by_preview_and_export():
     for marker in (
         "const cutWidth = pw / cols",
         "const cutHeight = ph / rows",
-        "repeated ? 0 : gp",
+        "if (repeated) layoutGap = 0;",
         "cutWidth - margins.left - margins.right",
         "cutHeight - margins.top - margins.bottom",
         "context.drawImage(overlay, cutX * mm2px, cutY * mm2px,",

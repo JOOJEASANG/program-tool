@@ -43,6 +43,7 @@ const context = {
   setTimeout(){},
   confirm(){return true;},
   document:{
+    getElementById:element,
     createElement() {return {style:{},dataset:{},setAttribute(){},remove(){this.removed=true;}};},
     querySelectorAll(){return [];},
     querySelector(){return null;}
