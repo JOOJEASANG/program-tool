@@ -543,7 +543,11 @@
           머리말/꼬리말 표시
         </label>
         <div id="hfSettings" style="display:none;">
-          <div class="hf-var-hint">변수: {n}=페이지번호 · {total}=전체 · {date}=날짜<br>구간을 추가하면 해당 페이지에는 구간 설정이 우선 적용됩니다.</div>
+          <div class="hf-var-hint">출력 캔버스(완성 PDF의 페이지) 기준으로 적용합니다. 예: 3페이지부터 표시하면 1~2페이지에는 표시하지 않습니다.<br>변수: {n}=적용 첫 페이지부터 1 · {total}=적용 구간 페이지 수 · {date}=날짜. 아래 구간별 문구는 지정한 범위 안에서만 적용됩니다.</div>
+          <div class="grid2">
+            <div class="field"><label for="hfStartPage">적용 시작 캔버스</label><input type="number" id="hfStartPage" value="1" min="1" max="1000000" step="1"></div>
+            <div class="field"><label for="hfEndPage">적용 끝 캔버스 (선택)</label><input type="number" id="hfEndPage" placeholder="마지막까지" min="1" max="1000000" step="1"></div>
+          </div>
 
           <!-- Default section (전체 페이지) -->
           <div class="hf-section-card">
@@ -611,12 +615,17 @@
             </select>
           </div>
           <div class="grid2">
-            <div class="field"><label>시작 번호</label><input type="number" id="pnStart" value="1" min="0" max="999"></div>
+            <div class="field"><label>첫 표시 번호</label><input type="number" id="pnStart" value="1" min="0" max="999"></div>
             <div class="field"><label>글자크기(pt)</label><input type="number" id="pnFontSize" value="10" min="6" max="18"></div>
           </div>
           <div class="grid2">
             <div class="field"><label>색상</label><input type="color" id="pnColor" value="#333333"></div>
           </div>
+          <div class="grid2">
+            <div class="field"><label for="pnStartPage">적용 시작 캔버스</label><input type="number" id="pnStartPage" value="1" min="1" max="1000000" step="1"></div>
+            <div class="field"><label for="pnEndPage">적용 끝 캔버스 (선택)</label><input type="number" id="pnEndPage" placeholder="마지막까지" min="1" max="1000000" step="1"></div>
+          </div>
+          <div class="hf-var-hint">출력 캔버스 기준 · 예: 시작 3 / 첫 표시 번호 1 → 1~2페이지 번호 없음, 3페이지에 1쪽. 끝을 비우면 마지막까지 적용합니다.</div>
           <label class="checkline">
             <input type="checkbox" id="pnExcludeFirst">
             첫 페이지 번호 제외 (표지)
@@ -850,10 +859,10 @@ function collectEditorState() {
     fileNupMap,
     wmEnabled, wmText, wmOpacity, wmAngle, wmColor,
     hfEnabled, hfHL, hfHC, hfHR, hfFL, hfFC, hfFR,
-    hfFontSize, hfColor, hfApplyTo,
+    hfFontSize, hfColor, hfApplyTo, hfStartPage, hfEndPage,
     hfMarginMm: parseFloat($('hfMarginMm')?.value) || 5,
     hfSections,
-    pnEnabled, pnPosition, pnFormat, pnStart,
+    pnEnabled, pnPosition, pnFormat, pnStart, pnStartPage, pnEndPage,
     pnFontSize, pnColor, pnExcludeFirst, pnApplyTo,
     pnMarginMm: parseFloat($('pnMarginMm')?.value) || 5,
     facingPages,
@@ -1090,10 +1099,18 @@ async function loadEditorSession(d, docId) {
     hfFL = state.hfFL ?? ''; hfFC = state.hfFC ?? ''; hfFR = state.hfFR ?? '';
     hfFontSize = state.hfFontSize ?? 9; hfColor = state.hfColor ?? '#555555';
     hfApplyTo = state.hfApplyTo ?? 'all'; hfSections = state.hfSections ?? [];
+    hfStartPage = Math.max(1, Math.trunc(Number(state.hfStartPage) || 1));
+    hfEndPage = Number.isInteger(Number(state.hfEndPage)) && Number(state.hfEndPage) >= 1 ? Number(state.hfEndPage) : null;
+    $('hfStartPage').value = hfStartPage;
+    $('hfEndPage').value = hfEndPage ?? '';
     hfMarginMm = state.hfMarginMm ?? 5;
     if ($('hfMarginMm')) $('hfMarginMm').value = hfMarginMm;
     pnEnabled = state.pnEnabled ?? false; pnPosition = state.pnPosition ?? 'bottom-center';
     pnFormat = state.pnFormat ?? 'number'; pnStart = state.pnStart ?? 1;
+    pnStartPage = Math.max(1, Math.trunc(Number(state.pnStartPage) || 1));
+    pnEndPage = Number.isInteger(Number(state.pnEndPage)) && Number(state.pnEndPage) >= 1 ? Number(state.pnEndPage) : null;
+    $('pnStartPage').value = pnStartPage;
+    $('pnEndPage').value = pnEndPage ?? '';
     pnFontSize = state.pnFontSize ?? 10; pnColor = state.pnColor ?? '#333333';
     pnExcludeFirst = state.pnExcludeFirst ?? false; pnApplyTo = state.pnApplyTo ?? 'all';
     pnMarginMm = state.pnMarginMm ?? 5;
@@ -1204,14 +1221,14 @@ let wmEnabled = false, wmText = '사본', wmOpacity = 0.15, wmAngle = -45, wmCol
 let hfEnabled = false;
 let hfHL = '', hfHC = '', hfHR = '', hfFL = '', hfFC = '', hfFR = '';
 let hfFontSize = 9, hfColor = '#555555';
-let hfApplyTo = 'all', hfMarginMm = 5;
+let hfApplyTo = 'all', hfMarginMm = 5, hfStartPage = 1, hfEndPage = null;
 // Per-range HF sections: [{ranges, header_left, header_center, header_right, footer_left, footer_center, footer_right}]
 let hfSections = [];
 let _hfSecId = 1;
 // Page number
 let pnEnabled = false, pnPosition = 'bottom-center', pnFormat = 'number';
 let pnStart = 1, pnFontSize = 10, pnColor = '#333333', pnExcludeFirst = false;
-let pnApplyTo = 'all', pnMarginMm = 5, facingPages = false;
+let pnApplyTo = 'all', pnMarginMm = 5, facingPages = false, pnStartPage = 1, pnEndPage = null;
 
 function makeId() { return _nextId++; }
 
@@ -2130,6 +2147,13 @@ function buildOutputPage(groupPages, pageIdx, cols, rows, mm2px, useHi, repeated
   return out;
 }
 
+// Canvas page numbers are one-based physical output sheets, not source PDF pages.
+function canvasOverlayRange(start, end, totalPages, excludeFirst = false) {
+  const first = Math.max(1, Math.trunc(Number(start) || 1), excludeFirst ? 2 : 1);
+  const last = end == null ? totalPages : Math.min(totalPages, Math.trunc(Number(end) || 0));
+  return { first, last, count: Math.max(0, last - first + 1) };
+}
+
 // ── Apply doc edits overlay ───────────────────────────────────────────
 function applyDocEdits(canvas, outputIdx, totalPages, mm2px) {
   const ctx = canvas.getContext('2d');
@@ -2140,15 +2164,17 @@ function applyDocEdits(canvas, outputIdx, totalPages, mm2px) {
   const isOddPage = outputIdx % 2 === 0;
   const isMirror = facingPages && !isOddPage;
 
-  // Visible page number (accounting for excluded first)
-  const visibleNum = (pnExcludeFirst && outputIdx === 0)
-    ? null
-    : outputIdx + pnStart - (pnExcludeFirst ? 1 : 0);
+  const canvasPage = outputIdx + 1;
+  const pnRange = canvasOverlayRange(pnStartPage, pnEndPage, totalPages, pnExcludeFirst);
+  const hfRange = canvasOverlayRange(hfStartPage, hfEndPage, totalPages);
+  const pnInRange = canvasPage >= pnRange.first && canvasPage <= pnRange.last;
+  const hfInRange = canvasPage >= hfRange.first && canvasPage <= hfRange.last;
+  const visibleNum = pnInRange ? canvasPage - pnRange.first + pnStart : null;
 
   function resolveVars(text) {
     return text
-      .replace(/\{n\}/g, visibleNum !== null ? String(visibleNum) : '')
-      .replace(/\{total\}/g, String(totalPages))
+      .replace(/\{n\}/g, String(canvasPage - hfRange.first + 1))
+      .replace(/\{total\}/g, String(hfRange.count))
       .replace(/\{date\}/g, today);
   }
 
@@ -2187,9 +2213,22 @@ function applyDocEdits(canvas, outputIdx, totalPages, mm2px) {
     ctx.restore();
   }
 
-  if (hfEnabled && hfShouldApply) {
-    if (hfHL || hfHC || hfHR) drawHFLine(hfMarginPx, hfHL, hfHC, hfHR);
-    if (hfFL || hfFC || hfFR) drawHFLine(h - hfMarginPx, hfFL, hfFC, hfFR);
+  if (hfEnabled && hfShouldApply && hfInRange) {
+    const inSection = ranges => String(ranges || '').split(',').some(part => {
+      const match = part.trim().match(/^(\d+)(?:\s*-\s*(\d+))?$/);
+      if (!match) return false;
+      const start = Number(match[1]), end = Number(match[2] || match[1]);
+      return canvasPage >= Math.min(start, end) && canvasPage <= Math.max(start, end);
+    });
+    const section = [...hfSections].reverse().find(item => inSection(item.ranges));
+    const fields = section || {
+      header_left: hfHL, header_center: hfHC, header_right: hfHR,
+      footer_left: hfFL, footer_center: hfFC, footer_right: hfFR,
+    };
+    if (fields.header_left || fields.header_center || fields.header_right)
+      drawHFLine(hfMarginPx, fields.header_left, fields.header_center, fields.header_right);
+    if (fields.footer_left || fields.footer_center || fields.footer_right)
+      drawHFLine(h - hfMarginPx, fields.footer_left, fields.footer_center, fields.footer_right);
   }
 
   // PN apply-to check
@@ -2200,7 +2239,7 @@ function applyDocEdits(canvas, outputIdx, totalPages, mm2px) {
   // Page number
   if (pnEnabled && pnShouldApply && visibleNum !== null) {
     let numText;
-    const total2 = pnExcludeFirst ? totalPages - 1 : totalPages;
+    const total2 = pnRange.count;
     if (pnFormat === 'number')    numText = String(visibleNum);
     else if (pnFormat === 'dash') numText = `- ${visibleNum} -`;
     else                          numText = `${visibleNum} / ${total2 + pnStart - 1}`;
@@ -2620,6 +2659,8 @@ $('downloadBtn').addEventListener('click', async () => {
         font_size: hfFontSize,
         color: hfColor,
         apply_to: hfApplyTo,
+        start_page: hfStartPage,
+        end_page: hfEndPage,
         margin_mm: parseFloat($('hfMarginMm').value) || 5,
         sections: hfSections.map(s => ({
           ranges: s.ranges || '',
@@ -2636,6 +2677,8 @@ $('downloadBtn').addEventListener('click', async () => {
         color: pnColor,
         exclude_first: pnExcludeFirst,
         apply_to: pnApplyTo,
+        start_page: pnStartPage,
+        end_page: pnEndPage,
         margin_mm: parseFloat($('pnMarginMm').value) || 5,
       },
       facing_pages: facingPages,
@@ -2775,6 +2818,19 @@ $('hfFontSize').addEventListener('input', () => { hfFontSize = parseFloat($('hfF
 $('hfColor').addEventListener('input', () => { hfColor = $('hfColor').value; schedulePreview(500); });
 $('hfMarginMm').addEventListener('input', () => { hfMarginMm = parseFloat($('hfMarginMm').value) || 5; schedulePreview(500); });
 $('hfApplyTo').addEventListener('change', () => { hfApplyTo = $('hfApplyTo').value; schedulePreview(300); });
+function bindCanvasPageRange(prefix, update) {
+  const first = $(prefix + 'StartPage');
+  const last = $(prefix + 'EndPage');
+  const sync = () => {
+    const start = Math.max(1, Math.trunc(Number(first.value) || 1));
+    const end = last.value.trim() === '' ? null : Math.max(1, Math.trunc(Number(last.value) || 1));
+    last.setCustomValidity(end !== null && end < start ? '끝 페이지는 시작 페이지보다 작을 수 없습니다.' : '');
+    update(start, end);
+    schedulePreview(300);
+  };
+  [first, last].forEach(input => input.addEventListener('input', sync));
+}
+bindCanvasPageRange('hf', (start, end) => { hfStartPage = start; hfEndPage = end; });
 
 // HF Sections (per-range overrides)
 function renderHfSections() {
@@ -2810,13 +2866,14 @@ function renderHfSections() {
     const sid = +card.dataset.sid;
     const sec = hfSections.find(x => x._id === sid);
     if (!sec) return;
-    card.querySelector('.hf-range-input').addEventListener('input', e => { sec.ranges = e.target.value; });
+    card.querySelector('.hf-range-input').addEventListener('input', e => { sec.ranges = e.target.value; schedulePreview(500); });
     card.querySelectorAll('input[data-fld]').forEach(inp => {
-      inp.addEventListener('input', e => { sec[e.target.dataset.fld] = e.target.value; });
+      inp.addEventListener('input', e => { sec[e.target.dataset.fld] = e.target.value; schedulePreview(500); });
     });
     card.querySelector('.hf-section-del').addEventListener('click', () => {
       hfSections = hfSections.filter(x => x._id !== sid);
       renderHfSections();
+      schedulePreview(300);
     });
   });
 }
@@ -2829,6 +2886,7 @@ $('hfAddSectionBtn').addEventListener('click', () => {
     footer_left: '', footer_center: '', footer_right: '',
   });
   renderHfSections();
+  schedulePreview(300);
 });
 
 // PN controls
@@ -2852,6 +2910,7 @@ $('pnColor').addEventListener('input', () => { pnColor = $('pnColor').value; sch
 $('pnExcludeFirst').addEventListener('change', () => { pnExcludeFirst = $('pnExcludeFirst').checked; schedulePreview(300); });
 $('pnMarginMm').addEventListener('input', () => { pnMarginMm = parseFloat($('pnMarginMm').value) || 5; schedulePreview(500); });
 $('pnApplyTo').addEventListener('change', () => { pnApplyTo = $('pnApplyTo').value; schedulePreview(300); });
+bindCanvasPageRange('pn', (start, end) => { pnStartPage = start; pnEndPage = end; });
 $('facingPages').addEventListener('change', () => { facingPages = $('facingPages').checked; schedulePreview(300); });
 document.getElementById('bookletCheck')?.addEventListener('change', () => { updateBookletPadInfo(); updateActualSizeUi(); schedulePreview(); });
 

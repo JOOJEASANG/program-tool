@@ -80,7 +80,10 @@
       excludeFirst = !!$('pnExcludeFirst')?.checked;
       applyTo = String($('pnApplyTo')?.value || 'all');
     }
-    if (excludeFirst && index === 0) return false;
+    const first = Math.max(1, Math.trunc(Number($('pnStartPage')?.value) || 1), excludeFirst ? 2 : 1);
+    const endRaw = $('pnEndPage')?.value?.trim();
+    const last = endRaw ? Math.trunc(Number(endRaw)) : Infinity;
+    if (index + 1 < first || index + 1 > last) return false;
     const isOddPage = index % 2 === 0;
     return applyTo === 'all'
       || (applyTo === 'odd' && isOddPage)
@@ -254,7 +257,7 @@
       checkbox.dataset.layoutReserveBoundV8 = 'true';
       checkbox.addEventListener('change', requestPreview);
     }
-    ['pnEnabled', 'pnMarginMm', 'pnFontSize', 'pnApplyTo', 'pnExcludeFirst'].forEach((id) => {
+    ['pnEnabled', 'pnMarginMm', 'pnFontSize', 'pnApplyTo', 'pnExcludeFirst', 'pnStartPage', 'pnEndPage'].forEach((id) => {
       const input = $(id);
       if (!input || input.dataset.layoutReserveInputBoundV8) return;
       input.dataset.layoutReserveInputBoundV8 = 'true';
