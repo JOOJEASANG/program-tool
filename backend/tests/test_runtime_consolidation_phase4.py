@@ -20,7 +20,7 @@ def test_pdf_loader_is_enhancement_bootstrap_and_core_manifest_owns_eight_module
     loader = executable_text("js/pdf-editor/loader.js")
     core = text("js/pdf-editor/core-runtime.js")
 
-    assert "/js/pdf-editor/core-runtime.js?v=20260914-2" in loader
+    assert "/js/pdf-editor/core-runtime.js?v=20261014-1" in loader
     assert "pdf-editor-enhancement-bootstrap-v19" in loader
     assert "const MODULES" not in loader
     assert "MODULES.forEach(loadScript)" not in loader
@@ -44,7 +44,7 @@ def test_pdf_loader_is_enhancement_bootstrap_and_core_manifest_owns_eight_module
 def test_pdf_route_manifest_owns_route_helpers_without_editor_state_takeover():
     route = text("js/pdf-editor/route-runtime.js")
     assert route.count("{id:") == 22
-    assert "/js/pdf-editor/page-selection-preview-focus.js?v=20260914-2" in route
+    assert "/js/pdf-editor/page-selection-preview-focus.js?v=20261014-1" in route
     assert "app:'layout'" in route
     assert "/js/pdf-editor/layout-smooth-preview.js?v=20260909-1" in route
     assert "/js/pdf-editor/preview-insert-persistence.js?v=20260914-3" in route
