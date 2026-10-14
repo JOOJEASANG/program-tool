@@ -108,8 +108,8 @@ vm.runInContext(loader,context,{filename:'loadEditorSession.js'});
     }),
   };
   assert.equal(await context.loadEditorSession(data,'sess'),true);
-  assert.equal(context.parsedPages.length,5);
-  assert.deepEqual(context.parsedPages.map(p=>p.pageType),['pdf','pdf','pdf','blank','pdf']);
+  assert.equal(context.parsedPages.length,6);
+  assert.deepEqual(context.parsedPages.map(p=>p.pageType),['pdf','pdf','pdf','blank','pdf','pdf']);
   assert.deepEqual(context.parsedPages.slice(0,3).map(p=>[p.file_index,p.page_index]),[[1,1],[0,0],[1,1]]);
   assert.notEqual(context.parsedPages[0].id,context.parsedPages[2].id);
   assert.deepEqual(context.uploadedFiles.map(f=>f.name),['A.pdf','B.pdf']);
