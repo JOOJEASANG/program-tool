@@ -71,7 +71,7 @@ def test_export_guard_and_session_controls_cover_pdf_layout_options():
     assert "$('pnEnabled').checked = pnEnabled" in page
     assert "invalidRange = ['pn', 'hf']" in page
     assert "repeatMode) return" in (ROOT / "js/pdf-editor/layout-export.js").read_text(encoding="utf-8")
-    assert "layout-export.js?v=20261014-3" in core
+    assert "layout-export.js?v=20261014-4" in core
     assert "rangeLabel('pn')" in save_summary
     assert "rangeLabel('hf')" in save_summary
 

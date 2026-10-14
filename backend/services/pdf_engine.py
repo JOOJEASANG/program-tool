@@ -32,6 +32,9 @@ class _PageLayout:
     cell_w: float
     cell_h: float
     cell_rects: tuple[fitz.Rect, ...]
+    # In repeat-cut mode every tile is an independent trimmed sheet. The
+    # content rectangles are inset within these full physical tile rectangles.
+    tile_rects: tuple[fitz.Rect, ...] = ()
 
 
 def _margin_value(request, name: str, legacy_name: str, fallback: float) -> float:
@@ -173,6 +176,52 @@ def _build_page_layout(
         )
 
     return _PageLayout(cols, rows, cell_w, cell_h, tuple(rects))
+
+
+def _build_repeat_cut_layout(
+    effective_nup: int,
+    paper_w_pt: float,
+    paper_h_pt: float,
+    margins: tuple[float, float, float, float],
+    page_order: str = "row-major",
+) -> _PageLayout:
+    """Divide paper into equal cut pieces, then inset every piece separately.
+
+    Do not distribute the paper-level gap/margins across the full sheet.
+    Otherwise the two sides of a cut have different inside/outside spacing.
+    This is used only for same-page 2/4-up repeat, not normal N-UP/booklets.
+    """
+    cols, rows = pdf_ops.NUP_LAYOUT.get(effective_nup, (1, 1))
+    if paper_w_pt > paper_h_pt and cols != rows:
+        cols, rows = rows, cols
+
+    tile_w = paper_w_pt / cols
+    tile_h = paper_h_pt / rows
+    left, right, top, bottom = (float(value) for value in margins)
+    if tile_w - left - right <= 1 or tile_h - top - bottom <= 1:
+        # Preserve symmetry even when user-entered margins cannot physically
+        # fit a trimmed piece; mirror the preview's legacy-size fallback.
+        inset = max(0.0, min(pdf_ops.MARGIN_PT, (tile_w - 1) / 4, (tile_h - 1) / 4))
+        left = right = top = bottom = inset
+
+    cell_w = tile_w - left - right
+    cell_h = tile_h - top - bottom
+    content_rects: list[fitz.Rect] = []
+    tile_rects: list[fitz.Rect] = []
+    column_major = page_order == "column-major"
+    for slot in range(cols * rows):
+        col = slot // rows if column_major else slot % cols
+        row = slot % rows if column_major else slot // cols
+        tile_x = col * tile_w
+        tile_y = row * tile_h
+        tile_rects.append(fitz.Rect(
+            tile_x, tile_y, tile_x + tile_w, tile_y + tile_h,
+        ))
+        content_rects.append(fitz.Rect(
+            tile_x + left, tile_y + top,
+            tile_x + tile_w - right, tile_y + tile_h - bottom,
+        ))
+    return _PageLayout(cols, rows, cell_w, cell_h, tuple(content_rects), tuple(tile_rects))
 
 
 def _page_has_placement_adjustment(page_info) -> bool:
@@ -642,7 +691,7 @@ def _draw_repeated_cell_overlays(
             break
         if page_info.page_type == "blank":
             continue
-        target = layout.cell_rects[slot_idx]
+        target = layout.tile_rects[slot_idx] if layout.tile_rects else layout.cell_rects[slot_idx]
         cell_doc = fitz.open()
         try:
             cell = cell_doc.new_page(width=target.width, height=target.height)
@@ -725,23 +774,34 @@ def build_pdf_document(
                         else int(first.nup_override or request.nup_default)
                     )
                 )
-                cache_key = _layout_cache_key(
-                    effective_nup,
-                    content_margins,
-                    gap_pt,
-                    page_order,
-                    booklet_enabled,
+                repeat_cut = (
+                    bool(getattr(request, "repeat_cell_overlays", False))
+                    and not booklet_enabled
+                    and effective_nup in (2, 4)
+                )
+                cache_key = (
+                    *_layout_cache_key(
+                        effective_nup,
+                        content_margins,
+                        gap_pt,
+                        page_order,
+                        booklet_enabled,
+                    ),
+                    repeat_cut,
                 )
                 layout = layout_cache.get(cache_key)
                 if layout is None:
-                    layout = _build_page_layout(
-                        effective_nup,
-                        paper_w_pt,
-                        paper_h_pt,
-                        content_margins,
-                        gap_pt,
-                        page_order=page_order,
-                        booklet=booklet_enabled,
+                    layout = (
+                        _build_repeat_cut_layout(
+                            effective_nup, paper_w_pt, paper_h_pt,
+                            content_margins, page_order=page_order,
+                        )
+                        if repeat_cut
+                        else _build_page_layout(
+                            effective_nup, paper_w_pt, paper_h_pt,
+                            content_margins, gap_pt,
+                            page_order=page_order, booklet=booklet_enabled,
+                        )
                     )
                     layout_cache[cache_key] = layout
 

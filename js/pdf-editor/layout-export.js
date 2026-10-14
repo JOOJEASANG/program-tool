@@ -118,6 +118,26 @@
     return margins;
   }
 
+  // Repeat-cut geometry: split the actual paper at its centre first; each
+  // finished piece gets its own left/right/top/bottom margins. Ignore the
+  // usual inter-cell gap, which would shift the cut-side margins.
+  function repeatCutGeometry(pw, ph, cols, rows, configuredMargins) {
+    const tileW = pw / cols;
+    const tileH = ph / rows;
+    let margins = { ...configuredMargins };
+    if (tileW - margins.left - margins.right <= PT_TO_MM
+        || tileH - margins.top - margins.bottom <= PT_TO_MM) {
+      const inset = Math.max(0, Math.min(FALLBACK_MARGIN_MM,
+        (tileW - PT_TO_MM) / 4, (tileH - PT_TO_MM) / 4));
+      margins = { left: inset, right: inset, top: inset, bottom: inset };
+    }
+    return {
+      tileW, tileH, margins,
+      cellW: tileW - margins.left - margins.right,
+      cellH: tileH - margins.top - margins.bottom,
+    };
+  }
+
   function syncLegacyMargins() {
     const margins = marginValues();
     if ($('marginH')) $('marginH').value = String((margins.left + margins.right) / 2);
@@ -145,6 +165,7 @@
   function requestPreview() {
     syncLegacyMargins();
     updatePageNumberReserveHint();
+    if (typeof updateActualSizeUi === 'function') updateActualSizeUi();
     try {
       if (window.PdfLivePreview && typeof window.PdfLivePreview.request === 'function') {
         window.PdfLivePreview.request(180, false);
@@ -183,9 +204,17 @@
   function updateFacingNote() {
     const note = $('pdfMarginFacingNoteV2');
     if (!note) return;
-    note.textContent = facingEnabled()
-      ? '양면 마주보기 사용 중: 짝수 출력면은 좌·우 여백을 자동으로 서로 바꿉니다.'
-      : '양면 마주보기를 켜면 짝수 출력면의 좌·우 여백이 자동으로 서로 바뀝니다.';
+    const repeated = !!window.PdfEditorNupRepeat?.enabled?.();
+    const heading = $('individualPaperMarginsV2')?.querySelector('.pdf-margin-panel-head span');
+    if (heading) heading.textContent = repeated ? '재단 조각별 개별 여백 (mm)' : '용지 개별 여백 (mm)';
+    if (repeated) {
+      note.textContent = '반복배치: 각 재단 조각의 상·하·좌·우에 입력한 여백을 동일하게 적용합니다. 2개는 정확히 반으로, 4개는 정확히 4등분하며 일반 배치 간격은 사용하지 않습니다.'
+        + (facingEnabled() ? ' 마주보기 사용 시 짝수 출력면은 좌·우 값을 바꿉니다.' : '');
+    } else {
+      note.textContent = facingEnabled()
+        ? '양면 마주보기 사용 중: 짝수 출력면은 좌·우 여백을 자동으로 서로 바꿉니다.'
+        : '양면 마주보기를 켜면 짝수 출력면의 좌·우 여백이 자동으로 바뀝니다.';
+    }
   }
 
   function installMarginUi() {
@@ -338,9 +367,17 @@
           && pageNumberApplies(resolvedOutputIndex);
         let margins = layoutMargins(resolvedOutputIndex);
         let layoutGap = gp;
-        let usableWidth = pw - margins.left - margins.right - layoutGap * (cols - 1);
-        let usableHeight = ph - margins.top - margins.bottom - layoutGap * (rows - 1);
-        if (usableWidth <= 1 || usableHeight <= 1) {
+        const cut = repeated ? repeatCutGeometry(pw, ph, cols, rows, margins) : null;
+        let usableWidth = cut
+          ? cut.cellW * cols
+          : pw - margins.left - margins.right - layoutGap * (cols - 1);
+        let usableHeight = cut
+          ? cut.cellH * rows
+          : ph - margins.top - margins.bottom - layoutGap * (rows - 1);
+        if (cut) {
+          margins = cut.margins;
+          layoutGap = 0;
+        } else if (usableWidth <= 1 || usableHeight <= 1) {
           margins = {
             left: FALLBACK_MARGIN_MM,
             right: FALLBACK_MARGIN_MM,
@@ -364,6 +401,7 @@
         output.dataset.marginBottomMm = String(margins.bottom);
         output.dataset.gapMm = String(layoutGap);
         output.dataset.pageNumberAutoReserve = numberSpaceRequested ? 'true' : 'false';
+        output.dataset.repeatCutPieceMargins = cut ? 'true' : 'false';
         const context = output.getContext('2d');
         context.fillStyle = '#fff';
         context.fillRect(0, 0, output.width, output.height);
@@ -381,16 +419,26 @@
             column = Math.floor(slot / rows);
             row = slot % rows;
           }
-          const cellX = (margins.left + column * (cellW + layoutGap)) * mm2px;
-          const cellY = (margins.top + row * (cellH + layoutGap)) * mm2px;
+          const cellX = (cut
+            ? column * cut.tileW + margins.left
+            : margins.left + column * (cellW + layoutGap)) * mm2px;
+          const cellY = (cut
+            ? row * cut.tileH + margins.top
+            : margins.top + row * (cellH + layoutGap)) * mm2px;
           const source = getPageSrc(groupPages[sourceIndex], mm2px, useHi);
           drawPageInCell(context, source, cellX, cellY, cellW * mm2px, cellH * mm2px);
           if (repeated) {
             const overlay = document.createElement('canvas');
-            overlay.width = Math.max(1, Math.round(cellW * mm2px));
-            overlay.height = Math.max(1, Math.round(cellH * mm2px));
+            overlay.width = Math.max(1, Math.round((cut ? cut.tileW : cellW) * mm2px));
+            overlay.height = Math.max(1, Math.round((cut ? cut.tileH : cellH) * mm2px));
             applyDocEdits(overlay, resolvedOutputIndex, totalOutputPages, mm2px);
-            context.drawImage(overlay, cellX, cellY, cellW * mm2px, cellH * mm2px);
+            context.drawImage(
+              overlay,
+              cut ? column * cut.tileW * mm2px : cellX,
+              cut ? row * cut.tileH * mm2px : cellY,
+              (cut ? cut.tileW : cellW) * mm2px,
+              (cut ? cut.tileH : cellH) * mm2px,
+            );
           }
         }
         return output;
@@ -607,6 +655,8 @@
     pageNumberApplies,
     requiredPageNumberSpaceMm,
     pageNumberAutoReserveEnabled,
+    repeatCutGeometry,
+    refreshMarginGuide: updateFacingNote,
     applyStateMargins,
     endpointPath,
     refresh: requestPreview,
