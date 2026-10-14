@@ -752,6 +752,15 @@
       </div>
     </div>
     <div class="field">
+      <label>내용 회전</label>
+      <div class="style-row" id="dividerRotationRow">
+        <button type="button" class="style-btn active" data-rotation="0">0°</button>
+        <button type="button" class="style-btn" data-rotation="90">90°</button>
+        <button type="button" class="style-btn" data-rotation="180">180°</button>
+        <button type="button" class="style-btn" data-rotation="270">270°</button>
+      </div>
+    </div>
+    <div class="field">
       <label>텍스트 위치</label>
       <div class="style-row" id="dividerVAlignRow">
         <button class="style-btn" data-valign="top">상단</button>
@@ -1510,6 +1519,14 @@ function renderDividerCanvas(content, w, h) {
     ctx.fillRect(w * 0.93, 0, w * 0.07, h);
   }
 
+  // Rotate the divider content only, preserving page orientation and background.
+  const contentRotation = ((Number(content.textRotation) || 0) % 360 + 360) % 360;
+  ctx.save();
+  if (contentRotation) {
+    ctx.translate(w / 2, h / 2);
+    ctx.rotate(contentRotation * Math.PI / 180);
+    ctx.translate(-w / 2, -h / 2);
+  }
   const vAlign = content.textVAlign || 'center';
   const vOffsetPct = (content.textVOffset || 0) / 100;
   let baseY = vAlign === 'top' ? h * 0.22 : vAlign === 'bottom' ? h * 0.78 : h * 0.5;
@@ -1565,6 +1582,7 @@ function renderDividerCanvas(content, w, h) {
     ctx.fillText(content.note, w/2, h * 0.88);
     ctx.globalAlpha = 1;
   }
+  ctx.restore();
   return c;
 }
 
@@ -1607,6 +1625,17 @@ function insertAfterLastSelected(page) {
 }
 
 // ── Divider modal ─────────────────────────────────────────────────────
+let _dividerRotation = 0;
+function setDividerRotation(degrees) {
+  _dividerRotation = [0, 90, 180, 270].includes(Number(degrees)) ? Number(degrees) : 0;
+  document.querySelectorAll('#dividerRotationRow [data-rotation]').forEach(btn => {
+    btn.classList.toggle('active', Number(btn.dataset.rotation) === _dividerRotation);
+  });
+  updateDividerPreview();
+}
+document.querySelectorAll('#dividerRotationRow [data-rotation]').forEach(btn => {
+  btn.addEventListener('click', () => setDividerRotation(btn.dataset.rotation));
+});
 function getDividerContent() {
   return {
     title: $('dividerTitle').value,
@@ -1617,6 +1646,7 @@ function getDividerContent() {
     style: _dividerStyle,
     noBg: $('dividerNoBg').checked,
     textVAlign: _dividerVAlign,
+    textRotation: _dividerRotation,
     textVOffset: parseInt($('dividerVOffset').value, 10) || 0,
   };
 }
@@ -1709,6 +1739,7 @@ function editDivider(page) {
   $('dividerNoBg').checked = !!c.noBg;
   _dividerStyle = c.style || 'simple';
   document.querySelectorAll('.style-btn').forEach(b => b.classList.toggle('active', b.dataset.style === _dividerStyle));
+  setDividerRotation(c.textRotation ?? 0);
   _dividerVAlign = c.textVAlign || 'center';
   document.querySelectorAll('[data-valign]').forEach(b => b.classList.toggle('active', b.dataset.valign === _dividerVAlign));
   $('dividerVOffset').value = c.textVOffset ?? 0;
@@ -1733,6 +1764,7 @@ function openDividerInsert(spliceIdx) {
   $('dividerNoBg').checked = false;
   _dividerStyle = 'simple';
   document.querySelectorAll('.style-btn').forEach(b => b.classList.toggle('active', b.dataset.style === 'simple'));
+  setDividerRotation(0);
   _dividerVAlign = 'center';
   document.querySelectorAll('[data-valign]').forEach(b => b.classList.toggle('active', b.dataset.valign === 'center'));
   $('dividerVOffset').value = 0;
