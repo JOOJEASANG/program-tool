@@ -431,6 +431,8 @@
         return output;
       };
 
+      // Used by the large-document preview to match the optional argument order.
+      patchedBuildOutputPage.__pdfIndependentMarginOutputV3 = true;
       getSettings = patchedGetSettings;
       buildOutputPage = patchedBuildOutputPage;
       buildAllPages = patchedBuildAllPages;

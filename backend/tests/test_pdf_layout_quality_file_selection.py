@@ -71,6 +71,36 @@ def test_export_guard_and_session_controls_cover_pdf_layout_options():
     assert "$('pnEnabled').checked = pnEnabled" in page
     assert "invalidRange = ['pn', 'hf']" in page
     assert "repeatMode) return" in (ROOT / "js/pdf-editor/layout-export.js").read_text(encoding="utf-8")
-    assert "layout-export.js?v=20261014-2" in core
+    assert "layout-export.js?v=20261014-3" in core
     assert "rangeLabel('pn')" in save_summary
     assert "rangeLabel('hf')" in save_summary
+
+
+def test_four_up_repeat_places_page_number_and_header_in_every_cell():
+    """Four identical source copies need four numbered placement cells."""
+    source = fitz.open()
+    page = source.new_page(width=210, height=297)
+    page.insert_text((25, 42), "ORIGINAL CONTENT", fontsize=13)
+    request = PdfProcessRequest(
+        pages=[
+            PageInfo(file_index=0, page_index=0, group_break=True),
+            *[PageInfo(file_index=0, page_index=0) for _ in range(3)],
+        ],
+        nup_default=NupValue.four,
+        repeat_cell_overlays=True,
+        page_numbers=PageNumberSettings(enabled=True, start=7),
+        header_footer=HeaderFooterSettings(enabled=True, header_center="Repeated"),
+    )
+    result = build_pdf_document([source], request)
+    assert result.page_count == 1
+    words = result[0].get_text("words")
+    numbers = [word for word in words if word[4] == "7"]
+    headers = [word for word in words if word[4] == "Repeated"]
+    originals = [word for word in words if word[4] == "ORIGINAL"]
+    assert len(numbers) == 4, "Page number must be repeated exactly four times"
+    assert len(headers) == 4
+    assert len(originals) == 4
+    # The number belongs to each individual cell, not a single sheet footer.
+    assert len({(round(word[0] / 40), round(word[1] / 40)) for word in numbers}) == 4
+    result.close()
+    source.close()

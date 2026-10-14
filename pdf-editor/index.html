@@ -2743,7 +2743,10 @@ $('downloadBtn').addEventListener('click', async () => {
       booklet: document.getElementById('bookletCheck')?.checked ?? false,
     };
 
-    const blob = await apiProcessPdf(uploadedFiles, settings, { onStatus: msg => showStatus(msg) });
+    // Expand repeat placements at the export boundary. An API wrapper alone is
+    // fragile when another upload/progress helper also patches apiProcessPdf.
+    const outputSettings = window.PdfEditorNupRepeat?.expandSettingsPages?.(settings) || settings;
+    const blob = await apiProcessPdf(uploadedFiles, outputSettings, { onStatus: msg => showStatus(msg) });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     const ts = new Date().toISOString().slice(0,16).replace('T','_').replace(':','-');

@@ -1,3 +1,4 @@
+import subprocess
 from pathlib import Path
 
 
@@ -10,17 +11,19 @@ def test_lightweight_pdf_editor_loads_same_page_repeat_module():
     runtime = RUNTIME.read_text(encoding="utf-8")
 
     assert "function loadNupRepeat()" in runtime
-    assert "/js/pdf-editor/nup-repeat.js?v=20261014-1" in runtime
+    assert "/js/pdf-editor/nup-repeat.js?v=20261014-2" in runtime
     assert ".then(()=>advanced?loadAdvancedRuntime():loadNupRepeat())" in runtime
 
 
-def test_same_page_repeat_supports_two_three_or_four_copies_per_sheet():
+def test_repeat_supports_only_two_or_four_copies_per_sheet():
     source = REPEAT.read_text(encoding="utf-8")
 
     for marker in (
-        "같은 페이지 반복 배치",
-        "반복 개수",
-        "const VALID_REPEAT_COUNTS = new Set([2, 3, 4]);",
+        "title.textContent = '반복배치'",
+        "const VALID_REPEAT_COUNTS = new Set([2, 4]);",
+        "setEnabled(false, { schedule: false });",
+        "controls.setAttribute('aria-label', '반복배치 개수')",
+        "button.dataset.repeatCount = String(count)",
         "function repeatLayoutN(count = selectedRepeatCount())",
         "return normalizeRepeatCount(count) <= 2 ? 2 : 4;",
         "pages: Array.from({ length: count }, () => page)",
@@ -29,13 +32,15 @@ def test_same_page_repeat_supports_two_three_or_four_copies_per_sheet():
         "group_break: index === 0",
         "state.repeatSamePageCount = selectedRepeatCount();",
         "repeatCount = normalizeRepeatCount(saved?.repeatSamePageCount || repeatCount);",
-        "pdfNupSamePageRepeatMode = 'max4-v2'",
-        "stage: 'pdf-editor-nup-repeat-v2-max4'",
+        "pdfNupSamePageRepeatMode = 'two-four-buttons-v3'",
+        "stage: 'pdf-editor-nup-repeat-v3-two-four-buttons'",
     ):
         assert marker in source
 
-    assert "[2, 3, 4].forEach(count =>" in source
-    assert "3개 반복: 2×2 배치의 한 칸은 비워 둡니다." in source
+    assert "[2, 4].forEach(count =>" in source
+    assert "count === 3 ? 4 : 2" in source
+    assert "readPreference()" not in source
+    assert "next.repeat_cell_overlays || !isEnabled() || next.booklet" in source
 
 
 def test_same_page_repeat_reuses_existing_layout_for_every_paper_size():
@@ -56,3 +61,12 @@ def test_same_page_repeat_reuses_existing_layout_for_every_paper_size():
     assert "210" not in source
     assert "297" not in source
     assert "paperSize" not in source
+
+
+def test_repeat_two_four_ui_and_session_restore_behavior():
+    result = subprocess.run(
+        ["node", str(ROOT / "backend/tests/test_pdf_repeat_two_four_ui_behavior.cjs")],
+        cwd=ROOT, capture_output=True, text=True, check=False, timeout=30,
+    )
+    assert result.returncode == 0, result.stderr or result.stdout
+    assert "pdf repeat two-four UI behavior passed" in result.stdout
