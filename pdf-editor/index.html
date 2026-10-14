@@ -455,8 +455,8 @@
           <select id="paperSize">
             <option value="a4">A4 (210×297mm)</option>
             <option value="a3">A3 (297×420mm)</option>
-            <option value="b4">B4 (250×354mm)</option>
-            <option value="b5">B5 (176×250mm)</option>
+            <option value="b4">B4 (257×364mm)</option>
+            <option value="b5">B5 (182×257mm)</option>
             <option value="letter">Letter (216×279mm)</option>
             <option value="custom">직접 입력...</option>
           </select>
@@ -1200,7 +1200,7 @@ function getLayout(n) {
   return { cols, rows, rotate };
 }
 
-const PAPER = { a4:[210,297], a3:[297,420], b4:[250,354], b5:[176,250], letter:[216,279] };
+const PAPER = { a4:[210,297], a3:[297,420], b4:[257,364], b5:[182,257], letter:[216,279] };
 
 function detectPaperSizeMm(wMm, hMm) {
   const nw = Math.min(wMm, hMm), nh = Math.max(wMm, hMm);
