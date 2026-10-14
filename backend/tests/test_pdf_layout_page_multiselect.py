@@ -11,7 +11,7 @@ MANUAL = ROOT / "js" / "program-manuals" / "pdf-editor.js"
 def test_layout_route_loads_page_selection_before_generic_thumbnail_navigation():
     route = ROUTE_RUNTIME.read_text(encoding="utf-8")
 
-    selection_path = "/js/pdf-editor/page-selection-preview-focus.js?v=20261014-1"
+    selection_path = "/js/pdf-editor/page-selection-preview-focus.js?v=20261014-2"
     loader_path = "/js/pdf-editor/loader.js?v=20261014-1"
     assert "pdfLayoutPageSelectionScriptV1" in route
     assert f"src:'{selection_path}',app:'layout'" in route

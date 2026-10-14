@@ -12,6 +12,9 @@
   let renderPatched = false;
   let previewPatched = false;
   let attempts = 0;
+  let dragSelectMode = false;
+  let dragSelectPointer = null;
+  let dragSelectLastId = null;
   const byId = (id) => document.getElementById(id);
 
   function editorReady() {
@@ -57,7 +60,20 @@
     const style = document.createElement('style');
     style.id = 'pdfPageSelectionStyles';
     style.textContent = `
-      .page-selection-toolbar{display:flex;align-items:center;gap:5px;margin-bottom:7px;padding:6px 7px;border:1px solid #dbe5ef;border-radius:9px;background:#f8fafc}
+      .page-selection-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:5px;margin-bottom:7px;padding:7px;border:1px solid #dbe5ef;border-radius:9px;background:#f8fafc}
+      .page-selection-heading{display:flex;gap:5px;align-items:center;width:100%}
+      .page-selection-heading .page-selection-count{flex:1}
+      .page-selection-range{width:100%;display:grid;gap:5px;padding-top:5px;border-top:1px solid #e2e8f0}
+      .page-selection-range select,.page-selection-range input{box-sizing:border-box;width:100%;min-width:0;min-height:29px;padding:5px 7px;border:1px solid #cbd5e1;border-radius:7px;background:#fff;color:#334155;font:750 10px Pretendard,"Noto Sans KR",sans-serif}
+      .page-selection-range input{font-size:11px}
+      .page-selection-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}
+      .page-selection-quick{display:flex;flex-wrap:wrap;gap:5px}
+      .page-selection-quick .page-selection-btn{flex:1;white-space:nowrap}
+      .page-selection-status{min-height:12px;font-size:9px;line-height:1.5;color:#64748b;word-break:keep-all}
+      .page-selection-status[data-error="true"]{color:#b91c1c}
+      .page-selection-btn[aria-pressed="true"]{background:#dbeafe;border-color:#60a5fa;color:#1d4ed8}
+      #thumbArea[data-drag-select="true"] .thumb-item{cursor:crosshair!important}
+      #thumbArea[data-drag-select="true"] .thumb-wrap{cursor:crosshair!important;user-select:none;touch-action:pan-y}
       .page-selection-count{font-size:9px;font-weight:900;color:#334155;margin-right:auto;white-space:nowrap}
       .page-selection-btn{border:1px solid #cbd5e1;border-radius:7px;background:#fff;color:#475569;padding:4px 7px;font:800 9px Pretendard,"Noto Sans KR",sans-serif;cursor:pointer}
       .page-selection-btn:hover{border-color:#93c5fd;background:#eff6ff;color:#1d4ed8}
@@ -80,23 +96,207 @@
 
   function ensureToolbar() {
     const area = byId('thumbArea');
-    if (!area || byId('pageSelectionToolbar')) return;
+    if (!area) return;
+    if (byId('pageSelectionToolbar')) {
+      syncRangeScopeOptions();
+      return;
+    }
     const toolbar = document.createElement('div');
     toolbar.id = 'pageSelectionToolbar';
     toolbar.className = 'page-selection-toolbar';
     toolbar.innerHTML = `
-      <span class="page-selection-count" id="pageSelectionCount">선택 0개</span>
-      <button type="button" class="page-selection-btn" data-selection-action="all">전체선택</button>
-      <button type="button" class="page-selection-btn" data-selection-action="clear">선택해제</button>`;
+      <div class="page-selection-heading">
+        <span class="page-selection-count" id="pageSelectionCount">선택 0개</span>
+        <button type="button" class="page-selection-btn" data-selection-action="all">전체선택</button>
+        <button type="button" class="page-selection-btn" data-selection-action="clear">선택해제</button>
+      </div>
+      <div class="page-selection-range">
+        <select id="pageSelectionRangeScope" aria-label="페이지 선택 범위 기준">
+          <option value="all">전체 작업 · 현재 편집 순서</option>
+        </select>
+        <input id="pageSelectionRangeInput" type="text" inputmode="text"
+          placeholder="예: 1-10, 15, 20-25" aria-label="선택할 페이지 번호 및 구간">
+        <div class="page-selection-actions">
+          <button type="button" class="page-selection-btn" data-selection-action="range-replace">범위 선택</button>
+          <button type="button" class="page-selection-btn" data-selection-action="range-add">선택 추가</button>
+          <button type="button" class="page-selection-btn" data-selection-action="range-remove">선택 빼기</button>
+        </div>
+        <div class="page-selection-quick">
+          <button type="button" class="page-selection-btn" data-selection-action="odd">홀수 선택</button>
+          <button type="button" class="page-selection-btn" data-selection-action="even">짝수 선택</button>
+          <button type="button" class="page-selection-btn" data-selection-action="invert">선택 반전</button>
+          <button type="button" class="page-selection-btn" data-selection-action="drag" aria-pressed="false" title="켜면 썸네일을 마우스로 쓸어 연속 선택합니다. 끄면 페이지 드래그 정렬이 가능합니다.">드래그 선택</button>
+        </div>
+        <div class="page-selection-status" id="pageSelectionRangeStatus" role="status" aria-live="polite">범위는 쉼표로 구분 · Shift+클릭으로 연속 선택</div>
+      </div>`;
     area.parentElement.insertBefore(toolbar, area);
+    syncRangeScopeOptions();
     toolbar.addEventListener('click', (event) => {
       const button = event.target.closest('[data-selection-action]');
       if (!button) return;
-      if (button.dataset.selectionAction === 'all') selectAll();
-      else clearSelection();
+      const action = button.dataset.selectionAction;
+      if (action === 'all') selectAll();
+      else if (action === 'clear') clearSelection();
+      else if (action.startsWith('range-')) {
+        const mode = action.slice(6);
+        const result = selectRange(byId('pageSelectionRangeInput')?.value, byId('pageSelectionRangeScope')?.value, mode);
+        setRangeStatus(result.ok ? `${result.affected}페이지 ${mode === 'replace' ? '선택' : mode === 'add' ? '추가' : '제외'} 완료` : result.error, !result.ok);
+      } else if (action === 'odd' || action === 'even') {
+        const result = selectParity(byId('pageSelectionRangeScope')?.value, action);
+        setRangeStatus(result.ok ? `${result.affected}페이지 ${action === 'odd' ? '홀수' : '짝수'} 선택` : result.error, !result.ok);
+      } else if (action === 'invert') {
+        const result = invertScopeSelection(byId('pageSelectionRangeScope')?.value);
+        setRangeStatus(`${result.affected}페이지 선택 반전 완료`);
+      } else if (action === 'drag') {
+        setDragSelectMode(!dragSelectMode);
+        setRangeStatus(dragSelectMode ? '마우스를 누르고 썸네일을 쓸어 선택 · 정렬은 잠시 꺼집니다.' : '페이지 드래그 정렬을 다시 사용할 수 있습니다.');
+      }
+    });
+    byId('pageSelectionRangeInput')?.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter') return;
+      event.preventDefault();
+      const result = selectRange(event.currentTarget.value, byId('pageSelectionRangeScope')?.value, 'replace');
+      setRangeStatus(result.ok ? `${result.affected}페이지 범위 선택 완료` : result.error, !result.ok);
+    });
+    byId('pageSelectionRangeScope')?.addEventListener('change', () => {
+      const isFile = String(byId('pageSelectionRangeScope').value).startsWith('file:');
+      setRangeStatus(isFile ? '파일의 원본 페이지 번호 기준으로 입력하세요.' : '전체 작업의 현재 편집 순서 기준으로 입력하세요.');
     });
     const hint = area.parentElement.querySelector('.thumb-hint');
     if (hint) hint.textContent = '왼쪽은 기본 페이지 목록 · Ctrl/Shift=다중선택 · 우클릭 작업은 오른쪽 미리보기에 반영';
+  }
+
+  function setRangeStatus(message, error = false) {
+    const status = byId('pageSelectionRangeStatus');
+    if (!status) return;
+    status.textContent = String(message);
+    status.dataset.error = error ? 'true' : 'false';
+  }
+
+  function syncRangeScopeOptions() {
+    const control = byId('pageSelectionRangeScope');
+    if (!control || !editorReady()) return;
+    const value = control.value;
+    const groups = new Map();
+    parsedPages.forEach(page => {
+      const fileIndex = Number(page.file_index);
+      if (page.pageType !== 'pdf' || !Number.isInteger(fileIndex) || fileIndex < 0) return;
+      if (!groups.has(fileIndex)) {
+        const name = String(uploadedFiles?.[fileIndex]?.name || page.sourceFile || `파일 ${fileIndex + 1}`);
+        groups.set(fileIndex, name);
+      }
+    });
+    control.replaceChildren();
+    const all = document.createElement('option');
+    all.value = 'all';
+    all.textContent = '전체 작업 · 현재 편집 순서';
+    control.appendChild(all);
+    for (const [index, name] of groups) {
+      const option = document.createElement('option');
+      option.value = `file:${index}`;
+      option.textContent = `파일 ${index + 1} · ${name} (원본쪽)`;
+      control.appendChild(option);
+    }
+    control.value = [...control.options].some(option => option.value === value) ? value : 'all';
+  }
+
+  function scopePages(scope = 'all') {
+    if (!editorReady()) return [];
+    if (scope === 'all') return parsedPages.map((page, index) => ({ page, number: index + 1 }));
+    const match = /^file:(\d+)$/.exec(String(scope));
+    if (!match) return [];
+    const fileIndex = Number(match[1]);
+    return parsedPages.filter(page =>
+      page.pageType === 'pdf' && Number(page.file_index) === fileIndex && Number.isInteger(Number(page.page_index))
+        && Number(page.page_index) >= 0
+    ).map(page => ({ page, number: Number(page.page_index) + 1 }));
+  }
+
+  function parseRangeExpression(value, maxPage) {
+    const text = String(value ?? '').trim();
+    if (!text) return { ok: false, error: '페이지 범위를 입력해 주세요. 예: 1-10, 15, 20-25' };
+    const ranges = [];
+    const max = Number(maxPage);
+    for (const part of text.split(',')) {
+      const match = /^(\d+)\s*(?:-\s*(\d+))?$/.exec(part.trim());
+      if (!match) return { ok: false, error: `잘못된 구간입니다: "${part.trim()}"` };
+      const first = Number(match[1]);
+      const last = match[2] ? Number(match[2]) : first;
+      if (!Number.isSafeInteger(first) || !Number.isSafeInteger(last) || first < 1
+        || last < first || last > max) {
+        return { ok: false, error: `범위는 1~${max} 안에서 오름차순으로 입력해 주세요.` };
+      }
+      ranges.push([first, last]);
+    }
+    return { ok: true, ranges };
+  }
+
+  function applyScopedSelection(matches, mode = 'replace') {
+    const pages = (matches || []).map(entry => entry.page);
+    if (mode === 'replace') selectedIds.clear();
+    for (const page of pages) {
+      const id = pageId(page);
+      if (id === null) continue;
+      if (mode === 'remove') selectedIds.delete(id);
+      else selectedIds.add(id);
+    }
+    anchorId = pages.length ? pageId(pages[0]) : null;
+    primaryId = pages.length && mode !== 'remove'
+      ? pageId(pages[pages.length - 1])
+      : (selectedIds.size ? [...selectedIds][selectedIds.size - 1] : null);
+    contextSelectionIds = [];
+    syncSelectionUi();
+    return { ok: true, affected: pages.length, selected: selectedIds.size };
+  }
+
+  function selectRange(expression, scope = 'all', mode = 'replace') {
+    if (!['replace', 'add', 'remove'].includes(mode)) return { ok: false, error: '선택 방식이 올바르지 않습니다.' };
+    const entries = scopePages(scope);
+    if (!entries.length) return { ok: false, error: '선택할 페이지가 없습니다.' };
+    const max = Math.max(...entries.map(entry => entry.number));
+    const result = parseRangeExpression(expression, max);
+    if (!result.ok) return result;
+    const matches = entries.filter(entry => result.ranges.some(([first, last]) =>
+      entry.number >= first && entry.number <= last));
+    if (!matches.length) return { ok: false, error: '해당 범위에 남아 있는 페이지가 없습니다. 번호를 확인해 주세요.' };
+    return applyScopedSelection(matches, mode);
+  }
+
+  function selectParity(scope = 'all', parity = 'odd') {
+    if (!['odd', 'even'].includes(parity)) return { ok: false, error: '홀수/짝수 선택 방식이 올바르지 않습니다.' };
+    const matches = scopePages(scope).filter(entry => entry.number % 2 === (parity === 'odd' ? 1 : 0));
+    if (!matches.length) return { ok: false, error: '선택할 페이지가 없습니다.' };
+    return applyScopedSelection(matches, 'replace');
+  }
+
+  function invertScopeSelection(scope = 'all') {
+    const entries = scopePages(scope);
+    const previous = new Set(selectedIds);
+    for (const entry of entries) {
+      const id = pageId(entry.page);
+      if (id === null) continue;
+      if (previous.has(id)) selectedIds.delete(id);
+      else selectedIds.add(id);
+    }
+    const last = [...selectedIds][selectedIds.size - 1];
+    anchorId = last ?? null;
+    primaryId = last ?? null;
+    contextSelectionIds = [];
+    syncSelectionUi();
+    return { ok: true, affected: entries.length, selected: selectedIds.size };
+  }
+
+  function setDragSelectMode(enabled) {
+    dragSelectMode = !!enabled;
+    dragSelectPointer = null;
+    dragSelectLastId = null;
+    const area = byId('thumbArea');
+    if (area) {
+      area.dataset.dragSelect = dragSelectMode ? 'true' : 'false';
+      area.querySelectorAll('.thumb-item').forEach(item => { item.draggable = !dragSelectMode; });
+    }
+    const button = byId('pageSelectionToolbar')?.querySelector('[data-selection-action="drag"]');
+    button?.setAttribute('aria-pressed', dragSelectMode ? 'true' : 'false');
   }
 
   function rememberSourceThumb(page) {
@@ -144,10 +344,11 @@
     document.documentElement.dataset.pdfSidebarPageView = 'source-portrait';
   }
 
-  function syncSelectionUi() {
+  function syncSelectionUi({ painting = false } = {}) {
     cleanupSelection();
     document.querySelectorAll('#thumbArea .thumb-item').forEach((item) => {
       const id = Number(item.dataset.id);
+      if (dragSelectMode) item.draggable = false;
       const selected = selectedIds.has(id);
       item.classList.toggle('page-selected', selected);
       item.classList.toggle('page-selection-anchor', selected && id === anchorId);
@@ -175,11 +376,11 @@
         wrap.appendChild(mark);
       } else if (!selected && mark) mark.remove();
     });
-    syncSidebarSourceThumbs();
+    if (!painting) syncSidebarSourceThumbs();
     const count = byId('pageSelectionCount');
     if (count) count.textContent = `선택 ${selectedIds.size}개`;
     document.dispatchEvent(new CustomEvent('pdf-page-selection-change', { detail: { count: selectedIds.size } }));
-    highlightPreviewTarget();
+    if (!painting) highlightPreviewTarget();
   }
 
   function selectFile(fileIndex, { additive = false } = {}) {
@@ -271,6 +472,54 @@
     if (primaryId !== null) focusPreviewForPage(pageById(primaryId), true);
   }
 
+  function installPointerPaintSelection() {
+    const area = byId('thumbArea');
+    if (!area || area.dataset.pagePaintSelectionBound) return;
+    area.dataset.pagePaintSelectionBound = '1';
+
+    const paintAt = (element) => {
+      if (!dragSelectMode || dragSelectPointer === null) return;
+      const item = element?.closest?.('.thumb-item');
+      if (!item || !area.contains(item)) return;
+      const id = Number(item.dataset.id);
+      if (!Number.isFinite(id) || id === dragSelectLastId) return;
+      const page = pageById(id);
+      if (!page) return;
+      dragSelectLastId = id;
+      selectedIds.add(id);
+      primaryId = id;
+      contextSelectionIds = [];
+      syncSelectionUi({ painting: true });
+    };
+    area.addEventListener('pointerdown', (event) => {
+      if (!dragSelectMode || event.button !== 0 || event.pointerType === 'touch'
+        || event.target.closest('input,button,select,.thumb-file-sep')) return;
+      const item = event.target.closest('.thumb-item');
+      if (!item || !area.contains(item)) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      dragSelectPointer = event.pointerId;
+      dragSelectLastId = null;
+      if (!event.ctrlKey && !event.metaKey) selectedIds.clear();
+      anchorId = Number(item.dataset.id);
+      paintAt(item);
+    }, true);
+    document.addEventListener('pointermove', (event) => {
+      if (!dragSelectMode || dragSelectPointer !== event.pointerId) return;
+      const element = document.elementFromPoint?.(event.clientX, event.clientY);
+      if (element && area.contains(element)) paintAt(element);
+    }, true);
+    const finish = (event) => {
+      if (dragSelectPointer === event.pointerId) {
+        dragSelectPointer = null;
+        dragSelectLastId = null;
+        syncSelectionUi();
+      }
+    };
+    document.addEventListener('pointerup', finish, true);
+    document.addEventListener('pointercancel', finish, true);
+  }
+
   function installClickSelection() {
     const area = byId('thumbArea');
     if (!area || area.dataset.pageSelectionBoundV2) return;
@@ -278,6 +527,11 @@
 
     area.addEventListener('click', (event) => {
       if (event.target.closest('select,input,button,.thumb-file-sep')) return;
+      if (dragSelectMode) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        return;
+      }
       const wrap = event.target.closest('.thumb-wrap');
       const item = wrap && wrap.closest('.thumb-item');
       if (!wrap || !item || !area.contains(item)) return;
@@ -662,6 +916,8 @@
     parsedPages.forEach(rememberSourceThumb);
     ensureToolbar();
     installClickSelection();
+    installPointerPaintSelection();
+    setDragSelectMode(dragSelectMode);
     patchRenderThumbs();
     patchDisplayPreview();
     installContextMenu();
@@ -687,6 +943,12 @@
     clearFile,
     selectedCountForFile,
     clearSelection,
+    selectRange,
+    selectParity,
+    invertScopeSelection,
+    parseRangeExpression,
+    scopePages,
+    setDragSelectMode,
     snapshotSelectedIds,
     pagesForIds,
     rotatePages,
