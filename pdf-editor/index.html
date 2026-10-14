@@ -1352,15 +1352,26 @@ function getActualSizeFit() {
   if (!size.enabled) return null;
   const { pw, ph, mh, mv, gp } = getSettings();
   const { cols, rows } = getOutputLayout(getActualLayoutNup());
-  const repeatCut = window.PdfEditorNupRepeat?.enabled?.()
-    ? window.PdfEditorLayoutExport?.repeatCutGeometry?.(
-      pw, ph, cols, rows,
-      window.PdfEditorLayoutExport?.layoutMargins?.(0)
-        || { left: mh, right: mh, top: mv, bottom: mv },
-    )
-    : null;
-  const cellW = repeatCut ? repeatCut.cellW : (pw - mh * 2 - gp * (cols - 1)) / cols;
-  const cellH = repeatCut ? repeatCut.cellH : (ph - mv * 2 - gp * (rows - 1)) / rows;
+  const repeatEnabled = !!window.PdfEditorNupRepeat?.enabled?.();
+  let cellW = (pw - mh * 2 - gp * (cols - 1)) / cols;
+  let cellH = (ph - mv * 2 - gp * (rows - 1)) / rows;
+  if (repeatEnabled && window.PdfEditorLayoutExport?.repeatCutGeometry) {
+    // Page-number auto-reserve, range and facing settings can make a later
+    // output sheet's trimmed pieces smaller than the first sheet's pieces.
+    // Validate actual placement against the smallest one, not only page 1.
+    const outputCount = Math.max(1, parsedPages.filter(page => !page.excluded).length);
+    cellW = Infinity;
+    cellH = Infinity;
+    for (let outputIndex = 0; outputIndex < outputCount; outputIndex++) {
+      const margins = window.PdfEditorLayoutExport?.layoutMargins?.(outputIndex)
+        || { left: mh, right: mh, top: mv, bottom: mv };
+      const cut = window.PdfEditorLayoutExport.repeatCutGeometry(
+        pw, ph, cols, rows, margins,
+      );
+      cellW = Math.min(cellW, cut.cellW);
+      cellH = Math.min(cellH, cut.cellH);
+    }
+  }
   const fits0 = size.widthMm <= cellW + 0.05 && size.heightMm <= cellH + 0.05;
   const fits90 = size.heightMm <= cellW + 0.05 && size.widthMm <= cellH + 0.05;
   return { fits: fits0 || fits90, fits0, fits90, cellW, cellH, ...size };

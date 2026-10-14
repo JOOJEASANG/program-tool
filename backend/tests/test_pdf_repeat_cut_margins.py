@@ -105,3 +105,14 @@ def test_repeat_cut_geometry_matches_browser_and_has_no_page_level_gap():
     )
     assert result.returncode == 0, result.stderr or result.stdout
     assert "PDF repeat cut-piece margins verified" in result.stdout
+
+
+def test_repeated_actual_size_checks_smallest_output_sheet_for_late_page_number_reserve():
+    """A larger number gutter on sheet 2 must invalidate oversize placement."""
+    html = (ROOT / "pdf-editor/index.html").read_text(encoding="utf-8")
+    layout = (ROOT / "js/pdf-editor/layout-export.js").read_text(encoding="utf-8")
+    assert "const outputCount = Math.max(1, parsedPages.filter(page => !page.excluded).length)" in html
+    assert "layoutMargins?.(outputIndex)" in html
+    assert "cellW = Math.min(cellW, cut.cellW)" in html
+    assert "cellH = Math.min(cellH, cut.cellH)" in html
+    assert "updateActualSizeUi();" in layout

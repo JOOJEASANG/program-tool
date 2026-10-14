@@ -165,6 +165,7 @@
   function requestPreview() {
     syncLegacyMargins();
     updatePageNumberReserveHint();
+    if (typeof updateActualSizeUi === 'function') updateActualSizeUi();
     try {
       if (window.PdfLivePreview && typeof window.PdfLivePreview.request === 'function') {
         window.PdfLivePreview.request(180, false);
