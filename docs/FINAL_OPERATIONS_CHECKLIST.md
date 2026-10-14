@@ -141,6 +141,12 @@ venv/bin/python scripts/sync_admin_claims.py --verify
 이메일 fallback을 제거했습니다. 이후 관리자 추가·변경 시에도 Claim 동기화와
 `--verify`를 완료한 뒤 관리자가 ID token을 갱신하도록 합니다.
 
+## 7-1. AI 서비스 전체 사용 한도 점검
+
+관리자 AI 비용 화면에서 이미지 생성의 일간·월간 서비스 전체 시도 횟수 한도 설정 여부를 확인합니다.
+`AI_IMAGE_DAILY_LIMIT` 또는 `AI_IMAGE_MONTHLY_LIMIT`가 0이거나 미설정이면 해당 기간 한도는 비활성입니다.
+한도 설정은 실제 USD 비용이나 청구액의 상한을 의미하지 않으며, 실비는 OpenAI 관리 비용과 함께 모니터링합니다.
+
 ## 8. 대용량 PDF 부하 테스트
 
 현재 운영 Function 설정은 비용 상한을 위해 `max_instances=2`를 유지하면서, 대용량 PDF 작업을 위해 **4GB 메모리와 600초 timeout**을 허용합니다. 승인 회원 수나 동시 사용량을 늘리기 전에 다음 시나리오를 측정합니다.

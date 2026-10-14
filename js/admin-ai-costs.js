@@ -74,6 +74,14 @@
       actions.insertBefore(fx,$('aiCostRefreshBtn')||null);
     }
 
+    if(metrics&&!$('aiImageLimitNotice')){
+      const note=document.createElement('div');
+      note.id='aiImageLimitNotice';
+      note.className='ai-cost-notice';
+      note.style.marginBottom='12px';
+      metrics.parentNode.insertBefore(note,metrics);
+    }
+
     if(metrics&&!$('aiCostTotalCard')){
       const card=document.createElement('div');
       card.id='aiCostTotalCard';
@@ -277,6 +285,20 @@
   function render(data){
     ensureDynamicUi();
     const program=data?.program_studio||{};
+    const limits=program.image_limits;
+    const limitNotice=$('aiImageLimitNotice');
+    if(limitNotice){
+      limitNotice.className='ai-cost-notice '+(!limits||!limits.valid||!limits.configured?'warn':'ok');
+      limitNotice.textContent=!limits
+        ?'AI 생성 한도 설정 상태를 조회할 수 없습니다.'
+        :!limits.valid
+          ?'AI 생성 한도 설정값에 오류가 있습니다. 서버 환경변수를 확인하세요.'
+          :!limits.configured
+            ?'AI 이미지 생성 서비스 전체 일간·월간 횟수 제한이 설정되지 않았습니다. 사용자별 요청 제한만 적용됩니다.'
+            :'AI 이미지 생성 시도 횟수 제한 · 일간 '+(limits.daily?integer(limits.daily)+'회':'무제한')
+              +' / 월간 '+(limits.monthly?integer(limits.monthly)+'회':'무제한')
+              +' (금액 기준 과금 상한은 아닙니다.)';
+    }
     setText('aiProgramMonth',integer(program.month_requests)+'회');
     setText('aiProgramToday',integer(program.today_requests)+'회');
     setText('aiProgramWeek',integer(program.last_7_days_requests)+'회');

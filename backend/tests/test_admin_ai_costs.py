@@ -184,6 +184,22 @@ def test_admin_ai_cost_route_returns_exact_and_internal_summaries(monkeypatch):
     assert payload["available"] is True
     assert payload["costs"]["month_to_date"] == 1.25
     assert payload["program_studio"]["month_requests"] == 12
+    assert payload["program_studio"]["image_limits"]["valid"] is True
+
+
+def test_admin_image_budget_status_shows_opt_in_limits(monkeypatch):
+    monkeypatch.delenv("AI_IMAGE_DAILY_LIMIT", raising=False)
+    monkeypatch.delenv("AI_IMAGE_MONTHLY_LIMIT", raising=False)
+    assert admin_ai_usage._image_budget_status() == {
+        "valid": True, "configured": False, "daily": 0, "monthly": 0
+    }
+    monkeypatch.setenv("AI_IMAGE_DAILY_LIMIT", "25")
+    monkeypatch.setenv("AI_IMAGE_MONTHLY_LIMIT", "200")
+    assert admin_ai_usage._image_budget_status() == {
+        "valid": True, "configured": True, "daily": 25, "monthly": 200
+    }
+    monkeypatch.setenv("AI_IMAGE_DAILY_LIMIT", "-1")
+    assert admin_ai_usage._image_budget_status()["valid"] is False
 
 
 def test_admin_ai_cost_dashboard_contract():
@@ -205,7 +221,7 @@ def test_admin_ai_cost_dashboard_contract():
         'id="aiCostDaily"',
         'id="aiCostLineItems"',
         'id="aiCostModels"',
-        '/js/admin-ai-costs.js?v=20260929-2',
+        '/js/admin-ai-costs.js?v=20261014-1',
     ):
         assert marker in html
 
