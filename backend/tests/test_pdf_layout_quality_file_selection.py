@@ -104,3 +104,58 @@ def test_four_up_repeat_places_page_number_and_header_in_every_cell():
     assert len({(round(word[0] / 40), round(word[1] / 40)) for word in numbers}) == 4
     result.close()
     source.close()
+
+
+def test_repeated_sheets_follow_reordered_multi_file_pages_without_duplicates():
+    """A, B, A, B, A: repeat only within each sheet, then advance exactly once."""
+    source_a, source_b = fitz.open(), fitz.open()
+    for doc, prefix in ((source_a, "SOURCEA"), (source_b, "SOURCEB")):
+        for index in range(3):
+            page = doc.new_page(width=300, height=420)
+            page.insert_text((35, 55), f"{prefix}{index}", fontsize=20)
+
+    edited_order = [(0, 0), (1, 1), (0, 1), (1, 2), (0, 2)]
+    try:
+        for copies, layout in ((2, NupValue.two), (4, NupValue.four)):
+            pages = [
+                PageInfo(
+                    file_index=file_index,
+                    page_index=source_page,
+                    group_break=copy_index == 0,
+                    nup_override=layout,
+                )
+                for file_index, source_page in edited_order
+                for copy_index in range(copies)
+            ]
+            request = PdfProcessRequest(
+                pages=pages,
+                nup_default=layout,
+                repeat_cell_overlays=True,
+                page_numbers=PageNumberSettings(enabled=True, start=1),
+                header_footer=HeaderFooterSettings(enabled=True, header_center="Batch"),
+            )
+            result = build_pdf_document([source_a, source_b], request)
+            try:
+                assert result.page_count == len(edited_order), (
+                    f"{copies} repetitions must not create additional output sheets"
+                )
+                for sheet, (file_index, source_page) in enumerate(edited_order):
+                    text = result[sheet].get_text("text")
+                    expected = f"SOURCE{'A' if file_index == 0 else 'B'}{source_page}"
+                    assert text.count(expected) == copies, (
+                        f"sheet {sheet + 1} must contain {copies} copies of {expected}"
+                    )
+                    for other_file, other_page in edited_order:
+                        other = f"SOURCE{'A' if other_file == 0 else 'B'}{other_page}"
+                        if other != expected:
+                            assert other not in text, (
+                                f"sheet {sheet + 1} must advance to the next edited source"
+                            )
+                    words = result[sheet].get_text("words")
+                    assert sum(word[4] == "Batch" for word in words) == copies
+                    assert sum(word[4] == str(sheet + 1) for word in words) == copies
+            finally:
+                result.close()
+    finally:
+        source_a.close()
+        source_b.close()
