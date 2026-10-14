@@ -184,6 +184,7 @@ class PdfProcessRequest(BaseModel):
     print_marks: PrintMarkSettings = Field(default_factory=PrintMarkSettings)
     facing_pages: bool = False
     booklet: bool = False
+    repeat_cell_overlays: bool = False
 
     @model_validator(mode="after")
     def validate_booklet_imposition(self):

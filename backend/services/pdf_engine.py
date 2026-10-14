@@ -622,6 +622,45 @@ def _layout_cache_key(
     )
 
 
+def _draw_repeated_cell_overlays(
+    out_page: fitz.Page,
+    layout: _PageLayout,
+    group: list,
+    request: PdfProcessRequest,
+    output_page_idx: int,
+    total_output_pages: int,
+    facing: bool,
+) -> None:
+    """Draw vector overlays at each placed card, not on the whole paper sheet."""
+    if not (
+        request.watermark.enabled or request.header_footer.enabled
+        or request.page_numbers.enabled
+    ):
+        return
+    for slot_idx, page_info in enumerate(group):
+        if slot_idx >= len(layout.cell_rects):
+            break
+        if page_info.page_type == "blank":
+            continue
+        target = layout.cell_rects[slot_idx]
+        cell_doc = fitz.open()
+        try:
+            cell = cell_doc.new_page(width=target.width, height=target.height)
+            pdf_text_renderer.apply_watermark(cell, request.watermark)
+            pdf_text_renderer.apply_header_footer(
+                cell, request.header_footer, target.width, target.height,
+                output_page_idx + 1, total_output_pages, facing,
+            )
+            pdf_text_renderer.apply_page_numbers(
+                cell, request.page_numbers, output_page_idx, total_output_pages,
+                target.width, target.height, facing,
+            )
+            if cell.get_text("text").strip():
+                out_page.show_pdf_page(target, cell_doc, 0, keep_proportion=False, overlay=True)
+        finally:
+            cell_doc.close()
+
+
 def build_pdf_document(
     src_docs: Iterable[fitz.Document],
     request: PdfProcessRequest,
@@ -735,6 +774,14 @@ def build_pdf_document(
                         request.add_border,
                         placement_size_pt=placement_size_pt,
                     )
+
+            if bool(getattr(request, "repeat_cell_overlays", False)) and not booklet_enabled:
+                if not standalone_special:
+                    _draw_repeated_cell_overlays(
+                        out_page, layout, group, request,
+                        output_page_idx, total_output_pages, facing,
+                    )
+                continue
 
             pdf_text_renderer.apply_watermark(out_page, request.watermark)
             pdf_text_renderer.apply_header_footer(

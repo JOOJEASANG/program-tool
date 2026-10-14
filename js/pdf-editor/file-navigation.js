@@ -95,12 +95,15 @@
       .pdf-file-nav button{height:29px;border:1px solid #93c5fd;border-radius:7px;background:#eff6ff;color:#1d4ed8;font:inherit;font-size:10px;font-weight:850;cursor:pointer}
       .pdf-file-nav-actions{display:flex;gap:5px}.pdf-file-nav-actions button{flex:1;border-color:#cbd5e1;background:#fff;color:#475569}
       .pdf-file-nav-status{min-height:14px;font-size:9px;font-weight:750;color:#64748b;line-height:1.4}
-      .thumb-file-sep[data-file-nav-header="true"]{gap:6px;padding:7px 6px;margin-top:3px;border:1px solid #d8e1eb;border-radius:8px;background:#f8fafc}
+      .thumb-file-sep[data-file-nav-header="true"]{gap:6px;flex-wrap:wrap;padding:7px 6px;margin-top:3px;border:1px solid #d8e1eb;border-radius:8px;background:#f8fafc}
       .thumb-file-sep[data-file-nav-header="true"] .thumb-file-sep-line{display:none}
       .thumb-file-sep[data-file-nav-header="true"] .thumb-file-sep-label{max-width:104px;overflow:hidden;text-overflow:ellipsis;font-size:10px;color:#334155}
       .pdf-file-nav-toggle{flex:0 0 25px;width:25px;height:25px;border:1px solid #cbd5e1;border-radius:7px;background:#fff;color:#475569;font:inherit;font-size:11px;font-weight:900;cursor:pointer}
       .thumb-file-sep[data-collapsed="true"] .pdf-file-nav-toggle{transform:rotate(-90deg)}
       .pdf-file-nav-meta{min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#64748b;font-size:8.5px;font-weight:750}
+      .pdf-file-select-btn{flex:0 0 auto;height:25px;padding:0 7px;border:1px solid #93c5fd;border-radius:7px;background:#eff6ff;color:#1d4ed8;font:800 9px Pretendard,"Noto Sans KR",sans-serif;cursor:pointer}
+      .pdf-file-select-btn.is-clear{border-color:#cbd5e1;background:#fff;color:#475569}
+      .pdf-file-selection-count{flex:0 0 auto;font-size:9px;font-weight:800;color:#1e40af;white-space:nowrap}
       .pdf-file-boundary{flex:0 0 auto;height:25px;padding:0 7px;border:1px solid #b8c5d4;border-radius:999px;background:#fff;color:#526174;font:800 8.5px Pretendard,"Noto Sans KR",sans-serif;cursor:pointer;white-space:nowrap}
       .pdf-file-boundary:hover{border-color:#7ca5d7;background:#f4f8fd;color:#174f8f}
       .pdf-file-boundary.is-break{border-color:#7c3aed;background:#f5f3ff;color:#6d28d9;box-shadow:inset 0 0 0 1px rgba(124,58,237,.08)}
@@ -250,13 +253,43 @@
     header.dataset.fileNavHeader = 'true';
     header.dataset.fileIndex = group.key;
     header.dataset.groupBreak = page?.groupBreak ? 'true' : 'false';
-    header.querySelectorAll('.pdf-file-nav-toggle,.pdf-file-nav-meta,.pdf-file-boundary').forEach((node) => node.remove());
+    header.querySelectorAll('.pdf-file-nav-toggle,.pdf-file-nav-meta,.pdf-file-boundary,.pdf-file-select-btn,.pdf-file-selection-count').forEach((node) => node.remove());
     const toggle = document.createElement('button'); toggle.type = 'button'; toggle.className = 'pdf-file-nav-toggle'; toggle.textContent = '▾'; toggle.title = `${group.name} 접기 또는 펼치기`; toggle.setAttribute('aria-label', toggle.title);
     toggle.addEventListener('click', (event) => { event.preventDefault(); event.stopPropagation(); toggleFile(group.key); });
     const meta = document.createElement('span'); meta.className = 'pdf-file-nav-meta'; meta.textContent = group.summary; meta.title = `${group.name} · ${group.summary}`;
     const label = header.querySelector('.thumb-file-sep-label');
     header.insertBefore(toggle, header.firstChild);
     if (label?.nextSibling) header.insertBefore(meta, label.nextSibling); else header.appendChild(meta);
+
+    const selection = window.PdfEditorPageSelection;
+    if (selection && group.pages.some(item => item.pageType === 'pdf')) {
+      const count = document.createElement('span');
+      count.className = 'pdf-file-selection-count';
+      count.textContent = selection.selectedCountForFile(group.fileIndex) + '개 선택';
+      header.appendChild(count);
+      const allButton = document.createElement('button');
+      allButton.type = 'button';
+      allButton.className = 'pdf-file-select-btn';
+      allButton.textContent = '파일 전체선택';
+      allButton.title = group.name + '의 페이지만 전체 선택 (Ctrl을 누르면 다른 파일의 선택도 유지)';
+      allButton.addEventListener('click', event => {
+        event.preventDefault(); event.stopPropagation();
+        selection.selectFile(group.fileIndex, { additive: event.ctrlKey || event.metaKey });
+        updateFileSelectionCounts();
+      });
+      header.appendChild(allButton);
+      const clearButton = document.createElement('button');
+      clearButton.type = 'button';
+      clearButton.className = 'pdf-file-select-btn is-clear';
+      clearButton.textContent = '해제';
+      clearButton.title = group.name + '의 선택만 해제';
+      clearButton.addEventListener('click', event => {
+        event.preventDefault(); event.stopPropagation();
+        selection.clearFile(group.fileIndex);
+        updateFileSelectionCounts();
+      });
+      header.appendChild(clearButton);
+    }
 
     if (page && parsedPages.indexOf(page) > 0) {
       const boundary = document.createElement('button');
@@ -272,6 +305,15 @@
       });
       header.appendChild(boundary);
     }
+  }
+
+  function updateFileSelectionCounts() {
+    const selection = window.PdfEditorPageSelection;
+    if (!selection) return;
+    byId('thumbArea')?.querySelectorAll('[data-file-nav-header="true"]').forEach(header => {
+      const count = header.querySelector('.pdf-file-selection-count');
+      if (count) count.textContent = selection.selectedCountForFile(Number(header.dataset.fileIndex)) + '개 선택';
+    });
   }
 
   function applyCollapsed(groups = buildFileGroups()) {
@@ -465,6 +507,7 @@
       installed = true;
       document.addEventListener('pdf-import-committed', (event) => { selectedId = ''; if (event?.detail?.mode === 'new') collapsed.clear(); queueEnhance(); });
       document.addEventListener('pdf-import-failed', queueEnhance);
+      document.addEventListener('pdf-page-selection-change', updateFileSelectionCounts);
     }
   }
 

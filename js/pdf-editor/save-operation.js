@@ -86,6 +86,12 @@
       catch (_) { return !!$('pnEnabled')?.checked; }
     })();
     const pageNumberPosition = document.querySelector('.pn-pos-btn.active')?.textContent?.trim() || '설정 위치';
+    const rangeLabel = (prefix) => {
+      const start = $('' + prefix + 'StartPage')?.value || '1';
+      const end = $('' + prefix + 'EndPage')?.value || '끝';
+      return '출력 ' + start + '~' + end + '쪽';
+    };
+    const pageOrder = document.getElementById('orderTB')?.classList.contains('active') ? '세로 우선' : '가로 우선';
     const totalBytes = uploadedFiles.reduce((sum, file) => sum + Number(file?.size || 0), 0);
 
     return {
@@ -96,14 +102,15 @@
       hiddenPages: parsedPages.length - active.length,
       outputPages: outputPageCount(arranged),
       nup: nupValue,
+      pageOrder,
       booklet,
       paper: `${paper.pw}×${paper.ph}mm ${paper.pw > paper.ph ? '가로' : '세로'}`,
       margins,
       facing: !!$('facingPages')?.checked,
       pageNumber: pageNumberEnabled
-        ? `${pageNumberPosition} · ${$('pnFontSize')?.value || 10}pt · 공간 자동 확보 ${$('pnAutoReserve')?.checked === false ? '끔' : '켬'}`
+        ? `${rangeLabel('pn')} · 시작번호 ${$('pnStart')?.value || 1} · ${pageNumberPosition} · ${$('pnFontSize')?.value || 10}pt · 공간 자동 확보 ${$('pnAutoReserve')?.checked === false ? '끔' : '켬'}`
         : '사용 안 함',
-      headerFooter: $('hfEnabled')?.checked ? '사용' : '사용 안 함',
+      headerFooter: $('hfEnabled')?.checked ? rangeLabel('hf') : '사용 안 함',
       watermark: $('wmEnabled')?.checked ? '사용' : '사용 안 함',
       cropMarks: !!marks.enabled,
       bleedMm: Math.max(0, Number(marks.bleed_mm || 0)),
@@ -214,7 +221,7 @@
     const items = [
       ['원본 파일', `${data.files}개 · ${formatBytes(data.totalBytes)}`],
       ['페이지', `활성 ${data.activePages}쪽 · 숨김 ${data.hiddenPages}쪽`],
-      ['출력 예상', `${data.outputPages}쪽 · 기본 ${data.nup}장/면`],
+      ['출력 예상', `${data.outputPages}쪽 · 기본 ${data.nup}장/면 · ${data.pageOrder}`],
       ['용지', data.paper],
       ['개별 여백', `좌 ${data.margins.left} · 우 ${data.margins.right} · 상 ${data.margins.top} · 하 ${data.margins.bottom}mm`],
       ['양면 마주보기', data.facing ? '사용 · 짝수면 좌우 교환' : '사용 안 함'],
@@ -241,6 +248,7 @@
     const warnings = [];
     if (data.booklet) warnings.push('소책자는 프린터 양면 넘김 방향과 첫 용지 시험 출력을 확인하세요.');
     if (data.cropMarks && data.bleedMm > 0) warnings.push('도련 영역은 원본 그림을 자동 확대하지 않으므로 원본에 도련 이미지가 없으면 바깥쪽이 흰색일 수 있습니다.');
+    if (data.totalBytes > 300 * 1024 * 1024) warnings.push('주의: PDF배치 최종 저장 서버는 파일 합계 300MB까지 지원합니다. 작업공간 800MB와 다르므로 원본을 줄여야 저장됩니다.');
     if (data.outputPages > 100 || data.totalBytes > 150 * 1024 * 1024) warnings.push('대용량 작업은 생성 시간이 길어질 수 있습니다. 진행 상태를 확인하거나 필요하면 작업을 취소할 수 있습니다.');
     if (!warnings.length) warnings.push('설정이 맞으면 PDF 생성을 누르세요. 생성 중에는 진행 상태와 취소 버튼이 표시됩니다.');
     $('pdfSaveSummaryWarningV1').textContent = warnings.join(' ');

@@ -188,6 +188,7 @@
         repeated.push({
           ...group,
           n: layoutN,
+          repeated: true,
           pages: Array.from({ length: count }, () => page),
         });
       }
@@ -234,6 +235,7 @@
     }
 
     next.pages = expanded;
+    next.repeat_cell_overlays = true;
     next.nup_default = layoutN;
     next.booklet = false;
     return next;

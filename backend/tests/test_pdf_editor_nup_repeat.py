@@ -10,7 +10,7 @@ def test_lightweight_pdf_editor_loads_same_page_repeat_module():
     runtime = RUNTIME.read_text(encoding="utf-8")
 
     assert "function loadNupRepeat()" in runtime
-    assert "/js/pdf-editor/nup-repeat.js?v=20261002-2" in runtime
+    assert "/js/pdf-editor/nup-repeat.js?v=20261014-1" in runtime
     assert ".then(()=>advanced?loadAdvancedRuntime():loadNupRepeat())" in runtime
 
 
