@@ -31,13 +31,14 @@
   // session must not remain stuck at "작업 미리보기 생성 중" while awaiting paint.
   const nextPaint = () => new Promise((resolve) => {
     let completed = false;
+    let fallback = null;
     const finish = () => {
       if (completed) return;
       completed = true;
-      clearTimeout(fallback);
+      if (fallback !== null) clearTimeout(fallback);
       resolve();
     };
-    const fallback = setTimeout(finish, 100);
+    fallback = setTimeout(finish, 100);
     requestAnimationFrame(() => requestAnimationFrame(finish));
   });
 
