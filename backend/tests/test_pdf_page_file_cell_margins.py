@@ -106,3 +106,4 @@ def test_frontend_selection_file_scope_preview_export_and_session_contract():
         assert "content_margin_" + edge + "_mm: inset." + edge in js
     assert "state.pageCellMargins = sourcePages().map" in js
     assert "restorePageCellMargins(state)" in js
+    assert "document.addEventListener('pdf-page-selection-change', queueCellMarginSync);" in js
