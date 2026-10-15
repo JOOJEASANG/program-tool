@@ -143,7 +143,7 @@ run_product_case "pdf-layout-selected-margin-smoke.html" "$OUT_DIR/pdf-selected-
 reset_profile
 run_product_case "pdf-session-preview-stability-smoke.html" "$OUT_DIR/pdf-session-preview-stability-dom.html" 'data-pdf-session-preview-stability="pass"' 'PASS: restored session status updates do not loop or duplicate PDF preview rendering'
 reset_profile
-run_product_case "pdf-141-page-lazy-preview-smoke.html" "$OUT_DIR/pdf-141-page-lazy-preview-dom.html" 'data-pdf-141-lazy-preview="pass"' 'PASS: 4 files / 141 source pages render a bounded 3-face preview, notify watchdog, and finish'
+run_product_case "pdf-141-page-lazy-preview-smoke.html" "$OUT_DIR/pdf-141-page-lazy-preview-dom.html" 'data-pdf141-lazy-preview="pass"' 'PASS: 4 files / 141 source pages render a bounded 3-face preview, notify watchdog, and finish'
 reset_profile
 run_product_case "pdf-advanced-upload-facing-smoke.html" "$OUT_DIR/pdf-advanced-upload-facing-smoke-dom.html" 'data-pdf-advanced-upload-facing-smoke="pass"' 'PASS: advanced PDF upload parity and facing-page state are active'
 reset_profile
