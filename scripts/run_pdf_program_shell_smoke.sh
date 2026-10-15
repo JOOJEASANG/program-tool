@@ -141,6 +141,8 @@ run_product_case "pdf-layout-sidebar-title-smoke.html" "$OUT_DIR/pdf-layout-side
 reset_profile
 run_product_case "pdf-layout-selected-margin-smoke.html" "$OUT_DIR/pdf-selected-margin-smoke-dom.html" 'data-pdf-selected-margin-smoke="pass"' 'PASS: selected-page and per-file insets activate and preserve paper margins'
 reset_profile
+run_product_case "pdf-session-preview-stability-smoke.html" "$OUT_DIR/pdf-session-preview-stability-dom.html" 'data-pdf-session-preview-stability="pass"' 'PASS: restored session status updates do not loop or duplicate PDF preview rendering'
+reset_profile
 run_product_case "pdf-advanced-upload-facing-smoke.html" "$OUT_DIR/pdf-advanced-upload-facing-smoke-dom.html" 'data-pdf-advanced-upload-facing-smoke="pass"' 'PASS: advanced PDF upload parity and facing-page state are active'
 reset_profile
 run_product_case "pdf-advanced-sidebar-hard-isolation-smoke.html" "$OUT_DIR/pdf-advanced-sidebar-hard-isolation-smoke-dom.html" 'data-pdf-advanced-sidebar-hard-isolation-smoke="pass"' 'PASS: /pdf-editor-advanced stays advanced, hides spread/N-up/order controls and skips general print-layout modules'
