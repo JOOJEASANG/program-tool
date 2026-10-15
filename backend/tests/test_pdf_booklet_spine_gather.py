@@ -79,3 +79,51 @@ def test_spine_mode_is_opt_in_at_api_level():
     request = PdfProcessRequest(pages=[PageInfo(file_index=0, page_index=0)])
     assert request.booklet_spine_align is False
     assert request.placement_width_mm is None
+
+
+def test_scaled_source_retains_fold_facing_edge(monkeypatch):
+    from services import pdf_engine
+    m = MM_TO_PT
+    source = fitz.open()
+    page = source.new_page(width=50*m, height=100*m)
+    page.insert_text((20, 40), "SCALED")
+    target = fitz.open()
+    target_page = target.new_page(width=297*m, height=210*m)
+    recorded = []
+    original = pdf_engine._show_source_page
+
+    def record(page, rect, *args, **kwargs):
+        recorded.append(fitz.Rect(rect))
+        return original(page, rect, *args, **kwargs)
+
+    monkeypatch.setattr(pdf_engine, "_show_source_page", record)
+    try:
+        region = fitz.Rect(10*m, 10*m, 148.5*m, 200*m)
+        info = PageInfo(file_index=0, page_index=0, content_scale=0.5)
+        pdf_engine._render_adjusted_source_page(
+            target_page, source, 0, info, region, page.rect, 0, "right"
+        )
+        assert recorded[-1].x1 == pytest.approx(region.width)
+        recorded.clear()
+        pdf_engine._render_adjusted_source_page(
+            target_page, source, 0, info, region, page.rect, 0, "left"
+        )
+        assert recorded[-1].x0 == pytest.approx(0)
+    finally:
+        target.close()
+        source.close()
+
+
+def test_canonical_preview_geometry_and_page_size_ui_contract():
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[2]
+    html = (root / "pdf-editor/index.html").read_text(encoding="utf-8")
+    layout = (root / "js/pdf-editor/layout-export.js").read_text(encoding="utf-8")
+    lazy = (root / "js/pdf-editor/viewport-lazy-preview.js").read_text(encoding="utf-8")
+    for marker in ("function bookletSpineCell(", "window.PdfBookletSpineGeometry", 
+                   "bookletSpineGather", "actualSizePreset", "actualSizeScalePct",
+                   "booklet_spine_align:", "actualSizePreset:"):
+        assert marker in html
+    assert "window.PdfBookletSpineGeometry?.cell(column, pw, margins)" in layout
+    assert "foldCell?.align || 'center'" in layout
+    assert "const groups = booklet ? [{n:2, pages:sourcePages}]" in lazy
