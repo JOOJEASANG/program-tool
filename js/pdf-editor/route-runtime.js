@@ -112,7 +112,7 @@
         console.warn('[pdf-route-runtime] manifest entry skipped',entry);
         continue;
       }
-      if(entry.app&&entry.app!==app)continue;
+      if(entry.app&&entry.app!==selectionApp)continue;
       if(advanced&&ADVANCED_UNUSED_ROUTE_IDS.has(entry.id))continue;
       seen.add(entry.id);
       pending.push(hostLoad(entry));
