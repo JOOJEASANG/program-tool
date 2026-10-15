@@ -135,7 +135,7 @@ def test_frontend_selection_file_scope_preview_export_and_session_contract():
     assert "state.pageCellMargins = sourcePages().map" in js
     assert "restorePageCellMargins(state)" in js
     assert "Object.keys(pageCellMarginOverrides(page)).length > 0" in js
-    assert "const deltaLeft = finalMargins.left - margins.left;" in js
+    assert "const deltaLeft = finalMargins.left - baseMargins.left;" in js
     assert "document.addEventListener('pdf-page-selection-change', queueCellMarginSync);" in js
     route = (ROOT / 'js' / 'pdf-editor' / 'route-runtime.js').read_text(encoding='utf-8')
     assert "if(selectionApp==='layout'){" in route
