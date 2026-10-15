@@ -21,6 +21,7 @@ def test_layout_route_loads_page_selection_before_generic_thumbnail_navigation()
     # The main program card links to /pdf-editor/ without an app query parameter.
     homepage = (ROOT / "js" / "program-studio-ui-v2.js").read_text(encoding="utf-8")
     assert "url:'/pdf-editor/'" in homepage
+    assert "if(selectionApp==='layout'){" in route
     assert "window.__pdfEditorHiddenContextActionV1=true;" in route
 
 
