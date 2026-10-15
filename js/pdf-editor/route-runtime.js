@@ -103,7 +103,7 @@
     // It needs the same selection controller as the dedicated layout route.
     const selectionApp=!advanced&&!app?'layout':app;
     removeStandardSidebarTitle();
-    if(app==='layout'){
+    if(selectionApp==='layout'){
       window.__pdfEditorHiddenContextActionV1=true;
     }
     if(app)pending.push(loadStandaloneBoundary());
