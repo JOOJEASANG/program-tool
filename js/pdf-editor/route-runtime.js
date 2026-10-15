@@ -99,8 +99,11 @@
     const pending=[];
     const app=standaloneApp();
     const advanced=isAdvancedProfile();
+    // The homepage PDF 배치 route is /pdf-editor/ (no ?app=layout).
+    // It needs the same selection controller as the dedicated layout route.
+    const selectionApp=!advanced&&!app?'layout':app;
     removeStandardSidebarTitle();
-    if(app==='layout'){
+    if(selectionApp==='layout'){
       window.__pdfEditorHiddenContextActionV1=true;
     }
     if(app)pending.push(loadStandaloneBoundary());
@@ -109,7 +112,7 @@
         console.warn('[pdf-route-runtime] manifest entry skipped',entry);
         continue;
       }
-      if(entry.app&&entry.app!==app)continue;
+      if(entry.app&&entry.app!==selectionApp)continue;
       if(advanced&&ADVANCED_UNUSED_ROUTE_IDS.has(entry.id))continue;
       seen.add(entry.id);
       pending.push(hostLoad(entry));

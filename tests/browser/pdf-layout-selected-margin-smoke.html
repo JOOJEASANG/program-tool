@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"><title>PDF selected source page margin smoke</title></head>
+<body data-pdf-selected-margin-smoke="running">
+  <div id="result">RUNNING</div>
+  <div id="sidebar">
+    <div class="thumb-hint"></div>
+    <div id="thumbArea"></div>
+  </div>
+  <div id="previewScroll"></div>
+  <div id="thumbCtxMenu"></div>
+  <div id="paperSettings">
+    <div class="grid2">
+      <div class="field"><label>기본 가로 여백</label><input id="marginH" type="number" value="10"></div>
+      <div class="field"><label>기본 세로 여백</label><input id="marginV" type="number" value="10"></div>
+    </div>
+    <input id="gap" type="number" value="5">
+    <input id="facingPages" type="checkbox">
+  </div>
+  <script>
+    window.uploadedFiles = [{name:'첫째.pdf'}, {name:'둘째.pdf'}];
+    function canvas() { const c = document.createElement('canvas'); c.width=100; c.height=140; return c; }
+    window.parsedPages = [0,0,1,1].map((fileIndex, i) => ({
+      id:i+1, file_index:fileIndex, page_index:i%2, pageType:'pdf',
+      pdfPage:{ id:i+1 }, thumbCanvas:canvas(), excluded:false, rotation:0,
+      sourceFile:uploadedFiles[fileIndex].name
+    }));
+    window.nup=1;
+    window.BOOKLET_STRIPS={};
+    window.getLayout=()=>({cols:1, rows:1});
+    window.groupByNup=(pages)=>[{n:1, pages}];
+    window.schedulePreview=()=>{};
+    window.triggerPreview=()=>Promise.resolve();
+    window.displayPreview=()=>{};
+    window.renderPdfPage=async ()=>canvas();
+    window.showStatus=()=>{};
+    window.hideStatus=()=>{};
+    window._openThumbCtxMenu=()=>{};
+    window.renderThumbs=()=>{
+      const area=document.getElementById('thumbArea');
+      area.replaceChildren();
+      parsedPages.forEach(page=>{
+        const item=document.createElement('div');
+        item.className='thumb-item';item.dataset.id=page.id;
+        const wrap=document.createElement('div');
+        wrap.className='thumb-wrap';wrap.appendChild(canvas());
+        const number=document.createElement('span');number.className='thumb-num';number.textContent=String(page.id);
+        wrap.appendChild(number);
+        item.appendChild(wrap);
+        area.appendChild(item);
+      });
+    };
+    renderThumbs();
+  </script>
+  <script src="/js/pdf-editor/page-selection-preview-focus.js?v=20261014-2"></script>
+  <script src="/js/pdf-editor/layout-export.js?v=20261014-4"></script>
+  <script>
+    (async()=>{
+      const result=document.getElementById('result');
+      const delay=(ms)=>new Promise(resolve=>setTimeout(resolve,ms));
+      const fail=(message)=>{
+        document.body.dataset.pdfSelectedMarginSmoke='fail';
+        result.textContent='FAIL: '+message;
+      };
+      try {
+        await delay(480);
+        const scope=document.getElementById('pdfCellMarginScope');
+        const apply=document.getElementById('pdfCellMarginApply');
+        const left=document.getElementById('pdfCellMarginLeft');
+        const top=document.getElementById('pdfCellMarginTop');
+        if (!scope||!apply||!left)throw Error('individual margin panel did not mount');
+        if(!apply.disabled)throw Error('apply should initially be disabled');
+        if(!window.PdfEditorPageSelection)throw Error('selection controller unavailable');
+        const wraps=[...document.querySelectorAll('#thumbArea .thumb-wrap')];
+        wraps[1].dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true}));
+        await delay(120);
+        if(apply.disabled||left.disabled)throw Error('selecting a thumbnail did not enable inputs');
+        left.value='12';apply.click();
+        if(parsedPages[1].cellMargins?.left!==12)throw Error('selected page margin was not applied');
+        if(parsedPages[0].cellMargins || parsedPages[2].cellMargins)throw Error('unselected pages were modified');
+        wraps[3].dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true,ctrlKey:true}));
+        await delay(100);
+        top.value='5';apply.click();
+        if(parsedPages[1].cellMargins?.top!==5 || parsedPages[3].cellMargins?.top!==5)
+          throw Error('Ctrl-selected pages did not receive independent top margin');
+        scope.value='file:1';scope.dispatchEvent(new Event('change',{bubbles:true}));
+        if(apply.disabled)throw Error('source-file scope should enable fields');
+        const right=document.getElementById('pdfCellMarginRight');
+        right.value='7';apply.click();
+        if(parsedPages[2].cellMargins?.right!==7 || parsedPages[3].cellMargins?.right!==7)
+          throw Error('file scope did not apply to all pages from that PDF');
+        if(parsedPages[1].cellMargins?.right)throw Error('file scope changed another PDF');
+        const values=window.PdfEditorLayoutExport.marginValues();
+        if(values.left!==10||values.right!==10)throw Error('paper margin was changed');
+        document.body.dataset.pdfSelectedMarginSmoke='pass';
+        result.textContent='PASS: selected-page and per-file insets activate and preserve paper margins';
+      }catch(error){fail(String(error.stack||error));}
+    })();
+  </script>
+</body></html>
