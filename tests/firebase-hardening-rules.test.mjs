@@ -6,7 +6,7 @@ import {
   assertSucceeds,
   initializeTestEnvironment,
 } from '@firebase/rules-unit-testing';
-import { deleteField, doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import { deleteField, doc, getDoc, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
 import { ref, uploadString } from 'firebase/storage';
 
 const projectId = 'demo-program-tool';
@@ -127,13 +127,29 @@ test('saved PDF session objects require owner and session metadata', async () =>
   }));
 });
 
-test('PDF session Firestore snapshots are schema and 300 MiB bounded and immutable', async () => {
+test('PDF session Firestore snapshots are bounded, owner-scoped and safely revisioned', async () => {
   await approve('cost-owner');
   const db = env.authenticatedContext('cost-owner', { email: 'owner@example.com' }).firestore();
   const target = doc(db, 'users/cost-owner/pdf_sessions/snapshot-one');
 
   await assertSucceeds(setDoc(target, sessionMetadata()));
   await assertFails(updateDoc(target, { name: '덮어쓰기 시도' }));
+  await assertFails(updateDoc(target, { sessionId: 'revision_next12' }));
+  await assertFails(updateDoc(target, { sessionId: 'revision_next12', updatedAt: serverTimestamp(), createdAt: new Date('2026-09-01T00:00:00Z') }));
+  await assertFails(updateDoc(target, { sessionId: 'revision_next12', updatedAt: serverTimestamp(), unexpected: true }));
+  await assertSucceeds(updateDoc(target, {
+    sessionId: 'revision_next12',
+    storagePaths: ['pdf_sessions/cost-owner/revision_next12/src_0.pdf'],
+    pageCount: 2,
+    updatedAt: serverTimestamp(),
+  }));
+  await assertFails(updateDoc(target, {
+    sessionId: 'revision_next12', updatedAt: serverTimestamp(),
+  }));
+  const otherDb = env.authenticatedContext('intruder', { email: 'intruder@example.com' }).firestore();
+  await assertFails(updateDoc(doc(otherDb, 'users/cost-owner/pdf_sessions/snapshot-one'), {
+    sessionId: 'new_intruder_rev', updatedAt: serverTimestamp(),
+  }));
   await assertFails(setDoc(doc(db, 'users/cost-owner/pdf_sessions/too-large'), sessionMetadata({
     totalBytes: 314572801,
   })));

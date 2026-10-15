@@ -706,10 +706,12 @@
       <label style="font-size:12px;font-weight:700;color:#374151;display:block;margin-bottom:6px;">저장 이름</label>
       <input id="sessionNameInput" type="text" placeholder="예: 카탈로그 편집 중" maxlength="40"
         style="width:100%;border:1.5px solid #d1d5db;border-radius:8px;padding:9px 12px;font-size:13px;font-family:inherit;outline:none;box-sizing:border-box;">
-      <div id="sessionSaveStatus" style="font-size:12px;color:#6b7280;margin-top:8px;min-height:16px;"></div>
-      <div style="display:flex;gap:8px;margin-top:16px;">
-        <button id="sessionSaveConfirm" type="button" class="btn btn-primary" style="flex:1;">💾 저장하기</button>
-        <button id="sessionSaveCancel" type="button" class="btn" style="flex:1;">취소</button>
+      <div id="sessionOverwriteDescription" hidden style="display:none;font-size:12px;color:#1d4ed8;background:#eff6ff;padding:9px;border-radius:7px;margin-top:9px;"></div>
+      <div id="sessionSaveStatus" role="status" aria-live="polite" style="font-size:12px;color:#6b7280;margin-top:8px;min-height:16px;"></div>
+      <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;">
+        <button id="sessionOverwriteConfirm" type="button" class="btn btn-primary" hidden style="display:none;flex:1 1 150px;">기존 저장본 덮어쓰기</button>
+        <button id="sessionSaveConfirm" type="button" class="btn btn-primary" style="flex:1 1 130px;">새 편집 저장</button>
+        <button id="sessionSaveCancel" type="button" class="btn" style="flex:0 1 70px;">취소</button>
       </div>
     </div>
   </div>
@@ -1299,6 +1301,12 @@ async function loadEditorSession(d, docId) {
     showStatus(`"${d.name}" 불러오기 완료!`, 'success');
     setTimeout(hideStatus, 2500);
     schedulePreview(300);
+    // Remember the successfully loaded document, so the Save dialog can offer
+    // an explicit overwrite alongside Save As New.
+    window.PdfSessionSaveSafety?.setLoadedSession?.({
+      docId, sessionId: d.sessionId, storagePaths: d.storagePaths,
+      name: d.name, uid: auth.currentUser?.uid,
+    });
     restoreButtons.forEach(button => { button.disabled = false; });
     return true;
   } catch(e) {
@@ -1321,7 +1329,7 @@ async function loadEditorSession(d, docId) {
 // Session modal events
 $('navSessionBtn').addEventListener('click', () => {
   if (!uploadedFiles.length) { alert('불러온 파일이 없습니다.'); return; }
-  $('sessionNameInput').value = '';
+  window.PdfSessionSaveSafety?.prepareSaveDialog?.();
   $('sessionSaveStatus').textContent = '';
   $('sessionSaveModal').style.display = 'flex';
   setTimeout(() => $('sessionNameInput').focus(), 80);
@@ -1628,6 +1636,7 @@ async function handleFile(file) {
   const isBreak = _uploadMode === 'break';
 
   if (isNew) {
+    window.PdfSessionSaveSafety?.clearLoadedSession?.();
     parsedPages = [];
     uploadedFiles = [];
     previewCanvases = [];
@@ -3128,7 +3137,8 @@ document.getElementById('bookletCheck')?.addEventListener('change', () => { upda
 
 // Reset
 $('resetBtn').addEventListener('click', () => {
-  parsedPages = []; previewCanvases = []; _nextId = 1;
+  window.PdfSessionSaveSafety?.clearLoadedSession?.();
+  parsedPages = []; uploadedFiles = []; fileNupMap = {}; previewCanvases = []; _nextId = 1;
   $('fileInput').value = '';
   $('previewBtn').disabled = true; $('downloadBtn').disabled = true;
   $('previewInfo').textContent = 'PDF 파일을 업로드하면 미리보기가 표시됩니다.';
