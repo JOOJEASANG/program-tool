@@ -122,6 +122,7 @@ def _build_page_layout(
     page_order: str | float = "row-major",
     booklet: bool = False,
     repeat_cell_overlays: bool = False,
+    booklet_spine_align: bool = False,
 ) -> _PageLayout:
     """Calculate immutable cell geometry for one output page.
 
@@ -148,6 +149,18 @@ def _build_page_layout(
             cols, rows = rows, cols
 
     left, right, top, bottom = resolved_margins
+    if booklet and booklet_spine_align:
+        # Exactly meet at the center fold, preserving outer paper margins.
+        fold_x = paper_w_pt / 2
+        strip_h = (paper_h_pt - top - bottom - (rows - 1) * resolved_gap) / rows
+        if fold_x - left <= 1 or paper_w_pt - right - fold_x <= 1 or strip_h <= 1:
+            raise ValueError("소책자 가운데 모으기 영역보다 여백이 큽니다.")
+        rects = []
+        for row in range(rows):
+            y0 = top + row * (strip_h + resolved_gap)
+            rects.append(fitz.Rect(left, y0, fold_x, y0 + strip_h))
+            rects.append(fitz.Rect(fold_x, y0, paper_w_pt - right, y0 + strip_h))
+        return _PageLayout(2, rows, fold_x - left, strip_h, tuple(rects))
     if repeat_cell_overlays and not booklet:
         # Repeated content must have identical margins AFTER cutting the sheet.
         # The print regions divide the paper exactly in halves/quarters; the
@@ -310,6 +323,7 @@ def _calc_rotated_fit_rect(
     src_w: float,
     src_h: float,
     rotation: float,
+    horizontal_align: str = "center",
 ) -> fitz.Rect:
     """Fit the axis-aligned bounds of an arbitrarily rotated source in a cell."""
     if src_w <= 0 or src_h <= 0:
@@ -324,7 +338,9 @@ def _calc_rotated_fit_rect(
     scale = min(cell_rect.width / bound_w, cell_rect.height / bound_h)
     fitted_w = bound_w * scale
     fitted_h = bound_h * scale
-    x0 = cell_rect.x0 + (cell_rect.width - fitted_w) / 2
+    x0 = (cell_rect.x1 - fitted_w if horizontal_align == "right"
+          else cell_rect.x0 if horizontal_align == "left"
+          else cell_rect.x0 + (cell_rect.width - fitted_w) / 2)
     y0 = cell_rect.y0 + (cell_rect.height - fitted_h) / 2
     return fitz.Rect(x0, y0, x0 + fitted_w, y0 + fitted_h)
 
@@ -359,6 +375,7 @@ def _render_adjusted_source_page(
     cell_rect: fitz.Rect,
     clip_rect: fitz.Rect,
     rotation: float,
+    horizontal_align: str = "center",
 ) -> None:
     """Render one adjusted source through a cell-sized PDF clipping surface.
 
@@ -372,6 +389,7 @@ def _render_adjusted_source_page(
         clip_rect.width,
         clip_rect.height,
         rotation,
+        horizontal_align,
     )
     scale = float(getattr(page_info, "content_scale", 1.0) or 1.0)
     offset_x = float(getattr(page_info, "offset_x_mm", 0.0) or 0.0) * pdf_ops.MM_TO_PT
@@ -454,11 +472,14 @@ def _render_actual_size_source_page(
     rotation: float,
     width_pt: float,
     height_pt: float,
+    horizontal_align: str = "center",
 ) -> fitz.Rect:
     bound_w, bound_h = _rotated_physical_bounds(width_pt, height_pt, rotation)
     offset_x = float(getattr(page_info, "offset_x_mm", 0.0) or 0.0) * pdf_ops.MM_TO_PT
     offset_y = float(getattr(page_info, "offset_y_mm", 0.0) or 0.0) * pdf_ops.MM_TO_PT
-    center_x = cell_rect.width / 2 + offset_x
+    center_x = (cell_rect.width - bound_w / 2 if horizontal_align == "right"
+                else bound_w / 2 if horizontal_align == "left"
+                else cell_rect.width / 2) + offset_x
     center_y = cell_rect.height / 2 + offset_y
     local_target = fitz.Rect(
         center_x - bound_w / 2,
@@ -541,6 +562,7 @@ def _render_source_page(
     cell_h: float,
     add_border: bool,
     placement_size_pt: tuple[float, float] | None = None,
+    horizontal_align: str = "center",
 ) -> None:
     src_doc = src_docs[page_info.file_index]
     src_page = src_doc[page_info.page_index]
@@ -576,6 +598,7 @@ def _render_source_page(
                 rotation,
                 width_pt,
                 height_pt,
+                horizontal_align,
             )
             if add_border:
                 shape = out_page.new_shape()
@@ -606,6 +629,7 @@ def _render_source_page(
                 cell_rect,
                 clip_rect,
                 rotation,
+                horizontal_align,
             )
         else:
             _show_source_page(
@@ -774,13 +798,14 @@ def build_pdf_document(
                         else int(first.nup_override or request.nup_default)
                     )
                 )
+                spine = booklet_enabled and bool(getattr(request, "booklet_spine_align", False))
                 cache_key = _layout_cache_key(
                     effective_nup,
                     content_margins,
                     gap_pt,
                     page_order,
                     booklet_enabled,
-                ) + (bool(getattr(request, "repeat_cell_overlays", False)),)
+                ) + (bool(getattr(request, "repeat_cell_overlays", False)), spine)
                 layout = layout_cache.get(cache_key)
                 if layout is None:
                     layout = _build_page_layout(
@@ -792,6 +817,7 @@ def build_pdf_document(
                         page_order=page_order,
                         booklet=booklet_enabled,
                         repeat_cell_overlays=bool(getattr(request, "repeat_cell_overlays", False)),
+                        booklet_spine_align=spine,
                     )
                     layout_cache[cache_key] = layout
 
@@ -814,7 +840,16 @@ def build_pdf_document(
                             paper_h_pt,
                         )
                         continue
-                    content_rect = _page_content_inset_rect(cell_rect, page_info, content_margins)
+                    inherited = content_margins
+                    align = "center"
+                    if spine:
+                        align = "right" if slot_idx % 2 == 0 else "left"
+                        inherited = (
+                            content_margins[0] if align == "right" else 0.0,
+                            0.0 if align == "right" else content_margins[1],
+                            content_margins[2], content_margins[3],
+                        )
+                    content_rect = _page_content_inset_rect(cell_rect, page_info, inherited)
                     _render_source_page(
                         out_page,
                         sources,
@@ -824,6 +859,7 @@ def build_pdf_document(
                         content_rect.height,
                         request.add_border,
                         placement_size_pt=placement_size_pt,
+                        horizontal_align=align,
                     )
 
             if bool(getattr(request, "repeat_cell_overlays", False)) and not booklet_enabled:
