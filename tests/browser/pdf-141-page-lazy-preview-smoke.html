@@ -16,6 +16,8 @@
       pageType:'pdf',sourceFile:uploadedFiles[Math.min(3,Math.floor(i/36))].name,excluded:false,lightweight:false,
     }));
     window.previewCanvases=[];
+    // Actual restored sessions enable focused mode for 8+ source pages.
+    window.__pdfEditorFastMode=true;
     window.nup=2;window.BOOKLET_STRIPS={};
     window.getLayout=()=>({cols:1,rows:2});
     window.groupByNup=pages=>[{n:2,pages}];
