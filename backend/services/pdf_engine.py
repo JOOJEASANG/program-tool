@@ -505,19 +505,30 @@ def _render_actual_size_source_page(
     )
 
 
-def _page_content_inset_rect(cell_rect: fitz.Rect, page_info) -> fitz.Rect:
-    """Inset only the source content within its assigned N-up / repeat cell."""
+def _page_content_inset_rect(
+    cell_rect: fitz.Rect,
+    page_info,
+    global_margins: tuple[float, float, float, float],
+) -> fitz.Rect:
+    """Replace each global margin for this page, rather than adding an inset.
+
+    _build_page_layout already applied the global margins when constructing
+    cell_rect. Adjust each edge by (page override - global margin), preserving
+    the original placement for pages with no override. Values are in points.
+    """
     unit = pdf_ops.MM_TO_PT
-    left = float(getattr(page_info, "content_margin_left_mm", 0) or 0) * unit
-    right = float(getattr(page_info, "content_margin_right_mm", 0) or 0) * unit
-    top = float(getattr(page_info, "content_margin_top_mm", 0) or 0) * unit
-    bottom = float(getattr(page_info, "content_margin_bottom_mm", 0) or 0) * unit
+    edges = []
+    for name, inherited in zip(("left", "right", "top", "bottom"), global_margins):
+        override = getattr(page_info, f"content_margin_{name}_mm", None)
+        desired = inherited if override is None else float(override) * unit
+        edges.append(desired - inherited)
+    left, right, top, bottom = edges
     rect = fitz.Rect(
         cell_rect.x0 + left, cell_rect.y0 + top,
         cell_rect.x1 - right, cell_rect.y1 - bottom,
     )
     if rect.width <= 1 or rect.height <= 1:
-        raise ValueError("페이지 개별 내용 여백이 배치 칸보다 큽니다. 해당 페이지의 여백을 줄여 주세요.")
+        raise ValueError("페이지 개별 여백이 배치 칸보다 큽니다. 해당 페이지의 여백을 줄여 주세요.")
     return rect
 
 
@@ -803,7 +814,7 @@ def build_pdf_document(
                             paper_h_pt,
                         )
                         continue
-                    content_rect = _page_content_inset_rect(cell_rect, page_info)
+                    content_rect = _page_content_inset_rect(cell_rect, page_info, content_margins)
                     _render_source_page(
                         out_page,
                         sources,
