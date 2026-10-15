@@ -1,6 +1,13 @@
 <!doctype html>
 <html lang="ko">
-<head><meta charset="utf-8"><title>PDF selected source page margin smoke</title></head>
+<head><meta charset="utf-8"><title>PDF selected source page margin smoke</title>
+  <style>
+    #thumbArea{display:grid;grid-template-columns:repeat(auto-fill,minmax(60px,1fr));gap:5px;width:240px}
+    #thumbArea .thumb-item{display:flex;flex-direction:column;align-items:center;width:100%}
+    #thumbArea .thumb-wrap{width:100%;position:relative;background:#fff;border:2px solid #dbe5ef}
+    #thumbArea .thumb-wrap canvas{width:100%;display:block}
+  </style>
+</head>
 <body data-pdf-selected-margin-smoke="running">
   <div id="result">RUNNING</div>
   <div id="sidebar">
@@ -69,6 +76,14 @@
         const left=document.getElementById('pdfCellMarginLeft');
         const top=document.getElementById('pdfCellMarginTop');
         if (!scope||!apply||!left)throw Error('individual margin panel did not mount');
+        const thumbArea=document.getElementById('thumbArea');
+        const firstTwo=[...thumbArea.querySelectorAll('.thumb-item')].slice(0,2);
+        if(getComputedStyle(thumbArea).display!=='grid')throw Error('page selection expanded compact thumbnail grid');
+        if(firstTwo.length!==2)throw Error('thumbnail fixture is incomplete');
+        if(Math.abs(firstTwo[0].getBoundingClientRect().top-firstTwo[1].getBoundingClientRect().top)>2)
+          throw Error('thumbnails became a full-width vertical list');
+        if(firstTwo[0].getBoundingClientRect().width>=150)
+          throw Error('thumbnail became too wide');
         if(!apply.disabled)throw Error('apply should initially be disabled');
         if(!window.PdfEditorPageSelection)throw Error('selection controller unavailable');
         const wraps=[...document.querySelectorAll('#thumbArea .thumb-wrap')];

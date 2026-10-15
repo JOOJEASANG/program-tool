@@ -63,8 +63,12 @@ def test_page_selection_freezes_full_context_selection_for_every_batch_action():
 def test_sidebar_stays_source_portrait_while_output_rotation_updates_preview_source():
     source = SELECTION.read_text(encoding="utf-8")
 
+    assert "#thumbArea{display:flex!important;flex-direction:column!important" not in source
+    original_markup = (ROOT / 'pdf-editor' / 'index.html').read_text(encoding='utf-8')
+    assert '.thumb-area { display: grid; grid-template-columns: repeat(auto-fill, minmax(60px, 1fr))' in original_markup
+
     for marker in (
-        "#thumbArea{display:flex!important;flex-direction:column!important",
+        "Keep the editor's original compact multi-column .thumb-area grid.",
         "aspect-ratio:210/297!important",
         "object-fit:contain!important",
         "function ensureSourceThumb(page)",
