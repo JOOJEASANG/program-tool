@@ -10,6 +10,9 @@
   <div id="thumbArea"></div><div id="previewScroll"></div>
   <script>
     history.replaceState({}, '', '/pdf-editor/?lazy-141-smoke=1');
+    // Simulate a tab where animation frames are completely throttled.
+    // The bounded timer fallback must still finish all three preview faces.
+    window.requestAnimationFrame=()=>0;
     window.uploadedFiles = Array.from({length:4},(_,i)=>({name:'원본'+(i+1)+'.pdf'}));
     window.parsedPages = Array.from({length:141},(_,i)=>({
       id:i+1,file_index:Math.min(3,Math.floor(i/36)),page_index:i%36,
