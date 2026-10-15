@@ -99,6 +99,9 @@
     const pending=[];
     const app=standaloneApp();
     const advanced=isAdvancedProfile();
+    // The homepage PDF 배치 route is /pdf-editor/ (no ?app=layout).
+    // It needs the same selection controller as the dedicated layout route.
+    const selectionApp=!advanced&&!app?'layout':app;
     removeStandardSidebarTitle();
     if(app==='layout'){
       window.__pdfEditorHiddenContextActionV1=true;
