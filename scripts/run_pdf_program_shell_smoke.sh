@@ -139,6 +139,8 @@ run_product_case "pdf-page-list-quick-add-smoke.html" "$OUT_DIR/pdf-page-list-qu
 reset_profile
 run_product_case "pdf-layout-sidebar-title-smoke.html" "$OUT_DIR/pdf-layout-sidebar-title-smoke-dom.html" 'data-pdf-layout-sidebar-title-smoke="pass"' 'PASS: layout PDF editor compact toolbar, sticky zoom, file reorder and clean defaults'
 reset_profile
+run_product_case "pdf-layout-selected-margin-smoke.html" "$OUT_DIR/pdf-selected-margin-smoke-dom.html" 'data-pdf-selected-margin-smoke="pass"' 'PASS: selecting source pages enables individual margin fields and preserves per-file isolation'
+reset_profile
 run_product_case "pdf-advanced-upload-facing-smoke.html" "$OUT_DIR/pdf-advanced-upload-facing-smoke-dom.html" 'data-pdf-advanced-upload-facing-smoke="pass"' 'PASS: advanced PDF upload parity and facing-page state are active'
 reset_profile
 run_product_case "pdf-advanced-sidebar-hard-isolation-smoke.html" "$OUT_DIR/pdf-advanced-sidebar-hard-isolation-smoke-dom.html" 'data-pdf-advanced-sidebar-hard-isolation-smoke="pass"' 'PASS: /pdf-editor-advanced stays advanced, hides spread/N-up/order controls and skips general print-layout modules'
