@@ -3007,6 +3007,8 @@ document.querySelectorAll('.nup-btn').forEach(btn => {
         const bc = document.getElementById('bookletCheck');
         if (bc) bc.checked = false;
       }
+      if ($('bookletSpineOptions')) $('bookletSpineOptions').style.display =
+        supportsBooklet && !!$('bookletCheck')?.checked ? '' : 'none';
     }
     updateBookletPadInfo();
     updateActualSizeUi();
@@ -3059,6 +3061,8 @@ $('actualUseSourceBtn').addEventListener('click', () => {
   }
   $('actualWidthMm').value = source.widthMm;
   $('actualHeightMm').value = source.heightMm;
+  $('actualSizePreset').value = 'source';
+  $('actualSizeCheck').checked = true;
   updateActualSizeUi();
   schedulePreview(120);
 });
@@ -3229,6 +3233,13 @@ $('resetBtn').addEventListener('click', () => {
   $('previewPages').textContent = '';
   $('thumbArea').innerHTML = '';
   $('thumbSection').style.display = 'none';
+  $('actualSizePreset').value = 'auto';
+  $('actualSizeCheck').checked = false;
+  $('actualWidthMm').value = '';
+  $('actualHeightMm').value = '';
+  $('bookletSpineGather').checked = true;
+  $('bookletSpineOptions').style.display = 'none';
+  updateActualSizeUi();
   $('previewScroll').innerHTML = '<div class="empty-state"><div class="icon">📝</div><p>PDF 파일을 업로드하면<br>설정에 따라 <b>자동으로 미리보기</b>가 생성됩니다.</p></div>';
   // Reset to new mode
   document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active','break-active'));
