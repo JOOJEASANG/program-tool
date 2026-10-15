@@ -69,7 +69,7 @@
         const left=document.getElementById('pdfCellMarginLeft');
         const top=document.getElementById('pdfCellMarginTop');
         if (!scope||!apply||!left)throw Error('individual margin panel did not mount');
-        if(!apply.disabled===false)throw Error('apply should initially be disabled');
+        if(!apply.disabled)throw Error('apply should initially be disabled');
         if(!window.PdfEditorPageSelection)throw Error('selection controller unavailable');
         const wraps=[...document.querySelectorAll('#thumbArea .thumb-wrap')];
         wraps[1].dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true}));
