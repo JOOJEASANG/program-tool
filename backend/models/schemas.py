@@ -57,11 +57,12 @@ class PageInfo(BaseModel):
     content_scale: float = Field(default=1.0, ge=0.5, le=3.0)
     offset_x_mm: float = Field(default=0.0, ge=-200.0, le=200.0)
     offset_y_mm: float = Field(default=0.0, ge=-200.0, le=200.0)
-    # Extra whitespace INSIDE this page\'s N-up cell (independent of paper edges).
-    content_margin_left_mm: float = Field(default=0.0, ge=0.0, le=80.0)
-    content_margin_right_mm: float = Field(default=0.0, ge=0.0, le=80.0)
-    content_margin_top_mm: float = Field(default=0.0, ge=0.0, le=80.0)
-    content_margin_bottom_mm: float = Field(default=0.0, ge=0.0, le=80.0)
+    # Overrides for the corresponding global margins. None inherits the global
+    # value; explicitly setting 0 removes that margin for this source page.
+    content_margin_left_mm: Optional[float] = Field(default=None, ge=0.0, le=80.0)
+    content_margin_right_mm: Optional[float] = Field(default=None, ge=0.0, le=80.0)
+    content_margin_top_mm: Optional[float] = Field(default=None, ge=0.0, le=80.0)
+    content_margin_bottom_mm: Optional[float] = Field(default=None, ge=0.0, le=80.0)
     # Allows 30 bounded extra text layers plus their compact metadata.
     divider_content: Optional[str] = Field(default=None, max_length=50_000)
     divider_style: Optional[Literal["simple", "lines", "band"]] = "simple"
