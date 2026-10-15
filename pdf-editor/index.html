@@ -3172,7 +3172,9 @@ updateNupBadges();
     if (previewCanvases.length && shownForCount === parsedPages.length) return;
     if (attempt >= 5) return;
     if ($('previewBtn') && $('previewBtn').disabled) {
-      timer = setTimeout(() => ensurePreview(attempt + 1, token), 350);
+      // Waiting for a running preview must not consume the watchdog's
+      // actual failed-render retry budget (large restored PDFs can be slow).
+      timer = setTimeout(() => ensurePreview(attempt, token), 350);
       return;
     }
     running = true;
