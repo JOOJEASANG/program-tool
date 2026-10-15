@@ -323,7 +323,7 @@
       ? target.name
       : ((byId('sessionNameInput')?.value || '').trim() || '편집 세션').slice(0, 40);
     if (target && !window.confirm(`기존 저장본 "${target.name}"에 현재 수정 내용을 덮어쓸까요?\\n이전 저장본의 내용은 복원할 수 없습니다.`)) return false;
-    const sessionId = window.crypto.randomUUID().replace(/-/g, '').slice(0, 24);
+    const sessionId = window.crypto.randomUUID().replace(/-/g, '');
     const storagePaths = [];
     const collection = db.collection('users').doc(user.uid).collection('pdf_sessions');
     const confirmButton = byId('sessionSaveConfirm');
