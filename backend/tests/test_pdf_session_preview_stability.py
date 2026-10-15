@@ -39,4 +39,7 @@ def test_windowed_preview_marks_141_page_job_complete_for_legacy_watchdog():
     assert "LARGE_RESTORED_PAGE_THRESHOLD = 120" in lazy
     assert "LARGE_RESTORED_WINDOW_RADIUS = 1" in lazy
     assert "window._markPreviewShown = function(n)" in editor
+    assert "timer = setTimeout(() => ensurePreview(attempt, token), 350)" in editor
+    manual = (ROOT / "js/program-manuals/pdf-editor.js").read_text(encoding="utf-8")
+    assert "120페이지 이상 저장본" in manual
     assert "pdf-141-page-lazy-preview-smoke.html" in smoke
