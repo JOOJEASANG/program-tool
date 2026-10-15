@@ -34,6 +34,11 @@
       pdfPage:{ id:i+1 }, thumbCanvas:canvas(), excluded:false, rotation:0,
       sourceFile:uploadedFiles[fileIndex].name
     }));
+    window.PdfBookletSpineGeometry = {
+      cell:(column,pw,margins)=>column===0
+        ? {x:margins.left,width:pw/2-margins.left,align:'right',baseMargins:{...margins,right:0}}
+        : {x:pw/2,width:pw/2-margins.right,align:'left',baseMargins:{...margins,left:0}}
+    };
     window.nup=1;
     window.BOOKLET_STRIPS={};
     window.getLayout=()=>({cols:1, rows:1});
