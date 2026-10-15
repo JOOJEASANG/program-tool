@@ -411,8 +411,25 @@
           <div id="actualSizePanel" style="margin-top:8px;padding:8px 9px;border:1px solid #dbeafe;border-radius:8px;background:#f8fbff;">
             <label class="checkline" style="margin-bottom:6px;">
               <input type="checkbox" id="actualSizeCheck">
-              <span>실제 출력크기 지정</span>
+              <span>배치할 원본 1페이지 크기 지정</span>
             </label>
+            <div class="field" style="margin-bottom:6px;">
+              <label for="actualSizePreset">한 페이지 크기</label>
+              <select id="actualSizePreset" style="width:100%;font:inherit;padding:5px;border:1px solid #dbeafe;border-radius:6px;">
+                <option value="auto">자동 맞춤 (기존 방식)</option>
+                <option value="source">원본 PDF 크기</option>
+                <option value="a5">A5 · 148 × 210mm</option>
+                <option value="b5">B5 · 182 × 257mm</option>
+                <option value="a4">A4 · 210 × 297mm</option>
+                <option value="a3">A3 · 297 × 420mm</option>
+                <option value="scale">원본 크기 기준 배율(%)</option>
+                <option value="custom">직접 입력(mm)</option>
+              </select>
+            </div>
+            <div id="actualSizeScaleRow" style="display:none;margin-bottom:6px;" class="field">
+              <label for="actualSizeScalePct">원본 크기 배율(%)</label>
+              <input id="actualSizeScalePct" type="number" value="100" min="10" max="300" step="1">
+            </div>
             <div class="grid2" id="actualSizeFields">
               <div class="field" style="margin-bottom:4px;"><label>가로(mm)</label><input id="actualWidthMm" type="number" min="1" max="2000" step="0.1" placeholder="예: 148"></div>
               <div class="field" style="margin-bottom:4px;"><label>세로(mm)</label><input id="actualHeightMm" type="number" min="1" max="2000" step="0.1" placeholder="예: 210"></div>
@@ -427,6 +444,13 @@
               <span style="color:#9ca3af;font-size:10px;">양면인쇄→절단→접기=소책자</span>
             </label>
             <div id="bookletPadInfo" style="display:none;margin-top:3px;font-size:10px;color:#2563eb;font-weight:700;padding-left:18px;"></div>
+          </div>
+          <div id="bookletSpineOptions" style="display:none;margin:6px 0;padding:8px 9px;border:1px solid #bfdbfe;border-radius:8px;background:#eff6ff;">
+            <label class="checkline" style="margin:0 0 4px;">
+              <input id="bookletSpineGather" type="checkbox" checked>
+              <span style="font-weight:800;">접지선(가운데) 방향으로 모으기</span>
+            </label>
+            <small style="display:block;color:#475569;font-size:10px;line-height:1.5;">왼쪽 내용은 오른쪽으로, 오른쪽 내용은 왼쪽으로 정렬합니다. 가운데 불필요한 간격을 없애고 실제 배치 크기는 그대로 유지합니다.</small>
           </div>
         </div>
         <div class="field">
@@ -857,6 +881,9 @@ function collectEditorState() {
     marginV: Number.isFinite(parseFloat($('marginV').value)) ? parseFloat($('marginV').value) : 10,
     gap: Number.isFinite(parseFloat($('gap').value)) ? parseFloat($('gap').value) : 5,
     actualSizeEnabled,
+    actualSizePreset: $('actualSizePreset')?.value || 'auto',
+    actualSizeScalePct: Number($('actualSizeScalePct')?.value || 100),
+    bookletSpineGather: !!$('bookletSpineGather')?.checked,
     actualWidthMm: parseFloat($('actualWidthMm')?.value) || null,
     actualHeightMm: parseFloat($('actualHeightMm')?.value) || null,
     fileNupMap,
@@ -1223,6 +1250,10 @@ async function loadEditorSession(d, docId) {
     if ($('actualSizeCheck')) $('actualSizeCheck').checked = actualSizeEnabled;
     if ($('actualWidthMm')) $('actualWidthMm').value = actualWidthMm ?? '';
     if ($('actualHeightMm')) $('actualHeightMm').value = actualHeightMm ?? '';
+    if ($('actualSizePreset')) $('actualSizePreset').value = state.actualSizePreset || (actualSizeEnabled ? 'custom' : 'auto');
+    if ($('actualSizeScalePct')) $('actualSizeScalePct').value = state.actualSizeScalePct ?? 100;
+    if ($('bookletSpineGather')) $('bookletSpineGather').checked = state.bookletSpineGather ?? true;
+    if ($('bookletSpineOptions')) $('bookletSpineOptions').style.display = state.booklet ? '' : 'none';
     wmEnabled = state.wmEnabled ?? false; wmText = state.wmText ?? '사본';
     wmOpacity = state.wmOpacity ?? 0.15; wmAngle = state.wmAngle ?? -45; wmColor = state.wmColor ?? '#ff0000';
     hfEnabled = state.hfEnabled ?? false;
@@ -1494,14 +1525,17 @@ function getActualSizeFit() {
   if (!size.enabled) return null;
   const { pw, ph, mh, mv, gp } = getSettings();
   const { cols, rows } = getOutputLayout(getActualLayoutNup());
+  const spine = isBookletLayoutActive(nup) && !!$('bookletSpineGather')?.checked;
   const repeating = !!window.PdfEditorNupRepeat?.enabled?.();
   const margins = window.PdfEditorLayoutExport?.marginValues?.() || {left:mh,right:mh,top:mv,bottom:mv};
-  const cellW = repeating
+  const cellW = spine
+    ? Math.min(pw / 2 - margins.left, pw / 2 - margins.right)
+    : repeating
     ? pw / cols - margins.left - margins.right
-    : (pw - mh * 2 - gp * (cols - 1)) / cols;
+    : (pw - margins.left - margins.right - gp * (cols - 1)) / cols;
   const cellH = repeating
     ? ph / rows - margins.top - margins.bottom
-    : (ph - mv * 2 - gp * (rows - 1)) / rows;
+    : (ph - margins.top - margins.bottom - gp * (rows - 1)) / rows;
   const fits0 = size.widthMm <= cellW + 0.05 && size.heightMm <= cellH + 0.05;
   const fits90 = size.heightMm <= cellW + 0.05 && size.widthMm <= cellH + 0.05;
   return { fits: fits0 || fits90, fits0, fits90, cellW, cellH, ...size };
@@ -1520,6 +1554,34 @@ function firstSourceSizeMm() {
   };
 }
 
+function syncPlacementPreset() {
+  const preset = $('actualSizePreset')?.value || 'auto';
+  const presets = {a5:[148,210], b5:[182,257], a4:[210,297], a3:[297,420]};
+  const useSize = preset !== 'auto';
+  if ($('actualSizeCheck')) $('actualSizeCheck').checked = useSize;
+  if (preset !== 'custom' && useSize) {
+    const original = firstSourceSizeMm();
+    const pct = Number($('actualSizeScalePct')?.value || 100);
+    const size = presets[preset] ||
+      (original && preset === 'source' ? [original.widthMm,original.heightMm] : null) ||
+      (original && preset === 'scale' && pct >= 10 && pct <= 300
+        ? [original.widthMm * pct / 100, original.heightMm * pct / 100] : null);
+    if (size) {
+      $('actualWidthMm').value = Math.round(size[0] * 10) / 10;
+      $('actualHeightMm').value = Math.round(size[1] * 10) / 10;
+    } else {
+      $('actualWidthMm').value = '';
+      $('actualHeightMm').value = '';
+    }
+  }
+  if ($('actualSizeScaleRow')) $('actualSizeScaleRow').style.display = preset === 'scale' ? '' : 'none';
+  updateActualSizeUi();
+}
+
+function bookletSpineEnabled() {
+  return isBookletLayoutActive(nup) && !!$('bookletSpineGather')?.checked;
+}
+
 function updateActualSizeUi() {
   const enabled = Boolean($('actualSizeCheck')?.checked);
   actualSizeEnabled = enabled;
@@ -1528,6 +1590,8 @@ function updateActualSizeUi() {
   ['actualWidthMm', 'actualHeightMm', 'actualUseSourceBtn'].forEach(id => {
     if ($(id)) $(id).disabled = !enabled;
   });
+  const preset = $('actualSizePreset')?.value || 'auto';
+  if ($('actualSizeScaleRow')) $('actualSizeScaleRow').style.display = preset === 'scale' ? '' : 'none';
   const warning = $('actualSizeWarning');
   if (!warning) return;
   if (!enabled) {
@@ -2214,7 +2278,9 @@ function groupByNup(pages) {
 }
 
 // ── Draw one page into a cell (auto-rotates 90° when it gives ≥10% better fit) ──
-function drawPageInCell(ctx, src, cellX, cellY, cellW, cellH, mm2px = 1) {
+function drawPageInCell(ctx, src, cellX, cellY, cellW, cellH, mm2px = 1, horizontalAlign = 'center') {
+  const alignX = (width) => horizontalAlign === 'right' ? cellX + cellW - width
+    : horizontalAlign === 'left' ? cellX : cellX + (cellW - width) / 2;
   const actual = getActualPlacementSize();
   if (actual?.enabled && actual.widthMm > 0 && actual.heightMm > 0) {
     const pw = src.width, ph = src.height;
@@ -2227,7 +2293,7 @@ function drawPageInCell(ctx, src, cellX, cellY, cellW, cellH, mm2px = 1) {
     const rot = (!fits0 && fits90) || (!fits0 && !fits90 && overflow90 < overflow0);
     const dw = rot ? targetH : targetW;
     const dh = rot ? targetW : targetH;
-    const dx = cellX + (cellW - dw) / 2;
+    const dx = alignX(dw);
     const dy = cellY + (cellH - dh) / 2;
 
     ctx.save();
@@ -2259,7 +2325,7 @@ function drawPageInCell(ctx, src, cellX, cellY, cellW, cellH, mm2px = 1) {
   if (rot) {
     const s = s90;
     const dw = ph * s, dh = pw * s;
-    const dx = cellX + (cellW - dw) / 2;
+    const dx = alignX(dw);
     const dy = cellY + (cellH - dh) / 2;
     ctx.save();
     ctx.translate(dx + dw / 2, dy + dh / 2);
@@ -2274,7 +2340,7 @@ function drawPageInCell(ctx, src, cellX, cellY, cellW, cellH, mm2px = 1) {
   } else {
     const s = s0;
     const dw = pw * s, dh = ph * s;
-    const dx = cellX + (cellW - dw) / 2;
+    const dx = alignX(dw);
     const dy = cellY + (cellH - dh) / 2;
     ctx.drawImage(src, dx, dy, dw, dh);
     if (showBorder) {
@@ -2897,6 +2963,7 @@ $('downloadBtn').addEventListener('click', async () => {
       },
       facing_pages: facingPages,
       booklet: document.getElementById('bookletCheck')?.checked ?? false,
+      booklet_spine_align: !!$('bookletCheck')?.checked && !!$('bookletSpineGather')?.checked,
     };
 
     // Expand repeat placements at the export boundary. An API wrapper alone is
@@ -2951,6 +3018,21 @@ $('orderTB').addEventListener('click', () => { orderLR=false; $('orderTB').class
 $('orientPort').addEventListener('click', () => { landscape=false; $('orientPort').classList.add('active'); $('orientLand').classList.remove('active'); updateNupBadges(); updateActualSizeUi(); schedulePreview(200); });
 $('orientLand').addEventListener('click', () => { landscape=true; $('orientLand').classList.add('active'); $('orientPort').classList.remove('active'); updateNupBadges(); updateActualSizeUi(); schedulePreview(200); });
 $('showBorder').addEventListener('change', () => { showBorder = $('showBorder').checked; schedulePreview(300); });
+$('actualSizePreset').addEventListener('change', () => {
+  syncPlacementPreset();
+  schedulePreview(120);
+});
+$('actualSizeScalePct').addEventListener('input', () => {
+  if ($('actualSizePreset').value === 'scale') { syncPlacementPreset(); schedulePreview(120); }
+});
+$('bookletSpineGather').addEventListener('change', () => {
+  updateActualSizeUi();
+  schedulePreview(120);
+});
+$('bookletCheck')?.addEventListener('change', () => {
+  $('bookletSpineOptions').style.display = $('bookletCheck').checked ? '' : 'none';
+  updateActualSizeUi();
+});
 $('actualSizeCheck').addEventListener('change', () => {
   if ($('actualSizeCheck').checked && (!normalizeActualSizeMm($('actualWidthMm').value) || !normalizeActualSizeMm($('actualHeightMm').value))) {
     const source = firstSourceSizeMm();
@@ -2959,10 +3041,12 @@ $('actualSizeCheck').addEventListener('change', () => {
       $('actualHeightMm').value = source.heightMm;
     }
   }
+  $('actualSizePreset').value = $('actualSizeCheck').checked ? 'custom' : 'auto';
   updateActualSizeUi();
   schedulePreview(120);
 });
 ['actualWidthMm','actualHeightMm'].forEach(id => $(id).addEventListener('input', () => {
+  if (actualSizeEnabled) $('actualSizePreset').value = 'custom';
   updateActualSizeUi();
   if (actualSizeEnabled) schedulePreview(120);
 }));
