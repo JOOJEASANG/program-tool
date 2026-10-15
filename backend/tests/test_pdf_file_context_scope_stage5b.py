@@ -73,7 +73,7 @@ def test_break_scope_is_recorded_on_thumb_render_and_survives_first_page_deletio
 
 def test_file_context_runtime_loads_once_after_session_save_safety():
     register = REGISTER.read_text(encoding="utf-8")
-    session = "/js/pdf-editor/session-save-safety.js?v=20260805-2"
+    session = "/js/pdf-editor/session-save-safety.js?v=20261015-1"
     context = "/js/pdf-editor/file-context-scope.js?v=20260805-1"
     assert register.count("pdfFileContextScopeScript") == 1
     assert register.count(context) == 1
