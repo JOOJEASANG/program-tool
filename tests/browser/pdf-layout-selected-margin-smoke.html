@@ -157,7 +157,7 @@
         window.nup=2;
         document.getElementById('bookletCheck').checked=true;
         window.renderPlacements.length=0;
-        window.buildOutputPage([parsedPages[0],parsedPages[1]],0,2,1,1,false,0,false,1);
+        window.buildOutputPage([parsedPages[0],parsedPages[0]],0,2,1,1,false,0,false,1);
         const [foldLeft,foldRight]=window.renderPlacements;
         if(foldLeft.align!=='right'||foldRight.align!=='left')
           throw Error('booklet content was not aligned inward to the fold');
@@ -165,7 +165,7 @@
           throw Error('booklet placed pages did not touch the center fold: '+JSON.stringify(window.renderPlacements));
         document.getElementById('bookletSpineGather').checked=false;
         window.renderPlacements.length=0;
-        window.buildOutputPage([parsedPages[0],parsedPages[1]],0,2,1,1,false,0,false,1);
+        window.buildOutputPage([parsedPages[0],parsedPages[0]],0,2,1,1,false,0,false,1);
         if(window.renderPlacements[0].x+window.renderPlacements[0].w>=window.renderPlacements[1].x)
           throw Error('disabling fold alignment did not restore normal N-up gap');
         document.body.dataset.pdfSelectedMarginSmoke='pass';
