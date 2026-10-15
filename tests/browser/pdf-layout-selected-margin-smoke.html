@@ -92,6 +92,7 @@
         if(apply.disabled||left.disabled)throw Error('selecting a thumbnail did not enable inputs');
         left.value='12';apply.click();
         if(parsedPages[1].cellMargins?.left!==12)throw Error('selected page margin was not applied');
+        if(parsedPages[1].cellMargins?.right!==undefined)throw Error('editing one direction incorrectly froze an inherited global edge');
         if(parsedPages[0].cellMargins || parsedPages[2].cellMargins)throw Error('unselected pages were modified');
         wraps[3].dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true,ctrlKey:true}));
         await delay(100);
@@ -107,6 +108,27 @@
         if(parsedPages[1].cellMargins?.right)throw Error('file scope changed another PDF');
         const values=window.PdfEditorLayoutExport.marginValues();
         if(values.left!==10||values.right!==10)throw Error('paper margin was changed');
+        // A 0mm page override must supersede the global 10mm, not add to it.
+        scope.value='selected';scope.dispatchEvent(new Event('change',{bubbles:true}));
+        wraps[0].dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true}));
+        await delay(100);
+        for(const edge of ['Left','Right','Top','Bottom']){
+          const input=document.getElementById('pdfCellMargin'+edge);
+          if(input.value!=='10')throw Error('unset source margin should display inherited 10mm');
+          input.value='0';
+        }
+        apply.click();
+        if(Object.values(parsedPages[0].cellMargins||{}).length!==4
+          || Object.values(parsedPages[0].cellMargins).some(value=>value!==0))
+          throw Error('explicit zero source margins were discarded');
+        if(window.PdfEditorLayoutExport.pageCellMargins(parsedPages[0]).left!==0)
+          throw Error('0mm override was not effective');
+        if(window.PdfEditorLayoutExport.pageCellMargins(parsedPages[1]).right!==10)
+          throw Error('other pages no longer inherit global 10mm');
+        document.getElementById('pdfCellMarginReset').click();
+        if(parsedPages[0].cellMargins)throw Error('reset did not restore inheritance');
+        if(window.PdfEditorLayoutExport.pageCellMargins(parsedPages[0]).left!==10)
+          throw Error('reset must inherit 10mm not preserve explicit zero');
         document.body.dataset.pdfSelectedMarginSmoke='pass';
         result.textContent='PASS: selected-page and per-file insets activate and preserve paper margins';
       }catch(error){fail(String(error.stack||error));}
