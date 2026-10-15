@@ -731,7 +731,9 @@
             const state = typeof data?.state === 'string' ? JSON.parse(data.state) : (data?.state || {});
             applyStateMargins(state);
             restorePageCellMargins(state);
-            requestPreview();
+            // loadEditorSession already scheduled the first preview after
+            // restoration. Do not launch a second competing render here.
+            // The scheduled draw reads these restored margins when it runs.
           } catch (error) {
             console.warn('[pdf-margin] saved margins could not be restored', error);
           }
