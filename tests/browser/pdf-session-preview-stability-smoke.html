@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"><title>Restored PDF preview refresh stability</title></head>
+<body data-pdf-session-preview-stability="running">
+  <div id="result">RUNNING</div>
+  <div id="thumbArea"></div>
+  <div id="previewInfo"></div>
+  <div id="livePreviewHint"></div>
+  <div id="sessionRestoreStatus"></div>
+  <script>
+    // Load the same focused-preview route condition used by the real PDF editor.
+    history.replaceState({}, '', '/pdf-editor/?preview-stability-smoke=1');
+    window.parsedPages = Array.from({length:12}, (_,i)=>({id:i+1,excluded:false,pageType:'pdf'}));
+    let lazyRenders=0;
+    let aggregateSyncs=0;
+    window.PdfViewportLazyPreview = {
+      requestRender: async()=>{lazyRenders++;return true},
+      getCurrentOutputIndex:()=>0,
+    };
+    window.PdfUploadOptimization = {
+      syncAggregateMode:()=>{aggregateSyncs++;return {fast:true}},
+    };
+  </script>
+  <script src="/js/pdf-editor/layout-smooth-preview.js"></script>
+  <script>
+    (async()=>{
+      const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+      const fail=error=>{
+        document.body.dataset.pdfSessionPreviewStability='fail';
+        document.getElementById('result').textContent='FAIL: '+String(error?.stack||error);
+      };
+      try{
+        await wait(450);
+        const api=window.PdfLayoutSmoothPreview;
+        const hint=document.getElementById('livePreviewHint');
+        if(!api?.shouldFocus()||!window.__pdfEditorFastMode)throw Error('restored 12-page job did not enable focused preview');
+        if(hint.textContent!=='빠른 배치 미리보기 ON')throw Error('fast preview hint was not installed');
+        let hintMutations=0;
+        const observer=new MutationObserver(records=>{hintMutations+=records.length});
+        observer.observe(hint,{childList:true,subtree:true,characterData:true});
+        for(let i=0;i<30;i++){
+          document.getElementById('sessionRestoreStatus').textContent='복원 상태 '+i;
+          document.getElementById('previewInfo').textContent='미리보기 처리 '+i;
+        }
+        await wait(750);
+        observer.disconnect();
+        if(hintMutations>0)throw Error('status updates retriggered focused-mode DOM writes '+hintMutations);
+        if(lazyRenders!==0)throw Error('restore status updates launched duplicate lazy renders '+lazyRenders);
+        const oldCount=aggregateSyncs;
+        const mode=window.PdfUploadOptimization.syncAggregateMode();
+        if(!mode.layoutFocusedPreview||aggregateSyncs!==oldCount+1)throw Error('upload aggregate mode bridge stopped working');
+        document.body.dataset.pdfSessionPreviewStability='pass';
+        document.getElementById('result').textContent='PASS: restored session status updates do not loop or duplicate PDF preview rendering';
+      }catch(error){fail(error)}
+    })();
+  </script>
+</body></html>
