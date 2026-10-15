@@ -8,6 +8,10 @@
   const ACTIVE_OUTPUT_THRESHOLD = 80;
   const WINDOW_RADIUS = 3;
   const EXTREME_WINDOW_RADIUS = 2;
+  // Restored 120+ page sessions should show a useful first preview promptly.
+  // Other faces remain available through the existing navigation controls.
+  const LARGE_RESTORED_PAGE_THRESHOLD = 120;
+  const LARGE_RESTORED_WINDOW_RADIUS = 1;
   const EDGE_SCROLL_STEP = 3;
   const PREVIEW_PPM = 96 / 25.4;
   const INSTALL_DELAYS = [0, 180, 420, 800, 1300, 2100, 3300, 5000];
@@ -397,7 +401,9 @@
       : selectedDescriptor >= 0 ? selectedDescriptor : currentOutputIndex;
     currentOutputIndex = clamp(requested, 0, descriptors.length - 1);
     if (selectedDescriptor >= 0 && outputIndex == null) currentOutputIndex = selectedDescriptor;
-    const radius = window.__pdfEditorExtremeMode ? EXTREME_WINDOW_RADIUS : WINDOW_RADIUS;
+    const radius = parsedPages.length >= LARGE_RESTORED_PAGE_THRESHOLD
+      ? LARGE_RESTORED_WINDOW_RADIUS
+      : (window.__pdfEditorExtremeMode ? EXTREME_WINDOW_RADIUS : WINDOW_RADIUS);
     const windowRange = chooseWindow(descriptors.length, currentOutputIndex, radius);
     currentWindow = windowRange;
     window.__pdfEditorLazyPreviewActive = true;
@@ -410,6 +416,9 @@
     const temporary = [];
     const canvases = [];
     const previous = Array.isArray(previewCanvases) ? previewCanvases.slice() : [];
+    // The legacy auto-preview watchdog must see that the lazy preview is busy,
+    // otherwise it can queue repeated redraws during expensive source hydration.
+    if (byId('previewBtn')) byId('previewBtn').disabled = true;
 
     try {
       if (typeof showStatus === 'function') {
@@ -427,6 +436,12 @@
       }
       previewCanvases = canvases;
       displayPreview(canvases, true);
+      // A windowed preview is complete for the CURRENT source page set even
+      // though it intentionally draws only a few visible output faces.
+      // Without this, the legacy watchdog repeatedly rebuilds the same faces.
+      if (typeof window._markPreviewShown === 'function') {
+        window._markPreviewShown(parsedPages.length);
+      }
       const scroll = byId('previewScroll');
       if (scroll) scroll.dataset.lazyPreview = 'true';
       annotateDisplayedFaces(visibleDescriptors, currentOutputIndex);
@@ -448,6 +463,7 @@
       }
       return true;
     } finally {
+      if (byId('previewBtn')) byId('previewBtn').disabled = false;
       releaseTemporarySources(temporary);
       await closeSourceDocuments(documentCache);
     }
