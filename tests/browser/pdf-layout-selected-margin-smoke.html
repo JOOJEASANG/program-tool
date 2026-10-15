@@ -38,6 +38,12 @@
     window.groupByNup=(pages)=>[{n:1, pages}];
     window.schedulePreview=()=>{};
     window.triggerPreview=()=>Promise.resolve();
+    window.getSettings=()=>({pw:210,ph:297,mh:10,mv:10,gp:5});
+    window.buildOutputPage=()=>{};
+    window.buildAllPages=async()=>[];
+    window.applyDocEdits=()=>{};
+    window.getPageSrc=page=>page.thumbCanvas;
+    window.drawPageInCell=(_ctx,_src,x,y,w,h)=>{window.lastRenderPlacement={x,y,w,h}};
     window.displayPreview=()=>{};
     window.renderPdfPage=async ()=>canvas();
     window.showStatus=()=>{};
@@ -125,10 +131,22 @@
           throw Error('0mm override was not effective');
         if(window.PdfEditorLayoutExport.pageCellMargins(parsedPages[1]).right!==10)
           throw Error('other pages no longer inherit global 10mm');
+        window.buildOutputPage([parsedPages[0]],0,1,1,1,false,0,false,1);
+        const zeroPlacement=window.lastRenderPlacement;
+        if(!zeroPlacement || Math.abs(zeroPlacement.x)>0.01
+          || Math.abs(zeroPlacement.y)>0.01
+          || Math.abs(zeroPlacement.w-210)>0.01
+          || Math.abs(zeroPlacement.h-297)>0.01)
+          throw Error('preview added global margin to selected 0mm override: '+JSON.stringify(zeroPlacement));
         document.getElementById('pdfCellMarginReset').click();
         if(parsedPages[0].cellMargins)throw Error('reset did not restore inheritance');
         if(window.PdfEditorLayoutExport.pageCellMargins(parsedPages[0]).left!==10)
           throw Error('reset must inherit 10mm not preserve explicit zero');
+        window.buildOutputPage([parsedPages[0]],0,1,1,1,false,0,false,1);
+        const inheritedPlacement=window.lastRenderPlacement;
+        if(Math.abs(inheritedPlacement.x-10)>0.01 || Math.abs(inheritedPlacement.y-10)>0.01
+          || Math.abs(inheritedPlacement.w-190)>0.01 || Math.abs(inheritedPlacement.h-277)>0.01)
+          throw Error('preview did not restore global 10mm margin: '+JSON.stringify(inheritedPlacement));
         document.body.dataset.pdfSelectedMarginSmoke='pass';
         result.textContent='PASS: selected-page and per-file insets activate and preserve paper margins';
       }catch(error){fail(String(error.stack||error));}
