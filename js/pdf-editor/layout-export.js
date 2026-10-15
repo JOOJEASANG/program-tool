@@ -598,8 +598,9 @@
           }
           const cutX = column * cutWidth;
           const cutY = row * cutHeight;
-          const slotW = spine ? (cutWidth - (column === 0 ? margins.left : margins.right)) : cellW;
-          const cellX = (spine ? (column === 0 ? margins.left : cutWidth)
+          const foldCell = spine ? window.PdfBookletSpineGeometry?.cell(column, pw, margins) : null;
+          const slotW = foldCell ? foldCell.width : cellW;
+          const cellX = (foldCell ? foldCell.x
             : margins.left + (repeated ? cutX : column * (cellW + layoutGap))) * mm2px;
           const cellY = (margins.top + (repeated ? cutY : row * (cellH + layoutGap))) * mm2px;
           const sourcePage = groupPages[sourceIndex];
@@ -607,10 +608,7 @@
           // The base cell already includes sheet margins. Only move each
           // side by the DIFFERENCE between this page's final margin and the
           // existing sheet margin: 10mm global + 0mm override => 0mm final.
-          const baseMargins = spine
-            ? { ...margins, left: column === 0 ? margins.left : 0,
-                right: column === 0 ? 0 : margins.right }
-            : margins;
+          const baseMargins = foldCell?.baseMargins || margins;
           const finalMargins = pageCellMargins(sourcePage, baseMargins);
           const deltaLeft = finalMargins.left - baseMargins.left;
           const deltaRight = finalMargins.right - baseMargins.right;
@@ -624,7 +622,7 @@
           drawPageInCell(context, source,
             cellX + deltaLeft * mm2px, cellY + deltaTop * mm2px,
             innerW * mm2px, innerH * mm2px, mm2px,
-            spine ? (column === 0 ? 'right' : 'left') : 'center');
+            foldCell?.align || 'center');
           if (repeated) {
             const overlay = document.createElement('canvas');
             overlay.width = Math.max(1, Math.round(cutWidth * mm2px));
