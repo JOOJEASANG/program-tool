@@ -122,23 +122,27 @@
   }
 
 
-  // Source-content margins are insets INSIDE an N-up cell, not sheet margins.
+  // Each explicit source margin replaces its global counterpart. Missing
+  // overrides inherit the current global margin, while explicit zero means 0.
   function sourcePages() {
     try { return Array.isArray(parsedPages) ? parsedPages : []; }
     catch (_) { return []; }
   }
-  function pageCellMargins(page) {
+  function pageCellMarginOverrides(page) {
     const raw = page?.cellMargins || {};
     const values = {};
     for (const edge of CELL_EDGES) {
+      if (raw[edge] === undefined || raw[edge] === null || raw[edge] === '') continue;
       const amount = Number(raw[edge]);
-      values[edge] = Number.isFinite(amount) ? Math.max(0, Math.min(80, amount)) : 0;
+      if (Number.isFinite(amount)) values[edge] = Math.max(0, Math.min(80, amount));
     }
     return values;
   }
+  function pageCellMargins(page, global = marginValues()) {
+    return { ...global, ...pageCellMarginOverrides(page) };
+  }
   function hasPageCellMargins(page) {
-    const values = pageCellMargins(page);
-    return CELL_EDGES.some((edge) => values[edge] !== 0);
+    return Object.keys(pageCellMarginOverrides(page)).length > 0;
   }
   function selectedSourcePages() {
     const ids = window.PdfEditorPageSelection?.snapshotSelectedIds?.() || [];
@@ -178,13 +182,13 @@
     const targets = cellMarginTargets();
     const info = $('pdfCellMarginSummary');
     if (info) info.textContent = targets.length
-      ? targets.length + '페이지 대상 · 각 배치 칸 내부에 별도 적용'
+      ? targets.length + '페이지 대상 · 입력한 여백이 전체 여백을 대체'
       : '왼쪽 페이지 목록을 선택하거나, 위에서 업로드 파일을 선택하세요.';
     for (const edge of CELL_EDGES) {
       const input = $('pdfCellMargin' + edge[0].toUpperCase() + edge.slice(1));
       if (!input) continue;
       input.disabled = !targets.length;
-      if (!targets.length) { input.value = '0'; input.placeholder = ''; continue; }
+      if (!targets.length) { input.value = String(marginValues()[edge]); input.placeholder = ''; continue; }
       const first = pageCellMargins(targets[0])[edge];
       const mixed = targets.some((page) => pageCellMargins(page)[edge] !== first);
       input.value = mixed ? '' : String(first);
@@ -212,8 +216,8 @@
     }
     targets.forEach((page) => {
       if (reset) { delete page.cellMargins; return; }
-      const values = { ...pageCellMargins(page), ...changes };
-      if (CELL_EDGES.some((edge) => values[edge] !== 0)) page.cellMargins = values;
+      const values = { ...pageCellMarginOverrides(page), ...changes };
+      if (Object.keys(values).length) page.cellMargins = values;
       else delete page.cellMargins;
     });
     syncPageCellMarginUi();
@@ -232,7 +236,7 @@
       section.id = 'pdfPageCellMarginsV1';
       section.className = 'pdf-margin-panel-v2 pdf-cell-margin-panel';
       section.innerHTML = [
-        '<div class="pdf-margin-panel-head"><span>페이지/파일별 내용 여백 (mm)</span><small>전체 용지 여백과 별도</small></div>',
+        '<div class="pdf-margin-panel-head"><span>페이지/파일별 내용 여백 (mm)</span><small>전체 여백을 대체 (추가 아님)</small></div>',
         '<label for="pdfCellMarginScope">적용 범위</label>',
         '<select id="pdfCellMarginScope"><option value="selected">선택한 페이지</option></select>',
         '<div class="pdf-margin-grid-v2 pdf-cell-margin-inputs">',
@@ -244,7 +248,7 @@
         '<button id="pdfCellMarginApply" type="button">대상에 적용</button>',
         '<button id="pdfCellMarginReset" type="button">대상 여백 초기화</button>',
         '</div><div id="pdfCellMarginSummary" class="pdf-margin-facing-note" role="status"></div>',
-        '<small class="pdf-cell-margin-tip">값이 서로 다르면 혼합으로 표시되며 빈 입력란은 변경하지 않습니다. 반복배치에도 각 재단 칸마다 적용됩니다.</small>',
+        '<small class="pdf-cell-margin-tip">선택한 페이지의 최종 여백입니다. 전체 여백 10mm일 때 여기에 0mm를 적용하면 해당 페이지만 0mm입니다. 초기화하면 전체 여백을 따릅니다. 혼합된 빈 항목은 변경하지 않습니다.</small>',
       ].join('');
       paper.insertAdjacentElement('afterend', section);
       $('pdfCellMarginScope').addEventListener('change', syncPageCellMarginUi);
@@ -268,8 +272,8 @@
     const saved = Array.isArray(state?.pageCellMargins) ? state.pageCellMargins : [];
     sourcePages().forEach((page, i) => {
       if (!saved[i] || typeof saved[i] !== 'object') { delete page.cellMargins; return; }
-      const values = pageCellMargins({ cellMargins: saved[i] });
-      if (CELL_EDGES.some((edge) => values[edge] !== 0)) page.cellMargins = values;
+      const values = pageCellMarginOverrides({ cellMargins: saved[i] });
+      if (Object.keys(values).length) page.cellMargins = values;
       else delete page.cellMargins;
     });
     syncPageCellMarginUi();
@@ -465,12 +469,12 @@
         ? pages.flatMap((page) => Array(page.excluded ? 1 : copies).fill(page))
         : pages;
       settings.pages = settings.pages.map((entry, index) => {
-        const inset = pageCellMargins(expandedSources[index]);
+        const inset = pageCellMarginOverrides(expandedSources[index]);
         return { ...entry,
-          content_margin_left_mm: inset.left,
-          content_margin_right_mm: inset.right,
-          content_margin_top_mm: inset.top,
-          content_margin_bottom_mm: inset.bottom,
+          content_margin_left_mm: inset.left ?? null,
+          content_margin_right_mm: inset.right ?? null,
+          content_margin_top_mm: inset.top ?? null,
+          content_margin_bottom_mm: inset.bottom ?? null,
         };
       });
     }
@@ -585,14 +589,21 @@
           const cellY = (margins.top + (repeated ? cutY : row * (cellH + layoutGap))) * mm2px;
           const sourcePage = groupPages[sourceIndex];
           const source = getPageSrc(sourcePage, mm2px, useHi);
-          const inset = pageCellMargins(sourcePage);
-          const innerW = cellW - inset.left - inset.right;
-          const innerH = cellH - inset.top - inset.bottom;
+          // The base cell already includes sheet margins. Only move each
+          // side by the DIFFERENCE between this page's final margin and the
+          // existing sheet margin: 10mm global + 0mm override => 0mm final.
+          const finalMargins = pageCellMargins(sourcePage, margins);
+          const deltaLeft = finalMargins.left - margins.left;
+          const deltaRight = finalMargins.right - margins.right;
+          const deltaTop = finalMargins.top - margins.top;
+          const deltaBottom = finalMargins.bottom - margins.bottom;
+          const innerW = cellW - deltaLeft - deltaRight;
+          const innerH = cellH - deltaTop - deltaBottom;
           if (innerW <= 25.4 / 72 || innerH <= 25.4 / 72) {
-            throw new Error('페이지 개별 내용 여백이 배치 칸보다 큽니다. 해당 페이지의 여백을 줄여 주세요.');
+            throw new Error('페이지 개별 여백이 배치 칸보다 큽니다. 해당 페이지의 여백을 줄여 주세요.');
           }
           drawPageInCell(context, source,
-            cellX + inset.left * mm2px, cellY + inset.top * mm2px,
+            cellX + deltaLeft * mm2px, cellY + deltaTop * mm2px,
             innerW * mm2px, innerH * mm2px, mm2px);
           if (repeated) {
             const overlay = document.createElement('canvas');
@@ -822,6 +833,7 @@
     patchSettings,
     marginValues,
     pageCellMargins,
+    pageCellMarginOverrides,
     selectedSourcePages,
     fileSourcePages,
     applyPageCellMargins,
