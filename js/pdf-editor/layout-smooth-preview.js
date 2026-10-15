@@ -70,8 +70,10 @@
     root.dataset.pdfLayoutFocusedPreview='true';
     const hint=byId('livePreviewHint');
     if(hint){
-      hint.textContent='빠른 배치 미리보기 ON';
-      hint.style.color='#2563eb';
+      // A whole-body MutationObserver calls install() after DOM changes.
+      // Replacing identical text here caused a self-triggering render loop.
+      if(hint.textContent!=='빠른 배치 미리보기 ON')hint.textContent='빠른 배치 미리보기 ON';
+      if(hint.style.color!=='rgb(37, 99, 235)')hint.style.color='#2563eb';
     }
     syncLabels();
     return true;
@@ -141,9 +143,16 @@
 
   window.addEventListener('resize',()=>{if(shouldFocus())syncLabels();},{passive:true});
 
+  // Listen for actual layout/import changes instead of every preview/status
+  // text replacement in the body. The old broad observer observed its own
+  // hint.textContent writes and ran install() indefinitely for 8+ pages.
   const bodyObserver=new MutationObserver(queueInstall);
-  if(document.body)bodyObserver.observe(document.body,{childList:true,subtree:true});
-  else document.addEventListener('DOMContentLoaded',()=>bodyObserver.observe(document.body,{childList:true,subtree:true}),{once:true});
+  const observePageList=()=>{
+    const area=byId('thumbArea');
+    if(area)bodyObserver.observe(area,{childList:true});
+  };
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',observePageList,{once:true});
+  else observePageList();
 
   window.PdfLayoutSmoothPreview={
     apply:applyFocusedMode,
