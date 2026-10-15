@@ -193,6 +193,11 @@
       const mixed = targets.some((page) => pageCellMargins(page)[edge] !== first);
       input.value = mixed ? '' : String(first);
       input.placeholder = mixed ? '혼합' : '';
+      // Display inherited global values without silently freezing them as
+      // page overrides when another direction is edited.
+      input.dataset.marginInherited = targets.every((page) =>
+        pageCellMarginOverrides(page)[edge] === undefined) ? 'true' : 'false';
+      input.dataset.marginOriginal = input.value;
     }
     for (const id of ['pdfCellMarginApply', 'pdfCellMarginReset']) {
       if ($(id)) $(id).disabled = !targets.length;
@@ -205,6 +210,8 @@
     if (!reset) for (const edge of CELL_EDGES) {
       const input = $('pdfCellMargin' + edge[0].toUpperCase() + edge.slice(1));
       if (!input || input.value.trim() === '') continue; // preserve different existing values
+      if (input.dataset.marginInherited === 'true'
+          && input.value === input.dataset.marginOriginal) continue;
       const amount = Number(input.value);
       if (!Number.isFinite(amount) || amount < 0 || amount > 80) {
         input.setCustomValidity('0~80mm 사이로 입력하세요.');
@@ -254,6 +261,9 @@
       $('pdfCellMarginScope').addEventListener('change', syncPageCellMarginUi);
       $('pdfCellMarginApply').addEventListener('click', () => applyPageCellMargins());
       $('pdfCellMarginReset').addEventListener('click', () => applyPageCellMargins(true));
+      for (const id of ['marginLeft', 'marginRight', 'marginTop', 'marginBottom', 'marginH', 'marginV']) {
+        $(id)?.addEventListener('change', queueCellMarginSync);
+      }
       // Selection is changed in the thumbnail controller after click handling;
       // react to its committed state rather than relying on early click capture.
       document.addEventListener('pdf-page-selection-change', queueCellMarginSync);
