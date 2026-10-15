@@ -6,6 +6,9 @@
   window.__pdfEditorLayoutExportV8 = true;
 
   const MARGIN_IDS = ['marginLeft', 'marginRight', 'marginTop', 'marginBottom'];
+  const CELL_EDGES = ['left', 'right', 'top', 'bottom'];
+  let cellMarginObserver = null;
+  let cellMarginSyncQueued = false;
   const PT_TO_MM = 25.4 / 72;
   const FALLBACK_MARGIN_MM = 10 * PT_TO_MM;
   const FALLBACK_GAP_MM = 6 * PT_TO_MM;
@@ -118,6 +121,157 @@
     return margins;
   }
 
+
+  // Source-content margins are insets INSIDE an N-up cell, not sheet margins.
+  function sourcePages() {
+    try { return Array.isArray(parsedPages) ? parsedPages : []; }
+    catch (_) { return []; }
+  }
+  function pageCellMargins(page) {
+    const raw = page?.cellMargins || {};
+    const values = {};
+    for (const edge of CELL_EDGES) {
+      const amount = Number(raw[edge]);
+      values[edge] = Number.isFinite(amount) ? Math.max(0, Math.min(80, amount)) : 0;
+    }
+    return values;
+  }
+  function hasPageCellMargins(page) {
+    const values = pageCellMargins(page);
+    return CELL_EDGES.some((edge) => values[edge] !== 0);
+  }
+  function selectedSourcePages() {
+    const ids = window.PdfEditorPageSelection?.snapshotSelectedIds?.() || [];
+    const selected = new Set(ids.map(String));
+    return sourcePages().filter((p) => p?.pageType === 'pdf' && selected.has(String(p.id)));
+  }
+  function fileSourcePages(index) {
+    return sourcePages().filter((p) => p?.pageType === 'pdf' && Number(p.file_index) === Number(index));
+  }
+  function cellMarginTargets() {
+    const scope = $('pdfCellMarginScope')?.value || 'selected';
+    if (scope === 'selected') return selectedSourcePages();
+    const match = /^file:(\d+)$/.exec(scope);
+    return match ? fileSourcePages(Number(match[1])) : [];
+  }
+  function syncPageCellMarginUi() {
+    const select = $('pdfCellMarginScope');
+    if (!select) return;
+    const selectedValue = select.value || 'selected';
+    const names = new Map();
+    sourcePages().forEach((p) => {
+      const index = Number(p?.file_index);
+      if (p?.pageType !== 'pdf' || !Number.isInteger(index) || index < 0 || names.has(index)) return;
+      let name = String(p.sourceFile || '').trim();
+      try { name = String(uploadedFiles?.[index]?.name || name); } catch (_) {}
+      names.set(index, name || '파일');
+    });
+    const key = JSON.stringify([...names]);
+    if (select.dataset.fileOptions !== key) {
+      select.replaceChildren(new Option('선택한 페이지', 'selected'));
+      for (const [index, name] of names) {
+        select.add(new Option('파일 ' + (index + 1) + ' · ' + name, 'file:' + index));
+      }
+      select.dataset.fileOptions = key;
+      select.value = [...select.options].some((o) => o.value === selectedValue) ? selectedValue : 'selected';
+    }
+    const targets = cellMarginTargets();
+    const info = $('pdfCellMarginSummary');
+    if (info) info.textContent = targets.length
+      ? targets.length + '페이지 대상 · 각 배치 칸 내부에 별도 적용'
+      : '왼쪽 페이지 목록을 선택하거나, 위에서 업로드 파일을 선택하세요.';
+    for (const edge of CELL_EDGES) {
+      const input = $('pdfCellMargin' + edge[0].toUpperCase() + edge.slice(1));
+      if (!input) continue;
+      input.disabled = !targets.length;
+      if (!targets.length) { input.value = '0'; input.placeholder = ''; continue; }
+      const first = pageCellMargins(targets[0])[edge];
+      const mixed = targets.some((page) => pageCellMargins(page)[edge] !== first);
+      input.value = mixed ? '' : String(first);
+      input.placeholder = mixed ? '혼합' : '';
+    }
+    for (const id of ['pdfCellMarginApply', 'pdfCellMarginReset']) {
+      if ($(id)) $(id).disabled = !targets.length;
+    }
+  }
+  function applyPageCellMargins(reset = false) {
+    const targets = cellMarginTargets();
+    if (!targets.length) return;
+    const changes = {};
+    if (!reset) for (const edge of CELL_EDGES) {
+      const input = $('pdfCellMargin' + edge[0].toUpperCase() + edge.slice(1));
+      if (!input || input.value.trim() === '') continue; // preserve different existing values
+      const amount = Number(input.value);
+      if (!Number.isFinite(amount) || amount < 0 || amount > 80) {
+        input.setCustomValidity('0~80mm 사이로 입력하세요.');
+        input.reportValidity();
+        return;
+      }
+      input.setCustomValidity('');
+      changes[edge] = amount;
+    }
+    targets.forEach((page) => {
+      if (reset) { delete page.cellMargins; return; }
+      const values = { ...pageCellMargins(page), ...changes };
+      if (CELL_EDGES.some((edge) => values[edge] !== 0)) page.cellMargins = values;
+      else delete page.cellMargins;
+    });
+    syncPageCellMarginUi();
+    requestPreview();
+  }
+  function queueCellMarginSync() {
+    if (cellMarginSyncQueued) return;
+    cellMarginSyncQueued = true;
+    queueMicrotask(() => { cellMarginSyncQueued = false; syncPageCellMarginUi(); });
+  }
+  function installPageCellMarginUi() {
+    const paper = $('individualPaperMarginsV2');
+    if (!paper) return false;
+    if (!$('pdfPageCellMarginsV1')) {
+      const section = document.createElement('div');
+      section.id = 'pdfPageCellMarginsV1';
+      section.className = 'pdf-margin-panel-v2 pdf-cell-margin-panel';
+      section.innerHTML = [
+        '<div class="pdf-margin-panel-head"><span>페이지/파일별 내용 여백 (mm)</span><small>전체 용지 여백과 별도</small></div>',
+        '<label for="pdfCellMarginScope">적용 범위</label>',
+        '<select id="pdfCellMarginScope"><option value="selected">선택한 페이지</option></select>',
+        '<div class="pdf-margin-grid-v2 pdf-cell-margin-inputs">',
+        '<div class="field"><label for="pdfCellMarginLeft">왼쪽</label><input id="pdfCellMarginLeft" type="number" value="0" min="0" max="80" step="0.5"></div>',
+        '<div class="field"><label for="pdfCellMarginRight">오른쪽</label><input id="pdfCellMarginRight" type="number" value="0" min="0" max="80" step="0.5"></div>',
+        '<div class="field"><label for="pdfCellMarginTop">위쪽</label><input id="pdfCellMarginTop" type="number" value="0" min="0" max="80" step="0.5"></div>',
+        '<div class="field"><label for="pdfCellMarginBottom">아래쪽</label><input id="pdfCellMarginBottom" type="number" value="0" min="0" max="80" step="0.5"></div>',
+        '</div><div class="pdf-cell-margin-actions">',
+        '<button id="pdfCellMarginApply" type="button">대상에 적용</button>',
+        '<button id="pdfCellMarginReset" type="button">대상 여백 초기화</button>',
+        '</div><div id="pdfCellMarginSummary" class="pdf-margin-facing-note" role="status"></div>',
+        '<small class="pdf-cell-margin-tip">값이 서로 다르면 혼합으로 표시되며 빈 입력란은 변경하지 않습니다. 반복배치에도 각 재단 칸마다 적용됩니다.</small>',
+      ].join('');
+      paper.insertAdjacentElement('afterend', section);
+      $('pdfCellMarginScope').addEventListener('change', syncPageCellMarginUi);
+      $('pdfCellMarginApply').addEventListener('click', () => applyPageCellMargins());
+      $('pdfCellMarginReset').addEventListener('click', () => applyPageCellMargins(true));
+      document.addEventListener('click', (event) => {
+        if (event.target.closest('#thumbArea, #pageSelectionToolbar')) queueCellMarginSync();
+      }, true);
+    }
+    if (!cellMarginObserver && $('thumbArea')) {
+      cellMarginObserver = new MutationObserver(queueCellMarginSync);
+      cellMarginObserver.observe($('thumbArea'), { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+    }
+    syncPageCellMarginUi();
+    return true;
+  }
+  function restorePageCellMargins(state) {
+    const saved = Array.isArray(state?.pageCellMargins) ? state.pageCellMargins : [];
+    sourcePages().forEach((page, i) => {
+      if (!saved[i] || typeof saved[i] !== 'object') { delete page.cellMargins; return; }
+      const values = pageCellMargins({ cellMargins: saved[i] });
+      if (CELL_EDGES.some((edge) => values[edge] !== 0)) page.cellMargins = values;
+      else delete page.cellMargins;
+    });
+    syncPageCellMarginUi();
+  }
+
   function syncLegacyMargins() {
     const margins = marginValues();
     if ($('marginH')) $('marginH').value = String((margins.left + margins.right) / 2);
@@ -170,6 +324,14 @@
       .pdf-margin-grid-v2 label{font-size:10px;text-align:center;color:#475569}
       .pdf-margin-grid-v2 input{padding:7px 5px!important;text-align:center;font-weight:800}
       .pdf-margin-facing-note{margin-top:8px;padding-top:7px;border-top:1px solid #e5eaf0;color:#64748b;font-size:9px;font-weight:700;line-height:1.5}
+      .pdf-cell-margin-panel{background:#fff;border-color:#cbd5e1}
+      .pdf-cell-margin-panel select{width:100%;margin-bottom:8px;padding:7px 8px;border:1px solid #cbd5e1;border-radius:7px;font-size:11px}
+      .pdf-cell-margin-inputs{margin-bottom:7px}
+      .pdf-cell-margin-actions{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+      .pdf-cell-margin-actions button{padding:7px 5px;border:1px solid #cbd5e1;border-radius:7px;font-size:10px;font-weight:800;color:#334155;background:#f8fafc;cursor:pointer}
+      .pdf-cell-margin-actions button:first-child{background:#1d4ed8;border-color:#1d4ed8;color:#fff}
+      .pdf-cell-margin-actions button:disabled{opacity:.45;cursor:not-allowed}
+      .pdf-cell-margin-tip{display:block;margin-top:6px;color:#64748b;font-size:9px;line-height:1.5}
       .pdf-paper-spacing-grid-v2>.field:not(.pdf-legacy-paired-margin){grid-column:1/-1}
       .pdf-page-number-reserve-row{display:flex;align-items:flex-start;gap:7px;margin:7px 0 2px;padding:8px 9px;border:1px solid #dbeafe;border-radius:9px;background:#eff6ff;line-height:1.45}
       .pdf-page-number-reserve-row input{flex:0 0 auto;margin-top:2px}
@@ -288,6 +450,27 @@
     settings.facing_pages = facingEnabled();
     settings.page_numbers = settings.page_numbers || {};
     settings.page_numbers.auto_reserve_space = pageNumberAutoReserveEnabled();
+    if (Array.isArray(settings.pages)) {
+      const pages = sourcePages();
+      const copies = window.PdfEditorNupRepeat?.count?.() || 1;
+      const expandedLength = pages.reduce((sum, page) => sum + (page.excluded ? 1 : copies), 0);
+      // Repeat export expands active source pages into 2/4 physical cut cells
+      // BEFORE reaching this wrapper. Align those copies with their source
+      // pages instead of assigning them sequential, unrelated page margins.
+      const expandedSources = settings.repeat_cell_overlays && copies > 1
+        && settings.pages.length === expandedLength
+        ? pages.flatMap((page) => Array(page.excluded ? 1 : copies).fill(page))
+        : pages;
+      settings.pages = settings.pages.map((entry, index) => {
+        const inset = pageCellMargins(expandedSources[index]);
+        return { ...entry,
+          content_margin_left_mm: inset.left,
+          content_margin_right_mm: inset.right,
+          content_margin_top_mm: inset.top,
+          content_margin_bottom_mm: inset.bottom,
+        };
+      });
+    }
     return settings;
   }
 
@@ -397,8 +580,17 @@
           const cutY = row * cutHeight;
           const cellX = (margins.left + (repeated ? cutX : column * (cellW + layoutGap))) * mm2px;
           const cellY = (margins.top + (repeated ? cutY : row * (cellH + layoutGap))) * mm2px;
-          const source = getPageSrc(groupPages[sourceIndex], mm2px, useHi);
-          drawPageInCell(context, source, cellX, cellY, cellW * mm2px, cellH * mm2px);
+          const sourcePage = groupPages[sourceIndex];
+          const source = getPageSrc(sourcePage, mm2px, useHi);
+          const inset = pageCellMargins(sourcePage);
+          const innerW = cellW - inset.left - inset.right;
+          const innerH = cellH - inset.top - inset.bottom;
+          if (innerW <= 25.4 / 72 || innerH <= 25.4 / 72) {
+            throw new Error('페이지 개별 내용 여백이 배치 칸보다 큽니다. 해당 페이지의 여백을 줄여 주세요.');
+          }
+          drawPageInCell(context, source,
+            cellX + inset.left * mm2px, cellY + inset.top * mm2px,
+            innerW * mm2px, innerH * mm2px, mm2px);
           if (repeated) {
             const overlay = document.createElement('canvas');
             overlay.width = Math.max(1, Math.round(cutWidth * mm2px));
@@ -518,6 +710,8 @@
         state.margin_top_mm = margins.top;
         state.margin_bottom_mm = margins.bottom;
         state.pnAutoReserve = pageNumberAutoReserveEnabled();
+        state.pageCellMargins = sourcePages().map((page) =>
+          hasPageCellMargins(page) ? pageCellMargins(page) : null);
         return state;
       };
       collectWithMargins.__individualMarginsV2 = true;
@@ -533,6 +727,7 @@
           try {
             const state = typeof data?.state === 'string' ? JSON.parse(data.state) : (data?.state || {});
             applyStateMargins(state);
+            restorePageCellMargins(state);
             requestPreview();
           } catch (error) {
             console.warn('[pdf-margin] saved margins could not be restored', error);
@@ -607,12 +802,13 @@
   function boot(attempt) {
     installMarginStyles();
     const marginUiReady = installMarginUi();
+    const cellMarginUiReady = installPageCellMarginUi();
     const pageNumberUiReady = installPageNumberReserveUi();
     const previewReady = patchPreviewCore();
     const sessionReady = patchSessionBridge();
     const apiReady = wrapApiProcessPdf();
     wrapFetch();
-    if ((!marginUiReady || !pageNumberUiReady || !previewReady || !sessionReady || !apiReady) && attempt < 12) {
+    if ((!marginUiReady || !cellMarginUiReady || !pageNumberUiReady || !previewReady || !sessionReady || !apiReady) && attempt < 12) {
       setTimeout(() => boot(attempt + 1), 180 + attempt * 70);
     }
   }
@@ -620,6 +816,11 @@
   window.PdfEditorLayoutExport = {
     patchSettings,
     marginValues,
+    pageCellMargins,
+    selectedSourcePages,
+    fileSourcePages,
+    applyPageCellMargins,
+    syncPageCellMarginUi,
     effectiveMargins,
     layoutMargins,
     pageNumberApplies,

@@ -505,6 +505,22 @@ def _render_actual_size_source_page(
     )
 
 
+def _page_content_inset_rect(cell_rect: fitz.Rect, page_info) -> fitz.Rect:
+    """Inset only the source content within its assigned N-up / repeat cell."""
+    unit = pdf_ops.MM_TO_PT
+    left = float(getattr(page_info, "content_margin_left_mm", 0) or 0) * unit
+    right = float(getattr(page_info, "content_margin_right_mm", 0) or 0) * unit
+    top = float(getattr(page_info, "content_margin_top_mm", 0) or 0) * unit
+    bottom = float(getattr(page_info, "content_margin_bottom_mm", 0) or 0) * unit
+    rect = fitz.Rect(
+        cell_rect.x0 + left, cell_rect.y0 + top,
+        cell_rect.x1 - right, cell_rect.y1 - bottom,
+    )
+    if rect.width <= 1 or rect.height <= 1:
+        raise ValueError("페이지 개별 내용 여백이 배치 칸보다 큽니다. 해당 페이지의 여백을 줄여 주세요.")
+    return rect
+
+
 def _render_source_page(
     out_page: fitz.Page,
     src_docs: list[fitz.Document],
@@ -787,13 +803,14 @@ def build_pdf_document(
                             paper_h_pt,
                         )
                         continue
+                    content_rect = _page_content_inset_rect(cell_rect, page_info)
                     _render_source_page(
                         out_page,
                         sources,
                         page_info,
-                        cell_rect,
-                        layout.cell_w,
-                        layout.cell_h,
+                        content_rect,
+                        content_rect.width,
+                        content_rect.height,
                         request.add_border,
                         placement_size_pt=placement_size_pt,
                     )
