@@ -618,6 +618,7 @@ def _render_source_page(
             clip_rect.width,
             clip_rect.height,
             rotation,
+            horizontal_align,
         )
         adjusted = _page_has_placement_adjustment(page_info)
         if adjusted:
