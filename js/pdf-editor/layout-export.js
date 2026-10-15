@@ -250,6 +250,9 @@
       $('pdfCellMarginScope').addEventListener('change', syncPageCellMarginUi);
       $('pdfCellMarginApply').addEventListener('click', () => applyPageCellMargins());
       $('pdfCellMarginReset').addEventListener('click', () => applyPageCellMargins(true));
+      // Selection is changed in the thumbnail controller after click handling;
+      // react to its committed state rather than relying on early click capture.
+      document.addEventListener('pdf-page-selection-change', queueCellMarginSync);
       document.addEventListener('click', (event) => {
         if (event.target.closest('#thumbArea, #pageSelectionToolbar')) queueCellMarginSync();
       }, true);
