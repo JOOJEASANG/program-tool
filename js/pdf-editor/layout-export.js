@@ -452,8 +452,17 @@
     settings.page_numbers.auto_reserve_space = pageNumberAutoReserveEnabled();
     if (Array.isArray(settings.pages)) {
       const pages = sourcePages();
+      const copies = window.PdfEditorNupRepeat?.count?.() || 1;
+      const expandedLength = pages.reduce((sum, page) => sum + (page.excluded ? 1 : copies), 0);
+      // Repeat export expands active source pages into 2/4 physical cut cells
+      // BEFORE reaching this wrapper. Align those copies with their source
+      // pages instead of assigning them sequential, unrelated page margins.
+      const expandedSources = settings.repeat_cell_overlays && copies > 1
+        && settings.pages.length === expandedLength
+        ? pages.flatMap((page) => Array(page.excluded ? 1 : copies).fill(page))
+        : pages;
       settings.pages = settings.pages.map((entry, index) => {
-        const inset = pageCellMargins(pages[index]);
+        const inset = pageCellMargins(expandedSources[index]);
         return { ...entry,
           content_margin_left_mm: inset.left,
           content_margin_right_mm: inset.right,
