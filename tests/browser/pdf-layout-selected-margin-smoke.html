@@ -22,6 +22,8 @@
       <div class="field"><label>기본 세로 여백</label><input id="marginV" type="number" value="10"></div>
     </div>
     <input id="gap" type="number" value="5">
+    <input id="bookletCheck" type="checkbox">
+    <input id="bookletSpineGather" type="checkbox" checked>
     <input id="facingPages" type="checkbox">
   </div>
   <script>
@@ -43,7 +45,8 @@
     window.buildAllPages=async()=>[];
     window.applyDocEdits=()=>{};
     window.getPageSrc=page=>page.thumbCanvas;
-    window.drawPageInCell=(_ctx,_src,x,y,w,h)=>{window.lastRenderPlacement={x,y,w,h}};
+    window.renderPlacements=[];
+    window.drawPageInCell=(_ctx,_src,x,y,w,h,_mm2px,align)=>{const p={x,y,w,h,align};window.lastRenderPlacement=p;window.renderPlacements.push(p)};
     window.displayPreview=()=>{};
     window.renderPdfPage=async ()=>canvas();
     window.showStatus=()=>{};
@@ -147,6 +150,24 @@
         if(Math.abs(inheritedPlacement.x-10)>0.01 || Math.abs(inheritedPlacement.y-10)>0.01
           || Math.abs(inheritedPlacement.w-190)>0.01 || Math.abs(inheritedPlacement.h-277)>0.01)
           throw Error('preview did not restore global 10mm margin: '+JSON.stringify(inheritedPlacement));
+        // When booklet is active, the left and right printed pages should
+        // touch the physical fold (105mm for this 210mm test paper), rather
+        // than leave the global N-up 5mm gutter.
+        window.BOOKLET_STRIPS={2:1};
+        window.nup=2;
+        document.getElementById('bookletCheck').checked=true;
+        window.renderPlacements.length=0;
+        window.buildOutputPage([parsedPages[0],parsedPages[1]],0,2,1,1,false,0,false,1);
+        const [foldLeft,foldRight]=window.renderPlacements;
+        if(foldLeft.align!=='right'||foldRight.align!=='left')
+          throw Error('booklet content was not aligned inward to the fold');
+        if(Math.abs(foldLeft.x+foldLeft.w-105)>0.01 || Math.abs(foldRight.x-105)>0.01)
+          throw Error('booklet placed pages did not touch the center fold: '+JSON.stringify(window.renderPlacements));
+        document.getElementById('bookletSpineGather').checked=false;
+        window.renderPlacements.length=0;
+        window.buildOutputPage([parsedPages[0],parsedPages[1]],0,2,1,1,false,0,false,1);
+        if(window.renderPlacements[0].x+window.renderPlacements[0].w>=window.renderPlacements[1].x)
+          throw Error('disabling fold alignment did not restore normal N-up gap');
         document.body.dataset.pdfSelectedMarginSmoke='pass';
         result.textContent='PASS: selected-page and per-file insets activate and preserve paper margins';
       }catch(error){fail(String(error.stack||error));}
