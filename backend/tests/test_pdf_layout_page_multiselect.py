@@ -64,7 +64,7 @@ def test_sidebar_stays_source_portrait_while_output_rotation_updates_preview_sou
     source = SELECTION.read_text(encoding="utf-8")
 
     for marker in (
-        "#thumbArea{display:flex!important;flex-direction:column!important",
+        "Keep the editor's original compact multi-column .thumb-area grid.",
         "aspect-ratio:210/297!important",
         "object-fit:contain!important",
         "function ensureSourceThumb(page)",
