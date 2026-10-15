@@ -27,7 +27,19 @@
 
   const byId = (id) => document.getElementById(id);
   const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
-  const nextPaint = () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  // requestAnimationFrame pauses in background/throttled tabs. A saved PDF
+  // session must not remain stuck at "작업 미리보기 생성 중" while awaiting paint.
+  const nextPaint = () => new Promise((resolve) => {
+    let completed = false;
+    const finish = () => {
+      if (completed) return;
+      completed = true;
+      clearTimeout(fallback);
+      resolve();
+    };
+    const fallback = setTimeout(finish, 100);
+    requestAnimationFrame(() => requestAnimationFrame(finish));
+  });
 
   function activePages() {
     try { return parsedPages.filter((page) => !page.excluded); }
