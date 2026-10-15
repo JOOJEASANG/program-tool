@@ -16,7 +16,11 @@ def test_layout_route_loads_page_selection_before_generic_thumbnail_navigation()
     assert "pdfLayoutPageSelectionScriptV1" in route
     assert f"src:'{selection_path}',app:'layout'" in route
     assert route.index(selection_path) < route.index(loader_path)
-    assert "if(entry.app&&entry.app!==app)continue;" in route
+    assert "const selectionApp=!advanced&&!app?'layout':app;" in route
+    assert "if(entry.app&&entry.app!==selectionApp)continue;" in route
+    # The main program card links to /pdf-editor/ without an app query parameter.
+    homepage = (ROOT / "js" / "program-studio-ui-v2.js").read_text(encoding="utf-8")
+    assert "url:'/pdf-editor/'" in homepage
     assert "window.__pdfEditorHiddenContextActionV1=true;" in route
 
 
