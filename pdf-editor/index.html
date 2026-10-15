@@ -2368,6 +2368,18 @@ function getPageSrc(page, mm2px, useHi) {
   return (useHi && page.hiCanvas) ? page.hiCanvas : page.thumbCanvas;
 }
 
+// Canonical booklet fold geometry. Both the base renderer and the
+// independent-margin preview use this source of truth.
+function bookletSpineCell(column, paperWidth, margins) {
+  const fold = paperWidth / 2;
+  return column === 0
+    ? {x:margins.left, width:fold - margins.left, align:'right',
+       baseMargins:{...margins, right:0}}
+    : {x:fold, width:fold - margins.right, align:'left',
+       baseMargins:{...margins, left:0}};
+}
+window.PdfBookletSpineGeometry = {cell:bookletSpineCell};
+
 // ── Build one output page ─────────────────────────────────────────────
 function buildOutputPage(groupPages, pageIdx, cols, rows, mm2px, useHi, repeated = false, outputIdx = 0, totalPages = 1) {
   const { pw, ph, mh, mv, gp } = getSettings();
@@ -2392,10 +2404,14 @@ function buildOutputPage(groupPages, pageIdx, cols, rows, mm2px, useHi, repeated
     else          { col = Math.floor(s / rows); row = s % rows; }
     const cutX = col * cutW;
     const cutY = row * cutH;
-    const cellX = (mh + (repeated ? cutX : col * (cellW + gp))) * mm2px;
+    const spine = bookletSpineEnabled() && !repeated && cols === 2;
+    const foldCell = spine ? bookletSpineCell(col, pw, {left:mh,right:mh,top:mv,bottom:mv}) : null;
+    const cellX = (foldCell ? foldCell.x : mh + (repeated ? cutX : col * (cellW + gp))) * mm2px;
     const cellY = (mv + (repeated ? cutY : row * (cellH + gp))) * mm2px;
     const src = getPageSrc(groupPages[idx], mm2px, useHi);
-    drawPageInCell(ctx, src, cellX, cellY, cellW * mm2px, cellH * mm2px, mm2px);
+    drawPageInCell(ctx, src, cellX, cellY,
+      (foldCell ? foldCell.width : cellW) * mm2px, cellH * mm2px,
+      mm2px, foldCell?.align || 'center');
     if (repeated) {
       const overlay = document.createElement('canvas');
       overlay.width = Math.max(1, Math.round(cutW * mm2px));
