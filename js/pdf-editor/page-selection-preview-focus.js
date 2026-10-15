@@ -78,8 +78,8 @@
       .page-selection-btn{border:1px solid #cbd5e1;border-radius:7px;background:#fff;color:#475569;padding:4px 7px;font:800 9px Pretendard,"Noto Sans KR",sans-serif;cursor:pointer}
       .page-selection-btn:hover{border-color:#93c5fd;background:#eff6ff;color:#1d4ed8}
       .pdf-page-select-checkbox{position:absolute;left:7px;top:7px;z-index:8;width:18px;height:18px;accent-color:#2563eb;cursor:pointer;background:#fff;border-radius:3px;box-shadow:0 0 0 2px rgba(255,255,255,.8)}
-      #thumbArea{display:flex!important;flex-direction:column!important;gap:7px!important}
-      #thumbArea .thumb-item{width:100%!important;display:flex!important;flex-direction:column!important}
+      /* Keep the editor's original compact multi-column .thumb-area grid.
+         Selection controls must never force one full-width thumbnail per row. */
       #thumbArea .thumb-wrap{width:100%!important;aspect-ratio:210/297!important;display:flex!important;align-items:center!important;justify-content:center!important;background:#fff!important;overflow:hidden!important}
       #thumbArea .thumb-wrap canvas{width:100%!important;height:100%!important;object-fit:contain!important;transform:none!important;background:#fff!important}
       #thumbArea .thumb-wrap .divider-thumb{width:100%!important;height:100%!important;aspect-ratio:auto!important}
