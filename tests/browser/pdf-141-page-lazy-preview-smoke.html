@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"><title>4 PDF / 141 source page lazy preview regression</title></head>
+<body data-pdf-141-lazy-preview="running">
+  <div id="result">RUNNING</div>
+  <div id="previewStatus"></div>
+  <button id="previewBtn">미리보기</button>
+  <button id="downloadBtn">다운로드</button>
+  <div id="previewInfo"></div><div id="previewPages"></div>
+  <div id="thumbArea"></div><div id="previewScroll"></div>
+  <script>
+    history.replaceState({}, '', '/pdf-editor/?lazy-141-smoke=1');
+    // Simulate a tab where animation frames are completely throttled.
+    // The bounded timer fallback must still finish all three preview faces.
+    window.requestAnimationFrame=()=>0;
+    window.uploadedFiles = Array.from({length:4},(_,i)=>({name:'원본'+(i+1)+'.pdf'}));
+    window.parsedPages = Array.from({length:141},(_,i)=>({
+      id:i+1,file_index:Math.min(3,Math.floor(i/36)),page_index:i%36,
+      pageType:'pdf',sourceFile:uploadedFiles[Math.min(3,Math.floor(i/36))].name,excluded:false,lightweight:false,
+    }));
+    window.previewCanvases=[];
+    // Actual restored sessions enable focused mode for 8+ source pages.
+    window.__pdfEditorFastMode=true;
+    window.nup=2;window.BOOKLET_STRIPS={};
+    window.getLayout=()=>({cols:1,rows:2});
+    window.groupByNup=pages=>[{n:2,pages}];
+    window.buildOutputPage=()=>{
+      window.previewBuildCount=(window.previewBuildCount||0)+1;
+      const canvas=document.createElement('canvas');canvas.width=300;canvas.height=400;
+      return canvas;
+    };
+    window.applyDocEdits=()=>{};
+    window.displayPreview=canvases=>{
+      const scroll=document.getElementById('previewScroll');
+      scroll.replaceChildren();
+      canvases.forEach(()=>{
+        const face=document.createElement('div');
+        face.className='page-preview';
+        face.scrollIntoView=()=>{};
+        scroll.appendChild(face);
+      });
+    };
+    window.showStatus=message=>{document.getElementById('previewStatus').textContent=message};
+    window.hideStatus=()=>{};
+    window._markPreviewShown=count=>{window.previewShownForCount=count};
+  </script>
+  <script src="/js/pdf-editor/viewport-lazy-preview.js"></script>
+  <script>
+    (async()=>{
+      const result=document.getElementById('result');
+      const fail=message=>{
+        document.body.dataset.pdf141LazyPreview='fail';
+        result.textContent='FAIL: '+message;
+      };
+      try{
+        const api=window.PdfViewportLazyPreview;
+        if(!api?.isActive())throw Error('141 source pages should enable windowed preview');
+        const drawn=await api.requestRender(0);
+        if(!drawn)throw Error('first preview failed');
+        if(window.previewShownForCount!==141)throw Error('legacy watchdog was not notified of completed lazy preview');
+        if(window.previewBuildCount!==3)throw Error('initial 141-page render drew '+window.previewBuildCount+' output faces instead of 3');
+        if(window.previewCanvases.length!==3)throw Error('wrong preview window size');
+        if(document.getElementById('previewBtn').disabled)throw Error('preview button remained disabled');
+        const status=document.getElementById('previewStatus').textContent;
+        if(!status.includes('작업 미리보기 완료'))throw Error('generation message did not finish: '+status);
+        await api.requestRender(45);
+        if(window.previewBuildCount!==6)throw Error('navigation did not draw exactly one new 3-face window');
+        if(api.getCurrentOutputIndex()!==45)throw Error('requested output face was not selected');
+        document.body.dataset.pdf141LazyPreview='pass';
+        result.textContent='PASS: 4 files / 141 source pages render a bounded 3-face preview, notify watchdog, and finish';
+      }catch(error){fail(error?.stack||error)}
+    })();
+  </script>
+</body></html>
