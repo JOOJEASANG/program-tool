@@ -394,10 +394,16 @@ def _render_adjusted_source_page(
     scale = float(getattr(page_info, "content_scale", 1.0) or 1.0)
     offset_x = float(getattr(page_info, "offset_x_mm", 0.0) or 0.0) * pdf_ops.MM_TO_PT
     offset_y = float(getattr(page_info, "offset_y_mm", 0.0) or 0.0) * pdf_ops.MM_TO_PT
-    center_x = (local_fit.x0 + local_fit.x1) / 2 + offset_x
-    center_y = (local_fit.y0 + local_fit.y1) / 2 + offset_y
     width = local_fit.width * scale
     height = local_fit.height * scale
+    # Preserve the physical fold-facing edge even after independent
+    # per-source scaling; only a user-requested offset may move it.
+    center_x = (
+        local_fit.x1 - width / 2 if horizontal_align == "right"
+        else local_fit.x0 + width / 2 if horizontal_align == "left"
+        else (local_fit.x0 + local_fit.x1) / 2
+    ) + offset_x
+    center_y = (local_fit.y0 + local_fit.y1) / 2 + offset_y
     adjusted_rect = fitz.Rect(
         center_x - width / 2,
         center_y - height / 2,
