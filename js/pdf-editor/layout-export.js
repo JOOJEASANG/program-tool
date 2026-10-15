@@ -590,7 +590,7 @@
           }
           drawPageInCell(context, source,
             cellX + inset.left * mm2px, cellY + inset.top * mm2px,
-            innerW * mm2px, innerH * mm2px);
+            innerW * mm2px, innerH * mm2px, mm2px);
           if (repeated) {
             const overlay = document.createElement('canvas');
             overlay.width = Math.max(1, Math.round(cutWidth * mm2px));
