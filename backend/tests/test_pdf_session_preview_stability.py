@@ -28,3 +28,15 @@ def test_browser_smoke_covers_loaded_editing_session_stability():
     assert "data-pdf-session-preview-stability" in page
     assert "history.replaceState({}, '', '/pdf-editor/" in page
     assert "pdf-session-preview-stability-smoke.html" in smoke
+
+
+def test_windowed_preview_marks_141_page_job_complete_for_legacy_watchdog():
+    lazy = (ROOT / "js/pdf-editor/viewport-lazy-preview.js").read_text(encoding="utf-8")
+    editor = (ROOT / "pdf-editor/index.html").read_text(encoding="utf-8")
+    smoke = (ROOT / "scripts/run_pdf_program_shell_smoke.sh").read_text(encoding="utf-8")
+    assert "window._markPreviewShown(parsedPages.length)" in lazy
+    assert "if (byId('previewBtn')) byId('previewBtn').disabled = true;" in lazy
+    assert "LARGE_RESTORED_PAGE_THRESHOLD = 120" in lazy
+    assert "LARGE_RESTORED_WINDOW_RADIUS = 1" in lazy
+    assert "window._markPreviewShown = function(n)" in editor
+    assert "pdf-141-page-lazy-preview-smoke.html" in smoke
