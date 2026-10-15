@@ -8,6 +8,8 @@
   <div id="livePreviewHint"></div>
   <div id="sessionRestoreStatus"></div>
   <script>
+    // Load the same focused-preview route condition used by the real PDF editor.
+    history.replaceState({}, '', '/pdf-editor/?preview-stability-smoke=1');
     window.parsedPages = Array.from({length:12}, (_,i)=>({id:i+1,excluded:false,pageType:'pdf'}));
     let lazyRenders=0;
     let aggregateSyncs=0;
