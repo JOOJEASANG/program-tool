@@ -119,7 +119,7 @@ service cloud.firestore {
     }
 
     function validPdfSessionMetadata(){
-      return request.resource.data.keys().hasOnly(['name','sessionId','storagePaths','fileCount','pageCount','totalBytes','state','createdAt'])
+      return request.resource.data.keys().hasOnly(['name','sessionId','storagePaths','fileCount','pageCount','totalBytes','state','createdAt','updatedAt'])
         && request.resource.data.name is string
         && request.resource.data.name.size() > 0
         && request.resource.data.name.size() <= 120
@@ -139,7 +139,8 @@ service cloud.firestore {
         && request.resource.data.state is string
         && request.resource.data.state.size() > 0
         && request.resource.data.state.size() <= 900000
-        && request.resource.data.createdAt is timestamp;
+        && request.resource.data.createdAt is timestamp
+        && (!('updatedAt' in request.resource.data) || request.resource.data.updatedAt is timestamp);
     }
 
     match /settings/admin {
@@ -214,7 +215,17 @@ service cloud.firestore {
     match /users/{uid}/pdf_sessions/{docId} {
       allow read: if isOwner(uid) && approved(uid);
       allow create: if isOwner(uid) && approved(uid) && validPdfSessionMetadata();
-      allow update: if false;
+      // Overwrite replaces the immutable PDF source revision, but keeps the
+      // same saved-session document ID, owner and original creation time.
+      allow update: if isOwner(uid) && approved(uid)
+        && validPdfSessionMetadata()
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.sessionId != resource.data.sessionId
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'name', 'sessionId', 'storagePaths', 'fileCount',
+          'pageCount', 'totalBytes', 'state', 'updatedAt'
+        ]);
       allow delete: if isOwner(uid);
     }
 

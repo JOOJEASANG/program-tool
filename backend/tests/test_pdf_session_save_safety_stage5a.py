@@ -116,7 +116,7 @@ def test_capture_phase_intercepts_legacy_session_save_handlers_once():
 def test_session_safety_runtime_is_loaded_after_final_pdf_save_recovery():
     register = REGISTER.read_text(encoding="utf-8")
     recovery = "/js/pdf-editor/save-recovery.js?v=20260803-1"
-    session = "/js/pdf-editor/session-save-safety.js?v=20260805-2"
+    session = "/js/pdf-editor/session-save-safety.js?v=20261015-1"
     assert register.count("pdfSessionSaveSafetyScript") == 1
     assert register.count(session) == 1
     assert register.index(recovery) < register.index(session)

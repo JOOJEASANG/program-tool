@@ -13,6 +13,7 @@
   let installAttempts = 0;
   let active = false;
   let lockSnapshot = null;
+  let loadedSession = null;
 
   const byId = (id) => document.getElementById(id);
   const totalBytes = (files) => Array.from(files || []).reduce((sum, file) => sum + Number(file?.size || 0), 0);
@@ -233,6 +234,61 @@
     }
   }
 
+  function normalizeLoadedSession(session) {
+    if (!session || typeof session !== 'object') return null;
+    const { docId, sessionId, uid, name, storagePaths } = session;
+    if (!/^[A-Za-z0-9_-]{1,128}$/.test(String(docId || ''))
+      || !/^[A-Za-z0-9_-]{8,40}$/.test(String(sessionId || ''))
+      || !Array.isArray(storagePaths) || !storagePaths.length
+      || !uid || typeof uid !== 'string') return null;
+    if (!storagePaths.every((path, i) =>
+      path === `pdf_sessions/${uid}/${sessionId}/src_${i}.pdf`)) return null;
+    return { docId, sessionId, uid, name: String(name || '편집 세션'), storagePaths: [...storagePaths] };
+  }
+
+  function setLoadedSession(session) {
+    loadedSession = normalizeLoadedSession(session);
+    updateSaveDialog();
+    return !!loadedSession;
+  }
+
+  function clearLoadedSession() {
+    loadedSession = null;
+    updateSaveDialog();
+  }
+
+  function currentLoadedSession() {
+    const user = auth?.currentUser;
+    return loadedSession && user?.uid === loadedSession.uid ? { ...loadedSession } : null;
+  }
+
+  function updateSaveDialog() {
+    const target = currentLoadedSession();
+    const overwriteButton = byId('sessionOverwriteConfirm');
+    const description = byId('sessionOverwriteDescription');
+    if (overwriteButton) {
+      overwriteButton.hidden = !target;
+      overwriteButton.style.display = target ? '' : 'none';
+      overwriteButton.disabled = active;
+    }
+    if (description) {
+      description.hidden = !target;
+      description.style.display = target ? '' : 'none';
+      description.textContent = target
+        ? `현재 불러온 저장본: "${target.name}" · 덮어쓰기를 누르면 같은 목록 항목이 갱신됩니다.`
+        : '';
+    }
+    const newButton = byId('sessionSaveConfirm');
+    if (newButton) newButton.textContent = target ? '새 이름으로 저장' : '새 편집 저장';
+  }
+
+  function prepareSaveDialog() {
+    updateSaveDialog();
+    const target = currentLoadedSession();
+    const nameInput = byId('sessionNameInput');
+    if (nameInput) nameInput.value = target ? target.name.slice(0, 40) : '';
+  }
+
   function setStatus(message, color) {
     const status = byId('sessionSaveStatus');
     if (!status) return;
@@ -240,7 +296,7 @@
     if (color) status.style.color = color;
   }
 
-  async function saveSessionSafely() {
+  async function saveSessionSafely(mode = 'new') {
     if (active || !editorReady()) return false;
     const user = auth.currentUser;
     const files = [...uploadedFiles];
@@ -257,19 +313,40 @@
       return false;
     }
 
-    const name = (byId('sessionNameInput')?.value || '').trim() || '편집 세션';
-    const sessionId = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    const requestedOverwrite = mode === 'overwrite';
+    const target = requestedOverwrite ? currentLoadedSession() : null;
+    if (requestedOverwrite && !target) {
+      setStatus('덮어쓸 저장본이 없습니다. 편집 불러오기에서 해당 저장본을 먼저 선택하세요.', '#dc2626');
+      return false;
+    }
+    const name = requestedOverwrite
+      ? target.name
+      : ((byId('sessionNameInput')?.value || '').trim() || '편집 세션').slice(0, 40);
+    if (target && !window.confirm(`기존 저장본 "${target.name}"에 현재 수정 내용을 덮어쓸까요?\\n이전 저장본의 내용은 복원할 수 없습니다.`)) return false;
+    const sessionId = window.crypto.randomUUID().replace(/-/g, '');
     const storagePaths = [];
     const collection = db.collection('users').doc(user.uid).collection('pdf_sessions');
     const confirmButton = byId('sessionSaveConfirm');
+    const overwriteButton = byId('sessionOverwriteConfirm');
     let documentRef = null;
 
     active = true;
     if (confirmButton) confirmButton.disabled = true;
+    if (overwriteButton) overwriteButton.disabled = true;
     lockEditor();
     setStatus('파일 업로드 중...', '#6b7280');
 
     try {
+      if (target) {
+        // Preflight before uploading any replacement source. The final check
+        // is repeated atomically in a Firestore transaction below.
+        const currentDoc = await collection.doc(target.docId).get();
+        const current = currentDoc.exists ? currentDoc.data() || {} : null;
+        if (!current || current.sessionId !== target.sessionId
+          || JSON.stringify(current.storagePaths) !== JSON.stringify(target.storagePaths)) {
+          throw new Error('저장본이 다른 창에서 변경되었거나 삭제되었습니다. 다시 불러온 뒤 저장해 주세요.');
+        }
+      }
       for (let index = 0; index < files.length; index += 1) {
         const file = files[index];
         setStatus(`파일 업로드 중... (${index + 1}/${files.length})`, '#6b7280');
@@ -286,7 +363,7 @@
       }
 
       setStatus('상태 저장 중...', '#6b7280');
-      documentRef = await collection.add({
+      const payload = {
         name: name.slice(0, 120),
         sessionId,
         storagePaths: [...storagePaths],
@@ -294,16 +371,53 @@
         pageCount: state.pages.length,
         totalBytes: snapshotMeta.totalBytes,
         state: snapshotMeta.stateJson,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      };
+      if (target) {
+        const targetRef = collection.doc(target.docId);
+        await db.runTransaction(async (transaction) => {
+          const snapshot = await transaction.get(targetRef);
+          const current = snapshot.exists ? snapshot.data() || {} : null;
+          if (!current || current.sessionId !== target.sessionId
+            || JSON.stringify(current.storagePaths) !== JSON.stringify(target.storagePaths)) {
+            throw new Error('저장본이 다른 창에서 변경되었습니다. 다시 불러온 뒤 덮어쓰기 해 주세요.');
+          }
+          transaction.update(targetRef, {
+            ...payload,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          });
+        });
+        documentRef = targetRef;
+      } else {
+        documentRef = await collection.add({
+          ...payload,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+      }
+      setLoadedSession({
+        docId: documentRef.id, sessionId, storagePaths, name: payload.name, uid: user.uid,
       });
-
-      try {
-        await trimOldSessions(collection, documentRef.id);
-      } catch (trimError) {
-        console.warn('[pdf-session] old session cleanup failed', trimError);
+      if (target) {
+        // Old source files are immutable. Delete only AFTER the new revision
+        // and Firestore document are committed; a partial failure leaves
+        // the original revision untouched.
+        try {
+          const results = await cleanupUploadedPaths(target.storagePaths);
+          if (results.some(result => result.status === 'rejected')) {
+            console.warn('[pdf-session] old revision cleanup deferred');
+          }
+        } catch (_) {
+          console.warn('[pdf-session] old revision cleanup deferred');
+        }
+      } else {
+        try {
+          await trimOldSessions(collection, documentRef.id);
+        } catch (trimError) {
+          console.warn('[pdf-session] old session cleanup failed', trimError);
+        }
       }
 
-      setStatus(`✅ 저장 완료! · 원본 ${(snapshotMeta.totalBytes / 1024 / 1024).toFixed(1)}MB`, '#166534');
+      setStatus(`✅ ${target ? '기존 저장본 덮어쓰기 완료!' : '새 편집 저장 완료!'} · 원본 ${(snapshotMeta.totalBytes / 1024 / 1024).toFixed(1)}MB`, '#166534');
       setTimeout(() => {
         const modal = byId('sessionSaveModal');
         if (modal) modal.style.display = 'none';
@@ -317,6 +431,8 @@
       active = false;
       unlockEditor();
       if (confirmButton) confirmButton.disabled = false;
+      if (overwriteButton) overwriteButton.disabled = false;
+      updateSaveDialog();
     }
   }
 
@@ -324,13 +440,26 @@
     event.preventDefault();
     event.stopImmediatePropagation();
     if (active) return;
-    saveSessionSafely().catch((error) => {
+    saveSessionSafely('new').catch((error) => {
       console.error('[pdf-session] safe save failed', error);
       setStatus(`저장 실패: ${error.message}`, '#dc2626');
       active = false;
       unlockEditor();
       const confirmButton = byId('sessionSaveConfirm');
       if (confirmButton) confirmButton.disabled = false;
+    });
+  }
+
+  function interceptOverwrite(event) {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    if (active) return;
+    saveSessionSafely('overwrite').catch((error) => {
+      console.error('[pdf-session] overwrite failed', error);
+      setStatus(`덮어쓰기 실패: ${error.message}`, '#dc2626');
+      active = false;
+      unlockEditor();
+      updateSaveDialog();
     });
   }
 
@@ -350,6 +479,11 @@
 
     const button = byId('sessionSaveConfirm');
     const input = byId('sessionNameInput');
+    const overwrite = byId('sessionOverwriteConfirm');
+    if (overwrite && overwrite.dataset.sessionOverwriteBound !== 'true') {
+      overwrite.dataset.sessionOverwriteBound = 'true';
+      overwrite.addEventListener('click', interceptOverwrite, true);
+    }
     if (button.dataset.sessionSaveSafetyV2 !== 'true') {
       button.dataset.sessionSaveSafetyV2 = 'true';
       button.addEventListener('click', interceptSave, true);
@@ -358,11 +492,16 @@
       input.dataset.sessionSaveSafetyV2 = 'true';
       input.addEventListener('keydown', interceptEnter, true);
     }
+    updateSaveDialog();
     return true;
   }
 
   window.PdfSessionSaveSafety = {
     save: saveSessionSafely,
+    setLoadedSession,
+    clearLoadedSession,
+    currentLoadedSession,
+    prepareSaveDialog,
     validateSnapshot,
     cleanupUploadedPaths,
     active: () => active,
