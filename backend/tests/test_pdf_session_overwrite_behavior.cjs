@@ -49,6 +49,7 @@ const storage={ref(p){return {
  async delete(){if(!objects.has(p))throw {code:'storage/object-not-found'};objects.delete(p);deleted.push(p);}
 };}};
 const context={document,auth:{currentUser:{uid:'u1'}},db,storage,console,TextEncoder,
+ crypto:{randomUUID:(()=>{let n=0;return ()=>'00000000-0000-4000-8000-'+(++n).toString().padStart(12,'0');})()},
  firebase:{firestore:{FieldValue:{serverTimestamp:()=> 'UPDATED-TIMESTAMP'}}},
  uploadedFiles:[{name:'modified.pdf',size:1024}],
  parsedPages:[{file_index:0,page_index:0,pageType:'pdf'}],
