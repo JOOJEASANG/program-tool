@@ -36,8 +36,8 @@ def test_pdf_lazy_preview_uses_bounded_output_windows():
 def test_pdf_lazy_preview_matches_final_output_grouping_and_global_numbering():
     source = LAZY.read_text(encoding="utf-8")
     for marker in (
-        "const groups = groupByNup(sourcePages)",
-        "const layout = getLayout(group.n)",
+        "const groups = booklet ? [{n:2, pages:sourcePages}] : groupByNup(sourcePages)",
+        "const layout = booklet ? {cols:2, rows:1} : getLayout(group.n)",
         "const perPage = cols * rows",
         "sourcePages: group.pages.slice(start, start + perPage)",
         "buildOutputPage(",

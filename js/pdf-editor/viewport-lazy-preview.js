@@ -66,10 +66,13 @@
   function buildOutputDescriptors(sourcePages = arrangedPages()) {
     if (typeof groupByNup !== 'function' || typeof getLayout !== 'function') return [];
     const descriptors = [];
-    const groups = groupByNup(sourcePages);
+    const booklet = !!byId('bookletCheck')?.checked
+      && typeof BOOKLET_STRIPS !== 'undefined'
+      && typeof nup !== 'undefined' && nup in BOOKLET_STRIPS;
+    const groups = booklet ? [{n:2, pages:sourcePages}] : groupByNup(sourcePages);
     for (let groupIndex = 0; groupIndex < groups.length; groupIndex += 1) {
       const group = groups[groupIndex];
-      const layout = getLayout(group.n);
+      const layout = booklet ? {cols:2, rows:1} : getLayout(group.n);
       const cols = Math.max(1, Number(layout?.cols || 1));
       const rows = Math.max(1, Number(layout?.rows || 1));
       const perPage = cols * rows;

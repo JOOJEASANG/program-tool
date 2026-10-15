@@ -190,6 +190,8 @@ class PdfProcessRequest(BaseModel):
     print_marks: PrintMarkSettings = Field(default_factory=PrintMarkSettings)
     facing_pages: bool = False
     booklet: bool = False
+    # Place booklet content against the center fold instead of centering it in separated cells.
+    booklet_spine_align: bool = False
     repeat_cell_overlays: bool = False
 
     @model_validator(mode="after")

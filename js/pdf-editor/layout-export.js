@@ -464,6 +464,7 @@
     settings.margin_h_mm = (margins.left + margins.right) / 2;
     settings.margin_v_mm = (margins.top + margins.bottom) / 2;
     settings.gap_mm = num('gap', 5);
+    settings.booklet_spine_align = !!$('bookletCheck')?.checked && !!$('bookletSpineGather')?.checked;
     settings.facing_pages = facingEnabled();
     settings.page_numbers = settings.page_numbers || {};
     settings.page_numbers.auto_reserve_space = pageNumberAutoReserveEnabled();
@@ -537,6 +538,8 @@
         const numberSpaceRequested = pageNumberAutoReserveEnabled()
           && pageNumberApplies(resolvedOutputIndex);
         let margins = layoutMargins(resolvedOutputIndex);
+        const spine = !!$('bookletCheck')?.checked && !!$('bookletSpineGather')?.checked
+          && !repeated && cols === 2;
         // In repeat mode each cut-out tile is an independent print. Margins
         // apply inside EACH half/quarter rather than only at paper edges.
         let layoutGap = gp;
@@ -545,7 +548,7 @@
         const cutHeight = ph / rows;
         let usableWidth = repeated
           ? cutWidth - margins.left - margins.right
-          : pw - margins.left - margins.right - layoutGap * (cols - 1);
+          : pw - margins.left - margins.right - (spine ? 0 : layoutGap * (cols - 1));
         let usableHeight = repeated
           ? cutHeight - margins.top - margins.bottom
           : ph - margins.top - margins.bottom - layoutGap * (rows - 1);
@@ -595,26 +598,31 @@
           }
           const cutX = column * cutWidth;
           const cutY = row * cutHeight;
-          const cellX = (margins.left + (repeated ? cutX : column * (cellW + layoutGap))) * mm2px;
+          const foldCell = spine ? window.PdfBookletSpineGeometry?.cell(column, pw, margins) : null;
+          const slotW = foldCell ? foldCell.width : cellW;
+          const cellX = (foldCell ? foldCell.x
+            : margins.left + (repeated ? cutX : column * (cellW + layoutGap))) * mm2px;
           const cellY = (margins.top + (repeated ? cutY : row * (cellH + layoutGap))) * mm2px;
           const sourcePage = groupPages[sourceIndex];
           const source = getPageSrc(sourcePage, mm2px, useHi);
           // The base cell already includes sheet margins. Only move each
           // side by the DIFFERENCE between this page's final margin and the
           // existing sheet margin: 10mm global + 0mm override => 0mm final.
-          const finalMargins = pageCellMargins(sourcePage, margins);
-          const deltaLeft = finalMargins.left - margins.left;
-          const deltaRight = finalMargins.right - margins.right;
-          const deltaTop = finalMargins.top - margins.top;
-          const deltaBottom = finalMargins.bottom - margins.bottom;
-          const innerW = cellW - deltaLeft - deltaRight;
+          const baseMargins = foldCell?.baseMargins || margins;
+          const finalMargins = pageCellMargins(sourcePage, baseMargins);
+          const deltaLeft = finalMargins.left - baseMargins.left;
+          const deltaRight = finalMargins.right - baseMargins.right;
+          const deltaTop = finalMargins.top - baseMargins.top;
+          const deltaBottom = finalMargins.bottom - baseMargins.bottom;
+          const innerW = slotW - deltaLeft - deltaRight;
           const innerH = cellH - deltaTop - deltaBottom;
           if (innerW <= 25.4 / 72 || innerH <= 25.4 / 72) {
             throw new Error('페이지 개별 여백이 배치 칸보다 큽니다. 해당 페이지의 여백을 줄여 주세요.');
           }
           drawPageInCell(context, source,
             cellX + deltaLeft * mm2px, cellY + deltaTop * mm2px,
-            innerW * mm2px, innerH * mm2px, mm2px);
+            innerW * mm2px, innerH * mm2px, mm2px,
+            foldCell?.align || 'center');
           if (repeated) {
             const overlay = document.createElement('canvas');
             overlay.width = Math.max(1, Math.round(cutWidth * mm2px));
@@ -632,13 +640,17 @@
       const patchedBuildAllPages = async function independentMarginAllPages(mm2px, useHi, overridePages) {
         const active = overridePages || parsedPages.filter((page) => !page.excluded);
         const output = [];
-        const groups = groupByNup(active);
+        // Classic booklet imposition is always two side-by-side pages per
+        // output face, even when normal portrait 2-up uses one column.
+        const booklet = !!overridePages && !!$('bookletCheck')?.checked
+          && typeof BOOKLET_STRIPS !== 'undefined' && nup in BOOKLET_STRIPS;
+        const groups = booklet ? [{n:2, pages:active}] : groupByNup(active);
         const totalOutputPages = groups.reduce((total, group) => {
-          const layout = getLayout(group.n);
+          const layout = booklet ? {cols:2, rows:1} : getLayout(group.n);
           return total + Math.ceil(group.pages.length / (layout.cols * layout.rows));
         }, 0);
         for (const group of groups) {
-          const { cols, rows } = getLayout(group.n);
+          const { cols, rows } = booklet ? {cols:2, rows:1} : getLayout(group.n);
           const perPage = cols * rows;
           for (let pageIndex = 0; pageIndex < Math.ceil(group.pages.length / perPage); pageIndex += 1) {
             output.push(patchedBuildOutputPage(
@@ -735,7 +747,7 @@
         state.margin_bottom_mm = margins.bottom;
         state.pnAutoReserve = pageNumberAutoReserveEnabled();
         state.pageCellMargins = sourcePages().map((page) =>
-          hasPageCellMargins(page) ? pageCellMargins(page) : null);
+          hasPageCellMargins(page) ? pageCellMarginOverrides(page) : null);
         return state;
       };
       collectWithMargins.__individualMarginsV2 = true;
