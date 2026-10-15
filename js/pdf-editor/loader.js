@@ -528,7 +528,7 @@
   function loadCoreRuntime() {
     const context = window.ProgramStudioPdfEditorRuntimeContext || {};
     const hostLoad = context.load;
-    const coreSrc = "/js/pdf-editor/core-runtime.js?v=20261015-1";
+    const coreSrc = "/js/pdf-editor/core-runtime.js?v=20261014-4";
     const promise = typeof hostLoad === 'function'
       ? hostLoad('pdfEditorCoreRuntimeScriptV1', coreSrc)
       : new Promise((resolve, reject) => {
