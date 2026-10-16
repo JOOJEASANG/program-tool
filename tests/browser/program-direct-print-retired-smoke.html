@@ -9,6 +9,7 @@
   <script src="/js/direct-print.js"></script>
   <script>
     const pass=document.getElementById('result');
+    const verify=()=>{
     try{
       if(document.querySelector('.program-direct-print-btn'))throw Error('legacy printer button remained');
       if(!document.getElementById('downloadBtn')||!document.getElementById('exportBtn'))
@@ -24,6 +25,9 @@
       document.body.dataset.printRetiredSmoke='fail';
       pass.textContent='FAIL: '+String(error);
     }
+    };
+    if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',verify,{once:true});
+    else verify();
   </script>
 </body>
 </html>
