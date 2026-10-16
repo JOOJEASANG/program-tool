@@ -30,7 +30,9 @@
         const container=document.querySelector('main.container');
         const bar=container?.querySelector(':scope > .program-local-actions');
         assert(bar&&bar===container.firstElementChild,'local actions not moved inside content');
-        assert(bar.querySelector('.nav-back')?.textContent.trim()==='← 홈','home action missing');
+        const home=bar.querySelector('.nav-back');
+        assert(home?.querySelector('svg path') && home?.textContent.trim()==='', 'utility home should display icon only');
+        assert(home.getAttribute('aria-label')==='홈','utility home aria label missing');
         assert(bar.querySelector('#userName'),'account node lost');
         assert(bar.querySelector('.nav-logout'),'logout action lost');
         assert(getComputedStyle(document.body).paddingTop==='0px','body top padding remained');
