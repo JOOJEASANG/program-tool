@@ -47,6 +47,7 @@
        workflow or icon tool rail in this ordering. -->
   <script src="/js/program-studio-ui-v2.js?v=20260830-2"></script>
   <script src="/js/program-shell-unify.js?v=20260831-1"></script>
+  <script src="/js/program-sidebar-actions.js?v=20260916-1"></script>
   <script>
     (async()=>{
       const result=document.getElementById('result');
@@ -65,7 +66,12 @@
         const aside=document.querySelector('.app > aside');
         const bar=aside?.querySelector(':scope > .program-local-actions');
         assert(bar&&bar===aside?.firstElementChild,'local actions not moved to sidebar top');
-        assert(bar.querySelector('.nav-back')?.textContent.trim()==='← 홈','home action missing');
+        const home=bar.querySelector('.nav-back');
+        assert(home?.querySelector('svg path') && home?.textContent.trim()==='', 'home button must show house icon only');
+        assert(home.getAttribute('aria-label')==='홈' && home.getAttribute('href')==='/index.html','icon home navigation/accessibility missing');
+        assert(home.classList.contains('ps-program-nav-icon'),'home button did not match shared sidebar navigation');
+        assert(parseFloat(getComputedStyle(home).width)>=33 && parseFloat(getComputedStyle(home).width)<=36,'home button did not match other programs compact icon width');
+        assert(document.documentElement.dataset.programSidebarActionsReady==='1','shared sidebar did not mount after compact shell');
         assert(bar.querySelector('#navSessionBtn')&&bar.querySelector('#navSessionLoadBtn'),'session actions lost');
         assert(bar.querySelector('#navLogout'),'logout action lost');
         assert(document.getElementById('navUserName'),'user node lost');
