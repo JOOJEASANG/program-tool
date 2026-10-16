@@ -39,6 +39,51 @@ body[data-home-suite] .program-group[data-cat="utility"] .program-group-head{bac
 body[data-home-suite] .program-group[data-cat="utility"] .program-group-icon{color:#9a6a26}
 body[data-home-suite] .studio-card{position:relative;min-width:0}body[data-home-suite] .prog-card{height:100%;border:1px solid #e0e6df;box-shadow:none;border-radius:14px;transition:border-color .15s,box-shadow .15s}body[data-home-suite] .prog-card:hover{transform:none;border-color:#83a391;box-shadow:0 6px 20px #2849350b}body[data-home-suite] .card-header{min-height:82px;height:auto;padding:18px 56px 10px 22px;gap:12px;background:transparent;align-items:center}body[data-home-suite] .card-icon-wrap{background:#f1f5ef;border:1px solid #e9eee5;border-radius:12px;width:43px;height:43px;flex-basis:43px;font-size:22px}body[data-home-suite] .card-heading{min-width:0;display:flex;flex-direction:column;gap:5px}body[data-home-suite] .card-name{font-size:16px;line-height:1.25;letter-spacing:-.45px;margin:0;color:#26372e}body[data-home-suite] .card-cat{color:#849081;font-size:9px;letter-spacing:.5px;padding-right:0;line-height:1.35}body[data-home-suite] .card-body{padding:8px 22px 20px}body[data-home-suite] .card-desc{font-size:12px;line-height:1.85;color:#68756b}body[data-home-suite] .card-tag{font-size:10px;background:#f2f5f0;color:#70816e;font-weight:500}body[data-home-suite] .card-footer{padding:13px 22px;border-color:#edf0e9}body[data-home-suite] .card-status-badge{background:transparent;color:#7f8e80;padding:0;font-size:10px;font-weight:500}body[data-home-suite] .card-cta{font-size:12px;color:#32674e}
 .studio-pin{position:absolute;right:14px;top:16px;width:34px;height:34px;border:0;background:transparent;font-size:22px;cursor:pointer;color:#889584;border-radius:8px}.studio-pin:hover{background:#eef3e9}.studio-pin[aria-pressed=true]{color:#937523}.recent-note{font-size:10px;letter-spacing:0;text-transform:none;font-weight:400;margin-left:10px;color:#778576}body[data-home-suite] .quick-section{margin-bottom:30px}body[data-home-suite] .quick-label{font-size:12px;letter-spacing:0;color:#516a58}body[data-home-suite] .quick-chip{font-size:12px;font-weight:500;border-width:1px}body[data-home-suite] .banner{padding:13px 18px;border-width:1px;gap:12px}body[data-home-suite] .banner-title{font-size:13px}body[data-home-suite] .banner-desc{font-size:12px}body[data-home-suite] .banner-icon{width:34px;height:34px;flex-basis:34px;font-size:15px;background:#dceade}body[data-home-suite] .footer{background:transparent;border-top:1px solid #e0e6df;color:#819080;padding:23px 40px}body[data-home-suite] .footer-brand{color:#60735e;font-size:12px}body[data-home-suite] .footer-link{color:#788875}.studio-bottom-note{padding:24px 0 0;margin-top:24px;border-top:1px solid #e0e6df;font-size:12px;line-height:1.8;color:#748271}.studio-bottom-note strong{display:block;color:#506449;margin-bottom:4px}.studio-bottom-note a{color:#346a50}.studio-storage-note{font-size:12px;color:#8c552b}.empty-state .studio-filter{margin-top:20px}
+/* Home header: one polished, accessible quick-launch control. */
+body[data-home-suite] .topbar-right{gap:0}
+body[data-home-suite] .topbar-right .ps-home-quick-launch{
+  display:inline-flex!important;align-items:center!important;justify-content:center!important;
+  gap:11px!important;min-height:46px!important;height:46px!important;
+  padding:0 11px 0 8px!important;margin:0!important;
+  border:1px solid #d6e3dc!important;border-radius:13px!important;
+  background:linear-gradient(180deg,#fff 0%,#f9fcfa 100%)!important;
+  color:#243f35!important;
+  box-shadow:0 2px 5px rgba(27,65,47,.035),0 8px 22px rgba(27,65,47,.055)!important;
+  font:750 12px/1 Pretendard,"Noto Sans KR",sans-serif!important;
+  letter-spacing:-.1px!important;white-space:nowrap!important;
+  transition:border-color .18s ease,box-shadow .18s ease,background .18s ease,transform .18s ease!important;
+}
+body[data-home-suite] .topbar-right .ps-home-quick-launch:hover{
+  border-color:#82b49b!important;background:#fff!important;color:#174a37!important;
+  box-shadow:0 4px 12px rgba(27,65,47,.075),0 10px 24px rgba(27,65,47,.08)!important;
+  transform:translateY(-1px);
+}
+body[data-home-suite] .topbar-right .ps-home-quick-launch:focus-visible{
+  outline:3px solid rgba(33,122,88,.25)!important;outline-offset:3px!important;
+}
+body[data-home-suite] .ps-home-quick-launch .ps-quick-launch-icon{
+  width:30px;height:30px;flex:0 0 30px;border-radius:9px;
+  display:grid;place-items:center;
+  background:linear-gradient(140deg,#286d56,#398b71);color:#fff;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.16);
+}
+body[data-home-suite] .ps-home-quick-launch .ps-quick-launch-icon svg{
+  width:16px;height:16px;display:block;
+}
+body[data-home-suite] .ps-home-quick-launch .ps-quick-launch-label{font-weight:800}
+body[data-home-suite] .ps-home-quick-launch kbd{
+  display:inline-flex!important;align-items:center;justify-content:center;
+  min-height:23px;padding:3px 7px!important;margin-left:4px;
+  border:1px solid #e2eae5!important;border-bottom:2px solid #d5e1d9!important;
+  border-radius:6px!important;background:#f5f8f6!important;color:#73857a!important;
+  box-shadow:none!important;font:750 10px/1 Pretendard,"Noto Sans KR",sans-serif!important;
+  letter-spacing:.1px;
+}
+@media(max-width:520px){
+  body[data-home-suite] .topbar-right .ps-home-quick-launch{gap:8px!important;padding:0 11px 0 7px!important;min-height:40px!important;height:40px!important}
+  body[data-home-suite] .ps-home-quick-launch .ps-quick-launch-icon{width:27px;height:27px;flex-basis:27px}
+  body[data-home-suite] .ps-home-quick-launch kbd{display:none!important}
+}
 /* In-tool controls live inside the existing sidebar; no canvas offsets. */
 .ps-tool-switch{border:1px solid #d7e1dd;border-radius:8px;padding:8px 12px;background:#f8fbf8;color:#345e4c;font:600 12px Pretendard,sans-serif;cursor:pointer;margin-left:auto}.ps-preset-row{display:flex;flex-wrap:wrap;gap:5px;margin:8px 0}.ps-preset-note{font-size:10px;color:#66786b;margin:8px 0 0}.ps-preset-status{font-size:11px;color:#266441;line-height:1.6}
 @media(max-width:1100px){body[data-home-suite] .content{padding:25px}body[data-home-suite] .program-group-grid{grid-template-columns:repeat(2,minmax(0,1fr))}body[data-home-suite] .studio-welcome{padding:28px}.studio-art{transform:scale(.9)}}

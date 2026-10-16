@@ -91,6 +91,8 @@ run_product_case(){
   grep -q "$marker" "$out" || { cat "$out" >&2; exit 1; }
 }
 
+run_product_case "home-quick-launch-header-smoke.html" "$OUT_DIR/home-quick-launch-header-dom.html" 'data-home-quick-launch-smoke="pass"' 'PASS: home header shows only a refined quick launch, preserves Ctrl+K and sidebar account access'
+reset_profile
 run_product_case "program-direct-print-retired-smoke.html" "$OUT_DIR/program-direct-print-retired-dom.html" 'data-print-retired-smoke="pass"' 'PASS: printer output actions removed; PDF downloads and exports remain'
 reset_profile
 run_case "pdf-editor-shell-smoke.html" "$OUT_DIR/pdf-editor-shell-smoke-dom.html" 'PASS: PDF sidebar remains visible after delayed common/runtime initialization'

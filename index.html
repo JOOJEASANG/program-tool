@@ -45,6 +45,8 @@ body{font-family:Pretendard,"Noto Sans KR",sans-serif;color:var(--t1);background
 .sb-user-email{font-size:10px;color:var(--sb-dim);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sb-logout-btn{width:100%;padding:9px 10px;border:0;background:transparent;color:var(--sb-dim);font:700 12px Pretendard;border-radius:8px;cursor:pointer;text-align:left;margin-top:4px;transition:background .15s,color .15s}
 .sb-logout-btn:hover{background:rgba(239,68,68,.15);color:#f87171}
+#sbAdmin{display:block;text-decoration:none;color:#b0c6de;line-height:1.5}
+#sbAdmin:hover{background:var(--sb-hover);color:#fff}
 .sb-login-link{display:flex;align-items:center;justify-content:center;gap:8px;padding:11px 12px;background:var(--accent);color:#fff;text-decoration:none;border-radius:10px;font:800 13px Pretendard;transition:background .15s}
 .sb-login-link:hover{background:var(--accent-d)}
 .sb-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.52);z-index:199}
@@ -162,6 +164,7 @@ html.ps-ui-v2 .search:focus,html.ps-ui-v2 .search:focus-visible{outline:0!import
   </nav>
   <div class="sb-bottom">
     <div class="sb-user hidden" id="sbUser"><div class="sb-avatar" id="sbAvatar"></div><div class="sb-user-info"><div class="sb-user-name" id="sbUserName"></div><div class="sb-user-email" id="sbUserEmail"></div></div></div>
+    <a class="sb-logout-btn hidden" id="sbAdmin" href="admin.html">관리자 페이지</a>
     <button class="sb-logout-btn hidden" id="sbLogout" type="button">로그아웃</button>
     <a class="sb-login-link" href="login.html" id="sbLogin">로그인 · 시작하기 →</a>
   </div>
@@ -173,10 +176,7 @@ html.ps-ui-v2 .search:focus,html.ps-ui-v2 .search:focus-visible{outline:0!import
     <div class="topbar-title" aria-label="Program Studio 인쇄 출력 실무 도구"><span class="topbar-kicker">Print Workspace</span><strong class="topbar-heading">인쇄·출력 실무 도구</strong></div>
     <span class="topbar-divider" aria-hidden="true"></span>
     <div class="search-wrap"><span class="search-icon">🔍</span><input class="search" type="text" id="search" placeholder="프로그램 이름이나 필요한 기능을 검색하세요" autocomplete="off" aria-label="프로그램 검색"></div>
-    <div class="topbar-right">
-      <div class="topbar-login" id="tbLogin"><a class="tb-btn tb-outline" href="login.html">로그인</a><a class="tb-btn tb-primary" href="login.html">회원가입 · 시작</a></div>
-      <div class="topbar-user hidden" id="tbUser" aria-haspopup="true"><div class="tb-avatar" id="tbAvatar"></div><span class="tb-user-name" id="tbUserName"></span><span class="tb-caret">▾</span><div class="tb-dropdown" role="menu"><div class="tb-drop-head"><div class="tb-drop-name" id="tbDropName"></div><div class="tb-drop-email" id="tbDropEmail"></div></div><button class="tb-drop-btn hidden" id="tbAdmin" type="button" role="menuitem">관리자 페이지</button><button class="tb-drop-btn tb-drop-danger" id="tbLogout" type="button" role="menuitem">로그아웃</button></div></div>
-    </div>
+    <div class="topbar-right" aria-label="빠른 실행"></div>
   </header>
   <div class="content" id="mainContent">
     <section class="studio-welcome" aria-labelledby="welcomeTitle">
@@ -233,14 +233,24 @@ function buildQuickRow(){const row=document.getElementById('quickRow');row.repla
 function resetFilters(){searchQuery='';document.getElementById('search').value='';favoritesOnly=false;document.getElementById('favoriteFilter').setAttribute('aria-pressed','false');switchCat('all');}
 document.getElementById('favoriteFilter').onclick=e=>{favoritesOnly=!favoritesOnly;e.currentTarget.setAttribute('aria-pressed',String(favoritesOnly));renderGrid();};
 function setBanner(cls,iconCls,iconText,title,desc){const escape=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));title=escape(title);desc=escape(desc);document.getElementById('bannerArea').innerHTML='<div class="banner '+cls+'"><div class="banner-icon '+iconCls+'">'+iconText+'</div><div class="banner-body"><div class="banner-title">'+title+'</div><div class="banner-desc">'+desc+'</div></div></div>';}
-function showUser(user){const name=user.displayName||(user.email||'').split('@')[0];function setAvatar(el){if(user.photoURL){const img=document.createElement('img');img.src=user.photoURL;el.replaceChildren(img);}else el.textContent=name.charAt(0).toUpperCase();}document.getElementById('sbUser').classList.remove('hidden');document.getElementById('sbLogin').classList.add('hidden');document.getElementById('sbLogout').classList.remove('hidden');setAvatar(document.getElementById('sbAvatar'));document.getElementById('sbUserName').textContent=name;document.getElementById('sbUserEmail').textContent=user.email||'';document.getElementById('sbLogout').onclick=()=>auth.signOut().then(()=>location.reload());document.getElementById('tbLogin').classList.add('hidden');document.getElementById('tbUser').classList.remove('hidden');setAvatar(document.getElementById('tbAvatar'));document.getElementById('tbUserName').textContent=name;document.getElementById('tbDropName').textContent=name;document.getElementById('tbDropEmail').textContent=user.email||'';document.getElementById('tbLogout').onclick=()=>auth.signOut().then(()=>location.reload());}
+function showUser(user){
+  const name=user.displayName||(user.email||'').split('@')[0];
+  const avatar=document.getElementById('sbAvatar');
+  if(user.photoURL){const img=document.createElement('img');img.src=user.photoURL;img.alt='';avatar.replaceChildren(img);}
+  else avatar.textContent=name.charAt(0).toUpperCase();
+  document.getElementById('sbUser').classList.remove('hidden');
+  document.getElementById('sbLogin').classList.add('hidden');
+  document.getElementById('sbLogout').classList.remove('hidden');
+  document.getElementById('sbUserName').textContent=name;
+  document.getElementById('sbUserEmail').textContent=user.email||'';
+  document.getElementById('sbLogout').onclick=()=>auth.signOut().then(()=>location.reload());
+}
 const sidebar=document.getElementById('sidebar');const overlay=document.getElementById('sbOverlay');const menuToggle=document.getElementById('menuToggle');menuToggle.onclick=()=>{const open=sidebar.classList.toggle('open');overlay.classList.toggle('open',open);menuToggle.setAttribute('aria-expanded',String(open));};overlay.onclick=()=>{sidebar.classList.remove('open');overlay.classList.remove('open');menuToggle.setAttribute('aria-expanded','false');};
 document.querySelectorAll('.nav-item[data-cat]').forEach(btn=>{btn.onclick=()=>{switchCat(btn.dataset.cat);sidebar.classList.remove('open');overlay.classList.remove('open');menuToggle.setAttribute('aria-expanded','false');};});
 document.getElementById('search').oninput=e=>{searchQuery=e.target.value;renderGrid();};
-const tbUser=document.getElementById('tbUser');tbUser.onclick=e=>{e.stopPropagation();tbUser.classList.toggle('open');};document.addEventListener('click',()=>tbUser.classList.remove('open'));document.addEventListener('keydown',e=>{if(e.key==='Escape')tbUser.classList.remove('open');});
 const legalModal=document.getElementById('legalModal');const legalFrame=document.getElementById('legalFrame');const legalTitle=document.getElementById('legalTitle');function openLegal(url,title){legalTitle.textContent=title;legalFrame.src=url;legalModal.classList.add('open');document.body.style.overflow='hidden';}function closeLegal(){legalModal.classList.remove('open');document.body.style.overflow='';legalFrame.src='about:blank';}document.querySelectorAll('[data-legal]').forEach(btn=>btn.onclick=()=>openLegal(btn.dataset.legal,btn.dataset.title));document.getElementById('legalClose').onclick=closeLegal;legalModal.onclick=e=>{if(e.target===legalModal)closeLegal();};document.addEventListener('keydown',e=>{if(e.key==='Escape'&&legalModal.classList.contains('open'))closeLegal();});
 document.querySelectorAll('[data-current-year]').forEach(el=>el.textContent=new Date().getFullYear());
-if(window.auth){auth.onAuthStateChanged(async user=>{document.getElementById('loading').style.display='none';if(!user)return;showUser(user);try{const access=await ProgramAccess.getAccess(user);if(!access.approved){setBanner('amber-frame','amber','⏳','관리자 승인 대기 중','관리자가 계정을 승인하면 모든 프로그램을 사용할 수 있습니다. 승인 완료 후 페이지를 새로고침하세요.');document.getElementById('quickSection').classList.add('hidden');const grid=document.getElementById('programGrid');grid.style.opacity='0.35';grid.style.pointerEvents='none';return;}const name=user.displayName||(user.email||'').split('@')[0];setBanner('green-frame','green','👋','안녕하세요, '+name+'님!','작업 목적에 맞는 프로그램을 선택해 바로 시작하세요.');if(access.admin){const adminBtn=document.getElementById('tbAdmin');adminBtn.classList.remove('hidden');adminBtn.onclick=()=>location.href='admin.html';}}catch(err){setBanner('amber-frame','amber','⚠️','상태를 확인할 수 없습니다','페이지를 새로고침하거나 잠시 후 다시 시도해 주세요.');}});}else{document.getElementById('loading').style.display='none';}
+if(window.auth){auth.onAuthStateChanged(async user=>{document.getElementById('loading').style.display='none';if(!user)return;showUser(user);try{const access=await ProgramAccess.getAccess(user);if(!access.approved){setBanner('amber-frame','amber','⏳','관리자 승인 대기 중','관리자가 계정을 승인하면 모든 프로그램을 사용할 수 있습니다. 승인 완료 후 페이지를 새로고침하세요.');document.getElementById('quickSection').classList.add('hidden');const grid=document.getElementById('programGrid');grid.style.opacity='0.35';grid.style.pointerEvents='none';return;}const name=user.displayName||(user.email||'').split('@')[0];setBanner('green-frame','green','👋','안녕하세요, '+name+'님!','작업 목적에 맞는 프로그램을 선택해 바로 시작하세요.');if(access.admin)document.getElementById('sbAdmin').classList.remove('hidden');}catch(err){setBanner('amber-frame','amber','⚠️','상태를 확인할 수 없습니다','페이지를 새로고침하거나 잠시 후 다시 시도해 주세요.');}});}else{document.getElementById('loading').style.display='none';}
 buildQuickRow();renderGrid();window.ProgramStudioHome={PROGRAMS,CATS,switchCat,get activeCategory(){return activeCat;},stage:'purpose-grouped-program-home-v6'};
 </script>
 </body>
