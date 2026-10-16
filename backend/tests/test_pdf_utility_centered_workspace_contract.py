@@ -92,3 +92,37 @@ def test_backend_runtime_keeps_transient_utility_500_800_limits():
     assert "PDF_UTILITY_TOTAL_BYTES = 800 * MIB" in main
     assert "timeout_sec=600" in main
     assert "memory=options.MemoryOption.GB_4" in main
+
+
+def test_every_utility_menu_modal_fills_workspace_without_changing_processing():
+    hook = (ROOT / "js/pdf-suite/direct-tool-hook.js").read_text(encoding="utf-8")
+    layout = (ROOT / "js/pdf-suite/modal-full-workspace.js").read_text(encoding="utf-8")
+    smoke = (ROOT / "tests/browser/pdf-utility-menu-audit-smoke.html").read_text(encoding="utf-8")
+
+    assert "then(ensureToolModalFlow).then(ensureFullModalWorkspace)" in hook
+    assert "modal-full-workspace.js?v=20261016-1" in hook
+    assert "pdfUtilityModalFullWorkspaceStyle" in layout
+    for selector in (
+        ".pdfuc-modal.open .pdfuc-dialog",
+        ".pdfuc-modal.open .pdfud-card[data-pdfud-modal-flow=\"active\"] .pdfud-grid",
+        ".pdfuc-modal.open .pdfuc-server-card[data-pdfuc-modal-flow=\"active\"]",
+        ".pdfuc-modal.open .pdfu-local-workgrid",
+        ".pdfuc-modal.open .pdfu-stage-body.pdfu-shared-advanced-stage",
+        ".pdfuc-modal.open .pdfadv-overlay.pdfu-stable-inline",
+        ".pdfuc-modal.open .pdfocr-overlay.pdfu-stable-inline",
+        "grid-template-columns:minmax(0,1fr)!important",
+        "max-width:none!important",
+        "overflow:auto!important",
+        "@media(max-width:900px)",
+        "@media(max-width:600px)",
+    ):
+        assert selector in layout
+    assert "assertModalFill('#local-tools'" in smoke
+    assert "assertModalFill('.pdfud-card'" in smoke
+    assert "assertModalFill('.pdfuc-server-card'" in smoke
+    assert "assertModalFill('.pdfadv-overlay.open'" in smoke
+
+    # Presentation must not alter PDF upload, server API requests or downloads.
+    assert "fetch(" not in layout
+    assert "FileReader" not in layout
+    assert "input.dispatchEvent(" not in layout
