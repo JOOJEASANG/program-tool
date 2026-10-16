@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"><title>Direct print retired regression</title></head>
+<body data-print-retired-smoke="running">
+  <button type="button" id="downloadBtn">PDF 다운로드</button>
+  <button type="button" class="program-direct-print-btn">프린터 출력</button>
+  <button type="button" id="exportBtn">PDF 저장</button>
+  <div id="result">RUNNING</div>
+  <script src="/js/direct-print.js"></script>
+  <script>
+    const pass=document.getElementById('result');
+    const verify=()=>{
+    try{
+      if(document.querySelector('.program-direct-print-btn'))throw Error('legacy printer button remained');
+      if(!document.getElementById('downloadBtn')||!document.getElementById('exportBtn'))
+        throw Error('PDF download or export actions were lost');
+      const late=document.createElement('div');
+      late.id='other-editor';
+      document.body.appendChild(late);
+      if(document.querySelector('.program-direct-print-btn'))throw Error('printer button was reinserted');
+      if(!window.__programStudioDirectPrintRetiredV1)throw Error('retired compatibility cleanup did not load');
+      document.body.dataset.printRetiredSmoke='pass';
+      pass.textContent='PASS: printer output actions removed; PDF downloads and exports remain';
+    }catch(error){
+      document.body.dataset.printRetiredSmoke='fail';
+      pass.textContent='FAIL: '+String(error);
+    }
+    };
+    if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',verify,{once:true});
+    else verify();
+  </script>
+</body>
+</html>

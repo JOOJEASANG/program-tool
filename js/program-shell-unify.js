@@ -26,6 +26,8 @@
       .program-local-actions{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
       .program-local-actions a,.program-local-actions button{display:inline-flex;align-items:center;justify-content:center;gap:5px;min-height:30px;border:1px solid #d7e0e9!important;border-radius:8px!important;background:#fff!important;color:#475569!important;padding:6px 9px!important;font-family:inherit!important;font-size:10px!important;font-weight:850!important;line-height:1.2!important;text-decoration:none!important;box-shadow:none!important;cursor:pointer}
       .program-local-actions a:hover,.program-local-actions button:hover{border-color:#9fb2c6!important;background:#f8fafc!important;color:#12396d!important;opacity:1!important}
+      .program-local-actions .nav-back.program-home-icon{width:34px!important;min-width:34px!important;max-width:34px!important;flex:0 0 34px!important;padding:0!important;font-size:0!important;line-height:0!important}
+      .program-local-actions .nav-back.program-home-icon svg{width:15px!important;height:15px!important;display:block!important}
       .program-local-actions .program-account-name{max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#7c8797;font-size:10px;font-weight:750;margin-left:auto}
       .program-local-actions .program-logout{margin-left:0!important}
 
@@ -76,7 +78,14 @@
     bar.className='program-local-actions';
     bar.setAttribute('aria-label','프로그램 이동 및 계정');
     const back=oldNav.querySelector('.nav-back');
-    if(back){back.textContent='← 홈';bar.appendChild(back);}
+    if(back){
+      back.classList.add('program-home-icon');
+      back.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10.5V20h13v-9.5"/><path d="M9.5 20v-6h5v6"/></svg>';
+      back.title='홈';
+      back.setAttribute('aria-label','홈');
+      back.href='/index.html';
+      bar.appendChild(back);
+    }
     if(kind==='pdf-editor'){
       const save=document.getElementById('navSessionBtn'),load=document.getElementById('navSessionLoadBtn'),user=document.getElementById('navUserName'),logout=document.getElementById('navLogout');
       if(save)bar.appendChild(save);if(load)bar.appendChild(load);if(user){user.classList.add('program-account-name');bar.appendChild(user);}if(logout){logout.classList.add('program-logout');bar.appendChild(logout);}
