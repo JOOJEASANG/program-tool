@@ -186,7 +186,10 @@
   function mountPdfEditor() {
     const aside = document.querySelector('.app > aside');
     const topNav = document.querySelector('.top-nav');
-    const home = document.querySelector('.top-nav .nav-back');
+    // The compact PDF shell moves navigation into the sidebar before this
+    // shared action module loads. Reuse its existing button and action bar.
+    const home = document.querySelector('.top-nav .nav-back')
+      || aside?.querySelector(':scope > .program-local-actions .nav-back');
     const save = document.getElementById('navSessionBtn');
     const load = document.getElementById('navSessionLoadBtn');
     const logout = document.getElementById('navLogout');
@@ -195,10 +198,10 @@
 
     let bar = aside.querySelector(':scope > .ps-program-sidebar-top');
     if (!bar) {
-      bar = makeBar();
-      const grid = makeGrid();
-      bar.appendChild(grid);
-      aside.insertBefore(bar, aside.firstChild);
+      bar = aside.querySelector(':scope > .program-local-actions') || makeBar();
+      bar.classList.add('ps-program-sidebar-top');
+      bar.appendChild(makeGrid());
+      if (!bar.isConnected) aside.insertBefore(bar, aside.firstChild);
     }
     const grid = bar.querySelector('.ps-program-actions-grid');
     setHome(home);
