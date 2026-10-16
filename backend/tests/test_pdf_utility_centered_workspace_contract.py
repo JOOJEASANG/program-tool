@@ -120,7 +120,7 @@ def test_every_utility_menu_modal_fills_workspace_without_changing_processing():
     assert "assertModalFill('#local-tools'" in smoke
     assert "assertModalFill('.pdfud-card'" in smoke
     assert "assertModalFill('.pdfuc-server-card'" in smoke
-    assert "assertModalFill('.pdfadv-overlay.open'" in smoke
+    assert "shared controls/result do not fill the modal workspace" in smoke
 
     # Presentation must not alter PDF upload, server API requests or downloads.
     assert "fetch(" not in layout
