@@ -326,9 +326,10 @@
     if(!host||host.querySelector('.ps-command-trigger'))return;
     const button=document.createElement('button');
     button.type='button';
-    button.className='ps-command-trigger ps-tool-switch';
-    button.innerHTML='<span aria-hidden="true">⌕</span><span>빠른 실행</span><kbd>Ctrl K</kbd>';
-    button.setAttribute('aria-label','프로그램 빠른 실행 열기');
+    button.className='ps-command-trigger ps-tool-switch ps-home-quick-launch';
+    button.innerHTML='<span class="ps-quick-launch-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.8" cy="10.8" r="6.3"></circle><path d="m16 16 4.5 4.5"></path></svg></span><span class="ps-quick-launch-label">빠른 실행</span><kbd aria-hidden="true">Ctrl K</kbd>';
+    button.setAttribute('aria-label','프로그램 빠른 실행 열기 (Ctrl+K)');
+    button.title='빠른 실행 (Ctrl+K)';
     button.addEventListener('click',openPalette);
     host.insertBefore(button,host.firstChild);
   }
