@@ -91,6 +91,8 @@ run_product_case(){
   grep -q "$marker" "$out" || { cat "$out" >&2; exit 1; }
 }
 
+run_product_case "program-direct-print-retired-smoke.html" "$OUT_DIR/program-direct-print-retired-dom.html" 'data-print-retired-smoke="pass"' 'PASS: printer output actions removed; PDF downloads and exports remain'
+reset_profile
 run_case "pdf-editor-shell-smoke.html" "$OUT_DIR/pdf-editor-shell-smoke-dom.html" 'PASS: PDF sidebar remains visible after delayed common/runtime initialization'
 reset_profile
 run_case "pdf-utility-shell-smoke.html" "$OUT_DIR/pdf-utility-shell-smoke-dom.html" 'PASS: PDF utility fixed header removed and account actions preserved in content'
