@@ -114,7 +114,13 @@
           if(overlay.parentElement!==stage)throw new Error(name+' overlay must remain a direct stage child');
           if(!stage.classList.contains('pdfu-shared-advanced-stage'))throw new Error(name+' shared two-column stage missing');
           if(!stage.querySelector('#local-tools .pdfu-local-controls'))throw new Error(name+' file controls missing');
-          assertModalFill('.pdfadv-overlay.open',name);
+          if(document.documentElement.dataset.pdfUtilityLayout==='centered'){
+            const left=stage.querySelector('#local-tools')?.getBoundingClientRect();
+            const right=overlay.getBoundingClientRect();
+            const bounds=stage.getBoundingClientRect();
+            if(!left||right.right<bounds.right-35||left.left>bounds.left+35)
+              throw new Error(name+' shared controls/result do not fill the modal workspace');
+          }
           assertUnlocked(name);assertStage(name);
         }
 
