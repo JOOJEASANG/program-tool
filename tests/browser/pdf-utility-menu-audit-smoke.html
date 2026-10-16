@@ -59,6 +59,16 @@
       if(document.body.style.overflow==='hidden')throw new Error('body scroll locked after '+name);
     };
     const assertStage=name=>{const stage=document.getElementById('pdfUtilityStageBody');if(!stage||!stage.textContent.trim())throw new Error('empty stage after '+name);const bad=[...document.querySelectorAll('.pdfadv-overlay.open,.pdfocr-overlay.open')].find(node=>!stage.contains(node));if(bad)throw new Error('open overlay escaped stage after '+name+': '+bad.id);};
+    const assertModalFill=(selector,label)=>{
+      const stage=document.getElementById('pdfUtilityStageBody');
+      const node=stage?.querySelector(selector);
+      if(document.documentElement.dataset.pdfUtilityLayout!=='centered')return;
+      if(!node)throw new Error(label+' workspace missing');
+      const stageBox=stage.getBoundingClientRect(),childBox=node.getBoundingClientRect();
+      if(childBox.width<stageBox.width*.9)throw new Error(label+' failed to fill modal width: '+Math.round(childBox.width)+' / '+Math.round(stageBox.width));
+      if(childBox.right>stageBox.right+4)throw new Error(label+' overflows modal width');
+      if(getComputedStyle(stage).overflowY==='hidden')throw new Error(label+' modal body is not vertically scrollable');
+    };
   </script>
   <script src="/js/pdf-suite/local-tools.js?v=smoke"></script>
   <script src="/js/pdf-suite/advanced-tools.js?v=smoke"></script>
@@ -75,6 +85,7 @@
       try{
         await waitFor(()=>document.documentElement.dataset.pdfUtilityWorkspaceStability==='ready','stability ready');
         await waitFor(()=>['split','centered'].includes(document.documentElement.dataset.pdfUtilityLayout),'utility layout ready');
+        await waitFor(()=>document.documentElement.dataset.pdfUtilityModalFullWorkspace==='ready','full-area modal stylesheet');
         await wait(80);
         if(document.documentElement.dataset.pdfUtilityCentered==='ready-v1'){
           if(document.documentElement.dataset.pdfUtilityLayout!=='centered')throw new Error('centered utility layout marker missing');
@@ -91,6 +102,7 @@
         if(!local.querySelector('.pdfu-local-workgrid')||!local.querySelector('.pdfu-local-controls')||!local.querySelector('.pdfu-local-result'))throw new Error('rotation two-column workspace missing');
         if(local.querySelector('[data-local-run="rotate90"]').style.display==='none'||local.querySelector('[data-local-run="rotate180"]').style.display==='none')throw new Error('rotation buttons hidden');
         if(local.querySelector('[data-local-run="reverse"]').style.display!=='none')throw new Error('unrelated reverse button shown in rotation');
+        assertModalFill('#local-tools','browser-local upload');
         assertUnlocked('전체 페이지 회전');assertStage('전체 페이지 회전');
 
         const sharedIds={'책갈피·페이지 라벨 분석':'pdfAdvancedOutline','첨부파일 추출':'pdfAdvancedAttachments','접근성·태그 기본 검사':'pdfAdvancedAccessibility'};
@@ -102,6 +114,13 @@
           if(overlay.parentElement!==stage)throw new Error(name+' overlay must remain a direct stage child');
           if(!stage.classList.contains('pdfu-shared-advanced-stage'))throw new Error(name+' shared two-column stage missing');
           if(!stage.querySelector('#local-tools .pdfu-local-controls'))throw new Error(name+' file controls missing');
+          if(document.documentElement.dataset.pdfUtilityLayout==='centered'){
+            const left=stage.querySelector('#local-tools')?.getBoundingClientRect();
+            const right=overlay.getBoundingClientRect();
+            const bounds=stage.getBoundingClientRect();
+            if(!left||right.right<bounds.right-35||left.left>bounds.left+35)
+              throw new Error(name+' shared controls/result do not fill the modal workspace');
+          }
           assertUnlocked(name);assertStage(name);
         }
 
@@ -126,12 +145,15 @@
         if(!document.querySelector('#pdfUtilityStageBody .pdfud-card'))throw new Error('direct compression panel missing after outline');
         if(document.querySelector('#pdfUtilityStageBody iframe'))throw new Error('legacy iframe returned after outline-to-compress transition');
         if(document.getElementById('pdfUtilityStageBody').classList.contains('pdfu-shared-advanced-stage'))throw new Error('shared stage class leaked into direct tool');
+        assertModalFill('.pdfud-card','direct PDF compression upload/options');
         if(document.documentElement.dataset.pdfUtilityDirectReset!=='stable')throw new Error('direct reset wrapper missing');
         assertUnlocked('outline → PDF 압축');assertStage('outline → PDF 압축');
 
         const allButtons=[...document.querySelectorAll('[data-pdfu-tool]')];if(allButtons.length<25)throw new Error('menu audit fixture unexpectedly small: '+allButtons.length);
         for(const button of allButtons){const name=button.querySelector('.pdfu-menu-name')?.textContent.trim()||'unknown';button.click();await wait(150);assertUnlocked(name);assertStage(name);}
 
+        await clickMenu('PDF 합치기');
+        assertModalFill('.pdfuc-server-card','server PDF merge upload');
         if(document.documentElement.dataset.pdfUtilityMenuAudit!=='ok')throw new Error('menu audit watchdog did not report ok');
         document.body.dataset.pdfUtilityMenuAuditSmoke='pass';
         result.textContent='PASS: all PDF utility menus mount stable right-stage workspaces without scroll lock';

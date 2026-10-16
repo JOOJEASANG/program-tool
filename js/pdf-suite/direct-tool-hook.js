@@ -63,6 +63,7 @@
   // but the actual final presentation is now owned by one clean UI module.
   function ensureCenteredFixes(){return ensureScript('pdfUtilityCleanUiScript','/js/pdf-suite/clean-ui.js?v=20261002-1',()=>Boolean(window.__programStudioPdfUtilityCleanUiV1||window.__programStudioPdfUtilityCenteredFixesV4));}
   function ensureToolModalFlow(){return ensureScript('pdfUtilityToolModalFlowScript','/js/pdf-suite/tool-modal-flow.js?v=20260915-1',()=>Boolean(window.__programStudioPdfUtilityToolModalFlowV1));}
+  function ensureFullModalWorkspace(){return ensureScript('pdfUtilityModalFullWorkspaceScript','/js/pdf-suite/modal-full-workspace.js?v=20261016-1',()=>Boolean(window.__programStudioPdfUtilityModalFullWorkspaceV1));}
 
   async function waitForCuratedCore(){
     const deadline=Date.now()+1600;
@@ -90,7 +91,7 @@
     install();
     Promise.allSettled([
       ensureLargeStorage(),
-      waitForCuratedCore().then(ensureCenteredWorkspace).then(ensureCenteredFixes).then(ensureToolModalFlow)
+      waitForCuratedCore().then(ensureCenteredWorkspace).then(ensureCenteredFixes).then(ensureToolModalFlow).then(ensureFullModalWorkspace)
     ]);
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
