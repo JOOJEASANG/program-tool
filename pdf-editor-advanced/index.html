@@ -21,8 +21,8 @@
           <a class="icon-btn advanced-nav-icon" id="advancedHomeBtn" href="/index.html" title="프로그램 목록" aria-label="프로그램 목록">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10.5V20h13v-9.5"/><path d="M9.5 20v-6h5v6"/></svg>
           </a>
-          <button class="icon-btn advanced-session-btn" id="advancedSessionSaveBtn" type="button">편집저장</button>
           <button class="icon-btn advanced-session-btn" id="advancedSessionLoadBtn" type="button">편집불러오기</button>
+          <button class="icon-btn advanced-session-btn" id="advancedSessionSaveBtn" type="button">편집저장</button>
           <button class="icon-btn advanced-nav-icon" id="logoutBtn" type="button" title="로그아웃" aria-label="로그아웃">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M10 4H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h5"/><path d="M14 8l4 4-4 4"/><path d="M18 12H8"/></svg>
           </button>
@@ -37,7 +37,6 @@
           <span class="upload-text">PDF 파일 클릭 또는 드래그</span>
           <span class="upload-sub">여러 파일을 연속으로 추가할 수 있습니다</span>
         </button>
-        <button id="clearAllBtn" class="secondary-btn" type="button" disabled>전체 비우기</button>
         <div class="status-line" id="statusLine" role="status">PDF 파일을 불러와 주세요.</div>
       </section>
 
@@ -52,10 +51,10 @@
       <section class="tool-section" id="pageEditSection">
         <div class="section-title">선택 페이지 편집</div>
         <div class="button-grid four">
-          <button id="undoBtn" class="tool-btn" type="button" disabled>실행취소</button>
-          <button id="redoBtn" class="tool-btn" type="button" disabled>다시실행</button>
           <button id="rotateLeftBtn" class="tool-btn" type="button" disabled>↶ 90°</button>
           <button id="rotateRightBtn" class="tool-btn" type="button" disabled>↷ 90°</button>
+          <button id="undoBtn" class="tool-btn" type="button" disabled>실행취소</button>
+          <button id="redoBtn" class="tool-btn" type="button" disabled>다시실행</button>
         </div>
 
         <label class="field-label" for="scaleRange">확대 · 축소 <output id="scaleValue">100%</output></label>
@@ -155,6 +154,7 @@
 
       <section class="tool-section output-section">
         <button id="downloadBtn" class="download-btn" type="button" disabled>편집 PDF 다운로드</button>
+        <button id="clearAllBtn" class="secondary-btn" type="button" title="불러온 파일과 모든 편집 내용 비우기" disabled>전체 비우기</button>
       </section>
     </aside>
 
