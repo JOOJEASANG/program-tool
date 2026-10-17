@@ -16,7 +16,8 @@
 
     /* Nav */
     .top-nav { position: fixed; top: 0; left: 0; right: 0; z-index: 500; height: var(--nav-h); background: var(--primary); display: flex; align-items: center; padding: 0 16px; gap: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.2); }
-    .nav-back { display: flex; align-items: center; gap: 6px; color: rgba(255,255,255,0.85); font-size: 13px; font-weight: 700; text-decoration: none; padding: 7px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); transition: background 0.15s; }
+    .nav-back { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 36px; width: 36px; height: 36px; color: rgba(255,255,255,0.85); text-decoration: none; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); transition: background 0.15s; }
+    .nav-back svg { width: 19px; height: 19px; }
     .nav-back:hover { background: rgba(255,255,255,0.15); }
     .nav-title { flex: 1; text-align: center; font-size: 15px; font-weight: 800; color: #fff; }
     .nav-user { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
@@ -282,7 +283,7 @@
     @media (max-width: 900px) {
       body { overflow: auto; }
       .top-nav { padding: 0 9px; gap: 7px; }
-      .nav-back { padding: 6px 8px; font-size: 11px; }
+      .nav-back { flex-basis: 34px; width: 34px; height: 34px; }
       .nav-title { text-align: left; font-size: 13px; }
       .nav-user-name { display: none; }
       .nav-history-btn, .nav-logout { padding: 6px 8px; font-size: 0; margin-right: 0; }
@@ -330,9 +331,8 @@
 <div id="authLoading"><div class="big-spinner"></div></div>
 
 <nav class="top-nav">
-  <a class="nav-back" href="../index.html">
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
-    목록으로
+  <a class="nav-back" href="../index.html" aria-label="홈으로" title="홈으로">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 10 9-7 9 7"/><path d="M5 9.5V21h14V9.5"/><path d="M9 21v-7h6v7"/></svg>
   </a>
   <div class="nav-title">📝 PDF 문서 편집기</div>
   <div class="nav-user">
