@@ -124,4 +124,15 @@ def test_frontend_paper_module_keeps_source_dimensions_and_exposes_crop_marks():
     assert "crop_marks: sheetMode" in state
     assert "physicalRotatedPoints" in preview
     assert "drawCropMarks" in preview
+    assert "trimSizeMmForPage(page)" in preview
+    assert "const trimW = trim.width * PT_PER_MM * scaleX;" in preview
+    assert "drawCropMarks(ctx, trimRect, scaleX, scaleY, dpr)" in preview
+    assert "drawCropMarks(ctx, dest, scaleX, scaleY, dpr)" not in preview
+    assert "return { width: 0, height: 0, name: '' };" in state
+    assert "&& trim.width > 0 && trim.height > 0" in state
+    sidebar = (root / "js" / "pdf-editor-advanced" / "paper-size.js").read_text(encoding="utf-8")
+    assert "입력한 재단사이즈 기준" in sidebar
+    assert "advancedState.paper.trimMode === 'manual'" in sidebar
+    smoke = (root / "scripts" / "run_pdf_program_shell_smoke.sh").read_text(encoding="utf-8")
+    assert "pdf-advanced-manual-trim-only-smoke.html" in smoke
     assert "page.widthPt = visibleWidthPt" not in paper
