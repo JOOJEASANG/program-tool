@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"><title>Advanced PDF trim marks explicit input regression</title></head>
+<body data-advanced-trim-only-smoke="running">
+<p id="result">RUNNING</p>
+<script type="module">
+import {advancedState,trimSizeMmForPage,serializeSettings} from '/js/pdf-editor-advanced/state.js';
+const output=document.getElementById('result');
+try{
+  const page={
+    id:'test-1',fileIndex:0,pageIndex:0,widthPt:148*72/25.4,heightPt:210*72/25.4,
+    sourceWidthPt:148*72/25.4,sourceHeightPt:210*72/25.4,
+    rotation:0,scale:1,offsetX:0,offsetY:0,
+    crop:{left:0,top:0,right:0,bottom:0},eraseRegions:[],overlays:[]
+  };
+  advancedState.pages=[page];
+  advancedState.paper={preset:'a4',landscape:false,customWidthMm:210,customHeightMm:297,
+    cropMarks:true,trimMode:'auto',trimWidthMm:0,trimHeightMm:0};
+  let trim=trimSizeMmForPage(page);
+  if(trim.width!==0||trim.height!==0)throw Error('auto setting incorrectly used 148x210 source or A4 paper as trim');
+  let saved=serializeSettings().pages[0];
+  if(saved.crop_marks||saved.trim_width_mm!==null||saved.trim_height_mm!==null)
+    throw Error('auto detected crop marks leaked to PDF export');
+  advancedState.paper.trimMode='manual';
+  advancedState.paper.trimWidthMm=133;
+  advancedState.paper.trimHeightMm=203;
+  trim=trimSizeMmForPage(page);
+  saved=serializeSettings().pages[0];
+  if(trim.width!==133||trim.height!==203 || !saved.crop_marks ||
+     saved.trim_width_mm!==133||saved.trim_height_mm!==203)
+    throw Error('manual 133x203 crop marks not applied');
+  advancedState.paper.preset='b5';
+  saved=serializeSettings().pages[0];
+  if(saved.trim_width_mm!==133||saved.trim_height_mm!==203)
+    throw Error('changing sheet size incorrectly changes trim marks');
+  advancedState.paper.trimWidthMm=0;
+  saved=serializeSettings().pages[0];
+  if(saved.crop_marks||saved.trim_width_mm!==null)
+    throw Error('incomplete manual input must disable crop marks');
+  document.body.dataset.advancedTrimOnlySmoke='pass';
+  output.textContent='PASS: advanced crop marks require explicitly entered trim dimensions independent of original and sheet';
+}catch(error){
+  document.body.dataset.advancedTrimOnlySmoke='fail';
+  output.textContent='FAIL: '+String(error?.stack||error);
+}
+</script>
+</body>
+</html>
