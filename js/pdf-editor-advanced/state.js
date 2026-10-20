@@ -104,7 +104,9 @@ export function trimSizeMmForPage(page) {
   if (String(advancedState.paper?.trimMode || 'auto') === 'manual' && manualWidth > 0 && manualHeight > 0) {
     return { width: manualWidth, height: manualHeight, name: '직접입력' };
   }
-  return detectedTrimSizeMm(page);
+  // Never use paper dimensions or inferred source size for crop marks.
+  // A cut line exists only after both dimensions are explicitly entered.
+  return { width: 0, height: 0, name: '' };
 }
 
 export function isSheetLayoutMode() {
@@ -276,7 +278,7 @@ export function serializeSettings() {
         offset_x_mm: page.offsetX,
         offset_y_mm: page.offsetY,
         preserve_actual_size: sheetMode,
-        crop_marks: sheetMode && !!advancedState.paper.cropMarks,
+        crop_marks: sheetMode && !!advancedState.paper.cropMarks && trim.width > 0 && trim.height > 0,
         trim_width_mm: sheetMode && trim.width > 0 ? trim.width : null,
         trim_height_mm: sheetMode && trim.height > 0 ? trim.height : null,
         crop_mark_length_mm: 5,

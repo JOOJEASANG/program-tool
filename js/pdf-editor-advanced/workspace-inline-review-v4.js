@@ -55,7 +55,8 @@ function activeTrim(actual) {
   if (trimMode === 'manual' && trimWidthMm > 0 && trimHeightMm > 0) {
     return { width: trimWidthMm, height: trimHeightMm, name: '직접입력' };
   }
-  return detectTrim(actual);
+  // Inferred source formats must never become a printed trim boundary.
+  return { width: 0, height: 0, name: '미입력' };
 }
 
 function installStyles() {
@@ -211,22 +212,25 @@ function installSizeInspector() {
   inspector.className = 'advanced-size-inspector';
   inspector.innerHTML = `
     <div class="advanced-size-block"><strong>파일 실제</strong><span id="advancedActualSizeText">-</span></div>
-    <div class="advanced-size-block"><strong>재단</strong><span id="advancedTrimPresetText">자동</span></div>
+    <div class="advanced-size-block"><strong>재단</strong><span id="advancedTrimPresetText">미입력</span></div>
     <div class="advanced-trim-inputs">
       <label for="advancedTrimWidth">재단사이즈</label>
       <input id="advancedTrimWidth" type="number" min="1" max="1200" step="0.1" aria-label="재단 폭 mm">
       <span class="times">×</span>
       <input id="advancedTrimHeight" type="number" min="1" max="1200" step="0.1" aria-label="재단 높이 mm">
       <span class="unit">mm</span>
-      <button id="advancedTrimAuto" class="advanced-trim-auto" type="button">자동</button>
+      <button id="advancedTrimAuto" class="advanced-trim-auto" type="button">초기화</button>
     </div>
     <div id="advancedTrimStatus" class="advanced-trim-status">PDF를 불러와 주세요</div>`;
   toolbar.insertAdjacentElement('afterend', inspector);
 
   const applyManual = () => {
-    trimWidthMm = Math.max(1, Math.min(1200, Number($('advancedTrimWidth')?.value) || 0));
-    trimHeightMm = Math.max(1, Math.min(1200, Number($('advancedTrimHeight')?.value) || 0));
+    trimWidthMm = Math.max(0, Math.min(1200, Number($('advancedTrimWidth')?.value) || 0));
+    trimHeightMm = Math.max(0, Math.min(1200, Number($('advancedTrimHeight')?.value) || 0));
     trimMode = 'manual';
+    advancedState.paper.trimMode = 'manual';
+    advancedState.paper.trimWidthMm = trimWidthMm;
+    advancedState.paper.trimHeightMm = trimHeightMm;
     syncSizeInspector();
     scheduleGuide();
   };
@@ -234,8 +238,18 @@ function installSizeInspector() {
   $('advancedTrimHeight').addEventListener('change', applyManual);
   $('advancedTrimWidth').addEventListener('input', applyManual);
   $('advancedTrimHeight').addEventListener('input', applyManual);
+  for (const id of ['advancedTrimWidth','advancedTrimHeight']) {
+    $(id).addEventListener('change', () => window.dispatchEvent(new Event('resize')));
+  }
   $('advancedTrimAuto').addEventListener('click', () => {
     trimMode = 'auto';
+    trimWidthMm = 0;
+    trimHeightMm = 0;
+    advancedState.paper.trimMode = 'auto';
+    advancedState.paper.trimWidthMm = 0;
+    advancedState.paper.trimHeightMm = 0;
+    advancedState.paper.cropMarks = false;
+    window.dispatchEvent(new Event('resize'));
     syncSizeInspector();
     scheduleGuide();
   });
@@ -306,7 +320,7 @@ function syncSizeInspector() {
   if (!actualText || !presetText || !status || !widthInput || !heightInput) return;
   if (!page) {
     actualText.textContent = '-';
-    presetText.textContent = '자동';
+    presetText.textContent = '미입력';
     widthInput.value = '';
     heightInput.value = '';
     widthInput.disabled = true;
@@ -321,15 +335,18 @@ function syncSizeInspector() {
   widthInput.disabled = false;
   heightInput.disabled = false;
   $('advancedTrimAuto').disabled = false;
-  if (document.activeElement !== widthInput) widthInput.value = trim.width.toFixed(1);
-  if (document.activeElement !== heightInput) heightInput.value = trim.height.toFixed(1);
+  if (document.activeElement !== widthInput) widthInput.value = trim.width > 0 ? trim.width.toFixed(1) : '';
+  if (document.activeElement !== heightInput) heightInput.value = trim.height > 0 ? trim.height.toFixed(1) : '';
   actualText.textContent = `${actual.width.toFixed(1)} × ${actual.height.toFixed(1)} mm`;
-  presetText.textContent = trimMode === 'auto' ? `${trim.name || '자동'} ${trim.width.toFixed(1)} × ${trim.height.toFixed(1)} mm` : `직접 ${trim.width.toFixed(1)} × ${trim.height.toFixed(1)} mm`;
+  presetText.textContent = trim.width > 0 && trim.height > 0
+    ? `직접 ${trim.width.toFixed(1)} × ${trim.height.toFixed(1)} mm`
+    : '미입력';
   const bleedX = (actual.width - trim.width) / 2;
   const bleedY = (actual.height - trim.height) / 2;
   const invalid = bleedX < -0.25 || bleedY < -0.25;
   status.classList.toggle('warn', invalid);
-  if (invalid) status.textContent = '재단사이즈가 파일보다 큽니다';
+  if (!trim.width || !trim.height) status.textContent = '재단 가로·세로를 입력해야 재단표시를 사용할 수 있습니다';
+  else if (invalid) status.textContent = '재단사이즈가 파일보다 큽니다';
   else if (Math.abs(bleedX - bleedY) < 0.15) status.textContent = `재단여유 사방 ${Math.max(0, bleedX).toFixed(1)} mm`;
   else status.textContent = `재단여유 좌우 ${Math.max(0, bleedX).toFixed(1)} · 상하 ${Math.max(0, bleedY).toFixed(1)} mm`;
 }
@@ -351,19 +368,24 @@ function updateGuides() {
   const base = originalBoxFromLayout(page, layout);
   if (!base || !actual?.width || !actual?.height) return;
   guides.actual.hidden = false;
-  guides.trim.hidden = false;
+  guides.trim.hidden = !(trim.width > 0 && trim.height > 0);
   guides.actual.querySelector('.advanced-size-guide-label').textContent = `파일 실제 ${actual.width.toFixed(1)}×${actual.height.toFixed(1)}mm`;
   placeGuideNode(guides.actual, base, canvas);
 
-  const ratioW = trim.width / actual.width;
-  const ratioH = trim.height / actual.height;
+  if (guides.trim.hidden) return;
+  // The preview canvas and the PDF exporter both center the manually entered
+  // physical trim dimensions on the placed content, without scaling the trim
+  // to the original file bounds.
+  const output = outputPagePoints(page);
+  const trimWidthPx = trim.width / MM_PER_PT * (canvas.width / output.width);
+  const trimHeightPx = trim.height / MM_PER_PT * (canvas.height / output.height);
   const trimBox = {
-    x: base.x + (base.width - base.width * ratioW) / 2,
-    y: base.y + (base.height - base.height * ratioH) / 2,
-    width: base.width * ratioW,
-    height: base.height * ratioH,
+    x: layout.dest.x + (layout.dest.width - trimWidthPx) / 2,
+    y: layout.dest.y + (layout.dest.height - trimHeightPx) / 2,
+    width: trimWidthPx,
+    height: trimHeightPx,
   };
-  guides.trim.classList.toggle('warn', ratioW > 1.002 || ratioH > 1.002);
+  guides.trim.classList.toggle('warn', trim.width > actual.width + .2 || trim.height > actual.height + .2);
   guides.trim.querySelector('.advanced-size-guide-label').textContent = `재단 ${trim.width.toFixed(1)}×${trim.height.toFixed(1)}mm`;
   placeGuideNode(guides.trim, trimBox, canvas);
 }
@@ -405,7 +427,9 @@ function installObservers() {
   window.addEventListener('resize', scheduleGuide);
   window.addEventListener('pdf-advanced-state-change', event => {
     const reason = String(event?.detail?.reason || '');
-    if (reason === 'workspace-reset' || reason === 'reset') trimMode = 'auto';
+    trimMode = advancedState.paper.trimMode === 'manual' ? 'manual' : 'auto';
+    trimWidthMm = Number(advancedState.paper.trimWidthMm || 0);
+    trimHeightMm = Number(advancedState.paper.trimHeightMm || 0);
     if (/upload|rotate|orientation|reset|history|paper|crop|fine/.test(reason)) {
       document.querySelectorAll('canvas.page-sidebar-thumb').forEach(canvasNode => {
         canvasNode.dataset.rendered = '0';

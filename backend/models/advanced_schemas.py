@@ -75,6 +75,8 @@ class AdvancedPageInfo(BaseModel):
             raise ValueError("출력 페이지 크기는 너비와 높이를 함께 지정해야 합니다")
         if (self.trim_width_mm is None) != (self.trim_height_mm is None):
             raise ValueError("재단사이즈는 너비와 높이를 함께 지정해야 합니다")
+        if self.crop_marks and (self.trim_width_mm is None or self.trim_height_mm is None):
+            raise ValueError("재단표시에는 직접 입력한 재단 가로·세로 사이즈가 필요합니다")
         return self
 
 
