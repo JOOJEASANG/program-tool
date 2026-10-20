@@ -96,7 +96,11 @@ function syncCropMarksNow() {
   if (!guide) return;
   const width = Number($('advancedTrimWidth')?.value || 0);
   const height = Number($('advancedTrimHeight')?.value || 0);
-  const visible = !!advancedState.paper?.cropMarks && isSheetLayoutMode() && width > 0 && height > 0 && !guide.hidden;
+  const visible = !!advancedState.paper?.cropMarks && isSheetLayoutMode()
+    && advancedState.paper.trimMode === 'manual'
+    && Number(advancedState.paper.trimWidthMm) > 0
+    && Number(advancedState.paper.trimHeightMm) > 0
+    && width > 0 && height > 0 && !guide.hidden;
   guide.classList.toggle('crop-marks-visible', visible);
   if (!visible) return;
   const pxPerMmX = guide.clientWidth / Math.max(1, width);
@@ -120,6 +124,8 @@ function bindTrimInputs() {
     advancedState.paper.trimWidthMm = Number($('advancedTrimWidth')?.value || 0);
     advancedState.paper.trimHeightMm = Number($('advancedTrimHeight')?.value || 0);
     scheduleCropMarks();
+    // The canvas preview also uses the same explicit trim dimensions.
+    // Repaint after the user finishes editing, not during each keystroke.
   });
   document.addEventListener('click', event => {
     if (event.target?.id !== 'advancedTrimAuto') return;
@@ -127,6 +133,7 @@ function bindTrimInputs() {
     advancedState.paper.trimMode = 'auto';
     advancedState.paper.trimWidthMm = 0;
     advancedState.paper.trimHeightMm = 0;
+    advancedState.paper.cropMarks = false;
     window.setTimeout(scheduleCropMarks, 40);
   });
 }
