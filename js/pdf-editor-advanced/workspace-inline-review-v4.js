@@ -224,9 +224,12 @@ function installSizeInspector() {
   toolbar.insertAdjacentElement('afterend', inspector);
 
   const applyManual = () => {
-    trimWidthMm = Math.max(1, Math.min(1200, Number($('advancedTrimWidth')?.value) || 0));
-    trimHeightMm = Math.max(1, Math.min(1200, Number($('advancedTrimHeight')?.value) || 0));
+    trimWidthMm = Math.max(0, Math.min(1200, Number($('advancedTrimWidth')?.value) || 0));
+    trimHeightMm = Math.max(0, Math.min(1200, Number($('advancedTrimHeight')?.value) || 0));
     trimMode = 'manual';
+    advancedState.paper.trimMode = 'manual';
+    advancedState.paper.trimWidthMm = trimWidthMm;
+    advancedState.paper.trimHeightMm = trimHeightMm;
     syncSizeInspector();
     scheduleGuide();
   };
@@ -234,8 +237,18 @@ function installSizeInspector() {
   $('advancedTrimHeight').addEventListener('change', applyManual);
   $('advancedTrimWidth').addEventListener('input', applyManual);
   $('advancedTrimHeight').addEventListener('input', applyManual);
+  for (const id of ['advancedTrimWidth','advancedTrimHeight']) {
+    $(id).addEventListener('change', () => window.dispatchEvent(new Event('resize')));
+  }
   $('advancedTrimAuto').addEventListener('click', () => {
     trimMode = 'auto';
+    trimWidthMm = 0;
+    trimHeightMm = 0;
+    advancedState.paper.trimMode = 'auto';
+    advancedState.paper.trimWidthMm = 0;
+    advancedState.paper.trimHeightMm = 0;
+    advancedState.paper.cropMarks = false;
+    window.dispatchEvent(new Event('resize'));
     syncSizeInspector();
     scheduleGuide();
   });
@@ -405,7 +418,11 @@ function installObservers() {
   window.addEventListener('resize', scheduleGuide);
   window.addEventListener('pdf-advanced-state-change', event => {
     const reason = String(event?.detail?.reason || '');
-    if (reason === 'workspace-reset' || reason === 'reset') trimMode = 'auto';
+    if (reason === 'workspace-reset' || reason === 'reset' || reason === 'history' || reason === 'session-restore') {
+      trimMode = advancedState.paper.trimMode === 'manual' ? 'manual' : 'auto';
+      trimWidthMm = Number(advancedState.paper.trimWidthMm || 0);
+      trimHeightMm = Number(advancedState.paper.trimHeightMm || 0);
+    }
     if (/upload|rotate|orientation|reset|history|paper|crop|fine/.test(reason)) {
       document.querySelectorAll('canvas.page-sidebar-thumb').forEach(canvasNode => {
         canvasNode.dataset.rendered = '0';
