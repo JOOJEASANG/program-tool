@@ -3,6 +3,7 @@ import {
   selectedPage,
   paperPointsForPage,
   isSheetLayoutMode,
+  trimSizeMmForPage,
 } from './state.js';
 
 const PT_PER_MM = 72 / 25.4;
@@ -346,7 +347,18 @@ export async function renderPagePreview(page, canvas, options = {}) {
     ctx.strokeRect(content.x, content.y, content.width, content.height);
     ctx.restore();
   }
-  if (isSheetLayoutMode() && advancedState.paper.cropMarks) drawCropMarks(ctx, dest, scaleX, scaleY, dpr);
+  const trim = trimSizeMmForPage(page);
+  if (isSheetLayoutMode() && advancedState.paper.cropMarks && trim.width > 0 && trim.height > 0) {
+    const trimW = trim.width * PT_PER_MM * scaleX;
+    const trimH = trim.height * PT_PER_MM * scaleY;
+    const trimRect = {
+      x: dest.x + (dest.width - trimW) / 2,
+      y: dest.y + (dest.height - trimH) / 2,
+      width: trimW,
+      height: trimH,
+    };
+    drawCropMarks(ctx, trimRect, scaleX, scaleY, dpr);
+  }
   drawOverlays(ctx, page, scaleX, scaleY);
 
   const layout = {
