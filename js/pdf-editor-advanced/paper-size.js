@@ -91,11 +91,11 @@ function installSection() {
     </div>
     <div class="advanced-paper-options">
       <label class="advanced-paper-check"><input id="advancedPaperLandscape" type="checkbox"> 출력 용지 가로 방향</label>
-      <label class="advanced-paper-check"><input id="advancedPaperCropMarks" type="checkbox"> 재단표시 넣기</label>
+      <label class="advanced-paper-check"><input id="advancedPaperCropMarks" type="checkbox"> 재단표시 넣기 (입력한 재단사이즈 기준)</label>
     </div>
     <button id="advancedPaperCenter" class="advanced-paper-center" type="button">선택 페이지 용지 가운데 배치</button>
     <div id="advancedPaperSummary" class="advanced-paper-summary"></div>
-    <p class="hint">인쇄용지를 선택하면 <strong>100%가 원본 실제 mm 크기</strong>입니다. 큰 용지 위에서 좌·우/상·하 이동으로 위치를 잡고 필요하면 재단표시를 켜세요.</p>
+    <p class="hint">인쇄용지를 선택하면 <strong>100%가 원본 실제 mm 크기</strong>입니다. <strong>재단표시는 오른쪽 ‘재단 사이즈’ 가로·세로를 직접 입력한 경우에만</strong> 켤 수 있습니다. 용지 가장자리나 원본 PDF 크기에는 표시하지 않습니다.</p>
   `;
   marginSection.parentElement.insertBefore(section, marginSection);
 
@@ -123,7 +123,10 @@ function installSection() {
   });
   $('advancedPaperCropMarks').addEventListener('change', () => {
     if (advancedState.pages.length) checkpoint('재단표시');
-    advancedState.paper.cropMarks = $('advancedPaperCropMarks').checked && isSheetLayoutMode();
+    const trimReady = advancedState.paper.trimMode === 'manual'
+      && Number(advancedState.paper.trimWidthMm) > 0
+      && Number(advancedState.paper.trimHeightMm) > 0;
+    advancedState.paper.cropMarks = $('advancedPaperCropMarks').checked && isSheetLayoutMode() && trimReady;
     render('crop-marks');
   });
   $('advancedPaperCenter').addEventListener('click', () => {
@@ -152,8 +155,14 @@ function syncUi() {
   $('advancedPaperCustomH').value = String(advancedState.paper.customHeightMm);
   $('advancedPaperLandscape').checked = !!advancedState.paper.landscape;
   $('advancedPaperLandscape').disabled = !isSheetLayoutMode();
-  $('advancedPaperCropMarks').checked = !!advancedState.paper.cropMarks && isSheetLayoutMode();
-  $('advancedPaperCropMarks').disabled = !isSheetLayoutMode();
+  const trimReady = advancedState.paper.trimMode === 'manual'
+    && Number(advancedState.paper.trimWidthMm) > 0
+    && Number(advancedState.paper.trimHeightMm) > 0;
+  $('advancedPaperCropMarks').checked = !!advancedState.paper.cropMarks && isSheetLayoutMode() && trimReady;
+  $('advancedPaperCropMarks').disabled = !isSheetLayoutMode() || !trimReady;
+  $('advancedPaperCropMarks').title = trimReady
+    ? '입력한 재단사이즈의 경계에만 재단표시를 넣습니다.'
+    : '재단 가로·세로 사이즈를 먼저 입력해 주세요.';
   $('advancedPaperCenter').disabled = !selectedPage() || !isSheetLayoutMode();
 
   const summary = $('advancedPaperSummary');
@@ -183,4 +192,13 @@ advancedState.pages.forEach(ensureSourceSize);
 syncUi();
 window.addEventListener('pdf-advanced-state-change', handleStateChange);
 $('pageList')?.addEventListener('click', () => setTimeout(syncUi, 0));
+document.addEventListener('input', event => {
+  if (event.target?.id === 'advancedTrimWidth' || event.target?.id === 'advancedTrimHeight')
+    queueMicrotask(syncUi);
+});
+document.addEventListener('click', event => {
+  if (event.target?.id !== 'advancedTrimAuto') return;
+  advancedState.paper.cropMarks = false;
+  queueMicrotask(() => render('trim-auto'));
+});
 document.documentElement.dataset.pdfAdvancedPaperSize = 'actual-size-sheet-v2';
