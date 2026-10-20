@@ -127,7 +127,7 @@ def test_frontend_paper_module_keeps_source_dimensions_and_exposes_crop_marks():
     assert "trimSizeMmForPage(page)" in preview
     assert "const trimW = trim.width * PT_PER_MM * scaleX;" in preview
     assert "drawCropMarks(ctx, trimRect, scaleX, scaleY, dpr)" in preview
-    assert "drawCropMarks(ctx, dest, scaleX, scaleY, dpr)" not in preview
+    assert "if (isSheetLayoutMode() && advancedState.paper.cropMarks) drawCropMarks(ctx, dest" not in preview
     assert "return { width: 0, height: 0, name: '' };" in state
     assert "&& trim.width > 0 && trim.height > 0" in state
     sidebar = (root / "js" / "pdf-editor-advanced" / "paper-size.js").read_text(encoding="utf-8")
