@@ -17,7 +17,7 @@ def _source_pdf(width=148 / 25.4 * 72, height=210 / 25.4 * 72):
     return data
 
 
-def _request(*, crop_marks=False):
+def _request(*, crop_marks=False, trim_width_mm=None, trim_height_mm=None):
     return PdfAdvancedProcessRequest.model_validate({
         "pages": [{
             "file_index": 0,
@@ -30,6 +30,8 @@ def _request(*, crop_marks=False):
             "offset_y_mm": 0,
             "preserve_actual_size": True,
             "crop_marks": crop_marks,
+            "trim_width_mm": trim_width_mm,
+            "trim_height_mm": trim_height_mm,
         }],
     })
 
@@ -56,7 +58,7 @@ def test_actual_size_source_is_centered_on_larger_a4_sheet_without_enlarging():
 
 
 def test_crop_marks_are_drawn_on_sheet_layout_output():
-    output = process_sheet_layout_pdf_bytes([_source_pdf()], _request(crop_marks=True))
+    output = process_sheet_layout_pdf_bytes([_source_pdf()], _request(crop_marks=True, trim_width_mm=133, trim_height_mm=203))
     doc = fitz.open(stream=output, filetype="pdf")
     try:
         drawings = doc[0].get_drawings()
@@ -64,6 +66,48 @@ def test_crop_marks_are_drawn_on_sheet_layout_output():
         assert line_items >= 8
     finally:
         doc.close()
+
+
+def test_crop_marks_follow_explicit_133_by_203_mm_only():
+    import pytest
+
+    pt = 72 / 25.4
+    output = process_sheet_layout_pdf_bytes(
+        [_source_pdf()], _request(crop_marks=True, trim_width_mm=133, trim_height_mm=203)
+    )
+    doc = fitz.open(stream=output, filetype="pdf")
+    try:
+        page = doc[0]
+        segments = [
+            (item[1], item[2])
+            for drawing in page.get_drawings()
+            for item in drawing.get("items", [])
+            if item and item[0] == "l"
+        ]
+        x0 = (210 - 133) / 2 * pt
+        y0 = (297 - 203) / 2 * pt
+        gap = 2 * pt
+        length = 5 * pt
+        assert any(
+            (a.x, a.y, b.x, b.y) == pytest.approx(
+                (x0 - gap - length, y0, x0 - gap, y0), abs=0.35
+            )
+            for a, b in segments
+        ), "crop marks must be placed only at the entered trim size"
+        assert x0 != pytest.approx((210 - 148) / 2 * pt)
+        assert x0 != pytest.approx(0)
+        assert page.rect.width == pytest.approx(210 * pt)
+    finally:
+        doc.close()
+
+
+def test_crop_mark_request_rejects_missing_explicit_trim():
+    import pytest
+
+    with pytest.raises(ValueError, match="직접 입력한 재단"):
+        _request(crop_marks=True)
+    with pytest.raises(ValueError, match="재단사이즈"):
+        _request(crop_marks=True, trim_width_mm=133)
 
 
 def test_frontend_paper_module_keeps_source_dimensions_and_exposes_crop_marks():
