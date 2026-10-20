@@ -66,14 +66,12 @@ def _render_actual_page_content(out_page: fitz.Page, source_doc: fitz.Document, 
 
 
 def _crop_mark_trim_rect(content_rect: fitz.Rect, page_info: AdvancedPageInfo) -> fitz.Rect:
-    """Return the physical trim rectangle used by crop marks.
+    """Center the user-entered physical trim size on the placed content.
 
-    When the editor supplies an explicit trim size, keep that size in millimetres
-    and center it on the placed page content. Otherwise retain the legacy
-    behavior and use the placed content bounds.
+    Never substitute the paper boundary or source PDF size for missing input.
     """
     if page_info.trim_width_mm is None or page_info.trim_height_mm is None:
-        return fitz.Rect(content_rect)
+        raise ValueError("재단표시에는 재단 가로·세로 사이즈 입력이 필요합니다.")
     width = float(page_info.trim_width_mm) * pdf_ops.MM_TO_PT
     height = float(page_info.trim_height_mm) * pdf_ops.MM_TO_PT
     center_x = (content_rect.x0 + content_rect.x1) / 2
