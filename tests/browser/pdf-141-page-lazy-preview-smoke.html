@@ -11,7 +11,7 @@
   <script>
     history.replaceState({}, '', '/pdf-editor/?lazy-141-smoke=1');
     // Simulate a tab where animation frames are completely throttled.
-    // The bounded timer fallback must still finish all three preview faces.
+    // The bounded timer fallback must finish complete 2-column / 4-column rows.
     window.requestAnimationFrame=()=>0;
     window.uploadedFiles = Array.from({length:4},(_,i)=>({name:'원본'+(i+1)+'.pdf'}));
     window.parsedPages = Array.from({length:141},(_,i)=>({
@@ -21,7 +21,7 @@
     window.previewCanvases=[];
     // Actual restored sessions enable focused mode for 8+ source pages.
     window.__pdfEditorFastMode=true;
-    window.nup=2;window.BOOKLET_STRIPS={};
+    window.nup=2;window._previewPerRow=2;window.BOOKLET_STRIPS={};
     window.getLayout=()=>({cols:1,rows:2});
     window.groupByNup=pages=>[{n:2,pages}];
     window.buildOutputPage=()=>{
@@ -58,16 +58,18 @@
         const drawn=await api.requestRender(0);
         if(!drawn)throw Error('first preview failed');
         if(window.previewShownForCount!==141)throw Error('legacy watchdog was not notified of completed lazy preview');
-        if(window.previewBuildCount!==3)throw Error('initial 141-page render drew '+window.previewBuildCount+' output faces instead of 3');
-        if(window.previewCanvases.length!==3)throw Error('wrong preview window size');
+        if(window.previewBuildCount!==4)throw Error('initial 2-column render drew '+window.previewBuildCount+' output faces instead of 4');
+        if(window.previewCanvases.length!==4)throw Error('2-column lazy preview should display two full rows');
         if(document.getElementById('previewBtn').disabled)throw Error('preview button remained disabled');
         const status=document.getElementById('previewStatus').textContent;
         if(!status.includes('작업 미리보기 완료'))throw Error('generation message did not finish: '+status);
+        window._previewPerRow=4;
         await api.requestRender(45);
-        if(window.previewBuildCount!==6)throw Error('navigation did not draw exactly one new 3-face window');
+        if(window.previewBuildCount!==12)throw Error('4-column navigation did not draw a full 8-face window');
+        if(window.previewCanvases.length!==8)throw Error('4-column lazy preview should display two full rows');
         if(api.getCurrentOutputIndex()!==45)throw Error('requested output face was not selected');
         document.body.dataset.pdf141LazyPreview='pass';
-        result.textContent='PASS: 4 files / 141 source pages render a bounded 3-face preview, notify watchdog, and finish';
+        result.textContent='PASS: 4 files / 141 source pages render complete 2/4-column rows, notify watchdog, and finish';
       }catch(error){fail(error?.stack||error)}
     })();
   </script>
