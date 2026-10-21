@@ -108,6 +108,22 @@
     return { start, end, center: safeCenter, total: safeTotal };
   }
 
+  // Keep the bounded preview aligned to complete visual rows. A fixed 3/7-face
+  // window left every second row short even when more source faces existed.
+  function chooseRowAlignedWindow(total, center, radius, columns) {
+    const count = Math.max(0, Math.floor(Number(total) || 0));
+    const perRow = Math.min(6, Math.max(1, Math.floor(Number(columns) || 1)));
+    if (!count) return { start: 0, end: 0, center: 0, total: 0 };
+    const safeCenter = clamp(Math.floor(Number(center) || 0), 0, count - 1);
+    const base = chooseWindow(count, safeCenter, radius);
+    const totalRows = Math.ceil(count / perRow);
+    const rowsToShow = Math.min(totalRows, Math.max(2, Math.ceil((base.end - base.start) / perRow)));
+    const selectedRow = Math.floor(safeCenter / perRow);
+    const firstRow = clamp(selectedRow - Math.floor((rowsToShow - 1) / 2), 0, totalRows - rowsToShow);
+    const start = firstRow * perRow;
+    return { start, end: Math.min(count, start + rowsToShow * perRow), center: safeCenter, total: count };
+  }
+
   function descriptorIndexForPage(page, descriptors = lastDescriptors) {
     if (!page) return -1;
     return descriptors.findIndex((descriptor) => descriptor.sourcePages.includes(page));
@@ -420,7 +436,9 @@
     const radius = parsedPages.length >= LARGE_RESTORED_PAGE_THRESHOLD
       ? LARGE_RESTORED_WINDOW_RADIUS
       : (window.__pdfEditorExtremeMode ? EXTREME_WINDOW_RADIUS : WINDOW_RADIUS);
-    const windowRange = chooseWindow(descriptors.length, currentOutputIndex, radius);
+    let columns = 2;
+    try { columns = Math.max(1, Number(_previewPerRow) || 2); } catch (_) {}
+    const windowRange = chooseRowAlignedWindow(descriptors.length, currentOutputIndex, radius, columns);
     currentWindow = windowRange;
     window.__pdfEditorLazyPreviewActive = true;
 
@@ -448,8 +466,14 @@
           documentCache,
           temporary,
         ));
-        if (index < visibleDescriptors.length - 1) await nextPaint();
+        // Yield only between small batches; yielding after every single output
+        // face caused a visibly staggered, stop-start drawing experience.
+        if (index > 0 && index % 3 === 2 && index < visibleDescriptors.length - 1) await nextPaint();
+        if (queuedOutputIndex !== null && queuedOutputIndex !== currentOutputIndex) return false;
       }
+      // A newer navigation request supersedes this window. Keep the previous
+      // preview visible until the latest requested range is ready.
+      if (queuedOutputIndex !== null && queuedOutputIndex !== currentOutputIndex) return false;
       previewCanvases = canvases;
       displayPreview(canvases, true);
       // A windowed preview is complete for the CURRENT source page set even
@@ -566,9 +590,22 @@
     return true;
   }
 
+  function handlePerRowChange(event) {
+    if (event.target?.id !== 'perRowSelect' || !window.__pdfEditorLazyPreviewActive) return;
+    const requested = Number(event.target.value);
+    if (!Number.isInteger(requested) || requested < 1 || requested > 6) return;
+    // The default change handler only rearranges existing cached faces. Rebuild
+    // a complete aligned window instead, without displaying a short interim row.
+    try { _previewPerRow = requested; } catch (_) {}
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    void requestRender(currentOutputIndex);
+  }
+
   function installEvents() {
     if (document.documentElement.dataset.pdfLazyPreviewEvents === '1') return;
     document.documentElement.dataset.pdfLazyPreviewEvents = '1';
+    document.addEventListener('change', handlePerRowChange, true);
     document.addEventListener('click', handleThumbnailNavigation, true);
     document.addEventListener('keydown', handleThumbnailNavigation, true);
     document.addEventListener('wheel', handlePreviewWheel, { capture: true, passive: false });
@@ -589,6 +626,7 @@
   window.PdfViewportLazyPreview = {
     buildOutputDescriptors,
     chooseWindow,
+    chooseRowAlignedWindow,
     descriptorIndexForPage,
     isLightweightPage,
     isActive,
