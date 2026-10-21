@@ -44,22 +44,22 @@
         .preview-zoom > * {
           flex-shrink: 0;
         }
-        /* PDF preview controls share the same 36px input/button geometry. */
+        /* Match the upload-mode buttons with a compact 32px toolbar. */
         .preview-info {
           align-items: center !important;
           column-gap: 8px !important;
           row-gap: 8px !important;
         }
         #previewInfo {
-          min-height: 36px !important;
-          line-height: 36px !important;
+          min-height: 32px !important;
+          line-height: 32px !important;
         }
         #previewPages:not(:empty) {
           display: inline-flex !important;
           align-items: center !important;
           justify-content: center !important;
-          height: 36px !important;
-          min-height: 36px !important;
+          height: 32px !important;
+          min-height: 32px !important;
           padding: 0 10px !important;
           border: 1px solid #bfdbfe !important;
           border-radius: 8px !important;
@@ -84,9 +84,9 @@
         .preview-info input[type="number"],
         .preview-zoom .zoom-label {
           box-sizing: border-box !important;
-          height: 36px !important;
-          min-height: 36px !important;
-          max-height: 36px !important;
+          height: 32px !important;
+          min-height: 32px !important;
+          max-height: 32px !important;
           line-height: normal !important;
           vertical-align: middle !important;
         }
@@ -105,8 +105,8 @@
           white-space: nowrap !important;
         }
         .preview-zoom .zoom-btn:not(#zoomResetBtn) {
-          width: 36px !important;
-          min-width: 36px !important;
+          width: 32px !important;
+          min-width: 32px !important;
           padding: 0 !important;
         }
         .preview-zoom .zoom-label {
@@ -118,9 +118,9 @@
           color: #475569 !important;
         }
         #zoomResetBtn {
-          min-width: 80px !important;
-          padding: 0 12px !important;
-          font-size: 11px !important;
+          min-width: 72px !important;
+          padding: 0 10px !important;
+          font-size: 10px !important;
         }
         .preview-info select,
         .preview-info input[type="number"] {
