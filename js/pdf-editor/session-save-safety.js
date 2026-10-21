@@ -241,13 +241,24 @@
       || !/^[A-Za-z0-9_-]{8,40}$/.test(String(sessionId || ''))
       || !Array.isArray(storagePaths) || !storagePaths.length
       || !uid || typeof uid !== 'string') return null;
-    if (!storagePaths.every((path, i) =>
-      path === `pdf_sessions/${uid}/${sessionId}/src_${i}.pdf`)) return null;
+    // Reused immutable originals may live in an older revision directory.
+    // Validate each path against the signed-in owner's private PDF namespace.
+    const prefix = `pdf_sessions/${uid}/`;
+    if (storagePaths.length > MAX_SESSION_FILES
+      || storagePaths.length !== new Set(storagePaths).size
+      || !storagePaths.every((path) => typeof path === 'string'
+        && path.startsWith(prefix)
+        && /^[A-Za-z0-9_-]{8,40}\/src_[0-9]{1,2}\.pdf$/.test(path.slice(prefix.length)))) return null;
     return { docId, sessionId, uid, name: String(name || '편집 세션'), storagePaths: [...storagePaths] };
   }
 
   function setLoadedSession(session) {
-    loadedSession = normalizeLoadedSession(session);
+    const normalized = normalizeLoadedSession(session);
+    // The restored File objects are immutable, so their identity safely
+    // identifies originals that have not been replaced during editing.
+    let sourceFiles = [];
+    try { if (Array.isArray(uploadedFiles)) sourceFiles = [...uploadedFiles]; } catch (_) {}
+    loadedSession = normalized ? { ...normalized, sourceFiles } : null;
     updateSaveDialog();
     return !!loadedSession;
   }
@@ -325,6 +336,9 @@
     if (target && !window.confirm(`기존 저장본 "${target.name}"에 현재 수정 내용을 덮어쓸까요?\\n이전 저장본의 내용은 복원할 수 없습니다.`)) return false;
     const sessionId = window.crypto.randomUUID().replace(/-/g, '');
     const storagePaths = [];
+    const uploadedPaths = [];
+    const reusedIndices = new Set();
+    let reusedCount = 0;
     const collection = db.collection('users').doc(user.uid).collection('pdf_sessions');
     const confirmButton = byId('sessionSaveConfirm');
     const overwriteButton = byId('sessionOverwriteConfirm');
@@ -334,7 +348,7 @@
     if (confirmButton) confirmButton.disabled = true;
     if (overwriteButton) overwriteButton.disabled = true;
     lockEditor();
-    setStatus('파일 업로드 중...', '#6b7280');
+    setStatus(target ? '기존 원본 확인 중...' : '파일 업로드 중...', '#6b7280');
 
     try {
       if (target) {
@@ -349,9 +363,20 @@
       }
       for (let index = 0; index < files.length; index += 1) {
         const file = files[index];
+        const previousIndex = target
+          ? (target.sourceFiles || []).findIndex((original, i) =>
+            original === file && !reusedIndices.has(i))
+          : -1;
+        if (previousIndex >= 0 && target.storagePaths[previousIndex]) {
+          reusedIndices.add(previousIndex);
+          storagePaths.push(target.storagePaths[previousIndex]);
+          reusedCount += 1;
+          continue;
+        }
         setStatus(`파일 업로드 중... (${index + 1}/${files.length})`, '#6b7280');
         const path = `pdf_sessions/${user.uid}/${sessionId}/src_${index}.pdf`;
         storagePaths.push(path);
+        uploadedPaths.push(path);
         await storage.ref(path).put(file, {
           contentType: 'application/pdf',
           customMetadata: {
@@ -402,7 +427,8 @@
         // and Firestore document are committed; a partial failure leaves
         // the original revision untouched.
         try {
-          const results = await cleanupUploadedPaths(target.storagePaths);
+          const obsoletePaths = target.storagePaths.filter((path) => !storagePaths.includes(path));
+          const results = await cleanupUploadedPaths(obsoletePaths);
           if (results.some(result => result.status === 'rejected')) {
             console.warn('[pdf-session] old revision cleanup deferred');
           }
@@ -417,14 +443,14 @@
         }
       }
 
-      setStatus(`✅ ${target ? '기존 저장본 덮어쓰기 완료!' : '새 편집 저장 완료!'} · 원본 ${(snapshotMeta.totalBytes / 1024 / 1024).toFixed(1)}MB`, '#166534');
+      setStatus(`✅ ${target ? '기존 저장본 덮어쓰기 완료!' : '새 편집 저장 완료!'} · 원본 ${(snapshotMeta.totalBytes / 1024 / 1024).toFixed(1)}MB · 재사용 ${reusedCount}개 / 업로드 ${uploadedPaths.length}개`, '#166534');
       setTimeout(() => {
         const modal = byId('sessionSaveModal');
         if (modal) modal.style.display = 'none';
       }, 1200);
       return true;
     } catch (error) {
-      if (!documentRef) await cleanupUploadedPaths(storagePaths);
+      if (!documentRef) await cleanupUploadedPaths(uploadedPaths);
       setStatus(`저장 실패: ${error.message} · 업로드된 임시 파일 정리를 시도했습니다.`, '#dc2626');
       return false;
     } finally {
