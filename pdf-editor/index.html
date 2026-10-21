@@ -2073,6 +2073,7 @@ function makeFileSep(fileIdx, label) {
 
   // N-up selector for this file
   const selWrap = document.createElement('div');
+  selWrap.className = 'pdf-file-nup-control';
   selWrap.style.cssText = 'display:flex;align-items:center;gap:3px;flex-shrink:0;margin-left:4px;';
   const selLbl = document.createElement('span');
   selLbl.style.cssText = 'font-size:8px;font-weight:800;color:#64748b;white-space:nowrap;';
