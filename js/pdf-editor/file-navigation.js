@@ -103,6 +103,8 @@
       .pdf-file-nav-meta{min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#64748b;font-size:8.5px;font-weight:750}
       .pdf-file-select-btn{flex:0 0 auto;height:25px;padding:0 7px;border:1px solid #93c5fd;border-radius:7px;background:#eff6ff;color:#1d4ed8;font:800 9px Pretendard,"Noto Sans KR",sans-serif;cursor:pointer}
       .pdf-file-select-btn.is-clear{border-color:#cbd5e1;background:#fff;color:#475569}
+      .pdf-file-delete-btn{flex:0 0 auto;height:25px;padding:0 8px;border:1px solid #fecaca;border-radius:7px;background:#fff7f7;color:#b91c1c;font:800 9px Pretendard,"Noto Sans KR",sans-serif;cursor:pointer}
+      .pdf-file-delete-btn:hover{background:#fee2e2;border-color:#fca5a5}
       .pdf-file-selection-count{flex:0 0 auto;font-size:9px;font-weight:800;color:#1e40af;white-space:nowrap}
       .pdf-file-boundary{flex:0 0 auto;height:25px;padding:0 7px;border:1px solid #b8c5d4;border-radius:999px;background:#fff;color:#526174;font:800 8.5px Pretendard,"Noto Sans KR",sans-serif;cursor:pointer;white-space:nowrap}
       .pdf-file-boundary:hover{border-color:#7ca5d7;background:#f4f8fd;color:#174f8f}
@@ -253,7 +255,7 @@
     header.dataset.fileNavHeader = 'true';
     header.dataset.fileIndex = group.key;
     header.dataset.groupBreak = page?.groupBreak ? 'true' : 'false';
-    header.querySelectorAll('.pdf-file-nav-toggle,.pdf-file-nav-meta,.pdf-file-boundary,.pdf-file-select-btn,.pdf-file-selection-count').forEach((node) => node.remove());
+    header.querySelectorAll('.pdf-file-nav-toggle,.pdf-file-nav-meta,.pdf-file-boundary,.pdf-file-select-btn,.pdf-file-selection-count,.pdf-file-delete-btn').forEach((node) => node.remove());
     const toggle = document.createElement('button'); toggle.type = 'button'; toggle.className = 'pdf-file-nav-toggle'; toggle.textContent = '▾'; toggle.title = `${group.name} 접기 또는 펼치기`; toggle.setAttribute('aria-label', toggle.title);
     toggle.addEventListener('click', (event) => { event.preventDefault(); event.stopPropagation(); toggleFile(group.key); });
     const meta = document.createElement('span'); meta.className = 'pdf-file-nav-meta'; meta.textContent = group.summary; meta.title = `${group.name} · ${group.summary}`;
@@ -289,6 +291,25 @@
         updateFileSelectionCounts();
       });
       header.appendChild(clearButton);
+    }
+
+    // File removal changes the source file list, not only its visibility in the sidebar.
+    const profile = String(new URLSearchParams(location.search).get('profile') || '').trim().toLowerCase();
+    const advanced = window.PdfEditorRouteRuntime?.isAdvancedProfile?.()
+      || document.documentElement?.dataset?.pdfEditorProfile === 'advanced'
+      || location.pathname.includes('pdf-editor-advanced') || profile === 'advanced';
+    if (!advanced) {
+      const remove = document.createElement('button');
+      remove.type = 'button';
+      remove.className = 'pdf-file-delete-btn';
+      remove.textContent = '파일 삭제';
+      remove.title = group.name + ' 파일과 모든 페이지를 작업에서 삭제';
+      remove.setAttribute('aria-label', remove.title);
+      remove.addEventListener('click', (event) => {
+        event.preventDefault(); event.stopPropagation();
+        window.PdfUploadedFileRemoval?.removeFile(group.fileIndex);
+      });
+      header.appendChild(remove);
     }
 
     if (page && parsedPages.indexOf(page) > 0) {
@@ -507,6 +528,17 @@
       installed = true;
       document.addEventListener('pdf-import-committed', (event) => { selectedId = ''; if (event?.detail?.mode === 'new') collapsed.clear(); queueEnhance(); });
       document.addEventListener('pdf-import-failed', queueEnhance);
+      document.addEventListener('pdf-file-removed', (event) => {
+        const deleted = Number(event?.detail?.fileIndex);
+        if (Number.isInteger(deleted) && deleted >= 0) {
+          const remaining = [...collapsed].map(Number).filter((index) => index !== deleted)
+            .map((index) => index > deleted ? index - 1 : index);
+          collapsed.clear();
+          remaining.forEach((index) => collapsed.add(String(index)));
+        }
+        selectedId = '';
+        queueEnhance();
+      });
       document.addEventListener('pdf-page-selection-change', updateFileSelectionCounts);
     }
   }
