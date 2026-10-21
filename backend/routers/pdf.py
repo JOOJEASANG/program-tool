@@ -291,7 +291,7 @@ def _is_saved_source_path(uid: str, path: object) -> bool:
     return (
         isinstance(path, str)
         and path.startswith(prefix)
-        and re.fullmatch(r"[A-Za-z0-9_-]{8,40}/src_[0-9]{1,2}\\.pdf", path[len(prefix):]) is not None
+        and re.fullmatch(r"[A-Za-z0-9_-]{8,40}/src_[0-9]{1,2}\.pdf", path[len(prefix):]) is not None
     )
 
 
