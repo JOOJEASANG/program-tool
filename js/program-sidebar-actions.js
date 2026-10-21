@@ -85,7 +85,7 @@
       html[data-program-sidebar-actions="pdf-editor"] .top-nav{display:none!important}
       html[data-program-sidebar-actions="pdf-editor"] .app{height:100vh!important;min-height:0!important}
       html[data-program-sidebar-actions="pdf-editor"] .app>aside{position:relative!important}
-      html[data-program-sidebar-actions="pdf-editor"] .ps-program-sidebar-top{top:-15px!important;margin:-15px -16px 8px!important;padding:12px 16px!important}
+      html[data-program-sidebar-actions="pdf-editor"] .ps-program-sidebar-top{top:-15px!important;margin:-15px -16px 8px!important;padding:12px 6px 12px 16px!important}
       @media(max-width:900px){
         html[data-program-sidebar-actions="smart-print-layout"] .ps-program-sidebar-top,
         html[data-program-sidebar-actions="pdf-advanced"] .ps-program-sidebar-top,
