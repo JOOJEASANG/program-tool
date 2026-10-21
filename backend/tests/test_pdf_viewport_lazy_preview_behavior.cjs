@@ -221,6 +221,17 @@ assert.equal(api.descriptorIndexForPage(samplePages[7], descriptors), 4);
 assert.deepEqual(JSON.parse(JSON.stringify(api.chooseWindow(100, 50, 3))), { start: 47, end: 54, center: 50, total: 100 });
 assert.deepEqual(JSON.parse(JSON.stringify(api.chooseWindow(4, 0, 3))), { start: 0, end: 4, center: 0, total: 4 });
 assert.deepEqual(JSON.parse(JSON.stringify(api.chooseWindow(10, 9, 2))), { start: 5, end: 10, center: 9, total: 10 });
+// A lazy preview range must fill complete UI rows except at the actual document end.
+const row4 = api.chooseRowAlignedWindow(40, 0, 3, 4);
+assert.deepEqual(JSON.parse(JSON.stringify(row4)), { start: 0, end: 8, center: 0, total: 40 });
+assert.equal((row4.end - row4.start) % 4, 0);
+const row2 = api.chooseRowAlignedWindow(100, 50, 1, 2);
+assert.equal((row2.end - row2.start) % 2, 0);
+assert.ok(row2.start <= 50 && row2.end > 50);
+const rowEnd = api.chooseRowAlignedWindow(35, 34, 3, 4);
+assert.equal(rowEnd.end, 35);
+assert.equal(rowEnd.start % 4, 0);
+assert.deepEqual(JSON.parse(JSON.stringify(api.chooseRowAlignedWindow(0, 0, 3, 4))), { start: 0, end: 0, center: 0, total: 0 });
 assert.equal(api.isActive(Array.from({ length: 81 }, () => ({}))), true);
 context.__pdfEditorFastMode = false;
 assert.equal(api.isActive(Array.from({ length: 80 }, () => ({}))), false);
@@ -322,6 +333,7 @@ assert.equal(api.isLightweightPage({ pdfPage: { __lightweightPdfPage: true } }),
   assert.equal(previewNodes[0].dataset.outputIndex, '0');
   assert.equal(context.previewCanvases.length, 1);
 
+  assert.equal(typeof documentListeners.change, 'function');
   assert.equal(typeof documentListeners.click, 'function');
   assert.equal(typeof documentListeners.keydown, 'function');
   assert.equal(typeof documentListeners.wheel, 'function');
