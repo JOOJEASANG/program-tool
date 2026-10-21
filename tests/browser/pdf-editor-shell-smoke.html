@@ -73,7 +73,11 @@
         assert(parseFloat(getComputedStyle(home).width)>=33 && parseFloat(getComputedStyle(home).width)<=36,'home button did not match other programs compact icon width');
         assert(document.documentElement.dataset.programSidebarActionsReady==='1','shared sidebar did not mount after compact shell');
         assert(bar.querySelector('#navSessionBtn')&&bar.querySelector('#navSessionLoadBtn'),'session actions lost');
-        assert(bar.querySelector('#navLogout'),'logout action lost');
+        const logout=bar.querySelector('#navLogout');
+        assert(logout,'logout action lost');
+        assert(getComputedStyle(bar).position==='sticky','sidebar top actions lost sticky positioning');
+        const rightGap=bar.getBoundingClientRect().right-logout.getBoundingClientRect().right;
+        assert(rightGap>=0&&rightGap<=9,'logout button remains too far from the right scrollbar edge: '+rightGap);
         assert(document.getElementById('navUserName'),'user node lost');
         assert(getComputedStyle(document.body).paddingTop==='0px','body top padding remained');
 

@@ -26,6 +26,7 @@ def test_shared_sidebar_action_runtime_covers_non_utility_programs_only():
     assert "ps-program-actions-grid" in script
     assert "grid-template-columns:34px minmax(0,1fr) minmax(0,1fr) 34px" in script
     assert "programSidebarActionsReady" in script
+    assert 'padding:12px 6px 12px 16px!important' in script
 
 
 def test_each_non_utility_runtime_loads_or_already_has_the_sidebar_actions():
@@ -34,7 +35,7 @@ def test_each_non_utility_runtime_loads_or_already_has_the_sidebar_actions():
     advanced_bootstrap = read("js/pdf-editor-advanced/firebase-bootstrap.js")
     smart_html = read("smart-print-layout/index.html")
 
-    assert "/js/program-sidebar-actions.js?v=20260916-1" in pdf_runtime
+    assert "/js/program-sidebar-actions.js?v=20261021-2" in pdf_runtime
     assert "/js/program-sidebar-actions.js?v=20260916-1" in print_access
     assert "/js/program-sidebar-actions.js?v=20260916-1" in advanced_bootstrap
 
