@@ -43,6 +43,9 @@
   <script>
     history.replaceState(null,'','/pdf-editor/?app=layout&sidebar-title-smoke=1');
     window.ProgramStudioPdfEditorRuntimeContext={load(){return Promise.resolve(true);}};
+    // The fixture bypasses route asset loading; provide the real file navigation
+    // module and selection interface so file-header alignment is exercised.
+    window.PdfEditorPageSelection={selectedCountForFile(){return 0},selectFile(){},clearFile(){}};
     let parsedPages=[
       {id:1,file_index:0,page_index:0,sourceFile:'A.pdf',pageType:'pdf',groupBreak:false,rotation:0},
       {id:2,file_index:0,page_index:1,sourceFile:'A.pdf',pageType:'pdf',groupBreak:false,rotation:0},
@@ -81,6 +84,7 @@
   </script>
   <script src="/js/pdf-editor/route-runtime.js"></script>
   <script src="/js/pdf-editor/simple-sidebar-ui.js"></script>
+  <script src="/js/pdf-editor/file-navigation.js"></script>
   <script src="/js/pdf-editor/preview-zoom-persistence.js"></script>
   <script src="/js/pdf-editor/layout-ui-refinements.js"></script>
   <script src="/js/pdf-editor/orientation-sidebar-cleanup.js"></script>
