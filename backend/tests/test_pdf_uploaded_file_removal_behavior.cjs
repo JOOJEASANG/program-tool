@@ -3,9 +3,10 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 
-const source = fs.readFileSync(
-  path.resolve(__dirname, '../../js/pdf-editor/file-removal.js'), 'utf8'
+const combined = fs.readFileSync(
+  path.resolve(__dirname, '../../js/pdf-editor/file-context-scope.js'), 'utf8'
 );
+const source = combined.slice(combined.indexOf('// Uploaded PDF source removal:'));
 
 function mockElement() {
   return {
