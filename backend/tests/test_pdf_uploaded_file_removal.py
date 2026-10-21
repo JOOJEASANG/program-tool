@@ -3,7 +3,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
-SCRIPT = ROOT / "js" / "pdf-editor" / "file-removal.js"
+SCRIPT = ROOT / "js" / "pdf-editor" / "file-context-scope.js"
 NAV = ROOT / "js" / "pdf-editor" / "file-navigation.js"
 ROUTE = ROOT / "js" / "pdf-editor" / "route-runtime.js"
 BEHAVIOR = ROOT / "backend" / "tests" / "test_pdf_uploaded_file_removal_behavior.cjs"
@@ -11,9 +11,9 @@ BEHAVIOR = ROOT / "backend" / "tests" / "test_pdf_uploaded_file_removal_behavior
 
 def test_pdf_layout_file_removal_is_loaded_once_outside_advanced_profile():
     route = ROUTE.read_text(encoding="utf-8")
-    assert route.count("pdfUploadedFileRemovalScriptV1") == 2  # manifest and advanced skip
-    assert route.count("/js/pdf-editor/file-removal.js") == 1
-    assert "pdfUploadedFileRemovalScriptV1" in route.split("ADVANCED_UNUSED_ROUTE_IDS", 1)[1]
+    assert route.count("pdfFileContextScopeScript") == 1
+    assert route.count("/js/pdf-editor/file-context-scope.js") == 1
+    assert route.count("{id:") == 22
 
 
 def test_pdf_layout_has_a_delete_action_for_each_uploaded_file_header():
