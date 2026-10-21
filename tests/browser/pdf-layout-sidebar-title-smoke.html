@@ -123,7 +123,7 @@
       if(topLabels!=='다중 선택,전체,해제')return fail('compact selection controls are not the requested three buttons');
       const selectionButtons=[...productivity.querySelectorAll('.page-productivity-top > button')];
       const selectionHeights=selectionButtons.map(button=>button.getBoundingClientRect().height);
-      if(selectionHeights.length!==3||selectionHeights.some(height=>Math.abs(height-36)>1))return fail('same-row multiselect buttons are not all 36px tall: '+selectionHeights);
+      if(selectionHeights.length!==3||selectionHeights.some(height=>Math.abs(height-32)>1))return fail('same-row multiselect buttons are not all 32px tall: '+selectionHeights);
       const rowChoices=[...document.getElementById('perRowSelect').options].map(option=>Number(option.value)).join(',');
       if(rowChoices!=='1,2,3,4')return fail('preview must offer only 1–4 pages per row: '+rowChoices);
       if(getComputedStyle(document.getElementById('pageSelectionCountV3')).display!=='none')return fail('selection count is still visible');
@@ -178,7 +178,7 @@
         const buttons=[...actions.querySelectorAll('button')];
         if(!buttons.length)return fail('file action buttons missing');
         const heights=buttons.map(button=>button.getBoundingClientRect().height);
-        if(heights.some(height=>Math.abs(height-36)>1))return fail('file action row heights do not match 36px: '+heights);
+        if(heights.some(height=>Math.abs(height-32)>1))return fail('file action row heights do not match 32px: '+heights);
       }
       if(!layoutApi.reorderFiles(1,0,false))return fail('file reorder operation failed');
       if(uploadedFiles[0]?.name!=='B.pdf'||uploadedFiles[1]?.name!=='A.pdf')return fail('uploaded file order did not change');
