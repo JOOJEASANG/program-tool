@@ -285,6 +285,16 @@ def _validate_pdf_paths(req: PdfProcessRequest, file_paths: list[str | Path]) ->
             doc.close()
 
 
+def _is_saved_source_path(uid: str, path: object) -> bool:
+    """Allow only immutable PDF originals under the authenticated user's account."""
+    prefix = f"pdf_sessions/{uid}/"
+    return (
+        isinstance(path, str)
+        and path.startswith(prefix)
+        and re.fullmatch(r"[A-Za-z0-9_-]{8,40}/src_[0-9]{1,2}\\.pdf", path[len(prefix):]) is not None
+    )
+
+
 def _validate_storage_path(uid: str, path: str) -> None:
     if not isinstance(path, str) or not path:
         raise ValueError("잘못된 파일 경로입니다")
