@@ -95,6 +95,31 @@
       .pdf-file-nav button{height:29px;border:1px solid #93c5fd;border-radius:7px;background:#eff6ff;color:#1d4ed8;font:inherit;font-size:10px;font-weight:850;cursor:pointer}
       .pdf-file-nav-actions{display:flex;gap:5px}.pdf-file-nav-actions button{flex:1;border-color:#cbd5e1;background:#fff;color:#475569}
       .pdf-file-nav-status{min-height:14px;font-size:9px;font-weight:750;color:#64748b;line-height:1.4}
+      /* Keep each file header in two predictable rows: file identity above,
+         equally tall file actions below. No wrapping at different heights. */
+      body[data-program-kind="pdf-editor"] #thumbArea .thumb-file-sep[data-file-nav-header="true"]{
+        display:grid!important;grid-template-columns:30px 30px minmax(0,1fr) auto!important;
+        column-gap:6px!important;row-gap:7px!important;align-items:center!important;
+      }
+      body[data-program-kind="pdf-editor"] #thumbArea .thumb-file-sep[data-file-nav-header="true"]>.pdf-file-order-handle{grid-column:1;grid-row:1}
+      body[data-program-kind="pdf-editor"] #thumbArea .thumb-file-sep[data-file-nav-header="true"]>.pdf-file-nav-toggle{grid-column:2;grid-row:1}
+      body[data-program-kind="pdf-editor"] #thumbArea .thumb-file-sep[data-file-nav-header="true"]:not([data-file-order-drag-ready="1"])>.pdf-file-nav-toggle{grid-column:1}
+      body[data-program-kind="pdf-editor"] #thumbArea .thumb-file-sep[data-file-nav-header="true"]>.pdf-file-heading{grid-column:3;grid-row:1;min-width:0;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;column-gap:5px;row-gap:2px}
+      body[data-program-kind="pdf-editor"] #thumbArea .thumb-file-sep[data-file-nav-header="true"]:not([data-file-order-drag-ready="1"])>.pdf-file-heading{grid-column:2 / 4}
+      body[data-program-kind="pdf-editor"] #thumbArea .pdf-file-heading>.thumb-file-sep-label{display:block!important;grid-column:1 / -1;min-width:0;max-width:100%!important;font-size:10px!important;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+      body[data-program-kind="pdf-editor"] #thumbArea .pdf-file-heading>.pdf-file-nav-meta{display:block;grid-column:1;grid-row:2;min-width:0;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:9px}
+      body[data-program-kind="pdf-editor"] #thumbArea .pdf-file-heading>.pdf-file-nup-control{grid-column:2;grid-row:2;display:inline-flex!important;gap:3px!important;align-items:center!important;max-width:118px;margin:0!important;min-width:0}
+      body[data-program-kind="pdf-editor"] #thumbArea .pdf-file-nup-control>span{font-size:9px!important;white-space:nowrap}
+      body[data-program-kind="pdf-editor"] #thumbArea .pdf-file-nup-control>select{box-sizing:border-box!important;height:32px!important;min-height:32px!important;max-height:32px!important;max-width:72px!important;min-width:0!important;padding:0 6px!important;font-size:10px!important}
+      body[data-program-kind="pdf-editor"] #thumbArea .thumb-file-sep[data-file-nav-header="true"]>.pdf-file-selection-count{grid-column:4;grid-row:1;align-self:center}
+      body[data-program-kind="pdf-editor"] #thumbArea .thumb-file-sep[data-file-nav-header="true"]>.pdf-file-action-row{grid-column:1 / -1;grid-row:2;display:flex;align-items:stretch;gap:6px;min-width:0}
+      body[data-program-kind="pdf-editor"] #thumbArea .pdf-file-action-row>button{box-sizing:border-box!important;height:32px!important;min-height:32px!important;max-height:32px!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;min-width:0!important;white-space:nowrap!important;border-radius:8px!important;padding:0 7px!important;font-size:10px!important;line-height:1.15!important}
+      body[data-program-kind="pdf-editor"] #thumbArea .pdf-file-action-row>.pdf-file-select-btn:not(.is-clear){flex:1.3 1 0}
+      body[data-program-kind="pdf-editor"] #thumbArea .pdf-file-action-row>.pdf-file-select-btn.is-clear{flex:.8 1 0}
+      body[data-program-kind="pdf-editor"] #thumbArea .pdf-file-action-row>.pdf-file-delete-btn{flex:1 1 0}
+      body[data-program-kind="pdf-editor"] #thumbArea .pdf-file-action-row>.pdf-file-boundary{flex:.8 1 0}
+      body[data-program-kind="pdf-editor"] #thumbArea .thumb-file-sep[data-file-nav-header="true"]>:is(.pdf-file-order-handle,.pdf-file-nav-toggle){box-sizing:border-box!important;width:30px!important;min-width:30px!important;max-width:30px!important;height:30px!important;min-height:30px!important;max-height:30px!important;padding:0!important;display:grid!important;place-items:center!important}
+      body[data-program-kind="pdf-editor"] #thumbArea .thumb-file-sep[data-file-nav-header="true"]>.thumb-file-sep-line{display:none!important}
       .thumb-file-sep[data-file-nav-header="true"]{gap:6px;flex-wrap:wrap;padding:7px 6px;margin-top:3px;border:1px solid #d8e1eb;border-radius:8px;background:#f8fafc}
       .thumb-file-sep[data-file-nav-header="true"] .thumb-file-sep-line{display:none}
       .thumb-file-sep[data-file-nav-header="true"] .thumb-file-sep-label{max-width:104px;overflow:hidden;text-overflow:ellipsis;font-size:10px;color:#334155}
@@ -255,13 +280,29 @@
     header.dataset.fileNavHeader = 'true';
     header.dataset.fileIndex = group.key;
     header.dataset.groupBreak = page?.groupBreak ? 'true' : 'false';
+    header.querySelector('.pdf-file-action-row')?.remove();
     header.querySelectorAll('.pdf-file-nav-toggle,.pdf-file-nav-meta,.pdf-file-boundary,.pdf-file-select-btn,.pdf-file-selection-count,.pdf-file-delete-btn').forEach((node) => node.remove());
     const toggle = document.createElement('button'); toggle.type = 'button'; toggle.className = 'pdf-file-nav-toggle'; toggle.textContent = '▾'; toggle.title = `${group.name} 접기 또는 펼치기`; toggle.setAttribute('aria-label', toggle.title);
     toggle.addEventListener('click', (event) => { event.preventDefault(); event.stopPropagation(); toggleFile(group.key); });
     const meta = document.createElement('span'); meta.className = 'pdf-file-nav-meta'; meta.textContent = group.summary; meta.title = `${group.name} · ${group.summary}`;
     const label = header.querySelector('.thumb-file-sep-label');
     header.insertBefore(toggle, header.firstChild);
-    if (label?.nextSibling) header.insertBefore(meta, label.nextSibling); else header.appendChild(meta);
+    let heading = header.querySelector('.pdf-file-heading');
+    if (!heading) {
+      heading = document.createElement('div');
+      heading.className = 'pdf-file-heading';
+      if (label) header.insertBefore(heading, label);
+      else header.appendChild(heading);
+    }
+    if (label) heading.appendChild(label);
+    heading.appendChild(meta);
+    // The original file separator includes a per-file N-up selector. Keeping
+    // it in the heading prevents an accidental third CSS grid row.
+    const nupControl = header.querySelector(':scope > .pdf-file-nup-control');
+    if (nupControl) heading.appendChild(nupControl);
+    const actionRow = document.createElement('div');
+    actionRow.className = 'pdf-file-action-row';
+    header.appendChild(actionRow);
 
     const selection = window.PdfEditorPageSelection;
     if (selection && group.pages.some(item => item.pageType === 'pdf')) {
@@ -279,7 +320,7 @@
         selection.selectFile(group.fileIndex, { additive: event.ctrlKey || event.metaKey });
         updateFileSelectionCounts();
       });
-      header.appendChild(allButton);
+      actionRow.appendChild(allButton);
       const clearButton = document.createElement('button');
       clearButton.type = 'button';
       clearButton.className = 'pdf-file-select-btn is-clear';
@@ -290,7 +331,7 @@
         selection.clearFile(group.fileIndex);
         updateFileSelectionCounts();
       });
-      header.appendChild(clearButton);
+      actionRow.appendChild(clearButton);
     }
 
     // File removal changes the source file list, not only its visibility in the sidebar.
@@ -309,7 +350,7 @@
         event.preventDefault(); event.stopPropagation();
         window.PdfUploadedFileRemoval?.removeFile(group.fileIndex);
       });
-      header.appendChild(remove);
+      actionRow.appendChild(remove);
     }
 
     if (page && parsedPages.indexOf(page) > 0) {
@@ -324,7 +365,7 @@
         event.stopPropagation();
         toggleGroupBreak(page);
       });
-      header.appendChild(boundary);
+      actionRow.appendChild(boundary);
     }
   }
 

@@ -695,8 +695,6 @@
             <option value="2" selected>줄당 2장</option>
             <option value="3">줄당 3장</option>
             <option value="4">줄당 4장</option>
-            <option value="5">줄당 5장</option>
-            <option value="6">줄당 6장</option>
           </select>
           <span style="width:1px;background:#e5e7eb;align-self:stretch;margin:0 4px;"></span>
           <button class="zoom-btn" id="zoomOutBtn" title="축소">−</button>
@@ -2075,6 +2073,7 @@ function makeFileSep(fileIdx, label) {
 
   // N-up selector for this file
   const selWrap = document.createElement('div');
+  selWrap.className = 'pdf-file-nup-control';
   selWrap.style.cssText = 'display:flex;align-items:center;gap:3px;flex-shrink:0;margin-left:4px;';
   const selLbl = document.createElement('span');
   selLbl.style.cssText = 'font-size:8px;font-weight:800;color:#64748b;white-space:nowrap;';
@@ -3309,7 +3308,7 @@ updateNupBadges();
 
 // ── Preview per-row & zoom controls ──────────────────────────────────
 $('perRowSelect').addEventListener('change', () => {
-  _previewPerRow = parseInt($('perRowSelect').value, 10) || 1;
+  _previewPerRow = Math.max(1, Math.min(4, parseInt($('perRowSelect').value, 10) || 1));
   if (previewCanvases.length > 0) displayPreview(previewCanvases, true); // auto-fit on column change
 });
 $('zoomInBtn').addEventListener('click', () => {

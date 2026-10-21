@@ -9,7 +9,7 @@
   if(!isPdfEditor&&!isPdfUtility)return;
 
   const STYLE_ID='programShellUnifyStyles';
-  const PDF_UI_RUNTIME_VERSION='20261021-2';
+  const PDF_UI_RUNTIME_VERSION='20261021-3';
   if(isPdfEditor){
     // The PDF editor intentionally uses one always-visible sidebar.
     window.__programStudioEditorToolRailV1=true;
@@ -39,7 +39,7 @@
       body[data-program-shell="compact"][data-program-kind="pdf-editor"] .preview-info{min-width:0!important;overflow:visible!important}
       body[data-program-shell="compact"][data-program-kind="pdf-editor"] #previewInfo{flex:1 1 auto!important;min-width:0!important}
       body[data-program-shell="compact"][data-program-kind="pdf-editor"] .preview-zoom{min-width:max-content!important;max-width:none!important;flex:0 0 auto!important;overflow:visible!important;padding-right:2px!important}
-      body[data-program-shell="compact"][data-program-kind="pdf-editor"] #perRowSelect{box-sizing:border-box!important;width:112px!important;min-width:112px!important;max-width:112px!important;flex:0 0 112px!important;height:30px!important;padding:4px 30px 4px 9px!important;line-height:20px!important;overflow:visible!important;text-overflow:clip!important;white-space:nowrap!important}
+      body[data-program-shell="compact"][data-program-kind="pdf-editor"] #perRowSelect{box-sizing:border-box!important;width:112px!important;min-width:112px!important;max-width:112px!important;flex:0 0 112px!important;height:32px!important;padding:4px 30px 4px 9px!important;line-height:20px!important;overflow:visible!important;text-overflow:clip!important;white-space:nowrap!important}
       body[data-program-shell="compact"][data-program-kind="pdf-editor"] .preview-zoom>*{flex-shrink:0!important}
 
       /* PDF 유틸리티: 장식용 대형 헤더를 제거하고 바로 작업 영역이 보이게 한다. */
