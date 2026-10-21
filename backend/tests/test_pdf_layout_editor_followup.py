@@ -42,7 +42,7 @@ def test_layout_runtime_cache_chain_is_versioned_to_new_boundary():
     config = text(FIREBASE_CONFIG)
     version = json.loads(text(VERSION_FILE))["version"]
     assert "app-boundary.js?v=20260909-1" in route
-    assert "route-runtime.js?v=20261014-5" in boot
+    assert "route-runtime.js?v=20261021-2" in boot
     assert f"const VERSION='{version}'" in boot
     assert f"sw-register.js?v={version}" in config
 

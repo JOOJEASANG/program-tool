@@ -439,7 +439,7 @@
       const outputIndex = Number(lazy?.descriptorIndexForPage?.(page, descriptors));
       if (!Number.isInteger(outputIndex) || outputIndex < 0) return false;
       if (lazy?.isActive?.(descriptors)) {
-        await lazy.requestRender(outputIndex);
+        if (!lazy.focusRenderedOutput?.(outputIndex)) await lazy.requestRender(outputIndex);
         return true;
       }
       if (typeof triggerPreview === 'function') await triggerPreview();

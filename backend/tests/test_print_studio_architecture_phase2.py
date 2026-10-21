@@ -60,7 +60,7 @@ def test_pdf_workspace_keeps_controls_in_one_sidebar_with_page_list_collapse_exc
         "setInterval(",
     ):
         assert forbidden not in sidebar
-    assert "/js/pdf-editor/simple-sidebar-ui.js?v=20260831-1" in ui_runtime
+    assert "/js/pdf-editor/simple-sidebar-ui.js?v=20261021-2" in ui_runtime
     assert "/js/pdf-editor/workspace-layout.js" not in ui_runtime
     assert "/js/pdf-editor/workflow-ui.js" not in ui_runtime
     assert "/js/pdf-editor/ui-runtime.js?v=${PDF_UI_RUNTIME_VERSION}" in shell

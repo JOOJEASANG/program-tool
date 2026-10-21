@@ -46,7 +46,7 @@ def test_pdf_route_manifest_owns_route_helpers_without_editor_state_takeover():
     assert route.count("{id:") == 22
     assert "/js/pdf-editor/page-selection-preview-focus.js?v=20261014-2" in route
     assert "app:'layout'" in route
-    assert "/js/pdf-editor/layout-smooth-preview.js?v=20260909-1" in route
+    assert "/js/pdf-editor/layout-smooth-preview.js?v=20261021-2" in route
     assert "/js/pdf-editor/preview-insert-persistence.js?v=20260914-3" in route
     assert "/js/pdf-editor/output-save-recovery.js?v=20260914-2" in route
     assert "/js/pdf-editor/save-operation.js" not in route
