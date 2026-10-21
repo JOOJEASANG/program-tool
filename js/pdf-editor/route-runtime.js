@@ -16,12 +16,11 @@
     {id:'pdfOutputSaveRecoveryScriptV1',src:'/js/pdf-editor/output-save-recovery.js?v=20260914-2'},
     {id:'pdfSaveRecoveryScript',src:'/js/pdf-editor/save-recovery.js?v=20260803-1'},
     {id:'pdfSessionSaveSafetyScriptV1',src:'/js/pdf-editor/session-save-safety.js?v=20260831-2'},
-    {id:'pdfFileContextScopeScript',src:'/js/pdf-editor/file-context-scope.js?v=20260805-1'},
+    {id:'pdfFileContextScopeScript',src:'/js/pdf-editor/file-context-scope.js?v=20261021-1'},
     {id:'pdfImportTransactionSafetyScriptV1',src:'/js/pdf-editor/import-transaction-safety.js?v=20260806-1'},
     {id:'pdfViewportLazyPreviewScriptV1',src:'/js/pdf-editor/viewport-lazy-preview.js?v=20261014-3'},
     {id:'pdfViewportLazyPreviewGuardScriptV1',src:'/js/pdf-editor/viewport-lazy-preview-guard.js?v=20260914-1'},
     {id:'pdfFileNavigationScriptV1',src:'/js/pdf-editor/file-navigation.js?v=20261021-1'},
-    {id:'pdfUploadedFileRemovalScriptV1',src:'/js/pdf-editor/file-removal.js?v=20261021-1'},
     {id:'pdfLayoutSmoothPreviewScriptV1',src:'/js/pdf-editor/layout-smooth-preview.js?v=20260909-1'},
     {id:'pdfPreviewInsertPersistenceScriptV1',src:'/js/pdf-editor/preview-insert-persistence.js?v=20260914-3'},
     {id:'pdfDividerLocalImageUploadScriptV1',src:'/js/pdf-divider-local-image-upload.js?v=20260830-1'},
@@ -37,8 +36,7 @@
     'pdfDividerLocalImageUploadScriptV1',
     'pdfDividerModalLayoutScriptV1',
     'pdfEditorSpreadSplitScriptV1',
-    'pdfBookletSheetPreviewScriptV1',
-    'pdfUploadedFileRemovalScriptV1'
+    'pdfBookletSheetPreviewScriptV1'
   ]);
 
   const context=()=>window.ProgramStudioPdfEditorRuntimeContext||{};
