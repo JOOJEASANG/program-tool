@@ -273,6 +273,20 @@
     return loadedSession && user?.uid === loadedSession.uid ? { ...loadedSession } : null;
   }
 
+  function reusableSourcePaths(files) {
+    const current = currentLoadedSession();
+    if (!current || !Array.isArray(current.sourceFiles) || !Array.isArray(files)) return null;
+    const used = new Set();
+    const paths = files.map((file) => {
+      const index = current.sourceFiles.findIndex((candidate, i) =>
+        candidate === file && !used.has(i));
+      if (index < 0) return null;
+      used.add(index);
+      return current.storagePaths[index] || null;
+    });
+    return { docId: current.docId, paths };
+  }
+
   function updateSaveDialog() {
     const target = currentLoadedSession();
     const overwriteButton = byId('sessionOverwriteConfirm');
@@ -527,6 +541,7 @@
     setLoadedSession,
     clearLoadedSession,
     currentLoadedSession,
+    reusableSourcePaths,
     prepareSaveDialog,
     validateSnapshot,
     cleanupUploadedPaths,
