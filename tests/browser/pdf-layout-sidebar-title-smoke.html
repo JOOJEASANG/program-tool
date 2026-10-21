@@ -29,7 +29,7 @@
         <span id="previewInfo">대용량 작업 미리보기 · 선택한 페이지 주변만 실제 표시</span>
         <span id="previewPages">전체 100개 중 1–7 출력면</span>
         <div class="preview-zoom">
-          <select id="perRowSelect"><option value="1">줄당 1장</option><option value="2" selected>줄당 2장</option></select>
+          <select id="perRowSelect"><option value="1">줄당 1장</option><option value="2" selected>줄당 2장</option><option value="3">줄당 3장</option><option value="4">줄당 4장</option></select>
           <button id="zoomOutBtn">−</button><span id="zoomLabel">60%</span><button id="zoomInBtn">＋</button><button id="zoomResetBtn">↺</button>
         </div>
       </div>
@@ -121,6 +121,11 @@
       const productivity=document.getElementById('pageProductivityPanelV3');
       const topLabels=[...productivity.querySelectorAll('.page-productivity-top button')].map(button=>button.textContent.trim()).join(',');
       if(topLabels!=='다중 선택,전체,해제')return fail('compact selection controls are not the requested three buttons');
+      const selectionButtons=[...productivity.querySelectorAll('.page-productivity-top > button')];
+      const selectionHeights=selectionButtons.map(button=>button.getBoundingClientRect().height);
+      if(selectionHeights.length!==3||selectionHeights.some(height=>Math.abs(height-36)>1))return fail('same-row multiselect buttons are not all 36px tall: '+selectionHeights);
+      const rowChoices=[...document.getElementById('perRowSelect').options].map(option=>Number(option.value)).join(',');
+      if(rowChoices!=='1,2,3,4')return fail('preview must offer only 1–4 pages per row: '+rowChoices);
       if(getComputedStyle(document.getElementById('pageSelectionCountV3')).display!=='none')return fail('selection count is still visible');
       if(getComputedStyle(productivity.querySelector('.page-productivity-jump')).display!=='none')return fail('page jump/undo row is still visible');
       if(getComputedStyle(productivity.querySelector('.page-productivity-actions')).display!=='none')return fail('batch action row is still visible');
@@ -160,8 +165,21 @@
       if(!zoomApi.fitToViewport())return fail('fit-to-screen calculation failed');
       if(!Number.isFinite(_previewZoom)||_previewZoom<=0)return fail('fit-to-screen produced invalid zoom');
 
+      window.PdfFileNavigation?.enhance?.();
       layoutApi.decorateFileHeaders();
       if(document.querySelectorAll('.pdf-file-order-handle').length!==2)return fail('file drag handles missing');
+      const fileHeaders=[...document.querySelectorAll('.thumb-file-sep[data-file-nav-header="true"]')];
+      if(fileHeaders.length!==2)return fail('file headers disappeared');
+      for(const header of fileHeaders){
+        const info=header.querySelector('.pdf-file-heading');
+        const actions=header.querySelector('.pdf-file-action-row');
+        if(!info||!actions||!info.querySelector('.thumb-file-sep-label'))return fail('file information and actions must use separate rows');
+        if(getComputedStyle(header).display!=='grid')return fail('file header is not using the two-row grid');
+        const buttons=[...actions.querySelectorAll('button')];
+        if(!buttons.length)return fail('file action buttons missing');
+        const heights=buttons.map(button=>button.getBoundingClientRect().height);
+        if(heights.some(height=>Math.abs(height-36)>1))return fail('file action row heights do not match 36px: '+heights);
+      }
       if(!layoutApi.reorderFiles(1,0,false))return fail('file reorder operation failed');
       if(uploadedFiles[0]?.name!=='B.pdf'||uploadedFiles[1]?.name!=='A.pdf')return fail('uploaded file order did not change');
       if(parsedPages[0]?.sourceFile!=='B.pdf'||parsedPages[0]?.file_index!==0)return fail('page blocks did not follow file order');
