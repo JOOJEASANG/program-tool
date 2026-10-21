@@ -96,8 +96,9 @@ assert.equal(api.removeFile(1), true);
 assert.equal(api.removeFile(0), true);
 assert.equal(context.uploadedFiles.length, 0);
 assert.deepEqual(context.parsedPages.map(page => page.id), [5, 6], 'standalone blank/divider pages survive');
-assert.equal(context._uploadMode, 'new');
+assert.equal(context._uploadMode, 'cont', 'independent blank pages remain available for a new PDF');
 assert.equal(elements.get('downloadBtn').disabled, true);
+assert.equal(elements.get('previewBtn').disabled, true);
 assert.equal(context.fileNupMap[0], undefined);
 
 // Fully empty work clears the old preview and lazy navigation.
