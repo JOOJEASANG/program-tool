@@ -114,7 +114,7 @@ def test_large_output_and_cleanup_contract_is_present() -> None:
     assert "upload_pdf_result" in router
     assert (
         "finally:\n"
-        "        _cleanup_storage_paths(bucket, storage_paths)\n"
+        "            _cleanup_storage_paths(bucket, temporary_paths)\n"
         "        _cleanup_local_directory(temp_dir)"
     ) in router
     assert "cleanup_temporary_pdfs" in main
