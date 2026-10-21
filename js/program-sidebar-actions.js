@@ -49,7 +49,18 @@
         position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;
         overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important;
       }
-      html[data-program-sidebar-actions="smart-print-layout"] .ps-program-sidebar-top{top:-14px!important;margin:-14px -16px 8px!important;padding:12px 16px!important}
+      /* PDF layout mirrors Smart Print Layout's sticky header exactly. */
+      html[data-program-sidebar-actions="smart-print-layout"] .ps-program-sidebar-top,
+      html[data-program-sidebar-actions="pdf-editor"] .ps-program-sidebar-top{top:-14px!important;margin:-14px -16px 8px!important;padding:12px 16px!important}
+      html[data-program-sidebar-actions="pdf-editor"] body[data-program-kind="pdf-editor"] .app>aside:first-of-type{
+        padding:14px 16px 22px!important;background:#fff!important;scrollbar-width:thin!important;scrollbar-gutter:stable!important;
+      }
+      html[data-program-sidebar-actions="pdf-editor"] .program-local-actions.ps-program-sidebar-top{
+        display:block!important;width:auto!important;overflow:visible!important;white-space:normal!important;
+      }
+      html[data-program-sidebar-actions="pdf-editor"] .ps-program-sidebar-top>.ps-program-actions-grid{
+        display:grid!important;grid-template-columns:34px minmax(0,1fr) minmax(0,1fr) 34px!important;gap:6px!important;
+      }
       html[data-program-sidebar-actions="pdf-advanced"] .ps-program-sidebar-top{top:-14px!important;margin:-14px -14px 8px!important;padding:12px 14px!important}
       html[data-program-sidebar-actions="pdf-advanced"] .ps-program-sidebar-top>.ps-program-actions-grid{grid-template-columns:34px minmax(0,1fr) minmax(0,1fr) 34px!important}
       html[data-program-sidebar-actions="print-checker"] .ps-program-sidebar-top{top:0!important;margin:0 0 8px!important;padding:12px 14px!important}
@@ -85,11 +96,14 @@
       html[data-program-sidebar-actions="pdf-editor"] .top-nav{display:none!important}
       html[data-program-sidebar-actions="pdf-editor"] .app{height:100vh!important;min-height:0!important}
       html[data-program-sidebar-actions="pdf-editor"] .app>aside{position:relative!important}
-      html[data-program-sidebar-actions="pdf-editor"] .ps-program-sidebar-top{top:-15px!important;margin:-15px -16px 8px!important;padding:12px 6px 12px 16px!important}
       @media(max-width:900px){
         html[data-program-sidebar-actions="smart-print-layout"] .ps-program-sidebar-top,
         html[data-program-sidebar-actions="pdf-advanced"] .ps-program-sidebar-top,
         html[data-program-sidebar-actions="pdf-editor"] .ps-program-sidebar-top{top:0!important}
+      }
+      @media(max-width:520px){
+        html[data-program-sidebar-actions="pdf-editor"] body[data-program-kind="pdf-editor"] .app>aside:first-of-type{padding:12px!important}
+        html[data-program-sidebar-actions="pdf-editor"] .ps-program-sidebar-top{top:0!important;margin:-12px -12px 8px!important;padding:12px!important}
       }
     `;
     document.head.appendChild(style);
