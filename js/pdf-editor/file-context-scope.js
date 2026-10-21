@@ -288,16 +288,18 @@
     try { _dragSrcId = null; _dragPageIds = []; clearThumbDragState?.(); } catch (_) {}
     try { byId('thumbCtxMenu')?.classList.remove('open'); } catch (_) {}
     try { window.PdfEditorPageSelection?.clearSelection?.(); } catch (_) {}
-    try { _uploadMode = uploadedFiles.length ? 'cont' : 'new'; } catch (_) {}
+    // Retain independently inserted blank/divider pages when another source is added.
+    try { _uploadMode = parsedPages.length ? 'cont' : 'new'; } catch (_) {}
     try { window.PdfUploadOptimization?.syncAggregateMode?.(); } catch (_) {}
 
     if (typeof renderThumbs === 'function') renderThumbs();
     const hasPages = parsedPages.length > 0;
-    if (byId('previewBtn')) byId('previewBtn').disabled = !hasPages;
+    const hasSources = uploadedFiles.length > 0;
+    if (byId('previewBtn')) byId('previewBtn').disabled = !hasPages || !hasSources;
     if (byId('downloadBtn')) {
       byId('downloadBtn').disabled = !hasPages || !uploadedFiles.length || !parsedPages.some((page) => !page.excluded);
     }
-    if (!hasPages) {
+    if (!hasPages || !hasSources) {
       setEmptyPreview();
     } else {
       const scroll = byId('previewScroll');
