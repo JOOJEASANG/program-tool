@@ -15,7 +15,7 @@ def test_standard_layout_loads_focused_preview_helper_only_for_layout_route():
     smooth = text(SMOOTH)
 
     assert "pdfLayoutSmoothPreviewScriptV1" in runtime
-    assert "/js/pdf-editor/layout-smooth-preview.js?v=20260909-1" in runtime
+    assert "/js/pdf-editor/layout-smooth-preview.js?v=20261021-2" in runtime
     assert "'pdfLayoutSmoothPreviewScriptV1'" in runtime
     assert "path.endsWith('/pdf-editor-advanced')" in smooth
     assert "if(advanced||!path.includes('/pdf-editor'))return;" in smooth
