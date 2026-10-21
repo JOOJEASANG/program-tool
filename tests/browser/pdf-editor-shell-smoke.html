@@ -47,7 +47,7 @@
        workflow or icon tool rail in this ordering. -->
   <script src="/js/program-studio-ui-v2.js?v=20260830-2"></script>
   <script src="/js/program-shell-unify.js?v=20260831-1"></script>
-  <script src="/js/program-sidebar-actions.js?v=20260916-1"></script>
+  <script src="/js/program-sidebar-actions.js?v=20261021-4"></script>
   <script>
     (async()=>{
       const result=document.getElementById('result');
@@ -76,8 +76,36 @@
         const logout=bar.querySelector('#navLogout');
         assert(logout,'logout action lost');
         assert(getComputedStyle(bar).position==='sticky','sidebar top actions lost sticky positioning');
+        const grid=bar.querySelector('.ps-program-actions-grid');
+        const actions=[...grid.children];
+        assert(actions.length===4,'smart layout has exactly four header controls');
+        assert(getComputedStyle(bar).display==='block','PDF header does not use the smart layout header box');
+        assert(getComputedStyle(grid).display==='grid','smart layout header grid is missing');
+        assert(Math.abs(parseFloat(getComputedStyle(grid).columnGap)-6)<=1,'header grid gap differs from Smart Print Layout');
+        const narrow=matchMedia('(max-width:520px)').matches;
+        const touchLayout=matchMedia('(max-width:900px)').matches;
+        const inset=narrow?12:16;
+        const sidebarTopPadding=narrow?12:14;
+        assert(Math.abs(parseFloat(getComputedStyle(bar).paddingLeft)-inset)<=1,'header left padding differs from Smart Print Layout');
+        assert(Math.abs(parseFloat(getComputedStyle(bar).paddingRight)-inset)<=1,'header right padding differs from Smart Print Layout');
+        assert(Math.abs(parseFloat(getComputedStyle(bar).top)-(touchLayout?0:-14))<=1,'sticky header offset differs from Smart Print Layout');
+        assert(Math.abs(parseFloat(getComputedStyle(aside).paddingTop)-sidebarTopPadding)<=1,'sidebar top padding differs from Smart Print Layout');
+        assert(Math.abs(parseFloat(getComputedStyle(aside).paddingRight)-inset)<=1,'sidebar right padding differs from Smart Print Layout');
+        assert(getComputedStyle(aside).scrollbarGutter==='stable','PDF sidebar must retain Smart Print Layout scrollbar gutter');
+        const controlHeights=actions.map(node=>node.getBoundingClientRect().height);
+        assert(controlHeights.every(h=>Math.abs(h-31)<=1),'header buttons do not match Smart Print Layout 31px height: '+controlHeights);
         const rightGap=bar.getBoundingClientRect().right-logout.getBoundingClientRect().right;
-        assert(rightGap>=0&&rightGap<=9,'logout button remains too far from the right scrollbar edge: '+rightGap);
+        assert(Math.abs(rightGap-inset)<=1,'logout button does not match Smart Print Layout right inset: '+rightGap);
+        // Desktop has an independently scrolling sidebar. On narrow screens
+        // both products use document scrolling instead, so skip this branch.
+        if(getComputedStyle(aside).overflowY==='auto'){
+          const filler=document.createElement('div');filler.style.height='1200px';aside.appendChild(filler);
+          aside.scrollTop=200;
+          assert(aside.scrollTop>0,'desktop sidebar scrolling failed');
+          assert(bar.getBoundingClientRect().top>=aside.getBoundingClientRect().top-15,'sticky header scrolls out of sidebar view');
+          filler.remove();
+          aside.scrollTop=0;
+        }
         assert(document.getElementById('navUserName'),'user node lost');
         assert(getComputedStyle(document.body).paddingTop==='0px','body top padding remained');
 

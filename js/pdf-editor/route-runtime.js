@@ -91,7 +91,7 @@
     return hostLoadScript('pdfPreviewZoomPersistenceScriptV2','/js/pdf-editor/preview-zoom-persistence.js?v=20260915-3')
       .then(()=>hostLoadScript('pdfLayoutUiRefinementsScriptV1','/js/pdf-editor/layout-ui-refinements.js?v=20261021-3'))
       .then(()=>hostLoadScript('pdfOrientationSidebarCleanupScriptV2','/js/pdf-editor/orientation-sidebar-cleanup.js?v=20260915-2'))
-      .then(()=>hostLoadScript('programSidebarActionsScriptV1','/js/program-sidebar-actions.js?v=20261021-2'));
+      .then(()=>hostLoadScript('programSidebarActionsScriptV1','/js/program-sidebar-actions.js?v=20261021-4'));
   }
 
   function loadAll(){
