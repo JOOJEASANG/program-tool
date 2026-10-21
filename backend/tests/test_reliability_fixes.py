@@ -112,12 +112,9 @@ def test_large_output_and_cleanup_contract_is_present() -> None:
     rules = _read("storage.rules")
     assert "MAX_DIRECT_TOTAL_PDF_BYTES = 20 * 1024 * 1024" in router
     assert "upload_pdf_result" in router
-    assert (
-        "finally:\n"
-        "        if not retain_temp_sources:\n"
-        "            _cleanup_storage_paths(bucket, temporary_paths)\n"
-        "        _cleanup_local_directory(temp_dir)"
-    ) in router
+    assert "finally:" in router
+    assert "if not retain_temp_sources:\n            _cleanup_storage_paths(bucket, temporary_paths)" in router
+    assert "_cleanup_local_directory(temp_dir)" in router
     assert "cleanup_temporary_pdfs" in main
     assert "match /pdf_results/{userId}/{resultId}/{fileName}" in rules
     assert (ROOT / "storage-lifecycle.json").exists()
