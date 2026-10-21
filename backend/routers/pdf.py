@@ -164,8 +164,8 @@ def download_session_source(uid):
         return _error_response("저장된 편집 세션의 파일 정보가 올바르지 않습니다.", 422, "SESSION_INVALID_SOURCE")
     if not isinstance(paths, list) or index >= len(paths):
         return _error_response("저장된 원본 PDF를 찾지 못했습니다.", 404, "SESSION_FILE_NOT_FOUND")
-    expected_path = f"pdf_sessions/{uid}/{session_id}/src_{index}.pdf"
-    if paths[index] != expected_path:
+    expected_path = paths[index]
+    if not _is_saved_source_path(uid, expected_path):
         return _error_response("저장된 PDF의 경로를 확인할 수 없습니다.", 403, "SESSION_SOURCE_FORBIDDEN")
 
     try:
