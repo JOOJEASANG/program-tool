@@ -530,5 +530,9 @@ def process_storage(uid):
     except Exception:
         return _internal_error_response("Storage PDF processing failed")
     finally:
-        _cleanup_storage_paths(bucket, storage_paths)
+        # Saved originals are owned by the session and MUST NEVER be deleted by
+        # rendering. Cached temporary files belong to the browser's editing
+        # session and may be reused by a later export.
+        if not retain_temp_sources:
+            _cleanup_storage_paths(bucket, temporary_paths)
         _cleanup_local_directory(temp_dir)
