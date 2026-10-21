@@ -112,7 +112,7 @@
   // window left every second row short even when more source faces existed.
   function chooseRowAlignedWindow(total, center, radius, columns) {
     const count = Math.max(0, Math.floor(Number(total) || 0));
-    const perRow = Math.min(6, Math.max(1, Math.floor(Number(columns) || 1)));
+    const perRow = Math.min(4, Math.max(1, Math.floor(Number(columns) || 1)));
     if (!count) return { start: 0, end: 0, center: 0, total: 0 };
     const safeCenter = clamp(Math.floor(Number(center) || 0), 0, count - 1);
     const base = chooseWindow(count, safeCenter, radius);
@@ -613,7 +613,7 @@
   function handlePerRowChange(event) {
     if (event.target?.id !== 'perRowSelect' || !window.__pdfEditorLazyPreviewActive) return;
     const requested = Number(event.target.value);
-    if (!Number.isInteger(requested) || requested < 1 || requested > 6) return;
+    if (!Number.isInteger(requested) || requested < 1 || requested > 4) return;
     // The default change handler only rearranges existing cached faces. Rebuild
     // a complete aligned window instead, without displaying a short interim row.
     try { _previewPerRow = requested; } catch (_) {}
