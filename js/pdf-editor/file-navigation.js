@@ -104,10 +104,13 @@
       body[data-program-kind="pdf-editor"] #thumbArea .thumb-file-sep[data-file-nav-header="true"]>.pdf-file-order-handle{grid-column:1;grid-row:1}
       body[data-program-kind="pdf-editor"] #thumbArea .thumb-file-sep[data-file-nav-header="true"]>.pdf-file-nav-toggle{grid-column:2;grid-row:1}
       body[data-program-kind="pdf-editor"] #thumbArea .thumb-file-sep[data-file-nav-header="true"]:not([data-file-order-drag-ready="1"])>.pdf-file-nav-toggle{grid-column:1}
-      body[data-program-kind="pdf-editor"] #thumbArea .thumb-file-sep[data-file-nav-header="true"]>.pdf-file-heading{grid-column:3;grid-row:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+      body[data-program-kind="pdf-editor"] #thumbArea .thumb-file-sep[data-file-nav-header="true"]>.pdf-file-heading{grid-column:3;grid-row:1;min-width:0;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;column-gap:5px;row-gap:2px}
       body[data-program-kind="pdf-editor"] #thumbArea .thumb-file-sep[data-file-nav-header="true"]:not([data-file-order-drag-ready="1"])>.pdf-file-heading{grid-column:2 / 4}
-      body[data-program-kind="pdf-editor"] #thumbArea .pdf-file-heading>.thumb-file-sep-label{display:block!important;max-width:100%!important;min-width:0;font-size:10px!important;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-      body[data-program-kind="pdf-editor"] #thumbArea .pdf-file-heading>.pdf-file-nav-meta{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:9px}
+      body[data-program-kind="pdf-editor"] #thumbArea .pdf-file-heading>.thumb-file-sep-label{display:block!important;grid-column:1 / -1;min-width:0;max-width:100%!important;font-size:10px!important;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+      body[data-program-kind="pdf-editor"] #thumbArea .pdf-file-heading>.pdf-file-nav-meta{display:block;grid-column:1;grid-row:2;min-width:0;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:9px}
+      body[data-program-kind="pdf-editor"] #thumbArea .pdf-file-heading>.pdf-file-nup-control{grid-column:2;grid-row:2;display:inline-flex!important;gap:3px!important;align-items:center!important;max-width:118px;margin:0!important;min-width:0}
+      body[data-program-kind="pdf-editor"] #thumbArea .pdf-file-nup-control>span{font-size:9px!important;white-space:nowrap}
+      body[data-program-kind="pdf-editor"] #thumbArea .pdf-file-nup-control>select{box-sizing:border-box!important;height:32px!important;min-height:32px!important;max-height:32px!important;max-width:72px!important;min-width:0!important;padding:0 6px!important;font-size:10px!important}
       body[data-program-kind="pdf-editor"] #thumbArea .thumb-file-sep[data-file-nav-header="true"]>.pdf-file-selection-count{grid-column:4;grid-row:1;align-self:center}
       body[data-program-kind="pdf-editor"] #thumbArea .thumb-file-sep[data-file-nav-header="true"]>.pdf-file-action-row{grid-column:1 / -1;grid-row:2;display:flex;align-items:stretch;gap:6px;min-width:0}
       body[data-program-kind="pdf-editor"] #thumbArea .pdf-file-action-row>button{box-sizing:border-box!important;height:32px!important;min-height:32px!important;max-height:32px!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;min-width:0!important;white-space:nowrap!important;border-radius:8px!important;padding:0 7px!important;font-size:10px!important;line-height:1.15!important}
@@ -293,6 +296,10 @@
     }
     if (label) heading.appendChild(label);
     heading.appendChild(meta);
+    // The original file separator includes a per-file N-up selector. Keeping
+    // it in the heading prevents an accidental third CSS grid row.
+    const nupControl = header.querySelector(':scope > .pdf-file-nup-control');
+    if (nupControl) heading.appendChild(nupControl);
     const actionRow = document.createElement('div');
     actionRow.className = 'pdf-file-action-row';
     header.appendChild(actionRow);
