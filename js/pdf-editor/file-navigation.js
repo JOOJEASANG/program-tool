@@ -294,7 +294,11 @@
     }
 
     // File removal changes the source file list, not only its visibility in the sidebar.
-    if (!location.pathname.includes('pdf-editor-advanced') && new URLSearchParams(location.search).get('profile') !== 'advanced') {
+    const profile = String(new URLSearchParams(location.search).get('profile') || '').trim().toLowerCase();
+    const advanced = window.PdfEditorRouteRuntime?.isAdvancedProfile?.()
+      || document.documentElement?.dataset?.pdfEditorProfile === 'advanced'
+      || location.pathname.includes('pdf-editor-advanced') || profile === 'advanced';
+    if (!advanced) {
       const remove = document.createElement('button');
       remove.type = 'button';
       remove.className = 'pdf-file-delete-btn';
