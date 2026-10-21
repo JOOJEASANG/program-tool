@@ -130,14 +130,15 @@
   }
 
   document.addEventListener('pdf-import-committed',()=>{
+    // Import already awaits triggerPreview before emitting this event. Running
+    // two more lazy renders here re-opened the same sources and caused stutter.
     install();
-    setTimeout(renderFocusedCurrent,0);
-    setTimeout(renderFocusedCurrent,160);
   });
 
   document.addEventListener('change',event=>{
     if(event.target?.closest?.('#nupGrid')||event.target?.id==='bookletCheck'){
-      if(shouldFocus())setTimeout(renderFocusedCurrent,0);
+      // The editor's own settings handler refreshes the output once.
+      if(shouldFocus())syncLabels();
     }
   },true);
 
