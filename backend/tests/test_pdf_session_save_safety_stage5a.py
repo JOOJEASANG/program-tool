@@ -48,7 +48,7 @@ def test_partial_storage_upload_is_cleaned_when_firestore_save_fails():
     source = MODULE.read_text(encoding="utf-8")
     assert "storagePaths.push(path)" in source
     assert "await storage.ref(path).put" in source
-    assert "if (!documentRef) await cleanupUploadedPaths(storagePaths)" in source
+    assert "if (!documentRef) await cleanupUploadedPaths(uploadedPaths)" in source
     assert "Promise.allSettled(paths.map((path) => deleteStoragePath(path)))" in source
     assert "업로드된 임시 파일 정리를 시도했습니다." in source
     assert source.index("storagePaths.push(path)") < source.index("await storage.ref(path).put")
