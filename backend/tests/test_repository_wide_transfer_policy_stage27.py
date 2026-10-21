@@ -183,7 +183,7 @@ def test_active_runtime_uses_single_pdf_and_preflight_owners():
     assert "pdfEditorTransferLimitGuardScriptV1" not in app
     assert "pdfDividerLocalImageUploadScriptV1" not in app
 
-    assert "/js/pdf-preflight/route-runtime.js?v=20261021-2" in sw
+    assert "/js/pdf-preflight/route-runtime.js?v=20260831-1" in sw
     assert "pdfUtilityCostGuardScriptV2" in preflight
     assert "pdfPreflightPanelBalanceScriptV1" in preflight
     assert "20260915-1" in preflight
