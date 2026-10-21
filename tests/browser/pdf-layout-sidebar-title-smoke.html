@@ -115,6 +115,10 @@
       if(nav.parentElement!==document.querySelector('.preview-info'))return fail('previous/next controls were not moved into preview toolbar');
       if(document.getElementById('pdfLazyPreviewRange'))return fail('lazy preview range text still exists');
       if(document.getElementById('previewInfo').hidden!==true)return fail('redundant fast preview message still visible');
+      const previewToolbarControls=[...document.querySelectorAll('.preview-info .preview-zoom button,.preview-info .preview-zoom select,.preview-info .zoom-label,#pdfLazyPreviewNav button,#pdfLazyPreviewNav input')];
+      if(previewToolbarControls.length<5)return fail('preview toolbar controls missing');
+      const previewHeights=previewToolbarControls.map(node=>node.getBoundingClientRect().height);
+      if(previewHeights.some(height=>Math.abs(height-32)>1))return fail('preview toolbar controls do not all match 32px upload actions: '+previewHeights);
 
       const fileNav=document.getElementById('pdfFileNavigation');
       if(getComputedStyle(fileNav).display!=='none')return fail('edit-page navigation card is still visible');
