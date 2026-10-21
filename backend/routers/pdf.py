@@ -409,6 +409,8 @@ def process_storage(uid):
     try:
         body = request.get_json(force=True) or {}
         storage_paths = body.get("storage_paths", [])
+        source_session_doc = body.get("source_session_doc")
+        retain_temp_sources = body.get("retain_temp_sources") is True
         req = PdfProcessRequest.model_validate(body.get("settings", {}))
     except Exception:
         return _error_response("PDF 처리 요청이 올바르지 않습니다.", 422, "PDF_INVALID_REQUEST")
