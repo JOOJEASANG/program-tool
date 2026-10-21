@@ -5,7 +5,7 @@
   window.__pdfEditorUiRuntimeV1=true;
 
   const MODULES=Object.freeze([
-    {id:'pdfEditorSimpleSidebarUiScriptV1',src:'/js/pdf-editor/simple-sidebar-ui.js?v=20261021-2',global:'PdfEditorSimpleSidebarUi'}
+    {id:'pdfEditorSimpleSidebarUiScriptV1',src:'/js/pdf-editor/simple-sidebar-ui.js?v=20261021-3',global:'PdfEditorSimpleSidebarUi'}
   ]);
   const loading=new Map();
 
