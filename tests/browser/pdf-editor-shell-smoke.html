@@ -96,14 +96,16 @@
         assert(controlHeights.every(h=>Math.abs(h-31)<=1),'header buttons do not match Smart Print Layout 31px height: '+controlHeights);
         const rightGap=bar.getBoundingClientRect().right-logout.getBoundingClientRect().right;
         assert(Math.abs(rightGap-inset)<=1,'logout button does not match Smart Print Layout right inset: '+rightGap);
-        const filler=document.createElement('div');filler.style.height='1200px';aside.appendChild(filler);
-        aside.scrollTop=200;
-        // getBoundingClientRect flushes layout synchronously, including in
-        // headless Chrome where requestAnimationFrame may be throttled.
-        assert(aside.scrollTop>0,'sidebar scrolling failed');
-        assert(bar.getBoundingClientRect().top>=aside.getBoundingClientRect().top-15,'sticky header scrolls out of sidebar view');
-        filler.remove();
-        aside.scrollTop=0;
+        // Desktop has an independently scrolling sidebar. On narrow screens
+        // both products use document scrolling instead, so skip this branch.
+        if(getComputedStyle(aside).overflowY==='auto'){
+          const filler=document.createElement('div');filler.style.height='1200px';aside.appendChild(filler);
+          aside.scrollTop=200;
+          assert(aside.scrollTop>0,'desktop sidebar scrolling failed');
+          assert(bar.getBoundingClientRect().top>=aside.getBoundingClientRect().top-15,'sticky header scrolls out of sidebar view');
+          filler.remove();
+          aside.scrollTop=0;
+        }
         assert(document.getElementById('navUserName'),'user node lost');
         assert(getComputedStyle(document.body).paddingTop==='0px','body top padding remained');
 
