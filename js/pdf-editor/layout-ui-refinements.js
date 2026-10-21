@@ -29,6 +29,11 @@
     style.id='pdfLayoutUiRefinementsStylesV1';
     style.textContent=`
       #pdfPageListQuickAddV1{display:none!important}
+      /* The PDF layout toolbar stays uniform even in lightweight hosts where
+         the legacy loader's extra control styles have not been mounted. */
+      body[data-program-kind="pdf-editor"] .preview-info .preview-zoom :is(select,button,.zoom-label){box-sizing:border-box!important;height:32px!important;min-height:32px!important;max-height:32px!important;line-height:normal!important}
+      body[data-program-kind="pdf-editor"] .preview-info .preview-zoom .zoom-label{display:inline-flex!important;align-items:center!important;justify-content:center!important}
+      body[data-program-kind="pdf-editor"] .preview-info #previewPages:not(:empty){box-sizing:border-box!important;display:inline-flex!important;align-items:center!important;height:32px!important;min-height:32px!important;max-height:32px!important}
       #pdfLazyPreviewNav{margin:0!important;padding:0!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;flex:0 0 auto!important;align-items:center!important;gap:6px!important;flex-wrap:nowrap!important;min-width:0!important}
       #pdfLazyPreviewNav[data-active="true"]{display:flex!important}
       #pdfLazyPreviewNav .lazy-preview-range,#pdfLazyPreviewRange{display:none!important}
