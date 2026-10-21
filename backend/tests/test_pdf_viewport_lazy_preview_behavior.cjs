@@ -101,6 +101,7 @@ const document = {
   },
   querySelectorAll(selector) {
     if (selector === '#previewScroll .page-preview') return previewNodes;
+    if (selector === '#previewScroll .page-preview[data-output-index]') return previewNodes;
     if (selector === '#thumbArea .thumb-wrap') return [];
     return [];
   },
@@ -254,6 +255,28 @@ assert.equal(api.isLightweightPage({ pdfPage: { __lightweightPdfPage: true } }),
   assert.equal(previewNodes[1].dataset.lazySelected, 'true');
   assert.equal(elements.get('previewPages').textContent, '전체 2개 중 1–2 출력면');
   assert.equal(elements.get('pdfLazyPreviewOutputNumber').value, '2');
+
+  // The displayed lazy preview now fills complete selected columns in every
+  // ordinary row, not 4 faces on the first row and 3 on the next.
+  context.parsedPages = Array.from({ length: 30 }, (_, index) => ({
+    ...samplePages[0], id: 1000 + index, page_index: index,
+  }));
+  context._previewPerRow = 4;
+  outputCalls = [];
+  assert.equal(await api.renderLazyWindow(0), true);
+  assert.equal(outputCalls.length, 8);
+  assert.equal(previewNodes.length, 8);
+  assert.equal(api.getCurrentWindow().end - api.getCurrentWindow().start, 8);
+  const countBeforeFocus = outputCalls.length;
+  assert.equal(api.focusRenderedOutput(3), true, 'navigation should reuse an existing face');
+  assert.equal(outputCalls.length, countBeforeFocus, 'cached navigation should not rerender');
+  assert.equal(previewNodes[3].dataset.lazySelected, 'true');
+  context._previewPerRow = 2;
+  outputCalls = [];
+  assert.equal(await api.renderLazyWindow(0), true);
+  assert.equal(outputCalls.length % 2, 0);
+  assert.equal(previewNodes.length % 2, 0);
+  context._previewPerRow = 2;
 
   // Repeated pages in a large-document preview must receive one overlay per
   // placement cell, with NO extra full-sheet overlay.
