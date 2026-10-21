@@ -322,6 +322,12 @@ def _normalize_document_paths(
     if collection_id == "print_checker_sessions":
         expected_prefix = f"print_checker_sessions/{uid}/{session_id}/"
         source_pattern = PRINT_CHECKER_SESSION_SOURCE_PATTERN
+    elif collection_id == "pdf_sessions":
+        # Editor revisions can reuse immutable originals from older revisions.
+        # Every retained source is still strictly under the same account and
+        # must match the PDF source filename pattern.
+        expected_prefix = f"pdf_sessions/{uid}/"
+        source_pattern = PDF_SESSION_SOURCE_PATTERN
     else:
         expected_prefix = f"pdf_sessions/{uid}/{session_id}/"
         source_pattern = PDF_SESSION_SOURCE_PATTERN
