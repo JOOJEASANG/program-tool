@@ -98,7 +98,8 @@
         assert(Math.abs(rightGap-inset)<=1,'logout button does not match Smart Print Layout right inset: '+rightGap);
         const filler=document.createElement('div');filler.style.height='1200px';aside.appendChild(filler);
         aside.scrollTop=200;
-        await new Promise(resolve=>requestAnimationFrame(resolve));
+        // getBoundingClientRect flushes layout synchronously, including in
+        // headless Chrome where requestAnimationFrame may be throttled.
         assert(aside.scrollTop>0,'sidebar scrolling failed');
         assert(bar.getBoundingClientRect().top>=aside.getBoundingClientRect().top-15,'sticky header scrolls out of sidebar view');
         filler.remove();
