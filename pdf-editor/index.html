@@ -824,7 +824,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
 <script src="../js/firebase-config.js"></script>
 <script>const storage = firebase.storage();</script>
-<script src="../js/api.js"></script>
+<script src="../js/api.js?v=20261021-5"></script>
 <script>
 pdfjsLib.GlobalWorkerOptions.workerSrc =
   'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
@@ -2984,7 +2984,10 @@ $('downloadBtn').addEventListener('click', async () => {
     // Expand repeat placements at the export boundary. An API wrapper alone is
     // fragile when another upload/progress helper also patches apiProcessPdf.
     const outputSettings = window.PdfEditorNupRepeat?.expandSettingsPages?.(settings) || settings;
-    const blob = await apiProcessPdf(uploadedFiles, outputSettings, { onStatus: msg => showStatus(msg) });
+    const blob = await apiProcessPdf(uploadedFiles, outputSettings, {
+      reuseSources: true,
+      onStatus: msg => showStatus(msg),
+    });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     const ts = new Date().toISOString().slice(0,16).replace('T','_').replace(':','-');

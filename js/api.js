@@ -253,6 +253,11 @@ async function _processPdfDirect(files, settings, token, signal, onStatus, onPro
  * @param {{ onStatus?: Function, onProgress?: Function, signal?: AbortSignal }} [opts]
  * @returns {Promise<Blob>}
  */
+// Reuse immutable input objects for repeated PDF layout downloads in one tab.
+// The PDF server still renders the full edit settings; only input upload is skipped.
+const _pdfEditorExportInputs = new Map();
+let _pdfEditorExportOwner = '';
+
 async function apiProcessPdf(files, settings, options = {}) {
   const preparedOptions = _preparePdfOptions(options);
   const { onStatus, onProgress, signal, __managedOperation } = preparedOptions;
@@ -267,6 +272,14 @@ async function apiProcessPdf(files, settings, options = {}) {
   const uid = user.uid;
   const sessionId = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
   const storagePaths = [];
+  const newlyUploadedPaths = [];
+  const reuseSources = preparedOptions.reuseSources === true;
+  let completedViaStorage = false;
+  if (reuseSources && _pdfEditorExportOwner !== uid) {
+    _pdfEditorExportInputs.clear();
+    _pdfEditorExportOwner = uid;
+  }
+  const saved = reuseSources ? window.PdfSessionSaveSafety?.reusableSourcePaths?.(files) : null;
   const token = await user.getIdToken(true);
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 290000);
@@ -274,39 +287,71 @@ async function apiProcessPdf(files, settings, options = {}) {
   signal?.addEventListener('abort', forwardAbort, { once: true });
 
   const cleanup = async () => {
-    await Promise.allSettled(storagePaths.map(path => st.ref(path).delete()));
+    if (reuseSources && !completedViaStorage) {
+      for (const [file, cached] of _pdfEditorExportInputs) {
+        if (newlyUploadedPaths.includes(cached.path)) _pdfEditorExportInputs.delete(file);
+      }
+    }
+    // A session's saved source and a previously cached temporary source must
+    // never be deleted by PDF rendering.
+    const deletions = reuseSources && completedViaStorage ? [] : newlyUploadedPaths;
+    await Promise.allSettled(deletions.map(path => st.ref(path).delete()));
   };
 
   try {
     for (let i = 0; i < files.length; i++) {
       if (controller.signal.aborted) throw _makeAbortError();
-      onStatus && onStatus(`파일 업로드 중... (${i + 1}/${files.length})`);
+      const savedPath = saved?.paths?.[i];
+      if (reuseSources && savedPath) {
+        storagePaths.push(savedPath);
+        continue;
+      }
+      const existing = reuseSources ? _pdfEditorExportInputs.get(files[i]) : null;
+      if (existing?.uid === uid && existing.path) {
+        storagePaths.push(existing.path);
+        continue;
+      }
+      onStatus && onStatus(`새 원본 업로드 중... (${i + 1}/${files.length})`);
       const path = `pdf_temp/${uid}/${sessionId}/${i}.pdf`;
       storagePaths.push(path);
+      newlyUploadedPaths.push(path);
       await _uploadStorageFile(st.ref(path), files[i], {
         signal: controller.signal,
         onProgress,
         fileIndex: i,
         fileCount: files.length,
       });
+      if (reuseSources) _pdfEditorExportInputs.set(files[i], { uid, path });
     }
 
-    onStatus && onStatus('서버에서 PDF 생성 중... (대용량·소책자 작업은 몇 분 걸릴 수 있습니다)');
+    onStatus && onStatus(newlyUploadedPaths.length
+      ? '서버에서 PDF 생성 중... (대용량·소책자 작업은 몇 분 걸릴 수 있습니다)'
+      : '원본 재업로드 없이 현재 편집 내용으로 PDF 생성 중...');
     _reportProgress(onProgress, 'server', 45, '서버에서 PDF 생성 중');
     const resp = await _fetchLongPdfApi('/api/pdf/process-storage', {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ storage_paths: storagePaths, settings }),
+      body: JSON.stringify({
+        storage_paths: storagePaths, settings,
+        ...(reuseSources ? { retain_temp_sources: true, source_session_doc: saved?.docId || null } : {}),
+      }),
       signal: controller.signal,
     });
 
     if (!resp.ok) {
       const msg = await _readApiError(resp, `서버 오류 (${resp.status})`);
+      if (reuseSources && resp.status === 404) {
+        // Expired browser cache; a subsequent attempt will re-upload it.
+        for (const [file, cached] of _pdfEditorExportInputs) {
+          if (storagePaths.includes(cached.path)) _pdfEditorExportInputs.delete(file);
+        }
+      }
       throw new Error(msg || 'PDF 처리 중 오류가 발생했습니다.');
     }
 
     _reportProgress(onProgress, 'download', 92, '완성 PDF 내려받는 중');
     const blob = await _readPdfDelivery(resp, { signal: controller.signal });
+    completedViaStorage = true;
     _reportProgress(onProgress, 'complete', 100, 'PDF 생성 완료');
     _finishManagedPdfOperation(__managedOperation, 'success', 'PDF 생성이 완료되었습니다.');
     return blob;

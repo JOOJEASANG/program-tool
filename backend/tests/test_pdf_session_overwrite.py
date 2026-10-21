@@ -26,13 +26,13 @@ def test_transactional_overwrite_keeps_created_at_and_old_sources_until_commit()
         "transaction.update(targetRef",
         "current.sessionId !== target.sessionId",
         "JSON.stringify(current.storagePaths) !== JSON.stringify(target.storagePaths)",
-        "if (!documentRef) await cleanupUploadedPaths(storagePaths)",
-        "const results = await cleanupUploadedPaths(target.storagePaths)",
+        "if (!documentRef) await cleanupUploadedPaths(uploadedPaths)",
+        "const results = await cleanupUploadedPaths(obsoletePaths)",
         "await trimOldSessions(collection, documentRef.id)",
         "createdAt: firebase.firestore.FieldValue.serverTimestamp()",
     ):
         assert marker in src
-    assert src.index("transaction.update(targetRef") < src.index("await cleanupUploadedPaths(target.storagePaths)")
+    assert src.index("transaction.update(targetRef") < src.index("await cleanupUploadedPaths(obsoletePaths)")
 
 def test_rules_limit_update_to_revision_change_without_changing_creation_timestamp():
     rules = RULES.read_text(encoding="utf-8")

@@ -261,7 +261,8 @@ def _normalize_document_paths(
     Session metadata is client-created. Scheduled cleanup runs with Admin SDK
     privileges, so it must never trust an arbitrary path stored in Firestore.
     Every saved-session path is constrained to the authenticated owner's persistent
-    session prefix and the session id stored in the same immutable document.
+    session prefix. PDF layout edits may reference older immutable source revisions
+    still listed in the session; other session types keep their existing ID check.
     """
     if collection_id == "ai_design_gallery":
         design_id = str(data.get("id") or "").strip()
@@ -322,6 +323,12 @@ def _normalize_document_paths(
     if collection_id == "print_checker_sessions":
         expected_prefix = f"print_checker_sessions/{uid}/{session_id}/"
         source_pattern = PRINT_CHECKER_SESSION_SOURCE_PATTERN
+    elif collection_id == "pdf_sessions":
+        # Editor revisions can reuse immutable originals from older revisions.
+        # Every retained source is still strictly under the same account and
+        # must match the PDF source filename pattern.
+        expected_prefix = f"pdf_sessions/{uid}/"
+        source_pattern = PDF_SESSION_SOURCE_PATTERN
     else:
         expected_prefix = f"pdf_sessions/{uid}/{session_id}/"
         source_pattern = PDF_SESSION_SOURCE_PATTERN

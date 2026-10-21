@@ -37,7 +37,7 @@ def test_api_forwards_abort_and_cleans_temporary_uploads():
     assert "signal: managed.signal" in api
     assert "signal?.addEventListener('abort', forwardAbort" in api
     assert "task.cancel()" in api
-    assert "await Promise.allSettled(storagePaths.map(path => st.ref(path).delete()))" in api
+    assert "await Promise.allSettled(deletions.map(path => st.ref(path).delete()))" in api
     assert "signal?.removeEventListener('abort', forwardAbort)" in api
     assert "_finishManagedPdfOperation(__managedOperation, 'canceled'" in api
 
