@@ -64,6 +64,7 @@
       body[data-program-kind="pdf-editor"] .app>aside:first-of-type #uploadZone{border-radius:10px!important}
       body[data-program-kind="pdf-editor"] .program-local-actions>a,body[data-program-kind="pdf-editor"] .program-local-actions>button{box-sizing:border-box!important;height:32px!important;min-height:32px!important;max-height:32px!important;border-radius:8px!important;padding:0 9px!important;font-size:10px!important}
       body[data-program-kind="pdf-editor"] .program-local-actions>#navLogout{height:32px!important;min-height:32px!important;max-height:32px!important}
+      body[data-program-kind="pdf-editor"] .preview-info{padding:4px 8px!important;gap:5px!important;border-radius:8px!important}
       body[data-program-kind="pdf-editor"] .preview-shell{border:1px solid #dbe4ed!important;border-radius:12px!important;background:#f1f4f8!important}
       body[data-program-kind="pdf-editor"] #previewScroll{background:#e8edf3!important;border-radius:9px!important}
       body[data-program-kind="pdf-editor"] #previewScroll .preview-row{width:100%;min-width:max-content;justify-content:center;flex-wrap:nowrap;box-sizing:border-box}
