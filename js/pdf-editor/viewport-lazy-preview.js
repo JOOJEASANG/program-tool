@@ -195,7 +195,7 @@
     previous.id = 'pdfLazyPreviewPrevious';
     previous.type = 'button';
     previous.textContent = '‹ 이전';
-    previous.addEventListener('click', () => requestRender(Math.max(0, currentOutputIndex - 1)));
+    previous.addEventListener('click', () => navigateOutput(Math.max(0, currentOutputIndex - 1)));
 
     const input = document.createElement('input');
     input.id = 'pdfLazyPreviewOutputNumber';
@@ -205,7 +205,7 @@
     input.setAttribute('aria-label', '이동할 출력면 번호');
     input.addEventListener('change', () => {
       const target = clamp(Math.floor(Number(input.value || 1)) - 1, 0, Math.max(0, currentWindow.total - 1));
-      requestRender(target);
+      navigateOutput(target);
     });
     input.addEventListener('keydown', (event) => {
       if (event.key !== 'Enter') return;
@@ -222,7 +222,7 @@
     next.id = 'pdfLazyPreviewNext';
     next.type = 'button';
     next.textContent = '다음 ›';
-    next.addEventListener('click', () => requestRender(Math.min(currentWindow.total - 1, currentOutputIndex + 1)));
+    next.addEventListener('click', () => navigateOutput(Math.min(currentWindow.total - 1, currentOutputIndex + 1)));
 
     const range = document.createElement('span');
     range.id = 'pdfLazyPreviewRange';
@@ -528,6 +528,26 @@
     return renderPromise;
   }
 
+  function focusRenderedOutput(index) {
+    const requested = Number(index);
+    if (!window.__pdfEditorLazyPreviewActive || renderPromise || queuedOutputIndex !== null
+        || !Number.isInteger(requested) || requested < currentWindow.start || requested >= currentWindow.end) return false;
+    const nodes = [...document.querySelectorAll('#previewScroll .page-preview[data-output-index]')];
+    if (nodes.length !== currentWindow.end - currentWindow.start || currentWindow.total !== lastDescriptors.length) return false;
+    const selected = nodes.find((node) => Number(node.dataset.outputIndex) === requested);
+    if (!selected) return false;
+    currentOutputIndex = requested;
+    nodes.forEach((node) => { node.dataset.lazySelected = String(Number(node.dataset.outputIndex) === requested); });
+    updateNavigation(currentWindow, requested);
+    selected.scrollIntoView({ behavior: 'auto', block: 'nearest', inline: 'nearest' });
+    return true;
+  }
+
+  function navigateOutput(index) {
+    if (focusRenderedOutput(index)) return Promise.resolve(true);
+    return requestRender(index);
+  }
+
   function handleThumbnailNavigation(event) {
     if (event.type === 'keydown' && event.key !== 'Enter' && event.key !== ' ') return;
     const wrap = event.target?.closest?.('#thumbArea .thumb-wrap');
@@ -548,7 +568,7 @@
     }
     markSelectedThumbnail(page);
     const index = descriptorIndexForPage(page, descriptors);
-    if (index >= 0) requestRender(index);
+    if (index >= 0) void navigateOutput(index);
   }
 
   function handlePreviewWheel(event) {
@@ -632,6 +652,8 @@
     isActive,
     renderLazyWindow,
     requestRender,
+    focusRenderedOutput,
+    navigateOutput,
     getCurrentWindow: () => ({ ...currentWindow }),
     getCurrentOutputIndex: () => currentOutputIndex,
     get coordinatorInstalled() { return coordinatorInstalled; },
