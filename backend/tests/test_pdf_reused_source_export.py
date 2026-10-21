@@ -139,3 +139,30 @@ def test_revision_paths_are_owner_scoped():
     assert not pdf._is_saved_source_path(UID, "pdf_sessions/another-user/previous123/src_0.pdf")
     assert not pdf._is_saved_source_path(UID, f"pdf_sessions/{UID}/../src_0.pdf")
     assert not pdf._is_saved_source_path(UID, f"pdf_sessions/{UID}/previous123/fake.txt")
+
+
+def test_pdf_session_orphan_cleanup_keeps_owner_referenced_older_revisions():
+    """Daily cleanup must not delete old source objects still referenced by a newer edit."""
+    import main
+
+    recorded = {
+        "sessionId": "latest123",
+        "storagePaths": [
+            f"pdf_sessions/{UID}/previous123/src_0.pdf",
+            f"pdf_sessions/{UID}/latest123/src_1.pdf",
+            "pdf_sessions/other-user/previous123/src_9.pdf",
+            f"pdf_sessions/{UID}/../src_0.pdf",
+        ],
+    }
+    selected = main._normalize_document_paths(
+        recorded, "storagePaths", uid=UID, collection_id="pdf_sessions"
+    )
+    assert selected == [
+        f"pdf_sessions/{UID}/previous123/src_0.pdf",
+        f"pdf_sessions/{UID}/latest123/src_1.pdf",
+    ]
+    # Other products keep their existing strict revision binding.
+    advanced = main._normalize_document_paths(
+        recorded, "storagePaths", uid=UID, collection_id="pdf_advanced_sessions"
+    )
+    assert advanced == [f"pdf_sessions/{UID}/latest123/src_1.pdf"]
