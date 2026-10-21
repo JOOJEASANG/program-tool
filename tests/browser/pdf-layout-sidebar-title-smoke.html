@@ -18,9 +18,9 @@
         <div class="page-productivity-actions"><button data-batch-action="true">회전</button></div>
       </div>
       <div id="thumbArea">
-        <div class="thumb-file-sep" data-file-nav-header="true" data-file-index="0"><span class="thumb-file-sep-label">A.pdf</span></div>
+        <div class="thumb-file-sep" data-file-nav-header="true" data-file-index="0"><span class="thumb-file-sep-label">A.pdf</span><div class="pdf-file-nup-control"><span>배치:</span><select aria-label="A.pdf 배치"><option value="">기본</option></select></div></div>
         <div class="thumb-item" data-id="1"><div class="thumb-wrap"><span class="thumb-num">1</span></div></div>
-        <div class="thumb-file-sep" data-file-nav-header="true" data-file-index="1"><span class="thumb-file-sep-label">B.pdf</span></div>
+        <div class="thumb-file-sep" data-file-nav-header="true" data-file-index="1"><span class="thumb-file-sep-label">B.pdf</span><div class="pdf-file-nup-control"><span>배치:</span><select aria-label="B.pdf 배치"><option value="">기본</option></select></div></div>
         <div class="thumb-item" data-id="4"><div class="thumb-wrap"><span class="thumb-num">4</span></div></div>
       </div>
     </aside>
@@ -178,6 +178,7 @@
         const info=header.querySelector('.pdf-file-heading');
         const actions=header.querySelector('.pdf-file-action-row');
         if(!info||!actions||!info.querySelector('.thumb-file-sep-label'))return fail('file information and actions must use separate rows');
+        if(!info.querySelector('.pdf-file-nup-control select')||header.querySelector(':scope > .pdf-file-nup-control'))return fail('file N-up selector is not inside the heading grid row');
         if(getComputedStyle(header).display!=='grid')return fail('file header is not using the two-row grid');
         const buttons=[...actions.querySelectorAll('button')];
         if(!buttons.length)return fail('file action buttons missing');
