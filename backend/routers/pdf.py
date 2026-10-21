@@ -436,8 +436,23 @@ def process_storage(uid):
             "PDF_DUPLICATE_STORAGE_PATH",
         )
 
+    temporary_paths = [p for p in storage_paths if isinstance(p, str) and p.startswith(f"pdf_temp/{uid}/")]
+    saved_paths = [p for p in storage_paths if p not in temporary_paths]
     try:
-        for path in storage_paths:
+        if saved_paths:
+            if not isinstance(source_session_doc, str) or not _SESSION_DOC_ID_RE.fullmatch(source_session_doc):
+                raise PermissionError("저장된 PDF의 사용 권한을 확인할 수 없습니다")
+            doc = (
+                fa_firestore.client().collection("users").document(uid)
+                .collection("pdf_sessions").document(source_session_doc).get()
+            )
+            recorded = (doc.to_dict() or {}).get("storagePaths") if doc.exists else None
+            if not isinstance(recorded, list):
+                raise PermissionError("저장 세션을 찾을 수 없습니다")
+            for path in saved_paths:
+                if not _is_saved_source_path(uid, path) or path not in recorded:
+                    raise PermissionError("저장 세션에 없는 PDF입니다")
+        for path in temporary_paths:
             _validate_storage_path(uid, path)
     except PermissionError as exc:
         return _error_response(str(exc), 403, "PDF_STORAGE_PATH_FORBIDDEN")
