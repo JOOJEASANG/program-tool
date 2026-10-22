@@ -23,8 +23,8 @@ def test_final_controls_load_after_legacy_advanced_controls_and_restore_new_numb
     html = (ROOT / 'smart-print-layout' / 'index.html').read_text(encoding='utf-8')
     final_controls = (ROOT / 'js' / 'smart-print-layout' / 'final-controls.js').read_text(encoding='utf-8')
 
-    advanced_src = '/js/smart-print-layout/advanced-controls.js?v=20260915-1'
-    final_src = '/js/smart-print-layout/final-controls.js?v=20260916-1'
+    advanced_src = '/js/smart-print-layout/advanced-controls.js?v=20261022-1'
+    final_src = '/js/smart-print-layout/final-controls.js?v=20261022-1'
     assert advanced_src in html and final_src in html
     assert html.index(advanced_src) < html.index(final_src)
 
