@@ -9,6 +9,7 @@
   const MAX_FILE_BYTES = 20 * 1024 * 1024;
   const MAX_TOTAL_BYTES = 300 * 1024 * 1024;
   let operationBusy = false;
+  let loadedSession = null;
 
   function layoutApi() {
     return window.SmartPrintLayout || null;
@@ -44,12 +45,13 @@
           <div class="smart-session-head"><strong id="smartSessionSaveTitle">편집 내용 저장</strong><button type="button" data-close-save aria-label="닫기">×</button></div>
           <label class="smart-session-field">저장 이름<input id="smartSessionNameInput" type="text" maxlength="120" placeholder="예: 명함 A3 자동배치"></label>
           <div class="smart-session-status" id="smartSessionSaveStatus" role="status"></div>
-          <div class="smart-session-actions"><button type="button" data-close-save>취소</button><button class="primary" id="smartSessionSaveConfirm" type="button">저장</button></div>
+          <div class="smart-session-actions"><button type="button" data-close-save>취소</button><button id="smartSessionOverwriteConfirm" type="button" hidden>기존 저장본 덮어쓰기</button><button class="primary" id="smartSessionSaveConfirm" type="button">새 편집 저장</button></div>
         </div>`;
       document.body.appendChild(save);
       save.querySelectorAll('[data-close-save]').forEach(button => button.addEventListener('click', () => { if (!operationBusy) save.hidden = true; }));
       save.addEventListener('click', event => { if (event.target === save && !operationBusy) save.hidden = true; });
-      $('smartSessionSaveConfirm').addEventListener('click', saveCurrentSession);
+      $('smartSessionSaveConfirm').addEventListener('click', () => saveCurrentSession('new'));
+      $('smartSessionOverwriteConfirm').addEventListener('click', () => saveCurrentSession('overwrite'));
       $('smartSessionNameInput').addEventListener('keydown', event => {
         if (event.key === 'Enter') {
           event.preventDefault();
@@ -126,7 +128,7 @@
     }
   }
 
-  async function saveCurrentSession() {
+  async function saveCurrentSession(mode = 'new') {
     if (operationBusy) return false;
     ensureUi();
     const api = layoutApi();
@@ -150,19 +152,42 @@
       return false;
     }
 
-    const name = ($('smartSessionNameInput').value || '').trim() || '스마트 인쇄배치';
+    const target = mode === 'overwrite' ? loadedSession : null;
+    if (mode === 'overwrite' && (!target || target.uid !== user.uid)) {
+      status.textContent = '덮어쓸 저장본을 먼저 불러와 주세요.';
+      return false;
+    }
+    if (target && !window.confirm('기존 저장본의 편집 내용을 덮어쓸까요?')) return false;
+    const name = target ? target.name : (($('smartSessionNameInput').value || '').trim() || '스마트 인쇄배치');
     const sessionId = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
     const collection = db.collection('users').doc(user.uid).collection(SESSION_COLLECTION);
     const storagePaths = [];
+    const uploadedPaths = [];
+    const used = new Set();
     setBusy(true);
     $('smartSessionSaveConfirm').disabled = true;
     setStatus('편집 내용을 저장하는 중...');
 
     try {
+      if (target) {
+        const currentSnap = await collection.doc(target.docId).get();
+        const current = currentSnap.exists ? currentSnap.data() : null;
+        if (!current || current.sessionId !== target.sessionId
+          || JSON.stringify(current.storagePaths) !== JSON.stringify(target.storagePaths)) {
+          throw new Error('저장본이 다른 창에서 변경되었습니다. 다시 불러온 후 저장하세요.');
+        }
+      }
       for (let index = 0; index < files.length; index += 1) {
-        status.textContent = `원본 PDF 저장 중... (${index + 1}/${files.length})`;
+        const prior = target?.files.findIndex((file, position) => file === files[index] && !used.has(position)) ?? -1;
+        if (prior >= 0 && target.storagePaths[prior]) {
+          used.add(prior);
+          storagePaths.push(target.storagePaths[prior]);
+          continue;
+        }
+        status.textContent = `새 원본 PDF 업로드 중... (${index + 1}/${files.length})`;
         const path = `pdf_sessions/${user.uid}/${sessionId}/src_${index}.pdf`;
         storagePaths.push(path);
+        uploadedPaths.push(path);
         await storage.ref(path).put(files[index], {
           contentType: 'application/pdf',
           customMetadata: { ownerUid: user.uid, purpose: 'pdf-session-source', sessionId },
@@ -171,7 +196,7 @@
 
       status.textContent = '배치 설정 저장 중...';
       const pageCount = Math.max(1, items.reduce((sum, item) => sum + Number(item.pageCount || 1), 0));
-      await collection.add({
+      const payload = {
         name: name.slice(0, 120),
         sessionId,
         storagePaths,
@@ -179,15 +204,36 @@
         pageCount,
         totalBytes: checked.totalBytes,
         state: checked.serialized,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-      });
-      await trimOldSessions(collection).catch(error => console.warn('[smart-layout-session] cleanup failed', error));
-      status.textContent = `저장 완료 · 원본 ${(checked.totalBytes / 1024 / 1024).toFixed(1)}MB`;
+      };
+      let savedDoc;
+      if (target) {
+        savedDoc = collection.doc(target.docId);
+        await db.runTransaction(async transaction => {
+          const snapshot = await transaction.get(savedDoc);
+          const current = snapshot.exists ? snapshot.data() : null;
+          if (!current || current.sessionId !== target.sessionId
+            || JSON.stringify(current.storagePaths) !== JSON.stringify(target.storagePaths)) {
+            throw new Error('저장본이 다른 창에서 변경되었습니다. 다시 불러온 후 저장하세요.');
+          }
+          transaction.update(savedDoc, { ...payload, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+        });
+      } else {
+        savedDoc = await collection.add({ ...payload, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+      }
+      loadedSession = { uid: user.uid, docId: savedDoc.id, sessionId, name: payload.name,
+        storagePaths: [...storagePaths], files: [...files] };
+      if (target) {
+        const obsolete = target.storagePaths.filter(path => !storagePaths.includes(path));
+        await cleanupStoragePaths(obsolete, storage);
+      } else {
+        await trimOldSessions(collection).catch(error => console.warn('[smart-layout-session] cleanup failed', error));
+      }
+      status.textContent = `저장 완료 · 원본 재사용 ${files.length - uploadedPaths.length}개 · 새 업로드 ${uploadedPaths.length}개`;
       setStatus('편집 내용을 저장했습니다.', 'success');
       setTimeout(() => { $('smartSessionSaveModal').hidden = true; }, 650);
       return true;
     } catch (error) {
-      await cleanupStoragePaths(storagePaths, storage);
+      await cleanupStoragePaths(uploadedPaths, storage);
       status.textContent = `저장 실패: ${error.message}`;
       setStatus(`편집 저장 실패: ${error.message}`, 'error');
       return false;
@@ -336,6 +382,9 @@
       input.dispatchEvent(new Event('change', { bubbles: true }));
       await waitForImport(files.length);
       api.recalculate?.();
+      loadedSession = {uid: window.auth.currentUser.uid, docId, sessionId: data.sessionId,
+        name: String(data.name || '스마트 인쇄배치'), storagePaths: [...paths],
+        files: api.state.items.map(item => item.file)};
       $('smartSessionLoadModal').hidden = true;
       setStatus(`저장된 편집 내용을 불러왔습니다. · ${files.length}개 PDF`, 'success');
       return true;
@@ -358,6 +407,7 @@
       await db.collection('users').doc(user.uid).collection(SESSION_COLLECTION).doc(docId).delete();
       await cleanupStoragePaths(data.storagePaths || []);
       node?.remove();
+      if (loadedSession?.docId === docId) loadedSession = null;
       if (!$('smartSessionList')?.children.length) $('smartSessionList').innerHTML = '<div class="smart-session-empty">저장된 스마트 인쇄배치 내용이 없습니다.</div>';
       setStatus('저장 내용을 삭제했습니다.', 'success');
     } catch (error) {
@@ -375,7 +425,10 @@
     $('smartSessionSaveStatus').textContent = '';
     $('smartSessionSaveModal').hidden = false;
     const input = $('smartSessionNameInput');
-    input.value = '';
+    input.value = loadedSession?.name || '';
+    const overwrite = $('smartSessionOverwriteConfirm');
+    overwrite.hidden = !loadedSession || loadedSession.uid !== window.auth?.currentUser?.uid;
+    $('smartSessionSaveConfirm').textContent = overwrite.hidden ? '새 편집 저장' : '새 이름으로 저장';
     setTimeout(() => input.focus(), 0);
   }
 
