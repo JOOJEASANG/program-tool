@@ -82,3 +82,42 @@ def test_local_programs_avoid_unnecessary_server_uploads():
     assert "mergeLocally(files)" in merge
     assert "서버 업로드 없이 완료했습니다." in merge
     assert "function runCheck()" in checker
+
+def test_smart_layout_cached_json_requests_keep_final_output_adapters():
+    advanced = read("js/smart-print-layout/advanced-controls.js")
+    final = read("js/smart-print-layout/final-controls.js")
+    numbering = read("js/smart-print-layout/numbering-preview-sync.js")
+    html = read("smart-print-layout/index.html")
+    for path, source in (
+        ("advanced-controls", advanced),
+        ("final-controls", final),
+        ("numbering-preview-sync", numbering),
+    ):
+        assert "smart-layout-storage" in source, path
+        assert "const storedRequest" in source, path
+        assert "JSON.stringify({...payload,settings})" in source, path
+        assert f"/js/smart-print-layout/{path}.js?v=20261022-1" in html
+    assert "job.back_file_index = backIndex" in advanced
+    assert "settings.trim_width_mm = trim.widthMm" in final
+    assert "settings.trim_height_mm = trim.heightMm" in final
+    assert "normalizeExportSettings(settings)" in numbering
+
+def test_orphan_reconciler_preserves_previous_revision_files_for_each_editor():
+    import sys
+    import importlib
+    backend = str(ROOT / "backend")
+    if backend not in sys.path:
+        sys.path.insert(0, backend)
+    main = importlib.import_module("main")
+    uid = "unit-user"
+    for kind, path in (
+        ("pdf_sessions", f"pdf_sessions/{uid}/previous123/src_0.pdf"),
+        ("pdf_smart_layout_sessions", f"pdf_sessions/{uid}/previous123/src_0.pdf"),
+        ("pdf_advanced_sessions", f"pdf_sessions/{uid}/previous123/src_0.pdf"),
+        ("print_checker_sessions", f"print_checker_sessions/{uid}/previous123/source.pdf"),
+    ):
+        result = main._normalize_document_paths(
+            {"sessionId":"latest123", "storagePaths":[path]},
+            "storagePaths", uid=uid, collection_id=kind
+        )
+        assert result == [path], kind
