@@ -53,36 +53,65 @@ function uploadFile(ref, file, signal, onProgress) {
   });
 }
 
+const reusableInputs = new Map();
+let reusableOwner = '';
+
 async function storageProcess(files, settings, token, signal, onStatus, onProgress) {
   const user = auth.currentUser;
   if (!user) throw new Error('로그인이 필요합니다.');
   const storage = firebase.storage();
+  if (reusableOwner !== user.uid) {
+    reusableInputs.clear();
+    reusableOwner = user.uid;
+  }
+  const saved = window.PdfAdvancedSessionPersistence?.reusableSourcePaths?.(files);
   const session = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2,7)}`;
   const paths = [];
+  const newlyUploaded = [];
+  let success = false;
   try {
     for (let index = 0; index < files.length; index++) {
       if (signal?.aborted) throw new DOMException('작업이 취소되었습니다.', 'AbortError');
-      onStatus?.(`원본 PDF 업로드 중... (${index + 1}/${files.length})`);
+      const savedPath = saved?.paths?.[index];
+      if (savedPath) { paths.push(savedPath); continue; }
+      const cached = reusableInputs.get(files[index]);
+      if (cached?.uid === user.uid) { paths.push(cached.path); continue; }
+      onStatus?.(`새 원본 PDF 업로드 중... (${index + 1}/${files.length})`);
       const path = `pdf_temp/${user.uid}/${session}/${index}.pdf`;
       paths.push(path);
+      newlyUploaded.push(path);
       await uploadFile(storage.ref(path), files[index], signal, ratio => {
         onProgress?.(((index + ratio) / files.length) * 45);
       });
+      reusableInputs.set(files[index], {uid:user.uid,path});
     }
-    onStatus?.('서버에서 고급 편집 PDF 생성 중...');
+    onStatus?.(newlyUploaded.length ? '서버에서 고급 편집 PDF 생성 중...' : '원본 재업로드 없이 PDF 생성 중...');
     onProgress?.(55);
     const response = await fetch('/api/pdf/advanced/process-storage', {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ storage_paths: paths, settings }),
+      body: JSON.stringify({ storage_paths: paths, settings, retain_temp_sources: true,
+        source_session_doc: saved?.docId || null }),
       signal,
     });
     if (!response.ok) throw new Error(await readApiError(response, `서버 오류 (${response.status})`));
     onProgress?.(92);
-    return await readDelivery(response);
+    const output = await readDelivery(response);
+    success = true;
+    return output;
   } catch (error) {
-    await Promise.allSettled(paths.map(path => storage.ref(path).delete()));
+    if (error?.name !== 'AbortError' && error?.name !== 'TypeError') {
+      // Cached temporary originals may have expired or been removed.
+      for (const [file, cached] of reusableInputs)
+        if (paths.includes(cached.path)) reusableInputs.delete(file);
+    }
     throw error;
+  } finally {
+    if (!success) {
+      for (const [file, cached] of reusableInputs)
+        if (newlyUploaded.includes(cached.path)) reusableInputs.delete(file);
+      await Promise.allSettled(newlyUploaded.map(path => storage.ref(path).delete()));
+    }
   }
 }
 
@@ -96,16 +125,8 @@ export async function processAdvancedPdf(files, settings, { signal, onStatus, on
   const token = await user.getIdToken(true);
   if (signal?.aborted) throw new DOMException('작업이 취소되었습니다.', 'AbortError');
 
-  if (totalBytes <= 18 * 1024 * 1024) {
-    try {
-      onStatus?.('고급 편집 PDF 생성 중...'); onProgress?.(20);
-      const blob = await directProcess(files, settings, token, signal);
-      onProgress?.(100); return blob;
-    } catch (error) {
-      if (error?.name === 'AbortError') throw error;
-      console.warn('[pdf-advanced] direct processing failed; retrying with storage', error);
-    }
-  }
+  // The browser retains unchanged inputs while the tab stays open. Sending
+  // only settings for subsequent exports avoids uploading full PDFs again.
   const blob = await storageProcess(files, settings, token, signal, onStatus, onProgress);
   onProgress?.(100);
   return blob;

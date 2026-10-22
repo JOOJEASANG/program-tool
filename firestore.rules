@@ -232,21 +232,51 @@ service cloud.firestore {
     match /users/{uid}/pdf_advanced_sessions/{docId} {
       allow read: if isOwner(uid) && approved(uid);
       allow create: if isOwner(uid) && approved(uid) && validPdfSessionMetadata();
-      allow update: if false;
+      // Atomic in-place metadata revision; existing immutable originals remain
+      // referenced until the new revision commits successfully.
+      allow update: if isOwner(uid) && approved(uid)
+        && validPdfSessionMetadata()
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.sessionId != resource.data.sessionId
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'name', 'sessionId', 'storagePaths', 'fileCount',
+          'pageCount', 'totalBytes', 'state', 'updatedAt'
+        ]);
       allow delete: if isOwner(uid);
     }
 
     match /users/{uid}/pdf_smart_layout_sessions/{docId} {
       allow read: if isOwner(uid) && approved(uid);
       allow create: if isOwner(uid) && approved(uid) && validPdfSessionMetadata();
-      allow update: if false;
+      // Atomic in-place metadata revision; existing immutable originals remain
+      // referenced until the new revision commits successfully.
+      allow update: if isOwner(uid) && approved(uid)
+        && validPdfSessionMetadata()
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.sessionId != resource.data.sessionId
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'name', 'sessionId', 'storagePaths', 'fileCount',
+          'pageCount', 'totalBytes', 'state', 'updatedAt'
+        ]);
       allow delete: if isOwner(uid);
     }
 
     match /users/{uid}/print_checker_sessions/{docId} {
       allow read: if isOwner(uid) && approved(uid);
       allow create: if isOwner(uid) && approved(uid) && validPdfSessionMetadata();
-      allow update: if false;
+      // Atomic in-place metadata revision; existing immutable originals remain
+      // referenced until the new revision commits successfully.
+      allow update: if isOwner(uid) && approved(uid)
+        && validPdfSessionMetadata()
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.sessionId != resource.data.sessionId
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'name', 'sessionId', 'storagePaths', 'fileCount',
+          'pageCount', 'totalBytes', 'state', 'updatedAt'
+        ]);
       allow delete: if isOwner(uid);
     }
 

@@ -21,7 +21,7 @@ def test_smart_layout_auto_fills_each_sheet_and_centers_preview_and_output():
     router = (ROOT / "backend" / "routers" / "pdf_smart_layout.py").read_text(encoding="utf-8")
     service = (ROOT / "backend" / "services" / "smart_print_layout_auto.py").read_text(encoding="utf-8")
 
-    assert "app.js?v=20260910-2" in html
+    assert "app.js?v=20261022-1" in html
     assert "function centerSheet" in app
     assert "packOneFile" in app
     assert "auto_fill: true" in app

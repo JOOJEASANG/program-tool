@@ -127,7 +127,7 @@ def test_frontend_exposes_orientation_duplex_pairing_and_final_numbering_control
     sync = (ROOT / 'js' / 'smart-print-layout' / 'numbering-preview-sync.js').read_text(encoding='utf-8')
     preview = (ROOT / 'js' / 'smart-print-layout' / 'duplex-preview.js').read_text(encoding='utf-8')
 
-    assert '/js/smart-print-layout/advanced-controls.js?v=20260915-1' in html
+    assert '/js/smart-print-layout/advanced-controls.js?v=20261022-1' in html
     assert 'guide-row' not in html
     for marker in (
         'paperOrientation',

@@ -161,8 +161,26 @@ def test_pdf_session_orphan_cleanup_keeps_owner_referenced_older_revisions():
         f"pdf_sessions/{UID}/previous123/src_0.pdf",
         f"pdf_sessions/{UID}/latest123/src_1.pdf",
     ]
-    # Other products keep their existing strict revision binding.
+    # All stateful PDF editors now retain owner-scoped immutable older revisions.
     advanced = main._normalize_document_paths(
         recorded, "storagePaths", uid=UID, collection_id="pdf_advanced_sessions"
     )
-    assert advanced == [f"pdf_sessions/{UID}/latest123/src_1.pdf"]
+    assert advanced == [
+        f"pdf_sessions/{UID}/previous123/src_0.pdf",
+        f"pdf_sessions/{UID}/latest123/src_1.pdf",
+    ]
+    for collection in ("pdf_smart_layout_sessions",):
+        assert main._normalize_document_paths(
+            recorded, "storagePaths", uid=UID, collection_id=collection
+        ) == advanced
+    checker = main._normalize_document_paths(
+        {"sessionId": "latest123", "storagePaths": [
+            f"print_checker_sessions/{UID}/previous123/source.pdf",
+            f"print_checker_sessions/{UID}/latest123/source.png",
+            "print_checker_sessions/other-user/previous123/source.pdf",
+        ]}, "storagePaths", uid=UID, collection_id="print_checker_sessions"
+    )
+    assert checker == [
+        f"print_checker_sessions/{UID}/previous123/source.pdf",
+        f"print_checker_sessions/{UID}/latest123/source.png",
+    ]

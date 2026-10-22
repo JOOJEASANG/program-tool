@@ -13,6 +13,8 @@
 
   const $ = id => document.getElementById(id);
   const state = { items: [], plan: null, sheetIndex: 0, side: 'front', pdfJsPromise: null, busy: false };
+  const cachedSources = new Map();
+  let cachedOwner = '';
 
   const mmFromPt = pt => Number(pt || 0) * 25.4 / 72;
   const round1 = value => Math.round(Number(value || 0) * 10) / 10;
@@ -370,8 +372,45 @@
         auto_fill: true,
         side_mode: cfg.sideMode, flip_edge: cfg.flipEdge, crop_marks: cfg.cropMarks
       }));
-      state.items.forEach(item => form.append('files', item.file, item.name));
-      const response = await fetch('/api/pdf/smart-layout', { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: form });
+      const files = state.items.map(item => item.file);
+      const saved = window.SmartPrintLayoutSessions?.reusableSourcePaths?.(files);
+      const storage = window.firebase?.storage?.();
+      if (!storage) throw new Error('원본 보관 서비스를 사용할 수 없습니다.');
+      if (cachedOwner !== user.uid) { cachedSources.clear(); cachedOwner = user.uid; }
+      const sessionId = window.crypto.randomUUID().replace(/-/g, '');
+      const paths = [], newlyUploaded = [];
+      let response;
+      try {
+        for (let index = 0; index < files.length; index += 1) {
+          const savedPath = saved?.paths?.[index];
+          if (savedPath) { paths.push(savedPath); continue; }
+          const cached = cachedSources.get(files[index]);
+          if (cached?.uid === user.uid) { paths.push(cached.path); continue; }
+          const path = `pdf_temp/${user.uid}/${sessionId}/${index}.pdf`;
+          status(`새 원본 업로드 중... (${index + 1}/${files.length})`);
+          paths.push(path); newlyUploaded.push(path);
+          await storage.ref(path).put(files[index], {contentType:'application/pdf'});
+          cachedSources.set(files[index], {uid:user.uid,path});
+        }
+        status(newlyUploaded.length ? '서버에서 PDF 생성 중...' : '원본 재업로드 없이 PDF 생성 중...');
+        response = await fetch('/api/pdf/smart-layout-storage', {
+          method:'POST',headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},
+          body:JSON.stringify({settings:JSON.parse(form.get('settings')),storage_paths:paths,
+            source_session_doc:saved?.docId||null,retain_temp_sources:true}),
+        });
+        if (!response.ok) {
+          if (response.status === 404) for (const [file,cached] of cachedSources)
+            if (paths.includes(cached.path)) cachedSources.delete(file);
+          throw new Error('스마트 배치 원본 처리 실패 ('+response.status+')');
+        }
+      } catch (error) {
+        // Do not delete already committed session originals or earlier cached
+        // sources. Clean only newly staged inputs when generation fails.
+        for (const [file,cached] of cachedSources)
+          if (newlyUploaded.includes(cached.path)) cachedSources.delete(file);
+        await Promise.allSettled(newlyUploaded.map(path => storage.ref(path).delete()));
+        throw error;
+      }
       if (!response.ok) {
         let detail = `PDF 생성 실패 (${response.status})`;
         try { detail = (await response.json())?.detail || detail; } catch (_) {}

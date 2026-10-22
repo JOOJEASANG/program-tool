@@ -18,7 +18,7 @@ import {
   sourceNormalizedFromBacking,
   sourceSideForVisualEdge,
 } from './preview.js';
-import { processAdvancedPdf } from './api.js';
+import { processAdvancedPdf } from './api.js?v=20261022-1';
 
 const $ = id => document.getElementById(id);
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));

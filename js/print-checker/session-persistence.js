@@ -9,6 +9,7 @@
   const MAX_SESSIONS = 10;
   const MAX_FILE_BYTES = 200 * 1024 * 1024;
   let currentSourceFile = null;
+  let loadedSession = null;
   let operationBusy = false;
   let storageReadyPromise = null;
 
@@ -49,12 +50,13 @@
           <div class="checker-session-head"><strong id="printCheckerSessionSaveTitle">편집 내용 저장</strong><button type="button" data-close-save aria-label="닫기">×</button></div>
           <label class="checker-session-field">저장 이름<input id="printCheckerSessionNameInput" type="text" maxlength="120" placeholder="예: A4 리플렛 최종 점검"></label>
           <div class="checker-session-status" id="printCheckerSessionSaveStatus" role="status"></div>
-          <div class="checker-session-actions"><button type="button" data-close-save>취소</button><button class="primary" id="printCheckerSessionSaveConfirm" type="button">저장</button></div>
+          <div class="checker-session-actions"><button type="button" data-close-save>취소</button><button id="printCheckerSessionOverwriteConfirm" type="button" hidden>기존 저장본 덮어쓰기</button><button class="primary" id="printCheckerSessionSaveConfirm" type="button">새 편집 저장</button></div>
         </div>`;
       document.body.appendChild(save);
       save.querySelectorAll('[data-close-save]').forEach(button => button.addEventListener('click', () => { if (!operationBusy) save.hidden = true; }));
       save.addEventListener('click', event => { if (event.target === save && !operationBusy) save.hidden = true; });
-      $('printCheckerSessionSaveConfirm').addEventListener('click', saveCurrentSession);
+      $('printCheckerSessionSaveConfirm').addEventListener('click', () => saveCurrentSession('new'));
+      $('printCheckerSessionOverwriteConfirm').addEventListener('click', () => saveCurrentSession('overwrite'));
       $('printCheckerSessionNameInput').addEventListener('keydown', event => {
         if (event.key === 'Enter') {
           event.preventDefault();
@@ -170,7 +172,7 @@
     }
   }
 
-  async function saveCurrentSession() {
+  async function saveCurrentSession(mode = 'new') {
     if (operationBusy) return false;
     ensureUi();
     const status = $('printCheckerSessionSaveStatus');
@@ -191,10 +193,18 @@
 
     const extension = extensionFor(currentSourceFile);
     const contentType = normalizedContentType(currentSourceFile, extension);
-    const sessionId = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
-    const storagePath = `print_checker_sessions/${user.uid}/${sessionId}/source.${extension}`;
+    const sessionId = window.crypto.randomUUID().replace(/-/g, '');
+    const target = mode === 'overwrite' ? loadedSession : null;
+    if (mode === 'overwrite' && (!target || target.uid !== user.uid)) {
+      status.textContent = '덮어쓸 저장본을 먼저 불러와 주세요.';
+      return false;
+    }
+    if (target && !window.confirm('기존 검토 저장본을 덮어쓸까요?')) return false;
+    const freshPath = `print_checker_sessions/${user.uid}/${sessionId}/source.${extension}`;
+    const reused = Boolean(target && target.file === currentSourceFile && target.storagePaths[0]);
+    const storagePath = reused ? target.storagePaths[0] : freshPath;
     const collection = db.collection('users').doc(user.uid).collection(SESSION_COLLECTION);
-    const name = ($('printCheckerSessionNameInput')?.value || '').trim() || '인쇄물 사전 검토';
+    const name = target ? target.name : (($('printCheckerSessionNameInput')?.value || '').trim() || '인쇄물 사전 검토');
     setBusy(true);
     $('printCheckerSessionSaveConfirm').disabled = true;
     status.textContent = '원본 파일을 저장하는 중...';
@@ -202,28 +212,47 @@
     let storage = null;
     try {
       storage = await ensureStorageApi();
-      await storage.ref(storagePath).put(currentSourceFile, {
+      if (target) {
+        const check = await collection.doc(target.docId).get();
+        const stored = check.exists ? check.data() : null;
+        if (!stored || stored.sessionId !== target.sessionId
+          || JSON.stringify(stored.storagePaths) !== JSON.stringify(target.storagePaths))
+          throw new Error('저장본이 다른 창에서 변경되었습니다. 다시 불러온 뒤 저장하세요.');
+      }
+      if (!reused) await storage.ref(storagePath).put(currentSourceFile, {
         contentType,
         customMetadata: { ownerUid: user.uid, purpose: 'print-checker-session-source', sessionId },
       });
       status.textContent = '검토 설정을 저장하는 중...';
       const pageCount = Math.max(1, Math.min(5000, Number(window.PrintChecker?.getState?.()?.pdfPageCount || 1)));
-      await collection.add({
-        name: name.slice(0, 120),
-        sessionId,
-        storagePaths: [storagePath],
-        fileCount: 1,
-        pageCount: Math.round(pageCount),
-        totalBytes: Number(currentSourceFile.size || 0),
-        state: serialized,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-      });
-      await trimOldSessions(collection, storage).catch(error => console.warn('[print-checker-session] cleanup failed', error));
-      status.textContent = '저장 완료';
+      const payload = {
+        name: name.slice(0, 120), sessionId, storagePaths: [storagePath],
+        fileCount: 1, pageCount: Math.round(pageCount),
+        totalBytes: Number(currentSourceFile.size || 0), state: serialized,
+      };
+      let savedDoc;
+      if (target) {
+        savedDoc = collection.doc(target.docId);
+        await db.runTransaction(async transaction => {
+          const check = await transaction.get(savedDoc);
+          const stored = check.exists ? check.data() : null;
+          if (!stored || stored.sessionId !== target.sessionId
+            || JSON.stringify(stored.storagePaths) !== JSON.stringify(target.storagePaths))
+            throw new Error('저장본이 다른 창에서 변경되었습니다. 다시 불러온 뒤 저장하세요.');
+          transaction.update(savedDoc, {...payload, updatedAt:firebase.firestore.FieldValue.serverTimestamp()});
+        });
+      } else {
+        savedDoc = await collection.add({...payload, createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+      }
+      loadedSession = {uid:user.uid,docId:savedDoc.id,sessionId,name:payload.name,
+        storagePaths:[storagePath],file:currentSourceFile};
+      if (target && !reused) await cleanupStoragePaths(target.storagePaths, storage);
+      if (!target) await trimOldSessions(collection, storage).catch(error => console.warn('[print-checker-session] cleanup failed', error));
+      status.textContent = reused ? '저장 완료 · 원본 재업로드 없음' : '저장 완료 · 새 원본 업로드';
       setTimeout(() => { $('printCheckerSessionSaveModal').hidden = true; }, 650);
       return true;
     } catch (error) {
-      if (storage) await cleanupStoragePaths([storagePath], storage);
+      if (storage && !reused) await cleanupStoragePaths([storagePath], storage);
       status.textContent = `저장 실패: ${error.message}`;
       return false;
     } finally {
@@ -369,6 +398,8 @@
       setAdjustment('adjScale', saved.adjustment?.scale ?? 100);
       await window.PrintChecker?.setFileSide?.(saved.checker.fileSide || 'front');
       if (saved.hadReport) window.PrintChecker?.runCheck?.();
+      loadedSession = {uid:window.auth.currentUser.uid,docId,sessionId:data.sessionId,
+        name:String(data.name||'인쇄물 사전 검토'),storagePaths:[pathValue],file};
       $('printCheckerSessionLoadModal').hidden = true;
       return true;
     } catch (error) {
@@ -390,6 +421,7 @@
       await db.collection('users').doc(user.uid).collection(SESSION_COLLECTION).doc(docId).delete();
       await cleanupStoragePaths(data.storagePaths || [], storage);
       node?.remove();
+      if (loadedSession?.docId === docId) loadedSession = null;
       if (!$('printCheckerSessionList')?.children.length) {
         $('printCheckerSessionList').innerHTML = '<div class="checker-session-empty">저장된 인쇄물 검토 내용이 없습니다.</div>';
       }
@@ -410,7 +442,10 @@
     }
     $('printCheckerSessionSaveModal').hidden = false;
     const input = $('printCheckerSessionNameInput');
-    input.value = '';
+    input.value = loadedSession?.name || '';
+    const overwrite = $('printCheckerSessionOverwriteConfirm');
+    overwrite.hidden = !loadedSession || loadedSession.uid !== window.auth?.currentUser?.uid;
+    $('printCheckerSessionSaveConfirm').textContent = overwrite.hidden ? '새 편집 저장' : '새 이름으로 저장';
     setTimeout(() => input.focus(), 0);
   }
 
@@ -424,11 +459,29 @@
     $('resetBtn')?.addEventListener('click', () => { currentSourceFile = null; });
   }
 
+  let bindingAttempts = 0;
+  let sourceTrackingBound = false;
   function bind() {
     ensureUi();
-    trackSourceFile();
-    $('printCheckerSessionSaveBtn')?.addEventListener('click', openSaveModal);
-    $('printCheckerSessionLoadBtn')?.addEventListener('click', openLoadModal);
+    if (!sourceTrackingBound) {
+      trackSourceFile();
+      sourceTrackingBound = true;
+    }
+    // The shared sidebar is mounted by a separate access-gated script.
+    const save = $('printCheckerSessionSaveBtn');
+    const load = $('printCheckerSessionLoadBtn');
+    if (!save || !load) {
+      if (++bindingAttempts < 40) setTimeout(bind, 150);
+      return;
+    }
+    if (save.dataset.printCheckerSessionActionBound !== 'true') {
+      save.dataset.printCheckerSessionActionBound = 'true';
+      save.addEventListener('click', openSaveModal);
+    }
+    if (load.dataset.printCheckerSessionActionBound !== 'true') {
+      load.dataset.printCheckerSessionActionBound = 'true';
+      load.addEventListener('click', openLoadModal);
+    }
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind, { once: true });

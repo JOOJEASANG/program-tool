@@ -304,11 +304,14 @@
       try {
         const url = typeof input === 'string' ? input : input?.url || '';
         const body = init?.body;
-        if (/\/api\/pdf\/smart-layout(?:\?|$)/.test(url) && body instanceof FormData) {
-          const raw = body.get('settings');
-          if (typeof raw === 'string') {
-            const settings = JSON.parse(raw);
+        const storedRequest = url.includes('/api/pdf/smart-layout-storage') && typeof body === 'string';
+        if ((/\/api\/pdf\/smart-layout(?:\?|$)/.test(url) && body instanceof FormData) || storedRequest) {
+          const payload = storedRequest ? JSON.parse(body) : null;
+          const raw = storedRequest ? payload.settings : body.get('settings');
+          const settings = typeof raw === 'string' ? JSON.parse(raw) : raw;
+          if (settings && typeof settings === 'object') {
             normalizeExportSettings(settings);
+            if (storedRequest) return originalFetch(input, {...init,body:JSON.stringify({...payload,settings})});
             body.set('settings', JSON.stringify(settings));
           }
         }

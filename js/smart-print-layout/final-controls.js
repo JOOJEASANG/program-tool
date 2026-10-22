@@ -267,7 +267,8 @@
     window.fetch = function smartPrintFinalFetch(input, init = {}) {
       const url = typeof input === 'string' ? input : String(input?.url || '');
       const body = init?.body;
-      if (!url.includes('/api/pdf/smart-layout') || !(body instanceof FormData)) {
+      const storedRequest = url.includes('/api/pdf/smart-layout-storage') && typeof body === 'string';
+      if (!url.includes('/api/pdf/smart-layout') || (!(body instanceof FormData) && !storedRequest)) {
         return previousFetch(input, init);
       }
 
@@ -276,6 +277,17 @@
         validateNumberingConfig();
       } catch (error) {
         return Promise.reject(error);
+      }
+
+      if (storedRequest) {
+        try {
+          const payload = JSON.parse(body);
+          const settings = finalizedSettings(payload.settings || {});
+          return previousFetch(input, {...init,body:JSON.stringify({...payload,settings})});
+        } catch (error) {
+          setStatus(error?.message || '스마트 인쇄배치 설정을 확인해 주세요.', 'error');
+          return Promise.reject(error);
+        }
       }
 
       const hadOwnSet = Object.prototype.hasOwnProperty.call(body, 'set');
