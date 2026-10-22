@@ -57,6 +57,7 @@ def test_persistent_pdf_cleanup_accepts_only_owner_session_source_paths():
     assert safe == [
         "pdf_sessions/owner-1/session_ab12/src_0.pdf",
         "pdf_sessions/owner-1/session_ab12/src_12.pdf",
+        "pdf_sessions/owner-1/other_session/src_0.pdf",
     ]
 
 
