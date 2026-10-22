@@ -441,5 +441,19 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind, { once: true });
   else bind();
 
-  window.SmartPrintLayoutSessions = { openSaveModal, openLoadModal, stage: 'firebase-session-v1' };
+  window.SmartPrintLayoutSessions = {
+    openSaveModal, openLoadModal,
+    reusableSourcePaths(files) {
+      const user = window.auth?.currentUser;
+      if (!loadedSession || loadedSession.uid !== user?.uid || !Array.isArray(files)) return null;
+      const used = new Set();
+      return {docId:loadedSession.docId,paths:files.map(file => {
+        const index = loadedSession.files.findIndex((original, i) => original === file && !used.has(i));
+        if (index < 0) return null;
+        used.add(index);
+        return loadedSession.storagePaths[index] || null;
+      })};
+    },
+    stage: 'firebase-source-reuse-overwrite-v2'
+  };
 })();
