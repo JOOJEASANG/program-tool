@@ -6,8 +6,8 @@ ROOT = Path(__file__).resolve().parents[2]
 
 def test_numbering_preview_sync_is_loaded_after_final_controls():
     html = (ROOT / 'smart-print-layout' / 'index.html').read_text(encoding='utf-8')
-    final_marker = '/js/smart-print-layout/final-controls.js?v=20260916-1'
-    sync_marker = '/js/smart-print-layout/numbering-preview-sync.js?v=20260916-4'
+    final_marker = '/js/smart-print-layout/final-controls.js?v=20261022-1'
+    sync_marker = '/js/smart-print-layout/numbering-preview-sync.js?v=20261022-1'
     polish_marker = '/js/smart-print-layout/numbering-ui-polish.js?v=20260916-2'
     duplex_marker = '/js/smart-print-layout/duplex-preview.js?v=20260916-2'
     assert final_marker in html
