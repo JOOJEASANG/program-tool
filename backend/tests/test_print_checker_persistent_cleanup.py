@@ -15,7 +15,7 @@ def test_print_checker_sessions_are_in_server_reconciliation():
     assert "PRINT_CHECKER_SESSION_SOURCE_PATTERN = re.compile(" in source
     assert '"print_checker_sessions",' in source
     assert 'if collection_id == "print_checker_sessions":' in source
-    assert 'expected_prefix = f"print_checker_sessions/{uid}/{session_id}/"' in source
+    assert 'expected_prefix = f"print_checker_sessions/{uid}/"' in source
     assert "source_pattern = PRINT_CHECKER_SESSION_SOURCE_PATTERN" in source
 
     assert "print_checker_session_paths = _trim_firestore_group(" in source
@@ -32,6 +32,6 @@ def test_print_checker_cleanup_does_not_reuse_pdf_session_source_pattern():
     branch_end = source.index("safe_paths: list[str] = []", branch_start)
     branch = source[branch_start:branch_end]
 
-    assert 'expected_prefix = f"print_checker_sessions/{uid}/{session_id}/"' in branch
+    assert 'expected_prefix = f"print_checker_sessions/{uid}/"' in branch
     assert "source_pattern = PRINT_CHECKER_SESSION_SOURCE_PATTERN" in branch
     assert "source_pattern = PDF_SESSION_SOURCE_PATTERN" in branch
