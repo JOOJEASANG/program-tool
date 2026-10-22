@@ -494,9 +494,11 @@
       try {
         const url = typeof input === 'string' ? input : String(input?.url || '');
         const body = init?.body;
-        if (url.includes('/api/pdf/smart-layout') && body instanceof FormData) {
-          const raw = body.get('settings');
-          const settings = JSON.parse(typeof raw === 'string' ? raw : '{}');
+        const storedRequest = url.includes('/api/pdf/smart-layout-storage') && typeof body === 'string';
+        if (url.includes('/api/pdf/smart-layout') && (body instanceof FormData || storedRequest)) {
+          const payload = storedRequest ? JSON.parse(body) : null;
+          const raw = storedRequest ? payload.settings : body.get('settings');
+          const settings = typeof raw === 'string' ? JSON.parse(raw) : (raw || {});
           const items = layoutApi()?.state?.items || [];
           const existing = new Map((Array.isArray(settings.jobs) ? settings.jobs : []).map(job => [Number(job.file_index), job]));
           settings.jobs = items.flatMap((item, index) => {
@@ -508,6 +510,7 @@
             return [job];
           });
           settings.numbering = numberingConfig();
+          if (storedRequest) return originalFetch(input, {...init,body:JSON.stringify({...payload,settings})});
           body.set('settings', JSON.stringify(settings));
         }
       } catch (error) {
