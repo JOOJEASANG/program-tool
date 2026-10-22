@@ -10,7 +10,7 @@ def test_latest_numbering_ui_assets_and_copy_are_ready_for_production():
     sync = (ROOT / 'js' / 'smart-print-layout' / 'numbering-preview-sync.js').read_text(encoding='utf-8')
     backend = (ROOT / 'backend' / 'services' / 'smart_print_numbering.py').read_text(encoding='utf-8')
 
-    assert '/js/smart-print-layout/numbering-preview-sync.js?v=20260916-4' in html
+    assert '/js/smart-print-layout/numbering-preview-sync.js?v=20261022-1' in html
     assert '/js/smart-print-layout/numbering-ui-polish.js?v=20260916-2' in html
     assert '단면과 양면 모두 같은 크기의 중앙 미리보기를 사용합니다.' not in html
 
