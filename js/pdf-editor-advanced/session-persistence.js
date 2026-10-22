@@ -15,6 +15,7 @@ const MAX_STATE_BYTES = 780 * 1024;
 const SESSION_COLLECTION = 'pdf_advanced_sessions';
 const SESSION_FORMAT = 'program-studio-advanced-pdf-session';
 let operationBusy = false;
+let loadedSession = null;
 
 const clone = value => JSON.parse(JSON.stringify(value));
 const totalBytes = files => [...(files || [])].reduce((sum, file) => sum + Number(file?.size || 0), 0);
@@ -75,12 +76,13 @@ function ensureUi() {
         <div class="advanced-session-head"><strong id="advancedSessionSaveTitle">편집 내용 저장</strong><button type="button" data-close-save aria-label="닫기">×</button></div>
         <label class="advanced-session-field">저장 이름<input id="advancedSessionNameInput" type="text" maxlength="120" placeholder="예: 9월 표지 수정본"></label>
         <div class="advanced-session-status" id="advancedSessionSaveStatus" role="status"></div>
-        <div class="advanced-session-actions"><button type="button" data-close-save>취소</button><button class="primary" id="advancedSessionSaveConfirm" type="button">저장</button></div>
+        <div class="advanced-session-actions"><button type="button" data-close-save>취소</button><button id="advancedSessionOverwriteConfirm" type="button" hidden>기존 저장본 덮어쓰기</button><button class="primary" id="advancedSessionSaveConfirm" type="button">새 편집 저장</button></div>
       </div>`;
     document.body.appendChild(save);
     save.querySelectorAll('[data-close-save]').forEach(button => button.addEventListener('click', () => { if (!operationBusy) save.hidden = true; }));
     save.addEventListener('click', event => { if (event.target === save && !operationBusy) save.hidden = true; });
-    $('advancedSessionSaveConfirm').addEventListener('click', saveCurrentSession);
+    $('advancedSessionSaveConfirm').addEventListener('click', () => saveCurrentSession('new'));
+    $('advancedSessionOverwriteConfirm').addEventListener('click', () => saveCurrentSession('overwrite'));
     $('advancedSessionNameInput').addEventListener('keydown', event => { if (event.key === 'Enter') { event.preventDefault(); saveCurrentSession(); } });
   }
   if (!$('advancedSessionLoadModal')) {
@@ -163,7 +165,7 @@ async function trimOldSessions(collection) {
   }
 }
 
-async function saveCurrentSession() {
+async function saveCurrentSession(mode = 'new') {
   if (operationBusy) return false;
   ensureUi();
   const user = window.auth?.currentUser;
@@ -182,41 +184,78 @@ async function saveCurrentSession() {
     $('advancedSessionSaveStatus').textContent = error.message;
     return false;
   }
-  const name = ($('advancedSessionNameInput').value || '').trim() || 'PDF 편집 세션';
+  const target = mode === 'overwrite' ? loadedSession : null;
+  if (mode === 'overwrite' && (!target || target.uid !== user.uid)) {
+    $('advancedSessionSaveStatus').textContent = '덮어쓸 저장본을 먼저 불러와 주세요.';
+    return false;
+  }
+  if (target && !window.confirm('기존 저장본의 편집 내용을 덮어쓸까요?')) return false;
+  const name = target ? target.name : (($('advancedSessionNameInput').value || '').trim() || 'PDF 편집 세션');
   const sessionId = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
   const collection = db.collection('users').doc(user.uid).collection(SESSION_COLLECTION);
   const storagePaths = [];
+  const uploadedPaths = [];
+  const used = new Set();
   const status = $('advancedSessionSaveStatus');
   setOperationBusy(true, '편집 내용을 저장하는 중...');
   $('advancedSessionSaveConfirm').disabled = true;
   try {
+    if (target) {
+      const snap = await collection.doc(target.docId).get();
+      const current = snap.exists ? snap.data() : null;
+      if (!current || current.sessionId !== target.sessionId
+        || JSON.stringify(current.storagePaths) !== JSON.stringify(target.storagePaths))
+        throw new Error('저장본이 변경되었습니다. 다시 불러온 뒤 저장하세요.');
+    }
     for (let index = 0; index < files.length; index += 1) {
-      status.textContent = `원본 PDF 저장 중... (${index + 1}/${files.length})`;
+      const previous = target?.files.findIndex((file, position) => file === files[index] && !used.has(position)) ?? -1;
+      if (previous >= 0 && target.storagePaths[previous]) {
+        used.add(previous);
+        storagePaths.push(target.storagePaths[previous]);
+        continue;
+      }
+      status.textContent = `새 원본 PDF 업로드 중... (${index + 1}/${files.length})`;
       const path = `pdf_sessions/${user.uid}/${sessionId}/src_${index}.pdf`;
       storagePaths.push(path);
+      uploadedPaths.push(path);
       await storage.ref(path).put(files[index], {
         contentType: 'application/pdf',
         customMetadata: { ownerUid: user.uid, purpose: 'pdf-session-source', sessionId },
       });
     }
     status.textContent = '편집 상태 저장 중...';
-    await collection.add({
-      name: name.slice(0, 120),
-      sessionId,
-      storagePaths,
-      fileCount: files.length,
-      pageCount: state.pages.length,
-      totalBytes: checked.bytes,
-      state: checked.serialized,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-    });
-    await trimOldSessions(collection).catch(error => console.warn('[pdf-advanced-session] cleanup failed', error));
-    status.textContent = `저장 완료 · 원본 ${(checked.bytes / 1024 / 1024).toFixed(1)}MB`;
+    const payload = {
+      name: name.slice(0, 120), sessionId, storagePaths,
+      fileCount: files.length, pageCount: state.pages.length,
+      totalBytes: checked.bytes, state: checked.serialized,
+    };
+    let savedDoc;
+    if (target) {
+      savedDoc = collection.doc(target.docId);
+      await db.runTransaction(async transaction => {
+        const snap = await transaction.get(savedDoc);
+        const current = snap.exists ? snap.data() : null;
+        if (!current || current.sessionId !== target.sessionId
+          || JSON.stringify(current.storagePaths) !== JSON.stringify(target.storagePaths))
+          throw new Error('저장본이 다른 창에서 변경되었습니다. 다시 불러온 뒤 저장하세요.');
+        transaction.update(savedDoc, {...payload, updatedAt: firebase.firestore.FieldValue.serverTimestamp()});
+      });
+    } else {
+      savedDoc = await collection.add({...payload, createdAt: firebase.firestore.FieldValue.serverTimestamp()});
+    }
+    loadedSession = {uid:user.uid, docId:savedDoc.id, sessionId, name:payload.name,
+      storagePaths:[...storagePaths], files:[...files]};
+    if (target) {
+      await cleanupStoragePaths(target.storagePaths.filter(path => !storagePaths.includes(path)), storage);
+    } else {
+      await trimOldSessions(collection).catch(error => console.warn('[pdf-advanced-session] cleanup failed', error));
+    }
+    status.textContent = `저장 완료 · 원본 재사용 ${files.length-uploadedPaths.length}개 · 업로드 ${uploadedPaths.length}개`;
     setStatus('편집 내용을 저장했습니다.', 'success');
     setTimeout(() => { $('advancedSessionSaveModal').hidden = true; }, 700);
     return true;
   } catch (error) {
-    await cleanupStoragePaths(storagePaths, storage);
+    await cleanupStoragePaths(uploadedPaths, storage);
     status.textContent = `저장 실패: ${error.message}`;
     setStatus(`편집 저장 실패: ${error.message}`, 'error');
     return false;
@@ -266,7 +305,7 @@ async function openLoadModal() {
       actions.className = 'advanced-session-item-actions';
       const loadButton = document.createElement('button');
       loadButton.type = 'button'; loadButton.textContent = '불러오기';
-      loadButton.addEventListener('click', () => loadSession(data));
+      loadButton.addEventListener('click', () => loadSession(data, doc.id));
       const deleteButton = document.createElement('button');
       deleteButton.type = 'button'; deleteButton.className = 'delete'; deleteButton.textContent = '삭제';
       deleteButton.addEventListener('click', async () => {
@@ -276,6 +315,7 @@ async function openLoadModal() {
           await cleanupStoragePaths(data.storagePaths || []);
           await doc.ref.delete();
           item.remove();
+          if (loadedSession?.docId === doc.id) loadedSession = null;
           if (!list.querySelector('.advanced-session-item')) list.innerHTML = '<div class="advanced-session-empty">저장된 PDF 편집 내용이 없습니다.</div>';
           setStatus('저장된 편집 내용을 삭제했습니다.', 'success');
         } catch (error) {
@@ -407,7 +447,7 @@ function restoreState(state) {
   selectedItem?.click();
 }
 
-async function loadSession(data) {
+async function loadSession(data, docId = null) {
   if (operationBusy) return false;
   let state;
   try { state = JSON.parse(String(data.state || '')); } catch (_) { return setStatus('저장된 편집 상태를 읽을 수 없습니다.', 'error'); }
@@ -427,6 +467,9 @@ async function loadSession(data) {
     const sourcePageCount = Math.max(...state.pages.map(page => Number(page.pageIndex) + 1), 1);
     await waitForImport(files.length, Math.max(sourcePageCount, state.pages.length));
     restoreState(state);
+    loadedSession = docId ? {uid:window.auth.currentUser.uid,docId,sessionId:data.sessionId,
+      name:String(data.name||'PDF 편집 세션'),storagePaths:[...(data.storagePaths||[])],
+      files:[...advancedState.files]} : null;
     setStatus(`편집 내용 불러오기 완료 · ${advancedState.pages.length}페이지`, 'success');
     return true;
   } catch (error) {
@@ -439,8 +482,11 @@ function openSaveModal() {
   if (operationBusy) return;
   ensureUi();
   if (!advancedState.files.length || !advancedState.pages.length) return setStatus('먼저 PDF 파일을 불러와 주세요.', 'error');
-  $('advancedSessionNameInput').value = '';
+  $('advancedSessionNameInput').value = loadedSession?.name || '';
   $('advancedSessionSaveStatus').textContent = '';
+  const overwrite = $('advancedSessionOverwriteConfirm');
+  overwrite.hidden = !loadedSession || loadedSession.uid !== window.auth?.currentUser?.uid;
+  $('advancedSessionSaveConfirm').textContent = overwrite.hidden ? '새 편집 저장' : '새 이름으로 저장';
   $('advancedSessionSaveModal').hidden = false;
   setTimeout(() => $('advancedSessionNameInput').focus(), 50);
 }
