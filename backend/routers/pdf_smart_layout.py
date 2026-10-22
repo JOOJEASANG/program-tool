@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import json
 import logging
+import re
+from firebase_admin import firestore as fa_firestore
 
 import fitz
 from flask import Blueprint, Response, jsonify, request
@@ -136,6 +138,10 @@ def smart_layout(uid: str):
         file_bytes.append(data)
         filenames.append(filename)
 
+    return _render_smart_result(uid, raw_settings, settings, trim_width_mm, trim_height_mm, file_bytes, filenames)
+
+def _render_smart_result(uid, raw_settings, settings, trim_width_mm, trim_height_mm, file_bytes, filenames):
+    """Shared render/delivery contract for multipart and reused immutable sources."""
     docs: list[fitz.Document] = []
     combined_docs: list[fitz.Document] = []
     try:
@@ -227,3 +233,73 @@ def smart_layout(uid: str):
         headers={'Content-Disposition': 'attachment; filename="smart-print-layout.pdf"'},
     )
     return _add_summary_headers(response, plan)
+
+@pdf_smart_layout_bp.route('/smart-layout-storage', methods=['POST'])
+@require_auth
+def smart_layout_storage(uid: str):
+    """Reuse previously stored inputs, including immutable originals in saved sessions."""
+    try:
+        body = request.get_json(force=True) or {}
+        raw_settings = body.get('settings') or {}
+        settings = SmartLayoutRequest.model_validate(raw_settings)
+        trim_width_mm, trim_height_mm = parse_trim_size(raw_settings, required=settings.crop_marks)
+        paths = body.get('storage_paths')
+        source_session_doc = body.get('source_session_doc')
+        retain_temp_sources = body.get('retain_temp_sources') is True
+    except Exception:
+        return _error('스마트 배치 설정이 올바르지 않습니다.', 422, 'SMART_LAYOUT_INVALID_SETTINGS')
+
+    if not isinstance(paths, list) or not paths or len(paths) > MAX_FILES or len(set(map(str, paths))) != len(paths):
+        return _error('PDF 파일 경로가 올바르지 않습니다.', 400, 'SMART_LAYOUT_INVALID_PATHS')
+    temporary = [p for p in paths if isinstance(p, str) and p.startswith(f'pdf_temp/{uid}/')]
+    saved = [p for p in paths if p not in temporary]
+    if any(not re.fullmatch(rf'pdf_temp/{re.escape(uid)}/[A-Za-z0-9_-]{{8,40}}/[0-9]{{1,2}}\.pdf', p) for p in temporary):
+        return _error('임시 PDF 경로가 올바르지 않습니다.', 403, 'SMART_LAYOUT_FORBIDDEN')
+    if saved:
+        if not isinstance(source_session_doc, str) or not re.fullmatch(r'[A-Za-z0-9_-]{1,128}', source_session_doc):
+            return _error('저장본의 사용 권한이 없습니다.', 403, 'SMART_LAYOUT_FORBIDDEN')
+        try:
+            doc = (fa_firestore.client().collection('users').document(uid)
+                   .collection('pdf_smart_layout_sessions').document(source_session_doc).get())
+            recorded = (doc.to_dict() or {}).get('storagePaths') if doc.exists else None
+        except Exception:
+            logger.exception('Smart layout session authorization failed')
+            return _error('저장본을 확인할 수 없습니다.', 503, 'SMART_LAYOUT_LOOKUP_FAILED')
+        if not isinstance(recorded, list) or any(
+            not isinstance(p, str)
+            or not re.fullmatch(rf'pdf_sessions/{re.escape(uid)}/[A-Za-z0-9_-]{{8,40}}/src_[0-9]{{1,2}}\.pdf', p)
+            or p not in recorded for p in saved
+        ):
+            return _error('저장본에 없는 PDF입니다.', 403, 'SMART_LAYOUT_FORBIDDEN')
+
+    try:
+        bucket = get_bucket()
+        file_bytes = []
+        total = 0
+        for path in paths:
+            blob = bucket.blob(path)
+            try:
+                blob.reload()
+            except Exception:
+                return _error('저장된 원본 PDF를 찾을 수 없습니다. 다시 불러와 주세요.', 404, 'SMART_LAYOUT_FILE_NOT_FOUND')
+            size = int(blob.size or 0)
+            if size <= 0 or size > MAX_DIRECT_FILE_BYTES:
+                return _error('PDF 한 파일은 20MB 이하만 처리할 수 있습니다.', 413, 'SMART_LAYOUT_FILE_TOO_LARGE')
+            total += size
+            if total > MAX_DIRECT_TOTAL_BYTES:
+                return _error('PDF 전체 크기는 20MB 이하로 처리해 주세요.', 413, 'SMART_LAYOUT_TOTAL_TOO_LARGE')
+            file_bytes.append(blob.download_as_bytes())
+        filenames = [f'source_{index}.pdf' for index in range(len(paths))]
+        return _render_smart_result(uid, raw_settings, settings, trim_width_mm, trim_height_mm, file_bytes, filenames)
+    except Exception:
+        logger.exception('Smart layout stored source failed')
+        return _error('스마트 배치 원본을 처리할 수 없습니다.', 500, 'SMART_LAYOUT_STORAGE_ERROR')
+    finally:
+        # The saved originals belong to their document; cached temporary inputs
+        # are reused only when the browser has explicitly opted into retention.
+        if not retain_temp_sources:
+            for path in temporary:
+                try:
+                    get_bucket().blob(path).delete()
+                except Exception:
+                    logger.warning('Smart layout temp cleanup failed', exc_info=True)
