@@ -377,7 +377,7 @@
       const storage = window.firebase?.storage?.();
       if (!storage) throw new Error('원본 보관 서비스를 사용할 수 없습니다.');
       if (cachedOwner !== user.uid) { cachedSources.clear(); cachedOwner = user.uid; }
-      const sessionId = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+      const sessionId = window.crypto.randomUUID().replace(/-/g, '');
       const paths = [], newlyUploaded = [];
       let response;
       try {
