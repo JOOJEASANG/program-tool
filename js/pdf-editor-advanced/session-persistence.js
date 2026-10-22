@@ -505,6 +505,17 @@ window.PdfAdvancedSessionPersistence = {
   openLoadModal,
   restoreState,
   loadSession,
+  reusableSourcePaths(files) {
+    if (!loadedSession || loadedSession.uid !== window.auth?.currentUser?.uid) return null;
+    const used = new Set();
+    return {docId: loadedSession.docId,
+      paths: files.map(file => {
+        const index = loadedSession.files.findIndex((original, i) => original === file && !used.has(i));
+        if (index < 0) return null;
+        used.add(index);
+        return loadedSession.storagePaths[index] || null;
+      })};
+  },
   collection: SESSION_COLLECTION,
   maxStateBytes: MAX_STATE_BYTES,
   stage: 'advanced-edit-session-source-files-state-restore-v2-state-byte-preflight',
