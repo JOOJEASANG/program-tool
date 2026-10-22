@@ -159,7 +159,7 @@
     }
     if (target && !window.confirm('기존 저장본의 편집 내용을 덮어쓸까요?')) return false;
     const name = target ? target.name : (($('smartSessionNameInput').value || '').trim() || '스마트 인쇄배치');
-    const sessionId = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+    const sessionId = window.crypto.randomUUID().replace(/-/g, '');
     const collection = db.collection('users').doc(user.uid).collection(SESSION_COLLECTION);
     const storagePaths = [];
     const uploadedPaths = [];
