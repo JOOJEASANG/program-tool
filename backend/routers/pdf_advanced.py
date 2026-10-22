@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import json
 import logging
+import re
+from firebase_admin import firestore as fa_firestore
 import shutil
 import tempfile
 from pathlib import Path
@@ -230,6 +232,8 @@ def process_storage(uid):
     try:
         body = request.get_json(force=True) or {}
         storage_paths = body.get("storage_paths", [])
+        source_session_doc = body.get("source_session_doc")
+        retain_temp_sources = body.get("retain_temp_sources") is True
         req = PdfAdvancedProcessRequest.model_validate(body.get("settings", {}))
     except Exception:
         return _error("고급 PDF 처리 요청이 올바르지 않습니다.", 422, "PDF_ADVANCED_INVALID_REQUEST")
@@ -238,9 +242,24 @@ def process_storage(uid):
         return _error("PDF 파일 경로가 없습니다.", 400, "PDF_ADVANCED_STORAGE_PATHS_REQUIRED")
     if len(storage_paths) > MAX_PDF_FILES or len(storage_paths) != len(set(storage_paths)):
         return _error("PDF 파일 경로가 올바르지 않습니다.", 400, "PDF_ADVANCED_INVALID_STORAGE_PATHS")
+    temporary_paths = [p for p in storage_paths if isinstance(p, str) and p.startswith(f"pdf_temp/{uid}/")]
+    saved_paths = [p for p in storage_paths if p not in temporary_paths]
     try:
-        for path in storage_paths:
+        for path in temporary_paths:
             _validate_storage_path(uid, path)
+        if saved_paths:
+            if not isinstance(source_session_doc, str) or not re.fullmatch(r"[A-Za-z0-9_-]{1,128}", source_session_doc):
+                raise PermissionError("저장된 원본 PDF 사용 권한이 없습니다")
+            document = (fa_firestore.client().collection("users").document(uid)
+                        .collection("pdf_advanced_sessions").document(source_session_doc).get())
+            recorded = (document.to_dict() or {}).get("storagePaths") if document.exists else None
+            if not isinstance(recorded, list):
+                raise PermissionError("저장된 PDF를 찾을 수 없습니다")
+            for path in saved_paths:
+                if not isinstance(path, str) or not re.fullmatch(
+                    rf"pdf_sessions/{re.escape(uid)}/[A-Za-z0-9_-]{{8,40}}/src_[0-9]{{1,2}}\.pdf", path
+                ) or path not in recorded:
+                    raise PermissionError("저장 세션에 없는 PDF 파일입니다")
     except PermissionError as exc:
         return _error(str(exc), 403, "PDF_ADVANCED_STORAGE_FORBIDDEN")
     except ValueError as exc:
@@ -290,5 +309,6 @@ def process_storage(uid):
     except Exception:
         return _internal("Advanced storage PDF processing failed")
     finally:
-        _cleanup_storage(bucket, storage_paths)
+        if not retain_temp_sources:
+            _cleanup_storage(bucket, temporary_paths)
         _cleanup_local(temp_dir)
