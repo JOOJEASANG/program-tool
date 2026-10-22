@@ -193,7 +193,7 @@
 
     const extension = extensionFor(currentSourceFile);
     const contentType = normalizedContentType(currentSourceFile, extension);
-    const sessionId = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+    const sessionId = window.crypto.randomUUID().replace(/-/g, '');
     const target = mode === 'overwrite' ? loadedSession : null;
     if (mode === 'overwrite' && (!target || target.uid !== user.uid)) {
       status.textContent = '덮어쓸 저장본을 먼저 불러와 주세요.';
