@@ -459,11 +459,29 @@
     $('resetBtn')?.addEventListener('click', () => { currentSourceFile = null; });
   }
 
+  let bindingAttempts = 0;
+  let sourceTrackingBound = false;
   function bind() {
     ensureUi();
-    trackSourceFile();
-    $('printCheckerSessionSaveBtn')?.addEventListener('click', openSaveModal);
-    $('printCheckerSessionLoadBtn')?.addEventListener('click', openLoadModal);
+    if (!sourceTrackingBound) {
+      trackSourceFile();
+      sourceTrackingBound = true;
+    }
+    // The shared sidebar is mounted by a separate access-gated script.
+    const save = $('printCheckerSessionSaveBtn');
+    const load = $('printCheckerSessionLoadBtn');
+    if (!save || !load) {
+      if (++bindingAttempts < 40) setTimeout(bind, 150);
+      return;
+    }
+    if (save.dataset.printCheckerSessionActionBound !== 'true') {
+      save.dataset.printCheckerSessionActionBound = 'true';
+      save.addEventListener('click', openSaveModal);
+    }
+    if (load.dataset.printCheckerSessionActionBound !== 'true') {
+      load.dataset.printCheckerSessionActionBound = 'true';
+      load.addEventListener('click', openLoadModal);
+    }
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind, { once: true });
