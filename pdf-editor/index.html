@@ -387,7 +387,58 @@
       </div>
       <div class="sec-body" id="sb-pages">
         <div class="thumb-area" id="thumbArea"></div>
-        <div class="thumb-hint">클릭=제외 · 드래그=순서변경 · 배지=개별설정</div>
+        <div class="thumb-hint">페이지 선택 → 드래그로 위치 이동 · 여러 장 선택도 한꺼번에 이동 · 배지=개별 설정</div>
+      </div>
+    </div>
+
+    <!-- 용지 -->
+    <div class="sec">
+      <div class="sec-head" data-sec="paper">
+        <span class="sec-title">용지 설정</span>
+        <span class="sec-arrow">▾</span>
+      </div>
+      <div class="sec-body" id="sb-paper">
+        <div class="field">
+          <label>용지 규격</label>
+          <select id="paperSize">
+            <option value="a4">A4 (210×297mm)</option>
+            <option value="a3">A3 (297×420mm)</option>
+            <option value="b4">B4 (257×364mm)</option>
+            <option value="b5">B5 (182×257mm)</option>
+            <option value="letter">Letter (216×279mm)</option>
+            <option value="custom">직접 입력...</option>
+          </select>
+        </div>
+        <div id="customSizeRow" class="grid2" style="display:none;">
+          <div class="field"><label>너비(mm)</label><input id="customW" type="number" value="210" min="50" max="1200"></div>
+          <div class="field"><label>높이(mm)</label><input id="customH" type="number" value="297" min="50" max="1200"></div>
+        </div>
+        <div class="field">
+          <label>용지 방향</label>
+          <div class="orient-row">
+            <button class="orient-btn active" id="orientPort">
+              <svg width="9" height="12" viewBox="0 0 9 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="0.5" y="0.5" width="8" height="11"/></svg>
+              세로
+            </button>
+            <button class="orient-btn" id="orientLand">
+              <svg width="12" height="9" viewBox="0 0 12 9" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="0.5" y="0.5" width="11" height="8"/></svg>
+              가로
+            </button>
+          </div>
+        </div>
+        <div class="grid2">
+          <div class="field"><label>좌우 여백(mm)</label><input id="marginH" type="number" value="10" min="0" max="50"></div>
+          <div class="field"><label>상하 여백(mm)</label><input id="marginV" type="number" value="10" min="0" max="50"></div>
+          <div class="field"><label>슬라이드 간격(mm)</label><input id="gap" type="number" value="5" min="0" max="30"></div>
+        </div>
+        <label class="checkline">
+          <input type="checkbox" id="showBorder" checked>
+          슬라이드 테두리 표시
+        </label>
+        <label class="checkline">
+          <input type="checkbox" id="autoDetectSize">
+          새 파일 가져올 때 용지 크기 자동 감지
+        </label>
       </div>
     </div>
 
@@ -466,57 +517,6 @@
             </button>
           </div>
         </div>
-      </div>
-    </div>
-
-    <!-- 용지 -->
-    <div class="sec">
-      <div class="sec-head" data-sec="paper">
-        <span class="sec-title">용지 설정</span>
-        <span class="sec-arrow">▾</span>
-      </div>
-      <div class="sec-body" id="sb-paper">
-        <div class="field">
-          <label>용지 규격</label>
-          <select id="paperSize">
-            <option value="a4">A4 (210×297mm)</option>
-            <option value="a3">A3 (297×420mm)</option>
-            <option value="b4">B4 (257×364mm)</option>
-            <option value="b5">B5 (182×257mm)</option>
-            <option value="letter">Letter (216×279mm)</option>
-            <option value="custom">직접 입력...</option>
-          </select>
-        </div>
-        <div id="customSizeRow" class="grid2" style="display:none;">
-          <div class="field"><label>너비(mm)</label><input id="customW" type="number" value="210" min="50" max="1200"></div>
-          <div class="field"><label>높이(mm)</label><input id="customH" type="number" value="297" min="50" max="1200"></div>
-        </div>
-        <div class="field">
-          <label>용지 방향</label>
-          <div class="orient-row">
-            <button class="orient-btn active" id="orientPort">
-              <svg width="9" height="12" viewBox="0 0 9 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="0.5" y="0.5" width="8" height="11"/></svg>
-              세로
-            </button>
-            <button class="orient-btn" id="orientLand">
-              <svg width="12" height="9" viewBox="0 0 12 9" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="0.5" y="0.5" width="11" height="8"/></svg>
-              가로
-            </button>
-          </div>
-        </div>
-        <div class="grid2">
-          <div class="field"><label>좌우 여백(mm)</label><input id="marginH" type="number" value="10" min="0" max="50"></div>
-          <div class="field"><label>상하 여백(mm)</label><input id="marginV" type="number" value="10" min="0" max="50"></div>
-          <div class="field"><label>슬라이드 간격(mm)</label><input id="gap" type="number" value="5" min="0" max="30"></div>
-        </div>
-        <label class="checkline">
-          <input type="checkbox" id="showBorder" checked>
-          슬라이드 테두리 표시
-        </label>
-        <label class="checkline">
-          <input type="checkbox" id="autoDetectSize">
-          새 파일 가져올 때 용지 크기 자동 감지
-        </label>
       </div>
     </div>
 
@@ -673,9 +673,9 @@
         <span class="sec-title">출력</span>
       </div>
       <div class="sec-body">
-        <button class="btn btn-primary" id="previewBtn" disabled>미리보기 새로고침</button>
-        <div style="height:6px;"></div>
         <button class="btn btn-green" id="downloadBtn" disabled>PDF 저장</button>
+        <div style="height:6px;"></div>
+        <button class="btn btn-primary" id="previewBtn" disabled>미리보기 새로고침</button>
         <div style="height:6px;"></div>
         <button class="btn btn-secondary" id="resetBtn">전체 초기화</button>
       </div>
