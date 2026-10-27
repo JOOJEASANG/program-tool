@@ -2841,6 +2841,7 @@
     updateGeometry();updateProgress();scheduleRender();
   }
 
+  let boundUserId = '';
   async function authorize(){
     const gate=$('authGate'),shell=$('makerShell'),message=$('authMessage'),login=$('authLogin');
     if(!window.auth){message.textContent='로그인 모듈을 불러오지 못했습니다.';login.hidden=false;return;}
@@ -2849,10 +2850,16 @@
       try{
         const access=await window.ProgramAccess.getAccess(user);
         if(!access.approved){message.textContent='관리자 승인 후 사용할 수 있습니다.';login.hidden=true;shell.hidden=true;gate.hidden=false;return;}
+        if(boundUserId && boundUserId!==user.uid){
+          // Do not carry another account's unsaved canvas and file layers
+          // across users in a tab. Reinitialize with the new user state.
+          location.reload();return;
+        }
         if($('userName'))$('userName').textContent=user.displayName||user.email||'사용자';
         STORAGE_KEY=STORAGE_KEY_PREFIX+':'+user.uid;
         try{localStorage.removeItem(LEGACY_STORAGE_KEY);}catch(_){}
-        gate.hidden=true;shell.hidden=false;bind();
+        gate.hidden=true;shell.hidden=false;
+        if(!boundUserId){boundUserId=user.uid;bind();}
       }catch(error){message.textContent='사용 권한을 확인하지 못했습니다. 잠시 후 새로고침해 주세요.';login.hidden=false;}
     });
   }
