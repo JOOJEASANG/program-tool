@@ -10,15 +10,26 @@
   await new Promise(resolve=>frame.onload=resolve);
   const w=frame.contentWindow;
   const source=await(await fetch('/js/ai-design-maker.js')).text();
-  w.eval(source.replace("  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',authorize,{once:true});else authorize();",'window.printTest={generate,textLayout,setAuthFetch:fn=>{authFetch=fn;},state,buildGenerationRequest,currentSpec,serializableState,selectPreset,syncPromptLanguageUi,saveLocal,loadLocal,selectedDesignDirection,drawShape,wrappedLayout,drawCropMarks,buildGalleryBackgroundBlob,originalImageBlob,updateResolutionInfo};'));
+  w.eval(source.replace("  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',authorize,{once:true});else authorize();",'window.printTest={generate,textLayout,setAuthFetch:fn=>{authFetch=fn;},state,buildGenerationRequest,currentSpec,serializableState,selectPreset,syncPromptLanguageUi,saveLocal,loadLocal,saveSessionNow,loadSessionNow,hasRenderableWork,updateGeometry,setStorageKey:key=>{STORAGE_KEY=key;},selectedDesignDirection,drawShape,wrappedLayout,drawCropMarks,buildGalleryBackgroundBlob,originalImageBlob,updateResolutionInfo};'));
   w.eval(await(await fetch('/js/ai-design-print-export.js')).text());
   const api=w.printTest;
+  api.setStorageKey('program-studio:design-browser-regression');
   const extra=w.document.getElementById('additionalPrompt'),model=w.document.getElementById('imageModel');
   extra.value='아이보리 숲, 사진 제외';model.value='gpt-image-1.5';
   api.selectPreset('report',true);api.state.promptLanguage='en';api.syncPromptLanguageUi(true);
   assert(extra.value==='아이보리 숲, 사진 제외','preset/language erased additional request');
   api.saveLocal();extra.value='';model.value='gpt-image-2';api.loadLocal();
   assert(extra.value==='아이보리 숲, 사진 제외'&&model.value==='gpt-image-1.5','saved model/prompt not restored');
+  api.saveSessionNow();
+  extra.value='이후 자동 저장 수정';api.saveLocal();
+  api.loadSessionNow();
+  assert(extra.value==='아이보리 숲, 사진 제외','manual save was overwritten by later autosave');
+  api.state.background=null;api.state.logo=null;api.state.shapes=[];
+  w.document.getElementById('title').value='배경 없이 글자로 만든 표지';
+  api.updateGeometry();
+  assert(api.hasRenderableWork()&&!w.document.getElementById('exportBtn').disabled,
+    'text-only print design was blocked without AI or imported PDF');
+  w.document.getElementById('title').value='';api.updateGeometry();
   const payload=api.buildGenerationRequest(api.currentSpec(),'기본 방향');
   assert(payload.model==='gpt-image-1.5'&&payload.additional_prompt===extra.value&&payload.style_request==='기본 방향','generation payload lost model or user prompt');
   assert(api.selectedDesignDirection().length<=2000,'visual controls exceed server limit');
