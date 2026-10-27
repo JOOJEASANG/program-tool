@@ -18,7 +18,7 @@ import {
   sourceNormalizedFromBacking,
   sourceSideForVisualEdge,
 } from './preview.js';
-import { processAdvancedPdf } from './api.js?v=20261022-1';
+import { processAdvancedPdf } from './api.js?v=20261027-1';
 
 const $ = id => document.getElementById(id);
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
@@ -54,6 +54,44 @@ function setBusy(busy, message = '처리 중...') {
   $('uploadBtn').disabled = busy;
   $('downloadBtn').disabled = busy || !advancedState.pages.length;
   $('clearAllBtn').disabled = busy || !advancedState.pages.length;
+}
+
+// Keep a user-clickable link after generation in case the browser blocks
+// an automatic download that began after the authenticated server request.
+function deliverEditedPdf(result) {
+  const oldLink = $('advancedManualDownloadLink');
+  if (oldLink) {
+    if (oldLink.dataset.objectUrl) URL.revokeObjectURL(oldLink.dataset.objectUrl);
+    oldLink.remove();
+  }
+  const remote = result?.delivery === 'storage';
+  if (!remote && (!(result instanceof Blob) || !result.size)) {
+    throw new Error('완성된 PDF 파일을 받지 못했습니다.');
+  }
+  const filename = remote ? String(result.filename || 'advanced-edited.pdf') : 'advanced-edited.pdf';
+  const url = remote ? result.download_url : URL.createObjectURL(result);
+  const retry = document.createElement('a');
+  retry.id = 'advancedManualDownloadLink';
+  retry.href = url;
+  retry.download = filename;
+  retry.textContent = '자동 저장이 시작되지 않으면 여기를 클릭하여 PDF 다운로드';
+  retry.style.cssText = 'display:block;margin-top:9px;text-align:center;font-size:12px;font-weight:750;color:#1d4ed8;text-decoration:underline;line-height:1.5';
+  if (!remote) retry.dataset.objectUrl = url;
+  $('downloadBtn').insertAdjacentElement('afterend', retry);
+
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  try { link.click(); }
+  finally { link.remove(); }
+  if (!remote) {
+    // Keep the local file available for a retry; do not revoke immediately.
+    setTimeout(() => {
+      if (retry.isConnected) retry.remove();
+      URL.revokeObjectURL(url);
+    }, 5 * 60 * 1000);
+  }
 }
 
 function makePageId() { return `adv-${Date.now().toString(36)}-${idCounter++}`; }
@@ -410,8 +448,9 @@ function bindUi() {
     try{validateMargins();}catch(error){return setStatus(error.message,'error');}
     const controller=new AbortController();setBusy(true,'편집 PDF를 생성하는 중...');setStatus('편집 PDF 생성 준비 중...');
     try{
-      const blob=await processAdvancedPdf(advancedState.files,serializeSettings(),{signal:controller.signal,onStatus:message=>{setStatus(message);$('busyText').textContent=message;},onProgress:progress=>{if(Number.isFinite(progress))$('busyText').textContent=`편집 PDF 생성 중... ${Math.round(progress)}%`;}});
-      const url=URL.createObjectURL(blob);const link=document.createElement('a');link.href=url;link.download='advanced-edited.pdf';document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);setStatus('편집 PDF 다운로드를 시작했습니다.','success');
+      const result=await processAdvancedPdf(advancedState.files,serializeSettings(),{signal:controller.signal,onStatus:message=>{setStatus(message);$('busyText').textContent=message;},onProgress:progress=>{if(Number.isFinite(progress))$('busyText').textContent=`편집 PDF 생성 중... ${Math.round(progress)}%`;}});
+      deliverEditedPdf(result);
+      setStatus('PDF 생성 완료 · 다운로드가 시작되지 않았다면 저장 버튼 아래의 링크를 눌러 주세요.','success');
     }catch(error){console.error(error);setStatus(error.name==='AbortError'?'작업이 취소되었습니다.':`PDF 생성 실패: ${error.message}`,'error');}
     finally{setBusy(false);}
   });
