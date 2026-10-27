@@ -160,7 +160,7 @@ export function snapshotEditableState() {
 function restoreSnapshot(snapshot) {
   advancedState.pages = clone(snapshot.pages || []);
   advancedState.selectedId = snapshot.selectedId || advancedState.pages[0]?.id || null;
-  advancedState.paper = { ...DEFAULT_PAPER, ...clone(snapshot.paper || {}) };
+  Object.assign(advancedState.paper, DEFAULT_PAPER, clone(snapshot.paper || {}));
   if (!advancedState.paper.preset) advancedState.paper.preset = 'original';
   if (!Number.isFinite(Number(advancedState.paper.customWidthMm))) advancedState.paper.customWidthMm = 210;
   if (!Number.isFinite(Number(advancedState.paper.customHeightMm))) advancedState.paper.customHeightMm = 297;
@@ -169,10 +169,10 @@ function restoreSnapshot(snapshot) {
   advancedState.paper.trimMode = advancedState.paper.trimMode === 'manual' ? 'manual' : 'auto';
   advancedState.paper.trimWidthMm = Math.max(0, Math.min(1200, Number(advancedState.paper.trimWidthMm) || 0));
   advancedState.paper.trimHeightMm = Math.max(0, Math.min(1200, Number(advancedState.paper.trimHeightMm) || 0));
-  advancedState.margins = clone(snapshot.margins || { left: 0, right: 0, top: 0, bottom: 0, facingPages: false });
+  Object.assign(advancedState.margins, { left: 0, right: 0, top: 0, bottom: 0, facingPages: false }, clone(snapshot.margins || {}));
   if (typeof advancedState.margins.facingPages !== 'boolean') advancedState.margins.facingPages = false;
-  advancedState.headerFooter = clone(snapshot.headerFooter || advancedState.headerFooter);
-  advancedState.pageNumbers = clone(snapshot.pageNumbers || advancedState.pageNumbers);
+  Object.assign(advancedState.headerFooter, clone(snapshot.headerFooter || {}));
+  Object.assign(advancedState.pageNumbers, clone(snapshot.pageNumbers || {}));
   emitStateChange('history');
 }
 
@@ -227,17 +227,17 @@ export function resetAllState() {
   advancedState.documents = [];
   advancedState.pages = [];
   advancedState.selectedId = null;
-  advancedState.paper = { ...DEFAULT_PAPER };
-  advancedState.margins = { left: 0, right: 0, top: 0, bottom: 0, facingPages: false };
-  advancedState.headerFooter = {
+  Object.assign(advancedState.paper, DEFAULT_PAPER);
+  Object.assign(advancedState.margins, { left: 0, right: 0, top: 0, bottom: 0, facingPages: false });
+  Object.assign(advancedState.headerFooter, {
     enabled: false,
     headerLeft: '', headerCenter: '', headerRight: '',
     footerLeft: '', footerCenter: '', footerRight: '',
     fontSize: 10,
     color: '#333333',
     margin: 8,
-  };
-  advancedState.pageNumbers = {
+  });
+  Object.assign(advancedState.pageNumbers, {
     enabled: false,
     position: 'bottom-center',
     format: '1',
@@ -246,7 +246,7 @@ export function resetAllState() {
     color: '#333333',
     margin: 5,
     excludeFirst: false,
-  };
+  });
   advancedState.history = [];
   advancedState.future = [];
   advancedState.eraseMode = false;
