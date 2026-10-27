@@ -8,21 +8,28 @@ async function readApiError(response, fallback) {
   return text.trim() || fallback;
 }
 
-async function readDelivery(response) {
+// Storage results are already prepared as attachments by the API. Fetching
+// their cross-origin signed URLs as blobs can be blocked by bucket CORS rules
+// and forces the entire PDF into browser memory. Let the browser download
+// directly instead. The result object is removed by the server TTL cleanup.
+export async function readDelivery(response) {
   const type = response.headers.get('content-type') || '';
-  if (!type.includes('application/json')) return response.blob();
+  if (!type.includes('application/json')) {
+    const blob = await response.blob();
+    if (!blob.size) throw new Error('완성 PDF 파일이 비어 있습니다.');
+    return blob;
+  }
   const delivery = await response.json();
   if (delivery?.delivery !== 'storage' || !delivery.download_url) {
     throw new Error('완성 PDF 다운로드 정보가 올바르지 않습니다.');
   }
-  const result = await fetch(delivery.download_url, { cache: 'no-store' });
-  if (!result.ok) throw new Error('완성 PDF를 내려받지 못했습니다.');
-  const blob = await result.blob();
-  if (delivery.storage_path) {
-    try { await firebase.storage().ref(delivery.storage_path).delete(); }
-    catch (error) { console.warn('[pdf-advanced] result cleanup failed', error); }
-  }
-  return blob;
+  let url;
+  try { url = new URL(delivery.download_url); }
+  catch (_) { throw new Error('완성 PDF 다운로드 주소가 올바르지 않습니다.'); }
+  if (url.protocol !== 'https:') throw new Error('안전한 PDF 다운로드 주소가 아닙니다.');
+  return { delivery: 'storage', download_url: url.href,
+    filename: String(delivery.filename || 'advanced-edited.pdf'),
+    expires_at: String(delivery.expires_at || '') };
 }
 
 async function directProcess(files, settings, token, signal) {
