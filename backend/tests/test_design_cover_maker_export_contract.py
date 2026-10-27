@@ -111,7 +111,7 @@ def test_ai_design_maker_uses_sidebar_only_layout_and_bottom_actions():
     assert 'id="productPickerTitle">디자인 종류' in page
     assert 'id="manualBtn"' not in page
     assert 'program-manual-home-modal.css' not in page
-    assert 'program-manuals/home-modal.js' in page
+    assert 'program-manuals/home-modal.js' not in page
     assert 'program-sidebar-actions.js?v=20260918-2' in page
     assert "position:static" in style
     assert "color:#fff!important" in style
