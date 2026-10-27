@@ -41,8 +41,8 @@ def test_saved_session_imports_are_awaited_and_atomic():
     assert "new DataTransfer()" not in session
     assert "waitForImport(" not in session
     # Keep one ESM module instance: a different query string causes duplicate init.
-    assert "from './app.js?v=20261027-2'" in session
-    assert 'src="/js/pdf-editor-advanced/app.js?v=20261027-2"' in html
+    assert "from './app.js?v=20261027-3'" in session
+    assert 'src="/js/pdf-editor-advanced/app.js?v=20261027-3"' in html
 
 
 def test_no_program_page_adds_usage_help_controls():
