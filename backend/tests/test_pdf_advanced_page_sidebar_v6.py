@@ -38,7 +38,7 @@ def test_page_sidebar_uses_stable_two_column_thumbnail_frames():
     assert "seen.has(id)" in stability
     assert ":scope > canvas, :scope > .page-thumb-frame" in stability
     assert "observer?.disconnect()" in stability
-    assert "facing-upload.js?v=20261001-9" in html
+    assert "facing-upload.js?v=20261027-2" in html
 
 
 def test_trim_size_is_sent_to_output_and_preview_marks_follow_trim_guide():

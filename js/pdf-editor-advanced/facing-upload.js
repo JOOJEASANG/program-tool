@@ -2,7 +2,7 @@ import { advancedState, checkpoint, emitStateChange } from './state.js';
 import './paper-size.js';
 import './workspace-v2.js';
 import './layout-v3.js';
-import './workspace-reset.js';
+import './workspace-reset.js?v=20261027-2';
 import './workspace-inline-review-v4.js';
 import './workspace-right-sidebar-v5.js';
 import './workspace-page-sidebar-v7.js';

@@ -157,7 +157,7 @@ function bindStickyErase() {
 
   window.addEventListener('pdf-advanced-state-change', event => {
     const reason = String(event?.detail?.reason || '');
-    if (reason === 'reset') {
+    if (reason === 'reset' || reason === 'workspace-reset' || reason === 'session-load') {
       stickyErase = false;
       syncEraseVisuals();
     } else if (stickyErase) {

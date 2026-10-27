@@ -234,20 +234,20 @@ async function rebuildPageList() {
   updatePageCount();
 }
 
-async function loadPdfFiles(fileList) {
-  if (advancedState.busy) return;
+export async function loadPdfFiles(fileList, { replace = false } = {}) {
+  if (advancedState.busy) return false;
   const incoming = [...fileList];
-  if (!incoming.length) return;
-  const existingBytes = advancedState.files.reduce((sum, file) => sum + Number(file.size || 0), 0);
+  if (!incoming.length) return false;
+  const existingBytes = (replace ? [] : advancedState.files).reduce((sum, file) => sum + Number(file.size || 0), 0);
   const newBytes = incoming.reduce((sum, file) => sum + Number(file.size || 0), 0);
-  if (existingBytes + newBytes > 300 * 1024 * 1024) return setStatus('전체 PDF 용량은 300 MB 이하여야 합니다.', 'error');
-  if (incoming.some(file => !file.name.toLowerCase().endsWith('.pdf'))) return setStatus('PDF 파일만 불러올 수 있습니다.', 'error');
-  if (incoming.some(file => file.size > 200 * 1024 * 1024)) return setStatus('PDF 한 파일은 200 MB 이하여야 합니다.', 'error');
+  if (existingBytes + newBytes > 300 * 1024 * 1024) { setStatus('전체 PDF 용량은 300 MB 이하여야 합니다.', 'error'); return false; }
+  if (incoming.some(file => !file.name.toLowerCase().endsWith('.pdf'))) { setStatus('PDF 파일만 불러올 수 있습니다.', 'error'); return false; }
+  if (incoming.some(file => file.size > 200 * 1024 * 1024)) { setStatus('PDF 한 파일은 200 MB 이하여야 합니다.', 'error'); return false; }
 
   setBusy(true, 'PDF 파일을 읽는 중...');
   const staged = [];
   try {
-    let baseFileIndex = advancedState.files.length;
+    let baseFileIndex = replace ? 0 : advancedState.files.length;
     for (let fileOffset = 0; fileOffset < incoming.length; fileOffset++) {
       const file = incoming[fileOffset];
       setStatus(`PDF 읽는 중... (${fileOffset + 1}/${incoming.length})`);
@@ -255,7 +255,7 @@ async function loadPdfFiles(fileList) {
       const pdf = await pdfjsLib.getDocument({ data }).promise;
       const fileIndex = baseFileIndex + fileOffset;
       const pages = [];
-      if (advancedState.pages.length + staged.reduce((sum, item) => sum + item.pages.length, 0) + pdf.numPages > 2000) {
+      if ((replace ? 0 : advancedState.pages.length) + staged.reduce((sum, item) => sum + item.pages.length, 0) + pdf.numPages > 2000) {
         try { await pdf.destroy(); } catch (_) {}
         throw new Error('고급 편집은 최대 2,000페이지까지 처리할 수 있습니다.');
       }
@@ -273,7 +273,12 @@ async function loadPdfFiles(fileList) {
       }
       staged.push({ file, pdf, pages });
     }
-    checkpoint('PDF 추가');
+    if (replace) {
+      const oldDocuments = [...advancedState.documents];
+      clearPreviewCache();
+      resetAllState();
+      for (const old of oldDocuments) { try { await old.destroy(); } catch (_) {} }
+    } else checkpoint('PDF 추가');
     for (const item of staged) {
       advancedState.files.push(item.file); advancedState.documents.push(item.pdf); advancedState.pages.push(...item.pages);
     }
@@ -281,9 +286,11 @@ async function loadPdfFiles(fileList) {
     emitStateChange('upload');
     await rebuildPageList(); scheduleRender();
     setStatus(`PDF ${incoming.length}개 · 총 ${advancedState.pages.length}페이지를 불러왔습니다.`, 'success');
+    return true;
   } catch (error) {
     for (const item of staged) { try { await item.pdf.destroy(); } catch (_) {} }
     setStatus(error.message || 'PDF를 불러오지 못했습니다.', 'error');
+    return false;
   } finally {
     setBusy(false); $('fileInput').value = '';
   }

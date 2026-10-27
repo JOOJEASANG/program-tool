@@ -5,7 +5,7 @@ UI = ROOT / "js" / "program-studio-ui-v2.js"
 MANUAL_CATALOG = ROOT / "js" / "program-manuals" / "catalog.js"
 
 
-def test_simple_program_routes_and_help_are_shared():
+def test_simple_program_routes_without_usage_help():
     text = UI.read_text(encoding="utf-8")
     for route in (
         "print-checker",
@@ -15,10 +15,11 @@ def test_simple_program_routes_and_help_are_shared():
         "pdf-preflight",
     ):
         assert f"'{route}'" in text
-    assert "30초 사용법" in text
-    assert "빠른 사용법 보기" in text
-    assert "기본 설정으로 먼저 결과를 만든 뒤" in text
-    assert "simple-program-ux-v1" in text
+    assert "30초 사용법" not in text
+    assert "psSimpleHelpTrigger" not in text
+    assert "SIMPLE_HELP" not in text
+    assert "mountSimpleHelpTrigger" not in text
+    assert "simple-program-ux-v2" in text
 
 
 def test_difficult_terms_get_plain_korean_labels():
@@ -38,18 +39,17 @@ def test_difficult_terms_get_plain_korean_labels():
         assert replacement in text
 
 
-def test_help_is_lightweight_and_does_not_auto_open():
+def test_usage_help_is_removed_but_runtime_observers_remain():
     text = UI.read_text(encoding="utf-8")
-    assert "button.addEventListener('click',openSimpleHelp)" in text
-    assert "mountSimpleHelpTrigger();" in text
-    assert "openSimpleHelp();" not in text.split("onReady(()=>", 1)[1]
+    assert "openSimpleHelp" not in text
+    assert "closeSimpleHelp" not in text
     assert "characterData:true" in text
     assert "requestAnimationFrame(flush)" in text
 
 
-def test_manual_catalog_mentions_in_app_quick_help():
+def test_manual_catalog_does_not_advertise_removed_in_app_help():
     text = MANUAL_CATALOG.read_text(encoding="utf-8")
     assert "SIMPLE_HELP_NOTICE" in text
-    assert "사용법” 버튼" in text
-    assert "30초 안내" in text
+    assert "사용법” 버튼" not in text
+    assert "30초 안내" not in text
     assert "쉬운 표현" in text

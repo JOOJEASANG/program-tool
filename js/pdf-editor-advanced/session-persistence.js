@@ -1,10 +1,6 @@
-import {
-  advancedState,
-  resetAllState,
-  clearHistory,
-  emitStateChange,
-} from './state.js';
-import { clearPreviewCache } from './preview.js';
+import { advancedState, clearHistory, emitStateChange } from './state.js';
+// Match the exact module URL in index.html so app.js initializes only once.
+import { loadPdfFiles } from './app.js?v=20261027-2';
 
 const $ = id => document.getElementById(id);
 const MAX_SESSIONS = 10;
@@ -347,27 +343,6 @@ async function downloadSourceFiles(data) {
   return files;
 }
 
-async function clearCurrentWork() {
-  for (const documentProxy of advancedState.documents) {
-    try { await documentProxy.destroy(); } catch (_) {}
-  }
-  clearPreviewCache();
-  resetAllState();
-  $('pageList')?.replaceChildren();
-}
-
-function waitForImport(expectedFiles, minimumPages, timeoutMs = 60000) {
-  const started = Date.now();
-  return new Promise((resolve, reject) => {
-    const tick = () => {
-      if (!advancedState.busy && advancedState.files.length === expectedFiles && advancedState.pages.length >= minimumPages) return resolve(true);
-      if (Date.now() - started > timeoutMs) return reject(new Error('원본 PDF를 불러오는 시간이 초과되었습니다.'));
-      setTimeout(tick, 80);
-    };
-    setTimeout(tick, 80);
-  });
-}
-
 function syncGlobalControls() {
   const value = (id, next) => { const node = $(id); if (node && next !== undefined && next !== null) node.value = String(next); };
   value('marginLeft', advancedState.margins.left); value('marginRight', advancedState.margins.right); value('marginTop', advancedState.margins.top); value('marginBottom', advancedState.margins.bottom);
@@ -431,10 +406,12 @@ function restoreState(state) {
     restored.push(applySavedPage(saved, page));
   }
   advancedState.pages = restored;
-  advancedState.paper = clone(state.paper || advancedState.paper);
-  advancedState.margins = clone(state.margins || advancedState.margins);
-  advancedState.headerFooter = clone(state.headerFooter || advancedState.headerFooter);
-  advancedState.pageNumbers = clone(state.pageNumbers || advancedState.pageNumbers);
+  // App input listeners hold references to these objects. Mutate the
+  // existing instances so changing a restored value also changes the export.
+  Object.assign(advancedState.paper, clone(state.paper || {}));
+  Object.assign(advancedState.margins, clone(state.margins || {}));
+  Object.assign(advancedState.headerFooter, clone(state.headerFooter || {}));
+  Object.assign(advancedState.pageNumbers, clone(state.pageNumbers || {}));
   const selectedIndex = Math.max(0, Math.min(restored.length - 1, Number(state.selectedIndex || 0)));
   advancedState.selectedId = restored[selectedIndex]?.id || restored[0]?.id || null;
   advancedState.eraseMode = false;
@@ -457,15 +434,13 @@ async function loadSession(data, docId = null) {
   $('advancedSessionLoadModal').hidden = true;
   try {
     const files = await downloadSourceFiles(data);
-    await clearCurrentWork();
-    if (typeof DataTransfer !== 'function') throw new Error('이 브라우저에서는 저장 파일 불러오기를 지원하지 않습니다.');
-    const transfer = new DataTransfer();
-    files.forEach(file => transfer.items.add(file));
-    const input = $('fileInput');
-    input.files = transfer.files;
-    input.dispatchEvent(new Event('change', { bubbles: true }));
-    const sourcePageCount = Math.max(...state.pages.map(page => Number(page.pageIndex) + 1), 1);
-    await waitForImport(files.length, Math.max(sourcePageCount, state.pages.length));
+    if (files.length !== Number(data.fileCount || files.length)) {
+      throw new Error('저장된 원본 PDF 개수가 일치하지 않습니다.');
+    }
+    // Wait for actual PDF parsing rather than simulating a file chooser and
+    // polling a timer. Failed imports keep the previous editor work intact.
+    const imported = await loadPdfFiles(files, { replace: true });
+    if (!imported) throw new Error('원본 PDF를 읽지 못했습니다. 파일을 확인해 주세요.');
     restoreState(state);
     loadedSession = docId ? {uid:window.auth.currentUser.uid,docId,sessionId:data.sessionId,
       name:String(data.name||'PDF 편집 세션'),storagePaths:[...(data.storagePaths||[])],
