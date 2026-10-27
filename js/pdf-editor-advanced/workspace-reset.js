@@ -87,6 +87,10 @@ function syncControls() {
   if ($('advancedPaperCustomRow')) $('advancedPaperCustomRow').hidden = true;
   setValue('advancedPaperCustomW', 210);
   setValue('advancedPaperCustomH', 297);
+  setValue('advancedTrimWidth', '');
+  setValue('advancedTrimHeight', '');
+  setValue('fineRotationRange', 0);
+  setValue('fineRotationNumber', 0);
   if ($('advancedPaperLandscape')) $('advancedPaperLandscape').checked = false;
   if ($('advancedPaperCropMarks')) $('advancedPaperCropMarks').checked = false;
 }
@@ -97,6 +101,9 @@ function resetPage(page) {
   page.crop = { left: 0, top: 0, right: 0, bottom: 0 };
   page.eraseRegions = [];
   page.overlays = [];
+  // Overlays also live in orientationSource for saved sessions. Clear the
+  // serialized copy or the deleted text/images reappear on a later restore.
+  window.PdfAdvancedPageOverlays?.persistPageMetadata?.(page);
   page.scale = 1;
   page.offsetX = 0;
   page.offsetY = 0;
@@ -123,6 +130,7 @@ function resetWorkspace() {
   clearHistory();
   syncControls();
   emitStateChange('workspace-reset');
+  // Repaint after state and sidebar controls have both been synchronized.
   window.PdfAdvancedPageOverlays?.render?.();
   window.dispatchEvent(new Event('resize'));
   setStatus('PDF 원본은 유지하고 편집 내용과 출력 설정을 초기화했습니다.');
