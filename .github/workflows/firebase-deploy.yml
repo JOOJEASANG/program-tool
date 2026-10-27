@@ -104,6 +104,9 @@ jobs:
           venv/bin/pip install -r requirements.txt
           venv/bin/pip check
 
+      - name: 저장된 PDF 불러오기용 Storage CORS 확인
+        run: backend/venv/bin/python scripts/configure_pdf_storage_cors.py
+
       - name: 배포 HTML 렌더링 가드 삽입
         run: python3 scripts/inject_boot_guard.py
 
