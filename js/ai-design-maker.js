@@ -150,6 +150,8 @@
     selectedVariant: -1
   };
 
+  let backgroundLoadVersion = 0;
+  let logoLoadVersion = 0;
   const COVER_MODES = new Set(['front','back','frontBack','spread']);
   const normalizeCoverMode = value => COVER_MODES.has(value) ? value : 'spread';
   const modeHasFront = mode => mode==='front'||mode==='frontBack'||mode==='spread';
@@ -2599,6 +2601,7 @@
 
   async function loadBackground(file){
     if(!file)return;
+    const loadVersion=++backgroundLoadVersion;
     if(file.size>32*1024*1024){setStatus('이미지가 너무 큽니다.','파일당 32MB 이하로 준비해 주세요.','error');return;}
     if(!/^image\/(png|jpeg|webp)$/.test(file.type)){
       setStatus('지원하지 않는 표지 이미지입니다.','PNG, JPEG, WEBP만 사용할 수 있습니다.','error');return;
@@ -2606,6 +2609,7 @@
     const url=URL.createObjectURL(file),image=new Image();image.src=url;
     try{
       await waitForImage(image);
+      if(loadVersion!==backgroundLoadVersion){URL.revokeObjectURL(url);return;}
       if(state.backgroundSource==='upload'&&state.backgroundUrl?.startsWith('blob:'))URL.revokeObjectURL(state.backgroundUrl);
       resetAiVariants();state.background=image;state.backgroundUrl=url;state.backgroundSource='upload';state.generatedSpecKey=specKey(currentSpec());
       state.lastGeneratedPrompt=String($('stylePrompt')?.value||presetPrompt()).trim();
@@ -2627,6 +2631,7 @@
   }
 
   function clearBackground(){
+    backgroundLoadVersion++;
     resetAiVariants();
     if(state.backgroundSource==='upload'&&state.backgroundUrl?.startsWith('blob:'))URL.revokeObjectURL(state.backgroundUrl);
     state.background=null;state.backgroundUrl='';state.backgroundSource='';state.generatedSpecKey='';
@@ -2639,11 +2644,13 @@
 
   async function loadLogo(file){
     if(!file)return;
+    const loadVersion=++logoLoadVersion;
     if(file.size>32*1024*1024){setStatus('이미지가 너무 큽니다.','파일당 32MB 이하로 준비해 주세요.','error');return;}
     if(!/^image\/(png|jpeg|webp)$/.test(file.type)){setStatus('지원하지 않는 로고 파일입니다.','PNG, JPEG, WEBP만 사용할 수 있습니다.','error');return;}
     const url=URL.createObjectURL(file),image=new Image();image.src=url;
     try{
       await waitForImage(image);
+      if(loadVersion!==logoLoadVersion){URL.revokeObjectURL(url);return;}
       const previous = state.logo;
       state.logo=image;
       if(previous?.src?.startsWith('blob:'))URL.revokeObjectURL(previous.src);
@@ -2656,6 +2663,7 @@
   }
 
   function clearLogo(){
+    logoLoadVersion++;
     if(state.logo?.src?.startsWith('blob:'))URL.revokeObjectURL(state.logo.src);
     state.logo=null;if($('logoInput'))$('logoInput').value='';if($('logoName'))$('logoName').textContent='없음';if($('clearLogo'))$('clearLogo').hidden=true;scheduleRender();
   }
