@@ -2642,7 +2642,16 @@
     if(file.size>32*1024*1024){setStatus('이미지가 너무 큽니다.','파일당 32MB 이하로 준비해 주세요.','error');return;}
     if(!/^image\/(png|jpeg|webp)$/.test(file.type)){setStatus('지원하지 않는 로고 파일입니다.','PNG, JPEG, WEBP만 사용할 수 있습니다.','error');return;}
     const url=URL.createObjectURL(file),image=new Image();image.src=url;
-    try{await waitForImage(image);state.logo=image;if($('logoName'))$('logoName').textContent=file.name;if($('clearLogo'))$('clearLogo').hidden=false;scheduleRender();setStatus('로고를 불러왔습니다.','앞표지 하단에 자동 배치했습니다.','ok');}
+    try{
+      await waitForImage(image);
+      const previous = state.logo;
+      state.logo=image;
+      if(previous?.src?.startsWith('blob:'))URL.revokeObjectURL(previous.src);
+      if($('logoName'))$('logoName').textContent=file.name;
+      if($('clearLogo'))$('clearLogo').hidden=false;
+      updateGeometry();scheduleRender();
+      setStatus('로고를 불러왔습니다.','앞표지 하단에 자동 배치했습니다.','ok');
+    }
     catch(error){URL.revokeObjectURL(url);setStatus('로고를 읽지 못했습니다.',error.message,'error');}
   }
 
