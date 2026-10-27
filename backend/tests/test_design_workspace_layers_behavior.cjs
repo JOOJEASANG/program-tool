@@ -104,5 +104,16 @@ assert.equal(z.whole.w,442);
   assert.equal(api.layers.length,1);
   assert.deepEqual(plain(z.front),{x:229,y:3,w:210,h:297});
   assert.equal(alerts.length,2);
+  // Two overlapping import requests must respect the same global 16-layer
+  // limit; no request may race ahead while a PDF/image is being decoded.
+  const extras=Array.from({length:17},(_,i)=>({...file,name:'extra-'+i+'.png'}));
+  await Promise.all([api.importFiles(extras.slice(0,8)),api.importFiles(extras.slice(8))]);
+  assert.equal(api.layers.length,16,'concurrent import exceeded the layer count limit');
+  assert.equal(alerts.filter(x=>x.tone==='error').length,2,'rejected excess imports need an error');
+  const previousRenders=renderCount;
+  assert.equal(api.clearAll({silent:true}),16,'clear must dispose all file layers');
+  assert.equal(api.hasLayers(),false);
+  assert.equal(api.layers.length,0);
+  assert.equal(renderCount,previousRenders,'silent gallery clear should not repaint an intermediate state');
   console.log('design workspace layer behavior passed');
 })().catch(err=>{console.error(err);process.exitCode=1;});
