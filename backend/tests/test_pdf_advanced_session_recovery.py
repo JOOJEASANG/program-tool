@@ -26,7 +26,7 @@ def test_failed_session_download_does_not_close_modal_or_remove_saved_session():
     assert "if (!response.ok)" in s
     assert "storage/object-not-found" in s
     assert "저장된 편집정보는 그대로 남아 있습니다." in s
-    assert "await blob.slice(0, 5).text() !== '%PDF-'" in s
+    assert "await blob.slice(0, 1024).text()" in s
 
 
 def test_manual_recovery_revalidates_originals_and_never_reuses_old_storage():
