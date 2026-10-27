@@ -1,6 +1,6 @@
 import { advancedState, clearHistory, emitStateChange } from './state.js';
 // Match the exact module URL in index.html so app.js initializes only once.
-import { loadPdfFiles } from './app.js?v=20261027-2';
+import { loadPdfFiles } from './app.js?v=20261027-3';
 
 const $ = id => document.getElementById(id);
 const MAX_SESSIONS = 10;
@@ -12,6 +12,7 @@ const SESSION_COLLECTION = 'pdf_advanced_sessions';
 const SESSION_FORMAT = 'program-studio-advanced-pdf-session';
 let operationBusy = false;
 let loadedSession = null;
+let recoverySession = null;
 
 const clone = value => JSON.parse(JSON.stringify(value));
 const totalBytes = files => [...(files || [])].reduce((sum, file) => sum + Number(file?.size || 0), 0);
@@ -56,6 +57,10 @@ function installStyles() {
     .advanced-session-status{min-height:18px;margin-top:9px;font-size:10px;line-height:1.45;color:#64748b}
     .advanced-session-actions{display:flex;justify-content:flex-end;gap:7px;margin-top:12px}.advanced-session-actions button{min-height:34px;padding:0 12px;border:1px solid #d5dee8;border-radius:8px;background:#fff;color:#334155;font-weight:800;cursor:pointer}.advanced-session-actions button.primary{border-color:#12396d;background:#12396d;color:#fff}
     .advanced-session-list{display:flex;flex-direction:column;gap:8px}.advanced-session-item{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;padding:10px;border:1px solid #dce4ec;border-radius:10px;background:#f8fafc}.advanced-session-copy{min-width:0}.advanced-session-copy strong{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;color:#1e293b}.advanced-session-copy span{display:block;margin-top:3px;font-size:9px;color:#64748b}.advanced-session-item-actions{display:flex;gap:5px}.advanced-session-item-actions button{height:30px;padding:0 9px;border:1px solid #cdd7e2;border-radius:7px;background:#fff;color:#334155;font-size:9px;font-weight:800;cursor:pointer}.advanced-session-item-actions button.delete{color:#b91c1c}.advanced-session-empty{padding:22px 8px;text-align:center;color:#94a3b8;font-size:11px}
+    .advanced-session-recovery{margin-top:12px;padding:12px;border:1px solid #fecaca;background:#fff8f8;border-radius:9px;font-size:11px;line-height:1.6;color:#991b1b}
+    .advanced-session-recovery[hidden]{display:none!important}
+    .advanced-session-recovery-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:9px}
+    .advanced-session-recovery-actions button{border:1px solid #cbd5e1;background:white;color:#1e293b;border-radius:7px;min-height:34px;padding:0 10px;font-size:11px;font-weight:800;cursor:pointer}
   `;
   document.head.appendChild(style);
 }
@@ -90,10 +95,32 @@ function ensureUi() {
       <div class="advanced-session-dialog" role="dialog" aria-modal="true" aria-labelledby="advancedSessionLoadTitle">
         <div class="advanced-session-head"><strong id="advancedSessionLoadTitle">편집 내용 불러오기</strong><button type="button" data-close-load aria-label="닫기">×</button></div>
         <div class="advanced-session-list" id="advancedSessionList"></div>
+        <div class="advanced-session-recovery" id="advancedSessionRecovery" role="alert" hidden>
+          <div id="advancedSessionRecoveryStatus"></div>
+          <div class="advanced-session-recovery-actions">
+            <button id="advancedSessionRetry" type="button">다시 불러오기</button>
+            <button id="advancedSessionChooseLocal" type="button">원본 PDF 선택하여 복원</button>
+          </div>
+          <input id="advancedSessionLocalFiles" type="file" accept=".pdf,application/pdf" multiple hidden>
+        </div>
       </div>`;
     document.body.appendChild(load);
     load.querySelectorAll('[data-close-load]').forEach(button => button.addEventListener('click', () => { if (!operationBusy) load.hidden = true; }));
     load.addEventListener('click', event => { if (event.target === load && !operationBusy) load.hidden = true; });
+    $('advancedSessionRetry').addEventListener('click', () => {
+      if (recoverySession && !operationBusy) loadSession(recoverySession.data, recoverySession.docId, { skipConfirm: true });
+    });
+    $('advancedSessionChooseLocal').addEventListener('click', () => {
+      if (recoverySession && !operationBusy) $('advancedSessionLocalFiles').click();
+    });
+    $('advancedSessionLocalFiles').addEventListener('change', () => {
+      const input = $('advancedSessionLocalFiles');
+      const files = [...(input?.files || [])];
+      if (input) input.value = '';
+      if (files.length && recoverySession && !operationBusy) {
+        loadSession(recoverySession.data, recoverySession.docId, { localFiles: files, skipConfirm: true });
+      }
+    });
   }
 }
 
@@ -278,6 +305,8 @@ async function openLoadModal() {
   const modal = $('advancedSessionLoadModal');
   const list = $('advancedSessionList');
   modal.hidden = false;
+  recoverySession = null;
+  $('advancedSessionRecovery').hidden = true;
   list.innerHTML = '<div class="advanced-session-empty">저장 목록을 불러오는 중...</div>';
   try {
     const snapshot = await db.collection('users').doc(user.uid).collection(SESSION_COLLECTION).orderBy('createdAt', 'desc').limit(20).get();
