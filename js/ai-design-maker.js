@@ -805,6 +805,14 @@
     }
   }
 
+  // Pure text, vector shapes and logos are valid printable designs even
+  // without a generated AI background or imported image/PDF.
+  function hasRenderableWork(spec = currentSpec()) {
+    return Boolean(state.background || state.logo || state.shapes.length ||
+      window.DesignWorkspaceLayers?.hasLayers() ||
+      textLayout(spec, 1).some(item => String(item.text || '').trim()));
+  }
+
   function updateGeometry() {
     const spec = currentSpec();
     const wing = spec.wing ? ' · 날개 '+spec.wing.toFixed(1)+'mm×2' : '';
@@ -828,7 +836,7 @@
     if(spec.coverMode==='spread'&&WORKSHOP==='cover')updateSpinePolicy();
     updateProgress();
     const stale = Boolean(state.background && state.generatedSpecKey && state.generatedSpecKey !== specKey(spec));
-    if ($('exportBtn')) $('exportBtn').disabled = (!state.background && !window.DesignWorkspaceLayers?.hasLayers()) || stale;
+    if ($('exportBtn')) $('exportBtn').disabled = !hasRenderableWork(spec) || stale;
     window.DesignWorkspaceLayers?.updateReview?.();
     if (stale) setStatus('규격이 변경되었습니다.','현재 규격에 맞게 AI 배경을 다시 생성하거나 직접 만든 표지 이미지를 다시 불러와 주세요.','busy');
   }
@@ -1928,7 +1936,7 @@
   }
 
   async function exportPng(){
-    if(!state.background&&!window.DesignWorkspaceLayers?.hasLayers()){setStatus('작업물이 없습니다.','AI 배경을 생성하거나 PDF·이미지 파일을 배치해 주세요.','error');return;}
+    if(!hasRenderableWork()){setStatus('작업물이 없습니다.','텍스트·도형을 추가하거나 AI 배경·PDF·이미지 파일을 배치해 주세요.','error');return;}
     const spec=currentSpec();
     if(state.background&&state.generatedSpecKey!==specKey(spec)){setStatus('규격이 변경되었습니다.','현재 규격으로 AI 배경을 다시 생성하거나 직접 만든 표지 이미지를 다시 불러온 뒤 저장해 주세요.','error');return;}
     if(!confirmBackgroundPrintResolution(spec))return;
@@ -1994,7 +2002,7 @@
   }
 
   async function exportPdf(vector=true){
-    if(!state.background&&!window.DesignWorkspaceLayers?.hasLayers()){setStatus('작업물이 없습니다.','AI 배경을 생성하거나 PDF·이미지 파일을 배치해 주세요.','error');return;}
+    if(!hasRenderableWork()){setStatus('작업물이 없습니다.','텍스트·도형을 추가하거나 AI 배경·PDF·이미지 파일을 배치해 주세요.','error');return;}
     const spec=currentSpec();
     if(state.background&&state.generatedSpecKey!==specKey(spec)){setStatus('규격이 변경되었습니다.','현재 규격으로 AI 배경을 다시 생성하거나 직접 만든 표지 이미지를 다시 불러온 뒤 저장해 주세요.','error');return;}
     if(!confirmBackgroundPrintResolution(spec))return;
@@ -2096,6 +2104,9 @@
     const spec=currentSpec(),user=window.auth?.currentUser,button=$('saveGalleryBtn');
     if(!user){setStatus('로그인이 필요합니다.','디자인 보관함은 로그인 후 사용할 수 있습니다.','error');return;}
     if(!window.storage||!window.db){setStatus('보관함 연결을 사용할 수 없습니다.','Firebase 저장 연결을 확인해 주세요.','error','stage: initialize\nstorage: '+Boolean(window.storage)+'\nfirestore: '+Boolean(window.db));return;}
+    if(window.DesignWorkspaceLayers?.hasLayers()){
+      setStatus('내 파일 레이어는 보관함 저장을 지원하지 않습니다.','이 작업의 PDF·이미지 파일은 서버 보관함에 재업로드되지 않습니다. 먼저 인쇄용 PDF로 저장해 보관하고, 배경만 저장할 때는 파일 레이어를 제거해 주세요.','error');return;
+    }
     if(!state.background||state.generatedSpecKey!==specKey(spec)){setStatus('저장할 디자인이 없습니다.','현재 규격에 맞는 디자인을 먼저 생성해 주세요.','error');return;}
     const title=(spec.coverMode==='back'?String($('backText')?.value||'').trim():String($('title')?.value||'').trim())||'제목 없는 표지';
     const privatePrompt=String(state.lastGeneratedPrompt||$('stylePrompt')?.value||presetPrompt()).trim().slice(0,5000);
@@ -2608,9 +2619,8 @@
     if($('backgroundInput'))$('backgroundInput').value='';
     if($('backgroundName'))$('backgroundName').textContent='없음';
     if($('clearBackground'))$('clearBackground').hidden=true;
-    if($('exportBtn'))$('exportBtn').disabled=true;
     if($('saveGalleryBtn'))$('saveGalleryBtn').disabled=true;
-    scheduleRender();updateProgress();
+    updateGeometry();scheduleRender();updateProgress();
   }
 
   async function loadLogo(file){
@@ -2678,7 +2688,6 @@
     });
     $('wingEnabled')?.addEventListener('change',()=>{syncWing();saveLocal();scheduleRender();});
     $('spineSync')?.addEventListener('change',()=>{syncSpineTitle();saveLocal();updateProgress();scheduleRender();});
-    $('manualBtn')?.addEventListener('click',event=>window.ProgramManualHomeModal?.open('ai-design-maker',event.currentTarget));
     $('aiDesignSessionSaveBtn')?.addEventListener('click',saveSessionNow);
     $('aiDesignSessionLoadBtn')?.addEventListener('click',loadSessionNow);
     qa('[data-jump]').forEach(button=>button.addEventListener('click',()=>jumpToSection(button.dataset.jump)));
