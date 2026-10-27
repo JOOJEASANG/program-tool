@@ -116,7 +116,7 @@ def test_ai_design_maker_uses_sidebar_only_layout_and_bottom_actions():
     assert "position:static" in style
     assert "color:#fff!important" in style
     assert "generate-button span{color:#fff!important}" in style
-    assert "ProgramManualHomeModal?.open('ai-design-maker'" in source
+    assert "ProgramManualHomeModal?.open('ai-design-maker'" not in source
 
 
 
