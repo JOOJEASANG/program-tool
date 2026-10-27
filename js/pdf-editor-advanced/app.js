@@ -234,7 +234,7 @@ async function rebuildPageList() {
   updatePageCount();
 }
 
-export async function loadPdfFiles(fileList, { replace = false } = {}) {
+export async function loadPdfFiles(fileList, { replace = false, validatePages = null } = {}) {
   if (advancedState.busy) return false;
   const incoming = [...fileList];
   if (!incoming.length) return false;
@@ -273,6 +273,9 @@ export async function loadPdfFiles(fileList, { replace = false } = {}) {
       }
       staged.push({ file, pdf, pages });
     }
+    // A saved session may refer to missing source pages; validate before
+    // destroying the current editor state so a failed import loses no work.
+    if (typeof validatePages === 'function') validatePages(staged.flatMap(item => item.pages));
     if (replace) {
       const oldDocuments = [...advancedState.documents];
       clearPreviewCache();
