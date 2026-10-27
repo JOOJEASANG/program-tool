@@ -371,7 +371,7 @@ async function downloadSourceFiles(data) {
       const response = await fetch(url, { mode: 'cors', cache: 'no-store' });
       if (!response.ok) throw new Error(`원본 다운로드 서버 응답 ${response.status}`);
       blob = await response.blob();
-      if (!blob.size || blob.size > MAX_FILE_BYTES || await blob.slice(0, 5).text() !== '%PDF-') {
+      if (!blob.size || blob.size > MAX_FILE_BYTES || !(await blob.slice(0, 1024).text()).includes('%PDF-')) {
         throw new Error('저장된 원본이 유효한 PDF가 아닙니다.');
       }
     } catch (error) {
