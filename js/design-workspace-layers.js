@@ -170,7 +170,8 @@
     layers.length = 0;
     activeId = '';
     pointer = null;
-    if (!silent) refresh();
+    if (silent) { updateList(); updateInspector(); updateReview(); }
+    else refresh();
     return removed;
   }
   function removeSelected() {
