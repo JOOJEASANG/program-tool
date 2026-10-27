@@ -50,7 +50,7 @@ def test_layout_runtime_cache_chain_is_versioned_to_new_boundary():
 def test_advanced_editor_accepts_preview_drop_and_preserves_erase_mode():
     page = text(ADVANCED_INDEX)
     source = text(ADVANCED_POLISH)
-    assert "workspace-input-polish.js?v=20260909-1" in page
+    assert "workspace-input-polish.js?v=20261027-2" in page
     assert "zone.addEventListener('drop'" in source
     assert "input.dispatchEvent(new Event('change', { bubbles: true }))" in source
     assert "stickyErase" in source
