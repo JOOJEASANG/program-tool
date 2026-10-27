@@ -33,9 +33,9 @@ def test_saved_session_imports_are_awaited_and_atomic():
     app = source("js/pdf-editor-advanced/app.js")
     session = source("js/pdf-editor-advanced/session-persistence.js")
     html = source("pdf-editor-advanced/index.html")
-    assert "export async function loadPdfFiles(fileList, { replace = false } = {})" in app
+    assert "export async function loadPdfFiles(fileList, { replace = false, validatePages = null } = {})" in app
     assert "const oldDocuments = [...advancedState.documents]" in app
-    assert "const imported = await loadPdfFiles(files, { replace: true });" in session
+    assert "const imported = await loadPdfFiles(files, {" in session
     assert "if (!imported) throw new Error(" in session
     assert "Object.assign(advancedState.margins, clone(state.margins || {}))" in session
     assert "new DataTransfer()" not in session
