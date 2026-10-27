@@ -358,18 +358,46 @@ async function openLoadModal() {
 
 async function downloadSourceFiles(data) {
   const storage = storageApi();
-  if (!storage) throw new Error('저장소에 연결할 수 없습니다.');
+  if (!storage) throw new Error('Firebase 저장소에 연결할 수 없습니다.');
+  const paths = Array.isArray(data?.storagePaths) ? data.storagePaths : [];
+  if (!paths.length || paths.length > MAX_FILES) throw new Error('저장된 원본 PDF 목록이 올바르지 않습니다.');
   const files = [];
-  for (let index = 0; index < (data.storagePaths || []).length; index += 1) {
-    setStatus(`원본 PDF 불러오는 중... (${index + 1}/${data.storagePaths.length})`);
-    const path = data.storagePaths[index];
-    const url = await storage.ref(path).getDownloadURL();
-    const response = await fetch(url);
-    if (!response.ok) throw new Error(`원본 PDF 다운로드 실패 (${response.status})`);
-    const blob = await response.blob();
+  for (let index = 0; index < paths.length; index += 1) {
+    setStatus(`원본 PDF 불러오는 중... (${index + 1}/${paths.length})`);
+    let blob;
+    try {
+      const url = await storage.ref(paths[index]).getDownloadURL();
+      const response = await fetch(url, { mode: 'cors', cache: 'no-store' });
+      if (!response.ok) throw new Error(`원본 다운로드 서버 응답 ${response.status}`);
+      blob = await response.blob();
+      if (!blob.size || blob.size > MAX_FILE_BYTES || await blob.slice(0, 5).text() !== '%PDF-') {
+        throw new Error('저장된 원본이 유효한 PDF가 아닙니다.');
+      }
+    } catch (error) {
+      if (error?.code === 'storage/object-not-found') {
+        throw new Error(`${index + 1}번째 원본 PDF를 저장소에서 찾을 수 없습니다. 원본을 직접 선택하여 편집을 복원해 주세요.`);
+      }
+      if (error?.code === 'storage/unauthorized') {
+        throw new Error('저장된 PDF를 읽을 권한이 없습니다. 현재 계정으로 다시 로그인해 주세요.');
+      }
+      if (error instanceof TypeError) {
+        throw new Error(`${index + 1}번째 PDF 다운로드가 브라우저 네트워크/CORS 설정으로 차단됐습니다. 다시 시도하거나 원본을 직접 선택해 주세요.`);
+      }
+      throw new Error(`${index + 1}번째 원본 PDF 불러오기 실패: ${error?.message || String(error)}`);
+    }
     files.push(new File([blob], `session_${index + 1}.pdf`, { type: 'application/pdf' }));
   }
   return files;
+}
+
+function showRecovery(data, docId, message) {
+  recoverySession = { data, docId };
+  const modal = $('advancedSessionLoadModal');
+  if (modal) modal.hidden = false;
+  const recovery = $('advancedSessionRecovery');
+  if (recovery) recovery.hidden = false;
+  const status = $('advancedSessionRecoveryStatus');
+  if (status) status.textContent = `${message} 저장된 편집정보는 그대로 남아 있습니다. 원본을 다시 선택하려면 저장 당시 PDF를 같은 순서로 선택해 주세요.`;
 }
 
 function syncGlobalControls() {
