@@ -44,7 +44,7 @@ def test_advanced_editor_reset_keeps_loaded_pdf_and_resets_edits():
     facing = read("js/pdf-editor-advanced/facing-upload.js")
     reset = read("js/pdf-editor-advanced/workspace-reset.js")
 
-    assert "import './workspace-reset.js';" in facing
+    assert "import './workspace-reset.js?v=20261027-2';" in facing
     assert "advancedWorkspaceResetBtn" in reset
     assert "편집 초기화" in reset
     assert "불러온 PDF는 그대로 두고" in reset
