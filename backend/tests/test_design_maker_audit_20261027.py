@@ -68,3 +68,11 @@ def test_retired_design_usage_help_is_not_rendered():
     assert "program-manual-home-modal.css" not in page
     assert "ProgramManualHomeModal?.open" not in runtime
     assert "updated: '2026-10-27'" in source("js/program-manuals/ai-design-maker.js")
+
+
+def test_auth_callbacks_cannot_duplicate_paid_generation_actions():
+    src = source("js/ai-design-maker.js")
+    assert "let boundUserId = ''" in src
+    assert "if(!boundUserId){boundUserId=user.uid;bind();}" in src
+    assert "if(boundUserId && boundUserId!==user.uid)" in src
+    assert "location.reload();return;" in src
