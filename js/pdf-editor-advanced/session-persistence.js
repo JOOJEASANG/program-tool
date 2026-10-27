@@ -1,6 +1,6 @@
 import { advancedState, clearHistory, emitStateChange } from './state.js';
 // Match the exact module URL in index.html so app.js initializes only once.
-import { loadPdfFiles } from './app.js?v=20261027-2';
+import { loadPdfFiles } from './app.js?v=20261027-3';
 
 const $ = id => document.getElementById(id);
 const MAX_SESSIONS = 10;
@@ -12,6 +12,7 @@ const SESSION_COLLECTION = 'pdf_advanced_sessions';
 const SESSION_FORMAT = 'program-studio-advanced-pdf-session';
 let operationBusy = false;
 let loadedSession = null;
+let recoverySession = null;
 
 const clone = value => JSON.parse(JSON.stringify(value));
 const totalBytes = files => [...(files || [])].reduce((sum, file) => sum + Number(file?.size || 0), 0);
@@ -56,6 +57,10 @@ function installStyles() {
     .advanced-session-status{min-height:18px;margin-top:9px;font-size:10px;line-height:1.45;color:#64748b}
     .advanced-session-actions{display:flex;justify-content:flex-end;gap:7px;margin-top:12px}.advanced-session-actions button{min-height:34px;padding:0 12px;border:1px solid #d5dee8;border-radius:8px;background:#fff;color:#334155;font-weight:800;cursor:pointer}.advanced-session-actions button.primary{border-color:#12396d;background:#12396d;color:#fff}
     .advanced-session-list{display:flex;flex-direction:column;gap:8px}.advanced-session-item{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;padding:10px;border:1px solid #dce4ec;border-radius:10px;background:#f8fafc}.advanced-session-copy{min-width:0}.advanced-session-copy strong{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;color:#1e293b}.advanced-session-copy span{display:block;margin-top:3px;font-size:9px;color:#64748b}.advanced-session-item-actions{display:flex;gap:5px}.advanced-session-item-actions button{height:30px;padding:0 9px;border:1px solid #cdd7e2;border-radius:7px;background:#fff;color:#334155;font-size:9px;font-weight:800;cursor:pointer}.advanced-session-item-actions button.delete{color:#b91c1c}.advanced-session-empty{padding:22px 8px;text-align:center;color:#94a3b8;font-size:11px}
+    .advanced-session-recovery{margin-top:12px;padding:12px;border:1px solid #fecaca;background:#fff8f8;border-radius:9px;font-size:11px;line-height:1.6;color:#991b1b}
+    .advanced-session-recovery[hidden]{display:none!important}
+    .advanced-session-recovery-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:9px}
+    .advanced-session-recovery-actions button{border:1px solid #cbd5e1;background:white;color:#1e293b;border-radius:7px;min-height:34px;padding:0 10px;font-size:11px;font-weight:800;cursor:pointer}
   `;
   document.head.appendChild(style);
 }
@@ -90,10 +95,32 @@ function ensureUi() {
       <div class="advanced-session-dialog" role="dialog" aria-modal="true" aria-labelledby="advancedSessionLoadTitle">
         <div class="advanced-session-head"><strong id="advancedSessionLoadTitle">편집 내용 불러오기</strong><button type="button" data-close-load aria-label="닫기">×</button></div>
         <div class="advanced-session-list" id="advancedSessionList"></div>
+        <div class="advanced-session-recovery" id="advancedSessionRecovery" role="alert" hidden>
+          <div id="advancedSessionRecoveryStatus"></div>
+          <div class="advanced-session-recovery-actions">
+            <button id="advancedSessionRetry" type="button">다시 불러오기</button>
+            <button id="advancedSessionChooseLocal" type="button">원본 PDF 선택하여 복원</button>
+          </div>
+          <input id="advancedSessionLocalFiles" type="file" accept=".pdf,application/pdf" multiple hidden>
+        </div>
       </div>`;
     document.body.appendChild(load);
     load.querySelectorAll('[data-close-load]').forEach(button => button.addEventListener('click', () => { if (!operationBusy) load.hidden = true; }));
     load.addEventListener('click', event => { if (event.target === load && !operationBusy) load.hidden = true; });
+    $('advancedSessionRetry').addEventListener('click', () => {
+      if (recoverySession && !operationBusy) loadSession(recoverySession.data, recoverySession.docId, { skipConfirm: true });
+    });
+    $('advancedSessionChooseLocal').addEventListener('click', () => {
+      if (recoverySession && !operationBusy) $('advancedSessionLocalFiles').click();
+    });
+    $('advancedSessionLocalFiles').addEventListener('change', () => {
+      const input = $('advancedSessionLocalFiles');
+      const files = [...(input?.files || [])];
+      if (input) input.value = '';
+      if (files.length && recoverySession && !operationBusy) {
+        loadSession(recoverySession.data, recoverySession.docId, { localFiles: files, skipConfirm: true });
+      }
+    });
   }
 }
 
@@ -103,6 +130,7 @@ function captureState() {
     format: SESSION_FORMAT,
     version: 1,
     selectedIndex,
+    sourceFiles: advancedState.files.map(file => ({ name: String(file.name || ''), size: Number(file.size || 0) })),
     paper: clone(advancedState.paper),
     margins: clone(advancedState.margins),
     headerFooter: clone(advancedState.headerFooter),
@@ -278,6 +306,8 @@ async function openLoadModal() {
   const modal = $('advancedSessionLoadModal');
   const list = $('advancedSessionList');
   modal.hidden = false;
+  recoverySession = null;
+  $('advancedSessionRecovery').hidden = true;
   list.innerHTML = '<div class="advanced-session-empty">저장 목록을 불러오는 중...</div>';
   try {
     const snapshot = await db.collection('users').doc(user.uid).collection(SESSION_COLLECTION).orderBy('createdAt', 'desc').limit(20).get();
@@ -329,18 +359,46 @@ async function openLoadModal() {
 
 async function downloadSourceFiles(data) {
   const storage = storageApi();
-  if (!storage) throw new Error('저장소에 연결할 수 없습니다.');
+  if (!storage) throw new Error('Firebase 저장소에 연결할 수 없습니다.');
+  const paths = Array.isArray(data?.storagePaths) ? data.storagePaths : [];
+  if (!paths.length || paths.length > MAX_FILES) throw new Error('저장된 원본 PDF 목록이 올바르지 않습니다.');
   const files = [];
-  for (let index = 0; index < (data.storagePaths || []).length; index += 1) {
-    setStatus(`원본 PDF 불러오는 중... (${index + 1}/${data.storagePaths.length})`);
-    const path = data.storagePaths[index];
-    const url = await storage.ref(path).getDownloadURL();
-    const response = await fetch(url);
-    if (!response.ok) throw new Error(`원본 PDF 다운로드 실패 (${response.status})`);
-    const blob = await response.blob();
+  for (let index = 0; index < paths.length; index += 1) {
+    setStatus(`원본 PDF 불러오는 중... (${index + 1}/${paths.length})`);
+    let blob;
+    try {
+      const url = await storage.ref(paths[index]).getDownloadURL();
+      const response = await fetch(url, { mode: 'cors', cache: 'no-store' });
+      if (!response.ok) throw new Error(`원본 다운로드 서버 응답 ${response.status}`);
+      blob = await response.blob();
+      if (!blob.size || blob.size > MAX_FILE_BYTES || !(await blob.slice(0, 1024).text()).includes('%PDF-')) {
+        throw new Error('저장된 원본이 유효한 PDF가 아닙니다.');
+      }
+    } catch (error) {
+      if (error?.code === 'storage/object-not-found') {
+        throw new Error(`${index + 1}번째 원본 PDF를 저장소에서 찾을 수 없습니다. 원본을 직접 선택하여 편집을 복원해 주세요.`);
+      }
+      if (error?.code === 'storage/unauthorized') {
+        throw new Error('저장된 PDF를 읽을 권한이 없습니다. 현재 계정으로 다시 로그인해 주세요.');
+      }
+      if (error instanceof TypeError) {
+        throw new Error(`${index + 1}번째 PDF 다운로드가 브라우저 네트워크/CORS 설정으로 차단됐습니다. 다시 시도하거나 원본을 직접 선택해 주세요.`);
+      }
+      throw new Error(`${index + 1}번째 원본 PDF 불러오기 실패: ${error?.message || String(error)}`);
+    }
     files.push(new File([blob], `session_${index + 1}.pdf`, { type: 'application/pdf' }));
   }
   return files;
+}
+
+function showRecovery(data, docId, message) {
+  recoverySession = { data, docId };
+  const modal = $('advancedSessionLoadModal');
+  if (modal) modal.hidden = false;
+  const recovery = $('advancedSessionRecovery');
+  if (recovery) recovery.hidden = false;
+  const status = $('advancedSessionRecoveryStatus');
+  if (status) status.textContent = `${message} 저장된 편집정보는 그대로 남아 있습니다. 원본을 다시 선택하려면 저장 당시 PDF를 같은 순서로 선택해 주세요.`;
 }
 
 function syncGlobalControls() {
@@ -373,6 +431,17 @@ function applySavedPage(saved, page) {
   page.offsetX = Number(saved.offsetX || 0);
   page.offsetY = Number(saved.offsetY || 0);
   page.orientationSource = String(saved.orientationSource || '');
+  // A freshly imported page already has overlays:[]; hydrate saved metadata
+  // before notifying overlay listeners, otherwise old text/images disappear.
+  const overlayMarker = String.fromCharCode(10) + '__PS_OVERLAYS_V1__=';
+  const markerIndex = page.orientationSource.indexOf(overlayMarker);
+  if (markerIndex >= 0) {
+    try {
+      const overlays = JSON.parse(page.orientationSource.slice(markerIndex + overlayMarker.length));
+      page.overlays = Array.isArray(overlays) ? overlays.slice(0, 20) : [];
+    } catch (_) { page.overlays = []; }
+    window.PdfAdvancedPageOverlays?.persistPageMetadata?.(page);
+  } else page.overlays = [];
   page.autoAligned = !!saved.autoAligned;
   return page;
 }
@@ -424,31 +493,63 @@ function restoreState(state) {
   selectedItem?.click();
 }
 
-async function loadSession(data, docId = null) {
+async function loadSession(data, docId = null, { localFiles = null, skipConfirm = false } = {}) {
   if (operationBusy) return false;
   let state;
-  try { state = JSON.parse(String(data.state || '')); } catch (_) { return setStatus('저장된 편집 상태를 읽을 수 없습니다.', 'error'); }
-  if (state?.format !== SESSION_FORMAT) return setStatus('PDF편집에서 저장한 파일이 아닙니다.', 'error');
-  if (!confirm(`“${String(data.name || 'PDF 편집 세션')}” 편집 내용을 불러올까요?\n현재 작업 중인 내용은 사라집니다.`)) return false;
+  try { state = JSON.parse(String(data.state || '')); }
+  catch (_) { showRecovery(data, docId, '저장된 편집 상태를 읽을 수 없습니다.'); return false; }
+  if (state?.format !== SESSION_FORMAT || !Array.isArray(state.pages) || !state.pages.length) {
+    showRecovery(data, docId, '이 저장 내역의 편집 상태 정보가 올바르지 않습니다.');
+    return false;
+  }
+  if (!skipConfirm && !window.confirm(`“${String(data.name || 'PDF 편집 세션')}” 편집 내용을 불러올까요?\n현재 작업 중인 내용은 사라집니다.`)) return false;
   setOperationBusy(true, '편집 내용을 불러오는 중...');
-  $('advancedSessionLoadModal').hidden = true;
+  const recovery = $('advancedSessionRecovery');
+  if (recovery) recovery.hidden = true;
   try {
-    const files = await downloadSourceFiles(data);
+    const files = localFiles || await downloadSourceFiles(data);
     if (files.length !== Number(data.fileCount || files.length)) {
-      throw new Error('저장된 원본 PDF 개수가 일치하지 않습니다.');
+      throw new Error(`원본 PDF가 ${Number(data.fileCount || 0)}개 필요합니다. 저장 당시 파일을 순서대로 선택해 주세요.`);
     }
-    // Wait for actual PDF parsing rather than simulating a file chooser and
-    // polling a timer. Failed imports keep the previous editor work intact.
-    const imported = await loadPdfFiles(files, { replace: true });
-    if (!imported) throw new Error('원본 PDF를 읽지 못했습니다. 파일을 확인해 주세요.');
+    if (localFiles && Number(data.totalBytes) > 0 && totalBytes(files) !== Number(data.totalBytes)) {
+      throw new Error('선택한 원본 PDF의 총 파일 크기가 저장 당시와 다릅니다. 올바른 파일을 선택해 주세요.');
+    }
+    if (localFiles && Array.isArray(state.sourceFiles) && state.sourceFiles.length === files.length) {
+      for (let i = 0; i < files.length; i++) {
+        if (Number(state.sourceFiles[i].size) !== Number(files[i].size)) {
+          throw new Error(`${i + 1}번째 원본 PDF의 파일 크기가 저장 당시와 다릅니다.`);
+        }
+      }
+    }
+    const imported = await loadPdfFiles(files, {
+      replace: true,
+      validatePages: sourcePages => {
+        const keys = new Set(sourcePages.map(page => pageKey(page)));
+        for (const saved of state.pages) {
+          if (!keys.has(pageKey(saved))) {
+            throw new Error(`원본 ${Number(saved.fileIndex) + 1}번의 ${Number(saved.pageIndex) + 1}페이지가 없습니다. 저장 당시 파일을 선택해 주세요.`);
+          }
+        }
+      },
+    });
+    if (!imported) throw new Error('원본 PDF를 읽거나 페이지 구성을 검증하지 못했습니다.');
     restoreState(state);
-    loadedSession = docId ? {uid:window.auth.currentUser.uid,docId,sessionId:data.sessionId,
-      name:String(data.name||'PDF 편집 세션'),storagePaths:[...(data.storagePaths||[])],
-      files:[...advancedState.files]} : null;
+    // A manually selected source is NOT the same object as the old remote
+    // source: never silently reuse broken saved Storage paths on future saves.
+    loadedSession = docId && !localFiles ? {
+      uid: window.auth.currentUser.uid, docId, sessionId: data.sessionId,
+      name: String(data.name || 'PDF 편집 세션'), storagePaths: [...(data.storagePaths || [])],
+      files: [...advancedState.files],
+    } : null;
+    recoverySession = null;
+    $('advancedSessionLoadModal').hidden = true;
     setStatus(`편집 내용 불러오기 완료 · ${advancedState.pages.length}페이지`, 'success');
     return true;
   } catch (error) {
-    setStatus(`편집 불러오기 실패: ${error.message}`, 'error');
+    const message = `편집 불러오기 실패: ${error?.message || String(error)}`;
+    setStatus(message, 'error');
+    showRecovery(data, docId, message);
+    console.error('[pdf-advanced-session] restore failed:', error);
     return false;
   } finally { setOperationBusy(false); }
 }
