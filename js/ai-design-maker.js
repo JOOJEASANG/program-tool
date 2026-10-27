@@ -389,8 +389,12 @@
     return data;
   }
 
+  // Automatic draft and explicit edit snapshot are separate.
+  // Editing again must not replace the last intentionally saved version.
+  const manualSnapshotKey = () => STORAGE_KEY + ':manual';
   function saveLocal() {
     try {
+      if (!STORAGE_KEY) return false;
       localStorage.setItem(STORAGE_KEY, JSON.stringify(serializableState()));
       const badge = $('saveState');
       if (badge) {
@@ -398,12 +402,18 @@
         clearTimeout(saveLocal.timer);
         saveLocal.timer = setTimeout(() => { badge.textContent = '자동 저장'; }, 900);
       }
-    } catch (_) {}
+      return true;
+    } catch (error) {
+      console.warn('[design-maker] browser autosave failed', error);
+      const badge = $('saveState');
+      if (badge) badge.textContent = '저장 실패';
+      return false;
+    }
   }
 
-  function loadLocal() {
+  function loadLocal(rawState = null) {
     try {
-      const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+      const data = JSON.parse(rawState === null ? (localStorage.getItem(STORAGE_KEY) || '{}') : rawState);
       Object.entries(data).forEach(([key,value]) => {
         const node = $(key);
         if (!node || key === 'wingEnabled' || key === 'spineSync') return;
@@ -485,16 +495,31 @@
   }
 
   function saveSessionNow() {
-    saveLocal();
-    setStatus(
-      '편집 설정을 저장했습니다.',
-      '규격·문구·배치 설정은 이 브라우저에 저장됩니다. AI 배경 이미지와 완성 디자인은 상단의 “현재 디자인 저장”으로 디자인 보관함에 별도 저장해 주세요.',
-      'ok'
-    );
+    try {
+      if (!STORAGE_KEY) throw new Error('로그인 상태를 확인해 주세요.');
+      localStorage.setItem(manualSnapshotKey(), JSON.stringify(serializableState()));
+      if (!saveLocal()) throw new Error('브라우저 자동 저장 공간을 사용할 수 없습니다.');
+      setStatus('편집 설정을 저장했습니다.',
+        '이 브라우저에 별도의 편집 저장본을 만들었습니다. 문구·도형·규격은 저장되지만 AI 배경, 로고, 내 PDF·이미지 파일은 포함되지 않습니다. 전체 작품은 인쇄용 PDF·PNG로 따로 보관하세요.','ok');
+    } catch(error) {
+      setStatus('편집저장 실패','브라우저 저장 공간이나 사용 권한을 확인해 주세요. '+(error?.message||''),'error');
+    }
   }
 
   function loadSessionNow() {
-    loadLocal();
+    let raw, isManual = false;
+    try {
+      raw = localStorage.getItem(manualSnapshotKey());
+      isManual = Boolean(raw);
+      if (!raw) raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) throw new Error('저장된 편집 설정이 없습니다.');
+      const stateCopy = JSON.parse(raw);
+      if (!stateCopy || typeof stateCopy !== 'object' || Array.isArray(stateCopy)) throw new Error('편집 저장본의 형식이 올바르지 않습니다.');
+      if (window.DesignWorkspaceLayers?.hasLayers() && !window.confirm('편집저장에는 업로드된 원본 PDF·이미지 파일이 포함되지 않습니다. 현재 파일 레이어는 유지한 채 설정만 불러올까요?')) return;
+    } catch(error) {
+      setStatus('편집불러오기 실패',error?.message||'저장된 설정을 읽을 수 없습니다.','error');return;
+    }
+    loadLocal(raw);
     window.DesignWorkshopModes?.refresh?.();
     setupPresetCards();
     syncCoverMode();
@@ -507,11 +532,9 @@
     updateGeometry();
     updateProgress();
     scheduleRender();
-    setStatus(
-      '저장한 편집 설정을 불러왔습니다.',
-      '브라우저에 저장된 규격·문구·배치 설정을 다시 적용했습니다. AI 배경 이미지는 디자인 보관함에서 확인해 주세요.',
-      'ok'
-    );
+    saveLocal();
+    setStatus('저장한 편집 설정을 불러왔습니다.',
+      (isManual?'직접 저장한 편집본':'기존 자동 저장 기록')+'의 규격·문구·도형 설정을 복원했습니다. 업로드한 PDF·이미지와 AI 배경·로고는 별도로 다시 불러와 주세요.','ok');
   }
 
   function setStatus(title, message, tone = 'ok', debug = '') {
