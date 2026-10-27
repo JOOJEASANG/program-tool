@@ -16,6 +16,9 @@
   let editor = null;
   let pointer = null;
   let pdfJsPromise = null;
+  let importQueue = Promise.resolve();
+  let importEpoch = 0;
+  const canceledImport = () => Object.assign(new Error('이전 작업의 파일 추가가 취소되었습니다.'), { code: 'DESIGN_IMPORT_CANCELLED' });
   const $ = id => document.getElementById(id);
   const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
   const validNumber = (value, fallback) => Number.isFinite(Number(value)) ? Number(value) : fallback;
@@ -103,15 +106,17 @@
     layer.sourceH = raw.height * MM_PER_PT;
     layer.pageNumber = number;
   }
-  async function addFile(file) {
-    if (!file) return;
+  async function addFile(file, epoch = importEpoch) {
+    if (!file || epoch !== importEpoch) return;
     if (layers.length >= MAX_ITEMS) throw new Error('한 작업에 최대 16개 파일을 배치할 수 있습니다.');
     if (file.size > MAX_BYTES) throw new Error('파일 한 개는 40MB 이하만 지원합니다.');
     if (layers.reduce((sum,item)=>sum+item.bytes.length,0)+file.size > MAX_TOTAL_BYTES) throw new Error('현재 작업의 업로드 용량은 총 200MB까지 지원합니다.');
     const type = fileType(file);
     if (!type) throw new Error('PDF·PNG·JPG·WEBP 파일만 지원합니다.');
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    if (epoch !== importEpoch) return;
     const layer = {
-      id:'asset-'+nextId++, name:file.name, type, image:null, bytes:new Uint8Array(await file.arrayBuffer()),
+      id:'asset-'+nextId++, name:file.name, type, image:null, bytes,
       sourceW:1,sourceH:1, x:0,y:0,w:1,h:1,angle:0,target:'front',pageNumber:1,pageCount:1,url:'',pdfDocument:null
     };
     try {
@@ -125,10 +130,15 @@
         if(!layer.imageFormat)throw new Error('이미지 파일이 올바른 PNG·JPEG·WEBP 형식인지 확인해 주세요.');
         const result = await loadImage(file);
         Object.assign(layer,result);
+        if (!result.image.naturalWidth || !result.image.naturalHeight ||
+          result.image.naturalWidth * result.image.naturalHeight > 60_000_000) {
+          throw new Error('이미지 해상도가 너무 큽니다. 최대 6,000만 픽셀 이하로 줄여서 추가해 주세요.');
+        }
         // Keep native bitmap dimensions separately for effective-resolution checks.
         layer.pixelW = result.image.naturalWidth;
         layer.pixelH = result.image.naturalHeight;
       }
+      if (epoch !== importEpoch) throw canceledImport();
       fitToTarget(layer,currentTarget());
       layers.push(layer);
       activeId = layer.id;
@@ -141,11 +151,43 @@
     }
   }
   async function importFiles(files) {
-    for (const file of [...files || []]) {
-      try { await addFile(file); }
-      catch (error) { notify('파일 불러오기 실패',error?.message || '파일 형식을 확인해 주세요.','error'); }
+    // File chooser and drag-drop can fire while the previous PDF is still
+    // parsing. Serialize batches so max count/byte limits cannot race.
+    const incoming = [...(files || [])];
+    const epoch = importEpoch;
+    const run = async () => {
+      for (const file of incoming) {
+        if (epoch !== importEpoch) break;
+        try { await addFile(file, epoch); }
+        catch (error) {
+          if (error?.code === 'DESIGN_IMPORT_CANCELLED') break;
+          notify('파일 불러오기 실패',error?.message || '파일 형식을 확인해 주세요.','error');
+        }
+      }
+      if ($('designLayerUpload')) $('designLayerUpload').value = '';
+    };
+    const task = importQueue.then(run,run);
+    importQueue = task.catch(() => {});
+    return task;
+  }
+
+  function clearAll({ silent = false } = {}) {
+    // Invalidate pending file reads, PDF.js renders, and queued import batches
+    // before switching a gallery design. The old async work may finish later
+    // but it is never permitted to append to the new canvas.
+    importEpoch++;
+    importQueue = Promise.resolve();
+    const removed = layers.length;
+    for (const layer of layers) {
+      if (layer.url) URL.revokeObjectURL(layer.url);
+      try { layer.pdfDocument?.destroy?.(); } catch (_) {}
     }
-    if ($('designLayerUpload')) $('designLayerUpload').value = '';
+    layers.length = 0;
+    activeId = '';
+    pointer = null;
+    if (silent) { updateList(); updateInspector(); updateReview(); }
+    else refresh();
+    return removed;
   }
   function removeSelected() {
     const item = selected(); if (!item) return;
@@ -387,5 +429,5 @@
     editor=options;
     bindCanvas();bindInputs();refresh();
   }
-  window.DesignWorkspaceLayers={configure,importFiles,removeSelected,clearActive,draw,drawForExport,drawVector,hasLayers,updateReview,zones,get layers(){return layers.slice();},get active(){return selected();}};
+  window.DesignWorkspaceLayers={configure,importFiles,removeSelected,clearActive,clearAll,draw,drawForExport,drawVector,hasLayers,updateReview,zones,get layers(){return layers.slice();},get active(){return selected();}};
 })();

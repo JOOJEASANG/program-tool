@@ -150,6 +150,8 @@
     selectedVariant: -1
   };
 
+  let backgroundLoadVersion = 0;
+  let logoLoadVersion = 0;
   const COVER_MODES = new Set(['front','back','frontBack','spread']);
   const normalizeCoverMode = value => COVER_MODES.has(value) ? value : 'spread';
   const modeHasFront = mode => mode==='front'||mode==='frontBack'||mode==='spread';
@@ -389,8 +391,12 @@
     return data;
   }
 
+  // Automatic draft and explicit edit snapshot are separate.
+  // Editing again must not replace the last intentionally saved version.
+  const manualSnapshotKey = () => STORAGE_KEY + ':manual';
   function saveLocal() {
     try {
+      if (!STORAGE_KEY) return false;
       localStorage.setItem(STORAGE_KEY, JSON.stringify(serializableState()));
       const badge = $('saveState');
       if (badge) {
@@ -398,12 +404,18 @@
         clearTimeout(saveLocal.timer);
         saveLocal.timer = setTimeout(() => { badge.textContent = '자동 저장'; }, 900);
       }
-    } catch (_) {}
+      return true;
+    } catch (error) {
+      console.warn('[design-maker] browser autosave failed', error);
+      const badge = $('saveState');
+      if (badge) badge.textContent = '저장 실패';
+      return false;
+    }
   }
 
-  function loadLocal() {
+  function loadLocal(rawState = null) {
     try {
-      const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+      const data = JSON.parse(rawState === null ? (localStorage.getItem(STORAGE_KEY) || '{}') : rawState);
       Object.entries(data).forEach(([key,value]) => {
         const node = $(key);
         if (!node || key === 'wingEnabled' || key === 'spineSync') return;
@@ -485,16 +497,31 @@
   }
 
   function saveSessionNow() {
-    saveLocal();
-    setStatus(
-      '편집 설정을 저장했습니다.',
-      '규격·문구·배치 설정은 이 브라우저에 저장됩니다. AI 배경 이미지와 완성 디자인은 상단의 “현재 디자인 저장”으로 디자인 보관함에 별도 저장해 주세요.',
-      'ok'
-    );
+    try {
+      if (!STORAGE_KEY) throw new Error('로그인 상태를 확인해 주세요.');
+      localStorage.setItem(manualSnapshotKey(), JSON.stringify(serializableState()));
+      if (!saveLocal()) throw new Error('브라우저 자동 저장 공간을 사용할 수 없습니다.');
+      setStatus('편집 설정을 저장했습니다.',
+        '이 브라우저에 별도의 편집 저장본을 만들었습니다. 문구·도형·규격은 저장되지만 AI 배경, 로고, 내 PDF·이미지 파일은 포함되지 않습니다. 전체 작품은 인쇄용 PDF·PNG로 따로 보관하세요.','ok');
+    } catch(error) {
+      setStatus('편집저장 실패','브라우저 저장 공간이나 사용 권한을 확인해 주세요. '+(error?.message||''),'error');
+    }
   }
 
   function loadSessionNow() {
-    loadLocal();
+    let raw, isManual = false;
+    try {
+      raw = localStorage.getItem(manualSnapshotKey());
+      isManual = Boolean(raw);
+      if (!raw) raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) throw new Error('저장된 편집 설정이 없습니다.');
+      const stateCopy = JSON.parse(raw);
+      if (!stateCopy || typeof stateCopy !== 'object' || Array.isArray(stateCopy)) throw new Error('편집 저장본의 형식이 올바르지 않습니다.');
+      if (window.DesignWorkspaceLayers?.hasLayers() && !window.confirm('편집저장에는 업로드된 원본 PDF·이미지 파일이 포함되지 않습니다. 현재 파일 레이어는 유지한 채 설정만 불러올까요?')) return;
+    } catch(error) {
+      setStatus('편집불러오기 실패',error?.message||'저장된 설정을 읽을 수 없습니다.','error');return;
+    }
+    loadLocal(raw);
     window.DesignWorkshopModes?.refresh?.();
     setupPresetCards();
     syncCoverMode();
@@ -507,11 +534,9 @@
     updateGeometry();
     updateProgress();
     scheduleRender();
-    setStatus(
-      '저장한 편집 설정을 불러왔습니다.',
-      '브라우저에 저장된 규격·문구·배치 설정을 다시 적용했습니다. AI 배경 이미지는 디자인 보관함에서 확인해 주세요.',
-      'ok'
-    );
+    saveLocal();
+    setStatus('저장한 편집 설정을 불러왔습니다.',
+      (isManual?'직접 저장한 편집본':'기존 자동 저장 기록')+'의 규격·문구·도형 설정을 복원했습니다. 업로드한 PDF·이미지와 AI 배경·로고는 별도로 다시 불러와 주세요.','ok');
   }
 
   function setStatus(title, message, tone = 'ok', debug = '') {
@@ -782,6 +807,14 @@
     }
   }
 
+  // Pure text, vector shapes and logos are valid printable designs even
+  // without a generated AI background or imported image/PDF.
+  function hasRenderableWork(spec = currentSpec()) {
+    return Boolean(state.background || state.logo || state.shapes.length ||
+      window.DesignWorkspaceLayers?.hasLayers() ||
+      textLayout(spec, 1).some(item => String(item.text || '').trim()));
+  }
+
   function updateGeometry() {
     const spec = currentSpec();
     const wing = spec.wing ? ' · 날개 '+spec.wing.toFixed(1)+'mm×2' : '';
@@ -805,7 +838,7 @@
     if(spec.coverMode==='spread'&&WORKSHOP==='cover')updateSpinePolicy();
     updateProgress();
     const stale = Boolean(state.background && state.generatedSpecKey && state.generatedSpecKey !== specKey(spec));
-    if ($('exportBtn')) $('exportBtn').disabled = (!state.background && !window.DesignWorkspaceLayers?.hasLayers()) || stale;
+    if ($('exportBtn')) $('exportBtn').disabled = !hasRenderableWork(spec) || stale;
     window.DesignWorkspaceLayers?.updateReview?.();
     if (stale) setStatus('규격이 변경되었습니다.','현재 규격에 맞게 AI 배경을 다시 생성하거나 직접 만든 표지 이미지를 다시 불러와 주세요.','busy');
   }
@@ -1905,7 +1938,7 @@
   }
 
   async function exportPng(){
-    if(!state.background&&!window.DesignWorkspaceLayers?.hasLayers()){setStatus('작업물이 없습니다.','AI 배경을 생성하거나 PDF·이미지 파일을 배치해 주세요.','error');return;}
+    if(!hasRenderableWork()){setStatus('작업물이 없습니다.','텍스트·도형을 추가하거나 AI 배경·PDF·이미지 파일을 배치해 주세요.','error');return;}
     const spec=currentSpec();
     if(state.background&&state.generatedSpecKey!==specKey(spec)){setStatus('규격이 변경되었습니다.','현재 규격으로 AI 배경을 다시 생성하거나 직접 만든 표지 이미지를 다시 불러온 뒤 저장해 주세요.','error');return;}
     if(!confirmBackgroundPrintResolution(spec))return;
@@ -1971,7 +2004,7 @@
   }
 
   async function exportPdf(vector=true){
-    if(!state.background&&!window.DesignWorkspaceLayers?.hasLayers()){setStatus('작업물이 없습니다.','AI 배경을 생성하거나 PDF·이미지 파일을 배치해 주세요.','error');return;}
+    if(!hasRenderableWork()){setStatus('작업물이 없습니다.','텍스트·도형을 추가하거나 AI 배경·PDF·이미지 파일을 배치해 주세요.','error');return;}
     const spec=currentSpec();
     if(state.background&&state.generatedSpecKey!==specKey(spec)){setStatus('규격이 변경되었습니다.','현재 규격으로 AI 배경을 다시 생성하거나 직접 만든 표지 이미지를 다시 불러온 뒤 저장해 주세요.','error');return;}
     if(!confirmBackgroundPrintResolution(spec))return;
@@ -2073,6 +2106,9 @@
     const spec=currentSpec(),user=window.auth?.currentUser,button=$('saveGalleryBtn');
     if(!user){setStatus('로그인이 필요합니다.','디자인 보관함은 로그인 후 사용할 수 있습니다.','error');return;}
     if(!window.storage||!window.db){setStatus('보관함 연결을 사용할 수 없습니다.','Firebase 저장 연결을 확인해 주세요.','error','stage: initialize\nstorage: '+Boolean(window.storage)+'\nfirestore: '+Boolean(window.db));return;}
+    if(window.DesignWorkspaceLayers?.hasLayers()){
+      setStatus('내 파일 레이어는 보관함 저장을 지원하지 않습니다.','이 작업의 PDF·이미지 파일은 서버 보관함에 재업로드되지 않습니다. 먼저 인쇄용 PDF로 저장해 보관하고, 배경만 저장할 때는 파일 레이어를 제거해 주세요.','error');return;
+    }
     if(!state.background||state.generatedSpecKey!==specKey(spec)){setStatus('저장할 디자인이 없습니다.','현재 규격에 맞는 디자인을 먼저 생성해 주세요.','error');return;}
     const title=(spec.coverMode==='back'?String($('backText')?.value||'').trim():String($('title')?.value||'').trim())||'제목 없는 표지';
     const privatePrompt=String(state.lastGeneratedPrompt||$('stylePrompt')?.value||presetPrompt()).trim().slice(0,5000);
@@ -2427,59 +2463,73 @@
 
   async function loadOwnGalleryWork(item){
     if(!item?.isOwner)return;
-    let privateData=item;
-    if(!privateData.stateJson){
-      const user=window.auth?.currentUser;
-      if(!user||!window.db)return;
-      const snap=await window.db.collection('users').doc(user.uid).collection('ai_design_gallery').doc(item.id).get();
-      if(snap.exists)privateData={...item,...snap.data()};
-    }
-    if((privateData.workshop||'cover')!==WORKSHOP||
-       (WORKSHOP==='leaflet'&&(privateData.leafletSide||'outside')!==LEAFLET_SIDE)){
-      setStatus('다른 작업실의 디자인입니다.','해당 디자인의 제품 종류 및 리플렛 면을 선택한 뒤 불러오세요.','error');
-      return;
-    }
-    if(!privateData.stateJson){
-      applySharedGallerySettings(item);
-      setStatus('이전 저장 기록의 디자인 설정을 불러왔습니다.','이 디자인은 전체 편집 설정 저장 기능이 추가되기 전에 저장되어 요청 설정만 적용했습니다.','ok');
-      return;
-    }
+    // Resolve all external assets before changing any live state. A failed
+    // Firebase image request must never leave the current design half erased.
     try{
+      let privateData=item;
+      if(!privateData.stateJson){
+        const user=window.auth?.currentUser;
+        if(!user||!window.db)throw new Error('보관함 로그인과 저장소 연결을 확인해 주세요.');
+        const snap=await window.db.collection('users').doc(user.uid).collection('ai_design_gallery').doc(item.id).get();
+        if(snap.exists)privateData={...item,...snap.data()};
+      }
+      if((privateData.workshop||'cover')!==WORKSHOP||
+        (WORKSHOP==='leaflet'&&(privateData.leafletSide||'outside')!==LEAFLET_SIDE)){
+        setStatus('다른 작업실의 디자인입니다.','해당 디자인의 제품 종류와 리플렛 면을 선택한 뒤 불러오세요.','error');
+        return;
+      }
+      if(!privateData.stateJson){
+        applySharedGallerySettings(item);
+        setStatus('이전 저장 기록의 디자인 설정을 불러왔습니다.','이 디자인은 전체 편집 설정 저장 기능 이전에 저장되어 요청 설정만 적용했습니다.','ok');
+        return;
+      }
       const restored=JSON.parse(privateData.stateJson);
+      if(!restored||typeof restored!=='object'||Array.isArray(restored))throw new Error('저장된 편집 설정이 올바르지 않습니다.');
+      let backgroundImage=null,backgroundUrl='',logoImage=null;
+      if(privateData.backgroundPath){
+        if(!window.storage)throw new Error('저장소 연결을 확인해 주세요.');
+        backgroundUrl=await galleryDownloadUrl(privateData.backgroundPath);
+        if(!backgroundUrl)throw new Error('저장한 배경 원본을 찾을 수 없습니다.');
+        backgroundImage=new Image();backgroundImage.crossOrigin='anonymous';
+        backgroundImage.src=backgroundUrl;await waitForImage(backgroundImage);
+      }
+      if(privateData.logoPath){
+        if(!window.storage)throw new Error('저장소 연결을 확인해 주세요.');
+        const logoUrl=await galleryDownloadUrl(privateData.logoPath);
+        if(!logoUrl)throw new Error('저장한 로고 원본을 찾을 수 없습니다.');
+        logoImage=new Image();logoImage.crossOrigin='anonymous';
+        logoImage.src=logoUrl;await waitForImage(logoImage);
+      }
+      if(window.DesignWorkspaceLayers?.hasLayers() &&
+        !window.confirm('현재 작업의 PDF·이미지 파일 레이어는 보관함 편집 설정에 포함되지 않습니다. 기존 파일 레이어를 비우고 이 디자인을 불러올까요?'))return;
+
+      // Commit only after all possible network failures have completed.
       localStorage.setItem(STORAGE_KEY,JSON.stringify(restored));
+      window.DesignWorkspaceLayers?.clearAll?.({silent:true});
+      if(state.backgroundSource==='upload'&&state.backgroundUrl?.startsWith('blob:'))URL.revokeObjectURL(state.backgroundUrl);
+      if(state.logo?.src?.startsWith('blob:'))URL.revokeObjectURL(state.logo.src);
+      resetAiVariants();
       state.textLayouts={};state.shapes=[];state.groups={};state.customFields=[];
+      state.background=backgroundImage;state.backgroundUrl=backgroundUrl;
+      state.backgroundSource=backgroundImage?'gallery':'';state.generatedSpecKey='';
+      state.logo=logoImage;
+      if($('logoInput'))$('logoInput').value='';
+      if($('logoName'))$('logoName').textContent=logoImage?'보관함 로고 원본':'없음';
+      if($('clearLogo'))$('clearLogo').hidden=!logoImage;
+      if($('backgroundName'))$('backgroundName').textContent=backgroundImage?'보관함 저장 배경':'없음';
+      if($('clearBackground'))$('clearBackground').hidden=!backgroundImage;
       loadLocal();
       window.DesignWorkshopModes?.refresh?.();
-      state.background=null;state.backgroundUrl='';state.backgroundSource='';state.generatedSpecKey='';
-      state.logo=null;
-      if($('logoInput'))$('logoInput').value='';
-      if($('logoName'))$('logoName').textContent='없음';
-      if($('clearLogo'))$('clearLogo').hidden=true;
-      syncLoadedGalleryStateUi();
-
-      if(privateData.backgroundPath&&window.storage){
-        const url=await galleryDownloadUrl(privateData.backgroundPath);
-        if(url){
-          const image=new Image();image.crossOrigin='anonymous';image.src=url;await waitForImage(image);
-          state.background=image;state.backgroundUrl=url;state.backgroundSource='gallery';state.generatedSpecKey=specKey(currentSpec());
-          state.lastGeneratedPrompt=String($('stylePrompt')?.value||presetPrompt()).trim();
-          state.lastGeneratedPresetName=PRESETS[state.preset]?.name||privateData.presetName||'';
-          if($('backgroundName'))$('backgroundName').textContent='보관함 저장 배경';
-          if($('clearBackground'))$('clearBackground').hidden=false;
-        }
-      }
-      if(privateData.logoPath&&window.storage){
-        const url=await galleryDownloadUrl(privateData.logoPath);
-        if(!url)throw new Error('저장한 로고 원본을 불러오지 못했습니다.');
-        const image=new Image();image.crossOrigin='anonymous';image.src=url;await waitForImage(image);state.logo=image;
-        if($('logoName'))$('logoName').textContent='보관함 로고 원본';
-        if($('clearLogo'))$('clearLogo').hidden=false;
-      }
+      state.generatedSpecKey=backgroundImage?specKey(currentSpec()):'';
+      state.lastGeneratedPrompt=String($('stylePrompt')?.value||presetPrompt()).trim();
+      state.lastGeneratedPresetName=PRESETS[state.preset]?.name||privateData.presetName||'';
       syncLoadedGalleryStateUi();
       closeGalleryDetail();closeGallery();
-      setStatus('내 작업 설정을 불러왔습니다.',privateData.logoPath?'편집 설정·배경·로고 원본을 복원했습니다.':'편집 설정과 배경을 복원했습니다. 이전 기록에 없는 로고는 다시 불러와 주세요.','ok');
+      setStatus('내 디자인을 불러왔습니다.',backgroundImage
+        ?'편집 설정·배경'+(logoImage?'·로고':'')+'를 복원했습니다. 직접 배치한 PDF·이미지는 포함되지 않습니다.'
+        :'편집 설정을 복원했습니다. 기존 배경과 파일 레이어는 보관함 저장본에 포함되지 않았습니다.','ok');
     }catch(error){
-      setStatus('내 작업 불러오기 실패',error.message||'저장된 작업 설정을 읽지 못했습니다.','error',galleryErrorDebug(error,'내 작업 설정 복원'));
+      setStatus('내 작업 불러오기 실패',error.message||'저장된 작업 설정을 읽지 못했습니다. 기존 작업은 유지됩니다.','error',galleryErrorDebug(error,'내 작업 설정 복원'));
     }
   }
 
@@ -2551,6 +2601,7 @@
 
   async function loadBackground(file){
     if(!file)return;
+    const loadVersion=++backgroundLoadVersion;
     if(file.size>32*1024*1024){setStatus('이미지가 너무 큽니다.','파일당 32MB 이하로 준비해 주세요.','error');return;}
     if(!/^image\/(png|jpeg|webp)$/.test(file.type)){
       setStatus('지원하지 않는 표지 이미지입니다.','PNG, JPEG, WEBP만 사용할 수 있습니다.','error');return;
@@ -2558,6 +2609,7 @@
     const url=URL.createObjectURL(file),image=new Image();image.src=url;
     try{
       await waitForImage(image);
+      if(loadVersion!==backgroundLoadVersion){URL.revokeObjectURL(url);return;}
       if(state.backgroundSource==='upload'&&state.backgroundUrl?.startsWith('blob:'))URL.revokeObjectURL(state.backgroundUrl);
       resetAiVariants();state.background=image;state.backgroundUrl=url;state.backgroundSource='upload';state.generatedSpecKey=specKey(currentSpec());
       state.lastGeneratedPrompt=String($('stylePrompt')?.value||presetPrompt()).trim();
@@ -2579,27 +2631,39 @@
   }
 
   function clearBackground(){
+    backgroundLoadVersion++;
     resetAiVariants();
     if(state.backgroundSource==='upload'&&state.backgroundUrl?.startsWith('blob:'))URL.revokeObjectURL(state.backgroundUrl);
     state.background=null;state.backgroundUrl='';state.backgroundSource='';state.generatedSpecKey='';
     if($('backgroundInput'))$('backgroundInput').value='';
     if($('backgroundName'))$('backgroundName').textContent='없음';
     if($('clearBackground'))$('clearBackground').hidden=true;
-    if($('exportBtn'))$('exportBtn').disabled=true;
     if($('saveGalleryBtn'))$('saveGalleryBtn').disabled=true;
-    scheduleRender();updateProgress();
+    updateGeometry();scheduleRender();updateProgress();
   }
 
   async function loadLogo(file){
     if(!file)return;
+    const loadVersion=++logoLoadVersion;
     if(file.size>32*1024*1024){setStatus('이미지가 너무 큽니다.','파일당 32MB 이하로 준비해 주세요.','error');return;}
     if(!/^image\/(png|jpeg|webp)$/.test(file.type)){setStatus('지원하지 않는 로고 파일입니다.','PNG, JPEG, WEBP만 사용할 수 있습니다.','error');return;}
     const url=URL.createObjectURL(file),image=new Image();image.src=url;
-    try{await waitForImage(image);state.logo=image;if($('logoName'))$('logoName').textContent=file.name;if($('clearLogo'))$('clearLogo').hidden=false;scheduleRender();setStatus('로고를 불러왔습니다.','앞표지 하단에 자동 배치했습니다.','ok');}
+    try{
+      await waitForImage(image);
+      if(loadVersion!==logoLoadVersion){URL.revokeObjectURL(url);return;}
+      const previous = state.logo;
+      state.logo=image;
+      if(previous?.src?.startsWith('blob:'))URL.revokeObjectURL(previous.src);
+      if($('logoName'))$('logoName').textContent=file.name;
+      if($('clearLogo'))$('clearLogo').hidden=false;
+      updateGeometry();scheduleRender();
+      setStatus('로고를 불러왔습니다.','앞표지 하단에 자동 배치했습니다.','ok');
+    }
     catch(error){URL.revokeObjectURL(url);setStatus('로고를 읽지 못했습니다.',error.message,'error');}
   }
 
   function clearLogo(){
+    logoLoadVersion++;
     if(state.logo?.src?.startsWith('blob:'))URL.revokeObjectURL(state.logo.src);
     state.logo=null;if($('logoInput'))$('logoInput').value='';if($('logoName'))$('logoName').textContent='없음';if($('clearLogo'))$('clearLogo').hidden=true;scheduleRender();
   }
@@ -2655,7 +2719,6 @@
     });
     $('wingEnabled')?.addEventListener('change',()=>{syncWing();saveLocal();scheduleRender();});
     $('spineSync')?.addEventListener('change',()=>{syncSpineTitle();saveLocal();updateProgress();scheduleRender();});
-    $('manualBtn')?.addEventListener('click',event=>window.ProgramManualHomeModal?.open('ai-design-maker',event.currentTarget));
     $('aiDesignSessionSaveBtn')?.addEventListener('click',saveSessionNow);
     $('aiDesignSessionLoadBtn')?.addEventListener('click',loadSessionNow);
     qa('[data-jump]').forEach(button=>button.addEventListener('click',()=>jumpToSection(button.dataset.jump)));
@@ -2778,6 +2841,7 @@
     updateGeometry();updateProgress();scheduleRender();
   }
 
+  let boundUserId = '';
   async function authorize(){
     const gate=$('authGate'),shell=$('makerShell'),message=$('authMessage'),login=$('authLogin');
     if(!window.auth){message.textContent='로그인 모듈을 불러오지 못했습니다.';login.hidden=false;return;}
@@ -2786,10 +2850,16 @@
       try{
         const access=await window.ProgramAccess.getAccess(user);
         if(!access.approved){message.textContent='관리자 승인 후 사용할 수 있습니다.';login.hidden=true;shell.hidden=true;gate.hidden=false;return;}
+        if(boundUserId && boundUserId!==user.uid){
+          // Do not carry another account's unsaved canvas and file layers
+          // across users in a tab. Reinitialize with the new user state.
+          location.reload();return;
+        }
         if($('userName'))$('userName').textContent=user.displayName||user.email||'사용자';
         STORAGE_KEY=STORAGE_KEY_PREFIX+':'+user.uid;
         try{localStorage.removeItem(LEGACY_STORAGE_KEY);}catch(_){}
-        gate.hidden=true;shell.hidden=false;bind();
+        gate.hidden=true;shell.hidden=false;
+        if(!boundUserId){boundUserId=user.uid;bind();}
       }catch(error){message.textContent='사용 권한을 확인하지 못했습니다. 잠시 후 새로고침해 주세요.';login.hidden=false;}
     });
   }

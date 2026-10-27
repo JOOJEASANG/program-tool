@@ -104,5 +104,32 @@ assert.equal(z.whole.w,442);
   assert.equal(api.layers.length,1);
   assert.deepEqual(plain(z.front),{x:229,y:3,w:210,h:297});
   assert.equal(alerts.length,2);
+  // Two overlapping import requests must respect the same global 16-layer
+  // limit; no request may race ahead while a PDF/image is being decoded.
+  const extras=Array.from({length:17},(_,i)=>({...file,name:'extra-'+i+'.png'}));
+  await Promise.all([api.importFiles(extras.slice(0,8)),api.importFiles(extras.slice(8))]);
+  assert.equal(api.layers.length,16,'concurrent import exceeded the layer count limit');
+  assert.equal(alerts.filter(x=>x.tone==='error').length,2,'rejected excess imports need an error');
+  const previousRenders=renderCount;
+  assert.equal(api.clearAll({silent:true}),16,'clear must dispose all file layers');
+  assert.equal(api.hasLayers(),false);
+  assert.equal(api.layers.length,0);
+  assert.equal(renderCount,previousRenders,'silent gallery clear should not repaint an intermediate state');
+  let finishOldRead;
+  const slowFile={...file,name:'old-gallery.png',
+    arrayBuffer:()=>new Promise(resolve=>{finishOldRead=resolve;})};
+  const oldBatch=api.importFiles([slowFile]);
+  // Let the queued file begin reading but defer its completion until after
+  // a new gallery replaces the canvas.
+  for(let n=0;n<10 && !finishOldRead;n++)await Promise.resolve();
+  assert.equal(typeof finishOldRead,'function');
+  assert.equal(api.clearAll({silent:true}),0);
+  finishOldRead(bytes);
+  await oldBatch;
+  assert.equal(api.layers.length,0,'in-flight image read resurrected an old gallery layer');
+  await api.importFiles([{...file,name:'current-gallery.png'}]);
+  assert.equal(api.layers.length,1,'fresh imports after a gallery replacement were blocked');
+  api.clearAll({silent:true});
+  assert.equal(api.layers.length,0);
   console.log('design workspace layer behavior passed');
 })().catch(err=>{console.error(err);process.exitCode=1;});

@@ -30,8 +30,6 @@ button{cursor:pointer}
 .program-title-copy{min-width:0;display:flex;align-items:center;gap:8px}
 .program-title-copy strong{font-size:16px;font-weight:950;letter-spacing:-.035em;color:#0f172a;white-space:nowrap}
 .program-title-kicker{display:none}
-.ai-manual-btn{box-sizing:border-box;width:28px;height:28px;min-width:28px;min-height:28px;margin:0;padding:0;display:inline-flex;align-items:center;justify-content:center;flex:0 0 28px;border:1px solid #cbd5e1;border-radius:50%;background:#fff;color:#475569;font-size:16px;font-weight:900;line-height:1;cursor:pointer;transition:background .16s ease,transform .16s ease,border-color .16s ease}
-.ai-manual-btn:hover,.ai-manual-btn:focus-visible{background:#f8fafc;border-color:#94a3b8;color:#0f172a;transform:translateY(-1px);outline:2px solid rgba(124,58,237,.18);outline-offset:2px}
 .product-picker{margin:0 0 12px;padding-top:0}
 .product-picker-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 9px}
 .product-picker-head>div{display:flex;flex-direction:column;gap:2px}
