@@ -126,6 +126,10 @@
         if(!layer.imageFormat)throw new Error('이미지 파일이 올바른 PNG·JPEG·WEBP 형식인지 확인해 주세요.');
         const result = await loadImage(file);
         Object.assign(layer,result);
+        if (!result.image.naturalWidth || !result.image.naturalHeight ||
+          result.image.naturalWidth * result.image.naturalHeight > 60_000_000) {
+          throw new Error('이미지 해상도가 너무 큽니다. 최대 6,000만 픽셀 이하로 줄여서 추가해 주세요.');
+        }
         // Keep native bitmap dimensions separately for effective-resolution checks.
         layer.pixelW = result.image.naturalWidth;
         layer.pixelH = result.image.naturalHeight;
