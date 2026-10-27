@@ -130,6 +130,7 @@ function captureState() {
     format: SESSION_FORMAT,
     version: 1,
     selectedIndex,
+    sourceFiles: advancedState.files.map(file => ({ name: String(file.name || ''), size: Number(file.size || 0) })),
     paper: clone(advancedState.paper),
     margins: clone(advancedState.margins),
     headerFooter: clone(advancedState.headerFooter),
@@ -510,6 +511,16 @@ async function loadSession(data, docId = null, { localFiles = null, skipConfirm 
     if (files.length !== Number(data.fileCount || files.length)) {
       throw new Error(`원본 PDF가 ${Number(data.fileCount || 0)}개 필요합니다. 저장 당시 파일을 순서대로 선택해 주세요.`);
     }
+    if (localFiles && Number(data.totalBytes) > 0 && totalBytes(files) !== Number(data.totalBytes)) {
+      throw new Error('선택한 원본 PDF의 총 파일 크기가 저장 당시와 다릅니다. 올바른 파일을 선택해 주세요.');
+    }
+    if (localFiles && Array.isArray(state.sourceFiles) && state.sourceFiles.length === files.length) {
+      for (let i = 0; i < files.length; i++) {
+        if (Number(state.sourceFiles[i].size) !== Number(files[i].size)) {
+          throw new Error(`${i + 1}번째 원본 PDF의 파일 크기가 저장 당시와 다릅니다.`);
+        }
+      }
+    }
     const imported = await loadPdfFiles(files, {
       replace: true,
       validatePages: sourcePages => {
@@ -523,7 +534,9 @@ async function loadSession(data, docId = null, { localFiles = null, skipConfirm 
     });
     if (!imported) throw new Error('원본 PDF를 읽거나 페이지 구성을 검증하지 못했습니다.');
     restoreState(state);
-    loadedSession = docId ? {
+    // A manually selected source is NOT the same object as the old remote
+    // source: never silently reuse broken saved Storage paths on future saves.
+    loadedSession = docId && !localFiles ? {
       uid: window.auth.currentUser.uid, docId, sessionId: data.sessionId,
       name: String(data.name || 'PDF 편집 세션'), storagePaths: [...(data.storagePaths || [])],
       files: [...advancedState.files],
