@@ -51,7 +51,7 @@ def test_advanced_top_actions_match_layout_structure_and_load_session_module():
     assert home < save < load < logout
     assert ">편집저장</button>" in html
     assert ">편집불러오기</button>" in html
-    assert "session-persistence.js?v=20261027-2" in html
+    assert "session-persistence.js?v=20261027-3" in html
 
 
 def test_advanced_session_snapshot_covers_page_and_document_edit_state():
