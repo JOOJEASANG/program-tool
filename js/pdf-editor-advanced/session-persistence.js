@@ -1,5 +1,6 @@
 import { advancedState, clearHistory, emitStateChange } from './state.js';
-import { loadPdfFiles } from './app.js';
+// Match the exact module URL in index.html so app.js initializes only once.
+import { loadPdfFiles } from './app.js?v=20261027-2';
 
 const $ = id => document.getElementById(id);
 const MAX_SESSIONS = 10;
