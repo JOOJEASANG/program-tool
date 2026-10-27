@@ -115,5 +115,21 @@ assert.equal(z.whole.w,442);
   assert.equal(api.hasLayers(),false);
   assert.equal(api.layers.length,0);
   assert.equal(renderCount,previousRenders,'silent gallery clear should not repaint an intermediate state');
+  let finishOldRead;
+  const slowFile={...file,name:'old-gallery.png',
+    arrayBuffer:()=>new Promise(resolve=>{finishOldRead=resolve;})};
+  const oldBatch=api.importFiles([slowFile]);
+  // Let the queued file begin reading but defer its completion until after
+  // a new gallery replaces the canvas.
+  for(let n=0;n<10 && !finishOldRead;n++)await Promise.resolve();
+  assert.equal(typeof finishOldRead,'function');
+  assert.equal(api.clearAll({silent:true}),0);
+  finishOldRead(bytes);
+  await oldBatch;
+  assert.equal(api.layers.length,0,'in-flight image read resurrected an old gallery layer');
+  await api.importFiles([{...file,name:'current-gallery.png'}]);
+  assert.equal(api.layers.length,1,'fresh imports after a gallery replacement were blocked');
+  api.clearAll({silent:true});
+  assert.equal(api.layers.length,0);
   console.log('design workspace layer behavior passed');
 })().catch(err=>{console.error(err);process.exitCode=1;});
