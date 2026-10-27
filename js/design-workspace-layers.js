@@ -16,6 +16,7 @@
   let editor = null;
   let pointer = null;
   let pdfJsPromise = null;
+  let importQueue = Promise.resolve();
   const $ = id => document.getElementById(id);
   const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
   const validNumber = (value, fallback) => Number.isFinite(Number(value)) ? Number(value) : fallback;
@@ -141,11 +142,32 @@
     }
   }
   async function importFiles(files) {
-    for (const file of [...files || []]) {
-      try { await addFile(file); }
-      catch (error) { notify('파일 불러오기 실패',error?.message || '파일 형식을 확인해 주세요.','error'); }
+    // File chooser and drag-drop can fire while the previous PDF is still
+    // parsing. Serialize batches so max count/byte limits cannot race.
+    const incoming = [...(files || [])];
+    const run = async () => {
+      for (const file of incoming) {
+        try { await addFile(file); }
+        catch (error) { notify('파일 불러오기 실패',error?.message || '파일 형식을 확인해 주세요.','error'); }
+      }
+      if ($('designLayerUpload')) $('designLayerUpload').value = '';
+    };
+    const task = importQueue.then(run,run);
+    importQueue = task.catch(() => {});
+    return task;
+  }
+
+  function clearAll({ silent = false } = {}) {
+    const removed = layers.length;
+    for (const layer of layers) {
+      if (layer.url) URL.revokeObjectURL(layer.url);
+      try { layer.pdfDocument?.destroy?.(); } catch (_) {}
     }
-    if ($('designLayerUpload')) $('designLayerUpload').value = '';
+    layers.length = 0;
+    activeId = '';
+    pointer = null;
+    if (!silent) refresh();
+    return removed;
   }
   function removeSelected() {
     const item = selected(); if (!item) return;
@@ -387,5 +409,5 @@
     editor=options;
     bindCanvas();bindInputs();refresh();
   }
-  window.DesignWorkspaceLayers={configure,importFiles,removeSelected,clearActive,draw,drawForExport,drawVector,hasLayers,updateReview,zones,get layers(){return layers.slice();},get active(){return selected();}};
+  window.DesignWorkspaceLayers={configure,importFiles,removeSelected,clearActive,clearAll,draw,drawForExport,drawVector,hasLayers,updateReview,zones,get layers(){return layers.slice();},get active(){return selected();}};
 })();
