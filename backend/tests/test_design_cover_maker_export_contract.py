@@ -109,7 +109,7 @@ def test_ai_design_maker_uses_sidebar_only_layout_and_bottom_actions():
 
     assert '<header class="maker-header">' not in page
     assert 'id="productPickerTitle">디자인 종류' in page
-    assert 'id="manualBtn"' in page
+    assert 'id="manualBtn"' not in page
     assert 'program-manual-home-modal.css' in page
     assert 'program-manuals/home-modal.js' in page
     assert 'program-sidebar-actions.js?v=20260918-2' in page
@@ -131,13 +131,13 @@ def test_ai_design_maker_uses_category_presets_and_exact_spine_guidance():
     assert "spineInset=Math.min(sw*.18,1.5*scale)" in source
     assert "책등 8mm 이상: 상·중·하 문구를 각각 자동정렬하거나 자유배치할 수 있습니다." in source
 
-def test_ai_design_manual_button_sits_next_to_program_title():
+def test_ai_design_header_without_retired_help_button():
     page = (ROOT / "ai-design-maker/index.html").read_text(encoding="utf-8")
     style = (ROOT / "css/ai-design-maker.css").read_text(encoding="utf-8")
 
     assert 'class="program-title-row"' in page
     assert '<strong>디자인 제작</strong>' in page
-    assert 'id="manualBtn"' in page
+    assert 'id="manualBtn"' not in page
     assert page.index('<strong>디자인 제작</strong>') < page.index('id="productPickerTitle"')
     assert '.program-title-row{' in style
     assert '.program-title-copy strong{' in style
