@@ -2461,59 +2461,73 @@
 
   async function loadOwnGalleryWork(item){
     if(!item?.isOwner)return;
-    let privateData=item;
-    if(!privateData.stateJson){
-      const user=window.auth?.currentUser;
-      if(!user||!window.db)return;
-      const snap=await window.db.collection('users').doc(user.uid).collection('ai_design_gallery').doc(item.id).get();
-      if(snap.exists)privateData={...item,...snap.data()};
-    }
-    if((privateData.workshop||'cover')!==WORKSHOP||
-       (WORKSHOP==='leaflet'&&(privateData.leafletSide||'outside')!==LEAFLET_SIDE)){
-      setStatus('다른 작업실의 디자인입니다.','해당 디자인의 제품 종류 및 리플렛 면을 선택한 뒤 불러오세요.','error');
-      return;
-    }
-    if(!privateData.stateJson){
-      applySharedGallerySettings(item);
-      setStatus('이전 저장 기록의 디자인 설정을 불러왔습니다.','이 디자인은 전체 편집 설정 저장 기능이 추가되기 전에 저장되어 요청 설정만 적용했습니다.','ok');
-      return;
-    }
+    // Resolve all external assets before changing any live state. A failed
+    // Firebase image request must never leave the current design half erased.
     try{
+      let privateData=item;
+      if(!privateData.stateJson){
+        const user=window.auth?.currentUser;
+        if(!user||!window.db)throw new Error('보관함 로그인과 저장소 연결을 확인해 주세요.');
+        const snap=await window.db.collection('users').doc(user.uid).collection('ai_design_gallery').doc(item.id).get();
+        if(snap.exists)privateData={...item,...snap.data()};
+      }
+      if((privateData.workshop||'cover')!==WORKSHOP||
+        (WORKSHOP==='leaflet'&&(privateData.leafletSide||'outside')!==LEAFLET_SIDE)){
+        setStatus('다른 작업실의 디자인입니다.','해당 디자인의 제품 종류와 리플렛 면을 선택한 뒤 불러오세요.','error');
+        return;
+      }
+      if(!privateData.stateJson){
+        applySharedGallerySettings(item);
+        setStatus('이전 저장 기록의 디자인 설정을 불러왔습니다.','이 디자인은 전체 편집 설정 저장 기능 이전에 저장되어 요청 설정만 적용했습니다.','ok');
+        return;
+      }
       const restored=JSON.parse(privateData.stateJson);
+      if(!restored||typeof restored!=='object'||Array.isArray(restored))throw new Error('저장된 편집 설정이 올바르지 않습니다.');
+      let backgroundImage=null,backgroundUrl='',logoImage=null;
+      if(privateData.backgroundPath){
+        if(!window.storage)throw new Error('저장소 연결을 확인해 주세요.');
+        backgroundUrl=await galleryDownloadUrl(privateData.backgroundPath);
+        if(!backgroundUrl)throw new Error('저장한 배경 원본을 찾을 수 없습니다.');
+        backgroundImage=new Image();backgroundImage.crossOrigin='anonymous';
+        backgroundImage.src=backgroundUrl;await waitForImage(backgroundImage);
+      }
+      if(privateData.logoPath){
+        if(!window.storage)throw new Error('저장소 연결을 확인해 주세요.');
+        const logoUrl=await galleryDownloadUrl(privateData.logoPath);
+        if(!logoUrl)throw new Error('저장한 로고 원본을 찾을 수 없습니다.');
+        logoImage=new Image();logoImage.crossOrigin='anonymous';
+        logoImage.src=logoUrl;await waitForImage(logoImage);
+      }
+      if(window.DesignWorkspaceLayers?.hasLayers() &&
+        !window.confirm('현재 작업의 PDF·이미지 파일 레이어는 보관함 편집 설정에 포함되지 않습니다. 기존 파일 레이어를 비우고 이 디자인을 불러올까요?'))return;
+
+      // Commit only after all possible network failures have completed.
       localStorage.setItem(STORAGE_KEY,JSON.stringify(restored));
+      window.DesignWorkspaceLayers?.clearAll?.({silent:true});
+      if(state.backgroundSource==='upload'&&state.backgroundUrl?.startsWith('blob:'))URL.revokeObjectURL(state.backgroundUrl);
+      if(state.logo?.src?.startsWith('blob:'))URL.revokeObjectURL(state.logo.src);
+      resetAiVariants();
       state.textLayouts={};state.shapes=[];state.groups={};state.customFields=[];
+      state.background=backgroundImage;state.backgroundUrl=backgroundUrl;
+      state.backgroundSource=backgroundImage?'gallery':'';state.generatedSpecKey='';
+      state.logo=logoImage;
+      if($('logoInput'))$('logoInput').value='';
+      if($('logoName'))$('logoName').textContent=logoImage?'보관함 로고 원본':'없음';
+      if($('clearLogo'))$('clearLogo').hidden=!logoImage;
+      if($('backgroundName'))$('backgroundName').textContent=backgroundImage?'보관함 저장 배경':'없음';
+      if($('clearBackground'))$('clearBackground').hidden=!backgroundImage;
       loadLocal();
       window.DesignWorkshopModes?.refresh?.();
-      state.background=null;state.backgroundUrl='';state.backgroundSource='';state.generatedSpecKey='';
-      state.logo=null;
-      if($('logoInput'))$('logoInput').value='';
-      if($('logoName'))$('logoName').textContent='없음';
-      if($('clearLogo'))$('clearLogo').hidden=true;
-      syncLoadedGalleryStateUi();
-
-      if(privateData.backgroundPath&&window.storage){
-        const url=await galleryDownloadUrl(privateData.backgroundPath);
-        if(url){
-          const image=new Image();image.crossOrigin='anonymous';image.src=url;await waitForImage(image);
-          state.background=image;state.backgroundUrl=url;state.backgroundSource='gallery';state.generatedSpecKey=specKey(currentSpec());
-          state.lastGeneratedPrompt=String($('stylePrompt')?.value||presetPrompt()).trim();
-          state.lastGeneratedPresetName=PRESETS[state.preset]?.name||privateData.presetName||'';
-          if($('backgroundName'))$('backgroundName').textContent='보관함 저장 배경';
-          if($('clearBackground'))$('clearBackground').hidden=false;
-        }
-      }
-      if(privateData.logoPath&&window.storage){
-        const url=await galleryDownloadUrl(privateData.logoPath);
-        if(!url)throw new Error('저장한 로고 원본을 불러오지 못했습니다.');
-        const image=new Image();image.crossOrigin='anonymous';image.src=url;await waitForImage(image);state.logo=image;
-        if($('logoName'))$('logoName').textContent='보관함 로고 원본';
-        if($('clearLogo'))$('clearLogo').hidden=false;
-      }
+      state.generatedSpecKey=backgroundImage?specKey(currentSpec()):'';
+      state.lastGeneratedPrompt=String($('stylePrompt')?.value||presetPrompt()).trim();
+      state.lastGeneratedPresetName=PRESETS[state.preset]?.name||privateData.presetName||'';
       syncLoadedGalleryStateUi();
       closeGalleryDetail();closeGallery();
-      setStatus('내 작업 설정을 불러왔습니다.',privateData.logoPath?'편집 설정·배경·로고 원본을 복원했습니다.':'편집 설정과 배경을 복원했습니다. 이전 기록에 없는 로고는 다시 불러와 주세요.','ok');
+      setStatus('내 디자인을 불러왔습니다.',backgroundImage
+        ?'편집 설정·배경'+(logoImage?'·로고':'')+'를 복원했습니다. 직접 배치한 PDF·이미지는 포함되지 않습니다.'
+        :'편집 설정을 복원했습니다. 기존 배경과 파일 레이어는 보관함 저장본에 포함되지 않았습니다.','ok');
     }catch(error){
-      setStatus('내 작업 불러오기 실패',error.message||'저장된 작업 설정을 읽지 못했습니다.','error',galleryErrorDebug(error,'내 작업 설정 복원'));
+      setStatus('내 작업 불러오기 실패',error.message||'저장된 작업 설정을 읽지 못했습니다. 기존 작업은 유지됩니다.','error',galleryErrorDebug(error,'내 작업 설정 복원'));
     }
   }
 
