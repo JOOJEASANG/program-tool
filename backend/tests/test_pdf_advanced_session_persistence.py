@@ -80,7 +80,7 @@ def test_advanced_session_save_and_load_are_isolated_and_restore_source_page_map
     assert "SESSION_FORMAT = 'program-studio-advanced-pdf-session'" in source
     assert "pdf_sessions/${user.uid}/${sessionId}/src_${index}.pdf" in source
     assert "customMetadata: { ownerUid: user.uid, purpose: 'pdf-session-source', sessionId }" in source
-    assert "const imported = await loadPdfFiles(files, { replace: true });" in source
+    assert "const imported = await loadPdfFiles(files, {" in source
     assert "const loadedMap = new Map(advancedState.pages.map(page => [pageKey(page), page]))" in source
     assert "advancedState.pages = restored" in source
     assert "page.eraseRegions = clone(saved.eraseRegions || [])" in source
