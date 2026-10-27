@@ -430,6 +430,17 @@ function applySavedPage(saved, page) {
   page.offsetX = Number(saved.offsetX || 0);
   page.offsetY = Number(saved.offsetY || 0);
   page.orientationSource = String(saved.orientationSource || '');
+  // A freshly imported page already has overlays:[]; hydrate saved metadata
+  // before notifying overlay listeners, otherwise old text/images disappear.
+  const overlayMarker = String.fromCharCode(10) + '__PS_OVERLAYS_V1__=';
+  const markerIndex = page.orientationSource.indexOf(overlayMarker);
+  if (markerIndex >= 0) {
+    try {
+      const overlays = JSON.parse(page.orientationSource.slice(markerIndex + overlayMarker.length));
+      page.overlays = Array.isArray(overlays) ? overlays.slice(0, 20) : [];
+    } catch (_) { page.overlays = []; }
+    window.PdfAdvancedPageOverlays?.persistPageMetadata?.(page);
+  } else page.overlays = [];
   page.autoAligned = !!saved.autoAligned;
   return page;
 }
@@ -481,31 +492,51 @@ function restoreState(state) {
   selectedItem?.click();
 }
 
-async function loadSession(data, docId = null) {
+async function loadSession(data, docId = null, { localFiles = null, skipConfirm = false } = {}) {
   if (operationBusy) return false;
   let state;
-  try { state = JSON.parse(String(data.state || '')); } catch (_) { return setStatus('저장된 편집 상태를 읽을 수 없습니다.', 'error'); }
-  if (state?.format !== SESSION_FORMAT) return setStatus('PDF편집에서 저장한 파일이 아닙니다.', 'error');
-  if (!confirm(`“${String(data.name || 'PDF 편집 세션')}” 편집 내용을 불러올까요?\n현재 작업 중인 내용은 사라집니다.`)) return false;
+  try { state = JSON.parse(String(data.state || '')); }
+  catch (_) { showRecovery(data, docId, '저장된 편집 상태를 읽을 수 없습니다.'); return false; }
+  if (state?.format !== SESSION_FORMAT || !Array.isArray(state.pages) || !state.pages.length) {
+    showRecovery(data, docId, '이 저장 내역의 편집 상태 정보가 올바르지 않습니다.');
+    return false;
+  }
+  if (!skipConfirm && !window.confirm(`“${String(data.name || 'PDF 편집 세션')}” 편집 내용을 불러올까요?\n현재 작업 중인 내용은 사라집니다.`)) return false;
   setOperationBusy(true, '편집 내용을 불러오는 중...');
-  $('advancedSessionLoadModal').hidden = true;
+  const recovery = $('advancedSessionRecovery');
+  if (recovery) recovery.hidden = true;
   try {
-    const files = await downloadSourceFiles(data);
+    const files = localFiles || await downloadSourceFiles(data);
     if (files.length !== Number(data.fileCount || files.length)) {
-      throw new Error('저장된 원본 PDF 개수가 일치하지 않습니다.');
+      throw new Error(`원본 PDF가 ${Number(data.fileCount || 0)}개 필요합니다. 저장 당시 파일을 순서대로 선택해 주세요.`);
     }
-    // Wait for actual PDF parsing rather than simulating a file chooser and
-    // polling a timer. Failed imports keep the previous editor work intact.
-    const imported = await loadPdfFiles(files, { replace: true });
-    if (!imported) throw new Error('원본 PDF를 읽지 못했습니다. 파일을 확인해 주세요.');
+    const imported = await loadPdfFiles(files, {
+      replace: true,
+      validatePages: sourcePages => {
+        const keys = new Set(sourcePages.map(page => pageKey(page)));
+        for (const saved of state.pages) {
+          if (!keys.has(pageKey(saved))) {
+            throw new Error(`원본 ${Number(saved.fileIndex) + 1}번의 ${Number(saved.pageIndex) + 1}페이지가 없습니다. 저장 당시 파일을 선택해 주세요.`);
+          }
+        }
+      },
+    });
+    if (!imported) throw new Error('원본 PDF를 읽거나 페이지 구성을 검증하지 못했습니다.');
     restoreState(state);
-    loadedSession = docId ? {uid:window.auth.currentUser.uid,docId,sessionId:data.sessionId,
-      name:String(data.name||'PDF 편집 세션'),storagePaths:[...(data.storagePaths||[])],
-      files:[...advancedState.files]} : null;
+    loadedSession = docId ? {
+      uid: window.auth.currentUser.uid, docId, sessionId: data.sessionId,
+      name: String(data.name || 'PDF 편집 세션'), storagePaths: [...(data.storagePaths || [])],
+      files: [...advancedState.files],
+    } : null;
+    recoverySession = null;
+    $('advancedSessionLoadModal').hidden = true;
     setStatus(`편집 내용 불러오기 완료 · ${advancedState.pages.length}페이지`, 'success');
     return true;
   } catch (error) {
-    setStatus(`편집 불러오기 실패: ${error.message}`, 'error');
+    const message = `편집 불러오기 실패: ${error?.message || String(error)}`;
+    setStatus(message, 'error');
+    showRecovery(data, docId, message);
+    console.error('[pdf-advanced-session] restore failed:', error);
     return false;
   } finally { setOperationBusy(false); }
 }
