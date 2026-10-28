@@ -1348,27 +1348,17 @@
     const preset=PRESETS[state.preset]||PRESETS.report;
     const panel=(x,w,label)=>{
       if(w<10)return;
-      const inset=Math.max(5,Math.min(w*.09,th*.09));
       ctx.save();
-      ctx.globalAlpha=.46;
+      // Display the real page/panel geometry without decorative placeholder
+      // strokes that resemble printing guides or actual artwork.
+      ctx.globalAlpha=.22;
       ctx.fillStyle=preset.primaryColor;
       ctx.fillRect(x,b,w,th);
-      ctx.globalAlpha=.19;
+      ctx.globalAlpha=.83;
       ctx.fillStyle=preset.textColor;
-      if(['event','proposal'].includes(state.preset)){
-        ctx.fillRect(x+w*.68,b,w*.32,th);
-      }else if(state.preset==='workbook'||state.preset==='education'){
-        ctx.fillRect(x+inset,b+th*.62,Math.max(3,w-inset*2),Math.max(3,th*.12));
-      }else{
-        ctx.fillRect(x+inset,b+th*.16,Math.max(3,w-inset*2),Math.max(3,th*.015));
-        ctx.fillRect(x+inset,b+th*.82,Math.max(3,w*.30),Math.max(3,th*.014));
-      }
-      ctx.globalAlpha=.68;
-      ctx.fillStyle=preset.textColor;
-      ctx.fillRect(x+inset,b+inset,Math.max(3,w*.17),Math.max(3,th*.012));
       ctx.font='700 '+Math.max(10,Math.min(14,w*.07))+'px Pretendard, sans-serif';
       ctx.textBaseline='middle';ctx.textAlign='center';
-      ctx.fillText(label,x+w/2,b+th*.47,Math.max(1,w-inset*2));
+      ctx.fillText(label,x+w/2,b+th*.49,Math.max(1,w-16));
       ctx.restore();
     };
     if(spec.coverMode==='front'||spec.coverMode==='back'){
