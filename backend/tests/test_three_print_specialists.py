@@ -36,7 +36,7 @@ def test_variable_data_has_local_csv_excel_and_real_300dpi_pdf_output():
         "total>100", "ctx.library('pdf')", "pdf.embedJpg(",
         "pdf.addPage([ctx.mm(w),ctx.mm(h)])", "render(k,300)",
         "QR 주소 열", "id=\"pvMarks\"", "line(c,x,y,w,h,scale)",
-        "id='pvLaunch'", "프린터",  # Korean UI only, no English-only user action
+        "button.id='pvLaunch'", "프린터",  # Korean UI only, no English-only user action
     ):
         if marker == "프린터":
             continue
@@ -64,7 +64,7 @@ def test_duplex_produces_vector_preserving_pdf_and_calibration_sheets():
         "values()", "Math.abs(x)>15", "out.embedPdf(inputBytes)",
         "dest.drawPage(embedded[i],", "i%2===0", "i%2===1",
         "window.PDFLib.PDFDocument.load(", "localStorage.setItem(",
-        "localStorage.getItem(", "id='dxLaunch'"
+        "localStorage.getItem(", "button.id='dxLaunch'"
     ):
         assert marker in src
 
