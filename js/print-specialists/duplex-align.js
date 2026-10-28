@@ -18,7 +18,7 @@ function install(){
    '<label>뒷면 좌우 이동 (mm)<input id="dxBX" type="number" value="0" min="-15" max="15" step=".1"></label>',
    '<label>뒷면 상하 이동 (mm)<input id="dxBY" type="number" value="0" min="-15" max="15" step=".1"></label>',
    '</div>',
-   '<p class="ps-help">먼저 시험용 양면 정렬표 PDF를 실제 프린터에 양면 출력하세요. 빛에 비춰 앞뒤 십자선이 어긋난 정도를 확인하고 mm 값을 입력합니다. **양수는 오른쪽·위쪽, 음수는 왼쪽·아래쪽**으로 이동합니다. 예: 뒷면이 오른쪽으로 2mm 밀려 있다면 뒷면 좌우 이동에 -2를 입력하세요.</p>',
+   '<p class="ps-help">먼저 시험용 양면 정렬표 PDF를 실제 프린터에 양면 출력하세요. 빛에 비춰 앞뒤 십자선이 어긋난 정도를 확인하고 mm 값을 입력합니다. <strong>양수는 오른쪽·위쪽, 음수는 왼쪽·아래쪽</strong>으로 이동합니다. 예: 뒷면이 오른쪽으로 2mm 밀려 있다면 뒷면 좌우 이동에 -2를 입력하세요.</p>',
    '<div class="ps-actions"><button id="dxTest" type="button" class="ps-btn secondary">시험용 양면 정렬표 PDF 만들기</button><button id="dxSave" type="button" class="ps-btn secondary">프린터 보정값 저장</button><button id="dxLoad" type="button" class="ps-btn secondary">보정값 불러오기</button><button id="dxRun" type="button" class="ps-btn">보정된 PDF 저장</button></div>',
    '<p class="ps-status" role="status" aria-live="polite">먼저 시험용 양면 정렬표를 출력하여 차이를 측정하세요.</p>',
    '<div class="ps-preview" id="dxSummary">수정할 PDF를 선택하면 페이지 수를 확인합니다.</div>',
