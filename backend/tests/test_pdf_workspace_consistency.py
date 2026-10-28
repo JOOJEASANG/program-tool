@@ -47,7 +47,7 @@ def test_pdf_suite_hides_legacy_first_paint_until_split_workspace_is_ready():
     ):
         assert marker in hosting
 
-    assert "single-page-shell.js?v=20260911-4" in hosting
+    assert "single-page-shell.js?v=20261028-1" in hosting
     assert "workspace-stability.js?v=20260911-2" in hosting
 
 

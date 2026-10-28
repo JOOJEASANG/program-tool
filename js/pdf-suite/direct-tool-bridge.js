@@ -68,7 +68,7 @@
     let extra='';
     if(type==='compress')extra='<div class="pdfud-field"><label>압축 품질</label><select data-opt="quality"><option value="low">작은 용량</option><option value="medium" selected>균형</option><option value="high">선명</option></select></div>';
     if(type==='encrypt')extra='<div class="pdfud-field"><label>새 비밀번호</label><input data-opt="password" type="password" minlength="4" maxlength="32" placeholder="4~32자"></div><div class="pdfud-field"><label>비밀번호 확인</label><input data-opt="password2" type="password" minlength="4" maxlength="32"></div>';
-    if(type==='decrypt')extra='<div class="pdfud-field"><label>현재 비밀번호</label><input data-opt="password" type="password" placeholder="PDF 비밀번호"></div>';
+    if(type==='decrypt')extra='<div class="pdfud-field"><label>현재 비밀번호</label><input data-opt="password" type="password" placeholder="PDF 열기 비밀번호" autocomplete="off"></div><div class="pdfud-copy">정확한 열기 비밀번호가 필요합니다. 비밀번호를 모르는 암호화 PDF는 이 기능으로 해독할 수 없습니다. 열기 암호 없이 권한만 제한된 파일은 별도로 확인할 수 있습니다.</div>';
     const root=basePanel(tool,extra);stage().appendChild(root);let file=null;const input=root.querySelector('.pdfud-file-input');input.addEventListener('change',()=>{file=input.files?.[0]||null;selected(root,file);});
     root.querySelector('.pdfud-run').addEventListener('click',async()=>{const btn=root.querySelector('.pdfud-run');try{fileValid(file);btn.disabled=true;setStatus(root,'처리 중...');let result,name;
       if(type==='remove-blank'){result=await pdfTool('remove-blank',file);name=`${filenameBase(file)}_빈페이지제거.pdf`;}

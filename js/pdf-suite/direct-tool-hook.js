@@ -61,7 +61,7 @@
   function ensureCenteredWorkspace(){return ensureScript('pdfUtilityCenteredWorkspaceScript','/js/pdf-suite/centered-workspace.js?v=20260915-4',()=>Boolean(window.__programStudioPdfUtilityCenteredV2));}
   // Keep the established function name/legacy readiness marker for compatibility contracts,
   // but the actual final presentation is now owned by one clean UI module.
-  function ensureCenteredFixes(){return ensureScript('pdfUtilityCleanUiScript','/js/pdf-suite/clean-ui.js?v=20261002-1',()=>Boolean(window.__programStudioPdfUtilityCleanUiV1||window.__programStudioPdfUtilityCenteredFixesV4));}
+  function ensureCenteredFixes(){return ensureScript('pdfUtilityCleanUiScript','/js/pdf-suite/clean-ui.js?v=20261028-1',()=>Boolean(window.__programStudioPdfUtilityCleanUiV1||window.__programStudioPdfUtilityCenteredFixesV4));}
   function ensureToolModalFlow(){return ensureScript('pdfUtilityToolModalFlowScript','/js/pdf-suite/tool-modal-flow.js?v=20260915-1',()=>Boolean(window.__programStudioPdfUtilityToolModalFlowV1));}
   function ensureFullModalWorkspace(){return ensureScript('pdfUtilityModalFullWorkspaceScript','/js/pdf-suite/modal-full-workspace.js?v=20261016-1',()=>Boolean(window.__programStudioPdfUtilityModalFullWorkspaceV1));}
 

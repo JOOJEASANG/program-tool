@@ -97,13 +97,13 @@ PDF_SUITE_UNIFIED_SNIPPET = (
     f'<script {PDF_SUITE_UNIFIED_MARKER} defer src="/js/pdf-suite/unified-workspace.js?v=20260906-1"></script>'
 )
 PDF_SUITE_SINGLE_PAGE_SNIPPET = (
-    f'<script {PDF_SUITE_SINGLE_PAGE_MARKER} defer src="/js/pdf-suite/single-page-shell.js?v=20260911-4"></script>'
+    f'<script {PDF_SUITE_SINGLE_PAGE_MARKER} defer src="/js/pdf-suite/single-page-shell.js?v=20261028-1"></script>'
 )
 PDF_SUITE_DIRECT_BRIDGE_SNIPPET = (
-    f'<script {PDF_SUITE_DIRECT_BRIDGE_MARKER} defer src="/js/pdf-suite/direct-tool-bridge.js?v=20260906-1"></script>'
+    f'<script {PDF_SUITE_DIRECT_BRIDGE_MARKER} defer src="/js/pdf-suite/direct-tool-bridge.js?v=20261028-1"></script>'
 )
 PDF_SUITE_DIRECT_HOOK_SNIPPET = (
-    f'<script {PDF_SUITE_DIRECT_HOOK_MARKER} defer src="/js/pdf-suite/direct-tool-hook.js?v=20260915-2"></script>'
+    f'<script {PDF_SUITE_DIRECT_HOOK_MARKER} defer src="/js/pdf-suite/direct-tool-hook.js?v=20261028-1"></script>'
 )
 PDF_SUITE_PROTECTED_GUARD_SNIPPET = (
     f'<script {PDF_SUITE_PROTECTED_GUARD_MARKER} defer src="/js/pdf-suite/protected-tool-guard.js?v=20260906-1"></script>'

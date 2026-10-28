@@ -49,6 +49,36 @@
 
   function escapeHtml(value){return String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));}
 
+  // Draw real, fixed-size vector icons instead of English fallback text
+  // (IMG, PDF, OCR, TXT, KEY, OPEN, FIX) that collides with Korean labels.
+  const ICON_SHAPES=Object.freeze({
+    '＋':'<path d="M12 5v14M5 12h14"/>',
+    '−':'<path d="M5 12h14"/><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 12h8"/>',
+    '↻':'<path d="M20 11a8 8 0 1 1-2.2-5.5"/><path d="M20 4v6h-6"/>',
+    '⇅':'<path d="M8 3v18m0-18-4 4m4-4 4 4M16 21V3m0 18-4-4m4 4 4-4"/>',
+    '↥':'<path d="M12 21V4m0 0-5 5m5-5 5 5M4 21h16"/>',
+    '▦':'<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 3v18M3 9h18M3 15h18"/>',
+    '⌗':'<path d="M4 8h16M4 16h16M8 4v16M16 4v16"/>',
+    'IMG':'<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/>',
+    'PDF':'<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 3v5h6M8 16l3-4 2 3 3-4"/>',
+    'OCR':'<path d="M8 3H5a2 2 0 0 0-2 2v3m13-5h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3m13 5h3a2 2 0 0 0 2-2v-3M7 12h10m-8 4h6m-6-8h6"/>',
+    'TXT':'<path d="M7 3h8l4 4v14H5V3h2Zm8 0v5h4M8 12h8M8 16h8"/>',
+    'KEY':'<circle cx="8" cy="15" r="4"/><path d="m11 12 9-9m-4 4 3 3m-6 0 3 3"/>',
+    'OPEN':'<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M9 11V7a4 4 0 0 1 8 0v1"/>',
+    'FIX':'<path d="M14.5 6.5a5 5 0 0 0-6 6L3 18l3 3 5.5-5.5a5 5 0 0 0 6-6l-3 2-3-3z"/>',
+    '✓':'<path d="m4 12 5 5L20 6"/>',
+    '⇣':'<path d="M12 3v13m-5-5 5 5 5-5M4 20h16"/>',
+    '📄':'<path d="M6 2h9l5 5v15H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Zm9 0v5h5"/>'
+  });
+  function iconMarkup(icon){
+    const shape=ICON_SHAPES[String(icon||'')];
+    return shape
+      ? '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false" aria-hidden="true">'+shape+'</svg>'
+      : '<span aria-hidden="true">'+escapeHtml(icon||'📄')+'</span>';
+  }
+  window.ProgramStudioPdfUtilityIcons=Object.freeze({markup:iconMarkup});
+
+
   function installStyle(){
     if($('pdfUtilitySplitStyle'))return;
     const style=document.createElement('style');
@@ -63,7 +93,7 @@
       .pdfu-side-head{padding:17px 16px 13px;border-bottom:1px solid #e6edf4}.pdfu-side-kicker{font-size:9px;font-weight:950;letter-spacing:1.1px;color:#2563eb}.pdfu-side-title{font-size:18px;font-weight:950;color:#0f2f59;margin-top:2px;letter-spacing:-.45px}.pdfu-side-copy{font-size:10px;line-height:1.5;color:#64748b;margin-top:4px}
       .pdfu-search-wrap{padding:11px 12px;border-bottom:1px solid #edf2f7}.pdfu-search{width:100%;height:39px;border:1.5px solid #dbe4ee;border-radius:10px;padding:0 11px;font:750 11px Pretendard,"Noto Sans KR",sans-serif;outline:none;background:#f8fafc;color:#1e293b}.pdfu-search:focus{border-color:#60a5fa;background:#fff;box-shadow:0 0 0 3px rgba(37,99,235,.08)}
       .pdfu-menu-scroll{flex:1;overflow:auto;padding:8px 9px 18px;scrollbar-width:thin}.pdfu-menu-group{margin-top:7px}.pdfu-menu-group:first-child{margin-top:0}.pdfu-menu-group-head{padding:8px 8px 6px}.pdfu-menu-group-head strong{display:block;font-size:10px;font-weight:950;color:#334155}.pdfu-menu-group-head span{display:block;font-size:8px;color:#94a3b8;margin-top:2px}
-      .pdfu-menu-item{width:100%;border:0;background:transparent;border-radius:9px;padding:8px 9px;display:grid;grid-template-columns:25px minmax(0,1fr) auto;gap:8px;align-items:center;text-align:left;cursor:pointer;color:#475569;margin:1px 0;font:inherit}.pdfu-menu-item:hover{background:#f1f5f9}.pdfu-menu-item.active{background:#e8f1ff;color:#174f80;box-shadow:inset 3px 0 0 #2563eb}.pdfu-menu-icon{font-size:14px;text-align:center}.pdfu-menu-name{font-size:10px;font-weight:880;line-height:1.35;overflow:hidden;text-overflow:ellipsis}.pdfu-menu-badge{font-size:7px;font-weight:950;border-radius:999px;padding:3px 5px;background:#ecfdf5;color:#047857;white-space:nowrap}.pdfu-menu-badge.local{background:#eff6ff;color:#1d4ed8}.pdfu-menu-badge.plan{background:#f1f5f9;color:#64748b}.pdfu-menu-item[hidden],.pdfu-menu-group[hidden]{display:none!important}
+      .pdfu-menu-item{width:100%;border:0;background:transparent;border-radius:9px;padding:8px 9px;display:grid;grid-template-columns:25px minmax(0,1fr) auto;gap:8px;align-items:center;text-align:left;cursor:pointer;color:#475569;margin:1px 0;font:inherit}.pdfu-menu-item:hover{background:#f1f5f9}.pdfu-menu-item.active{background:#e8f1ff;color:#174f80;box-shadow:inset 3px 0 0 #2563eb}.pdfu-menu-icon{display:grid;place-items:center;width:24px;height:24px;min-width:0;font-size:14px;text-align:center}.pdfu-menu-icon svg{display:block;width:20px;height:20px;max-width:100%;max-height:100%}.pdfu-menu-name{font-size:10px;font-weight:880;line-height:1.35;overflow:hidden;text-overflow:ellipsis}.pdfu-menu-badge{font-size:7px;font-weight:950;border-radius:999px;padding:3px 5px;background:#ecfdf5;color:#047857;white-space:nowrap}.pdfu-menu-badge.local{background:#eff6ff;color:#1d4ed8}.pdfu-menu-badge.plan{background:#f1f5f9;color:#64748b}.pdfu-menu-item[hidden],.pdfu-menu-group[hidden]{display:none!important}
       .pdfu-side-foot{border-top:1px solid #e6edf4;padding:10px 12px;font-size:8px;line-height:1.5;color:#94a3b8;background:#fbfdff}.pdfu-side-foot b{color:#475569}
       .pdfu-stage{min-width:0;display:flex;flex-direction:column;overflow:hidden}.pdfu-stage-head{height:68px;flex:0 0 68px;background:#fff;border-bottom:1px solid #dbe4ee;display:flex;align-items:center;gap:12px;padding:0 18px}.pdfu-stage-copy{min-width:0;flex:1}.pdfu-stage-label{font-size:8px;font-weight:950;color:#2563eb;letter-spacing:.9px}.pdfu-stage-title{font-size:15px;font-weight:950;color:#0f172a;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pdfu-stage-desc{font-size:9px;color:#64748b;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pdfu-stage-badge{font-size:8px;font-weight:950;border-radius:999px;padding:5px 8px;background:#ecfdf5;color:#047857;white-space:nowrap}.pdfu-stage-action{display:none;border:1px solid #bfdbfe;background:#eff6ff;color:#1d4ed8;border-radius:9px;padding:8px 10px;font:900 9px Pretendard,"Noto Sans KR",sans-serif;cursor:pointer}.pdfu-stage-action.show{display:inline-flex}.pdfu-stage-action:hover{background:#dbeafe}
       .pdfu-stage-body{flex:1;min-height:0;overflow:auto;padding:16px;background:#eef3f7}.pdfu-stage-card{min-height:100%;background:#fff;border:1px solid #dce5ef;border-radius:16px;padding:22px;box-shadow:0 8px 24px rgba(15,23,42,.05)}.pdfu-stage-empty{min-height:420px;display:grid;place-items:center;text-align:center;color:#64748b}.pdfu-stage-empty .icon{font-size:38px}.pdfu-stage-empty strong{display:block;color:#0f2f59;font-size:16px;margin-top:10px}.pdfu-stage-empty p{max-width:520px;font-size:11px;line-height:1.65;margin-top:6px}.pdfu-plan-note{border:1px solid #fde68a;background:#fffbeb;color:#92400e;border-radius:12px;padding:12px 14px;font-size:10px;line-height:1.65;margin-top:14px}
@@ -130,7 +160,7 @@
       const rows=tools.filter(tool=>tool.group===group).map(tool=>{
         const label=tool.status==='planned'?'예정':tool.status==='local'?'로컬':'사용';
         const badgeClass=tool.status==='planned'?'plan':tool.status==='local'?'local':'';
-        return `<button type="button" class="pdfu-menu-item" data-pdfu-tool="${tool.id}" data-pdfu-search="${escapeHtml((tool.name+' '+tool.desc).toLowerCase())}"><span class="pdfu-menu-icon">${escapeHtml(tool.icon)}</span><span class="pdfu-menu-name">${escapeHtml(tool.name)}</span><span class="pdfu-menu-badge ${badgeClass}">${label}</span></button>`;
+        return `<button type="button" class="pdfu-menu-item" data-pdfu-tool="${tool.id}" data-pdfu-search="${escapeHtml((tool.name+' '+tool.desc).toLowerCase())}"><span class="pdfu-menu-icon" aria-hidden="true">${iconMarkup(tool.icon)}</span><span class="pdfu-menu-name">${escapeHtml(tool.name)}</span><span class="pdfu-menu-badge ${badgeClass}">${label}</span></button>`;
       }).join('');
       return `<section class="pdfu-menu-group" data-pdfu-group="${group}"><div class="pdfu-menu-group-head"><strong>${config.label}</strong><span>${config.desc}</span></div>${rows}</section>`;
     }).join('');
@@ -206,7 +236,7 @@
 
   function showEmpty(tool,planned=false){
     const card=document.createElement('section');card.className='pdfu-stage-card';
-    card.innerHTML=`<div class="pdfu-stage-empty"><div><div class="icon">${escapeHtml(tool.icon||'📄')}</div><strong>${escapeHtml(tool.name)}</strong><p>${escapeHtml(tool.desc||'')}</p>${planned?'<div class="pdfu-plan-note">이 기능은 현재 확장 예정입니다. 구현이 완료되면 같은 오른쪽 작업·결과 화면에서 바로 사용할 수 있게 연결됩니다.</div>':''}</div></div>`;
+    card.innerHTML=`<div class="pdfu-stage-empty"><div><div class="icon" aria-hidden="true">${iconMarkup(tool.icon||'📄')}</div><strong>${escapeHtml(tool.name)}</strong><p>${escapeHtml(tool.desc||'')}</p>${planned?'<div class="pdfu-plan-note">이 기능은 현재 확장 예정입니다. 구현이 완료되면 같은 오른쪽 작업·결과 화면에서 바로 사용할 수 있게 연결됩니다.</div>':''}</div></div>`;
     stageBody.appendChild(card);
   }
 
