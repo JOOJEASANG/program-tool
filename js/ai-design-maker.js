@@ -1608,6 +1608,28 @@
     saveLocal();syncTextEditUi();scheduleRender();
   }
 
+  // Use the VISIBLE text selection rectangle to compute drag snaps.
+  // A text layout box may be much wider than its glyphs, so snapping that
+  // invisible box can put the purple selection outline off the cover center.
+  function snapTextDrag(bounds,zone,rawDx,rawDy,threshold){
+    if(!bounds||!zone)return {dx:rawDx,dy:rawDy,guide:null};
+    const zoneCenterX=zone.x+zone.w/2,zoneCenterY=zone.y+zone.h/2;
+    const visualLeft=bounds.x+rawDx,visualCenter=bounds.x+bounds.w/2+rawDx,visualRight=bounds.x+bounds.w+rawDx;
+    const center={delta:zoneCenterX-visualCenter,lineX:zoneCenterX};
+    const left={delta:zone.x-visualLeft,lineX:zone.x};
+    const right={delta:zone.x+zone.w-visualRight,lineX:zone.x+zone.w};
+    const edge=[left,right].sort((a,b)=>Math.abs(a.delta)-Math.abs(b.delta))[0];
+    const xSnap=Math.abs(center.delta)<=threshold?center
+      :edge&&Math.abs(edge.delta)<=threshold?edge:null;
+    const yDelta=zoneCenterY-(bounds.y+bounds.h/2+rawDy);
+    const snapY=Math.abs(yDelta)<=threshold;
+    return {
+      dx:rawDx+(xSnap?.delta??0),
+      dy:rawDy+(snapY?yDelta:0),
+      guide:xSnap||snapY?{zone,centerX:xSnap?.lineX??zoneCenterX,centerY:zoneCenterY,snapX:Boolean(xSnap),snapY}:null
+    };
+  }
+
   function bindTextCanvasEditing(){
     const canvas=$('previewCanvas');if(!canvas)return;
     const SNAP_PX=9;
@@ -1657,7 +1679,7 @@
       if(!hit.bounds)hit.bounds=textVisualBounds(ctx,hit.item);
       const layout=textLayoutState(effectiveId,hit.item.align||'left'),surface=textSurfaceForId(effectiveId),zone=coverSurfaceRect(surface,spec,fit.scale);
       canvas.setPointerCapture?.(event.pointerId);state.shapePointer=null;state.groupPointer=null;
-      state.textPointer={id:event.pointerId,textId:effectiveId,mode:onTextHandle&&selectedText?.id===effectiveId?'resize':'move',startX:point.x,startY:point.y,start:{...layout},startBounds:{...hit.bounds},startBox:{x:hit.item.x,y:hit.item.y,w:hit.item.w,h:hit.item.h},zone,baseW:Math.max(24,hit.bounds.w),baseH:Math.max(18,hit.bounds.h),scale:fit.scale};
+      state.textPointer={id:event.pointerId,textId:effectiveId,mode:onTextHandle&&selectedText?.id===effectiveId?'resize':'move',startX:point.x,startY:point.y,start:{...layout},startBounds:{...hit.bounds},zone,baseW:Math.max(24,hit.bounds.w),baseH:Math.max(18,hit.bounds.h),scale:fit.scale};
       state.snapGuide=null;syncTextEditUi();scheduleRender();
     });
     canvas.addEventListener('pointermove',event=>{
@@ -1686,16 +1708,8 @@
       let dx=point.x-drag.startX,dy=point.y-drag.startY;const layout=textLayoutState(drag.textId);
       if(drag.mode==='move'){
         if(textSurfaceForId(drag.textId)==='spine')setSpinePlacementMode(drag.textId,'free');
-        state.snapGuide=null;
-        if(drag.zone&&drag.startBounds&&drag.startBox){
-          const zoneLeft=drag.zone.x,zoneCenterX=drag.zone.x+drag.zone.w/2,zoneRight=drag.zone.x+drag.zone.w,zoneCenterY=drag.zone.y+drag.zone.h/2;
-          const boxLeft=drag.startBox.x+dx,boxCenter=drag.startBox.x+drag.startBox.w/2+dx,boxRight=drag.startBox.x+drag.startBox.w+dx;
-          const xCandidates=[{delta:zoneLeft-boxLeft,lineX:zoneLeft,align:'left'},{delta:zoneCenterX-boxCenter,lineX:zoneCenterX,align:'center'},{delta:zoneRight-boxRight,lineX:zoneRight,align:'right'}].sort((a,b)=>Math.abs(a.delta)-Math.abs(b.delta));
-          const xSnap=xCandidates[0]&&Math.abs(xCandidates[0].delta)<=SNAP_PX?xCandidates[0]:null,candidateCenterY=drag.startBounds.y+drag.startBounds.h/2+dy,snapY=Math.abs(candidateCenterY-zoneCenterY)<=SNAP_PX;
-          if(xSnap){dx+=xSnap.delta;layout.align=xSnap.align;}
-          if(snapY)dy+=zoneCenterY-candidateCenterY;
-          if(xSnap||snapY)state.snapGuide={zone:drag.zone,centerX:xSnap?.lineX??zoneCenterX,centerY:zoneCenterY,snapX:Boolean(xSnap),snapY};
-        }
+        const snapped=snapTextDrag(drag.startBounds,drag.zone,dx,dy,SNAP_PX);
+        dx=snapped.dx;dy=snapped.dy;state.snapGuide=snapped.guide;
         const spec=currentSpec();layout.boxAlign='';layout.dx=clamp(drag.start.dx+dx/drag.scale,-spec.workW,spec.workW,0);layout.dy=clamp(drag.start.dy+dy/drag.scale,-spec.workH,spec.workH,0);
       }else{
         layout.boxAlign='';layout.widthScale=clamp(drag.start.widthScale*(1+dx/drag.baseW),.25,2.5,1);layout.fontScale=clamp(drag.start.fontScale*(1+dy/drag.baseH),.35,3,1);
