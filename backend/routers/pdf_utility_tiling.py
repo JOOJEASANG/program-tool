@@ -56,6 +56,7 @@ def _run_with_uid(uid: str, filename: str, data: bytes):
             printer_margin_mm=_float(params.get("printer_margin_mm"), 3.0),
             overlap_mm=_float(params.get("overlap_mm"), 0.0),
             add_sheet_labels=_bool(params.get("add_sheet_labels")),
+            add_crop_marks=_bool(params.get("add_crop_marks")),
         )
     except ValueError as exc:
         return _error(str(exc), 400, "PDF_TILING_INVALID")
