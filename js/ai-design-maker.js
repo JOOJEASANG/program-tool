@@ -1331,18 +1331,14 @@
   // remain disabled until real AI artwork or an imported file is available.
   function drawProductPreviewScaffold(ctx,spec,scale){
     const b=spec.bleed*scale,tw=spec.trimW*scale,th=spec.trimH*scale;
-    const preset=PRESETS[state.preset]||PRESETS.report;
     const panel=(x,w,label)=>{
       if(w<10)return;
       ctx.save();
-      // Display the real page/panel geometry without decorative placeholder
-      // strokes that resemble printing guides or actual artwork.
-      ctx.globalAlpha=.22;
-      ctx.fillStyle=preset.primaryColor;
-      ctx.fillRect(x,b,w,th);
-      ctx.globalAlpha=.83;
-      ctx.fillStyle=preset.textColor;
-      ctx.font='700 '+Math.max(10,Math.min(14,w*.07))+'px Pretendard, sans-serif';
+      // Keep the pre-generation preview white. Actual artwork replaces this
+      // blank sheet only after the user generates or imports a background.
+      ctx.fillStyle='#ffffff';ctx.fillRect(x,b,w,th);
+      ctx.fillStyle='#64748b';
+      ctx.font='600 '+Math.max(10,Math.min(13,w*.07))+'px Pretendard, sans-serif';
       ctx.textBaseline='middle';ctx.textAlign='center';
       ctx.fillText(label,x+w/2,b+th*.49,Math.max(1,w-16));
       ctx.restore();
@@ -1559,6 +1555,13 @@
       const surface=active?textSurfaceForId(selected):'',boxEnabled=active&&surface!=='spine';
       button.disabled=!boxEnabled;button.classList.toggle('active',Boolean(boxEnabled&&layout&&button.dataset.boxAlign===layout.boxAlign));
     });
+    qa('[data-cover-align]').forEach(button=>{
+      const surface=button.dataset.coverAlign,enabled=surface==='front'?modeHasFront(currentSpec().coverMode):modeHasBack(currentSpec().coverMode);
+      const textId=surface==='front'?'title':'backText';
+      const hasText=Boolean(textLayout(currentSpec(),1).find(item=>item.id===textId));
+      button.disabled=!enabled||!hasText;
+      button.classList.toggle('active',Boolean(enabled&&hasText&&textLayoutState(textId).boxAlign===button.dataset.align));
+    });
     if($('resetTextLayout'))$('resetTextLayout').disabled=!active;
     if(!active){state.selectedTextUiId='';return;}
     const content=$('selectedTextValue');
@@ -1570,20 +1573,38 @@
     setCmykInputs('selectedText',layout?.cmyk||hexToCmyk(normalizeColor(item.color)||normalizeColor($('textColor')?.value)||'#ffffff'));
     state.selectedTextUiId=selected;
   }
-  function alignSelectedTextBox(mode){
-    if(!state.selectedTextId||!['left','center','right'].includes(mode))return;
-    const spec=currentSpec(),surface=textSurfaceForId(state.selectedTextId);
-    if(surface==='spine')return;
-    const item=textLayout(spec,1).find(entry=>entry.id===state.selectedTextId);
+  // Place the text BOX in its own cover's safe area and align the glyphs
+  // inside the box to that same edge. Centering only the box leaves left-
+  // aligned text visibly off-center, which was the reported mismatch.
+  function alignTextBoxInSurface(textId,mode){
+    if(!['left','center','right'].includes(mode))return false;
+    const spec=currentSpec(),surface=textSurfaceForId(textId);
+    if(surface==='spine')return false;
+    const item=textLayout(spec,1).find(entry=>entry.id===textId);
     const zone=coverSurfaceRect(surface,spec,1);
-    if(!item||!zone)return;
-    const layout=textLayoutState(state.selectedTextId,item.align||'left');
-    let targetX=zone.x;
-    if(mode==='center')targetX=zone.x+(zone.w-item.w)/2;
-    else if(mode==='right')targetX=zone.x+zone.w-item.w;
+    if(!item||!zone)return false;
+    const layout=textLayoutState(textId,item.align||'left');
+    const targetX=mode==='center'?zone.x+(zone.w-item.w)/2
+      :mode==='right'?zone.x+zone.w-item.w:zone.x;
     layout.dx=clamp(layout.dx+(targetX-item.x),-spec.workW,spec.workW,0);
+    layout.align=mode;
     layout.boxAlign=mode;
     state.snapGuide=null;
+    return true;
+  }
+  function alignSelectedTextBox(mode){
+    if(!state.selectedTextId)return;
+    if(!alignTextBoxInSurface(state.selectedTextId,mode))return;
+    saveLocal();syncTextEditUi();scheduleRender();
+  }
+  function alignCoverSideText(surface,mode){
+    const spec=currentSpec();
+    if(surface==='front'&&!modeHasFront(spec.coverMode))return;
+    if(surface==='back'&&!modeHasBack(spec.coverMode))return;
+    // The surface buttons align the primary title on each cover independently;
+    // any selected extra text can still use its own box-alignment controls.
+    const textId=surface==='back'?'backText':'title';
+    if(!alignTextBoxInSurface(textId,mode))return;
     saveLocal();syncTextEditUi();scheduleRender();
   }
 
@@ -1669,10 +1690,11 @@
         if(drag.zone&&drag.startBounds&&drag.startBox){
           const zoneLeft=drag.zone.x,zoneCenterX=drag.zone.x+drag.zone.w/2,zoneRight=drag.zone.x+drag.zone.w,zoneCenterY=drag.zone.y+drag.zone.h/2;
           const boxLeft=drag.startBox.x+dx,boxCenter=drag.startBox.x+drag.startBox.w/2+dx,boxRight=drag.startBox.x+drag.startBox.w+dx;
-          const xCandidates=[{delta:zoneLeft-boxLeft,lineX:zoneLeft},{delta:zoneCenterX-boxCenter,lineX:zoneCenterX},{delta:zoneRight-boxRight,lineX:zoneRight}].sort((a,b)=>Math.abs(a.delta)-Math.abs(b.delta));
+          const xCandidates=[{delta:zoneLeft-boxLeft,lineX:zoneLeft,align:'left'},{delta:zoneCenterX-boxCenter,lineX:zoneCenterX,align:'center'},{delta:zoneRight-boxRight,lineX:zoneRight,align:'right'}].sort((a,b)=>Math.abs(a.delta)-Math.abs(b.delta));
           const xSnap=xCandidates[0]&&Math.abs(xCandidates[0].delta)<=SNAP_PX?xCandidates[0]:null,candidateCenterY=drag.startBounds.y+drag.startBounds.h/2+dy,snapY=Math.abs(candidateCenterY-zoneCenterY)<=SNAP_PX;
-          if(xSnap)dx+=xSnap.delta;if(snapY)dy+=zoneCenterY-candidateCenterY;
-          if(xSnap||snapY)state.snapGuide={zone:drag.zone,centerX:xSnap?.lineX||zoneCenterX,centerY:zoneCenterY,snapX:Boolean(xSnap),snapY};
+          if(xSnap){dx+=xSnap.delta;layout.align=xSnap.align;}
+          if(snapY)dy+=zoneCenterY-candidateCenterY;
+          if(xSnap||snapY)state.snapGuide={zone:drag.zone,centerX:xSnap?.lineX??zoneCenterX,centerY:zoneCenterY,snapX:Boolean(xSnap),snapY};
         }
         const spec=currentSpec();layout.boxAlign='';layout.dx=clamp(drag.start.dx+dx/drag.scale,-spec.workW,spec.workW,0);layout.dy=clamp(drag.start.dy+dy/drag.scale,-spec.workH,spec.workH,0);
       }else{
@@ -2735,6 +2757,7 @@
     $('groupSelectionBtn')?.addEventListener('click',groupSelectedElements);
     $('ungroupSelectionBtn')?.addEventListener('click',ungroupSelectedElements);
     qa('[data-box-align]').forEach(button=>button.addEventListener('click',()=>alignSelectedTextBox(button.dataset.boxAlign)));
+    qa('[data-cover-align]').forEach(button=>button.addEventListener('click',()=>alignCoverSideText(button.dataset.coverAlign,button.dataset.align)));
     qa('[data-text-align]').forEach(button=>button.addEventListener('click',()=>{
       if(!state.selectedTextId)return;
       textLayoutState(state.selectedTextId).align=button.dataset.textAlign;
