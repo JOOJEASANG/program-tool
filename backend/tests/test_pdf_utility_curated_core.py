@@ -66,7 +66,7 @@ def test_curated_core_is_staged_and_browser_smoked():
 
     for marker in (
         'PDF_SUITE_CURATED_CORE_MARKER = "data-pdf-suite-curated-core"',
-        'curated-core.js?v=20260915-2',
+        'curated-core.js?v=20261028-2',
         "PDF_SUITE_CURATED_CORE_SNIPPET",
         "PDF_SUITE_CURATED_CORE_MARKER",
     ):
@@ -82,7 +82,7 @@ def test_curated_core_is_staged_and_browser_smoked():
         "merge-specific layer missing",
         "tool-first upload flow marker missing",
         "core menu count",
-        "16 essential workflows",
+        "17 essential workflows",
     ):
         assert marker in smoke
 
