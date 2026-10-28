@@ -80,6 +80,30 @@ def test_duplex_print_behavior():
 
 def test_design_manual_documents_new_workflows():
     manual=read('js/program-manuals/ai-design-maker.js')
-    assert "updated: '2026-10-14'" in manual
+    assert "updated: '2026-10-28'" in manual
     for word in ('책표지','전단지','초대장','리플렛','200페이지','10.0mm','책등 자동 계산','책등 직접 입력'):
         assert word in manual
+
+
+def test_product_preview_defaults_and_restored_modes():
+    proc=subprocess.run(['node',str(ROOT/'backend/tests/design_workshop_preview_behavior.cjs')],
+                        cwd=ROOT,text=True,capture_output=True,check=False)
+    assert proc.returncode==0,proc.stdout+proc.stderr
+    assert 'design workshop preview behavior passed' in proc.stdout
+
+
+def test_design_canvas_tracks_product_scope_and_keeps_mockup_out_of_exports():
+    editor=read('js/ai-design-maker.js')
+    page=read('ai-design-maker/index.html')
+    workshop=read('js/design-workshop-modes.js')
+    scope=editor.split('function syncCoverMode()')[1].split('function syncSizeMode()')[0]
+    assert 'DesignWorkshopModes?.normalizeMode?.(WORKSHOP,state.coverMode)' in scope
+    assert 'querySelector(\'input[name="coverMode"]:checked\')' not in scope
+    assert 'function surfaceName(side)' in editor
+    assert 'drawProductPreviewScaffold(ctx,spec,fit.scale)' in editor
+    assert '레이아웃 예시 · AI 배경 미생성' in editor
+    assert 'state.generatedSpecKey===specKey(spec)' in editor
+    assert 'state.background && state.generatedSpecKey !== specKey(spec)' in editor
+    assert 'function normalizeMode(studio, mode)' in workshop
+    assert '/js/design-workshop-modes.js?v=20261028-1' in page
+    assert '/js/ai-design-maker.js?v=20261028-1' in page
