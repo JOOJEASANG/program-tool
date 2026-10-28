@@ -16,7 +16,7 @@ def test_pdf_utility_curated_core_keeps_only_practical_workflows():
         "페이지 · 문서",
         "변환 · OCR",
         "편집 · 보안",
-        "'PDF 프리플라이트','PDF 압축','안전 자동 수정'",
+        "'PDF 프리플라이트','PDF 압축','안전 자동 수정','대형 분할 출력'",
         "'PDF 합치기','빈 페이지 자동 제거','전체 페이지 회전','페이지 순서 역순','여백·크롭·배경'",
         "'이미지 → PDF','PDF 이미지 변환','OCR 검색 가능한 PDF','본문 텍스트 추출 · TXT'",
         "'페이지 추출·나누기','시각적 페이지 정리','AES-256 암호 설정','암호 해제'",
@@ -66,7 +66,7 @@ def test_curated_core_is_staged_and_browser_smoked():
 
     for marker in (
         'PDF_SUITE_CURATED_CORE_MARKER = "data-pdf-suite-curated-core"',
-        'curated-core.js?v=20260915-2',
+        'curated-core.js?v=20261028-2',
         "PDF_SUITE_CURATED_CORE_SNIPPET",
         "PDF_SUITE_CURATED_CORE_MARKER",
     ):
@@ -82,7 +82,7 @@ def test_curated_core_is_staged_and_browser_smoked():
         "merge-specific layer missing",
         "tool-first upload flow marker missing",
         "core menu count",
-        "16 essential workflows",
+        "17 essential workflows",
     ):
         assert marker in smoke
 

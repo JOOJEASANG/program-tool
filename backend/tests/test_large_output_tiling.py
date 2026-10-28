@@ -92,7 +92,99 @@ def test_tiling_ui_and_api_are_wired_for_pdf_and_images():
     assert "/api/pdf-utility/tile" in frontend
     assert "/api/pdf-utility/tile-storage" in frontend
     assert "pdfLargeOutputTilingScriptV1" in runtime
-    assert "/js/pdf-large-output-tiling.js?v=20260831-1" in runtime
+    assert "/js/pdf-large-output-tiling.js?v=20261028-3" in runtime
     assert "pdf_utility_tiling_bp" in main
     assert '@pdf_utility_tiling_bp.route("/tile"' in router
     assert '@pdf_utility_tiling_bp.route("/tile-storage"' in router
+
+
+def test_two_mm_overlap_and_crop_marks_use_printable_white_gutters():
+    # A4 landscape with hardware margins 3mm + crop-mark gutters 3mm:
+    # image capacity 285x198mm, adjacent tiles advance 283mm/196mm.
+    document=fitz.open()
+    page=document.new_page(width=500*MM_TO_PT,height=250*MM_TO_PT)
+    page.draw_rect(fitz.Rect(283.25*MM_TO_PT,25*MM_TO_PT,
+                             284.75*MM_TO_PT,30*MM_TO_PT),
+                   color=(1,0,0),fill=(1,0,0))
+    src=document.tobytes()
+    document.close()
+    result=tile_pdf_bytes(src,paper_size="A4",orientation="landscape",
+                          printer_margin_mm=3,overlap_mm=2,add_crop_marks=True)
+    assert result.overlap_mm==2
+    assert result.add_crop_marks
+    assert result.sheet_count==4
+    output=fitz.open(stream=result.data,filetype="pdf")
+    try:
+        first,second=output[0],output[1]
+        for tile in (first,second):
+            marks=[drawing for drawing in tile.get_drawings()
+                   if drawing.get("type")=="s" and drawing.get("width",0)<1]
+            assert len(marks)>=8, "crop marks should be vector lines"
+            # Marks are in a reserved gutter (not in the image).
+            assert any(drawing["rect"].y1 < 6*MM_TO_PT for drawing in marks)
+            assert any(drawing["rect"].x1 < 6*MM_TO_PT for drawing in marks)
+        def pixel_at(sheet,x_mm,y_mm):
+            pix=sheet.get_pixmap(matrix=fitz.Matrix(2,2),alpha=False)
+            x=round(x_mm*MM_TO_PT*2)
+            y=round(y_mm*MM_TO_PT*2)
+            return pix.pixel(x,y)
+        # Same red source artwork at x=284mm appears near the right edge
+        # of the first tile AND on the next tile's left 2mm overlap.
+        color_a=pixel_at(first,6+284,6+27)
+        color_b=pixel_at(second,6+1,6+27)
+        assert color_a[0]>170 and color_a[1]<90 and color_a[2]<90
+        assert color_b[0]>170 and color_b[1]<90 and color_b[2]<90
+    finally:
+        output.close()
+
+
+def test_crop_marks_are_optional_and_invalid_margin_is_explained():
+    plain=tile_pdf_bytes(_pdf(100,150),paper_size="A4",
+                         printer_margin_mm=3,overlap_mm=1,add_crop_marks=False)
+    marked=tile_pdf_bytes(_pdf(100,150),paper_size="A4",
+                          printer_margin_mm=3,overlap_mm=1,add_crop_marks=True)
+    assert not plain.add_crop_marks and marked.add_crop_marks
+    p=fitz.open(stream=plain.data,filetype="pdf")
+    m=fitz.open(stream=marked.data,filetype="pdf")
+    try:
+        assert len(m[0].get_drawings())>len(p[0].get_drawings())
+    finally:
+        p.close()
+        m.close()
+    try:
+        tile_pdf_bytes(_pdf(100,150),printer_margin_mm=18,
+                       overlap_mm=1,add_crop_marks=True)
+    except ValueError as exc:
+        assert "17mm 이하" in str(exc)
+    else:
+        raise AssertionError("crop mark gutter cannot fit a 18mm printer margin")
+
+
+def test_pdf_utility_menu_and_crop_mark_controls_are_connected():
+    catalog=(ROOT/"pdf-suite/index.html").read_text(encoding="utf-8")
+    curated=(ROOT/"js/pdf-suite/curated-core.js").read_text(encoding="utf-8")
+    loader=(ROOT/"scripts/prepare_hosting_dist.py").read_text(encoding="utf-8")
+    tiling=(ROOT/"js/pdf-large-output-tiling.js").read_text(encoding="utf-8")
+    router=(ROOT/"backend/routers/pdf_utility_tiling.py").read_text(encoding="utf-8")
+    assert '<span class="tool-name">대형 분할 출력</span>' in catalog
+    assert "'안전 자동 수정','대형 분할 출력'" in curated
+    assert 'PDF_SUITE_TILING_MARKER' in loader
+    assert '/js/pdf-large-output-tiling.js?v=20261028-3' in loader
+    assert 'const onUtility=path===' in tiling
+    assert 'data-pdfu-tool' in tiling
+    assert "button.dataset.pdfuCoreSource!=='대형 분할 출력'" in tiling
+    assert 'id="plotCropMarks" checked' in tiling
+    assert '<option value="1">1mm 겹침</option>' in tiling
+    assert '<option value="2" selected>2mm 겹침 · 권장</option>' in tiling
+    assert "add_crop_marks:!!$('plotCropMarks').checked" in tiling
+    assert 'add_crop_marks=_bool(params.get("add_crop_marks"))' in router
+
+
+def test_large_pdf_storage_initializes_without_previous_utility_work():
+    import subprocess
+    result=subprocess.run(
+        ["node","backend/tests/pdf_large_tiling_storage_behavior.cjs"],
+        cwd=ROOT,text=True,capture_output=True,check=False,
+    )
+    assert result.returncode==0,result.stdout+result.stderr
+    assert "pdf poster Storage first-run behavior passed" in result.stdout

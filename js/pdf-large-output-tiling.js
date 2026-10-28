@@ -5,7 +5,9 @@
   window.__pdfLargeOutputTilingV1=true;
 
   const path=location.pathname.replace(/\/+$/,'')||'/';
+  const onUtility=path==='/pdf-suite'||path.endsWith('/pdf-suite/index.html');
   if(!(
+    onUtility||
     path==='/pdf-preflight'||
     path.endsWith('/pdf-preflight/index.html')||
     path.endsWith('/tools/pdf-Checker.html')||
@@ -85,17 +87,17 @@
         <div class="plot-field"><label>출력 용지</label><select class="plot-input" id="plotPaper"><option value="A3" selected>A3 · 297×420mm</option><option value="A4">A4 · 210×297mm</option></select></div>
         <div class="plot-field"><label>용지 방향</label><select class="plot-input" id="plotOrientation"><option value="auto" selected>자동 · 장수 적은 방향</option><option value="portrait">세로 고정</option><option value="landscape">가로 고정</option></select></div>
         <div class="plot-field"><label>프린터 사방 비인쇄 여백</label><input class="plot-input" id="plotMargin" type="number" min="0" max="20" step="0.5" value="3"></div>
-        <div class="plot-field"><label>이어 붙이기 방식</label><select class="plot-input" id="plotOverlap"><option value="0" selected>맞대기 · 겹침 없음</option><option value="5">5mm 겹침</option><option value="10">10mm 겹침</option></select></div>
+        <div class="plot-field"><label>이어 붙이기 방식</label><select class="plot-input" id="plotOverlap"><option value="0">맞대기 · 겹침 없음</option><option value="1">1mm 겹침</option><option value="2" selected>2mm 겹침 · 권장</option><option value="3">3mm 겹침</option><option value="5">5mm 겹침</option><option value="10">10mm 겹침</option></select></div>
         <div class="plot-image-size" id="plotImageSize"><div class="plot-size-row"><div class="plot-field"><label>이미지 최종 출력 가로(mm)</label><input class="plot-input" id="plotImageWidth" type="number" min="10" max="5000" step="1"></div><div class="plot-field"><label>이미지 최종 출력 세로(mm)</label><input class="plot-input" id="plotImageHeight" type="number" min="10" max="5000" step="1"></div></div><div class="plot-quality" id="plotImageQuality"></div></div>
       </div>
-      <div class="plot-mode"><label><input type="checkbox" id="plotLabels">작은 타일 번호 표시</label><label><input type="checkbox" id="plotKeepRatio" checked>이미지 가로·세로 비율 유지</label></div>
+      <div class="plot-mode"><label><input type="checkbox" id="plotCropMarks" checked>재단 표시(컷 마크) · 기본 켜짐</label><label><input type="checkbox" id="plotLabels">작은 타일 번호 표시</label><label><input type="checkbox" id="plotKeepRatio" checked>이미지 가로·세로 비율 유지</label></div>
       <div class="plot-preview"><div class="plot-preview-head"><span id="plotPreviewTitle">파일을 선택하면 예상 분할 장수를 계산합니다.</span><span id="plotPreviewCount"></span></div><div class="plot-sheet-grid" id="plotSheetGrid"></div></div>
-      <div class="plot-note">기본 3mm는 프린터가 인쇄하지 못하는 흰 테두리로 보고 실제 배치 영역에서 제외합니다. PDF 내용은 래스터 이미지로 바꾸지 않아 글자·벡터 품질을 유지합니다.</div>
+      <div class="plot-note">인접한 용지에는 같은 그림이 선택한 겹침 폭(기본 2mm)만큼 중복 인쇄됩니다. 재단 표시를 켜면 프린터 비인쇄 여백(기본 3mm) 안쪽에 추가 3mm 흰 공간을 확보해 검은 재단 표시를 출력합니다. 잘라낼 용지의 흰 가장자리를 표시 위치에 맞춰 자르고, 중복된 그림끼리 맞춰 붙이세요. 재단 표시를 켜면 분할 장수가 늘 수 있습니다. 인쇄 시 반드시 실제 크기 100%를 선택하세요.</div>
       <div class="plot-status" id="plotStatus"></div><div class="plot-actions"><button type="button" class="plot-btn cancel" id="plotCancel">닫기</button><button type="button" class="plot-btn run" id="plotRun" disabled>분할 출력 PDF 만들기</button></div></div>`;
     document.body.appendChild(overlay);
     $('plotClose').onclick=closeModal;$('plotCancel').onclick=closeModal;$('plotRun').onclick=runTiling;
     $('plotFileInput').addEventListener('change',handleFile);
-    ['plotPaper','plotOrientation','plotMargin','plotOverlap'].forEach(id=>$(id)?.addEventListener('change',renderPreview));
+    ['plotPaper','plotOrientation','plotMargin','plotOverlap','plotCropMarks'].forEach(id=>$(id)?.addEventListener('change',renderPreview));
     $('plotImageWidth').addEventListener('input',()=>syncImageDimension('width'));
     $('plotImageHeight').addEventListener('input',()=>syncImageDimension('height'));
     $('plotKeepRatio').addEventListener('change',renderPreview);
@@ -185,7 +187,7 @@
 
   function tileAxis(source,usable,overlap){if(source<=usable)return 1;const step=usable-overlap;return step>0?Math.ceil((source-overlap)/step):999;}
   function pagePlan(widthMm,heightMm){
-    const paper=PAPER[$('plotPaper')?.value]||PAPER.A3;const orientation=$('plotOrientation')?.value||'auto';const margin=Math.max(0,Number($('plotMargin')?.value||0));const overlap=Math.max(0,Number($('plotOverlap')?.value||0));
+    const paper=PAPER[$('plotPaper')?.value]||PAPER.A3;const orientation=$('plotOrientation')?.value||'auto';const margin=Math.max(0,Number($('plotMargin')?.value||0))+(($('plotCropMarks')?.checked)?3:0);const overlap=Math.max(0,Number($('plotOverlap')?.value||0));
     const options=orientation==='auto'?[[paper[0],paper[1]],[paper[1],paper[0]]]:orientation==='landscape'?[[paper[1],paper[0]]]:[[paper[0],paper[1]]];
     return options.map(([pw,ph])=>{const uw=pw-margin*2,uh=ph-margin*2;const cols=tileAxis(widthMm,uw,overlap),rows=tileAxis(heightMm,uh,overlap);return {pw,ph,uw,uh,cols,rows,count:cols*rows};}).sort((a,b)=>a.count-b.count)[0];
   }
@@ -202,7 +204,7 @@
     if(sourceInfo.kind==='image')renderImageQuality();
     const pages=currentPages();if(!pages.length){title.textContent='출력 크기를 확인하세요.';countEl.textContent='';return;}
     const plans=pages.map(page=>pagePlan(page.widthMm,page.heightMm));const total=plans.reduce((sum,p)=>sum+p.count,0);const first=plans[0];
-    title.textContent=`첫 페이지 ${first.cols}열 × ${first.rows}행 · 실제 크기 100%`;countEl.textContent=`총 ${total}장`;
+    title.textContent=`첫 페이지 ${first.cols}열 × ${first.rows}행 · 겹침 ${Number($('plotOverlap')?.value||0)}mm · ${$('plotCropMarks')?.checked?'재단 표시':'재단 표시 없음'} · 실제 크기 100%`;countEl.textContent=`총 ${total}장`;
     grid.style.gridTemplateColumns=`repeat(${Math.min(first.cols,8)},minmax(32px,1fr))`;
     const shown=Math.min(first.count,64);for(let i=0;i<shown;i++){const cell=document.createElement('div');cell.className='plot-sheet';cell.textContent=String(i+1);grid.appendChild(cell);}if(first.count>shown){const more=document.createElement('div');more.className='plot-sheet';more.textContent=`+${first.count-shown}`;grid.appendChild(more);}
   }
@@ -216,7 +218,30 @@
   }
 
   async function token(){const user=window.auth?.currentUser||((typeof auth!=='undefined'&&auth)?auth.currentUser:null);if(!user)throw new Error('로그인이 필요합니다.');return user.getIdToken(true);}
-  async function storage(){if(typeof window._ensureStorage==='function')return window._ensureStorage();if(typeof _ensureStorage==='function')return _ensureStorage();if(window.storage)return window.storage;if(window.firebase?.storage)return window.firebase.storage();throw new Error('대용량 임시 저장소를 사용할 수 없습니다.');}
+  async function storage(){
+    if(typeof window._ensureStorage==='function')return window._ensureStorage();
+    if(typeof _ensureStorage==='function')return _ensureStorage();
+    if(window.storage)return window.storage;
+    if(!window.firebase)throw new Error('대용량 임시 저장소를 사용할 수 없습니다.');
+    // PDF 검사 화면 has _ensureStorage, while the PDF Utility shell loads
+    // Storage lazily. Ensure first-run uploads >20MB work without visiting
+    // another PDF tool first.
+    if(!window.firebase.storage){
+      const existing=document.getElementById('pdfLargeOutputStorageSdk');
+      await new Promise((resolve,reject)=>{
+        const script=existing||document.createElement('script');
+        script.addEventListener('load',resolve,{once:true});
+        script.addEventListener('error',()=>reject(new Error('임시 저장소 모듈을 불러오지 못했습니다.')),{once:true});
+        if(!existing){
+          script.id='pdfLargeOutputStorageSdk';
+          script.src='https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js';
+          document.head.appendChild(script);
+        }
+      });
+    }
+    if(!window.firebase.storage)throw new Error('대용량 임시 저장소를 초기화할 수 없습니다.');
+    return window.firebase.storage();
+  }
   async function readDelivery(response){const type=response.headers.get('content-type')||'';if(!type.includes('application/json'))return response.blob();const data=await response.json();if(data?.delivery!=='storage'||!data.download_url)throw new Error(data?.detail||'완성 PDF 정보를 읽지 못했습니다.');const result=await fetch(data.download_url,{cache:'no-store'});if(!result.ok)throw new Error('완성 PDF를 내려받지 못했습니다.');const blob=await result.blob();if(data.storage_path){try{const st=await storage();await st.ref(data.storage_path).delete();}catch(error){console.warn('[tiling] result cleanup failed',error);}}return blob;}
 
   async function requestTiling(pdfFile,params){
@@ -232,12 +257,29 @@
     if(!sourceFile||!sourceInfo)return;setBusy(true,'분할 PDF 만드는 중...');setStatus('원본 실제 크기를 기준으로 분할 계산 중...');
     try{
       const pdfFile=sourceInfo.kind==='image'?await imageToPdf(sourceFile):sourceFile;
-      const params={paper_size:$('plotPaper').value,orientation:$('plotOrientation').value,printer_margin_mm:Number($('plotMargin').value||3),overlap_mm:Number($('plotOverlap').value||0),add_sheet_labels:!!$('plotLabels').checked};
+      const params={paper_size:$('plotPaper').value,orientation:$('plotOrientation').value,printer_margin_mm:Number($('plotMargin').value||3),overlap_mm:Number($('plotOverlap').value||0),add_sheet_labels:!!$('plotLabels').checked,add_crop_marks:!!$('plotCropMarks').checked};
       const blob=await requestTiling(pdfFile,params);const base=String(sourceFile.name||'large_output').replace(/\.[^.]+$/,'');download(blob,`${base}_분할출력.pdf`);setStatus('분할 출력 PDF 저장 완료. 프린터에서는 배율 100% / 실제 크기로 출력하세요.');
     }catch(error){console.error('[tiling] failed',error);setStatus(error?.message||'분할 출력 PDF를 만들지 못했습니다.',true);if(typeof window.showError==='function')window.showError(error?.message||'분할 출력에 실패했습니다.');}
     finally{setBusy(false);}
   }
 
-  function install(){installStyles();makeModal();const ok=installCard();if(ok||$('pdfLargeOutputTilingCard')){window.PdfLargeOutputTiling={open:openModal,renderPreview,stage:'large-output-tiling-v1'};document.documentElement.dataset.pdfLargeOutputTiling='1';return true;}return false;}
+  function install(){
+    installStyles();makeModal();
+    const ok=onUtility||installCard();
+    if(!ok&&!$('pdfLargeOutputTilingCard'))return false;
+    if(onUtility){
+      // Intercept BEFORE the PDF Utility centered-modal bubble handler.
+      // Reuse the proven tiling workspace as one modal, not nested dialogs.
+      document.addEventListener('click',event=>{
+        const button=event.target.closest?.('[data-pdfu-tool]');
+        if(!button||button.dataset.pdfuCoreSource!=='대형 분할 출력')return;
+        event.preventDefault();event.stopImmediatePropagation();
+        openModal();
+      },true);
+    }
+    window.PdfLargeOutputTiling={open:openModal,renderPreview,stage:'large-output-tiling-v2'};
+    document.documentElement.dataset.pdfLargeOutputTiling='2';
+    return true;
+  }
   let attempts=0;function boot(){attempts+=1;if(install())return;if(attempts<80)setTimeout(boot,100);}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
