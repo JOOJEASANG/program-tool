@@ -11,7 +11,7 @@ def test_design_studio_retains_original_detailed_review_route_and_ai_generator()
     assert "<title>인쇄파일 검토 · Program Studio</title>" in review_html
     assert "design-cover-maker.js" not in review_html
     assert "design-cover-maker.css" not in review_html
-    assert "<title>디자인 제작 · Program Studio</title>" in maker_html
+    assert "<title>표지 디자인 · Program Studio</title>" in maker_html
     assert "/api/preflight/ai-design-maker/cover-background" in maker_js
     assert "https://api-7a5qpwzezq-uc.a.run.app" in maker_js
     assert "resolveApiUrl" in maker_js

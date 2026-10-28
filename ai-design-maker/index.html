@@ -3,12 +3,12 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>디자인 제작 · Program Studio</title>
+  <title>표지 디자인 · Program Studio</title>
   <meta name="description" content="AI 디자인 생성과 PDF·이미지 직접 배치, 표지 편집 및 인쇄 검토를 한 작업실에서 처리합니다.">
   <meta name="robots" content="noindex,nofollow">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
-  <link rel="stylesheet" href="/css/ai-design-maker.css?v=20261028-2">
+  <link rel="stylesheet" href="/css/ai-design-maker.css?v=20261028-3">
   <link rel="stylesheet" href="/css/program-manual-home-modal.css?v=20260918-1">
 </head>
 <body>
@@ -27,49 +27,10 @@
         <div class="program-title-row">
           <div class="program-title-copy">
             <span class="program-title-kicker">DESIGN STUDIO</span>
-            <strong>디자인 제작</strong>
+            <strong>표지 디자인</strong>
           </div>
           <button class="ai-manual-btn" id="manualBtn" type="button" title="사용설명서" aria-label="디자인 제작 사용설명서">?</button>
         </div>
-
-        <section class="product-picker" aria-labelledby="productPickerTitle">
-          <div class="product-picker-head">
-            <div>
-              <strong id="productPickerTitle">디자인 종류</strong>
-            </div>
-          </div>
-          <div class="product-tabs" aria-label="디자인 제작 종류">
-            <button class="product-tab active" data-studio="cover" type="button" aria-current="page"><strong>책표지</strong><small>표지·책등·뒷표지</small></button>
-            <button class="product-tab" data-studio="flyer" type="button"><strong>전단지</strong><small>단면·양면 홍보물</small></button>
-            <button class="product-tab" data-studio="invitation" type="button"><strong>초대장</strong><small>카드·접이식</small></button>
-            <button class="product-tab" data-studio="leaflet" type="button"><strong>리플렛</strong><small>3단 접지 6면</small></button>
-          </div>
-        </section>
-
-        <section class="leaflet-side-picker" id="leafletSidePicker" hidden aria-labelledby="leafletSideTitle">
-          <div class="leaflet-side-head">
-            <div>
-              <strong id="leafletSideTitle">작업 면 선택</strong>
-              <small>3단 리플렛 · 겉면과 안쪽면을 각각 편집</small>
-            </div>
-            <span class="leaflet-side-count">2면</span>
-          </div>
-          <nav class="leaflet-side-options" aria-label="리플렛 작업 면 전환">
-            <a href="/ai-design-maker/?studio=leaflet&amp;side=outside" data-leaflet-side="outside" aria-label="리플렛 겉면 3패널 편집">
-              <span class="leaflet-side-number" aria-hidden="true">01</span>
-              <span class="leaflet-side-copy"><strong>겉면</strong><small>왼쪽 · 가운데 · 오른쪽</small></span>
-              <span class="leaflet-side-check" aria-hidden="true">✓</span>
-            </a>
-            <a href="/ai-design-maker/?studio=leaflet&amp;side=inside" data-leaflet-side="inside" aria-label="리플렛 안쪽면 3패널 편집">
-              <span class="leaflet-side-number" aria-hidden="true">02</span>
-              <span class="leaflet-side-copy"><strong>안쪽면</strong><small>왼쪽 · 가운데 · 오른쪽</small></span>
-              <span class="leaflet-side-check" aria-hidden="true">✓</span>
-            </a>
-          </nav>
-          <p class="leaflet-side-help">선택한 면의 설정은 개별 저장됩니다. 인쇄할 때는 겉면과 안쪽면의 PDF를 각각 다운로드하세요.</p>
-        </section>
-
-        <p class="design-duplex-notice" id="designDuplexNotice" hidden>전단지·초대장 양면은 앞면 1페이지, 뒷면 2페이지로 PDF가 저장됩니다. PNG는 앞·뒷면 ZIP 파일로 저장됩니다.</p>
 
         <div class="panel-intro">
           <strong id="coverModeHeading">표지 전체 펼침 제작</strong>
@@ -78,7 +39,7 @@
 
         <section class="cover-scope-card" id="coverScopeCard" aria-labelledby="coverScopeTitle">
           <div class="cover-scope-head">
-            <strong id="coverScopeTitle">제작 범위</strong>
+            <strong id="coverScopeTitle">표지 제작 범위</strong>
             <small>먼저 선택하세요</small>
           </div>
           <div class="cover-mode-picker cover-mode-picker-prominent" role="radiogroup" aria-label="표지 제작 범위">
@@ -663,10 +624,9 @@
   <script defer src="/js/firebase-config.js"></script>
   <script defer src="/js/program-manuals/home-modal.js?v=20260918-1"></script>
   <script defer src="/js/program-sidebar-actions.js?v=20260918-2"></script>
-  <script defer src="/js/design-workshop-modes.js?v=20261028-2"></script>
-  <script defer src="/js/design-duplex-output.js?v=20261013-4"></script>
+  <script defer src="/js/design-workshop-modes.js?v=20261028-3"></script>
   <script defer src="/js/design-workspace-layers.js?v=20261013-4"></script>
   <script defer src="/js/ai-design-print-export.js?v=20261013-4"></script>
-  <script defer src="/js/ai-design-maker.js?v=20261028-2"></script>
+  <script defer src="/js/ai-design-maker.js?v=20261028-3"></script>
 </body>
 </html>

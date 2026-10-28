@@ -80,7 +80,7 @@ def test_ai_design_maker_has_easy_cover_workflow_and_diagnostics():
         assert f'id="{field_id}"' in page
     assert "localStorage.setItem(STORAGE_KEY" in source
     assert "STORAGE_KEY_PREFIX = 'program-studio:ai-design-maker:'+WORKSHOP" in source
-    assert "WORKSHOP==='leaflet'?':'+LEAFLET_SIDE" in source
+    assert "const WORKSHOP = 'cover'" in source
     assert "LEGACY_STORAGE_KEY = 'program-studio:ai-design-maker:cover:v1'" in source
     assert "STORAGE_KEY=STORAGE_KEY_PREFIX+':'+user.uid" in source
     assert "localStorage.removeItem(LEGACY_STORAGE_KEY)" in source
@@ -108,7 +108,8 @@ def test_ai_design_maker_uses_sidebar_only_layout_and_bottom_actions():
     source = (ROOT / "js/ai-design-maker.js").read_text(encoding="utf-8")
 
     assert '<header class="maker-header">' not in page
-    assert 'id="productPickerTitle">디자인 종류' in page
+    assert 'id="productPickerTitle"' not in page
+    assert 'id="coverScopeCard"' in page
     assert 'id="manualBtn"' in page
     assert 'program-manual-home-modal.css' in page
     assert 'program-manuals/home-modal.js' in page
@@ -136,9 +137,9 @@ def test_ai_design_manual_button_sits_next_to_program_title():
     style = (ROOT / "css/ai-design-maker.css").read_text(encoding="utf-8")
 
     assert 'class="program-title-row"' in page
-    assert '<strong>디자인 제작</strong>' in page
+    assert '<strong>표지 디자인</strong>' in page
     assert 'id="manualBtn"' in page
-    assert page.index('<strong>디자인 제작</strong>') < page.index('id="productPickerTitle"')
+    assert page.index('<strong>표지 디자인</strong>') < page.index('id="coverScopeTitle"')
     assert '.program-title-row{' in style
     assert '.program-title-copy strong{' in style
 
@@ -382,7 +383,7 @@ def test_front_cover_mode_is_prominent_at_top_of_sidebar():
     style = (ROOT / "css/ai-design-maker.css").read_text(encoding="utf-8")
 
     assert 'class="cover-scope-card"' in page
-    assert 'id="coverScopeTitle">제작 범위' in page
+    assert 'id="coverScopeTitle">표지 제작 범위' in page
     assert page.count('name="coverMode" value="front"') == 1
     assert page.count('name="coverMode" value="back"') == 1
     assert page.count('name="coverMode" value="frontBack"') == 1
