@@ -18,6 +18,7 @@
   function library(name){
     if(name==='pdf')return loadScript('https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js',()=>!!window.PDFLib);
     if(name==='xlsx')return loadScript('https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js',()=>!!window.XLSX);
+    if(name==='qr')return loadScript('https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js',()=>!!window.QRCode?.toDataURL);
     if(name==='pdfjs')return loadScript('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',()=>!!window.pdfjsLib)
       .then(()=>{window.pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';});
     return Promise.reject(new Error('지원하지 않는 라이브러리'));
