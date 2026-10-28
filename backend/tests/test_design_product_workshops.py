@@ -78,3 +78,30 @@ def test_existing_cover_pdf_and_image_exports_are_kept():
     assert "WORKSHOP==='flyer'" not in editor
     assert "WORKSHOP==='invitation'" not in editor
     assert "imageModel" in editor
+
+
+def test_cover_design_name_and_help_are_consistent_across_home_and_studio():
+    index=read('index.html')
+    launcher=read('js/pdf-suite-home-launcher.js')
+    maker=read('ai-design-maker/index.html')
+    manual=read('js/program-manuals/ai-design-maker.js')
+    catalog=read('js/program-manuals/catalog.js')
+    hosting=read('scripts/prepare_hosting_dist.py')
+    assert "name:'표지 디자인'" in index
+    assert "name:'표지 디자인'" in launcher
+    assert "<title>표지 디자인 · Program Studio</title>" in maker
+    assert "<h1>표지 디자인</h1>" in maker
+    assert 'aria-label="표지 디자인 사용설명서"' in maker
+    assert "name: '표지 디자인'" in manual
+    assert '홈에서는 표지 디자인, 문서 편집, PDF 유틸리티' in catalog
+    assert 'pdf-suite-home-launcher.js?v=20261028-2' in hosting
+    assert "id:'ai-design-maker'" in index and "id:'ai-design-maker'" in launcher
+    assert "url:'ai-design-maker/'" in index and "url:'ai-design-maker/'" in launcher
+    for user_copy in (index, launcher, maker, manual, catalog):
+        assert '디자인 제작' not in user_copy
+        assert '4개 전문 작업실' not in user_copy
+        assert '책표지·전단지' not in user_copy
+        assert '초대장·리플렛' not in user_copy
+    for content in (index, launcher):
+        assert "책자·보고서·자료집 표지를 제작합니다." in content
+        assert "tags:['AI 배경','앞·뒤표지','책등 계산','PDF·PNG 저장']" in content
