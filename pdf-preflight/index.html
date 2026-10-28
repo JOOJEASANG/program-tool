@@ -86,7 +86,7 @@
         <div class="action-grid">
           <button class="action-btn file-action" id="checkBtn" onclick="runCheck()" disabled><span class="action-chip chip-blue">점검</span><div class="action-icon" style="background:#dbeafe">🔍</div><div class="action-name">문서 검수</div><div class="action-desc">해상도·폰트·색상·페이지 상태를 확인합니다.</div></button>
           <button class="action-btn file-action" id="encryptBtn" onclick="openTool('encrypt')" disabled><span class="action-chip chip-green">보안</span><div class="action-icon" style="background:#dcfce7">🔒</div><div class="action-name">암호 설정</div><div class="action-desc">PDF에 새 비밀번호를 적용해 보호합니다.</div></button>
-          <button class="action-btn file-action" id="decryptBtn" onclick="runAutoDecrypt()" disabled><span class="action-chip chip-amber">자동 시도</span><div class="action-icon" style="background:#fef3c7">🔓</div><div class="action-name">암호 해제</div><div class="action-desc">먼저 자동 해제를 시도하고 필요할 때만 암호를 묻습니다.</div></button>
+          <button class="action-btn file-action" id="decryptBtn" onclick="runAutoDecrypt()" disabled><span class="action-chip chip-amber">자동 시도</span><div class="action-icon" style="background:#fef3c7">🔓</div><div class="action-name">암호 해제</div><div class="action-desc">빈 비밀번호로 열 수 있는 파일만 자동 해제됩니다. 일반 열기 암호는 정확한 비밀번호가 필요합니다.</div></button>
         </div>
         <button class="reset-bar-btn" id="inlineResetBtn" onclick="resetAll()"><span class="reset-bar-icon">↻</span><span><strong>화면 전체 초기화</strong><small>선택한 파일과 검수 결과, 진행 상태를 모두 지웁니다.</small></span></button>
       </div>
@@ -162,14 +162,14 @@
 
     const TOOL_DEFS={
       encrypt:{title:'PDF 암호 설정',desc:'현재 PDF에 새 비밀번호를 설정합니다.',runLabel:'암호 설정',runningText:'암호를 설정하는 중...',body:()=>selectedNote()+`<label class="tool-field-label">새 비밀번호</label><input type="password" id="tm-pw" class="tool-input" maxlength="32" placeholder="4~32자"><label class="tool-field-label">비밀번호 확인</label><input type="password" id="tm-pw2" class="tool-input" maxlength="32" placeholder="한 번 더 입력"><div class="tool-help">비밀번호를 잊으면 문서를 열기 어려울 수 있으니 별도로 보관하세요.</div>`,run:async()=>{const pw=document.getElementById('tm-pw').value.trim(),pw2=document.getElementById('tm-pw2').value.trim();if(pw.length<4)throw new Error('비밀번호는 4자 이상 입력하세요.');if(pw!==pw2)throw new Error('비밀번호 확인이 일치하지 않습니다.');return apiPdfTool('encrypt',selectedFile,{password:pw})}},
-      decrypt:{title:'PDF 암호 해제',desc:'자동 해제에 실패한 암호 보호 PDF입니다. 현재 비밀번호를 입력하세요.',runLabel:'암호 해제',runningText:'암호를 확인하고 해제하는 중...',body:()=>selectedNote()+`<label class="tool-field-label">현재 비밀번호</label><input type="password" id="tm-pw" class="tool-input" placeholder="PDF에 설정된 비밀번호"><div class="tool-help">정확한 비밀번호를 입력하면 암호가 제거된 PDF가 다운로드됩니다.</div>`,run:async()=>{const pw=document.getElementById('tm-pw').value;if(!pw)throw new Error('현재 비밀번호를 입력하세요.');return apiPdfTool('decrypt',selectedFile,{password:pw})}}
+      decrypt:{title:'PDF 암호 해제',desc:'빈 비밀번호로 해제하지 못한 파일입니다. 현재 열기 비밀번호를 입력하세요.',runLabel:'암호 해제',runningText:'암호를 확인하고 해제하는 중...',body:()=>selectedNote()+`<label class="tool-field-label">현재 비밀번호</label><input type="password" id="tm-pw" class="tool-input" placeholder="PDF에 설정된 비밀번호"><div class="tool-help">정확한 열기 비밀번호가 있어야 해제할 수 있습니다. 이 기능은 잊어버린 비밀번호를 찾아주지 않습니다.</div>`,run:async()=>{const pw=document.getElementById('tm-pw').value;if(!pw)throw new Error('현재 비밀번호를 입력하세요.');return apiPdfTool('decrypt',selectedFile,{password:pw})}}
     };
 
     async function runAutoDecrypt(){
       if(pageBusy)return;if(!selectedFile)return showError('먼저 PDF 파일을 업로드하세요.');if(selectedFile.size>20*1024*1024)return showError('암호 설정·해제는 20MB 이하 PDF만 지원합니다.');
-      hideError();hideCheckStatus();setPageBusy(true,'암호 해제');showCheckStatus('비밀번호 없이 자동 암호 해제를 시도합니다.');
+      hideError();hideCheckStatus();setPageBusy(true,'암호 해제');showCheckStatus('빈 비밀번호로 인증할 수 있는 PDF인지 확인합니다. 일반적인 열기 암호는 비밀번호를 알아야 해제됩니다.');
       try{const {blob}=await apiPdfTool('decrypt',selectedFile,{password:''});downloadBlob(blob,`${safeBaseName(selectedFile)}_암호해제.pdf`);showCheckStatus('암호 해제가 완료되어 파일을 다운로드했습니다.','ok')}
-      catch(e){const msg=e.message||'';if(/비밀번호|암호|password|403/i.test(msg)){showCheckStatus('자동 해제가 되지 않아 현재 비밀번호 입력이 필요합니다.');setPageBusy(false);openTool('decrypt');return}showError(msg||'암호 해제 중 오류가 발생했습니다.');showCheckStatus(msg||'암호 해제 실패','err')}
+      catch(e){const msg=e.message||'';if(/비밀번호|암호|password|403/i.test(msg)){showCheckStatus('빈 비밀번호로 인증할 수 없습니다. PDF의 정확한 열기 비밀번호가 필요합니다.');setPageBusy(false);openTool('decrypt');return}showError(msg||'암호 해제 중 오류가 발생했습니다.');showCheckStatus(msg||'암호 해제 실패','err')}
       finally{if(!document.getElementById('toolModalOverlay').classList.contains('open'))setPageBusy(false)}
     }
 
