@@ -36,7 +36,7 @@ def test_production_smoke_accepts_current_deployment_assets(deployed_assets):
     ("current", "stale"),
     [
         ("pdf-home-unified-design-five-programs-v11", "pdf-home-six-programs-v10"),
-        ("name:'디자인 제작'", "name:'AI 디자인 제작'"),
+        ("name:'표지 디자인'", "name:'AI 디자인 제작'"),
         ("url:'smart-print-layout/'", "url:'missing-layout/'"),
     ],
 )
