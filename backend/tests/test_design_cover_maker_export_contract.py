@@ -675,3 +675,13 @@ def test_preview_stays_white_and_spine_vertical_writing_is_supported():
     assert 'function vertical(ctx,text,x,y,w,h,lineHeight)' in editor
     assert 'const rows=item.vertical?' in vector
     assert "item.vertical?'center'" in vector
+
+
+def test_front_and_back_title_alignment_behavior():
+    import subprocess
+    output=subprocess.run(
+        ["node","backend/tests/cover_text_alignment_behavior.cjs"],
+        cwd=ROOT,text=True,capture_output=True,check=False,
+    )
+    assert output.returncode==0,output.stdout+output.stderr
+    assert 'front/back independent alignment behavior passed' in output.stdout
