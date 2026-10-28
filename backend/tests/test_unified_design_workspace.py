@@ -15,7 +15,7 @@ BEHAVIOR = ROOT / 'backend' / 'tests' / 'test_design_workspace_layers_behavior.c
 def test_single_design_workspace_home_keeps_ai_and_integrates_file_inspection():
     home = HOME.read_text(encoding='utf-8')
     page = PAGE.read_text(encoding='utf-8')
-    assert "name:'디자인 제작'" in home
+    assert "name:'표지 디자인'" in home
     assert "{id:'print-checker'" not in home
     assert "data-ai-design-maker" in page
     for control in ('generateBtn', 'designLayerUpload', 'designLayerTarget',
