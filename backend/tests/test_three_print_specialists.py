@@ -80,6 +80,16 @@ def test_new_tools_have_user_guides_and_valid_javascript():
     assert "엑셀 명단 자동 출력" in read(manual_paths[0])
     assert "양면 인쇄 위치 맞추기" in read(manual_paths[1])
     assert "스캔 문서 깨끗하게" in read(manual_paths[2])
+    shared = read("js/print-specialists/ui.js")
+    duplex = read("js/print-specialists/duplex-align.js")
+    variable = read("js/print-specialists/variable-data.js")
+    assert "out.embedPdf(inputBytes,pages.map((_,index)=>index))" in duplex
+    assert "qrcodejs@1.0.0/qrcode.min.js" in shared
+    assert "new window.QRCode(holder," in variable
+    assert "canvas.toDataURL('image/png')" in variable
+    assert "pdfjs-dist@3.11.174/build/pdf.min.js" in shared
+    assert "pdfjs-dist@3.11.174/build/pdf.worker.min.js" in shared
+    assert "cdnjs.cloudflare.com" not in shared
     for path in (
         "js/print-specialists/ui.js",
         "js/print-specialists/variable-data.js",
