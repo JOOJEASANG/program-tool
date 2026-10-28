@@ -666,7 +666,11 @@
 
   function selectPreset(id, replacePrompt) {
     if (!PRESETS[id]) id = 'public';
+    const priorPreset=state.preset;
     state.preset = id;
+    if(replacePrompt && priorPreset!==id && state.background){
+      setStatus('디자인 용도가 변경되었습니다.', '기존 배경 이미지는 유지됩니다. 새로운 용도를 적용하려면 AI 배경 생성을 다시 실행해 주세요.', 'busy');
+    }
     qa('.style-card').forEach(button => {
       const active = button.dataset.preset === id;
       button.classList.toggle('active', active);
@@ -836,7 +840,9 @@
     const maxW = Math.max(340, (scroll?.clientWidth || 1000) - 20);
     const maxH = Math.max(300, (scroll?.clientHeight || 700) - 20);
     const scale = Math.min(maxW / spec.workW, maxH / spec.workH, 4);
-    return { width: Math.max(300, Math.round(spec.workW * scale)), height: Math.max(220, Math.round(spec.workH * scale)), scale };
+    // Canvas CSS size and drawing scale must use the same geometry. Fixed pixel
+    // minimums previously stretched portrait/narrow products and broke hit testing.
+    return { width: Math.max(1, Math.round(spec.workW * scale)), height: Math.max(1, Math.round(spec.workH * scale)), scale };
   }
 
   function line(ctx,x1,y1,x2,y2,color,dash=[]) {
