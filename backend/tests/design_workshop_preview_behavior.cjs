@@ -10,7 +10,7 @@ function boot(studio, savedMode, hasSavedWorkspace = true) {
     'spineCalculator', 'spineField', 'spineCalcFields', 'spine',
     'spinePages', 'spineSheetThickness', 'spineAllowance', 'spineCalcResult',
     'wingEnabled', 'wingToggleRow', 'spineFields', 'spineSync', 'trimW', 'trimH',
-    'coverScopeTitle', 'coverModeDescription', 'coverModeHeading', 'leafletSidePicker',
+    'coverScopeCard', 'coverScopeTitle', 'coverModeDescription', 'coverModeHeading', 'leafletSidePicker',
     'geometryHint', 'additionalPrompt', 'designLayerTarget'
   ].map(id => [id, { value: '', hidden: false, checked: false, textContent: '', addEventListener() {} }]));
   controls.spinePages.value = '200';
@@ -58,6 +58,7 @@ assert.equal(boot('invitation','frontBack').state.coverMode,'frontBack');
 assert.equal(boot('leaflet','front').state.coverMode,'spread');
 const flyer=boot('flyer','spread',false);
 assert.equal(flyer.state.coverMode,'front');
+assert.equal(flyer.controls.coverScopeCard.hidden,false);
 assert.equal(flyer.controls.trimW.value,210);
 assert.equal(flyer.controls.trimH.value,297);
 const invitation=boot('invitation','spread',false);
@@ -67,6 +68,8 @@ assert.equal(invitation.controls.trimH.value,210);
 assert.equal(invitation.radios.find(x=>x.value==='spread').disabled,true);
 const leaflet=boot('leaflet','front',false);
 assert.equal(leaflet.state.coverMode,'spread');
+assert.equal(leaflet.controls.coverScopeCard.hidden,true);
+assert.equal(leaflet.controls.leafletSidePicker.hidden,false);
 assert.equal(leaflet.controls.trimW.value,99);
 assert.equal(leaflet.controls.trimH.value,210);
 assert.equal(leaflet.radios.find(x=>x.value==='spread').disabled,false);
