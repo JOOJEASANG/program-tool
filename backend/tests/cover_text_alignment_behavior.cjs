@@ -72,7 +72,7 @@ const snap=(bounds,zone,dx,dy)=>vm.runInNewContext(
   snapSandbox
 );
 const frontZone={x:783,y:52,w:632,h:922};
-const frontText={x:840,y:480,w:356,h:62}; // selection center 1018, page center 1099
+const frontText={x:840,y:350,w:356,h:62}; // selection center 1018, page center 1099
 const snappedFront=snap(frontText,frontZone,76,0);
 assert.equal(snappedFront.dx,81);
 assert.equal(frontText.x+frontText.w/2+snappedFront.dx,1099,
@@ -87,16 +87,17 @@ assert.equal(wrongEdgeNearCenter.guide,null,
   'center guide must never be triggered by a text edge');
 const backZone={x:50,y:52,w:633,h:922};
 const backText={x:210,y:460,w:280,h:70};
-const snappedBack=snap(backText,backZone,-20,0);
+const snappedBack=snap(backText,backZone,12,0);
 assert.equal(snappedBack.dx,backZone.x+backZone.w/2-(backText.x+backText.w/2));
 assert.equal(snappedBack.guide.centerX,366.5);
 // Left/right alignment guides refer to the actual cover margins, not the center.
 const leftAligned=snap(frontText,frontZone,-51,0);
 assert.equal(leftAligned.guide.snapX,true);
 assert.equal(leftAligned.guide.centerX,frontZone.x);
-const yOnly=snap(frontText,frontZone,0,22);
-assert.equal(yOnly.guide?.snapX||false,false);
-assert.equal(yOnly.guide?.snapY||false,false);
+const yOnly=snap(frontText,frontZone,0,129);
+assert.equal(yOnly.guide?.snapX,false);
+assert.equal(yOnly.guide?.snapY,true);
+assert.equal(yOnly.dy,132);
 const noZone=snap(frontText,null,13,-4);
 assert.equal(noZone.dx,13);
 assert.equal(noZone.dy,-4);
