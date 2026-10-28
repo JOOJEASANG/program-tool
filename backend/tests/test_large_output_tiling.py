@@ -92,7 +92,7 @@ def test_tiling_ui_and_api_are_wired_for_pdf_and_images():
     assert "/api/pdf-utility/tile" in frontend
     assert "/api/pdf-utility/tile-storage" in frontend
     assert "pdfLargeOutputTilingScriptV1" in runtime
-    assert "/js/pdf-large-output-tiling.js?v=20260831-1" in runtime
+    assert "/js/pdf-large-output-tiling.js?v=20261028-2" in runtime
     assert "pdf_utility_tiling_bp" in main
     assert '@pdf_utility_tiling_bp.route("/tile"' in router
     assert '@pdf_utility_tiling_bp.route("/tile-storage"' in router
