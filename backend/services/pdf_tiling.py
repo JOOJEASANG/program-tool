@@ -15,6 +15,7 @@ PAPER_SIZES_MM = {
 }
 MAX_SOURCE_PAGES = 50
 MAX_OUTPUT_SHEETS = 500
+CUT_MARK_GUTTER_MM = 3.0  # Extra PRINTABLE white band for crop marks, beyond the printer non-printable margins.
 
 
 @dataclass(frozen=True)
@@ -25,6 +26,7 @@ class TilingResult:
     paper_size: str
     printer_margin_mm: float
     overlap_mm: float
+    add_crop_marks: bool = False
 
 
 def _sheet_count(source_mm: float, usable_mm: float, overlap_mm: float) -> int:
@@ -81,6 +83,44 @@ def _draw_sheet_label(page: fitz.Page, text: str, margin_mm: float) -> None:
     )
 
 
+def _draw_crop_marks(
+    page: fitz.Page,
+    *,
+    x0_mm: float,
+    y0_mm: float,
+    width_mm: float,
+    height_mm: float,
+    printer_margin_mm: float,
+) -> None:
+    """Short vector cutting ticks OUTSIDE the artwork, in reserved printable gutters.
+
+    Real devices do not print in their hardware margin. A separate 3mm printable
+    gutter keeps the ticks from disappearing or covering the overlapping image.
+    """
+    gap_mm = 0.45
+    tick_mm = 1.8
+    x1_mm = x0_mm + width_mm
+    y1_mm = y0_mm + height_mm
+    for x_mm in (x0_mm, x1_mm):
+        for y_mm, outward in ((y0_mm, -1), (y1_mm, 1)):
+            start = y_mm + outward * gap_mm
+            end = y_mm + outward * (gap_mm + tick_mm)
+            page.draw_line(
+                (x_mm * MM_TO_PT, start * MM_TO_PT),
+                (x_mm * MM_TO_PT, end * MM_TO_PT),
+                color=(0, 0, 0), width=0.45, overlay=True,
+            )
+    for y_mm in (y0_mm, y1_mm):
+        for x_mm, outward in ((x0_mm, -1), (x1_mm, 1)):
+            start = x_mm + outward * gap_mm
+            end = x_mm + outward * (gap_mm + tick_mm)
+            page.draw_line(
+                (start * MM_TO_PT, y_mm * MM_TO_PT),
+                (end * MM_TO_PT, y_mm * MM_TO_PT),
+                color=(0, 0, 0), width=0.45, overlay=True,
+            )
+
+
 def tile_pdf_bytes(
     data: bytes,
     *,
@@ -89,6 +129,7 @@ def tile_pdf_bytes(
     printer_margin_mm: float = 3.0,
     overlap_mm: float = 0.0,
     add_sheet_labels: bool = False,
+    add_crop_marks: bool = False,
 ) -> TilingResult:
     paper_size = str(paper_size or "A3").upper()
     orientation = str(orientation or "auto").lower()
@@ -98,6 +139,8 @@ def tile_pdf_bytes(
         raise ValueError("프린터 여백은 0~20mm로 설정하세요.")
     if not 0 <= overlap_mm <= 30:
         raise ValueError("겹침 여백은 0~30mm로 설정하세요.")
+    if add_crop_marks and printer_margin_mm > 17:
+        raise ValueError("재단선 인쇄 공간 확보를 위해 프린터 여백을 17mm 이하로 설정하세요.")
 
     try:
         source = fitz.open(stream=data, filetype="pdf")
@@ -124,17 +167,18 @@ def tile_pdf_bytes(
                 source_h_mm,
                 paper_size,
                 orientation,
-                printer_margin_mm,
+                printer_margin_mm + (CUT_MARK_GUTTER_MM if add_crop_marks else 0.0),
                 overlap_mm,
             )
             if sheet_number + cols * rows > MAX_OUTPUT_SHEETS:
                 raise ValueError(f"분할 결과가 {MAX_OUTPUT_SHEETS}장을 초과합니다. 더 큰 출력 용지를 선택하세요.")
 
-            usable_w_mm = paper_w_mm - printer_margin_mm * 2
-            usable_h_mm = paper_h_mm - printer_margin_mm * 2
+            printable_margin_mm = printer_margin_mm + (CUT_MARK_GUTTER_MM if add_crop_marks else 0.0)
+            usable_w_mm = paper_w_mm - printable_margin_mm * 2
+            usable_h_mm = paper_h_mm - printable_margin_mm * 2
             step_w_mm = usable_w_mm - overlap_mm
             step_h_mm = usable_h_mm - overlap_mm
-            margin_pt = printer_margin_mm * MM_TO_PT
+            margin_pt = printable_margin_mm * MM_TO_PT
 
             for row in range(rows):
                 for col in range(cols):
@@ -171,6 +215,15 @@ def tile_pdf_bytes(
                         keep_proportion=True,
                     )
                     sheet_number += 1
+                    if add_crop_marks:
+                        _draw_crop_marks(
+                            out_page,
+                            x0_mm=printable_margin_mm,
+                            y0_mm=printable_margin_mm,
+                            width_mm=crop_w_mm,
+                            height_mm=crop_h_mm,
+                            printer_margin_mm=printer_margin_mm,
+                        )
                     if add_sheet_labels:
                         _draw_sheet_label(
                             out_page,
@@ -197,6 +250,7 @@ def tile_pdf_bytes(
             paper_size=paper_size,
             printer_margin_mm=float(printer_margin_mm),
             overlap_mm=float(overlap_mm),
+            add_crop_marks=bool(add_crop_marks),
         )
     finally:
         output.close()
