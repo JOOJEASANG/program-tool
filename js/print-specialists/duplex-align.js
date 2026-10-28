@@ -86,7 +86,7 @@ function install(){
        if(!srcDoc||!inputBytes)throw Error('2페이지 이상의 PDF를 먼저 선택하세요.');
        const [fx,fy,bx,by]=values(),pages=srcDoc.getPages(),out=await window.PDFLib.PDFDocument.create();
        // embedPdf preserves vector page content, unlike raster printing.
-       const embedded=await out.embedPdf(inputBytes);
+       const embedded=await out.embedPdf(inputBytes,pages.map((_,index)=>index));
        for(let i=0;i<pages.length;i++){
          const source=pages[i],isFront=$('dxPages').value==='odd'?i%2===0:i%2===1;
          const shiftX=mm(isFront?fx:bx),shiftY=mm(isFront?fy:by);
