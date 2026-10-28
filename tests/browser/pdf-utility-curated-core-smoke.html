@@ -149,9 +149,9 @@
 
         for(const name of expected){
           if(name==='대형 분할 출력'||name==='스캔 문서 깨끗하게'){
-            const poster=button(name);
-            if(!poster||poster.dataset.pdfuCoreSource!=='대형 분할 출력')throw new Error('poster menu not curated correctly');
-            continue; // dedicated poster modal is tested by the tiling contracts
+            const specialist=button(name);
+            if(!specialist||specialist.dataset.pdfuCoreSource!==name)throw new Error('specialist menu not curated correctly: '+name);
+            continue; // dedicated specialist dialogs have separate regression tests
           }
           await click(name);assertLayer(name);
         }
