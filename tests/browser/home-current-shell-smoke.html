@@ -23,7 +23,7 @@
           assert(html.includes(`id:'${id}'`),`current program missing: ${id}`);
         }
         assert(!html.includes("id:'print-checker'"),'standalone print checker must be consolidated');
-        assert(html.includes("name:'디자인 제작'"),'unified design entry missing');
+        assert(html.includes("name:'표지 디자인'"),'cover design entry missing');
         assert(html.includes("id:'smart-print-layout',cat:'edit'"),'smart print layout is not under document editing');
         for(const dead of ['/design-editor/','/document-editor/','/image-editor/']){
           assert(!html.includes(dead),`retired route returned to home: ${dead}`);
