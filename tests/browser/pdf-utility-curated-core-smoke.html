@@ -34,7 +34,7 @@
     addSection('security',[tool('AES-256 암호 설정',{href:'/pdf-preflight/'}),tool('암호 해제',{href:'/pdf-preflight/'}),tool('메타데이터 확인',{status:'local',local:'metadata'}),tool('메타데이터 정리',{status:'local',local:'sanitize'}),tool('폼 평면화',{status:'local',local:'flatten'}),tool('영구 마스킹·Redaction',{planned:true})]);
     addSection('print',[tool('PDF 프리플라이트',{href:'/pdf-preflight/'}),tool('안전 자동 수정',{href:'/pdf-preflight/'}),tool('인쇄물 사전 검토',{href:'/print-checker/'})]);
     addSection('scan',[tool('스캔 빈 페이지 정리',{href:'/pdf-preflight/'}),tool('스캔 PDF 압축',{href:'/pdf-preflight/'}),tool('검색 가능한 PDF',{planned:true})]);
-    addSection('optimize',[tool('PDF 압축',{href:'/pdf-preflight/'}),tool('PDF/A 장기보존 변환',{planned:true})]);
+    addSection('optimize',[tool('PDF 압축',{href:'/pdf-preflight/'}),tool('대형 분할 출력',{href:'/pdf-preflight/'}),tool('PDF/A 장기보존 변환',{planned:true})]);
     addSection('analyze',[tool('문서 구조·인쇄 진단',{href:'/pdf-preflight/'}),tool('문서 메타데이터 분석',{status:'local',local:'metadata'}),tool('PDF 버전 비교',{planned:true}),tool('접근성·태그 검사',{planned:true})]);
 
     window.auth={currentUser:{uid:'smoke-user',getIdToken:async()=> 'smoke-token'},onAuthStateChanged(callback){setTimeout(()=>callback(this.currentUser),0);return()=>{};}};
@@ -67,7 +67,7 @@
         await waitFor(()=>document.documentElement.dataset.pdfUtilityCentered==='tool-first-v2','tool-first centered ready');
         await waitFor(()=>document.documentElement.dataset.pdfUtilityToolModalFlow==='upload-first-reveal-v1','tool modal flow ready');
         await wait(120);
-        const expected=['PDF 파일 검사','PDF 압축','인쇄 문제 자동 수정','PDF 합치기','빈 페이지 자동 제거','전체 페이지 회전','페이지 순서 역순','배경/여백 제거','이미지 → PDF','PDF → 이미지','OCR · 검색 가능한 PDF','본문 텍스트 추출 · TXT','페이지 추출·나누기','시각적 페이지 정리','PDF 암호 설정 · AES-256','암호 해제'];
+        const expected=['PDF 파일 검사','PDF 압축','인쇄 문제 자동 수정','대형 분할 출력','PDF 합치기','빈 페이지 자동 제거','전체 페이지 회전','페이지 순서 역순','배경/여백 제거','이미지 → PDF','PDF → 이미지','OCR · 검색 가능한 PDF','본문 텍스트 추출 · TXT','페이지 추출·나누기','시각적 페이지 정리','PDF 암호 설정 · AES-256','암호 해제'];
         const actual=names();
         if(actual.length!==expected.length)throw new Error(`core menu count ${actual.length} != ${expected.length}: ${actual.join(', ')}`);
         expected.forEach(name=>{if(!actual.includes(name))throw new Error('essential menu missing: '+name);});
@@ -148,7 +148,7 @@
 
         for(const name of expected){await click(name);assertLayer(name);}
         document.body.dataset.pdfUtilityCuratedCoreSmoke='pass';
-        result.textContent='PASS: curated PDF Utility keeps 16 essential workflows, removes metadata/form cleanup tools, moves page cleanup/extract to edit/security, uses the renamed print auto-fix tool, and keeps the enlarged centered layout';
+        result.textContent='PASS: curated PDF Utility keeps 17 essential workflows, removes metadata/form cleanup tools, moves page cleanup/extract to edit/security, uses the renamed print auto-fix tool, and keeps the enlarged centered layout';
       }catch(error){document.body.dataset.pdfUtilityCuratedCoreSmoke='fail';result.textContent='FAIL: '+String(error?.stack||error);}
     })();
   </script>
