@@ -105,5 +105,36 @@ def test_design_canvas_tracks_product_scope_and_keeps_mockup_out_of_exports():
     assert 'state.generatedSpecKey===specKey(spec)' in editor
     assert 'state.background && state.generatedSpecKey !== specKey(spec)' in editor
     assert 'function normalizeMode(studio, mode)' in workshop
-    assert '/js/design-workshop-modes.js?v=20261028-1' in page
-    assert '/js/ai-design-maker.js?v=20261028-1' in page
+    assert '/js/design-workshop-modes.js?v=20261028-2' in page
+    assert '/js/ai-design-maker.js?v=20261028-2' in page
+
+
+def test_leaflet_side_selector_is_styled_and_nonredundant():
+    page=read('ai-design-maker/index.html')
+    css=read('css/ai-design-maker.css')
+    mode=read('js/design-workshop-modes.js')
+    assert 'id="leafletSideTitle">작업 면 선택' in page
+    assert 'aria-label="리플렛 작업 면 전환"' in page
+    assert 'aria-label="리플렛 겉면 3패널 편집"' in page
+    assert 'aria-label="리플렛 안쪽면 3패널 편집"' in page
+    assert 'class="leaflet-side-check"' in page
+    assert 'id="coverScopeCard"' in page
+    assert ".leaflet-side-options a.active{" in css
+    assert ".leaflet-side-options a:focus-visible{" in css
+    assert ".leaflet-side-options{display:grid" in css
+    assert "$('coverScopeCard').hidden=studio==='leaflet'" in mode
+    assert "link.classList.toggle('active',active)" in mode
+
+
+def test_placeholder_bars_are_removed_without_hiding_print_guides():
+    editor=read('js/ai-design-maker.js')
+    page=read('ai-design-maker/index.html')
+    scaffold=editor.split('function drawProductPreviewScaffold(ctx,spec,scale)')[1].split('function renderPreview()')[0]
+    assert 'ctx.fillRect(x,b,w,th);' in scaffold
+    assert 'ctx.fillRect(x+inset' not in scaffold
+    assert 'ctx.fillRect(x+w*.68' not in scaffold
+    assert 'ctx.fillRect(x+inset,b+inset' not in scaffold
+    assert 'ctx.fillText(label' in scaffold
+    assert 'line(ctx,spineX,b,spineX,b+th' in editor
+    assert "if (!$('guideToggle')?.checked) return;" in editor
+    assert '<i class="red"></i>도련' in page
