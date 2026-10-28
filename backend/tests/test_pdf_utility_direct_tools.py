@@ -55,7 +55,7 @@ def test_direct_bridge_is_hosted_before_protected_guard_and_browser_smoked():
         "data-pdf-suite-direct-tool-bridge",
         "data-pdf-suite-direct-tool-hook",
         "direct-tool-bridge.js?v=20261028-1",
-        "direct-tool-hook.js?v=20260915-2",
+        "direct-tool-hook.js?v=20261028-1",
     ):
         assert marker in hosting
 
