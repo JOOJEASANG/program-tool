@@ -8,7 +8,7 @@
   <meta name="robots" content="noindex,nofollow">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
-  <link rel="stylesheet" href="/css/ai-design-maker.css?v=20261013-4">
+  <link rel="stylesheet" href="/css/ai-design-maker.css?v=20261028-2">
   <link rel="stylesheet" href="/css/program-manual-home-modal.css?v=20260918-1">
 </head>
 <body>
@@ -46,13 +46,27 @@
           </div>
         </section>
 
-        <section class="leaflet-side-picker" id="leafletSidePicker" hidden aria-label="리플렛 겉면과 안쪽면 선택">
-          <strong>3단 리플렛 작업 면</strong>
-          <div class="leaflet-side-options">
-            <a href="/ai-design-maker/?studio=leaflet&side=outside" data-leaflet-side="outside">겉면 (3패널)</a>
-            <a href="/ai-design-maker/?studio=leaflet&side=inside" data-leaflet-side="inside">안쪽면 (3패널)</a>
+        <section class="leaflet-side-picker" id="leafletSidePicker" hidden aria-labelledby="leafletSideTitle">
+          <div class="leaflet-side-head">
+            <div>
+              <strong id="leafletSideTitle">작업 면 선택</strong>
+              <small>3단 리플렛 · 겉면과 안쪽면을 각각 편집</small>
+            </div>
+            <span class="leaflet-side-count">2면</span>
           </div>
-          <small>겉면과 안쪽면은 별도 작업으로 저장됩니다. 인쇄할 때 각각 PDF를 다운로드하세요.</small>
+          <nav class="leaflet-side-options" aria-label="리플렛 작업 면 전환">
+            <a href="/ai-design-maker/?studio=leaflet&amp;side=outside" data-leaflet-side="outside" aria-label="리플렛 겉면 3패널 편집">
+              <span class="leaflet-side-number" aria-hidden="true">01</span>
+              <span class="leaflet-side-copy"><strong>겉면</strong><small>왼쪽 · 가운데 · 오른쪽</small></span>
+              <span class="leaflet-side-check" aria-hidden="true">✓</span>
+            </a>
+            <a href="/ai-design-maker/?studio=leaflet&amp;side=inside" data-leaflet-side="inside" aria-label="리플렛 안쪽면 3패널 편집">
+              <span class="leaflet-side-number" aria-hidden="true">02</span>
+              <span class="leaflet-side-copy"><strong>안쪽면</strong><small>왼쪽 · 가운데 · 오른쪽</small></span>
+              <span class="leaflet-side-check" aria-hidden="true">✓</span>
+            </a>
+          </nav>
+          <p class="leaflet-side-help">선택한 면의 설정은 개별 저장됩니다. 인쇄할 때는 겉면과 안쪽면의 PDF를 각각 다운로드하세요.</p>
         </section>
 
         <p class="design-duplex-notice" id="designDuplexNotice" hidden>전단지·초대장 양면은 앞면 1페이지, 뒷면 2페이지로 PDF가 저장됩니다. PNG는 앞·뒷면 ZIP 파일로 저장됩니다.</p>
@@ -62,7 +76,7 @@
           <p id="coverModeDescription">앞표지·책등·뒤표지를 한 번에 제작합니다. 규격과 스타일만으로 배경을 생성할 수 있습니다. 문구는 선택 사항입니다.</p>
         </div>
 
-        <section class="cover-scope-card" aria-labelledby="coverScopeTitle">
+        <section class="cover-scope-card" id="coverScopeCard" aria-labelledby="coverScopeTitle">
           <div class="cover-scope-head">
             <strong id="coverScopeTitle">제작 범위</strong>
             <small>먼저 선택하세요</small>
@@ -369,7 +383,7 @@
             <span class="geometry-summary" id="geometrySummary">규격 계산 중</span>
             <span class="workspace-separator"></span>
             <span class="text-edit-inline"><b>요소 편집</b> · <em id="selectedTextLabel">문구·도형을 클릭해 선택</em> · 앞·뒤 안전영역 스냅 · 책등 자유배치</span>
-            <span class="legend legend-compact"><i class="blue"></i>재단 <i class="green"></i>안전 <i class="red"></i>책등</span>
+            <span class="legend legend-compact"><i class="blue"></i>재단 <i class="green"></i>안전 <i class="red"></i>도련</span>
           </div>
         </div>
 
@@ -649,10 +663,10 @@
   <script defer src="/js/firebase-config.js"></script>
   <script defer src="/js/program-manuals/home-modal.js?v=20260918-1"></script>
   <script defer src="/js/program-sidebar-actions.js?v=20260918-2"></script>
-  <script defer src="/js/design-workshop-modes.js?v=20261028-1"></script>
+  <script defer src="/js/design-workshop-modes.js?v=20261028-2"></script>
   <script defer src="/js/design-duplex-output.js?v=20261013-4"></script>
   <script defer src="/js/design-workspace-layers.js?v=20261013-4"></script>
   <script defer src="/js/ai-design-print-export.js?v=20261013-4"></script>
-  <script defer src="/js/ai-design-maker.js?v=20261028-1"></script>
+  <script defer src="/js/ai-design-maker.js?v=20261028-2"></script>
 </body>
 </html>

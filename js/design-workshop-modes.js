@@ -62,6 +62,9 @@
     const studio=tabs[ctx.studio] ? ctx.studio : 'cover';
     const config=tabs[studio];
     document.documentElement.dataset.designStudio=studio;
+    // A trifold always edits all three panels, so the book-cover scope picker
+    // is redundant. Outside/inside navigation is the only surface selector.
+    if($('coverScopeCard'))$('coverScopeCard').hidden=studio==='leaflet';
     // Use a product-valid scope before the first canvas render, including restored sessions.
     ctx.state.coverMode=normalizeMode(studio,ctx.hasSavedWorkspace?ctx.state.coverMode:config.mode);
     document.querySelectorAll('[data-studio]').forEach(button=>{
