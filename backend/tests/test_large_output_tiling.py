@@ -178,3 +178,13 @@ def test_pdf_utility_menu_and_crop_mark_controls_are_connected():
     assert '<option value="2" selected>2mm 겹침 · 권장</option>' in tiling
     assert "add_crop_marks:!!$('plotCropMarks').checked" in tiling
     assert 'add_crop_marks=_bool(params.get("add_crop_marks"))' in router
+
+
+def test_large_pdf_storage_initializes_without_previous_utility_work():
+    import subprocess
+    result=subprocess.run(
+        ["node","backend/tests/pdf_large_tiling_storage_behavior.cjs"],
+        cwd=ROOT,text=True,capture_output=True,check=False,
+    )
+    assert result.returncode==0,result.stdout+result.stderr
+    assert "pdf poster Storage first-run behavior passed" in result.stdout
