@@ -72,7 +72,9 @@ function install(){
           if(file.size>10*1024*1024)throw Error('명단 파일은 10MB 이하로 선택하세요.');
           let sheet;
           if(/\.csv$/i.test(file.name)){
-            const buffer=await file.arrayBuffer();const decoded=new TextDecoder('utf-8').decode(buffer);
+            const buffer=await file.arrayBuffer();let decoded=new TextDecoder('utf-8').decode(buffer);
+            // Korean Excel CSV is often encoded as CP949/EUC-KR.
+            if(decoded.includes('\uFFFD'))decoded=new TextDecoder('euc-kr').decode(buffer);
             sheet=parseCsv(decoded.replace(/^\uFEFF/,''));
           }else{
             await ctx.library('xlsx');
