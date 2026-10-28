@@ -59,6 +59,7 @@
   <script src="/js/pdf-suite/protected-tool-guard.js?v=smoke"></script>
   <script src="/js/pdf-suite/workspace-stability.js?v=smoke"></script>
   <script src="/js/pdf-suite/curated-core.js?v=smoke"></script>
+  <script src="/js/pdf-large-output-tiling.js?v=smoke"></script>
   <script>
     (async()=>{
       const result=document.getElementById('result');
@@ -146,7 +147,19 @@
         if(!ocr.querySelector('.pdfocr-file'))throw new Error('OCR tool-specific upload missing');
         assertLayer('OCR · 검색 가능한 PDF');
 
-        for(const name of expected){await click(name);assertLayer(name);}
+        for(const name of expected){
+          if(name==='대형 분할 출력'){
+            await click(name);
+            const tileOverlay=document.getElementById('pdfLargeOutputTilingOverlay');
+            if(!tileOverlay?.classList.contains('open'))throw new Error('poster tiling panel did not open');
+            if(!tileOverlay.querySelector('#plotFileInput'))throw new Error('poster upload missing');
+            if(tileOverlay.querySelector('#plotOverlap')?.value!=='2')throw new Error('2mm overlap default missing');
+            if(!tileOverlay.querySelector('#plotCropMarks')?.checked)throw new Error('crop marks should be enabled by default');
+            tileOverlay.querySelector('#plotClose')?.click();
+            continue;
+          }
+          await click(name);assertLayer(name);
+        }
         document.body.dataset.pdfUtilityCuratedCoreSmoke='pass';
         result.textContent='PASS: curated PDF Utility keeps 17 essential workflows, removes metadata/form cleanup tools, moves page cleanup/extract to edit/security, uses the renamed print auto-fix tool, and keeps the enlarged centered layout';
       }catch(error){document.body.dataset.pdfUtilityCuratedCoreSmoke='fail';result.textContent='FAIL: '+String(error?.stack||error);}
