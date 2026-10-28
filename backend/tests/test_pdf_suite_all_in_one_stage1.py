@@ -38,6 +38,7 @@ def test_pdf_suite_source_is_reduced_to_clean_core_catalog():
         "PDF 프리플라이트",
         "안전 자동 수정",
         "PDF 압축",
+        "대형 분할 출력",
         'id="local-tools"',
         'src="../js/pdf-suite/local-tools.js"',
     ):
@@ -53,7 +54,6 @@ def test_pdf_suite_source_is_reduced_to_clean_core_catalog():
         "future-wrap",
         "N-up 다면 배치",
         "소책자·중철 배치",
-        "대형 분할 출력",
         "인쇄물 사전 검토",
         "PDF 정밀 편집",
         "메타데이터 정리",
