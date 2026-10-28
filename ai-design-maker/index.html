@@ -8,7 +8,7 @@
   <meta name="robots" content="noindex,nofollow">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
-  <link rel="stylesheet" href="/css/ai-design-maker.css?v=20261028-3">
+  <link rel="stylesheet" href="/css/ai-design-maker.css?v=20261028-4">
   <link rel="stylesheet" href="/css/program-manual-home-modal.css?v=20260918-1">
 </head>
 <body>
@@ -139,7 +139,7 @@
                   <option value="vertical">한글 세로쓰기</option>
                 </select>
               </label>
-              <div class="spine-placement-help">자동정렬은 상·중·하 권장 위치에 맞춰 배치합니다. 자유배치를 선택하거나 미리보기에서 문구를 드래그하면 원하는 위치로 옮길 수 있습니다.</div>
+              <div class="spine-placement-help"><strong>책등 세로쓰기 지원</strong> · 아래 → 위 / 위 → 아래는 글줄을 회전하고, <strong>한글 세로쓰기</strong>는 글자를 위에서 아래로 한 글자씩 배치합니다. 상·중·하 각각 자동정렬 또는 자유배치를 이용할 수 있습니다.</div>
               <div class="spine-policy" id="spinePolicy"></div>
             </div>
           </div>
@@ -502,6 +502,26 @@
         <div class="text-inspector-empty" id="textInspectorEmpty">
           문구나 도형을 클릭하면 CMYK 색상, 위치, 크기와 세부 속성을 여기서 편집할 수 있습니다.
         </div>
+        <section class="cover-side-align-panel" aria-label="표지별 문구 정렬">
+          <strong>표지별 제목 정렬</strong>
+          <small>앞표지와 뒷표지의 기본 문구를 각각 안전영역에 맞춥니다. 추가 문구는 캔버스에서 선택하여 개별 정렬하세요.</small>
+          <div class="cover-side-align-row">
+            <span>앞표지</span>
+            <div role="group" aria-label="앞표지 제목 정렬">
+              <button type="button" data-cover-align="front" data-align="left">왼쪽</button>
+              <button type="button" data-cover-align="front" data-align="center">가운데</button>
+              <button type="button" data-cover-align="front" data-align="right">오른쪽</button>
+            </div>
+          </div>
+          <div class="cover-side-align-row">
+            <span>뒷표지</span>
+            <div role="group" aria-label="뒷표지 문구 정렬">
+              <button type="button" data-cover-align="back" data-align="left">왼쪽</button>
+              <button type="button" data-cover-align="back" data-align="center">가운데</button>
+              <button type="button" data-cover-align="back" data-align="right">오른쪽</button>
+            </div>
+          </div>
+        </section>
         <div class="text-inspector-fields" id="textInspectorFields" hidden>
           <label class="text-style-copy">
             <span>내용</span>
@@ -548,7 +568,7 @@
             </div>
           </div>
           <div class="text-inspector-align" aria-label="문구 박스 위치 정렬">
-            <span>문구박스 위치 · 안전영역 기준</span>
+            <span>선택 문구 위치 · 해당 표지 안전영역 기준</span>
             <div>
               <button type="button" data-box-align="left">왼쪽</button>
               <button type="button" data-box-align="center">가운데</button>
@@ -564,7 +584,7 @@
             </div>
           </div>
           <button type="button" class="text-reset-button" id="resetTextLayout">선택 문구 위치·서식 초기화</button>
-          <div class="text-snap-help">드래그할 때도 해당 표지의 안전영역 가로·세로 중심에 자석처럼 맞춰집니다.</div>
+          <div class="text-snap-help">드래그하면 앞표지·뒷표지 각각의 안전영역에 스냅됩니다. 가로 가운데 스냅 시 박스와 글씨가 함께 가운데 정렬됩니다.</div>
         </div>
       </aside>
     </div>
@@ -627,6 +647,6 @@
   <script defer src="/js/design-workshop-modes.js?v=20261028-3"></script>
   <script defer src="/js/design-workspace-layers.js?v=20261013-4"></script>
   <script defer src="/js/ai-design-print-export.js?v=20261013-4"></script>
-  <script defer src="/js/ai-design-maker.js?v=20261028-3"></script>
+  <script defer src="/js/ai-design-maker.js?v=20261028-4"></script>
 </body>
 </html>

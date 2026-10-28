@@ -528,7 +528,7 @@ def test_ai_design_maker_uses_safe_area_snap_and_dual_alignment():
     page = (ROOT / "ai-design-maker/index.html").read_text(encoding="utf-8")
     source = (ROOT / "js/ai-design-maker.js").read_text(encoding="utf-8")
 
-    assert "안전영역 가로·세로 중심" in page
+    assert "앞표지·뒷표지 각각의 안전영역에 스냅됩니다" in page
     assert "const SNAP_PX=9" in source
     assert "function coverSurfaceRect(" in source
     assert "const safe=Math.min(spec.safe" in source
@@ -639,3 +639,49 @@ def test_ai_design_maker_grouping_and_clean_selection_outline():
     assert "ctx.strokeRect(group.x-4,group.y-4,group.w+8,group.h+8)" in source
     assert "ctx.setLineDash([5,4])" not in source
     assert ".group-action-buttons{" in style
+
+
+def test_cover_front_back_alignment_uses_independent_safe_zones():
+    page=(ROOT/"ai-design-maker/index.html").read_text(encoding="utf-8")
+    editor=(ROOT/"js/ai-design-maker.js").read_text(encoding="utf-8")
+    css=(ROOT/"css/ai-design-maker.css").read_text(encoding="utf-8")
+    manual=(ROOT/"js/program-manuals/ai-design-maker.js").read_text(encoding="utf-8")
+    for side in ("front","back"):
+        for align in ("left","center","right"):
+            assert f'data-cover-align="{side}" data-align="{align}"' in page
+    assert 'function alignTextBoxInSurface(textId,mode)' in editor
+    assert 'function alignCoverSideText(surface,mode)' in editor
+    assert 'layout.align=mode;' in editor
+    assert 'layout.boxAlign=mode;' in editor
+    assert 'layout.align=xSnap.align;' in editor
+    assert "xSnap?.lineX??zoneCenterX" in editor
+    assert 'textLayoutState(textId).boxAlign===button.dataset.align' in editor
+    assert '표지별 독립 정렬' in manual
+    assert '.cover-side-align-row button.active{' in css
+
+
+def test_preview_stays_white_and_spine_vertical_writing_is_supported():
+    page=(ROOT/"ai-design-maker/index.html").read_text(encoding="utf-8")
+    editor=(ROOT/"js/ai-design-maker.js").read_text(encoding="utf-8")
+    css=(ROOT/"css/ai-design-maker.css").read_text(encoding="utf-8")
+    vector=(ROOT/"js/ai-design-print-export.js").read_text(encoding="utf-8")
+    assert "background:#ffffff" in css
+    assert 'background:#ffffff;padding:10px' in css
+    assert 'ctx.fillStyle=\'#ffffff\';ctx.fillRect(x,b,w,th)' in editor
+    assert 'ctx.globalAlpha=.22' not in editor.split('function drawProductPreviewScaffold')[1].split('function renderPreview')[0]
+    assert '<option value="vertical">한글 세로쓰기</option>' in page
+    assert '책등 세로쓰기 지원' in page
+    assert "if(v.spineOrientation==='vertical')" in editor
+    assert 'function vertical(ctx,text,x,y,w,h,lineHeight)' in editor
+    assert 'const rows=item.vertical?' in vector
+    assert "item.vertical?'center'" in vector
+
+
+def test_front_and_back_title_alignment_behavior():
+    import subprocess
+    output=subprocess.run(
+        ["node","backend/tests/cover_text_alignment_behavior.cjs"],
+        cwd=ROOT,text=True,capture_output=True,check=False,
+    )
+    assert output.returncode==0,output.stdout+output.stderr
+    assert 'front/back independent alignment behavior passed' in output.stdout
