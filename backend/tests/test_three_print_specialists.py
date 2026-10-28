@@ -61,7 +61,7 @@ def test_duplex_produces_vector_preserving_pdf_and_calibration_sheets():
     for marker in (
         "ui.register('duplex'", "시험용 양면 정렬표", "window.PDFLib.PDFDocument.create()",
         "FRONT (PAGE 1)", "BACK (PAGE 2)", "ctx.download(await pdf.save()",
-        "values()", "Math.abs(x)>15", "out.embedPdf(inputBytes)",
+        "values()", "Math.abs(x)>15", "out.embedPdf(inputBytes,pages.map((_,index)=>index))",
         "dest.drawPage(embedded[i],", "i%2===0", "i%2===1",
         "window.PDFLib.PDFDocument.load(", "localStorage.setItem(",
         "localStorage.getItem(", "button.id='dxLaunch'"
