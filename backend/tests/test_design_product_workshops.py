@@ -32,8 +32,8 @@ def test_cover_only_ui_and_home_description():
     assert 'design-duplex-output.js' not in page
     assert '.product-tabs' not in css
     assert '.leaflet-side-picker' not in css
-    assert "catLabel:'디자인 제작 · 표지 전용'" in home
-    assert "name:'디자인 제작'" in home
+    assert "catLabel:'표지 디자인 · 책자·보고서 표지'" in home
+    assert "name:'표지 디자인'" in home
     assert '책표지 디자인 전용 작업실' in manual
     for removed in ('전단지', '초대장', '리플렛'):
         assert removed not in manual
