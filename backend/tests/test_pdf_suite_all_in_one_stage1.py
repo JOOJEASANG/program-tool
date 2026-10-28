@@ -134,7 +134,7 @@ def test_pdf_suite_is_staged_with_existing_engines_and_clean_final_workspace():
     for marker in (
         'PDF_SUITE_HTML = "pdf-suite/index.html"',
         "data-pdf-suite-first-paint-guard",
-        "pdf-suite-home-launcher.js?v=20261013-3",
+        "pdf-suite-home-launcher.js?v=20261028-2",
         '"ai-design-maker",',
         '"smart-print-layout",',
         'OUTPUT / "ai-design-maker/index.html"',
@@ -169,7 +169,7 @@ def test_pdf_suite_is_staged_with_existing_engines_and_clean_final_workspace():
 
     for marker in (
         "name:'디자인 검토'",
-        "name:'디자인 제작'",
+        "name:'표지 디자인'",
         "name:'스마트 인쇄배치'",
         "name:'PDF배치'",
         "name:'PDF편집'",
