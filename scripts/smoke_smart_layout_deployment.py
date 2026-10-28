@@ -35,13 +35,13 @@ def verify(base_url: str, timeout: float) -> None:
         if marker not in page:
             raise RuntimeError(f"스마트 인쇄배치 페이지에서 필수 항목을 찾지 못했습니다: {marker}")
 
-    _, launcher = fetch_text(base_url, "/js/pdf-suite-home-launcher.js?v=20261013-3", timeout)
+    _, launcher = fetch_text(base_url, "/js/pdf-suite-home-launcher.js?v=20261028-2", timeout)
     for marker in (
         "id:'smart-print-layout'",
         "name:'스마트 인쇄배치'",
         "url:'smart-print-layout/'",
         "pdf-home-unified-design-five-programs-v11",
-        "name:'디자인 제작'",
+        "name:'표지 디자인'",
         "name:'스마트 인쇄배치'",
     ):
         if marker not in launcher:
