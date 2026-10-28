@@ -32,15 +32,6 @@ button{cursor:pointer}
 .program-title-kicker{display:none}
 .ai-manual-btn{box-sizing:border-box;width:28px;height:28px;min-width:28px;min-height:28px;margin:0;padding:0;display:inline-flex;align-items:center;justify-content:center;flex:0 0 28px;border:1px solid #cbd5e1;border-radius:50%;background:#fff;color:#475569;font-size:16px;font-weight:900;line-height:1;cursor:pointer;transition:background .16s ease,transform .16s ease,border-color .16s ease}
 .ai-manual-btn:hover,.ai-manual-btn:focus-visible{background:#f8fafc;border-color:#94a3b8;color:#0f172a;transform:translateY(-1px);outline:2px solid rgba(124,58,237,.18);outline-offset:2px}
-.product-picker{margin:0 0 12px;padding-top:0}
-.product-picker-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 9px}
-.product-picker-head>div{display:flex;flex-direction:column;gap:2px}
-.product-picker-head strong{font-size:13px;font-weight:900;letter-spacing:-.02em;color:#475569}
-.product-tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:0 0 12px}
-.product-tab{min-width:0;border:1px solid #dbe3ec;border-radius:11px;background:#f8fafc;color:#64748b;padding:9px 6px;display:grid;gap:3px;text-align:center}
-.product-tab strong{font-size:11px}.product-tab small{font-size:8.5px;color:#94a3b8}
-.product-tab.active{border-color:#7c3aed;background:#f5f3ff;color:#6d28d9;box-shadow:0 0 0 2px rgba(124,58,237,.07)}
-.product-tab.active small{color:#8b5cf6}.product-tab:disabled{cursor:default;opacity:.72}
 
 .control-section{border:1px solid var(--line);border-radius:15px;background:#fff;margin-bottom:11px;overflow:hidden}
 .control-section summary{list-style:none;display:flex;gap:11px;align-items:center;padding:14px;cursor:pointer;user-select:none}
@@ -122,7 +113,7 @@ button{cursor:pointer}
   .text-inspector{height:auto;border-left:0;border-top:1px solid var(--line);padding:12px}.inspector-preview-actions{position:sticky;top:0;z-index:4}.text-style-controls{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 @media(max-width:520px){
-  .product-tabs{grid-template-columns:1fr 1fr}.workflow-nav{position:sticky;top:0;z-index:9;background:#fff;padding:6px 0}
+  .workflow-nav{position:sticky;top:0;z-index:9;background:#fff;padding:6px 0}
   .ghost-button{padding:7px 8px;font-size:10px}
   .field-grid.two,.style-cards{grid-template-columns:1fr}.spine-copy-row{grid-template-columns:1fr}.canvas-scroll{padding:6px;min-height:300px}.text-style-controls{grid-template-columns:1fr}.workspace-toolbar{align-items:flex-start;gap:10px}.toolbar-actions{align-items:flex-end}.field-title-row{align-items:flex-start;flex-direction:column}.language-toggle{align-self:flex-start}.copy-surface-head{align-items:center}
 }
@@ -232,8 +223,6 @@ html[data-cover-mode="frontBack"] #spineFields{display:none!important}
 #canvasStage.design-import-dragover{outline:3px dashed #2563eb;outline-offset:-3px;background:rgba(59,130,246,.08)}
 
 /* Specialized product studios and physical book-spine calculator */
-.product-tab[data-studio]{cursor:pointer}
-.product-tab[data-studio]:disabled{cursor:default}
 .spine-calculator{grid-column:1/-1;display:grid;gap:10px;background:#f8fbff;border:1px solid #c9daf2;border-radius:12px;padding:12px;min-width:0}
 .spine-calculator[hidden],.spine-calc-fields[hidden],#spineField[hidden],#spineFields[hidden],.cover-mode-picker label[hidden],#wingToggleRow[hidden]{display:none!important}
 .spine-calc-head{display:flex;flex-wrap:wrap;gap:6px;justify-content:space-between;align-items:center}
@@ -245,28 +234,3 @@ html[data-cover-mode="frontBack"] #spineFields{display:none!important}
 .spine-calc-result{grid-column:1/-1;background:#dbeafe;color:#1e3a8a;border-radius:9px;padding:10px;font-size:12px;font-weight:750;line-height:1.6}
 .spine-calc-note{margin:0}
 #spine[readonly]{background:#e8f1ff;border-color:#93c5fd;color:#1e3a8a}
-html[data-design-studio="leaflet"] .product-picker{border-color:#0f766e}
-
-/* Leaflet is a two-sided workspace, not a single book-cover scope. */
-.leaflet-side-picker{display:grid;gap:11px;margin:0 0 12px;padding:13px;border:1px solid #d9e2ed;border-radius:14px;background:#fff;box-shadow:0 2px 9px rgba(15,23,42,.035)}
-.leaflet-side-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
-.leaflet-side-head>div{display:grid;gap:3px;min-width:0}
-.leaflet-side-head strong{font-size:12.5px;letter-spacing:-.015em;font-weight:900;color:#334155}
-.leaflet-side-head small{font-size:10px;line-height:1.4;color:#64748b}
-.leaflet-side-count{flex:0 0 auto;padding:4px 9px;border-radius:999px;background:#f1f5f9;color:#475569;font-size:10px;font-weight:850}
-.leaflet-side-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
-.leaflet-side-options a{display:grid;grid-template-columns:22px minmax(0,1fr) 14px;align-items:start;gap:6px;min-width:0;min-height:77px;padding:11px 9px;border:1px solid #dbe3ec;border-radius:11px;background:#f8fafc;text-decoration:none;color:#334155;transition:background .15s,border-color .15s,box-shadow .15s}
-.leaflet-side-options a:hover{border-color:#a78bfa;background:#faf7ff}
-.leaflet-side-options a:focus-visible{outline:2px solid #7c3aed;outline-offset:2px}
-.leaflet-side-options a.active{border-color:#7c3aed;background:#f5f3ff;box-shadow:0 0 0 2px rgba(124,58,237,.08)}
-.leaflet-side-number{display:grid;place-items:center;width:22px;height:22px;border-radius:7px;background:#e2e8f0;color:#64748b;font-size:10px;font-weight:900}
-.leaflet-side-options a.active .leaflet-side-number{background:#7c3aed;color:#fff}
-.leaflet-side-copy{display:grid;gap:5px;min-width:0}
-.leaflet-side-copy strong{font-size:12px;line-height:1.2;color:#334155;font-weight:900}
-.leaflet-side-copy small{font-size:9.5px;line-height:1.4;color:#64748b;overflow-wrap:anywhere}
-.leaflet-side-options a.active .leaflet-side-copy strong{color:#6d28d9}
-.leaflet-side-check{visibility:hidden;color:#6d28d9;font-weight:900;font-size:13px;line-height:1.3}
-.leaflet-side-options a.active .leaflet-side-check{visibility:visible}
-.leaflet-side-help{margin:0;padding:9px 10px;background:#f8fafc;border-radius:9px;color:#64748b;font-size:10.5px;line-height:1.55}
-@media(max-width:360px){.leaflet-side-options{grid-template-columns:1fr}.leaflet-side-options a{min-height:62px}}
-@media(prefers-reduced-motion:reduce){.leaflet-side-options a{transition:none}}
