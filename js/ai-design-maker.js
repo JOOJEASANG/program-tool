@@ -2466,7 +2466,7 @@
       if(snap.exists)privateData={...item,...snap.data()};
     }
     if((privateData.workshop||'cover')!==WORKSHOP){
-      setStatus('다른 작업실의 디자인입니다.','해당 디자인의 제품 종류 및 리플렛 면을 선택한 뒤 불러오세요.','error');
+      setStatus('표지 이외의 이전 디자인입니다.','표지 디자인에서는 이전에 만든 다른 제품의 작업을 불러올 수 없습니다. 기존 데이터는 삭제되지 않았습니다.','error');
       return;
     }
     if(!privateData.stateJson){
