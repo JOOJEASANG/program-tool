@@ -532,8 +532,8 @@ def test_ai_design_maker_uses_safe_area_snap_and_dual_alignment():
     assert "const SNAP_PX=9" in source
     assert "function coverSurfaceRect(" in source
     assert "const safe=Math.min(spec.safe" in source
-    assert "Math.abs(xCandidates[0].delta)<=SNAP_PX" in source
-    assert "Math.abs(candidateCenterY-zoneCenterY)<=SNAP_PX" in source
+    assert "const snapped=snapTextDrag(drag.startBounds,drag.zone,dx,dy,SNAP_PX);" in source
+    assert "const snapY=Math.abs(yDelta)<=threshold" in source
     for align in ("left", "center", "right"):
         assert f'data-box-align="{align}"' in page
         assert f'data-text-align="{align}"' in page
@@ -653,7 +653,8 @@ def test_cover_front_back_alignment_uses_independent_safe_zones():
     assert 'function alignCoverSideText(surface,mode)' in editor
     assert 'layout.align=mode;' in editor
     assert 'layout.boxAlign=mode;' in editor
-    assert 'layout.align=xSnap.align;' in editor
+    assert 'const visualLeft=bounds.x+rawDx,visualCenter=bounds.x+bounds.w/2+rawDx,visualRight=bounds.x+bounds.w+rawDx;' in editor
+    assert 'layout.align=xSnap.align;' not in editor
     assert "xSnap?.lineX??zoneCenterX" in editor
     assert 'textLayoutState(textId).boxAlign===button.dataset.align' in editor
     assert '표지별 독립 정렬' in manual
@@ -685,3 +686,4 @@ def test_front_and_back_title_alignment_behavior():
     )
     assert output.returncode==0,output.stdout+output.stderr
     assert 'front/back independent alignment behavior passed' in output.stdout
+    assert 'cover visible-text snap behavior passed' in output.stdout

@@ -60,4 +60,50 @@ spec.coverMode='front';
 vm.runInNewContext("alignCoverSideText('back','center')",sandbox);
 assert.equal(state.textLayouts.backText.align,'right','hidden back surface must remain unchanged');
 assert.equal(saves,3);assert.equal(ui,3);assert.equal(renders,3);
+// Exercise the actual snap helper with a long Korean title. Its invisible
+// layout box is wider than the purple visible selection rectangle.
+const snapStart=source.indexOf('  function snapTextDrag(bounds,zone,rawDx,rawDy,threshold){');
+const snapEnd=source.indexOf('  function bindTextCanvasEditing()',snapStart);
+assert.ok(snapStart>0&&snapEnd>snapStart,'snapTextDrag helper must exist');
+const snapSandbox={};
+vm.runInNewContext(source.slice(snapStart,snapEnd),snapSandbox);
+const snap=(bounds,zone,dx,dy)=>vm.runInNewContext(
+  'snapTextDrag('+JSON.stringify(bounds)+','+JSON.stringify(zone)+','+dx+','+dy+',9)',
+  snapSandbox
+);
+const frontZone={x:783,y:52,w:632,h:922};
+const frontText={x:840,y:350,w:356,h:62}; // selection center 1018, page center 1099
+const snappedFront=snap(frontText,frontZone,76,0);
+assert.equal(snappedFront.dx,81);
+assert.equal(frontText.x+frontText.w/2+snappedFront.dx,1099,
+  'visible selection center, not an invisible box center, must match cover center');
+assert.equal(snappedFront.guide.centerX,1099);
+assert.equal(snappedFront.guide.snapX,true);
+assert.equal(snappedFront.dy,0);
+assert.equal(snappedFront.guide.snapY,false);
+// A right edge passing near the cover center must NOT trigger center snapping.
+const wrongEdgeNearCenter=snap(frontText,frontZone,-96,0);
+assert.equal(wrongEdgeNearCenter.guide,null,
+  'center guide must never be triggered by a text edge');
+const backZone={x:50,y:52,w:633,h:922};
+const backText={x:210,y:460,w:280,h:70};
+const snappedBack=snap(backText,backZone,12,0);
+assert.equal(snappedBack.dx,backZone.x+backZone.w/2-(backText.x+backText.w/2));
+assert.equal(snappedBack.guide.centerX,366.5);
+// Left/right alignment guides refer to the actual cover margins, not the center.
+const leftAligned=snap(frontText,frontZone,-51,0);
+assert.equal(leftAligned.guide.snapX,true);
+assert.equal(leftAligned.guide.centerX,frontZone.x);
+const yOnly=snap(frontText,frontZone,0,129);
+assert.equal(yOnly.guide?.snapX,false);
+assert.equal(yOnly.guide?.snapY,true);
+assert.equal(yOnly.dy,132);
+const noZone=snap(frontText,null,13,-4);
+assert.equal(noZone.dx,13);
+assert.equal(noZone.dy,-4);
+assert.equal(noZone.guide,null);
+assert.ok(!source.includes('layout.align=xSnap.align'),
+  'drag snapping must not change existing glyph alignment');
+console.log('cover visible-text snap behavior passed');
+
 console.log('front/back independent alignment behavior passed');
