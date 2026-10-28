@@ -50,7 +50,7 @@ def test_runtime_restricts_legacy_product_urls_and_retains_cover_storage_key():
     assert "const normalizeMode=(_studio,mode)=>COVER_MODES.has(mode)?mode:'spread'" in modes
     assert "const width = Math.round(((pages/2)*thickness+allowance)*10)/10;" in modes
     assert '/js/design-workshop-modes.js?v=20261028-3' in page
-    assert '/js/ai-design-maker.js?v=20261028-3' in page
+    assert '/js/ai-design-maker.js?v=20261028-4' in page
     for removed in ("WORKSHOP==='flyer'", "WORKSHOP==='invitation'",
                     "WORKSHOP==='leaflet'", "DesignDuplexOutput", "LEAFLET_SIDE"):
         assert removed not in editor
