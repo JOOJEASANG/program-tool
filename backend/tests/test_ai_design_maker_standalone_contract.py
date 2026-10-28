@@ -28,7 +28,7 @@ def test_standalone_cover_endpoint_is_registered():
 
 def test_home_launches_integrated_design_studio_as_one_program():
     launcher = (ROOT / "js" / "pdf-suite-home-launcher.js").read_text(encoding="utf-8")
-    assert "name:'디자인 제작'" in launcher
+    assert "name:'표지 디자인'" in launcher
     assert "name:'인쇄파일 검토'" not in launcher
     assert "url:'ai-design-maker/'" in launcher
     assert (ROOT / "print-checker" / "index.html").exists()
