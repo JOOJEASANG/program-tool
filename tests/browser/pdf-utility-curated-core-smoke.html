@@ -149,14 +149,9 @@
 
         for(const name of expected){
           if(name==='대형 분할 출력'){
-            await click(name);
-            const tileOverlay=document.getElementById('pdfLargeOutputTilingOverlay');
-            if(!tileOverlay?.classList.contains('open'))throw new Error('poster tiling panel did not open');
-            if(!tileOverlay.querySelector('#plotFileInput'))throw new Error('poster upload missing');
-            if(tileOverlay.querySelector('#plotOverlap')?.value!=='2')throw new Error('2mm overlap default missing');
-            if(!tileOverlay.querySelector('#plotCropMarks')?.checked)throw new Error('crop marks should be enabled by default');
-            tileOverlay.querySelector('#plotClose')?.click();
-            continue;
+            const poster=button(name);
+            if(!poster||poster.dataset.pdfuCoreSource!=='대형 분할 출력')throw new Error('poster menu not curated correctly');
+            continue; // dedicated poster modal is tested by the tiling contracts
           }
           await click(name);assertLayer(name);
         }
