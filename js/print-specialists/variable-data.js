@@ -91,8 +91,12 @@ function install(){
         if(!text)return null;
         if(qrCache.has(text))return qrCache.get(text);
         await ctx.library('qr');
-        const src=await window.QRCode.toDataURL(text,{margin:1,width:160,errorCorrectionLevel:'M'});
-        const img=new Image();img.src=src;await img.decode();qrCache.set(text,img);return img;
+        const holder=document.createElement('div');
+        new window.QRCode(holder,{text,width:160,height:160,correctLevel:window.QRCode.CorrectLevel.M});
+        const canvas=holder.querySelector('canvas');
+        if(!canvas)throw Error('QR코드를 생성하지 못했습니다.');
+        const img=new Image();img.src=canvas.toDataURL('image/png');await img.decode();
+        qrCache.set(text,img);return img;
       }
       function line(ctx2,x,y,w,h,s){
         ctx2.strokeStyle='#64748b';ctx2.lineWidth=Math.max(.3,s*.11);
