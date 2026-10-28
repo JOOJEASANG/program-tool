@@ -22,6 +22,7 @@ PDF_SUITE_DIRECT_HOOK_MARKER = "data-pdf-suite-direct-tool-hook"
 PDF_SUITE_PROTECTED_GUARD_MARKER = "data-pdf-suite-protected-tool-guard"
 PDF_SUITE_WORKSPACE_STABILITY_MARKER = "data-pdf-suite-workspace-stability"
 PDF_SUITE_CURATED_CORE_MARKER = "data-pdf-suite-curated-core"
+PDF_SUITE_TILING_MARKER = "data-pdf-suite-poster-tiling"
 PDF_ADVANCED_EMPTY_STATE_MARKER = "data-pdf-advanced-empty-state-center"
 PDF_SPECIALIST_LABEL_MARKER = "data-pdf-specialist-label"
 
@@ -111,8 +112,11 @@ PDF_SUITE_PROTECTED_GUARD_SNIPPET = (
 PDF_SUITE_WORKSPACE_STABILITY_SNIPPET = (
     f'<script {PDF_SUITE_WORKSPACE_STABILITY_MARKER} defer src="/js/pdf-suite/workspace-stability.js?v=20260911-2"></script>'
 )
+PDF_SUITE_TILING_SNIPPET = (
+    f'<script {PDF_SUITE_TILING_MARKER} defer src="/js/pdf-large-output-tiling.js?v=20261028-2"></script>'
+)
 PDF_SUITE_CURATED_CORE_SNIPPET = (
-    f'<script {PDF_SUITE_CURATED_CORE_MARKER} defer src="/js/pdf-suite/curated-core.js?v=20260915-2"></script>'
+    f'<script {PDF_SUITE_CURATED_CORE_MARKER} defer src="/js/pdf-suite/curated-core.js?v=20261028-2"></script>'
 )
 PDF_ADVANCED_EMPTY_STATE_SNIPPET = (
     f'<style {PDF_ADVANCED_EMPTY_STATE_MARKER}>'
@@ -184,6 +188,7 @@ def _patch_pdf_suite_entry_points() -> None:
     _inject_before(suite, PDF_SUITE_PROTECTED_GUARD_MARKER, "</body>", PDF_SUITE_PROTECTED_GUARD_SNIPPET)
     _inject_before(suite, PDF_SUITE_WORKSPACE_STABILITY_MARKER, "</body>", PDF_SUITE_WORKSPACE_STABILITY_SNIPPET)
     _inject_before(suite, PDF_SUITE_CURATED_CORE_MARKER, "</body>", PDF_SUITE_CURATED_CORE_SNIPPET)
+    _inject_before(suite, PDF_SUITE_TILING_MARKER, "</body>", PDF_SUITE_TILING_SNIPPET)
     _inject_before(advanced_editor, PDF_ADVANCED_EMPTY_STATE_MARKER, "</head>", PDF_ADVANCED_EMPTY_STATE_SNIPPET)
     _inject_before(preflight, PDF_SPECIALIST_LABEL_MARKER, "</body>", PDF_SPECIALIST_LABEL_SNIPPET)
     _inject_before(editor, PDF_SPECIALIST_LABEL_MARKER, "</body>", PDF_SPECIALIST_LABEL_SNIPPET)
