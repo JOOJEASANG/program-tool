@@ -107,7 +107,9 @@ run_product_case "pdf-utility-quick-actions-smoke.html" "$OUT_DIR/pdf-utility-qu
 reset_profile
 run_product_case "pdf-utility-menu-audit-smoke.html" "$OUT_DIR/pdf-utility-menu-audit-smoke-dom.html" 'data-pdf-utility-menu-audit-smoke="pass"' 'PASS: all PDF utility menus mount stable right-stage workspaces without scroll lock'
 reset_profile
-run_product_case "pdf-utility-curated-core-smoke.html" "$OUT_DIR/pdf-utility-curated-core-smoke-dom.html" 'data-pdf-utility-curated-core-smoke="pass"' 'PASS: curated PDF Utility keeps 17 essential workflows, removes metadata/form cleanup tools, moves page cleanup/extract to edit/security, uses the renamed print auto-fix tool, and keeps the enlarged centered layout'
+run_product_case "print-specialists-launch-smoke.html" "$OUT_DIR/print-specialists-launch-smoke-dom.html" 'data-print-specialists-smoke="pass"' 'PASS: variable data, scan cleanup and duplex alignment open real Korean print specialist workspaces'
+reset_profile
+run_product_case "pdf-utility-curated-core-smoke.html" "$OUT_DIR/pdf-utility-curated-core-smoke-dom.html" 'data-pdf-utility-curated-core-smoke="pass"' 'PASS: curated PDF Utility keeps 18 essential workflows, removes metadata/form cleanup tools, moves page cleanup/extract to edit/security, uses the renamed print auto-fix tool, and keeps the enlarged centered layout'
 reset_profile
 run_product_case "pdf-merge-reorder-smoke.html" "$OUT_DIR/pdf-merge-reorder-smoke-dom.html" 'data-pdf-merge-reorder-smoke="pass"' 'PASS: PDF merge files reorder by buttons and mouse drag'
 reset_profile

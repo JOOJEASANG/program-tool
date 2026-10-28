@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><title>Three Print Specialists smoke</title></head>
+<body data-print-specialists-smoke="running">
+  <div class="sidebar"><div class="first-panel"></div></div>
+  <div class="advanced-sidebar"><div class="upload-section"></div></div>
+  <div class="pdfuc-category" data-category="inspect"><button type="button" id="scanClick" data-pdfu-tool="scan-tool" data-pdfu-core-source="스캔 문서 깨끗하게">스캔 문서 깨끗하게</button></div>
+  <div id="result">RUNNING</div>
+  <script src="/js/print-specialists/ui.js"></script>
+  <script src="/js/print-specialists/variable-data.js"></script>
+  <script src="/js/print-specialists/scan-cleanup.js"></script>
+  <script src="/js/print-specialists/duplex-align.js"></script>
+  <script>
+  (async function(){
+    const result=document.getElementById('result');
+    const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+    try{
+      await wait(100);
+      const open=(name)=>{const overlay=document.getElementById('printSpecialistOverlay');if(!overlay?.classList.contains('open')||overlay.dataset.activeTool!==name)throw Error('tool not opened: '+name);return overlay;};
+      document.getElementById('pvLaunch').click();
+      let overlay=open('variable');
+      if(!overlay.querySelector('#pvFile')||!overlay.querySelector('#pvRun')||!overlay.querySelector('#pvMarks'))throw Error('variable data editor controls missing');
+      document.getElementById('psClose').click();
+      document.getElementById('dxLaunch').click();
+      overlay=open('duplex');
+      if(!overlay.querySelector('#dxTest')||!overlay.querySelector('#dxBX')||!overlay.querySelector('#dxRun'))throw Error('duplex calibration controls missing');
+      document.getElementById('psClose').click();
+      document.getElementById('scanClick').click();
+      overlay=open('scan');
+      if(!overlay.querySelector('#scPreview')||!overlay.querySelector('#scMode')||!overlay.querySelector('#scRun'))throw Error('scan cleanup controls missing');
+      if(overlay.querySelector('#scDpi').value!=='300')throw Error('print scan DPI not 300');
+      document.getElementById('psClose').click();
+      if(overlay.classList.contains('open'))throw Error('dialog did not close');
+      document.body.dataset.printSpecialistsSmoke='pass';
+      result.textContent='PASS: variable data, scan cleanup and duplex alignment open real Korean print specialist workspaces';
+    }catch(err){document.body.dataset.printSpecialistsSmoke='fail';result.textContent='FAIL: '+String(err?.stack||err);}
+  })();
+  </script>
+</body></html>
