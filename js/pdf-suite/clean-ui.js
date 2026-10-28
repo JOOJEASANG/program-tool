@@ -45,7 +45,7 @@
       .pdf-clean-quick-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
       .pdf-clean-quick-card{display:grid;grid-template-columns:44px minmax(0,1fr) 18px;align-items:center;gap:11px;min-height:88px;padding:15px 16px;border:1px solid #dce5ef;border-radius:16px;background:#fff;text-align:left;cursor:pointer;box-shadow:0 5px 16px rgba(15,23,42,.035);transition:border-color .15s ease,transform .15s ease,box-shadow .15s ease}
       .pdf-clean-quick-card:hover{transform:translateY(-1px);border-color:#a9c5ea;box-shadow:0 10px 24px rgba(37,99,235,.08)}
-      .pdf-clean-quick-icon{display:grid;place-items:center;width:44px;height:44px;border-radius:12px;background:#eef5ff;color:#1d4ed8;font-size:16px;font-weight:950}.pdf-clean-quick-copy{min-width:0}.pdf-clean-quick-copy strong{display:block;font-size:13px;color:#172033}.pdf-clean-quick-copy span{display:block;margin-top:3px;font-size:10px;line-height:1.45;color:#7a8798}.pdf-clean-quick-arrow{font-size:16px;color:#a0aec0}
+      .pdf-clean-quick-icon{display:grid;place-items:center;width:44px;height:44px;border-radius:12px;background:#eef5ff;color:#1d4ed8;font-size:16px;font-weight:950}.pdf-clean-quick-icon svg{display:block;width:22px;height:22px;flex-shrink:0}.pdf-clean-quick-copy{min-width:0}.pdf-clean-quick-copy strong{display:block;font-size:13px;color:#172033}.pdf-clean-quick-copy span{display:block;margin-top:3px;font-size:10px;line-height:1.45;color:#7a8798}.pdf-clean-quick-arrow{font-size:16px;color:#a0aec0}
 
       .pdfuc-section-title{align-items:flex-end!important;margin:0 0 12px!important}.pdfuc-section-title strong{font-size:17px!important;color:#172033!important}.pdfuc-section-title span{font-size:10px!important;color:#94a3b8!important}
       .pdfuc-categories{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:12px!important;align-items:stretch!important}
@@ -53,7 +53,7 @@
       .pdfuc-cat-head{min-height:106px!important;margin:0 0 9px!important;padding:4px 4px 14px!important;border-bottom:1px solid #edf2f7!important}.pdfuc-cat-icon{width:46px!important;height:46px!important;margin-bottom:10px!important;border-radius:12px!important;font-size:23px!important}.pdfuc-cat-head strong{font-size:16px!important;color:#172033!important}.pdfuc-cat-head>span:not(.pdfuc-cat-icon){margin-top:4px!important;font-size:10px!important;line-height:1.45!important;color:#8290a3!important}
       .pdfuc-cat-tools{flex:1!important}.pdfuc-category .pdfu-menu-group{margin:0!important}.pdfuc-category .pdfu-menu-group-head{display:none!important}
       .pdfuc-category .pdfu-menu-item{grid-template-columns:34px minmax(0,1fr)!important;gap:9px!important;min-height:57px!important;margin:2px 0!important;padding:10px 9px!important;border:1px solid transparent!important;border-radius:11px!important;background:#fff!important;color:#334155!important}
-      .pdfuc-category .pdfu-menu-item:hover{border-color:#d8e6f7!important;background:#f8fbff!important}.pdfuc-category .pdfu-menu-item.active{border-color:#b9d2f2!important;background:#eef5ff!important;box-shadow:none!important}.pdfuc-category .pdfu-menu-icon{font-size:18px!important}.pdfuc-category .pdfu-menu-name{font-size:12px!important;line-height:1.4!important;font-weight:900!important;white-space:normal!important}.pdfuc-category .pdfu-menu-badge{display:none!important}
+      .pdfuc-category .pdfu-menu-item:hover{border-color:#d8e6f7!important;background:#f8fbff!important}.pdfuc-category .pdfu-menu-item.active{border-color:#b9d2f2!important;background:#eef5ff!important;box-shadow:none!important}.pdfuc-category .pdfu-menu-icon{display:grid!important;place-items:center!important;width:28px!important;height:28px!important;min-width:28px!important;overflow:hidden!important;font-size:18px!important}.pdfuc-category .pdfu-menu-icon svg{width:20px!important;height:20px!important;flex-shrink:0!important}.pdfuc-category .pdfu-menu-name{font-size:12px!important;line-height:1.4!important;font-weight:900!important;white-space:normal!important}.pdfuc-category .pdfu-menu-badge{display:none!important}
       .pdfuc-footnote{margin-top:18px!important;font-size:9px!important;color:#94a3b8!important}
 
       .pdfuc-modal{padding:16px!important;background:rgba(15,23,42,.66)!important;backdrop-filter:blur(7px)!important;align-items:stretch!important}
@@ -93,7 +93,8 @@
     button.type='button';
     button.className='pdf-clean-quick-card';
     button.dataset.pdfCleanQuick=item.source;
-    button.innerHTML=`<span class="pdf-clean-quick-icon">${item.icon}</span><span class="pdf-clean-quick-copy"><strong>${item.name}</strong><span>${item.desc}</span></span><span class="pdf-clean-quick-arrow" aria-hidden="true">›</span>`;
+    const symbol=window.ProgramStudioPdfUtilityIcons?.markup?.(item.icon)||item.icon;
+    button.innerHTML=`<span class="pdf-clean-quick-icon" aria-hidden="true">${symbol}</span><span class="pdf-clean-quick-copy"><strong>${item.name}</strong><span>${item.desc}</span></span><span class="pdf-clean-quick-arrow" aria-hidden="true">›</span>`;
     button.addEventListener('click',()=>{
       const target=findButton(item.source);
       if(target)target.click();
