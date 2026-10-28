@@ -9,6 +9,14 @@
     invitation:{name:'초대장',mode:'frontBack',size:[148,210],description:'접이식 초대장 앞·뒤 디자인'},
     leaflet:{name:'리플렛',mode:'spread',size:[99,210],description:'3단 접지 6면 · 펼침 한 면(3패널)'}
   };
+  function normalizeMode(studio, mode) {
+    const product = tabs[studio] ? studio : 'cover';
+    if (product === 'leaflet') return 'spread';
+    if (product === 'flyer' || product === 'invitation') {
+      return ['front', 'back', 'frontBack'].includes(mode) ? mode : tabs[product].mode;
+    }
+    return ['front', 'back', 'frontBack', 'spread'].includes(mode) ? mode : 'spread';
+  }
   let ctx = null;
   let attached = false;
   function recalc() {
@@ -54,6 +62,8 @@
     const studio=tabs[ctx.studio] ? ctx.studio : 'cover';
     const config=tabs[studio];
     document.documentElement.dataset.designStudio=studio;
+    // Use a product-valid scope before the first canvas render, including restored sessions.
+    ctx.state.coverMode=normalizeMode(studio,ctx.hasSavedWorkspace?ctx.state.coverMode:config.mode);
     document.querySelectorAll('[data-studio]').forEach(button=>{
       const chosen=button.dataset.studio===studio;
       button.classList.toggle('active',chosen);
@@ -65,7 +75,6 @@
     if(studio!=='cover'){
       // The pre-existing print/editor engines remain shared, but product presets,
       // tools and saved settings differ by workspace.
-      if(!ctx.hasSavedWorkspace)ctx.state.coverMode=config.mode;
       if(!ctx.hasSavedWorkspace)ctx.state.sizeMode='custom';
       if(!ctx.hasSavedWorkspace&&config.size&&$('trimW')&&$('trimH')) {
         $('trimW').value=config.size[0];$('trimH').value=config.size[1];
@@ -122,5 +131,5 @@
     }));
     refresh();
   }
-  window.DesignWorkshopModes={setup,refresh,recalc};
+  window.DesignWorkshopModes={setup,refresh,recalc,normalizeMode};
 })();
