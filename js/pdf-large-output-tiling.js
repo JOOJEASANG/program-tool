@@ -218,7 +218,30 @@
   }
 
   async function token(){const user=window.auth?.currentUser||((typeof auth!=='undefined'&&auth)?auth.currentUser:null);if(!user)throw new Error('로그인이 필요합니다.');return user.getIdToken(true);}
-  async function storage(){if(typeof window._ensureStorage==='function')return window._ensureStorage();if(typeof _ensureStorage==='function')return _ensureStorage();if(window.storage)return window.storage;if(window.firebase?.storage)return window.firebase.storage();throw new Error('대용량 임시 저장소를 사용할 수 없습니다.');}
+  async function storage(){
+    if(typeof window._ensureStorage==='function')return window._ensureStorage();
+    if(typeof _ensureStorage==='function')return _ensureStorage();
+    if(window.storage)return window.storage;
+    if(!window.firebase)throw new Error('대용량 임시 저장소를 사용할 수 없습니다.');
+    // PDF 검사 화면 has _ensureStorage, while the PDF Utility shell loads
+    // Storage lazily. Ensure first-run uploads >20MB work without visiting
+    // another PDF tool first.
+    if(!window.firebase.storage){
+      const existing=document.getElementById('pdfLargeOutputStorageSdk');
+      await new Promise((resolve,reject)=>{
+        const script=existing||document.createElement('script');
+        script.addEventListener('load',resolve,{once:true});
+        script.addEventListener('error',()=>reject(new Error('임시 저장소 모듈을 불러오지 못했습니다.')),{once:true});
+        if(!existing){
+          script.id='pdfLargeOutputStorageSdk';
+          script.src='https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js';
+          document.head.appendChild(script);
+        }
+      });
+    }
+    if(!window.firebase.storage)throw new Error('대용량 임시 저장소를 초기화할 수 없습니다.');
+    return window.firebase.storage();
+  }
   async function readDelivery(response){const type=response.headers.get('content-type')||'';if(!type.includes('application/json'))return response.blob();const data=await response.json();if(data?.delivery!=='storage'||!data.download_url)throw new Error(data?.detail||'완성 PDF 정보를 읽지 못했습니다.');const result=await fetch(data.download_url,{cache:'no-store'});if(!result.ok)throw new Error('완성 PDF를 내려받지 못했습니다.');const blob=await result.blob();if(data.storage_path){try{const st=await storage();await st.ref(data.storage_path).delete();}catch(error){console.warn('[tiling] result cleanup failed',error);}}return blob;}
 
   async function requestTiling(pdfFile,params){
