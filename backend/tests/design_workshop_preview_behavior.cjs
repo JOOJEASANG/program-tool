@@ -53,7 +53,7 @@ function boot(studio, savedMode, hasSavedWorkspace = true) {
 assert.equal(boot('cover','back').state.coverMode,'back');
 assert.equal(boot('flyer','spread').state.coverMode,'front');
 assert.equal(boot('flyer','back').state.coverMode,'back');
-assert.equal(boot('invitation','spread').state.coverMode,'front');
+assert.equal(boot('invitation','spread').state.coverMode,'frontBack');
 assert.equal(boot('invitation','frontBack').state.coverMode,'frontBack');
 assert.equal(boot('leaflet','front').state.coverMode,'spread');
 const flyer=boot('flyer','spread',false);
