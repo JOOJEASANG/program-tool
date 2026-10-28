@@ -685,9 +685,16 @@
     if ($('wingField')) $('wingField').hidden = !enabled;
   }
 
+  function surfaceName(side) {
+    if(WORKSHOP==='flyer')return side==='back'?'뒷면':'앞면';
+    if(WORKSHOP==='invitation')return side==='back'?'안쪽면':'겉면';
+    if(WORKSHOP==='leaflet')return side==='back'?'왼쪽 패널':side==='front'?'오른쪽 패널':'가운데 패널';
+    return side==='back'?'뒷표지':side==='front'?'앞표지':'책등';
+  }
+
   function syncCoverMode() {
-    const selected=document.querySelector('input[name="coverMode"]:checked');
-    if(selected)state.coverMode=normalizeCoverMode(selected.value);
+    // Persisted state, not the HTML's default checked radio, owns canvas geometry.
+    state.coverMode=window.DesignWorkshopModes?.normalizeMode?.(WORKSHOP,state.coverMode)||normalizeCoverMode(state.coverMode);
     qa('input[name="coverMode"]').forEach(input=>{input.checked=input.value===state.coverMode;});
     document.documentElement.dataset.coverMode=state.coverMode;
     renderCustomFields();
@@ -700,8 +707,13 @@
     if($('coverModeHeading'))$('coverModeHeading').textContent=WORKSHOP==='cover'?copy[0]:({flyer:'전단지 제작',invitation:'초대장 제작',leaflet:'3단 리플렛 제작'})[WORKSHOP];
     if($('coverModeDescription'))$('coverModeDescription').textContent=WORKSHOP==='cover'?copy[1]:({flyer:'전단지 앞면·뒷면 및 양면 제작',invitation:'초대장 겉면·안쪽면 디자인',leaflet:'3단 리플렛 겉면/안쪽면 · 각 3패널 디자인'})[WORKSHOP];
     if($('designDuplexNotice'))$('designDuplexNotice').hidden=!((WORKSHOP==='flyer'||WORKSHOP==='invitation')&&state.coverMode==='frontBack');
-    if($('previewModeTitle'))$('previewModeTitle').textContent=copy[2];
-    if($('backgroundModeHint'))$('backgroundModeHint').textContent=copy[3];
+    const previewTitle=WORKSHOP==='cover'?copy[2]
+      :WORKSHOP==='leaflet'?'3단 리플렛 '+(LEAFLET_SIDE==='inside'?'안쪽면':'겉면')+' · 3패널 미리보기'
+      :(WORKSHOP==='flyer'?'전단지 ':'초대장 ')+(state.coverMode==='frontBack'?'양면':surfaceName(state.coverMode))+' 미리보기';
+    if($('previewModeTitle'))$('previewModeTitle').textContent=previewTitle;
+    if($('previewCanvas'))$('previewCanvas').setAttribute('aria-label',previewTitle);
+    if($('backgroundModeHint'))$('backgroundModeHint').textContent=WORKSHOP==='cover'?copy[3]
+      :'현재 '+previewTitle+' 영역에 이미지를 배치합니다. 인쇄용 출력에 앞서 실제 규격을 확인하세요.';
     syncWing();
     updateGeometry();
     syncTextEditUi();
@@ -804,7 +816,7 @@
     if ($('geometrySummary')) $('geometrySummary').textContent = compact;
     if(spec.coverMode==='spread'&&WORKSHOP==='cover')updateSpinePolicy();
     updateProgress();
-    const stale = Boolean(state.background && state.generatedSpecKey && state.generatedSpecKey !== specKey(spec));
+    const stale = Boolean(state.background && state.generatedSpecKey !== specKey(spec));
     if ($('exportBtn')) $('exportBtn').disabled = (!state.background && !window.DesignWorkspaceLayers?.hasLayers()) || stale;
     window.DesignWorkspaceLayers?.updateReview?.();
     if (stale) setStatus('규격이 변경되었습니다.','현재 규격에 맞게 AI 배경을 다시 생성하거나 직접 만든 표지 이미지를 다시 불러와 주세요.','busy');
@@ -843,7 +855,7 @@
     const b=spec.bleed*scale, tw=spec.trimW*scale, th=spec.trimH*scale, safe=spec.safe*scale;
     if(spec.bleed>0) rect(ctx,.5,.5,spec.workW*scale-1,spec.workH*scale-1,'#db2777',[7,5]);
     if(isSingleCoverMode(spec.coverMode)){
-      const label=spec.coverMode==='back'?'뒷표지':'앞표지',x=b;
+      const label=surfaceName(spec.coverMode),x=b;
       rect(ctx,x,b,tw,th,'#2563eb',[6,4]);
       if(safe>0)rect(ctx,x+safe,b+safe,Math.max(0,tw-safe*2),Math.max(0,th-safe*2),'#16a34a');
       zone(ctx,label,x,b,tw,th);
@@ -854,7 +866,7 @@
       rect(ctx,backX,b,tw,th,'#2563eb',[6,4]);rect(ctx,frontX,b,tw,th,'#2563eb',[6,4]);
       if(safe>0){rect(ctx,backX+safe,b+safe,Math.max(0,tw-safe*2),Math.max(0,th-safe*2),'#16a34a');rect(ctx,frontX+safe,b+safe,Math.max(0,tw-safe*2),Math.max(0,th-safe*2),'#16a34a');}
       line(ctx,frontX,b,frontX,b+th,'rgba(37,99,235,.55)');
-      zone(ctx,'뒷표지',backX,b,tw,th);zone(ctx,'앞표지',frontX,b,tw,th);
+      zone(ctx,surfaceName('back'),backX,b,tw,th);zone(ctx,surfaceName('front'),frontX,b,tw,th);
       return;
     }
     const wing=spec.wing*scale,sw=spec.spine*scale;
@@ -1323,6 +1335,55 @@
     ctx.restore();
   }
 
+  // Canvas-only layout hints. They are never included in print exports, which
+  // remain disabled until real AI artwork or an imported file is available.
+  function drawProductPreviewScaffold(ctx,spec,scale){
+    const b=spec.bleed*scale,tw=spec.trimW*scale,th=spec.trimH*scale;
+    const preset=PRESETS[state.preset]||PRESETS.report;
+    const panel=(x,w,label)=>{
+      if(w<10)return;
+      const inset=Math.max(5,Math.min(w*.09,th*.09));
+      ctx.save();
+      ctx.globalAlpha=.46;
+      ctx.fillStyle=preset.primaryColor;
+      ctx.fillRect(x,b,w,th);
+      ctx.globalAlpha=.19;
+      ctx.fillStyle=preset.textColor;
+      if(['event','proposal'].includes(state.preset)){
+        ctx.fillRect(x+w*.68,b,w*.32,th);
+      }else if(state.preset==='workbook'||state.preset==='education'){
+        ctx.fillRect(x+inset,b+th*.62,Math.max(3,w-inset*2),Math.max(3,th*.12));
+      }else{
+        ctx.fillRect(x+inset,b+th*.16,Math.max(3,w-inset*2),Math.max(3,th*.015));
+        ctx.fillRect(x+inset,b+th*.82,Math.max(3,w*.30),Math.max(3,th*.014));
+      }
+      ctx.globalAlpha=.68;
+      ctx.fillStyle=preset.textColor;
+      ctx.fillRect(x+inset,b+inset,Math.max(3,w*.17),Math.max(3,th*.012));
+      ctx.font='700 '+Math.max(10,Math.min(14,w*.07))+'px Pretendard, sans-serif';
+      ctx.textBaseline='middle';ctx.textAlign='center';
+      ctx.fillText(label,x+w/2,b+th*.47,Math.max(1,w-inset*2));
+      ctx.restore();
+    };
+    if(spec.coverMode==='front'||spec.coverMode==='back'){
+      panel(b,tw,surfaceName(spec.coverMode));
+    }else if(spec.coverMode==='frontBack'){
+      panel(b,tw,surfaceName('back'));
+      panel(b+tw,tw,surfaceName('front'));
+    }else{
+      const wing=spec.wing*scale,mid=spec.spine*scale,x=b+wing;
+      panel(x,tw,surfaceName('back'));
+      if(WORKSHOP==='leaflet')panel(x+tw,mid,surfaceName('spine'));
+      panel(x+tw+mid,tw,surfaceName('front'));
+    }
+    ctx.save();
+    ctx.fillStyle='rgba(15,23,42,.82)';
+    ctx.textAlign='center';ctx.textBaseline='bottom';
+    ctx.font='600 11px Pretendard, sans-serif';
+    ctx.fillText('레이아웃 예시 · AI 배경 미생성',spec.workW*scale/2,spec.workH*scale-9,Math.max(40,spec.workW*scale-12));
+    ctx.restore();
+  }
+
   function renderPreview(){
     updateResolutionInfo();
     const canvas=$('previewCanvas'),spec=currentSpec();if(!canvas)return;
@@ -1331,7 +1392,10 @@
     const ctx=canvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);
     ctx.clearRect(0,0,fit.width,fit.height);
     ctx.fillStyle='#ffffff';ctx.fillRect(0,0,fit.width,fit.height);
-    if(state.background?.naturalWidth)drawBackgroundImage(ctx,state.background,fit.width,fit.height);
+    if(state.background?.naturalWidth&&state.generatedSpecKey===specKey(spec))
+      drawBackgroundImage(ctx,state.background,fit.width,fit.height);
+    else if(!window.DesignWorkspaceLayers?.hasLayers())
+      drawProductPreviewScaffold(ctx,spec,fit.scale);
     window.DesignWorkspaceLayers?.draw?.(ctx,spec,fit.scale,false);
     state.shapes.forEach(shape=>drawShape(ctx,shape,fit.scale));
     drawLogo(ctx,spec,fit.scale);
