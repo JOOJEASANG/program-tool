@@ -90,7 +90,7 @@ def test_pdf_suite_clean_ui_owns_final_presentation():
         "ensureCenteredWorkspace",
         "ensureCenteredFixes",
         "ensureToolModalFlow",
-        "/js/pdf-suite/clean-ui.js?v=20261002-1",
+        "/js/pdf-suite/clean-ui.js?v=20261028-1",
         "__programStudioPdfUtilityCenteredFixesV4",
         "pdf-utility-direct-hook-v3",
     ):
@@ -144,7 +144,7 @@ def test_pdf_suite_is_staged_with_existing_engines_and_clean_final_workspace():
         "data-pdf-suite-unified-workspace",
         "unified-workspace.js",
         "data-pdf-suite-single-page-workspace",
-        "single-page-shell.js?v=20260911-4",
+        "single-page-shell.js?v=20261028-1",
         "data-pdf-suite-protected-tool-guard",
         "protected-tool-guard.js?v=20260906-1",
         "data-pdf-suite-workspace-stability",
