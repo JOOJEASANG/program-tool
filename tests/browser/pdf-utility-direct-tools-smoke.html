@@ -40,9 +40,9 @@
             numPages:count,
             async getPage(){return {
               getViewport({scale}){return {width:110*scale,height:160*scale};},
-              render(){return {promise:Promise.resolve()};}
+              render(){return {promise:count===3?Promise.reject(new Error('simulated render failure')):Promise.resolve()};}
             };},
-            async destroy(){}
+            async destroy(){if(count===3)await new Promise(r=>setTimeout(r,160));}
           }),count===1?140:15))};
         }
       };
@@ -62,6 +62,14 @@
       if(visualRoot?.querySelectorAll('.pdfud-page').length!==2)throw new Error('previous slow upload replaced latest visual PDF');
       if(!visualRoot.querySelector('.pdfud-selected')?.textContent.includes('newer.pdf'))throw new Error('visual selection does not match latest file');
       if(visualRoot.querySelector('.pdfud-run')?.disabled)throw new Error('latest visual PDF not ready to save');
+      // A failed previous PDF must not disable a newer save after slow cleanup.
+      selectVisualFile('broken.pdf',3);
+      await wait(45);
+      selectVisualFile('recovered.pdf',2);
+      await wait(240);
+      if(visualRoot.querySelectorAll('.pdfud-page').length!==2)throw new Error('recovered upload did not render after earlier failure');
+      if(visualRoot.querySelector('.pdfud-run')?.disabled)throw new Error('old failed PDF cleanup disabled latest save button');
+      if(!visualRoot.querySelector('.pdfud-status')?.textContent.includes('2페이지'))throw new Error('old failed PDF cleanup replaced latest success status');
       // Closing the tool while a PDF is loading must not resurrect stale state.
       selectVisualFile('abandoned.pdf',1);
       await wait(12);
