@@ -16,9 +16,9 @@ def test_three_print_specialists_are_inside_existing_five_programs():
     curated = read("js/pdf-suite/curated-core.js")
     hosting = read("scripts/prepare_hosting_dist.py")
     assert main.count("id:'") == 5, "no sixth top-level app"
-    assert "/js/print-specialists/ui.js?v=20261028-1" in smart
+    assert "/js/print-specialists/ui.js?v=20261029-1" in smart
     assert "/js/print-specialists/variable-data.js?v=20261028-1" in smart
-    assert "/js/print-specialists/ui.js?v=20261028-1" in advanced
+    assert "/js/print-specialists/ui.js?v=20261029-1" in advanced
     assert "/js/print-specialists/duplex-align.js?v=20261028-1" in advanced
     assert '<span class="tool-name">스캔 문서 깨끗하게</span>' in suite
     assert "'대형 분할 출력','스캔 문서 깨끗하게'" in curated

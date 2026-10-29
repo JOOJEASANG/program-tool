@@ -67,5 +67,9 @@
     setTimeout(()=>URL.revokeObjectURL(url),20000);
   }
   function register(id,tool){modules.set(id,tool);}
+  // Sidebar launch buttons are inserted during DOMContentLoaded, before the
+  // user opens a specialist dialog. Install their style immediately so they
+  // never briefly render as unstyled browser-default buttons.
+  installStyles();
   window.PrintSpecialistUi=Object.freeze({register,open,close,library,download,setStatus,mm:mm=>mm*72/25.4});
 })();
