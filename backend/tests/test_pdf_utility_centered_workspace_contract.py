@@ -38,7 +38,7 @@ def test_centered_pdf_utility_contract():
 def test_centered_workspace_is_loaded_by_pdf_suite_direct_hook():
     hook = (ROOT / "js/pdf-suite/direct-tool-hook.js").read_text(encoding="utf-8")
 
-    assert "centered-workspace.js?v=20260915-4" in hook
+    assert "centered-workspace.js?v=20261029-1" in hook
     assert "clean-ui.js?v=20261028-1" in hook
     assert "tool-modal-flow.js?v=20260915-1" in hook
     assert "__programStudioPdfUtilityCenteredV2" in hook
