@@ -93,6 +93,15 @@
         if(!merge)throw new Error('merge-specific layer missing');
         const mergeInput=merge.querySelector('.pdfuc-tool-input');
         if(!mergeInput?.multiple)throw new Error('merge upload must accept multiple PDFs');
+        const mergeTransfer=new DataTransfer();
+        mergeTransfer.items.add(new File(['%PDF-1.4\n%%EOF'],'merge-a.pdf',{type:'application/pdf'}));
+        mergeTransfer.items.add(new File(['%PDF-1.4\n%%EOF'],'merge-b.pdf',{type:'application/pdf'}));
+        mergeInput.files=mergeTransfer.files;
+        mergeInput.dispatchEvent(new Event('change',{bubbles:true}));
+        await wait(50);
+        if(merge.querySelectorAll('.pdfuc-server-file').length!==2)throw new Error('merge selected files not listed');
+        if(merge.querySelector('.pdfuc-server-run')?.disabled)throw new Error('merge run disabled after valid two-file upload');
+        if(merge.querySelector('.pdfuc-server-summary')?.textContent.includes('2개')!==true)throw new Error('merge upload count missing');
         if(!merge.querySelector('.pdfuc-tool-upload'))throw new Error('merge tool upload box missing');
         await waitFor(()=>merge.dataset.pdfucModalFlow==='idle','merge progressive flow');
         if(merge.querySelector('.pdfuc-flow-feedback')&&getComputedStyle(merge.querySelector('.pdfuc-flow-feedback')).display!=='none')throw new Error('merge feedback should stay hidden before run');
@@ -120,11 +129,35 @@
         window.fetch=nativeFetch;
 
         await click('PDF 압축');assertDirect('PDF 압축','PDF 압축');
+        const compress=stage().querySelector('[data-pdfud-tool="PDF 압축"]');
+        const compressInput=compress.querySelector('.pdfud-file-input');
+        const compressTransfer=new DataTransfer();
+        compressTransfer.items.add(new File(['%PDF-1.4\n%%EOF'],'압축용.pdf',{type:'application/pdf'}));
+        compressInput.files=compressTransfer.files;
+        compressInput.dispatchEvent(new Event('change',{bubbles:true}));
+        if(!compress.querySelector('.pdfud-selected')?.textContent.includes('압축용.pdf'))throw new Error('compression selection display missing');
+        if(compress.querySelector('.pdfud-run')?.disabled)throw new Error('compression run stays disabled after upload');
         await click('인쇄 문제 자동 수정');assertDirect('인쇄 문제 자동 수정','안전 자동 수정');
         await click('빈 페이지 자동 제거');assertDirect('빈 페이지 자동 제거','빈 페이지 자동 제거');
         await click('시각적 페이지 정리');assertDirect('시각적 페이지 정리','시각적 페이지 정리');
         await click('배경/여백 제거');assertDirect('배경/여백 제거','여백·크롭·배경');
-        await click('이미지 → PDF');assertDirect('이미지 → PDF','이미지 → PDF');
+        await click('이미지 → PDF');
+        const image=assertDirect('이미지 → PDF','이미지 → PDF');
+        const imageInput=image.querySelector('.pdfud-file-input');
+        if(!imageInput.multiple||!imageInput.accept.includes('.webp'))throw new Error('image PDF multi-image/WebP selection missing');
+        const images=new DataTransfer();
+        images.items.add(new File(['PNG-a'],'그림A.png',{type:'image/png'}));
+        images.items.add(new File(['PNG-b'],'그림B.png',{type:'image/png'}));
+        imageInput.files=images.files;
+        imageInput.dispatchEvent(new Event('change',{bubbles:true}));
+        if(!image.querySelector('.pdfud-selected')?.textContent.includes('그림A.png'))throw new Error('image A selection missing');
+        if(!image.querySelector('.pdfud-selected')?.textContent.includes('그림B.png'))throw new Error('image B selection missing');
+        if(!image.querySelector('.pdfud-selected')?.textContent.includes('2개'))throw new Error('image count missing');
+        if(image.querySelector('.pdfud-selected')?.textContent.includes('undefined')||image.querySelector('.pdfud-selected')?.textContent.includes('NaN'))throw new Error('image selection displays invalid metadata');
+        if(image.querySelector('.pdfud-run')?.disabled)throw new Error('image conversion run did not activate');
+        const newer=new DataTransfer();newer.items.add(new File(['WebP'],'다시선택.webp',{type:'image/webp'}));
+        imageInput.files=newer.files;imageInput.dispatchEvent(new Event('change',{bubbles:true}));
+        if(!image.querySelector('.pdfud-selected')?.textContent.includes('다시선택.webp')||image.querySelector('.pdfud-selected')?.textContent.includes('그림A.png'))throw new Error('image file replacement not reflected');
         await click('PDF → 이미지');assertDirect('PDF → 이미지','PDF 이미지 변환');
         await click('PDF 암호 설정 · AES-256');assertDirect('PDF 암호 설정 · AES-256','AES-256 암호 설정');
         await click('암호 해제');assertDirect('암호 해제','암호 해제');
@@ -135,8 +168,18 @@
         if(!extract)throw new Error('extract-specific layer missing');
         if(extract.querySelector('.pdfuc-tool-input')?.multiple)throw new Error('extract must accept one PDF');
         if(!extract.querySelector('[data-pdfuc-range]'))throw new Error('extract page range missing');
+        const extractInput=extract.querySelector('.pdfuc-tool-input');
+        const extractTransfer=new DataTransfer();extractTransfer.items.add(new File(['%PDF-1.4\n%%EOF'],'extract.pdf',{type:'application/pdf'}));
+        extractInput.files=extractTransfer.files;extractInput.dispatchEvent(new Event('change',{bubbles:true}));
+        if(extract.querySelector('.pdfuc-server-run')?.disabled)throw new Error('extract run disabled after file upload');
+        if(!extract.querySelector('.pdfuc-server-file')?.textContent.includes('extract.pdf'))throw new Error('extract selected file not listed');
 
         await click('전체 페이지 회전');assertDrop();assertLayer('전체 페이지 회전');
+        const localInput=document.getElementById('localFile');
+        const localTransfer=new DataTransfer();localTransfer.items.add(new File(['%PDF-1.4\n%%EOF'],'local-rotate.pdf',{type:'application/pdf'}));
+        localInput.files=localTransfer.files;localInput.dispatchEvent(new Event('change',{bubbles:true}));
+        if(!document.getElementById('localFileNote')?.textContent.includes('local-rotate.pdf'))throw new Error('local rotation selection did not register');
+        if(document.querySelector('[data-local-run="rotate90"]')?.disabled)throw new Error('local rotation action still disabled');
         if(document.getElementById('localTitle')?.textContent.trim()!=='전체 페이지 회전')throw new Error('rotate local workflow mismatch');
         await click('페이지 순서 역순');assertDrop();assertLayer('페이지 순서 역순');
         if(document.getElementById('localTitle')?.textContent.trim()!=='페이지 순서 역순')throw new Error('reverse local workflow mismatch');
@@ -145,6 +188,10 @@
         const ocr=stage().querySelector('#pdfSuiteOcrModal');
         if(!ocr?.classList.contains('open'))throw new Error('OCR panel missing');
         if(!ocr.querySelector('.pdfocr-file'))throw new Error('OCR tool-specific upload missing');
+        const ocrInput=ocr.querySelector('[data-ocr-file]');
+        const ocrTransfer=new DataTransfer();ocrTransfer.items.add(new File(['%PDF-1.4\n%%EOF'],'ocr-sample.pdf',{type:'application/pdf'}));
+        ocrInput.files=ocrTransfer.files;ocrInput.dispatchEvent(new Event('change',{bubbles:true}));
+        if(!ocr.querySelector('[data-ocr-selected]')?.textContent.includes('ocr-sample.pdf'))throw new Error('OCR selected file not displayed');
         assertLayer('OCR · 검색 가능한 PDF');
 
         for(const name of expected){

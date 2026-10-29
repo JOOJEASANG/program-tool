@@ -76,7 +76,8 @@ def test_new_tools_have_user_guides_and_valid_javascript():
         "js/program-manuals/pdf-suite.js",
     ]
     for path in manual_paths:
-        assert "updated: '2026-10-28'" in read(path)
+        expected_date = '2026-10-29' if path.endswith('pdf-suite.js') else '2026-10-28'
+        assert f"updated: '{expected_date}'" in read(path)
     assert "엑셀 명단 자동 출력" in read(manual_paths[0])
     assert "양면 인쇄 위치 맞추기" in read(manual_paths[1])
     assert "스캔 문서 깨끗하게" in read(manual_paths[2])

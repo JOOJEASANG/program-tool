@@ -91,7 +91,7 @@ PDF_SUITE_ADVANCED_SNIPPET = (
     f'<script {PDF_SUITE_ADVANCED_MARKER} defer src="/js/pdf-suite/advanced-tools.js?v=20260905-1"></script>'
 )
 PDF_SUITE_OCR_SNIPPET = (
-    f'<script {PDF_SUITE_OCR_MARKER} defer src="/js/pdf-suite/ocr-tools.js?v=20260905-1"></script>'
+    f'<script {PDF_SUITE_OCR_MARKER} defer src="/js/pdf-suite/ocr-tools.js?v=20261029-1"></script>'
 )
 PDF_SUITE_UNIFIED_NAV_SNIPPET = (
     f'<script {PDF_SUITE_UNIFIED_NAV_MARKER} defer src="/js/pdf-suite/unified-navigation-prep.js?v=20260906-2"></script>'
@@ -103,10 +103,10 @@ PDF_SUITE_SINGLE_PAGE_SNIPPET = (
     f'<script {PDF_SUITE_SINGLE_PAGE_MARKER} defer src="/js/pdf-suite/single-page-shell.js?v=20261028-1"></script>'
 )
 PDF_SUITE_DIRECT_BRIDGE_SNIPPET = (
-    f'<script {PDF_SUITE_DIRECT_BRIDGE_MARKER} defer src="/js/pdf-suite/direct-tool-bridge.js?v=20261028-1"></script>'
+    f'<script {PDF_SUITE_DIRECT_BRIDGE_MARKER} defer src="/js/pdf-suite/direct-tool-bridge.js?v=20261029-1"></script>'
 )
 PDF_SUITE_DIRECT_HOOK_SNIPPET = (
-    f'<script {PDF_SUITE_DIRECT_HOOK_MARKER} defer src="/js/pdf-suite/direct-tool-hook.js?v=20261028-1"></script>'
+    f'<script {PDF_SUITE_DIRECT_HOOK_MARKER} defer src="/js/pdf-suite/direct-tool-hook.js?v=20261029-1"></script>'
 )
 PDF_SUITE_PROTECTED_GUARD_SNIPPET = (
     f'<script {PDF_SUITE_PROTECTED_GUARD_MARKER} defer src="/js/pdf-suite/protected-tool-guard.js?v=20260906-1"></script>'
@@ -121,7 +121,7 @@ PDF_SUITE_SCAN_SNIPPET = (
     f'<script {PDF_SUITE_SCAN_MARKER} defer src="/js/print-specialists/scan-cleanup.js?v=20261028-1"></script>'
 )
 PDF_SUITE_TILING_SNIPPET = (
-    f'<script {PDF_SUITE_TILING_MARKER} defer src="/js/pdf-large-output-tiling.js?v=20261028-3"></script>'
+    f'<script {PDF_SUITE_TILING_MARKER} defer src="/js/pdf-large-output-tiling.js?v=20261029-1"></script>'
 )
 PDF_SUITE_CURATED_CORE_SNIPPET = (
     f'<script {PDF_SUITE_CURATED_CORE_MARKER} defer src="/js/pdf-suite/curated-core.js?v=20261028-4"></script>'

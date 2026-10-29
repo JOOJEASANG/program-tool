@@ -92,7 +92,7 @@ def test_tiling_ui_and_api_are_wired_for_pdf_and_images():
     assert "/api/pdf-utility/tile" in frontend
     assert "/api/pdf-utility/tile-storage" in frontend
     assert "pdfLargeOutputTilingScriptV1" in runtime
-    assert "/js/pdf-large-output-tiling.js?v=20261028-3" in runtime
+    assert "/js/pdf-large-output-tiling.js?v=20261029-1" in runtime
     assert "pdf_utility_tiling_bp" in main
     assert '@pdf_utility_tiling_bp.route("/tile"' in router
     assert '@pdf_utility_tiling_bp.route("/tile-storage"' in router
@@ -169,7 +169,7 @@ def test_pdf_utility_menu_and_crop_mark_controls_are_connected():
     assert '<span class="tool-name">대형 분할 출력</span>' in catalog
     assert "'안전 자동 수정','대형 분할 출력'" in curated
     assert 'PDF_SUITE_TILING_MARKER' in loader
-    assert '/js/pdf-large-output-tiling.js?v=20261028-3' in loader
+    assert '/js/pdf-large-output-tiling.js?v=20261029-1' in loader
     assert 'const onUtility=path===' in tiling
     assert 'data-pdfu-tool' in tiling
     assert "button.dataset.pdfuCoreSource!=='대형 분할 출력'" in tiling

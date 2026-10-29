@@ -57,8 +57,8 @@
       script.onload=()=>{script.dataset.loaded='1';resolve();};script.onerror=reject;document.head.appendChild(script);
     });
   }
-  function ensureLargeStorage(){return ensureScript('pdfUtilityDirectLargeStorageScript','/js/pdf-suite/direct-tool-large-storage.js?v=20260915-1',()=>Boolean(window.__programStudioPdfUtilityLargeStorageV1));}
-  function ensureCenteredWorkspace(){return ensureScript('pdfUtilityCenteredWorkspaceScript','/js/pdf-suite/centered-workspace.js?v=20260915-4',()=>Boolean(window.__programStudioPdfUtilityCenteredV2));}
+  function ensureLargeStorage(){return ensureScript('pdfUtilityDirectLargeStorageScript','/js/pdf-suite/direct-tool-large-storage.js?v=20261029-1',()=>Boolean(window.__programStudioPdfUtilityLargeStorageV1));}
+  function ensureCenteredWorkspace(){return ensureScript('pdfUtilityCenteredWorkspaceScript','/js/pdf-suite/centered-workspace.js?v=20261029-1',()=>Boolean(window.__programStudioPdfUtilityCenteredV2));}
   // Keep the established function name/legacy readiness marker for compatibility contracts,
   // but the actual final presentation is now owned by one clean UI module.
   function ensureCenteredFixes(){return ensureScript('pdfUtilityCleanUiScript','/js/pdf-suite/clean-ui.js?v=20261028-1',()=>Boolean(window.__programStudioPdfUtilityCleanUiV1||window.__programStudioPdfUtilityCenteredFixesV4));}
