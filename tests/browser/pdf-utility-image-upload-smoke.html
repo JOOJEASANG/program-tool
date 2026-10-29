@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><title>PDF Utility image upload and WebP export regression</title></head>
+<body data-pdf-utility-image-upload-smoke="running">
+  <div id="pdfUtilityStageBody"></div><pre id="result">RUNNING</pre>
+  <script>
+    window.pdfUtilityWebpTest={converted:0,embedded:0,pages:0};
+    window.PDFLib={PDFDocument:{create:async()=>({
+      embedPng:async(bytes)=>{window.pdfUtilityWebpTest.embedded++;if(!(bytes.byteLength>100))throw Error('not actual PNG bytes');return {width:240,height:240};},
+      embedJpg:async()=>{throw Error('WebP should be converted into PNG');},
+      addPage:([w,h])=>{window.pdfUtilityWebpTest.pages++;return {drawImage:(image,placement)=>{if(!image||!placement.width||!placement.height)throw Error('invalid image placement');}};},
+      save:async()=>new Uint8Array([37,80,68,70,45,49,46,55])
+    })}};
+  </script>
+  <script src="/js/pdf-suite/direct-tool-bridge.js?v=smoke"></script>
+  <script>
+    (async()=>{
+      const result=document.getElementById('result'),sleep=ms=>new Promise(r=>setTimeout(r,ms));
+      const waitFor=async(test,label)=>{for(let i=0;i<150;i++){if(test())return;await sleep(15);}throw Error('timeout: '+label);};
+      try{
+        const bridge=window.ProgramStudioPdfUtilityDirectBridge;
+        if(!bridge.activate({name:'이미지 → PDF',desc:'이미지 변환'}))throw Error('image converter not mounted');
+        const root=document.querySelector('.pdfud-card'),input=root?.querySelector('.pdfud-file-input'),run=root?.querySelector('.pdfud-run');
+        if(!root||!input||!run)throw Error('image uploader missing');
+        if(!run.disabled)throw Error('convert button must be disabled before upload');
+        if(getComputedStyle(input).display==='none')throw Error('file input should be keyboard focusable');
+        const canvas=document.createElement('canvas');canvas.width=240;canvas.height=240;
+        const ctx=canvas.getContext('2d');ctx.fillStyle='#0c7b9d';ctx.fillRect(0,0,240,240);
+        const blob=await new Promise(r=>canvas.toBlob(r,'image/webp',.95));
+        if(!blob||blob.type!=='image/webp')throw Error('Chrome failed to prepare WebP');
+        const file=new File([blob],'인쇄용 사진.webp',{type:'image/webp'});
+        const dt=new DataTransfer();dt.items.add(file);input.files=dt.files;
+        input.dispatchEvent(new Event('change',{bubbles:true}));
+        if(!root.querySelector('.pdfud-selected')?.textContent.includes(file.name))throw Error('WebP upload not shown');
+        if(root.querySelector('.pdfud-selected')?.textContent.includes('NaN'))throw Error('invalid file size shown');
+        if(run.disabled)throw Error('convert button disabled after selecting WebP');
+        run.click();
+        await waitFor(()=>root.querySelector('.pdfud-status')?.textContent.includes('변환이 완료'),'WebP conversion');
+        if(window.pdfUtilityWebpTest.embedded!==1||window.pdfUtilityWebpTest.pages!==1)throw Error('WebP did not produce one PDF page');
+        document.body.dataset.pdfUtilityImageUploadSmoke='pass';
+        result.textContent='PASS: WebP upload produces real PNG bytes for PDF and displays selected file details';
+      }catch(error){
+        document.body.dataset.pdfUtilityImageUploadSmoke='fail';
+        result.textContent='FAIL: '+String(error?.stack||error);
+      }
+    })();
+  </script>
+</body></html>
