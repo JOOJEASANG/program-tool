@@ -115,7 +115,7 @@ PDF_SUITE_WORKSPACE_STABILITY_SNIPPET = (
     f'<script {PDF_SUITE_WORKSPACE_STABILITY_MARKER} defer src="/js/pdf-suite/workspace-stability.js?v=20260911-2"></script>'
 )
 PDF_SUITE_SPECIALISTS_UI_SNIPPET = (
-    f'<script {PDF_SUITE_SPECIALISTS_UI_MARKER} defer src="/js/print-specialists/ui.js?v=20261028-1"></script>'
+    f'<script {PDF_SUITE_SPECIALISTS_UI_MARKER} defer src="/js/print-specialists/ui.js?v=20261029-1"></script>'
 )
 PDF_SUITE_SCAN_SNIPPET = (
     f'<script {PDF_SUITE_SCAN_MARKER} defer src="/js/print-specialists/scan-cleanup.js?v=20261028-1"></script>'
