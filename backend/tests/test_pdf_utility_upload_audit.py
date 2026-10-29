@@ -44,7 +44,7 @@ def test_upload_handlers_and_large_downloads_use_fresh_assets():
     loader = read("scripts/prepare_hosting_dist.py")
     hook = read("js/pdf-suite/direct-tool-hook.js")
     runtime = read("js/pdf-preflight/route-runtime.js")
-    assert "direct-tool-bridge.js?v=20261029-2" in loader
+    assert "direct-tool-bridge.js?v=20261029-3" in loader
     assert "direct-tool-hook.js?v=20261029-1" in loader
     assert "ocr-tools.js?v=20261029-1" in loader
     assert "pdf-large-output-tiling.js?v=20261029-1" in loader
@@ -96,3 +96,12 @@ def test_changed_pdf_utility_scripts_syntax():
             cwd=ROOT, capture_output=True, text=True, check=False
         )
         assert result.returncode == 0, filename + ": " + result.stderr
+
+def test_visual_upload_discards_stale_async_results():
+    bridge = read("js/pdf-suite/direct-tool-bridge.js")
+    smoke = read("tests/browser/pdf-utility-direct-tools-smoke.html")
+    assert "const loadId=++visualLoadId;" in bridge
+    assert "if(loadId!==visualLoadId||!root.isConnected)" in bridge
+    assert "function reset(){visualLoadId++;" in bridge
+    assert "previous slow upload replaced latest visual PDF" in smoke
+    assert "closed visual upload returned after tool switch" in smoke
