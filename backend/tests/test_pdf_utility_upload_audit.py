@@ -32,7 +32,7 @@ def test_image_upload_shows_real_files_and_exports_webp():
     assert "selected(root,files.length?files.map" not in bridge
     assert "image/jpeg,image/png,image/webp" in bridge
     assert "const isWebp=file.type==='image/webp'" in bridge
-    assert "await createImageBitmap(file)" in bridge
+    assert "loaded.onload=()=>resolve(loaded);" in bridge
     assert "canvas.toBlob(blob=>blob?resolve(blob)" in bridge
     assert "pdf.embedPng(await png.arrayBuffer())" in bridge
     assert "Math.max" not in bridge.split("function selected(root,value)")[1].split("function fileValid")[0]
