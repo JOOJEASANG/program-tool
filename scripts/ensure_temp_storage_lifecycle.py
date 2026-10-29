@@ -40,7 +40,8 @@ def _matching_rule(rule: dict, prefixes: tuple[str, ...]) -> bool:
     return (action.get("type") == "Delete"
             and condition.get("age") == RETENTION_DAYS
             and isinstance(existing, list)
-            and set(prefixes).issubset(set(existing)))
+            and set(prefixes) == set(existing)
+            and set(condition) == {"age", "matchesPrefix"})
 
 
 def _unsafe_overlap(rule: dict, prefixes: tuple[str, ...]) -> bool:
