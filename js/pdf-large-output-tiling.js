@@ -251,7 +251,7 @@
     try{setStatus('대용량 파일 임시 업로드 중...');await st.ref(storagePath).put(pdfFile,{contentType:'application/pdf'});const response=await fetch('/api/pdf-utility/tile-storage',{method:'POST',headers:{Authorization:`Bearer ${authToken}`,'Content-Type':'application/json'},body:JSON.stringify({storage_path:storagePath,filename:pdfFile.name,params})});if(!response.ok){const err=await response.json().catch(()=>null);throw new Error(err?.detail||`분할 출력 실패 (${response.status})`);}return readDelivery(response);}catch(error){try{await st.ref(storagePath).delete();}catch(_){}throw error;}
   }
 
-  function download(blob,name){const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);}
+  function download(blob,name){const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);}
 
   async function runTiling(){
     if(!sourceFile||!sourceInfo)return;setBusy(true,'분할 PDF 만드는 중...');setStatus('원본 실제 크기를 기준으로 분할 계산 중...');
