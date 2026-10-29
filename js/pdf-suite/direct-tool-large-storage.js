@@ -28,7 +28,7 @@
     const url=URL.createObjectURL(blob);
     const a=document.createElement('a');
     a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();
-    setTimeout(()=>URL.revokeObjectURL(url),2500);
+    setTimeout(()=>URL.revokeObjectURL(url),60000);
   }
   async function readError(resp){
     try{const data=await resp.clone().json();return data.detail||data.message||`서버 오류 (${resp.status})`;}
