@@ -28,7 +28,9 @@ def test_functions_and_storage_transfer_limits_stay_cost_bounded():
     assert "PDF_UTILITY_FILE_BYTES = 500 * MIB" in main
     assert "PDF_UTILITY_TOTAL_BYTES = 800 * MIB" in main
     assert 'schedule="every 1 hours"' in main
-    assert "timedelta(hours=1)" in main
+    assert "TEMP_OBJECT_RETENTION_HOURS = 24" in main
+    assert "timedelta(hours=TEMP_OBJECT_RETENTION_HOURS)" in main
+    assert 'TEMP_OBJECT_PREFIXES = ("pdf_temp/", "preflight_temp/", "pdf_results/")' in main
     assert 'schedule="every 24 hours"' in main
     assert "MAX_SAVED_AI_DESIGNS = 100" in main
     assert "ORPHAN_GRACE_HOURS = 24" in main
