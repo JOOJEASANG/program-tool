@@ -57,8 +57,20 @@
       selectVisualFile('older.pdf',1);
       await wait(12);
       selectVisualFile('newer.pdf',2);
-      await wait(240);
       const visualRoot=document.querySelector('[data-pdfud-tool="시각적 페이지 정리"]');
+      // Wait for the latest PDF to finish rendering rather than assuming a
+      // fixed 240ms Chrome budget. Then give the older delayed load time to
+      // resolve so the stale-file assertion remains meaningful.
+      async function waitForVisualPages(expected,label){
+        for(let attempt=0;attempt<50;attempt++){
+          if(visualRoot?.querySelectorAll('.pdfud-page').length===expected
+            && !visualRoot?.querySelector('.pdfud-run')?.disabled)return;
+          await wait(40);
+        }
+        throw new Error(label+' did not finish rendering');
+      }
+      await waitForVisualPages(2,'latest visual PDF');
+      await wait(180);
       if(visualRoot?.querySelectorAll('.pdfud-page').length!==2)throw new Error('previous slow upload replaced latest visual PDF');
       if(!visualRoot.querySelector('.pdfud-selected')?.textContent.includes('newer.pdf'))throw new Error('visual selection does not match latest file');
       if(visualRoot.querySelector('.pdfud-run')?.disabled)throw new Error('latest visual PDF not ready to save');
@@ -66,7 +78,8 @@
       selectVisualFile('broken.pdf',3);
       await wait(45);
       selectVisualFile('recovered.pdf',2);
-      await wait(240);
+      await waitForVisualPages(2,'recovered visual PDF');
+      await wait(180);
       if(visualRoot.querySelectorAll('.pdfud-page').length!==2)throw new Error('recovered upload did not render after earlier failure');
       if(visualRoot.querySelector('.pdfud-run')?.disabled)throw new Error('old failed PDF cleanup disabled latest save button');
       if(!visualRoot.querySelector('.pdfud-status')?.textContent.includes('2페이지'))throw new Error('old failed PDF cleanup replaced latest success status');
