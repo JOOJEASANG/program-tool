@@ -9,7 +9,7 @@ def test_pdf_utility_storage_policy_is_500mb_per_file_and_800mb_per_job_while_ed
  for marker in ("constMAX_FILES=10","constMAX_FILE_BYTES=500*1024*1024","constMAX_TOTAL_BYTES=800*1024*1024","nextTotal>MAX_TOTAL_BYTES","전체합계는최대800MB"): assert marker in policy
 def test_high_cost_pdf_work_gets_more_memory_but_stays_instance_and_raster_bounded():
  main=MAIN.read_text(encoding="utf-8")
- for marker in ("memory=options.MemoryOption.GB_4","timeout_sec=600","min_instances=0","max_instances=2","pdf_utility_router.MAX_BACKGROUND_PAGES = 100","pdf_utility_router.MAX_BACKGROUND_PIXELS = 90_000_000","pdf_utility_router.BACKGROUND_DPI = 160",'schedule="every 1 hours"',"timedelta(hours=1)",'schedule="every 24 hours"',"MAX_SAVED_PDF_SESSIONS = 10","MAX_SAVED_DESIGN_PROJECTS = 8","ORPHAN_GRACE_HOURS = 24"): assert marker in main
+ for marker in ("memory=options.MemoryOption.GB_4","timeout_sec=600","min_instances=0","max_instances=2","pdf_utility_router.MAX_BACKGROUND_PAGES = 100","pdf_utility_router.MAX_BACKGROUND_PIXELS = 90_000_000","pdf_utility_router.BACKGROUND_DPI = 160",'schedule="every 1 hours"',"timedelta(hours=TEMP_OBJECT_RETENTION_HOURS)",'schedule="every 24 hours"',"MAX_SAVED_PDF_SESSIONS = 10","MAX_SAVED_DESIGN_PROJECTS = 8","ORPHAN_GRACE_HOURS = 24"): assert marker in main
 def test_generated_pdf_delivery_is_800mb_bounded_and_one_hour_retention():
  source=DELIVERY.read_text(encoding="utf-8")
  for marker in ("RESULT_TTL_HOURS = 1","MAX_RESULT_BYTES = 800 * 1024 * 1024","size_bytes > MAX_RESULT_BYTES","최대 800MB",'"expiration_mode": "scheduled-delete"','"size_bytes": size_bytes'): assert marker in source
