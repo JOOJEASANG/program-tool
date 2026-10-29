@@ -66,6 +66,7 @@ def test_policy_refuses_bucket_wide_or_early_temp_deletion():
     for rule in [
         {"action": {"type": "Delete"}, "condition": {"age": 1}},
         {"action": {"type": "Delete"}, "condition": {"age": 0, "matchesPrefix": ["pdf_temp/"]}},
+        {"action": {"type": "Delete"}, "condition": {"age": 1, "matchesPrefix": ["pdf_temp/", "preflight_temp/", "pdf_results/", "pdf_sessions/"]}},
     ]:
         bucket = FakeBucket([rule])
         try:
