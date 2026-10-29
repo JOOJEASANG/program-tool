@@ -56,7 +56,7 @@ def test_ocr_runtime_is_injected_into_hosting_and_csp_allows_only_engine_model_d
 
     for marker in (
         'PDF_SUITE_OCR_MARKER = "data-pdf-suite-ocr-tools"',
-        "/js/pdf-suite/ocr-tools.js?v=20260905-1",
+        "/js/pdf-suite/ocr-tools.js?v=20261029-1",
         "PDF_SUITE_OCR_SNIPPET",
         "_inject_before(suite, PDF_SUITE_OCR_MARKER",
     ):
