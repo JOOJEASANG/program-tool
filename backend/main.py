@@ -492,13 +492,20 @@ def _delete_old_orphans(bucket, prefix: str, referenced: set[str], cutoff: datet
         logger.warning("Orphan prefix scan failed prefix=%s", prefix, exc_info=True)
 
 
+# Common retention for unsaved file exports across the PDF editor, advanced
+# editor, utility/preflight, smart layout, and print-review programs.
+# Persisted projects/sessions use distinct paths and are never swept here.
+TEMP_OBJECT_RETENTION_HOURS = 24
+TEMP_OBJECT_PREFIXES = ("pdf_temp/", "preflight_temp/", "pdf_results/")
+
+
 @scheduler_fn.on_schedule(schedule="every 1 hours")
 def cleanup_temporary_pdfs(event: scheduler_fn.ScheduledEvent) -> None:
-    """Delete abandoned PDF staging objects and generated results after 1 hour."""
+    """Sweep only temporary uploads/results older than 24 hours (hourly)."""
     del event
-    cutoff = datetime.now(timezone.utc) - timedelta(hours=1)
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=TEMP_OBJECT_RETENTION_HOURS)
     bucket = _bucket()
-    for prefix in ("pdf_temp/", "preflight_temp/", "pdf_results/"):
+    for prefix in TEMP_OBJECT_PREFIXES:
         try:
             blobs = bucket.list_blobs(prefix=prefix)
             for blob in blobs:
