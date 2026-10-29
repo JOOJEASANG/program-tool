@@ -47,7 +47,7 @@
   function handles(name){return TYPES.has(String(name||''));}
   function stage(){return $('pdfUtilityStageBody');}
   function filenameBase(file){return String(file?.name||'document.pdf').replace(/\.pdf$/i,'').replace(/[\\/:*?"<>|]+/g,'_').slice(0,80)||'document';}
-  function download(blob,name){const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),2500);}
+  function download(blob,name){const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);}
   function setStatus(root,text,error=false){const el=root.querySelector('.pdfud-status');if(!el)return;el.textContent=text;el.className='pdfud-status show'+(error?' error':'');}
   function selected(root,value){
     const el=root.querySelector('.pdfud-selected');if(!el)return;
