@@ -30,6 +30,44 @@
       document.querySelector('[data-pdfu-tool="visual"]').click();await wait(30);
       if(!document.querySelector('#pdfUtilityStageBody [data-pdfud-tool="시각적 페이지 정리"]'))throw new Error('visual organizer did not open directly');
       if(window.ProgramStudioPdfUtilityDirectBridge.requiresAuth('시각적 페이지 정리')!==false)throw new Error('visual organizer should open locally');
+
+      // A slower previous upload must never replace the latest visual PDF.
+      window.pdfjsLib={
+        GlobalWorkerOptions:{},
+        getDocument({data}){
+          const count=new Uint8Array(data)[0]||1;
+          return {promise:new Promise(resolve=>setTimeout(()=>resolve({
+            numPages:count,
+            async getPage(){return {
+              getViewport({scale}){return {width:110*scale,height:160*scale};},
+              render(){return {promise:Promise.resolve()};}
+            };},
+            async destroy(){}
+          }),count===1?140:15))};
+        }
+      };
+      const visualInput=document.querySelector('[data-pdfud-tool="시각적 페이지 정리"] .pdfud-file-input');
+      if(!visualInput)throw new Error('visual upload input missing');
+      function selectVisualFile(filename,pages){
+        const transfer=new DataTransfer();
+        transfer.items.add(new File([new Uint8Array([pages])],filename,{type:'application/pdf'}));
+        visualInput.files=transfer.files;
+        visualInput.dispatchEvent(new Event('change',{bubbles:true}));
+      }
+      selectVisualFile('older.pdf',1);
+      await wait(12);
+      selectVisualFile('newer.pdf',2);
+      await wait(240);
+      const visualRoot=document.querySelector('[data-pdfud-tool="시각적 페이지 정리"]');
+      if(visualRoot?.querySelectorAll('.pdfud-page').length!==2)throw new Error('previous slow upload replaced latest visual PDF');
+      if(!visualRoot.querySelector('.pdfud-selected')?.textContent.includes('newer.pdf'))throw new Error('visual selection does not match latest file');
+      if(visualRoot.querySelector('.pdfud-run')?.disabled)throw new Error('latest visual PDF not ready to save');
+      // Closing the tool while a PDF is loading must not resurrect stale state.
+      selectVisualFile('abandoned.pdf',1);
+      await wait(12);
+      document.querySelector('[data-pdfu-tool="images"]').click();
+      await wait(190);
+      if(document.querySelector('[data-pdfud-tool="시각적 페이지 정리"]'))throw new Error('closed visual upload returned after tool switch');
       document.body.dataset.pdfUtilityDirectToolsSmoke='pass';result.textContent='PASS: PDF Utility menu opens exact workflows directly without a legacy intermediate page';
     }catch(error){document.body.dataset.pdfUtilityDirectToolsSmoke='fail';result.textContent='FAIL: '+String(error?.stack||error);}})();
   </script>
