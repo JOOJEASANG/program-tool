@@ -40,7 +40,7 @@ def test_pdf_utility_menu_has_direct_workflow_bridge():
     assert "pdfUtilityStageBody" in hook
     assert "pdf-utility-direct-hook-v3" in hook
     assert "pdf-utility-direct-hook-v2" in hook  # compatibility marker
-    assert "direct-tool-large-storage.js?v=20260915-1" in hook
+    assert "direct-tool-large-storage.js?v=20261029-1" in hook
     assert "clean-ui.js?v=20261028-1" in hook
     assert "centered-workspace-fixes.js" not in hook
     assert "pdf-utility-large-storage-v1" in large
@@ -54,8 +54,8 @@ def test_direct_bridge_is_hosted_before_protected_guard_and_browser_smoked():
     for marker in (
         "data-pdf-suite-direct-tool-bridge",
         "data-pdf-suite-direct-tool-hook",
-        "direct-tool-bridge.js?v=20261028-1",
-        "direct-tool-hook.js?v=20261028-1",
+        "direct-tool-bridge.js?v=20261029-1",
+        "direct-tool-hook.js?v=20261029-1",
     ):
         assert marker in hosting
 
