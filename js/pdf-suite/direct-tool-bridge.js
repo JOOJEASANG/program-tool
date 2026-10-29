@@ -104,16 +104,24 @@
         if(file.size>50*1024*1024)throw new Error('이미지 한 장은 최대 50MB까지 지원합니다.');
         let img;
         if(isWebp){
-          // pdf-lib does not directly decode WebP. Convert in-browser without
-          // uploading the customer's image to an external service.
-          const bitmap=await createImageBitmap(file);
+          // WebP is not supported by pdf-lib directly. Use the same robust
+          // browser image loader as the poster-tile tool; createImageBitmap
+          // plus asynchronous toBlob may stall on some browsers/print PCs.
+          const imageUrl=URL.createObjectURL(file);
           try{
-            if(bitmap.width*bitmap.height>25000000)throw new Error('WebP 이미지가 너무 큽니다(2,500만 픽셀 이하).');
-            const canvas=document.createElement('canvas');canvas.width=bitmap.width;canvas.height=bitmap.height;
-            canvas.getContext('2d').drawImage(bitmap,0,0);
-            const png=await new Promise((resolve,reject)=>canvas.toBlob(blob=>blob?resolve(blob):reject(new Error('WebP 변환에 실패했습니다.')),'image/png'));
-            img=await pdf.embedPng(await png.arrayBuffer());canvas.width=1;canvas.height=1;
-          }finally{bitmap.close();}
+            const picture=await new Promise((resolve,reject)=>{
+              const loaded=new Image();
+              loaded.onload=()=>resolve(loaded);
+              loaded.onerror=()=>reject(new Error('WebP 이미지를 열 수 없습니다.'));
+              loaded.src=imageUrl;
+            });
+            if(picture.naturalWidth*picture.naturalHeight>25000000)throw new Error('WebP 이미지가 너무 큽니다(2,500만 픽셀 이하).');
+            const canvas=document.createElement('canvas');canvas.width=picture.naturalWidth;canvas.height=picture.naturalHeight;
+            canvas.getContext('2d').drawImage(picture,0,0);
+            // pdf-lib accepts PNG data URIs. Synchronous PNG encoding avoids
+            // browser Blob-encoder scheduling races for an already decoded image.
+            img=await pdf.embedPng(canvas.toDataURL('image/png'));canvas.width=1;canvas.height=1;
+          }finally{URL.revokeObjectURL(imageUrl);}
         }else img=isPng?await pdf.embedPng(await file.arrayBuffer()):await pdf.embedJpg(await file.arrayBuffer());
         let w=img.width,h=img.height;if(root.querySelector('[data-opt="size"]').value==='a4'){const pw=595.28,ph=841.89,scale=Math.min((pw-40)/w,(ph-40)/h,1);w*=scale;h*=scale;const page=pdf.addPage([pw,ph]);page.drawImage(img,{x:(pw-w)/2,y:(ph-h)/2,width:w,height:h});}else{const page=pdf.addPage([w,h]);page.drawImage(img,{x:0,y:0,width:w,height:h});}}download(new Blob([await pdf.save()],{type:'application/pdf'}),'이미지_변환.pdf');}root.querySelector('.pdfud-result').innerHTML='<div class="pdfud-empty"><div><strong style="display:block;color:#166534;font-size:15px">변환 완료</strong><p>완성 파일 다운로드가 시작되었습니다.</p></div></div>';setStatus(root,'변환이 완료되었습니다.');}catch(error){setStatus(root,error.message||'변환에 실패했습니다.',true);}finally{btn.disabled=false;}});}
 
