@@ -32,9 +32,9 @@ def test_image_upload_shows_real_files_and_exports_webp():
     assert "selected(root,files.length?files.map" not in bridge
     assert "image/jpeg,image/png,image/webp" in bridge
     assert "const isWebp=file.type==='image/webp'" in bridge
-    assert "await createImageBitmap(file)" in bridge
-    assert "canvas.toBlob(blob=>blob?resolve(blob)" in bridge
-    assert "pdf.embedPng(await png.arrayBuffer())" in bridge
+    assert "loaded.onload=()=>resolve(loaded);" in bridge
+    assert "canvas.toDataURL('image/png')" in bridge
+    assert "pdf.embedPng(canvas.toDataURL('image/png'))" in bridge
     assert "Math.max" not in bridge.split("function selected(root,value)")[1].split("function fileValid")[0]
     assert "const previousVisual=visualState;visualState=null;" in bridge
     assert "root.querySelector('.pdfud-run').disabled=true;const previousVisual" in bridge
@@ -44,7 +44,7 @@ def test_upload_handlers_and_large_downloads_use_fresh_assets():
     loader = read("scripts/prepare_hosting_dist.py")
     hook = read("js/pdf-suite/direct-tool-hook.js")
     runtime = read("js/pdf-preflight/route-runtime.js")
-    assert "direct-tool-bridge.js?v=20261029-1" in loader
+    assert "direct-tool-bridge.js?v=20261029-2" in loader
     assert "direct-tool-hook.js?v=20261029-1" in loader
     assert "ocr-tools.js?v=20261029-1" in loader
     assert "pdf-large-output-tiling.js?v=20261029-1" in loader
