@@ -25,8 +25,10 @@
         if(getComputedStyle(input).display==='none')throw Error('file input should be keyboard focusable');
         const canvas=document.createElement('canvas');canvas.width=240;canvas.height=240;
         const ctx=canvas.getContext('2d');ctx.fillStyle='#0c7b9d';ctx.fillRect(0,0,240,240);
-        const blob=await new Promise(r=>canvas.toBlob(r,'image/webp',.95));
-        if(!blob||blob.type!=='image/webp')throw Error('Chrome failed to prepare WebP');
+        const webpData=canvas.toDataURL('image/webp',.95);
+        if(!webpData.startsWith('data:image/webp;base64,'))throw Error('Chrome failed to prepare WebP');
+        const raw=atob(webpData.split(',')[1]);
+        const blob=new Blob([Uint8Array.from(raw,ch=>ch.charCodeAt(0))],{type:'image/webp'});
         const file=new File([blob],'인쇄용 사진.webp',{type:'image/webp'});
         const dt=new DataTransfer();dt.items.add(file);input.files=dt.files;
         input.dispatchEvent(new Event('change',{bubbles:true}));

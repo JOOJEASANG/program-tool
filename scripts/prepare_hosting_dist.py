@@ -103,7 +103,7 @@ PDF_SUITE_SINGLE_PAGE_SNIPPET = (
     f'<script {PDF_SUITE_SINGLE_PAGE_MARKER} defer src="/js/pdf-suite/single-page-shell.js?v=20261028-1"></script>'
 )
 PDF_SUITE_DIRECT_BRIDGE_SNIPPET = (
-    f'<script {PDF_SUITE_DIRECT_BRIDGE_MARKER} defer src="/js/pdf-suite/direct-tool-bridge.js?v=20261029-2"></script>'
+    f'<script {PDF_SUITE_DIRECT_BRIDGE_MARKER} defer src="/js/pdf-suite/direct-tool-bridge.js?v=20261029-3"></script>'
 )
 PDF_SUITE_DIRECT_HOOK_SNIPPET = (
     f'<script {PDF_SUITE_DIRECT_HOOK_MARKER} defer src="/js/pdf-suite/direct-tool-hook.js?v=20261029-1"></script>'

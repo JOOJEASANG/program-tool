@@ -30,6 +30,52 @@
       document.querySelector('[data-pdfu-tool="visual"]').click();await wait(30);
       if(!document.querySelector('#pdfUtilityStageBody [data-pdfud-tool="시각적 페이지 정리"]'))throw new Error('visual organizer did not open directly');
       if(window.ProgramStudioPdfUtilityDirectBridge.requiresAuth('시각적 페이지 정리')!==false)throw new Error('visual organizer should open locally');
+
+      // A slower previous upload must never replace the latest visual PDF.
+      window.pdfjsLib={
+        GlobalWorkerOptions:{},
+        getDocument({data}){
+          const count=new Uint8Array(data)[0]||1;
+          return {promise:new Promise(resolve=>setTimeout(()=>resolve({
+            numPages:count,
+            async getPage(){return {
+              getViewport({scale}){return {width:110*scale,height:160*scale};},
+              render(){return {promise:count===3?Promise.reject(new Error('simulated render failure')):Promise.resolve()};}
+            };},
+            async destroy(){if(count===3)await new Promise(r=>setTimeout(r,160));}
+          }),count===1?140:15))};
+        }
+      };
+      const visualInput=document.querySelector('[data-pdfud-tool="시각적 페이지 정리"] .pdfud-file-input');
+      if(!visualInput)throw new Error('visual upload input missing');
+      function selectVisualFile(filename,pages){
+        const transfer=new DataTransfer();
+        transfer.items.add(new File([new Uint8Array([pages])],filename,{type:'application/pdf'}));
+        visualInput.files=transfer.files;
+        visualInput.dispatchEvent(new Event('change',{bubbles:true}));
+      }
+      selectVisualFile('older.pdf',1);
+      await wait(12);
+      selectVisualFile('newer.pdf',2);
+      await wait(240);
+      const visualRoot=document.querySelector('[data-pdfud-tool="시각적 페이지 정리"]');
+      if(visualRoot?.querySelectorAll('.pdfud-page').length!==2)throw new Error('previous slow upload replaced latest visual PDF');
+      if(!visualRoot.querySelector('.pdfud-selected')?.textContent.includes('newer.pdf'))throw new Error('visual selection does not match latest file');
+      if(visualRoot.querySelector('.pdfud-run')?.disabled)throw new Error('latest visual PDF not ready to save');
+      // A failed previous PDF must not disable a newer save after slow cleanup.
+      selectVisualFile('broken.pdf',3);
+      await wait(45);
+      selectVisualFile('recovered.pdf',2);
+      await wait(240);
+      if(visualRoot.querySelectorAll('.pdfud-page').length!==2)throw new Error('recovered upload did not render after earlier failure');
+      if(visualRoot.querySelector('.pdfud-run')?.disabled)throw new Error('old failed PDF cleanup disabled latest save button');
+      if(!visualRoot.querySelector('.pdfud-status')?.textContent.includes('2페이지'))throw new Error('old failed PDF cleanup replaced latest success status');
+      // Closing the tool while a PDF is loading must not resurrect stale state.
+      selectVisualFile('abandoned.pdf',1);
+      await wait(12);
+      document.querySelector('[data-pdfu-tool="images"]').click();
+      await wait(190);
+      if(document.querySelector('[data-pdfud-tool="시각적 페이지 정리"]'))throw new Error('closed visual upload returned after tool switch');
       document.body.dataset.pdfUtilityDirectToolsSmoke='pass';result.textContent='PASS: PDF Utility menu opens exact workflows directly without a legacy intermediate page';
     }catch(error){document.body.dataset.pdfUtilityDirectToolsSmoke='fail';result.textContent='FAIL: '+String(error?.stack||error);}})();
   </script>
