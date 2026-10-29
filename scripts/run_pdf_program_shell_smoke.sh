@@ -101,6 +101,8 @@ run_case "pdf-editor-shell-smoke.html" "$OUT_DIR/pdf-editor-shell-smoke-dom.html
 reset_profile
 run_case "pdf-utility-shell-smoke.html" "$OUT_DIR/pdf-utility-shell-smoke-dom.html" 'PASS: PDF utility fixed header removed and account actions preserved in content'
 reset_profile
+run_product_case "pdf-utility-image-upload-smoke.html" "$OUT_DIR/pdf-utility-image-upload-dom.html" 'data-pdf-utility-image-upload-smoke="pass"' 'PASS: WebP upload produces real PNG bytes for PDF and displays selected file details'
+reset_profile
 run_product_case "pdf-utility-direct-tools-smoke.html" "$OUT_DIR/pdf-utility-direct-tools-smoke-dom.html" 'data-pdf-utility-direct-tools-smoke="pass"' 'PASS: PDF Utility menu opens exact workflows directly without a legacy intermediate page'
 reset_profile
 run_product_case "pdf-utility-quick-actions-smoke.html" "$OUT_DIR/pdf-utility-quick-actions-smoke-dom.html" 'data-pdf-quick-actions-smoke="pass"' 'PASS: PDF utility quick actions preserve canonical branding and run extract/blank-page tools'
