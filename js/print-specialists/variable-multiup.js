@@ -352,9 +352,9 @@ function install(){
         try{
           status('다단 가변인쇄 PDF 생성 준비 중...');
           await ctx.library('pdf');
-          if(document.fonts?.ready){
-            await Promise.race([document.fonts.ready,new Promise(resolve=>setTimeout(resolve,1000))]);
-          }
+          // Never block a print batch on a remote webfont or a stalled timer.
+          // Ready system fonts are used; the CSS fallback stack handles offline use.
+          if(document.fonts?.status==='loaded')await document.fonts.ready;
           const pdf=await window.PDFLib.PDFDocument.create();
           let artwork=null;
           if(contentMode==='background'){
