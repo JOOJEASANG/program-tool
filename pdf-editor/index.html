@@ -2289,7 +2289,10 @@ function drawPageInCell(ctx, src, cellX, cellY, cellW, cellH, mm2px = 1, horizon
     const fits90 = targetH <= cellW + 0.01 && targetW <= cellH + 0.01;
     const overflow0 = Math.max(targetW / Math.max(cellW, 0.01), targetH / Math.max(cellH, 0.01));
     const overflow90 = Math.max(targetH / Math.max(cellW, 0.01), targetW / Math.max(cellH, 0.01));
-    const rot = (!fits0 && fits90) || (!fits0 && !fits90 && overflow90 < overflow0);
+    // Imported PDF pages must keep the orientation shown in their source.
+    // Fitting a cell must never rotate a user's PDF without an explicit action.
+    const rot = src?.dataset?.pdfAutoFitRotation !== 'disabled'
+      && ((!fits0 && fits90) || (!fits0 && !fits90 && overflow90 < overflow0));
     const dw = rot ? targetH : targetW;
     const dh = rot ? targetW : targetH;
     const dx = alignX(dw);
@@ -2319,7 +2322,8 @@ function drawPageInCell(ctx, src, cellX, cellY, cellW, cellH, mm2px = 1, horizon
   const pw = src.width, ph = src.height;
   const s0  = Math.min(cellW / pw, cellH / ph);
   const s90 = Math.min(cellW / ph, cellH / pw);
-  const rot = s90 > s0 * 1.10;  // auto-rotate if 10%+ gain
+  const rot = src?.dataset?.pdfAutoFitRotation !== 'disabled' && s90 > s0 * 1.10;
+  // Only non-PDF sources may auto-rotate to maximize cell occupancy.
 
   if (rot) {
     const s = s90;
@@ -2364,7 +2368,13 @@ function getPageSrc(page, mm2px, useHi) {
     c.getContext('2d').fillRect(0, 0, c.width, c.height);
     return c;
   }
-  return (useHi && page.hiCanvas) ? page.hiCanvas : page.thumbCanvas;
+  const canvas = (useHi && page.hiCanvas) ? page.hiCanvas : page.thumbCanvas;
+  // Apply on every import/render path, including delayed previews and
+  // high-resolution canvases that bypass optional orientation wrappers.
+  if (canvas?.dataset && page.pageType === 'pdf') {
+    canvas.dataset.pdfAutoFitRotation = 'disabled';
+  }
+  return canvas;
 }
 
 // Canonical booklet fold geometry. Both the base renderer and the
