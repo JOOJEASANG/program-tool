@@ -297,19 +297,52 @@
             if($('cvMode').value==='background'){
               const pages=await output.embedPdf(pdfBytes,[0]);embedded=pages[0];
             }
+            // Render only the variable TEXT bounding boxes at 300dpi.
+            // A full A4 transparent bitmap for every award is needlessly slow
+            // and memory-heavy at 100+ recipients.
+            const pixelScale=dpi/72;
             const overlay=document.createElement('canvas');
-            overlay.width=Math.round(sourceW*dpi/72);overlay.height=Math.round(sourceH*dpi/72);
-            if(overlay.width*overlay.height>18000000)throw Error('상장 용지가 너무 큽니다. 300dpi 작업 가능 범위를 초과했습니다.');
-            const layer=overlay.getContext('2d',{alpha:true});
+            overlay.width=1;overlay.height=1;
+            const textCache=new Map();
+            async function imageForText(f,value){
+              const key=JSON.stringify([f.size,f.bold,f.face,f.align,f.maxWidthMm,value]);
+              if(textCache.has(key))return textCache.get(key);
+              let layer=overlay.getContext('2d',{alpha:true});
+              const px=f.size*pixelScale;
+              const font=(f.bold?'700 ':'400 ')+px+'px '+fontFamily(f.face);
+              layer.font=font;
+              const limitPx=Math.min(sourceW*.97,f.maxWidthMm*ptPerMm)*pixelScale;
+              const textWidth=Math.max(1,Math.min(limitPx,layer.measureText(value).width));
+              const pad=Math.max(6,Math.ceil(px*.35));
+              overlay.width=Math.ceil(textWidth+pad*2);
+              overlay.height=Math.ceil(px*1.6+pad*2);
+              if(overlay.width*overlay.height>5000000)throw Error('문구 크기나 글자폭이 너무 큽니다.');
+              layer=overlay.getContext('2d',{alpha:true});
+              layer.font=font;layer.textBaseline='middle';layer.textAlign=f.align;layer.fillStyle='#172033';
+              const anchor=f.align==='left'?pad:f.align==='right'?overlay.width-pad:overlay.width/2;
+              layer.fillText(value,anchor,overlay.height/2,textWidth);
+              const blob=await new Promise((resolve,reject)=>overlay.toBlob(b=>b?resolve(b):reject(Error('한글 글자 이미지 생성에 실패했습니다.')),'image/png'));
+              const image=await output.embedPng(await blob.arrayBuffer());
+              const result={image,width:overlay.width/pixelScale,height:overlay.height/pixelScale,pad:pad/pixelScale};
+              textCache.set(key,result);
+              return result;
+            }
             for(let i=0;i<records.length;i++){
               if(canceled)throw Error('사용자 요청으로 생성이 중단됐습니다.');
               const page=output.addPage([sourceW,sourceH]);
               if(embedded)page.drawPage(embedded,{x:0,y:0,width:sourceW,height:sourceH});
-              layer.clearRect(0,0,overlay.width,overlay.height);
-              drawFields(layer,records[i],overlay.width/sourceW,false);
-              const blob=await new Promise((resolve,reject)=>overlay.toBlob(b=>b?resolve(b):reject(Error('한글 글자 이미지 생성에 실패했습니다.')),'image/png'));
-              const png=await output.embedPng(await blob.arrayBuffer());
-              page.drawImage(png,{x:0,y:0,width:sourceW,height:sourceH});
+              for(const f of fields){
+                const value=fieldValue(f,records[i]);
+                if(!value)continue;
+                const image=await imageForText(f,value);
+                const anchorX=f.x*sourceW,anchorY=f.y*sourceH;
+                const x=f.align==='center'?anchorX-image.width/2:
+                  f.align==='left'?anchorX-image.pad:anchorX-image.width+image.pad;
+                page.drawImage(image.image,{
+                  x,y:sourceH-anchorY-image.height/2,
+                  width:image.width,height:image.height
+                });
+              }
               if(i%5===0||i===records.length-1){
                 status('상장 생성 중 '+(i+1)+' / '+records.length+'명');
                 await new Promise(resolve=>setTimeout(resolve,0));
