@@ -312,12 +312,7 @@
             await ctx.library('pdf');
             // Network fonts may never settle on an offline print workstation.
             // Do not hold a 100-person batch forever waiting for web fonts.
-            if(document.fonts?.ready){
-              await Promise.race([
-                document.fonts.ready,
-                new Promise(resolve=>setTimeout(resolve,1000))
-              ]);
-            }
+            if(document.fonts?.status==='loaded')await document.fonts.ready;
             const output=await window.PDFLib.PDFDocument.create();
             // Embed one original page once: preserve vector backgrounds instead
             // of rasterizing the template 100 times.
