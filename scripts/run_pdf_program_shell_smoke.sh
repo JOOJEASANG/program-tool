@@ -109,7 +109,7 @@ run_product_case "pdf-utility-quick-actions-smoke.html" "$OUT_DIR/pdf-utility-qu
 reset_profile
 run_product_case "pdf-utility-menu-audit-smoke.html" "$OUT_DIR/pdf-utility-menu-audit-smoke-dom.html" 'data-pdf-utility-menu-audit-smoke="pass"' 'PASS: all PDF utility menus mount stable right-stage workspaces without scroll lock'
 reset_profile
-run_product_case "certificate-variable-print-smoke.html" "$OUT_DIR/certificate-variable-print-smoke-dom.html" 'data-certificate-vdp-smoke="pass"' 'PASS: certificate Excel column mapping, PDF template preview, draggable field controls and print-only options are ready'
+run_product_case "certificate-variable-print-smoke.html" "$OUT_DIR/certificate-variable-print-smoke-dom.html" 'data-certificate-vdp-smoke="pass"' 'PASS: unified variable print opens single and multi modes, maps Excel fields, previews 21-up A3 and saves layout'
 reset_profile
 run_product_case "print-specialists-launch-smoke.html" "$OUT_DIR/print-specialists-launch-smoke-dom.html" 'data-print-specialists-smoke="pass"' 'PASS: variable data, scan cleanup and duplex alignment open real Korean print specialist workspaces'
 reset_profile
