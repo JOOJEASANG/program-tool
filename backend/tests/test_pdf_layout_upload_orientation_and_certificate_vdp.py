@@ -45,7 +45,7 @@ def test_certificate_mode_is_separate_from_standard_business_card_vdp():
     hub=(ROOT/"js/print-specialists/variable-hub.js").read_text(encoding="utf-8")
     for marker in (
         "ui.register('multi-variable'", "mvRoster", "mvPdf", "mvExport",
-        "grid(", "plan.items(sheet)", "pdf.embedPdf(bytes,[0])",
+        "grid(", "plan.items(sheet)", "pdf.embedPage(original.getPage(0),box",
         "page.drawPage(artwork", "page.drawImage(img.image", "cropMarks(page,pos)",
         "DPI=300", "MAX_PEOPLE=300", "가변데이터_다단_", "source=bytes",
     ):
