@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"><title>Certificate variable print smoke</title></head>
+<body data-certificate-vdp-smoke="running">
+  <div class="sidebar"><div class="first-panel"></div></div>
+  <div id="result">RUNNING</div>
+  <script>
+    window.XLSX={
+      read(){return {SheetNames:['Sheet1'],Sheets:{Sheet1:{}}};},
+      utils:{sheet_to_json(){return [
+        ['이름','생년월일','학년','상장번호'],
+        ['김민준','2013.05.12','6학년','2026-001'],
+        ['이서연','2014.08.23','5학년','2026-002'],
+        ['박지호','2012.11.04','6학년','2026-003']
+      ];}}
+    };
+    window.pdfjsLib={
+      GlobalWorkerOptions:{},
+      getDocument(){
+        return {promise:Promise.resolve({
+          numPages:1,
+          async getPage(){
+            return {
+              rotate:0,
+              getViewport({scale}){return {width:595.28*scale,height:841.89*scale};},
+              render({canvasContext}){canvasContext.fillStyle='#eee';canvasContext.fillRect(0,0,60,60);return {promise:Promise.resolve()};}
+            };
+          },
+          async destroy(){}
+        })};
+      }
+    };
+    window.__certPages=[];
+    window.__certEmbeds=0;
+    window.PDFLib={PDFDocument:{
+      async create(){
+        return {
+          async embedPdf(bytes,indices){window.__certEmbeds++;return [{id:'background'}];},
+          addPage(size){
+            const entry={size,background:false,image:false};
+            window.__certPages.push(entry);
+            return {
+              drawPage(){entry.background=true;},
+              drawImage(){entry.image=true;}
+            };
+          },
+          async embedPng(bytes){if(!bytes.byteLength)throw Error('empty PNG');return {id:'png'};},
+          async save(){return new Uint8Array([37,80,68,70]);}
+        };
+      }
+    }};
+  </script>
+  <script src="/js/print-specialists/ui.js"></script>
+  <script src="/js/print-specialists/certificate-variable.js"></script>
+  <script>
+    (async()=>{
+      const result=document.getElementById('result');
+      const wait=ms=>new Promise(r=>setTimeout(r,ms));
+      const fail=msg=>{throw Error(msg);};
+      function selectFile(input,name,type){
+        const dt=new DataTransfer();
+        dt.items.add(new File([new Uint8Array([37,80,68,70,45,49])],name,{type}));
+        input.files=dt.files;input.dispatchEvent(new Event('change',{bubbles:true}));
+      }
+      try{
+        await wait(60);
+        if(!document.getElementById('cvLaunch'))fail('certificate launch button missing');
+        document.getElementById('cvLaunch').click();
+        const overlay=document.getElementById('printSpecialistOverlay');
+        if(overlay?.dataset.activeTool!=='certificates')fail('certificate tool not open');
+        const $=id=>overlay.querySelector('#'+id);
+        if(!$('cvRoster')||!$('cvPdf')||!$('cvColumn')||!$('cvCanvas')||!$('cvRun'))fail('missing required editor controls');
+        selectFile($('cvRoster'),'roster.xlsx','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        await wait(80);
+        if($('cvPerson').options.length!==3)fail('Excel person count not populated');
+        if($('cvColumn').value!=='0')fail('name field not connected to Excel');
+        $('cvField').value='1';$('cvField').dispatchEvent(new Event('change'));
+        if($('cvColumn').value!=='1')fail('birth date column not auto mapped');
+        $('cvField').value='2';$('cvField').dispatchEvent(new Event('change'));
+        if($('cvColumn').value!=='2')fail('grade column not auto mapped');
+        $('cvField').value='3';$('cvField').dispatchEvent(new Event('change'));
+        if($('cvColumn').value!=='3')fail('certificate ID not auto mapped');
+        $('cvField').value='0';$('cvField').dispatchEvent(new Event('change'));
+        $('cvX').value='90';$('cvX').dispatchEvent(new Event('input'));
+        if(Math.abs(Number($('cvX').value)-90)>1)fail('coordinate edit did not persist');
+        selectFile($('cvPdf'),'certificate.pdf','application/pdf');
+        await wait(90);
+        if(!$('cvCanvas').height||!$('cvCanvas').width)fail('background preview not rendered');
+        if(!$('cvPdf').files[0])fail('PDF upload not retained');
+        $('cvRun').click();
+        for(let n=0;n<80&&$('cvRun').disabled;n++)await wait(50);
+        if($('cvRun').disabled)fail('PDF generation did not finish');
+        if(window.__certPages.length!==3)fail('one certificate page per person missing');
+        if(window.__certEmbeds!==1)fail('vector template not embedded once');
+        if(!window.__certPages.every(p=>p.background&&p.image))fail('certificate background or text overlay missing');
+        if(!$('.ps-status').textContent.includes('3명 상장 PDF가 완성'))fail('success status missing');
+        // Same roster printed on preprinted award paper: omit PDF background.
+        window.__certPages=[];window.__certEmbeds=0;
+        $('cvMode').value='only';$('cvMode').dispatchEvent(new Event('change'));
+        $('cvRun').click();
+        for(let n=0;n<80&&$('cvRun').disabled;n++)await wait(50);
+        if($('cvRun').disabled)fail('print-only PDF generation did not finish');
+        if(window.__certPages.length!==3||window.__certEmbeds!==0)fail('print-only output still included a template background');
+        if(!window.__certPages.every(p=>p.image&&!p.background))fail('print-only text layer missing');
+        document.body.dataset.certificateVdpSmoke='pass';
+        result.textContent='PASS: certificate Excel columns create one PDF per student with vector template or print-only mode';
+      }catch(error){
+        document.body.dataset.certificateVdpSmoke='fail';
+        result.textContent='FAIL: '+String(error.stack||error);
+      }
+    })();
+  </script>
+</body>
+</html>
