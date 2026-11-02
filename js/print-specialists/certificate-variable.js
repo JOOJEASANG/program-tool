@@ -288,8 +288,16 @@
           working=true;canceled=false;
           $('cvRun').disabled=true;$('cvPreview').disabled=true;$('cvCancel').disabled=false;
           try{
+            status('상장 PDF 생성 준비 중...');
             await ctx.library('pdf');
-            if(document.fonts?.ready)await document.fonts.ready;
+            // Network fonts may never settle on an offline print workstation.
+            // Do not hold a 100-person batch forever waiting for web fonts.
+            if(document.fonts?.ready){
+              await Promise.race([
+                document.fonts.ready,
+                new Promise(resolve=>setTimeout(resolve,1000))
+              ]);
+            }
             const output=await window.PDFLib.PDFDocument.create();
             // Embed one original page once: preserve vector backgrounds instead
             // of rasterizing the template 100 times.
