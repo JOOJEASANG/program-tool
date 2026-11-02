@@ -22,7 +22,7 @@ def test_multiup_javascript_parses_and_grid_uses_actual_print_dimensions():
 def test_original_template_is_reused_once_for_each_unique_recipient_sheet():
     src=JS.read_text(encoding="utf-8")
     for marker in (
-        "output", "pdf.embedPdf(bytes,[0])", "if(artwork)page.drawPage(artwork",
+        "output", "pdf.embedPage(original.getPage(0),box", "if(artwork)page.drawPage(artwork",
         "const i=", "plan.items(sheet)", "fieldText(f,list[pos.index])",
         "page.drawImage(img.image", "DPI=300", "page.drawLine(",
         "source=bytes", "new Uint8Array(source)", "MAX_PEOPLE=300",
