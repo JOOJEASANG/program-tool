@@ -30,6 +30,11 @@
         })};
       }
     };
+    // The browser smoke verifies document composition, not Chrome PNG encoder
+    // scheduling. Keep encoding deterministic to avoid virtual-time flakiness.
+    HTMLCanvasElement.prototype.toBlob=function(callback,type){
+      callback(new Blob([new Uint8Array([137,80,78,71,1,2,3])],{type:type||'image/png'}));
+    };
     window.__certPages=[];
     window.__certEmbeds=0;
     window.PDFLib={PDFDocument:{
