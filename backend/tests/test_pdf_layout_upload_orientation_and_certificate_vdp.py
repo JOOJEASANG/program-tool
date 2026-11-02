@@ -34,7 +34,7 @@ def test_certificate_mode_is_separate_from_standard_business_card_vdp():
         "cvPerson", "cvRun", "cvMode", "cvPreview", "cvCancel",
         "가변데이터 자동인쇄 · 일반/다단", "sourceDoc", "pdfjsLib.getDocument",
         "window.XLSX.read", "sheet_to_json", "localStorage.setItem",
-        "ctx.library('pdf')", "output.embedPdf(exportPdfBytes,[0])",
+        "ctx.library('pdf')", "output.embedPage(original.getPage(0),exportBox",
         "output.embedPng", "dpi=300", "MAX_PEOPLE=300",
         "가변데이터_일반_", "canvas.setPointerCapture",
     ):
