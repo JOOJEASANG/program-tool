@@ -52,14 +52,14 @@
     if(!window.PrintSpecialistUi)return setTimeout(load,80);
     const ui=window.PrintSpecialistUi;
     ui.register('certificates',{
-      title:'상장 · 수료증 가변데이터 인쇄',
-      description:'상장 PDF 한 장 + 엑셀 명단 → 사람별 상장 PDF 자동 생성',
+      title:'일반 가변인쇄 · 1명당 1페이지',
+      description:'상장·수료증·초청장·임명장 등 원본 PDF + 엑셀 명단 → 대상별 1페이지 출력',
       markup:[
-        '<p class="ps-help">상장 원본 PDF 1페이지와 엑셀 명단을 불러온 뒤 열을 연결하세요. 미리보기에서 문구를 클릭하거나 드래그해 정확한 위치를 지정합니다. 사람마다 한 페이지씩 300dpi 한글 인쇄 PDF를 생성합니다.</p>',
+        '<p class="ps-help">완성 인쇄물 PDF 1페이지와 엑셀 명단을 불러온 뒤 필요한 열을 연결하세요. 미리보기에서 문구를 클릭하거나 드래그해 정확한 위치를 지정합니다. 사람마다 한 페이지씩 300dpi 한글 인쇄 PDF를 생성합니다.</p>',
         '<div class="ps-fields">',
-        '<label class="wide">상장 원본 PDF (1페이지, 최대 30MB)<input id="cvPdf" type="file" accept=".pdf,application/pdf"></label>',
+        '<label class="wide">원본 디자인 PDF (1페이지, 최대 30MB)<input id="cvPdf" type="file" accept=".pdf,application/pdf"></label>',
         '<label class="wide">엑셀·CSV 명단 (첫 줄에 열 제목, 최대 10MB)<input id="cvRoster" type="file" accept=".xlsx,.xls,.csv,text/csv"></label>',
-        '<label>출력 내용<select id="cvMode"><option value="background">상장 원본 + 학생별 데이터</option><option value="only">학생별 데이터만 · 기성 상장용지 인쇄</option></select></label>',
+        '<label>출력 내용<select id="cvMode"><option value="background">원본 디자인 + 가변데이터</option><option value="only">가변 글자만 · 기성 인쇄용지</option></select></label>',
         '<label>미리보기 사람<select id="cvPerson"><option value="0">명단을 불러오세요</option></select></label>',
         '<label>표시 항목<select id="cvField"><option value="0">이름</option></select></label>',
         '<label>연결할 엑셀 열<select id="cvColumn"><option value="-1">사용 안 함</option></select></label>',
@@ -73,8 +73,8 @@
         '</div>',
         '<div class="ps-actions"><button type="button" id="cvAdd" class="ps-btn secondary">엑셀 열 항목 추가</button><button type="button" id="cvRemove" class="ps-btn secondary">선택 항목 삭제</button><button type="button" id="cvSave" class="ps-btn secondary">위치 설정 저장</button><button type="button" id="cvRestore" class="ps-btn secondary">위치 설정 불러오기</button></div>',
         '<p class="ps-help">좌표는 상장 왼쪽 위 기준입니다. 미리보기에서 글자를 끌어놓거나 빈 곳을 클릭하면 현재 선택 항목이 이동합니다. 개인정보가 들어 있는 명단과 PDF 원본은 서버로 업로드하지 않습니다.</p>',
-        '<div class="ps-actions"><button type="button" id="cvPreview" class="ps-btn secondary">상장 미리보기</button><button type="button" id="cvRun" class="ps-btn">명단 전체 상장 PDF 만들기</button><button type="button" id="cvCancel" class="ps-btn secondary" disabled>생성 중단</button></div>',
-        '<p class="ps-status" role="status" aria-live="polite">상장 원본 PDF와 엑셀 명단을 선택하세요.</p>',
+        '<div class="ps-actions"><button type="button" id="cvPreview" class="ps-btn secondary">출력 미리보기</button><button type="button" id="cvRun" class="ps-btn">명단 전체 가변인쇄 PDF 만들기</button><button type="button" id="cvCancel" class="ps-btn secondary" disabled>생성 중단</button></div>',
+        '<p class="ps-status" role="status" aria-live="polite">원본 PDF와 엑셀 명단을 선택하세요.</p>',
         '<div class="ps-preview" id="cvCanvasBox"><canvas id="cvCanvas" role="img" aria-label="상장 데이터 위치 조정 미리보기" style="touch-action:none;cursor:crosshair"></canvas></div>',
         '<p class="ps-note">한 번에 최대 300명까지 생성합니다. PDF 배경은 가능한 한 벡터로 유지하고 한글 데이터는 300dpi 투명 이미지로 합성합니다. 기성 상장용지는 데이터만 인쇄를 선택해 시험 출력으로 위치를 검증하세요.</p>'
       ].join(''),
@@ -82,6 +82,7 @@
         const $=id=>body.querySelector('#'+id);
         const canvas=$('cvCanvas'),view=canvas.getContext('2d');
         let pdfBytes=null,sourceDoc=null,background=null,sourceW=595.28,sourceH=841.89;
+        let sourceBox=null;
         let headers=[],records=[],fields=sanitizeFields(defaults.map(f=>Object.assign({},f,{column:-1,face:'gothic',maxWidthMm:160})));
         let active=0,dragging=false,canceled=false,working=false;
         function field(){return fields[active];}
@@ -205,6 +206,13 @@
             const page=await doc.getPage(1);
             if(((page.rotate||0)%360+360)%360!==0){await doc.destroy();throw Error('회전된 PDF 원본은 PDF배치에서 먼저 0도로 정리한 뒤 사용하세요.');}
             const viewport=page.getViewport({scale:1});
+            if(Number(page.userUnit||1)!==1){await doc.destroy();throw Error('특수 UserUnit PDF는 먼저 표준 크기로 변환하세요.');}
+            const box=Array.isArray(page.view)&&page.view.length===4
+              ?page.view:[0,0,viewport.width,viewport.height];
+            if(!box.every(Number.isFinite)||box[2]<=box[0]||box[3]<=box[1]){
+              await doc.destroy();throw Error('원본 PDF의 표시 영역을 확인하세요.');
+            }
+            sourceBox={left:box[0],bottom:box[1],right:box[2],top:box[3]};
             sourceW=viewport.width;sourceH=viewport.height;
             if(sourceW<=0||sourceH<=0||sourceW>2000||sourceH>2000){await doc.destroy();throw Error('지원하지 않는 상장 용지 크기입니다.');}
             const scale=Math.min(950/sourceW,1.5);
@@ -292,6 +300,7 @@
           const exportFields=fields.map(f=>({...f}));
           const exportW=sourceW,exportH=sourceH;
           const exportPdfBytes=new Uint8Array(pdfBytes);
+          const exportBox={...sourceBox};
           const exportMode=$('cvMode').value;
           working=true;canceled=false;
           body.querySelectorAll('input,select,button').forEach(node=>{
@@ -303,18 +312,15 @@
             await ctx.library('pdf');
             // Network fonts may never settle on an offline print workstation.
             // Do not hold a 100-person batch forever waiting for web fonts.
-            if(document.fonts?.ready){
-              await Promise.race([
-                document.fonts.ready,
-                new Promise(resolve=>setTimeout(resolve,1000))
-              ]);
-            }
+            if(document.fonts?.status==='loaded')await document.fonts.ready;
             const output=await window.PDFLib.PDFDocument.create();
             // Embed one original page once: preserve vector backgrounds instead
             // of rasterizing the template 100 times.
             let embedded=null;
             if(exportMode==='background'){
-              const pages=await output.embedPdf(exportPdfBytes,[0]);embedded=pages[0];
+              const original=await window.PDFLib.PDFDocument.load(exportPdfBytes);
+              embedded=await output.embedPage(original.getPage(0),exportBox,
+                [1,0,0,1,-exportBox.left,-exportBox.bottom]);
             }
             // Render only the variable TEXT bounding boxes at 300dpi.
             // A full A4 transparent bitmap for every award is needlessly slow
@@ -370,7 +376,7 @@
             overlay.width=1;overlay.height=1;
             if(canceled)throw Error('사용자 요청으로 생성이 중단됐습니다.');
             const bytes=await output.save({useObjectStreams:true});
-            ctx.download(bytes,'상장_가변데이터_'+exportRecords.length+'명.pdf');
+            ctx.download(bytes,'가변데이터_일반_'+exportRecords.length+'건.pdf');
             status(exportRecords.length+'명 상장 PDF가 완성됐습니다. 출력은 실제 크기 100%로 설정하세요.');
           }catch(error){status('생성 실패: '+error.message,true);}
           finally{
@@ -387,8 +393,8 @@
       const host=document.querySelector('.sidebar .first-panel');
       if(!host)return false;
       const button=document.createElement('button');button.type='button';button.id='cvLaunch';
-      button.className='ps-launch';button.textContent='상장·수료증 가변데이터 출력 · 엑셀 100명';
-      button.addEventListener('click',()=>ui.open('certificates'));host.appendChild(button);return true;
+      button.className='ps-launch';button.textContent='가변데이터 자동인쇄 · 일반/다단';
+      button.addEventListener('click',()=>ui.open('variable-hub'));host.appendChild(button);return true;
     }
     if(!launch()){let tries=0;const timer=setInterval(()=>{if(launch()||++tries>70)clearInterval(timer);},80);}
   }
