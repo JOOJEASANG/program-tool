@@ -93,7 +93,7 @@
         if(window.__certPages.length!==3)fail('one certificate page per person missing');
         if(window.__certEmbeds!==1)fail('vector template not embedded once');
         if(!window.__certPages.every(p=>p.background&&p.image))fail('certificate background or text overlay missing');
-        if(!$('.ps-status').textContent.includes('3명 상장 PDF가 완성'))fail('success status missing');
+        if(!overlay.querySelector('.ps-status').textContent.includes('3명 상장 PDF가 완성'))fail('success status missing');
         // Same roster printed on preprinted award paper: omit PDF background.
         window.__certPages=[];window.__certEmbeds=0;
         $('cvMode').value='only';$('cvMode').dispatchEvent(new Event('change'));
