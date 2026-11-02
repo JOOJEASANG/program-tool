@@ -73,8 +73,19 @@
       const $=id=>overlay.querySelector('#'+id);
       attach('mvRoster','recipients.xlsx','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
       await sleep(30);
+      const ready=new Promise((resolve,reject)=>{
+        const status=overlay.querySelector('.ps-status');
+        const observer=new MutationObserver(()=>{
+          if(status.textContent.includes('완성품 원본 PDF')){
+            observer.disconnect();resolve();
+          }else if(status.textContent.includes('원본 PDF 크기')||status.classList.contains('error')){
+            observer.disconnect();reject(Error(status.textContent));
+          }
+        });
+        observer.observe(status,{characterData:true,childList:true,subtree:true});
+      });
       attach('mvPdf','badge.pdf','application/pdf');
-      await sleep(50);
+      await ready;
       if($('mvPerson').options.length!==3)fail('recipient roster not loaded');
       if(!$('mvSummary').textContent.includes('21개'))fail('21-up A3 layout not shown');
       $('mvMarks').value='yes';$('mvMarks').dispatchEvent(new Event('change'));
