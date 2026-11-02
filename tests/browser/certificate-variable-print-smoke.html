@@ -14,6 +14,7 @@
         ['박지호','2012.11.04','6학년','2026-003']
       ];}}
     };
+    window.__multiSourceSmall=false;
     window.pdfjsLib={
       GlobalWorkerOptions:{},
       getDocument(){
@@ -22,7 +23,7 @@
           async getPage(){
             return {
               rotate:0,
-              getViewport({scale}){return {width:595.28*scale,height:841.89*scale};},
+              getViewport({scale}){return window.__multiSourceSmall?{width:90*72/25.4*scale,height:50*72/25.4*scale}:{width:595.28*scale,height:841.89*scale};},
               render({canvasContext}){canvasContext.fillStyle='#eee';canvasContext.fillRect(0,0,60,60);return {promise:Promise.resolve()};}
             };
           },
@@ -57,6 +58,8 @@
   </script>
   <script src="/js/print-specialists/ui.js"></script>
   <script src="/js/print-specialists/certificate-variable.js"></script>
+  <script src="/js/print-specialists/variable-multiup.js"></script>
+  <script src="/js/print-specialists/variable-hub.js"></script>
   <script>
     (async()=>{
       const result=document.getElementById('result');
@@ -72,7 +75,10 @@
         if(!document.getElementById('cvLaunch'))fail('certificate launch button missing');
         document.getElementById('cvLaunch').click();
         const overlay=document.getElementById('printSpecialistOverlay');
-        if(overlay?.dataset.activeTool!=='certificates')fail('certificate tool not open');
+        if(overlay?.dataset.activeTool!=='variable-hub')fail('unified variable print hub not open');
+        if(!overlay.querySelector('#vhMode'))fail('single/multi mode chooser missing');
+        overlay.querySelector('#vhStart').click();
+        if(overlay?.dataset.activeTool!=='certificates')fail('general one-page tool not open');
         const $=id=>overlay.querySelector('#'+id);
         if(!$('cvRoster')||!$('cvPdf')||!$('cvColumn')||!$('cvCanvas')||!$('cvRun'))fail('missing required editor controls');
         selectFile($('cvRoster'),'roster.xlsx','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
@@ -105,8 +111,32 @@
         if(!localStorage.getItem('program-studio-certificate-layout-v1'))fail('position-only layout not stored');
         $('cvRestore').click();
         if(!$('cvCanvas').width)fail('restored layout preview is missing');
+        document.getElementById('cvLaunch').click();
+        if(overlay?.dataset.activeTool!=='variable-hub')fail('unified tool cannot reopen');
+        overlay.querySelector('#vhMode').value='multi-variable';
+        overlay.querySelector('#vhMode').dispatchEvent(new Event('change'));
+        overlay.querySelector('#vhStart').click();
+        if(overlay.dataset.activeTool!=='multi-variable')fail('multi-up mode did not open');
+        const m=id=>overlay.querySelector('#'+id);
+        if(!m('mvPdf')||!m('mvRoster')||!m('mvExport')||!m('mvMarks'))fail('multi-up tools missing');
+        window.__multiSourceSmall=true;
+        selectFile(m('mvRoster'),'roster.xlsx','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        await wait(80);
+        selectFile(m('mvPdf'),'badge.pdf','application/pdf');
+        await wait(90);
+        if(!m('mvSummary').textContent.includes('21개'))fail('90×50mm A3 multi-up should fit 21 slots: '+m('mvSummary').textContent);
+        if(m('mvPerson').options.length!==3)fail('multi-up roster did not load');
+        if(m('mvColumn').value!=='0')fail('multi-up name column not connected');
+        m('mvField').value='1';m('mvField').dispatchEvent(new Event('change'));
+        if(m('mvColumn').value!=='3')fail('multi-up number column not connected');
+        m('mvMarks').value='yes';m('mvMarks').dispatchEvent(new Event('change'));
+        if(m('mvCanvas').width<200)fail('multi-up sheet preview not drawn');
+        m('mvAdd').click();
+        if(m('mvField').options.length!==4)fail('multi-up add column not working');
+        m('mvSave').click();
+        if(!localStorage.getItem('program-studio-variable-multi-layout-v1'))fail('multi-up layout not saved');
         document.body.dataset.certificateVdpSmoke='pass';
-        result.textContent='PASS: certificate Excel column mapping, PDF template preview, draggable field controls and print-only options are ready';
+        result.textContent='PASS: unified variable print opens single and multi modes, maps Excel fields, previews 21-up A3 and saves layout';
       }catch(error){
         document.body.dataset.certificateVdpSmoke='fail';
         result.textContent='FAIL: '+String(error.stack||error);
