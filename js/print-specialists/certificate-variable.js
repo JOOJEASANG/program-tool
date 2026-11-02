@@ -52,8 +52,8 @@
     if(!window.PrintSpecialistUi)return setTimeout(load,80);
     const ui=window.PrintSpecialistUi;
     ui.register('certificates',{
-      title:'일반 가변인쇄 · 1명당 1페이지'
-      description:'상장·수료증·초청장·임명장 등 원본 PDF + 엑셀 명단 → 대상별 1페이지 출력'
+      title:'일반 가변인쇄 · 1명당 1페이지',
+      description:'상장·수료증·초청장·임명장 등 원본 PDF + 엑셀 명단 → 대상별 1페이지 출력',
       markup:[
         '<p class="ps-help">완성 인쇄물 PDF 1페이지와 엑셀 명단을 불러온 뒤 필요한 열을 연결하세요. 미리보기에서 문구를 클릭하거나 드래그해 정확한 위치를 지정합니다. 사람마다 한 페이지씩 300dpi 한글 인쇄 PDF를 생성합니다.</p>',
         '<div class="ps-fields">',
