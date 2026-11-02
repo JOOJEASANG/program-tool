@@ -100,6 +100,7 @@ function install(){
     bind(body,ctx){
       const $=id=>body.querySelector('#'+id);
       let source=null,background=null,sourceDoc=null,sw=255.118,sh=141.732;
+      let sourceBox=null;
       let headers=[],records=[],fields=defaults.map((f,i)=>({
         label:f.label,aliases:f.aliases,col:-1,x:f.x,y:f.y,size:f.size,
         bold:i===0,align:'center',face:'gothic',maxWidthMm:80
@@ -236,6 +237,13 @@ function install(){
           if(viewport.width<=0||viewport.height<=0||viewport.width>2000||viewport.height>2000){
             await doc.destroy();throw Error('원본 PDF 크기를 확인하세요.');
           }
+          if(Number(page.userUnit||1)!==1){await doc.destroy();throw Error('특수 UserUnit PDF는 인쇄 배치 전에 표준 크기로 변환하세요.');}
+          const box=Array.isArray(page.view)&&page.view.length===4
+            ?page.view:[0,0,viewport.width,viewport.height];
+          if(!box.every(Number.isFinite)||box[2]<=box[0]||box[3]<=box[1]){
+            await doc.destroy();throw Error('원본 PDF의 표시 영역을 확인하세요.');
+          }
+          sourceBox={left:box[0],bottom:box[1],right:box[2],top:box[3]};
           sw=viewport.width;sh=viewport.height;
           const factor=Math.min(800/sw,1.5);
           const scaled=page.getViewport({scale:factor});
@@ -336,6 +344,7 @@ function install(){
         let plan;try{plan=paper();}catch(error){status(error.message,true);return;}
         const list=records.map(row=>[...row]),mapping=fields.map(f=>({...f}));
         const bytes=new Uint8Array(source),width=sw,height=sh;
+        const box={...sourceBox};
         const contentMode=$('mvMode').value,marks=$('mvMarks').value==='yes';
         working=true;stop=false;
         body.querySelectorAll('input,select,button').forEach(node=>{node.disabled=node.id!=='mvStop';});
@@ -348,7 +357,14 @@ function install(){
           }
           const pdf=await window.PDFLib.PDFDocument.create();
           let artwork=null;
-          if(contentMode==='background')artwork=(await pdf.embedPdf(bytes,[0]))[0];
+          if(contentMode==='background'){
+            // PDF.js previews the visible CropBox / MediaBox intersection.
+            // Embed that SAME region at the origin to avoid shifted artwork
+            // on templates with a cropped or non-zero MediaBox.
+            const original=await window.PDFLib.PDFDocument.load(bytes);
+            artwork=await pdf.embedPage(original.getPage(0),box,
+              [1,0,0,1,-box.left,-box.bottom]);
+          }
           const temp=document.createElement('canvas');temp.width=1;temp.height=1;
           const cache=new Map(),pixelScale=DPI/72;
           async function embedText(f,value){
