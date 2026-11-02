@@ -82,6 +82,7 @@
         const $=id=>body.querySelector('#'+id);
         const canvas=$('cvCanvas'),view=canvas.getContext('2d');
         let pdfBytes=null,sourceDoc=null,background=null,sourceW=595.28,sourceH=841.89;
+        let sourceBox=null;
         let headers=[],records=[],fields=sanitizeFields(defaults.map(f=>Object.assign({},f,{column:-1,face:'gothic',maxWidthMm:160})));
         let active=0,dragging=false,canceled=false,working=false;
         function field(){return fields[active];}
@@ -205,6 +206,13 @@
             const page=await doc.getPage(1);
             if(((page.rotate||0)%360+360)%360!==0){await doc.destroy();throw Error('회전된 PDF 원본은 PDF배치에서 먼저 0도로 정리한 뒤 사용하세요.');}
             const viewport=page.getViewport({scale:1});
+            if(Number(page.userUnit||1)!==1){await doc.destroy();throw Error('특수 UserUnit PDF는 먼저 표준 크기로 변환하세요.');}
+            const box=Array.isArray(page.view)&&page.view.length===4
+              ?page.view:[0,0,viewport.width,viewport.height];
+            if(!box.every(Number.isFinite)||box[2]<=box[0]||box[3]<=box[1]){
+              await doc.destroy();throw Error('원본 PDF의 표시 영역을 확인하세요.');
+            }
+            sourceBox={left:box[0],bottom:box[1],right:box[2],top:box[3]};
             sourceW=viewport.width;sourceH=viewport.height;
             if(sourceW<=0||sourceH<=0||sourceW>2000||sourceH>2000){await doc.destroy();throw Error('지원하지 않는 상장 용지 크기입니다.');}
             const scale=Math.min(950/sourceW,1.5);
@@ -292,6 +300,7 @@
           const exportFields=fields.map(f=>({...f}));
           const exportW=sourceW,exportH=sourceH;
           const exportPdfBytes=new Uint8Array(pdfBytes);
+          const exportBox={...sourceBox};
           const exportMode=$('cvMode').value;
           working=true;canceled=false;
           body.querySelectorAll('input,select,button').forEach(node=>{
@@ -314,7 +323,9 @@
             // of rasterizing the template 100 times.
             let embedded=null;
             if(exportMode==='background'){
-              const pages=await output.embedPdf(exportPdfBytes,[0]);embedded=pages[0];
+              const original=await window.PDFLib.PDFDocument.load(exportPdfBytes);
+              embedded=await output.embedPage(original.getPage(0),exportBox,
+                [1,0,0,1,-exportBox.left,-exportBox.bottom]);
             }
             // Render only the variable TEXT bounding boxes at 300dpi.
             // A full A4 transparent bitmap for every award is needlessly slow
