@@ -92,9 +92,27 @@
         await wait(90);
         if(!$('cvCanvas').height||!$('cvCanvas').width)fail('background preview not rendered');
         if(!$('cvPdf').files[0])fail('PDF upload not retained');
-        $('cvRun').click();
-        for(let n=0;n<80&&$('cvRun').disabled;n++)await wait(50);
-        if($('cvRun').disabled)fail('PDF generation did not finish');
+        async function exportAndWait(label){
+          const done=new Promise((resolve,reject)=>{
+            const button=$('cvRun'),status=overlay.querySelector('.ps-status');
+            let observer;
+            const check=()=>{
+              if(status.textContent.includes('생성 실패:')){
+                observer?.disconnect();reject(Error(label+': '+status.textContent));return;
+              }
+              if(!button.disabled&&status.textContent.includes('상장 PDF가 완성')){
+                observer?.disconnect();resolve();
+              }
+            };
+            observer=new MutationObserver(check);
+            observer.observe(button,{attributes:true,attributeFilter:['disabled']});
+            observer.observe(status,{subtree:true,childList:true,characterData:true});
+            check();
+          });
+          $('cvRun').click();
+          await done;
+        }
+        await exportAndWait('background');
         if(window.__certPages.length!==3)fail('one certificate page per person missing');
         if(window.__certEmbeds!==1)fail('vector template not embedded once');
         if(!window.__certPages.every(p=>p.background&&p.image))fail('certificate background or text overlay missing');
@@ -102,9 +120,7 @@
         // Same roster printed on preprinted award paper: omit PDF background.
         window.__certPages=[];window.__certEmbeds=0;
         $('cvMode').value='only';$('cvMode').dispatchEvent(new Event('change'));
-        $('cvRun').click();
-        for(let n=0;n<80&&$('cvRun').disabled;n++)await wait(50);
-        if($('cvRun').disabled)fail('print-only PDF generation did not finish');
+        await exportAndWait('print-only');
         if(window.__certPages.length!==3||window.__certEmbeds!==0)fail('print-only output still included a template background');
         if(!window.__certPages.every(p=>p.image&&!p.background))fail('print-only text layer missing');
         document.body.dataset.certificateVdpSmoke='pass';
