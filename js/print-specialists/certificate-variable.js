@@ -353,7 +353,7 @@
               }
               if(i%5===0||i===records.length-1){
                 status('상장 생성 중 '+(i+1)+' / '+records.length+'명');
-                await new Promise(resolve=>setTimeout(resolve,0));
+                // Canvas PNG encoding already yields to the event loop.
               }
             }
             overlay.width=1;overlay.height=1;
