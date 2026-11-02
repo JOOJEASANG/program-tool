@@ -95,12 +95,13 @@
         async function exportAndWait(label){
           const done=new Promise((resolve,reject)=>{
             const button=$('cvRun'),status=overlay.querySelector('.ps-status');
-            let observer;
+            let observer,sawBusy=false;
             const check=()=>{
+              if(button.disabled)sawBusy=true;
               if(status.textContent.includes('생성 실패:')){
                 observer?.disconnect();reject(Error(label+': '+status.textContent));return;
               }
-              if(!button.disabled&&status.textContent.includes('상장 PDF가 완성')){
+              if(sawBusy&&!button.disabled&&status.textContent.includes('상장 PDF가 완성')){
                 observer?.disconnect();resolve();
               }
             };
