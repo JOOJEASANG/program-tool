@@ -285,8 +285,19 @@
           if(working)return;
           if(!pdfBytes||!records.length){status('상장 PDF와 엑셀 명단을 먼저 불러오세요.',true);return;}
           if(!fields.some(f=>f.column>=0)){status('최소 한 개 항목의 엑셀 열을 연결하세요.',true);return;}
+          // Freeze the roster, template and field geometry before any await.
+          // Changes in a second dialog or late file input events cannot affect
+          // the pages of a print job that has already started.
+          const exportRecords=records.map(row=>[...row]);
+          const exportFields=fields.map(f=>({...f}));
+          const exportW=sourceW,exportH=sourceH;
+          const exportPdfBytes=new Uint8Array(pdfBytes);
+          const exportMode=$('cvMode').value;
           working=true;canceled=false;
-          $('cvRun').disabled=true;$('cvPreview').disabled=true;$('cvCancel').disabled=false;
+          body.querySelectorAll('input,select,button').forEach(node=>{
+            node.disabled=node.id!=='cvCancel';
+          });
+          canvas.style.pointerEvents='none';
           try{
             status('상장 PDF 생성 준비 중...');
             await ctx.library('pdf');
@@ -302,8 +313,8 @@
             // Embed one original page once: preserve vector backgrounds instead
             // of rasterizing the template 100 times.
             let embedded=null;
-            if($('cvMode').value==='background'){
-              const pages=await output.embedPdf(pdfBytes,[0]);embedded=pages[0];
+            if(exportMode==='background'){
+              const pages=await output.embedPdf(exportPdfBytes,[0]);embedded=pages[0];
             }
             // Render only the variable TEXT bounding boxes at 300dpi.
             // A full A4 transparent bitmap for every award is needlessly slow
@@ -319,7 +330,7 @@
               const px=f.size*pixelScale;
               const font=(f.bold?'700 ':'400 ')+px+'px '+fontFamily(f.face);
               layer.font=font;
-              const limitPx=Math.min(sourceW*.97,f.maxWidthMm*ptPerMm)*pixelScale;
+              const limitPx=Math.min(exportW*.97,f.maxWidthMm*ptPerMm)*pixelScale;
               const textWidth=Math.max(1,Math.min(limitPx,layer.measureText(value).width));
               const pad=Math.max(6,Math.ceil(px*.35));
               overlay.width=Math.ceil(textWidth+pad*2);
@@ -335,34 +346,38 @@
               textCache.set(key,result);
               return result;
             }
-            for(let i=0;i<records.length;i++){
+            for(let i=0;i<exportRecords.length;i++){
               if(canceled)throw Error('사용자 요청으로 생성이 중단됐습니다.');
-              const page=output.addPage([sourceW,sourceH]);
-              if(embedded)page.drawPage(embedded,{x:0,y:0,width:sourceW,height:sourceH});
-              for(const f of fields){
-                const value=fieldValue(f,records[i]);
+              const page=output.addPage([exportW,exportH]);
+              if(embedded)page.drawPage(embedded,{x:0,y:0,width:exportW,height:exportH});
+              for(const f of exportFields){
+                const value=fieldValue(f,exportRecords[i]);
                 if(!value)continue;
                 const image=await imageForText(f,value);
-                const anchorX=f.x*sourceW,anchorY=f.y*sourceH;
+                const anchorX=f.x*exportW,anchorY=f.y*exportH;
                 const x=f.align==='center'?anchorX-image.width/2:
                   f.align==='left'?anchorX-image.pad:anchorX-image.width+image.pad;
                 page.drawImage(image.image,{
-                  x,y:sourceH-anchorY-image.height/2,
+                  x,y:exportH-anchorY-image.height/2,
                   width:image.width,height:image.height
                 });
               }
-              if(i%5===0||i===records.length-1){
-                status('상장 생성 중 '+(i+1)+' / '+records.length+'명');
+              if(i%5===0||i===exportRecords.length-1){
+                status('상장 생성 중 '+(i+1)+' / '+exportRecords.length+'명');
                 // Canvas PNG encoding already yields to the event loop.
               }
             }
             overlay.width=1;overlay.height=1;
             if(canceled)throw Error('사용자 요청으로 생성이 중단됐습니다.');
             const bytes=await output.save({useObjectStreams:true});
-            ctx.download(bytes,'상장_가변데이터_'+records.length+'명.pdf');
-            status(records.length+'명 상장 PDF가 완성됐습니다. 출력은 실제 크기 100%로 설정하세요.');
+            ctx.download(bytes,'상장_가변데이터_'+exportRecords.length+'명.pdf');
+            status(exportRecords.length+'명 상장 PDF가 완성됐습니다. 출력은 실제 크기 100%로 설정하세요.');
           }catch(error){status('생성 실패: '+error.message,true);}
-          finally{working=false;$('cvRun').disabled=false;$('cvPreview').disabled=false;$('cvCancel').disabled=true;}
+          finally{
+            working=false;
+            body.querySelectorAll('input,select,button').forEach(node=>{node.disabled=node.id==='cvCancel';});
+            canvas.style.pointerEvents='auto';
+          }
         });
         updateFieldSelect();updateInputs();preview();
       }
