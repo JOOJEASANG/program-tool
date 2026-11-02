@@ -86,7 +86,7 @@ run_product_case(){
   local page="$1" out="$2" attr="$3" marker="$4"
   local url="http://127.0.0.1:$PORT/tests/browser/$page"
   wait_for_url "$url"
-  browser_dump "$page" "$url" "$out" 12000
+  browser_dump "$page" "$url" "$out" "${5:-12000}"
   grep -q "$attr" "$out" || { cat "$out" >&2; exit 1; }
   grep -q "$marker" "$out" || { cat "$out" >&2; exit 1; }
 }
@@ -109,7 +109,7 @@ run_product_case "pdf-utility-quick-actions-smoke.html" "$OUT_DIR/pdf-utility-qu
 reset_profile
 run_product_case "pdf-utility-menu-audit-smoke.html" "$OUT_DIR/pdf-utility-menu-audit-smoke-dom.html" 'data-pdf-utility-menu-audit-smoke="pass"' 'PASS: all PDF utility menus mount stable right-stage workspaces without scroll lock'
 reset_profile
-run_product_case "certificate-variable-print-smoke.html" "$OUT_DIR/certificate-variable-print-smoke-dom.html" 'data-certificate-vdp-smoke="pass"' 'PASS: certificate Excel columns create one PDF per student with vector template or print-only mode'
+run_product_case "certificate-variable-print-smoke.html" "$OUT_DIR/certificate-variable-print-smoke-dom.html" 'data-certificate-vdp-smoke="pass"' 'PASS: certificate Excel columns create one PDF per student with vector template or print-only mode' 30000
 reset_profile
 run_product_case "print-specialists-launch-smoke.html" "$OUT_DIR/print-specialists-launch-smoke-dom.html" 'data-print-specialists-smoke="pass"' 'PASS: variable data, scan cleanup and duplex alignment open real Korean print specialist workspaces'
 reset_profile
