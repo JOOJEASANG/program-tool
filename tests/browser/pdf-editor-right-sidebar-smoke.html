@@ -59,17 +59,18 @@ document.addEventListener('DOMContentLoaded',()=>{
       }
       close.click();
       if(api.open||!right.inert||toggle.getAttribute('aria-expanded')!=='false')fail('close did not restore preview width');
-      // Closing manually does not reopen on minor file page changes.
-      section.style.display='none';await Promise.resolve();
-      section.style.display='block';await Promise.resolve();
-      if(api.open)fail('manual close preference was ignored on reupload');
+      // Manual closing remains in effect until a new upload/reset cycle.
+      api.sync();
+      if(api.open)fail('manual close preference was ignored after sync');
       toggle.click();
       document.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}));
-      if(api.open)fail('Escape did not close page list with focus in the drawer');
-      // Reset removes pages and returns to the initial state.
+      if(api.open)fail('Escape did not close the page list');
+      // Reset removes pages and allows a subsequent new upload to auto-open.
       section.style.display='none';await Promise.resolve();
       if(api.open)fail('reset kept right list visible');
-      if(!document.getElementById('pageSidebarEmpty').hidden){}else fail('reset must show empty hint');
+      if(document.getElementById('pageSidebarEmpty').hidden)fail('reset must show empty hint');
+      section.style.display='block';await Promise.resolve();
+      if(window.innerWidth>1180&&!api.open)fail('new desktop import after reset did not auto-open');
       document.body.dataset.pdfRightSidebarSmoke='pass';
       document.getElementById('result').textContent='PASS: uploaded PDF thumbnails live in right sidebar with auto-open, manual collapse, resize, compact drawer and reset';
     }catch(error){
