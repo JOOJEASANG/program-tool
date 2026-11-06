@@ -301,6 +301,47 @@
       .preview-scroll { padding: 7px; }
     }
 
+
+    /* Page thumbnails live in one independent, resizable right sidebar. */
+    #pdfEditorApp{--page-sidebar-width:300px;min-width:0}
+    body[data-program-kind="pdf-editor"] .app#pdfEditorApp.page-sidebar-open{
+      grid-template-columns:360px minmax(0,1fr) var(--page-sidebar-width)!important;
+    }
+    #pdfEditorApp>main{min-width:0}
+    #pageSidebar{display:none!important;grid-column:3;position:relative!important;min-width:0;height:100%;overflow-y:auto;overflow-x:hidden;
+      padding:12px!important;background:#f7f9fc;border-left:1px solid #dbe4ec;border-right:0;scrollbar-gutter:stable}
+    #pdfEditorApp.page-sidebar-open>#pageSidebar{display:block!important}
+    #pageSidebar #thumbSection{margin-bottom:12px!important}
+    #pageSidebar #thumbArea{grid-template-columns:repeat(auto-fill,minmax(66px,1fr));}
+    #pageSidebar .page-sidebar-toolbar{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:3px 0 10px;position:sticky;top:-12px;
+      z-index:5;background:#f7f9fc;border-bottom:1px solid #e2e8f0;margin-bottom:10px}
+    #pageSidebar .page-sidebar-heading{font-size:13px;font-weight:900;color:#26384d}
+    .page-sidebar-toggle{flex:0 0 auto;border:1px solid #cbd5e1;border-radius:7px;background:#fff;color:#1e40af;
+      font:800 11px Pretendard,"Noto Sans KR",sans-serif;padding:6px 9px;cursor:pointer;white-space:nowrap}
+    .page-sidebar-toggle:hover,.page-sidebar-close:hover{background:#eff6ff;border-color:#93c5fd}
+    .page-sidebar-toggle:focus-visible,.page-sidebar-close:focus-visible,#pageSidebarResize:focus-visible{outline:2px solid #2563eb;outline-offset:2px}
+    .page-sidebar-toggle[aria-expanded="true"]{background:#eff6ff;border-color:#93c5fd}
+    .page-sidebar-close{flex:0 0 29px;width:29px;height:29px;border:1px solid #dce3ec;border-radius:8px;background:#fff;
+      font-size:19px;line-height:1;color:#475569;cursor:pointer}
+    .page-sidebar-empty{font-size:11px;line-height:1.65;color:#64748b;padding:14px 8px;text-align:center}
+    .page-sidebar-resizer{position:absolute;z-index:7;left:0;top:0;bottom:0;width:8px;cursor:col-resize;touch-action:none}
+    .page-sidebar-resizer:hover,.page-sidebar-resizer:focus-visible{background:rgba(37,99,235,.12)}
+    .page-sidebar-backdrop{display:none}
+    @media(max-width:1180px){
+      body[data-program-kind="pdf-editor"] .app#pdfEditorApp.page-sidebar-open{grid-template-columns:360px minmax(0,1fr)!important}
+      #pageSidebar{position:fixed!important;right:0;top:var(--nav-h);bottom:0;width:min(360px,calc(100vw - 20px))!important;
+        height:auto!important;max-height:none!important;z-index:780;box-shadow:-10px 0 24px rgba(15,23,42,.2)}
+      #pageSidebarResize{display:none}
+      .page-sidebar-backdrop:not([hidden]){display:block;position:fixed;inset:var(--nav-h) 0 0;z-index:770;background:rgba(15,23,42,.26)}
+    }
+    @media(max-width:980px){
+      body[data-program-kind="pdf-editor"] .app#pdfEditorApp.page-sidebar-open{grid-template-columns:1fr!important}
+    }
+    @media(max-width:520px){
+      .page-sidebar-toggle{font-size:10px;padding:6px 7px}
+      #pageSidebar{padding:10px!important;width:min(350px,calc(100vw - 12px))!important}
+    }
+
     /* ── Thumbnail context menu ───────────────────────────── */
     #thumbCtxMenu {
       position: fixed; z-index: 9999;
@@ -352,7 +393,7 @@
   </div>
 </nav>
 
-<div class="app">
+<div class="app" id="pdfEditorApp">
   <aside>
     <h1>PDF 문서 편집기</h1>
     <div class="sub">PDF 업로드 · 페이지 편집 · 간지 삽입 · 머리말/꼬리말 · 워터마크 · N-up 인쇄</div>
@@ -375,19 +416,6 @@
           <button class="mode-btn" data-mode="break">📌 비연속 추가</button>
         </div>
         <input type="file" id="fileInput" accept=".pdf,application/pdf" multiple aria-label="PDF 파일 선택">
-      </div>
-    </div>
-
-    <!-- 페이지 목록 -->
-    <div class="sec" id="thumbSection" style="display:none">
-      <div class="sec-head" data-sec="pages">
-        <span class="sec-title">페이지 목록</span>
-        <span class="slide-count" id="slideCount"></span>
-        <span class="sec-arrow">▾</span>
-      </div>
-      <div class="sec-body" id="sb-pages">
-        <div class="thumb-area" id="thumbArea"></div>
-        <div class="thumb-hint">클릭=제외 · 드래그=순서변경 · 배지=개별설정</div>
       </div>
     </div>
 
@@ -687,6 +715,7 @@
     <div id="statusBar" class="status-bar" style="display:none;"></div>
     <div class="preview-shell">
       <div class="preview-info">
+        <button type="button" id="pageSidebarToggle" class="page-sidebar-toggle" aria-controls="pageSidebar" aria-expanded="false" title="오른쪽 페이지 목록 열기">☷ 페이지</button>
         <span id="previewInfo">PDF 파일을 업로드하면 미리보기가 표시됩니다.</span>
         <span id="previewPages" style="color:#2563eb;font-weight:800;"></span>
         <div class="preview-zoom">
@@ -711,7 +740,29 @@
       </div>
     </div>
   </main>
+  <aside id="pageSidebar" class="page-sidebar" aria-label="오른쪽 페이지 목록" aria-hidden="true" inert>
+    <div id="pageSidebarResize" class="page-sidebar-resizer" role="separator" tabindex="0" aria-orientation="vertical" aria-label="페이지 목록 너비 조절" aria-valuemin="240" aria-valuemax="420" aria-valuenow="300" title="드래그 또는 방향키로 너비 조절"></div>
+    <div class="page-sidebar-toolbar">
+      <div class="page-sidebar-heading">페이지 목록</div>
+      <button id="pageSidebarClose" class="page-sidebar-close" type="button" aria-label="페이지 목록 닫기" title="페이지 목록 닫기">×</button>
+    </div>
+    <p id="pageSidebarEmpty" class="page-sidebar-empty">왼쪽에서 PDF를 업로드하면 여기에 페이지 목록이 표시됩니다.</p>
+    <!-- 페이지 목록 -->
+    <div class="sec" id="thumbSection" style="display:none">
+      <div class="sec-head" data-sec="pages">
+        <span class="sec-title">업로드된 페이지</span>
+        <span class="slide-count" id="slideCount"></span>
+        <span class="sec-arrow">▾</span>
+      </div>
+      <div class="sec-body" id="sb-pages">
+        <div class="thumb-area" id="thumbArea"></div>
+        <div class="thumb-hint">클릭=제외 · 드래그=순서변경 · 배지=개별설정</div>
+      </div>
+    </div>
+
+  </aside>
 </div>
+<div id="pageSidebarBackdrop" class="page-sidebar-backdrop" hidden></div>
 
 <!-- Divider Page Modal -->
 <!-- 편집 저장 / 불러오기 모달 -->
@@ -818,6 +869,7 @@
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <script src="../js/sw-register.js" defer></script>
+<script src="../js/pdf-editor/page-sidebar.js?v=20261106-1" defer></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
