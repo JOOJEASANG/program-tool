@@ -62,7 +62,7 @@
     close.addEventListener('click',()=>setOpen(false,true));
     backdrop.addEventListener('click',()=>setOpen(false,true));
     document.addEventListener('keydown',event=>{
-      if(event.key==='Escape'&&open&&(!wide()||sidebar.contains(document.activeElement))){
+      if(event.key==='Escape'&&open){
         setOpen(false,true);
       }
     });
