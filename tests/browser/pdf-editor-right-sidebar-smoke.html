@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>PDF right page list smoke</title>
+<style>
+.app{display:grid;grid-template-columns:360px minmax(0,1fr);min-height:400px}
+#pageSidebar{display:none}
+.app.page-sidebar-open #pageSidebar{display:block}
+</style>
+</head>
+<body data-pdf-right-sidebar-smoke="running">
+<div class="app" id="pdfEditorApp">
+  <aside><div id="sb-upload">기존 업로드·설정</div></aside>
+  <main><button type="button" id="pageSidebarToggle" aria-expanded="false" aria-controls="pageSidebar">☷ 페이지</button><div id="previewScroll">미리보기</div></main>
+  <aside id="pageSidebar" aria-label="오른쪽 페이지 목록" aria-hidden="true" inert>
+    <div id="pageSidebarResize" role="separator" tabindex="0" aria-orientation="vertical" aria-valuemin="240" aria-valuemax="420" aria-valuenow="300"></div>
+    <button type="button" id="pageSidebarClose">닫기</button>
+    <p id="pageSidebarEmpty">업로드하면 목록 표시</p>
+    <div id="thumbSection" style="display:none">
+      <div id="sb-pages"><div id="thumbArea"><div class="thumb-item" data-id="original-page-1">1p</div></div></div>
+    </div>
+  </aside>
+</div>
+<div id="pageSidebarBackdrop" hidden></div>
+<pre id="result">RUNNING</pre>
+<script src="/js/pdf-editor/page-sidebar.js?v=20261106-1"></script>
+<script>
+document.addEventListener('DOMContentLoaded',()=>{
+  (async()=>{
+    const app=document.getElementById('pdfEditorApp');
+    const right=document.getElementById('pageSidebar');
+    const section=document.getElementById('thumbSection');
+    const toggle=document.getElementById('pageSidebarToggle');
+    const close=document.getElementById('pageSidebarClose');
+    const grip=document.getElementById('pageSidebarResize');
+    const backdrop=document.getElementById('pageSidebarBackdrop');
+    const fail=msg=>{throw Error(msg);};
+    try{
+      const api=window.PdfEditorRightPageSidebar;
+      if(!api||api.open)fail('closed default panel missing');
+      if(!right.inert||right.getAttribute('aria-hidden')!=='true')fail('closed panel still focusable');
+      if(document.querySelectorAll('#thumbArea').length!==1||!right.contains(document.getElementById('thumbArea')))fail('thumbnail DOM is duplicated or not in right panel');
+      if(!document.getElementById('sb-upload').closest('aside')||right.contains(document.getElementById('sb-upload')))fail('left controls moved unexpectedly');
+      section.style.display='block';
+      await Promise.resolve();
+      if(window.innerWidth>1180&&!api.open)fail('desktop upload did not auto-open right list');
+      if(window.innerWidth<=1180&&api.open)fail('compact layout unexpectedly opened a drawer after upload');
+      if(document.getElementById('pageSidebarEmpty').hidden!==true)fail('empty hint remains after upload');
+      if(!api.open)toggle.click();
+      if(!api.open||right.inert||toggle.getAttribute('aria-expanded')!=='true')fail('page list toggle did not open');
+      if(window.innerWidth<=1180&&backdrop.hidden)fail('narrow screen backdrop missing');
+      if(window.innerWidth>1180){
+        const before=api.width;
+        grip.dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowLeft',bubbles:true}));
+        if(api.width<before)fail('keyboard resize did not grow right panel');
+        grip.dispatchEvent(new KeyboardEvent('keydown',{key:'Home',bubbles:true}));
+        if(api.width!==240)fail('Home did not set minimum sidebar width');
+      }
+      close.click();
+      if(api.open||!right.inert||toggle.getAttribute('aria-expanded')!=='false')fail('close did not restore preview width');
+      // Manual closing remains in effect until a new upload/reset cycle.
+      api.sync();
+      if(api.open)fail('manual close preference was ignored after sync');
+      toggle.click();
+      document.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}));
+      if(api.open)fail('Escape did not close the page list');
+      // Reset removes pages and allows a subsequent new upload to auto-open.
+      section.style.display='none';await Promise.resolve();
+      if(api.open)fail('reset kept right list visible');
+      if(document.getElementById('pageSidebarEmpty').hidden)fail('reset must show empty hint');
+      section.style.display='block';await Promise.resolve();
+      if(window.innerWidth>1180&&!api.open)fail('new desktop import after reset did not auto-open');
+      document.body.dataset.pdfRightSidebarSmoke='pass';
+      document.getElementById('result').textContent='PASS: uploaded PDF thumbnails live in right sidebar with auto-open, manual collapse, resize, compact drawer and reset';
+    }catch(error){
+      document.body.dataset.pdfRightSidebarSmoke='fail';
+      document.getElementById('result').textContent='FAIL: '+String(error.stack||error);
+    }
+  })();
+},{once:true});
+</script>
+</body>
+</html>
