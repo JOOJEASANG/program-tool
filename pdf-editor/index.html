@@ -345,7 +345,8 @@
        The compact bulk-action strip only appears after choosing pages. */
     html.pdf-direct-thumb-selection #pageSidebar #pageSelectionToolbar,
     html.pdf-direct-thumb-selection #pageSidebar #pdfPageJumpDetails,
-    html.pdf-direct-thumb-selection #pageSidebar #pageProductivityPanelV3.single-selection-ui:not(.selecting){display:none!important}
+    html.pdf-direct-thumb-selection #pageSidebar #pageProductivityPanelV3.single-selection-ui:not(.selecting):not(.has-history){display:none!important}
+    html.pdf-direct-thumb-selection #pageSidebar #pageProductivityPanelV3.single-selection-ui:not(.has-history) .page-productivity-jump{display:none!important}
     html.pdf-direct-thumb-selection #pageSidebar #pageProductivityPanelV3.single-selection-ui .page-productivity-top{display:none!important}
     html.pdf-direct-thumb-selection #pageSidebar #thumbArea .pdf-page-select-checkbox{display:block!important}
     #pageSidebar #thumbSection>.sec-head{display:flex;align-items:center;gap:6px;flex-wrap:nowrap}
