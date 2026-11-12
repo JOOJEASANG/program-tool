@@ -129,7 +129,7 @@ run_product_case "pdf-print-output-stage1-smoke.html" "$OUT_DIR/pdf-print-output
 reset_profile
 run_product_case "pdf-security-storage-policy-smoke.html" "$OUT_DIR/pdf-security-storage-smoke-dom.html" 'data-pdf-security-storage-smoke="pass"' 'PASS: PDF encrypt/decrypt uses Storage above 20MB with a 500MB file ceiling'
 reset_profile
-run_product_case "pdf-editor-workflow-v2-smoke.html" "$OUT_DIR/pdf-editor-workflow-v2-smoke-dom.html" 'data-workflow-v2-smoke="pass"' 'PASS: PDF editor page list collapses while the remaining recovery sidebar controls stay visible'
+run_product_case "pdf-editor-workflow-v2-smoke.html" "$OUT_DIR/pdf-editor-workflow-v2-smoke-dom.html" 'data-workflow-v2-smoke="pass"' 'PASS: PDF editor has collapsible advanced document options and an independently collapsible right page list'
 reset_profile
 run_product_case "pdf-divider-modal-layout-smoke.html" "$OUT_DIR/pdf-divider-modal-layout-smoke-dom.html" 'data-divider-modal-smoke="pass"' 'PASS: divider modal survives delayed studio load, opens on click and keeps actions in the narrow left panel'
 reset_profile
