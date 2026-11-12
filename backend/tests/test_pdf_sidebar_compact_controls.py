@@ -12,7 +12,7 @@ def test_only_one_global_selection_toolbar_is_visible():
     html = read("pdf-editor/index.html")
     selection = read("js/pdf-editor/page-selection-preview-focus.js")
     productivity = read("js/pdf-editor/page-count-hint.js")
-    assert '#pageSidebar #pageProductivityPanelV3.single-selection-ui .page-productivity-top{display:none!important}' in html
+    assert 'html.pdf-direct-thumb-selection #pageSidebar #pageProductivityPanelV3.single-selection-ui .page-productivity-top{display:none!important}' in html
     assert '#pageSidebar #pageProductivityPanelV3 .page-productivity-top{display:none!important}' not in html
     route = read("js/pdf-editor/route-runtime.js")
     assert "page-selection-preview-focus.js?v=20261112-4',app:'layout'" in route
@@ -46,7 +46,7 @@ def test_file_buttons_are_distinguishable_from_global_buttons():
     assert "['square','파일 해제'" in icons
     assert "['check-square','전체 선택'" in icons
     assert "['square','선택 해제'" in icons
-    assert "범위·홀짝 선택" in manual
+    assert "복잡한 범위·홀짝 선택" in manual
     assert "개별 여백" in manual
 
 
