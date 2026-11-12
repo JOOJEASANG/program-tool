@@ -305,7 +305,12 @@
 
     /* Compact four-direction override; remains tied to the existing output engine. */
     #pageSelectedMarginPanel[hidden]{display:none!important}
-    #pageSidebar .page-selected-margin-panel{margin:0 0 12px;padding:11px 10px;border:1px solid #cbdcf1;border-radius:10px;background:#fff}
+    #pageSidebar .page-selected-margin-panel{margin:0 0 10px;padding:0;border:1px solid #cbdcf1;border-radius:10px;background:#fff}
+    #pageSidebar .page-selected-margin-details>summary{list-style:none;cursor:pointer;min-height:38px;padding:0 10px}
+    #pageSidebar .page-selected-margin-details>summary::-webkit-details-marker{display:none}
+    #pageSidebar .page-selected-margin-details>summary::after{content:'⌄';font-size:16px;color:#64748b}
+    #pageSidebar .page-selected-margin-details[open]>summary::after{content:'⌃'}
+    #pageSidebar .page-selected-margin-content{padding:0 10px 10px}
     #pageSidebar .page-selected-margin-heading{display:flex;align-items:center;justify-content:space-between;gap:5px;font-size:12px;color:#1e3a5f}
     #pageSidebar .page-selected-margin-heading small{font-size:10px;color:#64748b}
     #pageSidebar #pageSelectedMarginCount{font-size:10px;color:#2563eb;font-weight:800;white-space:nowrap}
@@ -335,6 +340,9 @@
     #pageSidebar #thumbSection{margin-bottom:12px!important}
     #pageSidebar #thumbSection[style*="display: none"],#pageSidebar #thumbSection[style*="display:none"]{display:none!important}
     #pageSidebar #thumbArea{grid-template-columns:repeat(auto-fill,minmax(66px,1fr));}
+    /* The page selection toolbar owns the only global select-all control. */
+    #pageSidebar #pageProductivityPanelV3 .page-productivity-top{display:none!important}
+    #pageSidebar .pdf-file-selection-count{display:none!important}
     #pageSidebar :is(.pdf-file-nav-toggle,.pdf-file-order-handle,.pdf-file-select-btn,.pdf-file-delete-btn,.pdf-file-boundary,.page-selection-btn){
       box-sizing:border-box;min-height:32px;border-radius:8px;font-family:inherit;font-weight:800
     }
@@ -773,10 +781,12 @@
     </div>
     <p id="pageSidebarEmpty" class="page-sidebar-empty">왼쪽에서 PDF를 업로드하면 여기에 페이지 목록이 표시됩니다.</p>
     <section id="pageSelectedMarginPanel" class="page-selected-margin-panel" hidden aria-label="선택 페이지 개별 내용 여백">
-      <div class="page-selected-margin-heading">
-        <strong>선택 페이지 여백 <small>(mm)</small></strong>
-        <span id="pageSelectedMarginCount" aria-live="polite">0페이지</span>
-      </div>
+      <details id="pageSelectedMarginDetails" class="page-selected-margin-details">
+        <summary class="page-selected-margin-heading">
+          <strong>개별 여백 <small>(mm)</small></strong>
+          <span id="pageSelectedMarginCount" aria-live="polite">0페이지</span>
+        </summary>
+        <div class="page-selected-margin-content">
       <p class="page-selected-margin-help">페이지를 선택하면 그 페이지만 여백을 조절합니다. 전체 여백에 더하지 않습니다.</p>
       <div class="page-selected-margin-fields">
         <label>왼쪽<input id="pageSelectedMarginLeft" type="number" min="0" max="80" step="0.5" aria-label="선택 페이지 왼쪽 내용 여백 mm"></label>
@@ -789,6 +799,8 @@
         <button type="button" id="pageSelectedMarginReset" disabled>개별 여백 초기화</button>
       </div>
       <div id="pageSelectedMarginStatus" role="status" aria-live="polite">오른쪽 페이지 목록에서 페이지를 선택하세요.</div>
+        </div>
+      </details>
     </section>
     <!-- 페이지 목록 -->
     <div class="sec" id="thumbSection" style="display:none">
