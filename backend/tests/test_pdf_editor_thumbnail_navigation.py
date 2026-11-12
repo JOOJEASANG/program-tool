@@ -88,7 +88,7 @@ def test_stable_editor_surface_module_count_and_cache_versions():
     assert "location.search+location.hash" in legacy
     assert source.count("'/js/pdf-editor/") == 8
     assert "__pdfEditorModuleLoaderV18" in source
-    assert "page-count-hint.js?v=20261112-2" in source
+    assert "page-count-hint.js?v=20261112-3" in source
     assert "nup-helper.js?v=20260731-1" in source
     assert "preview-row-default.js?v=20260731-1" in source
     assert "divider-helper.js?v=20260731-2" in source
